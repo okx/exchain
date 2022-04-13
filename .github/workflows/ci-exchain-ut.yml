@@ -27,6 +27,9 @@ jobs:
     name: app ut
     needs: build
     runs-on: ubuntu-latest
+    cache:
+      paths: 
+        - *.out
     steps:
       - uses: actions/checkout@v2
 
@@ -37,17 +40,17 @@ jobs:
       - name: Go Test app
         run: |
           set -ex
-          echo "--> Run tests with coverage:"
-          mkdir -p /tmp/workspace/profiles
-
           path="./app/..."
           package_lines=`go list ${path}`
           cover_pkgs=`echo ${package_lines[@]} | sed 's/ /,/g'`
-          go list ${path} |xargs go test -mod=readonly -coverpkg=${cover_pkgs} -timeout 8m -coverprofile=/tmp/workspace/profiles/app_ut.out -covermode=atomic 
+          go list ${path} |xargs go test -mod=readonly -coverpkg=${cover_pkgs} -timeout 8m -coverprofile=app_ut.out -covermode=atomic 
   libs:
     name: libs ut
     needs: build
     runs-on: ubuntu-latest
+    cache:
+      paths: 
+        - *.out
     steps:
       - uses: actions/checkout@v2
 
@@ -57,14 +60,13 @@ jobs:
 
       - name: Go Test libs
         run: |
-          set -ex
-          echo "--> Run tests with coverage:"
-          mkdir -p /tmp/workspace/profiles
-
-          go list ./libs/... |xargs go test -mod=readonly -timeout 8m -coverprofile=/tmp/workspace/profiles/libs_ut.out -covermode=atomic -tags='norace ledger test_ledger_mock'
+          go list ./libs/... |xargs go test -mod=readonly -timeout 8m -coverprofile=libs_ut.out -covermode=atomic -tags='norace ledger test_ledger_mock'
   x:
     name: x ut
     needs: build
+    cache:
+      paths: 
+        - *.out
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -75,14 +77,13 @@ jobs:
 
       - name: Go Test x
         run: |
-          set -ex
-          echo "--> Run tests with coverage:"
-          mkdir -p /tmp/workspace/profiles
-
-          go list ./x/... |xargs go test -mod=readonly -timeout 8m -coverprofile=/tmp/workspace/profiles/x_ut.out -covermode=atomic 
+          go list ./x/... |xargs go test -mod=readonly -timeout 8m -coverprofile=x_ut.out -covermode=atomic 
 
   coverage:
     name: upload coverage
+    cache:
+      paths: 
+        - *.out
     needs: ["app","libs","x"]
     runs-on: ubuntu-latest
     steps:
@@ -97,10 +98,10 @@ jobs:
           set -ex
 
           echo "--> Gather coverage:"
-          ls /tmp/workspace/profiles/
+          ls *.out
           echo "mode: atomic" > coverage.txt
-          for prof in $(ls /tmp/workspace/profiles/); do
-            tail -n +2 /tmp/workspace/profiles/"$prof" >> coverage.txt
+          for prof in $(ls *.out); do
+            tail -n +2 "$prof" >> coverage.txt
           done
 
           echo "--> upload codecov:"
