@@ -60,11 +60,11 @@ type Keeper struct {
 	hooks types.EvmHooks
 }
 
-func (k *Keeper) SaveTxAndSuccessReceipt(evmTx sdk.Tx, txIndexInBlock uint64, resultData evmtx.ResultData, gasUsed uint64) error {
+func (k *Keeper) SaveEvmTxAndSuccessReceipt(evmTx sdk.Tx, txIndexInBlock uint64, resultData evmtx.ResultData, gasUsed uint64) error {
 	return k.Watcher.SaveTxAndSuccessReceipt(evmTx, txIndexInBlock, resultData, gasUsed)
 }
 
-func (k *Keeper) SaveTxAndFailedReceipt(evmTx sdk.Tx, txIndexInBlock uint64, resultData evmtx.ResultData, gasUsed uint64) error {
+func (k *Keeper) SaveEvmTxAndFailedReceipt(evmTx sdk.Tx, txIndexInBlock uint64, resultData evmtx.ResultData, gasUsed uint64) error {
 	return k.Watcher.SaveTxAndFailedReceipt(evmTx, txIndexInBlock, resultData, gasUsed)
 }
 
