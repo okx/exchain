@@ -137,7 +137,10 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 		return common.Hash{}, err
 	}
 
+	txHash := common.BytesToHash(types.Tx(txBytes).Hash(info.LastHeight))
 	from := common.HexToAddress(tx.GetFrom())
+	tx.Data.Hash = &txHash
+
 	api.txPool.mu.Lock()
 	defer api.txPool.mu.Unlock()
 	if err = api.txPool.CacheAndBroadcastTx(api, from, tx); err != nil {
@@ -145,7 +148,7 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 		return common.Hash{}, err
 	}
 
-	return common.BytesToHash(types.Tx(txBytes).Hash(info.LastHeight)), nil
+	return txHash, nil
 }
 
 func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.Address, tx *evmtypes.MsgEthereumTx) error {
