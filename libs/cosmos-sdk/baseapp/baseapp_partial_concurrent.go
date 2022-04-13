@@ -486,6 +486,7 @@ func (dttm *DTTManager) serialRoutine() {
 				dttr := dttm.dttRoutineList[nextTaskRoutine]
 				if dttr.readyForSerialExecution() {
 					dttm.app.logger.Info("ExtractNextSerialFromTicker", "index", dttm.serialIndex, "routine", nextTaskRoutine)
+					keepAliveTicker.Stop()
 					dttm.serialCh <- nextTaskRoutine
 				}
 			}
