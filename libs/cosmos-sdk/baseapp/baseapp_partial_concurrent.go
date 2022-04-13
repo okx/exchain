@@ -334,17 +334,17 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		}
 		if dttr.task.index < task.index && dttr.task.index > task.prevTaskIndex {
 			task.prevTaskIndex = dttr.task.index
-			//dttm.app.logger.Error("hasExistPrevTask1", "index", task.index, "prev", task.prevTaskIndex, "prevStep", dttr.step, "from", task.from)
+			dttm.app.logger.Error("hasExistPrevTask1", "index", task.index, "prev", task.prevTaskIndex, "prevStep", dttr.step, "from", task.from)
 		} else if dttr.task.index > task.index && (dttr.task.prevTaskIndex < 0 || dttr.task.prevTaskIndex < task.index) {
 			dttr.task.prevTaskIndex = task.index
-			//dttm.app.logger.Error("hasExistPrevTask2", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex, "from", task.from)
+			dttm.app.logger.Error("hasExistPrevTask2", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex, "from", task.from)
 		}
 	}
 	if task.prevTaskIndex >= 0 || task.index <= dttm.serialIndex { //|| dttr.needToRerun {
 		return nil
 	}
 
-	//dttm.app.logger.Info("RunAnte", "index", task.index)
+	dttm.app.logger.Info("RunAnte", "index", task.index)
 	task.info.ctx = dttm.app.getContextForTx(runTxModeDeliverPartConcurrent, task.info.txBytes) // same context for all txs in a block
 	task.canRerun = 0
 
@@ -359,11 +359,13 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	task.err = err
 
 	if task.canRerun > 0 {
-		//curDttr.logger.Error("rerunChInFromAnte", "index", task.index)
+		curDttr.logger.Error("rerunChInFromAnte", "index", task.index)
 		curDttr.shouldRerun(-1)
 	} else if dttm.serialIndex+1 == task.index && !curDttr.needToRerun && task.prevTaskIndex < 0 && dttm.serialTask == nil {
-		//dttm.app.logger.Info("ExtractNextSerialFromAnte", "index", curDttr.task.index, "step", curDttr.step, "needToRerun", curDttr.needToRerun)
+		dttm.app.logger.Info("ExtractNextSerialFromAnte", "index", curDttr.task.index, "step", curDttr.step, "needToRerun", curDttr.needToRerun)
 		dttm.serialCh <- task.routineIndex
+	} else {
+		dttm.app.logger.Info("AnteFinished.", "index", curDttr.task.index)
 	}
 
 	return nil
@@ -483,7 +485,7 @@ func (dttm *DTTManager) serialRoutine() {
 }
 
 func (dttm *DTTManager) serialExecution() {
-	//dttm.app.logger.Info("SerialStart", "index", dttm.serialTask.index)
+	dttm.app.logger.Info("SerialStart", "index", dttm.serialTask.index)
 	info := dttm.serialTask.info
 	handler := info.handler
 
