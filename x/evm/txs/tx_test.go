@@ -20,7 +20,7 @@ var sdkResult sdk.Result
 
 type EmptyAccount struct{}
 
-func (e EmptyAccount) Copy() interface{}                            { return nil }
+func (e EmptyAccount) Copy() sdk.Account                            { return nil }
 func (e EmptyAccount) GetAddress() sdk.AccAddress                   { return sdk.AccAddress{} }
 func (e EmptyAccount) SetAddress(address sdk.AccAddress) error      { return nil }
 func (e EmptyAccount) GetPubKey() crypto.PubKey                     { return nil }

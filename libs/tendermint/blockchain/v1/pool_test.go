@@ -81,7 +81,7 @@ func makeBlockPool(bcr *testBcR, height int64, peers []BpPeer, blocks map[int64]
 		bPool.peers[p.id].RequestSent(h)
 		if p.create {
 			// simulate that a block at height h has been received
-			_ = bPool.peers[p.id].AddBlock(types.MakeBlock(h, txs, nil, nil), nil, 100)
+			_ = bPool.peers[p.id].AddBlock(types.MakeBlock(h, txs, nil, nil), 100)
 		}
 	}
 	return bPool
@@ -459,7 +459,7 @@ func TestBlockPoolAddBlock(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.pool.AddBlock(tt.args.peerID, tt.args.block, nil, tt.args.blockSize)
+			err := tt.pool.AddBlock(tt.args.peerID, tt.args.block, tt.args.blockSize)
 			assert.Equal(t, tt.errWanted, err)
 			assertBlockPoolEquivalent(t, tt.poolWanted, tt.pool)
 		})
