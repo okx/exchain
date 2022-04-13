@@ -95,7 +95,7 @@ func (tx *Tx) DecorateResult(inResult *Result, evmResultData *types.ResultData, 
 		return nil, inErr
 	}
 	if inResult.ExecResult.Result != nil {
-		inResult.ExecResult.Result.EvmResultData = evmResultData
+		inResult.ExecResult.Result.SetEvmResultData(evmResultData)
 	}
 
 	return inResult.ExecResult.Result, inErr

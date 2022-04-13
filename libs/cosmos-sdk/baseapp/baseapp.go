@@ -815,7 +815,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		if err != nil {
 			return nil, sdkerrors.Wrapf(err, "failed to execute message; message index: %d", i)
 		}
-		evmResultData = msgResult.EvmResultData
+		evmResultData = msgResult.GetEvmResultData()
 
 		msgEvents := sdk.Events{
 			sdk.NewEvent(sdk.EventTypeMessage, sdk.NewAttribute(sdk.AttributeKeyAction, msg.Type())),
@@ -835,12 +835,14 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 
 	}
 
-	return &sdk.Result{
-		Data:          data,
-		Log:           strings.TrimSpace(msgLogs.String()),
-		Events:        events,
-		EvmResultData: evmResultData,
-	}, nil
+	sdkResult := &sdk.Result{
+		Data:   data,
+		Log:    strings.TrimSpace(msgLogs.String()),
+		Events: events,
+	}
+	sdkResult.SetEvmResultData(evmResultData)
+
+	return sdkResult, nil
 }
 
 func (app *BaseApp) Export(toApp *BaseApp, version int64) error {

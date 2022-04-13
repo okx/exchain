@@ -37,9 +37,9 @@ type Result struct {
 	// handler execution.
 	Events Events
 
-	// EvmResultData return evm result data to base app.
+	// evmResultData return evm result data to base app.
 	// we use the result data for watcher to save tx and receipt
-	EvmResultData interface{}
+	evmResultData interface{}
 }
 
 func (r *Result) GetEvmResultData() interface{} {
@@ -47,7 +47,14 @@ func (r *Result) GetEvmResultData() interface{} {
 		return nil
 	}
 
-	return r.EvmResultData
+	return r.evmResultData
+}
+
+func (r *Result) SetEvmResultData(evmResultData interface{}) {
+	if r == nil {
+		return
+	}
+	r.evmResultData = evmResultData
 }
 
 // SimulationResponse defines the response generated when a transaction is successfully
