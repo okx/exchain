@@ -83,7 +83,7 @@ func (suite *TypesTestSuite) TestPackConsensusState() {
 		},
 		{
 			"tendermint consensus",
-			suite.chainA.LastHeader.ConsensusState(),
+			suite.chainA.LastHeader().ConsensusState(),
 			true,
 		},
 		{
@@ -129,7 +129,7 @@ func (suite *TypesTestSuite) TestPackHeader() {
 		},
 		{
 			"tendermint header",
-			suite.chainA.LastHeader,
+			suite.chainA.LastHeader(),
 			true,
 		},
 		{
@@ -176,7 +176,7 @@ func (suite *TypesTestSuite) TestPackMisbehaviour() {
 		},
 		{
 			"tendermint misbehaviour",
-			ibctmtypes.NewMisbehaviour("tendermint", suite.chainA.LastHeader, suite.chainA.LastHeader),
+			ibctmtypes.NewMisbehaviour("tendermint", suite.chainA.LastHeader(), suite.chainA.LastHeader()),
 			true,
 		},
 		{

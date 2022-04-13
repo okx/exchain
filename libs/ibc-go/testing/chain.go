@@ -62,6 +62,7 @@ type TestChainI interface {
 	CreateTMClientHeader(chainID string, blockHeight int64, trustedHeight clienttypes.Height, timestamp time.Time, tmValSet, tmTrustedVals *tmtypes.ValidatorSet, signers []tmtypes.PrivValidator) *ibctmtypes.Header
 	Vals() *tmtypes.ValidatorSet
 	Signers() []tmtypes.PrivValidator
+	GetSimApp() *simapp.SimApp
 }
 
 // TestChain is a testing struct that wraps a simapp with the last TM Header, the current ABCI

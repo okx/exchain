@@ -209,7 +209,7 @@ func (suite *TypesTestSuite) TestMarshalMsgUpdateClient() {
 		},
 		{
 			"tendermint client", func() {
-				msg, err = types.NewMsgUpdateClient("tendermint", suite.chainA.CurrentTMClientHeader().ConsensusState(), suite.chainA.SenderAccount().GetAddress())
+				msg, err = types.NewMsgUpdateClient("tendermint", suite.chainA.CurrentTMClientHeader(), suite.chainA.SenderAccount().GetAddress())
 				suite.Require().NoError(err)
 
 			},
