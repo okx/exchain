@@ -161,20 +161,25 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 	}
 }
 
-func (dttr *dttRoutine) shouldRerun(fromIndex int) {
+func (dttr *dttRoutine) shouldRerun(fromIndex int, fromAccountUpdate int) {
 	if dttr.step == dttRoutineStepReadyForSerial || dttr.needToRerun == true || (dttr.task.prevTaskIndex >= 0 && dttr.task.prevTaskIndex > fromIndex) {
 		//dttr.logger.Error("willnotRerun", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex, "from", fromIndex, "step", dttr.step, "needToRerun", dttr.needToRerun)
 		return
 	}
 	if dttr.step == dttRoutineStepAnteStart || dttr.step == dttRoutineStepAnteFinished {
-		//dttr.logger.Error("shouldRerun", "index", dttr.task.index, "from", fromIndex, "step", dttr.step, "needToRerun", dttr.needToRerun)
-		dttr.needToRerun = true
-		if fromIndex < 0 {
-			dttr.logger.Error("sleepSomeTimeToWaitAccountUpdateFinished", "index", dttr.task.index)
-			time.Sleep(keepAliveIntervalMS * time.Microsecond)
+		if fromAccountUpdate >= 0 && dttr.task.prevTaskIndex < fromAccountUpdate {
+			dttr.logger.Error("setPrevTaskIndexFromAccountUpdate", "index", dttr.task.index, "from", fromIndex, "step", dttr.step, "prev", dttr.task.prevTaskIndex)
+			dttr.task.prevTaskIndex = fromAccountUpdate
+		} else {
+			//dttr.logger.Error("shouldRerun", "index", dttr.task.index, "from", fromIndex, "step", dttr.step, "needToRerun", dttr.needToRerun)
+			dttr.needToRerun = true
+			//if fromIndex < 0 {
+			//	dttr.logger.Error("sleepSomeTimeToWaitAccountUpdateFinished", "index", dttr.task.index)
+			//	time.Sleep(keepAliveIntervalMS * time.Microsecond)
+			//}
+			dttr.rerunCh <- 0 // todo: maybe blocked for several milliseconds. why?
+			//dttr.logger.Error("sendRerunCh", "index", dttr.task.index)
 		}
-		dttr.rerunCh <- 0 // todo: maybe blocked for several milliseconds. why?
-		//dttr.logger.Error("sendRerunCh", "index", dttr.task.index)
 	}
 }
 
@@ -375,7 +380,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 
 	if task.canRerun > 0 {
 		curDttr.logger.Error("rerunChInFromAnte", "index", task.index)
-		curDttr.shouldRerun(-1)
+		curDttr.shouldRerun(-1, -1)
 	} else if dttm.serialIndex+1 == task.index && !curDttr.needToRerun && task.prevTaskIndex < 0 && dttm.serialTask == nil {
 		dttm.app.logger.Info("ExtractNextSerialFromAnte", "index", curDttr.task.index, "step", curDttr.step, "needToRerun", curDttr.needToRerun)
 		dttm.serialCh <- task.routineIndex
@@ -459,7 +464,7 @@ func (dttm *DTTManager) serialRoutine() {
 				}
 				if !task.isEvm {
 					dttm.app.logger.Error("rerunFromCosmosTx", "index", dttr.task.index, "serial", task.index)
-					dttr.shouldRerun(task.index)
+					dttr.shouldRerun(task.index, -1)
 				} else if dttr.task.prevTaskIndex == task.index || dttm.hasConflict(dttr.task, task) { //dttr.task.from == task.from {
 					if dttr.task.prevTaskIndex < task.index {
 						dttr.task.prevTaskIndex = task.index
@@ -484,7 +489,7 @@ func (dttm *DTTManager) serialRoutine() {
 
 			if rerunRoutine != nil {
 				dttm.app.logger.Error("rerunRoutine", "index", rerunRoutine.task.index, "serial", task.index)
-				rerunRoutine.shouldRerun(task.index)
+				rerunRoutine.shouldRerun(task.index, -1)
 			}
 		case <-keepAliveTicker.C:
 			//dttm.app.logger.Error("keepAliveTicker", "routine", nextTaskRoutine)
@@ -595,6 +600,7 @@ func (dttm *DTTManager) accountUpdated(address string) {
 	}
 
 	num := len(dttm.dttRoutineList)
+	serialIndex := dttm.serialIndex
 	for i := 0; i < num; i++ {
 		dttr := dttm.dttRoutineList[i]
 		if dttr.task == nil || dttr.txIndex != dttr.task.index || !dttr.needToRerunWhenContextChanged() || dttr.task.from != address {
@@ -602,7 +608,7 @@ func (dttm *DTTManager) accountUpdated(address string) {
 		}
 
 		dttm.app.logger.Error("ShouldRerunFromObserver", "index", dttr.task.index, "step", dttr.step, "addr", address)
-		dttr.shouldRerun(-1)
+		dttr.shouldRerun(-1, serialIndex)
 	}
 }
 
