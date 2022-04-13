@@ -42,6 +42,8 @@ const (
 	MempoolTxsCnt     = "mempoolTxsCnt"
 
 	Prerun = "Prerun"
+
+	ActiveVC = "ActiveVC"
 )
 
 type IElapsedTimeInfos interface {
