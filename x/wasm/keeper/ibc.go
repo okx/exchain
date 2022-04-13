@@ -6,7 +6,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
-	host "github.com/okex/exchain/libs/ibc-go/v2/modules/core/24-host"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 
 	"github.com/okex/exchain/x/wasm/types"
 )

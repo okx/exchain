@@ -5,8 +5,8 @@ import (
 	"math/rand"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	simtypes "github.com/okex/exchain/libs/cosmos-sdk/types/simulation"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
+	simtypes "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
 
 	"github.com/okex/exchain/x/wasm/types"
 )

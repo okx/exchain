@@ -5,8 +5,8 @@ import (
 
 	authkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 	distributionkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/distribution/keeper"
-	paramtypes "github.com/okex/exchain/libs/cosmos-sdk/x/params/types"
 	stakingkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/staking/keeper"
+	paramtypes "github.com/okex/exchain/x/params"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

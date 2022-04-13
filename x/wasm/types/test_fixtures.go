@@ -148,7 +148,7 @@ func MsgInstantiateContractFixture(mutators ...func(*MsgInstantiateContract)) *M
 		Msg:    []byte(`{"foo":"bar"}`),
 		Funds: sdk.Coins{{
 			Denom:  "stake",
-			Amount: sdk.NewInt(1),
+			Amount: sdk.NewDecFromInt(sdk.NewInt(1)),
 		}},
 	}
 	for _, m := range mutators {
@@ -168,7 +168,7 @@ func MsgExecuteContractFixture(mutators ...func(*MsgExecuteContract)) *MsgExecut
 		Msg:      []byte(`{"do":"something"}`),
 		Funds: sdk.Coins{{
 			Denom:  "stake",
-			Amount: sdk.NewInt(1),
+			Amount: sdk.NewDecFromInt(sdk.NewInt(1)),
 		}},
 	}
 	for _, m := range mutators {

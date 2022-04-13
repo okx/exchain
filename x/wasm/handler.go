@@ -2,10 +2,9 @@ package wasm
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/libs/kv"
 
 	"github.com/gogo/protobuf/proto"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-
 	"github.com/okex/exchain/x/wasm/keeper"
 	"github.com/okex/exchain/x/wasm/types"
 
@@ -62,7 +61,7 @@ func filterMessageEvents(ctx sdk.Context) *sdk.EventManager {
 	return m
 }
 
-func hasWasmModuleAttribute(attrs []abci.EventAttribute) bool {
+func hasWasmModuleAttribute(attrs []kv.Pair) bool {
 	for _, a := range attrs {
 		if sdk.AttributeKeyModule == string(a.Key) &&
 			types.ModuleName == string(a.Value) {

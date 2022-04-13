@@ -42,8 +42,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	paramsclient "github.com/okex/exchain/libs/cosmos-sdk/x/params/client"
 	paramskeeper "github.com/okex/exchain/libs/cosmos-sdk/x/params/keeper"
-	paramstypes "github.com/okex/exchain/libs/cosmos-sdk/x/params/types"
-	paramproposal "github.com/okex/exchain/libs/cosmos-sdk/x/params/types/proposal"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/slashing"
 	slashingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/slashing/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/staking"
@@ -63,6 +61,8 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/libs/rand"
 	tmproto "github.com/okex/exchain/libs/tendermint/proto/tendermint/types"
+	paramstypes "github.com/okex/exchain/x/params"
+	paramproposal "github.com/okex/exchain/x/params/proposal"
 	"github.com/stretchr/testify/require"
 	dbm "github.com/tendermint/tm-db"
 

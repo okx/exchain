@@ -7,7 +7,7 @@ import (
 	"github.com/gogo/protobuf/jsonpb"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	paramtypes "github.com/okex/exchain/libs/cosmos-sdk/x/params/types"
+	paramtypes "github.com/okex/exchain/x/params"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )

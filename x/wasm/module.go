@@ -2,21 +2,17 @@ package wasm
 
 import (
 	"context"
-	"encoding/json"
 	"math/rand"
 
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	"github.com/okex/exchain/libs/cosmos-sdk/client"
+	clictx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	cdctypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	servertypes "github.com/okex/exchain/libs/cosmos-sdk/server/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	simtypes "github.com/okex/exchain/libs/cosmos-sdk/types/simulation"
+	simtypes "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/spf13/cast"
 	"github.com/spf13/cobra"
 
 	"github.com/okex/exchain/x/wasm/client/cli"
@@ -27,8 +23,9 @@ import (
 )
 
 var (
-	_ module.AppModule      = AppModule{}
-	_ module.AppModuleBasic = AppModuleBasic{}
+	_ module.AppModuleAdapter      = AppModule{}
+	_ module.AppModuleBasicAdapter = AppModuleBasic{}
+	_ module.AppModuleSimulation   = AppModule{}
 )
 
 // Module init related flags
@@ -41,11 +38,11 @@ const (
 // AppModuleBasic defines the basic application module used by the wasm module.
 type AppModuleBasic struct{}
 
-func (b AppModuleBasic) RegisterLegacyAminoCodec(amino *codec.LegacyAmino) { //nolint:staticcheck
-	RegisterCodec(amino)
-}
+//func (b AppModuleBasic) RegisterLegacyAminoCodec(amino *codec.LegacyAmino) { //nolint:staticcheck
+//	RegisterCodec(amino)
+//}
 
-func (b AppModuleBasic) RegisterGRPCGatewayRoutes(clientCtx client.Context, serveMux *runtime.ServeMux) {
+func (b AppModuleBasic) RegisterGRPCGatewayRoutes(clientCtx clictx.CLIContext, serveMux *runtime.ServeMux) {
 	err := types.RegisterQueryHandlerClient(context.Background(), serveMux, types.NewQueryClient(clientCtx))
 	if err != nil {
 		panic(err)
@@ -59,34 +56,34 @@ func (AppModuleBasic) Name() string {
 
 // DefaultGenesis returns default genesis state as raw bytes for the wasm
 // module.
-func (AppModuleBasic) DefaultGenesis(cdc codec.JSONCodec) json.RawMessage {
-	return cdc.MustMarshalJSON(&GenesisState{
-		Params: DefaultParams(),
-	})
-}
+//func (AppModuleBasic) DefaultGenesis(cdc codec.JSONCodec) json.RawMessage {
+//	return cdc.MustMarshalJSON(&GenesisState{
+//		Params: DefaultParams(),
+//	})
+//}
 
 // ValidateGenesis performs genesis state validation for the wasm module.
-func (b AppModuleBasic) ValidateGenesis(marshaler codec.JSONCodec, config client.TxEncodingConfig, message json.RawMessage) error {
-	var data GenesisState
-	err := marshaler.UnmarshalJSON(message, &data)
-	if err != nil {
-		return err
-	}
-	return ValidateGenesis(data)
-}
+//func (b AppModuleBasic) ValidateGenesis(marshaler codec.JSONCodec, config client.TxEncodingConfig, message json.RawMessage) error {
+//	var data GenesisState
+//	err := marshaler.UnmarshalJSON(message, &data)
+//	if err != nil {
+//		return err
+//	}
+//	return ValidateGenesis(data)
+//}
 
 // RegisterRESTRoutes registers the REST routes for the wasm module.
-func (AppModuleBasic) RegisterRESTRoutes(cliCtx client.Context, rtr *mux.Router) {
+func (AppModuleBasic) RegisterRESTRoutes(cliCtx clictx.CLIContext, rtr *mux.Router) {
 	rest.RegisterRoutes(cliCtx, rtr)
 }
 
 // GetTxCmd returns the root tx command for the wasm module.
-func (b AppModuleBasic) GetTxCmd() *cobra.Command {
+func (b AppModuleBasic) GetTxCmd(*codec.Codec) *cobra.Command {
 	return cli.GetTxCmd()
 }
 
 // GetQueryCmd returns no root query command for the wasm module.
-func (b AppModuleBasic) GetQueryCmd() *cobra.Command {
+func (b AppModuleBasic) GetQueryCmd(*codec.Codec) *cobra.Command {
 	return cli.GetQueryCmd()
 }
 
@@ -126,16 +123,16 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 	types.RegisterQueryServer(cfg.QueryServer(), NewQuerier(am.keeper))
 }
 
-func (am AppModule) LegacyQuerierHandler(amino *codec.LegacyAmino) sdk.Querier { //nolint:staticcheck
-	return keeper.NewLegacyQuerier(am.keeper, am.keeper.QueryGasLimit())
-}
+//func (am AppModule) LegacyQuerierHandler(amino *codec.LegacyAmino) sdk.Querier { //nolint:staticcheck
+//	return keeper.NewLegacyQuerier(am.keeper, am.keeper.QueryGasLimit())
+//}
 
 // RegisterInvariants registers the wasm module invariants.
 func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {}
 
 // Route returns the message routing key for the wasm module.
-func (am AppModule) Route() sdk.Route {
-	return sdk.NewRoute(RouterKey, NewHandler(keeper.NewDefaultPermissionKeeper(am.keeper)))
+func (am AppModule) Route() string {
+	return RouterKey
 }
 
 // QuerierRoute returns the wasm module's querier route name.
@@ -143,24 +140,24 @@ func (AppModule) QuerierRoute() string {
 	return QuerierRoute
 }
 
-// InitGenesis performs genesis initialization for the wasm module. It returns
-// no validator updates.
-func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONCodec, data json.RawMessage) []abci.ValidatorUpdate {
-	var genesisState GenesisState
-	cdc.MustUnmarshalJSON(data, &genesisState)
-	validators, err := InitGenesis(ctx, am.keeper, genesisState, am.validatorSetSource, am.Route().Handler())
-	if err != nil {
-		panic(err)
-	}
-	return validators
-}
+//// InitGenesis performs genesis initialization for the wasm module. It returns
+//// no validator updates.
+//func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONCodec, data json.RawMessage) []abci.ValidatorUpdate {
+//	var genesisState GenesisState
+//	cdc.MustUnmarshalJSON(data, &genesisState)
+//	validators, err := InitGenesis(ctx, am.keeper, genesisState, am.validatorSetSource, am.Route().Handler())
+//	if err != nil {
+//		panic(err)
+//	}
+//	return validators
+//}
 
 // ExportGenesis returns the exported genesis state as raw bytes for the wasm
 // module.
-func (am AppModule) ExportGenesis(ctx sdk.Context, cdc codec.JSONCodec) json.RawMessage {
-	gs := ExportGenesis(ctx, am.keeper)
-	return cdc.MustMarshalJSON(gs)
-}
+//func (am AppModule) ExportGenesis(ctx sdk.Context, cdc codec.JSONCodec) json.RawMessage {
+//	gs := ExportGenesis(ctx, am.keeper)
+//	return cdc.MustMarshalJSON(gs)
+//}
 
 // BeginBlock returns the begin blocker for the wasm module.
 func (am AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {}
@@ -209,34 +206,34 @@ func AddModuleInitFlags(startCmd *cobra.Command) {
 	startCmd.Flags().String(flagWasmSimulationGasLimit, "", "Set the max gas that can be spent when executing a simulation TX")
 }
 
-// ReadWasmConfig reads the wasm specifig configuration
-func ReadWasmConfig(opts servertypes.AppOptions) (types.WasmConfig, error) {
-	cfg := types.DefaultWasmConfig()
-	var err error
-	if v := opts.Get(flagWasmMemoryCacheSize); v != nil {
-		if cfg.MemoryCacheSize, err = cast.ToUint32E(v); err != nil {
-			return cfg, err
-		}
-	}
-	if v := opts.Get(flagWasmQueryGasLimit); v != nil {
-		if cfg.SmartQueryGasLimit, err = cast.ToUint64E(v); err != nil {
-			return cfg, err
-		}
-	}
-	if v := opts.Get(flagWasmSimulationGasLimit); v != nil {
-		if raw, ok := v.(string); ok && raw != "" {
-			limit, err := cast.ToUint64E(v) // non empty string set
-			if err != nil {
-				return cfg, err
-			}
-			cfg.SimulationGasLimit = &limit
-		}
-	}
-	// attach contract debugging to global "trace" flag
-	if v := opts.Get(server.FlagTrace); v != nil {
-		if cfg.ContractDebugMode, err = cast.ToBoolE(v); err != nil {
-			return cfg, err
-		}
-	}
-	return cfg, nil
-}
+//// ReadWasmConfig reads the wasm specifig configuration
+//func ReadWasmConfig(opts servertypes.AppOptions) (types.WasmConfig, error) {
+//	cfg := types.DefaultWasmConfig()
+//	var err error
+//	if v := opts.Get(flagWasmMemoryCacheSize); v != nil {
+//		if cfg.MemoryCacheSize, err = cast.ToUint32E(v); err != nil {
+//			return cfg, err
+//		}
+//	}
+//	if v := opts.Get(flagWasmQueryGasLimit); v != nil {
+//		if cfg.SmartQueryGasLimit, err = cast.ToUint64E(v); err != nil {
+//			return cfg, err
+//		}
+//	}
+//	if v := opts.Get(flagWasmSimulationGasLimit); v != nil {
+//		if raw, ok := v.(string); ok && raw != "" {
+//			limit, err := cast.ToUint64E(v) // non empty string set
+//			if err != nil {
+//				return cfg, err
+//			}
+//			cfg.SimulationGasLimit = &limit
+//		}
+//	}
+//	// attach contract debugging to global "trace" flag
+//	if v := opts.Get(server.FlagTrace); v != nil {
+//		if cfg.ContractDebugMode, err = cast.ToBoolE(v); err != nil {
+//			return cfg, err
+//		}
+//	}
+//	return cfg, nil
+//}

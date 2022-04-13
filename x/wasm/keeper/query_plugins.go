@@ -8,7 +8,7 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 
-	channeltypes "github.com/okex/exchain/libs/ibc-go/v2/modules/core/04-channel/types"
+	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 
 	"github.com/okex/exchain/x/wasm/types"
 
@@ -315,7 +315,7 @@ func StakingQuerier(keeper types.StakingKeeper, distKeeper types.DistributionKee
 			wasmVals := make([]wasmvmtypes.Validator, len(validators))
 			for i, v := range validators {
 				wasmVals[i] = wasmvmtypes.Validator{
-					Address:       v.OperatorAddress,
+					Address:       v.OperatorAddress.String(),
 					Commission:    v.Commission.Rate.String(),
 					MaxCommission: v.Commission.MaxRate.String(),
 					MaxChangeRate: v.Commission.MaxChangeRate.String(),
@@ -335,7 +335,7 @@ func StakingQuerier(keeper types.StakingKeeper, distKeeper types.DistributionKee
 			res := wasmvmtypes.ValidatorResponse{}
 			if found {
 				res.Validator = &wasmvmtypes.Validator{
-					Address:       v.OperatorAddress,
+					Address:       v.OperatorAddress.String(),
 					Commission:    v.Commission.Rate.String(),
 					MaxCommission: v.Commission.MaxRate.String(),
 					MaxChangeRate: v.Commission.MaxChangeRate.String(),
@@ -387,11 +387,11 @@ func sdkToDelegations(ctx sdk.Context, keeper types.StakingKeeper, delegations [
 	bondDenom := keeper.BondDenom(ctx)
 
 	for i, d := range delegations {
-		delAddr, err := sdk.AccAddressFromBech32(d.DelegatorAddress)
+		delAddr, err := sdk.AccAddressFromBech32(d.DelegatorAddress.String())
 		if err != nil {
 			return nil, sdkerrors.Wrap(err, "delegator address")
 		}
-		valAddr, err := sdk.ValAddressFromBech32(d.ValidatorAddress)
+		valAddr, err := sdk.ValAddressFromBech32(d.ValidatorAddress.String())
 		if err != nil {
 			return nil, sdkerrors.Wrap(err, "validator address")
 		}
@@ -414,11 +414,11 @@ func sdkToDelegations(ctx sdk.Context, keeper types.StakingKeeper, delegations [
 }
 
 func sdkToFullDelegation(ctx sdk.Context, keeper types.StakingKeeper, distKeeper types.DistributionKeeper, delegation stakingtypes.Delegation) (*wasmvmtypes.FullDelegation, error) {
-	delAddr, err := sdk.AccAddressFromBech32(delegation.DelegatorAddress)
+	delAddr, err := sdk.AccAddressFromBech32(delegation.DelegatorAddress.String())
 	if err != nil {
 		return nil, sdkerrors.Wrap(err, "delegator address")
 	}
-	valAddr, err := sdk.ValAddressFromBech32(delegation.ValidatorAddress)
+	valAddr, err := sdk.ValAddressFromBech32(delegation.ValidatorAddress.String())
 	if err != nil {
 		return nil, sdkerrors.Wrap(err, "validator address")
 	}
@@ -463,7 +463,7 @@ func sdkToFullDelegation(ctx sdk.Context, keeper types.StakingKeeper, distKeeper
 // https://github.com/okex/exchain/libs/cosmos-sdk/issues/7466 is merged
 func getAccumulatedRewards(ctx sdk.Context, distKeeper types.DistributionKeeper, delegation stakingtypes.Delegation) ([]wasmvmtypes.Coin, error) {
 	// Try to get *delegator* reward info!
-	params := distributiontypes.QueryDelegationRewardsRequest{
+	params := distributiontypes.QueryDelegationRewardsParams{
 		DelegatorAddress: delegation.DelegatorAddress,
 		ValidatorAddress: delegation.ValidatorAddress,
 	}
@@ -474,8 +474,8 @@ func getAccumulatedRewards(ctx sdk.Context, distKeeper types.DistributionKeeper,
 	}
 
 	// now we have it, convert it into wasmvm types
-	rewards := make([]wasmvmtypes.Coin, len(qres.Rewards))
-	for i, r := range qres.Rewards {
+	rewards := make([]wasmvmtypes.Coin, qres.Len())
+	for i, r := range *qres {
 		rewards[i] = wasmvmtypes.Coin{
 			Denom:  r.Denom,
 			Amount: r.Amount.TruncateInt().String(),

@@ -8,13 +8,13 @@ import (
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	banktypes "github.com/okex/exchain/libs/cosmos-sdk/x/bank/types"
+	banktypes "github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	distributiontypes "github.com/okex/exchain/libs/cosmos-sdk/x/distribution/types"
 	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
 	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
-	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/v2/modules/apps/transfer/types"
-	ibcclienttypes "github.com/okex/exchain/libs/ibc-go/v2/modules/core/02-client/types"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/v2/modules/core/04-channel/types"
+	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
+	ibcclienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 
 	"github.com/okex/exchain/x/wasm/types"
 )
@@ -115,9 +115,13 @@ func EncodeBankMsg(sender sdk.AccAddress, msg *wasmvmtypes.BankMsg) ([]sdk.Msg, 
 	if err != nil {
 		return nil, err
 	}
+	toAddress, err := sdk.AccAddressFromBech32(msg.Send.ToAddress)
+	if err != nil {
+		return nil, err
+	}
 	sdkMsg := banktypes.MsgSend{
-		FromAddress: sender.String(),
-		ToAddress:   msg.Send.ToAddress,
+		FromAddress: sender,
+		ToAddress:   toAddress,
 		Amount:      toSend,
 	}
 	return []sdk.Msg{&sdkMsg}, nil
@@ -130,15 +134,23 @@ func NoCustomMsg(sender sdk.AccAddress, msg json.RawMessage) ([]sdk.Msg, error) 
 func EncodeDistributionMsg(sender sdk.AccAddress, msg *wasmvmtypes.DistributionMsg) ([]sdk.Msg, error) {
 	switch {
 	case msg.SetWithdrawAddress != nil:
+		withDrawAddress, err := sdk.AccAddressFromBech32(msg.SetWithdrawAddress.Address)
+		if err != nil {
+			return nil, err
+		}
 		setMsg := distributiontypes.MsgSetWithdrawAddress{
-			DelegatorAddress: sender.String(),
-			WithdrawAddress:  msg.SetWithdrawAddress.Address,
+			DelegatorAddress: sender,
+			WithdrawAddress:  withDrawAddress,
 		}
 		return []sdk.Msg{&setMsg}, nil
 	case msg.WithdrawDelegatorReward != nil:
+		validatorAddress, err := sdk.AccAddressFromBech32(msg.WithdrawDelegatorReward.Validator)
+		if err != nil {
+			return nil, err
+		}
 		withdrawMsg := distributiontypes.MsgWithdrawDelegatorReward{
-			DelegatorAddress: sender.String(),
-			ValidatorAddress: msg.WithdrawDelegatorReward.Validator,
+			DelegatorAddress: sender,
+			ValidatorAddress: sdk.ValAddress(validatorAddress),
 		}
 		return []sdk.Msg{&withdrawMsg}, nil
 	default:
@@ -153,9 +165,13 @@ func EncodeStakingMsg(sender sdk.AccAddress, msg *wasmvmtypes.StakingMsg) ([]sdk
 		if err != nil {
 			return nil, err
 		}
+		validatorAddress, err := sdk.AccAddressFromBech32(msg.Delegate.Validator)
+		if err != nil {
+			return nil, err
+		}
 		sdkMsg := stakingtypes.MsgDelegate{
-			DelegatorAddress: sender.String(),
-			ValidatorAddress: msg.Delegate.Validator,
+			DelegatorAddress: sender,
+			ValidatorAddress: sdk.ValAddress(validatorAddress),
 			Amount:           coin,
 		}
 		return []sdk.Msg{&sdkMsg}, nil
@@ -165,10 +181,18 @@ func EncodeStakingMsg(sender sdk.AccAddress, msg *wasmvmtypes.StakingMsg) ([]sdk
 		if err != nil {
 			return nil, err
 		}
+		srcValidatorAddress, err := sdk.AccAddressFromBech32(msg.Redelegate.SrcValidator)
+		if err != nil {
+			return nil, err
+		}
+		dstValidatorAddress, err := sdk.AccAddressFromBech32(msg.Redelegate.DstValidator)
+		if err != nil {
+			return nil, err
+		}
 		sdkMsg := stakingtypes.MsgBeginRedelegate{
-			DelegatorAddress:    sender.String(),
-			ValidatorSrcAddress: msg.Redelegate.SrcValidator,
-			ValidatorDstAddress: msg.Redelegate.DstValidator,
+			DelegatorAddress:    sender,
+			ValidatorSrcAddress: sdk.ValAddress(srcValidatorAddress),
+			ValidatorDstAddress: sdk.ValAddress(dstValidatorAddress),
 			Amount:              coin,
 		}
 		return []sdk.Msg{&sdkMsg}, nil
@@ -177,9 +201,13 @@ func EncodeStakingMsg(sender sdk.AccAddress, msg *wasmvmtypes.StakingMsg) ([]sdk
 		if err != nil {
 			return nil, err
 		}
+		dstValidatorAddress, err := sdk.AccAddressFromBech32(msg.Undelegate.Validator)
+		if err != nil {
+			return nil, err
+		}
 		sdkMsg := stakingtypes.MsgUndelegate{
-			DelegatorAddress: sender.String(),
-			ValidatorAddress: msg.Undelegate.Validator,
+			DelegatorAddress: sender,
+			ValidatorAddress: sdk.ValAddress(dstValidatorAddress),
 			Amount:           coin,
 		}
 		return []sdk.Msg{&sdkMsg}, nil
@@ -276,9 +304,12 @@ func EncodeIBCMsg(portSource types.ICS20TransferPortSource) func(ctx sdk.Context
 				return nil, sdkerrors.Wrap(err, "amount")
 			}
 			msg := &ibctransfertypes.MsgTransfer{
-				SourcePort:       portSource.GetPort(ctx),
-				SourceChannel:    msg.Transfer.ChannelID,
-				Token:            amount,
+				SourcePort:    portSource.GetPort(ctx),
+				SourceChannel: msg.Transfer.ChannelID,
+				Token: sdk.CoinAdapter{
+					Denom:  amount.Denom,
+					Amount: sdk.NewIntFromBigInt(amount.Amount.BigInt()),
+				},
 				Sender:           sender.String(),
 				Receiver:         msg.Transfer.ToAddress,
 				TimeoutHeight:    ConvertWasmIBCTimeoutHeightToCosmosHeight(msg.Transfer.Timeout.Block),
@@ -304,8 +335,8 @@ func EncodeGovMsg(sender sdk.AccAddress, msg *wasmvmtypes.GovMsg) ([]sdk.Msg, er
 		option = govtypes.OptionAbstain
 	}
 	vote := &govtypes.MsgVote{
-		ProposalId: msg.Vote.ProposalId,
-		Voter:      sender.String(),
+		ProposalID: msg.Vote.ProposalId,
+		Voter:      sender,
 		Option:     option,
 	}
 	return []sdk.Msg{vote}, nil
@@ -340,7 +371,13 @@ func ConvertWasmCoinToSdkCoin(coin wasmvmtypes.Coin) (sdk.Coin, error) {
 	}
 	r := sdk.Coin{
 		Denom:  coin.Denom,
-		Amount: amount,
+		Amount: amount.ToDec(),
 	}
-	return r, r.Validate()
+	if err := sdk.ValidateDenom(coin.Denom); err != nil {
+		return sdk.Coin{}, nil
+	}
+	if r.IsNegative() {
+		return sdk.Coin{}, sdkerrors.Wrapf(sdkerrors.ErrInvalidCoins, coin.Amount+coin.Denom)
+	}
+	return r, nil
 }

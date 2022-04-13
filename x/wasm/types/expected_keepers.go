@@ -4,13 +4,13 @@ import (
 	"context"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	auth "github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/distribution/types"
 	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
-	connectiontypes "github.com/okex/exchain/libs/ibc-go/v2/modules/core/03-connection/types"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/v2/modules/core/04-channel/types"
-	ibcexported "github.com/okex/exchain/libs/ibc-go/v2/modules/core/exported"
+	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
+	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	ibcexported "github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
 
 // BankViewKeeper defines a subset of methods implemented by the cosmos-sdk bank keeper
@@ -37,16 +37,16 @@ type BankKeeper interface {
 // AccountKeeper defines a subset of methods implemented by the cosmos-sdk account keeper
 type AccountKeeper interface {
 	// Return a new account with the next account number and the specified address. Does not save the new account to the store.
-	NewAccountWithAddress(ctx sdk.Context, addr sdk.AccAddress) authtypes.AccountI
+	NewAccountWithAddress(ctx sdk.Context, addr sdk.AccAddress) auth.Account
 	// Retrieve an account from the store.
-	GetAccount(ctx sdk.Context, addr sdk.AccAddress) authtypes.AccountI
+	GetAccount(ctx sdk.Context, addr sdk.AccAddress) auth.Account
 	// Set an account in the store.
-	SetAccount(ctx sdk.Context, acc authtypes.AccountI)
+	SetAccount(ctx sdk.Context, acc auth.Account)
 }
 
 // DistributionKeeper defines a subset of methods implemented by the cosmos-sdk distribution keeper
 type DistributionKeeper interface {
-	DelegationRewards(c context.Context, req *types.QueryDelegationRewardsRequest) (*types.QueryDelegationRewardsResponse, error)
+	DelegationRewards(c context.Context, req *types.QueryDelegationRewardsParams) (*sdk.DecCoins, error)
 }
 
 // StakingKeeper defines a subset of methods implemented by the cosmos-sdk staking keeper

@@ -2,12 +2,11 @@ package keeper
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/libs/kv"
 
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-
 	"github.com/okex/exchain/x/wasm/types"
 )
 
@@ -198,7 +197,7 @@ func sdkEventsToWasmVMEvents(events []sdk.Event) []wasmvmtypes.Event {
 	return res
 }
 
-func sdkAttributesToWasmVMAttributes(attrs []abci.EventAttribute) []wasmvmtypes.EventAttribute {
+func sdkAttributesToWasmVMAttributes(attrs []kv.Pair) []wasmvmtypes.EventAttribute {
 	res := make([]wasmvmtypes.EventAttribute, len(attrs))
 	for i, attr := range attrs {
 		res[i] = wasmvmtypes.EventAttribute{
