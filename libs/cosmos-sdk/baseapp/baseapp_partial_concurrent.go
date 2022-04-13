@@ -239,25 +239,27 @@ func NewDTTManager(app *BaseApp) *DTTManager {
 }
 
 func (dttm *DTTManager) deliverTxs(txs [][]byte) {
-	dttm.done = make(chan int8, 1)
-
 	dttm.totalCount = len(txs)
 	dttm.app.logger.Info("TotalTxs", "count", dttm.totalCount)
+	dttm.txResponses = make([]*abci.ResponseDeliverTx, dttm.totalCount)
+	dttm.invalidTxs = 0
+	if dttm.totalCount == 0 {
+		return
+	}
+
 	totalSerialWaitingCount += dttm.totalCount
 
+	dttm.done = make(chan int8, 1)
 	dttm.txs = txs
 	dttm.serialTask = nil
 	dttm.serialIndex = -1
 	dttm.serialCh = make(chan int8, 3)
 
-	dttm.txResponses = make([]*abci.ResponseDeliverTx, len(txs))
-	dttm.invalidTxs = 0
-
 	dttm.checkStateCtx = dttm.app.checkState.ctx.WithBlockHeight(dttm.app.checkState.ctx.BlockHeight() + 1)
 
 	go dttm.serialRoutine()
 
-	for i := 0; i < maxDeliverTxsConcurrentNum; i++ {
+	for i := 0; i < maxDeliverTxsConcurrentNum && i < dttm.totalCount; i++ {
 		dttr := dttm.dttRoutineList[i]
 		dttr.OnStart()
 		dttr.makeNewTask(txs[i], i)
