@@ -62,7 +62,7 @@ func TestNewAppModuleBasic(t *testing.T) {
 	err = moduleBasic.ValidateGenesis(jsonMsg[:len(jsonMsg)-1])
 	require.NotNil(t, err)
 
-	rs := cliLcd.NewRestServer(codecProxy, nil)
+	rs := cliLcd.NewRestServer(codecProxy, interfaceReg,nil)
 	moduleBasic.RegisterRESTRoutes(rs.CliCtx, rs.Mux)
 
 	// todo: check diff after GetTxCmd
