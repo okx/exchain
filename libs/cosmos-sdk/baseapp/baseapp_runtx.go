@@ -189,8 +189,10 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 
 	info, err := app.runTx(runTxModeDeliver, req.Tx, realTx, LatestSimulateTxHeight)
 	if err != nil {
+		app.SaveTxAndFailedReceipt(realTx, app.GetTxIndexInBlock(), info.result.GetEvmResultData(), info.gInfo.GasUsed)
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}
+	app.SaveTxAndSuccessReceipt(realTx, app.GetTxIndexInBlock(), info.result.GetEvmResultData(), info.gInfo.GasUsed)
 
 	return abci.ResponseDeliverTx{
 		GasWanted: int64(info.gInfo.GasWanted), // TODO: Should type accept unsigned ints?

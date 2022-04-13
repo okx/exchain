@@ -3,6 +3,7 @@ package watcher
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/baseapp/evmtx"
 	"math/big"
 	"sync"
 
@@ -527,12 +528,26 @@ func (w *Watcher) CheckWatchDB(keys [][]byte, mode string) {
 	w.log.Info("watchDB delta", "mode", mode, "height", w.height, "hash", hex.EncodeToString(kvHash.Sum(nil)), "kv", output)
 }
 
-func (w *Watcher) FillInvalidTx(msg *evmtypes.MsgEthereumTx, txHash common.Hash, txIndex uint64, gasUsed uint64) {
+func (w *Watcher) SaveTxAndSuccessReceipt(sdkTx sdk.Tx, txIndexInBlock uint64, resultData evmtx.ResultData, gasUsed uint64) {
 	if !w.Enabled() {
 		return
 	}
-	w.SaveEthereumTx(msg, txHash, txIndex)
-	w.SaveTransactionReceipt(TransactionFailed, msg, txHash, txIndex, &evmtypes.ResultData{}, gasUsed)
+	evmTx, ok := sdkTx.(*evmtypes.MsgEthereumTx)
+	if ok {
+		w.SaveEthereumTx(evmTx, *resultData.GetTxHash(), txIndexInBlock)
+		w.SaveTransactionReceipt(TransactionSuccess, evmTx, *resultData.GetTxHash(), txIndexInBlock, nil, gasUsed)
+	}
+}
+
+func (w *Watcher) SaveTxAndFailedReceipt(sdkTx sdk.Tx, txIndexInBlock uint64, resultData evmtx.ResultData, gasUsed uint64) {
+	if !w.Enabled() {
+		return
+	}
+	evmTx, ok := sdkTx.(*evmtypes.MsgEthereumTx)
+	if ok {
+		w.SaveEthereumTx(evmTx, *resultData.GetTxHash(), txIndexInBlock)
+		w.SaveTransactionReceipt(TransactionSuccess, evmTx, *resultData.GetTxHash(), txIndexInBlock, nil, gasUsed)
+	}
 }
 
 func bytes2Key(keyBytes []byte) string {

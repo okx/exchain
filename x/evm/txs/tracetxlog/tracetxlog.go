@@ -5,6 +5,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/txs/check"
+	"github.com/okex/exchain/x/evm/types"
 )
 
 // tx trace tx log depends on check tx
@@ -19,7 +20,7 @@ func NewTx(config base.Config) *tx {
 }
 
 // DecorateResult trace log tx need modify the result to log, and swallow error
-func (t *tx) DecorateResult(inResult *base.Result, inErr error) (result *sdk.Result, err error) {
+func (t *tx) DecorateResult(inResult *base.Result, evmResultData *types.ResultData, inErr error) (result *sdk.Result, err error) {
 	if inResult == nil || inResult.ExecResult == nil || inResult.ExecResult.Result == nil {
 		return nil, fmt.Errorf("result is nil")
 	}

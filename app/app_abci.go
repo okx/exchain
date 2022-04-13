@@ -1,14 +1,11 @@
 package app
 
 import (
-	"github.com/ethereum/go-ethereum/common"
 	appconfig "github.com/okex/exchain/app/config"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/evm"
-	"github.com/okex/exchain/x/evm/types"
 )
 
 // BeginBlock implements the Application interface
@@ -24,7 +21,6 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 
 	analyzer.OnAppDeliverTxEnter()
 
-	originTxCount := app.EvmKeeper.TxCount
 	resp := app.BaseApp.DeliverTx(req)
 	app.EvmKeeper.TxIndexInBlock++
 
@@ -33,20 +29,6 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 		if err == nil {
 			//optimize get tx gas price can not get value from verifySign method
 			app.blockGasPrice = append(app.blockGasPrice, tx.GetGasPrice())
-		}
-	}
-
-	// record invalid tx to watcher
-	if !resp.IsOK() && originTxCount == app.EvmKeeper.TxCount {
-		var realTx sdk.Tx
-		if realTx, _ = app.BaseApp.ReapOrDecodeTx(req); realTx != nil {
-			for _, msg := range realTx.GetMsgs() {
-				evmTx, ok := msg.(*types.MsgEthereumTx)
-				if ok {
-					evmTxHash := common.BytesToHash(evmTx.TxHash())
-					app.EvmKeeper.Watcher.FillInvalidTx(evmTx, evmTxHash, uint64(app.EvmKeeper.TxIndexInBlock), uint64(resp.GasUsed))
-				}
-			}
 		}
 	}
 

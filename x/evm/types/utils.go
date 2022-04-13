@@ -149,6 +149,26 @@ type ResultData struct {
 	TxHash          ethcmn.Hash     `json:"tx_hash"`
 }
 
+func (rd *ResultData) GetContractAddr() *ethcmn.Address {
+	return &rd.ContractAddress
+}
+
+func (rd *ResultData) GetBoom() *ethtypes.Bloom {
+	return &rd.Bloom
+}
+
+func (rd *ResultData) GetLogs() []*ethtypes.Log {
+	return rd.Logs
+}
+
+func (rd *ResultData) GetRet() []byte {
+	return rd.Ret
+}
+
+func (rd *ResultData) GetTxHash() *ethcmn.Hash {
+	return &rd.TxHash
+}
+
 func UnmarshalEthLogFromAmino(data []byte) (*ethtypes.Log, error) {
 	var dataLen uint64 = 0
 	var subData []byte

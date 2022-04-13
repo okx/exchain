@@ -3,6 +3,7 @@ package keeper
 import (
 	"encoding/binary"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/baseapp/evmtx"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -47,7 +48,7 @@ type Keeper struct {
 	Watcher *watcher.Watcher
 	Ada     types.DbAdapter
 
-	TxIndexInBlock int
+	TxIndexInBlock uint64
 	LogsManages    *LogsManager
 
 	// add inner block data
@@ -57,6 +58,18 @@ type Keeper struct {
 	cci *chainConfigInfo
 
 	hooks types.EvmHooks
+}
+
+func (k *Keeper) SaveTxAndSuccessReceipt(evmTx sdk.Tx, txIndexInBlock uint64, resultData evmtx.ResultData, gasUsed uint64) {
+	k.Watcher.SaveTxAndSuccessReceipt(evmTx, txIndexInBlock, resultData, gasUsed)
+}
+
+func (k *Keeper) SaveTxAndFailedReceipt(evmTx sdk.Tx, txIndexInBlock uint64, resultData evmtx.ResultData, gasUsed uint64) {
+	k.Watcher.SaveTxAndFailedReceipt(evmTx, txIndexInBlock, resultData, gasUsed)
+}
+
+func (k *Keeper) GetTxIndexInBlock() uint64 {
+	return k.TxIndexInBlock
 }
 
 type chainConfigInfo struct {

@@ -79,12 +79,11 @@ func (e EmptyTx) DecorateResult(inResult *base.Result, inErr error) (result *sdk
 	return &sdkResult, nil
 }
 
-func (e EmptyTx) RestoreWatcherTransactionReceipt(msg *types.MsgEthereumTx) {}
-func (e EmptyTx) Commit(msg *types.MsgEthereumTx, result *base.Result)      {}
-func (e EmptyTx) EmitEvent(msg *types.MsgEthereumTx, result *base.Result)   {}
-func (e EmptyTx) FinalizeWatcher(account authexported.Account, err error)   {}
-func (e EmptyTx) AnalyzeStart(tag string)                                   {}
-func (e EmptyTx) AnalyzeStop(tag string)                                    {}
+func (e EmptyTx) Commit(msg *types.MsgEthereumTx, result *base.Result)    {}
+func (e EmptyTx) EmitEvent(msg *types.MsgEthereumTx, result *base.Result) {}
+func (e EmptyTx) FinalizeWatcher(account authexported.Account, err error) {}
+func (e EmptyTx) AnalyzeStart(tag string)                                 {}
+func (e EmptyTx) AnalyzeStop(tag string)                                  {}
 
 func TestTransitionEvmTx(t *testing.T) {
 	privateKey, _ := ethsecp256k1.GenerateKey()

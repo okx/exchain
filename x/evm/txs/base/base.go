@@ -90,10 +90,14 @@ func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 
 // DecorateResult TraceTxLog situation Decorate the result
 // it was replaced to trace logs when trace tx even if err != nil
-func (tx *Tx) DecorateResult(inResult *Result, inErr error) (result *sdk.Result, err error) {
+func (tx *Tx) DecorateResult(inResult *Result, evmResultData *types.ResultData, inErr error) (result *sdk.Result, err error) {
 	if inErr != nil {
 		return nil, inErr
 	}
+	if inResult.ExecResult.Result != nil {
+		inResult.ExecResult.Result.EvmResultData = evmResultData
+	}
+
 	return inResult.ExecResult.Result, inErr
 }
 
@@ -149,9 +153,6 @@ func (tx *Tx) ResetWatcher(account authexported.Account) {}
 
 // RefundFeesWatcher refund the watcher, check Tx do not save state so. skip
 func (tx *Tx) RefundFeesWatcher(account authexported.Account, coins sdk.Coins, price *big.Int) {}
-
-// RestoreWatcherTransactionReceipt check Tx do not need restore
-func (tx *Tx) RestoreWatcherTransactionReceipt(msg *types.MsgEthereumTx) {}
 
 // Commit check Tx do not need
 func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *Result) {}
