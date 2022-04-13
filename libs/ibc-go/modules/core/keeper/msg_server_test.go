@@ -32,8 +32,8 @@ type KeeperTestSuite struct {
 
 	coordinator *ibctesting.Coordinator
 
-	chainA *ibctesting.TestChain
-	chainB *ibctesting.TestChain
+	chainA ibctesting.TestChainI
+	chainB ibctesting.TestChainI
 }
 
 // SetupTest creates a coordinator with 2 test chains.
@@ -189,15 +189,15 @@ func (suite *KeeperTestSuite) TestHandleRecvPacket() {
 				proof, proofHeight = path.EndpointA.QueryProof(packetKey)
 			}
 
-			msg := channeltypes.NewMsgRecvPacket(packet, proof, proofHeight, suite.chainB.SenderAccount.GetAddress().String())
+			msg := channeltypes.NewMsgRecvPacket(packet, proof, proofHeight, suite.chainB.SenderAccount().GetAddress().String())
 
-			_, err := keeper.Keeper.RecvPacket(*suite.chainB.App.GetIBCKeeper(), sdk.WrapSDKContext(suite.chainB.GetContext()), msg)
+			_, err := keeper.Keeper.RecvPacket(*suite.chainB.App().GetIBCKeeper(), sdk.WrapSDKContext(suite.chainB.GetContext()), msg)
 
 			if tc.expPass {
 				suite.Require().NoError(err)
 
 				// replay should not fail since it will be treated as a no-op
-				_, err := keeper.Keeper.RecvPacket(*suite.chainB.App.GetIBCKeeper(), sdk.WrapSDKContext(suite.chainB.GetContext()), msg)
+				_, err := keeper.Keeper.RecvPacket(*suite.chainB.App().GetIBCKeeper(), sdk.WrapSDKContext(suite.chainB.GetContext()), msg)
 				suite.Require().NoError(err)
 
 				// check that callback state was handled correctly
@@ -209,7 +209,7 @@ func (suite *KeeperTestSuite) TestHandleRecvPacket() {
 				}
 
 				// verify if ack was written
-				ack, found := suite.chainB.App.GetIBCKeeper().ChannelKeeper.GetPacketAcknowledgement(suite.chainB.GetContext(), packet.GetDestPort(), packet.GetDestChannel(), packet.GetSequence())
+				ack, found := suite.chainB.App().GetIBCKeeper().ChannelKeeper.GetPacketAcknowledgement(suite.chainB.GetContext(), packet.GetDestPort(), packet.GetDestChannel(), packet.GetSequence())
 
 				if async {
 					suite.Require().Nil(ack)
@@ -353,17 +353,17 @@ func (suite *KeeperTestSuite) TestHandleAcknowledgePacket() {
 
 			msg := channeltypes.NewMsgAcknowledgement(packet, ibcmock.MockAcknowledgement.Acknowledgement(), proof, proofHeight, suite.chainA.SenderAccount().GetAddress().String())
 
-			_, err := keeper.Keeper.Acknowledgement(*suite.chainA.App.GetIBCKeeper(), sdk.WrapSDKContext(suite.chainA.GetContext()), msg)
+			_, err := keeper.Keeper.Acknowledgement(*suite.chainA.App().GetIBCKeeper(), sdk.WrapSDKContext(suite.chainA.GetContext()), msg)
 
 			if tc.expPass {
 				suite.Require().NoError(err)
 
 				// verify packet commitment was deleted on source chain
-				has := suite.chainA.App.GetIBCKeeper().ChannelKeeper.HasPacketCommitment(suite.chainA.GetContext(), packet.GetSourcePort(), packet.GetSourceChannel(), packet.GetSequence())
+				has := suite.chainA.App().GetIBCKeeper().ChannelKeeper.HasPacketCommitment(suite.chainA.GetContext(), packet.GetSourcePort(), packet.GetSourceChannel(), packet.GetSequence())
 				suite.Require().False(has)
 
 				// replay should not error as it is treated as a no-op
-				_, err := keeper.Keeper.Acknowledgement(*suite.chainA.App.GetIBCKeeper(), sdk.WrapSDKContext(suite.chainA.GetContext()), msg)
+				_, err := keeper.Keeper.Acknowledgement(*suite.chainA.App().GetIBCKeeper(), sdk.WrapSDKContext(suite.chainA.GetContext()), msg)
 				suite.Require().NoError(err)
 			} else {
 				suite.Require().Error(err)
@@ -484,17 +484,17 @@ func (suite *KeeperTestSuite) TestHandleTimeoutPacket() {
 
 			msg := channeltypes.NewMsgTimeout(packet, 1, proof, proofHeight, suite.chainA.SenderAccount().GetAddress().String())
 
-			_, err := keeper.Keeper.Timeout(*suite.chainA.App.GetIBCKeeper(), sdk.WrapSDKContext(suite.chainA.GetContext()), msg)
+			_, err := keeper.Keeper.Timeout(*suite.chainA.App().GetIBCKeeper(), sdk.WrapSDKContext(suite.chainA.GetContext()), msg)
 
 			if tc.expPass {
 				suite.Require().NoError(err)
 
 				// replay should not return an error as it is treated as a no-op
-				_, err := keeper.Keeper.Timeout(*suite.chainA.App.GetIBCKeeper(), sdk.WrapSDKContext(suite.chainA.GetContext()), msg)
+				_, err := keeper.Keeper.Timeout(*suite.chainA.App().GetIBCKeeper(), sdk.WrapSDKContext(suite.chainA.GetContext()), msg)
 				suite.Require().NoError(err)
 
 				// verify packet commitment was deleted on source chain
-				has := suite.chainA.App.GetIBCKeeper().ChannelKeeper.HasPacketCommitment(suite.chainA.GetContext(), packet.GetSourcePort(), packet.GetSourceChannel(), packet.GetSequence())
+				has := suite.chainA.App().GetIBCKeeper().ChannelKeeper.HasPacketCommitment(suite.chainA.GetContext(), packet.GetSourcePort(), packet.GetSourceChannel(), packet.GetSequence())
 				suite.Require().False(has)
 
 			} else {
@@ -640,17 +640,17 @@ func (suite *KeeperTestSuite) TestHandleTimeoutOnClosePacket() {
 
 			msg := channeltypes.NewMsgTimeoutOnClose(packet, 1, proof, proofClosed, proofHeight, suite.chainA.SenderAccount().GetAddress().String())
 
-			_, err := keeper.Keeper.TimeoutOnClose(*suite.chainA.App.GetIBCKeeper(), sdk.WrapSDKContext(suite.chainA.GetContext()), msg)
+			_, err := keeper.Keeper.TimeoutOnClose(*suite.chainA.App().GetIBCKeeper(), sdk.WrapSDKContext(suite.chainA.GetContext()), msg)
 
 			if tc.expPass {
 				suite.Require().NoError(err)
 
 				// replay should not return an error as it will be treated as a no-op
-				_, err := keeper.Keeper.TimeoutOnClose(*suite.chainA.App.GetIBCKeeper(), sdk.WrapSDKContext(suite.chainA.GetContext()), msg)
+				_, err := keeper.Keeper.TimeoutOnClose(*suite.chainA.App().GetIBCKeeper(), sdk.WrapSDKContext(suite.chainA.GetContext()), msg)
 				suite.Require().NoError(err)
 
 				// verify packet commitment was deleted on source chain
-				has := suite.chainA.App.GetIBCKeeper().ChannelKeeper.HasPacketCommitment(suite.chainA.GetContext(), packet.GetSourcePort(), packet.GetSourceChannel(), packet.GetSequence())
+				has := suite.chainA.App().GetIBCKeeper().ChannelKeeper.HasPacketCommitment(suite.chainA.GetContext(), packet.GetSourcePort(), packet.GetSourceChannel(), packet.GetSequence())
 				suite.Require().False(has)
 
 			} else {
@@ -693,9 +693,9 @@ func (suite *KeeperTestSuite) TestUpgradeClient() {
 				// last Height is at next block
 				lastHeight = clienttypes.NewHeight(0, uint64(tmpCtx.BlockHeight()+1))
 
-				upgradedClientBz, err := clienttypes.MarshalClientState(suite.chainA.App.AppCodec(), upgradedClient)
+				upgradedClientBz, err := clienttypes.MarshalClientState(suite.chainA.App().AppCodec(), upgradedClient)
 				suite.Require().NoError(err)
-				upgradedConsStateBz, err := clienttypes.MarshalConsensusState(suite.chainA.App.AppCodec(), upgradedConsState)
+				upgradedConsStateBz, err := clienttypes.MarshalConsensusState(suite.chainA.App().AppCodec(), upgradedConsState)
 				suite.Require().NoError(err)
 
 				// zero custom fields and store in upgrade store
@@ -707,14 +707,14 @@ func (suite *KeeperTestSuite) TestUpgradeClient() {
 				err = path.EndpointA.UpdateClient()
 				suite.Require().NoError(err)
 
-				cs, found := suite.chainA.App.GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
+				cs, found := suite.chainA.App().GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
 				suite.Require().True(found)
 
 				proofUpgradeClient, _ := suite.chainB.QueryUpgradeProof(upgradetypes.UpgradedClientKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
 				proofUpgradedConsState, _ := suite.chainB.QueryUpgradeProof(upgradetypes.UpgradedConsStateKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
 
 				msg, err = clienttypes.NewMsgUpgradeClient(path.EndpointA.ClientID, upgradedClient, upgradedConsState,
-					proofUpgradeClient, proofUpgradedConsState, suite.chainA.SenderAccount.GetAddress())
+					proofUpgradeClient, proofUpgradedConsState, suite.chainA.SenderAccount().GetAddress())
 				suite.Require().NoError(err)
 			},
 			expPass: true,
@@ -734,9 +734,9 @@ func (suite *KeeperTestSuite) TestUpgradeClient() {
 				// last Height is at next block
 				lastHeight = clienttypes.NewHeight(0, uint64(suite.chainB.GetContext().BlockHeight()+1))
 
-				upgradedClientBz, err := clienttypes.MarshalClientState(suite.chainA.App.AppCodec(), upgradedClient)
+				upgradedClientBz, err := clienttypes.MarshalClientState(suite.chainA.App().AppCodec(), upgradedClient)
 				suite.Require().NoError(err)
-				upgradedConsStateBz, err := clienttypes.MarshalConsensusState(suite.chainA.App.AppCodec(), upgradedConsState)
+				upgradedConsStateBz, err := clienttypes.MarshalConsensusState(suite.chainA.App().AppCodec(), upgradedConsState)
 				suite.Require().NoError(err)
 
 				// zero custom fields and store in upgrade store
@@ -748,7 +748,7 @@ func (suite *KeeperTestSuite) TestUpgradeClient() {
 				err = path.EndpointA.UpdateClient()
 				suite.Require().NoError(err)
 
-				msg, err = clienttypes.NewMsgUpgradeClient(path.EndpointA.ClientID, upgradedClient, upgradedConsState, nil, nil, suite.chainA.SenderAccount().GetAddress().String())
+				msg, err = clienttypes.NewMsgUpgradeClient(path.EndpointA.ClientID, upgradedClient, upgradedConsState, nil, nil, suite.chainA.SenderAccount().GetAddress())
 				suite.Require().NoError(err)
 			},
 			expPass: false,
@@ -762,11 +762,11 @@ func (suite *KeeperTestSuite) TestUpgradeClient() {
 
 		tc.setup()
 
-		_, err := keeper.Keeper.UpgradeClient(*suite.chainA.App.GetIBCKeeper(), sdk.WrapSDKContext(suite.chainA.GetContext()), msg)
+		_, err := keeper.Keeper.UpgradeClient(*suite.chainA.App().GetIBCKeeper(), sdk.WrapSDKContext(suite.chainA.GetContext()), msg)
 
 		if tc.expPass {
 			suite.Require().NoError(err, "upgrade handler failed on valid case: %s", tc.name)
-			newClient, ok := suite.chainA.App.GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
+			newClient, ok := suite.chainA.App().GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
 			suite.Require().True(ok)
 			newChainSpecifiedClient := newClient.ZeroCustomFields()
 			suite.Require().Equal(upgradedClient, newChainSpecifiedClient)

@@ -65,6 +65,8 @@ type TestChainI interface {
 	GetSimApp() *simapp.SimApp
 	GetChannelCapability(portID, channelID string) *capabilitytypes.Capability
 	CreateChannelCapability(scopedKeeper capabilitykeeper.ScopedKeeper, portID, channelID string)
+	SendMsgs(msgs ...sdk.Msg) (*sdk.Result, error)
+	QueryUpgradeProof(key []byte, height uint64) ([]byte, clienttypes.Height)
 }
 
 // TestChain is a testing struct that wraps a simapp with the last TM Header, the current ABCI
