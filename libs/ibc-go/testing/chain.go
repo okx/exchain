@@ -39,6 +39,18 @@ import (
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp"
 )
 
+type TestChainI interface {
+	ChainID() string
+	Codec() codec.BinaryCodec
+	SenderAccount() AccountI
+	GetClientState(clientID string) exported.ClientState
+	GetConsensusState(clientID string, height exported.Height) (exported.ConsensusState, bool)
+	App() TestingApp
+	GetContext() sdk.Context
+
+	CurrentHeader() tmproto.Header
+}
+
 // TestChain is a testing struct that wraps a simapp with the last TM Header, the current ABCI
 // header and the validators of the TestChain. It also contains a field called ChainID. This
 // is the clientID that *other* chains use to refer to this TestChain. The SenderAccount
@@ -72,7 +84,7 @@ type TestChain struct {
 //
 // Time management is handled by the Coordinator in order to ensure synchrony between chains.
 // Each update of any chain increments the block header time for all chains by 5 seconds.
-func NewTestChain(t *testing.T, coord *Coordinator, chainID string) *TestChain {
+func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 	// generate validator private/public key
 	privVal := mock.NewPV()
 	pubKey, err := privVal.GetPubKey()
@@ -173,7 +185,7 @@ func (chain *TestChain) QueryProofAtHeight(key []byte, height int64) ([]byte, cl
 	merkleProof, err := commitmenttypes.ConvertProofs(res.GetProof())
 	require.NoError(chain.t, err)
 
-	proof := chain.App.AppCodec().MustMarshal(&merkleProof)
+	proof, err := chain.App.AppCodec().GetProtocMarshal().MarshalBinaryBare(&merkleProof)
 	require.NoError(chain.t, err)
 
 	revision := clienttypes.ParseChainID(chain.ChainID)
@@ -200,7 +212,8 @@ func (chain *TestChain) QueryUpgradeProof(key []byte, height uint64) ([]byte, cl
 
 	// proof, err := chain.App.AppCodec().Marshal(&merkleProof)
 	// require.NoError(chain.t, err)
-	proof := chain.App.AppCodec().MustMarshal(&merkleProof)
+	proof, err := chain.App.AppCodec().GetProtocMarshal().MarshalBinaryBare(&merkleProof)
+	require.NoError(chain.t, err)
 
 	revision := clienttypes.ParseChainID(chain.ChainID)
 

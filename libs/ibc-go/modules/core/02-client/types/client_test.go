@@ -20,7 +20,7 @@ func (suite *TypesTestSuite) TestMarshalConsensusStateWithHeight() {
 	}{
 		{
 			"solo machine client", func() {
-				soloMachine := ibctesting.NewSolomachine(suite.T(), suite.chainA.Codec, "solomachine", "", 1)
+				soloMachine := ibctesting.NewSolomachine(suite.T(), suite.chainA.Codec(), "solomachine", "", 1)
 				cswh = types.NewConsensusStateWithHeight(types.NewHeight(0, soloMachine.Sequence), soloMachine.ConsensusState())
 			},
 		},
@@ -45,7 +45,7 @@ func (suite *TypesTestSuite) TestMarshalConsensusStateWithHeight() {
 
 			tc.malleate()
 
-			cdc := suite.chainA.App.AppCodec()
+			cdc := suite.chainA.App().AppCodec()
 
 			// marshal message
 			bz, err := cdc.GetCdc().MarshalJSON(&cswh)

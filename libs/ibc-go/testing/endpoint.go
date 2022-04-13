@@ -20,7 +20,7 @@ import (
 // configuration parameters. Endpoint functions will utilize the parameters
 // set in the configuration structs when executing IBC messages.
 type Endpoint struct {
-	Chain        *TestChain
+	Chain        TestChainI
 	Counterparty *Endpoint
 	ClientID     string
 	ConnectionID string
@@ -34,7 +34,7 @@ type Endpoint struct {
 // NewEndpoint constructs a new endpoint without the counterparty.
 // CONTRACT: the counterparty endpoint must be set by the caller.
 func NewEndpoint(
-	chain *TestChain, clientConfig ClientConfig,
+	chain TestChainI, clientConfig ClientConfig,
 	connectionConfig *ConnectionConfig, channelConfig *ChannelConfig,
 ) *Endpoint {
 	return &Endpoint{
@@ -47,7 +47,7 @@ func NewEndpoint(
 
 // NewDefaultEndpoint constructs a new endpoint using default values.
 // CONTRACT: the counterparty endpoitn must be set by the caller.
-func NewDefaultEndpoint(chain *TestChain) *Endpoint {
+func NewDefaultEndpoint(chain TestChainI) *Endpoint {
 	return &Endpoint{
 		Chain:            chain,
 		ClientConfig:     NewTendermintConfig(),

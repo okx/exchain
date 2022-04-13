@@ -23,12 +23,12 @@ type Coordinator struct {
 	t *testing.T
 
 	CurrentTime time.Time
-	Chains      map[string]*TestChain
+	Chains      map[string]TestChainI
 }
 
 // NewCoordinator initializes Coordinator with N TestChain's
 func NewCoordinator(t *testing.T, n int) *Coordinator {
-	chains := make(map[string]*TestChain)
+	chains := make(map[string]TestChainI)
 	coord := &Coordinator{
 		t:           t,
 		CurrentTime: globalStartTime,
@@ -67,9 +67,9 @@ func (coord *Coordinator) UpdateTime() {
 }
 
 // UpdateTimeForChain updates the clock for a specific chain.
-func (coord *Coordinator) UpdateTimeForChain(chain *TestChain) {
-	chain.CurrentHeader.Time = coord.CurrentTime.UTC()
-	chain.App.BeginBlock(abci.RequestBeginBlock{Header: chain.CurrentHeader})
+func (coord *Coordinator) UpdateTimeForChain(chain TestChainI) {
+	chain.CurrentHeader().Time = coord.CurrentTime.UTC()
+	chain.App().BeginBlock(abci.RequestBeginBlock{Header: chain.CurrentHeader()})
 }
 
 // Setup constructs a TM client, connection, and channel on both chains provided. It will
@@ -166,7 +166,7 @@ func (coord *Coordinator) CreateChannels(path *Path) {
 
 // GetChain returns the TestChain using the given chainID and returns an error if it does
 // not exist.
-func (coord *Coordinator) GetChain(chainID string) *TestChain {
+func (coord *Coordinator) GetChain(chainID string) TestChainI {
 	chain, found := coord.Chains[chainID]
 	require.True(coord.t, found, fmt.Sprintf("%s chain does not exist", chainID))
 	return chain
