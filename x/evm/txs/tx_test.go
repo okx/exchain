@@ -68,7 +68,7 @@ func (e EmptyTx) Transition(config types.ChainConfig) (result base.Result, err e
 	return
 }
 
-func (e EmptyTx) DecorateResult(inResult *base.Result, inErr error) (result *sdk.Result, err error) {
+func (e EmptyTx) DecorateResult(inResult *base.Result, evmResultData *types.ResultData, inErr error) (result *sdk.Result, err error) {
 	if e.DecorateResultFail {
 		return nil, fmt.Errorf("decorate result error")
 	}
