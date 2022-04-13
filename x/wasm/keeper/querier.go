@@ -65,7 +65,7 @@ func (q grpcQuerier) ContractHistory(c context.Context, req *types.QueryContract
 	pageRes, err := query.FilteredPaginate(prefixStore, req.Pagination, func(key []byte, value []byte, accumulate bool) (bool, error) {
 		if accumulate {
 			var e types.ContractCodeHistoryEntry
-			if err := q.cdc.Unmarshal(value, &e); err != nil {
+			if err := q.cdc.GetProtocMarshal().Unmarshal(value, &e); err != nil {
 				return false, err
 			}
 			e.Updated = nil // redact
@@ -235,7 +235,7 @@ func (q grpcQuerier) Codes(c context.Context, req *types.QueryCodesRequest) (*ty
 	pageRes, err := query.FilteredPaginate(prefixStore, req.Pagination, func(key []byte, value []byte, accumulate bool) (bool, error) {
 		if accumulate {
 			var c types.CodeInfo
-			if err := q.cdc.Unmarshal(value, &c); err != nil {
+			if err := q.cdc.GetProtocMarshal().Unmarshal(value, &c); err != nil {
 				return false, err
 			}
 			r = append(r, types.CodeInfoResponse{

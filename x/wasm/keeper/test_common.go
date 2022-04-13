@@ -38,31 +38,31 @@ import (
 	govkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/gov/keeper"
 	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
-	minttypes "github.com/okex/exchain/libs/cosmos-sdk/x/mint/types"
+	minttypes "github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	paramskeeper "github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	paramsclient "github.com/okex/exchain/libs/cosmos-sdk/x/params/client"
-	paramskeeper "github.com/okex/exchain/libs/cosmos-sdk/x/params/keeper"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/slashing"
-	slashingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/slashing/types"
+	slashingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/slashing"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/staking"
 	stakingkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/staking/keeper"
 	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
+	upgradekeeper "github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
+	upgradetypes "github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	upgradeclient "github.com/okex/exchain/libs/cosmos-sdk/x/upgrade/client"
-	upgradekeeper "github.com/okex/exchain/libs/cosmos-sdk/x/upgrade/keeper"
-	upgradetypes "github.com/okex/exchain/libs/cosmos-sdk/x/upgrade/types"
-	"github.com/okex/exchain/libs/ibc-go/v2/modules/apps/transfer"
-	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/v2/modules/apps/transfer/types"
-	ibc "github.com/okex/exchain/libs/ibc-go/v2/modules/core"
-	ibchost "github.com/okex/exchain/libs/ibc-go/v2/modules/core/24-host"
-	ibckeeper "github.com/okex/exchain/libs/ibc-go/v2/modules/core/keeper"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
+	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
+	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
+	ibchost "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	ibckeeper "github.com/okex/exchain/libs/ibc-go/modules/core/keeper"
+	tmproto "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/libs/rand"
-	tmproto "github.com/okex/exchain/libs/tendermint/proto/tendermint/types"
+	paramproposal "github.com/okex/exchain/x/params"
 	paramstypes "github.com/okex/exchain/x/params"
-	paramproposal "github.com/okex/exchain/x/params/proposal"
 	"github.com/stretchr/testify/require"
 	dbm "github.com/tendermint/tm-db"
 
@@ -203,7 +203,7 @@ func createTestInput(
 	tempDir := t.TempDir()
 
 	keys := sdk.NewKVStoreKeys(
-		authtypes.StoreKey, banktypes.StoreKey, stakingtypes.StoreKey,
+		authtypes.StoreKey, bank.StoreKey, stakingtypes.StoreKey,
 		minttypes.StoreKey, distributiontypes.StoreKey, slashingtypes.StoreKey,
 		govtypes.StoreKey, paramstypes.StoreKey, ibchost.StoreKey, upgradetypes.StoreKey,
 		evidencetypes.StoreKey, ibctransfertypes.StoreKey,
