@@ -5,6 +5,10 @@ on:
     branches: [ dev ]
   pull_request:
     branches: [ dev ]
+    
+cache:
+  paths: 
+    - coverage/
 
 jobs:
   Build:
@@ -27,9 +31,6 @@ jobs:
     name: app ut
     needs: build
     runs-on: ubuntu-latest
-    cache:
-      paths: 
-        - *.out
     steps:
       - uses: actions/checkout@v2
 
@@ -48,9 +49,6 @@ jobs:
     name: libs ut
     needs: build
     runs-on: ubuntu-latest
-    cache:
-      paths: 
-        - *.out
     steps:
       - uses: actions/checkout@v2
 
@@ -60,13 +58,10 @@ jobs:
 
       - name: Go Test libs
         run: |
-          go list ./libs/... |xargs go test -mod=readonly -timeout 8m -coverprofile=libs_ut.out -covermode=atomic -tags='norace ledger test_ledger_mock'
+          go list ./libs/... |xargs go test -mod=readonly -timeout 8m -coverprofile=./coverage/libs_ut.out -covermode=atomic -tags='norace ledger test_ledger_mock'
   x:
     name: x ut
     needs: build
-    cache:
-      paths: 
-        - *.out
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -77,13 +72,10 @@ jobs:
 
       - name: Go Test x
         run: |
-          go list ./x/... |xargs go test -mod=readonly -timeout 8m -coverprofile=x_ut.out -covermode=atomic 
+          go list ./x/... |xargs go test -mod=readonly -timeout 8m -coverprofile=./coverage/x_ut.out -covermode=atomic 
 
   coverage:
     name: upload coverage
-    cache:
-      paths: 
-        - *.out
     needs: ["app","libs","x"]
     runs-on: ubuntu-latest
     steps:
@@ -98,9 +90,9 @@ jobs:
           set -ex
 
           echo "--> Gather coverage:"
-          ls *.out
+          ls ./coverage/*.out
           echo "mode: atomic" > coverage.txt
-          for prof in $(ls *.out); do
+          for prof in $(ls ./coverage/*.out); do
             tail -n +2 "$prof" >> coverage.txt
           done
 
