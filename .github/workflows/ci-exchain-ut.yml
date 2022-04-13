@@ -37,19 +37,16 @@ jobs:
       - name: Run Test exchain/app
         run: |
           set -ex
-          tmpCache="/tmp/coverage/"
-          mkdir -p ${tmpCache}
           codePath="./app/..."
-          coverageFile="app_ut.out"
           package_lines=`go list ${codePath}`
           cover_pkgs=`echo ${package_lines[@]} | sed 's/ /,/g'`
-          go list ${codePath} |xargs go test -mod=readonly -coverpkg=${cover_pkgs} -timeout 8m -coverprofile="${tmpCache}${coverageFile}" -covermode=atomic
+          go list ${codePath} |xargs go test -mod=readonly -coverpkg=${cover_pkgs} -timeout 8m -coverprofile=coverage.data -covermode=atomic
 
       - name: Upload code coverage
         run: |
-          echo "--> upload codecov:"
+          set -ex
           echo "mode: atomic" > coverage.txt
-          tail -n +2 "${tmpCache}${coverageFile}" >> coverage.txt
+          tail -n +2 coverage.data >> coverage.txt
           bash <(curl -s https://codecov.io/bash) -f coverage.txt 
   libs:
     name: libs ut
@@ -65,16 +62,13 @@ jobs:
       - name: Go Test exchain/libs
         run: |
           set -ex
-          tmpCache="/tmp/coverage/"
-          mkdir -p ${tmpCache}
           codePath="./libs/..."
-          coverageFile="libs_ut.out"
-          go list ${codePath} |xargs go test -mod=readonly -timeout 10m -coverprofile="${tmpCache}${coverageFile}" -covermode=atomic -tags='norace ledger test_ledger_mock'
+          go list ${codePath} |xargs go test -mod=readonly -timeout 10m -coverprofile=coverage.data -covermode=atomic -tags='norace ledger test_ledger_mock'
       - name: Upload code coverage
         run: |
-          echo "--> upload codecov:"
+          set -ex
           echo "mode: atomic" > coverage.txt
-          tail -n +2 "${tmpCache}${coverageFile}" >> coverage.txt
+          tail -n +2 coverage.data >> coverage.txt
           bash <(curl -s https://codecov.io/bash) -f coverage.txt 
   x:
     name: x ut
@@ -90,16 +84,13 @@ jobs:
       - name: Run Test exchain/x
         run: |
           set -ex
-          tmpCache="/tmp/coverage/"
-          mkdir -p ${tmpCache}
           codePath="./x/..."
-          coverageFile="x_ut.out"
-          go list ${codePath} |xargs go test -mod=readonly -timeout 8m -coverprofile="${tmpCache}${coverageFile}" -covermode=atomic 
+          go list ${codePath} |xargs go test -mod=readonly -timeout 8m -coverprofile=coverage.data -covermode=atomic 
       - name: Upload code coverage
         run: |
-          echo "--> upload codecov:"
+          set -ex
           echo "mode: atomic" > coverage.txt
-          tail -n +2 "${tmpCache}${coverageFile}" >> coverage.txt
+          tail -n +2 coverage.data >> coverage.txt
           bash <(curl -s https://codecov.io/bash) -f coverage.txt 
 
 
