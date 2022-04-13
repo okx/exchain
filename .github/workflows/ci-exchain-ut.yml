@@ -5,12 +5,12 @@ on:
     branches: [ dev ]
   pull_request:
     branches: [ dev ]
-    
-cache:
-  paths: 
-    - coverage/
+
 
 jobs:
+  cache:
+    paths: 
+      - coverage/
   Build:
     runs-on: ubuntu-latest
     steps:
