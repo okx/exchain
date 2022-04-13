@@ -19,7 +19,7 @@ func newMockAccount(data int) *mockAccount {
 	}
 }
 
-func (m *mockAccount) Copy() interface{} {
+func (m *mockAccount) Copy() Account {
 	return m
 }
 
@@ -71,7 +71,7 @@ func newCache(parent *Cache) *Cache {
 func bz(s string) ethcmn.Address { return ethcmn.BytesToAddress([]byte(s)) }
 
 func keyFmt(i int) ethcmn.Address   { return bz(fmt.Sprintf("key%0.8d", i)) }
-func accountValueFmt(i int) account { return newMockAccount(i) }
+func accountValueFmt(i int) Account { return newMockAccount(i) }
 
 func TestCache(t *testing.T) {
 	parent := newCache(nil)
