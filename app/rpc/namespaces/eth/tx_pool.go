@@ -152,12 +152,11 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 
 func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.Address, tx *evmtypes.MsgEthereumTx) error {
 	// get currentNonce
-	blockNrOrHash := rpctypes.BlockNumberOrHashWithNumber(rpctypes.PendingBlockNumber)
-	pCurrentNonce, err := api.GetTransactionCount(address, blockNrOrHash)
+	acc, err := getAccountFromChain(api.clientCtx, address)
 	if err != nil {
 		return err
 	}
-	currentNonce := uint64(*pCurrentNonce)
+	currentNonce := acc.GetSequence()
 
 	if tx.Data.AccountNonce < currentNonce {
 		return fmt.Errorf("AccountNonce of tx is less than currentNonce in memPool: AccountNonce[%d], currentNonce[%d]", tx.Data.AccountNonce, currentNonce)
@@ -255,6 +254,8 @@ func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint6
 			pool.dropTxs(i, address)
 		}
 		pool.logger.Error(err.Error())
+	} else {
+		pool.dropTxs(i, address)
 	}
 
 	return err
