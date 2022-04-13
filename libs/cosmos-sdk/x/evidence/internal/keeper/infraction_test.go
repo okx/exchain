@@ -68,13 +68,13 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign() {
 	suite.True(suite.app.StakingKeeper.Validator(ctx, operatorAddr).GetTokens().Equal(newTokens))
 
 	// jump to past the unbonding period
-	ctx = ctx.WithBlockTime(time.Unix(1, 0).Add(stakingParams.UnbondingTime))
+	ctx.SetBlockTime(time.Unix(1, 0).Add(stakingParams.UnbondingTime))
 
 	// require we cannot unjail
 	suite.Error(suite.app.SlashingKeeper.Unjail(ctx, operatorAddr))
 
 	// require we be able to unbond now
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 	del, _ := suite.app.StakingKeeper.GetDelegation(ctx, sdk.AccAddress(operatorAddr), operatorAddr)
 	validator, _ := suite.app.StakingKeeper.GetValidator(ctx, operatorAddr)
 	totalBond := validator.TokensFromShares(del.GetShares()).TruncateInt()
@@ -112,7 +112,7 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign_TooOld() {
 		Power:            power,
 		ConsensusAddress: sdk.ConsAddress(val.Address()),
 	}
-	ctx = ctx.WithBlockTime(ctx.BlockTime().Add(suite.app.EvidenceKeeper.MaxEvidenceAge(ctx) + 1))
+	ctx.SetBlockTime(ctx.BlockTime().Add(suite.app.EvidenceKeeper.MaxEvidenceAge(ctx) + 1))
 	suite.keeper.HandleDoubleSign(ctx, evidence)
 
 	suite.False(suite.app.StakingKeeper.Validator(ctx, operatorAddr).IsJailed())

@@ -225,7 +225,9 @@ func queryBlockBloom(ctx sdk.Context, path []string, keeper Keeper) ([]byte, err
 		return nil, sdkerrors.Wrap(types.ErrStrConvertFailed, fmt.Sprintf("could not unmarshal block height: %s", err))
 	}
 
-	bloom := keeper.GetBlockBloom(ctx.WithBlockHeight(num), num)
+	copyCtx := ctx
+	copyCtx.SetBlockHeight(num)
+	bloom := keeper.GetBlockBloom(copyCtx, num)
 	res := types.QueryBloomFilter{Bloom: bloom}
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
 	if err != nil {

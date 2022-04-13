@@ -84,14 +84,14 @@ func TestSlashUnbondingDelegation(t *testing.T) {
 	require.Equal(t, int64(0), slashAmount.Int64())
 
 	// after the expiration time, no longer eligible for slashing
-	ctx = ctx.WithBlockHeader(abci.Header{Time: time.Unix(10, 0)})
+	ctx.SetBlockHeader(abci.Header{Time: time.Unix(10, 0)})
 	keeper.SetUnbondingDelegation(ctx, ubd)
 	slashAmount = keeper.slashUnbondingDelegation(ctx, ubd, 0, fraction)
 	require.Equal(t, int64(0), slashAmount.Int64())
 
 	// test valid slash, before expiration timestamp and to which stake contributed
 	oldUnbondedPool := keeper.GetNotBondedPool(ctx)
-	ctx = ctx.WithBlockHeader(abci.Header{Time: time.Unix(0, 0)})
+	ctx.SetBlockHeader(abci.Header{Time: time.Unix(0, 0)})
 	keeper.SetUnbondingDelegation(ctx, ubd)
 	slashAmount = keeper.slashUnbondingDelegation(ctx, ubd, 0, fraction)
 	require.Equal(t, int64(5), slashAmount.Int64())
@@ -139,7 +139,7 @@ func TestSlashRedelegation(t *testing.T) {
 	require.Equal(t, int64(0), slashAmount.Int64())
 
 	// after the expiration time, no longer eligible for slashing
-	ctx = ctx.WithBlockHeader(abci.Header{Time: time.Unix(10, 0)})
+	ctx.SetBlockHeader(abci.Header{Time: time.Unix(10, 0)})
 	keeper.SetRedelegation(ctx, rd)
 	validator, found = keeper.GetValidator(ctx, addrVals[1])
 	require.True(t, found)
@@ -147,7 +147,7 @@ func TestSlashRedelegation(t *testing.T) {
 	require.Equal(t, int64(0), slashAmount.Int64())
 
 	// test valid slash, before expiration timestamp and to which stake contributed
-	ctx = ctx.WithBlockHeader(abci.Header{Time: time.Unix(0, 0)})
+	ctx.SetBlockHeader(abci.Header{Time: time.Unix(0, 0)})
 	keeper.SetRedelegation(ctx, rd)
 	validator, found = keeper.GetValidator(ctx, addrVals[1])
 	require.True(t, found)
@@ -254,7 +254,7 @@ func TestSlashWithUnbondingDelegation(t *testing.T) {
 	keeper.SetUnbondingDelegation(ctx, ubd)
 
 	// slash validator for the first time
-	ctx = ctx.WithBlockHeight(12)
+	ctx.SetBlockHeight(12)
 	oldBondedPool := keeper.GetBondedPool(ctx)
 	validator, found := keeper.GetValidatorByConsAddr(ctx, consAddr)
 	require.True(t, found)
@@ -285,7 +285,7 @@ func TestSlashWithUnbondingDelegation(t *testing.T) {
 	require.Equal(t, int64(7), validator.GetConsensusPower())
 
 	// slash validator again
-	ctx = ctx.WithBlockHeight(13)
+	ctx.SetBlockHeight(13)
 	keeper.Slash(ctx, consAddr, 9, 10, fraction)
 	ubd, found = keeper.GetUnbondingDelegation(ctx, addrDels[0], addrVals[0])
 	require.True(t, found)
@@ -307,7 +307,7 @@ func TestSlashWithUnbondingDelegation(t *testing.T) {
 	// all originally bonded stake has been slashed, so this will have no effect
 	// on the unbonding delegation, but it will slash stake bonded since the infraction
 	// this may not be the desirable behaviour, ref https://github.com/cosmos/cosmos-sdk/issues/1440
-	ctx = ctx.WithBlockHeight(13)
+	ctx.SetBlockHeight(13)
 	keeper.Slash(ctx, consAddr, 9, 10, fraction)
 	ubd, found = keeper.GetUnbondingDelegation(ctx, addrDels[0], addrVals[0])
 	require.True(t, found)
@@ -329,7 +329,7 @@ func TestSlashWithUnbondingDelegation(t *testing.T) {
 	// all originally bonded stake has been slashed, so this will have no effect
 	// on the unbonding delegation, but it will slash stake bonded since the infraction
 	// this may not be the desirable behaviour, ref https://github.com/cosmos/cosmos-sdk/issues/1440
-	ctx = ctx.WithBlockHeight(13)
+	ctx.SetBlockHeight(13)
 	keeper.Slash(ctx, consAddr, 9, 10, fraction)
 	ubd, found = keeper.GetUnbondingDelegation(ctx, addrDels[0], addrVals[0])
 	require.True(t, found)
@@ -379,7 +379,7 @@ func TestSlashWithRedelegation(t *testing.T) {
 	oldNotBonded := notBondedPool.GetCoins().AmountOf(bondDenom)
 
 	// slash validator
-	ctx = ctx.WithBlockHeight(12)
+	ctx.SetBlockHeight(12)
 	validator, found := keeper.GetValidatorByConsAddr(ctx, consAddr)
 	require.True(t, found)
 
@@ -432,7 +432,7 @@ func TestSlashWithRedelegation(t *testing.T) {
 	require.Equal(t, int64(4), validator.GetConsensusPower())
 
 	// slash the validator again, by 100%
-	ctx = ctx.WithBlockHeight(12)
+	ctx.SetBlockHeight(12)
 	validator, found = keeper.GetValidatorByConsAddr(ctx, consAddr)
 	require.True(t, found)
 
@@ -461,7 +461,7 @@ func TestSlashWithRedelegation(t *testing.T) {
 
 	// slash the validator again, by 100%
 	// no stake remains to be slashed
-	ctx = ctx.WithBlockHeight(12)
+	ctx.SetBlockHeight(12)
 	// validator still in unbonding period
 	validator, _ = keeper.GetValidatorByConsAddr(ctx, consAddr)
 	require.Equal(t, validator.GetStatus(), sdk.Unbonding)
@@ -524,7 +524,7 @@ func TestSlashBoth(t *testing.T) {
 	oldNotBonded := notBondedPool.GetCoins().AmountOf(bondDenom)
 
 	// slash validator
-	ctx = ctx.WithBlockHeight(12)
+	ctx.SetBlockHeight(12)
 	validator, found := keeper.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(PKs[0]))
 	require.True(t, found)
 	consAddr0 := sdk.ConsAddress(PKs[0].Address())

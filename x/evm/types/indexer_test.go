@@ -1,12 +1,13 @@
 package types
 
 import (
+	"testing"
+
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/stretchr/testify/require"
-	"testing"
 
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
@@ -27,7 +28,9 @@ func TestIndexer_ProcessSection(t *testing.T) {
 	}
 
 	bf := []*KV{}
-	indexer.ProcessSection(sdk.Context{}.WithLogger(log.NewNopLogger()), mock, uint64(blocks), &bf)
+	ctx := sdk.Context{}
+	ctx.SetLogger(log.NewNopLogger())
+	indexer.ProcessSection(ctx, mock, uint64(blocks), &bf)
 
 	require.Equal(t, uint64(2), indexer.StoredSection())
 	require.Equal(t, uint64(2), indexer.GetValidSections())

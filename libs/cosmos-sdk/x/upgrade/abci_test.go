@@ -280,7 +280,7 @@ func TestSkipUpgradeSkippingAll(t *testing.T) {
 	t.Log("Verify if skip upgrade flag clears upgrade plan in both cases")
 	VerifySet(t, map[int64]bool{skipOne: true, skipTwo: true})
 
-	newCtx = newCtx.WithBlockHeight(skipOne)
+	newCtx.SetBlockHeight(skipOne)
 	require.NotPanics(t, func() {
 		s.module.BeginBlock(newCtx, req)
 	})
@@ -289,7 +289,7 @@ func TestSkipUpgradeSkippingAll(t *testing.T) {
 	err = s.handler(s.ctx, upgrade.SoftwareUpgradeProposal{Title: "prop2", Plan: upgrade.Plan{Name: "test2", Height: skipTwo}})
 	require.NoError(t, err)
 
-	newCtx = newCtx.WithBlockHeight(skipTwo)
+	newCtx.SetBlockHeight(skipTwo)
 	require.NotPanics(t, func() {
 		s.module.BeginBlock(newCtx, req)
 	})
@@ -318,7 +318,7 @@ func TestUpgradeSkippingOne(t *testing.T) {
 	VerifySet(t, map[int64]bool{skipOne: true})
 
 	// Setting block height of proposal test
-	newCtx = newCtx.WithBlockHeight(skipOne)
+	newCtx.SetBlockHeight(skipOne)
 	require.NotPanics(t, func() {
 		s.module.BeginBlock(newCtx, req)
 	})
@@ -327,7 +327,7 @@ func TestUpgradeSkippingOne(t *testing.T) {
 	err = s.handler(s.ctx, upgrade.SoftwareUpgradeProposal{Title: "prop2", Plan: upgrade.Plan{Name: "test2", Height: skipTwo}})
 	require.Nil(t, err)
 	// Setting block height of proposal test2
-	newCtx = newCtx.WithBlockHeight(skipTwo)
+	newCtx.SetBlockHeight(skipTwo)
 	VerifyDoUpgradeWithCtx(t, newCtx, "test2")
 
 	t.Log("Verify first proposal is cleared and second is done")
@@ -353,7 +353,7 @@ func TestUpgradeSkippingOnlyTwo(t *testing.T) {
 	VerifySet(t, map[int64]bool{skipOne: true, skipTwo: true})
 
 	// Setting block height of proposal test
-	newCtx = newCtx.WithBlockHeight(skipOne)
+	newCtx.SetBlockHeight(skipOne)
 	require.NotPanics(t, func() {
 		s.module.BeginBlock(newCtx, req)
 	})
@@ -362,7 +362,7 @@ func TestUpgradeSkippingOnlyTwo(t *testing.T) {
 	err = s.handler(s.ctx, upgrade.SoftwareUpgradeProposal{Title: "prop2", Plan: upgrade.Plan{Name: "test2", Height: skipTwo}})
 	require.Nil(t, err)
 	// Setting block height of proposal test2
-	newCtx = newCtx.WithBlockHeight(skipTwo)
+	newCtx.SetBlockHeight(skipTwo)
 	require.NotPanics(t, func() {
 		s.module.BeginBlock(newCtx, req)
 	})
@@ -370,7 +370,7 @@ func TestUpgradeSkippingOnlyTwo(t *testing.T) {
 	t.Log("Verify a new proposal is not skipped")
 	err = s.handler(s.ctx, upgrade.SoftwareUpgradeProposal{Title: "prop3", Plan: upgrade.Plan{Name: "test3", Height: skipThree}})
 	require.Nil(t, err)
-	newCtx = newCtx.WithBlockHeight(skipThree)
+	newCtx.SetBlockHeight(skipThree)
 	VerifyDoUpgradeWithCtx(t, newCtx, "test3")
 
 	t.Log("Verify two proposals are cleared and third is done")

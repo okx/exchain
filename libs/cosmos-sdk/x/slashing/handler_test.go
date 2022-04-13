@@ -185,7 +185,7 @@ func TestHandleAbsentValidator(t *testing.T) {
 
 	// 1000 first blocks OK
 	for ; height < keeper.SignedBlocksWindow(ctx); height++ {
-		ctx = ctx.WithBlockHeight(height)
+		ctx.SetBlockHeight(height)
 		keeper.HandleValidatorSignature(ctx, val.Address(), power, true)
 	}
 	info, found = keeper.GetValidatorSigningInfo(ctx, sdk.ConsAddress(val.Address()))
@@ -195,7 +195,7 @@ func TestHandleAbsentValidator(t *testing.T) {
 
 	// 500 blocks missed
 	for ; height < keeper.SignedBlocksWindow(ctx)+(keeper.SignedBlocksWindow(ctx)-keeper.MinSignedPerWindow(ctx)); height++ {
-		ctx = ctx.WithBlockHeight(height)
+		ctx.SetBlockHeight(height)
 		keeper.HandleValidatorSignature(ctx, val.Address(), power, false)
 	}
 	info, found = keeper.GetValidatorSigningInfo(ctx, sdk.ConsAddress(val.Address()))
@@ -210,7 +210,7 @@ func TestHandleAbsentValidator(t *testing.T) {
 	require.True(sdk.DecEq(t, amt.ToDec(), bondPool.GetCoins().AmountOf(sk.BondDenom(ctx))))
 
 	// 501st block missed
-	ctx = ctx.WithBlockHeight(height)
+	ctx.SetBlockHeight(height)
 	keeper.HandleValidatorSignature(ctx, val.Address(), power, false)
 	info, found = keeper.GetValidatorSigningInfo(ctx, sdk.ConsAddress(val.Address()))
 	require.True(t, found)
@@ -232,7 +232,7 @@ func TestHandleAbsentValidator(t *testing.T) {
 
 	// 502nd block *also* missed (since the LastCommit would have still included the just-unbonded validator)
 	height++
-	ctx = ctx.WithBlockHeight(height)
+	ctx.SetBlockHeight(height)
 	keeper.HandleValidatorSignature(ctx, val.Address(), power, false)
 	info, found = keeper.GetValidatorSigningInfo(ctx, sdk.ConsAddress(val.Address()))
 	require.True(t, found)
@@ -252,7 +252,7 @@ func TestHandleAbsentValidator(t *testing.T) {
 	require.Nil(t, res)
 
 	// unrevocation should succeed after jail expiration
-	ctx = ctx.WithBlockHeader(abci.Header{Time: time.Unix(1, 0).Add(keeper.DowntimeJailDuration(ctx))})
+	ctx.SetBlockHeader(abci.Header{Time: time.Unix(1, 0).Add(keeper.DowntimeJailDuration(ctx))})
 	res, err = slh(ctx, types.NewMsgUnjail(addr))
 	require.NoError(t, err)
 	require.NotNil(t, res)
@@ -277,7 +277,7 @@ func TestHandleAbsentValidator(t *testing.T) {
 
 	// validator should not be immediately jailed again
 	height++
-	ctx = ctx.WithBlockHeight(height)
+	ctx.SetBlockHeight(height)
 	keeper.HandleValidatorSignature(ctx, val.Address(), power, false)
 	validator, _ = sk.GetValidatorByConsAddr(ctx, sdk.GetConsAddress(val))
 	require.Equal(t, sdk.Bonded, validator.GetStatus())
@@ -285,7 +285,7 @@ func TestHandleAbsentValidator(t *testing.T) {
 	// 500 signed blocks
 	nextHeight := height + keeper.MinSignedPerWindow(ctx) + 1
 	for ; height < nextHeight; height++ {
-		ctx = ctx.WithBlockHeight(height)
+		ctx.SetBlockHeight(height)
 		keeper.HandleValidatorSignature(ctx, val.Address(), power, false)
 	}
 
@@ -295,7 +295,7 @@ func TestHandleAbsentValidator(t *testing.T) {
 	// validator should be jailed again after 500 unsigned blocks
 	nextHeight = height + keeper.MinSignedPerWindow(ctx) + 1
 	for ; height <= nextHeight; height++ {
-		ctx = ctx.WithBlockHeight(height)
+		ctx.SetBlockHeight(height)
 		keeper.HandleValidatorSignature(ctx, val.Address(), power, false)
 	}
 

@@ -177,7 +177,7 @@ func TestHandleMsgEthereumTx(t *testing.T) {
 			w = setupTest() // reset
 			//nolint
 			tc.malleate()
-			w.ctx = w.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+			w.ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 			res, err := w.handler(w.ctx, tx)
 
 			//nolint
@@ -223,9 +223,9 @@ func TestMsgEthereumTxByWatcher(t *testing.T) {
 			w = setupTest() // reset
 			//nolint
 			tc.malleate()
-			w.ctx = w.ctx.WithIsCheckTx(true)
-			w.ctx = w.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-			w.ctx = w.ctx.WithFrom(from.String())
+			w.ctx.SetIsCheckTx(true)
+			w.ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
+			w.ctx.SetFrom(from.String())
 			res, err := w.handler(w.ctx, tx)
 
 			//nolint
