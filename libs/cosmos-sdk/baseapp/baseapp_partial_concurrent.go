@@ -359,10 +359,10 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	task.err = err
 
 	if task.canRerun > 0 {
-		//curDttr.logger.Error("rerunChInFromAnte", "index", task.index)
+		curDttr.logger.Error("rerunChInFromAnte", "index", task.index)
 		curDttr.shouldRerun(-1)
 	} else if dttm.serialIndex+1 == task.index && !curDttr.needToRerun && task.prevTaskIndex < 0 && dttm.serialTask == nil {
-		//dttm.app.logger.Info("ExtractNextSerialFromAnte", "index", curDttr.task.index, "step", curDttr.step, "needToRerun", curDttr.needToRerun)
+		dttm.app.logger.Info("ExtractNextSerialFromAnte", "index", curDttr.task.index, "step", curDttr.step, "needToRerun", curDttr.needToRerun)
 		dttm.serialCh <- task.routineIndex
 	}
 
@@ -454,7 +454,7 @@ func (dttm *DTTManager) serialRoutine() {
 						if dttr.task.isEvm {
 							nextTaskRoutine = dttr.index
 							totalSerialWaitingCount--
-							//dttm.app.logger.Info("ExtractNextSerialFromSerial", "index", dttr.task.index, "step", dttr.step, "needToRerun", dttr.needToRerun)
+							dttm.app.logger.Info("ExtractNextSerialFromSerial", "index", dttr.task.index, "step", dttr.step, "needToRerun", dttr.needToRerun)
 							dttm.serialCh <- nextTaskRoutine
 						} else {
 							dttm.app.logger.Error("RerunNoEvmTx", "index", dttr.task.index)
@@ -474,7 +474,7 @@ func (dttm *DTTManager) serialRoutine() {
 		case <-keepAliveTicker.C:
 			//dttm.app.logger.Error("keepAliveTicker", "routine", nextTaskRoutine)
 			if dttm.serialTask == nil && nextTaskRoutine >= 0 {
-				//dttm.app.logger.Info("ExtractNextSerialFromTicker", "index", dttm.serialIndex, "routine", nextTaskRoutine)
+				dttm.app.logger.Info("ExtractNextSerialFromTicker", "index", dttm.serialIndex, "routine", nextTaskRoutine)
 				dttm.serialCh <- nextTaskRoutine
 			}
 			keepAliveTicker.Stop()
