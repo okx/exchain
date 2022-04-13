@@ -24,7 +24,7 @@ jobs:
         run:
           make build
   app:
-    name: app tests
+    name: app ut
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -45,7 +45,7 @@ jobs:
           cover_pkgs=`echo ${package_lines[@]} | sed 's/ /,/g'`
           go list ${path} |xargs go test -mod=readonly -coverpkg=${cover_pkgs} -timeout 8m -coverprofile=/tmp/workspace/profiles/app_ut.out -covermode=atomic 
   libs:
-    name: libs tests
+    name: libs ut
     needs: build
     runs-on: ubuntu-latest
     steps:
@@ -60,10 +60,10 @@ jobs:
           set -ex
           echo "--> Run tests with coverage:"
           mkdir -p /tmp/workspace/profiles
-          
-          go list ./libs/... |xargs go test -mod=readonly -timeout 8m -coverprofile=/tmp/workspace/profiles/libs_ut.out -covermode=atomic 
+
+          go list ./libs/... |xargs go test -mod=readonly -timeout 8m -coverprofile=/tmp/workspace/profiles/libs_ut.out -covermode=atomic -tags='norace ledger test_ledger_mock'
   x:
-    name: x tests
+    name: x ut
     needs: build
     runs-on: ubuntu-latest
     steps:
