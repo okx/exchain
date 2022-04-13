@@ -2,7 +2,6 @@ package keeper
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/internal/types"
 )
@@ -37,8 +36,7 @@ func (k Keeper) GetModuleAccountAndPermissions(ctx sdk.Context, moduleName strin
 	if acc != nil {
 		macc, ok := acc.(exported.ModuleAccountI)
 		if !ok {
-			//panic("account is not a module account")
-			panic(sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "module account %s is not a module account", moduleName))
+			panic("account is not a module account")
 		}
 		return macc, perms
 	}
