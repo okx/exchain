@@ -189,10 +189,16 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 
 	info, err := app.runTx(runTxModeDeliver, req.Tx, realTx, LatestSimulateTxHeight)
 	if err != nil {
-		app.SaveTxAndFailedReceipt(realTx, app.GetTxIndexInBlock(), info.result.GetEvmResultData(), info.gInfo.GasUsed)
+		e := app.SaveTxAndFailedReceipt(realTx, app.GetTxIndexInBlock(), info.result.GetEvmResultData(), info.gInfo.GasUsed)
+		if e != nil {
+			app.Logger().Error("watcher save tx and failed receipt error ", "txhash", realTx.TxHash(), "error", e)
+		}
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}
-	app.SaveTxAndSuccessReceipt(realTx, app.GetTxIndexInBlock(), info.result.GetEvmResultData(), info.gInfo.GasUsed)
+	e := app.SaveTxAndSuccessReceipt(realTx, app.GetTxIndexInBlock(), info.result.GetEvmResultData(), info.gInfo.GasUsed)
+	if e != nil {
+		app.Logger().Error("watcher save tx and success receipt error ", "txhash", realTx.TxHash(), "error", e)
+	}
 
 	return abci.ResponseDeliverTx{
 		GasWanted: int64(info.gInfo.GasWanted), // TODO: Should type accept unsigned ints?

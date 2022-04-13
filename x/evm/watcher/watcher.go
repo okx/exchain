@@ -528,32 +528,42 @@ func (w *Watcher) CheckWatchDB(keys [][]byte, mode string) {
 	w.log.Info("watchDB delta", "mode", mode, "height", w.height, "hash", hex.EncodeToString(kvHash.Sum(nil)), "kv", output)
 }
 
-func (w *Watcher) SaveTxAndSuccessReceipt(sdkTx sdk.Tx, txIndexInBlock uint64, resultData evmtx.ResultData, gasUsed uint64) {
-	if !w.Enabled() {
-		return
-	}
+func (w *Watcher) extractEvmTx(sdkTx sdk.Tx, resultData evmtx.ResultData) (*evmtypes.MsgEthereumTx, error) {
 	if sdkTx == nil || resultData == nil || resultData.GetTxHash() == nil {
-		return
+		return nil, fmt.Errorf("evm tx or tx receipt is nil")
 	}
 	evmTx, ok := sdkTx.(*evmtypes.MsgEthereumTx)
 	if ok {
+		return evmTx, nil
+	}
+
+	return nil, fmt.Errorf("sdk tx is not evm tx")
+}
+
+func (w *Watcher) SaveTxAndSuccessReceipt(sdkTx sdk.Tx, txIndexInBlock uint64, resultData evmtx.ResultData, gasUsed uint64) error {
+	if !w.Enabled() {
+		return nil
+	}
+	evmTx, err := w.extractEvmTx(sdkTx, resultData)
+	if err == nil {
 		w.SaveEthereumTx(evmTx, *resultData.GetTxHash(), txIndexInBlock)
 		w.SaveTransactionReceipt(TransactionSuccess, evmTx, *resultData.GetTxHash(), txIndexInBlock, resultData.(*evmtypes.ResultData), gasUsed)
 	}
+
+	return err
 }
 
-func (w *Watcher) SaveTxAndFailedReceipt(sdkTx sdk.Tx, txIndexInBlock uint64, resultData evmtx.ResultData, gasUsed uint64) {
+func (w *Watcher) SaveTxAndFailedReceipt(sdkTx sdk.Tx, txIndexInBlock uint64, resultData evmtx.ResultData, gasUsed uint64) error {
 	if !w.Enabled() {
-		return
+		return nil
 	}
-	if sdkTx == nil || resultData == nil || resultData.GetTxHash() == nil {
-		return
-	}
-	evmTx, ok := sdkTx.(*evmtypes.MsgEthereumTx)
-	if ok {
+	evmTx, err := w.extractEvmTx(sdkTx, resultData)
+	if err == nil {
 		w.SaveEthereumTx(evmTx, *resultData.GetTxHash(), txIndexInBlock)
 		w.SaveTransactionReceipt(TransactionSuccess, evmTx, *resultData.GetTxHash(), txIndexInBlock, &evmtypes.ResultData{}, gasUsed)
 	}
+
+	return err
 }
 
 func bytes2Key(keyBytes []byte) string {
