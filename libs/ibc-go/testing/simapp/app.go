@@ -640,7 +640,7 @@ func (app *SimApp) GetScopedIBCKeeper() capabilitykeeper.ScopedKeeper {
 }
 
 func (app *SimApp) AppCodec() *codec.CodecProxy {
-	return *&app.marshal
+	return app.marshal
 }
 
 func (app *SimApp) LastCommitID() sdk.CommitID {

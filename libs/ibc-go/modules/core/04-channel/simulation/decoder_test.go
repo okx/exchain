@@ -33,7 +33,7 @@ func TestDecodeStore(t *testing.T) {
 		Pairs: []kv.Pair{
 			{
 				Key:   host.ChannelKey(portID, channelID),
-				Value: cdc.MustMarshal(&channel),
+				Value: cdc.GetProtocMarshal().MustMarshalBinaryBare(&channel),
 			},
 			{
 				Key:   host.NextSequenceSendKey(portID, channelID),

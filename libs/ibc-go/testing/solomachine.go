@@ -3,15 +3,14 @@ package ibctesting
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	ibckey "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
 	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
-	kmultisig "github.com/okex/exchain/libs/cosmos-sdk/crypto/types/multisig"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 	solomachinetypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/06-solomachine/types"
-	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 	"github.com/stretchr/testify/require"
 	"testing"
@@ -41,7 +40,7 @@ import (
 type Solomachine struct {
 	t *testing.T
 
-	cdc         codec.BinaryCodec
+	cdc         *codec.CodecProxy
 	ClientID    string
 	PrivateKeys []cryptotypes.PrivKey // keys used for signing
 	PublicKeys  []cryptotypes.PubKey  // keys used for generating solo machine pub key
@@ -54,7 +53,7 @@ type Solomachine struct {
 // // NewSolomachine returns a new solomachine instance with an `nKeys` amount of
 // // generated private/public key pairs and a sequence starting at 1. If nKeys
 // // is greater than 1 then a multisig public key is used.
-func NewSolomachine(t *testing.T, cdc codec.BinaryCodec, clientID, diversifier string, nKeys uint64) *Solomachine {
+func NewSolomachine(t *testing.T, cdc *codec.CodecProxy, clientID, diversifier string, nKeys uint64) *Solomachine {
 	privKeys, pubKeys, pk := GenerateKeys(t, nKeys)
 
 	return &Solomachine{
@@ -78,22 +77,24 @@ func NewSolomachine(t *testing.T, cdc codec.BinaryCodec, clientID, diversifier s
 // The key type can be swapped for any key type supported by the PublicKey
 // interface, if needed. The same is true for the amino based Multisignature
 // public key.
-func GenerateKeys(t *testing.T, n uint64) ([]cryptotypes.PrivKey, []cryptotypes.PubKey, cryptotypes.PubKey) {
+func GenerateKeys(t *testing.T, n uint64) ([]secp256k1.PrivKeySecp256k1, []ibckey.PubKey, ibckey.PubKey) {
 	require.NotEqual(t, uint64(0), n, "generation of zero keys is not allowed")
 
 	// privKeys := make([]cryptotypes.PrivKey, n)
 	privKeys := make([]secp256k1.PrivKeySecp256k1, n)
-	pubKeys := make([]crypto.PubKey, n)
+	pubKeys := make([]ibckey.PubKey, n)
 	for i := uint64(0); i < n; i++ {
 		privKeys[i] = secp256k1.GenPrivKey()
 		pubKeys[i] = privKeys[i].PubKey()
 	}
 
 	// var pk cryptotypes.PubKey
-	var pk crypto.PubKey
+	var pk ibckey.PubKey
 	if len(privKeys) > 1 {
 		// generate multi sig pk
-		pk = kmultisig.NewLegacyAminoPubKey(int(n), pubKeys)
+		//pk = kmultisig.NewLegacyAminoPubKey(int(n), pubKeys)
+		//todo Ywmet
+		panic("donot surport multi sig")
 	} else {
 		pk = privKeys[0].PubKey()
 	}
@@ -138,7 +139,7 @@ func (solo *Solomachine) CreateHeader() *solomachinetypes.Header {
 		NewDiversifier: solo.Diversifier,
 	}
 
-	dataBz, err := solo.cdc.Marshal(data)
+	dataBz, err := solo.cdc.GetProtocMarshal().MarshalBinaryBare(data)
 	require.NoError(solo.t, err)
 
 	signBytes := &solomachinetypes.SignBytes{
@@ -149,7 +150,7 @@ func (solo *Solomachine) CreateHeader() *solomachinetypes.Header {
 		Data:        dataBz,
 	}
 
-	bz, err := solo.cdc.Marshal(signBytes)
+	bz, err := solo.cdc.GetProtocMarshal().MarshalBinaryBare(signBytes)
 	require.NoError(solo.t, err)
 
 	sig := solo.GenerateSignature(bz)
@@ -190,7 +191,7 @@ func (solo *Solomachine) CreateMisbehaviour() *solomachinetypes.Misbehaviour {
 		Data:        dataOne,
 	}
 
-	bz, err := solo.cdc.Marshal(signBytes)
+	bz, err := solo.cdc.GetProtocMarshal().MarshalBinaryBare(signBytes)
 	require.NoError(solo.t, err)
 
 	sig := solo.GenerateSignature(bz)
@@ -212,7 +213,7 @@ func (solo *Solomachine) CreateMisbehaviour() *solomachinetypes.Misbehaviour {
 		Data:        dataTwo,
 	}
 
-	bz, err = solo.cdc.Marshal(signBytes)
+	bz, err = solo.cdc.GetCdc().MarshalBinaryBare(signBytes)
 	require.NoError(solo.t, err)
 
 	sig = solo.GenerateSignature(bz)
@@ -251,16 +252,18 @@ func (solo *Solomachine) GenerateSignature(signBytes []byte) []byte {
 		sigData = sigs[0]
 	} else {
 		// generate multi signature data
-		multiSigData := multisig.NewMultisig(len(sigs))
-		for i, sig := range sigs {
-			multisig.AddSignature(multiSigData, sig, i)
-		}
-
-		sigData = multiSigData
+		//todo Ywmet
+		panic("donot surport multi sigs")
+		//multiSigData := multisig.NewMultisig(len(sigs))
+		//for i, sig := range sigs {
+		//	multisig.AddSignature(multiSigData, sig, i)
+		//}
+		//
+		//sigData = multiSigData
 	}
 
 	protoSigData := signing.SignatureDataToProto(sigData)
-	bz, err := solo.cdc.Marshal(protoSigData)
+	bz, err := solo.cdc.GetProtocMarshal().MarshalInterface(protoSigData)
 	require.NoError(solo.t, err)
 
 	return bz
