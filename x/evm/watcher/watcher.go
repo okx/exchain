@@ -530,14 +530,14 @@ func (w *Watcher) CheckWatchDB(keys [][]byte, mode string) {
 
 func (w *Watcher) extractEvmTx(sdkTx sdk.Tx) (*evmtypes.MsgEthereumTx, error) {
 	if sdkTx == nil {
-		return nil, fmt.Errorf("evm tx or tx receipt is nil")
+		return nil, fmt.Errorf("tx is nil")
 	}
 	evmTx, ok := sdkTx.(*evmtypes.MsgEthereumTx)
 	if ok {
 		return evmTx, nil
 	}
 
-	return nil, fmt.Errorf("sdk tx is not evm tx")
+	return nil, fmt.Errorf("tx is not evm tx")
 }
 
 func (w *Watcher) SaveTxAndSuccessReceipt(sdkTx sdk.Tx, txIndexInBlock uint64, resultData evmtx.ResultData, gasUsed uint64) error {
@@ -545,12 +545,18 @@ func (w *Watcher) SaveTxAndSuccessReceipt(sdkTx sdk.Tx, txIndexInBlock uint64, r
 		return nil
 	}
 	evmTx, err := w.extractEvmTx(sdkTx)
-	if err == nil && resultData != nil && resultData.GetTxHash() != nil {
-		w.saveEthereumTx(evmTx, *resultData.GetTxHash(), txIndexInBlock)
-		w.saveTransactionReceipt(TransactionSuccess, evmTx, *resultData.GetTxHash(), txIndexInBlock, resultData.(*evmtypes.ResultData), gasUsed)
+	if err != nil || resultData == nil {
+		return fmt.Errorf("tx error :%v or evm result data nil", err)
 	}
 
-	return err
+	if evmResultData, ok := resultData.(*evmtypes.ResultData); ok && evmResultData != nil {
+		w.saveEthereumTx(evmTx, evmResultData.TxHash, txIndexInBlock)
+		w.saveTransactionReceipt(TransactionSuccess, evmTx, evmResultData.TxHash, txIndexInBlock, evmResultData, gasUsed)
+	} else {
+		return fmt.Errorf("evm result data %v or result data nil", ok)
+	}
+
+	return nil
 }
 
 func (w *Watcher) SaveTxAndFailedReceipt(sdkTx sdk.Tx, txIndexInBlock uint64, txHash common.Hash, gasUsed uint64) error {
