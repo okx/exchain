@@ -46,7 +46,7 @@ jobs:
           go list ${path} |xargs go test -mod=readonly -coverpkg=${cover_pkgs} -timeout 8m -coverprofile=/tmp/workspace/profiles/app_ut.out -covermode=atomic 
   libs:
     name: libs tests
-     needs: build
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
