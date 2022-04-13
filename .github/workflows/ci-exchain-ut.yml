@@ -43,7 +43,7 @@ jobs:
           coverageFile="app_ut.out"
           package_lines=`go list ${codePath}`
           cover_pkgs=`echo ${package_lines[@]} | sed 's/ /,/g'`
-          go list ${codePath} |xargs go test -mod=readonly -coverpkg=${cover_pkgs} -timeout 8m -coverprofile=${coverageFile} -covermode=atomic
+          go list ${codePath} |xargs go test -mod=readonly -coverpkg=${cover_pkgs} -timeout 8m -coverprofile="${tmpCache}${coverageFile}" -covermode=atomic
 
           echo "--> upload codecov:"
           echo "mode: atomic" > coverage.txt
