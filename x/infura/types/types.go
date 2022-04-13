@@ -3,12 +3,13 @@ package types
 import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	evm "github.com/okex/exchain/x/evm/watcher"
+	"gorm.io/gorm"
 )
 
 type EngineData struct {
 	TransactionReceipts []*TransactionReceipt
 	TransactionLogs     []*TransactionLog
-	LogTopics           []*LogTopic
+	//LogTopics           []*LogTopic
 }
 
 type StreamData struct {
@@ -18,7 +19,6 @@ type StreamData struct {
 func (sd StreamData) ConvertEngineData() EngineData {
 	transactionReceipts := make([]*TransactionReceipt, len(sd.TransactionReceipts))
 	var transactionLogs []*TransactionLog
-	var logTopics []*LogTopic
 	for i, t := range sd.TransactionReceipts {
 		// convert  TransactionReceipt
 		receipt := &TransactionReceipt{
@@ -50,53 +50,59 @@ func (sd StreamData) ConvertEngineData() EngineData {
 				BlockNumber:      receipt.BlockNumber,
 				BlockHash:        t.BlockHash,
 			}
-			transactionLogs = append(transactionLogs, log)
+
 			// convert  LogTopic
+			var logTopics []LogTopic
 			for _, topic := range l.Topics {
-				logTopics = append(logTopics, &LogTopic{
-					TransactionHash: t.TransactionHash,
-					LogIndex:        uint64(l.Index),
-					Topic:           topic.String(),
+				logTopics = append(logTopics, LogTopic{
+					//TransactionHash: t.TransactionHash,
+					//LogIndex:        uint64(l.Index),
+					Topic: topic.String(),
 				})
 			}
+			log.Topics = logTopics
+
+			transactionLogs = append(transactionLogs, log)
 		}
 	}
 
 	return EngineData{
 		TransactionReceipts: transactionReceipts,
 		TransactionLogs:     transactionLogs,
-		LogTopics:           logTopics,
+		//LogTopics:           logTopics,
 	}
 }
 
 type TransactionReceipt struct {
-	ID                uint64 `gorm:"primaryKey"`
-	Status            uint64
-	CumulativeGasUsed uint64
+	gorm.Model
+	Status            uint64 `gorm:"type:tinyint(4)"`
+	CumulativeGasUsed uint64 `gorm:"type:int(11)"`
 	TransactionHash   string `gorm:"type:varchar(66);index:unique_hash,unique;not null"`
 	ContractAddress   string `gorm:"type:varchar(42)"`
-	GasUsed           uint64
+	GasUsed           uint64 `gorm:"type:int(11)"`
 	BlockHash         string `gorm:"type:varchar(66)"`
 	BlockNumber       int64
-	TransactionIndex  uint64
+	TransactionIndex  uint64 `gorm:"type:int(11)"`
 	From              string `gorm:"type:varchar(42)"`
 	To                string `gorm:"type:varchar(42)"`
 }
 
 type TransactionLog struct {
-	ID               uint64 `gorm:"primaryKey"`
+	gorm.Model
 	Address          string `gorm:"type:varchar(42);index;not null"`
 	Data             string `gorm:"type:varchar(256)"`
 	TransactionHash  string `gorm:"type:varchar(66);index;not null"`
-	TransactionIndex uint64
-	LogIndex         uint64 `gorm:"index;not null`
+	TransactionIndex uint64 `gorm:"type:int(11)"`
+	LogIndex         uint64 `gorm:"type:int(11)"`
 	BlockHash        string `gorm:"type:varchar(66);index;not null"`
 	BlockNumber      int64  `gorm:"index;not null"`
+	Topics           []LogTopic
 }
 
 type LogTopic struct {
-	ID              uint64 `gorm:"primaryKey"`
-	TransactionHash string `gorm:"type:varchar(66);index;not null"`
-	LogIndex        uint64 `gorm:"index;not null`
-	Topic           string `gorm:"type:varchar(66);index;not null"`
+	gorm.Model
+	//TransactionHash string `gorm:"type:varchar(66);index;not null"`
+	//LogIndex        uint64 `gorm:"index;not null"`
+	Topic            string `gorm:"type:varchar(66);index;not null"`
+	TransactionLogID uint
 }
