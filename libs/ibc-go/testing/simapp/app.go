@@ -248,14 +248,6 @@ func NewSimApp(
 	protoCodec := codec.NewProtoCodec(interfaceReg)
 	codecProxy := codec.NewCodecProxy(protoCodec, cdc)
 
-	cpcdc := &codec.CompoundCodec{
-		cdc,
-		codecProxy,
-	}
-	bApp.SetTxDecoder(func(txBytes []byte, height ...int64) (ret sdk.Tx, err error) {
-		return evm.TxDecoder(cpcdc)(txBytes, height...)
-	})
-
 	keys := sdk.NewKVStoreKeys(
 		bam.MainStoreKey, auth.StoreKey, staking.StoreKey,
 		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
