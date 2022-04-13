@@ -23,6 +23,7 @@ type (
 const (
 	dttRoutineStepNone dttRoutineStep = iota
 	dttRoutineStepStart
+	dttRoutineStepWaitRerun
 	dttRoutineStepAnteStart
 	dttRoutineStepAnteFinished
 	dttRoutineStepReadyForSerial
@@ -143,6 +144,7 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 			if dttr.step == dttRoutineStepAnteFinished {
 				dttr.logger.Error("RerunTask", "index", dttr.task.index)
 				dttr.needToRerun = false
+				dttr.step = dttRoutineStepWaitRerun
 				dttr.runAnteFn(dttr.task)
 			} else if dttr.step == dttRoutineStepReadyForSerial ||
 				dttr.step == dttRoutineStepSerial ||
@@ -196,6 +198,8 @@ func (dttr *dttRoutine) readyForSerialExecution() bool {
 	case dttRoutineStepNone:
 		fallthrough
 	case dttRoutineStepStart:
+		fallthrough
+	case dttRoutineStepWaitRerun:
 		fallthrough
 	case dttRoutineStepAnteStart:
 		fallthrough
@@ -483,7 +487,7 @@ func (dttm *DTTManager) serialRoutine() {
 			if dttm.serialTask == nil && nextTaskRoutine >= 0 {
 				dttr := dttm.dttRoutineList[nextTaskRoutine]
 				if dttr.readyForSerialExecution() {
-					dttm.app.logger.Info("ExtractNextSerialFromTicker", "index", dttm.serialIndex, "routine", nextTaskRoutine)
+					dttm.app.logger.Info("ExtractNextSerialFromTicker", "index", dttm.serialIndex+1, "routine", nextTaskRoutine, "step", dttr.step, "needToRerun", dttr.needToRerun)
 					keepAliveTicker.Stop()
 					dttm.serialCh <- nextTaskRoutine
 				}
