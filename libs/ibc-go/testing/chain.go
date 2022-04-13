@@ -63,6 +63,8 @@ type TestChainI interface {
 	Vals() *tmtypes.ValidatorSet
 	Signers() []tmtypes.PrivValidator
 	GetSimApp() *simapp.SimApp
+	GetChannelCapability(portID, channelID string) *capabilitytypes.Capability
+	CreateChannelCapability(scopedKeeper capabilitykeeper.ScopedKeeper, portID, channelID string)
 }
 
 // TestChain is a testing struct that wraps a simapp with the last TM Header, the current ABCI

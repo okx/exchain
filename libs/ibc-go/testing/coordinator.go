@@ -190,11 +190,11 @@ func (coord *Coordinator) CommitBlock(chains ...TestChainI) {
 }
 
 // CommitNBlocks commits n blocks to state and updates the block height by 1 for each commit.
-func (coord *Coordinator) CommitNBlocks(chain *TestChain, n uint64) {
+func (coord *Coordinator) CommitNBlocks(chain TestChainI, n uint64) {
 	for i := uint64(0); i < n; i++ {
-		chain.App.BeginBlock(abci.RequestBeginBlock{Header: chain.CurrentHeader})
+		chain.App().BeginBlock(abci.RequestBeginBlock{Header: chain.CurrentHeader()})
 		//todo ywmet
-		chain.App.Commit(abci.RequestCommit{})
+		chain.App().Commit(abci.RequestCommit{})
 		chain.NextBlock()
 		coord.IncrementTime()
 	}
