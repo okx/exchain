@@ -227,13 +227,13 @@ func (app *BaseApp) fixFeeCollector(txs [][]byte, ms sdk.CacheMultiStore) {
 	currTxFee := sdk.Coins{}
 	for index, v := range txs {
 		txString := string(v)
-		paraMsg := app.parallelTxManage.txReps[index].paraMsg
-		if paraMsg == nil || paraMsg.AnteErr != nil {
+		resp := app.parallelTxManage.txReps[index]
+		if resp == nil || resp.paraMsg == nil || resp.paraMsg.AnteErr != nil {
 			continue
 		}
 
 		txFee := app.parallelTxManage.fee[txString]
-		refundFee := paraMsg.RefundFee
+		refundFee := resp.paraMsg.RefundFee
 		txFee = txFee.Sub(refundFee)
 		currTxFee = currTxFee.Add(txFee...)
 	}
