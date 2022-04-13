@@ -169,6 +169,10 @@ func (dttr *dttRoutine) shouldRerun(fromIndex int) {
 	if dttr.step == dttRoutineStepAnteStart || dttr.step == dttRoutineStepAnteFinished {
 		//dttr.logger.Error("shouldRerun", "index", dttr.task.index, "from", fromIndex, "step", dttr.step, "needToRerun", dttr.needToRerun)
 		dttr.needToRerun = true
+		if fromIndex < 0 {
+			dttr.logger.Error("sleepSomeTimeToWaitAccountUpdateFinished", "index", dttr.task.index)
+			time.Sleep(keepAliveIntervalMS * time.Microsecond)
+		}
 		dttr.rerunCh <- 0 // todo: maybe blocked for several milliseconds. why?
 		//dttr.logger.Error("sendRerunCh", "index", dttr.task.index)
 	}
