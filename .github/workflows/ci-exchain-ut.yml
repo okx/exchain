@@ -57,6 +57,10 @@ jobs:
 
       - name: Go Test libs
         run: |
+          set -ex
+          echo "--> Run tests with coverage:"
+          mkdir -p /tmp/workspace/profiles
+          
           go list ./libs/... |xargs go test -mod=readonly -timeout 8m -coverprofile=/tmp/workspace/profiles/libs_ut.out -covermode=atomic 
   x:
     name: x tests
@@ -71,6 +75,10 @@ jobs:
 
       - name: Go Test x
         run: |
+          set -ex
+          echo "--> Run tests with coverage:"
+          mkdir -p /tmp/workspace/profiles
+
           go list ./x/... |xargs go test -mod=readonly -timeout 8m -coverprofile=/tmp/workspace/profiles/x_ut.out -covermode=atomic 
 
   coverage:
