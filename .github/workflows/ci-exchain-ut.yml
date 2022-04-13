@@ -63,7 +63,9 @@ jobs:
         run: |
           set -ex
           codePath="./libs/..."
-          go list ${codePath} |xargs go test -mod=readonly -timeout 10m -coverprofile=coverage.data -covermode=atomic -tags='norace ledger test_ledger_mock'
+          package_lines=`go list ${codePath}`
+          cover_pkgs=`echo ${package_lines[@]} | sed 's/ /,/g'`
+          go list ${codePath} |xargs go test -mod=readonly -coverpkg=${cover_pkgs} -timeout 10m -coverprofile=coverage.data -covermode=atomic -tags='norace ledger test_ledger_mock'
       - name: Upload code coverage
         run: |
           set -ex
@@ -85,7 +87,9 @@ jobs:
         run: |
           set -ex
           codePath="./x/..."
-          go list ${codePath} |xargs go test -mod=readonly -timeout 8m -coverprofile=coverage.data -covermode=atomic 
+          package_lines=`go list ${codePath}`
+          cover_pkgs=`echo ${package_lines[@]} | sed 's/ /,/g'`
+          go list ${codePath} |xargs go test -mod=readonly -coverpkg=${cover_pkgs} -timeout 8m -coverprofile=coverage.data -covermode=atomic 
       - name: Upload code coverage
         run: |
           set -ex
