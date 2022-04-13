@@ -372,7 +372,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		dttm.app.logger.Info("ExtractNextSerialFromAnte", "index", curDttr.task.index, "step", curDttr.step, "needToRerun", curDttr.needToRerun)
 		dttm.serialCh <- task.routineIndex
 	} else {
-		dttm.app.logger.Info("AnteFinished.", "index", curDttr.task.index)
+		dttm.app.logger.Info("AnteFinished", "index", curDttr.task.index)
 	}
 
 	return nil
@@ -463,27 +463,27 @@ func (dttm *DTTManager) serialRoutine() {
 						if dttr.task.isEvm {
 							nextTaskRoutine = dttr.index
 							totalSerialWaitingCount--
-							//dttm.app.logger.Info("ExtractNextSerialFromSerial", "index", dttr.task.index, "step", dttr.step, "needToRerun", dttr.needToRerun)
+							dttm.app.logger.Info("ExtractNextSerialFromSerial", "index", dttr.task.index, "step", dttr.step, "needToRerun", dttr.needToRerun)
 							dttm.serialCh <- nextTaskRoutine
 						} else {
 							dttm.app.logger.Error("RerunNoEvmTx", "index", dttr.task.index)
 							dttr.rerunCh <- 0
 						}
 					} else {
-						//dttm.app.logger.Info("NotReadyForSerial", "index", dttr.task.index, "routine", nextTaskRoutine, "step", dttr.step, "needToRerun", dttr.needToRerun, "canRerun", dttr.task.canRerun, "prev", dttr.task.prevTaskIndex)
+						dttm.app.logger.Info("NotReadyForSerial", "index", dttr.task.index, "routine", nextTaskRoutine, "step", dttr.step, "needToRerun", dttr.needToRerun, "canRerun", dttr.task.canRerun, "prev", dttr.task.prevTaskIndex)
 						keepAliveTicker.Reset(keepAliveIntervalMS * time.Microsecond)
 					}
 				}
 			}
 
 			if rerunRoutine != nil {
-				//dttm.app.logger.Error("rerunRoutine", "index", rerunRoutine.task.index, "serial", task.index)
+				dttm.app.logger.Error("rerunRoutine", "index", rerunRoutine.task.index, "serial", task.index)
 				rerunRoutine.shouldRerun(task.index)
 			}
 		case <-keepAliveTicker.C:
 			//dttm.app.logger.Error("keepAliveTicker", "routine", nextTaskRoutine)
 			if dttm.serialTask == nil && nextTaskRoutine >= 0 {
-				//dttm.app.logger.Info("ExtractNextSerialFromTicker", "index", dttm.serialIndex, "routine", nextTaskRoutine)
+				dttm.app.logger.Info("ExtractNextSerialFromTicker", "index", dttm.serialIndex, "routine", nextTaskRoutine)
 				dttm.serialCh <- nextTaskRoutine
 			}
 			keepAliveTicker.Stop()
