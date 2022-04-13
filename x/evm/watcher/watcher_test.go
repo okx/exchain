@@ -107,15 +107,15 @@ func checkWD(wdBytes []byte, w *WatcherTestSt) {
 }
 
 func testWatchData(t *testing.T, w *WatcherTestSt) {
-	// produce WatchData
-	w.app.EvmKeeper.Watcher.Commit()
-	time.Sleep(time.Millisecond)
-
 	// get WatchData
 	wdFunc := w.app.EvmKeeper.Watcher.GetWatchDataFunc()
 	wd, err := wdFunc()
 	require.Nil(t, err)
 	require.NotEmpty(t, wd)
+
+	// produce WatchData
+	w.app.EvmKeeper.Watcher.Commit()
+	time.Sleep(time.Millisecond)
 
 	store := watcher.InstanceOfWatchStore()
 	pWd := getDBKV(store)
