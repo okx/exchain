@@ -17,6 +17,8 @@ type LogFix func(isAnteFailed [][]string) (logs [][]byte)
 
 type GetTxFeeHandler func(ctx Context, tx Tx) (Coins, bool)
 
+type WatcherHandler func(ctx Context, tx Tx, evmResultData interface{}) (err error)
+
 // AnteDecorator wraps the next AnteHandler to perform custom pre- and post-processing.
 type AnteDecorator interface {
 	AnteHandle(ctx Context, tx Tx, simulate bool, next AnteHandler) (newCtx Context, err error)
