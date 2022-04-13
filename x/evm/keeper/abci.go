@@ -37,6 +37,7 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	// reset counters that are used on CommitStateDB.Prepare
 	k.Bloom = big.NewInt(0)
 	k.TxCount = 0
+	k.TxIndexInBlock = 0
 	k.LogSize = 0
 	k.LogsManages = NewLogManager()
 	k.Bhash = common.BytesToHash(currentHash)

@@ -22,6 +22,7 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 	analyzer.OnAppDeliverTxEnter()
 
 	resp := app.BaseApp.DeliverTx(req)
+	app.EvmKeeper.TxIndexInBlock++
 
 	if appconfig.GetOecConfig().GetEnableDynamicGp() {
 		tx, err := evm.TxDecoder(app.marshal)(req.Tx)

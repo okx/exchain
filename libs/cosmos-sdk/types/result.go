@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gogo/protobuf/proto"
+	"github.com/okex/exchain/libs/cosmos-sdk/baseapp/evmtx"
 	"math"
 	"strings"
 
@@ -36,6 +37,18 @@ type Result struct {
 	// Events contains a slice of Event objects that were emitted during message or
 	// handler execution.
 	Events Events
+
+	// EvmResultData return evm result data to base app.
+	// we use the result data for watcher to save tx and receipt
+	EvmResultData evmtx.ResultData
+}
+
+func (r *Result) GetEvmResultData() evmtx.ResultData {
+	if r == nil {
+		return nil
+	}
+
+	return r.EvmResultData
 }
 
 // SimulationResponse defines the response generated when a transaction is successfully

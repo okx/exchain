@@ -3,6 +3,7 @@ package watcher
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/baseapp/evmtx"
 	"math/big"
 	"sync"
 
@@ -107,7 +108,7 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	w.watchData = &WatchData{}
 }
 
-func (w *Watcher) SaveEthereumTx(msg *evmtypes.MsgEthereumTx, txHash common.Hash, index uint64) {
+func (w *Watcher) saveEthereumTx(msg *evmtypes.MsgEthereumTx, txHash common.Hash, index uint64) {
 	if !w.Enabled() {
 		return
 	}
@@ -138,7 +139,7 @@ func (w *Watcher) SaveContractCodeByHash(hash []byte, code []byte) {
 	}
 }
 
-func (w *Watcher) SaveTransactionReceipt(status uint32, msg *evmtypes.MsgEthereumTx, txHash common.Hash, txIndex uint64, data *evmtypes.ResultData, gasUsed uint64) {
+func (w *Watcher) saveTransactionReceipt(status uint32, msg *evmtypes.MsgEthereumTx, txHash common.Hash, txIndex uint64, data *evmtypes.ResultData, gasUsed uint64) {
 	if !w.Enabled() {
 		return
 	}
@@ -466,7 +467,7 @@ func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
 	value.DelayEraseKey = w.delayEraseKey
 
 	// hold it in temp
-	batch:=w.batch
+	batch := w.batch
 	return func() ([]byte, error) {
 		ddsBatch := make([]*Batch, len(batch))
 		for i, b := range batch {
@@ -527,6 +528,50 @@ func (w *Watcher) CheckWatchDB(keys [][]byte, mode string) {
 	w.log.Info("watchDB delta", "mode", mode, "height", w.height, "hash", hex.EncodeToString(kvHash.Sum(nil)), "kv", output)
 }
 
+func (w *Watcher) extractEvmTx(sdkTx sdk.Tx) (*evmtypes.MsgEthereumTx, error) {
+	if sdkTx == nil {
+		return nil, fmt.Errorf("tx is nil")
+	}
+	evmTx, ok := sdkTx.(*evmtypes.MsgEthereumTx)
+	if ok {
+		return evmTx, nil
+	}
+
+	return nil, fmt.Errorf("tx is not evm tx")
+}
+
+func (w *Watcher) SaveTxAndSuccessReceipt(sdkTx sdk.Tx, txIndexInBlock uint64, resultData evmtx.ResultData, gasUsed uint64) error {
+	if !w.Enabled() {
+		return nil
+	}
+	evmTx, err := w.extractEvmTx(sdkTx)
+	if err != nil || resultData == nil {
+		return fmt.Errorf("tx error :%v or evm result data nil", err)
+	}
+
+	if evmResultData, ok := resultData.(*evmtypes.ResultData); ok && evmResultData != nil {
+		w.saveEthereumTx(evmTx, evmResultData.TxHash, txIndexInBlock)
+		w.saveTransactionReceipt(TransactionSuccess, evmTx, evmResultData.TxHash, txIndexInBlock, evmResultData, gasUsed)
+	} else {
+		return fmt.Errorf("evm result data %v or result data nil", ok)
+	}
+
+	return nil
+}
+
+func (w *Watcher) SaveTxAndFailedReceipt(sdkTx sdk.Tx, txIndexInBlock uint64, txHash common.Hash, gasUsed uint64) error {
+	if !w.Enabled() {
+		return nil
+	}
+	evmTx, err := w.extractEvmTx(sdkTx)
+	if err == nil {
+		w.saveEthereumTx(evmTx, txHash, txIndexInBlock)
+		w.saveTransactionReceipt(TransactionFailed, evmTx, txHash, txIndexInBlock, &evmtypes.ResultData{}, gasUsed)
+	}
+
+	return err
+}
+
 func bytes2Key(keyBytes []byte) string {
 	return string(keyBytes)
 }
@@ -534,7 +579,6 @@ func bytes2Key(keyBytes []byte) string {
 func key2Bytes(key string) []byte {
 	return []byte(key)
 }
-
 
 func filterCopy(origin *WatchData) *WatchData {
 	return &WatchData{

@@ -34,10 +34,8 @@ type Tx interface {
 	Transition(config types.ChainConfig) (result base.Result, err error)
 
 	// DecorateResult some case(trace tx log) will modify the inResult to log and swallow inErr
-	DecorateResult(inResult *base.Result, inErr error) (result *sdk.Result, err error)
-
-	// RestoreWatcherTransactionReceipt restore watcher TransactionReceipt
-	RestoreWatcherTransactionReceipt(msg *types.MsgEthereumTx)
+	// add evm result data to sdk.Result
+	DecorateResult(inResult *base.Result, evmResultData *types.ResultData, inErr error) (result *sdk.Result, err error)
 
 	// Commit save the inner tx and contracts
 	Commit(msg *types.MsgEthereumTx, result *base.Result)
@@ -95,9 +93,7 @@ func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err e
 		// Commit save the inner tx and contracts
 		tx.Commit(msg, &baseResult)
 		tx.EmitEvent(msg, &baseResult)
-	} else {
-		tx.RestoreWatcherTransactionReceipt(msg)
 	}
 
-	return tx.DecorateResult(&baseResult, err)
+	return tx.DecorateResult(&baseResult, baseResult.ResultData, err)
 }
