@@ -28,11 +28,8 @@ jobs:
     name: app ut
     needs: build
     runs-on: ubuntu-latest
-    artifacts:
-      paths: coverage/
     steps:
       - uses: actions/checkout@v2
-
       - uses: actions/setup-go@v2
         with:
           go-version: 1.17
@@ -40,16 +37,22 @@ jobs:
       - name: Go Test app
         run: |
           set -ex
-          path="./app/..."
-          package_lines=`go list ${path}`
+          tmpCache="/tmp/coverage/"
+          mkdir -p ${tmpCache}
+          codePath="./app/..."
+          coverageFile="app_ut.out"
+          package_lines=`go list ${codePath}`
           cover_pkgs=`echo ${package_lines[@]} | sed 's/ /,/g'`
-          go list ${path} |xargs go test -mod=readonly -coverpkg=${cover_pkgs} -timeout 8m -coverprofile=app_ut.out -covermode=atomic 
+          go list ${codePath} |xargs go test -mod=readonly -coverpkg=${cover_pkgs} -timeout 8m -coverprofile=${coverageFile} -covermode=atomic
+
+          echo "--> upload codecov:"
+          echo "mode: atomic" > coverage.txt
+          tail -n +2 "${tmpCache}${coverageFile}" >> coverage.txt
+          bash <(curl -s https://codecov.io/bash) -f coverage.txt 
   libs:
     name: libs ut
     needs: build
     runs-on: ubuntu-latest
-    artifacts:
-      paths: coverage/
     steps:
       - uses: actions/checkout@v2
 
@@ -59,31 +62,21 @@ jobs:
 
       - name: Go Test libs
         run: |
-          go list ./libs/... |xargs go test -mod=readonly -timeout 8m -coverprofile=./coverage/libs_ut.out -covermode=atomic -tags='norace ledger test_ledger_mock'
+          set -ex
+          tmpCache="/tmp/coverage/"
+          mkdir -p ${tmpCache}
+          codePath="./libs/..."
+          coverageFile="libs_ut.out"
+          go list ${codePath} |xargs go test -mod=readonly -timeout 10m -coverprofile="${tmpCache}${coverageFile}" -covermode=atomic -tags='norace ledger test_ledger_mock'
+          
+          echo "--> upload codecov:"
+          echo "mode: atomic" > coverage.txt
+          tail -n +2 "${tmpCache}${coverageFile}" >> coverage.txt
+          bash <(curl -s https://codecov.io/bash) -f coverage.txt 
   x:
     name: x ut
     needs: build
     runs-on: ubuntu-latest
-    cache:
-      paths: 
-        - coverage/
-    steps:
-      - uses: actions/checkout@v2
-
-      - uses: actions/setup-go@v2
-        with:
-          go-version: 1.17
-
-      - name: Go Test x
-        run: |
-          go list ./x/... |xargs go test -mod=readonly -timeout 8m -coverprofile=./coverage/x_ut.out -covermode=atomic 
-
-  coverage:
-    name: upload coverage
-    needs: ["app","libs","x"]
-    runs-on: ubuntu-latest
-    artifacts:
-      paths: coverage/
     steps:
       - uses: actions/checkout@v2
 
@@ -94,14 +87,16 @@ jobs:
       - name: Go Test x
         run: |
           set -ex
-
-          echo "--> Gather coverage:"
-          ls ./coverage/*.out
-          echo "mode: atomic" > coverage.txt
-          for prof in $(ls ./coverage/*.out); do
-            tail -n +2 "$prof" >> coverage.txt
-          done
+          tmpCache="/tmp/coverage/"
+          mkdir -p ${tmpCache}
+          codePath="./x/..."
+          coverageFile="x_ut.out"
+          go list ${codePath} |xargs go test -mod=readonly -timeout 8m -coverprofile="${tmpCache}${coverageFile}" -covermode=atomic 
 
           echo "--> upload codecov:"
-          bash <(curl -s https://codecov.io/bash) -f coverage.txt
+          echo "mode: atomic" > coverage.txt
+          tail -n +2 "${tmpCache}${coverageFile}" >> coverage.txt
+          bash <(curl -s https://codecov.io/bash) -f coverage.txt 
+
+
   
