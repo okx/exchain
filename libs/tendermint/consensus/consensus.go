@@ -1130,7 +1130,7 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 		}
 		cs.Logger.Info("Signed proposal", "height", height, "round", round, "proposal", proposal)
 		cs.Logger.Debug(fmt.Sprintf("Signed proposal block: %v", block))
-	} else if !cs.replayMode {
+	} else if !cs.replayMode && !ActiveViewChange {
 		cs.Logger.Error("enterPropose: Error signing proposal", "height", height, "round", round, "err", err)
 	}
 }
@@ -1634,7 +1634,7 @@ func (cs *State) finalizeCommit(height int64) {
 
 	//if stateCopy.Validators.GetProposer().Address.String() == cs.privValidatorPubKey.Address().String() {
 	//	cs.Logger.Error("Proposer!!!", "height", height, "round", cs.Round)
-	//	time.Sleep(time.Second * 5)
+	//	time.Sleep(time.Second * 10)
 	//}
 
 	/*
@@ -2184,9 +2184,9 @@ func (cs *State) signAddVote(msgType types.SignedMsgType, hash []byte, header ty
 		cs.Logger.Info("Signed and pushed vote", "height", cs.Height, "round", cs.Round, "vote", vote, "err", err)
 		return vote
 	}
-	//if !cs.replayMode {
-	cs.Logger.Error("Error signing vote", "height", cs.Height, "round", cs.Round, "vote", vote, "err", err)
-	//}
+	if !cs.replayMode && !ActiveViewChange {
+		cs.Logger.Error("Error signing vote", "height", cs.Height, "round", cs.Round, "vote", vote, "err", err)
+	}
 	return nil
 }
 

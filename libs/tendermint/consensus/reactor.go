@@ -348,7 +348,8 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 				return
 			}
 			// verify the signature of vcMsg
-			if err := msg.Verify(conR.conS.privValidatorPubKey); err != nil {
+			_, val := conR.conS.Validators.GetByAddress(msg.CurrentProposer)
+			if err := msg.Verify(val.PubKey); err != nil {
 				conR.Logger.Error("reactor Verify Signature of ViewChangeMessage", "err", err)
 				return
 			}
@@ -363,7 +364,8 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 				msg.Height > conR.conS.Height &&
 				bytes.Equal(conR.conS.privValidatorPubKey.Address(), msg.CurrentProposer) {
 				// verify the signature of prMsg
-				if err := msg.Verify(conR.conS.privValidatorPubKey); err != nil {
+				_, val := conR.conS.Validators.GetByAddress(msg.NewProposer)
+				if err := msg.Verify(val.PubKey); err != nil {
 					conR.Logger.Error("reactor Verify Signature of ProposeRequestMessage", "err", err)
 					return
 				}
