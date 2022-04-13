@@ -7,6 +7,7 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/trace"
 
@@ -131,7 +132,7 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 		case tx := <-dttr.txByte:
 			dttr.task = dttr.basicProFn(tx, dttr.txIndex)
 			dttr.task.routineIndex = dttr.index
-			if dttr.task.err == nil {//&& dttr.task.isEvm {
+			if dttr.task.err == nil { //&& dttr.task.isEvm {
 				dttr.runAnteFn(dttr.task)
 			} else {
 				dttr.step = dttRoutineStepReadyForSerial
@@ -286,6 +287,12 @@ func (dttm *DTTManager) concurrentBasic(txByte []byte, index int) *DeliverTxTask
 
 	task.info.handler = dttm.app.getModeHandler(runTxModeDeliverPartConcurrent) //dm.handler
 	task.fee, task.isEvm, task.from, task.to = dttm.app.getTxFeeAndFromHandler(dttm.checkStateCtx, task.info.tx)
+	if global.GetGlobalHeight() == 4663201 {
+		dttm.app.logger.Info("GetTxInfo", "index", task.index, "from", task.from, "to", task.to)
+		if task.from == "22fe6120b4ed9a876053ddfb0068549442eca62b" || task.to == "22fe6120b4ed9a876053ddfb0068549442eca62b" {
+			dttm.app.logger.Error("FindAccount", "index", task.index)
+		}
+	}
 
 	if err = validateBasicTxMsgs(task.info.tx.GetMsgs()); err != nil {
 		task.err = err
@@ -574,6 +581,9 @@ func (dttm *DTTManager) OnAccountUpdated(acc exported.Account, updateState bool)
 func (dttm *DTTManager) accountUpdated(address string) {
 	//dttm.mtx.Lock()
 	//defer dttm.mtx.Unlock()
+	if global.GetGlobalHeight() == 4663201 && address == "22fe6120b4ed9a876053ddfb0068549442eca62b" {
+		dttm.app.logger.Error("accountUpdated")
+	}
 
 	num := len(dttm.dttRoutineList)
 	for i := 0; i < num; i++ {
