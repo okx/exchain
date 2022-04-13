@@ -210,3 +210,72 @@ func TestContextHeaderClone(t *testing.T) {
 		})
 	}
 }
+
+//go:noinline
+func testFoo(ctx types.Context) int {
+	return len(ctx.From())
+}
+
+func BenchmarkContextDuffCopy(b *testing.B) {
+	ctx := types.NewContext(nil, abci.Header{}, false, nil)
+	b.Run("1", func(b *testing.B) {
+		b.Run("with", func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				ctx = ctx.WithIsCheckTx(true)
+				testFoo(ctx)
+			}
+		})
+		b.Run("set", func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				ctx.SetIsCheckTx(true)
+				testFoo(ctx)
+			}
+		})
+	})
+
+	b.Run("2", func(b *testing.B) {
+		b.Run("with", func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				newCtx := ctx.WithIsCheckTx(true)
+				testFoo(newCtx)
+			}
+		})
+		b.Run("set", func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				newCtx := ctx
+				newCtx.SetIsCheckTx(true)
+				testFoo(newCtx)
+			}
+		})
+	})
+
+	b.Run("3", func(b *testing.B) {
+		b.Run("with", func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				testFoo(ctx.WithIsCheckTx(true))
+			}
+		})
+		b.Run("set", func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				newCtx := ctx
+				newCtx.SetIsCheckTx(true)
+				testFoo(newCtx)
+			}
+		})
+	})
+
+	b.Run("4", func(b *testing.B) {
+		b.Run("with", func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				testFoo(ctx.WithIsCheckTx(true).WithIsReCheckTx(false))
+			}
+		})
+		b.Run("set", func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				newCtx := ctx
+				newCtx.SetIsCheckTx(true).SetIsReCheckTx(false)
+				testFoo(newCtx)
+			}
+		})
+	})
+}
