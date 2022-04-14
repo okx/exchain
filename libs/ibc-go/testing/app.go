@@ -125,6 +125,7 @@ func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs 
 	)
 
 	// commit genesis changes
+	app.Commit(abci.RequestCommit{})
 	// app.Commit()
 	// app.BeginBlock(abci.RequestBeginBlock{Header: tmproto.Header{
 	// 	Height:             app.LastBlockHeight() + 1,

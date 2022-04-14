@@ -1,6 +1,7 @@
 package simapp
 
 import (
+	staking2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/staking"
 	"io"
 	"math/big"
 	"os"
@@ -308,9 +309,12 @@ func NewSimApp(
 		cdc, keys[supply.StoreKey], &app.AccountKeeper, app.BankKeeper, maccPerms,
 	)
 
-	stakingKeeper := staking.NewKeeper(
+	stakingKeeper := staking2.NewStakingKeeper(
 		codecProxy, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
-	)
+	).Keeper
+	//stakingKeeper := staking.NewKeeper(
+	//	codecProxy, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
+	//)
 	app.ParamsKeeper.SetStakingKeeper(stakingKeeper)
 	app.MintKeeper = mint.NewKeeper(
 		cdc, keys[mint.StoreKey], app.subspaces[mint.ModuleName], &stakingKeeper,
