@@ -63,7 +63,7 @@ jobs:
         run: |
           set -ex
           codePath="./libs/..."
-          go list ${codePath} |xargs go test -timeout 20m -tags='norace ledger test_ledger_mock'
+          go list ${codePath} |xargs go test -timeout 30m -tags='norace ledger test_ledger_mock' -v
   x:
     name: x ut
     needs: build
