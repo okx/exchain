@@ -64,9 +64,9 @@ func (ak AccountKeeper) GetAllAccounts(ctx sdk.Context) (accounts []exported.Acc
 func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 	addr := acc.GetAddress()
 	store := ctx.KVStore(ak.key)
-	bz, err := ak.Cdc.MarshalBinaryBareWithRegisteredMarshaller(acc)
+	bz, err := ak.cdc.MarshalBinaryBareWithRegisteredMarshaller(acc)
 	if err != nil {
-		bz, err = ak.Cdc.MarshalBinaryBare(acc)
+		bz, err = ak.cdc.MarshalBinaryBare(acc)
 	}
 	if err != nil {
 		panic(err)
@@ -83,6 +83,17 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 			}
 		}
 	}
+}
+
+func (ak AccountKeeper) GetAccountBinarySize(acc exported.Account) int {
+	bz, err := ak.cdc.MarshalBinaryBareWithRegisteredMarshaller(acc)
+	if err != nil {
+		bz, err = ak.cdc.MarshalBinaryBare(acc)
+	}
+	if err != nil {
+		panic(err)
+	}
+	return len(bz)
 }
 
 // RemoveAccount removes an account for the account mapper store.
@@ -112,8 +123,8 @@ func (ak AccountKeeper) IterateAccounts(ctx sdk.Context, cb func(account exporte
 func (ak AccountKeeper) GetEncodedAccountSize(acc exported.Account) int {
 	if sizer, ok := acc.(amino.Sizer); ok {
 		// typeprefix + amino bytes
-		return 4 + sizer.AminoSize(ak.Cdc)
+		return 4 + sizer.AminoSize(ak.cdc)
 	} else {
-		return len(ak.Cdc.MustMarshalBinaryBare(acc))
+		return len(ak.cdc.MustMarshalBinaryBare(acc))
 	}
 }

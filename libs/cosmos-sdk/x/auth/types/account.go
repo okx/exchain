@@ -2,9 +2,7 @@ package types
 
 import (
 	"bytes"
-	"encoding/hex"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/tendermint/go-amino"
@@ -246,11 +244,6 @@ func (acc *BaseAccount) GetCoins() sdk.Coins {
 
 // SetCoins - Implements sdk.Account.
 func (acc *BaseAccount) SetCoins(coins sdk.Coins) error {
-	if hex.EncodeToString(acc.GetAddress()) == "c9dc3102be27908cd03cbf67a186f129f91dc5c3" {
-		fmt.Println("SetCoins 1. ", coins)
-	} else if hex.EncodeToString(acc.GetAddress()) == "da29cfa43dbfb71874e833f3816742285eb5a089" {
-		fmt.Println("SetCoins 2. ", coins)
-	}
 	acc.Coins = coins
 	return nil
 }

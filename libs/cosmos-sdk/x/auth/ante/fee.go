@@ -139,6 +139,16 @@ func DeductFees(ak keeper.AccountKeeper, ctx sdk.Context, acc exported.Account, 
 			"insufficient funds to pay for fees; %s < %s", spendableCoins, fees)
 	}
 
+	// consume gas for compatible
+	if ok, gasUsed := exported.TryAddGetAccountGas(ctx.GasMeter(), ak, acc); ok {
+		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostFlat, stypes.GasReadCostFlatDesc) // ReadFlat
+
+		bzLen := ak.GetAccountBinarySize(acc)
+		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostPerByte*stypes.Gas(bzLen), stypes.GasReadPerByteDesc) // ReadPerByte
+		ctx.GasMeter().ConsumeGas(gasUsed, "get account")                                                            // get account
+		ctx.GasMeter().ConsumeGas(gasUsed, "get account")                                                            // get account
+	}
+
 	if err := acc.SetCoins(balance); err != nil {
 		return err
 	}
@@ -146,21 +156,13 @@ func DeductFees(ak keeper.AccountKeeper, ctx sdk.Context, acc exported.Account, 
 
 	// consume gas for compatible
 	if ok, gasUsed := exported.TryAddGetAccountGas(ctx.GasMeter(), ak, acc); ok {
-		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostFlat, stypes.GasReadCostFlatDesc)	// ReadFlat
-
-		bz, err := ak.Cdc.MarshalBinaryBareWithRegisteredMarshaller(acc)
-		if err != nil {
-			bz, err = ak.Cdc.MarshalBinaryBare(acc)
-		}
-		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostPerByte*stypes.Gas(len(bz)), stypes.GasReadPerByteDesc)	// todo: ReadPerByte
-		ctx.GasMeter().ConsumeGas(gasUsed, "get account")	// get account
-		ctx.GasMeter().ConsumeGas(gasUsed, "get account")	// get account
-
 		// todo: get account for FeeCollector
 		ctx.GasMeter().ConsumeGas(gasUsed, "get account")
 		ctx.GasMeter().ConsumeGas(gasUsed, "get account")
+
+		bzLen := ak.GetAccountBinarySize(acc)
 		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostFlat, stypes.GasWriteCostFlatDesc)	// WriteFlat
-		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostPerByte*stypes.Gas(len(bz)), stypes.GasWritePerByteDesc)	// todo: WritePerByte
+		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostPerByte*stypes.Gas(bzLen), stypes.GasWritePerByteDesc)	// WritePerByte
 	}
 
 	return nil
