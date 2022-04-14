@@ -378,6 +378,7 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 	logIndex := make([]int, 0)
 	errs := make([]error, 0)
 	for txIndex, _ := range app.parallelTxManage.indexMapBytes {
+		fmt.Println("txIndex", app.parallelTxManage.txReps[txIndex] == nil)
 		paraM := app.parallelTxManage.txReps[txIndex].paraMsg
 		logIndex = append(logIndex, paraM.LogIndex)
 		errs = append(errs, paraM.AnteErr)
