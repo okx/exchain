@@ -4,6 +4,9 @@ import (
 	"bytes"
 	"fmt"
 	okexchaintypes "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/client"
+	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
+	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"testing"
 	"time"
 
@@ -17,10 +20,10 @@ import (
 	capabilitykeeper "github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 
+	ibckey "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
 	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmproto "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	tmprototypes "github.com/okex/exchain/libs/tendermint/proto/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
@@ -68,13 +71,13 @@ type TestChainI interface {
 	GetSimApp() *simapp.SimApp
 	GetChannelCapability(portID, channelID string) *capabilitytypes.Capability
 	CreateChannelCapability(scopedKeeper capabilitykeeper.ScopedKeeper, portID, channelID string)
-	SendMsgs(msgs ...sdk.Msg) (*sdk.Result, error)
+	SendMsgs(msgs ...ibcmsg.Msg) (*sdk.Result, error)
 	QueryUpgradeProof(key []byte, height uint64) ([]byte, clienttypes.Height)
 	Coordinator() *Coordinator
 	QueryProofAtHeight(key []byte, height int64) ([]byte, clienttypes.Height)
 	ConstructUpdateTMClientHeaderWithTrustedHeight(counterparty TestChainI, clientID string, trustedHeight clienttypes.Height) (*ibctmtypes.Header, error)
 	ConstructUpdateTMClientHeader(counterparty TestChainI, clientID string) (*ibctmtypes.Header, error)
-	sendMsgs(msgs ...sdk.Msg) error
+	sendMsgs(msgs ...ibcmsg.Msg) error
 	GetValsAtHeight(height int64) (*tmtypes.ValidatorSet, bool)
 	CreatePortCapability(scopedKeeper capabilitykeeper.ScopedKeeper, portID string)
 	GetPortCapability(portID string) *capabilitytypes.Capability
@@ -97,13 +100,13 @@ type TestChain struct {
 	currentHeader tmproto.Header     // header for current block height
 	// QueryServer   types.QueryServer
 	queryServer types.QueryService
-	//TxConfig      client.TxConfig
-	codec *codec.CodecProxy
+	TxConfig    client.TxConfig
+	codec       *codec.CodecProxy
 
 	vals    *tmtypes.ValidatorSet
 	signers []tmtypes.PrivValidator
 
-	senderPrivKey secp256k1.PrivKeySecp256k1
+	senderPrivKey cryptotypes.PrivKey
 	senderAccount authtypes.Account
 }
 
@@ -127,7 +130,7 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 	signers := []tmtypes.PrivValidator{privVal}
 
 	// generate genesis account
-	senderPrivKey := secp256k1.GenPrivKey()
+	senderPrivKey := ibckey.GenPrivKey()
 	//acc := authtypes.NewBaseAccount(senderPrivKey.PubKey().Address().Bytes(), nil, senderPrivKey.PubKey(), 0, 0)
 	acc := new(auth.BaseAccount)
 	//acc := authtypes.NewBaseAccount(addr, nil, secp256k1.GenPrivKey().PubKey(), 0, 0)
@@ -312,7 +315,7 @@ func (chain *TestChain) UpdateNextBlock() {
 }
 
 // sendMsgs delivers a transaction through the application without returning the result.
-func (chain *TestChain) sendMsgs(msgs ...sdk.Msg) error {
+func (chain *TestChain) sendMsgs(msgs ...ibcmsg.Msg) error {
 	_, err := chain.SendMsgs(msgs...)
 	return err
 }
@@ -320,14 +323,14 @@ func (chain *TestChain) sendMsgs(msgs ...sdk.Msg) error {
 // SendMsgs delivers a transaction through the application. It updates the senders sequence
 // number and updates the TestChain's headers. It returns the result and error if one
 // occurred.
-func (chain *TestChain) SendMsgs(msgs ...sdk.Msg) (*sdk.Result, error) {
+func (chain *TestChain) SendMsgs(msgs ...ibcmsg.Msg) (*sdk.Result, error) {
 
 	// ensure the chain has the latest time
 	chain.Coordinator().UpdateTimeForChain(chain)
 
 	_, r, err := simapp.SignAndDeliver(
 		chain.t,
-		//chain.TxConfig,
+		chain.TxConfig,
 		chain.App().GetBaseApp(),
 		chain.GetContextPointer().BlockHeader(),
 		msgs,

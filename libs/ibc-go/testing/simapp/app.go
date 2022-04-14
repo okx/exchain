@@ -1,13 +1,17 @@
 package simapp
 
 import (
+	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
+	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/capability"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/core"
-	staking2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/staking"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/transfer"
+	"github.com/okex/exchain/x/common/monitor"
 	"io"
 	"math/big"
 	"os"
+	"sort"
 	"sync"
 
 	"github.com/okex/exchain/app/ante"
@@ -86,6 +90,8 @@ const (
 )
 
 var (
+	orderMetrics  = monitor.DefaultOrderMetrics(monitor.DefaultPrometheusConfig())
+	streamMetrics = monitor.DefaultStreamMetrics(monitor.DefaultPrometheusConfig())
 	// DefaultCLIHome sets the default home directories for the application CLI
 	DefaultCLIHome = os.ExpandEnv("$HOME/.exchaincli")
 
@@ -231,16 +237,15 @@ func NewSimApp(
 		"MercuryHeight", tmtypes.GetMercuryHeight(),
 		"VenusHeight", tmtypes.GetVenusHeight(),
 	)
-	// onceLog.Do(func() {
-	// 	iavl.SetLogger(logger.With("module", "iavl"))
-	// 	logStartingFlags(logger)
-	// })
+	//onceLog.Do(func() {
+	//	iavl.SetLogger(logger.With("module", "iavl"))
+	//	logStartingFlags(logger)
+	//})
 
-	cdc := okexchaincodec.MakeCodec(ModuleBasics)
-	interfaceReg := okexchaincodec.MakeIBC(ModuleBasics)
+	codecProxy, interfaceReg := okexchaincodec.MakeCodecSuit(ModuleBasics)
 
 	// NOTE we use custom OKExChain transaction decoder that supports the sdk.Tx interface instead of sdk.StdTx
-	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(cdc), baseAppOptions...)
+	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(codecProxy), baseAppOptions...)
 
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
@@ -248,9 +253,6 @@ func NewSimApp(
 	bApp.SetEndLogHandler(analyzer.StopTxLog)
 
 	bApp.SetInterfaceRegistry(interfaceReg)
-
-	protoCodec := codec.NewProtoCodec(interfaceReg)
-	codecProxy := codec.NewCodecProxy(protoCodec, cdc)
 
 	keys := sdk.NewKVStoreKeys(
 		bam.MainStoreKey, auth.StoreKey, staking.StoreKey,
@@ -276,7 +278,7 @@ func NewSimApp(
 	bApp.SetInterceptors(makeInterceptors())
 
 	// init params keeper and subspaces
-	app.ParamsKeeper = params.NewKeeper(cdc, keys[params.StoreKey], tkeys[params.TStoreKey])
+	app.ParamsKeeper = params.NewKeeper(codecProxy.GetCdc(), keys[params.StoreKey], tkeys[params.TStoreKey])
 	app.subspaces[auth.ModuleName] = app.ParamsKeeper.Subspace(auth.DefaultParamspace)
 	app.subspaces[bank.ModuleName] = app.ParamsKeeper.Subspace(bank.DefaultParamspace)
 	app.subspaces[staking.ModuleName] = app.ParamsKeeper.Subspace(staking.DefaultParamspace)
@@ -300,7 +302,7 @@ func NewSimApp(
 	app.marshal = codecProxy
 	// use custom OKExChain account for contracts
 	app.AccountKeeper = auth.NewAccountKeeper(
-		cdc, keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
+		codecProxy.GetCdc(), keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
 	)
 
 	bankKeeper := bank.NewBaseKeeperWithMarshal(
@@ -309,26 +311,23 @@ func NewSimApp(
 	app.BankKeeper = &bankKeeper
 	app.ParamsKeeper.SetBankKeeper(app.BankKeeper)
 	app.SupplyKeeper = supply.NewKeeper(
-		cdc, keys[supply.StoreKey], &app.AccountKeeper, app.BankKeeper, maccPerms,
+		codecProxy.GetCdc(), keys[supply.StoreKey], &app.AccountKeeper, app.BankKeeper, maccPerms,
 	)
 
-	stakingKeeper := staking2.NewStakingKeeper(
+	stakingKeeper := staking.NewKeeper(
 		codecProxy, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
-	).Keeper
-	//stakingKeeper := staking.NewKeeper(
-	//	codecProxy, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
-	//)
+	)
 	app.ParamsKeeper.SetStakingKeeper(stakingKeeper)
 	app.MintKeeper = mint.NewKeeper(
-		cdc, keys[mint.StoreKey], app.subspaces[mint.ModuleName], &stakingKeeper,
+		codecProxy.GetCdc(), keys[mint.StoreKey], app.subspaces[mint.ModuleName], &stakingKeeper,
 		app.SupplyKeeper, auth.FeeCollectorName, farm.MintFarmingAccount,
 	)
 	app.DistrKeeper = distr.NewKeeper(
-		cdc, keys[distr.StoreKey], app.subspaces[distr.ModuleName], &stakingKeeper,
+		codecProxy.GetCdc(), keys[distr.StoreKey], app.subspaces[distr.ModuleName], &stakingKeeper,
 		app.SupplyKeeper, auth.FeeCollectorName, app.ModuleAccountAddrs(),
 	)
 	app.SlashingKeeper = slashing.NewKeeper(
-		cdc, keys[slashing.StoreKey], &stakingKeeper, app.subspaces[slashing.ModuleName],
+		codecProxy.GetCdc(), keys[slashing.StoreKey], &stakingKeeper, app.subspaces[slashing.ModuleName],
 	)
 	app.CrisisKeeper = crisis.NewKeeper(
 		app.subspaces[crisis.ModuleName], invCheckPeriod, app.SupplyKeeper, auth.FeeCollectorName,
@@ -347,7 +346,7 @@ func NewSimApp(
 
 	app.OrderKeeper = order.NewKeeper(
 		app.TokenKeeper, app.SupplyKeeper, app.DexKeeper, app.subspaces[order.ModuleName], auth.FeeCollectorName,
-		app.keys[order.OrderStoreKey], app.marshal.GetCdc(), false /*orderMetrics*/, nil)
+		app.keys[order.OrderStoreKey], app.marshal.GetCdc(), false, orderMetrics)
 
 	app.SwapKeeper = ammswap.NewKeeper(app.SupplyKeeper, app.TokenKeeper, app.marshal.GetCdc(), app.keys[ammswap.StoreKey], app.subspaces[ammswap.ModuleName])
 
@@ -356,7 +355,7 @@ func NewSimApp(
 
 	// create evidence keeper with router
 	evidenceKeeper := evidence.NewKeeper(
-		cdc, keys[evidence.StoreKey], app.subspaces[evidence.ModuleName], &app.StakingKeeper, app.SlashingKeeper,
+		codecProxy.GetCdc(), keys[evidence.StoreKey], app.subspaces[evidence.ModuleName], &app.StakingKeeper, app.SlashingKeeper,
 	)
 	evidenceRouter := evidence.NewRouter()
 	evidenceKeeper.SetRouter(evidenceRouter)
@@ -420,8 +419,7 @@ func NewSimApp(
 	app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper)))
 	// Set IBC hooks
 	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
-	//transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
-	transferModule := transfer.TNewTransferModule(app.TransferKeeper, codecProxy)
+	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
 
 	// Create static IBC router, add transfer route, then set and seal it
 	ibcRouter := ibcporttypes.NewRouter()
@@ -457,9 +455,8 @@ func NewSimApp(
 		farm.NewAppModule(app.FarmKeeper),
 		params.NewAppModule(app.ParamsKeeper),
 		// ibc
-		core.NewIBCCOreAppModule(app.IBCKeeper),
-		//capabilityModule.NewAppModule(codecProxy, *app.CapabilityKeeper),
-		capability.TNewCapabilityModuleAdapter(codecProxy, *app.CapabilityKeeper),
+		ibc.NewAppModule(app.IBCKeeper),
+		capabilityModule.NewAppModule(codecProxy, *app.CapabilityKeeper),
 		transferModule,
 		erc20.NewAppModule(app.Erc20Keeper),
 	)
@@ -507,9 +504,9 @@ func NewSimApp(
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)
 	app.mm.RegisterRoutes(app.Router(), app.QueryRouter())
-	app.configurator = module.NewConfigurator(app.AppCodec().GetCdc(), app.MsgServiceRouter(), app.GRPCQueryRouter())
+	app.configurator = module.NewConfigurator(app.Codec(), app.MsgServiceRouter(), app.GRPCQueryRouter())
 	app.mm.RegisterServices(app.configurator)
-	//app.setupUpgradeModules()
+	app.setupUpgradeModules()
 
 	// create the simulation manager and define the order of the modules for deterministic simulations
 	//
@@ -557,6 +554,8 @@ func NewSimApp(
 	// NOTE: the IBC mock keeper and application module is used only for testing core IBC. Do
 	// note replicate if you do not need to test core IBC or light clients.
 	app.ScopedIBCMockKeeper = scopedIBCMockKeeper
+
+	return app
 
 	return app
 }
@@ -765,4 +764,167 @@ func PreRun(ctx *server.Context) error {
 	// init tx signature cache
 	tmtypes.InitSignatureCache()
 	return nil
+}
+
+func (app *SimApp) setupUpgradeModules() {
+	heightTasks, paramMap, pip, prunePip, versionPip := app.CollectUpgradeModules(app.mm)
+
+	app.heightTasks = heightTasks
+
+	if pip != nil {
+		app.GetCMS().SetPruneHeightFilterPipeline(prunePip)
+		app.GetCMS().SetCommitHeightFilterPipeline(pip)
+		app.GetCMS().SetVersionFilterPipeline(versionPip)
+	}
+
+	vs := app.subspaces
+	for k, vv := range paramMap {
+		supace, exist := vs[k]
+		if !exist {
+			continue
+		}
+		vs[k] = supace.LazyWithKeyTable(subspace.NewKeyTable(vv.ParamSetPairs()...))
+	}
+}
+
+func (o *SimApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgradetypes.HeightTasks, map[string]params.ParamSet, types.HeightFilterPipeline, types.HeightFilterPipeline, types.VersionFilterPipeline) {
+	hm := make(map[int64]*upgradetypes.HeightTasks)
+	hStoreInfoModule := make(map[int64]map[string]struct{})
+	paramsRet := make(map[string]params.ParamSet)
+	for _, mm := range m.Modules {
+		if ada, ok := mm.(upgradetypes.UpgradeModule); ok {
+			set := ada.RegisterParam()
+			if set != nil {
+				if _, exist := paramsRet[ada.ModuleName()]; !exist {
+					paramsRet[ada.ModuleName()] = set
+				}
+			}
+			h := ada.UpgradeHeight()
+			if h > 0 {
+				h++
+			}
+			storeInfoModule := hStoreInfoModule[h]
+			if storeInfoModule == nil {
+				storeInfoModule = make(map[string]struct{})
+				hStoreInfoModule[h] = storeInfoModule
+			}
+			names := ada.BlockStoreModules()
+			for _, n := range names {
+				storeInfoModule[n] = struct{}{}
+			}
+			t := ada.RegisterTask()
+			if t == nil {
+				continue
+			}
+			if err := t.ValidateBasic(); nil != err {
+				panic(err)
+			}
+			taskList := hm[h]
+			if taskList == nil {
+				v := make(upgradetypes.HeightTasks, 0)
+				taskList = &v
+				hm[h] = taskList
+			}
+			*taskList = append(*taskList, t)
+		}
+	}
+
+	for _, v := range hm {
+		sort.Sort(*v)
+	}
+
+	commitPip, prunePip, versionPip := collectStorePipeline(hStoreInfoModule)
+
+	return hm, paramsRet, commitPip, prunePip, versionPip
+}
+
+func collectStorePipeline(hStoreInfoModule map[int64]map[string]struct{}) (types.HeightFilterPipeline, types.HeightFilterPipeline, types.VersionFilterPipeline) {
+	var (
+		pip        types.HeightFilterPipeline
+		prunePip   types.HeightFilterPipeline
+		versionPip types.VersionFilterPipeline
+	)
+
+	for storeH, storeMap := range hStoreInfoModule {
+		filterM := copyBlockStoreMap(storeMap)
+		if storeH < 0 {
+			continue
+		}
+		hh := storeH
+		height := hh - 1
+		// filter block module
+		blockModuleFilter := func(str string) bool {
+			_, exist := filterM[str]
+			return exist
+		}
+
+		commitF := func(h int64) func(str string) bool {
+			if hh == 0 {
+				return blockModuleFilter
+			}
+			if h >= height {
+				// call next filter
+				return nil
+			}
+			return blockModuleFilter
+		}
+		pruneF := func(h int64) func(str string) bool {
+			if hh == 0 {
+				return blockModuleFilter
+			}
+			// note: prune's version  > commit version,thus the condition will be '>' rather than '>='
+			if h > height {
+				// call next filter
+				return nil
+			}
+			return blockModuleFilter
+		}
+		versionF := func(h int64) func(cb func(string, int64)) {
+			//if h < height {
+			//	return nil
+			//}
+			if h < 0 {
+				return nil
+			}
+
+			return func(cb func(name string, version int64)) {
+
+				for k, _ := range filterM {
+					cb(k, hh-1)
+				}
+			}
+		}
+
+		pip = linkPipeline(pip, commitF)
+		prunePip = linkPipeline(prunePip, pruneF)
+		versionPip = linkPipeline2(versionPip, versionF)
+	}
+
+	return pip, prunePip, versionPip
+}
+
+func copyBlockStoreMap(m map[string]struct{}) map[string]struct{} {
+	ret := make(map[string]struct{})
+	for k, _ := range m {
+		ret[k] = struct{}{}
+	}
+	return ret
+}
+
+func linkPipeline(p types.HeightFilterPipeline, f func(h int64) func(str string) bool) types.HeightFilterPipeline {
+	if p == nil {
+		p = f
+	} else {
+		p = types.LinkPipeline(f, p)
+	}
+	return p
+}
+
+func linkPipeline2(p types.VersionFilterPipeline, f func(h int64) func(func(string, int64))) types.VersionFilterPipeline {
+	if p == nil {
+		p = f
+	} else {
+		p = types.LinkPipeline2(f, p)
+	}
+	return p
 }

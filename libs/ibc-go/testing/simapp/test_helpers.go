@@ -5,7 +5,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	tmsecp256k1 "github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+	"github.com/okex/exchain/libs/cosmos-sdk/client"
+	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	"math/big"
 	"strconv"
 	"testing"
 	"time"
@@ -236,14 +238,15 @@ func CheckBalance(t *testing.T, app *SimApp, addr sdk.AccAddress, balances sdk.C
 // SignAndDeliver signs and delivers a transaction. No simulation occurs as the
 // ibc testing package causes checkState and deliverState to diverge in block time.
 func SignAndDeliver(
-	t *testing.T /*, txCfg client.TxConfig*/, app *bam.BaseApp, header tmproto.Header, msgs []sdk.Msg,
-	chainID string, accNums, accSeqs []uint64, expSimPass, expPass bool, priv ...tmsecp256k1.PrivKeySecp256k1,
+	t *testing.T, txCfg client.TxConfig, app *bam.BaseApp, header tmproto.Header, msgs []ibcmsg.Msg,
+	chainID string, accNums, accSeqs []uint64, expSimPass, expPass bool, priv ...cryptotypes.PrivKey,
 ) (sdk.GasInfo, *sdk.Result, error) {
 
 	tx, err := helpers.GenTx(
-		//txCfg,
+		txCfg,
 		msgs,
-		sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)},
+		//sdk.CoinAdapters{sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)},
+		sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultBondDenom, sdk.NewIntFromBigInt(big.NewInt(0)))},
 		helpers.DefaultGenTxGas,
 		chainID,
 		accNums,
@@ -254,6 +257,7 @@ func SignAndDeliver(
 
 	// Simulate a sending a transaction and committing a block
 	app.BeginBlock(abci.RequestBeginBlock{Header: header})
+	//convert tx to ibctx
 	gInfo, res, err := app.Deliver(tx)
 
 	if expPass {
@@ -274,14 +278,15 @@ func SignAndDeliver(
 // GenSequenceOfTxs generates a set of signed transactions of messages, such
 // that they differ only by having the sequence numbers incremented between
 // every transaction.
-func GenSequenceOfTxs( /*txGen client.TxConfig,*/ msgs []sdk.Msg, accNums []uint64, initSeqNums []uint64, numToGenerate int, priv ...tmsecp256k1.PrivKeySecp256k1) ([]sdk.Tx, error) {
+func GenSequenceOfTxs(txGen client.TxConfig, msgs []ibcmsg.Msg, accNums []uint64, initSeqNums []uint64, numToGenerate int, priv ...cryptotypes.PrivKey) ([]sdk.Tx, error) {
 	txs := make([]sdk.Tx, numToGenerate)
 	var err error
 	for i := 0; i < numToGenerate; i++ {
 		txs[i], err = helpers.GenTx(
-			//txGen,
+			txGen,
 			msgs,
-			sdk.Coins{sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)},
+			//sdk.CoinAdapters{sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)},
+			sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultBondDenom, sdk.NewIntFromBigInt(big.NewInt(0)))},
 			helpers.DefaultGenTxGas,
 			"",
 			accNums,
