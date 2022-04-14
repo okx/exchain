@@ -2,6 +2,7 @@ package ibctesting
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/types"
 	"strconv"
 	"testing"
 	"time"
@@ -28,6 +29,7 @@ type Coordinator struct {
 
 // NewCoordinator initializes Coordinator with N TestChain's
 func NewCoordinator(t *testing.T, n int) *Coordinator {
+	types.EnableVeneus1Feature()
 	chains := make(map[string]TestChainI)
 	coord := &Coordinator{
 		t:           t,
@@ -182,13 +184,21 @@ func GetChainID(index int) string {
 // CONTRACT: the passed in list of indexes must not contain duplicates
 func (coord *Coordinator) CommitBlock(chains ...TestChainI) {
 	for _, chain := range chains {
-		chain.NextBlock()
+		//chain.NextBlock()
+		chain.BeginBlock()
 		chain.App().Commit(abci.RequestCommit{})
+		chain.UpdateNextBlock()
 		//todo ywmet
 		//chain.App().Commit(abci.RequestCommit{})
 		//chain.NextBlock()
 	}
 	coord.IncrementTime()
+}
+
+func (coord *Coordinator) UpdateNextBlock(chains ...TestChainI) {
+	for _, chain := range chains {
+		chain.UpdateNextBlock()
+	}
 }
 
 // CommitNBlocks commits n blocks to state and updates the block height by 1 for each commit.

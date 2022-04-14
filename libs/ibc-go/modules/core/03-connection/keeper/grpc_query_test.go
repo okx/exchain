@@ -4,6 +4,7 @@ import (
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
+	types2 "github.com/okex/exchain/libs/tendermint/abci/types"
 
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
@@ -68,9 +69,11 @@ func (suite *KeeperTestSuite) TestQueryConnection() {
 			suite.SetupTest() // reset
 
 			tc.malleate()
+			suite.chainA.BeginBlock()
 			ctx := sdk.WrapSDKContext(suite.chainA.GetContext())
-
 			res, err := suite.chainA.QueryServer().Connection(ctx, req)
+			suite.chainA.App().Commit(types2.RequestCommit{})
+			suite.chainA.NextBlock()
 
 			if tc.expPass {
 				suite.Require().NoError(err)
