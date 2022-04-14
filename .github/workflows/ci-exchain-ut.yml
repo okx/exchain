@@ -88,6 +88,21 @@ jobs:
           echo "mode: atomic" > coverage.txt
           tail -n +2 coverage.data >> coverage.txt
           bash <(curl -s https://codecov.io/bash) -f coverage.txt 
+  libs—tm-blockchain:
+    name: libs ut tm_blockchain v0
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
 
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+
+      - name: Go Test exchain/libs/tm/blockchain
+        run: |
+          set -ex
+          codePath="./libs/tendermint/blockchain/v0/..."
+          go list ${codePath} |xargs go test -timeout 20m -tags='norace ledger test_ledger_mock' -v
 
   
