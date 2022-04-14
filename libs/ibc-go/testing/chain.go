@@ -159,10 +159,10 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 
 	// create an account to send transactions from
 	tchain := &TestChain{
-		t:           t,
-		coordinator: coord,
-		chainID:     chainID,
-		//app:           app,
+		t:             t,
+		coordinator:   coord,
+		chainID:       chainID,
+		TApp:          app,
 		currentHeader: header,
 		queryServer:   app.GetIBCKeeper(),
 		//TxConfig:      txConfig,
@@ -187,7 +187,7 @@ func (chain *TestChain) GetContext() sdk.Context {
 // CONTRACT: This function should not be called by third parties implementing
 // their own SimApp.
 func (chain *TestChain) GetSimApp() *simapp.SimApp {
-	app, ok := chain.App().(*simapp.SimApp)
+	app, ok := chain.TApp.(*simapp.SimApp)
 	require.True(chain.t, ok)
 
 	return app

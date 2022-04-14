@@ -2,6 +2,7 @@ package types_test
 
 import (
 	"fmt"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"testing"
 	"time"
 
@@ -40,6 +41,7 @@ type MsgTestSuite struct {
 }
 
 func (suite *MsgTestSuite) SetupTest() {
+	types2.EnableVeneus1Feature()
 	suite.coordinator = ibctesting.NewCoordinator(suite.T(), 2)
 
 	suite.chainA = suite.coordinator.GetChain(ibctesting.GetChainID(0))

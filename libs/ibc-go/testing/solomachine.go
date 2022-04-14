@@ -11,7 +11,6 @@ import (
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 	solomachinetypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/06-solomachine/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -77,19 +76,19 @@ func NewSolomachine(t *testing.T, cdc *codec.CodecProxy, clientID, diversifier s
 // The key type can be swapped for any key type supported by the PublicKey
 // interface, if needed. The same is true for the amino based Multisignature
 // public key.
-func GenerateKeys(t *testing.T, n uint64) ([]secp256k1.PrivKeySecp256k1, []ibckey.PubKey, ibckey.PubKey) {
+func GenerateKeys(t *testing.T, n uint64) ([]cryptotypes.PrivKey, []cryptotypes.PubKey, cryptotypes.PubKey) {
 	require.NotEqual(t, uint64(0), n, "generation of zero keys is not allowed")
 
 	// privKeys := make([]cryptotypes.PrivKey, n)
-	privKeys := make([]secp256k1.PrivKeySecp256k1, n)
-	pubKeys := make([]ibckey.PubKey, n)
+	privKeys := make([]cryptotypes.PrivKey, n)
+	pubKeys := make([]cryptotypes.PubKey, n)
 	for i := uint64(0); i < n; i++ {
-		privKeys[i] = secp256k1.GenPrivKey()
+		privKeys[i] = ibckey.GenPrivKey()
 		pubKeys[i] = privKeys[i].PubKey()
 	}
 
 	// var pk cryptotypes.PubKey
-	var pk ibckey.PubKey
+	var pk cryptotypes.PubKey
 	if len(privKeys) > 1 {
 		// generate multi sig pk
 		//pk = kmultisig.NewLegacyAminoPubKey(int(n), pubKeys)
