@@ -88,7 +88,7 @@ jobs:
           echo "mode: atomic" > coverage.txt
           tail -n +2 coverage.data >> coverage.txt
           bash <(curl -s https://codecov.io/bash) -f coverage.txt 
-  libs—tm-blockchain:
+  libstmblockchain:
     name: libs ut tm_blockchain v0
     needs: build
     runs-on: ubuntu-latest
