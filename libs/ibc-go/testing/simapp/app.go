@@ -1,6 +1,10 @@
 package simapp
 
 import (
+	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/capability"
+	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/core"
+	staking2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/staking"
+	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/transfer"
 	"io"
 	"math/big"
 	"os"
@@ -31,7 +35,6 @@ import (
 	govclient "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
-	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
 	ibctransferkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/keeper"
 	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
@@ -121,8 +124,9 @@ var (
 		ammswap.AppModuleBasic{},
 		farm.AppModuleBasic{},
 		capabilityModule.AppModuleBasic{},
-		ibc.AppModuleBasic{},
-		ibctransfer.AppModuleBasic{},
+		core.CoreModule{},
+		capability.CapabilityModuleAdapter{},
+		transfer.TransferModule{},
 		erc20.AppModuleBasic{},
 	)
 
@@ -308,9 +312,12 @@ func NewSimApp(
 		cdc, keys[supply.StoreKey], &app.AccountKeeper, app.BankKeeper, maccPerms,
 	)
 
-	stakingKeeper := staking.NewKeeper(
+	stakingKeeper := staking2.NewStakingKeeper(
 		codecProxy, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
-	)
+	).Keeper
+	//stakingKeeper := staking.NewKeeper(
+	//	codecProxy, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
+	//)
 	app.ParamsKeeper.SetStakingKeeper(stakingKeeper)
 	app.MintKeeper = mint.NewKeeper(
 		cdc, keys[mint.StoreKey], app.subspaces[mint.ModuleName], &stakingKeeper,
@@ -413,7 +420,8 @@ func NewSimApp(
 	app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper)))
 	// Set IBC hooks
 	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
-	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
+	//transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
+	transferModule := transfer.TNewTransferModule(app.TransferKeeper, codecProxy)
 
 	// Create static IBC router, add transfer route, then set and seal it
 	ibcRouter := ibcporttypes.NewRouter()
@@ -449,8 +457,9 @@ func NewSimApp(
 		farm.NewAppModule(app.FarmKeeper),
 		params.NewAppModule(app.ParamsKeeper),
 		// ibc
-		ibc.NewAppModule(app.IBCKeeper),
-		capabilityModule.NewAppModule(codecProxy, *app.CapabilityKeeper),
+		core.NewIBCCOreAppModule(app.IBCKeeper),
+		//capabilityModule.NewAppModule(codecProxy, *app.CapabilityKeeper),
+		capability.TNewCapabilityModuleAdapter(codecProxy, *app.CapabilityKeeper),
 		transferModule,
 		erc20.NewAppModule(app.Erc20Keeper),
 	)

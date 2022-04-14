@@ -304,7 +304,7 @@ func (chain *TestChain) SendMsgs(msgs ...sdk.Msg) (*sdk.Result, error) {
 		chain.t,
 		//chain.TxConfig,
 		chain.App().GetBaseApp(),
-		chain.GetContext().BlockHeader(),
+		chain.GetContextPointer().BlockHeader(),
 		msgs,
 		chain.ChainID(),
 		[]uint64{chain.SenderAccount().GetAccountNumber()},
