@@ -52,7 +52,7 @@ type TestChainI interface {
 	LastHeader() *ibctmtypes.Header
 	QueryServer() types.QueryService
 	ChainID() string
-	Codec() codec.BinaryCodec
+	Codec() *codec.CodecProxy
 	SenderAccount() sdk.Account
 
 	CurrentTMClientHeader() *ibctmtypes.Header
@@ -618,8 +618,8 @@ func (chain *TestChain) ChainID() string {
 	return chain.chainID
 }
 
-func (chain *TestChain) Codec() codec.BinaryCodec {
-	return chain.Codec()
+func (chain *TestChain) Codec() *codec.CodecProxy {
+	return chain.codec
 }
 func (chain *TestChain) SenderAccount() sdk.Account {
 	return chain.senderAccount

@@ -39,7 +39,7 @@ import (
 type Solomachine struct {
 	t *testing.T
 
-	cdc         *codec.BinaryCodec
+	cdc         *codec.CodecProxy
 	ClientID    string
 	PrivateKeys []cryptotypes.PrivKey // keys used for signing
 	PublicKeys  []cryptotypes.PubKey  // keys used for generating solo machine pub key
@@ -52,7 +52,7 @@ type Solomachine struct {
 // // NewSolomachine returns a new solomachine instance with an `nKeys` amount of
 // // generated private/public key pairs and a sequence starting at 1. If nKeys
 // // is greater than 1 then a multisig public key is used.
-func NewSolomachine(t *testing.T, cdc codec.BinaryCodec, clientID, diversifier string, nKeys uint64) *Solomachine {
+func NewSolomachine(t *testing.T, cdc *codec.CodecProxy, clientID, diversifier string, nKeys uint64) *Solomachine {
 	privKeys, pubKeys, pk := GenerateKeys(t, nKeys)
 
 	return &Solomachine{
