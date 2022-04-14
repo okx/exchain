@@ -53,7 +53,7 @@ func LinkPipeline2(f, s VersionFilterPipeline) VersionFilterPipeline {
 				s(h)(f)
 			}
 		}
-		return func(func(string, int64)) {}
+		return s(h)
 	}
 }
 
