@@ -43,7 +43,7 @@ func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitC
 	}
 
 	// add block gas meter for any genesis transactions (allow infinite gas)
-	app.deliverState.ctx.SetBlockGasMeter(sdk.NewInfiniteGasMeter())
+	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(sdk.NewInfiniteGasMeter())
 
 	res = app.initChainer(app.deliverState.ctx, req)
 
@@ -138,9 +138,9 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	} else {
 		// In the first block, app.deliverState.ctx will already be initialized
 		// by InitChain. Context is now updated with Header information.
-		app.deliverState.ctx.
-			SetBlockHeader(req.Header).
-			SetBlockHeight(req.Header.Height)
+		app.deliverState.ctx = app.deliverState.ctx.
+			WithBlockHeader(req.Header).
+			WithBlockHeight(req.Header.Height)
 	}
 
 	app.newBlockCache()
@@ -152,7 +152,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		gasMeter = sdk.NewInfiniteGasMeter()
 	}
 
-	app.deliverState.ctx.SetBlockGasMeter(gasMeter)
+	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(gasMeter)
 
 	if app.beginBlocker != nil {
 		res = app.beginBlocker(app.deliverState.ctx, req)
@@ -250,7 +250,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
 	app.commitBlockCache()
 
-	if global.GetGlobalHeight() == 4329763 {
+	if header.Height == 4329763 {
 		app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
 			if isDirty {
 				fmt.Println(hex.EncodeToString(key), hex.EncodeToString(value))
@@ -258,7 +258,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 			return true
 		})
 	}
-	
+
 	app.deliverState.ms.Write()
 
 	var input iavl.TreeDeltaMap
@@ -557,8 +557,7 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) abci.
 	// cache wrap the commit-multistore for safety
 	ctx := sdk.NewContext(
 		cacheMS, app.checkState.ctx.BlockHeader(), true, app.logger,
-	)
-	ctx.SetMinGasPrices(app.minGasPrices)
+	).WithMinGasPrices(app.minGasPrices)
 
 	// Passes the rest of the path as an argument to the querier.
 	//
