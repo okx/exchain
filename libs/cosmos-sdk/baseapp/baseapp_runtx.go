@@ -248,9 +248,9 @@ func (app *BaseApp) asyncDeliverTx(txWithIndex []byte) {
 		return
 	}
 
-	//if txStatus == nil { //autolrp4
-	//	return
-	//}
+	if txStatus == nil { //TODO why?
+		return
+	}
 	if !txStatus.isEvmTx {
 		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, txStatus.indexInBlock, txStatus.evmIndex, nil)
 		app.parallelTxManage.workgroup.Push(asyncExe)
