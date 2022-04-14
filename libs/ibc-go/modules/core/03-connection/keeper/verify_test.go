@@ -67,7 +67,7 @@ func (suite *KeeperTestSuite) TestVerifyClientState() {
 
 			connection := path.EndpointA.GetConnection()
 
-			err := suite.chainA.App.GetIBCKeeper().ConnectionKeeper.VerifyClientState(
+			err := suite.chainA.App().GetIBCKeeper().ConnectionKeeper.VerifyClientState(
 				suite.chainA.GetContext(), connection,
 				malleateHeight(proofHeight, heightDiff), clientProof, counterpartyClient,
 			)
@@ -107,14 +107,14 @@ func (suite *KeeperTestSuite) TestVerifyClientConsensusState() {
 			clientState := suite.chainB.GetClientState(path.EndpointB.ClientID)
 
 			// give chainB wrong consensus state for chainA
-			consState, found := suite.chainB.App.GetIBCKeeper().ClientKeeper.GetLatestClientConsensusState(suite.chainB.GetContext(), path.EndpointB.ClientID)
+			consState, found := suite.chainB.App().GetIBCKeeper().ClientKeeper.GetLatestClientConsensusState(suite.chainB.GetContext(), path.EndpointB.ClientID)
 			suite.Require().True(found)
 
 			tmConsState, ok := consState.(*ibctmtypes.ConsensusState)
 			suite.Require().True(ok)
 
 			tmConsState.Timestamp = time.Now()
-			suite.chainB.App.GetIBCKeeper().ClientKeeper.SetClientConsensusState(suite.chainB.GetContext(), path.EndpointB.ClientID, clientState.GetLatestHeight(), tmConsState)
+			suite.chainB.App().GetIBCKeeper().ClientKeeper.SetClientConsensusState(suite.chainB.GetContext(), path.EndpointB.ClientID, clientState.GetLatestHeight(), tmConsState)
 
 			suite.coordinator.CommitBlock(suite.chainB)
 		}, false},
@@ -141,10 +141,10 @@ func (suite *KeeperTestSuite) TestVerifyClientConsensusState() {
 			tmpCtx := suite.chainB.GetContext()
 			proof, consensusHeight := suite.chainB.QueryConsensusStateProof(path.EndpointB.ClientID)
 			proofHeight := clienttypes.NewHeight(0, uint64(tmpCtx.BlockHeight()-1))
-			consensusState, found := suite.chainA.App.GetIBCKeeper().ClientKeeper.GetSelfConsensusState(suite.chainA.GetContext(), consensusHeight)
+			consensusState, found := suite.chainA.App().GetIBCKeeper().ClientKeeper.GetSelfConsensusState(suite.chainA.GetContext(), consensusHeight)
 			suite.Require().True(found)
 
-			err := suite.chainA.App.GetIBCKeeper().ConnectionKeeper.VerifyClientConsensusState(
+			err := suite.chainA.App().GetIBCKeeper().ConnectionKeeper.VerifyClientConsensusState(
 				suite.chainA.GetContext(), connection,
 				malleateHeight(proofHeight, heightDiff), consensusHeight, proof, consensusState,
 			)
@@ -209,7 +209,7 @@ func (suite *KeeperTestSuite) TestVerifyConnectionState() {
 
 			expectedConnection := path.EndpointB.GetConnection()
 
-			err := suite.chainA.App.GetIBCKeeper().ConnectionKeeper.VerifyConnectionState(
+			err := suite.chainA.App().GetIBCKeeper().ConnectionKeeper.VerifyConnectionState(
 				suite.chainA.GetContext(), connection,
 				malleateHeight(proofHeight, heightDiff), proof, path.EndpointB.ConnectionID, expectedConnection,
 			)
@@ -273,7 +273,7 @@ func (suite *KeeperTestSuite) TestVerifyChannelState() {
 
 			channel := path.EndpointB.GetChannel()
 
-			err := suite.chainA.App.GetIBCKeeper().ConnectionKeeper.VerifyChannelState(
+			err := suite.chainA.App().GetIBCKeeper().ConnectionKeeper.VerifyChannelState(
 				suite.chainA.GetContext(), connection, malleateHeight(proofHeight, heightDiff), proof,
 				path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, channel,
 			)
@@ -360,11 +360,11 @@ func (suite *KeeperTestSuite) TestVerifyPacketCommitment() {
 
 			// set time per block param
 			if timePerBlock != 0 {
-				suite.chainB.App.GetIBCKeeper().ConnectionKeeper.SetParams(suite.chainB.GetContext(), types.NewParams(timePerBlock))
+				suite.chainB.App().GetIBCKeeper().ConnectionKeeper.SetParams(suite.chainB.GetContext(), types.NewParams(timePerBlock))
 			}
 
-			commitment := channeltypes.CommitPacket(suite.chainB.App.GetIBCKeeper().Codec(), packet)
-			err = suite.chainB.App.GetIBCKeeper().ConnectionKeeper.VerifyPacketCommitment(
+			commitment := channeltypes.CommitPacket(suite.chainB.App().GetIBCKeeper().Codec(), packet)
+			err = suite.chainB.App().GetIBCKeeper().ConnectionKeeper.VerifyPacketCommitment(
 				suite.chainB.GetContext(), connection, malleateHeight(proofHeight, heightDiff), proof,
 				packet.GetSourcePort(), packet.GetSourceChannel(), packet.GetSequence(), commitment,
 			)
@@ -462,10 +462,10 @@ func (suite *KeeperTestSuite) TestVerifyPacketAcknowledgement() {
 
 			// set time per block param
 			if timePerBlock != 0 {
-				suite.chainA.App.GetIBCKeeper().ConnectionKeeper.SetParams(suite.chainA.GetContext(), types.NewParams(timePerBlock))
+				suite.chainA.App().GetIBCKeeper().ConnectionKeeper.SetParams(suite.chainA.GetContext(), types.NewParams(timePerBlock))
 			}
 
-			err = suite.chainA.App.GetIBCKeeper().ConnectionKeeper.VerifyPacketAcknowledgement(
+			err = suite.chainA.App().GetIBCKeeper().ConnectionKeeper.VerifyPacketAcknowledgement(
 				suite.chainA.GetContext(), connection, malleateHeight(proofHeight, heightDiff), proof,
 				packet.GetDestPort(), packet.GetDestChannel(), packet.GetSequence(), ack.Acknowledgement(),
 			)
@@ -567,10 +567,10 @@ func (suite *KeeperTestSuite) TestVerifyPacketReceiptAbsence() {
 
 			// set time per block param
 			if timePerBlock != 0 {
-				suite.chainA.App.GetIBCKeeper().ConnectionKeeper.SetParams(suite.chainA.GetContext(), types.NewParams(timePerBlock))
+				suite.chainA.App().GetIBCKeeper().ConnectionKeeper.SetParams(suite.chainA.GetContext(), types.NewParams(timePerBlock))
 			}
 
-			err = suite.chainA.App.GetIBCKeeper().ConnectionKeeper.VerifyPacketReceiptAbsence(
+			err = suite.chainA.App().GetIBCKeeper().ConnectionKeeper.VerifyPacketReceiptAbsence(
 				suite.chainA.GetContext(), connection, malleateHeight(proofHeight, heightDiff), proof,
 				packet.GetDestPort(), packet.GetDestChannel(), packet.GetSequence(),
 			)
@@ -664,12 +664,12 @@ func (suite *KeeperTestSuite) TestVerifyNextSequenceRecv() {
 
 			// set time per block param
 			if timePerBlock != 0 {
-				suite.chainA.App.GetIBCKeeper().ConnectionKeeper.SetParams(suite.chainA.GetContext(), types.NewParams(timePerBlock))
+				suite.chainA.App().GetIBCKeeper().ConnectionKeeper.SetParams(suite.chainA.GetContext(), types.NewParams(timePerBlock))
 			}
 
 			connection := path.EndpointA.GetConnection()
 			connection.DelayPeriod = delayTimePeriod
-			err = suite.chainA.App.GetIBCKeeper().ConnectionKeeper.VerifyNextSequenceRecv(
+			err = suite.chainA.App().GetIBCKeeper().ConnectionKeeper.VerifyNextSequenceRecv(
 				suite.chainA.GetContext(), connection, malleateHeight(proofHeight, heightDiff), proof,
 				packet.GetDestPort(), packet.GetDestChannel(), packet.GetSequence()+offsetSeq,
 			)
