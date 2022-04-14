@@ -32,7 +32,7 @@ func TestPeerResetBlockResponseTimer(t *testing.T) {
 		lastErr         error      // last generated error
 		peerTestMtx     sync.Mutex // modifications of ^^ variables are also done from timer handler goroutine
 	)
-	params := &BpPeerParams{timeout: 2 * time.Millisecond}
+	params := &BpPeerParams{timeout: 3 * time.Millisecond}
 
 	peer := NewBpPeer(
 		p2p.ID(tmrand.Str(12)), 0, 10,
