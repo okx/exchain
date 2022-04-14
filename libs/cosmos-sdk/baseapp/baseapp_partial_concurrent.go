@@ -94,6 +94,7 @@ func newDttRoutine(index int8, basicProcess BasicProcessFn, runAnte RunAnteFn) *
 		index:      index,
 		basicProFn: basicProcess,
 		runAnteFn:  runAnte,
+		txIndex:    -1,
 	}
 
 	return dttr
@@ -110,7 +111,7 @@ func (dttr *dttRoutine) makeNewTask(txByte []byte, index int) {
 	dttr.txByte <- txByte
 }
 
-func (dttr *dttRoutine) OnStart() {
+func (dttr *dttRoutine) start() {
 	dttr.done = make(chan int8)
 	dttr.txByte = make(chan []byte, 3)
 	dttr.rerunCh = make(chan int8, 5)
@@ -120,6 +121,7 @@ func (dttr *dttRoutine) OnStart() {
 
 func (dttr *dttRoutine) stop() {
 	dttr.step = dttRoutineStepNone
+	dttr.txIndex = -1
 	dttr.done <- 0
 }
 
@@ -276,7 +278,7 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 
 	for i := 0; i < maxDeliverTxsConcurrentNum && i < dttm.totalCount; i++ {
 		dttr := dttm.dttRoutineList[i]
-		dttr.OnStart()
+		dttr.start()
 		dttr.makeNewTask(txs[i], i)
 	}
 }
@@ -437,9 +439,9 @@ func (dttm *DTTManager) serialRoutine() {
 			dttm.serialTask = nil
 
 			if dttm.serialIndex == dttm.totalCount-1 {
-				//dttm.app.logger.Info("TotalTxFeeForCollector", "fee", dttm.currTxFee)
+				dttm.app.logger.Info("ExitSerialRoutine")
 				count := len(dttm.dttRoutineList)
-				for i := 0; i < count; i++ {
+				for i := 0; i < count && i < dttm.totalCount; i++ {
 					dttr := dttm.dttRoutineList[i]
 					dttr.stop()
 				}
