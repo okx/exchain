@@ -64,12 +64,19 @@ func (AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) 
 // DefaultGenesis returns default genesis state as raw bytes for the ibc
 // transfer module.
 func (AppModuleBasic) DefaultGenesis() json.RawMessage {
-	return nil
+	return ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
 }
 
 // ValidateGenesis performs genesis state validation for the mint module.
-func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
-	return nil
+func (AppModuleBasic) ValidateGenesis(data json.RawMessage) error {
+	if nil == data {
+		return nil
+	}
+	var genState types.GenesisState
+	if err := ModuleCdc.UnmarshalJSON(data, &genState); err != nil {
+		return fmt.Errorf("failed to unmarshal %s genesis state: %w", types.ModuleName, err)
+	}
+	return genState.Validate()
 }
 
 // RegisterRESTRoutes implements AppModuleBasic interface
@@ -156,7 +163,7 @@ func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 	if !tmtypes.HigherThanVenus1(ctx.BlockHeight()) {
 		return nil
 	}
-	return am.initGenesis(ctx,data)
+	return am.initGenesis(ctx, data)
 }
 
 func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
@@ -169,7 +176,10 @@ func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 // ExportGenesis returns the exported genesis state as raw bytes for the ibc-transfer
 // module.
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
-	return nil
+	if !tmtypes.HigherThanVenus1(ctx.BlockHeight()) {
+		return nil
+	}
+	return am.exportGenesis(ctx)
 }
 func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
 	gs := am.keeper.ExportGenesis(ctx)

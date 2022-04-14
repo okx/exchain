@@ -58,8 +58,8 @@ func (a AppModuleBasic) RegisterInterfaces(_ types2.InterfaceRegistry) {}
 
 // DefaultGenesis returns default genesis state as raw bytes for the ibc
 // module.
-func (AppModuleBasic) DefaultGenesis() json.RawMessage {
-	return nil
+func (a AppModuleBasic) DefaultGenesis() json.RawMessage {
+	return ModuleCdc.MustMarshalJSON(types.DefaultGenesis())
 }
 
 // ValidateGenesis performs genesis state validation for the capability module.
@@ -147,10 +147,10 @@ func (am AppModule) RegisterInvariants(_ sdk.InvariantRegistry) {}
 // InitGenesis performs the capability module's genesis initialization It returns
 // no validator updates.
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	if tmtypes.HigherThanVenus1(ctx.BlockHeight()) {
-		return am.initGenesis(ctx, data)
+	if !tmtypes.HigherThanVenus1(ctx.BlockHeight()) {
+		return nil
 	}
-	return nil
+	return am.initGenesis(ctx, data)
 }
 func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
 	var genState types.GenesisState
@@ -167,7 +167,6 @@ func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
 	if !tmtypes.HigherThanVenus1(ctx.BlockHeight()) {
 		return nil
 	}
-	defer am.Seal()
 	return am.exportGenesis(ctx)
 }
 

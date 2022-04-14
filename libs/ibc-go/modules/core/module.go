@@ -51,12 +51,21 @@ func (AppModuleBasic) Name() string {
 // DefaultGenesis returns default genesis state as raw bytes for the ibc
 // module.
 func (AppModuleBasic) DefaultGenesis() json.RawMessage {
-	return nil
+	return ModuleCdc.MustMarshalJSON(DefaultGenesisState())
 }
 
 // ValidateGenesis performs genesis state validation for the mint module.
 func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
-	return nil
+	if nil == bz {
+		return nil
+	}
+
+	var data types.GenesisState
+	if err := ModuleCdc.UnmarshalJSON(bz, &data); err != nil {
+		return fmt.Errorf("failed to unmarshal %s genesis state: %w", "asd", err)
+	}
+
+	return data.Validate()
 }
 
 // RegisterRESTRoutes does nothing. IBC does not support legacy REST routes.
@@ -164,7 +173,10 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 // no validator updates.
 //func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONMarshaler, bz json.RawMessage) []abci.ValidatorUpdate {
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	return nil
+	if !tmtypes.HigherThanVenus1(ctx.BlockHeight()) {
+		return nil
+	}
+	return am.initGenesis(ctx, data)
 }
 
 func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
@@ -180,7 +192,10 @@ func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 // ExportGenesis returns the exported genesis state as raw bytes for the ibc
 // module.
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
-	return nil
+	if !tmtypes.HigherThanVenus1(ctx.BlockHeight()) {
+		return nil
+	}
+	return am.exportGenesis(ctx)
 }
 
 func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
