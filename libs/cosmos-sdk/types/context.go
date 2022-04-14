@@ -91,12 +91,19 @@ func (c *Context) EventManager() *EventManager { return c.eventManager }
 func (c *Context) IsAsync() bool               { return c.isAsync }
 func (c *Context) AccountNonce() uint64        { return c.accountNonce }
 func (c *Context) AnteTracer() *trace.Tracer   { return c.trc }
-
+func (c *Context) Cache() *Cache {
+	return c.cache
+}
 func (c Context) ParaMsg() *ParaMsg {
 	return c.paraMsg
 }
 
-func (c *Context) Cache() *Cache { return c.cache }
+type AccountCache struct {
+	FromAcc       interface{} // must be auth.Account
+	ToAcc         interface{} // must be auth.Account
+	FromAccGotGas Gas
+	ToAccGotGas   Gas
+}
 
 func (c *Context) EnableAccountCache()  { c.accountCache = &AccountCache{} }
 func (c *Context) DisableAccountCache() { c.accountCache = nil }
@@ -418,13 +425,6 @@ func (c Context) WithIsTraceTxLog(isTraceTxLog bool) Context {
 	}
 	c.traceTxLog = isTraceTxLog
 	return c
-}
-
-type AccountCache struct {
-	FromAcc       interface{} // must be auth.Account
-	ToAcc         interface{} // must be auth.Account
-	FromAccGotGas Gas
-	ToAccGotGas   Gas
 }
 
 // ContextKey defines a type alias for a stdlib Context key.

@@ -101,7 +101,6 @@ func (c *Cache) skip() bool {
 	if c == nil || !c.useCache {
 		return true
 	}
-	fmt.Println("fuck---")
 	return false
 }
 

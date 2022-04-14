@@ -3,8 +3,6 @@ package baseapp
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
-	"fmt"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -275,7 +273,6 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 
 	asyncCb := func(execRes *executeResult) {
 		receiveTxIndex := int(execRes.GetCounter())
-		fmt.Println("receive", receiveTxIndex)
 		pm.workgroup.setTxStatus(receiveTxIndex, false)
 		if receiveTxIndex < txIndex {
 			return
@@ -283,14 +280,12 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 		txReps[receiveTxIndex] = execRes
 
 		if pm.workgroup.isFailed(pm.workgroup.runningStats(receiveTxIndex)) {
-			fmt.Println("fuck2-", receiveTxIndex)
 			txReps[receiveTxIndex] = nil
 			pm.workgroup.AddTask(txs[receiveTxIndex], receiveTxIndex)
 
 		} else {
 			if nextTx, ok := nextTxInGroup[receiveTxIndex]; ok {
 				if !pm.workgroup.isRunning(nextTx) {
-					fmt.Println("fuck3", nextTx)
 					txReps[nextTx] = nil
 					pm.workgroup.AddTask(txs[nextTx], nextTx)
 				}
@@ -307,7 +302,6 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 			res := txReps[txIndex]
 
 			if pm.newIsConflict(res) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
-				fmt.Println("reRun", txIndex)
 				rerunIdx++
 				s.reRun = true
 				res = app.deliverTxWithCache(txs[txIndex], txIndex)
@@ -317,7 +311,6 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 
 				if ok {
 					if !pm.workgroup.isRunning(nn) {
-						fmt.Println("fuck4", nn)
 						txReps[nn] = nil
 						pm.workgroup.AddTask(txs[nn], nn)
 					}
@@ -335,9 +328,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 				app.deliverState.ctx.BlockGasMeter().ConsumeGas(sdk.Gas(res.resp.GasUsed), "unexpected error")
 			}
 
-			fmt.Println("SetCurrent", txIndex)
 			pm.SetCurrentIndex(txIndex, res) //Commit
-			fmt.Println("SetCurrent end", txIndex)
 			currentGas += uint64(res.resp.GasUsed)
 			txIndex++
 			if txIndex == len(txs) {
@@ -388,7 +379,6 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 	logIndex := make([]int, 0)
 	errs := make([]error, 0)
 	for txIndex, _ := range app.parallelTxManage.indexMapBytes {
-		fmt.Println("txIndex", app.parallelTxManage.txReps[txIndex] == nil)
 		paraM := app.parallelTxManage.txReps[txIndex].paraMsg
 		logIndex = append(logIndex, paraM.LogIndex)
 		errs = append(errs, paraM.AnteErr)
@@ -749,13 +739,10 @@ func (f *parallelTxManager) getTxResult(tx []byte) sdk.CacheMultiStore {
 		if f.workgroup.isRunning(next) {
 			f.workgroup.markFailed(f.workgroup.runningStats(next))
 		} else {
-			fmt.Println("fuck", next)
 			f.txReps[next] = nil
 		}
 	}
 	f.runBase[index] = base
-
-	fmt.Println("runBase", index, "base", base)
 
 	return ms
 }
@@ -796,9 +783,6 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 	f.mu.Lock()
 	res.ms.IteratorCache(func(key, value []byte, isDirty bool, isdelete bool, storeKey sdk.StoreKey) bool {
 		if isDirty {
-			if hex.EncodeToString(key) == "05852a2bc66f2add3c598da0ce2e5e9d12e3c100207cc57c7c217a9f72ad42e928d8a7b65de2591ef46045587264bc3d415da6378a" {
-				fmt.Println("bingo-----", hex.EncodeToString(value), isDirty, isdelete)
-			}
 
 			if isdelete {
 				f.cms.GetKVStore(storeKey).Delete(key)
