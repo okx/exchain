@@ -344,7 +344,7 @@ func TestGetValidatorSortingUnmixed(t *testing.T) {
 
 	// test equal voting power, different age
 	validators[3].Tokens = sdk.NewInt(200).Mul(sdk.PowerReduction)
-	ctx = ctx.WithBlockHeight(10)
+	ctx.SetBlockHeight(10)
 	TestingUpdateValidator(keeper, ctx, validators[3], true)
 	resValidators = keeper.GetBondedValidatorsByPower(ctx)
 	require.Equal(t, len(resValidators), n)
@@ -352,7 +352,7 @@ func TestGetValidatorSortingUnmixed(t *testing.T) {
 	assert.True(ValEq(t, validators[4], resValidators[1]))
 
 	// no change in voting power - no change in sort
-	ctx = ctx.WithBlockHeight(20)
+	ctx.SetBlockHeight(20)
 	TestingUpdateValidator(keeper, ctx, validators[4], true)
 	resValidators = keeper.GetBondedValidatorsByPower(ctx)
 	require.Equal(t, len(resValidators), n)
@@ -365,7 +365,7 @@ func TestGetValidatorSortingUnmixed(t *testing.T) {
 	TestingUpdateValidator(keeper, ctx, validators[3], true)
 	resValidators = keeper.GetBondedValidatorsByPower(ctx)
 	require.Equal(t, len(resValidators), n)
-	ctx = ctx.WithBlockHeight(30)
+	ctx.SetBlockHeight(30)
 	TestingUpdateValidator(keeper, ctx, validators[4], true)
 	resValidators = keeper.GetBondedValidatorsByPower(ctx)
 	require.Equal(t, len(resValidators), n, "%v", resValidators)
@@ -488,7 +488,7 @@ func TestGetValidatorsEdgeCases(t *testing.T) {
 	//  - validator 3 adds 200 tokens (equal to validator 2 now) and does not get its spot back
 
 	// validator 3 enters bonded validator set
-	ctx = ctx.WithBlockHeight(40)
+	ctx.SetBlockHeight(40)
 
 	validators[3] = keeper.mustGetValidator(ctx, validators[3].OperatorAddress)
 	keeper.DeleteValidatorByPowerIndex(ctx, validators[3])
@@ -983,7 +983,7 @@ func TestApplyAndReturnValidatorSetUpdatesBondTransition(t *testing.T) {
 	require.Equal(t, 0, len(keeper.ApplyAndReturnValidatorSetUpdates(ctx)))
 
 	// delegate to validator with lowest power but not enough to bond
-	ctx = ctx.WithBlockHeight(1)
+	ctx.SetBlockHeight(1)
 
 	var found bool
 	validators[0], found = keeper.GetValidator(ctx, validators[0].OperatorAddress)
@@ -1000,7 +1000,7 @@ func TestApplyAndReturnValidatorSetUpdatesBondTransition(t *testing.T) {
 
 	// create a series of events that will bond and unbond the validator with
 	// lowest power in a single block context (height)
-	ctx = ctx.WithBlockHeight(2)
+	ctx.SetBlockHeight(2)
 
 	validators[1], found = keeper.GetValidator(ctx, validators[1].OperatorAddress)
 	require.True(t, found)
@@ -1028,7 +1028,7 @@ func TestApplyAndReturnValidatorSetUpdatesBondTransition(t *testing.T) {
 
 func TestUpdateValidatorCommission(t *testing.T) {
 	ctx, _, keeper, _ := CreateTestInput(t, false, 1000)
-	ctx = ctx.WithBlockHeader(abci.Header{Time: time.Now().UTC()})
+	ctx.SetBlockHeader(abci.Header{Time: time.Now().UTC()})
 
 	commission1 := types.NewCommissionWithTime(
 		sdk.NewDecWithPrec(1, 1), sdk.NewDecWithPrec(3, 1),
