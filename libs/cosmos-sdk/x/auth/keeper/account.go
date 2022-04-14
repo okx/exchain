@@ -64,9 +64,9 @@ func (ak AccountKeeper) GetAllAccounts(ctx sdk.Context) (accounts []exported.Acc
 func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 	addr := acc.GetAddress()
 	store := ctx.KVStore(ak.key)
-	bz, err := ak.cdc.MarshalBinaryBareWithRegisteredMarshaller(acc)
+	bz, err := ak.Cdc.MarshalBinaryBareWithRegisteredMarshaller(acc)
 	if err != nil {
-		bz, err = ak.cdc.MarshalBinaryBare(acc)
+		bz, err = ak.Cdc.MarshalBinaryBare(acc)
 	}
 	if err != nil {
 		panic(err)
@@ -112,8 +112,8 @@ func (ak AccountKeeper) IterateAccounts(ctx sdk.Context, cb func(account exporte
 func (ak AccountKeeper) GetEncodedAccountSize(acc exported.Account) int {
 	if sizer, ok := acc.(amino.Sizer); ok {
 		// typeprefix + amino bytes
-		return 4 + sizer.AminoSize(ak.cdc)
+		return 4 + sizer.AminoSize(ak.Cdc)
 	} else {
-		return len(ak.cdc.MustMarshalBinaryBare(acc))
+		return len(ak.Cdc.MustMarshalBinaryBare(acc))
 	}
 }

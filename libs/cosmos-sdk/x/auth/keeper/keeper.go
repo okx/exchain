@@ -24,7 +24,7 @@ type AccountKeeper struct {
 	proto func() exported.Account
 
 	// The codec codec for binary encoding/decoding of accounts.
-	cdc *codec.Codec
+	Cdc *codec.Codec
 
 	paramSubspace subspace.Subspace
 
@@ -41,7 +41,7 @@ func NewAccountKeeper(
 	return AccountKeeper{
 		key:           key,
 		proto:         proto,
-		cdc:           cdc,
+		Cdc:           cdc,
 		paramSubspace: paramstore.WithKeyTable(types.ParamKeyTable()),
 	}
 }
@@ -79,13 +79,13 @@ func (ak AccountKeeper) GetNextAccountNumber(ctx sdk.Context) uint64 {
 		// initialize the account numbers
 		accNumber = 0
 	} else {
-		err := ak.cdc.UnmarshalBinaryLengthPrefixed(bz, &accNumber)
+		err := ak.Cdc.UnmarshalBinaryLengthPrefixed(bz, &accNumber)
 		if err != nil {
 			panic(err)
 		}
 	}
 
-	bz = ak.cdc.MustMarshalBinaryLengthPrefixed(accNumber + 1)
+	bz = ak.Cdc.MustMarshalBinaryLengthPrefixed(accNumber + 1)
 	store.Set(types.GlobalAccountNumberKey, bz)
 
 	return accNumber
@@ -95,12 +95,12 @@ func (ak AccountKeeper) GetNextAccountNumber(ctx sdk.Context) uint64 {
 // Misc.
 
 func (ak AccountKeeper) decodeAccount(bz []byte) (acc exported.Account) {
-	val, err := ak.cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(bz, &acc)
+	val, err := ak.Cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(bz, &acc)
 	if err == nil {
 		acc = val.(exported.Account)
 		return
 	}
-	err = ak.cdc.UnmarshalBinaryBare(bz, &acc)
+	err = ak.Cdc.UnmarshalBinaryBare(bz, &acc)
 	if err != nil {
 		panic(err)
 	}

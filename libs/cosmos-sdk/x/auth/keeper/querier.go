@@ -23,7 +23,7 @@ func NewQuerier(keeper AccountKeeper) sdk.Querier {
 
 func queryAccount(ctx sdk.Context, req abci.RequestQuery, keeper AccountKeeper) ([]byte, error) {
 	var params types.QueryAccountParams
-	if err := keeper.cdc.UnmarshalJSON(req.Data, &params); err != nil {
+	if err := keeper.Cdc.UnmarshalJSON(req.Data, &params); err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
@@ -32,7 +32,7 @@ func queryAccount(ctx sdk.Context, req abci.RequestQuery, keeper AccountKeeper) 
 		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "account %s does not exist", params.Address)
 	}
 
-	bz, err := codec.MarshalJSONIndent(keeper.cdc, account)
+	bz, err := codec.MarshalJSONIndent(keeper.Cdc, account)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}

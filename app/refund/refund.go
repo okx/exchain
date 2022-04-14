@@ -1,7 +1,6 @@
 package refund
 
 import (
-	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"math/big"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -66,15 +65,15 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 
 	//err = refund.RefundFees(handler.supplyKeeper, ctx, feePayerAcc.GetAddress(), gasFees)
 
-	// consume gas for compatible
-	ctx.GasMeter().ConsumeGas(getAccountGasUsed, "get account")	// get account
-	// todo: get account for FeeCollector
-	ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostFlat, stypes.GasReadCostFlatDesc)	// ReadFlat
-	ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostFlat, stypes.GasWriteCostFlatDesc)	// WriteFlat
-	// todo: WritePerByte
-	ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostPerByte*stypes.Gas(len(value)), stypes.GasWritePerByteDesc)
-	// todo: ReadPerByte
-	ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostPerByte*stypes.Gas(len(value)), stypes.GasReadPerByteDesc)
+	//// consume gas for compatible
+	//ctx.GasMeter().ConsumeGas(getAccountGasUsed, "get account")	// get account
+	//// todo: get account for FeeCollector
+	//ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostFlat, stypes.GasReadCostFlatDesc)	// ReadFlat
+	//ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostFlat, stypes.GasWriteCostFlatDesc)	// WriteFlat
+	//// todo: WritePerByte
+	//ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostPerByte*stypes.Gas(len(value)), stypes.GasWritePerByteDesc)
+	//// todo: ReadPerByte
+	//ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostPerByte*stypes.Gas(len(value)), stypes.GasReadPerByteDesc)
 
 	newCoins := feePayerAcc.GetCoins().Add(gasFees...)
 	if err = feePayerAcc.SetCoins(newCoins); err != nil {

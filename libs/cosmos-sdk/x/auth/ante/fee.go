@@ -139,29 +139,29 @@ func DeductFees(ak keeper.AccountKeeper, ctx sdk.Context, acc exported.Account, 
 			"insufficient funds to pay for fees; %s < %s", spendableCoins, fees)
 	}
 
-	// consume gas for compatible
-	ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostFlat, stypes.GasReadCostFlatDesc)	// ReadFlat
-	// todo: ReadPerByte
-	ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostPerByte*stypes.Gas(len(value)), stypes.GasReadPerByteDesc)
-	if ok, gasUsed := exported.TryAddGetAccountGas(ctx.GasMeter(), ak, acc); ok {
-		ctx.GasMeter().ConsumeGas(gasUsed, "get account")	// get account
-		ctx.GasMeter().ConsumeGas(gasUsed, "get account")	// get account
-	}
-	// todo: get account for FeeCollector
-	ctx.GasMeter().ConsumeGas(getAccGasUsed, "get account")
-	ctx.GasMeter().ConsumeGas(getAccGasUsed, "get account")
-
-	ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostFlat, stypes.GasWriteCostFlatDesc)	// WriteFlat
-	// todo: WritePerByte
-	ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostPerByte*stypes.Gas(len(value)), stypes.GasWritePerByteDesc)
-	ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostFlat, stypes.GasReadCostFlatDesc)	// ReadFlat
-	// todo: ReadPerByte
-	ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostPerByte*stypes.Gas(len(value)), stypes.GasReadPerByteDesc)
-
 	if err := acc.SetCoins(balance); err != nil {
 		return err
 	}
 	ak.SetAccount(ctx, acc)
+
+	// consume gas for compatible
+	if ok, gasUsed := exported.TryAddGetAccountGas(ctx.GasMeter(), ak, acc); ok {
+		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostFlat, stypes.GasReadCostFlatDesc)	// ReadFlat
+
+		bz, err := ak.Cdc.MarshalBinaryBareWithRegisteredMarshaller(acc)
+		if err != nil {
+			bz, err = ak.Cdc.MarshalBinaryBare(acc)
+		}
+		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostPerByte*stypes.Gas(len(bz)), stypes.GasReadPerByteDesc)	// todo: ReadPerByte
+		ctx.GasMeter().ConsumeGas(gasUsed, "get account")	// get account
+		ctx.GasMeter().ConsumeGas(gasUsed, "get account")	// get account
+
+		// todo: get account for FeeCollector
+		ctx.GasMeter().ConsumeGas(gasUsed, "get account")
+		ctx.GasMeter().ConsumeGas(gasUsed, "get account")
+		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostFlat, stypes.GasWriteCostFlatDesc)	// WriteFlat
+		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostPerByte*stypes.Gas(len(bz)), stypes.GasWritePerByteDesc)	// todo: WritePerByte
+	}
 
 	return nil
 }
