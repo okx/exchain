@@ -246,7 +246,7 @@ func (app *BaseApp) fixFeeCollector(txs [][]byte, ms sdk.CacheMultiStore) {
 
 	ctx, _ := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
 
-	ctx = ctx.WithMultiStore(ms)
+	ctx.SetMultiStore(ms)
 	if err := app.updateFeeCollectorAccHandler(ctx, currTxFee); err != nil {
 		panic(err)
 	}
