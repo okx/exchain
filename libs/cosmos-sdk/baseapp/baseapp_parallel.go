@@ -3,8 +3,6 @@ package baseapp
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/hex"
-	"fmt"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -103,7 +101,7 @@ func (app *BaseApp) calGroup(txsExtraData []*extraDataForTx) (map[int][]int, map
 		if tx.isEvm { //evmTx
 			Union(tx.from, tx.to)
 		} else {
-			app.parallelTxManage.txReps[index] = &executeResult{}
+			app.parallelTxManage.txReps[index] = &executeResult{paraMsg: &sdk.ParaMsg{}}
 		}
 	}
 
@@ -183,6 +181,7 @@ func (app *BaseApp) paraLoadSender(txs [][]byte) {
 }
 
 func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.ResponseDeliverTx {
+	sdk.HaveCosmosTxInBlock = false
 	//sdk.DebugLogByScf.Clean()
 
 	if len(txs) == 0 {
@@ -215,6 +214,8 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 			t.evmIndex = evmIndex
 			t.isEvmTx = true
 			evmIndex++
+		} else {
+			sdk.HaveCosmosTxInBlock = true
 		}
 
 		vString := string(txWithIndex[k])
@@ -230,11 +231,13 @@ func (app *BaseApp) fixFeeCollector(txs [][]byte, ms sdk.CacheMultiStore) {
 	currTxFee := sdk.Coins{}
 	for index, v := range txs {
 		txString := string(v)
-		if app.parallelTxManage.txReps[index].paraMsg.AnteErr != nil {
+		resp := app.parallelTxManage.txReps[index]
+		if resp == nil || resp.paraMsg == nil || resp.paraMsg.AnteErr != nil {
 			continue
 		}
+
 		txFee := app.parallelTxManage.fee[txString]
-		refundFee := app.parallelTxManage.txReps[index].paraMsg.RefundFee
+		refundFee := resp.paraMsg.RefundFee
 		txFee = txFee.Sub(refundFee)
 		currTxFee = currTxFee.Add(txFee...)
 	}
@@ -720,6 +723,9 @@ func (f *parallelTxManager) getTxResult(tx []byte) sdk.CacheMultiStore {
 	defer f.mu.Unlock()
 	ms := f.cms.CacheMultiStore()
 	base := f.currIndex
+	if index <= base {
+		return nil
+	}
 	if ok && preIndexInGroup > f.currIndex {
 		if f.txReps[preIndexInGroup].paraMsg.AnteErr == nil {
 			ms = f.txReps[preIndexInGroup].ms.CacheMultiStore()
@@ -758,21 +764,21 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 		chanStop <- struct{}{}
 	}()
 
-	go func() {
-		tt := make([]string, 0)
-		for k, v := range res.readList {
-			if len(v) < 200 {
-				tt = append(tt, fmt.Sprintf("read key:%s value:%s", hex.EncodeToString([]byte(k)), hex.EncodeToString(v)))
-			}
-		}
-
-		for k, v := range res.writeList {
-			tt = append(tt, fmt.Sprintf("write ket:%s value:%s", hex.EncodeToString([]byte(k)), hex.EncodeToString(v)))
-		}
-		tt = append(tt, fmt.Sprintf("txIndex %d base %d", txIndex, f.getRunBase(txIndex)))
-		sdk.DebugLogByScf.AddRWSet(tt)
-		chanStop <- struct{}{}
-	}()
+	//go func() {
+	//	tt := make([]string, 0)
+	//	for k, v := range res.readList {
+	//		if len(v) < 200 {
+	//			tt = append(tt, fmt.Sprintf("read key:%s value:%s", hex.EncodeToString([]byte(k)), hex.EncodeToString(v)))
+	//		}
+	//	}
+	//
+	//	for k, v := range res.writeList {
+	//		tt = append(tt, fmt.Sprintf("write ket:%s value:%s", hex.EncodeToString([]byte(k)), hex.EncodeToString(v)))
+	//	}
+	//	tt = append(tt, fmt.Sprintf("txIndex %d base %d", txIndex, f.getRunBase(txIndex)))
+	//	sdk.DebugLogByScf.AddRWSet(tt)
+	//	chanStop <- struct{}{}
+	//}()
 
 	f.mu.Lock()
 	res.ms.IteratorCache(func(key, value []byte, isDirty bool, isdelete bool, storeKey sdk.StoreKey) bool {
@@ -788,6 +794,6 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 	}, nil)
 	f.currIndex = txIndex
 	f.mu.Unlock()
-	<-chanStop
+	//<-chanStop
 	<-chanStop
 }

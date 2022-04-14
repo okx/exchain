@@ -77,8 +77,9 @@ func (c *Context) VoteInfos() []abci.VoteInfo { return c.voteInfo }
 func (c *Context) GasMeter() GasMeter         { return c.gasMeter }
 func (c *Context) BlockGasMeter() GasMeter    { return c.blockGasMeter }
 func (c *Context) IsDeliver() bool {
-	return c.isDeliver || c.isAsync
+	return c.isDeliver || (c.isAsync && !HaveCosmosTxInBlock)
 }
+
 func (c *Context) IsCheckTx() bool             { return c.checkTx }
 func (c *Context) IsReCheckTx() bool           { return c.recheckTx }
 func (c *Context) IsTraceTx() bool             { return c.traceTx }
@@ -346,7 +347,7 @@ func (c *Context) SetLogger(logger log.Logger) *Context {
 	return c
 }
 
-func (c Context) SetParaMsg(m *ParaMsg) Context {
+func (c *Context) SetParaMsg(m *ParaMsg) *Context {
 	c.paraMsg = m
 	return c
 }

@@ -2,6 +2,7 @@ package baseapp
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	"runtime/debug"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -122,6 +123,9 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	if mode == runTxModeDeliverInAsync {
 		info.msCacheAnte = nil
 		msCacheAnte := app.parallelTxManage.getTxResult(info.txBytes)
+		if msCacheAnte == nil {
+			return errors.New("need skip")
+		}
 		info.msCacheAnte = msCacheAnte
 		anteCtx.SetMultiStore(info.msCacheAnte)
 	}
@@ -244,6 +248,9 @@ func (app *BaseApp) asyncDeliverTx(txWithIndex []byte) {
 		return
 	}
 
+	if txStatus == nil { //autolrp4
+		return
+	}
 	if !txStatus.isEvmTx {
 		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, txStatus.indexInBlock, txStatus.evmIndex, nil)
 		app.parallelTxManage.workgroup.Push(asyncExe)
