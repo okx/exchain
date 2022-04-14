@@ -456,7 +456,8 @@ func (dttm *DTTManager) serialRoutine() {
 			// check whether there are ante-finished task
 			count := len(dttm.dttRoutineList)
 			nextTaskRoutine = -1
-			var rerunRoutine *dttRoutine
+			//var rerunRoutine *dttRoutine
+			rerunRoutines := make([]*dttRoutine, 0)
 			for i := 0; i < count; i++ {
 				dttr := dttm.dttRoutineList[i]
 				if dttr.task == nil || dttr.task.index <= task.index || dttr.step < dttRoutineStepAnteStart {
@@ -469,11 +470,12 @@ func (dttm *DTTManager) serialRoutine() {
 					if dttr.task.prevTaskIndex < task.index {
 						dttr.task.prevTaskIndex = task.index
 					}
-					if rerunRoutine == nil {
-						rerunRoutine = dttr
-					} else if dttr.task.index < rerunRoutine.task.index {
-						rerunRoutine = dttr
-					}
+					rerunRoutines = append(rerunRoutines, dttr)
+					//if rerunRoutine == nil {
+					//	rerunRoutine = dttr
+					//} else if dttr.task.index < rerunRoutine.task.index {
+					//	rerunRoutine = dttr
+					//}
 				} else if dttr.task.index == dttm.serialIndex+1 {
 					nextTaskRoutine = dttr.index
 					if dttr.readyForSerialExecution() {
@@ -487,7 +489,11 @@ func (dttm *DTTManager) serialRoutine() {
 				}
 			}
 
-			if rerunRoutine != nil {
+			//if rerunRoutine != nil {
+			//	dttm.app.logger.Error("rerunRoutine", "index", rerunRoutine.task.index, "serial", task.index)
+			//	rerunRoutine.shouldRerun(task.index, -1)
+			//}
+			for _, rerunRoutine := range rerunRoutines {
 				dttm.app.logger.Error("rerunRoutine", "index", rerunRoutine.task.index, "serial", task.index)
 				rerunRoutine.shouldRerun(task.index, -1)
 			}
