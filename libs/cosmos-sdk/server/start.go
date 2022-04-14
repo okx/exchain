@@ -176,11 +176,6 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyReso
 		Value: tmNode.ConsensusState().GetState().ChainID,
 	})
 
-	if registerRoutesFn != nil {
-		go lcd.StartRestServer(cdc, registry, registerRoutesFn, tmNode, viper.GetString(FlagListenAddr))
-	}
-
-
 	ctx.Logger.Info("startInProcess",
 		"ConsensusStateChainID", tmNode.ConsensusState().GetState().ChainID,
 		"GenesisDocChainID", tmNode.GenesisDoc().ChainID,
@@ -221,6 +216,10 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyReso
 
 		ctx.Logger.Info("exiting...")
 	})
+
+	if registerRoutesFn != nil {
+		go lcd.StartRestServer(cdc, registry, registerRoutesFn, tmNode, viper.GetString(FlagListenAddr))
+	}
 
 	baseapp.SetGlobalMempool(tmNode.Mempool(), cfg.Mempool.SortTxByGp, cfg.Mempool.EnablePendingPool)
 

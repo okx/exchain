@@ -71,12 +71,12 @@ func NewRestServer(cdc *codec.CodecProxy, interfaceReg jsonpb.AnyResolver, tmNod
 
 	cliCtx.TrustNode = true
 
-	marshalerOption := &gateway.JSONPb{
+	marshalerOption := NewJSONMarshalAdapter(&gateway.JSONPb{
 		EmitDefaults: true,
 		Indent:       "  ",
 		OrigName:     true,
 		AnyResolver:  interfaceReg,
-	}
+	}, cdc)
 
 	return &RestServer{
 		Mux:    rootRouter,
