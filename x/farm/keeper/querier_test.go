@@ -183,7 +183,7 @@ func TestQueries(t *testing.T) {
 	require.Equal(t, len(pools), int(retPoolNum.Number))
 
 	// test query earnings
-	ctx = ctx.WithBlockHeight(120)
+	ctx.SetBlockHeight(120)
 	retEarnings := getQueriedEarnings(t, ctx, cdc, querier, pools[0].Name, Addrs[0])
 	yieldAmount := pools[0].YieldedTokenInfos[0].AmountYieldedPerBlock.
 		MulInt64(ctx.BlockHeight() - pools[0].YieldedTokenInfos[0].StartBlockHeightToYield)
