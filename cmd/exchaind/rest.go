@@ -2,7 +2,10 @@ package main
 
 import (
 	"fmt"
+
 	mintclient "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client"
+	erc20client "github.com/okex/exchain/x/erc20/client"
+	erc20rest "github.com/okex/exchain/x/erc20/client/rest"
 	evmclient "github.com/okex/exchain/x/evm/client"
 
 	"github.com/okex/exchain/app/rpc"
@@ -60,6 +63,7 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 	supplyrest.RegisterRoutes(rs.CliCtx, v1Router)
 	farmrest.RegisterRoutes(rs.CliCtx, v1Router)
 	evmrest.RegisterRoutes(rs.CliCtx, v1Router)
+	erc20rest.RegisterRoutes(rs.CliCtx, v1Router)
 	govrest.RegisterRoutes(rs.CliCtx, v1Router,
 		[]govrest.ProposalRESTHandler{
 			paramsclient.ProposalHandler.RESTHandler(rs.CliCtx),
@@ -68,6 +72,7 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 			farmclient.ManageWhiteListProposalHandler.RESTHandler(rs.CliCtx),
 			evmclient.ManageContractDeploymentWhitelistProposalHandler.RESTHandler(rs.CliCtx),
 			mintclient.ManageTreasuresProposalHandler.RESTHandler(rs.CliCtx),
+			erc20client.TokenMappingProposalHandler.RESTHandler(rs.CliCtx),
 		},
 	)
 }

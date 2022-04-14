@@ -65,14 +65,14 @@ func (k Keeper) GetEpoch(ctx sdk.Context) (epoch uint16) {
 	if b == nil {
 		return types.DefaultEpoch
 	}
-	k.cdc.MustUnmarshalBinaryLengthPrefixed(b, &epoch)
+	k.cdcMarshl.GetCdc().MustUnmarshalBinaryLengthPrefixed(b, &epoch)
 	return
 }
 
 // SetEpoch set epoch into keystore
 func (k Keeper) SetEpoch(ctx sdk.Context, epoch uint16) {
 	store := ctx.KVStore(k.storeKey)
-	b := k.cdc.MustMarshalBinaryLengthPrefixed(epoch)
+	b := k.cdcMarshl.GetCdc().MustMarshalBinaryLengthPrefixed(epoch)
 	store.Set(types.KeyEpoch, b)
 }
 
@@ -89,14 +89,14 @@ func (k Keeper) GetTheEndOfLastEpoch(ctx sdk.Context) (height int64) {
 	if b == nil {
 		return int64(0)
 	}
-	k.cdc.MustUnmarshalBinaryLengthPrefixed(b, &height)
+	k.cdcMarshl.GetCdc().MustUnmarshalBinaryLengthPrefixed(b, &height)
 	return
 }
 
 // SetTheEndOfLastEpoch sets the deadline of the current epoch
 func (k Keeper) SetTheEndOfLastEpoch(ctx sdk.Context) {
 	store := ctx.KVStore(k.storeKey)
-	b := k.cdc.MustMarshalBinaryLengthPrefixed(ctx.BlockHeight())
+	b := k.cdcMarshl.GetCdc().MustMarshalBinaryLengthPrefixed(ctx.BlockHeight())
 	store.Set(types.KeyTheEndOfLastEpoch, b)
 }
 

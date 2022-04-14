@@ -88,7 +88,7 @@ func (acc *ModuleAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) erro
 	return nil
 }
 
-func (acc ModuleAccount) Copy() interface{} {
+func (acc ModuleAccount) Copy() sdk.Account {
 	return NewModuleAccount(authtypes.NewBaseAccount(acc.Address, acc.Coins, acc.PubKey, acc.AccountNumber, acc.Sequence), acc.Name, acc.Permissions...)
 }
 

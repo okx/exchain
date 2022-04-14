@@ -10,6 +10,8 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+
 	"github.com/okex/exchain/libs/tendermint/trace"
 
 	"github.com/gogo/protobuf/proto"
@@ -194,7 +196,14 @@ type BaseApp struct { // nolint: maligned
 
 	checkTxNum        int64
 	wrappedCheckTxNum int64
-	anteTracer        *trace.Tracer
+
+	interfaceRegistry types.InterfaceRegistry
+	grpcQueryRouter   *GRPCQueryRouter  // router for redirecting gRPC query calls
+	msgServiceRouter  *MsgServiceRouter // router for redirecting Msg service messages
+
+	interceptors map[string]Interceptor
+
+	anteTracer *trace.Tracer
 }
 
 type recordHandle func(string)
@@ -222,7 +231,12 @@ func NewBaseApp(
 		parallelTxManage: newParallelTxManager(),
 		chainCache:       sdk.NewChainCache(),
 		txDecoder:        txDecoder,
-		anteTracer:       trace.NewTracer(trace.AnteChainDetail),
+
+		msgServiceRouter: NewMsgServiceRouter(),
+		grpcQueryRouter:  NewGRPCQueryRouter(),
+		interceptors:     make(map[string]Interceptor),
+
+		anteTracer: trace.NewTracer(trace.AnteChainDetail),
 	}
 
 	for _, option := range options {
@@ -237,6 +251,10 @@ func NewBaseApp(
 	app.parallelTxManage.workgroup.Start()
 
 	return app
+}
+
+func (app *BaseApp) SetInterceptors(interceptors map[string]Interceptor) {
+	app.interceptors = interceptors
 }
 
 // Name returns the name of the BaseApp.
@@ -500,8 +518,9 @@ func (app *BaseApp) setCheckState(header abci.Header) {
 	ms := app.cms.CacheMultiStore()
 	app.checkState = &state{
 		ms:  ms,
-		ctx: sdk.NewContext(ms, header, true, app.logger).WithMinGasPrices(app.minGasPrices),
+		ctx: sdk.NewContext(ms, header, true, app.logger),
 	}
+	app.checkState.ctx.SetMinGasPrices(app.minGasPrices)
 }
 
 // setDeliverState sets the BaseApp's deliverState with a cache-wrapped multi-store
@@ -607,25 +626,25 @@ func (app *BaseApp) getState(mode runTxMode) *state {
 
 // retrieve the context for the tx w/ txBytes and other memoized values.
 func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context {
-	ctx := app.getState(mode).ctx.
-		WithTxBytes(txBytes).
-		WithVoteInfos(app.voteInfos).
-		WithConsensusParams(app.consensusParams)
+	ctx := app.getState(mode).ctx
+	ctx.SetTxBytes(txBytes).
+		SetVoteInfos(app.voteInfos).
+		SetConsensusParams(app.consensusParams)
 
 	if mode == runTxModeReCheck {
-		ctx = ctx.WithIsReCheckTx(true)
+		ctx.SetIsReCheckTx(true)
 	}
 
 	if mode == runTxModeWrappedCheck {
-		ctx = ctx.WithIsWrappedCheckTx(true)
+		ctx.SetIsWrappedCheckTx(true)
 	}
 
 	if mode == runTxModeSimulate {
 		ctx, _ = ctx.CacheContext()
 	}
 	if app.parallelTxManage.isAsyncDeliverTx && mode == runTxModeDeliverInAsync {
-		ctx = ctx.WithAsync()
-		ctx = ctx.WithTxBytes(getRealTxByte(txBytes))
+		ctx.SetAsync(true)
+		ctx.SetTxBytes(getRealTxByte(txBytes))
 	}
 
 	if mode == runTxModeDeliver {
@@ -654,10 +673,12 @@ func (app *BaseApp) getContextForSimTx(txBytes []byte, height int64) (sdk.Contex
 
 	simState := &state{
 		ms:  ms,
-		ctx: sdk.NewContext(ms, abciHeader, true, app.logger).WithMinGasPrices(app.minGasPrices),
+		ctx: sdk.NewContext(ms, abciHeader, true, app.logger),
 	}
+	simState.ctx.SetMinGasPrices(app.minGasPrices)
 
-	ctx := simState.ctx.WithTxBytes(txBytes)
+	ctx := simState.ctx
+	ctx.SetTxBytes(txBytes)
 
 	return ctx, nil
 }
@@ -785,7 +806,6 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		if mode == runTxModeCheck || mode == runTxModeReCheck || mode == runTxModeWrappedCheck {
 			break
 		}
-
 		msgRoute := msg.Route()
 		handler := app.router.Route(ctx, msgRoute)
 		if handler == nil {
@@ -865,7 +885,9 @@ func (app *BaseApp) GetRawTxInfo(rawTx tmtypes.Tx) mempool.ExTxInfo {
 		return mempool.ExTxInfo{}
 	}
 
-	return app.GetTxInfo(app.checkState.ctx.WithTxBytes(rawTx), tx)
+	ctx := app.checkState.ctx
+	ctx.SetTxBytes(rawTx)
+	return app.GetTxInfo(ctx, tx)
 }
 
 func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
@@ -891,4 +913,10 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 	}
 
 	return int64(binary.BigEndian.Uint64(data))
+}
+
+func (app *BaseApp) MsgServiceRouter() *MsgServiceRouter { return app.msgServiceRouter }
+
+func (app *BaseApp) GetCMS() sdk.CommitMultiStore {
+	return app.cms
 }

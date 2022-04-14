@@ -257,7 +257,7 @@ func TestUnbondingDelegationsMaxEntries(t *testing.T) {
 	require.True(sdk.DecEq(t, notBondedPool.GetCoins().AmountOf(bondDenom), oldNotBonded))
 
 	// mature unbonding delegations
-	ctx = ctx.WithBlockTime(completionTime)
+	ctx.SetBlockTime(completionTime)
 	err = keeper.CompleteUnbonding(ctx, addrDels[0], addrVals[0])
 	require.NoError(t, err)
 
@@ -396,7 +396,7 @@ func TestUndelegateFromUnbondingValidator(t *testing.T) {
 	header.Height = blockHeight
 	blockTime := time.Unix(333, 0)
 	header.Time = blockTime
-	ctx = ctx.WithBlockHeader(header)
+	ctx.SetBlockHeader(header)
 
 	// unbond the all self-delegation to put validator in unbonding state
 	val0AccAddr := sdk.AccAddress(addrVals[0].Bytes())
@@ -415,8 +415,8 @@ func TestUndelegateFromUnbondingValidator(t *testing.T) {
 
 	blockHeight2 := int64(20)
 	blockTime2 := time.Unix(444, 0).UTC()
-	ctx = ctx.WithBlockHeight(blockHeight2)
-	ctx = ctx.WithBlockTime(blockTime2)
+	ctx.SetBlockHeight(blockHeight2)
+	ctx.SetBlockTime(blockTime2)
 
 	// unbond some of the other delegation's shares
 	_, err = keeper.Undelegate(ctx, addrDels[0], addrVals[0], sdk.NewDec(6))
@@ -469,8 +469,8 @@ func TestUndelegateFromUnbondedValidator(t *testing.T) {
 	delegation := types.NewDelegation(addrDels[0], addrVals[0], issuedShares)
 	keeper.SetDelegation(ctx, delegation)
 
-	ctx = ctx.WithBlockHeight(10)
-	ctx = ctx.WithBlockTime(time.Unix(333, 0))
+	ctx.SetBlockHeight(10)
+	ctx.SetBlockTime(time.Unix(333, 0))
 
 	// unbond the all self-delegation to put validator in unbonding state
 	_, err = keeper.Undelegate(ctx, val0AccAddr, addrVals[0], valTokens.ToDec())
@@ -487,7 +487,7 @@ func TestUndelegateFromUnbondedValidator(t *testing.T) {
 	require.True(t, ctx.BlockHeader().Time.Add(params.UnbondingTime).Equal(validator.UnbondingCompletionTime))
 
 	// unbond the validator
-	ctx = ctx.WithBlockTime(validator.UnbondingCompletionTime)
+	ctx.SetBlockTime(validator.UnbondingCompletionTime)
 	keeper.UnbondAllMatureValidatorQueue(ctx)
 
 	// Make sure validator is still in state because there is still an outstanding delegation
@@ -551,8 +551,8 @@ func TestUnbondingAllDelegationFromValidator(t *testing.T) {
 	delegation := types.NewDelegation(addrDels[0], addrVals[0], issuedShares)
 	keeper.SetDelegation(ctx, delegation)
 
-	ctx = ctx.WithBlockHeight(10)
-	ctx = ctx.WithBlockTime(time.Unix(333, 0))
+	ctx.SetBlockHeight(10)
+	ctx.SetBlockTime(time.Unix(333, 0))
 
 	// unbond the all self-delegation to put validator in unbonding state
 	_, err = keeper.Undelegate(ctx, val0AccAddr, addrVals[0], valTokens.ToDec())
@@ -572,7 +572,7 @@ func TestUnbondingAllDelegationFromValidator(t *testing.T) {
 	require.Equal(t, validator.Status, sdk.Unbonding)
 
 	// unbond the validator
-	ctx = ctx.WithBlockTime(validator.UnbondingCompletionTime)
+	ctx.SetBlockTime(validator.UnbondingCompletionTime)
 	keeper.UnbondAllMatureValidatorQueue(ctx)
 
 	// validator should now be deleted from state
@@ -736,7 +736,7 @@ func TestRedelegationMaxEntries(t *testing.T) {
 	require.Error(t, err)
 
 	// mature redelegations
-	ctx = ctx.WithBlockTime(completionTime)
+	ctx.SetBlockTime(completionTime)
 	err = keeper.CompleteRedelegation(ctx, val0AccAddr, addrVals[0], addrVals[1])
 	require.NoError(t, err)
 
@@ -839,7 +839,7 @@ func TestRedelegateFromUnbondingValidator(t *testing.T) {
 	header.Height = blockHeight
 	blockTime := time.Unix(333, 0)
 	header.Time = blockTime
-	ctx = ctx.WithBlockHeader(header)
+	ctx.SetBlockHeader(header)
 
 	// unbond the all self-delegation to put validator in unbonding state
 	_, err = keeper.Undelegate(ctx, val0AccAddr, addrVals[0], delTokens.ToDec())
@@ -861,7 +861,7 @@ func TestRedelegateFromUnbondingValidator(t *testing.T) {
 	header.Height = blockHeight2
 	blockTime2 := time.Unix(444, 0)
 	header.Time = blockTime2
-	ctx = ctx.WithBlockHeader(header)
+	ctx.SetBlockHeader(header)
 
 	// unbond some of the other delegation's shares
 	redelegateTokens := sdk.TokensFromConsensusPower(6)
@@ -914,8 +914,8 @@ func TestRedelegateFromUnbondedValidator(t *testing.T) {
 	validator2 = TestingUpdateValidator(keeper, ctx, validator2, true)
 	require.Equal(t, sdk.Bonded, validator2.Status)
 
-	ctx = ctx.WithBlockHeight(10)
-	ctx = ctx.WithBlockTime(time.Unix(333, 0))
+	ctx.SetBlockHeight(10)
+	ctx.SetBlockTime(time.Unix(333, 0))
 
 	// unbond the all self-delegation to put validator in unbonding state
 	_, err = keeper.Undelegate(ctx, val0AccAddr, addrVals[0], delTokens.ToDec())
