@@ -54,7 +54,7 @@ corresponding to the counterparty channel. Any timeout set to 0 is disabled.`),
 			if err != nil {
 				return err
 			}
-
+			//
 			if !strings.HasPrefix(coin.Denom, "ibc/") {
 				denomTrace := types.ParseDenomTrace(coin.Denom)
 				coin.Denom = denomTrace.IBCDenom()

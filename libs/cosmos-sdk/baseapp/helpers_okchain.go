@@ -38,7 +38,7 @@ func (app *BaseApp) TraceTx(queryTraceTx sdk.QueryTraceTx, targetTx sdk.Tx, txIn
 		return nil, sdkerrors.Wrap(err, "failed to beginblock for tracing")
 	}
 
-	traceState.ctx = traceState.ctx.WithIsTraceTxLog(false)
+	traceState.ctx.SetIsTraceTxLog(false)
 	//pre deliver prodesessor tx to get the right state
 	for _, predesessor := range block.Txs[:txIndex] {
 		tx, err := app.txDecoder(predesessor, block.Height)
@@ -50,8 +50,8 @@ func (app *BaseApp) TraceTx(queryTraceTx sdk.QueryTraceTx, targetTx sdk.Tx, txIn
 	}
 
 	//trace tx
-	traceState.ctx = traceState.ctx.WithIsTraceTxLog(true)
-	traceState.ctx = traceState.ctx.WithTraceTxLogConfig(queryTraceTx.ConfigBytes)
+	traceState.ctx.SetIsTraceTxLog(true)
+	traceState.ctx.SetTraceTxLogConfig(queryTraceTx.ConfigBytes)
 	info, err := app.tracetx(targetTxData, targetTx, block.Height, traceState)
 	if info == nil {
 		return nil, err
@@ -64,10 +64,10 @@ func (app *BaseApp) tracetx(txBytes []byte, tx sdk.Tx, height int64, traceState 
 	//prepare runTxInfo to runtx
 	info = &runTxInfo{}
 	//init info.ctx
-	info.ctx = traceState.ctx.
-		WithTxBytes(txBytes).
-		WithVoteInfos(app.voteInfos).
-		WithConsensusParams(app.consensusParams)
+	info.ctx = traceState.ctx
+	info.ctx.SetTxBytes(txBytes).
+		SetVoteInfos(app.voteInfos).
+		SetConsensusParams(app.consensusParams)
 
 	err = app.runtxWithInfo(info, mode, txBytes, tx, height)
 	return info, err
@@ -94,11 +94,11 @@ func (app *BaseApp) beginBlockForTracing(firstTx []byte, block *tmtypes.Block) (
 		gasMeter = sdk.NewInfiniteGasMeter()
 	}
 
-	traceState.ctx = traceState.ctx.WithBlockGasMeter(gasMeter)
+	traceState.ctx.SetBlockGasMeter(gasMeter)
 
 	//set the trace mode to prevent the ante handler to check the nounce
-	traceState.ctx = traceState.ctx.WithIsTraceTx(true)
-	traceState.ctx = traceState.ctx.WithIsCheckTx(true)
+	traceState.ctx.SetIsTraceTx(true)
+	traceState.ctx.SetIsCheckTx(true)
 
 	//app begin block
 	if app.beginBlocker != nil {

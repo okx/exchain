@@ -57,7 +57,7 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 	// all will be rejected except the first, since the first needs to be included in a block
 	// before the sequence increments
 	if ctx.IsCheckTx() {
-		ctx = ctx.WithAccountNonce(seq)
+		ctx.SetAccountNonce(seq)
 		// will be checkTx and RecheckTx mode
 		if ctx.IsReCheckTx() {
 			// recheckTx mode
