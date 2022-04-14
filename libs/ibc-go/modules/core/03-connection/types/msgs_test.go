@@ -23,7 +23,8 @@ import (
 )
 
 var (
-	signer = "cosmos1ckgw5d7jfj7wwxjzs9fdrdev9vc8dzcw3n2lht"
+	//signer = "cosmos1ckgw5d7jfj7wwxjzs9fdrdev9vc8dzcw3n2lht"
+	signer = "ex15nnhqdf9sds0s063kaaretxj3ftlnzrguhfdeq"
 
 	emptyPrefix = commitmenttypes.MerklePrefix{}
 	emptyProof  = []byte{}
@@ -99,7 +100,7 @@ func (suite *MsgTestSuite) TestNewMsgConnectionOpenInit() {
 		{"empty counterparty prefix", types.NewMsgConnectionOpenInit("clienttotest", "clienttotest", emptyPrefix, version, 500, signer), false},
 		{"supplied version fails basic validation", types.NewMsgConnectionOpenInit("clienttotest", "clienttotest", prefix, &types.Version{}, 500, signer), false},
 		{"empty singer", types.NewMsgConnectionOpenInit("clienttotest", "clienttotest", prefix, version, 500, ""), false},
-		{"fail", types.NewMsgConnectionOpenInit("clienttotest", "clienttotest", prefix, version, 500, signer), false},
+		{"success", types.NewMsgConnectionOpenInit("clienttotest", "clienttotest", prefix, version, 500, signer), true},
 	}
 
 	for _, tc := range testCases {
