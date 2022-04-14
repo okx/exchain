@@ -26,21 +26,21 @@ type StdIBCSignDoc struct {
 	Msgs          []json.RawMessage `json:"msgs" yaml:"msgs"`
 }
 
-type IBCCoin struct {
+type ibcCoin struct {
 	Denom  string  `json:"denom"`
 	Amount sdk.Int `json:"amount"`
 }
 
-type IBCFee struct {
-	Amount []IBCCoin `json:"amount" yaml:"amount"`
+type ibcFee struct {
+	Amount []ibcCoin `json:"amount" yaml:"amount"`
 	Gas    uint64    `json:"gas" yaml:"gas"`
 }
 
 func feeToIBCFeeBytes(fee StdFee) []byte {
-	var ibcFee IBCFee
+	var ibcFee ibcFee
 	ibcFee.Gas = fee.Gas
 	for _, coin := range fee.Amount {
-		ibcCoin := IBCCoin{
+		ibcCoin := ibcCoin{
 			Denom:  coin.Denom,
 			Amount: coin.Amount.TruncateInt(),
 		}
