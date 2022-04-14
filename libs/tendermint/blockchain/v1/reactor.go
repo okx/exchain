@@ -56,7 +56,6 @@ type BlockchainReactor struct {
 
 	blockExec *sm.BlockExecutor
 	store     *store.BlockStore
-	dstore    *store.DeltaStore
 
 	fastSync bool
 
@@ -78,7 +77,7 @@ type BlockchainReactor struct {
 }
 
 // NewBlockchainReactor returns new reactor instance.
-func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *store.BlockStore, dstore *store.DeltaStore,
+func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *store.BlockStore,
 	fastSync bool) *BlockchainReactor {
 
 	if state.LastBlockHeight != store.Height() {
@@ -98,7 +97,6 @@ func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *st
 		blockExec:        blockExec,
 		fastSync:         fastSync,
 		store:            store,
-		dstore:           dstore,
 		messagesForFSMCh: messagesForFSMCh,
 		eventsFromFSMCh:  eventsFromFSMCh,
 		errorsForFSMCh:   errorsForFSMCh,
@@ -259,7 +257,6 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 				peerID: src.ID(),
 				height: msg.Block.Height,
 				block:  msg.Block,
-				deltas: msg.Deltas,
 				length: len(msgBytes),
 			},
 		}
@@ -415,7 +412,7 @@ func (bcR *BlockchainReactor) reportPeerErrorToSwitch(err error, peerID p2p.ID) 
 
 func (bcR *BlockchainReactor) processBlock() error {
 
-	first, second, _, err := bcR.fsm.FirstTwoBlocks()
+	first, second, err := bcR.fsm.FirstTwoBlocks()
 	if err != nil {
 		// We need both to sync the first block.
 		return err
@@ -586,8 +583,7 @@ func (m *bcNoBlockResponseMessage) String() string {
 //-------------------------------------
 
 type bcBlockResponseMessage struct {
-	Block  *types.Block
-	Deltas *types.Deltas
+	Block *types.Block
 }
 
 // ValidateBasic performs basic validation.
