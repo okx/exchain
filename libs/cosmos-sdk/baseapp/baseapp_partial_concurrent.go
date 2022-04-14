@@ -423,6 +423,7 @@ func (dttm *DTTManager) serialRoutine() {
 			rt := dttm.dttRoutineList[routineIndex]
 			task := rt.task
 			if task.index != dttm.serialIndex+1 {
+				dttm.app.logger.Error("IndexIsWrong", "index", task.index, "expected", dttm.serialIndex+1)
 				break
 			}
 			keepAliveTicker.Stop()
