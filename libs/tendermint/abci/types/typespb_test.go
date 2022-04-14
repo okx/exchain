@@ -2989,20 +2989,6 @@ func TestEvidenceJSON(t *testing.T) {
 	}
 }
 
-func TestRequestProtoCompactText(t *testing.T) {
-	seed := time.Now().UnixNano()
-	popr := math_rand.New(math_rand.NewSource(seed))
-	p := NewPopulatedRequest(popr, true)
-	dAtA := github_com_gogo_protobuf_proto.CompactTextString(p)
-	msg := &Request{}
-	if err := github_com_gogo_protobuf_proto.UnmarshalText(dAtA, msg); err != nil {
-		t.Fatalf("seed = %d, err = %v", seed, err)
-	}
-	if !p.Equal(msg) {
-		t.Fatalf("seed = %d, %#v !Proto %#v", seed, msg, p)
-	}
-}
-
 func TestRequestEchoProtoText(t *testing.T) {
 	seed := time.Now().UnixNano()
 	popr := math_rand.New(math_rand.NewSource(seed))
