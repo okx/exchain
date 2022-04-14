@@ -180,6 +180,7 @@ func (app *BaseApp) paraLoadSender(txs [][]byte) {
 }
 
 func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.ResponseDeliverTx {
+	sdk.HaveCosmosTxInBlock = false
 	//sdk.DebugLogByScf.Clean()
 
 	if len(txs) == 0 {
@@ -212,6 +213,8 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 			t.evmIndex = evmIndex
 			t.isEvmTx = true
 			evmIndex++
+		} else {
+			sdk.HaveCosmosTxInBlock = true
 		}
 
 		vString := string(txWithIndex[k])
