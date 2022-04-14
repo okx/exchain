@@ -6,6 +6,7 @@ import (
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"testing"
 
@@ -83,6 +84,7 @@ type TypesTestSuite struct {
 }
 
 func (suite *TypesTestSuite) SetupTest() {
+	types2.EnableVeneus1Feature()
 	app := simapp.Setup(false)
 	db := dbm.NewMemDB()
 	store := rootmulti.NewStore(db)
@@ -93,7 +95,7 @@ func (suite *TypesTestSuite) SetupTest() {
 	iavlStore := store.GetCommitStore(storeKey).(*iavl.Store)
 
 	iavlStore.Set([]byte("KEY"), []byte("VALUE"))
-	//	_ = store.Commit()
+	store.CommitterCommitMap(nil)
 
 	res := store.Query(abci.RequestQuery{
 		Path:  fmt.Sprintf("/%s/key", storeKey.Name()), // required path to get key/value+proof
@@ -105,7 +107,7 @@ func (suite *TypesTestSuite) SetupTest() {
 	suite.Require().NoError(err)
 	// proof, err := app.AppCodec().Marshal(&merkleProof)
 	// suite.Require().NoError(err)
-	proof := app.AppCodec().GetCdc().MustMarshalBinaryBare(&merkleProof)
+	proof := app.AppCodec().GetProtocMarshal().MustMarshalBinaryBare(&merkleProof)
 
 	suite.proof = proof
 }

@@ -129,6 +129,17 @@ func AccAddressFromBech32(address string) (AccAddress, error) {
 	return AccAddressFromBech32ByPrefix(address, GetConfig().GetBech32AccountAddrPrefix())
 }
 
+func IBCAccAddressFromBech32(address string) (AccAddress, error) {
+	addr, err := AccAddressFromBech32ByPrefix(address, GetConfig().GetBech32AccountAddrPrefix())
+	if err != nil {
+		return addr, err
+	}
+	if len(addr) == 0 {
+		return AccAddress{}, errors.New("empty address string is not allowed")
+	}
+	return addr, nil
+}
+
 // AccAddressFromBech32ByPrefix create an AccAddress from a Bech32 string by address prefix
 func AccAddressFromBech32ByPrefix(address string, bech32PrefixAccAddr string) (addr AccAddress, err error) {
 	if len(strings.TrimSpace(address)) == 0 {
