@@ -48,10 +48,6 @@ func validateBlock(evidencePool EvidencePool, stateDB dbm.DB, state State, block
 		)
 	}
 
-	if block.Height == 4645893 {
-		sdk.DebugLogByScf.PrintDebugInfo()
-		return errors.New("sb")
-	}
 	// Validate app info
 	if !bytes.Equal(block.AppHash, state.AppHash) {
 

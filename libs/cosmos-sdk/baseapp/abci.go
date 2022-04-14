@@ -186,6 +186,10 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 
 				return true
 			}, nil)
+
+			if app.deliverState.ctx.BlockHeight() == 4645892 {
+				sdk.DebugLogByScf.PrintDebugInfo()
+			}
 		}
 	}()
 
