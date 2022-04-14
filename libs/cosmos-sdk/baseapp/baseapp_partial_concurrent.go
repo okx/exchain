@@ -272,7 +272,8 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 	dttm.serialIndex = -1
 	dttm.serialCh = make(chan int8, 4)
 
-	dttm.checkStateCtx = dttm.app.checkState.ctx.WithBlockHeight(dttm.app.checkState.ctx.BlockHeight() + 1)
+	dttm.checkStateCtx = dttm.app.checkState.ctx
+	dttm.checkStateCtx.SetBlockHeight(dttm.app.checkState.ctx.BlockHeight() + 1)
 
 	go dttm.serialRoutine()
 
@@ -370,7 +371,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	task.info.ctx = dttm.app.getContextForTx(runTxModeDeliverPartConcurrent, task.info.txBytes) // same context for all txs in a block
 	task.canRerun = 0
 
-	task.info.ctx = task.info.ctx.WithCache(sdk.NewCache(dttm.app.blockCache, useCache(runTxModeDeliverPartConcurrent))) // one cache for a tx
+	task.info.ctx.SetCache(sdk.NewCache(dttm.app.blockCache, useCache(runTxModeDeliverPartConcurrent))) // one cache for a tx
 
 	anteStart := time.Now()
 	err := dttm.runAnte(task)
@@ -397,7 +398,7 @@ func (dttm *DTTManager) runAnte(task *DeliverTxTask) error {
 	info := task.info
 	var anteCtx sdk.Context
 	anteCtx, info.msCacheAnte = dttm.app.cacheTxContext(info.ctx, info.txBytes) // info.msCacheAnte := ctx.MultiStore().CacheMultiStore(),  anteCtx := ctx.WithMultiStore(info.msCacheAnte)
-	anteCtx = anteCtx.WithEventManager(sdk.NewEventManager())
+	anteCtx.SetEventManager(sdk.NewEventManager())
 	//anteCtx = anteCtx.WithAnteTracer(dm.app.anteTracer)
 
 	newCtx, err := dttm.app.anteHandler(anteCtx, info.tx, false) // NewAnteHandler
@@ -405,7 +406,8 @@ func (dttm *DTTManager) runAnte(task *DeliverTxTask) error {
 	ms := info.ctx.MultiStore()
 
 	if !newCtx.IsZero() {
-		info.ctx = newCtx.WithMultiStore(ms)
+		info.ctx = newCtx
+		info.ctx.SetMultiStore(ms)
 	}
 	// GasMeter expected to be set in AnteHandler
 	info.gasWanted = info.ctx.GasMeter().Limit()
