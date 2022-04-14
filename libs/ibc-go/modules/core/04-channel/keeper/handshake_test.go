@@ -59,7 +59,7 @@ func (suite *KeeperTestSuite) TestChanOpenInit() {
 			version := connectiontypes.NewVersion("2", []string{"ORDER_ORDERED", "ORDER_UNORDERED"})
 			conn.Versions = append(conn.Versions, version)
 
-			suite.chainA.App.GetIBCKeeper().ConnectionKeeper.SetConnection(
+			suite.chainA.App().GetIBCKeeper().ConnectionKeeper.SetConnection(
 				suite.chainA.GetContext(),
 				path.EndpointA.ConnectionID, conn,
 			)
@@ -76,7 +76,7 @@ func (suite *KeeperTestSuite) TestChanOpenInit() {
 			version := connectiontypes.NewVersion("1", []string{"ORDER_UNORDERED"})
 			conn.Versions = []*connectiontypes.Version{version}
 
-			suite.chainA.App.GetIBCKeeper().ConnectionKeeper.SetConnection(
+			suite.chainA.App().GetIBCKeeper().ConnectionKeeper.SetConnection(
 				suite.chainA.GetContext(),
 				path.EndpointA.ConnectionID, conn,
 			)
@@ -101,7 +101,7 @@ func (suite *KeeperTestSuite) TestChanOpenInit() {
 
 				counterparty := types.NewCounterparty(ibctesting.MockPort, ibctesting.FirstChannelID)
 
-				channelID, cap, err := suite.chainA.App.GetIBCKeeper().ChannelKeeper.ChanOpenInit(
+				channelID, cap, err := suite.chainA.App().GetIBCKeeper().ChannelKeeper.ChanOpenInit(
 					suite.chainA.GetContext(), path.EndpointA.ChannelConfig.Order, []string{path.EndpointA.ConnectionID},
 					path.EndpointA.ChannelConfig.PortID, portCap, counterparty, path.EndpointA.ChannelConfig.Version,
 				)
@@ -121,7 +121,7 @@ func (suite *KeeperTestSuite) TestChanOpenInit() {
 					suite.Require().NotNil(cap)
 					suite.Require().Equal(types.FormatChannelIdentifier(0), channelID)
 
-					chanCap, ok := suite.chainA.App.GetScopedIBCKeeper().GetCapability(
+					chanCap, ok := suite.chainA.App().GetScopedIBCKeeper().GetCapability(
 						suite.chainA.GetContext(),
 						host.ChannelCapabilityPath(path.EndpointA.ChannelConfig.PortID, channelID),
 					)
@@ -223,7 +223,7 @@ func (suite *KeeperTestSuite) TestChanOpenTry() {
 			version := connectiontypes.NewVersion("2", []string{"ORDER_ORDERED", "ORDER_UNORDERED"})
 			conn.Versions = append(conn.Versions, version)
 
-			suite.chainB.App.GetIBCKeeper().ConnectionKeeper.SetConnection(
+			suite.chainB.App().GetIBCKeeper().ConnectionKeeper.SetConnection(
 				suite.chainB.GetContext(),
 				path.EndpointB.ConnectionID, conn,
 			)
@@ -241,7 +241,7 @@ func (suite *KeeperTestSuite) TestChanOpenTry() {
 			version := connectiontypes.NewVersion("1", []string{"ORDER_UNORDERED"})
 			conn.Versions = []*connectiontypes.Version{version}
 
-			suite.chainA.App.GetIBCKeeper().ConnectionKeeper.SetConnection(
+			suite.chainA.App().GetIBCKeeper().ConnectionKeeper.SetConnection(
 				suite.chainA.GetContext(),
 				path.EndpointA.ConnectionID, conn,
 			)
@@ -271,7 +271,7 @@ func (suite *KeeperTestSuite) TestChanOpenTry() {
 			channelKey := host.ChannelKey(counterparty.PortId, counterparty.ChannelId)
 			proof, proofHeight := suite.chainA.QueryProof(channelKey)
 
-			channelID, cap, err := suite.chainB.App.GetIBCKeeper().ChannelKeeper.ChanOpenTry(
+			channelID, cap, err := suite.chainB.App().GetIBCKeeper().ChannelKeeper.ChanOpenTry(
 				suite.chainB.GetContext(), types.ORDERED, []string{path.EndpointB.ConnectionID},
 				path.EndpointB.ChannelConfig.PortID, previousChannelID, portCap, counterparty, path.EndpointB.ChannelConfig.Version, path.EndpointA.ChannelConfig.Version,
 				proof, malleateHeight(proofHeight, heightDiff),
@@ -281,7 +281,7 @@ func (suite *KeeperTestSuite) TestChanOpenTry() {
 				suite.Require().NoError(err)
 				suite.Require().NotNil(cap)
 
-				chanCap, ok := suite.chainB.App.GetScopedIBCKeeper().GetCapability(
+				chanCap, ok := suite.chainB.App().GetScopedIBCKeeper().GetCapability(
 					suite.chainB.GetContext(),
 					host.ChannelCapabilityPath(path.EndpointB.ChannelConfig.PortID, channelID),
 				)
@@ -334,7 +334,7 @@ func (suite *KeeperTestSuite) TestChanOpenAck() {
 			// use a different channel identifier
 			counterpartyChannelID = path.EndpointB.ChannelID
 
-			suite.chainA.App.GetIBCKeeper().ChannelKeeper.SetChannel(suite.chainA.GetContext(), path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, channel)
+			suite.chainA.App().GetIBCKeeper().ChannelKeeper.SetChannel(suite.chainA.GetContext(), path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, channel)
 
 			channelCap = suite.chainA.GetChannelCapability(path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID)
 		}, true},
@@ -358,7 +358,7 @@ func (suite *KeeperTestSuite) TestChanOpenAck() {
 			// set the channel's connection hops to wrong connection ID
 			channel := path.EndpointA.GetChannel()
 			channel.ConnectionHops[0] = "doesnotexist"
-			suite.chainA.App.GetIBCKeeper().ChannelKeeper.SetChannel(suite.chainA.GetContext(), path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, channel)
+			suite.chainA.App().GetIBCKeeper().ChannelKeeper.SetChannel(suite.chainA.GetContext(), path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, channel)
 		}, false},
 		{"connection is not OPEN", func() {
 			suite.coordinator.SetupClients(path)
@@ -451,7 +451,7 @@ func (suite *KeeperTestSuite) TestChanOpenAck() {
 			channelKey := host.ChannelKey(path.EndpointB.ChannelConfig.PortID, ibctesting.FirstChannelID)
 			proof, proofHeight := suite.chainB.QueryProof(channelKey)
 
-			err := suite.chainA.App.GetIBCKeeper().ChannelKeeper.ChanOpenAck(
+			err := suite.chainA.App().GetIBCKeeper().ChannelKeeper.ChanOpenAck(
 				suite.chainA.GetContext(), path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, channelCap, path.EndpointB.ChannelConfig.Version, counterpartyChannelID,
 				proof, malleateHeight(proofHeight, heightDiff),
 			)
@@ -514,7 +514,7 @@ func (suite *KeeperTestSuite) TestChanOpenConfirm() {
 			// set the channel's connection hops to wrong connection ID
 			channel := path.EndpointB.GetChannel()
 			channel.ConnectionHops[0] = "doesnotexist"
-			suite.chainB.App.GetIBCKeeper().ChannelKeeper.SetChannel(suite.chainB.GetContext(), path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, channel)
+			suite.chainB.App().GetIBCKeeper().ChannelKeeper.SetChannel(suite.chainB.GetContext(), path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, channel)
 		}, false},
 		{"connection is not OPEN", func() {
 			suite.coordinator.SetupClients(path)
@@ -591,7 +591,7 @@ func (suite *KeeperTestSuite) TestChanOpenConfirm() {
 			channelKey := host.ChannelKey(path.EndpointA.ChannelConfig.PortID, ibctesting.FirstChannelID)
 			proof, proofHeight := suite.chainA.QueryProof(channelKey)
 
-			err := suite.chainB.App.GetIBCKeeper().ChannelKeeper.ChanOpenConfirm(
+			err := suite.chainB.App().GetIBCKeeper().ChannelKeeper.ChanOpenConfirm(
 				suite.chainB.GetContext(), path.EndpointB.ChannelConfig.PortID, ibctesting.FirstChannelID,
 				channelCap, proof, malleateHeight(proofHeight, heightDiff),
 			)
@@ -645,7 +645,7 @@ func (suite *KeeperTestSuite) TestChanCloseInit() {
 			// set the channel's connection hops to wrong connection ID
 			channel := path.EndpointA.GetChannel()
 			channel.ConnectionHops[0] = "doesnotexist"
-			suite.chainA.App.GetIBCKeeper().ChannelKeeper.SetChannel(suite.chainA.GetContext(), path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, channel)
+			suite.chainA.App().GetIBCKeeper().ChannelKeeper.SetChannel(suite.chainA.GetContext(), path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, channel)
 		}, false},
 		{"connection is not OPEN", func() {
 			suite.coordinator.SetupClients(path)
@@ -675,7 +675,7 @@ func (suite *KeeperTestSuite) TestChanCloseInit() {
 
 			tc.malleate()
 
-			err := suite.chainA.App.GetIBCKeeper().ChannelKeeper.ChanCloseInit(
+			err := suite.chainA.App().GetIBCKeeper().ChannelKeeper.ChanCloseInit(
 				suite.chainA.GetContext(), path.EndpointA.ChannelConfig.PortID, ibctesting.FirstChannelID, channelCap,
 			)
 
@@ -729,7 +729,7 @@ func (suite *KeeperTestSuite) TestChanCloseConfirm() {
 			// set the channel's connection hops to wrong connection ID
 			channel := path.EndpointB.GetChannel()
 			channel.ConnectionHops[0] = "doesnotexist"
-			suite.chainB.App.GetIBCKeeper().ChannelKeeper.SetChannel(suite.chainB.GetContext(), path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, channel)
+			suite.chainB.App().GetIBCKeeper().ChannelKeeper.SetChannel(suite.chainB.GetContext(), path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, channel)
 		}, false},
 		{"connection is not OPEN", func() {
 			suite.coordinator.SetupClients(path)
@@ -783,7 +783,7 @@ func (suite *KeeperTestSuite) TestChanCloseConfirm() {
 			channelKey := host.ChannelKey(path.EndpointA.ChannelConfig.PortID, ibctesting.FirstChannelID)
 			proof, proofHeight := suite.chainA.QueryProof(channelKey)
 
-			err := suite.chainB.App.GetIBCKeeper().ChannelKeeper.ChanCloseConfirm(
+			err := suite.chainB.App().GetIBCKeeper().ChannelKeeper.ChanCloseConfirm(
 				suite.chainB.GetContext(), path.EndpointB.ChannelConfig.PortID, ibctesting.FirstChannelID, channelCap,
 				proof, malleateHeight(proofHeight, heightDiff),
 			)

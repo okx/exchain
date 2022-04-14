@@ -74,6 +74,8 @@ type TestChainI interface {
 	ConstructUpdateTMClientHeader(counterparty TestChainI, clientID string) (*ibctmtypes.Header, error)
 	sendMsgs(msgs ...sdk.Msg) error
 	GetValsAtHeight(height int64) (*tmtypes.ValidatorSet, bool)
+	CreatePortCapability(scopedKeeper capabilitykeeper.ScopedKeeper, portID string)
+	GetPortCapability(portID string) *capabilitytypes.Capability
 }
 
 // TestChain is a testing struct that wraps a simapp with the last TM Header, the current ABCI
