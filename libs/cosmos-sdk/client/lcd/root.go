@@ -140,7 +140,6 @@ func (rs *RestServer) Start(listenAddr string, maxOpen int, readTimeout, writeTi
 
 func (s *RestServer) registerGRPCGatewayRoutes() {
 	s.Mux.PathPrefix("/").Handler(s.GRPCGatewayRouter)
-	//mix.SSS(s.CliCtx, s.GRPCGatewayRouter)
 }
 
 // ServeCommand will start the application REST service as a blocking process. It

@@ -171,14 +171,15 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyReso
 		return nil, err
 	}
 
-	if registerRoutesFn != nil {
-		go lcd.StartRestServer(cdc, registry, registerRoutesFn, tmNode, viper.GetString(FlagListenAddr))
-	}
-
 	app.SetOption(abci.RequestSetOption{
 		Key:   "CheckChainID",
 		Value: tmNode.ConsensusState().GetState().ChainID,
 	})
+
+	if registerRoutesFn != nil {
+		go lcd.StartRestServer(cdc, registry, registerRoutesFn, tmNode, viper.GetString(FlagListenAddr))
+	}
+
 
 	ctx.Logger.Info("startInProcess",
 		"ConsensusStateChainID", tmNode.ConsensusState().GetState().ChainID,
