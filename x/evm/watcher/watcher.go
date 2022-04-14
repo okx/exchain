@@ -41,7 +41,8 @@ type Watcher struct {
 	log           log.Logger
 
 	// for state delta transfering in network
-	watchData *WatchData
+	watchData  *WatchData
+	wdDelayKey [][]byte
 
 	jobChan chan func()
 }
@@ -97,16 +98,18 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	w.header = header
 	w.height = height
 	w.blockHash = blockHash
+	w.batch = []WatchMessage{} // reset batch
+	// ResetTransferWatchData
+	w.watchData = &WatchData{}
+	w.wdDelayKey = make([][]byte, 0)
 }
 
 func (w *Watcher) clean() {
-	w.batch = []WatchMessage{} // reset batch
 	w.cumulativeGas = make(map[uint64]uint64)
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
+	w.wdDelayKey = w.delayEraseKey
 	w.delayEraseKey = make([][]byte, 0)
-	// ResetTransferWatchData
-	w.watchData = &WatchData{}
 }
 
 func (w *Watcher) SaveEthereumTx(msg *evmtypes.MsgEthereumTx, txHash common.Hash, index uint64) {
@@ -468,7 +471,7 @@ func (w *Watcher) commitBloomData(bloomData []*evmtypes.KV) {
 
 func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
 	value := w.watchData
-	value.DelayEraseKey = w.delayEraseKey
+	value.DelayEraseKey = w.wdDelayKey
 
 	// hold it in temp
 	batch := w.batch
