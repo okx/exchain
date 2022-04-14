@@ -9,7 +9,7 @@ package types_test
 // )
 
 // func (suite *SoloMachineTestSuite) TestVerifySignature() {
-// 	cdc := suite.chainA.App.AppCodec()
+// 	cdc := suite.chainA.App().AppCodec()
 // 	signBytes := []byte("sign bytes")
 
 // 	singleSignature := suite.solomachine.GenerateSignature(signBytes)
@@ -68,7 +68,7 @@ package types_test
 // }
 
 // func (suite *SoloMachineTestSuite) TestClientStateSignBytes() {
-// 	cdc := suite.chainA.App.AppCodec()
+// 	cdc := suite.chainA.App().AppCodec()
 
 // 	for _, solomachine := range []*ibctesting.Solomachine{suite.solomachine, suite.solomachineMulti} {
 // 		// success
@@ -85,7 +85,7 @@ package types_test
 // }
 
 // func (suite *SoloMachineTestSuite) TestConsensusStateSignBytes() {
-// 	cdc := suite.chainA.App.AppCodec()
+// 	cdc := suite.chainA.App().AppCodec()
 
 // 	for _, solomachine := range []*ibctesting.Solomachine{suite.solomachine, suite.solomachineMulti} {
 // 		// success

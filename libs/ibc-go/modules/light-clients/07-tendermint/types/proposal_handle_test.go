@@ -59,10 +59,10 @@ func (suite *TendermintTestSuite) TestCheckSubstituteUpdateStateBasic() {
 
 			tc.malleate()
 
-			subjectClientStore := suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), subjectPath.EndpointA.ClientID)
-			substituteClientStore := suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), substitutePath.EndpointA.ClientID)
+			subjectClientStore := suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), subjectPath.EndpointA.ClientID)
+			substituteClientStore := suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), substitutePath.EndpointA.ClientID)
 
-			updatedClient, err := subjectClientState.CheckSubstituteAndUpdateState(suite.chainA.GetContext(), suite.chainA.App.AppCodec(), subjectClientStore, substituteClientStore, substituteClientState)
+			updatedClient, err := subjectClientState.CheckSubstituteAndUpdateState(suite.chainA.GetContext(), suite.chainA.App().AppCodec(), subjectClientStore, substituteClientStore, substituteClientState)
 			suite.Require().Error(err)
 			suite.Require().Nil(updatedClient)
 		})
@@ -249,7 +249,7 @@ func (suite *TendermintTestSuite) TestCheckSubstituteAndUpdateState() {
 			substituteClientState := suite.chainA.GetClientState(substitutePath.EndpointA.ClientID).(*types.ClientState)
 			substituteClientState.AllowUpdateAfterExpiry = tc.AllowUpdateAfterExpiry
 			substituteClientState.AllowUpdateAfterMisbehaviour = tc.AllowUpdateAfterMisbehaviour
-			suite.chainA.App.GetIBCKeeper().ClientKeeper.SetClientState(suite.chainA.GetContext(), substitutePath.EndpointA.ClientID, substituteClientState)
+			suite.chainA.App().GetIBCKeeper().ClientKeeper.SetClientState(suite.chainA.GetContext(), substitutePath.EndpointA.ClientID, substituteClientState)
 
 			// update substitute a few times
 			for i := 0; i < 3; i++ {
@@ -266,8 +266,8 @@ func (suite *TendermintTestSuite) TestCheckSubstituteAndUpdateState() {
 			newChainID := "new-chain-id"
 			substituteClientState.ChainId = newChainID
 
-			subjectClientStore := suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), subjectPath.EndpointA.ClientID)
-			substituteClientStore := suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), substitutePath.EndpointA.ClientID)
+			subjectClientStore := suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), subjectPath.EndpointA.ClientID)
+			substituteClientStore := suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), substitutePath.EndpointA.ClientID)
 
 			expectedConsState := substitutePath.EndpointA.GetConsensusState(substituteClientState.GetLatestHeight())
 			expectedProcessedTime, found := types.GetProcessedTime(substituteClientStore, substituteClientState.GetLatestHeight())
@@ -276,13 +276,13 @@ func (suite *TendermintTestSuite) TestCheckSubstituteAndUpdateState() {
 			suite.Require().True(found)
 			expectedIterationKey := types.GetIterationKey(substituteClientStore, substituteClientState.GetLatestHeight())
 
-			updatedClient, err := subjectClientState.CheckSubstituteAndUpdateState(suite.chainA.GetContext(), suite.chainA.App.AppCodec(), subjectClientStore, substituteClientStore, substituteClientState)
+			updatedClient, err := subjectClientState.CheckSubstituteAndUpdateState(suite.chainA.GetContext(), suite.chainA.App().AppCodec(), subjectClientStore, substituteClientStore, substituteClientState)
 
 			if tc.expPass {
 				suite.Require().NoError(err)
 				suite.Require().Equal(clienttypes.ZeroHeight(), updatedClient.(*types.ClientState).FrozenHeight)
 
-				subjectClientStore := suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), subjectPath.EndpointA.ClientID)
+				subjectClientStore := suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), subjectPath.EndpointA.ClientID)
 
 				// check that the correct consensus state was copied over
 				suite.Require().Equal(substituteClientState.GetLatestHeight(), updatedClient.GetLatestHeight())

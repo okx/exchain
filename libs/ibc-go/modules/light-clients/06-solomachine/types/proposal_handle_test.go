@@ -67,10 +67,10 @@ package types_test
 
 // 				tc.malleate()
 
-// 				subjectClientStore := suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), solomachine.ClientID)
-// 				substituteClientStore := suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), substitute.ClientID)
+// 				subjectClientStore := suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), solomachine.ClientID)
+// 				substituteClientStore := suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), substitute.ClientID)
 
-// 				updatedClient, err := subjectClientState.CheckSubstituteAndUpdateState(suite.chainA.GetContext(), suite.chainA.App.AppCodec(), subjectClientStore, substituteClientStore, substituteClientState)
+// 				updatedClient, err := subjectClientState.CheckSubstituteAndUpdateState(suite.chainA.GetContext(), suite.chainA.App().AppCodec(), subjectClientStore, substituteClientStore, substituteClientState)
 
 // 				if tc.expPass {
 // 					suite.Require().NoError(err)

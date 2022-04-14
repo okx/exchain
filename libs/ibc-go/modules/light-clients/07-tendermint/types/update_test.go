@@ -115,7 +115,7 @@ func (suite *TendermintTestSuite) TestCheckHeaderAndUpdateState() {
 				currentTime = suite.now
 				ctx := suite.chainA.GetContext().WithBlockTime(currentTime)
 				// Store the header's consensus state in client store before UpdateClient call
-				suite.chainA.App.GetIBCKeeper().ClientKeeper.SetClientConsensusState(ctx, clientID, heightPlus1, newHeader.ConsensusState())
+				suite.chainA.App().GetIBCKeeper().ClientKeeper.SetClientConsensusState(ctx, clientID, heightPlus1, newHeader.ConsensusState())
 			},
 			expFrozen: false,
 			expPass:   true,
@@ -131,7 +131,7 @@ func (suite *TendermintTestSuite) TestCheckHeaderAndUpdateState() {
 				// Change the consensus state of header and store in client store to create a conflict
 				conflictConsState := newHeader.ConsensusState()
 				conflictConsState.Root = commitmenttypes.NewMerkleRoot([]byte("conflicting apphash"))
-				suite.chainA.App.GetIBCKeeper().ClientKeeper.SetClientConsensusState(ctx, clientID, heightPlus1, conflictConsState)
+				suite.chainA.App().GetIBCKeeper().ClientKeeper.SetClientConsensusState(ctx, clientID, heightPlus1, conflictConsState)
 			},
 			expFrozen: true,
 			expPass:   true,
@@ -147,8 +147,8 @@ func (suite *TendermintTestSuite) TestCheckHeaderAndUpdateState() {
 				currentTime = suite.now
 				prevConsensusState := types.NewConsensusState(suite.headerTime, commitmenttypes.NewMerkleRoot(suite.header.Header.GetAppHash()), suite.valsHash)
 				ctx := suite.chainA.GetContext().WithBlockTime(currentTime)
-				suite.chainA.App.GetIBCKeeper().ClientKeeper.SetClientConsensusState(ctx, clientID, heightPlus1, prevConsensusState)
-				clientStore := suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(ctx, clientID)
+				suite.chainA.App().GetIBCKeeper().ClientKeeper.SetClientConsensusState(ctx, clientID, heightPlus1, prevConsensusState)
+				clientStore := suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(ctx, clientID)
 				types.SetIterationKey(clientStore, heightPlus1)
 			},
 			expFrozen: true,
@@ -165,8 +165,8 @@ func (suite *TendermintTestSuite) TestCheckHeaderAndUpdateState() {
 				currentTime = suite.now
 				nextConsensusState := types.NewConsensusState(suite.headerTime, commitmenttypes.NewMerkleRoot(suite.header.Header.GetAppHash()), suite.valsHash)
 				ctx := suite.chainA.GetContext().WithBlockTime(currentTime)
-				suite.chainA.App.GetIBCKeeper().ClientKeeper.SetClientConsensusState(ctx, clientID, heightPlus5, nextConsensusState)
-				clientStore := suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(ctx, clientID)
+				suite.chainA.App().GetIBCKeeper().ClientKeeper.SetClientConsensusState(ctx, clientID, heightPlus5, nextConsensusState)
+				clientStore := suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(ctx, clientID)
 				types.SetIterationKey(clientStore, heightPlus5)
 			},
 			expFrozen: true,
@@ -329,7 +329,7 @@ func (suite *TendermintTestSuite) TestCheckHeaderAndUpdateState() {
 			ctx := suite.chainA.GetContext().WithBlockTime(currentTime)
 
 			// Set trusted consensus state in client store
-			suite.chainA.App.GetIBCKeeper().ClientKeeper.SetClientConsensusState(ctx, clientID, consStateHeight, consensusState)
+			suite.chainA.App().GetIBCKeeper().ClientKeeper.SetClientConsensusState(ctx, clientID, consStateHeight, consensusState)
 
 			height := newHeader.GetHeight()
 			expectedConsensus := &types.ConsensusState{
@@ -341,7 +341,7 @@ func (suite *TendermintTestSuite) TestCheckHeaderAndUpdateState() {
 			newClientState, consensusState, err := clientState.CheckHeaderAndUpdateState(
 				ctx,
 				suite.cdc,
-				suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), clientID), // pass in clientID prefixed clientStore
+				suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), clientID), // pass in clientID prefixed clientStore
 				newHeader,
 			)
 
@@ -385,7 +385,7 @@ func (suite *TendermintTestSuite) TestPruneConsensusState() {
 		return true
 	}
 	ctx := path.EndpointA.Chain.GetContext()
-	clientStore := path.EndpointA.Chain.App.GetIBCKeeper().ClientKeeper.ClientStore(ctx, path.EndpointA.ClientID)
+	clientStore := path.EndpointA.Chain.App().GetIBCKeeper().ClientKeeper.ClientStore(ctx, path.EndpointA.ClientID)
 	err := types.IterateConsensusStateAscending(clientStore, getFirstHeightCb)
 	suite.Require().Nil(err)
 
@@ -397,7 +397,7 @@ func (suite *TendermintTestSuite) TestPruneConsensusState() {
 	expectedConsState, ok := path.EndpointA.Chain.GetConsensusState(path.EndpointA.ClientID, expiredHeight)
 	suite.Require().True(ok)
 	ctx = path.EndpointA.Chain.GetContext()
-	clientStore = path.EndpointA.Chain.App.GetIBCKeeper().ClientKeeper.ClientStore(ctx, path.EndpointA.ClientID)
+	clientStore = path.EndpointA.Chain.App().GetIBCKeeper().ClientKeeper.ClientStore(ctx, path.EndpointA.ClientID)
 	expectedProcessTime, ok := types.GetProcessedTime(clientStore, expiredHeight)
 	suite.Require().True(ok)
 	expectedProcessHeight, ok := types.GetProcessedHeight(clientStore, expiredHeight)
@@ -417,7 +417,7 @@ func (suite *TendermintTestSuite) TestPruneConsensusState() {
 	path.EndpointA.UpdateClient()
 
 	ctx = path.EndpointA.Chain.GetContext()
-	clientStore = path.EndpointA.Chain.App.GetIBCKeeper().ClientKeeper.ClientStore(ctx, path.EndpointA.ClientID)
+	clientStore = path.EndpointA.Chain.App().GetIBCKeeper().ClientKeeper.ClientStore(ctx, path.EndpointA.ClientID)
 
 	// check that the first expired consensus state got deleted along with all associated metadata
 	consState, ok := path.EndpointA.Chain.GetConsensusState(path.EndpointA.ClientID, pruneHeight)

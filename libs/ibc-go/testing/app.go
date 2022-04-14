@@ -2,6 +2,7 @@ package ibctesting
 
 import (
 	"encoding/json"
+	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"testing"
 
@@ -31,6 +32,7 @@ var DefaultTestingAppInit func() (TestingApp, map[string]json.RawMessage) = Setu
 
 type TestingApp interface {
 	abci.Application
+	TxConfig() client.TxConfig
 
 	// ibc-go additions
 	GetBaseApp() *bam.BaseApp

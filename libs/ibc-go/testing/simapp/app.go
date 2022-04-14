@@ -1,6 +1,7 @@
 package simapp
 
 import (
+	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
 	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
@@ -171,6 +172,8 @@ var _ simapp.App = (*SimApp)(nil)
 // Tendermint consensus.
 type SimApp struct {
 	*bam.BaseApp
+
+	txconfig client.TxConfig
 
 	invCheckPeriod uint
 
@@ -785,6 +788,10 @@ func (app *SimApp) setupUpgradeModules() {
 		}
 		vs[k] = supace.LazyWithKeyTable(subspace.NewKeyTable(vv.ParamSetPairs()...))
 	}
+}
+
+func (o *SimApp) TxConfig() client.TxConfig {
+	return o.txconfig
 }
 
 func (o *SimApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgradetypes.HeightTasks, map[string]params.ParamSet, types.HeightFilterPipeline, types.HeightFilterPipeline, types.VersionFilterPipeline) {

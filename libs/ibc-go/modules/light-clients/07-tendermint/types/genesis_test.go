@@ -15,7 +15,7 @@ func (suite *TendermintTestSuite) TestExportMetadata() {
 	// test intializing client and exporting metadata
 	path := ibctesting.NewPath(suite.chainA, suite.chainB)
 	suite.coordinator.SetupClients(path)
-	clientStore := suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), path.EndpointA.ClientID)
+	clientStore := suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), path.EndpointA.ClientID)
 	clientState := path.EndpointA.GetClientState()
 	height := clientState.GetLatestHeight()
 
@@ -26,7 +26,7 @@ func (suite *TendermintTestSuite) TestExportMetadata() {
 	initProcessedHeight, found := types.GetProcessedHeight(clientStore, height)
 	suite.Require().True(found)
 
-	gm := clientState.ExportMetadata(suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), path.EndpointA.ClientID))
+	gm := clientState.ExportMetadata(suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), path.EndpointA.ClientID))
 	suite.Require().NotNil(gm, "client with metadata returned nil exported metadata")
 	suite.Require().Len(gm, 3, "exported metadata has unexpected length")
 
@@ -55,7 +55,7 @@ func (suite *TendermintTestSuite) TestExportMetadata() {
 	processedHeight, found := types.GetProcessedHeight(clientStore, updateHeight)
 	suite.Require().True(found)
 
-	gm = clientState.ExportMetadata(suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), path.EndpointA.ClientID))
+	gm = clientState.ExportMetadata(suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), path.EndpointA.ClientID))
 	suite.Require().NotNil(gm, "client with metadata returned nil exported metadata")
 	suite.Require().Len(gm, 6, "exported metadata has unexpected length")
 

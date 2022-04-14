@@ -60,12 +60,12 @@ func (suite *TendermintTestSuite) TestStatus() {
 		path = ibctesting.NewPath(suite.chainA, suite.chainB)
 		suite.coordinator.SetupClients(path)
 
-		clientStore := suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), path.EndpointA.ClientID)
+		clientStore := suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), path.EndpointA.ClientID)
 		clientState = path.EndpointA.GetClientState().(*types.ClientState)
 
 		tc.malleate()
 
-		status := clientState.Status(suite.chainA.GetContext(), clientStore, suite.chainA.App.AppCodec())
+		status := clientState.Status(suite.chainA.GetContext(), clientStore, suite.chainA.App().AppCodec())
 		suite.Require().Equal(tc.expStatus, status)
 
 	}
@@ -189,7 +189,7 @@ func (suite *TendermintTestSuite) TestInitialize() {
 	suite.Require().NoError(err)
 
 	clientState := suite.chainA.GetClientState(path.EndpointA.ClientID)
-	store := suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), path.EndpointA.ClientID)
+	store := suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), path.EndpointA.ClientID)
 
 	for _, tc := range testCases {
 		err := clientState.Initialize(suite.chainA.GetContext(), suite.chainA.Codec(), store, tc.consensusState)
@@ -286,18 +286,18 @@ func (suite *TendermintTestSuite) TestVerifyConnectionState() {
 		},
 		{
 			"ApplyPrefix failed", func() {
-			prefix = commitmenttypes.MerklePrefix{}
-		}, false,
+				prefix = commitmenttypes.MerklePrefix{}
+			}, false,
 		},
 		{
 			"latest client height < height", func() {
-			proofHeight = clientState.LatestHeight.Increment()
-		}, false,
+				proofHeight = clientState.LatestHeight.Increment()
+			}, false,
 		},
 		{
 			"proof verification failed", func() {
-			proof = invalidProof
-		}, false,
+				proof = invalidProof
+			}, false,
 		},
 	}
 
@@ -325,7 +325,7 @@ func (suite *TendermintTestSuite) TestVerifyConnectionState() {
 
 			tc.malleate() // make changes as necessary
 
-			store := suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), path.EndpointA.ClientID)
+			store := suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), path.EndpointA.ClientID)
 
 			err := clientState.VerifyConnectionState(
 				store, suite.chainA.Codec(), proofHeight, &prefix, proof, path.EndpointB.ConnectionID, connection,
@@ -360,18 +360,18 @@ func (suite *TendermintTestSuite) TestVerifyChannelState() {
 		},
 		{
 			"ApplyPrefix failed", func() {
-			prefix = commitmenttypes.MerklePrefix{}
-		}, false,
+				prefix = commitmenttypes.MerklePrefix{}
+			}, false,
 		},
 		{
 			"latest client height < height", func() {
-			proofHeight = clientState.LatestHeight.Increment()
-		}, false,
+				proofHeight = clientState.LatestHeight.Increment()
+			}, false,
 		},
 		{
 			"proof verification failed", func() {
-			proof = invalidProof
-		}, false,
+				proof = invalidProof
+			}, false,
 		},
 	}
 
@@ -399,7 +399,7 @@ func (suite *TendermintTestSuite) TestVerifyChannelState() {
 
 			tc.malleate() // make changes as necessary
 
-			store := suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), path.EndpointA.ClientID)
+			store := suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), path.EndpointA.ClientID)
 
 			err := clientState.VerifyChannelState(
 				store, suite.chainA.Codec(), proofHeight, &prefix, proof,
@@ -466,18 +466,18 @@ func (suite *TendermintTestSuite) TestVerifyPacketCommitment() {
 
 		{
 			"ApplyPrefix failed", func() {
-			prefix = commitmenttypes.MerklePrefix{}
-		}, false,
+				prefix = commitmenttypes.MerklePrefix{}
+			}, false,
 		},
 		{
 			"latest client height < height", func() {
-			proofHeight = clientState.LatestHeight.Increment()
-		}, false,
+				proofHeight = clientState.LatestHeight.Increment()
+			}, false,
 		},
 		{
 			"proof verification failed", func() {
-			proof = invalidProof
-		}, false,
+				proof = invalidProof
+			}, false,
 		},
 	}
 
@@ -511,9 +511,9 @@ func (suite *TendermintTestSuite) TestVerifyPacketCommitment() {
 			tc.malleate() // make changes as necessary
 
 			ctx := suite.chainA.GetContext()
-			store := suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(ctx, path.EndpointA.ClientID)
+			store := suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(ctx, path.EndpointA.ClientID)
 
-			commitment := channeltypes.CommitPacket(suite.chainA.App.GetIBCKeeper().Codec(), packet)
+			commitment := channeltypes.CommitPacket(suite.chainA.App().GetIBCKeeper().Codec(), packet)
 			err = clientState.VerifyPacketCommitment(
 				ctx, store, suite.chainA.Codec(), proofHeight, delayTimePeriod, delayBlockPeriod, &prefix, proof,
 				packet.GetSourcePort(), packet.GetSourceChannel(), packet.GetSequence(), commitment,
@@ -580,18 +580,18 @@ func (suite *TendermintTestSuite) TestVerifyPacketAcknowledgement() {
 
 		{
 			"ApplyPrefix failed", func() {
-			prefix = commitmenttypes.MerklePrefix{}
-		}, false,
+				prefix = commitmenttypes.MerklePrefix{}
+			}, false,
 		},
 		{
 			"latest client height < height", func() {
-			proofHeight = clientState.LatestHeight.Increment()
-		}, false,
+				proofHeight = clientState.LatestHeight.Increment()
+			}, false,
 		},
 		{
 			"proof verification failed", func() {
-			proof = invalidProof
-		}, false,
+				proof = invalidProof
+			}, false,
 		},
 	}
 
@@ -631,7 +631,7 @@ func (suite *TendermintTestSuite) TestVerifyPacketAcknowledgement() {
 			tc.malleate() // make changes as necessary
 
 			ctx := suite.chainA.GetContext()
-			store := suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(ctx, path.EndpointA.ClientID)
+			store := suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(ctx, path.EndpointA.ClientID)
 
 			err = clientState.VerifyPacketAcknowledgement(
 				ctx, store, suite.chainA.Codec(), proofHeight, delayTimePeriod, delayBlockPeriod, &prefix, proof,
@@ -699,18 +699,18 @@ func (suite *TendermintTestSuite) TestVerifyPacketReceiptAbsence() {
 
 		{
 			"ApplyPrefix failed", func() {
-			prefix = commitmenttypes.MerklePrefix{}
-		}, false,
+				prefix = commitmenttypes.MerklePrefix{}
+			}, false,
 		},
 		{
 			"latest client height < height", func() {
-			proofHeight = clientState.LatestHeight.Increment()
-		}, false,
+				proofHeight = clientState.LatestHeight.Increment()
+			}, false,
 		},
 		{
 			"proof verification failed", func() {
-			proof = invalidProof
-		}, false,
+				proof = invalidProof
+			}, false,
 		},
 	}
 
@@ -746,7 +746,7 @@ func (suite *TendermintTestSuite) TestVerifyPacketReceiptAbsence() {
 			tc.malleate() // make changes as necessary
 
 			ctx := suite.chainA.GetContext()
-			store := suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(ctx, path.EndpointA.ClientID)
+			store := suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(ctx, path.EndpointA.ClientID)
 
 			err = clientState.VerifyPacketReceiptAbsence(
 				ctx, store, suite.chainA.Codec(), proofHeight, delayTimePeriod, delayBlockPeriod, &prefix, proof,
@@ -814,18 +814,18 @@ func (suite *TendermintTestSuite) TestVerifyNextSeqRecv() {
 
 		{
 			"ApplyPrefix failed", func() {
-			prefix = commitmenttypes.MerklePrefix{}
-		}, false,
+				prefix = commitmenttypes.MerklePrefix{}
+			}, false,
 		},
 		{
 			"latest client height < height", func() {
-			proofHeight = clientState.LatestHeight.Increment()
-		}, false,
+				proofHeight = clientState.LatestHeight.Increment()
+			}, false,
 		},
 		{
 			"proof verification failed", func() {
-			proof = invalidProof
-		}, false,
+				proof = invalidProof
+			}, false,
 		},
 	}
 
@@ -866,7 +866,7 @@ func (suite *TendermintTestSuite) TestVerifyNextSeqRecv() {
 			tc.malleate() // make changes as necessary
 
 			ctx := suite.chainA.GetContext()
-			store := suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(ctx, path.EndpointA.ClientID)
+			store := suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(ctx, path.EndpointA.ClientID)
 
 			err = clientState.VerifyNextSequenceRecv(
 				ctx, store, suite.chainA.Codec(), proofHeight, delayTimePeriod, delayBlockPeriod, &prefix, proof,

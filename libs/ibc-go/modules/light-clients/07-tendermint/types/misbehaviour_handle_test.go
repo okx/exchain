@@ -405,16 +405,16 @@ func (suite *TendermintTestSuite) TestCheckMisbehaviourAndUpdateState() {
 			// Set trusted consensus states in client store
 
 			if tc.consensusState1 != nil {
-				suite.chainA.App.GetIBCKeeper().ClientKeeper.SetClientConsensusState(ctx, clientID, tc.height1, tc.consensusState1)
+				suite.chainA.App().GetIBCKeeper().ClientKeeper.SetClientConsensusState(ctx, clientID, tc.height1, tc.consensusState1)
 			}
 			if tc.consensusState2 != nil {
-				suite.chainA.App.GetIBCKeeper().ClientKeeper.SetClientConsensusState(ctx, clientID, tc.height2, tc.consensusState2)
+				suite.chainA.App().GetIBCKeeper().ClientKeeper.SetClientConsensusState(ctx, clientID, tc.height2, tc.consensusState2)
 			}
 
 			clientState, err := tc.clientState.CheckMisbehaviourAndUpdateState(
 				ctx,
-				suite.chainA.App.AppCodec(),
-				suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(ctx, clientID), // pass in clientID prefixed clientStore
+				suite.chainA.App().AppCodec(),
+				suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(ctx, clientID), // pass in clientID prefixed clientStore
 				tc.misbehaviour,
 			)
 

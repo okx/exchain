@@ -250,7 +250,7 @@ package types_test
 // 				// setup test
 // 				tc.setup()
 
-// 				clientState, err := clientState.CheckMisbehaviourAndUpdateState(suite.chainA.GetContext(), suite.chainA.App.AppCodec(), suite.store, misbehaviour)
+// 				clientState, err := clientState.CheckMisbehaviourAndUpdateState(suite.chainA.GetContext(), suite.chainA.App().AppCodec(), suite.store, misbehaviour)
 
 // 				if tc.expPass {
 // 					suite.Require().NoError(err)

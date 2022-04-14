@@ -17,7 +17,7 @@ package types_test
 // 	// test singlesig and multisig public keys
 // 	for _, solomachine := range []*ibctesting.Solomachine{suite.solomachine, suite.solomachineMulti} {
 
-// 		cdc := suite.chainA.App.AppCodec()
+// 		cdc := suite.chainA.App().AppCodec()
 // 		cases := []struct {
 // 			name     string
 // 			dataType types.DataType

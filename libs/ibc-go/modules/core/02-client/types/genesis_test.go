@@ -45,13 +45,13 @@ func new02clientGenesisState(idcs []types.IdentifiedClientState,
 }
 
 func (suite *TypesTestSuite) TestMarshalGenesisState() {
-	cdc := suite.chainA.App.AppCodec()
+	cdc := suite.chainA.App().AppCodec()
 	path := ibctesting.NewPath(suite.chainA, suite.chainB)
 	suite.coordinator.Setup(path)
 	err := path.EndpointA.UpdateClient()
 	suite.Require().NoError(err)
 
-	genesis := client.ExportGenesis(suite.chainA.GetContext(), suite.chainA.App.GetIBCKeeper().ClientKeeper)
+	genesis := client.ExportGenesis(suite.chainA.GetContext(), suite.chainA.App().GetIBCKeeper().ClientKeeper)
 
 	// bz, err := cdc.MarshalJSON(&genesis)
 	bz, err := cdc.GetProtocMarshal().MarshalJSON(&genesis)

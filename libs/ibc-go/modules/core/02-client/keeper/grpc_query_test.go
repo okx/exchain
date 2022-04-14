@@ -76,7 +76,7 @@ func (suite *KeeperTestSuite) TestQueryClientState() {
 
 			tc.malleate()
 			ctx := sdk.WrapSDKContext(suite.chainA.GetContext())
-			res, err := suite.chainA.QueryServer.ClientState(ctx, req)
+			res, err := suite.chainA.QueryServer().ClientState(ctx, req)
 
 			if tc.expPass {
 				suite.Require().NoError(err)
@@ -170,7 +170,7 @@ func (suite *KeeperTestSuite) TestQueryClientStates() {
 
 			ctx := sdk.WrapSDKContext(suite.chainA.GetContext())
 
-			res, err := suite.chainA.QueryServer.ClientStates(ctx, req)
+			res, err := suite.chainA.QueryServer().ClientStates(ctx, req)
 
 			if tc.expPass {
 				suite.Require().NoError(err)
@@ -278,7 +278,7 @@ func (suite *KeeperTestSuite) TestQueryConsensusState() {
 
 			tc.malleate()
 			ctx := sdk.WrapSDKContext(suite.chainA.GetContext())
-			res, err := suite.chainA.QueryServer.ConsensusState(ctx, req)
+			res, err := suite.chainA.QueryServer().ConsensusState(ctx, req)
 
 			if tc.expPass {
 				suite.Require().NoError(err)
@@ -482,7 +482,7 @@ func (suite *KeeperTestSuite) TestQueryClientStatus() {
 
 			tc.malleate()
 			ctx := sdk.WrapSDKContext(suite.chainA.GetContext())
-			res, err := suite.chainA.QueryServer.ClientStatus(ctx, req)
+			res, err := suite.chainA.QueryServer().ClientStatus(ctx, req)
 
 			if tc.expPass {
 				suite.Require().NoError(err)
@@ -529,9 +529,10 @@ func (suite *KeeperTestSuite) TestQueryUpgradedConsensusStates() {
 				suite.ctx = suite.ctx.WithBlockHeight(height)
 
 				expConsensusState = types.MustPackConsensusState(suite.consensusState)
-				bz := types.MustMarshalConsensusState(&suite.cdc, suite.consensusState)
-				err := suite.keeper.SetUpgradedConsensusState(suite.ctx, height, bz)
-				suite.Require().NoError(err)
+				// todo add upgrade
+				//bz := types.MustMarshalConsensusState(&suite.cdc, suite.consensusState)
+				//err := suite.keeper.SetUpgradedConsensusState(suite.ctx, height, bz)
+				//suite.Require().NoError(err)
 			},
 			true,
 		},
@@ -560,6 +561,6 @@ func (suite *KeeperTestSuite) TestQueryUpgradedConsensusStates() {
 func (suite *KeeperTestSuite) TestQueryParams() {
 	ctx := sdk.WrapSDKContext(suite.chainA.GetContext())
 	expParams := types.DefaultParams()
-	res, _ := suite.chainA.QueryServer.ClientParams(ctx, &types.QueryClientParamsRequest{})
+	res, _ := suite.chainA.QueryServer().ClientParams(ctx, &types.QueryClientParamsRequest{})
 	suite.Require().Equal(&expParams, res.Params)
 }

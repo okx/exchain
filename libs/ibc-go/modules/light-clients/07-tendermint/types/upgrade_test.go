@@ -46,7 +46,7 @@ package types_test
 // 				err := path.EndpointA.UpdateClient()
 // 				suite.Require().NoError(err)
 
-// 				cs, found := suite.chainA.App.GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
+// 				cs, found := suite.chainA.App().GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
 // 				suite.Require().True(found)
 
 // 				proofUpgradedClient, _ = suite.chainB.QueryUpgradeProof(upgradetypes.UpgradedClientKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
@@ -61,7 +61,7 @@ package types_test
 // 				// don't use -1 suffix in chain id
 // 				upgradedClient = types.NewClientState("newChainId", types.DefaultTrustLevel, trustingPeriod, ubdPeriod+trustingPeriod, maxClockDrift, upgradedHeight, commitmenttypes.GetSDKSpecs(), upgradePath, false, false)
 // 				upgradedClient = upgradedClient.ZeroCustomFields()
-// 				upgradedClientBz, err = clienttypes.MarshalClientState(suite.chainA.App.AppCodec(), upgradedClient)
+// 				upgradedClientBz, err = clienttypes.MarshalClientState(suite.chainA.App().AppCodec(), upgradedClient)
 // 				suite.Require().NoError(err)
 
 // 				// upgrade Height is at next block
@@ -77,7 +77,7 @@ package types_test
 // 				err := path.EndpointA.UpdateClient()
 // 				suite.Require().NoError(err)
 
-// 				cs, found := suite.chainA.App.GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
+// 				cs, found := suite.chainA.App().GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
 // 				suite.Require().True(found)
 
 // 				proofUpgradedClient, _ = suite.chainB.QueryUpgradeProof(upgradetypes.UpgradedClientKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
@@ -102,7 +102,7 @@ package types_test
 // 				err := path.EndpointA.UpdateClient()
 // 				suite.Require().NoError(err)
 
-// 				cs, found := suite.chainA.App.GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
+// 				cs, found := suite.chainA.App().GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
 // 				suite.Require().True(found)
 
 // 				proofUpgradedClient, _ = suite.chainB.QueryUpgradeProof(upgradetypes.UpgradedClientKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
@@ -115,7 +115,7 @@ package types_test
 // 			setup: func() {
 // 				// non-zeroed upgrade client
 // 				upgradedClient = types.NewClientState(newChainId, types.DefaultTrustLevel, trustingPeriod, ubdPeriod+trustingPeriod, maxClockDrift, newClientHeight, commitmenttypes.GetSDKSpecs(), upgradePath, false, false)
-// 				upgradedClientBz, err = clienttypes.MarshalClientState(suite.chainA.App.AppCodec(), upgradedClient)
+// 				upgradedClientBz, err = clienttypes.MarshalClientState(suite.chainA.App().AppCodec(), upgradedClient)
 // 				suite.Require().NoError(err)
 
 // 				// upgrade Height is at next block
@@ -131,7 +131,7 @@ package types_test
 // 				err := path.EndpointA.UpdateClient()
 // 				suite.Require().NoError(err)
 
-// 				cs, found := suite.chainA.App.GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
+// 				cs, found := suite.chainA.App().GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
 // 				suite.Require().True(found)
 
 // 				proofUpgradedClient, _ = suite.chainB.QueryUpgradeProof(upgradetypes.UpgradedClientKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
@@ -156,7 +156,7 @@ package types_test
 // 				err := path.EndpointA.UpdateClient()
 // 				suite.Require().NoError(err)
 
-// 				cs, found := suite.chainA.App.GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
+// 				cs, found := suite.chainA.App().GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
 // 				suite.Require().True(found)
 
 // 				proofUpgradedClient, _ = suite.chainB.QueryUpgradeProof(upgradetypes.UpgradedClientKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
@@ -178,7 +178,7 @@ package types_test
 // 				err := path.EndpointA.UpdateClient()
 // 				suite.Require().NoError(err)
 
-// 				cs, found := suite.chainA.App.GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
+// 				cs, found := suite.chainA.App().GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
 // 				suite.Require().True(found)
 
 // 				proofUpgradedClient, _ = suite.chainB.QueryUpgradeProof(upgradetypes.UpgradedClientKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
@@ -207,7 +207,7 @@ package types_test
 // 				err := path.EndpointA.UpdateClient()
 // 				suite.Require().NoError(err)
 
-// 				cs, found := suite.chainA.App.GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
+// 				cs, found := suite.chainA.App().GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
 // 				suite.Require().True(found)
 
 // 				proofUpgradedClient, _ = suite.chainB.QueryUpgradeProof(upgradetypes.UpgradedClientKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
@@ -220,7 +220,7 @@ package types_test
 // 			setup: func() {
 // 				suite.chainB.GetSimApp().UpgradeKeeper.SetUpgradedConsensusState(suite.chainB.GetContext(), int64(lastHeight.GetRevisionHeight()), upgradedConsStateBz)
 
-// 				cs, found := suite.chainA.App.GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
+// 				cs, found := suite.chainA.App().GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
 // 				suite.Require().True(found)
 
 // 				proofUpgradedConsState, _ = suite.chainB.QueryUpgradeProof(upgradetypes.UpgradedConsStateKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
@@ -234,7 +234,7 @@ package types_test
 // 			setup: func() {
 // 				suite.chainB.GetSimApp().UpgradeKeeper.SetUpgradedClient(suite.chainB.GetContext(), int64(lastHeight.GetRevisionHeight()), upgradedClientBz)
 
-// 				cs, found := suite.chainA.App.GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
+// 				cs, found := suite.chainA.App().GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
 // 				suite.Require().True(found)
 
 // 				proofUpgradedClient, _ = suite.chainB.QueryUpgradeProof(upgradetypes.UpgradedClientKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
@@ -253,7 +253,7 @@ package types_test
 
 // 				suite.chainB.GetSimApp().UpgradeKeeper.SetUpgradedConsensusState(suite.chainB.GetContext(), int64(lastHeight.GetRevisionHeight()), upgradedConsStateBz)
 
-// 				cs, found := suite.chainA.App.GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
+// 				cs, found := suite.chainA.App().GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
 // 				suite.Require().True(found)
 
 // 				proofUpgradedClient, _ = suite.chainB.QueryUpgradeProof(upgradetypes.UpgradedClientKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
@@ -271,7 +271,7 @@ package types_test
 
 // 				suite.chainB.GetSimApp().UpgradeKeeper.SetUpgradedClient(suite.chainB.GetContext(), int64(lastHeight.GetRevisionHeight()), upgradedClientBz)
 
-// 				cs, found := suite.chainA.App.GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
+// 				cs, found := suite.chainA.App().GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
 // 				suite.Require().True(found)
 
 // 				proofUpgradedClient, _ = suite.chainB.QueryUpgradeProof(upgradetypes.UpgradedClientKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
@@ -294,7 +294,7 @@ package types_test
 // 				err := path.EndpointA.UpdateClient()
 // 				suite.Require().NoError(err)
 
-// 				cs, found := suite.chainA.App.GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
+// 				cs, found := suite.chainA.App().GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
 // 				suite.Require().True(found)
 
 // 				proofUpgradedClient, _ = suite.chainB.QueryUpgradeProof(upgradetypes.UpgradedClientKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
@@ -303,7 +303,7 @@ package types_test
 // 				// SetClientState with empty upgrade path
 // 				tmClient, _ := cs.(*types.ClientState)
 // 				tmClient.UpgradePath = []string{""}
-// 				suite.chainA.App.GetIBCKeeper().ClientKeeper.SetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID, tmClient)
+// 				suite.chainA.App().GetIBCKeeper().ClientKeeper.SetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID, tmClient)
 // 			},
 // 			expPass: false,
 // 		},
@@ -322,7 +322,7 @@ package types_test
 // 				err := path.EndpointA.UpdateClient()
 // 				suite.Require().NoError(err)
 
-// 				cs, found := suite.chainA.App.GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
+// 				cs, found := suite.chainA.App().GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
 // 				suite.Require().True(found)
 
 // 				proofUpgradedClient, _ = suite.chainB.QueryUpgradeProof(upgradetypes.UpgradedClientKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
@@ -345,7 +345,7 @@ package types_test
 // 				err := path.EndpointA.UpdateClient()
 // 				suite.Require().NoError(err)
 
-// 				cs, found := suite.chainA.App.GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
+// 				cs, found := suite.chainA.App().GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
 // 				suite.Require().True(found)
 
 // 				proofUpgradedClient, _ = suite.chainB.QueryUpgradeProof(upgradetypes.UpgradedClientKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
@@ -368,7 +368,7 @@ package types_test
 // 				// expire chainB's client
 // 				suite.chainA.ExpireClient(ubdPeriod)
 
-// 				cs, found := suite.chainA.App.GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
+// 				cs, found := suite.chainA.App().GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
 // 				suite.Require().True(found)
 
 // 				proofUpgradedClient, _ = suite.chainB.QueryUpgradeProof(upgradetypes.UpgradedClientKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
@@ -391,7 +391,7 @@ package types_test
 // 				err := path.EndpointA.UpdateClient()
 // 				suite.Require().NoError(err)
 
-// 				cs, found := suite.chainA.App.GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
+// 				cs, found := suite.chainA.App().GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
 // 				suite.Require().True(found)
 
 // 				proofUpgradedClient, _ = suite.chainB.QueryUpgradeProof(upgradetypes.UpgradedClientKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
@@ -404,7 +404,7 @@ package types_test
 // 			setup: func() {
 // 				// new client has smaller unbonding period such that old trusting period is no longer valid
 // 				upgradedClient = types.NewClientState(newChainId, types.DefaultTrustLevel, trustingPeriod, trustingPeriod, maxClockDrift, newClientHeight, commitmenttypes.GetSDKSpecs(), upgradePath, false, false)
-// 				upgradedClientBz, err = clienttypes.MarshalClientState(suite.chainA.App.AppCodec(), upgradedClient)
+// 				upgradedClientBz, err = clienttypes.MarshalClientState(suite.chainA.App().AppCodec(), upgradedClient)
 // 				suite.Require().NoError(err)
 
 // 				// upgrade Height is at next block
@@ -420,7 +420,7 @@ package types_test
 // 				err := path.EndpointA.UpdateClient()
 // 				suite.Require().NoError(err)
 
-// 				cs, found := suite.chainA.App.GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
+// 				cs, found := suite.chainA.App().GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
 // 				suite.Require().True(found)
 
 // 				proofUpgradedClient, _ = suite.chainB.QueryUpgradeProof(upgradetypes.UpgradedClientKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
@@ -440,19 +440,19 @@ package types_test
 // 		suite.coordinator.SetupClients(path)
 // 		upgradedClient = types.NewClientState(newChainId, types.DefaultTrustLevel, trustingPeriod, ubdPeriod+trustingPeriod, maxClockDrift, newClientHeight, commitmenttypes.GetSDKSpecs(), upgradePath, false, false)
 // 		upgradedClient = upgradedClient.ZeroCustomFields()
-// 		upgradedClientBz, err = clienttypes.MarshalClientState(suite.chainA.App.AppCodec(), upgradedClient)
+// 		upgradedClientBz, err = clienttypes.MarshalClientState(suite.chainA.App().AppCodec(), upgradedClient)
 // 		suite.Require().NoError(err)
 
 // 		upgradedConsState = &types.ConsensusState{
 // 			NextValidatorsHash: []byte("nextValsHash"),
 // 		}
-// 		upgradedConsStateBz, err = clienttypes.MarshalConsensusState(suite.chainA.App.AppCodec(), upgradedConsState)
+// 		upgradedConsStateBz, err = clienttypes.MarshalConsensusState(suite.chainA.App().AppCodec(), upgradedConsState)
 // 		suite.Require().NoError(err)
 
 // 		tc.setup()
 
 // 		cs := suite.chainA.GetClientState(path.EndpointA.ClientID)
-// 		clientStore := suite.chainA.App.GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), path.EndpointA.ClientID)
+// 		clientStore := suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), path.EndpointA.ClientID)
 
 // 		// Call ZeroCustomFields on upgraded clients to clear any client-chosen parameters in test-case upgradedClient
 // 		upgradedClient = upgradedClient.ZeroCustomFields()

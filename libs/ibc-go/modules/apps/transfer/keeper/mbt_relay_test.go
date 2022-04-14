@@ -251,7 +251,7 @@ func (bank *Bank) NonZeroString() string {
 }
 
 // Construct a bank out of the chain bank
-func BankOfChain(chain *ibctesting.TestChain) Bank {
+func BankOfChain(chain ibctesting.TestChainI) Bank {
 	bank := MakeBank()
 	// todo how to Iterate all balance
 	//	chain.GetSimApp().BankKeeper.IterateAllBalances(chain.GetContext(), func(address sdk.AccAddress, coin sdk.Coin) (stop bool) {
@@ -266,7 +266,7 @@ func BankOfChain(chain *ibctesting.TestChain) Bank {
 }
 
 // Check that the state of the bank is the bankBefore + expectedBankChange
-func (suite *KeeperTestSuite) CheckBankBalances(chain *ibctesting.TestChain, bankBefore *Bank, expectedBankChange *Bank) error {
+func (suite *KeeperTestSuite) CheckBankBalances(chain ibctesting.TestChainI, bankBefore *Bank, expectedBankChange *Bank) error {
 	bankAfter := BankOfChain(chain)
 	bankChange := bankAfter.Sub(bankBefore)
 	diff := bankChange.Sub(expectedBankChange)

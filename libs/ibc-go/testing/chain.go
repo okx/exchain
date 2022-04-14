@@ -43,6 +43,7 @@ import (
 )
 
 type TestChainI interface {
+	TxConfig() client.TxConfig
 	T() *testing.T
 	App() TestingApp
 	GetContext() sdk.Context
@@ -100,7 +101,7 @@ type TestChain struct {
 	currentHeader tmproto.Header     // header for current block height
 	// QueryServer   types.QueryServer
 	queryServer types.QueryService
-	TxConfig    client.TxConfig
+	txConfig    client.TxConfig
 	codec       *codec.CodecProxy
 
 	vals    *tmtypes.ValidatorSet
@@ -138,7 +139,7 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 	// amount, ok := sdk.NewIntFromString("10000000000000000000")
 	// require.True(t, ok)
 
-	//fromBalance := suite.app.AccountKeeper.GetAccount(suite.ctx, cmFrom).GetCoins()
+	//fromBalance := suite.App().AccountKeeper.GetAccount(suite.ctx, cmFrom).GetCoins()
 	var account *apptypes.EthAccount
 	balance := sdk.NewCoins(okexchaintypes.NewPhotonCoin(sdk.OneInt()))
 	addr := sdk.AccAddress(pubKey.Address())
@@ -162,7 +163,7 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 		Time:    coord.CurrentTime.UTC(),
 	}
 
-	//txConfig := app.GetTxConfig()
+	txConfig := app.TxConfig()
 
 	// create an account to send transactions from
 	tchain := &TestChain{
@@ -172,7 +173,7 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 		TApp:          app,
 		currentHeader: header,
 		queryServer:   app.GetIBCKeeper(),
-		//TxConfig:      txConfig,
+		txConfig:      txConfig,
 		codec:         app.AppCodec(),
 		vals:          valSet,
 		signers:       signers,
@@ -189,6 +190,10 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 // GetContext returns the current context for the application.
 func (chain *TestChain) GetContext() sdk.Context {
 	return chain.App().GetBaseApp().NewContext(false, chain.CurrentHeader())
+}
+
+func (chain *TestChain) TxConfig() client.TxConfig {
+	return chain.txConfig
 }
 
 // GetSimApp returns the SimApp to allow usage ofnon-interface fields.
@@ -245,7 +250,7 @@ func (chain *TestChain) QueryUpgradeProof(key []byte, height uint64) ([]byte, cl
 	merkleProof, err := commitmenttypes.ConvertProofs(res.GetProof())
 	require.NoError(chain.t, err)
 
-	// proof, err := chain.App.AppCodec().Marshal(&merkleProof)
+	// proof, err := chain.App().AppCodec().Marshal(&merkleProof)
 	// require.NoError(chain.t, err)
 	proof, err := chain.App().AppCodec().GetProtocMarshal().MarshalBinaryBare(&merkleProof)
 	require.NoError(chain.t, err)
@@ -330,7 +335,7 @@ func (chain *TestChain) SendMsgs(msgs ...ibcmsg.Msg) (*sdk.Result, error) {
 
 	_, r, err := simapp.SignAndDeliver(
 		chain.t,
-		chain.TxConfig,
+		chain.TxConfig(),
 		chain.App().GetBaseApp(),
 		chain.GetContextPointer().BlockHeader(),
 		msgs,
@@ -482,7 +487,7 @@ func (chain *TestChain) CreateTMClientHeader(chainID string, blockHeight int64, 
 		ValidatorsHash:     vsetHash,
 		NextValidatorsHash: vsetHash,
 		ConsensusHash:      tmhash.Sum([]byte("consensus_hash")),
-		AppHash:            chain.currentHeader.AppHash,
+		AppHash:            chain.CurrentHeader().AppHash,
 		LastResultsHash:    tmhash.Sum([]byte("last_results_hash")),
 		EvidenceHash:       tmhash.Sum([]byte("evidence_hash")),
 		ProposerAddress:    tmValSet.Proposer.Address, //nolint:staticcheck
@@ -682,7 +687,7 @@ func (chain *TestChain) Coordinator() *Coordinator {
 }
 
 func (chain *TestChain) CurrentHeaderTime(t time.Time) {
-	chain.currentHeader.Time = t
+	chain.CurrentHeader().Time = t
 }
 
 //func QueryProofAtHeight(key []byte, height uint64) ([]byte, clienttypes.Height) {}

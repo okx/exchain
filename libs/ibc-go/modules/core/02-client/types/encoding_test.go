@@ -7,7 +7,7 @@ import (
 
 func (suite *TypesTestSuite) TestMarshalHeader() {
 
-	cdc := suite.chainA.App.AppCodec()
+	cdc := suite.chainA.App().AppCodec()
 	h := &ibctmtypes.Header{
 		TrustedHeight: types.NewHeight(4, 100),
 	}
