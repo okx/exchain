@@ -77,7 +77,7 @@ func (c *Context) VoteInfos() []abci.VoteInfo { return c.voteInfo }
 func (c *Context) GasMeter() GasMeter         { return c.gasMeter }
 func (c *Context) BlockGasMeter() GasMeter    { return c.blockGasMeter }
 func (c *Context) IsDeliver() bool {
-	return c.isDeliver || (c.isAsync && !HaveCosmosTxInBlock)
+	return c.isDeliver || HaveCosmosTxInBlock
 }
 
 func (c *Context) IsCheckTx() bool             { return c.checkTx }
@@ -351,12 +351,6 @@ func (c *Context) SetParaMsg(m *ParaMsg) *Context {
 	c.paraMsg = m
 	return c
 }
-
-// WithValue is deprecated, provided for backwards compatibility
-// Please use
-//     ctx = ctx.WithContext(context.WithValue(ctx.Context(), key, false))
-// instead of
-//     ctx = ctx.WithValue(key, false)
 
 func (c *Context) SetVoteInfos(voteInfo []abci.VoteInfo) *Context {
 	c.voteInfo = voteInfo
