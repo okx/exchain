@@ -3,6 +3,7 @@ package baseapp
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -786,6 +787,9 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 	f.mu.Lock()
 	res.ms.IteratorCache(func(key, value []byte, isDirty bool, isdelete bool, storeKey sdk.StoreKey) bool {
 		if isDirty {
+			if hex.EncodeToString(key) == "05852a2bc66f2add3c598da0ce2e5e9d12e3c100207cc57c7c217a9f72ad42e928d8a7b65de2591ef46045587264bc3d415da6378a" {
+				fmt.Println("bingo-----", hex.EncodeToString(value), isDirty, isdelete)
+			}
 
 			if isdelete {
 				f.cms.GetKVStore(storeKey).Delete(key)
