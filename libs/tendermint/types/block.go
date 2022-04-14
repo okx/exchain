@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+	gogotypes "github.com/gogo/protobuf/types"
 	"strings"
 	"sync"
 	"time"
@@ -218,6 +219,7 @@ func (b *Block) Hash() tmbytes.HexBytes {
 		return nil
 	}
 	b.fillHeader()
+
 	return b.Header.Hash()
 }
 
@@ -653,10 +655,17 @@ func (h Header) ValidateBasic() error {
 // Returns nil if ValidatorHash is missing,
 // since a Header is not valid unless there is
 // a ValidatorsHash (corresponding to the validator set).
+
 func (h *Header) Hash() tmbytes.HexBytes {
 	if h == nil || len(h.ValidatorsHash) == 0 {
 		return nil
 	}
+	if HigherThanVenus1(h.Height) {
+		return h.IBCHash()
+	}
+	return h.originHash()
+}
+func (h *Header) originHash() tmbytes.HexBytes {
 	return merkle.SimpleHashFromByteSlices([][]byte{
 		cdcEncode(h.Version),
 		cdcEncode(h.ChainID),
@@ -673,6 +682,43 @@ func (h *Header) Hash() tmbytes.HexBytes {
 		cdcEncode(h.EvidenceHash),
 		cdcEncode(h.ProposerAddress),
 	})
+}
+
+func (h *Header) IBCHash() tmbytes.HexBytes {
+	if h == nil || len(h.ValidatorsHash) == 0 {
+		return nil
+	}
+	hbz, err := h.Version.Marshal()
+	if err != nil {
+		return nil
+	}
+	pbt, err := gogotypes.StdTimeMarshal(h.Time)
+	if err != nil {
+		return nil
+	}
+
+	pbbi := h.LastBlockID.ToIBCProto()
+	bzbi, err := pbbi.Marshal()
+	if err != nil {
+		return nil
+	}
+	ret := merkle.HashFromByteSlices([][]byte{
+		hbz,
+		ibccdcEncode(h.ChainID),
+		ibccdcEncode(h.Height),
+		pbt,
+		bzbi,
+		ibccdcEncode(h.LastCommitHash),
+		ibccdcEncode(h.DataHash),
+		ibccdcEncode(h.ValidatorsHash),
+		ibccdcEncode(h.NextValidatorsHash),
+		ibccdcEncode(h.ConsensusHash),
+		ibccdcEncode(h.AppHash),
+		ibccdcEncode(h.LastResultsHash),
+		ibccdcEncode(h.EvidenceHash),
+		ibccdcEncode(h.ProposerAddress),
+	})
+	return ret
 }
 
 // StringIndented returns a string representation of the header
@@ -719,7 +765,7 @@ func (h *Header) ToProto() *tmproto.Header {
 		return nil
 	}
 	return &tmproto.Header{
-		Version:            tmversion.Consensus{Block: h.Version.App.Uint64(), App: h.Version.App.Uint64()},
+		Version:            tmversion.Consensus{Block: h.Version.Block.Uint64(), App: h.Version.App.Uint64()},
 		ChainID:            h.ChainID,
 		Height:             h.Height,
 		Time:               h.Time,
@@ -1770,6 +1816,16 @@ func (blockID *BlockID) ToProto() tmproto.BlockID {
 	return tmproto.BlockID{
 		Hash:        blockID.Hash,
 		PartsHeader: blockID.PartsHeader.ToProto(),
+	}
+}
+
+func (blockID *BlockID) ToIBCProto() tmproto.BlockID {
+	if blockID == nil {
+		return tmproto.BlockID{}
+	}
+	return tmproto.BlockID{
+		Hash:        blockID.Hash,
+		PartsHeader: blockID.PartsHeader.ToIBCProto(),
 	}
 }
 

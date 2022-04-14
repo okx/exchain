@@ -9,6 +9,7 @@ import (
 // 1. TransferToContractBlock
 // 2. ChangeEvmDenomByProposal
 // 3. BankTransferBlock
+// 4. ibc
 
 var (
 	MILESTONE_GENESIS_HEIGHT string
@@ -20,6 +21,9 @@ var (
 	MILESTONE_VENUS_HEIGHT string
 	milestoneVenusHeight   int64
 
+	MILESTONE_VENUS1_HEIGHT string
+	milestoneVenus1Height   int64
+
 	once sync.Once
 )
 
@@ -28,6 +32,7 @@ func init() {
 		genesisHeight = string2number(MILESTONE_GENESIS_HEIGHT)
 		milestoneMercuryHeight = string2number(MILESTONE_MERCURY_HEIGHT)
 		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
+		milestoneVenus1Height = string2number(MILESTONE_VENUS1_HEIGHT)
 	})
 }
 
@@ -89,3 +94,23 @@ func GetMercuryHeight() int64 {
 func UnittestOnlySetMilestoneVenusHeight(height int64) {
 	milestoneVenusHeight = height
 }
+
+
+// ==================================
+// =========== Venus1 ===============
+func HigherThanVenus1(h int64) bool {
+	if milestoneVenus1Height == 0 {
+		return false
+	}
+	return h >= milestoneVenus1Height
+}
+
+func SetVenus1HeightForIbcTest(h int64) {
+	milestoneVenus1Height = h
+}
+
+func GetVenus1Height() int64 {
+	return milestoneVenus1Height
+}
+// =========== Venus1 ===============
+// ==================================

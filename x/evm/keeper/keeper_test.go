@@ -17,7 +17,7 @@ import (
 	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
-	
+
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/suite"
 )
@@ -55,6 +55,7 @@ func (suite *KeeperTestSuite) SetupTest() {
 	}
 
 	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+	suite.app.EvmKeeper.ResetHooks()
 }
 
 func TestKeeperTestSuite(t *testing.T) {

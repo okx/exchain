@@ -99,7 +99,7 @@ func TestExportGenesis(t *testing.T) {
 		5,
 		sdk.NewDecCoinFromDec(types.DefaultFeeDenomPerBlock, sdk.NewDec(1)))
 	order2.FilledAvgPrice = sdk.ZeroDec()
-	ctx = ctx.WithBlockHeight(1000)
+	ctx.SetBlockHeight(1000)
 	err = orderKeeper.PlaceOrder(ctx, order2)
 	require.NoError(t, err)
 	orderKeeper.Cache2Disk(ctx)

@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -136,6 +137,27 @@ func NewValidator(operator sdk.ValAddress, pubKey crypto.PubKey, description Des
 	}
 }
 
+// Sort Validators sorts validator array in ascending operator address order
+func (v Validators) Sort() {
+	sort.Sort(v)
+}
+
+// Implements sort interface
+func (v Validators) Len() int {
+	return len(v)
+}
+
+// Implements sort interface
+func (v Validators) Less(i, j int) bool {
+	return bytes.Compare(v[i].OperatorAddress, v[j].OperatorAddress) == -1
+}
+
+// Implements sort interface
+func (v Validators) Swap(i, j int) {
+	it := v[i]
+	v[i] = v[j]
+	v[j] = it
+}
 // MustMarshalValidator must return the marshaling bytes of a validator
 func MustMarshalValidator(cdc *codec.Codec, validator Validator) []byte {
 	return cdc.MustMarshalBinaryLengthPrefixed(validator)

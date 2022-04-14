@@ -87,7 +87,7 @@ func (acc *EthAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	return nil
 }
 
-func (acc EthAccount) Copy() interface{} {
+func (acc EthAccount) Copy() sdk.Account {
 	return &EthAccount{
 		authtypes.NewBaseAccount(acc.Address, acc.Coins, acc.PubKey, acc.AccountNumber, acc.Sequence),
 		acc.CodeHash,

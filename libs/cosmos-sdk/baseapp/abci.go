@@ -1,6 +1,7 @@
 package baseapp
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -40,7 +41,7 @@ func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitC
 	}
 
 	// add block gas meter for any genesis transactions (allow infinite gas)
-	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(sdk.NewInfiniteGasMeter())
+	app.deliverState.ctx.SetBlockGasMeter(sdk.NewInfiniteGasMeter())
 
 	res = app.initChainer(app.deliverState.ctx, req)
 
@@ -135,9 +136,9 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	} else {
 		// In the first block, app.deliverState.ctx will already be initialized
 		// by InitChain. Context is now updated with Header information.
-		app.deliverState.ctx = app.deliverState.ctx.
-			WithBlockHeader(req.Header).
-			WithBlockHeight(req.Header.Height)
+		app.deliverState.ctx.
+			SetBlockHeader(req.Header).
+			SetBlockHeight(req.Header.Height)
 	}
 
 	app.newBlockCache()
@@ -149,7 +150,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		gasMeter = sdk.NewInfiniteGasMeter()
 	}
 
-	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(gasMeter)
+	app.deliverState.ctx.SetBlockGasMeter(gasMeter)
 
 	if app.beginBlocker != nil {
 		res = app.beginBlocker(app.deliverState.ctx, req)
@@ -175,7 +176,6 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 
 	return
 }
-
 
 func (app *BaseApp) addCommitTraceInfo() {
 	nodeReadCountStr := strconv.Itoa(app.cms.GetNodeReadCount())
@@ -305,9 +305,21 @@ func (app *BaseApp) halt() {
 // Query implements the ABCI interface. It delegates to CommitMultiStore if it
 // implements Queryable.
 func (app *BaseApp) Query(req abci.RequestQuery) abci.ResponseQuery {
+	ceptor := app.interceptors[req.Path]
+	if nil != ceptor {
+		// interceptor is like `aop`,it may record the request or rewrite the data in the request
+		// it should have funcs like `Begin` `End`,
+		// but for now, we will just redirect the path router,so once the request was intercepted(see #makeInterceptors),
+		// grpcQueryRouter#Route will return nil
+		ceptor.Intercept(&req)
+	}
 	path := splitPath(req.Path)
 	if len(path) == 0 {
-		sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no query path provided"))
+		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no query path provided"))
+	}
+
+	if grpcHandler := app.grpcQueryRouter.Route(req.Path); grpcHandler != nil {
+		return app.handleQueryGRPC(grpcHandler, req)
 	}
 
 	switch path[0] {
@@ -323,9 +335,9 @@ func (app *BaseApp) Query(req abci.RequestQuery) abci.ResponseQuery {
 
 	case "custom":
 		return handleQueryCustom(app, path, req)
+	default:
+		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query path"))
 	}
-
-	return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query path"))
 }
 
 func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.ResponseQuery {
@@ -370,7 +382,12 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 				Value:     codec.Cdc.MustMarshalBinaryBare(simRes),
 			}
 		case "trace":
-			tmtx, err := GetABCITx(req.Data)
+			var queryParam sdk.QueryTraceTx
+			err := json.Unmarshal(req.Data, &queryParam)
+			if err != nil {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "invalid trace tx params"))
+			}
+			tmtx, err := GetABCITx(queryParam.TxHash.Bytes())
 			if err != nil {
 				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "invalid trace tx bytes"))
 			}
@@ -382,7 +399,7 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 			if err != nil {
 				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "invalid trace tx block header"))
 			}
-			res, err := app.TraceTx(req.Data, tx, tmtx.Index, block.Block)
+			res, err := app.TraceTx(queryParam, tx, tmtx.Index, block.Block)
 			if err != nil {
 				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to trace tx"))
 			}
@@ -509,7 +526,8 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) abci.
 	// cache wrap the commit-multistore for safety
 	ctx := sdk.NewContext(
 		cacheMS, app.checkState.ctx.BlockHeader(), true, app.logger,
-	).WithMinGasPrices(app.minGasPrices)
+	)
+	ctx.SetMinGasPrices(app.minGasPrices)
 
 	// Passes the rest of the path as an argument to the querier.
 	//

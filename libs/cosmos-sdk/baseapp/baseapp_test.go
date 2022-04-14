@@ -10,6 +10,8 @@ import (
 	"sync"
 	"testing"
 
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	store "github.com/okex/exchain/libs/cosmos-sdk/store/types"
@@ -183,6 +185,7 @@ func checkStore(t *testing.T, db dbm.DB, ver int64, storeKey string, k, v []byte
 // Test that we can make commits and then reload old versions.
 // Test that LoadLatestVersion actually does.
 func TestSetLoader(t *testing.T) {
+	tmtypes.SetVenus1HeightForIbcTest(2)
 	// write a renamer to a file
 	f, err := ioutil.TempFile("", "upgrade-*.json")
 	require.NoError(t, err)
@@ -414,7 +417,7 @@ func TestTxDecoder(t *testing.T) {
 	dTx, err := app.txDecoder(txBytes)
 	require.NoError(t, err)
 
-	cTx := dTx.(txTest)
+	cTx := dTx.(*txTest)
 	require.Equal(t, tx.Counter, cTx.Counter)
 }
 
@@ -575,33 +578,33 @@ func (tx *txTest) setFailOnHandler(fail bool) {
 }
 
 // Implements Tx
-func (tx txTest) GetMsgs() []sdk.Msg   { return tx.Msgs }
-func (tx txTest) ValidateBasic() error { return nil }
+func (tx *txTest) GetMsgs() []sdk.Msg   { return tx.Msgs }
+func (tx *txTest) ValidateBasic() error { return nil }
 
-func (tx txTest) GetFrom() string {
+func (tx *txTest) GetFrom() string {
 	return ""
 }
 
-func (tx txTest) GetNonce() uint64 {
+func (tx *txTest) GetNonce() uint64 {
 	return 0
 }
 
-func (tx txTest) GetGasPrice() *big.Int {
+func (tx *txTest) GetGasPrice() *big.Int {
 	return big.NewInt(0)
 }
 
-func (tx txTest) GetTxFnSignatureInfo() ([]byte, int) {
+func (tx *txTest) GetTxFnSignatureInfo() ([]byte, int) {
 	return nil, 0
 }
 
-func (tx txTest) GetGas() uint64 {
+func (tx *txTest) GetGas() uint64 {
 	return 0
 }
-func (tx txTest) GetType() sdk.TransactionType {
+func (tx *txTest) GetType() sdk.TransactionType {
 	return sdk.UnknownType
 }
 
-func (tx txTest) GetSigners() []sdk.AccAddress {
+func (tx *txTest) GetSigners() []sdk.AccAddress {
 	return nil
 }
 
@@ -682,14 +685,14 @@ func testTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 			return nil, sdkerrors.ErrTxDecode
 		}
 
-		return tx, nil
+		return &tx, nil
 	}
 }
 
 func anteHandlerTxTest(t *testing.T, capKey sdk.StoreKey, storeKey []byte) sdk.AnteHandler {
 	return func(ctx sdk.Context, tx sdk.Tx, simulate bool) (sdk.Context, error) {
 		store := ctx.KVStore(capKey)
-		txTest := tx.(txTest)
+		txTest := tx.(*txTest)
 
 		if txTest.FailOnAnte {
 			return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "ante handler failure")
@@ -950,7 +953,8 @@ func TestSimulateTx(t *testing.T) {
 
 	anteOpt := func(bapp *BaseApp) {
 		bapp.SetAnteHandler(func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error) {
-			newCtx = ctx.WithGasMeter(sdk.NewGasMeter(gasConsumed))
+			newCtx = ctx
+			newCtx.SetGasMeter(sdk.NewGasMeter(gasConsumed))
 			return
 		})
 	}
@@ -1076,7 +1080,7 @@ func TestRunInvalidTransaction(t *testing.T) {
 
 	// transaction with no known route
 	{
-		unknownRouteTx := txTest{Msgs: []sdk.Msg{msgNoRoute{}}, Counter: 0, FailOnAnte: false}
+		unknownRouteTx := &txTest{Msgs: []sdk.Msg{msgNoRoute{}}, Counter: 0, FailOnAnte: false}
 		_, result, err := app.Deliver(unknownRouteTx)
 		require.Error(t, err)
 		require.Nil(t, result)
@@ -1085,7 +1089,7 @@ func TestRunInvalidTransaction(t *testing.T) {
 		require.EqualValues(t, sdkerrors.ErrUnknownRequest.Codespace(), space, err)
 		require.EqualValues(t, sdkerrors.ErrUnknownRequest.ABCICode(), code, err)
 
-		unknownRouteTx = txTest{Msgs: []sdk.Msg{msgCounter{}, msgNoRoute{}}, Counter: 0, FailOnAnte: false}
+		unknownRouteTx = &txTest{Msgs: []sdk.Msg{msgCounter{}, msgNoRoute{}}, Counter: 0, FailOnAnte: false}
 		_, result, err = app.Deliver(unknownRouteTx)
 		require.Error(t, err)
 		require.Nil(t, result)
@@ -1119,7 +1123,8 @@ func TestTxGasLimits(t *testing.T) {
 	gasGranted := uint64(10)
 	anteOpt := func(bapp *BaseApp) {
 		bapp.SetAnteHandler(func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error) {
-			newCtx = ctx.WithGasMeter(sdk.NewGasMeter(gasGranted))
+			newCtx = ctx
+			newCtx.SetGasMeter(sdk.NewGasMeter(gasGranted))
 
 			// AnteHandlers must have their own defer/recover in order for the BaseApp
 			// to know how much gas was used! This is because the GasMeter is created in
@@ -1208,7 +1213,8 @@ func TestMaxBlockGasLimits(t *testing.T) {
 	gasGranted := uint64(10)
 	anteOpt := func(bapp *BaseApp) {
 		bapp.SetAnteHandler(func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error) {
-			newCtx = ctx.WithGasMeter(sdk.NewGasMeter(gasGranted))
+			newCtx = ctx
+			newCtx.SetGasMeter(sdk.NewGasMeter(gasGranted))
 
 			defer func() {
 				if r := recover(); r != nil {
@@ -1381,7 +1387,8 @@ func TestGasConsumptionBadTx(t *testing.T) {
 	gasWanted := uint64(5)
 	anteOpt := func(bapp *BaseApp) {
 		bapp.SetAnteHandler(func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error) {
-			newCtx = ctx.WithGasMeter(sdk.NewGasMeter(gasWanted))
+			newCtx = ctx
+			newCtx.SetGasMeter(sdk.NewGasMeter(gasWanted))
 
 			defer func() {
 				if r := recover(); r != nil {
@@ -1395,7 +1402,7 @@ func TestGasConsumptionBadTx(t *testing.T) {
 				}
 			}()
 
-			txTest := tx.(txTest)
+			txTest := tx.(*txTest)
 			newCtx.GasMeter().ConsumeGas(uint64(txTest.Counter), "counter-ante")
 			if txTest.FailOnAnte {
 				return newCtx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "ante handler failure")

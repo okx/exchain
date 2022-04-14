@@ -19,67 +19,67 @@ type kvstoreTx struct {
 	bytes []byte
 }
 
-var _ sdk.Tx = kvstoreTx{}
+var _ sdk.Tx = (*kvstoreTx)(nil)
 
-func NewTx(key, value string) kvstoreTx {
+func NewTx(key, value string) *kvstoreTx {
 	bytes := fmt.Sprintf("%s=%s", key, value)
-	return kvstoreTx{
+	return &kvstoreTx{
 		key:   []byte(key),
 		value: []byte(value),
 		bytes: []byte(bytes),
 	}
 }
 
-func (tx kvstoreTx) Route() string {
+func (tx *kvstoreTx) Route() string {
 	return "kvstore"
 }
 
-func (tx kvstoreTx) Type() string {
+func (tx *kvstoreTx) Type() string {
 	return "kvstore_tx"
 }
 
-func (tx kvstoreTx) GetMsgs() []sdk.Msg {
+func (tx *kvstoreTx) GetMsgs() []sdk.Msg {
 	return []sdk.Msg{tx}
 }
 
-func (tx kvstoreTx) GetMemo() string {
+func (tx *kvstoreTx) GetMemo() string {
 	return ""
 }
 
-func (tx kvstoreTx) GetSignBytes() []byte {
+func (tx *kvstoreTx) GetSignBytes() []byte {
 	return tx.bytes
 }
 
 // Should the app be calling this? Or only handlers?
-func (tx kvstoreTx) ValidateBasic() error {
+func (tx *kvstoreTx) ValidateBasic() error {
 	return nil
 }
 
-func (tx kvstoreTx) GetSigners() []sdk.AccAddress {
+func (tx *kvstoreTx) GetSigners() []sdk.AccAddress {
 	return nil
 }
 
-func (tx kvstoreTx) GetType() sdk.TransactionType {
+func (tx *kvstoreTx) GetType() sdk.TransactionType {
 	return sdk.UnknownType
 }
 
-func (tx kvstoreTx) GetFrom() string {
+func (tx *kvstoreTx) GetFrom() string {
 	return ""
 }
 
-func (tx kvstoreTx) GetNonce() uint64 {
+func (tx *kvstoreTx) GetNonce() uint64 {
 	return 0
 }
 
-func (tx kvstoreTx) GetGasPrice() *big.Int {
+func (tx *kvstoreTx) GetGasPrice() *big.Int {
 	return big.NewInt(0)
 }
 
-func (tx kvstoreTx) GetTxFnSignatureInfo() ([]byte, int) {
+func (tx *kvstoreTx) GetTxFnSignatureInfo() ([]byte, int) {
 	return nil, 0
 }
 
-func (tx kvstoreTx) GetGas() uint64 {
+func (tx *kvstoreTx) GetGas() uint64 {
 	return 0
 }
 
@@ -91,10 +91,10 @@ func decodeTx(txBytes []byte, _ ...int64) (sdk.Tx, error) {
 	split := bytes.Split(txBytes, []byte("="))
 	if len(split) == 1 {
 		k := split[0]
-		tx = kvstoreTx{key: k, value: k, bytes: txBytes}
+		tx = &kvstoreTx{key: k, value: k, bytes: txBytes}
 	} else if len(split) == 2 {
 		k, v := split[0], split[1]
-		tx = kvstoreTx{key: k, value: v, bytes: txBytes}
+		tx = &kvstoreTx{key: k, value: v, bytes: txBytes}
 	} else {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "too many '='")
 	}
