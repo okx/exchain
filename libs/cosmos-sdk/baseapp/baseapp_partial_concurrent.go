@@ -500,9 +500,9 @@ func (dttm *DTTManager) serialRoutine() {
 			}
 		case <-keepAliveTicker.C:
 			//dttm.app.logger.Error("keepAliveTicker", "routine", nextTaskRoutine)
-			if dttm.serialTask == nil && nextTaskRoutine >= 0 {
+			if dttm.serialTask == nil && nextTaskRoutine >= 0 && len(dttm.serialCh) == 0 {
 				dttr := dttm.dttRoutineList[nextTaskRoutine]
-				if dttr.readyForSerialExecution() {
+				if dttr.task.index == dttm.serialIndex+1 && dttr.readyForSerialExecution() {
 					dttm.app.logger.Info("ExtractNextSerialFromTicker", "index", dttm.serialIndex+1, "routine", nextTaskRoutine, "step", dttr.step, "needToRerun", dttr.needToRerun)
 					keepAliveTicker.Stop()
 					dttm.serialCh <- nextTaskRoutine
