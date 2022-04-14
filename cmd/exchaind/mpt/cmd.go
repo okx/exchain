@@ -2,6 +2,7 @@ package mpt
 
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/mpt/types"
 	"github.com/spf13/cobra"
 )
 
@@ -17,6 +18,7 @@ func MptCmd(ctx *server.Context) *cobra.Command {
 		mpt2iavlCmd(ctx),
 		mptViewerCmd(ctx),
 	)
+	cmd.PersistentFlags().UintVar(&types.MptRocksdbBatchSize, types.FlagMptRocksdbBatchSize, 100, "Concurrent rocksdb batch size for mpt")
 
 	return cmd
 }

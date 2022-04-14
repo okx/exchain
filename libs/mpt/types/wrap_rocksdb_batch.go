@@ -64,12 +64,18 @@ func (bc *BatchCache) MoveToBack(id int64) {
 }
 
 var (
-	bCache      *BatchCache
+	gBatchCache      *BatchCache
 	batchIdSeed int64
+
+	initRocksdbBatchOnce  sync.Once
 )
 
-func init() {
-	bCache = NewBatchCache(int(MptRocksdbBatchSize))
+func InstanceBatchCache() *BatchCache {
+	initRocksdbBatchOnce.Do(func() {
+		gBatchCache = NewBatchCache(int(MptRocksdbBatchSize))
+	})
+
+	return gBatchCache
 }
 
 var _ ethdb.Batch = (*WrapRocksDBBatch)(nil)
@@ -84,8 +90,9 @@ func NewWrapRocksDBBatch(db *tmdb.RocksDB) *WrapRocksDBBatch {
 	batch := &WrapRocksDBBatch{tmdb.NewRocksDBBatch(db), sed}
 	atomic.AddInt64(&batchIdSeed, 1)
 
-	bCache.PushBack(batch)
-	if deathBatch := bCache.TryPopFront(); deathBatch != nil {
+	batchCache := InstanceBatchCache()
+	batchCache.PushBack(batch)
+	if deathBatch := batchCache.TryPopFront(); deathBatch != nil {
 		deathBatch.Close()
 	}
 
@@ -93,14 +100,14 @@ func NewWrapRocksDBBatch(db *tmdb.RocksDB) *WrapRocksDBBatch {
 }
 
 func (wrsdbb *WrapRocksDBBatch) Put(key []byte, value []byte) error {
-	bCache.MoveToBack(wrsdbb.GetID())
+	InstanceBatchCache().MoveToBack(wrsdbb.GetID())
 
 	wrsdbb.Set(key, value)
 	return nil
 }
 
 func (wrsdbb *WrapRocksDBBatch) Delete(key []byte) error {
-	bCache.MoveToBack(wrsdbb.GetID())
+	InstanceBatchCache().MoveToBack(wrsdbb.GetID())
 
 	wrsdbb.RocksDBBatch.Delete(key)
 	return nil
@@ -111,14 +118,14 @@ func (wrsdbb *WrapRocksDBBatch) ValueSize() int {
 }
 
 func (wrsdbb *WrapRocksDBBatch) Write() error {
-	bCache.MoveToBack(wrsdbb.GetID())
+	InstanceBatchCache().MoveToBack(wrsdbb.GetID())
 
 	return wrsdbb.RocksDBBatch.WriteWithoutClose()
 }
 
 // Replay replays the batch contents.
 func (wrsdbb *WrapRocksDBBatch) Replay(w ethdb.KeyValueWriter) error {
-	bCache.MoveToBack(wrsdbb.GetID())
+	InstanceBatchCache().MoveToBack(wrsdbb.GetID())
 
 	rp := &replayer{writer: w}
 
