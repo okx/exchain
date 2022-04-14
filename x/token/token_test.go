@@ -53,7 +53,7 @@ func getEndBlocker(keeper Keeper) sdk.EndBlocker {
 func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper Keeper, addrs []sdk.AccAddress) {
 
 	mapp := mock.NewApp()
-	//mapp.Cdc = makeCodec()
+	//mapp.cdc = makeCodec()
 	registerCodec(mapp.Cdc.GetCdc())
 	app.RegisterCodec(mapp.Cdc.GetCdc())
 
@@ -132,7 +132,7 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper Keeper, h sdk.Handler) {
 
 	mapp := mock.NewApp()
-	//mapp.Cdc = makeCodec()
+	//mapp.cdc = makeCodec()
 	registerCodec(mapp.Cdc.GetCdc())
 
 	mockDexApp = &MockDexApp{
@@ -375,7 +375,7 @@ func TestMsgTokenChown(t *testing.T) {
 
 	//build context
 	ctx := app.BaseApp.NewContext(true, abci.Header{})
-	ctx = ctx.WithTxBytes([]byte("90843555124EBF16EB13262400FB8CF639E6A772F437E37A0A141FE640A0B203"))
+	ctx.SetTxBytes([]byte("90843555124EBF16EB13262400FB8CF639E6A772F437E37A0A141FE640A0B203"))
 	var TokenChown []*auth.StdTx
 	var TokenIssue []*auth.StdTx
 
@@ -432,7 +432,7 @@ func TestUpdateUserTokenRelationship(t *testing.T) {
 	mock.SetGenesis(app.App, types.DecAccountArrToBaseAccountArr(genAccs))
 
 	ctx := app.BaseApp.NewContext(true, abci.Header{})
-	ctx = ctx.WithTxBytes([]byte("90843555124EBF16EB13262400FB8CF639E6A772F437E37A0A141FE640A0B203"))
+	ctx.SetTxBytes([]byte("90843555124EBF16EB13262400FB8CF639E6A772F437E37A0A141FE640A0B203"))
 
 	var tokenIssue []*auth.StdTx
 
@@ -480,7 +480,7 @@ func TestCreateTokenIssue(t *testing.T) {
 	mock.SetGenesis(app.App, types.DecAccountArrToBaseAccountArr(genAccs))
 
 	ctx := app.BaseApp.NewContext(true, abci.Header{})
-	ctx = ctx.WithTxBytes([]byte("90843555124EBF16EB13262400FB8CF639E6A772F437E37A0A141FE640A0B203"))
+	ctx.SetTxBytes([]byte("90843555124EBF16EB13262400FB8CF639E6A772F437E37A0A141FE640A0B203"))
 
 	var tokenIssue []*auth.StdTx
 

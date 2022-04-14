@@ -63,7 +63,6 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 	ctx.EnableAccountCache()
 	ctx.UpdateToAccountCache(feePayerAcc, getAccountGasUsed)
 
-	//err = refund.RefundFees(handler.supplyKeeper, ctx, feePayerAcc.GetAddress(), gasFees)
 	newCoins := feePayerAcc.GetCoins().Add(gasFees...)
 	if err = feePayerAcc.SetCoins(newCoins); err != nil {
 		return nil, err

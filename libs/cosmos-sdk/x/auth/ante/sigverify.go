@@ -244,7 +244,7 @@ func (isd IncrementSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 	for index, addr := range sigTx.GetSigners() { // TODO: XXXX.GetSigners() is called many times during the whole AnteHandler
 		acc := isd.ak.GetAccount(ctx, addr)
 		if ctx.IsCheckTx() && index == 0 { // context with the nonce of fee payer
-			ctx = ctx.WithAccountNonce(acc.GetSequence())
+			ctx.SetAccountNonce(acc.GetSequence())
 		}
 		if err := acc.SetSequence(acc.GetSequence() + 1); err != nil {
 			panic(err)

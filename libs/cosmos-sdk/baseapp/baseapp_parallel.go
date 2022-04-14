@@ -63,7 +63,8 @@ func (app *BaseApp) paraLoadSender(txs [][]byte) {
 		app.parallelTxManage = newParallelTxManager()
 		app.parallelTxManage.workgroup.Start()
 	}
-	checkStateCtx := app.checkState.ctx.WithBlockHeight(app.checkState.ctx.BlockHeight() + 1)
+	checkStateCtx := app.checkState.ctx
+	checkStateCtx.SetBlockHeight(app.checkState.ctx.BlockHeight() + 1)
 
 	maxNums := runtime.NumCPU()
 	txSize := len(txs)
@@ -80,7 +81,9 @@ func (app *BaseApp) paraLoadSender(txs [][]byte) {
 			for txBytes := range ch {
 				tx, err := app.txDecoder(txBytes)
 				if err == nil {
-					app.getTxFee(checkStateCtx.WithTxBytes(txBytes), tx, true)
+					ctx := checkStateCtx
+					ctx.SetTxBytes(txBytes)
+					app.getTxFee(ctx, tx, true)
 				}
 				wg.Done()
 			}

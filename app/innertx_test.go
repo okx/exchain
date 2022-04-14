@@ -444,11 +444,12 @@ func (suite *InnerTxTestSuite) TestMsgSend() {
 				votes := []abci.VoteInfo{
 					{Validator: abci.Validator{Address: valpub.Address(), Power: 1}, SignedLastBlock: true},
 				}
+				suite.app.SupplyKeeper.GetModuleAccount(suite.ctx, auth.FeeCollectorName)
 				for i := 0; i < 100; i++ {
 					header := abci.Header{Height: int64(i + 2), ProposerAddress: sdk.ConsAddress(valpub.Address())}
 					req := abci.RequestBeginBlock{Header: header,
 						LastCommitInfo: abci.LastCommitInfo{Votes: votes}}
-					suite.ctx = suite.ctx.WithBlockHeader(header)
+					suite.ctx.SetBlockHeader(header)
 					suite.app.BeginBlocker(suite.ctx, req)
 					suite.app.EndBlocker(suite.ctx, abci.RequestEndBlock{})
 				}
@@ -493,7 +494,7 @@ func (suite *InnerTxTestSuite) TestMsgSend() {
 					header := abci.Header{Height: int64(i + 2), ProposerAddress: sdk.ConsAddress(valpub.Address())}
 					req := abci.RequestBeginBlock{Header: header,
 						LastCommitInfo: abci.LastCommitInfo{Votes: votes}}
-					suite.ctx = suite.ctx.WithBlockHeader(header)
+					suite.ctx.SetBlockHeader(header)
 					suite.app.BeginBlocker(suite.ctx, req)
 					suite.app.EndBlocker(suite.ctx, abci.RequestEndBlock{})
 				}
@@ -572,7 +573,7 @@ func (suite *InnerTxTestSuite) TestMsgSend() {
 			normal()
 			//nolint
 			tc.prepare()
-			suite.ctx = suite.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+			suite.ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 			msgs := tx.GetMsgs()
 			for _, msg := range msgs {
 				_, err := suite.handler(suite.ctx, msg)

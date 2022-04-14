@@ -103,6 +103,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 
 	basicStart := time.Now()
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
+		app.logger.Error("validateBasicTxMsgs failed", "err", err)
 		totalBasicTime += time.Since(basicStart).Microseconds()
 		return err
 	}
@@ -122,7 +123,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	}
 	app.pin(RunAnte, false, mode)
 
-	if app.getTxFee != nil {
+	if app.getTxFee != nil && mode == runTxModeDeliver {
 		fee, _ := app.getTxFee(info.ctx, tx, true)
 		app.UpdateFeeForCollector(fee, true)
 	}
@@ -132,10 +133,6 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	err = handler.handleRunMsg(info)
 	totalRunMsgsTime += time.Since(wstart).Microseconds()
 	app.pin(RunMsg, false, mode)
-
-	if err != nil {
-		//app.logger.Error("handleRunMsg failed", "err", err)
-	}
 	return err
 }
 
@@ -160,7 +157,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	// 2. AnteChain
 	app.pin(AnteChain, true, mode)
 	if mode == runTxModeDeliver {
-		anteCtx = anteCtx.WithAnteTracer(app.anteTracer)
+		anteCtx.SetAnteTracer(app.anteTracer)
 	}
 	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
 	app.pin(AnteChain, false, mode)
@@ -178,7 +175,8 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 		// Also, in the case of the tx aborting, we need to track gas consumed via
 		// the instantiated gas meter in the AnteHandler, so we update the context
 		// prior to returning.
-		info.ctx = newCtx.WithMultiStore(ms)
+		info.ctx = newCtx
+		info.ctx.SetMultiStore(ms)
 	}
 
 	// GasMeter expected to be set in AnteHandler
@@ -309,7 +307,7 @@ func useCache(mode runTxMode) bool {
 
 func (app *BaseApp) newBlockCache() {
 	app.blockCache = sdk.NewCache(app.chainCache, useCache(runTxModeDeliver))
-	app.deliverState.ctx = app.deliverState.ctx.WithCache(app.blockCache)
+	app.deliverState.ctx.SetCache(app.blockCache)
 }
 
 func (app *BaseApp) commitBlockCache() {

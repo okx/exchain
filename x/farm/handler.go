@@ -18,7 +18,7 @@ var destroyPoolHandler func(ctx sdk.Context, k keeper.Keeper, msg types.MsgDestr
 // NewHandler creates an sdk.Handler for all the farm type messages
 func NewHandler(k keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
-		ctx = ctx.WithEventManager(sdk.NewEventManager())
+		ctx.SetEventManager(sdk.NewEventManager())
 		var handlerFun func() (*sdk.Result, error)
 		var name string
 		switch msg := msg.(type) {

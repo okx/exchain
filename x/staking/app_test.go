@@ -25,7 +25,7 @@ import (
 func getMockApp(t *testing.T) (*mock.App, keeper.MockStakingKeeper) {
 	mApp := mock.NewApp()
 
-	//RegisterCodec(mApp.Cdc)
+	//RegisterCodec(mApp.cdc)
 
 	_, accKeeper, mKeeper := CreateTestInput(t, false, SufficientInitPower)
 	keeper := mKeeper.Keeper

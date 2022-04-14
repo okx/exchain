@@ -1,13 +1,12 @@
 package ante
 
 import (
-	"encoding/hex"
 	"fmt"
+	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	"github.com/okex/exchain/libs/tendermint/global"
 
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
@@ -140,13 +139,31 @@ func DeductFees(ak keeper.AccountKeeper, ctx sdk.Context, acc exported.Account, 
 			"insufficient funds to pay for fees; %s < %s", spendableCoins, fees)
 	}
 
-	if global.GetGlobalHeight() == 4663201 && hex.EncodeToString(acc.GetAddress()) == "22fe6120b4ed9a876053ddfb0068549442eca62b" {
-		fmt.Println("DeductFees.", "fees", fees, "coins", coins)
+	// consume gas for compatible
+	if ok, gasUsed := exported.TryAddGetAccountGas(ctx.GasMeter(), ak, acc); ok {
+		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostFlat, stypes.GasReadCostFlatDesc) // ReadFlat
+
+		bzLen := ak.GetAccountBinarySize(acc)
+		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostPerByte*stypes.Gas(bzLen), stypes.GasReadPerByteDesc) // ReadPerByte
+		ctx.GasMeter().ConsumeGas(gasUsed, "get account")                                                            // get account
+		ctx.GasMeter().ConsumeGas(gasUsed, "get account")                                                            // get account
 	}
+
 	if err := acc.SetCoins(balance); err != nil {
 		return err
 	}
 	ak.SetAccount(ctx, acc, false)
+
+	// consume gas for compatible
+	if ok, gasUsed := exported.TryAddGetAccountGas(ctx.GasMeter(), ak, acc); ok {
+		// todo: get account for FeeCollector
+		ctx.GasMeter().ConsumeGas(gasUsed, "get account")
+		ctx.GasMeter().ConsumeGas(gasUsed, "get account")
+
+		bzLen := ak.GetAccountBinarySize(acc)
+		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostFlat, stypes.GasWriteCostFlatDesc)	// WriteFlat
+		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostPerByte*stypes.Gas(bzLen), stypes.GasWritePerByteDesc)	// WritePerByte
+	}
 
 	return nil
 }

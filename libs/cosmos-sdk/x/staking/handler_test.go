@@ -93,7 +93,7 @@ func TestValidatorByPowerIndex(t *testing.T) {
 	var finishTime time.Time
 	types.ModuleCdc.MustUnmarshalBinaryLengthPrefixed(res.Data, &finishTime)
 
-	ctx = ctx.WithBlockTime(finishTime)
+	ctx.SetBlockTime(finishTime)
 	EndBlocker(ctx, keeper)
 	EndBlocker(ctx, keeper)
 
@@ -171,7 +171,7 @@ func TestInvalidPubKeyTypeMsgCreateValidator(t *testing.T) {
 	require.Error(t, err)
 	require.Nil(t, res)
 
-	ctx = ctx.WithConsensusParams(&abci.ConsensusParams{
+	ctx.SetConsensusParams(&abci.ConsensusParams{
 		Validator: &abci.ValidatorParams{PubKeyTypes: []string{tmtypes.ABCIPubKeyTypeSecp256k1}},
 	})
 
@@ -227,7 +227,7 @@ func TestLegacyValidatorDelegations(t *testing.T) {
 
 	var finishTime time.Time
 	types.ModuleCdc.MustUnmarshalBinaryLengthPrefixed(res.Data, &finishTime)
-	ctx = ctx.WithBlockTime(finishTime)
+	ctx.SetBlockTime(finishTime)
 	EndBlocker(ctx, keeper)
 
 	// verify the validator record still exists, is jailed, and has correct tokens
@@ -314,7 +314,7 @@ func TestIncrementsMsgDelegate(t *testing.T) {
 	msgDelegate := NewTestMsgDelegate(delegatorAddr, validatorAddr, bondAmount)
 
 	for i := int64(0); i < 5; i++ {
-		ctx = ctx.WithBlockHeight(i)
+		ctx.SetBlockHeight(i)
 
 		res, err := handleMsgDelegate(ctx, msgDelegate, keeper)
 		require.NoError(t, err)
@@ -462,7 +462,7 @@ func TestIncrementsMsgUnbond(t *testing.T) {
 		var finishTime time.Time
 		types.ModuleCdc.MustUnmarshalBinaryLengthPrefixed(res.Data, &finishTime)
 
-		ctx = ctx.WithBlockTime(finishTime)
+		ctx.SetBlockTime(finishTime)
 		EndBlocker(ctx, keeper)
 
 		// check that the accounts and the bond account have the appropriate values
@@ -524,7 +524,7 @@ func TestMultipleMsgCreateValidator(t *testing.T) {
 
 	params := keeper.GetParams(ctx)
 	blockTime := time.Now().UTC()
-	ctx = ctx.WithBlockTime(blockTime)
+	ctx.SetBlockTime(blockTime)
 
 	validatorAddrs := []sdk.ValAddress{
 		sdk.ValAddress(keep.Addrs[0]),
@@ -629,7 +629,7 @@ func TestMultipleMsgDelegate(t *testing.T) {
 		var finishTime time.Time
 		types.ModuleCdc.MustUnmarshalBinaryLengthPrefixed(res.Data, &finishTime)
 
-		ctx = ctx.WithBlockTime(finishTime)
+		ctx.SetBlockTime(finishTime)
 		EndBlocker(ctx, keeper)
 
 		// check that the account is unbonded
@@ -664,7 +664,7 @@ func TestJailValidator(t *testing.T) {
 	var finishTime time.Time
 	types.ModuleCdc.MustUnmarshalBinaryLengthPrefixed(res.Data, &finishTime)
 
-	ctx = ctx.WithBlockTime(finishTime)
+	ctx.SetBlockTime(finishTime)
 	EndBlocker(ctx, keeper)
 
 	validator, found := keeper.GetValidator(ctx, validatorAddr)
@@ -679,7 +679,7 @@ func TestJailValidator(t *testing.T) {
 	require.NotNil(t, res)
 	types.ModuleCdc.MustUnmarshalBinaryLengthPrefixed(res.Data, &finishTime)
 
-	ctx = ctx.WithBlockTime(finishTime)
+	ctx.SetBlockTime(finishTime)
 	EndBlocker(ctx, keeper)
 
 	// verify that the pubkey can now be reused
@@ -723,7 +723,7 @@ func TestValidatorQueue(t *testing.T) {
 	var finishTime time.Time
 	types.ModuleCdc.MustUnmarshalBinaryLengthPrefixed(res.Data, &finishTime)
 
-	ctx = ctx.WithBlockTime(finishTime)
+	ctx.SetBlockTime(finishTime)
 	EndBlocker(ctx, keeper)
 
 	origHeader := ctx.BlockHeader()
@@ -733,7 +733,7 @@ func TestValidatorQueue(t *testing.T) {
 	require.True(t, validator.IsUnbonding(), "%v", validator)
 
 	// should still be unbonding at time 6 seconds later
-	ctx = ctx.WithBlockTime(origHeader.Time.Add(time.Second * 6))
+	ctx.SetBlockTime(origHeader.Time.Add(time.Second * 6))
 	EndBlocker(ctx, keeper)
 
 	validator, found = keeper.GetValidator(ctx, validatorAddr)
@@ -741,7 +741,7 @@ func TestValidatorQueue(t *testing.T) {
 	require.True(t, validator.IsUnbonding(), "%v", validator)
 
 	// should be in unbonded state at time 7 seconds later
-	ctx = ctx.WithBlockTime(origHeader.Time.Add(time.Second * 7))
+	ctx.SetBlockTime(origHeader.Time.Add(time.Second * 7))
 	EndBlocker(ctx, keeper)
 
 	validator, found = keeper.GetValidator(ctx, validatorAddr)
@@ -785,13 +785,13 @@ func TestUnbondingPeriod(t *testing.T) {
 	require.True(t, found, "should not have unbonded")
 
 	// cannot complete unbonding at time 6 seconds later
-	ctx = ctx.WithBlockTime(origHeader.Time.Add(time.Second * 6))
+	ctx.SetBlockTime(origHeader.Time.Add(time.Second * 6))
 	EndBlocker(ctx, keeper)
 	_, found = keeper.GetUnbondingDelegation(ctx, sdk.AccAddress(validatorAddr), validatorAddr)
 	require.True(t, found, "should not have unbonded")
 
 	// can complete unbonding at time 7 seconds later
-	ctx = ctx.WithBlockTime(origHeader.Time.Add(time.Second * 7))
+	ctx.SetBlockTime(origHeader.Time.Add(time.Second * 7))
 	EndBlocker(ctx, keeper)
 	_, found = keeper.GetUnbondingDelegation(ctx, sdk.AccAddress(validatorAddr), validatorAddr)
 	require.False(t, found, "should have unbonded")
@@ -823,7 +823,7 @@ func TestUnbondingFromUnbondingValidator(t *testing.T) {
 	// change the ctx to Block Time one second before the validator would have unbonded
 	var finishTime time.Time
 	types.ModuleCdc.MustUnmarshalBinaryLengthPrefixed(res.Data, &finishTime)
-	ctx = ctx.WithBlockTime(finishTime.Add(time.Second * -1))
+	ctx.SetBlockTime(finishTime.Add(time.Second * -1))
 
 	// unbond the delegator from the validator
 	msgUndelegateDelegator := NewMsgUndelegate(delegatorAddr, validatorAddr, unbondAmt)
@@ -831,7 +831,7 @@ func TestUnbondingFromUnbondingValidator(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, res)
 
-	ctx = ctx.WithBlockTime(ctx.BlockHeader().Time.Add(keeper.UnbondingTime(ctx)))
+	ctx.SetBlockTime(ctx.BlockHeader().Time.Add(keeper.UnbondingTime(ctx)))
 
 	// Run the EndBlocker
 	EndBlocker(ctx, keeper)
@@ -892,13 +892,13 @@ func TestRedelegationPeriod(t *testing.T) {
 	require.True(t, found, "should not have unbonded")
 
 	// cannot complete redelegation at time 6 seconds later
-	ctx = ctx.WithBlockTime(origHeader.Time.Add(time.Second * 6))
+	ctx.SetBlockTime(origHeader.Time.Add(time.Second * 6))
 	EndBlocker(ctx, keeper)
 	_, found = keeper.GetRedelegation(ctx, sdk.AccAddress(validatorAddr), validatorAddr, validatorAddr2)
 	require.True(t, found, "should not have unbonded")
 
 	// can complete redelegation at time 7 seconds later
-	ctx = ctx.WithBlockTime(origHeader.Time.Add(time.Second * 7))
+	ctx.SetBlockTime(origHeader.Time.Add(time.Second * 7))
 	EndBlocker(ctx, keeper)
 	_, found = keeper.GetRedelegation(ctx, sdk.AccAddress(validatorAddr), validatorAddr, validatorAddr2)
 	require.False(t, found, "should have unbonded")
@@ -911,7 +911,7 @@ func TestTransitiveRedelegation(t *testing.T) {
 	validatorAddr3 := sdk.ValAddress(keep.Addrs[2])
 
 	blockTime := time.Now().UTC()
-	ctx = ctx.WithBlockTime(blockTime)
+	ctx.SetBlockTime(blockTime)
 
 	// create the validators
 	msgCreateValidator := NewTestMsgCreateValidator(validatorAddr, keep.PKs[0], sdk.NewInt(10))
@@ -943,7 +943,7 @@ func TestTransitiveRedelegation(t *testing.T) {
 	require.Nil(t, res)
 
 	params := keeper.GetParams(ctx)
-	ctx = ctx.WithBlockTime(blockTime.Add(params.UnbondingTime))
+	ctx.SetBlockTime(blockTime.Add(params.UnbondingTime))
 
 	// complete first redelegation
 	EndBlocker(ctx, keeper)
@@ -1003,7 +1003,7 @@ func TestMultipleRedelegationAtSameTime(t *testing.T) {
 	require.Len(t, rd.Entries, 2)
 
 	// move forward in time, should complete both redelegations
-	ctx = ctx.WithBlockTime(ctx.BlockHeader().Time.Add(1 * time.Second))
+	ctx.SetBlockTime(ctx.BlockHeader().Time.Add(1 * time.Second))
 	EndBlocker(ctx, keeper)
 
 	rd, found = keeper.GetRedelegation(ctx, selfDelAddr, valAddr, valAddr2)
@@ -1044,7 +1044,7 @@ func TestMultipleRedelegationAtUniqueTimes(t *testing.T) {
 	require.NotNil(t, res)
 
 	// move forward in time and start a second redelegation
-	ctx = ctx.WithBlockTime(ctx.BlockHeader().Time.Add(5 * time.Second))
+	ctx.SetBlockTime(ctx.BlockHeader().Time.Add(5 * time.Second))
 	res, err = handleMsgBeginRedelegate(ctx, msgBeginRedelegate, keeper)
 	require.NoError(t, err)
 	require.NotNil(t, res)
@@ -1055,14 +1055,14 @@ func TestMultipleRedelegationAtUniqueTimes(t *testing.T) {
 	require.Len(t, rd.Entries, 2)
 
 	// move forward in time, should complete the first redelegation, but not the second
-	ctx = ctx.WithBlockTime(ctx.BlockHeader().Time.Add(5 * time.Second))
+	ctx.SetBlockTime(ctx.BlockHeader().Time.Add(5 * time.Second))
 	EndBlocker(ctx, keeper)
 	rd, found = keeper.GetRedelegation(ctx, selfDelAddr, valAddr, valAddr2)
 	require.True(t, found)
 	require.Len(t, rd.Entries, 1)
 
 	// move forward in time, should complete the second redelegation
-	ctx = ctx.WithBlockTime(ctx.BlockHeader().Time.Add(5 * time.Second))
+	ctx.SetBlockTime(ctx.BlockHeader().Time.Add(5 * time.Second))
 	EndBlocker(ctx, keeper)
 	rd, found = keeper.GetRedelegation(ctx, selfDelAddr, valAddr, valAddr2)
 	require.False(t, found)
@@ -1111,7 +1111,7 @@ func TestMultipleUnbondingDelegationAtSameTime(t *testing.T) {
 	require.Len(t, ubd.Entries, 2)
 
 	// move forwaubd in time, should complete both ubds
-	ctx = ctx.WithBlockTime(ctx.BlockHeader().Time.Add(1 * time.Second))
+	ctx.SetBlockTime(ctx.BlockHeader().Time.Add(1 * time.Second))
 	EndBlocker(ctx, keeper)
 
 	ubd, found = keeper.GetUnbondingDelegation(ctx, selfDelAddr, valAddr)
@@ -1151,7 +1151,7 @@ func TestMultipleUnbondingDelegationAtUniqueTimes(t *testing.T) {
 	require.Len(t, ubd.Entries, 1)
 
 	// move forwaubd in time and start a second redelegation
-	ctx = ctx.WithBlockTime(ctx.BlockHeader().Time.Add(5 * time.Second))
+	ctx.SetBlockTime(ctx.BlockHeader().Time.Add(5 * time.Second))
 	res, err = handleMsgUndelegate(ctx, msgUndelegate, keeper)
 	require.NoError(t, err)
 	require.NotNil(t, res)
@@ -1162,14 +1162,14 @@ func TestMultipleUnbondingDelegationAtUniqueTimes(t *testing.T) {
 	require.Len(t, ubd.Entries, 2)
 
 	// move forwaubd in time, should complete the first redelegation, but not the second
-	ctx = ctx.WithBlockTime(ctx.BlockHeader().Time.Add(5 * time.Second))
+	ctx.SetBlockTime(ctx.BlockHeader().Time.Add(5 * time.Second))
 	EndBlocker(ctx, keeper)
 	ubd, found = keeper.GetUnbondingDelegation(ctx, selfDelAddr, valAddr)
 	require.True(t, found)
 	require.Len(t, ubd.Entries, 1)
 
 	// move forwaubd in time, should complete the second redelegation
-	ctx = ctx.WithBlockTime(ctx.BlockHeader().Time.Add(5 * time.Second))
+	ctx.SetBlockTime(ctx.BlockHeader().Time.Add(5 * time.Second))
 	EndBlocker(ctx, keeper)
 	ubd, found = keeper.GetUnbondingDelegation(ctx, selfDelAddr, valAddr)
 	require.False(t, found)
@@ -1264,7 +1264,7 @@ func TestBondUnbondRedelegateSlashTwice(t *testing.T) {
 	require.Equal(t, 2, len(updates))
 
 	// a block passes
-	ctx = ctx.WithBlockHeight(1)
+	ctx.SetBlockHeight(1)
 
 	// begin unbonding 4 stake
 	unbondAmt := sdk.NewCoin(sdk.DefaultBondDenom, sdk.TokensFromConsensusPower(4))
@@ -1314,7 +1314,7 @@ func TestBondUnbondRedelegateSlashTwice(t *testing.T) {
 	require.Equal(t, valTokens.QuoRaw(2), validator.GetBondedTokens())
 
 	// slash the validator for an infraction committed after the unbonding and redelegation begin
-	ctx = ctx.WithBlockHeight(3)
+	ctx.SetBlockHeight(3)
 	keeper.Slash(ctx, consAddr0, 2, 10, sdk.NewDecWithPrec(5, 1))
 
 	// unbonding delegation should be unchanged

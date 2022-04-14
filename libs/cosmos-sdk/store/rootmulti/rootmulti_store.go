@@ -2,6 +2,7 @@ package rootmulti
 
 import (
 	"fmt"
+
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
@@ -1048,7 +1049,6 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		si := storeInfo{}
 		si.Name = key.Name()
 		si.Core.CommitID = commitID
-		si.Core.CommitID.Version = version
 		storeInfos = append(storeInfos, si)
 		outputDeltaMap[key.Name()] = outputDelta
 	}

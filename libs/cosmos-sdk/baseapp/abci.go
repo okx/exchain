@@ -1,7 +1,6 @@
 package baseapp
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -42,7 +41,8 @@ func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitC
 	}
 
 	// add block gas meter for any genesis transactions (allow infinite gas)
-	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(sdk.NewInfiniteGasMeter())
+	app.deliverState.ctx.SetBlockGasMeter(sdk.NewInfiniteGasMeter())
+
 	res = app.initChainer(app.deliverState.ctx, req)
 
 	// sanity check
@@ -136,9 +136,9 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	} else {
 		// In the first block, app.deliverState.ctx will already be initialized
 		// by InitChain. Context is now updated with Header information.
-		app.deliverState.ctx = app.deliverState.ctx.
-			WithBlockHeader(req.Header).
-			WithBlockHeight(req.Header.Height)
+		app.deliverState.ctx.
+			SetBlockHeader(req.Header).
+			SetBlockHeight(req.Header.Height)
 	}
 
 	app.newBlockCache()
@@ -150,7 +150,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		gasMeter = sdk.NewInfiniteGasMeter()
 	}
 
-	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(gasMeter)
+	app.deliverState.ctx.SetBlockGasMeter(gasMeter)
 
 	if app.beginBlocker != nil {
 		res = app.beginBlocker(app.deliverState.ctx, req)
@@ -176,13 +176,13 @@ func (app *BaseApp) UpdateFeeForCollector(fee sdk.Coins, add bool) {
 
 // EndBlock implements the ABCI interface.
 func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
-	//if app.updateFeeCollectorAccHandler != nil {
-	//	ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
-	//	if err := app.updateFeeCollectorAccHandler(ctx, app.feeForCollector); err != nil {
-	//		panic(err)
-	//	}
-	//	cache.Write()
-	//}
+	if app.updateFeeCollectorAccHandler != nil {
+		ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
+		if err := app.updateFeeCollectorAccHandler(ctx, app.feeForCollector); err != nil {
+			panic(err)
+		}
+		cache.Write()
+	}
 
 	if app.deliverState.ms.TracingEnabled() {
 		app.deliverState.ms = app.deliverState.ms.SetTracingContext(nil).(sdk.CacheMultiStore)
@@ -255,27 +255,19 @@ func (app *BaseApp) addCommitTraceInfo() {
 func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	header := app.deliverState.ctx.BlockHeader()
 
-	if app.updateFeeCollectorAccHandler != nil {
-		ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
-		if err := app.updateFeeCollectorAccHandler(ctx, app.feeForCollector); err != nil {
-			panic(err)
-		}
-		cache.Write()
-	}
-
 	// Write the DeliverTx state which is cache-wrapped and commit the MultiStore.
 	// The write to the DeliverTx state writes all state transitions to the root
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
 	app.commitBlockCache()
 
-	if header.Height == 4663202 || header.Height == 4660077 {
-		app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
-			if isDirty {
-				fmt.Println(hex.EncodeToString(key), hex.EncodeToString(value))
-			}
-			return true
-		})
-	}
+	//if header.Height == 4663202 || header.Height == 4660077 {
+	//	app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
+	//		if isDirty {
+	//			fmt.Println(hex.EncodeToString(key), hex.EncodeToString(value))
+	//		}
+	//		return true
+	//	})
+	//}
 
 	app.deliverState.ms.Write()
 
@@ -575,7 +567,8 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) abci.
 	// cache wrap the commit-multistore for safety
 	ctx := sdk.NewContext(
 		cacheMS, app.checkState.ctx.BlockHeader(), true, app.logger,
-	).WithMinGasPrices(app.minGasPrices)
+	)
+	ctx.SetMinGasPrices(app.minGasPrices)
 
 	// Passes the rest of the path as an argument to the querier.
 	//
