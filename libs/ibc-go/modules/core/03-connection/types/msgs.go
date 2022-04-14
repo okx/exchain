@@ -64,7 +64,7 @@ func (msg MsgConnectionOpenInit) ValidateBasic() error {
 			return sdkerrors.Wrap(err, "basic validation of the provided version failed")
 		}
 	}
-	_, err := sdk.AccAddressFromBech32(msg.Signer)
+	_, err := sdk.IBCAccAddressFromBech32(msg.Signer)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "string could not be parsed as address: %v", err)
 	}

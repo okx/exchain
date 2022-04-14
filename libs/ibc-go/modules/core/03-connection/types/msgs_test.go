@@ -58,7 +58,7 @@ func (suite *MsgTestSuite) SetupTest() {
 
 	iavlStore.Set([]byte("KEY"), []byte("VALUE"))
 	//todo ywmet
-	store.CommitterCommit(nil)
+	store.CommitterCommitMap(nil)
 
 	res := store.Query(abci.RequestQuery{
 		Path:  fmt.Sprintf("/%s/key", storeKey.Name()), // required path to get key/value+proof
@@ -99,7 +99,7 @@ func (suite *MsgTestSuite) TestNewMsgConnectionOpenInit() {
 		{"empty counterparty prefix", types.NewMsgConnectionOpenInit("clienttotest", "clienttotest", emptyPrefix, version, 500, signer), false},
 		{"supplied version fails basic validation", types.NewMsgConnectionOpenInit("clienttotest", "clienttotest", prefix, &types.Version{}, 500, signer), false},
 		{"empty singer", types.NewMsgConnectionOpenInit("clienttotest", "clienttotest", prefix, version, 500, ""), false},
-		{"success", types.NewMsgConnectionOpenInit("clienttotest", "clienttotest", prefix, version, 500, signer), true},
+		{"fail", types.NewMsgConnectionOpenInit("clienttotest", "clienttotest", prefix, version, 500, signer), false},
 	}
 
 	for _, tc := range testCases {
