@@ -1,6 +1,9 @@
 package types
 
-import "math"
+import (
+	"fmt"
+	"math"
+)
 
 // Gas consumption descriptors.
 const (
@@ -77,6 +80,7 @@ func addUint64Overflow(a, b uint64) (uint64, bool) {
 }
 
 func (g *basicGasMeter) ConsumeGas(amount Gas, descriptor string) {
+	fmt.Println("ConsumeGas.", " amount:", amount, "  descriptor:", descriptor)
 	var overflow bool
 	// TODO: Should we set the consumed field after overflow checking?
 	g.consumed, overflow = addUint64Overflow(g.consumed, amount)

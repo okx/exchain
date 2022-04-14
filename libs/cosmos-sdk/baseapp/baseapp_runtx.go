@@ -73,6 +73,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 			info.result = nil
 		}
 		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
+		app.logger.Info("gasWanted", info.gasWanted, "gasUsed", info.ctx.GasMeter().GasConsumed())
 	}()
 
 	defer handler.handleDeferGasConsumed(info)
