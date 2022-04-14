@@ -73,6 +73,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 			info.result = nil
 		}
 		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
+		app.logger.Info("gasWanted", info.gasWanted, "gasUsed", info.ctx.GasMeter().GasConsumed())
 	}()
 
 	defer handler.handleDeferGasConsumed(info)
@@ -84,12 +85,14 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	}()
 
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
+		app.logger.Error("validateBasicTxMsgs failed", "err", err)
 		return err
 	}
 	app.pin(ValTxMsgs, false, mode)
 
 	app.pin(RunAnte, true, mode)
 	if app.anteHandler != nil {
+		app.logger.Info("RunAnteStart")
 		err = app.runAnte(info, mode)
 		if err != nil {
 			app.logger.Error("RunAnteFailed", "err", err)
@@ -104,6 +107,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	}
 
 	app.pin(RunMsg, true, mode)
+	app.logger.Info("RunMsgStart")
 	err = handler.handleRunMsg(info)
 	if err != nil {
 		app.logger.Error("RunMsgFailed", "err", err)
