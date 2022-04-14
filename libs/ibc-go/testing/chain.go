@@ -59,6 +59,8 @@ type TestChainI interface {
 	CurrentHeader() tmproto.Header
 	CurrentHeaderTime(time.Time)
 	NextBlock()
+	BeginBlock()
+	UpdateNextBlock()
 
 	CreateTMClientHeader(chainID string, blockHeight int64, trustedHeight clienttypes.Height, timestamp time.Time, tmValSet, tmTrustedVals *tmtypes.ValidatorSet, signers []tmtypes.PrivValidator) *ibctmtypes.Header
 	Vals() *tmtypes.ValidatorSet
@@ -175,6 +177,7 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 		senderAccount: acc,
 	}
 
+	coord.UpdateNextBlock(tchain)
 	coord.CommitBlock(tchain)
 
 	return tchain
@@ -286,6 +289,26 @@ func (chain *TestChain) NextBlock() {
 	})
 
 	chain.App().BeginBlock(abci.RequestBeginBlock{Header: chain.CurrentHeader()})
+}
+
+func (chain *TestChain) BeginBlock() {
+	chain.App().BeginBlock(abci.RequestBeginBlock{Header: chain.CurrentHeader()})
+}
+
+func (chain *TestChain) UpdateNextBlock() {
+	chain.SetLastHeader(chain.CurrentTMClientHeader())
+
+	// increment the current header
+	chain.SetCurrentHeader(tmproto.Header{
+		ChainID: chain.ChainID(),
+		Height:  chain.App().LastBlockHeight() + 1,
+		AppHash: chain.App().LastCommitID().Hash,
+		// NOTE: the time is increased by the coordinator to maintain time synchrony amongst
+		// chains.
+		Time:               chain.CurrentHeader().Time,
+		ValidatorsHash:     chain.Vals().Hash(chain.App().LastBlockHeight() + 1),
+		NextValidatorsHash: chain.Vals().Hash(chain.App().LastBlockHeight() + 1),
+	})
 }
 
 // sendMsgs delivers a transaction through the application without returning the result.
