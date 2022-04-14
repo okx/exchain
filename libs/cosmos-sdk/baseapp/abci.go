@@ -1,10 +1,8 @@
 package baseapp
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"os"
 	"sort"
 	"strconv"
@@ -115,7 +113,7 @@ func (app *BaseApp) FilterPeerByID(info string) abci.ResponseQuery {
 
 // BeginBlock implements the ABCI application interface.
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
-	sdk.DebugLogByScf.Clean()
+	//sdk.DebugLogByScf.Clean()
 	if app.cms.TracingEnabled() {
 		app.cms.SetTracingContext(sdk.TraceContext(
 			map[string]interface{}{"blockHeight": req.Header.Height},
@@ -178,20 +176,20 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 		res = app.endBlocker(app.deliverState.ctx, req)
 	}
 
-	go func() {
-		if app.deliverState != nil && app.deliverState.ms != nil {
-			app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool, isDelete bool, storeKey types.StoreKey) bool {
-				tt := fmt.Sprintf("commot %s %s %v %v", hex.EncodeToString(key), hex.EncodeToString(value), isDirty, isDelete)
-				sdk.DebugLogByScf.AddCommitInfo(tt)
-
-				return true
-			}, nil)
-
-			if app.deliverState.ctx.BlockHeight() == 4645892 {
-				sdk.DebugLogByScf.PrintDebugInfo()
-			}
-		}
-	}()
+	//go func() {
+	//	if app.deliverState != nil && app.deliverState.ms != nil {
+	//		app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool, isDelete bool, storeKey types.StoreKey) bool {
+	//			tt := fmt.Sprintf("commot %s %s %v %v", hex.EncodeToString(key), hex.EncodeToString(value), isDirty, isDelete)
+	//			sdk.DebugLogByScf.AddCommitInfo(tt)
+	//
+	//			return true
+	//		}, nil)
+	//
+	//		if app.deliverState.ctx.BlockHeight() == 4645892 {
+	//			sdk.DebugLogByScf.PrintDebugInfo()
+	//		}
+	//	}
+	//}()
 
 	//go func() {
 	//app.parallelTxManage.commitDone <- struct{}{}
