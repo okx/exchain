@@ -13,7 +13,7 @@ import (
 // NewHandler defines the IBC handler
 func NewHandler(k keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
-		ctx = ctx.WithEventManager(sdk.NewEventManager())
+		ctx.SetEventManager(sdk.NewEventManager())
 
 		if !k.GetIbcEnabled(ctx) {
 			return nil, types.ErrIbcDisabled

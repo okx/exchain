@@ -225,9 +225,15 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 		if err != nil {
 			return 0, err
 		}
+		// filter IBC module {}
+		f := rs.commitHeightFilterPipeline(commitVersion)
+		if f(storeParams.key.Name()) {
+			continue
+		}
 		if commitVersion < minVersion {
 			minVersion = commitVersion
 		}
+
 	}
 	return minVersion, nil
 }
@@ -1043,7 +1049,6 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		si := storeInfo{}
 		si.Name = key.Name()
 		si.Core.CommitID = commitID
-		si.Core.CommitID.Version = version
 		storeInfos = append(storeInfos, si)
 		outputDeltaMap[key.Name()] = outputDelta
 	}

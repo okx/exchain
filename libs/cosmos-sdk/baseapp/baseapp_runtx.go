@@ -127,7 +127,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 			return errors.New("need skip")
 		}
 		info.msCacheAnte = msCacheAnte
-		anteCtx = anteCtx.WithMultiStore(info.msCacheAnte)
+		anteCtx.SetMultiStore(info.msCacheAnte)
 	}
 	anteCtx.SetEventManager(sdk.NewEventManager())
 	app.pin(CacheTxContext, false, mode)
@@ -135,7 +135,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	// 2. AnteChain
 	app.pin(AnteChain, true, mode)
 	if mode == runTxModeDeliver {
-		anteCtx = anteCtx.WithAnteTracer(app.anteTracer)
+		anteCtx.SetAnteTracer(app.anteTracer)
 	}
 	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
 	app.pin(AnteChain, false, mode)
@@ -153,7 +153,8 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 		// Also, in the case of the tx aborting, we need to track gas consumed via
 		// the instantiated gas meter in the AnteHandler, so we update the context
 		// prior to returning.
-		info.ctx = newCtx.WithMultiStore(ms)
+		info.ctx = newCtx
+		info.ctx.SetMultiStore(ms)
 	}
 
 	// GasMeter expected to be set in AnteHandler
@@ -286,11 +287,6 @@ func useCache(mode runTxMode) bool {
 	return false
 }
 
-func writeCache(cache sdk.CacheMultiStore, ctx sdk.Context) {
-	ctx.Cache().Write(true)
-	cache.Write()
-}
-
 func (app *BaseApp) newBlockCache() {
 	u := sdk.UseCache
 	if app.parallelTxManage.isAsyncDeliverTx {
@@ -298,7 +294,7 @@ func (app *BaseApp) newBlockCache() {
 	}
 
 	app.blockCache = sdk.NewCache(app.chainCache, u)
-	app.deliverState.ctx = app.deliverState.ctx.WithCache(app.blockCache)
+	app.deliverState.ctx.SetCache(app.blockCache)
 }
 
 func (app *BaseApp) commitBlockCache() {
