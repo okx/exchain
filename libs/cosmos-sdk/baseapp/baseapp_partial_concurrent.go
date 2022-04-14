@@ -31,7 +31,7 @@ const (
 	dttRoutineStepFinished
 
 	maxDeliverTxsConcurrentNum = 4
-	keepAliveIntervalMS        = 1
+	keepAliveIntervalMS        = 5
 )
 
 var totalAnteDuration = int64(0)
@@ -268,7 +268,7 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 	dttm.txs = txs
 	dttm.serialTask = nil
 	dttm.serialIndex = -1
-	dttm.serialCh = make(chan int8, 3)
+	dttm.serialCh = make(chan int8, 4)
 
 	dttm.checkStateCtx = dttm.app.checkState.ctx.WithBlockHeight(dttm.app.checkState.ctx.BlockHeight() + 1)
 
@@ -427,6 +427,7 @@ func (dttm *DTTManager) serialRoutine() {
 				break
 			}
 			keepAliveTicker.Stop()
+			nextTaskRoutine = -1
 
 			dttm.serialIndex = task.index
 			dttm.serialTask = task
@@ -456,7 +457,6 @@ func (dttm *DTTManager) serialRoutine() {
 
 			// check whether there are ante-finished task
 			count := len(dttm.dttRoutineList)
-			nextTaskRoutine = -1
 			//var rerunRoutine *dttRoutine
 			rerunRoutines := make([]*dttRoutine, 0)
 			for i := 0; i < count; i++ {
