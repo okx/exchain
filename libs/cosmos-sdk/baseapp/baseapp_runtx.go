@@ -2,6 +2,7 @@ package baseapp
 
 import (
 	"fmt"
+	"github.com/pkg/errors"
 	"runtime/debug"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -122,6 +123,9 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	if mode == runTxModeDeliverInAsync {
 		info.msCacheAnte = nil
 		msCacheAnte := app.parallelTxManage.getTxResult(info.txBytes)
+		if msCacheAnte == nil {
+			return errors.New("need skip")
+		}
 		info.msCacheAnte = msCacheAnte
 		anteCtx = anteCtx.WithMultiStore(info.msCacheAnte)
 	}

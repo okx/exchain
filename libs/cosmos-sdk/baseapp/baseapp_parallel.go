@@ -730,6 +730,9 @@ func (f *parallelTxManager) getTxResult(tx []byte) sdk.CacheMultiStore {
 	defer f.mu.Unlock()
 	ms := f.cms.CacheMultiStore()
 	base := f.currIndex
+	if index <= base {
+		return nil
+	}
 	if ok && preIndexInGroup > f.currIndex {
 		if f.txReps[preIndexInGroup].paraMsg.AnteErr == nil {
 			ms = f.txReps[preIndexInGroup].ms.CacheMultiStore()
