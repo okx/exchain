@@ -260,8 +260,6 @@ func testMultistoreLoadWithUpgrade(t *testing.T) {
 	require.Equal(t, v2, s2.Get(k2))
 
 	// now, let's load with upgrades...
-	// reuse upgrade logic upgrade height is 2
-	tmtypes.SetVenus1HeightForIbcTest(2)
 	restore, upgrades := newMultiStoreWithModifiedMounts(db, types.PruneNothing)
 	err = restore.LoadLatestVersionAndUpgrade(upgrades)
 	require.Nil(t, err)
