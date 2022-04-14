@@ -175,21 +175,6 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	}
 
 	//go func() {
-	//	if app.deliverState != nil && app.deliverState.ms != nil {
-	//		app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool, isDelete bool, storeKey types.StoreKey) bool {
-	//			tt := fmt.Sprintf("commot %s %s %v %v", hex.EncodeToString(key), hex.EncodeToString(value), isDirty, isDelete)
-	//			sdk.DebugLogByScf.AddCommitInfo(tt)
-	//
-	//			return true
-	//		}, nil)
-	//
-	//		if app.deliverState.ctx.BlockHeight() == 4645892 {
-	//			sdk.DebugLogByScf.PrintDebugInfo()
-	//		}
-	//	}
-	//}()
-
-	//go func() {
 	//app.parallelTxManage.commitDone <- struct{}{}
 	//}()
 
