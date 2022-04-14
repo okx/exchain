@@ -600,6 +600,7 @@ func (csdb *CommitStateDB) GetCode(addr ethcmn.Address) []byte {
 
 	// check for the contract calling from blocked list if contract blocked list is enabled
 	if csdb.GetParams().EnableContractBlockedList && csdb.IsContractInBlockedList(addr.Bytes()) {
+		fmt.Println("not allow:addr", addr.String())
 		err := ErrContractBlockedVerify{fmt.Sprintf("failed. the contract %s is not allowed to invoke", addr.Hex())}
 		panic(err)
 	}
