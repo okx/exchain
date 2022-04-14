@@ -17,8 +17,22 @@ import (
 
 const IGNORE_HEIGHT_CHECKING = -1
 
-// TxDecoder returns an sdk.TxDecoder that can decode both auth.StdTx and
-// MsgEthereumTx transactions.
+// evmDecoder:  MsgEthereumTx decoder by Ethereum RLP
+// ubruDecoder: OKC customized unmarshalling implemented by UnmarshalFromAmino. higher performance!
+// ubDecoder:   The original amino decoder, decoding by reflection
+// ibcDecoder:  Protobuf decoder
+
+// When and which decoder decoding what kind of tx:
+// | ------------| --------------------|---------------|-------------|-----------------|----------------|
+// |             | Before ubruDecoder  | Before Venus  | After Venus | Before VenusOne | After VenusOne |
+// |             | carried out         |               |             |                 |                |
+// | ------------|---------------------|---------------|-------------|-----------------|----------------|
+// | evmDecoder  |                     |               |    evmtx    |   evmtx         |   evmtx        |
+// | ubruDecoder |                     | stdtx & evmtx |    stdtx    |   stdtx         |   stdtx        |
+// | ubDecoder   | stdtx,evmtx,otherTx | otherTx       |    otherTx  |   otherTx       |   otherTx      |
+// | ibcDecoder  |                     |               |             |                 |   ibcTx        |
+// | ------------| --------------------|---------------|-------------|-----------------|----------------|
+
 func TxDecoder(cdc codec.CdcAbstraction) sdk.TxDecoder {
 
 	return func(txBytes []byte, heights ...int64) (sdk.Tx, error) {
@@ -42,23 +56,12 @@ func TxDecoder(cdc codec.CdcAbstraction) sdk.TxDecoder {
 			evmDecoder,
 			ubruDecoder,
 			ubDecoder,
-			relayTx,
+			ibcDecoder,
 		} {
 			if tx, err = f(cdc, txBytes, height); err == nil {
-				switch realTx := tx.(type) {
-				case authtypes.StdTx:
-					realTx.Raw = txBytes
-					realTx.Hash = types.Tx(txBytes).Hash(height)
-					return realTx, nil
-				case *MsgEthereumTx:
-					realTx.Raw = txBytes
-					realTx.Hash = types.Tx(txBytes).Hash(height)
-					return realTx, nil
-				case *authtypes.IbcTx:
-					realTx.Raw = txBytes
-					realTx.Hash = types.Tx(txBytes).Hash(height)
-					return realTx, nil
-				}
+				tx.SetRaw(txBytes)
+				tx.SetTxHash(types.Tx(txBytes).Hash(height))
+				return tx, nil
 			}
 		}
 
@@ -69,11 +72,15 @@ func TxDecoder(cdc codec.CdcAbstraction) sdk.TxDecoder {
 // Unmarshaler is a generic type for Unmarshal functions
 type Unmarshaler func(bytes []byte, ptr interface{}) error
 
-func relayTx(cdcWrapper codec.CdcAbstraction, bytes []byte, i int64) (sdk.Tx, error) {
+func ibcDecoder(cdcWrapper codec.CdcAbstraction, bytes []byte, height int64) (tx sdk.Tx, err error) {
+	if height >= 0 && !types.HigherThanVenus1(height) {
+		err = fmt.Errorf("IbcTxDecoder decode tx err,lower than Venus1 height")
+		return
+	}
 	simReq := &typestx.SimulateRequest{}
 	txBytes := bytes
 
-	err := simReq.Unmarshal(bytes)
+	err = simReq.Unmarshal(bytes)
 	if err == nil && simReq.Tx != nil {
 		txBytes, err = proto.Marshal(simReq.Tx)
 		if err != nil {
@@ -91,12 +98,12 @@ func relayTx(cdcWrapper codec.CdcAbstraction, bytes []byte, i int64) (sdk.Tx, er
 	}
 	marshaler := cdc.GetProtocMarshal()
 	decode := ibctxdecoder.IbcTxDecoder(marshaler)
-	txdata, err := decode(txBytes)
+	tx, err = decode(txBytes)
 	if err != nil {
 		return nil, fmt.Errorf("IbcTxDecoder decode tx err %v", err)
 	}
 
-	return txdata, nil
+	return
 }
 
 type decodeFunc func(codec.CdcAbstraction, []byte, int64) (sdk.Tx, error)

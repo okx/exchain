@@ -15,7 +15,7 @@ import (
 // NewTokenHandler returns a handler for "token" type messages.
 func NewTokenHandler(keeper Keeper, protocolVersion version.ProtocolVersionType) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
-		ctx = ctx.WithEventManager(sdk.NewEventManager())
+		ctx.SetEventManager(sdk.NewEventManager())
 		//logger := ctx.Logger().With("module", "token")
 		// NOTE msg already has validate basic run
 		var name string

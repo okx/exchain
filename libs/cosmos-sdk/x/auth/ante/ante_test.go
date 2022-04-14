@@ -37,7 +37,7 @@ func checkInvalidTx(t *testing.T, anteHandler sdk.AnteHandler, ctx sdk.Context, 
 func TestSimulateGasCost(t *testing.T) {
 	// setup
 	app, ctx := createTestApp(true)
-	ctx = ctx.WithBlockHeight(1)
+	ctx.SetBlockHeight(1)
 	anteHandler := ante.NewAnteHandler(app.AccountKeeper, app.SupplyKeeper, ante.DefaultSigVerificationGasConsumer)
 
 	// keys and addresses
@@ -110,7 +110,7 @@ func TestAnteHandlerSigErrors(t *testing.T) {
 
 	// tx.GetSigners returns addresses in correct order: addr1, addr2, addr3
 	expectedSigners := []sdk.AccAddress{addr1, addr2, addr3}
-	stdTx := tx.(types.StdTx)
+	stdTx := tx.(*types.StdTx)
 	require.Equal(t, expectedSigners, stdTx.GetSigners())
 
 	// Check no signatures fails
@@ -137,7 +137,7 @@ func TestAnteHandlerSigErrors(t *testing.T) {
 func TestAnteHandlerAccountNumbers(t *testing.T) {
 	// setup
 	app, ctx := createTestApp(false)
-	ctx = ctx.WithBlockHeight(1)
+	ctx.SetBlockHeight(1)
 	anteHandler := ante.NewAnteHandler(app.AccountKeeper, app.SupplyKeeper, ante.DefaultSigVerificationGasConsumer)
 
 	// keys and addresses
@@ -194,7 +194,7 @@ func TestAnteHandlerAccountNumbers(t *testing.T) {
 func TestAnteHandlerAccountNumbersAtBlockHeightZero(t *testing.T) {
 	// setup
 	app, ctx := createTestApp(false)
-	ctx = ctx.WithBlockHeight(0)
+	ctx.SetBlockHeight(0)
 	anteHandler := ante.NewAnteHandler(app.AccountKeeper, app.SupplyKeeper, ante.DefaultSigVerificationGasConsumer)
 
 	// keys and addresses
@@ -250,7 +250,7 @@ func TestAnteHandlerAccountNumbersAtBlockHeightZero(t *testing.T) {
 func TestAnteHandlerSequences(t *testing.T) {
 	// setup
 	app, ctx := createTestApp(false)
-	ctx = ctx.WithBlockHeight(1)
+	ctx.SetBlockHeight(1)
 	anteHandler := ante.NewAnteHandler(app.AccountKeeper, app.SupplyKeeper, ante.DefaultSigVerificationGasConsumer)
 
 	// keys and addresses
@@ -366,7 +366,7 @@ func TestAnteHandlerFees(t *testing.T) {
 func TestAnteHandlerMemoGas(t *testing.T) {
 	// setup
 	app, ctx := createTestApp(true)
-	ctx = ctx.WithBlockHeight(1)
+	ctx.SetBlockHeight(1)
 	anteHandler := ante.NewAnteHandler(app.AccountKeeper, app.SupplyKeeper, ante.DefaultSigVerificationGasConsumer)
 
 	// keys and addresses
@@ -406,7 +406,7 @@ func TestAnteHandlerMemoGas(t *testing.T) {
 func TestAnteHandlerMultiSigner(t *testing.T) {
 	// setup
 	app, ctx := createTestApp(false)
-	ctx = ctx.WithBlockHeight(1)
+	ctx.SetBlockHeight(1)
 	anteHandler := ante.NewAnteHandler(app.AccountKeeper, app.SupplyKeeper, ante.DefaultSigVerificationGasConsumer)
 
 	// keys and addresses
@@ -456,7 +456,7 @@ func TestAnteHandlerMultiSigner(t *testing.T) {
 func TestAnteHandlerBadSignBytes(t *testing.T) {
 	// setup
 	app, ctx := createTestApp(true)
-	ctx = ctx.WithBlockHeight(1)
+	ctx.SetBlockHeight(1)
 	anteHandler := ante.NewAnteHandler(app.AccountKeeper, app.SupplyKeeper, ante.DefaultSigVerificationGasConsumer)
 
 	// keys and addresses
@@ -533,7 +533,7 @@ func TestAnteHandlerBadSignBytes(t *testing.T) {
 func TestAnteHandlerSetPubKey(t *testing.T) {
 	// setup
 	app, ctx := createTestApp(true)
-	ctx = ctx.WithBlockHeight(1)
+	ctx.SetBlockHeight(1)
 	anteHandler := ante.NewAnteHandler(app.AccountKeeper, app.SupplyKeeper, ante.DefaultSigVerificationGasConsumer)
 
 	// keys and addresses
@@ -567,7 +567,7 @@ func TestAnteHandlerSetPubKey(t *testing.T) {
 	msg = types.NewTestMsg(addr2)
 	msgs = []sdk.Msg{msg}
 	tx = types.NewTestTx(ctx, msgs, privs, []uint64{1}, seqs, fee)
-	sigs := tx.(types.StdTx).Signatures
+	sigs := tx.(*types.StdTx).Signatures
 	sigs[0].PubKey = nil
 	checkInvalidTx(t, anteHandler, ctx, tx, false, sdkerrors.ErrInvalidPubKey)
 
@@ -651,7 +651,7 @@ func TestCountSubkeys(t *testing.T) {
 func TestAnteHandlerSigLimitExceeded(t *testing.T) {
 	// setup
 	app, ctx := createTestApp(true)
-	ctx = ctx.WithBlockHeight(1)
+	ctx.SetBlockHeight(1)
 	anteHandler := ante.NewAnteHandler(app.AccountKeeper, app.SupplyKeeper, ante.DefaultSigVerificationGasConsumer)
 
 	// keys and addresses
@@ -690,7 +690,7 @@ func TestAnteHandlerSigLimitExceeded(t *testing.T) {
 func TestCustomSignatureVerificationGasConsumer(t *testing.T) {
 	// setup
 	app, ctx := createTestApp(true)
-	ctx = ctx.WithBlockHeight(1)
+	ctx.SetBlockHeight(1)
 	// setup an ante handler that only accepts PubKeyEd25519
 	anteHandler := ante.NewAnteHandler(app.AccountKeeper, app.SupplyKeeper, func(meter sdk.GasMeter, sig []byte, pubkey crypto.PubKey, params types.Params) error {
 		switch pubkey := pubkey.(type) {
@@ -736,8 +736,8 @@ func TestAnteHandlerReCheck(t *testing.T) {
 	// setup
 	app, ctx := createTestApp(true)
 	// set blockheight and recheck=true
-	ctx = ctx.WithBlockHeight(1)
-	ctx = ctx.WithIsReCheckTx(true)
+	ctx.SetBlockHeight(1)
+	ctx.SetIsReCheckTx(true)
 
 	// keys and addresses
 	priv1, _, addr1 := types.KeyTestPubAddr()
@@ -762,7 +762,7 @@ func TestAnteHandlerReCheck(t *testing.T) {
 
 	// make signature array empty which would normally cause ValidateBasicDecorator and SigVerificationDecorator fail
 	// since these decorators don't run on recheck, the tx should pass the antehandler
-	stdTx := tx.(types.StdTx)
+	stdTx := tx.(*types.StdTx)
 	stdTx.Signatures = []types.StdSignature{}
 
 	_, err := antehandler(ctx, stdTx, false)
@@ -771,7 +771,7 @@ func TestAnteHandlerReCheck(t *testing.T) {
 	tx = types.NewTestTxWithMemo(ctx, msgs, privs, accnums, seqs, fee, "thisisatestmemo")
 	txBytes, err := json.Marshal(tx)
 	require.Nil(t, err, "Error marshalling tx: %v", err)
-	ctx = ctx.WithTxBytes(txBytes)
+	ctx.SetTxBytes(txBytes)
 
 	// require that state machine param-dependent checking is still run on recheck since parameters can change between check and recheck
 	testCases := []struct {
@@ -796,14 +796,14 @@ func TestAnteHandlerReCheck(t *testing.T) {
 
 	// require that local mempool fee check is still run on recheck since validator may change minFee between check and recheck
 	// create new minimum gas price so antehandler fails on recheck
-	ctx = ctx.WithMinGasPrices([]sdk.DecCoin{{
+	ctx.SetMinGasPrices([]sdk.DecCoin{{
 		Denom:  "dnecoin", // fee does not have this denom
 		Amount: sdk.NewDec(5),
 	}})
 	_, err = antehandler(ctx, tx, false)
 	require.NotNil(t, err, "antehandler on recheck did not fail when mingasPrice was changed")
 	// reset min gasprice
-	ctx = ctx.WithMinGasPrices(sdk.DecCoins{})
+	ctx.SetMinGasPrices(sdk.DecCoins{})
 
 	// remove funds for account so antehandler fails on recheck
 	acc1.SetCoins(sdk.Coins{})

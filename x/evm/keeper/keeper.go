@@ -77,7 +77,6 @@ func NewKeeper(
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
 	}
 
-	types.InitTxTraces()
 	err := initInnerDB()
 	if err != nil {
 		panic(err)
@@ -129,6 +128,8 @@ func NewSimulateKeeper(
 		LogSize:       0,
 		Watcher:       watcher.NewWatcher(nil),
 		Ada:           ada,
+
+		cci: &chainConfigInfo{},
 	}
 }
 

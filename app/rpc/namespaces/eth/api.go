@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -725,13 +724,8 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 		return common.Hash{}, err
 	}
 
-	//todo: after upgrade of VenusHeight, this code need to be deleted, 1800 means two hours before arriving VenusHeight
-	VenusTxPoolHeight := int64(0)
-	if tmtypes.GetVenusHeight() > 1800 {
-		VenusTxPoolHeight = tmtypes.GetVenusHeight() - 1800
-	}
 	// send chanData to txPool
-	if (int64(height) < VenusTxPoolHeight || tmtypes.HigherThanVenus(int64(height))) && api.txPool != nil {
+	if tmtypes.HigherThanVenus(int64(height)) && api.txPool != nil {
 		return broadcastTxByTxPool(api, tx, txBytes)
 	}
 
@@ -774,13 +768,8 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 		}
 	}
 
-	//todo: after upgrade of VenusHeight, this code need to be deleted, 1800 means two hours before arriving VenusHeight
-	VenusTxPoolHeight := int64(0)
-	if tmtypes.GetVenusHeight() > 1800 {
-		VenusTxPoolHeight = tmtypes.GetVenusHeight() - 1800
-	}
 	// send chanData to txPool
-	if (int64(height) < VenusTxPoolHeight || tmtypes.HigherThanVenus(int64(height))) && api.txPool != nil {
+	if tmtypes.HigherThanVenus(int64(height)) && api.txPool != nil {
 		return broadcastTxByTxPool(api, tx, txBytes)
 	}
 
@@ -1667,25 +1656,6 @@ func (api *PublicEthereumAPI) accountNonce(
 	}
 
 	return nonce, nil
-}
-
-// GetTxTrace returns the trace of tx execution by txhash.
-func (api *PublicEthereumAPI) GetTxTrace(txHash common.Hash) json.RawMessage {
-	monitor := monitor.GetMonitor("eth_getTxTrace", api.logger, api.Metrics).OnBegin()
-	defer monitor.OnEnd("hash", txHash)
-
-	return json.RawMessage(evmtypes.GetTracesFromDB(txHash.Bytes()))
-}
-
-// DeleteTxTrace delete the trace of tx execution by txhash.
-func (api *PublicEthereumAPI) DeleteTxTrace(txHash common.Hash) string {
-	monitor := monitor.GetMonitor("eth_deleteTxTrace", api.logger, api.Metrics).OnBegin()
-	defer monitor.OnEnd("hash", txHash)
-
-	if err := evmtypes.DeleteTracesFromDB(txHash.Bytes()); err != nil {
-		return "delete trace failed"
-	}
-	return "delete trace succeed"
 }
 
 func (api *PublicEthereumAPI) saveZeroAccount(address common.Address) {
