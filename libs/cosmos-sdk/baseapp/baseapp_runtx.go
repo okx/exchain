@@ -92,6 +92,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 
 	app.pin(RunAnte, true, mode)
 	if app.anteHandler != nil {
+		app.logger.Info("RunAnteStart")
 		err = app.runAnte(info, mode)
 		if err != nil {
 			app.logger.Error("RunAnteFailed", "err", err)
@@ -101,6 +102,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	app.pin(RunAnte, false, mode)
 
 	app.pin(RunMsg, true, mode)
+	app.logger.Info("RunMsgStart")
 	err = handler.handleRunMsg(info)
 	if err != nil {
 		app.logger.Error("RunMsgFailed", "err", err)
