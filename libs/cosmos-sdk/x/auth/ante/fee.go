@@ -2,6 +2,7 @@ package ante
 
 import (
 	"fmt"
+	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
@@ -137,6 +138,25 @@ func DeductFees(ak keeper.AccountKeeper, ctx sdk.Context, acc exported.Account, 
 		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds,
 			"insufficient funds to pay for fees; %s < %s", spendableCoins, fees)
 	}
+
+	// consume gas for compatible
+	ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostFlat, stypes.GasReadCostFlatDesc)	// ReadFlat
+	// todo: ReadPerByte
+	ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostPerByte*stypes.Gas(len(value)), stypes.GasReadPerByteDesc)
+	if ok, gasUsed := exported.TryAddGetAccountGas(ctx.GasMeter(), ak, acc); ok {
+		ctx.GasMeter().ConsumeGas(gasUsed, "get account")	// get account
+		ctx.GasMeter().ConsumeGas(gasUsed, "get account")	// get account
+	}
+	// todo: get account for FeeCollector
+	ctx.GasMeter().ConsumeGas(getAccGasUsed, "get account")
+	ctx.GasMeter().ConsumeGas(getAccGasUsed, "get account")
+
+	ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostFlat, stypes.GasWriteCostFlatDesc)	// WriteFlat
+	// todo: WritePerByte
+	ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostPerByte*stypes.Gas(len(value)), stypes.GasWritePerByteDesc)
+	ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostFlat, stypes.GasReadCostFlatDesc)	// ReadFlat
+	// todo: ReadPerByte
+	ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostPerByte*stypes.Gas(len(value)), stypes.GasReadPerByteDesc)
 
 	if err := acc.SetCoins(balance); err != nil {
 		return err
