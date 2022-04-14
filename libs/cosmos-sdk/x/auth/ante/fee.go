@@ -148,7 +148,7 @@ func DeductFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.A
 	if global.GetGlobalHeight() == 4329762 {
 		feeAcc := supplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName)
 		feeCoins := feeAcc.GetCoins()
-		logger.Info("UpdateFeeForCollector. ", "fee", feeCoins, "  add", 1)
+		logger.Info("UpdateFeeForCollector. ", "fee:", feeCoins, "  add:", 1)
 	}
 
 	return nil

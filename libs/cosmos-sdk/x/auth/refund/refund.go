@@ -40,7 +40,7 @@ func RefundFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc sdk.AccAdd
 	if global.GetGlobalHeight() == 4329762 {
 		feeAcc := supplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName)
 		feeCoins := feeAcc.GetCoins()
-		logger.Info("UpdateFeeForCollector. ", "fee", feeCoins, "  add", 0)
+		logger.Info("UpdateFeeForCollector. ", "fee:", feeCoins, "  add:", 0)
 	}
 
 	return nil
