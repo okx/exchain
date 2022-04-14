@@ -276,12 +276,14 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 		txReps[receiveTxIndex] = execRes
 
 		if pm.workgroup.isFailed(pm.workgroup.runningStats(receiveTxIndex)) {
+			fmt.Println("fuck2-", receiveTxIndex)
 			txReps[receiveTxIndex] = nil
 			pm.workgroup.AddTask(txs[receiveTxIndex], receiveTxIndex)
 
 		} else {
 			if nextTx, ok := nextTxInGroup[receiveTxIndex]; ok {
 				if !pm.workgroup.isRunning(nextTx) {
+					fmt.Println("fuck3", nextTx)
 					txReps[nextTx] = nil
 					pm.workgroup.AddTask(txs[nextTx], nextTx)
 				}
@@ -308,6 +310,7 @@ func (app *BaseApp) runTxs(txs [][]byte, groupList map[int][]int, nextTxInGroup 
 
 				if ok {
 					if !pm.workgroup.isRunning(nn) {
+						fmt.Println("fuck4", nn)
 						txReps[nn] = nil
 						pm.workgroup.AddTask(txs[nn], nn)
 					}
@@ -736,6 +739,7 @@ func (f *parallelTxManager) getTxResult(tx []byte) sdk.CacheMultiStore {
 		if f.workgroup.isRunning(next) {
 			f.workgroup.markFailed(f.workgroup.runningStats(next))
 		} else {
+			fmt.Println("fuck", next)
 			f.txReps[next] = nil
 		}
 	}
