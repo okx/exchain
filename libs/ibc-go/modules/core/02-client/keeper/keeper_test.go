@@ -53,11 +53,11 @@ type KeeperTestSuite struct {
 
 	coordinator *ibctesting.Coordinator
 
-	chainA *ibctesting.TestChain
-	chainB *ibctesting.TestChain
+	chainA ibctesting.TestChainI
+	chainB ibctesting.TestChainI
 
 	// cdc            codec.Codec
-	cdc            codec.CodecProxy
+	cdc            *codec.CodecProxy
 	ctx            sdk.Context
 	keeper         *keeper.Keeper
 	consensusState *ibctmtypes.ConsensusState
