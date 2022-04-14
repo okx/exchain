@@ -7,6 +7,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math"
 	"math/rand"
 
@@ -152,7 +153,10 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 // InitGenesis performs genesis initialization for the ibc-transfer module. It returns
 // no validator updates.
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	return nil
+	if !tmtypes.HigherThanVenus1(ctx.BlockHeight()) {
+		return nil
+	}
+	return am.initGenesis(ctx,data)
 }
 
 func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {

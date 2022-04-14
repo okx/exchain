@@ -2,6 +2,7 @@ package capability
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -62,8 +63,15 @@ func (AppModuleBasic) DefaultGenesis() json.RawMessage {
 }
 
 // ValidateGenesis performs genesis state validation for the capability module.
-func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
-	return nil
+func (a AppModuleBasic) ValidateGenesis(data json.RawMessage) error {
+	if nil == data {
+		return nil
+	}
+	var genState types.GenesisState
+	if err := ModuleCdc.UnmarshalJSON(data, &genState); err != nil {
+		return fmt.Errorf("failed to unmarshal %s genesis state: %w", types.ModuleName, err)
+	}
+	return genState.Validate()
 }
 
 // RegisterRESTRoutes registers the capability module's REST service handlers.
@@ -139,6 +147,9 @@ func (am AppModule) RegisterInvariants(_ sdk.InvariantRegistry) {}
 // InitGenesis performs the capability module's genesis initialization It returns
 // no validator updates.
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
+	if tmtypes.HigherThanVenus1(ctx.BlockHeight()) {
+		return am.initGenesis(ctx, data)
+	}
 	return nil
 }
 func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
@@ -153,7 +164,11 @@ func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 
 // ExportGenesis returns the capability module's exported genesis state as raw JSON bytes.
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
-	return nil
+	if !tmtypes.HigherThanVenus1(ctx.BlockHeight()) {
+		return nil
+	}
+	defer am.Seal()
+	return am.exportGenesis(ctx)
 }
 
 func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
