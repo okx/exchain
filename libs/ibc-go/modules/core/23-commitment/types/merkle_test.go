@@ -14,7 +14,7 @@ import (
 func (suite *MerkleTestSuite) TestVerifyMembership() {
 	suite.iavlStore.Set([]byte("MYKEY"), []byte("MYVALUE"))
 	// cid := suite.store.Commit()
-	cid := suite.store.LastCommitID()
+	cid, _ := suite.store.CommitterCommitMap(nil)
 
 	res := suite.store.Query(abci.RequestQuery{
 		Path:  fmt.Sprintf("/%s/key", suite.storeKey.Name()), // required path to get key/value+proof
@@ -80,7 +80,7 @@ func (suite *MerkleTestSuite) TestVerifyMembership() {
 func (suite *MerkleTestSuite) TestVerifyNonMembership() {
 	suite.iavlStore.Set([]byte("MYKEY"), []byte("MYVALUE"))
 	// cid := suite.store.Commit()
-	cid := suite.store.LastCommitID()
+	cid, _ := suite.store.CommitterCommitMap(nil)
 
 	// Get Proof
 	res := suite.store.Query(abci.RequestQuery{

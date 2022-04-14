@@ -23,6 +23,7 @@ var (
 
 	MILESTONE_VENUS1_HEIGHT string
 	milestoneVenus1Height   int64
+	enableVeneus1Feature    bool
 
 	once sync.Once
 )
@@ -95,10 +96,12 @@ func UnittestOnlySetMilestoneVenusHeight(height int64) {
 	milestoneVenusHeight = height
 }
 
-
 // ==================================
 // =========== Venus1 ===============
 func HigherThanVenus1(h int64) bool {
+	if enableVeneus1Feature {
+		return true
+	}
 	if milestoneVenus1Height == 0 {
 		return false
 	}
@@ -109,8 +112,13 @@ func SetVenus1HeightForIbcTest(h int64) {
 	milestoneVenus1Height = h
 }
 
+func EnableVeneus1Feature() {
+	enableVeneus1Feature = true
+}
+
 func GetVenus1Height() int64 {
 	return milestoneVenus1Height
 }
+
 // =========== Venus1 ===============
 // ==================================
