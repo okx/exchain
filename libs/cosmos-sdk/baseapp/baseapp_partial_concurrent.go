@@ -505,7 +505,6 @@ func (dttm *DTTManager) serialRoutine() {
 				if dttr.task.index == dttm.serialIndex+1 && dttr.readyForSerialExecution() {
 					dttm.app.logger.Info("ExtractNextSerialFromTicker", "index", dttm.serialIndex+1, "routine", nextTaskRoutine, "step", dttr.step, "needToRerun", dttr.needToRerun)
 					keepAliveTicker.Stop()
-					nextTaskRoutine = -1
 					dttm.serialCh <- nextTaskRoutine
 				}
 			}
