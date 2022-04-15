@@ -890,11 +890,12 @@ func (app *BaseApp) GetRawTxInfo(rawTx tmtypes.Tx) mempool.ExTxInfo {
 			return mempool.ExTxInfo{}
 		}
 	}
-	if tx.GetType() == sdk.EvmTxType && app.evmTxVerifySigHandler != nil {
-		_ = app.evmTxVerifySigHandler(app.checkState.ctx.WithBlockHeight(app.checkState.ctx.BlockHeight()+1), tx)
-	}
-
 	ctx := app.checkState.ctx
+	if tx.GetType() == sdk.EvmTxType && app.evmTxVerifySigHandler != nil {
+		ctx.SetBlockHeight(app.checkState.ctx.BlockHeight() + 1)
+		_ = app.evmTxVerifySigHandler(ctx, tx)
+		ctx.SetBlockHeight(app.checkState.ctx.BlockHeight())
+	}
 	ctx.SetTxBytes(rawTx)
 	return app.GetTxInfo(ctx, tx)
 }
