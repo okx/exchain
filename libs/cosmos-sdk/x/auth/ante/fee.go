@@ -140,7 +140,6 @@ func DeductFees(ak keeper.AccountKeeper, ctx sdk.Context, acc exported.Account, 
 	}
 
 	// consume gas for compatible
-	fmt.Println("========================SendCoinsFromAccountToModule start==========================")
 	//err := supplyKeeper.SendCoinsFromAccountToModule(ctx, acc.GetAddress(), types.FeeCollectorName, fees)
 	//if err != nil {
 	//	return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
@@ -161,14 +160,12 @@ func DeductFees(ak keeper.AccountKeeper, ctx sdk.Context, acc exported.Account, 
 
 	// consume gas for compatible
 	if ok, gasUsed := exported.TryAddGetAccountGas(ctx.GasMeter(), ak, acc); ok {
-		// todo: get account for FeeCollector
 		ctx.GasMeter().ConsumeGas(gasUsed, "get account")
 
 		bzLen := ak.GetAccountBinarySize(acc)
 		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostFlat, stypes.GasWriteCostFlatDesc)	// WriteFlat
 		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostPerByte*stypes.Gas(bzLen), stypes.GasWritePerByteDesc)	// WritePerByte
 	}
-	fmt.Println("========================SendCoinsFromAccountToModule finished==========================")
 
 	return nil
 }
