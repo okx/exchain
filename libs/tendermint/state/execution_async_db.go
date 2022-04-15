@@ -23,7 +23,9 @@ type asyncDBContext struct {
 }
 
 const (
+	MAXCHAN_LEN           = 2
 	FEEDBACK_LEN          = 2
+	QUIT_SIG              = -99
 	MAX_WAIT_TIME_SECONDS = 30
 )
 
@@ -33,8 +35,8 @@ type abciResponse struct {
 }
 
 func (ctx *BlockExecutor) initAsyncDBContext() {
-	ctx.abciResponseQueue = make(chan abciResponse)
-	ctx.stateQueue = make(chan State)
+	ctx.abciResponseQueue = make(chan abciResponse, MAXCHAN_LEN)
+	ctx.stateQueue = make(chan State, MAXCHAN_LEN)
 	ctx.asyncFeedbackQueue = make(chan int64, FEEDBACK_LEN)
 
 	go ctx.asyncSaveStateRoutine()
@@ -47,8 +49,9 @@ func (blockExec *BlockExecutor) stopAsyncDBContext() {
 	}
 
 	blockExec.wg.Add(2)
-	close(blockExec.abciResponseQueue)
-	close(blockExec.stateQueue)
+	blockExec.abciResponseQueue <- abciResponse{height: QUIT_SIG}
+	blockExec.stateQueue <- State{LastBlockHeight: QUIT_SIG}
+
 	blockExec.wg.Wait()
 
 	blockExec.isAsyncQueueStop = true
@@ -67,6 +70,10 @@ func (blockExec *BlockExecutor) SaveStateAsync(state State) {
 // asyncSaveRoutine handle the write state work
 func (blockExec *BlockExecutor) asyncSaveStateRoutine() {
 	for stateMsg := range blockExec.stateQueue {
+		if stateMsg.LastBlockHeight == QUIT_SIG {
+			break
+		}
+
 		SaveState(blockExec.db, stateMsg)
 		blockExec.asyncFeedbackQueue <- stateMsg.LastBlockHeight
 	}
@@ -77,6 +84,9 @@ func (blockExec *BlockExecutor) asyncSaveStateRoutine() {
 // asyncSaveRoutine handle the write abciResponse work
 func (blockExec *BlockExecutor) asyncSaveABCIRespRoutine() {
 	for abciMsg := range blockExec.abciResponseQueue {
+		if abciMsg.height == QUIT_SIG {
+			break
+		}
 		SaveABCIResponses(blockExec.db, abciMsg.height, abciMsg.responses)
 		blockExec.asyncFeedbackQueue <- abciMsg.height
 	}

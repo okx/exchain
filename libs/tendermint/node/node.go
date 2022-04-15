@@ -653,6 +653,9 @@ func NewNode(config *cfg.Config,
 		sm.BlockExecutorWithMetrics(smMetrics),
 	)
 	blockExec.SetIsAsyncSaveDB(true)
+	if _, ok := txIndexer.(*null.TxIndex); ok {
+		blockExec.SetIsNullIndexer(true)
+	}
 
 	// Make BlockchainReactor
 	bcReactor, err := createBlockchainReactor(config, state, blockExec, blockStore, deltasStore, fastSync, logger)
