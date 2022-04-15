@@ -1,6 +1,7 @@
 package baseapp
 
 import (
+	"encoding/hex"
 	"fmt"
 	"github.com/pkg/errors"
 	"runtime/debug"
@@ -249,6 +250,7 @@ func (app *BaseApp) asyncDeliverTx(txWithIndex []byte) {
 	}
 
 	if txStatus == nil { //TODO why?
+		fmt.Println("asyncDeliverTx", hex.EncodeToString(txWithIndex))
 		return
 	}
 	if !txStatus.isEvmTx {

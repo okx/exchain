@@ -77,7 +77,7 @@ func (c *Context) VoteInfos() []abci.VoteInfo { return c.voteInfo }
 func (c *Context) GasMeter() GasMeter         { return c.gasMeter }
 func (c *Context) BlockGasMeter() GasMeter    { return c.blockGasMeter }
 func (c *Context) IsDeliver() bool {
-	return c.isDeliver || HaveCosmosTxInBlock
+	return c.isDeliver || !HaveCosmosTxInBlock
 }
 
 func (c *Context) IsCheckTx() bool             { return c.checkTx }
