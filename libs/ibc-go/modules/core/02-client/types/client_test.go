@@ -48,7 +48,8 @@ func (suite *TypesTestSuite) TestMarshalConsensusStateWithHeight() {
 			cdc := suite.chainA.App().AppCodec()
 
 			// marshal message
-			bz, err := cdc.GetCdc().MarshalJSON(&cswh)
+			//bz, err := cdc.GetCdc().MarshalJSON(&cswh)
+			bz, err := cdc.GetProtocMarshal().MarshalJSON(&cswh)
 			suite.Require().NoError(err)
 
 			// unmarshal message

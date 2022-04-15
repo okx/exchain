@@ -2,8 +2,6 @@ package simapp
 
 import (
 	"encoding/json"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 )
 
 // The genesis state of the blockchain is represented here as a map of raw json
@@ -16,6 +14,6 @@ import (
 type GenesisState map[string]json.RawMessage
 
 // NewDefaultGenesisState generates the default state for the application.
-func NewDefaultGenesisState(cdc codec.JSONCodec) GenesisState {
+func NewDefaultGenesisState() GenesisState {
 	return ModuleBasics.DefaultGenesis()
 }

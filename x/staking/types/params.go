@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
 	"time"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -124,7 +125,7 @@ func (p Params) Equal(p2 Params) bool {
 // DefaultParams returns a default set of parameters
 func DefaultParams() Params {
 	return NewParams(
-		DefaultUnbondingTime,
+		types.DefaultUnbondingTime,
 		DefaultMaxValidators,
 		DefaultEpoch,
 		DefaultMaxValsToAddShares,

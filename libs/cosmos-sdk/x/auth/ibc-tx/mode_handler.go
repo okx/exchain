@@ -9,7 +9,7 @@ import (
 // DefaultSignModes are the default sign modes enabled for protobuf transactions.
 var DefaultSignModes = []signing2.SignMode{
 	signing2.SignMode_SIGN_MODE_DIRECT,
-	signing2.SignMode_SIGN_MODE_LEGACY_AMINO_JSON,
+	//signing2.SignMode_SIGN_MODE_LEGACY_AMINO_JSON,
 }
 
 // makeSignModeHandler returns the default protobuf SignModeHandler supporting

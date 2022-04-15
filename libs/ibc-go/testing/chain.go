@@ -3,10 +3,12 @@ package ibctesting
 import (
 	"bytes"
 	"fmt"
-	okexchaintypes "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
-	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
+	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	secp256k12 "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
 	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
+	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 	"testing"
 	"time"
 
@@ -20,7 +22,6 @@ import (
 	capabilitykeeper "github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 
-	ibckey "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
 	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmproto "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -107,7 +108,7 @@ type TestChain struct {
 	vals    *tmtypes.ValidatorSet
 	signers []tmtypes.PrivValidator
 
-	senderPrivKey cryptotypes.PrivKey
+	senderPrivKey *secp256k12.PrivKey
 	senderAccount authtypes.Account
 }
 
@@ -131,30 +132,34 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 	signers := []tmtypes.PrivValidator{privVal}
 
 	// generate genesis account
-	senderPrivKey := ibckey.GenPrivKey()
-	//acc := authtypes.NewBaseAccount(senderPrivKey.PubKey().Address().Bytes(), nil, senderPrivKey.PubKey(), 0, 0)
-	acc := new(auth.BaseAccount)
-	//acc := authtypes.NewBaseAccount(addr, nil, secp256k1.GenPrivKey().PubKey(), 0, 0)
+	senderPrivKey := secp256k12.GenPrivKey()
+	var pubkeyBytes secp256k1.PubKeySecp256k1
+	copy(pubkeyBytes[:], senderPrivKey.PubKey().Bytes())
 
-	// amount, ok := sdk.NewIntFromString("10000000000000000000")
-	// require.True(t, ok)
+	i, ok := sdk.NewIntFromString("100000000000")
+	require.True(t, ok)
+	balance := sdk.NewCoins(apptypes.NewPhotonCoin(i))
+
+	account := auth.NewBaseAccount(senderPrivKey.PubKey().Address().Bytes(), balance, pubkeyBytes, 0, 0)
+	//amount, ok := sdk.NewIntFromString("10000000000000000000")
+	//require.True(t, ok)
 
 	//fromBalance := suite.App().AccountKeeper.GetAccount(suite.ctx, cmFrom).GetCoins()
-	var account *apptypes.EthAccount
-	balance := sdk.NewCoins(okexchaintypes.NewPhotonCoin(sdk.OneInt()))
-	addr := sdk.AccAddress(pubKey.Address())
-	baseAcc := auth.NewBaseAccount(addr, balance, pubKey, 10, 50)
-	account = &apptypes.EthAccount{
-		BaseAccount: baseAcc,
-		CodeHash:    []byte{1, 2},
-	}
-	fmt.Println(account)
-	// balance := banktypes.Balance{
-	// 	Address: acc.GetAddress().String(),
-	// 	Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, amount)),
-	// }
+	//var account *apptypes.EthAccount
+	//balance = sdk.NewCoins(okexchaintypes.NewPhotonCoin(amount))
+	//addr := sdk.AccAddress(pubKey.Address())
+	//baseAcc := auth.NewBaseAccount(addr, balance, pubKey, 10, 50)
+	//account = &apptypes.EthAccount{
+	//	BaseAccount: baseAcc,
+	//	CodeHash:    []byte{1, 2},
+	//}
+	//fmt.Println(account)
+	//// balance := banktypes.Balance{
+	//// 	Address: acc.GetAddress().String(),
+	//// 	Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, amount)),
+	//// }
 
-	app := SetupWithGenesisValSet(t, valSet, []authtypes.GenesisAccount{acc}, balance)
+	app := SetupWithGenesisValSet(t, valSet, []authtypes.GenesisAccount{account}, balance)
 
 	// create current header and call begin block
 	header := tmproto.Header{
@@ -178,11 +183,13 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 		vals:          valSet,
 		signers:       signers,
 		senderPrivKey: senderPrivKey,
-		senderAccount: acc,
+		senderAccount: account,
 	}
 
-	coord.UpdateNextBlock(tchain)
+	//coord.UpdateNextBlock(tchain)
 	coord.CommitBlock(tchain)
+	//
+	//coord.UpdateNextBlock(tchain)
 
 	return tchain
 }
@@ -193,6 +200,9 @@ func (chain *TestChain) GetContext() sdk.Context {
 }
 
 func (chain *TestChain) TxConfig() client.TxConfig {
+	interfaceRegistry := types2.NewInterfaceRegistry()
+	marshaler := codec.NewProtoCodec(interfaceRegistry)
+	chain.txConfig = ibc_tx.NewTxConfig(marshaler, ibc_tx.DefaultSignModes)
 	return chain.txConfig
 }
 
@@ -317,6 +327,7 @@ func (chain *TestChain) UpdateNextBlock() {
 		ValidatorsHash:     chain.Vals().Hash(chain.App().LastBlockHeight() + 1),
 		NextValidatorsHash: chain.Vals().Hash(chain.App().LastBlockHeight() + 1),
 	})
+	chain.App().BeginBlock(abci.RequestBeginBlock{Header: chain.CurrentHeader()})
 }
 
 // sendMsgs delivers a transaction through the application without returning the result.
@@ -337,7 +348,8 @@ func (chain *TestChain) SendMsgs(msgs ...ibcmsg.Msg) (*sdk.Result, error) {
 		chain.t,
 		chain.TxConfig(),
 		chain.App().GetBaseApp(),
-		chain.GetContextPointer().BlockHeader(),
+		//chain.GetContextPointer().BlockHeader(),
+		chain.CurrentHeader(),
 		msgs,
 		chain.ChainID(),
 		[]uint64{chain.SenderAccount().GetAccountNumber()},
@@ -630,7 +642,6 @@ func (chain *TestChain) GetContextPointer() *sdk.Context {
 	return &chain.context
 }
 
-//func (chain *TestChain) GetClientState(clientID string) exported.ClientState {}
 //func (chain *TestChain) QueryProof(key []byte) ([]byte, clienttypes.Height)  {}
 //func (chain *TestChain) GetConsensusState(clientID string, height exported.Height) (exported.ConsensusState, bool) {
 //}
@@ -687,7 +698,7 @@ func (chain *TestChain) Coordinator() *Coordinator {
 }
 
 func (chain *TestChain) CurrentHeaderTime(t time.Time) {
-	chain.CurrentHeader().Time = t
+	chain.currentHeader.Time = t
 }
 
 //func QueryProofAtHeight(key []byte, height uint64) ([]byte, clienttypes.Height) {}

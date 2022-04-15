@@ -46,6 +46,7 @@ import (
 	ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
 	ibcporttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
 	ibchost "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	staking2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/staking"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
@@ -317,20 +318,20 @@ func NewSimApp(
 		codecProxy.GetCdc(), keys[supply.StoreKey], &app.AccountKeeper, app.BankKeeper, maccPerms,
 	)
 
-	stakingKeeper := staking.NewKeeper(
+	stakingKeeper := staking2.NewStakingKeeper(
 		codecProxy, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
-	)
+	).Keeper
 	app.ParamsKeeper.SetStakingKeeper(stakingKeeper)
 	app.MintKeeper = mint.NewKeeper(
-		codecProxy.GetCdc(), keys[mint.StoreKey], app.subspaces[mint.ModuleName], &stakingKeeper,
+		codecProxy.GetCdc(), keys[mint.StoreKey], app.subspaces[mint.ModuleName], stakingKeeper,
 		app.SupplyKeeper, auth.FeeCollectorName, farm.MintFarmingAccount,
 	)
 	app.DistrKeeper = distr.NewKeeper(
-		codecProxy.GetCdc(), keys[distr.StoreKey], app.subspaces[distr.ModuleName], &stakingKeeper,
+		codecProxy.GetCdc(), keys[distr.StoreKey], app.subspaces[distr.ModuleName], stakingKeeper,
 		app.SupplyKeeper, auth.FeeCollectorName, app.ModuleAccountAddrs(),
 	)
 	app.SlashingKeeper = slashing.NewKeeper(
-		codecProxy.GetCdc(), keys[slashing.StoreKey], &stakingKeeper, app.subspaces[slashing.ModuleName],
+		codecProxy.GetCdc(), keys[slashing.StoreKey], stakingKeeper, app.subspaces[slashing.ModuleName],
 	)
 	app.CrisisKeeper = crisis.NewKeeper(
 		app.subspaces[crisis.ModuleName], invCheckPeriod, app.SupplyKeeper, auth.FeeCollectorName,
@@ -344,7 +345,7 @@ func NewSimApp(
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
 		keys[token.StoreKey], keys[token.KeyLock], app.marshal.GetCdc(), false, &app.AccountKeeper)
 
-	app.DexKeeper = dex.NewKeeper(auth.FeeCollectorName, app.SupplyKeeper, app.subspaces[dex.ModuleName], app.TokenKeeper, &stakingKeeper,
+	app.DexKeeper = dex.NewKeeper(auth.FeeCollectorName, app.SupplyKeeper, app.subspaces[dex.ModuleName], app.TokenKeeper, stakingKeeper,
 		app.BankKeeper, app.keys[dex.StoreKey], app.keys[dex.TokenPairStoreKey], app.marshal.GetCdc())
 
 	app.OrderKeeper = order.NewKeeper(
@@ -373,7 +374,7 @@ func NewSimApp(
 	scopedIBCMockKeeper := app.CapabilityKeeper.ScopeToModule("mock")
 
 	app.IBCKeeper = ibc.NewKeeper(
-		codecProxy, keys[ibchost.StoreKey], app.GetSubspace(ibchost.ModuleName), &stakingKeeper, app.UpgradeKeeper, &scopedIBCKeeper, interfaceReg,
+		codecProxy, keys[ibchost.StoreKey], app.GetSubspace(ibchost.ModuleName), stakingKeeper, app.UpgradeKeeper, &scopedIBCKeeper, interfaceReg,
 	)
 
 	// Create Transfer Keepers
@@ -408,7 +409,7 @@ func NewSimApp(
 		AddRoute(erc20.RouterKey, &app.Erc20Keeper)
 	app.GovKeeper = gov.NewKeeper(
 		app.marshal.GetCdc(), app.keys[gov.StoreKey], app.ParamsKeeper, app.subspaces[gov.DefaultParamspace],
-		app.SupplyKeeper, &stakingKeeper, gov.DefaultParamspace, govRouter,
+		app.SupplyKeeper, stakingKeeper, gov.DefaultParamspace, govRouter,
 		app.BankKeeper, govProposalHandlerRouter, auth.FeeCollectorName,
 	)
 	app.ParamsKeeper.SetGovKeeper(app.GovKeeper)
@@ -458,7 +459,7 @@ func NewSimApp(
 		farm.NewAppModule(app.FarmKeeper),
 		params.NewAppModule(app.ParamsKeeper),
 		// ibc
-		ibc.NewAppModule(app.IBCKeeper),
+		ibc.NewAppModule(codecProxy, app.IBCKeeper),
 		capabilityModule.NewAppModule(codecProxy, *app.CapabilityKeeper),
 		transferModule,
 		erc20.NewAppModule(app.Erc20Keeper),
@@ -525,7 +526,7 @@ func NewSimApp(
 		distr.NewAppModule(app.DistrKeeper, app.SupplyKeeper),
 		slashing.NewAppModule(app.SlashingKeeper, app.AccountKeeper, app.StakingKeeper),
 		params.NewAppModule(app.ParamsKeeper), // NOTE: only used for simulation to generate randomized param change proposals
-		ibc.NewAppModule(app.IBCKeeper),
+		ibc.NewAppModule(codecProxy, app.IBCKeeper),
 	)
 
 	app.sm.RegisterStoreDecoders()
@@ -604,6 +605,7 @@ func (app *SimApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.Re
 func (app *SimApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
 
 	var genesisState simapp.GenesisState
+	//app.UpgradeKeeper.SetModuleVersionMap(ctx, app.mm.GetVersionMap())
 	app.marshal.GetCdc().MustUnmarshalJSON(req.AppStateBytes, &genesisState)
 	return app.mm.InitGenesis(ctx, genesisState)
 }

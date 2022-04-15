@@ -1,6 +1,7 @@
 package keeper_test
 
 import (
+	"github.com/okex/exchain/libs/tendermint/types"
 	"testing"
 
 	tmproto "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -25,6 +26,7 @@ type KeeperTestSuite struct {
 }
 
 func (suite *KeeperTestSuite) SetupTest() {
+	types.EnableVeneus1Feature()
 	isCheckTx := false
 	app := simapp.Setup(isCheckTx)
 

@@ -1,7 +1,6 @@
 package keeper_test
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	tmproto "github.com/okex/exchain/libs/tendermint/abci/types"
 	stakingtypes "github.com/okex/exchain/x/staking/types"
@@ -73,6 +72,7 @@ type KeeperTestSuite struct {
 }
 
 func (suite *KeeperTestSuite) SetupTest() {
+	tmtypes.EnableVeneus1Feature()
 	suite.coordinator = ibctesting.NewCoordinator(suite.T(), 2)
 
 	suite.chainA = suite.coordinator.GetChain(ibctesting.GetChainID(0))
@@ -134,9 +134,9 @@ func (suite *KeeperTestSuite) SetupTest() {
 	suite.chainA.App().GetIBCKeeper().ClientKeeper.SetClientState(suite.chainA.GetContext(), exported.Localhost, localHostClient)
 
 	// TODO: deprecate
-	queryHelper := baseapp.NewQueryServerTestHelper(suite.ctx, app.InterfaceRegistry())
-	types.RegisterQueryServer(queryHelper, app.IBCKeeper.ClientKeeper)
-	suite.queryClient = types.NewQueryClient(queryHelper)
+	//queryHelper := baseapp.NewQueryServerTestHelper(suite.ctx, app.InterfaceRegistry())
+	//types.RegisterQueryServer(queryHelper, app.IBCKeeper.ClientKeeper)
+	//suite.queryClient = types.NewQueryClient(queryHelper)
 }
 
 func TestKeeperTestSuite(t *testing.T) {

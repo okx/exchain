@@ -185,11 +185,9 @@ func GetChainID(index int) string {
 func (coord *Coordinator) CommitBlock(chains ...TestChainI) {
 	for _, chain := range chains {
 		//chain.NextBlock()
-		chain.BeginBlock()
+		//chain.BeginBlock()
 		chain.App().Commit(abci.RequestCommit{})
 		chain.UpdateNextBlock()
-		//todo ywmet
-		//chain.App().Commit(abci.RequestCommit{})
 		//chain.NextBlock()
 	}
 	coord.IncrementTime()

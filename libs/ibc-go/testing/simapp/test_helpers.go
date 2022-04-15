@@ -54,7 +54,7 @@ func setup(withGenesis bool, invCheckPeriod uint) (*SimApp, GenesisState) {
 	db := dbm.NewMemDB()
 	app := NewSimApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, invCheckPeriod)
 	if withGenesis {
-		return app, NewDefaultGenesisState(nil)
+		return app, NewDefaultGenesisState()
 	}
 	return app, GenesisState{}
 }

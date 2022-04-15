@@ -45,7 +45,7 @@ func (suite *TransferTestSuite) TestHandleMsgTransfer() {
 	path := NewTransferPath(suite.chainA, suite.chainB)
 	suite.coordinator.Setup(path)
 
-	//	originalBalance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.SenderAccount.GetAddress(), sdk.DefaultBondDenom)
+	//	originalBalance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.SenderAccount().GetAddress(), sdk.DefaultBondDenom)
 	timeoutHeight := clienttypes.NewHeight(0, 110)
 
 	amount, ok := sdk.NewIntFromString("9223372036854775808") // 2^63 (one above int64)
@@ -67,7 +67,7 @@ func (suite *TransferTestSuite) TestHandleMsgTransfer() {
 
 	// check that voucher exists on chain B
 	voucherDenomTrace := types.ParseDenomTrace(types.GetPrefixedDenom(packet.GetDestPort(), packet.GetDestChannel(), sdk.DefaultBondDenom))
-	//balance := suite.chainB.GetSimApp().BankKeeper.GetBalance(suite.chainB.GetContext(), suite.chainB.SenderAccount.GetAddress(), voucherDenomTrace.IBCDenom())
+	//balance := suite.chainB.GetSimApp().BankKeeper.GetBalance(suite.chainB.GetContext(), suite.chainB.SenderAccount().GetAddress(), voucherDenomTrace.IBCDenom())
 	balance := suite.chainB.GetSimApp().BankKeeper.GetCoins(suite.chainB.GetContext(), suite.chainB.SenderAccount().GetAddress())
 
 	coinSentFromAToB := types.GetTransferCoin(path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, sdk.DefaultBondDenom, amount.Int64())

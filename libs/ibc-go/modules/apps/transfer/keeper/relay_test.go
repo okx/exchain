@@ -284,13 +284,13 @@ func (suite *KeeperTestSuite) TestOnAcknowledgementPacket() {
 			data := types.NewFungibleTokenPacketData(trace.GetFullDenomPath(), amount.String(), suite.chainA.SenderAccount().GetAddress().String(), suite.chainB.SenderAccount().GetAddress().String())
 			packet := channeltypes.NewPacket(data.GetBytes(), 1, path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, clienttypes.NewHeight(0, 100), 0)
 
-			// preCoin := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.SenderAccount.GetAddress(), trace.IBCDenom())
+			// preCoin := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.SenderAccount().GetAddress(), trace.IBCDenom())
 			preCoin := suite.chainA.GetSimApp().BankKeeper.GetCoins(suite.chainA.GetContext(), suite.chainA.SenderAccount().GetAddress())
 
 			err := suite.chainA.GetSimApp().TransferKeeper.OnAcknowledgementPacket(suite.chainA.GetContext(), packet, data, tc.ack)
 			if tc.expPass {
 				suite.Require().NoError(err)
-				// postCoin := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.SenderAccount.GetAddress(), trace.IBCDenom())
+				// postCoin := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.SenderAccount().GetAddress(), trace.IBCDenom())
 				postCoin := suite.chainA.GetSimApp().BankKeeper.GetCoins(suite.chainA.GetContext(), suite.chainA.SenderAccount().GetAddress())
 				// deltaAmount := postCoin.Amount.Sub(preCoin.Amount)
 				deltaAmount := postCoin.Sub(preCoin)
@@ -374,12 +374,12 @@ func (suite *KeeperTestSuite) TestOnTimeoutPacket() {
 			data := types.NewFungibleTokenPacketData(trace.GetFullDenomPath(), amount.String(), sender, suite.chainB.SenderAccount().GetAddress().String())
 			packet := channeltypes.NewPacket(data.GetBytes(), 1, path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, clienttypes.NewHeight(0, 100), 0)
 
-			// preCoin := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.SenderAccount.GetAddress(), trace.IBCDenom())
+			// preCoin := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.SenderAccount().GetAddress(), trace.IBCDenom())
 			preCoin := suite.chainA.GetSimApp().BankKeeper.GetCoins(suite.chainA.GetContext(), suite.chainA.SenderAccount().GetAddress())
 
 			err := suite.chainA.GetSimApp().TransferKeeper.OnTimeoutPacket(suite.chainA.GetContext(), packet, data)
 
-			// postCoin := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.SenderAccount.GetAddress(), trace.IBCDenom())
+			// postCoin := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.SenderAccount().GetAddress(), trace.IBCDenom())
 			postCoin := suite.chainA.GetSimApp().BankKeeper.GetCoins(suite.chainA.GetContext(), suite.chainA.SenderAccount().GetAddress())
 			// deltaAmount := postCoin.Amount.Sub(preCoin.Amount)
 			deltaAmount := postCoin.Sub(preCoin)

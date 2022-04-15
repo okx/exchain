@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/suite"
 	// "github.com/tendermint/tendermint/crypto"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
@@ -32,9 +31,10 @@ func (suite *KeeperTestSuite) SetupTest() {
 	suite.chainB = suite.coordinator.GetChain(ibctesting.GetChainID(1))
 	suite.chainC = suite.coordinator.GetChain(ibctesting.GetChainID(2))
 
-	queryHelper := baseapp.NewQueryServerTestHelper(suite.chainA.GetContext(), suite.chainA.GetSimApp().InterfaceRegistry())
-	types.RegisterQueryServer(queryHelper, suite.chainA.GetSimApp().TransferKeeper)
-	suite.queryClient = types.NewQueryClient(queryHelper)
+	//todo no query
+	//queryHelper := baseapp.NewQueryServerTestHelper(suite.chainA.GetContext(), suite.chainA.GetSimApp().InterfaceRegistry())
+	//types.RegisterQueryServer(queryHelper, suite.chainA.GetSimApp().TransferKeeper)
+	//suite.queryClient = types.NewQueryClient(queryHelper)
 }
 
 func NewTransferPath(chainA, chainB ibctesting.TestChainI) *ibctesting.Path {

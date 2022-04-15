@@ -3,6 +3,7 @@ package keeper_test
 import (
 	"encoding/hex"
 	"fmt"
+	"math"
 	"time"
 
 	// tmtypes "github.com/tendermint/tendermint/types"
@@ -15,6 +16,10 @@ import (
 	ibctmtypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
 	localhosttypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/09-localhost/types"
 	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
+)
+
+const (
+	IBCHeight = math.MaxInt64 / 2
 )
 
 func (suite *KeeperTestSuite) TestCreateClient() {
@@ -104,7 +109,7 @@ func (suite *KeeperTestSuite) TestUpdateClientTendermint() {
 			// store previous consensus state
 			prevConsState := &ibctmtypes.ConsensusState{
 				Timestamp:          suite.past,
-				NextValidatorsHash: suite.chainB.Vals().Hash(),
+				NextValidatorsHash: suite.chainB.Vals().Hash(IBCHeight),
 			}
 			suite.chainA.App().GetIBCKeeper().ClientKeeper.SetClientConsensusState(suite.chainA.GetContext(), clientID, height1, prevConsState)
 
@@ -112,7 +117,7 @@ func (suite *KeeperTestSuite) TestUpdateClientTendermint() {
 			// store next consensus state to check that trustedHeight does not need to be hightest consensus state before header height
 			nextConsState := &ibctmtypes.ConsensusState{
 				Timestamp:          suite.past.Add(time.Minute),
-				NextValidatorsHash: suite.chainB.Vals().Hash(),
+				NextValidatorsHash: suite.chainB.Vals().Hash(IBCHeight),
 			}
 			suite.chainA.App().GetIBCKeeper().ClientKeeper.SetClientConsensusState(suite.chainA.GetContext(), clientID, height5, nextConsState)
 
@@ -130,7 +135,7 @@ func (suite *KeeperTestSuite) TestUpdateClientTendermint() {
 			// store previous consensus state
 			prevConsState := &ibctmtypes.ConsensusState{
 				Timestamp:          suite.past,
-				NextValidatorsHash: suite.chainB.Vals().Hash(),
+				NextValidatorsHash: suite.chainB.Vals().Hash(IBCHeight),
 			}
 			suite.chainA.App().GetIBCKeeper().ClientKeeper.SetClientConsensusState(suite.chainA.GetContext(), clientID, height1, prevConsState)
 
@@ -138,7 +143,7 @@ func (suite *KeeperTestSuite) TestUpdateClientTendermint() {
 			// store next consensus state to check that trustedHeight does not need to be hightest consensus state before header height
 			nextConsState := &ibctmtypes.ConsensusState{
 				Timestamp:          suite.past.Add(time.Minute),
-				NextValidatorsHash: suite.chainB.Vals().Hash(),
+				NextValidatorsHash: suite.chainB.Vals().Hash(IBCHeight),
 			}
 			suite.chainA.App().GetIBCKeeper().ClientKeeper.SetClientConsensusState(suite.chainA.GetContext(), clientID, height5, nextConsState)
 
@@ -161,7 +166,7 @@ func (suite *KeeperTestSuite) TestUpdateClientTendermint() {
 			incrementedClientHeight := clientState.GetLatestHeight().Increment().(types.Height)
 			intermediateConsState := &ibctmtypes.ConsensusState{
 				Timestamp:          suite.coordinator.CurrentTime.Add(2 * time.Hour),
-				NextValidatorsHash: suite.chainB.Vals().Hash(),
+				NextValidatorsHash: suite.chainB.Vals().Hash(IBCHeight),
 			}
 			suite.chainA.App().GetIBCKeeper().ClientKeeper.SetClientConsensusState(suite.chainA.GetContext(), clientID, incrementedClientHeight, intermediateConsState)
 			// set iteration key

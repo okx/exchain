@@ -7,6 +7,7 @@ import (
 
 // GetIbcEnabled retrieves the ibc enabled boolean from the param store
 func (k Keeper) GetIbcEnabled(ctx sdk.Context) bool {
+	return true
 	var res bool
 	k.paramSpace.Get(ctx, types.KeyIbcEnabled, &res)
 	return res

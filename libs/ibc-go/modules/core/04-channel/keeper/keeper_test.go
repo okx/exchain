@@ -1,6 +1,7 @@
 package keeper_test
 
 import (
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"testing"
 
 	"github.com/stretchr/testify/suite"
@@ -27,6 +28,7 @@ func TestKeeperTestSuite(t *testing.T) {
 
 // SetupTest creates a coordinator with 2 test chains.
 func (suite *KeeperTestSuite) SetupTest() {
+	types2.EnableVeneus1Feature()
 	suite.coordinator = ibctesting.NewCoordinator(suite.T(), 2)
 	suite.chainA = suite.coordinator.GetChain(ibctesting.GetChainID(0))
 	suite.chainB = suite.coordinator.GetChain(ibctesting.GetChainID(1))

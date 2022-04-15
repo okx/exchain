@@ -140,15 +140,16 @@ func TestSetRevisionNumber(t *testing.T) {
 
 func (suite *TypesTestSuite) TestSelfHeight() {
 	ctx := suite.chainA.GetContext()
+	ctxP := suite.chainA.GetContextPointer()
 
 	// Test default revision
-	ctx = ctx.WithChainID("gaiamainnet")
+	ctx = *(ctxP.SetChainID("gaiamainnet"))
 	ctx = ctx.WithBlockHeight(10)
 	height := types.GetSelfHeight(ctx)
 	suite.Require().Equal(types.NewHeight(0, 10), height, "default self height failed")
 
 	// Test successful revision format
-	ctx = ctx.WithChainID("gaiamainnet-3")
+	ctx = *(ctx.SetChainID("gaiamainnet-3"))
 	ctx = ctx.WithBlockHeight(18)
 	height = types.GetSelfHeight(ctx)
 	suite.Require().Equal(types.NewHeight(3, 18), height, "valid self height failed")

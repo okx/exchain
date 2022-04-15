@@ -40,7 +40,7 @@ func (am CapabilityModuleAdapter) initGenesis(ctx sdk.Context, data json.RawMess
 	// Initialize global index to index in genesis state
 	adapter.ModuleCdc.MustUnmarshalJSON(data, &genState)
 
-	capabilityModule.InitGenesis(ctx, am.tkeeper, genState)
+	capabilityModule.InitGenesis(ctx, am.tkeeper, &genState)
 
 	return []abci.ValidatorUpdate{}
 }

@@ -1,16 +1,17 @@
 package client_test
 
 import (
+	client "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
+	"testing"
+
 	upgradetypes "github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"testing"
 
 	"github.com/stretchr/testify/suite"
 	// abci "github.com/tendermint/tendermint/abci/types"
 	// tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
 
-	// upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
-	client "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 	ibctmtypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
@@ -28,6 +29,7 @@ type ClientTestSuite struct {
 }
 
 func (suite *ClientTestSuite) SetupTest() {
+	types2.EnableVeneus1Feature()
 	suite.coordinator = ibctesting.NewCoordinator(suite.T(), 2)
 
 	suite.chainA = suite.coordinator.GetChain(ibctesting.GetChainID(0))
@@ -79,19 +81,19 @@ func (suite *ClientTestSuite) TestBeginBlockerConsensusState() {
 	store.Set(upgradetypes.PlanKey(), bz)
 
 	nextValsHash := []byte("nextValsHash")
-	newCtx := suite.chainA.GetContext().WithBlockHeader(abci.Header{
+	newCtx := suite.chainA.GetContextPointer().SetBlockHeader(abci.Header{
 		Height:             tmpCtx.BlockHeight(),
 		NextValidatorsHash: nextValsHash,
 	})
 
-	err := suite.chainA.GetSimApp().UpgradeKeeper.SetUpgradedClient(newCtx, plan.Height, []byte("client state"))
+	err := suite.chainA.GetSimApp().UpgradeKeeper.SetUpgradedClient(*newCtx, plan.Height, []byte("client state"))
 	suite.Require().NoError(err)
 
 	req := abci.RequestBeginBlock{Header: newCtx.BlockHeader()}
 	suite.chainA.App().BeginBlock(req)
 
 	// plan Height is at ctx.BlockHeight+1
-	consState, found := suite.chainA.GetSimApp().UpgradeKeeper.GetUpgradedConsensusState(newCtx, plan.Height)
+	consState, found := suite.chainA.GetSimApp().UpgradeKeeper.GetUpgradedConsensusState(*newCtx, plan.Height)
 	suite.Require().True(found)
 	bz, err = types.MarshalConsensusState(suite.chainA.App().AppCodec(), &ibctmtypes.ConsensusState{Timestamp: newCtx.BlockTime(), NextValidatorsHash: nextValsHash})
 	suite.Require().NoError(err)
