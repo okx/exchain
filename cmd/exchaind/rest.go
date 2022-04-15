@@ -54,6 +54,7 @@ func registerRoutes(rs *lcd.RestServer) {
 
 func registerGrpc(rs *lcd.RestServer) {
 	app.ModuleBasics.RegisterGRPCGatewayRoutes(rs.CliCtx, rs.GRPCGatewayRouter)
+	app.ModuleBasics.RegisterRPCRouterForGRPC(rs.CliCtx, rs.Mux)
 	tx.RegisterGRPCGatewayRoutes(rs.CliCtx, rs.GRPCGatewayRouter)
 }
 

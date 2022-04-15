@@ -1,6 +1,7 @@
 package module
 
 import (
+	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
@@ -20,6 +21,14 @@ func (bm BasicManager) RegisterGRPCGatewayRoutes(clientCtx clientCtx.CLIContext,
 	for _, m := range bm {
 		if ada, ok := m.(AppModuleBasicAdapter); ok {
 			ada.RegisterGRPCGatewayRoutes(clientCtx, rtr)
+		}
+	}
+}
+
+func (bm BasicManager) RegisterRPCRouterForGRPC(clientCtx clientCtx.CLIContext, rtr *mux.Router) {
+	for _, m := range bm {
+		if ada, ok := m.(AppModuleBasicAdapter); ok {
+			ada.RegisterRouterForGRPC(clientCtx, rtr)
 		}
 	}
 }

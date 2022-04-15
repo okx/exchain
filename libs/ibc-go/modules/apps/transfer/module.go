@@ -98,6 +98,8 @@ func (AppModuleBasic) GetQueryCmdV2(cdc *codec.CodecProxy, reg codectypes.Interf
 	return cli.GetQueryCmd(cdc, reg)
 }
 
+func (am AppModuleBasic) RegisterRouterForGRPC(cliCtx clientCtx.CLIContext, r *mux.Router) {}
+
 // AppModule represents the AppModule for this module
 type AppModule struct {
 	AppModuleBasic
