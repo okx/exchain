@@ -84,6 +84,16 @@ jobs:
           go-version: 1.17
 
       - name: Go Test exchain/libs
+        id: first-attempt
+        run: |
+          set -ex
+          codePath="./libs/..."
+          go list ${codePath} |xargs go test -timeout 30m -tags='norace ledger test_ledger_mock'
+        continue-on-error: true
+
+      - name: Go Test exchain/libs retry
+        id: second-attempt
+        if: steps.first-attempt.outcome != 'success'
         run: |
           set -ex
           codePath="./libs/..."
