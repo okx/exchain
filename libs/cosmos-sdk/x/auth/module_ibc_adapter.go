@@ -8,6 +8,7 @@ import (
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/rest"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	authinternaltypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/internal"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
@@ -23,6 +24,7 @@ func (am AppModule) RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 }
 
 func (am AppModule) RegisterGRPCGatewayRoutes(cliContext context.CLIContext, serveMux *runtime.ServeMux) {
+
 }
 
 func (am AppModule) RegisterTask() upgrade.HeightTask {
@@ -43,7 +45,8 @@ func (AppModuleBasic) GetQueryCmdV2(cdc *codec.CodecProxy, reg codectypes.Interf
 	return nil
 }
 
-func (AppModule) RegisterRouterForGRPC(cliCtx context.CLIContext, r *mux.Router) {
+func (am AppModule) RegisterRouterForGRPC(cliCtx context.CLIContext, r *mux.Router) {
+	rest.RegisterOriginRPCRoutersForGRPC(cliCtx, r, am.ModuleName())
 }
 
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
