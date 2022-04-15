@@ -1,4 +1,4 @@
-name: cosmos-sdk-ut
+name: ci-build
 
 on:
   push:
@@ -6,16 +6,21 @@ on:
   pull_request:
     branches: [ dev ]
 
+
 jobs:
-  cosmos-sdk:
-    name: cosmos-sdk tests
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-
       - uses: actions/setup-go@v2
         with:
           go-version: 1.17
-
-      - name: Go Test cosmos-sdk
-        run: go list ./libs/cosmos-sdk/... |xargs go test -count=1 -tags='norace ledger test_ledger_mock'
+      - name: go mod tidy
+        run:
+          go mod tidy -compat=1.17
+      - name: Cache go modules
+        run:
+          make go-mod-cache
+      - name: Build
+        run:
+          make build
