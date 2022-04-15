@@ -1,7 +1,6 @@
 package baseapp
 
 import (
-	"encoding/hex"
 	"fmt"
 	"github.com/pkg/errors"
 	"runtime/debug"
@@ -239,28 +238,24 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 	return err
 }
 
-func (app *BaseApp) asyncDeliverTx(txWithIndex []byte) {
+func (app *BaseApp) asyncDeliverTx(txWithIndex []byte, txIndex int) {
 
-	txStatus := app.parallelTxManage.txStatus[string(txWithIndex)]
-	tx, err := app.txDecoder(getRealTxByte(txWithIndex))
-	if err != nil {
-		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace), nil, txStatus.indexInBlock, txStatus.evmIndex, nil)
+	txStatus := app.parallelTxManage.extraTxsInfo[txIndex]
+
+	if txStatus.stdTx == nil {
+		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr, 0, 0, app.trace), nil, txStatus.indexInBlock, txStatus.evmIndex, nil)
 		app.parallelTxManage.workgroup.Push(asyncExe)
 		return
 	}
 
-	if txStatus == nil { //TODO why?
-		fmt.Println("asyncDeliverTx", hex.EncodeToString(txWithIndex))
-		return
-	}
-	if !txStatus.isEvmTx {
+	if !txStatus.isEvm {
 		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, txStatus.indexInBlock, txStatus.evmIndex, nil)
 		app.parallelTxManage.workgroup.Push(asyncExe)
 		return
 	}
 
 	var resp abci.ResponseDeliverTx
-	info, errM := app.runTx(runTxModeDeliverInAsync, txWithIndex, tx, LatestSimulateTxHeight)
+	info, errM := app.runTx(runTxModeDeliverInAsync, txWithIndex, txStatus.stdTx, LatestSimulateTxHeight)
 	if errM != nil {
 		resp = sdkerrors.ResponseDeliverTx(errM, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	} else {
