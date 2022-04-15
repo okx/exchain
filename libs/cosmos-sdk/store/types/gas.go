@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"math"
 )
 
@@ -80,7 +81,9 @@ func addUint64Overflow(a, b uint64) (uint64, bool) {
 }
 
 func (g *basicGasMeter) ConsumeGas(amount Gas, descriptor string) {
-	fmt.Println("ConsumeGas.", " amount:", amount, "  descriptor:", descriptor, " gasConsumed:", g.consumed)
+	if global.GetGlobalHeight() == 4329762 {
+		fmt.Println("ConsumeGas.", " amount:", amount, " consumed:", g.consumed, "  descriptor:", descriptor)
+	}
 	var overflow bool
 	// TODO: Should we set the consumed field after overflow checking?
 	g.consumed, overflow = addUint64Overflow(g.consumed, amount)

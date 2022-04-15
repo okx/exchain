@@ -7,6 +7,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/tendermint/global"
 )
 
 var (
@@ -137,12 +138,16 @@ func DeductFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.A
 			"insufficient funds to pay for fees; %s < %s", spendableCoins, fees)
 	}
 
-	fmt.Println("========================SendCoinsFromAccountToModule start==========================")
+	if global.GetGlobalHeight() == 4329762 {
+		fmt.Println("========================SendCoinsFromAccountToModule start==========================")
+	}
 	err := supplyKeeper.SendCoinsFromAccountToModule(ctx, acc.GetAddress(), types.FeeCollectorName, fees)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
 	}
-	fmt.Println("========================SendCoinsFromAccountToModule finished==========================")
+	if global.GetGlobalHeight() == 4329762 {
+		fmt.Println("========================SendCoinsFromAccountToModule finished==========================")
+	}
 
 	//if global.GetGlobalHeight() == 4329762 {
 	//	feeAcc := supplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName)
