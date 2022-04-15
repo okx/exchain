@@ -1,7 +1,6 @@
 package types
 
 import (
-	"fmt"
 	"math"
 )
 
@@ -124,7 +123,6 @@ func (g *infiniteGasMeter) Limit() Gas {
 }
 
 func (g *infiniteGasMeter) ConsumeGas(amount Gas, descriptor string) {
-	fmt.Println("infiniteGasMeter ConsumeGas. ", "amount: ", amount, " descriptor: ", descriptor)
 	var overflow bool
 	// TODO: Should we set the consumed field after overflow checking?
 	g.consumed, overflow = addUint64Overflow(g.consumed, amount)
