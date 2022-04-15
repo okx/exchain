@@ -170,7 +170,7 @@ func (dttr *dttRoutine) shouldRerun(fromIndex int, fromAccountUpdate int) {
 	}
 	if dttr.step == dttRoutineStepAnteStart || dttr.step == dttRoutineStepAnteFinished {
 		if fromAccountUpdate >= 0 && dttr.task.prevTaskIndex < fromAccountUpdate {
-			dttr.logger.Error("setPrevTaskIndexFromAccountUpdate", "index", dttr.task.index, "from", fromIndex, "step", dttr.step, "prev", dttr.task.prevTaskIndex)
+			dttr.logger.Error("setPrevTaskIndexFromAccountUpdate", "index", dttr.task.index, "from", fromIndex, "step", dttr.step, "prev", dttr.task.prevTaskIndex, "nowPrev", fromAccountUpdate)
 			dttr.task.prevTaskIndex = fromAccountUpdate
 		} else {
 			//dttr.logger.Error("shouldRerun", "index", dttr.task.index, "from", fromIndex, "step", dttr.step, "needToRerun", dttr.needToRerun)
@@ -351,16 +351,24 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		if dttr.task == nil ||
 			dttr.txIndex != dttr.task.index ||
 			dttr.step == dttRoutineStepNone || dttr.step == dttRoutineStepStart ||
-			dttr.step == dttRoutineStepFinished || dttr.step == dttRoutineStepReadyForSerial ||
-			!dttm.hasConflict(dttr.task, task) {
+			dttr.step == dttRoutineStepFinished || dttr.step == dttRoutineStepReadyForSerial {
 			continue
 		}
-		if dttr.task.index < task.index && dttr.task.index > task.prevTaskIndex {
-			task.prevTaskIndex = dttr.task.index
-			dttm.app.logger.Error("hasExistPrevTask1", "index", task.index, "prev", task.prevTaskIndex, "prevStep", dttr.step, "from", task.from)
-		} else if dttr.task.index > task.index && (dttr.task.prevTaskIndex < 0 || dttr.task.prevTaskIndex < task.index) {
-			dttr.task.prevTaskIndex = task.index
-			dttm.app.logger.Error("hasExistPrevTask2", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex, "from", task.from)
+		conflict := dttm.hasConflict(dttr.task, task)
+		if dttr.task.isEvm && task.isEvm && !conflict {
+			continue
+		}
+
+		if !dttr.task.isEvm || conflict {
+			if dttr.task.index < task.index && dttr.task.index > task.prevTaskIndex {
+				task.prevTaskIndex = dttr.task.index
+				dttm.app.logger.Error("hasExistPrevTask1", "index", task.index, "prev", task.prevTaskIndex, "noEvm", !dttr.task.isEvm)
+			}
+		} else if !task.isEvm || conflict {
+			if dttr.task.index > task.index && dttr.task.prevTaskIndex < task.index {
+				dttr.task.prevTaskIndex = task.index
+				dttm.app.logger.Error("hasExistPrevTask2", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex, "noEvm", !task.isEvm)
+			}
 		}
 	}
 	if task.prevTaskIndex >= 0 || task.index <= dttm.serialIndex { //|| dttr.needToRerun {
@@ -465,22 +473,16 @@ func (dttm *DTTManager) serialRoutine() {
 			rerunRoutines := make([]*dttRoutine, 0)
 			for i := 0; i < count; i++ {
 				dttr := dttm.dttRoutineList[i]
-				if dttr.task == nil || dttr.task.index <= task.index || dttr.step < dttRoutineStepAnteStart {
+				if dttr.task == nil || dttr.task.index <= task.index || dttr.step < dttRoutineStepAnteStart || dttr.task.prevTaskIndex > task.index {
 					continue
 				}
-				if !task.isEvm {
-					dttm.app.logger.Error("rerunFromCosmosTx", "index", dttr.task.index, "serial", task.index)
-					dttr.shouldRerun(task.index, -1)
-				} else if dttr.task.prevTaskIndex == task.index || dttm.hasConflict(dttr.task, task) { //dttr.task.from == task.from {
+
+				if dttr.task.prevTaskIndex == task.index || !task.isEvm || dttm.hasConflict(dttr.task, task) { //dttr.task.from == task.from {
 					if dttr.task.prevTaskIndex < task.index {
+						dttm.app.logger.Error("appendRerunRoutines", "index", dttr.task.index, "serial", task.index, "noEvm", !task.isEvm)
 						dttr.task.prevTaskIndex = task.index
 					}
 					rerunRoutines = append(rerunRoutines, dttr)
-					//if rerunRoutine == nil {
-					//	rerunRoutine = dttr
-					//} else if dttr.task.index < rerunRoutine.task.index {
-					//	rerunRoutine = dttr
-					//}
 				} else if dttr.task.index == dttm.serialIndex+1 {
 					nextTaskRoutine = dttr.index
 					if dttr.readyForSerialExecution() {
