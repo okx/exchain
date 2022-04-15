@@ -181,8 +181,7 @@ func (app *BaseApp) paraLoadSender(txs [][]byte) {
 }
 
 func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.ResponseDeliverTx {
-	sdk.HaveCosmosTxInBlock = false
-	//sdk.DebugLogByScf.Clean()
+	app.parallelTxManage.haveCosmosTxInBlock = false
 
 	if len(txs) == 0 {
 		return make([]*abci.ResponseDeliverTx, 0)
@@ -215,7 +214,7 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 			t.isEvmTx = true
 			evmIndex++
 		} else {
-			sdk.HaveCosmosTxInBlock = true
+			app.parallelTxManage.haveCosmosTxInBlock = true
 		}
 
 		vString := string(txWithIndex[k])
@@ -578,8 +577,9 @@ func (a *asyncWorkGroup) Start() {
 }
 
 type parallelTxManager struct {
-	isAsyncDeliverTx bool
-	workgroup        *asyncWorkGroup
+	haveCosmosTxInBlock bool
+	isAsyncDeliverTx    bool
+	workgroup           *asyncWorkGroup
 
 	fee map[string]sdk.Coins // not need mute
 
