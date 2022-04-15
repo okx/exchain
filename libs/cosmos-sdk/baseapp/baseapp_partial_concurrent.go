@@ -372,6 +372,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		}
 	}
 	if task.prevTaskIndex >= 0 || task.index <= dttm.serialIndex { //|| dttr.needToRerun {
+		dttm.app.logger.Info("DonotRunAnte.", "prev", task.prevTaskIndex, "index", task.index, "serial", dttm.serialIndex)
 		return nil
 	}
 
