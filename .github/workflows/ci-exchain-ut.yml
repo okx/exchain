@@ -39,9 +39,7 @@ jobs:
         run: |
           set -ex
           codePath="./app/..."
-          package_lines=`go list ${codePath}`
-          cover_pkgs=`echo ${package_lines[@]} | sed 's/ /,/g'`
-          go list ${codePath} |xargs go test -mod=readonly -coverpkg=${cover_pkgs} -timeout 8m -coverprofile=coverage.data -covermode=atomic
+          go list ${codePath} |xargs go test -mod=readonly -timeout 8m -coverprofile=coverage.data -covermode=atomic
         continue-on-error: true
 
       - name: Run Test exchain/app Retry on error
@@ -50,9 +48,7 @@ jobs:
         run: |
           set -ex
           codePath="./app/..."
-          package_lines=`go list ${codePath}`
-          cover_pkgs=`echo ${package_lines[@]} | sed 's/ /,/g'`
-          go list ${codePath} |xargs go test -mod=readonly -coverpkg=${cover_pkgs} -timeout 8m -coverprofile=coverage.data -covermode=atomic
+          go list ${codePath} |xargs go test -mod=readonly -timeout 8m -coverprofile=coverage.data -covermode=atomic
 
       - name: Upload code coverage
         run: |
@@ -76,9 +72,7 @@ jobs:
         run: |
           set -ex
           codePath="./x/..."
-          package_lines=`go list ${codePath}`
-          cover_pkgs=`echo ${package_lines[@]} | sed 's/ /,/g'`
-          go list ${codePath} |xargs go test -mod=readonly -coverpkg=${cover_pkgs} -timeout 8m -coverprofile=coverage.data -covermode=atomic 
+          go list ${codePath} |xargs go test -mod=readonly -timeout 8m -coverprofile=coverage.data -covermode=atomic 
         continue-on-error: true
 
       - name: Run Test exchain/x Retry
@@ -87,9 +81,7 @@ jobs:
         run: |
           set -ex
           codePath="./x/..."
-          package_lines=`go list ${codePath}`
-          cover_pkgs=`echo ${package_lines[@]} | sed 's/ /,/g'`
-          go list ${codePath} |xargs go test -mod=readonly -coverpkg=${cover_pkgs} -timeout 8m -coverprofile=coverage.data -covermode=atomic 
+          go list ${codePath} |xargs go test -mod=readonly -timeout 8m -coverprofile=coverage.data -covermode=atomic 
 
       - name: Upload code coverage
         run: |
@@ -124,7 +116,7 @@ jobs:
           set -ex
           codePath="./libs/tendermint/..."
           go list ${codePath} |xargs go test -timeout 30m -tags='norace ledger test_ledger_mock'
-          
+
   libscosmos:
     name: libs cosmos ut
     needs: build
