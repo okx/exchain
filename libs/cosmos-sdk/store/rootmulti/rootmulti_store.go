@@ -223,6 +223,10 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 				continue
 			}
 
+			if storeParams.key.Name() == "evm2" && !tmtypes.HigherThanMars(latestVersion) {
+				continue
+			}
+
 			commitVersion, err := rs.getCommitVersionFromParams(storeParams)
 			if err != nil {
 				return 0, err
@@ -271,6 +275,19 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 		if mptInfo.Core.CommitID.Version == 0 {
 			mptInfo.Core.CommitID.Version = ver
 			infos[mpt.StoreKey] = mptInfo
+		}
+
+		evmConfigInfo := infos["evm2"]
+		if evmConfigInfo.Core.CommitID.Version == 0 {
+			evmConfigInfo.Core.CommitID.Version = ver
+			infos["evm2"] = evmConfigInfo
+
+			for key, param := range rs.storesParams {
+				if key.Name() == "evm2" {
+					param.initialVersion = uint64(ver)
+					rs.storesParams[key] = param
+				}
+			}
 		}
 
 		//if upgrade version ne
@@ -575,8 +592,14 @@ func (rs *Store) pruneStores() {
 	//stores = rs.stores
 	for key, store := range stores {
 		if store.GetStoreType() == types.StoreTypeIAVL {
-			if (key.Name() == "acc" || key.Name() == "evm") && tmtypes.HigherThanMars(rs.lastCommitInfo.Version) {
-				continue
+			if tmtypes.HigherThanMars(rs.lastCommitInfo.Version) {
+				if key.Name() == "acc" || key.Name() == "evm" {
+					continue
+				}
+			} else {
+				if key.Name() == "evm2" && !mpt.EnableDoubleWrite{
+					continue
+				}
 			}
 
 			// If the store is wrapped with an inter-block cache, we must first unwrap
@@ -1067,8 +1090,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 				continue
 			}
 		} else {
-			// old version, mpt(acc) store
-			if key.Name() == mpt.StoreKey && !mpt.EnableDoubleWrite {
+			if (key.Name() == mpt.StoreKey || key.Name() == "evm2") && !mpt.EnableDoubleWrite{
 				continue
 			}
 		}
@@ -1087,7 +1109,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		}
 
 		// old version, mpt(acc) store, never allowed to participate the process of calculate root hash, or it will lead to SMB!
-		if !tmtypes.HigherThanMars(version) && key.Name() == mpt.StoreKey {
+		if !tmtypes.HigherThanMars(version) && (key.Name() == mpt.StoreKey || key.Name() == "evm2") {
 			continue
 		}
 

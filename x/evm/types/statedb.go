@@ -35,6 +35,7 @@ type revision struct {
 
 type CommitStateDBParams struct {
 	StoreKey      sdk.StoreKey
+	Store2Key     sdk.StoreKey
 	ParamSpace    Subspace
 	AccountKeeper AccountKeeper
 	SupplyKeeper  SupplyKeeper
@@ -86,6 +87,7 @@ type CommitStateDB struct {
 	ctx sdk.Context
 
 	storeKey      sdk.StoreKey
+	store2Key     sdk.StoreKey
 	paramSpace    Subspace
 	accountKeeper AccountKeeper
 	supplyKeeper  SupplyKeeper
@@ -167,6 +169,7 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 		originalRoot: csdbParams.RootHash,
 
 		storeKey:      csdbParams.StoreKey,
+		store2Key:     csdbParams.Store2Key,
 		paramSpace:    csdbParams.ParamSpace,
 		accountKeeper: csdbParams.AccountKeeper,
 		supplyKeeper:  csdbParams.SupplyKeeper,
@@ -239,16 +242,17 @@ func (csdb *CommitStateDB) SetHeightHash(height uint64, hash ethcmn.Hash) {
 		defer analyzer.StopTxLog(funcName)
 	}
 
+	var store StoreProxy
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		csdb.setHeightHashInRawDB(height, hash)
-		return
+		store = csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.store2Key), KeyPrefixHeightHash)
+	} else {
+		store = csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
 	}
 
-	store := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
 	key := HeightHashKey(height)
 	store.Set(key, hash.Bytes())
-	if mpt.EnableDoubleWrite {
-		csdb.setHeightHashInRawDB(height, hash)
+	if mpt.EnableDoubleWrite && !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		csdb.dbAdapter.NewStore(csdb.ctx.MultiStore().GetKVStore(csdb.store2Key), KeyPrefixHeightHash).Set(key, hash.Bytes())
 	}
 }
 
@@ -511,11 +515,13 @@ func (csdb *CommitStateDB) SlotInAccessList(addr ethcmn.Address, slot ethcmn.Has
 
 // GetHeightHash returns the block header hash associated with a given block height and chain epoch number.
 func (csdb *CommitStateDB) GetHeightHash(height uint64) ethcmn.Hash {
+	var store StoreProxy
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		return csdb.getHeightHashInRawDB(height)
+		store = csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.store2Key), KeyPrefixHeightHash)
+	} else {
+		store = csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
 	}
 
-	store := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
 	key := HeightHashKey(height)
 	bz := store.Get(key)
 	if len(bz) == 0 {
@@ -1289,18 +1295,18 @@ func (csdb *CommitStateDB) SetContractDeploymentWhitelist(addrList AddressList) 
 			csdb.Watcher.SaveContractDeploymentWhitelistItem(addrList[i])
 		}
 	}
+
+	var store StoreProxy
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		for i := 0; i < len(addrList); i++ {
-			csdb.setWhiteAddressInRawDB(addrList[i])
-		}
-		return
+		store = csdb.ctx.KVStore(csdb.store2Key)
+	} else {
+		store = csdb.ctx.KVStore(csdb.storeKey)
 	}
 
-	store := csdb.ctx.KVStore(csdb.storeKey)
 	for i := 0; i < len(addrList); i++ {
 		store.Set(GetContractDeploymentWhitelistMemberKey(addrList[i]), []byte(""))
-		if mpt.EnableDoubleWrite {
-			csdb.setWhiteAddressInRawDB(addrList[i])
+		if mpt.EnableDoubleWrite && !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+			csdb.ctx.MultiStore().GetKVStore(csdb.store2Key).Set(GetContractDeploymentWhitelistMemberKey(addrList[i]), []byte(""))
 		}
 	}
 }
@@ -1313,29 +1319,30 @@ func (csdb *CommitStateDB) DeleteContractDeploymentWhitelist(addrList AddressLis
 		}
 	}
 
+	var store StoreProxy
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		for i := 0; i < len(addrList); i++ {
-			csdb.deleteWhiteAddressInRawDB(addrList[i])
-		}
-		return
+		store = csdb.ctx.KVStore(csdb.store2Key)
+	} else {
+		store = csdb.ctx.KVStore(csdb.storeKey)
 	}
 
-	store := csdb.ctx.KVStore(csdb.storeKey)
 	for i := 0; i < len(addrList); i++ {
 		store.Delete(GetContractDeploymentWhitelistMemberKey(addrList[i]))
-		if mpt.EnableDoubleWrite {
-			csdb.deleteWhiteAddressInRawDB(addrList[i])
+		if mpt.EnableDoubleWrite && !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+			csdb.ctx.MultiStore().GetKVStore(csdb.store2Key).Delete(GetContractDeploymentWhitelistMemberKey(addrList[i]))
 		}
 	}
 }
 
 // GetContractDeploymentWhitelist gets the whole contract deployment whitelist currently
 func (csdb *CommitStateDB) GetContractDeploymentWhitelist() (whitelist AddressList) {
+	var store sdk.KVStore
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		return csdb.getWhitelistInRawDB()
+		store = csdb.ctx.KVStore(csdb.store2Key)
+	} else {
+		store = csdb.ctx.KVStore(csdb.storeKey)
 	}
 
-	store := csdb.ctx.KVStore(csdb.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, KeyPrefixContractDeploymentWhitelist)
 	defer iterator.Close()
 
@@ -1348,11 +1355,13 @@ func (csdb *CommitStateDB) GetContractDeploymentWhitelist() (whitelist AddressLi
 
 // IsDeployerInWhitelist checks whether the deployer is in the whitelist as a distributor
 func (csdb *CommitStateDB) IsDeployerInWhitelist(deployerAddr sdk.AccAddress) bool {
+	var bs StoreProxy
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		return csdb.isWhiteAddressInRawDB(deployerAddr)
+		bs = csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.store2Key), KeyPrefixContractDeploymentWhitelist)
+	} else {
+		bs = csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractDeploymentWhitelist)
 	}
 
-	bs := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractDeploymentWhitelist)
 	return bs.Has(deployerAddr)
 }
 
@@ -1365,18 +1374,17 @@ func (csdb *CommitStateDB) SetContractBlockedList(addrList AddressList) {
 		}
 	}
 
+	var store sdk.KVStore
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		for i := 0; i < len(addrList); i++ {
-			csdb.setBlockedAddressInRawDB(addrList[i], []byte(""))
-		}
-		return
+		store = csdb.ctx.KVStore(csdb.store2Key)
+	} else {
+		store = csdb.ctx.KVStore(csdb.storeKey)
 	}
 
-	store := csdb.ctx.KVStore(csdb.storeKey)
 	for i := 0; i < len(addrList); i++ {
 		store.Set(GetContractBlockedListMemberKey(addrList[i]), []byte(""))
-		if mpt.EnableDoubleWrite {
-			csdb.setBlockedAddressInRawDB(addrList[i], []byte(""))
+		if mpt.EnableDoubleWrite && !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+			csdb.ctx.MultiStore().GetKVStore(csdb.store2Key).Set(GetContractBlockedListMemberKey(addrList[i]), []byte(""))
 		}
 	}
 }
@@ -1390,29 +1398,30 @@ func (csdb *CommitStateDB) DeleteContractBlockedList(addrList AddressList) {
 		}
 	}
 
+	var store sdk.KVStore
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		for i := 0; i < len(addrList); i++ {
-			csdb.deleteBlockedAddressInRawDB(addrList[i])
-		}
-		return
+		store = csdb.ctx.KVStore(csdb.store2Key)
+	} else {
+		store = csdb.ctx.KVStore(csdb.storeKey)
 	}
 
-	store := csdb.ctx.KVStore(csdb.storeKey)
 	for i := 0; i < len(addrList); i++ {
 		store.Delete(GetContractBlockedListMemberKey(addrList[i]))
-		if mpt.EnableDoubleWrite {
-			csdb.deleteBlockedAddressInRawDB(addrList[i])
+		if mpt.EnableDoubleWrite && !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+			csdb.ctx.MultiStore().GetKVStore(csdb.store2Key).Delete(GetContractBlockedListMemberKey(addrList[i]))
 		}
 	}
 }
 
 // GetContractBlockedList gets the whole contract blocked list currently
 func (csdb *CommitStateDB) GetContractBlockedList() (blockedList AddressList) {
+	var store sdk.KVStore
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		return csdb.getBlockedlistInRawDB()
+		store = csdb.ctx.KVStore(csdb.store2Key)
+	} else {
+		store = csdb.ctx.KVStore(csdb.storeKey)
 	}
 
-	store := csdb.ctx.KVStore(csdb.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, KeyPrefixContractBlockedList)
 	defer iterator.Close()
 
@@ -1446,15 +1455,15 @@ func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.Ac
 		return GetEvmParamsCache().GetBlockedContractMethod(contractAddr.String())
 	}
 
-	var value []byte
+	//use dbAdapter for watchdb or prefixdb
+	var bs StoreProxy
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		value = csdb.getContractMethodBytesInRawDB(contractAddr)
+		bs = csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.store2Key), KeyPrefixContractBlockedList)
 	} else {
-		//use dbAdapter for watchdb or prefixdb
-		bs := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractBlockedList)
-		value = bs.Get(contractAddr)
+		bs = csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractBlockedList)
 	}
 
+	value := bs.Get(contractAddr)
 	if value == nil {
 		// address is not exist
 		return nil
@@ -1534,11 +1543,13 @@ func (csdb *CommitStateDB) DeleteContractMethodBlockedList(contractList BlockedC
 
 // GetContractMethodBlockedList get the list of contract method blocked from blocked list store
 func (csdb *CommitStateDB) GetContractMethodBlockedList() (blockedContractList BlockedContractList) {
+	var store sdk.KVStore
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		return csdb.getBlockedlistWithMethodsInRawDB()
+		store = csdb.ctx.KVStore(csdb.store2Key)
+	} else {
+		store = csdb.ctx.KVStore(csdb.storeKey)
 	}
 
-	store := csdb.ctx.KVStore(csdb.storeKey)
 	iterator := sdk.KVStorePrefixIterator(store, KeyPrefixContractBlockedList)
 	defer iterator.Close()
 
@@ -1579,15 +1590,16 @@ func (csdb *CommitStateDB) SetContractMethodBlocked(contract BlockedContract) {
 		csdb.Watcher.SaveContractMethodBlockedListItem(contract.Address, value)
 	}
 
+	var store sdk.KVStore
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		csdb.setBlockedAddressInRawDB(contract.Address, value)
-		return
+		store = csdb.ctx.KVStore(csdb.store2Key)
+	} else {
+		store = csdb.ctx.KVStore(csdb.storeKey)
 	}
 
 	key := GetContractBlockedListMemberKey(contract.Address)
-	store := csdb.ctx.KVStore(csdb.storeKey)
 	store.Set(key, value)
-	if mpt.EnableDoubleWrite {
-		csdb.setBlockedAddressInRawDB(contract.Address, value)
+	if mpt.EnableDoubleWrite && !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		csdb.ctx.MultiStore().GetKVStore(csdb.store2Key).Set(key, value)
 	}
 }

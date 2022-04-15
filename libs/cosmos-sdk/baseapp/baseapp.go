@@ -298,6 +298,11 @@ func (app *BaseApp) MockContext() sdk.Context {
 	return mCtx
 }
 
+// MockContext returns a initialized context
+func (app *BaseApp) GetDB() dbm.DB {
+	return app.db
+}
+
 // MountStores mounts all IAVL or DB stores to the provided keys in the BaseApp
 // multistore.
 func (app *BaseApp) MountStores(keys ...sdk.StoreKey) {

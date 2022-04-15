@@ -2,7 +2,11 @@ package mpt
 
 import (
 	"fmt"
+	iavlstore "github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
+	"github.com/okex/exchain/libs/iavl"
 	"path/filepath"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
@@ -24,6 +28,7 @@ const (
 
 	iavlAccKey = "s/k:acc/"
 	iavlEvmKey = "s/k:evm/"
+	iavlEvm2Key = "s/k:evm2/"
 )
 
 func panicError(err error) {
@@ -110,4 +115,24 @@ func writeDataToRawdb(batch ethdb.Batch) {
 		panic(err)
 	}
 	batch.Reset()
+}
+
+func getIavlTree(db dbm.DB) *iavl.MutableTree {
+	rs := rootmulti.NewStore(db)
+	latestVersion := rs.GetLatestVersion()
+
+	if latestVersion == 0 {
+		return nil
+	}
+
+	db = dbm.NewPrefixDB(db, []byte(iavlEvm2Key))
+
+	tree, _ := iavl.NewMutableTree(db,iavlstore.IavlCacheSize)
+	if tree.Version() == 0 {
+		tree, _ = iavl.NewMutableTreeWithOpts(db,iavlstore.IavlCacheSize, &iavl.Options{
+			InitialVersion: uint64(latestVersion - 1),
+		})
+	}
+
+	return tree
 }
