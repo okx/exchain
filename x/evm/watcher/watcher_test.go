@@ -107,15 +107,15 @@ func checkWD(wdBytes []byte, w *WatcherTestSt) {
 }
 
 func testWatchData(t *testing.T, w *WatcherTestSt) {
+	// produce WatchData
+	w.app.EvmKeeper.Watcher.Commit()
+	time.Sleep(time.Millisecond)
+
 	// get WatchData
 	wdFunc := w.app.EvmKeeper.Watcher.GetWatchDataFunc()
 	wd, err := wdFunc()
 	require.Nil(t, err)
 	require.NotEmpty(t, wd)
-
-	// produce WatchData
-	w.app.EvmKeeper.Watcher.Commit()
-	time.Sleep(time.Millisecond)
 
 	store := watcher.InstanceOfWatchStore()
 	pWd := getDBKV(store)
@@ -177,7 +177,7 @@ func TestHandleMsgEthereumTx(t *testing.T) {
 			w = setupTest() // reset
 			//nolint
 			tc.malleate()
-			w.ctx = w.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+			w.ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 			res, err := w.handler(w.ctx, tx)
 
 			//nolint
@@ -223,9 +223,9 @@ func TestMsgEthereumTxByWatcher(t *testing.T) {
 			w = setupTest() // reset
 			//nolint
 			tc.malleate()
-			w.ctx = w.ctx.WithIsCheckTx(true)
-			w.ctx = w.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-			w.ctx = w.ctx.WithFrom(from.String())
+			w.ctx.SetIsCheckTx(true)
+			w.ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
+			w.ctx.SetFrom(from.String())
 			res, err := w.handler(w.ctx, tx)
 
 			//nolint

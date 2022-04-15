@@ -13,7 +13,7 @@ func TestBeginBlocker(t *testing.T) {
 	ctx, _, k, _, _ := keeper.CreateTestInputDefault(t, false, 1000)
 
 	for i := int64(1); i < 10; i++ {
-		ctx = ctx.WithBlockHeight(i)
+		ctx.SetBlockHeight(i)
 		index := i % int64(len(valConsAddrs))
 		votes := []abci.VoteInfo{
 			{Validator: abci.Validator{Address: valConsPks[index].Address(), Power: 1}, SignedLastBlock: true},

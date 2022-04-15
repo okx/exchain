@@ -90,7 +90,7 @@ func initEnvironment(t *testing.T) *testContext {
 	k := mk.Keeper
 
 	var blockHeight int64 = 10
-	ctx = ctx.WithBlockHeight(blockHeight)
+	ctx.SetBlockHeight(blockHeight)
 	BeginBlocker(ctx, abci.RequestBeginBlock{Header: abci.Header{Height: blockHeight}}, k)
 
 	testBaseTokenName := swaptypes.TestBasePooledToken
@@ -249,7 +249,7 @@ func TestHandlerMsgCreatePool(t *testing.T) {
 
 				lock(t, tCtx, createPoolMsg)
 
-				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1000)
+				tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 1000)
 
 				claim(t, tCtx, createPoolMsg)
 
@@ -406,7 +406,7 @@ func TestHandlerMsgDestroyPool(t *testing.T) {
 				// provide
 				provide(t, tCtx, createPoolMsg)
 
-				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1000)
+				tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 1000)
 
 				return createPoolMsg
 			},
@@ -425,7 +425,7 @@ func TestHandlerMsgDestroyPool(t *testing.T) {
 
 				lock(t, tCtx, createPoolMsg)
 
-				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1000)
+				tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 1000)
 
 				claim(t, tCtx, createPoolMsg)
 
@@ -446,7 +446,7 @@ func TestHandlerMsgDestroyPool(t *testing.T) {
 				// provide
 				provide(t, tCtx, createPoolMsg)
 
-				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1000)
+				tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 1000)
 
 				pool, found := tCtx.k.GetFarmPool(tCtx.ctx, createPoolMsg.PoolName)
 				require.True(t, found)
@@ -473,7 +473,7 @@ func TestHandlerMsgDestroyPool(t *testing.T) {
 				// lock
 				lock(t, tCtx, createPoolMsg)
 
-				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1000)
+				tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 1000)
 
 				return createPoolMsg
 			},
@@ -632,7 +632,7 @@ func TestHandlerMsgLock(t *testing.T) {
 				// lock
 				lock(t, tCtx, createPoolMsg)
 
-				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 2)
+				tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 2)
 
 				return createPoolMsg
 			},
@@ -659,7 +659,7 @@ func TestHandlerMsgLock(t *testing.T) {
 				// lock
 				lock(t, tCtx, createPoolMsg)
 
-				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1000)
+				tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 1000)
 
 				err := tCtx.k.SupplyKeeper().SendCoinsFromModuleToAccount(tCtx.ctx, types.YieldFarmingAccount, provideMsg.Address, sdk.NewCoins(provideMsg.Amount))
 				require.Nil(t, err)
@@ -792,7 +792,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 				// lock
 				lock(t, tCtx, createPoolMsg)
 
-				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1000)
+				tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 1000)
 
 				err := tCtx.k.SupplyKeeper().SendCoinsFromModuleToAccount(tCtx.ctx, types.YieldFarmingAccount, provideMsg.Address, sdk.NewCoins(provideMsg.Amount))
 				require.Nil(t, err)
@@ -814,7 +814,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 				// lock
 				lockMsg := lock(t, tCtx, createPoolMsg)
 
-				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1000)
+				tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 1000)
 
 				err := tCtx.k.SupplyKeeper().SendCoinsFromModuleToAccount(tCtx.ctx, ModuleName, lockMsg.Address, sdk.NewCoins(lockMsg.Amount))
 				require.Nil(t, err)
@@ -833,7 +833,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 				// lock
 				lock(t, tCtx, createPoolMsg)
 
-				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1000)
+				tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 1000)
 				return createPoolMsg
 			},
 			getMsg:       normalGetUnlockMsg,
@@ -852,7 +852,7 @@ func TestHandlerMsgUnlock(t *testing.T) {
 				// lock
 				lock(t, tCtx, createPoolMsg)
 
-				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 2)
+				tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 2)
 
 				return createPoolMsg
 			},
@@ -908,7 +908,7 @@ func TestHandlerMsgClaim(t *testing.T) {
 				// lock
 				lock(t, tCtx, createPoolMsg)
 
-				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 2)
+				tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 2)
 
 				return createPoolMsg
 			},
@@ -948,7 +948,7 @@ func TestHandlerMsgClaim(t *testing.T) {
 				// lock
 				lock(t, tCtx, createPoolMsg)
 
-				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1000)
+				tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 1000)
 
 				err := tCtx.k.SupplyKeeper().SendCoinsFromModuleToAccount(tCtx.ctx, types.YieldFarmingAccount, provideMsg.Address, sdk.NewCoins(provideMsg.Amount))
 				require.Nil(t, err)
@@ -977,11 +977,11 @@ func TestHandlerMultiLockAtOneBlockHeight(t *testing.T) {
 	// create pool
 	createPoolMsg := createPool(t, tCtx)
 
-	tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 10)
+	tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 10)
 	// provide
 	provide(t, tCtx, createPoolMsg)
 
-	tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 4)
+	tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 4)
 	// lock
 	lock(t, tCtx, createPoolMsg)
 
@@ -997,7 +997,7 @@ func TestHandlerMultiLockAtOneBlockHeight(t *testing.T) {
 	createPoolMsg.Owner = tCtx.addrList[3]
 	lock(t, tCtx, createPoolMsg)
 
-	tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 4)
+	tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 4)
 
 	createPoolMsg.Owner = tCtx.addrList[4]
 	lock(t, tCtx, createPoolMsg)
@@ -1005,7 +1005,7 @@ func TestHandlerMultiLockAtOneBlockHeight(t *testing.T) {
 	createPoolMsg.Owner = tCtx.addrList[5]
 	lock(t, tCtx, createPoolMsg)
 
-	tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 4)
+	tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 4)
 
 	createPoolMsg.Owner = tCtx.addrList[6]
 	lock(t, tCtx, createPoolMsg)
@@ -1044,11 +1044,11 @@ func TestHandlerMultiLockAtOneBlockHeight2(t *testing.T) {
 	// create pool
 	createPoolMsg := createPool(t, tCtx)
 
-	tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 10)
+	tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 10)
 	// provide
 	provide(t, tCtx, createPoolMsg)
 
-	tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 4)
+	tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 4)
 	// lock
 	lock(t, tCtx, createPoolMsg)
 
@@ -1064,7 +1064,7 @@ func TestHandlerMultiLockAtOneBlockHeight2(t *testing.T) {
 	createPoolMsg.Owner = tCtx.addrList[0]
 	lock(t, tCtx, createPoolMsg)
 
-	tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 4)
+	tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 4)
 
 	createPoolMsg.Owner = tCtx.addrList[0]
 	lock(t, tCtx, createPoolMsg)
@@ -1072,7 +1072,7 @@ func TestHandlerMultiLockAtOneBlockHeight2(t *testing.T) {
 	createPoolMsg.Owner = tCtx.addrList[0]
 	lock(t, tCtx, createPoolMsg)
 
-	tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 4)
+	tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 4)
 
 	createPoolMsg.Owner = tCtx.addrList[0]
 	lock(t, tCtx, createPoolMsg)
@@ -1111,11 +1111,11 @@ func TestHandlerMultiLockAndUnlock(t *testing.T) {
 	// create pool
 	createPoolMsg := createPool(t, tCtx)
 
-	tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 10)
+	tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 10)
 	// provide
 	provide(t, tCtx, createPoolMsg)
 
-	tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 4)
+	tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 4)
 	// lock
 	lock(t, tCtx, createPoolMsg)
 
@@ -1131,7 +1131,7 @@ func TestHandlerMultiLockAndUnlock(t *testing.T) {
 	createPoolMsg.Owner = tCtx.addrList[4]
 	lock(t, tCtx, createPoolMsg)
 
-	tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 4)
+	tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 4)
 
 	createPoolMsg.Owner = tCtx.tokenOwner
 	unlock(t, tCtx, createPoolMsg)
@@ -1195,7 +1195,7 @@ func TestHandlerRandom(t *testing.T) {
 		} else {
 			writeCache()
 		}
-		tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + int64(rand.Intn(2)))
+		tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + int64(rand.Intn(2)))
 	}
 }
 
@@ -1214,7 +1214,7 @@ func TestHandlerCheckCombination(t *testing.T) {
 		{
 			caseName: "success. provide",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
-				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1)
+				tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 1)
 				return normalGetCreatePoolMsg(tCtx, nil)
 			},
 			getMsg:       normalGetProvideMsg,
@@ -1224,7 +1224,7 @@ func TestHandlerCheckCombination(t *testing.T) {
 		{
 			caseName: "success. lock address 1",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
-				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1)
+				tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 1)
 				return normalGetCreatePoolMsg(tCtx, nil)
 			},
 			getMsg:       normalGetLockMsg,
@@ -1234,7 +1234,7 @@ func TestHandlerCheckCombination(t *testing.T) {
 		{
 			caseName: "success. lock address 2",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
-				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1)
+				tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 1)
 				createPoolMsg := normalGetCreatePoolMsg(tCtx, nil).(types.MsgCreatePool)
 				createPoolMsg.Owner = tCtx.addrList[0]
 				return createPoolMsg
@@ -1253,7 +1253,7 @@ func TestHandlerCheckCombination(t *testing.T) {
 		{
 			caseName: "success. unlock address 1",
 			preExec: func(t *testing.T, tCtx *testContext) interface{} {
-				tCtx.ctx = tCtx.ctx.WithBlockHeight(tCtx.ctx.BlockHeight() + 1)
+				tCtx.ctx.SetBlockHeight(tCtx.ctx.BlockHeight() + 1)
 				return normalGetCreatePoolMsg(tCtx, nil)
 			},
 			getMsg: normalGetUnlockMsg,

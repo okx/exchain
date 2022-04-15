@@ -675,7 +675,7 @@ func buildRandomOrderMsg(addr sdk.AccAddress) MsgNewOrders {
 //		result, err := handler(ctx, msg)
 //		if (i+1)%1000 == 0 {
 //			blockHeight = blockHeight + 1
-//			ctx = ctx.WithBlockHeight(blockHeight)
+//			ctx.SetBlockHeight(blockHeight)
 //		}
 //		require.Nil(t, err)
 //		require.EqualValues(t, "", result.Log)
@@ -687,7 +687,7 @@ func buildRandomOrderMsg(addr sdk.AccAddress) MsgNewOrders {
 //	for _, quantity := range quantityList {
 //		startTime := time.Now()
 //		blockHeight = blockHeight + 1
-//		ctx = ctx.WithBlockHeight(blockHeight)
+//		ctx.SetBlockHeight(blockHeight)
 //		orderItems := []types.OrderItem{
 //			types.NewOrderItem(types.TestTokenPair, types.SellOrder, "100", quantity),
 //		}
