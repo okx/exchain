@@ -35,6 +35,18 @@ jobs:
           go-version: 1.17
 
       - name: Run Test exchain/app
+        id: first-attempt
+        run: |
+          set -ex
+          codePath="./app/..."
+          package_lines=`go list ${codePath}`
+          cover_pkgs=`echo ${package_lines[@]} | sed 's/ /,/g'`
+          go list ${codePath} |xargs go test -mod=readonly -coverpkg=${cover_pkgs} -timeout 8m -coverprofile=coverage.data -covermode=atomic
+        continue-on-error: true
+
+      - name: Run Test exchain/app Retry on error
+        id: second-attempt
+        if: steps.first-attempt.outcome != 'success'      
         run: |
           set -ex
           codePath="./app/..."
@@ -60,18 +72,32 @@ jobs:
           go-version: 1.17
 
       - name: Run Test exchain/x
+        id: first-attempt
         run: |
           set -ex
           codePath="./x/..."
           package_lines=`go list ${codePath}`
           cover_pkgs=`echo ${package_lines[@]} | sed 's/ /,/g'`
           go list ${codePath} |xargs go test -mod=readonly -coverpkg=${cover_pkgs} -timeout 8m -coverprofile=coverage.data -covermode=atomic 
+        continue-on-error: true
+
+      - name: Run Test exchain/x Retry
+        id: second-attempt
+        if: steps.first-attempt.outcome != 'success'     
+        run: |
+          set -ex
+          codePath="./x/..."
+          package_lines=`go list ${codePath}`
+          cover_pkgs=`echo ${package_lines[@]} | sed 's/ /,/g'`
+          go list ${codePath} |xargs go test -mod=readonly -coverpkg=${cover_pkgs} -timeout 8m -coverprofile=coverage.data -covermode=atomic 
+
       - name: Upload code coverage
         run: |
           set -ex
           echo "mode: atomic" > coverage.txt
           tail -n +2 coverage.data >> coverage.txt
           bash <(curl -s https://codecov.io/bash) -f coverage.txt
+
   libstm:
     name: libs tendermint ut
     needs: build
@@ -98,6 +124,7 @@ jobs:
           set -ex
           codePath="./libs/tendermint/..."
           go list ${codePath} |xargs go test -timeout 30m -tags='norace ledger test_ledger_mock'
+          
   libscosmos:
     name: libs cosmos ut
     needs: build
@@ -113,7 +140,7 @@ jobs:
         id: first-attempt
         run: |
           set -ex
-          codePath="./libs/cosmos/..."
+          codePath="./libs/cosmos-sdk/..."
           go list ${codePath} |xargs go test -timeout 30m -tags='norace ledger test_ledger_mock'
         continue-on-error: true
 
@@ -122,7 +149,7 @@ jobs:
         if: steps.first-attempt.outcome != 'success'
         run: |
           set -ex
-          codePath="./libs/cosmos/..."
+          codePath="./libs/cosmos-sdk/..."
           go list ${codePath} |xargs go test -timeout 30m -tags='norace ledger test_ledger_mock'
   libsother:
     name: libs other ut
