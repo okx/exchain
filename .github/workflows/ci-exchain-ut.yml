@@ -58,7 +58,6 @@ jobs:
           bash <(curl -s https://codecov.io/bash) -f coverage.txt 
   x:
     name: x ut
-    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -90,62 +89,8 @@ jobs:
           tail -n +2 coverage.data >> coverage.txt
           bash <(curl -s https://codecov.io/bash) -f coverage.txt
 
-  libstm:
-    name: libs tendermint ut
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - uses: actions/setup-go@v2
-        with:
-          go-version: 1.17
-
-      - name: Go Test exchain/libs
-        id: first-attempt
-        run: |
-          set -ex
-          codePath="./libs/tendermint/..."
-          go list ${codePath} |xargs go test -timeout 30m -tags='norace ledger test_ledger_mock'
-        continue-on-error: true
-
-      - name: Go Test exchain/libs retry
-        id: second-attempt
-        if: steps.first-attempt.outcome != 'success'
-        run: |
-          set -ex
-          codePath="./libs/tendermint/..."
-          go list ${codePath} |xargs go test -timeout 30m -tags='norace ledger test_ledger_mock'
-
-  libscosmos:
-    name: libs cosmos ut
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - uses: actions/setup-go@v2
-        with:
-          go-version: 1.17
-
-      - name: Go Test exchain/libs
-        id: first-attempt
-        run: |
-          set -ex
-          codePath="./libs/cosmos-sdk/..."
-          go list ${codePath} |xargs go test -timeout 30m -tags='norace ledger test_ledger_mock'
-        continue-on-error: true
-
-      - name: Go Test exchain/libs retry
-        id: second-attempt
-        if: steps.first-attempt.outcome != 'success'
-        run: |
-          set -ex
-          codePath="./libs/cosmos-sdk/..."
-          go list ${codePath} |xargs go test -timeout 30m -tags='norace ledger test_ledger_mock'
-  libsother:
-    name: libs other ut
-    needs: build
+  libs:
+    name: libs ut
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -159,7 +104,7 @@ jobs:
         run: |
           set -ex
           codePath="./libs/..."
-          go list ${codePath} | grep -v "tendermint" | grep -v "cosmos-sdk"  |xargs go test -timeout 30m -tags='norace ledger test_ledger_mock'
+          go list ${codePath} |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
         continue-on-error: true
 
       - name: Go Test exchain/libs retry
@@ -168,5 +113,7 @@ jobs:
         run: |
           set -ex
           codePath="./libs/..."
-          go list ${codePath} | grep -v "tendermint" | grep -v "cosmos-sdk" |xargs go test -timeout 30m -tags='norace ledger test_ledger_mock'
+          go list ${codePath} |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
+
+
   
