@@ -53,7 +53,7 @@ func getEndBlocker(keeper Keeper) sdk.EndBlocker {
 func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper Keeper, addrs []sdk.AccAddress) {
 
 	mapp := mock.NewApp()
-	//mapp.cdc = makeCodec()
+	//mapp.Cdc = makeCodec()
 	registerCodec(mapp.Cdc.GetCdc())
 	app.RegisterCodec(mapp.Cdc.GetCdc())
 
@@ -132,7 +132,7 @@ func getMockDexApp(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper
 func getMockDexAppEx(t *testing.T, numGenAccs int) (mockDexApp *MockDexApp, keeper Keeper, h sdk.Handler) {
 
 	mapp := mock.NewApp()
-	//mapp.cdc = makeCodec()
+	//mapp.Cdc = makeCodec()
 	registerCodec(mapp.Cdc.GetCdc())
 
 	mockDexApp = &MockDexApp{

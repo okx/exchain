@@ -2,12 +2,10 @@ package ante
 
 import (
 	"fmt"
-	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	"github.com/okex/exchain/libs/tendermint/global"
 
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
@@ -104,7 +102,7 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 
 	// deduct the fees
 	if !feeTx.GetFee().IsZero() {
-		err = DeductFees(dfd.ak, ctx, feePayerAcc, feeTx.GetFee())
+		err = DeductFees(dfd.ak, dfd.supplyKeeper, ctx, feePayerAcc, feeTx.GetFee())
 		if err != nil {
 			return ctx, err
 		}
@@ -117,7 +115,7 @@ func (dfd DeductFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bo
 //
 // NOTE: We could use the BankKeeper (in addition to the AccountKeeper, because
 // the BankKeeper doesn't give us accounts), but it seems easier to do this.
-func DeductFees(ak keeper.AccountKeeper, ctx sdk.Context, acc exported.Account, fees sdk.Coins) (error) {
+func DeductFees(ak keeper.AccountKeeper, supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.Account, fees sdk.Coins) (error) {
 	blockTime := ctx.BlockTime()
 	coins := acc.GetCoins()
 
@@ -141,16 +139,9 @@ func DeductFees(ak keeper.AccountKeeper, ctx sdk.Context, acc exported.Account, 
 	}
 
 	// consume gas for compatible
-	if global.GetGlobalHeight() == 4329762 {
-		fmt.Println("========================SendCoinsFromAccountToModule start==========================")
-	}
 	if gasUsed, ok := exported.GetAccountGas(ak, acc); ok {
-		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostFlat, stypes.GasReadCostFlatDesc) // ReadFlat
-
 		bzLen := ak.GetAccountBinarySize(acc)
-		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostPerByte*stypes.Gas(bzLen), stypes.GasReadPerByteDesc) // ReadPerByte
-		ctx.GasMeter().ConsumeGas(gasUsed, "get account")                                                            // get account
-		ctx.GasMeter().ConsumeGas(gasUsed, "get account")                                                            // get account
+		supplyKeeper.AddConsumeGasForSendCoins(ctx, gasUsed, bzLen, true)
 	}
 
 	if err := acc.SetCoins(balance); err != nil {
@@ -159,16 +150,10 @@ func DeductFees(ak keeper.AccountKeeper, ctx sdk.Context, acc exported.Account, 
 	ak.SetAccount(ctx, acc, false)
 
 	// consume gas for compatible
-	//if ok, gasUsed := exported.TryAddGetAccountGas(ctx.GasMeter(), ak, acc); ok {
-	if gasUsed, ok := exported.GetAccountGas(ak, acc); ok {
-		ctx.GasMeter().ConsumeGas(gasUsed, "get account")
-
+	if ok, gasUsed := exported.TryAddGetAccountGas(ctx.GasMeter(), ak, acc); ok {
+	//if gasUsed, ok := exported.GetAccountGas(ak, acc); ok {
 		bzLen := ak.GetAccountBinarySize(acc)
-		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostFlat, stypes.GasWriteCostFlatDesc)	// WriteFlat
-		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostPerByte*stypes.Gas(bzLen), stypes.GasWritePerByteDesc)	// WritePerByte
-	}
-	if global.GetGlobalHeight() == 4329762 {
-		fmt.Println("========================SendCoinsFromAccountToModule finished==========================")
+		supplyKeeper.AddConsumeGasForSendCoins(ctx, gasUsed, bzLen, false)
 	}
 
 	return nil

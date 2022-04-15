@@ -81,9 +81,6 @@ func addUint64Overflow(a, b uint64) (uint64, bool) {
 }
 
 func (g *basicGasMeter) ConsumeGas(amount Gas, descriptor string) {
-	if global.GetGlobalHeight() == 4329762 {
-		fmt.Println("ConsumeGas. ", "amount: ", amount, "consumed: ", g.consumed, " descriptor: ", descriptor)
-	}
 	var overflow bool
 	// TODO: Should we set the consumed field after overflow checking?
 	g.consumed, overflow = addUint64Overflow(g.consumed, amount)
@@ -92,7 +89,6 @@ func (g *basicGasMeter) ConsumeGas(amount Gas, descriptor string) {
 	}
 
 	if g.consumed > g.limit {
-		fmt.Println("ErrorOutOfGas. ", " amount:", amount, "  descriptor:", descriptor, " gasConsumed:", g.consumed)
 		panic(ErrorOutOfGas{descriptor})
 	}
 }
@@ -129,6 +125,7 @@ func (g *infiniteGasMeter) Limit() Gas {
 }
 
 func (g *infiniteGasMeter) ConsumeGas(amount Gas, descriptor string) {
+	fmt.Println("infiniteGasMeter ConsumeGas. ", "amount: ", amount, " descriptor: ", descriptor)
 	var overflow bool
 	// TODO: Should we set the consumed field after overflow checking?
 	g.consumed, overflow = addUint64Overflow(g.consumed, amount)
