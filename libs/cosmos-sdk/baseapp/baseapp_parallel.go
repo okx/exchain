@@ -374,7 +374,6 @@ func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 				deliverTxs[index].Data = v
 			}
 		}
-
 	}
 	pm.cms.Write()
 	return deliverTxs
@@ -550,7 +549,7 @@ func (a *asyncWorkGroup) Start() {
 	if !a.isAsync {
 		return
 	}
-	for index := 0; index < 64; index++ {
+	for index := 0; index < 16; index++ {
 		go func() {
 			for true {
 				select {
