@@ -2,7 +2,7 @@ package keeper
 
 import (
 	"fmt"
-
+	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/internal/types"
@@ -57,6 +57,20 @@ func (k Keeper) SendCoinsFromAccountToModule(
 	ctx.UpdateToAccountCache(recipientAcc, 0)
 
 	return k.bk.SendCoins(ctx, senderAddr, recipientAcc.GetAddress(), amt)
+}
+
+func (k Keeper) AddConsumeGasForSendCoins(ctx sdk.Context, accGas sdk.Gas, accLen int, before bool) {
+	if before {
+		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostFlat, stypes.GasReadCostFlatDesc) // ReadFlat
+		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostPerByte*stypes.Gas(accLen), stypes.GasReadPerByteDesc) // ReadPerByte
+		ctx.GasMeter().ConsumeGas(accGas, "get account")                                                            // get account
+		ctx.GasMeter().ConsumeGas(accGas, "get account")                                                            // get account
+	} else {
+		ctx.GasMeter().ConsumeGas(accGas, "get account")
+
+		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostFlat, stypes.GasWriteCostFlatDesc)	// WriteFlat
+		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostPerByte*stypes.Gas(accLen), stypes.GasWritePerByteDesc)	// WritePerByte
+	}
 }
 
 // DelegateCoinsFromAccountToModule delegates coins and transfers them from a
