@@ -1,4 +1,4 @@
-name: ci-exchain-ut
+name: ci-libs-ut
 
 on:
   push:
@@ -8,10 +8,8 @@ on:
 
 
 jobs:
- 
   libs:
     name: libs ut
-    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
