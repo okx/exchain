@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -12,8 +13,10 @@ import (
 
 const IGNORE_HEIGHT_CHECKING = -1
 
+var errHeightLowerThanVenus = fmt.Errorf("lower than Venus")
+
 // TxDecoder returns an sdk.TxDecoder that can decode both auth.StdTx and
-// MsgEthereumTx transactions.
+// *MsgEthereumTx transactions.
 func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 	return func(txBytes []byte, heights ...int64) (sdk.Tx, error) {
 		if len(heights) > 1 {
@@ -38,7 +41,16 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 			ubDecoder,
 		} {
 			if tx, err = f(cdc, txBytes, height); err == nil {
-				return tx, nil
+				switch realTx := tx.(type) {
+				case authtypes.StdTx:
+					realTx.Raw = txBytes
+					realTx.Hash = types.Tx(txBytes).Hash(height)
+					return realTx, nil
+				case *MsgEthereumTx:
+					realTx.Raw = txBytes
+					realTx.Hash = types.Tx(txBytes).Hash(height)
+					return realTx, nil
+				}
 			}
 		}
 
@@ -53,13 +65,13 @@ func evmDecoder(_ *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err er
 
 	// bypass height checking in case of a negative number
 	if height >= 0 && !types.HigherThanVenus(height) {
-		err = fmt.Errorf("lower than Venus")
+		err = errHeightLowerThanVenus
 		return
 	}
 
 	var ethTx MsgEthereumTx
 	if err = authtypes.EthereumTxDecode(txBytes, &ethTx); err == nil {
-		tx = ethTx
+		tx = &ethTx
 	}
 	return
 }

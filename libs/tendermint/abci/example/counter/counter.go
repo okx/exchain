@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"math/big"
 
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+
 	"github.com/okex/exchain/libs/tendermint/abci/example/code"
 	"github.com/okex/exchain/libs/tendermint/abci/types"
 )
@@ -71,6 +73,14 @@ func (app *Application) DeliverTx(req types.RequestDeliverTx) types.ResponseDeli
 	return types.ResponseDeliverTx{Code: code.CodeTypeOK}
 }
 
+type tx struct {
+	sdk.BaseTx
+}
+
+func (tx tx) GetGasPrice() *big.Int {
+	return big.NewInt(1)
+}
+
 func (app *Application) CheckTx(req types.RequestCheckTx) types.ResponseCheckTx {
 	if app.serial {
 		if len(req.Tx) > 8 {
@@ -88,7 +98,7 @@ func (app *Application) CheckTx(req types.RequestCheckTx) types.ResponseCheckTx 
 		}
 	}
 	data, _ := json.Marshal(&MockExTxInfo{Sender: fmt.Sprintf("%+x", req.Tx), GasPrice: big.NewInt(1)})
-	return types.ResponseCheckTx{Code: code.CodeTypeOK, Data: data}
+	return types.ResponseCheckTx{Tx: tx{sdk.BaseTx{From: fmt.Sprintf("%+x", req.Tx)}}, Code: code.CodeTypeOK, Data: data}
 }
 
 func (app *Application) Commit(req types.RequestCommit) types.ResponseCommit {

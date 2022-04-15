@@ -44,6 +44,8 @@ const (
 	MempoolTxsCnt     = "mempoolTxsCnt"
 
 	Prerun = "Prerun"
+
+	ActiveVC = "ActiveVC"
 )
 
 type IElapsedTimeInfos interface {
@@ -137,7 +139,11 @@ func (t *Tracer) Format() string {
 }
 
 func (t *Tracer) RepeatingPin(format string, args ...interface{}) {
-	t.repeatingPinByFormat(fmt.Sprintf(format, args...))
+	if len(args) == 0 {
+		t.repeatingPinByFormat(format)
+	} else {
+		t.repeatingPinByFormat(fmt.Sprintf(format, args...))
+	}
 }
 
 func (t *Tracer) repeatingPinByFormat(tag string) {

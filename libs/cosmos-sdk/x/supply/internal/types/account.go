@@ -92,6 +92,21 @@ func (acc ModuleAccount) Copy() interface{} {
 	return NewModuleAccount(authtypes.NewBaseAccount(acc.Address, acc.Coins, acc.PubKey, acc.AccountNumber, acc.Sequence), acc.Name, acc.Permissions...)
 }
 
+func (acc ModuleAccount) AminoSize(cdc *amino.Codec) int {
+	size := 0
+	if acc.BaseAccount != nil {
+		baccSize := acc.BaseAccount.AminoSize(cdc)
+		size += 1 + amino.UvarintSize(uint64(baccSize)) + baccSize
+	}
+	if acc.Name != "" {
+		size += 1 + amino.EncodedStringSize(acc.Name)
+	}
+	for _, p := range acc.Permissions {
+		size += 1 + amino.EncodedStringSize(p)
+	}
+	return size
+}
+
 var moduleAccountBufferPool = amino.NewBufferPool()
 
 func (acc ModuleAccount) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {

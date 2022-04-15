@@ -51,6 +51,19 @@ type Keeper struct {
 
 	// add inner block data
 	innerBlockData BlockInnerData
+
+	// cache chain config
+	cci chainConfigInfo
+}
+
+type chainConfigInfo struct {
+	// chainConfig cached chain config
+	// nil means invalid the cache, we should cache it again.
+	cc *types.ChainConfig
+
+	// gasReduced: cached chain config reduces gas costs.
+	// when use cached chain config, we restore the gas cost(gasReduced)
+	gasReduced sdk.Gas
 }
 
 // NewKeeper generates new evm module keeper
@@ -72,7 +85,6 @@ func NewKeeper(
 		db := types.BloomDb()
 		types.InitIndexer(db)
 	}
-
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
 	k := &Keeper{
 		cdc:           cdc,
@@ -123,7 +135,7 @@ func (k Keeper) OnAccountUpdated(acc auth.Account) {
 }
 
 // Logger returns a module-specific logger.
-func (k Keeper) GenerateCSDBParams() types.CommitStateDBParams {
+func (k *Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 	return types.CommitStateDBParams{
 		StoreKey:      k.storeKey,
 		ParamSpace:    k.paramSpace,
@@ -233,8 +245,9 @@ func (k Keeper) GetAccountStorage(ctx sdk.Context, address common.Address) (type
 	return storage, nil
 }
 
-// GetChainConfig gets block height from block consensus hash
-func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
+// getChainConfig get raw chain config and unmarshal it
+func (k *Keeper) getChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
+	// if keeper has cached the chain config, return immediately
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
 	// get from an empty key that's already prefixed by KeyPrefixChainConfig
 	bz := store.Get([]byte{})
@@ -248,15 +261,42 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 	if err := config.UnmarshalFromAmino(k.cdc, bz[4:]); err != nil {
 		k.cdc.MustUnmarshalBinaryBare(bz, &config)
 	}
+
 	return config, true
 }
 
+// GetChainConfig gets chain config, the result if from cached result, or
+// it gains chain config and gas costs from getChainConfig, then
+// cache the chain config and gas costs.
+func (k *Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
+	// if keeper has cached the chain config, return immediately, and increase gas costs.
+	if k.cci.cc != nil {
+		ctx.GasMeter().ConsumeGas(k.cci.gasReduced, "cached chain config recover")
+		return *k.cci.cc, true
+	}
+
+	gasStart := ctx.GasMeter().GasConsumed()
+	chainConfig, found := k.getChainConfig(ctx)
+	gasStop := ctx.GasMeter().GasConsumed()
+
+	// only cache chain config result when we found it, or try to found again.
+	if found {
+		k.cci.cc = &chainConfig
+		k.cci.gasReduced = gasStop - gasStart
+	}
+
+	return chainConfig, found
+}
+
 // SetChainConfig sets the mapping from block consensus hash to block height
-func (k Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
+func (k *Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
 	bz := k.cdc.MustMarshalBinaryBare(config)
 	// get to an empty key that's already prefixed by KeyPrefixChainConfig
 	store.Set([]byte{}, bz)
+
+	// invalid the chainConfig
+	k.cci.cc = nil
 }
 
 // SetGovKeeper sets keeper of gov
@@ -268,4 +308,9 @@ func (k *Keeper) SetGovKeeper(gk GovKeeper) {
 func (k *Keeper) IsAddressBlocked(ctx sdk.Context, addr sdk.AccAddress) bool {
 	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 	return csdb.GetParams().EnableContractBlockedList && csdb.IsContractInBlockedList(addr.Bytes())
+}
+
+func (k *Keeper) IsContractInBlockedList(ctx sdk.Context, addr sdk.AccAddress) bool {
+	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
+	return csdb.IsContractInBlockedList(addr.Bytes())
 }

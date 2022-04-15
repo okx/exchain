@@ -94,6 +94,18 @@ func (acc EthAccount) Copy() interface{} {
 	}
 }
 
+func (acc EthAccount) AminoSize(cdc *amino.Codec) int {
+	size := 0
+	if acc.BaseAccount != nil {
+		baccSize := acc.BaseAccount.AminoSize(cdc)
+		size += 1 + amino.UvarintSize(uint64(baccSize)) + baccSize
+	}
+	if len(acc.CodeHash) != 0 {
+		size += 1 + amino.ByteSliceSize(acc.CodeHash)
+	}
+	return size
+}
+
 var ethAccountBufferPool = amino.NewBufferPool()
 
 func (acc EthAccount) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {

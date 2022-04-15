@@ -41,6 +41,7 @@ func handleParameterChangeProposal(ctx sdk.Context, k *Keeper, proposal *govtype
 }
 
 func changeParams(ctx sdk.Context, k *Keeper, paramProposal types.ParameterChangeProposal) sdk.Error {
+	defer k.signalUpdate()
 	for _, c := range paramProposal.Changes {
 		ss, ok := k.GetSubspace(c.Subspace)
 		if !ok {
@@ -53,6 +54,15 @@ func changeParams(ctx sdk.Context, k *Keeper, paramProposal types.ParameterChang
 		}
 	}
 	return nil
+}
+
+func (k *Keeper) RegisterSignal(handler func()) {
+	k.signals = append(k.signals, handler)
+}
+func (k *Keeper) signalUpdate() {
+	for i, _ := range k.signals {
+		k.signals[i]()
+	}
 }
 
 func checkDenom(paramProposal types.ParameterChangeProposal) sdk.Error {
