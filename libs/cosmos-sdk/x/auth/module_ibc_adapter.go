@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -40,6 +41,9 @@ func (am AppModuleBasic) GetTxCmdV2(cdc *codec.CodecProxy, reg codectypes.Interf
 
 func (AppModuleBasic) GetQueryCmdV2(cdc *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
 	return nil
+}
+
+func (AppModule) RegisterRouterForGRPC(cliCtx context.CLIContext, r *mux.Router) {
 }
 
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
