@@ -46,7 +46,12 @@ func getRealTxByte(txByteWithIndex []byte) []byte {
 
 func (app *BaseApp) getExtraDataByTxs(txs [][]byte) {
 	para := app.parallelTxManage
-	para.extraTxsInfo = make([]*extraDataForTx, len(txs), len(txs))
+	if para.txSize > len(para.extraTxsInfo) {
+		para.txReps = make([]*executeResult, para.txSize)
+		para.extraTxsInfo = make([]*extraDataForTx, para.txSize)
+		para.workgroup.runningStatus = make([]int, para.txSize)
+		para.workgroup.isrunning = make([]bool, para.txSize)
+	}
 
 	var wg sync.WaitGroup
 	for index, txBytes := range txs {
@@ -108,7 +113,6 @@ func (app *BaseApp) calGroup() {
 
 	para := app.parallelTxManage
 
-	para.txReps = make([]*executeResult, len(para.extraTxsInfo), len(para.extraTxsInfo))
 	rootAddr = make(map[string]string, 0)
 	for index, tx := range para.extraTxsInfo {
 		if tx.isEvm { //evmTx
@@ -202,9 +206,9 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 		app.paraLoadSender(txs)
 		return nil
 	}
-	txWithIndex := make([][]byte, 0)
+	txWithIndex := make([][]byte, txSize)
 	for index, v := range txs {
-		txWithIndex = append(txWithIndex, getTxByteWithIndex(v, index))
+		txWithIndex[index] = getTxByteWithIndex(v, index)
 	}
 
 	app.getExtraDataByTxs(txs)
@@ -222,7 +226,7 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 			pm.extraTxsInfo[index].evmIndex = evmIndex
 			evmIndex++
 		} else {
-			pm.haveCosmosTxInBlock = true
+			//pm.haveCosmosTxInBlock = true
 			fmt.Println("haveCosmosTxInBlock")
 		}
 
@@ -231,18 +235,18 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 	return app.runTxs(txWithIndex)
 }
 
-func (app *BaseApp) fixFeeCollector(txs [][]byte, ms sdk.CacheMultiStore) {
+func (app *BaseApp) fixFeeCollector(ms sdk.CacheMultiStore) {
 	currTxFee := sdk.Coins{}
-	for index, _ := range txs {
+	for index := 0; index < app.parallelTxManage.txSize; index++ {
 		resp := app.parallelTxManage.txReps[index]
-		if resp == nil || resp.paraMsg == nil || resp.paraMsg.AnteErr != nil {
+		//if resp == nil || resp.paraMsg == nil || resp.paraMsg.AnteErr != nil {
+		//	continue
+		//}
+
+		if resp.paraMsg.AnteErr != nil {
 			continue
 		}
-
-		txFee := app.parallelTxManage.extraTxsInfo[index].fee
-		refundFee := resp.paraMsg.RefundFee
-		txFee = txFee.Sub(refundFee)
-		currTxFee = currTxFee.Add(txFee...)
+		currTxFee = currTxFee.Add(app.parallelTxManage.extraTxsInfo[index].fee.Sub(resp.paraMsg.RefundFee)...)
 	}
 
 	ctx, _ := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
@@ -272,10 +276,10 @@ func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 	pm := app.parallelTxManage
 
 	txReps := pm.txReps
-	deliverTxs := make([]*abci.ResponseDeliverTx, len(txs))
+	deliverTxs := make([]*abci.ResponseDeliverTx, pm.txSize)
 
 	asyncCb := func(execRes *executeResult) {
-		receiveTxIndex := int(execRes.GetCounter())
+		receiveTxIndex := int(execRes.counter)
 		pm.workgroup.setTxStatus(receiveTxIndex, false)
 		if receiveTxIndex < txIndex {
 			return
@@ -323,7 +327,7 @@ func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 				res.ms = nil
 			}
 
-			txRs := res.GetResponse()
+			txRs := res.resp
 			deliverTxs[txIndex] = &txRs
 
 			if !s.reRun {
@@ -333,9 +337,9 @@ func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 			pm.SetCurrentIndex(txIndex, res) //Commit
 			currentGas += uint64(res.resp.GasUsed)
 			txIndex++
-			if txIndex == len(txs) {
-				app.logger.Info("Paralleled-tx", "blockHeight", app.deliverState.ctx.BlockHeight(), "len(txs)", len(txs),
-					"Parallel run", len(txs)-rerunIdx, "ReRun", rerunIdx, "len(group)", len(pm.groupList))
+			if txIndex == pm.txSize {
+				app.logger.Info("Paralleled-tx", "blockHeight", app.deliverState.ctx.BlockHeight(), "len(txs)", pm.txSize,
+					"Parallel run", pm.txSize-rerunIdx, "ReRun", rerunIdx, "len(group)", len(pm.groupList))
 				signal <- 0
 				return
 			}
@@ -363,7 +367,7 @@ func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 	if len(txs) > 0 {
 		//waiting for call back
 		<-signal
-		app.fixFeeCollector(txs, pm.cms)
+		app.fixFeeCollector(pm.cms)
 		receiptsLogs := app.endParallelTxs()
 		for index, v := range receiptsLogs {
 			if len(v) != 0 { // only update evm tx result
@@ -435,14 +439,6 @@ type executeResult struct {
 	paraMsg *sdk.ParaMsg
 }
 
-func (e executeResult) GetResponse() abci.ResponseDeliverTx {
-	return e.resp
-}
-
-func (e executeResult) GetCounter() uint32 {
-	return e.counter
-}
-
 func loadPreData(ms sdk.CacheMultiStore, rSet map[string][]byte, wSet map[string][]byte) {
 	if ms == nil {
 		return
@@ -474,8 +470,8 @@ func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter 
 
 type asyncWorkGroup struct {
 	isAsync       bool
-	runningStatus map[int]int
-	isrunning     map[int]bool
+	runningStatus []int
+	isrunning     []bool
 
 	markFailedStats map[int]bool
 
@@ -492,14 +488,14 @@ type asyncWorkGroup struct {
 func newAsyncWorkGroup(isAsync bool) *asyncWorkGroup {
 	return &asyncWorkGroup{
 		isAsync:         isAsync,
-		runningStatus:   make(map[int]int),
-		isrunning:       make(map[int]bool),
+		runningStatus:   make([]int, 0),
+		isrunning:       make([]bool, 0),
 		markFailedStats: make(map[int]bool),
 
-		resultCh: make(chan *executeResult, 100000),
+		resultCh: make(chan *executeResult, 20000),
 		resultCb: nil,
 
-		taskCh:  make(chan *task, 100000),
+		taskCh:  make(chan *task, 20000),
 		taskRun: nil,
 	}
 }
@@ -663,13 +659,6 @@ type task struct {
 	index   int
 }
 
-type txStatus struct {
-	reRun        bool
-	isEvmTx      bool
-	evmIndex     uint32
-	indexInBlock uint32
-}
-
 func newParallelTxManager() *parallelTxManager {
 	isAsync := viper.GetBool(sm.FlagParalleledTx)
 	return &parallelTxManager{
@@ -711,12 +700,6 @@ func (f *parallelTxManager) clear() {
 	f.currIndex = -1
 	f.cc.clear()
 
-	for key := range f.workgroup.runningStatus {
-		delete(f.workgroup.runningStatus, key)
-	}
-	for key := range f.workgroup.isrunning {
-		delete(f.workgroup.isrunning, key)
-	}
 	for key := range f.workgroup.markFailedStats {
 		delete(f.workgroup.markFailedStats, key)
 	}
