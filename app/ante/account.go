@@ -2,6 +2,7 @@ package ante
 
 import (
 	"bytes"
+	"fmt"
 	"math/big"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -242,6 +243,7 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 		}
 
 		// consume gas for compatible
+		fmt.Println("AccountAnteDecorator getAccount. ", " consumeGas:", getAccGasUsed)
 		ctx.GasMeter().ConsumeGas(getAccGasUsed, "get account")
 
 		ctx.EnableAccountCache()

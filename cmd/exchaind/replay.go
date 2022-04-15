@@ -283,9 +283,6 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	global.SetGlobalHeight(lastBlockHeight + 1)
 	for height := lastBlockHeight + 1; height <= haltheight; height++ {
 		log.Println("replaying ", height)
-		if height >= 4329764 {
-			break
-		}
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
 		blockExec.SetIsAsyncDeliverTx(viper.GetBool(sm.FlagParalleledTx))

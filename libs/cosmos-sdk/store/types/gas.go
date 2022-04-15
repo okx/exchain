@@ -92,7 +92,6 @@ func (g *basicGasMeter) ConsumeGas(amount Gas, descriptor string) {
 		fmt.Println("ErrorOutOfGas. ", " amount:", amount, "  descriptor:", descriptor, " gasConsumed:", g.consumed)
 		panic(ErrorOutOfGas{descriptor})
 	}
-
 }
 
 func (g *basicGasMeter) IsPastLimit() bool {
@@ -127,6 +126,7 @@ func (g *infiniteGasMeter) Limit() Gas {
 }
 
 func (g *infiniteGasMeter) ConsumeGas(amount Gas, descriptor string) {
+	fmt.Println("infiniteGasMeter ConsumeGas. ", "amount: ", amount, " descriptor: ", descriptor)
 	var overflow bool
 	// TODO: Should we set the consumed field after overflow checking?
 	g.consumed, overflow = addUint64Overflow(g.consumed, amount)
