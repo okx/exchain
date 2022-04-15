@@ -142,11 +142,6 @@ func DeductFees(ak keeper.AccountKeeper, supplyKeeper types.SupplyKeeper, ctx sd
 	if gasUsed, ok := exported.GetAccountGas(ak, acc); ok {
 		bzLen := ak.GetAccountBinarySize(acc)
 		supplyKeeper.AddConsumeGasForSendCoins(ctx, gasUsed, bzLen, true)
-
-		//ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostFlat, stypes.GasReadCostFlatDesc) // ReadFlat
-		//ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostPerByte*stypes.Gas(bzLen), stypes.GasReadPerByteDesc) // ReadPerByte
-		//ctx.GasMeter().ConsumeGas(gasUsed, "get account")                                                            // get account
-		//ctx.GasMeter().ConsumeGas(gasUsed, "get account")                                                            // get account
 	}
 
 	if err := acc.SetCoins(balance); err != nil {
@@ -155,15 +150,10 @@ func DeductFees(ak keeper.AccountKeeper, supplyKeeper types.SupplyKeeper, ctx sd
 	ak.SetAccount(ctx, acc)
 
 	// consume gas for compatible
-	//if ok, gasUsed := exported.TryAddGetAccountGas(ctx.GasMeter(), ak, acc); ok {
-	if gasUsed, ok := exported.GetAccountGas(ak, acc); ok {
+	if ok, gasUsed := exported.TryAddGetAccountGas(ctx.GasMeter(), ak, acc); ok {
+	//if gasUsed, ok := exported.GetAccountGas(ak, acc); ok {
 		bzLen := ak.GetAccountBinarySize(acc)
 		supplyKeeper.AddConsumeGasForSendCoins(ctx, gasUsed, bzLen, false)
-
-		//// todo: get account for FeeCollector
-		//ctx.GasMeter().ConsumeGas(gasUsed, "get account")
-		//ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostFlat, stypes.GasWriteCostFlatDesc)	// WriteFlat
-		//ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostPerByte*stypes.Gas(bzLen), stypes.GasWritePerByteDesc)	// WritePerByte
 	}
 
 	return nil
