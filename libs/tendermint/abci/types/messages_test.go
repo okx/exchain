@@ -112,6 +112,3 @@ func TestWriteReadMessage2(t *testing.T) {
 		assert.Equal(t, c, msg)
 	}
 }
-func TestCI(t *testing.T) {
-	t.Errorf("test CI")
-}

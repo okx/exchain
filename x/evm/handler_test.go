@@ -1112,6 +1112,3 @@ func (suite *EvmContractBlockedListTestSuite) TestEvmParamsAndContractMethodBloc
 		})
 	}
 }
-func TestCI(t *testing.T) {
-	t.Errorf("test CI")
-}
