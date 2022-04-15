@@ -8,6 +8,8 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/refund"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -63,11 +65,15 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 	ctx.EnableAccountCache()
 	ctx.UpdateToAccountCache(feePayerAcc, getAccountGasUsed)
 
-	newCoins := feePayerAcc.GetCoins().Add(gasFees...)
-	if err = feePayerAcc.SetCoins(newCoins); err != nil {
+	err = refund.RefundFees(handler.supplyKeeper, ctx, feePayerAcc.GetAddress(), gasFees)
+	if err != nil {
 		return nil, err
 	}
-	handler.ak.SetAccount(ctx, feePayerAcc, false)
+	//newCoins := feePayerAcc.GetCoins().Add(gasFees...)
+	//if err = feePayerAcc.SetCoins(newCoins); err != nil {
+	//	return nil, err
+	//}
+	//handler.ak.SetAccount(ctx, feePayerAcc, false)
 
 	return gasFees, nil
 }

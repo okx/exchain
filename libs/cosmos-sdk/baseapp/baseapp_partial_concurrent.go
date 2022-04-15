@@ -233,7 +233,7 @@ type DTTManager struct {
 	serialTask     *DeliverTxTask
 	serialCh       chan int8
 
-	//mtx sync.Mutex
+	currTxFee     sdk.Coins
 
 	txResponses   []*abci.ResponseDeliverTx
 	invalidTxs    int
@@ -271,6 +271,8 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 	dttm.serialTask = nil
 	dttm.serialIndex = -1
 	dttm.serialCh = make(chan int8, 4)
+
+	dttm.currTxFee = sdk.Coins{}
 
 	dttm.checkStateCtx = dttm.app.checkState.ctx
 	dttm.checkStateCtx.SetBlockHeight(dttm.app.checkState.ctx.BlockHeight() + 1)
@@ -524,6 +526,7 @@ func (dttm *DTTManager) serialExecution() {
 	handleGasFn := func() {
 		gasStart := time.Now()
 
+		dttm.updateFeeCollector()
 		handler.handleDeferRefund(info)
 
 		handler.handleDeferGasConsumed(info)
@@ -558,6 +561,8 @@ func (dttm *DTTManager) serialExecution() {
 	info.msCacheAnte.Write()
 	info.ctx.Cache().Write(true)
 
+	dttm.calculateFeeForCollector(dttm.serialTask.fee, true)
+
 	gasStart := time.Now()
 	err := info.handler.handleGasConsumed(info)
 	totalHandleGasTime += time.Since(gasStart).Microseconds()
@@ -568,8 +573,6 @@ func (dttm *DTTManager) serialExecution() {
 		execFinishedFn(txRs)
 		return
 	}
-
-	dttm.app.UpdateFeeForCollector(dttm.serialTask.fee, true)
 
 	// execute runMsgs
 	runMsgStart := time.Now()
@@ -592,6 +595,24 @@ func (dttm *DTTManager) serialExecution() {
 		}
 	}
 	execFinishedFn(resp)
+}
+
+func (dttm *DTTManager) calculateFeeForCollector(fee sdk.Coins, add bool) {
+	if add {
+		dttm.currTxFee = dttm.currTxFee.Add(fee...)
+	} else {
+		dttm.currTxFee = dttm.currTxFee.Sub(fee)
+	}
+	//dm.app.logger.Info("CalculateFeeForCollector", "fee", dm.currTxFee)
+}
+
+func (dttm *DTTManager) updateFeeCollector() {
+	//	dm.app.logger.Info("updateFeeCollector", "now", dm.currTxFee)
+	ctx, cache := dttm.app.cacheTxContext(dttm.app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
+	if err := dttm.app.updateFeeCollectorAccHandler(ctx, dttm.currTxFee); err != nil {
+		panic(err)
+	}
+	cache.Write()
 }
 
 func (dttm *DTTManager) OnAccountUpdated(acc exported.Account, updateState bool) {
@@ -636,6 +657,8 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 
 	if len(txs) > 0 {
 		//waiting for call back
+		app.deliverTxsMgr.updateFeeCollector()
+
 		<-app.deliverTxsMgr.done
 		close(app.deliverTxsMgr.done)
 	}

@@ -37,7 +37,7 @@ func (m *modeHandlerDeliverPartConcurrent) handleDeferRefund(info *runTxInfo) {
 	info.msCache.Write()
 	info.ctx.Cache().Write(true)
 
-	app.UpdateFeeForCollector(refundGas, false)
+	app.deliverTxsMgr.calculateFeeForCollector(refundGas, false)
 }
 
 func (m *modeHandlerDeliverPartConcurrent) handleDeferGasConsumed(info *runTxInfo) {
