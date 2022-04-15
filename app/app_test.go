@@ -68,3 +68,7 @@ func TestProposalManager(t *testing.T) {
 	require.True(t, app.GovKeeper.ProposalHandleRouter().HasRoute(dex.RouterKey))
 	require.True(t, app.GovKeeper.ProposalHandleRouter().HasRoute(farm.RouterKey))
 }
+
+func TestCI(t *testing.T) {
+	t.Errorf("test CI")
+}
