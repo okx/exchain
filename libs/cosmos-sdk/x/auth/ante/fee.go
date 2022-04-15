@@ -7,6 +7,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/tendermint/global"
 
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
@@ -140,11 +141,9 @@ func DeductFees(ak keeper.AccountKeeper, ctx sdk.Context, acc exported.Account, 
 	}
 
 	// consume gas for compatible
-	fmt.Println("========================SendCoinsFromAccountToModule start==========================")
-	//err := supplyKeeper.SendCoinsFromAccountToModule(ctx, acc.GetAddress(), types.FeeCollectorName, fees)
-	//if err != nil {
-	//	return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
-	//}
+	if global.GetGlobalHeight() == 4329762 {
+		fmt.Println("========================SendCoinsFromAccountToModule start==========================")
+	}
 	if gasUsed, ok := exported.GetAccountGas(ak, acc); ok {
 		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostFlat, stypes.GasReadCostFlatDesc) // ReadFlat
 
@@ -168,7 +167,9 @@ func DeductFees(ak keeper.AccountKeeper, ctx sdk.Context, acc exported.Account, 
 		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostFlat, stypes.GasWriteCostFlatDesc)	// WriteFlat
 		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostPerByte*stypes.Gas(bzLen), stypes.GasWritePerByteDesc)	// WritePerByte
 	}
-	fmt.Println("========================SendCoinsFromAccountToModule finished==========================")
+	if global.GetGlobalHeight() == 4329762 {
+		fmt.Println("========================SendCoinsFromAccountToModule finished==========================")
+	}
 
 	return nil
 }
