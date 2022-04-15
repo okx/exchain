@@ -159,7 +159,8 @@ func DeductFees(ak keeper.AccountKeeper, ctx sdk.Context, acc exported.Account, 
 	ak.SetAccount(ctx, acc, false)
 
 	// consume gas for compatible
-	if ok, gasUsed := exported.TryAddGetAccountGas(ctx.GasMeter(), ak, acc); ok {
+	//if ok, gasUsed := exported.TryAddGetAccountGas(ctx.GasMeter(), ak, acc); ok {
+	if gasUsed, ok := exported.GetAccountGas(ak, acc); ok {
 		ctx.GasMeter().ConsumeGas(gasUsed, "get account")
 
 		bzLen := ak.GetAccountBinarySize(acc)

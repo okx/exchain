@@ -521,23 +521,6 @@ func (dttm *DTTManager) serialExecution() {
 	info := dttm.serialTask.info
 	handler := info.handler
 
-	handleGasFn := func() {
-		gasStart := time.Now()
-
-		handler.handleDeferRefund(info)
-
-		handler.handleDeferGasConsumed(info)
-
-		if r := recover(); r != nil {
-			_ = dttm.app.runTx_defer_recover(r, info)
-			info.msCache = nil //TODO msCache not write
-			info.result = nil
-		}
-		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
-
-		totalDeferGasTime += time.Since(gasStart).Microseconds()
-	}
-
 	execFinishedFn := func(txRs abci.ResponseDeliverTx) {
 		dttm.app.logger.Info("SerialFinished", "index", dttm.serialTask.index, "routine", dttm.serialTask.routineIndex)
 		dttm.txResponses[dttm.serialTask.index] = &txRs
@@ -569,29 +552,40 @@ func (dttm *DTTManager) serialExecution() {
 		return
 	}
 
+	defer func() {
+		if r := recover(); r != nil {
+			err = dttm.app.runTx_defer_recover(r, info)
+			info.msCache = nil //TODO msCache not write
+			info.result = nil
+		}
+		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
+
+		var resp abci.ResponseDeliverTx
+		if err != nil {
+			//dttm.app.logger.Error("handleRunMsg failed", "err", err)
+			resp = sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, dttm.app.trace)
+		} else {
+			resp = abci.ResponseDeliverTx{
+				GasWanted: int64(info.gInfo.GasWanted), // TODO: Should type accept unsigned ints?
+				GasUsed:   int64(info.gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
+				Log:       info.result.Log,
+				Data:      info.result.Data,
+				Events:    info.result.Events.ToABCIEvents(),
+			}
+		}
+		execFinishedFn(resp)
+	}()
+
+	defer handler.handleDeferGasConsumed(info)
+
+	defer handler.handleDeferRefund(info)
+
 	dttm.app.UpdateFeeForCollector(dttm.serialTask.fee, true)
 
 	// execute runMsgs
 	runMsgStart := time.Now()
 	err = handler.handleRunMsg(info)
 	totalRunMsgsTime += time.Since(runMsgStart).Microseconds()
-
-	handleGasFn()
-
-	var resp abci.ResponseDeliverTx
-	if err != nil {
-		//dttm.app.logger.Error("handleRunMsg failed", "err", err)
-		resp = sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, dttm.app.trace)
-	} else {
-		resp = abci.ResponseDeliverTx{
-			GasWanted: int64(info.gInfo.GasWanted), // TODO: Should type accept unsigned ints?
-			GasUsed:   int64(info.gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
-			Log:       info.result.Log,
-			Data:      info.result.Data,
-			Events:    info.result.Events.ToABCIEvents(),
-		}
-	}
-	execFinishedFn(resp)
 }
 
 func (dttm *DTTManager) OnAccountUpdated(acc exported.Account, updateState bool) {

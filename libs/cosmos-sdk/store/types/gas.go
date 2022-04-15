@@ -92,6 +92,7 @@ func (g *basicGasMeter) ConsumeGas(amount Gas, descriptor string) {
 	}
 
 	if g.consumed > g.limit {
+		fmt.Println("ErrorOutOfGas. ", " amount:", amount, "  descriptor:", descriptor, " gasConsumed:", g.consumed)
 		panic(ErrorOutOfGas{descriptor})
 	}
 }
