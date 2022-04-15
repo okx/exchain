@@ -98,7 +98,7 @@ jobs:
           set -ex
           codePath="./libs/tendermint/..."
           go list ${codePath} |xargs go test -timeout 30m -tags='norace ledger test_ledger_mock'
-libscosmos:
+  libscosmos:
     name: libs cosmos ut
     needs: build
     runs-on: ubuntu-latest
@@ -124,7 +124,7 @@ libscosmos:
           set -ex
           codePath="./libs/cosmos/..."
           go list ${codePath} |xargs go test -timeout 30m -tags='norace ledger test_ledger_mock'
-libsother:
+  libsother:
     name: libs other ut
     needs: build
     runs-on: ubuntu-latest
