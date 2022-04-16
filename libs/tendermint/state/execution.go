@@ -23,13 +23,17 @@ import (
 //-----------------------------------------------------------------------------
 type (
 	// Enum mode for executing [deliverTx, ...]
-	DeliverTxsExecMode uint8
+	DeliverTxsExecMode int
 )
 
 const (
 	deliverTxsExecModeSerial         DeliverTxsExecMode = iota // execute [deliverTx,...] sequentially
 	deliverTxsExecModePartConcurrent                           // execute [deliverTx,...] partially-concurrent
 	deliverTxsExecModeParallel                                 // execute [deliverTx,...] parallel
+)
+
+var (
+	FlagDeliverTxsExecMode = "deliver-txs-mode"
 )
 
 var deliverTxDuration = int64(0)
@@ -84,7 +88,6 @@ func NewBlockExecutor(
 	proxyApp proxy.AppConnConsensus,
 	mempool mempl.Mempool,
 	evpool EvidencePool,
-	deliverTxsExecMode int8,
 	options ...BlockExecutorOption,
 ) *BlockExecutor {
 	res := &BlockExecutor{
@@ -96,9 +99,9 @@ func NewBlockExecutor(
 		logger:             logger,
 		metrics:            NopMetrics(),
 		isAsync:            viper.GetBool(FlagParalleledTx),
+		deliverTxsExecMode: DeliverTxsExecMode(viper.GetInt(FlagDeliverTxsExecMode)),
 		prerunCtx:          newPrerunContex(logger),
 		deltaContext:       newDeltaContext(logger),
-		deliverTxsExecMode: DeliverTxsExecMode(deliverTxsExecMode),
 	}
 
 	for _, option := range options {
@@ -114,7 +117,7 @@ func (blockExec *BlockExecutor) SetIsAsyncDeliverTx(sw bool) {
 	blockExec.isAsync = sw
 }
 
-func (blockExec *BlockExecutor) SetDeliverTxsMode(mode int8) {
+func (blockExec *BlockExecutor) SetDeliverTxsMode(mode int) {
 	blockExec.deliverTxsExecMode = DeliverTxsExecMode(mode)
 }
 
