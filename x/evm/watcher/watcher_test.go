@@ -72,6 +72,7 @@ func setupTest() *WatcherTestSt {
 	params.EnableCreate = true
 	params.EnableCall = true
 	w.app.EvmKeeper.SetParams(w.ctx, params)
+	w.app.EvmKeeper.Watcher.NewHeight(1, common.Hash{}, abci.Header{})
 
 	return w
 }
