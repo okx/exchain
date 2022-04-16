@@ -109,7 +109,7 @@ func NewKeeper(
 	k := &Keeper{
 		cdc:           cdc,
 		storeKey:      storeKey,
-		store2Key: store2Key,
+		store2Key:     store2Key,
 		accountKeeper: ak,
 		paramSpace:    paramSpace,
 		supplyKeeper:  sk,
@@ -142,12 +142,13 @@ func NewKeeper(
 
 // NewKeeper generates new evm module keeper
 func NewSimulateKeeper(
-	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace types.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper, ada types.DbAdapter,
+	cdc *codec.Codec, storeKey, store2Key sdk.StoreKey, paramSpace types.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper, ada types.DbAdapter,
 	logger log.Logger) *Keeper {
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
 	k := &Keeper{
 		cdc:           cdc,
 		storeKey:      storeKey,
+		store2Key:     store2Key,
 		accountKeeper: ak,
 		paramSpace:    paramSpace,
 		supplyKeeper:  sk,
@@ -202,6 +203,7 @@ func (k *Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 func (k Keeper) GeneratePureCSDBParams() types.CommitStateDBParams {
 	return types.CommitStateDBParams{
 		StoreKey: k.storeKey,
+		Store2Key: k.store2Key,
 		Watcher:  k.Watcher,
 		Ada:      k.Ada,
 		Cdc:      k.cdc,
@@ -220,6 +222,10 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 
 func (k Keeper) GetStoreKey() store.StoreKey {
 	return k.storeKey
+}
+
+func (k Keeper) GetStore2Key() store.StoreKey {
+	return k.store2Key
 }
 
 // ----------------------------------------------------------------------------
