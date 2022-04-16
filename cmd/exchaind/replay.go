@@ -293,9 +293,9 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		if needSaveBlock {
 			SaveBlock(ctx, originBlockStore, height)
 		}
-		//if height == 4040581 {
-		//	return
-		//}
+		if height == 4047827 {
+			return
+		}
 	}
 }
 
