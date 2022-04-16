@@ -88,6 +88,16 @@ var (
 			configA: stringItem{name: apptype.FlagNodeMode, value: string(apptype.ArchiveNode)},
 			configB: boolItem{name: watcher.FlagFastQuery, value: true},
 		},
+		// --deliver-tx-mode=0      conflict with --paralleled-tx=true
+		{
+			configA: stringItem{name: state.FlagDeliverTxsExecMode, value: string(0)},
+			configB: boolItem{name: state.FlagParalleledTx, value: true},
+		},
+		// --deliver-tx-mode=1      conflict with --paralleled-tx=true
+		{
+			configA: stringItem{name: state.FlagDeliverTxsExecMode, value: string(1)},
+			configB: boolItem{name: state.FlagParalleledTx, value: true},
+		},
 	}
 )
 
