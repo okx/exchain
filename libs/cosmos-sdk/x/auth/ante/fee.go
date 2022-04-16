@@ -3,11 +3,11 @@ package ante
 import (
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/tendermint/global"
 )
 
 var (
@@ -138,6 +138,9 @@ func DeductFees(ak keeper.AccountKeeper, supplyKeeper types.SupplyKeeper, ctx sd
 			"insufficient funds to pay for fees; %s < %s", spendableCoins, fees)
 	}
 
+	if global.GetGlobalHeight() == 2602855 {
+		fmt.Println("========================SendCoinsFromAccountToModule start==========================")
+	}
 	// consume gas for compatible
 	if gasUsed, ok := exported.GetAccountGas(ak, acc); ok {
 		bzLen := ak.GetAccountBinarySize(acc)
@@ -154,6 +157,10 @@ func DeductFees(ak keeper.AccountKeeper, supplyKeeper types.SupplyKeeper, ctx sd
 	//if gasUsed, ok := exported.GetAccountGas(ak, acc); ok {
 		bzLen := ak.GetAccountBinarySize(acc)
 		supplyKeeper.AddConsumeGasForSendCoins(ctx, gasUsed, bzLen, false)
+	}
+
+	if global.GetGlobalHeight() == 2602855 {
+		fmt.Println("========================SendCoinsFromAccountToModule finished==========================")
 	}
 
 	return nil
