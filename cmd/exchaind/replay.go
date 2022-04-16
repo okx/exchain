@@ -282,7 +282,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	}
 
 	baseapp.SetGlobalMempool(mock.Mempool{}, ctx.Config.Mempool.SortTxByGp, ctx.Config.Mempool.EnablePendingPool)
-	needSaveBlock := viper.GetBool(saveBlock)
+	//needSaveBlock := viper.GetBool(saveBlock)
 	global.SetGlobalHeight(lastBlockHeight + 1)
 	for height := lastBlockHeight + 1; height <= haltheight; height++ {
 		log.Println("replaying ", height)
@@ -290,12 +290,12 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		meta := originBlockStore.LoadBlockMeta(height)
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
 		panicError(err)
-		if needSaveBlock {
+		//if needSaveBlock {
 			SaveBlock(ctx, originBlockStore, height)
-		}
-		if height == 4047827 {
-			return
-		}
+		//}
+		//if height == 4047827 {
+		//	return
+		//}
 	}
 }
 
