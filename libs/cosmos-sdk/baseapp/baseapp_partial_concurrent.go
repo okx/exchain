@@ -170,7 +170,7 @@ func (dttr *dttRoutine) shouldRerun(fromIndex int, fromAccountUpdate int) {
 	}
 	if dttr.step == dttRoutineStepAnteStart || dttr.step == dttRoutineStepAnteFinished {
 		if fromAccountUpdate >= 0 && dttr.task.prevTaskIndex < fromAccountUpdate {
-			dttr.logger.Error("setPrevTaskIndexFromAccountUpdate", "index", dttr.task.index, "from", fromIndex, "step", dttr.step, "prev", dttr.task.prevTaskIndex)
+			dttr.logger.Error("setPrevTaskIndexFromAccountUpdate", "index", dttr.task.index, "from", fromIndex, "step", dttr.step, "prev", dttr.task.prevTaskIndex, "nowPrev", fromAccountUpdate)
 			dttr.task.prevTaskIndex = fromAccountUpdate
 		} else {
 			//dttr.logger.Error("shouldRerun", "index", dttr.task.index, "from", fromIndex, "step", dttr.step, "needToRerun", dttr.needToRerun)
@@ -305,12 +305,12 @@ func (dttm *DTTManager) concurrentBasic(txByte []byte, index int) *DeliverTxTask
 
 	task.info.handler = dttm.app.getModeHandler(runTxModeDeliverPartConcurrent) //dm.handler
 	task.fee, task.isEvm, task.from, task.to = dttm.app.getTxFeeAndFromHandler(dttm.checkStateCtx, task.info.tx)
-	if global.GetGlobalHeight() == 4663201 {
-		dttm.app.logger.Info("GetTxInfo", "index", task.index, "from", task.from, "to", task.to)
-		if task.from == "22fe6120b4ed9a876053ddfb0068549442eca62b" || task.to == "22fe6120b4ed9a876053ddfb0068549442eca62b" {
-			dttm.app.logger.Error("FindAccount", "index", task.index)
-		}
-	}
+	//if global.GetGlobalHeight() == 4663201 {
+	//	dttm.app.logger.Info("GetTxInfo", "index", task.index, "from", task.from, "to", task.to)
+	//	if task.from == "22fe6120b4ed9a876053ddfb0068549442eca62b" || task.to == "22fe6120b4ed9a876053ddfb0068549442eca62b" {
+	//		dttm.app.logger.Error("FindAccount", "index", task.index)
+	//	}
+	//}
 
 	if err = validateBasicTxMsgs(task.info.tx.GetMsgs()); err != nil {
 		task.err = err
@@ -353,19 +353,28 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		if dttr.task == nil ||
 			dttr.txIndex != dttr.task.index ||
 			dttr.step == dttRoutineStepNone || dttr.step == dttRoutineStepStart ||
-			dttr.step == dttRoutineStepFinished || dttr.step == dttRoutineStepReadyForSerial ||
-			!dttm.hasConflict(dttr.task, task) {
+			dttr.step == dttRoutineStepFinished || dttr.step == dttRoutineStepReadyForSerial {
 			continue
 		}
-		if dttr.task.index < task.index && dttr.task.index > task.prevTaskIndex {
-			task.prevTaskIndex = dttr.task.index
-			dttm.app.logger.Error("hasExistPrevTask1", "index", task.index, "prev", task.prevTaskIndex, "prevStep", dttr.step, "from", task.from)
-		} else if dttr.task.index > task.index && (dttr.task.prevTaskIndex < 0 || dttr.task.prevTaskIndex < task.index) {
-			dttr.task.prevTaskIndex = task.index
-			dttm.app.logger.Error("hasExistPrevTask2", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex, "from", task.from)
+		conflict := dttm.hasConflict(dttr.task, task)
+		if dttr.task.isEvm && task.isEvm && !conflict {
+			continue
+		}
+
+		if !dttr.task.isEvm || conflict {
+			if dttr.task.index < task.index && dttr.task.index > task.prevTaskIndex {
+				task.prevTaskIndex = dttr.task.index
+				dttm.app.logger.Error("hasExistPrevTask1", "index", task.index, "prev", task.prevTaskIndex, "noEvm", !dttr.task.isEvm)
+			}
+		} else if !task.isEvm || conflict {
+			if dttr.task.index > task.index && dttr.task.prevTaskIndex < task.index {
+				dttr.task.prevTaskIndex = task.index
+				dttm.app.logger.Error("hasExistPrevTask2", "index", dttr.task.index, "prev", dttr.task.prevTaskIndex, "noEvm", !task.isEvm)
+			}
 		}
 	}
 	if task.prevTaskIndex >= 0 || task.index <= dttm.serialIndex { //|| dttr.needToRerun {
+		dttm.app.logger.Info("DonotRunAnte.", "prev", task.prevTaskIndex, "index", task.index, "serial", dttm.serialIndex)
 		return nil
 	}
 
@@ -467,22 +476,16 @@ func (dttm *DTTManager) serialRoutine() {
 			rerunRoutines := make([]*dttRoutine, 0)
 			for i := 0; i < count; i++ {
 				dttr := dttm.dttRoutineList[i]
-				if dttr.task == nil || dttr.task.index <= task.index || dttr.step < dttRoutineStepAnteStart {
+				if dttr.task == nil || dttr.task.index <= task.index || dttr.step < dttRoutineStepAnteStart || dttr.task.prevTaskIndex > task.index {
 					continue
 				}
-				if !task.isEvm {
-					dttm.app.logger.Error("rerunFromCosmosTx", "index", dttr.task.index, "serial", task.index)
-					dttr.shouldRerun(task.index, -1)
-				} else if dttr.task.prevTaskIndex == task.index || dttm.hasConflict(dttr.task, task) { //dttr.task.from == task.from {
+
+				if dttr.task.prevTaskIndex == task.index || !task.isEvm || dttm.hasConflict(dttr.task, task) { //dttr.task.from == task.from {
 					if dttr.task.prevTaskIndex < task.index {
+						dttm.app.logger.Error("appendRerunRoutines", "index", dttr.task.index, "serial", task.index, "noEvm", !task.isEvm)
 						dttr.task.prevTaskIndex = task.index
 					}
 					rerunRoutines = append(rerunRoutines, dttr)
-					//if rerunRoutine == nil {
-					//	rerunRoutine = dttr
-					//} else if dttr.task.index < rerunRoutine.task.index {
-					//	rerunRoutine = dttr
-					//}
 				} else if dttr.task.index == dttm.serialIndex+1 {
 					nextTaskRoutine = dttr.index
 					if dttr.readyForSerialExecution() {
@@ -523,24 +526,6 @@ func (dttm *DTTManager) serialExecution() {
 	info := dttm.serialTask.info
 	handler := info.handler
 
-	handleGasFn := func() {
-		gasStart := time.Now()
-
-		dttm.updateFeeCollector()
-		handler.handleDeferRefund(info)
-
-		handler.handleDeferGasConsumed(info)
-
-		if r := recover(); r != nil {
-			_ = dttm.app.runTx_defer_recover(r, info)
-			info.msCache = nil //TODO msCache not write
-			info.result = nil
-		}
-		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
-
-		totalDeferGasTime += time.Since(gasStart).Microseconds()
-	}
-
 	execFinishedFn := func(txRs abci.ResponseDeliverTx) {
 		dttm.app.logger.Info("SerialFinished", "index", dttm.serialTask.index, "routine", dttm.serialTask.routineIndex)
 		dttm.txResponses[dttm.serialTask.index] = &txRs
@@ -574,27 +559,40 @@ func (dttm *DTTManager) serialExecution() {
 		return
 	}
 
+	defer func() {
+		if r := recover(); r != nil {
+			err = dttm.app.runTx_defer_recover(r, info)
+			info.msCache = nil //TODO msCache not write
+			info.result = nil
+		}
+		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
+
+		var resp abci.ResponseDeliverTx
+		if err != nil {
+			//dttm.app.logger.Error("handleRunMsg failed", "err", err)
+			resp = sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, dttm.app.trace)
+		} else {
+			resp = abci.ResponseDeliverTx{
+				GasWanted: int64(info.gInfo.GasWanted), // TODO: Should type accept unsigned ints?
+				GasUsed:   int64(info.gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
+				Log:       info.result.Log,
+				Data:      info.result.Data,
+				Events:    info.result.Events.ToABCIEvents(),
+			}
+		}
+		execFinishedFn(resp)
+	}()
+
+	defer handler.handleDeferGasConsumed(info)
+
+	defer handler.handleDeferRefund(info)
+
+	defer dttm.updateFeeCollector()
+
 	// execute runMsgs
 	runMsgStart := time.Now()
 	err = handler.handleRunMsg(info)
 	totalRunMsgsTime += time.Since(runMsgStart).Microseconds()
-
-	handleGasFn()
-
-	var resp abci.ResponseDeliverTx
-	if err != nil {
-		//dttm.app.logger.Error("handleRunMsg failed", "err", err)
-		resp = sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, dttm.app.trace)
-	} else {
-		resp = abci.ResponseDeliverTx{
-			GasWanted: int64(info.gInfo.GasWanted), // TODO: Should type accept unsigned ints?
-			GasUsed:   int64(info.gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
-			Log:       info.result.Log,
-			Data:      info.result.Data,
-			Events:    info.result.Events.ToABCIEvents(),
-		}
-	}
-	execFinishedFn(resp)
 }
 
 func (dttm *DTTManager) calculateFeeForCollector(fee sdk.Coins, add bool) {
