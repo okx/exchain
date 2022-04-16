@@ -3,6 +3,7 @@ package baseapp
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/nacos-group/nacos-sdk-go/common/logger"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -531,6 +532,9 @@ func (dttm *DTTManager) serialExecution() {
 		dttm.txResponses[dttm.serialTask.index] = &txRs
 		if txRs.Code != abci.CodeTypeOK {
 			dttm.invalidTxs++
+			logger.Info("Invalid tx", "code", txRs.Code, "log", txRs.Log, "index", dttm.serialIndex)
+		} else {
+			logger.Info("Valid tx", "code", txRs.Code, "log", txRs.Log, "index", dttm.serialIndex)
 		}
 	}
 
@@ -592,6 +596,9 @@ func (dttm *DTTManager) serialExecution() {
 	// execute runMsgs
 	runMsgStart := time.Now()
 	err = handler.handleRunMsg(info)
+	if err != nil {
+		dttm.app.logger.Error("RunMsgFailed.", "err", err)
+	}
 	totalRunMsgsTime += time.Since(runMsgStart).Microseconds()
 }
 

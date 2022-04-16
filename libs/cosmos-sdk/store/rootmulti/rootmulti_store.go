@@ -1,6 +1,7 @@
 package rootmulti
 
 import (
+	"encoding/hex"
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/global"
 
@@ -1043,8 +1044,8 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 
 		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
 
-		if global.GetGlobalHeight() == 4047825 {
-			fmt.Println(key, " ", commitID.String())
+		if global.GetGlobalHeight() == 4045172 {
+			fmt.Println(key, " ", commitID.Version, " ", hex.EncodeToString(commitID.Hash))
 		}
 
 		if store.GetStoreType() == types.StoreTypeTransient {
