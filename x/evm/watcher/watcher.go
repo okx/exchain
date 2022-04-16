@@ -3,6 +3,7 @@ package watcher
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/x/evm/watcher/abci"
 	"math/big"
 	"sync"
 
@@ -25,26 +26,36 @@ import (
 
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
 
+type blockInfo struct {
+	height         uint64
+	blockHash      common.Hash
+	header         types.Header
+	batch          []WatchMessage
+	staleBatch     []WatchMessage
+	cumulativeGas  map[uint64]uint64
+	gasUsed        uint64
+	blockTxs       []common.Hash
+	delayEraseKey  [][]byte
+	txs            []WatchMessage
+	txReceipts     []WatchMessage
+	txIndexInBlock int
+}
+
 type Watcher struct {
-	store         *WatchStore
-	height        uint64
-	blockHash     common.Hash
-	header        types.Header
-	batch         []WatchMessage
-	staleBatch    []WatchMessage
-	cumulativeGas map[uint64]uint64
-	gasUsed       uint64
-	blockTxs      []common.Hash
-	sw            bool
-	firstUse      bool
-	delayEraseKey [][]byte
-	log           log.Logger
+	blockInfo
+	store    *WatchStore
+	sw       bool
+	firstUse bool
+	log      log.Logger
 
 	// for state delta transfering in network
 	watchData  *WatchData
 	wdDelayKey [][]byte
 
 	jobChan chan func()
+	txChan  chan *abci.DeliverTx
+
+	waitAllTxs bool
 }
 
 var (
@@ -70,7 +81,7 @@ func GetWatchLruSize() int {
 }
 
 func NewWatcher(logger log.Logger) *Watcher {
-	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}, log: logger}
+	watcher := &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true, watchData: &WatchData{}, log: logger}
 	checkWd = viper.GetBool(FlagCheckWd)
 	return watcher
 }
@@ -102,6 +113,8 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	// ResetTransferWatchData
 	w.watchData = &WatchData{}
 	w.wdDelayKey = make([][]byte, 0)
+	w.cumulativeGas = make(map[uint64]uint64)
+	w.delayEraseKey = make([][]byte, 0)
 }
 
 func (w *Watcher) clean() {
