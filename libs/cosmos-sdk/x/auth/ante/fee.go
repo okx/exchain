@@ -138,14 +138,14 @@ func DeductFees(supplyKeeper types.SupplyKeeper, ctx sdk.Context, acc exported.A
 			"insufficient funds to pay for fees; %s < %s", spendableCoins, fees)
 	}
 
-	if global.GetGlobalHeight() == 4329762 {
+	if global.GetGlobalHeight() == 2602855 {
 		fmt.Println("========================SendCoinsFromAccountToModule start==========================")
 	}
 	err := supplyKeeper.SendCoinsFromAccountToModule(ctx, acc.GetAddress(), types.FeeCollectorName, fees)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds, err.Error())
 	}
-	if global.GetGlobalHeight() == 4329762 {
+	if global.GetGlobalHeight() == 2602855 {
 		fmt.Println("========================SendCoinsFromAccountToModule finished==========================")
 	}
 

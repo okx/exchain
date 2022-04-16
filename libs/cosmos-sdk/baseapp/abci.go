@@ -230,7 +230,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
 	app.commitBlockCache()
 
-	if header.Height == 4329763 {
+	if header.Height == 2602856 {
 		app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
 			if isDirty {
 				fmt.Println(hex.EncodeToString(key), hex.EncodeToString(value))
