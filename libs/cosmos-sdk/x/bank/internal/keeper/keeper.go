@@ -425,16 +425,20 @@ func (keeper *BaseSendKeeper) setCoinsToAccount(ctx sdk.Context, addr sdk.AccAdd
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
 	}
 
+	fmt.Println("========================setCoinsToAccount==========================")
 	acc, _ = keeper.getAccount(&ctx, addr, acc, accGas)
 	if acc == nil {
+		fmt.Println("========================NewAccountWithAddress==========================")
 		acc = keeper.ak.NewAccountWithAddress(ctx, addr)
 	}
 
+	fmt.Println("========================SetCoins==========================")
 	err := acc.SetCoins(amt)
 	if err != nil {
 		panic(err)
 	}
 
+	fmt.Println("========================SetAccount==========================")
 	keeper.ak.SetAccount(ctx, acc)
 	return nil
 }
