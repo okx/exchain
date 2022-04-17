@@ -136,7 +136,7 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 	var pubkeyBytes secp256k1.PubKeySecp256k1
 	copy(pubkeyBytes[:], senderPrivKey.PubKey().Bytes())
 
-	i, ok := sdk.NewIntFromString("123456789012")
+	i, ok := sdk.NewIntFromString("92233720368547758080")
 	require.True(t, ok)
 	balance := sdk.NewCoins(apptypes.NewPhotonCoin(i))
 

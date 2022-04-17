@@ -65,3 +65,9 @@ func (am TransferModule) exportGenesis(ctx sdk.Context) json.RawMessage {
 	gs := am.TKeeper.ExportGenesis(ctx)
 	return adapter.ModuleCdc.MustMarshalJSON(gs)
 }
+
+// DefaultGenesis returns default genesis state as raw bytes for the ibc
+// transfer module.
+func (am TransferModule) DefaultGenesis() json.RawMessage {
+	return adapter.ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
+}

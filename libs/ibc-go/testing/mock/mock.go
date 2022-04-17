@@ -40,6 +40,11 @@ var (
 	MockTimeoutCanaryCapabilityName = "mock timeout canary capability name"
 )
 
+var (
+	_ module.AppModule      = AppModule{}
+	_ module.AppModuleBasic = AppModuleBasic{}
+)
+
 //var _ porttypes.IBCModule = AppModule{}
 
 // Expected Interface
@@ -50,6 +55,11 @@ type PortKeeper interface {
 
 // AppModuleBasic is the mock AppModuleBasic.
 type AppModuleBasic struct{}
+
+func (a AppModuleBasic) RegisterCodec(c *codec.Codec) {
+	//TODO implement me
+	return
+}
 
 // Name implements AppModuleBasic interface.
 func (AppModuleBasic) Name() string {
@@ -63,12 +73,13 @@ func (AppModuleBasic) Name() string {
 func (AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) {}
 
 // DefaultGenesis implements AppModuleBasic interface.
-func (AppModuleBasic) DefaultGenesis(cdc codec.JSONCodec) json.RawMessage {
-	return nil
+func (AppModuleBasic) DefaultGenesis() json.RawMessage {
+	r, _ := json.Marshal([]byte{})
+	return r
 }
 
 // ValidateGenesis implements the AppModuleBasic interface.
-func (AppModuleBasic) ValidateGenesis(codec.JSONCodec /*client.TxEncodingConfig,*/, json.RawMessage) error {
+func (AppModuleBasic) ValidateGenesis(json.RawMessage) error {
 	return nil
 }
 
@@ -79,12 +90,12 @@ func (AppModuleBasic) RegisterRESTRoutes(clientCtx context.CLIContext, rtr *mux.
 func (a AppModuleBasic) RegisterGRPCGatewayRoutes(_ context.CLIContext, _ *runtime.ServeMux) {}
 
 // GetTxCmd implements AppModuleBasic interface.
-func (AppModuleBasic) GetTxCmd() *cobra.Command {
+func (AppModuleBasic) GetTxCmd(proxy *codec.Codec) *cobra.Command {
 	return nil
 }
 
 // GetQueryCmd implements AppModuleBasic interface.
-func (AppModuleBasic) GetQueryCmd() *cobra.Command {
+func (AppModuleBasic) GetQueryCmd(codec *codec.Codec) *cobra.Command {
 	return nil
 }
 
@@ -93,6 +104,16 @@ type AppModule struct {
 	AppModuleBasic
 	scopedKeeper capabilitykeeper.ScopedKeeper
 	portKeeper   PortKeeper
+}
+
+func (am AppModule) NewHandler() sdk.Handler {
+	//TODO implement me
+	return nil
+}
+
+func (am AppModule) NewQuerierHandler() sdk.Querier {
+	//TODO implement me
+	return nil
 }
 
 // NewAppModule returns a mock AppModule instance.
@@ -107,8 +128,8 @@ func NewAppModule(sk capabilitykeeper.ScopedKeeper, pk PortKeeper) AppModule {
 func (AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {}
 
 // Route implements the AppModule interface.
-func (am AppModule) Route() sdk.Route {
-	return sdk.NewRoute(ModuleName, nil)
+func (am AppModule) Route() string {
+	return sdk.NewRoute(ModuleName, nil).Path()
 }
 
 // QuerierRoute implements the AppModule interface.
@@ -125,7 +146,7 @@ func (AppModule) QuerierRoute() string {
 func (am AppModule) RegisterServices(module.Configurator) {}
 
 // InitGenesis implements the AppModule interface.
-func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONCodec, data json.RawMessage) []abci.ValidatorUpdate {
+func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
 	// bind mock port ID
 	cap := am.portKeeper.BindPort(ctx, ModuleName)
 	am.scopedKeeper.ClaimCapability(ctx, cap, host.PortPath(ModuleName))
@@ -134,7 +155,7 @@ func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONCodec, data json.
 }
 
 // ExportGenesis implements the AppModule interface.
-func (am AppModule) ExportGenesis(ctx sdk.Context, cdc codec.JSONCodec) json.RawMessage {
+func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
 	return nil
 }
 
