@@ -74,7 +74,12 @@ func (k Keeper) AddConsumeGasForSendCoins(ctx sdk.Context, accGas sdk.Gas, accLe
 		ctx.GasMeter().ConsumeGas(accGas, "get account")
 
 		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostFlat, stypes.GasWriteCostFlatDesc)	// WriteFlat
-		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostPerByte*stypes.Gas(accLen), stypes.GasWritePerByteDesc)	// WritePerByte
+		writeGas := stypes.KVGasConfig().WriteCostPerByte*stypes.Gas(accLen)
+		if writeGas < 2040 {
+			ctx.GasMeter().ConsumeGas(2040, stypes.GasWritePerByteDesc)	// WritePerByte
+		} else {
+			ctx.GasMeter().ConsumeGas(writeGas, stypes.GasWritePerByteDesc)	// WritePerByte
+		}
 	}
 	fmt.Println("AddConsumeGasForSendCoins finished")
 }
