@@ -1043,7 +1043,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 
 		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
 
-		if global.GetGlobalHeight() == 2602856 || global.GetGlobalHeight() == 2602855 {
+		if global.GetGlobalHeight() == 4322757 || global.GetGlobalHeight() == 4322758 {
 			fmt.Println(key, " ", commitID.String())
 		}
 
