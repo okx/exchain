@@ -42,6 +42,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	info.txBytes = txBytes
 	handler := info.handler
 	app.pin(ValTxMsgs, true, mode)
+	fmt.Println("TxType: ", tx.GetType().String())
 
 	//init info context
 	err = handler.handleStartHeight(info, height)

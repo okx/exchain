@@ -44,6 +44,7 @@ func (k *mockSupplyKeeper) behave() sdk.Error {
 // SendCoinsFromAccountToModule mocks SendCoinsFromAccountToModule of supply.Keeper
 func (k *mockSupplyKeeper) SendCoinsFromAccountToModule(
 	ctx sdk.Context, senderAddr sdk.AccAddress, recipientModule string, amt sdk.Coins) sdk.Error {
+	fmt.Println("mockSupplyKeeper SendCoinsFromAccountToModule")
 	return k.behave()
 }
 
@@ -66,7 +67,7 @@ func (k *mockSupplyKeeper) GetModuleAddress(moduleName string) sdk.AccAddress {
 
 // AddConsumeGasForSendCoins mocks AddConsumeGasForSendCoins of supply.Keeper
 func (k *mockSupplyKeeper) AddConsumeGasForSendCoins(
-	ctx sdk.Context, senderAddr sdk.AccAddress, recipientModule string, amt sdk.Coins) sdk.Error {
+	ctx sdk.Context, accGas sdk.Gas, accLen int, before bool) sdk.Error {
 	return k.behave()
 }
 

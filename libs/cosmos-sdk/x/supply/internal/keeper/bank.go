@@ -48,6 +48,7 @@ func (k Keeper) SendCoinsFromModuleToModule(
 func (k Keeper) SendCoinsFromAccountToModule(
 	ctx sdk.Context, senderAddr sdk.AccAddress, recipientModule string, amt sdk.Coins,
 ) error {
+	fmt.Println("Keeper SendCoinsFromAccountToModule")
 	recipientAcc := k.GetModuleAccount(ctx, recipientModule)
 	if recipientAcc == nil {
 		panic(sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "module account %s does not exist", recipientModule))
@@ -60,17 +61,27 @@ func (k Keeper) SendCoinsFromAccountToModule(
 }
 
 func (k Keeper) AddConsumeGasForSendCoins(ctx sdk.Context, accGas sdk.Gas, accLen int, before bool) {
+	fmt.Println("AddConsumeGasForSendCoins start")
 	if before {
 		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostFlat, stypes.GasReadCostFlatDesc) // ReadFlat
 		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostPerByte*stypes.Gas(accLen), stypes.GasReadPerByteDesc) // ReadPerByte
 		ctx.GasMeter().ConsumeGas(accGas, "get account")                                                            // get account
 		ctx.GasMeter().ConsumeGas(accGas, "get account")                                                            // get account
 	} else {
+		//ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostFlat, stypes.GasWriteCostFlatDesc)	// WriteFlat
+		//ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostPerByte*stypes.Gas(accLen), stypes.GasWritePerByteDesc)	// WritePerByte
+		ctx.GasMeter().ConsumeGas(accGas, "get account")
 		ctx.GasMeter().ConsumeGas(accGas, "get account")
 
 		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostFlat, stypes.GasWriteCostFlatDesc)	// WriteFlat
-		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostPerByte*stypes.Gas(accLen), stypes.GasWritePerByteDesc)	// WritePerByte
+		writeGas := stypes.KVGasConfig().WriteCostPerByte*stypes.Gas(accLen)
+		if writeGas < 2040 {
+			ctx.GasMeter().ConsumeGas(2040, stypes.GasWritePerByteDesc)	// WritePerByte
+		} else {
+			ctx.GasMeter().ConsumeGas(writeGas, stypes.GasWritePerByteDesc)	// WritePerByte
+		}
 	}
+	fmt.Println("AddConsumeGasForSendCoins finished")
 }
 
 // DelegateCoinsFromAccountToModule delegates coins and transfers them from a

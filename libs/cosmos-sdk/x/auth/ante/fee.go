@@ -3,11 +3,10 @@ package ante
 import (
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
 
 var (
@@ -138,6 +137,9 @@ func DeductFees(ak keeper.AccountKeeper, supplyKeeper types.SupplyKeeper, ctx sd
 			"insufficient funds to pay for fees; %s < %s", spendableCoins, fees)
 	}
 
+	//if global.GetGlobalHeight() == 2602855 {
+		fmt.Println("========================SendCoinsFromAccountToModule start==========================")
+	//}
 	// consume gas for compatible
 	if gasUsed, ok := exported.GetAccountGas(ak, acc); ok {
 		bzLen := ak.GetAccountBinarySize(acc)
@@ -150,11 +152,18 @@ func DeductFees(ak keeper.AccountKeeper, supplyKeeper types.SupplyKeeper, ctx sd
 	ak.SetAccount(ctx, acc, false)
 
 	// consume gas for compatible
-	if ok, gasUsed := exported.TryAddGetAccountGas(ctx.GasMeter(), ak, acc); ok {
-	//if gasUsed, ok := exported.GetAccountGas(ak, acc); ok {
-		bzLen := ak.GetAccountBinarySize(acc)
-		supplyKeeper.AddConsumeGasForSendCoins(ctx, gasUsed, bzLen, false)
+	currentGasMeter := ctx.GasMeter()
+	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
+	feeAcc := supplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName)
+	ctx.SetGasMeter(currentGasMeter)
+	if gasUsed, ok := exported.GetAccountGas(ak, feeAcc); ok {
+		feebzLen := ak.GetAccountBinarySize(feeAcc)
+		supplyKeeper.AddConsumeGasForSendCoins(ctx, gasUsed, feebzLen, false)
 	}
+
+	//if global.GetGlobalHeight() == 2602855 {
+		fmt.Println("========================SendCoinsFromAccountToModule finished==========================")
+	//}
 
 	return nil
 }
