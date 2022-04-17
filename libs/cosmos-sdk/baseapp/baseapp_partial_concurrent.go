@@ -535,12 +535,12 @@ func (dttm *DTTManager) serialExecution() {
 		dttm.txResponses[dttm.serialTask.index] = &txRs
 		if txRs.Code != abci.CodeTypeOK {
 			dttm.invalidTxs++
-			if global.GetGlobalHeight() == 3394855 {
-				logger.Info("TxResult", "code", txRs.Code, "index", "GasWanted", txRs.GasWanted, "GasUsed", txRs.GasUsed, dttm.serialIndex, "log", txRs.Log)
-			}
 		//	logger.Info("Invalid tx", "code", txRs.Code, "index", dttm.serialIndex) // "log", txRs.Log,
 		//} else {
 		//	logger.Info("Valid tx", "code", txRs.Code, "index", dttm.serialIndex) // "log", txRs.Log,
+		}
+		if global.GetGlobalHeight() == 3394855 {
+			logger.Info("TxResult", "code", txRs.Code, "index", "GasWanted", txRs.GasWanted, "GasUsed", txRs.GasUsed, dttm.serialIndex, "log", txRs.Log)
 		}
 	}
 
