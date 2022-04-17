@@ -3,7 +3,6 @@ package baseapp
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/nacos-group/nacos-sdk-go/common/logger"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -394,10 +393,10 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	task.err = err
 
 	if task.canRerun > 0 {
-		curDttr.logger.Error("rerunChInFromAnte", "index", task.index)
+		curDttr.logger.Error("AnteFinished rerunChInFromAnte", "index", task.index)
 		curDttr.shouldRerun(-1, -1)
 	} else if dttm.serialIndex+1 == task.index && !curDttr.needToRerun && task.prevTaskIndex < 0 && dttm.serialTask == nil {
-		dttm.app.logger.Info("ExtractNextSerialFromAnte", "index", curDttr.task.index, "step", curDttr.step, "needToRerun", curDttr.needToRerun)
+		dttm.app.logger.Info("AnteFinished ExtractNextSerialFromAnte", "index", curDttr.task.index, "step", curDttr.step, "needToRerun", curDttr.needToRerun)
 		dttm.serialCh <- task.routineIndex
 	} else {
 		dttm.app.logger.Info("AnteFinished", "index", curDttr.task.index, "serial", dttm.serialIndex, "needToRerun", curDttr.needToRerun, "prevTaskIndex", task.prevTaskIndex)
@@ -532,9 +531,9 @@ func (dttm *DTTManager) serialExecution() {
 		dttm.txResponses[dttm.serialTask.index] = &txRs
 		if txRs.Code != abci.CodeTypeOK {
 			dttm.invalidTxs++
-			logger.Info("Invalid tx", "code", txRs.Code, "log", txRs.Log, "index", dttm.serialIndex)
-		} else {
-			logger.Info("Valid tx", "code", txRs.Code, "log", txRs.Log, "index", dttm.serialIndex)
+		//	logger.Info("Invalid tx", "code", txRs.Code, "index", dttm.serialIndex) // "log", txRs.Log,
+		//} else {
+		//	logger.Info("Valid tx", "code", txRs.Code, "index", dttm.serialIndex) // "log", txRs.Log,
 		}
 	}
 
