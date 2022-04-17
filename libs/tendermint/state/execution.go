@@ -445,6 +445,9 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 				logger.Info("Invalid tx", "code", txRes.Code, "log", txRes.Log, "index", txIndex)
 				invalidTxs++
 			}
+			if global.GetGlobalHeight() == 3394855 {
+				logger.Info("TxResult", "code", txRes.Code, "index", txIndex, "GasWanted", txRes.GasWanted, "GasUsed", txRes.GasUsed, "log", txRes.Log)
+			}
 			abciResponses.DeliverTxs[txIndex] = txRes
 			txIndex++
 		}
