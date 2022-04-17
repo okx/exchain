@@ -3,6 +3,7 @@ package baseapp
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/nacos-group/nacos-sdk-go/common/logger"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -534,6 +535,9 @@ func (dttm *DTTManager) serialExecution() {
 		dttm.txResponses[dttm.serialTask.index] = &txRs
 		if txRs.Code != abci.CodeTypeOK {
 			dttm.invalidTxs++
+			if global.GetGlobalHeight() == 3394855 {
+				logger.Info("TxResult", "code", txRs.Code, "index", "GasWanted", txRs.GasWanted, "GasUsed", txRs.GasUsed, dttm.serialIndex, "log", txRs.Log)
+			}
 		//	logger.Info("Invalid tx", "code", txRs.Code, "index", dttm.serialIndex) // "log", txRs.Log,
 		//} else {
 		//	logger.Info("Valid tx", "code", txRs.Code, "index", dttm.serialIndex) // "log", txRs.Log,
