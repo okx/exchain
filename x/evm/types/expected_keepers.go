@@ -16,7 +16,6 @@ type AccountKeeper interface {
 	SetAccount(ctx sdk.Context, account authexported.Account)
 	RemoveAccount(ctx sdk.Context, account authexported.Account)
 	SetObserverKeeper(observer auth.ObserverI)
-	SetEvmRootHash(ctx sdk.Context, hash []byte)
 }
 
 type SupplyKeeper interface {

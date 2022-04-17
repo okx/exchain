@@ -30,6 +30,8 @@ var (
 	KeyPrefixHeightHash                  = []byte{0x07}
 	KeyPrefixContractDeploymentWhitelist = []byte{0x08}
 	KeyPrefixContractBlockedList         = []byte{0x09}
+
+	KeyPrefixEvmRootHash = []byte("evmRootHash")
 )
 
 // HeightHashKey returns the key for the given chain epoch and height.

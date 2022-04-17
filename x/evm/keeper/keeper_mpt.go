@@ -31,7 +31,8 @@ func (k *Keeper) SetMptRootHash(ctx sdk.Context, hash ethcmn.Hash) {
 
 	// put root hash to iavl and participate the process of calculate appHash
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		k.accountKeeper.SetEvmRootHash(ctx, hash.Bytes())
+		store := ctx.KVStore(k.store2Key)
+		store.Set(types.KeyPrefixEvmRootHash, hash.Bytes())
 	}
 }
 
@@ -309,21 +310,4 @@ func (k Keeper) iterateBlockBloomInDiskDB(fn func(key []byte, value []byte) (sto
 			break
 		}
 	}
-}
-
-func (k Keeper) getChainConfigInDiskDB() (types.ChainConfig, bool) {
-	var config types.ChainConfig
-	bz, err := k.db.TrieDB().DiskDB().Get(types.KeyPrefixChainConfig)
-	if err != nil {
-		return config, false
-	}
-	if err := config.UnmarshalFromAmino(k.cdc, bz[4:]); err != nil {
-		k.cdc.MustUnmarshalBinaryBare(bz, &config)
-	}
-	return config, true
-}
-
-func (k Keeper) setChainConfigInDiskDB(config types.ChainConfig) {
-	bz := k.cdc.MustMarshalBinaryBare(config)
-	k.db.TrieDB().DiskDB().Put(types.KeyPrefixChainConfig, bz)
 }

@@ -103,17 +103,6 @@ func (ak AccountKeeper) GetNextAccountNumber(ctx sdk.Context) uint64 {
 	return accNumber
 }
 
-func (ak AccountKeeper) SetEvmRootHash(ctx sdk.Context, hash []byte) {
-	var store sdk.KVStore
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		store = ctx.KVStore(ak.mptKey)
-	} else {
-		store = ctx.KVStore(ak.key)
-	}
-
-	store.Set(types.MptRootStoreKeyPrefix, hash)
-}
-
 // -----------------------------------------------------------------------------
 // Misc.
 
