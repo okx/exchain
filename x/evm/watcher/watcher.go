@@ -3,7 +3,7 @@ package watcher
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/okex/exchain/x/evm/watcher/abci"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"math/big"
 	"sync"
 
@@ -16,7 +16,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	"github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/tendermint/abci/types"
 	tmstate "github.com/okex/exchain/libs/tendermint/state"
@@ -26,36 +25,30 @@ import (
 
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
 
-type blockInfo struct {
-	height         uint64
-	blockHash      common.Hash
-	header         types.Header
-	batch          []WatchMessage
-	staleBatch     []WatchMessage
-	cumulativeGas  map[uint64]uint64
-	gasUsed        uint64
-	blockTxs       []common.Hash
-	delayEraseKey  [][]byte
-	txs            []WatchMessage
-	txReceipts     []WatchMessage
-	txIndexInBlock int
-}
-
 type Watcher struct {
-	blockInfo
-	store    *WatchStore
-	sw       bool
-	firstUse bool
-	log      log.Logger
-
+	store         *WatchStore
+	height        uint64
+	blockHash     common.Hash
+	header        types.Header
+	batch         []WatchMessage
+	staleBatch    []WatchMessage
+	cumulativeGas map[uint64]uint64
+	gasUsed       uint64
+	blockTxs      []common.Hash
+	sw            bool
+	firstUse      bool
+	delayEraseKey [][]byte
+	log           log.Logger
 	// for state delta transfering in network
 	watchData  *WatchData
 	wdDelayKey [][]byte
 
 	jobChan chan func()
-	txChan  chan *abci.DeliverTx
 
-	waitAllTxs bool
+	// for async parse deliver tx
+	txs        []WatchMessage
+	txReceipts []WatchMessage
+	txsCount   int
 }
 
 var (
@@ -81,7 +74,7 @@ func GetWatchLruSize() int {
 }
 
 func NewWatcher(logger log.Logger) *Watcher {
-	watcher := &Watcher{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), firstUse: true, watchData: &WatchData{}, log: logger}
+	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}, log: logger}
 	checkWd = viper.GetBool(FlagCheckWd)
 	return watcher
 }
@@ -113,8 +106,6 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	// ResetTransferWatchData
 	w.watchData = &WatchData{}
 	w.wdDelayKey = make([][]byte, 0)
-	w.cumulativeGas = make(map[uint64]uint64)
-	w.delayEraseKey = make([][]byte, 0)
 }
 
 func (w *Watcher) clean() {
@@ -387,6 +378,8 @@ func (w *Watcher) Commit() {
 	if !w.Enabled() {
 		return
 	}
+	w.batch = append(w.batch, w.txs...)
+	w.batch = append(w.batch, w.txReceipts...)
 	//hold it in temp
 	batch := w.batch
 	delayEraseKey := w.delayEraseKey
@@ -394,6 +387,7 @@ func (w *Watcher) Commit() {
 	w.dispatchJob(func() {
 		w.commitBatch(batch, delayEraseKey)
 	})
+	return
 }
 
 func (w *Watcher) CommitWatchData(data WatchData, delayEraseKey [][]byte) {
