@@ -560,8 +560,6 @@ func NewSimApp(
 	app.ScopedIBCMockKeeper = scopedIBCMockKeeper
 
 	return app
-
-	return app
 }
 
 func (app *SimApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOption) {

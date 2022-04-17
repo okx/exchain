@@ -187,8 +187,8 @@ func (coord *Coordinator) CommitBlock(chains ...TestChainI) {
 		//chain.NextBlock()
 		//chain.BeginBlock()
 		chain.App().Commit(abci.RequestCommit{})
-		chain.UpdateNextBlock()
-		//chain.NextBlock()
+		//chain.UpdateNextBlock()
+		chain.NextBlock()
 	}
 	coord.IncrementTime()
 }
