@@ -60,7 +60,7 @@ func (k Keeper) SendCoinsFromAccountToModule(
 	return k.bk.SendCoins(ctx, senderAddr, recipientAcc.GetAddress(), amt)
 }
 
-func (k Keeper) AddConsumeGasForSendCoins(ctx sdk.Context, accGas sdk.Gas, accLen int, feeAccLen int, before bool) {
+func (k Keeper) AddConsumeGasForSendCoins(ctx sdk.Context, accGas sdk.Gas, accLen int, before bool) {
 	fmt.Println("AddConsumeGasForSendCoins start")
 	if before {
 		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostFlat, stypes.GasReadCostFlatDesc) // ReadFlat
@@ -68,13 +68,13 @@ func (k Keeper) AddConsumeGasForSendCoins(ctx sdk.Context, accGas sdk.Gas, accLe
 		ctx.GasMeter().ConsumeGas(accGas, "get account")                                                            // get account
 		ctx.GasMeter().ConsumeGas(accGas, "get account")                                                            // get account
 	} else {
-		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostFlat, stypes.GasWriteCostFlatDesc)	// WriteFlat
-		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostPerByte*stypes.Gas(accLen), stypes.GasWritePerByteDesc)	// WritePerByte
-
+		//ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostFlat, stypes.GasWriteCostFlatDesc)	// WriteFlat
+		//ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostPerByte*stypes.Gas(accLen), stypes.GasWritePerByteDesc)	// WritePerByte
+		ctx.GasMeter().ConsumeGas(accGas, "get account")
 		ctx.GasMeter().ConsumeGas(accGas, "get account")
 
 		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostFlat, stypes.GasWriteCostFlatDesc)	// WriteFlat
-		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostPerByte*stypes.Gas(feeAccLen), stypes.GasWritePerByteDesc)	// WritePerByte
+		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().WriteCostPerByte*stypes.Gas(accLen), stypes.GasWritePerByteDesc)	// WritePerByte
 	}
 	fmt.Println("AddConsumeGasForSendCoins finished")
 }

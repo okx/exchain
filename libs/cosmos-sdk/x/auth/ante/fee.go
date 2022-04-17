@@ -143,7 +143,7 @@ func DeductFees(ak keeper.AccountKeeper, supplyKeeper types.SupplyKeeper, ctx sd
 	// consume gas for compatible
 	if gasUsed, ok := exported.GetAccountGas(ak, acc); ok {
 		bzLen := ak.GetAccountBinarySize(acc)
-		supplyKeeper.AddConsumeGasForSendCoins(ctx, gasUsed, bzLen, 0, true)
+		supplyKeeper.AddConsumeGasForSendCoins(ctx, gasUsed, bzLen, true)
 	}
 
 	if err := acc.SetCoins(balance); err != nil {
@@ -158,8 +158,8 @@ func DeductFees(ak keeper.AccountKeeper, supplyKeeper types.SupplyKeeper, ctx sd
 	//if ok, gasUsed := exported.TryAddGetAccountGas(ctx.GasMeter(), ak, feeAcc); ok {
 	if gasUsed, ok := exported.GetAccountGas(ak, feeAcc); ok {
 		accbzLen := ak.GetAccountBinarySize(acc)
-		feebzLen := ak.GetAccountBinarySize(feeAcc)
-		supplyKeeper.AddConsumeGasForSendCoins(ctx, gasUsed, accbzLen, feebzLen, false)
+		//feebzLen := ak.GetAccountBinarySize(feeAcc)
+		supplyKeeper.AddConsumeGasForSendCoins(ctx, gasUsed, accbzLen, false)
 	}
 
 	//if global.GetGlobalHeight() == 2602855 {
