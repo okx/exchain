@@ -303,12 +303,12 @@ func (dttm *DTTManager) concurrentBasic(txByte []byte, index int) *DeliverTxTask
 
 	task.info.handler = dttm.app.getModeHandler(runTxModeDeliverPartConcurrent) //dm.handler
 	task.fee, task.isEvm, task.from, task.to = dttm.app.getTxFeeAndFromHandler(dttm.checkStateCtx, task.info.tx)
-	if global.GetGlobalHeight() == 4663201 {
-		dttm.app.logger.Info("GetTxInfo", "index", task.index, "from", task.from, "to", task.to)
-		if task.from == "22fe6120b4ed9a876053ddfb0068549442eca62b" || task.to == "22fe6120b4ed9a876053ddfb0068549442eca62b" {
-			dttm.app.logger.Error("FindAccount", "index", task.index)
-		}
-	}
+	//if global.GetGlobalHeight() == 4663201 {
+	//	dttm.app.logger.Info("GetTxInfo", "index", task.index, "from", task.from, "to", task.to)
+	//	if task.from == "22fe6120b4ed9a876053ddfb0068549442eca62b" || task.to == "22fe6120b4ed9a876053ddfb0068549442eca62b" {
+	//		dttm.app.logger.Error("FindAccount", "index", task.index)
+	//	}
+	//}
 
 	if err = validateBasicTxMsgs(task.info.tx.GetMsgs()); err != nil {
 		task.err = err
@@ -350,8 +350,11 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		dttr := dttm.dttRoutineList[i]
 		if dttr.task == nil ||
 			dttr.txIndex != dttr.task.index ||
+			dttr.task.index == task.index ||
 			dttr.step == dttRoutineStepNone || dttr.step == dttRoutineStepStart ||
-			dttr.step == dttRoutineStepFinished || dttr.step == dttRoutineStepReadyForSerial {
+			dttr.step == dttRoutineStepFinished || dttr.step == dttRoutineStepReadyForSerial ||
+			(dttr.task.index > task.index && dttr.task.prevTaskIndex >= task.index) ||
+			(dttr.task.index < task.index && task.prevTaskIndex >= dttr.task.index) {
 			continue
 		}
 		conflict := dttm.hasConflict(dttr.task, task)
@@ -371,8 +374,8 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 			}
 		}
 	}
-	if task.prevTaskIndex >= 0 || task.index <= dttm.serialIndex { //|| dttr.needToRerun {
-		dttm.app.logger.Info("DonotRunAnte.", "prev", task.prevTaskIndex, "index", task.index, "serial", dttm.serialIndex)
+	if task.index <= dttm.serialIndex || (task.prevTaskIndex >= 0 && !(task.prevTaskIndex == dttm.serialIndex && dttm.serialTask == nil)) {
+			dttm.app.logger.Info("DonotRunAnte", "prev", task.prevTaskIndex, "index", task.index, "serial", dttm.serialIndex)
 		return nil
 	}
 
@@ -391,10 +394,10 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	task.err = err
 
 	if task.canRerun > 0 {
-		curDttr.logger.Error("rerunChInFromAnte", "index", task.index)
+		curDttr.logger.Error("AnteFinished rerunChInFromAnte", "index", task.index)
 		curDttr.shouldRerun(-1, -1)
 	} else if dttm.serialIndex+1 == task.index && !curDttr.needToRerun && task.prevTaskIndex < 0 && dttm.serialTask == nil {
-		dttm.app.logger.Info("ExtractNextSerialFromAnte", "index", curDttr.task.index, "step", curDttr.step, "needToRerun", curDttr.needToRerun)
+		dttm.app.logger.Info("AnteFinished ExtractNextSerialFromAnte", "index", curDttr.task.index, "step", curDttr.step, "needToRerun", curDttr.needToRerun)
 		dttm.serialCh <- task.routineIndex
 	} else {
 		dttm.app.logger.Info("AnteFinished", "index", curDttr.task.index, "serial", dttm.serialIndex, "needToRerun", curDttr.needToRerun, "prevTaskIndex", task.prevTaskIndex)
@@ -529,7 +532,13 @@ func (dttm *DTTManager) serialExecution() {
 		dttm.txResponses[dttm.serialTask.index] = &txRs
 		if txRs.Code != abci.CodeTypeOK {
 			dttm.invalidTxs++
+		//	logger.Info("Invalid tx", "code", txRs.Code, "index", dttm.serialIndex) // "log", txRs.Log,
+		//} else {
+		//	logger.Info("Valid tx", "code", txRs.Code, "index", dttm.serialIndex) // "log", txRs.Log,
 		}
+		//if global.GetGlobalHeight() == 3394855 {
+			dttm.app.logger.Info("TxResult", "code", txRs.Code, "index", dttm.serialIndex, "GasWanted", txRs.GasWanted, "GasUsed", txRs.GasUsed, "log", txRs.Log)
+		//}
 	}
 
 	// execute anteHandler failed
@@ -588,6 +597,9 @@ func (dttm *DTTManager) serialExecution() {
 	// execute runMsgs
 	runMsgStart := time.Now()
 	err = handler.handleRunMsg(info)
+	if err != nil {
+		dttm.app.logger.Error("RunMsgFailed.", "err", err)
+	}
 	totalRunMsgsTime += time.Since(runMsgStart).Microseconds()
 }
 
