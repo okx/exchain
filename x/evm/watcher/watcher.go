@@ -6,6 +6,7 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"math/big"
 	"sync"
+	"sync/atomic"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
@@ -46,9 +47,8 @@ type Watcher struct {
 	jobChan chan func()
 
 	// for async parse deliver tx
-	txs        []WatchMessage
-	txReceipts []WatchMessage
-	txsCount   int
+	txsAndReceipts    []WatchMessage
+	recordingTxsCount int64
 }
 
 var (
@@ -106,6 +106,7 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	// ResetTransferWatchData
 	w.watchData = &WatchData{}
 	w.wdDelayKey = make([][]byte, 0)
+	w.recordingTxsCount = 0
 }
 
 func (w *Watcher) clean() {
@@ -242,6 +243,11 @@ func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
 	if !w.Enabled() {
 		return
 	}
+	for atomic.LoadInt64(&w.recordingTxsCount) != 0 {
+	}
+
+	w.batch = append(w.batch, w.txsAndReceipts...)
+
 	wMsg := NewMsgBlock(w.height, bloom, w.blockHash, w.header, uint64(0xffffffff), big.NewInt(int64(w.gasUsed)), w.blockTxs)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
@@ -378,8 +384,6 @@ func (w *Watcher) Commit() {
 	if !w.Enabled() {
 		return
 	}
-	w.batch = append(w.batch, w.txs...)
-	w.batch = append(w.batch, w.txReceipts...)
 	//hold it in temp
 	batch := w.batch
 	delayEraseKey := w.delayEraseKey

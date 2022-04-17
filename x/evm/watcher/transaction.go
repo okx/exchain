@@ -7,16 +7,18 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher/abci"
+	"sync/atomic"
 )
 
-func (w *Watcher) ReceiveABCIMessage(deliverTx *abci.DeliverTx, txsCount int, txDecoder sdk.TxDecoder) {
-	w.txsCount = txsCount
+func (w *Watcher) ReceiveABCIMessage(deliverTx *abci.DeliverTx, txDecoder sdk.TxDecoder) {
+	atomic.AddInt64(&w.recordingTxsCount, 1)
 	w.dispatchJob(func() {
-		w.parseABCIMessage(deliverTx, txDecoder)
+		w.recordTxsAndReceipts(deliverTx, txDecoder)
 	})
 }
 
-func (w *Watcher) parseABCIMessage(deliverTx *abci.DeliverTx, txDecoder sdk.TxDecoder) {
+func (w *Watcher) recordTxsAndReceipts(deliverTx *abci.DeliverTx, txDecoder sdk.TxDecoder) {
+	defer atomic.AddInt64(&w.recordingTxsCount, -1)
 	if deliverTx == nil || deliverTx.Req == nil || deliverTx.Resp == nil {
 		w.log.Error("watch parse abci message error", "input", deliverTx)
 		return
@@ -50,7 +52,7 @@ func (w *Watcher) extractEvmTx(sdkTx sdk.Tx) (msg *types.MsgEthereumTx, err erro
 func (w *Watcher) saveEvmTx(msg *types.MsgEthereumTx, txHash ethcmn.Hash, index uint64) {
 	wMsg := NewMsgEthTx(msg, txHash, w.blockHash, w.height, index)
 	if wMsg != nil {
-		w.txs = append(w.batch, wMsg)
+		w.txsAndReceipts = append(w.txsAndReceipts, wMsg)
 	}
 	w.UpdateBlockTxs(txHash)
 }
@@ -59,7 +61,7 @@ func (w *Watcher) saveTransactionReceipt(status uint32, msg *types.MsgEthereumTx
 	w.UpdateCumulativeGas(txIndex, gasUsed)
 	wMsg := NewMsgTransactionReceipt(status, msg, txHash, w.blockHash, txIndex, w.height, data, w.cumulativeGas[txIndex], gasUsed)
 	if wMsg != nil {
-		w.txReceipts = append(w.batch, wMsg)
+		w.txsAndReceipts = append(w.txsAndReceipts, wMsg)
 	}
 }
 
