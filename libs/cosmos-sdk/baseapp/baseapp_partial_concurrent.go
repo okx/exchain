@@ -352,8 +352,11 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		dttr := dttm.dttRoutineList[i]
 		if dttr.task == nil ||
 			dttr.txIndex != dttr.task.index ||
+			dttr.task.index == task.index ||
 			dttr.step == dttRoutineStepNone || dttr.step == dttRoutineStepStart ||
-			dttr.step == dttRoutineStepFinished || dttr.step == dttRoutineStepReadyForSerial {
+			dttr.step == dttRoutineStepFinished || dttr.step == dttRoutineStepReadyForSerial ||
+			(dttr.task.index > task.index && dttr.task.prevTaskIndex >= task.index) ||
+			(dttr.task.index < task.index && task.prevTaskIndex >= dttr.task.index) {
 			continue
 		}
 		conflict := dttm.hasConflict(dttr.task, task)
@@ -373,8 +376,8 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 			}
 		}
 	}
-	if task.prevTaskIndex >= 0 || task.index <= dttm.serialIndex { //|| dttr.needToRerun {
-		dttm.app.logger.Info("DonotRunAnte.", "prev", task.prevTaskIndex, "index", task.index, "serial", dttm.serialIndex)
+	if task.index <= dttm.serialIndex || (task.prevTaskIndex >= 0 && !(task.prevTaskIndex == dttm.serialIndex && dttm.serialTask == nil)) {
+			dttm.app.logger.Info("DonotRunAnte", "prev", task.prevTaskIndex, "index", task.index, "serial", dttm.serialIndex)
 		return nil
 	}
 
