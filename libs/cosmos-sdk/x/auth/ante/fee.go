@@ -152,17 +152,13 @@ func DeductFees(ak keeper.AccountKeeper, supplyKeeper types.SupplyKeeper, ctx sd
 	ak.SetAccount(ctx, acc)
 
 	// consume gas for compatible
-	fmt.Println("GetFeeCollectorAccount start")
 	currentGasMeter := ctx.GasMeter()
 	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 	feeAcc := supplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName)
 	ctx.SetGasMeter(currentGasMeter)
-	fmt.Println("GetFeeCollectorAccount finished")
-	//if ok, gasUsed := exported.TryAddGetAccountGas(ctx.GasMeter(), ak, feeAcc); ok {
 	if gasUsed, ok := exported.GetAccountGas(ak, feeAcc); ok {
-		accbzLen := ak.GetAccountBinarySize(acc)
-		//feebzLen := ak.GetAccountBinarySize(feeAcc)
-		supplyKeeper.AddConsumeGasForSendCoins(ctx, gasUsed, accbzLen, false)
+		feebzLen := ak.GetAccountBinarySize(feeAcc)
+		supplyKeeper.AddConsumeGasForSendCoins(ctx, gasUsed, feebzLen, false)
 	}
 
 	//if global.GetGlobalHeight() == 2602855 {
