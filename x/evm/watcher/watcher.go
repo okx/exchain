@@ -49,6 +49,7 @@ type Watcher struct {
 	// for async parse deliver tx
 	txsAndReceipts    []WatchMessage
 	recordingTxsCount int64
+	txIndexInBlock    uint64
 }
 
 var (
@@ -107,6 +108,7 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	w.watchData = &WatchData{}
 	w.wdDelayKey = make([][]byte, 0)
 	w.recordingTxsCount = 0
+	w.txIndexInBlock = 0
 }
 
 func (w *Watcher) clean() {
@@ -115,17 +117,6 @@ func (w *Watcher) clean() {
 	w.blockTxs = []common.Hash{}
 	w.wdDelayKey = w.delayEraseKey
 	w.delayEraseKey = make([][]byte, 0)
-}
-
-func (w *Watcher) SaveEthereumTx(msg *evmtypes.MsgEthereumTx, txHash common.Hash, index uint64) {
-	if !w.Enabled() {
-		return
-	}
-	wMsg := NewMsgEthTx(msg, txHash, w.blockHash, w.height, index)
-	if wMsg != nil {
-		w.batch = append(w.batch, wMsg)
-	}
-	w.UpdateBlockTxs(txHash)
 }
 
 func (w *Watcher) SaveContractCode(addr common.Address, code []byte) {
@@ -145,17 +136,6 @@ func (w *Watcher) SaveContractCodeByHash(hash []byte, code []byte) {
 	wMsg := NewMsgCodeByHash(hash, code)
 	if wMsg != nil {
 		w.staleBatch = append(w.staleBatch, wMsg)
-	}
-}
-
-func (w *Watcher) SaveTransactionReceipt(status uint32, msg *evmtypes.MsgEthereumTx, txHash common.Hash, txIndex uint64, data *evmtypes.ResultData, gasUsed uint64) {
-	if !w.Enabled() {
-		return
-	}
-	w.UpdateCumulativeGas(txIndex, gasUsed)
-	wMsg := NewMsgTransactionReceipt(status, msg, txHash, w.blockHash, txIndex, w.height, data, w.cumulativeGas[txIndex], gasUsed)
-	if wMsg != nil {
-		w.batch = append(w.batch, wMsg)
 	}
 }
 

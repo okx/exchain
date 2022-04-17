@@ -6,6 +6,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/evm"
+	"github.com/okex/exchain/x/evm/watcher"
 )
 
 // BeginBlock implements the Application interface
@@ -22,6 +23,7 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 	analyzer.OnAppDeliverTxEnter()
 
 	resp := app.BaseApp.DeliverTx(req)
+	app.EvmKeeper.Watcher.RecordABCIMessage(&watcher.DeliverTx{Req: &req, Resp: &resp}, app.BaseApp.GetTxDecoder())
 
 	if appconfig.GetOecConfig().GetEnableDynamicGp() {
 		tx, err := evm.TxDecoder(app.marshal)(req.Tx)

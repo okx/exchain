@@ -5,19 +5,29 @@ import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	tm "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/evm/types"
-	"github.com/okex/exchain/x/evm/watcher/abci"
 	"sync/atomic"
 )
 
-func (w *Watcher) ReceiveABCIMessage(deliverTx *abci.DeliverTx, txDecoder sdk.TxDecoder) {
-	atomic.AddInt64(&w.recordingTxsCount, 1)
-	w.dispatchJob(func() {
-		w.recordTxsAndReceipts(deliverTx, txDecoder)
-	})
+type DeliverTx struct {
+	Req  *tm.RequestDeliverTx
+	Resp *tm.ResponseDeliverTx
 }
 
-func (w *Watcher) recordTxsAndReceipts(deliverTx *abci.DeliverTx, txDecoder sdk.TxDecoder) {
+func (w *Watcher) RecordABCIMessage(deliverTx *DeliverTx, txDecoder sdk.TxDecoder) {
+	if !w.Enabled() {
+		return
+	}
+	atomic.AddInt64(&w.recordingTxsCount, 1)
+	index := w.txIndexInBlock
+	w.dispatchJob(func() {
+		w.recordTxsAndReceipts(deliverTx, index, txDecoder)
+	})
+	w.txIndexInBlock++
+}
+
+func (w *Watcher) recordTxsAndReceipts(deliverTx *DeliverTx, index uint64, txDecoder sdk.TxDecoder) {
 	defer atomic.AddInt64(&w.recordingTxsCount, -1)
 	if deliverTx == nil || deliverTx.Req == nil || deliverTx.Resp == nil {
 		w.log.Error("watch parse abci message error", "input", deliverTx)
@@ -30,23 +40,28 @@ func (w *Watcher) recordTxsAndReceipts(deliverTx *abci.DeliverTx, txDecoder sdk.
 		return
 	}
 
-	if deliverTx.Resp.Code != errors.SuccessABCICode {
-		w.saveEvmTxAndFailedReceipt(realTx, deliverTx.Index, uint64(deliverTx.Resp.GasUsed))
+	if realTx.GetType() != sdk.EvmTxType {
 		return
 	}
 
-	w.saveEvmTxAndSuccessReceipt(realTx, deliverTx.Resp.Data, deliverTx.Index, uint64(deliverTx.Resp.GasUsed))
+	if deliverTx.Resp.Code != errors.SuccessABCICode {
+		w.saveEvmTxAndFailedReceipt(realTx, index, uint64(deliverTx.Resp.GasUsed))
+		return
+	}
+
+	w.saveEvmTxAndSuccessReceipt(realTx, deliverTx.Resp.Data, index, uint64(deliverTx.Resp.GasUsed))
 }
 
-func (w *Watcher) extractEvmTx(sdkTx sdk.Tx) (msg *types.MsgEthereumTx, err error) {
+func (w *Watcher) extractEvmTx(sdkTx sdk.Tx) (*types.MsgEthereumTx, error) {
 	var ok bool
+	var evmTx *types.MsgEthereumTx
 	for _, msg := range sdkTx.GetMsgs() {
-		if msg, ok = msg.(*types.MsgEthereumTx); !ok {
+		if evmTx, ok = msg.(*types.MsgEthereumTx); !ok {
 			return nil, fmt.Errorf("sdktx is not evm tx %v", sdkTx)
 		}
 	}
 
-	return
+	return evmTx, nil
 }
 
 func (w *Watcher) saveEvmTx(msg *types.MsgEthereumTx, txHash ethcmn.Hash, index uint64) {
@@ -67,7 +82,7 @@ func (w *Watcher) saveTransactionReceipt(status uint32, msg *types.MsgEthereumTx
 
 func (w *Watcher) saveEvmTxAndSuccessReceipt(sdkTx sdk.Tx, resultData []byte, index, gasUsed uint64) {
 	evmTx, err := w.extractEvmTx(sdkTx)
-	if err != nil {
+	if err != nil && evmTx != nil {
 		return
 	}
 	evmResultData, err := types.DecodeResultData(resultData)
