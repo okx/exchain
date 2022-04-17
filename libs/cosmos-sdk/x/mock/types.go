@@ -49,7 +49,7 @@ func (sk DummySupplyKeeper) SendCoinsFromAccountToModule(ctx sdk.Context, fromAd
 	return nil
 }
 
-func (sk DummySupplyKeeper) AddConsumeGasForSendCoins(ctx sdk.Context, accGas sdk.Gas, accLen int, before bool) {
+func (sk DummySupplyKeeper) AddConsumeGasForSendCoins(ctx sdk.Context, accGas sdk.Gas, accLen int, feeAccLen int, before bool) {
 	return
 }
 
