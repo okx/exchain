@@ -136,7 +136,7 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 	var pubkeyBytes secp256k1.PubKeySecp256k1
 	copy(pubkeyBytes[:], senderPrivKey.PubKey().Bytes())
 
-	i, ok := sdk.NewIntFromString("100000000000")
+	i, ok := sdk.NewIntFromString("123456789012")
 	require.True(t, ok)
 	balance := sdk.NewCoins(apptypes.NewPhotonCoin(i))
 
@@ -398,7 +398,7 @@ func (chain *TestChain) GetValsAtHeight(height int64) (*tmtypes.ValidatorSet, bo
 
 	validators := make([]*tmtypes.Validator, len(valSet))
 	for i, val := range valSet {
-		validators[i] = tmtypes.NewValidator(val.GetConsPubKey(), sdk.PowerReduction.Int64())
+		validators[i] = tmtypes.NewValidator(val.GetConsPubKey(), 1)
 	}
 
 	return tmtypes.NewValidatorSet(validators), true
