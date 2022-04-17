@@ -11,5 +11,5 @@ type SupplyKeeper interface {
 	SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) error
 	GetModuleAccount(ctx sdk.Context, moduleName string) exported.ModuleAccountI
 	GetModuleAddress(moduleName string) sdk.AccAddress
-	AddConsumeGasForSendCoins(ctx sdk.Context, accGas sdk.Gas, accLen int, before bool)
+	AddConsumeGasForSendCoins(ctx sdk.Context, accGas sdk.Gas, accLen int, feeAccLen int, before bool)
 }
