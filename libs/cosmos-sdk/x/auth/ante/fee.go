@@ -153,7 +153,10 @@ func DeductFees(ak keeper.AccountKeeper, supplyKeeper types.SupplyKeeper, ctx sd
 
 	// consume gas for compatible
 	fmt.Println("GetFeeCollectorAccount start")
+	currentGasMeter := ctx.GasMeter()
+	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 	feeAcc := supplyKeeper.GetModuleAccount(ctx, types.FeeCollectorName)
+	ctx.SetGasMeter(currentGasMeter)
 	fmt.Println("GetFeeCollectorAccount finished")
 	//if ok, gasUsed := exported.TryAddGetAccountGas(ctx.GasMeter(), ak, feeAcc); ok {
 	if gasUsed, ok := exported.GetAccountGas(ak, feeAcc); ok {
