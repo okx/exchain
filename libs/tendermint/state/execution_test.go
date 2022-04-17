@@ -335,7 +335,6 @@ func TestEndBlockValidatorUpdates(t *testing.T) {
 		proxyApp.Consensus(),
 		mock.Mempool{},
 		sm.MockEvidencePool{},
-		int8(0),
 	)
 
 	eventBus := types.NewEventBus()
@@ -403,7 +402,6 @@ func TestEndBlockValidatorUpdatesResultingInEmptySet(t *testing.T) {
 		proxyApp.Consensus(),
 		mock.Mempool{},
 		sm.MockEvidencePool{},
-		int8(0),
 	)
 
 	block := makeBlock(state, 1)

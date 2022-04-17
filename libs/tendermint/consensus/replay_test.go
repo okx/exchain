@@ -711,7 +711,7 @@ func testHandshakeReplay(t *testing.T, config *cfg.Config, nBlocks int, mode uin
 		t.Fatalf("Error starting proxy app connections: %v", err)
 	}
 	defer proxyApp.Stop()
-	err := handshaker.Handshake(proxyApp, int8(0))
+	err := handshaker.Handshake(proxyApp)
 	if expectError {
 		require.Error(t, err)
 		return
@@ -747,7 +747,7 @@ func testHandshakeReplay(t *testing.T, config *cfg.Config, nBlocks int, mode uin
 
 func applyBlock(stateDB dbm.DB, st sm.State, blk *types.Block, proxyApp proxy.AppConns) sm.State {
 	testPartSize := types.BlockPartSizeBytes
-	blockExec := sm.NewBlockExecutor(stateDB, log.TestingLogger(), proxyApp.Consensus(), mempool, evpool, int8(0))
+	blockExec := sm.NewBlockExecutor(stateDB, log.TestingLogger(), proxyApp.Consensus(), mempool, evpool)
 
 	blkID := types.BlockID{Hash: blk.Hash(), PartsHeader: blk.MakePartSet(testPartSize).Header()}
 	newState, _, err := blockExec.ApplyBlock(st, blkID, blk)
@@ -880,7 +880,7 @@ func TestHandshakePanicsIfAppReturnsWrongAppHash(t *testing.T) {
 
 		assert.Panics(t, func() {
 			h := NewHandshaker(stateDB, state, store, dStore, genDoc)
-			h.Handshake(proxyApp, int8(0))
+			h.Handshake(proxyApp)
 		})
 	}
 
@@ -898,7 +898,7 @@ func TestHandshakePanicsIfAppReturnsWrongAppHash(t *testing.T) {
 
 		assert.Panics(t, func() {
 			h := NewHandshaker(stateDB, state, store, dStore, genDoc)
-			h.Handshake(proxyApp, int8(0))
+			h.Handshake(proxyApp)
 		})
 	}
 }
@@ -1184,7 +1184,7 @@ func TestHandshakeUpdatesValidators(t *testing.T) {
 		t.Fatalf("Error starting proxy app connections: %v", err)
 	}
 	defer proxyApp.Stop()
-	if err := handshaker.Handshake(proxyApp, int8(0)); err != nil {
+	if err := handshaker.Handshake(proxyApp); err != nil {
 		t.Fatalf("Error on abci handshake: %v", err)
 	}
 
