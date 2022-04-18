@@ -50,6 +50,8 @@ type Watcher struct {
 	txsAndReceipts    []WatchMessage
 	recordingTxsCount int64
 	txIndexInBlock    uint64
+	txChan            chan func()
+	txMutex           sync.Mutex
 }
 
 var (
@@ -502,6 +504,7 @@ func (w *Watcher) UseWatchData(watchData interface{}) {
 
 func (w *Watcher) SetWatchDataFunc() {
 	go w.jobRoutine()
+	w.txRoutine()
 	tmstate.SetWatchDataFunc(w.GetWatchDataFunc, w.UnmarshalWatchData, w.UseWatchData)
 }
 

@@ -21,7 +21,7 @@ func (w *Watcher) RecordABCIMessage(deliverTx *DeliverTx, txDecoder sdk.TxDecode
 	}
 	atomic.AddInt64(&w.recordingTxsCount, 1)
 	index := w.txIndexInBlock
-	w.dispatchJob(func() {
+	w.dispatchTxJob(func() {
 		w.recordTxsAndReceipts(deliverTx, index, txDecoder)
 	})
 	w.txIndexInBlock++
@@ -43,6 +43,8 @@ func (w *Watcher) recordTxsAndReceipts(deliverTx *DeliverTx, index uint64, txDec
 	if realTx.GetType() != sdk.EvmTxType {
 		return
 	}
+	w.txMutex.Lock()
+	defer w.txMutex.Unlock()
 
 	if deliverTx.Resp.Code != errors.SuccessABCICode {
 		w.saveEvmTxAndFailedReceipt(realTx, index, uint64(deliverTx.Resp.GasUsed))
