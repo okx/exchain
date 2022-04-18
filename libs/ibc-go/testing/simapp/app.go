@@ -225,6 +225,8 @@ type SimApp struct {
 	marshal              *codec.CodecProxy
 	heightTasks          map[int64]*upgradetypes.HeightTasks
 	Erc20Keeper          erc20.Keeper
+
+	ibcScopeKeep capabilitykeeper.ScopedKeeper
 }
 
 // NewSimApp returns a reference to a new initialized OKExChain application.
@@ -369,6 +371,7 @@ func NewSimApp(
 	// add capability keeper and ScopeToModule for ibc module
 	app.CapabilityKeeper = capabilitykeeper.NewKeeper(codecProxy, keys[capabilitytypes.StoreKey], memKeys[capabilitytypes.MemStoreKey])
 	scopedIBCKeeper := app.CapabilityKeeper.ScopeToModule(ibchost.ModuleName)
+	app.ibcScopeKeep = scopedIBCKeeper
 	scopedTransferKeeper := app.CapabilityKeeper.ScopeToModule(ibctransfertypes.ModuleName)
 	// NOTE: the IBC mock keeper and application module is used only for testing core IBC. Do
 	// note replicate if you do not need to test core IBC or light clients.
@@ -421,9 +424,9 @@ func NewSimApp(
 	app.Erc20Keeper.SetGovKeeper(app.GovKeeper)
 
 	// Set EVM hooks
-	app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper)))
+	//app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper)))
 	// Set IBC hooks
-	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
+	//app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
 	//transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
 	transferModule := transfer.TNewTransferModule(app.TransferKeeper, codecProxy)
 
@@ -654,8 +657,9 @@ func (app *SimApp) GetIBCKeeper() *ibc.Keeper {
 	return app.IBCKeeper
 }
 
-func (app *SimApp) GetScopedIBCKeeper() capabilitykeeper.ScopedKeeper {
-	return app.CapabilityKeeper.ScopeToModule(ibchost.ModuleName)
+func (app *SimApp) GetScopedIBCKeeper() (cap capabilitykeeper.ScopedKeeper) {
+	cap = app.ibcScopeKeep
+	return
 }
 
 func (app *SimApp) AppCodec() *codec.CodecProxy {
