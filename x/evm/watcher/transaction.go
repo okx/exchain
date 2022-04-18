@@ -19,9 +19,9 @@ func (w *Watcher) RecordABCIMessage(deliverTx *DeliverTx, txDecoder sdk.TxDecode
 	if !w.Enabled() {
 		return
 	}
-	atomic.AddInt64(&w.recordingTxsCount, 1)
 	index := w.txIndexInBlock
 	w.dispatchTxJob(func() {
+		atomic.AddInt64(&w.recordingTxsCount, 1)
 		w.recordTxsAndReceipts(deliverTx, index, txDecoder)
 	})
 	w.txIndexInBlock++
