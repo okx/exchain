@@ -20,7 +20,7 @@ func (m mylogger) Error(msg string, keyvals ...interface{}) {
 
 func (m mylogger) With(keyvals ...interface{}) log.Logger { return m }
 
-func TestWatcher_dispatchJob(t *testing.T) {
+func TestWatcher_dispatchJob_ErrorMsg(t *testing.T) {
 	var logger mylogger
 	watcher := &Watcher{
 		log: logger,
@@ -38,5 +38,5 @@ func TestWatcher_dispatchJob(t *testing.T) {
 		})
 	}
 	time.Sleep(time.Millisecond)
-	t.Log("test the error log")
+	t.Log("test the error log: watch dispatch job too busy.")
 }
