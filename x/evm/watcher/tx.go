@@ -21,10 +21,10 @@ func (w *Watcher) RecordABCIMessage(deliverTx *DeliverTx, txDecoder sdk.TxDecode
 	}
 
 	w.txsCount++
-	// index := w.txIndexInBlock
-	//	w.dispatchTxJob(func() {
-	//		w.recordTxsAndReceipts(deliverTx, index, txDecoder)
-	//	})
+	index := w.txIndexInBlock
+	w.dispatchTxJob(func() {
+		w.recordTxsAndReceipts(deliverTx, index, txDecoder)
+	})
 	w.txIndexInBlock++
 }
 
