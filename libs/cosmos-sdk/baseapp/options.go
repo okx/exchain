@@ -185,3 +185,10 @@ func (app *BaseApp) SetMptCommitHandler(mch sdk.MptCommitHandler) {
 	}
 	app.mptCommitHandler = mch
 }
+
+func (app *BaseApp) SetEvmTxVerifySignHandler(sigHandler sdk.TxVerifySigHandler) {
+	if app.sealed {
+		panic("SetEvmTxVerifySignHandler() on sealed BaseApp")
+	}
+	app.evmTxVerifySigHandler = sigHandler
+}
