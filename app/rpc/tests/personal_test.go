@@ -1,14 +1,17 @@
+//go:build ignore
+
 package tests
 
 import (
 	"encoding/json"
 	"fmt"
+	"testing"
+
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestPersonal_ListAccounts(t *testing.T) {
