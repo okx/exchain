@@ -50,7 +50,7 @@ func (suite *TypesTestSuite) TestMarshalMsgCreateClient() {
 	}{
 		{
 			"solo machine client", func() {
-				soloMachine := ibctesting.NewSolomachine(suite.T(), suite.chainA.Codec(), "solomachine", "", 2)
+				soloMachine := ibctesting.NewSolomachine(suite.T(), suite.chainA.Codec(), "solomachine", "", 1)
 				msg, err = types.NewMsgCreateClient(soloMachine.ClientState(), soloMachine.ConsensusState(), suite.chainA.SenderAccount().GetAddress())
 				suite.Require().NoError(err)
 			},
@@ -483,7 +483,7 @@ func (suite *TypesTestSuite) TestMarshalMsgSubmitMisbehaviour() {
 	}{
 		{
 			"solo machine client", func() {
-				soloMachine := ibctesting.NewSolomachine(suite.T(), suite.chainA.Codec(), "solomachine", "", 2)
+				soloMachine := ibctesting.NewSolomachine(suite.T(), suite.chainA.Codec(), "solomachine", "", 1)
 				msg, err = types.NewMsgSubmitMisbehaviour(soloMachine.ClientID, soloMachine.CreateMisbehaviour(), suite.chainA.SenderAccount().GetAddress())
 				suite.Require().NoError(err)
 			},

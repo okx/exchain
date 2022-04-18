@@ -4,7 +4,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
-	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
+	"github.com/okex/exchain/libs/ibc-go/testing/mock"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/capability"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/core"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/transfer"
@@ -136,6 +136,7 @@ var (
 		capability.CapabilityModuleAdapter{},
 		transfer.TransferModule{},
 		erc20.AppModuleBasic{},
+		mock.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -371,7 +372,7 @@ func NewSimApp(
 	scopedTransferKeeper := app.CapabilityKeeper.ScopeToModule(ibctransfertypes.ModuleName)
 	// NOTE: the IBC mock keeper and application module is used only for testing core IBC. Do
 	// note replicate if you do not need to test core IBC or light clients.
-	scopedIBCMockKeeper := app.CapabilityKeeper.ScopeToModule("mock")
+	scopedIBCMockKeeper := app.CapabilityKeeper.ScopeToModule(mock.ModuleName)
 
 	app.IBCKeeper = ibc.NewKeeper(
 		codecProxy, keys[ibchost.StoreKey], app.GetSubspace(ibchost.ModuleName), stakingKeeper, app.UpgradeKeeper, &scopedIBCKeeper, interfaceReg,
@@ -423,11 +424,14 @@ func NewSimApp(
 	app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper)))
 	// Set IBC hooks
 	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
-	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
+	//transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
+	transferModule := transfer.TNewTransferModule(app.TransferKeeper, codecProxy)
 
+	mockModule := mock.NewAppModule(scopedIBCMockKeeper, &app.IBCKeeper.PortKeeper)
 	// Create static IBC router, add transfer route, then set and seal it
 	ibcRouter := ibcporttypes.NewRouter()
 	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferModule)
+	ibcRouter.AddRoute(mock.ModuleName, mockModule)
 	//ibcRouter.AddRoute(ibcmock.ModuleName, mockModule)
 	app.IBCKeeper.SetRouter(ibcRouter)
 
@@ -463,6 +467,7 @@ func NewSimApp(
 		capabilityModule.NewAppModule(codecProxy, *app.CapabilityKeeper),
 		transferModule,
 		erc20.NewAppModule(app.Erc20Keeper),
+		mockModule,
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
@@ -483,6 +488,7 @@ func NewSimApp(
 		evm.ModuleName,
 		ibchost.ModuleName,
 		ibctransfertypes.ModuleName,
+		mock.ModuleName,
 	)
 	app.mm.SetOrderEndBlockers(
 		crisis.ModuleName,
@@ -491,6 +497,7 @@ func NewSimApp(
 		order.ModuleName,
 		staking.ModuleName,
 		evm.ModuleName,
+		mock.ModuleName,
 	)
 
 	// NOTE: The genutils module must occur after staking so that pools are
@@ -504,6 +511,7 @@ func NewSimApp(
 		ibchost.ModuleName,
 		evm.ModuleName, crisis.ModuleName, genutil.ModuleName, params.ModuleName, evidence.ModuleName,
 		erc20.ModuleName,
+		mock.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)
@@ -770,14 +778,15 @@ func PreRun(ctx *server.Context) error {
 }
 
 func (app *SimApp) setupUpgradeModules() {
-	heightTasks, paramMap, pip, prunePip, versionPip := app.CollectUpgradeModules(app.mm)
+	//heightTasks, paramMap, pip, prunePip, versionPip := app.CollectUpgradeModules(app.mm)
+	heightTasks, paramMap, pip, _, _ := app.CollectUpgradeModules(app.mm)
 
 	app.heightTasks = heightTasks
 
 	if pip != nil {
-		app.GetCMS().SetPruneHeightFilterPipeline(prunePip)
-		app.GetCMS().SetCommitHeightFilterPipeline(pip)
-		app.GetCMS().SetVersionFilterPipeline(versionPip)
+		//app.GetCMS().SetPruneHeightFilterPipeline(prunePip)
+		//app.GetCMS().SetCommitHeightFilterPipeline(pip)
+		//app.GetCMS().SetVersionFilterPipeline(versionPip)
 	}
 
 	vs := app.subspaces

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"google.golang.org/protobuf/encoding/protowire"
+	"math/big"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
@@ -74,21 +75,34 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			Signatures: raw.Signatures,
 		}
 
-		amount := authInfo.Fee.Amount[0].Amount.BigInt()
+		amount := &big.Int{}
+		denom := ""
+		gaslimit := uint64(0)
+		if authInfo.Fee != nil {
+			if authInfo.Fee.Amount != nil {
+				amount = authInfo.Fee.Amount[0].Amount.BigInt()
+				denom = authInfo.Fee.Amount[0].Denom
+			}
+			if authInfo.Fee != nil {
+				gaslimit = authInfo.Fee.GasLimit
+			}
+		}
 
 		fee := authtypes.StdFee{
 			Amount: []sdk.DecCoin{
 				sdk.DecCoin{
-					Denom:  ibcTx.AuthInfo.Fee.Amount[0].Denom,
+					Denom:  denom,
 					Amount: sdk.NewDecFromBigInt(amount),
 				},
 			},
-			Gas: ibcTx.AuthInfo.Fee.GasLimit,
+			Gas: gaslimit,
 		}
 		signatures := []authtypes.StdSignature{}
 		for i, s := range ibcTx.Signatures {
 			pk := &ibckey.PubKey{}
-			cdc.UnmarshalBinaryBare(ibcTx.AuthInfo.SignerInfos[i].PublicKey.Value, pk)
+			if ibcTx.AuthInfo.SignerInfos != nil {
+				cdc.UnmarshalBinaryBare(ibcTx.AuthInfo.SignerInfos[i].PublicKey.Value, pk)
+			}
 
 			//convert crypto pubkey to tm pubkey
 			tmPubKey := tmtypes.PubKeySecp256k1{}
