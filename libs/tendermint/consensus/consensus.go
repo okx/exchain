@@ -498,7 +498,7 @@ func (cs *State) updateRoundStep(round int, step cstypes.RoundStepType) {
 
 // enterNewRound(height, 0) at cs.StartTime.
 func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
-	overDuration := tmtime.Now().Sub(cs.R0PrevoteTime)
+	overDuration := tmtime.Now().Sub(cs.StartTime)
 	sleepDuration := cs.config.TimeoutCommit - overDuration
 	if sleepDuration < 0 {
 		sleepDuration = 0
@@ -1195,10 +1195,6 @@ func (cs *State) enterPrevote(height int64, round int) {
 		return
 	}
 	cs.trc.Pin("Prevote-%d", round)
-
-	if round == 0 {
-		cs.R0PrevoteTime = tmtime.Now()
-	}
 
 	defer func() {
 		// Done enterPrevote:
