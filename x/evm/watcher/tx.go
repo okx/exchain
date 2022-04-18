@@ -61,10 +61,7 @@ func (w *Watcher) saveEvmTxAndFailedReceipt(sdkTx sdk.Tx, index, gasUsed uint64)
 	txHash := ethcmn.BytesToHash(evmTx.TxHash())
 	ethcmn.BytesToHash(evmTx.TxHash())
 
-	w.txMutex.Lock()
-	w.saveEvmTx(evmTx, txHash, index)
-	w.saveTransactionReceipt(TransactionFailed, evmTx, txHash, index, &types.ResultData{}, gasUsed)
-	w.txMutex.Unlock()
+	w.saveTxAndReceipt(evmTx, txHash, index, TransactionFailed, &types.ResultData{}, gasUsed)
 }
 
 func (w *Watcher) saveEvmTxAndSuccessReceipt(sdkTx sdk.Tx, resultData []byte, index, gasUsed uint64) {
@@ -78,10 +75,7 @@ func (w *Watcher) saveEvmTxAndSuccessReceipt(sdkTx sdk.Tx, resultData []byte, in
 		return
 	}
 
-	w.txMutex.Lock()
-	w.saveEvmTx(evmTx, evmResultData.TxHash, index)
-	w.saveTransactionReceipt(TransactionSuccess, evmTx, evmResultData.TxHash, index, &evmResultData, gasUsed)
-	w.txMutex.Unlock()
+	w.saveTxAndReceipt(evmTx, evmResultData.TxHash, index, TransactionSuccess, &evmResultData, gasUsed)
 }
 
 func (w *Watcher) extractEvmTx(sdkTx sdk.Tx) (*types.MsgEthereumTx, error) {
@@ -109,5 +103,32 @@ func (w *Watcher) saveTransactionReceipt(status uint32, msg *types.MsgEthereumTx
 	wMsg := NewMsgTransactionReceipt(status, msg, txHash, w.blockHash, txIndex, w.height, data, w.cumulativeGas[txIndex], gasUsed)
 	if wMsg != nil {
 		w.txsAndReceipts = append(w.txsAndReceipts, wMsg)
+	}
+}
+
+func (w *Watcher) saveTxAndReceipt(msg *types.MsgEthereumTx, txHash ethcmn.Hash, index uint64,
+	receiptStatus uint32, data *types.ResultData, gasUsed uint64) {
+
+	wMsg := NewMsgEthTx(msg, txHash, w.blockHash, w.height, index)
+	txReceipt := NewMsgTransactionReceipt(receiptStatus, msg, txHash, w.blockHash, index, w.height, data, w.cumulativeGas[index], gasUsed)
+	select {
+	case w.txResultChan <- TxResult{
+		TxMsg:     wMsg,
+		TxReceipt: txReceipt,
+		Index:     index,
+		TxHash:    txHash,
+		GasUsed:   gasUsed,
+	}:
+	default:
+		w.log.Error("save to tx too busy.")
+		go func() {
+			w.txResultChan <- TxResult{
+				TxMsg:     wMsg,
+				TxReceipt: txReceipt,
+				Index:     index,
+				TxHash:    txHash,
+				GasUsed:   gasUsed,
+			}
+		}()
 	}
 }
