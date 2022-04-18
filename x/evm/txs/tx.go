@@ -92,8 +92,6 @@ func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err e
 		// Commit save the inner tx and contracts
 		tx.Commit(msg, &baseResult)
 		tx.EmitEvent(msg, &baseResult)
-	} else {
-		// tx.RestoreWatcherTransactionReceipt(msg)
 	}
 
 	return tx.DecorateResult(&baseResult, err)

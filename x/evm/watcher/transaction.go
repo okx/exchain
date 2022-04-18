@@ -52,6 +52,30 @@ func (w *Watcher) recordTxsAndReceipts(deliverTx *DeliverTx, index uint64, txDec
 	w.saveEvmTxAndSuccessReceipt(realTx, deliverTx.Resp.Data, index, uint64(deliverTx.Resp.GasUsed))
 }
 
+func (w *Watcher) saveEvmTxAndFailedReceipt(sdkTx sdk.Tx, index, gasUsed uint64) {
+	evmTx, err := w.extractEvmTx(sdkTx)
+	if err != nil {
+		return
+	}
+	txHash := ethcmn.BytesToHash(evmTx.TxHash())
+	w.saveEvmTx(evmTx, txHash, index)
+	w.saveTransactionReceipt(TransactionFailed, evmTx, txHash, index, &types.ResultData{}, gasUsed)
+}
+
+func (w *Watcher) saveEvmTxAndSuccessReceipt(sdkTx sdk.Tx, resultData []byte, index, gasUsed uint64) {
+	evmTx, err := w.extractEvmTx(sdkTx)
+	if err != nil && evmTx != nil {
+		return
+	}
+	evmResultData, err := types.DecodeResultData(resultData)
+	if err != nil {
+		w.log.Error("save evm tx and success receipt error", "height", w.height, "index", index, "error", err)
+		return
+	}
+	w.saveEvmTx(evmTx, evmResultData.TxHash, index)
+	w.saveTransactionReceipt(TransactionSuccess, evmTx, evmResultData.TxHash, index, &evmResultData, gasUsed)
+}
+
 func (w *Watcher) extractEvmTx(sdkTx sdk.Tx) (*types.MsgEthereumTx, error) {
 	var ok bool
 	var evmTx *types.MsgEthereumTx
@@ -78,24 +102,4 @@ func (w *Watcher) saveTransactionReceipt(status uint32, msg *types.MsgEthereumTx
 	if wMsg != nil {
 		w.txsAndReceipts = append(w.txsAndReceipts, wMsg)
 	}
-}
-
-func (w *Watcher) saveEvmTxAndSuccessReceipt(sdkTx sdk.Tx, resultData []byte, index, gasUsed uint64) {
-	evmTx, err := w.extractEvmTx(sdkTx)
-	if err != nil && evmTx != nil {
-		return
-	}
-	evmResultData, err := types.DecodeResultData(resultData)
-	w.saveEvmTx(evmTx, evmResultData.TxHash, index)
-	w.saveTransactionReceipt(TransactionSuccess, evmTx, evmResultData.TxHash, index, &evmResultData, gasUsed)
-}
-
-func (w *Watcher) saveEvmTxAndFailedReceipt(sdkTx sdk.Tx, index, gasUsed uint64) {
-	evmTx, err := w.extractEvmTx(sdkTx)
-	if err != nil {
-		return
-	}
-	txHash := ethcmn.BytesToHash(evmTx.TxHash())
-	w.saveEvmTx(evmTx, txHash, index)
-	w.saveTransactionReceipt(TransactionFailed, evmTx, txHash, index, &types.ResultData{}, gasUsed)
 }
