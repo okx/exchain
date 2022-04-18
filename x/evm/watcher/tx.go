@@ -60,8 +60,8 @@ func (w *Watcher) saveEvmTxAndFailedReceipt(sdkTx sdk.Tx, index, gasUsed uint64)
 	}
 	txHash := ethcmn.BytesToHash(evmTx.TxHash())
 
-	w.txMutex.Lock()
-	defer w.txMutex.Unlock()
+	//	w.txMutex.Lock()
+	//	defer w.txMutex.Unlock()
 	w.saveEvmTx(evmTx, txHash, index)
 	w.saveTransactionReceipt(TransactionFailed, evmTx, txHash, index, &types.ResultData{}, gasUsed)
 }
@@ -77,8 +77,8 @@ func (w *Watcher) saveEvmTxAndSuccessReceipt(sdkTx sdk.Tx, resultData []byte, in
 		return
 	}
 
-	w.txMutex.Lock()
-	defer w.txMutex.Unlock()
+	//	w.txMutex.Lock()
+	//	defer w.txMutex.Unlock()
 	w.saveEvmTx(evmTx, evmResultData.TxHash, index)
 	w.saveTransactionReceipt(TransactionSuccess, evmTx, evmResultData.TxHash, index, &evmResultData, gasUsed)
 }
