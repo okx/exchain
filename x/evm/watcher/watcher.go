@@ -52,6 +52,7 @@ type Watcher struct {
 	txIndexInBlock    uint64
 	txChan            chan func()
 	txMutex           sync.Mutex
+	txWorkerNums      int
 }
 
 var (
@@ -78,6 +79,7 @@ func GetWatchLruSize() int {
 
 func NewWatcher(logger log.Logger) *Watcher {
 	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}, log: logger}
+	watcher.setTxWorkerNums()
 	checkWd = viper.GetBool(FlagCheckWd)
 	return watcher
 }
