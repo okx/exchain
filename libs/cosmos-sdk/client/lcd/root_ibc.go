@@ -9,7 +9,6 @@ import (
 )
 
 var (
-	//_ Marshaler
 	_ runtime.Marshaler = (*JSONMarshalAdapter)(nil)
 )
 

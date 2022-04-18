@@ -313,16 +313,6 @@ func queryDelegatorDelegations(ctx sdk.Context, req abci.RequestQuery, k Keeper)
 	}
 
 	delegationResps, err := k.DelegatorDelegations(ctx, &params)
-	//fmt.Println(res2)
-	//fmt.Println(err)
-	//
-	//delegations := k.GetAllDelegatorDelegations(ctx, params.DelegatorAddr)
-	//
-	//delegationResps, err := delegationsToDelegationResponses(ctx, k, delegations)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
 	if delegationResps == nil {
 		delegationResps = &types.QueryDelegatorDelegationsResponse{}
 	}

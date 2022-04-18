@@ -2,7 +2,7 @@ package server
 
 import (
 	"encoding/json"
-	"github.com/gogo/protobuf/jsonpb"
+	"errors"
 	"net"
 	"os"
 	"os/signal"
@@ -10,22 +10,20 @@ import (
 	"syscall"
 	"time"
 
-	"errors"
-
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-
-	tcmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
-	cfg "github.com/okex/exchain/libs/tendermint/config"
-	"github.com/okex/exchain/libs/tendermint/libs/cli"
-	tmflags "github.com/okex/exchain/libs/tendermint/libs/cli/flags"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server/config"
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
+	tcmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
+	"github.com/okex/exchain/libs/tendermint/libs/cli"
+	tmflags "github.com/okex/exchain/libs/tendermint/libs/cli/flags"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 // server context

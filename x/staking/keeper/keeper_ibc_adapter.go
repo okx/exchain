@@ -126,40 +126,6 @@ func (k Keeper) GetAllDelegatorDelegations(ctx sdk.Context, delegator sdk.AccAdd
 	return delegations
 }
 
-//func (k Keeper) GetPageValidatorDelegations(ctx sdk.Context, valAddr sdk.ValAddress, page *query.PageRequest) (*outtypes.QueryValidatorDelegationsResponse, error) { //nolint:interfacer
-//	store := ctx.KVStore(k.storeKey)
-//	iterator := sdk.KVStorePrefixIterator(store, types.DelegationKey)
-//	defer iterator.Close()
-//
-//	var delegations []types.Delegation
-//	pageRes, err := query.FilteredPaginate(store, page, func(key []byte, value []byte, accumulate bool) (bool, error) {
-//		delegation, err := types.UnmarshalDelegation(k.cdcMarshl.GetCdc(), value)
-//		if err != nil {
-//			return false, err
-//		}
-//
-//		if !delegation.GetValidatorAddr().Equals(valAddr) {
-//			return false, nil
-//		}
-//
-//		if accumulate {
-//			delegations = append(delegations, delegation)
-//		}
-//		return true, nil
-//	})
-//
-//	if err != nil {
-//		return nil, status.Error(codes.Internal, err.Error())
-//	}
-//	delResponses, err := DelegationsToDelegationResponses(ctx, k, delegations)
-//	if err != nil {
-//		return nil, status.Error(codes.Internal, err.Error())
-//	}
-//
-//	return &outtypes.QueryValidatorDelegationsResponse{
-//		DelegationResponses: delResponses, Pagination: pageRes}, nil
-//}
-
 func (k Keeper) DelegatorDelegations(ctx sdk.Context, req *outtypes.QueryDelegatorDelegationsRequest) (*outtypes.QueryDelegatorDelegationsResponse, error) {
 	if req == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "empty request")

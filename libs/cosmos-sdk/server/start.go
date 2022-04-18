@@ -3,10 +3,10 @@ package server
 // DONTCOVER
 
 import (
-	"github.com/gogo/protobuf/jsonpb"
 	"os"
 	"runtime/pprof"
 
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
