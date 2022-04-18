@@ -374,7 +374,9 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 			}
 		}
 	}
-	if task.index <= dttm.serialIndex || (task.prevTaskIndex >= 0 && !(task.prevTaskIndex == dttm.serialIndex && dttm.serialTask == nil)) {
+	if task.prevTaskIndex < dttm.serialIndex || (task.prevTaskIndex == dttm.serialIndex && dttm.serialTask == nil) {
+		dttm.app.logger.Error("prevTaskIndexNotReset", "index", task.index, "prev", task.prevTaskIndex, "serial", dttm.serialIndex)
+	} else if task.index <= dttm.serialIndex || task.prevTaskIndex >= 0 {
 			dttm.app.logger.Info("DonotRunAnte", "prev", task.prevTaskIndex, "index", task.index, "serial", dttm.serialIndex)
 		return nil
 	}
