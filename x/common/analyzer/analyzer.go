@@ -2,22 +2,39 @@ package analyzer
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
-	"sync"
+	"strconv"
+	"strings"
 
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/trace"
+	"github.com/spf13/viper"
 )
 
 const FlagEnableAnalyzer string = "enable-analyzer"
 
 var (
-	singleAnalys  *analyer
-	openAnalyzer  bool
-	once          sync.Once
+	singleAnalys *analyer
+	openAnalyzer bool
+
 	dynamicConfig IDynamicConfig = MockDynamicConfig{}
+
+	forceAnalyzerTags map[string]struct{}
+
+	isParalleledTxOn *bool
 )
+
+func initForceAnalyzerTags() {
+	forceAnalyzerTags = map[string]struct{}{
+		bam.RunAnte: {},
+		bam.Refund:  {},
+		bam.RunMsg:  {},
+	}
+}
+
+func init() {
+	initForceAnalyzerTags()
+}
 
 func SetDynamicConfig(c IDynamicConfig) {
 	dynamicConfig = c
@@ -58,22 +75,41 @@ func init() {
 }
 
 func newAnalys(height int64) {
-	if singleAnalys == nil {
-		singleAnalys = &analyer{
-			status:      !viper.GetBool(sm.FlagParalleledTx),
-			blockHeight: height,
-		}
+	if isParalleledTxOn == nil {
+		isParalleledTxOn = new(bool)
+		*isParalleledTxOn = !viper.GetBool(sm.FlagParalleledTx)
 	}
+	if singleAnalys == nil {
+		singleAnalys = &analyer{}
+	} else {
+		*singleAnalys = analyer{}
+	}
+	singleAnalys.blockHeight = height
+	singleAnalys.status = *isParalleledTxOn
 }
 
 func OnAppBeginBlockEnter(height int64) {
+	newAnalys(height)
 	if !dynamicConfig.GetEnableAnalyzer() {
+		openAnalyzer = false
 		return
 	}
-	newAnalys(height)
+	openAnalyzer = true
 	lastElapsedTime := trace.GetElapsedInfo().GetElapsedTime()
 	if singlePprofDumper != nil && lastElapsedTime > singlePprofDumper.triggerAbciElapsed {
 		singlePprofDumper.cpuProfile(height)
+	}
+}
+
+func skip(a *analyer, oper string) bool {
+	if a != nil {
+		if openAnalyzer {
+			return false
+		}
+		_, ok := forceAnalyzerTags[oper]
+		return !ok
+	} else {
+		return true
 	}
 }
 
@@ -87,17 +123,16 @@ func OnCommitDone() {
 	if singleAnalys != nil {
 		singleAnalys.onCommitDone()
 	}
-	singleAnalys = nil
 }
 
 func StartTxLog(oper string) {
-	if singleAnalys != nil {
+	if !skip(singleAnalys, oper) {
 		singleAnalys.startTxLog(oper)
 	}
 }
 
 func StopTxLog(oper string) {
-	if singleAnalys != nil {
+	if !skip(singleAnalys, oper) {
 		singleAnalys.stopTxLog(oper)
 	}
 }
@@ -112,7 +147,6 @@ func (s *analyer) onCommitDone() {
 	if s.status {
 		s.format()
 	}
-	singleAnalys = nil
 }
 
 func (s *analyer) newTxLog() {
@@ -139,6 +173,10 @@ func (s *analyer) format() {
 
 	evmcore, record := s.genRecord()
 
+	if !openAnalyzer {
+		formatNecessaryDeliverTx(record)
+		return
+	}
 	formatDeliverTx(record)
 	formatRunAnteDetail(record)
 	formatEvmHandlerDetail(record)
@@ -146,13 +184,34 @@ func (s *analyer) format() {
 	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
 }
 
-func addInfo(name string, keys []string, record map[string]int64) {
-	var comma, format string
-	for _, v := range keys {
-		format += fmt.Sprintf("%s%s<%dms>", comma, v, record[v])
-		comma = ", "
+// formatRecord format the record in the format fmt.Sprintf(", %s<%dms>", v, record[v])
+func formatRecord(i int, key string, ms int64) string {
+	t := strconv.FormatInt(ms, 10)
+	b := strings.Builder{}
+	b.Grow(2 + len(key) + 1 + len(t) + 3)
+	if i != 0 {
+		b.WriteString(", ")
 	}
-	trace.GetElapsedInfo().AddInfo(name, format)
+	b.WriteString(key)
+	b.WriteString("<")
+	b.WriteString(t)
+	b.WriteString("ms>")
+	return b.String()
+}
+
+func addInfo(name string, keys []string, record map[string]int64) {
+	var strs = make([]string, len(keys))
+	length := 0
+	for i, v := range keys {
+		strs[i] = formatRecord(i, v, record[v])
+		length += len(strs[i])
+	}
+	builder := strings.Builder{}
+	builder.Grow(length)
+	for _, v := range strs {
+		builder.WriteString(v)
+	}
+	trace.GetElapsedInfo().AddInfo(name, builder.String())
 }
 
 func (s *analyer) genRecord() (int64, map[string]int64) {
@@ -179,6 +238,16 @@ func (s *analyer) genRecord() (int64, map[string]int64) {
 	}
 
 	return evmcore, record
+}
+
+func formatNecessaryDeliverTx(record map[string]int64) {
+	// deliver txs
+	var deliverTxsKeys = []string{
+		bam.RunAnte,
+		bam.RunMsg,
+		bam.Refund,
+	}
+	addInfo(trace.DeliverTxs, deliverTxsKeys, record)
 }
 
 func formatDeliverTx(record map[string]int64) {
