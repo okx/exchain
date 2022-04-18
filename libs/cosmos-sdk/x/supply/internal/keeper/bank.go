@@ -61,7 +61,7 @@ func (k Keeper) SendCoinsFromAccountToModule(
 }
 
 func (k Keeper) AddConsumeGasForSendCoins(ctx sdk.Context, accGas sdk.Gas, accLen int, before bool) {
-	fmt.Println("AddConsumeGasForSendCoins start")
+	//fmt.Println("AddConsumeGasForSendCoins start")
 	if before {
 		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostFlat, stypes.GasReadCostFlatDesc) // ReadFlat
 		ctx.GasMeter().ConsumeGas(stypes.KVGasConfig().ReadCostPerByte*stypes.Gas(accLen), stypes.GasReadPerByteDesc) // ReadPerByte
@@ -81,7 +81,7 @@ func (k Keeper) AddConsumeGasForSendCoins(ctx sdk.Context, accGas sdk.Gas, accLe
 			ctx.GasMeter().ConsumeGas(writeGas, stypes.GasWritePerByteDesc)	// WritePerByte
 		}
 	}
-	fmt.Println("AddConsumeGasForSendCoins finished")
+	//fmt.Println("AddConsumeGasForSendCoins finished")
 }
 
 // DelegateCoinsFromAccountToModule delegates coins and transfers them from a

@@ -138,7 +138,7 @@ func DeductFees(ak keeper.AccountKeeper, supplyKeeper types.SupplyKeeper, ctx sd
 	}
 
 	//if global.GetGlobalHeight() == 2602855 {
-		fmt.Println("========================SendCoinsFromAccountToModule start==========================")
+	//	fmt.Println("========================SendCoinsFromAccountToModule start==========================")
 	//}
 	// consume gas for compatible
 	if gasUsed, ok := exported.GetAccountGas(ak, acc); ok {
@@ -162,7 +162,7 @@ func DeductFees(ak keeper.AccountKeeper, supplyKeeper types.SupplyKeeper, ctx sd
 	}
 
 	//if global.GetGlobalHeight() == 2602855 {
-		fmt.Println("========================SendCoinsFromAccountToModule finished==========================")
+	//	fmt.Println("========================SendCoinsFromAccountToModule finished==========================")
 	//}
 
 	return nil
