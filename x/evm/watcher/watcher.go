@@ -17,6 +17,7 @@ import (
 	"github.com/spf13/viper"
 	"math/big"
 	"sync"
+	"sync/atomic"
 )
 
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -43,7 +44,6 @@ type Watcher struct {
 
 	// for async parse deliver tx
 	txsAndReceipts   []WatchMessage
-	txsCount         int64
 	recordedTxsCount int64
 	txIndexInBlock   uint64
 	txChan           chan func()
@@ -217,8 +217,8 @@ func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
 	if !w.Enabled() {
 		return
 	}
-	//for atomic.LoadInt64(&w.recordedTxsCount) < w.txsCount {
-	//}
+	for atomic.LoadInt64(&w.recordedTxsCount) != 0 {
+	}
 
 	w.addTxsToBlock()
 	w.batch = append(w.batch, w.txsAndReceipts...)
