@@ -90,12 +90,12 @@ var (
 		},
 		// --deliver-tx-mode=0      conflict with --paralleled-tx=true
 		{
-			configA: stringItem{name: state.FlagDeliverTxsExecMode, value: string(0)},
+			configA: intItem{name: state.FlagDeliverTxsExecMode, value: 0},
 			configB: boolItem{name: state.FlagParalleledTx, value: true},
 		},
 		// --deliver-tx-mode=1      conflict with --paralleled-tx=true
 		{
-			configA: stringItem{name: state.FlagDeliverTxsExecMode, value: string(1)},
+			configA: intItem{name: state.FlagDeliverTxsExecMode, value: 1},
 			configB: boolItem{name: state.FlagParalleledTx, value: true},
 		},
 	}
