@@ -2,18 +2,7 @@
 pragma solidity ^0.8.0;
 
 
-abstract contract Context {
-    function _msgSender() internal view virtual returns (address) {
-        return msg.sender;
-    }
-
-    function _msgData() internal view virtual returns (bytes calldata) {
-        return msg.data;
-    }
-}
-
-
-contract ERC20 is Context {
+contract ERC20 {
 
     string private _name;
     string private _symbol;
@@ -54,7 +43,7 @@ contract ERC20 is Context {
     }
 
     function transfer(address to, uint256 amount) public returns (bool) {
-        address owner = _msgSender();
+        address owner = msg.sender;
         _transfer(owner, to, amount);
         return true;
     }
@@ -64,7 +53,7 @@ contract ERC20 is Context {
     }
 
     function approve(address spender, uint256 amount) public returns (bool) {
-        address owner = _msgSender();
+        address owner = msg.sender;
         _approve(owner, spender, amount);
         return true;
     }
@@ -74,20 +63,20 @@ contract ERC20 is Context {
         address to,
         uint256 amount
     ) public returns (bool) {
-        address spender = _msgSender();
+        address spender = msg.sender;
         _spendAllowance(from, spender, amount);
         _transfer(from, to, amount);
         return true;
     }
 
     function increaseAllowance(address spender, uint256 addedValue) public returns (bool) {
-        address owner = _msgSender();
+        address owner = msg.sender;
         _approve(owner, spender, _allowances[owner][spender] + addedValue);
         return true;
     }
 
     function decreaseAllowance(address spender, uint256 subtractedValue) public returns (bool) {
-        address owner = _msgSender();
+        address owner = msg.sender;
         uint256 currentAllowance = _allowances[owner][spender];
         require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
     unchecked {
