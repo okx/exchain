@@ -639,6 +639,7 @@ func (w *Watcher) lazyInitialization() {
 }
 
 func (w *Watcher) dispatchJob(f func()) {
+	return
 	// if jobRoutine were too slow to write data  to disk
 	// we have to wait
 	// why: something wrong happened: such as db panic(disk maybe is full)(it should be the only reason)
