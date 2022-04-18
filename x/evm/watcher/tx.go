@@ -19,7 +19,8 @@ func (w *Watcher) RecordABCIMessage(deliverTx *DeliverTx, txDecoder sdk.TxDecode
 	if !w.Enabled() {
 		return
 	}
-	atomic.AddInt64(&w.recordingTxsCount, 1)
+
+	w.txsCount++
 	index := w.txIndexInBlock
 	w.dispatchTxJob(func() {
 		w.recordTxsAndReceipts(deliverTx, index, txDecoder)
@@ -28,7 +29,7 @@ func (w *Watcher) RecordABCIMessage(deliverTx *DeliverTx, txDecoder sdk.TxDecode
 }
 
 func (w *Watcher) recordTxsAndReceipts(deliverTx *DeliverTx, index uint64, txDecoder sdk.TxDecoder) {
-	defer atomic.AddInt64(&w.recordingTxsCount, -1)
+	defer atomic.AddInt64(&w.recordedTxsCount, 1)
 	if deliverTx == nil || deliverTx.Req == nil || deliverTx.Resp == nil {
 		w.log.Error("watch parse abci message error", "input", deliverTx)
 		return

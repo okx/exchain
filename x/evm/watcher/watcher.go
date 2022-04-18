@@ -6,12 +6,11 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"math/big"
 	"sync"
-
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -44,12 +43,13 @@ type Watcher struct {
 	jobChan chan func()
 
 	// for async parse deliver tx
-	txsAndReceipts    []WatchMessage
-	recordingTxsCount int64
-	txIndexInBlock    uint64
-	txChan            chan func()
-	txMutex           sync.Mutex
-	txsInBlock        []TxIndex
+	txsAndReceipts   []WatchMessage
+	txsCount         int64
+	recordedTxsCount int64
+	txIndexInBlock   uint64
+	txChan           chan func()
+	txMutex          sync.Mutex
+	txsInBlock       []TxIndex
 }
 
 var (
@@ -107,7 +107,7 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	// ResetTransferWatchData
 	w.watchData = &WatchData{}
 	w.wdDelayKey = make([][]byte, 0)
-	w.recordingTxsCount = 0
+	w.recordedTxsCount = 0
 	w.txIndexInBlock = 0
 }
 
@@ -217,8 +217,8 @@ func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
 	if !w.Enabled() {
 		return
 	}
-	//	for atomic.LoadInt64(&w.recordingTxsCount) != 0 {
-	//	}
+	// for atomic.LoadInt64(&w.recordedTxsCount) < w.txsCount {
+	// }
 
 	// w.addTxsToBlock()
 	w.batch = append(w.batch, w.txsAndReceipts...)
