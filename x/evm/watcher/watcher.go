@@ -9,6 +9,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"math/big"
 	"sync"
+	"sync/atomic"
 
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
 
@@ -225,8 +226,8 @@ func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
 	if !w.Enabled() {
 		return
 	}
-	//	for atomic.LoadInt64(&w.recordingTxsCount) != 0 {
-	//	}
+	for atomic.LoadInt64(&w.recordingTxsCount) != 0 {
+	}
 
 	w.batch = append(w.batch, w.txsAndReceipts...)
 
