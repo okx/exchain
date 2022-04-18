@@ -11,6 +11,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"math/big"
 	"sync"
+	"sync/atomic"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -218,10 +219,10 @@ func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
 	if !w.Enabled() {
 		return
 	}
-	// for atomic.LoadInt64(&w.recordedTxsCount) < w.txsCount {
-	// }
+	for atomic.LoadInt64(&w.recordedTxsCount) < w.txsCount {
+	}
 
-	// w.addTxsToBlock()
+	w.addTxsToBlock()
 	w.batch = append(w.batch, w.txsAndReceipts...)
 
 	wMsg := NewMsgBlock(w.height, bloom, w.blockHash, w.header, uint64(0xffffffff), big.NewInt(int64(w.gasUsed)), w.blockTxs)
@@ -635,8 +636,8 @@ func (w *Watcher) jobRoutine() {
 func (w *Watcher) lazyInitialization() {
 	// lazy initial:
 	// now we will allocate chan memory
-	// 15*2 means watcherCommitJob+commitBatchJob(just in case)
-	w.jobChan = make(chan func(), 50*2)
+	// 5*2 means watcherCommitJob+commitBatchJob(just in case)
+	w.jobChan = make(chan func(), 5*2)
 }
 
 func (w *Watcher) dispatchJob(f func()) {
