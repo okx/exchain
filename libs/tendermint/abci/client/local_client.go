@@ -1,7 +1,6 @@
 package abcicli
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/okex/exchain/libs/tendermint/abci/types"
@@ -187,7 +186,6 @@ func (app *localClient) ParallelTxs(txs [][]byte, onlyCalSender bool) []*types.R
 func (app *localClient) DeliverTxsConcurrent(txs [][]byte) []*types.ResponseDeliverTx {
 	app.mtx.Lock()
 	defer app.mtx.Unlock()
-	fmt.Println("localClient DeliverTxsConcurrent: ", len(txs))
 	return app.Application.DeliverTxsConcurrent(txs)
 }
 

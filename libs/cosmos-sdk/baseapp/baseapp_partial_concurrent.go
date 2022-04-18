@@ -600,9 +600,9 @@ func (dttm *DTTManager) serialExecution() {
 	// execute runMsgs
 	runMsgStart := time.Now()
 	err = handler.handleRunMsg(info)
-	if err != nil {
-		dttm.app.logger.Error("RunMsgFailed.", "err", err)
-	}
+	//if err != nil {
+	//	dttm.app.logger.Error("RunMsgFailed.", "err", err)
+	//}
 	totalRunMsgsTime += time.Since(runMsgStart).Microseconds()
 }
 
@@ -638,12 +638,10 @@ func (dttm *DTTManager) accountUpdated(address string) {
 //-------------------------------------------------------------
 
 func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx {
-	app.logger.Info("deliverTxs 1", "txs", len(txs))
 	if app.deliverTxsMgr == nil {
 		app.deliverTxsMgr = NewDTTManager(app) //NewDeliverTxTasksManager(app)
 	}
 
-	app.logger.Info("deliverTxs 2", "txs", len(txs))
 	//start := time.Now()
 	app.deliverTxsMgr.deliverTxs(txs)
 
