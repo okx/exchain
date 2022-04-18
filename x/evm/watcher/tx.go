@@ -92,6 +92,23 @@ func (w *Watcher) extractEvmTx(sdkTx sdk.Tx) (*types.MsgEthereumTx, error) {
 
 func (w *Watcher) saveTxAndReceipt(msg *types.MsgEthereumTx, txHash ethcmn.Hash, index uint64,
 	receiptStatus uint32, data *types.ResultData, gasUsed uint64) {
+	w.txMutex.Lock()
+	defer w.txMutex.Unlock()
+
+	wMsg := NewMsgEthTx(msg, txHash, w.blockHash, w.height, index)
+	if wMsg != nil {
+		w.txsAndReceipts = append(w.txsAndReceipts, wMsg)
+	}
+	txReceipt := NewMsgTransactionReceipt(receiptStatus, msg, txHash, w.blockHash, index, w.height, data, w.cumulativeGas[index], gasUsed)
+	if txReceipt != nil {
+		w.txsAndReceipts = append(w.txsAndReceipts, txReceipt)
+	}
+	w.UpdateCumulativeGas(index, gasUsed)
+	w.txsInBlock = append(w.txsInBlock, TxIndex{TxHash: txHash, Index: index})
+}
+
+func (w *Watcher) saveTxAndReceiptEx(msg *types.MsgEthereumTx, txHash ethcmn.Hash, index uint64,
+	receiptStatus uint32, data *types.ResultData, gasUsed uint64) {
 
 	wMsg := NewMsgEthTx(msg, txHash, w.blockHash, w.height, index)
 	txReceipt := NewMsgTransactionReceipt(receiptStatus, msg, txHash, w.blockHash, index, w.height, data, w.cumulativeGas[index], gasUsed)

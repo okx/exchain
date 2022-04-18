@@ -41,7 +41,7 @@ func (w *Watcher) txResultRoutine() {
 		if result.TxReceipt != nil {
 			w.txsAndReceipts = append(w.txsAndReceipts, result.TxReceipt)
 		}
-		//w.UpdateCumulativeGas(result.Index, result.GasUsed)
+		// w.UpdateCumulativeGas(result.Index, result.GasUsed)
 		w.txsInBlock = append(w.txsInBlock, TxIndex{TxHash: result.TxHash, Index: result.Index})
 	}
 }
