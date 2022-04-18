@@ -252,6 +252,8 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().UintVar(&evmtypes.ContractStateCache, evmtypes.FlagContractStateCache, 2048, "Size (MB) to cache contract state")
 	cmd.Flags().UintVar(&mpt.AccStoreCache, mpt.FlagAccStoreCache, 2048, "Size (MB) to cache account")
 	cmd.Flags().UintVar(&types.MptRocksdbBatchSize, types.FlagMptRocksdbBatchSize, 10, "Concurrent rocksdb batch size for mpt")
+	cmd.Flags().UintVar(&mpt.MptNodesLimit, mpt.FlagMptNodesLimit, 256, "Max node size (MB) cached in triedb")
+	cmd.Flags().UintVar(&mpt.MptImgsLimit, mpt.FlagMptImgsLimit, 4, "Max img size (MB) cached in triedb")
 
 	return cmd
 }

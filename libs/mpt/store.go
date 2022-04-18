@@ -273,11 +273,12 @@ func (ms *MptStore) PushData2Database(curHeight int64) {
 			// If we exceeded our memory allowance, flush matured singleton nodes to disk
 			var (
 				nodes, imgs = triedb.Size()
-				limit       = ethcmn.StorageSize(256) * 1024 * 1024
+				nodesLimit  = ethcmn.StorageSize(MptNodesLimit) * 1024 * 1024
+				imgsLimit   = ethcmn.StorageSize(MptImgsLimit) * 1024 * 1024
 			)
 
-			if nodes > limit || imgs > 4*1024*1024 {
-				triedb.Cap(limit - ethdb.IdealBatchSize)
+			if nodes > nodesLimit || imgs > imgsLimit {
+				triedb.Cap(nodesLimit - ethdb.IdealBatchSize)
 			}
 			// Find the next state trie we need to commit
 			chosen := curHeight - TriesInMemory

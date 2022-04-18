@@ -153,11 +153,12 @@ func (k *Keeper) PushData2Database(height int64, log log.Logger) {
 			// If we exceeded our memory allowance, flush matured singleton nodes to disk
 			var (
 				nodes, imgs = triedb.Size()
-				limit       = ethcmn.StorageSize(256) * 1024 * 1024
+				nodesLimit  = ethcmn.StorageSize(mpt.MptNodesLimit) * 1024 * 1024
+				imgsLimit   = ethcmn.StorageSize(mpt.MptImgsLimit) * 1024 * 1024
 			)
 
-			if nodes > limit || imgs > 4*1024*1024 {
-				triedb.Cap(limit - ethdb.IdealBatchSize)
+			if nodes > nodesLimit || imgs > imgsLimit {
+				triedb.Cap(nodesLimit - ethdb.IdealBatchSize)
 			}
 			// Find the next state trie we need to commit
 			chosen := curHeight - mpt.TriesInMemory
@@ -166,7 +167,7 @@ func (k *Keeper) PushData2Database(height int64, log log.Logger) {
 				return
 			}
 
-			if chosen%50 == 0 { // todo: it could be set as a flag
+			if chosen % 50 == 0 { // todo: it could be set as a flag
 				// If the header is missing (canonical chain behind), we're reorging a low
 				// diff sidechain. Suspend committing until this operation is completed.
 				chRoot := k.GetMptRootHash(uint64(chosen))

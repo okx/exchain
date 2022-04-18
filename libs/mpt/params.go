@@ -19,16 +19,20 @@ const (
 )
 
 const (
-	FlagTrieDirtyDisabled     = "trie-dirty-disabled"
-	FlagTrieCacheSize         = "trie-cache-size"
-	FlagEnableDoubleWrite     = "enable-double-write"
+	FlagTrieDirtyDisabled = "trie-dirty-disabled"
+	FlagTrieCacheSize     = "trie-cache-size"
+	FlagEnableDoubleWrite = "enable-double-write"
+	FlagMptNodesLimit     = "mpt-nodes-limit"
+	FlagMptImgsLimit      = "mpt-imgs-limit"
 )
 
 var (
-	TrieDirtyDisabled        = false
-	TrieCacheSize       uint = 2048 // MB
-	EnableDoubleWrite        = false
-	AccStoreCache       uint = 2048 // MB
+	TrieDirtyDisabled      = false
+	TrieCacheSize     uint = 2048 // MB
+	EnableDoubleWrite      = false
+	AccStoreCache     uint = 2048 // MB
+	MptNodesLimit     uint = 256  // MB
+	MptImgsLimit      uint = 4    // MB
 )
 
 var (
