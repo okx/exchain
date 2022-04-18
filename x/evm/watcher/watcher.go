@@ -51,6 +51,7 @@ type Watcher struct {
 	txIndexInBlock    uint64
 	txChan            chan func()
 	txMutex           sync.Mutex
+	txsInBlock        []TxIndex
 }
 
 var (
@@ -116,6 +117,7 @@ func (w *Watcher) clean() {
 	w.cumulativeGas = make(map[uint64]uint64)
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
+	w.txsInBlock = []TxIndex{}
 	w.wdDelayKey = w.delayEraseKey
 	w.delayEraseKey = make([][]byte, 0)
 }
@@ -150,13 +152,6 @@ func (w *Watcher) UpdateCumulativeGas(txIndex, gasUsed uint64) {
 		w.cumulativeGas[txIndex] = w.cumulativeGas[txIndex-1] + gasUsed
 	}
 	w.gasUsed += gasUsed
-}
-
-func (w *Watcher) UpdateBlockTxs(txHash common.Hash) {
-	if !w.Enabled() {
-		return
-	}
-	w.blockTxs = append(w.blockTxs, txHash)
 }
 
 func (w *Watcher) SaveAccount(account auth.Account, isDirectly bool) {
@@ -227,6 +222,7 @@ func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
 	for atomic.LoadInt64(&w.recordingTxsCount) != 0 {
 	}
 
+	w.addTxsToBlock()
 	w.batch = append(w.batch, w.txsAndReceipts...)
 
 	wMsg := NewMsgBlock(w.height, bloom, w.blockHash, w.header, uint64(0xffffffff), big.NewInt(int64(w.gasUsed)), w.blockTxs)

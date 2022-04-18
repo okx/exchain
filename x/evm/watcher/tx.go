@@ -95,7 +95,7 @@ func (w *Watcher) saveEvmTx(msg *types.MsgEthereumTx, txHash ethcmn.Hash, index 
 	if wMsg != nil {
 		w.txsAndReceipts = append(w.txsAndReceipts, wMsg)
 	}
-	w.UpdateBlockTxs(txHash)
+	w.txsInBlock = append(w.txsInBlock, TxIndex{TxHash: txHash, Index: index})
 }
 
 func (w *Watcher) saveTransactionReceipt(status uint32, msg *types.MsgEthereumTx, txHash ethcmn.Hash, txIndex uint64, data *types.ResultData, gasUsed uint64) {
