@@ -163,6 +163,7 @@ func NewSimulateKeeper(
 		triegc:         prque.New(nil),
 		stateCache:     fastcache.New(int(types.ContractStateCache) * 1024 * 1024),
 		UpdatedAccount: make([]ethcmn.Address, 0),
+		cci: &chainConfigInfo{},
 	}
 
 	k.OpenTrie()

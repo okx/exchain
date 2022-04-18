@@ -44,7 +44,7 @@ func TestModuleAccountInvariant(t *testing.T) {
 	require.Equal(t, invariantMsg(expectedLockCoins), msg)
 
 	// cancel order
-	ctx = ctx.WithBlockHeight(11)
+	ctx.SetBlockHeight(11)
 	keeper.CancelOrder(ctx, order1, ctx.Logger())
 
 	msg, broken = invariant(ctx)
@@ -53,7 +53,7 @@ func TestModuleAccountInvariant(t *testing.T) {
 	require.Equal(t, invariantMsg(expectedLockCoins), msg)
 
 	// expire order
-	ctx = ctx.WithBlockHeight(12)
+	ctx.SetBlockHeight(12)
 	keeper.ExpireOrder(ctx, order2, ctx.Logger())
 
 	msg, broken = invariant(ctx)

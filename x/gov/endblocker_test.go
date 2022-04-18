@@ -43,7 +43,7 @@ func TestTickPassedVotingPeriod(t *testing.T) {
 
 	newHeader := ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(time.Duration(1) * time.Second)
-	ctx = ctx.WithBlockHeader(newHeader)
+	ctx.SetBlockHeader(newHeader)
 
 	newDepositMsg := NewMsgDeposit(keeper.Addrs[1], proposalID, proposalCoins)
 	res, err = govHandler(ctx, newDepositMsg)
@@ -52,7 +52,7 @@ func TestTickPassedVotingPeriod(t *testing.T) {
 	newHeader = ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(gk.GetDepositParams(ctx).MaxDepositPeriod).
 		Add(gk.GetVotingParams(ctx).VotingPeriod)
-	ctx = ctx.WithBlockHeader(newHeader)
+	ctx.SetBlockHeader(newHeader)
 
 	inactiveQueue = gk.InactiveProposalQueueIterator(ctx, ctx.BlockHeader().Time)
 	require.False(t, inactiveQueue.Valid())
@@ -86,7 +86,7 @@ func TestEndBlockerIterateInactiveProposalsQueue(t *testing.T) {
 
 	newHeader := ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(gk.GetMaxDepositPeriod(ctx, nil))
-	ctx = ctx.WithBlockHeader(newHeader)
+	ctx.SetBlockHeader(newHeader)
 	inactiveQueue := gk.InactiveProposalQueueIterator(ctx, ctx.BlockHeader().Time)
 	require.True(t, inactiveQueue.Valid())
 	inactiveQueue.Close()
@@ -104,7 +104,7 @@ func TestEndBlockerIterateActiveProposalsQueue1(t *testing.T) {
 
 	newHeader := ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(gk.GetVotingPeriod(ctx, nil))
-	ctx = ctx.WithBlockHeader(newHeader)
+	ctx.SetBlockHeader(newHeader)
 	activeQueue := gk.ActiveProposalQueueIterator(ctx, ctx.BlockHeader().Time)
 	require.True(t, activeQueue.Valid())
 	activeQueue.Close()
@@ -119,7 +119,7 @@ func TestEndBlockerIterateActiveProposalsQueue2(t *testing.T) {
 	ctx, _, gk, sk, _ := keeper.CreateTestInput(t, false, 100000)
 	govHandler := NewHandler(gk)
 
-	ctx = ctx.WithBlockHeight(int64(sk.GetEpoch(ctx)))
+	ctx.SetBlockHeight(int64(sk.GetEpoch(ctx)))
 	skHandler := staking.NewHandler(sk)
 	valAddrs := make([]sdk.ValAddress, len(keeper.Addrs[:3]))
 	for i, addr := range keeper.Addrs[:3] {
@@ -142,7 +142,7 @@ func TestEndBlockerIterateActiveProposalsQueue2(t *testing.T) {
 
 	newHeader := ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(gk.GetVotingPeriod(ctx, nil))
-	ctx = ctx.WithBlockHeader(newHeader)
+	ctx.SetBlockHeader(newHeader)
 	activeQueue := gk.ActiveProposalQueueIterator(ctx, ctx.BlockHeader().Time)
 	require.True(t, activeQueue.Valid())
 	activeQueue.Close()
@@ -159,7 +159,7 @@ func TestEndBlockerIterateActiveProposalsQueue3(t *testing.T) {
 	ctx, _, gk, sk, _ := keeper.CreateTestInput(t, false, 100000)
 	govHandler := NewHandler(gk)
 
-	ctx = ctx.WithBlockHeight(int64(sk.GetEpoch(ctx)))
+	ctx.SetBlockHeight(int64(sk.GetEpoch(ctx)))
 	skHandler := staking.NewHandler(sk)
 	valAddrs := make([]sdk.ValAddress, len(keeper.Addrs[:4]))
 	for i, addr := range keeper.Addrs[:4] {
@@ -184,7 +184,7 @@ func TestEndBlockerIterateActiveProposalsQueue3(t *testing.T) {
 
 	newHeader := ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(gk.GetVotingPeriod(ctx, nil))
-	ctx = ctx.WithBlockHeader(newHeader)
+	ctx.SetBlockHeader(newHeader)
 	activeQueue := gk.ActiveProposalQueueIterator(ctx, ctx.BlockHeader().Time)
 	require.True(t, activeQueue.Valid())
 	activeQueue.Close()
@@ -200,7 +200,7 @@ func TestEndBlockerIterateWaitingProposalsQueue(t *testing.T) {
 	ctx, _, gk, sk, _ := keeper.CreateTestInput(t, false, 100000)
 	govHandler := NewHandler(gk)
 
-	ctx = ctx.WithBlockHeight(int64(sk.GetEpoch(ctx)))
+	ctx.SetBlockHeight(int64(sk.GetEpoch(ctx)))
 	skHandler := staking.NewHandler(sk)
 	valAddrs := make([]sdk.ValAddress, len(keeper.Addrs[:4]))
 	for i, addr := range keeper.Addrs[:4] {
@@ -229,7 +229,7 @@ func TestEndBlockerIterateWaitingProposalsQueue(t *testing.T) {
 	res, err = govHandler(ctx, newVoteMsg)
 	require.Nil(t, err)
 
-	ctx = ctx.WithBlockHeight(int64(height))
+	ctx.SetBlockHeight(int64(height))
 	waitingQueue := gk.WaitingProposalQueueIterator(ctx, uint64(ctx.BlockHeight()))
 	require.True(t, waitingQueue.Valid())
 	waitingQueue.Close()

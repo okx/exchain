@@ -123,7 +123,7 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 		{
 			"invalid chain ID",
 			func() {
-				suite.ctx = suite.ctx.WithChainID("chainID")
+				suite.ctx.SetChainID("chainID")
 			},
 			false,
 		},
@@ -137,8 +137,8 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 		{
 			"simulate tx",
 			func() {
-				suite.ctx = suite.ctx.WithFrom(sender.String())
-				suite.ctx = suite.ctx.WithIsCheckTx(true)
+				suite.ctx.SetFrom(sender.String())
+				suite.ctx.SetIsCheckTx(true)
 				suite.app.EvmKeeper.SetBalance(suite.ctx, sender, big.NewInt(100))
 				tx = types.NewMsgEthereumTx(0, &sender, big.NewInt(100), 3000000, big.NewInt(1), nil)
 			},
@@ -147,8 +147,8 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 		{
 			"trace log tx",
 			func() {
-				suite.ctx = suite.ctx.WithFrom(sender.String())
-				suite.ctx = suite.ctx.WithIsTraceTxLog(true)
+				suite.ctx.SetFrom(sender.String())
+				suite.ctx.SetIsTraceTxLog(true)
 				suite.app.EvmKeeper.SetBalance(suite.ctx, sender, big.NewInt(100))
 				tx = types.NewMsgEthereumTx(0, &sender, big.NewInt(100), 3000000, big.NewInt(1), nil)
 			},
@@ -168,7 +168,7 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 			suite.SetupTest() // reset
 			//nolint
 			tc.malleate()
-			suite.ctx = suite.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+			suite.ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 			res, err := suite.handler(suite.ctx, tx)
 
 			//nolint
@@ -354,7 +354,7 @@ func (suite *EvmTestSuite) TestSendTransaction() {
 	err = tx.Sign(big.NewInt(3), priv.ToECDSA())
 	suite.Require().NoError(err)
 
-	suite.ctx = suite.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+	suite.ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 	result, err := suite.handler(suite.ctx, tx)
 	suite.Require().NoError(err)
 	suite.Require().NotNil(result)
@@ -419,7 +419,7 @@ func (suite *EvmTestSuite) TestOutOfGasWhenDeployContract() {
 
 	// Deploy contract - Owner.sol
 	gasLimit := uint64(1)
-	suite.ctx = suite.ctx.WithGasMeter(sdk.NewGasMeter(gasLimit))
+	suite.ctx.SetGasMeter(sdk.NewGasMeter(gasLimit))
 	gasPrice := big.NewInt(10000)
 
 	priv, err := ethsecp256k1.GenerateKey()
@@ -613,13 +613,13 @@ func (suite *EvmTestSuite) TestSimulateConflict() {
 	err = tx.Sign(big.NewInt(3), priv.ToECDSA())
 	suite.Require().NoError(err)
 
-	suite.ctx = suite.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-	suite.ctx = suite.ctx.WithIsCheckTx(true)
+	suite.ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
+	suite.ctx.SetIsCheckTx(true)
 	result, err := suite.handler(suite.ctx, tx)
 	suite.Require().NotNil(result)
 	suite.Require().Nil(err)
 
-	suite.ctx = suite.ctx.WithIsCheckTx(false)
+	suite.ctx.SetIsCheckTx(false)
 	result, err = suite.handler(suite.ctx, tx)
 	suite.Require().NotNil(result)
 	suite.Require().Nil(err)

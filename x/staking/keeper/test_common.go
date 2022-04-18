@@ -130,14 +130,14 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initBalance int64) (sdk.Conte
 
 	// init context
 	ctx := sdk.NewContext(ms, abci.Header{ChainID: TestChainID}, isCheckTx, log.NewNopLogger())
-	ctx = ctx.WithConsensusParams(
+	ctx.SetConsensusParams(
 		&abci.ConsensusParams{
 			Validator: &abci.ValidatorParams{
 				PubKeyTypes: []string{tmtypes.ABCIPubKeyTypeEd25519},
 			},
 		},
 	)
-	ctx = ctx.WithBlockTime(time.Now())
+	ctx.SetBlockTime(time.Now())
 	cdc := MakeTestCodec()
 	reg := types2.NewInterfaceRegistry()
 	cc := codec.NewProtoCodec(reg)

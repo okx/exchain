@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"io/ioutil"
 	"math/big"
 	"os"
 	"sync"
 	"testing"
+
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
@@ -953,7 +954,8 @@ func TestSimulateTx(t *testing.T) {
 
 	anteOpt := func(bapp *BaseApp) {
 		bapp.SetAnteHandler(func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error) {
-			newCtx = ctx.WithGasMeter(sdk.NewGasMeter(gasConsumed))
+			newCtx = ctx
+			newCtx.SetGasMeter(sdk.NewGasMeter(gasConsumed))
 			return
 		})
 	}
@@ -1122,7 +1124,8 @@ func TestTxGasLimits(t *testing.T) {
 	gasGranted := uint64(10)
 	anteOpt := func(bapp *BaseApp) {
 		bapp.SetAnteHandler(func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error) {
-			newCtx = ctx.WithGasMeter(sdk.NewGasMeter(gasGranted))
+			newCtx = ctx
+			newCtx.SetGasMeter(sdk.NewGasMeter(gasGranted))
 
 			// AnteHandlers must have their own defer/recover in order for the BaseApp
 			// to know how much gas was used! This is because the GasMeter is created in
@@ -1211,7 +1214,8 @@ func TestMaxBlockGasLimits(t *testing.T) {
 	gasGranted := uint64(10)
 	anteOpt := func(bapp *BaseApp) {
 		bapp.SetAnteHandler(func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error) {
-			newCtx = ctx.WithGasMeter(sdk.NewGasMeter(gasGranted))
+			newCtx = ctx
+			newCtx.SetGasMeter(sdk.NewGasMeter(gasGranted))
 
 			defer func() {
 				if r := recover(); r != nil {
@@ -1384,7 +1388,8 @@ func TestGasConsumptionBadTx(t *testing.T) {
 	gasWanted := uint64(5)
 	anteOpt := func(bapp *BaseApp) {
 		bapp.SetAnteHandler(func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error) {
-			newCtx = ctx.WithGasMeter(sdk.NewGasMeter(gasWanted))
+			newCtx = ctx
+			newCtx.SetGasMeter(sdk.NewGasMeter(gasWanted))
 
 			defer func() {
 				if r := recover(); r != nil {

@@ -14,7 +14,7 @@ import (
 // NewHandler returns a handler for Ethermint type messages.
 func NewHandler(k *Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (result *sdk.Result, err error) {
-		ctx = ctx.WithEventManager(sdk.NewEventManager())
+		ctx.SetEventManager(sdk.NewEventManager())
 
 		if ctx.IsDeliver(){
 			k.EvmStateDb.WithContext(ctx).MarkUpdatedAcc(k.UpdatedAccount)
