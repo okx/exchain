@@ -192,55 +192,6 @@ func (suite *TypesTestSuite) TestMsgCreateClient_ValidateBasic() {
 
 // tests that different header within MsgUpdateClient can be marshaled
 // and unmarshaled.
-func (suite *TypesTestSuite) TestMarshalMsgUpdateClient() {
-	var (
-		msg *types.MsgUpdateClient
-		err error
-	)
-
-	testCases := []struct {
-		name     string
-		malleate func()
-	}{
-		{
-			"solo machine client", func() {
-				soloMachine := ibctesting.NewSolomachine(suite.T(), suite.chainA.Codec(), "solomachine", "", 2)
-				msg, err = types.NewMsgUpdateClient(soloMachine.ClientID, soloMachine.CreateHeader(), suite.chainA.SenderAccount().GetAddress())
-				suite.Require().NoError(err)
-			},
-		},
-		{
-			"tendermint client", func() {
-				msg, err = types.NewMsgUpdateClient("tendermint", suite.chainA.CurrentTMClientHeader(), suite.chainA.SenderAccount().GetAddress())
-				suite.Require().NoError(err)
-
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		tc := tc
-
-		suite.Run(tc.name, func() {
-			suite.SetupTest()
-
-			tc.malleate()
-
-			cdc := suite.chainA.App().AppCodec()
-
-			// marshal message
-			bz, err := cdc.GetProtocMarshal().MarshalJSON(msg)
-			suite.Require().NoError(err)
-
-			// unmarshal message
-			newMsg := &types.MsgUpdateClient{}
-			err = cdc.GetProtocMarshal().UnmarshalJSON(bz, newMsg)
-			suite.Require().NoError(err)
-
-			suite.Require().True(proto.Equal(msg, newMsg))
-		})
-	}
-}
 
 func (suite *TypesTestSuite) TestMsgUpdateClient_ValidateBasic() {
 	var (
