@@ -164,7 +164,7 @@ func TestMsgEthereumTxAmino(t *testing.T) {
 
 	err = ModuleCdc.UnmarshalBinaryBare(raw, &msg2)
 	require.NoError(t, err)
-	require.Equal(t, msg, msg2)
+	require.Equal(t, msg, &msg2)
 }
 
 func TestTxData_String(t *testing.T) {

@@ -36,7 +36,7 @@ var (
 	testPrivKey   = "52692529cc36735d4ee1084846f4f5ef8916d0f823b0a0e834c8a4ece30c45e4"
 )
 
-func generateTestTx(n int) MsgEthereumTx {
+func generateTestTx(n int) *MsgEthereumTx {
 	// new evm message
 	nonce := uint64(0)
 	to := common.HexToAddress("0x5E7BA03cf5394c3731242164b294a968d9D937F1")
@@ -149,7 +149,7 @@ func TestEncoder(t *testing.T) {
 func testEncoder(t *testing.T, enc encoder) {
 	// encode
 	tx := generateTestTx(1)
-	data, err := enc.encodeTx(&tx)
+	data, err := enc.encodeTx(tx)
 	require.NoError(t, err, enc.name())
 
 	// decode
@@ -167,7 +167,7 @@ func benchmarkEncodeTx(b *testing.B, enc encoder) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		enc.encodeTx(&tx)
+		enc.encodeTx(tx)
 	}
 }
 
@@ -178,7 +178,7 @@ func BenchmarkJsonDecodeTx(b *testing.B)     { benchmarkDecodeTx(b, newTestEncod
 
 func benchmarkDecodeTx(b *testing.B, enc encoder) {
 	tx := generateTestTx(1)
-	data, _ := enc.encodeTx(&tx)
+	data, _ := enc.encodeTx(tx)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

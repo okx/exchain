@@ -30,8 +30,8 @@ run() {
       --enable-dynamic-gp=false \
       --consensus.timeout_commit 100ms \
       --disable-abci-query-mutex=true \
-      --mempool.max_tx_num_per_block=7000 \
-      --mempool.size=15000 \
+      --mempool.max_tx_num_per_block=10000 \
+      --mempool.size=20000 \
       --local_perf=tx \
       --enable-preruntx=false \
       --iavl-enable-async-commit \

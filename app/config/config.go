@@ -12,6 +12,7 @@ import (
 	iavlconfig "github.com/okex/exchain/libs/iavl/config"
 	tmconfig "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/x/common/analyzer"
 
 	"github.com/spf13/viper"
 )
@@ -64,6 +65,9 @@ type OecConfig struct {
 	// POA
 	csEnablePOA    bool
 	csSwitchHeight int64
+
+	// enable-analyzer
+	enableAnalyzer bool
 }
 
 const (
@@ -175,6 +179,7 @@ func RegisterDynamicConfig(logger log.Logger) {
 	oecConfig := GetOecConfig()
 	tmconfig.SetDynamicConfig(oecConfig)
 	iavlconfig.SetDynamicConfig(oecConfig)
+	analyzer.SetDynamicConfig(oecConfig)
 }
 
 func (c *OecConfig) loadFromConfig() {
@@ -196,6 +201,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetIavlCacheSize(viper.GetInt(iavl.FlagIavlCacheSize))
 	c.SetNodeKeyWhitelist(viper.GetString(FlagNodeKeyWhitelist))
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
+	c.SetEnableAnalyzer(viper.GetBool(analyzer.FlagEnableAnalyzer))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -230,7 +236,8 @@ func (c *OecConfig) format() string {
 	consensus.timeout_precommit: %s
 	consensus.timeout_precommit_delta: %s
 	
-	iavl-cache-size: %d`,
+	iavl-cache-size: %d
+	enable-analyzer: %v`,
 		c.GetMempoolRecheck(),
 		c.GetMempoolForceRecheckGap(),
 		c.GetMempoolSize(),
@@ -247,6 +254,7 @@ func (c *OecConfig) format() string {
 		c.GetCsTimeoutPrecommit(),
 		c.GetCsTimeoutPrecommitDelta(),
 		c.GetIavlCacheSize(),
+		c.GetEnableAnalyzer(),
 	)
 }
 
@@ -355,6 +363,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetIavlCacheSize(r)
+	case analyzer.FlagEnableAnalyzer:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetEnableAnalyzer(r)
 	//POA
 	case FlagCsSwitchAtHeight:
 		fmt.Println("Received POA Signal:", k, v)
@@ -397,6 +411,13 @@ func (c *OecConfig) setCsEnablePOAFlag(v string) error {
 
 func (c *OecConfig) GetCsEnablePOAFlag() (bool, int64) {
 	return c.csEnablePOA, c.csSwitchHeight
+}
+
+func (c *OecConfig) GetEnableAnalyzer() bool {
+	return c.enableAnalyzer
+}
+func (c *OecConfig) SetEnableAnalyzer(value bool) {
+	c.enableAnalyzer = value
 }
 
 func (c *OecConfig) GetMempoolRecheck() bool {

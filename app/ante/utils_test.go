@@ -96,7 +96,7 @@ func newTestSDKTx(
 	return auth.NewStdTx(msgs, fee, sigs, "")
 }
 
-func newTestEthTx(ctx sdk.Context, msg evmtypes.MsgEthereumTx, priv tmcrypto.PrivKey) (sdk.Tx, error) {
+func newTestEthTx(ctx sdk.Context, msg *evmtypes.MsgEthereumTx, priv tmcrypto.PrivKey) (sdk.Tx, error) {
 	chainIDEpoch, err := okexchain.ParseChainID(ctx.ChainID())
 	if err != nil {
 		return nil, err

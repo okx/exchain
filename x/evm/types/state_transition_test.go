@@ -1,11 +1,11 @@
 package types_test
 
 import (
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/exchain/app/types"

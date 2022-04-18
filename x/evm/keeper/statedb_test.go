@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"math/big"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/exchain/app/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/evm/types"
 )
 
@@ -39,7 +38,7 @@ func (suite *KeeperTestSuite) TestBloomFilter() {
 		{
 			"add log",
 			func() {
-				suite.stateDB.WithContext(suite.ctx).SetLogs(tHash, logs)
+				suite.stateDB.WithContext(suite.ctx).SetLogs(logs)
 			},
 			1,
 			false,
@@ -54,9 +53,8 @@ func (suite *KeeperTestSuite) TestBloomFilter() {
 
 	for _, tc := range testCase {
 		tc.malleate()
-		logs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(tHash)
+		logs := suite.stateDB.WithContext(suite.ctx).GetLogs()
 		if !tc.isBloom {
-			suite.Require().NoError(err, tc.name)
 			suite.Require().Len(logs, tc.numLogs, tc.name)
 			if len(logs) != 0 {
 				suite.Require().Equal(log, *logs[0], tc.name)
@@ -222,13 +220,10 @@ func (suite *KeeperTestSuite) TestStateDB_Logs() {
 	}
 
 	for _, tc := range testCase {
-		hash := ethcmn.BytesToHash([]byte("hash"))
 		logs := []*ethtypes.Log{&tc.log}
 
-		err := suite.stateDB.WithContext(suite.ctx).SetLogs(hash, logs)
-		suite.Require().NoError(err, tc.name)
-		dbLogs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(hash)
-		suite.Require().NoError(err, tc.name)
+		suite.stateDB.WithContext(suite.ctx).SetLogs(logs)
+		dbLogs := suite.stateDB.WithContext(suite.ctx).GetLogs()
 		suite.Require().Equal(logs, dbLogs, tc.name)
 	}
 }

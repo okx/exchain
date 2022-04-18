@@ -6,6 +6,8 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"github.com/tendermint/go-amino"
+
 	"github.com/go-errors/errors"
 
 	"sync"
@@ -16,6 +18,14 @@ import (
 	"github.com/okex/exchain/libs/iavl/trace"
 
 	dbm "github.com/okex/exchain/libs/tm-db"
+)
+
+const (
+	FlagIavlCacheInitRatio = "iavl-cache-init-ratio"
+)
+
+var (
+	IavlCacheInitRatio float64 = 0
 )
 
 type heightOrphansItem struct {
@@ -34,7 +44,7 @@ func (ndb *nodeDB) SaveOrphans(batch dbm.Batch, version int64, orphans []*Node) 
 	defer ndb.mtx.Unlock()
 
 	if EnableAsyncCommit {
-		ndb.log(IavlDebug, "saving orphan node(size:%d) to OrphanCache", len(orphans))
+		ndb.log(IavlDebug, "saving orphan node to OrphanCache", "size", len(orphans))
 		version--
 		atomic.AddInt64(&ndb.totalOrphanCount, int64(len(orphans)))
 		orphansObj := ndb.heightOrphansMap[version]
@@ -51,7 +61,7 @@ func (ndb *nodeDB) SaveOrphans(batch dbm.Batch, version int64, orphans []*Node) 
 	} else {
 		toVersion := ndb.getPreviousVersion(version)
 		for _, node := range orphans {
-			ndb.log(IavlDebug, "SAVEORPHAN %v-%v %X", node.version, toVersion, node.hash)
+			ndb.log(IavlDebug, "SAVEORPHAN", "version", node.version, "toVersion", toVersion, "hash", amino.BytesHexStringer(node.hash))
 			ndb.saveOrphan(batch, node.hash, node.version, toVersion)
 		}
 	}
@@ -151,7 +161,7 @@ func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
 }
 
 func (ndb *nodeDB) asyncPersistTppStart(version int64) map[string]*Node {
-	ndb.log(IavlDebug, "moving prePersistCache(size:%d) to tempPrePersistCache", len(ndb.prePersistNodeCache))
+	ndb.log(IavlDebug, "moving prePersistCache to tempPrePersistCache", "size", len(ndb.prePersistNodeCache))
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
 	tpp := ndb.prePersistNodeCache
@@ -197,9 +207,7 @@ func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer)
 		ndb.tppVersionList.Remove(tItem.listItem)
 	}
 	delete(ndb.tppMap, version)
-
-	ndb.log(IavlInfo, "CommitSchedule: Height<%d>, Tree<%s>, IavlHeight<%d>, NodeNum<%d>, %s",
-		version, ndb.name, iavlHeight, nodeNum, trc.Format())
+	ndb.log(IavlInfo, "CommitSchedule", "Height", version, "Tree", ndb.name, "IavlHeight", iavlHeight, "NodeNum", nodeNum, "trace", trc)
 }
 
 // SaveNode saves a node to disk.
@@ -227,7 +235,7 @@ func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
 	nodeValue := buf.Bytes()
 	batch.Set(nodeKey, nodeValue)
 	atomic.AddInt64(&ndb.totalPersistedSize, int64(len(nodeKey)+len(nodeValue)))
-	ndb.log(IavlDebug, "BATCH SAVE %X %p", node.hash, node)
+	ndb.log(IavlDebug, "BATCH SAVE", "hash", node.hash)
 	//node.persisted = true // move to function MovePrePersistCacheToTempCache
 }
 
@@ -387,7 +395,9 @@ func (ndb *nodeDB) updateBranchConcurrency(node *Node, savedNodes map[string]*No
 					ndb.saveNodeToPrePersistCache(n)
 					n.leftNode = nil
 					n.rightNode = nil
-					savedNodes[string(n.hash)] = n
+					if savedNodes != nil {
+						savedNodes[string(n.hash)] = n
+					}
 				}
 			}
 		}(wg, needNilNodeNum, savedNodes, ndb, nodeCh)
@@ -412,7 +422,9 @@ func (ndb *nodeDB) updateBranchConcurrency(node *Node, savedNodes map[string]*No
 	node.rightNode = nil
 
 	// TODO: handle magic number
-	savedNodes[string(node.hash)] = node
+	if savedNodes != nil {
+		savedNodes[string(node.hash)] = node
+	}
 
 	return node.hash
 }
@@ -479,8 +491,8 @@ func (ndb *nodeDB) saveCommitOrphans(batch dbm.Batch, version int64, orphans map
 
 	toVersion := ndb.getPreviousVersion(version)
 	for hash, fromVersion := range orphans {
-		ndb.log(IavlDebug, "SAVEORPHAN %v-%v %X", fromVersion, toVersion, hash)
-		ndb.saveOrphan(batch, []byte(hash), fromVersion, toVersion)
+		ndb.log(IavlDebug, "SAVEORPHAN", "from", fromVersion, "to", toVersion, "hash", amino.BytesHexStringer(amino.StrToBytes(hash)))
+		ndb.saveOrphan(batch, amino.StrToBytes(hash), fromVersion, toVersion)
 	}
 }
 

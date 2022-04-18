@@ -44,6 +44,7 @@ func (tx *Tx) Prepare(msg *types.MsgEthereumTx) (err error) {
 	return
 }
 
+// GetChainConfig get chain config, the chain config may cached
 func (tx *Tx) GetChainConfig() (types.ChainConfig, bool) {
 	return tx.Keeper.GetChainConfig(tx.Ctx)
 }

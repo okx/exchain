@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/okex/exchain/libs/tendermint/mempool"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
 
 // An sdk.Tx which is its own sdk.Msg.
 type kvstoreTx struct {
+	sdk.BaseTx
+
 	key   []byte
 	value []byte
 	bytes []byte
@@ -63,12 +63,12 @@ func (tx kvstoreTx) GetType() sdk.TransactionType {
 	return sdk.UnknownType
 }
 
-func (tx kvstoreTx) GetTxInfo(ctx sdk.Context) mempool.ExTxInfo {
-	return mempool.ExTxInfo{
-		Sender:   "",
-		GasPrice: big.NewInt(0),
-		Nonce:    0,
-	}
+func (tx kvstoreTx) GetFrom() string {
+	return ""
+}
+
+func (tx kvstoreTx) GetNonce() uint64 {
+	return 0
 }
 
 func (tx kvstoreTx) GetGasPrice() *big.Int {
@@ -82,6 +82,7 @@ func (tx kvstoreTx) GetTxFnSignatureInfo() ([]byte, int) {
 func (tx kvstoreTx) GetGas() uint64 {
 	return 0
 }
+
 // takes raw transaction bytes and decodes them into an sdk.Tx. An sdk.Tx has
 // all the signatures and can be used to authenticate.
 func decodeTx(txBytes []byte, _ ...int64) (sdk.Tx, error) {
@@ -90,10 +91,10 @@ func decodeTx(txBytes []byte, _ ...int64) (sdk.Tx, error) {
 	split := bytes.Split(txBytes, []byte("="))
 	if len(split) == 1 {
 		k := split[0]
-		tx = kvstoreTx{k, k, txBytes}
+		tx = kvstoreTx{key: k, value: k, bytes: txBytes}
 	} else if len(split) == 2 {
 		k, v := split[0], split[1]
-		tx = kvstoreTx{k, v, txBytes}
+		tx = kvstoreTx{key: k, value: v, bytes: txBytes}
 	} else {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "too many '='")
 	}

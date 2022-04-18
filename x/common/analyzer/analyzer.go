@@ -13,10 +13,26 @@ import (
 const FlagEnableAnalyzer string = "enable-analyzer"
 
 var (
-	singleAnalys *analyer
-	openAnalyzer bool
-	once         sync.Once
+	singleAnalys  *analyer
+	openAnalyzer  bool
+	once          sync.Once
+	dynamicConfig IDynamicConfig = MockDynamicConfig{}
 )
+
+func SetDynamicConfig(c IDynamicConfig) {
+	dynamicConfig = c
+}
+
+type IDynamicConfig interface {
+	GetEnableAnalyzer() bool
+}
+
+type MockDynamicConfig struct {
+}
+
+func (c MockDynamicConfig) GetEnableAnalyzer() bool {
+	return viper.GetBool(FlagEnableAnalyzer)
+}
 
 type analyer struct {
 	status         bool
@@ -41,13 +57,6 @@ func init() {
 	}
 }
 
-func getOpen() bool {
-	once.Do(func() {
-		openAnalyzer = viper.GetBool(FlagEnableAnalyzer)
-	})
-	return openAnalyzer
-}
-
 func newAnalys(height int64) {
 	if singleAnalys == nil {
 		singleAnalys = &analyer{
@@ -58,7 +67,7 @@ func newAnalys(height int64) {
 }
 
 func OnAppBeginBlockEnter(height int64) {
-	if !getOpen() {
+	if !dynamicConfig.GetEnableAnalyzer() {
 		return
 	}
 	newAnalys(height)
@@ -137,7 +146,7 @@ func (s *analyer) format() {
 	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
 }
 
-func addInfo(name string, keys []string, record map[string]int64)  {
+func addInfo(name string, keys []string, record map[string]int64) {
 	var comma, format string
 	for _, v := range keys {
 		format += fmt.Sprintf("%s%s<%dms>", comma, v, record[v])
@@ -145,7 +154,6 @@ func addInfo(name string, keys []string, record map[string]int64)  {
 	}
 	trace.GetElapsedInfo().AddInfo(name, format)
 }
-
 
 func (s *analyer) genRecord() (int64, map[string]int64) {
 	var evmcore int64
@@ -173,7 +181,7 @@ func (s *analyer) genRecord() (int64, map[string]int64) {
 	return evmcore, record
 }
 
-func formatDeliverTx(record map[string]int64)  {
+func formatDeliverTx(record map[string]int64) {
 
 	// deliver txs
 	var deliverTxsKeys = []string{
@@ -192,8 +200,7 @@ func formatDeliverTx(record map[string]int64)  {
 	addInfo(trace.DeliverTxs, deliverTxsKeys, record)
 }
 
-
-func formatEvmHandlerDetail(record map[string]int64)  {
+func formatEvmHandlerDetail(record map[string]int64) {
 
 	// run msg
 	var evmHandlerKeys = []string{
@@ -214,7 +221,7 @@ func formatEvmHandlerDetail(record map[string]int64)  {
 	addInfo(trace.EvmHandlerDetail, evmHandlerKeys, record)
 }
 
-func formatRunAnteDetail(record map[string]int64)  {
+func formatRunAnteDetail(record map[string]int64) {
 
 	// ante
 	var anteKeys = []string{

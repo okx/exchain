@@ -10,6 +10,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okex/exchain/x/evm/watcher"
 )
 
 type Watcher struct {
@@ -21,7 +22,7 @@ type Watcher struct {
 }
 
 type Sender interface {
-	Send(hash []byte, tx *rpctypes.Transaction) error
+	Send(hash []byte, tx *watcher.Transaction) error
 }
 
 func NewWatcher(clientCtx context.CLIContext, log log.Logger, sender Sender) *Watcher {
@@ -58,13 +59,13 @@ func (w *Watcher) Start() {
 					continue
 				}
 
-				tx, err := rpctypes.NewTransaction(ethTx, txHash, common.Hash{}, uint64(data.Height), uint64(data.Index))
+				tx, err := watcher.NewTransaction(ethTx, txHash, common.Hash{}, uint64(data.Height), uint64(data.Index))
 				if err != nil {
 					w.logger.Error("failed to new transaction", "hash", txHash.String(), "error", err)
 					continue
 				}
 
-				go func(hash []byte, tx *rpctypes.Transaction) {
+				go func(hash []byte, tx *watcher.Transaction) {
 					w.logger.Debug("push pending tx to MQ", "txHash=", txHash.String())
 					err = w.sender.Send(hash, tx)
 					if err != nil {

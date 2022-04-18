@@ -137,19 +137,12 @@ func (bs *BlockStore) LoadBlockByHash(hash []byte) *types.Block {
 	return bs.LoadBlock(height)
 }
 
-// LoadBlockPart returns the Part at the given index
-// from the block at the given height.
-// If no part is found for the given height and index, it returns nil.
-func (bs *BlockStore) LoadBlockPart(height int64, index int) *types.Part {
-	var part = new(types.Part)
-	bz, err := bs.db.Get(calcBlockPartKey(height, index))
-	if err != nil {
-		panic(err)
-	}
+func loadBlockPartFromBytes(bz []byte) *types.Part {
 	if len(bz) == 0 {
 		return nil
 	}
-	err = part.UnmarshalFromAmino(cdc, bz)
+	var part = new(types.Part)
+	err := part.UnmarshalFromAmino(cdc, bz)
 	if err != nil {
 		part = new(types.Part)
 		err = cdc.UnmarshalBinaryBare(bz, part)
@@ -158,6 +151,19 @@ func (bs *BlockStore) LoadBlockPart(height int64, index int) *types.Part {
 		}
 	}
 	return part
+}
+
+// LoadBlockPart returns the Part at the given index
+// from the block at the given height.
+// If no part is found for the given height and index, it returns nil.
+func (bs *BlockStore) LoadBlockPart(height int64, index int) *types.Part {
+	v, err := bs.db.GetUnsafeValue(calcBlockPartKey(height, index), func(bz []byte) (interface{}, error) {
+		return loadBlockPartFromBytes(bz), nil
+	})
+	if err != nil {
+		panic(err)
+	}
+	return v.(*types.Part)
 }
 
 // LoadBlockMeta returns the BlockMeta for the given height.

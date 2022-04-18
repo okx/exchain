@@ -27,6 +27,6 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Int64(app.FlagStartHeight, 0, "Set the start block height for repair")
 	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
 	cmd.Flags().String(app.Elapsed, app.DefaultElapsedSchemas, "schemaName=1|0,,,")
-	cmd.Flags().Bool(analyzer.FlagEnableAnalyzer, true, "Enable auto open log analyzer")
+	cmd.Flags().Bool(analyzer.FlagEnableAnalyzer, false, "Enable auto open log analyzer")
 	return cmd
 }

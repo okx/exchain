@@ -73,7 +73,7 @@ type EvmSimulator struct {
 }
 
 // DoCall call simulate tx. we pass the sender by args to reduce address convert
-func (es *EvmSimulator) DoCall(msg evmtypes.MsgEthereumTx, sender string) (*sdk.SimulationResponse, error) {
+func (es *EvmSimulator) DoCall(msg *evmtypes.MsgEthereumTx, sender string) (*sdk.SimulationResponse, error) {
 	es.ctx = es.ctx.WithFrom(sender)
 	r, e := es.handler(es.ctx, msg)
 	if e != nil {

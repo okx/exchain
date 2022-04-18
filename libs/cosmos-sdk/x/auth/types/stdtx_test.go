@@ -78,6 +78,15 @@ func TestStdTxAmino(t *testing.T) {
 			Signatures: []StdSignature{},
 			Memo:       "",
 		},
+
+		{
+			Msgs:       []sdk.Msg{},
+			Signatures: []StdSignature{},
+			Memo:       "",
+			BaseTx: sdk.BaseTx{
+				Raw: []byte{1, 2, 3},
+			},
+		},
 	}
 
 	for _, tx := range testCases {

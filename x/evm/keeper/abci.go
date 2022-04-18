@@ -25,7 +25,7 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	}
 
 	// Gas costs are handled within msg handler so costs should be ignored
-	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 
 	// Set the hash -> height and height -> hash mapping.
 	currentHash := req.Hash
@@ -51,7 +51,7 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 // an empty slice.
 func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
 	// Gas costs are handled within msg handler so costs should be ignored
-	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 
 	// set the block bloom filter bytes to store
 	bloom := ethtypes.BytesToBloom(k.Bloom.Bytes())
