@@ -1,6 +1,7 @@
 package state
 
 import (
+	"fmt"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/types"
@@ -39,6 +40,7 @@ func execBlockOnProxyAppPartConcurrent(logger log.Logger,
 	// Run txs of block.
 	start := time.Now()
 	//var invalidTxs = 0
+	fmt.Println("TxsNum: ", len(block.Txs))
 	abciResponses.DeliverTxs = proxyAppConn.DeliverTxsConcurrent(transTxsToBytes(block.Txs))
 	elapsed := time.Since(start).Microseconds()
 	logger.Info("DeliverTxs duration", "cur", elapsed, "total", deliverTxDuration)
