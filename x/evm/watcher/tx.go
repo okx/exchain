@@ -90,22 +90,6 @@ func (w *Watcher) extractEvmTx(sdkTx sdk.Tx) (*types.MsgEthereumTx, error) {
 	return evmTx, nil
 }
 
-func (w *Watcher) saveEvmTx(msg *types.MsgEthereumTx, txHash ethcmn.Hash, index uint64) {
-	wMsg := NewMsgEthTx(msg, txHash, w.blockHash, w.height, index)
-	if wMsg != nil {
-		w.txsAndReceipts = append(w.txsAndReceipts, wMsg)
-	}
-	w.txsInBlock = append(w.txsInBlock, TxIndex{TxHash: txHash, Index: index})
-}
-
-func (w *Watcher) saveTransactionReceipt(status uint32, msg *types.MsgEthereumTx, txHash ethcmn.Hash, txIndex uint64, data *types.ResultData, gasUsed uint64) {
-	w.UpdateCumulativeGas(txIndex, gasUsed)
-	wMsg := NewMsgTransactionReceipt(status, msg, txHash, w.blockHash, txIndex, w.height, data, w.cumulativeGas[txIndex], gasUsed)
-	if wMsg != nil {
-		w.txsAndReceipts = append(w.txsAndReceipts, wMsg)
-	}
-}
-
 func (w *Watcher) saveTxAndReceipt(msg *types.MsgEthereumTx, txHash ethcmn.Hash, index uint64,
 	receiptStatus uint32, data *types.ResultData, gasUsed uint64) {
 
