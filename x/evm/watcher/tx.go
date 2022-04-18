@@ -11,7 +11,7 @@ import (
 )
 
 type DeliverTx struct {
-	Req  *tm.RequestDeliverTx
+	Req  tm.TxEssentials
 	Resp *tm.ResponseDeliverTx
 }
 
@@ -34,7 +34,7 @@ func (w *Watcher) recordTxsAndReceipts(deliverTx *DeliverTx, index uint64, txDec
 		return
 	}
 
-	realTx, err := txDecoder(deliverTx.Req.Tx)
+	realTx, err := txDecoder(deliverTx.Req.TxHash())
 	if err != nil {
 		w.log.Error("watch decode deliver tx", "error", err)
 		return
