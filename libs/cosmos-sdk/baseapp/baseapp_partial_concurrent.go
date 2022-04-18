@@ -637,11 +637,12 @@ func (dttm *DTTManager) accountUpdated(address string) {
 //-------------------------------------------------------------
 
 func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx {
+	app.logger.Info("deliverTxs 1", "txs", len(txs))
 	if app.deliverTxsMgr == nil {
 		app.deliverTxsMgr = NewDTTManager(app) //NewDeliverTxTasksManager(app)
 	}
 
-	//app.logger.Info("deliverTxs", "txs", len(txs))
+	app.logger.Info("deliverTxs 2", "txs", len(txs))
 	//start := time.Now()
 	app.deliverTxsMgr.deliverTxs(txs)
 
