@@ -16,6 +16,8 @@ type AppConnConsensus interface {
 
 	BeginBlockSync(types.RequestBeginBlock) (*types.ResponseBeginBlock, error)
 	DeliverTxAsync(types.RequestDeliverTx) *abcicli.ReqRes
+	PreDeliverRealTxAsync(req []byte) types.TxEssentials
+	DeliverRealTxAsync(essentials types.TxEssentials) *abcicli.ReqRes
 	EndBlockSync(types.RequestEndBlock) (*types.ResponseEndBlock, error)
 	CommitSync(types.RequestCommit) (*types.ResponseCommit, error)
 	SetOptionAsync(req types.RequestSetOption) *abcicli.ReqRes
@@ -78,6 +80,14 @@ func (app *appConnConsensus) BeginBlockSync(req types.RequestBeginBlock) (*types
 
 func (app *appConnConsensus) DeliverTxAsync(req types.RequestDeliverTx) *abcicli.ReqRes {
 	return app.appConn.DeliverTxAsync(req)
+}
+
+func (app *appConnConsensus) PreDeliverRealTxAsync(req []byte) types.TxEssentials {
+	return app.appConn.PreDeliverRealTxAsync(req)
+}
+
+func (app *appConnConsensus) DeliverRealTxAsync(req types.TxEssentials) *abcicli.ReqRes {
+	return app.appConn.DeliverRealTxAsync(req)
 }
 
 func (app *appConnConsensus) EndBlockSync(req types.RequestEndBlock) (*types.ResponseEndBlock, error) {
