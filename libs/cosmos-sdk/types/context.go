@@ -274,6 +274,11 @@ func (c *Context) SetIsCheckTx(isCheckTx bool) *Context {
 	return c
 }
 
+func (c *Context) SetIsDeliverTx(isDeliverTx bool) *Context {
+	c.isDeliver = isDeliverTx
+	return c
+}
+
 // SetIsWrappedCheckTx called with true will also set true on checkTx in order to
 // enforce the invariant that if recheckTx = true then checkTx = true as well.
 func (c *Context) SetIsWrappedCheckTx(isWrappedCheckTx bool) *Context {

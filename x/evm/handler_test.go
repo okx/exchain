@@ -606,7 +606,6 @@ func (suite *EvmTestSuite) TestSimulateConflict() {
 	pub := priv.ToECDSA().Public().(*ecdsa.PublicKey)
 
 	suite.app.EvmKeeper.SetBalance(suite.ctx, ethcrypto.PubkeyToAddress(*pub), big.NewInt(100))
-	suite.stateDB.Finalise(false)
 
 	// send simple value transfer with gasLimit=21000
 	tx := types.NewMsgEthereumTx(1, &ethcmn.Address{0x1}, big.NewInt(100), gasLimit, gasPrice, nil)
@@ -614,12 +613,12 @@ func (suite *EvmTestSuite) TestSimulateConflict() {
 	suite.Require().NoError(err)
 
 	suite.ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
-	suite.ctx.SetIsCheckTx(true)
+	suite.ctx.SetIsCheckTx(true).SetIsDeliverTx(false)
 	result, err := suite.handler(suite.ctx, tx)
 	suite.Require().NotNil(result)
 	suite.Require().Nil(err)
 
-	suite.ctx.SetIsCheckTx(false)
+	suite.ctx.SetIsCheckTx(false).SetIsDeliverTx(true)
 	result, err = suite.handler(suite.ctx, tx)
 	suite.Require().NotNil(result)
 	suite.Require().Nil(err)
