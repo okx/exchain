@@ -318,7 +318,7 @@ func (dttm *DTTManager) concurrentBasic(txByte []byte, index int) *DeliverTxTask
 }
 
 func (dttm *DTTManager) hasConflict(taskA *DeliverTxTask, taskB *DeliverTxTask) bool {
-	if taskA.from == taskB.from {
+	if len(taskA.from) > 0 && taskA.from == taskB.from {
 		return true
 	}
 	if len(taskA.to) == 0 && len(taskB.to) == 0 {
@@ -351,7 +351,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		if dttr.task == nil ||
 			dttr.txIndex != dttr.task.index ||
 			dttr.task.index == task.index ||
-			dttr.step == dttRoutineStepNone || dttr.step == dttRoutineStepStart ||
+			dttr.step == dttRoutineStepNone || //dttr.step == dttRoutineStepStart ||
 			dttr.step == dttRoutineStepFinished || dttr.step == dttRoutineStepReadyForSerial ||
 			(dttr.task.index > task.index && dttr.task.prevTaskIndex >= task.index) ||
 			(dttr.task.index < task.index && task.prevTaskIndex >= dttr.task.index) {
@@ -376,7 +376,7 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	}
 	if task.prevTaskIndex < dttm.serialIndex || (task.prevTaskIndex == dttm.serialIndex && dttm.serialTask == nil) {
 		task.prevTaskIndex = -1
-		dttm.app.logger.Error("ResetPrevTaskIndex", "index", task.index, "prev", task.prevTaskIndex, "serial", dttm.serialIndex)
+		//dttm.app.logger.Error("ResetPrevTaskIndex", "index", task.index, "prev", task.prevTaskIndex, "serial", dttm.serialIndex)
 	} else if task.index <= dttm.serialIndex || task.prevTaskIndex >= 0 {
 			dttm.app.logger.Info("DonotRunAnte", "prev", task.prevTaskIndex, "index", task.index, "serial", dttm.serialIndex)
 		return nil
