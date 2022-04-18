@@ -27,13 +27,14 @@ func TestWatcher_dispatchJob(t *testing.T) {
 		sw:  true,
 	}
 	go watcher.jobRoutine()
-	time.Sleep(time.Microsecond)
+	time.Sleep(time.Millisecond)
 
 	const JobChanBuffer = 15
 	for i := 0; i < JobChanBuffer*2; i++ {
 		index := i
 		watcher.dispatchJob(func() {
 			t.Logf("fired %v \n", index)
+			time.Sleep(10 * time.Microsecond)
 		})
 	}
 	time.Sleep(time.Millisecond)
