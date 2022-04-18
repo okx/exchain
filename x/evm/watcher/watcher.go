@@ -371,7 +371,6 @@ func (w *Watcher) Commit() {
 	w.dispatchJob(func() {
 		w.commitBatch(batch, delayEraseKey)
 	})
-	return
 }
 
 func (w *Watcher) CommitWatchData(data WatchData, delayEraseKey [][]byte) {
@@ -638,8 +637,8 @@ func (w *Watcher) jobRoutine() {
 func (w *Watcher) lazyInitialization() {
 	// lazy initial:
 	// now we will allocate chan memory
-	// 5*2 means watcherCommitJob+commitBatchJob(just in case)
-	w.jobChan = make(chan func(), 5*2)
+	// 5*3 means watcherCommitJob+commitBatchJob+RecordABCIMessage(just in case)
+	w.jobChan = make(chan func(), 5*3)
 }
 
 func (w *Watcher) dispatchJob(f func()) {
@@ -647,5 +646,12 @@ func (w *Watcher) dispatchJob(f func()) {
 	// we have to wait
 	// why: something wrong happened: such as db panic(disk maybe is full)(it should be the only reason)
 	//								  UseWatchData were executed every 4 seoncds(block schedual)
-	w.jobChan <- f
+	select {
+	case w.jobChan <- f:
+	default:
+		w.log.Error("watch dispatch job too busy.")
+		go func() {
+			w.jobChan <- f
+		}()
+	}
 }
