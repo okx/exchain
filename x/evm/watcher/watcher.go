@@ -51,7 +51,6 @@ type Watcher struct {
 	txIndexInBlock    uint64
 	txChan            chan func()
 	txMutex           sync.Mutex
-	txWorkerNums      int
 }
 
 var (
