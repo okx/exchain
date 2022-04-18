@@ -254,6 +254,7 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().UintVar(&types.MptRocksdbBatchSize, types.FlagMptRocksdbBatchSize, 10, "Concurrent rocksdb batch size for mpt")
 	cmd.Flags().UintVar(&mpt.MptNodesLimit, mpt.FlagMptNodesLimit, 256, "Max node size (MB) cached in triedb")
 	cmd.Flags().UintVar(&mpt.MptImgsLimit, mpt.FlagMptImgsLimit, 4, "Max img size (MB) cached in triedb")
+	cmd.Flags().Int64(FlagCommitGapHeight, 50, "Block interval to commit cached data into db")
 
 	return cmd
 }

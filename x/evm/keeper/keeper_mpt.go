@@ -167,7 +167,7 @@ func (k *Keeper) PushData2Database(height int64, log log.Logger) {
 				return
 			}
 
-			if chosen % 50 == 0 { // todo: it could be set as a flag
+			if chosen % mpt.TrieCommitGap == 0 {
 				// If the header is missing (canonical chain behind), we're reorging a low
 				// diff sidechain. Suspend committing until this operation is completed.
 				chRoot := k.GetMptRootHash(uint64(chosen))
