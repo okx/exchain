@@ -246,7 +246,6 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 
 	cmd.Flags().BoolVar(&state.EnableParaSender, state.FlagParaSender, false, "Enable Parallel Sender")
 	cmd.Flags().UintVar(&mpt.TrieCacheSize, mpt.FlagTrieCacheSize, 2048, "Size (MB) to cache trie nodes")
-	cmd.Flags().BoolVar(&mpt.MptAsnyc, mpt.FlagEnableTrieCommitAsync, false, "enable mpt async commit")
 	cmd.Flags().BoolVar(&mpt.TrieDirtyDisabled, mpt.FlagTrieDirtyDisabled, false, "Disable cache dirty trie")
 	cmd.Flags().BoolVar(&mpt.EnableDoubleWrite, mpt.FlagEnableDoubleWrite, false, "Enable double write data (acc & evm) to the MPT tree when using the IAVL tree")
 	cmd.Flags().BoolVar(&evmtypes.UseCompositeKey, evmtypes.FlagUseCompositeKey, false, "Use composite key to store contract state")

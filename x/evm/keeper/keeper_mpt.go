@@ -112,12 +112,10 @@ func (k *Keeper) OnStop(ctx sdk.Context) error {
 			if recentMptRoot == (ethcmn.Hash{}) || recentMptRoot == ethtypes.EmptyRootHash {
 				recentMptRoot = ethcmn.Hash{}
 			} else {
-				k.mptCommitMu.Lock()
 				if err := triedb.Commit(recentMptRoot, true, nil); err != nil {
 					k.Logger(ctx).Error("Failed to commit recent state trie", "err", err)
 					break
 				}
-				k.mptCommitMu.Unlock()
 			}
 			k.SetLatestStoredBlockHeight(version)
 			k.Logger(ctx).Info("Writing evm cached state to disk", "block", version, "trieHash", recentMptRoot)
@@ -140,11 +138,9 @@ func (k *Keeper) PushData2Database(height int64, log log.Logger) {
 		if curMptRoot == (ethcmn.Hash{}) || curMptRoot == ethtypes.EmptyRootHash {
 			curMptRoot = ethcmn.Hash{}
 		} else {
-			k.mptCommitMu.Lock()
 			if err := triedb.Commit(curMptRoot, false, nil); err != nil {
 				panic("fail to commit mpt data: " + err.Error())
 			}
-			k.mptCommitMu.Unlock()
 		}
 		k.SetLatestStoredBlockHeight(uint64(curHeight))
 		log.Info("sync push evm data to db", "block", curHeight, "trieHash", curMptRoot)
@@ -171,8 +167,6 @@ func (k *Keeper) PushData2Database(height int64, log log.Logger) {
 			}
 
 			if chosen%50 == 0 { // todo: it could be set as a flag
-				k.mptCommitMu.Lock()
-				defer k.mptCommitMu.Unlock()
 				// If the header is missing (canonical chain behind), we're reorging a low
 				// diff sidechain. Suspend committing until this operation is completed.
 				chRoot := k.GetMptRootHash(uint64(chosen))
@@ -203,9 +197,6 @@ func (k *Keeper) PushData2Database(height int64, log log.Logger) {
 }
 
 func (k *Keeper) Commit(ctx sdk.Context) {
-	k.mptCommitMu.Lock()
-	defer k.mptCommitMu.Unlock()
-
 	// commit contract storage mpt trie
 	k.EvmStateDb.WithContext(ctx).Commit(true)
 	k.EvmStateDb.StopPrefetcher()
@@ -227,21 +218,6 @@ func (k *Keeper) Commit(ctx sdk.Context) {
 		k.SetMptRootHash(ctx, root)
 		k.rootHash = root
 	}
-}
-
-func (k *Keeper) AddMptAsyncTask(height int64) {
-	k.asyncChain <- height
-}
-func (k *Keeper) asyncCommit(logger log.Logger) {
-	go func() {
-		for {
-			select {
-			case height := <-k.asyncChain:
-				k.PushData2Database(height, logger)
-			}
-		}
-	}()
-
 }
 
 /*

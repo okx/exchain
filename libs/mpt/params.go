@@ -22,13 +22,11 @@ const (
 	FlagTrieDirtyDisabled     = "trie-dirty-disabled"
 	FlagTrieCacheSize         = "trie-cache-size"
 	FlagEnableDoubleWrite     = "enable-double-write"
-	FlagEnableTrieCommitAsync = "enable-trie-commit-async"
 )
 
 var (
 	TrieDirtyDisabled        = false
 	TrieCacheSize       uint = 2048 // MB
-	MptAsnyc                 = false
 	EnableDoubleWrite        = false
 	AccStoreCache       uint = 2048 // MB
 )

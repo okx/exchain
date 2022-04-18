@@ -2,9 +2,6 @@ package keeper
 
 import (
 	"encoding/binary"
-	"math/big"
-	"sync"
-
 	"github.com/VictoriaMetrics/fastcache"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/prque"
@@ -20,6 +17,7 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/params"
+	"math/big"
 )
 
 // Keeper wraps the CommitStateDB, allowing us to pass in SDK context while adhering
@@ -68,7 +66,6 @@ type Keeper struct {
 	EvmStateDb     *types.CommitStateDB
 	UpdatedAccount []ethcmn.Address
 
-	mptCommitMu *sync.Mutex
 	asyncChain  chan int64
 
 	// cache chain config
@@ -126,8 +123,6 @@ func NewKeeper(
 		triegc:         prque.New(nil),
 		stateCache:     fastcache.New(int(types.ContractStateCache) * 1024 * 1024),
 		UpdatedAccount: make([]ethcmn.Address, 0),
-		mptCommitMu:    &sync.Mutex{},
-		asyncChain:     make(chan int64, 1000),
 		cci:            &chainConfigInfo{},
 	}
 	k.Watcher.SetWatchDataFunc()
@@ -135,7 +130,6 @@ func NewKeeper(
 
 	k.OpenTrie()
 	k.EvmStateDb = types.NewCommitStateDB(k.GenerateCSDBParams())
-	k.asyncCommit(logger)
 
 	return k
 }
