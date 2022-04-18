@@ -84,7 +84,6 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	}()
 
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
-		app.logger.Error("validateBasicTxMsgs failed", "err", err)
 		return err
 	}
 	app.pin(ValTxMsgs, false, mode)
