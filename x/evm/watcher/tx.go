@@ -90,7 +90,7 @@ func (w *Watcher) extractEvmTx(sdkTx sdk.Tx) (*types.MsgEthereumTx, error) {
 	return evmTx, nil
 }
 
-func (w *Watcher) saveTxAndReceipt(msg *types.MsgEthereumTx, txHash ethcmn.Hash, index uint64,
+func (w *Watcher) saveTxAndReceiptEx(msg *types.MsgEthereumTx, txHash ethcmn.Hash, index uint64,
 	receiptStatus uint32, data *types.ResultData, gasUsed uint64) {
 	w.txMutex.Lock()
 	defer w.txMutex.Unlock()
@@ -107,7 +107,7 @@ func (w *Watcher) saveTxAndReceipt(msg *types.MsgEthereumTx, txHash ethcmn.Hash,
 	w.txsInBlock = append(w.txsInBlock, TxIndex{TxHash: txHash, Index: index})
 }
 
-func (w *Watcher) saveTxAndReceiptEx(msg *types.MsgEthereumTx, txHash ethcmn.Hash, index uint64,
+func (w *Watcher) saveTxAndReceipt(msg *types.MsgEthereumTx, txHash ethcmn.Hash, index uint64,
 	receiptStatus uint32, data *types.ResultData, gasUsed uint64) {
 
 	wMsg := NewMsgEthTx(msg, txHash, w.blockHash, w.height, index)
