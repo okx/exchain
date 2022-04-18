@@ -219,11 +219,12 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 
 	for _, storeParams := range rs.storesParams {
 		if storeParams.typ == types.StoreTypeIAVL {
-			if (storeParams.key.Name() == "acc" || storeParams.key.Name() == "evm") && tmtypes.HigherThanMars(latestVersion) {
+			sName := storeParams.key.Name()
+			if (sName == "acc" || sName == "evm") && tmtypes.HigherThanMars(latestVersion) {
 				continue
 			}
 
-			if storeParams.key.Name() == "evm2" && !tmtypes.HigherThanMars(latestVersion) {
+			if sName == "evm2" && !tmtypes.HigherThanMars(latestVersion) {
 				continue
 			}
 
@@ -592,12 +593,13 @@ func (rs *Store) pruneStores() {
 	//stores = rs.stores
 	for key, store := range stores {
 		if store.GetStoreType() == types.StoreTypeIAVL {
+			sName := key.Name()
 			if tmtypes.HigherThanMars(rs.lastCommitInfo.Version) {
-				if key.Name() == "acc" || key.Name() == "evm" {
+				if sName == "acc" || sName == "evm" {
 					continue
 				}
 			} else {
-				if key.Name() == "evm2" && !mpt.EnableDoubleWrite{
+				if sName == "evm2" && !mpt.EnableDoubleWrite{
 					continue
 				}
 			}
@@ -1084,13 +1086,14 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	outputDeltaMap := iavltree.TreeDeltaMap{}
 
 	for key, store := range storeMap {
+		sName := key.Name()
 		if tmtypes.HigherThanMars(version) {
 			// ignore acc and evm store
-			if key.Name() == "acc" || key.Name() == "evm" {
+			if sName == "acc" || sName == "evm" {
 				continue
 			}
 		} else {
-			if (key.Name() == mpt.StoreKey || key.Name() == "evm2") && !mpt.EnableDoubleWrite{
+			if (sName == mpt.StoreKey || sName == "evm2") && !mpt.EnableDoubleWrite{
 				continue
 			}
 		}
@@ -1109,7 +1112,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		}
 
 		// old version, mpt(acc) store, never allowed to participate the process of calculate root hash, or it will lead to SMB!
-		if !tmtypes.HigherThanMars(version) && (key.Name() == mpt.StoreKey || key.Name() == "evm2") {
+		if !tmtypes.HigherThanMars(version) && (sName == mpt.StoreKey || sName == "evm2") {
 			continue
 		}
 
@@ -1390,9 +1393,21 @@ func (src Store) Copy() *Store {
 }
 
 func (rs *Store) StopStore() {
-	for _, store := range rs.stores {
+	for key, store := range rs.stores {
 		switch store.GetStoreType() {
 		case types.StoreTypeIAVL:
+			sName := key.Name()
+			if tmtypes.HigherThanMars(rs.GetLatestVersion()) {
+				// ignore acc and evm store
+				if sName == "acc" || sName == "evm" {
+					continue
+				}
+			} else {
+				if sName == "evm2" && !mpt.EnableDoubleWrite{
+					continue
+				}
+			}
+
 			s := store.(*iavl.Store)
 			s.StopStore()
 		case types.StoreTypeDB:
