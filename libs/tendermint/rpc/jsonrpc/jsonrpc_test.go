@@ -273,7 +273,7 @@ func testWithWSClient(t *testing.T, cl *client.WSClient) {
 //-------------
 
 func TestServersAndClientsBasic(t *testing.T) {
-	serverAddrs := [...]string{tcpAddr, unixAddr}
+	serverAddrs := [...]string{tcpAddr} //unixAddr
 	for _, addr := range serverAddrs {
 		cl1, err := client.NewURI(addr)
 		require.Nil(t, err)
