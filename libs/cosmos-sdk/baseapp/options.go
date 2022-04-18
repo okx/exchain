@@ -179,7 +179,7 @@ func (app *BaseApp) SetEvmTxVerifySignHandler(sigHandler sdk.TxVerifySigHandler)
 	app.evmTxVerifySigHandler = sigHandler
 }
 
-func (app *BaseApp) SetPartialConcurrentHandlers(etf sdk.GetTxFeeAndFromHandler){//}, aof sdk.SetAccountObserver)  {
+func (app *BaseApp) SetPartialConcurrentHandlers(etf sdk.GetTxFeeAndFromHandler){
 	if app.sealed {
 		panic("SetPartialConcurrentHandlers() on sealed BaseApp")
 	}

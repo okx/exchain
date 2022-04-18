@@ -2,10 +2,11 @@ package baseapp
 
 import (
 	"fmt"
+	"runtime/debug"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"runtime/debug"
 )
 
 type runTxInfo struct {
@@ -86,7 +87,6 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
 		return err
 	}
-	//totalAnteDuration += time.Since(basicStart).Microseconds()
 	app.pin(ValTxMsgs, false, mode)
 
 	app.pin(RunAnte, true, mode)
