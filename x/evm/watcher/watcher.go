@@ -635,11 +635,10 @@ func (w *Watcher) lazyInitialization() {
 	// lazy initial:
 	// now we will allocate chan memory
 	// 5*2 means watcherCommitJob+commitBatchJob(just in case)
-	w.jobChan = make(chan func(), 50*2)
+	w.jobChan = make(chan func(), 500*2)
 }
 
 func (w *Watcher) dispatchJob(f func()) {
-	return
 	// if jobRoutine were too slow to write data  to disk
 	// we have to wait
 	// why: something wrong happened: such as db panic(disk maybe is full)(it should be the only reason)
