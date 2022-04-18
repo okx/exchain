@@ -539,7 +539,7 @@ func (dttm *DTTManager) serialExecution() {
 		//	logger.Info("Valid tx", "code", txRs.Code, "index", dttm.serialIndex) // "log", txRs.Log,
 		}
 		//if global.GetGlobalHeight() == 3394855 {
-			dttm.app.logger.Info("TxResult", "code", txRs.Code, "index", dttm.serialIndex, "GasWanted", txRs.GasWanted, "GasUsed", txRs.GasUsed, "log", txRs.Log)
+		//	dttm.app.logger.Info("TxResult", "code", txRs.Code, "index", dttm.serialIndex, "GasWanted", txRs.GasWanted, "GasUsed", txRs.GasUsed, "log", txRs.Log)
 		//}
 	}
 
