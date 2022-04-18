@@ -299,7 +299,8 @@ func (suite *KeeperTestSuite) TestOnAcknowledgementPacket() {
 					// suite.Require().Equal(int64(0), deltaAmount.Int64(), "successful ack changed balance")
 					suite.Require().Equal(int64(0), deltaAmount.AmountOf(trace.IBCDenom()).Int64(), "successful ack changed balance")
 				} else {
-					suite.Require().Equal(amount, deltaAmount, "failed ack did not trigger refund")
+					//suite.Require().Equal(amount, deltaAmount, "failed ack did not trigger refund")
+					suite.Require().Equal(amount.Int64(), deltaAmount.AmountOf(trace.IBCDenom()).Int64(), "failed ack did not trigger refund")
 				}
 
 			} else {
