@@ -2,8 +2,6 @@ package rootmulti
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/global"
-
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
@@ -1042,10 +1040,6 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		}
 
 		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
-
-		if global.GetGlobalHeight() == 2602856 || global.GetGlobalHeight() == 2602855 {
-			fmt.Println(key, " ", commitID.String())
-		}
 
 		if store.GetStoreType() == types.StoreTypeTransient {
 			continue

@@ -2,12 +2,10 @@ package baseapp
 
 import (
 	"fmt"
-	"runtime/debug"
-	"time"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"runtime/debug"
 )
 
 type runTxInfo struct {
@@ -36,13 +34,11 @@ func (app *BaseApp) runTx(mode runTxMode,
 }
 
 func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byte, tx sdk.Tx, height int64, from ...string) (err error) {
-	start := time.Now()
 	info.handler = app.getModeHandler(mode)
 	info.tx = tx
 	info.txBytes = txBytes
 	handler := info.handler
 	app.pin(ValTxMsgs, true, mode)
-	fmt.Println("TxType: ", tx.GetType().String())
 
 	//init info context
 	err = handler.handleStartHeight(info, height)
@@ -63,11 +59,8 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 			break
 		}
 	}
-	totalAnteDuration += time.Since(start).Microseconds()
 
-	gasStart := time.Now()
 	err = handler.handleGasConsumed(info)
-	totalHandleGasTime += time.Since(gasStart).Microseconds()
 
 	if err != nil {
 		return err
@@ -90,23 +83,16 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		handler.handleDeferRefund(info)
 	}()
 
-	basicStart := time.Now()
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
-		app.logger.Error("validateBasicTxMsgs failed", "err", err)
-		totalBasicTime += time.Since(basicStart).Microseconds()
 		return err
 	}
-	totalBasicTime += time.Since(basicStart).Microseconds()
 	//totalAnteDuration += time.Since(basicStart).Microseconds()
 	app.pin(ValTxMsgs, false, mode)
 
 	app.pin(RunAnte, true, mode)
 	if app.anteHandler != nil {
-		anteStart := time.Now()
 		err = app.runAnte(info, mode)
-		totalAnteDuration += time.Since(anteStart).Microseconds()
 		if err != nil {
-			app.logger.Error("ante failed", "err", err)
 			return err
 		}
 	}
@@ -118,9 +104,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	}
 
 	app.pin(RunMsg, true, mode)
-	wstart := time.Now()
 	err = handler.handleRunMsg(info)
-	totalRunMsgsTime += time.Since(wstart).Microseconds()
 	app.pin(RunMsg, false, mode)
 	return err
 }
@@ -192,7 +176,6 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 }
 
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
-	start := time.Now()
 	var realTx sdk.Tx
 	var err error
 	if mem := GetGlobalMempool(); mem != nil {
@@ -204,7 +187,6 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 			return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
 		}
 	}
-	totalAnteDuration += time.Since(start).Microseconds()
 	info, err := app.runTx(runTxModeDeliver, req.Tx, realTx, LatestSimulateTxHeight)
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)

@@ -201,7 +201,7 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 		signBytes := sigTx.GetSignBytes(ctx, signerAccs[i])
 
 		// retrieve pubkey
-		pubKey := signerAccs[i].GetPubKey()	// todo: xxxx.GetPubKey() is called many times during the whole AnteHandler
+		pubKey := signerAccs[i].GetPubKey()
 		if !simulate && pubKey == nil {
 			return ctx, sdkerrors.Wrap(sdkerrors.ErrInvalidPubKey, "pubkey on account is not set")
 		}
@@ -241,7 +241,7 @@ func (isd IncrementSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 	}
 
 	// increment sequence of all signers
-	for index, addr := range sigTx.GetSigners() { // TODO: XXXX.GetSigners() is called many times during the whole AnteHandler
+	for index, addr := range sigTx.GetSigners() {
 		acc := isd.ak.GetAccount(ctx, addr)
 		if ctx.IsCheckTx() && index == 0 { // context with the nonce of fee payer
 			ctx.SetAccountNonce(acc.GetSequence())

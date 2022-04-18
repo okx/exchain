@@ -40,9 +40,6 @@ var (
 	FlagDeliverTxsExecMode = "deliver-txs-mode"
 )
 
-var deliverTxDuration = int64(0)
-var totalPreloadDuration = int64(0)
-
 // BlockExecutor handles block execution and state updates.
 // It exposes ApplyBlock(), which validates & executes the block, updates state w/ ABCI responses,
 // then commits and updates the mempool atomically, then saves state.
@@ -207,7 +204,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	}()
 
 	if err := blockExec.ValidateBlock(state, block); err != nil {
-		blockExec.logger.Error("ValidateBlock failed", "err", err)
 		return state, 0, ErrInvalidBlock(err)
 	}
 

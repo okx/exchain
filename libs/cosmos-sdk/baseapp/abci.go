@@ -193,19 +193,6 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 		res = app.endBlocker(app.deliverState.ctx, req)
 	}
 
-	app.logger.Info("all durations",
-		"handleGasAll", totalHandleGasTime,
-		//"writeAll", totalWriteTime,
-		"runMsgsAll", totalRunMsgsTime,
-		"deferGasAll", totalDeferGasTime,
-		"serialSumAll", totalHandleGasTime+totalWriteTime+totalRunMsgsTime+totalDeferGasTime,
-		"validateBasicAll", totalBasicTime,
-		"anteAll", totalAnteDuration,
-		"waitingAll", totalWaitingTime,
-		"serialWaitingCount", totalSerialWaitingCount,
-		"preload", totalPreloadConDuration,
-		"accountUpdated", totalAccountUpdateDuration)
-
 	return
 }
 
@@ -260,16 +247,6 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// The write to the DeliverTx state writes all state transitions to the root
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
 	app.commitBlockCache()
-
-	//if header.Height == 2602856 {
-	//	app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
-	//		if isDirty {
-	//			fmt.Println(hex.EncodeToString(key), hex.EncodeToString(value))
-	//		}
-	//		return true
-	//	})
-	//}
-
 	app.deliverState.ms.Write()
 
 	var input iavl.TreeDeltaMap

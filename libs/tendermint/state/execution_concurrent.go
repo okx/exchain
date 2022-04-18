@@ -1,12 +1,10 @@
 package state
 
 import (
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/types"
-	"time"
-
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
@@ -17,8 +15,6 @@ func execBlockOnProxyAppPartConcurrent(logger log.Logger,
 	block *types.Block,
 	stateDB dbm.DB,
 	) (*ABCIResponses, error) {
-
-	//proxyAppConn.ParallelTxs(transTxsToBytes(block.Txs), true)
 
 	abciResponses := NewABCIResponses(block)
 	commitInfo, byzVals := getBeginBlockValidatorInfo(block, stateDB)
@@ -37,13 +33,7 @@ func execBlockOnProxyAppPartConcurrent(logger log.Logger,
 	}
 
 	// Run txs of block.
-	start := time.Now()
-	//var invalidTxs = 0
 	abciResponses.DeliverTxs = proxyAppConn.DeliverTxsConcurrent(transTxsToBytes(block.Txs))
-	elapsed := time.Since(start).Microseconds()
-	logger.Info("DeliverTxs duration", "cur", elapsed, "total", deliverTxDuration, "responses", len(abciResponses.DeliverTxs))
-
-	deliverTxDuration += elapsed
 
 	abciResponses.EndBlock, err = proxyAppConn.EndBlockSync(abci.RequestEndBlock{Height: block.Height})
 	if err != nil {

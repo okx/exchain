@@ -23,22 +23,11 @@ func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
 			if evmTx.To() != nil {
 				to = strings.ToLower(evmTx.To().String()[2:])
 			}
-			//feePayer := evmTx.FeePayer(ctx)//.AccountAddress()
-			////feeReceiver := evmTx.To()
-			////if feeReceiver != nil {
-			////	to = string(feeReceiver.Bytes())
-			////}
-			//feePayerAcc := ak.GetAccount(ctx, feePayer)
-			//from = feePayerAcc.GetAddress().String()
-			////from = string(feePayerAcc.GetAddress().Bytes())//.String()//hex.EncodeToString(feePayerAcc.GetAddress())
 		} else if feeTx, ok := tx.(authante.FeeTx); ok {
 			fee = feeTx.GetFee()
 			feePayer := feeTx.FeePayer(ctx)
-			//from = ak.GetAccount(ctx, feePayer)
 			feePayerAcc := ak.GetAccount(ctx, feePayer)
-			//from = feePayerAcc.GetAddress().String()
-			//from = string(feePayerAcc.GetAddress().Bytes())//.String()// ex17xpfvakm2amg962yls6f84z3kell8c5lcs49z2
-			from = hex.EncodeToString(feePayerAcc.GetAddress())// f1829676db577682e944fc3493d451b67ff3e29f
+			from = hex.EncodeToString(feePayerAcc.GetAddress())
 		}
 
 		return

@@ -137,9 +137,6 @@ func DeductFees(ak keeper.AccountKeeper, supplyKeeper types.SupplyKeeper, ctx sd
 			"insufficient funds to pay for fees; %s < %s", spendableCoins, fees)
 	}
 
-	//if global.GetGlobalHeight() == 2602855 {
-	//	fmt.Println("========================SendCoinsFromAccountToModule start==========================")
-	//}
 	// consume gas for compatible
 	if gasUsed, ok := exported.GetAccountGas(ak, acc); ok {
 		bzLen := ak.GetAccountBinarySize(acc)
@@ -160,10 +157,6 @@ func DeductFees(ak keeper.AccountKeeper, supplyKeeper types.SupplyKeeper, ctx sd
 		feebzLen := ak.GetAccountBinarySize(feeAcc)
 		supplyKeeper.AddConsumeGasForSendCoins(ctx, gasUsed, feebzLen, false)
 	}
-
-	//if global.GetGlobalHeight() == 2602855 {
-	//	fmt.Println("========================SendCoinsFromAccountToModule finished==========================")
-	//}
 
 	return nil
 }

@@ -157,7 +157,6 @@ func (app *PersistentKVStoreApplication) ParallelTxs(_ [][]byte, _ bool) []*type
 }
 
 func (app *PersistentKVStoreApplication) DeliverTxsConcurrent(_ [][]byte) []*types.ResponseDeliverTx {
-	fmt.Println("PersistentKVStoreApplication DeliverTxsConcurrent")
 	return nil
 }
 
