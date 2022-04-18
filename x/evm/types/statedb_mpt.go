@@ -136,6 +136,20 @@ func (csdb *CommitStateDB) GetCodeByHashInRawDB(hash ethcmn.Hash) []byte {
 	return code
 }
 
+func (csdb *CommitStateDB) setHeightHashInRawDB(height uint64, hash ethcmn.Hash) {
+	key := AppendHeightHashKey(height)
+	csdb.db.TrieDB().DiskDB().Put(key, hash.Bytes())
+}
+
+func (csdb *CommitStateDB) getHeightHashInRawDB(height uint64) ethcmn.Hash {
+	key := AppendHeightHashKey(height)
+	bz, err := csdb.db.TrieDB().DiskDB().Get(key)
+	if err != nil {
+		return ethcmn.Hash{}
+	}
+	return ethcmn.BytesToHash(bz)
+}
+
 // getDeletedStateObject is similar to getStateObject, but instead of returning
 // nil for a deleted state object, it returns the actual object with the deleted
 // flag set. This is needed by the state journal to revert to the correct s-

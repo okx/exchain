@@ -5,7 +5,6 @@ import (
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 const (
@@ -14,20 +13,16 @@ const (
 
 // Below are the keys which are different from the key in iavl
 var (
-	UpgradedKeyPrefixCode                        = rawdb.CodePrefix                             // Old: KeyPrefixCode                        = []byte{0x04}
-	UpgradedKeyPrefixContractDeploymentWhitelist = []byte("ContractDeploymentWhitelist_xxxxx_") // Old: KeyPrefixContractDeploymentWhitelist = []byte{0x08}
-	UpgradedKeyPrefixContractBlockedList         = []byte("ContractBlockedList_xxxxxxxxxxxxx_") // Old: KeyPrefixContractBlockedList         = []byte{0x09}
+	UpgradedKeyPrefixCode = rawdb.CodePrefix // Old: KeyPrefixCode = []byte{0x04}
 )
 
 /*
- * KeyPrefixBlockHash                           = []byte{0x01}
- * KeyPrefixBloom                               = []byte{0x02}
- * UpgradedKeyPrefixCode                        = []byte{"c"}
- * KeyPrefixStorage                             not stored in db directly
- * KeyPrefixChainConfig                         = []byte{0x06}
- * KeyPrefixHeightHash                          = []byte{0x07}
- * UpgradedKeyPrefixContractDeploymentWhitelist = []byte{"ContractDeploymentWhitelist_xxxxxx"}
- * UpgradedKeyPrefixContractBlockedList         = []byte{"ContractBlockedList_xxxxxxxxxxxxxx"}
+ * KeyPrefixBlockHash         = []byte{0x01}
+ * KeyPrefixBloom             = []byte{0x02}
+ * UpgradedKeyPrefixCode      = []byte{"c"}
+ * KeyPrefixStorage           not stored in db directly
+ * KeyPrefixChainConfig       = []byte{0x06}
+ * KeyPrefixHeightHash        = []byte{0x07}
  *
  * Below are functions used for setting in DiskDB
  */
@@ -50,27 +45,11 @@ func AppendHeightHashKey(height uint64) []byte {
 	return append(KeyPrefixHeightHash, HeightHashKey(height)...)
 }
 
-func AppendUpgradedContractDeploymentWhitelistKey(address sdk.Address) []byte {
-	return append(UpgradedKeyPrefixContractDeploymentWhitelist, address.Bytes()...)
-}
-
-func AppendUpgradedContractBlockedListKey(address sdk.Address) []byte {
-	return append(UpgradedKeyPrefixContractBlockedList, address.Bytes()...)
-}
-
 /*
  * Split
  */
-func SplitCodeHashKey(key []byte) []byte {
+func SplitUpgradedCodeHashKey(key []byte) []byte {
 	return key[len(UpgradedKeyPrefixCode):]
-}
-
-func SplitUpgradedContractDeploymentWhitelistKey(key []byte) sdk.AccAddress {
-	return key[len(UpgradedKeyPrefixContractDeploymentWhitelist):]
-}
-
-func SplitUpgradedContractBlockedListKey(key []byte) sdk.AccAddress {
-	return key[len(UpgradedKeyPrefixContractBlockedList):]
 }
 
 /*
@@ -91,20 +70,7 @@ func IsCodeHashKey(key []byte) bool {
 		len(key) == (len(UpgradedKeyPrefixCode)+ethcmn.HashLength)
 }
 
-func IsChainConfigKey(key []byte) bool {
-	return bytes.HasPrefix(key, KeyPrefixChainConfig) &&
-		len(key) == len(KeyPrefixChainConfig)
-}
-
 func IsHeightHashKey(key []byte) bool {
 	return bytes.HasPrefix(key, KeyPrefixHeightHash) &&
 		len(key) == (len(KeyPrefixHeightHash)+Uint64Length)
-}
-
-func IsUpgradedContractDeploymentWhitelistKey(key []byte) bool {
-	return bytes.HasPrefix(key, UpgradedKeyPrefixContractDeploymentWhitelist)
-}
-
-func IsUpgradedContractBlockedListKey(key []byte) bool {
-	return bytes.HasPrefix(key, UpgradedKeyPrefixContractBlockedList)
 }

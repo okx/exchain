@@ -3,8 +3,10 @@ package mpt
 import (
 	"bytes"
 	"fmt"
-	"github.com/okex/exchain/libs/iavl"
 	"log"
+
+	"github.com/ethereum/go-ethereum/ethdb"
+	"github.com/okex/exchain/libs/iavl"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
@@ -134,33 +136,37 @@ func migrateEvmFromIavlToMpt(ctx *server.Context) {
 			KeyPrefixContractBlockedList
 
 	   So, here are data list about the migration process:
-	   1. Accounts    -> evmTrie
-	      Code        -> rawdb   (note: done in iavl2mpt acc)
-	      Storage     -> a contractTire
+	   1. Accounts    -> accMpt
+	      Code        -> rawdb   (note: done in iavl2mpt acc cmd)
+	      Storage     -> evmMpt
 
 	   2. ChainConfig              -> iavl
-	   3. BlockHash = HeightHash   -> iavl
-	   4. Bloom                    -> iavl
+	   3. BlockHash、HeightHash     -> rawdb
+	   4. Bloom                    -> rawdb
 	   5. ContractDeploymentWhitelist、ContractBlockedList -> iavl
 	*/
 
-	// 1. Migratess Accounts、Storage
+	// 1. Migratess Accounts、Storage -> mpt
 	migrateContractToMpt(migrationApp, cmCtx, evmMptDb, evmTrie)
 
-	evm2Tree := getIavlTree(migrationApp.GetDB())
-	// 2. Migrates ChainConfig -> rawdb
-	migrateChainConfigToIavl(evm2Tree, migrationApp, cmCtx)
+	upgradedTree := getUpgradedTree(migrationApp.GetDB())
+	// 2. Migrates ChainConfig -> iavl
+	migrateChainConfigToIavl(upgradedTree, migrationApp, cmCtx)
 
-	// 3. Migrates BlockHash = HeightHash -> rawdb
-	miragteBlockHashesToIavl(evm2Tree, migrationApp, cmCtx)
+	// 3. Migrates BlockHash、HeightHash -> rawdb
+	batch := evmMptDb.TrieDB().DiskDB().NewBatch()
+	miragteBlockHashesToDb(migrationApp, cmCtx, batch)
 
 	// 4. Migrates Bloom -> rawdb
-	miragteBloomsToIavl(evm2Tree, migrationApp, cmCtx)
+	miragteBloomsToDb(migrationApp, cmCtx, batch)
 
-	// 5. Migrate ContractDeploymentWhitelist、ContractBlockedList -> rawdb
-	migrateSpecialAddrsToIavl(evm2Tree, migrationApp, cmCtx)
+	// 5. Migrate ContractDeploymentWhitelist、ContractBlockedList -> iavl
+	migrateSpecialAddrsToIavl(upgradedTree, migrationApp, cmCtx)
 
-	evm2Tree.SaveVersion(false)
+	_, _, _, err = upgradedTree.SaveVersion(false)
+	if err != nil {
+		fmt.Println("fail to save data in evm2 store: ", err)
+	}
 }
 
 // 1. migrateContractToMpt Migrates Accounts、Code、Storage
@@ -201,53 +207,61 @@ func migrateContractToMpt(migrationApp *app.OKExChainApp, cmCtx sdk.Context, evm
 }
 
 // 2. migrateChainConfigToIavl Migrates chain config
-func migrateChainConfigToIavl(tree *iavl.MutableTree, migrationApp *app.OKExChainApp, cmCtx sdk.Context) {
+func migrateChainConfigToIavl(upgradedTree *iavl.MutableTree, migrationApp *app.OKExChainApp, cmCtx sdk.Context) {
 	config, _ := migrationApp.EvmKeeper.GetChainConfig(cmCtx)
-	tree.Set(evmtypes.KeyPrefixChainConfig, migrationApp.Codec().MustMarshalBinaryBare(config))
+	upgradedTree.Set(evmtypes.KeyPrefixChainConfig, migrationApp.Codec().MustMarshalBinaryBare(config))
 	fmt.Printf("Successfully migrate chain config\n")
 }
 
-// 3. miragteBlockHashesToIavl Migrates BlockHash/HeightHash
-func miragteBlockHashesToIavl(tree *iavl.MutableTree, migrationApp *app.OKExChainApp, cmCtx sdk.Context) {
+// 3. miragteBlockHashesToDb Migrates BlockHash/HeightHash
+func miragteBlockHashesToDb(migrationApp *app.OKExChainApp, cmCtx sdk.Context, batch ethdb.Batch) {
 	count := 0
 	migrationApp.EvmKeeper.IterateBlockHash(cmCtx, func(key []byte, value []byte) bool {
 		count++
+		panicError(batch.Put(key, value))
+		panicError(batch.Put(append(evmtypes.KeyPrefixHeightHash, value...), key[1:]))
 
-		tree.Set(key, value)
-		tree.Set(append(evmtypes.KeyPrefixHeightHash, value...), key[1:])
-
+		if count%1000 == 0 {
+			writeDataToRawdb(batch)
+			log.Printf("write block hash between %d~%d\n", count-1000, count)
+		}
 		return false
 	})
+	writeDataToRawdb(batch)
 	fmt.Printf("Successfully migrate %d block-hashes\n", count)
 }
 
-// 4. miragteBloomsToIavl Migrates Bloom
-func miragteBloomsToIavl(tree *iavl.MutableTree, migrationApp *app.OKExChainApp, cmCtx sdk.Context) {
+// 4. miragteBloomsToDb Migrates Bloom
+func miragteBloomsToDb(migrationApp *app.OKExChainApp, cmCtx sdk.Context, batch ethdb.Batch) {
 	count := 0
 	migrationApp.EvmKeeper.IterateBlockBloom(cmCtx, func(key []byte, value []byte) bool {
 		count++
+		panicError(batch.Put(key, value))
 
-		tree.Set(key, value)
-
+		if count%1000 == 0 {
+			writeDataToRawdb(batch)
+			log.Printf("write bloom between %d~%d\n", count-1000, count)
+		}
 		return false
 	})
+	writeDataToRawdb(batch)
 	fmt.Printf("Successfully migrate %d blooms\n", count)
 }
 
 // 5. migrateSpecialAddrsToIavl Migrates ContractDeploymentWhitelist、ContractBlockedList
-func migrateSpecialAddrsToIavl(tree *iavl.MutableTree,migrationApp *app.OKExChainApp, cmCtx sdk.Context) {
+func migrateSpecialAddrsToIavl(upgradedTree *iavl.MutableTree, migrationApp *app.OKExChainApp, cmCtx sdk.Context) {
 	csdb := evmtypes.CreateEmptyCommitStateDB(migrationApp.EvmKeeper.GenerateCSDBParams(), cmCtx)
 
 	// 5.1、deploy white list
 	whiteList := csdb.GetContractDeploymentWhitelist()
 	for i := 0; i < len(whiteList); i++ {
-		tree.Set(append(evmtypes.KeyPrefixContractDeploymentWhitelist, whiteList[i]...), []byte(""))
+		upgradedTree.Set(evmtypes.GetContractDeploymentWhitelistMemberKey(whiteList[i]), []byte(""))
 	}
 
 	// 5.2、deploy blocked list
 	blockedList := csdb.GetContractBlockedList()
 	for i := 0; i < len(blockedList); i++ {
-		tree.Set(append(evmtypes.KeyPrefixContractBlockedList, blockedList[i]...), []byte(""))
+		upgradedTree.Set(evmtypes.GetContractBlockedListMemberKey(blockedList[i]), []byte(""))
 	}
 
 	// 5.3、deploy blocked method list
@@ -257,7 +271,7 @@ func migrateSpecialAddrsToIavl(tree *iavl.MutableTree,migrationApp *app.OKExChai
 			evmtypes.SortContractMethods(bcml[i].BlockMethods)
 			value := migrationApp.Codec().MustMarshalJSON(bcml[i].BlockMethods)
 			sortedValue := sdk.MustSortJSON(value)
-			tree.Set(append(evmtypes.KeyPrefixContractBlockedList, bcml[i].Address...), sortedValue)
+			upgradedTree.Set(evmtypes.GetContractBlockedListMemberKey(bcml[i].Address), sortedValue)
 		}
 	}
 

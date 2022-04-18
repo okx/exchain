@@ -17,6 +17,7 @@ const (
 	// RouterKey uses module name for routing
 	RouterKey = ModuleName
 
+	// Store2Key represents the key for storing EVM state after MarsHeight upgraded
 	Store2Key = "evm2"
 )
 
