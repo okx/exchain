@@ -226,9 +226,8 @@ func TestBadBlockStopsPeer(t *testing.T) {
 			break
 		}
 
-		time.Sleep(1 * time.Second)
+		time.Sleep(time.Second)
 	}
-
 	//at this time, reactors[0-3] is the newest
 	assert.Equal(t, 3, reactorPairs[1].reactor.Switch.Peers().Size())
 
