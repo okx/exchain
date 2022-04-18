@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"runtime/debug"
 
+	ethcmn "github.com/ethereum/go-ethereum/common"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -219,7 +221,7 @@ func (app *BaseApp) PreDeliverRealTx(tx []byte) abci.TxEssentials {
 		ctx := app.deliverState.ctx
 		ctx.SetCache(app.blockCache)
 		ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
-		app.AccHandler(ctx, realTx.GetSigners()[0])
+		app.AccHandler(ctx, ethcmn.FromHex(realTx.GetFrom()))
 	}
 
 	return realTx
