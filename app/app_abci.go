@@ -24,7 +24,6 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 	analyzer.OnAppDeliverTxEnter()
 
 	resp := app.BaseApp.DeliverTx(req)
-	app.EvmKeeper.Watcher.RecordABCIMessage(&watcher.DeliverTx{Req: &req, Resp: &resp}, app.BaseApp.GetTxDecoder())
 
 	if appconfig.GetOecConfig().GetEnableDynamicGp() {
 		tx, err := evm.TxDecoder(app.marshal)(req.Tx)
@@ -44,6 +43,7 @@ func (app *OKExChainApp) PreDeliverRealTx(req []byte) (res abci.TxEssentials) {
 func (app *OKExChainApp) DeliverRealTx(req abci.TxEssentials) (res abci.ResponseDeliverTx) {
 	analyzer.OnAppDeliverTxEnter()
 	resp := app.BaseApp.DeliverRealTx(req)
+	app.EvmKeeper.Watcher.RecordABCIMessage(&watcher.DeliverTx{Req: req, Resp: &resp}, app.BaseApp.GetTxDecoder())
 
 	var err error
 	if appconfig.GetOecConfig().GetEnableDynamicGp() {
