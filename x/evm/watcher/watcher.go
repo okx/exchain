@@ -5,13 +5,11 @@ import (
 	"fmt"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	jsoniter "github.com/json-iterator/go"
+	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"math/big"
 	"sync"
-	"sync/atomic"
-
-	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
@@ -219,8 +217,8 @@ func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
 	if !w.Enabled() {
 		return
 	}
-	for atomic.LoadInt64(&w.recordingTxsCount) != 0 {
-	}
+	//	for atomic.LoadInt64(&w.recordingTxsCount) != 0 {
+	//	}
 
 	w.addTxsToBlock()
 	w.batch = append(w.batch, w.txsAndReceipts...)
