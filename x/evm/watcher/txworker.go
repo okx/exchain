@@ -1,15 +1,9 @@
 package watcher
 
-import "runtime"
-
 const (
 	DefaultTxChanBuffer = 20
 	DefaultTxWorkers    = 16
 )
-
-func (w *Watcher) setTxWorkerNums() {
-	w.txWorkerNums = runtime.NumCPU()
-}
 
 func (w *Watcher) txRoutine() {
 	if !w.Enabled() {
@@ -17,7 +11,7 @@ func (w *Watcher) txRoutine() {
 	}
 
 	w.txChan = make(chan func(), DefaultTxChanBuffer)
-	for i := 0; i < w.txWorkerNums; i++ {
+	for i := 0; i < DefaultTxWorkers; i++ {
 		go w.txWorker(w.txChan)
 	}
 }

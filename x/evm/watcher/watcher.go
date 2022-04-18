@@ -77,7 +77,6 @@ func GetWatchLruSize() int {
 
 func NewWatcher(logger log.Logger) *Watcher {
 	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}, log: logger}
-	watcher.setTxWorkerNums()
 	checkWd = viper.GetBool(FlagCheckWd)
 	return watcher
 }
@@ -640,8 +639,8 @@ func (w *Watcher) jobRoutine() {
 func (w *Watcher) lazyInitialization() {
 	// lazy initial:
 	// now we will allocate chan memory
-	// 5*2 means watcherCommitJob+commitBatchJob(just in case)
-	w.jobChan = make(chan func(), 5*6)
+	// 15*2 means watcherCommitJob+commitBatchJob(just in case)
+	w.jobChan = make(chan func(), 15*2)
 }
 
 func (w *Watcher) dispatchJob(f func()) {
