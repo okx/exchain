@@ -34,7 +34,7 @@ func (w *Watcher) recordTxsAndReceipts(deliverTx *DeliverTx, index uint64, txDec
 		return
 	}
 
-	realTx, err := txDecoder(deliverTx.Req.TxHash())
+	realTx, err := txDecoder(deliverTx.Req.GetRaw())
 	if err != nil {
 		w.log.Error("watch decode deliver tx", "error", err)
 		return
