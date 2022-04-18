@@ -23,6 +23,7 @@ func (cache *blockDataCache) SetTx(txRaw []byte, tx types.Tx) {
 		return
 	}
 	cache.txLock.Lock()
+	// txRaw should be immutable, so no need to copy it
 	cache.txs[amino.BytesToStr(txRaw)] = tx
 	cache.txLock.Unlock()
 }
@@ -32,7 +33,7 @@ func (cache *blockDataCache) GetTx(txRaw []byte) (tx types.Tx, ok bool) {
 		return
 	}
 	cache.txLock.RLock()
-	tx, ok = cache.txs[string(txRaw)]
+	tx, ok = cache.txs[amino.BytesToStr(txRaw)]
 	cache.txLock.RUnlock()
 	return
 }
