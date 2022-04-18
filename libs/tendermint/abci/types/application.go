@@ -1,6 +1,7 @@
 package types // nolint: goimports
 
 import (
+	"fmt"
 	"golang.org/x/net/context"
 )
 
@@ -81,6 +82,7 @@ func (a BaseApplication) ParallelTxs(_ [][]byte, onlyCalSender bool) []*Response
 }
 
 func (a BaseApplication) DeliverTxsConcurrent(_ [][]byte) []*ResponseDeliverTx {
+	fmt.Println("BaseApplication DeliverTxsConcurrent")
 	return nil
 }
 

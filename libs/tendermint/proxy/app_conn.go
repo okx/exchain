@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"fmt"
 	abcicli "github.com/okex/exchain/libs/tendermint/abci/client"
 	"github.com/okex/exchain/libs/tendermint/abci/types"
 )
@@ -143,6 +144,7 @@ func (app *appConnConsensus) ParallelTxs(txs [][]byte, onlyCalSender bool) []*ty
 }
 
 func (app *appConnConsensus) DeliverTxsConcurrent(txs [][]byte) []*types.ResponseDeliverTx {
+	fmt.Println("appConnConsensus DeliverTxsConcurrent: ", len(txs))
 	return app.appConn.DeliverTxsConcurrent(txs)
 }
 
