@@ -11,8 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/okex/exchain/libs/tendermint/global"
-
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
@@ -21,6 +19,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
 	lru "github.com/hashicorp/golang-lru"
+
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
@@ -39,10 +38,12 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authclient "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
@@ -1637,25 +1638,25 @@ func (api *PublicEthereumAPI) accountNonce(
 		}
 	}
 
-	// Get nonce (sequence) from sender account
-	nonce := uint64(0)
+	// Get nonce (sequence) of account from  watch db
 	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
-	if err == nil { // account in watch db
-		nonce = acc.GetSequence()
-	} else {
-		// use a the given client context in case its wrapped with a custom height
-		accRet := authtypes.NewAccountRetriever(clientCtx)
-		from := sdk.AccAddress(address.Bytes())
-		account, err := accRet.GetAccount(from)
-		if err != nil {
-			// account doesn't exist yet, return 0
-			return 0, nil
-		}
-		nonce = account.GetSequence()
-		api.watcherBackend.CommitAccountToRpcDb(account)
+	if err == nil {
+		return acc.GetSequence(), nil
 	}
 
-	return nonce, nil
+	// Get nonce (sequence) of account from  chain db
+	account, err := getAccountFromChain(clientCtx, address)
+	if err != nil {
+		return 0, nil
+	}
+	api.watcherBackend.CommitAccountToRpcDb(account)
+	return account.GetSequence(), nil
+}
+
+func getAccountFromChain(clientCtx clientcontext.CLIContext, address common.Address) (exported.Account, error) {
+	accRet := authtypes.NewAccountRetriever(clientCtx)
+	from := sdk.AccAddress(address.Bytes())
+	return accRet.GetAccount(from)
 }
 
 func (api *PublicEthereumAPI) saveZeroAccount(address common.Address) {

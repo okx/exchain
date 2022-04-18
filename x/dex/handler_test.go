@@ -1,3 +1,5 @@
+//go:build ignore
+
 package dex
 
 import (
@@ -22,9 +24,6 @@ func getMockTestCaseEvn(t *testing.T) (mApp *mockApp,
 
 	return mApp, fakeTokenKeeper, fakeSupplyKeeper, mockDexKeeper, ctx
 }
-
-
-
 
 func TestHandler_HandleMsgBad(t *testing.T) {
 	mApp, _, _, _, ctx := getMockTestCaseEvn(t)
