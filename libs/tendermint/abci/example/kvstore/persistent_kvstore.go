@@ -80,6 +80,14 @@ func (app *PersistentKVStoreApplication) DeliverTx(req types.RequestDeliverTx) t
 	return app.app.DeliverTx(req)
 }
 
+func (app *PersistentKVStoreApplication) PreDeliverRealTx([]byte) types.TxEssentials {
+	return nil
+}
+
+func (app *PersistentKVStoreApplication) DeliverRealTx(tx types.TxEssentials) types.ResponseDeliverTx {
+	panic("do not support deliver real tx")
+}
+
 func (app *PersistentKVStoreApplication) CheckTx(req types.RequestCheckTx) types.ResponseCheckTx {
 	return app.app.CheckTx(req)
 }

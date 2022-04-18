@@ -172,6 +172,13 @@ func (app *BaseApp) SetParallelTxHandlers(feeCollectt sdk.UpdateFeeCollectorAccH
 	app.logFix = fixLog
 }
 
+func (app *BaseApp) SetEvmTxVerifySignHandler(sigHandler sdk.TxVerifySigHandler) {
+	if app.sealed {
+		panic("SetEvmTxVerifySignHandler() on sealed BaseApp")
+	}
+	app.evmTxVerifySigHandler = sigHandler
+}
+
 func (app *BaseApp) SetPartialConcurrentHandlers(etf sdk.GetTxFeeAndFromHandler){//}, aof sdk.SetAccountObserver)  {
 	if app.sealed {
 		panic("SetPartialConcurrentHandlers() on sealed BaseApp")

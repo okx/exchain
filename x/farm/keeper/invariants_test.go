@@ -1,9 +1,13 @@
+//go:build ignore
+// +build ignore
+
 package keeper
 
 import (
+	"testing"
+
 	swaptypes "github.com/okex/exchain/x/ammswap/types"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestInvariants(t *testing.T) {
