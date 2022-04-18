@@ -1,7 +1,6 @@
 package mock
 
 import (
-	"fmt"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -24,7 +23,6 @@ func NewDummySupplyKeeper(ak auth.AccountKeeper) DummySupplyKeeper {
 
 // SendCoinsFromAccountToModule for the dummy supply keeper
 func (sk DummySupplyKeeper) SendCoinsFromAccountToModule(ctx sdk.Context, fromAddr sdk.AccAddress, recipientModule string, amt sdk.Coins) error {
-	fmt.Println("DummySupplyKeeper SendCoinsFromAccountToModule")
 	fromAcc := sk.ak.GetAccount(ctx, fromAddr)
 	moduleAcc := sk.GetModuleAccount(ctx, recipientModule)
 
