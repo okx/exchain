@@ -239,12 +239,14 @@ func TestBadBlockStopsPeer(t *testing.T) {
 
 	switches = append(switches, p2p.MakeConnectedSwitches(config.P2P, 1, func(i int, s *p2p.Switch) *p2p.Switch {
 		s.AddReactor("BLOCKCHAIN", reactorPairs[len(reactorPairs)-1].reactor)
+		time.Sleep(100 * time.Millisecond)
 		return s
 
 	}, p2p.Connect2Switches)...)
 
 	for i := 0; i < len(reactorPairs)-1; i++ {
 		p2p.Connect2Switches(switches, i, len(reactorPairs)-1)
+		time.Sleep(100 * time.Millisecond)
 	}
 
 	for {
