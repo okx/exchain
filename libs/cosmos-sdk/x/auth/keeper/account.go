@@ -85,17 +85,6 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account, update
 	}
 }
 
-func (ak AccountKeeper) GetAccountBinarySize(acc exported.Account) int {
-	bz, err := ak.cdc.MarshalBinaryBareWithRegisteredMarshaller(acc)
-	if err != nil {
-		bz, err = ak.cdc.MarshalBinaryBare(acc)
-	}
-	if err != nil {
-		panic(err)
-	}
-	return len(bz)
-}
-
 // RemoveAccount removes an account for the account mapper store.
 // NOTE: this will cause supply invariant violation if called
 func (ak AccountKeeper) RemoveAccount(ctx sdk.Context, acc exported.Account) {

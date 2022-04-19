@@ -41,6 +41,16 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	handler := info.handler
 	app.pin(ValTxMsgs, true, mode)
 
+	if tx.GetType() != sdk.EvmTxType && mode == runTxModeDeliver && app.updateFeeCollectorAccHandler != nil {
+		// should update the balance of FeeCollector's account when run non-evm tx
+		// which uses non-infiniteGasMeter during AnteHandleChain
+		ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
+		if err := app.updateFeeCollectorAccHandler(ctx, app.feeForCollector); err != nil {
+			panic(err)
+		}
+		cache.Write()
+	}
+
 	//init info context
 	err = handler.handleStartHeight(info, height)
 	if err != nil {
@@ -62,7 +72,6 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	}
 
 	err = handler.handleGasConsumed(info)
-
 	if err != nil {
 		return err
 	}
@@ -176,6 +185,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 }
 
 func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx {
+
 	var realTx sdk.Tx
 	var err error
 	if mem := GetGlobalMempool(); mem != nil {
@@ -187,6 +197,7 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 			return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
 		}
 	}
+
 	info, err := app.runTx(runTxModeDeliver, req.Tx, realTx, LatestSimulateTxHeight)
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
