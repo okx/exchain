@@ -3,11 +3,9 @@ package keeper_test
 import (
 	"errors"
 	"fmt"
-	"testing"
 
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
-	"github.com/stretchr/testify/suite"
 
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
@@ -867,7 +865,4 @@ func (suite *KeeperTestSuite) TestAcknowledgePacket() {
 			}
 		})
 	}
-}
-func TestKeeperTestSuite2(t *testing.T) {
-	suite.Run(t, new(KeeperTestSuite))
 }
