@@ -48,7 +48,7 @@ type Watcher struct {
 	txIndexInBlock   uint64
 	txChan           chan func()
 	txMutex          sync.Mutex
-	txsInBlock       []TxIndex
+	txsInBlock       []TxInfo
 	txResultChan     chan TxResult
 }
 
@@ -115,7 +115,7 @@ func (w *Watcher) clean() {
 	w.cumulativeGas = make(map[uint64]uint64)
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
-	w.txsInBlock = []TxIndex{}
+	w.txsInBlock = []TxInfo{}
 	w.wdDelayKey = w.delayEraseKey
 	w.delayEraseKey = make([][]byte, 0)
 }
@@ -140,7 +140,7 @@ func (w *Watcher) SaveContractCodeByHash(hash []byte, code []byte) {
 	}
 }
 
-func (w *Watcher) UpdateCumulativeGas(txIndex, gasUsed uint64) {
+func (w *Watcher) updateCumulativeGas(txIndex, gasUsed uint64) {
 	if !w.Enabled() {
 		return
 	}

@@ -9,17 +9,19 @@ const (
 	DefaultTxResultChanBuffer = 20
 )
 
-type TxIndex struct {
-	TxHash ethcmn.Hash
-	Index  uint64
+type TxInfo struct {
+	TxHash  ethcmn.Hash
+	Index   uint64
+	GasUsed uint64
 }
 
 func (w *Watcher) addTxsToBlock() {
 	sort.Slice(w.txsInBlock, func(i int, j int) bool {
 		return w.txsInBlock[i].Index < w.txsInBlock[j].Index
 	})
-	for _, txIndex := range w.txsInBlock {
-		w.blockTxs = append(w.blockTxs, txIndex.TxHash)
+	for _, txInfo := range w.txsInBlock {
+		w.blockTxs = append(w.blockTxs, txInfo.TxHash)
+		w.updateCumulativeGas(txInfo.Index, txInfo.GasUsed)
 	}
 }
 
@@ -41,7 +43,6 @@ func (w *Watcher) txResultRoutine() {
 		if result.TxReceipt != nil {
 			w.txsAndReceipts = append(w.txsAndReceipts, result.TxReceipt)
 		}
-		// w.UpdateCumulativeGas(result.Index, result.GasUsed)
-		w.txsInBlock = append(w.txsInBlock, TxIndex{TxHash: result.TxHash, Index: result.Index})
+		w.txsInBlock = append(w.txsInBlock, TxInfo{TxHash: result.TxHash, Index: result.Index, GasUsed: result.GasUsed})
 	}
 }

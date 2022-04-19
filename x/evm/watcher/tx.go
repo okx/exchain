@@ -103,8 +103,8 @@ func (w *Watcher) saveTxAndReceiptEx(msg *types.MsgEthereumTx, txHash ethcmn.Has
 	if txReceipt != nil {
 		w.txsAndReceipts = append(w.txsAndReceipts, txReceipt)
 	}
-	w.UpdateCumulativeGas(index, gasUsed)
-	w.txsInBlock = append(w.txsInBlock, TxIndex{TxHash: txHash, Index: index})
+	w.updateCumulativeGas(index, gasUsed)
+	w.txsInBlock = append(w.txsInBlock, TxInfo{TxHash: txHash, Index: index})
 }
 
 func (w *Watcher) saveTxAndReceipt(msg *types.MsgEthereumTx, txHash ethcmn.Hash, index uint64,

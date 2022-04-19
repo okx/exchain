@@ -29,8 +29,9 @@ type WatcherTestSuite struct {
 func (suite *WatcherTestSuite) SetupTest() {
 	var logger mylogger
 	suite.watcher = Watcher{
-		log: logger,
-		sw:  true,
+		log:           logger,
+		sw:            true,
+		cumulativeGas: make(map[uint64]uint64),
 	}
 	go suite.watcher.jobRoutine()
 	suite.watcher.txRoutine()
