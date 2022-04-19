@@ -171,3 +171,10 @@ func (app *BaseApp) SetParallelTxHandlers(feeCollectt sdk.UpdateFeeCollectorAccH
 	app.getTxFee = txFee
 	app.logFix = fixLog
 }
+
+func (app *BaseApp) SetEvmTxVerifySignHandler(sigHandler sdk.TxVerifySigHandler) {
+	if app.sealed {
+		panic("SetEvmTxVerifySignHandler() on sealed BaseApp")
+	}
+	app.evmTxVerifySigHandler = sigHandler
+}

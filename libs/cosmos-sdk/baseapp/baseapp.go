@@ -196,14 +196,16 @@ type BaseApp struct { // nolint: maligned
 
 	checkTxNum        int64
 	wrappedCheckTxNum int64
+	anteTracer        *trace.Tracer
+
+	evmTxVerifySigHandler sdk.TxVerifySigHandler
+	blockDataCache        *blockDataCache
 
 	interfaceRegistry types.InterfaceRegistry
 	grpcQueryRouter   *GRPCQueryRouter  // router for redirecting gRPC query calls
 	msgServiceRouter  *MsgServiceRouter // router for redirecting Msg service messages
 
 	interceptors map[string]Interceptor
-
-	anteTracer *trace.Tracer
 }
 
 type recordHandle func(string)
@@ -231,12 +233,12 @@ func NewBaseApp(
 		parallelTxManage: newParallelTxManager(),
 		chainCache:       sdk.NewChainCache(),
 		txDecoder:        txDecoder,
+		anteTracer:       trace.NewTracer(trace.AnteChainDetail),
+		blockDataCache:   NewBlockDataCache(),
 
 		msgServiceRouter: NewMsgServiceRouter(),
 		grpcQueryRouter:  NewGRPCQueryRouter(),
 		interceptors:     make(map[string]Interceptor),
-
-		anteTracer: trace.NewTracer(trace.AnteChainDetail),
 	}
 
 	for _, option := range options {
@@ -882,12 +884,20 @@ func (app *BaseApp) GetTxInfo(ctx sdk.Context, tx sdk.Tx) mempool.ExTxInfo {
 }
 
 func (app *BaseApp) GetRawTxInfo(rawTx tmtypes.Tx) mempool.ExTxInfo {
-	tx, err := app.txDecoder(rawTx)
-	if err != nil {
-		return mempool.ExTxInfo{}
+	var err error
+	tx, ok := app.blockDataCache.GetTx(rawTx)
+	if !ok {
+		tx, err = app.txDecoder(rawTx)
+		if err != nil {
+			return mempool.ExTxInfo{}
+		}
 	}
-
 	ctx := app.checkState.ctx
+	if tx.GetType() == sdk.EvmTxType && app.evmTxVerifySigHandler != nil {
+		ctx.SetBlockHeight(app.checkState.ctx.BlockHeight() + 1)
+		_ = app.evmTxVerifySigHandler(ctx, tx)
+		ctx.SetBlockHeight(app.checkState.ctx.BlockHeight())
+	}
 	ctx.SetTxBytes(rawTx)
 	return app.GetTxInfo(ctx, tx)
 }
