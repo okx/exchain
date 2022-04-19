@@ -92,7 +92,7 @@ func NewCache(parent *Cache, useCache bool) *Cache {
 		useCache: useCache,
 		parent:   parent,
 
-		storageMap: make(map[ethcmn.Address]map[ethcmn.Hash]*storageWithCache, 0),
+		storageMap: make(map[ethcmn.Address]map[ethcmn.Hash]*storageWithCache),
 		accMap:     make(map[ethcmn.Address]*accountWithCache),
 		codeMap:    make(map[ethcmn.Hash]*codeWithCache),
 		gasConfig:  types.KVGasConfig(),
