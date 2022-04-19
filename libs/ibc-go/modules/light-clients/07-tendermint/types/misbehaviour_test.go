@@ -33,14 +33,16 @@ func (suite *TendermintTestSuite) TestMisbehaviourValidateBasicWithRetry() {
 	retry := 10
 
 	for retry > 0 {
-		r := func() bool {
+		r := func() (r bool) {
 			defer func() {
 				if r := recover(); r != nil {
 					retry--
+					r = false
 				}
 			}()
 
-			return testMisbehaviourValidateBasic(suite)
+			r = testMisbehaviourValidateBasic(suite)
+			return
 		}()
 		fmt.Println("run times", retry)
 		if r {

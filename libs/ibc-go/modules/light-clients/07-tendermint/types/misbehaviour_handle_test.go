@@ -38,14 +38,16 @@ func (suite *TendermintTestSuite) TestCheckMisbehaviourAndUpdateStateWithRetry()
 	retry := 10
 
 	for retry > 0 {
-		succ := func() bool {
+		succ := func() (r bool) {
 			defer func() {
 				if r := recover(); r != nil {
 					retry--
+					r = false
 				}
 			}()
 
-			return testCheckMisbehaviourAndUpdateState(suite)
+			r = testCheckMisbehaviourAndUpdateState(suite)
+			return
 		}()
 		fmt.Println("run times", retry)
 		if succ {
@@ -56,6 +58,7 @@ func (suite *TendermintTestSuite) TestCheckMisbehaviourAndUpdateStateWithRetry()
 
 //func (suite *TendermintTestSuite) TestCheckMisbehaviourAndUpdateState() {
 func testCheckMisbehaviourAndUpdateState(suite *TendermintTestSuite) bool {
+
 	altPrivVal := ibctestingmock.NewPV()
 	altPubKey, err := altPrivVal.GetPubKey()
 	suite.Require().NoError(err)
