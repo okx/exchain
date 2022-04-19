@@ -3,9 +3,11 @@ package keeper_test
 import (
 	"errors"
 	"fmt"
+	"testing"
 
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
+	"github.com/stretchr/testify/suite"
 
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
@@ -399,8 +401,9 @@ func (suite *KeeperTestSuite) TestRecvPacket() {
 			expError = types.ErrPacketTimeout
 			suite.coordinator.Setup(path)
 
-			packet = types.NewPacket(ibctesting.MockPacketData, 1, path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, disabledTimeoutHeight, uint64(suite.chainB.GetContextPointer().BlockTime().UnixNano()))
+			packet = types.NewPacket(ibctesting.MockPacketData, 1, path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, disabledTimeoutHeight, 10) //uint64(suite.chainB.GetContextPointer().BlockTime().UnixNano())
 			channelCap = suite.chainB.GetChannelCapability(path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID)
+			suite.coordinator.CommitBlock(suite.chainB)
 		}, false},
 		{"next receive sequence is not found", func() {
 			expError = types.ErrSequenceReceiveNotFound
@@ -415,13 +418,12 @@ func (suite *KeeperTestSuite) TestRecvPacket() {
 				path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID,
 				types.NewChannel(types.OPEN, types.ORDERED, types.NewCounterparty(path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID), []string{path.EndpointB.ConnectionID}, path.EndpointB.ChannelConfig.Version),
 			)
-
 			packet = types.NewPacket(ibctesting.MockPacketData, 1, path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, timeoutHeight, disabledTimeoutTimestamp)
 
 			// manually set packet commitment
 			suite.chainA.App().GetIBCKeeper().ChannelKeeper.SetPacketCommitment(suite.chainA.GetContext(), path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, packet.GetSequence(), types.CommitPacket(suite.chainA.App().AppCodec(), packet))
 			suite.chainB.CreateChannelCapability(suite.chainB.GetSimApp().ScopedIBCMockKeeper, path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID)
-
+			suite.coordinator.CommitBlock(suite.chainA)
 			channelCap = suite.chainB.GetChannelCapability(path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID)
 
 			path.EndpointA.UpdateClient()
@@ -863,4 +865,7 @@ func (suite *KeeperTestSuite) TestAcknowledgePacket() {
 			}
 		})
 	}
+}
+func TestKeeperTestSuite2(t *testing.T) {
+	suite.Run(t, new(KeeperTestSuite))
 }
