@@ -96,7 +96,7 @@ func (ak AccountKeeper) GetNextAccountNumber(ctx sdk.Context) uint64 {
 
 	bz = ak.cdc.MustMarshalBinaryLengthPrefixed(accNumber + 1)
 	store.Set(types.GlobalAccountNumberKey, bz)
-	if !tmtypes.HigherThanMars(ctx.BlockHeight()) && mpt.EnableDoubleWrite {
+	if !tmtypes.HigherThanMars(ctx.BlockHeight()) && mpt.TrieWriteAhead {
 		ctx.MultiStore().GetKVStore(ak.mptKey).Set(types.GlobalAccountNumberKey, bz)
 	}
 

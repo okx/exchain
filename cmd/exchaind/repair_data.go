@@ -1,9 +1,10 @@
 package main
 
 import (
+	"log"
+
 	"github.com/okex/exchain/x/common/analyzer"
 	types2 "github.com/okex/exchain/x/evm/types"
-	"log"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
 
@@ -29,7 +30,7 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
 	cmd.Flags().String(app.Elapsed, app.DefaultElapsedSchemas, "schemaName=1|0,,,")
 	cmd.Flags().Bool(analyzer.FlagEnableAnalyzer, false, "Enable auto open log analyzer")
-	cmd.Flags().BoolVar(&types2.UseCompositeKey, types2.FlagUseCompositeKey,false, "Use composite key to store contract state")
+	cmd.Flags().BoolVar(&types2.TrieUseCompositeKey, types2.FlagTrieUseCompositeKey, false, "Use composite key to store contract state")
 
 	return cmd
 }

@@ -250,7 +250,7 @@ func (csdb *CommitStateDB) SetHeightHash(height uint64, hash ethcmn.Hash) {
 	store := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
 	key := HeightHashKey(height)
 	store.Set(key, hash.Bytes())
-	if mpt.EnableDoubleWrite {
+	if mpt.TrieWriteAhead {
 		csdb.setHeightHashInRawDB(height, hash)
 	}
 }
@@ -791,7 +791,7 @@ func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) 
 	}
 
 	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		if mpt.EnableDoubleWrite {
+		if mpt.TrieWriteAhead {
 			// Commit objects to the trie, measuring the elapsed time
 			codeWriter := csdb.db.TrieDB().DiskDB().NewBatch()
 			usedAddrs := make([][]byte, 0, len(csdb.stateObjectsPending))
@@ -1302,7 +1302,7 @@ func (csdb *CommitStateDB) SetContractDeploymentWhitelist(addrList AddressList) 
 
 	for i := 0; i < len(addrList); i++ {
 		store.Set(GetContractDeploymentWhitelistMemberKey(addrList[i]), []byte(""))
-		if mpt.EnableDoubleWrite && !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		if mpt.TrieWriteAhead && !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
 			csdb.ctx.MultiStore().GetKVStore(csdb.store2Key).Set(GetContractDeploymentWhitelistMemberKey(addrList[i]), []byte(""))
 		}
 	}
@@ -1325,7 +1325,7 @@ func (csdb *CommitStateDB) DeleteContractDeploymentWhitelist(addrList AddressLis
 
 	for i := 0; i < len(addrList); i++ {
 		store.Delete(GetContractDeploymentWhitelistMemberKey(addrList[i]))
-		if mpt.EnableDoubleWrite && !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		if mpt.TrieWriteAhead && !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
 			csdb.ctx.MultiStore().GetKVStore(csdb.store2Key).Delete(GetContractDeploymentWhitelistMemberKey(addrList[i]))
 		}
 	}
@@ -1380,7 +1380,7 @@ func (csdb *CommitStateDB) SetContractBlockedList(addrList AddressList) {
 
 	for i := 0; i < len(addrList); i++ {
 		store.Set(GetContractBlockedListMemberKey(addrList[i]), []byte(""))
-		if mpt.EnableDoubleWrite && !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		if mpt.TrieWriteAhead && !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
 			csdb.ctx.MultiStore().GetKVStore(csdb.store2Key).Set(GetContractBlockedListMemberKey(addrList[i]), []byte(""))
 		}
 	}
@@ -1404,7 +1404,7 @@ func (csdb *CommitStateDB) DeleteContractBlockedList(addrList AddressList) {
 
 	for i := 0; i < len(addrList); i++ {
 		store.Delete(GetContractBlockedListMemberKey(addrList[i]))
-		if mpt.EnableDoubleWrite && !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		if mpt.TrieWriteAhead && !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
 			csdb.ctx.MultiStore().GetKVStore(csdb.store2Key).Delete(GetContractBlockedListMemberKey(addrList[i]))
 		}
 	}
@@ -1596,7 +1596,7 @@ func (csdb *CommitStateDB) SetContractMethodBlocked(contract BlockedContract) {
 
 	key := GetContractBlockedListMemberKey(contract.Address)
 	store.Set(key, value)
-	if mpt.EnableDoubleWrite && !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+	if mpt.TrieWriteAhead && !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
 		csdb.ctx.MultiStore().GetKVStore(csdb.store2Key).Set(key, value)
 	}
 }

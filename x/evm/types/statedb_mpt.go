@@ -175,7 +175,7 @@ func (csdb *CommitStateDB) getDeletedStateObject(addr ethcmn.Address) *stateObje
 	}
 
 	storageRoot := types.EmptyRootHash
-	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || mpt.EnableDoubleWrite {
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || mpt.TrieWriteAhead {
 		root, err := csdb.loadContractStorageRoot(addr)
 		if err != nil {
 			csdb.SetError(err)

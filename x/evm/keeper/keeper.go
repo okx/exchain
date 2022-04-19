@@ -122,7 +122,7 @@ func NewKeeper(
 
 		db:             mpt.InstanceOfMptStore(),
 		triegc:         prque.New(nil),
-		stateCache:     fastcache.New(int(types.ContractStateCache) * 1024 * 1024),
+		stateCache:     fastcache.New(int(types.TrieContractStateCache) * 1024 * 1024),
 		UpdatedAccount: make([]ethcmn.Address, 0),
 		cci:            &chainConfigInfo{},
 	}
@@ -156,7 +156,7 @@ func NewSimulateKeeper(
 
 		db:             mpt.InstanceOfMptStore(),
 		triegc:         prque.New(nil),
-		stateCache:     fastcache.New(int(types.ContractStateCache) * 1024 * 1024),
+		stateCache:     fastcache.New(int(types.TrieContractStateCache) * 1024 * 1024),
 		UpdatedAccount: make([]ethcmn.Address, 0),
 		cci:            &chainConfigInfo{},
 	}
@@ -256,7 +256,7 @@ func (k Keeper) SetBlockHash(ctx sdk.Context, hash []byte, height int64) {
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBlockHash)
 	bz := sdk.Uint64ToBigEndian(uint64(height))
 	store.Set(hash, bz)
-	if mpt.EnableDoubleWrite {
+	if mpt.TrieWriteAhead {
 		k.setBlockHashInDiskDB(hash, height)
 	}
 }
@@ -321,7 +321,7 @@ func (k Keeper) SetBlockBloom(ctx sdk.Context, height int64, bloom ethtypes.Bloo
 
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
 	store.Set(types.BloomKey(height), bloom.Bytes())
-	if mpt.EnableDoubleWrite {
+	if mpt.TrieWriteAhead {
 		k.setBlockBloomInDiskDB(height, bloom)
 	}
 }
@@ -419,7 +419,7 @@ func (k *Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
 	bz := k.cdc.MustMarshalBinaryBare(config)
 	// get to an empty key that's already prefixed by KeyPrefixChainConfig
 	store.Set([]byte{}, bz)
-	if mpt.EnableDoubleWrite && !tmtypes.HigherThanMars(ctx.BlockHeight()) {
+	if mpt.TrieWriteAhead && !tmtypes.HigherThanMars(ctx.BlockHeight()) {
 		k.Ada.NewStore(ctx.MultiStore().GetKVStore(k.store2Key), types.KeyPrefixChainConfig).Set([]byte{}, bz)
 	}
 

@@ -306,7 +306,7 @@ func (so *stateObject) commitState(db ethstate.Database) {
 	}
 
 	var tr ethstate.Trie = nil
-	if mpt.EnableDoubleWrite {
+	if mpt.TrieWriteAhead {
 		tr = so.getTrie(db)
 	}
 	usedStorage := make([][]byte, 0, len(so.pendingStorage))
@@ -338,8 +338,8 @@ func (so *stateObject) commitState(db ethstate.Database) {
 				}
 			}
 		}
-		if mpt.EnableDoubleWrite {
-			if UseCompositeKey {
+		if mpt.TrieWriteAhead {
+			if TrieUseCompositeKey {
 				key = prefixKey
 			}
 
@@ -354,7 +354,7 @@ func (so *stateObject) commitState(db ethstate.Database) {
 		}
 	}
 
-	if so.stateDB.prefetcher != nil && mpt.EnableDoubleWrite {
+	if so.stateDB.prefetcher != nil && mpt.TrieWriteAhead {
 		so.stateDB.prefetcher.Used(so.stateRoot, usedStorage)
 	}
 

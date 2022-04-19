@@ -14,26 +14,22 @@ const (
 
 	// StoreKey is string representation of the store key for mpt
 	StoreKey = "mpt"
-
-	FlagAccStoreCache = "account-store-cache"
 )
 
 const (
-	FlagTrieDirtyDisabled = "trie-dirty-disabled"
-	FlagTrieCacheSize     = "trie-cache-size"
-	FlagEnableDoubleWrite = "enable-double-write"
-	FlagMptNodesLimit     = "mpt-nodes-limit"
-	FlagMptImgsLimit      = "mpt-imgs-limit"
-	FlagTrieCommitGap     = "trie-commit-gap"
+	FlagTrieWriteAhead    = "trie.write-ahead"
+	FlagTrieDirtyDisabled = "trie.dirty-disabled"
+	FlagTrieCacheSize     = "trie.cache-size"
+	FlagTrieNodesLimit    = "trie.nodes-limit"
+	FlagTrieImgsLimit     = "trie.imgs-limit"
 )
 
 var (
+	TrieWriteAhead          = false
 	TrieDirtyDisabled       = false
 	TrieCacheSize     uint  = 2048 // MB
-	EnableDoubleWrite       = false
-	AccStoreCache     uint  = 2048 // MB
-	MptNodesLimit     uint  = 256  // MB
-	MptImgsLimit      uint  = 4    // MB
+	TrieNodesLimit    uint  = 256  // MB
+	TrieImgsLimit     uint  = 4    // MB
 	TrieCommitGap     int64 = 50
 )
 

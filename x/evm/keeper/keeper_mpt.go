@@ -153,8 +153,8 @@ func (k *Keeper) PushData2Database(height int64, log log.Logger) {
 			// If we exceeded our memory allowance, flush matured singleton nodes to disk
 			var (
 				nodes, imgs = triedb.Size()
-				nodesLimit  = ethcmn.StorageSize(mpt.MptNodesLimit) * 1024 * 1024
-				imgsLimit   = ethcmn.StorageSize(mpt.MptImgsLimit) * 1024 * 1024
+				nodesLimit  = ethcmn.StorageSize(mpt.TrieNodesLimit) * 1024 * 1024
+				imgsLimit   = ethcmn.StorageSize(mpt.TrieImgsLimit) * 1024 * 1024
 			)
 
 			if nodes > nodesLimit || imgs > imgsLimit {
@@ -167,7 +167,7 @@ func (k *Keeper) PushData2Database(height int64, log log.Logger) {
 				return
 			}
 
-			if chosen % mpt.TrieCommitGap == 0 {
+			if chosen%mpt.TrieCommitGap == 0 {
 				// If the header is missing (canonical chain behind), we're reorging a low
 				// diff sidechain. Suspend committing until this operation is completed.
 				chRoot := k.GetMptRootHash(uint64(chosen))
@@ -202,7 +202,7 @@ func (k *Keeper) Commit(ctx sdk.Context) {
 	k.EvmStateDb.WithContext(ctx).Commit(true)
 	k.EvmStateDb.StopPrefetcher()
 
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.EnableDoubleWrite {
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.TrieWriteAhead {
 		k.rootTrie = k.EvmStateDb.GetRootTrie()
 
 		// The onleaf func is called _serially_, so we can reuse the same account

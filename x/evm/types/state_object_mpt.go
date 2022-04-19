@@ -13,13 +13,13 @@ import (
 )
 
 const (
-	FlagContractStateCache = "contract-state-cache"
-	FlagUseCompositeKey    = "use-composite-key"
+	FlagTrieContractStateCache = "trie.contract-state-cache"
+	FlagTrieUseCompositeKey    = "trie.use-composite-key"
 )
 
 var (
-	ContractStateCache uint = 2048 // MB
-	UseCompositeKey         = true
+	TrieContractStateCache uint = 2048 // MB
+	TrieUseCompositeKey         = true
 )
 
 func (so *stateObject) deepCopyMpt(db *CommitStateDB) *stateObject {
@@ -64,7 +64,7 @@ func (so *stateObject) GetCommittedStateMpt(db ethstate.Database, key ethcmn.Has
 		value.SetBytes(enc)
 	} else {
 		tmpKey := key
-		if UseCompositeKey {
+		if TrieUseCompositeKey {
 			tmpKey = so.GetStorageByAddressKey(key.Bytes())
 		}
 
@@ -156,7 +156,7 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 		so.originStorage[key] = value
 
 		compKey := AssembleCompositeKey(so.address.Bytes(), key.Bytes())
-		if UseCompositeKey {
+		if TrieUseCompositeKey {
 			key = so.GetStorageByAddressKey(key.Bytes())
 		}
 
@@ -206,7 +206,7 @@ func (so *stateObject) finalise(prefetch bool) {
 	for key, value := range so.dirtyStorage {
 		so.pendingStorage[key] = value
 		if value != so.originStorage[key] {
-			if UseCompositeKey {
+			if TrieUseCompositeKey {
 				key = so.GetStorageByAddressKey(key.Bytes())
 			}
 			slotsToPrefetch = append(slotsToPrefetch, ethcmn.CopyBytes(key[:])) // Copy needed for closure

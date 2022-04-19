@@ -3,16 +3,15 @@ package rootmulti
 import (
 	"encoding/binary"
 	"fmt"
-
-	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
-	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
-
 	"io"
 	"log"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
+	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachemulti"
@@ -599,7 +598,7 @@ func (rs *Store) pruneStores() {
 					continue
 				}
 			} else {
-				if sName == "evm2" && !mpt.EnableDoubleWrite{
+				if sName == "evm2" && !mpt.TrieWriteAhead {
 					continue
 				}
 			}
@@ -1093,7 +1092,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 				continue
 			}
 		} else {
-			if (sName == mpt.StoreKey || sName == "evm2") && !mpt.EnableDoubleWrite{
+			if (sName == mpt.StoreKey || sName == "evm2") && !mpt.TrieWriteAhead {
 				continue
 			}
 		}
@@ -1403,7 +1402,7 @@ func (rs *Store) StopStore() {
 					continue
 				}
 			} else {
-				if sName == "evm2" && !mpt.EnableDoubleWrite{
+				if sName == "evm2" && !mpt.TrieWriteAhead {
 					continue
 				}
 			}

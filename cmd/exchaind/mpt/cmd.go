@@ -18,7 +18,7 @@ func MptCmd(ctx *server.Context) *cobra.Command {
 		mpt2iavlCmd(ctx),
 		mptViewerCmd(ctx),
 	)
-	cmd.PersistentFlags().UintVar(&types.MptRocksdbBatchSize, types.FlagMptRocksdbBatchSize, 100, "Concurrent rocksdb batch size for mpt")
+	cmd.PersistentFlags().UintVar(&types.TrieRocksdbBatchSize, types.FlagTrieRocksdbBatchSize, 100, "Concurrent rocksdb batch size for mpt")
 
 	return cmd
 }

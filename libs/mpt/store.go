@@ -24,6 +24,14 @@ import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
+const (
+	FlagTrieAccStoreCache = "trie.account-store-cache"
+)
+
+var (
+	TrieAccStoreCache uint = 2048 // MB
+)
+
 var cdc = codec.New()
 
 var (
@@ -77,7 +85,7 @@ func NewMptStore(logger tmlog.Logger, id types.CommitID) (*MptStore, error) {
 		db:         db,
 		triegc:     triegc,
 		logger:     logger,
-		kvCache:    fastcache.New(int(AccStoreCache) * 1024 * 1024),
+		kvCache:    fastcache.New(int(TrieAccStoreCache) * 1024 * 1024),
 		exitSignal: make(chan struct{}),
 	}
 	err := mptStore.openTrie(id)
@@ -273,8 +281,8 @@ func (ms *MptStore) PushData2Database(curHeight int64) {
 			// If we exceeded our memory allowance, flush matured singleton nodes to disk
 			var (
 				nodes, imgs = triedb.Size()
-				nodesLimit  = ethcmn.StorageSize(MptNodesLimit) * 1024 * 1024
-				imgsLimit   = ethcmn.StorageSize(MptImgsLimit) * 1024 * 1024
+				nodesLimit  = ethcmn.StorageSize(TrieNodesLimit) * 1024 * 1024
+				imgsLimit   = ethcmn.StorageSize(TrieImgsLimit) * 1024 * 1024
 			)
 
 			if nodes > nodesLimit || imgs > imgsLimit {
@@ -289,7 +297,7 @@ func (ms *MptStore) PushData2Database(curHeight int64) {
 			}
 
 			// If we exceeded out time allowance, flush an entire trie to disk
-			if chosen % TrieCommitGap == 0 {
+			if chosen%TrieCommitGap == 0 {
 				// If the header is missing (canonical chain behind), we're reorging a low
 				// diff sidechain. Suspend committing until this operation is completed.
 				chRoot := ms.GetMptRootHash(uint64(chosen))
@@ -327,7 +335,7 @@ func (ms *MptStore) OnStop() error {
 	ms.exitSignal <- struct{}{}
 	ms.StopPrefetcher()
 
-	if !tmtypes.HigherThanMars(ms.version) && !EnableDoubleWrite {
+	if !tmtypes.HigherThanMars(ms.version) && !TrieWriteAhead {
 		return nil
 	}
 

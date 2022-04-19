@@ -32,7 +32,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"github.com/okex/exchain/libs/iavl"
-	"github.com/okex/exchain/libs/mpt"
 	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
 	ibctransferkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/keeper"
 	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
@@ -40,6 +39,7 @@ import (
 	ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
 	ibcporttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
 	ibchost "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okex/exchain/libs/mpt"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
@@ -740,7 +740,7 @@ func PreRun(ctx *server.Context) error {
 
 func NewEvmModuleStopLogic(ak *evm.Keeper) sdk.CustomizeOnStop {
 	return func(ctx sdk.Context) error {
-		if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.EnableDoubleWrite {
+		if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.TrieWriteAhead {
 			return ak.OnStop(ctx)
 		}
 		return nil
@@ -749,7 +749,7 @@ func NewEvmModuleStopLogic(ak *evm.Keeper) sdk.CustomizeOnStop {
 
 func NewMptCommitHandler(ak *evm.Keeper) sdk.MptCommitHandler {
 	return func(ctx sdk.Context) {
-		if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.EnableDoubleWrite {
+		if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.TrieWriteAhead {
 			ak.PushData2Database(ctx.BlockHeight(), ctx.Logger())
 		}
 	}

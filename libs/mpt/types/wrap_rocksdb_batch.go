@@ -64,15 +64,15 @@ func (bc *BatchCache) MoveToBack(id int64) {
 }
 
 var (
-	gBatchCache      *BatchCache
+	gBatchCache *BatchCache
 	batchIdSeed int64
 
-	initRocksdbBatchOnce  sync.Once
+	initRocksdbBatchOnce sync.Once
 )
 
 func InstanceBatchCache() *BatchCache {
 	initRocksdbBatchOnce.Do(func() {
-		gBatchCache = NewBatchCache(int(MptRocksdbBatchSize))
+		gBatchCache = NewBatchCache(int(TrieRocksdbBatchSize))
 	})
 
 	return gBatchCache

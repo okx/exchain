@@ -89,7 +89,7 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 
 	storeAccKey := types.AddressStoreKey(addr)
 	store.Set(storeAccKey, bz)
-	if !tmtypes.HigherThanMars(ctx.BlockHeight()) && mpt.EnableDoubleWrite {
+	if !tmtypes.HigherThanMars(ctx.BlockHeight()) && mpt.TrieWriteAhead {
 		ctx.MultiStore().GetKVStore(ak.mptKey).Set(storeAccKey, bz)
 	}
 	ctx.Cache().UpdateAccount(addr, acc.Copy(), len(bz), true)
@@ -122,7 +122,7 @@ func (ak AccountKeeper) RemoveAccount(ctx sdk.Context, acc exported.Account) {
 
 	storeAccKey := types.AddressStoreKey(addr)
 	store.Delete(storeAccKey)
-	if !tmtypes.HigherThanMars(ctx.BlockHeight()) && mpt.EnableDoubleWrite {
+	if !tmtypes.HigherThanMars(ctx.BlockHeight()) && mpt.TrieWriteAhead {
 		ctx.MultiStore().GetKVStore(ak.mptKey).Delete(storeAccKey)
 	}
 

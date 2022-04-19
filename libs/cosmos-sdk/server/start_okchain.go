@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"github.com/okex/exchain/libs/mpt/types"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -18,6 +17,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmiavl "github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/mpt"
+	mpttypes "github.com/okex/exchain/libs/mpt/types"
 	"github.com/okex/exchain/libs/system"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cmn "github.com/okex/exchain/libs/tendermint/libs/os"
@@ -245,16 +245,17 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().StringP(flags.FlagBroadcastMode, "b", flags.BroadcastSync, "Transaction broadcasting mode (sync|async|block) for web3")
 
 	cmd.Flags().BoolVar(&state.EnableParaSender, state.FlagParaSender, false, "Enable Parallel Sender")
+
+	cmd.Flags().UintVar(&mpttypes.TrieRocksdbBatchSize, mpttypes.FlagTrieRocksdbBatchSize, 10, "Concurrent rocksdb batch size for mpt")
+	cmd.Flags().BoolVar(&mpt.TrieWriteAhead, mpt.FlagTrieWriteAhead, false, "Enable double write data (acc & evm) to the MPT tree when using the IAVL tree")
+	cmd.Flags().BoolVar(&mpt.TrieDirtyDisabled, mpt.FlagTrieDirtyDisabled, false, "Disable cache dirty trie nodes")
 	cmd.Flags().UintVar(&mpt.TrieCacheSize, mpt.FlagTrieCacheSize, 2048, "Size (MB) to cache trie nodes")
-	cmd.Flags().BoolVar(&mpt.TrieDirtyDisabled, mpt.FlagTrieDirtyDisabled, false, "Disable cache dirty trie")
-	cmd.Flags().BoolVar(&mpt.EnableDoubleWrite, mpt.FlagEnableDoubleWrite, false, "Enable double write data (acc & evm) to the MPT tree when using the IAVL tree")
-	cmd.Flags().BoolVar(&evmtypes.UseCompositeKey, evmtypes.FlagUseCompositeKey, false, "Use composite key to store contract state")
-	cmd.Flags().UintVar(&evmtypes.ContractStateCache, evmtypes.FlagContractStateCache, 2048, "Size (MB) to cache contract state")
-	cmd.Flags().UintVar(&mpt.AccStoreCache, mpt.FlagAccStoreCache, 2048, "Size (MB) to cache account")
-	cmd.Flags().UintVar(&types.MptRocksdbBatchSize, types.FlagMptRocksdbBatchSize, 10, "Concurrent rocksdb batch size for mpt")
-	cmd.Flags().UintVar(&mpt.MptNodesLimit, mpt.FlagMptNodesLimit, 256, "Max node size (MB) cached in triedb")
-	cmd.Flags().UintVar(&mpt.MptImgsLimit, mpt.FlagMptImgsLimit, 4, "Max img size (MB) cached in triedb")
-	cmd.Flags().Int64(FlagCommitGapHeight, 50, "Block interval to commit cached data into db")
+	cmd.Flags().UintVar(&mpt.TrieNodesLimit, mpt.FlagTrieNodesLimit, 256, "Max node size (MB) cached in triedb")
+	cmd.Flags().UintVar(&mpt.TrieImgsLimit, mpt.FlagTrieImgsLimit, 4, "Max img size (MB) cached in triedb")
+	cmd.Flags().UintVar(&mpt.TrieAccStoreCache, mpt.FlagTrieAccStoreCache, 2048, "Size (MB) to cache account")
+	cmd.Flags().BoolVar(&evmtypes.TrieUseCompositeKey, evmtypes.FlagTrieUseCompositeKey, false, "Use composite key to store contract state in mpt")
+	cmd.Flags().UintVar(&evmtypes.TrieContractStateCache, evmtypes.FlagTrieContractStateCache, 2048, "Size (MB) to cache contract state")
+	cmd.Flags().Int64(FlagCommitGapHeight, 50, "Block interval to commit cached data into db, affects iavl & mpt")
 
 	return cmd
 }
