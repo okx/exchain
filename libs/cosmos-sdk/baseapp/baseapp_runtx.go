@@ -208,6 +208,48 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 	}
 }
 
+func (app *BaseApp) PreDeliverRealTx(tx []byte) abci.TxEssentials {
+	var realTx sdk.Tx
+	var err error
+	if mem := GetGlobalMempool(); mem != nil {
+		realTx, _ = mem.ReapEssentialTx(tx).(sdk.Tx)
+	}
+	if realTx == nil {
+		realTx, err = app.txDecoder(tx)
+		if err != nil {
+			return nil
+		}
+		app.blockDataCache.SetTx(tx, realTx)
+
+		if realTx.GetType() == sdk.EvmTxType && app.evmTxVerifySigHandler != nil {
+			_ = app.evmTxVerifySigHandler(app.deliverState.ctx, realTx)
+		}
+	}
+	return realTx
+}
+
+func (app *BaseApp) DeliverRealTx(txes abci.TxEssentials) abci.ResponseDeliverTx {
+	var err error
+	realTx, _ := txes.(sdk.Tx)
+	if realTx == nil {
+		realTx, err = app.txDecoder(txes.GetRaw())
+		if err != nil {
+			return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
+		}
+	}
+	info, err := app.runTx(runTxModeDeliver, realTx.GetRaw(), realTx, LatestSimulateTxHeight)
+	if err != nil {
+		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
+	}
+	return abci.ResponseDeliverTx{
+		GasWanted: int64(info.gInfo.GasWanted), // TODO: Should type accept unsigned ints?
+		GasUsed:   int64(info.gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
+		Log:       info.result.Log,
+		Data:      info.result.Data,
+		Events:    info.result.Events.ToABCIEvents(),
+	}
+}
+
 // runTx processes a transaction within a given execution mode, encoded transaction
 // bytes, and the decoded transaction itself. All state transitions occur through
 // a cached Context depending on the mode provided. State only gets persisted

@@ -1,7 +1,10 @@
 package app
 
 import (
+	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+
+	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
@@ -40,5 +43,29 @@ func evmTxFeeHandler() sdk.GetTxFeeHandler {
 func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
 	return func(logIndex []int, anteErrs []error) (logs [][]byte) {
 		return ek.FixLog(logIndex, anteErrs)
+	}
+}
+
+func evmTxVerifySigHandler() sdk.TxVerifySigHandler {
+	return func(ctx sdk.Context, tx sdk.Tx) error {
+		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
+			if evmTx.BaseTx.From != "" {
+				return nil
+			}
+			if ctx.From() != "" {
+				evmTx.BaseTx.From = ctx.From()
+				return nil
+			}
+			chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
+			if err != nil {
+				return err
+			}
+			err = evmTx.VerifySig(chainIDEpoch, ctx.BlockHeight())
+			if err != nil {
+				return err
+			}
+			return nil
+		}
+		return fmt.Errorf("tx type is not evm tx")
 	}
 }
