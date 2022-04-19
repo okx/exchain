@@ -428,7 +428,9 @@ func (dttm *DTTManager) serialRoutine() {
 			rerunRoutines := make([]*dttRoutine, 0)
 			for i := 0; i < count; i++ {
 				dttr := dttm.dttRoutineList[i]
-				if dttr.task == nil || dttr.task.index <= task.index || dttr.step < dttRoutineStepAnteStart || dttr.task.prevTaskIndex > task.index {
+				if dttr.task == nil || dttr.task.index <= task.index || dttr.step < dttRoutineStepAnteStart ||
+					dttr.task.prevTaskIndex > task.index ||
+					(!dttr.task.isEvm && dttr.task.index > task.index+1) {
 					continue
 				}
 
