@@ -504,11 +504,12 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 		sleepDuration = 0
 	}
 	if ActiveViewChange {
-		// request for proposer of new height
-		prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address()}
 		// itself is proposer, no need to request
-		if !bytes.Equal(prMsg.NewProposer, prMsg.CurrentProposer) {
-			go cs.requestForProposer(sleepDuration, prMsg)
+		isBlockProducer, _ := cs.isBlockProducer()
+		if isBlockProducer != "y" {
+			// request for proposer of new height
+			prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address()}
+			go cs.requestForProposer(prMsg)
 		}
 	}
 	cs.StartTime = tmtime.Now().Add(sleepDuration)
@@ -1007,11 +1008,9 @@ func (cs *State) enterNewHeight(height int64) {
 }
 
 // requestForProposer FireEvent to broadcast ProposeRequestMessage
-func (cs *State) requestForProposer(duration time.Duration, prMsg ProposeRequestMessage) {
+func (cs *State) requestForProposer(prMsg ProposeRequestMessage) {
 	if signature, err := cs.privValidator.SignBytes(prMsg.SignBytes()); err == nil {
 		prMsg.Signature = signature
-		// ensure broadcast reqMsg after enterNewHeight
-		time.Sleep(duration + time.Millisecond)
 		//cs.Logger.Error("requestForProposer", "prMsg", prMsg)
 		cs.evsw.FireEvent(types.EventProposeRequest, prMsg)
 	} else {
