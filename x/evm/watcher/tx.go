@@ -92,8 +92,8 @@ func (w *Watcher) extractEvmTx(sdkTx sdk.Tx) (*types.MsgEthereumTx, error) {
 
 func (w *Watcher) saveTxAndReceipt(msg *types.MsgEthereumTx, txHash ethcmn.Hash, index uint64,
 	receiptStatus uint32, data *types.ResultData, gasUsed uint64) {
-	//	w.txMutex.Lock()
-	//	defer w.txMutex.Unlock()
+	w.txMutex.Lock()
+	defer w.txMutex.Unlock()
 
 	wMsg := NewMsgEthTx(msg, txHash, w.blockHash, w.height, index)
 	if wMsg != nil {
