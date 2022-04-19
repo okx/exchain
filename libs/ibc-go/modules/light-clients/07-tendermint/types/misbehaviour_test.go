@@ -1,6 +1,7 @@
 package types_test
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
@@ -29,6 +30,26 @@ func (suite *TendermintTestSuite) TestMisbehaviour() {
 }
 
 func (suite *TendermintTestSuite) TestMisbehaviourValidateBasic() {
+	retry := 10
+
+	for retry > 0 {
+		r := func() bool {
+			defer func() {
+				if r := recover(); r != nil {
+					retry--
+				}
+			}()
+
+			return testMisbehaviourValidateBasic(suite)
+		}()
+		fmt.Println("run times", retry)
+		if r {
+			break
+		}
+	}
+}
+
+func testMisbehaviourValidateBasic(suite *TendermintTestSuite) bool {
 	altPrivVal := ibctestingmock.NewPV()
 	altPubKey, err := altPrivVal.GetPubKey()
 	suite.Require().NoError(err)
@@ -219,4 +240,5 @@ func (suite *TendermintTestSuite) TestMisbehaviourValidateBasic() {
 			suite.Require().Error(tc.misbehaviour.ValidateBasic(), "invalid test case %d passed: %s", i, tc.name)
 		}
 	}
+	return true
 }

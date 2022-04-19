@@ -15,7 +15,47 @@ import (
 	ibctestingmock "github.com/okex/exchain/libs/ibc-go/testing/mock"
 )
 
+// retry 10 times
+//func (suite *TendermintTestSuite) RetryTimes(cb func() (suite *TendermintTestSuite)) {
+//	retry := 10
+//
+//	for retry > 0 {
+//		r := func() bool {
+//			defer func() {
+//				if r := recover(); r != nil {
+//					retry--
+//				}
+//			}()
+//
+//			return cb(suite)
+//		}()
+//		if r {
+//			break
+//		}
+//	}
+//}
 func (suite *TendermintTestSuite) TestCheckMisbehaviourAndUpdateState() {
+	retry := 10
+
+	for retry > 0 {
+		r := func() bool {
+			defer func() {
+				if r := recover(); r != nil {
+					retry--
+				}
+			}()
+
+			return testCheckMisbehaviourAndUpdateState(suite)
+		}()
+		fmt.Println("run times", retry)
+		if r {
+			break
+		}
+	}
+}
+
+//func (suite *TendermintTestSuite) TestCheckMisbehaviourAndUpdateState() {
+func testCheckMisbehaviourAndUpdateState(suite *TendermintTestSuite) bool {
 	altPrivVal := ibctestingmock.NewPV()
 	altPubKey, err := altPrivVal.GetPubKey()
 	suite.Require().NoError(err)
@@ -412,4 +452,5 @@ func (suite *TendermintTestSuite) TestCheckMisbehaviourAndUpdateState() {
 			}
 		})
 	}
+	return true
 }
