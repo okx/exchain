@@ -487,6 +487,7 @@ func (dttm *DTTManager) serialRoutine() {
 func (dttm *DTTManager) serialExecution() {
 	info := dttm.serialTask.info
 	handler := info.handler
+	mode := runTxModeDeliver
 
 	execFinishedFn := func(txRs abci.ResponseDeliverTx) {
 		dttm.txResponses[dttm.serialTask.index] = &txRs
@@ -537,12 +538,18 @@ func (dttm *DTTManager) serialExecution() {
 
 	defer handler.handleDeferGasConsumed(info)
 
-	defer handler.handleDeferRefund(info)
+	defer func() {
+		dttm.app.pin(Refund, true, mode)
+		defer dttm.app.pin(Refund, false, mode)
+		handler.handleDeferRefund(info)
+	}()
 
 	dttm.app.UpdateFeeForCollector(dttm.serialTask.fee, true)
 
 	// execute runMsgs
+	dttm.app.pin(RunMsg, true, mode)
 	err = handler.handleRunMsg(info)
+	dttm.app.pin(RunMsg, false, mode)
 	//if err != nil {
 	//	dttm.app.logger.Error("RunMsgFailed.", "err", err)
 	//}
@@ -581,6 +588,7 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 		<-app.deliverTxsMgr.done
 		close(app.deliverTxsMgr.done)
 	}
+	app.logger.Info("InvalidTxs", "count", app.deliverTxsMgr.invalidTxs)
 	trace.GetElapsedInfo().AddInfo(trace.InvalidTxs, fmt.Sprintf("%d", app.deliverTxsMgr.invalidTxs))
 
 	return app.deliverTxsMgr.txResponses
