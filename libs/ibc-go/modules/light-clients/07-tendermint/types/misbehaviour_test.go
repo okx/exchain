@@ -29,7 +29,7 @@ func (suite *TendermintTestSuite) TestMisbehaviour() {
 	suite.Require().Equal(clientID, misbehaviour.GetClientID())
 }
 
-func (suite *TendermintTestSuite) TestMisbehaviourValidateBasic() {
+func (suite *TendermintTestSuite) TestMisbehaviourValidateBasicWithRetry() {
 	retry := 10
 
 	for retry > 0 {

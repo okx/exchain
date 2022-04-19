@@ -34,11 +34,11 @@ import (
 //		}
 //	}
 //}
-func (suite *TendermintTestSuite) TestCheckMisbehaviourAndUpdateState() {
+func (suite *TendermintTestSuite) TestCheckMisbehaviourAndUpdateStateWithRetry() {
 	retry := 10
 
 	for retry > 0 {
-		r := func() bool {
+		succ := func() bool {
 			defer func() {
 				if r := recover(); r != nil {
 					retry--
@@ -48,7 +48,7 @@ func (suite *TendermintTestSuite) TestCheckMisbehaviourAndUpdateState() {
 			return testCheckMisbehaviourAndUpdateState(suite)
 		}()
 		fmt.Println("run times", retry)
-		if r {
+		if succ {
 			break
 		}
 	}
