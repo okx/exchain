@@ -116,6 +116,7 @@ func (w *Watcher) clean() {
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
 	w.txsInBlock = []TxInfo{}
+	w.txsAndReceipts = []WatchMessage{}
 	w.wdDelayKey = w.delayEraseKey
 	w.delayEraseKey = make([][]byte, 0)
 }
@@ -635,7 +636,7 @@ func (w *Watcher) lazyInitialization() {
 	// lazy initial:
 	// now we will allocate chan memory
 	// 5*2 means watcherCommitJob+commitBatchJob(just in case)
-	w.jobChan = make(chan func(), 1000*2)
+	w.jobChan = make(chan func(), 5*2)
 }
 
 func (w *Watcher) dispatchJob(f func()) {
