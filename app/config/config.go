@@ -371,14 +371,14 @@ func (c *OecConfig) update(key, value interface{}) {
 		c.SetEnableAnalyzer(r)
 	//POA
 	case FlagCsSwitchAtHeight:
-		fmt.Println("Received POA Signal:", k, v)
+		confLogger.Info("Received POA Signal:", k, v)
 		if err := c.setCsEnablePOAFlag(v); err != nil {
-			fmt.Println("Wrong consensus switch flag:", v, err)
+			confLogger.Info("Wrong consensus switch flag:", v, err)
 			return
 		}
 
 		b, h := c.GetCsEnablePOAFlag()
-		fmt.Println("Finished Set Config, POA enabled:", b, ", at Height:", h)
+		confLogger.Info("Finished Set Config, POA enabled:", b, ", at Height:", h)
 	}
 }
 

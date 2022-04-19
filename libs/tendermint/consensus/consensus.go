@@ -508,10 +508,6 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	if !cs.CommitTime.IsZero() && sleepDuration.Milliseconds() > 0 && overDuration.Milliseconds() > cs.config.TimeoutConsensus.Milliseconds() {
 		sleepDuration -= time.Duration(overDuration.Milliseconds() - cs.config.TimeoutConsensus.Milliseconds())
 	}
-	//POA: Start new height immediately
-	if cs.config.POAEnable {
-		sleepDuration = 0
-	}
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
 }
 
@@ -2228,8 +2224,8 @@ func (cs *State) trySwitchConsensus() {
 	// switch only happened at the specific height
 	if cs.Height == h {
 		//switch consensus
-		fmt.Println("POA:", "Switch Consensus at Height:", h)
-		fmt.Println("POA:", "Switch POA from:", cs.config.POAEnable, " to:", enableFlag)
+		cs.Logger.Info("POA:", "Switch Consensus at Height:", h)
+		cs.Logger.Info("POA:", "Switch POA from:", cs.config.POAEnable, " to:", enableFlag)
 		cs.config.POAEnable = enableFlag
 
 		//Load private validators key if poa enabled
@@ -2240,7 +2236,7 @@ func (cs *State) trySwitchConsensus() {
 			}
 
 			cs.config.ValidatorPrivateKeylist = strings.Fields(string(b))
-			fmt.Println("POA", "load all validators private keys:", cs.config.ValidatorPrivateKeylist)
+			cs.Logger.Debug("POA", "load all validators private keys:", cs.config.ValidatorPrivateKeylist)
 			cs.tryInitPOAValidatorsSet()
 		}
 	}
