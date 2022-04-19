@@ -360,6 +360,8 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			//1.this peer has not vc before this height;
 			//2.ApplyBlock of height-1 is not finished and it needs vc(msg.Height is bigger);
 			//3.it is CurrentProposer
+			conR.mtx.Lock()
+			defer conR.mtx.Unlock()
 			if msg.Height > conR.hasViewChanged &&
 				msg.Height > conR.conS.Height &&
 				bytes.Equal(conR.conS.privValidatorPubKey.Address(), msg.CurrentProposer) {
@@ -1627,6 +1629,17 @@ type ViewChangeMessage struct {
 
 func (m *ViewChangeMessage) ValidateBasic() error {
 	return nil
+}
+
+func (m *ViewChangeMessage) Validate(height int64, proposer types.Address) bool {
+	if m.Height != height {
+		return false
+	}
+	if !bytes.Equal(proposer, m.CurrentProposer) {
+		return false
+	}
+
+	return true
 }
 
 func (m *ViewChangeMessage) SignBytes() []byte {
