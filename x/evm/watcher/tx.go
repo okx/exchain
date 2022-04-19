@@ -90,29 +90,29 @@ func (w *Watcher) extractEvmTx(sdkTx sdk.Tx) (*types.MsgEthereumTx, error) {
 	return evmTx, nil
 }
 
-func (w *Watcher) saveTxAndReceipt(msg *types.MsgEthereumTx, txHash ethcmn.Hash, index uint64,
+func (w *Watcher) saveTxAndReceiptEx(msg *types.MsgEthereumTx, txHash ethcmn.Hash, index uint64,
 	receiptStatus uint32, data *types.ResultData, gasUsed uint64) {
 	w.txMutex.Lock()
 	defer w.txMutex.Unlock()
 
 	wMsg := NewMsgEthTx(msg, txHash, w.blockHash, w.height, index)
 	if wMsg != nil {
-		w.txsAndReceipts = append(w.txsAndReceipts, wMsg)
+		w.txs = append(w.txs, wMsg)
 	}
 	w.blockTxs = append(w.blockTxs, txHash)
 	w.updateCumulativeGas(index, gasUsed)
 	txReceipt := NewMsgTransactionReceipt(receiptStatus, msg, txHash, w.blockHash, index, w.height, data, w.cumulativeGas[index], gasUsed)
 	if txReceipt != nil {
-		w.txsAndReceipts = append(w.txsAndReceipts, txReceipt)
+		w.txs = append(w.txs, txReceipt)
 	}
 	// w.txsInBlock = append(w.txsInBlock, TxInfo{TxHash: txHash, Index: index})
 }
 
-func (w *Watcher) saveTxAndReceiptExE(msg *types.MsgEthereumTx, txHash ethcmn.Hash, index uint64,
+func (w *Watcher) saveTxAndReceipt(msg *types.MsgEthereumTx, txHash ethcmn.Hash, index uint64,
 	receiptStatus uint32, data *types.ResultData, gasUsed uint64) {
 
 	wMsg := NewMsgEthTx(msg, txHash, w.blockHash, w.height, index)
-	txReceipt := NewMsgTransactionReceipt(receiptStatus, msg, txHash, w.blockHash, index, w.height, data, w.cumulativeGas[index], gasUsed)
+	txReceipt := newTransactionReceipt(receiptStatus, msg, txHash, w.blockHash, index, w.height, data, w.cumulativeGas[index], gasUsed)
 	select {
 	case w.txResultChan <- TxResult{
 		TxMsg:     wMsg,

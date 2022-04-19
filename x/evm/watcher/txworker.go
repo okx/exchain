@@ -23,10 +23,6 @@ func (w *Watcher) txWorker(jobs <-chan func()) {
 }
 
 func (w *Watcher) dispatchTxJob(f func()) {
-	// if jobRoutine were too slow to write data  to disk
-	// we have to wait
-	// why: something wrong happened: such as db panic(disk maybe is full)(it should be the only reason)
-	//								  UseWatchData were executed every 4 seoncds(block schedual)
 	select {
 	case w.txChan <- f:
 	default:
