@@ -347,8 +347,9 @@ func (suite *KeeperTestSuite) TestConnOpenAck() {
 			connection.Counterparty.ConnectionId = path.EndpointA.ConnectionID
 			suite.chainB.App().GetIBCKeeper().ConnectionKeeper.SetConnection(suite.chainB.GetContext(), path.EndpointB.ConnectionID, connection)
 			// update path.EndpointB.ClientID so state change is committed
-			path.EndpointB.UpdateClient()
+			suite.coordinator.CommitBlock(suite.chainB)
 
+			path.EndpointB.UpdateClient()
 			path.EndpointA.UpdateClient()
 
 			// retrieve client state of chainB to pass as counterpartyClient
