@@ -250,6 +250,7 @@ func (suite *TendermintTestSuite) TestCheckSubstituteAndUpdateState() {
 			substituteClientState.AllowUpdateAfterExpiry = tc.AllowUpdateAfterExpiry
 			substituteClientState.AllowUpdateAfterMisbehaviour = tc.AllowUpdateAfterMisbehaviour
 			suite.chainA.App().GetIBCKeeper().ClientKeeper.SetClientState(suite.chainA.GetContext(), substitutePath.EndpointA.ClientID, substituteClientState)
+			suite.coordinator.CommitBlock(suite.chainA)
 
 			// update substitute a few times
 			for i := 0; i < 3; i++ {

@@ -459,15 +459,19 @@ func (suite *KeeperTestSuite) TestRecvPacket() {
 			packetKey := host.PacketCommitmentKey(packet.GetSourcePort(), packet.GetSourceChannel(), packet.GetSequence())
 			proof, proofHeight := path.EndpointA.QueryProof(packetKey)
 
+			suite.coordinator.CommitBlock(suite.chainB)
 			err := suite.chainB.App().GetIBCKeeper().ChannelKeeper.RecvPacket(suite.chainB.GetContext(), channelCap, packet, proof, proofHeight)
 
 			if tc.expPass {
 				suite.Require().NoError(err)
-
+				suite.coordinator.CommitBlock(suite.chainB)
 				channelB, _ := suite.chainB.App().GetIBCKeeper().ChannelKeeper.GetChannel(suite.chainB.GetContext(), packet.GetDestPort(), packet.GetDestChannel())
+				suite.coordinator.CommitBlock(suite.chainB)
 				nextSeqRecv, found := suite.chainB.App().GetIBCKeeper().ChannelKeeper.GetNextSequenceRecv(suite.chainB.GetContext(), packet.GetDestPort(), packet.GetDestChannel())
+				suite.coordinator.CommitBlock(suite.chainB)
 				suite.Require().True(found)
 				receipt, receiptStored := suite.chainB.App().GetIBCKeeper().ChannelKeeper.GetPacketReceipt(suite.chainB.GetContext(), packet.GetDestPort(), packet.GetDestChannel(), packet.GetSequence())
+				suite.coordinator.CommitBlock(suite.chainB)
 
 				if channelB.Ordering == types.ORDERED {
 					suite.Require().Equal(packet.GetSequence()+1, nextSeqRecv, "sequence not incremented in ordered channel")
