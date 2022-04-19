@@ -383,7 +383,7 @@ func (ms *MptStore) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 	// latest height
 	trie, err := ms.getTrieByHeight(height)
 	if err != nil {
-		res.Log = fmt.Sprintf("trie of height %d doesn't exist: %s", err)
+		res.Log = fmt.Sprintf("trie of height %d doesn't exist: %s", height, err)
 		return
 	}
 
