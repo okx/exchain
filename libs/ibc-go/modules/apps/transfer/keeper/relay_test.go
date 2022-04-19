@@ -2,8 +2,12 @@ package keeper_test
 
 import (
 	"fmt"
+	"testing"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp"
+
+	"github.com/stretchr/testify/suite"
 
 	// sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
@@ -286,9 +290,9 @@ func (suite *KeeperTestSuite) TestOnAcknowledgementPacket() {
 			packet := channeltypes.NewPacket(data.GetBytes(), 1, path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, clienttypes.NewHeight(0, 100), 0)
 
 			// preCoin := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.SenderAccount().GetAddress(), trace.IBCDenom())
-			preCoin := suite.chainA.GetSimApp().BankKeeper.GetCoins(suite.chainA.GetContext(), suite.chainA.SenderAccount().GetAddress())
-
-			err := suite.chainA.GetSimApp().TransferKeeper.OnAcknowledgementPacket(suite.chainA.GetContext(), packet, data, tc.ack)
+			ctx := suite.chainA.GetContext()
+			preCoin := suite.chainA.GetSimApp().BankKeeper.GetCoins(ctx, suite.chainA.SenderAccount().GetAddress())
+			err := suite.chainA.GetSimApp().TransferKeeper.OnAcknowledgementPacket(ctx, packet, data, tc.ack)
 			if tc.expPass {
 				suite.Require().NoError(err)
 				// postCoin := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.SenderAccount().GetAddress(), trace.IBCDenom())
@@ -364,7 +368,7 @@ func (suite *KeeperTestSuite) TestOnTimeoutPacket() {
 		tc := tc
 
 		suite.Run(fmt.Sprintf("Case %s", tc.msg), func() {
-			suite.SetupTest() // reset
+			//suite.SetupTest() // reset
 
 			path = NewTransferPath(suite.chainA, suite.chainB)
 			suite.coordinator.Setup(path)
@@ -395,4 +399,7 @@ func (suite *KeeperTestSuite) TestOnTimeoutPacket() {
 			}
 		})
 	}
+}
+func TestKeeperTestSuite2(t *testing.T) {
+	suite.Run(t, new(KeeperTestSuite))
 }

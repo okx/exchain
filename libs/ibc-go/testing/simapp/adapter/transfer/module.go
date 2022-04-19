@@ -3,6 +3,7 @@ package transfer
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
@@ -69,5 +70,7 @@ func (am TransferModule) exportGenesis(ctx sdk.Context) json.RawMessage {
 // DefaultGenesis returns default genesis state as raw bytes for the ibc
 // transfer module.
 func (am TransferModule) DefaultGenesis() json.RawMessage {
-	return adapter.ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
+	state := types.DefaultGenesisState()
+	state.Params.SendEnabled = true
+	return adapter.ModuleCdc.MustMarshalJSON(state)
 }
