@@ -732,7 +732,7 @@ func (cs *State) handleMsg(mi msgInfo) {
 	msg, peerID := mi.Msg, mi.PeerID
 	switch msg := msg.(type) {
 	case *ViewChangeMessage:
-		//cs.Logger.Error("handle vcMsg", "msg", msg)
+		//cs.Logger.Error("handle vcMsg", "height", msg.Height)
 		if ActiveViewChange {
 			if peerID == "" {
 				// ApplyBlock of height-1 is not finished
@@ -740,7 +740,7 @@ func (cs *State) handleMsg(mi msgInfo) {
 				cs.vcMsg = msg
 			} else {
 				// ApplyBlock of height-1 is finished
-				if cs.Round == 0 && cs.Step != cstypes.RoundStepNewHeight {
+				if cs.Round == 0 && (cs.Step == cstypes.RoundStepNewRound || cs.Step == cstypes.RoundStepPropose) {
 					// has enterNewHeight, and vc immediately
 					_, val := cs.Validators.GetByAddress(msg.NewProposer)
 					cs.enterNewRoundWithVal(cs.Height, 0, val)
@@ -752,7 +752,7 @@ func (cs *State) handleMsg(mi msgInfo) {
 		}
 
 	case *ProposeRequestMessage:
-		//cs.Logger.Error("handle prMsg", "msg", msg)
+		//cs.Logger.Error("handle prMsg", "height", msg.Height)
 		// ApplyBlock of height-1 is not finished
 		// RoundStepNewHeight enterNewRound use peer as val
 		if ActiveViewChange {
@@ -992,7 +992,7 @@ func (cs *State) enterNewRoundWithVal(height int64, round int, val *types.Valida
 				cstypes.RoundStepNewRound)
 		}
 	} else {
-		cs.enterPropose(height, round)
+		cs.enterProposeWithVal(height, round)
 	}
 }
 
@@ -1010,8 +1010,8 @@ func (cs *State) enterNewHeight(height int64) {
 // requestForProposer FireEvent to broadcast ProposeRequestMessage
 func (cs *State) requestForProposer(prMsg ProposeRequestMessage) {
 	if signature, err := cs.privValidator.SignBytes(prMsg.SignBytes()); err == nil {
-		prMsg.Signature = signature
 		//cs.Logger.Error("requestForProposer", "prMsg", prMsg)
+		prMsg.Signature = signature
 		cs.evsw.FireEvent(types.EventProposeRequest, prMsg)
 	} else {
 		cs.Logger.Error("requestForProposer", "err", err)
@@ -1057,9 +1057,8 @@ func (cs *State) isBlockProducer() (string, string) {
 // Enter (!CreateEmptyBlocks) : after enterNewRound(height,round), once txs are in the mempool
 func (cs *State) enterPropose(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
-
 	if cs.Height != height || round < cs.Round || (cs.Round == round && cstypes.RoundStepPropose <= cs.Step) {
-		logger.Debug(fmt.Sprintf(
+		logger.Error(fmt.Sprintf(
 			"enterPropose(%v/%v): Invalid args. Current step: %v/%v/%v",
 			height,
 			round,
@@ -1068,7 +1067,26 @@ func (cs *State) enterPropose(height int64, round int) {
 			cs.Step))
 		return
 	}
+	cs.doPropose(height, round)
+}
 
+func (cs *State) enterProposeWithVal(height int64, round int) {
+	logger := cs.Logger.With("height", height, "round", round)
+	if cs.Height != height || round < cs.Round || (cs.Round == round && cstypes.RoundStepPropose < cs.Step) {
+		logger.Error(fmt.Sprintf(
+			"enterPropose(%v/%v): Invalid args. Current step: %v/%v/%v",
+			height,
+			round,
+			cs.Height,
+			cs.Round,
+			cs.Step))
+		return
+	}
+	cs.doPropose(height, round)
+}
+
+func (cs *State) doPropose(height int64, round int) {
+	logger := cs.Logger.With("height", height, "round", round)
 	isBlockProducer, bpAddr := cs.isBlockProducer()
 	cs.trc.Pin("H%d-Propose-%d-%s-%s", height, round, isBlockProducer, bpAddr)
 
@@ -1090,31 +1108,10 @@ func (cs *State) enterPropose(height int64, round int) {
 	// If we don't get the proposal and all block parts quick enough, enterPrevote
 	cs.scheduleTimeout(cs.config.Propose(round), height, round, cstypes.RoundStepPropose)
 
-	// Nothing more to do if we're not a validator
-	if cs.privValidator == nil {
-		logger.Debug("This node is not a validator")
-		return
-	}
-	logger.Debug("This node is a validator")
-
-	if cs.privValidatorPubKey == nil {
-		// If this node is a validator & proposer in the current round, it will
-		// miss the opportunity to create a block.
-		logger.Error(fmt.Sprintf("enterPropose: %v", errPubKeyIsNotSet))
-		return
-	}
-	address := cs.privValidatorPubKey.Address()
-
-	// if not a validator, we're done
-	if !cs.Validators.HasAddress(address) {
-		logger.Debug("This node is not a validator", "addr", address, "vals", cs.Validators)
-		return
-	}
-
-	if cs.isProposer(address) {
+	if isBlockProducer == "y" {
 		logger.Info("enterPropose: Our turn to propose",
 			"proposer",
-			address,
+			bpAddr,
 			"privValidator",
 			cs.privValidator)
 		cs.decideProposal(height, round)
