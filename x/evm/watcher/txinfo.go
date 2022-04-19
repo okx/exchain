@@ -12,7 +12,7 @@ type TxInfo struct {
 	GasUsed uint64
 }
 
-func (w *Watcher) addTxsToBlock() {
+func (w *Watcher) sortTxsAndUpdateCumulativeGas() {
 	sort.Slice(w.txInfoCollector, func(i, j int) bool {
 		return w.txInfoCollector[i].Index < w.txInfoCollector[j].Index
 	})
@@ -20,12 +20,11 @@ func (w *Watcher) addTxsToBlock() {
 		w.blockTxs = append(w.blockTxs, txInfo.TxHash)
 		w.updateCumulativeGas(txInfo.Index, txInfo.GasUsed)
 	}
+}
 
-	sort.Slice(w.txReceipts, func(i, j int) bool {
-		return w.txReceipts[i].TransactionIndex < w.txReceipts[j].TransactionIndex
-	})
+func (w *Watcher) saveReceipts(cumulativeGas map[uint64]uint64) {
 	for _, receipt := range w.txReceipts {
-		receipt.CumulativeGasUsed = hexutil.Uint64(w.cumulativeGas[uint64(receipt.TransactionIndex)])
+		receipt.CumulativeGasUsed = hexutil.Uint64(cumulativeGas[uint64(receipt.TransactionIndex)])
 		w.batch = append(w.batch, &MsgTransactionReceipt{txHash: receipt.TxHash.Bytes(), baseLazyMarshal: newBaseLazyMarshal(receipt)})
 	}
 }

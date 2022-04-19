@@ -9,7 +9,7 @@ func (suite *WatcherTestSuite) TestWatcher_addTxsToBlock() {
 	for i := txsCount; i > 0; i-- {
 		suite.watcher.txInfoCollector = append(suite.watcher.txInfoCollector, TxInfo{TxHash: ethcmn.Hash{byte(i)}, Index: uint64(i)})
 	}
-	suite.watcher.addTxsToBlock()
+	suite.watcher.sortTxsToBlockAndUpdateGas()
 	suite.Equal(ethcmn.Hash{byte(1)}, suite.watcher.blockTxs[0])
 	suite.Equal(ethcmn.Hash{byte(txsCount)}, suite.watcher.blockTxs[txsCount-1])
 }
