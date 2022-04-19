@@ -1,8 +1,8 @@
 package watcher
 
 const (
-	DefaultTxChanBuffer = 50
-	DefaultTxWorkers    = 16
+	DefaultTxChanBuffer = 64
+	DefaultTxWorkers    = 32
 )
 
 func (w *Watcher) txRoutine() {
