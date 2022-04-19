@@ -41,8 +41,7 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	k.LogSize = 0
 	k.LogsManages = NewLogManager()
 	k.Bhash = blockHash
-
-	types.GetEvmParamsCache().SetNeedBlockedUpdate()
+	
 	//that can make sure latest block has been committed
 	k.Watcher.NewHeight(uint64(req.Header.GetHeight()), blockHash, req.Header)
 }

@@ -77,7 +77,7 @@ func (c *Context) VoteInfos() []abci.VoteInfo { return c.voteInfo }
 func (c *Context) GasMeter() GasMeter         { return c.gasMeter }
 func (c *Context) BlockGasMeter() GasMeter    { return c.blockGasMeter }
 func (c *Context) IsDeliver() bool {
-	return c.isDeliver || (c.isAsync && !HaveCosmosTxInBlock)
+	return c.isDeliver || (c.paraMsg != nil && !c.paraMsg.HaveCosmosTxInBlock)
 }
 
 func (c *Context) IsCheckTx() bool             { return c.checkTx }
@@ -88,7 +88,6 @@ func (c *Context) TraceTxLogConfig() []byte    { return c.traceTxConfigBytes }
 func (c *Context) IsWrappedCheckTx() bool      { return c.wrappedCheckTx }
 func (c *Context) MinGasPrices() DecCoins      { return c.minGasPrice }
 func (c *Context) EventManager() *EventManager { return c.eventManager }
-func (c *Context) IsAsync() bool               { return c.isAsync }
 func (c *Context) AccountNonce() uint64        { return c.accountNonce }
 func (c *Context) AnteTracer() *trace.Tracer   { return c.trc }
 func (c *Context) Cache() *Cache {
@@ -227,11 +226,6 @@ func (c *Context) SetFrom(from string) *Context {
 	return c
 }
 
-func (c *Context) SetAsync(isAsync bool) *Context {
-	c.isAsync = isAsync
-	return c
-}
-
 func (c *Context) SetAnteTracer(trc *trace.Tracer) *Context {
 	c.trc = trc
 	return c
@@ -351,12 +345,6 @@ func (c *Context) SetParaMsg(m *ParaMsg) *Context {
 	c.paraMsg = m
 	return c
 }
-
-// WithValue is deprecated, provided for backwards compatibility
-// Please use
-//     ctx = ctx.WithContext(context.WithValue(ctx.Context(), key, false))
-// instead of
-//     ctx = ctx.WithValue(key, false)
 
 func (c *Context) SetVoteInfos(voteInfo []abci.VoteInfo) *Context {
 	c.voteInfo = voteInfo
