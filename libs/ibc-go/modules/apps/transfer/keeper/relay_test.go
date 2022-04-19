@@ -186,6 +186,7 @@ func (suite *KeeperTestSuite) TestOnRecvPacket() {
 			receiver = suite.chainB.SenderAccount().GetAddress().String() // must be explicitly changed in malleate
 
 			amount = sdk.NewInt(100) // must be explicitly changed in malleate
+			transferAmountDec := sdk.NewDecFromIntWithPrec(amount, 0)
 			seq := uint64(1)
 
 			if tc.recvIsSource {
@@ -196,7 +197,7 @@ func (suite *KeeperTestSuite) TestOnRecvPacket() {
 				suite.Require().NoError(err) // message committed
 
 				// relay send packet
-				fungibleTokenPacket := types.NewFungibleTokenPacketData(coinFromBToA.Denom, coinFromBToA.Amount.String(), suite.chainB.SenderAccount().GetAddress().String(), suite.chainA.SenderAccount().GetAddress().String())
+				fungibleTokenPacket := types.NewFungibleTokenPacketData(coinFromBToA.Denom, transferAmountDec.BigInt().String(), suite.chainB.SenderAccount().GetAddress().String(), suite.chainA.SenderAccount().GetAddress().String())
 				packet := channeltypes.NewPacket(fungibleTokenPacket.GetBytes(), 1, path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, clienttypes.NewHeight(0, 110), 0)
 				ack := channeltypes.NewResultAcknowledgement([]byte{byte(1)})
 				err = path.RelayPacket(packet, ack.Acknowledgement())
@@ -217,7 +218,7 @@ func (suite *KeeperTestSuite) TestOnRecvPacket() {
 
 			tc.malleate()
 
-			data := types.NewFungibleTokenPacketData(trace.GetFullDenomPath(), amount.String(), suite.chainA.SenderAccount().GetAddress().String(), receiver)
+			data := types.NewFungibleTokenPacketData(trace.GetFullDenomPath(), transferAmountDec.BigInt().String(), suite.chainA.SenderAccount().GetAddress().String(), receiver)
 			packet := channeltypes.NewPacket(data.GetBytes(), seq, path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, clienttypes.NewHeight(0, 100), 0)
 
 			err = suite.chainB.GetSimApp().TransferKeeper.OnRecvPacket(suite.chainB.GetContext(), packet, data)
