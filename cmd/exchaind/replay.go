@@ -59,6 +59,7 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command)) 
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("--------- replay start ---------")
+			start := time.Now()
 			pprofAddress := viper.GetString(pprofAddrFlag)
 			go func() {
 				err := http.ListenAndServe(pprofAddress, nil)
@@ -69,7 +70,8 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command)) 
 
 			dataDir := viper.GetString(replayedBlockDir)
 			replayBlock(ctx, dataDir)
-			log.Println("--------- replay success ---------")
+			totalDuration := time.Since(start).Seconds()
+			log.Println("--------- replay success --------- ", totalDuration, "s")
 		},
 		PostRun: func(cmd *cobra.Command, args []string) {
 			if viper.GetBool(runWithPprofMemFlag) {
