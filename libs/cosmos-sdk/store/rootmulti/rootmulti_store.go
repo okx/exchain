@@ -5,6 +5,7 @@ import (
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
+	"github.com/okex/exchain/libs/tendermint/global"
 
 	"io"
 	"log"
@@ -1040,6 +1041,9 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		}
 
 		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
+		if global.GetGlobalHeight() == 4333798 || global.GetGlobalHeight() == 4333799 {
+			fmt.Println(key, " ", commitID.String())
+		}
 
 		if store.GetStoreType() == types.StoreTypeTransient {
 			continue
