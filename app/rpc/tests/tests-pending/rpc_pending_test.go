@@ -1,4 +1,6 @@
-// This is a test utility for Ethermint's Web3 JSON-RPC services.
+//go:build ignore
+
+//This is a test utility for Ethermint's Web3 JSON-RPC services.
 //
 // To run these tests please first ensure you have the ethermintd running
 // and have started the RPC service with `ethermintcli rest-server`.
@@ -9,15 +11,16 @@ package pending
 import (
 	"encoding/json"
 	"fmt"
+	"math/big"
+	"os"
+	"testing"
+	"time"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	util "github.com/okex/exchain/app/rpc/tests"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
-	"math/big"
-	"os"
-	"testing"
-	"time"
 )
 
 const (

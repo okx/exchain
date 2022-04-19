@@ -528,5 +528,6 @@ func newReactorStore(
 
 		blockStore.SaveBlock(thisBlock, thisParts, lastCommit)
 	}
+
 	return blockStore, state, blockExec
 }

@@ -338,11 +338,12 @@ func TestClient_Cleanup(t *testing.T) {
 	require.NoError(t, err)
 
 	// Check no headers/valsets exist after Cleanup.
-	h, err := c.TrustedHeader(1)
+	var height int64 = 1
+	h, err := c.TrustedHeader(height)
 	assert.Error(t, err)
 	assert.Nil(t, h)
 
-	valSet, _, err := c.TrustedValidatorSet(1)
+	valSet, _, err := c.TrustedValidatorSet(height)
 	assert.Error(t, err)
 	assert.Nil(t, valSet)
 }
@@ -365,16 +366,17 @@ func TestClientRestoresTrustedHeaderAfterStartup1(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		h, err := c.TrustedHeader(1)
+		var height int64 = 1
+		h, err := c.TrustedHeader(height)
 		assert.NoError(t, err)
 		assert.NotNil(t, h)
 		assert.Equal(t, h.Hash(), h1.Hash())
 
-		valSet, _, err := c.TrustedValidatorSet(1)
+		valSet, _, err := c.TrustedValidatorSet(height)
 		assert.NoError(t, err)
 		assert.NotNil(t, valSet)
 		if assert.NotNil(t, valSet) {
-			assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash())
+			assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash(height))
 		}
 	}
 
@@ -411,17 +413,18 @@ func TestClientRestoresTrustedHeaderAfterStartup1(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		h, err := c.TrustedHeader(1)
+		var height int64 = 1
+		h, err := c.TrustedHeader(height)
 		assert.NoError(t, err)
 		if assert.NotNil(t, h) {
 			assert.Equal(t, h.Hash(), header1.Hash())
 		}
 
-		valSet, _, err := c.TrustedValidatorSet(1)
+		valSet, _, err := c.TrustedValidatorSet(height)
 		assert.NoError(t, err)
 		assert.NotNil(t, valSet)
 		if assert.NotNil(t, valSet) {
-			assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash())
+			assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash(height))
 		}
 	}
 }
@@ -449,16 +452,17 @@ func TestClientRestoresTrustedHeaderAfterStartup2(t *testing.T) {
 		require.NoError(t, err)
 
 		// Check we still have the 1st header (+header+).
-		h, err := c.TrustedHeader(1)
+		var height int64 = 1
+		h, err := c.TrustedHeader(height)
 		assert.NoError(t, err)
 		assert.NotNil(t, h)
 		assert.Equal(t, h.Hash(), h1.Hash())
 
-		valSet, _, err := c.TrustedValidatorSet(1)
+		valSet, _, err := c.TrustedValidatorSet(height)
 		assert.NoError(t, err)
 		assert.NotNil(t, valSet)
 		if assert.NotNil(t, valSet) {
-			assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash())
+			assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash(height))
 		}
 	}
 
@@ -534,24 +538,26 @@ func TestClientRestoresTrustedHeaderAfterStartup3(t *testing.T) {
 		require.NoError(t, err)
 
 		// Check we still have the 1st header (+header+).
-		h, err := c.TrustedHeader(1)
+		var height int64 = 1
+		h, err := c.TrustedHeader(height)
 		assert.NoError(t, err)
 		assert.NotNil(t, h)
 		assert.Equal(t, h.Hash(), h1.Hash())
 
-		valSet, _, err := c.TrustedValidatorSet(1)
+		valSet, _, err := c.TrustedValidatorSet(height)
 		assert.NoError(t, err)
 		assert.NotNil(t, valSet)
 		if assert.NotNil(t, valSet) {
-			assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash())
+			assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash(height))
 		}
 
 		// Check we no longer have 2nd header (+header2+).
-		h, err = c.TrustedHeader(2)
+		height = 2
+		h, err = c.TrustedHeader(height)
 		assert.Error(t, err)
 		assert.Nil(t, h)
 
-		valSet, _, err = c.TrustedValidatorSet(2)
+		valSet, _, err = c.TrustedValidatorSet(height)
 		assert.Error(t, err)
 		assert.Nil(t, valSet)
 	}
@@ -595,24 +601,26 @@ func TestClientRestoresTrustedHeaderAfterStartup3(t *testing.T) {
 		require.NoError(t, err)
 
 		// Check we have swapped invalid 1st header (+header+) with correct one (+header1+).
-		h, err := c.TrustedHeader(1)
+		var height int64 = 1
+		h, err := c.TrustedHeader(height)
 		assert.NoError(t, err)
 		assert.NotNil(t, h)
 		assert.Equal(t, h.Hash(), header1.Hash())
 
-		valSet, _, err := c.TrustedValidatorSet(1)
+		valSet, _, err := c.TrustedValidatorSet(height)
 		assert.NoError(t, err)
 		assert.NotNil(t, valSet)
 		if assert.NotNil(t, valSet) {
-			assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash())
+			assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash(height))
 		}
 
 		// Check we no longer have invalid 2nd header (+header2+).
-		h, err = c.TrustedHeader(2)
+		height = 2
+		h, err = c.TrustedHeader(height)
 		assert.Error(t, err)
 		assert.Nil(t, h)
 
-		valSet, _, err = c.TrustedValidatorSet(2)
+		valSet, _, err = c.TrustedValidatorSet(height)
 		assert.Error(t, err)
 		assert.Nil(t, valSet)
 	}
@@ -635,11 +643,11 @@ func TestClient_Update(t *testing.T) {
 	if assert.NotNil(t, h) {
 		assert.EqualValues(t, 3, h.Height)
 	}
-
-	valSet, _, err := c.TrustedValidatorSet(3)
+	var height int64 = 3
+	valSet, _, err := c.TrustedValidatorSet(height)
 	assert.NoError(t, err)
 	if assert.NotNil(t, valSet) {
-		assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash())
+		assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash(height))
 	}
 }
 
@@ -834,12 +842,12 @@ func TestClient_NewClientFromTrustedStore(t *testing.T) {
 	h, err := c.TrustedHeader(1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, h.Height)
-
-	valSet, _, err := c.TrustedValidatorSet(1)
+	var height int64 = 1
+	valSet, _, err := c.TrustedValidatorSet(height)
 	assert.NoError(t, err)
 	assert.NotNil(t, valSet)
 	if assert.NotNil(t, valSet) {
-		assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash())
+		assert.Equal(t, h.ValidatorsHash.Bytes(), valSet.Hash(height))
 	}
 }
 

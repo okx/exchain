@@ -31,6 +31,11 @@ func TestApplyBlock(t *testing.T) {
 	app.RetainBlocks = 1
 	cc := proxy.NewLocalClientCreator(app)
 	proxyApp := proxy.NewAppConns(cc)
+	sm.SetWatchDataFunc(
+		func() func() ([]byte, error) { return func() ([]byte, error) { return nil, nil } },
+		func([]byte) (interface{}, error) { return nil, nil },
+		func(interface{}) {},
+	)
 	err := proxyApp.Start()
 	require.Nil(t, err)
 	defer proxyApp.Stop()
