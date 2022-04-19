@@ -33,7 +33,7 @@ func TestDenomTrace_IBCDenom(t *testing.T) {
 		expDenom string
 	}{
 		{"base denom", DenomTrace{BaseDenom: "uatom"}, "uatom"},
-		{"trace info", DenomTrace{BaseDenom: "uatom", Path: "transfer/channelToA"}, "ibc/7F1D3FCF4AE79E1554D670D1AD949A9BA4E4A3C76C63093E17E446A46061A7A2"},
+		{"trace info", DenomTrace{BaseDenom: "uatom", Path: "transfer/channelToA"}, "ibc/7f1d3fcf4ae79e1554d670d1ad949a9ba4e4a3c76c63093e17e446a46061a7a2"},
 	}
 
 	for _, tc := range testCases {

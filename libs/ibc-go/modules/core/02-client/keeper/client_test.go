@@ -128,57 +128,6 @@ func (suite *KeeperTestSuite) TestUpdateClientTendermint() {
 			// set updateHeader's consensus state in store to create duplicate UpdateClient scenario
 			suite.chainA.App().GetIBCKeeper().ClientKeeper.SetClientConsensusState(suite.chainA.GetContext(), clientID, updateHeader.GetHeight(), updateHeader.ConsensusState())
 		}, true, false},
-		//todo why wrong ywmet
-		//{"misbehaviour detection: conflicting header", func() {
-		//	clientID := path.EndpointA.ClientID
-		//
-		//	height1 := types.NewHeight(0, 1)
-		//	// store previous consensus state
-		//	prevConsState := &ibctmtypes.ConsensusState{
-		//		Timestamp:          suite.past,
-		//		NextValidatorsHash: suite.chainB.Vals().Hash(IBCHeight),
-		//	}
-		//	suite.chainA.App().GetIBCKeeper().ClientKeeper.SetClientConsensusState(suite.chainA.GetContext(), clientID, height1, prevConsState)
-		//
-		//	height5 := types.NewHeight(0, 5)
-		//	// store next consensus state to check that trustedHeight does not need to be hightest consensus state before header height
-		//	nextConsState := &ibctmtypes.ConsensusState{
-		//		Timestamp:          suite.past.Add(time.Minute),
-		//		NextValidatorsHash: suite.chainB.Vals().Hash(IBCHeight),
-		//	}
-		//	suite.chainA.App().GetIBCKeeper().ClientKeeper.SetClientConsensusState(suite.chainA.GetContext(), clientID, height5, nextConsState)
-		//
-		//	height3 := types.NewHeight(0, 3)
-		//	// updateHeader will fill in consensus state between prevConsState and suite.consState
-		//	// clientState should not be updated
-		//	updateHeader = createPastUpdateFn(height3, height1)
-		//	// set conflicting consensus state in store to create misbehaviour scenario
-		//	conflictConsState := updateHeader.ConsensusState()
-		//	conflictConsState.Root = commitmenttypes.NewMerkleRoot([]byte("conflicting apphash"))
-		//	suite.chainA.App().GetIBCKeeper().ClientKeeper.SetClientConsensusState(suite.chainA.GetContext(), clientID, updateHeader.GetHeight(), conflictConsState)
-		//}, true, true},
-		//{"misbehaviour detection: monotonic time violation", func() {
-		//	clientState := path.EndpointA.GetClientState().(*ibctmtypes.ClientState)
-		//	clientID := path.EndpointA.ClientID
-		//	trustedHeight := clientState.GetLatestHeight().(types.Height)
-		//
-		//	// store intermediate consensus state at a time greater than updateHeader time
-		//	// this will break time monotonicity
-		//	incrementedClientHeight := clientState.GetLatestHeight().Increment().(types.Height)
-		//	intermediateConsState := &ibctmtypes.ConsensusState{
-		//		Timestamp:          suite.coordinator.CurrentTime.Add(2 * time.Hour),
-		//		NextValidatorsHash: suite.chainB.Vals().Hash(IBCHeight),
-		//	}
-		//	suite.chainA.App().GetIBCKeeper().ClientKeeper.SetClientConsensusState(suite.chainA.GetContext(), clientID, incrementedClientHeight, intermediateConsState)
-		//	// set iteration key
-		//	clientStore := suite.keeper.ClientStore(suite.ctx, clientID)
-		//	ibctmtypes.SetIterationKey(clientStore, incrementedClientHeight)
-		//
-		//	clientState.LatestHeight = incrementedClientHeight
-		//	suite.chainA.App().GetIBCKeeper().ClientKeeper.SetClientState(suite.chainA.GetContext(), clientID, clientState)
-		//
-		//	updateHeader = createFutureUpdateFn(trustedHeight)
-		//}, true, true},
 		{"client state not found", func() {
 			updateHeader = createFutureUpdateFn(path.EndpointA.GetClientState().GetLatestHeight().(types.Height))
 

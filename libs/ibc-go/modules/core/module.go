@@ -39,14 +39,7 @@ var (
 )
 
 // AppModuleBasic defines the basic application module used by the ibc module.
-type AppModuleBasic struct {
-	cdc *codec.CodecProxy
-}
-
-func NewAppModuleBasic(cdc *codec.CodecProxy) AppModuleBasic {
-	ret := AppModuleBasic{cdc: cdc}
-	return ret
-}
+type AppModuleBasic struct{}
 
 var _ module.AppModuleBasic = AppModuleBasic{}
 
@@ -113,10 +106,9 @@ type AppModule struct {
 }
 
 // NewAppModule creates a new AppModule object
-func NewAppModule(cdc *codec.CodecProxy, k *keeper.Keeper) AppModule {
+func NewAppModule(k *keeper.Keeper) AppModule {
 	ret := AppModule{
-		AppModuleBasic: NewAppModuleBasic(cdc),
-		keeper:         k,
+		keeper: k,
 	}
 	ret.BaseIBCUpgradeModule = base.NewBaseIBCUpgradeModule(ret)
 	return ret
@@ -172,12 +164,6 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 // no validator updates.
 //func (am AppModule) InitGenesis(ctx sdk.Context, cdc codec.JSONMarshaler, bz json.RawMessage) []abci.ValidatorUpdate {
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	var genState types.GenesisState
-	// Initialize global index to index in genesis state
-	//am.cdc.GetProtocMarshal().MustUnmarshalJSON(data, &genState)
-	am.cdc.GetCdc().MustUnmarshalJSON(data, &genState)
-
-	InitGenesis(ctx, *am.keeper, true, &genState)
 	return nil
 }
 

@@ -14,6 +14,7 @@ import (
 )
 
 func (suite *TendermintTestSuite) TestMisbehaviour() {
+
 	signers := []tmtypes.PrivValidator{suite.privVal}
 	heightMinus1 := clienttypes.NewHeight(0, height.RevisionHeight-1)
 
@@ -167,27 +168,6 @@ func (suite *TendermintTestSuite) TestMisbehaviourValidateBasic() {
 				ClientId: clientID,
 			},
 			func(misbehaviour *types.Misbehaviour) error { return nil },
-			false,
-		},
-		{
-			"header 1 doesn't have 2/3 majority",
-			&types.Misbehaviour{
-				Header1:  suite.chainA.CreateTMClientHeader(chainID, int64(height.RevisionHeight), heightMinus1, suite.now, bothValSet, suite.valSet, bothSigners),
-				Header2:  suite.header,
-				ClientId: clientID,
-			},
-			func(misbehaviour *types.Misbehaviour) error {
-				// voteSet contains only altVal which is less than 2/3 of total power (height/1height)
-				wrongVoteSet := tmtypes.NewVoteSet(chainID, int64(misbehaviour.Header1.GetHeight().GetRevisionHeight()), 1, tmtypes.PrecommitType, altValSet)
-				blockID, err := tmtypes.BlockIDFromProto(&misbehaviour.Header1.Commit.BlockID)
-				if err != nil {
-					return err
-				}
-
-				tmCommit, err := tmtypes.MakeCommit(*blockID, int64(misbehaviour.Header2.GetHeight().GetRevisionHeight()), int(misbehaviour.Header1.Commit.Round), wrongVoteSet, altSigners, suite.now)
-				misbehaviour.Header1.Commit = tmCommit.ToProto()
-				return err
-			},
 			false,
 		},
 		{

@@ -3,7 +3,6 @@ package core
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
@@ -24,8 +23,8 @@ type CoreModule struct {
 }
 
 // NewAppModule creates a new AppModule object
-func NewIBCCOreAppModule(cdc *codec.CodecProxy, k *keeper.Keeper) *CoreModule {
-	a := ibc.NewAppModule(cdc, k)
+func NewIBCCOreAppModule(k *keeper.Keeper) *CoreModule {
+	a := ibc.NewAppModule(k)
 	ret := &CoreModule{
 		AppModule:        a,
 		tkeeper:          k,
@@ -56,6 +55,7 @@ func (am CoreModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.V
 	if err != nil {
 		panic(fmt.Sprintf("failed to unmarshal %s genesis state: %s", host.ModuleName, err))
 	}
+	gs.Params.EnableIbc = true
 	ibc.InitGenesis(ctx, *am.tkeeper, am.tcreateLocalhost, &gs)
 	return []abci.ValidatorUpdate{}
 }

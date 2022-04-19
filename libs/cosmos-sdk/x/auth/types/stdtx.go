@@ -431,23 +431,6 @@ func DefaultTxEncoder(cdc *codec.Codec) sdk.TxEncoder {
 	}
 }
 
-//func IbcTxEncoder() sdk.TxEncoder {
-//	return func(tx sdk.Tx) ([]byte, error) {
-//		txWrapper, ok := tx.(*tx2.Wrapper)
-//		if !ok {
-//			return nil, fmt.Errorf("expected %T, got %T", &wrapper{}, tx)
-//		}
-//
-//		raw := &TxRaw{
-//			BodyBytes:     txWrapper.getBodyBytes(),
-//			AuthInfoBytes: txWrapper.getAuthInfoBytes(),
-//			Signatures:    txWrapper.tx.Signatures,
-//		}
-//
-//		return proto.Marshal(raw)
-//	}
-//}
-
 func EthereumTxEncoder(_ *codec.Codec) sdk.TxEncoder {
 	return func(tx sdk.Tx) ([]byte, error) {
 		return EthereumTxEncode(tx)

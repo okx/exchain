@@ -152,8 +152,6 @@ func TestAppImportExport(t *testing.T) {
 	ctxA := app.NewContext(true, abci.Header{Height: app.LastBlockHeight()})
 	ctxB := newApp.NewContext(true, abci.Header{Height: app.LastBlockHeight()})
 	newApp.mm.InitGenesis(ctxB, genesisState)
-	// todo as app/simulation_test
-	//newApp.StoreConsensusParams(ctxB, exported.ConsensusParams)
 
 	fmt.Printf("comparing stores...\n")
 
@@ -248,8 +246,6 @@ func TestAppSimulationAfterImport(t *testing.T) {
 		require.NoError(t, os.RemoveAll(newDir))
 	}()
 
-	// todo MakeTestEncodingConfig()
-	//	newApp := NewSimApp(log.NewNopLogger(), newDB, nil, true, map[int64]bool{}, DefaultNodeHome, FlagPeriodValue, MakeTestEncodingConfig(), fauxMerkleModeOpt)
 	newApp := NewSimApp(log.NewNopLogger(), newDB, nil, true, map[int64]bool{}, FlagPeriodValue, fauxMerkleModeOpt)
 
 	require.Equal(t, "SimApp", newApp.Name())

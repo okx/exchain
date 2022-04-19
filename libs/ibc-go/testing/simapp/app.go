@@ -456,7 +456,7 @@ func NewSimApp(
 		mint.NewAppModule(app.MintKeeper),
 		slashing.NewAppModule(app.SlashingKeeper, app.AccountKeeper, app.StakingKeeper),
 		distr.NewAppModule(app.DistrKeeper, app.SupplyKeeper),
-		staking.NewAppModule(app.StakingKeeper, app.AccountKeeper, app.SupplyKeeper),
+		staking2.TNewStakingModule(app.StakingKeeper, app.AccountKeeper, app.SupplyKeeper),
 		evidence.NewAppModule(app.EvidenceKeeper),
 		evm.NewAppModule(app.EvmKeeper, &app.AccountKeeper),
 		token.NewAppModule(commonversion.ProtocolVersionV0, app.TokenKeeper, app.SupplyKeeper),
@@ -466,7 +466,8 @@ func NewSimApp(
 		farm.NewAppModule(app.FarmKeeper),
 		params.NewAppModule(app.ParamsKeeper),
 		// ibc
-		ibc.NewAppModule(codecProxy, app.IBCKeeper),
+		//ibc.NewAppModule(app.IBCKeeper),
+		core.NewIBCCOreAppModule(app.IBCKeeper),
 		capabilityModule.NewAppModule(codecProxy, *app.CapabilityKeeper),
 		transferModule,
 		erc20.NewAppModule(app.Erc20Keeper),
@@ -537,7 +538,7 @@ func NewSimApp(
 		distr.NewAppModule(app.DistrKeeper, app.SupplyKeeper),
 		slashing.NewAppModule(app.SlashingKeeper, app.AccountKeeper, app.StakingKeeper),
 		params.NewAppModule(app.ParamsKeeper), // NOTE: only used for simulation to generate randomized param change proposals
-		ibc.NewAppModule(codecProxy, app.IBCKeeper),
+		ibc.NewAppModule(app.IBCKeeper),
 	)
 
 	app.sm.RegisterStoreDecoders()

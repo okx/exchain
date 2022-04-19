@@ -443,7 +443,7 @@ func NewOKExChainApp(
 		farm.NewAppModule(app.FarmKeeper),
 		params.NewAppModule(app.ParamsKeeper),
 		// ibc
-		ibc.NewAppModule(codecProxy, app.IBCKeeper),
+		ibc.NewAppModule(app.IBCKeeper),
 		capabilityModule.NewAppModule(codecProxy, *app.CapabilityKeeper),
 		transferModule,
 		erc20.NewAppModule(app.Erc20Keeper),
@@ -510,7 +510,7 @@ func NewOKExChainApp(
 		distr.NewAppModule(app.DistrKeeper, app.SupplyKeeper),
 		slashing.NewAppModule(app.SlashingKeeper, app.AccountKeeper, app.StakingKeeper),
 		params.NewAppModule(app.ParamsKeeper), // NOTE: only used for simulation to generate randomized param change proposals
-		ibc.NewAppModule(codecProxy, app.IBCKeeper),
+		ibc.NewAppModule(app.IBCKeeper),
 	)
 
 	app.sm.RegisterStoreDecoders()

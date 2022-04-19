@@ -105,7 +105,6 @@ func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs 
 	stakingGenesis := stakingtypes.NewGenesisState(stakingtypes.DefaultParams(), validators, delegations)
 	genesisState[stakingtypes.ModuleName] = app.AppCodec().GetCdc().MustMarshalJSON(stakingGenesis)
 
-	// todo bank genesis state file
 	totalSupply := sdk.NewCoins()
 	for _, b := range balances {
 		//add genesis acc tokens and delegated tokens to total supply

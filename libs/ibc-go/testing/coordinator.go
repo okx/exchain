@@ -203,7 +203,6 @@ func (coord *Coordinator) UpdateNextBlock(chains ...TestChainI) {
 func (coord *Coordinator) CommitNBlocks(chain TestChainI, n uint64) {
 	for i := uint64(0); i < n; i++ {
 		chain.App().BeginBlock(abci.RequestBeginBlock{Header: chain.CurrentHeader()})
-		//todo ywmet
 		chain.App().Commit(abci.RequestCommit{})
 		chain.NextBlock()
 		coord.IncrementTime()

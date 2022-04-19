@@ -281,19 +281,6 @@ func GetTxEncoder(cdc *codec.Codec, options ...Option) (encoder sdk.TxEncoder) {
 	return
 }
 
-//func GetIbcTxEncoder(cdc *codec.CodecProxy, options ...Option) (encoder ibctx.IBCTxEncoder) {
-//	//encoder = sdk.GetConfig().GetTxEncoder()
-//	if encoder == nil {
-//		var cfg txEncoderConfig
-//		for _, op := range options {
-//			op(&cfg)
-//		}
-//		encoder = ibc_tx.IbcTxEncoder()
-//	}
-//
-//	return
-//}
-
 // simulateMsgs simulates the transaction and returns the simulation response and
 // the adjusted gas value.
 func simulateMsgs(txBldr authtypes.TxBuilder, cliCtx context.CLIContext, msgs []sdk.Msg) (sdk.SimulationResponse, uint64, error) {

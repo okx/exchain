@@ -94,10 +94,6 @@ func SetupWithGenesisAccounts(genAccs []authexported.GenesisAccount, balances sd
 		totalSupply = totalSupply.Add(b)
 	}
 
-	// todo rm bank temp
-	//	bankGenesis := banktypes.NewGenesisState(banktypes.DefaultGenesisState().Params, balances, totalSupply, []banktypes.Metadata{})
-	//	genesisState[banktypes.ModuleName] = app.AppCodec().MustMarshalJSON(bankGenesis)
-
 	stateBytes, err := json.MarshalIndent(genesisState, "", " ")
 	if err != nil {
 		panic(err)
@@ -269,7 +265,6 @@ func SignAndDeliver(
 	}
 
 	app.EndBlock(abci.RequestEndBlock{})
-	//todo ywmet nil
 	app.Commit(abci.RequestCommit{})
 
 	return gInfo, res, err

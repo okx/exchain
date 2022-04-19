@@ -85,7 +85,7 @@ func GenTx(gen client.TxConfig, msgs []ibcmsg.Msg, feeAmt sdk.CoinAdapters, gas 
 	if err != nil {
 		panic("construct tx error")
 	}
-	//ywmet todo initial codec
+
 	cdcProxy := newProxyDecoder()
 
 	ibcTx, err := ibc_tx.IbcTxDecoder(cdcProxy.GetProtocMarshal())(txBytes)

@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/types"
 	"os"
 	"runtime"
 	"strconv"
@@ -23,7 +22,6 @@ var testFuzzIterations int
 var random *cmn.Rand
 
 func SetupTest() {
-	types.EnableVeneus1Feature()
 	random = cmn.NewRand()
 	random.Seed(0) // for determinism
 	flag.BoolVar(&testLevelDB, "test.leveldb", false, "test leveldb backend")

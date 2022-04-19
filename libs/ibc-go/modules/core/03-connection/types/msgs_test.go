@@ -58,7 +58,7 @@ func (suite *MsgTestSuite) SetupTest() {
 	iavlStore := store.GetCommitStore(storeKey).(*iavl.Store)
 
 	iavlStore.Set([]byte("KEY"), []byte("VALUE"))
-	//todo ywmet
+
 	store.CommitterCommitMap(nil)
 
 	res := store.Query(abci.RequestQuery{

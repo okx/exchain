@@ -5,13 +5,19 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	types2 "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/staking/keeper"
 	"github.com/okex/exchain/x/staking/types"
+	"time"
 )
 
 type StakingKeeper struct {
 	keeper.Keeper
+}
+
+func (k StakingKeeper) UnbondingTime(ctx sdk.Context) (res time.Duration) {
+	return types2.DefaultUnbondingTime
 }
 
 // NewKeeper creates a new staking Keeper instance
@@ -46,6 +52,7 @@ type TestParams struct {
 
 func newTestParams() *TestParams {
 	p := types.DefaultParams()
+	p.UnbondingTime = types2.DefaultUnbondingTime
 	ret := &TestParams{
 		Params: &p,
 	}

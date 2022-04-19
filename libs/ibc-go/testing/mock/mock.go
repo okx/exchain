@@ -57,7 +57,6 @@ type PortKeeper interface {
 type AppModuleBasic struct{}
 
 func (a AppModuleBasic) RegisterCodec(c *codec.Codec) {
-	//TODO implement me
 	return
 }
 
@@ -107,12 +106,10 @@ type AppModule struct {
 }
 
 func (am AppModule) NewHandler() sdk.Handler {
-	//TODO implement me
 	return nil
 }
 
 func (am AppModule) NewQuerierHandler() sdk.Querier {
-	//TODO implement me
 	return nil
 }
 
