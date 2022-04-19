@@ -90,33 +90,6 @@ func (w *Watcher) extractEvmTx(sdkTx sdk.Tx) (*types.MsgEthereumTx, error) {
 	return evmTx, nil
 }
 
-func (w *Watcher) saveTxAndReceiptEx(msg *types.MsgEthereumTx, txHash ethcmn.Hash, index uint64,
-	receiptStatus uint32, data *types.ResultData, gasUsed uint64) {
-
-	wMsg := NewMsgEthTx(msg, txHash, w.blockHash, w.height, index)
-	txReceipt := newTransactionReceipt(receiptStatus, msg, txHash, w.blockHash, index, w.height, data, gasUsed)
-	select {
-	case w.txResultChan <- TxResult{
-		TxMsg:     wMsg,
-		TxReceipt: txReceipt,
-		Index:     index,
-		TxHash:    txHash,
-		GasUsed:   gasUsed,
-	}:
-	default:
-		w.log.Error("save to tx too busy.")
-		go func() {
-			w.txResultChan <- TxResult{
-				TxMsg:     wMsg,
-				TxReceipt: txReceipt,
-				Index:     index,
-				TxHash:    txHash,
-				GasUsed:   gasUsed,
-			}
-		}()
-	}
-}
-
 func (w *Watcher) saveTxAndReceipt(msg *types.MsgEthereumTx, txHash ethcmn.Hash, index uint64,
 	receiptStatus uint32, data *types.ResultData, gasUsed uint64) {
 	w.txsMutex.Lock()
@@ -130,5 +103,5 @@ func (w *Watcher) saveTxAndReceipt(msg *types.MsgEthereumTx, txHash ethcmn.Hash,
 	if txReceipt != nil {
 		w.txReceipts = append(w.txReceipts, txReceipt)
 	}
-	w.txsCollector = append(w.txsCollector, TxInfo{TxHash: txHash, Index: index, GasUsed: gasUsed})
+	w.txInfoCollector = append(w.txInfoCollector, TxInfo{TxHash: txHash, Index: index, GasUsed: gasUsed})
 }

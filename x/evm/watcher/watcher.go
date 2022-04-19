@@ -43,16 +43,13 @@ type Watcher struct {
 	jobChan chan func()
 
 	// for async record tx and receipt
-	txsMutex sync.Mutex
-
-	txsResult         []WatchMessage
+	txsMutex          sync.Mutex
+	txChan            chan func()
+	txIndexInBlock    uint64
+	recordingTxsCount int64
 	txs               []WatchMessage
 	txReceipts        []*TransactionReceipt
-	recordingTxsCount int64
-	txIndexInBlock    uint64
-	txChan            chan func()
-	txsCollector      []TxInfo
-	txResultChan      chan TxResult
+	txInfoCollector   []TxInfo
 }
 
 var (
@@ -118,9 +115,8 @@ func (w *Watcher) clean() {
 	w.cumulativeGas = make(map[uint64]uint64)
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
-	w.txsCollector = []TxInfo{}
+	w.txInfoCollector = []TxInfo{}
 	w.txs = []WatchMessage{}
-	w.txsResult = []WatchMessage{}
 	w.txReceipts = []*TransactionReceipt{}
 	w.wdDelayKey = w.delayEraseKey
 	w.delayEraseKey = make([][]byte, 0)
@@ -504,7 +500,6 @@ func (w *Watcher) UseWatchData(watchData interface{}) {
 func (w *Watcher) SetWatchDataFunc() {
 	go w.jobRoutine()
 	w.txRoutine()
-	go w.txResultRoutine()
 	tmstate.SetWatchDataFunc(w.GetWatchDataFunc, w.UnmarshalWatchData, w.UseWatchData)
 }
 

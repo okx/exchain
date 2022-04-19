@@ -6,10 +6,6 @@ import (
 	"sort"
 )
 
-const (
-	DefaultTxResultChanBuffer = 20
-)
-
 type TxInfo struct {
 	TxHash  ethcmn.Hash
 	Index   uint64
@@ -17,10 +13,10 @@ type TxInfo struct {
 }
 
 func (w *Watcher) addTxsToBlock() {
-	sort.Slice(w.txsCollector, func(i, j int) bool {
-		return w.txsCollector[i].Index < w.txsCollector[j].Index
+	sort.Slice(w.txInfoCollector, func(i, j int) bool {
+		return w.txInfoCollector[i].Index < w.txInfoCollector[j].Index
 	})
-	for _, txInfo := range w.txsCollector {
+	for _, txInfo := range w.txInfoCollector {
 		w.blockTxs = append(w.blockTxs, txInfo.TxHash)
 		w.updateCumulativeGas(txInfo.Index, txInfo.GasUsed)
 	}
@@ -31,28 +27,5 @@ func (w *Watcher) addTxsToBlock() {
 	for _, receipt := range w.txReceipts {
 		receipt.CumulativeGasUsed = hexutil.Uint64(w.cumulativeGas[uint64(receipt.TransactionIndex)])
 		w.batch = append(w.batch, &MsgTransactionReceipt{txHash: receipt.TxHash.Bytes(), baseLazyMarshal: newBaseLazyMarshal(receipt)})
-	}
-}
-
-type TxResult struct {
-	TxMsg     WatchMessage
-	TxReceipt *TransactionReceipt
-	TxHash    ethcmn.Hash
-	Index     uint64
-	GasUsed   uint64
-}
-
-func (w *Watcher) txResultRoutine() {
-	w.txResultChan = make(chan TxResult, DefaultTxResultChanBuffer)
-
-	for result := range w.txResultChan {
-		if result.TxMsg != nil {
-			w.txs = append(w.txs, result.TxMsg)
-		}
-
-		if result.TxReceipt != nil {
-			w.txReceipts = append(w.txReceipts, result.TxReceipt)
-		}
-		w.txsCollector = append(w.txsCollector, TxInfo{})
 	}
 }
