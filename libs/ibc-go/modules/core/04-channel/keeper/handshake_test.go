@@ -359,6 +359,8 @@ func (suite *KeeperTestSuite) TestChanOpenAck() {
 			channel := path.EndpointA.GetChannel()
 			channel.ConnectionHops[0] = "doesnotexist"
 			suite.chainA.App().GetIBCKeeper().ChannelKeeper.SetChannel(suite.chainA.GetContext(), path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, channel)
+			suite.coordinator.CommitBlock(suite.chainA)
+			suite.coordinator.CommitBlock(suite.chainB)
 		}, false},
 		{"connection is not OPEN", func() {
 			suite.coordinator.SetupClients(path)
