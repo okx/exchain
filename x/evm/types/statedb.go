@@ -242,17 +242,16 @@ func (csdb *CommitStateDB) SetHeightHash(height uint64, hash ethcmn.Hash) {
 		defer analyzer.StopTxLog(funcName)
 	}
 
-	var store StoreProxy
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		store = csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.store2Key), KeyPrefixHeightHash)
-	} else {
-		store = csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
+		csdb.setHeightHashInRawDB(height, hash)
+		return
 	}
 
+	store := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
 	key := HeightHashKey(height)
 	store.Set(key, hash.Bytes())
-	if mpt.EnableDoubleWrite && !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		csdb.dbAdapter.NewStore(csdb.ctx.MultiStore().GetKVStore(csdb.store2Key), KeyPrefixHeightHash).Set(key, hash.Bytes())
+	if mpt.EnableDoubleWrite {
+		csdb.setHeightHashInRawDB(height, hash)
 	}
 }
 
@@ -515,13 +514,11 @@ func (csdb *CommitStateDB) SlotInAccessList(addr ethcmn.Address, slot ethcmn.Has
 
 // GetHeightHash returns the block header hash associated with a given block height and chain epoch number.
 func (csdb *CommitStateDB) GetHeightHash(height uint64) ethcmn.Hash {
-	var store StoreProxy
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		store = csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.store2Key), KeyPrefixHeightHash)
-	} else {
-		store = csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
+		return csdb.getHeightHashInRawDB(height)
 	}
 
+	store := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
 	key := HeightHashKey(height)
 	bz := store.Get(key)
 	if len(bz) == 0 {

@@ -1,6 +1,7 @@
 package mpt
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"log"
@@ -75,78 +76,43 @@ func migrateEvmFroMptToIavl(ctx *server.Context) {
 	fmt.Println("evmTrie root hash:", evmTrie.Hash(), ", height:", height)
 
 	appDb := openApplicationDb(ctx.Config.RootDir)
-	prefixDb := dbm.NewPrefixDB(appDb, []byte(iavlEvmKey))
-	defer prefixDb.Close()
+	originPrefixDb := dbm.NewPrefixDB(appDb, []byte(iavlEvmKey))
+	originTree, err := iavl.NewMutableTreeWithOpts(originPrefixDb, iavlstore.IavlCacheSize, &iavl.Options{InitialVersion: height - 1})
+	panicError(err)
 
-	tree, err := iavl.NewMutableTreeWithOpts(prefixDb, iavlstore.IavlCacheSize, &iavl.Options{InitialVersion: height - 1})
-	if err != nil {
-		panic("fail to create iavl tree: " + err.Error())
-	}
+	upgradedPrefixDb := dbm.NewPrefixDB(appDb, []byte(iavlEvm2Key))
+	upgradedTree, err := iavl.NewMutableTreeWithOpts(upgradedPrefixDb, iavlstore.IavlCacheSize, &iavl.Options{InitialVersion: height - 1})
+	panicError(err)
+	v, err := upgradedTree.LoadVersion(0)
+	panicError(err)
+	fmt.Println("upgradedTree verison:", v)
 
-	// 1.migrate rawdb's data to iavl
-	/*  ChainConfig              -> rawdb
-	 *  BlockHash = HeightHash   -> rawdb
-	 *  Bloom                    -> rawdb
-	 *  Code                     -> rawdb
+	// 1. migrate data from evm2 store to  evm store
+	/*
+	 * ChainConfig
+	 * ContractDeploymentWhitelist、ContractBlockedList
 	 */
+	migrateFromUpgradIavlToOriginIavl(upgradedTree, originTree)
+
+	// 2. migrate BlockHash、HeightHash、Bloom、Code from rawdb to iavl
 	diskdb := evmMptDb.TrieDB().DiskDB()
-	// 1.1 set ChainConfig back to iavl
-	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixChainConfig, nil), evmtypes.IsChainConfigKey)
-	// 1.2 set BlockHash/HeightHash back to iavl
-	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixBlockHash, nil), evmtypes.IsBlockHashKey)
-	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixHeightHash, nil), evmtypes.IsHeightHashKey)
-	// 1.3 set Bloom back to iavl
-	iterateDiskDbToSetTree(tree, diskdb.NewIterator(evmtypes.KeyPrefixBloom, nil), evmtypes.IsBloomKey)
-	// 2.1 set white、blocked addresses back to iavl
-	for dIter := diskdb.NewIterator(evmtypes.UpgradedKeyPrefixContractDeploymentWhitelist, nil); dIter.Next(); {
-		if !evmtypes.IsUpgradedContractDeploymentWhitelistKey(dIter.Key()) {
-			continue
-		}
-		address := evmtypes.SplitUpgradedContractDeploymentWhitelistKey(dIter.Key())
-		k, v := deepCopyKV(evmtypes.GetContractDeploymentWhitelistMemberKey(address), dIter.Value())
-		tree.Set(k, v)
-	}
-	for dIter := diskdb.NewIterator(evmtypes.UpgradedKeyPrefixContractBlockedList, nil); dIter.Next(); {
-		if !evmtypes.IsUpgradedContractBlockedListKey(dIter.Key()) {
-			continue
-		}
-		address := evmtypes.SplitUpgradedContractBlockedListKey(dIter.Key())
-		k, v := deepCopyKV(evmtypes.GetContractBlockedListMemberKey(address), dIter.Value())
-		tree.Set(k, v)
-	}
-	// 2.2 set Code back to iavl
-	for dIter := diskdb.NewIterator(evmtypes.UpgradedKeyPrefixCode, nil); dIter.Next(); {
-		if !evmtypes.IsCodeHashKey(dIter.Key()) {
-			continue
-		}
-		codeHash := evmtypes.SplitCodeHashKey(dIter.Key())
-		k, v := deepCopyKV(append(evmtypes.KeyPrefixCode, codeHash...), dIter.Value())
-		tree.Set(k, v)
-	}
+	// 2.1 set BlockHash/HeightHash to iavl
+	migrateFromRawdbToOriginIavl(originTree, diskdb.NewIterator(evmtypes.KeyPrefixBlockHash, nil), evmtypes.IsBlockHashKey, nil)
+	migrateFromRawdbToOriginIavl(originTree, diskdb.NewIterator(evmtypes.KeyPrefixHeightHash, nil), evmtypes.IsHeightHashKey, nil)
+	// 2.2 set Bloom to iavl
+	migrateFromRawdbToOriginIavl(originTree, diskdb.NewIterator(evmtypes.KeyPrefixBloom, nil), evmtypes.IsBloomKey, nil)
+	// 2.3 set Codeto iavl
+	migrateFromRawdbToOriginIavl(originTree, diskdb.NewIterator(evmtypes.UpgradedKeyPrefixCode, nil), evmtypes.IsCodeHashKey,
+		func(key []byte) []byte {
+			codeHash := evmtypes.SplitUpgradedCodeHashKey(key)
+			return append(evmtypes.KeyPrefixCode, codeHash...)
+		})
 
-	// 3.migrate state data to iavl
-	var stateRoot ethcmn.Hash
-	itr := trie.NewIterator(evmTrie.NodeIterator(nil))
-	for itr.Next() {
-		addr := ethcmn.BytesToAddress(evmTrie.GetKey(itr.Key))
-		stateRoot.SetBytes(itr.Value)
-		// 3.1 get solo contract mpt
-		contractTrie := getStorageTrie(evmMptDb, ethcrypto.Keccak256Hash(addr[:]), stateRoot)
-
-		cItr := trie.NewIterator(contractTrie.NodeIterator(nil))
-		for cItr.Next() {
-			originKey := contractTrie.GetKey(cItr.Key)
-			key := append(evmtypes.AddressStoragePrefix(addr), originKey...)
-			var value []byte
-			if err := rlp.DecodeBytes(cItr.Value, &value); err != nil {
-				panic(err)
-			}
-			tree.Set(key, ethcmn.BytesToHash(value).Bytes())
-		}
-	}
-	_, _, _, err = tree.SaveVersion(false)
+	// 3. migrate storage from mpt to iavl
+	migrateStorageFromMptToOriginIavl(evmTrie, evmMptDb, originTree)
+	_, _, _, err = originTree.SaveVersion(false)
 	if err != nil {
-		fmt.Println("fail to migrate evm mpt data to iavl: ", err)
+		fmt.Println("fail to save data in evm store: ", err)
 	}
 }
 
@@ -170,12 +136,26 @@ func openLatestTrie(db ethstate.Database, isEvm bool) (ethstate.Trie, uint64) {
 	return t, binary.BigEndian.Uint64(heightBytes)
 }
 
-func iterateDiskDbToSetTree(tree *iavl.MutableTree, dIter ethdb.Iterator, isValid func(key []byte) bool) {
+func migrateFromUpgradIavlToOriginIavl(upgradedTree *iavl.MutableTree, originTree *iavl.MutableTree) {
+	upgradedTree.Iterate(func(key, value []byte) bool {
+		if !bytes.Equal(key, evmtypes.KeyPrefixEvmRootHash) {
+			originTree.Set(key, value)
+		}
+		return false
+	})
+}
+
+func migrateFromRawdbToOriginIavl(tree *iavl.MutableTree, dIter ethdb.Iterator,
+	isValid func(key []byte) bool,
+	originKey func(key []byte) []byte) {
 	defer dIter.Release()
 	for dIter.Next() {
 		key, value := dIter.Key(), dIter.Value()
 		if !isValid(key) {
 			continue
+		}
+		if originKey != nil {
+			key = originKey(key)
 		}
 		k, v := deepCopyKV(key, value)
 		tree.Set(k, v)
@@ -187,4 +167,25 @@ func deepCopyKV(key []byte, value []byte) ([]byte, []byte) {
 	copy(k, key)
 	copy(v, value)
 	return k, v
+}
+
+func migrateStorageFromMptToOriginIavl(evmTrie ethstate.Trie, evmMptDb ethstate.Database, originTree *iavl.MutableTree) {
+	var stateRoot ethcmn.Hash
+	for itr := trie.NewIterator(evmTrie.NodeIterator(nil)); itr.Next(); {
+		addr := ethcmn.BytesToAddress(evmTrie.GetKey(itr.Key))
+		stateRoot.SetBytes(itr.Value)
+		// 3.1 get solo contract mpt
+		contractTrie := getStorageTrie(evmMptDb, ethcrypto.Keccak256Hash(addr[:]), stateRoot)
+
+		cItr := trie.NewIterator(contractTrie.NodeIterator(nil))
+		for cItr.Next() {
+			originKey := contractTrie.GetKey(cItr.Key)
+			key := append(evmtypes.AddressStoragePrefix(addr), originKey...)
+			var value []byte
+			if err := rlp.DecodeBytes(cItr.Value, &value); err != nil {
+				panic(err)
+			}
+			originTree.Set(key, ethcmn.BytesToHash(value).Bytes())
+		}
+	}
 }
