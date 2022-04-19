@@ -57,8 +57,8 @@ func (suite *TransferTestSuite) TestHandleMsgTransfer() {
 	timeoutHeight := clienttypes.NewHeight(0, 110)
 
 	amount, ok := sdk.NewIntFromString("92233720368547758080") // 2^63 (one above int64)
-	transferAmountDec := sdk.NewDecFromIntWithPrec(amount, 0)
 	suite.Require().True(ok)
+	transferAmountDec := sdk.NewDecFromIntWithPrec(amount, 0)
 	coinToSendToB := sdk.NewCoin(sdk.DefaultBondDenom, amount)
 
 	// send from chainA to chainB

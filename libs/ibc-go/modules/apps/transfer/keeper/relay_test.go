@@ -2,12 +2,9 @@ package keeper_test
 
 import (
 	"fmt"
-	"testing"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp"
-
-	"github.com/stretchr/testify/suite"
 
 	// sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
@@ -21,9 +18,10 @@ import (
 // chainA and coin that orignate on chainB
 func (suite *KeeperTestSuite) TestSendTransfer() {
 	var (
-		amount sdk.Coin
-		path   *ibctesting.Path
-		err    error
+		amount            sdk.Coin
+		path              *ibctesting.Path
+		err               error
+		transferAmountDec sdk.Dec
 	)
 
 	testCases := []struct {
@@ -35,6 +33,7 @@ func (suite *KeeperTestSuite) TestSendTransfer() {
 		{"successful transfer from source chain",
 			func() {
 				suite.coordinator.CreateTransferChannels(path)
+				transferAmountDec = sdk.NewDecFromIntWithPrec(sdk.NewInt(100), 0)
 				amount = sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100))
 			}, true, true},
 		{"successful transfer with coin from counterparty chain",
@@ -42,6 +41,7 @@ func (suite *KeeperTestSuite) TestSendTransfer() {
 				// send coin from chainA back to chainB
 				suite.coordinator.CreateTransferChannels(path)
 				amount = types.GetTransferCoin(path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, sdk.DefaultBondDenom, 100)
+				transferAmountDec = sdk.NewDecFromIntWithPrec(sdk.NewInt(100), 0)
 			}, false, true},
 		{"source channel not found",
 			func() {
@@ -49,6 +49,7 @@ func (suite *KeeperTestSuite) TestSendTransfer() {
 				suite.coordinator.CreateTransferChannels(path)
 				path.EndpointA.ChannelID = ibctesting.InvalidID
 				amount = sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100))
+				transferAmountDec = sdk.NewDecFromIntWithPrec(sdk.NewInt(100), 0)
 			}, true, false},
 		{"next seq send not found",
 			func() {
@@ -62,6 +63,7 @@ func (suite *KeeperTestSuite) TestSendTransfer() {
 				)
 				suite.chainA.CreateChannelCapability(suite.chainA.GetSimApp().ScopedIBCMockKeeper, path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID)
 				amount = sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100))
+				transferAmountDec = sdk.NewDecFromIntWithPrec(sdk.NewInt(100), 0)
 			}, true, false},
 
 		// createOutgoingPacket tests
@@ -108,7 +110,7 @@ func (suite *KeeperTestSuite) TestSendTransfer() {
 				suite.Require().NoError(err) // message committed
 
 				// receive coin on chainA from chainB
-				fungibleTokenPacket := types.NewFungibleTokenPacketData(coinFromBToA.Denom, coinFromBToA.Amount.String(), suite.chainB.SenderAccount().GetAddress().String(), suite.chainA.SenderAccount().GetAddress().String())
+				fungibleTokenPacket := types.NewFungibleTokenPacketData(coinFromBToA.Denom, transferAmountDec.BigInt().String(), suite.chainB.SenderAccount().GetAddress().String(), suite.chainA.SenderAccount().GetAddress().String())
 				packet := channeltypes.NewPacket(fungibleTokenPacket.GetBytes(), 1, path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, clienttypes.NewHeight(0, 110), 0)
 
 				// get proof of packet commitment from chainB
@@ -142,9 +144,10 @@ func (suite *KeeperTestSuite) TestSendTransfer() {
 // malleate function allows for testing invalid cases.
 func (suite *KeeperTestSuite) TestOnRecvPacket() {
 	var (
-		trace    types.DenomTrace
-		amount   sdk.Int
-		receiver string
+		trace             types.DenomTrace
+		amount            sdk.Int
+		transferAmountDec sdk.Dec
+		receiver          string
 	)
 
 	testCases := []struct {
@@ -158,6 +161,8 @@ func (suite *KeeperTestSuite) TestOnRecvPacket() {
 		{"empty coin", func() {
 			trace = types.DenomTrace{}
 			amount = sdk.ZeroInt()
+			transferAmountDec = sdk.NewDecFromIntWithPrec(amount, 0)
+
 		}, true, false},
 		{"invalid receiver address", func() {
 			receiver = "gaia1scqhwpgsmr6vmztaa7suurfl52my6nd2kmrudl"
@@ -167,11 +172,13 @@ func (suite *KeeperTestSuite) TestOnRecvPacket() {
 		// - coin from chain chainA
 		{"failure: mint zero coin", func() {
 			amount = sdk.ZeroInt()
+			transferAmountDec = sdk.NewDecFromIntWithPrec(amount, 0)
 		}, false, false},
 
 		// - coin being sent back to original chain (chainB)
 		{"tries to unescrow more tokens than allowed", func() {
 			amount = sdk.NewInt(1000000)
+			transferAmountDec = sdk.NewDecFromIntWithPrec(amount, 0)
 		}, true, false},
 	}
 
@@ -186,7 +193,7 @@ func (suite *KeeperTestSuite) TestOnRecvPacket() {
 			receiver = suite.chainB.SenderAccount().GetAddress().String() // must be explicitly changed in malleate
 
 			amount = sdk.NewInt(100) // must be explicitly changed in malleate
-			transferAmountDec := sdk.NewDecFromIntWithPrec(amount, 0)
+			transferAmountDec = sdk.NewDecFromIntWithPrec(amount, 0)
 			seq := uint64(1)
 
 			if tc.recvIsSource {
@@ -400,7 +407,4 @@ func (suite *KeeperTestSuite) TestOnTimeoutPacket() {
 			}
 		})
 	}
-}
-func TestKeeperTestSuite2(t *testing.T) {
-	suite.Run(t, new(KeeperTestSuite))
 }
