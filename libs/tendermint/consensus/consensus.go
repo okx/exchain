@@ -498,7 +498,7 @@ func (cs *State) updateRoundStep(round int, step cstypes.RoundStepType) {
 
 // enterNewRound(height, 0) at cs.StartTime.
 func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
-	overDuration := tmtime.Now().Sub(cs.R0PrevoteTime)
+	overDuration := tmtime.Now().Sub(cs.StartTime)
 	sleepDuration := cs.config.TimeoutCommit - overDuration
 	if sleepDuration < 0 {
 		sleepDuration = 0
@@ -618,6 +618,10 @@ func (cs *State) updateToState(state sm.State) {
 	cs.LastValidators = state.LastValidators
 	cs.TriggeredTimeoutPrecommit = false
 	cs.state = state
+	// cs.Height has been update
+	if cs.vcMsg != nil && cs.Height > cs.vcMsg.Height {
+		cs.vcMsg = nil
+	}
 
 	// Finally, broadcast RoundState
 	cs.newStep()
@@ -935,7 +939,9 @@ func (cs *State) enterNewRound(height int64, round int) {
 		cs.ProposalBlock = nil
 		cs.ProposalBlockParts = nil
 	}
+
 	cs.Votes.SetRound(round + 1) // also track next round (round+1) to allow round-skipping
+
 	cs.TriggeredTimeoutPrecommit = false
 
 	cs.eventBus.PublishEventNewRound(cs.NewRoundEvent())
@@ -1235,10 +1241,6 @@ func (cs *State) enterPrevote(height int64, round int) {
 		return
 	}
 	cs.trc.Pin("Prevote-%d", round)
-
-	if round == 0 {
-		cs.R0PrevoteTime = tmtime.Now()
-	}
 
 	defer func() {
 		// Done enterPrevote:
