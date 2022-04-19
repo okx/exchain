@@ -7,7 +7,7 @@ import (
 func (suite *WatcherTestSuite) TestWatcher_addTxsToBlock() {
 	const txsCount = 10
 	for i := txsCount; i > 0; i-- {
-		suite.watcher.txsInBlock = append(suite.watcher.txsInBlock, TxInfo{TxHash: ethcmn.Hash{byte(i)}, Index: uint64(i)})
+		suite.watcher.txsCollector = append(suite.watcher.txsCollector, TxInfo{TxHash: ethcmn.Hash{byte(i)}, Index: uint64(i)})
 	}
 	suite.watcher.addTxsToBlock()
 	suite.Equal(ethcmn.Hash{byte(1)}, suite.watcher.blockTxs[0])

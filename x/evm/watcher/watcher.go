@@ -42,15 +42,17 @@ type Watcher struct {
 
 	jobChan chan func()
 
-	// for async parse deliver tx
-	txs              []WatchMessage
-	txReceipts       []*TransactionReceipt
-	recordedTxsCount int64
-	txIndexInBlock   uint64
-	txChan           chan func()
-	txMutex          sync.Mutex
-	txsInBlock       []TxInfo
-	txResultChan     chan TxResult
+	// for async record tx and receipt
+	txsMutex sync.Mutex
+
+	txsResult         []WatchMessage
+	txs               []WatchMessage
+	txReceipts        []*TransactionReceipt
+	recordingTxsCount int64
+	txIndexInBlock    uint64
+	txChan            chan func()
+	txsCollector      []TxInfo
+	txResultChan      chan TxResult
 }
 
 var (
@@ -108,7 +110,7 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	// ResetTransferWatchData
 	w.watchData = &WatchData{}
 	w.wdDelayKey = make([][]byte, 0)
-	w.recordedTxsCount = 0
+	w.recordingTxsCount = 0
 	w.txIndexInBlock = 0
 }
 
@@ -116,8 +118,9 @@ func (w *Watcher) clean() {
 	w.cumulativeGas = make(map[uint64]uint64)
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
-	w.txsInBlock = []TxInfo{}
+	w.txsCollector = []TxInfo{}
 	w.txs = []WatchMessage{}
+	w.txsResult = []WatchMessage{}
 	w.txReceipts = []*TransactionReceipt{}
 	w.wdDelayKey = w.delayEraseKey
 	w.delayEraseKey = make([][]byte, 0)
@@ -220,7 +223,7 @@ func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
 	if !w.Enabled() {
 		return
 	}
-	for atomic.LoadInt64(&w.recordedTxsCount) != 0 {
+	for atomic.LoadInt64(&w.recordingTxsCount) != 0 {
 	}
 
 	w.addTxsToBlock()

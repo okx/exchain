@@ -17,16 +17,17 @@ type TxInfo struct {
 }
 
 func (w *Watcher) addTxsToBlock() {
-	sort.Slice(w.txsInBlock, func(i, j int) bool {
-		return w.txsInBlock[i].Index < w.txsInBlock[j].Index
+	sort.Slice(w.txsCollector, func(i, j int) bool {
+		return w.txsCollector[i].Index < w.txsCollector[j].Index
 	})
-	sort.Slice(w.txReceipts, func(i, j int) bool {
-		return w.txReceipts[i].TransactionIndex < w.txReceipts[j].TransactionIndex
-	})
-	for _, txInfo := range w.txsInBlock {
+	for _, txInfo := range w.txsCollector {
 		w.blockTxs = append(w.blockTxs, txInfo.TxHash)
 		w.updateCumulativeGas(txInfo.Index, txInfo.GasUsed)
 	}
+
+	sort.Slice(w.txReceipts, func(i, j int) bool {
+		return w.txReceipts[i].TransactionIndex < w.txReceipts[j].TransactionIndex
+	})
 	for _, receipt := range w.txReceipts {
 		receipt.CumulativeGasUsed = hexutil.Uint64(w.cumulativeGas[uint64(receipt.TransactionIndex)])
 		w.batch = append(w.batch, &MsgTransactionReceipt{txHash: receipt.TxHash.Bytes(), baseLazyMarshal: newBaseLazyMarshal(receipt)})
@@ -36,9 +37,9 @@ func (w *Watcher) addTxsToBlock() {
 type TxResult struct {
 	TxMsg     WatchMessage
 	TxReceipt *TransactionReceipt
+	TxHash    ethcmn.Hash
 	Index     uint64
 	GasUsed   uint64
-	TxHash    ethcmn.Hash
 }
 
 func (w *Watcher) txResultRoutine() {
@@ -48,9 +49,10 @@ func (w *Watcher) txResultRoutine() {
 		if result.TxMsg != nil {
 			w.txs = append(w.txs, result.TxMsg)
 		}
+
 		if result.TxReceipt != nil {
 			w.txReceipts = append(w.txReceipts, result.TxReceipt)
 		}
-		w.txsInBlock = append(w.txsInBlock, TxInfo{TxHash: result.TxHash, Index: result.Index, GasUsed: result.GasUsed})
+		w.txsCollector = append(w.txsCollector, TxInfo{})
 	}
 }
