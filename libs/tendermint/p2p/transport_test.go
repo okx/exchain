@@ -324,7 +324,7 @@ func TestTransportMultiplexAcceptNonBlocking(t *testing.T) {
 			errc <- err
 			return
 		}
-
+		time.Sleep(2 * time.Second)
 		close(errc)
 		close(fastc)
 	}()
