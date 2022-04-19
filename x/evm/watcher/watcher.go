@@ -221,7 +221,7 @@ func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
 	for atomic.LoadInt64(&w.recordedTxsCount) != 0 {
 	}
 
-	w.addTxsToBlock()
+	// w.addTxsToBlock()
 	w.batch = append(w.batch, w.txsAndReceipts...)
 
 	wMsg := NewMsgBlock(w.height, bloom, w.blockHash, w.header, uint64(0xffffffff), big.NewInt(int64(w.gasUsed)), w.blockTxs)
