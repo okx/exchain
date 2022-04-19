@@ -734,19 +734,22 @@ func (cs *State) handleMsg(mi msgInfo) {
 	case *ViewChangeMessage:
 		//cs.Logger.Error("handle vcMsg", "height", msg.Height)
 		if ActiveViewChange {
+			// use peerID as flag
 			if peerID == "" {
 				// ApplyBlock of height-1 is not finished
 				// RoundStepNewHeight enterNewHeight use msg.val
 				cs.vcMsg = msg
 			} else {
 				// ApplyBlock of height-1 is finished
-				if cs.Round == 0 && (cs.Step == cstypes.RoundStepNewRound || cs.Step == cstypes.RoundStepPropose) {
-					// has enterNewHeight, and vc immediately
-					_, val := cs.Validators.GetByAddress(msg.NewProposer)
-					cs.enterNewRoundWithVal(cs.Height, 0, val)
-				} else {
-					// at waiting of height-1, and enterNewHeight use msg.val
-					cs.vcMsg = msg
+				if cs.Round == 0 {
+					if cs.Step == cstypes.RoundStepNewRound || cs.Step == cstypes.RoundStepPropose {
+						// has enterNewHeight, and vc immediately
+						_, val := cs.Validators.GetByAddress(msg.NewProposer)
+						cs.enterNewRoundWithVal(cs.Height, 0, val)
+					} else if cs.Step == cstypes.RoundStepNewHeight {
+						// at waiting of height-1, and enterNewHeight use msg.val
+						cs.vcMsg = msg
+					}
 				}
 			}
 		}
