@@ -112,12 +112,13 @@ func (c *Cache) UpdateAccount(addr AccAddress, acc Account, lenBytes int, isDirt
 		return
 	}
 	ethAddr := ethcmn.BytesToAddress(addr.Bytes())
-	c.accMutex.Lock()
-	c.accMap[ethAddr] = &accountWithCache{
+	accWithCache := &accountWithCache{
 		acc:     acc,
 		isDirty: isDirty,
 		gas:     types.Gas(lenBytes)*c.gasConfig.ReadCostPerByte + c.gasConfig.ReadCostFlat,
 	}
+	c.accMutex.Lock()
+	c.accMap[ethAddr] = accWithCache
 	c.accMutex.Unlock()
 }
 
