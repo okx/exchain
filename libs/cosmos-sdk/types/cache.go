@@ -46,8 +46,8 @@ type storageWithCache struct {
 }
 
 type accountWithCache struct {
-	acc Account
-	gas uint64
+	acc     Account
+	gas     uint64
 	isDirty bool
 }
 
@@ -93,7 +93,7 @@ func NewCache(parent *Cache, useCache bool) *Cache {
 		parent:   parent,
 
 		storageMap: make(map[ethcmn.Address]map[ethcmn.Hash]*storageWithCache, 0),
-		accMap:     make(map[ethcmn.Address]*accountWithCache, 0),
+		accMap:     make(map[ethcmn.Address]*accountWithCache),
 		codeMap:    make(map[ethcmn.Hash]*codeWithCache),
 		gasConfig:  types.KVGasConfig(),
 	}
