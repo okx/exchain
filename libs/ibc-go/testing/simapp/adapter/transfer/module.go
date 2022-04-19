@@ -72,5 +72,6 @@ func (am TransferModule) exportGenesis(ctx sdk.Context) json.RawMessage {
 func (am TransferModule) DefaultGenesis() json.RawMessage {
 	state := types.DefaultGenesisState()
 	state.Params.SendEnabled = true
+	state.Params.ReceiveEnabled = true
 	return adapter.ModuleCdc.MustMarshalJSON(state)
 }
