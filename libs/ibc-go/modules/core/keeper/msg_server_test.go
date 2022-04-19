@@ -1,7 +1,6 @@
 package keeper_test
 
 import (
-	"github.com/okex/exchain/libs/ibc-go/temp"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"testing"
 
@@ -19,6 +18,7 @@ import (
 	ibctmtypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/07-tendermint/types"
 	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
 	ibcmock "github.com/okex/exchain/libs/ibc-go/testing/mock"
+	types2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/types"
 )
 
 const height = 10
@@ -714,8 +714,8 @@ func (suite *KeeperTestSuite) TestUpgradeClient() {
 				cs, found := suite.chainA.App().GetIBCKeeper().ClientKeeper.GetClientState(suite.chainA.GetContext(), path.EndpointA.ClientID)
 				suite.Require().True(found)
 
-				proofUpgradeClient, _ := suite.chainB.QueryUpgradeProof(temp.UpgradedClientKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
-				proofUpgradedConsState, _ := suite.chainB.QueryUpgradeProof(temp.UpgradedConsStateKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
+				proofUpgradeClient, _ := suite.chainB.QueryUpgradeProof(types2.UpgradedClientKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
+				proofUpgradedConsState, _ := suite.chainB.QueryUpgradeProof(types2.UpgradedConsStateKey(int64(lastHeight.GetRevisionHeight())), cs.GetLatestHeight().GetRevisionHeight())
 
 				msg, err = clienttypes.NewMsgUpgradeClient(path.EndpointA.ClientID, upgradedClient, upgradedConsState,
 					proofUpgradeClient, proofUpgradedConsState, suite.chainA.SenderAccount().GetAddress())

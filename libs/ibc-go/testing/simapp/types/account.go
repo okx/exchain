@@ -1,4 +1,4 @@
-package temp
+package types
 
 import (
 	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
