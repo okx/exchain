@@ -28,7 +28,6 @@ func (suite *KeeperTestSuite) TestTimeoutPacket() {
 		ordered     bool
 		expError    *sdkerrors.Error
 	)
-	tmpCtx := suite.chainB.GetContext()
 
 	testCases := []testCase{
 		{"success: ORDERED", func() {
@@ -36,6 +35,7 @@ func (suite *KeeperTestSuite) TestTimeoutPacket() {
 			path.SetChannelOrdered()
 
 			suite.coordinator.Setup(path)
+			tmpCtx := suite.chainB.GetContext()
 			packet = types.NewPacket(ibctesting.MockPacketData, 1, path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, clienttypes.GetSelfHeight(suite.chainB.GetContext()), uint64(tmpCtx.BlockTime().UnixNano()))
 			path.EndpointA.SendPacket(packet)
 			// need to update chainA's client representing chainB to prove missing ack
@@ -56,6 +56,7 @@ func (suite *KeeperTestSuite) TestTimeoutPacket() {
 			path.SetChannelOrdered()
 
 			suite.coordinator.Setup(path)
+			tmpCtx := suite.chainB.GetContext()
 			packet = types.NewPacket(ibctesting.MockPacketData, 1, path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, clienttypes.GetSelfHeight(suite.chainB.GetContext()), uint64(tmpCtx.BlockTime().UnixNano()))
 			path.EndpointA.SendPacket(packet)
 			// need to update chainA's client representing chainB to prove missing ack
@@ -132,6 +133,7 @@ func (suite *KeeperTestSuite) TestTimeoutPacket() {
 			nextSeqRecv = 2
 
 			suite.coordinator.Setup(path)
+			tmpCtx := suite.chainB.GetContext()
 			packet = types.NewPacket(ibctesting.MockPacketData, 1, path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, timeoutHeight, uint64(tmpCtx.BlockTime().UnixNano()))
 			path.EndpointA.SendPacket(packet)
 			path.EndpointA.UpdateClient()
@@ -142,6 +144,7 @@ func (suite *KeeperTestSuite) TestTimeoutPacket() {
 			path.SetChannelOrdered()
 
 			suite.coordinator.Setup(path)
+			tmpCtx := suite.chainB.GetContext()
 			packet = types.NewPacket(ibctesting.MockPacketData, 1, path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, timeoutHeight, uint64(tmpCtx.BlockTime().UnixNano()))
 			path.EndpointA.UpdateClient()
 		}, false},
@@ -221,13 +224,12 @@ func (suite *KeeperTestSuite) TestTimeoutExecuted() {
 		packet  types.Packet
 		chanCap *capabilitytypes.Capability
 	)
-
-	tmpCtx := suite.chainB.GetContext()
 	testCases := []testCase{
 		{"success ORDERED", func() {
 			path.SetChannelOrdered()
 			suite.coordinator.Setup(path)
 
+			tmpCtx := suite.chainB.GetContext()
 			packet = types.NewPacket(ibctesting.MockPacketData, 1, path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, clienttypes.GetSelfHeight(suite.chainB.GetContext()), uint64(tmpCtx.BlockTime().UnixNano()))
 			path.EndpointA.SendPacket(packet)
 
@@ -241,7 +243,7 @@ func (suite *KeeperTestSuite) TestTimeoutExecuted() {
 		{"incorrect capability ORDERED", func() {
 			path.SetChannelOrdered()
 			suite.coordinator.Setup(path)
-
+			tmpCtx := suite.chainB.GetContext()
 			packet = types.NewPacket(ibctesting.MockPacketData, 1, path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, clienttypes.GetSelfHeight(suite.chainB.GetContext()), uint64(tmpCtx.BlockTime().UnixNano()))
 			path.EndpointA.SendPacket(packet)
 
@@ -281,13 +283,13 @@ func (suite *KeeperTestSuite) TestTimeoutOnClose() {
 		ordered     bool
 	)
 
-	tmpCtx := suite.chainB.GetContext()
 	testCases := []testCase{
 		{"success: ORDERED", func() {
 			ordered = true
 			path.SetChannelOrdered()
 			suite.coordinator.Setup(path)
 
+			tmpCtx := suite.chainB.GetContext()
 			packet = types.NewPacket(ibctesting.MockPacketData, 1, path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, clienttypes.GetSelfHeight(suite.chainB.GetContext()), uint64(tmpCtx.BlockTime().UnixNano()))
 			path.EndpointA.SendPacket(packet)
 			path.EndpointB.SetChannelClosed()
@@ -341,6 +343,7 @@ func (suite *KeeperTestSuite) TestTimeoutOnClose() {
 			path.SetChannelOrdered()
 			suite.coordinator.Setup(path)
 
+			tmpCtx := suite.chainB.GetContext()
 			packet = types.NewPacket(ibctesting.MockPacketData, 1, path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, clienttypes.GetSelfHeight(suite.chainB.GetContext()), uint64(tmpCtx.BlockTime().UnixNano()))
 			chanCap = suite.chainA.GetChannelCapability(path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID)
 		}, false},
@@ -350,6 +353,7 @@ func (suite *KeeperTestSuite) TestTimeoutOnClose() {
 			ordered = true
 			suite.coordinator.Setup(path)
 
+			tmpCtx := suite.chainB.GetContext()
 			packet = types.NewPacket(ibctesting.MockPacketData, 1, path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, clienttypes.GetSelfHeight(suite.chainB.GetContext()), uint64(tmpCtx.BlockTime().UnixNano()))
 			path.EndpointA.SendPacket(packet)
 			path.EndpointB.SetChannelClosed()
@@ -362,6 +366,7 @@ func (suite *KeeperTestSuite) TestTimeoutOnClose() {
 			ordered = true
 			path.SetChannelOrdered()
 			suite.coordinator.Setup(path)
+			tmpCtx := suite.chainB.GetContext()
 			packet = types.NewPacket(ibctesting.MockPacketData, 1, path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, clienttypes.GetSelfHeight(suite.chainB.GetContext()), uint64(tmpCtx.BlockTime().UnixNano()))
 			path.EndpointA.SendPacket(packet)
 			chanCap = suite.chainA.GetChannelCapability(path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID)
@@ -372,6 +377,7 @@ func (suite *KeeperTestSuite) TestTimeoutOnClose() {
 
 			path.SetChannelOrdered()
 			suite.coordinator.Setup(path)
+			tmpCtx := suite.chainB.GetContext()
 			packet = types.NewPacket(ibctesting.MockPacketData, 1, path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, clienttypes.GetSelfHeight(suite.chainB.GetContext()), uint64(tmpCtx.BlockTime().UnixNano()))
 			path.EndpointA.SendPacket(packet)
 			path.EndpointB.SetChannelClosed()
@@ -393,6 +399,7 @@ func (suite *KeeperTestSuite) TestTimeoutOnClose() {
 			path.SetChannelOrdered()
 			suite.coordinator.Setup(path)
 
+			tmpCtx := suite.chainB.GetContext()
 			packet = types.NewPacket(ibctesting.MockPacketData, 1, path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, clienttypes.GetSelfHeight(suite.chainB.GetContext()), uint64(tmpCtx.BlockTime().UnixNano()))
 			path.EndpointA.SendPacket(packet)
 			path.EndpointB.SetChannelClosed()
