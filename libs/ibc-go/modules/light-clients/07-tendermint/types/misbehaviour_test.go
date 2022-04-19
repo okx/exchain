@@ -44,6 +44,9 @@ func (suite *TendermintTestSuite) TestMisbehaviourValidateBasicWithRetry() {
 			r = testMisbehaviourValidateBasic(suite)
 			return
 		}()
+		if retry == 1 {
+			panic("still failed after 9 times retry")
+		}
 		fmt.Println("run times", retry)
 		if r {
 			break
