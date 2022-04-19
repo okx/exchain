@@ -618,10 +618,6 @@ func (cs *State) updateToState(state sm.State) {
 	cs.LastValidators = state.LastValidators
 	cs.TriggeredTimeoutPrecommit = false
 	cs.state = state
-	// cs.Height has been update
-	if cs.vcMsg != nil && cs.Height > cs.vcMsg.Height {
-		cs.vcMsg = nil
-	}
 
 	// Finally, broadcast RoundState
 	cs.newStep()
@@ -939,9 +935,7 @@ func (cs *State) enterNewRound(height int64, round int) {
 		cs.ProposalBlock = nil
 		cs.ProposalBlockParts = nil
 	}
-
 	cs.Votes.SetRound(round + 1) // also track next round (round+1) to allow round-skipping
-
 	cs.TriggeredTimeoutPrecommit = false
 
 	cs.eventBus.PublishEventNewRound(cs.NewRoundEvent())
