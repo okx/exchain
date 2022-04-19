@@ -2,7 +2,7 @@ package watcher
 
 const (
 	DefaultTxChanBuffer = 20
-	DefaultTxWorkers    = 1
+	DefaultTxWorkers    = 2
 )
 
 func (w *Watcher) txRoutine() {
