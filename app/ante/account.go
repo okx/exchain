@@ -157,7 +157,7 @@ func ethGasConsume(ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, ms
 
 		ctx.UpdateFromAccountCache(acc, accGetGas)
 
-		err = auth.DeductFees(ak, sk, *ctx, acc, feeAmt)
+		err = deductFees(ak, *ctx, acc, feeAmt)
 		if err != nil {
 			return err
 		}
@@ -165,6 +165,37 @@ func ethGasConsume(ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, ms
 
 	// Set gas meter after ante handler to ignore gaskv costs
 	auth.SetGasMeter(simulate, ctx, gasLimit)
+	return nil
+}
+
+func deductFees(ak auth.AccountKeeper, ctx sdk.Context, acc exported.Account, fees sdk.Coins) error {
+	blockTime := ctx.BlockTime()
+	coins := acc.GetCoins()
+
+	if !fees.IsValid() {
+		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFee, "invalid fee amount: %s", fees)
+	}
+
+	// verify the account has enough funds to pay for fees
+	balance, hasNeg := coins.SafeSub(fees)
+	if hasNeg {
+		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds,
+			"insufficient funds to pay for fees; %s < %s", coins, fees)
+	}
+
+	// Validate the account has enough "spendable" coins as this will cover cases
+	// such as vesting accounts.
+	spendableCoins := acc.SpendableCoins(blockTime)
+	if _, hasNeg := spendableCoins.SafeSub(fees); hasNeg {
+		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds,
+			"insufficient funds to pay for fees; %s < %s", spendableCoins, fees)
+	}
+
+	if err := acc.SetCoins(balance); err != nil {
+		return err
+	}
+	ak.SetAccount(ctx, acc)
+
 	return nil
 }
 

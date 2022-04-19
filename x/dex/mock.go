@@ -64,12 +64,6 @@ func (k *mockSupplyKeeper) GetModuleAddress(moduleName string) sdk.AccAddress {
 	return k.moduleAccount.GetAddress()
 }
 
-// AddConsumeGasForSendCoins mocks AddConsumeGasForSendCoins of supply.Keeper
-func (k *mockSupplyKeeper) AddConsumeGasForSendCoins(
-	ctx sdk.Context, accGas sdk.Gas, accLen int, before bool) sdk.Error {
-	return k.behave()
-}
-
 // MintCoins mocks MintCoins of supply.Keeper
 func (k *mockSupplyKeeper) MintCoins(ctx sdk.Context, moduleName string, amt sdk.Coins) sdk.Error {
 	return k.behave()
