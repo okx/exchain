@@ -12,6 +12,15 @@ import (
 // 4. ibc
 
 var (
+	venus1Func func(h int64) bool = func(h int64) bool {
+		if milestoneVenus1Height == 0 {
+			return false
+		}
+		return h >= milestoneVenus1Height
+	}
+)
+
+var (
 	MILESTONE_GENESIS_HEIGHT string
 	genesisHeight            int64
 
@@ -95,22 +104,25 @@ func UnittestOnlySetMilestoneVenusHeight(height int64) {
 	milestoneVenusHeight = height
 }
 
-
 // ==================================
 // =========== Venus1 ===============
 func HigherThanVenus1(h int64) bool {
-	if milestoneVenus1Height == 0 {
-		return false
-	}
-	return h >= milestoneVenus1Height
+	return venus1Func(h)
 }
 
 func SetVenus1HeightForIbcTest(h int64) {
 	milestoneVenus1Height = h
 }
 
+func EnableVeneus1Feature() {
+	venus1Func = func(h int64) bool {
+		return true
+	}
+}
+
 func GetVenus1Height() int64 {
 	return milestoneVenus1Height
 }
+
 // =========== Venus1 ===============
 // ==================================
