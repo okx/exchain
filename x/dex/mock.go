@@ -44,7 +44,6 @@ func (k *mockSupplyKeeper) behave() sdk.Error {
 // SendCoinsFromAccountToModule mocks SendCoinsFromAccountToModule of supply.Keeper
 func (k *mockSupplyKeeper) SendCoinsFromAccountToModule(
 	ctx sdk.Context, senderAddr sdk.AccAddress, recipientModule string, amt sdk.Coins) sdk.Error {
-	fmt.Println("mockSupplyKeeper SendCoinsFromAccountToModule")
 	return k.behave()
 }
 

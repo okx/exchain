@@ -296,9 +296,7 @@ func (keeper BaseSendKeeper) SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress,
 	toAcc, _ := ctx.GetToAccountCacheData().(authexported.Account)
 	fromAccGas, toAccGas := ctx.GetFromAccountCacheGas(), ctx.GetToAccountCacheGas()
 
-	fmt.Println("========================SendCoins getFromAccount==========================")
 	fromAcc, fromAccGas = keeper.getAccount(&ctx, fromAddr, fromAcc, fromAccGas)
-	fmt.Println("========================SendCoins subtractCoins==========================")
 	_, err = keeper.subtractCoins(ctx, fromAddr, fromAcc, fromAccGas, amt)
 	if err != nil {
 		return err
@@ -306,14 +304,11 @@ func (keeper BaseSendKeeper) SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress,
 
 	ctx.UpdateFromAccountCache(fromAcc, 0)
 
-	fmt.Println("========================SendCoins getToAccount==========================")
 	toAcc, toAccGas = keeper.getAccount(&ctx, toAddr, toAcc, toAccGas)
-	fmt.Println("========================SendCoins addCoins==========================")
 	_, err = keeper.addCoins(ctx, toAddr, toAcc, toAccGas, amt)
 	if err != nil {
 		return err
 	}
-	fmt.Println("========================SendCoins Finished==========================")
 
 	ctx.UpdateToAccountCache(toAcc, 0)
 
@@ -425,20 +420,16 @@ func (keeper *BaseSendKeeper) setCoinsToAccount(ctx sdk.Context, addr sdk.AccAdd
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
 	}
 
-	fmt.Println("========================setCoinsToAccount==========================")
 	acc, _ = keeper.getAccount(&ctx, addr, acc, accGas)
 	if acc == nil {
-		fmt.Println("========================NewAccountWithAddress==========================")
 		acc = keeper.ak.NewAccountWithAddress(ctx, addr)
 	}
 
-	fmt.Println("========================SetCoins==========================")
 	err := acc.SetCoins(amt)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("========================SetAccount==========================")
 	keeper.ak.SetAccount(ctx, acc)
 	return nil
 }

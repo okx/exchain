@@ -104,6 +104,9 @@ func (m *modeHandlerBase) handleGasConsumed(info *runTxInfo) (err error) {
 	} else {
 		info.startingGas = info.ctx.BlockGasMeter().GasConsumed()
 	}
+	if global.GetGlobalHeight() == 5811052 {
+		fmt.Println("handleGasConsumed. ", info.startingGas)
+	}
 
 	return err
 }
@@ -148,8 +151,8 @@ func (m *modeHandlerBase) setGasConsumed(info *runTxInfo) {
 	if info.ctx.BlockGasMeter().GasConsumed() < info.startingGas {
 		panic(sdk.ErrorGasOverflow{Descriptor: "tx gas summation"})
 	}
-	if global.GetGlobalHeight() == 4663637 {
-		fmt.Println("GasConsumed. ", info.ctx.BlockGasMeter().GasConsumed())
+	if global.GetGlobalHeight() == 5811052 {
+		fmt.Println("setGasConsumed. ", info.ctx.BlockGasMeter().GasConsumed())
 	}
 }
 
