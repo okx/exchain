@@ -637,7 +637,7 @@ func (w *Watcher) lazyInitialization() {
 	// lazy initial:
 	// now we will allocate chan memory
 	// 5*2 means watcherCommitJob+commitBatchJob(just in case)
-	w.jobChan = make(chan func(), 15*2)
+	w.jobChan = make(chan func(), 5*2)
 }
 
 func (w *Watcher) dispatchJob(f func()) {
