@@ -17,11 +17,11 @@ var (
 )
 
 const (
-	SendToIbcEventName = "__OecSendToIbc"
+	SendToIbcEventName = "__OkcSendToIbc"
 )
 
 // SendToIbcEvent represent the signature of
-// `event __OecSendToIbc(string recipient, uint256 amount)`
+// `event __OkcSendToIbc(string recipient, uint256 amount)`
 var SendToIbcEvent abi.Event
 
 func init() {
@@ -66,7 +66,7 @@ func (h SendToIbcEventHandler) EventID() common.Hash {
 func (h SendToIbcEventHandler) Handle(ctx sdk.Context, contract common.Address, data []byte) error {
 	h.Logger(ctx).Info("trigger evm event", "event", SendToIbcEvent.Name, "contract", contract)
 	// first confirm that the contract address and denom are registered,
-	// to avoid unpacking any contract '__OecSendToIbc' event, which consumes performance
+	// to avoid unpacking any contract '__OkcSendToIbc' event, which consumes performance
 	denom, found := h.Keeper.GetDenomByContract(ctx, contract)
 	if !found {
 		return fmt.Errorf("contract %s is not connected to native token", contract)
