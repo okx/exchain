@@ -217,9 +217,9 @@ func (app *BaseApp) PreDeliverRealTx(tx []byte) abci.TxEssentials {
 		}
 	}
 
-	if realTx != nil && realTx.GetType() == sdk.EvmTxType && app.AccHandler != nil && app.blockCache.IsEnabled() {
+	if realTx != nil && realTx.GetType() == sdk.EvmTxType && app.AccHandler != nil && app.chainCache.IsEnabled() {
 		ctx := app.deliverState.ctx
-		ctx.SetCache(app.blockCache).
+		ctx.SetCache(app.chainCache).
 			SetMultiStore(app.cms).
 			SetGasMeter(sdk.NewInfiniteGasMeter())
 
