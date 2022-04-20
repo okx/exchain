@@ -655,8 +655,6 @@ func (cs *State) receiveRoutine(maxSteps int) {
 		cs.wal.Stop()
 		cs.wal.Wait()
 
-		cs.blockExec.Stop()
-
 		close(cs.done)
 		cs.done = nil
 	}
