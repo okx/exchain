@@ -16,7 +16,9 @@ var (
 	_ module.AppModuleBasicAdapter = AppModuleBasic{}
 )
 
-func (b AppModuleBasic) RegisterInterfaces(registry anytypes.InterfaceRegistry) {}
+func (b AppModuleBasic) RegisterInterfaces(registry anytypes.InterfaceRegistry) {
+	typesadapter.RegisterInterface(registry)
+}
 
 func (b AppModuleBasic) RegisterGRPCGatewayRoutes(cliContext clictx.CLIContext, serveMux *runtime.ServeMux) {
 	typesadapter.RegisterQueryHandlerClient(context.Background(), serveMux, typesadapter.NewQueryClient(cliContext))

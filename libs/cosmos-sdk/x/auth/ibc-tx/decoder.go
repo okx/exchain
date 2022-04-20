@@ -16,7 +16,6 @@ import (
 	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	tx "github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-
 	tmtypes "github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 )
 
@@ -94,7 +93,6 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			//convert crypto pubkey to tm pubkey
 			tmPubKey := tmtypes.PubKeySecp256k1{}
 			copy(tmPubKey[:], pk.Bytes())
-
 			signatures = append(signatures,
 				authtypes.StdSignature{
 					Signature: s,
