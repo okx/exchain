@@ -46,7 +46,7 @@ func TestSendCoins(t *testing.T) {
 
 	keeper.SetModuleAccount(ctx, holderAcc)
 	keeper.SetModuleAccount(ctx, burnerAcc)
-	ak.SetAccount(ctx, baseAcc, false)
+	ak.SetAccount(ctx, baseAcc)
 
 	require.Panics(t, func() {
 		keeper.SendCoinsFromModuleToModule(ctx, "", holderAcc.GetName(), initCoins)
