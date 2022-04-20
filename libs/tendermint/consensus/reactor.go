@@ -476,6 +476,11 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		func(data tmevents.EventData) {
 			conR.broadcastHasVoteMessage(data.(*types.Vote))
 		})
+
+	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventPOAProposl,
+		func(data tmevents.EventData) {
+			conR.broadcastPOAProposalMessage(data.(*types.Proposal))
+		})
 }
 
 func (conR *Reactor) unsubscribeFromBroadcastEvents() {
@@ -497,6 +502,12 @@ func (conR *Reactor) broadcastNewValidBlockMessage(rs *cstypes.RoundState) {
 		IsCommit:         rs.Step == cstypes.RoundStepCommit,
 	}
 	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryBare(csMsg))
+}
+
+func (conR *Reactor) broadcastPOAProposalMessage(proposal *types.Proposal) {
+	csMsg := &ProposalMessage{Proposal: proposal}
+	fmt.Println("Sending proposal in normal by broacast", "height", proposal.Height, "round", proposal.Round)
+	conR.Switch.Broadcast(DataChannel, cdc.MustMarshalBinaryBare(csMsg))
 }
 
 // Broadcasts HasVoteMessage to peers that care.
@@ -568,6 +579,7 @@ OUTER_LOOP:
 					Part:   part,
 				}
 				logger.Debug("Sending block part", "height", prs.Height, "round", prs.Round)
+				fmt.Println("Sending block part in normal", "height", prs.Height, "round", prs.Round)
 				if peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg)) {
 					ps.SetHasProposalBlockPart(prs.Height, prs.Round, index)
 				}
@@ -614,6 +626,7 @@ OUTER_LOOP:
 			{
 				msg := &ProposalMessage{Proposal: rs.Proposal}
 				logger.Debug("Sending proposal", "height", prs.Height, "round", prs.Round)
+				fmt.Println("Sending proposal in normal by routine", "height", prs.Height, "round", prs.Round)
 				if peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg)) {
 					// NOTE[ZM]: A peer might have received different proposal msg so this Proposal msg will be rejected!
 					ps.SetHasProposal(rs.Proposal)
@@ -674,6 +687,7 @@ func (conR *Reactor) gossipDataForCatchup(logger log.Logger, rs *cstypes.RoundSt
 			Part:   part,
 		}
 		logger.Debug("Sending block part for catchup", "round", prs.Round, "index", index)
+		fmt.Println("Sending block part for catchup", msg.Height)
 		if peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg)) {
 			ps.SetHasProposalBlockPart(prs.Height, prs.Round, index)
 		} else {

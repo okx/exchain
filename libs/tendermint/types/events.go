@@ -37,6 +37,8 @@ const (
 	EventUnlock           = "Unlock"
 	EventValidBlock       = "ValidBlock"
 	EventVote             = "Vote"
+
+	EventPOAProposl     = "POAProposal"
 )
 
 ///////////////////////////////////////////////////////////////////////////////
