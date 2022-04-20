@@ -40,7 +40,7 @@ func TestProposalHandlerPassed(t *testing.T) {
 
 	account := accountKeeper.NewAccountWithAddress(ctx, recipient)
 	require.True(t, account.GetCoins().IsZero())
-	accountKeeper.SetAccount(ctx, account, false)
+	accountKeeper.SetAccount(ctx, account)
 
 	feePool := keeper.GetFeePool(ctx)
 	feePool.CommunityPool = sdk.NewDecCoinsFromCoins(amount...)
@@ -58,7 +58,7 @@ func TestProposalHandlerFailed(t *testing.T) {
 
 	account := accountKeeper.NewAccountWithAddress(ctx, recipient)
 	require.True(t, account.GetCoins().IsZero())
-	accountKeeper.SetAccount(ctx, account, false)
+	accountKeeper.SetAccount(ctx, account)
 
 	tp := testProposal(recipient, amount)
 	hdlr := NewCommunityPoolSpendProposalHandler(keeper)

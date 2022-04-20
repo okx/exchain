@@ -43,11 +43,11 @@ func (suite *AnteTestSuite) TestValidEthTx() {
 
 	acc1 := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr1)
 	_ = acc1.SetCoins(newTestCoins())
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc1, false)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc1)
 
 	acc2 := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr2)
 	_ = acc2.SetCoins(newTestCoins())
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc2, false)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc2)
 
 	// require a valid Ethereum tx to pass
 	to := ethcmn.BytesToAddress(addr2.Bytes())
@@ -68,11 +68,11 @@ func (suite *AnteTestSuite) TestValidTx() {
 
 	acc1 := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr1)
 	_ = acc1.SetCoins(newTestCoins())
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc1, false)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc1)
 
 	acc2 := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr2)
 	_ = acc2.SetCoins(newTestCoins())
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc2, false)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc2)
 
 	// require a valid SDK tx to pass
 	fee := newTestStdFee()
@@ -97,11 +97,11 @@ func (suite *AnteTestSuite) TestSDKInvalidSigs() {
 
 	acc1 := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr1)
 	_ = acc1.SetCoins(newTestCoins())
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc1, false)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc1)
 
 	acc2 := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr2)
 	_ = acc2.SetCoins(newTestCoins())
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc2, false)
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc2)
 
 	fee := newTestStdFee()
 	msg1 := newTestMsg(addr1, addr2)

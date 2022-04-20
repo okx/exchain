@@ -99,7 +99,7 @@ func (keeper BaseKeeper) DelegateCoins(ctx sdk.Context, delegatorAddr, moduleAcc
 		return sdkerrors.Wrap(err, "failed to track delegation")
 	}
 
-	keeper.ak.SetAccount(ctx, delegatorAcc, false)
+	keeper.ak.SetAccount(ctx, delegatorAcc)
 
 	_, err = keeper.AddCoins(ctx, moduleAccAddr, amt)
 	if err != nil {
@@ -152,7 +152,7 @@ func (keeper BaseKeeper) UndelegateCoins(ctx sdk.Context, moduleAccAddr, delegat
 		return sdkerrors.Wrap(err, "failed to track undelegation")
 	}
 
-	keeper.ak.SetAccount(ctx, delegatorAcc, false)
+	keeper.ak.SetAccount(ctx, delegatorAcc)
 	return nil
 }
 
@@ -259,7 +259,7 @@ func (keeper BaseSendKeeper) InputOutputCoins(ctx sdk.Context, inputs []types.In
 		// such as delegated fee messages.
 		acc := keeper.ak.GetAccount(ctx, out.Address)
 		if acc == nil {
-			keeper.ak.SetAccount(ctx, keeper.ak.NewAccountWithAddress(ctx, out.Address), false)
+			keeper.ak.SetAccount(ctx, keeper.ak.NewAccountWithAddress(ctx, out.Address))
 		}
 	}
 
@@ -396,7 +396,7 @@ func (keeper BaseSendKeeper) SetCoins(ctx sdk.Context, addr sdk.AccAddress, amt 
 	if err != nil {
 		panic(err)
 	}
-	keeper.ak.SetAccount(ctx, acc, false)
+	keeper.ak.SetAccount(ctx, acc)
 	return nil
 }
 
@@ -429,7 +429,7 @@ func (keeper *BaseSendKeeper) setCoinsToAccount(ctx sdk.Context, addr sdk.AccAdd
 		panic(err)
 	}
 
-	keeper.ak.SetAccount(ctx, acc, false)
+	keeper.ak.SetAccount(ctx, acc)
 	return nil
 }
 
