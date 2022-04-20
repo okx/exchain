@@ -5,8 +5,6 @@ import (
 	"math/rand"
 	"net"
 	"reflect"
-	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -157,18 +155,15 @@ func TestTransportMultiplexMaxIncomingConnections(t *testing.T) {
 	}
 
 	errc := make(chan error)
-	wg := new(sync.WaitGroup)
 	go func() {
 		addr := NewNetAddress(id, mt.listener.Addr())
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(300 * time.Millisecond)
 		_, err := addr.Dial()
 		if err != nil {
 			errc <- err
 			return
 		}
 		close(errc)
-		wg.Add(1)
-		wg.Wait()
 	}()
 
 	if err := <-errc; err != nil {
@@ -176,10 +171,9 @@ func TestTransportMultiplexMaxIncomingConnections(t *testing.T) {
 	}
 
 	_, err = mt.Accept(peerConfig{})
-	if err == nil || !strings.Contains(err.Error(), "connection reset by peer") {
+	if err == nil {
 		t.Errorf("expected connection reset by peer error, got %v", err)
 	}
-	wg.Done()
 }
 
 func TestTransportMultiplexAcceptMultiple(t *testing.T) {
