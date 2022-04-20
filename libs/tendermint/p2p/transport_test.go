@@ -172,7 +172,7 @@ func TestTransportMultiplexMaxIncomingConnections(t *testing.T) {
 
 	_, err = mt.Accept(peerConfig{})
 	if err == nil {
-		t.Errorf("expected connection reset by peer error, got %v", err)
+		t.Errorf("expected connection reset by peer error, got nil")
 	}
 }
 
