@@ -54,6 +54,9 @@ type BlockExecutor struct {
 
 	// async save state, validators, consensus params, abci responses here
 	asyncDBContext
+
+	// the owner is validator
+	isNullIndexer bool
 }
 
 type BlockExecutorOption func(executor *BlockExecutor)
@@ -107,6 +110,10 @@ func (blockExec *BlockExecutor) DB() dbm.DB {
 
 func (blockExec *BlockExecutor) SetIsFastSyncing(isSyncing bool) {
 	blockExec.isFastSync = isSyncing
+}
+
+func (blockExec *BlockExecutor) SetIsNullIndexer(isNullIndexer bool) {
+	blockExec.isNullIndexer = isNullIndexer
 }
 
 func (blockExec *BlockExecutor) Stop() {
@@ -260,14 +267,16 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data
 	blockExec.trySaveStateAsync(state)
+	trc.Pin("fireEvents")
 
 	blockExec.logger.Debug("SaveState", "state", &state)
-
 	fail.Fail() // XXX
 
 	// Events are fired after everything else.
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
-	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
+	if !blockExec.isNullIndexer {
+		fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
+	}
 
 	dc.postApplyBlock(block.Height, deltaInfo, abciResponses, commitResp.DeltaMap, blockExec.isFastSync)
 

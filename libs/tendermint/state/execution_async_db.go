@@ -10,7 +10,7 @@ type asyncDBContext struct {
 	isAsyncSaveDB bool
 	// channel to write abciResponse async
 	abciResponseQueue chan abciResponse
-	/// channe to write state async
+	/// channel to write state async
 	stateQueue chan State
 	// channel to feed back height of saved abci response and stat response
 	asyncFeedbackQueue chan int64
@@ -23,7 +23,9 @@ type asyncDBContext struct {
 }
 
 const (
+	MAXCHAN_LEN           = 2
 	FEEDBACK_LEN          = 2
+	QUIT_SIG              = -99
 	MAX_WAIT_TIME_SECONDS = 30
 )
 
@@ -32,13 +34,14 @@ type abciResponse struct {
 	responses *ABCIResponses
 }
 
-func (ctx *BlockExecutor) initAsyncDBContext() {
-	ctx.abciResponseQueue = make(chan abciResponse)
-	ctx.stateQueue = make(chan State)
-	ctx.asyncFeedbackQueue = make(chan int64, FEEDBACK_LEN)
+func (blockExec *BlockExecutor) initAsyncDBContext() {
+	blockExec.abciResponseQueue = make(chan abciResponse, MAXCHAN_LEN)
+	blockExec.stateQueue = make(chan State, MAXCHAN_LEN)
+	blockExec.asyncFeedbackQueue = make(chan int64, FEEDBACK_LEN)
 
-	go ctx.asyncSaveStateRoutine()
-	go ctx.asyncSaveABCIRespRoutine()
+	blockExec.wg.Add(2)
+	go blockExec.asyncSaveStateRoutine()
+	go blockExec.asyncSaveABCIRespRoutine()
 }
 
 func (blockExec *BlockExecutor) stopAsyncDBContext() {
@@ -46,27 +49,29 @@ func (blockExec *BlockExecutor) stopAsyncDBContext() {
 		return
 	}
 
-	blockExec.wg.Add(2)
-	close(blockExec.abciResponseQueue)
-	close(blockExec.stateQueue)
+	blockExec.abciResponseQueue <- abciResponse{height: QUIT_SIG}
+	blockExec.stateQueue <- State{LastBlockHeight: QUIT_SIG}
+
 	blockExec.wg.Wait()
 
 	blockExec.isAsyncQueueStop = true
 }
 
-// ave the abciReponse async
 func (blockExec *BlockExecutor) SaveABCIResponsesAsync(height int64, responses *ABCIResponses) {
 	blockExec.abciResponseQueue <- abciResponse{height, responses}
 }
 
-// save the state async
 func (blockExec *BlockExecutor) SaveStateAsync(state State) {
 	blockExec.stateQueue <- state
 }
 
-// asyncSaveRoutine handle the write state work
+// asyncSaveRoutine handle writing state work
 func (blockExec *BlockExecutor) asyncSaveStateRoutine() {
 	for stateMsg := range blockExec.stateQueue {
+		if stateMsg.LastBlockHeight == QUIT_SIG {
+			break
+		}
+
 		SaveState(blockExec.db, stateMsg)
 		blockExec.asyncFeedbackQueue <- stateMsg.LastBlockHeight
 	}
@@ -74,16 +79,19 @@ func (blockExec *BlockExecutor) asyncSaveStateRoutine() {
 	blockExec.wg.Done()
 }
 
-// asyncSaveRoutine handle the write abciResponse work
+// asyncSaveRoutine handle writing abciResponse work
 func (blockExec *BlockExecutor) asyncSaveABCIRespRoutine() {
 	for abciMsg := range blockExec.abciResponseQueue {
+		if abciMsg.height == QUIT_SIG {
+			break
+		}
 		SaveABCIResponses(blockExec.db, abciMsg.height, abciMsg.responses)
 		blockExec.asyncFeedbackQueue <- abciMsg.height
 	}
 	blockExec.wg.Done()
 }
 
-// switch to open async write db feature
+// SetIsAsyncSaveDB switches to open async write db feature
 func (blockExec *BlockExecutor) SetIsAsyncSaveDB(isAsyncSaveDB bool) {
 	blockExec.isAsyncSaveDB = isAsyncSaveDB
 }
