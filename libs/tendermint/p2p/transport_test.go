@@ -324,9 +324,10 @@ func TestTransportMultiplexAcceptNonBlocking(t *testing.T) {
 			errc <- err
 			return
 		}
+		close(fastc)
 		time.Sleep(2 * time.Second)
 		close(errc)
-		close(fastc)
+
 	}()
 
 	if err := <-errc; err != nil {
