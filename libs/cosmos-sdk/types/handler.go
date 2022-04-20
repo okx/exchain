@@ -1,5 +1,7 @@
 package types
 
+import ethcmm "github.com/ethereum/go-ethereum/common"
+
 // Handler defines the core of the state transition function of an application.
 type Handler func(ctx Context, msg Msg) (*Result, error)
 
@@ -7,7 +9,7 @@ type Handler func(ctx Context, msg Msg) (*Result, error)
 // If newCtx.IsZero(), ctx is used instead.
 type AnteHandler func(ctx Context, tx Tx, simulate bool) (newCtx Context, err error)
 
-type TxVerifySigHandler func(ctx Context, tx Tx) error
+type TxVerifySigHandler func(ctx Context, tx Tx, verifySig bool) (to *ethcmm.Address, err error)
 
 type GasRefundHandler func(ctx Context, tx Tx) (fee Coins, err error)
 

@@ -2,6 +2,9 @@ package app
 
 import (
 	"fmt"
+	"math/big"
+
+	ethcmm "github.com/ethereum/go-ethereum/common"
 
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -44,25 +47,30 @@ func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
 }
 
 func evmTxVerifySigHandler() sdk.TxVerifySigHandler {
-	return func(ctx sdk.Context, tx sdk.Tx) error {
+	return func(ctx sdk.Context, tx sdk.Tx, verifySig bool) (to *ethcmm.Address, err error) {
 		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
-			if evmTx.BaseTx.From != "" {
-				return nil
+			to = evmTx.Data.Recipient
+			if verifySig {
+				if evmTx.BaseTx.From != "" {
+					return
+				}
+				if ctx.From() != "" {
+					evmTx.BaseTx.From = ctx.From()
+					return
+				}
+				var chainIDEpoch *big.Int
+				chainIDEpoch, err = ethermint.ParseChainID(ctx.ChainID())
+				if err != nil {
+					return
+				}
+				err = evmTx.VerifySig(chainIDEpoch, ctx.BlockHeight())
+				if err != nil {
+					return
+				}
 			}
-			if ctx.From() != "" {
-				evmTx.BaseTx.From = ctx.From()
-				return nil
-			}
-			chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
-			if err != nil {
-				return err
-			}
-			err = evmTx.VerifySig(chainIDEpoch, ctx.BlockHeight())
-			if err != nil {
-				return err
-			}
-			return nil
+			return
 		}
-		return fmt.Errorf("tx type is not evm tx")
+		err = fmt.Errorf("tx type is not evm tx")
+		return
 	}
 }

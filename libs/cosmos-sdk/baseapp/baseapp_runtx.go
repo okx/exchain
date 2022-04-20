@@ -205,25 +205,31 @@ func (app *BaseApp) PreDeliverRealTx(tx []byte) abci.TxEssentials {
 	if mem := GetGlobalMempool(); mem != nil {
 		realTx, _ = mem.ReapEssentialTx(tx).(sdk.Tx)
 	}
+	var evmToAddr *ethcmn.Address
 	if realTx == nil {
 		realTx, err = app.txDecoder(tx)
 		if err != nil {
 			return nil
 		}
 		app.blockDataCache.SetTx(tx, realTx)
-
-		if realTx.GetType() == sdk.EvmTxType && app.evmTxVerifySigHandler != nil {
-			_ = app.evmTxVerifySigHandler(app.deliverState.ctx, realTx)
-		}
 	}
 
-	if realTx != nil && realTx.GetType() == sdk.EvmTxType && app.AccHandler != nil && app.chainCache.IsEnabled() {
-		ctx := app.deliverState.ctx
-		ctx.SetCache(app.chainCache).
-			SetMultiStore(app.cms).
-			SetGasMeter(sdk.NewInfiniteGasMeter())
+	if realTx != nil && realTx.GetType() == sdk.EvmTxType {
+		if app.evmTxVerifySigHandler != nil {
+			evmToAddr, _ = app.evmTxVerifySigHandler(app.deliverState.ctx, realTx, true)
+		}
 
-		app.AccHandler(ctx, ethcmn.FromHex(realTx.GetFrom()))
+		if app.AccHandler != nil && app.chainCache.IsEnabled() {
+			ctx := app.deliverState.ctx
+			ctx.SetCache(app.chainCache).
+				SetMultiStore(app.cms).
+				SetGasMeter(sdk.NewInfiniteGasMeter())
+
+			app.AccHandler(ctx, ethcmn.FromHex(realTx.GetFrom()))
+			if evmToAddr != nil {
+				app.AccHandler(ctx, evmToAddr.Bytes())
+			}
+		}
 	}
 
 	return realTx
