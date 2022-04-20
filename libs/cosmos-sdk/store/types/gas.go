@@ -1,6 +1,8 @@
 package types
 
 import (
+	"fmt"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"math"
 )
 
@@ -88,6 +90,9 @@ func (g *basicGasMeter) ConsumeGas(amount Gas, descriptor string) {
 
 	if g.consumed > g.limit {
 		panic(ErrorOutOfGas{descriptor})
+	}
+	if global.GetGlobalHeight() == 5811052 {
+		fmt.Println("-----------ConsumeGas: ", amount, " ", g.consumed)
 	}
 }
 
