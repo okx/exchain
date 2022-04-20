@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/state"
 	"strconv"
 	"strings"
 	"sync"
@@ -63,6 +64,8 @@ type OecConfig struct {
 
 	// enable-analyzer
 	enableAnalyzer bool
+
+	enableParalleledTx bool
 }
 
 const (
@@ -192,6 +195,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetNodeKeyWhitelist(viper.GetString(FlagNodeKeyWhitelist))
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
 	c.SetEnableAnalyzer(viper.GetBool(analyzer.FlagEnableAnalyzer))
+	c.SetParalleledTxStatus(viper.GetBool(state.FlagParalleledTx))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -359,7 +363,14 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetEnableAnalyzer(r)
+	case state.FlagParalleledTx:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetParalleledTxStatus(r)
 	}
+
 }
 
 func (c *OecConfig) GetEnableAnalyzer() bool {
@@ -405,6 +416,11 @@ func (c *OecConfig) SetMempoolFlush(value bool) {
 
 func (c *OecConfig) GetEnableWtx() bool {
 	return c.enableWtx
+}
+
+func (c *OecConfig) SetParalleledTxStatus(enable bool) {
+	fmt.Println("SetParalleledTxStatus", enable)
+	c.enableParalleledTx = enable
 }
 
 func (c *OecConfig) SetEnableWtx(value bool) {

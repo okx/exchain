@@ -3,9 +3,9 @@ package baseapp
 import (
 	"bytes"
 	"encoding/binary"
-	"fmt"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -226,8 +226,8 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 			pm.extraTxsInfo[index].evmIndex = evmIndex
 			evmIndex++
 		} else {
-			//pm.haveCosmosTxInBlock = true
-			fmt.Println("haveCosmosTxInBlock")
+			pm.haveCosmosTxInBlock = true
+			//fmt.Println("haveCosmosTxInBlock")
 		}
 
 		pm.indexMapBytes[string(txWithIndex[index])] = index
@@ -235,24 +235,21 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 	return app.runTxs(txWithIndex)
 }
 
-func (app *BaseApp) fixFeeCollector(ms sdk.CacheMultiStore) {
-	currTxFee := sdk.Coins{}
-	for index := 0; index < app.parallelTxManage.txSize; index++ {
-		resp := app.parallelTxManage.txReps[index]
-		//if resp == nil || resp.paraMsg == nil || resp.paraMsg.AnteErr != nil {
-		//	continue
-		//}
+func (app *BaseApp) fixFeeCollector(index int, ms sdk.CacheMultiStore) {
+	resp := app.parallelTxManage.txReps[index]
+	//if resp == nil || resp.paraMsg == nil || resp.paraMsg.AnteErr != nil {
+	//	continue
+	//}
 
-		if resp.paraMsg.AnteErr != nil {
-			continue
-		}
-		currTxFee = currTxFee.Add(app.parallelTxManage.extraTxsInfo[index].fee.Sub(resp.paraMsg.RefundFee)...)
+	if resp.paraMsg.AnteErr != nil {
+		return
 	}
+	app.parallelTxManage.currTxFee = app.parallelTxManage.currTxFee.Add(app.parallelTxManage.extraTxsInfo[index].fee.Sub(resp.paraMsg.RefundFee)...)
 
 	ctx, _ := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
 
 	ctx.SetMultiStore(ms)
-	if err := app.updateFeeCollectorAccHandler(ctx, currTxFee); err != nil {
+	if err := app.updateFeeCollectorAccHandler(ctx, app.parallelTxManage.currTxFee); err != nil {
 		panic(err)
 	}
 }
@@ -335,6 +332,7 @@ func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 			}
 
 			pm.SetCurrentIndex(txIndex, res) //Commit
+			app.fixFeeCollector(txIndex, app.parallelTxManage.cms)
 			currentGas += uint64(res.resp.GasUsed)
 			txIndex++
 			if txIndex == pm.txSize {
@@ -367,7 +365,6 @@ func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 	if len(txs) > 0 {
 		//waiting for call back
 		<-signal
-		app.fixFeeCollector(pm.cms)
 		receiptsLogs := app.endParallelTxs()
 		for index, v := range receiptsLogs {
 			if len(v) != 0 { // only update evm tx result
@@ -432,8 +429,8 @@ type executeResult struct {
 	counter    uint32
 	err        error
 	evmCounter uint32
-	readList   map[string][]byte
-	writeList  map[string][]byte
+	//readList   map[string][]byte
+	//writeList  map[string][]byte
 
 	paraMsg *sdk.ParaMsg
 }
@@ -453,14 +450,14 @@ func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter 
 		ms:         ms,
 		counter:    counter,
 		evmCounter: evmCounter,
-		readList:   make(map[string][]byte),
-		writeList:  make(map[string][]byte),
-		paraMsg:    paraMsg,
+		//readList:   make(map[string][]byte),
+		//writeList:  make(map[string][]byte),
+		paraMsg: paraMsg,
 	}
 
-	loadPreData(ms, ans.readList, ans.writeList)
-	delete(ans.readList, whiteAcc)
-	delete(ans.writeList, whiteAcc)
+	//loadPreData(ms, ans.readList, ans.writeList)
+	//delete(ans.readList, whiteAcc)
+	//delete(ans.writeList, whiteAcc)
 	if paraMsg == nil {
 		ans.paraMsg = &sdk.ParaMsg{}
 	}
@@ -586,13 +583,16 @@ type parallelTxManager struct {
 	preTxInGroup       map[int]int
 	txIndexWithGroupID map[int]int
 
-	mu  sync.RWMutex
-	cms sdk.CacheMultiStore
+	mu        sync.RWMutex
+	cms       sdk.CacheMultiStore
+	currTxFee sdk.Coins
 
 	txSize    int
 	cc        *conflictCheck
 	currIndex int
 	runBase   []int
+
+	commitDone chan struct{}
 }
 type A struct {
 	value   []byte
@@ -615,6 +615,10 @@ func (c *conflictCheck) update(key string, value []byte, txIndex int) {
 		txIndex: txIndex,
 	}
 }
+
+func (c *conflictCheck) deleteFee() {
+	delete(c.items, whiteAcc)
+}
 func (c *conflictCheck) clear() {
 	for key := range c.items {
 		delete(c.items, key)
@@ -626,17 +630,23 @@ var (
 )
 
 func (pm *parallelTxManager) newIsConflict(e *executeResult) bool {
-	base := pm.runBase[e.counter]
+	//base := pm.runBase[e.counter]
 	if e.ms == nil {
 		return true //TODO fix later
 	}
-	for k, readValue := range e.readList {
+	conflict := false
 
-		if pm.isConflict(base, k, readValue, int(e.counter)) {
-			return true
+	e.ms.IteratorCache(false, func(key string, value []byte, isDirty bool, isDelete bool, storeKey types.StoreKey) bool {
+		if data, ok := pm.cc.items[key]; ok {
+			if !bytes.Equal(data.value, value) {
+				conflict = true
+				return false
+			}
 		}
-	}
-	return false
+		return true
+	}, nil)
+
+	return conflict
 
 }
 
@@ -670,9 +680,10 @@ func newParallelTxManager() *parallelTxManager {
 		preTxInGroup:       make(map[int]int),
 		txIndexWithGroupID: make(map[int]int),
 
-		cc:        newConflictCheck(),
-		currIndex: -1,
-		runBase:   make([]int, 0),
+		cc:         newConflictCheck(),
+		currIndex:  -1,
+		runBase:    make([]int, 0),
+		commitDone: make(chan struct{}, 1),
 	}
 }
 
@@ -697,6 +708,7 @@ func (f *parallelTxManager) clear() {
 	}
 
 	f.currIndex = -1
+	f.currTxFee = sdk.Coins{}
 	f.cc.clear()
 
 	for key := range f.workgroup.markFailedStats {
@@ -750,44 +762,20 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 		return
 	}
 
-	chanStop := make(chan struct{}, 2)
-	go func() {
-		for k, v := range res.writeList {
-			f.cc.update(k, v, txIndex)
-		}
-		chanStop <- struct{}{}
-	}()
-
-	//go func() {
-	//	tt := make([]string, 0)
-	//	for k, v := range res.readList {
-	//		if len(v) < 200 {
-	//			tt = append(tt, fmt.Sprintf("read key:%s value:%s", hex.EncodeToString([]byte(k)), hex.EncodeToString(v)))
-	//		}
-	//	}
-	//
-	//	for k, v := range res.writeList {
-	//		tt = append(tt, fmt.Sprintf("write ket:%s value:%s", hex.EncodeToString([]byte(k)), hex.EncodeToString(v)))
-	//	}
-	//	tt = append(tt, fmt.Sprintf("txIndex %d base %d", txIndex, f.getRunBase(txIndex)))
-	//	sdk.DebugLogByScf.AddRWSet(tt)
-	//	chanStop <- struct{}{}
-	//}()
-
 	f.mu.Lock()
-	res.ms.IteratorCache(func(key, value []byte, isDirty bool, isdelete bool, storeKey sdk.StoreKey) bool {
+	res.ms.IteratorCache(true, func(key string, value []byte, isDirty bool, isdelete bool, storeKey sdk.StoreKey) bool {
 		if isDirty {
-
+			f.cc.update(key, value, txIndex)
 			if isdelete {
-				f.cms.GetKVStore(storeKey).Delete(key)
+				f.cms.GetKVStore(storeKey).Delete([]byte(key))
 			} else if value != nil {
-				f.cms.GetKVStore(storeKey).Set(key, value)
+				f.cms.GetKVStore(storeKey).Set([]byte(key), value)
 			}
 		}
 		return true
 	}, nil)
 	f.currIndex = txIndex
 	f.mu.Unlock()
-	//<-chanStop
-	<-chanStop
+	f.cc.deleteFee()
+
 }

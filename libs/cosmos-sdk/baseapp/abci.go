@@ -175,6 +175,10 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 		res = app.endBlocker(app.deliverState.ctx, req)
 	}
 
+	go func() {
+		app.deliverState.ms.Write()
+		app.parallelTxManage.commitDone <- struct{}{}
+	}()
 	return
 }
 
@@ -223,13 +227,19 @@ func (app *BaseApp) addCommitTraceInfo() {
 // against that height and gracefully halt if it matches the latest committed
 // height.
 func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
+
 	header := app.deliverState.ctx.BlockHeader()
+
+	if app.parallelTxManage.isAsyncDeliverTx {
+		<-app.parallelTxManage.commitDone
+	} else {
+		app.deliverState.ms.Write()
+	}
 
 	// Write the DeliverTx state which is cache-wrapped and commit the MultiStore.
 	// The write to the DeliverTx state writes all state transitions to the root
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
 	app.commitBlockCache()
-	app.deliverState.ms.Write()
 
 	var input iavl.TreeDeltaMap
 	if tmtypes.DownloadDelta && req.DeltaMap != nil {
