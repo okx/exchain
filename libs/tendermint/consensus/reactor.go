@@ -507,7 +507,36 @@ func (conR *Reactor) broadcastNewValidBlockMessage(rs *cstypes.RoundState) {
 func (conR *Reactor) broadcastPOAProposalMessage(proposal *types.Proposal) {
 	csMsg := &ProposalMessage{Proposal: proposal}
 	fmt.Println("Sending proposal in normal by broacast", "height", proposal.Height, "round", proposal.Round)
-	conR.Switch.Broadcast(DataChannel, cdc.MustMarshalBinaryBare(csMsg))
+	bytes := cdc.MustMarshalBinaryBare(csMsg)
+
+	peers := conR.Switch.Peers().List()
+	var wg sync.WaitGroup
+	wg.Add(len(peers))
+
+	for _, peer := range peers {
+		go func(p p2p.Peer) {
+			defer wg.Done()
+
+			ps, ok := p.Get(types.PeerStateKey).(*PeerState)
+			if !ok {
+				panic(fmt.Sprintf("peer %v has no state", p))
+			}
+
+			prs := ps.GetRoundState()
+
+			if prs.Height == proposal.Height {
+				//fmt.Printf("Broadcast proposal to peer,ps: %v\n", ps)
+				p.Send(DataChannel, bytes)
+				ps.SetHasProposal(proposal)
+			}
+
+		}(peer)
+	}
+
+	go func() {
+		wg.Wait()
+	}()
+
 }
 
 // Broadcasts HasVoteMessage to peers that care.

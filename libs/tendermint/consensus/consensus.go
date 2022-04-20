@@ -1775,7 +1775,7 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	cs.Logger.Info("Received proposal", "proposal", proposal)
 	fmt.Println("Received proposal", proposal.Height)
 
-	//cs.evsw.FireEvent(types.EventPOAProposl, proposal)
+	cs.evsw.FireEvent(types.EventPOAProposl, proposal)
 	return nil
 }
 
@@ -2113,11 +2113,10 @@ func (cs *State) addVote(
 		precommits := cs.Votes.Precommits(vote.Round)
 		cs.Logger.Info("Added to precommit", "vote", vote, "precommits", precommits.StringShort())
 
-		//fmt.Println("No more Step under POA")
-		//// poa mode connect the votes without enter commit
-		//if cs.config.POAEnable {
-		//	break
-		//}
+		// poa mode collect the votes without enter commit
+		if cs.config.POAEnable {
+			break
+		}
 
 		blockID, ok := precommits.TwoThirdsMajority()
 		if ok {
