@@ -427,7 +427,7 @@ func (dttm *DTTManager) serialRoutine() {
 			// check whether there are ante-finished task
 			count := len(dttm.dttRoutineList)
 			rerunRoutines := make([]*dttRoutine, 0)
-			hasNonEvm := false
+			updateFeeAcc := false
 			for i := 0; i < count; i++ {
 				dttr := dttm.dttRoutineList[i]
 				if dttr.task == nil ||
@@ -443,13 +443,11 @@ func (dttm *DTTManager) serialRoutine() {
 					(!dttr.task.isEvm && dttr.task.index == task.index+1) ||
 					dttr.task.from == task.from ||
 					dttr.task.from == task.to {
-					if dttr.task.prevTaskIndex <= task.index {
-						dttr.task.prevTaskIndex = task.index
-						rerunRoutines = append(rerunRoutines, dttr)
+					if !dttr.task.isEvm && dttr.task.index == task.index+1 {
+						updateFeeAcc = true
 					}
-					if !dttr.task.isEvm {
-						hasNonEvm = true
-					}
+					dttr.task.prevTaskIndex = task.index
+					rerunRoutines = append(rerunRoutines, dttr)
 				} else if dttr.task.index == dttm.serialIndex+1 {
 					nextTaskRoutine = dttr.index
 					if dttr.readyForSerialExecution() {
@@ -460,7 +458,7 @@ func (dttm *DTTManager) serialRoutine() {
 				}
 			}
 
-			if hasNonEvm && dttm.app.updateFeeCollectorAccHandler != nil {
+			if updateFeeAcc && dttm.app.updateFeeCollectorAccHandler != nil {
 				// should update the balance of FeeCollector's account when run non-evm tx
 				// which uses non-infiniteGasMeter during AnteHandleChain
 				ctx, cache := dttm.app.cacheTxContext(dttm.app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
