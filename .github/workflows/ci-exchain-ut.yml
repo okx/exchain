@@ -87,7 +87,7 @@ jobs:
         run: |
           set -ex
           codePath="./libs/..."
-          go list ${codePath} |xargs go test -timeout 15m -tags='norace ledger test_ledger_mock'
+          go list ${codePath} |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
         continue-on-error: true
 
       - name: Go Test exchain/libs retry
@@ -96,7 +96,7 @@ jobs:
         run: |
           set -ex
           codePath="./libs/..."
-          go list ${codePath} |xargs go test -timeout 15m -tags='norace ledger test_ledger_mock'
+          go list ${codePath} |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
 
 
   
