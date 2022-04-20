@@ -7,7 +7,6 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/trace"
@@ -475,10 +474,6 @@ func (dttm *DTTManager) serialRoutine() {
 					panic(err)
 				}
 				cache.Write()
-
-				if global.GetGlobalHeight() == 4333798 {
-					dttm.app.logger.Info("FeeCollector", "coins", dttm.app.feeForCollector)
-				}
 			}
 			for _, rerunRoutine := range rerunRoutines {
 				rerunRoutine.shouldRerun(task.index, -1)
