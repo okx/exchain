@@ -40,7 +40,7 @@ func (k Keeper) ConvertVouchers(ctx sdk.Context, from string, vouchers sdk.SysCo
 
 	params := k.GetParams(ctx)
 	for _, c := range vouchers {
-		// oec1:xxb----->oec2:ibc/xxb---->oec2:erc20/xxb
+		// okc1:xxb----->okc2:ibc/xxb---->okc2:erc20/xxb
 		if err := k.ConvertVoucherToERC20(ctx, fromAddr, c, params.EnableAutoDeployment); err != nil {
 			return err
 		}
@@ -179,7 +179,7 @@ func (k Keeper) IbcTransferVouchers(ctx sdk.Context, from, to string, vouchers s
 		if _, found := k.GetContractByDenom(ctx, c.Denom); !found {
 			return fmt.Errorf("coin %s is not supported", c.Denom)
 		}
-		// oec2:erc20/xxb----->oec2:ibc/xxb---ibc--->oec1:xxb
+		// okc2:erc20/xxb----->okc2:ibc/xxb---ibc--->okc1:xxb
 		if err := k.ibcSendTransfer(ctx, fromAddr, to, c); err != nil {
 			return err
 		}
