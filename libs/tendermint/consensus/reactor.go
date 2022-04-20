@@ -336,7 +336,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		}
 		switch msg := msg.(type) {
 		case *ViewChangeMessage:
-			//conR.Logger.Error("reactor vcMsg", "msg", msg, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
+			//conR.Logger.Error("reactor vcMsg", "height", msg.Height, "curP", msg.CurrentProposer, "newP", msg.NewProposer, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
 			finished := ""
 			if msg.Height == conR.conS.Height {
 				// ApplyBlock of height-1 is finished
@@ -355,11 +355,13 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			}
 			conR.conS.peerMsgQueue <- msgInfo{msg, p2p.ID(finished)}
 		case *ProposeRequestMessage:
-			//conR.Logger.Error("reactor prMsg", "msg", msg, "hasVC", conR.hasViewChanged, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
+			//conR.Logger.Error("reactor prMsg", "height", msg.Height, "curP", msg.CurrentProposer, "newP", msg.NewProposer, "hasVC", conR.hasViewChanged, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
 			// three judgement:
 			//1.this peer has not vc before this height;
 			//2.ApplyBlock of height-1 is not finished and it needs vc(msg.Height is bigger);
 			//3.it is CurrentProposer
+			conR.mtx.Lock()
+			defer conR.mtx.Unlock()
 			if msg.Height > conR.hasViewChanged &&
 				msg.Height > conR.conS.Height &&
 				bytes.Equal(conR.conS.privValidatorPubKey.Address(), msg.CurrentProposer) {
@@ -558,9 +560,8 @@ func (conR *Reactor) broadcastProposeRequestMessage(prMsg ProposeRequestMessage)
 func (conR *Reactor) broadcastViewChangeMessage(prMsg *ProposeRequestMessage) {
 	vcMsg := ViewChangeMessage{Height: prMsg.Height, CurrentProposer: prMsg.CurrentProposer, NewProposer: prMsg.NewProposer}
 	if signature, err := conR.conS.privValidator.SignBytes(vcMsg.SignBytes()); err == nil {
-		vcMsg.Signature = signature
-
 		//conR.Logger.Error("broadcastViewChangeMessage", "vcMsg", vcMsg)
+		vcMsg.Signature = signature
 		conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
 	} else {
 		conR.Logger.Error("broadcastViewChangeMessage", "err", err)
@@ -1627,6 +1628,17 @@ type ViewChangeMessage struct {
 
 func (m *ViewChangeMessage) ValidateBasic() error {
 	return nil
+}
+
+func (m *ViewChangeMessage) Validate(height int64, proposer types.Address) bool {
+	if m.Height != height {
+		return false
+	}
+	if !bytes.Equal(proposer, m.CurrentProposer) {
+		return false
+	}
+
+	return true
 }
 
 func (m *ViewChangeMessage) SignBytes() []byte {
