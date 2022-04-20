@@ -185,6 +185,9 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 			panic(err)
 		}
 		cache.Write()
+		if global.GetGlobalHeight() == 4333798 {
+			app.logger.Info("FeeCollector", "coins", app.feeForCollector)
+		}
 	}
 
 	if app.deliverState.ms.TracingEnabled() {
@@ -249,7 +252,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// The write to the DeliverTx state writes all state transitions to the root
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
 	app.commitBlockCache()
-	if global.GetGlobalHeight() == 4333799 {
+	if global.GetGlobalHeight() == 4333799 || global.GetGlobalHeight() == 4333798 {
 		app.deliverState.ms.IteratorCache(func(key, value []byte, isDirty bool) bool {
 			if isDirty {
 				fmt.Println(hex.EncodeToString(key), hex.EncodeToString(value))
