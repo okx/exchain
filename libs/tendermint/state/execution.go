@@ -38,6 +38,8 @@ var (
 	// 1: execute [deliverTx,...] partially-concurrent
 	// 2: execute [deliverTx,...] parallel
 	FlagDeliverTxsExecMode = "deliver-txs-mode"
+
+	FlagDeliverTxsConcurrentNum = "deliver-txs-concurrent-num"
 )
 
 // BlockExecutor handles block execution and state updates.

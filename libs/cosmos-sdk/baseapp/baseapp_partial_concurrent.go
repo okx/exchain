@@ -8,8 +8,9 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/trace"
-
+	"github.com/spf13/viper"
 	"time"
 )
 
@@ -27,7 +28,6 @@ const (
 	dttRoutineStepSerial
 	dttRoutineStepFinished
 
-	maxDeliverTxsConcurrentNum = 4
 	keepAliveIntervalMS        = 5
 )
 
@@ -212,14 +212,22 @@ type DTTManager struct {
 	invalidTxs    int
 	app           *BaseApp
 	checkStateCtx sdk.Context
+
+	maxConcurrentNum int
 }
 
 func NewDTTManager(app *BaseApp) *DTTManager {
 	dttm := &DTTManager{
-		app: app,
+		app:              app,
+		maxConcurrentNum: 4,
 	}
-	dttm.dttRoutineList = make([]*dttRoutine, 0, maxDeliverTxsConcurrentNum) //sync.Map{}
-	for i := 0; i < maxDeliverTxsConcurrentNum; i++ {
+	conNum := viper.GetInt(sm.FlagDeliverTxsConcurrentNum)
+	if conNum > 0 {
+		dttm.maxConcurrentNum = conNum
+		dttm.app.logger.Info("maxConcurrentNum", "value", dttm.maxConcurrentNum)
+	}
+	dttm.dttRoutineList = make([]*dttRoutine, 0, dttm.maxConcurrentNum) //sync.Map{}
+	for i := 0; i < dttm.maxConcurrentNum; i++ {
 		dttr := newDttRoutine(int8(i), dttm.concurrentBasic, dttm.runConcurrentAnte)
 		dttr.setLogger(dttm.app.logger)
 		dttm.dttRoutineList = append(dttm.dttRoutineList, dttr)
@@ -248,7 +256,7 @@ func (dttm *DTTManager) deliverTxs(txs [][]byte) {
 
 	go dttm.serialRoutine()
 
-	for i := 0; i < maxDeliverTxsConcurrentNum && i < dttm.totalCount; i++ {
+	for i := 0; i < dttm.maxConcurrentNum && i < dttm.totalCount; i++ {
 		dttr := dttm.dttRoutineList[i]
 		dttr.start()
 		dttr.makeNewTask(txs[i], i)
@@ -419,7 +427,7 @@ func (dttm *DTTManager) serialRoutine() {
 			}
 
 			// make new task for this routine
-			nextIndex := maxDeliverTxsConcurrentNum + task.index
+			nextIndex := dttm.maxConcurrentNum + task.index
 			if nextIndex < dttm.totalCount {
 				rt.makeNewTask(dttm.txs[nextIndex], nextIndex)
 			}

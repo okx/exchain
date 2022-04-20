@@ -278,7 +278,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 
 	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
 	blockExec.SetDeliverTxsMode(viper.GetInt(sm.FlagDeliverTxsExecMode))
-	blockExec.SetIsAsyncDeliverTx(viper.GetBool(sm.FlagParalleledTx))
+	//blockExec.SetIsAsyncDeliverTx(viper.GetBool(sm.FlagParalleledTx))
 	if viper.GetBool(runWithPprofFlag) {
 		startDumpPprof()
 		defer stopDumpPprof()
