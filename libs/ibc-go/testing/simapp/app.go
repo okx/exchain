@@ -468,7 +468,8 @@ func NewSimApp(
 		// ibc
 		//ibc.NewAppModule(app.IBCKeeper),
 		core.NewIBCCOreAppModule(app.IBCKeeper),
-		capabilityModule.NewAppModule(codecProxy, *app.CapabilityKeeper),
+		//capabilityModule.NewAppModule(codecProxy, *app.CapabilityKeeper),
+		capability.TNewCapabilityModuleAdapter(codecProxy, *app.CapabilityKeeper),
 		transferModule,
 		erc20.NewAppModule(app.Erc20Keeper),
 		mockModule,

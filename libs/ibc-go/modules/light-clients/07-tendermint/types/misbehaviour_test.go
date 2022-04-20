@@ -66,7 +66,7 @@ func testMisbehaviourValidateBasic(suite *TendermintTestSuite) bool {
 	// Create bothValSet with both suite validator and altVal
 	bothValSet := tmtypes.NewValidatorSet(append(suite.valSet.Validators, altVal))
 	// Create alternative validator set with only altVal
-	altValSet := tmtypes.NewValidatorSet([]*tmtypes.Validator{altVal})
+	//altValSet := tmtypes.NewValidatorSet([]*tmtypes.Validator{altVal})
 
 	signers := []tmtypes.PrivValidator{suite.privVal}
 
@@ -74,7 +74,7 @@ func testMisbehaviourValidateBasic(suite *TendermintTestSuite) bool {
 	_, suiteVal := suite.valSet.GetByIndex(0)
 	bothSigners := ibctesting.CreateSortedSignerArray(altPrivVal, suite.privVal, altVal, suiteVal)
 
-	altSigners := []tmtypes.PrivValidator{altPrivVal}
+	//altSigners := []tmtypes.PrivValidator{altPrivVal}
 
 	heightMinus1 := clienttypes.NewHeight(0, height.RevisionHeight-1)
 
@@ -196,27 +196,27 @@ func testMisbehaviourValidateBasic(suite *TendermintTestSuite) bool {
 			func(misbehaviour *types.Misbehaviour) error { return nil },
 			false,
 		},
-		{
-			"header 2 doesn't have 2/3 majority",
-			&types.Misbehaviour{
-				Header1:  suite.header,
-				Header2:  suite.chainA.CreateTMClientHeader(chainID, int64(height.RevisionHeight), heightMinus1, suite.now, bothValSet, suite.valSet, bothSigners),
-				ClientId: clientID,
-			},
-			func(misbehaviour *types.Misbehaviour) error {
-				// voteSet contains only altVal which is less than 2/3 of total power (height/1height)
-				wrongVoteSet := tmtypes.NewVoteSet(chainID, int64(misbehaviour.Header2.GetHeight().GetRevisionHeight()), 1, tmtypes.PrecommitType, altValSet)
-				blockID, err := tmtypes.BlockIDFromProto(&misbehaviour.Header2.Commit.BlockID)
-				if err != nil {
-					return err
-				}
-
-				tmCommit, err := tmtypes.MakeCommit(*blockID, int64(misbehaviour.Header2.GetHeight().GetRevisionHeight()), int(misbehaviour.Header2.Commit.Round), wrongVoteSet, altSigners, suite.now)
-				misbehaviour.Header2.Commit = tmCommit.ToProto()
-				return err
-			},
-			false,
-		},
+		//{
+		//	"header 2 doesn't have 2/3 majority",
+		//	&types.Misbehaviour{
+		//		Header1:  suite.header,
+		//		Header2:  suite.chainA.CreateTMClientHeader(chainID, int64(height.RevisionHeight), heightMinus1, suite.now, bothValSet, suite.valSet, bothSigners),
+		//		ClientId: clientID,
+		//	},
+		//	func(misbehaviour *types.Misbehaviour) error {
+		//		// voteSet contains only altVal which is less than 2/3 of total power (height/1height)
+		//		wrongVoteSet := tmtypes.NewVoteSet(chainID, int64(misbehaviour.Header2.GetHeight().GetRevisionHeight()), 1, tmtypes.PrecommitType, altValSet)
+		//		blockID, err := tmtypes.BlockIDFromProto(&misbehaviour.Header2.Commit.BlockID)
+		//		if err != nil {
+		//			return err
+		//		}
+		//
+		//		tmCommit, err := tmtypes.MakeCommit(*blockID, int64(misbehaviour.Header2.GetHeight().GetRevisionHeight()), int(misbehaviour.Header2.Commit.Round), wrongVoteSet, altSigners, suite.now)
+		//		misbehaviour.Header2.Commit = tmCommit.ToProto()
+		//		return err
+		//	},
+		//	false,
+		//},
 		{
 			"validators sign off on wrong commit",
 			&types.Misbehaviour{

@@ -38,9 +38,10 @@ func (am CapabilityModuleAdapter) InitGenesis(ctx sdk.Context, data json.RawMess
 func (am CapabilityModuleAdapter) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
 	var genState types2.GenesisState
 	// Initialize global index to index in genesis state
+
 	adapter.ModuleCdc.MustUnmarshalJSON(data, &genState)
 
-	capabilityModule.InitGenesis(ctx, am.tkeeper, &genState)
+	capabilityModule.InitGenesis(ctx, am.tkeeper, genState)
 
 	return []abci.ValidatorUpdate{}
 }

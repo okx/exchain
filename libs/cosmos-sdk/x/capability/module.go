@@ -139,11 +139,6 @@ func (am AppModule) RegisterInvariants(_ sdk.InvariantRegistry) {}
 // InitGenesis performs the capability module's genesis initialization It returns
 // no validator updates.
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	var genState types.GenesisState
-	// Initialize global index to index in genesis state
-	am.cdc.GetProtocMarshal().MustUnmarshalJSON(data, &genState)
-
-	InitGenesis(ctx, am.keeper, &genState)
 	return nil
 }
 func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
@@ -151,7 +146,7 @@ func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 	// Initialize global index to index in genesis state
 	ModuleCdc.MustUnmarshalJSON(data, &genState)
 
-	InitGenesis(ctx, am.keeper, &genState)
+	InitGenesis(ctx, am.keeper, genState)
 
 	return []abci.ValidatorUpdate{}
 }

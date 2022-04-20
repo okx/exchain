@@ -34,7 +34,7 @@ import (
 //		}
 //	}
 //}
-func (suite *TendermintTestSuite) TestCheckMisbehaviourAndUpdateStateWithRetry() {
+func (suite *TendermintTestSuite) testCheckMisbehaviourAndUpdateStateWithRetry() {
 	retry := 10
 
 	for retry > 0 {
