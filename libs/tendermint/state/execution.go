@@ -3,6 +3,7 @@ package state
 import (
 	"fmt"
 	"strconv"
+	"strings"
 	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -386,6 +387,8 @@ func transTxsToBytes(txs types.Txs) [][]byte {
 
 // Executes block's transactions on proxyAppConn.
 // Returns a list of transaction results and updates to the validator set
+var invalidSeqHeight = int64(0)
+var invalidSeqTotalCount = int(0)
 func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 	block := context.block
 	proxyAppConn := context.proxyApp
@@ -408,6 +411,13 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 				validTxs++
 			} else {
 				logger.Debug("Invalid tx", "code", txRes.Code, "log", txRes.Log, "index", txIndex)
+				if strings.Contains(txRes.Log, "invalid sequence") {
+					if invalidSeqHeight != block.Height {
+						invalidSeqHeight = block.Height
+						invalidSeqTotalCount++
+						logger.Error("invalidSeqBlock", "height", block.Height, "totalCount", invalidSeqTotalCount)
+					}
+				}
 				invalidTxs++
 			}
 			abciResponses.DeliverTxs[txIndex] = txRes
