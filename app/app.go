@@ -694,7 +694,11 @@ func NewAccHandler(ak auth.AccountKeeper) sdk.AccHandler {
 	return func(
 		ctx sdk.Context, addr sdk.AccAddress,
 	) uint64 {
-		return ak.GetAccount(ctx, addr).GetSequence()
+		acc := ak.GetAccount(ctx, addr)
+		if acc != nil {
+			return acc.GetSequence()
+		}
+		return 0
 	}
 }
 
