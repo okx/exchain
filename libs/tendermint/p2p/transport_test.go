@@ -263,7 +263,7 @@ func TestTransportMultiplexAcceptNonBlocking(t *testing.T) {
 	var (
 		fastNodePV   = ed25519.GenPrivKey()
 		fastNodeInfo = testNodeInfo(PubKeyToID(fastNodePV.PubKey()), "fastnode")
-		errc         = make(chan error)
+		done         = make(chan error)
 		fastc        = make(chan struct{})
 		slowc        = make(chan struct{})
 	)
@@ -274,7 +274,7 @@ func TestTransportMultiplexAcceptNonBlocking(t *testing.T) {
 
 		c, err := addr.Dial()
 		if err != nil {
-			errc <- err
+			t.Errorf("slow_peer dial err, err: %s", err.Error())
 			return
 		}
 
@@ -283,24 +283,25 @@ func TestTransportMultiplexAcceptNonBlocking(t *testing.T) {
 		select {
 		case <-fastc:
 			// Fast peer connected.
-		case <-time.After(time.Second):
+		case <-time.After(500 * time.Millisecond):
 			// We error if the fast peer didn't succeed.
-			errc <- fmt.Errorf("fast peer timed out")
-		}
-
-		sc, err := upgradeSecretConn(c, 20*time.Millisecond, ed25519.GenPrivKey())
-		if err != nil {
-			errc <- err
+			t.Errorf("slow_peer recv timed out")
 			return
 		}
 
-		_, err = handshake(sc, 20*time.Millisecond,
+		sc, err := upgradeSecretConn(c, 500*time.Millisecond, ed25519.GenPrivKey())
+		if err != nil {
+			t.Errorf("slow_peer upgradeSecretConn err: %s", err.Error())
+			return
+		}
+
+		_, err = handshake(sc, 500*time.Millisecond,
 			testNodeInfo(
 				PubKeyToID(ed25519.GenPrivKey().PubKey()),
 				"slow_peer",
 			))
 		if err != nil {
-			errc <- err
+			t.Errorf("slow_peer handshake err: %s", err.Error())
 			return
 		}
 	}()
@@ -321,19 +322,15 @@ func TestTransportMultiplexAcceptNonBlocking(t *testing.T) {
 
 		_, err := dialer.Dial(*addr, peerConfig{})
 		if err != nil {
-			errc <- err
+			t.Errorf("fast_peer Dial err: %s", err.Error())
 			return
 		}
 		close(fastc)
-		time.Sleep(2 * time.Second)
-		close(errc)
+		close(done)
 
 	}()
 
-	if err := <-errc; err != nil {
-		t.Errorf("connection failed: %v", err)
-	}
-
+	<-done
 	p, err := mt.Accept(peerConfig{})
 	if err != nil {
 		t.Fatal(err)
