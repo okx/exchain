@@ -13,6 +13,8 @@ const (
 	ProofOpSimpleMerkleCommitment = "ics23:simple"
 )
 
+type StoreFilter func(module string, h int64, store CommitKVStore) bool
+
 type HeightFilterPipeline func(h int64) func(str string, store CommitKVStore) bool
 type PrunePipeline func(h int64) func(str string) bool
 type VersionFilterPipeline func(h int64) func(func(name string, version int64))
@@ -30,9 +32,9 @@ var (
 )
 
 type CommitMultiStorePipeline interface {
-	SetCommitHeightFilterPipeline(f HeightFilterPipeline)
-	SetPruneHeightFilterPipeline(f PrunePipeline)
 	SetVersionFilterPipeline(f VersionFilterPipeline)
+	AppendCommitFilters(filters []StoreFilter)
+	AppendPruneFilters(filters []StoreFilter)
 }
 
 func LinkPipeline(f, s HeightFilterPipeline) HeightFilterPipeline {

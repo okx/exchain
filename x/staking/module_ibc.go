@@ -1,6 +1,7 @@
 package staking
 
 import (
+	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	params2 "github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/x/params"
@@ -30,4 +31,12 @@ func (am AppModule) RegisterParam() params.ParamSet {
 
 func (am AppModule) ModuleName() string {
 	return ModuleName
+}
+
+func (b AppModule) CommitFilter() *cosmost.StoreFilter {
+	return nil
+}
+
+func (b AppModule) PruneFilter() *cosmost.StoreFilter {
+	return nil
 }

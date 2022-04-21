@@ -11,15 +11,17 @@ import (
 )
 
 func (app *OKExChainApp) setupUpgradeModules() {
-	heightTasks, paramMap, pip, prunePip, versionPip := app.CollectUpgradeModules(app.mm)
+	heightTasks, paramMap, cf, pf, versionPip := app.CollectUpgradeModules(app.mm)
 
 	app.heightTasks = heightTasks
 
-	if pip != nil {
-		app.GetCMS().SetPruneHeightFilterPipeline(prunePip)
-		app.GetCMS().SetCommitHeightFilterPipeline(pip)
+	if versionPip != nil {
+		//app.GetCMS().SetPruneHeightFilterPipeline(prunePip)
+		//app.GetCMS().SetCommitHeightFilterPipeline(pip)
 		app.GetCMS().SetVersionFilterPipeline(versionPip)
 	}
+	app.GetCMS().AppendCommitFilters(cf)
+	app.GetCMS().AppendPruneFilters(pf)
 
 	vs := app.subspaces
 	for k, vv := range paramMap {
@@ -31,10 +33,14 @@ func (app *OKExChainApp) setupUpgradeModules() {
 	}
 }
 
-func (o *OKExChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgradetypes.HeightTasks, map[string]params.ParamSet, types.HeightFilterPipeline, types.PrunePipeline, types.VersionFilterPipeline) {
+func (o *OKExChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgradetypes.HeightTasks,
+	map[string]params.ParamSet, []types.StoreFilter, []types.StoreFilter, types.VersionFilterPipeline) {
 	hm := make(map[int64]*upgradetypes.HeightTasks)
-	hStoreInfoModule := make(map[int64]map[string]upgradetypes.HandleStore)
+	//hStoreInfoModule := make(map[int64]map[string]upgradetypes.HandleStore)
 	paramsRet := make(map[string]params.ParamSet)
+	commitFiltreMap := make(map[*types.StoreFilter]struct{})
+	pruneFilterMap := make(map[*types.StoreFilter]struct{})
+
 	for _, mm := range m.Modules {
 		if ada, ok := mm.(upgradetypes.UpgradeModule); ok {
 			set := ada.RegisterParam()
@@ -47,15 +53,17 @@ func (o *OKExChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgr
 			if h > 0 {
 				h++
 			}
-			storeInfoModule := hStoreInfoModule[h]
-			if storeInfoModule == nil {
-				storeInfoModule = make(map[string]upgradetypes.HandleStore)
-				hStoreInfoModule[h] = storeInfoModule
+
+			cf := ada.CommitFilter()
+			if cf != nil {
+				if _, exist := commitFiltreMap[cf]; !exist {
+					commitFiltreMap[cf] = struct{}{}
+				}
 			}
-			handlers := ada.BlockStoreModules()
-			if nil != handlers {
-				for k, v := range handlers {
-					storeInfoModule[k] = v
+			pf := ada.PruneFilter()
+			if pf != nil {
+				if _, exist := pruneFilterMap[pf]; !exist {
+					pruneFilterMap[pf] = struct{}{}
 				}
 			}
 
@@ -80,9 +88,18 @@ func (o *OKExChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgr
 		sort.Sort(*v)
 	}
 
-	commitPip, prunePip, versionPip := collectStorePipeline(hStoreInfoModule)
+	commmitFilters := make([]types.StoreFilter, 0)
+	pruneFilters := make([]types.StoreFilter, 0)
+	for pointerFilter, _ := range commitFiltreMap {
+		commmitFilters = append(commmitFilters, *pointerFilter)
+	}
+	for pointerFilter, _ := range pruneFilterMap {
+		pruneFilters = append(pruneFilters, *pointerFilter)
+	}
 
-	return hm, paramsRet, commitPip, prunePip, versionPip
+	//commitPip, prunePip, versionPip := collectStorePipeline(hStoreInfoModule)
+
+	return hm, paramsRet, commmitFilters, pruneFilters, nil
 }
 
 func collectStorePipeline(hStoreInfoModule map[int64]map[string]upgradetypes.HandleStore) (types.HeightFilterPipeline, types.PrunePipeline, types.VersionFilterPipeline) {

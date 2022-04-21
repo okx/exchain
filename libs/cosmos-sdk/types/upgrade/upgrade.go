@@ -14,6 +14,8 @@ type UpgradeModule interface {
 	BlockStoreModules() map[string]HandleStore
 	RegisterParam() params.ParamSet
 	ModuleName() string
+	CommitFilter() *store.StoreFilter
+	PruneFilter() *store.StoreFilter
 }
 
 type HeightTasks []HeightTask

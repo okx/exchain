@@ -71,10 +71,11 @@ type Store struct {
 
 	logger tmlog.Logger
 
-	versionPipeline            func(h int64) func(func(name string, version int64))
-	commitHeightFilterPipeline func(h int64) func(str string, store types.CommitKVStore) bool
-	pruneHeightFilterPipeline  types.PrunePipeline
-	upgradeVersion             int64
+	versionPipeline func(h int64) func(func(name string, version int64))
+	upgradeVersion  int64
+
+	commitFilters []types.StoreFilter
+	pruneFilters  []types.StoreFilter
 }
 
 var (
@@ -92,18 +93,17 @@ func NewStore(db dbm.DB) *Store {
 		flatKVDB = newFlatKVDB()
 	}
 	ret := &Store{
-		db:                         db,
-		flatKVDB:                   flatKVDB,
-		pruningOpts:                types.PruneNothing,
-		storesParams:               make(map[types.StoreKey]storeParams),
-		stores:                     make(map[types.StoreKey]types.CommitKVStore),
-		keysByName:                 make(map[string]types.StoreKey),
-		pruneHeights:               make([]int64, 0),
-		versions:                   make([]int64, 0),
-		versionPipeline:            types.DefaultLoopAll,
-		commitHeightFilterPipeline: types.DefaultAcceptAll,
-		pruneHeightFilterPipeline:  types.PruneDefaultAcceptAll,
-		upgradeVersion:             -1,
+		db:              db,
+		flatKVDB:        flatKVDB,
+		pruningOpts:     types.PruneNothing,
+		storesParams:    make(map[types.StoreKey]storeParams),
+		stores:          make(map[types.StoreKey]types.CommitKVStore),
+		keysByName:      make(map[string]types.StoreKey),
+		pruneHeights:    make([]int64, 0),
+		versions:        make([]int64, 0),
+		versionPipeline: types.DefaultLoopAll,
+		upgradeVersion:  -1,
+		commitFilters:   make([]types.StoreFilter, 0),
 	}
 
 	return ret
@@ -226,8 +226,8 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 			return 0, err
 		}
 		// filter IBC module {}
-		f := rs.commitHeightFilterPipeline(commitVersion)
-		if f(storeParams.key.Name(), nil) {
+		// TODO ,st 为nil
+		if filter(storeParams.key.Name(), commitVersion, nil, rs.commitFilters) {
 			continue
 		}
 		if commitVersion < minVersion {
@@ -490,7 +490,7 @@ func (rs *Store) CommitterCommitMap(inputDeltaMap iavltree.TreeDeltaMap) (types.
 	version := previousHeight + 1
 
 	var outputDeltaMap iavltree.TreeDeltaMap
-	rs.lastCommitInfo, outputDeltaMap = commitStores(version, rs.stores, inputDeltaMap, rs.commitHeightFilterPipeline(version))
+	rs.lastCommitInfo, outputDeltaMap = commitStores(version, rs.stores, inputDeltaMap, rs.commitFilters)
 
 	if !iavltree.EnableAsyncCommit {
 		// Determine if pruneHeight height needs to be added to the list of heights to
@@ -550,7 +550,7 @@ func (rs *Store) pruneStores() {
 			rs.logger.Info("pruning end")
 		}
 	}()
-	stores := rs.getFilterStores(rs.lastCommitInfo.Version + 1)
+	stores := rs.getFilterStores(rs.lastCommitInfo.Version)
 	//stores = rs.stores
 	for key, store := range stores {
 		if store.GetStoreType() == types.StoreTypeIAVL {
@@ -1028,12 +1028,12 @@ type StoreSort struct {
 
 // Commits each store and returns a new commitInfo.
 func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore,
-	inputDeltaMap iavltree.TreeDeltaMap, f func(str string, st types.CommitKVStore) bool) (commitInfo, iavltree.TreeDeltaMap) {
+	inputDeltaMap iavltree.TreeDeltaMap, filters []types.StoreFilter) (commitInfo, iavltree.TreeDeltaMap) {
 	var storeInfos []storeInfo
 	outputDeltaMap := iavltree.TreeDeltaMap{}
 
 	for key, store := range storeMap {
-		if f(key.Name(), store) {
+		if filter(key.Name(), version, store, filters) {
 			continue
 		}
 
@@ -1053,6 +1053,15 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		Version:    version,
 		StoreInfos: storeInfos,
 	}, outputDeltaMap
+}
+
+func filter(name string, h int64, st types.CommitKVStore, filters []types.StoreFilter) bool {
+	for _, f := range filters {
+		if f(name, h, st) {
+			return true
+		}
+	}
+	return false
 }
 
 // Gets commitInfo from disk.

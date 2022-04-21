@@ -5,6 +5,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -25,6 +26,14 @@ func (am AppModule) RegisterGRPCGatewayRoutes(cliContext context.CLIContext, ser
 }
 
 func (am AppModule) RegisterTask() upgrade.HeightTask {
+	return nil
+}
+
+func (b AppModule) CommitFilter() *cosmost.StoreFilter {
+	return nil
+}
+
+func (b AppModule) PruneFilter() *cosmost.StoreFilter {
 	return nil
 }
 

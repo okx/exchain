@@ -14,7 +14,59 @@ var (
 	defaultHandleStore upgrade.HandleStore = func(st cosmost.CommitKVStore, h int64) {
 		st.SetUpgradeVersion(h)
 	}
+	ibcMap = map[string]struct{}{
+		"ibc":            struct{}{},
+		"mem_capability": struct{}{},
+		"capability":     struct{}{},
+		"transfer":       struct{}{},
+		"erc20":          struct{}{},
+	}
+	defaultDenyFilter cosmost.StoreFilter = func(module string, h int64, store cosmost.CommitKVStore) bool {
+		_, exist := ibcMap[module]
+		if !exist {
+			return false
+		}
+		return true
+	}
+	defaultIBCCommitFilter cosmost.StoreFilter = func(module string, h int64, store cosmost.CommitKVStore) bool {
+		_, exist := ibcMap[module]
+		if !exist {
+			return false
+		}
+
+		// ==veneus1
+		if h == types.GetVenus1Height() {
+			store.SetUpgradeVersion(h)
+			return false
+		}
+
+		// ibc modules
+		if types.HigherThanVenus1(h) {
+			return false
+		}
+
+		// < veneus1
+		return true
+	}
+	defaultIBCPruneFilter cosmost.StoreFilter = func(module string, h int64, store cosmost.CommitKVStore) bool {
+		_, exist := ibcMap[module]
+		if !exist {
+			return false
+		}
+
+		// ibc modulee && >=veneus1
+		if types.HigherThanVenus1(h) {
+			return false
+		}
+
+		// < veneus1
+		return true
+	}
 )
+
+//type CommitFilter func(module string, h int64, store cosmost.CommitKVStore) bool
+//
+//type PreuneFilter func(module string, h int64, store cosmost.CommitKVStore) bool
 
 type BaseIBCUpgradeModule struct {
 	appModule module.AppModuleBasic
@@ -45,6 +97,19 @@ func (b *BaseIBCUpgradeModule) BlockStoreModules() map[string]upgrade.HandleStor
 		"transfer":       defaultHandleStore,
 		"erc20":          defaultHandleStore,
 	}
+}
+
+func (b *BaseIBCUpgradeModule) CommitFilter() *cosmost.StoreFilter {
+	if b.UpgradeHeight() == 0 {
+		return &defaultDenyFilter
+	}
+	return &defaultIBCCommitFilter
+}
+func (b *BaseIBCUpgradeModule) PruneFilter() *cosmost.StoreFilter {
+	if b.UpgradeHeight() == 0 {
+		return &defaultDenyFilter
+	}
+	return &defaultIBCPruneFilter
 }
 
 func (b *BaseIBCUpgradeModule) RegisterParam() params.ParamSet {
