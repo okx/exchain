@@ -194,7 +194,7 @@ func deductFees(ak auth.AccountKeeper, ctx sdk.Context, acc exported.Account, fe
 	if err := acc.SetCoins(balance); err != nil {
 		return err
 	}
-	ak.SetAccount(ctx, acc, false)
+	ak.SetAccount(ctx, acc)
 
 	return nil
 }
@@ -226,7 +226,7 @@ func incrementSeq(ctx sdk.Context, msgEthTx *evmtypes.MsgEthereumTx, ak auth.Acc
 		if err := sacc.SetSequence(seq); err != nil {
 			panic(err)
 		}
-		ak.SetAccount(ctx, sacc, false)
+		ak.SetAccount(ctx, sacc)
 	}
 	return
 }
@@ -249,7 +249,7 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 			acc = avd.ak.GetAccount(ctx, address)
 			if acc == nil {
 				acc = avd.ak.NewAccountWithAddress(ctx, address)
-				avd.ak.SetAccount(ctx, acc, false)
+				avd.ak.SetAccount(ctx, acc)
 			}
 			// on InitChain make sure account number == 0
 			err = accountVerification(&ctx, acc, msgEthTx)

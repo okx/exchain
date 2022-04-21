@@ -61,7 +61,7 @@ func (ak AccountKeeper) GetAllAccounts(ctx sdk.Context) (accounts []exported.Acc
 }
 
 // SetAccount implements sdk.AccountKeeper.
-func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account, updateState bool) {
+func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 	addr := acc.GetAddress()
 	store := ctx.KVStore(ak.key)
 	bz, err := ak.cdc.MarshalBinaryBareWithRegisteredMarshaller(acc)
@@ -78,8 +78,18 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account, update
 		if ak.observers != nil {
 			for _, observer := range ak.observers {
 				if observer != nil {
-					observer.OnAccountUpdated(acc, updateState)
+					observer.OnAccountUpdated(acc, false)
 				}
+			}
+		}
+	}
+}
+
+func (ak AccountKeeper) UpdateAccountInStateDB(ctx sdk.Context, acc exported.Account) {
+	if ak.observers != nil {
+		for _, observer := range ak.observers {
+			if observer != nil {
+				observer.OnAccountUpdated(acc, true)
 			}
 		}
 	}

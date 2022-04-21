@@ -40,7 +40,7 @@ func (avd AccountVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, s
 	acc := avd.ak.GetAccount(ctx, address)
 	if acc == nil {
 		acc = avd.ak.NewAccountWithAddress(ctx, address)
-		avd.ak.SetAccount(ctx, acc, false)
+		avd.ak.SetAccount(ctx, acc)
 	}
 
 	// on InitChain make sure account number == 0

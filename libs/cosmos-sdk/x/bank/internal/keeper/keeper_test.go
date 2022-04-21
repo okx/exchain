@@ -27,7 +27,7 @@ func TestKeeper(t *testing.T) {
 	acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr)
 
 	// Test GetCoins/SetCoins
-	app.AccountKeeper.SetAccount(ctx, acc, false)
+	app.AccountKeeper.SetAccount(ctx, acc)
 	require.True(t, app.BankKeeper.GetCoins(ctx, addr).IsEqual(sdk.NewCoins()))
 
 	app.BankKeeper.SetCoins(ctx, addr, sdk.NewCoins(sdk.NewInt64Coin("foocoin", 10)))
@@ -114,7 +114,7 @@ func TestSendKeeper(t *testing.T) {
 	acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr)
 
 	// Test GetCoins/SetCoins
-	app.AccountKeeper.SetAccount(ctx, acc, false)
+	app.AccountKeeper.SetAccount(ctx, acc)
 	require.True(t, sendKeeper.GetCoins(ctx, addr).IsEqual(sdk.NewCoins()))
 
 	app.BankKeeper.SetCoins(ctx, addr, sdk.NewCoins(sdk.NewInt64Coin("foocoin", 10)))
@@ -155,7 +155,7 @@ func TestInputOutputNewAccount(t *testing.T) {
 	addr1 := sdk.AccAddress([]byte("addr1"))
 	acc1 := app.AccountKeeper.NewAccountWithAddress(ctx, addr1)
 
-	app.AccountKeeper.SetAccount(ctx, acc1, false)
+	app.AccountKeeper.SetAccount(ctx, acc1)
 	require.NoError(t, app.BankKeeper.SetCoins(ctx, addr1, balances))
 
 	acc1Balances := app.BankKeeper.GetCoins(ctx, addr1)
@@ -190,7 +190,7 @@ func TestMsgSendEvents(t *testing.T) {
 	addr2 := sdk.AccAddress([]byte("addr2"))
 	acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr)
 
-	app.AccountKeeper.SetAccount(ctx, acc, false)
+	app.AccountKeeper.SetAccount(ctx, acc)
 	newCoins := sdk.NewCoins(sdk.NewInt64Coin("foocoin", 50))
 	err := app.BankKeeper.SendCoins(ctx, addr, addr2, newCoins)
 	require.Error(t, err)
@@ -237,8 +237,8 @@ func TestMsgMultiSendEvents(t *testing.T) {
 	acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr)
 	acc2 := app.AccountKeeper.NewAccountWithAddress(ctx, addr2)
 
-	app.AccountKeeper.SetAccount(ctx, acc, false)
-	app.AccountKeeper.SetAccount(ctx, acc2, false)
+	app.AccountKeeper.SetAccount(ctx, acc)
+	app.AccountKeeper.SetAccount(ctx, acc2)
 	newCoins := sdk.NewCoins(sdk.NewInt64Coin("foocoin", 50))
 	newCoins2 := sdk.NewCoins(sdk.NewInt64Coin("barcoin", 100))
 	inputs := []types.Input{
@@ -323,7 +323,7 @@ func TestViewKeeper(t *testing.T) {
 	acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr)
 
 	// Test GetCoins/SetCoins
-	app.AccountKeeper.SetAccount(ctx, acc, false)
+	app.AccountKeeper.SetAccount(ctx, acc)
 	require.True(t, viewKeeper.GetCoins(ctx, addr).IsEqual(sdk.NewCoins()))
 
 	app.BankKeeper.SetCoins(ctx, addr, sdk.NewCoins(sdk.NewInt64Coin("foocoin", 10)))
@@ -350,7 +350,7 @@ func TestVestingAccountSend(t *testing.T) {
 	bacc := auth.NewBaseAccountWithAddress(addr1)
 	bacc.SetCoins(origCoins)
 	vacc := vesting.NewContinuousVestingAccount(&bacc, ctx.BlockHeader().Time.Unix(), endTime.Unix())
-	app.AccountKeeper.SetAccount(ctx, vacc, false)
+	app.AccountKeeper.SetAccount(ctx, vacc)
 
 	// require that no coins be sendable at the beginning of the vesting schedule
 	err := app.BankKeeper.SendCoins(ctx, addr1, addr2, sendCoins)
@@ -358,7 +358,7 @@ func TestVestingAccountSend(t *testing.T) {
 
 	// receive some coins
 	vacc.SetCoins(origCoins.Add(sendCoins...))
-	app.AccountKeeper.SetAccount(ctx, vacc, false)
+	app.AccountKeeper.SetAccount(ctx, vacc)
 
 	// require that all vested coins are spendable plus any received
 	ctx.SetBlockTime(now.Add(12 * time.Hour))
@@ -385,7 +385,7 @@ func TestPeriodicVestingAccountSend(t *testing.T) {
 		vesting.Period{Length: int64(6 * 60 * 60), Amount: sdk.Coins{sdk.NewInt64Coin("stake", 25)}},
 	}
 	vacc := vesting.NewPeriodicVestingAccount(&bacc, ctx.BlockHeader().Time.Unix(), periods)
-	app.AccountKeeper.SetAccount(ctx, vacc, false)
+	app.AccountKeeper.SetAccount(ctx, vacc)
 
 	// require that no coins be sendable at the beginning of the vesting schedule
 	err := app.BankKeeper.SendCoins(ctx, addr1, addr2, sendCoins)
@@ -393,7 +393,7 @@ func TestPeriodicVestingAccountSend(t *testing.T) {
 
 	// receive some coins
 	vacc.SetCoins(origCoins.Add(sendCoins...))
-	app.AccountKeeper.SetAccount(ctx, vacc, false)
+	app.AccountKeeper.SetAccount(ctx, vacc)
 
 	// require that all vested coins are spendable plus any received
 	ctx.SetBlockTime(now.Add(12 * time.Hour))
@@ -419,8 +419,8 @@ func TestVestingAccountReceive(t *testing.T) {
 	bacc.SetCoins(origCoins)
 	vacc := vesting.NewContinuousVestingAccount(&bacc, ctx.BlockHeader().Time.Unix(), endTime.Unix())
 	acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr2)
-	app.AccountKeeper.SetAccount(ctx, vacc, false)
-	app.AccountKeeper.SetAccount(ctx, acc, false)
+	app.AccountKeeper.SetAccount(ctx, vacc)
+	app.AccountKeeper.SetAccount(ctx, acc)
 	app.BankKeeper.SetCoins(ctx, addr2, origCoins)
 
 	// send some coins to the vesting account
@@ -455,8 +455,8 @@ func TestPeriodicVestingAccountReceive(t *testing.T) {
 	}
 	vacc := vesting.NewPeriodicVestingAccount(&bacc, ctx.BlockHeader().Time.Unix(), periods)
 	acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr2)
-	app.AccountKeeper.SetAccount(ctx, vacc, false)
-	app.AccountKeeper.SetAccount(ctx, acc, false)
+	app.AccountKeeper.SetAccount(ctx, vacc)
+	app.AccountKeeper.SetAccount(ctx, acc)
 	app.BankKeeper.SetCoins(ctx, addr2, origCoins)
 
 	// send some coins to the vesting account
@@ -490,9 +490,9 @@ func TestDelegateCoins(t *testing.T) {
 	macc := ak.NewAccountWithAddress(ctx, addrModule) // we don't need to define an actual module account bc we just need the address for testing
 	vacc := vesting.NewContinuousVestingAccount(&bacc, ctx.BlockHeader().Time.Unix(), endTime.Unix())
 	acc := ak.NewAccountWithAddress(ctx, addr2)
-	ak.SetAccount(ctx, vacc, false)
-	ak.SetAccount(ctx, acc, false)
-	ak.SetAccount(ctx, macc, false)
+	ak.SetAccount(ctx, vacc)
+	ak.SetAccount(ctx, acc)
+	ak.SetAccount(ctx, macc)
 	app.BankKeeper.SetCoins(ctx, addr2, origCoins)
 
 	ctx.SetBlockTime(now.Add(12 * time.Hour))
@@ -531,9 +531,9 @@ func TestUndelegateCoins(t *testing.T) {
 	macc := ak.NewAccountWithAddress(ctx, addrModule) // we don't need to define an actual module account bc we just need the address for testing
 	vacc := vesting.NewContinuousVestingAccount(&bacc, ctx.BlockHeader().Time.Unix(), endTime.Unix())
 	acc := ak.NewAccountWithAddress(ctx, addr2)
-	ak.SetAccount(ctx, vacc, false)
-	ak.SetAccount(ctx, acc, false)
-	ak.SetAccount(ctx, macc, false)
+	ak.SetAccount(ctx, vacc)
+	ak.SetAccount(ctx, acc)
+	ak.SetAccount(ctx, macc)
 	app.BankKeeper.SetCoins(ctx, addr2, origCoins)
 
 	ctx.SetBlockTime(now.Add(12 * time.Hour))
