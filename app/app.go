@@ -533,8 +533,7 @@ func NewOKExChainApp(
 	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), evmTxFeeHandler(), fixLogForParallelTxHandler(app.EvmKeeper))
 	app.AddCustomizeModuleOnStopLogic(NewEvmModuleStopLogic(app.EvmKeeper))
 	app.SetMptCommitHandler(NewMptCommitHandler(app.EvmKeeper))
-	app.SetEvmTxVerifySignHandler(evmTxVerifySigHandler())
-
+	app.SetPreDeliverTxHandler(preDeliverTxHandler(app.AccountKeeper))
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
 		if err != nil {
