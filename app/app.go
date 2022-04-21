@@ -528,7 +528,7 @@ func NewOKExChainApp(
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccHandler(NewAccHandler(app.AccountKeeper))
 	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), evmTxFeeHandler(), fixLogForParallelTxHandler(app.EvmKeeper))
-	app.SetPreDeliverTxProcessor(newPreDeliverTxProcessor())
+	app.SetPreDeliverTxProcessor(newPreDeliverTxProcessor(app.AccountKeeper))
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
 		if err != nil {
@@ -694,11 +694,7 @@ func NewAccHandler(ak auth.AccountKeeper) sdk.AccHandler {
 	return func(
 		ctx sdk.Context, addr sdk.AccAddress,
 	) uint64 {
-		acc := ak.GetAccount(ctx, addr)
-		if acc != nil {
-			return acc.GetSequence()
-		}
-		return 0
+		return ak.GetAccount(ctx, addr).GetSequence()
 	}
 }
 

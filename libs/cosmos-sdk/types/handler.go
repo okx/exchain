@@ -22,6 +22,7 @@ type GetTxFeeHandler func(ctx Context, tx Tx) (Coins, bool)
 type PreDeliverTxProcessor interface {
 	VerifySig(ctx Context, tx Tx) error
 	GetTxToEthAddress(tx Tx) *ethcmm.Address
+	LoadAccount(ctx Context, addr AccAddress)
 }
 
 // AnteDecorator wraps the next AnteHandler to perform custom pre- and post-processing.

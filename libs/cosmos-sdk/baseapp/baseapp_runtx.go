@@ -218,18 +218,17 @@ func (app *BaseApp) PreDeliverRealTx(tx []byte) abci.TxEssentials {
 	}
 
 	if realTx != nil && realTx.GetType() == sdk.EvmTxType {
-		if app.AccHandler != nil && app.chainCache.IsEnabled() {
+		if app.preDeliverTxProcessor != nil && app.chainCache.IsEnabled() {
 			ctx := app.deliverState.ctx
 			ctx.SetCache(app.chainCache).
 				SetMultiStore(app.cms).
 				SetGasMeter(sdk.NewInfiniteGasMeter())
 
-			app.AccHandler(ctx, ethcmn.FromHex(realTx.GetFrom()))
-			if app.preDeliverTxProcessor != nil {
-				evmToAddr = app.preDeliverTxProcessor.GetTxToEthAddress(realTx)
-			}
+			app.preDeliverTxProcessor.LoadAccount(ctx, ethcmn.FromHex(realTx.GetFrom()))
+
+			evmToAddr = app.preDeliverTxProcessor.GetTxToEthAddress(realTx)
 			if evmToAddr != nil {
-				app.AccHandler(ctx, evmToAddr.Bytes())
+				app.preDeliverTxProcessor.LoadAccount(ctx, evmToAddr.Bytes())
 			}
 		}
 	}

@@ -45,9 +45,11 @@ func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
 	}
 }
 
-type preDeliverProcessor struct{}
+type preDeliverProcessor struct {
+	ak auth.AccountKeeper
+}
 
-func (preDeliverProcessor) VerifySig(ctx sdk.Context, tx sdk.Tx) error {
+func (*preDeliverProcessor) VerifySig(ctx sdk.Context, tx sdk.Tx) error {
 	if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
 		if evmTx.BaseTx.From != "" {
 			return nil
@@ -69,13 +71,17 @@ func (preDeliverProcessor) VerifySig(ctx sdk.Context, tx sdk.Tx) error {
 	return fmt.Errorf("tx type is not evm tx")
 }
 
-func (preDeliverProcessor) GetTxToEthAddress(tx sdk.Tx) *ethcmm.Address {
+func (*preDeliverProcessor) GetTxToEthAddress(tx sdk.Tx) *ethcmm.Address {
 	if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
 		return evmTx.Data.Recipient
 	}
 	return nil
 }
 
-func newPreDeliverTxProcessor() sdk.PreDeliverTxProcessor {
-	return preDeliverProcessor{}
+func (p *preDeliverProcessor) LoadAccount(ctx sdk.Context, addr sdk.AccAddress) {
+	p.ak.GetAccount(ctx, addr)
+}
+
+func newPreDeliverTxProcessor(ak auth.AccountKeeper) sdk.PreDeliverTxProcessor {
+	return &preDeliverProcessor{ak}
 }
