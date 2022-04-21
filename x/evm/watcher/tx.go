@@ -21,10 +21,10 @@ func (w *Watcher) RecordABCIMessage(deliverTx *DeliverTx, txDecoder sdk.TxDecode
 		return
 	}
 
-	// atomic.AddInt64(&w.recordingTxsCount, 1)
+	w.totalTxsCount++
 	index := w.txIndexInBlock
-	w.dispatchJob(func() {
-		w.recordTxsAndReceiptsE(deliverTx, index, txDecoder)
+	w.dispatchTxJob(func() {
+		w.recordTxsAndReceipts(deliverTx, index, txDecoder)
 	})
 	w.txIndexInBlock++
 }
@@ -48,7 +48,7 @@ func (w *Watcher) recordTxsAndReceiptsE(deliverTx *DeliverTx, index uint64, txDe
 }
 
 func (w *Watcher) recordTxsAndReceipts(deliverTx *DeliverTx, index uint64, txDecoder sdk.TxDecoder) {
-	defer atomic.AddInt64(&w.recordingTxsCount, -1)
+	defer atomic.AddInt64(&w.recordingTxsCount, 1)
 	if deliverTx == nil || deliverTx.Req == nil || deliverTx.Resp == nil {
 		w.log.Error("watch parse abci message error", "input", deliverTx)
 		return
@@ -152,7 +152,7 @@ func (w *Watcher) saveTxAndReceipt(msg *types.MsgEthereumTx, txHash ethcmn.Hash,
 	if txReceipt != nil {
 		w.txReceipts = append(w.txReceipts, txReceipt)
 	}
-	w.txInfoCollector = append(w.txInfoCollector, TxInfo{TxHash: txHash, Index: index, GasUsed: gasUsed})
+	w.txInfoCollector = append(w.txInfoCollector, &TxInfo{TxHash: txHash, Index: index, GasUsed: gasUsed})
 }
 
 func (w *Watcher) saveTxAndReceiptE(msg *types.MsgEthereumTx, txHash ethcmn.Hash, index uint64,

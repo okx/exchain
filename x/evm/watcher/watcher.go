@@ -17,6 +17,7 @@ import (
 	"github.com/spf13/viper"
 	"math/big"
 	"sync"
+	"sync/atomic"
 )
 
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -46,9 +47,10 @@ type Watcher struct {
 	txChan            chan func()
 	txIndexInBlock    uint64
 	recordingTxsCount int64
+	totalTxsCount     int64
 	txs               []WatchMessage
 	txReceipts        []*TransactionReceipt
-	txInfoCollector   []TxInfo
+	txInfoCollector   []*TxInfo
 }
 
 var (
@@ -108,13 +110,14 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	w.wdDelayKey = make([][]byte, 0)
 	w.recordingTxsCount = 0
 	w.txIndexInBlock = 0
+	w.totalTxsCount = 0
 }
 
 func (w *Watcher) clean() {
 	w.cumulativeGas = make(map[uint64]uint64)
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
-	w.txInfoCollector = []TxInfo{}
+	w.txInfoCollector = []*TxInfo{}
 	w.txs = []WatchMessage{}
 	w.txReceipts = []*TransactionReceipt{}
 	w.wdDelayKey = w.delayEraseKey
@@ -218,11 +221,11 @@ func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
 	if !w.Enabled() {
 		return
 	}
-	//	for atomic.LoadInt64(&w.recordingTxsCount) != 0 {
-	//	}
+	for atomic.LoadInt64(&w.recordingTxsCount) != w.totalTxsCount {
+	}
 
-	// w.sortTxsAndUpdateCumulativeGas()
-	// w.saveReceipts(w.cumulativeGas)
+	w.sortTxsAndUpdateCumulativeGas()
+	w.saveReceipts(w.cumulativeGas)
 	w.batch = append(w.batch, w.txs...)
 
 	wMsg := NewMsgBlock(w.height, bloom, w.blockHash, w.header, uint64(0xffffffff), big.NewInt(int64(w.gasUsed)), w.blockTxs)
@@ -499,7 +502,7 @@ func (w *Watcher) UseWatchData(watchData interface{}) {
 
 func (w *Watcher) SetWatchDataFunc() {
 	go w.jobRoutine()
-	// w.txRoutine()
+	w.txRoutine()
 	tmstate.SetWatchDataFunc(w.GetWatchDataFunc, w.UnmarshalWatchData, w.UseWatchData)
 }
 
@@ -635,7 +638,7 @@ func (w *Watcher) lazyInitialization() {
 	// lazy initial:
 	// now we will allocate chan memory
 	// 5*2 means watcherCommitJob+commitBatchJob(just in case)
-	w.jobChan = make(chan func(), 100*2)
+	w.jobChan = make(chan func(), 5*2)
 }
 
 func (w *Watcher) dispatchJob(f func()) {
