@@ -28,7 +28,7 @@ const (
 	dttRoutineStepSerial
 	dttRoutineStepFinished
 
-	keepAliveIntervalMS        = 5
+	keepAliveIntervalMS = 5
 )
 
 type DeliverTxTask struct {
@@ -561,14 +561,9 @@ func (dttm *DTTManager) serialExecution() {
 	//}
 }
 
-func (dttm *DTTManager) OnAccountUpdated(acc exported.Account, updateState bool) {
-	if updateState {
-		addr := hex.EncodeToString(acc.GetAddress())
-		dttm.accountUpdated(addr)
-	}
-}
+func (dttm *DTTManager) accountUpdated(acc exported.Account) {
+	address := hex.EncodeToString(acc.GetAddress())
 
-func (dttm *DTTManager) accountUpdated(address string) {
 	num := len(dttm.dttRoutineList)
 	serialIndex := dttm.serialIndex
 	for i := 0; i < num; i++ {
@@ -600,8 +595,8 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 	return app.deliverTxsMgr.txResponses
 }
 
-func (app *BaseApp) OnAccountUpdated(acc exported.Account, updateState bool) {
-	if app.deliverTxsMgr != nil {
-		app.deliverTxsMgr.OnAccountUpdated(acc, updateState)
+func (app *BaseApp) OnAccountUpdated(acc exported.Account, updateState ...bool) {
+	if app.deliverTxsMgr != nil && len(updateState) > 0 && updateState[0] {
+		app.deliverTxsMgr.accountUpdated(acc)
 	}
 }
