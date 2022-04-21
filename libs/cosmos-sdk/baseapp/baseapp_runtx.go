@@ -2,12 +2,16 @@ package baseapp
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"runtime/debug"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
+
+var anteFailedGasUsed = sdk.Gas(0)
+var anteFailedHeight = int64(0)
 
 type runTxInfo struct {
 	handler        modeHandler
@@ -74,8 +78,15 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 			info.result = nil
 		}
 		gasUsed := info.ctx.GasMeter().GasConsumed()
+		curHeight := global.GetGlobalHeight()+1
 		if anteFailed {
-			app.logger.Error("gasUsed", "value", gasUsed)
+			if anteFailedHeight != curHeight {
+				anteFailedHeight = curHeight
+				fmt.Println("LastBlockFailedTotalGas ", anteFailedGasUsed)
+				anteFailedGasUsed = 0
+			}
+			anteFailedGasUsed += gasUsed
+			fmt.Println("FailedTotalGas ", anteFailedGasUsed, " ", curHeight)
 			gasUsed = 0
 		}
 		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: gasUsed}
