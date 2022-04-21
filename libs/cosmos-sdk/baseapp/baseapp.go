@@ -648,7 +648,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 		ctx.SetParaMsg(&sdk.ParaMsg{
 			HaveCosmosTxInBlock: app.parallelTxManage.haveCosmosTxInBlock,
 		})
-		ctx.SetTxBytes(getRealTxByte(txBytes))
+		ctx.SetTxBytes(txBytes)
 	}
 
 	if mode == runTxModeDeliver {
