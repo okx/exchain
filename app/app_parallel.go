@@ -79,7 +79,7 @@ func (*preDeliverProcessor) GetTxToEthAddress(tx sdk.Tx) *ethcmm.Address {
 }
 
 func (p *preDeliverProcessor) LoadAccount(ctx sdk.Context, addr sdk.AccAddress) {
-	p.ak.GetAccount(ctx, addr)
+	p.ak.LoadAccount(ctx, addr)
 }
 
 func newPreDeliverTxProcessor(ak auth.AccountKeeper) sdk.PreDeliverTxProcessor {
