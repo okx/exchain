@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/tx"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/gov/client/cli"
 	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
+	"github.com/okex/exchain/x/wasm/client/utils"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 
@@ -21,7 +20,7 @@ func ProposalStoreCodeCmd() *cobra.Command {
 		Short: "Submit a wasm binary proposal",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientTxContext(cmd)
+			clientCtx, err := utils.GetClientTxContext(cmd)
 			if err != nil {
 				return err
 			}
@@ -62,7 +61,7 @@ func ProposalStoreCodeCmd() *cobra.Command {
 				InstantiatePermission: src.InstantiatePermission,
 			}
 
-			msg, err := govtypes.NewMsgSubmitProposal(&content, deposit, clientCtx.GetFromAddress())
+			msg := govtypes.NewMsgSubmitProposal(&content, deposit, clientCtx.GetFromAddress())
 			if err != nil {
 				return err
 			}
@@ -70,7 +69,7 @@ func ProposalStoreCodeCmd() *cobra.Command {
 				return err
 			}
 
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+			return utils.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
 		},
 	}
 
@@ -94,7 +93,7 @@ func ProposalInstantiateContractCmd() *cobra.Command {
 		Short: "Submit an instantiate wasm contract proposal",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientTxContext(cmd)
+			clientCtx, err := utils.GetClientTxContext(cmd)
 			if err != nil {
 				return err
 			}
@@ -139,7 +138,7 @@ func ProposalInstantiateContractCmd() *cobra.Command {
 				Funds:       src.Funds,
 			}
 
-			msg, err := govtypes.NewMsgSubmitProposal(&content, deposit, clientCtx.GetFromAddress())
+			msg := govtypes.NewMsgSubmitProposal(&content, deposit, clientCtx.GetFromAddress())
 			if err != nil {
 				return err
 			}
@@ -147,7 +146,7 @@ func ProposalInstantiateContractCmd() *cobra.Command {
 				return err
 			}
 
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+			return utils.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
 		},
 	}
 	cmd.Flags().String(flagAmount, "", "Coins to send to the contract during instantiation")
@@ -172,7 +171,7 @@ func ProposalMigrateContractCmd() *cobra.Command {
 		Short: "Submit a migrate wasm contract to a new code version proposal",
 		Args:  cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientTxContext(cmd)
+			clientCtx, err := utils.GetClientTxContext(cmd)
 			if err != nil {
 				return err
 			}
@@ -207,7 +206,7 @@ func ProposalMigrateContractCmd() *cobra.Command {
 				Msg:         src.Msg,
 			}
 
-			msg, err := govtypes.NewMsgSubmitProposal(&content, deposit, clientCtx.GetFromAddress())
+			msg := govtypes.NewMsgSubmitProposal(&content, deposit, clientCtx.GetFromAddress())
 			if err != nil {
 				return err
 			}
@@ -215,7 +214,7 @@ func ProposalMigrateContractCmd() *cobra.Command {
 				return err
 			}
 
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+			return utils.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
 		},
 	}
 
@@ -235,7 +234,7 @@ func ProposalExecuteContractCmd() *cobra.Command {
 		Short: "Submit a execute wasm contract proposal (run by any address)",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientTxContext(cmd)
+			clientCtx, err := utils.GetClientTxContext(cmd)
 			if err != nil {
 				return err
 			}
@@ -284,7 +283,7 @@ func ProposalExecuteContractCmd() *cobra.Command {
 				Funds:       funds,
 			}
 
-			msg, err := govtypes.NewMsgSubmitProposal(&content, deposit, clientCtx.GetFromAddress())
+			msg := govtypes.NewMsgSubmitProposal(&content, deposit, clientCtx.GetFromAddress())
 			if err != nil {
 				return err
 			}
@@ -292,7 +291,7 @@ func ProposalExecuteContractCmd() *cobra.Command {
 				return err
 			}
 
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+			return utils.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
 		},
 	}
 	cmd.Flags().String(flagRunAs, "", "The address that is passed as sender to the contract on proposal execution")
@@ -314,7 +313,7 @@ func ProposalSudoContractCmd() *cobra.Command {
 		Short: "Submit a sudo wasm contract proposal (to call privileged commands)",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientTxContext(cmd)
+			clientCtx, err := utils.GetClientTxContext(cmd)
 			if err != nil {
 				return err
 			}
@@ -346,7 +345,7 @@ func ProposalSudoContractCmd() *cobra.Command {
 				Msg:         sudoMsg,
 			}
 
-			msg, err := govtypes.NewMsgSubmitProposal(&content, deposit, clientCtx.GetFromAddress())
+			msg := govtypes.NewMsgSubmitProposal(&content, deposit, clientCtx.GetFromAddress())
 			if err != nil {
 				return err
 			}
@@ -354,7 +353,7 @@ func ProposalSudoContractCmd() *cobra.Command {
 				return err
 			}
 
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+			return utils.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
 		},
 	}
 
@@ -374,7 +373,7 @@ func ProposalUpdateContractAdminCmd() *cobra.Command {
 		Short: "Submit a new admin for a contract proposal",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientTxContext(cmd)
+			clientCtx, err := utils.GetClientTxContext(cmd)
 			if err != nil {
 				return err
 			}
@@ -408,7 +407,7 @@ func ProposalUpdateContractAdminCmd() *cobra.Command {
 				NewAdmin:    src.NewAdmin,
 			}
 
-			msg, err := govtypes.NewMsgSubmitProposal(&content, deposit, clientCtx.GetFromAddress())
+			msg := govtypes.NewMsgSubmitProposal(&content, deposit, clientCtx.GetFromAddress())
 			if err != nil {
 				return err
 			}
@@ -416,7 +415,7 @@ func ProposalUpdateContractAdminCmd() *cobra.Command {
 				return err
 			}
 
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+			return utils.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
 		},
 	}
 	// proposal flags
@@ -435,7 +434,7 @@ func ProposalClearContractAdminCmd() *cobra.Command {
 		Short: "Submit a clear admin for a contract to prevent further migrations proposal",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientTxContext(cmd)
+			clientCtx, err := utils.GetClientTxContext(cmd)
 			if err != nil {
 				return err
 			}
@@ -463,7 +462,7 @@ func ProposalClearContractAdminCmd() *cobra.Command {
 				Contract:    args[0],
 			}
 
-			msg, err := govtypes.NewMsgSubmitProposal(&content, deposit, clientCtx.GetFromAddress())
+			msg := govtypes.NewMsgSubmitProposal(&content, deposit, clientCtx.GetFromAddress())
 			if err != nil {
 				return err
 			}
@@ -471,7 +470,7 @@ func ProposalClearContractAdminCmd() *cobra.Command {
 				return err
 			}
 
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+			return utils.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
 		},
 	}
 	// proposal flags
@@ -490,7 +489,7 @@ func ProposalPinCodesCmd() *cobra.Command {
 		Short: "Submit a pin code proposal for pinning a code to cache",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientTxContext(cmd)
+			clientCtx, err := utils.GetClientTxContext(cmd)
 			if err != nil {
 				return err
 			}
@@ -522,7 +521,7 @@ func ProposalPinCodesCmd() *cobra.Command {
 				CodeIDs:     codeIds,
 			}
 
-			msg, err := govtypes.NewMsgSubmitProposal(&content, deposit, clientCtx.GetFromAddress())
+			msg := govtypes.NewMsgSubmitProposal(&content, deposit, clientCtx.GetFromAddress())
 			if err != nil {
 				return err
 			}
@@ -530,7 +529,7 @@ func ProposalPinCodesCmd() *cobra.Command {
 				return err
 			}
 
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+			return utils.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
 		},
 	}
 	// proposal flags
@@ -561,7 +560,7 @@ func ProposalUnpinCodesCmd() *cobra.Command {
 		Short: "Submit a unpin code proposal for unpinning a code to cache",
 		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientTxContext(cmd)
+			clientCtx, err := utils.GetClientTxContext(cmd)
 			if err != nil {
 				return err
 			}
@@ -593,7 +592,7 @@ func ProposalUnpinCodesCmd() *cobra.Command {
 				CodeIDs:     codeIds,
 			}
 
-			msg, err := govtypes.NewMsgSubmitProposal(&content, deposit, clientCtx.GetFromAddress())
+			msg := govtypes.NewMsgSubmitProposal(&content, deposit, clientCtx.GetFromAddress())
 			if err != nil {
 				return err
 			}
@@ -601,7 +600,7 @@ func ProposalUnpinCodesCmd() *cobra.Command {
 				return err
 			}
 
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+			return utils.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
 		},
 	}
 	// proposal flags

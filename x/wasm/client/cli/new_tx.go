@@ -3,10 +3,10 @@ package cli
 import (
 	"strconv"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client"
+	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/tx"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/x/wasm/client/utils"
 	"github.com/spf13/cobra"
 
 	"github.com/okex/exchain/x/wasm/types"
@@ -20,7 +20,7 @@ func MigrateContractCmd() *cobra.Command {
 		Aliases: []string{"update", "mig", "m"},
 		Args:    cobra.ExactArgs(3),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientTxContext(cmd)
+			clientCtx, err := utils.GetClientTxContext(cmd)
 			if err != nil {
 				return err
 			}
@@ -32,14 +32,14 @@ func MigrateContractCmd() *cobra.Command {
 			if err := msg.ValidateBasic(); err != nil {
 				return nil
 			}
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), &msg)
+			return utils.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), &msg)
 		},
 	}
 	flags.AddTxFlagsToCmd(cmd)
 	return cmd
 }
 
-func parseMigrateContractArgs(args []string, cliCtx client.Context) (types.MsgMigrateContract, error) {
+func parseMigrateContractArgs(args []string, cliCtx clientCtx.CLIContext) (types.MsgMigrateContract, error) {
 	// get the id of the code to instantiate
 	codeID, err := strconv.ParseUint(args[1], 10, 64)
 	if err != nil {
@@ -65,7 +65,7 @@ func UpdateContractAdminCmd() *cobra.Command {
 		Aliases: []string{"new-admin", "admin", "set-adm", "sa"},
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientTxContext(cmd)
+			clientCtx, err := utils.GetClientTxContext(cmd)
 			if err != nil {
 				return err
 			}
@@ -77,14 +77,14 @@ func UpdateContractAdminCmd() *cobra.Command {
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), &msg)
+			return utils.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), &msg)
 		},
 	}
 	flags.AddTxFlagsToCmd(cmd)
 	return cmd
 }
 
-func parseUpdateContractAdminArgs(args []string, cliCtx client.Context) (types.MsgUpdateAdmin, error) {
+func parseUpdateContractAdminArgs(args []string, cliCtx clientCtx.CLIContext) (types.MsgUpdateAdmin, error) {
 	msg := types.MsgUpdateAdmin{
 		Sender:   cliCtx.GetFromAddress().String(),
 		Contract: args[0],
@@ -101,7 +101,7 @@ func ClearContractAdminCmd() *cobra.Command {
 		Aliases: []string{"clear-admin", "clr-adm"},
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientTxContext(cmd)
+			clientCtx, err := utils.GetClientTxContext(cmd)
 			if err != nil {
 				return err
 			}
@@ -113,7 +113,7 @@ func ClearContractAdminCmd() *cobra.Command {
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), &msg)
+			return utils.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), &msg)
 		},
 	}
 	flags.AddTxFlagsToCmd(cmd)

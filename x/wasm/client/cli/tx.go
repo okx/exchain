@@ -3,12 +3,13 @@ package cli
 import (
 	"errors"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"io/ioutil"
 	"strconv"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/tx"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/spf13/cobra"
@@ -30,7 +31,7 @@ const (
 )
 
 // GetTxCmd returns the transaction commands for this module
-func GetTxCmd() *cobra.Command {
+func GetTxCmd(cdc *codec.Codec) *cobra.Command {
 	txCmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "Wasm transaction subcommands",
@@ -57,7 +58,7 @@ func StoreCodeCmd() *cobra.Command {
 		Aliases: []string{"upload", "st", "s"},
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientTxContext(cmd)
+			clientCtx, err := wasmUtils.GetClientTxContext(cmd)
 			if err != nil {
 				return err
 			}
@@ -68,7 +69,7 @@ func StoreCodeCmd() *cobra.Command {
 			if err = msg.ValidateBasic(); err != nil {
 				return err
 			}
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), &msg)
+			return wasmUtils.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), &msg)
 		},
 	}
 
@@ -139,7 +140,7 @@ func InstantiateContractCmd() *cobra.Command {
 		Aliases: []string{"start", "init", "inst", "i"},
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientTxContext(cmd)
+			clientCtx, err := wasmUtils.GetClientTxContext(cmd)
 			if err != nil {
 				return err
 			}
@@ -151,7 +152,7 @@ func InstantiateContractCmd() *cobra.Command {
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), &msg)
+			return wasmUtils.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), &msg)
 		},
 	}
 
@@ -222,7 +223,7 @@ func ExecuteContractCmd() *cobra.Command {
 		Aliases: []string{"run", "call", "exec", "ex", "e"},
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientTxContext(cmd)
+			clientCtx, err := wasmUtils.GetClientTxContext(cmd)
 			if err != nil {
 				return err
 			}
@@ -234,7 +235,7 @@ func ExecuteContractCmd() *cobra.Command {
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
-			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), &msg)
+			return wasmUtils.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), &msg)
 		},
 	}
 

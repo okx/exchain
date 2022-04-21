@@ -1,20 +1,18 @@
 package rest
 
 import (
+	"github.com/gorilla/mux"
 	"net/http"
 	"strconv"
 
-	"github.com/gorilla/mux"
-	"github.com/okex/exchain/libs/cosmos-sdk/client"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/tx"
+	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
-
 	wasmUtils "github.com/okex/exchain/x/wasm/client/utils"
 	"github.com/okex/exchain/x/wasm/types"
 )
 
-func registerTxRoutes(cliCtx client.Context, r *mux.Router) {
+func registerTxRoutes(cliCtx clientCtx.CLIContext, r *mux.Router) {
 	r.HandleFunc("/wasm/code", storeCodeHandlerFn(cliCtx)).Methods("POST")
 	r.HandleFunc("/wasm/code/{codeId}", instantiateContractHandlerFn(cliCtx)).Methods("POST")
 	r.HandleFunc("/wasm/contract/{contractAddr}", executeContractHandlerFn(cliCtx)).Methods("POST")
@@ -39,10 +37,10 @@ type executeContractReq struct {
 	Amount  sdk.Coins    `json:"coins" yaml:"coins"`
 }
 
-func storeCodeHandlerFn(cliCtx client.Context) http.HandlerFunc {
+func storeCodeHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req storeCodeReq
-		if !rest.ReadRESTReq(w, r, cliCtx.LegacyAmino, &req) {
+		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 			return
 		}
 
@@ -77,14 +75,14 @@ func storeCodeHandlerFn(cliCtx client.Context) http.HandlerFunc {
 			return
 		}
 
-		tx.WriteGeneratedTxResponse(cliCtx, w, req.BaseReq, &msg)
+		wasmUtils.WriteGeneratedTxResponse(cliCtx, w, req.BaseReq, &msg)
 	}
 }
 
-func instantiateContractHandlerFn(cliCtx client.Context) http.HandlerFunc {
+func instantiateContractHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req instantiateContractReq
-		if !rest.ReadRESTReq(w, r, cliCtx.LegacyAmino, &req) {
+		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 			return
 		}
 		vars := mux.Vars(r)
@@ -114,14 +112,14 @@ func instantiateContractHandlerFn(cliCtx client.Context) http.HandlerFunc {
 			return
 		}
 
-		tx.WriteGeneratedTxResponse(cliCtx, w, req.BaseReq, &msg)
+		wasmUtils.WriteGeneratedTxResponse(cliCtx, w, req.BaseReq, &msg)
 	}
 }
 
-func executeContractHandlerFn(cliCtx client.Context) http.HandlerFunc {
+func executeContractHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req executeContractReq
-		if !rest.ReadRESTReq(w, r, cliCtx.LegacyAmino, &req) {
+		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 			return
 		}
 		vars := mux.Vars(r)
@@ -144,6 +142,6 @@ func executeContractHandlerFn(cliCtx client.Context) http.HandlerFunc {
 			return
 		}
 
-		tx.WriteGeneratedTxResponse(cliCtx, w, req.BaseReq, &msg)
+		wasmUtils.WriteGeneratedTxResponse(cliCtx, w, req.BaseReq, &msg)
 	}
 }

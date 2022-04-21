@@ -4,14 +4,13 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/okex/exchain/libs/cosmos-sdk/client"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/tx"
+	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
-
+	"github.com/okex/exchain/x/wasm/client/utils"
 	"github.com/okex/exchain/x/wasm/types"
 )
 
-func registerNewTxRoutes(cliCtx client.Context, r *mux.Router) {
+func registerNewTxRoutes(cliCtx clientCtx.CLIContext, r *mux.Router) {
 	r.HandleFunc("/wasm/contract/{contractAddr}/admin", setContractAdminHandlerFn(cliCtx)).Methods("PUT")
 	r.HandleFunc("/wasm/contract/{contractAddr}/code", migrateContractHandlerFn(cliCtx)).Methods("PUT")
 }
@@ -28,10 +27,10 @@ type updateContractAdministrateReq struct {
 	Admin   string       `json:"admin,omitempty" yaml:"admin"`
 }
 
-func setContractAdminHandlerFn(cliCtx client.Context) http.HandlerFunc {
+func setContractAdminHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req updateContractAdministrateReq
-		if !rest.ReadRESTReq(w, r, cliCtx.LegacyAmino, &req) {
+		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 			return
 		}
 		vars := mux.Vars(r)
@@ -52,14 +51,14 @@ func setContractAdminHandlerFn(cliCtx client.Context) http.HandlerFunc {
 			return
 		}
 
-		tx.WriteGeneratedTxResponse(cliCtx, w, req.BaseReq, msg)
+		utils.WriteGeneratedTxResponse(cliCtx, w, req.BaseReq, msg)
 	}
 }
 
-func migrateContractHandlerFn(cliCtx client.Context) http.HandlerFunc {
+func migrateContractHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req migrateContractReq
-		if !rest.ReadRESTReq(w, r, cliCtx.LegacyAmino, &req) {
+		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 			return
 		}
 		vars := mux.Vars(r)
@@ -81,6 +80,6 @@ func migrateContractHandlerFn(cliCtx client.Context) http.HandlerFunc {
 			return
 		}
 
-		tx.WriteGeneratedTxResponse(cliCtx, w, req.BaseReq, msg)
+		utils.WriteGeneratedTxResponse(cliCtx, w, req.BaseReq, msg)
 	}
 }

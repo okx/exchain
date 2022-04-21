@@ -7,19 +7,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-
-	"github.com/okex/exchain/x/wasm/keeper"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	banktypes "github.com/okex/exchain/libs/cosmos-sdk/x/bank/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/okex/exchain/libs/cosmos-sdk/x/genutil/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okex/exchain/x/wasm/client/utils"
+	"github.com/okex/exchain/x/wasm/keeper"
 	"github.com/spf13/cobra"
 
 	"github.com/okex/exchain/x/wasm/types"
@@ -246,12 +243,12 @@ func GenesisListContractsCmd(defaultNodeHome string, genReader GenesisReader) *c
 
 // clientCtx marshaller works only with proto or bytes so we marshal the output ourself
 func printJSONOutput(cmd *cobra.Command, obj interface{}) error {
-	clientCtx := client.GetClientContextFromCmd(cmd)
+	clientCtx := utils.GetClientContextFromCmd(cmd)
 	bz, err := json.MarshalIndent(obj, "", " ")
 	if err != nil {
 		return err
 	}
-	return clientCtx.PrintString(string(bz))
+	return clientCtx.PrintOutput(string(bz))
 }
 
 type CodeMeta struct {
@@ -334,12 +331,12 @@ func hasAccountBalance(cmd *cobra.Command, appState map[string]json.RawMessage, 
 	if coins.IsZero() {
 		return true, nil
 	}
-	clientCtx, err := client.GetClientQueryContext(cmd)
+	clientCtx, err := utils.GetClientQueryContext(cmd)
 	if err != nil {
 		return false, err
 	}
 	cdc := clientCtx.Codec
-	var genBalIterator banktypes.GenesisBalancesIterator
+	var genBalIterator auth.GenesisAccountIterator
 	err = genutil.ValidateAccountInGenesis(appState, genBalIterator, sender, coins, cdc)
 	if err != nil {
 		return false, err
@@ -380,19 +377,19 @@ func NewGenesisData(genesisFile string, genDoc *tmtypes.GenesisDoc, appState map
 type DefaultGenesisReader struct{}
 
 func (d DefaultGenesisReader) ReadWasmGenesis(cmd *cobra.Command) (*GenesisData, error) {
-	clientCtx := client.GetClientContextFromCmd(cmd)
-	serverCtx := server.GetServerContextFromCmd(cmd)
+	clientCtx := utils.GetClientContextFromCmd(cmd)
+	serverCtx := utils.GetServerContextFromCmd(cmd)
 	config := serverCtx.Config
 	config.SetRoot(clientCtx.HomeDir)
 
 	genFile := config.GenesisFile()
-	appState, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
+	appState, genDoc, err := genutiltypes.GenesisStateFromGenFile(clientCtx.Codec, genFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal genesis state: %w", err)
 	}
 	var wasmGenesisState types.GenesisState
 	if appState[types.ModuleName] != nil {
-		clientCtx := client.GetClientContextFromCmd(cmd)
+		clientCtx := utils.GetClientContextFromCmd(cmd)
 		clientCtx.Codec.MustUnmarshalJSON(appState[types.ModuleName], &wasmGenesisState)
 	}
 
@@ -434,7 +431,7 @@ func (x DefaultGenesisIO) AlterWasmModuleState(cmd *cobra.Command, callback func
 	if err := g.WasmModuleState.ValidateBasic(); err != nil {
 		return err
 	}
-	clientCtx := client.GetClientContextFromCmd(cmd)
+	clientCtx := utils.GetClientContextFromCmd(cmd)
 	wasmGenStateBz, err := clientCtx.Codec.MarshalJSON(g.WasmModuleState)
 	if err != nil {
 		return sdkerrors.Wrap(err, "marshal wasm genesis state")
@@ -498,14 +495,14 @@ func getActorAddress(cmd *cobra.Command) (sdk.AccAddress, error) {
 		return nil, err
 	}
 
-	homeDir := client.GetClientContextFromCmd(cmd).HomeDir
+	homeDir := utils.GetClientContextFromCmd(cmd).HomeDir
 	// attempt to lookup address from Keybase if no address was provided
 	kb, err := keys.NewKeyring(sdk.KeyringServiceName(), keyringBackend, homeDir, inBuf)
 	if err != nil {
 		return nil, err
 	}
 
-	info, err := kb.Key(actorArg)
+	info, err := kb.Get(actorArg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get address from Keybase: %w", err)
 	}

@@ -271,13 +271,13 @@ func (k Keeper) instantiate(ctx sdk.Context, codeID uint64, creator, admin sdk.A
 	// 0x03 | BuildContractAddress (sdk.AccAddress)
 	prefixStoreKey := types.GetContractStorePrefix(contractAddress)
 	prefixStore := prefix.NewStore(ctx.KVStore(k.storeKey), prefixStoreKey)
-
+	prefixStoreAdapter := types.NewStoreAdapter(prefixStore)
 	// prepare querier
 	querier := k.newQueryHandler(ctx, contractAddress)
 
 	// instantiate wasm contract
 	gas := k.runtimeGasForContract(ctx)
-	res, gasUsed, err := k.wasmVM.Instantiate(codeInfo.CodeHash, env, info, initMsg, prefixStore, cosmwasmAPI, querier, k.gasMeter(ctx), gas, costJSONDeserialization)
+	res, gasUsed, err := k.wasmVM.Instantiate(codeInfo.CodeHash, env, info, initMsg, prefixStoreAdapter, cosmwasmAPI, querier, k.gasMeter(ctx), gas, costJSONDeserialization)
 	k.consumeRuntimeGas(ctx, gasUsed)
 	if err != nil {
 		return nil, nil, sdkerrors.Wrap(types.ErrInstantiateFailed, err.Error())
@@ -405,8 +405,9 @@ func (k Keeper) migrate(ctx sdk.Context, contractAddress sdk.AccAddress, caller 
 
 	prefixStoreKey := types.GetContractStorePrefix(contractAddress)
 	prefixStore := prefix.NewStore(ctx.KVStore(k.storeKey), prefixStoreKey)
+	prefixAdapater := types.NewStoreAdapter(prefixStore)
 	gas := k.runtimeGasForContract(ctx)
-	res, gasUsed, err := k.wasmVM.Migrate(newCodeInfo.CodeHash, env, msg, &prefixStore, cosmwasmAPI, &querier, k.gasMeter(ctx), gas, costJSONDeserialization)
+	res, gasUsed, err := k.wasmVM.Migrate(newCodeInfo.CodeHash, env, msg, &prefixAdapater, cosmwasmAPI, &querier, k.gasMeter(ctx), gas, costJSONDeserialization)
 	k.consumeRuntimeGas(ctx, gasUsed)
 	if err != nil {
 		return nil, sdkerrors.Wrap(types.ErrMigrationFailed, err.Error())
@@ -626,25 +627,25 @@ func (k Keeper) QueryRaw(ctx sdk.Context, contractAddress sdk.AccAddress, key []
 	return prefixStore.Get(key)
 }
 
-func (k Keeper) contractInstance(ctx sdk.Context, contractAddress sdk.AccAddress) (types.ContractInfo, types.CodeInfo, prefix.Store, error) {
+func (k Keeper) contractInstance(ctx sdk.Context, contractAddress sdk.AccAddress) (types.ContractInfo, types.CodeInfo, types.StoreAdapter, error) {
 	store := ctx.KVStore(k.storeKey)
 
 	contractBz := store.Get(types.GetContractAddressKey(contractAddress))
 	if contractBz == nil {
-		return types.ContractInfo{}, types.CodeInfo{}, prefix.Store{}, sdkerrors.Wrap(types.ErrNotFound, "contract")
+		return types.ContractInfo{}, types.CodeInfo{}, types.StoreAdapter{}, sdkerrors.Wrap(types.ErrNotFound, "contract")
 	}
 	var contractInfo types.ContractInfo
 	k.cdc.GetProtocMarshal().MustUnmarshal(contractBz, &contractInfo)
 
 	codeInfoBz := store.Get(types.GetCodeKey(contractInfo.CodeID))
 	if codeInfoBz == nil {
-		return contractInfo, types.CodeInfo{}, prefix.Store{}, sdkerrors.Wrap(types.ErrNotFound, "code info")
+		return contractInfo, types.CodeInfo{}, types.StoreAdapter{}, sdkerrors.Wrap(types.ErrNotFound, "code info")
 	}
 	var codeInfo types.CodeInfo
 	k.cdc.GetProtocMarshal().MustUnmarshal(codeInfoBz, &codeInfo)
 	prefixStoreKey := types.GetContractStorePrefix(contractAddress)
 	prefixStore := prefix.NewStore(ctx.KVStore(k.storeKey), prefixStoreKey)
-	return contractInfo, codeInfo, prefixStore, nil
+	return contractInfo, codeInfo, types.NewStoreAdapter(prefixStore), nil
 }
 
 func (k Keeper) GetContractInfo(ctx sdk.Context, contractAddress sdk.AccAddress) *types.ContractInfo {

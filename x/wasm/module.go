@@ -78,13 +78,13 @@ func (AppModuleBasic) RegisterRESTRoutes(cliCtx clictx.CLIContext, rtr *mux.Rout
 }
 
 // GetTxCmd returns the root tx command for the wasm module.
-func (b AppModuleBasic) GetTxCmd(*codec.Codec) *cobra.Command {
+func (b AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
 	return cli.GetTxCmd()
 }
 
 // GetQueryCmd returns no root query command for the wasm module.
-func (b AppModuleBasic) GetQueryCmd(*codec.Codec) *cobra.Command {
-	return cli.GetQueryCmd()
+func (b AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
+	return cli.GetQueryCmd(cdc)
 }
 
 // RegisterInterfaces implements InterfaceModule
@@ -97,7 +97,7 @@ func (b AppModuleBasic) RegisterInterfaces(registry cdctypes.InterfaceRegistry) 
 // AppModule implements an application module for the wasm module.
 type AppModule struct {
 	AppModuleBasic
-	cdc                codec.Codec
+	cdc                codec.CodecProxy
 	keeper             *Keeper
 	validatorSetSource keeper.ValidatorSetSource
 }
@@ -109,7 +109,7 @@ type AppModule struct {
 func (AppModule) ConsensusVersion() uint64 { return 1 }
 
 // NewAppModule creates a new AppModule object
-func NewAppModule(cdc codec.Codec, keeper *Keeper, validatorSetSource keeper.ValidatorSetSource) AppModule {
+func NewAppModule(cdc codec.CodecProxy, keeper *Keeper, validatorSetSource keeper.ValidatorSetSource) AppModule {
 	return AppModule{
 		AppModuleBasic:     AppModuleBasic{},
 		cdc:                cdc,
@@ -184,7 +184,8 @@ func (AppModule) ProposalContents(simState module.SimulationState) []simtypes.We
 
 // RandomizedParams creates randomized bank param changes for the simulator.
 func (am AppModule) RandomizedParams(r *rand.Rand) []simtypes.ParamChange {
-	return simulation.ParamChanges(r, am.cdc)
+	aminoCdc := am.cdc.GetCdc()
+	return simulation.ParamChanges(r, *aminoCdc)
 }
 
 // RegisterStoreDecoder registers a decoder for supply module's types

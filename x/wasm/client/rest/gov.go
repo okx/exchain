@@ -2,10 +2,10 @@ package rest
 
 import (
 	"encoding/json"
+	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/x/wasm/client/utils"
 	"net/http"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/tx"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
 	govrest "github.com/okex/exchain/libs/cosmos-sdk/x/gov/client/rest"
@@ -48,12 +48,12 @@ func (s StoreCodeProposalJSONReq) GetBaseReq() rest.BaseReq {
 	return s.BaseReq
 }
 
-func StoreCodeProposalHandler(cliCtx client.Context) govrest.ProposalRESTHandler {
+func StoreCodeProposalHandler(cliCtx clientCtx.CLIContext) govrest.ProposalRESTHandler {
 	return govrest.ProposalRESTHandler{
 		SubRoute: "wasm_store_code",
 		Handler: func(w http.ResponseWriter, r *http.Request) {
 			var req StoreCodeProposalJSONReq
-			if !rest.ReadRESTReq(w, r, cliCtx.LegacyAmino, &req) {
+			if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 				return
 			}
 			toStdTxResponse(cliCtx, w, req)
@@ -101,12 +101,12 @@ func (s InstantiateProposalJSONReq) GetBaseReq() rest.BaseReq {
 	return s.BaseReq
 }
 
-func InstantiateProposalHandler(cliCtx client.Context) govrest.ProposalRESTHandler {
+func InstantiateProposalHandler(cliCtx clientCtx.CLIContext) govrest.ProposalRESTHandler {
 	return govrest.ProposalRESTHandler{
 		SubRoute: "wasm_instantiate",
 		Handler: func(w http.ResponseWriter, r *http.Request) {
 			var req InstantiateProposalJSONReq
-			if !rest.ReadRESTReq(w, r, cliCtx.LegacyAmino, &req) {
+			if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 				return
 			}
 			toStdTxResponse(cliCtx, w, req)
@@ -146,12 +146,12 @@ func (s MigrateProposalJSONReq) GetDeposit() sdk.Coins {
 func (s MigrateProposalJSONReq) GetBaseReq() rest.BaseReq {
 	return s.BaseReq
 }
-func MigrateProposalHandler(cliCtx client.Context) govrest.ProposalRESTHandler {
+func MigrateProposalHandler(cliCtx clientCtx.CLIContext) govrest.ProposalRESTHandler {
 	return govrest.ProposalRESTHandler{
 		SubRoute: "wasm_migrate",
 		Handler: func(w http.ResponseWriter, r *http.Request) {
 			var req MigrateProposalJSONReq
-			if !rest.ReadRESTReq(w, r, cliCtx.LegacyAmino, &req) {
+			if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 				return
 			}
 			toStdTxResponse(cliCtx, w, req)
@@ -194,12 +194,12 @@ func (s ExecuteProposalJSONReq) GetDeposit() sdk.Coins {
 func (s ExecuteProposalJSONReq) GetBaseReq() rest.BaseReq {
 	return s.BaseReq
 }
-func ExecuteProposalHandler(cliCtx client.Context) govrest.ProposalRESTHandler {
+func ExecuteProposalHandler(cliCtx clientCtx.CLIContext) govrest.ProposalRESTHandler {
 	return govrest.ProposalRESTHandler{
 		SubRoute: "wasm_execute",
 		Handler: func(w http.ResponseWriter, r *http.Request) {
 			var req ExecuteProposalJSONReq
-			if !rest.ReadRESTReq(w, r, cliCtx.LegacyAmino, &req) {
+			if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 				return
 			}
 			toStdTxResponse(cliCtx, w, req)
@@ -237,12 +237,12 @@ func (s SudoProposalJSONReq) GetDeposit() sdk.Coins {
 func (s SudoProposalJSONReq) GetBaseReq() rest.BaseReq {
 	return s.BaseReq
 }
-func SudoProposalHandler(cliCtx client.Context) govrest.ProposalRESTHandler {
+func SudoProposalHandler(cliCtx clientCtx.CLIContext) govrest.ProposalRESTHandler {
 	return govrest.ProposalRESTHandler{
 		SubRoute: "wasm_sudo",
 		Handler: func(w http.ResponseWriter, r *http.Request) {
 			var req SudoProposalJSONReq
-			if !rest.ReadRESTReq(w, r, cliCtx.LegacyAmino, &req) {
+			if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 				return
 			}
 			toStdTxResponse(cliCtx, w, req)
@@ -280,12 +280,12 @@ func (s UpdateAdminJSONReq) GetDeposit() sdk.Coins {
 func (s UpdateAdminJSONReq) GetBaseReq() rest.BaseReq {
 	return s.BaseReq
 }
-func UpdateContractAdminProposalHandler(cliCtx client.Context) govrest.ProposalRESTHandler {
+func UpdateContractAdminProposalHandler(cliCtx clientCtx.CLIContext) govrest.ProposalRESTHandler {
 	return govrest.ProposalRESTHandler{
 		SubRoute: "wasm_update_admin",
 		Handler: func(w http.ResponseWriter, r *http.Request) {
 			var req UpdateAdminJSONReq
-			if !rest.ReadRESTReq(w, r, cliCtx.LegacyAmino, &req) {
+			if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 				return
 			}
 			toStdTxResponse(cliCtx, w, req)
@@ -321,12 +321,12 @@ func (s ClearAdminJSONReq) GetDeposit() sdk.Coins {
 func (s ClearAdminJSONReq) GetBaseReq() rest.BaseReq {
 	return s.BaseReq
 }
-func ClearContractAdminProposalHandler(cliCtx client.Context) govrest.ProposalRESTHandler {
+func ClearContractAdminProposalHandler(cliCtx clientCtx.CLIContext) govrest.ProposalRESTHandler {
 	return govrest.ProposalRESTHandler{
 		SubRoute: "wasm_clear_admin",
 		Handler: func(w http.ResponseWriter, r *http.Request) {
 			var req ClearAdminJSONReq
-			if !rest.ReadRESTReq(w, r, cliCtx.LegacyAmino, &req) {
+			if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 				return
 			}
 			toStdTxResponse(cliCtx, w, req)
@@ -363,12 +363,12 @@ func (s PinCodeJSONReq) GetBaseReq() rest.BaseReq {
 	return s.BaseReq
 }
 
-func PinCodeProposalHandler(cliCtx client.Context) govrest.ProposalRESTHandler {
+func PinCodeProposalHandler(cliCtx clientCtx.CLIContext) govrest.ProposalRESTHandler {
 	return govrest.ProposalRESTHandler{
 		SubRoute: "pin_code",
 		Handler: func(w http.ResponseWriter, r *http.Request) {
 			var req PinCodeJSONReq
-			if !rest.ReadRESTReq(w, r, cliCtx.LegacyAmino, &req) {
+			if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 				return
 			}
 			toStdTxResponse(cliCtx, w, req)
@@ -405,12 +405,12 @@ func (s UnpinCodeJSONReq) GetBaseReq() rest.BaseReq {
 	return s.BaseReq
 }
 
-func UnpinCodeProposalHandler(cliCtx client.Context) govrest.ProposalRESTHandler {
+func UnpinCodeProposalHandler(cliCtx clientCtx.CLIContext) govrest.ProposalRESTHandler {
 	return govrest.ProposalRESTHandler{
 		SubRoute: "pin_code",
 		Handler: func(w http.ResponseWriter, r *http.Request) {
 			var req UnpinCodeJSONReq
-			if !rest.ReadRESTReq(w, r, cliCtx.LegacyAmino, &req) {
+			if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 				return
 			}
 			toStdTxResponse(cliCtx, w, req)
@@ -425,17 +425,17 @@ type wasmProposalData interface {
 	GetBaseReq() rest.BaseReq
 }
 
-func toStdTxResponse(cliCtx client.Context, w http.ResponseWriter, data wasmProposalData) {
+func toStdTxResponse(cliCtx clientCtx.CLIContext, w http.ResponseWriter, data wasmProposalData) {
 	proposerAddr, err := sdk.AccAddressFromBech32(data.GetProposer())
 	if err != nil {
 		rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	msg, err := govtypes.NewMsgSubmitProposal(data.Content(), data.GetDeposit(), proposerAddr)
-	if err != nil {
-		rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
-		return
-	}
+	msg := govtypes.NewMsgSubmitProposal(data.Content(), data.GetDeposit(), proposerAddr)
+	//if err != nil {
+	//	rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
+	//	return
+	//}
 	if err := msg.ValidateBasic(); err != nil {
 		rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 		return
@@ -444,5 +444,5 @@ func toStdTxResponse(cliCtx client.Context, w http.ResponseWriter, data wasmProp
 	if !baseReq.ValidateBasic(w) {
 		return
 	}
-	tx.WriteGeneratedTxResponse(cliCtx, w, baseReq, msg)
+	utils.WriteGeneratedTxResponse(cliCtx, w, baseReq, msg)
 }

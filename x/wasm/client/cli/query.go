@@ -12,14 +12,16 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/x/wasm/client/utils"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 
 	"github.com/okex/exchain/x/wasm/types"
 )
 
-func GetQueryCmd() *cobra.Command {
+func GetQueryCmd(cdc *codec.Codec) *cobra.Command {
 	queryCmd := &cobra.Command{
 		Use:                        types.ModuleName,
 		Short:                      "Querying commands for the wasm module",
@@ -48,7 +50,7 @@ func GetCmdListCode() *cobra.Command {
 		Aliases: []string{"list-codes", "codes", "lco"},
 		Args:    cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
+			clientCtx, err := utils.GetClientQueryContext(cmd)
 			if err != nil {
 				return err
 			}
@@ -84,7 +86,7 @@ func GetCmdListContractByCode() *cobra.Command {
 		Aliases: []string{"list-contracts-by-code", "list-contracts", "contracts", "lca"},
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
+			clientCtx, err := utils.GetClientQueryContext(cmd)
 			if err != nil {
 				return err
 			}
@@ -126,7 +128,7 @@ func GetCmdQueryCode() *cobra.Command {
 		Aliases: []string{"source-code", "source"},
 		Args:    cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
+			clientCtx, err := utils.GetClientQueryContext(cmd)
 			if err != nil {
 				return err
 			}
@@ -168,7 +170,7 @@ func GetCmdGetContractInfo() *cobra.Command {
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 
-			clientCtx, err := client.GetClientQueryContext(cmd)
+			clientCtx, err := utils.GetClientQueryContext(cmd)
 			if err != nil {
 				return err
 			}
@@ -220,7 +222,7 @@ func GetCmdGetContractStateAll() *cobra.Command {
 		Long:  "Prints out all internal state of a contract given its address",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
+			clientCtx, err := utils.GetClientQueryContext(cmd)
 			if err != nil {
 				return err
 			}
@@ -261,7 +263,7 @@ func GetCmdGetContractStateRaw() *cobra.Command {
 		Long:  "Prints out internal state for of a contract given its address",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
+			clientCtx, err := utils.GetClientQueryContext(cmd)
 			if err != nil {
 				return err
 			}
@@ -302,7 +304,7 @@ func GetCmdGetContractStateSmart() *cobra.Command {
 		Long:  "Calls contract with given address with query data and prints the returned result",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
+			clientCtx, err := utils.GetClientQueryContext(cmd)
 			if err != nil {
 				return err
 			}
@@ -351,7 +353,7 @@ func GetCmdGetContractHistory() *cobra.Command {
 		Aliases: []string{"history", "hist", "ch"},
 		Args:    cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
+			clientCtx, err := utils.GetClientQueryContext(cmd)
 			if err != nil {
 				return err
 			}
@@ -394,7 +396,7 @@ func GetCmdListPinnedCode() *cobra.Command {
 		Long:  "\t\tLong:    List all pinned code ids,\n",
 		Args:  cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
+			clientCtx, err := utils.GetClientQueryContext(cmd)
 			if err != nil {
 				return err
 			}
