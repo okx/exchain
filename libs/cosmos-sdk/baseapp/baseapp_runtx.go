@@ -2,16 +2,12 @@ package baseapp
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/global"
 	"runtime/debug"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
-
-var anteFailedGasUsed = sdk.Gas(0)
-var anteFailedHeight = int64(0)
 
 type runTxInfo struct {
 	handler        modeHandler
@@ -78,22 +74,14 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 			info.result = nil
 		}
 		gasUsed := info.ctx.GasMeter().GasConsumed()
-		curHeight := global.GetGlobalHeight()+1
 		if !startRunMsg {
-			if anteFailedHeight != curHeight {
-				anteFailedHeight = curHeight
-				fmt.Println("LastBlockFailedTotalGas ", anteFailedGasUsed, " ", anteFailedHeight)
-				anteFailedGasUsed = 0
-			}
-			anteFailedGasUsed += gasUsed
-			fmt.Println("FailedTotalGas ", anteFailedGasUsed, " ", curHeight)
 			gasUsed = 0
 		}
 		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: gasUsed}
 	}()
 
 	defer func() {
-		if !startRunMsg {
+		if startRunMsg {
 			handler.handleDeferGasConsumed(info)
 		}
 	}()
@@ -113,14 +101,13 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	if app.anteHandler != nil {
 		err = app.runAnte(info, mode)
 		if err != nil {
-			app.logger.Error("ante failed", "err", err)
 			return err
 		}
 	}
 	app.pin(RunAnte, false, mode)
 
-	app.pin(RunMsg, true, mode)
 	startRunMsg = true
+	app.pin(RunMsg, true, mode)
 	err = handler.handleRunMsg(info)
 	app.pin(RunMsg, false, mode)
 	return err
@@ -294,8 +281,6 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 				"recovered: %v\nstack:\n%v", r, string(debug.Stack()),
 			),
 		)
-		fmt.Println(fmt.Sprintf(
-			"recovered: %v\nstack:\n%v", r, string(debug.Stack())))
 	}
 	return err
 }
