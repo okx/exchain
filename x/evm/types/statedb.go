@@ -874,7 +874,7 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject, fromCommit bool) e
 	}
 
 	csdb.accountKeeper.SetAccount(csdb.ctx, so.account)
-	if csdb.ctx.IsDeliver() {
+	if fromCommit && csdb.ctx.IsDeliver() {
 		csdb.accountKeeper.UpdateAccountInStateDB(csdb.ctx, so.account)
 	}
 	if !csdb.ctx.IsCheckTx() {
