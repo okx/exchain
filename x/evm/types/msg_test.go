@@ -367,7 +367,7 @@ func newProxyDecoder() *codec.CodecProxy {
 	return codecProxy
 }
 func TestMsgIBCTxValidate(t *testing.T) {
-	tmtypes.SetVenus1HeightForIbcTest(1)
+	tmtypes.UnittestOnlySetMilestoneVenus1Height(1)
 
 	IBCRouterKey := "ibc"
 	cpcdc := newProxyDecoder()
