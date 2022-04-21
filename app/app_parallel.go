@@ -3,8 +3,6 @@ package app
 import (
 	"fmt"
 
-	ethcmm "github.com/ethereum/go-ethereum/common"
-
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -71,15 +69,15 @@ func (*preDeliverProcessor) VerifySig(ctx sdk.Context, tx sdk.Tx) error {
 	return fmt.Errorf("tx type is not evm tx")
 }
 
-func (*preDeliverProcessor) GetTxToEthAddress(tx sdk.Tx) *ethcmm.Address {
+func (p *preDeliverProcessor) LoadAccount(ctx sdk.Context, tx sdk.Tx) {
 	if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
-		return evmTx.Data.Recipient
+		if from := evmTx.AccountAddress(); from != nil {
+			p.ak.LoadAccount(ctx, from)
+		}
+		if to := evmTx.Data.Recipient; to != nil {
+			p.ak.LoadAccount(ctx, to.Bytes())
+		}
 	}
-	return nil
-}
-
-func (p *preDeliverProcessor) LoadAccount(ctx sdk.Context, addr sdk.AccAddress) {
-	p.ak.LoadAccount(ctx, addr)
 }
 
 func newPreDeliverTxProcessor(ak auth.AccountKeeper) sdk.PreDeliverTxProcessor {

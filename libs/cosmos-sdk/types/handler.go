@@ -1,7 +1,5 @@
 package types
 
-import ethcmm "github.com/ethereum/go-ethereum/common"
-
 // Handler defines the core of the state transition function of an application.
 type Handler func(ctx Context, msg Msg) (*Result, error)
 
@@ -21,8 +19,7 @@ type GetTxFeeHandler func(ctx Context, tx Tx) (Coins, bool)
 
 type PreDeliverTxProcessor interface {
 	VerifySig(ctx Context, tx Tx) error
-	GetTxToEthAddress(tx Tx) *ethcmm.Address
-	LoadAccount(ctx Context, addr AccAddress)
+	LoadAccount(ctx Context, tx Tx)
 }
 
 // AnteDecorator wraps the next AnteHandler to perform custom pre- and post-processing.

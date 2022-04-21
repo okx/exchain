@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"runtime/debug"
 
-	ethcmn "github.com/ethereum/go-ethereum/common"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -223,12 +221,7 @@ func (app *BaseApp) PreDeliverRealTx(tx []byte) abci.TxEssentials {
 				SetMultiStore(app.cms).
 				SetGasMeter(sdk.NewInfiniteGasMeter())
 
-			app.preDeliverTxProcessor.LoadAccount(ctx, ethcmn.FromHex(realTx.GetFrom()))
-
-			evmToAddr := app.preDeliverTxProcessor.GetTxToEthAddress(realTx)
-			if evmToAddr != nil {
-				app.preDeliverTxProcessor.LoadAccount(ctx, evmToAddr.Bytes())
-			}
+			app.preDeliverTxProcessor.LoadAccount(ctx, realTx)
 		}
 	}
 
