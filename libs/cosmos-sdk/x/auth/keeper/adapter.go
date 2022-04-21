@@ -94,7 +94,6 @@ func (ak AccountKeeper) Params(c context.Context, req *types.QueryParamsRequest)
 	return &types.QueryParamsResponse{Params: params}, nil
 }
 
-///////// util
 func convEthAccountToBaseAccount(account exported.Account) *internaltypes.BaseAccount {
 	ba := &internaltypes.BaseAccount{
 		Address:       account.GetAddress().String(),

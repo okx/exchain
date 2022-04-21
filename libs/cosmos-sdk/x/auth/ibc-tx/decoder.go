@@ -108,7 +108,7 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 
 		modeInfo, ok := authInfo.SignerInfos[0].ModeInfo.Sum.(*tx.ModeInfo_Single_)
 		if !ok {
-			panic("only support ModeInfo_Single")
+			return nil, sdkerrors.Wrap(sdkerrors.ErrInternal, "only support ModeInfo_Single")
 		}
 
 		stx := authtypes.IbcTx{

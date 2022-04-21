@@ -48,7 +48,7 @@ func feeToIBCFeeBytes(fee StdFee) []byte {
 	}
 	bz, err := ModuleCdc.MarshalJSON(ibcFee)
 	if err != nil {
-		panic(err)
+		return nil
 	}
 	return bz
 }
@@ -90,7 +90,7 @@ func IbcAminoSignBytes(chainID string, accNum uint64,
 		TimeoutHeight: height,
 	})
 	if err != nil {
-		panic(err)
+		return nil
 	}
 	return sdk.MustSortJSON(bz)
 }
