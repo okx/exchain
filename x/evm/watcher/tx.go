@@ -56,17 +56,18 @@ func (w *Watcher) recordTxsAndReceipts(deliverTx *DeliverTx, index uint64, txDec
 func (w *Watcher) saveEvmTxAndFailedReceipt(sdkTx sdk.Tx, index, gasUsed uint64) {
 	evmTx, err := w.extractEvmTx(sdkTx)
 	if err != nil {
+		w.log.Error("save evm tx and failed receipt error", "height", w.height, "index", index, "error", err)
 		return
 	}
 	txHash := ethcmn.BytesToHash(evmTx.TxHash())
-	ethcmn.BytesToHash(evmTx.TxHash())
 
 	w.saveTxAndReceipt(evmTx, txHash, index, TransactionFailed, &types.ResultData{}, gasUsed)
 }
 
 func (w *Watcher) saveEvmTxAndSuccessReceipt(sdkTx sdk.Tx, resultData []byte, index, gasUsed uint64) {
 	evmTx, err := w.extractEvmTx(sdkTx)
-	if err != nil && evmTx != nil {
+	if err != nil {
+		w.log.Error("save evm tx and success receipt error", "height", w.height, "index", index, "error", err)
 		return
 	}
 	evmResultData, err := types.DecodeResultData(resultData)
@@ -81,10 +82,13 @@ func (w *Watcher) saveEvmTxAndSuccessReceipt(sdkTx sdk.Tx, resultData []byte, in
 func (w *Watcher) extractEvmTx(sdkTx sdk.Tx) (*types.MsgEthereumTx, error) {
 	var ok bool
 	var evmTx *types.MsgEthereumTx
-	for _, msg := range sdkTx.GetMsgs() {
-		if evmTx, ok = msg.(*types.MsgEthereumTx); !ok {
-			return nil, fmt.Errorf("sdktx is not evm tx %v", sdkTx)
-		}
+	// stdTx should only have one tx
+	msg := sdkTx.GetMsgs()
+	if len(msg) <= 0 {
+		return nil, fmt.Errorf("can not extract evm tx, len(msg) <= 0")
+	}
+	if evmTx, ok = msg[0].(*types.MsgEthereumTx); !ok {
+		return nil, fmt.Errorf("sdktx is not evm tx %v", sdkTx)
 	}
 
 	return evmTx, nil
