@@ -53,6 +53,7 @@ type Watcher struct {
 
 	exitChan chan struct{}
 	wg       sync.WaitGroup
+	once     sync.Once
 }
 
 var (
@@ -78,7 +79,7 @@ func GetWatchLruSize() int {
 }
 
 func NewWatcher(logger log.Logger) *Watcher {
-	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}, log: logger}
+	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}, log: logger, exitChan: make(chan struct{})}
 	checkWd = viper.GetBool(FlagCheckWd)
 	return watcher
 }
@@ -88,6 +89,9 @@ func (w *Watcher) IsFirstUse() bool {
 }
 
 func (w *Watcher) Stop() {
+	if !w.Enabled() {
+		return
+	}
 	close(w.txChan)
 	close(w.jobChan)
 	close(w.exitChan)
