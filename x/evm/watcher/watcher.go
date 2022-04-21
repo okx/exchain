@@ -50,10 +50,6 @@ type Watcher struct {
 	txs               []WatchMessage
 	txReceipts        []*TransactionReceipt
 	txInfoCollector   []TxInfo
-
-	exitChan chan struct{}
-	wg       sync.WaitGroup
-	once     sync.Once
 }
 
 var (
@@ -79,24 +75,13 @@ func GetWatchLruSize() int {
 }
 
 func NewWatcher(logger log.Logger) *Watcher {
-	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}, log: logger, exitChan: make(chan struct{})}
+	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}, log: logger}
 	checkWd = viper.GetBool(FlagCheckWd)
 	return watcher
 }
 
 func (w *Watcher) IsFirstUse() bool {
 	return w.firstUse
-}
-
-func (w *Watcher) Stop() {
-	if !w.Enabled() {
-		return
-	}
-	close(w.txChan)
-	close(w.jobChan)
-	close(w.exitChan)
-
-	w.wg.Wait()
 }
 
 func (w *Watcher) Used() {
@@ -640,21 +625,10 @@ func (w *Watcher) jobRoutine() {
 	if !w.Enabled() {
 		return
 	}
-	w.wg.Add(1)
-	defer w.wg.Done()
 
 	w.lazyInitialization()
-
-	for {
-		select {
-		case job := <-w.jobChan:
-			job()
-		case <-w.exitChan:
-			for j := range w.jobChan {
-				j()
-			}
-			return
-		}
+	for job := range w.jobChan {
+		job()
 	}
 }
 
