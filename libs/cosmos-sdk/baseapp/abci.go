@@ -176,7 +176,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	}
 
 	go func() {
-		if app.deliverState.ms != nil {
+		if app.deliverState != nil && app.deliverState.ms != nil {
 			app.deliverState.ms.Write()
 			app.parallelTxManage.commitDone <- struct{}{}
 		}
