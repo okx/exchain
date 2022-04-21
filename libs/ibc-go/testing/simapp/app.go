@@ -1,6 +1,12 @@
 package simapp
 
 import (
+	"io"
+	"math/big"
+	"os"
+	"sort"
+	"sync"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
@@ -9,11 +15,6 @@ import (
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/core"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/transfer"
 	"github.com/okex/exchain/x/common/monitor"
-	"io"
-	"math/big"
-	"os"
-	"sort"
-	"sync"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
@@ -92,8 +93,8 @@ const (
 )
 
 var (
-	orderMetrics  = monitor.DefaultOrderMetrics(monitor.DefaultPrometheusConfig())
-	streamMetrics = monitor.DefaultStreamMetrics(monitor.DefaultPrometheusConfig())
+	orderMetrics  = monitor.DefaultOrderMetrics(nil)
+	streamMetrics = monitor.DefaultStreamMetrics(nil)
 	// DefaultCLIHome sets the default home directories for the application CLI
 	DefaultCLIHome = os.ExpandEnv("$HOME/.exchaincli")
 
