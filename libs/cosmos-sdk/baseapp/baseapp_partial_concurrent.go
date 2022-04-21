@@ -197,6 +197,16 @@ func (dttr *dttRoutine) readyForSerialExecution() bool {
 	return true
 }
 
+func (dttr *dttRoutine) notReadyForCheckRerun(serialIndex int) bool {
+	if dttr.task == nil ||
+		dttr.txIndex != dttr.task.index ||
+		dttr.task.index <= serialIndex ||
+		dttr.step < dttRoutineStepAnteStart {
+		return true
+	}
+	return false
+}
+
 //-------------------------------------
 
 type DTTManager struct {
@@ -468,19 +478,12 @@ func (dttm *DTTManager) setRerunAndNextSerial(task *DeliverTxTask) int8 {
 	nextTaskRoutine := int8(-1)
 	for i := 0; i < count; i++ {
 		dttr := dttm.dttRoutineList[i]
-		if dttr.task == nil ||
-			dttr.task.index <= task.index ||
-			dttr.step < dttRoutineStepAnteStart ||
-			dttr.task.prevTaskIndex > task.index ||
-			(!dttr.task.isEvm && dttr.task.index > task.index+1) {
+		notCare, needRerun := compareTasks(dttr, task)
+		if notCare {
 			continue
 		}
 
-		if dttr.task.prevTaskIndex == task.index ||
-			!task.isEvm ||
-			(!dttr.task.isEvm && dttr.task.index == task.index+1) ||
-			dttr.task.from == task.from ||
-			dttr.task.from == task.to {
+		if needRerun {
 			if !dttr.task.isEvm && dttr.task.index == task.index+1 {
 				updateFeeAcc = true
 			}
@@ -508,6 +511,25 @@ func (dttm *DTTManager) setRerunAndNextSerial(task *DeliverTxTask) int8 {
 		rerunRoutine.shouldRerun(task.index, -1)
 	}
 	return nextTaskRoutine
+}
+
+func compareTasks(target *dttRoutine, base *DeliverTxTask) (notCare bool, needRerun bool) {
+	notReady := target.notReadyForCheckRerun(base.index)
+	if notReady ||
+		target.task.prevTaskIndex > base.index ||
+		(!target.task.isEvm && target.task.index > base.index+1) {
+		notCare = true
+		return
+	}
+
+	if target.task.prevTaskIndex == base.index ||
+		!base.isEvm ||
+		(!target.task.isEvm && target.task.index == base.index+1) ||
+		target.task.from == base.from ||
+		target.task.from == base.to {
+		needRerun = true
+	}
+	return
 }
 
 func (dttm *DTTManager) serialExecution() {
