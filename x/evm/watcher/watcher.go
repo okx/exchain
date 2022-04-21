@@ -17,7 +17,6 @@ import (
 	"github.com/spf13/viper"
 	"math/big"
 	"sync"
-	"sync/atomic"
 )
 
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -219,8 +218,8 @@ func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
 	if !w.Enabled() {
 		return
 	}
-	for atomic.LoadInt64(&w.recordingTxsCount) != 0 {
-	}
+	//	for atomic.LoadInt64(&w.recordingTxsCount) != 0 {
+	//	}
 
 	w.sortTxsAndUpdateCumulativeGas()
 	w.saveReceipts(w.cumulativeGas)
