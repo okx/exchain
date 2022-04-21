@@ -595,8 +595,8 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 	return app.deliverTxsMgr.txResponses
 }
 
-func (app *BaseApp) OnAccountUpdated(acc exported.Account, updateState ...bool) {
-	if app.deliverTxsMgr != nil && len(updateState) > 0 && updateState[0] {
+func (app *BaseApp) OnAccountUpdated(acc exported.Account, updateState bool) {
+	if app.deliverTxsMgr != nil && updateState {
 		app.deliverTxsMgr.accountUpdated(acc)
 	}
 }

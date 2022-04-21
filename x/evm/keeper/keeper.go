@@ -133,7 +133,7 @@ func NewSimulateKeeper(
 	}
 }
 
-func (k Keeper) OnAccountUpdated(acc auth.Account, updateState ...bool) {
+func (k Keeper) OnAccountUpdated(acc auth.Account, updateState bool) {
 	account := acc.GetAddress()
 	k.Watcher.DeleteAccount(account)
 }

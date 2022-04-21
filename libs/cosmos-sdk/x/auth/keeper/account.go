@@ -78,7 +78,8 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account, update
 		if ak.observers != nil {
 			for _, observer := range ak.observers {
 				if observer != nil {
-					observer.OnAccountUpdated(acc, updateState...)
+					updated := len(updateState) > 0 && updateState[0]
+					observer.OnAccountUpdated(acc, updated)
 				}
 			}
 		}
