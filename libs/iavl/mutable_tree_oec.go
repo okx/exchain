@@ -346,11 +346,13 @@ func (tree *MutableTree) preChange(node *Node, key []byte) {
 		return
 	} else {
 		if bytes.Compare(key, node.key) < 0 {
-			tree.preChange(node.getLeftNode(tree.ImmutableTree), key)
-			node.getRightNode(tree.ImmutableTree)
+			node.leftNode = node.getLeftNode(tree.ImmutableTree)
+			tree.preChange(node.leftNode, key)
+			node.rightNode = node.getRightNode(tree.ImmutableTree)
 		} else {
-			tree.preChange(node.getRightNode(tree.ImmutableTree), key)
-			node.getLeftNode(tree.ImmutableTree)
+			node.rightNode = node.getRightNode(tree.ImmutableTree)
+			tree.preChange(node.rightNode, key)
+			node.leftNode = node.getLeftNode(tree.ImmutableTree)
 		}
 		return
 	}
