@@ -11,10 +11,6 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
-type preDeliverProcessor struct {
-	ak auth.AccountKeeper
-}
-
 // feeCollectorHandler set or get the value of feeCollectorAcc
 func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
 	return func(ctx sdk.Context, balance sdk.Coins) error {
