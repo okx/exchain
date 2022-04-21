@@ -70,7 +70,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		return err
 	}
 
-	anteFailed := false
+	startRunMsg := false
 	defer func() {
 		if r := recover(); r != nil {
 			err = app.runTx_defer_recover(r, info)
@@ -79,7 +79,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		}
 		gasUsed := info.ctx.GasMeter().GasConsumed()
 		curHeight := global.GetGlobalHeight()+1
-		if anteFailed {
+		if !startRunMsg {
 			if anteFailedHeight != curHeight {
 				anteFailedHeight = curHeight
 				fmt.Println("LastBlockFailedTotalGas ", anteFailedGasUsed)
@@ -93,7 +93,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	}()
 
 	defer func() {
-		if !anteFailed {
+		if !startRunMsg {
 			handler.handleDeferGasConsumed(info)
 		}
 	}()
@@ -113,7 +113,6 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	if app.anteHandler != nil {
 		err = app.runAnte(info, mode)
 		if err != nil {
-			anteFailed = true
 			app.logger.Error("ante failed", "err", err)
 			return err
 		}
@@ -121,6 +120,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	app.pin(RunAnte, false, mode)
 
 	app.pin(RunMsg, true, mode)
+	startRunMsg = true
 	err = handler.handleRunMsg(info)
 	app.pin(RunMsg, false, mode)
 	return err
