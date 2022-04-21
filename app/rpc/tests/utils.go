@@ -2,16 +2,27 @@ package tests
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
+	"os"
+	"reflect"
+	"testing"
+	"time"
+
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	gorpc "github.com/ethereum/go-ethereum/rpc"
 	"github.com/stretchr/testify/require"
-	"net/http"
-	"os"
-	"testing"
-	"time"
+)
+
+var (
+	contextType      = reflect.TypeOf((*context.Context)(nil)).Elem()
+	errorType        = reflect.TypeOf((*error)(nil)).Elem()
+	subscriptionType = reflect.TypeOf(gorpc.Subscription{})
+	stringType       = reflect.TypeOf("")
 )
 
 type Request struct {
@@ -61,6 +72,15 @@ func CreateRequest(method string, params interface{}) Request {
 	}
 }
 
+type callback struct {
+	fn          reflect.Value  // the function
+	rcvr        reflect.Value  // receiver object of method, set if fn is method
+	argTypes    []reflect.Type // input argument types
+	hasCtx      bool           // method's first argument is a context (not included in argTypes)
+	errPos      int            // err return idx, of -1 when method cannot return error
+	isSubscribe bool           // true if this is a subscription callback
+}
+
 func Call(t *testing.T, method string, params interface{}) *Response {
 	req, err := json.Marshal(CreateRequest(method, params))
 	require.NoError(t, err)
@@ -70,7 +90,7 @@ func Call(t *testing.T, method string, params interface{}) *Response {
 	/* #nosec */
 
 	if HOST == "" {
-		HOST = "http://localhost:8545"
+		HOST = "http://localhost:8030"
 	}
 	res, err := http.Post(HOST, "application/json", bytes.NewBuffer(req)) //nolint:gosec
 	require.NoError(t, err)
@@ -98,7 +118,7 @@ func CallWithError(method string, params interface{}) (*Response, error) {
 	/* #nosec */
 
 	if HOST == "" {
-		HOST = "http://localhost:8545"
+		HOST = "http://localhost:8030"
 	}
 	res, err := http.Post(HOST, "application/json", bytes.NewBuffer(req)) //nolint:gosec
 	if err != nil {
