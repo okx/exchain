@@ -84,16 +84,12 @@ func (a AccountKeeperProxy) GetAccount(ctx sdk.Context, addr sdk.AccAddress) aut
 	return account
 }
 
-func (a AccountKeeperProxy) SetAccount(ctx sdk.Context, account authexported.Account) {
+func (a AccountKeeperProxy) SetAccount(ctx sdk.Context, account authexported.Account, updateState ...bool) {
 	acc, ok := account.(types.EthAccount)
 	if !ok {
 		return
 	}
 	a.cachedAcc[account.GetAddress().String()] = &acc
-	return
-}
-
-func (ak AccountKeeperProxy) UpdateAccountInStateDB(ctx sdk.Context, account authexported.Account) {
 	return
 }
 

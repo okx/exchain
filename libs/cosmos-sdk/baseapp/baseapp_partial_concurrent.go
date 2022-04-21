@@ -561,8 +561,8 @@ func (dttm *DTTManager) serialExecution() {
 	//}
 }
 
-func (dttm *DTTManager) OnAccountUpdated(acc exported.Account, updateState bool) {
-	if updateState {
+func (dttm *DTTManager) OnAccountUpdated(acc exported.Account, updateState ...bool) {
+	if len(updateState) > 0 && updateState[0] {
 		addr := hex.EncodeToString(acc.GetAddress())
 		dttm.accountUpdated(addr)
 	}
@@ -600,8 +600,8 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 	return app.deliverTxsMgr.txResponses
 }
 
-func (app *BaseApp) OnAccountUpdated(acc exported.Account, updateState bool) {
+func (app *BaseApp) OnAccountUpdated(acc exported.Account, updateState ...bool) {
 	if app.deliverTxsMgr != nil {
-		app.deliverTxsMgr.OnAccountUpdated(acc, updateState)
+		app.deliverTxsMgr.OnAccountUpdated(acc, updateState...)
 	}
 }
