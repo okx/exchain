@@ -338,6 +338,10 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		switch msg := msg.(type) {
 		case *ViewChangeMessage:
 			cs := conR.conS
+			// already has valid vcMsg
+			if cs.vcMsg != nil && cs.vcMsg.Height >= msg.Height {
+				return
+			}
 			lock.RLock()
 			height, validators := cs.Height, cs.Validators
 			lock.RUnlock()
@@ -382,9 +386,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 				}
 				conR.hasViewChanged = msg.Height
 				// broadcast vc message
-				conR.broadcastViewChangeMessage(msg)
-				// vc after ApplyBlock scheduleRound0
-				conR.conS.peerMsgQueue <- msgInfo{msg, ""}
+				conR.conS.vcMsg = conR.broadcastViewChangeMessage(msg)
 			}
 		}
 
@@ -566,15 +568,17 @@ func (conR *Reactor) broadcastProposeRequestMessage(prMsg ProposeRequestMessage)
 	conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(prMsg))
 }
 
-func (conR *Reactor) broadcastViewChangeMessage(prMsg *ProposeRequestMessage) {
+func (conR *Reactor) broadcastViewChangeMessage(prMsg *ProposeRequestMessage) *ViewChangeMessage {
 	vcMsg := ViewChangeMessage{Height: prMsg.Height, CurrentProposer: prMsg.CurrentProposer, NewProposer: prMsg.NewProposer}
-	if signature, err := conR.conS.privValidator.SignBytes(vcMsg.SignBytes()); err == nil {
-		//conR.Logger.Error("broadcastViewChangeMessage", "vcMsg", vcMsg)
-		vcMsg.Signature = signature
-		conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
-	} else {
+	signature, err := conR.conS.privValidator.SignBytes(vcMsg.SignBytes())
+	if err != nil {
 		conR.Logger.Error("broadcastViewChangeMessage", "err", err)
+		return nil
 	}
+	//conR.Logger.Error("broadcastViewChangeMessage", "vcMsg", vcMsg)
+	vcMsg.Signature = signature
+	conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
+	return &vcMsg
 }
 
 func (conR *Reactor) broadcastNewRoundStepMessage(rs *cstypes.RoundState) {
@@ -875,14 +879,6 @@ OUTER_LOOP:
 		}
 		// send vcMsg
 		if rs.Height == prs.Height || rs.Height == prs.Height+1 {
-			if vcMsg.Signature == nil {
-				if signature, err := conR.conS.privValidator.SignBytes(vcMsg.SignBytes()); err == nil {
-					vcMsg.Signature = signature
-				} else {
-					logger.Error("gossip send ViewChangeMessage", "err", err)
-					continue OUTER_LOOP
-				}
-			}
 			vcHeight = vcMsg.Height
 			peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
 		}

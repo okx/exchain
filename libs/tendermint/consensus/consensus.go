@@ -736,11 +736,6 @@ func (cs *State) handleMsg(mi msgInfo) {
 	case *ViewChangeMessage:
 		//cs.Logger.Error("handle vcMsg", "msg.height", msg.Height, "vcMsg", cs.vcMsg)
 		if ActiveViewChange {
-			// already has valid vcMsg
-			if cs.vcMsg != nil && cs.vcMsg.Height >= msg.Height {
-				return
-			}
-
 			cs.vcMsg = msg
 			// use peerID as flag
 			if peerID == "" {
@@ -753,21 +748,11 @@ func (cs *State) handleMsg(mi msgInfo) {
 						// has enterNewHeight, and vc immediately
 						_, val := cs.Validators.GetByAddress(msg.NewProposer)
 						cs.enterNewRoundWithVal(cs.Height, 0, val)
-					} else if cs.Step == cstypes.RoundStepNewHeight {
-						// at waiting of height-1, and enterNewHeight use msg.val
 					}
+					// at waiting of height-1, and enterNewHeight use msg.val
 				}
 			}
 		}
-
-	case *ProposeRequestMessage:
-		//cs.Logger.Error("handle prMsg", "height", msg.Height)
-		// ApplyBlock of height-1 is not finished
-		// RoundStepNewHeight enterNewRound use peer as val
-		if ActiveViewChange {
-			cs.vcMsg = &ViewChangeMessage{Height: msg.Height, CurrentProposer: msg.CurrentProposer, NewProposer: msg.NewProposer}
-		}
-
 	case *ProposalMessage:
 		// will not cause transition.
 		// once proposal is set, we can receive block parts
