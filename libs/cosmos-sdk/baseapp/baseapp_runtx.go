@@ -66,16 +66,26 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		return err
 	}
 
+	anteFailed := false
 	defer func() {
 		if r := recover(); r != nil {
 			err = app.runTx_defer_recover(r, info)
 			info.msCache = nil //TODO msCache not write
 			info.result = nil
 		}
-		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
+		gasUsed := info.ctx.GasMeter().GasConsumed()
+		if anteFailed {
+			app.logger.Error("gasUsed", "value", gasUsed)
+			gasUsed = 0
+		}
+		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: gasUsed}
 	}()
 
-	defer handler.handleDeferGasConsumed(info)
+	defer func() {
+		if !anteFailed {
+			handler.handleDeferGasConsumed(info)
+		}
+	}()
 
 	defer func() {
 		app.pin(Refund, true, mode)
@@ -92,6 +102,8 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	if app.anteHandler != nil {
 		err = app.runAnte(info, mode)
 		if err != nil {
+			anteFailed = true
+			app.logger.Error("ante failed", "err", err)
 			return err
 		}
 	}
@@ -271,6 +283,8 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 				"recovered: %v\nstack:\n%v", r, string(debug.Stack()),
 			),
 		)
+		fmt.Println(fmt.Sprintf(
+			"recovered: %v\nstack:\n%v", r, string(debug.Stack())))
 	}
 	return err
 }
