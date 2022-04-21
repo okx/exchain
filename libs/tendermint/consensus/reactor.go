@@ -481,6 +481,12 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		func(data tmevents.EventData) {
 			conR.broadcastPOAProposalMessage(data.(*types.Proposal))
 		})
+
+	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventPOAProposlBlockPart,
+		func(data tmevents.EventData) {
+			conR.broadcastPOAProposalBlockPartsMessage(data.(*BlockPartMessage))
+		})
+
 }
 
 func (conR *Reactor) unsubscribeFromBroadcastEvents() {
@@ -527,6 +533,40 @@ func (conR *Reactor) broadcastPOAProposalMessage(proposal *types.Proposal) {
 				//fmt.Printf("Broadcast proposal to peer,ps: %v\n", ps)
 				p.Send(DataChannel, bytes)
 				ps.SetHasProposal(proposal)
+			}
+
+		}(peer)
+	}
+
+	go func() {
+		wg.Wait()
+	}()
+
+}
+
+func (conR *Reactor) broadcastPOAProposalBlockPartsMessage(msg *BlockPartMessage) {
+	fmt.Println("Send out blockPart by broadcast:", "height", msg.Height, "round", msg.Round)
+	bytes := cdc.MustMarshalBinaryBare(msg)
+
+	peers := conR.Switch.Peers().List()
+	var wg sync.WaitGroup
+	wg.Add(len(peers))
+
+	for _, peer := range peers {
+		go func(p p2p.Peer) {
+			defer wg.Done()
+
+			ps, ok := p.Get(types.PeerStateKey).(*PeerState)
+			if !ok {
+				panic(fmt.Sprintf("peer %v has no state", p))
+			}
+
+			prs := ps.GetRoundState()
+
+			if (prs.Height == msg.Height) && !ps.PRS.ProposalBlockParts.GetIndex(msg.Part.Index) {
+				//fmt.Printf("Broadcast proposal to peer,ps: %v\n", ps)
+				p.Send(DataChannel, bytes)
+				ps.SetHasProposalBlockPart(msg.Height, msg.Round, msg.Part.Index)
 			}
 
 		}(peer)

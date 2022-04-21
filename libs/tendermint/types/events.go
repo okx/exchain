@@ -38,7 +38,8 @@ const (
 	EventValidBlock       = "ValidBlock"
 	EventVote             = "Vote"
 
-	EventPOAProposl     = "POAProposal"
+	EventPOAProposl          = "POAProposal"
+	EventPOAProposlBlockPart = "EventPOAProposlBlockPart"
 )
 
 ///////////////////////////////////////////////////////////////////////////////

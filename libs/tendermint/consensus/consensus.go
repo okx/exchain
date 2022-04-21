@@ -990,7 +990,7 @@ func (cs *State) enterPropose(height int64, round int) {
 		// Done enterPropose:
 		cs.updateRoundStep(round, cstypes.RoundStepPropose)
 		cs.newStep()
-
+		cs.trc.Pin("WaitProposal")
 		// If we have the whole proposal + POL, then goto Prevote now.
 		// else, we'll enterPrevote when the rest of the proposal is received (in AddProposalBlockPart),
 		// or else after timeoutPropose
@@ -1453,7 +1453,7 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 // If we have the block AND +2/3 commits for it, finalize.
 func (cs *State) tryFinalizeCommit(height int64) {
 	logger := cs.Logger.With("height", height)
-
+	cs.trc.Pin("%s", "tryFinalizeCommit")
 	if cs.Height != height {
 		panic(fmt.Sprintf("tryFinalizeCommit() cs.Height: %v vs height: %v", cs.Height, height))
 	}
@@ -1764,11 +1764,15 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	// This happens if we're already in cstypes.RoundStepCommit or if there is a valid block in the current round.
 	// TODO: We can check if Proposal is for a different block as this is a sign of misbehavior!
 	if cs.ProposalBlockParts == nil {
+		cs.trc.Pin("waitBlockPart")
 		cs.ProposalBlockParts = types.NewPartSetFromHeader(proposal.BlockID.PartsHeader)
 	}
 	cs.Logger.Info("Received proposal", "proposal", proposal)
 
-	cs.evsw.FireEvent(types.EventPOAProposl, proposal)
+	if cs.config.POAEnable {
+		cs.evsw.FireEvent(types.EventPOAProposl, proposal)
+	}
+
 	return nil
 }
 
@@ -1803,6 +1807,11 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 	if err != nil {
 		return added, err
 	}
+
+	if cs.config.POAEnable && added {
+		cs.evsw.FireEvent(types.EventPOAProposlBlockPart, msg)
+	}
+
 	if added && cs.ProposalBlockParts.IsComplete() {
 		// Added and completed!
 		_, err = cdc.UnmarshalBinaryLengthPrefixedReader(
@@ -1846,6 +1855,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		//POA: Create all validator votes here to enter commit
 		// Happening only the proposal period
 		if cs.Proposal != nil && cs.config.POAEnable && len(cs.privValidatorSet) > 0 {
+			cs.trc.Pin("%s", "simOrNetVote")
 			// no need to simulate precommit votes if alreay collected from network
 			if !cs.Votes.Precommits(cs.Round).HasTwoThirdsMajority() {
 				//simulate precommit votes
@@ -2099,11 +2109,6 @@ func (cs *State) addVote(
 	case types.PrecommitType:
 		precommits := cs.Votes.Precommits(vote.Round)
 		cs.Logger.Info("Added to precommit", "vote", vote, "precommits", precommits.StringShort())
-
-		// poa mode collect the votes without enter commit
-		if cs.config.POAEnable {
-			break
-		}
 
 		blockID, ok := precommits.TwoThirdsMajority()
 		if ok {
