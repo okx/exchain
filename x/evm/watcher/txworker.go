@@ -24,6 +24,9 @@ func (w *Watcher) txWorker(jobs <-chan func()) {
 		case job := <-jobs:
 			job()
 		case <-w.exitChan:
+			for j := range jobs {
+				j()
+			}
 			return
 		}
 	}

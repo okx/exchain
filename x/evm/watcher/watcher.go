@@ -646,6 +646,9 @@ func (w *Watcher) jobRoutine() {
 		case job := <-w.jobChan:
 			job()
 		case <-w.exitChan:
+			for j := range w.jobChan {
+				j()
+			}
 			return
 		}
 	}
