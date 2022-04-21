@@ -1071,7 +1071,6 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 	proposal := types.NewProposal(height, round, cs.ValidRound, propBlockID)
 	if err := cs.privValidator.SignProposal(cs.state.ChainID, proposal); err == nil {
 
-		fmt.Println("Create Proposal as proposer", height)
 		// send proposal and block parts on internal msg queue
 		cs.sendInternalMessage(msgInfo{&ProposalMessage{proposal}, ""})
 		for i := 0; i < blockParts.Total(); i++ {
@@ -1385,7 +1384,6 @@ func (cs *State) enterPrecommitWait(height int64, round int) {
 
 // Enter: +2/3 precommits for block
 func (cs *State) enterCommit(height int64, commitRound int) {
-	fmt.Println("enterCommit", height)
 	logger := cs.Logger.With("height", height, "commitRound", commitRound)
 
 	if cs.Height != height || cstypes.RoundStepCommit <= cs.Step {
@@ -1442,7 +1440,6 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 			cs.ProposalBlock = nil
 			cs.Logger.Info("enterCommit proposalBlockPart reset ,because of mismatch hash,",
 				"origin", hex.EncodeToString(cs.ProposalBlockParts.Hash()), "after", blockID.Hash)
-			fmt.Println("Set ProposalParts flag after 2/3M")
 			cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 			cs.eventBus.PublishEventValidBlock(cs.RoundStateEvent())
 			cs.evsw.FireEvent(types.EventValidBlock, &cs.RoundState)
@@ -1456,7 +1453,7 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 // If we have the block AND +2/3 commits for it, finalize.
 func (cs *State) tryFinalizeCommit(height int64) {
 	logger := cs.Logger.With("height", height)
-	fmt.Println("tryFinalizeCommit")
+
 	if cs.Height != height {
 		panic(fmt.Sprintf("tryFinalizeCommit() cs.Height: %v vs height: %v", cs.Height, height))
 	}
@@ -1464,7 +1461,6 @@ func (cs *State) tryFinalizeCommit(height int64) {
 	blockID, ok := cs.Votes.Precommits(cs.CommitRound).TwoThirdsMajority()
 	if !ok || len(blockID.Hash) == 0 {
 		logger.Error("Attempt to finalize failed. There was no +2/3 majority, or +2/3 was for <nil>.")
-		fmt.Println("Attempt to finalize failed. There was no +2/3 majority, or +2/3 was for <nil>")
 		return
 	}
 	if !cs.ProposalBlock.HashesTo(blockID.Hash) {
@@ -1476,7 +1472,6 @@ func (cs *State) tryFinalizeCommit(height int64) {
 			cs.ProposalBlock.Hash(),
 			"commit-block",
 			blockID.Hash)
-		fmt.Println("Attempt to finalize failed. We don't have the commit block.")
 		return
 	}
 
@@ -1486,7 +1481,6 @@ func (cs *State) tryFinalizeCommit(height int64) {
 
 // Increment height and goto cstypes.RoundStepNewHeight
 func (cs *State) finalizeCommit(height int64) {
-	fmt.Println("Enter finalizeCommit")
 	if cs.Height != height || cs.Step != cstypes.RoundStepCommit {
 		cs.Logger.Debug(fmt.Sprintf(
 			"finalizeCommit(%v): Invalid args. Current step: %v/%v/%v",
@@ -1773,7 +1767,6 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 		cs.ProposalBlockParts = types.NewPartSetFromHeader(proposal.BlockID.PartsHeader)
 	}
 	cs.Logger.Info("Received proposal", "proposal", proposal)
-	fmt.Println("Received proposal", proposal.Height)
 
 	cs.evsw.FireEvent(types.EventPOAProposl, proposal)
 	return nil
@@ -1785,7 +1778,6 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (added bool, err error) {
 	height, round, part := msg.Height, msg.Round, msg.Part
 
-	fmt.Println("Get proposal block part", msg.Height)
 	if automation.BlockIsNotCompleted(height, round) {
 		return false, nil
 	}
@@ -1800,7 +1792,6 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 
 	// We're not expecting a block part.
 	if cs.ProposalBlockParts == nil {
-		fmt.Println("Drop proposal block part because of no proposalPart flag", msg.Height)
 		// NOTE: this can happen when we've gone to a higher round and
 		// then receive parts from the previous round - not necessarily a bad peer.
 		cs.Logger.Info("Received a block part when we're not expecting any",
@@ -1813,7 +1804,6 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		return added, err
 	}
 	if added && cs.ProposalBlockParts.IsComplete() {
-		fmt.Println("Got complet proposeBlockPart", time.Now(), height)
 		// Added and completed!
 		_, err = cdc.UnmarshalBinaryLengthPrefixedReader(
 			cs.ProposalBlockParts.GetReader(),
@@ -1858,13 +1848,10 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		if cs.Proposal != nil && cs.config.POAEnable && len(cs.privValidatorSet) > 0 {
 			// no need to simulate precommit votes if alreay collected from network
 			if !cs.Votes.Precommits(cs.Round).HasTwoThirdsMajority() {
-				fmt.Println("POA Simulate Vote")
 				//simulate precommit votes
 				if err := cs.simAllPrecommitVote(); err != nil {
 					panic("Unable to simulate all Precommit Vote under POA mode")
 				}
-			} else {
-				fmt.Println("POA Collect Vote from network")
 			}
 			cs.updateRoundStep(cs.Round, cstypes.RoundStepCommit)
 			cs.CommitRound = cs.Round
@@ -2121,7 +2108,6 @@ func (cs *State) addVote(
 		blockID, ok := precommits.TwoThirdsMajority()
 		if ok {
 			// Executed as TwoThirdsMajority could be from a higher round
-			fmt.Println("Got 2/3M precommit vote", height)
 			cs.enterNewRound(height, vote.Round)
 			cs.enterPrecommit(height, vote.Round)
 			if len(blockID.Hash) != 0 {
