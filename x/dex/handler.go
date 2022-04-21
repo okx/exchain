@@ -19,7 +19,7 @@ func NewHandler(k IKeeper) sdk.Handler {
 		// disable dex tx handler
 		return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "Dex messages are not allowd.")
 
-		ctx = ctx.WithEventManager(sdk.NewEventManager())
+		ctx.SetEventManager(sdk.NewEventManager())
 		logger := ctx.Logger().With("module", ModuleName)
 
 		var handlerFun func() (*sdk.Result, error)

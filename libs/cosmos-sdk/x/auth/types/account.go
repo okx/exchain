@@ -98,7 +98,7 @@ func (acc *BaseAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error 
 	return nil
 }
 
-func (acc BaseAccount) Copy() interface{} {
+func (acc BaseAccount) Copy() sdk.Account {
 	return NewBaseAccount(acc.Address, acc.Coins, acc.PubKey, acc.AccountNumber, acc.Sequence)
 }
 

@@ -12,7 +12,8 @@ func (m *modeHandlerDeliverInAsync) handleDeferRefund(info *runTxInfo) {
 	gasRefundCtx = info.runMsgCtx
 	if info.msCache == nil || !info.runMsgFinished { // case: panic when runMsg
 		info.msCache = info.msCacheAnte.CacheMultiStore()
-		gasRefundCtx = info.ctx.WithMultiStore(info.msCache)
+		gasRefundCtx = info.ctx
+		gasRefundCtx.SetMultiStore(info.msCache)
 	}
 
 	refundGas, err := app.GasRefundHandler(gasRefundCtx, info.tx)
@@ -34,7 +35,8 @@ func (m *modeHandlerDeliverInAsync) handleRunMsg(info *runTxInfo) (err error) {
 	msCacheAnte := info.msCacheAnte
 
 	info.msCache = msCacheAnte.CacheMultiStore()
-	info.runMsgCtx = info.ctx.WithMultiStore(info.msCache)
+	info.runMsgCtx = info.ctx
+	info.runMsgCtx.SetMultiStore(info.msCache)
 
 	info.result, err = app.runMsgs(info.runMsgCtx, info.tx.GetMsgs(), mode)
 	info.runMsgFinished = true

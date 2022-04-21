@@ -97,7 +97,7 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initPower int64) (sdk.Context
 	require.Nil(t, err)
 
 	ctx := sdk.NewContext(ms, abci.Header{ChainID: "foochainid"}, isCheckTx, log.NewNopLogger())
-	ctx = ctx.WithConsensusParams(
+	ctx.SetConsensusParams(
 		&abci.ConsensusParams{
 			Validator: &abci.ValidatorParams{
 				PubKeyTypes: []string{tmtypes.ABCIPubKeyTypeEd25519},
