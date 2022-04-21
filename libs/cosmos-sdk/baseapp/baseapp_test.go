@@ -10,8 +10,6 @@ import (
 	"sync"
 	"testing"
 
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	store "github.com/okex/exchain/libs/cosmos-sdk/store/types"
@@ -185,7 +183,6 @@ func checkStore(t *testing.T, db dbm.DB, ver int64, storeKey string, k, v []byte
 // Test that we can make commits and then reload old versions.
 // Test that LoadLatestVersion actually does.
 func TestSetLoader(t *testing.T) {
-	tmtypes.SetVenus1HeightForIbcTest(2)
 	// write a renamer to a file
 	f, err := ioutil.TempFile("", "upgrade-*.json")
 	require.NoError(t, err)

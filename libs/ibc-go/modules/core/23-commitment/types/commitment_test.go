@@ -24,7 +24,7 @@ type MerkleTestSuite struct {
 }
 
 func (suite *MerkleTestSuite) SetupTest() {
-	types.EnableVeneus1Feature()
+	types.UnittestOnlySetMilestoneVenus1Height(-1)
 	db := dbm.NewMemDB()
 	suite.store = rootmulti.NewStore(db)
 	suite.storeKey = storetypes.NewKVStoreKey("iavlStoreKey")

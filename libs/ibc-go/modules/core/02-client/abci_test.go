@@ -25,7 +25,7 @@ type ClientTestSuite struct {
 }
 
 func (suite *ClientTestSuite) SetupTest() {
-	types2.EnableVeneus1Feature()
+	types2.UnittestOnlySetMilestoneVenus1Height(-1)
 	suite.coordinator = ibctesting.NewCoordinator(suite.T(), 2)
 
 	suite.chainA = suite.coordinator.GetChain(ibctesting.GetChainID(0))
