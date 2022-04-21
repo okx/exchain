@@ -212,13 +212,12 @@ func (app *BaseApp) PreDeliverRealTx(tx []byte) abci.TxEssentials {
 			return nil
 		}
 		app.blockDataCache.SetTx(tx, realTx)
+		if app.preDeliverTxProcessor != nil && realTx.GetType() == sdk.EvmTxType {
+			_ = app.preDeliverTxProcessor.VerifySig(app.deliverState.ctx, realTx)
+		}
 	}
 
 	if realTx != nil && realTx.GetType() == sdk.EvmTxType {
-		if app.evmTxVerifySigHandler != nil {
-			evmToAddr, _ = app.evmTxVerifySigHandler(app.deliverState.ctx, realTx, true)
-		}
-
 		if app.AccHandler != nil && app.chainCache.IsEnabled() {
 			ctx := app.deliverState.ctx
 			ctx.SetCache(app.chainCache).
@@ -226,6 +225,9 @@ func (app *BaseApp) PreDeliverRealTx(tx []byte) abci.TxEssentials {
 				SetGasMeter(sdk.NewInfiniteGasMeter())
 
 			app.AccHandler(ctx, ethcmn.FromHex(realTx.GetFrom()))
+			if app.preDeliverTxProcessor != nil {
+				evmToAddr = app.preDeliverTxProcessor.GetTxToEthAddress(realTx)
+			}
 			if evmToAddr != nil {
 				app.AccHandler(ctx, evmToAddr.Bytes())
 			}

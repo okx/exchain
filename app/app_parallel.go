@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"math/big"
 
 	ethcmm "github.com/ethereum/go-ethereum/common"
 
@@ -46,31 +45,37 @@ func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
 	}
 }
 
-func evmTxVerifySigHandler() sdk.TxVerifySigHandler {
-	return func(ctx sdk.Context, tx sdk.Tx, verifySig bool) (to *ethcmm.Address, err error) {
-		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
-			to = evmTx.Data.Recipient
-			if verifySig {
-				if evmTx.BaseTx.From != "" {
-					return
-				}
-				if ctx.From() != "" {
-					evmTx.BaseTx.From = ctx.From()
-					return
-				}
-				var chainIDEpoch *big.Int
-				chainIDEpoch, err = ethermint.ParseChainID(ctx.ChainID())
-				if err != nil {
-					return
-				}
-				err = evmTx.VerifySig(chainIDEpoch, ctx.BlockHeight())
-				if err != nil {
-					return
-				}
-			}
-			return
+type preDeliverProcessor struct{}
+
+func (preDeliverProcessor) VerifySig(ctx sdk.Context, tx sdk.Tx) error {
+	if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
+		if evmTx.BaseTx.From != "" {
+			return nil
 		}
-		err = fmt.Errorf("tx type is not evm tx")
-		return
+		if ctx.From() != "" {
+			evmTx.BaseTx.From = ctx.From()
+			return nil
+		}
+		chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
+		if err != nil {
+			return err
+		}
+		err = evmTx.VerifySig(chainIDEpoch, ctx.BlockHeight())
+		if err != nil {
+			return err
+		}
+		return nil
 	}
+	return fmt.Errorf("tx type is not evm tx")
+}
+
+func (preDeliverProcessor) GetTxToEthAddress(tx sdk.Tx) *ethcmm.Address {
+	if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
+		return evmTx.Data.Recipient
+	}
+	return nil
+}
+
+func newPreDeliverTxProcessor() sdk.PreDeliverTxProcessor {
+	return preDeliverProcessor{}
 }

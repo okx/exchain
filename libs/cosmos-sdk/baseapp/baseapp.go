@@ -198,7 +198,7 @@ type BaseApp struct { // nolint: maligned
 	wrappedCheckTxNum int64
 	anteTracer        *trace.Tracer
 
-	evmTxVerifySigHandler sdk.TxVerifySigHandler
+	preDeliverTxProcessor sdk.PreDeliverTxProcessor
 	blockDataCache        *blockDataCache
 
 	interfaceRegistry types.InterfaceRegistry
@@ -891,9 +891,9 @@ func (app *BaseApp) GetRawTxInfo(rawTx tmtypes.Tx) mempool.ExTxInfo {
 		}
 	}
 	ctx := app.checkState.ctx
-	if tx.GetType() == sdk.EvmTxType && app.evmTxVerifySigHandler != nil {
+	if tx.GetType() == sdk.EvmTxType && app.preDeliverTxProcessor != nil {
 		ctx.SetBlockHeight(app.checkState.ctx.BlockHeight() + 1)
-		_, _ = app.evmTxVerifySigHandler(ctx, tx, true)
+		_ = app.preDeliverTxProcessor.VerifySig(ctx, tx)
 		ctx.SetBlockHeight(app.checkState.ctx.BlockHeight())
 	}
 	ctx.SetTxBytes(rawTx)
