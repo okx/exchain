@@ -637,7 +637,7 @@ func (w *Watcher) lazyInitialization() {
 	// lazy initial:
 	// now we will allocate chan memory
 	// 5*2 means watcherCommitJob+commitBatchJob(just in case)
-	w.jobChan = make(chan func(), 25*2)
+	w.jobChan = make(chan func(), 5*2)
 }
 
 func (w *Watcher) dispatchJob(f func()) {
@@ -645,8 +645,6 @@ func (w *Watcher) dispatchJob(f func()) {
 	// we have to wait
 	// why: something wrong happened: such as db panic(disk maybe is full)(it should be the only reason)
 	//								  UseWatchData were executed every 4 seoncds(block schedual)
-	w.jobChan <- f
-	return
 	select {
 	case w.jobChan <- f:
 	default:

@@ -22,7 +22,7 @@ func (w *Watcher) RecordABCIMessage(deliverTx *DeliverTx, txDecoder sdk.TxDecode
 
 	atomic.AddInt64(&w.recordingTxsCount, 1)
 	index := w.txIndexInBlock
-	w.dispatchJob(func() {
+	w.dispatchTxJob(func() {
 		w.recordTxsAndReceipts(deliverTx, index, txDecoder)
 	})
 	w.txIndexInBlock++
@@ -96,8 +96,8 @@ func (w *Watcher) extractEvmTx(sdkTx sdk.Tx) (*types.MsgEthereumTx, error) {
 
 func (w *Watcher) saveTxAndReceipt(msg *types.MsgEthereumTx, txHash ethcmn.Hash, index uint64,
 	receiptStatus uint32, data *types.ResultData, gasUsed uint64) {
-	//	w.txsMutex.Lock()
-	//	defer w.txsMutex.Unlock()
+	w.txsMutex.Lock()
+	defer w.txsMutex.Unlock()
 
 	wMsg := NewMsgEthTx(msg, txHash, w.blockHash, w.height, index)
 	if wMsg != nil {
