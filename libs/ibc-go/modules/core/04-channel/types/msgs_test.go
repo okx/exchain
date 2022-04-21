@@ -84,7 +84,7 @@ type TypesTestSuite struct {
 }
 
 func (suite *TypesTestSuite) SetupTest() {
-	types2.SetVenus1HeightForIbcTest(-1)
+	types2.UnittestOnlySetMilestoneVenus1Height(-1)
 	app := simapp.Setup(false)
 	db := dbm.NewMemDB()
 	store := rootmulti.NewStore(db)
