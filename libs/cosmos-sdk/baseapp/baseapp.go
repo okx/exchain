@@ -198,8 +198,8 @@ type BaseApp struct { // nolint: maligned
 	wrappedCheckTxNum int64
 	anteTracer        *trace.Tracer
 
-	preDeliverTxProcessor sdk.PreDeliverTxProcessor
-	blockDataCache        *blockDataCache
+	preDeliverTxHandler sdk.PreDeliverTxHandler
+	blockDataCache      *blockDataCache
 
 	interfaceRegistry types.InterfaceRegistry
 	grpcQueryRouter   *GRPCQueryRouter  // router for redirecting gRPC query calls
@@ -891,9 +891,9 @@ func (app *BaseApp) GetRawTxInfo(rawTx tmtypes.Tx) mempool.ExTxInfo {
 		}
 	}
 	ctx := app.checkState.ctx
-	if tx.GetType() == sdk.EvmTxType && app.preDeliverTxProcessor != nil {
+	if tx.GetType() == sdk.EvmTxType && app.preDeliverTxHandler != nil {
 		ctx.SetBlockHeight(app.checkState.ctx.BlockHeight() + 1)
-		_ = app.preDeliverTxProcessor.VerifySig(ctx, tx)
+		app.preDeliverTxHandler(ctx, tx, true)
 		ctx.SetBlockHeight(app.checkState.ctx.BlockHeight())
 	}
 	ctx.SetTxBytes(rawTx)

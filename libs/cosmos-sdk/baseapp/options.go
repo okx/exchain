@@ -172,9 +172,9 @@ func (app *BaseApp) SetParallelTxHandlers(feeCollectt sdk.UpdateFeeCollectorAccH
 	app.logFix = fixLog
 }
 
-func (app *BaseApp) SetPreDeliverTxProcessor(processor sdk.PreDeliverTxProcessor) {
+func (app *BaseApp) SetPreDeliverTxHandler(handler sdk.PreDeliverTxHandler) {
 	if app.sealed {
-		panic("SetPreDeliverTxProcessor() on sealed BaseApp")
+		panic("SetPreDeliverTxHandler() on sealed BaseApp")
 	}
-	app.preDeliverTxProcessor = processor
+	app.preDeliverTxHandler = handler
 }
