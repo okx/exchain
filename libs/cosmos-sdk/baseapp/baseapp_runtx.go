@@ -82,7 +82,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		if !startRunMsg {
 			if anteFailedHeight != curHeight {
 				anteFailedHeight = curHeight
-				fmt.Println("LastBlockFailedTotalGas ", anteFailedGasUsed)
+				fmt.Println("LastBlockFailedTotalGas ", anteFailedGasUsed, " ", anteFailedHeight)
 				anteFailedGasUsed = 0
 			}
 			anteFailedGasUsed += gasUsed
