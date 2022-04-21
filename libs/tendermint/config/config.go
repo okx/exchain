@@ -231,8 +231,6 @@ type BaseConfig struct { //nolint: maligned
 
 	// Logging stdout
 	LogStdout bool `mapstructure:"log_stdout"`
-
-
 }
 
 // DefaultBaseConfig returns a default base configuration for a Tendermint node

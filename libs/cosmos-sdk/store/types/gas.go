@@ -1,8 +1,6 @@
 package types
 
-import (
-	"math"
-)
+import "math"
 
 // Gas consumption descriptors.
 const (
@@ -89,6 +87,7 @@ func (g *basicGasMeter) ConsumeGas(amount Gas, descriptor string) {
 	if g.consumed > g.limit {
 		panic(ErrorOutOfGas{descriptor})
 	}
+
 }
 
 func (g *basicGasMeter) IsPastLimit() bool {

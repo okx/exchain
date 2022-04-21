@@ -873,7 +873,6 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject, fromCommit bool) e
 		return err
 	}
 
-	// todo:
 	csdb.accountKeeper.SetAccount(csdb.ctx, so.account)
 	if csdb.ctx.IsDeliver() {
 		csdb.accountKeeper.UpdateAccountInStateDB(csdb.ctx, so.account)

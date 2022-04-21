@@ -3,6 +3,7 @@ package ante
 import (
 	"bytes"
 	"encoding/hex"
+
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
