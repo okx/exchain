@@ -586,8 +586,6 @@ type parallelTxManager struct {
 	cc        *conflictCheck
 	currIndex int
 	runBase   []int
-
-	commitDone chan struct{}
 }
 type A struct {
 	value   []byte
@@ -675,10 +673,9 @@ func newParallelTxManager() *parallelTxManager {
 		preTxInGroup:       make(map[int]int),
 		txIndexWithGroupID: make(map[int]int),
 
-		cc:         newConflictCheck(),
-		currIndex:  -1,
-		runBase:    make([]int, 0),
-		commitDone: make(chan struct{}, 1),
+		cc:        newConflictCheck(),
+		currIndex: -1,
+		runBase:   make([]int, 0),
 	}
 }
 

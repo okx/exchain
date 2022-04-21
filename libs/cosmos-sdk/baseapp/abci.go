@@ -178,7 +178,6 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	go func() {
 		if app.deliverState != nil && app.deliverState.ms != nil {
 			app.deliverState.ms.Write()
-			app.parallelTxManage.commitDone <- struct{}{}
 		}
 	}()
 	return
@@ -232,11 +231,7 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 
 	header := app.deliverState.ctx.BlockHeader()
 
-	if app.parallelTxManage.isAsyncDeliverTx {
-		<-app.parallelTxManage.commitDone
-	} else {
-		app.deliverState.ms.Write()
-	}
+	app.deliverState.ms.Write()
 
 	// Write the DeliverTx state which is cache-wrapped and commit the MultiStore.
 	// The write to the DeliverTx state writes all state transitions to the root
