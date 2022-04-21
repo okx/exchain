@@ -50,6 +50,9 @@ type Watcher struct {
 	txs               []WatchMessage
 	txReceipts        []*TransactionReceipt
 	txInfoCollector   []TxInfo
+
+	exitChan chan struct{}
+	wg       sync.WaitGroup
 }
 
 var (
@@ -82,6 +85,14 @@ func NewWatcher(logger log.Logger) *Watcher {
 
 func (w *Watcher) IsFirstUse() bool {
 	return w.firstUse
+}
+
+func (w *Watcher) Stop() {
+	close(w.txChan)
+	close(w.jobChan)
+	close(w.exitChan)
+
+	w.wg.Wait()
 }
 
 func (w *Watcher) Used() {
@@ -625,11 +636,18 @@ func (w *Watcher) jobRoutine() {
 	if !w.Enabled() {
 		return
 	}
+	w.wg.Add(1)
+	defer w.wg.Done()
 
 	w.lazyInitialization()
 
-	for job := range w.jobChan {
-		job()
+	for {
+		select {
+		case job := <-w.jobChan:
+			job()
+		case <-w.exitChan:
+			return
+		}
 	}
 }
 

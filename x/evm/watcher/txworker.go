@@ -17,8 +17,15 @@ func (w *Watcher) txRoutine() {
 }
 
 func (w *Watcher) txWorker(jobs <-chan func()) {
-	for job := range jobs {
-		job()
+	w.wg.Add(1)
+	defer w.wg.Done()
+	for {
+		select {
+		case job := <-jobs:
+			job()
+		case <-w.exitChan:
+			return
+		}
 	}
 }
 
