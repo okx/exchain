@@ -66,11 +66,15 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		return err
 	}
 
+	anteFailed := false
 	defer func() {
 		if r := recover(); r != nil {
 			err = app.runTx_defer_recover(r, info)
 			info.msCache = nil //TODO msCache not write
 			info.result = nil
+		}
+		if anteFailed {
+			app.logger.Error("gasUsed", "value", info.ctx.GasMeter().GasConsumed())
 		}
 		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
 	}()
@@ -92,6 +96,8 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	if app.anteHandler != nil {
 		err = app.runAnte(info, mode)
 		if err != nil {
+			anteFailed = true
+			app.logger.Error("ante failed", "err", err)
 			return err
 		}
 	}
