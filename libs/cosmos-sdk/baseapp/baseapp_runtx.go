@@ -205,7 +205,6 @@ func (app *BaseApp) PreDeliverRealTx(tx []byte) abci.TxEssentials {
 	if mem := GetGlobalMempool(); mem != nil {
 		realTx, _ = mem.ReapEssentialTx(tx).(sdk.Tx)
 	}
-	var evmToAddr *ethcmn.Address
 	if realTx == nil {
 		realTx, err = app.txDecoder(tx)
 		if err != nil {
@@ -226,7 +225,7 @@ func (app *BaseApp) PreDeliverRealTx(tx []byte) abci.TxEssentials {
 
 			app.preDeliverTxProcessor.LoadAccount(ctx, ethcmn.FromHex(realTx.GetFrom()))
 
-			evmToAddr = app.preDeliverTxProcessor.GetTxToEthAddress(realTx)
+			evmToAddr := app.preDeliverTxProcessor.GetTxToEthAddress(realTx)
 			if evmToAddr != nil {
 				app.preDeliverTxProcessor.LoadAccount(ctx, evmToAddr.Bytes())
 			}
