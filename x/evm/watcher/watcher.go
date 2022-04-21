@@ -108,7 +108,6 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	// ResetTransferWatchData
 	w.watchData = &WatchData{}
 	w.wdDelayKey = make([][]byte, 0)
-	w.recordingTxsCount = 0
 	w.txIndexInBlock = 0
 	w.totalTxsCount = 0
 }
@@ -221,7 +220,7 @@ func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
 	if !w.Enabled() {
 		return
 	}
-	for atomic.LoadInt64(&w.recordingTxsCount) != w.totalTxsCount {
+	for !atomic.CompareAndSwapInt64(&w.recordingTxsCount, w.totalTxsCount, 0) {
 	}
 
 	w.sortTxsAndUpdateCumulativeGas()

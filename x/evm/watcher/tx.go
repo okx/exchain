@@ -3,7 +3,6 @@ package watcher
 import (
 	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	tm "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -27,24 +26,6 @@ func (w *Watcher) RecordABCIMessage(deliverTx *DeliverTx, txDecoder sdk.TxDecode
 		w.recordTxsAndReceipts(deliverTx, index, txDecoder)
 	})
 	w.txIndexInBlock++
-}
-
-func (w *Watcher) recordTxsAndReceiptsE(deliverTx *DeliverTx, index uint64, txDecoder sdk.TxDecoder) {
-	realTx, err := txDecoder(deliverTx.Req.GetRaw())
-	if err != nil {
-		w.log.Error("watch decode deliver tx", "error", err)
-		return
-	}
-
-	if realTx.GetType() != sdk.EvmTxType {
-		return
-	}
-	if deliverTx.Resp.Code != errors.SuccessABCICode {
-		w.saveEvmTxAndFailedReceiptE(realTx, index, uint64(deliverTx.Resp.GasUsed))
-		return
-	}
-
-	w.saveEvmTxAndSuccessReceiptE(realTx, deliverTx.Resp.Data, index, uint64(deliverTx.Resp.GasUsed))
 }
 
 func (w *Watcher) recordTxsAndReceipts(deliverTx *DeliverTx, index uint64, txDecoder sdk.TxDecoder) {
@@ -72,17 +53,6 @@ func (w *Watcher) recordTxsAndReceipts(deliverTx *DeliverTx, index uint64, txDec
 	w.saveEvmTxAndSuccessReceipt(realTx, deliverTx.Resp.Data, index, uint64(deliverTx.Resp.GasUsed))
 }
 
-func (w *Watcher) saveEvmTxAndFailedReceiptE(sdkTx sdk.Tx, index, gasUsed uint64) {
-	evmTx, err := w.extractEvmTx(sdkTx)
-	if err != nil {
-		w.log.Error("save evm tx and failed receipt error", "height", w.height, "index", index, "error", err)
-		return
-	}
-	txHash := ethcmn.BytesToHash(evmTx.TxHash())
-
-	w.saveTxAndReceiptE(evmTx, txHash, index, TransactionFailed, &types.ResultData{}, gasUsed)
-}
-
 func (w *Watcher) saveEvmTxAndFailedReceipt(sdkTx sdk.Tx, index, gasUsed uint64) {
 	evmTx, err := w.extractEvmTx(sdkTx)
 	if err != nil {
@@ -107,21 +77,6 @@ func (w *Watcher) saveEvmTxAndSuccessReceipt(sdkTx sdk.Tx, resultData []byte, in
 	}
 
 	w.saveTxAndReceipt(evmTx, evmResultData.TxHash, index, TransactionSuccess, &evmResultData, gasUsed)
-}
-
-func (w *Watcher) saveEvmTxAndSuccessReceiptE(sdkTx sdk.Tx, resultData []byte, index, gasUsed uint64) {
-	evmTx, err := w.extractEvmTx(sdkTx)
-	if err != nil {
-		w.log.Error("save evm tx and success receipt error", "height", w.height, "index", index, "error", err)
-		return
-	}
-	evmResultData, err := types.DecodeResultData(resultData)
-	if err != nil {
-		w.log.Error("save evm tx and success receipt error", "height", w.height, "index", index, "error", err)
-		return
-	}
-
-	w.saveTxAndReceiptE(evmTx, evmResultData.TxHash, index, TransactionSuccess, &evmResultData, gasUsed)
 }
 
 func (w *Watcher) extractEvmTx(sdkTx sdk.Tx) (*types.MsgEthereumTx, error) {
@@ -153,19 +108,4 @@ func (w *Watcher) saveTxAndReceipt(msg *types.MsgEthereumTx, txHash ethcmn.Hash,
 		w.txReceipts = append(w.txReceipts, txReceipt)
 	}
 	w.txInfoCollector = append(w.txInfoCollector, &TxInfo{TxHash: txHash, Index: index, GasUsed: gasUsed})
-}
-
-func (w *Watcher) saveTxAndReceiptE(msg *types.MsgEthereumTx, txHash ethcmn.Hash, index uint64,
-	receiptStatus uint32, data *types.ResultData, gasUsed uint64) {
-
-	wMsg := NewMsgEthTx(msg, txHash, w.blockHash, w.height, index)
-	if wMsg != nil {
-		w.txs = append(w.txs, wMsg)
-	}
-	w.updateCumulativeGas(index, gasUsed)
-	txReceipt := newTransactionReceipt(receiptStatus, msg, txHash, w.blockHash, index, w.height, data, gasUsed)
-	txReceipt.CumulativeGasUsed = hexutil.Uint64(w.cumulativeGas[index])
-	if txReceipt != nil {
-		w.txs = append(w.txs, &MsgTransactionReceipt{txHash: txHash.Bytes(), baseLazyMarshal: newBaseLazyMarshal(txReceipt)})
-	}
 }
