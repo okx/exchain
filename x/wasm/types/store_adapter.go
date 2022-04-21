@@ -30,7 +30,7 @@ func (sa StoreAdapter) Delete(key []byte) {
 // Iterator must be closed by caller.
 // To iterate over entire domain, use store.Iterator(nil, nil)
 func (sa StoreAdapter) Iterator(start, end []byte) dbm.Iterator {
-	iter := sa.parent.Iterator(start, end)
+	//TODO need to change iterator interface
 	return sa.parent.Iterator(start, end)
 }
 
@@ -38,5 +38,6 @@ func (sa StoreAdapter) Iterator(start, end []byte) dbm.Iterator {
 // Start must be less than end, or the Iterator is invalid.
 // Iterator must be closed by caller.
 func (sa StoreAdapter) ReverseIterator(start, end []byte) dbm.Iterator {
+	//TODO need to change iterator interface
 	return sa.parent.ReverseIterator(start, end)
 }

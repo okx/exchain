@@ -3,6 +3,7 @@ package keeper
 import (
 	"errors"
 	"fmt"
+	ibcadapter "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
@@ -23,7 +24,7 @@ type msgEncoder interface {
 
 // MessageRouter ADR 031 request type routing
 type MessageRouter interface {
-	Handler(msg sdk.Msg) baseapp.MsgServiceHandler
+	Handler(methodName string) baseapp.MsgServiceHandler
 }
 
 // SDKMessageHandler can handles messages that can be encoded into sdk.Message types and routed.
@@ -93,7 +94,9 @@ func (h SDKMessageHandler) handleSdkMessage(ctx sdk.Context, contractAddr sdk.Ad
 	}
 
 	// find the handler and execute it
-	if handler := h.router.Handler(msg); handler != nil {
+	//TODO need to change msg
+	msgUrl := ibcadapter.MsgTypeURL(msg)
+	if handler := h.router.Handler(msgUrl); handler != nil {
 		// ADR 031 request type routing
 		msgResult, err := handler(ctx, msg)
 		return msgResult, err

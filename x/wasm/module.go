@@ -79,7 +79,7 @@ func (AppModuleBasic) RegisterRESTRoutes(cliCtx clictx.CLIContext, rtr *mux.Rout
 
 // GetTxCmd returns the root tx command for the wasm module.
 func (b AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
-	return cli.GetTxCmd()
+	return cli.GetTxCmd(cdc)
 }
 
 // GetQueryCmd returns no root query command for the wasm module.
