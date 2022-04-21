@@ -128,7 +128,7 @@ type MsgInstantiateContract struct {
 	// Msg json encoded message to be passed to the contract on instantiation
 	Msg RawContractMessage `protobuf:"bytes,5,opt,name=msg,proto3,casttype=RawContractMessage" json:"msg,omitempty"`
 	// Funds coins that are transferred to the contract on instantiation
-	Funds github_com_cosmos_cosmos_sdk_types.Coins `protobuf:"bytes,6,rep,name=funds,proto3,castrepeated=github.com/okex/exchain/libs/cosmos-sdk/types.Coins" json:"funds"`
+	Funds github_com_cosmos_cosmos_sdk_types.CoinAdapters `protobuf:"bytes,6,rep,name=funds,proto3,castrepeated=github.com/okex/exchain/libs/cosmos-sdk/types.Coins" json:"funds"`
 }
 
 func (m *MsgInstantiateContract) Reset()         { *m = MsgInstantiateContract{} }
@@ -214,7 +214,7 @@ type MsgExecuteContract struct {
 	// Msg json encoded message to be passed to the contract
 	Msg RawContractMessage `protobuf:"bytes,3,opt,name=msg,proto3,casttype=RawContractMessage" json:"msg,omitempty"`
 	// Funds coins that are transferred to the contract on execution
-	Funds github_com_cosmos_cosmos_sdk_types.Coins `protobuf:"bytes,5,rep,name=funds,proto3,castrepeated=github.com/okex/exchain/libs/cosmos-sdk/types.Coins" json:"funds"`
+	Funds github_com_cosmos_cosmos_sdk_types.CoinAdapters `protobuf:"bytes,5,rep,name=funds,proto3,castrepeated=github.com/okex/exchain/libs/cosmos-sdk/types.Coins" json:"funds"`
 }
 
 func (m *MsgExecuteContract) Reset()         { *m = MsgExecuteContract{} }
@@ -2013,7 +2013,7 @@ func (m *MsgInstantiateContract) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Funds = append(m.Funds, types.Coin{})
+			m.Funds = append(m.Funds, types.CoinAdapter{})
 			if err := m.Funds[len(m.Funds)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
@@ -2311,7 +2311,7 @@ func (m *MsgExecuteContract) Unmarshal(dAtA []byte) error {
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Funds = append(m.Funds, types.Coin{})
+			m.Funds = append(m.Funds, types.CoinAdapter{})
 			if err := m.Funds[len(m.Funds)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
 				return err
 			}
