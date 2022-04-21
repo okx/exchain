@@ -72,10 +72,7 @@ type (
 
 // TxDecoder unmarshals transaction bytes
 //type TxDecoder func(txBytes []byte) (costypes.Tx, error)
-//for new cosmos-sdk tx decoder
-type TxDecoder func(txBytes []byte) (Tx, error)
 
-// ibc msg tx decoder
 type IbcTxDecoder func(txBytes []byte) (*stdtx.IbcTx, error)
 
 // TxEncoder marshals transaction to bytes
