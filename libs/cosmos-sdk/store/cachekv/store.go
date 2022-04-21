@@ -100,17 +100,6 @@ func (store *Store) IteratorCache(isdirty bool, cb func(key string, value []byte
 	return true
 }
 
-func (store *Store) GetRWSet(rSet map[string][]byte, wSet map[string][]byte) {
-	for k, v := range store.readList {
-		rSet[k] = v
-	}
-	for k, v := range store.dirty {
-		if !bytes.Equal(v.value, rSet[k]) {
-			wSet[k] = v.value
-		}
-	}
-}
-
 // Implements types.KVStore.
 func (store *Store) Set(key []byte, value []byte) {
 	store.mtx.Lock()

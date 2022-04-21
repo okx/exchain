@@ -429,19 +429,8 @@ type executeResult struct {
 	counter    uint32
 	err        error
 	evmCounter uint32
-	//readList   map[string][]byte
-	//writeList  map[string][]byte
 
 	paraMsg *sdk.ParaMsg
-}
-
-func loadPreData(ms sdk.CacheMultiStore, rSet map[string][]byte, wSet map[string][]byte) {
-	if ms == nil {
-		return
-	}
-
-	ms.GetRWSet(rSet, wSet)
-	return
 }
 
 func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32, evmCounter uint32, paraMsg *sdk.ParaMsg) *executeResult {
@@ -450,14 +439,9 @@ func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter 
 		ms:         ms,
 		counter:    counter,
 		evmCounter: evmCounter,
-		//readList:   make(map[string][]byte),
-		//writeList:  make(map[string][]byte),
-		paraMsg: paraMsg,
+		paraMsg:    paraMsg,
 	}
 
-	//loadPreData(ms, ans.readList, ans.writeList)
-	//delete(ans.readList, whiteAcc)
-	//delete(ans.writeList, whiteAcc)
 	if paraMsg == nil {
 		ans.paraMsg = &sdk.ParaMsg{}
 	}
