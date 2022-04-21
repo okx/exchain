@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"runtime"
 	"sync"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
@@ -194,7 +195,7 @@ func (st *Store) CacheWrap() types.CacheWrap {
 }
 
 func (st *Store) preChangeHandler(keys [][]byte) {
-	maxNums := 2
+	maxNums := runtime.NumCPU()
 	keyCount := len(keys)
 	if maxNums > keyCount {
 		maxNums = keyCount

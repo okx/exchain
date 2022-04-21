@@ -9,12 +9,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/tendermint/go-amino"
-
 	"github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	cmap "github.com/orcaman/concurrent-map"
 	"github.com/pkg/errors"
+	"github.com/tendermint/go-amino"
 )
 
 const (
@@ -47,9 +47,9 @@ type nodeDB struct {
 	versionReaders map[int64]uint32 // Number of active version readers
 
 	latestVersion  int64
-	nodeCache      map[string]*list.Element // Node cache.
-	nodeCacheSize  int                      // Node cache size limit in elements.
-	nodeCacheQueue *syncList                // LRU queue of cache elements. Used for deletion.
+	nodeCache      cmap.ConcurrentMap // Node cache.
+	nodeCacheSize  int                // Node cache size limit in elements.
+	nodeCacheQueue *syncList          // LRU queue of cache elements. Used for deletion.
 
 	orphanNodeCache         map[string]*Node
 	heightOrphansCacheQueue *list.List
@@ -73,15 +73,16 @@ type nodeDB struct {
 	name string
 }
 
-func makeNodeCacheMap(cacheSize int, initRatio float64) map[string]*list.Element {
-	if initRatio <= 0 {
-		return make(map[string]*list.Element)
-	}
-	if initRatio >= 1 {
-		return make(map[string]*list.Element, cacheSize)
-	}
-	cacheSize = int(float64(cacheSize) * initRatio)
-	return make(map[string]*list.Element, cacheSize)
+func makeNodeCacheMap(cacheSize int, initRatio float64) cmap.ConcurrentMap {
+	return cmap.New()
+	//if initRatio <= 0 {
+	//	return make(map[string]*list.Element)
+	//}
+	//if initRatio >= 1 {
+	//	return make(map[string]*list.Element, cacheSize)
+	//}
+	//cacheSize = int(float64(cacheSize) * initRatio)
+	//return make(map[string]*list.Element, cacheSize)
 }
 
 func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
@@ -130,7 +131,8 @@ func (ndb *nodeDB) GetNode(hash []byte) *Node {
 			return elem
 		}
 		// Check the cache.
-		if elem, ok := ndb.nodeCache[string(hash)]; ok {
+		if v, ok := ndb.nodeCache.Get(amino.BytesToStr(hash)); ok {
+			elem := v.(*list.Element)
 			// Already exists. Move to back of nodeCacheQueue.
 			ndb.nodeCacheQueue.MoveToBack(elem)
 			return elem.Value.(*Node)
@@ -532,9 +534,10 @@ func (ndb *nodeDB) traversePrefix(prefix []byte, fn func(k, v []byte)) {
 }
 
 func (ndb *nodeDB) uncacheNode(hash []byte) {
-	if elem, ok := ndb.nodeCache[string(hash)]; ok {
+	if v, ok := ndb.nodeCache.Get(amino.BytesToStr(hash)); ok {
+		elem := v.(*list.Element)
 		ndb.nodeCacheQueue.Remove(elem)
-		delete(ndb.nodeCache, string(hash))
+		ndb.nodeCache.Remove(amino.BytesToStr(hash))
 	}
 }
 
@@ -542,17 +545,17 @@ func (ndb *nodeDB) uncacheNode(hash []byte) {
 // reached the cache size limit.
 func (ndb *nodeDB) cacheNode(node *Node) {
 	elem := ndb.nodeCacheQueue.PushBack(node)
-	ndb.nodeCache[string(node.hash)] = elem
+	ndb.nodeCache.Set(string(node.hash), elem)
 
 	for ndb.nodeCacheQueue.Len() > config.DynamicConfig.GetIavlCacheSize() {
 		oldest := ndb.nodeCacheQueue.Front()
 		hash := ndb.nodeCacheQueue.Remove(oldest).(*Node).hash
-		delete(ndb.nodeCache, string(hash))
+		ndb.nodeCache.Remove(amino.BytesToStr(hash))
 	}
 }
 
 func (ndb *nodeDB) cacheNodeByCheck(node *Node) {
-	if _, ok := ndb.nodeCache[string(node.hash)]; !ok {
+	if _, ok := ndb.nodeCache.Get(amino.BytesToStr(node.hash)); !ok {
 		ndb.cacheNode(node)
 	}
 }
