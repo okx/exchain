@@ -2,10 +2,7 @@ package types
 
 import (
 	"bytes"
-	"encoding/hex"
 	"errors"
-	"fmt"
-	"github.com/okex/exchain/libs/tendermint/global"
 	"time"
 
 	"github.com/tendermint/go-amino"
