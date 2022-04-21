@@ -205,13 +205,13 @@ func (app *BaseApp) PreDeliverRealTx(tx []byte) abci.TxEssentials {
 	}
 	if realTx == nil {
 		realTx, err = app.txDecoder(tx)
-		if err != nil {
+		if err != nil || realTx == nil {
 			return nil
 		}
 		app.blockDataCache.SetTx(tx, realTx)
 	}
 
-	if realTx != nil && realTx.GetType() == sdk.EvmTxType && app.preDeliverTxHandler != nil {
+	if realTx.GetType() == sdk.EvmTxType && app.preDeliverTxHandler != nil {
 		ctx := app.deliverState.ctx
 		ctx.SetCache(app.chainCache).
 			SetMultiStore(app.cms).
