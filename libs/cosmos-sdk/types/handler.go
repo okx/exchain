@@ -9,7 +9,7 @@ type Handler func(ctx Context, msg Msg) (*Result, error)
 // If newCtx.IsZero(), ctx is used instead.
 type AnteHandler func(ctx Context, tx Tx, simulate bool) (newCtx Context, err error)
 
-type TxVerifySigHandler func(ctx Context, tx Tx) error
+type PreDeliverTxHandler func(ctx Context, tx Tx, onlyVerifySig bool)
 
 type GasRefundHandler func(ctx Context, tx Tx) (fee Coins, err error)
 
