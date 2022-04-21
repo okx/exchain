@@ -4,12 +4,10 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
-	okctypes "github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/types"
 )
 
 var (
 	_ txmsg.Msg = &MsgSend{}
-	//_ sdk.Msg   = (*MsgSend)(nil)
 )
 
 func (msg *MsgSend) ValidateBasic() error {
@@ -50,6 +48,6 @@ func (m *MsgSend) Type() string {
 	return "send"
 }
 
-func (m *MsgSend) GetSignBytes() []byte {
-	return types.MustSortJSON(okctypes.ModuleCdc.MustMarshalJSON(&m))
+func (m MsgSend) GetSignBytes() []byte {
+	return types.MustSortJSON(cdc.MustMarshalJSON(m))
 }
