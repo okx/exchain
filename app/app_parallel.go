@@ -15,6 +15,10 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
+type preDeliverProcessor struct {
+	ak auth.AccountKeeper
+}
+
 // feeCollectorHandler set or get the value of feeCollectorAcc
 func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
 	return func(ctx sdk.Context, balance sdk.Coins) error {
@@ -43,10 +47,6 @@ func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
 	return func(execResults [][]string) (logs [][]byte) {
 		return ek.FixLog(execResults)
 	}
-}
-
-type preDeliverProcessor struct {
-	ak auth.AccountKeeper
 }
 
 func (*preDeliverProcessor) VerifySig(ctx sdk.Context, tx sdk.Tx) error {
