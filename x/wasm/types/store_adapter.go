@@ -31,7 +31,15 @@ func (sa StoreAdapter) Delete(key []byte) {
 // To iterate over entire domain, use store.Iterator(nil, nil)
 func (sa StoreAdapter) Iterator(start, end []byte) dbm.Iterator {
 	//TODO need to change iterator interface
-	return sa.parent.Iterator(start, end)
+	iter := sa.parent.Iterator(start, end)
+	ptr := reflect.ValueOf(iter)
+
+	var result dbm.Iterator
+	var resultPtr interface{} = &result
+	reflectPtr := reflect.ValueOf(resultPtr)
+	reflectPtr = reflectPtr.Elem()
+	reflectPtr.Set(ptr.Elem())
+	return result
 }
 
 // Iterator over a domain of keys in descending order. End is exclusive.
@@ -39,5 +47,13 @@ func (sa StoreAdapter) Iterator(start, end []byte) dbm.Iterator {
 // Iterator must be closed by caller.
 func (sa StoreAdapter) ReverseIterator(start, end []byte) dbm.Iterator {
 	//TODO need to change iterator interface
-	return sa.parent.ReverseIterator(start, end)
+	iter := sa.parent.ReverseIterator(start, end)
+	ptr := reflect.ValueOf(iter)
+
+	var result dbm.Iterator
+	var resultPtr interface{} = &result
+	reflectPtr := reflect.ValueOf(resultPtr)
+	reflectPtr = reflectPtr.Elem()
+	reflectPtr.Set(ptr.Elem())
+	return result
 }

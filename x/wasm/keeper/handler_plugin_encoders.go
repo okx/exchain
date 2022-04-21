@@ -245,7 +245,7 @@ func EncodeWasmMsg(sender sdk.AccAddress, msg *wasmvmtypes.WasmMsg) ([]sdk.Msg, 
 			Sender:   sender.String(),
 			Contract: msg.Execute.ContractAddr,
 			Msg:      msg.Execute.Msg,
-			Funds:    coins,
+			Funds:    CoinsToCoinAdapters(coins),
 		}
 		return []sdk.Msg{&sdkMsg}, nil
 	case msg.Instantiate != nil:
@@ -260,7 +260,7 @@ func EncodeWasmMsg(sender sdk.AccAddress, msg *wasmvmtypes.WasmMsg) ([]sdk.Msg, 
 			Label:  msg.Instantiate.Label,
 			Msg:    msg.Instantiate.Msg,
 			Admin:  msg.Instantiate.Admin,
-			Funds:  coins,
+			Funds:  CoinsToCoinAdapters(coins),
 		}
 		return []sdk.Msg{&sdkMsg}, nil
 	case msg.Migrate != nil:

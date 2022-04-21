@@ -1,7 +1,9 @@
 package app
 
 import (
+	"fmt"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
@@ -67,4 +69,36 @@ func TestProposalManager(t *testing.T) {
 	require.True(t, app.GovKeeper.ProposalHandleRouter().HasRoute(params.RouterKey))
 	require.True(t, app.GovKeeper.ProposalHandleRouter().HasRoute(dex.RouterKey))
 	require.True(t, app.GovKeeper.ProposalHandleRouter().HasRoute(farm.RouterKey))
+}
+
+type aa interface {
+	String()
+}
+
+type bb interface {
+	String()
+}
+
+type temp struct {
+	dd string
+}
+
+func (t temp) String() {
+	fmt.Print("===", t.dd)
+}
+
+func TestIteratePrefix(t *testing.T) {
+	var h aa
+	h = &temp{
+		dd: "ss",
+	}
+	ptr := reflect.ValueOf(h)
+
+	var result bb
+	var ptr2 interface{} = &result
+	resultPtr := reflect.ValueOf(ptr2)
+	resultPtr = resultPtr.Elem()
+	resultPtr.Set(ptr.Elem())
+
+	result.String()
 }
