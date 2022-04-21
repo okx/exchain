@@ -25,7 +25,7 @@ func (m *modeHandlerDeliverInAsync) handleDeferRefund(info *runTxInfo) {
 }
 
 func (m *modeHandlerDeliverInAsync) handleDeferGasConsumed(info *runTxInfo) {
-	if m.app.parallelTxManage.isReRun(string(info.txBytes)) {
+	if m.app.parallelTxManage.isReRun(info.txIndex) {
 		m.setGasConsumed(info)
 	}
 }
