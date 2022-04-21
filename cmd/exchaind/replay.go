@@ -265,8 +265,9 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		block := originBlockStore.LoadBlock(lastBlockHeight)
 		meta := originBlockStore.LoadBlockMeta(lastBlockHeight)
 		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, mockApp, mock.Mempool{}, sm.MockEvidencePool{})
-		blockExec.SetIsAsyncDeliverTx(false) // mockApp not support parallel tx
+		config.GetOecConfig().SetParalleledTxStatus(false) // mockApp not support parallel tx
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
+		config.GetOecConfig().SetParalleledTxStatus(viper.GetBool(sm.FlagParalleledTx))
 		panicError(err)
 	}
 
@@ -283,7 +284,6 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		log.Println("replaying ", height)
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
-		blockExec.SetIsAsyncDeliverTx(viper.GetBool(sm.FlagParalleledTx))
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
 		panicError(err)
 		if needSaveBlock {

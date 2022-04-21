@@ -419,8 +419,11 @@ func (c *OecConfig) GetEnableWtx() bool {
 }
 
 func (c *OecConfig) SetParalleledTxStatus(enable bool) {
-	fmt.Println("SetParalleledTxStatus", enable)
 	c.enableParalleledTx = enable
+}
+
+func (c *OecConfig) GetParalleledTxEnable() bool {
+	return c.enableParalleledTx
 }
 
 func (c *OecConfig) SetEnableWtx(value bool) {
