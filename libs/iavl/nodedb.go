@@ -116,13 +116,12 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 func (ndb *nodeDB) GetNode(hash []byte) *Node {
 
 	res := func() *Node {
-
-		ndb.mtx.RLock()
-		defer ndb.mtx.RUnlock()
 		ndb.addNodeReadCount()
 		if len(hash) == 0 {
 			panic("nodeDB.GetNode() requires hash")
 		}
+		ndb.mtx.RLock()
+		defer ndb.mtx.RUnlock()
 		if elem, ok := ndb.prePersistNodeCache[string(hash)]; ok {
 			return elem
 		}
@@ -149,13 +148,12 @@ func (ndb *nodeDB) GetNode(hash []byte) *Node {
 
 	// Doesn't exist, load.
 	node := ndb.makeNodeFromDbByHash(hash)
-
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
 	node.hash = hash
 	node.persisted = true
-	ndb.cacheNodeByCheck(node)
 
+	ndb.mtx.Lock()
+	ndb.cacheNodeByCheck(node)
+	ndb.mtx.Unlock()
 	return node
 }
 
