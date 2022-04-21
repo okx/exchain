@@ -21,7 +21,7 @@ var (
 
 // TestTxDecode decode ibc tx with unkown field
 func TestIbcDecodeUnknownFields(t *testing.T) {
-	types2.EnableVeneus1Feature()
+	types2.SetVenus1HeightForIbcTest(-1)
 	cdcProxy := newProxyDecoder()
 	decoder := TxDecoder(cdcProxy)
 
@@ -117,7 +117,7 @@ func TestIbcDecodeUnknownFields(t *testing.T) {
 }
 
 func TestRejectNonADR027(t *testing.T) {
-	types2.EnableVeneus1Feature()
+	types2.SetVenus1HeightForIbcTest(-1)
 	cdcProxy := newProxyDecoder()
 	decoder := TxDecoder(cdcProxy)
 

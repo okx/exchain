@@ -26,7 +26,7 @@ type KeeperTestSuite struct {
 }
 
 func (suite *KeeperTestSuite) SetupTest() {
-	types.EnableVeneus1Feature()
+	types.SetVenus1HeightForIbcTest(-1)
 	isCheckTx := false
 	app := simapp.Setup(isCheckTx)
 

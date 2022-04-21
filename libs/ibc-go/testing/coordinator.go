@@ -29,7 +29,7 @@ type Coordinator struct {
 
 // NewCoordinator initializes Coordinator with N TestChain's
 func NewCoordinator(t *testing.T, n int) *Coordinator {
-	types.EnableVeneus1Feature()
+	types.SetVenus1HeightForIbcTest(-1)
 	chains := make(map[string]TestChainI)
 	coord := &Coordinator{
 		t:           t,

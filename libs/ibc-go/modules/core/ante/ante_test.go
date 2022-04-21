@@ -22,7 +22,7 @@ type AnteTestSuite struct {
 
 // SetupTest creates a coordinator with 2 test chains.
 func (suite *AnteTestSuite) SetupTest() {
-	types.EnableVeneus1Feature()
+	types.SetVenus1HeightForIbcTest(-1)
 	suite.coordinator = ibctesting.NewCoordinator(suite.T(), 2)
 	suite.chainA = suite.coordinator.GetChain(ibctesting.GetChainID(0))
 	suite.chainB = suite.coordinator.GetChain(ibctesting.GetChainID(1))

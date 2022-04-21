@@ -84,7 +84,7 @@ type TypesTestSuite struct {
 }
 
 func (suite *TypesTestSuite) SetupTest() {
-	types2.EnableVeneus1Feature()
+	types2.SetVenus1HeightForIbcTest(-1)
 	app := simapp.Setup(false)
 	db := dbm.NewMemDB()
 	store := rootmulti.NewStore(db)
