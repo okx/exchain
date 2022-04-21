@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"runtime"
 	"sync"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
@@ -190,7 +191,33 @@ func (st *Store) GetStoreType() types.StoreType {
 
 // Implements Store.
 func (st *Store) CacheWrap() types.CacheWrap {
-	return cachekv.NewStore(st)
+	return cachekv.NewStoreWithPreChangeHandler(st, st.preChangeHandler)
+}
+
+func (st *Store) preChangeHandler(keys [][]byte) {
+	maxNums := runtime.NumCPU()
+	keyCount := len(keys)
+	if maxNums > keyCount {
+		maxNums = keyCount
+	}
+
+	txJobChan := make(chan []byte, keyCount)
+	var wg sync.WaitGroup
+	wg.Add(keyCount)
+
+	for index := 0; index < maxNums; index++ {
+		go func(ch chan []byte, wg *sync.WaitGroup) {
+			for key := range ch {
+				st.tree.PreChange(key)
+				wg.Done()
+			}
+		}(txJobChan, &wg)
+	}
+	for _, v := range keys {
+		txJobChan <- v
+	}
+	close(txJobChan)
+	wg.Wait()
 }
 
 // CacheWrapWithTrace implements the Store interface.

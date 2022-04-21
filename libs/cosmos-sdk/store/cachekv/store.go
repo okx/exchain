@@ -26,6 +26,8 @@ type cValue struct {
 	dirty   bool
 }
 
+type PreChangeHandler func(keys [][]byte)
+
 // Store wraps an in-memory cache around an underlying types.KVStore.
 type Store struct {
 	mtx           sync.Mutex
@@ -33,6 +35,8 @@ type Store struct {
 	unsortedCache map[string]struct{}
 	sortedCache   *list.List // always ascending sorted
 	parent        types.KVStore
+
+	preChangeHandler PreChangeHandler
 }
 
 var _ types.CacheKVStore = (*Store)(nil)
@@ -44,6 +48,12 @@ func NewStore(parent types.KVStore) *Store {
 		sortedCache:   list.New(),
 		parent:        parent,
 	}
+}
+
+func NewStoreWithPreChangeHandler(parent types.KVStore, handler PreChangeHandler) *Store {
+	s := NewStore(parent)
+	s.preChangeHandler = handler
+	return s
 }
 
 // Implements Store.
@@ -132,6 +142,14 @@ func (store *Store) Write() {
 	}
 
 	sort.Strings(keys)
+
+	if store.preChangeHandler != nil {
+		prekeys := make([][]byte, 0, len(keys))
+		for _, key := range keys {
+			prekeys = append(prekeys, []byte(key))
+		}
+		store.preChangeHandler(prekeys)
+	}
 
 	// TODO: Consider allowing usage of Batch, which would allow the write to
 	// at least happen atomically.

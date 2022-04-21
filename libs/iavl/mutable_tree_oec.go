@@ -1,6 +1,7 @@
 package iavl
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"sort"
@@ -334,4 +335,23 @@ func (tree *MutableTree) updateBranchWithDelta(node *Node) []byte {
 }
 func (t *ImmutableTree) GetPersistedRoots() map[int64][]byte {
 	return t.ndb.roots()
+}
+
+func (tree *MutableTree) PreChange(key []byte) {
+	tree.preChange(tree.root, key)
+}
+
+func (tree *MutableTree) preChange(node *Node, key []byte) {
+	if node.isLeaf() {
+		return
+	} else {
+		if bytes.Compare(key, node.key) < 0 {
+			tree.preChange(node.getLeftNode(tree.ImmutableTree), key)
+			node.getRightNode(tree.ImmutableTree)
+		} else {
+			tree.preChange(node.getRightNode(tree.ImmutableTree), key)
+			node.getLeftNode(tree.ImmutableTree)
+		}
+		return
+	}
 }
