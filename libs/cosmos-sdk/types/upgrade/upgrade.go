@@ -11,7 +11,6 @@ type HandleStore func(st store.CommitKVStore, h int64)
 type UpgradeModule interface {
 	RegisterTask() HeightTask
 	UpgradeHeight() int64
-	BlockStoreModules() map[string]HandleStore
 	RegisterParam() params.ParamSet
 	ModuleName() string
 	CommitFilter() *store.StoreFilter

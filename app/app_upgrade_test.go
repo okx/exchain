@@ -67,10 +67,15 @@ import (
 var (
 	_ upgradetypes.UpgradeModule = (*SimpleBaseUpgradeModule)(nil)
 
-	defaultHandleStore upgradetypes.HandleStore = func(st cosmost.CommitKVStore, h int64) {
-		st.SetUpgradeVersion(h)
+	test_prefix       = "upgrade_module_"
+	blockModules      map[string]struct{}
+	defaultDenyFilter cosmost.StoreFilter = func(module string, h int64, store cosmost.CommitKVStore) bool {
+		_, exist := blockModules[module]
+		if !exist {
+			return false
+		}
+		return true
 	}
-	test_prefix = "upgrade_module_"
 )
 
 type SimpleBaseUpgradeModule struct {
@@ -81,6 +86,47 @@ type SimpleBaseUpgradeModule struct {
 	appModule          module.AppModuleBasic
 	handler            upgradetypes.HandleStore
 	storeKey           *sdk.KVStoreKey
+}
+
+func (b *SimpleBaseUpgradeModule) CommitFilter() *cosmost.StoreFilter {
+	if b.UpgradeHeight() == 0 {
+		return &defaultDenyFilter
+	}
+	var ret cosmost.StoreFilter
+	ret = func(module string, h int64, store cosmost.CommitKVStore) bool {
+		if b.appModule.Name() != module {
+			return false
+		}
+		if b.h == h {
+			store.SetUpgradeVersion(h)
+			return false
+		}
+		if b.h > h {
+			return false
+		}
+
+		return true
+	}
+	return &ret
+}
+
+func (b *SimpleBaseUpgradeModule) PruneFilter() *cosmost.StoreFilter {
+	if b.UpgradeHeight() == 0 {
+		return &defaultDenyFilter
+	}
+
+	var ret cosmost.StoreFilter
+	ret = func(module string, h int64, store cosmost.CommitKVStore) bool {
+		if b.appModule.Name() != module {
+			return false
+		}
+		if b.h >= h {
+			return false
+		}
+
+		return true
+	}
+	return &ret
 }
 
 func NewSimpleBaseUpgradeModule(t *testing.T, h int64, appModule module.AppModuleBasic, handler upgradetypes.HandleStore, taskExecutedNotify func()) *SimpleBaseUpgradeModule {
