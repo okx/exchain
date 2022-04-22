@@ -119,9 +119,13 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			stdmsgs = append(stdmsgs, m)
 		}
 
-		modeInfo, ok := authInfo.SignerInfos[0].ModeInfo.Sum.(*tx.ModeInfo_Single_)
-		if !ok {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrInternal, "only support ModeInfo_Single")
+		var modeInfo *tx.ModeInfo_Single_
+		var ok bool
+		if len(authInfo.SignerInfos) > 0 {
+			modeInfo, ok = authInfo.SignerInfos[0].ModeInfo.Sum.(*tx.ModeInfo_Single_)
+			if !ok {
+				return nil, sdkerrors.Wrap(sdkerrors.ErrInternal, "only support ModeInfo_Single")
+			}
 		}
 
 		stx := authtypes.IbcTx{
