@@ -80,7 +80,7 @@ func grpcQueryBalanceAdapter(ctx sdk.Context, req abci.RequestQuery, k Keeper) (
 		for _, c := range coins {
 			ada := sdk.CoinAdapter{
 				Denom:  c.Denom,
-				Amount: c.Amount.RoundInt(),
+				Amount: sdk.NewIntFromBigInt(c.Amount.BigInt()),
 			}
 			bs = append(bs, ada)
 		}
