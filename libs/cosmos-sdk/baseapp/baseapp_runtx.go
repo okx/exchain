@@ -68,17 +68,22 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 
 	startRunMsg := false
 	defer func() {
-		gasUsed := sdk.Gas(0)
-		if startRunMsg {
-			handler.handleDeferGasConsumed(info)
-			gasUsed = info.ctx.GasMeter().GasConsumed()
-		}
 		if r := recover(); r != nil {
 			err = app.runTx_defer_recover(r, info)
 			info.msCache = nil //TODO msCache not write
 			info.result = nil
 		}
+		gasUsed := info.ctx.GasMeter().GasConsumed()
+		if !startRunMsg {
+			gasUsed = 0
+		}
 		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: gasUsed}
+	}()
+
+	defer func() {
+		if startRunMsg {
+			handler.handleDeferGasConsumed(info)
+		}
 	}()
 
 	defer func() {
