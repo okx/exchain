@@ -265,6 +265,7 @@ func (conR *Reactor) AddPeer(peer p2p.Peer) {
 	// Begin routines for this peer.
 	go conR.gossipDataRoutine(peer, peerState)
 	go conR.gossipVotesRoutine(peer, peerState)
+	go conR.gossipVCRoutine(peer, peerState)
 	go conR.queryMaj23Routine(peer, peerState)
 
 	// Send our state to peer.
@@ -336,19 +337,28 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		}
 		switch msg := msg.(type) {
 		case *ViewChangeMessage:
+			cs := conR.conS
+
+			lock.RLock()
+			vcMsg, height, validators := cs.vcMsg, cs.Height, cs.Validators
+			lock.RUnlock()
+			// already has valid vcMsg
+			if vcMsg != nil && vcMsg.Height >= msg.Height {
+				return
+			}
 			//conR.Logger.Error("reactor vcMsg", "height", msg.Height, "curP", msg.CurrentProposer, "newP", msg.NewProposer, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
 			finished := ""
-			if msg.Height == conR.conS.Height {
+			if msg.Height == height {
 				// ApplyBlock of height-1 is finished
 				finished = "f"
-			} else if msg.Height == conR.conS.Height+1 {
+			} else if msg.Height == height+1 {
 				// ApplyBlock of height-1 is not finished
 				// vc after scheduleRound0
 			} else {
 				return
 			}
 			// verify the signature of vcMsg
-			_, val := conR.conS.Validators.GetByAddress(msg.CurrentProposer)
+			_, val := validators.GetByAddress(msg.CurrentProposer)
 			if err := msg.Verify(val.PubKey); err != nil {
 				conR.Logger.Error("reactor Verify Signature of ViewChangeMessage", "err", err)
 				return
@@ -362,20 +372,23 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			//3.it is CurrentProposer
 			conR.mtx.Lock()
 			defer conR.mtx.Unlock()
+			cs := conR.conS
+			lock.RLock()
+			height, validators := cs.Height, cs.Validators
+			lock.RUnlock()
 			if msg.Height > conR.hasViewChanged &&
-				msg.Height > conR.conS.Height &&
-				bytes.Equal(conR.conS.privValidatorPubKey.Address(), msg.CurrentProposer) {
+				msg.Height > height &&
+				bytes.Equal(cs.privValidatorPubKey.Address(), msg.CurrentProposer) {
 				// verify the signature of prMsg
-				_, val := conR.conS.Validators.GetByAddress(msg.NewProposer)
+				_, val := validators.GetByAddress(msg.NewProposer)
 				if err := msg.Verify(val.PubKey); err != nil {
 					conR.Logger.Error("reactor Verify Signature of ProposeRequestMessage", "err", err)
 					return
 				}
 				conR.hasViewChanged = msg.Height
 				// broadcast vc message
-				conR.broadcastViewChangeMessage(msg)
-				// vc after ApplyBlock scheduleRound0
-				conR.conS.peerMsgQueue <- msgInfo{msg, ""}
+				vcMsg := conR.broadcastViewChangeMessage(msg)
+				conR.conS.peerMsgQueue <- msgInfo{vcMsg, ""}
 			}
 		}
 
@@ -557,15 +570,17 @@ func (conR *Reactor) broadcastProposeRequestMessage(prMsg ProposeRequestMessage)
 	conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(prMsg))
 }
 
-func (conR *Reactor) broadcastViewChangeMessage(prMsg *ProposeRequestMessage) {
+func (conR *Reactor) broadcastViewChangeMessage(prMsg *ProposeRequestMessage) *ViewChangeMessage {
 	vcMsg := ViewChangeMessage{Height: prMsg.Height, CurrentProposer: prMsg.CurrentProposer, NewProposer: prMsg.NewProposer}
-	if signature, err := conR.conS.privValidator.SignBytes(vcMsg.SignBytes()); err == nil {
-		//conR.Logger.Error("broadcastViewChangeMessage", "vcMsg", vcMsg)
-		vcMsg.Signature = signature
-		conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
-	} else {
+	signature, err := conR.conS.privValidator.SignBytes(vcMsg.SignBytes())
+	if err != nil {
 		conR.Logger.Error("broadcastViewChangeMessage", "err", err)
+		return nil
 	}
+	//conR.Logger.Error("broadcastViewChangeMessage", "vcMsg", vcMsg)
+	vcMsg.Signature = signature
+	conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
+	return &vcMsg
 }
 
 func (conR *Reactor) broadcastNewRoundStepMessage(rs *cstypes.RoundState) {
@@ -838,6 +853,37 @@ OUTER_LOOP:
 
 		time.Sleep(conR.conS.config.PeerGossipSleepDuration)
 		continue OUTER_LOOP
+	}
+}
+
+func (conR *Reactor) gossipVCRoutine(peer p2p.Peer, ps *PeerState) {
+	logger := conR.Logger.With("peer", peer)
+
+	var vcHeight int64 = 0
+OUTER_LOOP:
+	for {
+		// Manage disconnects from self or peer.
+		if !peer.IsRunning() || !conR.IsRunning() {
+			logger.Info("Stopping gossipDataRoutine for peer")
+			return
+		}
+
+		rs := conR.conS.GetRoundState()
+		prs := ps.GetRoundState()
+		vcMsg := conR.conS.vcMsg
+
+		if vcMsg == nil || vcHeight >= vcMsg.Height || rs.Height > vcMsg.Height {
+			continue OUTER_LOOP
+		}
+		// only in round0 send vcMsg
+		if rs.Round != 0 || prs.Round != 0 {
+			continue OUTER_LOOP
+		}
+		// send vcMsg
+		if rs.Height == prs.Height || rs.Height == prs.Height+1 {
+			vcHeight = vcMsg.Height
+			peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
+		}
 	}
 }
 

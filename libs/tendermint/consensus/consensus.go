@@ -569,6 +569,10 @@ func (cs *State) updateToState(state sm.State) {
 	//		cs.state.LastBlockHeight+1, cs.Height))
 	//}
 
+	if cs.vcMsg != nil && cs.vcMsg.Height <= cs.Height {
+		cs.vcMsg = nil
+	}
+
 	// If state isn't further out than cs.state, just ignore.
 	// This happens when SwitchToConsensus() is called in the reactor.
 	// We don't want to reset e.g. the Votes, but we still want to
@@ -730,36 +734,28 @@ func (cs *State) handleMsg(mi msgInfo) {
 	msg, peerID := mi.Msg, mi.PeerID
 	switch msg := msg.(type) {
 	case *ViewChangeMessage:
-		//cs.Logger.Error("handle vcMsg", "height", msg.Height)
+		//cs.Logger.Error("handle vcMsg", "msg.height", msg.Height, "vcMsg", cs.vcMsg)
 		if ActiveViewChange {
+			// already has valid vcMsg
+			if cs.vcMsg != nil && cs.vcMsg.Height >= msg.Height {
+				return
+			}
+			cs.vcMsg = msg
 			// use peerID as flag
-			if peerID == "" {
-				// ApplyBlock of height-1 is not finished
-				// RoundStepNewHeight enterNewHeight use msg.val
-				cs.vcMsg = msg
-			} else {
+			if peerID != "" {
 				// ApplyBlock of height-1 is finished
 				if cs.Round == 0 {
 					if cs.Step == cstypes.RoundStepNewRound || cs.Step == cstypes.RoundStepPropose {
 						// has enterNewHeight, and vc immediately
 						_, val := cs.Validators.GetByAddress(msg.NewProposer)
 						cs.enterNewRoundWithVal(cs.Height, 0, val)
-					} else if cs.Step == cstypes.RoundStepNewHeight {
-						// at waiting of height-1, and enterNewHeight use msg.val
-						cs.vcMsg = msg
 					}
+					// else: at waiting of height-1, and enterNewHeight use msg.val
 				}
+				// else: ApplyBlock of height-1 is not finished
+				// RoundStepNewHeight enterNewHeight use msg.val
 			}
 		}
-
-	case *ProposeRequestMessage:
-		//cs.Logger.Error("handle prMsg", "height", msg.Height)
-		// ApplyBlock of height-1 is not finished
-		// RoundStepNewHeight enterNewRound use peer as val
-		if ActiveViewChange {
-			cs.vcMsg = &ViewChangeMessage{Height: msg.Height, CurrentProposer: msg.CurrentProposer, NewProposer: msg.NewProposer}
-		}
-
 	case *ProposalMessage:
 		// will not cause transition.
 		// once proposal is set, we can receive block parts
@@ -1001,7 +997,6 @@ func (cs *State) enterNewRoundWithVal(height int64, round int, val *types.Valida
 func (cs *State) enterNewHeight(height int64) {
 	if ActiveViewChange && cs.vcMsg != nil && cs.vcMsg.Validate(height, cs.Validators.Proposer.Address) {
 		_, val := cs.Validators.GetByAddress(cs.vcMsg.NewProposer)
-		cs.vcMsg = nil
 		cs.enterNewRoundWithVal(height, 0, val)
 	} else {
 		cs.enterNewRound(height, 0)
