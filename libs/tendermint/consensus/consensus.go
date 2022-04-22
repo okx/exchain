@@ -1534,11 +1534,6 @@ func (cs *State) finalizeCommit(height int64) {
 		return
 	}
 
-	//if stateCopy.Validators.GetProposer().Address.String() == cs.privValidatorPubKey.Address().String() {
-	//	cs.Logger.Error("Proposer!!!", "height", height, "round", cs.Round)
-	//	time.Sleep(time.Second * 10)
-	//}
-
 	/*
 		if types.EnableBroadcastP2PDelta() {
 			// persists the given deltas to the underlying db.
