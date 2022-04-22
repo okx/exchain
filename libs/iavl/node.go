@@ -548,14 +548,16 @@ func (node *Node) getLeftNode(t *ImmutableTree) *Node {
 	if node.leftNode != nil {
 		return node.leftNode
 	}
-	return t.ndb.GetNode(node.leftHash)
+	node.leftNode = t.ndb.GetNode(node.leftHash)
+	return node.leftNode
 }
 
 func (node *Node) getRightNode(t *ImmutableTree) *Node {
 	if node.rightNode != nil {
 		return node.rightNode
 	}
-	return t.ndb.GetNode(node.rightHash)
+	node.rightNode = t.ndb.GetNode(node.rightHash)
+	return node.rightNode
 }
 
 // NOTE: mutates height and size
