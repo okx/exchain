@@ -545,7 +545,6 @@ func (conR *Reactor) broadcastPOAProposalMessage(proposal *types.Proposal) {
 }
 
 func (conR *Reactor) broadcastPOAProposalBlockPartsMessage(msg *BlockPartMessage) {
-	fmt.Println("Send out blockPart by broadcast:", "height", msg.Height, "round", msg.Round)
 	bytes := cdc.MustMarshalBinaryBare(msg)
 
 	peers := conR.Switch.Peers().List()
