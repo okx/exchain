@@ -236,10 +236,6 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, appCreator AppCreator, 
 		tmNode.Mempool().SetTxInfoParser(parser)
 	}
 
-	if blockParser, ok := app.(state.BlockTxsSenderParser); ok {
-		tmNode.ConsensusState().BlockExec().SetBlockTxsSenderParser(blockParser)
-	}
-
 	// run forever (the node will not be returned)
 	select {}
 }

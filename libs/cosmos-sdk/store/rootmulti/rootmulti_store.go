@@ -219,11 +219,11 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 	for _, storeParams := range rs.storesParams {
 		if storeParams.typ == types.StoreTypeIAVL {
 			sName := storeParams.key.Name()
-			if (sName == "acc" || sName == "evm") && tmtypes.HigherThanMars(latestVersion) {
+			if evmAccStoreFilter(sName, latestVersion) {
 				continue
 			}
 
-			if sName == "evm2" && !tmtypes.HigherThanMars(latestVersion) {
+			if newEvmStoreFilter(sName, latestVersion) {
 				continue
 			}
 
@@ -271,24 +271,8 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 			infos[storeInfo.Name] = storeInfo
 		}
 
-		mptInfo := infos[mpt.StoreKey]
-		if mptInfo.Core.CommitID.Version == 0 {
-			mptInfo.Core.CommitID.Version = ver
-			infos[mpt.StoreKey] = mptInfo
-		}
-
-		evmConfigInfo := infos["evm2"]
-		if evmConfigInfo.Core.CommitID.Version == 0 {
-			evmConfigInfo.Core.CommitID.Version = ver
-			infos["evm2"] = evmConfigInfo
-
-			for key, param := range rs.storesParams {
-				if key.Name() == "evm2" {
-					param.initialVersion = uint64(ver)
-					rs.storesParams[key] = param
-				}
-			}
-		}
+		rs.commitInfoFilter(infos, ver, MptStore)
+		rs.commitInfoFilter(infos, ver, EvmStore)
 
 		//if upgrade version ne
 		callback := func(name string, version int64) {
@@ -312,7 +296,7 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	// load each Store (note this doesn't panic on unmounted keys now)
 	var newStores = make(map[types.StoreKey]types.CommitKVStore)
 	for key, storeParams := range rs.storesParams {
-		if (key.Name() == "acc" || key.Name() == "evm") && tmtypes.HigherThanMars(ver) {
+		if evmAccStoreFilter(key.Name(), ver) {
 			continue
 		}
 
@@ -593,14 +577,13 @@ func (rs *Store) pruneStores() {
 	for key, store := range stores {
 		if store.GetStoreType() == types.StoreTypeIAVL {
 			sName := key.Name()
-			if tmtypes.HigherThanMars(rs.lastCommitInfo.Version) {
-				if sName == "acc" || sName == "evm" {
-					continue
-				}
-			} else {
-				if sName == "evm2" && !mpt.TrieWriteAhead {
-					continue
-				}
+
+			if evmAccStoreFilter(sName, rs.lastCommitInfo.Version) {
+				continue
+			}
+
+			if newEvmStoreFilter(sName, rs.lastCommitInfo.Version) && !mpt.TrieWriteAhead{
+				continue
 			}
 
 			// If the store is wrapped with an inter-block cache, we must first unwrap
@@ -1086,13 +1069,12 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 
 	for key, store := range storeMap {
 		sName := key.Name()
-		if tmtypes.HigherThanMars(version) {
-			// ignore acc and evm store
-			if sName == "acc" || sName == "evm" {
-				continue
-			}
-		} else {
-			if (sName == mpt.StoreKey || sName == "evm2") && !mpt.TrieWriteAhead {
+		if evmAccStoreFilter(sName, version) {
+			continue
+		}
+
+		if !mpt.TrieWriteAhead{
+			if newEvmStoreFilter(sName, version) || newMptStoreFilter(sName, version) {
 				continue
 			}
 		}
@@ -1111,7 +1093,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		}
 
 		// old version, mpt(acc) store, never allowed to participate the process of calculate root hash, or it will lead to SMB!
-		if !tmtypes.HigherThanMars(version) && (sName == mpt.StoreKey || sName == "evm2") {
+		if newEvmStoreFilter(sName, version) || newMptStoreFilter(sName, version) {
 			continue
 		}
 
@@ -1396,15 +1378,12 @@ func (rs *Store) StopStore() {
 		switch store.GetStoreType() {
 		case types.StoreTypeIAVL:
 			sName := key.Name()
-			if tmtypes.HigherThanMars(rs.GetLatestVersion()) {
-				// ignore acc and evm store
-				if sName == "acc" || sName == "evm" {
-					continue
-				}
-			} else {
-				if sName == "evm2" && !mpt.TrieWriteAhead {
-					continue
-				}
+			if evmAccStoreFilter(sName, rs.GetLatestVersion())  {
+				continue
+			}
+
+			if newEvmStoreFilter(sName, rs.GetLatestVersion()) && !mpt.TrieWriteAhead {
+				continue
 			}
 
 			s := store.(*iavl.Store)

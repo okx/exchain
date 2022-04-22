@@ -130,69 +130,76 @@ func (k *Keeper) OnStop(ctx sdk.Context) error {
 }
 
 func (k *Keeper) PushData2Database(height int64, log log.Logger) {
-	curHeight := height
-	curMptRoot := k.GetMptRootHash(uint64(curHeight))
-
-	triedb := k.db.TrieDB()
+	curMptRoot := k.GetMptRootHash(uint64(height))
 	if mpt.TrieDirtyDisabled {
-		if curMptRoot == (ethcmn.Hash{}) || curMptRoot == ethtypes.EmptyRootHash {
-			curMptRoot = ethcmn.Hash{}
-		} else {
-			if err := triedb.Commit(curMptRoot, false, nil); err != nil {
-				panic("fail to commit mpt data: " + err.Error())
-			}
-		}
-		k.SetLatestStoredBlockHeight(uint64(curHeight))
-		log.Info("sync push evm data to db", "block", curHeight, "trieHash", curMptRoot)
+		k.fullNodePersist(curMptRoot, height, log)
 	} else {
-		// Full but not archive node, do proper garbage collection
-		triedb.Reference(curMptRoot, ethcmn.Hash{}) // metadata reference to keep trie alive
-		k.triegc.Push(curMptRoot, -int64(curHeight))
+		k.otherNodePersist(curMptRoot, height, log)
+	}
+}
 
-		if curHeight > mpt.TriesInMemory {
-			// If we exceeded our memory allowance, flush matured singleton nodes to disk
-			var (
-				nodes, imgs = triedb.Size()
-				nodesLimit  = ethcmn.StorageSize(mpt.TrieNodesLimit) * 1024 * 1024
-				imgsLimit   = ethcmn.StorageSize(mpt.TrieImgsLimit) * 1024 * 1024
-			)
+func (k *Keeper) fullNodePersist(curMptRoot ethcmn.Hash, curHeight int64, log log.Logger) {
+	if curMptRoot == (ethcmn.Hash{}) || curMptRoot == ethtypes.EmptyRootHash {
+		curMptRoot = ethcmn.Hash{}
+	} else {
+		if err := k.db.TrieDB().Commit(curMptRoot, false, nil); err != nil {
+			panic("fail to commit mpt data: " + err.Error())
+		}
+	}
+	k.SetLatestStoredBlockHeight(uint64(curHeight))
+	log.Info("sync push evm data to db", "block", curHeight, "trieHash", curMptRoot)
+}
 
-			if nodes > nodesLimit || imgs > imgsLimit {
-				triedb.Cap(nodesLimit - ethdb.IdealBatchSize)
-			}
-			// Find the next state trie we need to commit
-			chosen := curHeight - mpt.TriesInMemory
+func (k *Keeper) otherNodePersist(curMptRoot ethcmn.Hash, curHeight int64, log log.Logger) {
+	triedb := k.db.TrieDB()
 
-			if chosen <= int64(k.startHeight) {
-				return
-			}
+	// Full but not archive node, do proper garbage collection
+	triedb.Reference(curMptRoot, ethcmn.Hash{}) // metadata reference to keep trie alive
+	k.triegc.Push(curMptRoot, -int64(curHeight))
 
-			if chosen%mpt.TrieCommitGap == 0 {
-				// If the header is missing (canonical chain behind), we're reorging a low
-				// diff sidechain. Suspend committing until this operation is completed.
-				chRoot := k.GetMptRootHash(uint64(chosen))
-				if chRoot == (ethcmn.Hash{}) || chRoot == ethtypes.EmptyRootHash {
-					chRoot = ethcmn.Hash{}
-				} else {
-					// Flush an entire trie and restart the counters, it's not a thread safe process,
-					// cannot use a go thread to run, or it will lead 'fatal error: concurrent map read and map write' error
-					if err := triedb.Commit(chRoot, true, nil); err != nil {
-						panic("fail to commit mpt data: " + err.Error())
-					}
+	if curHeight > mpt.TriesInMemory {
+		// If we exceeded our memory allowance, flush matured singleton nodes to disk
+		var (
+			nodes, imgs = triedb.Size()
+			nodesLimit  = ethcmn.StorageSize(mpt.TrieNodesLimit) * 1024 * 1024
+			imgsLimit   = ethcmn.StorageSize(mpt.TrieImgsLimit) * 1024 * 1024
+		)
+
+		if nodes > nodesLimit || imgs > imgsLimit {
+			triedb.Cap(nodesLimit - ethdb.IdealBatchSize)
+		}
+		// Find the next state trie we need to commit
+		chosen := curHeight - mpt.TriesInMemory
+
+		if chosen <= int64(k.startHeight) {
+			return
+		}
+
+		if chosen%mpt.TrieCommitGap == 0 {
+			// If the header is missing (canonical chain behind), we're reorging a low
+			// diff sidechain. Suspend committing until this operation is completed.
+			chRoot := k.GetMptRootHash(uint64(chosen))
+			if chRoot == (ethcmn.Hash{}) || chRoot == ethtypes.EmptyRootHash {
+				chRoot = ethcmn.Hash{}
+			} else {
+				// Flush an entire trie and restart the counters, it's not a thread safe process,
+				// cannot use a go thread to run, or it will lead 'fatal error: concurrent map read and map write' error
+				if err := triedb.Commit(chRoot, true, nil); err != nil {
+					panic("fail to commit mpt data: " + err.Error())
 				}
-				k.SetLatestStoredBlockHeight(uint64(chosen))
-				log.Info("async push evm data to db", "block", chosen, "trieHash", chRoot)
 			}
+			k.SetLatestStoredBlockHeight(uint64(chosen))
+			log.Info("async push evm data to db", "block", chosen, "trieHash", chRoot)
+		}
 
-			// Garbage collect anything below our required write retention
-			for !k.triegc.Empty() {
-				root, number := k.triegc.Pop()
-				if -number > chosen {
-					k.triegc.Push(root, number)
-					break
-				}
-				triedb.Dereference(root.(ethcmn.Hash))
+		// Garbage collect anything below our required write retention
+		for !k.triegc.Empty() {
+			root, number := k.triegc.Pop()
+			if -number > chosen {
+				k.triegc.Push(root, number)
+				break
 			}
+			triedb.Dereference(root.(ethcmn.Hash))
 		}
 	}
 }
