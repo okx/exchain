@@ -332,6 +332,15 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		return nil
 	}
 
+	defer func() {
+		if r := recover(); r != nil {
+			err := dttm.app.runTx_defer_recover(r, task.info)
+			task.info.msCache = nil //TODO msCache not write
+			task.info.result = nil
+			task.err = err
+		}
+	}()
+
 	task.info.ctx = dttm.app.getContextForTx(runTxModeDeliverPartConcurrent, task.info.txBytes) // same context for all txs in a block
 	task.canRerun = 0
 
@@ -542,6 +551,8 @@ func (dttm *DTTManager) serialExecution() {
 	}
 
 	defer func() {
+		handler.handleDeferGasConsumed(info)
+
 		if r := recover(); r != nil {
 			err = dttm.app.runTx_defer_recover(r, info)
 			info.msCache = nil
@@ -564,8 +575,6 @@ func (dttm *DTTManager) serialExecution() {
 		dttm.dealWithResponse(resp)
 	}()
 
-	defer handler.handleDeferGasConsumed(info)
-
 	mode := runTxModeDeliver
 	defer func() {
 		dttm.app.pin(Refund, true, mode)
@@ -578,7 +587,7 @@ func (dttm *DTTManager) serialExecution() {
 	err = handler.handleRunMsg(info)
 	dttm.app.pin(RunMsg, false, mode)
 	//if err != nil {
-		//dttm.app.logger.Error("RunMsgFailed.", "err", err)
+	//dttm.app.logger.Error("RunMsgFailed.", "err", err)
 	//}
 }
 
