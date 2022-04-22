@@ -56,15 +56,6 @@ type SignedProposalResponse struct {
 	Error    *RemoteSignerError
 }
 
-type SignBytesRequest struct {
-	Bytes []byte
-}
-
-type SignedBytesResponse struct {
-	Bytes []byte
-	Error *RemoteSignerError
-}
-
 // PingRequest is a request to confirm that the connection is alive.
 type PingRequest struct {
 }

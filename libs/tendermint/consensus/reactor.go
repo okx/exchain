@@ -1,9 +1,7 @@
 package consensus
 
 import (
-	"bytes"
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"reflect"
 	"sync"
@@ -28,7 +26,6 @@ const (
 	DataChannel        = byte(0x21)
 	VoteChannel        = byte(0x22)
 	VoteSetBitsChannel = byte(0x23)
-	ViewChangeChannel  = byte(0x24)
 
 	maxPartSize = 1048576 // 1MB; NOTE/TODO: keep in sync with types.PartSet sizes.
 	maxMsgSize  = maxPartSize + types.MaxDeltasSizeBytes
@@ -58,8 +55,6 @@ type Reactor struct {
 	conHeight             int64
 
 	metrics *Metrics
-
-	hasViewChanged int64
 }
 
 type ReactorOption func(*Reactor)
@@ -235,12 +230,6 @@ func (conR *Reactor) GetChannels() []*p2p.ChannelDescriptor {
 			RecvBufferCapacity:  1024,
 			RecvMessageCapacity: maxMsgSize,
 		},
-		{
-			ID:                  ViewChangeChannel,
-			Priority:            5,
-			SendQueueCapacity:   100,
-			RecvMessageCapacity: maxMsgSize,
-		},
 	}
 }
 
@@ -265,7 +254,6 @@ func (conR *Reactor) AddPeer(peer p2p.Peer) {
 	// Begin routines for this peer.
 	go conR.gossipDataRoutine(peer, peerState)
 	go conR.gossipVotesRoutine(peer, peerState)
-	go conR.gossipVCRoutine(peer, peerState)
 	go conR.queryMaj23Routine(peer, peerState)
 
 	// Send our state to peer.
@@ -325,73 +313,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		panic(fmt.Sprintf("Peer %v has no state", src))
 	}
 
-	lock := &conR.conS.mtx
-	if ActiveViewChange {
-		lock = &conR.conS.stateMtx
-	}
-
 	switch chID {
-	case ViewChangeChannel:
-		if !ActiveViewChange {
-			return
-		}
-		switch msg := msg.(type) {
-		case *ViewChangeMessage:
-			cs := conR.conS
-
-			lock.RLock()
-			vcMsg, height, validators := cs.vcMsg, cs.Height, cs.Validators
-			lock.RUnlock()
-			// already has valid vcMsg
-			if vcMsg != nil && vcMsg.Height >= msg.Height {
-				return
-			}
-			//conR.Logger.Error("reactor vcMsg", "height", msg.Height, "curP", msg.CurrentProposer, "newP", msg.NewProposer, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
-			finished := ""
-			if msg.Height == height {
-				// ApplyBlock of height-1 is finished
-				finished = "f"
-			} else if msg.Height == height+1 {
-				// ApplyBlock of height-1 is not finished
-				// vc after scheduleRound0
-			} else {
-				return
-			}
-			// verify the signature of vcMsg
-			_, val := validators.GetByAddress(msg.CurrentProposer)
-			if err := msg.Verify(val.PubKey); err != nil {
-				conR.Logger.Error("reactor Verify Signature of ViewChangeMessage", "err", err)
-				return
-			}
-			conR.conS.peerMsgQueue <- msgInfo{msg, p2p.ID(finished)}
-		case *ProposeRequestMessage:
-			//conR.Logger.Error("reactor prMsg", "height", msg.Height, "curP", msg.CurrentProposer, "newP", msg.NewProposer, "hasVC", conR.hasViewChanged, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
-			// three judgement:
-			//1.this peer has not vc before this height;
-			//2.ApplyBlock of height-1 is not finished and it needs vc(msg.Height is bigger);
-			//3.it is CurrentProposer
-			conR.mtx.Lock()
-			defer conR.mtx.Unlock()
-			cs := conR.conS
-			lock.RLock()
-			height, validators := cs.Height, cs.Validators
-			lock.RUnlock()
-			if msg.Height > conR.hasViewChanged &&
-				msg.Height > height &&
-				bytes.Equal(cs.privValidatorPubKey.Address(), msg.CurrentProposer) {
-				// verify the signature of prMsg
-				_, val := validators.GetByAddress(msg.NewProposer)
-				if err := msg.Verify(val.PubKey); err != nil {
-					conR.Logger.Error("reactor Verify Signature of ProposeRequestMessage", "err", err)
-					return
-				}
-				conR.hasViewChanged = msg.Height
-				// broadcast vc message
-				vcMsg := conR.broadcastViewChangeMessage(msg)
-				conR.conS.peerMsgQueue <- msgInfo{vcMsg, ""}
-			}
-		}
-
 	case StateChannel:
 		switch msg := msg.(type) {
 		case *NewRoundStepMessage:
@@ -402,9 +324,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			ps.ApplyHasVoteMessage(msg)
 		case *VoteSetMaj23Message:
 			cs := conR.conS
-			lock.RLock()
+			cs.mtx.RLock()
 			height, votes := cs.Height, cs.Votes
-			lock.RUnlock()
+			cs.mtx.RUnlock()
 			if height != msg.Height {
 				return
 			}
@@ -463,9 +385,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		switch msg := msg.(type) {
 		case *VoteMessage:
 			cs := conR.conS
-			lock.RLock()
+			cs.mtx.RLock()
 			height, valSize, lastCommitSize := cs.Height, cs.Validators.Size(), cs.LastCommit.Size()
-			lock.RUnlock()
+			cs.mtx.RUnlock()
 			ps.EnsureVoteBitArrays(height, valSize)
 			ps.EnsureVoteBitArrays(height-1, lastCommitSize)
 			ps.SetHasVote(msg.Vote)
@@ -485,9 +407,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		switch msg := msg.(type) {
 		case *VoteSetBitsMessage:
 			cs := conR.conS
-			lock.RLock()
+			cs.mtx.RLock()
 			height, votes := cs.Height, cs.Votes
-			lock.RUnlock()
+			cs.mtx.RUnlock()
 
 			if height == msg.Height {
 				var ourVotes *bits.BitArray
@@ -554,33 +476,11 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		func(data tmevents.EventData) {
 			conR.broadcastHasVoteMessage(data.(*types.Vote))
 		})
-	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventProposeRequest,
-		func(data tmevents.EventData) {
-			conR.broadcastProposeRequestMessage(data.(ProposeRequestMessage))
-		})
 }
 
 func (conR *Reactor) unsubscribeFromBroadcastEvents() {
 	const subscriber = "consensus-reactor"
 	conR.conS.evsw.RemoveListener(subscriber)
-}
-
-func (conR *Reactor) broadcastProposeRequestMessage(prMsg ProposeRequestMessage) {
-	//conR.Logger.Error("broadcastProposeRequestMessage", "prMsg", prMsg)
-	conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(prMsg))
-}
-
-func (conR *Reactor) broadcastViewChangeMessage(prMsg *ProposeRequestMessage) *ViewChangeMessage {
-	vcMsg := ViewChangeMessage{Height: prMsg.Height, CurrentProposer: prMsg.CurrentProposer, NewProposer: prMsg.NewProposer}
-	signature, err := conR.conS.privValidator.SignBytes(vcMsg.SignBytes())
-	if err != nil {
-		conR.Logger.Error("broadcastViewChangeMessage", "err", err)
-		return nil
-	}
-	//conR.Logger.Error("broadcastViewChangeMessage", "vcMsg", vcMsg)
-	vcMsg.Signature = signature
-	conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
-	return &vcMsg
 }
 
 func (conR *Reactor) broadcastNewRoundStepMessage(rs *cstypes.RoundState) {
@@ -853,37 +753,6 @@ OUTER_LOOP:
 
 		time.Sleep(conR.conS.config.PeerGossipSleepDuration)
 		continue OUTER_LOOP
-	}
-}
-
-func (conR *Reactor) gossipVCRoutine(peer p2p.Peer, ps *PeerState) {
-	logger := conR.Logger.With("peer", peer)
-
-	var vcHeight int64 = 0
-OUTER_LOOP:
-	for {
-		// Manage disconnects from self or peer.
-		if !peer.IsRunning() || !conR.IsRunning() {
-			logger.Info("Stopping gossipDataRoutine for peer")
-			return
-		}
-
-		rs := conR.conS.GetRoundState()
-		prs := ps.GetRoundState()
-		vcMsg := conR.conS.vcMsg
-
-		if vcMsg == nil || vcHeight >= vcMsg.Height || rs.Height > vcMsg.Height {
-			continue OUTER_LOOP
-		}
-		// only in round0 send vcMsg
-		if rs.Round != 0 || prs.Round != 0 {
-			continue OUTER_LOOP
-		}
-		// send vcMsg
-		if rs.Height == prs.Height || rs.Height == prs.Height+1 {
-			vcHeight = vcMsg.Height
-			peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
-		}
 	}
 }
 
@@ -1620,8 +1489,6 @@ func RegisterMessages(cdc *amino.Codec) {
 	cdc.RegisterConcrete(&HasVoteMessage{}, "tendermint/HasVote", nil)
 	cdc.RegisterConcrete(&VoteSetMaj23Message{}, "tendermint/VoteSetMaj23", nil)
 	cdc.RegisterConcrete(&VoteSetBitsMessage{}, "tendermint/VoteSetBits", nil)
-	cdc.RegisterConcrete(&ViewChangeMessage{}, "tendermint/ChangeValidator", nil)
-	cdc.RegisterConcrete(&ProposeRequestMessage{}, "tendermint/ProposeRequestMessage", nil)
 }
 
 func decodeMsg(bz []byte) (msg Message, err error) {
@@ -1633,74 +1500,6 @@ func decodeMsg(bz []byte) (msg Message, err error) {
 }
 
 //-------------------------------------
-
-// ProposeRequestMessage from other peer for request the latest height of consensus block
-type ProposeRequestMessage struct {
-	Height          int64
-	CurrentProposer types.Address
-	NewProposer     types.Address
-	Signature       []byte
-}
-
-func (m *ProposeRequestMessage) ValidateBasic() error {
-	if m.Height < 0 {
-		return errors.New("negative Height")
-	}
-	return nil
-}
-
-func (m *ProposeRequestMessage) SignBytes() []byte {
-	return cdc.MustMarshalBinaryBare(ProposeRequestMessage{Height: m.Height, CurrentProposer: m.CurrentProposer, NewProposer: m.NewProposer})
-}
-
-func (m *ProposeRequestMessage) Verify(pubKey crypto.PubKey) error {
-	if !bytes.Equal(pubKey.Address(), m.NewProposer) {
-		return errors.New("invalid validator address")
-	}
-
-	if !pubKey.VerifyBytes(m.SignBytes(), m.Signature) {
-		return errors.New("invalid signature")
-	}
-	return nil
-}
-
-// ViewChangeMessage is sent for remind peer to do vc
-type ViewChangeMessage struct {
-	Height          int64
-	CurrentProposer types.Address
-	NewProposer     types.Address
-	Signature       []byte
-}
-
-func (m *ViewChangeMessage) ValidateBasic() error {
-	return nil
-}
-
-func (m *ViewChangeMessage) Validate(height int64, proposer types.Address) bool {
-	if m.Height != height {
-		return false
-	}
-	if !bytes.Equal(proposer, m.CurrentProposer) {
-		return false
-	}
-
-	return true
-}
-
-func (m *ViewChangeMessage) SignBytes() []byte {
-	return cdc.MustMarshalBinaryBare(ViewChangeMessage{Height: m.Height, CurrentProposer: m.CurrentProposer, NewProposer: m.NewProposer})
-}
-
-func (m *ViewChangeMessage) Verify(pubKey crypto.PubKey) error {
-	if !bytes.Equal(pubKey.Address(), m.CurrentProposer) {
-		return errors.New("invalid validator address")
-	}
-
-	if !pubKey.VerifyBytes(m.SignBytes(), m.Signature) {
-		return errors.New("invalid signature")
-	}
-	return nil
-}
 
 // NewRoundStepMessage is sent for every step taken in the ConsensusState.
 // For every height/round/step transition

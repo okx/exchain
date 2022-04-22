@@ -3,7 +3,6 @@ package server
 // DONTCOVER
 
 import (
-	"github.com/okex/exchain/libs/tendermint/consensus"
 	"os"
 	"runtime/pprof"
 
@@ -58,8 +57,6 @@ const (
 	FlagPruningMaxWsNum = "pruning-max-worldstate-num"
 	FlagExportKeystore  = "export-keystore"
 	FlagLogServerUrl    = "log-server"
-
-	FlagActiveViewChange = "active-view-change"
 )
 
 // StartCmd runs the service passed in, either stand-alone or in-process with
@@ -261,6 +258,4 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	tmtypes.UploadDelta = viper.GetBool(tmtypes.FlagUploadDDS)
 	tmtypes.FastQuery = viper.GetBool(tmtypes.FlagFastQuery)
 	tmtypes.DeltaVersion = viper.GetInt(tmtypes.FlagDeltaVersion)
-
-	consensus.ActiveViewChange = viper.GetBool(FlagActiveViewChange)
 }
