@@ -51,6 +51,8 @@ var (
 	KeyMaxValsToAddShares = []byte("MaxValsToAddShares")
 	KeyMinDelegation      = []byte("MinDelegation")
 	KeyMinSelfDelegation  = []byte("MinSelfDelegation")
+
+	KeyHistoricalEntries = []byte("HistoricalEntries")
 )
 
 var _ params.ParamSet = (*Params)(nil)
@@ -69,6 +71,8 @@ type Params struct {
 	MinDelegation sdk.Dec `json:"min_delegation" yaml:"min_delegation"`
 	// validator's self declared minimum self delegation
 	MinSelfDelegation sdk.Dec `json:"min_self_delegation" yaml:"min_self_delegation"`
+
+	HistoricalEntries uint32 `protobuf:"varint,4,opt,name=historical_entries,json=historicalEntries,proto3" json:"historical_entries,omitempty" yaml:"historical_entries"`
 }
 
 // NewParams creates a new Params instance
@@ -100,6 +104,14 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		{Key: KeyMinSelfDelegation, Value: &p.MinSelfDelegation, ValidatorFn: common.ValidateDecPositive("min self delegation")},
 	}
 }
+func validateHistoricalEntries(i interface{}) error {
+	_, ok := i.(uint32)
+	if !ok {
+		return fmt.Errorf("invalid parameter type: %T", i)
+	}
+
+	return nil
+}
 
 // Equal returns a boolean determining if two Param types are identical
 // TODO: This is slower than comparing struct fields directly
@@ -122,7 +134,7 @@ func DefaultParams() Params {
 }
 
 // String returns a human readable string representation of the Params
-func (p Params) String() string {
+func (p *Params) String() string {
 	return fmt.Sprintf(`Params:
   Unbonding Time:    		%s
   Max Validators:   	 	%d

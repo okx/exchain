@@ -175,9 +175,12 @@ func GetAddressList() (*ctypes.ResultUnconfirmedAddresses, error) {
 	}, nil
 }
 
-func GetPendingNonce(address string) (*ctypes.ResultPendingNonce, error) {
-	nonce := env.Mempool.GetPendingNonce(address)
+func GetPendingNonce(address string) (*ctypes.ResultPendingNonce, bool) {
+	nonce, ok := env.Mempool.GetPendingNonce(address)
+	if !ok {
+		return nil, false
+	}
 	return &ctypes.ResultPendingNonce{
 		Nonce: nonce,
-	}, nil
+	}, true
 }

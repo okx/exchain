@@ -24,6 +24,7 @@ var (
 	_ ante.FeeTx = (*MsgEthereumTx)(nil)
 )
 
+var big2 = big.NewInt(2)
 var big8 = big.NewInt(8)
 var DefaultDeployContractFnSignature = ethcmn.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001")
 var DefaultSendCoinFnSignature = ethcmn.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000010")
@@ -53,7 +54,7 @@ func (tx *MsgEthereumTx) SetFrom(addr string) {
 func (tx *MsgEthereumTx) GetFrom() string {
 	from := tx.BaseTx.GetFrom()
 	if from == "" {
-		from, _ = tmtypes.SignatureCache().Get(string(tx.TxHash()))
+		from, _ = tmtypes.SignatureCache().Get(tx.TxHash())
 		if from == "" {
 			from, _ = tx.firstVerifySig(tx.ChainID())
 		}
@@ -272,7 +273,7 @@ func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (string, error) {
 			return "", errors.New("chainID cannot be zero")
 		}
 
-		chainIDMul := new(big.Int).Mul(chainID, big.NewInt(2))
+		chainIDMul := new(big.Int).Mul(chainID, big2)
 		V = new(big.Int).Sub(msg.Data.V, chainIDMul)
 		V.Sub(V, big8)
 
@@ -287,7 +288,7 @@ func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return sender.String(), nil
+	return EthAddressToString(&sender), nil
 }
 
 // VerifySig attempts to verify a Transaction's signature for a given chainID.
@@ -299,7 +300,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) error {
 	if msg.BaseTx.GetFrom() != "" {
 		return nil
 	}
-	from, ok := tmtypes.SignatureCache().Get(string(msg.TxHash()))
+	from, ok := tmtypes.SignatureCache().Get(msg.TxHash())
 	if ok {
 		msg.BaseTx.From = from
 		return nil
@@ -308,7 +309,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) error {
 	if err != nil {
 		return err
 	}
-	tmtypes.SignatureCache().Add(string(msg.TxHash()), from)
+	tmtypes.SignatureCache().Add(msg.TxHash(), from)
 	msg.BaseTx.From = from
 	return nil
 }

@@ -11,9 +11,22 @@ import (
 )
 
 var _ sdk.MultiStore = multiStore{}
+var _ sdk.CommitMultiStore = multiStore{}
 
 type multiStore struct {
 	kv map[sdk.StoreKey]kvStore
+}
+
+func (ms multiStore) SetCommitHeightFilterPipeline(f store.HeightFilterPipeline) {
+	panic("implement me")
+}
+
+func (ms multiStore) SetPruneHeightFilterPipeline(f store.HeightFilterPipeline) {
+	panic("implement me")
+}
+
+func (ms multiStore) SetVersionFilterPipeline(f store.VersionFilterPipeline) {
+	panic("implement me")
 }
 
 func (ms multiStore) CacheMultiStore() sdk.CacheMultiStore {
@@ -133,6 +146,8 @@ func (ms multiStore) GetFlatKVReadCount() int {
 func (ms multiStore) GetFlatKVWriteCount() int {
 	return 0
 }
+
+func (ms multiStore) SetUpgradeVersion(int64) {}
 
 var _ sdk.KVStore = kvStore{}
 

@@ -83,7 +83,7 @@ func (app *SimApp) prepForZeroHeightGenesis(ctx sdk.Context, jailWhiteList []str
 
 	// set context height to zero
 	height := ctx.BlockHeight()
-	ctx = ctx.WithBlockHeight(0)
+	ctx.SetBlockHeight(0)
 
 	// reinitialize all validators
 	app.StakingKeeper.IterateValidators(ctx, func(_ int64, val exported.ValidatorI) (stop bool) {
@@ -105,7 +105,7 @@ func (app *SimApp) prepForZeroHeightGenesis(ctx sdk.Context, jailWhiteList []str
 	}
 
 	// reset context height
-	ctx = ctx.WithBlockHeight(height)
+	ctx.SetBlockHeight(height)
 
 	/* Handle staking state. */
 

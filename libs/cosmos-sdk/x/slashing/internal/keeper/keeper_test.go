@@ -22,7 +22,7 @@ func TestHandleNewValidator(t *testing.T) {
 	sh := staking.NewHandler(sk)
 
 	// 1000 first blocks not a validator
-	ctx = ctx.WithBlockHeight(keeper.SignedBlocksWindow(ctx) + 1)
+	ctx.SetBlockHeight(keeper.SignedBlocksWindow(ctx) + 1)
 
 	// Validator created
 	res, err := sh(ctx, NewTestMsgCreateValidator(addr, val, amt))
@@ -39,7 +39,7 @@ func TestHandleNewValidator(t *testing.T) {
 
 	// Now a validator, for two blocks
 	keeper.HandleValidatorSignature(ctx, val.Address(), 100, true)
-	ctx = ctx.WithBlockHeight(keeper.SignedBlocksWindow(ctx) + 2)
+	ctx.SetBlockHeight(keeper.SignedBlocksWindow(ctx) + 2)
 	keeper.HandleValidatorSignature(ctx, val.Address(), 100, false)
 
 	info, found := keeper.GetValidatorSigningInfo(ctx, sdk.ConsAddress(val.Address()))
@@ -76,13 +76,13 @@ func TestHandleAlreadyJailed(t *testing.T) {
 	// 1000 first blocks OK
 	height := int64(0)
 	for ; height < keeper.SignedBlocksWindow(ctx); height++ {
-		ctx = ctx.WithBlockHeight(height)
+		ctx.SetBlockHeight(height)
 		keeper.HandleValidatorSignature(ctx, val.Address(), power, true)
 	}
 
 	// 501 blocks missed
 	for ; height < keeper.SignedBlocksWindow(ctx)+(keeper.SignedBlocksWindow(ctx)-keeper.MinSignedPerWindow(ctx))+1; height++ {
-		ctx = ctx.WithBlockHeight(height)
+		ctx.SetBlockHeight(height)
 		keeper.HandleValidatorSignature(ctx, val.Address(), power, false)
 	}
 
@@ -98,7 +98,7 @@ func TestHandleAlreadyJailed(t *testing.T) {
 	require.Equal(t, resultingTokens, validator.GetTokens())
 
 	// another block missed
-	ctx = ctx.WithBlockHeight(height)
+	ctx.SetBlockHeight(height)
 	keeper.HandleValidatorSignature(ctx, val.Address(), power, false)
 
 	// validator should not have been slashed twice
@@ -132,7 +132,7 @@ func TestValidatorDippingInAndOut(t *testing.T) {
 	// 100 first blocks OK
 	height := int64(0)
 	for ; height < int64(100); height++ {
-		ctx = ctx.WithBlockHeight(height)
+		ctx.SetBlockHeight(height)
 		keeper.HandleValidatorSignature(ctx, val.Address(), power, true)
 	}
 
@@ -149,7 +149,7 @@ func TestValidatorDippingInAndOut(t *testing.T) {
 
 	// 600 more blocks happened
 	height = int64(700)
-	ctx = ctx.WithBlockHeight(height)
+	ctx.SetBlockHeight(height)
 
 	// validator added back in
 	delTokens := sdk.TokensFromConsensusPower(50)
@@ -174,7 +174,7 @@ func TestValidatorDippingInAndOut(t *testing.T) {
 	// validator misses 500 more blocks, 501 total
 	latest := height
 	for ; height < latest+500; height++ {
-		ctx = ctx.WithBlockHeight(height)
+		ctx.SetBlockHeight(height)
 		keeper.HandleValidatorSignature(ctx, val.Address(), newPower, false)
 	}
 
@@ -196,7 +196,7 @@ func TestValidatorDippingInAndOut(t *testing.T) {
 
 	// some blocks pass
 	height = int64(5000)
-	ctx = ctx.WithBlockHeight(height)
+	ctx.SetBlockHeight(height)
 
 	// validator rejoins and starts signing again
 	sk.Unjail(ctx, consAddr)
@@ -211,7 +211,7 @@ func TestValidatorDippingInAndOut(t *testing.T) {
 	// validator misses 501 blocks
 	latest = height
 	for ; height < latest+501; height++ {
-		ctx = ctx.WithBlockHeight(height)
+		ctx.SetBlockHeight(height)
 		keeper.HandleValidatorSignature(ctx, val.Address(), newPower, false)
 	}
 

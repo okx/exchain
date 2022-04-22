@@ -15,8 +15,6 @@ import (
 	"testing"
 	"time"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
 
 	"github.com/stretchr/testify/assert"
@@ -573,10 +571,6 @@ func abciResponses(n int, code uint32) []*abci.ResponseDeliverTx {
 		responses = append(responses, &abci.ResponseDeliverTx{Code: code})
 	}
 	return responses
-}
-
-func newBaseTx(gasPrice *big.Int, nonce uint64) *sdk.BaseTx {
-	return &sdk.BaseTx{}
 }
 
 func TestAddAndSortTx(t *testing.T) {

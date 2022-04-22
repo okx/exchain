@@ -438,7 +438,7 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 	}
 	proxyAppConn.SetResponseCallback(proxyCb)
 
-	proxyAppConn.ParallelTxs(transTxsToBytes(block.Txs), true)
+	// proxyAppConn.ParallelTxs(transTxsToBytes(block.Txs), true)
 	commitInfo, byzVals := getBeginBlockValidatorInfo(block, stateDB)
 
 	// Begin block
@@ -454,17 +454,31 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 		return nil, err
 	}
 
-	for count, tx := range block.Txs {
-		proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
-		if err := proxyAppConn.Error(); err != nil {
-			return nil, err
+	realTxCh := make(chan abci.TxEssentials, len(block.Txs))
+	stopedCh := make(chan struct{}, 1)
+
+	go preDeliverRoutine(proxyAppConn, block.Txs, realTxCh, stopedCh)
+
+	count := 0
+	for realTx := range realTxCh {
+		if realTx != nil {
+			proxyAppConn.DeliverRealTxAsync(realTx)
+		} else {
+			proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: block.Txs[count]})
 		}
 
+		if err = proxyAppConn.Error(); err != nil {
+			return nil, err
+		}
 		if context != nil && context.stopped {
+			stopedCh <- struct{}{}
+			close(stopedCh)
 			context.dump(fmt.Sprintf("Prerun stopped, %d/%d tx executed", count+1, len(block.Txs)))
 			return nil, fmt.Errorf("Prerun stopped")
 		}
+		count += 1
 	}
+	close(stopedCh)
 
 	// End block.
 	abciResponses.EndBlock, err = proxyAppConn.EndBlockSync(abci.RequestEndBlock{Height: block.Height})
@@ -476,6 +490,19 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 	trace.GetElapsedInfo().AddInfo(trace.InvalidTxs, fmt.Sprintf("%d", invalidTxs))
 
 	return abciResponses, nil
+}
+
+func preDeliverRoutine(proxyAppConn proxy.AppConnConsensus, txs types.Txs, realTxCh chan<- abci.TxEssentials, stopedCh <-chan struct{}) {
+	for _, tx := range txs {
+		realTx := proxyAppConn.PreDeliverRealTxAsync(tx)
+		select {
+		case realTxCh <- realTx:
+		case <-stopedCh:
+			close(realTxCh)
+			return
+		}
+	}
+	close(realTxCh)
 }
 
 func execBlockOnProxyAppWithDeltas(
@@ -609,6 +636,9 @@ func updateState(
 
 	// TODO: allow app to upgrade version
 	nextVersion := state.Version
+	if types.HigherThanVenus1(header.Height) && !state.Version.IsUpgraded() {
+		nextVersion = state.Version.UpgradeToIBCVersion()
+	}
 
 	// NOTE: the AppHash has not been populated.
 	// It will be filled on state.Save.

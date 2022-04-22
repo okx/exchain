@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"net"
 	"reflect"
-	"strings"
 	"testing"
 	"time"
 
@@ -156,16 +155,14 @@ func TestTransportMultiplexMaxIncomingConnections(t *testing.T) {
 	}
 
 	errc := make(chan error)
-
 	go func() {
 		addr := NewNetAddress(id, mt.listener.Addr())
-
+		time.Sleep(300 * time.Millisecond)
 		_, err := addr.Dial()
 		if err != nil {
 			errc <- err
 			return
 		}
-
 		close(errc)
 	}()
 
@@ -174,8 +171,8 @@ func TestTransportMultiplexMaxIncomingConnections(t *testing.T) {
 	}
 
 	_, err = mt.Accept(peerConfig{})
-	if err == nil || !strings.Contains(err.Error(), "connection reset by peer") {
-		t.Errorf("expected connection reset by peer error, got %v", err)
+	if err == nil {
+		t.Errorf("expected connection reset by peer error, got nil")
 	}
 }
 
@@ -260,7 +257,7 @@ func TestTransportMultiplexAcceptNonBlocking(t *testing.T) {
 	var (
 		fastNodePV   = ed25519.GenPrivKey()
 		fastNodeInfo = testNodeInfo(PubKeyToID(fastNodePV.PubKey()), "fastnode")
-		errc         = make(chan error)
+		done         = make(chan error)
 		fastc        = make(chan struct{})
 		slowc        = make(chan struct{})
 	)
@@ -271,7 +268,7 @@ func TestTransportMultiplexAcceptNonBlocking(t *testing.T) {
 
 		c, err := addr.Dial()
 		if err != nil {
-			errc <- err
+			t.Errorf("slow_peer dial err, err: %s", err.Error())
 			return
 		}
 
@@ -282,22 +279,23 @@ func TestTransportMultiplexAcceptNonBlocking(t *testing.T) {
 			// Fast peer connected.
 		case <-time.After(500 * time.Millisecond):
 			// We error if the fast peer didn't succeed.
-			errc <- fmt.Errorf("fast peer timed out")
-		}
-
-		sc, err := upgradeSecretConn(c, 20*time.Millisecond, ed25519.GenPrivKey())
-		if err != nil {
-			errc <- err
+			t.Errorf("slow_peer recv timed out")
 			return
 		}
 
-		_, err = handshake(sc, 20*time.Millisecond,
+		sc, err := upgradeSecretConn(c, 500*time.Millisecond, ed25519.GenPrivKey())
+		if err != nil {
+			t.Errorf("slow_peer upgradeSecretConn err: %s", err.Error())
+			return
+		}
+
+		_, err = handshake(sc, 500*time.Millisecond,
 			testNodeInfo(
 				PubKeyToID(ed25519.GenPrivKey().PubKey()),
 				"slow_peer",
 			))
 		if err != nil {
-			errc <- err
+			t.Errorf("slow_peer handshake err: %s", err.Error())
 			return
 		}
 	}()
@@ -318,18 +316,15 @@ func TestTransportMultiplexAcceptNonBlocking(t *testing.T) {
 
 		_, err := dialer.Dial(*addr, peerConfig{})
 		if err != nil {
-			errc <- err
+			t.Errorf("fast_peer Dial err: %s", err.Error())
 			return
 		}
-
-		close(errc)
 		close(fastc)
+		close(done)
+
 	}()
 
-	if err := <-errc; err != nil {
-		t.Errorf("connection failed: %v", err)
-	}
-
+	<-done
 	p, err := mt.Accept(peerConfig{})
 	if err != nil {
 		t.Fatal(err)
@@ -592,7 +587,7 @@ func TestTransportHandshake(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	ni, err := handshake(c, 20*time.Millisecond, emptyNodeInfo())
+	ni, err := handshake(c, 500*time.Millisecond, emptyNodeInfo())
 	if err != nil {
 		t.Fatal(err)
 	}

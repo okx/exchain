@@ -45,7 +45,7 @@ func TestValidatorSetBasic(t *testing.T) {
 	assert.Zero(t, vset.Size())
 	assert.Equal(t, int64(0), vset.TotalVotingPower())
 	assert.Nil(t, vset.GetProposer())
-	assert.Nil(t, vset.Hash())
+	assert.Nil(t, vset.Hash(1))
 
 	// add
 	val = randValidator(vset.TotalVotingPower())
@@ -58,7 +58,7 @@ func TestValidatorSetBasic(t *testing.T) {
 	assert.Equal(t, []byte(val.Address), addr)
 	assert.Equal(t, 1, vset.Size())
 	assert.Equal(t, val.VotingPower, vset.TotalVotingPower())
-	assert.NotNil(t, vset.Hash())
+	assert.NotNil(t, vset.Hash(1))
 	assert.NotPanics(t, func() { vset.IncrementProposerPriority(1) })
 	assert.Equal(t, val.Address, vset.GetProposer().Address)
 
@@ -78,13 +78,13 @@ func TestValidatorSetBasic(t *testing.T) {
 
 func TestCopy(t *testing.T) {
 	vset := randValidatorSet(10)
-	vsetHash := vset.Hash()
+	vsetHash := vset.Hash(10)
 	if len(vsetHash) == 0 {
 		t.Fatalf("ValidatorSet had unexpected zero hash")
 	}
 
 	vsetCopy := vset.Copy()
-	vsetCopyHash := vsetCopy.Hash()
+	vsetCopyHash := vsetCopy.Hash(10)
 
 	if !bytes.Equal(vsetHash, vsetCopyHash) {
 		t.Fatalf("ValidatorSet copy had wrong hash. Orig: %X, Copy: %X", vsetHash, vsetCopyHash)

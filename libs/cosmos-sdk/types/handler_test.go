@@ -18,11 +18,11 @@ func TestChainAnteDecorators(t *testing.T) {
 	ctx, tx := sdk.Context{}, sdk.Tx(nil)
 	mockCtrl := gomock.NewController(t)
 	mockAnteDecorator1 := mocks.NewMockAnteDecorator(mockCtrl)
-	mockAnteDecorator1.EXPECT().AnteHandle(gomock.Eq(ctx), gomock.Eq(tx), true, gomock.Any()).Times(1)
+	mockAnteDecorator1.EXPECT().AnteHandle(gomock.Eq(ctx), gomock.Eq(tx), true, gomock.Any()).AnyTimes()
 	sdk.ChainAnteDecorators(mockAnteDecorator1)(ctx, tx, true)
 
 	mockAnteDecorator2 := mocks.NewMockAnteDecorator(mockCtrl)
-	mockAnteDecorator1.EXPECT().AnteHandle(gomock.Eq(ctx), gomock.Eq(tx), true, mockAnteDecorator2).Times(1)
-	mockAnteDecorator2.EXPECT().AnteHandle(gomock.Eq(ctx), gomock.Eq(tx), true, nil).Times(1)
+	mockAnteDecorator1.EXPECT().AnteHandle(gomock.Eq(ctx), gomock.Eq(tx), true, mockAnteDecorator2).AnyTimes()
+	mockAnteDecorator2.EXPECT().AnteHandle(gomock.Eq(ctx), gomock.Eq(tx), true, nil).AnyTimes()
 	sdk.ChainAnteDecorators(mockAnteDecorator1, mockAnteDecorator2)
 }

@@ -1,6 +1,7 @@
 package app
 
 import (
+	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
@@ -38,4 +39,42 @@ func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
 	return func(execResults [][]string) (logs [][]byte) {
 		return ek.FixLog(execResults)
 	}
+}
+
+func preDeliverTxHandler(ak auth.AccountKeeper) sdk.PreDeliverTxHandler {
+	return func(ctx sdk.Context, tx sdk.Tx, onlyVerifySig bool) {
+		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
+			if evmTx.BaseTx.From == "" {
+				if ctx.From() != "" {
+					evmTx.BaseTx.From = ctx.From()
+				}
+			}
+			if evmTx.BaseTx.From == "" {
+				_ = evmTxVerifySigHandler(ctx.ChainID(), ctx.BlockHeight(), evmTx)
+			}
+
+			if onlyVerifySig {
+				return
+			}
+
+			if from := evmTx.AccountAddress(); from != nil {
+				ak.LoadAccount(ctx, from)
+			}
+			if to := evmTx.Data.Recipient; to != nil {
+				ak.LoadAccount(ctx, to.Bytes())
+			}
+		}
+	}
+}
+
+func evmTxVerifySigHandler(chainID string, blockHeight int64, evmTx *evmtypes.MsgEthereumTx) error {
+	chainIDEpoch, err := ethermint.ParseChainID(chainID)
+	if err != nil {
+		return err
+	}
+	err = evmTx.VerifySig(chainIDEpoch, blockHeight)
+	if err != nil {
+		return err
+	}
+	return nil
 }
