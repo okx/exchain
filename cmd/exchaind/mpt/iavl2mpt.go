@@ -5,13 +5,11 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/okex/exchain/libs/iavl"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/ethdb"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/ethereum/go-ethereum/trie"
 	"github.com/okex/exchain/app"
@@ -139,34 +137,23 @@ func migrateEvmFromIavlToMpt(ctx *server.Context) {
 	   1. Accounts    -> accMpt
 	      Code        -> rawdb   (note: done in iavl2mpt acc cmd)
 	      Storage     -> evmMpt
+	   2. BlockHash、HeightHash     -> rawdb
+	   3. Bloom                    -> rawdb
 
-	   2. ChainConfig              -> iavl
-	   3. BlockHash、HeightHash     -> rawdb
-	   4. Bloom                    -> rawdb
-	   5. ContractDeploymentWhitelist、ContractBlockedList -> iavl
+	   4. ChainConfig                                      -> iavl   // do it in abci
+	   5. ContractDeploymentWhitelist、ContractBlockedList -> iavl   // do it in abci
 	*/
 
 	// 1. Migratess Accounts、Storage -> mpt
 	migrateContractToMpt(migrationApp, cmCtx, evmMptDb, evmTrie)
 
-	upgradedTree := getUpgradedTree(migrationApp.GetDB())
-	// 2. Migrates ChainConfig -> iavl
-	migrateChainConfigToIavl(upgradedTree, migrationApp, cmCtx)
-
-	// 3. Migrates BlockHash、HeightHash -> rawdb
+	// 2. Migrates BlockHash、HeightHash -> rawdb
 	batch := evmMptDb.TrieDB().DiskDB().NewBatch()
 	miragteBlockHashesToDb(migrationApp, cmCtx, batch)
 
-	// 4. Migrates Bloom -> rawdb
+	// 3. Migrates Bloom -> rawdb
 	miragteBloomsToDb(migrationApp, cmCtx, batch)
 
-	// 5. Migrate ContractDeploymentWhitelist、ContractBlockedList -> iavl
-	migrateSpecialAddrsToIavl(upgradedTree, migrationApp, cmCtx)
-
-	_, _, _, err = upgradedTree.SaveVersion(false)
-	if err != nil {
-		fmt.Println("fail to save data in evm2 store: ", err)
-	}
 }
 
 // 1. migrateContractToMpt Migrates Accounts、Code、Storage
@@ -206,14 +193,7 @@ func migrateContractToMpt(migrationApp *app.OKExChainApp, cmCtx sdk.Context, evm
 	fmt.Printf("Successfully migrate %d contract stroage at version %d\n", count, committedHeight)
 }
 
-// 2. migrateChainConfigToIavl Migrates chain config
-func migrateChainConfigToIavl(upgradedTree *iavl.MutableTree, migrationApp *app.OKExChainApp, cmCtx sdk.Context) {
-	config, _ := migrationApp.EvmKeeper.GetChainConfig(cmCtx)
-	upgradedTree.Set(evmtypes.KeyPrefixChainConfig, migrationApp.Codec().MustMarshalBinaryBare(config))
-	fmt.Printf("Successfully migrate chain config\n")
-}
-
-// 3. miragteBlockHashesToDb Migrates BlockHash/HeightHash
+// 2. miragteBlockHashesToDb Migrates BlockHash/HeightHash
 func miragteBlockHashesToDb(migrationApp *app.OKExChainApp, cmCtx sdk.Context, batch ethdb.Batch) {
 	count := 0
 	migrationApp.EvmKeeper.IterateBlockHash(cmCtx, func(key []byte, value []byte) bool {
@@ -231,7 +211,7 @@ func miragteBlockHashesToDb(migrationApp *app.OKExChainApp, cmCtx sdk.Context, b
 	fmt.Printf("Successfully migrate %d block-hashes\n", count)
 }
 
-// 4. miragteBloomsToDb Migrates Bloom
+// 3. miragteBloomsToDb Migrates Bloom
 func miragteBloomsToDb(migrationApp *app.OKExChainApp, cmCtx sdk.Context, batch ethdb.Batch) {
 	count := 0
 	migrationApp.EvmKeeper.IterateBlockBloom(cmCtx, func(key []byte, value []byte) bool {
@@ -246,35 +226,4 @@ func miragteBloomsToDb(migrationApp *app.OKExChainApp, cmCtx sdk.Context, batch 
 	})
 	writeDataToRawdb(batch)
 	fmt.Printf("Successfully migrate %d blooms\n", count)
-}
-
-// 5. migrateSpecialAddrsToIavl Migrates ContractDeploymentWhitelist、ContractBlockedList
-func migrateSpecialAddrsToIavl(upgradedTree *iavl.MutableTree, migrationApp *app.OKExChainApp, cmCtx sdk.Context) {
-	csdb := evmtypes.CreateEmptyCommitStateDB(migrationApp.EvmKeeper.GenerateCSDBParams(), cmCtx)
-
-	// 5.1、deploy white list
-	whiteList := csdb.GetContractDeploymentWhitelist()
-	for i := 0; i < len(whiteList); i++ {
-		upgradedTree.Set(evmtypes.GetContractDeploymentWhitelistMemberKey(whiteList[i]), []byte(""))
-	}
-
-	// 5.2、deploy blocked list
-	blockedList := csdb.GetContractBlockedList()
-	for i := 0; i < len(blockedList); i++ {
-		upgradedTree.Set(evmtypes.GetContractBlockedListMemberKey(blockedList[i]), []byte(""))
-	}
-
-	// 5.3、deploy blocked method list
-	bcml := csdb.GetContractMethodBlockedList()
-	for i := 0; i < len(bcml); i++ {
-		if !bcml[i].IsAllMethodBlocked() {
-			evmtypes.SortContractMethods(bcml[i].BlockMethods)
-			value := migrationApp.Codec().MustMarshalJSON(bcml[i].BlockMethods)
-			sortedValue := sdk.MustSortJSON(value)
-			upgradedTree.Set(evmtypes.GetContractBlockedListMemberKey(bcml[i].Address), sortedValue)
-		}
-	}
-
-	fmt.Printf("Successfully migrate %d addresses in white list, %d addresses in blocked list, %d addresses in method block list\n",
-		len(whiteList), len(blockedList), len(bcml))
 }

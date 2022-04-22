@@ -419,9 +419,6 @@ func (k *Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
 	bz := k.cdc.MustMarshalBinaryBare(config)
 	// get to an empty key that's already prefixed by KeyPrefixChainConfig
 	store.Set([]byte{}, bz)
-	if mpt.TrieWriteAhead && !tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		k.Ada.NewStore(ctx.MultiStore().GetKVStore(k.store2Key), types.KeyPrefixChainConfig).Set([]byte{}, bz)
-	}
 
 	// invalid the chainConfig
 	k.cci.cc = nil
