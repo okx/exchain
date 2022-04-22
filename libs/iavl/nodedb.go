@@ -122,7 +122,6 @@ func (ndb *nodeDB) GetNode(hash []byte) *Node {
 			panic("nodeDB.GetNode() requires hash")
 		}
 		ndb.mtx.RLock()
-		defer ndb.mtx.RUnlock()
 		if elem, ok := ndb.prePersistNodeCache[string(hash)]; ok {
 			return elem
 		}
@@ -130,15 +129,16 @@ func (ndb *nodeDB) GetNode(hash []byte) *Node {
 		if elem, ok := ndb.getNodeInTpp(hash); ok { // GetNode from tpp
 			return elem
 		}
+		if elem, ok := ndb.orphanNodeCache[string(hash)]; ok {
+			return elem
+		}
+		ndb.mtx.RUnlock()
 		// Check the cache.
 		if v, ok := ndb.nodeCache.Get(amino.BytesToStr(hash)); ok {
 			elem := v.(*list.Element)
 			// Already exists. Move to back of nodeCacheQueue.
 			ndb.nodeCacheQueue.MoveToBack(elem)
 			return elem.Value.(*Node)
-		}
-		if elem, ok := ndb.orphanNodeCache[string(hash)]; ok {
-			return elem
 		}
 
 		return nil
@@ -153,9 +153,12 @@ func (ndb *nodeDB) GetNode(hash []byte) *Node {
 	node.hash = hash
 	node.persisted = true
 
-	ndb.mtx.Lock()
-	ndb.cacheNodeByCheck(node)
-	ndb.mtx.Unlock()
+	if _, ok := ndb.nodeCache.Get(amino.BytesToStr(node.hash)); !ok {
+		ndb.mtx.Lock()
+		ndb.cacheNode(node)
+		ndb.mtx.Unlock()
+	}
+
 	return node
 }
 
