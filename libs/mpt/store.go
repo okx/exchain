@@ -258,73 +258,81 @@ func (ms *MptStore) GetDBReadTime() int {
 
 func (ms *MptStore) PushData2Database(curHeight int64) {
 	curMptRoot := ms.GetMptRootHash(uint64(curHeight))
-
-	triedb := ms.db.TrieDB()
 	if TrieDirtyDisabled {
-		if curMptRoot == (ethcmn.Hash{}) || curMptRoot == ethtypes.EmptyRootHash {
-			curMptRoot = ethcmn.Hash{}
-		} else {
-			if err := triedb.Commit(curMptRoot, false, nil); err != nil {
-				panic("fail to commit mpt data: " + err.Error())
-			}
-		}
-		ms.SetLatestStoredBlockHeight(uint64(curHeight))
-		if ms.logger != nil {
-			ms.logger.Info("sync push acc data to db", "block", curHeight, "trieHash", curMptRoot)
-		}
+		ms.fullNodePersist(curMptRoot, curHeight)
 	} else {
-		// Full but not archive node, do proper garbage collection
-		triedb.Reference(curMptRoot, ethcmn.Hash{}) // metadata reference to keep trie alive
-		ms.triegc.Push(curMptRoot, -int64(curHeight))
+		ms.otherNodePersist(curMptRoot, curHeight)
+	}
+}
 
-		if curHeight > TriesInMemory {
-			// If we exceeded our memory allowance, flush matured singleton nodes to disk
-			var (
-				nodes, imgs = triedb.Size()
-				nodesLimit  = ethcmn.StorageSize(TrieNodesLimit) * 1024 * 1024
-				imgsLimit   = ethcmn.StorageSize(TrieImgsLimit) * 1024 * 1024
-			)
+func (ms *MptStore) fullNodePersist(curMptRoot ethcmn.Hash, curHeight int64) {
+	if curMptRoot == (ethcmn.Hash{}) || curMptRoot == ethtypes.EmptyRootHash {
+		curMptRoot = ethcmn.Hash{}
+	} else {
+		if err := ms.db.TrieDB().Commit(curMptRoot, false, nil); err != nil {
+			panic("fail to commit mpt data: " + err.Error())
+		}
+	}
+	ms.SetLatestStoredBlockHeight(uint64(curHeight))
+	if ms.logger != nil {
+		ms.logger.Info("sync push acc data to db", "block", curHeight, "trieHash", curMptRoot)
+	}
+}
 
-			if nodes > nodesLimit || imgs > imgsLimit {
-				triedb.Cap(nodesLimit - ethdb.IdealBatchSize)
-			}
-			// Find the next state trie we need to commit
-			chosen := curHeight - TriesInMemory
+func (ms *MptStore) otherNodePersist(curMptRoot ethcmn.Hash, curHeight int64) {
+	triedb := ms.db.TrieDB()
 
-			// we start at startVersion, but the chosen height may be startVersion - triesInMemory
-			if chosen <= ms.startVersion {
-				return
-			}
+	// Full but not archive node, do proper garbage collection
+	triedb.Reference(curMptRoot, ethcmn.Hash{}) // metadata reference to keep trie alive
+	ms.triegc.Push(curMptRoot, -int64(curHeight))
 
-			// If we exceeded out time allowance, flush an entire trie to disk
-			if chosen%TrieCommitGap == 0 {
-				// If the header is missing (canonical chain behind), we're reorging a low
-				// diff sidechain. Suspend committing until this operation is completed.
-				chRoot := ms.GetMptRootHash(uint64(chosen))
-				if chRoot == (ethcmn.Hash{}) || chRoot == ethtypes.EmptyRootHash {
-					chRoot = ethcmn.Hash{}
-				} else {
-					// Flush an entire trie and restart the counters, it's not a thread safe process,
-					// cannot use a go thread to run, or it will lead 'fatal error: concurrent map read and map write' error
-					if err := triedb.Commit(chRoot, true, nil); err != nil {
-						panic("fail to commit mpt data: " + err.Error())
-					}
+	if curHeight > TriesInMemory {
+		// If we exceeded our memory allowance, flush matured singleton nodes to disk
+		var (
+			nodes, imgs = triedb.Size()
+			nodesLimit  = ethcmn.StorageSize(TrieNodesLimit) * 1024 * 1024
+			imgsLimit   = ethcmn.StorageSize(TrieImgsLimit) * 1024 * 1024
+		)
+
+		if nodes > nodesLimit || imgs > imgsLimit {
+			triedb.Cap(nodesLimit - ethdb.IdealBatchSize)
+		}
+		// Find the next state trie we need to commit
+		chosen := curHeight - TriesInMemory
+
+		// we start at startVersion, but the chosen height may be startVersion - triesInMemory
+		if chosen <= ms.startVersion {
+			return
+		}
+
+		// If we exceeded out time allowance, flush an entire trie to disk
+		if chosen % TrieCommitGap == 0 {
+			// If the header is missing (canonical chain behind), we're reorging a low
+			// diff sidechain. Suspend committing until this operation is completed.
+			chRoot := ms.GetMptRootHash(uint64(chosen))
+			if chRoot == (ethcmn.Hash{}) || chRoot == ethtypes.EmptyRootHash {
+				chRoot = ethcmn.Hash{}
+			} else {
+				// Flush an entire trie and restart the counters, it's not a thread safe process,
+				// cannot use a go thread to run, or it will lead 'fatal error: concurrent map read and map write' error
+				if err := triedb.Commit(chRoot, true, nil); err != nil {
+					panic("fail to commit mpt data: " + err.Error())
 				}
-				ms.SetLatestStoredBlockHeight(uint64(chosen))
-				if ms.logger != nil {
-					ms.logger.Info("async push acc data to db", "block", chosen, "trieHash", chRoot)
-				}
 			}
+			ms.SetLatestStoredBlockHeight(uint64(chosen))
+			if ms.logger != nil {
+				ms.logger.Info("async push acc data to db", "block", chosen, "trieHash", chRoot)
+			}
+		}
 
-			// Garbage collect anything below our required write retention
-			for !ms.triegc.Empty() {
-				root, number := ms.triegc.Pop()
-				if int64(-number) > chosen {
-					ms.triegc.Push(root, number)
-					break
-				}
-				triedb.Dereference(root.(ethcmn.Hash))
+		// Garbage collect anything below our required write retention
+		for !ms.triegc.Empty() {
+			root, number := ms.triegc.Pop()
+			if int64(-number) > chosen {
+				ms.triegc.Push(root, number)
+				break
 			}
+			triedb.Dereference(root.(ethcmn.Hash))
 		}
 	}
 }
@@ -504,6 +512,7 @@ func (ms *MptStore) prefetchData() {
 		for {
 			select {
 			case <-ms.exitSignal:
+				GAccTrieUpdatedChannel <- struct{}{}
 				return
 			case <-GAccTryUpdateTrieChannel:
 				if ms.prefetcher != nil {

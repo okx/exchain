@@ -154,21 +154,12 @@ func openDB(dbName string, dataDir string) (db dbm.DB, err error) {
 	return sdk.NewLevelDB(dbName, dataDir)
 }
 
-var (
-	blockTxsSenderParse = sm.BlockTxsSenderParser(nil)
-)
-
 func createProxyApp(ctx *server.Context) (proxy.AppConns, error) {
 	rootDir := ctx.Config.RootDir
 	dataDir := filepath.Join(rootDir, "data")
 	db, err := openDB(applicationDB, dataDir)
 	panicError(err)
 	app := newApp(ctx.Logger, db, nil)
-	parse, ok := app.(sm.BlockTxsSenderParser)
-	if !ok {
-		panic("should have BlockTxsSenderParser func")
-	}
-	blockTxsSenderParse = parse
 	clientCreator := proxy.NewLocalClientCreator(app)
 	return createAndStartProxyAppConns(clientCreator)
 }
@@ -287,8 +278,6 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		startDumpPprof()
 		defer stopDumpPprof()
 	}
-	blockExec.SetBlockTxsSenderParser(blockTxsSenderParse)
-
 	baseapp.SetGlobalMempool(mock.Mempool{}, ctx.Config.Mempool.SortTxByGp, ctx.Config.Mempool.EnablePendingPool)
 	needSaveBlock := viper.GetBool(saveBlock)
 	global.SetGlobalHeight(lastBlockHeight + 1)

@@ -65,7 +65,13 @@ func (ak AccountKeeper) LoadAccount(ctx sdk.Context, addr sdk.AccAddress) {
 		return
 	}
 
-	store := ctx.KVStore(ak.key)
+	var store sdk.KVStore
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
+		store = ctx.KVStore(ak.mptKey)
+	} else {
+		store = ctx.KVStore(ak.key)
+	}
+
 	bz := store.Get(types.AddressStoreKey(addr))
 	var acc exported.Account
 	if bz != nil {

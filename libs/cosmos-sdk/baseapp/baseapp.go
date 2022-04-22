@@ -29,7 +29,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/mempool"
 	tmhttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
-	smState "github.com/okex/exchain/libs/tendermint/state"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/spf13/viper"
@@ -958,37 +957,6 @@ func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 	}
 
 	return int64(binary.BigEndian.Uint64(data))
-}
-
-func (app *BaseApp) ParserBlockTxsSender(block *tmtypes.Block) {
-
-	if !smState.EnableParaSender {
-		return
-	}
-	go func() {
-		if len(block.Data.Txs) < 20 {
-			return
-		}
-
-		poolChan := make(chan struct{}, 64)
-		for _, tx := range block.Data.Txs {
-			poolChan <- struct{}{}
-
-			go func(tx []byte) {
-				defer func() {
-					<-poolChan
-				}()
-
-				cmstx, err := app.txDecoder(tx)
-				if err != nil {
-					return
-				}
-
-				// parser tx sender and store it in cache
-				cmstx.GetFrom()
-			}(tx)
-		}
-	}()
 }
 
 func (app *BaseApp) MsgServiceRouter() *MsgServiceRouter { return app.msgServiceRouter }
