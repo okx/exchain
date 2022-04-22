@@ -67,7 +67,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	}
 
 	// There is no need to update BlockGasMeter.GasConsumed and info.gInfo using ctx.GasMeter
-	// as gas is not consumed actually when ante failed,
+	// as gas is not consumed actually when ante failed.
 	isAnteSucceed := false
 	defer func() {
 		if r := recover(); r != nil {
