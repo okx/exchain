@@ -156,9 +156,7 @@ func (ndb *nodeDB) GetNode(hash []byte) *Node {
 	node.persisted = true
 
 	if _, ok := ndb.nodeCache.Get(amino.BytesToStr(node.hash)); !ok {
-		ndb.mtx.Lock()
 		ndb.cacheNode(node)
-		ndb.mtx.Unlock()
 	}
 
 	return node
@@ -553,8 +551,7 @@ func (ndb *nodeDB) cacheNode(node *Node) {
 	ndb.nodeCache.Set(string(node.hash), elem)
 
 	for ndb.nodeCacheQueue.Len() > config.DynamicConfig.GetIavlCacheSize() {
-		oldest := ndb.nodeCacheQueue.Front()
-		hash := ndb.nodeCacheQueue.Remove(oldest).(*Node).hash
+		hash := ndb.nodeCacheQueue.RemoveFront().(*Node).hash
 		ndb.nodeCache.Remove(amino.BytesToStr(hash))
 	}
 }
