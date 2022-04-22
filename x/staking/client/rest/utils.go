@@ -104,3 +104,42 @@ func queryValidator(cliCtx context.CLIContext, endpoint string) http.HandlerFunc
 		rest.PostProcessResponse(w, cliCtx, res)
 	}
 }
+
+func queryBonds(ctx context.CLIContext, endpoint string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		bech32delegator := vars["delegatorAddr"]
+		bech32validator := vars["validatorAddr"]
+
+		delegatorAddr, err := sdk.AccAddressFromBech32(bech32delegator)
+		if rest.CheckBadRequestError(w, err) {
+			return
+		}
+
+		validatorAddr, err := sdk.ValAddressFromBech32(bech32validator)
+		if rest.CheckBadRequestError(w, err) {
+			return
+		}
+
+		clientCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, ctx, r)
+		if !ok {
+			return
+		}
+
+		//QueryDelegatorValidatorRequest
+		params := types.QueryUnbondingDelegationRequest{DelegatorAddr: delegatorAddr.String(), ValidatorAddr: validatorAddr.String()}
+
+		bz, err := clientCtx.CodecProy.GetCdc().MarshalJSON(params)
+		if rest.CheckBadRequestError(w, err) {
+			return
+		}
+
+		res, height, err := clientCtx.QueryWithData(endpoint, bz)
+		if rest.CheckInternalServerError(w, err) {
+			return
+		}
+
+		clientCtx = clientCtx.WithHeight(height)
+		rest.PostProcessResponse(w, clientCtx, res)
+	}
+}

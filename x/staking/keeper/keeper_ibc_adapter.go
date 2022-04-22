@@ -1,9 +1,13 @@
 package keeper
 
 import (
+	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
 	outtypes "github.com/okex/exchain/x/staking/types"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (k Keeper) TrackHistoricalInfo(ctx sdk.Context) {
@@ -102,4 +106,60 @@ func (k Keeper) GetHistoricalInfo(ctx sdk.Context, height int64) (types.Historic
 	}
 
 	return types.MustUnmarshalHistoricalInfo(k.cdcMarshl.GetCdc(), value), true
+}
+
+func (k Keeper) GetAllDelegatorDelegations(ctx sdk.Context, delegator sdk.AccAddress) []types.Delegation {
+	delegations := make([]types.Delegation, 0)
+
+	store := ctx.KVStore(k.storeKey)
+	delegatorPrefixKey := types.GetDelegationsKey(delegator)
+	iterator := sdk.KVStorePrefixIterator(store, delegatorPrefixKey) //smallest to largest
+	defer iterator.Close()
+
+	i := 0
+	for ; iterator.Valid(); iterator.Next() {
+		delegation := types.MustUnmarshalDelegation(k.cdcMarshl.GetCdc(), iterator.Value())
+		delegations = append(delegations, delegation)
+		i++
+	}
+
+	return delegations
+}
+
+func (k Keeper) DelegatorDelegations(ctx sdk.Context, req *outtypes.QueryDelegatorDelegationsRequest) (*outtypes.QueryDelegatorDelegationsResponse, error) {
+	if req == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "empty request")
+	}
+
+	if req.DelegatorAddr == "" {
+		return nil, status.Error(codes.InvalidArgument, "delegator address cannot be empty")
+	}
+	var delegations types.Delegations
+
+	delAddr, err := sdk.AccAddressFromBech32(req.DelegatorAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	store := ctx.KVStore(k.storeKey)
+	delStore := prefix.NewStore(store, types.GetDelegationsKey(delAddr))
+	pageRes, err := query.Paginate(delStore, req.Pagination, func(key []byte, value []byte) error {
+		delegation, err := types.UnmarshalDelegation(k.cdcMarshl.GetCdc(), value)
+		if err != nil {
+			return err
+		}
+		delegations = append(delegations, delegation)
+		return nil
+	})
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	delegationResps, err := DelegationsToDelegationResponses(ctx, k, delegations)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &outtypes.QueryDelegatorDelegationsResponse{DelegationResponses: delegationResps, Pagination: pageRes}, nil
+
 }
