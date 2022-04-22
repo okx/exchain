@@ -338,13 +338,14 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		switch msg := msg.(type) {
 		case *ViewChangeMessage:
 			cs := conR.conS
+
+			lock.RLock()
+			vcMsg, height, validators := cs.vcMsg, cs.Height, cs.Validators
+			lock.RUnlock()
 			// already has valid vcMsg
-			if cs.vcMsg != nil && cs.vcMsg.Height >= msg.Height {
+			if vcMsg != nil && vcMsg.Height >= msg.Height {
 				return
 			}
-			lock.RLock()
-			height, validators := cs.Height, cs.Validators
-			lock.RUnlock()
 			//conR.Logger.Error("reactor vcMsg", "height", msg.Height, "curP", msg.CurrentProposer, "newP", msg.NewProposer, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
 			finished := ""
 			if msg.Height == height {
@@ -386,7 +387,8 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 				}
 				conR.hasViewChanged = msg.Height
 				// broadcast vc message
-				conR.conS.vcMsg = conR.broadcastViewChangeMessage(msg)
+				vcMsg := conR.broadcastViewChangeMessage(msg)
+				conR.conS.peerMsgQueue <- msgInfo{vcMsg, ""}
 			}
 		}
 
