@@ -123,13 +123,16 @@ func (ndb *nodeDB) GetNode(hash []byte) *Node {
 		}
 		ndb.mtx.RLock()
 		if elem, ok := ndb.prePersistNodeCache[string(hash)]; ok {
+			ndb.mtx.RUnlock()
 			return elem
 		}
 
 		if elem, ok := ndb.getNodeInTpp(hash); ok { // GetNode from tpp
+			ndb.mtx.RUnlock()
 			return elem
 		}
 		if elem, ok := ndb.orphanNodeCache[string(hash)]; ok {
+			ndb.mtx.RUnlock()
 			return elem
 		}
 		ndb.mtx.RUnlock()
@@ -140,7 +143,6 @@ func (ndb *nodeDB) GetNode(hash []byte) *Node {
 			ndb.nodeCacheQueue.MoveToBack(elem)
 			return elem.Value.(*Node)
 		}
-
 		return nil
 	}()
 
