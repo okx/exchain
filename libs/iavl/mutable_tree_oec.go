@@ -187,7 +187,7 @@ func (tree *MutableTree) loadVersionToCommittedHeightMap() {
 }
 
 func (tree *MutableTree) StopTree() {
-	fmt.Println("iavl store:", tree.ndb.name)
+	fmt.Println("iavl store:", tree.ndb.name, tree.version)
 	tree.log(IavlInfo, "stopping iavl", "commit height", tree.version, "name", tree.ndb.name)
 	defer tree.log(IavlInfo, "stopping iavl completed", "commit height", tree.version)
 
