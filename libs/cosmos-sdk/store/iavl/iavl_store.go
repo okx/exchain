@@ -196,6 +196,7 @@ func (st *Store) CacheWrap() types.CacheWrap {
 
 func (st *Store) preChangeHandler(keys [][]byte) {
 	maxNums := runtime.NumCPU()
+	maxNums += maxNums / 2
 	keyCount := len(keys)
 	if maxNums > keyCount {
 		maxNums = keyCount
