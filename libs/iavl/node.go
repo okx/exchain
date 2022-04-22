@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"sync/atomic"
 	"unsafe"
 
 	"github.com/pkg/errors"
@@ -73,6 +74,28 @@ func NewNode(key []byte, value []byte, version int64) *Node {
 	}
 }
 
+const nodePoolSize = 100
+
+var nodePool = new([nodePoolSize]Node)
+var nodePoolIndex int64 = 0
+var nodePoolFlag int64 = 0
+
+func newNode() *Node {
+	ok := atomic.CompareAndSwapInt64(&nodePoolFlag, 0, 1)
+	if ok {
+		n := &nodePool[nodePoolIndex]
+		nodePoolIndex += 1
+		if nodePoolIndex == nodePoolSize {
+			nodePool = new([nodePoolSize]Node)
+			nodePoolIndex = 0
+		}
+		atomic.StoreInt64(&nodePoolFlag, 0)
+		return n
+	} else {
+		return &Node{}
+	}
+}
+
 // MakeNode constructs an *Node from an encoded byte slice.
 //
 // The new node doesn't have its hash saved or set. The caller must set it
@@ -104,12 +127,17 @@ func MakeNode(buf []byte) (*Node, error) {
 	}
 	buf = buf[n:]
 
-	node := &Node{
-		height:  height,
-		size:    size,
-		version: ver,
-		key:     key,
-	}
+	node := newNode()
+	node.height = height
+	node.size = size
+	node.version = ver
+	node.key = key
+	//node := &Node{
+	//	height:  height,
+	//	size:    size,
+	//	version: ver,
+	//	key:     key,
+	//}
 
 	// Read node body.
 
