@@ -23,7 +23,6 @@ import (
 type cValue struct {
 	value   []byte
 	deleted bool
-	dirty   bool
 }
 
 // Store wraps an in-memory cache around an underlying types.KVStore.
@@ -84,7 +83,7 @@ func (store *Store) IteratorCache(isdirty bool, cb func(key string, value []byte
 
 	if isdirty {
 		for key, v := range store.dirty {
-			if !cb(key, v.value, v.dirty, v.deleted, sKey) {
+			if !cb(key, v.value, true, v.deleted, sKey) {
 				return false
 			}
 		}
@@ -175,9 +174,6 @@ func (store *Store) writeToCacheKv(parent *Store) {
 	// TODO: Consider allowing usage of Batch, which would allow the write to
 	// at least happen atomically.
 	for key, cacheValue := range store.dirty {
-		if !cacheValue.dirty {
-			continue
-		}
 		switch {
 		case cacheValue.deleted:
 			parent.Delete(amino.StrToBytes(key))
@@ -337,7 +333,6 @@ func (store *Store) setCacheValue(key, value []byte, deleted bool, dirty bool) {
 	store.dirty[keyStr] = cValue{
 		value:   value,
 		deleted: deleted,
-		dirty:   dirty,
 	}
 	if dirty {
 		store.unsortedCache[keyStr] = struct{}{}
