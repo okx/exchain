@@ -11,10 +11,13 @@ import (
 
 // getTxFeeAndFromHandler get tx fee and from
 func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
-	return func(ctx sdk.Context, tx sdk.Tx) (fee sdk.Coins, isEvm bool, from string, to string) {
+	return func(ctx sdk.Context, tx sdk.Tx) (fee sdk.Coins, isEvm bool, from string, to string, err error) {
 		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
 			isEvm = true
-			_ = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight())
+			err = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight())
+			if err != nil {
+				return
+			}
 			fee = evmTx.GetFee()
 			from = evmTx.BaseTx.From
 			if len(from) > 2 {

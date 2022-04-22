@@ -121,7 +121,7 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 		case tx := <-dttr.txByte:
 			dttr.task = dttr.basicProFn(tx, dttr.txIndex)
 			dttr.task.routineIndex = dttr.index
-			if dttr.task.err == nil { //&& dttr.task.isEvm {
+			if dttr.task.err == nil {
 				dttr.runAnteFn(dttr.task)
 			} else {
 				dttr.step = dttRoutineStepReadyForSerial
@@ -291,7 +291,11 @@ func (dttm *DTTManager) concurrentBasic(txByte []byte, index int) *DeliverTxTask
 	}
 
 	task.info.handler = dttm.app.getModeHandler(runTxModeDeliverPartConcurrent) //dm.handler
-	task.fee, task.isEvm, task.from, task.to = dttm.app.getTxFeeAndFromHandler(dttm.checkStateCtx, task.info.tx)
+	task.fee, task.isEvm, task.from, task.to, err = dttm.app.getTxFeeAndFromHandler(dttm.checkStateCtx, task.info.tx)
+	if err != nil {
+		task.err = err
+		return task
+	}
 
 	if err = validateBasicTxMsgs(task.info.tx.GetMsgs()); err != nil {
 		task.err = err
