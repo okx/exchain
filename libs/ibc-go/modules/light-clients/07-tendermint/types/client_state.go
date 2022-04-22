@@ -1,6 +1,7 @@
 package types
 
 import (
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"strings"
 	"time"
 
@@ -109,6 +110,9 @@ func (cs ClientState) IsExpired(latestTimestamp, now time.Time) bool {
 func (cs ClientState) Validate() error {
 	if strings.TrimSpace(cs.ChainId) == "" {
 		return sdkerrors.Wrap(ErrInvalidChainID, "chain id cannot be empty string")
+	}
+	if len(cs.ChainId) > tmtypes.MaxChainIDLen {
+		return sdkerrors.Wrapf(ErrInvalidChainID, "chainID is too long; got: %d, max: %d", len(cs.ChainId), tmtypes.MaxChainIDLen)
 	}
 	if err := lite.ValidateTrustLevel(cs.TrustLevel.ToTendermint()); err != nil {
 		return err
