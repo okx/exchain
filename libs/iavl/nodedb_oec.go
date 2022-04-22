@@ -53,7 +53,7 @@ func (ndb *nodeDB) SaveOrphans(batch dbm.Batch, version int64, orphans []*Node) 
 		}
 		for _, node := range orphans {
 			ndb.orphanNodeCache[string(node.hash)] = node
-			// ndb.uncacheNode(node.hash)
+			ndb.uncacheNode(node.hash)
 			delete(ndb.prePersistNodeCache, string(node.hash))
 			node.leftNode = nil
 			node.rightNode = nil
@@ -491,13 +491,8 @@ func (ndb *nodeDB) saveCommitOrphans(batch dbm.Batch, version int64, orphans map
 
 	toVersion := ndb.getPreviousVersion(version)
 	for hash, fromVersion := range orphans {
-		// ndb.log(IavlDebug, "SAVEORPHAN", "from", fromVersion, "to", toVersion, "hash", amino.BytesHexStringer(amino.StrToBytes(hash)))
-		// ndb.saveOrphan(batch, amino.StrToBytes(hash), fromVersion, toVersion)
-		if fromVersion > toVersion {
-			panic(fmt.Sprintf("Orphan expires before it comes alive.  %d > %d", fromVersion, toVersion))
-		}
-		key := ndb.orphanKey(fromVersion, toVersion, amino.StrToBytes(hash))
-		batch.Set(key, amino.StrToBytes(hash))
+		ndb.log(IavlDebug, "SAVEORPHAN", "from", fromVersion, "to", toVersion, "hash", amino.BytesHexStringer(amino.StrToBytes(hash)))
+		ndb.saveOrphan(batch, amino.StrToBytes(hash), fromVersion, toVersion)
 	}
 }
 
