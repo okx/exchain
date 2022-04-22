@@ -1,8 +1,6 @@
 package keeper
 
 import (
-	"encoding/hex"
-	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/internal/types"
@@ -54,9 +52,6 @@ func (k Keeper) GetModuleAccountAndPermissions(ctx sdk.Context, moduleName strin
 // GetModuleAccount gets the module account from the auth account store
 func (k Keeper) GetModuleAccount(ctx sdk.Context, moduleName string) exported.ModuleAccountI {
 	acc, _ := k.GetModuleAccountAndPermissions(ctx, moduleName)
-	if hex.EncodeToString(acc.GetAddress()) == "93354845030274cd4bf1686abd60ab28ec52e1a7" {
-		fmt.Println("ModuleAccount. ", moduleName)
-	}
 	return acc
 }
 
