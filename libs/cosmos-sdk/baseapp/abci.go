@@ -175,11 +175,6 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 		res = app.endBlocker(app.deliverState.ctx, req)
 	}
 
-	go func() {
-		if app.deliverState != nil && app.deliverState.ms != nil {
-			app.deliverState.ms.Write()
-		}
-	}()
 	return
 }
 

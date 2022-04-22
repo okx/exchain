@@ -60,10 +60,9 @@ func (store *Store) Get(key []byte) (value []byte) {
 
 	types.AssertValidKey(key)
 
-	sKey := string(key)
-	cacheValue, ok := store.dirty[sKey]
+	cacheValue, ok := store.dirty[string(key)]
 	if !ok {
-		if c, ok := store.readList[sKey]; ok {
+		if c, ok := store.readList[string(key)]; ok {
 			value = c
 		} else {
 			value = store.parent.Get(key)
