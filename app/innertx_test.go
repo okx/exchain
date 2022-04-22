@@ -444,7 +444,6 @@ func (suite *InnerTxTestSuite) TestMsgSend() {
 				votes := []abci.VoteInfo{
 					{Validator: abci.Validator{Address: valpub.Address(), Power: 1}, SignedLastBlock: true},
 				}
-				suite.app.SupplyKeeper.GetModuleAccount(suite.ctx, auth.FeeCollectorName)
 				for i := 0; i < 100; i++ {
 					header := abci.Header{Height: int64(i + 2), ProposerAddress: sdk.ConsAddress(valpub.Address())}
 					req := abci.RequestBeginBlock{Header: header,

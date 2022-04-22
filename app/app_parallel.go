@@ -25,7 +25,6 @@ func evmTxFeeHandler() sdk.GetTxFeeHandler {
 			if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
 				isEvm = true
 				_ = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight())
-
 			}
 		}
 		if feeTx, ok := tx.(authante.FeeTx); ok {
