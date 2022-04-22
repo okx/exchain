@@ -185,7 +185,7 @@ func checkStore(t *testing.T, db dbm.DB, ver int64, storeKey string, k, v []byte
 // Test that we can make commits and then reload old versions.
 // Test that LoadLatestVersion actually does.
 func TestSetLoader(t *testing.T) {
-	tmtypes.SetVenus1HeightForIbcTest(2)
+	tmtypes.UnittestOnlySetMilestoneVenus1Height(2)
 	// write a renamer to a file
 	f, err := ioutil.TempFile("", "upgrade-*.json")
 	require.NoError(t, err)
