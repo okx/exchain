@@ -432,6 +432,16 @@ func (dttm *DTTManager) serialRoutine() {
 					continue
 				}
 
+				if dttr.task.index == task.index+1 && !dttr.task.isEvm {
+					if dttm.app.updateFeeCollectorAccHandler != nil {
+						ctx, cache := dttm.app.cacheTxContext(dttm.app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
+						if err := dttm.app.updateFeeCollectorAccHandler(ctx, dttm.app.feeForCollector); err != nil {
+							panic(err)
+						}
+						cache.Write()
+					}
+					dttr.task.prevTaskIndex = task.index
+				}
 				if dttr.task.prevTaskIndex == task.index || !task.isEvm || dttm.hasConflict(dttr.task, task) { //dttr.task.from == task.from {
 					if dttr.task.prevTaskIndex < task.index {
 						dttr.task.prevTaskIndex = task.index

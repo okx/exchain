@@ -194,7 +194,7 @@ func deductFees(ak auth.AccountKeeper, ctx sdk.Context, acc exported.Account, fe
 	if err := acc.SetCoins(balance); err != nil {
 		return err
 	}
-	ak.SetAccount(ctx, acc)
+	ak.SetAccount(ctx, acc, false)
 
 	return nil
 }
