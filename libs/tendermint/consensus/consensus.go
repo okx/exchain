@@ -756,6 +756,15 @@ func (cs *State) handleMsg(mi msgInfo) {
 				// RoundStepNewHeight enterNewHeight use msg.val
 			}
 		}
+	case *ProposeRequestMessage:
+		if ActiveViewChange {
+			vcMsg := ViewChangeMessage{Height: msg.Height, CurrentProposer: msg.CurrentProposer, NewProposer: msg.NewProposer}
+			if signature, err := cs.privValidator.SignBytes(vcMsg.SignBytes()); err == nil {
+				vcMsg.Signature = signature
+				cs.vcMsg = &vcMsg
+			}
+		}
+
 	case *ProposalMessage:
 		// will not cause transition.
 		// once proposal is set, we can receive block parts

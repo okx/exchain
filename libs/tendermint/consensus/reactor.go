@@ -384,10 +384,10 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 					conR.Logger.Error("reactor Verify Signature of ProposeRequestMessage", "err", err)
 					return
 				}
+				conR.conS.peerMsgQueue <- msgInfo{msg, ""}
 				conR.hasViewChanged = msg.Height
 				// broadcast vc message
-				vcMsg := conR.broadcastViewChangeMessage(msg)
-				conR.conS.peerMsgQueue <- msgInfo{vcMsg, ""}
+				conR.broadcastViewChangeMessage(msg)
 			}
 		}
 
