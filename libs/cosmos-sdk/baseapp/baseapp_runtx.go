@@ -66,16 +66,27 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		return err
 	}
 
+	// There is no need to update BlockGasMeter.GasConsumed and info.gInfo using ctx.GasMeter
+	// as gas is not consumed actually when ante failed.
+	isAnteSucceed := false
 	defer func() {
 		if r := recover(); r != nil {
 			err = app.runTx_defer_recover(r, info)
 			info.msCache = nil //TODO msCache not write
 			info.result = nil
 		}
-		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
+		gasUsed := info.ctx.GasMeter().GasConsumed()
+		if !isAnteSucceed {
+			gasUsed = 0
+		}
+		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: gasUsed}
 	}()
 
-	defer handler.handleDeferGasConsumed(info)
+	defer func() {
+		if isAnteSucceed {
+			handler.handleDeferGasConsumed(info)
+		}
+	}()
 
 	defer func() {
 		app.pin(Refund, true, mode)
@@ -97,6 +108,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	}
 	app.pin(RunAnte, false, mode)
 
+	isAnteSucceed = true
 	app.pin(RunMsg, true, mode)
 	err = handler.handleRunMsg(info)
 	app.pin(RunMsg, false, mode)
@@ -205,15 +217,21 @@ func (app *BaseApp) PreDeliverRealTx(tx []byte) abci.TxEssentials {
 	}
 	if realTx == nil {
 		realTx, err = app.txDecoder(tx)
-		if err != nil {
+		if err != nil || realTx == nil {
 			return nil
 		}
 		app.blockDataCache.SetTx(tx, realTx)
-
-		if realTx.GetType() == sdk.EvmTxType && app.evmTxVerifySigHandler != nil {
-			_ = app.evmTxVerifySigHandler(app.deliverState.ctx, realTx)
-		}
 	}
+
+	if realTx.GetType() == sdk.EvmTxType && app.preDeliverTxHandler != nil {
+		ctx := app.deliverState.ctx
+		ctx.SetCache(app.chainCache).
+			SetMultiStore(app.cms).
+			SetGasMeter(sdk.NewInfiniteGasMeter())
+
+		app.preDeliverTxHandler(ctx, realTx, !app.chainCache.IsEnabled())
+	}
+
 	return realTx
 }
 

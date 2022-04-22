@@ -95,7 +95,6 @@ func UnittestOnlySetMilestoneVenusHeight(height int64) {
 	milestoneVenusHeight = height
 }
 
-
 // ==================================
 // =========== Venus1 ===============
 func HigherThanVenus1(h int64) bool {
@@ -105,12 +104,13 @@ func HigherThanVenus1(h int64) bool {
 	return h >= milestoneVenus1Height
 }
 
-func SetVenus1HeightForIbcTest(h int64) {
+func UnittestOnlySetMilestoneVenus1Height(h int64) {
 	milestoneVenus1Height = h
 }
 
 func GetVenus1Height() int64 {
 	return milestoneVenus1Height
 }
+
 // =========== Venus1 ===============
 // ==================================
