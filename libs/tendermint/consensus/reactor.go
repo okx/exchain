@@ -338,10 +338,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		switch msg := msg.(type) {
 		case *ViewChangeMessage:
 			cs := conR.conS
-
-			lock.RLock()
+			cs.mtx.RLock()
 			vcMsg, height, validators := cs.vcMsg, cs.Height, cs.Validators
-			lock.RUnlock()
+			cs.mtx.RUnlock()
 			// already has valid vcMsg
 			if vcMsg != nil && vcMsg.Height >= msg.Height {
 				return
@@ -373,9 +372,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			conR.mtx.Lock()
 			defer conR.mtx.Unlock()
 			cs := conR.conS
-			lock.RLock()
+			cs.mtx.RLock()
 			height, validators := cs.Height, cs.Validators
-			lock.RUnlock()
+			cs.mtx.RUnlock()
 			if msg.Height > conR.hasViewChanged &&
 				msg.Height > height &&
 				bytes.Equal(cs.privValidatorPubKey.Address(), msg.CurrentProposer) {
@@ -859,7 +858,6 @@ OUTER_LOOP:
 func (conR *Reactor) gossipVCRoutine(peer p2p.Peer, ps *PeerState) {
 	logger := conR.Logger.With("peer", peer)
 
-	var vcHeight int64 = 0
 OUTER_LOOP:
 	for {
 		// Manage disconnects from self or peer.
@@ -872,7 +870,7 @@ OUTER_LOOP:
 		prs := ps.GetRoundState()
 		vcMsg := conR.conS.vcMsg
 
-		if vcMsg == nil || vcHeight >= vcMsg.Height || rs.Height > vcMsg.Height {
+		if vcMsg == nil || rs.Height > vcMsg.Height {
 			continue OUTER_LOOP
 		}
 		// only in round0 send vcMsg
@@ -881,9 +879,11 @@ OUTER_LOOP:
 		}
 		// send vcMsg
 		if rs.Height == prs.Height || rs.Height == prs.Height+1 {
-			vcHeight = vcMsg.Height
-			peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
+			//peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
+			conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
 		}
+		time.Sleep(conR.conS.config.PeerGossipSleepDuration * 2)
+		continue OUTER_LOOP
 	}
 }
 
