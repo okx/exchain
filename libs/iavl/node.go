@@ -183,18 +183,14 @@ func (node *Node) clone(version int64) *Node {
 	if node.isLeaf() {
 		panic("Attempt to copy a leaf node")
 	}
-	return &Node{
-		key:       node.key,
-		height:    node.height,
-		version:   version,
-		size:      node.size,
-		hash:      nil,
-		leftHash:  node.leftHash,
-		leftNode:  node.leftNode,
-		rightHash: node.rightHash,
-		rightNode: node.rightNode,
-		persisted: false,
-	}
+	n := newNode()
+	*n = *node
+	n.value = nil
+	n.hash = nil
+	n.version = version
+	n.persisted = false
+	n.prePersisted = false
+	return n
 }
 
 func (node *Node) isLeaf() bool {
