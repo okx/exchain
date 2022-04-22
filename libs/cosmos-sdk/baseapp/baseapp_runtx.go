@@ -98,7 +98,6 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	}
 	app.pin(ValTxMsgs, false, mode)
 
-	gas := info.ctx.GasMeter().GasConsumed()
 	app.pin(RunAnte, true, mode)
 	if app.anteHandler != nil {
 		err = app.runAnte(info, mode)
@@ -107,10 +106,6 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		}
 	}
 	app.pin(RunAnte, false, mode)
-	newGas := info.ctx.GasMeter().GasConsumed()
-	if gas != newGas {
-		app.logger.Error("GasChangedDuringAnte", "before", gas, "after", newGas, "txType", tx.GetType().String())
-	}
 
 	if app.getTxFee != nil && mode == runTxModeDeliver {
 		fee, _ := app.getTxFee(info.ctx, tx, true)
