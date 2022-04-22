@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"bytes"
-	"fmt"
 	"time"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -136,7 +135,6 @@ func (k Keeper) SendPacket(
 		"dst_channel", packet.GetDestChannel(),
 	)
 
-	k.Logger(ctx).Info("packet sent", "packet", fmt.Sprintf("%v", packet))
 	return nil
 }
 
@@ -234,10 +232,11 @@ func (k Keeper) RecvPacket(
 		// check if the packet receipt has been received already for unordered channels
 		_, found := k.GetPacketReceipt(ctx, packet.GetDestPort(), packet.GetDestChannel(), packet.GetSequence())
 		if found {
-			return sdkerrors.Wrapf(
-				types.ErrInvalidPacket,
-				"packet sequence (%d) already has been received", packet.GetSequence(),
-			)
+			EmitRecvPacketEvent(ctx, packet, channel)
+			// This error indicates that the packet has already been relayed. Core IBC will
+			// treat this error as a no-op in order to prevent an entire relay transaction
+			// from failing and consuming unnecessary fees.
+			return types.ErrNoOpMsg
 		}
 
 		// All verification complete, update state
@@ -454,7 +453,7 @@ func (k Keeper) AcknowledgePacket(
 		ctx, connectionEnd, proofHeight, proof, packet.GetDestPort(), packet.GetDestChannel(),
 		packet.GetSequence(), acknowledgement,
 	); err != nil {
-		return sdkerrors.Wrap(err, "packet acknowledgement verification failed")
+		return err
 	}
 
 	// assert packets acknowledged in order
