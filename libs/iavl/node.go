@@ -74,7 +74,7 @@ func NewNode(key []byte, value []byte, version int64) *Node {
 	}
 }
 
-const nodePoolSize = 100
+const nodePoolSize = 512
 
 var nodePool = new([nodePoolSize]Node)
 var nodePoolIndex int64 = 0
