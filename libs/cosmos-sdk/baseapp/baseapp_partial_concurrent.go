@@ -487,7 +487,7 @@ func (dttm *DTTManager) isTxsAllExecuted(rt *dttRoutine) bool {
 func (dttm *DTTManager) setRerunAndNextSerial(task *DeliverTxTask) int8 {
 	count := len(dttm.dttRoutineList)
 	rerunRoutines := make([]*dttRoutine, 0)
-	updateFeeAcc := false
+	//updateFeeAcc := false
 	nextTaskRoutine := int8(-1)
 	for i := 0; i < count; i++ {
 		dttr := dttm.dttRoutineList[i]
@@ -497,9 +497,9 @@ func (dttm *DTTManager) setRerunAndNextSerial(task *DeliverTxTask) int8 {
 		}
 
 		if needRerun {
-			if !dttr.task.isEvm && dttr.task.index == task.index+1 {
-				updateFeeAcc = true
-			}
+			//if !dttr.task.isEvm && dttr.task.index == task.index+1 {
+			//	updateFeeAcc = true
+			//}
 			dttr.task.prevTaskIndex = task.index
 			rerunRoutines = append(rerunRoutines, dttr)
 		} else if dttr.task.index == dttm.serialIndex+1 {
@@ -511,15 +511,15 @@ func (dttm *DTTManager) setRerunAndNextSerial(task *DeliverTxTask) int8 {
 		}
 	}
 
-	if updateFeeAcc && dttm.app.updateFeeCollectorAccHandler != nil {
-		// should update the balance of FeeCollector's account when run non-evm tx
-		// which uses non-infiniteGasMeter during AnteHandleChain
-		ctx, cache := dttm.app.cacheTxContext(dttm.app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
-		if err := dttm.app.updateFeeCollectorAccHandler(ctx, dttm.app.feeForCollector); err != nil {
-			panic(err)
-		}
-		cache.Write()
-	}
+	//if updateFeeAcc && dttm.app.updateFeeCollectorAccHandler != nil {
+	//	// should update the balance of FeeCollector's account when run non-evm tx
+	//	// which uses non-infiniteGasMeter during AnteHandleChain
+	//	ctx, cache := dttm.app.cacheTxContext(dttm.app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
+	//	if err := dttm.app.updateFeeCollectorAccHandler(ctx, dttm.app.feeForCollector); err != nil {
+	//		panic(err)
+	//	}
+	//	cache.Write()
+	//}
 	for _, rerunRoutine := range rerunRoutines {
 		rerunRoutine.shouldRerun(task.index, -1)
 	}
@@ -647,11 +647,6 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 
 	app.deliverTxsMgr.deliverTxs(txs)
 
-	if len(txs) > 0 {
-		//waiting for call back
-		<-app.deliverTxsMgr.done
-		close(app.deliverTxsMgr.done)
-	}
 	if app.updateFeeCollectorAccHandler != nil {
 		// should update the balance of FeeCollector's account when run non-evm tx
 		// which uses non-infiniteGasMeter during AnteHandleChain
@@ -660,6 +655,12 @@ func (app *BaseApp) DeliverTxsConcurrent(txs [][]byte) []*abci.ResponseDeliverTx
 			panic(err)
 		}
 		cache.Write()
+	}
+
+	if len(txs) > 0 {
+		//waiting for call back
+		<-app.deliverTxsMgr.done
+		close(app.deliverTxsMgr.done)
 	}
 
 	app.logger.Info("InvalidTxs", "count", app.deliverTxsMgr.invalidTxs)
