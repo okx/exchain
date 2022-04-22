@@ -34,7 +34,7 @@ type (
 	// The keeper allows the ability to create scoped sub-keepers which are tied to
 	// a single specific module.
 	Keeper struct {
-		cdc           codec.Codec
+		cdc           *codec.Codec
 		storeKey      sdk.StoreKey
 		memKey        sdk.StoreKey
 		capMap        map[uint64]*types.Capability
@@ -49,7 +49,7 @@ type (
 	// by name, in addition to creating new capabilities & authenticating capabilities
 	// passed by other modules.
 	ScopedKeeper struct {
-		cdc      codec.Codec
+		cdc      *codec.Codec
 		storeKey sdk.StoreKey
 		memKey   sdk.StoreKey
 		capMap   map[uint64]*types.Capability
@@ -61,7 +61,7 @@ type (
 // for capability map and scopedModules map.
 func NewKeeper(cdc *codec.CodecProxy, storeKey, memKey sdk.StoreKey) *Keeper {
 	return &Keeper{
-		cdc:           *cdc.GetCdc(),
+		cdc:           cdc.GetCdc(),
 		storeKey:      storeKey,
 		memKey:        memKey,
 		capMap:        make(map[uint64]*types.Capability),
