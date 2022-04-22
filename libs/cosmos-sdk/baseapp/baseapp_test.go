@@ -1192,7 +1192,9 @@ func TestTxGasLimits(t *testing.T) {
 		gInfo, result, err := app.Deliver(tx)
 
 		// check gas used and wanted
-		require.Equal(t, tc.gasUsed, gInfo.GasUsed, fmt.Sprintf("tc #%d; gas: %v, result: %v, err: %s", i, gInfo, result, err))
+		if err == nil {
+			require.Equal(t, tc.gasUsed, gInfo.GasUsed, fmt.Sprintf("tc #%d; gas: %v, result: %v, err: %s", i, gInfo, result, err))
+		}
 
 		// check for out of gas
 		if !tc.fail {
