@@ -3,6 +3,7 @@ package ibc_tx
 import (
 	"fmt"
 	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 	"google.golang.org/protobuf/encoding/protowire"
 	"math/big"
 
@@ -127,6 +128,10 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 				return nil, sdkerrors.Wrap(sdkerrors.ErrInternal, "only support ModeInfo_Single")
 			}
 		}
+		var signMode signing.SignMode
+		if modeInfo != nil && modeInfo.Single != nil {
+			signMode = modeInfo.Single.Mode
+		}
 
 		stx := authtypes.IbcTx{
 			&authtypes.StdTx{
@@ -137,7 +142,7 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			},
 			raw.AuthInfoBytes,
 			raw.BodyBytes,
-			modeInfo.Single.Mode,
+			signMode,
 		}
 
 		return &stx, nil
