@@ -2,7 +2,7 @@ package types
 
 import (
 	"github.com/gogo/protobuf/proto"
-	
+
 	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	costypes "github.com/okex/exchain/libs/cosmos-sdk/types"
 	stdtx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
