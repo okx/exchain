@@ -2,12 +2,14 @@ package typesadapter
 
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 )
 
 var (
 	_ txmsg.Msg = &MsgSend{}
+	//_ token.TokenTransfer = &MsgSend{}
 )
 
 func (msg *MsgSend) ValidateBasic() error {
@@ -41,7 +43,7 @@ func (m *MsgSend) GetSigners() []types.AccAddress {
 }
 
 func (m *MsgSend) Route() string {
-	return "bank"
+	return "token"
 }
 
 func (m *MsgSend) Type() string {
@@ -50,4 +52,26 @@ func (m *MsgSend) Type() string {
 
 func (m MsgSend) GetSignBytes() []byte {
 	return types.MustSortJSON(cdc.MustMarshalJSON(m))
+}
+func (m *MsgSend) GetFrom() sdk.AccAddress {
+	from, err := types.AccAddressFromBech32(m.FromAddress)
+	if err != nil {
+		panic(err)
+	}
+	return from
+}
+func (m *MsgSend) GetTo() sdk.AccAddress {
+	to, err := types.AccAddressFromBech32(m.ToAddress)
+	if err != nil {
+		panic(err)
+	}
+	return to
+}
+func (m *MsgSend) GetAmount() []sdk.DecCoin {
+	convAmount := make([]sdk.DecCoin, 0)
+	for _, am := range m.Amount {
+		transferAmountDec := sdk.NewDecFromIntWithPrec(sdk.NewIntFromBigInt(am.Amount.BigInt()), sdk.Precision)
+		convAmount = append(convAmount, sdk.NewDecCoinFromDec(am.Denom, transferAmountDec))
+	}
+	return convAmount
 }
