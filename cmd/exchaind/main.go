@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"runtime/debug"
 
 	"github.com/okex/exchain/app/logevents"
 
@@ -112,10 +113,15 @@ func main() {
 
 func closeApp(iApp abci.Application) {
 	fmt.Println("Close App")
+	fmt.Printf("%s\n", debug.Stack())
 	app := iApp.(*app.OKExChainApp)
+	fmt.Println("App assert")
 	app.StopStore()
+	fmt.Println("StopStore")
 	evmtypes.CloseIndexer()
+	fmt.Println("CloseIndexer")
 	rpc.CloseEthBackend()
+	fmt.Println("CloseEthBackend")
 }
 
 func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application {
