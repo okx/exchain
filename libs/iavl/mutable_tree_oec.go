@@ -341,18 +341,23 @@ func (tree *MutableTree) PreChange(key []byte) {
 	tree.preChange(tree.root, key)
 }
 
-func (tree *MutableTree) preChange(node *Node, key []byte) {
+func (tree *MutableTree) preChange(node *Node, key []byte) (find bool) {
 	if node.isLeaf() {
+		if bytes.Equal(node.key, key) {
+			return true
+		}
 		return
 	} else {
 		if bytes.Compare(key, node.key) < 0 {
 			node.leftNode = node.getLeftNode(tree.ImmutableTree)
-			tree.preChange(node.leftNode, key)
-			node.rightNode = node.getRightNode(tree.ImmutableTree)
+			if tree.preChange(node.leftNode, key) {
+				node.getRightNode(tree.ImmutableTree)
+			}
 		} else {
 			node.rightNode = node.getRightNode(tree.ImmutableTree)
-			tree.preChange(node.rightNode, key)
-			node.leftNode = node.getLeftNode(tree.ImmutableTree)
+			if tree.preChange(node.rightNode, key) {
+				node.getLeftNode(tree.ImmutableTree)
+			}
 		}
 		return
 	}
