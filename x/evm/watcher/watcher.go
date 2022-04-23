@@ -644,12 +644,5 @@ func (w *Watcher) dispatchJob(f func()) {
 	// we have to wait
 	// why: something wrong happened: such as db panic(disk maybe is full)(it should be the only reason)
 	//								  UseWatchData were executed every 4 seoncds(block schedual)
-	select {
-	case w.jobChan <- f:
-	default:
-		w.log.Error("watch dispatch job too busy.")
-		go func() {
-			w.jobChan <- f
-		}()
-	}
+	w.jobChan <- f
 }
