@@ -41,7 +41,7 @@ func TestAppModule_InitGenesis(t *testing.T) {
 	module.GetQueryCmd(app.Cdc.GetCdc())
 	module.GetTxCmd(app.Cdc.GetCdc())
 	module.NewQuerierHandler()
-	rs := cliLcd.NewRestServer(app.Cdc, nil)
+	rs := cliLcd.NewRestServer(app.Cdc, nil,nil)
 	module.RegisterRESTRoutes(rs.CliCtx, rs.Mux)
 	module.BeginBlock(ctx, abci.RequestBeginBlock{})
 	module.EndBlock(ctx, abci.RequestEndBlock{})

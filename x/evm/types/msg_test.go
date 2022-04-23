@@ -413,7 +413,7 @@ func TestMsgIbcTxMarshalSignBytes(t *testing.T) {
 		Gas: 100000,
 	}
 
-	signBytes := authtypes.IbcSignBytes(
+	signBytes := authtypes.IbcDirectSignBytes(
 		chainID,
 		uint64(accnum),
 		uint64(sequence),

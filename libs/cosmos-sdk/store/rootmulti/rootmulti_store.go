@@ -1323,9 +1323,13 @@ func (src Store) Copy() *Store {
 }
 
 func (rs *Store) StopStore() {
-	for _, store := range rs.stores {
+	for key, store := range rs.stores {
 		switch store.GetStoreType() {
 		case types.StoreTypeIAVL:
+			filter := rs.commitHeightFilterPipeline(rs.lastCommitInfo.Version)
+			if filter(key.Name()) {
+				continue
+			}
 			s := store.(*iavl.Store)
 			s.StopStore()
 		case types.StoreTypeDB:
