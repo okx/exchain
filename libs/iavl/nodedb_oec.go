@@ -189,9 +189,6 @@ func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer)
 	tpp := event.tpp
 	iavlHeight := event.iavlHeight
 
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-
 	trc.Pin("cacheNode")
 	for _, node := range tpp {
 		if !node.persisted {
@@ -199,6 +196,9 @@ func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer)
 		}
 		ndb.cacheNode(node)
 	}
+
+	ndb.mtx.Lock()
+	defer ndb.mtx.Unlock()
 
 	nodeNum := ndb.getTppNodesNum()
 
