@@ -1,29 +1,38 @@
 package auth
 
 import (
+	"context"
+	"fmt"
+	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	cliContext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+
 	authinternaltypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/internal"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/spf13/cobra"
 )
 
 var (
-	_ module.AppModuleAdapter = AppModule{}
+	_ module.AppModuleBasicAdapter = AppModuleBasic{}
+	_ module.AppModuleAdapter      = AppModule{}
 )
 
-func (am AppModule) RegisterInterfaces(registry codectypes.InterfaceRegistry) {
+func (am AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	RegisterInterfaces(registry)
 }
 
-func (am AppModule) RegisterGRPCGatewayRoutes(cliContext context.CLIContext, serveMux *runtime.ServeMux) {
+func (am AppModuleBasic) RegisterGRPCGatewayRoutes(clictx cliContext.CLIContext, serveMux *runtime.ServeMux) {
+	types.RegisterQueryHandlerClient(context.Background(), serveMux, types.NewQueryClient(clictx))
 }
 
+func (am AppModuleBasic) RegisterRouterForGRPC(clictx cliContext.CLIContext, r *mux.Router) {
+}
+
+//////
 func (am AppModule) RegisterTask() upgrade.HeightTask {
 	return nil
 }
@@ -44,7 +53,7 @@ func (AppModuleBasic) GetQueryCmdV2(cdc *codec.CodecProxy, reg codectypes.Interf
 
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	registry.RegisterImplementations(
-		(*exported.Account)(nil),
+		(*fmt.Stringer)(nil),
 		&authinternaltypes.BaseAccount{},
 	)
 }
