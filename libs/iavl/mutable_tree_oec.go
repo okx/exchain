@@ -337,25 +337,26 @@ func (t *ImmutableTree) GetPersistedRoots() map[int64][]byte {
 	return t.ndb.roots()
 }
 
-func (tree *MutableTree) PreChange(key []byte) {
-	tree.preChange(tree.root, key)
+func (tree *MutableTree) PreChange(key []byte, setOrDel byte) {
+	tree.preChange(tree.root, key, setOrDel)
 }
 
-func (tree *MutableTree) preChange(node *Node, key []byte) (find bool) {
+func (tree *MutableTree) preChange(node *Node, key []byte, setOrDel byte) (find bool) {
 	if node.isLeaf() {
 		if bytes.Equal(node.key, key) {
 			return true
 		}
 		return
 	} else {
+		var isSet = setOrDel == 1
 		if bytes.Compare(key, node.key) < 0 {
 			node.leftNode = node.getLeftNode(tree.ImmutableTree)
-			if find = tree.preChange(node.leftNode, key); !find {
+			if find = tree.preChange(node.leftNode, key, setOrDel); (!find && isSet) || (find && !isSet) {
 				node.getRightNode(tree.ImmutableTree)
 			}
 		} else {
 			node.rightNode = node.getRightNode(tree.ImmutableTree)
-			if find = tree.preChange(node.rightNode, key); !find {
+			if find = tree.preChange(node.rightNode, key, setOrDel); (!find && isSet) || (find && !isSet) {
 				node.getLeftNode(tree.ImmutableTree)
 			}
 		}
