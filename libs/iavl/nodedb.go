@@ -547,12 +547,16 @@ func (ndb *nodeDB) uncacheNode(hash []byte) {
 // Add a node to the cache and pop the least recently used node if we've
 // reached the cache size limit.
 func (ndb *nodeDB) cacheNode(node *Node) {
-	elem := ndb.nodeCacheQueue.PushBack(node)
+	elem, count := ndb.nodeCacheQueue.PushBack(node)
 	ndb.nodeCache.Set(string(node.hash), elem)
 
-	for ndb.nodeCacheQueue.Len() > config.DynamicConfig.GetIavlCacheSize() {
-		hash := ndb.nodeCacheQueue.RemoveFront().(*Node).hash
-		ndb.nodeCache.Remove(amino.BytesToStr(hash))
+	if count > config.DynamicConfig.GetIavlCacheSize() {
+		needRemove := count - config.DynamicConfig.GetIavlCacheSize()
+		removed := make([]interface{}, needRemove)
+		ndb.nodeCacheQueue.RemoveFrontN(needRemove, removed)
+		for _, v := range removed {
+			ndb.nodeCache.Remove(amino.BytesToStr(v.(*Node).hash))
+		}
 	}
 }
 
