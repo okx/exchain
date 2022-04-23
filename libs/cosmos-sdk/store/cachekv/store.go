@@ -133,8 +133,6 @@ func (store *Store) Write() {
 	store.mtx.Lock()
 	defer store.mtx.Unlock()
 
-	store.preWrite()
-
 	// We need a copy of all of the keys.
 	// Not the best, but probably not a bottleneck depending.
 	keys := make([]string, 0, len(store.cache))
@@ -145,6 +143,8 @@ func (store *Store) Write() {
 	}
 
 	sort.Strings(keys)
+
+	store.preWrite(keys)
 
 	// TODO: Consider allowing usage of Batch, which would allow the write to
 	// at least happen atomically.
@@ -169,7 +169,7 @@ type preWriteJob struct {
 	setOrDel byte
 }
 
-func (store *Store) preWrite() {
+func (store *Store) preWrite(keys []string) {
 	if store.preChangeHandler == nil {
 		return
 	}
@@ -193,7 +193,8 @@ func (store *Store) preWrite() {
 		}(txJobChan, &wg)
 	}
 
-	for key, cacheValue := range store.cache {
+	for _, key := range keys {
+		cacheValue := store.cache[key]
 		switch {
 		case cacheValue.deleted:
 			txJobChan <- preWriteJob{amino.StrToBytes(key), 0}
