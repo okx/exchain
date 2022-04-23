@@ -75,7 +75,7 @@ func (w *Watcher) extractEvmTx(sdkTx sdk.Tx) (*types.MsgEthereumTx, error) {
 }
 
 func (w *Watcher) saveTx(tx WatchTx) {
-	if !w.Enabled() {
+	if w == nil || tx == nil {
 		return
 	}
 
@@ -86,6 +86,9 @@ func (w *Watcher) saveTx(tx WatchTx) {
 }
 
 func (w *Watcher) saveFailedReceipts(watchTx WatchTx, gasUsed uint64) {
+	if w == nil || watchTx == nil {
+		return
+	}
 	w.UpdateCumulativeGas(w.txIndex, gasUsed)
 	if receipts := watchTx.GetFailedReceipts(w.cumulativeGas[w.txIndex], gasUsed); receipts != nil {
 		w.batch = append(w.batch, receipts)
