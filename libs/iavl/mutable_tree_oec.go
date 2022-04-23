@@ -338,6 +338,9 @@ func (t *ImmutableTree) GetPersistedRoots() map[int64][]byte {
 }
 
 func (tree *MutableTree) PreChange(key []byte, setOrDel byte) {
+	if tree.root == nil {
+		return
+	}
 	tree.preChange(tree.root, key, setOrDel)
 }
 
