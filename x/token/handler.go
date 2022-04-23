@@ -51,7 +51,6 @@ func NewTokenHandler(keeper Keeper, protocolVersion version.ProtocolVersionType)
 			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgSend(ctx, keeper, msg, logger)
 			}
-
 		case types.MsgTransferOwnership:
 			name = "handleMsgTransferOwnership"
 			handlerFun = func() (*sdk.Result, error) {
@@ -68,6 +67,16 @@ func NewTokenHandler(keeper Keeper, protocolVersion version.ProtocolVersionType)
 			handlerFun = func() (*sdk.Result, error) {
 				return handleMsgTokenModify(ctx, keeper, msg, logger)
 			}
+		case WalletTokenTransfer:
+			name = "handleWalletMsgSend"
+			handlerFun = func() (*sdk.Result, error) {
+				return handleWalletMsgSend(ctx, keeper, MsgSend{
+					FromAddress: msg.GetFrom(),
+					ToAddress:   msg.GetTo(),
+					Amount:      msg.GetAmount(),
+				}, logger)
+			}
+
 		default:
 			errMsg := fmt.Sprintf("Unrecognized token Msg type: %v", msg.Type())
 			return sdk.ErrUnknownRequest(errMsg).Result()
@@ -296,7 +305,6 @@ func handleMsgSend(ctx sdk.Context, keeper Keeper, msg types.MsgSend, logger log
 	if !keeper.bankKeeper.GetSendEnabled(ctx) {
 		return types.ErrSendDisabled().Result()
 	}
-
 	err := keeper.SendCoinsFromAccountToAccount(ctx, msg.FromAddress, msg.ToAddress, msg.Amount)
 	if err != nil {
 		return types.ErrSendCoinsFromAccountToAccountFailed(err.Error()).Result()

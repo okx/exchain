@@ -1,7 +1,10 @@
 package keeper
 
 import (
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"strings"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
@@ -40,6 +43,12 @@ func NewQuerier(k Keeper) sdk.Querier {
 			return queryProxy(ctx, req, k)
 		case types.QueryDelegator:
 			return queryDelegator(ctx, req, k)
+
+			// required by wallet
+		case types.QueryDelegatorDelegations:
+			return queryDelegatorDelegations(ctx, req, k)
+		case types.QueryUnbondingDelegation2:
+			return queryUndelegation2(ctx, req, k)
 		default:
 			return nil, types.ErrUnknownStakingQueryType()
 		}
@@ -258,4 +267,129 @@ func queryForAccAddress(ctx sdk.Context, req abci.RequestQuery) (res []byte, err
 		return nil, common.ErrMarshalJSONFailed(errMarshal.Error())
 	}
 	return res, nil
+}
+
+func queryUndelegation2(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, error) {
+	var params types.QueryDelegatorUnbondingDelegationsRequest
+	err := types.ModuleCdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
+	}
+
+	if params.DelegatorAddr == "" {
+		return nil, status.Errorf(codes.InvalidArgument, "delegator address cannot be empty")
+	}
+
+	delAddr, err := sdk.AccAddressFromBech32(params.DelegatorAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	un, pageRes, err := k.GetDelegatorUnbondingDelegations(ctx, delAddr, params.Pagination)
+	if nil != err {
+		return nil, err
+	}
+	if un == nil {
+		un = make(stakingtypes.UnbondingDelegations, 0)
+	}
+	marsh := &types.QueryDelegatorUnbondingDelegationsResponse{
+		UnbondingResponses: un,
+		Pagination:         pageRes,
+	}
+	res, err := codec.MarshalJSONIndent(types.ModuleCdc, marsh)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+
+	return res, nil
+}
+
+func queryDelegatorDelegations(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, error) {
+	var params types.QueryDelegatorDelegationsRequest
+
+	err := types.ModuleCdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
+	}
+
+	delegationResps, err := k.DelegatorDelegations(ctx, &params)
+	if delegationResps == nil {
+		delegationResps = &types.QueryDelegatorDelegationsResponse{}
+	}
+
+	res, err := codec.MarshalJSONIndent(types.ModuleCdc, delegationResps)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+
+	return res, nil
+}
+
+func delegationsToDelegationResponses(
+	ctx sdk.Context, k Keeper, delegations stakingtypes.Delegations,
+) (stakingtypes.DelegationResponses, error) {
+
+	resp := make(stakingtypes.DelegationResponses, len(delegations))
+	for i, del := range delegations {
+		delResp, err := delegationToDelegationResponse(ctx, k, del)
+		if err != nil {
+			return nil, err
+		}
+
+		resp[i] = delResp
+	}
+
+	return resp, nil
+}
+
+/////
+// utils
+func delegationToDelegationResponse(ctx sdk.Context, k Keeper, del stakingtypes.Delegation) (stakingtypes.DelegationResponse, error) {
+	val, found := k.GetValidator(ctx, del.ValidatorAddress)
+	if !found {
+		return stakingtypes.DelegationResponse{}, stakingtypes.ErrNoValidatorFound
+	}
+
+	return stakingtypes.NewDelegationResp(
+		del.DelegatorAddress,
+		del.ValidatorAddress,
+		del.Shares,
+		sdk.NewCoin(k.BondDenom(ctx), val.TokensFromShares(del.Shares).TruncateInt()),
+	), nil
+}
+
+func DelegationsToDelegationResponses(
+	ctx sdk.Context, k Keeper, delegations stakingtypes.Delegations,
+) (stakingtypes.DelegationResponses, error) {
+	resp := make(stakingtypes.DelegationResponses, len(delegations))
+
+	for i, del := range delegations {
+		delResp, err := DelegationToDelegationResponse(ctx, k, del)
+		if err != nil {
+			return nil, err
+		}
+
+		resp[i] = delResp
+	}
+
+	return resp, nil
+}
+
+func DelegationToDelegationResponse(ctx sdk.Context, k Keeper, del stakingtypes.Delegation) (stakingtypes.DelegationResponse, error) {
+	val, found := k.GetValidator(ctx, del.GetValidatorAddr())
+	if !found {
+		return stakingtypes.DelegationResponse{}, stakingtypes.ErrNoValidatorFound
+	}
+
+	delegatorAddress, err := sdk.AccAddressFromBech32(del.DelegatorAddress.String())
+	if err != nil {
+		return stakingtypes.DelegationResponse{}, err
+	}
+
+	return stakingtypes.NewDelegationResp(
+		delegatorAddress,
+		del.GetValidatorAddr(),
+		del.Shares,
+		sdk.NewCoin(k.BondDenom(ctx), val.TokensFromShares(del.Shares).TruncateInt()),
+	), nil
 }
