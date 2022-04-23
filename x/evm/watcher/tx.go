@@ -2,81 +2,61 @@ package watcher
 
 import (
 	"fmt"
-	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	tm "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/evm/types"
-	"sync/atomic"
 )
 
-type DeliverTx struct {
-	Req  tm.TxEssentials
-	Resp *tm.ResponseDeliverTx
+type WatchTx interface {
+	GetTxWatchMessage() WatchMessage
+	GetTxHash() common.Hash
+	GetFailedReceipts(cumulativeGas, gasUsed uint64) WatchMessage
 }
 
-func (w *Watcher) RecordABCIMessage(deliverTx *DeliverTx, txDecoder sdk.TxDecoder) {
+func (w *Watcher) RecordTxAndFailedReceipt(tx tm.TxEssentials, resp *tm.ResponseDeliverTx, txDecoder sdk.TxDecoder) {
 	if !w.Enabled() {
 		return
 	}
 
-	w.totalTxsCount++
-	index := w.txIndexInBlock
-	w.dispatchTxJob(func() {
-		w.recordTxsAndReceipts(deliverTx, index, txDecoder)
-	})
-	w.txIndexInBlock++
+	defer func() { w.txIndex++ }()
+	realTx, err := w.getRealTx(tx, txDecoder)
+	if err != nil {
+		return
+	}
+	watchTx := w.createWatchTx(realTx)
+	w.saveTx(watchTx)
+
+	if resp != nil && !resp.IsOK() {
+		w.saveFailedReceipts(watchTx, uint64(resp.GasUsed))
+	}
 }
 
-func (w *Watcher) recordTxsAndReceipts(deliverTx *DeliverTx, index uint64, txDecoder sdk.TxDecoder) {
-	defer atomic.AddInt64(&w.recordingTxsCount, 1)
-	if deliverTx == nil || deliverTx.Req == nil || deliverTx.Resp == nil {
-		w.log.Error("watch parse abci message error", "input", deliverTx)
-		return
+func (w *Watcher) getRealTx(tx tm.TxEssentials, txDecoder sdk.TxDecoder) (sdk.Tx, error) {
+	var err error
+	realTx, _ := tx.(sdk.Tx)
+	if realTx == nil {
+		realTx, err = txDecoder(tx.GetRaw())
+		if err != nil {
+			return nil, err
+		}
 	}
 
-	realTx, err := txDecoder(deliverTx.Req.GetRaw())
-	if err != nil {
-		w.log.Error("watch decode deliver tx", "error", err)
-		return
-	}
-
-	if realTx.GetType() != sdk.EvmTxType {
-		return
-	}
-
-	if deliverTx.Resp.Code != errors.SuccessABCICode {
-		w.saveEvmTxAndFailedReceipt(realTx, index, uint64(deliverTx.Resp.GasUsed))
-		return
-	}
-
-	w.saveEvmTxAndSuccessReceipt(realTx, deliverTx.Resp.Data, index, uint64(deliverTx.Resp.GasUsed))
+	return realTx, nil
 }
 
-func (w *Watcher) saveEvmTxAndFailedReceipt(sdkTx sdk.Tx, index, gasUsed uint64) {
-	evmTx, err := w.extractEvmTx(sdkTx)
-	if err != nil {
-		w.log.Error("save evm tx and failed receipt error", "height", w.height, "index", index, "error", err)
-		return
-	}
-	txHash := ethcmn.BytesToHash(evmTx.TxHash())
-
-	w.saveTxAndReceipt(evmTx, txHash, index, TransactionFailed, &types.ResultData{}, gasUsed)
-}
-
-func (w *Watcher) saveEvmTxAndSuccessReceipt(sdkTx sdk.Tx, resultData []byte, index, gasUsed uint64) {
-	evmTx, err := w.extractEvmTx(sdkTx)
-	if err != nil {
-		w.log.Error("save evm tx and success receipt error", "height", w.height, "index", index, "error", err)
-		return
-	}
-	evmResultData, err := types.DecodeResultData(resultData)
-	if err != nil {
-		w.log.Error("save evm tx and success receipt error", "height", w.height, "index", index, "error", err)
-		return
+func (w *Watcher) createWatchTx(realTx sdk.Tx) WatchTx {
+	var txMsg WatchTx
+	switch realTx.GetType() {
+	case sdk.EvmTxType:
+		evmTx, err := w.extractEvmTx(realTx)
+		if err != nil {
+			return nil
+		}
+		txMsg = NewEvmTx(evmTx, common.BytesToHash(evmTx.TxHash()), w.blockHash, w.height, w.txIndex)
 	}
 
-	w.saveTxAndReceipt(evmTx, evmResultData.TxHash, index, TransactionSuccess, &evmResultData, gasUsed)
+	return txMsg
 }
 
 func (w *Watcher) extractEvmTx(sdkTx sdk.Tx) (*types.MsgEthereumTx, error) {
@@ -94,18 +74,20 @@ func (w *Watcher) extractEvmTx(sdkTx sdk.Tx) (*types.MsgEthereumTx, error) {
 	return evmTx, nil
 }
 
-func (w *Watcher) saveTxAndReceipt(msg *types.MsgEthereumTx, txHash ethcmn.Hash, index uint64,
-	receiptStatus uint32, data *types.ResultData, gasUsed uint64) {
-	w.txsMutex.Lock()
-	defer w.txsMutex.Unlock()
+func (w *Watcher) saveTx(tx WatchTx) {
+	if !w.Enabled() {
+		return
+	}
 
-	wMsg := NewMsgEthTx(msg, txHash, w.blockHash, w.height, index)
-	if wMsg != nil {
-		w.txs = append(w.txs, wMsg)
+	if txWatchMessage := tx.GetTxWatchMessage(); txWatchMessage != nil {
+		w.batch = append(w.batch, txWatchMessage)
 	}
-	txReceipt := newTransactionReceipt(receiptStatus, msg, txHash, w.blockHash, index, w.height, data, gasUsed)
-	if txReceipt != nil {
-		w.txReceipts = append(w.txReceipts, txReceipt)
+	w.blockTxs = append(w.blockTxs, tx.GetTxHash())
+}
+
+func (w *Watcher) saveFailedReceipts(watchTx WatchTx, gasUsed uint64) {
+	w.UpdateCumulativeGas(w.txIndex, gasUsed)
+	if receipts := watchTx.GetFailedReceipts(w.cumulativeGas[w.txIndex], gasUsed); receipts != nil {
+		w.batch = append(w.batch, receipts)
 	}
-	w.txInfoCollector = append(w.txInfoCollector, &TxInfo{TxHash: txHash, Index: index, GasUsed: gasUsed})
 }

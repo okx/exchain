@@ -17,7 +17,6 @@ import (
 	"github.com/spf13/viper"
 	"math/big"
 	"sync"
-	"sync/atomic"
 )
 
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -42,15 +41,7 @@ type Watcher struct {
 
 	jobChan chan func()
 
-	// for async record tx and receipt
-	txsMutex          sync.Mutex
-	txChan            chan func()
-	txIndexInBlock    uint64
-	recordingTxsCount int64
-	totalTxsCount     int64
-	txs               []WatchMessage
-	txReceipts        []*TransactionReceipt
-	txInfoCollector   []*TxInfo
+	txIndex uint64
 }
 
 var (
@@ -97,6 +88,14 @@ func (w *Watcher) Enable(sw bool) {
 	w.sw = sw
 }
 
+func (w *Watcher) GetTxIndex() uint64 {
+	if w == nil {
+		return 0
+	}
+
+	return w.txIndex
+}
+
 func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.Header) {
 	if !w.Enabled() {
 		return
@@ -108,17 +107,13 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	// ResetTransferWatchData
 	w.watchData = &WatchData{}
 	w.wdDelayKey = make([][]byte, 0)
-	w.txIndexInBlock = 0
-	w.totalTxsCount = 0
+	w.txIndex = 0
 }
 
 func (w *Watcher) clean() {
 	w.cumulativeGas = make(map[uint64]uint64)
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
-	w.txInfoCollector = []*TxInfo{}
-	w.txs = []WatchMessage{}
-	w.txReceipts = []*TransactionReceipt{}
 	w.wdDelayKey = w.delayEraseKey
 	w.delayEraseKey = make([][]byte, 0)
 }
@@ -143,7 +138,18 @@ func (w *Watcher) SaveContractCodeByHash(hash []byte, code []byte) {
 	}
 }
 
-func (w *Watcher) updateCumulativeGas(txIndex, gasUsed uint64) {
+func (w *Watcher) SaveTransactionReceipt(status uint32, msg *evmtypes.MsgEthereumTx, txHash common.Hash, txIndex uint64, data *evmtypes.ResultData, gasUsed uint64) {
+	if !w.Enabled() {
+		return
+	}
+	w.UpdateCumulativeGas(txIndex, gasUsed)
+	wMsg := NewEvmTransactionReceipt(status, msg, txHash, w.blockHash, txIndex, w.height, data, w.cumulativeGas[txIndex], gasUsed)
+	if wMsg != nil {
+		w.batch = append(w.batch, wMsg)
+	}
+}
+
+func (w *Watcher) UpdateCumulativeGas(txIndex, gasUsed uint64) {
 	if !w.Enabled() {
 		return
 	}
@@ -220,12 +226,6 @@ func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
 	if !w.Enabled() {
 		return
 	}
-	for !atomic.CompareAndSwapInt64(&w.recordingTxsCount, w.totalTxsCount, 0) {
-	}
-
-	w.sortTxsAndUpdateCumulativeGas()
-	w.saveReceipts(w.cumulativeGas)
-	w.batch = append(w.batch, w.txs...)
 
 	wMsg := NewMsgBlock(w.height, bloom, w.blockHash, w.header, uint64(0xffffffff), big.NewInt(int64(w.gasUsed)), w.blockTxs)
 	if wMsg != nil {
@@ -501,7 +501,6 @@ func (w *Watcher) UseWatchData(watchData interface{}) {
 
 func (w *Watcher) SetWatchDataFunc() {
 	go w.jobRoutine()
-	w.txRoutine()
 	tmstate.SetWatchDataFunc(w.GetWatchDataFunc, w.UnmarshalWatchData, w.UseWatchData)
 }
 

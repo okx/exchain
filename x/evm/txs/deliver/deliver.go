@@ -1,6 +1,7 @@
 package deliver
 
 import (
+	"github.com/okex/exchain/x/evm/watcher"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -78,6 +79,9 @@ func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *base.Result) {
 		tx.Keeper.Bloom.Or(tx.Keeper.Bloom, result.ExecResult.Bloom)
 	}
 	tx.Keeper.LogSize = tx.StateTransition.Csdb.GetLogSize()
+	tx.Keeper.Watcher.SaveTransactionReceipt(watcher.TransactionSuccess,
+		msg, *tx.StateTransition.TxHash,
+		tx.Keeper.Watcher.GetTxIndex(), result.ResultData, tx.Ctx.GasMeter().GasConsumed())
 	if msg.Data.Recipient == nil {
 		tx.StateTransition.Csdb.IteratorCode(func(addr common.Address, c types.CacheCode) bool {
 			tx.Keeper.Watcher.SaveContractCode(addr, c.Code)
