@@ -175,7 +175,7 @@ func (store *Store) preWrite(keys []string) {
 	}
 
 	maxNums := runtime.NumCPU()
-	keyCount := len(store.cache)
+	keyCount := len(keys)
 	if maxNums > keyCount {
 		maxNums = keyCount
 	}
