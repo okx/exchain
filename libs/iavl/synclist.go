@@ -38,10 +38,10 @@ func (sl *syncList) Front() (front *list.Element) {
 }
 
 func (sl *syncList) RemoveFront() interface{} {
-	sl.mtx.RLock()
+	sl.mtx.Lock()
 	oldest := sl.List.Front()
 	ret := sl.List.Remove(oldest)
-	sl.mtx.RUnlock()
+	sl.mtx.Unlock()
 	return ret
 }
 
