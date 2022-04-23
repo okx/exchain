@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	apptesting "github.com/okex/exchain/libs/ibc-go/testing"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmcfg "github.com/okex/exchain/libs/tendermint/config"
-	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/bytes"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
@@ -20,6 +20,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/rpc/client/mock"
 	rpccore "github.com/okex/exchain/libs/tendermint/rpc/core"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
+	sm "github.com/okex/exchain/libs/tendermint/state"
 	tmstate "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/state/txindex/kv"
 	"github.com/okex/exchain/libs/tendermint/state/txindex/null"
@@ -30,10 +31,11 @@ import (
 
 type MockClient struct {
 	mock.Client
-	app   abci.Application
-	chain apptesting.TestChainI
-	env   *rpccore.Environment
-	state *tmstate.State
+	app       abci.Application
+	chain     apptesting.TestChainI
+	env       *rpccore.Environment
+	state     *tmstate.State
+	blockExec *sm.BlockExecutor
 }
 
 func createAndStartProxyAppConns(clientCreator proxy.ClientCreator, logger log.Logger) (proxy.AppConns, error) {
@@ -66,6 +68,7 @@ func NewMockClient(chainId string, chain apptesting.TestChainI, app abci.Applica
 		panic(err)
 	}
 	mc.state = &state
+
 	_, _, memplMetrics, _ := node.DefaultMetricsProvider(config.Instrumentation)(chainId)
 	mempool := mempool.NewCListMempool(
 		config.Mempool,
@@ -76,22 +79,51 @@ func NewMockClient(chainId string, chain apptesting.TestChainI, app abci.Applica
 		mempool.WithPostCheck(tmstate.TxPostCheck(state)),
 	)
 	mc.env.Mempool = mempool
+
+	db := dbm.NewMemDB()
+	mc.blockExec = sm.NewBlockExecutor(db, log.NewNopLogger(), proxyApp.Consensus(), mempool, sm.MockEvidencePool{})
+	sm.SaveState(db, state)
 	return mc
 }
-func makeTestCommit(height int64, timestamp time.Time) *types.Commit {
-	commitSigs := []types.CommitSig{{
-		BlockIDFlag:      types.BlockIDFlagCommit,
-		ValidatorAddress: []byte("ValidatorAddress"),
-		Timestamp:        timestamp,
-		Signature:        []byte("Signature"),
-	}}
-	return types.NewCommit(height, 0, types.BlockID{}, commitSigs)
+func (c MockClient) makeBlock(height int64, state sm.State, lastCommit *types.Commit) *types.Block {
+	tx := c.env.Mempool.ReapMaxTxs(1000)
+	block, _ := state.MakeBlock(height, tx, lastCommit, nil, state.Validators.GetProposer().Address)
+	return block
 }
-func (c MockClient) CommitBlock(block *types.Block) {
-	validPartSet := block.MakePartSet(2)
-	seenCommit := makeTestCommit(10, time.Now())
-	c.env.BlockStore.SaveBlock(block, validPartSet, seenCommit)
-	global.SetGlobalHeight(block.Height)
+func (c MockClient) CommitBlock() {
+	// let's add some blocks in
+	state := *c.state
+	blockHeight := c.state.LastBlockHeight + 1
+	lastCommit := types.NewCommit(blockHeight-1, 0, types.BlockID{}, nil)
+	if blockHeight > 1 {
+		lastBlockMeta := c.env.BlockStore.LoadBlockMeta(blockHeight - 1)
+		lastBlock := c.env.BlockStore.LoadBlock(blockHeight - 1)
+
+		vote, err := types.MakeVote(
+			lastBlock.Header.Height,
+			lastBlockMeta.BlockID,
+			state.Validators,
+			nil, //privVals[0]
+			lastBlock.Header.ChainID,
+			time.Now(),
+		)
+		if err != nil {
+			panic(err)
+		}
+		lastCommit = types.NewCommit(vote.Height, vote.Round,
+			lastBlockMeta.BlockID, []types.CommitSig{vote.CommitSig()})
+	}
+
+	thisBlock := c.makeBlock(blockHeight, state, lastCommit)
+
+	thisParts := thisBlock.MakePartSet(types.BlockPartSizeBytes)
+	blockID := types.BlockID{Hash: thisBlock.Hash(), PartsHeader: thisParts.Header()}
+
+	state, _, err := c.blockExec.ApplyBlock(state, blockID, thisBlock)
+	if err != nil {
+		panic(errors.Wrap(err, "error apply block"))
+	}
+	c.env.BlockStore.SaveBlock(thisBlock, thisParts, lastCommit)
 }
 func (c MockClient) ABCIQueryWithOptions(
 	path string,

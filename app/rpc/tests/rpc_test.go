@@ -71,6 +71,7 @@ type RPCTestSuite struct {
 
 	apiServer *gorpc.Server
 	Mux       *http.ServeMux
+	cliCtx    *cosmos_context.CLIContext
 }
 
 func (suite *RPCTestSuite) SetupTest() {
@@ -79,7 +80,7 @@ func (suite *RPCTestSuite) SetupTest() {
 	multisig.RegisterKeyType(ethsecp256k1.PubKey{}, ethsecp256k1.PubKeyName)
 
 	chainId := apptesting.GetChainID(1)
-	suite.coordinator = apptesting.NewEthCoordinator(suite.T(), 2)
+	suite.coordinator = apptesting.NewEthCoordinator(suite.T(), 1)
 	suite.chain = suite.coordinator.GetChain(chainId)
 	suite.chain.App().SetOption(abci.RequestSetOption{
 		Key:   "CheckChainID",
@@ -96,7 +97,8 @@ func (suite *RPCTestSuite) SetupTest() {
 		WithClient(NewMockClient(chainId, suite.chain, suite.chain.App())).
 		WithBroadcastMode(flags.BroadcastSync)
 
-	suite.coordinator.CommitBlock(suite.chain)
+	suite.cliCtx = &cliCtx
+	commitBlock(suite)
 
 	suite.apiServer = gorpc.NewServer()
 
@@ -126,6 +128,11 @@ func TestRPCTestSuite(t *testing.T) {
 	suite.Run(t, new(RPCTestSuite))
 }
 
+func commitBlock(suite *RPCTestSuite) {
+	mck, ok := suite.cliCtx.Client.(*MockClient)
+	suite.Require().True(ok)
+	mck.CommitBlock()
+}
 func (suite *RPCTestSuite) TestEth_GetBalance() {
 	// initial balance of hexAddr2 is 1000000000okt in test.sh
 	initialBalance := suite.chain.SenderAccount().GetCoins()[0]
@@ -142,7 +149,7 @@ func (suite *RPCTestSuite) TestEth_GetBalance() {
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &balance))
 	suite.Require().Equal(initialBalance.Amount.Int, balance.ToInt())
 
-	suite.coordinator.CommitBlock(suite.chain)
+	//suite.coordinator.CommitBlock(suite.chain)
 	// query on certain block height (2)
 	rpcRes, err = CallWithError("eth_getBalance", []interface{}{genesisAcc, hexutil.EncodeUint64(1)})
 	suite.Require().NoError(err)
@@ -319,7 +326,7 @@ func (suite *RPCTestSuite) TestEth_BlockNumber() {
 	var blockNumber1 hexutil.Uint64
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &blockNumber1))
 
-	suite.coordinator.CommitBlock(suite.chain)
+	//suite.coordinator.CommitBlock(suite.chain)
 
 	rpcRes = Call(suite.T(), "eth_blockNumber", nil)
 	var blockNumber2 hexutil.Uint64
@@ -494,6 +501,8 @@ func (suite *RPCTestSuite) TestEth_GetTransactionByHash() {
 
 	hash := sendTestTransaction(suite.T(), senderAddr, receiverAddr, 1024)
 
+	commitBlock(suite)
+
 	rpcRes := Call(suite.T(), "eth_getTransactionByHash", []interface{}{hash})
 
 	var transaction watcher.Transaction
@@ -516,6 +525,8 @@ func (suite *RPCTestSuite) TestEth_GetTransactionByHash() {
 func (suite *RPCTestSuite) TestEth_GetTransactionCount() {
 
 	hash := sendTestTransaction(suite.T(), senderAddr, receiverAddr, 1024)
+
+	(suite.cliCtx.Client.(MockClient)).CommitBlock()
 
 	height := getBlockHeightFromTxHash(suite.T(), hash)
 

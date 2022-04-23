@@ -53,7 +53,7 @@ func NewEthCoordinator(t *testing.T, n int) *Coordinator {
 		CurrentTime: globalStartTime,
 	}
 
-	for i := 0; i < n; i++ {
+	for i := 1; i <= n; i++ {
 		chainID := GetChainID(i)
 		chains[chainID] = NewTestEthChain(t, coord, chainID)
 	}
