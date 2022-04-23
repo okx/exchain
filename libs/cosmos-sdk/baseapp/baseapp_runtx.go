@@ -76,7 +76,9 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		return err
 	}
 
-	startRunMsg := false
+	// There is no need to update BlockGasMeter.GasConsumed and info.gInfo using ctx.GasMeter
+	// as gas is not consumed actually when ante failed.
+	isAnteSucceed := false
 	defer func() {
 		if r := recover(); r != nil {
 			err = app.runTx_defer_recover(r, info)
@@ -84,14 +86,14 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 			info.result = nil
 		}
 		gasUsed := info.ctx.GasMeter().GasConsumed()
-		if !startRunMsg {
+		if !isAnteSucceed {
 			gasUsed = 0
 		}
 		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: gasUsed}
 	}()
 
 	defer func() {
-		if startRunMsg {
+		if isAnteSucceed {
 			handler.handleDeferGasConsumed(info)
 		}
 	}()
@@ -121,7 +123,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		app.UpdateFeeForCollector(fee, true)
 	}
 
-	startRunMsg = true
+	isAnteSucceed = true
 	app.pin(RunMsg, true, mode)
 	err = handler.handleRunMsg(info)
 	app.pin(RunMsg, false, mode)

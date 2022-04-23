@@ -271,6 +271,7 @@ func (*QueryParamsResponse) ProtoMessage()    {}
 func (*QueryParamsResponse) Descriptor() ([]byte, []int) {
 	return fileDescriptor_c451370b3929a27c, []int{5}
 }
+
 //func (m *QueryParamsResponse) XXX_Unmarshal(b []byte) error {
 //	return m.Unmarshal(b)
 //}
@@ -289,6 +290,7 @@ func (*QueryParamsResponse) Descriptor() ([]byte, []int) {
 func (m *QueryParamsResponse) XXX_Merge(src proto.Message) {
 	xxx_messageInfo_QueryParamsResponse.Merge(m, src)
 }
+
 //func (m *QueryParamsResponse) XXX_Size() int {
 //	return m.Size()
 //}
@@ -420,7 +422,7 @@ type QueryServer interface {
 	// Account returns account details based on address.
 	Account(context.Context, *QueryAccountRequest) (*QueryAccountResponse, error)
 	// Params queries all parameters.
-	//Params(context.Context, *QueryParamsRequest) (*QueryParamsResponse, error)
+	Params(context.Context, *QueryParamsRequest) (*QueryParamsResponse, error)
 }
 
 // UnimplementedQueryServer can be embedded to have forward compatible implementations.
@@ -477,23 +479,23 @@ func _Query_Account_Handler(srv interface{}, ctx context.Context, dec func(inter
 	return interceptor(ctx, in, info, handler)
 }
 
-//func _Query_Params_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-//	in := new(QueryParamsRequest)
-//	if err := dec(in); err != nil {
-//		return nil, err
-//	}
-//	if interceptor == nil {
-//		return srv.(QueryServer).Params(ctx, in)
-//	}
-//	info := &grpc.UnaryServerInfo{
-//		Server:     srv,
-//		FullMethod: "/cosmos.auth.v1beta1.Query/Params",
-//	}
-//	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-//		return srv.(QueryServer).Params(ctx, req.(*QueryParamsRequest))
-//	}
-//	return interceptor(ctx, in, info, handler)
-//}
+func _Query_Params_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryParamsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).Params(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/cosmos.auth.v1beta1.Query/Params",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).Params(ctx, req.(*QueryParamsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
 
 var _Query_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "cosmos.auth.v1beta1.Query",
@@ -507,10 +509,10 @@ var _Query_serviceDesc = grpc.ServiceDesc{
 			MethodName: "Account",
 			Handler:    _Query_Account_Handler,
 		},
-		//{
-		//	MethodName: "Params",
-		//	Handler:    _Query_Params_Handler,
-		//},
+		{
+			MethodName: "Params",
+			Handler:    _Query_Params_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
 	Metadata: "cosmos/auth/v1beta1/query.proto",
@@ -1240,6 +1242,7 @@ func (m *QueryParamsRequest) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
+
 //func (m *QueryParamsResponse) Unmarshal(dAtA []byte) error {
 //	l := len(dAtA)
 //	iNdEx := 0
