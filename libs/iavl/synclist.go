@@ -45,11 +45,24 @@ func (sl *syncList) RemoveFront() interface{} {
 	return ret
 }
 
-func (sl *syncList) PushBack(e interface{}) *list.Element {
+func (sl *syncList) RemoveFrontN(needRemove int, removed []interface{}) {
+	if needRemove == 0 {
+		return
+	}
 	sl.mtx.Lock()
-	ret := sl.List.PushBack(e)
+	for i := 0; i < needRemove; i++ {
+		removed[i] = sl.List.Remove(sl.List.Front())
+	}
 	sl.mtx.Unlock()
-	return ret
+	return
+}
+
+func (sl *syncList) PushBack(e interface{}) (ele *list.Element, count int) {
+	sl.mtx.Lock()
+	ele = sl.List.PushBack(e)
+	count = sl.List.Len()
+	sl.mtx.Unlock()
+	return
 }
 
 func (sl *syncList) Remove(e *list.Element) (removed interface{}) {
