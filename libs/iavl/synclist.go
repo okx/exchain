@@ -19,20 +19,22 @@ func newSyncList() *syncList {
 
 func (sl *syncList) MoveToBack(e *list.Element) {
 	sl.mtx.Lock()
-	defer sl.mtx.Unlock()
 	sl.List.MoveToBack(e)
+	sl.mtx.Unlock()
 }
 
-func (sl *syncList) Len() int {
+func (sl *syncList) Len() (l int) {
 	sl.mtx.RLock()
-	defer sl.mtx.RUnlock()
-	return sl.List.Len()
+	l = sl.List.Len()
+	sl.mtx.RUnlock()
+	return
 }
 
-func (sl *syncList) Front() *list.Element {
+func (sl *syncList) Front() (front *list.Element) {
 	sl.mtx.RLock()
-	defer sl.mtx.RUnlock()
-	return sl.List.Front()
+	front = sl.List.Front()
+	sl.mtx.RUnlock()
+	return
 }
 
 func (sl *syncList) RemoveFront() interface{} {
@@ -45,12 +47,14 @@ func (sl *syncList) RemoveFront() interface{} {
 
 func (sl *syncList) PushBack(e interface{}) *list.Element {
 	sl.mtx.Lock()
-	defer sl.mtx.Unlock()
-	return sl.List.PushBack(e)
+	ret := sl.List.PushBack(e)
+	sl.mtx.Unlock()
+	return ret
 }
 
-func (sl *syncList) Remove(e *list.Element) interface{} {
+func (sl *syncList) Remove(e *list.Element) (removed interface{}) {
 	sl.mtx.Lock()
-	defer sl.mtx.Unlock()
-	return sl.List.Remove(e)
+	removed = sl.List.Remove(e)
+	sl.mtx.Unlock()
+	return
 }
