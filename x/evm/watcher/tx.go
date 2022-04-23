@@ -19,7 +19,11 @@ func (w *Watcher) RecordTxAndFailedReceipt(tx tm.TxEssentials, resp *tm.Response
 		return
 	}
 
-	defer func() { w.txIndex++ }()
+	w.saveTxAndFailedReceipts(tx, resp, txDecoder)
+	w.txIndex++
+}
+
+func (w *Watcher) saveTxAndFailedReceipts(tx tm.TxEssentials, resp *tm.ResponseDeliverTx, txDecoder sdk.TxDecoder) {
 	realTx, err := w.getRealTx(tx, txDecoder)
 	if err != nil {
 		return
