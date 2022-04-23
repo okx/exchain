@@ -2,6 +2,7 @@ package rootmulti
 
 import (
 	"fmt"
+
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"

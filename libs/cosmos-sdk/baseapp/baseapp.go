@@ -236,7 +236,6 @@ func NewBaseApp(
 		fauxMerkleMode: false,
 		trace:          false,
 
-		//parallelTxManage: newParallelTxManager(),
 		chainCache:       sdk.NewChainCache(),
 		txDecoder:        txDecoder,
 		anteTracer:       trace.NewTracer(trace.AnteChainDetail),
@@ -255,8 +254,6 @@ func NewBaseApp(
 		app.cms.SetInterBlockCache(app.interBlockCache)
 	}
 	app.cms.SetLogger(app.logger)
-
-	//app.parallelTxManage.workgroup.Start()
 
 	return app
 }
