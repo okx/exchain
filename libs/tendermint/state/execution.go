@@ -30,9 +30,7 @@ const (
 	deliverTxsExecModeSerial         DeliverTxsExecMode = iota // execute [deliverTx,...] sequentially
 	deliverTxsExecModePartConcurrent                           // execute [deliverTx,...] partially-concurrent
 	deliverTxsExecModeParallel                                 // execute [deliverTx,...] parallel
-)
 
-var (
 	// There are three modes.
 	// 0: execute [deliverTx,...] sequentially (default)
 	// 1: execute [deliverTx,...] partially-concurrent
