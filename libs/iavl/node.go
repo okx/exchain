@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"sync/atomic"
 	"unsafe"
 
 	"github.com/pkg/errors"
@@ -64,12 +65,40 @@ func NodeJsonToNode(nj *NodeJson) *Node {
 
 // NewNode returns a new node from a key, value and version.
 func NewNode(key []byte, value []byte, version int64) *Node {
-	return &Node{
-		key:     key,
-		value:   value,
-		height:  0,
-		size:    1,
-		version: version,
+	n := newNode()
+	n.key = key
+	n.value = value
+	n.version = version
+	n.size = 1
+	return n
+	//return &Node{
+	//	key:     key,
+	//	value:   value,
+	//	height:  0,
+	//	size:    1,
+	//	version: version,
+	//}
+}
+
+const nodePoolSize = 512
+
+var nodePool = new([nodePoolSize]Node)
+var nodePoolIndex int64 = 0
+var nodePoolFlag int64 = 0
+
+func newNode() *Node {
+	ok := atomic.CompareAndSwapInt64(&nodePoolFlag, 0, 1)
+	if ok {
+		n := &nodePool[nodePoolIndex]
+		nodePoolIndex += 1
+		if nodePoolIndex == nodePoolSize {
+			nodePool = new([nodePoolSize]Node)
+			nodePoolIndex = 0
+		}
+		atomic.StoreInt64(&nodePoolFlag, 0)
+		return n
+	} else {
+		return &Node{}
 	}
 }
 
@@ -104,12 +133,18 @@ func MakeNode(buf []byte) (*Node, error) {
 	}
 	buf = buf[n:]
 
-	node := &Node{
-		height:  height,
-		size:    size,
-		version: ver,
-		key:     key,
-	}
+	node := newNode()
+	node.key = key
+	node.version = ver
+	node.size = size
+	node.height = height
+
+	//node := &Node{
+	//	height:  height,
+	//	size:    size,
+	//	version: ver,
+	//	key:     key,
+	//}
 
 	// Read node body.
 
@@ -155,18 +190,30 @@ func (node *Node) clone(version int64) *Node {
 	if node.isLeaf() {
 		panic("Attempt to copy a leaf node")
 	}
-	return &Node{
-		key:       node.key,
-		height:    node.height,
-		version:   version,
-		size:      node.size,
-		hash:      nil,
-		leftHash:  node.leftHash,
-		leftNode:  node.leftNode,
-		rightHash: node.rightHash,
-		rightNode: node.rightNode,
-		persisted: false,
-	}
+	n := newNode()
+	n.key = node.key
+	n.height = node.height
+	n.size = node.size
+	n.leftHash = node.leftHash
+	n.rightHash = node.rightHash
+	n.leftNode = node.leftNode
+	n.rightNode = node.rightNode
+	n.version = version
+
+	return n
+
+	//return &Node{
+	//	key:       node.key,
+	//	height:    node.height,
+	//	version:   version,
+	//	size:      node.size,
+	//	hash:      nil,
+	//	leftHash:  node.leftHash,
+	//	leftNode:  node.leftNode,
+	//	rightHash: node.rightHash,
+	//	rightNode: node.rightNode,
+	//	persisted: false,
+	//}
 }
 
 func (node *Node) isLeaf() bool {
