@@ -350,12 +350,12 @@ func (tree *MutableTree) preChange(node *Node, key []byte) (find bool) {
 	} else {
 		if bytes.Compare(key, node.key) < 0 {
 			node.leftNode = node.getLeftNode(tree.ImmutableTree)
-			if tree.preChange(node.leftNode, key) {
+			if find = tree.preChange(node.leftNode, key); find {
 				node.getRightNode(tree.ImmutableTree)
 			}
 		} else {
 			node.rightNode = node.getRightNode(tree.ImmutableTree)
-			if tree.preChange(node.rightNode, key) {
+			if find = tree.preChange(node.rightNode, key); find {
 				node.getLeftNode(tree.ImmutableTree)
 			}
 		}
