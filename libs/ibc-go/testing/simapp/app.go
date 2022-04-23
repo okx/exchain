@@ -84,6 +84,7 @@ import (
 func init() {
 	// set the address prefixes
 	config := sdk.GetConfig()
+	config.SetCoinType(60)
 	okexchain.SetBech32Prefixes(config)
 	okexchain.SetBip44CoinType(config)
 }

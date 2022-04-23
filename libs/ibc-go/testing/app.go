@@ -2,11 +2,12 @@ package ibctesting
 
 import (
 	"encoding/json"
+	"testing"
+	"time"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
-	"testing"
-	"time"
 
 	//cryptocodec "github.com/okex/exchain/app/crypto/ethsecp256k1"
 
@@ -22,10 +23,13 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/okex/exchain/x/evm"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 	stakingkeeper "github.com/okex/exchain/x/staking"
 	"github.com/stretchr/testify/require"
 
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
+	cosmosauthtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/keeper"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp"
 )
@@ -68,10 +72,16 @@ func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs 
 	authGenesis := authtypes.NewGenesisState(authtypes.DefaultParams(), genAccs)
 	//genesisState[authtypes.ModuleName] = app.AppCodec().GetCdc().MustMarshalJSON(authGenesis)
 	var err error
-	genesisState[authtypes.ModuleName] = app.AppCodec().GetCdc().MustMarshalJSON(authGenesis)
+	val := app.AppCodec().GetCdc().MustMarshalJSON(authGenesis)
+	genesisState[authtypes.ModuleName] = val
 	if err != nil {
 		panic("SetupWithGenesisValSet marshal error")
 	}
+	//var genesisState2 authtypes.GenesisState
+	res := cosmosauthtypes.ModuleCdc.MustMarshalJSON(authGenesis)
+	genesisState[authtypes.ModuleName] = res
+	var s cosmosauthtypes.GenesisState
+	cosmosauthtypes.ModuleCdc.MustUnmarshalJSON(res, &s)
 
 	validators := make([]stakingtypes.Validator, 0, len(valSet.Validators))
 	delegations := make([]stakingtypes.Delegation, 0, len(valSet.Validators))
@@ -117,6 +127,11 @@ func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs 
 
 	bankGenesis := bank.DefaultGenesisState()
 	genesisState[bank.ModuleName] = app.AppCodec().GetCdc().MustMarshalJSON(bankGenesis)
+
+	evmGenesis := evmtypes.DefaultGenesisState()
+	evmGenesis.Params.EnableCall = true
+	evmGenesis.Params.EnableCreate = true
+	genesisState[evm.ModuleName] = app.AppCodec().GetCdc().MustMarshalJSON(evmGenesis)
 
 	stateBytes, err := json.MarshalIndent(genesisState, "", " ")
 	require.NoError(t, err)

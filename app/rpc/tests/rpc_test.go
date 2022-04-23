@@ -30,18 +30,17 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/spf13/viper"
-	"golang.org/x/net/websocket"
-
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	"golang.org/x/net/websocket"
 
 	"github.com/okex/exchain/app/rpc"
 	"github.com/okex/exchain/app/rpc/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	apptypes "github.com/okex/exchain/app/types"
+	cosmosauthtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	apptesting "github.com/okex/exchain/libs/ibc-go/testing"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/libs/tendermint/rpc/client/local"
-	tmrpc "github.com/okex/exchain/libs/tendermint/rpc/test"
 )
 
 const (
@@ -74,14 +73,23 @@ type RPCTestSuite struct {
 }
 
 func (suite *RPCTestSuite) SetupTest() {
+	//ethsecp256k1.RegisterCodec(cosmosauthtypes.ModuleCdc)
+	apptypes.RegisterCodec(cosmosauthtypes.ModuleCdc)
 	chainId := apptesting.GetChainID(1)
-	suite.coordinator = apptesting.NewCoordinator(suite.T(), 2)
+	suite.coordinator = apptesting.NewEthCoordinator(suite.T(), 2)
 	suite.chain = suite.coordinator.GetChain(chainId)
+	suite.chain.App().SetOption(abci.RequestSetOption{
+		Key:   "CheckChainID",
+		Value: chainId,
+	})
 
-	ctx, logger := NewCLIContext(suite.chain.Codec())
-	ctx = ctx.WithChainID("testchain-1")
-	tmNode := tmrpc.NewTendermint(suite.chain.App(), &tmrpc.Options{})
-	ctx.Client = local.New(tmNode)
+	cliCtx := cosmos_context.NewCLIContext().
+		WithProxy(suite.chain.Codec()).
+		WithTrustNode(true).
+		WithChainID(chainId).
+		WithClient(NewMockClient(chainId, suite.chain, suite.chain.App()))
+
+	suite.coordinator.CommitBlock(suite.chain)
 
 	suite.apiServer = gorpc.NewServer()
 
@@ -89,8 +97,10 @@ func (suite *RPCTestSuite) SetupTest() {
 	viper.Set(backend.FlagApiBackendBlockLruCache, 100)
 	viper.Set(backend.FlagApiBackendTxLruCache, 100)
 	viper.Set(watcher.FlagFastQueryLru, 100)
+	viper.Set("rpc.laddr", "127.0.0.1:0")
 
-	apis := rpc.GetAPIs(ctx, logger, []ethsecp256k1.PrivKey{}...)
+	senderPv := suite.chain.SenderAccountPV()
+	apis := rpc.GetAPIs(cliCtx, log.NewNopLogger(), []ethsecp256k1.PrivKey{ethsecp256k1.PrivKey(senderPv.Bytes())}...)
 	for _, api := range apis {
 		if err := suite.apiServer.RegisterName(api.Namespace, api.Service); err != nil {
 			panic(err)
@@ -103,47 +113,50 @@ func (suite *RPCTestSuite) SetupTest() {
 	}()
 }
 
-func NewCLIContext(cdc *codec.CodecProxy) (cosmos_context.CLIContext, log.Logger) {
-	cliCtx := cosmos_context.NewCLIContext().WithProxy(cdc)
-	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "rest-server")
-
-	cliCtx.TrustNode = true
-
-	return cliCtx, logger
-}
 func TestRPCTestSuite(t *testing.T) {
 	suite.Run(t, new(RPCTestSuite))
 }
 
 func (suite *RPCTestSuite) TestEth_GetBalance() {
 	// initial balance of hexAddr2 is 1000000000okt in test.sh
-	initialBalance, err := sdk.ParseDecCoin("1000000000okt")
+	initialBalance := suite.chain.SenderAccount().GetCoins()[0]
+	pv := suite.chain.SenderAccountPV().Bytes()
+	ethAddr := ethsecp256k1.PrivKey(pv).PubKey().Address()
+
+	cosmosAddr := ethcmn.BytesToAddress(suite.chain.SenderAccount().GetAddress().Bytes())
+	cosmosStr := cosmosAddr.String()
+	ethAccStr := "0x" + ethAddr.String()
+
+	rpcRes, err := CallWithError("eth_getBalance", []interface{}{cosmosStr, latestBlockNumber})
 	suite.Require().NoError(err)
 
-	rpcRes, err := CallWithError("eth_getBalance", []interface{}{hexAddr2, latestBlockNumber})
+	rpcRes2, err := CallWithError("eth_getBalance", []interface{}{ethAccStr, latestBlockNumber})
 	suite.Require().NoError(err)
+	suite.Require().NotNil(rpcRes2)
 
 	var balance hexutil.Big
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &balance))
-	suite.Require().True(initialBalance.Amount.Int.Cmp(balance.ToInt()) == 0)
+	suite.Require().Equal(initialBalance.Amount.Int, balance.ToInt())
 
+	suite.coordinator.CommitBlock(suite.chain)
 	// query on certain block height (2)
-	rpcRes, err = CallWithError("eth_getBalance", []interface{}{hexAddr2, hexutil.EncodeUint64(2)})
+	genesisAcc := ethAddr
+	rpcRes, err = CallWithError("eth_getBalance", []interface{}{genesisAcc, hexutil.EncodeUint64(1)})
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &balance))
 	suite.Require().NoError(err)
-	suite.Require().True(initialBalance.Amount.Int.Cmp(balance.ToInt()) == 0)
+	suite.Require().Equal(initialBalance.Amount.Int, balance.ToInt())
 
 	// query with pending -> no tx in mempool
-	rpcRes, err = CallWithError("eth_getBalance", []interface{}{hexAddr2, pendingBlockNumber})
+	rpcRes, err = CallWithError("eth_getBalance", []interface{}{genesisAcc, pendingBlockNumber})
 	suite.Require().NoError(err)
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &balance))
-	suite.Require().True(initialBalance.Amount.Int.Cmp(balance.ToInt()) == 0)
+	suite.Require().Equal(initialBalance.Amount.Int, balance.ToInt())
 
 	// inexistent addr -> zero balance
 	rpcRes, err = CallWithError("eth_getBalance", []interface{}{inexistentAddr, latestBlockNumber})
 	suite.Require().NoError(err)
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &balance))
-	suite.Require().True(sdk.ZeroDec().Int.Cmp(balance.ToInt()) == 0)
+	suite.Require().Equal(big.NewInt(0).Int64(), balance.ToInt().Int64())
 
 	// error check
 	// empty hex string
@@ -303,8 +316,7 @@ func (suite *RPCTestSuite) TestEth_BlockNumber() {
 	var blockNumber1 hexutil.Uint64
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &blockNumber1))
 
-	// wait for 5s as an block interval
-	time.Sleep(5 * time.Second)
+	suite.coordinator.CommitBlock(suite.chain)
 
 	rpcRes = Call(suite.T(), "eth_blockNumber", nil)
 	var blockNumber2 hexutil.Uint64
@@ -314,10 +326,14 @@ func (suite *RPCTestSuite) TestEth_BlockNumber() {
 }
 
 func (suite *RPCTestSuite) TestEth_SendTransaction_Transfer() {
-	value := sdk.NewDec(1024)
+
+	genesisAcc := ethcmn.BytesToAddress(suite.chain.SenderAccount().GetAddress().Bytes())
+	genAccStr := genesisAcc.String()
+	fmt.Println(genAccStr)
+	value := sdk.NewDec(1)
 	param := make([]map[string]string, 1)
 	param[0] = make(map[string]string)
-	param[0]["from"] = hexAddr1.Hex()
+	param[0]["from"] = genesisAcc.String()
 	param[0]["to"] = receiverAddr.Hex()
 	param[0]["value"] = (*hexutil.Big)(value.BigInt()).String()
 	param[0]["gasPrice"] = (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String()
@@ -372,9 +388,12 @@ func (suite *RPCTestSuite) TestEth_SendTransaction_Transfer() {
 }
 
 func (suite *RPCTestSuite) TestEth_SendTransaction_ContractDeploy() {
+
+	pv := suite.chain.SenderAccountPV().Bytes()
+	senderAddr := "0x" + ethsecp256k1.PrivKey(pv).PubKey().Address().String()
 	param := make([]map[string]string, 1)
 	param[0] = make(map[string]string)
-	param[0]["from"] = hexAddr1.Hex()
+	param[0]["from"] = senderAddr
 	param[0]["data"] = "0x6080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c240029"
 	param[0]["gasPrice"] = (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String()
 	rpcRes := Call(suite.T(), "eth_sendTransaction", param)
@@ -464,7 +483,9 @@ func (suite *RPCTestSuite) TestEth_GetStorageAt() {
 }
 
 func (suite *RPCTestSuite) TestEth_GetTransactionByHash() {
-	hash := sendTestTransaction(suite.T(), hexAddr1, receiverAddr, 1024)
+	pv := suite.chain.SenderAccountPV().Bytes()
+	senderAddr := "0x" + ethsecp256k1.PrivKey(pv).PubKey().Address().String()
+	hash := sendTestTransaction(suite.T(), ethcmn.HexToAddress(senderAddr), receiverAddr, 1024)
 
 	rpcRes := Call(suite.T(), "eth_getTransactionByHash", []interface{}{hash})
 
