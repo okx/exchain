@@ -81,6 +81,8 @@ var (
 	hexAddr1, hexAddr2 ethcmn.Address
 	addrCounter        = 2
 	defaultGasPrice    sdk.SysCoin
+	genesisAcc         sdk.AccAddress
+	senderAddr         ethcmn.Address
 )
 
 func init() {
@@ -93,12 +95,6 @@ func init() {
 	hexAddr1 = ethcmn.BytesToAddress(keyInfo1.GetAddress().Bytes())
 	hexAddr2 = ethcmn.BytesToAddress(keyInfo2.GetAddress().Bytes())
 	defaultGasPrice, _ = sdk.ParseDecCoin(defaultMinGasPrice)
-}
-
-func TestGetAddress(t *testing.T) {
-	addr, err := GetAddress()
-	require.NoError(t, err)
-	require.True(t, bytes.Equal(addr, hexAddr1[:]))
 }
 
 func createAccountWithMnemo(mnemonic, name, passWd string) (info keys.Info, err error) {

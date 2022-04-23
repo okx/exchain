@@ -29,7 +29,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
-	cosmosauthtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/keeper"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp"
 )
@@ -70,18 +69,13 @@ func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs 
 	app, genesisState := DefaultTestingAppInit()
 	// set genesis accounts
 	authGenesis := authtypes.NewGenesisState(authtypes.DefaultParams(), genAccs)
-	//genesisState[authtypes.ModuleName] = app.AppCodec().GetCdc().MustMarshalJSON(authGenesis)
+
+	genesisState[authtypes.ModuleName] = app.AppCodec().GetCdc().MustMarshalJSON(authGenesis)
 	var err error
-	val := app.AppCodec().GetCdc().MustMarshalJSON(authGenesis)
-	genesisState[authtypes.ModuleName] = val
 	if err != nil {
 		panic("SetupWithGenesisValSet marshal error")
 	}
 	//var genesisState2 authtypes.GenesisState
-	res := cosmosauthtypes.ModuleCdc.MustMarshalJSON(authGenesis)
-	genesisState[authtypes.ModuleName] = res
-	var s cosmosauthtypes.GenesisState
-	cosmosauthtypes.ModuleCdc.MustUnmarshalJSON(res, &s)
 
 	validators := make([]stakingtypes.Validator, 0, len(valSet.Validators))
 	delegations := make([]stakingtypes.Delegation, 0, len(valSet.Validators))
