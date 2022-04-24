@@ -282,4 +282,9 @@ func migrateEvm2FromIavlToIavl(ctx *server.Context) {
 
 	fmt.Printf("Successfully migrate %d addresses in white list, %d addresses in blocked list, %d addresses in method block list\n",
 		len(whiteList), len(blockedList), count)
+
+	iavl.SetIgnoreVersionCheck(true)
+	hash, version, _, err := upgradedTree.SaveVersion(false)
+	panicError(err)
+	fmt.Printf("Successfully save evm2, version: %d, hash: %s\n", version, ethcmn.BytesToHash(hash))
 }
