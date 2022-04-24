@@ -177,6 +177,7 @@ func (app *BaseApp) UpdateFeeForCollector(fee sdk.Coins, add bool) {
 
 // EndBlock implements the ABCI interface.
 func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
+	app.logger.Info("EndBlock start.")
 	if app.updateFeeCollectorAccHandler != nil {
 		ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
 		if err := app.updateFeeCollectorAccHandler(ctx, app.feeForCollector); err != nil {
@@ -192,6 +193,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	if app.endBlocker != nil {
 		res = app.endBlocker(app.deliverState.ctx, req)
 	}
+	app.logger.Info("EndBlock end.")
 
 	return
 }
@@ -242,12 +244,13 @@ func (app *BaseApp) addCommitTraceInfo() {
 // height.
 func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	header := app.deliverState.ctx.BlockHeader()
-
+	app.logger.Info("Commit start.")
 	// Write the DeliverTx state which is cache-wrapped and commit the MultiStore.
 	// The write to the DeliverTx state writes all state transitions to the root
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
 	app.commitBlockCache()
 	app.deliverState.ms.Write()
+	app.logger.Info("Commit end.")
 
 	var input iavl.TreeDeltaMap
 	if tmtypes.DownloadDelta && req.DeltaMap != nil {
