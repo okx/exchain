@@ -113,6 +113,7 @@ func (app *BaseApp) FilterPeerByID(info string) abci.ResponseQuery {
 
 // BeginBlock implements the ABCI application interface.
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
+	app.logger.Info("BeginBlock start.")
 	app.blockDataCache.Clear()
 	if app.cms.TracingEnabled() {
 		app.cms.SetTracingContext(sdk.TraceContext(
@@ -163,6 +164,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	app.anteTracer = trace.NewTracer(trace.AnteChainDetail)
 
 	app.feeForCollector = sdk.Coins{}
+	app.logger.Info("BeginBlock end.")
 
 	return res
 }
