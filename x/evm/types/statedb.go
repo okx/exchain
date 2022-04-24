@@ -764,7 +764,7 @@ func (csdb *CommitStateDB) StorageTrie(addr ethcmn.Address) ethstate.Trie {
 // be written. Finally, the root hash (version) will be returned.
 func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) {
 	// Finalize any pending changes and merge everything into the tries
-	csdb.IntermediateRoot(deleteEmptyObjects)
+	csdb.IntermediateRoot(deleteEmptyObjects, true)
 
 	// If there was a trie prefetcher operating, it gets aborted and irrevocably
 	// modified after we start retrieving tries. Remove it from the statedb after
@@ -894,7 +894,7 @@ func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) {
 // NOTE: The SDK has not concept or method of getting any intermediate merkle
 // root as commitment of the merkle-ized tree doesn't happen until the
 // BaseApps' EndBlocker.
-func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) ethcmn.Hash {
+func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool, updateState bool) ethcmn.Hash {
 	// Finalise all the dirty storage states and write them into the tries
 	csdb.Finalise(deleteEmptyObjects)
 
@@ -922,7 +922,7 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) ethcmn.Hash
 		if obj := csdb.stateObjects[addr]; obj.deleted {
 			csdb.deleteStateObject(obj)
 		} else {
-			csdb.updateStateObject(obj)
+			csdb.updateStateObject(obj, updateState)
 		}
 		//usedAddrs = append(usedAddrs, ethcmn.CopyBytes(addr[:])) // Copy needed for closure
 	}
