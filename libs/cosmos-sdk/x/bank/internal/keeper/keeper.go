@@ -2,8 +2,8 @@ package keeper
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
-	"github.com/tendermint/go-amino"
 	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -102,7 +102,7 @@ func (keeper BaseKeeper) DelegateCoins(ctx sdk.Context, delegatorAddr, moduleAcc
 
 	keeper.ak.SetAccount(ctx, delegatorAcc)
 
-	if amino.HexEncodeToString(moduleAccAddr) == "93354845030274cd4bf1686abd60ab28ec52e1a7" {
+	if hex.EncodeToString(moduleAccAddr) == "93354845030274cd4bf1686abd60ab28ec52e1a7" {
 		fmt.Println("DelegateCoins. ", amt)
 	}
 	_, err = keeper.AddCoins(ctx, moduleAccAddr, amt)
@@ -244,7 +244,7 @@ func (keeper BaseSendKeeper) InputOutputCoins(ctx sdk.Context, inputs []types.In
 	}
 
 	for _, out := range outputs {
-		if amino.HexEncodeToString(out.Address) == "93354845030274cd4bf1686abd60ab28ec52e1a7" {
+		if hex.EncodeToString(out.Address) == "93354845030274cd4bf1686abd60ab28ec52e1a7" {
 			fmt.Println("InputOutputCoins. ", out.Coins)
 		}
 		_, err := keeper.AddCoins(ctx, out.Address, out.Coins)
@@ -362,7 +362,7 @@ func (keeper BaseSendKeeper) AddCoins(ctx sdk.Context, addr sdk.AccAddress, amt 
 	}
 
 	// oldCoins := keeper.GetCoins(ctx, addr)
-	if amino.HexEncodeToString(addr) == "93354845030274cd4bf1686abd60ab28ec52e1a7" {
+	if hex.EncodeToString(addr) == "93354845030274cd4bf1686abd60ab28ec52e1a7" {
 		fmt.Println("AddCoins. ", amt)
 	}
 
