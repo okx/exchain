@@ -556,10 +556,10 @@ func createPEXReactorAndAddToSwitch(addrBook pex.AddrBook, config *cfg.Config,
 
 // NewNode returns a new, ready to go, Tendermint Node.
 func NewNode(config *cfg.Config,
-	privValidator types.PrivValidator, // 节点验证者
-	nodeKey *p2p.NodeKey, //p2p node key
-	clientCreator proxy.ClientCreator, //app
-	genesisDocProvider GenesisDocProvider, // 创世文件
+	privValidator types.PrivValidator,
+	nodeKey *p2p.NodeKey,
+	clientCreator proxy.ClientCreator,
+	genesisDocProvider GenesisDocProvider,
 	dbProvider DBProvider,
 	metricsProvider MetricsProvider,
 	logger log.Logger,
