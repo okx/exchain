@@ -209,7 +209,7 @@ func (store *Store) preWrite(keys []string) {
 	}
 
 	for _, key := range keys {
-		cacheValue := store.cache[key]
+		cacheValue := store.dirty[key]
 		switch {
 		case cacheValue.deleted:
 			txJobChan <- preWriteJob{amino.StrToBytes(key), 0}
