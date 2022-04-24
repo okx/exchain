@@ -111,6 +111,9 @@ func (k Keeper) SendTransfer(
 		escrowAddress := types.GetEscrowAddress(sourcePort, sourceChannel)
 
 		// escrow source tokens. It fails if balance insufficient.
+		if token.Denom == "wei" {
+			token.Denom = "okt"
+		}
 		if err := k.bankKeeper.SendCoins(
 			ctx, sender, escrowAddress, sdk.NewCoins(token),
 		); err != nil {

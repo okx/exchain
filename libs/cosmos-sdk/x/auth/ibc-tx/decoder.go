@@ -76,24 +76,32 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 		}
 
 		amount := &big.Int{}
-		denom := ""
 		gaslimit := uint64(0)
+		decCoin := sdk.DecCoin{}
 		if authInfo.Fee != nil {
 			if authInfo.Fee.Amount != nil {
 				amount = authInfo.Fee.Amount[0].Amount.BigInt()
-				denom = authInfo.Fee.Amount[0].Denom
+				denom := authInfo.Fee.Amount[0].Denom
+				if denom == "wei" {
+					decCoin = sdk.DecCoin{
+						Denom:  "okt",
+						Amount: sdk.NewDecFromIntWithPrec(sdk.NewIntFromBigInt(amount), sdk.Precision),
+					}
+				} else {
+					decCoin = sdk.DecCoin{
+						Denom:  denom,
+						Amount: sdk.NewDecFromBigInt(amount),
+					}
+				}
 			}
 			if authInfo.Fee != nil {
 				gaslimit = authInfo.Fee.GasLimit
 			}
 		}
+
 		fee := authtypes.StdFee{
 			Amount: []sdk.DecCoin{
-				sdk.DecCoin{
-					Denom: denom,
-					//Amount: sdk.NewDecFromBigInt(amount),
-					Amount: sdk.NewDecFromIntWithPrec(sdk.NewIntFromBigInt(amount), sdk.Precision),
-				},
+				decCoin,
 			},
 			Gas: gaslimit,
 		}
