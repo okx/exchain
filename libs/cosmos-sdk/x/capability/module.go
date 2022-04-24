@@ -87,6 +87,10 @@ func (AppModuleBasic) GetQueryCmdV2(cdc *codec.CodecProxy, reg types2.InterfaceR
 	return nil
 }
 
+func (am AppModuleBasic) RegisterRouterForGRPC(cliCtx clientCtx.CLIContext, r *mux.Router) {
+
+}
+
 // ----------------------------------------------------------------------------
 // AppModule
 // ----------------------------------------------------------------------------

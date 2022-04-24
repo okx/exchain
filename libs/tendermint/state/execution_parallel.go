@@ -10,7 +10,7 @@ import (
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
-var (
+const (
 	FlagParalleledTx = "paralleled-tx"
 )
 
