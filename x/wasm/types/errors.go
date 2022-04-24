@@ -72,6 +72,9 @@ var (
 
 	//  error if an address does not belong to a contract (just for registration)
 	_ = sdkErrors.Register(DefaultCodespace, 22, "no such contract")
+	// ErrInvalidEvent error if an attribute/event from the contract is invalid
+
+	ErrSendDisabled = sdkErrors.Register(DefaultCodespace, 23, "send transactions are disabled")
 )
 
 type ErrNoSuchContract struct {

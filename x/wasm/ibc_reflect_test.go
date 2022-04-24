@@ -5,8 +5,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	channeltypes "github.com/okex/exchain/libs/ibc-go/v2/modules/core/04-channel/types"
-	ibctesting "github.com/okex/exchain/libs/ibc-go/v2/testing"
+	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	//ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
 
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	"github.com/stretchr/testify/require"

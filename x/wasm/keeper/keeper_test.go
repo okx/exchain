@@ -18,12 +18,12 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	banktypes "github.com/okex/exchain/libs/cosmos-sdk/x/bank/types"
+	banktypes "github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	tmproto "github.com/okex/exchain/libs/tendermint/proto/tendermint/types"
+	tmproto "github.com/okex/exchain/libs/tendermint/proto/types"
 
 	"github.com/okex/exchain/x/wasm/keeper/wasmtesting"
 	"github.com/okex/exchain/x/wasm/types"

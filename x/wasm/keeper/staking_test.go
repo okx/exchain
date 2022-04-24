@@ -9,10 +9,10 @@ import (
 
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/secp256k1"
+	//"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/secp256k1"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
-	bankkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/bank/keeper"
+	//bankkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/bank/keeper"
 	distributionkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/distribution/keeper"
 	distributiontypes "github.com/okex/exchain/libs/cosmos-sdk/x/distribution/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/staking"

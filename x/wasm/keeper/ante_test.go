@@ -11,7 +11,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmproto "github.com/okex/exchain/libs/tendermint/proto/tendermint/types"
+	tmproto "github.com/okex/exchain/libs/tendermint/proto/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	dbm "github.com/tendermint/tm-db"

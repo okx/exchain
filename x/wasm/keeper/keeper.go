@@ -56,7 +56,7 @@ type WasmVMResponseHandler interface {
 // Keeper will have a reference to Wasmer with it's own data directory.
 type Keeper struct {
 	storeKey              sdk.StoreKey
-	cdc                   codec.CodecProxy
+	cdc                   *codec.CodecProxy
 	accountKeeper         types.AccountKeeper
 	bank                  CoinTransferrer
 	portKeeper            types.PortKeeper
@@ -74,13 +74,13 @@ type Keeper struct {
 // NewKeeper creates a new contract Keeper instance
 // If customEncoders is non-nil, we can use this to override some of the message handler, especially custom
 func NewKeeper(
-	cdc codec.CodecProxy,
+	cdc *codec.CodecProxy,
 	storeKey sdk.StoreKey,
 	paramSpace paramtypes.Subspace,
 	accountKeeper types.AccountKeeper,
 	bankKeeper types.BankKeeper,
-	stakingKeeper types.StakingKeeper,
-	distKeeper types.DistributionKeeper,
+	//stakingKeeper types.StakingKeeper,
+	//distKeeper types.DistributionKeeper,
 	channelKeeper types.ChannelKeeper,
 	portKeeper types.PortKeeper,
 	capabilityKeeper types.CapabilityKeeper,
@@ -109,12 +109,12 @@ func NewKeeper(
 		bank:             NewBankCoinTransferrer(bankKeeper),
 		portKeeper:       portKeeper,
 		capabilityKeeper: capabilityKeeper,
-		messenger:        NewDefaultMessageHandler(router, channelKeeper, capabilityKeeper, bankKeeper, cdc.GetProtocMarshal(), portSource),
+		messenger:        NewDefaultMessageHandler(router, channelKeeper, capabilityKeeper, cdc.GetProtocMarshal(), portSource),
 		queryGasLimit:    wasmConfig.SmartQueryGasLimit,
 		paramSpace:       paramSpace,
 		gasRegister:      NewDefaultWasmGasRegister(),
 	}
-	keeper.wasmVMQueryHandler = DefaultQueryPlugins(bankKeeper, stakingKeeper, distKeeper, channelKeeper, queryRouter, keeper)
+	keeper.wasmVMQueryHandler = DefaultQueryPlugins(bankKeeper, channelKeeper, queryRouter, keeper)
 	for _, o := range opts {
 		o.apply(keeper)
 	}
@@ -982,7 +982,7 @@ func moduleLogger(ctx sdk.Context) log.Logger {
 
 // Querier creates a new grpc querier instance
 func Querier(k *Keeper) *grpcQuerier {
-	return NewGrpcQuerier(k.cdc, k.storeKey, k, k.queryGasLimit)
+	return NewGrpcQuerier(*k.cdc, k.storeKey, k, k.queryGasLimit)
 }
 
 // QueryGasLimit returns the gas limit for smart queries.

@@ -14,11 +14,8 @@ import (
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
-	"github.com/okex/exchain/x/params/types/proposal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/okex/exchain/x/wasm/types"
 )
 
 func TestStoreCodeProposal(t *testing.T) {

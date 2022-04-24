@@ -1,4 +1,4 @@
-package keeper
+package types
 
 import "github.com/okex/exchain/libs/cosmos-sdk/types"
 

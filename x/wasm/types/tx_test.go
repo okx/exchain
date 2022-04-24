@@ -5,8 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/legacy/legacytx"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

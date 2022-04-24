@@ -146,9 +146,9 @@ func MsgInstantiateContractFixture(mutators ...func(*MsgInstantiateContract)) *M
 		CodeID: 1,
 		Label:  "testing",
 		Msg:    []byte(`{"foo":"bar"}`),
-		Funds: sdk.Coins{{
+		Funds: sdk.CoinAdapters{{
 			Denom:  "stake",
-			Amount: sdk.NewDecFromInt(sdk.NewInt(1)),
+			Amount: sdk.NewInt(1),
 		}},
 	}
 	for _, m := range mutators {
@@ -166,9 +166,9 @@ func MsgExecuteContractFixture(mutators ...func(*MsgExecuteContract)) *MsgExecut
 		Sender:   anyAddress,
 		Contract: firstContractAddress,
 		Msg:      []byte(`{"do":"something"}`),
-		Funds: sdk.Coins{{
+		Funds: sdk.CoinAdapters{{
 			Denom:  "stake",
-			Amount: sdk.NewDecFromInt(sdk.NewInt(1)),
+			Amount: sdk.NewInt(1),
 		}},
 	}
 	for _, m := range mutators {

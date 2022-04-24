@@ -62,7 +62,7 @@ func (m msgServer) InstantiateContract(goCtx context.Context, msg *types.MsgInst
 		sdk.NewAttribute(sdk.AttributeKeySender, msg.Sender),
 	))
 
-	contractAddr, data, err := m.keeper.Instantiate(ctx, msg.CodeID, senderAddr, adminAddr, msg.Msg, msg.Label, msg.Funds)
+	contractAddr, data, err := m.keeper.Instantiate(ctx, msg.CodeID, senderAddr, adminAddr, msg.Msg, msg.Label, types.CoinAdaptersToCoins(msg.Funds))
 	if err != nil {
 		return nil, err
 	}
@@ -90,7 +90,7 @@ func (m msgServer) ExecuteContract(goCtx context.Context, msg *types.MsgExecuteC
 		sdk.NewAttribute(sdk.AttributeKeySender, msg.Sender),
 	))
 
-	data, err := m.keeper.Execute(ctx, contractAddr, senderAddr, msg.Msg, msg.Funds)
+	data, err := m.keeper.Execute(ctx, contractAddr, senderAddr, msg.Msg, types.CoinAdaptersToCoins(msg.Funds))
 	if err != nil {
 		return nil, err
 	}

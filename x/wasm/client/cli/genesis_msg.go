@@ -99,7 +99,7 @@ func GenesisInstantiateContractCmd(defaultNodeHome string, genesisMutator Genesi
 
 			return genesisMutator.AlterWasmModuleState(cmd, func(state *types.GenesisState, appState map[string]json.RawMessage) error {
 				// simple sanity check that sender has some balance although it may be consumed by appState previous message already
-				switch ok, err := hasAccountBalance(cmd, appState, senderAddr, msg.Funds); {
+				switch ok, err := hasAccountBalance(cmd, appState, senderAddr, types.CoinAdaptersToCoins(msg.Funds)); {
 				case err != nil:
 					return err
 				case !ok:
@@ -167,7 +167,7 @@ func GenesisExecuteContractCmd(defaultNodeHome string, genesisMutator GenesisMut
 
 			return genesisMutator.AlterWasmModuleState(cmd, func(state *types.GenesisState, appState map[string]json.RawMessage) error {
 				// simple sanity check that sender has some balance although it may be consumed by appState previous message already
-				switch ok, err := hasAccountBalance(cmd, appState, senderAddr, msg.Funds); {
+				switch ok, err := hasAccountBalance(cmd, appState, senderAddr, types.CoinAdaptersToCoins(msg.Funds)); {
 				case err != nil:
 					return err
 				case !ok:

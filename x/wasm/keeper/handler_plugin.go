@@ -3,13 +3,12 @@ package keeper
 import (
 	"errors"
 	"fmt"
-	ibcadapter "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
-
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	ibcadapter "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 
@@ -37,7 +36,7 @@ func NewDefaultMessageHandler(
 	router MessageRouter,
 	channelKeeper types.ChannelKeeper,
 	capabilityKeeper types.CapabilityKeeper,
-	bankKeeper types.Burner,
+	//bankKeeper types.Burner,
 	unpacker codectypes.AnyUnpacker,
 	portSource types.ICS20TransferPortSource,
 	customEncoders ...*MessageEncoders,
@@ -49,7 +48,8 @@ func NewDefaultMessageHandler(
 	return NewMessageHandlerChain(
 		NewSDKMessageHandler(router, encoders),
 		NewIBCRawPacketHandler(channelKeeper, capabilityKeeper),
-		NewBurnCoinMessageHandler(bankKeeper),
+		// un use burn coin message
+		//NewBurnCoinMessageHandler(bankKeeper),
 	)
 }
 
@@ -205,7 +205,7 @@ func (m MessageHandlerFunc) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAdd
 }
 
 // NewBurnCoinMessageHandler handles wasmvm.BurnMsg messages
-func NewBurnCoinMessageHandler(burner types.Burner) MessageHandlerFunc {
+/*func NewBurnCoinMessageHandler(burner types.Burner) MessageHandlerFunc {
 	return func(ctx sdk.Context, contractAddr sdk.AccAddress, _ string, msg wasmvmtypes.CosmosMsg) (events []sdk.Event, data [][]byte, err error) {
 		if msg.Bank != nil && msg.Bank.Burn != nil {
 			coins, err := ConvertWasmCoinsToSdkCoins(msg.Bank.Burn.Amount)
@@ -223,4 +223,4 @@ func NewBurnCoinMessageHandler(burner types.Burner) MessageHandlerFunc {
 		}
 		return nil, nil, types.ErrUnknownMsg
 	}
-}
+}*/

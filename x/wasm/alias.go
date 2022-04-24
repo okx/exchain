@@ -61,19 +61,20 @@ var (
 	EncodeStakingMsg          = keeper.EncodeStakingMsg
 	EncodeWasmMsg             = keeper.EncodeWasmMsg
 	NewKeeper                 = keeper.NewKeeper
+	NewBankKeeperAdapter      = types.NewBankKeeperAdapter
 	NewLegacyQuerier          = keeper.NewLegacyQuerier
 	DefaultQueryPlugins       = keeper.DefaultQueryPlugins
 	BankQuerier               = keeper.BankQuerier
 	NoCustomQuerier           = keeper.NoCustomQuerier
 	StakingQuerier            = keeper.StakingQuerier
 	WasmQuerier               = keeper.WasmQuerier
-	CreateTestInput           = keeper.CreateTestInput
-	TestHandler               = keeper.TestHandler
-	NewWasmProposalHandler    = keeper.NewWasmProposalHandler
-	NewQuerier                = keeper.Querier
-	ContractFromPortID        = keeper.ContractFromPortID
-	WithWasmEngine            = keeper.WithWasmEngine
-	NewCountTXDecorator       = keeper.NewCountTXDecorator
+	//CreateTestInput           = keeper.CreateTestInput
+	//TestHandler               = keeper.TestHandler
+	NewWasmProposalHandler = keeper.NewWasmProposalHandler
+	NewQuerier             = keeper.Querier
+	ContractFromPortID     = keeper.ContractFromPortID
+	WithWasmEngine         = keeper.WithWasmEngine
+	NewCountTXDecorator    = keeper.NewCountTXDecorator
 
 	// variable aliases
 	ModuleCdc            = types.ModuleCdc

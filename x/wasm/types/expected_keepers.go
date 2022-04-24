@@ -19,16 +19,23 @@ type BankViewKeeper interface {
 	GetBalance(ctx sdk.Context, addr sdk.AccAddress, denom string) sdk.Coin
 }
 
-// Burner is a subset of the sdk bank keeper methods
-type Burner interface {
-	BurnCoins(ctx sdk.Context, moduleName string, amt sdk.Coins) error
-	SendCoinsFromAccountToModule(ctx sdk.Context, senderAddr sdk.AccAddress, recipientModule string, amt sdk.Coins) error
+//// Burner is a subset of the sdk bank keeper methods
+//type Burner interface {
+//	BurnCoins(ctx sdk.Context, moduleName string, amt sdk.Coins) error
+//	SendCoinsFromAccountToModule(ctx sdk.Context, senderAddr sdk.AccAddress, recipientModule string, amt sdk.Coins) error
+//}
+
+type BankKeeperOKC interface {
+	SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error
+	BlacklistedAddr(addr sdk.AccAddress) bool
+	GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.Coins
+	GetSendEnabled(ctx sdk.Context) bool
 }
 
 // BankKeeper defines a subset of methods implemented by the cosmos-sdk bank keeper
 type BankKeeper interface {
 	BankViewKeeper
-	Burner
+	//	Burner
 	IsSendEnabledCoins(ctx sdk.Context, coins ...sdk.Coin) error
 	BlockedAddr(addr sdk.AccAddress) bool
 	SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error

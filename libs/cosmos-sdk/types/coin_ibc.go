@@ -73,9 +73,18 @@ func NewCoinAdapter(denom string, amount Int) CoinAdapter {
 	return coin
 }
 
-func (cas CoinAdapters) IsAnyNil() bool {
+func (cas CoinAdapters) IsValid() bool {
+	for i, _ := range cas {
+		if err := cas[i].Validate(); err != nil {
+			return false
+		}
+	}
+	return true
+}
+
+func (cas CoinAdapters) IsAnyNegative() bool {
 	for _, coin := range cas {
-		if coin.Amount.IsNil() {
+		if coin.Amount.IsNegative() {
 			return true
 		}
 	}
@@ -83,9 +92,9 @@ func (cas CoinAdapters) IsAnyNil() bool {
 	return false
 }
 
-func (cas CoinAdapters) IsAnyNegative() bool {
+func (cas CoinAdapters) IsAnyNil() bool {
 	for _, coin := range cas {
-		if coin.Amount.IsNegative() {
+		if coin.Amount.IsNil() {
 			return true
 		}
 	}

@@ -82,7 +82,7 @@ func handleInstantiateProposal(ctx sdk.Context, k types.ContractOpsKeeper, p typ
 		return sdkerrors.Wrap(err, "admin")
 	}
 
-	_, data, err := k.Instantiate(ctx, p.CodeID, runAsAddr, adminAddr, p.Msg, p.Label, p.Funds)
+	_, data, err := k.Instantiate(ctx, p.CodeID, runAsAddr, adminAddr, p.Msg, p.Label, types.CoinAdaptersToCoins(p.Funds))
 	if err != nil {
 		return err
 	}
@@ -153,7 +153,7 @@ func handleExecuteProposal(ctx sdk.Context, k types.ContractOpsKeeper, p types.E
 	if err != nil {
 		return sdkerrors.Wrap(err, "run as address")
 	}
-	data, err := k.Execute(ctx, contractAddr, runAsAddr, p.Msg, p.Funds)
+	data, err := k.Execute(ctx, contractAddr, runAsAddr, p.Msg, types.CoinAdaptersToCoins(p.Funds))
 	if err != nil {
 		return err
 	}

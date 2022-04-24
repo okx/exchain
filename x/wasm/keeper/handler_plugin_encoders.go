@@ -88,18 +88,18 @@ func (e MessageEncoders) Encode(ctx sdk.Context, contractAddr sdk.AccAddress, co
 		return e.Bank(contractAddr, msg.Bank)
 	case msg.Custom != nil:
 		return e.Custom(contractAddr, msg.Custom)
-	case msg.Distribution != nil:
-		return e.Distribution(contractAddr, msg.Distribution)
+	//case msg.Distribution != nil:
+	//	return e.Distribution(contractAddr, msg.Distribution)
 	case msg.IBC != nil:
 		return e.IBC(ctx, contractAddr, contractIBCPortID, msg.IBC)
-	case msg.Staking != nil:
-		return e.Staking(contractAddr, msg.Staking)
+	//case msg.Staking != nil:
+	//	return e.Staking(contractAddr, msg.Staking)
 	case msg.Stargate != nil:
 		return e.Stargate(contractAddr, msg.Stargate)
 	case msg.Wasm != nil:
 		return e.Wasm(contractAddr, msg.Wasm)
-	case msg.Gov != nil:
-		return EncodeGovMsg(contractAddr, msg.Gov)
+		//case msg.Gov != nil:
+		//	return EncodeGovMsg(contractAddr, msg.Gov)
 	}
 	return nil, sdkerrors.Wrap(types.ErrUnknownMsg, "unknown variant of Wasm")
 }
@@ -245,7 +245,7 @@ func EncodeWasmMsg(sender sdk.AccAddress, msg *wasmvmtypes.WasmMsg) ([]sdk.Msg, 
 			Sender:   sender.String(),
 			Contract: msg.Execute.ContractAddr,
 			Msg:      msg.Execute.Msg,
-			Funds:    CoinsToCoinAdapters(coins),
+			Funds:    types.CoinsToCoinAdapters(coins),
 		}
 		return []sdk.Msg{&sdkMsg}, nil
 	case msg.Instantiate != nil:
@@ -260,7 +260,7 @@ func EncodeWasmMsg(sender sdk.AccAddress, msg *wasmvmtypes.WasmMsg) ([]sdk.Msg, 
 			Label:  msg.Instantiate.Label,
 			Msg:    msg.Instantiate.Msg,
 			Admin:  msg.Instantiate.Admin,
-			Funds:  CoinsToCoinAdapters(coins),
+			Funds:  types.CoinsToCoinAdapters(coins),
 		}
 		return []sdk.Msg{&sdkMsg}, nil
 	case msg.Migrate != nil:

@@ -99,17 +99,17 @@ type wasmQueryKeeper interface {
 
 func DefaultQueryPlugins(
 	bank types.BankViewKeeper,
-	staking types.StakingKeeper,
-	distKeeper types.DistributionKeeper,
+	//staking types.StakingKeeper,
+	//distKeeper types.DistributionKeeper,
 	channelKeeper types.ChannelKeeper,
 	queryRouter GRPCQueryRouter,
 	wasm wasmQueryKeeper,
 ) QueryPlugins {
 	return QueryPlugins{
-		Bank:     BankQuerier(bank),
-		Custom:   NoCustomQuerier,
-		IBC:      IBCQuerier(wasm, channelKeeper),
-		Staking:  StakingQuerier(staking, distKeeper),
+		Bank:   BankQuerier(bank),
+		Custom: NoCustomQuerier,
+		IBC:    IBCQuerier(wasm, channelKeeper),
+		//Staking:  StakingQuerier(staking, distKeeper),
 		Stargate: StargateQuerier(queryRouter),
 		Wasm:     WasmQuerier(wasm),
 	}

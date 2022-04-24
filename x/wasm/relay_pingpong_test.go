@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"testing"
 
-	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/v2/modules/apps/transfer/types"
-	ibctesting "github.com/okex/exchain/libs/ibc-go/v2/testing"
+	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
+	//ibctesting "github.com/okex/exchain/libs/ibc-go/v2/testing"
 
 	wasmvm "github.com/CosmWasm/wasmvm"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	clienttypes "github.com/okex/exchain/libs/ibc-go/v2/modules/core/02-client/types"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/v2/modules/core/04-channel/types"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

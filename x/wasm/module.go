@@ -97,9 +97,8 @@ func (b AppModuleBasic) RegisterInterfaces(registry cdctypes.InterfaceRegistry) 
 // AppModule implements an application module for the wasm module.
 type AppModule struct {
 	AppModuleBasic
-	cdc                codec.CodecProxy
-	keeper             *Keeper
-	validatorSetSource keeper.ValidatorSetSource
+	cdc    codec.CodecProxy
+	keeper *Keeper
 }
 
 // ConsensusVersion is a sequence number for state-breaking change of the
@@ -109,12 +108,11 @@ type AppModule struct {
 func (AppModule) ConsensusVersion() uint64 { return 1 }
 
 // NewAppModule creates a new AppModule object
-func NewAppModule(cdc codec.CodecProxy, keeper *Keeper, validatorSetSource keeper.ValidatorSetSource) AppModule {
+func NewAppModule(cdc codec.CodecProxy, keeper *Keeper) AppModule {
 	return AppModule{
-		AppModuleBasic:     AppModuleBasic{},
-		cdc:                cdc,
-		keeper:             keeper,
-		validatorSetSource: validatorSetSource,
+		AppModuleBasic: AppModuleBasic{},
+		cdc:            cdc,
+		keeper:         keeper,
 	}
 }
 

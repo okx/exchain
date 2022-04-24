@@ -280,7 +280,7 @@ func ProposalExecuteContractCmd() *cobra.Command {
 				Contract:    contract,
 				Msg:         execMsg,
 				RunAs:       runAs,
-				Funds:       funds,
+				Funds:       types.CoinsToCoinAdapters(funds),
 			}
 
 			msg := govtypes.NewMsgSubmitProposal(&content, deposit, clientCtx.GetFromAddress())

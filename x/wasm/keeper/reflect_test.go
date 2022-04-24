@@ -14,8 +14,8 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	authkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
-	bankkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/bank/keeper"
-	banktypes "github.com/okex/exchain/libs/cosmos-sdk/x/bank/types"
+	//bankkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/bank/keeper"
+	//banktypes "github.com/okex/exchain/libs/cosmos-sdk/x/bank/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

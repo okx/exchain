@@ -88,7 +88,7 @@ func (s InstantiateProposalJSONReq) Content() govtypes.Content {
 		CodeID:      s.Code,
 		Label:       s.Label,
 		Msg:         types.RawContractMessage(s.Msg),
-		Funds:       s.Funds,
+		Funds:       types.CoinsToCoinAdapters(s.Funds),
 	}
 }
 func (s InstantiateProposalJSONReq) GetProposer() string {
@@ -182,7 +182,7 @@ func (s ExecuteProposalJSONReq) Content() govtypes.Content {
 		Contract:    s.Contract,
 		Msg:         types.RawContractMessage(s.Msg),
 		RunAs:       s.RunAs,
-		Funds:       s.Funds,
+		Funds:       types.CoinsToCoinAdapters(s.Funds),
 	}
 }
 func (s ExecuteProposalJSONReq) GetProposer() string {

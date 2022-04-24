@@ -10,7 +10,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	authkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
-	bankkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/bank/keeper"
+	//bankkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/bank/keeper"
 	stakingkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/staking/keeper"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
