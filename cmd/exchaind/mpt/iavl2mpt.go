@@ -15,10 +15,13 @@ import (
 	"github.com/okex/exchain/app"
 	apptypes "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	iavlstore "github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/mpt"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/cobra"
 )
@@ -156,6 +159,13 @@ func migrateEvmFromIavlToMpt(ctx *server.Context) {
 	// 3. Migrates Bloom -> rawdb
 	miragteBloomsToDb(migrationApp, cmCtx, batch)
 
+	// 4. save an empty evm2 iavl tree in mirgate height
+	upgradedPrefixDb := dbm.NewPrefixDB(migrationApp.GetDB(), []byte(iavlEvm2Key))
+	upgradedTree, err := iavl.NewMutableTreeWithOpts(upgradedPrefixDb, iavlstore.IavlCacheSize, nil)
+	panicError(err)
+	_, version, err := upgradedTree.SaveVersionSync(cmCtx.BlockHeight()-1, false)
+	panicError(err)
+	fmt.Printf("Successfully save an empty evm2 iavl tree in %d\n", version)
 }
 
 // 1. migrateContractToMpt Migrates Accounts、Code、Storage
