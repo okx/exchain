@@ -65,7 +65,7 @@ func SetupTestingApp() (TestingApp, map[string]json.RawMessage) {
 // that also act as delegators. For simplicity, each validator is bonded with a delegation
 // of one consensus engine unit (10^6) in the default token of the simapp from first genesis
 // account. A Nop logger is set in SimApp.
-func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs []authexported.GenesisAccount, balances ...sdk.Coins) TestingApp {
+func SetupWithGenesisValSet(t *testing.T, chainId string, valSet *tmtypes.ValidatorSet, genAccs []authexported.GenesisAccount, balances ...sdk.Coins) TestingApp {
 	app, genesisState := DefaultTestingAppInit()
 	// set genesis accounts
 	authGenesis := authtypes.NewGenesisState(authtypes.DefaultParams(), genAccs)
@@ -129,25 +129,25 @@ func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs 
 
 	stateBytes, err := json.MarshalIndent(genesisState, "", " ")
 	require.NoError(t, err)
-
 	// init chain will set the validator set and initialize the genesis accounts
 	app.InitChain(
 		abci.RequestInitChain{
 			Validators:      []abci.ValidatorUpdate{},
 			ConsensusParams: simapp.DefaultConsensusParams,
 			AppStateBytes:   stateBytes,
+			ChainId:         chainId,
 		},
 	)
 
 	// commit genesis changes
 	app.Commit(abci.RequestCommit{})
 	// app.Commit()
-	app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{
+	/*app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{
 		Height:             app.LastBlockHeight() + 1,
 		AppHash:            app.LastCommitID().Hash,
 		ValidatorsHash:     valSet.Hash(app.LastBlockHeight() + 1),
 		NextValidatorsHash: valSet.Hash(app.LastBlockHeight() + 1),
-	}})
+	}})*/
 	//app.Commit(abci.RequestCommit{})
 
 	return app

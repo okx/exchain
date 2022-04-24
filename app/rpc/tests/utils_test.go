@@ -18,7 +18,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
-	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/stretchr/testify/require"
 )
@@ -126,7 +125,7 @@ func sendTestTransaction(t *testing.T, netAddr string, senderAddr, receiverAddr 
 }
 
 // deployTestContract deploys a contract that emits an event in the constructor
-func deployTestContract(t *testing.T, netAddr string, senderAddr ethcmn.Address, kind int) (ethcmn.Hash, map[string]interface{}) {
+func deployTestContract(suite *RPCTestSuite, netAddr string, senderAddr ethcmn.Address, kind int) (ethcmn.Hash, map[string]interface{}) {
 	fromAddrStr := senderAddr.Hex()
 	param := make([]map[string]string, 1)
 	param[0] = make(map[string]string)
@@ -141,16 +140,19 @@ func deployTestContract(t *testing.T, netAddr string, senderAddr ethcmn.Address,
 		panic("unsupported contract kind")
 	}
 
-	rpcRes := Call(t, netAddr, "eth_sendTransaction", param)
+	rpcRes := Call(suite.T(), netAddr, "eth_sendTransaction", param)
 
 	var hash ethcmn.Hash
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &hash))
+	require.NoError(suite.T(), json.Unmarshal(rpcRes.Result, &hash))
 
-	//receipt := WaitForReceipt(t, hash)
-	//require.NotNil(t, receipt, "transaction failed")
-	//require.Equal(t, "0x1", receipt["status"].(string))
+	commitBlock(suite)
+	commitBlock(suite)
+
+	receipt := WaitForReceipt(suite.T(), suite.addr, hash)
+	require.NotNil(suite.T(), receipt, "transaction failed")
+	require.Equal(suite.T(), "0x1", receipt["status"].(string))
 	//t.Logf("%s has deployed a contract %s with tx hash %s successfully\n", fromAddrStr, receipt["contractAddress"], hash.Hex())
-	return hash, nil
+	return hash, receipt
 }
 
 func getBlockHeightFromTxHash(t *testing.T, netAddr string, hash ethcmn.Hash) hexutil.Uint64 {
@@ -164,20 +166,7 @@ func getBlockHeightFromTxHash(t *testing.T, netAddr string, hash ethcmn.Hash) he
 
 	return hexutil.Uint64(transaction.BlockNumber.ToInt().Uint64())
 }
-func setResultTxFromMemoryPool(suite *RPCTestSuite) {
-	mck, ok := suite.cliCtx.Client.(*MockClient)
-	suite.Require().True(ok)
-	tx := mck.env.Mempool.ReapMaxTxs(1)
-	res := &ctypes.ResultTx{
-		Tx: tx[0],
-	}
-	setResponse(suite, res, false)
-}
-func setResponse(suite *RPCTestSuite, res interface{}, clear bool) {
-	mck, ok := suite.cliCtx.Client.(*MockClient)
-	suite.Require().True(ok)
-	mck.SetResponse(res, clear)
-}
+
 func getBlockHashFromTxHash(t *testing.T, netAddr string, hash ethcmn.Hash) *ethcmn.Hash {
 	rpcRes := Call(t, netAddr, "eth_getTransactionByHash", []interface{}{hash})
 	var transaction watcher.Transaction

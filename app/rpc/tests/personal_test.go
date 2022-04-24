@@ -34,7 +34,7 @@ func (suite *RPCTestSuite) TestPersonal_Sign() {
 
 	// error with inexistent addr
 	inexistentAddr := common.BytesToAddress([]byte{0})
-	rpcRes, err := CallWithError(suite.addr, "personal_sign", []interface{}{hexutil.Bytes{0x88}, inexistentAddr, ""})
+	_, err := CallWithError(suite.addr, "personal_sign", []interface{}{hexutil.Bytes{0x88}, inexistentAddr, ""})
 	suite.Require().Error(err)
 }
 
@@ -199,9 +199,13 @@ func (suite *RPCTestSuite) TestPersonal_SendTransaction_Transfer() {
 	rpcRes := Call(suite.T(), suite.addr, "personal_sendTransaction", params)
 	var hash ethcmn.Hash
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &hash))
-	//receipt := WaitForReceipt(suite.T(), hash)
-	//suite.Require().NotNil(receipt)
-	//suite.Require().Equal("0x1", receipt["status"].(string))
+
+	commitBlock(suite)
+	commitBlock(suite)
+
+	receipt := WaitForReceipt(suite.T(), suite.addr, hash)
+	suite.Require().NotNil(receipt)
+	suite.Require().Equal("0x1", receipt["status"].(string))
 }
 
 func (suite *RPCTestSuite) TestPersonal_SendTransaction_DeployContract() {
@@ -216,7 +220,11 @@ func (suite *RPCTestSuite) TestPersonal_SendTransaction_DeployContract() {
 	rpcRes := Call(suite.T(), suite.addr, "personal_sendTransaction", params)
 	var hash ethcmn.Hash
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &hash))
-	//receipt := WaitForReceipt(suite.T(), hash)
-	//suite.Require().NotNil(receipt)
-	//suite.Require().Equal("0x1", receipt["status"].(string))
+
+	commitBlock(suite)
+	commitBlock(suite)
+
+	receipt := WaitForReceipt(suite.T(), suite.addr, hash)
+	suite.Require().NotNil(receipt)
+	suite.Require().Equal("0x1", receipt["status"].(string))
 }

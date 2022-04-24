@@ -5,9 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"container/list"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	apptesting "github.com/okex/exchain/libs/ibc-go/testing"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmcfg "github.com/okex/exchain/libs/tendermint/config"
@@ -24,6 +21,7 @@ import (
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	tmstate "github.com/okex/exchain/libs/tendermint/state"
+	"github.com/okex/exchain/libs/tendermint/state/txindex"
 	"github.com/okex/exchain/libs/tendermint/state/txindex/kv"
 	"github.com/okex/exchain/libs/tendermint/state/txindex/null"
 	"github.com/okex/exchain/libs/tendermint/store"
@@ -33,13 +31,10 @@ import (
 
 type MockClient struct {
 	mock.Client
-	app          abci.Application
-	chain        apptesting.TestChainI
-	env          *rpccore.Environment
-	state        tmstate.State
-	blockExec    *sm.BlockExecutor
-	priv         types.PrivValidator
-	responseList list.List
+	chain apptesting.TestChainI
+	env   *rpccore.Environment
+	state tmstate.State
+	priv  types.PrivValidator
 }
 
 func createAndStartProxyAppConns(clientCreator proxy.ClientCreator, logger log.Logger) (proxy.AppConns, error) {
@@ -61,7 +56,6 @@ func NewMockClient(chainId string, chain apptesting.TestChainI, app abci.Applica
 	}
 
 	mc := &MockClient{
-		app:   app,
 		chain: chain,
 		env: &rpccore.Environment{
 			BlockStore: store.NewBlockStore(dbm.NewMemDB()),
@@ -82,22 +76,25 @@ func NewMockClient(chainId string, chain apptesting.TestChainI, app abci.Applica
 	mc.env.PubKey = chain.SenderAccount().GetPubKey()
 
 	db := dbm.NewMemDB()
-	mc.blockExec = sm.NewBlockExecutor(db, log.NewNopLogger(), proxyApp.Consensus(), mempool, sm.MockEvidencePool{})
 	sm.SaveState(db, mc.state)
 	return mc
 }
 func (c MockClient) makeBlock(height int64, state sm.State, lastCommit *types.Commit) *types.Block {
 	tx := c.env.Mempool.ReapMaxTxs(1000)
 	block, _ := state.MakeBlock(height, tx, lastCommit, nil, state.Validators.GetProposer().Address)
+	c.env.Mempool.Flush()
 	return block
 }
 func (c *MockClient) CommitBlock() {
-	//blockHeight := c.state.LastBlockHeight + 1
 	if c.priv == nil {
 		_, c.priv = types.RandValidator(false, 30)
 	}
 	blockHeight := c.state.LastBlockHeight + 1
 	lastCommit := types.NewCommit(blockHeight-1, 0, types.BlockID{}, nil)
+	thisBlock := c.makeBlock(blockHeight, c.state, lastCommit)
+	thisParts := thisBlock.MakePartSet(types.BlockPartSizeBytes)
+	blockID := types.BlockID{Hash: thisBlock.Hash(), PartsHeader: thisParts.Header()}
+
 	if blockHeight > 1 {
 		lastBlockMeta := c.env.BlockStore.LoadBlockMeta(blockHeight - 1)
 		lastBlock := c.env.BlockStore.LoadBlock(blockHeight - 1)
@@ -115,37 +112,94 @@ func (c *MockClient) CommitBlock() {
 		}
 		lastCommit = types.NewCommit(vote.Height, vote.Round,
 			lastBlockMeta.BlockID, []types.CommitSig{vote.CommitSig()})
+
+		header := abci.Header{
+			Height: blockHeight,
+			LastBlockId: abci.BlockID{
+				Hash: c.state.LastBlockID.Hash,
+			},
+			ChainID: c.state.ChainID,
+		}
+		c.chain.App().BeginBlock(abci.RequestBeginBlock{
+			Hash:   thisBlock.Hash(),
+			Header: header,
+		})
+		var resDeliverTxs []*abci.ResponseDeliverTx
+		for _, tx := range thisBlock.Txs {
+			resp := c.chain.App().DeliverTx(abci.RequestDeliverTx{
+				Tx: tx,
+			})
+			resDeliverTxs = append(resDeliverTxs, &resp)
+		}
+		endBlockResp := c.chain.App().EndBlock(abci.RequestEndBlock{
+			Height: blockHeight,
+		})
+		blockResp := &tmstate.ABCIResponses{
+			DeliverTxs: resDeliverTxs,
+			EndBlock:   &endBlockResp,
+		}
+		c.state = tmstate.State{
+			Version:                          c.state.Version,
+			ChainID:                          c.state.ChainID,
+			LastBlockHeight:                  blockHeight,
+			LastBlockID:                      blockID,
+			LastBlockTime:                    thisBlock.Header.Time,
+			NextValidators:                   c.state.NextValidators,
+			Validators:                       c.state.NextValidators.Copy(),
+			LastValidators:                   c.state.Validators.Copy(),
+			LastHeightValidatorsChanged:      0,
+			ConsensusParams:                  c.state.ConsensusParams,
+			LastHeightConsensusParamsChanged: blockHeight + 1,
+			LastResultsHash:                  blockResp.ResultsHash(),
+			AppHash:                          nil,
+		}
+		//thisBlock.Height = state.LastBlockHeight + 1
+		c.env.BlockStore.SaveBlock(thisBlock, thisParts, lastCommit)
+		c.CommitTx(blockHeight, thisBlock.Txs, resDeliverTxs)
+		c.chain.App().Commit(abci.RequestCommit{})
+	} else {
+		c.env.BlockStore.SaveBlock(thisBlock, thisParts, lastCommit)
+		c.state = tmstate.State{
+			Version:                          c.state.Version,
+			ChainID:                          c.state.ChainID,
+			LastBlockHeight:                  blockHeight,
+			LastBlockID:                      blockID,
+			LastBlockTime:                    thisBlock.Header.Time,
+			NextValidators:                   c.state.NextValidators,
+			Validators:                       c.state.NextValidators.Copy(),
+			LastValidators:                   c.state.Validators.Copy(),
+			LastHeightValidatorsChanged:      0,
+			ConsensusParams:                  c.state.ConsensusParams,
+			LastHeightConsensusParamsChanged: blockHeight + 1,
+			LastResultsHash:                  c.state.LastResultsHash,
+			AppHash:                          nil,
+		}
 	}
-
-	thisBlock := c.makeBlock(blockHeight, c.state, lastCommit)
-
-	thisParts := thisBlock.MakePartSet(types.BlockPartSizeBytes)
-	blockID := types.BlockID{Hash: thisBlock.Hash(), PartsHeader: thisParts.Header()}
-
-	//thisBlock.Height = state.LastBlockHeight + 1
-	//thisBlock.LastCommit.Signatures = []types.CommitSig{}
-	//thisBlock.Time = state.LastBlockTime
-	state, _, err := c.blockExec.ApplyBlock(c.state, blockID, thisBlock)
-	if err != nil {
-		panic(errors.Wrap(err, "error apply block"))
-	}
-	//thisBlock.Height = state.LastBlockHeight + 1
-	c.env.BlockStore.SaveBlock(thisBlock, thisParts, lastCommit)
-	c.state = state
 }
+func (c *MockClient) CommitTx(height int64, txs types.Txs, resDeliverTxs []*abci.ResponseDeliverTx) {
+	batch := txindex.NewBatch(int64(len(txs)))
+	for i, tx := range txs {
+		txResult := &types.TxResult{
+			Height: height,
+			Index:  uint32(i),
+			Tx:     tx,
+			Result: *resDeliverTxs[i],
+		}
 
-func (c *MockClient) SetResponse(response interface{}, clear bool) {
-	if clear {
-		c.responseList = *list.New()
+		if err := batch.Add(txResult); err != nil {
+			panic(err)
+		}
+		err := c.env.TxIndexer.AddBatch(batch)
+		if err != nil {
+			panic(err)
+		}
 	}
-	c.responseList.PushBack(response)
-
 }
 func (c MockClient) ABCIQueryWithOptions(
 	path string,
 	data bytes.HexBytes,
 	opts client.ABCIQueryOptions) (*ctypes.ResultABCIQuery, error) {
-	resQuery := c.app.Query(abci.RequestQuery{
+	resQuery := c.chain.App().Query(abci.RequestQuery{
 		Path:   path,
 		Data:   data,
 		Height: opts.Height,
@@ -320,13 +374,6 @@ func (c *MockClient) NumUnconfirmedTxs() (*ctypes.ResultUnconfirmedTxs, error) {
 		TotalBytes: c.env.Mempool.TxsBytes()}, nil
 }
 func (c *MockClient) Block(heightPtr *int64) (*ctypes.ResultBlock, error) {
-	if c.responseList.Len() != 0 {
-		res, ok := c.responseList.Front().Value.(*ctypes.ResultBlock)
-		if ok {
-			c.responseList.Remove(c.responseList.Front())
-			return res, nil
-		}
-	}
 	height, err := c.getHeight(c.env.BlockStore.Height(), heightPtr)
 	if err != nil {
 		return nil, err
@@ -340,13 +387,6 @@ func (c *MockClient) Block(heightPtr *int64) (*ctypes.ResultBlock, error) {
 	return &ctypes.ResultBlock{BlockID: blockMeta.BlockID, Block: block}, nil
 }
 func (c *MockClient) Tx(hash []byte, prove bool) (*ctypes.ResultTx, error) {
-	if c.responseList.Len() != 0 {
-		res, ok := c.responseList.Front().Value.(*ctypes.ResultTx)
-		if ok {
-			c.responseList.Remove(c.responseList.Front())
-			return res, nil
-		}
-	}
 	// if index is disabled, return error
 	if _, ok := c.env.TxIndexer.(*null.TxIndex); ok {
 		return nil, fmt.Errorf("transaction indexing is disabled")

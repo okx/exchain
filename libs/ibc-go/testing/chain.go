@@ -165,7 +165,7 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 	//// 	Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, amount)),
 	//// }
 
-	app := SetupWithGenesisValSet(t, valSet, []authtypes.GenesisAccount{genesisAcc}, balance)
+	app := SetupWithGenesisValSet(t, chainID, valSet, []authtypes.GenesisAccount{genesisAcc}, balance)
 
 	// create current header and call begin block
 	header := tmproto.Header{
@@ -200,7 +200,7 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 	return tchain
 }
 
-func NewTestEthChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
+func NewTestEthChain(t *testing.T, coord *Coordinator, chainID string) *TestChain {
 	// generate validator private/public key
 	privVal := mock.NewPV()
 	pubKey, err := privVal.GetPubKey()
@@ -232,7 +232,7 @@ func NewTestEthChain(t *testing.T, coord *Coordinator, chainID string) TestChain
 	//
 	//senderPrivKey.PubKey().Address().Bytes()
 
-	app := SetupWithGenesisValSet(t, valSet, []authtypes.GenesisAccount{genesisAcc}, balance)
+	app := SetupWithGenesisValSet(t, chainID, valSet, []authtypes.GenesisAccount{genesisAcc}, balance)
 
 	// create current header and call begin block
 	header := tmproto.Header{
@@ -244,7 +244,7 @@ func NewTestEthChain(t *testing.T, coord *Coordinator, chainID string) TestChain
 	txConfig := app.TxConfig()
 
 	// create an account to send transactions from
-	tchain := &TestChain{
+	return &TestChain{
 		t:             t,
 		coordinator:   coord,
 		chainID:       chainID,
@@ -260,11 +260,10 @@ func NewTestEthChain(t *testing.T, coord *Coordinator, chainID string) TestChain
 	}
 
 	//coord.UpdateNextBlock(tchain)
-	coord.CommitBlock(tchain)
+	//coord.CommitBlock(tchain)
 	//
 	//coord.UpdateNextBlock(tchain)
 
-	return tchain
 }
 
 // GetContext returns the current context for the application.

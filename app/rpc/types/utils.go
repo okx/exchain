@@ -193,10 +193,7 @@ func FormatBlock(
 // GetKeyByAddress returns the private key matching the given address. If not found it returns false.
 func GetKeyByAddress(keys []ethsecp256k1.PrivKey, address common.Address) (key *ethsecp256k1.PrivKey, exist bool) {
 	for _, key := range keys {
-		keyaddr := key.PubKey().Address()
-		keyStr := keyaddr.String()
-		fmt.Println(keyStr)
-		if bytes.Equal(keyaddr.Bytes(), address.Bytes()) {
+		if bytes.Equal(key.PubKey().Address().Bytes(), address.Bytes()) {
 			return &key, true
 		}
 	}

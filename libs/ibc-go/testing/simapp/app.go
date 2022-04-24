@@ -601,10 +601,6 @@ func (app *SimApp) Name() string { return app.BaseApp.Name() }
 func (app *SimApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
 	return app.mm.BeginBlock(ctx, req)
 }
-func (app *SimApp) BeginBlock(req abci.RequestBeginBlock) abci.ResponseBeginBlock {
-	req.Header.Height = app.LastBlockHeight() + 1
-	return app.GetBaseApp().BeginBlock(req)
-}
 
 // EndBlocker updates every end block
 func (app *SimApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
