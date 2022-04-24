@@ -84,6 +84,7 @@ import (
 func init() {
 	// set the address prefixes
 	config := sdk.GetConfig()
+	config.SetCoinType(60)
 	okexchain.SetBech32Prefixes(config)
 	okexchain.SetBip44CoinType(config)
 }
@@ -601,6 +602,10 @@ func (app *SimApp) Name() string { return app.BaseApp.Name() }
 // BeginBlocker updates every begin block
 func (app *SimApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
 	return app.mm.BeginBlock(ctx, req)
+}
+func (app *SimApp) BeginBlock(req abci.RequestBeginBlock) abci.ResponseBeginBlock {
+	req.Header.Height = app.LastBlockHeight() + 1
+	return app.GetBaseApp().BeginBlock(req)
 }
 
 // EndBlocker updates every end block

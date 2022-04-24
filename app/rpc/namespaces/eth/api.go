@@ -294,8 +294,8 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNrOrHash r
 	if !(blockNum == rpctypes.PendingBlockNumber || blockNum == rpctypes.LatestBlockNumber) {
 		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
 	}
-
-	bs, err := api.clientCtx.Codec.MarshalJSON(auth.NewQueryAccountParams(address.Bytes()))
+	tmp := auth.NewQueryAccountParams(address.Bytes())
+	bs, err := api.clientCtx.Codec.MarshalJSON(tmp)
 	if err != nil {
 		return nil, err
 	}
