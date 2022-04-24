@@ -6,7 +6,7 @@ import (
 )
 
 type syncList struct {
-	mtx sync.Mutex
+	mtx sync.RWMutex
 	*list.List
 }
 
@@ -19,27 +19,55 @@ func newSyncList() *syncList {
 
 func (sl *syncList) MoveToBack(e *list.Element) {
 	sl.mtx.Lock()
-	defer sl.mtx.Unlock()
 	sl.List.MoveToBack(e)
+	sl.mtx.Unlock()
 }
 
-//func (sl *syncList) Len() int {
-//	sl.mtx.RLock()
-//	defer sl.mtx.RUnlock()
-//	return sl.List.Len()
-//}
-//func (sl *syncList) Front() *list.Element {
-//	sl.mtx.RLock()
-//	defer sl.mtx.RUnlock()
-//	return sl.List.Front()
-//}
-//func (sl *syncList) PushBack(e interface{}) *list.Element {
-//	sl.mtx.Lock()
-//	defer sl.mtx.Unlock()
-//	return sl.List.PushBack(e)
-//}
-//func (sl *syncList) Remove(e *list.Element) interface{} {
-//	sl.mtx.Lock()
-//	defer sl.mtx.Unlock()
-//	return sl.List.Remove(e)
-//}
+func (sl *syncList) Len() (l int) {
+	sl.mtx.RLock()
+	l = sl.List.Len()
+	sl.mtx.RUnlock()
+	return
+}
+
+func (sl *syncList) Front() (front *list.Element) {
+	sl.mtx.RLock()
+	front = sl.List.Front()
+	sl.mtx.RUnlock()
+	return
+}
+
+func (sl *syncList) RemoveFront() interface{} {
+	sl.mtx.Lock()
+	oldest := sl.List.Front()
+	ret := sl.List.Remove(oldest)
+	sl.mtx.Unlock()
+	return ret
+}
+
+func (sl *syncList) RemoveFrontN(needRemove int, removed []interface{}) {
+	if needRemove == 0 {
+		return
+	}
+	sl.mtx.Lock()
+	for i := 0; i < needRemove; i++ {
+		removed[i] = sl.List.Remove(sl.List.Front())
+	}
+	sl.mtx.Unlock()
+	return
+}
+
+func (sl *syncList) PushBack(e interface{}) (ele *list.Element, count int) {
+	sl.mtx.Lock()
+	ele = sl.List.PushBack(e)
+	count = sl.List.Len()
+	sl.mtx.Unlock()
+	return
+}
+
+func (sl *syncList) Remove(e *list.Element) (removed interface{}) {
+	sl.mtx.Lock()
+	removed = sl.List.Remove(e)
+	sl.mtx.Unlock()
+	return
+}

@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"io"
 	"reflect"
+	"runtime"
 	"sort"
 	"sync"
 	"unsafe"
@@ -25,6 +26,8 @@ type cValue struct {
 	deleted bool
 }
 
+type PreChangeHandler func(key []byte, setOrDel byte)
+
 // Store wraps an in-memory cache around an underlying types.KVStore.
 type Store struct {
 	mtx           sync.Mutex
@@ -33,6 +36,8 @@ type Store struct {
 	unsortedCache map[string]struct{}
 	sortedCache   *list.List // always ascending sorted
 	parent        types.KVStore
+
+	preChangeHandler PreChangeHandler
 }
 
 var _ types.CacheKVStore = (*Store)(nil)
@@ -45,6 +50,12 @@ func NewStore(parent types.KVStore) *Store {
 		sortedCache:   list.New(),
 		parent:        parent,
 	}
+}
+
+func NewStoreWithPreChangeHandler(parent types.KVStore, handler PreChangeHandler) *Store {
+	s := NewStore(parent)
+	s.preChangeHandler = handler
+	return s
 }
 
 // Implements Store.
@@ -148,6 +159,8 @@ func (store *Store) Write() {
 
 	sort.Strings(keys)
 
+	store.preWrite(keys)
+
 	// TODO: Consider allowing usage of Batch, which would allow the write to
 	// at least happen atomically.
 	for _, key := range keys {
@@ -164,6 +177,51 @@ func (store *Store) Write() {
 
 	// Clear the cache
 	store.clearCache()
+}
+
+type preWriteJob struct {
+	key      []byte
+	setOrDel byte
+}
+
+func (store *Store) preWrite(keys []string) {
+	if store.preChangeHandler == nil {
+		return
+	}
+
+	maxNums := runtime.NumCPU()
+	keyCount := len(keys)
+	if maxNums > keyCount {
+		maxNums = keyCount
+	}
+
+	txJobChan := make(chan preWriteJob, keyCount)
+	var wg sync.WaitGroup
+	wg.Add(keyCount)
+
+	for index := 0; index < maxNums; index++ {
+		go func(ch chan preWriteJob, wg *sync.WaitGroup) {
+			for j := range ch {
+				store.preChangeHandler(j.key, j.setOrDel)
+				wg.Done()
+			}
+		}(txJobChan, &wg)
+	}
+
+	for _, key := range keys {
+		cacheValue := store.cache[key]
+		switch {
+		case cacheValue.deleted:
+			txJobChan <- preWriteJob{amino.StrToBytes(key), 0}
+		case cacheValue.value == nil:
+			// Skip, it already doesn't exist in parent.
+		default:
+			txJobChan <- preWriteJob{amino.StrToBytes(key), 1}
+		}
+	}
+	close(txJobChan)
+
+	wg.Wait()
 }
 
 // writeToCacheKv will write cached kv to the parent Store, then clear the cache.
