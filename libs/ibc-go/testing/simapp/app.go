@@ -54,6 +54,7 @@ import (
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/common/analyzer"
+	"github.com/okex/exchain/x/common/monitor"
 	commonversion "github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/dex"
 	dexclient "github.com/okex/exchain/x/dex/client"
@@ -352,7 +353,7 @@ func NewSimApp(
 
 	app.OrderKeeper = order.NewKeeper(
 		app.TokenKeeper, app.SupplyKeeper, app.DexKeeper, app.subspaces[order.ModuleName], auth.FeeCollectorName,
-		app.keys[order.OrderStoreKey], app.marshal.GetCdc(), false, nil)
+		app.keys[order.OrderStoreKey], app.marshal.GetCdc(), false, monitor.NopOrderMetrics())
 
 	app.SwapKeeper = ammswap.NewKeeper(app.SupplyKeeper, app.TokenKeeper, app.marshal.GetCdc(), app.keys[ammswap.StoreKey], app.subspaces[ammswap.ModuleName])
 
