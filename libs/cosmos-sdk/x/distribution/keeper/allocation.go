@@ -26,7 +26,6 @@ func (k Keeper) AllocateTokens(
 	feesCollected := sdk.NewDecCoinsFromCoins(feesCollectedInt...)
 
 	// transfer collected fees to the distribution module account
-	fmt.Println("SendCoinsFromModuleToModule. ", feesCollectedInt)
 	err := k.supplyKeeper.SendCoinsFromModuleToModule(ctx, k.feeCollectorName, types.ModuleName, feesCollectedInt)
 	if err != nil {
 		panic(err)
