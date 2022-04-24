@@ -109,7 +109,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 
 	startTime := time.Now()
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
-		totalAnteDuration += time.Since(startTime).Milliseconds()
+		totalAnteDuration += time.Since(startTime).Microseconds()
 		return err
 	}
 	app.pin(ValTxMsgs, false, mode)
@@ -117,7 +117,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	app.pin(RunAnte, true, mode)
 	if app.anteHandler != nil {
 		err = app.runAnte(info, mode)
-		totalAnteDuration += time.Since(startTime).Milliseconds()
+		totalAnteDuration += time.Since(startTime).Microseconds()
 		if err != nil {
 			return err
 		}
