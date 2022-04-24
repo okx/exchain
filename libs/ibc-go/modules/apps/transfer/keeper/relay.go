@@ -216,6 +216,9 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 			denom = denomTrace.IBCDenom()
 		}
 
+		if denom == "wei" {
+			denom = "okt"
+		}
 		token := sdk.NewCoin(denom, transferAmountDec)
 
 		// unescrow tokens
