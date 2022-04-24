@@ -4,6 +4,7 @@ import (
 	"fmt"
 	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/types"
 	"google.golang.org/protobuf/encoding/protowire"
 	"math/big"
 
@@ -82,9 +83,9 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			if authInfo.Fee.Amount != nil {
 				amount = authInfo.Fee.Amount[0].Amount.BigInt()
 				denom := authInfo.Fee.Amount[0].Denom
-				if denom == "wei" {
+				if denom == types.DefaultIbcWei {
 					decCoin = sdk.DecCoin{
-						Denom:  "okt",
+						Denom:  sdk.DefaultBondDenom,
 						Amount: sdk.NewDecFromIntWithPrec(sdk.NewIntFromBigInt(amount), sdk.Precision),
 					}
 				} else {
