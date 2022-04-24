@@ -47,7 +47,7 @@ var invCheckPeriod uint
 func main() {
 	cobra.EnableCommandSorting = false
 
-	codecProxy, _ := codec.MakeCodecSuit(app.ModuleBasics)
+	codecProxy, registry := codec.MakeCodecSuit(app.ModuleBasics)
 
 	tmamino.RegisterKeyType(ethsecp256k1.PubKey{}, ethsecp256k1.PubKeyName)
 	tmamino.RegisterKeyType(ethsecp256k1.PrivKey{}, ethsecp256k1.PrivKeyName)
@@ -100,7 +100,7 @@ func main() {
 		return logevents.NewProvider(logger)
 	}
 	// Tendermint node base commands
-	server.AddCommands(ctx, codecProxy, rootCmd, newApp, closeApp, exportAppStateAndTMValidators,
+	server.AddCommands(ctx, codecProxy, registry, rootCmd, newApp, closeApp, exportAppStateAndTMValidators,
 		registerRoutes, client.RegisterAppFlag, app.PreRun, subFunc)
 
 	// prepare and add flags

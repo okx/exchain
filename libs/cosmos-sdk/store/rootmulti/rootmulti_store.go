@@ -1386,6 +1386,11 @@ func (rs *Store) StopStore() {
 				continue
 			}
 
+			filter := rs.commitHeightFilterPipeline(rs.lastCommitInfo.Version)
+			if filter(sName) {
+				continue
+			}
+
 			s := store.(*iavl.Store)
 			s.StopStore()
 		case types.StoreTypeDB:
