@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"bytes"
-	"encoding/hex"
 	"fmt"
 	"time"
 
@@ -102,9 +101,9 @@ func (keeper BaseKeeper) DelegateCoins(ctx sdk.Context, delegatorAddr, moduleAcc
 
 	keeper.ak.SetAccount(ctx, delegatorAcc)
 
-	if hex.EncodeToString(moduleAccAddr) == "93354845030274cd4bf1686abd60ab28ec52e1a7" {
-		fmt.Println("DelegateCoins. ", amt)
-	}
+	//if hex.EncodeToString(moduleAccAddr) == "93354845030274cd4bf1686abd60ab28ec52e1a7" {
+	//	fmt.Println("DelegateCoins. ", amt)
+	//}
 	_, err = keeper.AddCoins(ctx, moduleAccAddr, amt)
 	if err != nil {
 		return err
@@ -244,9 +243,9 @@ func (keeper BaseSendKeeper) InputOutputCoins(ctx sdk.Context, inputs []types.In
 	}
 
 	for _, out := range outputs {
-		if hex.EncodeToString(out.Address) == "93354845030274cd4bf1686abd60ab28ec52e1a7" {
-			fmt.Println("InputOutputCoins. ", out.Coins)
-		}
+		//if hex.EncodeToString(out.Address) == "93354845030274cd4bf1686abd60ab28ec52e1a7" {
+		//	fmt.Println("InputOutputCoins. ", out.Coins)
+		//}
 		_, err := keeper.AddCoins(ctx, out.Address, out.Coins)
 		if err != nil {
 			return err
@@ -361,10 +360,10 @@ func (keeper BaseSendKeeper) AddCoins(ctx sdk.Context, addr sdk.AccAddress, amt 
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
 	}
 
-	// oldCoins := keeper.GetCoins(ctx, addr)
-	if hex.EncodeToString(addr) == "93354845030274cd4bf1686abd60ab28ec52e1a7" {
-		fmt.Println("AddCoins. ", amt)
-	}
+	//// oldCoins := keeper.GetCoins(ctx, addr)
+	//if hex.EncodeToString(addr) == "93354845030274cd4bf1686abd60ab28ec52e1a7" {
+	//	fmt.Println("AddCoins. ", amt)
+	//}
 
 	acc, gasUsed := authexported.GetAccountAndGas(&ctx, keeper.ak, addr)
 	return keeper.addCoins(ctx, addr, acc, gasUsed, amt)

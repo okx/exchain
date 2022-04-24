@@ -113,7 +113,7 @@ func (app *BaseApp) FilterPeerByID(info string) abci.ResponseQuery {
 
 // BeginBlock implements the ABCI application interface.
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
-	app.logger.Info("BeginBlock start.")
+	//app.logger.Info("BeginBlock start.")
 	app.blockDataCache.Clear()
 	if app.cms.TracingEnabled() {
 		app.cms.SetTracingContext(sdk.TraceContext(
@@ -164,7 +164,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	app.anteTracer = trace.NewTracer(trace.AnteChainDetail)
 
 	app.feeForCollector = sdk.Coins{}
-	app.logger.Info("BeginBlock end.")
+	//app.logger.Info("BeginBlock end.")
 
 	return res
 }
@@ -179,7 +179,7 @@ func (app *BaseApp) UpdateFeeForCollector(fee sdk.Coins, add bool) {
 
 // EndBlock implements the ABCI interface.
 func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
-	app.logger.Info("EndBlock start.")
+	//app.logger.Info("EndBlock start.")
 	if app.updateFeeCollectorAccHandler != nil {
 		ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
 		if err := app.updateFeeCollectorAccHandler(ctx, app.feeForCollector); err != nil {
@@ -195,7 +195,7 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	if app.endBlocker != nil {
 		res = app.endBlocker(app.deliverState.ctx, req)
 	}
-	app.logger.Info("EndBlock end.")
+	//app.logger.Info("EndBlock end.")
 
 	return
 }
@@ -246,13 +246,13 @@ func (app *BaseApp) addCommitTraceInfo() {
 // height.
 func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	header := app.deliverState.ctx.BlockHeader()
-	app.logger.Info("Commit start.")
+	//app.logger.Info("Commit start.")
 	// Write the DeliverTx state which is cache-wrapped and commit the MultiStore.
 	// The write to the DeliverTx state writes all state transitions to the root
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
 	app.commitBlockCache()
 	app.deliverState.ms.Write()
-	app.logger.Info("Commit end.")
+	app.logger.Info("Commit end.", "totalAnte", totalAnteDuration)
 
 	var input iavl.TreeDeltaMap
 	if tmtypes.DownloadDelta && req.DeltaMap != nil {
