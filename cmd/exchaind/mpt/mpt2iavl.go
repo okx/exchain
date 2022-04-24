@@ -81,7 +81,7 @@ func migrateEvmFroMptToIavl(ctx *server.Context) {
 	panicError(err)
 
 	upgradedPrefixDb := dbm.NewPrefixDB(appDb, []byte(iavlEvm2Key))
-	upgradedTree, err := iavl.NewMutableTreeWithOpts(upgradedPrefixDb, iavlstore.IavlCacheSize, &iavl.Options{InitialVersion: height - 1})
+	upgradedTree, err := iavl.NewMutableTreeWithOpts(upgradedPrefixDb, iavlstore.IavlCacheSize, nil)
 	panicError(err)
 	v, err := upgradedTree.LoadVersion(0)
 	panicError(err)
