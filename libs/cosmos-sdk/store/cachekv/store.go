@@ -38,6 +38,7 @@ type Store struct {
 	parent        types.KVStore
 
 	preChangeHandler PreChangeHandler
+	preChangeWg      sync.WaitGroup
 }
 
 var _ types.CacheKVStore = (*Store)(nil)
@@ -104,6 +105,8 @@ func (store *Store) Set(key []byte, value []byte) {
 	types.AssertValidValue(value)
 
 	store.setCacheValue(key, value, false, true)
+
+	store.preSet(key)
 }
 
 // Implements types.KVStore.
@@ -120,6 +123,8 @@ func (store *Store) Delete(key []byte) {
 	types.AssertValidKey(key)
 
 	store.setCacheValue(key, nil, true, true)
+
+	store.preDelete(key)
 }
 
 // Implements Cachetypes.KVStore.
@@ -144,7 +149,8 @@ func (store *Store) Write() {
 
 	sort.Strings(keys)
 
-	store.preWrite(keys)
+	store.preChangeWg.Wait()
+	// store.preWrite(keys)
 
 	// TODO: Consider allowing usage of Batch, which would allow the write to
 	// at least happen atomically.
@@ -207,6 +213,27 @@ func (store *Store) preWrite(keys []string) {
 	close(txJobChan)
 
 	wg.Wait()
+}
+
+func (store *Store) preRoutine(wg *sync.WaitGroup, key []byte, setOrDel byte) {
+	defer wg.Done()
+	store.preChangeHandler(key, setOrDel)
+}
+
+func (store *Store) preDelete(key []byte) {
+	if store.preChangeHandler == nil {
+		return
+	}
+	store.preChangeWg.Add(1)
+	go store.preRoutine(&store.preChangeWg, key, 0)
+}
+
+func (store *Store) preSet(key []byte) {
+	if store.preChangeHandler == nil {
+		return
+	}
+	store.preChangeWg.Add(1)
+	go store.preRoutine(&store.preChangeWg, key, 1)
 }
 
 // writeToCacheKv will write cached kv to the parent Store, then clear the cache.
