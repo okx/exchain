@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/mpt"
 	"os"
 	"testing"
 	"time"
@@ -52,6 +53,7 @@ func createTestInputWithBalance(t *testing.T, numAddrs, initQuantity int64) test
 	db := dbm.NewMemDB()
 
 	keyAcc := sdk.NewKVStoreKey(auth.StoreKey)
+	keyMpt := sdk.NewKVStoreKey(mpt.StoreKey)
 	keySupply := sdk.NewKVStoreKey(supply.StoreKey)
 	keyParams := sdk.NewKVStoreKey(params.StoreKey)
 	tkeyParams := sdk.NewTransientStoreKey(params.TStoreKey)
@@ -69,6 +71,7 @@ func createTestInputWithBalance(t *testing.T, numAddrs, initQuantity int64) test
 
 	ms := store.NewCommitMultiStore(db)
 	ms.MountStoreWithDB(keyAcc, sdk.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(keyMpt, sdk.StoreTypeMPT, db)
 	ms.MountStoreWithDB(keySupply, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keyParams, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(tkeyParams, sdk.StoreTypeTransient, db)
@@ -92,7 +95,7 @@ func createTestInputWithBalance(t *testing.T, numAddrs, initQuantity int64) test
 	blacklistedAddrs[feeCollectorAcc.String()] = true
 
 	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams)
-	accountKeeper := auth.NewAccountKeeper(cdc, keyAcc,
+	accountKeeper := auth.NewAccountKeeper(cdc, keyAcc, keyMpt,
 		paramsKeeper.Subspace(auth.DefaultParamspace), auth.ProtoBaseAccount)
 	bankKeeper := bank.NewBaseKeeper(accountKeeper, paramsKeeper.Subspace(bank.DefaultParamspace),
 		blacklistedAddrs)

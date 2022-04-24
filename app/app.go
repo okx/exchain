@@ -39,6 +39,7 @@ import (
 	ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
 	ibcporttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
 	ibchost "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okex/exchain/libs/mpt"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
@@ -224,6 +225,7 @@ func NewOKExChainApp(
 		"GenesisHeight", tmtypes.GetStartBlockHeight(),
 		"MercuryHeight", tmtypes.GetMercuryHeight(),
 		"VenusHeight", tmtypes.GetVenusHeight(),
+		"MarsHeight", tmtypes.GetMarsHeight(),
 	)
 	onceLog.Do(func() {
 		iavl.SetLogger(logger.With("module", "iavl"))
@@ -250,6 +252,7 @@ func NewOKExChainApp(
 		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
 		ibchost.StoreKey,
 		erc20.StoreKey,
+		mpt.StoreKey, evm.Store2Key,
 	)
 
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
@@ -290,7 +293,7 @@ func NewOKExChainApp(
 	app.marshal = codecProxy
 	// use custom OKExChain account for contracts
 	app.AccountKeeper = auth.NewAccountKeeper(
-		codecProxy.GetCdc(), keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
+		codecProxy.GetCdc(), keys[auth.StoreKey], keys[mpt.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
 	)
 	app.AccountKeeper.SetObserverKeeper(app)
 
@@ -324,7 +327,7 @@ func NewOKExChainApp(
 	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], app.marshal.GetCdc())
 	app.ParamsKeeper.RegisterSignal(evmtypes.SetEvmParamsNeedUpdate)
 	app.EvmKeeper = evm.NewKeeper(
-		app.marshal.GetCdc(), keys[evm.StoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, logger)
+		app.marshal.GetCdc(), keys[evm.StoreKey], keys[evm.Store2Key], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, logger)
 	(&bankKeeper).SetInnerTxKeeper(app.EvmKeeper)
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
@@ -527,8 +530,10 @@ func NewOKExChainApp(
 	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper)))
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
-	app.SetAccHandler(NewAccHandler(app.AccountKeeper))
+	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
 	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), evmTxFeeHandler(), fixLogForParallelTxHandler(app.EvmKeeper))
+	app.AddCustomizeModuleOnStopLogic(NewEvmModuleStopLogic(app.EvmKeeper))
+	app.SetMptCommitHandler(NewMptCommitHandler(app.EvmKeeper))
 	app.SetPreDeliverTxHandler(preDeliverTxHandler(app.AccountKeeper))
 	app.SetPartialConcurrentHandlers(getTxFeeAndFromHandler(app.AccountKeeper))
 
@@ -693,11 +698,14 @@ func validateMsgHook(orderKeeper order.Keeper) ante.ValidateMsgHandler {
 	}
 }
 
-func NewAccHandler(ak auth.AccountKeeper) sdk.AccHandler {
+func NewAccNonceHandler(ak auth.AccountKeeper) sdk.AccNonceHandler {
 	return func(
 		ctx sdk.Context, addr sdk.AccAddress,
 	) uint64 {
-		return ak.GetAccount(ctx, addr).GetSequence()
+		if acc := ak.GetAccount(ctx, addr); acc != nil {
+			return acc.GetSequence()
+		}
+		return 0
 	}
 }
 
@@ -730,4 +738,21 @@ func PreRun(ctx *server.Context) error {
 	// init tx signature cache
 	tmtypes.InitSignatureCache()
 	return nil
+}
+
+func NewEvmModuleStopLogic(ak *evm.Keeper) sdk.CustomizeOnStop {
+	return func(ctx sdk.Context) error {
+		if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.TrieWriteAhead {
+			return ak.OnStop(ctx)
+		}
+		return nil
+	}
+}
+
+func NewMptCommitHandler(ak *evm.Keeper) sdk.MptCommitHandler {
+	return func(ctx sdk.Context) {
+		if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.TrieWriteAhead {
+			ak.PushData2Database(ctx.BlockHeight(), ctx.Logger())
+		}
+	}
 }

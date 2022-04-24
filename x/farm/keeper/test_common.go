@@ -3,6 +3,7 @@ package keeper
 import (
 	"bytes"
 	"fmt"
+	"github.com/okex/exchain/libs/mpt"
 	"strconv"
 	"testing"
 	"time"
@@ -91,6 +92,7 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 	keyFarm := sdk.NewKVStoreKey(types.StoreKey)
 	tkeyFarm := sdk.NewTransientStoreKey(types.TStoreKey)
 	keyAcc := sdk.NewKVStoreKey(auth.StoreKey)
+	keyMpt := sdk.NewKVStoreKey(mpt.StoreKey)
 	keyParams := sdk.NewKVStoreKey(params.StoreKey)
 	tkeyParams := sdk.NewTransientStoreKey(params.TStoreKey)
 	keySupply := sdk.NewKVStoreKey(supply.StoreKey)
@@ -98,6 +100,7 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 	keyLock := sdk.NewKVStoreKey(token.KeyLock)
 	keySwap := sdk.NewKVStoreKey(swaptypes.StoreKey)
 	keyEvm := sdk.NewKVStoreKey(evmtypes.StoreKey)
+	key2Evm := sdk.NewKVStoreKey(evmtypes.StoreKey)
 	keyGov := sdk.NewKVStoreKey(govtypes.StoreKey)
 
 	// 0.2 init db
@@ -106,6 +109,7 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 	ms.MountStoreWithDB(tkeyFarm, sdk.StoreTypeTransient, nil)
 	ms.MountStoreWithDB(keyFarm, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keyAcc, sdk.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(keyMpt, sdk.StoreTypeMPT, db)
 	ms.MountStoreWithDB(keyParams, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(tkeyParams, sdk.StoreTypeTransient, db)
 	ms.MountStoreWithDB(keySupply, sdk.StoreTypeIAVL, db)
@@ -140,7 +144,7 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 	pk := params.NewKeeper(cdc, keyParams, tkeyParams)
 
 	// 1.2 init account keeper
-	ak := auth.NewAccountKeeper(cdc, keyAcc, pk.Subspace(auth.DefaultParamspace), auth.ProtoBaseAccount)
+	ak := auth.NewAccountKeeper(cdc, keyAcc, keyMpt, pk.Subspace(auth.DefaultParamspace), auth.ProtoBaseAccount)
 
 	// 1.3 init bank keeper
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
@@ -185,7 +189,7 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 
 	// 1.6 init swap keeper
 	swapKeeper := swap.NewKeeper(sk, tk, cdc, keySwap, pk.Subspace(swaptypes.DefaultParamspace))
-	evmKeeper := evm.NewKeeper(cdc, keyEvm, pk.Subspace(evmtypes.DefaultParamspace), &ak, sk, bk, log.NewNopLogger())
+	evmKeeper := evm.NewKeeper(cdc, keyEvm, key2Evm, pk.Subspace(evmtypes.DefaultParamspace), &ak, sk, bk, log.NewNopLogger())
 
 	// 1.7 init farm keeper
 	fk := NewKeeper(auth.FeeCollectorName, sk, tk, swapKeeper, *evmKeeper, pk.Subspace(types.DefaultParamspace), keyFarm, cdc)

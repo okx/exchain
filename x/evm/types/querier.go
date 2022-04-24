@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"fmt"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -11,6 +12,7 @@ const (
 	QueryBalance       = "balance"
 	QueryBlockNumber   = "blockNumber"
 	QueryStorage       = "storage"
+	QueryStorageProof  = "storageProof"
 	QueryStorageByKey  = "storageKey"
 	QueryCode          = "code"
 	QueryCodeByHash    = "codeHash"
@@ -53,6 +55,20 @@ type QueryResStorage struct {
 
 func (q QueryResStorage) String() string {
 	return string(q.Value)
+}
+
+// QueryResStorage is response type for storage query
+type QueryResStorageProof struct {
+	Value []byte   `json:"value"`
+	Proof [][]byte `json:"proof"`
+}
+
+func (q QueryResStorageProof) String() string {
+	res, err := json.Marshal(q)
+	if err != nil {
+		panic(err)
+	}
+	return string(res)
 }
 
 // QueryResCode is response type for code query

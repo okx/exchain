@@ -1,26 +1,30 @@
 package rootmulti
 
 import (
+	"encoding/binary"
 	"fmt"
-
-	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
-	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
-
 	"io"
 	"log"
 	"path/filepath"
 	"sort"
 	"strings"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
-
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/spf13/viper"
+	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
+	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 
 	jsoniter "github.com/json-iterator/go"
-
+	"github.com/okex/exchain/libs/cosmos-sdk/store/cachemulti"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/dbadapter"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/tracekv"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/transient"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	iavltree "github.com/okex/exchain/libs/iavl"
+	"github.com/okex/exchain/libs/mpt"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 
 	//"github.com/okex/exchain/libs/tendermint/crypto/merkle"
@@ -29,14 +33,7 @@ import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/pkg/errors"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/store/cachemulti"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/dbadapter"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/tracekv"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/transient"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/spf13/viper"
 )
 
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -217,23 +214,41 @@ func (rs *Store) LoadVersion(ver int64) error {
 
 func (rs *Store) GetCommitVersion() (int64, error) {
 	var minVersion int64 = 1<<63 - 1
-	for _, storeParams := range rs.storesParams {
-		if storeParams.typ != types.StoreTypeIAVL {
-			continue
-		}
-		commitVersion, err := rs.getCommitVersionFromParams(storeParams)
-		if err != nil {
-			return 0, err
-		}
-		// filter IBC module {}
-		f := rs.commitHeightFilterPipeline(commitVersion)
-		if f(storeParams.key.Name()) {
-			continue
-		}
-		if commitVersion < minVersion {
-			minVersion = commitVersion
-		}
+	latestVersion := rs.GetLatestVersion()
 
+	for _, storeParams := range rs.storesParams {
+		if storeParams.typ == types.StoreTypeIAVL {
+			sName := storeParams.key.Name()
+			if evmAccStoreFilter(sName, latestVersion) {
+				continue
+			}
+
+			if newEvmStoreFilter(sName, latestVersion) {
+				continue
+			}
+
+			commitVersion, err := rs.getCommitVersionFromParams(storeParams)
+			if err != nil {
+				return 0, err
+			}
+
+			// filter IBC module {}
+			if rs.commitHeightFilterPipeline(commitVersion)(storeParams.key.Name()) {
+				continue
+			}
+
+			if commitVersion < minVersion {
+				minVersion = commitVersion
+			}
+		} else if storeParams.typ == types.StoreTypeMPT {
+			mptHeight := int64(GetLatestStoredMptHeight())
+			if !tmtypes.HigherThanMars(mptHeight) {
+				continue
+			}
+			if mptHeight < minVersion {
+				minVersion = mptHeight
+			}
+		}
 	}
 	return minVersion, nil
 }
@@ -255,6 +270,9 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 		for _, storeInfo := range cInfo.StoreInfos {
 			infos[storeInfo.Name] = storeInfo
 		}
+
+		rs.commitInfoFilter(infos, ver, MptStore)
+		rs.commitInfoFilter(infos, ver, EvmStore)
 
 		//if upgrade version ne
 		callback := func(name string, version int64) {
@@ -278,6 +296,10 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	// load each Store (note this doesn't panic on unmounted keys now)
 	var newStores = make(map[types.StoreKey]types.CommitKVStore)
 	for key, storeParams := range rs.storesParams {
+		if evmAccStoreFilter(key.Name(), ver) {
+			continue
+		}
+
 		// below venus1Height when restart app, no need to load ibc module versions
 		//f := rs.commitHeightFilterPipeline(ver)
 		//if f(key.Name()) {
@@ -301,7 +323,7 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 		// Load it
 		store, err := rs.loadCommitStoreFromParams(key, commitID, storeParams)
 		if err != nil {
-			return fmt.Errorf("failed to load Store: %v", err)
+			return fmt.Errorf("failed to load %s Store: %v", key.Name(), err)
 		}
 		newStores[key] = store
 
@@ -554,6 +576,16 @@ func (rs *Store) pruneStores() {
 	//stores = rs.stores
 	for key, store := range stores {
 		if store.GetStoreType() == types.StoreTypeIAVL {
+			sName := key.Name()
+
+			if evmAccStoreFilter(sName, rs.lastCommitInfo.Version) {
+				continue
+			}
+
+			if newEvmStoreFilter(sName, rs.lastCommitInfo.Version) && !mpt.TrieWriteAhead{
+				continue
+			}
+
 			// If the store is wrapped with an inter-block cache, we must first unwrap
 			// it to get the underlying IAVL store.
 			store = rs.GetCommitKVStore(key)
@@ -812,6 +844,9 @@ func (rs *Store) loadCommitStoreFromParams(key types.StoreKey, id types.CommitID
 
 		return mem.NewStore(), nil
 
+	case types.StoreTypeMPT:
+		return mpt.NewMptStore(rs.logger, id)
+
 	default:
 		panic(fmt.Sprintf("unrecognized store type %v", params.typ))
 	}
@@ -1033,6 +1068,17 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	outputDeltaMap := iavltree.TreeDeltaMap{}
 
 	for key, store := range storeMap {
+		sName := key.Name()
+		if evmAccStoreFilter(sName, version) {
+			continue
+		}
+
+		if !mpt.TrieWriteAhead{
+			if newEvmStoreFilter(sName, version) || newMptStoreFilter(sName, version) {
+				continue
+			}
+		}
+
 		if tmtypes.GetVenus1Height() == version {
 			//init store tree version with block height
 			store.SetUpgradeVersion(version)
@@ -1043,6 +1089,11 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 
 		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
 		if store.GetStoreType() == types.StoreTypeTransient {
+			continue
+		}
+
+		// old version, mpt(acc) store, never allowed to participate the process of calculate root hash, or it will lead to SMB!
+		if newEvmStoreFilter(sName, version) || newMptStoreFilter(sName, version) {
 			continue
 		}
 
@@ -1326,16 +1377,24 @@ func (rs *Store) StopStore() {
 	for key, store := range rs.stores {
 		switch store.GetStoreType() {
 		case types.StoreTypeIAVL:
-			filter := rs.commitHeightFilterPipeline(rs.lastCommitInfo.Version)
-			if filter(key.Name()) {
+			sName := key.Name()
+			if evmAccStoreFilter(sName, rs.GetLatestVersion())  {
 				continue
 			}
+
+			if newEvmStoreFilter(sName, rs.GetLatestVersion()) && !mpt.TrieWriteAhead {
+				continue
+			}
+
 			s := store.(*iavl.Store)
 			s.StopStore()
 		case types.StoreTypeDB:
 			panic("unexpected db store")
 		case types.StoreTypeMulti:
 			panic("unexpected multi store")
+		case types.StoreTypeMPT:
+			s := store.(*mpt.MptStore)
+			s.OnStop()
 		case types.StoreTypeTransient:
 		default:
 		}
@@ -1347,7 +1406,16 @@ func (rs *Store) SetLogger(log tmlog.Logger) {
 	rs.logger = log.With("module", "root-multi")
 }
 
-func (rs *Store) SetUpgradeVersion(version int64) {
+// GetLatestStoredMptHeight get latest mpt storage height
+func GetLatestStoredMptHeight() uint64 {
+	db := mpt.InstanceOfMptStore()
+	rst, err := db.TrieDB().DiskDB().Get(mpt.KeyPrefixAccLatestStoredHeight)
+	if err != nil || len(rst) == 0 {
+		return 0
+	}
+	return binary.BigEndian.Uint64(rst)
+}
 
+func (rs *Store) SetUpgradeVersion(version int64) {
 	rs.upgradeVersion = version
 }

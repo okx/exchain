@@ -11,7 +11,7 @@ type PreDeliverTxHandler func(ctx Context, tx Tx, onlyVerifySig bool)
 
 type GasRefundHandler func(ctx Context, tx Tx) (fee Coins, err error)
 
-type AccHandler func(ctx Context, address AccAddress) (nonce uint64)
+type AccNonceHandler func(ctx Context, address AccAddress) (nonce uint64)
 
 type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins) error
 
@@ -20,6 +20,10 @@ type LogFix func(isAnteFailed [][]string) (logs [][]byte)
 type GetTxFeeHandler func(ctx Context, tx Tx, verifySig bool) (Coins, bool)
 
 type GetTxFeeAndFromHandler func(ctx Context, tx Tx) (Coins, bool, string, string, error)//Address)
+
+type CustomizeOnStop func(ctx Context) error
+
+type MptCommitHandler func(ctx Context)
 
 // AnteDecorator wraps the next AnteHandler to perform custom pre- and post-processing.
 type AnteDecorator interface {

@@ -29,6 +29,8 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryBlockNumber(ctx, keeper)
 		case types.QueryStorage:
 			return queryStorage(ctx, path, keeper)
+		case types.QueryStorageProof:
+			return queryStorageProof(ctx, path, keeper)
 		case types.QueryStorageByKey:
 			return queryStorageByKey(ctx, path, keeper)
 		case types.QueryCode:
@@ -134,6 +136,27 @@ func queryStorage(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error)
 	key := ethcmn.HexToHash(path[2])
 	val := keeper.GetState(ctx, addr, key)
 	res := types.QueryResStorage{Value: val.Bytes()}
+	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+	return bz, nil
+}
+
+func queryStorageProof(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
+	if len(path) < 3 {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
+			"Insufficient parameters, at least 3 parameters is required")
+	}
+
+	addr := ethcmn.HexToAddress(path[1])
+	key := ethcmn.HexToHash(path[2])
+	val := keeper.GetState(ctx, addr, key)
+	proofList, err := keeper.GetStorageProof(ctx, addr, key)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInternal, err.Error())
+	}
+	res := types.QueryResStorageProof{Value: val.Bytes(), Proof: proofList}
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())

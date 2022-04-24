@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"bytes"
+	"github.com/okex/exchain/libs/mpt"
 	"strconv"
 	"testing"
 	"time"
@@ -99,6 +100,7 @@ func CreateTestInput(
 	stakingTkSk := sdk.NewTransientStoreKey(staking.TStoreKey)
 
 	keyAcc := sdk.NewKVStoreKey(auth.StoreKey)
+	keyMpt := sdk.NewKVStoreKey(mpt.StoreKey)
 	keyParams := sdk.NewKVStoreKey(params.StoreKey)
 	tkeyParams := sdk.NewTransientStoreKey(params.TStoreKey)
 	keySupply := sdk.NewKVStoreKey(supply.StoreKey)
@@ -110,6 +112,7 @@ func CreateTestInput(
 	ms.MountStoreWithDB(stakingSk, sdk.StoreTypeIAVL, db)
 
 	ms.MountStoreWithDB(keyAcc, sdk.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(keyMpt, sdk.StoreTypeMPT, db)
 	ms.MountStoreWithDB(keyParams, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(tkeyParams, sdk.StoreTypeTransient, db)
 	ms.MountStoreWithDB(keySupply, sdk.StoreTypeIAVL, db)
@@ -146,6 +149,7 @@ func CreateTestInput(
 	accountKeeper := auth.NewAccountKeeper(
 		cdc,    // amino codec
 		keyAcc, // target store
+		keyMpt,
 		pk.Subspace(auth.DefaultParamspace),
 		auth.ProtoBaseAccount, // prototype
 	)
