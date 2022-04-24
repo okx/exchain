@@ -555,8 +555,6 @@ func (dttm *DTTManager) serialExecution() {
 	}
 
 	defer func() {
-		handler.handleDeferGasConsumed(info)
-
 		if r := recover(); r != nil {
 			err = dttm.app.runTx_defer_recover(r, info)
 			info.msCache = nil
@@ -578,6 +576,8 @@ func (dttm *DTTManager) serialExecution() {
 		}
 		dttm.dealWithResponse(resp)
 	}()
+
+	defer handler.handleDeferGasConsumed(info)
 
 	mode := runTxModeDeliver
 	defer func() {
