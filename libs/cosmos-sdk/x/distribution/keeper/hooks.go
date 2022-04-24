@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/distribution/types"
 	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
@@ -47,6 +48,7 @@ func (h Hooks) AfterValidatorRemoved(ctx sdk.Context, _ sdk.ConsAddress, valAddr
 
 			accAddr := sdk.AccAddress(valAddr)
 			withdrawAddr := h.k.GetDelegatorWithdrawAddr(ctx, accAddr)
+			fmt.Println("SendCoinsFromModuleToAccount 3. ", coins)
 			err := h.k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, withdrawAddr, coins)
 			if err != nil {
 				panic(err)
