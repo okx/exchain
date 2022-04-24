@@ -38,6 +38,8 @@ func iavl2mptCmd(ctx *server.Context) *cobra.Command {
 				migrateAccFromIavlToMpt(ctx)
 			case evmStoreKey:
 				migrateEvmFromIavlToMpt(ctx)
+			case evmtypes.Store2Key:
+				migrateEvm2FromIavlToIavl(ctx)
 			}
 			log.Printf("--------- migrate %s end ---------\n", args[0])
 		},
@@ -226,4 +228,48 @@ func miragteBloomsToDb(migrationApp *app.OKExChainApp, cmCtx sdk.Context, batch 
 	})
 	writeDataToRawdb(batch)
 	fmt.Printf("Successfully migrate %d blooms\n", count)
+}
+
+// migrateEvm2FromIavlToIavl only used for test!
+func migrateEvm2FromIavlToIavl(ctx *server.Context) {
+	// 0.1 initialize App and context
+	migrationApp := newMigrationApp(ctx)
+	cmCtx := migrationApp.MockContext()
+
+	upgradedTree := getUpgradedTree(migrationApp.GetDB())
+	// 1. Migrates ChainConfig -> evm2 iavl
+	config, _ := migrationApp.EvmKeeper.GetChainConfig(cmCtx)
+	upgradedTree.Set(evmtypes.KeyPrefixChainConfig, migrationApp.Codec().MustMarshalBinaryBare(config))
+	fmt.Printf("Successfully migrate chain config\n")
+
+	// 2. Migrates ContractDeploymentWhitelist、ContractBlockedList
+	csdb := evmtypes.CreateEmptyCommitStateDB(migrationApp.EvmKeeper.GenerateCSDBParams(), cmCtx)
+
+	// 5.1、deploy white list
+	whiteList := csdb.GetContractDeploymentWhitelist()
+	for i := 0; i < len(whiteList); i++ {
+		upgradedTree.Set(evmtypes.GetContractDeploymentWhitelistMemberKey(whiteList[i]), []byte(""))
+	}
+
+	// 5.2、deploy blocked list
+	blockedList := csdb.GetContractBlockedList()
+	for i := 0; i < len(blockedList); i++ {
+		upgradedTree.Set(evmtypes.GetContractBlockedListMemberKey(blockedList[i]), []byte(""))
+	}
+
+	// 5.3、deploy blocked method list
+	bcml := csdb.GetContractMethodBlockedList()
+	count := 0
+	for i := 0; i < len(bcml); i++ {
+		if !bcml[i].IsAllMethodBlocked() {
+			count++
+			evmtypes.SortContractMethods(bcml[i].BlockMethods)
+			value := migrationApp.Codec().MustMarshalJSON(bcml[i].BlockMethods)
+			sortedValue := sdk.MustSortJSON(value)
+			upgradedTree.Set(evmtypes.GetContractBlockedListMemberKey(bcml[i].Address), sortedValue)
+		}
+	}
+
+	fmt.Printf("Successfully migrate %d addresses in white list, %d addresses in blocked list, %d addresses in method block list\n",
+		len(whiteList), len(blockedList), count)
 }

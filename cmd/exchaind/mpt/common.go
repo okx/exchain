@@ -40,7 +40,7 @@ func panicError(err error) {
 
 // checkValidKey checks if the key is equal to authtypes.StoreKey or evmtypes.StoreKey
 func checkValidKey(key string) error {
-	if key != accStoreKey && key != evmStoreKey {
+	if key != accStoreKey && key != evmStoreKey && key != evmtypes.Store2Key {
 		return fmt.Errorf("invalid key %s", key)
 	}
 	return nil
