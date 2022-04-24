@@ -105,8 +105,6 @@ func (store *Store) Set(key []byte, value []byte) {
 	types.AssertValidValue(value)
 
 	store.setCacheValue(key, value, false, true)
-
-	store.preSet(key)
 }
 
 // Implements types.KVStore.
@@ -123,8 +121,6 @@ func (store *Store) Delete(key []byte) {
 	types.AssertValidKey(key)
 
 	store.setCacheValue(key, nil, true, true)
-
-	store.preDelete(key)
 }
 
 // Implements Cachetypes.KVStore.
@@ -149,7 +145,10 @@ func (store *Store) Write() {
 
 	sort.Strings(keys)
 
-	store.preChangeWg.Wait()
+	if store.preChangeHandler != nil {
+		store.preChangeWg.Wait()
+	}
+
 	// store.preWrite(keys)
 
 	// TODO: Consider allowing usage of Batch, which would allow the write to
@@ -215,6 +214,20 @@ func (store *Store) preWrite(keys []string) {
 	wg.Wait()
 }
 
+func (store *Store) preWriteJob(keys []preWriteJob) {
+	if store.preChangeHandler == nil {
+		return
+	}
+	store.preChangeWg.Add(1)
+
+	go func(store *Store, keys []preWriteJob) {
+		defer store.preChangeWg.Done()
+		for _, j := range keys {
+			store.preChangeHandler(j.key, j.setOrDel)
+		}
+	}(store, keys)
+}
+
 func (store *Store) preRoutine(wg *sync.WaitGroup, key []byte, setOrDel byte) {
 	defer wg.Done()
 	store.preChangeHandler(key, setOrDel)
@@ -241,6 +254,11 @@ func (store *Store) writeToCacheKv(parent *Store) {
 	store.mtx.Lock()
 	defer store.mtx.Unlock()
 
+	var preKeys []preWriteJob
+	if parent.preChangeHandler != nil {
+		preKeys = make([]preWriteJob, 0, len(store.cache))
+	}
+
 	// TODO: Consider allowing usage of Batch, which would allow the write to
 	// at least happen atomically.
 	for key, cacheValue := range store.cache {
@@ -250,11 +268,21 @@ func (store *Store) writeToCacheKv(parent *Store) {
 		switch {
 		case cacheValue.deleted:
 			parent.Delete(amino.StrToBytes(key))
+			if preKeys != nil {
+				preKeys = append(preKeys, preWriteJob{amino.StrToBytes(key), 0})
+			}
 		case cacheValue.value == nil:
 			// Skip, it already doesn't exist in parent.
 		default:
 			parent.Set(amino.StrToBytes(key), cacheValue.value)
+			if preKeys != nil {
+				preKeys = append(preKeys, preWriteJob{amino.StrToBytes(key), 1})
+			}
 		}
+	}
+
+	if preKeys != nil {
+		parent.preWriteJob(preKeys)
 	}
 
 	// Clear the cache
