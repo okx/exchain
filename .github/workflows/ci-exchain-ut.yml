@@ -99,6 +99,22 @@ jobs:
           codePath="./libs/tendermint/..."
           go list ${codePath} |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
 
+      - name: Go Test exchain/libs/ibc-go/testing
+        id: ibc-first-attempt
+        run: |
+          set -ex
+          codePath="./libs/ibc-go/..."
+          go list ${codePath} | grep -w "testing" |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
+        continue-on-error: true
+
+      - name: Go Test exchain/libs/ibc-go/testing retry
+        id: ibc-second-attempt
+        if: steps.ibc-first-attempt.outcome != 'success'
+        run: |
+          set -ex
+          codePath="./libs/ibc-go/..."
+          go list ${codePath} | grep -w "testing" |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
+
   libsibc:
     name: libs ibc ut
     runs-on: ubuntu-latest
@@ -109,7 +125,7 @@ jobs:
         with:
           go-version: 1.17
 
-      - name: Go Test exchain/libs/ibc
+      - name: Go Test exchain/libs/ibc-go
         id: first-attempt
         run: |
           set -ex
@@ -117,7 +133,7 @@ jobs:
           go list ${codePath} | grep -vw "testing" |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
         continue-on-error: true
 
-      - name: Go Test exchain/libs/ibc retry
+      - name: Go Test exchain/libs/ibc-go retry
         id: second-attempt
         if: steps.first-attempt.outcome != 'success'
         run: |
@@ -166,7 +182,7 @@ jobs:
         run: |
           set -ex
           codePath="./libs/..."
-          go list ${codePath} | grep -v "cosmos-sdk" | grep -v "ibc-go" | grep -v "tendermint" |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
+          go list ${codePath} | grep -vw "cosmos-sdk" | grep -vw "ibc-go" | grep -vw "tendermint" |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
         continue-on-error: true
 
       - name: Go Test exchain/libs/other retry
@@ -175,25 +191,9 @@ jobs:
         run: |
           set -ex
           codePath="./libs/..."
-          go list ${codePath} | grep -v "cosmos-sdk" | grep -v "ibc-go" | grep -v "tendermint" |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
+          go list ${codePath} | grep -vw "cosmos-sdk" | grep -vw "ibc-go" | grep -vw "tendermint" |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
 
-      - name: Go Test exchain/libs/ibc-go/testing
-        id: ibc-first-attempt
-        run: |
-          set -ex
-          codePath="./libs/ibc-go/..."
-          go list ${codePath} | grep -w "testing" |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
-        continue-on-error: true
-
-      - name: Go Test exchain/libs/ibc-go/testing retry
-        id: ibc-second-attempt
-        if: steps.ibc-first-attempt.outcome != 'success'
-        run: |
-          set -ex
-          codePath="./libs/ibc-go/..."
-          go list ${codePath} | grep -w "testing" |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
-
-      - name: Go Test exchain/libs/cosmos-sdk/other (except /x/)
+      - name: Go Test exchain/libs/cosmos-sdk/other
         id: x-first-attempt
         run: |
           set -ex
@@ -201,7 +201,7 @@ jobs:
           go list ${codePath} | grep -wv "x" |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
         continue-on-error: true
 
-      - name: Go Test exchain/libs/cosmos-sdk/other (except /x/) retry
+      - name: Go Test exchain/libs/cosmos-sdk/other retry
         id: x-second-attempt
         if: steps.x-first-attempt.outcome != 'success'
         run: |
