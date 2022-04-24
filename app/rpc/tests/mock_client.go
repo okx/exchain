@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	"container/list"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	apptesting "github.com/okex/exchain/libs/ibc-go/testing"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -16,7 +18,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/mempool"
 	mempl "github.com/okex/exchain/libs/tendermint/mempool"
 	"github.com/okex/exchain/libs/tendermint/node"
-	"github.com/okex/exchain/libs/tendermint/p2p"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/rpc/client"
 	"github.com/okex/exchain/libs/tendermint/rpc/client/mock"
@@ -33,11 +34,13 @@ import (
 
 type MockClient struct {
 	mock.Client
-	app       abci.Application
-	chain     apptesting.TestChainI
-	env       *rpccore.Environment
-	state     *tmstate.State
-	blockExec *sm.BlockExecutor
+	app          abci.Application
+	chain        apptesting.TestChainI
+	env          *rpccore.Environment
+	state        tmstate.State
+	blockExec    *sm.BlockExecutor
+	priv         types.PrivValidator
+	responseList list.List
 }
 
 func createAndStartProxyAppConns(clientCreator proxy.ClientCreator, logger log.Logger) (proxy.AppConns, error) {
@@ -50,12 +53,14 @@ func createAndStartProxyAppConns(clientCreator proxy.ClientCreator, logger log.L
 }
 
 func NewMockClient(chainId string, chain apptesting.TestChainI, app abci.Application) *MockClient {
-	config := tmcfg.ResetTestRoot("blockchain_reactor_test")
+	config := tmcfg.ResetTestRootWithChainID("blockchain_reactor_test", chainId)
+
 	papp := proxy.NewLocalClientCreator(app)
 	proxyApp, err := createAndStartProxyAppConns(papp, log.NewNopLogger())
 	if err != nil {
 		panic(err)
 	}
+
 	mc := &MockClient{
 		app:   app,
 		chain: chain,
@@ -65,26 +70,26 @@ func NewMockClient(chainId string, chain apptesting.TestChainI, app abci.Applica
 			TxIndexer:  kv.NewTxIndex(dbm.NewMemDB()),
 		},
 	}
-	state, err := tmstate.LoadStateFromDBOrGenesisFile(mc.env.StateDB, config.GenesisFile())
+	mc.state, err = tmstate.LoadStateFromDBOrGenesisFile(mc.env.StateDB, config.GenesisFile())
 	if err != nil {
 		panic(err)
 	}
-	mc.state = &state
 
 	_, _, memplMetrics, _ := node.DefaultMetricsProvider(config.Instrumentation)(chainId)
 	mempool := mempool.NewCListMempool(
 		config.Mempool,
 		proxyApp.Mempool(),
-		state.LastBlockHeight,
+		mc.state.LastBlockHeight,
 		mempool.WithMetrics(memplMetrics),
-		mempool.WithPreCheck(tmstate.TxPreCheck(state)),
-		mempool.WithPostCheck(tmstate.TxPostCheck(state)),
+		mempool.WithPreCheck(tmstate.TxPreCheck(mc.state)),
+		mempool.WithPostCheck(tmstate.TxPostCheck(mc.state)),
 	)
 	mc.env.Mempool = mempool
+	mc.env.PubKey = chain.SenderAccount().GetPubKey()
 
 	db := dbm.NewMemDB()
 	mc.blockExec = sm.NewBlockExecutor(db, log.NewNopLogger(), proxyApp.Consensus(), mempool, sm.MockEvidencePool{})
-	sm.SaveState(db, state)
+	sm.SaveState(db, mc.state)
 	return mc
 }
 func (c MockClient) makeBlock(height int64, state sm.State, lastCommit *types.Commit) *types.Block {
@@ -92,9 +97,11 @@ func (c MockClient) makeBlock(height int64, state sm.State, lastCommit *types.Co
 	block, _ := state.MakeBlock(height, tx, lastCommit, nil, state.Validators.GetProposer().Address)
 	return block
 }
-func (c MockClient) CommitBlock() {
-	// let's add some blocks in
-	state := *c.state
+func (c *MockClient) CommitBlock() {
+	//blockHeight := c.state.LastBlockHeight + 1
+	if c.priv == nil {
+		_, c.priv = types.RandValidator(false, 30)
+	}
 	blockHeight := c.state.LastBlockHeight + 1
 	lastCommit := types.NewCommit(blockHeight-1, 0, types.BlockID{}, nil)
 	if blockHeight > 1 {
@@ -104,8 +111,8 @@ func (c MockClient) CommitBlock() {
 		vote, err := types.MakeVote(
 			lastBlock.Header.Height,
 			lastBlockMeta.BlockID,
-			state.Validators,
-			nil, //privVals[0]
+			c.state.Validators,
+			c.priv,
 			lastBlock.Header.ChainID,
 			time.Now(),
 		)
@@ -116,16 +123,29 @@ func (c MockClient) CommitBlock() {
 			lastBlockMeta.BlockID, []types.CommitSig{vote.CommitSig()})
 	}
 
-	thisBlock := c.makeBlock(blockHeight, state, lastCommit)
+	thisBlock := c.makeBlock(blockHeight, c.state, lastCommit)
 
 	thisParts := thisBlock.MakePartSet(types.BlockPartSizeBytes)
 	blockID := types.BlockID{Hash: thisBlock.Hash(), PartsHeader: thisParts.Header()}
 
-	state, _, err := c.blockExec.ApplyBlock(state, blockID, thisBlock)
+	//thisBlock.Height = state.LastBlockHeight + 1
+	//thisBlock.LastCommit.Signatures = []types.CommitSig{}
+	//thisBlock.Time = state.LastBlockTime
+	state, _, err := c.blockExec.ApplyBlock(c.state, blockID, thisBlock)
 	if err != nil {
 		panic(errors.Wrap(err, "error apply block"))
 	}
+	//thisBlock.Height = state.LastBlockHeight + 1
 	c.env.BlockStore.SaveBlock(thisBlock, thisParts, lastCommit)
+	c.state = state
+}
+
+func (c *MockClient) SetResponse(response interface{}, clear bool) {
+	if clear {
+		c.responseList = *list.New()
+	}
+	c.responseList.PushBack(response)
+
 }
 func (c MockClient) ABCIQueryWithOptions(
 	path string,
@@ -228,7 +248,7 @@ func (c MockClient) Status() (*ctypes.ResultStatus, error) {
 	}
 
 	result := &ctypes.ResultStatus{
-		NodeInfo: c.env.P2PTransport.NodeInfo().(p2p.DefaultNodeInfo),
+		//NodeInfo: c.env.P2PTransport.NodeInfo().(p2p.DefaultNodeInfo),
 		SyncInfo: ctypes.SyncInfo{
 			LatestBlockHash:     latestBlockHash,
 			LatestAppHash:       latestAppHash,
@@ -238,7 +258,7 @@ func (c MockClient) Status() (*ctypes.ResultStatus, error) {
 			EarliestAppHash:     earliestAppHash,
 			EarliestBlockHeight: earliestBlockHeight,
 			EarliestBlockTime:   time.Unix(0, earliestBlockTimeNano),
-			CatchingUp:          c.env.ConsensusReactor.FastSync(),
+			//CatchingUp:          c.env.ConsensusReactor.FastSync(),
 		},
 		ValidatorInfo: ctypes.ValidatorInfo{
 			Address:     c.env.PubKey.Address(),
@@ -254,8 +274,7 @@ func (c MockClient) validatorAtHeight(h int64) *types.Validator {
 	if err != nil {
 		return nil
 	}
-	privValAddress := c.env.PubKey.Address()
-	_, val := vals.GetByAddress(privValAddress)
+	_, val := vals.GetByIndex(0)
 	return val
 }
 
@@ -279,8 +298,7 @@ func (c MockClient) getHeight(latestHeight int64, heightPtr *int64) (int64, erro
 	}
 	return latestHeight, nil
 }
-func (c MockClient) BlockchainInfo(minHeight, maxHeight int64) (*ctypes.ResultBlockchainInfo, error) {
-
+func (c *MockClient) BlockchainInfo(minHeight, maxHeight int64) (*ctypes.ResultBlockchainInfo, error) {
 	const limit int64 = 20
 	var err error
 	minHeight, maxHeight, err = filterMinMax(
@@ -301,7 +319,20 @@ func (c MockClient) BlockchainInfo(minHeight, maxHeight int64) (*ctypes.ResultBl
 		LastHeight: c.env.BlockStore.Height(),
 		BlockMetas: blockMetas}, nil
 }
-func (c MockClient) Block(heightPtr *int64) (*ctypes.ResultBlock, error) {
+func (c *MockClient) NumUnconfirmedTxs() (*ctypes.ResultUnconfirmedTxs, error) {
+	return &ctypes.ResultUnconfirmedTxs{
+		Count:      c.env.Mempool.Size(),
+		Total:      c.env.Mempool.Size(),
+		TotalBytes: c.env.Mempool.TxsBytes()}, nil
+}
+func (c *MockClient) Block(heightPtr *int64) (*ctypes.ResultBlock, error) {
+	if c.responseList.Len() != 0 {
+		res, ok := c.responseList.Front().Value.(*ctypes.ResultBlock)
+		if ok {
+			c.responseList.Remove(c.responseList.Front())
+			return res, nil
+		}
+	}
 	height, err := c.getHeight(c.env.BlockStore.Height(), heightPtr)
 	if err != nil {
 		return nil, err
@@ -314,7 +345,14 @@ func (c MockClient) Block(heightPtr *int64) (*ctypes.ResultBlock, error) {
 	}
 	return &ctypes.ResultBlock{BlockID: blockMeta.BlockID, Block: block}, nil
 }
-func (c MockClient) Tx(hash []byte, prove bool) (*ctypes.ResultTx, error) {
+func (c *MockClient) Tx(hash []byte, prove bool) (*ctypes.ResultTx, error) {
+	if c.responseList.Len() != 0 {
+		res, ok := c.responseList.Front().Value.(*ctypes.ResultTx)
+		if ok {
+			c.responseList.Remove(c.responseList.Front())
+			return res, nil
+		}
+	}
 	// if index is disabled, return error
 	if _, ok := c.env.TxIndexer.(*null.TxIndex); ok {
 		return nil, fmt.Errorf("transaction indexing is disabled")
@@ -347,7 +385,7 @@ func (c MockClient) Tx(hash []byte, prove bool) (*ctypes.ResultTx, error) {
 		Proof:    proof,
 	}, nil
 }
-func (c MockClient) GetAddressList() (*ctypes.ResultUnconfirmedAddresses, error) {
+func (c *MockClient) GetAddressList() (*ctypes.ResultUnconfirmedAddresses, error) {
 	addressList := c.env.Mempool.GetAddressList()
 	return &ctypes.ResultUnconfirmedAddresses{
 		Addresses: addressList,
@@ -356,7 +394,7 @@ func (c MockClient) GetAddressList() (*ctypes.ResultUnconfirmedAddresses, error)
 func (c MockClient) GetUnconfirmedTxByHash(hash [sha256.Size]byte) (types.Tx, error) {
 	return c.env.Mempool.GetTxByHash(hash)
 }
-func (c MockClient) UserUnconfirmedTxs(address string, limit int) (*ctypes.ResultUserUnconfirmedTxs, error) {
+func (c *MockClient) UserUnconfirmedTxs(address string, limit int) (*ctypes.ResultUserUnconfirmedTxs, error) {
 	txs := c.env.Mempool.ReapUserTxs(address, limit)
 	return &ctypes.ResultUserUnconfirmedTxs{
 		Count: len(txs),
