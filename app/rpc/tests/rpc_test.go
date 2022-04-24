@@ -12,6 +12,7 @@ import (
 	"fmt"
 	"math/big"
 	"math/rand"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -63,6 +64,11 @@ var (
 	from           = []byte{1}
 )
 
+func init() {
+	tmamino.RegisterKeyType(ethsecp256k1.PubKey{}, ethsecp256k1.PubKeyName)
+	multisig.RegisterKeyType(ethsecp256k1.PubKey{}, ethsecp256k1.PubKeyName)
+}
+
 type RPCTestSuite struct {
 	suite.Suite
 
@@ -74,13 +80,10 @@ type RPCTestSuite struct {
 	apiServer *gorpc.Server
 	Mux       *http.ServeMux
 	cliCtx    *cosmos_context.CLIContext
+	addr      string
 }
 
 func (suite *RPCTestSuite) SetupTest() {
-	//ethsecp256k1.RegisterCodec()
-	tmamino.RegisterKeyType(ethsecp256k1.PubKey{}, ethsecp256k1.PubKeyName)
-	multisig.RegisterKeyType(ethsecp256k1.PubKey{}, ethsecp256k1.PubKeyName)
-
 	chainId := apptesting.GetChainID(1)
 	suite.coordinator = apptesting.NewEthCoordinator(suite.T(), 1)
 	suite.chain = suite.coordinator.GetChain(chainId)
@@ -110,7 +113,9 @@ func (suite *RPCTestSuite) SetupTest() {
 	viper.Set(watcher.FlagFastQueryLru, 100)
 	viper.Set("rpc.laddr", "127.0.0.1:0")
 	viper.Set(flags.FlagKeyringBackend, "test")
-	viper.Set(cmserver.FlagUlockKeyHome, os.ExpandEnv("$HOME/.exchaincli"))
+	viper.Set(cmserver.FlagUlockKeyHome, fmt.Sprintf(".exchaincli/%s", time.Now().String()))
+
+	viper.Set(rpc.FlagPersonalAPI, true)
 
 	senderPv := suite.chain.SenderAccountPV()
 	genesisAcc = suite.chain.SenderAccount().GetAddress()
@@ -123,8 +128,13 @@ func (suite *RPCTestSuite) SetupTest() {
 	}
 	suite.Mux = http.NewServeMux()
 	suite.Mux.HandleFunc("/", suite.apiServer.ServeHTTP)
+	listener, err := net.Listen("tcp", ":0")
+	if err != nil {
+		panic(err)
+	}
+	suite.addr = fmt.Sprintf("http://localhost:%d", listener.Addr().(*net.TCPAddr).Port)
 	go func() {
-		http.ListenAndServe("0.0.0.0:8030", suite.Mux)
+		http.Serve(listener, suite.Mux)
 	}()
 }
 
@@ -142,10 +152,10 @@ func (suite *RPCTestSuite) TestEth_GetBalance() {
 	initialBalance := suite.chain.SenderAccount().GetCoins()[0]
 	genesisAcc := ethcmn.BytesToAddress(suite.chain.SenderAccount().GetAddress().Bytes()).String()
 
-	rpcRes, err := CallWithError("eth_getBalance", []interface{}{genesisAcc, latestBlockNumber})
-	//suite.Require().NoError(err)
+	rpcRes, err := CallWithError(suite.addr, "eth_getBalance", []interface{}{genesisAcc, latestBlockNumber})
+	suite.Require().NoError(err)
 
-	rpcRes2, err := CallWithError("eth_getBalance", []interface{}{genesisAcc, latestBlockNumber})
+	rpcRes2, err := CallWithError(suite.addr, "eth_getBalance", []interface{}{genesisAcc, latestBlockNumber})
 	suite.Require().NoError(err)
 	suite.Require().NotNil(rpcRes2)
 
@@ -155,35 +165,35 @@ func (suite *RPCTestSuite) TestEth_GetBalance() {
 
 	//suite.coordinator.CommitBlock(suite.chain)
 	// query on certain block height (2)
-	rpcRes, err = CallWithError("eth_getBalance", []interface{}{genesisAcc, hexutil.EncodeUint64(1)})
+	rpcRes, err = CallWithError(suite.addr, "eth_getBalance", []interface{}{genesisAcc, hexutil.EncodeUint64(1)})
 	suite.Require().NoError(err)
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &balance))
 	suite.Require().Equal(initialBalance.Amount.Int, balance.ToInt())
 
 	// query with pending -> no tx in mempool
-	rpcRes, err = CallWithError("eth_getBalance", []interface{}{genesisAcc, pendingBlockNumber})
+	rpcRes, err = CallWithError(suite.addr, "eth_getBalance", []interface{}{genesisAcc, pendingBlockNumber})
 	suite.Require().NoError(err)
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &balance))
 	suite.Require().Equal(initialBalance.Amount.Int, balance.ToInt())
 
 	// inexistent addr -> zero balance
-	rpcRes, err = CallWithError("eth_getBalance", []interface{}{inexistentAddr, latestBlockNumber})
+	rpcRes, err = CallWithError(suite.addr, "eth_getBalance", []interface{}{inexistentAddr, latestBlockNumber})
 	suite.Require().NoError(err)
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &balance))
 	suite.Require().Equal(big.NewInt(0).Int64(), balance.ToInt().Int64())
 
 	// error check
 	// empty hex string
-	_, err = CallWithError("eth_getBalance", []interface{}{hexAddr2, ""})
+	_, err = CallWithError(suite.addr, "eth_getBalance", []interface{}{hexAddr2, ""})
 	suite.Require().Error(err)
 
 	// missing argument
-	_, err = CallWithError("eth_getBalance", []interface{}{hexAddr2})
+	_, err = CallWithError(suite.addr, "eth_getBalance", []interface{}{hexAddr2})
 	suite.Require().Error(err)
 }
 func (suite *RPCTestSuite) TestEth_Accounts() {
 	// all unlocked addresses
-	rpcRes, err := CallWithError("eth_accounts", nil)
+	rpcRes, err := CallWithError(suite.addr, "eth_accounts", nil)
 	suite.Require().NoError(err)
 	suite.Require().Equal(1, rpcRes.ID)
 
@@ -195,7 +205,7 @@ func (suite *RPCTestSuite) TestEth_Accounts() {
 }
 
 func (suite *RPCTestSuite) TestEth_ProtocolVersion() {
-	rpcRes, err := CallWithError("eth_protocolVersion", nil)
+	rpcRes, err := CallWithError(suite.addr, "eth_protocolVersion", nil)
 	suite.Require().NoError(err)
 
 	var version hexutil.Uint
@@ -204,7 +214,7 @@ func (suite *RPCTestSuite) TestEth_ProtocolVersion() {
 }
 
 func (suite *RPCTestSuite) TestEth_ChainId() {
-	rpcRes, err := CallWithError("eth_chainId", nil)
+	rpcRes, err := CallWithError(suite.addr, "eth_chainId", nil)
 	suite.Require().NoError(err)
 
 	var chainID hexutil.Uint
@@ -213,7 +223,7 @@ func (suite *RPCTestSuite) TestEth_ChainId() {
 }
 
 func (suite *RPCTestSuite) TestEth_Syncing() {
-	rpcRes, err := CallWithError("eth_syncing", nil)
+	rpcRes, err := CallWithError(suite.addr, "eth_syncing", nil)
 	suite.Require().NoError(err)
 
 	// single node for test.sh -> always leading without syncing
@@ -226,7 +236,7 @@ func (suite *RPCTestSuite) TestEth_Syncing() {
 
 func (suite *RPCTestSuite) TestEth_Coinbase() {
 	// single node -> always the same addr for coinbase
-	rpcRes, err := CallWithError("eth_coinbase", nil)
+	rpcRes, err := CallWithError(suite.addr, "eth_coinbase", nil)
 	suite.Require().NoError(err)
 
 	var coinbaseAddr1 ethcmn.Address
@@ -236,7 +246,7 @@ func (suite *RPCTestSuite) TestEth_Coinbase() {
 	time.Sleep(5 * time.Second)
 
 	// query again
-	rpcRes, err = CallWithError("eth_coinbase", nil)
+	rpcRes, err = CallWithError(suite.addr, "eth_coinbase", nil)
 	suite.Require().NoError(err)
 
 	var coinbaseAddr2 ethcmn.Address
@@ -247,7 +257,7 @@ func (suite *RPCTestSuite) TestEth_Coinbase() {
 
 func (suite *RPCTestSuite) TestEth_PowAttribute() {
 	// eth_mining -> always false
-	rpcRes, err := CallWithError("eth_mining", nil)
+	rpcRes, err := CallWithError(suite.addr, "eth_mining", nil)
 	suite.Require().NoError(err)
 
 	var mining bool
@@ -255,7 +265,7 @@ func (suite *RPCTestSuite) TestEth_PowAttribute() {
 	suite.Require().False(mining)
 
 	// eth_hashrate -> always 0
-	rpcRes, err = CallWithError("eth_hashrate", nil)
+	rpcRes, err = CallWithError(suite.addr, "eth_hashrate", nil)
 	suite.Require().NoError(err)
 
 	var hashrate hexutil.Uint64
@@ -263,7 +273,7 @@ func (suite *RPCTestSuite) TestEth_PowAttribute() {
 	suite.Require().True(hashrate == 0)
 
 	// eth_getUncleCountByBlockHash -> 0 for any hash
-	rpcRes, err = CallWithError("eth_getUncleCountByBlockHash", []interface{}{inexistentHash})
+	rpcRes, err = CallWithError(suite.addr, "eth_getUncleCountByBlockHash", []interface{}{inexistentHash})
 	suite.Require().NoError(err)
 
 	var uncleCount hexutil.Uint
@@ -271,7 +281,7 @@ func (suite *RPCTestSuite) TestEth_PowAttribute() {
 	suite.Require().True(uncleCount == 0)
 
 	// eth_getUncleCountByBlockNumber -> 0 for any block number
-	rpcRes, err = CallWithError("eth_getUncleCountByBlockNumber", []interface{}{latestBlockNumber})
+	rpcRes, err = CallWithError(suite.addr, "eth_getUncleCountByBlockNumber", []interface{}{latestBlockNumber})
 	suite.Require().NoError(err)
 
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &uncleCount))
@@ -282,37 +292,37 @@ func (suite *RPCTestSuite) TestEth_PowAttribute() {
 	luckyNum := int64(rand.Int())
 	randomBlockHash := ethcmn.BigToHash(big.NewInt(luckyNum))
 	randomIndex := hexutil.Uint(luckyNum)
-	rpcRes, err = CallWithError("eth_getUncleByBlockHashAndIndex", []interface{}{randomBlockHash, randomIndex})
+	rpcRes, err = CallWithError(suite.addr, "eth_getUncleByBlockHashAndIndex", []interface{}{randomBlockHash, randomIndex})
 	suite.Require().NoError(err)
 	assertNullFromJSONResponse(suite.T(), rpcRes.Result)
 
 	// error check
 	// miss argument
-	_, err = CallWithError("eth_getUncleByBlockHashAndIndex", []interface{}{randomBlockHash})
+	_, err = CallWithError(suite.addr, "eth_getUncleByBlockHashAndIndex", []interface{}{randomBlockHash})
 	suite.Require().Error(err)
 
-	_, err = CallWithError("eth_getUncleByBlockHashAndIndex", nil)
+	_, err = CallWithError(suite.addr, "eth_getUncleByBlockHashAndIndex", nil)
 	suite.Require().Error(err)
 
 	// eth_getUncleByBlockNumberAndIndex -> always "null"
 	luckyNum = int64(rand.Int())
 	randomBlockHeight := hexutil.Uint(luckyNum)
 	randomIndex = hexutil.Uint(luckyNum)
-	rpcRes, err = CallWithError("eth_getUncleByBlockNumberAndIndex", []interface{}{randomBlockHeight, randomIndex})
+	rpcRes, err = CallWithError(suite.addr, "eth_getUncleByBlockNumberAndIndex", []interface{}{randomBlockHeight, randomIndex})
 	suite.Require().NoError(err)
 	assertNullFromJSONResponse(suite.T(), rpcRes.Result)
 
 	// error check
 	// miss argument
-	_, err = CallWithError("eth_getUncleByBlockNumberAndIndex", []interface{}{randomBlockHeight})
+	_, err = CallWithError(suite.addr, "eth_getUncleByBlockNumberAndIndex", []interface{}{randomBlockHeight})
 	suite.Require().Error(err)
 
-	_, err = CallWithError("eth_getUncleByBlockNumberAndIndex", nil)
+	_, err = CallWithError(suite.addr, "eth_getUncleByBlockNumberAndIndex", nil)
 	suite.Require().Error(err)
 }
 
 func (suite *RPCTestSuite) TestEth_GasPrice() {
-	rpcRes, err := CallWithError("eth_gasPrice", nil)
+	rpcRes, err := CallWithError(suite.addr, "eth_gasPrice", nil)
 	suite.Require().NoError(err)
 
 	var gasPrice hexutil.Big
@@ -326,13 +336,13 @@ func (suite *RPCTestSuite) TestEth_GasPrice() {
 }
 
 func (suite *RPCTestSuite) TestEth_BlockNumber() {
-	rpcRes := Call(suite.T(), "eth_blockNumber", nil)
+	rpcRes := Call(suite.T(), suite.addr, "eth_blockNumber", nil)
 	var blockNumber1 hexutil.Uint64
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &blockNumber1))
 
 	//suite.coordinator.CommitBlock(suite.chain)
 
-	rpcRes = Call(suite.T(), "eth_blockNumber", nil)
+	rpcRes = Call(suite.T(), suite.addr, "eth_blockNumber", nil)
 	var blockNumber2 hexutil.Uint64
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &blockNumber2))
 
@@ -349,7 +359,7 @@ func (suite *RPCTestSuite) TestEth_SendTransaction_Transfer() {
 	param[0]["value"] = (*hexutil.Big)(value.BigInt()).String()
 	param[0]["gasPrice"] = (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String()
 
-	rpcRes := Call(suite.T(), "eth_sendTransaction", param)
+	rpcRes := Call(suite.T(), suite.addr, "eth_sendTransaction", param)
 
 	var hash ethcmn.Hash
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &hash))
@@ -361,7 +371,7 @@ func (suite *RPCTestSuite) TestEth_SendTransaction_Transfer() {
 	// TODO: logic bug, fix it later
 	// ignore gas price -> default 'ethermint.DefaultGasPrice' on node -> successfully
 	//delete(param[0], "gasPrice")
-	//rpcRes = Call(suite.T(), "eth_sendTransaction", param)
+	//rpcRes = Call(suite.T(), suite.addr, "eth_sendTransaction", param)
 	//
 	//suite.Require().NoError(json.Unmarshal(rpcRes.Result, &hash))
 	//receipt = WaitForReceipt(suite.T(), hash)
@@ -373,14 +383,14 @@ func (suite *RPCTestSuite) TestEth_SendTransaction_Transfer() {
 	// sender is not unlocked on the node
 	param[0]["from"] = receiverAddr.Hex()
 	param[0]["to"] = hexAddr1.Hex()
-	rpcRes, err := CallWithError("eth_sendTransaction", param)
+	rpcRes, err := CallWithError(suite.addr, "eth_sendTransaction", param)
 	suite.Require().Error(err)
 
 	// data.Data and data.Input are not same
 	param[0]["from"], param[0]["to"] = param[0]["to"], param[0]["from"]
 	param[0]["data"] = "0x1234567890abcdef"
 	param[0]["input"] = param[0]["data"][:len(param[0]["data"])-2]
-	rpcRes, err = CallWithError("eth_sendTransaction", param)
+	rpcRes, err = CallWithError(suite.addr, "eth_sendTransaction", param)
 	suite.Require().Error(err)
 
 	// input and toAddr are all empty
@@ -388,13 +398,13 @@ func (suite *RPCTestSuite) TestEth_SendTransaction_Transfer() {
 	delete(param[0], "input")
 	delete(param[0], "data")
 
-	rpcRes, err = CallWithError("eth_sendTransaction", param)
+	rpcRes, err = CallWithError(suite.addr, "eth_sendTransaction", param)
 	suite.Require().Error(err)
 
 	// 0 gas price
 	param[0]["to"] = receiverAddr.Hex()
 	param[0]["gasPrice"] = (*hexutil.Big)(sdk.ZeroDec().BigInt()).String()
-	rpcRes, err = CallWithError("eth_sendTransaction", param)
+	rpcRes, err = CallWithError(suite.addr, "eth_sendTransaction", param)
 	suite.Require().Error(err)
 }
 
@@ -405,7 +415,7 @@ func (suite *RPCTestSuite) TestEth_SendTransaction_ContractDeploy() {
 	param[0]["from"] = senderAddr.Hex()
 	param[0]["data"] = "0x6080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c240029"
 	param[0]["gasPrice"] = (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String()
-	rpcRes := Call(suite.T(), "eth_sendTransaction", param)
+	rpcRes := Call(suite.T(), suite.addr, "eth_sendTransaction", param)
 
 	var hash ethcmn.Hash
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &hash))
@@ -425,7 +435,7 @@ func (suite *RPCTestSuite) TestEth_SendTransaction_ContractDeploy() {
 	// TODO: logic bug, fix it later
 	// ignore gas price -> default 'ethermint.DefaultGasPrice' on node -> successfully
 	//delete(param[0], "gasPrice")
-	//rpcRes = Call(suite.T(), "eth_sendTransaction", param)
+	//rpcRes = Call(suite.T(), suite.addr, "eth_sendTransaction", param)
 	//
 	//suite.Require().NoError(json.Unmarshal(rpcRes.Result, &hash))
 	//receipt = WaitForReceipt(suite.T(), hash)
@@ -436,7 +446,7 @@ func (suite *RPCTestSuite) TestEth_SendTransaction_ContractDeploy() {
 	// same payload filled in both 'input' and 'data' -> ok
 	param[0]["input"] = param[0]["data"]
 
-	rpcRes = Call(suite.T(), "eth_sendTransaction", param)
+	rpcRes = Call(suite.T(), suite.addr, "eth_sendTransaction", param)
 
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &hash))
 	//receipt = WaitForReceipt(suite.T(), hash)
@@ -447,7 +457,7 @@ func (suite *RPCTestSuite) TestEth_SendTransaction_ContractDeploy() {
 	// TODO: logic bug, fix it later
 	// filled in 'input' -> ok
 	//delete(param[0], "data")
-	//rpcRes = Call(suite.T(), "eth_sendTransaction", param)
+	//rpcRes = Call(suite.T(), suite.addr, "eth_sendTransaction", param)
 	//
 	//suite.Require().NoError(json.Unmarshal(rpcRes.Result, &hash))
 	//receipt = WaitForReceipt(suite.T(), hash)
@@ -459,32 +469,32 @@ func (suite *RPCTestSuite) TestEth_SendTransaction_ContractDeploy() {
 	// sender is not unlocked on the node
 	param[0]["from"] = receiverAddr.Hex()
 	//suite.chain.GetContextPointer().SetAccountNonce(0)
-	rpcRes, err := CallWithError("eth_sendTransaction", param)
+	rpcRes, err := CallWithError(suite.addr, "eth_sendTransaction", param)
 	suite.Require().Error(err)
 
 	// data.Data and data.Input are not same
 	param[0]["from"] = hexAddr1.Hex()
 	//suite.chain.GetContextPointer().SetAccountNonce(0)
 	param[0]["input"] = param[0]["data"][:len(param[0]["data"])-2]
-	rpcRes, err = CallWithError("eth_sendTransaction", param)
+	rpcRes, err = CallWithError(suite.addr, "eth_sendTransaction", param)
 	suite.Require().Error(err)
 
 	// 0 gas price
 	delete(param[0], "input")
 	param[0]["gasPrice"] = (*hexutil.Big)(sdk.ZeroDec().BigInt()).String()
-	rpcRes, err = CallWithError("eth_sendTransaction", param)
+	rpcRes, err = CallWithError(suite.addr, "eth_sendTransaction", param)
 	suite.Require().Error(err)
 
 	// no payload of contract deployment
 	delete(param[0], "data")
 
-	rpcRes, err = CallWithError("eth_sendTransaction", param)
+	rpcRes, err = CallWithError(suite.addr, "eth_sendTransaction", param)
 	suite.Require().Error(err)
 }
 
 func (suite *RPCTestSuite) TestEth_GetStorageAt() {
 	expectedRes := hexutil.Bytes{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-	rpcRes := Call(suite.T(), "eth_getStorageAt", []string{hexAddr1.Hex(), fmt.Sprint(addrAStoreKey), latestBlockNumber})
+	rpcRes := Call(suite.T(), suite.addr, "eth_getStorageAt", []string{hexAddr1.Hex(), fmt.Sprint(addrAStoreKey), latestBlockNumber})
 
 	var storage hexutil.Bytes
 	suite.Require().NoError(storage.UnmarshalJSON(rpcRes.Result))
@@ -495,18 +505,18 @@ func (suite *RPCTestSuite) TestEth_GetStorageAt() {
 
 	// error check
 	// miss argument
-	_, err := CallWithError("eth_getStorageAt", []string{hexAddr1.Hex(), fmt.Sprint(addrAStoreKey)})
+	_, err := CallWithError(suite.addr, "eth_getStorageAt", []string{hexAddr1.Hex(), fmt.Sprint(addrAStoreKey)})
 	suite.Require().Error(err)
 
-	_, err = CallWithError("eth_getStorageAt", []string{hexAddr1.Hex()})
+	_, err = CallWithError(suite.addr, "eth_getStorageAt", []string{hexAddr1.Hex()})
 	suite.Require().Error(err)
 }
 
 func (suite *RPCTestSuite) TestEth_GetTransactionByHash() {
 
-	hash := sendTestTransaction(suite.T(), senderAddr, receiverAddr, 1024)
+	hash := sendTestTransaction(suite.T(), suite.addr, senderAddr, receiverAddr, 1024)
 
-	rpcRes := Call(suite.T(), "eth_getTransactionByHash", []interface{}{hash})
+	rpcRes := Call(suite.T(), suite.addr, "eth_getTransactionByHash", []interface{}{hash})
 
 	var transaction watcher.Transaction
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &transaction))
@@ -519,7 +529,7 @@ func (suite *RPCTestSuite) TestEth_GetTransactionByHash() {
 	suite.Require().Equal(0, len(transaction.Input))
 
 	// hash not found -> rpcRes.Result -> "null"
-	rpcRes, err := CallWithError("eth_getTransactionByHash", []interface{}{inexistentHash})
+	rpcRes, err := CallWithError(suite.addr, "eth_getTransactionByHash", []interface{}{inexistentHash})
 	suite.Require().NoError(err)
 	assertNullFromJSONResponse(suite.T(), rpcRes.Result)
 	suite.Require().Nil(rpcRes.Error)
@@ -527,48 +537,48 @@ func (suite *RPCTestSuite) TestEth_GetTransactionByHash() {
 
 func (suite *RPCTestSuite) TestEth_GetTransactionCount() {
 
-	hash := sendTestTransaction(suite.T(), senderAddr, receiverAddr, 1024)
+	hash := sendTestTransaction(suite.T(), suite.addr, senderAddr, receiverAddr, 1024)
 
-	height := getBlockHeightFromTxHash(suite.T(), hash)
+	height := getBlockHeightFromTxHash(suite.T(), suite.addr, hash)
 
-	rpcRes := Call(suite.T(), "eth_getTransactionCount", []interface{}{senderAddr.Hex(), height.String()})
+	rpcRes := Call(suite.T(), suite.addr, "eth_getTransactionCount", []interface{}{senderAddr.Hex(), height.String()})
 
 	var nonce, preNonce hexutil.Uint64
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &nonce))
 
 	// query height - 1
-	/*rpcRes = Call(suite.T(), "eth_getTransactionCount", []interface{}{senderAddr.Hex(), (height - 1).String()})
+	/*rpcRes = Call(suite.T(), suite.addr, "eth_getTransactionCount", []interface{}{senderAddr.Hex(), (height - 1).String()})
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &preNonce))
 
 	suite.Require().True(nonce-preNonce == 1)
 	*/
 	// latestBlock query
-	rpcRes = Call(suite.T(), "eth_getTransactionCount", []interface{}{senderAddr.Hex(), latestBlockNumber})
+	rpcRes = Call(suite.T(), suite.addr, "eth_getTransactionCount", []interface{}{senderAddr.Hex(), latestBlockNumber})
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &preNonce))
 	suite.Require().Equal(nonce, preNonce)
 
 	// pendingBlock query
-	rpcRes = Call(suite.T(), "eth_getTransactionCount", []interface{}{senderAddr.Hex(), pendingBlockNumber})
+	rpcRes = Call(suite.T(), suite.addr, "eth_getTransactionCount", []interface{}{senderAddr.Hex(), pendingBlockNumber})
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &nonce))
 	suite.Require().Equal(preNonce+1, nonce)
 
 	// error check
 	// miss argument
-	_, err := CallWithError("eth_getTransactionCount", []interface{}{senderAddr.Hex()})
+	_, err := CallWithError(suite.addr, "eth_getTransactionCount", []interface{}{senderAddr.Hex()})
 	suite.Require().Error(err)
 
-	_, err = CallWithError("eth_getTransactionCount", nil)
+	_, err = CallWithError(suite.addr, "eth_getTransactionCount", nil)
 	suite.Require().Error(err)
 }
 
 func (suite *RPCTestSuite) TestEth_GetBlockTransactionCountByHash() {
-	hash := sendTestTransaction(suite.T(), senderAddr, receiverAddr, 1024)
+	hash := sendTestTransaction(suite.T(), suite.addr, senderAddr, receiverAddr, 1024)
 
-	getBlockHashFromTxHash(suite.T(), hash)
+	getBlockHashFromTxHash(suite.T(), suite.addr, hash)
 	//suite.Require().NotNil(blockHash)
 
 	setResponse(suite, &ctypes.ResultBlock{}, true)
-	rpcRes := Call(suite.T(), "eth_getBlockTransactionCountByHash", []interface{}{"0x9313290cf2049ee472f1055ab571538a8079b83ed4a161a025b3804abb91acc3"})
+	rpcRes := Call(suite.T(), suite.addr, "eth_getBlockTransactionCountByHash", []interface{}{"0x9313290cf2049ee472f1055ab571538a8079b83ed4a161a025b3804abb91acc3"})
 
 	//var txCount hexutil.Uint
 	//suite.Require().NoError(json.Unmarshal(rpcRes.Result, &txCount))
@@ -576,23 +586,23 @@ func (suite *RPCTestSuite) TestEth_GetBlockTransactionCountByHash() {
 	//suite.Require().True(txCount == 1)
 
 	// inexistent hash -> return nil
-	rpcRes = Call(suite.T(), "eth_getBlockTransactionCountByHash", []interface{}{inexistentHash})
+	rpcRes = Call(suite.T(), suite.addr, "eth_getBlockTransactionCountByHash", []interface{}{inexistentHash})
 	assertNullFromJSONResponse(suite.T(), rpcRes.Result)
 
 	// error check
 	// miss argument
-	_, err := CallWithError("eth_getBlockTransactionCountByHash", nil)
+	_, err := CallWithError(suite.addr, "eth_getBlockTransactionCountByHash", nil)
 	suite.Require().Error(err)
 }
 
 func (suite *RPCTestSuite) TestEth_GetBlockTransactionCountByNumber() {
-	hash := sendTestTransaction(suite.T(), senderAddr, receiverAddr, 1024)
+	hash := sendTestTransaction(suite.T(), suite.addr, senderAddr, receiverAddr, 1024)
 
 	// sleep for a while
-	height := getBlockHeightFromTxHash(suite.T(), hash)
+	height := getBlockHeightFromTxHash(suite.T(), suite.addr, hash)
 	//suite.Require().True(height != 0)
 
-	rpcRes := Call(suite.T(), "eth_getBlockTransactionCountByNumber", []interface{}{height.String()})
+	rpcRes := Call(suite.T(), suite.addr, "eth_getBlockTransactionCountByNumber", []interface{}{height.String()})
 
 	var txCount hexutil.Uint
 	//suite.Require().NoError(json.Unmarshal(rpcRes.Result, &txCount))
@@ -600,20 +610,20 @@ func (suite *RPCTestSuite) TestEth_GetBlockTransactionCountByNumber() {
 	//suite.Require().True(txCount == 1)
 
 	// latestBlock query
-	rpcRes = Call(suite.T(), "eth_getBlockTransactionCountByNumber", []interface{}{latestBlockNumber})
+	rpcRes = Call(suite.T(), suite.addr, "eth_getBlockTransactionCountByNumber", []interface{}{latestBlockNumber})
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &txCount))
 	// there is no tx on latest block
 	suite.Require().True(txCount == 0)
 
 	// pendingBlock query
-	rpcRes = Call(suite.T(), "eth_getBlockTransactionCountByNumber", []interface{}{pendingBlockNumber})
+	rpcRes = Call(suite.T(), suite.addr, "eth_getBlockTransactionCountByNumber", []interface{}{pendingBlockNumber})
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &txCount))
 	// there is no tx on latest block and mempool
 	suite.Require().Equal(hexutil.Uint(1), txCount)
 
 	// error check
 	// miss argument
-	_, err := CallWithError("eth_getBlockTransactionCountByNumber", nil)
+	_, err := CallWithError(suite.addr, "eth_getBlockTransactionCountByNumber", nil)
 	suite.Require().Error(err)
 	fmt.Println(err)
 }
@@ -625,7 +635,7 @@ func (suite *RPCTestSuite) TestEth_GetCode() {
 	//height := getBlockHeightFromTxHash(hash)
 	//suite.Require().True(height != 0)
 	//
-	//rpcRes := Call(suite.T(), "eth_getCode", []interface{}{receipet["contractAddress"], height.String()})
+	//rpcRes := Call(suite.T(), suite.addr, "eth_getCode", []interface{}{receipet["contractAddress"], height.String()})
 	//var code hexutil.Bytes
 	//suite.Require().NoError(json.Unmarshal(rpcRes.Result, &code))
 	//suite.Require().True(strings.EqualFold(erc20ContractByteCode, code.String()))
@@ -636,7 +646,7 @@ func (suite *RPCTestSuite) TestEth_GetCode() {
 	//height := getBlockHeightFromTxHash(hash)
 	//suite.Require().True(height != 0)
 	//
-	//rpcRes := Call(suite.T(), "eth_getCode", []interface{}{receipet["contractAddress"], height.String()})
+	//rpcRes := Call(suite.T(), suite.addr, "eth_getCode", []interface{}{receipet["contractAddress"], height.String()})
 	//var code hexutil.Bytes
 	//suite.Require().NoError(json.Unmarshal(rpcRes.Result, &code))
 	//fmt.Println(testContractByteCode)
@@ -646,27 +656,27 @@ func (suite *RPCTestSuite) TestEth_GetCode() {
 	// error check
 	// miss argument
 	// TODO: use a valid contract address as the first argument in params
-	_, err := CallWithError("eth_getCode", []interface{}{hexAddr1})
+	_, err := CallWithError(suite.addr, "eth_getCode", []interface{}{hexAddr1})
 	suite.Require().Error(err)
 
-	_, err = CallWithError("eth_getCode", nil)
+	_, err = CallWithError(suite.addr, "eth_getCode", nil)
 	suite.Require().Error(err)
 }
 
 func (suite *RPCTestSuite) TestEth_GetTransactionLogs() {
-	hash := sendTestTransaction(suite.T(), senderAddr, receiverAddr, 1024)
+	hash := sendTestTransaction(suite.T(), suite.addr, senderAddr, receiverAddr, 1024)
 
 	setResultTxFromMemoryPool(suite)
-	rpcRes := Call(suite.T(), "eth_getTransactionLogs", []interface{}{hash})
+	rpcRes := Call(suite.T(), suite.addr, "eth_getTransactionLogs", []interface{}{hash})
 	var transactionLogs []ethtypes.Log
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &transactionLogs))
 	// no transaction log for an evm transfer
 	assertNullFromJSONResponse(suite.T(), rpcRes.Result)
 
 	// test contract that emits an event in its constructor
-	hash, receipt := deployTestContract(suite.T(), senderAddr, testContractKind)
+	hash, receipt := deployTestContract(suite.T(), suite.addr, senderAddr, testContractKind)
 
-	rpcRes = Call(suite.T(), "eth_getTransactionLogs", []interface{}{hash})
+	rpcRes = Call(suite.T(), suite.addr, "eth_getTransactionLogs", []interface{}{hash})
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &transactionLogs))
 	suite.Require().Equal(1, len(transactionLogs))
 	suite.Require().True(ethcmn.HexToAddress(receipt["contractAddress"].(string)) == transactionLogs[0].Address)
@@ -675,12 +685,12 @@ func (suite *RPCTestSuite) TestEth_GetTransactionLogs() {
 	suite.Require().True(transactionLogs[0].Topics[1].Big().Cmp(big.NewInt(1024)) == 0)
 
 	// inexistent tx hash
-	_, err := CallWithError("eth_getTransactionLogs", []interface{}{inexistentHash})
+	_, err := CallWithError(suite.addr, "eth_getTransactionLogs", []interface{}{inexistentHash})
 	suite.Require().Error(err)
 
 	// error check
 	// miss argument
-	_, err = CallWithError("eth_getTransactionLogs", nil)
+	_, err = CallWithError(suite.addr, "eth_getTransactionLogs", nil)
 	suite.Require().Error(err)
 }
 
@@ -689,7 +699,7 @@ func (suite *RPCTestSuite) TestEth_Sign() {
 	//expectedSignature, err := signWithAccNameAndPasswd("alice", defaultPassWd, data)
 	//suite.Require().NoError(err)
 
-	rpcRes := Call(suite.T(), "eth_sign", []interface{}{senderAddr.Hex(), hexutil.Bytes(data)})
+	rpcRes := Call(suite.T(), suite.addr, "eth_sign", []interface{}{senderAddr.Hex(), hexutil.Bytes(data)})
 	var sig hexutil.Bytes
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &sig))
 
@@ -697,14 +707,14 @@ func (suite *RPCTestSuite) TestEth_Sign() {
 
 	// error check
 	// inexistent signer
-	_, err := CallWithError("eth_sign", []interface{}{receiverAddr, hexutil.Bytes(data)})
+	_, err := CallWithError(suite.addr, "eth_sign", []interface{}{receiverAddr, hexutil.Bytes(data)})
 	suite.Require().Error(err)
 
 	// miss argument
-	_, err = CallWithError("eth_sign", []interface{}{receiverAddr})
+	_, err = CallWithError(suite.addr, "eth_sign", []interface{}{receiverAddr})
 	suite.Require().Error(err)
 
-	_, err = CallWithError("eth_sign", nil)
+	_, err = CallWithError(suite.addr, "eth_sign", nil)
 	suite.Require().Error(err)
 }
 
@@ -715,29 +725,29 @@ func (suite *RPCTestSuite) TestEth_Call() {
 	callArgs["to"] = receiverAddr.Hex()
 	callArgs["value"] = hexutil.Uint(1024).String()
 	callArgs["gasPrice"] = (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String()
-	_, err := CallWithError("eth_call", []interface{}{callArgs, latestBlockNumber})
+	_, err := CallWithError(suite.addr, "eth_call", []interface{}{callArgs, latestBlockNumber})
 	suite.Require().NoError(err)
 
 	// simulate contract deployment
 	delete(callArgs, "to")
 	delete(callArgs, "value")
 	callArgs["data"] = erc20ContractDeployedByteCode
-	_, err = CallWithError("eth_call", []interface{}{callArgs, latestBlockNumber})
+	_, err = CallWithError(suite.addr, "eth_call", []interface{}{callArgs, latestBlockNumber})
 	suite.Require().NoError(err)
 
 	// error check
 	// miss argument
-	_, err = CallWithError("eth_call", []interface{}{callArgs})
+	_, err = CallWithError(suite.addr, "eth_call", []interface{}{callArgs})
 	suite.Require().Error(err)
 
-	_, err = CallWithError("eth_call", nil)
+	_, err = CallWithError(suite.addr, "eth_call", nil)
 	suite.Require().Error(err)
 }
 
 func (suite *RPCTestSuite) TestEth_EstimateGas_WithoutArgs() {
 	// error check
 	// miss argument
-	res, err := CallWithError("eth_estimateGas", nil)
+	res, err := CallWithError(suite.addr, "eth_estimateGas", nil)
 	suite.Require().Error(err)
 	suite.Require().Nil(res)
 }
@@ -749,7 +759,7 @@ func (suite *RPCTestSuite) TestEth_EstimateGas_Transfer() {
 	param[0]["to"] = "0x1122334455667788990011223344556677889900"
 	param[0]["value"] = "0x1"
 	param[0]["gasPrice"] = (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String()
-	rpcRes := Call(suite.T(), "eth_estimateGas", param)
+	rpcRes := Call(suite.T(), suite.addr, "eth_estimateGas", param)
 	suite.Require().NotNil(rpcRes)
 	suite.Require().NotEmpty(rpcRes.Result)
 
@@ -768,7 +778,7 @@ func (suite *RPCTestSuite) TestEth_EstimateGas_ContractDeployment() {
 	param[0]["from"] = senderAddr.Hex()
 	param[0]["data"] = bytecode
 
-	rpcRes := Call(suite.T(), "eth_estimateGas", param)
+	rpcRes := Call(suite.T(), suite.addr, "eth_estimateGas", param)
 	suite.Require().NotNil(rpcRes)
 	suite.Require().NotEmpty(rpcRes.Result)
 
@@ -780,78 +790,78 @@ func (suite *RPCTestSuite) TestEth_EstimateGas_ContractDeployment() {
 }
 
 func (suite *RPCTestSuite) TestEth_GetBlockByHash() {
-	hash := sendTestTransaction(suite.T(), senderAddr, receiverAddr, 1024)
-	expectedBlockHash := getBlockHashFromTxHash(suite.T(), hash)
+	hash := sendTestTransaction(suite.T(), suite.addr, senderAddr, receiverAddr, 1024)
+	expectedBlockHash := getBlockHashFromTxHash(suite.T(), suite.addr, hash)
 
 	// TODO: OKExChain only supports the block query with txs' hash inside no matter what the second bool argument is.
 	// 		eth rpc: 	false -> txs' hash inside
 	//				  	true  -> txs full content
 
 	// TODO: block hash bug , wait for pr merge
-	//rpcRes := Call(suite.T(), "eth_getBlockByHash", []interface{}{expectedBlockHash, false})
+	//rpcRes := Call(suite.T(), suite.addr, "eth_getBlockByHash", []interface{}{expectedBlockHash, false})
 	//var res map[string]interface{}
 	//suite.Require().NoError(json.Unmarshal(rpcRes.Result, &res))
 	//suite.Require().True(strings.EqualFold(expectedBlockHash, res["hash"].(string)))
 	//
-	//rpcRes = Call(suite.T(), "eth_getBlockByHash", []interface{}{expectedBlockHash, true})
+	//rpcRes = Call(suite.T(), suite.addr, "eth_getBlockByHash", []interface{}{expectedBlockHash, true})
 	//suite.Require().NoError(json.Unmarshal(rpcRes.Result, &res))
 	//suite.Require().True(strings.EqualFold(expectedBlockHash, res["hash"].(string)))
 
 	// inexistent hash
-	//rpcRes, err := CallWithError("eth_getBlockByHash", []interface{}{inexistentHash, false})
+	//rpcRes, err :=CallWithError(suite.addr, "eth_getBlockByHash", []interface{}{inexistentHash, false})
 
 	// error check
 	// miss argument
-	_, err := CallWithError("eth_getBlockByHash", []interface{}{expectedBlockHash})
+	_, err := CallWithError(suite.addr, "eth_getBlockByHash", []interface{}{expectedBlockHash})
 	suite.Require().Error(err)
 
-	_, err = CallWithError("eth_getBlockByHash", nil)
+	_, err = CallWithError(suite.addr, "eth_getBlockByHash", nil)
 	suite.Require().Error(err)
 }
 
 func (suite *RPCTestSuite) TestEth_GetBlockByNumber() {
-	hash := sendTestTransaction(suite.T(), senderAddr, receiverAddr, 1024)
+	hash := sendTestTransaction(suite.T(), suite.addr, senderAddr, receiverAddr, 1024)
 
 	// sleep for a while
 	//time.Sleep(3 * time.Second)
-	expectedHeight := getBlockHeightFromTxHash(suite.T(), hash)
+	expectedHeight := getBlockHeightFromTxHash(suite.T(), suite.addr, hash)
 
 	// TODO: OKExChain only supports the block query with txs' hash inside no matter what the second bool argument is.
 	// 		eth rpc: 	false -> txs' hash inside
-	rpcRes := Call(suite.T(), "eth_getBlockByNumber", []interface{}{expectedHeight, false})
+	rpcRes := Call(suite.T(), suite.addr, "eth_getBlockByNumber", []interface{}{expectedHeight, false})
 	var res map[string]interface{}
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &res))
 	//suite.Require().True(strings.EqualFold(expectedHeight.String(), res["number"].(string)))
 
-	rpcRes = Call(suite.T(), "eth_getBlockByNumber", []interface{}{expectedHeight, true})
+	rpcRes = Call(suite.T(), suite.addr, "eth_getBlockByNumber", []interface{}{expectedHeight, true})
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &res))
 	//suite.Require().True(strings.EqualFold(expectedHeight.String(), res["number"].(string)))
 
 	// error check
 	// future block height -> return nil without error
-	rpcRes = Call(suite.T(), "eth_blockNumber", nil)
+	rpcRes = Call(suite.T(), suite.addr, "eth_blockNumber", nil)
 	var currentBlockHeight hexutil.Uint64
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &currentBlockHeight))
 
-	rpcRes, err := CallWithError("eth_getBlockByNumber", []interface{}{currentBlockHeight + 100, false})
+	rpcRes, err := CallWithError(suite.addr, "eth_getBlockByNumber", []interface{}{currentBlockHeight + 100, false})
 	suite.Require().NoError(err)
 	assertNullFromJSONResponse(suite.T(), rpcRes.Result)
 
 	// miss argument
-	_, err = CallWithError("eth_getBlockByNumber", []interface{}{currentBlockHeight})
+	_, err = CallWithError(suite.addr, "eth_getBlockByNumber", []interface{}{currentBlockHeight})
 	suite.Require().Error(err)
 
-	_, err = CallWithError("eth_getBlockByNumber", nil)
+	_, err = CallWithError(suite.addr, "eth_getBlockByNumber", nil)
 	suite.Require().Error(err)
 }
 
 func (suite *RPCTestSuite) TestEth_GetTransactionByBlockHashAndIndex() {
-	hash := sendTestTransaction(suite.T(), senderAddr, receiverAddr, 1024)
+	hash := sendTestTransaction(suite.T(), suite.addr, senderAddr, receiverAddr, 1024)
 
 	// sleep for a while
 	//time.Sleep(5 * time.Second)
-	blockHash, index := getBlockHashFromTxHash(suite.T(), hash), hexutil.Uint(0)
-	rpcRes := Call(suite.T(), "eth_getTransactionByBlockHashAndIndex", []interface{}{blockHash, index})
+	blockHash, index := getBlockHashFromTxHash(suite.T(), suite.addr, hash), hexutil.Uint(0)
+	rpcRes := Call(suite.T(), suite.addr, "eth_getTransactionByBlockHashAndIndex", []interface{}{blockHash, index})
 	var transaction watcher.Transaction
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &transaction))
 	suite.Require().True(hash == transaction.Hash)
@@ -860,29 +870,29 @@ func (suite *RPCTestSuite) TestEth_GetTransactionByBlockHashAndIndex() {
 
 	// inexistent block hash
 	// TODO: error:{"code":1,"log":"internal","height":1497,"codespace":"undefined"}, fix it later
-	//rpcRes, err := CallWithError("eth_getTransactionByBlockHashAndIndex", []interface{}{inexistentHash, index})
+	//rpcRes, err :=CallWithError(suite.addr, "eth_getTransactionByBlockHashAndIndex", []interface{}{inexistentHash, index})
 	//fmt.Println(err)
 
 	// inexistent transaction index -> nil
-	rpcRes, err := CallWithError("eth_getTransactionByBlockHashAndIndex", []interface{}{blockHash, index + 100})
+	rpcRes, err := CallWithError(suite.addr, "eth_getTransactionByBlockHashAndIndex", []interface{}{blockHash, index + 100})
 	suite.Require().NoError(err)
 	assertNullFromJSONResponse(suite.T(), rpcRes.Result)
 
 	// error check
 	// miss argument
-	rpcRes, err = CallWithError("eth_getTransactionByBlockHashAndIndex", []interface{}{blockHash})
+	rpcRes, err = CallWithError(suite.addr, "eth_getTransactionByBlockHashAndIndex", []interface{}{blockHash})
 	suite.Require().Error(err)
 
-	rpcRes, err = CallWithError("eth_getTransactionByBlockHashAndIndex", nil)
+	rpcRes, err = CallWithError(suite.addr, "eth_getTransactionByBlockHashAndIndex", nil)
 	suite.Require().Error(err)
 }
 
 func (suite *RPCTestSuite) TestEth_GetTransactionReceipt() {
-	hash := sendTestTransaction(suite.T(), hexAddr1, receiverAddr, 1024)
+	hash := sendTestTransaction(suite.T(), suite.addr, senderAddr, receiverAddr, 1024)
 
 	// sleep for a while
 	time.Sleep(3 * time.Second)
-	rpcRes := Call(suite.T(), "eth_getTransactionReceipt", []interface{}{hash})
+	rpcRes := Call(suite.T(), suite.addr, "eth_getTransactionReceipt", []interface{}{hash})
 
 	var receipt map[string]interface{}
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &receipt))
@@ -892,40 +902,40 @@ func (suite *RPCTestSuite) TestEth_GetTransactionReceipt() {
 	suite.Require().True(strings.EqualFold(hash.Hex(), receipt["transactionHash"].(string)))
 
 	// contract deployment
-	hash, receipt = deployTestContract(suite.T(), hexAddr1, erc20ContractKind)
+	hash, receipt = deployTestContract(suite.T(), suite.addr, senderAddr, erc20ContractKind)
 	suite.Require().True(strings.EqualFold(hexAddr1.Hex(), receipt["from"].(string)))
 	suite.Require().True(strings.EqualFold(hexutil.Uint(1).String(), receipt["status"].(string)))
 	suite.Require().True(strings.EqualFold(hash.Hex(), receipt["transactionHash"].(string)))
 
 	// inexistent hash -> nil without error
-	rpcRes, err := CallWithError("eth_getTransactionReceipt", []interface{}{inexistentHash})
+	rpcRes, err := CallWithError(suite.addr, "eth_getTransactionReceipt", []interface{}{inexistentHash})
 	suite.Require().NoError(err)
 	assertNullFromJSONResponse(suite.T(), rpcRes.Result)
 
 	// error check
 	// miss argument
-	_, err = CallWithError("eth_getTransactionReceipt", nil)
+	_, err = CallWithError(suite.addr, "eth_getTransactionReceipt", nil)
 	suite.Require().Error(err)
 }
 
 func (suite *RPCTestSuite) TestEth_PendingTransactions() {
 	// there will be no pending tx in mempool because of the quick grab of block building
-	rpcRes := Call(suite.T(), "eth_pendingTransactions", nil)
+	rpcRes := Call(suite.T(), suite.addr, "eth_pendingTransactions", nil)
 	var transactions []watcher.Transaction
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &transactions))
 	suite.Require().Zero(len(transactions))
 }
 
 func (suite *RPCTestSuite) TestBlockBloom() {
-	hash, receipt := deployTestContract(suite.T(), hexAddr1, testContractKind)
+	hash, receipt := deployTestContract(suite.T(), suite.addr, senderAddr, testContractKind)
 
-	rpcRes := Call(suite.T(), "eth_getBlockByNumber", []interface{}{receipt["blockNumber"].(string), false})
+	rpcRes := Call(suite.T(), suite.addr, "eth_getBlockByNumber", []interface{}{receipt["blockNumber"].(string), false})
 	var blockInfo map[string]interface{}
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &blockInfo))
 	logsBloom := hexToBloom(suite.T(), blockInfo["logsBloom"].(string))
 
 	// get the transaction log with tx hash
-	rpcRes = Call(suite.T(), "eth_getTransactionLogs", []interface{}{hash})
+	rpcRes = Call(suite.T(), suite.addr, "eth_getTransactionLogs", []interface{}{hash})
 	var transactionLogs []ethtypes.Log
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &transactionLogs))
 	suite.Require().Equal(1, len(transactionLogs))
@@ -943,7 +953,7 @@ func (suite *RPCTestSuite) TestEth_GetLogs_NoLogs() {
 	// inexistent topics
 	inexistentTopicsHash := ethcmn.BytesToHash([]byte("inexistent topics")).Hex()
 	param[0]["topics"] = []string{inexistentTopicsHash}
-	rpcRes, err := CallWithError("eth_getLogs", param)
+	rpcRes, err := CallWithError(suite.addr, "eth_getLogs", param)
 	suite.Require().NoError(err)
 
 	var logs []ethtypes.Log
@@ -951,19 +961,19 @@ func (suite *RPCTestSuite) TestEth_GetLogs_NoLogs() {
 	suite.Require().Zero(len(logs))
 
 	// error check
-	_, err = CallWithError("eth_getLogs", nil)
+	_, err = CallWithError(suite.addr, "eth_getLogs", nil)
 	suite.Require().Error(err)
 }
 
 func (suite *RPCTestSuite) TestEth_GetLogs_GetTopicsFromHistory() {
-	_, receipt := deployTestContract(suite.T(), hexAddr1, testContractKind)
+	_, receipt := deployTestContract(suite.T(), suite.addr, senderAddr, testContractKind)
 	param := make([]map[string]interface{}, 1)
 	param[0] = make(map[string]interface{})
 	param[0]["topics"] = []string{helloTopic, worldTopic}
 	param[0]["fromBlock"] = receipt["blockNumber"].(string)
 
 	time.Sleep(time.Second * 5)
-	rpcRes := Call(suite.T(), "eth_getLogs", param)
+	rpcRes := Call(suite.T(), suite.addr, "eth_getLogs", param)
 
 	var logs []ethtypes.Log
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &logs))
@@ -979,7 +989,7 @@ func (suite *RPCTestSuite) TestEth_GetLogs_GetTopicsFromHistory() {
 	// get current block height -> there is no logs from that height
 	param[0]["fromBlock"] = hexutil.Uint64(blockNumber + 1).String()
 
-	rpcRes, err = CallWithError("eth_getLogs", param)
+	rpcRes, err = CallWithError(suite.addr, "eth_getLogs", param)
 	suite.Require().NoError(err)
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &logs))
 	suite.Require().Zero(len(logs))
@@ -989,7 +999,7 @@ func (suite *RPCTestSuite) TestEth_GetProof() {
 
 	initialBalance := suite.chain.SenderAccount().GetCoins()[0]
 
-	rpcRes := Call(suite.T(), "eth_getProof", []interface{}{senderAddr, []string{fmt.Sprint(addrAStoreKey)}, "latest"})
+	rpcRes := Call(suite.T(), suite.addr, "eth_getProof", []interface{}{senderAddr, []string{fmt.Sprint(addrAStoreKey)}, "latest"})
 	suite.Require().NotNil(rpcRes)
 
 	var accRes types.AccountResult
@@ -1000,7 +1010,7 @@ func (suite *RPCTestSuite) TestEth_GetProof() {
 	suite.Require().NotEmpty(accRes.StorageProof)
 
 	// inexistentAddr -> zero value account result
-	rpcRes, err := CallWithError("eth_getProof", []interface{}{inexistentAddr, []string{fmt.Sprint(addrAStoreKey)}, "latest"})
+	rpcRes, err := CallWithError(suite.addr, "eth_getProof", []interface{}{inexistentAddr, []string{fmt.Sprint(addrAStoreKey)}, "latest"})
 	suite.Require().NoError(err)
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &accRes))
 	suite.Require().Equal(inexistentAddr, accRes.Address)
@@ -1008,13 +1018,13 @@ func (suite *RPCTestSuite) TestEth_GetProof() {
 
 	// error check
 	// miss argument
-	_, err = CallWithError("eth_getProof", []interface{}{hexAddr2, []string{fmt.Sprint(addrAStoreKey)}})
+	_, err = CallWithError(suite.addr, "eth_getProof", []interface{}{hexAddr2, []string{fmt.Sprint(addrAStoreKey)}})
 	suite.Require().Error(err)
 
-	_, err = CallWithError("eth_getProof", []interface{}{hexAddr2})
+	_, err = CallWithError(suite.addr, "eth_getProof", []interface{}{hexAddr2})
 	suite.Require().Error(err)
 
-	_, err = CallWithError("eth_getProof", nil)
+	_, err = CallWithError(suite.addr, "eth_getProof", nil)
 	suite.Require().Error(err)
 }
 
@@ -1023,7 +1033,7 @@ func (suite *RPCTestSuite) TestEth_NewFilter() {
 	param[0] = make(map[string]interface{})
 	// random topics
 	param[0]["topics"] = []ethcmn.Hash{ethcmn.BytesToHash([]byte("random topics"))}
-	rpcRes := Call(suite.T(), "eth_newFilter", param)
+	rpcRes := Call(suite.T(), suite.addr, "eth_newFilter", param)
 
 	var ID string
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &ID))
@@ -1033,14 +1043,14 @@ func (suite *RPCTestSuite) TestEth_NewFilter() {
 	delete(param[0], "topics")
 	param[0]["fromBlock"] = latestBlockNumber
 	param[0]["toBlock"] = latestBlockNumber
-	rpcRes, err := CallWithError("eth_newFilter", param)
+	rpcRes, err := CallWithError(suite.addr, "eth_newFilter", param)
 	suite.Require().NoError(err)
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &ID))
 	suite.Require().NotZero(ID)
 
 	// fromBlock: nil, toBlock: latest -> no error
 	delete(param[0], "fromBlock")
-	rpcRes, err = CallWithError("eth_newFilter", param)
+	rpcRes, err = CallWithError(suite.addr, "eth_newFilter", param)
 	suite.Require().NoError(err)
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &ID))
 	suite.Require().NotZero(ID)
@@ -1048,7 +1058,7 @@ func (suite *RPCTestSuite) TestEth_NewFilter() {
 	// fromBlock: latest, toBlock: nil -> no error
 	delete(param[0], "toBlock")
 	param[0]["fromBlock"] = latestBlockNumber
-	rpcRes, err = CallWithError("eth_newFilter", param)
+	rpcRes, err = CallWithError(suite.addr, "eth_newFilter", param)
 	suite.Require().NoError(err)
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &ID))
 	suite.Require().NotZero(ID)
@@ -1056,14 +1066,14 @@ func (suite *RPCTestSuite) TestEth_NewFilter() {
 	// fromBlock: pending, toBlock: pending -> no error
 	param[0]["fromBlock"] = pendingBlockNumber
 	param[0]["toBlock"] = pendingBlockNumber
-	rpcRes, err = CallWithError("eth_newFilter", param)
+	rpcRes, err = CallWithError(suite.addr, "eth_newFilter", param)
 	suite.Require().NoError(err)
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &ID))
 	suite.Require().NotZero(ID)
 
 	// fromBlock: latest, toBlock: pending -> no error
 	param[0]["fromBlock"] = latestBlockNumber
-	rpcRes, err = CallWithError("eth_newFilter", param)
+	rpcRes, err = CallWithError(suite.addr, "eth_newFilter", param)
 	suite.Require().NoError(err)
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &ID))
 	suite.Require().NotZero(ID)
@@ -1071,31 +1081,31 @@ func (suite *RPCTestSuite) TestEth_NewFilter() {
 	// toBlock > fromBlock -> no error
 	param[0]["fromBlock"] = (*hexutil.Big)(big.NewInt(2)).String()
 	param[0]["toBlock"] = (*hexutil.Big)(big.NewInt(3)).String()
-	rpcRes, err = CallWithError("eth_newFilter", param)
+	rpcRes, err = CallWithError(suite.addr, "eth_newFilter", param)
 	suite.Require().NoError(err)
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &ID))
 	suite.Require().NotZero(ID)
 
 	// error check
 	// miss argument
-	_, err = CallWithError("eth_newFilter", nil)
+	_, err = CallWithError(suite.addr, "eth_newFilter", nil)
 	suite.Require().Error(err)
 
 	// fromBlock > toBlock -> error: invalid from and to block combination: from > to
 	param[0]["fromBlock"] = (*hexutil.Big)(big.NewInt(3)).String()
 	param[0]["toBlock"] = (*hexutil.Big)(big.NewInt(2)).String()
-	rpcRes, err = CallWithError("eth_newFilter", param)
+	rpcRes, err = CallWithError(suite.addr, "eth_newFilter", param)
 	suite.Require().Error(err)
 
 	// fromBlock: pending, toBlock: latest
 	param[0]["fromBlock"] = pendingBlockNumber
 	param[0]["toBlock"] = latestBlockNumber
-	rpcRes, err = CallWithError("eth_newFilter", param)
+	rpcRes, err = CallWithError(suite.addr, "eth_newFilter", param)
 	suite.Require().Error(err)
 }
 
 func (suite *RPCTestSuite) TestEth_NewBlockFilter() {
-	rpcRes := Call(suite.T(), "eth_newBlockFilter", nil)
+	rpcRes := Call(suite.T(), suite.addr, "eth_newBlockFilter", nil)
 
 	var ID string
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &ID))
@@ -1103,7 +1113,7 @@ func (suite *RPCTestSuite) TestEth_NewBlockFilter() {
 }
 
 func (suite *RPCTestSuite) TestEth_GetFilterChanges_BlockFilter() {
-	rpcRes := Call(suite.T(), "eth_newBlockFilter", nil)
+	rpcRes := Call(suite.T(), suite.addr, "eth_newBlockFilter", nil)
 
 	var ID string
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &ID))
@@ -1111,14 +1121,14 @@ func (suite *RPCTestSuite) TestEth_GetFilterChanges_BlockFilter() {
 	// wait for block generation
 	time.Sleep(5 * time.Second)
 
-	changesRes := Call(suite.T(), "eth_getFilterChanges", []interface{}{ID})
+	changesRes := Call(suite.T(), suite.addr, "eth_getFilterChanges", []interface{}{ID})
 	var hashes []ethcmn.Hash
 	suite.Require().NoError(json.Unmarshal(changesRes.Result, &hashes))
 	suite.Require().GreaterOrEqual(len(hashes), 1)
 
 	// error check
 	// miss argument
-	_, err := CallWithError("eth_getFilterChanges", nil)
+	_, err := CallWithError(suite.addr, "eth_getFilterChanges", nil)
 	suite.Require().Error(err)
 }
 
@@ -1127,12 +1137,12 @@ func (suite *RPCTestSuite) TestEth_GetFilterChanges_NoLogs() {
 	param[0] = make(map[string]interface{})
 	param[0]["topics"] = []ethcmn.Hash{ethcmn.BytesToHash([]byte("random topics"))}
 
-	rpcRes := Call(suite.T(), "eth_newFilter", param)
+	rpcRes := Call(suite.T(), suite.addr, "eth_newFilter", param)
 
 	var ID string
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &ID))
 
-	changesRes := Call(suite.T(), "eth_getFilterChanges", []interface{}{ID})
+	changesRes := Call(suite.T(), suite.addr, "eth_getFilterChanges", []interface{}{ID})
 
 	var logs []ethtypes.Log
 	suite.Require().NoError(json.Unmarshal(changesRes.Result, &logs))
@@ -1143,7 +1153,7 @@ func (suite *RPCTestSuite) TestEth_GetFilterChanges_NoLogs() {
 func (suite *RPCTestSuite) TestEth_GetFilterChanges_WrongID() {
 	// ID's length is 16
 	inexistentID := "0x1234567890abcdef"
-	_, err := CallWithError("eth_getFilterChanges", []interface{}{inexistentID})
+	_, err := CallWithError(suite.addr, "eth_getFilterChanges", []interface{}{inexistentID})
 	suite.Require().Error(err)
 }
 
@@ -1153,17 +1163,17 @@ func (suite *RPCTestSuite) TestEth_GetFilterChanges_NoTopics() {
 	param[0] = make(map[string]interface{})
 	param[0]["fromBlock"] = latestBlockNumber
 
-	rpcRes := Call(suite.T(), "eth_newFilter", param)
+	rpcRes := Call(suite.T(), suite.addr, "eth_newFilter", param)
 	suite.Require().Nil(rpcRes.Error)
 	var ID string
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &ID))
 	suite.T().Logf("create filter successfully with ID %s\n", ID)
 
 	// deploy contract with emitting events
-	_, _ = deployTestContract(suite.T(), hexAddr1, testContractKind)
+	_, _ = deployTestContract(suite.T(), suite.addr, senderAddr, testContractKind)
 
 	// get filter changes
-	changesRes := Call(suite.T(), "eth_getFilterChanges", []string{ID})
+	changesRes := Call(suite.T(), suite.addr, "eth_getFilterChanges", []string{ID})
 
 	var logs []ethtypes.Log
 	suite.Require().NoError(json.Unmarshal(changesRes.Result, &logs))
@@ -1183,14 +1193,14 @@ func (suite *RPCTestSuite) TestEth_GetFilterChanges_Addresses() {
 	//param[0]["addresses"] = []string{contractAddrHex}
 	//param[0]["topics"] = []string{helloTopic, worldTopic}
 	//param[0]["fromBlock"] = blockHeight
-	//rpcRes := Call(suite.T(), "eth_newFilter", param)
+	//rpcRes := Call(suite.T(), suite.addr, "eth_newFilter", param)
 	//
 	//var ID string
 	//suite.Require().NoError(json.Unmarshal(rpcRes.Result, &ID))
 	//suite.T().Logf("create filter focusing on contract %s successfully with ID %s\n", contractAddrHex, ID)
 	//
 	//// get filter changes
-	//changesRes := Call(suite.T(), "eth_getFilterChanges", []string{ID})
+	//changesRes := Call(suite.T(), suite.addr, "eth_getFilterChanges", []string{ID})
 	//
 	//var logs []ethtypes.Log
 	//suite.Require().NoError(json.Unmarshal(changesRes.Result, &logs))
@@ -1210,14 +1220,14 @@ func (suite *RPCTestSuite) TestEth_GetFilterChanges_BlockHash() {
 	//param[0]["blockHash"] = blockHash
 	//param[0]["addresses"] = []string{contractAddrHex}
 	//param[0]["topics"] = []string{helloTopic, worldTopic}
-	//rpcRes := Call(suite.T(), "eth_newFilter", param)
+	//rpcRes := Call(suite.T(), suite.addr, "eth_newFilter", param)
 	//
 	//var ID string
 	//suite.Require().NoError(json.Unmarshal(rpcRes.Result, &ID))
 	//suite.T().Logf("create filter focusing on contract %s in the block with block hash %s successfully with ID %s\n", contractAddrHex, blockHash, ID)
 	//
 	//// get filter changes
-	//changesRes := Call(suite.T(), "eth_getFilterChanges", []string{ID})
+	//changesRes := Call(suite.T(), suite.addr, "eth_getFilterChanges", []string{ID})
 	//
 	//var logs []ethtypes.Log
 	//suite.Require().NoError(json.Unmarshal(changesRes.Result, &logs))
@@ -1233,17 +1243,17 @@ func (suite *RPCTestSuite) TestEth_GetFilterChanges_Topics_AB() {
 	param[0]["fromBlock"] = latestBlockNumber
 
 	// create new filter
-	rpcRes := Call(suite.T(), "eth_newFilter", param)
+	rpcRes := Call(suite.T(), suite.addr, "eth_newFilter", param)
 
 	var ID string
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &ID))
 	suite.T().Logf("create filter successfully with ID %s\n", ID)
 
 	// deploy contract with emitting events
-	_, _ = deployTestContract(suite.T(), hexAddr1, testContractKind)
+	_, _ = deployTestContract(suite.T(), suite.addr, senderAddr, testContractKind)
 
 	// get filter changes
-	changesRes := Call(suite.T(), "eth_getFilterChanges", []string{ID})
+	changesRes := Call(suite.T(), suite.addr, "eth_getFilterChanges", []string{ID})
 
 	var logs []ethtypes.Log
 	suite.Require().NoError(json.Unmarshal(changesRes.Result, &logs))
@@ -1258,17 +1268,17 @@ func (suite *RPCTestSuite) TestEth_GetFilterChanges_Topics_XB() {
 	param[0]["fromBlock"] = latestBlockNumber
 
 	// create new filter
-	rpcRes := Call(suite.T(), "eth_newFilter", param)
+	rpcRes := Call(suite.T(), suite.addr, "eth_newFilter", param)
 
 	var ID string
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &ID))
 	suite.T().Logf("create filter successfully with ID %s\n", ID)
 
 	// deploy contract with emitting events
-	_, _ = deployTestContract(suite.T(), hexAddr1, testContractKind)
+	_, _ = deployTestContract(suite.T(), suite.addr, senderAddr, testContractKind)
 
 	// get filter changes
-	changesRes := Call(suite.T(), "eth_getFilterChanges", []string{ID})
+	changesRes := Call(suite.T(), suite.addr, "eth_getFilterChanges", []string{ID})
 
 	var logs []ethtypes.Log
 	suite.Require().NoError(json.Unmarshal(changesRes.Result, &logs))
@@ -1281,19 +1291,19 @@ func (suite *RPCTestSuite) TestEth_GetFilterChanges_Topics_XB() {
 //}
 
 func (suite *RPCTestSuite) TestEth_PendingTransactionFilter() {
-	rpcRes := Call(suite.T(), "eth_newPendingTransactionFilter", nil)
+	rpcRes := Call(suite.T(), suite.addr, "eth_newPendingTransactionFilter", nil)
 
 	var ID string
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &ID))
 
 	for i := 0; i < 5; i++ {
-		_, _ = deployTestContract(suite.T(), hexAddr1, erc20ContractKind)
+		_, _ = deployTestContract(suite.T(), suite.addr, senderAddr, erc20ContractKind)
 	}
 
 	time.Sleep(10 * time.Second)
 
 	// get filter changes
-	changesRes := Call(suite.T(), "eth_getFilterChanges", []string{ID})
+	changesRes := Call(suite.T(), suite.addr, "eth_getFilterChanges", []string{ID})
 	suite.Require().NotNil(changesRes)
 
 	var txs []hexutil.Bytes
@@ -1304,20 +1314,20 @@ func (suite *RPCTestSuite) TestEth_PendingTransactionFilter() {
 
 func (suite *RPCTestSuite) TestEth_UninstallFilter() {
 	// create a new filter, get id
-	rpcRes := Call(suite.T(), "eth_newBlockFilter", nil)
+	rpcRes := Call(suite.T(), suite.addr, "eth_newBlockFilter", nil)
 	var ID string
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &ID))
 	suite.Require().NotZero(ID)
 
 	// based on id, uninstall filter
-	rpcRes = Call(suite.T(), "eth_uninstallFilter", []string{ID})
+	rpcRes = Call(suite.T(), suite.addr, "eth_uninstallFilter", []string{ID})
 	suite.Require().NotNil(rpcRes)
 	var status bool
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &status))
 	suite.Require().Equal(true, status)
 
 	// uninstall a non-existent filter
-	rpcRes = Call(suite.T(), "eth_uninstallFilter", []string{ID})
+	rpcRes = Call(suite.T(), suite.addr, "eth_uninstallFilter", []string{ID})
 	suite.Require().NotNil(rpcRes)
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &status))
 	suite.Require().Equal(false, status)
@@ -1431,7 +1441,7 @@ func (suite *RPCTestSuite) TestWebsocket_PendingTransaction() {
 			param[0]["from"] = hexAddr1.Hex()
 			param[0]["data"] = "0x6080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c240029"
 			param[0]["gasPrice"] = (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String()
-			rpcRes := Call(suite.T(), "eth_sendTransaction", param)
+			rpcRes := Call(suite.T(), suite.addr, "eth_sendTransaction", param)
 
 			var hash ethcmn.Hash
 			suite.Require().NoError(json.Unmarshal(rpcRes.Result, &hash))
@@ -1461,9 +1471,9 @@ func (suite *RPCTestSuite) TestWebsocket_PendingTransaction() {
 //{{}, {B}}          matches any topic in first position AND B in second position
 //{{A}, {B}}         matches topic A in first position AND B in second position
 //{{A, B}, {C, D}}   matches topic (A OR B) in first position AND (C OR D) in second position
-func (suite *RPCTestSuite) TestWebsocket_Logs() {
+func (suite *RPCTestSuite) TestWebsocket_Logs(netAddr string) {
 	t := suite.T()
-	contractAddr1, contractAddr2, contractAddr3 := deployTestTokenContract(t), deployTestTokenContract(t), deployTestTokenContract(t)
+	contractAddr1, contractAddr2, contractAddr3 := deployTestTokenContract(t, netAddr), deployTestTokenContract(t, netAddr), deployTestTokenContract(t, netAddr)
 
 	// init test cases
 	tests := []struct {
@@ -1497,21 +1507,21 @@ func (suite *RPCTestSuite) TestWebsocket_Logs() {
 	for i, test := range tests {
 		go verifyWebSocketRecvNum(suite.T(), &wg, i, test.addressList, test.topicsList, test.expected)
 	}
-	go sendTxs(suite.T(), &wg, contractAddr1, contractAddr2, contractAddr3)
+	go sendTxs(suite.T(), netAddr, &wg, contractAddr1, contractAddr2, contractAddr3)
 	wg.Wait()
 }
 
-func deployTestTokenContract(t *testing.T) string {
+func deployTestTokenContract(t *testing.T, netAddr string) string {
 	param := make([]map[string]string, 1)
 	param[0] = map[string]string{
 		"from":     hexAddr1.Hex(),
 		"data":     ttokenContractByteCode,
 		"gasPrice": (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String(),
 	}
-	rpcRes := Call(t, "eth_sendTransaction", param)
+	rpcRes := Call(t, netAddr, "eth_sendTransaction", param)
 	var hash ethcmn.Hash
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &hash))
-	receipt := WaitForReceipt(t, hash)
+	receipt := WaitForReceipt(t, netAddr, hash)
 	require.NotNil(t, receipt)
 	contractAddr, ok := receipt["contractAddress"].(string)
 	require.True(t, ok)
@@ -1574,7 +1584,7 @@ func assembleParameters(addressList string, topicsList string) string {
 	return fmt.Sprintf(`{"id": 2, "method": "eth_subscribe", "params": ["logs",{%s}]}`, param)
 }
 
-func sendTxs(t *testing.T, wg *sync.WaitGroup, contractAddrs ...string) {
+func sendTxs(t *testing.T, netAddr string, wg *sync.WaitGroup, contractAddrs ...string) {
 	dataList := []string{
 		// 0. mint  4294967295coin -> 0x2cf4ea7df75b513509d95946b43062e26bd88035
 		"0x40c10f190000000000000000000000002cf4ea7df75b513509d95946b43062e26bd8803500000000000000000000000000000000000000000000000000000000ffffffff",
@@ -1600,7 +1610,7 @@ func sendTxs(t *testing.T, wg *sync.WaitGroup, contractAddrs ...string) {
 			param[0]["to"] = contractAddr
 			param[0]["data"] = dataList[i]
 			param[0]["gasPrice"] = (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String()
-			rpcRes := Call(t, "eth_sendTransaction", param)
+			rpcRes := Call(t, netAddr, "eth_sendTransaction", param)
 			var hash ethcmn.Hash
 			require.NoError(t, json.Unmarshal(rpcRes.Result, &hash))
 

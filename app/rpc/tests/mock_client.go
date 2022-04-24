@@ -17,7 +17,6 @@ import (
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
 	"github.com/okex/exchain/libs/tendermint/mempool"
 	mempl "github.com/okex/exchain/libs/tendermint/mempool"
-	"github.com/okex/exchain/libs/tendermint/node"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/rpc/client"
 	"github.com/okex/exchain/libs/tendermint/rpc/client/mock"
@@ -74,15 +73,10 @@ func NewMockClient(chainId string, chain apptesting.TestChainI, app abci.Applica
 	if err != nil {
 		panic(err)
 	}
-
-	_, _, memplMetrics, _ := node.DefaultMetricsProvider(config.Instrumentation)(chainId)
 	mempool := mempool.NewCListMempool(
 		config.Mempool,
 		proxyApp.Mempool(),
 		mc.state.LastBlockHeight,
-		mempool.WithMetrics(memplMetrics),
-		mempool.WithPreCheck(tmstate.TxPreCheck(mc.state)),
-		mempool.WithPostCheck(tmstate.TxPostCheck(mc.state)),
 	)
 	mc.env.Mempool = mempool
 	mc.env.PubKey = chain.SenderAccount().GetPubKey()
@@ -390,6 +384,14 @@ func (c *MockClient) GetAddressList() (*ctypes.ResultUnconfirmedAddresses, error
 	return &ctypes.ResultUnconfirmedAddresses{
 		Addresses: addressList,
 	}, nil
+}
+func (c *MockClient) UnconfirmedTxs(limit int) (*ctypes.ResultUnconfirmedTxs, error) {
+	txs := c.env.Mempool.ReapMaxTxs(limit)
+	return &ctypes.ResultUnconfirmedTxs{
+		Count:      len(txs),
+		Total:      c.env.Mempool.Size(),
+		TotalBytes: c.env.Mempool.TxsBytes(),
+		Txs:        txs}, nil
 }
 func (c MockClient) GetUnconfirmedTxByHash(hash [sha256.Size]byte) (types.Tx, error) {
 	return c.env.Mempool.GetTxByHash(hash)
