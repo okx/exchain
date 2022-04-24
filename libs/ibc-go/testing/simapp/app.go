@@ -14,7 +14,6 @@ import (
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/capability"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/core"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/transfer"
-	"github.com/okex/exchain/x/common/monitor"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
@@ -94,8 +93,6 @@ const (
 )
 
 var (
-	orderMetrics  = monitor.DefaultOrderMetrics(nil)
-	streamMetrics = monitor.DefaultStreamMetrics(nil)
 	// DefaultCLIHome sets the default home directories for the application CLI
 	DefaultCLIHome = os.ExpandEnv("$HOME/.exchaincli")
 
@@ -355,7 +352,7 @@ func NewSimApp(
 
 	app.OrderKeeper = order.NewKeeper(
 		app.TokenKeeper, app.SupplyKeeper, app.DexKeeper, app.subspaces[order.ModuleName], auth.FeeCollectorName,
-		app.keys[order.OrderStoreKey], app.marshal.GetCdc(), false, orderMetrics)
+		app.keys[order.OrderStoreKey], app.marshal.GetCdc(), false, nil)
 
 	app.SwapKeeper = ammswap.NewKeeper(app.SupplyKeeper, app.TokenKeeper, app.marshal.GetCdc(), app.keys[ammswap.StoreKey], app.subspaces[ammswap.ModuleName])
 

@@ -15,7 +15,7 @@ type StreamMetrics struct {
 // DefaultStreamMetrics returns Metrics build using Prometheus client library if Prometheus is enabled
 // Otherwise, it returns no-op Metrics
 func DefaultStreamMetrics(config *prometheusConfig) *StreamMetrics {
-	if config != nil && config.Prometheus {
+	if config.Prometheus {
 		return NewStreamMetrics()
 	}
 	return NopStreamMetrics()

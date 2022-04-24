@@ -19,7 +19,7 @@ type OrderMetric struct {
 // DefaultOrderMetrics returns Metrics build using Prometheus client library if Prometheus is enabled
 // Otherwise, it returns no-op Metrics
 func DefaultOrderMetrics(config *prometheusConfig) *OrderMetric {
-	if config != nil && config.Prometheus {
+	if config.Prometheus {
 		return NewOrderMetrics()
 	}
 	return NopOrderMetrics()
