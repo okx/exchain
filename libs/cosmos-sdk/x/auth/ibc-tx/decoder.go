@@ -87,12 +87,12 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 				gaslimit = authInfo.Fee.GasLimit
 			}
 		}
-
 		fee := authtypes.StdFee{
 			Amount: []sdk.DecCoin{
 				sdk.DecCoin{
-					Denom:  denom,
-					Amount: sdk.NewDecFromBigInt(amount),
+					Denom: denom,
+					//Amount: sdk.NewDecFromBigInt(amount),
+					Amount: sdk.NewDecFromIntWithPrec(sdk.NewIntFromBigInt(amount), sdk.Precision),
 				},
 			},
 			Gas: gaslimit,
