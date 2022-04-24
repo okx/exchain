@@ -98,6 +98,9 @@ func (k *Keeper) SetTargetMptVersion(targetVersion int64) {
 // it will abort them using the procInterrupt.
 func (k *Keeper) OnStop(ctx sdk.Context) error {
 	if !mpt.TrieDirtyDisabled {
+		k.cmLock.Lock()
+		defer k.cmLock.Unlock()
+
 		triedb := k.db.TrieDB()
 		oecStartHeight := uint64(tmtypes.GetStartBlockHeight()) // start height of oec
 
@@ -130,6 +133,9 @@ func (k *Keeper) OnStop(ctx sdk.Context) error {
 }
 
 func (k *Keeper) PushData2Database(height int64, log log.Logger) {
+	k.cmLock.Lock()
+	defer k.cmLock.Unlock()
+
 	curMptRoot := k.GetMptRootHash(uint64(height))
 	if mpt.TrieDirtyDisabled {
 		k.fullNodePersist(curMptRoot, height, log)

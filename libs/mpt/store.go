@@ -3,6 +3,7 @@ package mpt
 import (
 	"fmt"
 	"io"
+	"sync"
 
 	"github.com/VictoriaMetrics/fastcache"
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -55,6 +56,7 @@ type MptStore struct {
 
 	version      int64
 	startVersion int64
+	cmLock sync.Mutex
 }
 
 func (ms *MptStore) CommitterCommitMap(deltaMap iavl.TreeDeltaMap) (_ types.CommitID, _ iavl.TreeDeltaMap) {
@@ -257,6 +259,9 @@ func (ms *MptStore) GetDBReadTime() int {
 }
 
 func (ms *MptStore) PushData2Database(curHeight int64) {
+	ms.cmLock.Lock()
+	defer ms.cmLock.Unlock()
+
 	curMptRoot := ms.GetMptRootHash(uint64(curHeight))
 	if TrieDirtyDisabled {
 		ms.fullNodePersist(curMptRoot, curHeight)
@@ -342,6 +347,9 @@ func (ms *MptStore) otherNodePersist(curMptRoot ethcmn.Hash, curHeight int64) {
 func (ms *MptStore) OnStop() error {
 	ms.exitSignal <- struct{}{}
 	ms.StopPrefetcher()
+
+	ms.cmLock.Lock()
+	defer ms.cmLock.Unlock()
 
 	if !tmtypes.HigherThanMars(ms.version) && !TrieWriteAhead {
 		return nil
@@ -512,7 +520,6 @@ func (ms *MptStore) prefetchData() {
 		for {
 			select {
 			case <-ms.exitSignal:
-				GAccTrieUpdatedChannel <- struct{}{}
 				return
 			case <-GAccTryUpdateTrieChannel:
 				if ms.prefetcher != nil {

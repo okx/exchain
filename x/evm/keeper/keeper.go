@@ -3,6 +3,7 @@ package keeper
 import (
 	"encoding/binary"
 	"math/big"
+	"sync"
 
 	"github.com/VictoriaMetrics/fastcache"
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -63,11 +64,10 @@ type Keeper struct {
 	startHeight uint64
 	triegc      *prque.Prque
 	stateCache  *fastcache.Cache
+	cmLock sync.Mutex
 
 	EvmStateDb     *types.CommitStateDB
 	UpdatedAccount []ethcmn.Address
-
-	asyncChain chan int64
 
 	// cache chain config
 	cci *chainConfigInfo
