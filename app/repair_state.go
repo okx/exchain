@@ -72,6 +72,7 @@ func repairStateOnStart(ctx *server.Context) {
 }
 
 func RepairState(ctx *server.Context, onStart bool) {
+	onStart = true
 	sm.SetIgnoreSmbCheck(true)
 	iavl.SetIgnoreVersionCheck(true)
 

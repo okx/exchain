@@ -1,8 +1,9 @@
 package main
 
 import (
-	"github.com/okex/exchain/x/common/analyzer"
 	"log"
+
+	"github.com/okex/exchain/x/common/analyzer"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
 
