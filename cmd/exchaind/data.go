@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/system"
 	"io/ioutil"
 	"log"
 	"os"
@@ -243,7 +244,7 @@ func pruneBlockCmd(ctx *server.Context) *cobra.Command {
 func dbConvertCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "convert",
-		Short: "Convert oec data from goleveldb to rocksdb",
+		Short: "Convert "+system.ChainName+" data from goleveldb to rocksdb",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(flags.FlagHome))
