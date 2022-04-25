@@ -452,7 +452,6 @@ type TransactionReceipt struct {
 	TransactionIndex  hexutil.Uint64  `json:"transactionIndex"`
 	From              string          `json:"from"`
 	To                *common.Address `json:"to"`
-	TxHash            common.Hash     `json:"-"`
 }
 
 func NewEvmTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, blockHash common.Hash, txIndex, height uint64, data *types.ResultData, cumulativeGas, GasUsed uint64) *MsgTransactionReceipt {
