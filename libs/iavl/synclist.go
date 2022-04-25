@@ -45,6 +45,7 @@ func (sl *syncList) RemoveFront() interface{} {
 	return ret
 }
 
+// RemoveFrontN remove front n elements and put them into the given list, len of removed must >= needRemove
 func (sl *syncList) RemoveFrontN(needRemove int, removed []interface{}) {
 	if needRemove == 0 {
 		return
@@ -57,6 +58,7 @@ func (sl *syncList) RemoveFrontN(needRemove int, removed []interface{}) {
 	return
 }
 
+// RemoveFrontNCb remove front n elements and call cb for each element
 func (sl *syncList) RemoveFrontNCb(needRemove int, cb func(interface{})) {
 	if needRemove == 0 {
 		return
@@ -69,6 +71,7 @@ func (sl *syncList) RemoveFrontNCb(needRemove int, cb func(interface{})) {
 	return
 }
 
+// PushBack pushes the element e at the back of list l, returns the element and len(l)
 func (sl *syncList) PushBack(e interface{}) (ele *list.Element, count int) {
 	sl.mtx.Lock()
 	ele = sl.List.PushBack(e)
@@ -77,6 +80,7 @@ func (sl *syncList) PushBack(e interface{}) (ele *list.Element, count int) {
 	return
 }
 
+// PushBackCb pushes an element to the back of the list and call cb, then returns the element and the length of the list.
 func (sl *syncList) PushBackCb(e interface{}, cb func(ele *list.Element)) (ele *list.Element, count int) {
 	sl.mtx.Lock()
 	ele = sl.List.PushBack(e)
@@ -86,6 +90,7 @@ func (sl *syncList) PushBackCb(e interface{}, cb func(ele *list.Element)) (ele *
 	return
 }
 
+// Remove removes the element from the list and returns it.
 func (sl *syncList) Remove(e *list.Element) (removed interface{}) {
 	sl.mtx.Lock()
 	removed = sl.List.Remove(e)
