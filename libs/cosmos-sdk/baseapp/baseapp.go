@@ -197,6 +197,8 @@ type BaseApp struct { // nolint: maligned
 	deliverTxsMgr    *DTTManager//DeliverTxTasksManager
 	feeForCollector sdk.Coins
 
+	feeForCollector sdk.Coins
+
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
 
