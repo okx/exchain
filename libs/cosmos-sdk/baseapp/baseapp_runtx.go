@@ -52,6 +52,16 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	handler := info.handler
 	app.pin(ValTxMsgs, true, mode)
 
+	if tx.GetType() != sdk.EvmTxType && mode == runTxModeDeliver && app.updateFeeCollectorAccHandler != nil {
+		// should update the balance of FeeCollector's account when run non-evm tx
+		// which uses non-infiniteGasMeter during AnteHandleChain
+		ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
+		if err := app.updateFeeCollectorAccHandler(ctx, app.feeForCollector); err != nil {
+			panic(err)
+		}
+		cache.Write()
+	}
+
 	//init info context
 	err = handler.handleStartHeight(info, height)
 	if err != nil {
@@ -77,16 +87,27 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		return err
 	}
 
+	// There is no need to update BlockGasMeter.GasConsumed and info.gInfo using ctx.GasMeter
+	// as gas is not consumed actually when ante failed.
+	isAnteSucceed := false
 	defer func() {
 		if r := recover(); r != nil {
 			err = app.runTx_defer_recover(r, info)
 			info.msCache = nil //TODO msCache not write
 			info.result = nil
 		}
-		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: info.ctx.GasMeter().GasConsumed()}
+		gasUsed := info.ctx.GasMeter().GasConsumed()
+		if !isAnteSucceed {
+			gasUsed = 0
+		}
+		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: gasUsed}
 	}()
 
-	defer handler.handleDeferGasConsumed(info)
+	defer func() {
+		if isAnteSucceed {
+			handler.handleDeferGasConsumed(info)
+		}
+	}()
 
 	defer func() {
 		app.pin(Refund, true, mode)
@@ -108,6 +129,12 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	}
 	app.pin(RunAnte, false, mode)
 
+	if app.getTxFee != nil && mode == runTxModeDeliver {
+		fee, _ := app.getTxFee(info.ctx, tx, true)
+		app.UpdateFeeForCollector(fee, true)
+	}
+
+	isAnteSucceed = true
 	app.pin(RunMsg, true, mode)
 	err = handler.handleRunMsg(info)
 	app.pin(RunMsg, false, mode)

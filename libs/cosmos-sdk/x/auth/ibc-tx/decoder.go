@@ -3,6 +3,7 @@ package ibc_tx
 import (
 	"fmt"
 	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 	"google.golang.org/protobuf/encoding/protowire"
 	"math/big"
 
@@ -16,7 +17,6 @@ import (
 	ibckey "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
 	tx "github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-
 	tmtypes "github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 )
 
@@ -107,7 +107,6 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			//convert crypto pubkey to tm pubkey
 			tmPubKey := tmtypes.PubKeySecp256k1{}
 			copy(tmPubKey[:], pk.Bytes())
-
 			signatures = append(signatures,
 				authtypes.StdSignature{
 					Signature: s,
@@ -121,6 +120,19 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			stdmsgs = append(stdmsgs, m)
 		}
 
+		var modeInfo *tx.ModeInfo_Single_
+		var ok bool
+		if len(authInfo.SignerInfos) > 0 {
+			modeInfo, ok = authInfo.SignerInfos[0].ModeInfo.Sum.(*tx.ModeInfo_Single_)
+			if !ok {
+				return nil, sdkerrors.Wrap(sdkerrors.ErrInternal, "only support ModeInfo_Single")
+			}
+		}
+		var signMode signing.SignMode
+		if modeInfo != nil && modeInfo.Single != nil {
+			signMode = modeInfo.Single.Mode
+		}
+
 		stx := authtypes.IbcTx{
 			&authtypes.StdTx{
 				Msgs:       stdmsgs,
@@ -130,6 +142,7 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			},
 			raw.AuthInfoBytes,
 			raw.BodyBytes,
+			signMode,
 		}
 
 		return &stx, nil

@@ -11,7 +11,7 @@ option (gogoproto.stringer_all)         = false;
 //
 // NOTE: The amount field is an Int which implements the custom method
 // signatures required by gogoproto.
-message Coin {
+message CoinAdapter {
   option (gogoproto.equal) = true;
 
   string denom  = 1;
@@ -22,7 +22,7 @@ message Coin {
 //
 // NOTE: The amount field is an Dec which implements the custom method
 // signatures required by gogoproto.
-message DecCoin {
+message DecCoinAdapter {
   option (gogoproto.equal) = true;
 
   string denom  = 1;
@@ -30,11 +30,11 @@ message DecCoin {
 }
 
 // IntProto defines a Protobuf wrapper around an Int object.
-message IntProto {
+message IntProtoAdapter {
   string int = 1 [(gogoproto.customtype) = "Int", (gogoproto.nullable) = false];
 }
 
 // DecProto defines a Protobuf wrapper around a Dec object.
-message DecProto {
+message DecProtoAdapter {
   string dec = 1 [(gogoproto.customtype) = "Dec", (gogoproto.nullable) = false];
 }
