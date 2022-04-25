@@ -158,10 +158,7 @@ func (ndb *nodeDB) GetNode(hash []byte) *Node {
 	node := ndb.makeNodeFromDbByHash(hash)
 	node.hash = hash
 	node.persisted = true
-
-	if _, ok := ndb.nodeCache.Get(amino.BytesToStr(node.hash)); !ok {
-		ndb.cacheNode(node)
-	}
+	ndb.cacheNodeByCheck(node)
 
 	return node
 }
