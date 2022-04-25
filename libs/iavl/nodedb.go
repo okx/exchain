@@ -110,47 +110,63 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		name:                    ParseDBName(db),
 	}
 }
+func (ndb *nodeDB) getNodeFromMemory(hash []byte) *Node {
 
-// GetNode gets a node from memory or disk. If it is an inner node, it does not
-// load its children.
-func (ndb *nodeDB) GetNode(hash []byte) *Node {
+	ndb.addNodeReadCount()
 
-	res := func() *Node {
-		ndb.addNodeReadCount()
-		if len(hash) == 0 {
-			panic("nodeDB.GetNode() requires hash")
-		}
-		ndb.mtx.RLock()
-		defer ndb.mtx.RUnlock()
-		if elem, ok := ndb.prePersistNodeCache[string(hash)]; ok {
-			return elem
-		}
-
-		if elem, ok := ndb.getNodeInTpp(hash); ok { // GetNode from tpp
-			return elem
-		}
-
-		if elem := ndb.getNodeFromCache(hash); elem != nil {
-			return elem
-		}
-		if elem, ok := ndb.orphanNodeCache[string(hash)]; ok {
-			return elem
-		}
-
-		return nil
-	}()
-
-	if res != nil {
-		return res
+	if len(hash) == 0 {
+		panic("nodeDB.GetNode() requires hash")
+	}
+	ndb.mtx.RLock()
+	defer ndb.mtx.RUnlock()
+	if elem, ok := ndb.prePersistNodeCache[string(hash)]; ok {
+		return elem
 	}
 
-	// Doesn't exist, load.
+	if elem, ok := ndb.getNodeInTpp(hash); ok {
+		return elem
+	}
+
+	if elem := ndb.getNodeFromCache(hash); elem != nil {
+		return elem
+	}
+
+	if elem, ok := ndb.orphanNodeCache[string(hash)]; ok {
+		return elem
+	}
+
+	return nil
+}
+
+func (ndb *nodeDB) getNodeFromDisk(hash []byte, updateCache bool) *Node {
+
 	node := ndb.makeNodeFromDbByHash(hash)
 	node.hash = hash
 	node.persisted = true
-	ndb.cacheNodeByCheck(node)
-
+	if updateCache {
+		ndb.cacheNodeByCheck(node)
+	}
 	return node
+}
+
+// GetNode gets a node from memory or disk. If it is an inner node, it does not
+// load its children.
+func (ndb *nodeDB) GetNode(hash []byte) (n *Node) {
+
+	n = ndb.getNodeFromMemory(hash)
+	if n == nil {
+		n = ndb.getNodeFromDisk(hash, true)
+	}
+	return
+}
+
+func (ndb *nodeDB) GetNodeConcurrently(hash []byte) (n *Node) {
+
+	n = ndb.getNodeFromMemory(hash)
+	if n == nil {
+		n = ndb.getNodeFromDisk(hash, false)
+	}
+	return
 }
 
 func (ndb *nodeDB) getDbName() string {
