@@ -272,7 +272,7 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 		}
 
 		rs.commitInfoFilter(infos, ver, MptStore)
-		rs.commitInfoFilter(infos, ver, EvmStore)
+		rs.commitInfoFilter(infos, ver, NewEvmStore)
 
 		//if upgrade version ne
 		callback := func(name string, version int64) {
@@ -582,7 +582,7 @@ func (rs *Store) pruneStores() {
 				continue
 			}
 
-			if newEvmStoreFilter(sName, rs.lastCommitInfo.Version) && !mpt.TrieWriteAhead{
+			if newEvmStoreFilter(sName, rs.lastCommitInfo.Version) && !mpt.TrieWriteAhead {
 				continue
 			}
 
@@ -1073,7 +1073,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 			continue
 		}
 
-		if !mpt.TrieWriteAhead{
+		if !mpt.TrieWriteAhead {
 			if newEvmStoreFilter(sName, version) || newMptStoreFilter(sName, version) {
 				continue
 			}
@@ -1378,7 +1378,7 @@ func (rs *Store) StopStore() {
 		switch store.GetStoreType() {
 		case types.StoreTypeIAVL:
 			sName := key.Name()
-			if evmAccStoreFilter(sName, rs.GetLatestVersion())  {
+			if evmAccStoreFilter(sName, rs.GetLatestVersion()) {
 				continue
 			}
 
