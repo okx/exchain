@@ -54,7 +54,7 @@ func NewEthCoordinator(t *testing.T, n int) *Coordinator {
 	}
 
 	for i := 1; i <= n; i++ {
-		chainID := GetChainID(i)
+		chainID := GetOKChainID(i)
 		chains[chainID] = NewTestEthChain(t, coord, chainID)
 	}
 	coord.Chains = chains
@@ -193,6 +193,11 @@ func (coord *Coordinator) GetChain(chainID string) TestChainI {
 
 // GetChainID returns the chainID used for the provided index.
 func GetChainID(index int) string {
+	return ChainIDPrefix + strconv.Itoa(index)
+}
+
+// GetChainID returns the chainID used for the provided index.
+func GetOKChainID(index int) string {
 	return ChainIDPrefix + "-" + strconv.Itoa(index)
 }
 

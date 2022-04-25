@@ -37,16 +37,6 @@ func TestMaxOpenConnections(t *testing.T) {
 	l, err := Listen("tcp://127.0.0.1:0", config)
 	require.NoError(t, err)
 	defer l.Close()
-	go func() {
-		s := &http.Server{
-			Handler:        RecoverAndLogHandler(maxBytesHandler{h: handler, n: config.MaxBodyBytes}, logger),
-			ReadTimeout:    config.ReadTimeout,
-			WriteTimeout:   config.WriteTimeout,
-			MaxHeaderBytes: config.MaxHeaderBytes,
-		}
-		err := s.Serve(listener)
-	}()
-
 	go Serve(l, mux, log.TestingLogger(), config)
 
 	// Make N GET calls to the server.

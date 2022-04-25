@@ -142,13 +142,12 @@ func SetupWithGenesisValSet(t *testing.T, chainId string, valSet *tmtypes.Valida
 	// commit genesis changes
 	app.Commit(abci.RequestCommit{})
 	// app.Commit()
-	/*app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{
+	app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{
 		Height:             app.LastBlockHeight() + 1,
 		AppHash:            app.LastCommitID().Hash,
 		ValidatorsHash:     valSet.Hash(app.LastBlockHeight() + 1),
 		NextValidatorsHash: valSet.Hash(app.LastBlockHeight() + 1),
-	}})*/
-	//app.Commit(abci.RequestCommit{})
+	}}) //app.Commit(abci.RequestCommit{})
 
 	return app
 }

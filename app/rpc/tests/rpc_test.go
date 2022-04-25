@@ -81,7 +81,7 @@ type RPCTestSuite struct {
 }
 
 func (suite *RPCTestSuite) SetupTest() {
-	chainId := apptesting.GetChainID(1)
+	chainId := apptesting.GetOKChainID(1)
 	suite.coordinator = apptesting.NewEthCoordinator(suite.T(), 1)
 	suite.chain = suite.coordinator.GetChain(chainId)
 	suite.chain.App().SetOption(abci.RequestSetOption{
@@ -1019,6 +1019,7 @@ func (suite *RPCTestSuite) TestEth_GetLogs_GetTopicsFromHistory() {
 func (suite *RPCTestSuite) TestEth_GetProof() {
 
 	initialBalance := suite.chain.SenderAccount().GetCoins()[0]
+	commitBlock(suite)
 	commitBlock(suite)
 	rpcRes := Call(suite.T(), suite.addr, "eth_getProof", []interface{}{senderAddr.Hex(), []string{fmt.Sprint(addrAStoreKey)}, "latest"})
 	suite.Require().NotNil(rpcRes)
