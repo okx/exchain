@@ -8,28 +8,27 @@ import (
 )
 
 func (ndb *nodeDB) uncacheNode(hash []byte) {
-	ndb.nodeCache.RemoveCb(amino.BytesToStr(hash), func(key string, v interface{}, exists bool) bool {
-		if !exists {
-			return false
-		}
+	if v, ok := ndb.nodeCache.Get(amino.BytesToStr(hash)); ok {
+		ndb.nodeCache.Remove(amino.BytesToStr(hash))
 		elem := v.(*list.Element)
 		ndb.nodeCacheQueue.Remove(elem)
-		return true
-	})
+	}
 }
 
 // Add a node to the cache and pop the least recently used node if we've
 // reached the cache size limit.
 func (ndb *nodeDB) cacheNode(node *Node) {
-	_, count := ndb.nodeCacheQueue.PushBackCb(node, func(ele *list.Element) {
-		ndb.nodeCache.Set(string(node.hash), ele)
-	})
+	elem, count := ndb.nodeCacheQueue.PushBack(node)
+	ndb.nodeCache.Set(string(node.hash), elem)
 
-	iavlCacheMaxSize := config.DynamicConfig.GetIavlCacheSize()
-	if count > iavlCacheMaxSize {
-		ndb.nodeCacheQueue.RemoveFrontNCb(count-iavlCacheMaxSize, func(v interface{}) {
-			ndb.nodeCache.Remove(amino.BytesToStr(v.(*Node).hash))
-		})
+	if count > config.DynamicConfig.GetIavlCacheSize() {
+		needRemove := count - config.DynamicConfig.GetIavlCacheSize()
+
+		for i := 0; i < needRemove; i++ {
+			oldest := ndb.nodeCacheQueue.Front()
+			ndb.nodeCache.Remove(amino.BytesToStr(oldest.Value.(*Node).hash))
+			_ = ndb.nodeCacheQueue.Remove(oldest)
+		}
 	}
 }
 
