@@ -527,13 +527,8 @@ func (conR *Reactor) broadcastPOAProposalMessage(proposal *types.Proposal) {
 				panic(fmt.Sprintf("peer %v has no state", p))
 			}
 
-			prs := ps.GetRoundState()
-
-			if prs.Height == proposal.Height {
-				//fmt.Printf("Broadcast proposal to peer,ps: %v\n", ps)
-				p.Send(DataChannel, bytes)
-				ps.SetHasProposal(proposal)
-			}
+			p.Send(DataChannel, bytes)
+			ps.SetHasProposal(proposal)
 
 		}(peer)
 	}

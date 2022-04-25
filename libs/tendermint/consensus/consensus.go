@@ -1454,7 +1454,6 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 // If we have the block AND +2/3 commits for it, finalize.
 func (cs *State) tryFinalizeCommit(height int64) {
 	logger := cs.Logger.With("height", height)
-	cs.trc.Pin("%s", "tryFinalizeCommit")
 	if cs.Height != height {
 		panic(fmt.Sprintf("tryFinalizeCommit() cs.Height: %v vs height: %v", cs.Height, height))
 	}
@@ -1491,7 +1490,7 @@ func (cs *State) finalizeCommit(height int64) {
 			cs.Step))
 		return
 	}
-
+	cs.trc.Pin("%s", "finalizeCommit")
 	blockID, ok := cs.Votes.Precommits(cs.CommitRound).TwoThirdsMajority()
 	block, blockParts := cs.ProposalBlock, cs.ProposalBlockParts
 
