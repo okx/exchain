@@ -3,14 +3,15 @@ package ibctesting
 import (
 	"bytes"
 	"fmt"
+	"testing"
+	"time"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	secp256k12 "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
 	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
-	"testing"
-	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	//cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
@@ -18,6 +19,7 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+
 	//banktypes "github.com/okex/exchain/libs/cosmos-sdk/x/bank/types"
 	capabilitykeeper "github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
@@ -32,7 +34,9 @@ import (
 	tmversion "github.com/okex/exchain/libs/tendermint/version"
 	"github.com/stretchr/testify/require"
 
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	apptypes "github.com/okex/exchain/app/types"
+	okcapptypes "github.com/okex/exchain/app/types"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
@@ -59,6 +63,7 @@ type TestChainI interface {
 	ChainID() string
 	Codec() *codec.CodecProxy
 	SenderAccount() sdk.Account
+	SenderAccountPV() *secp256k12.PrivKey
 
 	CurrentTMClientHeader() *ibctmtypes.Header
 	CurrentHeader() tmproto.Header
@@ -139,8 +144,9 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 	i, ok := sdk.NewIntFromString("92233720368547758080")
 	require.True(t, ok)
 	balance := sdk.NewCoins(apptypes.NewPhotonCoin(i))
+	var genesisAcc authtypes.GenesisAccount
+	genesisAcc = auth.NewBaseAccount(senderPrivKey.PubKey().Address().Bytes(), balance, pubkeyBytes, 0, 0)
 
-	account := auth.NewBaseAccount(senderPrivKey.PubKey().Address().Bytes(), balance, pubkeyBytes, 0, 0)
 	//amount, ok := sdk.NewIntFromString("10000000000000000000")
 	//require.True(t, ok)
 
@@ -159,7 +165,7 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 	//// 	Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, amount)),
 	//// }
 
-	app := SetupWithGenesisValSet(t, valSet, []authtypes.GenesisAccount{account}, balance)
+	app := SetupWithGenesisValSet(t, chainID, valSet, []authtypes.GenesisAccount{genesisAcc}, balance)
 
 	// create current header and call begin block
 	header := tmproto.Header{
@@ -183,7 +189,7 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 		vals:          valSet,
 		signers:       signers,
 		senderPrivKey: senderPrivKey,
-		senderAccount: account,
+		senderAccount: genesisAcc,
 	}
 
 	//coord.UpdateNextBlock(tchain)
@@ -192,6 +198,72 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 	//coord.UpdateNextBlock(tchain)
 
 	return tchain
+}
+
+func NewTestEthChain(t *testing.T, coord *Coordinator, chainID string) *TestChain {
+	// generate validator private/public key
+	privVal := mock.NewPV()
+	pubKey, err := privVal.GetPubKey()
+	require.NoError(t, err)
+
+	// create validator set with single validator
+	validator := tmtypes.NewValidator(pubKey, 1)
+	valSet := tmtypes.NewValidatorSet([]*tmtypes.Validator{validator})
+	signers := []tmtypes.PrivValidator{privVal}
+
+	//Kb := keys.NewInMemory(hd.EthSecp256k1Options()...)
+	// generate genesis account
+	//info, err = Kb.CreateAccount(name, mnemonic, "", passWd, hdPath, hd.EthSecp256k1)
+
+	senderPrivKey := secp256k12.GenPrivKey()
+	var pubkeyBytes secp256k1.PubKeySecp256k1
+	copy(pubkeyBytes[:], senderPrivKey.PubKey().Bytes())
+
+	ethPubkey := ethsecp256k1.PrivKey(senderPrivKey.Bytes()).PubKey()
+
+	i, ok := sdk.NewIntFromString("92233720368547758080")
+	require.True(t, ok)
+	balance := sdk.NewCoins(apptypes.NewPhotonCoin(i))
+
+	genesisAcc := &okcapptypes.EthAccount{
+		BaseAccount: auth.NewBaseAccount(ethPubkey.Address().Bytes(), balance, ethPubkey, 0, 0),
+		CodeHash:    []byte{},
+	}
+	//
+	//senderPrivKey.PubKey().Address().Bytes()
+
+	app := SetupWithGenesisValSet(t, chainID, valSet, []authtypes.GenesisAccount{genesisAcc}, balance)
+
+	// create current header and call begin block
+	header := tmproto.Header{
+		ChainID: chainID,
+		Height:  1,
+		Time:    coord.CurrentTime.UTC(),
+	}
+
+	txConfig := app.TxConfig()
+
+	// create an account to send transactions from
+	return &TestChain{
+		t:             t,
+		coordinator:   coord,
+		chainID:       chainID,
+		TApp:          app,
+		currentHeader: header,
+		queryServer:   app.GetIBCKeeper(),
+		txConfig:      txConfig,
+		codec:         app.AppCodec(),
+		vals:          valSet,
+		signers:       signers,
+		senderPrivKey: senderPrivKey,
+		senderAccount: genesisAcc,
+	}
+
+	//coord.UpdateNextBlock(tchain)
+	//coord.CommitBlock(tchain)
+	//
+	//coord.UpdateNextBlock(tchain)
+
 }
 
 // GetContext returns the current context for the application.
@@ -343,7 +415,6 @@ func (chain *TestChain) SendMsgs(msgs ...ibcmsg.Msg) (*sdk.Result, error) {
 
 	// ensure the chain has the latest time
 	chain.Coordinator().UpdateTimeForChain(chain)
-
 	_, r, err := simapp.SignAndDeliver(
 		chain.t,
 		chain.TxConfig(),
@@ -665,6 +736,9 @@ func (chain *TestChain) Codec() *codec.CodecProxy {
 }
 func (chain *TestChain) SenderAccount() sdk.Account {
 	return chain.senderAccount
+}
+func (chain *TestChain) SenderAccountPV() *secp256k12.PrivKey {
+	return chain.senderPrivKey
 }
 
 //func (chain *TestChain) CurrentTMClientHeader() *ibctmtypes.Header {}

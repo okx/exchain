@@ -39,6 +39,7 @@ jobs:
           echo "mode: atomic" > coverage.txt
           tail -n +2 coverage.data >> coverage.txt
           bash <(curl -s https://codecov.io/bash) -f coverage.txt 
+  
   x:
     name: x ut
     runs-on: ubuntu-latest
@@ -72,8 +73,8 @@ jobs:
           tail -n +2 coverage.data >> coverage.txt
           bash <(curl -s https://codecov.io/bash) -f coverage.txt
 
-  libs:
-    name: libs ut
+  libstm:
+    name: libs tm ut
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -82,21 +83,128 @@ jobs:
         with:
           go-version: 1.17
 
-      - name: Go Test exchain/libs
+      - name: Go Test exchain/libs/tm
+        id: first-attempt
+        run: |
+          set -ex
+          codePath="./libs/tendermint/..."
+          go list ${codePath} |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
+        continue-on-error: true
+
+      - name: Go Test exchain/libs/tm retry
+        id: second-attempt
+        if: steps.first-attempt.outcome != 'success'
+        run: |
+          set -ex
+          codePath="./libs/tendermint/..."
+          go list ${codePath} |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
+
+      - name: Go Test exchain/libs/ibc-go/testing
+        id: ibc-first-attempt
+        run: |
+          set -ex
+          codePath="./libs/ibc-go/..."
+          go list ${codePath} | grep -w "testing" |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
+        continue-on-error: true
+
+      - name: Go Test exchain/libs/ibc-go/testing retry
+        id: ibc-second-attempt
+        if: steps.ibc-first-attempt.outcome != 'success'
+        run: |
+          set -ex
+          codePath="./libs/ibc-go/..."
+          go list ${codePath} | grep -w "testing" |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
+
+  libsibc:
+    name: libs ibc ut
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+
+      - name: Go Test exchain/libs/ibc-go
+        id: first-attempt
+        run: |
+          set -ex
+          codePath="./libs/ibc-go/..."
+          go list ${codePath} | grep -vw "testing" |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
+        continue-on-error: true
+
+      - name: Go Test exchain/libs/ibc-go retry
+        id: second-attempt
+        if: steps.first-attempt.outcome != 'success'
+        run: |
+          set -ex
+          codePath="./libs/ibc-go/..."
+          go list ${codePath} | grep -vw "testing" |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
+
+  libscosmos:          
+    name: libs cosmos ut
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+
+      - name: Go Test exchain/libs/cosmos-sdk/x
+        id: first-attempt
+        run: |
+          set -ex
+          codePath="./libs/cosmos-sdk/..."
+          go list ${codePath} | grep -w "x" |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
+        continue-on-error: true
+
+      - name: Go Test exchain/libs/cosmos-sdk/x retry
+        id: second-attempt
+        if: steps.first-attempt.outcome != 'success'
+        run: |
+          set -ex
+          codePath="./libs/cosmos-sdk/..."
+          go list ${codePath} | grep -w "x" |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
+
+  libsother:          
+    name: libs other ut
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-go@v2
+        with:
+          go-version: 1.17
+
+      - name: Go Test exchain/libs/other
         id: first-attempt
         run: |
           set -ex
           codePath="./libs/..."
-          go list ${codePath} |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
+          go list ${codePath} | grep -vw "cosmos-sdk" | grep -vw "ibc-go" | grep -vw "tendermint" |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
         continue-on-error: true
 
-      - name: Go Test exchain/libs retry
+      - name: Go Test exchain/libs/other retry
         id: second-attempt
         if: steps.first-attempt.outcome != 'success'
         run: |
           set -ex
           codePath="./libs/..."
-          go list ${codePath} |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
+          go list ${codePath} | grep -vw "cosmos-sdk" | grep -vw "ibc-go" | grep -vw "tendermint" |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
 
+      - name: Go Test exchain/libs/cosmos-sdk/other
+        id: x-first-attempt
+        run: |
+          set -ex
+          codePath="./libs/cosmos-sdk/..."
+          go list ${codePath} | grep -wv "x" |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
+        continue-on-error: true
 
-  
+      - name: Go Test exchain/libs/cosmos-sdk/other retry
+        id: x-second-attempt
+        if: steps.x-first-attempt.outcome != 'success'
+        run: |
+          set -ex
+          codePath="./libs/cosmos-sdk/..."
+          go list ${codePath} | grep -wv "x" |xargs go test -timeout 10m -tags='norace ledger test_ledger_mock'
