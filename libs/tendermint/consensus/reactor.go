@@ -337,58 +337,29 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		}
 		switch msg := msg.(type) {
 		case *ViewChangeMessage:
-			cs := conR.conS
-			cs.mtx.RLock()
-			vcMsg, height, validators := cs.vcMsg, cs.Height, cs.Validators
-			cs.mtx.RUnlock()
-			// already has valid vcMsg
-			if vcMsg != nil && vcMsg.Height >= msg.Height {
-				return
-			}
-			//conR.Logger.Error("reactor vcMsg", "height", msg.Height, "curP", msg.CurrentProposer, "newP", msg.NewProposer, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
-			finished := ""
-			if msg.Height == height {
-				// ApplyBlock of height-1 is finished
-				finished = "f"
-			} else if msg.Height == height+1 {
-				// ApplyBlock of height-1 is not finished
-				// vc after scheduleRound0
-			} else {
-				return
-			}
 			// verify the signature of vcMsg
-			_, val := validators.GetByAddress(msg.CurrentProposer)
+			_, val := conR.conS.Validators.GetByAddress(msg.CurrentProposer)
 			if err := msg.Verify(val.PubKey); err != nil {
 				conR.Logger.Error("reactor Verify Signature of ViewChangeMessage", "err", err)
 				return
 			}
-			conR.conS.peerMsgQueue <- msgInfo{msg, p2p.ID(finished)}
+			conR.conS.peerMsgQueue <- msgInfo{msg, ""}
 		case *ProposeRequestMessage:
 			//conR.Logger.Error("reactor prMsg", "height", msg.Height, "curP", msg.CurrentProposer, "newP", msg.NewProposer, "hasVC", conR.hasViewChanged, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
-			// three judgement:
-			//1.this peer has not vc before this height;
-			//2.ApplyBlock of height-1 is not finished and it needs vc(msg.Height is bigger);
-			//3.it is CurrentProposer
 			conR.mtx.Lock()
 			defer conR.mtx.Unlock()
-			cs := conR.conS
-			cs.mtx.RLock()
-			height, validators := cs.Height, cs.Validators
-			cs.mtx.RUnlock()
-			if msg.Height > conR.hasViewChanged &&
-				msg.Height > height &&
-				bytes.Equal(cs.privValidatorPubKey.Address(), msg.CurrentProposer) {
-				// verify the signature of prMsg
-				_, val := validators.GetByAddress(msg.NewProposer)
-				if err := msg.Verify(val.PubKey); err != nil {
-					conR.Logger.Error("reactor Verify Signature of ProposeRequestMessage", "err", err)
-					return
-				}
-				conR.conS.peerMsgQueue <- msgInfo{msg, ""}
-				conR.hasViewChanged = msg.Height
-				// broadcast vc message
-				conR.broadcastViewChangeMessage(msg)
+			// this peer has received a prMsg before
+			if msg.Height <= conR.hasViewChanged {
+				return
 			}
+			// verify the signature of prMsg
+			_, val := conR.conS.Validators.GetByAddress(msg.NewProposer)
+			if err := msg.Verify(val.PubKey); err != nil {
+				conR.Logger.Error("reactor Verify Signature of ProposeRequestMessage", "err", err)
+				return
+			}
+			conR.hasViewChanged = msg.Height
+			conR.conS.peerMsgQueue <- msgInfo{msg, ""}
 		}
 
 	case StateChannel:
@@ -555,7 +526,11 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		})
 	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventProposeRequest,
 		func(data tmevents.EventData) {
-			conR.broadcastProposeRequestMessage(data.(ProposeRequestMessage))
+			conR.broadcastProposeRequestMessage(data.(*ProposeRequestMessage))
+		})
+	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventViewChange,
+		func(data tmevents.EventData) {
+			conR.broadcastViewChangeMessage(data.(*ProposeRequestMessage))
 		})
 }
 
@@ -564,7 +539,7 @@ func (conR *Reactor) unsubscribeFromBroadcastEvents() {
 	conR.conS.evsw.RemoveListener(subscriber)
 }
 
-func (conR *Reactor) broadcastProposeRequestMessage(prMsg ProposeRequestMessage) {
+func (conR *Reactor) broadcastProposeRequestMessage(prMsg *ProposeRequestMessage) {
 	//conR.Logger.Error("broadcastProposeRequestMessage", "prMsg", prMsg)
 	conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(prMsg))
 }

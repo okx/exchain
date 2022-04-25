@@ -736,33 +736,46 @@ func (cs *State) handleMsg(mi msgInfo) {
 	case *ViewChangeMessage:
 		//cs.Logger.Error("handle vcMsg", "msg.height", msg.Height, "vcMsg", cs.vcMsg)
 		if ActiveViewChange {
+			// only in round0 use vcMsg
+			if cs.Round != 0 {
+				return
+			}
 			// already has valid vcMsg
 			if cs.vcMsg != nil && cs.vcMsg.Height >= msg.Height {
 				return
 			}
-			cs.vcMsg = msg
-			// use peerID as flag
-			if peerID != "" {
-				// ApplyBlock of height-1 is finished
-				if cs.Round == 0 {
-					if cs.Step == cstypes.RoundStepNewRound || cs.Step == cstypes.RoundStepPropose {
-						// has enterNewHeight, and vc immediately
-						_, val := cs.Validators.GetByAddress(msg.NewProposer)
-						cs.enterNewRoundWithVal(cs.Height, 0, val)
-					}
-					// else: at waiting of height-1, and enterNewHeight use msg.val
-				}
-				// else: ApplyBlock of height-1 is not finished
-				// RoundStepNewHeight enterNewHeight use msg.val
+			// only handle vcMsg of same height or last height
+			if msg.Height != cs.Height && msg.Height != cs.Height+1 {
+				return
 			}
+
+			cs.vcMsg = msg
+			// ApplyBlock of height-1 has finished
+			if msg.Height == cs.Height {
+				if cs.Step != cstypes.RoundStepNewHeight {
+					// at height, has enterNewHeight
+					// vc immediately
+					_, val := cs.Validators.GetByAddress(msg.NewProposer)
+					cs.enterNewRoundWithVal(cs.Height, 0, val)
+				}
+				// else: at height-1 and waiting, has not enterNewHeight
+				// enterNewHeight use msg.val
+			}
+			// else: msg.Height == cs.Height+1
+			// ApplyBlock of height-1 is not finished
+			// enterNewHeight use msg.val
 		}
 	case *ProposeRequestMessage:
 		if ActiveViewChange {
-			vcMsg := ViewChangeMessage{Height: msg.Height, CurrentProposer: msg.CurrentProposer, NewProposer: msg.NewProposer}
-			if signature, err := cs.privValidator.SignBytes(vcMsg.SignBytes()); err == nil {
-				vcMsg.Signature = signature
-				cs.vcMsg = &vcMsg
+			// this peer is not proposer
+			if !bytes.Equal(cs.privValidatorPubKey.Address(), msg.CurrentProposer) {
+				return
 			}
+			// this peer can propose block itself
+			if msg.Height <= cs.Height {
+				return
+			}
+			cs.evsw.FireEvent(types.EventProposeRequest, msg)
 		}
 
 	case *ProposalMessage:
@@ -1017,7 +1030,7 @@ func (cs *State) requestForProposer(prMsg ProposeRequestMessage) {
 	if signature, err := cs.privValidator.SignBytes(prMsg.SignBytes()); err == nil {
 		//cs.Logger.Error("requestForProposer", "prMsg", prMsg)
 		prMsg.Signature = signature
-		cs.evsw.FireEvent(types.EventProposeRequest, prMsg)
+		cs.evsw.FireEvent(types.EventProposeRequest, &prMsg)
 	} else {
 		cs.Logger.Error("requestForProposer", "err", err)
 	}
