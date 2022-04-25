@@ -23,7 +23,7 @@ func NewJSONMarshalAdapter(jsonPb *gateway.JSONPb, codec *codec.CodecProxy) *JSO
 
 func (m *JSONMarshalAdapter) Marshal(v interface{}) ([]byte, error) {
 	if resp, ok := v.(context.CodecSensitive); ok {
-		ret, err := resp.Marshal(m.codec)
+		ret, err := resp.MarshalSensitive(m.codec)
 		if nil == err {
 			return ret, err
 		}

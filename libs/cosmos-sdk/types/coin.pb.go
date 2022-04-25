@@ -23,7 +23,7 @@ var _ = math.Inf
 // proto package needs to be updated.
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
-// CoinAdapter defines a token with a denomination and an am`ount.
+// CoinAdapter defines a token with a denomination and an amount.
 //
 // NOTE: The amount field is an Int which implements the custom method
 // signatures required by gogoproto.
@@ -75,134 +75,134 @@ func (m *CoinAdapter) GetDenom() string {
 //
 // NOTE: The amount field is an Dec which implements the custom method
 // signatures required by gogoproto.
-//type DecCoinAdapter struct {
-//	Denom  string `protobuf:"bytes,1,opt,name=denom,proto3" json:"denom,omitempty"`
-//	Amount Dec    `protobuf:"bytes,2,opt,name=amount,proto3,customtype=Dec" json:"amount"`
-//}
-//
-//func (m *DecCoinAdapter) Reset()      { *m = DecCoinAdapter{} }
-//func (*DecCoinAdapter) ProtoMessage() {}
-//func (*DecCoinAdapter) Descriptor() ([]byte, []int) {
-//	return fileDescriptor_189a96714eafc2df, []int{1}
-//}
-//func (m *DecCoinAdapter) XXX_Unmarshal(b []byte) error {
-//	return m.Unmarshal(b)
-//}
-//func (m *DecCoinAdapter) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-//	if deterministic {
-//		return xxx_messageInfo_DecCoinAdapter.Marshal(b, m, deterministic)
-//	} else {
-//		b = b[:cap(b)]
-//		n, err := m.MarshalToSizedBuffer(b)
-//		if err != nil {
-//			return nil, err
-//		}
-//		return b[:n], nil
-//	}
-//}
-//func (m *DecCoinAdapter) XXX_Merge(src proto.Message) {
-//	xxx_messageInfo_DecCoinAdapter.Merge(m, src)
-//}
-//func (m *DecCoinAdapter) XXX_Size() int {
-//	return m.Size()
-//}
-//func (m *DecCoinAdapter) XXX_DiscardUnknown() {
-//	xxx_messageInfo_DecCoinAdapter.DiscardUnknown(m)
-//}
-
-//var xxx_messageInfo_DecCoinAdapter proto.InternalMessageInfo
-
-//func (m *DecCoinAdapter) GetDenom() string {
-//	if m != nil {
-//		return m.Denom
-//	}
-//	return ""
-//}
-
-// IntProto defines a Protobuf wrapper around an Int object.
-
-//type IntProto struct {
-//	Int Int `protobuf:"bytes,1,opt,name=int,proto3,customtype=Int" json:"int"`
-//}
-//
-//func (m *IntProto) Reset()      { *m = IntProto{} }
-//func (*IntProto) ProtoMessage() {}
-//func (*IntProto) Descriptor() ([]byte, []int) {
-//	return fileDescriptor_189a96714eafc2df, []int{2}
-//}
-//func (m *IntProto) XXX_Unmarshal(b []byte) error {
-//	return m.Unmarshal(b)
-//}
-//func (m *IntProto) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-//	if deterministic {
-//		return xxx_messageInfo_IntProto.Marshal(b, m, deterministic)
-//	} else {
-//		b = b[:cap(b)]
-//		n, err := m.MarshalToSizedBuffer(b)
-//		if err != nil {
-//			return nil, err
-//		}
-//		return b[:n], nil
-//	}
-//}
-//func (m *IntProto) XXX_Merge(src proto.Message) {
-//	xxx_messageInfo_IntProto.Merge(m, src)
-//}
-//func (m *IntProto) XXX_Size() int {
-//	return m.Size()
-//}
-//func (m *IntProto) XXX_DiscardUnknown() {
-//	xxx_messageInfo_IntProto.DiscardUnknown(m)
-//}
-//
-//var xxx_messageInfo_IntProto proto.InternalMessageInfo
-//
-//// DecProto defines a Protobuf wrapper around a Dec object.
-//type DecProto struct {
-//	Dec Dec `protobuf:"bytes,1,opt,name=dec,proto3,customtype=Dec" json:"dec"`
-//}
-//
-//func (m *DecProto) Reset()      { *m = DecProto{} }
-//func (*DecProto) ProtoMessage() {}
-//func (*DecProto) Descriptor() ([]byte, []int) {
-//	return fileDescriptor_189a96714eafc2df, []int{3}
-//}
-//func (m *DecProto) XXX_Unmarshal(b []byte) error {
-//	return m.Unmarshal(b)
-//}
-//func (m *DecProto) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-//	if deterministic {
-//		return xxx_messageInfo_DecProto.Marshal(b, m, deterministic)
-//	} else {
-//		b = b[:cap(b)]
-//		n, err := m.MarshalToSizedBuffer(b)
-//		if err != nil {
-//			return nil, err
-//		}
-//		return b[:n], nil
-//	}
-//}
-//func (m *DecProto) XXX_Merge(src proto.Message) {
-//	xxx_messageInfo_DecProto.Merge(m, src)
-//}
-//func (m *DecProto) XXX_Size() int {
-//	return m.Size()
-//}
-//func (m *DecProto) XXX_DiscardUnknown() {
-//	xxx_messageInfo_DecProto.DiscardUnknown(m)
-//}
-//
-//var xxx_messageInfo_DecProto proto.InternalMessageInfo
-
-func init() {
-	//proto.RegisterType((*CoinAdapter)(nil), "oec.cosmos.base.v1beta1.CoinAdapter")
-	proto.RegisterType((*CoinAdapter)(nil), "cosmos.base.v1beta1.Coin")
-	//proto.RegisterType((*DecCoinAdapter)(nil), "cosmos.base.v1beta1.DecCoinAdapter")
-	//proto.RegisterType((*IntProto)(nil), "cosmos.base.v1beta1.IntProto")
-	//proto.RegisterType((*DecProto)(nil), "cosmos.base.v1beta1.DecProto")
+type DecCoinAdapter struct {
+	Denom  string `protobuf:"bytes,1,opt,name=denom,proto3" json:"denom,omitempty"`
+	Amount Dec    `protobuf:"bytes,2,opt,name=amount,proto3,customtype=Dec" json:"amount"`
 }
 
-func init() { proto.RegisterFile("cosmos/base/v1beta1/CoinAdapter.proto", fileDescriptor_189a96714eafc2df) }
+func (m *DecCoinAdapter) Reset()      { *m = DecCoinAdapter{} }
+func (*DecCoinAdapter) ProtoMessage() {}
+func (*DecCoinAdapter) Descriptor() ([]byte, []int) {
+	return fileDescriptor_189a96714eafc2df, []int{1}
+}
+func (m *DecCoinAdapter) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *DecCoinAdapter) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_DecCoinAdapter.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *DecCoinAdapter) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DecCoinAdapter.Merge(m, src)
+}
+func (m *DecCoinAdapter) XXX_Size() int {
+	return m.Size()
+}
+func (m *DecCoinAdapter) XXX_DiscardUnknown() {
+	xxx_messageInfo_DecCoinAdapter.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DecCoinAdapter proto.InternalMessageInfo
+
+func (m *DecCoinAdapter) GetDenom() string {
+	if m != nil {
+		return m.Denom
+	}
+	return ""
+}
+
+// IntProtoAdapter defines a Protobuf wrapper around an Int object.
+type IntProtoAdapter struct {
+	Int Int `protobuf:"bytes,1,opt,name=int,proto3,customtype=Int" json:"int"`
+}
+
+func (m *IntProtoAdapter) Reset()      { *m = IntProtoAdapter{} }
+func (*IntProtoAdapter) ProtoMessage() {}
+func (*IntProtoAdapter) Descriptor() ([]byte, []int) {
+	return fileDescriptor_189a96714eafc2df, []int{2}
+}
+func (m *IntProtoAdapter) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *IntProtoAdapter) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_IntProtoAdapter.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *IntProtoAdapter) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_IntProtoAdapter.Merge(m, src)
+}
+func (m *IntProtoAdapter) XXX_Size() int {
+	return m.Size()
+}
+func (m *IntProtoAdapter) XXX_DiscardUnknown() {
+	xxx_messageInfo_IntProtoAdapter.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_IntProtoAdapter proto.InternalMessageInfo
+
+// DecProtoAdapter defines a Protobuf wrapper around a Dec object.
+type DecProtoAdapter struct {
+	Dec Dec `protobuf:"bytes,1,opt,name=dec,proto3,customtype=Dec" json:"dec"`
+}
+
+func (m *DecProtoAdapter) Reset()      { *m = DecProtoAdapter{} }
+func (*DecProtoAdapter) ProtoMessage() {}
+func (*DecProtoAdapter) Descriptor() ([]byte, []int) {
+	return fileDescriptor_189a96714eafc2df, []int{3}
+}
+func (m *DecProtoAdapter) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *DecProtoAdapter) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_DecProtoAdapter.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *DecProtoAdapter) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DecProtoAdapter.Merge(m, src)
+}
+func (m *DecProtoAdapter) XXX_Size() int {
+	return m.Size()
+}
+func (m *DecProtoAdapter) XXX_DiscardUnknown() {
+	xxx_messageInfo_DecProtoAdapter.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_DecProtoAdapter proto.InternalMessageInfo
+
+func init() {
+	proto.RegisterType((*CoinAdapter)(nil), "cosmos.base.v1beta1.Coin")
+	proto.RegisterType((*DecCoinAdapter)(nil), "cosmos.base.v1beta1.DecCoin")
+	proto.RegisterType((*IntProtoAdapter)(nil), "cosmos.base.v1beta1.IntProto")
+	proto.RegisterType((*DecProtoAdapter)(nil), "cosmos.base.v1beta1.DecProto")
+}
+
+func init() {
+	proto.RegisterFile("cosmos/base/v1beta1/CoinAdapter.proto", fileDescriptor_189a96714eafc2df)
+}
 
 var fileDescriptor_189a96714eafc2df = []byte{
 	// 261 bytes of a gzipped FileDescriptorProto
@@ -252,33 +252,33 @@ func (this *CoinAdapter) Equal(that interface{}) bool {
 	}
 	return true
 }
-//func (this *DecCoinAdapter) Equal(that interface{}) bool {
-//	if that == nil {
-//		return this == nil
-//	}
-//
-//	that1, ok := that.(*DecCoinAdapter)
-//	if !ok {
-//		that2, ok := that.(DecCoinAdapter)
-//		if ok {
-//			that1 = &that2
-//		} else {
-//			return false
-//		}
-//	}
-//	if that1 == nil {
-//		return this == nil
-//	} else if this == nil {
-//		return false
-//	}
-//	if this.Denom != that1.Denom {
-//		return false
-//	}
-//	if !this.Amount.Equal(that1.Amount) {
-//		return false
-//	}
-//	return true
-//}
+func (this *DecCoinAdapter) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*DecCoinAdapter)
+	if !ok {
+		that2, ok := that.(DecCoinAdapter)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Denom != that1.Denom {
+		return false
+	}
+	if !this.Amount.Equal(that1.Amount) {
+		return false
+	}
+	return true
+}
 func (m *CoinAdapter) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -319,111 +319,111 @@ func (m *CoinAdapter) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-//func (m *DecCoinAdapter) Marshal() (dAtA []byte, err error) {
-//	size := m.Size()
-//	dAtA = make([]byte, size)
-//	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-//	if err != nil {
-//		return nil, err
-//	}
-//	return dAtA[:n], nil
-//}
-//
-//func (m *DecCoinAdapter) MarshalTo(dAtA []byte) (int, error) {
-//	size := m.Size()
-//	return m.MarshalToSizedBuffer(dAtA[:size])
-//}
-//
-//func (m *DecCoinAdapter) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-//	i := len(dAtA)
-//	_ = i
-//	var l int
-//	_ = l
-//	{
-//		size := m.Amount.Size()
-//		i -= size
-//		if _, err := m.Amount.MarshalTo(dAtA[i:]); err != nil {
-//			return 0, err
-//		}
-//		i = encodeVarintCoinAdapter(dAtA, i, uint64(size))
-//	}
-//	i--
-//	dAtA[i] = 0x12
-//	if len(m.Denom) > 0 {
-//		i -= len(m.Denom)
-//		copy(dAtA[i:], m.Denom)
-//		i = encodeVarintCoinAdapter(dAtA, i, uint64(len(m.Denom)))
-//		i--
-//		dAtA[i] = 0xa
-//	}
-//	return len(dAtA) - i, nil
-//}
-//
-//func (m *IntProto) Marshal() (dAtA []byte, err error) {
-//	size := m.Size()
-//	dAtA = make([]byte, size)
-//	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-//	if err != nil {
-//		return nil, err
-//	}
-//	return dAtA[:n], nil
-//}
-//
-//func (m *IntProto) MarshalTo(dAtA []byte) (int, error) {
-//	size := m.Size()
-//	return m.MarshalToSizedBuffer(dAtA[:size])
-//}
-//
-//func (m *IntProto) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-//	i := len(dAtA)
-//	_ = i
-//	var l int
-//	_ = l
-//	{
-//		size := m.Int.Size()
-//		i -= size
-//		if _, err := m.Int.MarshalTo(dAtA[i:]); err != nil {
-//			return 0, err
-//		}
-//		i = encodeVarintCoinAdapter(dAtA, i, uint64(size))
-//	}
-//	i--
-//	dAtA[i] = 0xa
-//	return len(dAtA) - i, nil
-//}
-//
-//func (m *DecProto) Marshal() (dAtA []byte, err error) {
-//	size := m.Size()
-//	dAtA = make([]byte, size)
-//	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-//	if err != nil {
-//		return nil, err
-//	}
-//	return dAtA[:n], nil
-//}
-//
-//func (m *DecProto) MarshalTo(dAtA []byte) (int, error) {
-//	size := m.Size()
-//	return m.MarshalToSizedBuffer(dAtA[:size])
-//}
-//
-//func (m *DecProto) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-//	i := len(dAtA)
-//	_ = i
-//	var l int
-//	_ = l
-//	{
-//		size := m.Dec.Size()
-//		i -= size
-//		if _, err := m.Dec.MarshalTo(dAtA[i:]); err != nil {
-//			return 0, err
-//		}
-//		i = encodeVarintCoinAdapter(dAtA, i, uint64(size))
-//	}
-//	i--
-//	dAtA[i] = 0xa
-//	return len(dAtA) - i, nil
-//}
+func (m *DecCoinAdapter) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DecCoinAdapter) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *DecCoinAdapter) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	{
+		size := m.Amount.Size()
+		i -= size
+		if _, err := m.Amount.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintCoinAdapter(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0x12
+	if len(m.Denom) > 0 {
+		i -= len(m.Denom)
+		copy(dAtA[i:], m.Denom)
+		i = encodeVarintCoinAdapter(dAtA, i, uint64(len(m.Denom)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *IntProtoAdapter) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *IntProtoAdapter) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *IntProtoAdapter) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	{
+		size := m.Int.Size()
+		i -= size
+		if _, err := m.Int.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintCoinAdapter(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0xa
+	return len(dAtA) - i, nil
+}
+
+func (m *DecProtoAdapter) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *DecProtoAdapter) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *DecProtoAdapter) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	{
+		size := m.Dec.Size()
+		i -= size
+		if _, err := m.Dec.MarshalTo(dAtA[i:]); err != nil {
+			return 0, err
+		}
+		i = encodeVarintCoinAdapter(dAtA, i, uint64(size))
+	}
+	i--
+	dAtA[i] = 0xa
+	return len(dAtA) - i, nil
+}
 
 func encodeVarintCoinAdapter(dAtA []byte, offset int, v uint64) int {
 	offset -= sovCoinAdapter(v)
@@ -451,42 +451,42 @@ func (m *CoinAdapter) Size() (n int) {
 	return n
 }
 
-//func (m *DecCoinAdapter) Size() (n int) {
-//	if m == nil {
-//		return 0
-//	}
-//	var l int
-//	_ = l
-//	l = len(m.Denom)
-//	if l > 0 {
-//		n += 1 + l + sovCoinAdapter(uint64(l))
-//	}
-//	l = m.Amount.Size()
-//	n += 1 + l + sovCoinAdapter(uint64(l))
-//	return n
-//}
-//
-//func (m *IntProto) Size() (n int) {
-//	if m == nil {
-//		return 0
-//	}
-//	var l int
-//	_ = l
-//	l = m.Int.Size()
-//	n += 1 + l + sovCoinAdapter(uint64(l))
-//	return n
-//}
-//
-//func (m *DecProto) Size() (n int) {
-//	if m == nil {
-//		return 0
-//	}
-//	var l int
-//	_ = l
-//	l = m.Dec.Size()
-//	n += 1 + l + sovCoinAdapter(uint64(l))
-//	return n
-//}
+func (m *DecCoinAdapter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Denom)
+	if l > 0 {
+		n += 1 + l + sovCoinAdapter(uint64(l))
+	}
+	l = m.Amount.Size()
+	n += 1 + l + sovCoinAdapter(uint64(l))
+	return n
+}
+
+func (m *IntProtoAdapter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = m.Int.Size()
+	n += 1 + l + sovCoinAdapter(uint64(l))
+	return n
+}
+
+func (m *DecProtoAdapter) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = m.Dec.Size()
+	n += 1 + l + sovCoinAdapter(uint64(l))
+	return n
+}
 
 func sovCoinAdapter(x uint64) (n int) {
 	return (math_bits.Len64(x|1) + 6) / 7
@@ -610,290 +610,290 @@ func (m *CoinAdapter) Unmarshal(dAtA []byte) error {
 	}
 	return nil
 }
-//func (m *DecCoinAdapter) Unmarshal(dAtA []byte) error {
-//	l := len(dAtA)
-//	iNdEx := 0
-//	for iNdEx < l {
-//		preIndex := iNdEx
-//		var wire uint64
-//		for shift := uint(0); ; shift += 7 {
-//			if shift >= 64 {
-//				return ErrIntOverflowCoinAdapter
-//			}
-//			if iNdEx >= l {
-//				return io.ErrUnexpectedEOF
-//			}
-//			b := dAtA[iNdEx]
-//			iNdEx++
-//			wire |= uint64(b&0x7F) << shift
-//			if b < 0x80 {
-//				break
-//			}
-//		}
-//		fieldNum := int32(wire >> 3)
-//		wireType := int(wire & 0x7)
-//		if wireType == 4 {
-//			return fmt.Errorf("proto: DecCoinAdapter: wiretype end group for non-group")
-//		}
-//		if fieldNum <= 0 {
-//			return fmt.Errorf("proto: DecCoinAdapter: illegal tag %d (wire type %d)", fieldNum, wire)
-//		}
-//		switch fieldNum {
-//		case 1:
-//			if wireType != 2 {
-//				return fmt.Errorf("proto: wrong wireType = %d for field Denom", wireType)
-//			}
-//			var stringLen uint64
-//			for shift := uint(0); ; shift += 7 {
-//				if shift >= 64 {
-//					return ErrIntOverflowCoinAdapter
-//				}
-//				if iNdEx >= l {
-//					return io.ErrUnexpectedEOF
-//				}
-//				b := dAtA[iNdEx]
-//				iNdEx++
-//				stringLen |= uint64(b&0x7F) << shift
-//				if b < 0x80 {
-//					break
-//				}
-//			}
-//			intStringLen := int(stringLen)
-//			if intStringLen < 0 {
-//				return ErrInvalidLengthCoinAdapter
-//			}
-//			postIndex := iNdEx + intStringLen
-//			if postIndex < 0 {
-//				return ErrInvalidLengthCoinAdapter
-//			}
-//			if postIndex > l {
-//				return io.ErrUnexpectedEOF
-//			}
-//			m.Denom = string(dAtA[iNdEx:postIndex])
-//			iNdEx = postIndex
-//		case 2:
-//			if wireType != 2 {
-//				return fmt.Errorf("proto: wrong wireType = %d for field Amount", wireType)
-//			}
-//			var stringLen uint64
-//			for shift := uint(0); ; shift += 7 {
-//				if shift >= 64 {
-//					return ErrIntOverflowCoinAdapter
-//				}
-//				if iNdEx >= l {
-//					return io.ErrUnexpectedEOF
-//				}
-//				b := dAtA[iNdEx]
-//				iNdEx++
-//				stringLen |= uint64(b&0x7F) << shift
-//				if b < 0x80 {
-//					break
-//				}
-//			}
-//			intStringLen := int(stringLen)
-//			if intStringLen < 0 {
-//				return ErrInvalidLengthCoinAdapter
-//			}
-//			postIndex := iNdEx + intStringLen
-//			if postIndex < 0 {
-//				return ErrInvalidLengthCoinAdapter
-//			}
-//			if postIndex > l {
-//				return io.ErrUnexpectedEOF
-//			}
-//			if err := m.Amount.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-//				return err
-//			}
-//			iNdEx = postIndex
-//		default:
-//			iNdEx = preIndex
-//			skippy, err := skipCoinAdapter(dAtA[iNdEx:])
-//			if err != nil {
-//				return err
-//			}
-//			if (skippy < 0) || (iNdEx+skippy) < 0 {
-//				return ErrInvalidLengthCoinAdapter
-//			}
-//			if (iNdEx + skippy) > l {
-//				return io.ErrUnexpectedEOF
-//			}
-//			iNdEx += skippy
-//		}
-//	}
-//
-//	if iNdEx > l {
-//		return io.ErrUnexpectedEOF
-//	}
-//	return nil
-//}
-//func (m *IntProto) Unmarshal(dAtA []byte) error {
-//	l := len(dAtA)
-//	iNdEx := 0
-//	for iNdEx < l {
-//		preIndex := iNdEx
-//		var wire uint64
-//		for shift := uint(0); ; shift += 7 {
-//			if shift >= 64 {
-//				return ErrIntOverflowCoinAdapter
-//			}
-//			if iNdEx >= l {
-//				return io.ErrUnexpectedEOF
-//			}
-//			b := dAtA[iNdEx]
-//			iNdEx++
-//			wire |= uint64(b&0x7F) << shift
-//			if b < 0x80 {
-//				break
-//			}
-//		}
-//		fieldNum := int32(wire >> 3)
-//		wireType := int(wire & 0x7)
-//		if wireType == 4 {
-//			return fmt.Errorf("proto: IntProto: wiretype end group for non-group")
-//		}
-//		if fieldNum <= 0 {
-//			return fmt.Errorf("proto: IntProto: illegal tag %d (wire type %d)", fieldNum, wire)
-//		}
-//		switch fieldNum {
-//		case 1:
-//			if wireType != 2 {
-//				return fmt.Errorf("proto: wrong wireType = %d for field Int", wireType)
-//			}
-//			var stringLen uint64
-//			for shift := uint(0); ; shift += 7 {
-//				if shift >= 64 {
-//					return ErrIntOverflowCoinAdapter
-//				}
-//				if iNdEx >= l {
-//					return io.ErrUnexpectedEOF
-//				}
-//				b := dAtA[iNdEx]
-//				iNdEx++
-//				stringLen |= uint64(b&0x7F) << shift
-//				if b < 0x80 {
-//					break
-//				}
-//			}
-//			intStringLen := int(stringLen)
-//			if intStringLen < 0 {
-//				return ErrInvalidLengthCoinAdapter
-//			}
-//			postIndex := iNdEx + intStringLen
-//			if postIndex < 0 {
-//				return ErrInvalidLengthCoinAdapter
-//			}
-//			if postIndex > l {
-//				return io.ErrUnexpectedEOF
-//			}
-//			if err := m.Int.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-//				return err
-//			}
-//			iNdEx = postIndex
-//		default:
-//			iNdEx = preIndex
-//			skippy, err := skipCoinAdapter(dAtA[iNdEx:])
-//			if err != nil {
-//				return err
-//			}
-//			if (skippy < 0) || (iNdEx+skippy) < 0 {
-//				return ErrInvalidLengthCoinAdapter
-//			}
-//			if (iNdEx + skippy) > l {
-//				return io.ErrUnexpectedEOF
-//			}
-//			iNdEx += skippy
-//		}
-//	}
-//
-//	if iNdEx > l {
-//		return io.ErrUnexpectedEOF
-//	}
-//	return nil
-//}
-//func (m *DecProto) Unmarshal(dAtA []byte) error {
-//	l := len(dAtA)
-//	iNdEx := 0
-//	for iNdEx < l {
-//		preIndex := iNdEx
-//		var wire uint64
-//		for shift := uint(0); ; shift += 7 {
-//			if shift >= 64 {
-//				return ErrIntOverflowCoinAdapter
-//			}
-//			if iNdEx >= l {
-//				return io.ErrUnexpectedEOF
-//			}
-//			b := dAtA[iNdEx]
-//			iNdEx++
-//			wire |= uint64(b&0x7F) << shift
-//			if b < 0x80 {
-//				break
-//			}
-//		}
-//		fieldNum := int32(wire >> 3)
-//		wireType := int(wire & 0x7)
-//		if wireType == 4 {
-//			return fmt.Errorf("proto: DecProto: wiretype end group for non-group")
-//		}
-//		if fieldNum <= 0 {
-//			return fmt.Errorf("proto: DecProto: illegal tag %d (wire type %d)", fieldNum, wire)
-//		}
-//		switch fieldNum {
-//		case 1:
-//			if wireType != 2 {
-//				return fmt.Errorf("proto: wrong wireType = %d for field Dec", wireType)
-//			}
-//			var stringLen uint64
-//			for shift := uint(0); ; shift += 7 {
-//				if shift >= 64 {
-//					return ErrIntOverflowCoinAdapter
-//				}
-//				if iNdEx >= l {
-//					return io.ErrUnexpectedEOF
-//				}
-//				b := dAtA[iNdEx]
-//				iNdEx++
-//				stringLen |= uint64(b&0x7F) << shift
-//				if b < 0x80 {
-//					break
-//				}
-//			}
-//			intStringLen := int(stringLen)
-//			if intStringLen < 0 {
-//				return ErrInvalidLengthCoinAdapter
-//			}
-//			postIndex := iNdEx + intStringLen
-//			if postIndex < 0 {
-//				return ErrInvalidLengthCoinAdapter
-//			}
-//			if postIndex > l {
-//				return io.ErrUnexpectedEOF
-//			}
-//			if err := m.Dec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-//				return err
-//			}
-//			iNdEx = postIndex
-//		default:
-//			iNdEx = preIndex
-//			skippy, err := skipCoinAdapter(dAtA[iNdEx:])
-//			if err != nil {
-//				return err
-//			}
-//			if (skippy < 0) || (iNdEx+skippy) < 0 {
-//				return ErrInvalidLengthCoinAdapter
-//			}
-//			if (iNdEx + skippy) > l {
-//				return io.ErrUnexpectedEOF
-//			}
-//			iNdEx += skippy
-//		}
-//	}
-//
-//	if iNdEx > l {
-//		return io.ErrUnexpectedEOF
-//	}
-//	return nil
-//}
+func (m *DecCoinAdapter) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowCoinAdapter
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DecCoinAdapter: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DecCoinAdapter: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Denom", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCoinAdapter
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthCoinAdapter
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCoinAdapter
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Denom = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Amount", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCoinAdapter
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthCoinAdapter
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCoinAdapter
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Amount.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipCoinAdapter(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthCoinAdapter
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *IntProtoAdapter) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowCoinAdapter
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: IntProtoAdapter: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: IntProtoAdapter: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Int", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCoinAdapter
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthCoinAdapter
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCoinAdapter
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Int.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipCoinAdapter(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthCoinAdapter
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *DecProtoAdapter) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowCoinAdapter
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: DecProtoAdapter: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: DecProtoAdapter: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Dec", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowCoinAdapter
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthCoinAdapter
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthCoinAdapter
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if err := m.Dec.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipCoinAdapter(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthCoinAdapter
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
 func skipCoinAdapter(dAtA []byte) (n int, err error) {
 	l := len(dAtA)
 	iNdEx := 0
