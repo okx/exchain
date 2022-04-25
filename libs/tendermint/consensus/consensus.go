@@ -508,6 +508,9 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	if !cs.CommitTime.IsZero() && sleepDuration.Milliseconds() > 0 && overDuration.Milliseconds() > cs.config.TimeoutConsensus.Milliseconds() {
 		sleepDuration -= time.Duration(overDuration.Milliseconds() - cs.config.TimeoutConsensus.Milliseconds())
 	}
+	//if cs.config.POAEnable {
+	//	sleepDuration = 0
+	//}
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
 }
 
@@ -990,7 +993,7 @@ func (cs *State) enterPropose(height int64, round int) {
 		// Done enterPropose:
 		cs.updateRoundStep(round, cstypes.RoundStepPropose)
 		cs.newStep()
-		cs.trc.Pin("WaitProposal")
+		cs.trc.Pin("WaitProposalOrCommit")
 		// If we have the whole proposal + POL, then goto Prevote now.
 		// else, we'll enterPrevote when the rest of the proposal is received (in AddProposalBlockPart),
 		// or else after timeoutPropose
@@ -1763,7 +1766,7 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	// This happens if we're already in cstypes.RoundStepCommit or if there is a valid block in the current round.
 	// TODO: We can check if Proposal is for a different block as this is a sign of misbehavior!
 	if cs.ProposalBlockParts == nil {
-		cs.trc.Pin("waitBlockPart")
+		cs.trc.Pin("waitBlockPartOrCommit")
 		cs.ProposalBlockParts = types.NewPartSetFromHeader(proposal.BlockID.PartsHeader)
 	}
 	cs.Logger.Info("Received proposal", "proposal", proposal)
