@@ -39,12 +39,6 @@ type tppItem struct {
 	listItem *list.Element
 }
 
-func (ndb *nodeDB) uncacheNodeRontine(n []*Node) {
-	for _, node := range n {
-		ndb.uncacheNode(node.hash)
-	}
-}
-
 func (ndb *nodeDB) SaveOrphans(batch dbm.Batch, version int64, orphans []*Node) {
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()

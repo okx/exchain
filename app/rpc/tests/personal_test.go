@@ -1,134 +1,116 @@
-//go:build ignore
-
 package tests
 
 import (
 	"encoding/json"
 	"fmt"
-	"testing"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-	"github.com/stretchr/testify/require"
 )
 
-func TestPersonal_ListAccounts(t *testing.T) {
-	// there are two keys to unlock in the node from test.sh
-	rpcRes := Call(t, "personal_listAccounts", nil)
-
-	var res []common.Address
-	err := json.Unmarshal(rpcRes.Result, &res)
-	require.NoError(t, err)
-	require.Equal(t, 2, len(res))
-	require.True(t, res[0] == hexAddr1)
-	require.True(t, res[1] == hexAddr2)
-}
-
-func TestPersonal_NewAccount(t *testing.T) {
+func (suite *RPCTestSuite) TestPersonal_NewAccount() {
 	// create an new mnemonics randomly on the node
-	rpcRes := Call(t, "personal_newAccount", []string{defaultPassWd})
+	rpcRes := Call(suite.T(), suite.addr, "personal_newAccount", []string{defaultPassWd})
 	var addr common.Address
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &addr))
+	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &addr))
 	addrCounter++
 
-	rpcRes = Call(t, "personal_listAccounts", nil)
+	rpcRes = Call(suite.T(), suite.addr, "personal_listAccounts", nil)
 	var res []common.Address
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &res))
-	require.Equal(t, 3, len(res))
-	require.True(t, res[0] == hexAddr1)
-	require.True(t, res[1] == hexAddr2)
-	require.True(t, res[2] == addr)
+	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &res))
+	suite.Require().Equal(1, len(res))
+	suite.Require().True(res[0] == addr)
 }
 
-func TestPersonal_Sign(t *testing.T) {
-	rpcRes := Call(t, "personal_sign", []interface{}{hexutil.Bytes{0x88}, hexutil.Bytes(from), ""})
+func (suite *RPCTestSuite) TestPersonal_Sign() {
+	rpcRes := Call(suite.T(), suite.addr, "personal_sign", []interface{}{hexutil.Bytes{0x88}, hexutil.Bytes(senderAddr[:]), ""})
 
 	var res hexutil.Bytes
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &res))
-	require.Equal(t, 65, len(res))
+	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &res))
+	suite.Require().Equal(65, len(res))
 	// TODO: check that signature is same as with geth, requires importing a key
 
 	// error with inexistent addr
 	inexistentAddr := common.BytesToAddress([]byte{0})
-	rpcRes, err := CallWithError("personal_sign", []interface{}{hexutil.Bytes{0x88}, inexistentAddr, ""})
-	require.Error(t, err)
+	_, err := CallWithError(suite.addr, "personal_sign", []interface{}{hexutil.Bytes{0x88}, inexistentAddr, ""})
+	suite.Require().Error(err)
 }
 
-func TestPersonal_ImportRawKey(t *testing.T) {
+func (suite *RPCTestSuite) TestPersonal_ImportRawKey() {
 	privkey, err := ethcrypto.GenerateKey()
-	require.NoError(t, err)
+	suite.Require().NoError(err)
 
 	// parse priv key to hex
 	hexPriv := common.Bytes2Hex(ethcrypto.FromECDSA(privkey))
-	rpcRes := Call(t, "personal_importRawKey", []string{hexPriv, defaultPassWd})
+	rpcRes := Call(suite.T(), suite.addr, "personal_importRawKey", []string{hexPriv, defaultPassWd})
 
 	var resAddr common.Address
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &resAddr))
+	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &resAddr))
 
 	addr := ethcrypto.PubkeyToAddress(privkey.PublicKey)
 
-	require.True(t, addr == resAddr)
+	suite.Require().True(addr == resAddr)
 
 	addrCounter++
 
 	// error check with wrong hex format of privkey
-	rpcRes, err = CallWithError("personal_importRawKey", []string{fmt.Sprintf("%sg", hexPriv), defaultPassWd})
-	require.Error(t, err)
+	rpcRes, err = CallWithError(suite.addr, "personal_importRawKey", []string{fmt.Sprintf("%sg", hexPriv), defaultPassWd})
+	suite.Require().Error(err)
 }
 
-func TestPersonal_ImportRawKey_Duplicate(t *testing.T) {
+func (suite *RPCTestSuite) TestPersonal_ImportRawKey_Duplicate() {
 	privkey, err := ethcrypto.GenerateKey()
-	require.NoError(t, err)
+	suite.Require().NoError(err)
 	// parse priv key to hex, then add the key
 	hexPriv := common.Bytes2Hex(ethcrypto.FromECDSA(privkey))
-	rpcRes := Call(t, "personal_importRawKey", []string{hexPriv, defaultPassWd})
+	rpcRes := Call(suite.T(), suite.addr, "personal_importRawKey", []string{hexPriv, defaultPassWd})
 	var resAddr common.Address
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &resAddr))
-	require.True(t, ethcrypto.PubkeyToAddress(privkey.PublicKey) == resAddr)
+	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &resAddr))
+	suite.Require().True(ethcrypto.PubkeyToAddress(privkey.PublicKey) == resAddr)
 	addrCounter++
 
 	// record the key-list length
-	rpcRes = Call(t, "personal_listAccounts", nil)
+	rpcRes = Call(suite.T(), suite.addr, "personal_listAccounts", nil)
 	var list []common.Address
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &list))
+	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &list))
 	originLen := len(list)
 
 	// add the same key again
-	rpcRes = Call(t, "personal_importRawKey", []string{hexPriv, defaultPassWd})
+	rpcRes = Call(suite.T(), suite.addr, "personal_importRawKey", []string{hexPriv, defaultPassWd})
 	var newResAddr common.Address
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &newResAddr))
-	require.Equal(t, resAddr, newResAddr)
+	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &newResAddr))
+	suite.Require().Equal(resAddr, newResAddr)
 
 	// check the actual key-list length changed or not
-	rpcRes = Call(t, "personal_listAccounts", nil)
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &list))
-	require.Equal(t, originLen, len(list))
+	rpcRes = Call(suite.T(), suite.addr, "personal_listAccounts", nil)
+	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &list))
+	suite.Require().Equal(originLen, len(list))
 }
 
-func TestPersonal_EcRecover(t *testing.T) {
+func (suite *RPCTestSuite) TestPersonal_EcRecover() {
 	data := hexutil.Bytes{0x88}
-	rpcRes := Call(t, "personal_sign", []interface{}{data, hexutil.Bytes(from), ""})
+	rpcRes := Call(suite.T(), suite.addr, "personal_sign", []interface{}{data, hexutil.Bytes(senderAddr[:]), ""})
 
 	var res hexutil.Bytes
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &res))
-	require.Equal(t, 65, len(res))
+	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &res))
+	suite.Require().Equal(65, len(res))
 
-	rpcRes = Call(t, "personal_ecRecover", []interface{}{data, res})
+	rpcRes = Call(suite.T(), suite.addr, "personal_ecRecover", []interface{}{data, res})
 	var ecrecoverRes common.Address
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &ecrecoverRes))
-	require.Equal(t, from, ecrecoverRes[:])
+	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &ecrecoverRes))
+	suite.Require().Equal(senderAddr.Bytes(), ecrecoverRes[:])
 
 	// error check for ecRecover
 	// wrong length of sig
-	rpcRes, err := CallWithError("personal_ecRecover", []interface{}{data, res[1:]})
-	require.Error(t, err)
+	rpcRes, err := CallWithError(suite.addr, "personal_ecRecover", []interface{}{data, res[1:]})
+	suite.Require().Error(err)
 
 	// wrong RecoveryIDOffset -> nether 27 nor 28
 	res[ethcrypto.RecoveryIDOffset] = 29
-	rpcRes, err = CallWithError("personal_ecRecover", []interface{}{data, res})
-	require.Error(t, err)
+	rpcRes, err = CallWithError(suite.addr, "personal_ecRecover", []interface{}{data, res})
+	suite.Require().Error(err)
 
 	// fail in SigToPub
 	sigInvalid := make(hexutil.Bytes, 65)
@@ -136,105 +118,113 @@ func TestPersonal_EcRecover(t *testing.T) {
 		sigInvalid[i] = 0
 	}
 	sigInvalid[64] = 27
-	rpcRes, err = CallWithError("personal_ecRecover", []interface{}{data, sigInvalid})
-	require.Error(t, err)
+	rpcRes, err = CallWithError(suite.addr, "personal_ecRecover", []interface{}{data, sigInvalid})
+	suite.Require().Error(err)
 }
 
-func TestPersonal_UnlockAccount(t *testing.T) {
+func (suite *RPCTestSuite) TestPersonal_UnlockAccount() {
 	// create a new account
-	rpcRes := Call(t, "personal_newAccount", []string{defaultPassWd})
+	rpcRes := Call(suite.T(), suite.addr, "personal_newAccount", []string{defaultPassWd})
 	var addr common.Address
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &addr))
+	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &addr))
 
 	addrCounter++
 
 	newPassWd := "87654321"
 	// try to sign with different password -> failed
-	_, err := CallWithError("personal_sign", []interface{}{hexutil.Bytes{0x88}, addr, newPassWd})
-	require.Error(t, err)
+	_, err := CallWithError(suite.addr, "personal_sign", []interface{}{hexutil.Bytes{0x88}, addr, newPassWd})
+	suite.Require().Error(err)
 
 	// unlock the address with the new password
-	rpcRes = Call(t, "personal_unlockAccount", []interface{}{addr, newPassWd})
+	rpcRes = Call(suite.T(), suite.addr, "personal_unlockAccount", []interface{}{addr, newPassWd})
 	var unlocked bool
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &unlocked))
-	require.True(t, unlocked)
+	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &unlocked))
+	suite.Require().True(unlocked)
 
 	// try to sign with the new password -> successfully
-	rpcRes, err = CallWithError("personal_sign", []interface{}{hexutil.Bytes{0x88}, addr, newPassWd})
-	require.NoError(t, err)
+	rpcRes, err = CallWithError(suite.addr, "personal_sign", []interface{}{hexutil.Bytes{0x88}, addr, newPassWd})
+	suite.Require().NoError(err)
 	var res hexutil.Bytes
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &res))
-	require.Equal(t, 65, len(res))
+	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &res))
+	suite.Require().Equal(65, len(res))
 
 	// error check
 	// inexistent addr
 	inexistentAddr := common.BytesToAddress([]byte{0})
-	_, err = CallWithError("personal_unlockAccount", []interface{}{hexutil.Bytes{0x88}, inexistentAddr, newPassWd})
-	require.Error(t, err)
+	_, err = CallWithError(suite.addr, "personal_unlockAccount", []interface{}{hexutil.Bytes{0x88}, inexistentAddr, newPassWd})
+	suite.Require().Error(err)
 }
 
-func TestPersonal_LockAccount(t *testing.T) {
+func (suite *RPCTestSuite) TestPersonal_LockAccount() {
 	// create a new account
-	rpcRes := Call(t, "personal_newAccount", []string{defaultPassWd})
+	rpcRes := Call(suite.T(), suite.addr, "personal_newAccount", []string{defaultPassWd})
 	var addr common.Address
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &addr))
+	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &addr))
 
 	addrCounter++
 
 	// unlock the account above first
-	rpcRes = Call(t, "personal_unlockAccount", []interface{}{addr, defaultPassWd})
+	rpcRes = Call(suite.T(), suite.addr, "personal_unlockAccount", []interface{}{addr, defaultPassWd})
 	var unlocked bool
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &unlocked))
-	require.True(t, unlocked)
+	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &unlocked))
+	suite.Require().True(unlocked)
 
 	// lock the account
-	rpcRes = Call(t, "personal_lockAccount", []interface{}{addr})
+	rpcRes = Call(suite.T(), suite.addr, "personal_lockAccount", []interface{}{addr})
 	var locked bool
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &locked))
-	require.True(t, locked)
+	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &locked))
+	suite.Require().True(locked)
 
 	// try to sign, should be locked -> fail to sign
-	_, err := CallWithError("personal_sign", []interface{}{hexutil.Bytes{0x88}, addr, defaultPassWd})
-	require.Error(t, err)
+	_, err := CallWithError(suite.addr, "personal_sign", []interface{}{hexutil.Bytes{0x88}, addr, defaultPassWd})
+	suite.Require().Error(err)
 
 	// error check
 	// lock an inexistent account
 	inexistentAddr := common.BytesToAddress([]byte{0})
-	rpcRes = Call(t, "personal_lockAccount", []interface{}{inexistentAddr})
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &locked))
-	require.False(t, locked)
+	rpcRes = Call(suite.T(), suite.addr, "personal_lockAccount", []interface{}{inexistentAddr})
+	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &locked))
+	suite.Require().False(locked)
 }
 
-func TestPersonal_SendTransaction_Transfer(t *testing.T) {
+func (suite *RPCTestSuite) TestPersonal_SendTransaction_Transfer() {
 	params := make([]interface{}, 2)
 	params[0] = map[string]string{
-		"from":  hexAddr1.Hex(),
+		"from":  senderAddr.Hex(),
 		"to":    receiverAddr.Hex(),
 		"value": "0x16345785d8a0000", // 0.1
 	}
 	params[1] = defaultPassWd
 
-	rpcRes := Call(t, "personal_sendTransaction", params)
+	rpcRes := Call(suite.T(), suite.addr, "personal_sendTransaction", params)
 	var hash ethcmn.Hash
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &hash))
-	receipt := WaitForReceipt(t, hash)
-	require.NotNil(t, receipt)
-	require.Equal(t, "0x1", receipt["status"].(string))
+	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &hash))
+
+	commitBlock(suite)
+	commitBlock(suite)
+
+	receipt := WaitForReceipt(suite.T(), suite.addr, hash)
+	suite.Require().NotNil(receipt)
+	suite.Require().Equal("0x1", receipt["status"].(string))
 }
 
-func TestPersonal_SendTransaction_DeployContract(t *testing.T) {
+func (suite *RPCTestSuite) TestPersonal_SendTransaction_DeployContract() {
 	params := make([]interface{}, 2)
 	params[0] = map[string]string{
-		"from":     hexAddr1.Hex(),
+		"from":     senderAddr.Hex(),
 		"data":     "0x6080604052348015600f57600080fd5b5060117f775a94827b8fd9b519d36cd827093c664f93347070a554f65e4a6f56cd73889860405160405180910390a2603580604b6000396000f3fe6080604052600080fdfea165627a7a723058206cab665f0f557620554bb45adf266708d2bd349b8a4314bdff205ee8440e3c240029",
 		"gasPrice": (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String(),
 	}
 	params[1] = defaultPassWd
 
-	rpcRes := Call(t, "personal_sendTransaction", params)
+	rpcRes := Call(suite.T(), suite.addr, "personal_sendTransaction", params)
 	var hash ethcmn.Hash
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &hash))
-	receipt := WaitForReceipt(t, hash)
-	require.NotNil(t, receipt)
-	require.Equal(t, "0x1", receipt["status"].(string))
+	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &hash))
+
+	commitBlock(suite)
+	commitBlock(suite)
+
+	receipt := WaitForReceipt(suite.T(), suite.addr, hash)
+	suite.Require().NotNil(receipt)
+	suite.Require().Equal("0x1", receipt["status"].(string))
 }

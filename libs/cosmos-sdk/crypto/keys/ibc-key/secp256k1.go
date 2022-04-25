@@ -5,9 +5,10 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"fmt"
-	secp256k1 "github.com/btcsuite/btcd/btcec"
 	"io"
 	"math/big"
+
+	secp256k1 "github.com/btcsuite/btcd/btcec"
 
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"golang.org/x/crypto/ripemd160" // nolint: staticcheck // necessary for Bitcoin address format
