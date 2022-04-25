@@ -949,7 +949,7 @@ func (cs *State) isBlockProducer() (string, string) {
 func (cs *State) enterPropose(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
 	if cs.Height != height || round < cs.Round || (cs.Round == round && cstypes.RoundStepPropose <= cs.Step) {
-		logger.Error(fmt.Sprintf(
+		logger.Debug(fmt.Sprintf(
 			"enterPropose(%v/%v): Invalid args. Current step: %v/%v/%v",
 			height,
 			round,
