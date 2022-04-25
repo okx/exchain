@@ -50,6 +50,18 @@ func NewKeeper(cdcMarshl *codec.CodecProxy, key sdk.StoreKey, supplyKeeper types
 	}
 }
 
+func NewKeeperWithNoParam(cdcMarshl *codec.CodecProxy, key sdk.StoreKey, supplyKeeper types.SupplyKeeper,
+	paramstore params.Subspace) Keeper {
+
+	return Keeper{
+		storeKey:     key,
+		cdcMarshl:    cdcMarshl,
+		supplyKeeper: supplyKeeper,
+		paramstore:   paramstore,
+		hooks:        nil,
+	}
+}
+
 // Logger returns a module-specific logger
 func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", types.ModuleName)
