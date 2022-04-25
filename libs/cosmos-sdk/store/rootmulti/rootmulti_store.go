@@ -3,15 +3,15 @@ package rootmulti
 import (
 	"encoding/binary"
 	"fmt"
+	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
+	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
+
 	"io"
 	"log"
 	"path/filepath"
 	"sort"
 	"strings"
-
-	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
-	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachemulti"
@@ -1066,7 +1066,6 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	inputDeltaMap iavltree.TreeDeltaMap, f func(str string) bool) (commitInfo, iavltree.TreeDeltaMap) {
 	var storeInfos []storeInfo
 	outputDeltaMap := iavltree.TreeDeltaMap{}
-
 	for key, store := range storeMap {
 		sName := key.Name()
 		if evmAccStoreFilter(sName, version) {
@@ -1088,6 +1087,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		}
 
 		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
+
 		if store.GetStoreType() == types.StoreTypeTransient {
 			continue
 		}

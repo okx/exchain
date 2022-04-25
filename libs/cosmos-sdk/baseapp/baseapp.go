@@ -196,6 +196,7 @@ type BaseApp struct { // nolint: maligned
 
 	customizeModuleOnStop []sdk.CustomizeOnStop
 	mptCommitHandler      sdk.MptCommitHandler // handler for mpt trie commit
+	feeForCollector sdk.Coins
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
