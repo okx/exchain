@@ -1,13 +1,16 @@
+//go:build ignore
+
 package keeper
 
 import (
 	"encoding/binary"
+	"testing"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/farm/types"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestPoolCurrentReward(t *testing.T) {

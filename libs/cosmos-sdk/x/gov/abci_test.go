@@ -1,6 +1,7 @@
 package gov
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -42,7 +43,7 @@ func TestTickExpiredDepositPeriod(t *testing.T) {
 
 	newHeader := ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(time.Duration(1) * time.Second)
-	ctx = ctx.WithBlockHeader(newHeader)
+	ctx.SetBlockHeader(newHeader)
 
 	inactiveQueue = input.keeper.InactiveProposalQueueIterator(ctx, ctx.BlockHeader().Time)
 	require.False(t, inactiveQueue.Valid())
@@ -50,7 +51,7 @@ func TestTickExpiredDepositPeriod(t *testing.T) {
 
 	newHeader = ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(input.keeper.GetDepositParams(ctx).MaxDepositPeriod)
-	ctx = ctx.WithBlockHeader(newHeader)
+	ctx.SetBlockHeader(newHeader)
 
 	inactiveQueue = input.keeper.InactiveProposalQueueIterator(ctx, ctx.BlockHeader().Time)
 	require.True(t, inactiveQueue.Valid())
@@ -92,7 +93,7 @@ func TestTickMultipleExpiredDepositPeriod(t *testing.T) {
 
 	newHeader := ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(time.Duration(2) * time.Second)
-	ctx = ctx.WithBlockHeader(newHeader)
+	ctx.SetBlockHeader(newHeader)
 
 	inactiveQueue = input.keeper.InactiveProposalQueueIterator(ctx, ctx.BlockHeader().Time)
 	require.False(t, inactiveQueue.Valid())
@@ -110,7 +111,7 @@ func TestTickMultipleExpiredDepositPeriod(t *testing.T) {
 
 	newHeader = ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(input.keeper.GetDepositParams(ctx).MaxDepositPeriod).Add(time.Duration(-1) * time.Second)
-	ctx = ctx.WithBlockHeader(newHeader)
+	ctx.SetBlockHeader(newHeader)
 
 	inactiveQueue = input.keeper.InactiveProposalQueueIterator(ctx, ctx.BlockHeader().Time)
 	require.True(t, inactiveQueue.Valid())
@@ -122,7 +123,7 @@ func TestTickMultipleExpiredDepositPeriod(t *testing.T) {
 
 	newHeader = ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(time.Duration(5) * time.Second)
-	ctx = ctx.WithBlockHeader(newHeader)
+	ctx.SetBlockHeader(newHeader)
 
 	inactiveQueue = input.keeper.InactiveProposalQueueIterator(ctx, ctx.BlockHeader().Time)
 	require.True(t, inactiveQueue.Valid())
@@ -167,7 +168,7 @@ func TestTickPassedDepositPeriod(t *testing.T) {
 
 	newHeader := ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(time.Duration(1) * time.Second)
-	ctx = ctx.WithBlockHeader(newHeader)
+	ctx.SetBlockHeader(newHeader)
 
 	inactiveQueue = input.keeper.InactiveProposalQueueIterator(ctx, ctx.BlockHeader().Time)
 	require.False(t, inactiveQueue.Valid())
@@ -212,7 +213,7 @@ func TestTickPassedVotingPeriod(t *testing.T) {
 
 	newHeader := ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(time.Duration(1) * time.Second)
-	ctx = ctx.WithBlockHeader(newHeader)
+	ctx.SetBlockHeader(newHeader)
 
 	newDepositMsg := NewMsgDeposit(input.addrs[1], proposalID, proposalCoins)
 
@@ -222,7 +223,7 @@ func TestTickPassedVotingPeriod(t *testing.T) {
 
 	newHeader = ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(input.keeper.GetDepositParams(ctx).MaxDepositPeriod).Add(input.keeper.GetVotingParams(ctx).VotingPeriod)
-	ctx = ctx.WithBlockHeader(newHeader)
+	ctx.SetBlockHeader(newHeader)
 
 	inactiveQueue = input.keeper.InactiveProposalQueueIterator(ctx, ctx.BlockHeader().Time)
 	require.False(t, inactiveQueue.Valid())
@@ -287,7 +288,7 @@ func TestProposalPassedEndblocker(t *testing.T) {
 
 	newHeader := ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(input.keeper.GetDepositParams(ctx).MaxDepositPeriod).Add(input.keeper.GetVotingParams(ctx).VotingPeriod)
-	ctx = ctx.WithBlockHeader(newHeader)
+	ctx.SetBlockHeader(newHeader)
 
 	EndBlocker(ctx, input.keeper)
 
@@ -315,7 +316,7 @@ func TestEndBlockerProposalHandlerFailed(t *testing.T) {
 
 	// Create a proposal where the handler will pass for the test proposal
 	// because the value of contextKeyBadProposal is true.
-	ctx = ctx.WithValue(contextKeyBadProposal, true)
+	ctx.SetContext(context.WithValue(ctx.Context(), contextKeyBadProposal, true))
 	proposal, err := input.keeper.SubmitProposal(ctx, keep.TestProposal)
 	require.NoError(t, err)
 
@@ -331,11 +332,11 @@ func TestEndBlockerProposalHandlerFailed(t *testing.T) {
 
 	newHeader := ctx.BlockHeader()
 	newHeader.Time = ctx.BlockHeader().Time.Add(input.keeper.GetDepositParams(ctx).MaxDepositPeriod).Add(input.keeper.GetVotingParams(ctx).VotingPeriod)
-	ctx = ctx.WithBlockHeader(newHeader)
+	ctx.SetBlockHeader(newHeader)
 
 	// Set the contextKeyBadProposal value to false so that the handler will fail
 	// during the processing of the proposal in the EndBlocker.
-	ctx = ctx.WithValue(contextKeyBadProposal, false)
+	ctx.SetContext(context.WithValue(ctx.Context(), contextKeyBadProposal, false))
 
 	// validate that the proposal fails/has been rejected
 	EndBlocker(ctx, input.keeper)

@@ -367,7 +367,7 @@ func newProxyDecoder() *codec.CodecProxy {
 	return codecProxy
 }
 func TestMsgIBCTxValidate(t *testing.T) {
-	tmtypes.SetVenus1HeightForIbcTest(1)
+	tmtypes.UnittestOnlySetMilestoneVenus1Height(1)
 
 	IBCRouterKey := "ibc"
 	cpcdc := newProxyDecoder()
@@ -413,7 +413,7 @@ func TestMsgIbcTxMarshalSignBytes(t *testing.T) {
 		Gas: 100000,
 	}
 
-	signBytes := authtypes.IbcSignBytes(
+	signBytes := authtypes.IbcDirectSignBytes(
 		chainID,
 		uint64(accnum),
 		uint64(sequence),

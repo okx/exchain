@@ -2,7 +2,6 @@ package rootmulti
 
 import (
 	"fmt"
-
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
@@ -225,9 +224,15 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 		if err != nil {
 			return 0, err
 		}
+		// filter IBC module {}
+		f := rs.commitHeightFilterPipeline(commitVersion)
+		if f(storeParams.key.Name()) {
+			continue
+		}
 		if commitVersion < minVersion {
 			minVersion = commitVersion
 		}
+
 	}
 	return minVersion, nil
 }
@@ -1025,7 +1030,6 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	inputDeltaMap iavltree.TreeDeltaMap, f func(str string) bool) (commitInfo, iavltree.TreeDeltaMap) {
 	var storeInfos []storeInfo
 	outputDeltaMap := iavltree.TreeDeltaMap{}
-
 	for key, store := range storeMap {
 		if tmtypes.GetVenus1Height() == version {
 			//init store tree version with block height
@@ -1036,6 +1040,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		}
 
 		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
+
 		if store.GetStoreType() == types.StoreTypeTransient {
 			continue
 		}
@@ -1043,7 +1048,6 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		si := storeInfo{}
 		si.Name = key.Name()
 		si.Core.CommitID = commitID
-		si.Core.CommitID.Version = version
 		storeInfos = append(storeInfos, si)
 		outputDeltaMap[key.Name()] = outputDelta
 	}
@@ -1318,9 +1322,13 @@ func (src Store) Copy() *Store {
 }
 
 func (rs *Store) StopStore() {
-	for _, store := range rs.stores {
+	for key, store := range rs.stores {
 		switch store.GetStoreType() {
 		case types.StoreTypeIAVL:
+			filter := rs.commitHeightFilterPipeline(rs.lastCommitInfo.Version)
+			if filter(key.Name()) {
+				continue
+			}
 			s := store.(*iavl.Store)
 			s.StopStore()
 		case types.StoreTypeDB:

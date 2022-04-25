@@ -58,7 +58,7 @@ func TestBeginBlocker(t *testing.T) {
 
 	// for 1000 blocks, mark the validator as having signed
 	for ; height < keeper.SignedBlocksWindow(ctx); height++ {
-		ctx = ctx.WithBlockHeight(height)
+		ctx.SetBlockHeight(height)
 		req = abci.RequestBeginBlock{
 			LastCommitInfo: abci.LastCommitInfo{
 				Votes: []abci.VoteInfo{{
@@ -72,7 +72,7 @@ func TestBeginBlocker(t *testing.T) {
 
 	// for 500 blocks, mark the validator as having not signed
 	for ; height < ((keeper.SignedBlocksWindow(ctx) * 2) - keeper.MinSignedPerWindow(ctx) + 1); height++ {
-		ctx = ctx.WithBlockHeight(height)
+		ctx.SetBlockHeight(height)
 		req = abci.RequestBeginBlock{
 			LastCommitInfo: abci.LastCommitInfo{
 				Votes: []abci.VoteInfo{{

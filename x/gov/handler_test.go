@@ -87,7 +87,7 @@ func TestHandleMsgVote2(t *testing.T) {
 	var proposalID uint64
 	gk.Cdc().MustUnmarshalBinaryLengthPrefixed(res.Data, &proposalID)
 
-	ctx = ctx.WithBlockHeight(int64(sk.GetEpoch(ctx)))
+	ctx.SetBlockHeight(int64(sk.GetEpoch(ctx)))
 	skHandler := staking.NewHandler(sk)
 	valAddrs := make([]sdk.ValAddress, len(keeper.Addrs[:2]))
 	for i, addr := range keeper.Addrs[:2] {
@@ -118,7 +118,7 @@ func TestHandleMsgVote3(t *testing.T) {
 	var proposalID uint64
 	gk.Cdc().MustUnmarshalBinaryLengthPrefixed(res.Data, &proposalID)
 
-	ctx = ctx.WithBlockHeight(int64(sk.GetEpoch(ctx)))
+	ctx.SetBlockHeight(int64(sk.GetEpoch(ctx)))
 	skHandler := staking.NewHandler(sk)
 	valAddrs := make([]sdk.ValAddress, len(keeper.Addrs[:2]))
 	for i, addr := range keeper.Addrs[:2] {
@@ -139,7 +139,7 @@ func TestHandleMsgSubmitProposal(t *testing.T) {
 	ctx, _, gk, _, _ := keeper.CreateTestInput(t, false, 1000)
 	log, err := flags.ParseLogLevel("*:error", ctx.Logger(), "error")
 	require.Nil(t, err)
-	ctx = ctx.WithLogger(log)
+	ctx.SetLogger(log)
 	handler := NewHandler(gk)
 
 	proposalCoins := sdk.SysCoins{sdk.NewInt64DecCoin("xxx", 500)}

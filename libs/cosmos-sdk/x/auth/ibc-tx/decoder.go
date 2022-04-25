@@ -1,9 +1,11 @@
-package tx
+package ibc_tx
 
 import (
 	"fmt"
-
+	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 	"google.golang.org/protobuf/encoding/protowire"
+	"math/big"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
@@ -13,10 +15,8 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	ibckey "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
-	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	tx "github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-
 	tmtypes "github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 )
 
@@ -75,26 +75,38 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			Signatures: raw.Signatures,
 		}
 
-		amount := authInfo.Fee.Amount[0].Amount.BigInt()
+		amount := &big.Int{}
+		denom := ""
+		gaslimit := uint64(0)
+		if authInfo.Fee != nil {
+			if authInfo.Fee.Amount != nil {
+				amount = authInfo.Fee.Amount[0].Amount.BigInt()
+				denom = authInfo.Fee.Amount[0].Denom
+			}
+			if authInfo.Fee != nil {
+				gaslimit = authInfo.Fee.GasLimit
+			}
+		}
 
 		fee := authtypes.StdFee{
 			Amount: []sdk.DecCoin{
 				sdk.DecCoin{
-					Denom:  ibcTx.AuthInfo.Fee.Amount[0].Denom,
+					Denom:  denom,
 					Amount: sdk.NewDecFromBigInt(amount),
 				},
 			},
-			Gas: ibcTx.AuthInfo.Fee.GasLimit,
+			Gas: gaslimit,
 		}
 		signatures := []authtypes.StdSignature{}
 		for i, s := range ibcTx.Signatures {
 			pk := &ibckey.PubKey{}
-			cdc.UnmarshalBinaryBare(ibcTx.AuthInfo.SignerInfos[i].PublicKey.Value, pk)
+			if ibcTx.AuthInfo.SignerInfos != nil {
+				cdc.UnmarshalBinaryBare(ibcTx.AuthInfo.SignerInfos[i].PublicKey.Value, pk)
+			}
 
 			//convert crypto pubkey to tm pubkey
 			tmPubKey := tmtypes.PubKeySecp256k1{}
 			copy(tmPubKey[:], pk.Bytes())
-
 			signatures = append(signatures,
 				authtypes.StdSignature{
 					Signature: s,
@@ -108,6 +120,19 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			stdmsgs = append(stdmsgs, m)
 		}
 
+		var modeInfo *tx.ModeInfo_Single_
+		var ok bool
+		if len(authInfo.SignerInfos) > 0 {
+			modeInfo, ok = authInfo.SignerInfos[0].ModeInfo.Sum.(*tx.ModeInfo_Single_)
+			if !ok {
+				return nil, sdkerrors.Wrap(sdkerrors.ErrInternal, "only support ModeInfo_Single")
+			}
+		}
+		var signMode signing.SignMode
+		if modeInfo != nil && modeInfo.Single != nil {
+			signMode = modeInfo.Single.Mode
+		}
+
 		stx := authtypes.IbcTx{
 			&authtypes.StdTx{
 				Msgs:       stdmsgs,
@@ -117,26 +142,27 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			},
 			raw.AuthInfoBytes,
 			raw.BodyBytes,
+			signMode,
 		}
 
 		return &stx, nil
 	}
 }
 
-// // DefaultJSONTxDecoder returns a default protobuf JSON TxDecoder using the provided Marshaler.
-// func DefaultJSONTxDecoder(cdc codec.ProtoCodecMarshaler) sdk.TxDecoder {
-// 	return func(txBytes []byte) (sdk.Tx, error) {
-// 		var theTx tx.Tx
-// 		err := cdc.UnmarshalJSON(txBytes, &theTx)
-// 		if err != nil {
-// 			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
-// 		}
-
-// 		return &wrapper{
-// 			tx: &theTx,
-// 		}, nil
-// 	}
-// }
+// DefaultJSONTxDecoder returns a default protobuf JSON TxDecoder using the provided Marshaler.
+//func DefaultJSONTxDecoder(cdc codec.ProtoCodecMarshaler) sdk.TxDecoder {
+//	return func(txBytes []byte) (sdk.Tx, error) {
+//		var theTx tx.Tx
+//		err := cdc.UnmarshalJSON(txBytes, &theTx)
+//		if err != nil {
+//			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+//		}
+//
+//		return &wrapper{
+//			tx: &theTx,
+//		}, nil
+//	}
+//}
 
 // rejectNonADR027TxRaw rejects txBytes that do not follow ADR-027. This is NOT
 // a generic ADR-027 checker, it only applies decoding TxRaw. Specifically, it
