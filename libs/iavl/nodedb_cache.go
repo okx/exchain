@@ -2,6 +2,7 @@ package iavl
 
 import (
 	"container/list"
+
 	"github.com/okex/exchain/libs/iavl/config"
 	"github.com/tendermint/go-amino"
 )
@@ -37,7 +38,6 @@ func (ndb *nodeDB) cacheNodeByCheck(node *Node) {
 }
 
 func (ndb *nodeDB) getNodeFromCache(hash []byte) (n *Node) {
-
 	// Check the cache.
 	if v, ok := ndb.nodeCache.Get(amino.BytesToStr(hash)); ok {
 		elem := v.(*list.Element)
@@ -45,10 +45,8 @@ func (ndb *nodeDB) getNodeFromCache(hash []byte) (n *Node) {
 		ndb.nodeCacheQueue.MoveToBack(elem)
 		n = elem.Value.(*Node)
 	}
-
 	return
 }
-
 
 func (ndb *nodeDB) uncacheNodeRontine(n []*Node) {
 	for _, node := range n {

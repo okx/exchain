@@ -121,25 +121,19 @@ func (ndb *nodeDB) GetNode(hash []byte) *Node {
 			panic("nodeDB.GetNode() requires hash")
 		}
 		ndb.mtx.RLock()
+		defer ndb.mtx.RUnlock()
 		if elem, ok := ndb.prePersistNodeCache[string(hash)]; ok {
-			ndb.mtx.RUnlock()
 			return elem
 		}
 
 		if elem, ok := ndb.getNodeInTpp(hash); ok { // GetNode from tpp
-			ndb.mtx.RUnlock()
 			return elem
 		}
-		ndb.mtx.RUnlock()
 
 		if elem := ndb.getNodeFromCache(hash); elem != nil {
 			return elem
 		}
-		
-		ndb.mtx.RLock()
-		elem, ok := ndb.orphanNodeCache[string(hash)]
-		ndb.mtx.RUnlock()
-		if ok {
+		if elem, ok := ndb.orphanNodeCache[string(hash)]; ok {
 			return elem
 		}
 
@@ -532,7 +526,6 @@ func (ndb *nodeDB) traversePrefix(prefix []byte, fn func(k, v []byte)) {
 		fn(itr.Key(), itr.Value())
 	}
 }
-
 
 // Write to disk.
 func (ndb *nodeDB) Commit(batch dbm.Batch) error {
