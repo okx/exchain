@@ -24,6 +24,7 @@ func TestBech32KeysOutput(t *testing.T) {
 
 	expectedOutput := NewKeyOutput(multiInfo.GetName(), multiInfo.GetType().String(), accAddr.String(), bechPubKey)
 	expectedOutput.EthAddress = common.BytesToAddress(accAddr).Hex()
+	expectedOutput.OperAddress = sdk.ValAddress(accAddr).String()
 	expectedOutput.Threshold = 1
 	expectedOutput.PubKeys = []multisigPubKeyOutput{{tmpAddr.String(), bechTmpKey, 1}}
 
