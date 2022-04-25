@@ -20,17 +20,17 @@ func getTestCases() testCases {
 	return testCases{
 		// nolint:govet
 		[]keys.KeyOutput{
-			{"A", "B", "C", "D", "E", "F", 0, nil},
-			{"A", "B", "C", "D", "E", "", 0, nil},
-			{"", "B", "C", "D", "E", "", 0, nil},
-			{"", "", "", "", "", "", 0, nil},
+			{"A", "B", "C", "D", "G", "E", "F", 0, nil},
+			{"A", "B", "C", "D", "G", "E", "", 0, nil},
+			{"", "B", "C", "D", "G", "E", "", 0, nil},
+			{"", "", "", "", "", "", "", 0, nil},
 		},
 		make([]keys.KeyOutput, 4),
 		[][]byte{
-			[]byte(`{"name":"A","type":"B","address":"C","eth_address":"D","pubkey":"E","mnemonic":"F"}`),
-			[]byte(`{"name":"A","type":"B","address":"C","eth_address":"D","pubkey":"E"}`),
-			[]byte(`{"name":"","type":"B","address":"C","eth_address":"D","pubkey":"E"}`),
-			[]byte(`{"name":"","type":"","address":"","eth_address":"","pubkey":""}`),
+			[]byte(`{"name":"A","type":"B","address":"C","eth_address":"D","oper_address":"G","pubkey":"E","mnemonic":"F"}`),
+			[]byte(`{"name":"A","type":"B","address":"C","eth_address":"D","oper_address":"G","pubkey":"E"}`),
+			[]byte(`{"name":"","type":"B","address":"C","eth_address":"D","oper_address":"G","pubkey":"E"}`),
+			[]byte(`{"name":"","type":"","address":"","eth_address":"","oper_address":"","pubkey":""}`),
 		},
 	}
 }
