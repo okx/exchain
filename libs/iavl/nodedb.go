@@ -131,10 +131,6 @@ func (ndb *nodeDB) GetNode(hash []byte) *Node {
 			ndb.mtx.RUnlock()
 			return elem
 		}
-		if elem, ok := ndb.orphanNodeCache[string(hash)]; ok {
-			ndb.mtx.RUnlock()
-			return elem
-		}
 		ndb.mtx.RUnlock()
 		// Check the cache.
 		if v, ok := ndb.nodeCache.Get(amino.BytesToStr(hash)); ok {
@@ -143,6 +139,14 @@ func (ndb *nodeDB) GetNode(hash []byte) *Node {
 			ndb.nodeCacheQueue.MoveToBack(elem)
 			return elem.Value.(*Node)
 		}
+
+		ndb.mtx.RLock()
+		elem, ok := ndb.orphanNodeCache[string(hash)]
+		ndb.mtx.RUnlock()
+		if ok {
+			return elem
+		}
+
 		return nil
 	}()
 
