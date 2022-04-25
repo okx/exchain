@@ -17,7 +17,7 @@ func NewHandler(k types.ContractOpsKeeper) sdk.Handler {
 	msgServer := keeper.NewMsgServerImpl(k)
 
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
-		ctx = ctx.WithEventManager(sdk.NewEventManager())
+		ctx.SetEventManager(sdk.NewEventManager())
 
 		var (
 			res proto.Message
@@ -41,7 +41,7 @@ func NewHandler(k types.ContractOpsKeeper) sdk.Handler {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
 		}
 
-		ctx = ctx.WithEventManager(filterMessageEvents(ctx))
+		ctx.SetEventManager(filterMessageEvents(ctx))
 		return sdk.WrapServiceResult(ctx, res, err)
 	}
 }

@@ -1006,7 +1006,7 @@ func NewBankCoinTransferrer(keeper types.BankKeeper) BankCoinTransferrer {
 // is not in the blocked address list.
 func (c BankCoinTransferrer) TransferCoins(parentCtx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amount sdk.Coins) error {
 	em := sdk.NewEventManager()
-	ctx := parentCtx.WithEventManager(em)
+	ctx := *parentCtx.SetEventManager(em)
 	if err := c.keeper.IsSendEnabledCoins(ctx, amount...); err != nil {
 		return err
 	}

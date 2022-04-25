@@ -2,6 +2,8 @@ package wasm
 
 import (
 	"encoding/json"
+	"github.com/gorilla/mux"
+	clictx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	cdctypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
@@ -41,6 +43,9 @@ func (b AppModuleBasic) GetQueryCmdV2(cdc *codec.CodecProxy, reg cdctypes.Interf
 	return nil
 }
 
+func (b AppModuleBasic) RegisterRouterForGRPC(cliCtx clictx.CLIContext, r *mux.Router) {
+
+}
 func (am AppModule) NewHandler() sdk.Handler {
 	return NewHandler(keeper.NewDefaultPermissionKeeper(am.keeper))
 }
