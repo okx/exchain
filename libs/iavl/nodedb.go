@@ -160,11 +160,12 @@ func (ndb *nodeDB) GetNode(hash []byte) (n *Node) {
 	return
 }
 
-func (ndb *nodeDB) GetNodeConcurrently(hash []byte) (n *Node) {
+func (ndb *nodeDB) GetNodeConcurrently(hash []byte) (n *Node, fromDisk bool) {
 
 	n = ndb.getNodeFromMemory(hash)
 	if n == nil {
 		n = ndb.getNodeFromDisk(hash, false)
+		fromDisk = true
 	}
 	return
 }
