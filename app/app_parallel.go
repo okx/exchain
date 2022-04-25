@@ -14,11 +14,7 @@ import (
 // feeCollectorHandler set or get the value of feeCollectorAcc
 func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
 	return func(ctx sdk.Context, balance sdk.Coins) error {
-		gasMeter := ctx.GasMeter()
-		ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
-		err := bk.SetCoins(ctx, sk.GetModuleAddress(auth.FeeCollectorName), balance)
-		ctx.SetGasMeter(gasMeter)
-		return err
+		return bk.SetCoins(ctx, sk.GetModuleAddress(auth.FeeCollectorName), balance)
 	}
 }
 

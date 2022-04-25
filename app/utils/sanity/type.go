@@ -54,23 +54,6 @@ func (s stringItem) verbose() string {
 	return fmt.Sprintf("--%v=%v", s.name, s.value)
 }
 
-type intItem struct {
-	name  string
-	value int
-}
-
-func (i intItem) label() string {
-	return i.name
-}
-
-func (i intItem) check() bool {
-	return viper.GetInt(i.label()) == i.value
-}
-
-func (i intItem) verbose() string {
-	return fmt.Sprintf("--%v=%v", i.name, i.value)
-}
-
 // conflictPair: configA and configB are conflict pair
 type conflictPair struct {
 	configA item

@@ -19,7 +19,7 @@ type LogFix func(isAnteFailed [][]string) (logs [][]byte)
 
 type GetTxFeeHandler func(ctx Context, tx Tx, verifySig bool) (Coins, bool)
 
-type GetTxFeeAndFromHandler func(ctx Context, tx Tx) (Coins, bool, string, string, error)//Address)
+type GetTxFeeAndFromHandler func(ctx Context, tx Tx) (Coins, bool, string, string, error)
 
 // AnteDecorator wraps the next AnteHandler to perform custom pre- and post-processing.
 type AnteDecorator interface {
