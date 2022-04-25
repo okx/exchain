@@ -327,31 +327,31 @@ func benchmarkTxIndex(txsCount int64, b *testing.B) {
 	store := db.NewDB("tx_index", "goleveldb", dir)
 	indexer := NewTxIndex(store)
 
+	batch := txindex.NewBatch(txsCount)
+	txIndex := uint32(0)
+	for i := int64(0); i < txsCount; i++ {
+		tx := tmrand.Bytes(250)
+		txResult := &types.TxResult{
+			Height: 1,
+			Index:  txIndex,
+			Tx:     tx,
+			Result: abci.ResponseDeliverTx{
+				Data:   []byte{0},
+				Code:   abci.CodeTypeOK,
+				Log:    "",
+				Events: []abci.Event{},
+			},
+		}
+		if err := batch.Add(txResult); err != nil {
+			b.Fatal(err)
+		}
+		txIndex++
+	}
+
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		batch := txindex.NewBatch(txsCount)
-		txIndex := uint32(0)
-		for i := int64(0); i < txsCount; i++ {
-			tx := tmrand.Bytes(250000)
-			txResult := &types.TxResult{
-				Height: 1,
-				Index:  txIndex,
-				Tx:     tx,
-				Result: abci.ResponseDeliverTx{
-					Data:   []byte{0},
-					Code:   abci.CodeTypeOK,
-					Log:    "",
-					Events: []abci.Event{},
-				},
-			}
-			if err := batch.Add(txResult); err != nil {
-				b.Fatal(err)
-			}
-			txIndex++
-		}
-
-		err = indexer.AddBatch(batch) // Add different txs each time
+		err = indexer.AddBatch(batch)
 	}
 	if err != nil {
 		b.Fatal(err)
@@ -363,9 +363,3 @@ func BenchmarkTxIndex500(b *testing.B)   { benchmarkTxIndex(500, b) }
 func BenchmarkTxIndex1000(b *testing.B)  { benchmarkTxIndex(1000, b) }
 func BenchmarkTxIndex2000(b *testing.B)  { benchmarkTxIndex(2000, b) }
 func BenchmarkTxIndex10000(b *testing.B) { benchmarkTxIndex(10000, b) }
-func BenchmarkTxIndex10000WithoutCheckSameTx(b *testing.B) {
-	haveSameTxFunc = func(store db.DB, hash []byte) (bool, error) {
-		return false, nil
-	}
-	benchmarkTxIndex(10000, b)
-}

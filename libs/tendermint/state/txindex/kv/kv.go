@@ -94,15 +94,6 @@ func (txi *TxIndex) Get(hash []byte) (*types.TxResult, error) {
 	return txResult, err
 }
 
-func haveSameTx(store dbm.DB, hash []byte) (bool, error) {
-	has, err := store.Has(hash)
-	return has, err
-}
-
-var (
-	haveSameTxFunc = haveSameTx
-)
-
 // AddBatch indexes a batch of transactions using the given list of events. Each
 // key that indexed from the tx's events is a composite of the event type and
 // the respective attribute's key delimited by a "." (eg. "account.number").
@@ -113,7 +104,8 @@ func (txi *TxIndex) AddBatch(b *txindex.Batch) error {
 
 	for _, result := range b.Ops {
 		hash := result.Tx.Hash(result.Height)
-		if has, err := haveSameTxFunc(txi.store, hash); err == nil && has {
+
+		if has, err := txi.store.Has(hash); err == nil && has {
 			continue
 		}
 
