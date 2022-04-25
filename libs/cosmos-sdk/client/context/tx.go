@@ -12,5 +12,5 @@ type TxResponse interface {
 }
 
 type CodecSensitive interface {
-	Marshal(proxy *codec.CodecProxy) ([]byte, error)
+	MarshalSensitive(proxy *codec.CodecProxy) ([]byte, error)
 }
