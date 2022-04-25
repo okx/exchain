@@ -48,3 +48,10 @@ func (ndb *nodeDB) getNodeFromCache(hash []byte) (n *Node) {
 
 	return
 }
+
+
+func (ndb *nodeDB) uncacheNodeRontine(n []*Node) {
+	for _, node := range n {
+		ndb.uncacheNode(node.hash)
+	}
+}
