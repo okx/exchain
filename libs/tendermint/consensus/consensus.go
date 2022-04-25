@@ -1441,6 +1441,7 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 			cs.Logger.Info("enterCommit proposalBlockPart reset ,because of mismatch hash,",
 				"origin", hex.EncodeToString(cs.ProposalBlockParts.Hash()), "after", blockID.Hash)
 			cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
+			cs.trc.Pin("waitBlockPart")
 			cs.eventBus.PublishEventValidBlock(cs.RoundStateEvent())
 			cs.evsw.FireEvent(types.EventValidBlock, &cs.RoundState)
 		}
@@ -1742,7 +1743,6 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	if cs.Proposal != nil {
 		return nil
 	}
-
 	// Does not apply
 	if proposal.Height != cs.Height || proposal.Round != cs.Round {
 		return nil
@@ -1855,13 +1855,15 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		//POA: Create all validator votes here to enter commit
 		// Happening only the proposal period
 		if cs.Proposal != nil && cs.config.POAEnable && len(cs.privValidatorSet) > 0 {
-			cs.trc.Pin("%s", "simOrNetVote")
 			// no need to simulate precommit votes if alreay collected from network
 			if !cs.Votes.Precommits(cs.Round).HasTwoThirdsMajority() {
+				cs.trc.Pin("%s", "simVote-y")
 				//simulate precommit votes
 				if err := cs.simAllPrecommitVote(); err != nil {
 					panic("Unable to simulate all Precommit Vote under POA mode")
 				}
+			} else {
+				cs.trc.Pin("%s", "simVote-n")
 			}
 			cs.updateRoundStep(cs.Round, cstypes.RoundStepCommit)
 			cs.CommitRound = cs.Round
@@ -1942,20 +1944,22 @@ func (cs *State) tryAddVote(vote *types.Vote, peerID p2p.ID) (bool, error) {
 			}
 
 			if bytes.Equal(vote.ValidatorAddress, cs.privValidatorPubKey.Address()) {
-				//POA: It's possible to get multiple votes from the same validator under POA
-				if !cs.config.POAEnable {
-					cs.Logger.Error(
-						"Found conflicting vote from ourselves. Did you unsafe_reset a validator?",
-						"height",
-						vote.Height,
-						"round",
-						vote.Round,
-						"type",
-						vote.Type)
-				}
+				cs.Logger.Error(
+					"Found conflicting vote from ourselves. Did you unsafe_reset a validator?",
+					"height",
+					vote.Height,
+					"round",
+					vote.Round,
+					"type",
+					vote.Type)
 				return added, err
 			}
-			cs.evpool.AddEvidence(voteErr.DuplicateVoteEvidence)
+			// avoid duplicate vote punish for POA
+			if !cs.config.POAEnable {
+				cs.evpool.AddEvidence(voteErr.DuplicateVoteEvidence)
+			} else {
+				cs.Logger.Error("DuplicateVoteEvidence", voteErr.DuplicateVoteEvidence)
+			}
 			return added, err
 		} else if err == types.ErrVoteNonDeterministicSignature {
 			cs.Logger.Debug("Vote has non-deterministic signature", "err", err)
@@ -2113,8 +2117,10 @@ func (cs *State) addVote(
 		blockID, ok := precommits.TwoThirdsMajority()
 		if ok {
 			// Executed as TwoThirdsMajority could be from a higher round
-			cs.enterNewRound(height, vote.Round)
-			cs.enterPrecommit(height, vote.Round)
+			if !cs.config.POAEnable {
+				cs.enterNewRound(height, vote.Round)
+				cs.enterPrecommit(height, vote.Round)
+			}
 			if len(blockID.Hash) != 0 {
 				cs.enterCommit(height, vote.Round)
 				if cs.config.SkipTimeoutCommit && precommits.HasAll() {
@@ -2196,6 +2202,10 @@ func (cs *State) signAddVote(msgType types.SignedMsgType, hash []byte, header ty
 		return nil
 	}
 
+	if cs.config.POAEnable && hash == nil {
+		cs.Logger.Error("POA:signAddVote to Nil")
+		return nil
+	}
 	// If the node not in the validator set, do nothing.
 	if !cs.Validators.HasAddress(cs.privValidatorPubKey.Address()) {
 		return nil
