@@ -734,7 +734,7 @@ func (cs *State) handleMsg(mi msgInfo) {
 	msg, peerID := mi.Msg, mi.PeerID
 	switch msg := msg.(type) {
 	case *ViewChangeMessage:
-		//cs.Logger.Error("handle vcMsg", "msg.height", msg.Height, "vcMsg", cs.vcMsg)
+		//cs.Logger.Error("handle vcMsg", "msg.height", msg.Height, "cs.height", cs.Height)
 		if ActiveViewChange {
 			// only in round0 use vcMsg
 			if cs.Round != 0 {
@@ -766,6 +766,7 @@ func (cs *State) handleMsg(mi msgInfo) {
 			// enterNewHeight use msg.val
 		}
 	case *ProposeRequestMessage:
+		//cs.Logger.Error("handle prMsg", "msg.height", msg.Height, "cs.height", cs.Height)
 		if ActiveViewChange {
 			// this peer is not proposer
 			if !bytes.Equal(cs.privValidatorPubKey.Address(), msg.CurrentProposer) {
@@ -775,7 +776,7 @@ func (cs *State) handleMsg(mi msgInfo) {
 			if msg.Height <= cs.Height {
 				return
 			}
-			cs.evsw.FireEvent(types.EventProposeRequest, msg)
+			cs.evsw.FireEvent(types.EventViewChange, msg)
 		}
 
 	case *ProposalMessage:

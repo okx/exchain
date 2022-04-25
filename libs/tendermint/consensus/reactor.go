@@ -337,6 +337,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		}
 		switch msg := msg.(type) {
 		case *ViewChangeMessage:
+			//conR.Logger.Error("reactor vcMsg", "height", msg.Height, "curP", msg.CurrentProposer, "newP", msg.NewProposer, "hasVC", conR.hasViewChanged, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
 			// verify the signature of vcMsg
 			_, val := conR.conS.Validators.GetByAddress(msg.CurrentProposer)
 			if err := msg.Verify(val.PubKey); err != nil {
@@ -544,17 +545,15 @@ func (conR *Reactor) broadcastProposeRequestMessage(prMsg *ProposeRequestMessage
 	conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(prMsg))
 }
 
-func (conR *Reactor) broadcastViewChangeMessage(prMsg *ProposeRequestMessage) *ViewChangeMessage {
+func (conR *Reactor) broadcastViewChangeMessage(prMsg *ProposeRequestMessage) {
 	vcMsg := ViewChangeMessage{Height: prMsg.Height, CurrentProposer: prMsg.CurrentProposer, NewProposer: prMsg.NewProposer}
-	signature, err := conR.conS.privValidator.SignBytes(vcMsg.SignBytes())
-	if err != nil {
+	if signature, err := conR.conS.privValidator.SignBytes(vcMsg.SignBytes()); err == nil {
+		//conR.Logger.Error("broadcastViewChangeMessage", "vcMsg", vcMsg)
+		vcMsg.Signature = signature
+		conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
+	} else {
 		conR.Logger.Error("broadcastViewChangeMessage", "err", err)
-		return nil
 	}
-	//conR.Logger.Error("broadcastViewChangeMessage", "vcMsg", vcMsg)
-	vcMsg.Signature = signature
-	conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
-	return &vcMsg
 }
 
 func (conR *Reactor) broadcastNewRoundStepMessage(rs *cstypes.RoundState) {
