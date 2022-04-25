@@ -253,3 +253,15 @@ func ValidCoins(coins Coins) bool {
 		return true
 	}
 }
+
+func (coin DecCoinAdapter) String() string {
+	return fmt.Sprintf("%v%v", coin.Amount, coin.Denom)
+}
+
+func (ip IntProtoAdapter) String() string {
+	return ip.Int.String()
+}
+
+func (dp DecProtoAdapter) String() string {
+	return dp.Dec.String()
+}
