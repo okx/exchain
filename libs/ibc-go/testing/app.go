@@ -2,11 +2,12 @@ package ibctesting
 
 import (
 	"encoding/json"
+	"testing"
+	"time"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
-	"testing"
-	"time"
 
 	//cryptocodec "github.com/okex/exchain/app/crypto/ethsecp256k1"
 
@@ -22,6 +23,8 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/okex/exchain/x/evm"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 	stakingkeeper "github.com/okex/exchain/x/staking"
 	"github.com/stretchr/testify/require"
 
@@ -62,16 +65,17 @@ func SetupTestingApp() (TestingApp, map[string]json.RawMessage) {
 // that also act as delegators. For simplicity, each validator is bonded with a delegation
 // of one consensus engine unit (10^6) in the default token of the simapp from first genesis
 // account. A Nop logger is set in SimApp.
-func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs []authexported.GenesisAccount, balances ...sdk.Coins) TestingApp {
+func SetupWithGenesisValSet(t *testing.T, chainId string, valSet *tmtypes.ValidatorSet, genAccs []authexported.GenesisAccount, balances ...sdk.Coins) TestingApp {
 	app, genesisState := DefaultTestingAppInit()
 	// set genesis accounts
 	authGenesis := authtypes.NewGenesisState(authtypes.DefaultParams(), genAccs)
-	//genesisState[authtypes.ModuleName] = app.AppCodec().GetCdc().MustMarshalJSON(authGenesis)
-	var err error
+
 	genesisState[authtypes.ModuleName] = app.AppCodec().GetCdc().MustMarshalJSON(authGenesis)
+	var err error
 	if err != nil {
 		panic("SetupWithGenesisValSet marshal error")
 	}
+	//var genesisState2 authtypes.GenesisState
 
 	validators := make([]stakingtypes.Validator, 0, len(valSet.Validators))
 	delegations := make([]stakingtypes.Delegation, 0, len(valSet.Validators))
@@ -118,15 +122,20 @@ func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs 
 	bankGenesis := bank.DefaultGenesisState()
 	genesisState[bank.ModuleName] = app.AppCodec().GetCdc().MustMarshalJSON(bankGenesis)
 
+	evmGenesis := evmtypes.DefaultGenesisState()
+	evmGenesis.Params.EnableCall = true
+	evmGenesis.Params.EnableCreate = true
+	genesisState[evm.ModuleName] = app.AppCodec().GetCdc().MustMarshalJSON(evmGenesis)
+
 	stateBytes, err := json.MarshalIndent(genesisState, "", " ")
 	require.NoError(t, err)
-
 	// init chain will set the validator set and initialize the genesis accounts
 	app.InitChain(
 		abci.RequestInitChain{
 			Validators:      []abci.ValidatorUpdate{},
 			ConsensusParams: simapp.DefaultConsensusParams,
 			AppStateBytes:   stateBytes,
+			ChainId:         chainId,
 		},
 	)
 
@@ -138,8 +147,7 @@ func SetupWithGenesisValSet(t *testing.T, valSet *tmtypes.ValidatorSet, genAccs 
 		AppHash:            app.LastCommitID().Hash,
 		ValidatorsHash:     valSet.Hash(app.LastBlockHeight() + 1),
 		NextValidatorsHash: valSet.Hash(app.LastBlockHeight() + 1),
-	}})
-	//app.Commit(abci.RequestCommit{})
+	}}) //app.Commit(abci.RequestCommit{})
 
 	return app
 }
