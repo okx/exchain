@@ -2,10 +2,11 @@ package ibctesting
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/types"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/okex/exchain/libs/tendermint/types"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/stretchr/testify/require"
@@ -39,6 +40,22 @@ func NewCoordinator(t *testing.T, n int) *Coordinator {
 	for i := 0; i < n; i++ {
 		chainID := GetChainID(i)
 		chains[chainID] = NewTestChain(t, coord, chainID)
+	}
+	coord.Chains = chains
+
+	return coord
+}
+func NewEthCoordinator(t *testing.T, n int) *Coordinator {
+	types.UnittestOnlySetMilestoneVenus1Height(-1)
+	chains := make(map[string]TestChainI)
+	coord := &Coordinator{
+		t:           t,
+		CurrentTime: globalStartTime,
+	}
+
+	for i := 1; i <= n; i++ {
+		chainID := GetOKChainID(i)
+		chains[chainID] = NewTestEthChain(t, coord, chainID)
 	}
 	coord.Chains = chains
 
@@ -177,6 +194,11 @@ func (coord *Coordinator) GetChain(chainID string) TestChainI {
 // GetChainID returns the chainID used for the provided index.
 func GetChainID(index int) string {
 	return ChainIDPrefix + strconv.Itoa(index)
+}
+
+// GetChainID returns the chainID used for the provided index.
+func GetOKChainID(index int) string {
+	return ChainIDPrefix + "-" + strconv.Itoa(index)
 }
 
 // CommitBlock commits a block on the provided indexes and then increments the global time.

@@ -83,7 +83,7 @@ type AminoBroadCastTxResponse struct {
 	TxResponse sdktypes.TxResponse `protobuf:"bytes,1,opt,name=tx_response,json=txResponse,proto3" json:"tx_response,omitempty"`
 }
 
-func (t *BroadcastTxResponse) Marshal(proxy *codec.CodecProxy) ([]byte, error) {
+func (t *BroadcastTxResponse) MarshalSensitive(proxy *codec.CodecProxy) ([]byte, error) {
 	if t.TxResponse == nil {
 		return nil, nextMarshal
 	}
