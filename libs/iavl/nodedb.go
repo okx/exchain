@@ -9,7 +9,6 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	cmap "github.com/orcaman/concurrent-map"
@@ -132,14 +131,11 @@ func (ndb *nodeDB) GetNode(hash []byte) *Node {
 			return elem
 		}
 		ndb.mtx.RUnlock()
-		// Check the cache.
-		if v, ok := ndb.nodeCache.Get(amino.BytesToStr(hash)); ok {
-			elem := v.(*list.Element)
-			// Already exists. Move to back of nodeCacheQueue.
-			ndb.nodeCacheQueue.MoveToBack(elem)
-			return elem.Value.(*Node)
-		}
 
+		if elem := ndb.getNodeFromCache(hash); elem != nil {
+			return elem
+		}
+		
 		ndb.mtx.RLock()
 		elem, ok := ndb.orphanNodeCache[string(hash)]
 		ndb.mtx.RUnlock()
@@ -537,35 +533,6 @@ func (ndb *nodeDB) traversePrefix(prefix []byte, fn func(k, v []byte)) {
 	}
 }
 
-func (ndb *nodeDB) uncacheNode(hash []byte) {
-	if v, ok := ndb.nodeCache.Get(amino.BytesToStr(hash)); ok {
-		elem := v.(*list.Element)
-		ndb.nodeCacheQueue.Remove(elem)
-		ndb.nodeCache.Remove(amino.BytesToStr(hash))
-	}
-}
-
-// Add a node to the cache and pop the least recently used node if we've
-// reached the cache size limit.
-func (ndb *nodeDB) cacheNode(node *Node) {
-	elem, count := ndb.nodeCacheQueue.PushBack(node)
-	ndb.nodeCache.Set(string(node.hash), elem)
-
-	if count > config.DynamicConfig.GetIavlCacheSize() {
-		needRemove := count - config.DynamicConfig.GetIavlCacheSize()
-		removed := make([]interface{}, needRemove)
-		ndb.nodeCacheQueue.RemoveFrontN(needRemove, removed)
-		for _, v := range removed {
-			ndb.nodeCache.Remove(amino.BytesToStr(v.(*Node).hash))
-		}
-	}
-}
-
-func (ndb *nodeDB) cacheNodeByCheck(node *Node) {
-	if _, ok := ndb.nodeCache.Get(amino.BytesToStr(node.hash)); !ok {
-		ndb.cacheNode(node)
-	}
-}
 
 // Write to disk.
 func (ndb *nodeDB) Commit(batch dbm.Batch) error {
