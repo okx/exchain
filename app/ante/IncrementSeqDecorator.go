@@ -41,11 +41,11 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 	// get and set account must be called with an infinite gas meter in order to prevent
 	// additional gas from being deducted.
 	gasMeter := ctx.GasMeter()
-	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 
 	msgEthTx, ok := tx.(*evmtypes.MsgEthereumTx)
 	if !ok {
-		ctx = ctx.WithGasMeter(gasMeter)
+		ctx.SetGasMeter(gasMeter)
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
@@ -68,7 +68,7 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 	}
 
 	// set the original gas meter
-	ctx = ctx.WithGasMeter(gasMeter)
+	ctx.SetGasMeter(gasMeter)
 
 	return next(ctx, tx, simulate)
 }

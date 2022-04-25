@@ -6,6 +6,7 @@ import (
 	"os"
 	"runtime/pprof"
 
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
@@ -63,6 +64,7 @@ const (
 // Tendermint.
 func StartCmd(ctx *Context,
 	cdc *codec.CodecProxy,
+	registry jsonpb.AnyResolver,
 	appCreator AppCreator,
 	appStop AppStop,
 	registerRoutesFn func(restServer *lcd.RestServer),
@@ -112,7 +114,7 @@ which accepts a path for the resulting pprof file.
 			log.SetSubscriber(sub)
 
 			setPID(ctx)
-			_, err := startInProcess(ctx, cdc, appCreator, appStop, registerRoutesFn)
+			_, err := startInProcess(ctx, cdc, registry, appCreator, appStop, registerRoutesFn)
 			if err != nil {
 				tmos.Exit(err.Error())
 			}
@@ -128,7 +130,7 @@ which accepts a path for the resulting pprof file.
 	return cmd
 }
 
-func startInProcess(ctx *Context, cdc *codec.CodecProxy, appCreator AppCreator, appStop AppStop,
+func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyResolver, appCreator AppCreator, appStop AppStop,
 	registerRoutesFn func(restServer *lcd.RestServer)) (*node.Node, error) {
 
 	cfg := ctx.Config
@@ -216,7 +218,7 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, appCreator AppCreator, 
 	})
 
 	if registerRoutesFn != nil {
-		go lcd.StartRestServer(cdc, registerRoutesFn, tmNode, viper.GetString(FlagListenAddr))
+		go lcd.StartRestServer(cdc, registry, registerRoutesFn, tmNode, viper.GetString(FlagListenAddr))
 	}
 
 	baseapp.SetGlobalMempool(tmNode.Mempool(), cfg.Mempool.SortTxByGp, cfg.Mempool.EnablePendingPool)

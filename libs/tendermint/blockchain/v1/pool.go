@@ -244,7 +244,7 @@ func (pool *BlockPool) sendRequest(height int64) bool {
 }
 
 // AddBlock validates that the block comes from the peer it was expected from and stores it in the 'blocks' map.
-func (pool *BlockPool) AddBlock(peerID p2p.ID, block *types.Block, deltas *types.Deltas, blockSize int) error {
+func (pool *BlockPool) AddBlock(peerID p2p.ID, block *types.Block, blockSize int) error {
 	peer, ok := pool.peers[peerID]
 	if !ok {
 		pool.logger.Error("block from unknown peer", "height", block.Height, "peer", peerID)
@@ -256,14 +256,13 @@ func (pool *BlockPool) AddBlock(peerID p2p.ID, block *types.Block, deltas *types
 		return errBadDataFromPeer
 	}
 
-	return peer.AddBlock(block, deltas, blockSize)
+	return peer.AddBlock(block, blockSize)
 }
 
 // BlockData stores the peer responsible to deliver a block and the actual block if delivered.
 type BlockData struct {
-	block  *types.Block
-	deltas *types.Deltas
-	peer   *BpPeer
+	block *types.Block
+	peer  *BpPeer
 }
 
 // BlockAndPeerAtHeight retrieves the block and delivery peer at specified height.
@@ -279,12 +278,8 @@ func (pool *BlockPool) BlockAndPeerAtHeight(height int64) (bData *BlockData, err
 	if err != nil {
 		return nil, err
 	}
-	deltas, err := peer.DeltasAtHeight(height)
-	if err != nil {
-		return nil, err
-	}
 
-	return &BlockData{peer: peer, block: block, deltas: deltas}, nil
+	return &BlockData{peer: peer, block: block}, nil
 }
 
 // FirstTwoBlocksAndPeers returns the blocks and the delivery peers at pool's height H and H+1.

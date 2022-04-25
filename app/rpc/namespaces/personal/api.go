@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/spf13/viper"
 	"os"
 	"time"
+
+	"github.com/spf13/viper"
 
 	"github.com/google/uuid"
 	"github.com/okex/exchain/libs/tendermint/libs/log"

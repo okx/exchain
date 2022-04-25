@@ -26,8 +26,8 @@ func Test_getSender(t *testing.T) {
 	msg.Sign(chainIDEpoch, privateKey.ToECDSA())
 
 	ctxWithFrom := sdk.Context{}
-	ctxWithFrom = ctxWithFrom.WithIsCheckTx(true)
-	ctxWithFrom = ctxWithFrom.WithFrom(sender.String())
+	ctxWithFrom.SetIsCheckTx(true)
+	ctxWithFrom.SetFrom(sender.String())
 
 	type args struct {
 		ctx          *sdk.Context

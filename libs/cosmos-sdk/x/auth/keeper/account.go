@@ -34,7 +34,7 @@ func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exporte
 			return nil
 		}
 
-		return data.Copy().(exported.Account)
+		return data.Copy()
 	}
 
 	store := ctx.KVStore(ak.key)
@@ -44,8 +44,27 @@ func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exporte
 		return nil
 	}
 	acc := ak.decodeAccount(bz)
-	ctx.Cache().UpdateAccount(addr, acc, len(bz), false)
+
+	ctx.Cache().UpdateAccount(addr, acc.Copy(), len(bz), false)
+
 	return acc
+}
+
+// LoadAccount load account from store without return, only used in pre deliver tx
+func (ak AccountKeeper) LoadAccount(ctx sdk.Context, addr sdk.AccAddress) {
+	if _, gas, ok := ctx.Cache().GetAccount(ethcmn.BytesToAddress(addr)); ok {
+		ctx.GasMeter().ConsumeGas(gas, "x/auth/keeper/account.go/GetAccount")
+		return
+	}
+
+	store := ctx.KVStore(ak.key)
+	bz := store.Get(types.AddressStoreKey(addr))
+	var acc exported.Account
+	if bz != nil {
+		acc = ak.decodeAccount(bz)
+	}
+	ctx.Cache().UpdateAccount(addr, acc, len(bz), false)
+	return
 }
 
 // GetAllAccounts returns all accounts in the accountKeeper.
@@ -70,7 +89,7 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 		panic(err)
 	}
 	store.Set(types.AddressStoreKey(addr), bz)
-	ctx.Cache().UpdateAccount(addr, acc, len(bz), true)
+	ctx.Cache().UpdateAccount(addr, acc.Copy(), len(bz), true)
 
 	if !ctx.IsCheckTx() && !ctx.IsReCheckTx() {
 		if ak.observers != nil {

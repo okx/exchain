@@ -121,3 +121,93 @@ func ParseCoinNormalized(coinStr string) (coin Coin, err error) {
 	coin, _ = NormalizeDecCoin(decCoin).TruncateDecimal()
 	return coin, nil
 }
+
+// IsValid calls Validate and returns true when the Coins are sorted, have positive amount, with a
+// valid and unique denomination (i.e no duplicates).
+func (coins CoinAdapters) IsValid() bool {
+	return coins.Validate() == nil
+}
+
+func (coins CoinAdapters) Validate() error {
+	switch len(coins) {
+	case 0:
+		return nil
+
+	case 1:
+		if err := ValidateDenom(coins[0].Denom); err != nil {
+			return err
+		}
+		if !coins[0].IsPositive() {
+			return fmt.Errorf("coin %s amount is not positive", coins[0])
+		}
+		return nil
+
+	default:
+		// check single coin case
+		if err := (CoinAdapters{coins[0]}).Validate(); err != nil {
+			return err
+		}
+
+		lowDenom := coins[0].Denom
+		seenDenoms := make(map[string]bool)
+		seenDenoms[lowDenom] = true
+
+		for _, coin := range coins[1:] {
+			if seenDenoms[coin.Denom] {
+				return fmt.Errorf("duplicate denomination %s", coin.Denom)
+			}
+			if err := ValidateDenom(coin.Denom); err != nil {
+				return err
+			}
+			if coin.Denom <= lowDenom {
+				return fmt.Errorf("denomination %s is not sorted", coin.Denom)
+			}
+			if !coin.IsPositive() {
+				return fmt.Errorf("coin %s amount is not positive", coin.Denom)
+			}
+
+			// we compare each coin against the last denom
+			lowDenom = coin.Denom
+			seenDenoms[coin.Denom] = true
+		}
+
+		return nil
+	}
+}
+
+func (coins CoinAdapters) isSorted() bool {
+	for i := 1; i < len(coins); i++ {
+		if coins[i-1].Denom > coins[i].Denom {
+			return false
+		}
+	}
+	return true
+}
+
+func (coins CoinAdapters) String() string {
+	if len(coins) == 0 {
+		return ""
+	}
+
+	out := ""
+	for _, coin := range coins {
+		out += fmt.Sprintf("%v,", coin.String())
+	}
+	return out[:len(out)-1]
+}
+
+// IsAllPositive returns true if there is at least one coin and all currencies
+// have a positive value.
+func (coins CoinAdapters) IsAllPositive() bool {
+	if len(coins) == 0 {
+		return false
+	}
+
+	for _, coin := range coins {
+		if !coin.IsPositive() {
+			return false
+		}
+	}
+
+	return true
+}
