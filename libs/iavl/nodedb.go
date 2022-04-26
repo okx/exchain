@@ -149,24 +149,24 @@ func (ndb *nodeDB) getNodeFromDisk(hash []byte, updateCache bool) *Node {
 	return node
 }
 
-// GetNode gets a node from memory or disk. If it is an inner node, it does not
-// load its children.
-func (ndb *nodeDB) GetNode(hash []byte) (n *Node) {
-
-	n = ndb.getNodeFromMemory(hash, true)
+func (ndb *nodeDB) loadNode(hash []byte, update bool) (n *Node, fromDisk bool) {
+	n = ndb.getNodeFromMemory(hash, update)
 	if n == nil {
-		n = ndb.getNodeFromDisk(hash, true)
+		n = ndb.getNodeFromDisk(hash, update)
+		fromDisk = true
 	}
 	return
 }
 
-func (ndb *nodeDB) GetNodeWithoutUpdateCache(hash []byte) (n *Node, fromDisk bool) {
+// GetNode gets a node from memory or disk. If it is an inner node, it does not
+// load its children.
+func (ndb *nodeDB) GetNode(hash []byte) (n *Node) {
+	n, _ = ndb.loadNode(hash, true)
+	return
+}
 
-	n = ndb.getNodeFromMemory(hash, false)
-	if n == nil {
-		n = ndb.getNodeFromDisk(hash, false)
-		fromDisk = true
-	}
+func (ndb *nodeDB) GetNodeWithoutUpdateCache(hash []byte) (n *Node, fromDisk bool) {
+	n, fromDisk = ndb.loadNode(hash, false)
 	return
 }
 
