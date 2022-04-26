@@ -80,26 +80,22 @@ func NewNode(key []byte, value []byte, version int64) *Node {
 	//}
 }
 
-const nodePoolSize = 512
-
-var nodePool = new([nodePoolSize]Node)
-var nodePoolIndex int64 = 0
+var nodePool = make([]Node, IavlNodeFactorySize)
+var nodePoolIndex = 0
 var nodePoolFlag int64 = 0
 
 func newNode() *Node {
-	ok := atomic.CompareAndSwapInt64(&nodePoolFlag, 0, 1)
-	if ok {
-		n := &nodePool[nodePoolIndex]
-		nodePoolIndex += 1
-		if nodePoolIndex == nodePoolSize {
-			nodePool = new([nodePoolSize]Node)
-			nodePoolIndex = 0
-		}
-		atomic.StoreInt64(&nodePoolFlag, 0)
-		return n
-	} else {
+	if IavlNodeFactorySize < 2 || !atomic.CompareAndSwapInt64(&nodePoolFlag, 0, 1) {
 		return &Node{}
 	}
+	n := &nodePool[nodePoolIndex]
+	nodePoolIndex += 1
+	if nodePoolIndex == IavlNodeFactorySize {
+		nodePool = make([]Node, IavlNodeFactorySize)
+		nodePoolIndex = 0
+	}
+	atomic.StoreInt64(&nodePoolFlag, 0)
+	return n
 }
 
 // MakeNode constructs an *Node from an encoded byte slice.

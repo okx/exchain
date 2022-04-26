@@ -21,11 +21,13 @@ import (
 )
 
 const (
-	FlagIavlCacheInitRatio = "iavl-cache-init-ratio"
+	FlagIavlCacheInitRatio  = "iavl-cache-init-ratio"
+	FlagIavlNodeFactorySize = "iavl-node-factory-size"
 )
 
 var (
-	IavlCacheInitRatio float64 = 0
+	IavlCacheInitRatio  float64 = 0
+	IavlNodeFactorySize         = 512
 )
 
 type heightOrphansItem struct {
