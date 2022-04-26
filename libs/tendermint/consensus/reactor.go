@@ -608,6 +608,7 @@ func makeRoundStepMessage(rs *cstypes.RoundState) (nrsMsg *NewRoundStepMessage) 
 		Step:                  rs.Step,
 		SecondsSinceStartTime: int(time.Since(rs.StartTime).Seconds()),
 		LastCommitRound:       rs.LastCommit.GetRound(),
+		hasActiveVC:           rs.HasActiveVC,
 	}
 	return
 }
@@ -1441,7 +1442,7 @@ func (ps *PeerState) ApplyNewRoundStepMessage(msg *NewRoundStepMessage) {
 	defer ps.mtx.Unlock()
 
 	// Ignore duplicates or decreases
-	if CompareHRS(msg.Height, msg.Round, msg.Step, ps.PRS.Height, ps.PRS.Round, ps.PRS.Step) <= 0 {
+	if CompareHRS(msg.Height, msg.Round, msg.Step, ps.PRS.Height, ps.PRS.Round, ps.PRS.Step) <= 0 && !msg.hasActiveVC {
 		return
 	}
 
@@ -1456,7 +1457,7 @@ func (ps *PeerState) ApplyNewRoundStepMessage(msg *NewRoundStepMessage) {
 	ps.PRS.Round = msg.Round
 	ps.PRS.Step = msg.Step
 	ps.PRS.StartTime = startTime
-	if psHeight != msg.Height || psRound != msg.Round {
+	if psHeight != msg.Height || psRound != msg.Round || msg.hasActiveVC {
 		ps.PRS.Proposal = false
 		ps.PRS.ProposalBlockPartsHeader = types.PartSetHeader{}
 		ps.PRS.ProposalBlockParts = nil
@@ -1684,6 +1685,7 @@ type NewRoundStepMessage struct {
 	Step                  cstypes.RoundStepType
 	SecondsSinceStartTime int
 	LastCommitRound       int
+	hasActiveVC           bool
 }
 
 // ValidateBasic performs basic validation.

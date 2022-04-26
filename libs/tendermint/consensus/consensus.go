@@ -1000,6 +1000,8 @@ func (cs *State) enterNewRoundWithVal(height int64, round int, val *types.Valida
 	}
 	cs.TriggeredTimeoutPrecommit = false
 	cs.eventBus.PublishEventNewRound(cs.NewRoundEvent())
+	cs.HasActiveVC = true
+	cs.evsw.FireEvent(types.EventNewRoundStep, &cs.RoundState)
 	cs.metrics.Rounds.Set(float64(round))
 
 	// Wait for txs to be available in the mempool
