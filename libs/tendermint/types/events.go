@@ -38,7 +38,6 @@ const (
 	EventValidBlock       = "ValidBlock"
 	EventVote             = "Vote"
 	EventProposeRequest   = "ProposeRequest"
-	EventViewChange       = "ViewChange"
 )
 
 ///////////////////////////////////////////////////////////////////////////////

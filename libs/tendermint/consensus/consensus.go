@@ -745,42 +745,23 @@ func (cs *State) handleMsg(mi msgInfo) {
 			if cs.vcMsg != nil && cs.vcMsg.Height >= msg.Height {
 				return
 			}
-			// only handle vcMsg of same height or last height
-			if msg.Height != cs.Height && msg.Height != cs.Height+1 {
+			// only handle vcMsg of same height
+			if msg.Height != cs.Height {
 				return
 			}
 
 			cs.vcMsg = msg
 			cs.HasActiveVC = true
 			// ApplyBlock of height-1 has finished
-			if msg.Height == cs.Height {
-				if cs.Step != cstypes.RoundStepNewHeight {
-					// at height, has enterNewHeight
-					// vc immediately
-					_, val := cs.Validators.GetByAddress(msg.NewProposer)
-					cs.enterNewRoundWithVal(cs.Height, 0, val)
-				}
-				// else: at height-1 and waiting, has not enterNewHeight
-				// enterNewHeight use msg.val
+			if cs.Step != cstypes.RoundStepNewHeight {
+				// at height, has enterNewHeight
+				// vc immediately
+				_, val := cs.Validators.GetByAddress(msg.NewProposer)
+				cs.enterNewRoundWithVal(cs.Height, 0, val)
 			}
-			// else: msg.Height == cs.Height+1
-			// ApplyBlock of height-1 is not finished
+			// else: at height-1 and waiting, has not enterNewHeight
 			// enterNewHeight use msg.val
 		}
-	case *ProposeRequestMessage:
-		//cs.Logger.Error("handle prMsg", "msg.height", msg.Height, "cs.height", cs.Height)
-		if ActiveViewChange {
-			// this peer is not proposer
-			if !bytes.Equal(cs.privValidatorPubKey.Address(), msg.CurrentProposer) {
-				return
-			}
-			// this peer can propose block itself
-			if msg.Height <= cs.Height {
-				return
-			}
-			cs.evsw.FireEvent(types.EventViewChange, msg)
-		}
-
 	case *ProposalMessage:
 		// will not cause transition.
 		// once proposal is set, we can receive block parts

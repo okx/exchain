@@ -349,8 +349,19 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			//conR.Logger.Error("reactor prMsg", "height", msg.Height, "curP", msg.CurrentProposer, "newP", msg.NewProposer, "hasVC", conR.hasViewChanged, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
 			conR.mtx.Lock()
 			defer conR.mtx.Unlock()
+			conR.conS.stateMtx.Lock()
+			defer conR.conS.stateMtx.Unlock()
+			height := conR.conS.Height
 			// this peer has received a prMsg before
 			if msg.Height <= conR.hasViewChanged {
+				return
+			}
+			// this peer is not proposer
+			if !bytes.Equal(conR.conS.privValidatorPubKey.Address(), msg.CurrentProposer) {
+				return
+			}
+			// this peer can propose block itself
+			if msg.Height <= height {
 				return
 			}
 			// verify the signature of prMsg
@@ -360,7 +371,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 				return
 			}
 			conR.hasViewChanged = msg.Height
-			conR.conS.peerMsgQueue <- msgInfo{msg, ""}
+			conR.conS.vcMsg = conR.broadcastViewChangeMessage(msg)
 		}
 
 	case StateChannel:
@@ -529,10 +540,6 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		func(data tmevents.EventData) {
 			conR.broadcastProposeRequestMessage(data.(*ProposeRequestMessage))
 		})
-	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventViewChange,
-		func(data tmevents.EventData) {
-			conR.broadcastViewChangeMessage(data.(*ProposeRequestMessage))
-		})
 }
 
 func (conR *Reactor) unsubscribeFromBroadcastEvents() {
@@ -545,15 +552,17 @@ func (conR *Reactor) broadcastProposeRequestMessage(prMsg *ProposeRequestMessage
 	conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(prMsg))
 }
 
-func (conR *Reactor) broadcastViewChangeMessage(prMsg *ProposeRequestMessage) {
+func (conR *Reactor) broadcastViewChangeMessage(prMsg *ProposeRequestMessage) *ViewChangeMessage {
 	vcMsg := ViewChangeMessage{Height: prMsg.Height, CurrentProposer: prMsg.CurrentProposer, NewProposer: prMsg.NewProposer}
 	if signature, err := conR.conS.privValidator.SignBytes(vcMsg.SignBytes()); err == nil {
 		//conR.Logger.Error("broadcastViewChangeMessage", "vcMsg", vcMsg)
 		vcMsg.Signature = signature
 		conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
+		return &vcMsg
 	} else {
 		conR.Logger.Error("broadcastViewChangeMessage", "err", err)
 	}
+	return nil
 }
 
 func (conR *Reactor) broadcastNewRoundStepMessage(rs *cstypes.RoundState) {
