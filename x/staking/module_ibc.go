@@ -40,3 +40,7 @@ func (b AppModule) CommitFilter() *cosmost.StoreFilter {
 func (b AppModule) PruneFilter() *cosmost.StoreFilter {
 	return nil
 }
+
+func (b AppModule) VersionFilter() *cosmost.VersionFilter {
+	return nil
+}

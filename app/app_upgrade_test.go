@@ -129,6 +129,11 @@ func (b *SimpleBaseUpgradeModule) PruneFilter() *cosmost.StoreFilter {
 	return &ret
 }
 
+func (b *SimpleBaseUpgradeModule) VersionFilter() *cosmost.VersionFilter {
+	//todo ywmet
+	return nil
+}
+
 func NewSimpleBaseUpgradeModule(t *testing.T, h int64, appModule module.AppModuleBasic, handler upgradetypes.HandleStore, taskExecutedNotify func()) *SimpleBaseUpgradeModule {
 	return &SimpleBaseUpgradeModule{t: t, h: h, appModule: appModule, handler: handler, taskExecutedNotify: taskExecutedNotify, taskExecuteHeight: h + 1}
 }

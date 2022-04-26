@@ -28,6 +28,9 @@ var (
 		}
 		return true
 	}
+	defaultDenyVersionFilter cosmost.VersionFilter = func(h int64) func(cb func(name string, version int64)) {
+		return func(cb func(name string, version int64)) {}
+	}
 	defaultIBCCommitFilter cosmost.StoreFilter = func(module string, h int64, store cosmost.CommitKVStore) bool {
 		_, exist := ibcMap[module]
 		if !exist {
@@ -62,11 +65,19 @@ var (
 		// < veneus1
 		return true
 	}
-)
+	defaultIBCVersionFilter cosmost.VersionFilter = func(h int64) func(cb func(name string, version int64)) {
+		if h < 0 {
+			return func(cb func(name string, version int64)) {}
+		}
 
-//type CommitFilter func(module string, h int64, store cosmost.CommitKVStore) bool
-//
-//type PreuneFilter func(module string, h int64, store cosmost.CommitKVStore) bool
+		return func(cb func(name string, version int64)) {
+			for name, _ := range ibcMap {
+				hh := types.GetVenus1Height()
+				cb(name, hh)
+			}
+		}
+	}
+)
 
 type BaseIBCUpgradeModule struct {
 	appModule module.AppModuleBasic
@@ -110,6 +121,14 @@ func (b *BaseIBCUpgradeModule) PruneFilter() *cosmost.StoreFilter {
 		return &defaultDenyFilter
 	}
 	return &defaultIBCPruneFilter
+}
+
+func (b *BaseIBCUpgradeModule) VersionFilter() *cosmost.VersionFilter {
+	if b.UpgradeHeight() == 0 {
+		return &defaultDenyVersionFilter
+	}
+
+	return &defaultIBCVersionFilter
 }
 
 func (b *BaseIBCUpgradeModule) RegisterParam() params.ParamSet {

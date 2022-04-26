@@ -11,17 +11,13 @@ import (
 )
 
 func (app *OKExChainApp) setupUpgradeModules() {
-	heightTasks, paramMap, cf, pf, versionPip := app.CollectUpgradeModules(app.mm)
+	heightTasks, paramMap, cf, pf, vf := app.CollectUpgradeModules(app.mm)
 
 	app.heightTasks = heightTasks
 
-	if versionPip != nil {
-		//app.GetCMS().SetPruneHeightFilterPipeline(prunePip)
-		//app.GetCMS().SetCommitHeightFilterPipeline(pip)
-		app.GetCMS().SetVersionFilterPipeline(versionPip)
-	}
 	app.GetCMS().AppendCommitFilters(cf)
 	app.GetCMS().AppendPruneFilters(pf)
+	app.GetCMS().AppendVersionFilters(vf)
 
 	vs := app.subspaces
 	for k, vv := range paramMap {
@@ -34,12 +30,13 @@ func (app *OKExChainApp) setupUpgradeModules() {
 }
 
 func (o *OKExChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgradetypes.HeightTasks,
-	map[string]params.ParamSet, []types.StoreFilter, []types.StoreFilter, types.VersionFilterPipeline) {
+	map[string]params.ParamSet, []types.StoreFilter, []types.StoreFilter, []types.VersionFilter) {
 	hm := make(map[int64]*upgradetypes.HeightTasks)
 	//hStoreInfoModule := make(map[int64]map[string]upgradetypes.HandleStore)
 	paramsRet := make(map[string]params.ParamSet)
 	commitFiltreMap := make(map[*types.StoreFilter]struct{})
 	pruneFilterMap := make(map[*types.StoreFilter]struct{})
+	versionFilterMap := make(map[*types.VersionFilter]struct{})
 
 	for _, mm := range m.Modules {
 		if ada, ok := mm.(upgradetypes.UpgradeModule); ok {
@@ -66,6 +63,12 @@ func (o *OKExChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgr
 					pruneFilterMap[pf] = struct{}{}
 				}
 			}
+			vf := ada.VersionFilter()
+			if vf != nil {
+				if _, exist := versionFilterMap[vf]; !exist {
+					versionFilterMap[vf] = struct{}{}
+				}
+			}
 
 			t := ada.RegisterTask()
 			if t == nil {
@@ -88,18 +91,22 @@ func (o *OKExChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgr
 		sort.Sort(*v)
 	}
 
-	commmitFilters := make([]types.StoreFilter, 0)
+	commitFilters := make([]types.StoreFilter, 0)
 	pruneFilters := make([]types.StoreFilter, 0)
+	versionFilters := make([]types.VersionFilter, 0)
 	for pointerFilter, _ := range commitFiltreMap {
-		commmitFilters = append(commmitFilters, *pointerFilter)
+		commitFilters = append(commitFilters, *pointerFilter)
 	}
 	for pointerFilter, _ := range pruneFilterMap {
 		pruneFilters = append(pruneFilters, *pointerFilter)
 	}
+	for pointerFilter, _ := range versionFilterMap {
+		versionFilters = append(versionFilters, *pointerFilter)
+	}
 
 	//commitPip, prunePip, versionPip := collectStorePipeline(hStoreInfoModule)
 
-	return hm, paramsRet, commmitFilters, pruneFilters, nil
+	return hm, paramsRet, commitFilters, pruneFilters, versionFilters
 }
 
 func collectStorePipeline(hStoreInfoModule map[int64]map[string]upgradetypes.HandleStore) (types.HeightFilterPipeline, types.PrunePipeline, types.VersionFilterPipeline) {

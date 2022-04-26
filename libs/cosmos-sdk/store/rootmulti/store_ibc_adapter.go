@@ -22,14 +22,14 @@ func (s *Store) getFilterStores(h int64) map[types.StoreKey]types.CommitKVStore 
 	return m
 }
 
-func (rs *Store) SetVersionFilterPipeline(f storetypes.VersionFilterPipeline) {
-	rs.versionPipeline = storetypes.LinkPipeline2(f, rs.versionPipeline)
-}
-
 func (rs *Store) AppendCommitFilters(filters []storetypes.StoreFilter) {
 	rs.commitFilters = append(rs.commitFilters, filters...)
 }
 
 func (rs *Store) AppendPruneFilters(filters []storetypes.StoreFilter) {
 	rs.pruneFilters = append(rs.pruneFilters, filters...)
+}
+
+func (rs *Store) AppendVersionFilters(filters []storetypes.VersionFilter) {
+	rs.versionFilters = append(rs.versionFilters, filters...)
 }

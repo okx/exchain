@@ -14,6 +14,7 @@ const (
 )
 
 type StoreFilter func(module string, h int64, store CommitKVStore) bool
+type VersionFilter func(h int64) func(func(name string, version int64))
 
 type HeightFilterPipeline func(h int64) func(str string, store CommitKVStore) bool
 type PrunePipeline func(h int64) func(str string) bool
@@ -32,7 +33,7 @@ var (
 )
 
 type CommitMultiStorePipeline interface {
-	SetVersionFilterPipeline(f VersionFilterPipeline)
+	AppendVersionFilters(filters []VersionFilter)
 	AppendCommitFilters(filters []StoreFilter)
 	AppendPruneFilters(filters []StoreFilter)
 }

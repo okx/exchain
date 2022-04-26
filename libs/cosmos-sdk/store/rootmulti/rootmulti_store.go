@@ -2,7 +2,6 @@ package rootmulti
 
 import (
 	"fmt"
-
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
@@ -71,11 +70,12 @@ type Store struct {
 
 	logger tmlog.Logger
 
-	versionPipeline func(h int64) func(func(name string, version int64))
-	upgradeVersion  int64
+	//versionPipeline func(h int64) func(func(name string, version int64))
+	upgradeVersion int64
 
-	commitFilters []types.StoreFilter
-	pruneFilters  []types.StoreFilter
+	commitFilters  []types.StoreFilter
+	pruneFilters   []types.StoreFilter
+	versionFilters []types.VersionFilter
 }
 
 var (
@@ -93,17 +93,16 @@ func NewStore(db dbm.DB) *Store {
 		flatKVDB = newFlatKVDB()
 	}
 	ret := &Store{
-		db:              db,
-		flatKVDB:        flatKVDB,
-		pruningOpts:     types.PruneNothing,
-		storesParams:    make(map[types.StoreKey]storeParams),
-		stores:          make(map[types.StoreKey]types.CommitKVStore),
-		keysByName:      make(map[string]types.StoreKey),
-		pruneHeights:    make([]int64, 0),
-		versions:        make([]int64, 0),
-		versionPipeline: types.DefaultLoopAll,
-		upgradeVersion:  -1,
-		commitFilters:   make([]types.StoreFilter, 0),
+		db:             db,
+		flatKVDB:       flatKVDB,
+		pruningOpts:    types.PruneNothing,
+		storesParams:   make(map[types.StoreKey]storeParams),
+		stores:         make(map[types.StoreKey]types.CommitKVStore),
+		keysByName:     make(map[string]types.StoreKey),
+		pruneHeights:   make([]int64, 0),
+		versions:       make([]int64, 0),
+		upgradeVersion: -1,
+		commitFilters:  make([]types.StoreFilter, 0),
 	}
 
 	return ret
@@ -255,7 +254,6 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 		for _, storeInfo := range cInfo.StoreInfos {
 			infos[storeInfo.Name] = storeInfo
 		}
-
 		//if upgrade version ne
 		callback := func(name string, version int64) {
 			ibcInfo := infos[name]
@@ -270,8 +268,9 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 				}
 			}
 		}
-		f := rs.versionPipeline(ver)
+		f := filterVersion(ver, rs.versionFilters)
 		f(callback)
+
 	}
 
 	roots := make(map[int64][]byte)
@@ -1062,6 +1061,15 @@ func filter(name string, h int64, st types.CommitKVStore, filters []types.StoreF
 		}
 	}
 	return false
+}
+
+func filterVersion(h int64, filters []types.VersionFilter) func(cb func(name string, version int64)) {
+	for _, f := range filters {
+		if c := f(h); c != nil {
+			return c
+		}
+	}
+	return func(cb func(name string, version int64)) {}
 }
 
 // Gets commitInfo from disk.

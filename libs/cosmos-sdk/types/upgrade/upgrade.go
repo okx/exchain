@@ -15,6 +15,7 @@ type UpgradeModule interface {
 	ModuleName() string
 	CommitFilter() *store.StoreFilter
 	PruneFilter() *store.StoreFilter
+	VersionFilter() *store.VersionFilter
 }
 
 type HeightTasks []HeightTask

@@ -37,6 +37,10 @@ func (b AppModule) PruneFilter() *cosmost.StoreFilter {
 	return nil
 }
 
+func (b AppModule) VersionFilter() *cosmost.VersionFilter {
+	return nil
+}
+
 // RegisterServices registers module services.
 func (am AppModule) RegisterServices(cfg module.Configurator) {
 	a := &am.accountKeeper
