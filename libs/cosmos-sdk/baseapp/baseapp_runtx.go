@@ -41,7 +41,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	handler := info.handler
 	app.pin(ValTxMsgs, true, mode)
 
-	if tx.GetType() != sdk.EvmTxType && mode == runTxModeDeliver && app.updateFeeCollectorAccHandler != nil {
+	if tx.GetType() != sdk.EvmTxType && mode == runTxModeDeliver && app.updateFeeCollectorAccHandler != nil && app.feeChanged {
 		// should update the balance of FeeCollector's account when run non-evm tx
 		// which uses non-infiniteGasMeter during AnteHandleChain
 		ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})

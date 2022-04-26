@@ -192,6 +192,7 @@ type BaseApp struct { // nolint: maligned
 	parallelTxManage *parallelTxManager
 
 	feeForCollector sdk.Coins
+	feeChanged      bool	// used to judge whether should update the fee-collector account
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
