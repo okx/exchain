@@ -417,7 +417,7 @@ func (tree *MutableTree) PreAllChange(setkeys [][]byte, delKeys [][]byte) {
 	wg.Wait()
 
 	tree.preWriteNodeCache.IterCb(func(key string, v interface{}) {
-		tree.ndb.cacheNodeByCheck(v.(*Node))
+		tree.ndb.cacheNode(v.(*Node))
 	})
 	tree.preWriteNodeCache = nil
 }
