@@ -216,7 +216,6 @@ func (store *Store) preWrite(keys []string) {
 			txJobChan <- preWriteJob{amino.StrToBytes(key), 1}
 		}
 	}
-
 	close(txJobChan)
 
 	wg.Wait()
