@@ -2,14 +2,12 @@ package ibc_tx
 
 import (
 	"fmt"
-	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/types"
-	"google.golang.org/protobuf/encoding/protowire"
-	"math/big"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
+	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
+	"google.golang.org/protobuf/encoding/protowire"
 
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	//"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
@@ -76,35 +74,33 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			Signatures: raw.Signatures,
 		}
 
-		amount := &big.Int{}
 		gaslimit := uint64(0)
-		decCoin := sdk.DecCoin{}
+		decCoins := sdk.DecCoins{}
 		if authInfo.Fee != nil {
 			if authInfo.Fee.Amount != nil {
-				amount = authInfo.Fee.Amount[0].Amount.BigInt()
-				denom := authInfo.Fee.Amount[0].Denom
-				if denom == types.DefaultIbcWei {
-					decCoin = sdk.DecCoin{
-						Denom:  sdk.DefaultBondDenom,
-						Amount: sdk.NewDecFromIntWithPrec(sdk.NewIntFromBigInt(amount), sdk.Precision),
-					}
-				} else {
-					decCoin = sdk.DecCoin{
-						Denom:  denom,
-						Amount: sdk.NewDecFromBigInt(amount),
+				for _, fee := range authInfo.Fee.Amount {
+					amount := fee.Amount.BigInt()
+					denom := fee.Denom
+					// convert ibc denom to DefaultBondDenom
+					if denom == sdk.DefaultIbcWei {
+						decCoins = append(decCoins, sdk.DecCoin{
+							Denom:  sdk.DefaultBondDenom,
+							Amount: sdk.NewDecFromIntWithPrec(sdk.NewIntFromBigInt(amount), sdk.Precision),
+						})
+					} else {
+						decCoins = append(decCoins, sdk.DecCoin{
+							Denom:  denom,
+							Amount: sdk.NewDecFromBigInt(amount),
+						})
 					}
 				}
 			}
-			if authInfo.Fee != nil {
-				gaslimit = authInfo.Fee.GasLimit
-			}
+			gaslimit = authInfo.Fee.GasLimit
 		}
 
 		fee := authtypes.StdFee{
-			Amount: []sdk.DecCoin{
-				decCoin,
-			},
-			Gas: gaslimit,
+			Amount: decCoins,
+			Gas:    gaslimit,
 		}
 		signatures := []authtypes.StdSignature{}
 		for i, s := range ibcTx.Signatures {
@@ -123,10 +119,31 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 				},
 			)
 		}
-		stdmsgs := []sdk.Msg{}
-		for _, ibcmsg := range ibcTx.Body.Messages {
-			m := ibcmsg.GetCachedValue().(sdk.Msg)
-			stdmsgs = append(stdmsgs, m)
+		stdMsgs := []sdk.Msg{}
+		sigMsgs := []sdk.Msg{}
+		for _, ibcMsg := range ibcTx.Body.Messages {
+			m, ok := ibcMsg.GetCachedValue().(sdk.Msg)
+			if !ok {
+				return nil, sdkerrors.Wrap(
+					sdkerrors.ErrInternal, "messages in ibcTx.Body not implement sdk.Msg",
+				)
+			}
+			var newMsg sdk.Msg
+			switch msg := m.(type) {
+			case *bank.AdapterMsgSend:
+				msgSend := *msg
+				msgSend.Amount = msg.Amount.Copy()
+				for i, amount := range msgSend.Amount {
+					if amount.Denom == sdk.DefaultIbcWei {
+						msgSend.Amount[i].Denom = sdk.DefaultBondDenom
+					}
+				}
+				newMsg = &msgSend
+			default:
+				newMsg = m
+			}
+			stdMsgs = append(stdMsgs, newMsg)
+			sigMsgs = append(sigMsgs, m)
 		}
 
 		var modeInfo *tx.ModeInfo_Single_
@@ -144,7 +161,7 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 
 		stx := authtypes.IbcTx{
 			&authtypes.StdTx{
-				Msgs:       stdmsgs,
+				Msgs:       stdMsgs,
 				Fee:        fee,
 				Signatures: signatures,
 				Memo:       ibcTx.Body.Memo,
@@ -152,6 +169,11 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			raw.AuthInfoBytes,
 			raw.BodyBytes,
 			signMode,
+			authtypes.IbcFee{
+				authInfo.Fee.Amount,
+				authInfo.Fee.GasLimit,
+			},
+			sigMsgs,
 		}
 
 		return &stx, nil

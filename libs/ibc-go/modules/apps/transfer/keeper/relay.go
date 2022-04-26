@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"fmt"
-	types2 "github.com/okex/exchain/libs/ibc-go/modules/core/types"
 	"strings"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -112,7 +111,7 @@ func (k Keeper) SendTransfer(
 		escrowAddress := types.GetEscrowAddress(sourcePort, sourceChannel)
 
 		// escrow source tokens. It fails if balance insufficient.
-		if token.Denom == types2.DefaultIbcWei {
+		if token.Denom == sdk.DefaultIbcWei {
 			token.Denom = sdk.DefaultBondDenom
 		}
 		if err := k.bankKeeper.SendCoins(
@@ -217,7 +216,7 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 			denom = denomTrace.IBCDenom()
 		}
 
-		if denom == types2.DefaultIbcWei {
+		if denom == sdk.DefaultIbcWei {
 			denom = sdk.DefaultBondDenom
 		}
 		token := sdk.NewCoin(denom, transferAmountDec)
@@ -344,7 +343,7 @@ func (k Keeper) refundPacketToken(ctx sdk.Context, packet channeltypes.Packet, d
 	if isSource {
 		// unescrow tokens back to sender
 		escrowAddress := types.GetEscrowAddress(packet.GetSourcePort(), packet.GetSourceChannel())
-		if token.Denom == types2.DefaultIbcWei {
+		if token.Denom == sdk.DefaultIbcWei {
 			token.Denom = sdk.DefaultBondDenom
 		}
 		if err := k.bankKeeper.SendCoins(ctx, escrowAddress, sender, sdk.NewCoins(token)); err != nil {

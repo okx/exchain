@@ -78,9 +78,17 @@ func grpcQueryBalanceAdapter(ctx sdk.Context, req abci.RequestQuery, k Keeper) (
 		}
 		bs := make(sdk.CoinAdapters, 0)
 		for _, c := range coins {
-			ada := sdk.CoinAdapter{
-				Denom:  c.Denom,
-				Amount: sdk.NewIntFromBigInt(c.Amount.BigInt()),
+			var ada sdk.CoinAdapter
+			if c.Denom == sdk.DefaultBondDenom {
+				ada = sdk.CoinAdapter{
+					Denom:  sdk.DefaultIbcWei,
+					Amount: sdk.NewIntFromBigInt(c.Amount.BigInt()),
+				}
+			} else {
+				ada = sdk.CoinAdapter{
+					Denom:  c.Denom,
+					Amount: sdk.NewIntFromBigInt(c.Amount.BigInt()),
+				}
 			}
 			bs = append(bs, ada)
 		}
