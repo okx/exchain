@@ -131,7 +131,9 @@ func (tree *MutableTree) persist(batch dbm.Batch, version int64) error {
 		}
 		tpp = tree.ndb.asyncPersistTppStart(version)
 	}
-	tree.commitOrphans = make(map[string]int64, len(tree.commitOrphans))
+	for k := range tree.commitOrphans {
+		delete(tree.commitOrphans, k)
+	}
 	versions := tree.deepCopyVersions()
 	tree.commitCh <- commitEvent{version, versions, batch,
 		tpp, nil, int(tree.Height())}
@@ -383,7 +385,7 @@ func (tree *MutableTree) PreAllChange(setkeys [][]byte, delKeys [][]byte) {
 	if maxNums > keyCount {
 		maxNums = keyCount
 	}
-	if maxNums == 0 {
+	if maxNums < 4 {
 		return
 	}
 
