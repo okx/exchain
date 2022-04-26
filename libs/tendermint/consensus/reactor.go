@@ -1183,6 +1183,14 @@ func (ps *PeerState) SetHasProposal(proposal *types.Proposal) {
 		return
 	}
 
+	if proposal.HasActiveVC {
+		ps.PRS.Proposal = true
+		ps.PRS.ProposalBlockPartsHeader = proposal.BlockID.PartsHeader
+		ps.PRS.ProposalBlockParts = bits.NewBitArray(proposal.BlockID.PartsHeader.Total)
+		ps.PRS.ProposalPOLRound = proposal.POLRound
+		ps.PRS.ProposalPOL = nil // Nil until ProposalPOLMessage received.
+	}
+
 	if ps.PRS.Proposal {
 		return
 	}

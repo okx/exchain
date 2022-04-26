@@ -571,6 +571,7 @@ func (cs *State) updateToState(state sm.State) {
 
 	if cs.vcMsg != nil && cs.vcMsg.Height <= cs.Height {
 		cs.vcMsg = nil
+		cs.HasActiveVC = false
 	}
 
 	// If state isn't further out than cs.state, just ignore.
@@ -750,6 +751,7 @@ func (cs *State) handleMsg(mi msgInfo) {
 			}
 
 			cs.vcMsg = msg
+			cs.HasActiveVC = true
 			// ApplyBlock of height-1 has finished
 			if msg.Height == cs.Height {
 				if cs.Step != cstypes.RoundStepNewHeight {
@@ -1000,7 +1002,6 @@ func (cs *State) enterNewRoundWithVal(height int64, round int, val *types.Valida
 	}
 	cs.TriggeredTimeoutPrecommit = false
 	cs.eventBus.PublishEventNewRound(cs.NewRoundEvent())
-	cs.HasActiveVC = true
 	cs.evsw.FireEvent(types.EventNewRoundStep, &cs.RoundState)
 	cs.metrics.Rounds.Set(float64(round))
 
@@ -1172,6 +1173,7 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 	// Make proposal
 	propBlockID := types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()}
 	proposal := types.NewProposal(height, round, cs.ValidRound, propBlockID)
+	proposal.HasActiveVC = cs.HasActiveVC
 	if err := cs.privValidator.SignProposal(cs.state.ChainID, proposal); err == nil {
 
 		// send proposal and block parts on internal msg queue
