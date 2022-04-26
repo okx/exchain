@@ -360,8 +360,8 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			if !bytes.Equal(conR.conS.privValidatorPubKey.Address(), msg.CurrentProposer) {
 				return
 			}
-			// this peer can propose block itself
-			if msg.Height <= height {
+			// only then proposer ApplyBlock(height-1) is not finished, handle prMsg
+			if msg.Height != height+1 {
 				return
 			}
 			// verify the signature of prMsg
