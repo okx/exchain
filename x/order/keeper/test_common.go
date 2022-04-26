@@ -2,10 +2,11 @@ package keeper
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/mpt"
 	"os"
 	"testing"
 	"time"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 
 	"github.com/okex/exchain/x/common"
 

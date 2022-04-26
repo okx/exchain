@@ -5,9 +5,10 @@ package keeper
 
 import (
 	"encoding/hex"
-	"github.com/okex/exchain/libs/mpt"
 	"testing"
 	"time"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 
 	"github.com/stretchr/testify/require"
 

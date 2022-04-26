@@ -3,10 +3,11 @@ package keeper
 import (
 	"bytes"
 	"fmt"
-	"github.com/okex/exchain/libs/mpt"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"

@@ -3,9 +3,10 @@ package server
 // DONTCOVER
 
 import (
-	"github.com/okex/exchain/libs/mpt"
 	"os"
 	"runtime/pprof"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"

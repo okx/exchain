@@ -11,9 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/okex/exchain/libs/mpt"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 
 	"github.com/okex/exchain/libs/tendermint/trace"
 
@@ -196,7 +195,7 @@ type BaseApp struct { // nolint: maligned
 
 	customizeModuleOnStop []sdk.CustomizeOnStop
 	mptCommitHandler      sdk.MptCommitHandler // handler for mpt trie commit
-	feeForCollector sdk.Coins
+	feeForCollector       sdk.Coins
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache

@@ -1,8 +1,9 @@
 package keeper
 
 import (
-	"github.com/okex/exchain/libs/mpt"
 	"testing"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 

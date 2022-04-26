@@ -3,15 +3,16 @@ package rootmulti
 import (
 	"encoding/binary"
 	"fmt"
-	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
-	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
-
 	"io"
 	"log"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachemulti"
@@ -24,7 +25,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	iavltree "github.com/okex/exchain/libs/iavl"
-	"github.com/okex/exchain/libs/mpt"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 
 	//"github.com/okex/exchain/libs/tendermint/crypto/merkle"

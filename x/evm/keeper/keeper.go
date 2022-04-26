@@ -12,9 +12,9 @@ import (
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/libs/mpt"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/types"
@@ -64,7 +64,7 @@ type Keeper struct {
 	startHeight uint64
 	triegc      *prque.Prque
 	stateCache  *fastcache.Cache
-	cmLock sync.Mutex
+	cmLock      sync.Mutex
 
 	EvmStateDb     *types.CommitStateDB
 	UpdatedAccount []ethcmn.Address

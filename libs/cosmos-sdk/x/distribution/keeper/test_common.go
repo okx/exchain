@@ -1,8 +1,9 @@
 package keeper
 
 import (
-	"github.com/okex/exchain/libs/mpt"
 	"testing"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 
 	"github.com/stretchr/testify/require"
 
