@@ -484,9 +484,6 @@ func (ndb *nodeDB) getRootWithCache(version int64) ([]byte, error) {
 // orphans: the orphan nodes created since version-1
 func (ndb *nodeDB) saveCommitOrphans(batch dbm.Batch, version int64, orphans map[string]int64) {
 	ndb.log(IavlDebug, "saving committed orphan node log to disk")
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-
 	toVersion := ndb.getPreviousVersion(version)
 	for hash, fromVersion := range orphans {
 		// ndb.log(IavlDebug, "SAVEORPHAN", "from", fromVersion, "to", toVersion, "hash", amino.BytesHexStringer(amino.StrToBytes(hash)))
