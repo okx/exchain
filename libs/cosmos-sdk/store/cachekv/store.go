@@ -210,6 +210,10 @@ func (store *Store) preWrite(keys []string) {
 	}
 	close(txJobChan)
 
+	for j := range txJobChan {
+		store.preChangeHandler(j.key, j.setOrDel)
+		wg.Done()
+	}
 	wg.Wait()
 }
 
