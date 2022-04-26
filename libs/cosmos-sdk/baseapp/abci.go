@@ -177,6 +177,7 @@ func (app *BaseApp) UpdateFeeForCollector(fee sdk.Coins, add bool) {
 
 // EndBlock implements the ABCI interface.
 func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
+	app.logger.Info("EndBlock", "totalAnte", totalConcDuration)
 	if app.updateFeeCollectorAccHandler != nil {
 		ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
 		if err := app.updateFeeCollectorAccHandler(ctx, app.feeForCollector); err != nil {

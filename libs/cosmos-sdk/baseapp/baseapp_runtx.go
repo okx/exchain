@@ -3,11 +3,14 @@ package baseapp
 import (
 	"fmt"
 	"runtime/debug"
+	"time"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
+
+var totalConcDuration = int64(0)
 
 type runTxInfo struct {
 	handler        modeHandler
@@ -104,7 +107,9 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		handler.handleDeferRefund(info)
 	}()
 
+	start := time.Now()
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
+		totalConcDuration += time.Since(start).Microseconds()
 		return err
 	}
 	app.pin(ValTxMsgs, false, mode)
@@ -112,6 +117,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	app.pin(RunAnte, true, mode)
 	if app.anteHandler != nil {
 		err = app.runAnte(info, mode)
+		totalConcDuration += time.Since(start).Microseconds()
 		if err != nil {
 			return err
 		}
@@ -204,7 +210,9 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 		realTx, _ = mem.ReapEssentialTx(req.Tx).(sdk.Tx)
 	}
 	if realTx == nil {
+		start := time.Now()
 		realTx, err = app.txDecoder(req.Tx)
+		totalConcDuration += time.Since(start).Microseconds()
 		if err != nil {
 			return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
 		}
@@ -254,7 +262,9 @@ func (app *BaseApp) DeliverRealTx(txes abci.TxEssentials) abci.ResponseDeliverTx
 	var err error
 	realTx, _ := txes.(sdk.Tx)
 	if realTx == nil {
+		start := time.Now()
 		realTx, err = app.txDecoder(txes.GetRaw())
+		totalConcDuration += time.Since(start).Microseconds()
 		if err != nil {
 			return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
 		}
