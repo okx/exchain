@@ -8,7 +8,7 @@ import (
 
 type EngineData struct {
 	TransactionReceipts []*TransactionReceipt
-	TransactionLogs     []*TransactionLog
+	//TransactionLogs     []*TransactionLog
 	//LogTopics           []*LogTopic
 }
 
@@ -18,7 +18,6 @@ type StreamData struct {
 
 func (sd StreamData) ConvertEngineData() EngineData {
 	transactionReceipts := make([]*TransactionReceipt, len(sd.TransactionReceipts))
-	var transactionLogs []*TransactionLog
 	for i, t := range sd.TransactionReceipts {
 		// convert  TransactionReceipt
 		receipt := &TransactionReceipt{
@@ -37,11 +36,11 @@ func (sd StreamData) ConvertEngineData() EngineData {
 		if t.To != nil {
 			receipt.To = t.To.String()
 		}
-		transactionReceipts[i] = receipt
 
 		// convert  TransactionLog
-		for _, l := range t.Logs {
-			log := &TransactionLog{
+		transactionLogs := make([]TransactionLog, len(t.Logs))
+		for i, l := range t.Logs {
+			log := TransactionLog{
 				Address:          l.Address.String(),
 				Data:             hexutil.Encode(l.Data),
 				TransactionHash:  t.TransactionHash,
@@ -52,23 +51,26 @@ func (sd StreamData) ConvertEngineData() EngineData {
 			}
 
 			// convert  LogTopic
-			var logTopics []LogTopic
-			for _, topic := range l.Topics {
-				logTopics = append(logTopics, LogTopic{
+			logTopics := make([]LogTopic, len(l.Topics))
+			for i, topic := range l.Topics {
+				logTopics[i] = LogTopic{
 					//TransactionHash: t.TransactionHash,
 					//LogIndex:        uint64(l.Index),
 					Topic: topic.String(),
-				})
+				}
 			}
 			log.Topics = logTopics
 
-			transactionLogs = append(transactionLogs, log)
+			transactionLogs[i] = log
 		}
+
+		receipt.Logs = transactionLogs
+		transactionReceipts[i] = receipt
 	}
 
 	return EngineData{
 		TransactionReceipts: transactionReceipts,
-		TransactionLogs:     transactionLogs,
+		//TransactionLogs:     transactionLogs,
 		//LogTopics:           logTopics,
 	}
 }
@@ -85,18 +87,20 @@ type TransactionReceipt struct {
 	TransactionIndex  uint64 `gorm:"type:int(11)"`
 	From              string `gorm:"type:varchar(42)"`
 	To                string `gorm:"type:varchar(42)"`
+	Logs              []TransactionLog
 }
 
 type TransactionLog struct {
 	gorm.Model
-	Address          string `gorm:"type:varchar(42);index;not null"`
-	Data             string `gorm:"type:varchar(256)"`
-	TransactionHash  string `gorm:"type:varchar(66);index;not null"`
-	TransactionIndex uint64 `gorm:"type:int(11)"`
-	LogIndex         uint64 `gorm:"type:int(11)"`
-	BlockHash        string `gorm:"type:varchar(66);index;not null"`
-	BlockNumber      int64  `gorm:"index;not null"`
-	Topics           []LogTopic
+	Address              string `gorm:"type:varchar(42);index;not null"`
+	Data                 string `gorm:"type:varchar(256)"`
+	TransactionHash      string `gorm:"type:varchar(66);index;not null"`
+	TransactionIndex     uint64 `gorm:"type:int(11)"`
+	LogIndex             uint64 `gorm:"type:int(11)"`
+	BlockHash            string `gorm:"type:varchar(66);index;not null"`
+	BlockNumber          int64  `gorm:"index;not null"`
+	TransactionReceiptID uint
+	Topics               []LogTopic
 }
 
 type LogTopic struct {

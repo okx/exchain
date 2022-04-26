@@ -49,12 +49,12 @@ func (e *MySQLEngine) Write(streamData types.IStreamData) bool {
 		}
 	}
 	// write TransactionLogs
-	for _, log := range data.TransactionLogs {
-		ret := trx.Create(log)
-		if ret.Error != nil {
-			return e.rollbackWithError(trx, ret.Error)
-		}
-	}
+	//for _, log := range data.TransactionLogs {
+	//	ret := trx.Create(log)
+	//	if ret.Error != nil {
+	//		return e.rollbackWithError(trx, ret.Error)
+	//	}
+	//}
 	// write LogTopics
 	//for _, topic := range data.LogTopics {
 	//	ret := trx.Create(topic)
