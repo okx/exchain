@@ -38,12 +38,14 @@ func (ndb *nodeDB) cacheNodeByCheck(node *Node) {
 	}
 }
 
-func (ndb *nodeDB) getNodeFromCache(hash []byte) (n *Node) {
+func (ndb *nodeDB) getNodeFromCache(hash []byte, promoteRecentNode bool) (n *Node) {
 	// Check the cache.
 	if v, ok := ndb.nodeCache.Get(amino.BytesToStr(hash)); ok {
 		elem := v.(*list.Element)
-		// Already exists. Move to back of nodeCacheQueue.
-		ndb.nodeCacheQueue.MoveToBack(elem)
+		if promoteRecentNode {
+			// Already exists. Move to back of nodeCacheQueue.
+			ndb.nodeCacheQueue.MoveToBack(elem)
+		}
 		n = elem.Value.(*Node)
 	}
 	return

@@ -3,6 +3,7 @@ package client
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/libs/system"
 	"strings"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -17,14 +18,14 @@ const (
 
 type accAddrToPrefixFunc func(sdk.AccAddress, string) string
 
-// AddrCommands registers a sub-tree of commands to interact with oec address
+// AddrCommands registers a sub-tree of commands to interact with chain address
 func AddrCommands() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "addr",
-		Short: "opreate all kind of address in the OEC network",
-		Long: ` Address is a identification for join in the OEC network.
+		Short: "opreate all kind of address in the "+system.ChainName+" network",
+		Long: ` Address is a identification for join in the `+system.ChainName+` network.
 
-	The address in OEC network begins with "okexchain","ex" or "0x"`,
+	The address in `+system.ChainName+` network begins with "ex" or "0x"`,
 	}
 	cmd.AddCommand(convertCommand())
 	return cmd
@@ -34,7 +35,7 @@ func AddrCommands() *cobra.Command {
 func convertCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "convert [sourceAddr]",
-		Short: "convert source address to all kind of address in the OEC network",
+		Short: "convert source address to all kind of address in the "+system.ChainName+" network",
 		Long: `sourceAddr must be begin with "okexchain","ex" or "0x".
 	
 	When input one of these address, we will convert to the other kinds.`,

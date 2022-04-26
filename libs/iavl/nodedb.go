@@ -110,47 +110,63 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		name:                    ParseDBName(db),
 	}
 }
+func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) *Node {
 
-// GetNode gets a node from memory or disk. If it is an inner node, it does not
-// load its children.
-func (ndb *nodeDB) GetNode(hash []byte) *Node {
+	ndb.addNodeReadCount()
 
-	res := func() *Node {
-		ndb.addNodeReadCount()
-		if len(hash) == 0 {
-			panic("nodeDB.GetNode() requires hash")
-		}
-		ndb.mtx.RLock()
-		defer ndb.mtx.RUnlock()
-		if elem, ok := ndb.prePersistNodeCache[string(hash)]; ok {
-			return elem
-		}
-
-		if elem, ok := ndb.getNodeInTpp(hash); ok { // GetNode from tpp
-			return elem
-		}
-
-		if elem := ndb.getNodeFromCache(hash); elem != nil {
-			return elem
-		}
-		if elem, ok := ndb.orphanNodeCache[string(hash)]; ok {
-			return elem
-		}
-
-		return nil
-	}()
-
-	if res != nil {
-		return res
+	if len(hash) == 0 {
+		panic("nodeDB.GetNode() requires hash")
+	}
+	ndb.mtx.RLock()
+	defer ndb.mtx.RUnlock()
+	if elem, ok := ndb.prePersistNodeCache[string(hash)]; ok {
+		return elem
 	}
 
-	// Doesn't exist, load.
+	if elem, ok := ndb.getNodeInTpp(hash); ok {
+		return elem
+	}
+
+	if elem := ndb.getNodeFromCache(hash, promoteRecentNode); elem != nil {
+		return elem
+	}
+
+	if elem, ok := ndb.orphanNodeCache[string(hash)]; ok {
+		return elem
+	}
+
+	return nil
+}
+
+func (ndb *nodeDB) getNodeFromDisk(hash []byte, updateCache bool) *Node {
+
 	node := ndb.makeNodeFromDbByHash(hash)
 	node.hash = hash
 	node.persisted = true
-	ndb.cacheNodeByCheck(node)
-
+	if updateCache {
+		ndb.cacheNodeByCheck(node)
+	}
 	return node
+}
+
+func (ndb *nodeDB) loadNode(hash []byte, update bool) (n *Node, fromDisk bool) {
+	n = ndb.getNodeFromMemory(hash, update)
+	if n == nil {
+		n = ndb.getNodeFromDisk(hash, update)
+		fromDisk = true
+	}
+	return
+}
+
+// GetNode gets a node from memory or disk. If it is an inner node, it does not
+// load its children.
+func (ndb *nodeDB) GetNode(hash []byte) (n *Node) {
+	n, _ = ndb.loadNode(hash, true)
+	return
+}
+
+func (ndb *nodeDB) GetNodeWithoutUpdateCache(hash []byte) (n *Node, fromDisk bool) {
+	return ndb.loadNode(hash, false)
 }
 
 func (ndb *nodeDB) getDbName() string {
