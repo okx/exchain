@@ -8,6 +8,8 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/tendermint/go-amino"
+
 	"github.com/okex/exchain/libs/iavl/trace"
 
 	dbm "github.com/okex/exchain/libs/tm-db"
@@ -375,7 +377,7 @@ type preWriteJob struct {
 	setOrDel byte
 }
 
-func (tree *MutableTree) PreAllChange(keys [][]byte, setOrDel []byte) {
+func (tree *MutableTree) PreAllChange(keys []string, setOrDel []byte) {
 	if tree.root == nil {
 		return
 	}
@@ -405,7 +407,10 @@ func (tree *MutableTree) PreAllChange(keys [][]byte, setOrDel []byte) {
 	}
 
 	for i, key := range keys {
-		txJobChan <- preWriteJob{key, setOrDel[i]}
+		setOrDelFlag := setOrDel[i]
+		if setOrDelFlag != 0xFF {
+			txJobChan <- preWriteJob{amino.StrToBytes(key), setOrDel[i]}
+		}
 	}
 	close(txJobChan)
 	wg.Wait()

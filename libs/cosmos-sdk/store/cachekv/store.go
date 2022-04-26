@@ -27,7 +27,7 @@ type cValue struct {
 }
 
 type PreChangeHandler func(key []byte, setOrDel byte)
-type PreAllChangeHandler func(keys [][]byte, setOrDel []byte)
+type PreAllChangeHandler func(keys []string, setOrDel []byte)
 
 // Store wraps an in-memory cache around an underlying types.KVStore.
 type Store struct {
@@ -176,24 +176,22 @@ func (store *Store) preWrite(keys []string) {
 		return
 	}
 
-	perKeys := make([][]byte, 0, len(keys))
 	setOrDel := make([]byte, 0, len(keys))
 
 	for _, key := range keys {
 		cacheValue := store.cache[key]
 		switch {
 		case cacheValue.deleted:
-			perKeys = append(perKeys, amino.StrToBytes(key))
 			setOrDel = append(setOrDel, 0)
 		case cacheValue.value == nil:
 			// Skip, it already doesn't exist in parent.
+			setOrDel = append(setOrDel, 0xFF)
 		default:
-			perKeys = append(perKeys, amino.StrToBytes(key))
 			setOrDel = append(setOrDel, 1)
 		}
 	}
 
-	store.preAllChangeHandler(perKeys, setOrDel)
+	store.preAllChangeHandler(keys, setOrDel)
 }
 
 // writeToCacheKv will write cached kv to the parent Store, then clear the cache.
