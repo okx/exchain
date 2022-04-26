@@ -43,6 +43,7 @@ var (
 )
 
 // MptStore Implements types.KVStore and CommitKVStore.
+// Its main purpose is to own the same interface as iavl store in libs/cosmos-sdk/store/iavl/iavl_store.go
 type MptStore struct {
 	trie    ethstate.Trie
 	db      ethstate.Database
