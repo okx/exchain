@@ -3,11 +3,12 @@ package mock
 import (
 	"bytes"
 	"fmt"
-	"github.com/okex/exchain/libs/mpt"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"math/rand"
 	"os"
 	"sort"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"

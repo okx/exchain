@@ -3,10 +3,11 @@ package keeper // noalias
 import (
 	"bytes"
 	"encoding/hex"
-	"github.com/okex/exchain/libs/mpt"
 	"math/rand"
 	"strconv"
 	"testing"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 
 	"github.com/stretchr/testify/require"
 

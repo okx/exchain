@@ -1,9 +1,10 @@
 package simapp
 
 import (
-	"github.com/okex/exchain/libs/mpt"
 	"io"
 	"os"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"

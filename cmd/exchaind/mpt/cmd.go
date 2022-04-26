@@ -2,7 +2,7 @@ package mpt
 
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	"github.com/okex/exchain/libs/mpt/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	"github.com/spf13/cobra"
 )
 
