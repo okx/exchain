@@ -110,7 +110,7 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		name:                    ParseDBName(db),
 	}
 }
-func (ndb *nodeDB) getNodeFromMemory(hash []byte) *Node {
+func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) *Node {
 
 	ndb.addNodeReadCount()
 
@@ -127,7 +127,7 @@ func (ndb *nodeDB) getNodeFromMemory(hash []byte) *Node {
 		return elem
 	}
 
-	if elem := ndb.getNodeFromCache(hash); elem != nil {
+	if elem := ndb.getNodeFromCache(hash, promoteRecentNode); elem != nil {
 		return elem
 	}
 
@@ -153,16 +153,16 @@ func (ndb *nodeDB) getNodeFromDisk(hash []byte, updateCache bool) *Node {
 // load its children.
 func (ndb *nodeDB) GetNode(hash []byte) (n *Node) {
 
-	n = ndb.getNodeFromMemory(hash)
+	n = ndb.getNodeFromMemory(hash, true)
 	if n == nil {
 		n = ndb.getNodeFromDisk(hash, true)
 	}
 	return
 }
 
-func (ndb *nodeDB) GetNodeConcurrently(hash []byte) (n *Node, fromDisk bool) {
+func (ndb *nodeDB) GetNodeWithoutUpdateCache(hash []byte) (n *Node, fromDisk bool) {
 
-	n = ndb.getNodeFromMemory(hash)
+	n = ndb.getNodeFromMemory(hash, false)
 	if n == nil {
 		n = ndb.getNodeFromDisk(hash, false)
 		fromDisk = true
