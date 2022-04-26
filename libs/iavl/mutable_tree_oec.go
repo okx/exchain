@@ -375,13 +375,13 @@ type preWriteJob struct {
 	setOrDel byte
 }
 
-func (tree *MutableTree) PreAllChange(setkeys [][]byte, delKeys [][]byte) {
+func (tree *MutableTree) PreAllChange(keys [][]byte, setOrDel []byte) {
 	if tree.root == nil {
 		return
 	}
 
 	maxNums := runtime.NumCPU()
-	keyCount := len(setkeys) + len(delKeys)
+	keyCount := len(keys)
 	if maxNums > keyCount {
 		maxNums = keyCount
 	}
@@ -404,14 +404,10 @@ func (tree *MutableTree) PreAllChange(setkeys [][]byte, delKeys [][]byte) {
 		}(txJobChan, &wg)
 	}
 
-	for _, key := range setkeys {
-		txJobChan <- preWriteJob{key, 1}
-	}
-	for _, key := range delKeys {
-		txJobChan <- preWriteJob{key, 0}
+	for i, key := range keys {
+		txJobChan <- preWriteJob{key, setOrDel[i]}
 	}
 	close(txJobChan)
-
 	wg.Wait()
 
 	tree.ndb.finishPreWriteCache()
