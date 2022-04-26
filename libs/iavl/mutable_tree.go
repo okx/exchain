@@ -8,8 +8,6 @@ import (
 	"sort"
 	"sync"
 
-	cmap "github.com/orcaman/concurrent-map"
-
 	"github.com/tendermint/go-amino"
 
 	dbm "github.com/okex/exchain/libs/tm-db"
@@ -61,8 +59,6 @@ type MutableTree struct {
 	lastPersistHeight int64
 	//for ibc module upgrade version
 	upgradeVersion int64
-
-	preWriteNodeCache cmap.ConcurrentMap
 }
 
 // NewMutableTree returns a new tree with the specified cache size and datastore.

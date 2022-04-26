@@ -8,8 +8,6 @@ import (
 	"sort"
 	"sync"
 
-	cmap "github.com/orcaman/concurrent-map"
-
 	"github.com/okex/exchain/libs/iavl/trace"
 
 	dbm "github.com/okex/exchain/libs/tm-db"
@@ -389,9 +387,7 @@ func (tree *MutableTree) PreAllChange(setkeys [][]byte, delKeys [][]byte) {
 		return
 	}
 
-	if tree.preWriteNodeCache == nil {
-		tree.preWriteNodeCache = cmap.New()
-	}
+	tree.ndb.InitPreWriteCache()
 
 	txJobChan := make(chan preWriteJob, keyCount)
 	var wg sync.WaitGroup
@@ -416,10 +412,7 @@ func (tree *MutableTree) PreAllChange(setkeys [][]byte, delKeys [][]byte) {
 
 	wg.Wait()
 
-	tree.preWriteNodeCache.IterCb(func(key string, v interface{}) {
-		tree.ndb.cacheNode(v.(*Node))
-	})
-	tree.preWriteNodeCache = nil
+	tree.ndb.finishPreWriteCache()
 }
 
 func (tree *MutableTree) preChangeWithOutCache(node *Node, key []byte, setOrDel byte) (find bool) {
@@ -450,7 +443,7 @@ func (tree *MutableTree) preGetNode(hash []byte) (n *Node) {
 	var fromDisk bool
 	n, fromDisk = tree.ImmutableTree.ndb.GetNodeWithoutUpdateCache(hash)
 	if fromDisk {
-		tree.preWriteNodeCache.Set(string(hash), n)
+		tree.ndb.cacheNodeToPreWriteCache(n)
 	}
 	return
 }

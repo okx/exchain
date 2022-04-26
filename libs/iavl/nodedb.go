@@ -70,6 +70,9 @@ type nodeDB struct {
 	totalOrphanCount    int64
 
 	name string
+
+	preWriteNodeCache     cmap.ConcurrentMap
+	preWriteNodeCacheFlag int32
 }
 
 func makeNodeCacheMap(cacheSize int, initRatio float64) cmap.ConcurrentMap {
@@ -108,6 +111,7 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		dbReadTime:              0,
 		dbWriteCount:            0,
 		name:                    ParseDBName(db),
+		preWriteNodeCache:       cmap.New(),
 	}
 }
 func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) *Node {

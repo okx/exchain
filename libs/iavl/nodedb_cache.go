@@ -3,6 +3,8 @@ package iavl
 import (
 	"container/list"
 
+	cmap "github.com/orcaman/concurrent-map"
+
 	"github.com/okex/exchain/libs/iavl/config"
 	"github.com/tendermint/go-amino"
 )
@@ -55,4 +57,21 @@ func (ndb *nodeDB) uncacheNodeRontine(n []*Node) {
 	for _, node := range n {
 		ndb.uncacheNode(node.hash)
 	}
+}
+
+func (ndb *nodeDB) InitPreWriteCache() {
+	if ndb.preWriteNodeCache == nil {
+		ndb.preWriteNodeCache = cmap.New()
+	}
+}
+
+func (ndb *nodeDB) cacheNodeToPreWriteCache(n *Node) {
+	ndb.preWriteNodeCache.Set(string(n.hash), n)
+}
+
+func (ndb *nodeDB) finishPreWriteCache() {
+	ndb.preWriteNodeCache.IterCb(func(key string, v interface{}) {
+		ndb.cacheNode(v.(*Node))
+	})
+	ndb.preWriteNodeCache = nil
 }
