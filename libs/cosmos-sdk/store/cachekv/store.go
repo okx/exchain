@@ -217,17 +217,6 @@ func (store *Store) preWrite(keys []string) {
 		}
 	}
 
-	//for _, key := range keys {
-	//	cacheValue := store.cache[key]
-	//	switch {
-	//	case cacheValue.deleted:
-	//		txJobChan <- preWriteJob{amino.StrToBytes(key), 0}
-	//	case cacheValue.value == nil:
-	//		// Skip, it already doesn't exist in parent.
-	//	default:
-	//		txJobChan <- preWriteJob{amino.StrToBytes(key), 1}
-	//	}
-	//}
 	close(txJobChan)
 
 	wg.Wait()
