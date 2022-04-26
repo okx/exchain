@@ -27,7 +27,7 @@ func TestCalculateRewardsBasic(t *testing.T) {
 	staking.EndBlocker(ctx, sk)
 
 	// next block
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 
 	// fetch validator and delegation
 	val := sk.Validator(ctx, valOpAddr1)
@@ -85,7 +85,7 @@ func TestCalculateRewardsAfterSlash(t *testing.T) {
 	staking.EndBlocker(ctx, sk)
 
 	// next block
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 
 	// fetch validator and delegation
 	val := sk.Validator(ctx, valOpAddr1)
@@ -101,7 +101,7 @@ func TestCalculateRewardsAfterSlash(t *testing.T) {
 	require.True(t, rewards.IsZero())
 
 	// start out block height
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 3)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 3)
 
 	// slash the validator by 50%
 	sk.Slash(ctx, valConsAddr1, ctx.BlockHeight(), valPower, sdk.NewDecWithPrec(5, 1))
@@ -110,7 +110,7 @@ func TestCalculateRewardsAfterSlash(t *testing.T) {
 	val = sk.Validator(ctx, valOpAddr1)
 
 	// increase block height
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 3)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 3)
 
 	// allocate some rewards
 	initial := sdk.TokensFromConsensusPower(10)
@@ -150,7 +150,7 @@ func TestCalculateRewardsAfterManySlashes(t *testing.T) {
 	staking.EndBlocker(ctx, sk)
 
 	// next block
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 
 	// fetch validator and delegation
 	val := sk.Validator(ctx, valOpAddr1)
@@ -166,7 +166,7 @@ func TestCalculateRewardsAfterManySlashes(t *testing.T) {
 	require.True(t, rewards.IsZero())
 
 	// start out block height
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 3)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 3)
 
 	// slash the validator by 50%
 	sk.Slash(ctx, valConsAddr1, ctx.BlockHeight(), power, sdk.NewDecWithPrec(5, 1))
@@ -175,7 +175,7 @@ func TestCalculateRewardsAfterManySlashes(t *testing.T) {
 	val = sk.Validator(ctx, valOpAddr1)
 
 	// increase block height
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 3)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 3)
 
 	// allocate some rewards
 	initial := sdk.TokensFromConsensusPower(10)
@@ -189,7 +189,7 @@ func TestCalculateRewardsAfterManySlashes(t *testing.T) {
 	val = sk.Validator(ctx, valOpAddr1)
 
 	// increase block height
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 3)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 3)
 
 	// allocate some more rewards
 	k.AllocateTokensToValidator(ctx, val, tokens)
@@ -225,7 +225,7 @@ func TestCalculateRewardsMultiDelegator(t *testing.T) {
 	staking.EndBlocker(ctx, sk)
 
 	// next block
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 
 	// fetch validator and delegation
 	val := sk.Validator(ctx, valOpAddr1)
@@ -252,7 +252,7 @@ func TestCalculateRewardsMultiDelegator(t *testing.T) {
 	staking.EndBlocker(ctx, sk)
 
 	// next block
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 
 	// allocate some more rewards
 	k.AllocateTokensToValidator(ctx, val, tokens)
@@ -312,7 +312,7 @@ func TestWithdrawDelegationRewardsBasic(t *testing.T) {
 	staking.EndBlocker(ctx, sk)
 
 	// next block
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 
 	// fetch validator and delegation
 	val := sk.Validator(ctx, valOpAddr1)
@@ -371,7 +371,7 @@ func TestCalculateRewardsAfterManySlashesInSameBlock(t *testing.T) {
 	staking.EndBlocker(ctx, sk)
 
 	// next block
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 
 	// fetch validator and delegation
 	val := sk.Validator(ctx, valOpAddr1)
@@ -387,7 +387,7 @@ func TestCalculateRewardsAfterManySlashesInSameBlock(t *testing.T) {
 	require.True(t, rewards.IsZero())
 
 	// start out block height
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 3)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 3)
 
 	// allocate some rewards
 	initial := sdk.TokensFromConsensusPower(10).ToDec()
@@ -404,7 +404,7 @@ func TestCalculateRewardsAfterManySlashesInSameBlock(t *testing.T) {
 	val = sk.Validator(ctx, valOpAddr1)
 
 	// increase block height
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 3)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 3)
 
 	// allocate some more rewards
 	k.AllocateTokensToValidator(ctx, val, tokens)
@@ -441,7 +441,7 @@ func TestCalculateRewardsMultiDelegatorMultiSlash(t *testing.T) {
 	staking.EndBlocker(ctx, sk)
 
 	// next block
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 
 	// fetch validator and delegation
 	val := sk.Validator(ctx, valOpAddr1)
@@ -453,9 +453,9 @@ func TestCalculateRewardsMultiDelegatorMultiSlash(t *testing.T) {
 	k.AllocateTokensToValidator(ctx, val, tokens)
 
 	// slash the validator
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 3)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 3)
 	sk.Slash(ctx, valConsAddr1, ctx.BlockHeight(), power, sdk.NewDecWithPrec(5, 1))
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 3)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 3)
 
 	// second delegation
 	delTokens := sdk.TokensFromConsensusPower(100)
@@ -472,15 +472,15 @@ func TestCalculateRewardsMultiDelegatorMultiSlash(t *testing.T) {
 	staking.EndBlocker(ctx, sk)
 
 	// next block
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 
 	// allocate some more rewards
 	k.AllocateTokensToValidator(ctx, val, tokens)
 
 	// slash the validator again
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 3)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 3)
 	sk.Slash(ctx, valConsAddr1, ctx.BlockHeight(), power, sdk.NewDecWithPrec(5, 1))
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 3)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 3)
 
 	// fetch updated validator
 	val = sk.Validator(ctx, valOpAddr1)
@@ -529,7 +529,7 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	staking.EndBlocker(ctx, sk)
 
 	// next block
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 
 	// fetch validator and delegation
 	val := sk.Validator(ctx, valOpAddr1)
@@ -558,7 +558,7 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	staking.EndBlocker(ctx, sk)
 
 	// next block
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 
 	// allocate some more rewards
 	k.AllocateTokensToValidator(ctx, val, tokens)
@@ -594,7 +594,7 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	require.True(t, k.GetValidatorAccumulatedCommission(ctx, valOpAddr1).IsZero())
 
 	// next block
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 
 	// allocate some more rewards
 	k.AllocateTokensToValidator(ctx, val, tokens)
@@ -621,7 +621,7 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(initial / 2)}}, k.GetValidatorAccumulatedCommission(ctx, valOpAddr1))
 
 	// next block
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 
 	// allocate some more rewards
 	k.AllocateTokensToValidator(ctx, val, tokens)

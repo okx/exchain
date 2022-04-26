@@ -30,6 +30,7 @@ package module
 
 import (
 	"encoding/json"
+
 	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 
 	"github.com/gorilla/mux"
@@ -316,7 +317,7 @@ func (m *Manager) ExportGenesis(ctx sdk.Context) map[string]json.RawMessage {
 // child context with an event manager to aggregate events emitted from all
 // modules.
 func (m *Manager) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
-	ctx = ctx.WithEventManager(sdk.NewEventManager())
+	ctx.SetEventManager(sdk.NewEventManager())
 
 	for _, moduleName := range m.OrderBeginBlockers {
 		m.Modules[moduleName].BeginBlock(ctx, req)
@@ -331,7 +332,7 @@ func (m *Manager) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) abci.R
 // child context with an event manager to aggregate events emitted from all
 // modules.
 func (m *Manager) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
-	ctx = ctx.WithEventManager(sdk.NewEventManager())
+	ctx.SetEventManager(sdk.NewEventManager())
 	validatorUpdates := []abci.ValidatorUpdate{}
 
 	for _, moduleName := range m.OrderEndBlockers {

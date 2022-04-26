@@ -71,6 +71,7 @@ func TestPersistentKVStoreKV(t *testing.T) {
 		t.Fatal(err)
 	}
 	kvstore := NewPersistentKVStoreApplication(dir)
+
 	key := testKey
 	value := key
 	tx := []byte(key)
@@ -87,6 +88,7 @@ func TestPersistentKVStoreInfo(t *testing.T) {
 		t.Fatal(err)
 	}
 	kvstore := NewPersistentKVStoreApplication(dir)
+
 	InitKVStore(kvstore)
 	height := int64(0)
 
@@ -119,7 +121,6 @@ func TestValUpdates(t *testing.T) {
 		t.Fatal(err)
 	}
 	kvstore := NewPersistentKVStoreApplication(dir)
-
 	// init with some validators
 	total := 10
 	nInit := 5

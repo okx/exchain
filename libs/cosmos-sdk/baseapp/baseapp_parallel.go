@@ -48,7 +48,7 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
 				res[index] = &extraDataForTx{}
 				return
 			}
-			coin, isEvm := app.getTxFee(app.getContextForTx(runTxModeDeliver, txBytes), tx)
+			coin, isEvm := app.getTxFee(app.getContextForTx(runTxModeDeliver, txBytes), tx, true)
 			res[index] = &extraDataForTx{
 				fee:   coin,
 				isEvm: isEvm,
@@ -61,7 +61,8 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
 
 func (app *BaseApp) paraLoadSender(txs [][]byte) {
 
-	checkStateCtx := app.checkState.ctx.WithBlockHeight(app.checkState.ctx.BlockHeight() + 1)
+	checkStateCtx := app.checkState.ctx
+	checkStateCtx.SetBlockHeight(app.checkState.ctx.BlockHeight() + 1)
 
 	maxNums := runtime.NumCPU()
 	txSize := len(txs)
@@ -78,7 +79,9 @@ func (app *BaseApp) paraLoadSender(txs [][]byte) {
 			for txBytes := range ch {
 				tx, err := app.txDecoder(txBytes)
 				if err == nil {
-					app.getTxFee(checkStateCtx.WithTxBytes(txBytes), tx)
+					ctx := checkStateCtx
+					ctx.SetTxBytes(txBytes)
+					app.getTxFee(ctx, tx, true)
 				}
 				wg.Done()
 			}

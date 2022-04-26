@@ -2,7 +2,6 @@ package rootmulti
 
 import (
 	"fmt"
-
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
@@ -1031,13 +1030,13 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	inputDeltaMap iavltree.TreeDeltaMap, f func(str string, st types.CommitKVStore) bool) (commitInfo, iavltree.TreeDeltaMap) {
 	var storeInfos []storeInfo
 	outputDeltaMap := iavltree.TreeDeltaMap{}
-
 	for key, store := range storeMap {
 		if f(key.Name(), store) {
 			continue
 		}
 
 		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
+
 		if store.GetStoreType() == types.StoreTypeTransient {
 			continue
 		}
@@ -1319,9 +1318,13 @@ func (src Store) Copy() *Store {
 }
 
 func (rs *Store) StopStore() {
-	for _, store := range rs.stores {
+	for key, store := range rs.stores {
 		switch store.GetStoreType() {
 		case types.StoreTypeIAVL:
+			filter := rs.commitHeightFilterPipeline(rs.lastCommitInfo.Version)
+			if filter(key.Name()) {
+				continue
+			}
 			s := store.(*iavl.Store)
 			s.StopStore()
 		case types.StoreTypeDB:
