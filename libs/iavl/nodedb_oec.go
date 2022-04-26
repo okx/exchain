@@ -39,12 +39,6 @@ type tppItem struct {
 	listItem *list.Element
 }
 
-func (ndb *nodeDB) uncacheNodeRontine(n []*Node) {
-	for _, node := range n {
-		ndb.uncacheNode(node.hash)
-	}
-}
-
 func (ndb *nodeDB) SaveOrphans(batch dbm.Batch, version int64, orphans []*Node) {
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
@@ -59,7 +53,7 @@ func (ndb *nodeDB) SaveOrphans(batch dbm.Batch, version int64, orphans []*Node) 
 		}
 		for _, node := range orphans {
 			ndb.orphanNodeCache[string(node.hash)] = node
-			delete(ndb.prePersistNodeCache, string(node.hash))
+			delete(ndb.prePersistNodeCache, amino.BytesToStr(node.hash))
 			node.leftNode = nil
 			node.rightNode = nil
 		}
@@ -90,7 +84,7 @@ func (ndb *nodeDB) setHeightOrphansItem(version int64, rootHash []byte) {
 		orphans := ndb.heightOrphansCacheQueue.Front()
 		oldHeightOrphanItem := ndb.heightOrphansCacheQueue.Remove(orphans).(*heightOrphansItem)
 		for _, node := range oldHeightOrphanItem.orphans {
-			delete(ndb.orphanNodeCache, string(node.hash))
+			delete(ndb.orphanNodeCache, amino.BytesToStr(node.hash))
 		}
 		delete(ndb.heightOrphansMap, oldHeightOrphanItem.version)
 	}
@@ -133,18 +127,16 @@ func (ndb *nodeDB) makeNodeFromDbByHash(hash []byte) *Node {
 }
 
 func (ndb *nodeDB) saveNodeToPrePersistCache(node *Node) {
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-
 	if node.hash == nil {
 		panic("Expected to find node.hash, but none found.")
 	}
 	if node.persisted || node.prePersisted {
 		panic("Shouldn't be calling save on an already persisted node.")
 	}
-
 	node.prePersisted = true
+	ndb.mtx.Lock()
 	ndb.prePersistNodeCache[string(node.hash)] = node
+	ndb.mtx.Unlock()
 }
 
 func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
@@ -492,9 +484,6 @@ func (ndb *nodeDB) getRootWithCache(version int64) ([]byte, error) {
 // orphans: the orphan nodes created since version-1
 func (ndb *nodeDB) saveCommitOrphans(batch dbm.Batch, version int64, orphans map[string]int64) {
 	ndb.log(IavlDebug, "saving committed orphan node log to disk")
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-
 	toVersion := ndb.getPreviousVersion(version)
 	for hash, fromVersion := range orphans {
 		// ndb.log(IavlDebug, "SAVEORPHAN", "from", fromVersion, "to", toVersion, "hash", amino.BytesHexStringer(amino.StrToBytes(hash)))

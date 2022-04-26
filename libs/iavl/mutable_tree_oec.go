@@ -84,7 +84,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 	// set new working tree
 	tree.ImmutableTree = tree.ImmutableTree.clone()
 	tree.lastSaved = tree.ImmutableTree.clone()
-	tree.orphans = []*Node{}
+	tree.orphans = make([]*Node, 0, len(tree.orphans))
 	for k := range tree.savedNodes {
 		delete(tree.savedNodes, k)
 	}
@@ -130,7 +130,9 @@ func (tree *MutableTree) persist(batch dbm.Batch, version int64) error {
 		}
 		tpp = tree.ndb.asyncPersistTppStart(version)
 	}
-	tree.commitOrphans = map[string]int64{}
+	for k := range tree.commitOrphans {
+		delete(tree.commitOrphans, k)
+	}
 	versions := tree.deepCopyVersions()
 	tree.commitCh <- commitEvent{version, versions, batch,
 		tpp, nil, int(tree.Height())}
