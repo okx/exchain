@@ -39,7 +39,18 @@ func (etx *evmTx) GetTxWatchMessage() WatchMessage {
 }
 
 func (etx *evmTx) GetFailedReceipts(cumulativeGas, gasUsed uint64) WatchMessage {
+	if etx == nil {
+		return nil
+	}
+
 	return NewEvmTransactionReceipt(TransactionFailed, etx.msgEvmTx, etx.txHash, etx.blockHash, etx.index, etx.height, &types.ResultData{}, cumulativeGas, gasUsed)
+}
+
+func (etx *evmTx) GetIndex() uint64 {
+	if etx == nil {
+		return 0
+	}
+	return etx.index
 }
 
 type MsgEthTx struct {

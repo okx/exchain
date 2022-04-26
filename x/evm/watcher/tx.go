@@ -12,6 +12,7 @@ type WatchTx interface {
 	GetTxWatchMessage() WatchMessage
 	GetTxHash() common.Hash
 	GetFailedReceipts(cumulativeGas, gasUsed uint64) WatchMessage
+	GetIndex() uint64
 }
 
 func (w *Watcher) RecordTxAndFailedReceipt(tx tm.TxEssentials, resp *tm.ResponseDeliverTx, txDecoder sdk.TxDecoder) {
@@ -23,15 +24,14 @@ func (w *Watcher) RecordTxAndFailedReceipt(tx tm.TxEssentials, resp *tm.Response
 	if err != nil {
 		return
 	}
-	txIndex := w.txIndex
-	watchTx := w.createWatchTx(realTx, txIndex)
+	watchTx := w.createWatchTx(realTx)
 	if watchTx == nil {
 		return
 	}
 	w.saveTx(watchTx)
 
 	if resp != nil && !resp.IsOK() {
-		w.saveFailedReceipts(watchTx, txIndex, uint64(resp.GasUsed))
+		w.saveFailedReceipts(watchTx, uint64(resp.GasUsed))
 	}
 }
 
@@ -48,7 +48,7 @@ func (w *Watcher) getRealTx(tx tm.TxEssentials, txDecoder sdk.TxDecoder) (sdk.Tx
 	return realTx, nil
 }
 
-func (w *Watcher) createWatchTx(realTx sdk.Tx, txIndex uint64) WatchTx {
+func (w *Watcher) createWatchTx(realTx sdk.Tx) WatchTx {
 	var txMsg WatchTx
 	switch realTx.GetType() {
 	case sdk.EvmTxType:
@@ -56,7 +56,7 @@ func (w *Watcher) createWatchTx(realTx sdk.Tx, txIndex uint64) WatchTx {
 		if err != nil {
 			return nil
 		}
-		txMsg = NewEvmTx(evmTx, common.BytesToHash(evmTx.TxHash()), w.blockHash, w.height, txIndex)
+		txMsg = NewEvmTx(evmTx, common.BytesToHash(evmTx.TxHash()), w.blockHash, w.height, w.txIndex)
 		w.txIndex++
 	}
 
@@ -89,12 +89,12 @@ func (w *Watcher) saveTx(tx WatchTx) {
 	w.blockTxs = append(w.blockTxs, tx.GetTxHash())
 }
 
-func (w *Watcher) saveFailedReceipts(watchTx WatchTx, txIndex, gasUsed uint64) {
+func (w *Watcher) saveFailedReceipts(watchTx WatchTx, gasUsed uint64) {
 	if w == nil || watchTx == nil {
 		return
 	}
-	w.UpdateCumulativeGas(txIndex, gasUsed)
-	if receipts := watchTx.GetFailedReceipts(w.cumulativeGas[txIndex], gasUsed); receipts != nil {
+	w.UpdateCumulativeGas(watchTx.GetIndex(), gasUsed)
+	if receipts := watchTx.GetFailedReceipts(w.cumulativeGas[watchTx.GetIndex()], gasUsed); receipts != nil {
 		w.batch = append(w.batch, receipts)
 	}
 }
