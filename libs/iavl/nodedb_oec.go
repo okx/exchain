@@ -53,7 +53,7 @@ func (ndb *nodeDB) SaveOrphans(batch dbm.Batch, version int64, orphans []*Node) 
 		}
 		for _, node := range orphans {
 			ndb.orphanNodeCache[string(node.hash)] = node
-			delete(ndb.prePersistNodeCache, string(node.hash))
+			delete(ndb.prePersistNodeCache, amino.BytesToStr(node.hash))
 			node.leftNode = nil
 			node.rightNode = nil
 		}
@@ -84,7 +84,7 @@ func (ndb *nodeDB) setHeightOrphansItem(version int64, rootHash []byte) {
 		orphans := ndb.heightOrphansCacheQueue.Front()
 		oldHeightOrphanItem := ndb.heightOrphansCacheQueue.Remove(orphans).(*heightOrphansItem)
 		for _, node := range oldHeightOrphanItem.orphans {
-			delete(ndb.orphanNodeCache, string(node.hash))
+			delete(ndb.orphanNodeCache, amino.BytesToStr(node.hash))
 		}
 		delete(ndb.heightOrphansMap, oldHeightOrphanItem.version)
 	}
