@@ -1,49 +1,51 @@
 package iavl
 
 import (
-	"container/list"
-
 	cmap "github.com/orcaman/concurrent-map"
+	"github.com/tendermint/go-amino"
 
 	"github.com/okex/exchain/libs/iavl/config"
-	"github.com/tendermint/go-amino"
 )
 
 func (ndb *nodeDB) uncacheNode(hash []byte) {
-	if v, ok := ndb.nodeCache.Get(amino.BytesToStr(hash)); ok {
-		ndb.nodeCache.Remove(amino.BytesToStr(hash))
-		elem := v.(*list.Element)
+	ndb.nodeCacheMutex.Lock()
+	if elem, ok := ndb.nodeCache[string(hash)]; ok {
 		ndb.nodeCacheQueue.Remove(elem)
+		delete(ndb.nodeCache, string(hash))
 	}
+	ndb.nodeCacheMutex.Unlock()
 }
 
 // Add a node to the cache and pop the least recently used node if we've
 // reached the cache size limit.
 func (ndb *nodeDB) cacheNode(node *Node) {
+	ndb.nodeCacheMutex.Lock()
 	elem, count := ndb.nodeCacheQueue.PushBack(node)
-	ndb.nodeCache.Set(string(node.hash), elem)
+	ndb.nodeCache[string(node.hash)] = elem
 
-	if count > config.DynamicConfig.GetIavlCacheSize() {
-		needRemove := count - config.DynamicConfig.GetIavlCacheSize()
-
-		for i := 0; i < needRemove; i++ {
-			oldest := ndb.nodeCacheQueue.Front()
-			ndb.nodeCache.Remove(amino.BytesToStr(oldest.Value.(*Node).hash))
-			_ = ndb.nodeCacheQueue.Remove(oldest)
-		}
+	for count > config.DynamicConfig.GetIavlCacheSize() {
+		oldest := ndb.nodeCacheQueue.Front()
+		hash := ndb.nodeCacheQueue.Remove(oldest).(*Node).hash
+		delete(ndb.nodeCache, amino.BytesToStr(hash))
 	}
+	ndb.nodeCacheMutex.Unlock()
 }
 
 func (ndb *nodeDB) cacheNodeByCheck(node *Node) {
-	if _, ok := ndb.nodeCache.Get(amino.BytesToStr(node.hash)); !ok {
+	ndb.nodeCacheMutex.RLock()
+	_, ok := ndb.nodeCache[string(node.hash)]
+	ndb.nodeCacheMutex.RUnlock()
+	if !ok {
 		ndb.cacheNode(node)
 	}
 }
 
 func (ndb *nodeDB) getNodeFromCache(hash []byte, promoteRecentNode bool) (n *Node) {
 	// Check the cache.
-	if v, ok := ndb.nodeCache.Get(amino.BytesToStr(hash)); ok {
-		elem := v.(*list.Element)
+	ndb.nodeCacheMutex.RLock()
+	elem, ok := ndb.nodeCache[string(hash)]
+	ndb.nodeCacheMutex.RUnlock()
+	if ok {
 		if promoteRecentNode {
 			// Already exists. Move to back of nodeCacheQueue.
 			ndb.nodeCacheQueue.MoveToBack(elem)

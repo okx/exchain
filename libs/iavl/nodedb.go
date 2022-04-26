@@ -46,9 +46,10 @@ type nodeDB struct {
 	versionReaders map[int64]uint32 // Number of active version readers
 
 	latestVersion  int64
-	nodeCache      cmap.ConcurrentMap // Node cache.
-	nodeCacheSize  int                // Node cache size limit in elements.
-	nodeCacheQueue *syncList          // LRU queue of cache elements. Used for deletion.
+	nodeCache      map[string]*list.Element // Node cache.
+	nodeCacheSize  int                      // Node cache size limit in elements.
+	nodeCacheQueue *syncList                // LRU queue of cache elements. Used for deletion.
+	nodeCacheMutex sync.RWMutex             // Mutex for node cache.
 
 	orphanNodeCache         map[string]*Node
 	heightOrphansCacheQueue *list.List
@@ -75,16 +76,16 @@ type nodeDB struct {
 	preWriteNodeCacheFlag int32
 }
 
-func makeNodeCacheMap(cacheSize int, initRatio float64) cmap.ConcurrentMap {
-	return cmap.New()
-	//if initRatio <= 0 {
-	//	return make(map[string]*list.Element)
-	//}
-	//if initRatio >= 1 {
-	//	return make(map[string]*list.Element, cacheSize)
-	//}
-	//cacheSize = int(float64(cacheSize) * initRatio)
-	//return make(map[string]*list.Element, cacheSize)
+func makeNodeCacheMap(cacheSize int, initRatio float64) map[string]*list.Element {
+	// return cmap.New()
+	if initRatio <= 0 {
+		return make(map[string]*list.Element)
+	}
+	if initRatio >= 1 {
+		return make(map[string]*list.Element, cacheSize)
+	}
+	cacheSize = int(float64(cacheSize) * initRatio)
+	return make(map[string]*list.Element, cacheSize)
 }
 
 func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
