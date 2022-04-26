@@ -1322,7 +1322,7 @@ func (rs *Store) StopStore() {
 		switch store.GetStoreType() {
 		case types.StoreTypeIAVL:
 			filter := rs.commitHeightFilterPipeline(rs.lastCommitInfo.Version)
-			if filter(key.Name()) {
+			if filter(key.Name(),nil) {
 				continue
 			}
 			s := store.(*iavl.Store)
