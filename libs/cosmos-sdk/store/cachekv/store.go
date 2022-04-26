@@ -180,6 +180,10 @@ func (store *Store) preWrite(keys []string) {
 		maxNums = keyCount
 	}
 
+	if maxNums < 4 {
+		return
+	}
+
 	txJobChan := make(chan preWriteJob, keyCount)
 	var wg sync.WaitGroup
 	wg.Add(keyCount)
