@@ -166,8 +166,7 @@ func (ndb *nodeDB) GetNode(hash []byte) (n *Node) {
 }
 
 func (ndb *nodeDB) GetNodeWithoutUpdateCache(hash []byte) (n *Node, fromDisk bool) {
-	n, fromDisk = ndb.loadNode(hash, false)
-	return
+	return ndb.loadNode(hash, false)
 }
 
 func (ndb *nodeDB) getDbName() string {
