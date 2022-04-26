@@ -1,6 +1,12 @@
 package simapp
 
 import (
+	"io"
+	"math/big"
+	"os"
+	"sort"
+	"sync"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
@@ -8,12 +14,6 @@ import (
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/capability"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/core"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/transfer"
-	"github.com/okex/exchain/x/common/monitor"
-	"io"
-	"math/big"
-	"os"
-	"sort"
-	"sync"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
@@ -54,6 +54,7 @@ import (
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/common/analyzer"
+	"github.com/okex/exchain/x/common/monitor"
 	commonversion "github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/dex"
 	dexclient "github.com/okex/exchain/x/dex/client"
@@ -83,6 +84,7 @@ import (
 func init() {
 	// set the address prefixes
 	config := sdk.GetConfig()
+	config.SetCoinType(60)
 	okexchain.SetBech32Prefixes(config)
 	okexchain.SetBip44CoinType(config)
 }
@@ -92,8 +94,6 @@ const (
 )
 
 var (
-	orderMetrics  = monitor.DefaultOrderMetrics(monitor.DefaultPrometheusConfig())
-	streamMetrics = monitor.DefaultStreamMetrics(monitor.DefaultPrometheusConfig())
 	// DefaultCLIHome sets the default home directories for the application CLI
 	DefaultCLIHome = os.ExpandEnv("$HOME/.exchaincli")
 
@@ -353,7 +353,7 @@ func NewSimApp(
 
 	app.OrderKeeper = order.NewKeeper(
 		app.TokenKeeper, app.SupplyKeeper, app.DexKeeper, app.subspaces[order.ModuleName], auth.FeeCollectorName,
-		app.keys[order.OrderStoreKey], app.marshal.GetCdc(), false, orderMetrics)
+		app.keys[order.OrderStoreKey], app.marshal.GetCdc(), false, monitor.NopOrderMetrics())
 
 	app.SwapKeeper = ammswap.NewKeeper(app.SupplyKeeper, app.TokenKeeper, app.marshal.GetCdc(), app.keys[ammswap.StoreKey], app.subspaces[ammswap.ModuleName])
 

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/okex/exchain/libs/system"
 	"fmt"
 	"io"
 	"math/big"
@@ -227,7 +228,7 @@ func NewOKExChainApp(
 	invCheckPeriod uint,
 	baseAppOptions ...func(*bam.BaseApp),
 ) *OKExChainApp {
-	logger.Info("Starting OEC",
+	logger.Info("Starting "+system.ChainName,
 		"GenesisHeight", tmtypes.GetStartBlockHeight(),
 		"MercuryHeight", tmtypes.GetMercuryHeight(),
 		"VenusHeight", tmtypes.GetVenusHeight(),
