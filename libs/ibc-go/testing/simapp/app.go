@@ -784,15 +784,14 @@ func PreRun(ctx *server.Context) error {
 }
 
 func (app *SimApp) setupUpgradeModules() {
-	//heightTasks, paramMap, pip, prunePip, versionPip := app.CollectUpgradeModules(app.mm)
-	heightTasks, paramMap, pip, _, _ := app.CollectUpgradeModules(app.mm)
+	heightTasks, paramMap, pip, prunePip, versionPip := app.CollectUpgradeModules(app.mm)
 
 	app.heightTasks = heightTasks
 
 	if pip != nil {
-		//app.GetCMS().SetPruneHeightFilterPipeline(prunePip)
-		//app.GetCMS().SetCommitHeightFilterPipeline(pip)
-		//app.GetCMS().SetVersionFilterPipeline(versionPip)
+		app.GetCMS().SetPruneHeightFilterPipeline(prunePip)
+		app.GetCMS().SetCommitHeightFilterPipeline(pip)
+		app.GetCMS().SetVersionFilterPipeline(versionPip)
 	}
 
 	vs := app.subspaces
@@ -809,9 +808,9 @@ func (o *SimApp) TxConfig() client.TxConfig {
 	return o.txconfig
 }
 
-func (o *SimApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgradetypes.HeightTasks, map[string]params.ParamSet, types.HeightFilterPipeline, types.HeightFilterPipeline, types.VersionFilterPipeline) {
+func (o *SimApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgradetypes.HeightTasks, map[string]params.ParamSet, types.HeightFilterPipeline, types.PrunePipeline, types.VersionFilterPipeline) {
 	hm := make(map[int64]*upgradetypes.HeightTasks)
-	hStoreInfoModule := make(map[int64]map[string]struct{})
+	hStoreInfoModule := make(map[int64]map[string]upgradetypes.HandleStore)
 	paramsRet := make(map[string]params.ParamSet)
 	for _, mm := range m.Modules {
 		if ada, ok := mm.(upgradetypes.UpgradeModule); ok {
@@ -827,13 +826,16 @@ func (o *SimApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgradetyp
 			}
 			storeInfoModule := hStoreInfoModule[h]
 			if storeInfoModule == nil {
-				storeInfoModule = make(map[string]struct{})
+				storeInfoModule = make(map[string]upgradetypes.HandleStore)
 				hStoreInfoModule[h] = storeInfoModule
 			}
-			names := ada.BlockStoreModules()
-			for _, n := range names {
-				storeInfoModule[n] = struct{}{}
+			handlers := ada.BlockStoreModules()
+			if nil != handlers {
+				for k, v := range handlers {
+					storeInfoModule[k] = v
+				}
 			}
+
 			t := ada.RegisterTask()
 			if t == nil {
 				continue
@@ -860,19 +862,19 @@ func (o *SimApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgradetyp
 	return hm, paramsRet, commitPip, prunePip, versionPip
 }
 
-func collectStorePipeline(hStoreInfoModule map[int64]map[string]struct{}) (types.HeightFilterPipeline, types.HeightFilterPipeline, types.VersionFilterPipeline) {
+func collectStorePipeline(hStoreInfoModule map[int64]map[string]upgradetypes.HandleStore) (types.HeightFilterPipeline, types.PrunePipeline, types.VersionFilterPipeline) {
 	var (
 		pip        types.HeightFilterPipeline
-		prunePip   types.HeightFilterPipeline
+		prunePip   types.PrunePipeline
 		versionPip types.VersionFilterPipeline
 	)
 
 	for storeH, storeMap := range hStoreInfoModule {
-		filterM := copyBlockStoreMap(storeMap)
 		if storeH < 0 {
 			continue
 		}
-		hh := storeH
+		filterM := copyBlockStoreMap(storeMap)
+		hh := storeH // storeH: upgardeHeight+1
 		height := hh - 1
 		// filter block module
 		blockModuleFilter := func(str string) bool {
@@ -880,15 +882,25 @@ func collectStorePipeline(hStoreInfoModule map[int64]map[string]struct{}) (types
 			return exist
 		}
 
-		commitF := func(h int64) func(str string) bool {
-			if hh == 0 {
-				return blockModuleFilter
+		commitF := func(h int64) func(_ string, st types.CommitKVStore) bool {
+			if hh == 0 || h < height {
+				return func(str string, _ types.CommitKVStore) bool {
+					return blockModuleFilter(str)
+				}
 			}
-			if h >= height {
-				// call next filter
-				return nil
+			if h == height {
+				return func(str string, st types.CommitKVStore) bool {
+					handler := filterM[str]
+					if nil != handler && nil != st {
+						handler(st, height)
+					}
+					return false
+				}
 			}
-			return blockModuleFilter
+			// call next filter
+			return func(_ string, _ types.CommitKVStore) bool {
+				return false
+			}
 		}
 		pruneF := func(h int64) func(str string) bool {
 			if hh == 0 {
@@ -897,7 +909,9 @@ func collectStorePipeline(hStoreInfoModule map[int64]map[string]struct{}) (types
 			// note: prune's version  > commit version,thus the condition will be '>' rather than '>='
 			if h > height {
 				// call next filter
-				return nil
+				return func(_ string) bool {
+					return false
+				}
 			}
 			return blockModuleFilter
 		}
@@ -906,7 +920,7 @@ func collectStorePipeline(hStoreInfoModule map[int64]map[string]struct{}) (types
 			//	return nil
 			//}
 			if h < 0 {
-				return nil
+				return func(cb func(string, int64)) {}
 			}
 
 			return func(cb func(name string, version int64)) {
@@ -918,26 +932,34 @@ func collectStorePipeline(hStoreInfoModule map[int64]map[string]struct{}) (types
 		}
 
 		pip = linkPipeline(pip, commitF)
-		prunePip = linkPipeline(prunePip, pruneF)
+		prunePip = linkPrunePipeline(prunePip, pruneF)
 		versionPip = linkPipeline2(versionPip, versionF)
 	}
 
 	return pip, prunePip, versionPip
 }
 
-func copyBlockStoreMap(m map[string]struct{}) map[string]struct{} {
-	ret := make(map[string]struct{})
-	for k, _ := range m {
-		ret[k] = struct{}{}
+func copyBlockStoreMap(m map[string]upgradetypes.HandleStore) map[string]upgradetypes.HandleStore {
+	ret := make(map[string]upgradetypes.HandleStore)
+	for k, v := range m {
+		ret[k] = v
 	}
 	return ret
 }
 
-func linkPipeline(p types.HeightFilterPipeline, f func(h int64) func(str string) bool) types.HeightFilterPipeline {
+func linkPipeline(p types.HeightFilterPipeline, f types.HeightFilterPipeline) types.HeightFilterPipeline {
 	if p == nil {
 		p = f
 	} else {
 		p = types.LinkPipeline(f, p)
+	}
+	return p
+}
+func linkPrunePipeline(p types.PrunePipeline, f types.PrunePipeline) types.PrunePipeline {
+	if p == nil {
+		p = f
+	} else {
+		p = types.LinkPrunePipeline(f, p)
 	}
 	return p
 }
