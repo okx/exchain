@@ -127,18 +127,16 @@ func (ndb *nodeDB) makeNodeFromDbByHash(hash []byte) *Node {
 }
 
 func (ndb *nodeDB) saveNodeToPrePersistCache(node *Node) {
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-
 	if node.hash == nil {
 		panic("Expected to find node.hash, but none found.")
 	}
 	if node.persisted || node.prePersisted {
 		panic("Shouldn't be calling save on an already persisted node.")
 	}
-
 	node.prePersisted = true
+	ndb.mtx.Lock()
 	ndb.prePersistNodeCache[string(node.hash)] = node
+	ndb.mtx.Unlock()
 }
 
 func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
