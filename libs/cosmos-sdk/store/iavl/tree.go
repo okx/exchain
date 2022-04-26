@@ -22,6 +22,7 @@ type (
 		Set(key, value []byte) bool
 		Remove(key []byte) ([]byte, bool)
 		PreChange(key []byte, setOrDel byte)
+		PreAllChange(setkeys [][]byte, delKeys [][]byte)
 		SaveVersion(bool) ([]byte, int64, iavl.TreeDelta, error)
 		GetModuleName() string
 		GetDBWriteCount() int
@@ -60,6 +61,8 @@ func (it *immutableTree) Remove(_ []byte) ([]byte, bool) {
 }
 
 func (it *immutableTree) PreChange([]byte, byte) {}
+
+func (it *immutableTree) PreAllChange(setkeys [][]byte, delKeys [][]byte) {}
 
 func (it *immutableTree) SaveVersion(bool) ([]byte, int64, iavl.TreeDelta, error) {
 	panic("cannot call 'SaveVersion' on an immutable IAVL tree")

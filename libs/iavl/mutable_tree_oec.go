@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"runtime"
 	"sort"
 	"sync"
+
+	cmap "github.com/orcaman/concurrent-map"
 
 	"github.com/okex/exchain/libs/iavl/trace"
 
@@ -365,4 +368,103 @@ func (tree *MutableTree) preChange(node *Node, key []byte, setOrDel byte) (find 
 		}
 		return
 	}
+}
+
+type preWriteJob struct {
+	key      []byte
+	setOrDel byte
+}
+
+func (tree *MutableTree) PreAllChange(setkeys [][]byte, delKeys [][]byte) {
+	if tree.root == nil {
+		return
+	}
+
+	maxNums := runtime.NumCPU()
+	keyCount := len(setkeys) + len(delKeys)
+	if maxNums > keyCount {
+		maxNums = keyCount
+	}
+	if maxNums == 0 {
+		return
+	}
+
+	if tree.preWriteNodeCache == nil {
+		tree.preWriteNodeCache = cmap.New()
+	}
+
+	txJobChan := make(chan preWriteJob, keyCount)
+	var wg sync.WaitGroup
+	wg.Add(keyCount)
+
+	for index := 0; index < maxNums; index++ {
+		go func(ch chan preWriteJob, wg *sync.WaitGroup) {
+			for j := range ch {
+				tree.preChangeWithOutCache(tree.root, j.key, j.setOrDel)
+				wg.Done()
+			}
+		}(txJobChan, &wg)
+	}
+
+	for _, key := range setkeys {
+		txJobChan <- preWriteJob{key, 1}
+	}
+	for _, key := range delKeys {
+		txJobChan <- preWriteJob{key, 0}
+	}
+	close(txJobChan)
+
+	wg.Wait()
+
+	tree.preWriteNodeCache.IterCb(func(key string, v interface{}) {
+		tree.ndb.cacheNodeByCheck(v.(*Node))
+	})
+	tree.preWriteNodeCache = nil
+}
+
+func (tree *MutableTree) preChangeWithOutCache(node *Node, key []byte, setOrDel byte) (find bool) {
+	if node.isLeaf() {
+		if bytes.Equal(node.key, key) {
+			return true
+		}
+		return
+	} else {
+		var isSet = setOrDel == 1
+		if bytes.Compare(key, node.key) < 0 {
+			node.leftNode = tree.preGetLeftNode(node)
+			if find = tree.preChangeWithOutCache(node.leftNode, key, setOrDel); (!find && isSet) || (find && !isSet) {
+				// node.getRightNode(tree.ImmutableTree)
+				tree.preGetRightNode(node)
+			}
+		} else {
+			node.rightNode = tree.preGetRightNode(node)
+			if find = tree.preChangeWithOutCache(node.rightNode, key, setOrDel); (!find && isSet) || (find && !isSet) {
+				tree.preGetLeftNode(node)
+			}
+		}
+		return
+	}
+}
+
+func (tree *MutableTree) preGetNode(hash []byte) (n *Node) {
+	var fromDisk bool
+	n, fromDisk = tree.ImmutableTree.ndb.GetNodeWithoutUpdateCache(hash)
+	if fromDisk {
+		tree.preWriteNodeCache.Set(string(hash), n)
+	}
+	return
+}
+
+func (tree *MutableTree) preGetLeftNode(node *Node) (n *Node) {
+	if node.leftNode != nil {
+		return node.leftNode
+	}
+	return tree.preGetNode(node.leftHash)
+}
+
+func (tree *MutableTree) preGetRightNode(node *Node) (n *Node) {
+	if node.rightNode != nil {
+		return node.rightNode
+	}
+	return tree.preGetNode(node.rightHash)
 }

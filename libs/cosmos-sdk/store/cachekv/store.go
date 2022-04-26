@@ -5,7 +5,6 @@ import (
 	"container/list"
 	"io"
 	"reflect"
-	"runtime"
 	"sort"
 	"sync"
 	"unsafe"
@@ -28,6 +27,7 @@ type cValue struct {
 }
 
 type PreChangeHandler func(key []byte, setOrDel byte)
+type PreAllChangeHandler func(setkeys [][]byte, delkeys [][]byte)
 
 // Store wraps an in-memory cache around an underlying types.KVStore.
 type Store struct {
@@ -37,7 +37,8 @@ type Store struct {
 	sortedCache   *list.List // always ascending sorted
 	parent        types.KVStore
 
-	preChangeHandler PreChangeHandler
+	preChangeHandler    PreChangeHandler
+	preAllChangeHandler PreAllChangeHandler
 }
 
 var _ types.CacheKVStore = (*Store)(nil)
@@ -51,9 +52,10 @@ func NewStore(parent types.KVStore) *Store {
 	}
 }
 
-func NewStoreWithPreChangeHandler(parent types.KVStore, handler PreChangeHandler) *Store {
+func NewStoreWithPreChangeHandler(parent types.KVStore, preChangeHandler PreChangeHandler, handler PreAllChangeHandler) *Store {
 	s := NewStore(parent)
-	s.preChangeHandler = handler
+	s.preChangeHandler = preChangeHandler
+	s.preAllChangeHandler = handler
 	return s
 }
 
@@ -170,43 +172,75 @@ type preWriteJob struct {
 }
 
 func (store *Store) preWrite(keys []string) {
-	if store.preChangeHandler == nil {
+	if store.preAllChangeHandler == nil {
 		return
 	}
 
-	maxNums := runtime.NumCPU()
-	keyCount := len(keys)
-	if maxNums > keyCount {
-		maxNums = keyCount
-	}
-
-	txJobChan := make(chan preWriteJob, keyCount)
-	var wg sync.WaitGroup
-	wg.Add(keyCount)
-
-	for index := 0; index < maxNums; index++ {
-		go func(ch chan preWriteJob, wg *sync.WaitGroup) {
-			for j := range ch {
-				store.preChangeHandler(j.key, j.setOrDel)
-				wg.Done()
-			}
-		}(txJobChan, &wg)
-	}
-
+	var setCount, delCount int
 	for _, key := range keys {
 		cacheValue := store.cache[key]
 		switch {
 		case cacheValue.deleted:
-			txJobChan <- preWriteJob{amino.StrToBytes(key), 0}
+			delCount++
 		case cacheValue.value == nil:
 			// Skip, it already doesn't exist in parent.
 		default:
-			txJobChan <- preWriteJob{amino.StrToBytes(key), 1}
+			setCount++
 		}
 	}
-	close(txJobChan)
+	setKeys := make([][]byte, 0, setCount)
+	delKeys := make([][]byte, 0, delCount)
+	for _, key := range keys {
+		cacheValue := store.cache[key]
+		switch {
+		case cacheValue.deleted:
+			delKeys = append(delKeys, amino.StrToBytes(key))
+		case cacheValue.value == nil:
+			// Skip, it already doesn't exist in parent.
+		default:
+			setKeys = append(setKeys, amino.StrToBytes(key))
+		}
+	}
 
-	wg.Wait()
+	store.preAllChangeHandler(setKeys, delKeys)
+
+	//if store.preChangeHandler == nil {
+	//	return
+	//}
+
+	//maxNums := runtime.NumCPU()
+	//keyCount := len(keys)
+	//if maxNums > keyCount {
+	//	maxNums = keyCount
+	//}
+	//
+	//txJobChan := make(chan preWriteJob, keyCount)
+	//var wg sync.WaitGroup
+	//wg.Add(keyCount)
+	//
+	//for index := 0; index < maxNums; index++ {
+	//	go func(ch chan preWriteJob, wg *sync.WaitGroup) {
+	//		for j := range ch {
+	//			store.preChangeHandler(j.key, j.setOrDel)
+	//			wg.Done()
+	//		}
+	//	}(txJobChan, &wg)
+	//}
+	//
+	//for _, key := range keys {
+	//	cacheValue := store.cache[key]
+	//	switch {
+	//	case cacheValue.deleted:
+	//		txJobChan <- preWriteJob{amino.StrToBytes(key), 0}
+	//	case cacheValue.value == nil:
+	//		// Skip, it already doesn't exist in parent.
+	//	default:
+	//		txJobChan <- preWriteJob{amino.StrToBytes(key), 1}
+	//	}
+	//}
+	//close(txJobChan)
+	//
+	//wg.Wait()
 }
 
 // writeToCacheKv will write cached kv to the parent Store, then clear the cache.
