@@ -187,7 +187,7 @@ func linkPrunePipeline(p types.PrunePipeline, f types.PrunePipeline) types.Prune
 	return p
 }
 
-func linkPipeline2(p types.VersionFilterPipeline, f func(h int64) func(func(string, int64))) types.VersionFilterPipeline {
+func linkPipeline2(p types.VersionFilterPipeline, f types.VersionFilterPipeline) types.VersionFilterPipeline {
 	if p == nil {
 		p = f
 	} else {
