@@ -1,8 +1,8 @@
 package app
 
 import (
-	"github.com/okex/exchain/libs/system"
 	"fmt"
+	"github.com/okex/exchain/libs/system"
 	"io"
 	"math/big"
 	"os"
@@ -457,7 +457,6 @@ func NewOKExChainApp(
 		wasmDir,
 		wasmConfig,
 		supportedFeatures,
-		nil,
 	)
 
 	// NOTE: Any module instantiated in the module manager that is later modified

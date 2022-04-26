@@ -15,7 +15,6 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/spf13/cobra"
 
-	"github.com/okex/exchain/x/wasm/client/cli"
 	"github.com/okex/exchain/x/wasm/client/rest"
 	"github.com/okex/exchain/x/wasm/keeper"
 	"github.com/okex/exchain/x/wasm/simulation"
@@ -79,12 +78,12 @@ func (AppModuleBasic) RegisterRESTRoutes(cliCtx clictx.CLIContext, rtr *mux.Rout
 
 // GetTxCmd returns the root tx command for the wasm module.
 func (b AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
-	return cli.GetTxCmd(cdc)
+	return nil
 }
 
 // GetQueryCmd returns no root query command for the wasm module.
 func (b AppModuleBasic) GetQueryCmd(cdc *codec.Codec) *cobra.Command {
-	return cli.GetQueryCmd(cdc)
+	return nil
 }
 
 // RegisterInterfaces implements InterfaceModule
