@@ -332,13 +332,13 @@ func (app *BaseApp) asyncDeliverTx(txIndex int) {
 	txStatus := app.parallelTxManage.extraTxsInfo[txIndex]
 
 	if txStatus.stdTx == nil {
-		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr, 0, 0, app.trace), nil, txStatus.indexInBlock, txStatus.evmIndex, nil)
+		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr, 0, 0, app.trace), nil, uint32(txIndex), nil)
 		pmWorkGroup.Push(asyncExe)
 		return
 	}
 
 	if !txStatus.isEvm {
-		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, txStatus.indexInBlock, txStatus.evmIndex, nil)
+		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, uint32(txIndex), nil)
 		pmWorkGroup.Push(asyncExe)
 		return
 	}
@@ -357,8 +357,7 @@ func (app *BaseApp) asyncDeliverTx(txIndex int) {
 		}
 	}
 
-	asyncExe := newExecuteResult(resp, info.msCacheAnte, txStatus.indexInBlock, txStatus.evmIndex, info.ctx.ParaMsg())
-	asyncExe.err = errM
+	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg())
 	pmWorkGroup.Push(asyncExe)
 }
 
