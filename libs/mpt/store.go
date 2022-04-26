@@ -56,7 +56,7 @@ type MptStore struct {
 
 	version      int64
 	startVersion int64
-	cmLock sync.Mutex
+	cmLock       sync.Mutex
 }
 
 func (ms *MptStore) CommitterCommitMap(deltaMap iavl.TreeDeltaMap) (_ types.CommitID, _ iavl.TreeDeltaMap) {
@@ -258,18 +258,21 @@ func (ms *MptStore) GetDBReadTime() int {
 	return 0
 }
 
+// PushData2Database writes all associated state in cache to the database
 func (ms *MptStore) PushData2Database(curHeight int64) {
 	ms.cmLock.Lock()
 	defer ms.cmLock.Unlock()
 
 	curMptRoot := ms.GetMptRootHash(uint64(curHeight))
 	if TrieDirtyDisabled {
+		// If we're running an archive node, always flush
 		ms.fullNodePersist(curMptRoot, curHeight)
 	} else {
 		ms.otherNodePersist(curMptRoot, curHeight)
 	}
 }
 
+// fullNodePersist persist data without pruning
 func (ms *MptStore) fullNodePersist(curMptRoot ethcmn.Hash, curHeight int64) {
 	if curMptRoot == (ethcmn.Hash{}) || curMptRoot == ethtypes.EmptyRootHash {
 		curMptRoot = ethcmn.Hash{}
@@ -284,6 +287,7 @@ func (ms *MptStore) fullNodePersist(curMptRoot ethcmn.Hash, curHeight int64) {
 	}
 }
 
+// otherNodePersist persist data with pruning
 func (ms *MptStore) otherNodePersist(curMptRoot ethcmn.Hash, curHeight int64) {
 	triedb := ms.db.TrieDB()
 
@@ -311,7 +315,7 @@ func (ms *MptStore) otherNodePersist(curMptRoot ethcmn.Hash, curHeight int64) {
 		}
 
 		// If we exceeded out time allowance, flush an entire trie to disk
-		if chosen % TrieCommitGap == 0 {
+		if chosen%TrieCommitGap == 0 {
 			// If the header is missing (canonical chain behind), we're reorging a low
 			// diff sidechain. Suspend committing until this operation is completed.
 			chRoot := ms.GetMptRootHash(uint64(chosen))

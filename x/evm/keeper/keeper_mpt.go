@@ -132,22 +132,26 @@ func (k *Keeper) OnStop(ctx sdk.Context) error {
 	return nil
 }
 
+// PushData2Database writes all associated state in cache to the database
 func (k *Keeper) PushData2Database(height int64, log log.Logger) {
 	k.cmLock.Lock()
 	defer k.cmLock.Unlock()
 
 	curMptRoot := k.GetMptRootHash(uint64(height))
 	if mpt.TrieDirtyDisabled {
+		// If we're running an archive node, always flush
 		k.fullNodePersist(curMptRoot, height, log)
 	} else {
 		k.otherNodePersist(curMptRoot, height, log)
 	}
 }
 
+// fullNodePersist persist data without pruning
 func (k *Keeper) fullNodePersist(curMptRoot ethcmn.Hash, curHeight int64, log log.Logger) {
 	if curMptRoot == (ethcmn.Hash{}) || curMptRoot == ethtypes.EmptyRootHash {
 		curMptRoot = ethcmn.Hash{}
 	} else {
+		// Commit all cached state changes into underlying memory database.
 		if err := k.db.TrieDB().Commit(curMptRoot, false, nil); err != nil {
 			panic("fail to commit mpt data: " + err.Error())
 		}
@@ -156,6 +160,7 @@ func (k *Keeper) fullNodePersist(curMptRoot ethcmn.Hash, curHeight int64, log lo
 	log.Info("sync push evm data to db", "block", curHeight, "trieHash", curMptRoot)
 }
 
+// otherNodePersist persist data with pruning
 func (k *Keeper) otherNodePersist(curMptRoot ethcmn.Hash, curHeight int64, log log.Logger) {
 	triedb := k.db.TrieDB()
 
