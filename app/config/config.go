@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/system"
 	"strconv"
 	"strings"
 	"sync"
@@ -211,7 +212,7 @@ func (c *OecConfig) loadFromApollo() bool {
 }
 
 func (c *OecConfig) format() string {
-	return fmt.Sprintf(`OEC config:
+	return fmt.Sprintf(`%s config:
 	mempool.recheck: %v
 	mempool.force_recheck_gap: %d
 	mempool.size: %d
@@ -231,7 +232,7 @@ func (c *OecConfig) format() string {
 	consensus.timeout_precommit_delta: %s
 	
 	iavl-cache-size: %d
-	enable-analyzer: %v`,
+	enable-analyzer: %v`, system.ChainName,
 		c.GetMempoolRecheck(),
 		c.GetMempoolForceRecheckGap(),
 		c.GetMempoolSize(),
