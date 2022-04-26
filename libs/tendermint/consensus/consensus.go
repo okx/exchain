@@ -1841,7 +1841,7 @@ func (cs *State) recordMetrics(height int64, block *types.Block) {
 func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	// Already have one
 	// TODO: possibly catch double proposals
-	if cs.Proposal != nil {
+	if cs.Proposal != nil && !proposal.HasActiveVC {
 		return nil
 	}
 
@@ -1851,8 +1851,8 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	}
 
 	// Verify POLRound, which must be -1 or in range [0, proposal.Round).
-	if proposal.POLRound < -1 ||
-		(proposal.POLRound >= 0 && proposal.POLRound >= proposal.Round) {
+	if !proposal.HasActiveVC && (proposal.POLRound < -1 ||
+		(proposal.POLRound >= 0 && proposal.POLRound >= proposal.Round)) {
 		return ErrInvalidProposalPOLRound
 	}
 
