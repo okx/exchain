@@ -172,7 +172,7 @@ type preWriteJob struct {
 }
 
 func (store *Store) preWrite(keys []string) {
-	if store.preAllChangeHandler == nil {
+	if store.preAllChangeHandler == nil || len(keys) < 4 {
 		return
 	}
 
@@ -187,6 +187,9 @@ func (store *Store) preWrite(keys []string) {
 		default:
 			setCount++
 		}
+	}
+	if setCount+delCount < 4 {
+		return
 	}
 	setKeys := make([][]byte, 0, setCount)
 	delKeys := make([][]byte, 0, delCount)
