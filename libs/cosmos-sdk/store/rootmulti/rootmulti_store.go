@@ -650,6 +650,16 @@ func (rs *Store) CacheMultiStoreWithVersion(version int64) (types.CacheMultiStor
 
 			cachedStores[key] = iavlStore
 
+		case types.StoreTypeMPT:
+			store := rs.GetCommitKVStore(key)
+
+			mptStore, err := store.(*mpt.MptStore).GetImmutable(version)
+			if err != nil {
+				return nil, err
+			}
+
+			cachedStores[key] = mptStore
+
 		default:
 			cachedStores[key] = store
 		}

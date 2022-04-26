@@ -13,7 +13,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/evm/types"
 )
@@ -155,38 +154,30 @@ func queryStorageProof(ctx sdk.Context, path []string, keeper Keeper, height int
 			"Insufficient parameters, at least 3 parameters is required")
 	}
 
-	// query evm tire root hash based on height
-	evmRootHash := keeper.GetMptRootHash(uint64(height))
-	if evmRootHash == mpt.NilHash {
-		return nil, fmt.Errorf("header %d not found", height)
-	}
-
-	// query storage trie base on address in evmTrie
 	addr := ethcmn.HexToAddress(path[1])
-	evmTrie, err := keeper.db.OpenTrie(evmRootHash)
-	if err != nil {
-		return nil, fmt.Errorf("open evm trie failed: %s", err.Error())
-	}
-	storageRootHash, err := evmTrie.TryGet(authtypes.AddressStoreKey(addr.Bytes()))
+	storageRootHash, err := queryStorageRootBytesInHeight(keeper, addr, height)
 	if err != nil {
 		return nil, fmt.Errorf("get %s storage root hash failed: %s", addr, err.Error())
 	}
 
-	// open storage trie
+	// check if storageRootHash is empty
 	var res types.QueryResStorageProof
 	if storageRootHash == nil {
 		res = types.QueryResStorageProof{Value: []byte{}, Proof: [][]byte{}}
 	} else {
+		// open storage trie base on storage root hash
 		storageTrie, err := keeper.db.OpenTrie(ethcmn.BytesToHash(storageRootHash))
 		if err != nil {
 			return nil, fmt.Errorf("open %s storage trie failed: %s", addr, err.Error())
 		}
 
+		// append key
 		key := ethcmn.HexToHash(path[2])
-		val, err := storageTrie.TryGet(key.Bytes())
+		val, err := storageTrie.TryGet(crypto.Keccak256(append(addr.Bytes(), key.Bytes()...)))
 		if err != nil {
 			return nil, fmt.Errorf("get %s storage in location %s failed: %s", addr, key, err.Error())
 		}
+		// check if value is found
 		if val == nil {
 			res = types.QueryResStorageProof{Value: []byte{}, Proof: [][]byte{}}
 		} else {
@@ -229,19 +220,8 @@ func queryStorageRootHash(ctx sdk.Context, path []string, keeper Keeper, height 
 			"Insufficient parameters, at least 1 parameters is required")
 	}
 
-	// query evm tire root hash based on height
-	evmRootHash := keeper.GetMptRootHash(uint64(height))
-	if evmRootHash == mpt.NilHash {
-		return nil, fmt.Errorf("header %d not found", height)
-	}
-
-	// query storage trie base on address in evmTrie
 	addr := ethcmn.HexToAddress(path[1])
-	evmTrie, err := keeper.db.OpenTrie(evmRootHash)
-	if err != nil {
-		return nil, fmt.Errorf("open evm trie failed: %s", err.Error())
-	}
-	storageRootHash, err := evmTrie.TryGet(authtypes.AddressStoreKey(addr.Bytes()))
+	storageRootHash, err := queryStorageRootBytesInHeight(keeper, addr, height)
 	if err != nil {
 		return nil, fmt.Errorf("get %s storage root hash failed: %s", addr, err.Error())
 	}
@@ -251,6 +231,25 @@ func queryStorageRootHash(ctx sdk.Context, path []string, keeper Keeper, height 
 	} else {
 		return storageRootHash, nil
 	}
+}
+
+func queryStorageRootBytesInHeight(keeper Keeper, addr ethcmn.Address, height int64) ([]byte, error) {
+	// query evm tire root hash based on height
+	evmRootHash := keeper.GetMptRootHash(uint64(height))
+	if evmRootHash == mpt.NilHash {
+		return nil, fmt.Errorf("header %d not found", height)
+	}
+
+	// query storage root hash base on address in evmTrie
+	evmTrie, err := keeper.db.OpenTrie(evmRootHash)
+	if err != nil {
+		return nil, fmt.Errorf("open evm trie failed: %s", err.Error())
+	}
+	storageRootHash, err := evmTrie.TryGet(addr.Bytes())
+	if err != nil {
+		return nil, fmt.Errorf("get %s storage root hash failed: %s", addr, err.Error())
+	}
+	return storageRootHash, nil
 }
 
 func queryCode(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
@@ -339,13 +338,7 @@ func queryAccount(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error)
 	}
 
 	addr := ethcmn.HexToAddress(path[1])
-	account := keeper.accountKeeper.GetAccount(ctx, addr.Bytes())
-	ethAccount, ok := account.(*apptypes.EthAccount)
-	if !ok {
-		return nil, fmt.Errorf("invalid account type for state object: %T", account)
-	}
-
-	res, err := resolveEthAccount(ethAccount)
+	res, err := resolveEthAccount(ctx, keeper, addr)
 	if err != nil {
 		return nil, err
 	}
@@ -356,14 +349,15 @@ func queryAccount(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error)
 	return bz, nil
 }
 
-func resolveEthAccount(ethAccount *apptypes.EthAccount) (*types.QueryResAccount, error) {
+func resolveEthAccount(ctx sdk.Context, k Keeper, addr ethcmn.Address) (*types.QueryResAccount, error) {
 	codeHash := mpt.EmptyCodeHashBytes
+	account := k.accountKeeper.GetAccount(ctx, addr.Bytes())
+	if account == nil {
+		return &types.QueryResAccount{Nonce: uint64(0), CodeHash: codeHash, Balance: "0x0"}, nil
+	}
+	ethAccount := account.(*apptypes.EthAccount)
 	if ethAccount == nil {
-		return &types.QueryResAccount{
-			Nonce:    uint64(0),
-			CodeHash: codeHash,
-			Balance:  "0x0",
-		}, nil
+		return &types.QueryResAccount{Nonce: uint64(0), CodeHash: codeHash, Balance: "0x0"}, nil
 	}
 
 	// get balance

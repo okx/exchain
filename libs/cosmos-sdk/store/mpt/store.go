@@ -125,6 +125,25 @@ func (ms *MptStore) openTrie(id types.CommitID) error {
 	return nil
 }
 
+func (ms *MptStore) GetImmutable(height int64) (*MptStore, error) {
+	db := InstanceOfMptStore()
+	rootHash := ms.GetMptRootHash(uint64(height))
+	tr, err := ms.db.OpenTrie(rootHash)
+	if err != nil {
+		return nil, fmt.Errorf("Fail to open root mpt: " + err.Error())
+	}
+	mptStore := &MptStore{
+		db:           db,
+		trie:         tr,
+		originalRoot: rootHash,
+		exitSignal:   make(chan struct{}),
+		version:      height,
+		startVersion: height,
+	}
+
+	return mptStore, nil
+}
+
 /*
 *  implement KVStore
  */
@@ -143,22 +162,28 @@ func (ms *MptStore) CacheWrapWithTrace(w io.Writer, tc types.TraceContext) types
 }
 
 func (ms *MptStore) Get(key []byte) []byte {
-	if enc := ms.kvCache.Get(nil, key); len(enc) > 0 {
-		return enc
+	if ms.kvCache != nil {
+		if enc := ms.kvCache.Get(nil, key); len(enc) > 0 {
+			return enc
+		}
 	}
 
 	value, err := ms.trie.TryGet(key)
 	if err != nil {
 		return nil
 	}
-	ms.kvCache.Set(key, value)
+	if ms.kvCache != nil && value != nil {
+		ms.kvCache.Set(key, value)
+	}
 
 	return value
 }
 
 func (ms *MptStore) Has(key []byte) bool {
-	if ms.kvCache.Has(key) {
-		return true
+	if ms.kvCache != nil {
+		if ms.kvCache.Has(key) {
+			return true
+		}
 	}
 
 	return ms.Get(key) != nil
@@ -170,8 +195,9 @@ func (ms *MptStore) Set(key, value []byte) {
 	if ms.prefetcher != nil {
 		ms.prefetcher.Used(ms.originalRoot, [][]byte{key})
 	}
-
-	ms.kvCache.Set(key, value)
+	if ms.kvCache != nil {
+		ms.kvCache.Set(key, value)
+	}
 	err := ms.trie.TryUpdate(key, value)
 	if err != nil {
 		return
@@ -184,7 +210,9 @@ func (ms *MptStore) Delete(key []byte) {
 		ms.prefetcher.Used(ms.originalRoot, [][]byte{key})
 	}
 
-	ms.kvCache.Del(key)
+	if ms.kvCache != nil {
+		ms.kvCache.Del(key)
+	}
 	err := ms.trie.TryDelete(key)
 	if err != nil {
 		return
