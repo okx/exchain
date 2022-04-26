@@ -133,3 +133,38 @@ func BenchmarkNode_WriteBytes(b *testing.B) {
 		}
 	})
 }
+
+func BenchmarkNewNode(b *testing.B) {
+	var n *Node
+	b.Run("new", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			n = &Node{}
+		}
+	})
+	b.Run("pool", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			n = newNode()
+		}
+	})
+	b.Run("para", func(b *testing.B) {
+		b.Run("new", func(b *testing.B) {
+			b.ReportAllocs()
+			b.RunParallel(func(pb *testing.PB) {
+				for pb.Next() {
+					n = &Node{}
+				}
+			})
+		})
+		b.Run("pool", func(b *testing.B) {
+			b.ReportAllocs()
+			b.RunParallel(func(pb *testing.PB) {
+				for pb.Next() {
+					n = newNode()
+				}
+			})
+		})
+	})
+	_ = n
+}
