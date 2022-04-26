@@ -734,7 +734,7 @@ func (rs *Store) Query(req abci.RequestQuery) abci.ResponseQuery {
 	}
 
 	if res.Proof == nil || len(res.Proof.Ops) == 0 {
-		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "proof is unexpectedly empty; ensure height has not been pruned"))
+		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, fmt.Sprintf("proof is unexpectedly empty; ensure height has not been pruned. Query log: %s", res.Log)))
 	}
 
 	// If the request's height is the latest height we've committed, then utilize

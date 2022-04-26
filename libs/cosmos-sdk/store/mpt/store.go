@@ -405,14 +405,14 @@ func (ms *MptStore) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrTxDecode, "query cannot be zero length"))
 	}
 
-	height := ms.getHeight(req)
-	res.Height = int64(height)
+	height := req.Height
+	res.Height = height
 
 	// store the height we chose in the response, with 0 being changed to the
 	// latest height
-	trie, err := ms.getTrieByHeight(height)
+	trie, err := ms.getTrieByHeight(uint64(height))
 	if err != nil {
-		res.Log = fmt.Sprintf("trie of height %d doesn't exist: %s", height, err)
+		res.Log = err.Error()
 		return
 	}
 
@@ -467,18 +467,12 @@ func (ms *MptStore) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 	return res
 }
 
-func (ms *MptStore) getHeight(req abci.RequestQuery) uint64 {
-	height := uint64(req.Height)
-	latestStoredBlockHeight := ms.GetLatestStoredBlockHeight()
-	if height == 0 || height > latestStoredBlockHeight {
-		height = latestStoredBlockHeight
-	}
-	return height
-}
-
 // Handle gatest the latest height, if height is 0
 func (ms *MptStore) getTrieByHeight(height uint64) (ethstate.Trie, error) {
 	latestRootHash := ms.GetMptRootHash(height)
+	if latestRootHash == NilHash {
+		return nil, fmt.Errorf("header %d not found", height)
+	}
 	return ms.db.OpenTrie(latestRootHash)
 }
 
