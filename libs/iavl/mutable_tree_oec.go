@@ -383,7 +383,7 @@ func (tree *MutableTree) PreAllChange(setkeys [][]byte, delKeys [][]byte) {
 	if maxNums > keyCount {
 		maxNums = keyCount
 	}
-	if maxNums == 0 {
+	if maxNums < 4 {
 		return
 	}
 
