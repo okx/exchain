@@ -62,14 +62,14 @@ func (am AppModule) ModuleName() string {
 	return ModuleName
 }
 
-func (b AppModule) CommitFilter() *cosmost.StoreFilter {
+func (am AppModule) CommitFilter() *cosmost.StoreFilter {
 	return nil
 }
 
-func (b AppModule) PruneFilter() *cosmost.StoreFilter {
+func (am AppModule) PruneFilter() *cosmost.StoreFilter {
 	return nil
 }
 
-func (b AppModule) VersionFilter() *cosmost.VersionFilter {
+func (am AppModule) VersionFilter() *cosmost.VersionFilter {
 	return nil
 }
