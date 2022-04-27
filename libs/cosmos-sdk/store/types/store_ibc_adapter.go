@@ -16,38 +16,10 @@ const (
 type StoreFilter func(module string, h int64, store CommitKVStore) bool
 type VersionFilter func(h int64) func(func(name string, version int64))
 
-type HeightFilterPipeline func(h int64) func(str string, store CommitKVStore) bool
-type PrunePipeline func(h int64) func(str string) bool
-type VersionFilterPipeline func(h int64) func(func(name string, version int64))
-
-var (
-	DefaultAcceptAll HeightFilterPipeline = func(h int64) func(str string, _ CommitKVStore) bool {
-		return func(_ string, _ CommitKVStore) bool { return false }
-	}
-	PruneDefaultAcceptAll PrunePipeline = func(h int64) func(str string) bool {
-		return func(_ string) bool { return false }
-	}
-	DefaultLoopAll VersionFilterPipeline = func(int64) func(func(string, int64)) {
-		return func(func(string, int64)) {}
-	}
-)
-
 type CommitMultiStorePipeline interface {
 	AppendVersionFilters(filters []VersionFilter)
 	AppendCommitFilters(filters []StoreFilter)
 	AppendPruneFilters(filters []StoreFilter)
-}
-
-func LinkPipeline(f, s HeightFilterPipeline) HeightFilterPipeline {
-	return func(h int64) func(_ string, _ CommitKVStore) bool {
-		filter := f(h)
-		if nil != filter {
-			return func(str string, st CommitKVStore) bool {
-				return filter(str, st) || s(h)(str, st)
-			}
-		}
-		return s(h)
-	}
 }
 
 // CommitmentOp implements merkle.ProofOperator by wrapping an ics23 CommitmentProof
