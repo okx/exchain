@@ -1446,6 +1446,14 @@ func (api *PublicEthereumAPI) GetProof(address common.Address, storageKeys []str
 	if err != nil {
 		return nil, err
 	}
+	if blockNum == rpctypes.LatestBlockNumber {
+		n, err := api.BlockNumber()
+		if err != nil {
+			return nil, err
+		}
+		blockNum = rpctypes.BlockNumber(n)
+	}
+
 	clientCtx := api.clientCtx.WithHeight(int64(blockNum))
 	path := fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryAccount, address.Hex())
 
@@ -1458,7 +1466,7 @@ func (api *PublicEthereumAPI) GetProof(address common.Address, storageKeys []str
 	clientCtx.Codec.MustUnmarshalJSON(resBz, &account)
 
 	// query eth proof storage after MarsHeight
-	if tmtypes.HigherThanMars(int64(blockNum)) || (tmtypes.GetMarsHeight() != 0 && blockNum == 0) {
+	if tmtypes.HigherThanMars(int64(blockNum)) {
 		return api.getStorageProofInMpt(address, storageKeys, int64(blockNum), account)
 	}
 
