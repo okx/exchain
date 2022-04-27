@@ -5,7 +5,6 @@ import (
 	"container/list"
 	"fmt"
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/okex/exchain/libs/iavl/config"
 	"math"
 	"sort"
 	"strings"
