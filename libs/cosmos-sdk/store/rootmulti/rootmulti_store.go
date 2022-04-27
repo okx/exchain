@@ -70,7 +70,6 @@ type Store struct {
 
 	logger tmlog.Logger
 
-	//versionPipeline func(h int64) func(func(name string, version int64))
 	upgradeVersion int64
 
 	commitFilters  []types.StoreFilter
@@ -224,8 +223,7 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 		if err != nil {
 			return 0, err
 		}
-		// filter IBC module {}
-		// TODO ,st 为nil
+		// filter block modules {}
 		if filter(storeParams.key.Name(), commitVersion, nil, rs.commitFilters) {
 			continue
 		}
