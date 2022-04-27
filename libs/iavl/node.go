@@ -67,7 +67,6 @@ func NewNode(key []byte, value []byte, version int64) *Node {
 	return &Node{
 		key:     key,
 		value:   value,
-		height:  0,
 		size:    1,
 		version: version,
 	}
@@ -160,12 +159,10 @@ func (node *Node) clone(version int64) *Node {
 		height:    node.height,
 		version:   version,
 		size:      node.size,
-		hash:      nil,
 		leftHash:  node.leftHash,
 		leftNode:  node.leftNode,
 		rightHash: node.rightHash,
 		rightNode: node.rightNode,
-		persisted: false,
 	}
 }
 
