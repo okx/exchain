@@ -39,7 +39,9 @@ var (
 
 		// ==veneus1
 		if h == types.GetVenus1Height() {
-			store.SetUpgradeVersion(h)
+			if store != nil {
+				store.SetUpgradeVersion(h)
+			}
 			return false
 		}
 
