@@ -548,7 +548,6 @@ func (conR *Reactor) broadcastSignVoteMessage(vote *types.Vote) {
 	}
 
 	go func() {
-		fmt.Println("wg.Wait()")
 		wg.Wait()
 	}()
 

@@ -2110,8 +2110,7 @@ func (cs *State) signAddVote(msgType types.SignedMsgType, hash []byte, header ty
 	vote, err := cs.signVote(msgType, hash, header)
 	if err == nil {
 		//broadcast vote immediately
-		fmt.Println("Fire Sign Vote Event")
-		//cs.evsw.FireEvent(types.EventSignVote, vote)
+		cs.evsw.FireEvent(types.EventSignVote, vote)
 		cs.sendInternalMessage(msgInfo{&VoteMessage{vote}, ""})
 		cs.Logger.Info("Signed and pushed vote", "height", cs.Height, "round", cs.Round, "vote", vote, "err", err)
 		return vote
