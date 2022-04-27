@@ -866,6 +866,15 @@ OUTER_LOOP:
 			//peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
 			conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
 		}
+
+		if vcMsg != nil && rs.Height == vcMsg.Height {
+			// send proposal
+			if rs.Proposal != nil {
+				msg := &ProposalMessage{Proposal: rs.Proposal}
+				peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg))
+			}
+		}
+
 		time.Sleep(conR.conS.config.PeerGossipSleepDuration * 2)
 		continue OUTER_LOOP
 	}
