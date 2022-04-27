@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	cmap "github.com/orcaman/concurrent-map"
@@ -115,9 +116,7 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 	}
 }
 func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) *Node {
-
 	ndb.addNodeReadCount()
-
 	if len(hash) == 0 {
 		panic("nodeDB.GetNode() requires hash")
 	}
@@ -142,8 +141,22 @@ func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) *Node 
 	return nil
 }
 
-func (ndb *nodeDB) getNodeFromDisk(hash []byte, updateCache bool) *Node {
+func (ndb *nodeDB) getNodeFromCache(hash []byte, promoteRecentNode bool) (n *Node) {
+	// Check the cache.
+	ndb.nodeCacheMutex.RLock()
+	elem, ok := ndb.nodeCache[string(hash)]
+	if ok {
+		if promoteRecentNode {
+			// Already exists. Move to back of nodeCacheQueue.
+			ndb.nodeCacheQueue.MoveToBack(elem)
+		}
+		n = elem.Value.(*Node)
+	}
+	ndb.nodeCacheMutex.RUnlock()
+	return
+}
 
+func (ndb *nodeDB) getNodeFromDisk(hash []byte, updateCache bool) *Node {
 	node := ndb.makeNodeFromDbByHash(hash)
 	node.hash = hash
 	node.persisted = true
@@ -544,6 +557,39 @@ func (ndb *nodeDB) traversePrefix(prefix []byte, fn func(k, v []byte)) {
 
 	for ; itr.Valid(); itr.Next() {
 		fn(itr.Key(), itr.Value())
+	}
+}
+
+func (ndb *nodeDB) uncacheNode(hash []byte) {
+	ndb.nodeCacheMutex.Lock()
+	if elem, ok := ndb.nodeCache[string(hash)]; ok {
+		ndb.nodeCacheQueue.Remove(elem)
+		delete(ndb.nodeCache, string(hash))
+	}
+	ndb.nodeCacheMutex.Unlock()
+}
+
+// Add a node to the cache and pop the least recently used node if we've
+// reached the cache size limit.
+func (ndb *nodeDB) cacheNode(node *Node) {
+	ndb.nodeCacheMutex.Lock()
+	elem := ndb.nodeCacheQueue.PushBack(node)
+	ndb.nodeCache[string(node.hash)] = elem
+
+	for ndb.nodeCacheQueue.Len() > config.DynamicConfig.GetIavlCacheSize() {
+		oldest := ndb.nodeCacheQueue.Front()
+		hash := ndb.nodeCacheQueue.Remove(oldest).(*Node).hash
+		delete(ndb.nodeCache, amino.BytesToStr(hash))
+	}
+	ndb.nodeCacheMutex.Unlock()
+}
+
+func (ndb *nodeDB) cacheNodeByCheck(node *Node) {
+	ndb.nodeCacheMutex.RLock()
+	_, ok := ndb.nodeCache[string(node.hash)]
+	ndb.nodeCacheMutex.RUnlock()
+	if !ok {
+		ndb.cacheNode(node)
 	}
 }
 
