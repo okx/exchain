@@ -758,7 +758,7 @@ func (rs *Store) loadCommitStoreFromParams(key types.StoreKey, id types.CommitID
 		if rs.flatKVDB != nil {
 			prefixDB = dbm.NewPrefixDB(rs.flatKVDB, []byte(prefix))
 		}
-		if params.initialVersion == 0 && params.upgradeVersion > 0 {
+		if params.initialVersion == 0 && params.upgradeVersion != 0 {
 			store, err = iavl.LoadStoreWithInitialVersion(db, prefixDB, id, rs.lazyLoading, uint64(tmtypes.GetStartBlockHeight()), params.upgradeVersion)
 		} else if params.initialVersion == 0 {
 			store, err = iavl.LoadStore(db, prefixDB, id, rs.lazyLoading, tmtypes.GetStartBlockHeight())

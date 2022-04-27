@@ -84,7 +84,6 @@ type SimpleBaseUpgradeModule struct {
 	taskExecuteHeight  int64
 	taskExecutedNotify func()
 	appModule          module.AppModuleBasic
-	handler            upgradetypes.HandleStore
 	storeKey           *sdk.KVStoreKey
 }
 
@@ -134,8 +133,8 @@ func (b *SimpleBaseUpgradeModule) VersionFilter() *cosmost.VersionFilter {
 	return nil
 }
 
-func NewSimpleBaseUpgradeModule(t *testing.T, h int64, appModule module.AppModuleBasic, handler upgradetypes.HandleStore, taskExecutedNotify func()) *SimpleBaseUpgradeModule {
-	return &SimpleBaseUpgradeModule{t: t, h: h, appModule: appModule, handler: handler, taskExecutedNotify: taskExecutedNotify, taskExecuteHeight: h + 1}
+func NewSimpleBaseUpgradeModule(t *testing.T, h int64, appModule module.AppModuleBasic, taskExecutedNotify func()) *SimpleBaseUpgradeModule {
+	return &SimpleBaseUpgradeModule{t: t, h: h, appModule: appModule, taskExecutedNotify: taskExecutedNotify, taskExecuteHeight: h + 1}
 }
 
 func (b *SimpleBaseUpgradeModule) ModuleName() string {
@@ -155,12 +154,6 @@ func (b *SimpleBaseUpgradeModule) RegisterTask() upgradetypes.HeightTask {
 
 func (b *SimpleBaseUpgradeModule) UpgradeHeight() int64 {
 	return b.h
-}
-
-func (b *SimpleBaseUpgradeModule) BlockStoreModules() map[string]upgradetypes.HandleStore {
-	return map[string]upgradetypes.HandleStore{
-		b.ModuleName(): b.handler,
-	}
 }
 
 func (b *SimpleBaseUpgradeModule) RegisterParam() params.ParamSet {
@@ -205,10 +198,7 @@ type simpleAppModule struct {
 func newSimpleAppModule(t *testing.T, hh int64, name string, notify func()) *simpleAppModule {
 	ret := &simpleAppModule{}
 	ret.simpleDefaultAppModuleBasic = &simpleDefaultAppModuleBasic{name: name}
-	ret.SimpleBaseUpgradeModule = NewSimpleBaseUpgradeModule(t, hh, ret, func(st cosmost.CommitKVStore, h int64) {
-		require.Equal(t, hh, h)
-		st.SetUpgradeVersion(h)
-	}, notify)
+	ret.SimpleBaseUpgradeModule = NewSimpleBaseUpgradeModule(t, hh, ret, notify)
 	return ret
 }
 

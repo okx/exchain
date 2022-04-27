@@ -53,10 +53,6 @@ func (am AppModule) UpgradeHeight() int64 {
 	return -1
 }
 
-func (am AppModule) BlockStoreModules() map[string]upgrade.HandleStore {
-	return nil
-}
-
 func (am AppModule) RegisterParam() params.ParamSet {
 	v := types.KeyHistoricalEntriesParams(7)
 	return params2.ParamSet(v)
