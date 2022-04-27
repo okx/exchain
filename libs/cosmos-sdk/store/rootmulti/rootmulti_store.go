@@ -1339,8 +1339,11 @@ func (rs *Store) StopStore() {
 	for key, store := range rs.stores {
 		switch store.GetStoreType() {
 		case types.StoreTypeIAVL:
-			filter := rs.commitHeightFilterPipeline(rs.lastCommitInfo.Version)
-			if filter(key.Name()) {
+			//filter := rs.commitHeightFilterPipeline(rs.lastCommitInfo.Version)
+			//if filter(key.Name()) {
+			//	continue
+			//}
+			if filter(key.Name(), rs.lastCommitInfo.Version, nil, rs.commitFilters) {
 				continue
 			}
 			s := store.(*iavl.Store)
