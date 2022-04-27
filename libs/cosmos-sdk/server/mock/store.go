@@ -17,6 +17,10 @@ type multiStore struct {
 	kv map[sdk.StoreKey]kvStore
 }
 
+func (ms multiStore) AppendVersionFilters(filters []store.VersionFilter) {
+	panic("implement me")
+}
+
 func (ms multiStore) SetCommitHeightFilterPipeline(f store.HeightFilterPipeline) {
 	panic("implement me")
 }
