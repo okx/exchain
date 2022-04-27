@@ -545,8 +545,8 @@ func (conR *Reactor) broadcastSignVoteMessage(vote *types.Vote) {
 		go func(p p2p.Peer) {
 			defer wg.Done()
 
-			fmt.Printf("Broadcast proposal to peer,vote.height:%n, vote.signature:%X, vote.time: %v\n",
-				vote.Height, tmbytes.Fingerprint(vote.Signature), vote.Signature, vote.Timestamp)
+			fmt.Printf("Broadcast proposal to peer,vote.height:%d, vote.signature:%X, vote.time: %v\n",
+				vote.Height, tmbytes.Fingerprint(vote.Signature), vote.Timestamp)
 			p.Send(VoteChannel, bytes)
 		}(peer)
 	}
