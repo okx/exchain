@@ -76,6 +76,8 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 
 		gaslimit := uint64(0)
 		decCoins := sdk.DecCoins{}
+		// for verify signature
+		var signFee authtypes.IbcFee
 		if authInfo.Fee != nil {
 			if authInfo.Fee.Amount != nil {
 				for _, fee := range authInfo.Fee.Amount {
@@ -96,6 +98,10 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 				}
 			}
 			gaslimit = authInfo.Fee.GasLimit
+			signFee = authtypes.IbcFee{
+				authInfo.Fee.Amount,
+				authInfo.Fee.GasLimit,
+			}
 		}
 
 		fee := authtypes.StdFee{
@@ -120,7 +126,8 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			)
 		}
 		stdMsgs := []sdk.Msg{}
-		sigMsgs := []sdk.Msg{}
+		// for verify signature
+		signMsgs := []sdk.Msg{}
 		for _, ibcMsg := range ibcTx.Body.Messages {
 			m, ok := ibcMsg.GetCachedValue().(sdk.Msg)
 			if !ok {
@@ -143,7 +150,7 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 				newMsg = m
 			}
 			stdMsgs = append(stdMsgs, newMsg)
-			sigMsgs = append(sigMsgs, m)
+			signMsgs = append(signMsgs, m)
 		}
 
 		var modeInfo *tx.ModeInfo_Single_
@@ -169,11 +176,8 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			raw.AuthInfoBytes,
 			raw.BodyBytes,
 			signMode,
-			authtypes.IbcFee{
-				authInfo.Fee.Amount,
-				authInfo.Fee.GasLimit,
-			},
-			sigMsgs,
+			signFee,
+			signMsgs,
 		}
 
 		return &stx, nil
