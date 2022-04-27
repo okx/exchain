@@ -26,7 +26,7 @@ type cValue struct {
 	dirty   bool
 }
 
-type PreAllChangeHandler func(keys []string, setOrDel []byte)
+type PreChangesHandler func(keys []string, setOrDel []byte)
 
 // Store wraps an in-memory cache around an underlying types.KVStore.
 type Store struct {
@@ -36,7 +36,7 @@ type Store struct {
 	sortedCache   *list.List // always ascending sorted
 	parent        types.KVStore
 
-	preAllChangeHandler PreAllChangeHandler
+	preChangesHandler PreChangesHandler
 }
 
 var _ types.CacheKVStore = (*Store)(nil)
@@ -50,9 +50,9 @@ func NewStore(parent types.KVStore) *Store {
 	}
 }
 
-func NewStoreWithPreChangeHandler(parent types.KVStore, handler PreAllChangeHandler) *Store {
+func NewStoreWithPreChangeHandler(parent types.KVStore, preChangesHandler PreChangesHandler) *Store {
 	s := NewStore(parent)
-	s.preAllChangeHandler = handler
+	s.preChangesHandler = preChangesHandler
 	return s
 }
 
@@ -164,7 +164,7 @@ func (store *Store) Write() {
 }
 
 func (store *Store) preWrite(keys []string) {
-	if store.preAllChangeHandler == nil || len(keys) < 4 {
+	if store.preChangesHandler == nil || len(keys) < 4 {
 		return
 	}
 
@@ -183,7 +183,7 @@ func (store *Store) preWrite(keys []string) {
 		}
 	}
 
-	store.preAllChangeHandler(keys, setOrDel)
+	store.preChangesHandler(keys, setOrDel)
 }
 
 // writeToCacheKv will write cached kv to the parent Store, then clear the cache.
