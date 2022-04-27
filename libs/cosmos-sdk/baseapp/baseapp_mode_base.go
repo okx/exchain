@@ -31,13 +31,13 @@ func (app *BaseApp) getModeHandler(mode runTxMode) modeHandler {
 	case runTxModeTrace:
 		h = &modeHandlerTrace{&modeHandlerDeliver{&modeHandlerBase{mode: mode, app: app}}}
 	case runTxModeDeliver:
+		fallthrough
+	case runTxModeDeliverPartConcurrent:
 		h = &modeHandlerDeliver{&modeHandlerBase{mode: mode, app: app}}
 	case runTxModeSimulate:
 		h = &modeHandlerSimulate{&modeHandlerBase{mode: mode, app: app}}
 	case runTxModeDeliverInAsync:
 		h = &modeHandlerDeliverInAsync{&modeHandlerBase{mode: mode, app: app}}
-	case runTxModeDeliverPartConcurrent:
-		h = &modeHandlerDeliverPartConcurrent{&modeHandlerBase{mode: mode,app: app}}
 	default:
 		h = &modeHandlerBase{mode: mode, app: app}
 	}
@@ -72,10 +72,6 @@ type modeHandlerSimulate struct {
 //modeHandlerTrace derived from modeHandlerDeliver
 type modeHandlerTrace struct {
 	*modeHandlerDeliver
-}
-
-type modeHandlerDeliverPartConcurrent struct {
-	*modeHandlerBase
 }
 
 func (m *modeHandlerBase) getMode() runTxMode {

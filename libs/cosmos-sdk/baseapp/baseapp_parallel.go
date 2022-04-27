@@ -31,6 +31,7 @@ func getTxByteWithIndex(txByte []byte, txIndex int) []byte {
 
 func getRealTxByte(txByteWithIndex []byte) []byte {
 	return txByteWithIndex[:len(txByteWithIndex)-txIndexLen]
+
 }
 
 func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
@@ -59,10 +60,7 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
 }
 
 func (app *BaseApp) paraLoadSender(txs [][]byte) {
-	if app.parallelTxManage == nil {
-		app.parallelTxManage = newParallelTxManager()
-		app.parallelTxManage.workgroup.Start()
-	}
+
 	checkStateCtx := app.checkState.ctx
 	checkStateCtx.SetBlockHeight(app.checkState.ctx.BlockHeight() + 1)
 
@@ -128,6 +126,7 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 	}
 
 	return app.runTxs(txWithIndex)
+
 }
 
 func (app *BaseApp) fixFeeCollector(txString string) {
@@ -178,6 +177,7 @@ func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 				rerunIdx++
 				s.reRun = true
 				res = app.deliverTxWithCache(txs[txIndex])
+
 			}
 			if s.anteErr != nil {
 				res.ms = nil
@@ -217,6 +217,7 @@ func (app *BaseApp) runTxs(txs [][]byte) []*abci.ResponseDeliverTx {
 				deliverTxs[index].Data = v
 			}
 		}
+
 	}
 	return deliverTxs
 }
