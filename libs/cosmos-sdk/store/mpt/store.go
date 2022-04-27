@@ -125,6 +125,25 @@ func (ms *MptStore) openTrie(id types.CommitID) error {
 	return nil
 }
 
+func (ms *MptStore) GetImmutable(height int64) (*MptStore, error) {
+	db := InstanceOfMptStore()
+	rootHash := ms.GetMptRootHash(uint64(height))
+	tr, err := ms.db.OpenTrie(rootHash)
+	if err != nil {
+		return nil, fmt.Errorf("Fail to open root mpt: " + err.Error())
+	}
+	mptStore := &MptStore{
+		db:           db,
+		trie:         tr,
+		originalRoot: rootHash,
+		exitSignal:   make(chan struct{}),
+		version:      height,
+		startVersion: height,
+	}
+
+	return mptStore, nil
+}
+
 /*
 *  implement KVStore
  */
@@ -143,22 +162,28 @@ func (ms *MptStore) CacheWrapWithTrace(w io.Writer, tc types.TraceContext) types
 }
 
 func (ms *MptStore) Get(key []byte) []byte {
-	if enc := ms.kvCache.Get(nil, key); len(enc) > 0 {
-		return enc
+	if ms.kvCache != nil {
+		if enc := ms.kvCache.Get(nil, key); len(enc) > 0 {
+			return enc
+		}
 	}
 
 	value, err := ms.trie.TryGet(key)
 	if err != nil {
 		return nil
 	}
-	ms.kvCache.Set(key, value)
+	if ms.kvCache != nil && value != nil {
+		ms.kvCache.Set(key, value)
+	}
 
 	return value
 }
 
 func (ms *MptStore) Has(key []byte) bool {
-	if ms.kvCache.Has(key) {
-		return true
+	if ms.kvCache != nil {
+		if ms.kvCache.Has(key) {
+			return true
+		}
 	}
 
 	return ms.Get(key) != nil
@@ -170,8 +195,9 @@ func (ms *MptStore) Set(key, value []byte) {
 	if ms.prefetcher != nil {
 		ms.prefetcher.Used(ms.originalRoot, [][]byte{key})
 	}
-
-	ms.kvCache.Set(key, value)
+	if ms.kvCache != nil {
+		ms.kvCache.Set(key, value)
+	}
 	err := ms.trie.TryUpdate(key, value)
 	if err != nil {
 		return
@@ -184,7 +210,9 @@ func (ms *MptStore) Delete(key []byte) {
 		ms.prefetcher.Used(ms.originalRoot, [][]byte{key})
 	}
 
-	ms.kvCache.Del(key)
+	if ms.kvCache != nil {
+		ms.kvCache.Del(key)
+	}
 	err := ms.trie.TryDelete(key)
 	if err != nil {
 		return
@@ -405,14 +433,14 @@ func (ms *MptStore) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrTxDecode, "query cannot be zero length"))
 	}
 
-	height := ms.getHeight(req)
-	res.Height = int64(height)
+	height := req.Height
+	res.Height = height
 
 	// store the height we chose in the response, with 0 being changed to the
 	// latest height
-	trie, err := ms.getTrieByHeight(height)
+	trie, err := ms.getTrieByHeight(uint64(height))
 	if err != nil {
-		res.Log = fmt.Sprintf("trie of height %d doesn't exist: %s", height, err)
+		res.Log = err.Error()
 		return
 	}
 
@@ -467,18 +495,12 @@ func (ms *MptStore) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 	return res
 }
 
-func (ms *MptStore) getHeight(req abci.RequestQuery) uint64 {
-	height := uint64(req.Height)
-	latestStoredBlockHeight := ms.GetLatestStoredBlockHeight()
-	if height == 0 || height > latestStoredBlockHeight {
-		height = latestStoredBlockHeight
-	}
-	return height
-}
-
 // Handle gatest the latest height, if height is 0
 func (ms *MptStore) getTrieByHeight(height uint64) (ethstate.Trie, error) {
 	latestRootHash := ms.GetMptRootHash(height)
+	if latestRootHash == NilHash {
+		return nil, fmt.Errorf("header %d not found", height)
+	}
 	return ms.db.OpenTrie(latestRootHash)
 }
 

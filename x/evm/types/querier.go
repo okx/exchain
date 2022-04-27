@@ -13,6 +13,7 @@ const (
 	QueryBlockNumber   = "blockNumber"
 	QueryStorage       = "storage"
 	QueryStorageProof  = "storageProof"
+	QueryStorageRoot   = "storageRoot"
 	QueryStorageByKey  = "storageKey"
 	QueryCode          = "code"
 	QueryCodeByHash    = "codeHash"

@@ -72,7 +72,7 @@ func iterateEvmMpt(ctx *server.Context) {
 
 		cItr := trie.NewIterator(contractTrie.NodeIterator(nil))
 		for cItr.Next() {
-			fmt.Printf("%s: %s\n", cItr.Key, cItr.Value)
+			fmt.Printf("%s: %s\n", ethcmn.Bytes2Hex(cItr.Key), ethcmn.Bytes2Hex(cItr.Value))
 		}
 	}
 }

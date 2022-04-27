@@ -19,8 +19,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
-
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
@@ -35,6 +33,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
 	cmserver "github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -43,6 +42,7 @@ import (
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
@@ -1446,6 +1446,14 @@ func (api *PublicEthereumAPI) GetProof(address common.Address, storageKeys []str
 	if err != nil {
 		return nil, err
 	}
+	if blockNum == rpctypes.LatestBlockNumber {
+		n, err := api.BlockNumber()
+		if err != nil {
+			return nil, err
+		}
+		blockNum = rpctypes.BlockNumber(n)
+	}
+
 	clientCtx := api.clientCtx.WithHeight(int64(blockNum))
 	path := fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryAccount, address.Hex())
 
@@ -1454,26 +1462,52 @@ func (api *PublicEthereumAPI) GetProof(address common.Address, storageKeys []str
 	if err != nil {
 		return nil, err
 	}
-
-	var account evmtypes.QueryResAccount
+	var account *evmtypes.QueryResAccount
 	clientCtx.Codec.MustUnmarshalJSON(resBz, &account)
 
+	// query eth proof storage after MarsHeight
+	if tmtypes.HigherThanMars(int64(blockNum)) {
+		return api.getStorageProofInMpt(address, storageKeys, int64(blockNum), account)
+	}
+
+	/*
+	 * query cosmos proof before MarsHeight
+	 */
 	storageProofs := make([]rpctypes.StorageResult, len(storageKeys))
 	for i, k := range storageKeys {
-		val, proofList, err := api.getStorageProof(address, common.HexToHash(k).Bytes(), int64(blockNum))
+		data := append(evmtypes.AddressStoragePrefix(address), getStorageByAddressKey(address, common.HexToHash(k).Bytes()).Bytes()...)
+		// Get value for key
+		req := abci.RequestQuery{
+			Path:   fmt.Sprintf("store/%s/key", evmtypes.StoreKey),
+			Data:   data,
+			Height: int64(blockNum),
+			Prove:  true,
+		}
+
+		vRes, err := clientCtx.QueryABCI(req)
 		if err != nil {
 			return nil, err
 		}
 
+		var value evmtypes.QueryResStorage
+		value.Value = vRes.GetValue()
+
+		// check for proof
+		proof := vRes.GetProof()
+		proofStr := new(merkle.Proof).String()
+		if proof != nil {
+			proofStr = proof.String()
+		}
+
 		storageProofs[i] = rpctypes.StorageResult{
 			Key:   k,
-			Value: (*hexutil.Big)(common.BytesToHash(val).Big()),
-			Proof: toHexSlice(proofList),
+			Value: (*hexutil.Big)(common.BytesToHash(value.Value).Big()),
+			Proof: []string{proofStr},
 		}
 	}
 
 	req := abci.RequestQuery{
-		Path:   fmt.Sprintf("store/%s/key", mpt.StoreKey),
+		Path:   fmt.Sprintf("store/%s/key", auth.StoreKey),
 		Data:   auth.AddressStoreKey(sdk.AccAddress(address.Bytes())),
 		Height: int64(blockNum),
 		Prove:  true,
@@ -1485,12 +1519,15 @@ func (api *PublicEthereumAPI) GetProof(address common.Address, storageKeys []str
 	}
 
 	// check for proof
-	var proofList mpt.ProofList
-	clientCtx.Codec.MustUnmarshalBinaryLengthPrefixed(res.GetProof().Ops[0].Data, &proofList)
+	accountProof := res.GetProof()
+	accProofStr := new(merkle.Proof).String()
+	if accountProof != nil {
+		accProofStr = accountProof.String()
+	}
 
 	return &rpctypes.AccountResult{
 		Address:      address,
-		AccountProof: toHexSlice(proofList),
+		AccountProof: []string{accProofStr},
 		Balance:      (*hexutil.Big)(utils.MustUnmarshalBigInt(account.Balance)),
 		CodeHash:     common.BytesToHash(account.CodeHash),
 		Nonce:        hexutil.Uint64(account.Nonce),
@@ -1499,18 +1536,59 @@ func (api *PublicEthereumAPI) GetProof(address common.Address, storageKeys []str
 	}, nil
 }
 
-func (api *PublicEthereumAPI) getStorageProof(address common.Address, key []byte, blockNum int64) ([]byte, [][]byte, error) {
+func (api *PublicEthereumAPI) getStorageProofInMpt(address common.Address, storageKeys []string, blockNum int64, account *evmtypes.QueryResAccount) (*rpctypes.AccountResult, error) {
 	clientCtx := api.clientCtx.WithHeight(blockNum)
 
-	queryStr := fmt.Sprintf("custom/%s/%s/%s/%X", evmtypes.ModuleName, evmtypes.QueryStorageProof, address.Hex(), key)
-	res, _, err := clientCtx.QueryWithData(queryStr, nil)
-	if err != nil {
-		return nil, nil, err
+	// query storage proof
+	storageProofs := make([]rpctypes.StorageResult, len(storageKeys))
+	for i, k := range storageKeys {
+		queryStr := fmt.Sprintf("custom/%s/%s/%s/%X", evmtypes.ModuleName, evmtypes.QueryStorageProof, address.Hex(), common.HexToHash(k).Bytes())
+		res, _, err := clientCtx.QueryWithData(queryStr, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		var out evmtypes.QueryResStorageProof
+		api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
+
+		storageProofs[i] = rpctypes.StorageResult{
+			Key:   k,
+			Value: (*hexutil.Big)(common.BytesToHash(out.Value).Big()),
+			Proof: toHexSlice(out.Proof),
+		}
 	}
 
-	var out evmtypes.QueryResStorageProof
-	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
-	return out.Value, out.Proof, nil
+	// query account proof
+	req := abci.RequestQuery{
+		Path:   fmt.Sprintf("store/%s/key", mpt.StoreKey),
+		Data:   auth.AddressStoreKey(sdk.AccAddress(address.Bytes())),
+		Height: int64(blockNum),
+		Prove:  true,
+	}
+	res, err := clientCtx.QueryABCI(req)
+	if err != nil {
+		return nil, err
+	}
+	var accProofList mpt.ProofList
+	clientCtx.Codec.MustUnmarshalBinaryLengthPrefixed(res.GetProof().Ops[0].Data, &accProofList)
+
+	// query account storage Hash
+	queryStr := fmt.Sprintf("custom/%s/%s/%s/%X", evmtypes.ModuleName, evmtypes.QueryStorageRoot, address.Hex())
+	storageRootBytes, _, err := clientCtx.QueryWithData(queryStr, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// return result
+	return &rpctypes.AccountResult{
+		Address:      address,
+		AccountProof: toHexSlice(accProofList),
+		Balance:      (*hexutil.Big)(utils.MustUnmarshalBigInt(account.Balance)),
+		CodeHash:     common.BytesToHash(account.CodeHash),
+		Nonce:        hexutil.Uint64(account.Nonce),
+		StorageHash:  common.BytesToHash(storageRootBytes),
+		StorageProof: storageProofs,
+	}, nil
 }
 
 // toHexSlice creates a slice of hex-strings based on []byte.
