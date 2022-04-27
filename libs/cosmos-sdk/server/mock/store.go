@@ -18,7 +18,7 @@ type multiStore struct {
 }
 
 func (ms multiStore) AppendVersionFilters(filters []store.VersionFilter) {
-	panic("implement me")
+	panic("not implemented")
 }
 
 func (ms multiStore) CacheMultiStore() sdk.CacheMultiStore {

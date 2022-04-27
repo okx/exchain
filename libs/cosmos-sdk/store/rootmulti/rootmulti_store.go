@@ -265,8 +265,8 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 				}
 			}
 		}
-		f := filterVersion(ver, rs.versionFilters)
-		f(callback)
+		filter := filterVersion(ver, rs.versionFilters)
+		filter(callback)
 
 	}
 
