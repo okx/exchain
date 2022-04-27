@@ -7,7 +7,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 )
 
-type HandleStore func(st store.CommitKVStore, h int64)
 type UpgradeModule interface {
 	RegisterTask() HeightTask
 	UpgradeHeight() int64

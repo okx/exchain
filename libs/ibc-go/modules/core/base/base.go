@@ -11,9 +11,6 @@ import (
 var (
 	_ upgrade.UpgradeModule = (*BaseIBCUpgradeModule)(nil)
 
-	defaultHandleStore upgrade.HandleStore = func(st cosmost.CommitKVStore, h int64) {
-		st.SetUpgradeVersion(h)
-	}
 	ibcMap = map[string]struct{}{
 		"ibc":            struct{}{},
 		"mem_capability": struct{}{},
@@ -100,16 +97,6 @@ func (b *BaseIBCUpgradeModule) RegisterTask() upgrade.HeightTask {
 
 func (b *BaseIBCUpgradeModule) UpgradeHeight() int64 {
 	return types.GetVenus1Height()
-}
-
-func (b *BaseIBCUpgradeModule) BlockStoreModules() map[string]upgrade.HandleStore {
-	return map[string]upgrade.HandleStore{
-		"ibc":            defaultHandleStore,
-		"mem_capability": defaultHandleStore,
-		"capability":     defaultHandleStore,
-		"transfer":       defaultHandleStore,
-		"erc20":          defaultHandleStore,
-	}
 }
 
 func (b *BaseIBCUpgradeModule) CommitFilter() *cosmost.StoreFilter {
