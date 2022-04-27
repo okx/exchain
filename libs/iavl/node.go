@@ -160,12 +160,10 @@ func (node *Node) clone(version int64) *Node {
 		height:    node.height,
 		version:   version,
 		size:      node.size,
-		hash:      nil,
 		leftHash:  node.leftHash,
 		leftNode:  node.leftNode,
 		rightHash: node.rightHash,
 		rightNode: node.rightNode,
-		persisted: false,
 	}
 }
 
