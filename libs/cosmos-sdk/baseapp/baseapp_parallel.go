@@ -59,10 +59,6 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) []*extraDataForTx {
 }
 
 func (app *BaseApp) paraLoadSender(txs [][]byte) {
-	if app.parallelTxManage == nil {
-		app.parallelTxManage = newParallelTxManager()
-		app.parallelTxManage.workgroup.Start()
-	}
 	checkStateCtx := app.checkState.ctx
 	checkStateCtx.SetBlockHeight(app.checkState.ctx.BlockHeight() + 1)
 

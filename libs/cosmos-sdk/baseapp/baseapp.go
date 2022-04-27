@@ -236,6 +236,7 @@ func NewBaseApp(
 		fauxMerkleMode: false,
 		trace:          false,
 
+		parallelTxManage: newParallelTxManager(),
 		chainCache:       sdk.NewChainCache(),
 		txDecoder:        txDecoder,
 		anteTracer:       trace.NewTracer(trace.AnteChainDetail),
@@ -254,6 +255,8 @@ func NewBaseApp(
 		app.cms.SetInterBlockCache(app.interBlockCache)
 	}
 	app.cms.SetLogger(app.logger)
+
+	app.parallelTxManage.workgroup.Start()
 
 	return app
 }
@@ -647,7 +650,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 	if mode == runTxModeSimulate {
 		ctx, _ = ctx.CacheContext()
 	}
-	if mode == runTxModeDeliverInAsync && app.parallelTxManage.isAsyncDeliverTx {
+	if app.parallelTxManage.isAsyncDeliverTx && mode == runTxModeDeliverInAsync {
 		ctx.SetAsync(true)
 		ctx.SetTxBytes(getRealTxByte(txBytes))
 	}
