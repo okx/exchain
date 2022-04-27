@@ -25,7 +25,7 @@ func CoinAdaptersToCoins(adapters types.CoinAdapters) types.Coins {
 }
 
 func CoinsToCoinAdapters(coins types.Coins) types.CoinAdapters {
-	var adapters types.CoinAdapters = make([]types.CoinAdapter, 0)
+	var adapters types.CoinAdapters
 	for i, _ := range coins {
 		adapters = append(adapters, CoinToCoinAdapter(coins[i]))
 	}
