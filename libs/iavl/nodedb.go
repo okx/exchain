@@ -48,7 +48,7 @@ type nodeDB struct {
 	latestVersion  int64
 	nodeCache      map[string]*list.Element // Node cache.
 	nodeCacheSize  int                      // Node cache size limit in elements.
-	nodeCacheQueue *list.List               // LRU queue of cache elements. Used for deletion.
+	nodeCacheQueue *syncList                // LRU queue of cache elements. Used for deletion.
 	nodeCacheMutex sync.RWMutex             // Mutex for node cache.
 
 	orphanNodeCache         map[string]*Node
@@ -99,7 +99,7 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		latestVersion:           0, // initially invalid
 		nodeCache:               makeNodeCacheMap(cacheSize, IavlCacheInitRatio),
 		nodeCacheSize:           cacheSize,
-		nodeCacheQueue:          list.New(),
+		nodeCacheQueue:          newSyncList(),
 		versionReaders:          make(map[int64]uint32, 8),
 		orphanNodeCache:         make(map[string]*Node),
 		heightOrphansCacheQueue: list.New(),
