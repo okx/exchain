@@ -1030,13 +1030,13 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	inputDeltaMap iavltree.TreeDeltaMap, filters []types.StoreFilter) (commitInfo, iavltree.TreeDeltaMap) {
 	var storeInfos []storeInfo
 	outputDeltaMap := iavltree.TreeDeltaMap{}
-
 	for key, store := range storeMap {
 		if filter(key.Name(), version, store, filters) {
 			continue
 		}
 
 		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
+
 		if store.GetStoreType() == types.StoreTypeTransient {
 			continue
 		}
@@ -1336,9 +1336,13 @@ func (src Store) Copy() *Store {
 }
 
 func (rs *Store) StopStore() {
-	for _, store := range rs.stores {
+	for key, store := range rs.stores {
 		switch store.GetStoreType() {
 		case types.StoreTypeIAVL:
+			filter := rs.commitHeightFilterPipeline(rs.lastCommitInfo.Version)
+			if filter(key.Name()) {
+				continue
+			}
 			s := store.(*iavl.Store)
 			s.StopStore()
 		case types.StoreTypeDB:

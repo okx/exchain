@@ -1,8 +1,6 @@
 package app
 
 import (
-	"fmt"
-
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -16,17 +14,18 @@ import (
 // feeCollectorHandler set or get the value of feeCollectorAcc
 func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
 	return func(ctx sdk.Context, balance sdk.Coins) error {
-		return bk.SetCoins(ctx, sk.GetModuleAddress(auth.FeeCollectorName), balance)
+		return bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
 	}
 }
 
 // evmTxFeeHandler get tx fee for evm tx
 func evmTxFeeHandler() sdk.GetTxFeeHandler {
-	return func(ctx sdk.Context, tx sdk.Tx) (fee sdk.Coins, isEvm bool) {
-		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
-			isEvm = true
-			_ = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight())
-
+	return func(ctx sdk.Context, tx sdk.Tx, verifySig bool) (fee sdk.Coins, isEvm bool) {
+		if verifySig {
+			if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
+				isEvm = true
+				_ = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight())
+			}
 		}
 		if feeTx, ok := tx.(authante.FeeTx); ok {
 			fee = feeTx.GetFee()
@@ -43,26 +42,40 @@ func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
 	}
 }
 
-func evmTxVerifySigHandler() sdk.TxVerifySigHandler {
-	return func(ctx sdk.Context, tx sdk.Tx) error {
+func preDeliverTxHandler(ak auth.AccountKeeper) sdk.PreDeliverTxHandler {
+	return func(ctx sdk.Context, tx sdk.Tx, onlyVerifySig bool) {
 		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
-			if evmTx.BaseTx.From != "" {
-				return nil
+			if evmTx.BaseTx.From == "" {
+				if ctx.From() != "" {
+					evmTx.BaseTx.From = ctx.From()
+				}
 			}
-			if ctx.From() != "" {
-				evmTx.BaseTx.From = ctx.From()
-				return nil
+			if evmTx.BaseTx.From == "" {
+				_ = evmTxVerifySigHandler(ctx.ChainID(), ctx.BlockHeight(), evmTx)
 			}
-			chainIDEpoch, err := ethermint.ParseChainID(ctx.ChainID())
-			if err != nil {
-				return err
+
+			if onlyVerifySig {
+				return
 			}
-			err = evmTx.VerifySig(chainIDEpoch, ctx.BlockHeight())
-			if err != nil {
-				return err
+
+			if from := evmTx.AccountAddress(); from != nil {
+				ak.LoadAccount(ctx, from)
 			}
-			return nil
+			if to := evmTx.Data.Recipient; to != nil {
+				ak.LoadAccount(ctx, to.Bytes())
+			}
 		}
-		return fmt.Errorf("tx type is not evm tx")
 	}
+}
+
+func evmTxVerifySigHandler(chainID string, blockHeight int64, evmTx *evmtypes.MsgEthereumTx) error {
+	chainIDEpoch, err := ethermint.ParseChainID(chainID)
+	if err != nil {
+		return err
+	}
+	err = evmTx.VerifySig(chainIDEpoch, blockHeight)
+	if err != nil {
+		return err
+	}
+	return nil
 }

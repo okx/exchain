@@ -2,21 +2,24 @@ package types
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
 )
 
 // query endpoints supported by the staking Querier
 const (
-	QueryValidators          = "validators"
-	QueryValidator           = "validator"
-	QueryUnbondingDelegation = "unbondingDelegation"
-	QueryPool                = "pool"
-	QueryParameters          = "parameters"
-	QueryAddress             = "address"
-	QueryForAddress          = "validatorAddress"
-	QueryForAccAddress       = "validatorAccAddress"
-	QueryProxy               = "proxy"
-	QueryValidatorAllShares  = "validatorAllShares"
-	QueryDelegator           = "delegator"
+	QueryValidators           = "validators"
+	QueryValidator            = "validator"
+	QueryUnbondingDelegation  = "unbondingDelegation"
+	QueryPool                 = "pool"
+	QueryParameters           = "parameters"
+	QueryAddress              = "address"
+	QueryForAddress           = "validatorAddress"
+	QueryForAccAddress        = "validatorAccAddress"
+	QueryProxy                = "proxy"
+	QueryValidatorAllShares   = "validatorAllShares"
+	QueryDelegator            = "delegator"
+	QueryDelegatorDelegations = "delegatorDelegations"
+	QueryUnbondingDelegation2 = "unbondingDelegation2"
 )
 
 // QueryDelegatorParams defines the params for the following queries:
@@ -77,4 +80,25 @@ type QueryValidatorsParams struct {
 // NewQueryValidatorsParams creates a new instance of QueryValidatorsParams
 func NewQueryValidatorsParams(page, limit int, status string) QueryValidatorsParams {
 	return QueryValidatorsParams{page, limit, status}
+}
+
+type QueryDelegatorDelegationsRequest struct {
+	// delegator_addr defines the delegator address to query for.
+	DelegatorAddr string `protobuf:"bytes,1,opt,name=delegator_addr,json=delegatorAddr,proto3" json:"delegator_addr,omitempty"`
+	// pagination defines an optional pagination for the request.
+	Pagination *query.PageRequest `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+}
+
+type QueryDelegatorUnbondingDelegationsRequest struct {
+	// delegator_addr defines the delegator address to query for.
+	DelegatorAddr string `protobuf:"bytes,1,opt,name=delegator_addr,json=delegatorAddr,proto3" json:"delegator_addr,omitempty"`
+	// pagination defines an optional pagination for the request.
+	Pagination *query.PageRequest `protobuf:"bytes,2,opt,name=pagination,proto3" json:"pagination,omitempty"`
+}
+
+type QueryUnbondingDelegationRequest struct {
+	// delegator_addr defines the delegator address to query for.
+	DelegatorAddr string `protobuf:"bytes,1,opt,name=delegator_addr,json=delegatorAddr,proto3" json:"delegator_addr,omitempty"`
+	// validator_addr defines the validator address to query for.
+	ValidatorAddr string `protobuf:"bytes,2,opt,name=validator_addr,json=validatorAddr,proto3" json:"validator_addr,omitempty"`
 }
