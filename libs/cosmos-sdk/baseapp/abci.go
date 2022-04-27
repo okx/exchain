@@ -180,8 +180,7 @@ func (app *BaseApp) UpdateFeeForCollector(fee sdk.Coins, add bool) {
 	}
 }
 
-// EndBlock implements the ABCI interface.
-func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
+func (app *BaseApp) updateFeeCollectorAccount() {
 	if app.updateFeeCollectorAccHandler != nil && app.feeChanged {
 		ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
 		if err := app.updateFeeCollectorAccHandler(ctx, app.feeForCollector); err != nil {
@@ -189,6 +188,11 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 		}
 		cache.Write()
 	}
+}
+
+// EndBlock implements the ABCI interface.
+func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
+	app.updateFeeCollectorAccount()
 
 	if app.deliverState.ms.TracingEnabled() {
 		app.deliverState.ms = app.deliverState.ms.SetTracingContext(nil).(sdk.CacheMultiStore)
