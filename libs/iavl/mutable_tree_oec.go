@@ -53,7 +53,6 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		return nil, version, fmt.Errorf("existing version: %d, root: %X", version, oldRoot)
 	}
 
-	batch := tree.NewBatch()
 	if tree.root != nil {
 		if useDeltas {
 			tree.updateBranchWithDelta(tree.root)
@@ -71,29 +70,29 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		}
 	}
 
-	tree.ndb.SaveOrphans(batch, version, tree.orphans)
-
 	shouldPersist := (version-tree.lastPersistHeight >= CommitIntervalHeight) ||
 		(treeMap.totalPreCommitCacheSize >= MinCommitItemCount)
 
+	rootHash := tree.ImmutableTree.Hash()
 	if shouldPersist {
+		tree.ndb.SaveOrphansAsync(version, tree.orphans)
+		batch := tree.NewBatch()
 		if err := tree.persist(batch, version); err != nil {
 			return nil, 0, err
 		}
+		tree.ndb.setHeightOrphansItem(version, rootHash)
 	} else {
-		batch.Close()
+		tree.ndb.SaveOrphansAndSetHeightOrphansItemAsync(version, tree.orphans, rootHash)
 	}
 
 	// set new working tree
 	tree.ImmutableTree = tree.ImmutableTree.clone()
 	tree.lastSaved = tree.ImmutableTree.clone()
 	tree.orphans = make([]*Node, 0, len(tree.orphans))
+
 	for k := range tree.savedNodes {
 		delete(tree.savedNodes, k)
 	}
-
-	rootHash := tree.lastSaved.Hash()
-	tree.setHeightOrphansItem(version, rootHash)
 
 	tree.version = version
 	if shouldPersist {
