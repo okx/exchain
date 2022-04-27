@@ -120,6 +120,7 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 
 	var err error
 	ndb.lruNodeCache, err = lru.New(config.DynamicConfig.GetIavlCacheSize())
+	ndb.lruNodeCache, err = lru.New(cacheSize)
 	if err != nil {
 		panic(err)
 	}
