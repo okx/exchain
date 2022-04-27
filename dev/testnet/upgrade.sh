@@ -9,7 +9,7 @@ set -m
 
 # set -x # activate debugging
 
-source oec.profile
+source okc.profile
 PRERUN=false
 
 REST_PORT_MAP='{"val0":8545,"val1":8645,"val2":8745,"val3":8845,"rpc4":8945,"rpc5":9045}'
