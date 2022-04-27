@@ -26,7 +26,6 @@ type cValue struct {
 	dirty   bool
 }
 
-type PreChangeHandler func(key []byte, setOrDel byte)
 type PreAllChangeHandler func(keys []string, setOrDel []byte)
 
 // Store wraps an in-memory cache around an underlying types.KVStore.
@@ -37,7 +36,6 @@ type Store struct {
 	sortedCache   *list.List // always ascending sorted
 	parent        types.KVStore
 
-	preChangeHandler    PreChangeHandler
 	preAllChangeHandler PreAllChangeHandler
 }
 
@@ -52,9 +50,8 @@ func NewStore(parent types.KVStore) *Store {
 	}
 }
 
-func NewStoreWithPreChangeHandler(parent types.KVStore, preChangeHandler PreChangeHandler, handler PreAllChangeHandler) *Store {
+func NewStoreWithPreChangeHandler(parent types.KVStore, handler PreAllChangeHandler) *Store {
 	s := NewStore(parent)
-	s.preChangeHandler = preChangeHandler
 	s.preAllChangeHandler = handler
 	return s
 }
@@ -164,11 +161,6 @@ func (store *Store) Write() {
 
 	// Clear the cache
 	store.clearCache()
-}
-
-type preWriteJob struct {
-	key      []byte
-	setOrDel byte
 }
 
 func (store *Store) preWrite(keys []string) {

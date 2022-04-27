@@ -377,7 +377,7 @@ type preWriteJob struct {
 	setOrDel byte
 }
 
-func (tree *MutableTree) PreAllChange(keys []string, setOrDel []byte) {
+func (tree *MutableTree) PreChanges(keys []string, setOrDel []byte) {
 	if tree.root == nil {
 		return
 	}
@@ -429,7 +429,6 @@ func (tree *MutableTree) preChangeWithOutCache(node *Node, key []byte, setOrDel 
 		if bytes.Compare(key, node.key) < 0 {
 			node.leftNode = tree.preGetLeftNode(node)
 			if find = tree.preChangeWithOutCache(node.leftNode, key, setOrDel); (!find && isSet) || (find && !isSet) {
-				// node.getRightNode(tree.ImmutableTree)
 				tree.preGetRightNode(node)
 			}
 		} else {
