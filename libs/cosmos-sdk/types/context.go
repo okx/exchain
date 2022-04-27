@@ -48,6 +48,7 @@ type Context struct {
 	cache              *Cache
 	trc                *trace.Tracer
 	accountCache       *AccountCache
+	txCount            uint32
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -153,6 +154,11 @@ func (c *Context) BlockHeader() abci.Header {
 
 func (c *Context) ConsensusParams() *abci.ConsensusParams {
 	return proto.Clone(c.consParams).(*abci.ConsensusParams)
+}
+
+//TxCount
+func (c *Context) TxCount() uint32 {
+	return c.txCount
 }
 
 // NewContext create a new context
@@ -334,6 +340,11 @@ func (c *Context) SetLogger(logger log.Logger) *Context {
 
 func (c *Context) SetVoteInfos(voteInfo []abci.VoteInfo) *Context {
 	c.voteInfo = voteInfo
+	return c
+}
+
+func (c *Context) SetTxCount(count uint32) *Context {
+	c.txCount = count
 	return c
 }
 

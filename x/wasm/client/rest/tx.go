@@ -102,7 +102,7 @@ func instantiateContractHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc 
 			Sender: req.BaseReq.From,
 			CodeID: codeID,
 			Label:  req.Label,
-			Funds:  types.CoinsToCoinAdapters(req.Deposit),
+			Funds:  sdk.CoinsToCoinAdapters(req.Deposit),
 			Msg:    req.Msg,
 			Admin:  req.Admin,
 		}
@@ -134,7 +134,7 @@ func executeContractHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 			Sender:   req.BaseReq.From,
 			Contract: contractAddr,
 			Msg:      req.ExecMsg,
-			Funds:    types.CoinsToCoinAdapters(req.Amount),
+			Funds:    sdk.CoinsToCoinAdapters(req.Amount),
 		}
 
 		if err := msg.ValidateBasic(); err != nil {

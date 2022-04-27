@@ -4,40 +4,9 @@ import (
 	"context"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+
+	bank "github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 )
-
-func (msg MsgSend) Route() string {
-	return RouterKey
-}
-
-func (msg MsgSend) Type() string {
-	return "bank"
-}
-
-func (msg MsgSend) ValidateBasic() error {
-
-	if _, err := sdk.AccAddressFromBech32(msg.FromAddress); err != nil {
-		return sdkerrors.Wrap(err, "sender")
-	}
-
-	if _, err := sdk.AccAddressFromBech32(msg.ToAddress); err != nil {
-		return sdkerrors.Wrap(err, "to")
-	}
-	return msg.Amount.Validate()
-}
-
-func (msg MsgSend) GetSignBytes() []byte {
-	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&msg))
-}
-
-func (msg MsgSend) GetSigners() []sdk.AccAddress {
-	senderAddr, err := sdk.AccAddressFromBech32(msg.FromAddress)
-	if err != nil { // should never happen as valid basic rejects invalid addresses
-		panic(err.Error())
-	}
-	return []sdk.AccAddress{senderAddr}
-
-}
 
 type BankMsgServer struct {
 	bankKeeper BankKeeper
@@ -47,7 +16,7 @@ func NewBankMsgServer(bankKeeper BankKeeper) *BankMsgServer {
 	return &BankMsgServer{bankKeeper: bankKeeper}
 }
 
-func (bms BankMsgServer) Send(goCtx context.Context, msg *MsgSend) (*MsgSendResponse, error) {
+func (bms BankMsgServer) Send(goCtx context.Context, msg *bank.MsgSendAdapter) (*bank.MsgSendResponseAdapter, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
 	senderAddr, err := sdk.AccAddressFromBech32(msg.FromAddress)
 	if err != nil {
@@ -57,9 +26,14 @@ func (bms BankMsgServer) Send(goCtx context.Context, msg *MsgSend) (*MsgSendResp
 	if err != nil {
 		return nil, sdkerrors.Wrap(err, "to")
 	}
-	coins := CoinAdaptersToCoins(msg.Amount)
+	coins := sdk.CoinAdaptersToCoins(msg.Amount)
 	if err := bms.bankKeeper.SendCoins(ctx, senderAddr, toAddr, coins); err != nil {
 		return nil, sdkerrors.Wrap(err, "send coins")
 	}
-	return &MsgSendResponse{}, nil
+	return &bank.MsgSendResponseAdapter{}, nil
+}
+
+// MultiSend defines a method for sending coins from some accounts to other accounts.
+func (bms BankMsgServer) MultiSend(context.Context, *bank.MsgMultiSendAdapter) (*bank.MsgMultiSendResponseAdapter, error) {
+	return nil, sdkerrors.Wrap(ErrInvalid, "MultiSend is not support")
 }

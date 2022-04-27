@@ -208,7 +208,7 @@ func parseInstantiateArgs(rawCodeID, initMsg string, sender sdk.AccAddress, flag
 		Sender: sender.String(),
 		CodeID: codeID,
 		Label:  label,
-		Funds:  types.CoinsToCoinAdapters(amount),
+		Funds:  sdk.CoinsToCoinAdapters(amount),
 		Msg:    []byte(initMsg),
 		Admin:  adminStr,
 	}
@@ -258,7 +258,7 @@ func parseExecuteArgs(contractAddr string, execMsg string, sender sdk.AccAddress
 	return types.MsgExecuteContract{
 		Sender:   sender.String(),
 		Contract: contractAddr,
-		Funds:    types.CoinsToCoinAdapters(amount),
+		Funds:    sdk.CoinsToCoinAdapters(amount),
 		Msg:      []byte(execMsg),
 	}, nil
 }

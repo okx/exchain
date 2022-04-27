@@ -94,7 +94,6 @@ func (h SDKMessageHandler) handleSdkMessage(ctx sdk.Context, contractAddr sdk.Ad
 	}
 
 	// find the handler and execute it
-	//TODO need to change msg
 	msgUrl := ibcadapter.MsgTypeURL(msg)
 	if handler := h.router.Handler(msgUrl); handler != nil {
 		// ADR 031 request type routing

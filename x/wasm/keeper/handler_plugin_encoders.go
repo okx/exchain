@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	ibcadapter "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	bank "github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
@@ -116,10 +117,11 @@ func EncodeBankMsg(sender sdk.AccAddress, msg *wasmvmtypes.BankMsg) ([]ibcadapte
 	if err != nil {
 		return nil, err
 	}
-	sdkMsg := types.MsgSend{
+
+	sdkMsg := bank.MsgSendAdapter{
 		FromAddress: sender.String(),
 		ToAddress:   toAddress.String(),
-		Amount:      types.CoinsToCoinAdapters(toSend),
+		Amount:      sdk.CoinsToCoinAdapters(toSend),
 	}
 	return []ibcadapter.Msg{&sdkMsg}, nil
 }
@@ -242,7 +244,7 @@ func EncodeWasmMsg(sender sdk.AccAddress, msg *wasmvmtypes.WasmMsg) ([]ibcadapte
 			Sender:   sender.String(),
 			Contract: msg.Execute.ContractAddr,
 			Msg:      msg.Execute.Msg,
-			Funds:    types.CoinsToCoinAdapters(coins),
+			Funds:    sdk.CoinsToCoinAdapters(coins),
 		}
 		return []ibcadapter.Msg{&sdkMsg}, nil
 	case msg.Instantiate != nil:
@@ -257,7 +259,7 @@ func EncodeWasmMsg(sender sdk.AccAddress, msg *wasmvmtypes.WasmMsg) ([]ibcadapte
 			Label:  msg.Instantiate.Label,
 			Msg:    msg.Instantiate.Msg,
 			Admin:  msg.Instantiate.Admin,
-			Funds:  types.CoinsToCoinAdapters(coins),
+			Funds:  sdk.CoinsToCoinAdapters(coins),
 		}
 		return []ibcadapter.Msg{&sdkMsg}, nil
 	case msg.Migrate != nil:

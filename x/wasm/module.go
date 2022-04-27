@@ -2,6 +2,7 @@ package wasm
 
 import (
 	"context"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	"math/rand"
 
 	"github.com/gorilla/mux"
@@ -119,7 +120,7 @@ func NewAppModule(cdc codec.CodecProxy, keeper *Keeper) AppModule {
 func (am AppModule) RegisterServices(cfg module.Configurator) {
 	types.RegisterMsgServer(cfg.MsgServer(), keeper.NewMsgServerImpl(keeper.NewDefaultPermissionKeeper(am.keeper)))
 	bk := am.keeper.GetBankKeeper()
-	types.RegisterBankMsgServer(cfg.MsgServer(), types.NewBankMsgServer(bk))
+	bank.RegisterBankMsgServer(cfg.MsgServer(), types.NewBankMsgServer(bk))
 	types.RegisterQueryServer(cfg.QueryServer(), NewQuerier(am.keeper))
 }
 

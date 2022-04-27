@@ -4,7 +4,9 @@ package bank
 
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/keeper"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/keeperadapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/typesadapter"
 )
 
 const (
@@ -46,19 +48,25 @@ var (
 	NewQueryBalanceParams       = types.NewQueryBalanceParams
 	ModuleCdc                   = types.ModuleCdc
 	ParamStoreKeySendEnabled    = types.ParamStoreKeySendEnabled
+	RegisterBankMsgServer       = typesadapter.RegisterMsgServer
+	NewMsgServerImpl            = keeperadapter.NewMsgServerImpl
 )
 
 type (
-	Keeper             = keeper.Keeper
-	BaseKeeper         = keeper.BaseKeeper
-	SendKeeper         = keeper.SendKeeper
-	BaseSendKeeper     = keeper.BaseSendKeeper
-	ViewKeeper         = keeper.ViewKeeper
-	BaseViewKeeper     = keeper.BaseViewKeeper
-	GenesisState       = types.GenesisState
-	MsgSend            = types.MsgSend
-	MsgMultiSend       = types.MsgMultiSend
-	Input              = types.Input
-	Output             = types.Output
-	QueryBalanceParams = types.QueryBalanceParams
+	Keeper                      = keeper.Keeper
+	BaseKeeper                  = keeper.BaseKeeper
+	SendKeeper                  = keeper.SendKeeper
+	BaseSendKeeper              = keeper.BaseSendKeeper
+	ViewKeeper                  = keeper.ViewKeeper
+	BaseViewKeeper              = keeper.BaseViewKeeper
+	GenesisState                = types.GenesisState
+	MsgSend                     = types.MsgSend
+	MsgMultiSend                = types.MsgMultiSend
+	Input                       = types.Input
+	Output                      = types.Output
+	QueryBalanceParams          = types.QueryBalanceParams
+	MsgMultiSendAdapter         = typesadapter.MsgMultiSend
+	MsgSendAdapter              = typesadapter.MsgSend
+	MsgSendResponseAdapter      = typesadapter.MsgSendResponse
+	MsgMultiSendResponseAdapter = typesadapter.MsgMultiSendResponse
 )
