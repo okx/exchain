@@ -93,8 +93,6 @@ func (ndb *nodeDB) finishPreWriteCache() {
 // =========================================================
 
 
-// Add a node to the cache and pop the least recently used node if we've
-// reached the cache size limit.
 func (ndb *nodeDB) cacheNode(node *Node) {
 	ndb.lruNodeCache.Add(string(node.hash), node)
 }
@@ -114,7 +112,7 @@ func (ndb *nodeDB) getNodeFromCache(hash []byte, promoteRecentNode bool) (n *Nod
 	if promoteRecentNode {
 		res, ok = ndb.lruNodeCache.Get(string(hash))
 	} else {
-		res, ok = ndb.lruNodeCache.Peek(string(hash))
+		res, ok = ndb.lruNodeCache.Get(string(hash))
 	}
 
 	if ok {
