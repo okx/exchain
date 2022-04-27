@@ -3,7 +3,6 @@ package consensus
 import (
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
-	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
 	"reflect"
 	"sync"
 	"time"
@@ -544,9 +543,6 @@ func (conR *Reactor) broadcastSignVoteMessage(vote *types.Vote) {
 	for _, peer := range peers {
 		go func(p p2p.Peer) {
 			defer wg.Done()
-
-			fmt.Printf("Broadcast proposal to peer,vote.height:%d, vote.signature:%X, vote.time: %v\n",
-				vote.Height, tmbytes.Fingerprint(vote.Signature), vote.Timestamp)
 			p.Send(VoteChannel, bytes)
 		}(peer)
 	}
