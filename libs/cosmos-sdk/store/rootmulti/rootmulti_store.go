@@ -1039,8 +1039,8 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 }
 
 func filter(name string, h int64, st types.CommitKVStore, filters []types.StoreFilter) bool {
-	for _, f := range filters {
-		if f(name, h, st) {
+	for _, filter := range filters {
+		if filter(name, h, st) {
 			return true
 		}
 	}
@@ -1048,8 +1048,8 @@ func filter(name string, h int64, st types.CommitKVStore, filters []types.StoreF
 }
 
 func filterVersion(h int64, filters []types.VersionFilter) func(cb func(name string, version int64)) {
-	for _, f := range filters {
-		if c := f(h); c != nil {
+	for _, filter := range filters {
+		if c := filter(h); c != nil {
 			return c
 		}
 	}
