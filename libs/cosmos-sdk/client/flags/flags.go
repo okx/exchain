@@ -261,6 +261,10 @@ func AddTxFlagsToCmd(cmd *cobra.Command) {
 	// --gas can accept integers and "auto"
 
 	cmd.MarkFlagRequired(FlagChainID)
+	cmd.Flags().Uint64Var(&GasFlagVar.Gas, "gas", DefaultGasLimit, fmt.Sprintf(
+		"gas limit to set per-transaction; set to %q to calculate required gas automatically (default %d)",
+		GasFlagAuto, DefaultGasLimit,
+	))
 
 	cmd.SetErr(cmd.ErrOrStderr())
 	cmd.SetOut(cmd.OutOrStdout())

@@ -457,7 +457,6 @@ func NewOKExChainApp(
 		wasmDir,
 		wasmConfig,
 		supportedFeatures,
-		nil,
 	)
 
 	// NOTE: Any module instantiated in the module manager that is later modified
