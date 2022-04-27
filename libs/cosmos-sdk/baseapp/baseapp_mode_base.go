@@ -74,10 +74,6 @@ type modeHandlerTrace struct {
 	*modeHandlerDeliver
 }
 
-type modeHandlerDeliverPartConcurrent struct {
-	*modeHandlerBase
-}
-
 func (m *modeHandlerBase) getMode() runTxMode {
 	return m.mode
 }
