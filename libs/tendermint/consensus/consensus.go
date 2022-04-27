@@ -977,6 +977,7 @@ func (cs *State) enterNewRoundWithVal(height int64, round int, val *types.Valida
 	// Setup new round
 	// we don't fire newStep for this step,
 	// but we fire an event, so update the round step first
+	cs.updateRoundStep(round, cstypes.RoundStepNewRound)
 	cs.Validators.Proposer = val
 	if cs.Votes.Round() == 0 {
 		cs.Votes.SetRound(1) // also track next round (round+1) to allow round-skipping
