@@ -21,18 +21,6 @@ func (ms multiStore) AppendVersionFilters(filters []store.VersionFilter) {
 	panic("implement me")
 }
 
-func (ms multiStore) SetCommitHeightFilterPipeline(f store.HeightFilterPipeline) {
-	panic("implement me")
-}
-
-func (ms multiStore) SetPruneHeightFilterPipeline(f store.PrunePipeline) {
-	panic("implement me")
-}
-
-func (ms multiStore) SetVersionFilterPipeline(f store.VersionFilterPipeline) {
-	panic("implement me")
-}
-
 func (ms multiStore) CacheMultiStore() sdk.CacheMultiStore {
 	panic("not implemented")
 }
