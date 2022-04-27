@@ -220,7 +220,7 @@ func (c *Cache) Write(updateDirty bool) {
 func (c *Cache) writeStorage(updateDirty bool) {
 	for addr, storages := range c.storageMap {
 		if _, ok := c.parent.storageMap[addr]; !ok {
-			c.parent.storageMap[addr] = make(map[ethcmn.Hash]*storageWithCache, len(storages))
+			c.parent.storageMap[addr] = make(map[ethcmn.Hash]*storageWithCache, 0)
 		}
 
 		for key, v := range storages {
@@ -229,9 +229,7 @@ func (c *Cache) writeStorage(updateDirty bool) {
 			}
 		}
 	}
-	for key := range c.storageMap {
-		delete(c.storageMap, key)
-	}
+	c.storageMap = make(map[ethcmn.Address]map[ethcmn.Hash]*storageWithCache)
 }
 
 func (c *Cache) setAcc(addr ethcmn.Address, v *accountWithCache) {
