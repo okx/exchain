@@ -10,6 +10,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/x/wasm/client/cli"
 	"github.com/okex/exchain/x/wasm/keeper"
 	"github.com/okex/exchain/x/wasm/types"
 	"github.com/spf13/cast"
@@ -37,11 +38,11 @@ func (b AppModuleBasic) ValidateGenesis(message json.RawMessage) error {
 }
 
 func (b AppModuleBasic) GetTxCmdV2(cdc *codec.CodecProxy, reg cdctypes.InterfaceRegistry) *cobra.Command {
-	return nil
+	return cli.NewTxCmd(cdc, reg)
 }
 
 func (b AppModuleBasic) GetQueryCmdV2(cdc *codec.CodecProxy, reg cdctypes.InterfaceRegistry) *cobra.Command {
-	return nil
+	return cli.NewQueryCmd(cdc, reg)
 }
 
 func (b AppModuleBasic) RegisterRouterForGRPC(cliCtx clictx.CLIContext, r *mux.Router) {
