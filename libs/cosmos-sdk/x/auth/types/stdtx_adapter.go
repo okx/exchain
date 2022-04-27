@@ -33,23 +33,6 @@ type IbcFee struct {
 	Gas    uint64           `json:"gas" yaml:"gas"`
 }
 
-func feeToIBCFeeBytes(fee StdFee) []byte {
-	var ibcFee IbcFee
-	ibcFee.Gas = fee.Gas
-	for _, coin := range fee.Amount {
-		ibcCoin := sdk.CoinAdapter{
-			Denom:  coin.Denom,
-			Amount: coin.Amount.TruncateInt(),
-		}
-		ibcFee.Amount = append(ibcFee.Amount, ibcCoin)
-	}
-	bz, err := ModuleCdc.MarshalJSON(ibcFee)
-	if err != nil {
-		return nil
-	}
-	return bz
-}
-
 func (tx *IbcTx) GetSignBytes(ctx sdk.Context, acc exported.Account) []byte {
 	genesis := ctx.BlockHeight() == 0
 	chainID := ctx.ChainID()
