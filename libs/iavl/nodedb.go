@@ -77,7 +77,6 @@ type nodeDB struct {
 }
 
 func makeNodeCacheMap(cacheSize int, initRatio float64) map[string]*list.Element {
-	// return cmap.New()
 	if initRatio <= 0 {
 		return make(map[string]*list.Element)
 	}
