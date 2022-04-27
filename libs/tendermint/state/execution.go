@@ -20,6 +20,25 @@ import (
 )
 
 //-----------------------------------------------------------------------------
+type (
+	// Enum mode for executing [deliverTx, ...]
+	DeliverTxsExecMode int
+)
+
+const (
+	deliverTxsExecModeSerial         DeliverTxsExecMode = iota // execute [deliverTx,...] sequentially
+	deliverTxsExecModePartConcurrent                           // execute [deliverTx,...] partially-concurrent
+	deliverTxsExecModeParallel                                 // execute [deliverTx,...] parallel
+
+	// There are three modes.
+	// 0: execute [deliverTx,...] sequentially (default)
+	// 1: execute [deliverTx,...] partially-concurrent
+	// 2: execute [deliverTx,...] parallel
+	FlagDeliverTxsExecMode = "deliver-txs-mode"
+
+	FlagDeliverTxsConcurrentNum = "deliver-txs-concurrent-num"
+)
+
 // BlockExecutor handles block execution and state updates.
 // It exposes ApplyBlock(), which validates & executes the block, updates state w/ ABCI responses,
 // then commits and updates the mempool atomically, then saves state.
@@ -48,7 +67,8 @@ type BlockExecutor struct {
 
 	prerunCtx *prerunContext
 
-	isFastSync bool
+	isFastSync         bool
+	deliverTxsExecMode DeliverTxsExecMode
 }
 
 type BlockExecutorOption func(executor *BlockExecutor)
@@ -79,6 +99,7 @@ func NewBlockExecutor(
 		metrics:      NopMetrics(),
 		prerunCtx:    newPrerunContex(logger),
 		deltaContext: newDeltaContext(logger),
+		deliverTxsExecMode: DeliverTxsExecMode(viper.GetInt(FlagDeliverTxsExecMode)),
 	}
 
 	for _, option := range options {
@@ -88,6 +109,10 @@ func NewBlockExecutor(
 	res.deltaContext.init()
 
 	return res
+}
+
+func (blockExec *BlockExecutor) SetDeliverTxsMode(mode int) {
+	blockExec.deliverTxsExecMode = DeliverTxsExecMode(mode)
 }
 
 func (blockExec *BlockExecutor) DB() dbm.DB {
@@ -280,9 +305,15 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 				db:       blockExec.db,
 				proxyApp: blockExec.proxyApp,
 			}
-			if cfg.DynamicConfig.GetParalleledTxEnable() {
+			// todo: if cfg.DynamicConfig.GetParalleledTxEnable() {
+			switch blockExec.deliverTxsExecMode {
+			case deliverTxsExecModeSerial:
+				abciResponses, err = execBlockOnProxyApp(ctx)
+			case deliverTxsExecModePartConcurrent:
+				abciResponses, err = execBlockOnProxyAppPartConcurrent(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
+			case deliverTxsExecModeParallel:
 				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
-			} else {
+			default:
 				abciResponses, err = execBlockOnProxyApp(ctx)
 			}
 		}

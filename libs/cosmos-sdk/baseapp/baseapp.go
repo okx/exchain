@@ -10,11 +10,10 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-
 	"github.com/okex/exchain/libs/tendermint/trace"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
@@ -32,12 +31,13 @@ import (
 )
 
 const (
-	runTxModeCheck          runTxMode = iota // Check a transaction
-	runTxModeReCheck                         // Recheck a (pending) transaction after a commit
-	runTxModeSimulate                        // Simulate a transaction
-	runTxModeDeliver                         // Deliver a transaction
-	runTxModeDeliverInAsync                  //Deliver a transaction in Aysnc
-	runTxModeTrace                           // Trace a transaction
+	runTxModeCheck                 runTxMode = iota // Check a transaction
+	runTxModeReCheck                                // Recheck a (pending) transaction after a commit
+	runTxModeSimulate                               // Simulate a transaction
+	runTxModeDeliver                                // Deliver a transaction
+	runTxModeDeliverInAsync                         // Deliver a transaction in Aysnc
+	runTxModeDeliverPartConcurrent                  // Deliver a transaction partial concurrent
+	runTxModeTrace                                  // Trace a transaction
 	runTxModeWrappedCheck
 
 	// MainStoreKey is the string representation of the main store
@@ -104,6 +104,8 @@ func (m runTxMode) String() (res string) {
 		res = "ModeSimulate"
 	case runTxModeDeliver:
 		res = "ModeDeliver"
+	case runTxModeDeliverPartConcurrent:
+		res = "ModeDeliverPartConcurrent"
 	case runTxModeDeliverInAsync:
 		res = "ModeDeliverInAsync"
 	case runTxModeWrappedCheck:
@@ -146,6 +148,8 @@ type BaseApp struct { // nolint: maligned
 	getTxFee                     sdk.GetTxFeeHandler
 	updateFeeCollectorAccHandler sdk.UpdateFeeCollectorAccHandler
 	logFix                       sdk.LogFix
+
+	getTxFeeAndFromHandler sdk.GetTxFeeAndFromHandler
 
 	// volatile states:
 	//
@@ -190,7 +194,7 @@ type BaseApp struct { // nolint: maligned
 	endLog recordHandle
 
 	parallelTxManage *parallelTxManager
-
+	deliverTxsMgr    *DTTManager
 	feeForCollector sdk.Coins
 
 	chainCache *sdk.Cache
@@ -619,7 +623,7 @@ func validateBasicTxMsgs(msgs []sdk.Msg) error {
 // Returns the applications's deliverState if app is in runTxModeDeliver,
 // otherwise it returns the application's checkstate.
 func (app *BaseApp) getState(mode runTxMode) *state {
-	if mode == runTxModeDeliver || mode == runTxModeDeliverInAsync {
+	if mode == runTxModeDeliver || mode == runTxModeDeliverInAsync || mode == runTxModeDeliverPartConcurrent {
 		return app.deliverState
 	}
 
@@ -651,7 +655,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 		ctx.SetTxBytes(txBytes)
 	}
 
-	if mode == runTxModeDeliver {
+	if mode == runTxModeDeliver || mode == runTxModeDeliverPartConcurrent {
 		ctx.SetDeliver()
 	}
 

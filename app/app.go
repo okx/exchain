@@ -293,6 +293,7 @@ func NewOKExChainApp(
 	app.AccountKeeper = auth.NewAccountKeeper(
 		codecProxy.GetCdc(), keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
 	)
+	app.AccountKeeper.SetObserverKeeper(app)
 
 	bankKeeper := bank.NewBaseKeeperWithMarshal(
 		&app.AccountKeeper, codecProxy, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
@@ -530,6 +531,8 @@ func NewOKExChainApp(
 	app.SetAccHandler(NewAccHandler(app.AccountKeeper))
 	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), evmTxFeeHandler(), fixLogForParallelTxHandler(app.EvmKeeper))
 	app.SetPreDeliverTxHandler(preDeliverTxHandler(app.AccountKeeper))
+	app.SetPartialConcurrentHandlers(getTxFeeAndFromHandler(app.AccountKeeper))
+
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
 		if err != nil {

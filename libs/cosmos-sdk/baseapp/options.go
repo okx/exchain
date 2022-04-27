@@ -178,3 +178,10 @@ func (app *BaseApp) SetPreDeliverTxHandler(handler sdk.PreDeliverTxHandler) {
 	}
 	app.preDeliverTxHandler = handler
 }
+
+func (app *BaseApp) SetPartialConcurrentHandlers(etf sdk.GetTxFeeAndFromHandler){
+	if app.sealed {
+		panic("SetPartialConcurrentHandlers() on sealed BaseApp")
+	}
+	app.getTxFeeAndFromHandler = etf
+}
