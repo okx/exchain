@@ -8,6 +8,11 @@ import (
 	"github.com/okex/exchain/x/wasm/types"
 )
 
+type HandlerOption struct {
+	WasmConfig        *types.WasmConfig
+	TXCounterStoreKey sdk.StoreKey
+}
+
 // CountTXDecorator ante handler to count the tx position in a block.
 type CountTXDecorator struct {
 	storeKey sdk.StoreKey
