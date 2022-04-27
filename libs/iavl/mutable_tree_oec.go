@@ -50,7 +50,6 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		return nil, version, fmt.Errorf("existing version: %d, root: %X", version, oldRoot)
 	}
 
-	batch := tree.NewBatch()
 	if tree.root != nil {
 		if useDeltas {
 			tree.updateBranchWithDelta(tree.root)
@@ -68,17 +67,16 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		}
 	}
 
-	tree.ndb.SaveOrphans(batch, version, tree.orphans)
+	tree.ndb.SaveOrphansAsync(version, tree.orphans)
 
 	shouldPersist := (version-tree.lastPersistHeight >= CommitIntervalHeight) ||
 		(treeMap.totalPreCommitCacheSize >= MinCommitItemCount)
 
 	if shouldPersist {
+		batch := tree.NewBatch()
 		if err := tree.persist(batch, version); err != nil {
 			return nil, 0, err
 		}
-	} else {
-		batch.Close()
 	}
 
 	// set new working tree

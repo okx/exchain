@@ -43,28 +43,32 @@ func (ndb *nodeDB) SaveOrphans(batch dbm.Batch, version int64, orphans []*Node) 
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
 
-	if EnableAsyncCommit {
-		ndb.log(IavlDebug, "saving orphan node to OrphanCache", "size", len(orphans))
-		version--
-		atomic.AddInt64(&ndb.totalOrphanCount, int64(len(orphans)))
-		orphansObj := ndb.heightOrphansMap[version]
-		if orphansObj != nil {
-			orphansObj.orphans = orphans
-		}
-		for _, node := range orphans {
-			ndb.orphanNodeCache[string(node.hash)] = node
-			delete(ndb.prePersistNodeCache, amino.BytesToStr(node.hash))
-			node.leftNode = nil
-			node.rightNode = nil
-		}
-		go ndb.uncacheNodeRontine(orphans)
-	} else {
-		toVersion := ndb.getPreviousVersion(version)
-		for _, node := range orphans {
-			ndb.log(IavlDebug, "SAVEORPHAN", "version", node.version, "toVersion", toVersion, "hash", amino.BytesHexStringer(node.hash))
-			ndb.saveOrphan(batch, node.hash, node.version, toVersion)
-		}
+	toVersion := ndb.getPreviousVersion(version)
+	for _, node := range orphans {
+		ndb.log(IavlDebug, "SAVEORPHAN", "version", node.version, "toVersion", toVersion, "hash", amino.BytesHexStringer(node.hash))
+		ndb.saveOrphan(batch, node.hash, node.version, toVersion)
 	}
+}
+
+func (ndb *nodeDB) SaveOrphansAsync(version int64, orphans []*Node) {
+	ndb.log(IavlDebug, "saving orphan node to OrphanCache", "size", len(orphans))
+	version--
+	atomic.AddInt64(&ndb.totalOrphanCount, int64(len(orphans)))
+
+	ndb.mtx.Lock()
+	defer ndb.mtx.Unlock()
+
+	orphansObj := ndb.heightOrphansMap[version]
+	if orphansObj != nil {
+		orphansObj.orphans = orphans
+	}
+	for _, node := range orphans {
+		ndb.orphanNodeCache[string(node.hash)] = node
+		delete(ndb.prePersistNodeCache, amino.BytesToStr(node.hash))
+		node.leftNode = nil
+		node.rightNode = nil
+	}
+	go ndb.uncacheNodeRontine(orphans)
 }
 
 func (ndb *nodeDB) setHeightOrphansItem(version int64, rootHash []byte) {
