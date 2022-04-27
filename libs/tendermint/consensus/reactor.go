@@ -534,7 +534,8 @@ func (conR *Reactor) broadcastHasVoteMessage(vote *types.Vote) {
 	*/
 }
 func (conR *Reactor) broadcastSignVoteMessage(vote *types.Vote) {
-	bytes := cdc.MustMarshalBinaryBare(vote)
+	msg := &VoteMessage{vote}
+	bytes := cdc.MustMarshalBinaryBare(msg)
 
 	peers := conR.Switch.Peers().List()
 	var wg sync.WaitGroup
@@ -544,7 +545,7 @@ func (conR *Reactor) broadcastSignVoteMessage(vote *types.Vote) {
 		go func(p p2p.Peer) {
 			defer wg.Done()
 
-			fmt.Printf("Broadcast proposal to peer,vote.height:%n, vote.signature, vote.time: %v\n",
+			fmt.Printf("Broadcast proposal to peer,vote.height:%n, vote.signature:%X, vote.time: %v\n",
 				vote.Height, tmbytes.Fingerprint(vote.Signature), vote.Signature, vote.Timestamp)
 			p.Send(VoteChannel, bytes)
 		}(peer)

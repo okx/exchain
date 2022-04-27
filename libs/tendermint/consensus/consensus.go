@@ -752,6 +752,7 @@ func (cs *State) handleMsg(mi msgInfo) {
 		// attempt to add the vote and dupeout the validator if its a duplicate signature
 		// if the vote gives us a 2/3-any or 2/3-one, we transition
 		added, err = cs.tryAddVote(msg.Vote, peerID)
+		fmt.Printf("Get Vote Msg:%X\n", tmbytes.Fingerprint(msg.Vote.Signature))
 		if added {
 			cs.statsMsgQueue <- mi
 		}
@@ -2111,7 +2112,7 @@ func (cs *State) signAddVote(msgType types.SignedMsgType, hash []byte, header ty
 	vote, err := cs.signVote(msgType, hash, header)
 	if err == nil {
 		//broadcast vote immediately
-		fmt.Println("Create vote", vote.Height, tmbytes.Fingerprint(vote.Signature), vote.Timestamp)
+		fmt.Printf("Create vote, height:%n, signature:%X\n", vote.Height, tmbytes.Fingerprint(vote.Signature))
 		cs.evsw.FireEvent(types.EventSignVote, vote)
 		cs.sendInternalMessage(msgInfo{&VoteMessage{vote}, ""})
 		cs.Logger.Info("Signed and pushed vote", "height", cs.Height, "round", cs.Round, "vote", vote, "err", err)
