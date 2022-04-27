@@ -3,6 +3,7 @@ package consensus
 import (
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
+	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
 	"reflect"
 	"sync"
 	"time"
@@ -476,6 +477,11 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		func(data tmevents.EventData) {
 			conR.broadcastHasVoteMessage(data.(*types.Vote))
 		})
+
+	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventSignVote,
+		func(data tmevents.EventData) {
+			conR.broadcastSignVoteMessage(data.(*types.Vote))
+		})
 }
 
 func (conR *Reactor) unsubscribeFromBroadcastEvents() {
@@ -527,7 +533,28 @@ func (conR *Reactor) broadcastHasVoteMessage(vote *types.Vote) {
 		}
 	*/
 }
+func (conR *Reactor) broadcastSignVoteMessage(vote *types.Vote) {
+	bytes := cdc.MustMarshalBinaryBare(vote)
 
+	peers := conR.Switch.Peers().List()
+	var wg sync.WaitGroup
+	wg.Add(len(peers))
+
+	for _, peer := range peers {
+		go func(p p2p.Peer) {
+			defer wg.Done()
+
+			fmt.Printf("Broadcast proposal to peer,vote.height:%n, vote.signature, vote.time: %v\n",
+				vote.Height, tmbytes.Fingerprint(vote.Signature), vote.Signature, vote.Timestamp)
+			p.Send(VoteChannel, bytes)
+		}(peer)
+	}
+
+	go func() {
+		wg.Wait()
+	}()
+
+}
 func makeRoundStepMessage(rs *cstypes.RoundState) (nrsMsg *NewRoundStepMessage) {
 	nrsMsg = &NewRoundStepMessage{
 		Height:                rs.Height,
