@@ -275,20 +275,7 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	// load each Store (note this doesn't panic on unmounted keys now)
 	var newStores = make(map[types.StoreKey]types.CommitKVStore)
 	for key, storeParams := range rs.storesParams {
-		// below venus1Height when restart app, no need to load ibc module versions
-		//f := rs.commitHeightFilterPipeline(ver)
-		//if f(key.Name()) {
-		//	continue
-		//}
-
 		commitID := rs.getCommitID(infos, key.Name())
-
-		//if key.Name() == "ibc" || key.Name() == "capability" || key.Name() == "mem_capability" || key.Name() == "transfer" || key.Name() == "erc20" {
-		//	param, exist := rs.storesParams[key]
-		//	if exist {
-		//		param.upgradeVersion = uint64(tmtypes.GetVenus1Height())
-		//	}
-		//}
 
 		// If it has been added, set the initial version
 		if upgrades.IsAdded(key.Name()) {
