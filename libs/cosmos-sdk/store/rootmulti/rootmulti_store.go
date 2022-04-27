@@ -101,7 +101,6 @@ func NewStore(db dbm.DB) *Store {
 		pruneHeights:   make([]int64, 0),
 		versions:       make([]int64, 0),
 		upgradeVersion: -1,
-		commitFilters:  make([]types.StoreFilter, 0),
 	}
 
 	return ret
