@@ -112,7 +112,7 @@ func (ndb *nodeDB) getNodeFromCache(hash []byte, promoteRecentNode bool) (n *Nod
 	if promoteRecentNode {
 		res, ok = ndb.lruNodeCache.Get(string(hash))
 	} else {
-		res, ok = ndb.lruNodeCache.Get(string(hash))
+		res, ok = ndb.lruNodeCache.Peek(string(hash))
 	}
 
 	if ok {
