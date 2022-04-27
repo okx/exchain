@@ -78,10 +78,10 @@ func (q QueryHandler) GasConsumed() uint64 {
 type CustomQuerier func(ctx sdk.Context, request json.RawMessage) ([]byte, error)
 
 type QueryPlugins struct {
-	Bank     func(ctx sdk.Context, request *wasmvmtypes.BankQuery) ([]byte, error)
-	Custom   CustomQuerier
-	IBC      func(ctx sdk.Context, caller sdk.AccAddress, request *wasmvmtypes.IBCQuery) ([]byte, error)
-	Staking  func(ctx sdk.Context, request *wasmvmtypes.StakingQuery) ([]byte, error)
+	Bank   func(ctx sdk.Context, request *wasmvmtypes.BankQuery) ([]byte, error)
+	Custom CustomQuerier
+	//IBC      func(ctx sdk.Context, caller sdk.AccAddress, request *wasmvmtypes.IBCQuery) ([]byte, error)
+	//Staking  func(ctx sdk.Context, request *wasmvmtypes.StakingQuery) ([]byte, error)
 	Stargate func(ctx sdk.Context, request *wasmvmtypes.StargateQuery) ([]byte, error)
 	Wasm     func(ctx sdk.Context, request *wasmvmtypes.WasmQuery) ([]byte, error)
 }
@@ -108,7 +108,7 @@ func DefaultQueryPlugins(
 	return QueryPlugins{
 		Bank:   BankQuerier(bank),
 		Custom: NoCustomQuerier,
-		IBC:    IBCQuerier(wasm, channelKeeper),
+		//IBC:    IBCQuerier(wasm, channelKeeper),
 		//Staking:  StakingQuerier(staking, distKeeper),
 		Stargate: StargateQuerier(queryRouter),
 		Wasm:     WasmQuerier(wasm),
@@ -126,12 +126,12 @@ func (e QueryPlugins) Merge(o *QueryPlugins) QueryPlugins {
 	if o.Custom != nil {
 		e.Custom = o.Custom
 	}
-	if o.IBC != nil {
-		e.IBC = o.IBC
-	}
-	if o.Staking != nil {
-		e.Staking = o.Staking
-	}
+	//if o.IBC != nil {
+	//	e.IBC = o.IBC
+	//}
+	//if o.Staking != nil {
+	//	e.Staking = o.Staking
+	//}
 	if o.Stargate != nil {
 		e.Stargate = o.Stargate
 	}
@@ -150,12 +150,12 @@ func (e QueryPlugins) HandleQuery(ctx sdk.Context, caller sdk.AccAddress, reques
 	if request.Custom != nil {
 		return e.Custom(ctx, request.Custom)
 	}
-	if request.IBC != nil {
-		return e.IBC(ctx, caller, request.IBC)
-	}
-	if request.Staking != nil {
-		return e.Staking(ctx, request.Staking)
-	}
+	//if request.IBC != nil {
+	//	return e.IBC(ctx, caller, request.IBC)
+	//}
+	//if request.Staking != nil {
+	//	return e.Staking(ctx, request.Staking)
+	//}
 	if request.Stargate != nil {
 		return e.Stargate(ctx, request.Stargate)
 	}

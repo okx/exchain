@@ -60,11 +60,13 @@ type Keeper struct {
 	accountKeeper         types.AccountKeeper
 	bank                  CoinTransferrer
 	portKeeper            types.PortKeeper
+	bankKeeperAdapter     types.BankKeeper
 	capabilityKeeper      types.CapabilityKeeper
 	wasmVM                types.WasmerEngine
 	wasmVMQueryHandler    WasmVMQueryHandler
 	wasmVMResponseHandler WasmVMResponseHandler
 	messenger             Messenger
+
 	// queryGasLimit is the max wasmvm gas that can be spent on executing a query with a contract
 	queryGasLimit uint64
 	paramSpace    paramtypes.Subspace
@@ -102,17 +104,18 @@ func NewKeeper(
 	}
 
 	keeper := &Keeper{
-		storeKey:         storeKey,
-		cdc:              cdc,
-		wasmVM:           wasmer,
-		accountKeeper:    accountKeeper,
-		bank:             NewBankCoinTransferrer(bankKeeper),
-		portKeeper:       portKeeper,
-		capabilityKeeper: capabilityKeeper,
-		messenger:        NewDefaultMessageHandler(router, channelKeeper, capabilityKeeper, cdc.GetProtocMarshal(), portSource),
-		queryGasLimit:    wasmConfig.SmartQueryGasLimit,
-		paramSpace:       paramSpace,
-		gasRegister:      NewDefaultWasmGasRegister(),
+		storeKey:          storeKey,
+		cdc:               cdc,
+		wasmVM:            wasmer,
+		accountKeeper:     accountKeeper,
+		bank:              NewBankCoinTransferrer(bankKeeper),
+		portKeeper:        portKeeper,
+		capabilityKeeper:  capabilityKeeper,
+		messenger:         NewDefaultMessageHandler(router, channelKeeper, capabilityKeeper, cdc.GetProtocMarshal(), portSource),
+		queryGasLimit:     wasmConfig.SmartQueryGasLimit,
+		paramSpace:        paramSpace,
+		gasRegister:       NewDefaultWasmGasRegister(),
+		bankKeeperAdapter: bankKeeper,
 	}
 	keeper.wasmVMQueryHandler = DefaultQueryPlugins(bankKeeper, channelKeeper, queryRouter, keeper)
 	for _, o := range opts {
@@ -949,6 +952,10 @@ func (k Keeper) importContract(ctx sdk.Context, contractAddr sdk.AccAddress, c *
 
 func (k Keeper) newQueryHandler(ctx sdk.Context, contractAddress sdk.AccAddress) QueryHandler {
 	return NewQueryHandler(ctx, k.wasmVMQueryHandler, contractAddress, k.gasRegister)
+}
+
+func (k Keeper) GetBankKeeper() types.BankKeeper {
+	return k.bankKeeperAdapter
 }
 
 // MultipliedGasMeter wraps the GasMeter from context and multiplies all reads by out defined multiplier
