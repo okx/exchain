@@ -14,7 +14,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 )
 
-type ParseAppTxHandler func(cdc *codec.Codec, txBytes []byte) (sdk.Tx, error)
+type ParseAppTxHandler func(cdc *codec.CodecProxy, txBytes []byte) (sdk.Tx, error)
 
 var paresAppTx ParseAppTxHandler
 
@@ -69,7 +69,7 @@ func QueryTxsByEvents(cliCtx context.CLIContext, events []string, page, limit in
 		return nil, err
 	}
 
-	txs, err := formatTxResults(cliCtx.Codec, resTxs.Txs, resBlocks)
+	txs, err := formatTxResults(cliCtx.CodecProy, resTxs.Txs, resBlocks)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func QueryTx(cliCtx context.CLIContext, hashHexStr string) (sdk.TxResponse, erro
 		return sdk.TxResponse{}, err
 	}
 
-	out, err := formatTxResult(cliCtx.Codec, resTx, resBlocks[resTx.Height])
+	out, err := formatTxResult(cliCtx.CodecProy, resTx, resBlocks[resTx.Height])
 	if err != nil {
 		return out, err
 	}
@@ -122,7 +122,7 @@ func QueryTx(cliCtx context.CLIContext, hashHexStr string) (sdk.TxResponse, erro
 }
 
 // formatTxResults parses the indexed txs into a slice of TxResponse objects.
-func formatTxResults(cdc *codec.Codec, resTxs []*ctypes.ResultTx, resBlocks map[int64]*ctypes.ResultBlock) ([]sdk.TxResponse, error) {
+func formatTxResults(cdc *codec.CodecProxy, resTxs []*ctypes.ResultTx, resBlocks map[int64]*ctypes.ResultBlock) ([]sdk.TxResponse, error) {
 	var err error
 	out := make([]sdk.TxResponse, len(resTxs))
 	for i := range resTxs {
@@ -172,7 +172,7 @@ func getBlocksForTxResults(cliCtx context.CLIContext, resTxs []*ctypes.ResultTx)
 	return resBlocks, nil
 }
 
-func formatTxResult(cdc *codec.Codec, resTx *ctypes.ResultTx, resBlock *ctypes.ResultBlock) (sdk.TxResponse, error) {
+func formatTxResult(cdc *codec.CodecProxy, resTx *ctypes.ResultTx, resBlock *ctypes.ResultBlock) (sdk.TxResponse, error) {
 	tx, err := parseTx(cdc, resTx.Tx)
 	if err != nil {
 		return sdk.TxResponse{}, err
@@ -181,9 +181,8 @@ func formatTxResult(cdc *codec.Codec, resTx *ctypes.ResultTx, resBlock *ctypes.R
 	return sdk.NewResponseResultTx(resTx, tx, resBlock.Block.Time.Format(time.RFC3339)), nil
 }
 
-func parseTx(cdc *codec.Codec, txBytes []byte) (sdk.Tx, error) {
+func parseTx(cdc *codec.CodecProxy, txBytes []byte) (sdk.Tx, error) {
 	var tx types.StdTx
-
 	err := cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
 	if err != nil && paresAppTx != nil {
 		return paresAppTx(cdc, txBytes)
