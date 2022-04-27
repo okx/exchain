@@ -2,7 +2,9 @@ package wasm
 
 import (
 	"context"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
 	"math/rand"
 
 	"github.com/gorilla/mux"
@@ -27,6 +29,7 @@ var (
 	_ module.AppModuleAdapter      = AppModule{}
 	_ module.AppModuleBasicAdapter = AppModuleBasic{}
 	_ module.AppModuleSimulation   = AppModule{}
+	_ upgrade.UpgradeModule        = AppModule{}
 )
 
 // Module init related flags
@@ -98,6 +101,7 @@ func (b AppModuleBasic) RegisterInterfaces(registry cdctypes.InterfaceRegistry) 
 // AppModule implements an application module for the wasm module.
 type AppModule struct {
 	AppModuleBasic
+	*base.BaseIBCUpgradeModule
 	cdc    codec.CodecProxy
 	keeper *Keeper
 }

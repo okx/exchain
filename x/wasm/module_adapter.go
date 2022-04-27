@@ -8,6 +8,7 @@ import (
 	cdctypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/wasm/keeper"
 	"github.com/okex/exchain/x/wasm/types"
@@ -69,6 +70,25 @@ func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
 	gs := ExportGenesis(ctx, am.keeper)
 	return ModuleCdc.MustMarshalJSON(gs)
+}
+
+func (am AppModule) RegisterTask() upgrade.HeightTask {
+	return upgrade.NewHeightTask(
+		0, func(ctx sdk.Context) error {
+			if am.Sealed() {
+				return nil
+			}
+			data := am.cdc.GetCdc().MustMarshalJSON(&GenesisState{
+				Params: DefaultParams(),
+			})
+			am.InitGenesis(ctx, data)
+			return nil
+		})
+}
+
+func (am AppModule) UpgradeHeight() int64 {
+	//TODO need upgrade Height
+	return 0
 }
 
 // ReadWasmConfig reads the wasm specifig configuration
