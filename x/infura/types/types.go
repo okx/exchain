@@ -94,7 +94,7 @@ type TransactionLog struct {
 	gorm.Model
 	Address              string `gorm:"type:varchar(42);index;not null"`
 	Data                 string `gorm:"type:varchar(256)"`
-	TransactionHash      string `gorm:"type:varchar(66);index;not null"`
+	TransactionHash      string `gorm:"type:varchar(66)"`
 	TransactionIndex     uint64 `gorm:"type:int(11)"`
 	LogIndex             uint64 `gorm:"type:int(11)"`
 	BlockHash            string `gorm:"type:varchar(66);index;not null"`
@@ -107,6 +107,6 @@ type LogTopic struct {
 	gorm.Model
 	//TransactionHash string `gorm:"type:varchar(66);index;not null"`
 	//LogIndex        uint64 `gorm:"index;not null"`
-	Topic            string `gorm:"type:varchar(66);index;not null"`
+	Topic            string `gorm:"type:varchar(66)"`
 	TransactionLogID uint
 }
