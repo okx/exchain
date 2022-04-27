@@ -67,7 +67,6 @@ func NewNode(key []byte, value []byte, version int64) *Node {
 	return &Node{
 		key:     key,
 		value:   value,
-		height:  0,
 		size:    1,
 		version: version,
 	}
