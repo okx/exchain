@@ -29,7 +29,8 @@ func (so *stateObject) deepCopyMpt(db *CommitStateDB) *stateObject {
 		newStateObj.trie = db.db.CopyTrie(so.trie)
 	}
 
-	newStateObj.code = so.code
+	newStateObj.code = make(types.Code, len(so.code))
+	copy(newStateObj.code, so.code)
 	newStateObj.dirtyStorage = so.dirtyStorage.Copy()
 	newStateObj.originStorage = so.originStorage.Copy()
 	newStateObj.pendingStorage = so.pendingStorage.Copy()
