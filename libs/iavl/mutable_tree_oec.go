@@ -368,3 +368,44 @@ func (tree *MutableTree) preChange(node *Node, key []byte, setOrDel byte) (find 
 		return
 	}
 }
+
+func (tree *MutableTree) makeOrphansSliceReady() []*Node {
+	maxOrphansNum := int(tree.Height()) + 3
+	if cap(tree.readableOrphansSlice) < maxOrphansNum {
+		tree.readableOrphansSlice = make([]*Node, 0, maxOrphansNum)
+	} else {
+		tree.readableOrphansSlice = tree.readableOrphansSlice[:0]
+	}
+	return tree.readableOrphansSlice
+}
+
+func (tree *MutableTree) setWithOrphansSlice(key []byte, value []byte, orphans *[]*Node) (updated bool) {
+	if value == nil {
+		panic(fmt.Sprintf("Attempt to store nil value at key '%s'", key))
+	}
+
+	if tree.ImmutableTree.root == nil {
+		tree.ImmutableTree.root = NewNode(key, value, tree.version+1)
+		return updated
+	}
+
+	tree.ImmutableTree.root, updated = tree.recursiveSet(tree.ImmutableTree.root, key, value, orphans)
+	return updated
+}
+
+func (tree *MutableTree) removeWithOrphansSlice(key []byte, orphaned *[]*Node) (value []byte, removed bool) {
+	if tree.root == nil {
+		return nil, false
+	}
+	newRootHash, newRoot, _, value := tree.recursiveRemove(tree.root, key, orphaned)
+	if len(*orphaned) == 0 {
+		return nil, false
+	}
+
+	if newRoot == nil && newRootHash != nil {
+		tree.root = tree.ndb.GetNode(newRootHash)
+	} else {
+		tree.root = newRoot
+	}
+	return value, true
+}
