@@ -1573,7 +1573,7 @@ func (api *PublicEthereumAPI) getStorageProofInMpt(address common.Address, stora
 	clientCtx.Codec.MustUnmarshalBinaryLengthPrefixed(res.GetProof().Ops[0].Data, &accProofList)
 
 	// query account storage Hash
-	queryStr := fmt.Sprintf("custom/%s/%s/%s/%X", evmtypes.ModuleName, evmtypes.QueryStorageRoot, address.Hex())
+	queryStr := fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryStorageRoot, address.Hex())
 	storageRootBytes, _, err := clientCtx.QueryWithData(queryStr, nil)
 	if err != nil {
 		return nil, err
