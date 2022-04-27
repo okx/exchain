@@ -61,7 +61,7 @@ func (ndb *nodeDB) uncacheNodeRontine(n []*Node) {
 	}
 }
 
-func (ndb *nodeDB) InitPreWriteCache() {
+func (ndb *nodeDB) initPreWriteCache() {
 	if ndb.preWriteNodeCache == nil {
 		ndb.preWriteNodeCache = cmap.New()
 	}

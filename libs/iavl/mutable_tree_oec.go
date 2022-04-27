@@ -357,7 +357,7 @@ func (tree *MutableTree) PreChanges(keys []string, setOrDel []byte) {
 		return
 	}
 
-	tree.ndb.InitPreWriteCache()
+	tree.ndb.initPreWriteCache()
 
 	txJobChan := make(chan preWriteJob, keyCount)
 	var wg sync.WaitGroup
