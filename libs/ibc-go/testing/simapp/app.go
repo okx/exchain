@@ -802,10 +802,13 @@ func (app *SimApp) setupUpgradeModules() {
 	}
 }
 
+func (o *SimApp) TxConfig() client.TxConfig {
+	return o.txconfig
+}
+
 func (o *SimApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgradetypes.HeightTasks,
 	map[string]params.ParamSet, []types.StoreFilter, []types.StoreFilter, []types.VersionFilter) {
 	hm := make(map[int64]*upgradetypes.HeightTasks)
-	//hStoreInfoModule := make(map[int64]map[string]upgradetypes.HandleStore)
 	paramsRet := make(map[string]params.ParamSet)
 	commitFiltreMap := make(map[*types.StoreFilter]struct{})
 	pruneFilterMap := make(map[*types.StoreFilter]struct{})
@@ -877,11 +880,5 @@ func (o *SimApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgradetyp
 		versionFilters = append(versionFilters, *pointerFilter)
 	}
 
-	//commitPip, prunePip, versionPip := collectStorePipeline(hStoreInfoModule)
-
 	return hm, paramsRet, commitFilters, pruneFilters, versionFilters
-}
-
-func (o *SimApp) TxConfig() client.TxConfig {
-	return o.txconfig
 }
