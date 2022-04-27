@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
+	lru "github.com/hashicorp/golang-lru"
+	"github.com/okex/exchain/libs/iavl/config"
 	"math"
 	"sort"
 	"strings"
 	"sync"
 
-	"github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	cmap "github.com/orcaman/concurrent-map"
@@ -47,6 +48,9 @@ type nodeDB struct {
 	versionReaders map[int64]uint32 // Number of active version readers
 
 	latestVersion  int64
+
+	lruNodeCache   *lru.Cache
+
 	nodeCache      map[string]*list.Element // Node cache.
 	nodeCacheSize  int                      // Node cache size limit in elements.
 	nodeCacheQueue *syncList                // LRU queue of cache elements. Used for deletion.
@@ -92,7 +96,7 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		o := DefaultOptions()
 		opts = &o
 	}
-	return &nodeDB{
+	ndb := &nodeDB{
 		db:                      db,
 		opts:                    *opts,
 		latestVersion:           0, // initially invalid
@@ -113,7 +117,16 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		name:                    ParseDBName(db),
 		preWriteNodeCache:       cmap.New(),
 	}
+
+	var err error
+	ndb.lruNodeCache, err = lru.New(config.DynamicConfig.GetIavlCacheSize())
+	if err != nil {
+		panic(err)
+	}
+
+	return ndb
 }
+
 func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) *Node {
 	ndb.addNodeReadCount()
 	if len(hash) == 0 {
@@ -140,20 +153,6 @@ func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) *Node 
 	return nil
 }
 
-func (ndb *nodeDB) getNodeFromCache(hash []byte, promoteRecentNode bool) (n *Node) {
-	// Check the cache.
-	ndb.nodeCacheMutex.RLock()
-	elem, ok := ndb.nodeCache[string(hash)]
-	if ok {
-		if promoteRecentNode {
-			// Already exists. Move to back of nodeCacheQueue.
-			ndb.nodeCacheQueue.MoveToBack(elem)
-		}
-		n = elem.Value.(*Node)
-	}
-	ndb.nodeCacheMutex.RUnlock()
-	return
-}
 
 func (ndb *nodeDB) getNodeFromDisk(hash []byte, updateCache bool) *Node {
 	node := ndb.makeNodeFromDbByHash(hash)
@@ -559,38 +558,6 @@ func (ndb *nodeDB) traversePrefix(prefix []byte, fn func(k, v []byte)) {
 	}
 }
 
-func (ndb *nodeDB) uncacheNode(hash []byte) {
-	ndb.nodeCacheMutex.Lock()
-	if elem, ok := ndb.nodeCache[string(hash)]; ok {
-		ndb.nodeCacheQueue.Remove(elem)
-		delete(ndb.nodeCache, string(hash))
-	}
-	ndb.nodeCacheMutex.Unlock()
-}
-
-// Add a node to the cache and pop the least recently used node if we've
-// reached the cache size limit.
-func (ndb *nodeDB) cacheNode(node *Node) {
-	ndb.nodeCacheMutex.Lock()
-	elem := ndb.nodeCacheQueue.PushBack(node)
-	ndb.nodeCache[string(node.hash)] = elem
-
-	for ndb.nodeCacheQueue.Len() > config.DynamicConfig.GetIavlCacheSize() {
-		oldest := ndb.nodeCacheQueue.Front()
-		hash := ndb.nodeCacheQueue.Remove(oldest).(*Node).hash
-		delete(ndb.nodeCache, amino.BytesToStr(hash))
-	}
-	ndb.nodeCacheMutex.Unlock()
-}
-
-func (ndb *nodeDB) cacheNodeByCheck(node *Node) {
-	ndb.nodeCacheMutex.RLock()
-	_, ok := ndb.nodeCache[string(node.hash)]
-	ndb.nodeCacheMutex.RUnlock()
-	if !ok {
-		ndb.cacheNode(node)
-	}
-}
 
 // Write to disk.
 func (ndb *nodeDB) Commit(batch dbm.Batch) error {
