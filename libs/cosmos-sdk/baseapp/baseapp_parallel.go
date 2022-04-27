@@ -2,7 +2,6 @@ package baseapp
 
 import (
 	"bytes"
-	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -22,7 +21,7 @@ type extraDataForTx struct {
 	fee       sdk.Coins
 	isEvm     bool
 	from      string
-	to        *ethcommon.Address
+	to        string
 	stdTx     sdk.Tx
 	decodeErr error
 }
@@ -73,14 +72,13 @@ func Find(x string) string {
 }
 
 // Union from and to
-func Union(x string, y *ethcommon.Address) {
+func Union(x string, yString string) {
 	if _, ok := rootAddr[x]; !ok {
 		rootAddr[x] = x
 	}
-	if y == nil {
+	if yString == "" {
 		return
 	}
-	yString := y.String()
 	if _, ok := rootAddr[yString]; !ok {
 		rootAddr[yString] = yString
 	}

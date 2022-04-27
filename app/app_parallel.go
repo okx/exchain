@@ -1,7 +1,6 @@
 package app
 
 import (
-	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -22,13 +21,16 @@ func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCo
 // evmTxFeeHandler get tx fee for evm tx
 func evmTxFeeHandler() sdk.GetTxFeeHandler {
 
-	return func(ctx sdk.Context, tx sdk.Tx, verifySig bool) (fee sdk.Coins, isEvm bool, from string, to *ethcmn.Address) {
+	return func(ctx sdk.Context, tx sdk.Tx, verifySig bool) (fee sdk.Coins, isEvm bool, from string, to string) {
 		if verifySig {
 			if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
 				isEvm = true
 				_ = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight())
 				from = evmTx.BaseTx.From
-				to = evmTx.To()
+				to = ""
+				if evmTx.To() != nil {
+					to = evmTx.To().String()
+				}
 			}
 		}
 		if feeTx, ok := tx.(authante.FeeTx); ok {
