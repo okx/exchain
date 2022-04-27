@@ -29,11 +29,11 @@ func (ms multiStore) CacheMultiStoreWithVersion(_ int64) (sdk.CacheMultiStore, e
 	panic("not implemented")
 }
 func (rs multiStore) AppendCommitFilters(filters []store.StoreFilter) {
-	panic("imple me ")
+	panic("not implemented")
 }
 
 func (rs multiStore) AppendPruneFilters(filters []store.StoreFilter) {
-	panic("impe me ")
+	panic("not implemented")
 }
 
 func (ms multiStore) CacheWrap() sdk.CacheWrap {
