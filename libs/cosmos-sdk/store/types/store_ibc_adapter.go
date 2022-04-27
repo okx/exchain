@@ -50,32 +50,6 @@ func LinkPipeline(f, s HeightFilterPipeline) HeightFilterPipeline {
 	}
 }
 
-func LinkPrunePipeline(f, s PrunePipeline) PrunePipeline {
-	return func(h int64) func(_ string) bool {
-		filter := f(h)
-		if nil != filter {
-			return func(str string) bool {
-				return filter(str) || s(h)(str)
-			}
-		}
-		return s(h)
-	}
-}
-
-//with callback
-func LinkPipeline2(f, s VersionFilterPipeline) VersionFilterPipeline {
-	return func(h int64) func(func(key string, version int64)) {
-		hook := f(h)
-		if nil != hook {
-			return func(f func(key string, version int64)) {
-				hook(f)
-				s(h)(f)
-			}
-		}
-		return s(h)
-	}
-}
-
 // CommitmentOp implements merkle.ProofOperator by wrapping an ics23 CommitmentProof
 // It also contains a Key field to determine which key the proof is proving.
 // NOTE: CommitmentProof currently can either be ExistenceProof or NonexistenceProof
