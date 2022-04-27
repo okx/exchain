@@ -93,7 +93,7 @@ type TransactionReceipt struct {
 type TransactionLog struct {
 	gorm.Model
 	Address              string `gorm:"type:varchar(42);index;not null"`
-	Data                 string `gorm:"type:varchar(256)"`
+	Data                 string `gorm:"type:text"`
 	TransactionHash      string `gorm:"type:varchar(66)"`
 	TransactionIndex     uint64 `gorm:"type:int(11)"`
 	LogIndex             uint64 `gorm:"type:int(11)"`
