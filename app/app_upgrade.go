@@ -32,7 +32,6 @@ func (app *OKExChainApp) setupUpgradeModules() {
 func (o *OKExChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgradetypes.HeightTasks,
 	map[string]params.ParamSet, []types.StoreFilter, []types.StoreFilter, []types.VersionFilter) {
 	hm := make(map[int64]*upgradetypes.HeightTasks)
-	//hStoreInfoModule := make(map[int64]map[string]upgradetypes.HandleStore)
 	paramsRet := make(map[string]params.ParamSet)
 	commitFiltreMap := make(map[*types.StoreFilter]struct{})
 	pruneFilterMap := make(map[*types.StoreFilter]struct{})
@@ -103,8 +102,6 @@ func (o *OKExChainApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgr
 	for pointerFilter, _ := range versionFilterMap {
 		versionFilters = append(versionFilters, *pointerFilter)
 	}
-
-	//commitPip, prunePip, versionPip := collectStorePipeline(hStoreInfoModule)
 
 	return hm, paramsRet, commitFilters, pruneFilters, versionFilters
 }
