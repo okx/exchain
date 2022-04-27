@@ -29,6 +29,7 @@ const (
 	dttRoutineStepFinished
 
 	keepAliveIntervalMS = 5
+	maxConcurrentCount = 4
 )
 
 type DeliverTxTask struct {
@@ -62,7 +63,7 @@ type RunAnteFn func(task *DeliverTxTask) error
 type dttRoutine struct {
 	done        chan int8
 	task        *DeliverTxTask
-	txByte      chan []byte
+	txByteCh    chan []byte
 	txIndex     int
 	rerunCh     chan int8
 	index       int8
@@ -94,13 +95,13 @@ func (dttr *dttRoutine) makeNewTask(txByte []byte, index int) {
 	dttr.step = dttRoutineStepStart
 	dttr.txIndex = index
 	dttr.needToRerun = false
-	dttr.txByte <- txByte
+	dttr.txByteCh <- txByte
 }
 
 func (dttr *dttRoutine) start() {
 	dttr.done = make(chan int8)
-	dttr.txByte = make(chan []byte, 3)
-	dttr.rerunCh = make(chan int8, 5)
+	dttr.txByteCh = make(chan []byte, maxConcurrentCount)
+	dttr.rerunCh = make(chan int8, maxConcurrentCount)
 	dttr.step = dttRoutineStepNone
 	go dttr.executeTaskRoutine()
 }
@@ -115,10 +116,10 @@ func (dttr *dttRoutine) executeTaskRoutine() {
 	for {
 		select {
 		case <-dttr.done:
-			close(dttr.txByte)
+			close(dttr.txByteCh)
 			close(dttr.rerunCh)
 			return
-		case tx := <-dttr.txByte:
+		case tx := <-dttr.txByteCh:
 			dttr.task = dttr.basicProFn(tx, dttr.txIndex)
 			dttr.task.routineIndex = dttr.index
 			if dttr.task.err == nil {
@@ -229,7 +230,7 @@ type DTTManager struct {
 func NewDTTManager(app *BaseApp) *DTTManager {
 	dttm := &DTTManager{
 		app:              app,
-		maxConcurrentNum: 4,
+		maxConcurrentNum: maxConcurrentCount,
 	}
 	conNum := viper.GetInt(sm.FlagDeliverTxsConcurrentNum)
 	if conNum > 0 {
@@ -351,9 +352,6 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 	task.info.ctx.SetCache(sdk.NewCache(dttm.app.blockCache, useCache(runTxModeDeliverPartConcurrent))) // one cache for a tx
 
 	err := dttm.runAnte(task)
-	//if err != nil {
-	//	dttm.app.logger.Error("anteFailed", "index", task.index, "err", err)
-	//}
 	task.err = err
 
 	if task.canRerun > 0 {
@@ -401,7 +399,6 @@ func (dttm *DTTManager) runAnte(task *DeliverTxTask) error {
 	var anteCtx sdk.Context
 	anteCtx, info.msCacheAnte = dttm.app.cacheTxContext(info.ctx, info.txBytes)
 	anteCtx.SetEventManager(sdk.NewEventManager())
-	//anteCtx = anteCtx.WithAnteTracer(dm.app.anteTracer)
 
 	newCtx, err := dttm.app.anteHandler(anteCtx, info.tx, false) // NewAnteHandler
 
@@ -567,8 +564,8 @@ func (dttm *DTTManager) serialExecution() {
 			resp = sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, dttm.app.trace)
 		} else {
 			resp = abci.ResponseDeliverTx{
-				GasWanted: int64(info.gInfo.GasWanted), // TODO: Should type accept unsigned ints?
-				GasUsed:   int64(info.gInfo.GasUsed),   // TODO: Should type accept unsigned ints?
+				GasWanted: int64(info.gInfo.GasWanted),
+				GasUsed:   int64(info.gInfo.GasUsed),
 				Log:       info.result.Log,
 				Data:      info.result.Data,
 				Events:    info.result.Events.ToABCIEvents(),
@@ -590,9 +587,6 @@ func (dttm *DTTManager) serialExecution() {
 	dttm.app.pin(RunMsg, true, mode)
 	err = handler.handleRunMsg(info)
 	dttm.app.pin(RunMsg, false, mode)
-	//if err != nil {
-	//dttm.app.logger.Error("RunMsgFailed.", "err", err)
-	//}
 }
 
 func (dttm *DTTManager) serialHandleBeforeRunMsg(info *runTxInfo) error {
