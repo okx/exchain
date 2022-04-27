@@ -72,8 +72,7 @@ type nodeDB struct {
 
 	name string
 
-	preWriteNodeCache     cmap.ConcurrentMap
-	preWriteNodeCacheFlag int32
+	preWriteNodeCache cmap.ConcurrentMap
 }
 
 func makeNodeCacheMap(cacheSize int, initRatio float64) map[string]*list.Element {
