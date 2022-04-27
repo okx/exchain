@@ -137,6 +137,7 @@ func (ndb *nodeDB) saveNodeToPrePersistCache(node *Node) {
 	if node.persisted || node.prePersisted {
 		panic("Shouldn't be calling save on an already persisted node.")
 	}
+
 	node.prePersisted = true
 	ndb.mtx.Lock()
 	ndb.prePersistNodeCache[string(node.hash)] = node
