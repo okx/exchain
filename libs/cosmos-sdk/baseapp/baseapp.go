@@ -252,8 +252,6 @@ func NewBaseApp(
 	}
 	app.cms.SetLogger(app.logger)
 
-	app.parallelTxManage.workgroup.Start()
-
 	return app
 }
 

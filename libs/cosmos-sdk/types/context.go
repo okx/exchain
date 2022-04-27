@@ -40,7 +40,6 @@ type Context struct {
 	traceTx            bool   // traceTx is set true for trace tx and its predesessors , traceTx was set in app.beginBlockForTrace()
 	traceTxLog         bool   // traceTxLog is used to create trace logger for evm , traceTxLog is set to true when only tracing target tx (its predesessors will set false), traceTxLog is set before runtx
 	traceTxConfigBytes []byte // traceTxConfigBytes is used to save traceTxConfig, passed from api to x/evm
-	isAsync            bool
 	minGasPrice        DecCoins
 	consParams         *abci.ConsensusParams
 	eventManager       *EventManager

@@ -15,6 +15,7 @@ import (
 var (
 	maxTxNumberInParallelChan = 20000
 	whiteAcc                  = string(hexutil.MustDecode("0x01f1829676db577682e944fc3493d451b67ff3e29f")) //fee
+	maxNums                   = 16
 )
 
 type extraDataForTx struct {
@@ -185,6 +186,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 
 	pm := app.parallelTxManage
 	pm.workgroup.isReady = true
+	app.parallelTxManage.workgroup.Start()
 
 	txReps := pm.txReps
 	deliverTxs := make([]*abci.ResponseDeliverTx, pm.txSize)
@@ -228,7 +230,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 				rerunIdx++
 
 				// conflict rerun tx
-				if pm.extraTxsInfo[txIndex].isEvm {
+				if !pm.extraTxsInfo[txIndex].isEvm {
 					app.fixFeeCollector()
 				}
 				res = app.deliverTxWithCache(txIndex)
@@ -381,6 +383,8 @@ type asyncWorkGroup struct {
 
 	taskCh  chan int
 	taskRun func(int)
+
+	stopChan chan struct{}
 }
 
 func newAsyncWorkGroup() *asyncWorkGroup {
@@ -394,6 +398,8 @@ func newAsyncWorkGroup() *asyncWorkGroup {
 
 		taskCh:  make(chan int, maxTxNumberInParallelChan),
 		taskRun: nil,
+
+		stopChan: make(chan struct{}, maxNums+1),
 	}
 }
 
@@ -440,13 +446,21 @@ func (a *asyncWorkGroup) AddTask(index int) {
 	a.taskCh <- index
 }
 
+func (a *asyncWorkGroup) Close() {
+	for index := 0; index <= maxNums; index++ {
+		a.stopChan <- struct{}{}
+	}
+}
+
 func (a *asyncWorkGroup) Start() {
-	for index := 0; index < 16; index++ {
+	for index := 0; index < maxNums; index++ {
 		go func() {
 			for true {
 				select {
 				case task := <-a.taskCh:
 					a.taskRun(task)
+				case <-a.stopChan:
+					return
 				}
 			}
 		}()
@@ -458,6 +472,8 @@ func (a *asyncWorkGroup) Start() {
 			select {
 			case exec := <-a.resultCh:
 				a.resultCb(exec)
+			case <-a.stopChan:
+				return
 			}
 		}
 	}()
@@ -552,6 +568,7 @@ func (f *parallelTxManager) newIsConflict(e *executeResult) bool {
 }
 
 func (f *parallelTxManager) clear() {
+	f.workgroup.Close()
 	f.workgroup.isReady = false
 	f.workgroup.runningStatus = nil
 	f.workgroup.isrunning = nil
@@ -593,7 +610,6 @@ func (f *parallelTxManager) getTxResult(index int) sdk.CacheMultiStore {
 		if f.txReps[preIndexInGroup].paraMsg.AnteErr == nil {
 			ms = f.txReps[preIndexInGroup].ms.CacheMultiStore()
 		} else {
-			// get current ms
 			ms = f.cms.CacheMultiStore()
 		}
 	}
@@ -617,14 +633,13 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 
 	f.mu.Lock()
 	res.ms.IteratorCache(true, func(key string, value []byte, isDirty bool, isdelete bool, storeKey sdk.StoreKey) bool {
-		if isDirty {
-			f.cc.update(key, value, txIndex)
-			if isdelete {
-				f.cms.GetKVStore(storeKey).Delete([]byte(key))
-			} else if value != nil {
-				f.cms.GetKVStore(storeKey).Set([]byte(key), value)
-			}
+		f.cc.update(key, value, txIndex)
+		if isdelete {
+			f.cms.GetKVStore(storeKey).Delete([]byte(key))
+		} else if value != nil {
+			f.cms.GetKVStore(storeKey).Set([]byte(key), value)
 		}
+		
 		return true
 	}, nil)
 	f.currIndex = txIndex
