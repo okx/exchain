@@ -16,7 +16,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
-	"github.com/spf13/viper"
 	"github.com/tendermint/go-amino"
 )
 
@@ -27,9 +26,9 @@ type (
 )
 
 const (
-	deliverTxsExecModeSerial         DeliverTxsExecMode = iota // execute [deliverTx,...] sequentially
-	deliverTxsExecModePartConcurrent                           // execute [deliverTx,...] partially-concurrent
-	deliverTxsExecModeParallel                                 // execute [deliverTx,...] parallel
+	DeliverTxsExecModeSerial         DeliverTxsExecMode = iota // execute [deliverTx,...] sequentially
+	DeliverTxsExecModePartConcurrent                           // execute [deliverTx,...] partially-concurrent
+	DeliverTxsExecModeParallel                                 // execute [deliverTx,...] parallel
 
 	// There are three modes.
 	// 0: execute [deliverTx,...] sequentially (default)
@@ -62,7 +61,6 @@ type BlockExecutor struct {
 
 	logger  log.Logger
 	metrics *Metrics
-	isAsync bool
 
 	// download or upload data to dds
 	deltaContext *DeltaContext
@@ -98,17 +96,15 @@ func NewBlockExecutor(
 	options ...BlockExecutorOption,
 ) *BlockExecutor {
 	res := &BlockExecutor{
-		db:                 db,
-		proxyApp:           proxyApp,
-		eventBus:           types.NopEventBus{},
-		mempool:            mempool,
-		evpool:             evpool,
-		logger:             logger,
-		metrics:            NopMetrics(),
-		isAsync:            viper.GetBool(FlagParalleledTx),
-		deliverTxsExecMode: DeliverTxsExecMode(viper.GetInt(FlagDeliverTxsExecMode)),
-		prerunCtx:          newPrerunContex(logger),
-		deltaContext:       newDeltaContext(logger),
+		db:           db,
+		proxyApp:     proxyApp,
+		eventBus:     types.NopEventBus{},
+		mempool:      mempool,
+		evpool:       evpool,
+		logger:       logger,
+		metrics:      NopMetrics(),
+		prerunCtx:    newPrerunContex(logger),
+		deltaContext: newDeltaContext(logger),
 	}
 
 	for _, option := range options {
@@ -119,10 +115,6 @@ func NewBlockExecutor(
 
 	res.initAsyncDBContext()
 	return res
-}
-
-func (blockExec *BlockExecutor) SetIsAsyncDeliverTx(sw bool) {
-	blockExec.isAsync = sw
 }
 
 func (blockExec *BlockExecutor) SetDeliverTxsMode(mode int) {
@@ -334,12 +326,13 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 				db:       blockExec.db,
 				proxyApp: blockExec.proxyApp,
 			}
-			switch blockExec.deliverTxsExecMode {
-			case deliverTxsExecModeSerial:
+			mode := DeliverTxsExecMode(cfg.DynamicConfig.GetDeliverTxsExecuteMode())
+			switch mode {
+			case DeliverTxsExecModeSerial:
 				abciResponses, err = execBlockOnProxyApp(ctx)
-			case deliverTxsExecModePartConcurrent:
+			case DeliverTxsExecModePartConcurrent:
 				abciResponses, err = execBlockOnProxyAppPartConcurrent(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
-			case deliverTxsExecModeParallel:
+			case DeliverTxsExecModeParallel:
 				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			default:
 				abciResponses, err = execBlockOnProxyApp(ctx)

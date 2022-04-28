@@ -77,7 +77,7 @@ func init() {
 func newAnalys(height int64) {
 	if isParalleledTxOn == nil {
 		isParalleledTxOn = new(bool)
-		*isParalleledTxOn = !viper.GetBool(sm.FlagParalleledTx)
+		*isParalleledTxOn =  sm.DeliverTxsExecMode(viper.GetInt(sm.FlagDeliverTxsExecMode)) != sm.DeliverTxsExecModeParallel
 	}
 	if singleAnalys == nil {
 		singleAnalys = &analyer{}

@@ -15,9 +15,7 @@ type AccHandler func(ctx Context, address AccAddress) (nonce uint64)
 
 type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins) error
 
-type LogFix func(isAnteFailed [][]string) (logs [][]byte)
-
-type GetTxFeeHandler func(ctx Context, tx Tx, verifySig bool) (Coins, bool)
+type LogFix func(logIndex []int, errs []error) (logs [][]byte)
 
 type GetTxFeeAndFromHandler func(ctx Context, tx Tx) (Coins, bool, string, string, error)
 

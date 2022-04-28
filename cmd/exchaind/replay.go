@@ -58,8 +58,8 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command)) 
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
+			ts := time.Now()
 			log.Println("--------- replay start ---------")
-			start := time.Now()
 			pprofAddress := viper.GetString(pprofAddrFlag)
 			go func() {
 				err := http.ListenAndServe(pprofAddress, nil)
@@ -70,8 +70,7 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command)) 
 
 			dataDir := viper.GetString(replayedBlockDir)
 			replayBlock(ctx, dataDir)
-			totalDuration := time.Since(start).Seconds()
-			log.Println("--------- replay success --------- ", totalDuration, "s")
+			log.Println("--------- replay success ---------", "Time Cost", time.Now().Sub(ts).Seconds())
 		},
 		PostRun: func(cmd *cobra.Command, args []string) {
 			if viper.GetBool(runWithPprofMemFlag) {
@@ -129,9 +128,6 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 	}
 	// replay
 	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, currentAppHash, currentBlockHeight)
-	if viper.GetBool(sm.FlagParalleledTx) {
-		baseapp.ParaLog.PrintLog()
-	}
 }
 
 func registerReplayFlags(cmd *cobra.Command) *cobra.Command {
@@ -141,7 +137,6 @@ func registerReplayFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Bool(runWithPprofFlag, false, "Dump the pprof of the entire replay process")
 	cmd.Flags().Bool(runWithPprofMemFlag, false, "Dump the mem profile of the entire replay process")
 	cmd.Flags().Bool(saveBlock, false, "save block when replay")
-
 	return cmd
 }
 
@@ -259,7 +254,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		panic("haltheight <= startBlockHeight please check data or height")
 	}
 
-	log.Println("replay stop block height", "height", haltheight, "lastBlockHeight", lastBlockHeight, "state.LastBlockHeight", state.LastBlockHeight)
+	log.Println("replay stop block height", "height", haltheight)
 
 	// Replay blocks up to the latest in the blockstore.
 	if lastBlockHeight == state.LastBlockHeight+1 {
@@ -270,14 +265,13 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		block := originBlockStore.LoadBlock(lastBlockHeight)
 		meta := originBlockStore.LoadBlockMeta(lastBlockHeight)
 		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, mockApp, mock.Mempool{}, sm.MockEvidencePool{})
-		blockExec.SetIsAsyncDeliverTx(false) // mockApp not support parallel tx
-		blockExec.SetDeliverTxsMode(0)
+		config.GetOecConfig().SetDeliverTxsExecuteMode(0) // mockApp not support parallel tx
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
+		config.GetOecConfig().SetDeliverTxsExecuteMode(viper.GetInt(sm.FlagDeliverTxsExecMode))
 		panicError(err)
 	}
 
 	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
-	blockExec.SetDeliverTxsMode(viper.GetInt(sm.FlagDeliverTxsExecMode))
 	if viper.GetBool(runWithPprofFlag) {
 		startDumpPprof()
 		defer stopDumpPprof()

@@ -1,6 +1,8 @@
 package config
 
-import "time"
+import (
+	"time"
+)
 
 type IDynamicConfig interface {
 	GetMempoolRecheck() bool
@@ -17,6 +19,7 @@ type IDynamicConfig interface {
 	GetCsTimeoutPrecommit() time.Duration
 	GetCsTimeoutPrecommitDelta() time.Duration
 	GetEnableWtx() bool
+	GetDeliverTxsExecuteMode() int
 }
 
 var DynamicConfig IDynamicConfig = MockDynamicConfig{}
@@ -77,4 +80,7 @@ func (d MockDynamicConfig) GetCsTimeoutPrecommitDelta() time.Duration {
 
 func (d MockDynamicConfig) GetEnableWtx() bool {
 	return false
+}
+func (d MockDynamicConfig) GetDeliverTxsExecuteMode() int {
+	return 0
 }

@@ -145,7 +145,6 @@ type BaseApp struct { // nolint: maligned
 	idPeerFilter   sdk.PeerFilter   // filter peers by node ID
 	fauxMerkleMode bool             // if true, IAVL MountStores uses MountStoresDB for simulation speed.
 
-	getTxFee                     sdk.GetTxFeeHandler
 	updateFeeCollectorAccHandler sdk.UpdateFeeCollectorAccHandler
 	logFix                       sdk.LogFix
 
@@ -255,8 +254,6 @@ func NewBaseApp(
 		app.cms.SetInterBlockCache(app.interBlockCache)
 	}
 	app.cms.SetLogger(app.logger)
-
-	app.parallelTxManage.workgroup.Start()
 
 	return app
 }
@@ -651,8 +648,10 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 		ctx, _ = ctx.CacheContext()
 	}
 	if app.parallelTxManage.isAsyncDeliverTx && mode == runTxModeDeliverInAsync {
-		ctx.SetAsync(true)
-		ctx.SetTxBytes(getRealTxByte(txBytes))
+		ctx.SetParaMsg(&sdk.ParaMsg{
+			HaveCosmosTxInBlock: app.parallelTxManage.haveCosmosTxInBlock,
+		})
+		ctx.SetTxBytes(txBytes)
 	}
 
 	if mode == runTxModeDeliver || mode == runTxModeDeliverPartConcurrent {
