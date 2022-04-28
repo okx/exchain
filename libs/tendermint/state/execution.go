@@ -16,7 +16,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
-	"github.com/spf13/viper"
 	"github.com/tendermint/go-amino"
 )
 
@@ -43,7 +42,6 @@ type BlockExecutor struct {
 
 	logger  log.Logger
 	metrics *Metrics
-	isAsync bool
 
 	// download or upload data to dds
 	deltaContext *DeltaContext
@@ -51,6 +49,12 @@ type BlockExecutor struct {
 	prerunCtx *prerunContext
 
 	isFastSync bool
+
+	// async save state, validators, consensus params, abci responses here
+	asyncDBContext
+
+	// the owner is validator
+	isNullIndexer bool
 }
 
 type BlockExecutorOption func(executor *BlockExecutor)
@@ -79,7 +83,6 @@ func NewBlockExecutor(
 		evpool:       evpool,
 		logger:       logger,
 		metrics:      NopMetrics(),
-		isAsync:      viper.GetBool(FlagParalleledTx),
 		prerunCtx:    newPrerunContex(logger),
 		deltaContext: newDeltaContext(logger),
 	}
@@ -90,19 +93,24 @@ func NewBlockExecutor(
 	automation.LoadTestCase(logger)
 	res.deltaContext.init()
 
+	res.initAsyncDBContext()
 	return res
 }
 
-func (blockExec *BlockExecutor) SetIsAsyncDeliverTx(sw bool) {
-	blockExec.isAsync = sw
-
-}
 func (blockExec *BlockExecutor) DB() dbm.DB {
 	return blockExec.db
 }
 
 func (blockExec *BlockExecutor) SetIsFastSyncing(isSyncing bool) {
 	blockExec.isFastSync = isSyncing
+}
+
+func (blockExec *BlockExecutor) SetIsNullIndexer(isNullIndexer bool) {
+	blockExec.isNullIndexer = isNullIndexer
+}
+
+func (blockExec *BlockExecutor) Stop() {
+	blockExec.stopAsyncDBContext()
 }
 
 // SetEventBus - sets the event bus for publishing block related events.
@@ -188,6 +196,9 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	startTime := time.Now().UnixNano()
 
+	//wait till the last block async write be saved
+	blockExec.tryWaitLastBlockSave(block.Height - 1)
+
 	abciResponses, err := blockExec.runAbci(block, deltaInfo)
 
 	if err != nil {
@@ -199,7 +210,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	trc.Pin(trace.SaveResp)
 
 	// Save the results before we commit.
-	SaveABCIResponses(blockExec.db, block.Height, abciResponses)
+	blockExec.trySaveABCIResponsesAsync(block.Height, abciResponses)
 
 	fail.Fail() // XXX
 	endTime := time.Now().UnixNano()
@@ -248,13 +259,17 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data
-	SaveState(blockExec.db, state)
+	blockExec.trySaveStateAsync(state)
+	trc.Pin("fireEvents")
+
 	blockExec.logger.Debug("SaveState", "state", &state)
 	fail.Fail() // XXX
 
 	// Events are fired after everything else.
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
-	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
+	if !blockExec.isNullIndexer {
+		fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
+	}
 
 	dc.postApplyBlock(block.Height, deltaInfo, abciResponses, commitResp.DeltaMap, blockExec.isFastSync)
 
@@ -287,7 +302,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 				db:       blockExec.db,
 				proxyApp: blockExec.proxyApp,
 			}
-			if blockExec.isAsync {
+			if cfg.DynamicConfig.GetParalleledTxEnable() {
 				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			} else {
 				abciResponses, err = execBlockOnProxyApp(ctx)
