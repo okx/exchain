@@ -32,8 +32,8 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) {
 	para := app.parallelTxManage
 	para.txReps = make([]*executeResult, para.txSize)
 	para.extraTxsInfo = make([]*extraDataForTx, para.txSize)
-	para.workgroup.runningStatus = make([]int, para.txSize)
-	para.workgroup.isrunning = make([]bool, para.txSize)
+	para.workgroup.runningStatus = make(map[int]int)
+	para.workgroup.isrunning = make(map[int]bool)
 
 	var wg sync.WaitGroup
 	for index, txBytes := range txs {
@@ -370,8 +370,8 @@ type asyncWorkGroup struct {
 	txs     [][]byte
 	isReady bool
 
-	runningStatus []int
-	isrunning     []bool
+	runningStatus map[int]int
+	isrunning     map[int]bool
 
 	markFailedStats map[int]bool
 
@@ -389,8 +389,8 @@ type asyncWorkGroup struct {
 
 func newAsyncWorkGroup() *asyncWorkGroup {
 	return &asyncWorkGroup{
-		runningStatus:   make([]int, 0),
-		isrunning:       make([]bool, 0),
+		runningStatus:   make(map[int]int, 0),
+		isrunning:       make(map[int]bool, 0),
 		markFailedStats: make(map[int]bool),
 
 		resultCh: make(chan *executeResult, maxTxNumberInParallelChan),
@@ -570,9 +570,13 @@ func (f *parallelTxManager) newIsConflict(e *executeResult) bool {
 func (f *parallelTxManager) clear() {
 	f.workgroup.Close()
 	f.workgroup.isReady = false
-	f.workgroup.runningStatus = nil
-	f.workgroup.isrunning = nil
 	f.workgroup.indexInAll = 0
+	for key := range f.workgroup.runningStatus {
+		delete(f.workgroup.runningStatus, key)
+	}
+	for key := range f.workgroup.isrunning {
+		delete(f.workgroup.isrunning, key)
+	}
 	for key := range f.workgroup.markFailedStats {
 		delete(f.workgroup.markFailedStats, key)
 	}
