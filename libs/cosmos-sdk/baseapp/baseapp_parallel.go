@@ -251,6 +251,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 			txRs := res.resp
 			deliverTxs[txIndex] = &txRs
 
+			// Note : don't take care of the case of ErrorGasOverflow
 			app.deliverState.ctx.BlockGasMeter().ConsumeGas(sdk.Gas(res.resp.GasUsed), "unexpected error")
 
 			// merge tx
