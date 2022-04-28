@@ -65,6 +65,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		}
 	}
 
+
 	shouldPersist := (version-tree.lastPersistHeight >= CommitIntervalHeight) ||
 		(treeMap.totalPreCommitCacheSize >= MinCommitItemCount)
 
@@ -84,7 +85,6 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 	tree.ImmutableTree = tree.ImmutableTree.clone()
 	tree.lastSaved = tree.ImmutableTree.clone()
 	tree.orphans = make([]*Node, 0, len(tree.orphans))
-
 	for k := range tree.savedNodes {
 		delete(tree.savedNodes, k)
 	}

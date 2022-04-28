@@ -75,7 +75,11 @@ func (ndb *nodeDB) saveOrphansAsyncWithoutLock(version int64, orphans []*Node) {
 	}
 }
 
-func (ndb *nodeDB) setHeightOrphansItem(version int64, rootHash []byte) {
+func (ndb *nodeDB) SaveOrphansAsync(version int64, orphans []*Node) {
+	ndb.log(IavlDebug, "saving orphan node to OrphanCache", "size", len(orphans))
+	version--
+	atomic.AddInt64(&ndb.totalOrphanCount, int64(len(orphans)))
+
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
 	ndb.setHeightOrphansItemWithoutLock(version, rootHash)
@@ -89,6 +93,8 @@ func (ndb *nodeDB) setHeightOrphansItemWithoutLock(version int64, rootHash []byt
 		version:  version,
 		rootHash: rootHash,
 	}
+	ndb.mtx.Lock()
+	defer ndb.mtx.Unlock()
 	ndb.heightOrphansCacheQueue.PushBack(orphanObj)
 	ndb.heightOrphansMap[version] = orphanObj
 

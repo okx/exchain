@@ -227,7 +227,8 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	viper.BindPFlag(FlagEvmImportPath, cmd.Flags().Lookup(FlagEvmImportPath))
 	viper.BindPFlag(FlagGoroutineNum, cmd.Flags().Lookup(FlagGoroutineNum))
 
-	cmd.Flags().Bool(state.FlagParalleledTx, false, "Enable Parallel Tx")
+	cmd.Flags().Int(state.FlagDeliverTxsExecMode, 0, "Execution mode for deliver txs")
+	cmd.Flags().Int(state.FlagDeliverTxsConcurrentNum, 0, "concurrent number for deliver txs when using partial-concurrent mode")
 
 	cmd.Flags().String(FlagListenAddr, "tcp://0.0.0.0:26659", "EVM RPC and cosmos-sdk REST API listen address.")
 	cmd.Flags().String(FlagUlockKey, "", "Select the keys to unlock on the RPC server")
