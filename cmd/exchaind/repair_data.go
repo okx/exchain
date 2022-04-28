@@ -23,10 +23,11 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 			log.Println("--------- repair data success ---------")
 		},
 	}
-	cmd.Flags().Bool(sm.FlagParalleledTx, false, "parallel execution for evm txs")
 	cmd.Flags().Int64(app.FlagStartHeight, 0, "Set the start block height for repair")
 	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
 	cmd.Flags().String(app.Elapsed, app.DefaultElapsedSchemas, "schemaName=1|0,,,")
 	cmd.Flags().Bool(analyzer.FlagEnableAnalyzer, false, "Enable auto open log analyzer")
+	cmd.Flags().Int(sm.FlagDeliverTxsExecMode, 0, "execution mode for deliver txs")
+	cmd.Flags().Int(sm.FlagDeliverTxsConcurrentNum, 0, "concurrent number for deliver txs when using partial-concurrent mode")
 	return cmd
 }
