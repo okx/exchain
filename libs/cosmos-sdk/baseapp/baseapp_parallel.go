@@ -288,6 +288,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 	<-signal
 
 	// fix logs
+	app.feeChanged = true
 	app.feeForCollector = app.parallelTxManage.currTxFee
 	receiptsLogs := app.endParallelTxs()
 	for index, v := range receiptsLogs {
