@@ -3,6 +3,7 @@ package state
 import (
 	"encoding/hex"
 	"fmt"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -28,7 +29,6 @@ type executionTask struct {
 	db             dbm.DB
 	logger         log.Logger
 	blockHash      string
-	deliverTxsMode DeliverTxsExecMode
 }
 
 func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64) *executionTask {
@@ -40,7 +40,6 @@ func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64)
 		logger:         blockExec.logger,
 		taskResultChan: blockExec.prerunCtx.taskResultChan,
 		index:          index,
-		deliverTxsMode: blockExec.deliverTxsExecMode,
 	}
 	ret.blockHash = hex.EncodeToString(block.Hash())
 
@@ -73,13 +72,13 @@ func (t *executionTask) run() {
 	var abciResponses *ABCIResponses
 	var err error
 
-	// todo: if cfg.DynamicConfig.GetParalleledTxEnable() {
-	switch t.deliverTxsMode {
-	case deliverTxsExecModeSerial:
+	mode := DeliverTxsExecMode(cfg.DynamicConfig.GetDeliverTxsExecuteMode())
+	switch mode {
+	case DeliverTxsExecModeSerial:
 		abciResponses, err = execBlockOnProxyApp(t)
-	case deliverTxsExecModePartConcurrent:
+	case DeliverTxsExecModePartConcurrent:
 		abciResponses, err = execBlockOnProxyAppPartConcurrent(t.logger, t.proxyApp, t.block, t.db)
-	case deliverTxsExecModeParallel:
+	case DeliverTxsExecModeParallel:
 		abciResponses, err = execBlockOnProxyAppAsync(t.logger, t.proxyApp, t.block, t.db)
 	default:
 		abciResponses, err = execBlockOnProxyApp(t)

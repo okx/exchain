@@ -265,15 +265,13 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		block := originBlockStore.LoadBlock(lastBlockHeight)
 		meta := originBlockStore.LoadBlockMeta(lastBlockHeight)
 		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, mockApp, mock.Mempool{}, sm.MockEvidencePool{})
-		//config.GetOecConfig().SetParalleledTxStatus(false) // mockApp not support parallel tx
-		blockExec.SetDeliverTxsMode(0)
+		config.GetOecConfig().SetDeliverTxsExecuteMode(0) // mockApp not support parallel tx
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
-		//config.GetOecConfig().SetParalleledTxStatus(viper.GetBool(sm.FlagParalleledTx))
+		config.GetOecConfig().SetDeliverTxsExecuteMode(viper.GetInt(sm.FlagDeliverTxsExecMode))
 		panicError(err)
 	}
 
 	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
-	blockExec.SetDeliverTxsMode(viper.GetInt(sm.FlagDeliverTxsExecMode))
 	if viper.GetBool(runWithPprofFlag) {
 		startDumpPprof()
 		defer stopDumpPprof()

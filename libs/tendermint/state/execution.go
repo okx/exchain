@@ -26,9 +26,9 @@ type (
 )
 
 const (
-	deliverTxsExecModeSerial         DeliverTxsExecMode = iota // execute [deliverTx,...] sequentially
-	deliverTxsExecModePartConcurrent                           // execute [deliverTx,...] partially-concurrent
-	deliverTxsExecModeParallel                                 // execute [deliverTx,...] parallel
+	DeliverTxsExecModeSerial         DeliverTxsExecMode = iota // execute [deliverTx,...] sequentially
+	DeliverTxsExecModePartConcurrent                           // execute [deliverTx,...] partially-concurrent
+	DeliverTxsExecModeParallel                                 // execute [deliverTx,...] parallel
 
 	// There are three modes.
 	// 0: execute [deliverTx,...] sequentially (default)
@@ -99,7 +99,6 @@ func NewBlockExecutor(
 		metrics:      NopMetrics(),
 		prerunCtx:    newPrerunContex(logger),
 		deltaContext: newDeltaContext(logger),
-		deliverTxsExecMode: DeliverTxsExecMode(viper.GetInt(FlagDeliverTxsExecMode)),
 	}
 
 	for _, option := range options {
@@ -305,13 +304,13 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 				db:       blockExec.db,
 				proxyApp: blockExec.proxyApp,
 			}
-			// todo: if cfg.DynamicConfig.GetParalleledTxEnable() {
-			switch blockExec.deliverTxsExecMode {
-			case deliverTxsExecModeSerial:
+			mode := DeliverTxsExecMode(cfg.DynamicConfig.GetDeliverTxsExecuteMode())
+			switch mode {
+			case DeliverTxsExecModeSerial:
 				abciResponses, err = execBlockOnProxyApp(ctx)
-			case deliverTxsExecModePartConcurrent:
+			case DeliverTxsExecModePartConcurrent:
 				abciResponses, err = execBlockOnProxyAppPartConcurrent(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
-			case deliverTxsExecModeParallel:
+			case DeliverTxsExecModeParallel:
 				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			default:
 				abciResponses, err = execBlockOnProxyApp(ctx)

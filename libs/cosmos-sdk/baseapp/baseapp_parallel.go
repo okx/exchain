@@ -533,7 +533,7 @@ type parallelTxManager struct {
 }
 
 func newParallelTxManager() *parallelTxManager {
-	isAsync := viper.GetBool(sm.FlagParalleledTx)
+	isAsync := sm.DeliverTxsExecMode(viper.GetInt(sm.FlagDeliverTxsExecMode)) == sm.DeliverTxsExecModeParallel
 	return &parallelTxManager{
 		isAsyncDeliverTx: isAsync,
 		workgroup:        newAsyncWorkGroup(),
