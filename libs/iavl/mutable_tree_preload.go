@@ -9,6 +9,10 @@ import (
 	"github.com/tendermint/go-amino"
 )
 
+const (
+	PreloadConcurrencyThreshold = 4
+)
+
 type preWriteJob struct {
 	key      []byte
 	setOrDel byte
@@ -24,7 +28,7 @@ func (tree *MutableTree) PreChanges(keys []string, setOrDel []byte) {
 	if maxNums > keyCount {
 		maxNums = keyCount
 	}
-	if maxNums < 4 {
+	if maxNums < PreloadConcurrencyThreshold {
 		return
 	}
 
