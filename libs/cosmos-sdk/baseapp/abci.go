@@ -181,7 +181,7 @@ func (app *BaseApp) UpdateFeeForCollector(fee sdk.Coins, add bool) {
 }
 
 func (app *BaseApp) updateFeeCollectorAccount() {
-	if app.updateFeeCollectorAccHandler == nil || app.feeChanged {
+	if app.updateFeeCollectorAccHandler == nil || !app.feeChanged {
 		return
 	}
 
