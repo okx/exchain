@@ -125,7 +125,6 @@ which accepts a path for the resulting pprof file.
 			return nil
 		},
 	}
-
 	RegisterServerFlags(cmd)
 	registerAppFlagFn(cmd)
 	// add support for all Tendermint-specific command line options
