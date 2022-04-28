@@ -3,7 +3,7 @@ package types
 func CoinAdapterToCoin(adapter CoinAdapter) Coin {
 	return Coin{
 		Denom:  adapter.Denom,
-		Amount: adapter.Amount.ToDec(),
+		Amount: NewDecFromBigIntWithPrec(adapter.Amount.BigInt(), Precision),
 	}
 }
 

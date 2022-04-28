@@ -173,8 +173,10 @@ func BankQuerier(bankKeeper types.BankViewKeeper) func(ctx sdk.Context, request 
 				return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, request.AllBalances.Address)
 			}
 			coins := bankKeeper.GetAllBalances(ctx, addr)
+			adapters := sdk.CoinsToCoinAdapters(coins)
+			fmt.Println("adapter lifei111", adapters.String())
 			res := wasmvmtypes.AllBalancesResponse{
-				Amount: ConvertSdkCoinsToWasmCoins(coins),
+				Amount: ConvertSdkCoinsToWasmCoins(adapters),
 			}
 			return json.Marshal(res)
 		}
@@ -184,11 +186,10 @@ func BankQuerier(bankKeeper types.BankViewKeeper) func(ctx sdk.Context, request 
 				return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, request.Balance.Address)
 			}
 			coin := bankKeeper.GetBalance(ctx, addr, request.Balance.Denom)
+			adapter := sdk.CoinToCoinAdapter(coin)
+			fmt.Println("adapter lifei", adapter.Amount.String())
 			res := wasmvmtypes.BalanceResponse{
-				Amount: wasmvmtypes.Coin{
-					Denom:  coin.Denom,
-					Amount: coin.Amount.String(),
-				},
+				Amount: ConvertSdkCoinToWasmCoin(adapter),
 			}
 			return json.Marshal(res)
 		}
@@ -403,11 +404,11 @@ func sdkToDelegations(ctx sdk.Context, keeper types.StakingKeeper, delegations [
 			return nil, sdkerrors.Wrap(stakingtypes.ErrNoValidatorFound, "can't load validator for delegation")
 		}
 		amount := sdk.NewCoin(bondDenom, val.TokensFromShares(d.Shares).TruncateInt())
-
+		adapter := sdk.CoinToCoinAdapter(amount)
 		result[i] = wasmvmtypes.Delegation{
 			Delegator: delAddr.String(),
 			Validator: valAddr.String(),
-			Amount:    ConvertSdkCoinToWasmCoin(amount),
+			Amount:    ConvertSdkCoinToWasmCoin(adapter),
 		}
 	}
 	return result, nil
@@ -428,8 +429,8 @@ func sdkToFullDelegation(ctx sdk.Context, keeper types.StakingKeeper, distKeeper
 	}
 	bondDenom := keeper.BondDenom(ctx)
 	amount := sdk.NewCoin(bondDenom, val.TokensFromShares(delegation.Shares).TruncateInt())
-
-	delegationCoins := ConvertSdkCoinToWasmCoin(amount)
+	adapter := sdk.CoinToCoinAdapter(amount)
+	delegationCoins := ConvertSdkCoinToWasmCoin(adapter)
 
 	// FIXME: this is very rough but better than nothing...
 	// https://github.com/okex/exchain/issues/282
@@ -527,7 +528,7 @@ func WasmQuerier(k wasmQueryKeeper) func(ctx sdk.Context, request *wasmvmtypes.W
 }
 
 // ConvertSdkCoinsToWasmCoins covert sdk type to wasmvm coins type
-func ConvertSdkCoinsToWasmCoins(coins []sdk.Coin) wasmvmtypes.Coins {
+func ConvertSdkCoinsToWasmCoins(coins []sdk.CoinAdapter) wasmvmtypes.Coins {
 	converted := make(wasmvmtypes.Coins, len(coins))
 	for i, c := range coins {
 		converted[i] = ConvertSdkCoinToWasmCoin(c)
@@ -536,7 +537,7 @@ func ConvertSdkCoinsToWasmCoins(coins []sdk.Coin) wasmvmtypes.Coins {
 }
 
 // ConvertSdkCoinToWasmCoin covert sdk type to wasmvm coin type
-func ConvertSdkCoinToWasmCoin(coin sdk.Coin) wasmvmtypes.Coin {
+func ConvertSdkCoinToWasmCoin(coin sdk.CoinAdapter) wasmvmtypes.Coin {
 	return wasmvmtypes.Coin{
 		Denom:  coin.Denom,
 		Amount: coin.Amount.String(),
