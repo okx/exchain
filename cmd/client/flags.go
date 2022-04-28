@@ -17,6 +17,7 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/token"
+	"github.com/okex/exchain/x/wasm"
 	"github.com/spf13/cobra"
 )
 
@@ -103,4 +104,6 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(analyzer.FlagEnableAnalyzer, false, "Enable auto open log analyzer")
 	cmd.Flags().Bool(sanity.FlagDisableSanity, false, "Disable sanity check")
 	cmd.Flags().Int(tmtypes.FlagSigCacheSize, 200000, "Maximum number of signatures in the cache")
+
+	wasm.AddModuleInitFlags(cmd)
 }
