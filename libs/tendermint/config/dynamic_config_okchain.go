@@ -1,8 +1,6 @@
 package config
 
-import (
-	"time"
-)
+import "time"
 
 type IDynamicConfig interface {
 	GetMempoolRecheck() bool

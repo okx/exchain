@@ -9,6 +9,8 @@ import (
 	"sync"
 	"unsafe"
 
+	"github.com/okex/exchain/libs/iavl"
+
 	"github.com/tendermint/go-amino"
 
 	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
@@ -25,6 +27,8 @@ type cValue struct {
 	deleted bool
 }
 
+type PreChangesHandler func(keys []string, setOrDel []byte)
+
 // Store wraps an in-memory cache around an underlying types.KVStore.
 type Store struct {
 	mtx           sync.Mutex
@@ -33,6 +37,8 @@ type Store struct {
 	unsortedCache map[string]struct{}
 	sortedCache   *list.List // always ascending sorted
 	parent        types.KVStore
+
+	preChangesHandler PreChangesHandler
 }
 
 var _ types.CacheKVStore = (*Store)(nil)
@@ -45,6 +51,12 @@ func NewStore(parent types.KVStore) *Store {
 		sortedCache:   list.New(),
 		parent:        parent,
 	}
+}
+
+func NewStoreWithPreChangeHandler(parent types.KVStore, preChangesHandler PreChangesHandler) *Store {
+	s := NewStore(parent)
+	s.preChangesHandler = preChangesHandler
+	return s
 }
 
 // Implements Store.
@@ -148,6 +160,8 @@ func (store *Store) Write() {
 
 	sort.Strings(keys)
 
+	store.preWrite(keys)
+
 	// TODO: Consider allowing usage of Batch, which would allow the write to
 	// at least happen atomically.
 	for _, key := range keys {
@@ -164,6 +178,29 @@ func (store *Store) Write() {
 
 	// Clear the cache
 	store.clearCache()
+}
+
+func (store *Store) preWrite(keys []string) {
+	if store.preChangesHandler == nil || len(keys) < 4 {
+		return
+	}
+
+	setOrDel := make([]byte, 0, len(keys))
+
+	for _, key := range keys {
+		cacheValue := store.dirty[key]
+		switch {
+		case cacheValue.deleted:
+			setOrDel = append(setOrDel, iavl.PreChangeOpDelete)
+		case cacheValue.value == nil:
+			// Skip, it already doesn't exist in parent.
+			setOrDel = append(setOrDel, iavl.PreChangeNop)
+		default:
+			setOrDel = append(setOrDel, iavl.PreChangeOpSet)
+		}
+	}
+
+	store.preChangesHandler(keys, setOrDel)
 }
 
 // writeToCacheKv will write cached kv to the parent Store, then clear the cache.

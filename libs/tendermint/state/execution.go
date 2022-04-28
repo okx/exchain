@@ -68,7 +68,6 @@ type BlockExecutor struct {
 	prerunCtx *prerunContext
 
 	isFastSync bool
-	deliverTxsExecMode DeliverTxsExecMode
 
 	// async save state, validators, consensus params, abci responses here
 	asyncDBContext
@@ -115,10 +114,6 @@ func NewBlockExecutor(
 
 	res.initAsyncDBContext()
 	return res
-}
-
-func (blockExec *BlockExecutor) SetDeliverTxsMode(mode int) {
-	blockExec.deliverTxsExecMode = DeliverTxsExecMode(mode)
 }
 
 func (blockExec *BlockExecutor) DB() dbm.DB {
