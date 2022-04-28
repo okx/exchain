@@ -19,8 +19,8 @@ func newSyncList() *syncList {
 
 func (sl *syncList) MoveToBack(e *list.Element) {
 	sl.mtx.Lock()
-	defer sl.mtx.Unlock()
 	sl.List.MoveToBack(e)
+	sl.mtx.Unlock()
 }
 
 //func (sl *syncList) Len() int {
