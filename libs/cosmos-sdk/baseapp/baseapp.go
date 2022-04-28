@@ -192,6 +192,7 @@ type BaseApp struct { // nolint: maligned
 	parallelTxManage *parallelTxManager
 
 	feeForCollector sdk.Coins
+	feeChanged      bool	// used to judge whether should update the fee-collector account
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
@@ -931,4 +932,8 @@ func (app *BaseApp) MsgServiceRouter() *MsgServiceRouter { return app.msgService
 
 func (app *BaseApp) GetCMS() sdk.CommitMultiStore {
 	return app.cms
+}
+
+func (app *BaseApp) GetTxDecoder() sdk.TxDecoder {
+	return app.txDecoder
 }

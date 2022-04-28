@@ -71,7 +71,6 @@ func BenchmarkRoundStateDeepCopy(b *testing.B) {
 
 	rs := &RoundState{
 		StartTime:          tmtime.Now(),
-		CommitTime:         tmtime.Now(),
 		Validators:         vset,
 		Proposal:           proposal,
 		ProposalBlock:      block,
