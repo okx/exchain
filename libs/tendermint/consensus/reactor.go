@@ -534,23 +534,7 @@ func (conR *Reactor) broadcastHasVoteMessage(vote *types.Vote) {
 }
 func (conR *Reactor) broadcastSignVoteMessage(vote *types.Vote) {
 	msg := &VoteMessage{vote}
-	bytes := cdc.MustMarshalBinaryBare(msg)
-
-	peers := conR.Switch.Peers().List()
-	var wg sync.WaitGroup
-	wg.Add(len(peers))
-
-	for _, peer := range peers {
-		go func(p p2p.Peer) {
-			defer wg.Done()
-			p.Send(VoteChannel, bytes)
-		}(peer)
-	}
-
-	go func() {
-		wg.Wait()
-	}()
-
+	conR.Switch.Broadcast(VoteChannel, cdc.MustMarshalBinaryBare(msg))
 }
 func makeRoundStepMessage(rs *cstypes.RoundState) (nrsMsg *NewRoundStepMessage) {
 	nrsMsg = &NewRoundStepMessage{
