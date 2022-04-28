@@ -41,7 +41,7 @@ type Watcher struct {
 
 	jobChan chan func()
 
-	txIndex uint64
+	evmTxIndex uint64
 }
 
 var (
@@ -88,8 +88,8 @@ func (w *Watcher) Enable(sw bool) {
 	w.sw = sw
 }
 
-func (w *Watcher) GetTxIndex() uint64 {
-	return w.txIndex
+func (w *Watcher) GetEvmTxIndex() uint64 {
+	return w.evmTxIndex
 }
 
 func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.Header) {
@@ -103,7 +103,7 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	// ResetTransferWatchData
 	w.watchData = &WatchData{}
 	w.wdDelayKey = make([][]byte, 0)
-	w.txIndex = 0
+	w.evmTxIndex = 0
 }
 
 func (w *Watcher) clean() {

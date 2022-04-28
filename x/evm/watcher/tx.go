@@ -56,8 +56,8 @@ func (w *Watcher) createWatchTx(realTx sdk.Tx) WatchTx {
 		if err != nil {
 			return nil
 		}
-		txMsg = NewEvmTx(evmTx, common.BytesToHash(evmTx.TxHash()), w.blockHash, w.height, w.txIndex)
-		w.txIndex++
+		txMsg = NewEvmTx(evmTx, common.BytesToHash(evmTx.TxHash()), w.blockHash, w.height, w.evmTxIndex)
+		w.evmTxIndex++
 	}
 
 	return txMsg
