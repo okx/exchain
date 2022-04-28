@@ -4,7 +4,6 @@ import (
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/x/evm"
@@ -15,29 +14,6 @@ import (
 func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
 	return func(ctx sdk.Context, balance sdk.Coins) error {
 		return bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
-	}
-}
-
-// evmTxFeeHandler get tx fee for evm tx
-func evmTxFeeHandler() sdk.GetTxFeeHandler {
-
-	return func(ctx sdk.Context, tx sdk.Tx, verifySig bool) (fee sdk.Coins, isEvm bool, from string, to string) {
-		if verifySig {
-			if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
-				isEvm = true
-				_ = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight())
-				from = evmTx.BaseTx.From
-				to = ""
-				if evmTx.To() != nil {
-					to = evmTx.To().String()
-				}
-			}
-		}
-		if feeTx, ok := tx.(authante.FeeTx); ok {
-			fee = feeTx.GetFee()
-		}
-
-		return
 	}
 }
 

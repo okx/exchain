@@ -145,7 +145,6 @@ type BaseApp struct { // nolint: maligned
 	idPeerFilter   sdk.PeerFilter   // filter peers by node ID
 	fauxMerkleMode bool             // if true, IAVL MountStores uses MountStoresDB for simulation speed.
 
-	getTxFee                     sdk.GetTxFeeHandler
 	updateFeeCollectorAccHandler sdk.UpdateFeeCollectorAccHandler
 	logFix                       sdk.LogFix
 
