@@ -58,6 +58,11 @@ func (ndb *nodeDB) SaveOrphansAsync(version int64, orphans []*Node) {
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
 
+	ndb.saveOrphansAsyncWithoutLock(version, orphans)
+	go ndb.uncacheNodeRontine(orphans)
+}
+
+func (ndb *nodeDB) saveOrphansAsyncWithoutLock(version int64, orphans []*Node) {
 	orphansObj := ndb.heightOrphansMap[version]
 	if orphansObj != nil {
 		orphansObj.orphans = orphans
@@ -68,10 +73,15 @@ func (ndb *nodeDB) SaveOrphansAsync(version int64, orphans []*Node) {
 		node.leftNode = nil
 		node.rightNode = nil
 	}
-	go ndb.uncacheNodeRontine(orphans)
 }
 
 func (ndb *nodeDB) setHeightOrphansItem(version int64, rootHash []byte) {
+	ndb.mtx.Lock()
+	defer ndb.mtx.Unlock()
+	ndb.setHeightOrphansItemWithoutLock(version, rootHash)
+}
+
+func (ndb *nodeDB) setHeightOrphansItemWithoutLock(version int64, rootHash []byte) {
 	if rootHash == nil {
 		rootHash = []byte{}
 	}
@@ -79,8 +89,6 @@ func (ndb *nodeDB) setHeightOrphansItem(version int64, rootHash []byte) {
 		version:  version,
 		rootHash: rootHash,
 	}
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
 	ndb.heightOrphansCacheQueue.PushBack(orphanObj)
 	ndb.heightOrphansMap[version] = orphanObj
 
@@ -92,6 +100,28 @@ func (ndb *nodeDB) setHeightOrphansItem(version int64, rootHash []byte) {
 		}
 		delete(ndb.heightOrphansMap, oldHeightOrphanItem.version)
 	}
+}
+
+func (ndb *nodeDB) SaveOrphansAndSetHeightOrphansItemAsync(version int64, orphans []*Node, rootHash []byte) {
+	ndb.log(IavlDebug, "saving orphan node to OrphanCache", "size", len(orphans))
+	atomic.AddInt64(&ndb.totalOrphanCount, int64(len(orphans)))
+
+	ndb.mtx.Lock()
+	go ndb.saveOrphansAndSetHeightOrphansItemAsync(version, orphans, rootHash)
+}
+
+// saveOrphansAndSetHeightOrphansItemAsync, you must call this function after lock
+func (ndb *nodeDB) saveOrphansAndSetHeightOrphansItemAsync(version int64, orphans []*Node, rootHash []byte) {
+	defer ndb.mtx.Unlock()
+
+	// save orphans
+	version--
+	ndb.saveOrphansAsyncWithoutLock(version, orphans)
+	go ndb.uncacheNodeRontine(orphans)
+
+	// set height orphans item
+	version++
+	ndb.setHeightOrphansItemWithoutLock(version, rootHash)
 }
 
 func (ndb *nodeDB) dbGet(k []byte) ([]byte, error) {
