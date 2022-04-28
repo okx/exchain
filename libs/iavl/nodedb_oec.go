@@ -64,6 +64,7 @@ func (ndb *nodeDB) SaveOrphansAsync(version int64, orphans []*Node) {
 		delete(ndb.prePersistNodeCache, amino.BytesToStr(node.hash))
 		node.leftNode = nil
 		node.rightNode = nil
+
 	}
 	go ndb.uncacheNodeRontine(orphans)
 }

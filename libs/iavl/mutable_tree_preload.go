@@ -11,6 +11,11 @@ import (
 
 const (
 	PreloadConcurrencyThreshold = 4
+
+	PreChangeOpSet    byte = 1
+	PreChangeOpDelete byte = 0
+	PreChangeNop      byte = 0xFF
+
 )
 
 type preWriteJob struct {
@@ -49,7 +54,7 @@ func (tree *MutableTree) PreChanges(keys []string, setOrDel []byte) {
 
 	for i, key := range keys {
 		setOrDelFlag := setOrDel[i]
-		if setOrDelFlag != 0xFF {
+		if setOrDelFlag != PreChangeNop {
 			txJobChan <- preWriteJob{amino.StrToBytes(key), setOrDel[i]}
 		}
 	}
@@ -66,7 +71,7 @@ func (tree *MutableTree) preChangeWithOutCache(node *Node, key []byte, setOrDel 
 		}
 		return
 	} else {
-		var isSet = setOrDel == 1
+		var isSet = setOrDel == PreChangeOpSet
 		if bytes.Compare(key, node.key) < 0 {
 			node.leftNode = tree.preGetLeftNode(node)
 			if find = tree.preChangeWithOutCache(node.leftNode, key, setOrDel); (!find && isSet) || (find && !isSet) {
