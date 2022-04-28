@@ -9,6 +9,8 @@ import (
 	"sync"
 	"unsafe"
 
+	"github.com/okex/exchain/libs/iavl"
+
 	"github.com/tendermint/go-amino"
 
 	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
@@ -174,12 +176,12 @@ func (store *Store) preWrite(keys []string) {
 		cacheValue := store.cache[key]
 		switch {
 		case cacheValue.deleted:
-			setOrDel = append(setOrDel, 0)
+			setOrDel = append(setOrDel, iavl.PreChangeOpDelete)
 		case cacheValue.value == nil:
 			// Skip, it already doesn't exist in parent.
-			setOrDel = append(setOrDel, 0xFF)
+			setOrDel = append(setOrDel, iavl.PreChangeNop)
 		default:
-			setOrDel = append(setOrDel, 1)
+			setOrDel = append(setOrDel, iavl.PreChangeOpSet)
 		}
 	}
 
