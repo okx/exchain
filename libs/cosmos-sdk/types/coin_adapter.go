@@ -1,0 +1,31 @@
+package types
+
+func CoinAdapterToCoin(adapter CoinAdapter) Coin {
+	return Coin{
+		Denom:  adapter.Denom,
+		Amount: adapter.Amount.ToDec(),
+	}
+}
+
+func CoinToCoinAdapter(adapter Coin) CoinAdapter {
+	return CoinAdapter{
+		Denom:  adapter.Denom,
+		Amount: NewIntFromBigInt(adapter.Amount.BigInt()),
+	}
+}
+
+func CoinAdaptersToCoins(adapters CoinAdapters) Coins {
+	var coins Coins = make([]Coin, 0)
+	for i, _ := range adapters {
+		coins = append(coins, CoinAdapterToCoin(adapters[i]))
+	}
+	return coins
+}
+
+func CoinsToCoinAdapters(coins Coins) CoinAdapters {
+	var adapters CoinAdapters = make([]CoinAdapter, 0)
+	for i, _ := range coins {
+		adapters = append(adapters, CoinToCoinAdapter(coins[i]))
+	}
+	return adapters
+}

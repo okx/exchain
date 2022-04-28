@@ -4,6 +4,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/msgservice"
 )
 
 var (
@@ -20,4 +21,5 @@ func RegisterInterface(registry interfacetypes.InterfaceRegistry) {
 		(*txmsg.Msg)(nil),
 		&MsgSend{},
 	)
+	msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)
 }

@@ -8,6 +8,7 @@ import (
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	ibcadapter "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 
@@ -17,7 +18,7 @@ import (
 // msgEncoder is an extension point to customize encodings
 type msgEncoder interface {
 	// Encode converts wasmvm message to n cosmos message types
-	Encode(ctx sdk.Context, contractAddr sdk.AccAddress, contractIBCPortID string, msg wasmvmtypes.CosmosMsg) ([]sdk.Msg, error)
+	Encode(ctx sdk.Context, contractAddr sdk.AccAddress, contractIBCPortID string, msg wasmvmtypes.CosmosMsg) ([]ibcadapter.Msg, error)
 }
 
 // MessageRouter ADR 031 request type routing
@@ -46,7 +47,7 @@ func NewDefaultMessageHandler(
 	}
 	return NewMessageHandlerChain(
 		NewSDKMessageHandler(router, encoders),
-		NewIBCRawPacketHandler(channelKeeper, capabilityKeeper),
+		//NewIBCRawPacketHandler(channelKeeper, capabilityKeeper),
 		// un use burn coin message
 		//NewBurnCoinMessageHandler(bankKeeper),
 	)
@@ -81,7 +82,7 @@ func (h SDKMessageHandler) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddr
 	return
 }
 
-func (h SDKMessageHandler) handleSdkMessage(ctx sdk.Context, contractAddr sdk.Address, msg sdk.Msg) (*sdk.Result, error) {
+func (h SDKMessageHandler) handleSdkMessage(ctx sdk.Context, contractAddr sdk.Address, msg ibcadapter.Msg) (*sdk.Result, error) {
 	if err := msg.ValidateBasic(); err != nil {
 		return nil, err
 	}
@@ -93,13 +94,12 @@ func (h SDKMessageHandler) handleSdkMessage(ctx sdk.Context, contractAddr sdk.Ad
 	}
 
 	// find the handler and execute it
-	//TODO need to change msg
-	//msgUrl := ibcadapter.MsgTypeURL(msg)
-	//if handler := h.router.Handler(msgUrl); handler != nil {
-	//	// ADR 031 request type routing
-	//	msgResult, err := handler(ctx, msg)
-	//	return msgResult, err
-	//}
+	msgUrl := ibcadapter.MsgTypeURL(msg)
+	if handler := h.router.Handler(msgUrl); handler != nil {
+		// ADR 031 request type routing
+		msgResult, err := handler(ctx, msg)
+		return msgResult, err
+	}
 	// legacy sdk.Msg routing
 	// Assuming that the app developer has migrated all their Msgs to
 	// proto messages and has registered all `Msg services`, then this

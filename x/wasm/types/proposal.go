@@ -218,7 +218,7 @@ func (p InstantiateContractProposal) MarshalYAML() (interface{}, error) {
 		CodeID:      p.CodeID,
 		Label:       p.Label,
 		Msg:         string(p.Msg),
-		Funds:       CoinAdaptersToCoins(p.Funds),
+		Funds:       sdk.CoinAdaptersToCoins(p.Funds),
 	}, nil
 }
 
@@ -389,7 +389,7 @@ func (p ExecuteContractProposal) MarshalYAML() (interface{}, error) {
 		Contract:    p.Contract,
 		Msg:         string(p.Msg),
 		RunAs:       p.RunAs,
-		Funds:       CoinAdaptersToCoins(p.Funds),
+		Funds:       sdk.CoinAdaptersToCoins(p.Funds),
 	}, nil
 }
 

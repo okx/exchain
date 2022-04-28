@@ -2,6 +2,9 @@ package wasm
 
 import (
 	"context"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
 	"math/rand"
 
 	"github.com/gorilla/mux"
@@ -25,6 +28,7 @@ var (
 	_ module.AppModuleAdapter      = AppModule{}
 	_ module.AppModuleBasicAdapter = AppModuleBasic{}
 	_ module.AppModuleSimulation   = AppModule{}
+	_ upgrade.UpgradeModule        = AppModule{}
 )
 
 // Module init related flags
@@ -96,6 +100,7 @@ func (b AppModuleBasic) RegisterInterfaces(registry cdctypes.InterfaceRegistry) 
 // AppModule implements an application module for the wasm module.
 type AppModule struct {
 	AppModuleBasic
+	*base.BaseIBCUpgradeModule
 	cdc    codec.CodecProxy
 	keeper *Keeper
 }
@@ -117,6 +122,8 @@ func NewAppModule(cdc codec.CodecProxy, keeper *Keeper) AppModule {
 
 func (am AppModule) RegisterServices(cfg module.Configurator) {
 	types.RegisterMsgServer(cfg.MsgServer(), keeper.NewMsgServerImpl(keeper.NewDefaultPermissionKeeper(am.keeper)))
+	bk := am.keeper.GetBankKeeper()
+	bank.RegisterBankMsgServer(cfg.MsgServer(), types.NewBankMsgServer(bk))
 	types.RegisterQueryServer(cfg.QueryServer(), NewQuerier(am.keeper))
 }
 
