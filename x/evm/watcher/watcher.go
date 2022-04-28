@@ -89,10 +89,6 @@ func (w *Watcher) Enable(sw bool) {
 }
 
 func (w *Watcher) GetTxIndex() uint64 {
-	if w == nil {
-		return 0
-	}
-
 	return w.txIndex
 }
 
