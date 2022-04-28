@@ -597,15 +597,15 @@ func (dttm *DTTManager) serialHandleBeforeRunMsg(info *runTxInfo) error {
 		return dttm.serialTask.err
 	}
 
-	info.msCacheAnte.Write()
-	info.ctx.Cache().Write(true)
-
 	err := info.handler.handleGasConsumed(info)
 	if err != nil {
 		txRs := sdkerrors.ResponseDeliverTx(err, 0, 0, dttm.app.trace)
 		dttm.dealWithResponse(txRs)
 		return err
 	}
+
+	info.msCacheAnte.Write()
+	info.ctx.Cache().Write(true)
 
 	dttm.app.UpdateFeeForCollector(dttm.serialTask.fee, true)
 	return nil
