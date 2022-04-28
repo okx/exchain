@@ -2,6 +2,7 @@ package ante
 
 import (
 	"fmt"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
@@ -24,6 +25,10 @@ func NewEthSetupContextDecorator() EthSetupContextDecorator {
 // ethereum tx GasLimit.
 func (escd EthSetupContextDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 	pinAnte(ctx.AnteTracer(), "EthSetupContextDecorator")
+
+	if simulate {
+		ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
+	}
 
 	// Decorator will catch an OutOfGasPanic caused in the next antehandler
 	// AnteHandlers must have their own defer/recover in order for the BaseApp
