@@ -399,7 +399,7 @@ func newAsyncWorkGroup() *asyncWorkGroup {
 		taskCh:  make(chan int, maxTxNumberInParallelChan),
 		taskRun: nil,
 
-		stopChan: make(chan struct{}, maxNums+1),
+		stopChan: make(chan struct{}),
 	}
 }
 
@@ -643,7 +643,7 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 		} else if value != nil {
 			f.cms.GetKVStore(storeKey).Set([]byte(key), value)
 		}
-		
+
 		return true
 	}, nil)
 	f.currIndex = txIndex
