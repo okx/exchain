@@ -17,16 +17,8 @@ type multiStore struct {
 	kv map[sdk.StoreKey]kvStore
 }
 
-func (ms multiStore) SetCommitHeightFilterPipeline(f store.HeightFilterPipeline) {
-	panic("implement me")
-}
-
-func (ms multiStore) SetPruneHeightFilterPipeline(f store.HeightFilterPipeline) {
-	panic("implement me")
-}
-
-func (ms multiStore) SetVersionFilterPipeline(f store.VersionFilterPipeline) {
-	panic("implement me")
+func (ms multiStore) AppendVersionFilters(filters []store.VersionFilter) {
+	panic("not implemented")
 }
 
 func (ms multiStore) CacheMultiStore() sdk.CacheMultiStore {
@@ -34,6 +26,13 @@ func (ms multiStore) CacheMultiStore() sdk.CacheMultiStore {
 }
 
 func (ms multiStore) CacheMultiStoreWithVersion(_ int64) (sdk.CacheMultiStore, error) {
+	panic("not implemented")
+}
+func (ms multiStore) AppendCommitFilters(filters []store.StoreFilter) {
+	panic("not implemented")
+}
+
+func (ms multiStore) AppendPruneFilters(filters []store.StoreFilter) {
 	panic("not implemented")
 }
 

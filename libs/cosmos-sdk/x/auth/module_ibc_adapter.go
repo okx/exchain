@@ -8,6 +8,7 @@ import (
 	cliContext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 
@@ -34,6 +35,18 @@ func (am AppModuleBasic) RegisterRouterForGRPC(clictx cliContext.CLIContext, r *
 
 //////
 func (am AppModule) RegisterTask() upgrade.HeightTask {
+	return nil
+}
+
+func (am AppModule) CommitFilter() *cosmost.StoreFilter {
+	return nil
+}
+
+func (am AppModule) PruneFilter() *cosmost.StoreFilter {
+	return nil
+}
+
+func (am AppModule) VersionFilter() *cosmost.VersionFilter {
 	return nil
 }
 
