@@ -1,12 +1,15 @@
 package staking
 
 import (
+	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
+
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	anytypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	params2 "github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/x/params"
@@ -50,10 +53,6 @@ func (am AppModule) UpgradeHeight() int64 {
 	return -1
 }
 
-func (am AppModule) BlockStoreModules() []string {
-	return nil
-}
-
 func (am AppModule) RegisterParam() params.ParamSet {
 	v := types.KeyHistoricalEntriesParams(7)
 	return params2.ParamSet(v)
@@ -61,4 +60,16 @@ func (am AppModule) RegisterParam() params.ParamSet {
 
 func (am AppModule) ModuleName() string {
 	return ModuleName
+}
+
+func (am AppModule) CommitFilter() *cosmost.StoreFilter {
+	return nil
+}
+
+func (am AppModule) PruneFilter() *cosmost.StoreFilter {
+	return nil
+}
+
+func (am AppModule) VersionFilter() *cosmost.VersionFilter {
+	return nil
 }
