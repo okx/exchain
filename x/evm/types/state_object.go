@@ -320,7 +320,7 @@ func (so *stateObject) commitState(db ethstate.Database) {
 		}
 		so.originStorage[key] = value
 
-		prefixKey := so.GetStorageByAddressKey(key.Bytes())
+		prefixKey := GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
 		if (value == ethcmn.Hash{}) {
 			store.Delete(prefixKey.Bytes())
 			so.stateDB.ctx.Cache().UpdateStorage(so.address, prefixKey, value.Bytes(), true)
@@ -485,7 +485,7 @@ func (so *stateObject) GetCommittedState(db ethstate.Database, key ethcmn.Hash) 
 	rawValue := make([]byte, 0)
 	var ok bool
 
-	prefixKey := so.GetStorageByAddressKey(key.Bytes())
+	prefixKey := GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
 	rawValue, ok = ctx.Cache().GetStorage(so.address, prefixKey)
 	if !ok {
 		store := so.stateDB.dbAdapter.NewStore(ctx.KVStore(so.stateDB.storeKey), AddressStoragePrefix(so.Address()))
@@ -565,9 +565,7 @@ func (so *stateObject) touch() {
 
 // GetStorageByAddressKey returns a hash of the composite key for a state
 // object's storage prefixed with it's address.
-func (so *stateObject) GetStorageByAddressKey(key []byte) ethcmn.Hash {
-	prefix := so.Address().Bytes()
-
+func GetStorageByAddressKey(prefix, key []byte) ethcmn.Hash {
 	var compositeKey []byte
 	if len(prefix)+len(key) == ethcmn.AddressLength+ethcmn.HashLength {
 		p := addressKeyBytesPool.Get().(*[ethcmn.AddressLength + ethcmn.HashLength]byte)

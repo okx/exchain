@@ -66,7 +66,7 @@ func (so *stateObject) GetCommittedStateMpt(db ethstate.Database, key ethcmn.Has
 	} else {
 		tmpKey := key
 		if TrieUseCompositeKey {
-			tmpKey = so.GetStorageByAddressKey(key.Bytes())
+			tmpKey = GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
 		}
 
 		if enc, err = so.getTrie(db).TryGet(tmpKey.Bytes()); err != nil {
@@ -158,7 +158,7 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 
 		compKey := AssembleCompositeKey(so.address.Bytes(), key.Bytes())
 		if TrieUseCompositeKey {
-			key = so.GetStorageByAddressKey(key.Bytes())
+			key = GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
 		}
 
 		usedStorage = append(usedStorage, ethcmn.CopyBytes(key[:])) // Copy needed for closure
@@ -208,7 +208,7 @@ func (so *stateObject) finalise(prefetch bool) {
 		so.pendingStorage[key] = value
 		if value != so.originStorage[key] {
 			if TrieUseCompositeKey {
-				key = so.GetStorageByAddressKey(key.Bytes())
+				key = GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
 			}
 			slotsToPrefetch = append(slotsToPrefetch, ethcmn.CopyBytes(key[:])) // Copy needed for closure
 		}
