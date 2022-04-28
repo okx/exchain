@@ -20,6 +20,25 @@ import (
 )
 
 //-----------------------------------------------------------------------------
+type (
+	// Enum mode for executing [deliverTx, ...]
+	DeliverTxsExecMode int
+)
+
+const (
+	DeliverTxsExecModeSerial         DeliverTxsExecMode = iota // execute [deliverTx,...] sequentially
+	DeliverTxsExecModePartConcurrent                           // execute [deliverTx,...] partially-concurrent
+	DeliverTxsExecModeParallel                                 // execute [deliverTx,...] parallel
+
+	// There are three modes.
+	// 0: execute [deliverTx,...] sequentially (default)
+	// 1: execute [deliverTx,...] partially-concurrent
+	// 2: execute [deliverTx,...] parallel
+	FlagDeliverTxsExecMode = "deliver-txs-mode"
+
+	FlagDeliverTxsConcurrentNum = "deliver-txs-concurrent-num"
+)
+
 // BlockExecutor handles block execution and state updates.
 // It exposes ApplyBlock(), which validates & executes the block, updates state w/ ABCI responses,
 // then commits and updates the mempool atomically, then saves state.
@@ -302,9 +321,15 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 				db:       blockExec.db,
 				proxyApp: blockExec.proxyApp,
 			}
-			if cfg.DynamicConfig.GetParalleledTxEnable() {
+			mode := DeliverTxsExecMode(cfg.DynamicConfig.GetDeliverTxsExecuteMode())
+			switch mode {
+			case DeliverTxsExecModeSerial:
+				abciResponses, err = execBlockOnProxyApp(ctx)
+			case DeliverTxsExecModePartConcurrent:
+				abciResponses, err = execBlockOnProxyAppPartConcurrent(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
+			case DeliverTxsExecModeParallel:
 				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
-			} else {
+			default:
 				abciResponses, err = execBlockOnProxyApp(ctx)
 			}
 		}

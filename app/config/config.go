@@ -66,7 +66,7 @@ type OecConfig struct {
 	// enable-analyzer
 	enableAnalyzer bool
 
-	enableParalleledTx bool
+	deliverTxsMode int
 }
 
 const (
@@ -196,7 +196,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetNodeKeyWhitelist(viper.GetString(FlagNodeKeyWhitelist))
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
 	c.SetEnableAnalyzer(viper.GetBool(analyzer.FlagEnableAnalyzer))
-	c.SetParalleledTxStatus(viper.GetBool(state.FlagParalleledTx))
+	c.SetDeliverTxsExecuteMode(viper.GetInt(state.FlagDeliverTxsExecMode))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -364,12 +364,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetEnableAnalyzer(r)
-	case state.FlagParalleledTx:
-		r, err := strconv.ParseBool(v)
+	case state.FlagDeliverTxsExecMode:
+		r, err := strconv.Atoi(v)
 		if err != nil {
 			return
 		}
-		c.SetParalleledTxStatus(r)
+		c.SetDeliverTxsExecuteMode(r)
 	}
 }
 
@@ -418,12 +418,12 @@ func (c *OecConfig) GetEnableWtx() bool {
 	return c.enableWtx
 }
 
-func (c *OecConfig) SetParalleledTxStatus(enable bool) {
-	c.enableParalleledTx = enable
+func (c *OecConfig) SetDeliverTxsExecuteMode(mode int) {
+	c.deliverTxsMode = mode
 }
 
-func (c *OecConfig) GetParalleledTxEnable() bool {
-	return c.enableParalleledTx
+func (c *OecConfig) GetDeliverTxsExecuteMode() int {
+	return c.deliverTxsMode
 }
 
 func (c *OecConfig) SetEnableWtx(value bool) {

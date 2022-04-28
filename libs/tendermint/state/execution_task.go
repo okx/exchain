@@ -72,9 +72,15 @@ func (t *executionTask) run() {
 	var abciResponses *ABCIResponses
 	var err error
 
-	if cfg.DynamicConfig.GetParalleledTxEnable() {
+	mode := DeliverTxsExecMode(cfg.DynamicConfig.GetDeliverTxsExecuteMode())
+	switch mode {
+	case DeliverTxsExecModeSerial:
+		abciResponses, err = execBlockOnProxyApp(t)
+	case DeliverTxsExecModePartConcurrent:
+		abciResponses, err = execBlockOnProxyAppPartConcurrent(t.logger, t.proxyApp, t.block, t.db)
+	case DeliverTxsExecModeParallel:
 		abciResponses, err = execBlockOnProxyAppAsync(t.logger, t.proxyApp, t.block, t.db)
-	} else {
+	default:
 		abciResponses, err = execBlockOnProxyApp(t)
 	}
 

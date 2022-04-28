@@ -125,8 +125,8 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	}
 	app.pin(RunAnte, false, mode)
 
-	if app.getTxFee != nil && mode == runTxModeDeliver {
-		fee, _, _, _ := app.getTxFee(info.ctx, tx, true)
+	if app.getTxFeeAndFromHandler != nil && mode == runTxModeDeliver {
+		fee, _, _, _, _ := app.getTxFeeAndFromHandler(info.ctx, tx)
 		app.UpdateFeeForCollector(fee, true)
 	}
 
@@ -361,7 +361,7 @@ func useCache(mode runTxMode) bool {
 	if !sdk.UseCache {
 		return false
 	}
-	if mode == runTxModeDeliver {
+	if mode == runTxModeDeliver || mode == runTxModeDeliverPartConcurrent {
 		return true
 	}
 	return false
