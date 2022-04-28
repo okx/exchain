@@ -46,6 +46,9 @@ type nodeDB struct {
 	versionReaders map[int64]uint32 // Number of active version readers
 
 	latestVersion  int64
+
+	//lruNodeCache   *lru.Cache
+
 	nodeCache      map[string]*list.Element // Node cache.
 	nodeCacheSize  int                      // Node cache size limit in elements.
 	nodeCacheQueue *syncList                // LRU queue of cache elements. Used for deletion.
@@ -72,12 +75,10 @@ type nodeDB struct {
 
 	name string
 
-	preWriteNodeCache     cmap.ConcurrentMap
-	preWriteNodeCacheFlag int32
+	preWriteNodeCache cmap.ConcurrentMap
 }
 
 func makeNodeCacheMap(cacheSize int, initRatio float64) map[string]*list.Element {
-	// return cmap.New()
 	if initRatio <= 0 {
 		return make(map[string]*list.Element)
 	}
@@ -93,7 +94,7 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		o := DefaultOptions()
 		opts = &o
 	}
-	return &nodeDB{
+	ndb := &nodeDB{
 		db:                      db,
 		opts:                    *opts,
 		latestVersion:           0, // initially invalid
@@ -114,11 +115,12 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		name:                    ParseDBName(db),
 		preWriteNodeCache:       cmap.New(),
 	}
+
+	return ndb
 }
+
 func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) *Node {
-
 	ndb.addNodeReadCount()
-
 	if len(hash) == 0 {
 		panic("nodeDB.GetNode() requires hash")
 	}
@@ -143,8 +145,8 @@ func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) *Node 
 	return nil
 }
 
-func (ndb *nodeDB) getNodeFromDisk(hash []byte, updateCache bool) *Node {
 
+func (ndb *nodeDB) getNodeFromDisk(hash []byte, updateCache bool) *Node {
 	node := ndb.makeNodeFromDbByHash(hash)
 	node.hash = hash
 	node.persisted = true
@@ -547,6 +549,7 @@ func (ndb *nodeDB) traversePrefix(prefix []byte, fn func(k, v []byte)) {
 		fn(itr.Key(), itr.Value())
 	}
 }
+
 
 // Write to disk.
 func (ndb *nodeDB) Commit(batch dbm.Batch) error {

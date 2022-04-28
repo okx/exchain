@@ -3,9 +3,37 @@ package iavl
 import (
 	cmap "github.com/orcaman/concurrent-map"
 	"github.com/tendermint/go-amino"
-
 	"github.com/okex/exchain/libs/iavl/config"
+
 )
+
+func (ndb *nodeDB) uncacheNodeRontine(n []*Node) {
+	for _, node := range n {
+		ndb.uncacheNode(node.hash)
+	}
+}
+
+func (ndb *nodeDB) initPreWriteCache() {
+	if ndb.preWriteNodeCache == nil {
+		ndb.preWriteNodeCache = cmap.New()
+	}
+}
+
+func (ndb *nodeDB) cacheNodeToPreWriteCache(n *Node) {
+	ndb.preWriteNodeCache.Set(string(n.hash), n)
+}
+
+func (ndb *nodeDB) finishPreWriteCache() {
+	ndb.preWriteNodeCache.IterCb(func(key string, v interface{}) {
+		ndb.cacheNode(v.(*Node))
+	})
+	ndb.preWriteNodeCache = nil
+}
+
+
+// ===================================================
+// ======= map[string]*list.Element implementation
+// ===================================================
 
 func (ndb *nodeDB) uncacheNode(hash []byte) {
 	ndb.nodeCacheMutex.Lock()
@@ -40,6 +68,7 @@ func (ndb *nodeDB) cacheNodeByCheck(node *Node) {
 	}
 }
 
+
 func (ndb *nodeDB) getNodeFromCache(hash []byte, promoteRecentNode bool) (n *Node) {
 	// Check the cache.
 	ndb.nodeCacheMutex.RLock()
@@ -55,25 +84,50 @@ func (ndb *nodeDB) getNodeFromCache(hash []byte, promoteRecentNode bool) (n *Nod
 	return
 }
 
-func (ndb *nodeDB) uncacheNodeRontine(n []*Node) {
-	for _, node := range n {
-		ndb.uncacheNode(node.hash)
-	}
+func (ndb *nodeDB) nodeCacheLen() int {
+	return len(ndb.nodeCache)
 }
 
-func (ndb *nodeDB) InitPreWriteCache() {
-	if ndb.preWriteNodeCache == nil {
-		ndb.preWriteNodeCache = cmap.New()
-	}
-}
+// =========================================================
+// ======= github.com/hashicorp/golang-lru implementation
+// =========================================================
 
-func (ndb *nodeDB) cacheNodeToPreWriteCache(n *Node) {
-	ndb.preWriteNodeCache.Set(string(n.hash), n)
-}
 
-func (ndb *nodeDB) finishPreWriteCache() {
-	ndb.preWriteNodeCache.IterCb(func(key string, v interface{}) {
-		ndb.cacheNode(v.(*Node))
-	})
-	ndb.preWriteNodeCache = nil
-}
+//func (ndb *nodeDB) cacheNode(node *Node) {
+//	ndb.lruNodeCache.Add(string(node.hash), node)
+//}
+//
+//func (ndb *nodeDB) cacheNodeByCheck(node *Node) {
+//	if ndb.lruNodeCache.Contains(string(node.hash)) {
+//		return
+//	}
+//	ndb.cacheNode(node)
+//}
+//
+//
+//func (ndb *nodeDB) getNodeFromCache(hash []byte, promoteRecentNode bool) (n *Node) {
+//
+//	var ok bool
+//	var res interface{}
+//	if promoteRecentNode {
+//		res, ok = ndb.lruNodeCache.Get(string(hash))
+//	} else {
+//		res, ok = ndb.lruNodeCache.Peek(string(hash))
+//	}
+//
+//	if ok {
+//		n = res.(*Node)
+//	}
+//	return
+//}
+//
+//
+//func (ndb *nodeDB) uncacheNode(hash []byte) {
+//	ndb.lruNodeCache.Remove(string(hash))
+//}
+//
+//
+//func (ndb *nodeDB) nodeCacheLen() int {
+//	return ndb.lruNodeCache.Len()
+//}
+
