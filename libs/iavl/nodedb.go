@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"container/list"
 	"fmt"
-	lru "github.com/hashicorp/golang-lru"
 	"math"
 	"sort"
 	"strings"
@@ -48,7 +47,7 @@ type nodeDB struct {
 
 	latestVersion  int64
 
-	lruNodeCache   *lru.Cache
+	//lruNodeCache   *lru.Cache
 
 	nodeCache      map[string]*list.Element // Node cache.
 	nodeCacheSize  int                      // Node cache size limit in elements.
@@ -115,12 +114,6 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		dbWriteCount:            0,
 		name:                    ParseDBName(db),
 		preWriteNodeCache:       cmap.New(),
-	}
-
-	var err error
-	ndb.lruNodeCache, err = lru.New(cacheSize)
-	if err != nil {
-		panic(err)
 	}
 
 	return ndb
