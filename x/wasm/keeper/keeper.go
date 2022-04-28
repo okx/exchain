@@ -268,7 +268,8 @@ func (k Keeper) instantiate(ctx sdk.Context, codeID uint64, creator, admin sdk.A
 
 	// prepare params for contract instantiate call
 	env := types.NewEnv(ctx, contractAddress)
-	info := types.NewInfo(creator, deposit)
+	adapters := sdk.CoinsToCoinAdapters(deposit)
+	info := types.NewInfo(creator, adapters)
 
 	// create prefixed data store
 	// 0x03 | BuildContractAddress (sdk.AccAddress)
@@ -343,7 +344,8 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.AccAddress, caller 
 	}
 
 	env := types.NewEnv(ctx, contractAddress)
-	info := types.NewInfo(caller, coins)
+	adapters := sdk.CoinsToCoinAdapters(coins)
+	info := types.NewInfo(caller, adapters)
 
 	// prepare querier
 	querier := k.newQueryHandler(ctx, contractAddress)

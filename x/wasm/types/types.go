@@ -280,7 +280,7 @@ func NewEnv(ctx sdk.Context, contractAddr sdk.AccAddress) wasmvmtypes.Env {
 }
 
 // NewInfo initializes the MessageInfo for a contract instance
-func NewInfo(creator sdk.AccAddress, deposit sdk.Coins) wasmvmtypes.MessageInfo {
+func NewInfo(creator sdk.AccAddress, deposit sdk.CoinAdapters) wasmvmtypes.MessageInfo {
 	return wasmvmtypes.MessageInfo{
 		Sender: creator.String(),
 		Funds:  NewWasmCoins(deposit),
@@ -288,7 +288,7 @@ func NewInfo(creator sdk.AccAddress, deposit sdk.Coins) wasmvmtypes.MessageInfo 
 }
 
 // NewWasmCoins translates between Cosmos SDK coins and Wasm coins
-func NewWasmCoins(cosmosCoins sdk.Coins) (wasmCoins []wasmvmtypes.Coin) {
+func NewWasmCoins(cosmosCoins sdk.CoinAdapters) (wasmCoins []wasmvmtypes.Coin) {
 	for _, coin := range cosmosCoins {
 		wasmCoin := wasmvmtypes.Coin{
 			Denom:  coin.Denom,
