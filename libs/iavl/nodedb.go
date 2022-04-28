@@ -47,8 +47,6 @@ type nodeDB struct {
 
 	latestVersion  int64
 
-	//lruNodeCache   *lru.Cache
-
 	nodeCache      map[string]*list.Element // Node cache.
 	nodeCacheSize  int                      // Node cache size limit in elements.
 	nodeCacheQueue *syncList                // LRU queue of cache elements. Used for deletion.
@@ -138,7 +136,7 @@ func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) *Node 
 		return elem
 	}
 
-	if elem, ok := ndb.orphanNodeCache[string(hash)]; ok {
+	if elem := ndb.getNodeFromOrphanCache(hash); elem != nil {
 		return elem
 	}
 

@@ -58,12 +58,9 @@ func (ndb *nodeDB) SaveOrphansAsync(version int64, orphans []*Node) {
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
 
-	orphansObj := ndb.heightOrphansMap[version]
-	if orphansObj != nil {
-		orphansObj.orphans = orphans
-	}
+	ndb.feedOrphansMap(version, orphans)
 	for _, node := range orphans {
-		ndb.orphanNodeCache[string(node.hash)] = node
+		ndb.feedOrphanNodeCache(node)
 		delete(ndb.prePersistNodeCache, amino.BytesToStr(node.hash))
 		node.leftNode = nil
 		node.rightNode = nil
@@ -71,28 +68,6 @@ func (ndb *nodeDB) SaveOrphansAsync(version int64, orphans []*Node) {
 	go ndb.uncacheNodeRontine(orphans)
 }
 
-func (ndb *nodeDB) setHeightOrphansItem(version int64, rootHash []byte) {
-	if rootHash == nil {
-		rootHash = []byte{}
-	}
-	orphanObj := &heightOrphansItem{
-		version:  version,
-		rootHash: rootHash,
-	}
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-	ndb.heightOrphansCacheQueue.PushBack(orphanObj)
-	ndb.heightOrphansMap[version] = orphanObj
-
-	for ndb.heightOrphansCacheQueue.Len() > ndb.heightOrphansCacheSize {
-		orphans := ndb.heightOrphansCacheQueue.Front()
-		oldHeightOrphanItem := ndb.heightOrphansCacheQueue.Remove(orphans).(*heightOrphansItem)
-		for _, node := range oldHeightOrphanItem.orphans {
-			delete(ndb.orphanNodeCache, amino.BytesToStr(node.hash))
-		}
-		delete(ndb.heightOrphansMap, oldHeightOrphanItem.version)
-	}
-}
 
 func (ndb *nodeDB) dbGet(k []byte) ([]byte, error) {
 	ts := time.Now()
@@ -308,7 +283,7 @@ func (ndb *nodeDB) sprintCacheLog(version int64) string {
 
 	printLog += fmt.Sprintf(", TotalPreCommitCacheSize:%d", treeMap.totalPreCommitCacheSize)
 	printLog += fmt.Sprintf(", nodeCCnt:%d", ndb.nodeCacheLen())
-	printLog += fmt.Sprintf(", orphanCCnt:%d", len(ndb.orphanNodeCache))
+	printLog += fmt.Sprintf(", orphanCCnt:%d", ndb.orphanNodeCacheLen())
 	printLog += fmt.Sprintf(", prePerCCnt:%d", len(ndb.prePersistNodeCache))
 	printLog += fmt.Sprintf(", dbRCnt:%d", ndb.getDBReadCount())
 	printLog += fmt.Sprintf(", dbWCnt:%d", ndb.getDBWriteCount())
@@ -474,15 +449,6 @@ func updateBranchAndSaveNodeToChan(node *Node, saveNodesCh chan<- *Node) []byte 
 	return node.hash
 }
 
-func (ndb *nodeDB) getRootWithCache(version int64) ([]byte, error) {
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-	orphansObj := ndb.heightOrphansMap[version]
-	if orphansObj != nil {
-		return orphansObj.rootHash, nil
-	}
-	return nil, fmt.Errorf("version %d is not in heightOrphansMap", version)
-}
 
 // Saves orphaned nodes to disk under a special prefix.
 // version: the new version being saved.
@@ -518,15 +484,6 @@ func (ndb *nodeDB) getRootWithCacheAndDB(version int64) ([]byte, error) {
 	return ndb.getRoot(version)
 }
 
-func (ndb *nodeDB) inVersionCacheMap(version int64) ([]byte, bool) {
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-	item := ndb.heightOrphansMap[version]
-	if item != nil {
-		return item.rootHash, true
-	}
-	return nil, false
-}
 
 // DeleteVersion deletes a tree version from disk.
 func (ndb *nodeDB) DeleteVersion(batch dbm.Batch, version int64, checkLatestVersion bool) error {
