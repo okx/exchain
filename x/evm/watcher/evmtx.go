@@ -47,10 +47,6 @@ func (etx *evmTx) GetFailedReceipts(cumulativeGas, gasUsed uint64) WatchMessage 
 }
 
 func (etx *evmTx) GetIndex() uint64 {
-	if etx == nil {
-		return 0
-	}
-
 	return etx.index
 }
 
