@@ -2,6 +2,7 @@ package upgrade
 
 import (
 	"errors"
+	store "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 )
@@ -9,9 +10,11 @@ import (
 type UpgradeModule interface {
 	RegisterTask() HeightTask
 	UpgradeHeight() int64
-	BlockStoreModules() []string
 	RegisterParam() params.ParamSet
 	ModuleName() string
+	CommitFilter() *store.StoreFilter
+	PruneFilter() *store.StoreFilter
+	VersionFilter() *store.VersionFilter
 }
 
 type HeightTasks []HeightTask

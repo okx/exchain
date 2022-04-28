@@ -3,24 +3,20 @@ package watcher
 import (
 	"encoding/hex"
 	"fmt"
-	"math/big"
-	"sync"
-
-	jsoniter "github.com/json-iterator/go"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-
-	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
-
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	jsoniter "github.com/json-iterator/go"
+	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmstate "github.com/okex/exchain/libs/tendermint/state"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
+	"math/big"
+	"sync"
 )
 
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -39,12 +35,13 @@ type Watcher struct {
 	firstUse      bool
 	delayEraseKey [][]byte
 	log           log.Logger
-
 	// for state delta transfering in network
 	watchData  *WatchData
 	wdDelayKey [][]byte
 
 	jobChan chan func()
+
+	evmTxIndex uint64
 }
 
 var (
@@ -91,6 +88,10 @@ func (w *Watcher) Enable(sw bool) {
 	w.sw = sw
 }
 
+func (w *Watcher) GetEvmTxIndex() uint64 {
+	return w.evmTxIndex
+}
+
 func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.Header) {
 	if !w.Enabled() {
 		return
@@ -102,6 +103,7 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	// ResetTransferWatchData
 	w.watchData = &WatchData{}
 	w.wdDelayKey = make([][]byte, 0)
+	w.evmTxIndex = 0
 }
 
 func (w *Watcher) clean() {
@@ -110,17 +112,6 @@ func (w *Watcher) clean() {
 	w.blockTxs = []common.Hash{}
 	w.wdDelayKey = w.delayEraseKey
 	w.delayEraseKey = make([][]byte, 0)
-}
-
-func (w *Watcher) SaveEthereumTx(msg *evmtypes.MsgEthereumTx, txHash common.Hash, index uint64) {
-	if !w.Enabled() {
-		return
-	}
-	wMsg := NewMsgEthTx(msg, txHash, w.blockHash, w.height, index)
-	if wMsg != nil {
-		w.batch = append(w.batch, wMsg)
-	}
-	w.UpdateBlockTxs(txHash)
 }
 
 func (w *Watcher) SaveContractCode(addr common.Address, code []byte) {
@@ -148,7 +139,7 @@ func (w *Watcher) SaveTransactionReceipt(status uint32, msg *evmtypes.MsgEthereu
 		return
 	}
 	w.UpdateCumulativeGas(txIndex, gasUsed)
-	wMsg := NewMsgTransactionReceipt(status, msg, txHash, w.blockHash, txIndex, w.height, data, w.cumulativeGas[txIndex], gasUsed)
+	wMsg := NewEvmTransactionReceipt(status, msg, txHash, w.blockHash, txIndex, w.height, data, w.cumulativeGas[txIndex], gasUsed)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}
@@ -164,13 +155,6 @@ func (w *Watcher) UpdateCumulativeGas(txIndex, gasUsed uint64) {
 		w.cumulativeGas[txIndex] = w.cumulativeGas[txIndex-1] + gasUsed
 	}
 	w.gasUsed += gasUsed
-}
-
-func (w *Watcher) UpdateBlockTxs(txHash common.Hash) {
-	if !w.Enabled() {
-		return
-	}
-	w.blockTxs = append(w.blockTxs, txHash)
 }
 
 func (w *Watcher) SaveAccount(account auth.Account, isDirectly bool) {
@@ -238,6 +222,7 @@ func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
 	if !w.Enabled() {
 		return
 	}
+
 	wMsg := NewMsgBlock(w.height, bloom, w.blockHash, w.header, uint64(0xffffffff), big.NewInt(int64(w.gasUsed)), w.blockTxs)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
@@ -638,7 +623,6 @@ func (w *Watcher) jobRoutine() {
 	}
 
 	w.lazyInitialization()
-
 	for job := range w.jobChan {
 		job()
 	}
