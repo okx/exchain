@@ -20,12 +20,12 @@ import (
 // BeginBlock sets the block hash -> block height map for the previous block height
 // and resets the Bloom filter and the transaction count to 0.
 func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
-	if req.Header.LastBlockId.GetHash() == nil || req.Header.GetHeight() < 1 {
-		return
-	}
-
 	if req.Header.GetHeight() == tmtypes.GetMarsHeight() {
 		migrateDataInMarsHeight(ctx, k)
+	}
+
+	if req.Header.LastBlockId.GetHash() == nil || req.Header.GetHeight() < 1 {
+		return
 	}
 
 	// Gas costs are handled within msg handler so costs should be ignored
