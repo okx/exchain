@@ -188,7 +188,7 @@ func (store *Store) preWrite(keys []string) {
 	setOrDel := make([]byte, 0, len(keys))
 
 	for _, key := range keys {
-		cacheValue := store.cache[key]
+		cacheValue := store.dirty[key]
 		switch {
 		case cacheValue.deleted:
 			setOrDel = append(setOrDel, iavl.PreChangeOpDelete)
