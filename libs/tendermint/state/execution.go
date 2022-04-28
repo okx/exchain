@@ -16,7 +16,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
-	"github.com/spf13/viper"
 	"github.com/tendermint/go-amino"
 )
 
@@ -43,7 +42,6 @@ type BlockExecutor struct {
 
 	logger  log.Logger
 	metrics *Metrics
-	isAsync bool
 
 	// download or upload data to dds
 	deltaContext *DeltaContext
@@ -85,7 +83,6 @@ func NewBlockExecutor(
 		evpool:       evpool,
 		logger:       logger,
 		metrics:      NopMetrics(),
-		isAsync:      viper.GetBool(FlagParalleledTx),
 		prerunCtx:    newPrerunContex(logger),
 		deltaContext: newDeltaContext(logger),
 	}
@@ -100,10 +97,6 @@ func NewBlockExecutor(
 	return res
 }
 
-func (blockExec *BlockExecutor) SetIsAsyncDeliverTx(sw bool) {
-	blockExec.isAsync = sw
-
-}
 func (blockExec *BlockExecutor) DB() dbm.DB {
 	return blockExec.db
 }
@@ -309,7 +302,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 				db:       blockExec.db,
 				proxyApp: blockExec.proxyApp,
 			}
-			if blockExec.isAsync {
+			if cfg.DynamicConfig.GetParalleledTxEnable() {
 				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			} else {
 				abciResponses, err = execBlockOnProxyApp(ctx)

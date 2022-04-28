@@ -12,6 +12,7 @@ import (
 	iavlconfig "github.com/okex/exchain/libs/iavl/config"
 	tmconfig "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/x/common/analyzer"
 
 	"github.com/spf13/viper"
@@ -64,6 +65,8 @@ type OecConfig struct {
 
 	// enable-analyzer
 	enableAnalyzer bool
+
+	enableParalleledTx bool
 }
 
 const (
@@ -193,6 +196,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetNodeKeyWhitelist(viper.GetString(FlagNodeKeyWhitelist))
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
 	c.SetEnableAnalyzer(viper.GetBool(analyzer.FlagEnableAnalyzer))
+	c.SetParalleledTxStatus(viper.GetBool(state.FlagParalleledTx))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -360,6 +364,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetEnableAnalyzer(r)
+	case state.FlagParalleledTx:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetParalleledTxStatus(r)
 	}
 }
 
@@ -406,6 +416,14 @@ func (c *OecConfig) SetMempoolFlush(value bool) {
 
 func (c *OecConfig) GetEnableWtx() bool {
 	return c.enableWtx
+}
+
+func (c *OecConfig) SetParalleledTxStatus(enable bool) {
+	c.enableParalleledTx = enable
+}
+
+func (c *OecConfig) GetParalleledTxEnable() bool {
+	return c.enableParalleledTx
 }
 
 func (c *OecConfig) SetEnableWtx(value bool) {

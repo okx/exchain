@@ -3,6 +3,7 @@ package state
 import (
 	"encoding/hex"
 	"fmt"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -28,7 +29,6 @@ type executionTask struct {
 	db             dbm.DB
 	logger         log.Logger
 	blockHash      string
-	isParalleledTx bool
 }
 
 func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64) *executionTask {
@@ -40,7 +40,6 @@ func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64)
 		logger:         blockExec.logger,
 		taskResultChan: blockExec.prerunCtx.taskResultChan,
 		index:          index,
-		isParalleledTx: blockExec.isAsync,
 	}
 	ret.blockHash = hex.EncodeToString(block.Hash())
 
@@ -73,7 +72,7 @@ func (t *executionTask) run() {
 	var abciResponses *ABCIResponses
 	var err error
 
-	if t.isParalleledTx {
+	if cfg.DynamicConfig.GetParalleledTxEnable() {
 		abciResponses, err = execBlockOnProxyAppAsync(t.logger, t.proxyApp, t.block, t.db)
 	} else {
 		abciResponses, err = execBlockOnProxyApp(t)

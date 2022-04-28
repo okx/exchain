@@ -20,11 +20,17 @@ func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCo
 
 // evmTxFeeHandler get tx fee for evm tx
 func evmTxFeeHandler() sdk.GetTxFeeHandler {
-	return func(ctx sdk.Context, tx sdk.Tx, verifySig bool) (fee sdk.Coins, isEvm bool) {
+
+	return func(ctx sdk.Context, tx sdk.Tx, verifySig bool) (fee sdk.Coins, isEvm bool, from string, to string) {
 		if verifySig {
 			if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
 				isEvm = true
 				_ = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight())
+				from = evmTx.BaseTx.From
+				to = ""
+				if evmTx.To() != nil {
+					to = evmTx.To().String()
+				}
 			}
 		}
 		if feeTx, ok := tx.(authante.FeeTx); ok {
@@ -37,8 +43,8 @@ func evmTxFeeHandler() sdk.GetTxFeeHandler {
 
 // fixLogForParallelTxHandler fix log for parallel tx
 func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
-	return func(execResults [][]string) (logs [][]byte) {
-		return ek.FixLog(execResults)
+	return func(logIndex []int, anteErrs []error) (logs [][]byte) {
+		return ek.FixLog(logIndex, anteErrs)
 	}
 }
 

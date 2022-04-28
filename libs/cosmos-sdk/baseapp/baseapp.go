@@ -253,8 +253,6 @@ func NewBaseApp(
 	}
 	app.cms.SetLogger(app.logger)
 
-	app.parallelTxManage.workgroup.Start()
-
 	return app
 }
 
@@ -648,8 +646,10 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 		ctx, _ = ctx.CacheContext()
 	}
 	if app.parallelTxManage.isAsyncDeliverTx && mode == runTxModeDeliverInAsync {
-		ctx.SetAsync(true)
-		ctx.SetTxBytes(getRealTxByte(txBytes))
+		ctx.SetParaMsg(&sdk.ParaMsg{
+			HaveCosmosTxInBlock: app.parallelTxManage.haveCosmosTxInBlock,
+		})
+		ctx.SetTxBytes(txBytes)
 	}
 
 	if mode == runTxModeDeliver {
