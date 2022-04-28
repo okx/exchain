@@ -3,6 +3,7 @@ package iavl
 import (
 	"container/list"
 	"fmt"
+	"github.com/tendermint/go-amino"
 	"sync"
 )
 
@@ -25,10 +26,7 @@ func newOrphanInfo() *OrphanInfo {
 
 	return oi
 }
-
 func (ndb *nodeDB) setHeightOrphansItem(version int64, rootHash []byte) {
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
 	if rootHash == nil {
 		rootHash = []byte{}
 	}
@@ -36,6 +34,8 @@ func (ndb *nodeDB) setHeightOrphansItem(version int64, rootHash []byte) {
 		version:  version,
 		rootHash: rootHash,
 	}
+	ndb.mtx.Lock()
+	defer ndb.mtx.Unlock()
 	ndb.heightOrphansCacheQueue.PushBack(orphanObj)
 	ndb.heightOrphansMap[version] = orphanObj
 
@@ -43,7 +43,7 @@ func (ndb *nodeDB) setHeightOrphansItem(version int64, rootHash []byte) {
 		orphans := ndb.heightOrphansCacheQueue.Front()
 		oldHeightOrphanItem := ndb.heightOrphansCacheQueue.Remove(orphans).(*heightOrphansItem)
 		for _, node := range oldHeightOrphanItem.orphans {
-			delete(ndb.orphanNodeCache, string(node.hash))
+			delete(ndb.orphanNodeCache, amino.BytesToStr(node.hash))
 		}
 		delete(ndb.heightOrphansMap, oldHeightOrphanItem.version)
 	}
