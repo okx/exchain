@@ -150,9 +150,6 @@ func (tx *Tx) ResetWatcher(account authexported.Account) {}
 // RefundFeesWatcher refund the watcher, check Tx do not save state so. skip
 func (tx *Tx) RefundFeesWatcher(account authexported.Account, coins sdk.Coins, price *big.Int) {}
 
-// RestoreWatcherTransactionReceipt check Tx do not need restore
-func (tx *Tx) RestoreWatcherTransactionReceipt(msg *types.MsgEthereumTx) {}
-
 // Commit check Tx do not need
 func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *Result) {}
 
