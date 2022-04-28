@@ -1,6 +1,7 @@
 package utils
 
 import (
+	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"testing"
 
 	"github.com/okex/exchain/libs/tendermint/rpc/client/mock"
@@ -40,12 +41,14 @@ func (mock TxSearchMock) Block(height *int64) (*ctypes.ResultBlock, error) {
 	return &ctypes.ResultBlock{Block: &tmtypes.Block{}}, nil
 }
 
-func newTestCodec() *codec.Codec {
+func newTestCodec() *codec.CodecProxy {
 	cdc := codec.New()
 	sdk.RegisterCodec(cdc)
 	types.RegisterCodec(cdc)
 	authtypes.RegisterCodec(cdc)
-	return cdc
+	reg := codectypes.NewInterfaceRegistry()
+	px := codec.NewCodecProxy(codec.NewProtoCodec(reg), cdc)
+	return px
 }
 
 func TestGetPaginatedVotes(t *testing.T) {
@@ -137,12 +140,12 @@ func TestGetPaginatedVotes(t *testing.T) {
 				cdc        = newTestCodec()
 			)
 			for i := range tc.txs {
-				tx, err := cdc.MarshalBinaryLengthPrefixed(&tc.txs[i])
+				tx, err := cdc.GetCdc().MarshalBinaryLengthPrefixed(&tc.txs[i])
 				require.NoError(t, err)
 				marshalled[i] = tmtypes.Tx(tx)
 			}
 			client := TxSearchMock{txs: marshalled}
-			ctx := context.CLIContext{}.WithCodec(cdc).WithTrustNode(true).WithClient(client)
+			ctx := context.CLIContext{}.WithProxy(cdc).WithTrustNode(true).WithClient(client)
 
 			params := types.NewQueryProposalVotesParams(0, tc.page, tc.limit)
 			votesData, err := QueryVotesByTxQuery(ctx, params)
