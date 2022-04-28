@@ -932,3 +932,7 @@ func (app *BaseApp) MsgServiceRouter() *MsgServiceRouter { return app.msgService
 func (app *BaseApp) GetCMS() sdk.CommitMultiStore {
 	return app.cms
 }
+
+func (app *BaseApp) GetTxDecoder() sdk.TxDecoder {
+	return app.txDecoder
+}
