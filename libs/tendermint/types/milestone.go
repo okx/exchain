@@ -110,6 +110,11 @@ func UnittestOnlySetMilestoneVenusHeight(height int64) {
 	milestoneVenusHeight = height
 }
 
+// can be used in unit test only
+func UnittestOnlySetMilestoneMarsHeight(height int64) {
+	milestoneMarsHeight = height
+}
+
 // ==================================
 // =========== Venus1 ===============
 func HigherThanVenus1(h int64) bool {

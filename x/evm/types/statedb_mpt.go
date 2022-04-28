@@ -111,7 +111,11 @@ func (csdb *CommitStateDB) GetStateByKeyMpt(addr ethcmn.Address, key ethcmn.Hash
 		err error
 	)
 
-	if enc, err = csdb.StorageTrie(addr).TryGet(key.Bytes()); err != nil {
+	tmpKey := key
+	if TrieUseCompositeKey {
+		tmpKey = GetStorageByAddressKey(addr.Bytes(), key.Bytes())
+	}
+	if enc, err = csdb.StorageTrie(addr).TryGet(tmpKey.Bytes()); err != nil {
 		return ethcmn.Hash{}
 	}
 
