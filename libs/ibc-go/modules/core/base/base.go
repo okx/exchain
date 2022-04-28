@@ -20,10 +20,7 @@ var (
 	}
 	defaultDenyFilter cosmost.StoreFilter = func(module string, h int64, store cosmost.CommitKVStore) bool {
 		_, exist := ibcMap[module]
-		if !exist {
-			return false
-		}
-		return true
+		return exist
 	}
 	defaultDenyVersionFilter cosmost.VersionFilter = func(h int64) func(cb func(name string, version int64)) {
 		return func(cb func(name string, version int64)) {}
@@ -36,19 +33,11 @@ var (
 
 		// ==veneus1
 		if h == types.GetVenus1Height() {
-			if store != nil {
-				store.SetUpgradeVersion(h)
-			}
+			store.SetUpgradeVersion(h)
 			return false
 		}
 
-		// ibc modules
-		if types.HigherThanVenus1(h) {
-			return false
-		}
-
-		// < veneus1
-		return true
+		return types.HigherThanVenus1(h)
 	}
 	defaultIBCPruneFilter cosmost.StoreFilter = func(module string, h int64, store cosmost.CommitKVStore) bool {
 		_, exist := ibcMap[module]
