@@ -645,6 +645,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 
 	if mode == runTxModeSimulate {
 		ctx, _ = ctx.CacheContext()
+		ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 	}
 	if app.parallelTxManage.isAsyncDeliverTx && mode == runTxModeDeliverInAsync {
 		ctx.SetAsync(true)
