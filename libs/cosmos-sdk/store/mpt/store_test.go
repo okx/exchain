@@ -46,7 +46,7 @@ func (suite *StoreTestSuite) SetupTest() {
 	defer os.RemoveAll(serverDir)
 	viper.Set(flags.FlagHome, serverDir)
 
-	mptStore, err := NewMptStore(nil, types.CommitID{})
+	mptStore, err := mockMptStore(nil, types.CommitID{})
 	if err != nil {
 		panic(err)
 	}

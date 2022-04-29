@@ -8,6 +8,7 @@ import (
 	"github.com/VictoriaMetrics/fastcache"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/prque"
+	"github.com/ethereum/go-ethereum/core/rawdb"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -81,8 +82,11 @@ func (ms *MptStore) GetFlatKVWriteCount() int {
 
 func NewMptStore(logger tmlog.Logger, id types.CommitID) (*MptStore, error) {
 	db := InstanceOfMptStore()
-	triegc := prque.New(nil)
+	return generateMptStore(logger, id, db)
+}
 
+func generateMptStore(logger tmlog.Logger, id types.CommitID, db ethstate.Database) (*MptStore, error) {
+	triegc := prque.New(nil)
 	mptStore := &MptStore{
 		db:         db,
 		triegc:     triegc,
@@ -93,6 +97,11 @@ func NewMptStore(logger tmlog.Logger, id types.CommitID) (*MptStore, error) {
 	err := mptStore.openTrie(id)
 
 	return mptStore, err
+}
+
+func mockMptStore(logger tmlog.Logger, id types.CommitID) (*MptStore, error) {
+	db := ethstate.NewDatabase(rawdb.NewMemoryDatabase())
+	return generateMptStore(logger, id, db)
 }
 
 func (ms *MptStore) openTrie(id types.CommitID) error {
@@ -125,14 +134,13 @@ func (ms *MptStore) openTrie(id types.CommitID) error {
 }
 
 func (ms *MptStore) GetImmutable(height int64) (*MptStore, error) {
-	db := InstanceOfMptStore()
 	rootHash := ms.GetMptRootHash(uint64(height))
 	tr, err := ms.db.OpenTrie(rootHash)
 	if err != nil {
 		return nil, fmt.Errorf("Fail to open root mpt: " + err.Error())
 	}
 	mptStore := &MptStore{
-		db:           db,
+		db:           ms.db,
 		trie:         tr,
 		originalRoot: rootHash,
 		exitSignal:   make(chan struct{}),
