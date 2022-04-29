@@ -33,18 +33,12 @@ func (ndb *nodeDB) handleOrphansRoutine() {
 }
 
 func (ndb *nodeDB) handleOrphans(version int64, rootHash []byte, newOrphans []*Node) {
-	//ndb.log(IavlInfo, "issue handleOrphans", "version", version)
-	//defer ndb.log(IavlInfo, "issue handleOrphans return", "version", version)
 
 	task := func() {
-		//ndb.log(IavlInfo, "handleOrphans", "version", version)
-
 		ndb.mtx.Lock()
 		defer ndb.mtx.Unlock()
-
-		//defer ndb.log(IavlInfo, "handleOrphans locked", "version", version)
-		ndb.saveOrphansAsync(version, newOrphans, false)
-		ndb.setHeightOrphansItem(version, rootHash)
+		ndb.saveNewOrphans(version, newOrphans, false)
+		ndb.removeOldOrphans(version, rootHash)
 		ndb.orphanResultChan <- version
 	}
 
@@ -57,8 +51,6 @@ func (ndb *nodeDB) sanityCheckHandleOrphansResult(version int64) {
 		return
 	}
 	version--
-	//ndb.log(IavlInfo, "getHandleOrphansResult enter ", "version", version)
-	//defer ndb.log(IavlInfo, "getHandleOrphansResult exit ", "version", version)
 
 	for versionCompleted := range ndb.orphanResultChan {
 		if version == versionCompleted {
@@ -67,7 +59,7 @@ func (ndb *nodeDB) sanityCheckHandleOrphansResult(version int64) {
 	}
 }
 
-func (ndb *nodeDB) setHeightOrphansItem(version int64, rootHash []byte) {
+func (ndb *nodeDB) removeOldOrphans(version int64, rootHash []byte) {
 	if rootHash == nil {
 		rootHash = []byte{}
 	}

@@ -50,7 +50,7 @@ func (ndb *nodeDB) SaveOrphans(batch dbm.Batch, version int64, orphans []*Node) 
 	}
 }
 
-func (ndb *nodeDB) saveOrphansAsync(version int64, orphans []*Node, lock bool) {
+func (ndb *nodeDB) saveNewOrphans(version int64, orphans []*Node, lock bool) {
 
 	if orphans == nil {
 		return

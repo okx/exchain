@@ -51,8 +51,6 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		return nil, version, fmt.Errorf("existing version: %d, root: %X", version, oldRoot)
 	}
 
-	//tree.ndb.log(IavlInfo, "SaveVersionAsync 1", "version", version)
-
 	if tree.root != nil {
 		if useDeltas {
 			tree.updateBranchWithDelta(tree.root)
@@ -74,18 +72,15 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 
 	newOrphans := tree.orphans
 	if shouldPersist {
-		tree.ndb.saveOrphansAsync(version, newOrphans, true)
+		tree.ndb.saveNewOrphans(version, newOrphans, true)
 		tree.persist(version)
 		newOrphans = nil
-		//tree.ndb.log(IavlInfo, "SaveVersionAsync 2.2", "version", version)
 	}
 
-	//tree.ndb.log(IavlInfo, "SaveVersionAsync 3", "version", version)
 	return tree.setNewWorkingTree(version, newOrphans, shouldPersist)
 }
 
 func (tree *MutableTree) setNewWorkingTree(version int64, newOrphans []*Node, persisted bool) ([]byte, int64, error) {
-	//tree.ndb.log(IavlInfo, "SaveVersionAsync 4", "version", version)
 	// set new working tree
 	tree.ImmutableTree = tree.ImmutableTree.clone()
 	tree.lastSaved = tree.ImmutableTree.clone()
@@ -95,7 +90,6 @@ func (tree *MutableTree) setNewWorkingTree(version int64, newOrphans []*Node, pe
 	}
 	rootHash := tree.lastSaved.Hash()
 
-	//tree.ndb.log(IavlInfo, "SaveVersionAsync 5", "version", version)
 	tree.ndb.handleOrphans(version, rootHash, newOrphans)
 	tree.version = version
 	if persisted {
@@ -229,9 +223,6 @@ func (tree *MutableTree) log(level int, msg string, kvs ...interface{}) {
 	iavlLog(tree.GetModuleName(), level, msg, kvs...)
 }
 
-func (tree *MutableTree) setHeightOrphansItem(version int64, rootHash []byte) {
-	tree.ndb.setHeightOrphansItem(version, rootHash)
-}
 
 func (tree *MutableTree) updateCommittedStateHeightPool(batch dbm.Batch, version int64, versions map[int64]bool) {
 	queue := tree.committedHeightQueue
