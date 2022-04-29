@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"strings"
 	"time"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 
 	"github.com/okex/exchain/libs/tendermint/trace"
@@ -34,12 +34,13 @@ import (
 )
 
 const (
-	runTxModeCheck          runTxMode = iota // Check a transaction
-	runTxModeReCheck                         // Recheck a (pending) transaction after a commit
-	runTxModeSimulate                        // Simulate a transaction
-	runTxModeDeliver                         // Deliver a transaction
-	runTxModeDeliverInAsync                  //Deliver a transaction in Aysnc
-	runTxModeTrace                           // Trace a transaction
+	runTxModeCheck                 runTxMode = iota // Check a transaction
+	runTxModeReCheck                                // Recheck a (pending) transaction after a commit
+	runTxModeSimulate                               // Simulate a transaction
+	runTxModeDeliver                                // Deliver a transaction
+	runTxModeDeliverInAsync                         // Deliver a transaction in Aysnc
+	runTxModeDeliverPartConcurrent                  // Deliver a transaction partial concurrent
+	runTxModeTrace                                  // Trace a transaction
 	runTxModeWrappedCheck
 
 	// MainStoreKey is the string representation of the main store
@@ -106,6 +107,8 @@ func (m runTxMode) String() (res string) {
 		res = "ModeSimulate"
 	case runTxModeDeliver:
 		res = "ModeDeliver"
+	case runTxModeDeliverPartConcurrent:
+		res = "ModeDeliverPartConcurrent"
 	case runTxModeDeliverInAsync:
 		res = "ModeDeliverInAsync"
 	case runTxModeWrappedCheck:
@@ -145,9 +148,10 @@ type BaseApp struct { // nolint: maligned
 	idPeerFilter   sdk.PeerFilter   // filter peers by node ID
 	fauxMerkleMode bool             // if true, IAVL MountStores uses MountStoresDB for simulation speed.
 
-	getTxFee                     sdk.GetTxFeeHandler
 	updateFeeCollectorAccHandler sdk.UpdateFeeCollectorAccHandler
 	logFix                       sdk.LogFix
+
+	getTxFeeAndFromHandler sdk.GetTxFeeAndFromHandler
 
 	// volatile states:
 	//
@@ -196,6 +200,8 @@ type BaseApp struct { // nolint: maligned
 	customizeModuleOnStop []sdk.CustomizeOnStop
 	mptCommitHandler      sdk.MptCommitHandler // handler for mpt trie commit
 	feeForCollector       sdk.Coins
+	deliverTxsMgr    *DTTManager
+	feeChanged      bool	// used to judge whether should update the fee-collector account
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
@@ -255,8 +261,6 @@ func NewBaseApp(
 		app.cms.SetInterBlockCache(app.interBlockCache)
 	}
 	app.cms.SetLogger(app.logger)
-
-	app.parallelTxManage.workgroup.Start()
 
 	return app
 }
@@ -648,7 +652,7 @@ func validateBasicTxMsgs(msgs []sdk.Msg) error {
 // Returns the applications's deliverState if app is in runTxModeDeliver,
 // otherwise it returns the application's checkstate.
 func (app *BaseApp) getState(mode runTxMode) *state {
-	if mode == runTxModeDeliver || mode == runTxModeDeliverInAsync {
+	if mode == runTxModeDeliver || mode == runTxModeDeliverInAsync || mode == runTxModeDeliverPartConcurrent {
 		return app.deliverState
 	}
 
@@ -672,13 +676,16 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 
 	if mode == runTxModeSimulate {
 		ctx, _ = ctx.CacheContext()
+		ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 	}
 	if app.parallelTxManage.isAsyncDeliverTx && mode == runTxModeDeliverInAsync {
-		ctx.SetAsync(true)
-		ctx.SetTxBytes(getRealTxByte(txBytes))
+		ctx.SetParaMsg(&sdk.ParaMsg{
+			HaveCosmosTxInBlock: app.parallelTxManage.haveCosmosTxInBlock,
+		})
+		ctx.SetTxBytes(txBytes)
 	}
 
-	if mode == runTxModeDeliver {
+	if mode == runTxModeDeliver || mode == runTxModeDeliverPartConcurrent {
 		ctx.SetDeliver()
 	}
 

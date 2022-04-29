@@ -163,12 +163,11 @@ func (app *BaseApp) SetRouter(router sdk.Router) {
 }
 
 // SetParallelTxHandler some resources for parallel txs
-func (app *BaseApp) SetParallelTxHandlers(feeCollectt sdk.UpdateFeeCollectorAccHandler, txFee sdk.GetTxFeeHandler, fixLog sdk.LogFix) {
+func (app *BaseApp) SetParallelTxHandlers(feeCollectt sdk.UpdateFeeCollectorAccHandler, fixLog sdk.LogFix) {
 	if app.sealed {
 		panic("SetPallTxHandler() on sealed BaseApp")
 	}
 	app.updateFeeCollectorAccHandler = feeCollectt
-	app.getTxFee = txFee
 	app.logFix = fixLog
 }
 
@@ -191,4 +190,11 @@ func (app *BaseApp) SetPreDeliverTxHandler(handler sdk.PreDeliverTxHandler) {
 		panic("SetPreDeliverTxHandler() on sealed BaseApp")
 	}
 	app.preDeliverTxHandler = handler
+}
+
+func (app *BaseApp) SetPartialConcurrentHandlers(etf sdk.GetTxFeeAndFromHandler){
+	if app.sealed {
+		panic("SetPartialConcurrentHandlers() on sealed BaseApp")
+	}
+	app.getTxFeeAndFromHandler = etf
 }

@@ -1,25 +1,22 @@
 package state
 
 import (
-	"fmt"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/proxy"
-	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
-func execBlockOnProxyAppAsync(
-	logger log.Logger,
+// Executes block's transactions on proxyAppConn.
+// Returns a list of transaction results and updates to the validator set
+func execBlockOnProxyAppPartConcurrent(logger log.Logger,
 	proxyAppConn proxy.AppConnConsensus,
 	block *types.Block,
 	stateDB dbm.DB,
-) (*ABCIResponses, error) {
-	var validTxs, invalidTxs = 0, 0
+	) (*ABCIResponses, error) {
 
 	abciResponses := NewABCIResponses(block)
-
 	commitInfo, byzVals := getBeginBlockValidatorInfo(block, stateDB)
 
 	// Begin block
@@ -35,23 +32,14 @@ func execBlockOnProxyAppAsync(
 		return nil, err
 	}
 
-	abciResponses.DeliverTxs = proxyAppConn.ParallelTxs(transTxsToBytes(block.Txs), false)
-	for _, v := range abciResponses.DeliverTxs {
-		if v.Code == abci.CodeTypeOK {
-			validTxs++
-		} else {
-			invalidTxs++
-		}
-	}
+	// Run txs of block.
+	abciResponses.DeliverTxs = proxyAppConn.DeliverTxsConcurrent(transTxsToBytes(block.Txs))
 
-	// End block.
 	abciResponses.EndBlock, err = proxyAppConn.EndBlockSync(abci.RequestEndBlock{Height: block.Height})
 	if err != nil {
 		logger.Error("Error in proxyAppConn.EndBlock", "err", err)
 		return nil, err
 	}
-
-	trace.GetElapsedInfo().AddInfo(trace.InvalidTxs, fmt.Sprintf("%d", invalidTxs))
 
 	return abciResponses, nil
 }

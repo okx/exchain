@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/okex/exchain/libs/iavl/trace"
-
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
@@ -50,7 +49,6 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		return nil, version, fmt.Errorf("existing version: %d, root: %X", version, oldRoot)
 	}
 
-	batch := tree.NewBatch()
 	if tree.root != nil {
 		if useDeltas {
 			tree.updateBranchWithDelta(tree.root)
@@ -68,7 +66,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		}
 	}
 
-	tree.ndb.SaveOrphans(batch, version, tree.orphans)
+	tree.ndb.SaveOrphansAsync(version, tree.orphans)
 
 	//shouldPersist := (version-tree.lastPersistHeight >= CommitIntervalHeight) ||
 	//	(treeMap.totalPreCommitCacheSize >= MinCommitItemCount)
@@ -76,17 +74,16 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 	shouldPersist := (version%CommitGapHeight == 0) || (treeMap.totalPreCommitCacheSize >= MinCommitItemCount)
 
 	if shouldPersist {
+		batch := tree.NewBatch()
 		if err := tree.persist(batch, version); err != nil {
 			return nil, 0, err
 		}
-	} else {
-		batch.Close()
 	}
 
 	// set new working tree
 	tree.ImmutableTree = tree.ImmutableTree.clone()
 	tree.lastSaved = tree.ImmutableTree.clone()
-	tree.orphans = []*Node{}
+	tree.orphans = make([]*Node, 0, len(tree.orphans))
 	for k := range tree.savedNodes {
 		delete(tree.savedNodes, k)
 	}
@@ -132,7 +129,9 @@ func (tree *MutableTree) persist(batch dbm.Batch, version int64) error {
 		}
 		tpp = tree.ndb.asyncPersistTppStart(version)
 	}
-	tree.commitOrphans = map[string]int64{}
+	for k := range tree.commitOrphans {
+		delete(tree.commitOrphans, k)
+	}
 	versions := tree.deepCopyVersions()
 	tree.commitCh <- commitEvent{version, versions, batch,
 		tpp, nil, int(tree.Height())}

@@ -113,10 +113,6 @@ func (b *BaseIBCUpgradeModule) PruneFilter() *cosmost.StoreFilter {
 }
 
 func (b *BaseIBCUpgradeModule) VersionFilter() *cosmost.VersionFilter {
-	if b.UpgradeHeight() == 0 {
-		return &defaultDenyVersionFilter
-	}
-
 	return &defaultIBCVersionFilter
 }
 

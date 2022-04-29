@@ -922,7 +922,7 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) ethcmn.Hash
 		if obj := csdb.stateObjects[addr]; obj.deleted {
 			csdb.deleteStateObject(obj)
 		} else {
-			csdb.updateStateObject(obj)
+			csdb.updateStateObject(obj, true)
 		}
 		//usedAddrs = append(usedAddrs, ethcmn.CopyBytes(addr[:])) // Copy needed for closure
 	}
@@ -938,7 +938,7 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) ethcmn.Hash
 }
 
 // updateStateObject writes the given state object to the store.
-func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
+func (csdb *CommitStateDB) updateStateObject(so *stateObject, fromCommit bool) error {
 	// NOTE: we don't use sdk.NewCoin here to avoid panic on test importer's genesis
 	newBalance := sdk.Coin{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecFromBigIntWithPrec(so.Balance(), sdk.Precision)} // int2dec
 	if !newBalance.IsValid() {
@@ -960,7 +960,8 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 		return err
 	}
 
-	csdb.accountKeeper.SetAccount(csdb.ctx, so.account)
+	updateState := fromCommit && csdb.ctx.IsDeliver()
+	csdb.accountKeeper.SetAccount(csdb.ctx, so.account, updateState)
 	if !csdb.ctx.IsCheckTx() {
 		if csdb.Watcher.Enabled() {
 			csdb.Watcher.SaveAccount(so.account, false)

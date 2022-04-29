@@ -75,7 +75,7 @@ func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *base.Result) {
 	}
 
 	// update block bloom filter
-	if !tx.Ctx.IsAsync() {
+	if tx.Ctx.ParaMsg() == nil {
 		tx.Keeper.Bloom.Or(tx.Keeper.Bloom, result.ExecResult.Bloom)
 	}
 	tx.Keeper.LogSize = tx.StateTransition.Csdb.GetLogSize()

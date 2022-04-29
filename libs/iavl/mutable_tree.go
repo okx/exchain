@@ -59,6 +59,8 @@ type MutableTree struct {
 	lastPersistHeight int64
 	//for ibc module upgrade version
 	upgradeVersion int64
+
+	readableOrphansSlice []*Node
 }
 
 // NewMutableTree returns a new tree with the specified cache size and datastore.
@@ -168,7 +170,9 @@ func (tree *MutableTree) prepareOrphansSlice() []*Node {
 // Set sets a key in the working tree. Nil values are invalid. The given key/value byte slices must
 // not be modified after this call, since they point to slices stored within IAVL.
 func (tree *MutableTree) Set(key, value []byte) bool {
-	orphaned, updated := tree.set(key, value)
+	// orphaned, updated := tree.set(key, value) // old code
+	orphaned := tree.makeOrphansSliceReady()
+	updated := tree.setWithOrphansSlice(key, value, &orphaned)
 	tree.addOrphans(orphaned)
 	return updated
 }
@@ -253,7 +257,9 @@ func (tree *MutableTree) recursiveSet(node *Node, key []byte, value []byte, orph
 // Remove removes a key from the working tree. The given key byte slice should not be modified
 // after this call, since it may point to data stored inside IAVL.
 func (tree *MutableTree) Remove(key []byte) ([]byte, bool) {
-	val, orphaned, removed := tree.remove(key)
+	// val, orphaned, removed := tree.remove(key) // old code
+	orphaned := tree.makeOrphansSliceReady()
+	val, removed := tree.removeWithOrphansSlice(key, &orphaned)
 	tree.addOrphans(orphaned)
 	return val, removed
 }
