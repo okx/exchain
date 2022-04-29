@@ -2,7 +2,6 @@ package rootmulti
 
 import (
 	"fmt"
-	"runtime"
 	"sync"
 
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
@@ -1033,18 +1032,21 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	}
 	outputDeltaMap := make(iavltree.TreeDeltaMap, storeCount)
 
-	commitStoreCh := make(chan commitStoreJob, storeCount)
-	resultCh := make(chan commitStoreResult, storeCount)
-
-	workerNum := runtime.NumCPU() / 2
-	if workerNum > storeCount {
-		workerNum = storeCount
-	}
+	resultCh := make(chan commitStoreResult, 1)
 
 	wg := sync.WaitGroup{}
-	wg.Add(storeCount)
 
-	for i := 0; i < workerNum; i++ {
+	job := commitStoreJob{}
+	for key, store := range storeMap {
+		if key.Name() == "evm" {
+			job.Key = key
+			job.Store = store
+		}
+	}
+
+	if job.Key != nil {
+		wg.Add(1)
+		commitStoreCh := make(chan commitStoreJob, 1)
 		go func(version int64, jobCh chan commitStoreJob, resultCh chan commitStoreResult, inputDeltaMap iavltree.TreeDeltaMap, filters []types.StoreFilter, wg *sync.WaitGroup) {
 			for job := range jobCh {
 				key := job.Key
@@ -1071,15 +1073,31 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 				wg.Done()
 			}
 		}(version, commitStoreCh, resultCh, inputDeltaMap, filters, &wg)
+		commitStoreCh <- job
+		close(commitStoreCh)
 	}
 
 	for key, store := range storeMap {
-		commitStoreCh <- commitStoreJob{
-			Key:   key,
-			Store: store,
+		if key.Name() == "evm" {
+			continue
 		}
+		if filter(key.Name(), version, store, filters) {
+			continue
+		}
+
+		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
+
+		if store.GetStoreType() == types.StoreTypeTransient {
+			continue
+		}
+
+		si := storeInfo{}
+		si.Name = key.Name()
+		si.Core.CommitID = commitID
+		storeInfos = append(storeInfos, si)
+		outputDeltaMap[key.Name()] = outputDelta
 	}
-	close(commitStoreCh)
+
 	wg.Wait()
 	close(resultCh)
 	for res := range resultCh {
