@@ -37,6 +37,23 @@ func (b boolItem) verbose() string {
 	return fmt.Sprintf("--%v=%v", b.name, b.value)
 }
 
+type intItem struct {
+	name  string
+	value int
+}
+
+func (i intItem) label() string {
+	return i.name
+}
+
+func (i intItem) check() bool {
+	return viper.GetInt(i.label()) == i.value
+}
+
+func (i intItem) verbose() string {
+	return fmt.Sprintf("--%v=%v", i.name, i.value)
+}
+
 type stringItem struct {
 	name  string
 	value string

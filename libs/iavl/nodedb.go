@@ -9,12 +9,11 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/tendermint/go-amino"
-
-	"github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	cmap "github.com/orcaman/concurrent-map"
 	"github.com/pkg/errors"
+	"github.com/tendermint/go-amino"
 )
 
 const (
@@ -47,9 +46,13 @@ type nodeDB struct {
 	versionReaders map[int64]uint32 // Number of active version readers
 
 	latestVersion  int64
+
+	//lruNodeCache   *lru.Cache
+
 	nodeCache      map[string]*list.Element // Node cache.
 	nodeCacheSize  int                      // Node cache size limit in elements.
 	nodeCacheQueue *syncList                // LRU queue of cache elements. Used for deletion.
+	nodeCacheMutex sync.RWMutex             // Mutex for node cache.
 
 	orphanNodeCache         map[string]*Node
 	heightOrphansCacheQueue *list.List
@@ -71,6 +74,8 @@ type nodeDB struct {
 	totalOrphanCount    int64
 
 	name string
+
+	preWriteNodeCache cmap.ConcurrentMap
 }
 
 func makeNodeCacheMap(cacheSize int, initRatio float64) map[string]*list.Element {
@@ -89,7 +94,7 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		o := DefaultOptions()
 		opts = &o
 	}
-	return &nodeDB{
+	ndb := &nodeDB{
 		db:                      db,
 		opts:                    *opts,
 		latestVersion:           0, // initially invalid
@@ -108,55 +113,67 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		dbReadTime:              0,
 		dbWriteCount:            0,
 		name:                    ParseDBName(db),
+		preWriteNodeCache:       cmap.New(),
 	}
+
+	return ndb
+}
+
+func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) *Node {
+	ndb.addNodeReadCount()
+	if len(hash) == 0 {
+		panic("nodeDB.GetNode() requires hash")
+	}
+	ndb.mtx.RLock()
+	defer ndb.mtx.RUnlock()
+	if elem, ok := ndb.prePersistNodeCache[string(hash)]; ok {
+		return elem
+	}
+
+	if elem, ok := ndb.getNodeInTpp(hash); ok {
+		return elem
+	}
+
+	if elem := ndb.getNodeFromCache(hash, promoteRecentNode); elem != nil {
+		return elem
+	}
+
+	if elem, ok := ndb.orphanNodeCache[string(hash)]; ok {
+		return elem
+	}
+
+	return nil
+}
+
+
+func (ndb *nodeDB) getNodeFromDisk(hash []byte, updateCache bool) *Node {
+	node := ndb.makeNodeFromDbByHash(hash)
+	node.hash = hash
+	node.persisted = true
+	if updateCache {
+		ndb.cacheNodeByCheck(node)
+	}
+	return node
+}
+
+func (ndb *nodeDB) loadNode(hash []byte, update bool) (n *Node, fromDisk bool) {
+	n = ndb.getNodeFromMemory(hash, update)
+	if n == nil {
+		n = ndb.getNodeFromDisk(hash, update)
+		fromDisk = true
+	}
+	return
 }
 
 // GetNode gets a node from memory or disk. If it is an inner node, it does not
 // load its children.
-func (ndb *nodeDB) GetNode(hash []byte) *Node {
+func (ndb *nodeDB) GetNode(hash []byte) (n *Node) {
+	n, _ = ndb.loadNode(hash, true)
+	return
+}
 
-	res := func() *Node {
-
-		ndb.mtx.RLock()
-		defer ndb.mtx.RUnlock()
-		ndb.addNodeReadCount()
-		if len(hash) == 0 {
-			panic("nodeDB.GetNode() requires hash")
-		}
-		if elem, ok := ndb.prePersistNodeCache[string(hash)]; ok {
-			return elem
-		}
-
-		if elem, ok := ndb.getNodeInTpp(hash); ok { // GetNode from tpp
-			return elem
-		}
-		// Check the cache.
-		if elem, ok := ndb.nodeCache[string(hash)]; ok {
-			// Already exists. Move to back of nodeCacheQueue.
-			ndb.nodeCacheQueue.MoveToBack(elem)
-			return elem.Value.(*Node)
-		}
-		if elem, ok := ndb.orphanNodeCache[string(hash)]; ok {
-			return elem
-		}
-
-		return nil
-	}()
-
-	if res != nil {
-		return res
-	}
-
-	// Doesn't exist, load.
-	node := ndb.makeNodeFromDbByHash(hash)
-
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-	node.hash = hash
-	node.persisted = true
-	ndb.cacheNodeByCheck(node)
-
-	return node
+func (ndb *nodeDB) GetNodeWithoutUpdateCache(hash []byte) (n *Node, fromDisk bool) {
+	return ndb.loadNode(hash, false)
 }
 
 func (ndb *nodeDB) getDbName() string {
@@ -533,31 +550,6 @@ func (ndb *nodeDB) traversePrefix(prefix []byte, fn func(k, v []byte)) {
 	}
 }
 
-func (ndb *nodeDB) uncacheNode(hash []byte) {
-	if elem, ok := ndb.nodeCache[string(hash)]; ok {
-		ndb.nodeCacheQueue.Remove(elem)
-		delete(ndb.nodeCache, string(hash))
-	}
-}
-
-// Add a node to the cache and pop the least recently used node if we've
-// reached the cache size limit.
-func (ndb *nodeDB) cacheNode(node *Node) {
-	elem := ndb.nodeCacheQueue.PushBack(node)
-	ndb.nodeCache[string(node.hash)] = elem
-
-	for ndb.nodeCacheQueue.Len() > config.DynamicConfig.GetIavlCacheSize() {
-		oldest := ndb.nodeCacheQueue.Front()
-		hash := ndb.nodeCacheQueue.Remove(oldest).(*Node).hash
-		delete(ndb.nodeCache, string(hash))
-	}
-}
-
-func (ndb *nodeDB) cacheNodeByCheck(node *Node) {
-	if _, ok := ndb.nodeCache[string(node.hash)]; !ok {
-		ndb.cacheNode(node)
-	}
-}
 
 // Write to disk.
 func (ndb *nodeDB) Commit(batch dbm.Batch) error {

@@ -190,7 +190,7 @@ func (st *Store) GetStoreType() types.StoreType {
 
 // Implements Store.
 func (st *Store) CacheWrap() types.CacheWrap {
-	return cachekv.NewStore(st)
+	return cachekv.NewStoreWithPreChangeHandler(st, st.tree.PreChanges)
 }
 
 // CacheWrapWithTrace implements the Store interface.
