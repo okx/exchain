@@ -23,7 +23,7 @@ killbyname() {
 run() {
     LOG_LEVEL=main:debug,iavl:info,*:error,state:info,provider:info
 
-    exchaind start --pruning=nothing --rpc.unsafe \
+    exchaind start --rpc.unsafe \
       --local-rpc-port 26657 \
       --log_level $LOG_LEVEL \
       --log_file json \
@@ -33,8 +33,8 @@ run() {
       --iavl-enable-async-commit \
       --enable-gid \
       --append-pid=true \
-      --iavl-commit-interval-height 10 \
-      --iavl-output-modules evm=0,acc=0 \
+      --iavl-commit-interval-height 3 \
+      --iavl-output-modules evm=1,acc=0 \
       --trace --home $HOME_SERVER --chain-id $CHAINID \
       --elapsed Round=1,CommitRound=1,Produce=1 \
       --rest.laddr "tcp://localhost:8545" > okc.txt 2>&1 &

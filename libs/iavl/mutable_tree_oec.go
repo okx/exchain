@@ -44,6 +44,8 @@ type commitEvent struct {
 
 func (tree *MutableTree) setNewWorkingTree(version int64, newOrphans []*Node) ([]byte, int64, error) {
 
+	tree.ndb.log(IavlInfo, "SaveVersionAsync 4", "version", version)
+
 	// set new working tree
 	tree.ImmutableTree = tree.ImmutableTree.clone()
 	tree.lastSaved = tree.ImmutableTree.clone()
@@ -52,6 +54,8 @@ func (tree *MutableTree) setNewWorkingTree(version int64, newOrphans []*Node) ([
 		delete(tree.savedNodes, k)
 	}
 	rootHash := tree.lastSaved.Hash()
+
+	tree.ndb.log(IavlInfo, "SaveVersionAsync 5", "version", version)
 
 	tree.ndb.handleOrphans(version, rootHash, newOrphans)
 
@@ -73,10 +77,16 @@ func (tree *MutableTree) setNewWorkingTree(version int64, newOrphans []*Node) ([
 }
 
 func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte, int64, error) {
+
+	tree.ndb.getHandleOrphansResult(version)
+
 	oldRoot, saved := tree.hasSaved(version)
 	if saved {
 		return nil, version, fmt.Errorf("existing version: %d, root: %X", version, oldRoot)
 	}
+
+	tree.ndb.log(IavlInfo, "SaveVersionAsync 1", "version", version)
+
 	if tree.root != nil {
 		if useDeltas {
 			tree.updateBranchWithDelta(tree.root)
@@ -96,12 +106,25 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 
 	shouldPersist := (version-tree.lastPersistHeight >= CommitIntervalHeight) || (treeMap.totalPreCommitCacheSize >= MinCommitItemCount)
 
+	tree.ndb.log(IavlInfo, "SaveVersionAsync 2",
+		"version", version,
+		"treeMap.totalPreCommitCacheSize", treeMap.totalPreCommitCacheSize,
+		"MinCommitItemCount", MinCommitItemCount,
+		"version-tree.lastPersistHeight", version-tree.lastPersistHeight,
+		"CommitIntervalHeight", CommitIntervalHeight,
+		)
+
 	newOrphans := tree.orphans
 	if shouldPersist {
 		tree.ndb.saveOrphansAsync(version, newOrphans, true)
 		tree.persist(version)
+		tree.ndb.handleOrphans2(version)
+		tree.ndb.log(IavlInfo, "SaveVersionAsync 2.2", "version", version)
+
 		return nil, 0, nil
 	}
+
+	tree.ndb.log(IavlInfo, "SaveVersionAsync 3", "version", version)
 
 	return tree.setNewWorkingTree(version, newOrphans)
 }

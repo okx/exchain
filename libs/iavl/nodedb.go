@@ -74,6 +74,9 @@ type nodeDB struct {
 	name string
 
 	preWriteNodeCache cmap.ConcurrentMap
+
+	taskChan       chan func()
+	taskResultChan chan int64
 }
 
 func makeNodeCacheMap(cacheSize int, initRatio float64) map[string]*list.Element {
@@ -112,7 +115,11 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		dbWriteCount:            0,
 		name:                    ParseDBName(db),
 		preWriteNodeCache:       cmap.New(),
+		taskChan:                make(chan func(), 1),
+		taskResultChan:          make(chan int64, 1),
 	}
+
+	go ndb.handleOrphansRoutine()
 
 	return ndb
 }
