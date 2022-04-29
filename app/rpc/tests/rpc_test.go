@@ -69,14 +69,6 @@ func init() {
 	multisig.RegisterKeyType(ethsecp256k1.PubKey{}, ethsecp256k1.PubKeyName)
 }
 
-func genrateTmpDir(name string) string {
-	dir, err := ioutil.TempDir("", name)
-	if err != nil {
-		panic(err)
-	}
-	return dir
-}
-
 type RPCTestSuite struct {
 	suite.Suite
 
@@ -107,7 +99,6 @@ func (suite *RPCTestSuite) SetupTest() {
 	}
 	defer os.RemoveAll(serverDir)
 	viper.Set(flags.FlagHome, serverDir)
-	viper.Set(rpc.FlagPersonalAPI, true)
 
 	chainId := apptesting.GetOKChainID(1)
 	suite.coordinator = apptesting.NewEthCoordinator(suite.T(), 1)
