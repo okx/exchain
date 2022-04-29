@@ -14,6 +14,7 @@ type mptIterator struct {
 
 	// Underlying store
 	iterator *trie.Iterator
+	trie     ethstate.Trie
 
 	valid bool
 }
@@ -21,11 +22,12 @@ type mptIterator struct {
 func newMptIterator(t ethstate.Trie, start, end []byte) *mptIterator {
 	iter := &mptIterator{
 		iterator: trie.NewIterator(t.NodeIterator(start)),
-
-		start: types.Cp(start),
-		end:   types.Cp(end),
-		valid: true,
+		trie:     t,
+		start:    types.Cp(start),
+		end:      nil, // enforce end is nil, because trie iterator origin key is out of order
+		valid:    true,
 	}
+	iter.Next()
 	return iter
 }
 
@@ -38,14 +40,15 @@ func (it *mptIterator) Valid() bool {
 }
 
 func (it *mptIterator) Next() {
-	if !it.iterator.Next() {
+	if !it.iterator.Next() || it.iterator.Key == nil {
 		it.valid = false
 	}
 }
 
 func (it *mptIterator) Key() []byte {
 	key := it.iterator.Key
-	return key
+	originKey := it.trie.GetKey(key)
+	return originKey
 }
 
 func (it *mptIterator) Value() []byte {
