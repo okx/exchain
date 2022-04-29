@@ -12,7 +12,7 @@ type OrphanInfo struct {
 	heightOrphansMap        map[int64]*heightOrphansItem
 
 	orphanTaskChan   chan func()
-	resultChan chan int64
+	resultChan       chan int64
 }
 
 func newOrphanInfo() *OrphanInfo {
@@ -23,7 +23,7 @@ func newOrphanInfo() *OrphanInfo {
 		heightOrphansCacheSize:  HeightOrphansCacheSize,
 		heightOrphansMap:        make(map[int64]*heightOrphansItem),
 		orphanTaskChan:          make(chan func(), 1),
-		resultChan:        make(chan int64, 1),
+		resultChan:              make(chan int64, 1),
 	}
 
 	go oi.handleOrphansRoutine()
@@ -50,7 +50,7 @@ func (oi *OrphanInfo) wait4Result(version int64) {
 	}
 }
 
-func (oi *OrphanInfo) removeOldOrphans(version int64, rootHash []byte) {
+func (oi *OrphanInfo) addOrphanItem(version int64, rootHash []byte) {
 	if rootHash == nil {
 		rootHash = []byte{}
 	}
@@ -59,8 +59,15 @@ func (oi *OrphanInfo) removeOldOrphans(version int64, rootHash []byte) {
 		rootHash: rootHash,
 	}
 	oi.heightOrphansCacheQueue.PushBack(orphanObj)
+	_, ok := oi.heightOrphansMap[version]
+	if ok {
+		panic("expected heightOrphansMap")
+	}
 	oi.heightOrphansMap[version] = orphanObj
+}
 
+
+func (oi *OrphanInfo) removeOldOrphans() {
 	for oi.heightOrphansCacheQueue.Len() > oi.heightOrphansCacheSize {
 		orphans := oi.heightOrphansCacheQueue.Front()
 		oldHeightOrphanItem := oi.heightOrphansCacheQueue.Remove(orphans).(*heightOrphansItem)
