@@ -91,21 +91,15 @@ func (ndb *nodeDB) getRootWithCache(version int64) ([]byte, error) {
 }
 
 
-func (ndb *nodeDB) inVersionCacheMap(version int64) ([]byte, bool) {
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-	item := ndb.heightOrphansMap[version]
-	if item != nil {
-		return item.rootHash, true
-	}
-	return nil, false
-}
-
-func (ndb *nodeDB) containedByOrphansMap(version int64) bool {
+func (ndb *nodeDB) findRootHash(version int64) (res []byte, find bool) {
 	ndb.mtx.RLock()
 	defer ndb.mtx.RUnlock()
-	_, ok := ndb.heightOrphansMap[version]
-	return ok
+	item, ok := ndb.heightOrphansMap[version]
+	if ok {
+		res = item.rootHash
+		find = true
+	}
+	return
 }
 
 func (ndb *nodeDB) feedOrphansMap(version int64, orphans []*Node) {

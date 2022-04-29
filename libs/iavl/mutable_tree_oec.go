@@ -46,7 +46,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 
 	tree.ndb.sanityCheckHandleOrphansResult(version)
 
-	oldRoot, saved := tree.hasSaved(version)
+	oldRoot, saved := tree.ndb.findRootHash(version)
 	if saved {
 		return nil, version, fmt.Errorf("existing version: %d, root: %X", version, oldRoot)
 	}
@@ -294,9 +294,6 @@ func (tree *MutableTree) addOrphansOptimized(orphans []*Node) {
 	}
 }
 
-func (tree *MutableTree) hasSaved(version int64) ([]byte, bool) {
-	return tree.ndb.inVersionCacheMap(version)
-}
 
 func (tree *MutableTree) deepCopyVersions() map[int64]bool {
 	if !EnablePruningHistoryState {

@@ -121,7 +121,8 @@ func (tree *MutableTree) IsEmpty() bool {
 
 // VersionExists returns whether or not a version exists.
 func (tree *MutableTree) VersionExists(version int64) bool {
-	if tree.ndb.containedByOrphansMap(version) {
+	_, ok := tree.ndb.findRootHash(version)
+	if ok {
 		return true
 	}
 	return tree.versions.Get(version)
