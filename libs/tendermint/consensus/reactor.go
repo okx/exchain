@@ -337,58 +337,38 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		}
 		switch msg := msg.(type) {
 		case *ViewChangeMessage:
-			cs := conR.conS
-			cs.mtx.RLock()
-			vcMsg, height, validators := cs.vcMsg, cs.Height, cs.Validators
-			cs.mtx.RUnlock()
-			// already has valid vcMsg
-			if vcMsg != nil && vcMsg.Height >= msg.Height {
-				return
-			}
-			//conR.Logger.Error("reactor vcMsg", "height", msg.Height, "curP", msg.CurrentProposer, "newP", msg.NewProposer, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
-			finished := ""
-			if msg.Height == height {
-				// ApplyBlock of height-1 is finished
-				finished = "f"
-			} else if msg.Height == height+1 {
-				// ApplyBlock of height-1 is not finished
-				// vc after scheduleRound0
-			} else {
-				return
-			}
+			//conR.Logger.Error("reactor vcMsg", "height", msg.Height, "curP", msg.CurrentProposer, "newP", msg.NewProposer, "hasVC", conR.hasViewChanged, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
 			// verify the signature of vcMsg
-			_, val := validators.GetByAddress(msg.CurrentProposer)
+			_, val := conR.conS.Validators.GetByAddress(msg.CurrentProposer)
 			if err := msg.Verify(val.PubKey); err != nil {
 				conR.Logger.Error("reactor Verify Signature of ViewChangeMessage", "err", err)
 				return
 			}
-			conR.conS.peerMsgQueue <- msgInfo{msg, p2p.ID(finished)}
+			conR.conS.peerMsgQueue <- msgInfo{msg, ""}
 		case *ProposeRequestMessage:
 			//conR.Logger.Error("reactor prMsg", "height", msg.Height, "curP", msg.CurrentProposer, "newP", msg.NewProposer, "hasVC", conR.hasViewChanged, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
-			// three judgement:
-			//1.this peer has not vc before this height;
-			//2.ApplyBlock of height-1 is not finished and it needs vc(msg.Height is bigger);
-			//3.it is CurrentProposer
 			conR.mtx.Lock()
 			defer conR.mtx.Unlock()
-			cs := conR.conS
-			cs.mtx.RLock()
-			height, validators := cs.Height, cs.Validators
-			cs.mtx.RUnlock()
-			if msg.Height > conR.hasViewChanged &&
-				msg.Height > height &&
-				bytes.Equal(cs.privValidatorPubKey.Address(), msg.CurrentProposer) {
-				// verify the signature of prMsg
-				_, val := validators.GetByAddress(msg.NewProposer)
-				if err := msg.Verify(val.PubKey); err != nil {
-					conR.Logger.Error("reactor Verify Signature of ProposeRequestMessage", "err", err)
-					return
-				}
-				conR.conS.peerMsgQueue <- msgInfo{msg, ""}
-				conR.hasViewChanged = msg.Height
-				// broadcast vc message
-				conR.broadcastViewChangeMessage(msg)
+			conR.conS.stateMtx.Lock()
+			defer conR.conS.stateMtx.Unlock()
+			height := conR.conS.Height
+			// this peer has received a prMsg before
+			// or this peer is not proposer
+			// or only then proposer ApplyBlock(height) has finished, do not handle prMsg
+			if msg.Height <= conR.hasViewChanged ||
+				!bytes.Equal(conR.conS.privValidatorPubKey.Address(), msg.CurrentProposer) ||
+				msg.Height != height+1 {
+				return
 			}
+
+			// verify the signature of prMsg
+			_, val := conR.conS.Validators.GetByAddress(msg.NewProposer)
+			if err := msg.Verify(val.PubKey); err != nil {
+				conR.Logger.Error("reactor Verify Signature of ProposeRequestMessage", "err", err)
+				return
+			}
+			conR.hasViewChanged = msg.Height
+			conR.conS.vcMsg = conR.broadcastViewChangeMessage(msg)
 		}
 
 	case StateChannel:
@@ -555,7 +535,7 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		})
 	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventProposeRequest,
 		func(data tmevents.EventData) {
-			conR.broadcastProposeRequestMessage(data.(ProposeRequestMessage))
+			conR.broadcastProposeRequestMessage(data.(*ProposeRequestMessage))
 		})
 }
 
@@ -564,7 +544,7 @@ func (conR *Reactor) unsubscribeFromBroadcastEvents() {
 	conR.conS.evsw.RemoveListener(subscriber)
 }
 
-func (conR *Reactor) broadcastProposeRequestMessage(prMsg ProposeRequestMessage) {
+func (conR *Reactor) broadcastProposeRequestMessage(prMsg *ProposeRequestMessage) {
 	//conR.Logger.Error("broadcastProposeRequestMessage", "prMsg", prMsg)
 	conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(prMsg))
 }
@@ -634,6 +614,7 @@ func makeRoundStepMessage(rs *cstypes.RoundState) (nrsMsg *NewRoundStepMessage) 
 		Step:                  rs.Step,
 		SecondsSinceStartTime: int(time.Since(rs.StartTime).Seconds()),
 		LastCommitRound:       rs.LastCommit.GetRound(),
+		hasActiveVC:           rs.HasActiveVC,
 	}
 	return
 }
@@ -708,7 +689,7 @@ OUTER_LOOP:
 		// Now consider sending other things, like the Proposal itself.
 
 		// Send Proposal && ProposalPOL BitArray?
-		if rs.Proposal != nil && !prs.Proposal {
+		if rs.Proposal != nil {
 			// Proposal: share the proposal metadata with peer.
 			{
 				msg := &ProposalMessage{Proposal: rs.Proposal}
@@ -731,6 +712,8 @@ OUTER_LOOP:
 				logger.Debug("Sending POL", "height", prs.Height, "round", prs.Round)
 				peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg))
 			}
+
+			time.Sleep(conR.conS.config.PeerGossipSleepDuration * 5)
 			continue OUTER_LOOP
 		}
 
@@ -882,6 +865,15 @@ OUTER_LOOP:
 			//peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
 			conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
 		}
+
+		if vcMsg != nil && rs.Height == vcMsg.Height {
+			// send proposal
+			if rs.Proposal != nil {
+				msg := &ProposalMessage{Proposal: rs.Proposal}
+				peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg))
+			}
+		}
+
 		time.Sleep(conR.conS.config.PeerGossipSleepDuration * 2)
 		continue OUTER_LOOP
 	}
@@ -1208,6 +1200,14 @@ func (ps *PeerState) SetHasProposal(proposal *types.Proposal) {
 		return
 	}
 
+	if proposal.HasActiveVC {
+		ps.PRS.Proposal = true
+		ps.PRS.ProposalBlockPartsHeader = proposal.BlockID.PartsHeader
+		ps.PRS.ProposalBlockParts = bits.NewBitArray(proposal.BlockID.PartsHeader.Total)
+		ps.PRS.ProposalPOLRound = proposal.POLRound
+		ps.PRS.ProposalPOL = nil // Nil until ProposalPOLMessage received.
+	}
+
 	if ps.PRS.Proposal {
 		return
 	}
@@ -1467,7 +1467,7 @@ func (ps *PeerState) ApplyNewRoundStepMessage(msg *NewRoundStepMessage) {
 	defer ps.mtx.Unlock()
 
 	// Ignore duplicates or decreases
-	if CompareHRS(msg.Height, msg.Round, msg.Step, ps.PRS.Height, ps.PRS.Round, ps.PRS.Step) <= 0 {
+	if CompareHRS(msg.Height, msg.Round, msg.Step, ps.PRS.Height, ps.PRS.Round, ps.PRS.Step) <= 0 && !msg.hasActiveVC {
 		return
 	}
 
@@ -1482,7 +1482,7 @@ func (ps *PeerState) ApplyNewRoundStepMessage(msg *NewRoundStepMessage) {
 	ps.PRS.Round = msg.Round
 	ps.PRS.Step = msg.Step
 	ps.PRS.StartTime = startTime
-	if psHeight != msg.Height || psRound != msg.Round {
+	if psHeight != msg.Height || psRound != msg.Round || msg.hasActiveVC {
 		ps.PRS.Proposal = false
 		ps.PRS.ProposalBlockPartsHeader = types.PartSetHeader{}
 		ps.PRS.ProposalBlockParts = nil
@@ -1710,6 +1710,7 @@ type NewRoundStepMessage struct {
 	Step                  cstypes.RoundStepType
 	SecondsSinceStartTime int
 	LastCommitRound       int
+	hasActiveVC           bool
 }
 
 // ValidateBasic performs basic validation.

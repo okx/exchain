@@ -571,6 +571,7 @@ func (cs *State) updateToState(state sm.State) {
 
 	if cs.vcMsg != nil && cs.vcMsg.Height <= cs.Height {
 		cs.vcMsg = nil
+		cs.HasActiveVC = false
 	}
 
 	// If state isn't further out than cs.state, just ignore.
@@ -734,37 +735,29 @@ func (cs *State) handleMsg(mi msgInfo) {
 	msg, peerID := mi.Msg, mi.PeerID
 	switch msg := msg.(type) {
 	case *ViewChangeMessage:
-		//cs.Logger.Error("handle vcMsg", "msg.height", msg.Height, "vcMsg", cs.vcMsg)
+		//cs.Logger.Error("handle vcMsg", "msg.height", msg.Height, "cs.height", cs.Height)
 		if ActiveViewChange {
-			// already has valid vcMsg
-			if cs.vcMsg != nil && cs.vcMsg.Height >= msg.Height {
+			// only in round0 use vcMsg
+			// only handle when don't have valid vcMsg
+			// only handle vcMsg of same height
+			if cs.Round != 0 ||
+				cs.vcMsg != nil && cs.vcMsg.Height >= msg.Height ||
+				msg.Height != cs.Height {
 				return
 			}
-			cs.vcMsg = msg
-			// use peerID as flag
-			if peerID != "" {
-				// ApplyBlock of height-1 is finished
-				if cs.Round == 0 {
-					if cs.Step == cstypes.RoundStepNewRound || cs.Step == cstypes.RoundStepPropose {
-						// has enterNewHeight, and vc immediately
-						_, val := cs.Validators.GetByAddress(msg.NewProposer)
-						cs.enterNewRoundWithVal(cs.Height, 0, val)
-					}
-					// else: at waiting of height-1, and enterNewHeight use msg.val
-				}
-				// else: ApplyBlock of height-1 is not finished
-				// RoundStepNewHeight enterNewHeight use msg.val
-			}
-		}
-	case *ProposeRequestMessage:
-		if ActiveViewChange {
-			vcMsg := ViewChangeMessage{Height: msg.Height, CurrentProposer: msg.CurrentProposer, NewProposer: msg.NewProposer}
-			if signature, err := cs.privValidator.SignBytes(vcMsg.SignBytes()); err == nil {
-				vcMsg.Signature = signature
-				cs.vcMsg = &vcMsg
-			}
-		}
 
+			cs.vcMsg = msg
+			cs.HasActiveVC = true
+			// ApplyBlock of height-1 has finished
+			if cs.Step != cstypes.RoundStepNewHeight {
+				// at height, has enterNewHeight
+				// vc immediately
+				_, val := cs.Validators.GetByAddress(msg.NewProposer)
+				cs.enterNewRoundWithVal(cs.Height, 0, val)
+			}
+			// else: at height-1 and waiting, has not enterNewHeight
+			// enterNewHeight use msg.val
+		}
 	case *ProposalMessage:
 		// will not cause transition.
 		// once proposal is set, we can receive block parts
@@ -980,6 +973,7 @@ func (cs *State) enterNewRoundWithVal(height int64, round int, val *types.Valida
 	// Setup new round
 	// we don't fire newStep for this step,
 	// but we fire an event, so update the round step first
+	cs.updateRoundStep(round, cstypes.RoundStepNewRound)
 	cs.Validators.Proposer = val
 	if cs.Votes.Round() == 0 {
 		cs.Votes.SetRound(1) // also track next round (round+1) to allow round-skipping
@@ -1017,7 +1011,7 @@ func (cs *State) requestForProposer(prMsg ProposeRequestMessage) {
 	if signature, err := cs.privValidator.SignBytes(prMsg.SignBytes()); err == nil {
 		//cs.Logger.Error("requestForProposer", "prMsg", prMsg)
 		prMsg.Signature = signature
-		cs.evsw.FireEvent(types.EventProposeRequest, prMsg)
+		cs.evsw.FireEvent(types.EventProposeRequest, &prMsg)
 	} else {
 		cs.Logger.Error("requestForProposer", "err", err)
 	}
@@ -1156,6 +1150,7 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 	// Make proposal
 	propBlockID := types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()}
 	proposal := types.NewProposal(height, round, cs.ValidRound, propBlockID)
+	proposal.HasActiveVC = cs.HasActiveVC
 	if err := cs.privValidator.SignProposal(cs.state.ChainID, proposal); err == nil {
 
 		// send proposal and block parts on internal msg queue
@@ -1823,7 +1818,7 @@ func (cs *State) recordMetrics(height int64, block *types.Block) {
 func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	// Already have one
 	// TODO: possibly catch double proposals
-	if cs.Proposal != nil {
+	if cs.Proposal != nil && !proposal.HasActiveVC {
 		return nil
 	}
 
@@ -1833,8 +1828,8 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	}
 
 	// Verify POLRound, which must be -1 or in range [0, proposal.Round).
-	if proposal.POLRound < -1 ||
-		(proposal.POLRound >= 0 && proposal.POLRound >= proposal.Round) {
+	if !proposal.HasActiveVC && (proposal.POLRound < -1 ||
+		(proposal.POLRound >= 0 && proposal.POLRound >= proposal.Round)) {
 		return ErrInvalidProposalPOLRound
 	}
 
