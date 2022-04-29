@@ -24,7 +24,7 @@ func newMptIterator(t ethstate.Trie, start, end []byte) *mptIterator {
 		iterator: trie.NewIterator(t.NodeIterator(start)),
 		trie:     t,
 		start:    types.Cp(start),
-		end:      types.Cp(end),
+		end:      nil, // enforce end is nil, because trie iterator origin key is out of order
 		valid:    true,
 	}
 	iter.Next()
