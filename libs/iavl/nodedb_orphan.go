@@ -1,13 +1,20 @@
 package iavl
 
+func (ndb *nodeDB) addOrphanItem(version int64, rootHash []byte) {
+	ndb.mtx.Lock()
+	defer ndb.mtx.Unlock()
+	ndb.oi.addOrphanItem(version, rootHash)
+}
 
 func (ndb *nodeDB) enqueueOrphanTask(version int64, rootHash []byte, newOrphans []*Node) {
+
+	ndb.addOrphanItem(version, rootHash)
 
 	task := func() {
 		ndb.mtx.Lock()
 		defer ndb.mtx.Unlock()
 		ndb.saveNewOrphans(version, newOrphans, false)
-		ndb.oi.removeOldOrphans(version, rootHash)
+		ndb.oi.removeOldOrphans()
 		ndb.oi.resultChan <- version
 	}
 
