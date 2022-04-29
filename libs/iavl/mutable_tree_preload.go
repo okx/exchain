@@ -32,7 +32,6 @@ func (tree *MutableTree) PreChanges(keys []string, setOrDel []byte) {
 	if maxNums > keyCount {
 		maxNums = keyCount
 	}
-
 	if maxNums < PreloadConcurrencyThreshold {
 		return
 	}
@@ -54,7 +53,6 @@ func (tree *MutableTree) PreChanges(keys []string, setOrDel []byte) {
 
 	for i, key := range keys {
 		setOrDelFlag := setOrDel[i]
-
 		if setOrDelFlag != PreChangeNop {
 			txJobChan <- preWriteJob{amino.StrToBytes(key), setOrDel[i]}
 		}
