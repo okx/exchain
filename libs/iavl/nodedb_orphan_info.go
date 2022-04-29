@@ -12,7 +12,7 @@ type OrphanInfo struct {
 	heightOrphansMap        map[int64]*heightOrphansItem
 
 	orphanTaskChan   chan func()
-	orphanResultChan chan int64
+	resultChan chan int64
 }
 
 func newOrphanInfo() *OrphanInfo {
@@ -23,11 +23,11 @@ func newOrphanInfo() *OrphanInfo {
 		heightOrphansCacheSize:  HeightOrphansCacheSize,
 		heightOrphansMap:        make(map[int64]*heightOrphansItem),
 		orphanTaskChan:          make(chan func(), 1),
-		orphanResultChan:        make(chan int64, 1),
+		resultChan:        make(chan int64, 1),
 	}
 
 	go oi.handleOrphansRoutine()
-	oi.orphanResultChan <- 0
+	oi.resultChan <- 0
 	return oi
 }
 
@@ -41,7 +41,7 @@ func (oi *OrphanInfo) handleOrphansRoutine() {
 func (oi *OrphanInfo) wait4Result(version int64) {
 
 	version--
-	for versionCompleted := range oi.orphanResultChan {
+	for versionCompleted := range oi.resultChan {
 		if versionCompleted == version {
 			break
 		} else if versionCompleted == 0 {

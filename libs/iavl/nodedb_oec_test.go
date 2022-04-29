@@ -340,7 +340,7 @@ func Test_getRootWithCache(t *testing.T) {
 	ndb := mockNodeDB()
 	for _, c := range cases {
 		rootHash := randBytes(32)
-		ndb.heightOrphansMap[c.version] = &heightOrphansItem{c.version, rootHash, nil}
+		ndb.oi.heightOrphansMap[c.version] = &heightOrphansItem{c.version, rootHash, nil}
 
 		actualHash, ok := ndb.findRootHash(c.version)
 		if c.exist {
@@ -376,7 +376,7 @@ func Test_inVersionCacheMap(t *testing.T) {
 	for _, c := range cases {
 		rootHash := randBytes(32)
 		orphanObj := &heightOrphansItem{version: c.version, rootHash: rootHash}
-		ndb.heightOrphansMap[c.version] = orphanObj
+		ndb.oi.heightOrphansMap[c.version] = orphanObj
 		actualHash, existed := ndb.findRootHash(c.version)
 		require.Equal(t, actualHash, rootHash)
 		require.Equal(t, existed, c.expected)

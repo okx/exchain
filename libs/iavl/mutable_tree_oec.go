@@ -90,7 +90,7 @@ func (tree *MutableTree) setNewWorkingTree(version int64, newOrphans []*Node, pe
 	}
 	rootHash := tree.lastSaved.Hash()
 
-	tree.ndb.handleOrphans(version, rootHash, newOrphans)
+	tree.ndb.enqueueOrphanTask(version, rootHash, newOrphans)
 	tree.version = version
 	if persisted {
 		tree.versions.Set(version, true)
