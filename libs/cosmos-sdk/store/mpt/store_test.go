@@ -247,9 +247,9 @@ func (suite *StoreTestSuite) TestMPTStoreQuery() {
 	suite.Require().Equal(uint32(0), qres.Code)
 	suite.Require().Equal(v2, qres.Value)
 
-	// default (height 0) will show latest -1
+	// default (height 0) will show latest
 	query0 := abci.RequestQuery{Path: "/key", Data: k1}
 	qres = store.Query(query0)
 	suite.Require().Equal(uint32(0), qres.Code)
-	suite.Require().Equal(v1, qres.Value)
+	suite.Require().Equal(v3, qres.Value)
 }
