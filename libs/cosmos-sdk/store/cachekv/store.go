@@ -158,9 +158,9 @@ func (store *Store) Write() {
 
 	}
 
-	sort.Strings(keys)
-
 	store.preWrite(keys)
+
+	sort.Strings(keys)
 
 	// TODO: Consider allowing usage of Batch, which would allow the write to
 	// at least happen atomically.
