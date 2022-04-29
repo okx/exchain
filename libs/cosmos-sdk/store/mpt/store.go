@@ -16,7 +16,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/tracekv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -433,15 +432,14 @@ func (ms *MptStore) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrTxDecode, "query cannot be zero length"))
 	}
 
-	height := req.Height
-	res.Height = height
+	height := ms.getlatestHeight(uint64(req.Height))
+	res.Height = int64(height)
 
 	// store the height we chose in the response, with 0 being changed to the
 	// latest height
-	trie, err := ms.getTrieByHeight(uint64(height))
+	trie, err := ms.getTrieByHeight(height)
 	if err != nil {
-		res.Log = err.Error()
-		return
+		return sdkerrors.QueryResult(sdkerrors.Wrapf(sdkerrors.ErrInvalidVersion, "open trie failed: %s", err.Error()))
 	}
 
 	switch req.Path {
@@ -471,22 +469,14 @@ func (ms *MptStore) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 				res.Proof = &merkle.Proof{Ops: []merkle.ProofOp{newProofOpMptAbsence(key, proof)}}
 			}
 		} else {
-			res.Value, _ = getVersioned(trie, key)
+			res.Value, err = trie.TryGet(key)
+			if err != nil {
+				return sdkerrors.QueryResult(sdkerrors.Wrapf(sdkerrors.ErrKeyNotFound, "failed to query in trie: %s", err.Error()))
+			}
 		}
 
 	case "/subspace":
-		var KVs []types.KVPair
-
-		subspace := req.Data
-		res.Key = subspace
-
-		iterator := newMptIterator(trie, subspace, sdk.PrefixEndBytes(subspace))
-		for ; iterator.Valid(); iterator.Next() {
-			KVs = append(KVs, types.KVPair{Key: iterator.Key(), Value: iterator.Value()})
-		}
-
-		iterator.Close()
-		res.Value = cdc.MustMarshalBinaryLengthPrefixed(KVs)
+		return sdkerrors.QueryResult(sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "not supported query subspace path: %v in mptStore", req.Path))
 
 	default:
 		return sdkerrors.QueryResult(sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unexpected query path: %v", req.Path))
@@ -495,17 +485,24 @@ func (ms *MptStore) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 	return res
 }
 
-// Handle gatest the latest height, if height is 0
+// Handle latest the latest height - 1  (committed), if height is 0
+func (ms *MptStore) getlatestHeight(height uint64) uint64 {
+	if height == 0 {
+		_, priority := ms.triegc.Pop()
+		height = uint64(-priority) + uint64(ms.triegc.Size()-1)
+	}
+	if height == 0 {
+		height = ms.GetLatestStoredBlockHeight()
+	}
+	return height
+}
+
 func (ms *MptStore) getTrieByHeight(height uint64) (ethstate.Trie, error) {
 	latestRootHash := ms.GetMptRootHash(height)
 	if latestRootHash == NilHash {
 		return nil, fmt.Errorf("header %d not found", height)
 	}
 	return ms.db.OpenTrie(latestRootHash)
-}
-
-func getVersioned(trie ethstate.Trie, key []byte) ([]byte, error) {
-	return trie.TryGet(key)
 }
 
 // getVersionedWithProof returns the Merkle proof for given storage slot.
