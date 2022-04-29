@@ -738,15 +738,11 @@ func (cs *State) handleMsg(mi msgInfo) {
 		//cs.Logger.Error("handle vcMsg", "msg.height", msg.Height, "cs.height", cs.Height)
 		if ActiveViewChange {
 			// only in round0 use vcMsg
-			if cs.Round != 0 {
-				return
-			}
-			// already has valid vcMsg
-			if cs.vcMsg != nil && cs.vcMsg.Height >= msg.Height {
-				return
-			}
+			// only handle when don't have valid vcMsg
 			// only handle vcMsg of same height
-			if msg.Height != cs.Height {
+			if cs.Round != 0 ||
+				cs.vcMsg != nil && cs.vcMsg.Height >= msg.Height ||
+				msg.Height != cs.Height {
 				return
 			}
 

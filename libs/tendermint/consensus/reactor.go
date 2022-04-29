@@ -353,17 +353,14 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			defer conR.conS.stateMtx.Unlock()
 			height := conR.conS.Height
 			// this peer has received a prMsg before
-			if msg.Height <= conR.hasViewChanged {
+			// or this peer is not proposer
+			// or only then proposer ApplyBlock(height) has finished, do not handle prMsg
+			if msg.Height <= conR.hasViewChanged ||
+				!bytes.Equal(conR.conS.privValidatorPubKey.Address(), msg.CurrentProposer) ||
+				msg.Height != height+1 {
 				return
 			}
-			// this peer is not proposer
-			if !bytes.Equal(conR.conS.privValidatorPubKey.Address(), msg.CurrentProposer) {
-				return
-			}
-			// only then proposer ApplyBlock(height-1) is not finished, handle prMsg
-			if msg.Height != height+1 {
-				return
-			}
+
 			// verify the signature of prMsg
 			_, val := conR.conS.Validators.GetByAddress(msg.NewProposer)
 			if err := msg.Verify(val.PubKey); err != nil {
