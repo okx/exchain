@@ -47,7 +47,6 @@ func (tm *TreeMap) getTree(moduleName string) (*MutableTree, bool) {
 
 // updateMutableTreeMap marks into true when operation of save-version is done
 func (tm *TreeMap) updateMutableTreeMap(module string) {
-
 	tm.mtx.Lock()
 	defer tm.mtx.Unlock()
 	if _, ok := tm.mutableTreeSavedMap[module]; !ok {
