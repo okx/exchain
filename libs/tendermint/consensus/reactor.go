@@ -689,7 +689,7 @@ OUTER_LOOP:
 		// Now consider sending other things, like the Proposal itself.
 
 		// Send Proposal && ProposalPOL BitArray?
-		if rs.Proposal != nil && !prs.Proposal {
+		if rs.Proposal != nil {
 			// Proposal: share the proposal metadata with peer.
 			{
 				msg := &ProposalMessage{Proposal: rs.Proposal}
@@ -712,6 +712,8 @@ OUTER_LOOP:
 				logger.Debug("Sending POL", "height", prs.Height, "round", prs.Round)
 				peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg))
 			}
+
+			time.Sleep(conR.conS.config.PeerGossipSleepDuration * 5)
 			continue OUTER_LOOP
 		}
 
