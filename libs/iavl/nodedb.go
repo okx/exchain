@@ -52,11 +52,6 @@ type nodeDB struct {
 	nodeCacheQueue *syncList                // LRU queue of cache elements. Used for deletion.
 	nodeCacheMutex sync.RWMutex             // Mutex for node cache.
 
-	orphanNodeCache         map[string]*Node
-	heightOrphansCacheQueue *list.List
-	heightOrphansCacheSize  int
-	heightOrphansMap        map[int64]*heightOrphansItem
-
 	prePersistNodeCache map[string]*Node
 	tppMap              map[int64]*tppItem
 	tppVersionList      *list.List
@@ -75,8 +70,7 @@ type nodeDB struct {
 
 	preWriteNodeCache cmap.ConcurrentMap
 
-	orphanTaskChan   chan func()
-	orphanResultChan chan int64
+	oi *OrphanInfo
 }
 
 func makeNodeCacheMap(cacheSize int, initRatio float64) map[string]*list.Element {
@@ -103,21 +97,14 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		nodeCacheSize:           cacheSize,
 		nodeCacheQueue:          newSyncList(),
 		versionReaders:          make(map[int64]uint32, 8),
-		orphanNodeCache:         make(map[string]*Node),
-		heightOrphansCacheQueue: list.New(),
-		heightOrphansCacheSize:  HeightOrphansCacheSize,
-		heightOrphansMap:        make(map[int64]*heightOrphansItem),
+
 		prePersistNodeCache:     make(map[string]*Node),
 		tppMap:                  make(map[int64]*tppItem),
 		tppVersionList:          list.New(),
 		name:                    ParseDBName(db),
 		preWriteNodeCache:       cmap.New(),
-		orphanTaskChan:            make(chan func(), 1),
-		orphanResultChan:          make(chan int64, 1),
+		oi:                      newOrphanInfo(),
 	}
-
-	go ndb.handleOrphansRoutine()
-	ndb.orphanResultChan <- 0
 
 	return ndb
 }
@@ -141,7 +128,7 @@ func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) *Node 
 		return elem
 	}
 
-	if elem := ndb.getNodeFromOrphanCache(hash); elem != nil {
+	if elem := ndb.oi.getNodeFromOrphanCache(hash); elem != nil {
 		return elem
 	}
 

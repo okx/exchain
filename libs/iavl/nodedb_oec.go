@@ -65,9 +65,9 @@ func (ndb *nodeDB) saveNewOrphans(version int64, orphans []*Node, lock bool) {
 		defer ndb.mtx.Unlock()
 	}
 
-	ndb.feedOrphansMap(version, orphans)
+	ndb.oi.feedOrphansMap(version, orphans)
 	for _, node := range orphans {
-		ndb.feedOrphanNodeCache(node)
+		ndb.oi.feedOrphanNodeCache(node)
 		delete(ndb.prePersistNodeCache, amino.BytesToStr(node.hash))
 		node.leftNode = nil
 		node.rightNode = nil
@@ -290,7 +290,7 @@ func (ndb *nodeDB) sprintCacheLog(version int64) string {
 
 	printLog += fmt.Sprintf(", TotalPreCommitCacheSize:%d", treeMap.totalPreCommitCacheSize)
 	printLog += fmt.Sprintf(", nodeCCnt:%d", ndb.nodeCacheLen())
-	printLog += fmt.Sprintf(", orphanCCnt:%d", ndb.orphanNodeCacheLen())
+	printLog += fmt.Sprintf(", orphanCCnt:%d", ndb.oi.orphanNodeCacheLen())
 	printLog += fmt.Sprintf(", prePerCCnt:%d", len(ndb.prePersistNodeCache))
 	printLog += fmt.Sprintf(", dbRCnt:%d", ndb.getDBReadCount())
 	printLog += fmt.Sprintf(", dbWCnt:%d", ndb.getDBWriteCount())
