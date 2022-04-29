@@ -120,6 +120,7 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 	}
 
 	go ndb.handleOrphansRoutine()
+	ndb.orphanResultChan <- 0
 
 	return ndb
 }

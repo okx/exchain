@@ -47,13 +47,12 @@ func (ndb *nodeDB) handleOrphans(version int64, rootHash []byte, newOrphans []*N
 
 
 func (ndb *nodeDB) sanityCheckHandleOrphansResult(version int64) {
-	if version <= 1 {
-		return
-	}
-	version--
 
+	version--
 	for versionCompleted := range ndb.orphanResultChan {
-		if version == versionCompleted {
+		if versionCompleted == version {
+			break
+		} else if versionCompleted == 0 {
 			break
 		}
 	}
