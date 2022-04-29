@@ -262,7 +262,7 @@ func TestParseDBName(t *testing.T) {
 	require.Equal(t, "", result2)
 }
 
-func todoTestPruningHistoryState(t *testing.T) {
+func TestPruningHistoryState(t *testing.T) {
 	EnableAsyncCommit = true
 	EnablePruningHistoryState = true
 	defer func() {
