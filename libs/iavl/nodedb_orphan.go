@@ -26,6 +26,16 @@ func newOrphanInfo() *OrphanInfo {
 
 	return oi
 }
+
+func (ndb *nodeDB) handleOrphans(version int64, rootHash []byte, newOrphans []*Node) {
+
+	ndb.mtx.Lock()
+	defer ndb.mtx.Unlock()
+
+	ndb.saveOrphansAsync(version, newOrphans, false)
+	ndb.setHeightOrphansItem(version, rootHash)
+}
+
 func (ndb *nodeDB) setHeightOrphansItem(version int64, rootHash []byte) {
 	if rootHash == nil {
 		rootHash = []byte{}
@@ -34,8 +44,6 @@ func (ndb *nodeDB) setHeightOrphansItem(version int64, rootHash []byte) {
 		version:  version,
 		rootHash: rootHash,
 	}
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
 	ndb.heightOrphansCacheQueue.PushBack(orphanObj)
 	ndb.heightOrphansMap[version] = orphanObj
 
