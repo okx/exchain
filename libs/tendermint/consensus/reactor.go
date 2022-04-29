@@ -551,15 +551,15 @@ func (conR *Reactor) broadcastProposeRequestMessage(prMsg *ProposeRequestMessage
 
 func (conR *Reactor) broadcastViewChangeMessage(prMsg *ProposeRequestMessage) *ViewChangeMessage {
 	vcMsg := ViewChangeMessage{Height: prMsg.Height, CurrentProposer: prMsg.CurrentProposer, NewProposer: prMsg.NewProposer}
-	if signature, err := conR.conS.privValidator.SignBytes(vcMsg.SignBytes()); err == nil {
-		//conR.Logger.Error("broadcastViewChangeMessage", "vcMsg", vcMsg)
-		vcMsg.Signature = signature
-		conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
-		return &vcMsg
-	} else {
+	signature, err := conR.conS.privValidator.SignBytes(vcMsg.SignBytes())
+	if err != nil {
 		conR.Logger.Error("broadcastViewChangeMessage", "err", err)
+		return nil
 	}
-	return nil
+	//conR.Logger.Error("broadcastViewChangeMessage", "vcMsg", vcMsg)
+	vcMsg.Signature = signature
+	conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
+	return &vcMsg
 }
 
 func (conR *Reactor) broadcastNewRoundStepMessage(rs *cstypes.RoundState) {
