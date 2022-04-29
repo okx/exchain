@@ -492,12 +492,13 @@ func (cs *State) updateRoundStep(round int, step cstypes.RoundStepType) {
 
 // enterNewRound(height, 0) at cs.StartTime.
 func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
-	//cs.Logger.Info("scheduleRound0", "now", tmtime.Now(), "startTime", cs.StartTime)
-	sleepDuration := rs.StartTime.Sub(tmtime.Now())
-	overDuration := cs.CommitTime.Sub(time.Unix(0, cs.Round0StartTime))
-	if !cs.CommitTime.IsZero() && sleepDuration.Milliseconds() > 0 && overDuration.Milliseconds() > cs.config.TimeoutConsensus.Milliseconds() {
-		sleepDuration -= time.Duration(overDuration.Milliseconds() - cs.config.TimeoutConsensus.Milliseconds())
+	overDuration := tmtime.Now().Sub(cs.StartTime)
+	sleepDuration := cs.config.TimeoutCommit - overDuration
+	if sleepDuration < 0 {
+		sleepDuration = 0
 	}
+
+	cs.StartTime = tmtime.Now().Add(sleepDuration)
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
 }
 
@@ -586,17 +587,6 @@ func (cs *State) updateToState(state sm.State) {
 	// RoundState fields
 	cs.updateHeight(height)
 	cs.updateRoundStep(0, cstypes.RoundStepNewHeight)
-	if cs.CommitTime.IsZero() {
-		// "Now" makes it easier to sync up dev nodes.
-		// We add timeoutCommit to allow transactions
-		// to be gathered for the first block.
-		// And alternative solution that relies on clocks:
-		// cs.StartTime = state.LastBlockTime.Add(timeoutCommit)
-		cs.StartTime = cs.config.Commit(tmtime.Now())
-	} else {
-		cs.StartTime = cs.config.Commit(cs.CommitTime)
-	}
-	cs.Round0StartTime = time.Now().UnixNano()
 
 	cs.Validators = validators
 	cs.Proposal = nil
@@ -850,7 +840,7 @@ func (cs *State) handleTxsAvailable() {
 // State functions
 // Used internally by handleTimeout and handleMsg to make state transitions
 
-// Enter: `timeoutNewHeight` by startTime (commitTime+timeoutCommit),
+// Enter: `timeoutNewHeight` by startTime (R0PrevoteTime+timeoutCommit),
 // 	or, if SkipTimeoutCommit==true, after receiving all precommits from (height,round-1)
 // Enter: `timeoutPrecommits` after any +2/3 precommits from (height,round-1)
 // Enter: +2/3 precommits for nil at (height,round-1)
@@ -858,7 +848,6 @@ func (cs *State) handleTxsAvailable() {
 // NOTE: cs.StartTime was already set for height.
 func (cs *State) enterNewRound(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
-
 	if cs.Height != height || round < cs.Round || (cs.Round == round && cs.Step != cstypes.RoundStepNewHeight) {
 		logger.Debug(fmt.Sprintf(
 			"enterNewRound(%v/%v): Invalid args. Current step: %v/%v/%v",
@@ -959,7 +948,6 @@ func (cs *State) isBlockProducer() (string, string) {
 // Enter (!CreateEmptyBlocks) : after enterNewRound(height,round), once txs are in the mempool
 func (cs *State) enterPropose(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
-
 	if cs.Height != height || round < cs.Round || (cs.Round == round && cstypes.RoundStepPropose <= cs.Step) {
 		logger.Debug(fmt.Sprintf(
 			"enterPropose(%v/%v): Invalid args. Current step: %v/%v/%v",
@@ -972,7 +960,7 @@ func (cs *State) enterPropose(height int64, round int) {
 	}
 
 	isBlockProducer, bpAddr := cs.isBlockProducer()
-	cs.trc.Pin("Propose-%d-%s-%s", round, isBlockProducer, bpAddr)
+	cs.trc.Pin("H%d-Propose-%d-%s-%s", height, round, isBlockProducer, bpAddr)
 
 	logger.Info(fmt.Sprintf("enterPropose(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
@@ -992,31 +980,10 @@ func (cs *State) enterPropose(height int64, round int) {
 	// If we don't get the proposal and all block parts quick enough, enterPrevote
 	cs.scheduleTimeout(cs.config.Propose(round), height, round, cstypes.RoundStepPropose)
 
-	// Nothing more to do if we're not a validator
-	if cs.privValidator == nil {
-		logger.Debug("This node is not a validator")
-		return
-	}
-	logger.Debug("This node is a validator")
-
-	if cs.privValidatorPubKey == nil {
-		// If this node is a validator & proposer in the current round, it will
-		// miss the opportunity to create a block.
-		logger.Error(fmt.Sprintf("enterPropose: %v", errPubKeyIsNotSet))
-		return
-	}
-	address := cs.privValidatorPubKey.Address()
-
-	// if not a validator, we're done
-	if !cs.Validators.HasAddress(address) {
-		logger.Debug("This node is not a validator", "addr", address, "vals", cs.Validators)
-		return
-	}
-
-	if cs.isProposer(address) {
+	if isBlockProducer == "y" {
 		logger.Info("enterPropose: Our turn to propose",
 			"proposer",
-			address,
+			bpAddr,
 			"privValidator",
 			cs.privValidator)
 		cs.decideProposal(height, round)
@@ -1392,7 +1359,6 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 		// keep cs.Round the same, commitRound points to the right Precommits set.
 		cs.updateRoundStep(cs.Round, cstypes.RoundStepCommit)
 		cs.CommitRound = commitRound
-		cs.CommitTime = tmtime.Now()
 		cs.newStep()
 
 		// Maybe finalize immediately.
@@ -2109,13 +2075,15 @@ func (cs *State) signAddVote(msgType types.SignedMsgType, hash []byte, header ty
 	// TODO: pass pubKey to signVote
 	vote, err := cs.signVote(msgType, hash, header)
 	if err == nil {
+		//broadcast vote immediately
+		cs.evsw.FireEvent(types.EventSignVote, vote)
 		cs.sendInternalMessage(msgInfo{&VoteMessage{vote}, ""})
 		cs.Logger.Info("Signed and pushed vote", "height", cs.Height, "round", cs.Round, "vote", vote, "err", err)
 		return vote
 	}
-	//if !cs.replayMode {
-	cs.Logger.Error("Error signing vote", "height", cs.Height, "round", cs.Round, "vote", vote, "err", err)
-	//}
+	if !cs.replayMode {
+		cs.Logger.Error("Error signing vote", "height", cs.Height, "round", cs.Round, "vote", vote, "err", err)
+	}
 	return nil
 }
 

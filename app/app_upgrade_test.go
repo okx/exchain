@@ -1,35 +1,36 @@
 package app
 
 import (
-	"github.com/okex/exchain/libs/system"
+	"encoding/json"
+	"github.com/gorilla/mux"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	capabilityModule "github.com/okex/exchain/libs/cosmos-sdk/x/capability"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/genutil"
+	commonversion "github.com/okex/exchain/x/common/version"
+	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/require"
 	"io"
-	"math/big"
 	"os"
-	"sync"
+	"strconv"
+	"testing"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
-	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/refund"
 	okexchain "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/app/utils/sanity"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	"github.com/okex/exchain/libs/cosmos-sdk/simapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	upgradetypes "github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
-	capabilityModule "github.com/okex/exchain/libs/cosmos-sdk/x/capability"
 	capabilitykeeper "github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/crisis"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
-	govclient "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"github.com/okex/exchain/libs/iavl"
@@ -47,181 +48,220 @@ import (
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/common/analyzer"
-	commonversion "github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/dex"
-	dexclient "github.com/okex/exchain/x/dex/client"
 	distr "github.com/okex/exchain/x/distribution"
 	"github.com/okex/exchain/x/erc20"
-	erc20client "github.com/okex/exchain/x/erc20/client"
 	"github.com/okex/exchain/x/evidence"
 	"github.com/okex/exchain/x/evm"
-	evmclient "github.com/okex/exchain/x/evm/client"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/farm"
-	farmclient "github.com/okex/exchain/x/farm/client"
-	"github.com/okex/exchain/x/genutil"
 	"github.com/okex/exchain/x/gov"
 	"github.com/okex/exchain/x/gov/keeper"
 	"github.com/okex/exchain/x/order"
 	"github.com/okex/exchain/x/params"
-	paramsclient "github.com/okex/exchain/x/params/client"
 	"github.com/okex/exchain/x/slashing"
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
-
-	"github.com/spf13/viper"
-	"google.golang.org/grpc/encoding"
-	"google.golang.org/grpc/encoding/proto"
-)
-
-func init() {
-	// set the address prefixes
-	config := sdk.GetConfig()
-	okexchain.SetBech32Prefixes(config)
-	okexchain.SetBip44CoinType(config)
-}
-
-const (
-	appName = "OKExChain"
 )
 
 var (
-	// DefaultCLIHome sets the default home directories for the application CLI
-	DefaultCLIHome = os.ExpandEnv("$HOME/.exchaincli")
+	_ upgradetypes.UpgradeModule = (*SimpleBaseUpgradeModule)(nil)
 
-	// DefaultNodeHome sets the folder where the applcation data and configuration will be stored
-	DefaultNodeHome = os.ExpandEnv("$HOME/.exchaind")
-
-	// ModuleBasics defines the module BasicManager is in charge of setting up basic,
-	// non-dependant module elements, such as codec registration
-	// and genesis verification.
-	ModuleBasics = module.NewBasicManager(
-		auth.AppModuleBasic{},
-		supply.AppModuleBasic{},
-		genutil.AppModuleBasic{},
-		bank.AppModuleBasic{},
-		staking.AppModuleBasic{},
-		mint.AppModuleBasic{},
-		distr.AppModuleBasic{},
-		gov.NewAppModuleBasic(
-			paramsclient.ProposalHandler, distr.ProposalHandler,
-			dexclient.DelistProposalHandler, farmclient.ManageWhiteListProposalHandler,
-			evmclient.ManageContractDeploymentWhitelistProposalHandler,
-			evmclient.ManageContractBlockedListProposalHandler,
-			evmclient.ManageContractMethodBlockedListProposalHandler,
-			govclient.ManageTreasuresProposalHandler,
-			erc20client.TokenMappingProposalHandler,
-		),
-		params.AppModuleBasic{},
-		crisis.AppModuleBasic{},
-		slashing.AppModuleBasic{},
-		evidence.AppModuleBasic{},
-		upgrade.AppModuleBasic{},
-		evm.AppModuleBasic{},
-		token.AppModuleBasic{},
-		dex.AppModuleBasic{},
-		order.AppModuleBasic{},
-		ammswap.AppModuleBasic{},
-		farm.AppModuleBasic{},
-		capabilityModule.AppModuleBasic{},
-		ibc.AppModuleBasic{},
-		ibctransfer.AppModuleBasic{},
-		erc20.AppModuleBasic{},
-	)
-
-	// module account permissions
-	maccPerms = map[string][]string{
-		auth.FeeCollectorName:       nil,
-		distr.ModuleName:            nil,
-		mint.ModuleName:             {supply.Minter},
-		staking.BondedPoolName:      {supply.Burner, supply.Staking},
-		staking.NotBondedPoolName:   {supply.Burner, supply.Staking},
-		gov.ModuleName:              nil,
-		token.ModuleName:            {supply.Minter, supply.Burner},
-		dex.ModuleName:              nil,
-		order.ModuleName:            nil,
-		ammswap.ModuleName:          {supply.Minter, supply.Burner},
-		farm.ModuleName:             nil,
-		farm.YieldFarmingAccount:    nil,
-		farm.MintFarmingAccount:     {supply.Burner},
-		ibctransfertypes.ModuleName: {authtypes.Minter, authtypes.Burner},
-		erc20.ModuleName:            {authtypes.Minter, authtypes.Burner},
+	test_prefix       = "upgrade_module_"
+	blockModules      map[string]struct{}
+	defaultDenyFilter cosmost.StoreFilter = func(module string, h int64, store cosmost.CommitKVStore) bool {
+		_, exist := blockModules[module]
+		if !exist {
+			return false
+		}
+		return true
 	}
-
-	GlobalGpIndex = GasPriceIndex{}
-
-	onceLog sync.Once
 )
 
-var _ simapp.App = (*OKExChainApp)(nil)
-
-// OKExChainApp implements an extended ABCI application. It is an application
-// that may process transactions through Ethereum's EVM running atop of
-// Tendermint consensus.
-type OKExChainApp struct {
-	*bam.BaseApp
-
-	invCheckPeriod uint
-
-	// keys to access the substores
-	keys  map[string]*sdk.KVStoreKey
-	tkeys map[string]*sdk.TransientStoreKey
-
-	// subspaces
-	subspaces map[string]params.Subspace
-
-	// keepers
-	AccountKeeper  auth.AccountKeeper
-	BankKeeper     bank.Keeper
-	SupplyKeeper   supply.Keeper
-	StakingKeeper  staking.Keeper
-	SlashingKeeper slashing.Keeper
-	MintKeeper     mint.Keeper
-	DistrKeeper    distr.Keeper
-	GovKeeper      gov.Keeper
-	CrisisKeeper   crisis.Keeper
-	UpgradeKeeper  upgrade.Keeper
-	ParamsKeeper   params.Keeper
-	EvidenceKeeper evidence.Keeper
-	EvmKeeper      *evm.Keeper
-	TokenKeeper    token.Keeper
-	DexKeeper      dex.Keeper
-	OrderKeeper    order.Keeper
-	SwapKeeper     ammswap.Keeper
-	FarmKeeper     farm.Keeper
-
-	// the module manager
-	mm *module.Manager
-
-	// simulation manager
-	sm *module.SimulationManager
-
-	blockGasPrice []*big.Int
-
-	configurator module.Configurator
-	// ibc
-	ScopedIBCKeeper      capabilitykeeper.ScopedKeeper
-	ScopedTransferKeeper capabilitykeeper.ScopedKeeper
-	ScopedIBCMockKeeper  capabilitykeeper.ScopedKeeper
-	TransferKeeper       ibctransferkeeper.Keeper
-	CapabilityKeeper     *capabilitykeeper.Keeper
-	IBCKeeper            *ibc.Keeper // IBC Keeper must be a pointer in the app, so we can SetRouter on it correctly
-	marshal              *codec.CodecProxy
-	heightTasks          map[int64]*upgradetypes.HeightTasks
-	Erc20Keeper          erc20.Keeper
+type SimpleBaseUpgradeModule struct {
+	t                  *testing.T
+	h                  int64
+	taskExecuteHeight  int64
+	taskExecutedNotify func()
+	appModule          module.AppModuleBasic
+	storeKey           *sdk.KVStoreKey
 }
 
-// NewOKExChainApp returns a reference to a new initialized OKExChain application.
-func NewOKExChainApp(
+func (b *SimpleBaseUpgradeModule) CommitFilter() *cosmost.StoreFilter {
+	if b.UpgradeHeight() == 0 {
+		return &defaultDenyFilter
+	}
+	var ret cosmost.StoreFilter
+	ret = func(module string, h int64, store cosmost.CommitKVStore) bool {
+		if b.appModule.Name() != module {
+			return false
+		}
+		if b.h == h {
+			store.SetUpgradeVersion(h)
+			return false
+		}
+		if b.h > h {
+			return false
+		}
+
+		return true
+	}
+	return &ret
+}
+
+func (b *SimpleBaseUpgradeModule) PruneFilter() *cosmost.StoreFilter {
+	if b.UpgradeHeight() == 0 {
+		return &defaultDenyFilter
+	}
+
+	var ret cosmost.StoreFilter
+	ret = func(module string, h int64, store cosmost.CommitKVStore) bool {
+		if b.appModule.Name() != module {
+			return false
+		}
+		if b.h >= h {
+			return false
+		}
+
+		return true
+	}
+	return &ret
+}
+
+func (b *SimpleBaseUpgradeModule) VersionFilter() *cosmost.VersionFilter {
+	//todo ywmet
+	return nil
+}
+
+func NewSimpleBaseUpgradeModule(t *testing.T, h int64, appModule module.AppModuleBasic, taskExecutedNotify func()) *SimpleBaseUpgradeModule {
+	return &SimpleBaseUpgradeModule{t: t, h: h, appModule: appModule, taskExecutedNotify: taskExecutedNotify, taskExecuteHeight: h + 1}
+}
+
+func (b *SimpleBaseUpgradeModule) ModuleName() string {
+	return b.appModule.Name()
+}
+
+func (b *SimpleBaseUpgradeModule) RegisterTask() upgradetypes.HeightTask {
+	return upgradetypes.NewHeightTask(0, func(ctx sdk.Context) error {
+		b.taskExecutedNotify()
+		store := ctx.KVStore(b.storeKey)
+		height := ctx.BlockHeight()
+		require.Equal(b.t, b.taskExecuteHeight, height)
+		store.Set([]byte(test_prefix+b.ModuleName()), []byte(strconv.Itoa(int(height))))
+		return nil
+	})
+}
+
+func (b *SimpleBaseUpgradeModule) UpgradeHeight() int64 {
+	return b.h
+}
+
+func (b *SimpleBaseUpgradeModule) RegisterParam() params.ParamSet {
+	return nil
+}
+
+var (
+	_ module.AppModuleBasic = (*simpleDefaultAppModuleBasic)(nil)
+)
+
+type simpleDefaultAppModuleBasic struct {
+	name string
+}
+
+func (s *simpleDefaultAppModuleBasic) Name() string {
+	return s.name
+}
+
+func (s *simpleDefaultAppModuleBasic) RegisterCodec(c *codec.Codec) {}
+
+func (s *simpleDefaultAppModuleBasic) DefaultGenesis() json.RawMessage { return nil }
+
+func (s *simpleDefaultAppModuleBasic) ValidateGenesis(message json.RawMessage) error { return nil }
+
+func (s *simpleDefaultAppModuleBasic) RegisterRESTRoutes(context context.CLIContext, router *mux.Router) {
+	return
+}
+
+func (s *simpleDefaultAppModuleBasic) GetTxCmd(c *codec.Codec) *cobra.Command { return nil }
+
+func (s *simpleDefaultAppModuleBasic) GetQueryCmd(c *codec.Codec) *cobra.Command { return nil }
+
+var (
+	_ module.AppModule = (*simpleAppModule)(nil)
+)
+
+type simpleAppModule struct {
+	*SimpleBaseUpgradeModule
+	*simpleDefaultAppModuleBasic
+}
+
+func newSimpleAppModule(t *testing.T, hh int64, name string, notify func()) *simpleAppModule {
+	ret := &simpleAppModule{}
+	ret.simpleDefaultAppModuleBasic = &simpleDefaultAppModuleBasic{name: name}
+	ret.SimpleBaseUpgradeModule = NewSimpleBaseUpgradeModule(t, hh, ret, notify)
+	return ret
+}
+
+func (s2 *simpleAppModule) InitGenesis(s sdk.Context, message json.RawMessage) []abci.ValidatorUpdate {
+	return nil
+}
+
+func (s2 *simpleAppModule) ExportGenesis(s sdk.Context) json.RawMessage {
+	return nil
+}
+
+func (s2 *simpleAppModule) RegisterInvariants(registry sdk.InvariantRegistry) { return }
+
+func (s2 *simpleAppModule) Route() string {
+	return ""
+}
+
+func (s2 *simpleAppModule) NewHandler() sdk.Handler { return nil }
+
+func (s2 *simpleAppModule) QuerierRoute() string {
+	return ""
+}
+
+func (s2 *simpleAppModule) NewQuerierHandler() sdk.Querier {
+	return nil
+}
+
+func (s2 *simpleAppModule) BeginBlock(s sdk.Context, block abci.RequestBeginBlock) {
+}
+
+func (s2 *simpleAppModule) EndBlock(s sdk.Context, block abci.RequestEndBlock) []abci.ValidatorUpdate {
+	return nil
+}
+
+func setupModuleBasics(bs ...module.AppModule) *module.Manager {
+	basis := []module.AppModule{}
+	for _, v := range bs {
+		basis = append(basis, v)
+	}
+	return module.NewManager(
+		basis...,
+	)
+}
+
+type testSimApp struct {
+	*OKExChainApp
+	// the module manager
+}
+
+type TestSimAppOption func(a *testSimApp)
+type MangerOption func(m *module.Manager)
+
+func newTestOkcChainApp(
 	logger log.Logger,
 	db dbm.DB,
 	traceStore io.Writer,
 	loadLatest bool,
 	skipUpgradeHeights map[int64]bool,
 	invCheckPeriod uint,
-	baseAppOptions ...func(*bam.BaseApp),
-) *OKExChainApp {
-	logger.Info("Starting "+system.ChainName,
+	keys map[string]*sdk.KVStoreKey,
+	ops ...TestSimAppOption,
+) *testSimApp {
+	logger.Info("Starting OEC",
 		"GenesisHeight", tmtypes.GetStartBlockHeight(),
 		"MercuryHeight", tmtypes.GetMercuryHeight(),
 		"VenusHeight", tmtypes.GetVenusHeight(),
@@ -234,7 +274,7 @@ func NewOKExChainApp(
 	codecProxy, interfaceReg := okexchaincodec.MakeCodecSuit(ModuleBasics)
 
 	// NOTE we use custom OKExChain transaction decoder that supports the sdk.Tx interface instead of sdk.StdTx
-	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(codecProxy), baseAppOptions...)
+	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(codecProxy))
 
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
@@ -243,19 +283,10 @@ func NewOKExChainApp(
 
 	bApp.SetInterfaceRegistry(interfaceReg)
 
-	keys := sdk.NewKVStoreKeys(
-		bam.MainStoreKey, auth.StoreKey, staking.StoreKey,
-		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
-		gov.StoreKey, params.StoreKey, upgrade.StoreKey, evidence.StoreKey,
-		evm.StoreKey, token.StoreKey, token.KeyLock, dex.StoreKey, dex.TokenPairStoreKey,
-		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
-		ibchost.StoreKey,
-		erc20.StoreKey,
-	)
-
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
 	memKeys := sdk.NewMemoryStoreKeys(capabilitytypes.MemStoreKey)
 
+	ret := &testSimApp{}
 	app := &OKExChainApp{
 		BaseApp:        bApp,
 		invCheckPeriod: invCheckPeriod,
@@ -264,6 +295,7 @@ func NewOKExChainApp(
 		subspaces:      make(map[string]params.Subspace),
 		heightTasks:    make(map[int64]*upgradetypes.HeightTasks),
 	}
+	ret.OKExChainApp = app
 	bApp.SetInterceptors(makeInterceptors())
 
 	// init params keeper and subspaces
@@ -293,7 +325,6 @@ func NewOKExChainApp(
 	app.AccountKeeper = auth.NewAccountKeeper(
 		codecProxy.GetCdc(), keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
 	)
-	app.AccountKeeper.SetObserverKeeper(app)
 
 	bankKeeper := bank.NewBaseKeeperWithMarshal(
 		&app.AccountKeeper, codecProxy, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
@@ -422,9 +453,6 @@ func NewOKExChainApp(
 	app.StakingKeeper = *stakingKeeper.SetHooks(
 		staking.NewMultiStakingHooks(app.DistrKeeper.Hooks(), app.SlashingKeeper.Hooks()),
 	)
-
-	// NOTE: Any module instantiated in the module manager that is later modified
-	// must be passed by reference here.
 	app.mm = module.NewManager(
 		genutil.NewAppModule(app.AccountKeeper, app.StakingKeeper, app.BaseApp.DeliverTx),
 		auth.NewAppModule(app.AccountKeeper),
@@ -451,52 +479,9 @@ func NewOKExChainApp(
 		erc20.NewAppModule(app.Erc20Keeper),
 	)
 
-	// During begin block slashing happens after distr.BeginBlocker so that
-	// there is nothing left over in the validator fee pool, so as to keep the
-	// CanWithdrawInvariant invariant.
-	app.mm.SetOrderBeginBlockers(
-		bank.ModuleName,
-		capabilitytypes.ModuleName,
-		order.ModuleName,
-		token.ModuleName,
-		dex.ModuleName,
-		mint.ModuleName,
-		distr.ModuleName,
-		slashing.ModuleName,
-		staking.ModuleName,
-		farm.ModuleName,
-		evidence.ModuleName,
-		evm.ModuleName,
-		ibchost.ModuleName,
-		ibctransfertypes.ModuleName,
-	)
-	app.mm.SetOrderEndBlockers(
-		crisis.ModuleName,
-		gov.ModuleName,
-		dex.ModuleName,
-		order.ModuleName,
-		staking.ModuleName,
-		evm.ModuleName,
-	)
-
-	// NOTE: The genutils module must occur after staking so that pools are
-	// properly initialized with tokens from genesis accounts.
-	app.mm.SetOrderInitGenesis(
-		capabilitytypes.ModuleName,
-		auth.ModuleName, distr.ModuleName, staking.ModuleName, bank.ModuleName,
-		slashing.ModuleName, gov.ModuleName, mint.ModuleName, supply.ModuleName,
-		token.ModuleName, dex.ModuleName, order.ModuleName, ammswap.ModuleName, farm.ModuleName,
-		ibctransfertypes.ModuleName,
-		ibchost.ModuleName,
-		evm.ModuleName, crisis.ModuleName, genutil.ModuleName, params.ModuleName, evidence.ModuleName,
-		erc20.ModuleName,
-	)
-
-	app.mm.RegisterInvariants(&app.CrisisKeeper)
-	app.mm.RegisterRoutes(app.Router(), app.QueryRouter())
-	app.configurator = module.NewConfigurator(app.Codec(), app.MsgServiceRouter(), app.GRPCQueryRouter())
-	app.mm.RegisterServices(app.configurator)
-	app.setupUpgradeModules()
+	for _, opt := range ops {
+		opt(ret)
+	}
 
 	// create the simulation manager and define the order of the modules for deterministic simulations
 	//
@@ -530,8 +515,6 @@ func NewOKExChainApp(
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccHandler(NewAccHandler(app.AccountKeeper))
 	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), fixLogForParallelTxHandler(app.EvmKeeper))
-	app.SetPreDeliverTxHandler(preDeliverTxHandler(app.AccountKeeper))
-	app.SetPartialConcurrentHandlers(getTxFeeAndFromHandler(app.AccountKeeper))
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -547,188 +530,173 @@ func NewOKExChainApp(
 	// note replicate if you do not need to test core IBC or light clients.
 	app.ScopedIBCMockKeeper = scopedIBCMockKeeper
 
+	return ret
+}
+
+func newTestSimApp(name string, logger log.Logger, db dbm.DB, txDecoder sdk.TxDecoder, keys map[string]*sdk.KVStoreKey, ops ...TestSimAppOption) *testSimApp {
+	return newTestOkcChainApp(log.NewTMLogger(log.NewSyncWriter(os.Stdout)), db, nil, true, map[int64]bool{}, 0, keys, ops...)
+}
+
+type UpgradeCase struct {
+	name     string
+	upgradeH int64
+}
+
+func createCases(moduleCount int, beginHeight int) []UpgradeCase {
+	ret := make([]UpgradeCase, moduleCount)
+	for i := 0; i < moduleCount; i++ {
+		ret[i] = UpgradeCase{
+			name:     "m_" + strconv.Itoa(i),
+			upgradeH: int64(beginHeight + i),
+		}
+	}
+	return ret
+}
+
+func newRecordMemDB() *RecordMemDB {
+	ret := &RecordMemDB{}
+	ret.db = dbm.NewMemDB()
+	return ret
+}
+
+func TestUpgradeWithConcreteHeight(t *testing.T) {
+	db := newRecordMemDB()
+
+	cases := createCases(5, 10)
+	m := make(map[string]int)
+	count := 0
+	maxHeight := int64(0)
+
+	modules := make([]*simpleAppModule, 0)
+	for _, ca := range cases {
+		c := ca
+		m[c.name] = 0
+		if maxHeight < c.upgradeH {
+			maxHeight = c.upgradeH
+		}
+		modules = append(modules, newSimpleAppModule(t, c.upgradeH, c.name, func() {
+			m[c.name]++
+			count++
+		}))
+	}
+
+	app := setupTestApp(db, cases, modules)
+
+	genesisState := ModuleBasics.DefaultGenesis()
+	stateBytes, err := codec.MarshalJSONIndent(app.Codec(), genesisState)
+	require.NoError(t, err)
+	// Initialize the chain
+	app.InitChain(
+		abci.RequestInitChain{
+			Validators:    []abci.ValidatorUpdate{},
+			AppStateBytes: stateBytes,
+		},
+	)
+	app.Commit(abci.RequestCommit{})
+
+	for i := int64(2); i < maxHeight+5; i++ {
+		header := abci.Header{Height: i}
+		app.BeginBlock(abci.RequestBeginBlock{Header: header})
+		app.Commit(abci.RequestCommit{})
+	}
+	for _, v := range m {
+		require.Equal(t, 1, v)
+	}
+	require.Equal(t, count, len(cases))
+}
+
+func setupTestApp(db dbm.DB, cases []UpgradeCase, modules []*simpleAppModule) *testSimApp {
+	keys := createKeysByCases(cases)
+	for _, m := range modules {
+		m.storeKey = keys[m.Name()]
+	}
+	app := newTestSimApp("demo", log.NewTMLogger(log.NewSyncWriter(os.Stdout)), db, func(txBytes []byte, height ...int64) (sdk.Tx, error) {
+		return nil, nil
+	}, keys, func(a *testSimApp) {
+		for _, m := range modules {
+			a.mm.Modules[m.Name()] = m
+			a.mm.OrderBeginBlockers = append(a.mm.OrderEndBlockers, m.Name())
+			a.mm.OrderEndBlockers = append(a.mm.OrderEndBlockers, m.Name())
+			a.mm.OrderInitGenesis = append(a.mm.OrderInitGenesis, m.Name())
+			a.mm.OrderExportGenesis = append(a.mm.OrderExportGenesis, m.Name())
+		}
+	}, func(a *testSimApp) {
+		a.setupUpgradeModules()
+	})
 	return app
 }
 
-func (app *OKExChainApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOption) {
-	if req.Key == "CheckChainID" {
-		if err := okexchain.IsValidateChainIdWithGenesisHeight(req.Value); err != nil {
-			app.Logger().Error(err.Error())
-			panic(err)
-		}
-		err := okexchain.SetChainId(req.Value)
-		if err != nil {
-			app.Logger().Error(err.Error())
-			panic(err)
-		}
+func createKeysByCases(caseas []UpgradeCase) map[string]*sdk.KVStoreKey {
+	caseKeys := make([]string, 0)
+	for _, c := range caseas {
+		caseKeys = append(caseKeys, c.name)
 	}
-	return app.BaseApp.SetOption(req)
+	caseKeys = append(caseKeys, bam.MainStoreKey, auth.StoreKey, staking.StoreKey,
+		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
+		gov.StoreKey, params.StoreKey, upgrade.StoreKey, evidence.StoreKey,
+		evm.StoreKey, token.StoreKey, token.KeyLock, dex.StoreKey, dex.TokenPairStoreKey,
+		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
+		ibchost.StoreKey,
+		erc20.StoreKey)
+	keys := sdk.NewKVStoreKeys(
+		caseKeys...,
+	)
+	return keys
 }
 
-func (app *OKExChainApp) LoadStartVersion(height int64) error {
-	return app.LoadVersion(height, app.keys[bam.MainStoreKey])
+///
+type RecordMemDB struct {
+	db *dbm.MemDB
 }
 
-// Name returns the name of the App
-func (app *OKExChainApp) Name() string { return app.BaseApp.Name() }
-
-// BeginBlocker updates every begin block
-func (app *OKExChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBlock) abci.ResponseBeginBlock {
-	return app.mm.BeginBlock(ctx, req)
+func (d *RecordMemDB) Get(bytes []byte) ([]byte, error) {
+	return d.db.Get(bytes)
 }
 
-// EndBlocker updates every end block
-func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
-	if appconfig.GetOecConfig().GetEnableDynamicGp() {
-		GlobalGpIndex = CalBlockGasPriceIndex(app.blockGasPrice, appconfig.GetOecConfig().GetDynamicGpWeight())
-		app.blockGasPrice = app.blockGasPrice[:0]
-	}
-
-	return app.mm.EndBlock(ctx, req)
+func (d *RecordMemDB) GetUnsafeValue(key []byte, processor dbm.UnsafeValueProcessor) (interface{}, error) {
+	return d.db.GetUnsafeValue(key, processor)
 }
 
-// InitChainer updates at chain initialization
-func (app *OKExChainApp) InitChainer(ctx sdk.Context, req abci.RequestInitChain) abci.ResponseInitChain {
-
-	var genesisState simapp.GenesisState
-	app.marshal.GetCdc().MustUnmarshalJSON(req.AppStateBytes, &genesisState)
-	return app.mm.InitGenesis(ctx, genesisState)
+func (d *RecordMemDB) Has(key []byte) (bool, error) {
+	return d.db.Has(key)
 }
 
-// LoadHeight loads state at a particular height
-func (app *OKExChainApp) LoadHeight(height int64) error {
-	return app.LoadVersion(height, app.keys[bam.MainStoreKey])
+func (d *RecordMemDB) SetSync(bytes []byte, bytes2 []byte) error {
+	return d.db.SetSync(bytes, bytes2)
 }
 
-// ModuleAccountAddrs returns all the app's module account addresses.
-func (app *OKExChainApp) ModuleAccountAddrs() map[string]bool {
-	modAccAddrs := make(map[string]bool)
-	for acc := range maccPerms {
-		modAccAddrs[supply.NewModuleAddress(acc).String()] = true
-	}
-
-	return modAccAddrs
+func (d *RecordMemDB) Delete(bytes []byte) error {
+	return d.db.Delete(bytes)
 }
 
-// SimulationManager implements the SimulationApp interface
-func (app *OKExChainApp) SimulationManager() *module.SimulationManager {
-	return app.sm
+func (d *RecordMemDB) DeleteSync(bytes []byte) error {
+	return d.db.DeleteSync(bytes)
 }
 
-// GetKey returns the KVStoreKey for the provided store key.
-//
-// NOTE: This is solely to be used for testing purposes.
-func (app *OKExChainApp) GetKey(storeKey string) *sdk.KVStoreKey {
-	return app.keys[storeKey]
+func (d *RecordMemDB) Iterator(start, end []byte) (dbm.Iterator, error) {
+	return d.db.Iterator(start, end)
 }
 
-// Codec returns OKExChain's codec.
-//
-// NOTE: This is solely to be used for testing purposes as it may be desirable
-// for modules to register their own custom testing types.
-func (app *OKExChainApp) Codec() *codec.Codec {
-	return app.marshal.GetCdc()
+func (d *RecordMemDB) ReverseIterator(start, end []byte) (dbm.Iterator, error) {
+	return d.db.ReverseIterator(start, end)
 }
 
-func (app *OKExChainApp) Marshal() *codec.CodecProxy {
-	return app.marshal
+func (d *RecordMemDB) Close() error {
+	return d.db.Close()
 }
 
-// GetSubspace returns a param subspace for a given module name.
-//
-// NOTE: This is solely to be used for testing purposes.
-func (app *OKExChainApp) GetSubspace(moduleName string) params.Subspace {
-	return app.subspaces[moduleName]
+func (d *RecordMemDB) NewBatch() dbm.Batch {
+	return d.db.NewBatch()
 }
 
-var protoCodec = encoding.GetCodec(proto.Name)
-
-func makeInterceptors() map[string]bam.Interceptor {
-	m := make(map[string]bam.Interceptor)
-	m["/cosmos.tx.v1beta1.Service/Simulate"] = bam.NewRedirectInterceptor("app/simulate")
-	m["/cosmos.bank.v1beta1.Query/AllBalances"] = bam.NewRedirectInterceptor("custom/bank/grpc_balances")
-	m["/cosmos.staking.v1beta1.Query/Params"] = bam.NewRedirectInterceptor("custom/staking/parameters")
-	return m
+func (d *RecordMemDB) Print() error {
+	return d.db.Print()
 }
 
-// GetMaccPerms returns a copy of the module account permissions
-func GetMaccPerms() map[string][]string {
-	dupMaccPerms := make(map[string][]string)
-	for k, v := range maccPerms {
-		dupMaccPerms[k] = v
-	}
-
-	return dupMaccPerms
+func (d *RecordMemDB) Stats() map[string]string {
+	return d.db.Stats()
 }
 
-func validateMsgHook(orderKeeper order.Keeper) ante.ValidateMsgHandler {
-	return func(newCtx sdk.Context, msgs []sdk.Msg) error {
-
-		wrongMsgErr := sdk.ErrUnknownRequest(
-			"It is not allowed that a transaction with more than one message contains order or evm message")
-		var err error
-
-		for _, msg := range msgs {
-			switch assertedMsg := msg.(type) {
-			case order.MsgNewOrders:
-				if len(msgs) > 1 {
-					return wrongMsgErr
-				}
-				_, err = order.ValidateMsgNewOrders(newCtx, orderKeeper, assertedMsg)
-			case order.MsgCancelOrders:
-				if len(msgs) > 1 {
-					return wrongMsgErr
-				}
-				err = order.ValidateMsgCancelOrders(newCtx, orderKeeper, assertedMsg)
-			case *evmtypes.MsgEthereumTx:
-				if len(msgs) > 1 {
-					return wrongMsgErr
-				}
-			}
-
-			if err != nil {
-				return err
-			}
-		}
-		return nil
-	}
-}
-
-func NewAccHandler(ak auth.AccountKeeper) sdk.AccHandler {
-	return func(
-		ctx sdk.Context, addr sdk.AccAddress,
-	) uint64 {
-		return ak.GetAccount(ctx, addr).GetSequence()
-	}
-}
-
-func PreRun(ctx *server.Context) error {
-	// set the dynamic config
-	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
-
-	// check start flag conflicts
-	err := sanity.CheckStart()
-	if err != nil {
-		return err
-	}
-
-	// set config by node mode
-	setNodeConfig(ctx)
-
-	//download pprof
-	appconfig.PprofDownload(ctx)
-
-	// pruning options
-	_, err = server.GetPruningOptionsFromFlags()
-	if err != nil {
-		return err
-	}
-	// repair state on start
-	if viper.GetBool(FlagEnableRepairState) {
-		repairStateOnStart(ctx)
-	}
-
-	// init tx signature cache
-	tmtypes.InitSignatureCache()
-	return nil
+func (d *RecordMemDB) Set(key []byte, value []byte) error {
+	return d.db.Set(key, value)
 }
