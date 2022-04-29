@@ -15,10 +15,10 @@ func (ndb *nodeDB) enqueueOrphanTask(version int64, rootHash []byte, newOrphans 
 		defer ndb.mtx.Unlock()
 		ndb.saveNewOrphans(version, newOrphans, false)
 		ndb.oi.removeOldOrphans()
-		ndb.oi.resultChan <- version
+		ndb.oi.enqueueResult(version)
 	}
 
-	ndb.oi.orphanTaskChan <- task
+	ndb.oi.enqueueTask(task)
 }
 
 func (ndb *nodeDB) sanityCheckHandleOrphansResult(version int64) {

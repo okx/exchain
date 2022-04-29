@@ -26,11 +26,18 @@ func newOrphanInfo() *OrphanInfo {
 		resultChan:              make(chan int64, 1),
 	}
 
+	oi.enqueueResult(0)
 	go oi.handleOrphansRoutine()
-	oi.resultChan <- 0
 	return oi
 }
 
+func (oi *OrphanInfo) enqueueResult(res int64) {
+	oi.resultChan <- res
+}
+
+func (oi *OrphanInfo) enqueueTask(t func()) {
+	oi.orphanTaskChan <- t
+}
 
 func (oi *OrphanInfo) handleOrphansRoutine() {
 	for task := range oi.orphanTaskChan {
@@ -61,7 +68,7 @@ func (oi *OrphanInfo) addOrphanItem(version int64, rootHash []byte) {
 	oi.heightOrphansCacheQueue.PushBack(orphanObj)
 	_, ok := oi.heightOrphansMap[version]
 	if ok {
-		panic("expected heightOrphansMap")
+		panic("unexpected heightOrphansMap")
 	}
 	oi.heightOrphansMap[version] = orphanObj
 }
