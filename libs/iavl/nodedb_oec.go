@@ -51,6 +51,11 @@ func (ndb *nodeDB) SaveOrphans(batch dbm.Batch, version int64, orphans []*Node) 
 }
 
 func (ndb *nodeDB) saveOrphansAsync(version int64, orphans []*Node, lock bool) {
+
+	if orphans == nil {
+		return
+	}
+
 	version--
 	ndb.log(IavlDebug, "saving orphan node to OrphanCache", "size", len(orphans))
 	atomic.AddInt64(&ndb.totalOrphanCount, int64(len(orphans)))

@@ -42,50 +42,16 @@ type commitEvent struct {
 }
 
 
-func (tree *MutableTree) setNewWorkingTree(version int64, newOrphans []*Node) ([]byte, int64, error) {
-
-	tree.ndb.log(IavlInfo, "SaveVersionAsync 4", "version", version)
-
-	// set new working tree
-	tree.ImmutableTree = tree.ImmutableTree.clone()
-	tree.lastSaved = tree.ImmutableTree.clone()
-	tree.orphans = make([]*Node, 0, len(tree.orphans))
-	for k := range tree.savedNodes {
-		delete(tree.savedNodes, k)
-	}
-	rootHash := tree.lastSaved.Hash()
-
-	tree.ndb.log(IavlInfo, "SaveVersionAsync 5", "version", version)
-
-	tree.ndb.handleOrphans(version, rootHash, newOrphans)
-
-	tree.version = version
-	//if shouldPersist {
-	//	tree.versions.Set(version, true)
-	//}
-	treeMap.updateMutableTreeMap(tree.GetModuleName())
-
-	tree.removedVersions.Range(func(k, v interface{}) bool {
-		tree.log(IavlDebug, "remove version from tree version map", "Height", k.(int64))
-		tree.removeVersion(k.(int64))
-		tree.removedVersions.Delete(k)
-		return true
-	})
-
-	tree.ndb.log(IavlDebug, tree.ndb.sprintCacheLog(version))
-	return rootHash, version, nil
-}
-
 func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte, int64, error) {
 
-	tree.ndb.getHandleOrphansResult(version)
+	tree.ndb.sanityCheckHandleOrphansResult(version)
 
 	oldRoot, saved := tree.hasSaved(version)
 	if saved {
 		return nil, version, fmt.Errorf("existing version: %d, root: %X", version, oldRoot)
 	}
 
-	tree.ndb.log(IavlInfo, "SaveVersionAsync 1", "version", version)
+	//tree.ndb.log(IavlInfo, "SaveVersionAsync 1", "version", version)
 
 	if tree.root != nil {
 		if useDeltas {
@@ -106,27 +72,46 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 
 	shouldPersist := (version-tree.lastPersistHeight >= CommitIntervalHeight) || (treeMap.totalPreCommitCacheSize >= MinCommitItemCount)
 
-	tree.ndb.log(IavlInfo, "SaveVersionAsync 2",
-		"version", version,
-		"treeMap.totalPreCommitCacheSize", treeMap.totalPreCommitCacheSize,
-		"MinCommitItemCount", MinCommitItemCount,
-		"version-tree.lastPersistHeight", version-tree.lastPersistHeight,
-		"CommitIntervalHeight", CommitIntervalHeight,
-		)
-
 	newOrphans := tree.orphans
 	if shouldPersist {
 		tree.ndb.saveOrphansAsync(version, newOrphans, true)
 		tree.persist(version)
-		tree.ndb.handleOrphans2(version)
-		tree.ndb.log(IavlInfo, "SaveVersionAsync 2.2", "version", version)
-
-		return nil, 0, nil
+		newOrphans = nil
+		//tree.ndb.log(IavlInfo, "SaveVersionAsync 2.2", "version", version)
 	}
 
-	tree.ndb.log(IavlInfo, "SaveVersionAsync 3", "version", version)
+	//tree.ndb.log(IavlInfo, "SaveVersionAsync 3", "version", version)
+	return tree.setNewWorkingTree(version, newOrphans, shouldPersist)
+}
 
-	return tree.setNewWorkingTree(version, newOrphans)
+func (tree *MutableTree) setNewWorkingTree(version int64, newOrphans []*Node, persisted bool) ([]byte, int64, error) {
+	//tree.ndb.log(IavlInfo, "SaveVersionAsync 4", "version", version)
+	// set new working tree
+	tree.ImmutableTree = tree.ImmutableTree.clone()
+	tree.lastSaved = tree.ImmutableTree.clone()
+	tree.orphans = make([]*Node, 0, len(tree.orphans))
+	for k := range tree.savedNodes {
+		delete(tree.savedNodes, k)
+	}
+	rootHash := tree.lastSaved.Hash()
+
+	//tree.ndb.log(IavlInfo, "SaveVersionAsync 5", "version", version)
+	tree.ndb.handleOrphans(version, rootHash, newOrphans)
+	tree.version = version
+	if persisted {
+		tree.versions.Set(version, true)
+	}
+	treeMap.updateMutableTreeMap(tree.GetModuleName())
+
+	tree.removedVersions.Range(func(k, v interface{}) bool {
+		tree.log(IavlDebug, "remove version from tree version map", "Height", k.(int64))
+		tree.removeVersion(k.(int64))
+		tree.removedVersions.Delete(k)
+		return true
+	})
+
+	tree.ndb.log(IavlDebug, tree.ndb.sprintCacheLog(version))
+	return rootHash, version, nil
 }
 
 func (tree *MutableTree) removeVersion(version int64) {

@@ -27,51 +27,40 @@ import (
 
 
 func (ndb *nodeDB) handleOrphansRoutine() {
-	for task := range ndb.taskChan {
+	for task := range ndb.orphanTaskChan {
 		task()
 	}
 }
 
 func (ndb *nodeDB) handleOrphans(version int64, rootHash []byte, newOrphans []*Node) {
-	ndb.log(IavlInfo, "issue handleOrphans", "version", version)
-	defer ndb.log(IavlInfo, "issue handleOrphans return", "version", version)
+	//ndb.log(IavlInfo, "issue handleOrphans", "version", version)
+	//defer ndb.log(IavlInfo, "issue handleOrphans return", "version", version)
 
 	task := func() {
-		ndb.log(IavlInfo, "handleOrphans", "version", version)
+		//ndb.log(IavlInfo, "handleOrphans", "version", version)
 
 		ndb.mtx.Lock()
 		defer ndb.mtx.Unlock()
 
-		defer ndb.log(IavlInfo, "handleOrphans locked", "version", version)
-
+		//defer ndb.log(IavlInfo, "handleOrphans locked", "version", version)
 		ndb.saveOrphansAsync(version, newOrphans, false)
 		ndb.setHeightOrphansItem(version, rootHash)
-		ndb.taskResultChan <- version
+		ndb.orphanResultChan <- version
 	}
 
-	ndb.taskChan <- task
+	ndb.orphanTaskChan <- task
 }
 
 
-func (ndb *nodeDB) handleOrphans2(version int64) {
-
-	task := func() {
-		ndb.taskResultChan <- version
-	}
-
-	ndb.taskChan <- task
-}
-
-
-func (ndb *nodeDB) getHandleOrphansResult(version int64) {
+func (ndb *nodeDB) sanityCheckHandleOrphansResult(version int64) {
 	if version <= 1 {
 		return
 	}
 	version--
-	ndb.log(IavlInfo, "getHandleOrphansResult enter ", "version", version)
-	defer ndb.log(IavlInfo, "getHandleOrphansResult exit ", "version", version)
+	//ndb.log(IavlInfo, "getHandleOrphansResult enter ", "version", version)
+	//defer ndb.log(IavlInfo, "getHandleOrphansResult exit ", "version", version)
 
-	for versionCompleted := range ndb.taskResultChan {
+	for versionCompleted := range ndb.orphanResultChan {
 		if version == versionCompleted {
 			break
 		}
