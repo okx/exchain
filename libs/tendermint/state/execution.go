@@ -16,11 +16,29 @@ import (
 	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
-	"github.com/spf13/viper"
 	"github.com/tendermint/go-amino"
 )
 
 //-----------------------------------------------------------------------------
+type (
+	// Enum mode for executing [deliverTx, ...]
+	DeliverTxsExecMode int
+)
+
+const (
+	DeliverTxsExecModeSerial         DeliverTxsExecMode = iota // execute [deliverTx,...] sequentially
+	DeliverTxsExecModePartConcurrent                           // execute [deliverTx,...] partially-concurrent
+	DeliverTxsExecModeParallel                                 // execute [deliverTx,...] parallel
+
+	// There are three modes.
+	// 0: execute [deliverTx,...] sequentially (default)
+	// 1: execute [deliverTx,...] partially-concurrent
+	// 2: execute [deliverTx,...] parallel
+	FlagDeliverTxsExecMode = "deliver-txs-mode"
+
+	FlagDeliverTxsConcurrentNum = "deliver-txs-concurrent-num"
+)
+
 // BlockExecutor handles block execution and state updates.
 // It exposes ApplyBlock(), which validates & executes the block, updates state w/ ABCI responses,
 // then commits and updates the mempool atomically, then saves state.
@@ -43,7 +61,6 @@ type BlockExecutor struct {
 
 	logger  log.Logger
 	metrics *Metrics
-	isAsync bool
 
 	// download or upload data to dds
 	deltaContext *DeltaContext
@@ -85,7 +102,6 @@ func NewBlockExecutor(
 		evpool:       evpool,
 		logger:       logger,
 		metrics:      NopMetrics(),
-		isAsync:      viper.GetBool(FlagParalleledTx),
 		prerunCtx:    newPrerunContex(logger),
 		deltaContext: newDeltaContext(logger),
 	}
@@ -100,10 +116,6 @@ func NewBlockExecutor(
 	return res
 }
 
-func (blockExec *BlockExecutor) SetIsAsyncDeliverTx(sw bool) {
-	blockExec.isAsync = sw
-
-}
 func (blockExec *BlockExecutor) DB() dbm.DB {
 	return blockExec.db
 }
@@ -309,9 +321,15 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 				db:       blockExec.db,
 				proxyApp: blockExec.proxyApp,
 			}
-			if blockExec.isAsync {
+			mode := DeliverTxsExecMode(cfg.DynamicConfig.GetDeliverTxsExecuteMode())
+			switch mode {
+			case DeliverTxsExecModeSerial:
+				abciResponses, err = execBlockOnProxyApp(ctx)
+			case DeliverTxsExecModePartConcurrent:
+				abciResponses, err = execBlockOnProxyAppPartConcurrent(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
+			case DeliverTxsExecModeParallel:
 				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
-			} else {
+			default:
 				abciResponses, err = execBlockOnProxyApp(ctx)
 			}
 		}

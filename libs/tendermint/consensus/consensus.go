@@ -2210,6 +2210,8 @@ func (cs *State) signAddVote(msgType types.SignedMsgType, hash []byte, header ty
 	// TODO: pass pubKey to signVote
 	vote, err := cs.signVote(msgType, hash, header)
 	if err == nil {
+		//broadcast vote immediately
+		cs.evsw.FireEvent(types.EventSignVote, vote)
 		cs.sendInternalMessage(msgInfo{&VoteMessage{vote}, ""})
 		cs.Logger.Info("Signed and pushed vote", "height", cs.Height, "round", cs.Round, "vote", vote, "err", err)
 		return vote

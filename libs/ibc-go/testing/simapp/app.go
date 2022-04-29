@@ -1,6 +1,12 @@
 package simapp
 
 import (
+	"io"
+	"math/big"
+	"os"
+	"sort"
+	"sync"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
@@ -8,12 +14,6 @@ import (
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/capability"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/core"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/transfer"
-	"github.com/okex/exchain/x/common/monitor"
-	"io"
-	"math/big"
-	"os"
-	"sort"
-	"sync"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
@@ -54,6 +54,7 @@ import (
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/common/analyzer"
+	"github.com/okex/exchain/x/common/monitor"
 	commonversion "github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/dex"
 	dexclient "github.com/okex/exchain/x/dex/client"
@@ -83,6 +84,7 @@ import (
 func init() {
 	// set the address prefixes
 	config := sdk.GetConfig()
+	config.SetCoinType(60)
 	okexchain.SetBech32Prefixes(config)
 	okexchain.SetBip44CoinType(config)
 }
@@ -92,8 +94,6 @@ const (
 )
 
 var (
-	orderMetrics  = monitor.DefaultOrderMetrics(monitor.DefaultPrometheusConfig())
-	streamMetrics = monitor.DefaultStreamMetrics(monitor.DefaultPrometheusConfig())
 	// DefaultCLIHome sets the default home directories for the application CLI
 	DefaultCLIHome = os.ExpandEnv("$HOME/.exchaincli")
 
@@ -353,7 +353,7 @@ func NewSimApp(
 
 	app.OrderKeeper = order.NewKeeper(
 		app.TokenKeeper, app.SupplyKeeper, app.DexKeeper, app.subspaces[order.ModuleName], auth.FeeCollectorName,
-		app.keys[order.OrderStoreKey], app.marshal.GetCdc(), false, orderMetrics)
+		app.keys[order.OrderStoreKey], app.marshal.GetCdc(), false, monitor.NopOrderMetrics())
 
 	app.SwapKeeper = ammswap.NewKeeper(app.SupplyKeeper, app.TokenKeeper, app.marshal.GetCdc(), app.keys[ammswap.StoreKey], app.subspaces[ammswap.ModuleName])
 
@@ -556,7 +556,6 @@ func NewSimApp(
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccHandler(NewAccHandler(app.AccountKeeper))
-	//app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), evmTxFeeHandler(), fixLogForParallelTxHandler(app.EvmKeeper))
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -784,16 +783,13 @@ func PreRun(ctx *server.Context) error {
 }
 
 func (app *SimApp) setupUpgradeModules() {
-	//heightTasks, paramMap, pip, prunePip, versionPip := app.CollectUpgradeModules(app.mm)
-	heightTasks, paramMap, pip, _, _ := app.CollectUpgradeModules(app.mm)
+	heightTasks, paramMap, cf, pf, vf := app.CollectUpgradeModules(app.mm)
 
 	app.heightTasks = heightTasks
 
-	if pip != nil {
-		//app.GetCMS().SetPruneHeightFilterPipeline(prunePip)
-		//app.GetCMS().SetCommitHeightFilterPipeline(pip)
-		//app.GetCMS().SetVersionFilterPipeline(versionPip)
-	}
+	app.GetCMS().AppendCommitFilters(cf)
+	app.GetCMS().AppendPruneFilters(pf)
+	app.GetCMS().AppendVersionFilters(vf)
 
 	vs := app.subspaces
 	for k, vv := range paramMap {
@@ -809,10 +805,14 @@ func (o *SimApp) TxConfig() client.TxConfig {
 	return o.txconfig
 }
 
-func (o *SimApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgradetypes.HeightTasks, map[string]params.ParamSet, types.HeightFilterPipeline, types.HeightFilterPipeline, types.VersionFilterPipeline) {
+func (o *SimApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgradetypes.HeightTasks,
+	map[string]params.ParamSet, []types.StoreFilter, []types.StoreFilter, []types.VersionFilter) {
 	hm := make(map[int64]*upgradetypes.HeightTasks)
-	hStoreInfoModule := make(map[int64]map[string]struct{})
 	paramsRet := make(map[string]params.ParamSet)
+	commitFiltreMap := make(map[*types.StoreFilter]struct{})
+	pruneFilterMap := make(map[*types.StoreFilter]struct{})
+	versionFilterMap := make(map[*types.VersionFilter]struct{})
+
 	for _, mm := range m.Modules {
 		if ada, ok := mm.(upgradetypes.UpgradeModule); ok {
 			set := ada.RegisterParam()
@@ -825,15 +825,26 @@ func (o *SimApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgradetyp
 			if h > 0 {
 				h++
 			}
-			storeInfoModule := hStoreInfoModule[h]
-			if storeInfoModule == nil {
-				storeInfoModule = make(map[string]struct{})
-				hStoreInfoModule[h] = storeInfoModule
+
+			cf := ada.CommitFilter()
+			if cf != nil {
+				if _, exist := commitFiltreMap[cf]; !exist {
+					commitFiltreMap[cf] = struct{}{}
+				}
 			}
-			names := ada.BlockStoreModules()
-			for _, n := range names {
-				storeInfoModule[n] = struct{}{}
+			pf := ada.PruneFilter()
+			if pf != nil {
+				if _, exist := pruneFilterMap[pf]; !exist {
+					pruneFilterMap[pf] = struct{}{}
+				}
 			}
+			vf := ada.VersionFilter()
+			if vf != nil {
+				if _, exist := versionFilterMap[vf]; !exist {
+					versionFilterMap[vf] = struct{}{}
+				}
+			}
+
 			t := ada.RegisterTask()
 			if t == nil {
 				continue
@@ -855,98 +866,18 @@ func (o *SimApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgradetyp
 		sort.Sort(*v)
 	}
 
-	commitPip, prunePip, versionPip := collectStorePipeline(hStoreInfoModule)
-
-	return hm, paramsRet, commitPip, prunePip, versionPip
-}
-
-func collectStorePipeline(hStoreInfoModule map[int64]map[string]struct{}) (types.HeightFilterPipeline, types.HeightFilterPipeline, types.VersionFilterPipeline) {
-	var (
-		pip        types.HeightFilterPipeline
-		prunePip   types.HeightFilterPipeline
-		versionPip types.VersionFilterPipeline
-	)
-
-	for storeH, storeMap := range hStoreInfoModule {
-		filterM := copyBlockStoreMap(storeMap)
-		if storeH < 0 {
-			continue
-		}
-		hh := storeH
-		height := hh - 1
-		// filter block module
-		blockModuleFilter := func(str string) bool {
-			_, exist := filterM[str]
-			return exist
-		}
-
-		commitF := func(h int64) func(str string) bool {
-			if hh == 0 {
-				return blockModuleFilter
-			}
-			if h >= height {
-				// call next filter
-				return nil
-			}
-			return blockModuleFilter
-		}
-		pruneF := func(h int64) func(str string) bool {
-			if hh == 0 {
-				return blockModuleFilter
-			}
-			// note: prune's version  > commit version,thus the condition will be '>' rather than '>='
-			if h > height {
-				// call next filter
-				return nil
-			}
-			return blockModuleFilter
-		}
-		versionF := func(h int64) func(cb func(string, int64)) {
-			//if h < height {
-			//	return nil
-			//}
-			if h < 0 {
-				return nil
-			}
-
-			return func(cb func(name string, version int64)) {
-
-				for k, _ := range filterM {
-					cb(k, hh-1)
-				}
-			}
-		}
-
-		pip = linkPipeline(pip, commitF)
-		prunePip = linkPipeline(prunePip, pruneF)
-		versionPip = linkPipeline2(versionPip, versionF)
+	commitFilters := make([]types.StoreFilter, 0)
+	pruneFilters := make([]types.StoreFilter, 0)
+	versionFilters := make([]types.VersionFilter, 0)
+	for pointerFilter, _ := range commitFiltreMap {
+		commitFilters = append(commitFilters, *pointerFilter)
+	}
+	for pointerFilter, _ := range pruneFilterMap {
+		pruneFilters = append(pruneFilters, *pointerFilter)
+	}
+	for pointerFilter, _ := range versionFilterMap {
+		versionFilters = append(versionFilters, *pointerFilter)
 	}
 
-	return pip, prunePip, versionPip
-}
-
-func copyBlockStoreMap(m map[string]struct{}) map[string]struct{} {
-	ret := make(map[string]struct{})
-	for k, _ := range m {
-		ret[k] = struct{}{}
-	}
-	return ret
-}
-
-func linkPipeline(p types.HeightFilterPipeline, f func(h int64) func(str string) bool) types.HeightFilterPipeline {
-	if p == nil {
-		p = f
-	} else {
-		p = types.LinkPipeline(f, p)
-	}
-	return p
-}
-
-func linkPipeline2(p types.VersionFilterPipeline, f func(h int64) func(func(string, int64))) types.VersionFilterPipeline {
-	if p == nil {
-		p = f
-	} else {
-		p = types.LinkPipeline2(f, p)
-	}
-	return p
+	return hm, paramsRet, commitFilters, pruneFilters, versionFilters
 }

@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/okex/exchain/libs/system"
 	"io"
 	"math/big"
 	"os"
@@ -220,7 +221,7 @@ func NewOKExChainApp(
 	invCheckPeriod uint,
 	baseAppOptions ...func(*bam.BaseApp),
 ) *OKExChainApp {
-	logger.Info("Starting OEC",
+	logger.Info("Starting "+system.ChainName,
 		"GenesisHeight", tmtypes.GetStartBlockHeight(),
 		"MercuryHeight", tmtypes.GetMercuryHeight(),
 		"VenusHeight", tmtypes.GetVenusHeight(),
@@ -292,6 +293,7 @@ func NewOKExChainApp(
 	app.AccountKeeper = auth.NewAccountKeeper(
 		codecProxy.GetCdc(), keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
 	)
+	app.AccountKeeper.SetObserverKeeper(app)
 
 	bankKeeper := bank.NewBaseKeeperWithMarshal(
 		&app.AccountKeeper, codecProxy, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
@@ -527,8 +529,10 @@ func NewOKExChainApp(
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccHandler(NewAccHandler(app.AccountKeeper))
-	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), evmTxFeeHandler(), fixLogForParallelTxHandler(app.EvmKeeper))
+	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), fixLogForParallelTxHandler(app.EvmKeeper))
 	app.SetPreDeliverTxHandler(preDeliverTxHandler(app.AccountKeeper))
+	app.SetPartialConcurrentHandlers(getTxFeeAndFromHandler(app.AccountKeeper))
+
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
 		if err != nil {

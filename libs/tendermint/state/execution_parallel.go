@@ -10,10 +10,6 @@ import (
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
-var (
-	FlagParalleledTx = "paralleled-tx"
-)
-
 func execBlockOnProxyAppAsync(
 	logger log.Logger,
 	proxyAppConn proxy.AppConnConsensus,

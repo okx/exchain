@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/system"
 	"strconv"
 	"strings"
 	"sync"
@@ -11,6 +12,7 @@ import (
 	iavlconfig "github.com/okex/exchain/libs/iavl/config"
 	tmconfig "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/x/common/analyzer"
 
 	"github.com/spf13/viper"
@@ -63,6 +65,8 @@ type OecConfig struct {
 
 	// enable-analyzer
 	enableAnalyzer bool
+
+	deliverTxsMode int
 }
 
 const (
@@ -192,6 +196,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetNodeKeyWhitelist(viper.GetString(FlagNodeKeyWhitelist))
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
 	c.SetEnableAnalyzer(viper.GetBool(analyzer.FlagEnableAnalyzer))
+	c.SetDeliverTxsExecuteMode(viper.GetInt(state.FlagDeliverTxsExecMode))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -207,7 +212,7 @@ func (c *OecConfig) loadFromApollo() bool {
 }
 
 func (c *OecConfig) format() string {
-	return fmt.Sprintf(`OEC config:
+	return fmt.Sprintf(`%s config:
 	mempool.recheck: %v
 	mempool.force_recheck_gap: %d
 	mempool.size: %d
@@ -227,7 +232,7 @@ func (c *OecConfig) format() string {
 	consensus.timeout_precommit_delta: %s
 	
 	iavl-cache-size: %d
-	enable-analyzer: %v`,
+	enable-analyzer: %v`, system.ChainName,
 		c.GetMempoolRecheck(),
 		c.GetMempoolForceRecheckGap(),
 		c.GetMempoolSize(),
@@ -359,6 +364,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetEnableAnalyzer(r)
+	case state.FlagDeliverTxsExecMode:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetDeliverTxsExecuteMode(r)
 	}
 }
 
@@ -405,6 +416,14 @@ func (c *OecConfig) SetMempoolFlush(value bool) {
 
 func (c *OecConfig) GetEnableWtx() bool {
 	return c.enableWtx
+}
+
+func (c *OecConfig) SetDeliverTxsExecuteMode(mode int) {
+	c.deliverTxsMode = mode
+}
+
+func (c *OecConfig) GetDeliverTxsExecuteMode() int {
+	return c.deliverTxsMode
 }
 
 func (c *OecConfig) SetEnableWtx(value bool) {

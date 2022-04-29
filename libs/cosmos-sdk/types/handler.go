@@ -15,9 +15,9 @@ type AccHandler func(ctx Context, address AccAddress) (nonce uint64)
 
 type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins) error
 
-type LogFix func(isAnteFailed [][]string) (logs [][]byte)
+type LogFix func(logIndex []int, errs []error) (logs [][]byte)
 
-type GetTxFeeHandler func(ctx Context, tx Tx) (Coins, bool)
+type GetTxFeeAndFromHandler func(ctx Context, tx Tx) (Coins, bool, string, string, error)
 
 // AnteDecorator wraps the next AnteHandler to perform custom pre- and post-processing.
 type AnteDecorator interface {
