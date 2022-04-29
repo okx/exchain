@@ -1,10 +1,9 @@
 package iavl
 
 import (
+	"github.com/okex/exchain/libs/iavl/config"
 	cmap "github.com/orcaman/concurrent-map"
 	"github.com/tendermint/go-amino"
-	"github.com/okex/exchain/libs/iavl/config"
-
 )
 
 func (ndb *nodeDB) uncacheNodeRontine(n []*Node) {
@@ -29,7 +28,6 @@ func (ndb *nodeDB) finishPreWriteCache() {
 	})
 	ndb.preWriteNodeCache = nil
 }
-
 
 // ===================================================
 // ======= map[string]*list.Element implementation
@@ -68,7 +66,6 @@ func (ndb *nodeDB) cacheNodeByCheck(node *Node) {
 	}
 }
 
-
 func (ndb *nodeDB) getNodeFromCache(hash []byte, promoteRecentNode bool) (n *Node) {
 	// Check the cache.
 	ndb.nodeCacheMutex.RLock()
@@ -84,14 +81,16 @@ func (ndb *nodeDB) getNodeFromCache(hash []byte, promoteRecentNode bool) (n *Nod
 	return
 }
 
-func (ndb *nodeDB) nodeCacheLen() int {
-	return len(ndb.nodeCache)
+func (ndb *nodeDB) nodeCacheLen() (l int) {
+	ndb.mtx.RLock()
+	l = len(ndb.nodeCache)
+	ndb.mtx.RUnlock()
+	return
 }
 
 // =========================================================
 // ======= github.com/hashicorp/golang-lru implementation
 // =========================================================
-
 
 //func (ndb *nodeDB) cacheNode(node *Node) {
 //	ndb.lruNodeCache.Add(string(node.hash), node)
@@ -130,4 +129,3 @@ func (ndb *nodeDB) nodeCacheLen() int {
 //func (ndb *nodeDB) nodeCacheLen() int {
 //	return ndb.lruNodeCache.Len()
 //}
-

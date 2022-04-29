@@ -608,3 +608,17 @@ func orphanKeyFast(fromVersion, toVersion int64, hash []byte) []byte {
 	copy(key[n+hashLen-len(hash):n+hashLen], hash)
 	return key
 }
+
+func (ndb *nodeDB) prePersistNodeCacheLen() (l int) {
+	ndb.mtx.RLock()
+	l = len(ndb.prePersistNodeCache)
+	ndb.mtx.RUnlock()
+	return
+}
+
+func (ndb *nodeDB) orphanNodeCacheLen() (l int) {
+	ndb.mtx.RLock()
+	l = len(ndb.orphanNodeCache)
+	ndb.mtx.RUnlock()
+	return
+}
