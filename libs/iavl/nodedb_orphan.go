@@ -1,7 +1,6 @@
 package iavl
 
 import (
-	"fmt"
 	"github.com/tendermint/go-amino"
 )
 
@@ -78,17 +77,6 @@ func (ndb *nodeDB) removeOldOrphans(version int64, rootHash []byte) {
 		delete(ndb.heightOrphansMap, oldHeightOrphanItem.version)
 	}
 }
-
-func (ndb *nodeDB) getRootWithCache(version int64) ([]byte, error) {
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-	orphansObj, ok := ndb.heightOrphansMap[version]
-	if ok {
-		return orphansObj.rootHash, nil
-	}
-	return nil, fmt.Errorf("version %d is not in heightOrphansMap", version)
-}
-
 
 func (ndb *nodeDB) findRootHash(version int64) (res []byte, find bool) {
 	ndb.mtx.RLock()

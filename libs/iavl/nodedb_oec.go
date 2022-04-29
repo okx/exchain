@@ -483,9 +483,9 @@ func (ndb *nodeDB) getNodeInTpp(hash []byte) (*Node, bool) {
 
 func (ndb *nodeDB) getRootWithCacheAndDB(version int64) ([]byte, error) {
 	if EnableAsyncCommit {
-		root, err := ndb.getRootWithCache(version)
-		if err == nil {
-			return root, err
+		root, ok := ndb.findRootHash(version)
+		if ok {
+			return root, nil
 		}
 	}
 	return ndb.getRoot(version)
