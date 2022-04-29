@@ -2,6 +2,8 @@ package rootmulti
 
 import (
 	"fmt"
+	"runtime"
+
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
@@ -1009,27 +1011,78 @@ type StoreSort struct {
 	v   types.CommitKVStore
 }
 
+type commitStoreJob struct {
+	Key   types.StoreKey
+	Store types.CommitKVStore
+}
+
+type commitStoreResult struct {
+	Key       types.StoreKey
+	StoreInfo storeInfo
+	TreeDelta *iavltree.TreeDelta
+}
+
 // Commits each store and returns a new commitInfo.
 func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore,
 	inputDeltaMap iavltree.TreeDeltaMap, filters []types.StoreFilter) (commitInfo, iavltree.TreeDeltaMap) {
 	var storeInfos []storeInfo
-	outputDeltaMap := iavltree.TreeDeltaMap{}
+	storeCount := len(storeMap)
+	if storeCount > 0 {
+		storeInfos = make([]storeInfo, 0, storeCount)
+	}
+	outputDeltaMap := make(iavltree.TreeDeltaMap, storeCount)
+
+	commitStoreCh := make(chan commitStoreJob, storeCount+1)
+	resultCh := make(chan commitStoreResult, storeCount)
+
+	workerNum := runtime.NumCPU() / 2
+	if workerNum > storeCount {
+		workerNum = storeCount
+	}
+
+	for i := 0; i < workerNum; i++ {
+		go func(version int64, jobCh chan commitStoreJob, resultCh chan commitStoreResult, inputDeltaMap iavltree.TreeDeltaMap, filters []types.StoreFilter) {
+			for job := range jobCh {
+				key := job.Key
+				store := job.Store
+				if key == nil {
+					close(resultCh)
+					return
+				}
+				if filter(key.Name(), version, store, filters) {
+					continue
+				}
+
+				commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
+
+				if store.GetStoreType() == types.StoreTypeTransient {
+					continue
+				}
+				si := storeInfo{}
+				si.Name = key.Name()
+				si.Core.CommitID = commitID
+				resultCh <- commitStoreResult{
+					Key:       key,
+					StoreInfo: si,
+					TreeDelta: outputDelta,
+				}
+			}
+		}(version, commitStoreCh, resultCh, inputDeltaMap, filters)
+	}
+
 	for key, store := range storeMap {
-		if filter(key.Name(), version, store, filters) {
-			continue
+		commitStoreCh <- commitStoreJob{
+			Key:   key,
+			Store: store,
 		}
-
-		commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
-
-		if store.GetStoreType() == types.StoreTypeTransient {
-			continue
-		}
-
-		si := storeInfo{}
-		si.Name = key.Name()
-		si.Core.CommitID = commitID
-		storeInfos = append(storeInfos, si)
-		outputDeltaMap[key.Name()] = outputDelta
+	}
+	commitStoreCh <- commitStoreJob{
+		Key: nil,
+	}
+	close(commitStoreCh)
+	for res := range resultCh {
+		storeInfos = append(storeInfos, res.StoreInfo)
+		outputDeltaMap[res.Key.Name()] = res.TreeDelta
 	}
 
 	return commitInfo{
