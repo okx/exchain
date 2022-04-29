@@ -3,6 +3,7 @@ package rootmulti
 import (
 	"fmt"
 	"runtime"
+	"sync"
 
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
@@ -1032,7 +1033,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	}
 	outputDeltaMap := make(iavltree.TreeDeltaMap, storeCount)
 
-	commitStoreCh := make(chan commitStoreJob, storeCount+1)
+	commitStoreCh := make(chan commitStoreJob, storeCount)
 	resultCh := make(chan commitStoreResult, storeCount)
 
 	workerNum := runtime.NumCPU() / 2
@@ -1040,22 +1041,23 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		workerNum = storeCount
 	}
 
+	wg := sync.WaitGroup{}
+	wg.Add(storeCount)
+
 	for i := 0; i < workerNum; i++ {
-		go func(version int64, jobCh chan commitStoreJob, resultCh chan commitStoreResult, inputDeltaMap iavltree.TreeDeltaMap, filters []types.StoreFilter) {
+		go func(version int64, jobCh chan commitStoreJob, resultCh chan commitStoreResult, inputDeltaMap iavltree.TreeDeltaMap, filters []types.StoreFilter, wg *sync.WaitGroup) {
 			for job := range jobCh {
 				key := job.Key
 				store := job.Store
-				if key == nil {
-					close(resultCh)
-					return
-				}
 				if filter(key.Name(), version, store, filters) {
+					wg.Done()
 					continue
 				}
 
 				commitID, outputDelta := store.CommitterCommit(inputDeltaMap[key.Name()]) // CommitterCommit
 
 				if store.GetStoreType() == types.StoreTypeTransient {
+					wg.Done()
 					continue
 				}
 				si := storeInfo{}
@@ -1066,8 +1068,9 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 					StoreInfo: si,
 					TreeDelta: outputDelta,
 				}
+				wg.Done()
 			}
-		}(version, commitStoreCh, resultCh, inputDeltaMap, filters)
+		}(version, commitStoreCh, resultCh, inputDeltaMap, filters, &wg)
 	}
 
 	for key, store := range storeMap {
@@ -1076,10 +1079,9 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 			Store: store,
 		}
 	}
-	commitStoreCh <- commitStoreJob{
-		Key: nil,
-	}
 	close(commitStoreCh)
+	wg.Wait()
+	close(resultCh)
 	for res := range resultCh {
 		storeInfos = append(storeInfos, res.StoreInfo)
 		outputDeltaMap[res.Key.Name()] = res.TreeDelta
