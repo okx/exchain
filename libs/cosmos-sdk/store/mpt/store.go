@@ -488,11 +488,7 @@ func (ms *MptStore) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 // Handle latest the latest height - 1  (committed), if height is 0
 func (ms *MptStore) getlatestHeight(height uint64) uint64 {
 	if height == 0 {
-		_, priority := ms.triegc.Pop()
-		height = uint64(-priority) + uint64(ms.triegc.Size()-1)
-	}
-	if height == 0 {
-		height = ms.GetLatestStoredBlockHeight()
+		height = uint64(ms.version)
 	}
 	return height
 }
