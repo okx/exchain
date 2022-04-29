@@ -1,6 +1,7 @@
 package types
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 	"sort"
@@ -514,8 +515,8 @@ func (csdb *CommitStateDB) SlotInAccessList(addr ethcmn.Address, slot ethcmn.Has
 
 // GetHeightHash returns the block header hash associated with a given block height and chain epoch number.
 func (csdb *CommitStateDB) GetHeightHash(height uint64) ethcmn.Hash {
-	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		return csdb.getHeightHashInRawDB(height)
+	if h := csdb.getHeightHashInRawDB(height); !bytes.Equal(h.Bytes(), ethcmn.Hash{}.Bytes()) {
+		return h
 	}
 
 	store := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)

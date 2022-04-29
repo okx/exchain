@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"math/rand"
 	"net"
@@ -28,7 +29,10 @@ import (
 	"github.com/okex/exchain/app/rpc/backend"
 	cosmos_context "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	cmserver "github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
@@ -36,7 +40,6 @@ import (
 
 	"github.com/okex/exchain/app/rpc"
 	"github.com/okex/exchain/app/rpc/types"
-	cmserver "github.com/okex/exchain/libs/cosmos-sdk/server"
 	apptesting "github.com/okex/exchain/libs/ibc-go/testing"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
@@ -66,6 +69,14 @@ func init() {
 	multisig.RegisterKeyType(ethsecp256k1.PubKey{}, ethsecp256k1.PubKeyName)
 }
 
+func genrateTmpDir(name string) string {
+	dir, err := ioutil.TempDir("", name)
+	if err != nil {
+		panic(err)
+	}
+	return dir
+}
+
 type RPCTestSuite struct {
 	suite.Suite
 
@@ -81,6 +92,23 @@ type RPCTestSuite struct {
 }
 
 func (suite *RPCTestSuite) SetupTest() {
+	// set exchaincli path
+	cliDir, err := ioutil.TempDir("", ".exchaincli")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(cliDir)
+	viper.Set(cmserver.FlagUlockKeyHome, cliDir)
+
+	// set exchaind path
+	serverDir, err := ioutil.TempDir("", ".exchaind")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(serverDir)
+	viper.Set(flags.FlagHome, serverDir)
+	viper.Set(rpc.FlagPersonalAPI, true)
+
 	chainId := apptesting.GetOKChainID(1)
 	suite.coordinator = apptesting.NewEthCoordinator(suite.T(), 1)
 	suite.chain = suite.coordinator.GetChain(chainId)
@@ -110,7 +138,6 @@ func (suite *RPCTestSuite) SetupTest() {
 	viper.Set(watcher.FlagFastQueryLru, 100)
 	viper.Set("rpc.laddr", "127.0.0.1:0")
 	viper.Set(flags.FlagKeyringBackend, "test")
-	viper.Set(cmserver.FlagUlockKeyHome, fmt.Sprintf(".exchaincli/%s", time.Now().String()))
 
 	viper.Set(rpc.FlagPersonalAPI, true)
 
@@ -136,6 +163,18 @@ func (suite *RPCTestSuite) SetupTest() {
 }
 
 func TestRPCTestSuite(t *testing.T) {
+	suite.Run(t, new(RPCTestSuite))
+}
+
+func TestRPCTestSuiteWithMarsHeight2(t *testing.T) {
+	mpt.TrieWriteAhead = true
+	tmtypes.UnittestOnlySetMilestoneMarsHeight(2)
+	suite.Run(t, new(RPCTestSuite))
+}
+
+func TestRPCTestSuiteWithMarsHeight1(t *testing.T) {
+	mpt.TrieWriteAhead = true
+	tmtypes.UnittestOnlySetMilestoneMarsHeight(1)
 	suite.Run(t, new(RPCTestSuite))
 }
 

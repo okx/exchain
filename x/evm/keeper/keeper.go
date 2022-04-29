@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"bytes"
 	"encoding/binary"
 	"math/big"
 	"sync"
@@ -232,8 +233,8 @@ func (k Keeper) GetStore2Key() store.StoreKey {
 
 // GetBlockHash gets block height from block consensus hash
 func (k Keeper) GetBlockHash(ctx sdk.Context, hash []byte) (int64, bool) {
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		return k.getBlockHashInDiskDB(hash)
+	if height, ok := k.getBlockHashInDiskDB(hash); height != 0 {
+		return height, ok
 	}
 
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBlockHash)
@@ -299,8 +300,8 @@ func (k Keeper) SetHeightHash(ctx sdk.Context, height uint64, hash ethcmn.Hash) 
 
 // GetBlockBloom gets bloombits from block height
 func (k Keeper) GetBlockBloom(ctx sdk.Context, height int64) ethtypes.Bloom {
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		return k.getBlockBloomInDiskDB(height)
+	if bloom := k.getBlockBloomInDiskDB(height); !bytes.Equal(bloom.Bytes(), ethtypes.Bloom{}.Bytes()) {
+		return bloom
 	}
 
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBloom)
