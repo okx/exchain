@@ -44,32 +44,6 @@ func (ndb *nodeDB) SaveOrphans(batch dbm.Batch, version int64, orphans []*Node) 
 	}
 }
 
-func (ndb *nodeDB) saveNewOrphans(version int64, orphans []*Node, lock bool) {
-
-	if orphans == nil {
-		return
-	}
-
-	version--
-	ndb.log(IavlDebug, "saving orphan node to OrphanCache", "size", len(orphans))
-	atomic.AddInt64(&ndb.totalOrphanCount, int64(len(orphans)))
-
-	if lock {
-		ndb.mtx.Lock()
-		defer ndb.mtx.Unlock()
-	}
-
-	ndb.oi.feedOrphansMap(version, orphans)
-	for _, node := range orphans {
-		ndb.oi.feedOrphanNodeCache(node)
-		delete(ndb.prePersistNodeCache, amino.BytesToStr(node.hash))
-		node.leftNode = nil
-		node.rightNode = nil
-	}
-	ndb.uncacheNodeRontine(orphans)
-}
-
-
 func (ndb *nodeDB) dbGet(k []byte) ([]byte, error) {
 	ts := time.Now()
 	defer func() {
