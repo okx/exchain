@@ -512,7 +512,6 @@ func orphanKeyFast(fromVersion, toVersion int64, hash []byte) []byte {
 	return key
 }
 
-
 func (ndb *nodeDB) cacheNode(node *Node) {
 	ndb.nc.cache(node)
 }
@@ -527,7 +526,6 @@ func (ndb *nodeDB) getNodeFromCache(hash []byte, promoteRecentNode bool) (n *Nod
 func (ndb *nodeDB) cacheNodeByCheck(node *Node) {
 	ndb.nc.cacheByCheck(node)
 }
-
 
 func (ndb *nodeDB) uncacheNodeRontine(n []*Node) {
 	for _, node := range n {
