@@ -26,7 +26,7 @@ func newNodeCache(cacheSize int) *NodeCache {
 // ======= map[string]*list.Element implementation
 // ===================================================
 
-func (ndb *NodeCache) uncacheNode(hash []byte) {
+func (ndb *NodeCache) uncache(hash []byte) {
 	ndb.nodeCacheMutex.Lock()
 	if elem, ok := ndb.nodeCache[string(hash)]; ok {
 		ndb.nodeCacheQueue.Remove(elem)
@@ -37,7 +37,7 @@ func (ndb *NodeCache) uncacheNode(hash []byte) {
 
 // Add a node to the cache and pop the least recently used node if we've
 // reached the cache size limit.
-func (ndb *NodeCache) cacheNode(node *Node) {
+func (ndb *NodeCache) cache(node *Node) {
 	ndb.nodeCacheMutex.Lock()
 	elem := ndb.nodeCacheQueue.PushBack(node)
 	ndb.nodeCache[string(node.hash)] = elem
@@ -50,16 +50,16 @@ func (ndb *NodeCache) cacheNode(node *Node) {
 	ndb.nodeCacheMutex.Unlock()
 }
 
-func (ndb *NodeCache) cacheNodeByCheck(node *Node) {
+func (ndb *NodeCache) cacheByCheck(node *Node) {
 	ndb.nodeCacheMutex.RLock()
 	_, ok := ndb.nodeCache[string(node.hash)]
 	ndb.nodeCacheMutex.RUnlock()
 	if !ok {
-		ndb.cacheNode(node)
+		ndb.cache(node)
 	}
 }
 
-func (ndb *NodeCache) getNodeFromCache(hash []byte, promoteRecentNode bool) (n *Node) {
+func (ndb *NodeCache) get(hash []byte, promoteRecentNode bool) (n *Node) {
 	// Check the cache.
 	ndb.nodeCacheMutex.RLock()
 	elem, ok := ndb.nodeCache[string(hash)]
