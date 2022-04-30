@@ -47,11 +47,6 @@ type nodeDB struct {
 
 	latestVersion  int64
 
-	nodeCache      map[string]*list.Element // Node cache.
-	nodeCacheSize  int                      // Node cache size limit in elements.
-	nodeCacheQueue *syncList                // LRU queue of cache elements. Used for deletion.
-	nodeCacheMutex sync.RWMutex             // Mutex for node cache.
-
 	prePersistNodeCache map[string]*Node
 	tppMap              map[int64]*tppItem
 	tppVersionList      *list.List
@@ -71,6 +66,7 @@ type nodeDB struct {
 	preWriteNodeCache cmap.ConcurrentMap
 
 	oi *OrphanInfo
+	nc *NodeCache
 }
 
 func makeNodeCacheMap(cacheSize int, initRatio float64) map[string]*list.Element {
@@ -92,9 +88,6 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 	ndb := &nodeDB{
 		db:                      db,
 		opts:                    *opts,
-		nodeCache:               makeNodeCacheMap(cacheSize, IavlCacheInitRatio),
-		nodeCacheSize:           cacheSize,
-		nodeCacheQueue:          newSyncList(),
 		versionReaders:          make(map[int64]uint32, 8),
 		prePersistNodeCache:     make(map[string]*Node),
 		tppMap:                  make(map[int64]*tppItem),
@@ -104,6 +97,7 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 	}
 
 	ndb.oi = newOrphanInfo(ndb)
+	ndb.nc = newNodeCache(cacheSize)
 	return ndb
 }
 

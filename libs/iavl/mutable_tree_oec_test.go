@@ -113,7 +113,7 @@ func TestSaveVersionCommitIntervalHeight(t *testing.T) {
 	tree.ndb.sanityCheckHandleOrphansResult(tree.version+1)
 	tree.ndb.oi.enqueueResult(tree.version)
 
-	require.Equal(t, 5, len(tree.ndb.prePersistNodeCache)+len(tree.ndb.nodeCache))
+	require.Equal(t, 5, len(tree.ndb.prePersistNodeCache)+tree.ndb.nc.nodeCacheLen())
 	require.Equal(t, 3, len(tree.ndb.oi.orphanNodeCache))
 
 	_, _, _, err = tree.SaveVersion(false)
@@ -470,7 +470,7 @@ func TestStopTree(t *testing.T) {
 	_, _, _, err := tree.SaveVersion(false)
 	require.NoError(t, err)
 	tree.StopTree()
-	require.Equal(t, 5, len(tree.ndb.nodeCache))
+	require.Equal(t, 5, tree.ndb.nc.nodeCacheLen())
 }
 
 func TestLog(t *testing.T) {

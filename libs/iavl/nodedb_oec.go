@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"encoding/binary"
 	"fmt"
+	cmap "github.com/orcaman/concurrent-map"
 
 	"github.com/tendermint/go-amino"
 
@@ -257,7 +258,7 @@ func (ndb *nodeDB) sprintCacheLog(version int64) string {
 	printLog := fmt.Sprintf("Save Version<%d>: Tree<%s>", version, ndb.name)
 
 	printLog += fmt.Sprintf(", TotalPreCommitCacheSize:%d", treeMap.totalPreCommitCacheSize)
-	printLog += fmt.Sprintf(", nodeCCnt:%d", ndb.nodeCacheLen())
+	printLog += fmt.Sprintf(", nodeCCnt:%d", ndb.nc.nodeCacheLen())
 	printLog += fmt.Sprintf(", orphanCCnt:%d", ndb.oi.orphanNodeCacheLen())
 	printLog += fmt.Sprintf(", prePerCCnt:%d", len(ndb.prePersistNodeCache))
 	printLog += fmt.Sprintf(", dbRCnt:%d", ndb.getDBReadCount())
@@ -509,4 +510,44 @@ func orphanKeyFast(fromVersion, toVersion int64, hash []byte) []byte {
 	}
 	copy(key[n+hashLen-len(hash):n+hashLen], hash)
 	return key
+}
+
+
+func (ndb *nodeDB) cacheNode(node *Node) {
+	ndb.nc.cacheNode(node)
+}
+func (ndb *nodeDB) uncacheNode(hash []byte) {
+	ndb.nc.uncacheNode(hash)
+}
+
+func (ndb *nodeDB) getNodeFromCache(hash []byte, promoteRecentNode bool) (n *Node) {
+	return ndb.nc.getNodeFromCache(hash, promoteRecentNode)
+}
+
+func (ndb *nodeDB) cacheNodeByCheck(node *Node) {
+	ndb.nc.cacheNodeByCheck(node)
+}
+
+
+func (ndb *nodeDB) uncacheNodeRontine(n []*Node) {
+	for _, node := range n {
+		ndb.uncacheNode(node.hash)
+	}
+}
+
+func (ndb *nodeDB) initPreWriteCache() {
+	if ndb.preWriteNodeCache == nil {
+		ndb.preWriteNodeCache = cmap.New()
+	}
+}
+
+func (ndb *nodeDB) cacheNodeToPreWriteCache(n *Node) {
+	ndb.preWriteNodeCache.Set(string(n.hash), n)
+}
+
+func (ndb *nodeDB) finishPreWriteCache() {
+	ndb.preWriteNodeCache.IterCb(func(key string, v interface{}) {
+		ndb.cacheNode(v.(*Node))
+	})
+	ndb.preWriteNodeCache = nil
 }
