@@ -69,12 +69,11 @@ func NewCLIContextWithInputAndFrom(input io.Reader, from string) CLIContext {
 	if !genOnly {
 		nodeURI = viper.GetString(flags.FlagNode)
 		if nodeURI != "" {
-			httpRpc, err := rpchttp.New(nodeURI, "/websocket")
+			rpc, err = rpchttp.New(nodeURI, "/websocket")
 			if err != nil {
 				fmt.Printf("failted to get client: %v\n", err)
 				os.Exit(1)
 			}
-			rpc = rpchttp.NewHttpCM39Adapter(httpRpc)
 		}
 	}
 
