@@ -28,12 +28,6 @@ var (
 	IavlCacheInitRatio float64 = 0
 )
 
-type heightOrphansItem struct {
-	version  int64
-	rootHash []byte
-	orphans  []*Node
-}
-
 type tppItem struct {
 	nodeMap  map[string]*Node
 	listItem *list.Element

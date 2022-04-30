@@ -2,26 +2,33 @@ package iavl
 
 import (
 	"container/list"
+	"fmt"
 	"github.com/tendermint/go-amino"
 )
 
 type OrphanInfo struct {
 	orphanNodeCache         map[string]*Node
-	heightOrphansCacheQueue *list.List
-	heightOrphansCacheSize  int
-	heightOrphansMap        map[int64]*heightOrphansItem
+	orphanItemCacheQueue *list.List
+	orphanItemCacheSize  int
+	orphanItemMap        map[int64]*orphanItem
 
 	orphanTaskChan   chan func()
 	resultChan       chan int64
+}
+
+type orphanItem struct {
+	version  int64
+	rootHash []byte
+	orphans  []*Node
 }
 
 func newOrphanInfo() *OrphanInfo {
 
 	oi := &OrphanInfo{
 		orphanNodeCache:         make(map[string]*Node),
-		heightOrphansCacheQueue: list.New(),
-		heightOrphansCacheSize:  HeightOrphansCacheSize,
-		heightOrphansMap:        make(map[int64]*heightOrphansItem),
+		orphanItemCacheQueue: list.New(),
+		orphanItemCacheSize:  HeightOrphansCacheSize,
+		orphanItemMap:        make(map[int64]*orphanItem),
 		orphanTaskChan:          make(chan func(), 1),
 		resultChan:              make(chan int64, 1),
 	}
@@ -61,33 +68,33 @@ func (oi *OrphanInfo) addOrphanItem(version int64, rootHash []byte) {
 	if rootHash == nil {
 		rootHash = []byte{}
 	}
-	orphanObj := &heightOrphansItem{
+	orphanObj := &orphanItem{
 		version:  version,
 		rootHash: rootHash,
 	}
-	oi.heightOrphansCacheQueue.PushBack(orphanObj)
-	_, ok := oi.heightOrphansMap[version]
+	oi.orphanItemCacheQueue.PushBack(orphanObj)
+	_, ok := oi.orphanItemMap[version]
 	if ok {
-		panic("unexpected heightOrphansMap")
+		panic(fmt.Sprintf("unexpected orphanItemMap, version: %d", version))
 	}
-	oi.heightOrphansMap[version] = orphanObj
+	oi.orphanItemMap[version] = orphanObj
 }
 
 
 func (oi *OrphanInfo) removeOldOrphans() {
-	for oi.heightOrphansCacheQueue.Len() > oi.heightOrphansCacheSize {
-		orphans := oi.heightOrphansCacheQueue.Front()
-		oldHeightOrphanItem := oi.heightOrphansCacheQueue.Remove(orphans).(*heightOrphansItem)
+	for oi.orphanItemCacheQueue.Len() > oi.orphanItemCacheSize {
+		orphans := oi.orphanItemCacheQueue.Front()
+		oldHeightOrphanItem := oi.orphanItemCacheQueue.Remove(orphans).(*orphanItem)
 		for _, node := range oldHeightOrphanItem.orphans {
 			delete(oi.orphanNodeCache, amino.BytesToStr(node.hash))
 		}
-		delete(oi.heightOrphansMap, oldHeightOrphanItem.version)
+		delete(oi.orphanItemMap, oldHeightOrphanItem.version)
 	}
 }
 
 
 func (oi *OrphanInfo) feedOrphansMap(version int64, orphans []*Node) {
-	v, ok := oi.heightOrphansMap[version]
+	v, ok := oi.orphanItemMap[version]
 	if !ok {
 		return
 	}
@@ -113,7 +120,7 @@ func (oi *OrphanInfo) orphanNodeCacheLen() int {
 }
 
 func (oi *OrphanInfo) findRootHash(version int64) (res []byte, found bool) {
-	v, ok := oi.heightOrphansMap[version]
+	v, ok := oi.orphanItemMap[version]
 	if ok {
 		res = v.rootHash
 		found = true
