@@ -92,20 +92,18 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 	ndb := &nodeDB{
 		db:                      db,
 		opts:                    *opts,
-		latestVersion:           0, // initially invalid
 		nodeCache:               makeNodeCacheMap(cacheSize, IavlCacheInitRatio),
 		nodeCacheSize:           cacheSize,
 		nodeCacheQueue:          newSyncList(),
 		versionReaders:          make(map[int64]uint32, 8),
-
 		prePersistNodeCache:     make(map[string]*Node),
 		tppMap:                  make(map[int64]*tppItem),
 		tppVersionList:          list.New(),
 		name:                    ParseDBName(db),
 		preWriteNodeCache:       cmap.New(),
-		oi:                      newOrphanInfo(),
 	}
 
+	ndb.oi = newOrphanInfo(ndb)
 	return ndb
 }
 

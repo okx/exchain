@@ -1,34 +1,32 @@
 package iavl
 
 import (
-	"container/list"
 	"fmt"
 	"github.com/tendermint/go-amino"
 )
 
 type OrphanInfo struct {
-	orphanNodeCache         map[string]*Node
-	orphanItemCacheQueue *list.List
-	orphanItemCacheSize  int
+	ndb *nodeDB
+	orphanNodeCache      map[string]*Node
 	orphanItemMap        map[int64]*orphanItem
+	itemSize             int
 
 	orphanTaskChan   chan func()
 	resultChan       chan int64
 }
 
 type orphanItem struct {
-	version  int64
 	rootHash []byte
 	orphans  []*Node
 }
 
-func newOrphanInfo() *OrphanInfo {
+func newOrphanInfo(ndb *nodeDB) *OrphanInfo {
 
 	oi := &OrphanInfo{
+		ndb: ndb,
 		orphanNodeCache:         make(map[string]*Node),
-		orphanItemCacheQueue: list.New(),
-		orphanItemCacheSize:  HeightOrphansCacheSize,
-		orphanItemMap:        make(map[int64]*orphanItem),
+		orphanItemMap:           make(map[int64]*orphanItem),
+		itemSize:                HeightOrphansCacheSize,
 		orphanTaskChan:          make(chan func(), 1),
 		resultChan:              make(chan int64, 1),
 	}
@@ -69,10 +67,8 @@ func (oi *OrphanInfo) addOrphanItem(version int64, rootHash []byte) {
 		rootHash = []byte{}
 	}
 	orphanObj := &orphanItem{
-		version:  version,
 		rootHash: rootHash,
 	}
-	oi.orphanItemCacheQueue.PushBack(orphanObj)
 	_, ok := oi.orphanItemMap[version]
 	if ok {
 		panic(fmt.Sprintf("unexpected orphanItemMap, version: %d", version))
@@ -81,17 +77,17 @@ func (oi *OrphanInfo) addOrphanItem(version int64, rootHash []byte) {
 }
 
 
-func (oi *OrphanInfo) removeOldOrphans() {
-	for oi.orphanItemCacheQueue.Len() > oi.orphanItemCacheSize {
-		orphans := oi.orphanItemCacheQueue.Front()
-		oldHeightOrphanItem := oi.orphanItemCacheQueue.Remove(orphans).(*orphanItem)
-		for _, node := range oldHeightOrphanItem.orphans {
-			delete(oi.orphanNodeCache, amino.BytesToStr(node.hash))
-		}
-		delete(oi.orphanItemMap, oldHeightOrphanItem.version)
+func (oi *OrphanInfo) removeOldOrphans(version int64) {
+	expiredVersion := version-int64(oi.itemSize)
+	expiredItem, ok := oi.orphanItemMap[expiredVersion]
+	if !ok {
+		return
 	}
+	for _, node := range expiredItem.orphans {
+		delete(oi.orphanNodeCache, amino.BytesToStr(node.hash))
+	}
+	delete(oi.orphanItemMap, expiredVersion)
 }
-
 
 func (oi *OrphanInfo) feedOrphansMap(version int64, orphans []*Node) {
 	v, ok := oi.orphanItemMap[version]
@@ -113,7 +109,6 @@ func (oi *OrphanInfo) getNodeFromOrphanCache(hash []byte) *Node {
 	}
 	return nil
 }
-
 
 func (oi *OrphanInfo) orphanNodeCacheLen() int {
 	return len(oi.orphanNodeCache)

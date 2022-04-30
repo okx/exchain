@@ -13,7 +13,7 @@ func (ndb *nodeDB) enqueueOrphanTask(version int64, rootHash []byte, newOrphans 
 		ndb.mtx.Lock()
 		defer ndb.mtx.Unlock()
 		ndb.saveNewOrphans(version, newOrphans, false)
-		ndb.oi.removeOldOrphans()
+		ndb.oi.removeOldOrphans(version)
 		ndb.oi.enqueueResult(version)
 	}
 
