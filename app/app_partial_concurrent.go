@@ -11,7 +11,7 @@ import (
 
 // getTxFeeAndFromHandler get tx fee and from
 func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
-	return func(ctx sdk.Context, tx sdk.Tx) (fee sdk.Coins, isEvm bool, from string, to string, err error) {
+	return func(ctx sdk.Context, tx sdk.Tx, justFee bool) (fee sdk.Coins, isEvm bool, from string, to string, err error) {
 		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
 			isEvm = true
 			err = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight())
@@ -19,6 +19,9 @@ func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
 				return
 			}
 			fee = evmTx.GetFee()
+			if justFee {
+				return
+			}
 			from = evmTx.BaseTx.From
 			if len(from) > 2 {
 				from = strings.ToLower(from[2:])
@@ -28,6 +31,9 @@ func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
 			}
 		} else if feeTx, ok := tx.(authante.FeeTx); ok {
 			fee = feeTx.GetFee()
+			if justFee {
+				return
+			}
 			feePayer := feeTx.FeePayer(ctx)
 			feePayerAcc := ak.GetAccount(ctx, feePayer)
 			from = hex.EncodeToString(feePayerAcc.GetAddress())

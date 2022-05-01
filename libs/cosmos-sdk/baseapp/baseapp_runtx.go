@@ -126,7 +126,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	app.pin(RunAnte, false, mode)
 
 	if app.getTxFeeAndFromHandler != nil && mode == runTxModeDeliver {
-		fee, _, _, _, _ := app.getTxFeeAndFromHandler(info.ctx, tx)
+		fee, _, _, _, _ := app.getTxFeeAndFromHandler(info.ctx, tx, true)
 		app.UpdateFeeForCollector(fee, true)
 	}
 
