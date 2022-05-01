@@ -3,6 +3,7 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"os"
 	"sort"
 	"strconv"
@@ -169,6 +170,9 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 }
 
 func (app *BaseApp) UpdateFeeForCollector(fee sdk.Coins, add bool) {
+	if global.GetGlobalHeight() == 2717917 {
+		fmt.Println("UpdateFeeForCollector: ", fee, " add: ", add)
+	}
 	if fee.IsZero() {
 		return
 	}
@@ -181,10 +185,16 @@ func (app *BaseApp) UpdateFeeForCollector(fee sdk.Coins, add bool) {
 }
 
 func (app *BaseApp) updateFeeCollectorAccount() {
+	if global.GetGlobalHeight() == 2717917 {
+		fmt.Println("fee: ", app.feeForCollector)
+	}
 	if app.updateFeeCollectorAccHandler == nil || !app.feeChanged {
 		return
 	}
 
+	if global.GetGlobalHeight() == 2717917 {
+		fmt.Println("update fee")
+	}
 	defer func() {
 		if r := recover(); r != nil {
 			err := fmt.Errorf("panic: %v", r)
@@ -266,6 +276,16 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// The write to the DeliverTx state writes all state transitions to the root
 	// MultiStore (app.cms) so when Commit() is called is persists those values.
 	app.commitBlockCache()
+
+	if global.GetGlobalHeight() == 2717918 {
+		app.deliverState.ms.IteratorCache(false, func(key string, value []byte, isDirty bool, isDelete bool, storeKey sdk.StoreKey) bool {
+			if isDirty {
+				fmt.Println(key, value)
+			}
+			return true
+		}, nil)
+	}
+
 	app.deliverState.ms.Write()
 
 	var input iavl.TreeDeltaMap
