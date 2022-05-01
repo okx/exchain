@@ -184,3 +184,10 @@ func (app *BaseApp) SetPartialConcurrentHandlers(etf sdk.GetTxFeeAndFromHandler)
 	}
 	app.getTxFeeAndFromHandler = etf
 }
+
+func (app *BaseApp) SetGetTxFeeHandler(handler sdk.GetTxFeeHandler){
+	if app.sealed {
+		panic("SetGetTxFeeHandler() on sealed BaseApp")
+	}
+	app.getTxFeeHandler = handler
+}

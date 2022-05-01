@@ -532,6 +532,7 @@ func NewOKExChainApp(
 	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), fixLogForParallelTxHandler(app.EvmKeeper))
 	app.SetPreDeliverTxHandler(preDeliverTxHandler(app.AccountKeeper))
 	app.SetPartialConcurrentHandlers(getTxFeeAndFromHandler(app.AccountKeeper))
+	app.SetGetTxFeeHandler(getTxFeeHandler())
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])

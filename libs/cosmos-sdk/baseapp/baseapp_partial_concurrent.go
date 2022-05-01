@@ -292,7 +292,7 @@ func (dttm *DTTManager) concurrentBasic(txByte []byte, index int) *DeliverTxTask
 	}
 
 	task.info.handler = dttm.app.getModeHandler(runTxModeDeliverPartConcurrent) //dm.handler
-	task.fee, task.isEvm, task.from, task.to, err = dttm.app.getTxFeeAndFromHandler(dttm.checkStateCtx, task.info.tx, false)
+	task.fee, task.isEvm, task.from, task.to, err = dttm.app.getTxFeeAndFromHandler(dttm.checkStateCtx, task.info.tx)
 	if err != nil {
 		task.err = err
 		return task
