@@ -2,11 +2,12 @@ package app
 
 import (
 	"encoding/hex"
+	"strings"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-	"strings"
 )
 
 // getTxFeeAndFromHandler get tx fee and from
