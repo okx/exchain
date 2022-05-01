@@ -67,12 +67,8 @@ func evmTxVerifySigHandler(chainID string, blockHeight int64, evmTx *evmtypes.Ms
 }
 
 func getTxFeeHandler() sdk.GetTxFeeHandler {
-	return func(ctx sdk.Context, tx sdk.Tx) (fee sdk.Coins, err error) {
+	return func(tx sdk.Tx) (fee sdk.Coins) {
 		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
-			err = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight())
-			if err != nil {
-				return
-			}
 			fee = evmTx.GetFee()
 		} else if feeTx, ok := tx.(authante.FeeTx); ok {
 			fee = feeTx.GetFee()
