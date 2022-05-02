@@ -18,6 +18,7 @@ type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins) error
 type LogFix func(logIndex []int, errs []error) (logs [][]byte)
 
 type GetTxFeeAndFromHandler func(ctx Context, tx Tx) (Coins, bool, string, string, error)
+type GetTxFeeHandler func(tx Tx) Coins
 
 // AnteDecorator wraps the next AnteHandler to perform custom pre- and post-processing.
 type AnteDecorator interface {
