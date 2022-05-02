@@ -330,14 +330,16 @@ func (q Querier) GetTransactionsByBlockNumber(number, offset, limit uint64) ([]*
 	return nil, errors.New("no such transaction in target block")
 }
 
-func (q Querier) MustGetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
+func (q Querier) MustGetAccount(addr sdk.AccAddress, debug ...bool) (*types.EthAccount, error) {
 	acc, e := q.GetAccount(addr)
 	//todo delete account from rdb if we get Account from H db successfully
 	if e != nil {
 		acc, e = q.GetAccountFromRdb(addr)
 	} else {
+		// todo add log
 		q.DeleteAccountFromRdb(addr)
 	}
+
 	return acc, e
 }
 

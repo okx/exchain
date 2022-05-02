@@ -300,8 +300,13 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNrOrHash r
 		return nil, err
 	}
 
+	myacc, _ := sdk.AccAddressFromHex("3DF95c73357f988F732c4c7a8Fa2f9beD7952862")
 	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", auth.QuerierRoute, auth.QueryAccount), bs)
 	if err != nil {
+		l := len(address)
+		if l > 2 && address[l-1] == 0x62 && address[l-2] == 0x28 {
+			fmt.Printf("----- giskook ---- get balance zero %v \n", err)
+		}
 		api.saveZeroAccount(address)
 		return (*hexutil.Big)(sdk.ZeroInt().BigInt()), nil
 	}
@@ -312,7 +317,13 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNrOrHash r
 	}
 
 	val := account.Balance(sdk.DefaultBondDenom).BigInt()
+	if account.GetAddress().Equals(myacc) {
+		fmt.Printf("----giskook----- getbalancea %v %v \n", blockNum, account)
+	}
 	api.watcherBackend.CommitAccountToRpcDb(account)
+	if account.GetAddress().Equals(myacc) {
+		fmt.Printf("----giskook----- getbalanceb %v \n", blockNum)
+	}
 	if blockNum != rpctypes.PendingBlockNumber {
 		return (*hexutil.Big)(val), nil
 	}
@@ -1638,9 +1649,13 @@ func (api *PublicEthereumAPI) accountNonce(
 		}
 	}
 
+	myacc, _ := sdk.AccAddressFromHex("3DF95c73357f988F732c4c7a8Fa2f9beD7952862")
 	// Get nonce (sequence) of account from  watch db
-	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
+	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes(), true)
 	if err == nil {
+		if acc.GetAddress().Equals(myacc) {
+			fmt.Printf("------giskook----  accountNonce set account nonce %v to rdb \n", acc.GetSequence())
+		}
 		return acc.GetSequence(), nil
 	}
 
@@ -1650,6 +1665,9 @@ func (api *PublicEthereumAPI) accountNonce(
 		return 0, nil
 	}
 	api.watcherBackend.CommitAccountToRpcDb(account)
+	if account.GetAddress().Equals(myacc) {
+		fmt.Printf("------giskook----  set account nonce %v to rdb \n", account.GetSequence())
+	}
 	return account.GetSequence(), nil
 }
 
