@@ -11,7 +11,6 @@ import (
 
 	"github.com/go-errors/errors"
 
-	"sync/atomic"
 	"time"
 
 	"github.com/okex/exchain/libs/iavl/trace"
@@ -102,7 +101,7 @@ func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	for _, node := range tpp {
 		ndb.batchSet(node, batch)
 	}
-	atomic.AddInt64(&ndb.totalPersistedCount, int64(len(tpp)))
+	ndb.state.increasePersistedCount(len(tpp))
 	ndb.addDBWriteCount(int64(len(tpp)))
 
 	trc.Pin("batchCommit")
@@ -186,7 +185,7 @@ func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
 	nodeKey := ndb.nodeKey(node.hash)
 	nodeValue := buf.Bytes()
 	batch.Set(nodeKey, nodeValue)
-	atomic.AddInt64(&ndb.totalPersistedSize, int64(len(nodeKey)+len(nodeValue)))
+	ndb.state.increasePersistedSize(len(nodeKey)+len(nodeValue))
 	ndb.log(IavlDebug, "BATCH SAVE", "hash", node.hash)
 	//node.persisted = true // move to function MovePrePersistCacheToTempCache
 }
@@ -201,16 +200,6 @@ func (ndb *nodeDB) getTppNodesNum() int {
 
 func (ndb *nodeDB) NewBatch() dbm.Batch {
 	return ndb.db.NewBatch()
-}
-
-func (ndb *nodeDB) getRootWithCache(version int64) ([]byte, error) {
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-	orphansObj := ndb.heightOrphansMap[version]
-	if orphansObj != nil {
-		return orphansObj.rootHash, nil
-	}
-	return nil, fmt.Errorf("version %d is not in heightOrphansMap", version)
 }
 
 // Saves orphaned nodes to disk under a special prefix.
