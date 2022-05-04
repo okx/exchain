@@ -91,13 +91,6 @@ func InitGenesis(ctx sdk.Context, k Keeper, accountKeeper types.AccountKeeper, d
 		panic(err)
 	}
 
-	// set storage to store
-	// NOTE: don't delete empty object to prevent import-export simulation failure
-	err = csdb.Finalise(false)
-	if err != nil {
-		panic(err)
-	}
-
 	k.SetChainConfig(ctx, data.ChainConfig)
 
 	return []abci.ValidatorUpdate{}

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 
+	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 
 	"github.com/gogo/protobuf/proto"
@@ -57,6 +58,7 @@ const (
 	KeyAcc          = "s/k:acc/"
 	KeySupply       = "s/k:supply/"
 	KeyEvm          = "s/k:evm/"
+	KeyEvm2         = "s/k:evm2/"
 	KeyParams       = "s/k:params/"
 	KeyStaking      = "s/k:staking/"
 	KeySlashing     = "s/k:slashing/"
@@ -73,6 +75,7 @@ const (
 
 var printKeysDict = map[string]formatKeyValue{
 	KeyEvm:          evmPrintKey,
+	KeyEvm2:         evmPrintKey,
 	KeyAcc:          accPrintKey,
 	KeyParams:       paramsPrintKey,
 	KeyStaking:      stakingPrintKey,
@@ -747,6 +750,9 @@ func evmPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 	case evmtypes.KeyPrefixContractBlockedList[0]:
 		return fmt.Sprintf("contractBlockedAddres:%X;methods:%s", key[1:], value)
 	default:
+		if bytes.HasPrefix(key, evmtypes.KeyPrefixEvmRootHash) {
+			return fmt.Sprintf("evmRootHash: %s", ethcmn.BytesToHash(value))
+		}
 		return defaultKvFormatter(key, value)
 	}
 }
