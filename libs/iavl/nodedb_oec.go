@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"encoding/binary"
 	"fmt"
+	cmap "github.com/orcaman/concurrent-map"
 
 	"github.com/tendermint/go-amino"
 
@@ -28,12 +29,6 @@ var (
 	IavlCacheInitRatio float64 = 0
 )
 
-type heightOrphansItem struct {
-	version  int64
-	rootHash []byte
-	orphans  []*Node
-}
-
 type tppItem struct {
 	nodeMap  map[string]*Node
 	listItem *list.Element
@@ -47,50 +42,6 @@ func (ndb *nodeDB) SaveOrphans(batch dbm.Batch, version int64, orphans []*Node) 
 	for _, node := range orphans {
 		ndb.log(IavlDebug, "SAVEORPHAN", "version", node.version, "toVersion", toVersion, "hash", amino.BytesHexStringer(node.hash))
 		ndb.saveOrphan(batch, node.hash, node.version, toVersion)
-	}
-}
-
-func (ndb *nodeDB) SaveOrphansAsync(version int64, orphans []*Node) {
-	ndb.log(IavlDebug, "saving orphan node to OrphanCache", "size", len(orphans))
-	version--
-	atomic.AddInt64(&ndb.totalOrphanCount, int64(len(orphans)))
-
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-
-	orphansObj := ndb.heightOrphansMap[version]
-	if orphansObj != nil {
-		orphansObj.orphans = orphans
-	}
-	for _, node := range orphans {
-		ndb.orphanNodeCache[string(node.hash)] = node
-		delete(ndb.prePersistNodeCache, amino.BytesToStr(node.hash))
-		node.leftNode = nil
-		node.rightNode = nil
-	}
-	go ndb.uncacheNodeRontine(orphans)
-}
-
-func (ndb *nodeDB) setHeightOrphansItem(version int64, rootHash []byte) {
-	if rootHash == nil {
-		rootHash = []byte{}
-	}
-	orphanObj := &heightOrphansItem{
-		version:  version,
-		rootHash: rootHash,
-	}
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-	ndb.heightOrphansCacheQueue.PushBack(orphanObj)
-	ndb.heightOrphansMap[version] = orphanObj
-
-	for ndb.heightOrphansCacheQueue.Len() > ndb.heightOrphansCacheSize {
-		orphans := ndb.heightOrphansCacheQueue.Front()
-		oldHeightOrphanItem := ndb.heightOrphansCacheQueue.Remove(orphans).(*heightOrphansItem)
-		for _, node := range oldHeightOrphanItem.orphans {
-			delete(ndb.orphanNodeCache, amino.BytesToStr(node.hash))
-		}
-		delete(ndb.heightOrphansMap, oldHeightOrphanItem.version)
 	}
 }
 
@@ -307,8 +258,8 @@ func (ndb *nodeDB) sprintCacheLog(version int64) string {
 	printLog := fmt.Sprintf("Save Version<%d>: Tree<%s>", version, ndb.name)
 
 	printLog += fmt.Sprintf(", TotalPreCommitCacheSize:%d", treeMap.totalPreCommitCacheSize)
-	printLog += fmt.Sprintf(", nodeCCnt:%d", ndb.nodeCacheLen())
-	printLog += fmt.Sprintf(", orphanCCnt:%d", len(ndb.orphanNodeCache))
+	printLog += fmt.Sprintf(", nodeCCnt:%d", ndb.nc.nodeCacheLen())
+	printLog += fmt.Sprintf(", orphanCCnt:%d", ndb.oi.orphanNodeCacheLen())
 	printLog += fmt.Sprintf(", prePerCCnt:%d", len(ndb.prePersistNodeCache))
 	printLog += fmt.Sprintf(", dbRCnt:%d", ndb.getDBReadCount())
 	printLog += fmt.Sprintf(", dbWCnt:%d", ndb.getDBWriteCount())
@@ -474,15 +425,6 @@ func updateBranchAndSaveNodeToChan(node *Node, saveNodesCh chan<- *Node) []byte 
 	return node.hash
 }
 
-func (ndb *nodeDB) getRootWithCache(version int64) ([]byte, error) {
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-	orphansObj := ndb.heightOrphansMap[version]
-	if orphansObj != nil {
-		return orphansObj.rootHash, nil
-	}
-	return nil, fmt.Errorf("version %d is not in heightOrphansMap", version)
-}
 
 // Saves orphaned nodes to disk under a special prefix.
 // version: the new version being saved.
@@ -510,23 +452,14 @@ func (ndb *nodeDB) getNodeInTpp(hash []byte) (*Node, bool) {
 
 func (ndb *nodeDB) getRootWithCacheAndDB(version int64) ([]byte, error) {
 	if EnableAsyncCommit {
-		root, err := ndb.getRootWithCache(version)
-		if err == nil {
-			return root, err
+		root, ok := ndb.findRootHash(version)
+		if ok {
+			return root, nil
 		}
 	}
 	return ndb.getRoot(version)
 }
 
-func (ndb *nodeDB) inVersionCacheMap(version int64) ([]byte, bool) {
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-	item := ndb.heightOrphansMap[version]
-	if item != nil {
-		return item.rootHash, true
-	}
-	return nil, false
-}
 
 // DeleteVersion deletes a tree version from disk.
 func (ndb *nodeDB) DeleteVersion(batch dbm.Batch, version int64, checkLatestVersion bool) error {
@@ -577,4 +510,42 @@ func orphanKeyFast(fromVersion, toVersion int64, hash []byte) []byte {
 	}
 	copy(key[n+hashLen-len(hash):n+hashLen], hash)
 	return key
+}
+
+func (ndb *nodeDB) cacheNode(node *Node) {
+	ndb.nc.cache(node)
+}
+func (ndb *nodeDB) uncacheNode(hash []byte) {
+	ndb.nc.uncache(hash)
+}
+
+func (ndb *nodeDB) getNodeFromCache(hash []byte, promoteRecentNode bool) (n *Node) {
+	return ndb.nc.get(hash, promoteRecentNode)
+}
+
+func (ndb *nodeDB) cacheNodeByCheck(node *Node) {
+	ndb.nc.cacheByCheck(node)
+}
+
+func (ndb *nodeDB) uncacheNodeRontine(n []*Node) {
+	for _, node := range n {
+		ndb.uncacheNode(node.hash)
+	}
+}
+
+func (ndb *nodeDB) initPreWriteCache() {
+	if ndb.preWriteNodeCache == nil {
+		ndb.preWriteNodeCache = cmap.New()
+	}
+}
+
+func (ndb *nodeDB) cacheNodeToPreWriteCache(n *Node) {
+	ndb.preWriteNodeCache.Set(string(n.hash), n)
+}
+
+func (ndb *nodeDB) finishPreWriteCache() {
+	ndb.preWriteNodeCache.IterCb(func(key string, v interface{}) {
+		ndb.cacheNode(v.(*Node))
+	})
+	ndb.preWriteNodeCache = nil
 }
