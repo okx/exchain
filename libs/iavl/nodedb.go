@@ -82,7 +82,7 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 }
 
 func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) *Node {
-	ndb.state.addNodeReadCount()
+	ndb.addNodeReadCount()
 	if len(hash) == 0 {
 		panic("nodeDB.GetNode() requires hash")
 	}
@@ -165,7 +165,7 @@ func (ndb *nodeDB) SaveNode(batch dbm.Batch, node *Node) {
 	batch.Set(ndb.nodeKey(node.hash), buf.Bytes())
 	ndb.log(IavlDebug, "BATCH SAVE", "hash", amino.BytesHexStringer(node.hash))
 	node.persisted = true
-	ndb.state.addDBWriteCount(1)
+	ndb.addDBWriteCount(1)
 	ndb.cacheNode(node)
 }
 
