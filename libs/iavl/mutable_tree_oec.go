@@ -30,6 +30,7 @@ var (
 	MaxCommittedHeightNum           = minHistoryStateNum
 	EnableAsyncCommit               = false
 	EnablePruningHistoryState       = true
+	CommitGapHeight           int64 = 50
 )
 
 type commitEvent struct {
@@ -68,7 +69,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		}
 	}
 
-	shouldPersist := (version-tree.lastPersistHeight >= CommitIntervalHeight) || (treeMap.totalPreCommitCacheSize >= MinCommitItemCount)
+	shouldPersist := (version%CommitGapHeight == 0) || (treeMap.totalPreCommitCacheSize >= MinCommitItemCount)
 
 	newOrphans := tree.orphans
 	if shouldPersist {

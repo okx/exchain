@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/iavl"
@@ -261,6 +262,15 @@ func (app *BaseApp) addCommitTraceInfo() {
 func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 
 	header := app.deliverState.ctx.BlockHeader()
+
+	if app.mptCommitHandler != nil {
+		app.mptCommitHandler(app.deliverState.ctx)
+	}
+	if mptStore := app.cms.GetCommitKVStore(sdk.NewKVStoreKey(mpt.StoreKey)); mptStore != nil {
+		// notify mptStore to tryUpdateTrie, must call before app.deliverState.ms.Write()
+		mpt.GAccTryUpdateTrieChannel <- struct{}{}
+		<-mpt.GAccTrieUpdatedChannel
+	}
 
 	// Write the DeliverTx state which is cache-wrapped and commit the MultiStore.
 	// The write to the DeliverTx state writes all state transitions to the root
