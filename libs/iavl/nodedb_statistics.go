@@ -6,7 +6,6 @@ import (
 )
 
 type RuntimeState struct {
-
 	dbReadTime    int64
 	dbReadCount   int64
 	nodeReadCount int64
@@ -18,59 +17,59 @@ type RuntimeState struct {
 	totalOrphanCount    int64
 }
 
-func (ndb *RuntimeState) addDBReadTime(ts int64) {
-	atomic.AddInt64(&ndb.dbReadTime, ts)
+func (s *RuntimeState) addDBReadTime(ts int64) {
+	atomic.AddInt64(&s.dbReadTime, ts)
 }
 
-func (ndb *RuntimeState) addDBReadCount() {
-	atomic.AddInt64(&ndb.dbReadCount, 1)
+func (s *RuntimeState) addDBReadCount() {
+	atomic.AddInt64(&s.dbReadCount, 1)
 }
 
-func (ndb *RuntimeState) addDBWriteCount(count int64) {
-	atomic.AddInt64(&ndb.dbWriteCount, count)
+func (s *RuntimeState) addDBWriteCount(count int64) {
+	atomic.AddInt64(&s.dbWriteCount, count)
 }
 
-func (ndb *RuntimeState) addNodeReadCount() {
-	atomic.AddInt64(&ndb.nodeReadCount, 1)
+func (s *RuntimeState) addNodeReadCount() {
+	atomic.AddInt64(&s.nodeReadCount, 1)
 }
 
-func (ndb *RuntimeState) resetDBReadTime() {
-	atomic.StoreInt64(&ndb.dbReadTime, 0)
+func (s *RuntimeState) resetDBReadTime() {
+	atomic.StoreInt64(&s.dbReadTime, 0)
 }
 
-func (ndb *RuntimeState) resetDBReadCount() {
-	atomic.StoreInt64(&ndb.dbReadCount, 0)
+func (s *RuntimeState) resetDBReadCount() {
+	atomic.StoreInt64(&s.dbReadCount, 0)
 }
 
-func (ndb *RuntimeState) resetDBWriteCount() {
-	atomic.StoreInt64(&ndb.dbWriteCount, 0)
+func (s *RuntimeState) resetDBWriteCount() {
+	atomic.StoreInt64(&s.dbWriteCount, 0)
 }
 
-func (ndb *RuntimeState) resetNodeReadCount() {
-	atomic.StoreInt64(&ndb.nodeReadCount, 0)
+func (s *RuntimeState) resetNodeReadCount() {
+	atomic.StoreInt64(&s.nodeReadCount, 0)
 }
 
-func (ndb *RuntimeState) getDBReadTime() int {
-	return int(atomic.LoadInt64(&ndb.dbReadTime))
+func (s *RuntimeState) getDBReadTime() int {
+	return int(atomic.LoadInt64(&s.dbReadTime))
 }
 
-func (ndb *RuntimeState) getDBReadCount() int {
-	return int(atomic.LoadInt64(&ndb.dbReadCount))
+func (s *RuntimeState) getDBReadCount() int {
+	return int(atomic.LoadInt64(&s.dbReadCount))
 }
 
-func (ndb *RuntimeState) getDBWriteCount() int {
-	return int(atomic.LoadInt64(&ndb.dbWriteCount))
+func (s *RuntimeState) getDBWriteCount() int {
+	return int(atomic.LoadInt64(&s.dbWriteCount))
 }
 
-func (ndb *RuntimeState) getNodeReadCount() int {
-	return int(atomic.LoadInt64(&ndb.nodeReadCount))
+func (s *RuntimeState) getNodeReadCount() int {
+	return int(atomic.LoadInt64(&s.nodeReadCount))
 }
 
-func (ndb *RuntimeState) resetCount() {
-	ndb.resetDBReadTime()
-	ndb.resetDBReadCount()
-	ndb.resetDBWriteCount()
-	ndb.resetNodeReadCount()
+func (s *RuntimeState) resetCount() {
+	s.resetDBReadTime()
+	s.resetDBReadCount()
+	s.resetDBWriteCount()
+	s.resetNodeReadCount()
 }
 
 func (s *RuntimeState) increasePersistedSize(num int) {
@@ -85,6 +84,7 @@ func (s *RuntimeState) increasOrphanCount(num int) {
 func (s *RuntimeState) increaseDeletedCount() {
 	s.totalDeletedCount++
 }
+
 
 //================================
 func (ndb *nodeDB) sprintCacheLog(version int64) string {
