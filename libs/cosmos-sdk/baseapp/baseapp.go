@@ -149,6 +149,7 @@ type BaseApp struct { // nolint: maligned
 	logFix                       sdk.LogFix
 
 	getTxFeeAndFromHandler sdk.GetTxFeeAndFromHandler
+	getTxFeeHandler        sdk.GetTxFeeHandler
 
 	// volatile states:
 	//
@@ -194,8 +195,8 @@ type BaseApp struct { // nolint: maligned
 
 	parallelTxManage *parallelTxManager
 	deliverTxsMgr    *DTTManager
-	feeForCollector sdk.Coins
-	feeChanged      bool	// used to judge whether should update the fee-collector account
+	feeForCollector  sdk.Coins
+	feeChanged       bool // used to judge whether should update the fee-collector account
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
@@ -647,6 +648,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 
 	if mode == runTxModeSimulate {
 		ctx, _ = ctx.CacheContext()
+		ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 	}
 	if app.parallelTxManage.isAsyncDeliverTx && mode == runTxModeDeliverInAsync {
 		ctx.SetParaMsg(&sdk.ParaMsg{
