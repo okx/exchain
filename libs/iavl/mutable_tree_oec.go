@@ -42,9 +42,12 @@ type commitEvent struct {
 	iavlHeight int
 }
 
+
 func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte, int64, error) {
-	moduleName := tree.GetModuleName()
-	oldRoot, saved := tree.hasSaved(version)
+
+	tree.ndb.sanityCheckHandleOrphansResult(version)
+
+	oldRoot, saved := tree.ndb.findRootHash(version)
 	if saved {
 		return nil, version, fmt.Errorf("existing version: %d, root: %X", version, oldRoot)
 	}
@@ -66,20 +69,19 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		}
 	}
 
-	tree.ndb.SaveOrphansAsync(version, tree.orphans)
-
-	//shouldPersist := (version-tree.lastPersistHeight >= CommitIntervalHeight) ||
-	//	(treeMap.totalPreCommitCacheSize >= MinCommitItemCount)
-
 	shouldPersist := (version%CommitGapHeight == 0) || (treeMap.totalPreCommitCacheSize >= MinCommitItemCount)
 
+	newOrphans := tree.orphans
 	if shouldPersist {
-		batch := tree.NewBatch()
-		if err := tree.persist(batch, version); err != nil {
-			return nil, 0, err
-		}
+		tree.ndb.saveNewOrphans(version, newOrphans, true)
+		tree.persist(version)
+		newOrphans = nil
 	}
 
+	return tree.setNewWorkingTree(version, newOrphans, shouldPersist)
+}
+
+func (tree *MutableTree) setNewWorkingTree(version int64, newOrphans []*Node, persisted bool) ([]byte, int64, error) {
 	// set new working tree
 	tree.ImmutableTree = tree.ImmutableTree.clone()
 	tree.lastSaved = tree.ImmutableTree.clone()
@@ -87,15 +89,14 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 	for k := range tree.savedNodes {
 		delete(tree.savedNodes, k)
 	}
-
 	rootHash := tree.lastSaved.Hash()
-	tree.setHeightOrphansItem(version, rootHash)
 
+	tree.ndb.enqueueOrphanTask(version, rootHash, newOrphans)
 	tree.version = version
-	if shouldPersist {
+	if persisted {
 		tree.versions.Set(version, true)
 	}
-	treeMap.updateMutableTreeMap(moduleName)
+	treeMap.updateMutableTreeMap(tree.GetModuleName())
 
 	tree.removedVersions.Range(func(k, v interface{}) bool {
 		tree.log(IavlDebug, "remove version from tree version map", "Height", k.(int64))
@@ -112,7 +113,9 @@ func (tree *MutableTree) removeVersion(version int64) {
 	tree.versions.Delete(version)
 }
 
-func (tree *MutableTree) persist(batch dbm.Batch, version int64) error {
+func (tree *MutableTree) persist(version int64)  {
+	var err error
+	batch := tree.NewBatch()
 	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0}
 	var tpp map[string]*Node = nil
 	if EnablePruningHistoryState {
@@ -120,15 +123,17 @@ func (tree *MutableTree) persist(batch dbm.Batch, version int64) error {
 	}
 	if tree.root == nil {
 		// There can still be orphans, for example if the root is the node being removed.
-		if err := tree.ndb.SaveEmptyRoot(batch, version); err != nil {
-			return err
-		}
+		err = tree.ndb.SaveEmptyRoot(batch, version)
 	} else {
-		if err := tree.ndb.SaveRoot(batch, tree.root, version); err != nil {
-			return err
-		}
+		err = tree.ndb.SaveRoot(batch, tree.root, version)
 		tpp = tree.ndb.asyncPersistTppStart(version)
 	}
+
+	if err != nil {
+		// never going to happen in case of AC enabled
+		panic(err)
+	}
+
 	for k := range tree.commitOrphans {
 		delete(tree.commitOrphans, k)
 	}
@@ -136,7 +141,6 @@ func (tree *MutableTree) persist(batch dbm.Batch, version int64) error {
 	tree.commitCh <- commitEvent{version, versions, batch,
 		tpp, nil, int(tree.Height())}
 	tree.lastPersistHeight = version
-	return nil
 }
 
 func (tree *MutableTree) commitSchedule() {
@@ -220,9 +224,6 @@ func (tree *MutableTree) log(level int, msg string, kvs ...interface{}) {
 	iavlLog(tree.GetModuleName(), level, msg, kvs...)
 }
 
-func (tree *MutableTree) setHeightOrphansItem(version int64, rootHash []byte) {
-	tree.ndb.setHeightOrphansItem(version, rootHash)
-}
 
 func (tree *MutableTree) updateCommittedStateHeightPool(batch dbm.Batch, version int64, versions map[int64]bool) {
 	queue := tree.committedHeightQueue
@@ -294,9 +295,6 @@ func (tree *MutableTree) addOrphansOptimized(orphans []*Node) {
 	}
 }
 
-func (tree *MutableTree) hasSaved(version int64) ([]byte, bool) {
-	return tree.ndb.inVersionCacheMap(version)
-}
 
 func (tree *MutableTree) deepCopyVersions() map[int64]bool {
 	if !EnablePruningHistoryState {

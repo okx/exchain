@@ -1,41 +1,32 @@
 package iavl
 
 import (
-	cmap "github.com/orcaman/concurrent-map"
-	"github.com/tendermint/go-amino"
+	"container/list"
 	"github.com/okex/exchain/libs/iavl/config"
-
+	"github.com/tendermint/go-amino"
+	"sync"
 )
 
-func (ndb *nodeDB) uncacheNodeRontine(n []*Node) {
-	for _, node := range n {
-		ndb.uncacheNode(node.hash)
+type NodeCache struct {
+	nodeCache      map[string]*list.Element // Node cache.
+	nodeCacheSize  int                      // Node cache size limit in elements.
+	nodeCacheQueue *syncList                // LRU queue of cache elements. Used for deletion.
+	nodeCacheMutex sync.RWMutex             // Mutex for node cache.
+}
+
+func newNodeCache(cacheSize int) *NodeCache {
+	return &NodeCache{
+		nodeCache:      makeNodeCacheMap(cacheSize, IavlCacheInitRatio),
+		nodeCacheSize:  cacheSize,
+		nodeCacheQueue: newSyncList(),
 	}
 }
-
-func (ndb *nodeDB) initPreWriteCache() {
-	if ndb.preWriteNodeCache == nil {
-		ndb.preWriteNodeCache = cmap.New()
-	}
-}
-
-func (ndb *nodeDB) cacheNodeToPreWriteCache(n *Node) {
-	ndb.preWriteNodeCache.Set(string(n.hash), n)
-}
-
-func (ndb *nodeDB) finishPreWriteCache() {
-	ndb.preWriteNodeCache.IterCb(func(key string, v interface{}) {
-		ndb.cacheNode(v.(*Node))
-	})
-	ndb.preWriteNodeCache = nil
-}
-
 
 // ===================================================
 // ======= map[string]*list.Element implementation
 // ===================================================
 
-func (ndb *nodeDB) uncacheNode(hash []byte) {
+func (ndb *NodeCache) uncache(hash []byte) {
 	ndb.nodeCacheMutex.Lock()
 	if elem, ok := ndb.nodeCache[string(hash)]; ok {
 		ndb.nodeCacheQueue.Remove(elem)
@@ -46,7 +37,7 @@ func (ndb *nodeDB) uncacheNode(hash []byte) {
 
 // Add a node to the cache and pop the least recently used node if we've
 // reached the cache size limit.
-func (ndb *nodeDB) cacheNode(node *Node) {
+func (ndb *NodeCache) cache(node *Node) {
 	ndb.nodeCacheMutex.Lock()
 	elem := ndb.nodeCacheQueue.PushBack(node)
 	ndb.nodeCache[string(node.hash)] = elem
@@ -59,17 +50,16 @@ func (ndb *nodeDB) cacheNode(node *Node) {
 	ndb.nodeCacheMutex.Unlock()
 }
 
-func (ndb *nodeDB) cacheNodeByCheck(node *Node) {
+func (ndb *NodeCache) cacheByCheck(node *Node) {
 	ndb.nodeCacheMutex.RLock()
 	_, ok := ndb.nodeCache[string(node.hash)]
 	ndb.nodeCacheMutex.RUnlock()
 	if !ok {
-		ndb.cacheNode(node)
+		ndb.cache(node)
 	}
 }
 
-
-func (ndb *nodeDB) getNodeFromCache(hash []byte, promoteRecentNode bool) (n *Node) {
+func (ndb *NodeCache) get(hash []byte, promoteRecentNode bool) (n *Node) {
 	// Check the cache.
 	ndb.nodeCacheMutex.RLock()
 	elem, ok := ndb.nodeCache[string(hash)]
@@ -84,7 +74,7 @@ func (ndb *nodeDB) getNodeFromCache(hash []byte, promoteRecentNode bool) (n *Nod
 	return
 }
 
-func (ndb *nodeDB) nodeCacheLen() int {
+func (ndb *NodeCache) nodeCacheLen() int {
 	return len(ndb.nodeCache)
 }
 

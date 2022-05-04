@@ -47,18 +47,6 @@ type nodeDB struct {
 
 	latestVersion  int64
 
-	//lruNodeCache   *lru.Cache
-
-	nodeCache      map[string]*list.Element // Node cache.
-	nodeCacheSize  int                      // Node cache size limit in elements.
-	nodeCacheQueue *syncList                // LRU queue of cache elements. Used for deletion.
-	nodeCacheMutex sync.RWMutex             // Mutex for node cache.
-
-	orphanNodeCache         map[string]*Node
-	heightOrphansCacheQueue *list.List
-	heightOrphansCacheSize  int
-	heightOrphansMap        map[int64]*heightOrphansItem
-
 	prePersistNodeCache map[string]*Node
 	tppMap              map[int64]*tppItem
 	tppVersionList      *list.List
@@ -76,6 +64,9 @@ type nodeDB struct {
 	name string
 
 	preWriteNodeCache cmap.ConcurrentMap
+
+	oi *OrphanInfo
+	nc *NodeCache
 }
 
 func makeNodeCacheMap(cacheSize int, initRatio float64) map[string]*list.Element {
@@ -97,25 +88,16 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 	ndb := &nodeDB{
 		db:                      db,
 		opts:                    *opts,
-		latestVersion:           0, // initially invalid
-		nodeCache:               makeNodeCacheMap(cacheSize, IavlCacheInitRatio),
-		nodeCacheSize:           cacheSize,
-		nodeCacheQueue:          newSyncList(),
 		versionReaders:          make(map[int64]uint32, 8),
-		orphanNodeCache:         make(map[string]*Node),
-		heightOrphansCacheQueue: list.New(),
-		heightOrphansCacheSize:  HeightOrphansCacheSize,
-		heightOrphansMap:        make(map[int64]*heightOrphansItem),
 		prePersistNodeCache:     make(map[string]*Node),
 		tppMap:                  make(map[int64]*tppItem),
 		tppVersionList:          list.New(),
-		dbReadCount:             0,
-		dbReadTime:              0,
-		dbWriteCount:            0,
 		name:                    ParseDBName(db),
 		preWriteNodeCache:       cmap.New(),
 	}
 
+	ndb.oi = newOrphanInfo(ndb)
+	ndb.nc = newNodeCache(cacheSize)
 	return ndb
 }
 
@@ -138,7 +120,7 @@ func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) *Node 
 		return elem
 	}
 
-	if elem, ok := ndb.orphanNodeCache[string(hash)]; ok {
+	if elem := ndb.oi.getNodeFromOrphanCache(hash); elem != nil {
 		return elem
 	}
 
