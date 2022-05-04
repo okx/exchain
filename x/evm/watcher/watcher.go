@@ -16,7 +16,6 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
 	"math/big"
-	"runtime/debug"
 	"sync"
 )
 
@@ -162,10 +161,6 @@ func (w *Watcher) SaveAccount(account auth.Account, isDirectly bool) {
 	if !w.Enabled() {
 		return
 	}
-	myacc, _ := sdk.AccAddressFromHex("3DF95c73357f988F732c4c7a8Fa2f9beD7952862")
-	if account != nil && account.GetAddress().Equals(myacc) {
-		fmt.Printf("-------giskook---- save account nonce %v to watch \n", account.GetSequence())
-	}
 	wMsg := NewMsgAccount(account)
 	if wMsg != nil {
 		if isDirectly {
@@ -197,10 +192,6 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 	key1 := GetMsgAccountKey(addr.Bytes())
 	key2 := append(prefixRpcDb, key1...)
 
-	l := len(key1)
-	if len(key1) > 2 && key1[l-1] == 0x62 && key1[l-2] == 0x28 {
-		fmt.Printf("------giskook------ delet  watch key %v \n ", key1)
-	}
 	w.delayEraseKey = append(w.delayEraseKey, key1)
 	w.delayEraseKey = append(w.delayEraseKey, key2)
 }
@@ -337,12 +328,6 @@ func (w *Watcher) CommitStateToRpcDb(addr common.Address, key, value []byte) {
 }
 
 func (w *Watcher) CommitAccountToRpcDb(account auth.Account) {
-	myacc, _ := sdk.AccAddressFromHex("3DF95c73357f988F732c4c7a8Fa2f9beD7952862")
-	if account != nil && account.GetAddress().Equals(myacc) {
-		debug.PrintStack()
-		fmt.Printf("-----giskook----- commit to rpc db %v \n", account.GetSequence())
-	}
-
 	if !w.Enabled() {
 		return
 	}
@@ -420,10 +405,6 @@ func (w *Watcher) commitBatch(batch []WatchMessage, delayEraseKey [][]byte) {
 		if typeValue == TypeDelete {
 			w.store.Delete(key)
 		} else {
-			l := len(key)
-			if len(key) > 2 && key[l-1] == 0x62 && key[l-2] == 0x28 {
-				fmt.Printf("------giskook------ commit to watch key %v value %v \n ", key, len(value))
-			}
 			w.store.Set(key, value)
 			if typeValue == TypeState {
 				state.SetStateToLru(common.BytesToHash(key), value)
