@@ -158,11 +158,6 @@ func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.A
 		return err
 	}
 	currentNonce := uint64(*pCurrentNonce)
-	//	acc, err := getAccountFromChain(api.clientCtx, address)
-	//	if err != nil {
-	//		return err
-	//	}
-	//	currentNonce := acc.GetSequence()
 
 	if tx.Data.AccountNonce < currentNonce {
 		return fmt.Errorf("AccountNonce of tx is less than currentNonce in memPool: AccountNonce[%d], currentNonce[%d]", tx.Data.AccountNonce, currentNonce)
