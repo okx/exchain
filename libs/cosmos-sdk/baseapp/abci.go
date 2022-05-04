@@ -7,7 +7,6 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -235,12 +234,12 @@ func (app *BaseApp) addCommitTraceInfo() {
 
 	elapsedInfo.AddInfo("FlatKV", flatInfo)
 
-	rtx := float64(atomic.LoadInt64(&app.checkTxNum))
-	wtx := float64(atomic.LoadInt64(&app.wrappedCheckTxNum))
+	//rtx := float64(atomic.LoadInt64(&app.checkTxNum))
+	//wtx := float64(atomic.LoadInt64(&app.wrappedCheckTxNum))
 
-	elapsedInfo.AddInfo(trace.WtxRatio,
-		amino.BytesToStr(strconv.AppendFloat(make([]byte, 0, 4), wtx/(wtx+rtx), 'f', 2, 32)),
-	)
+	//elapsedInfo.AddInfo(trace.WtxRatio,
+	//	amino.BytesToStr(strconv.AppendFloat(make([]byte, 0, 4), wtx/(wtx+rtx), 'f', 2, 32)),
+	//)
 
 	readCache := float64(tmtypes.SignatureCache().ReadCount())
 	hitCache := float64(tmtypes.SignatureCache().HitCount())
