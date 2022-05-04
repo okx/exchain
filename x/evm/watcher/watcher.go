@@ -191,7 +191,6 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 	}
 	key1 := GetMsgAccountKey(addr.Bytes())
 	key2 := append(prefixRpcDb, key1...)
-
 	w.delayEraseKey = append(w.delayEraseKey, key1)
 	w.delayEraseKey = append(w.delayEraseKey, key2)
 }
