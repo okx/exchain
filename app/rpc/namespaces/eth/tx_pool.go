@@ -152,8 +152,7 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 
 func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.Address, tx *evmtypes.MsgEthereumTx) error {
 	// get currentNonce
-	blockNrOrHash := rpctypes.BlockNumberOrHashWithNumber(rpctypes.PendingBlockNumber)
-	pCurrentNonce, err := api.GetTransactionCount(address, blockNrOrHash)
+	pCurrentNonce, err := api.GetTransactionPendingCountInternal(address)
 	if err != nil {
 		return err
 	}
