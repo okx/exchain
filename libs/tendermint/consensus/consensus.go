@@ -706,8 +706,8 @@ func (cs *State) receiveRoutine(maxSteps int) {
 
 // state transitions on complete-proposal, 2/3-any, 2/3-one
 func (cs *State) handleMsg(mi msgInfo) {
-	cs.mtx.Lock()
-	defer cs.mtx.Unlock()
+	//cs.mtx.Lock()
+	//defer cs.mtx.Unlock()
 
 	var (
 		added bool
@@ -782,8 +782,8 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 	}
 
 	// the timeout will now cause a state transition
-	cs.mtx.Lock()
-	defer cs.mtx.Unlock()
+	//cs.mtx.Lock()
+	//defer cs.mtx.Unlock()
 
 	switch ti.Step {
 	case cstypes.RoundStepNewHeight:
@@ -813,8 +813,8 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 }
 
 func (cs *State) handleTxsAvailable() {
-	cs.mtx.Lock()
-	defer cs.mtx.Unlock()
+	//cs.mtx.Lock()
+	//defer cs.mtx.Unlock()
 
 	// We only need to do this for round 0.
 	if cs.Round != 0 {
@@ -877,6 +877,7 @@ func (cs *State) enterNewRound(height int64, round int) {
 	// Setup new round
 	// we don't fire newStep for this step,
 	// but we fire an event, so update the round step first
+	cs.mtx.Lock()
 	cs.updateRoundStep(round, cstypes.RoundStepNewRound)
 	cs.Validators = validators
 	if round == 0 {
@@ -889,6 +890,7 @@ func (cs *State) enterNewRound(height int64, round int) {
 		cs.ProposalBlock = nil
 		cs.ProposalBlockParts = nil
 	}
+	cs.mtx.Unlock()
 	cs.Votes.SetRound(round + 1) // also track next round (round+1) to allow round-skipping
 	cs.TriggeredTimeoutPrecommit = false
 
@@ -966,9 +968,10 @@ func (cs *State) enterPropose(height int64, round int) {
 
 	defer func() {
 		// Done enterPropose:
+		cs.mtx.Lock()
 		cs.updateRoundStep(round, cstypes.RoundStepPropose)
 		cs.newStep()
-
+		cs.mtx.Unlock()
 		// If we have the whole proposal + POL, then goto Prevote now.
 		// else, we'll enterPrevote when the rest of the proposal is received (in AddProposalBlockPart),
 		// or else after timeoutPropose
@@ -1110,8 +1113,10 @@ func (cs *State) enterPrevote(height int64, round int) {
 
 	defer func() {
 		// Done enterPrevote:
+		cs.mtx.Lock()
 		cs.updateRoundStep(round, cstypes.RoundStepPrevote)
 		cs.newStep()
+		cs.mtx.Unlock()
 	}()
 
 	cs.Logger.Info(fmt.Sprintf("enterPrevote(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
@@ -1182,10 +1187,12 @@ func (cs *State) enterPrevoteWait(height int64, round int) {
 	}
 	logger.Info(fmt.Sprintf("enterPrevoteWait(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
+	cs.mtx.Lock()
 	defer func() {
 		// Done enterPrevoteWait:
 		cs.updateRoundStep(round, cstypes.RoundStepPrevoteWait)
 		cs.newStep()
+		cs.mtx.Unlock()
 	}()
 
 	// Wait for some more prevotes; enterPrecommit
@@ -1216,10 +1223,12 @@ func (cs *State) enterPrecommit(height int64, round int) {
 
 	logger.Info(fmt.Sprintf("enterPrecommit(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
+	cs.mtx.Lock()
 	defer func() {
 		// Done enterPrecommit:
 		cs.updateRoundStep(round, cstypes.RoundStepPrecommit)
 		cs.newStep()
+		cs.mtx.Unlock()
 	}()
 
 	if automation.PrecommitNil(height, round) {
@@ -1324,11 +1333,12 @@ func (cs *State) enterPrecommitWait(height int64, round int) {
 		panic(fmt.Sprintf("enterPrecommitWait(%v/%v), but Precommits does not have any +2/3 votes", height, round))
 	}
 	logger.Info(fmt.Sprintf("enterPrecommitWait(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
-
+	cs.mtx.Lock()
 	defer func() {
 		// Done enterPrecommitWait:
 		cs.TriggeredTimeoutPrecommit = true
 		cs.newStep()
+		cs.mtx.Unlock()
 	}()
 
 	// Wait for some more precommits; enterNewRound
@@ -1354,13 +1364,14 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 
 	logger.Info(fmt.Sprintf("enterCommit(%v/%v). Current: %v/%v/%v", height, commitRound, cs.Height, cs.Round, cs.Step))
 
+	cs.mtx.Lock()
 	defer func() {
 		// Done enterCommit:
 		// keep cs.Round the same, commitRound points to the right Precommits set.
 		cs.updateRoundStep(cs.Round, cstypes.RoundStepCommit)
 		cs.CommitRound = commitRound
 		cs.newStep()
-
+		cs.mtx.Unlock()
 		// Maybe finalize immediately.
 		cs.tryFinalizeCommit(height)
 	}()
@@ -1561,7 +1572,9 @@ func (cs *State) finalizeCommit(height int64) {
 	trace.GetElapsedInfo().AddInfo(trace.Round, fmt.Sprintf("%d", cs.Round))
 
 	// NewHeightStep!
+	cs.mtx.Lock()
 	cs.updateToState(stateCopy)
+	cs.mtx.Unlock()
 
 	fail.Fail() // XXX
 
@@ -1702,6 +1715,8 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	if !cs.Validators.GetProposer().PubKey.VerifyBytes(proposal.SignBytes(cs.state.ChainID), proposal.Signature) {
 		return ErrInvalidProposalSignature
 	}
+	cs.mtx.Lock()
+	defer cs.mtx.Unlock()
 
 	cs.Proposal = proposal
 	// We don't update cs.ProposalBlockParts if it is already set.
@@ -1774,9 +1789,11 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 			if cs.ProposalBlock.HashesTo(blockID.Hash) {
 				cs.Logger.Info("Updating valid block to new proposal block",
 					"valid-round", cs.Round, "valid-block-hash", cs.ProposalBlock.Hash())
+				cs.mtx.Lock()
 				cs.ValidRound = cs.Round
 				cs.ValidBlock = cs.ProposalBlock
 				cs.ValidBlockParts = cs.ProposalBlockParts
+				cs.mtx.Unlock()
 			}
 			// TODO: In case there is +2/3 majority in Prevotes set for some
 			// block and cs.ProposalBlock contains different block, either
@@ -1911,6 +1928,7 @@ func (cs *State) addVote(
 		cs.Logger.Info("Added to prevote", "vote", vote, "prevotes", prevotes.StringShort())
 
 		// If +2/3 prevotes for a block or nil for *any* round:
+		cs.mtx.Lock()
 		if blockID, ok := prevotes.TwoThirdsMajority(); ok {
 
 			// There was a polka!
@@ -1957,6 +1975,7 @@ func (cs *State) addVote(
 				cs.eventBus.PublishEventValidBlock(cs.RoundStateEvent())
 			}
 		}
+		cs.mtx.Unlock()
 
 		// If +2/3 prevotes for *anything* for future round:
 		switch {
@@ -2106,6 +2125,7 @@ func (cs *State) updatePrivValidatorPubKey() error {
 func (cs *State) BlockExec() *sm.BlockExecutor {
 	return cs.blockExec
 }
+
 //---------------------------------------------------------
 
 func CompareHRS(h1 int64, r1 int, s1 cstypes.RoundStepType, h2 int64, r2 int, s2 cstypes.RoundStepType) int {
