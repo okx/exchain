@@ -22,6 +22,18 @@ func newNodeCache(cacheSize int) *NodeCache {
 	}
 }
 
+
+func makeNodeCacheMap(cacheSize int, initRatio float64) map[string]*list.Element {
+	if initRatio <= 0 {
+		return make(map[string]*list.Element)
+	}
+	if initRatio >= 1 {
+		return make(map[string]*list.Element, cacheSize)
+	}
+	cacheSize = int(float64(cacheSize) * initRatio)
+	return make(map[string]*list.Element, cacheSize)
+}
+
 // ===================================================
 // ======= map[string]*list.Element implementation
 // ===================================================

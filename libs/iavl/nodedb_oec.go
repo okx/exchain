@@ -11,9 +11,6 @@ import (
 
 	"github.com/go-errors/errors"
 
-	"sync"
-
-	"sync/atomic"
 	"time"
 
 	"github.com/okex/exchain/libs/iavl/trace"
@@ -104,7 +101,7 @@ func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	for _, node := range tpp {
 		ndb.batchSet(node, batch)
 	}
-	atomic.AddInt64(&ndb.totalPersistedCount, int64(len(tpp)))
+	ndb.state.increasePersistedCount(len(tpp))
 	ndb.addDBWriteCount(int64(len(tpp)))
 
 	trc.Pin("batchCommit")
@@ -188,94 +185,9 @@ func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
 	nodeKey := ndb.nodeKey(node.hash)
 	nodeValue := buf.Bytes()
 	batch.Set(nodeKey, nodeValue)
-	atomic.AddInt64(&ndb.totalPersistedSize, int64(len(nodeKey)+len(nodeValue)))
+	ndb.state.increasePersistedSize(len(nodeKey)+len(nodeValue))
 	ndb.log(IavlDebug, "BATCH SAVE", "hash", node.hash)
 	//node.persisted = true // move to function MovePrePersistCacheToTempCache
-}
-
-func (ndb *nodeDB) addDBReadTime(ts int64) {
-	atomic.AddInt64(&ndb.dbReadTime, ts)
-}
-
-func (ndb *nodeDB) addDBReadCount() {
-	atomic.AddInt64(&ndb.dbReadCount, 1)
-}
-
-func (ndb *nodeDB) addDBWriteCount(count int64) {
-	atomic.AddInt64(&ndb.dbWriteCount, count)
-}
-
-func (ndb *nodeDB) addNodeReadCount() {
-	atomic.AddInt64(&ndb.nodeReadCount, 1)
-}
-
-func (ndb *nodeDB) resetDBReadTime() {
-	atomic.StoreInt64(&ndb.dbReadTime, 0)
-}
-
-func (ndb *nodeDB) resetDBReadCount() {
-	atomic.StoreInt64(&ndb.dbReadCount, 0)
-}
-
-func (ndb *nodeDB) resetDBWriteCount() {
-	atomic.StoreInt64(&ndb.dbWriteCount, 0)
-}
-
-func (ndb *nodeDB) resetNodeReadCount() {
-	atomic.StoreInt64(&ndb.nodeReadCount, 0)
-}
-
-func (ndb *nodeDB) getDBReadTime() int {
-	return int(atomic.LoadInt64(&ndb.dbReadTime))
-}
-
-func (ndb *nodeDB) getDBReadCount() int {
-	return int(atomic.LoadInt64(&ndb.dbReadCount))
-}
-
-func (ndb *nodeDB) getDBWriteCount() int {
-	return int(atomic.LoadInt64(&ndb.dbWriteCount))
-}
-
-func (ndb *nodeDB) getNodeReadCount() int {
-	return int(atomic.LoadInt64(&ndb.nodeReadCount))
-}
-
-func (ndb *nodeDB) resetCount() {
-	ndb.resetDBReadTime()
-	ndb.resetDBReadCount()
-	ndb.resetDBWriteCount()
-	ndb.resetNodeReadCount()
-}
-
-func (ndb *nodeDB) sprintCacheLog(version int64) string {
-	if !EnableAsyncCommit {
-		return ""
-	}
-
-	nodeReadCount := ndb.getNodeReadCount()
-	cacheReadCount := ndb.getNodeReadCount() - ndb.getDBReadCount()
-	printLog := fmt.Sprintf("Save Version<%d>: Tree<%s>", version, ndb.name)
-
-	printLog += fmt.Sprintf(", TotalPreCommitCacheSize:%d", treeMap.totalPreCommitCacheSize)
-	printLog += fmt.Sprintf(", nodeCCnt:%d", ndb.nc.nodeCacheLen())
-	printLog += fmt.Sprintf(", orphanCCnt:%d", ndb.oi.orphanNodeCacheLen())
-	printLog += fmt.Sprintf(", prePerCCnt:%d", len(ndb.prePersistNodeCache))
-	printLog += fmt.Sprintf(", dbRCnt:%d", ndb.getDBReadCount())
-	printLog += fmt.Sprintf(", dbWCnt:%d", ndb.getDBWriteCount())
-	printLog += fmt.Sprintf(", nodeRCnt:%d", ndb.getNodeReadCount())
-
-	if nodeReadCount > 0 {
-		printLog += fmt.Sprintf(", CHit:%.2f", float64(cacheReadCount)/float64(nodeReadCount)*100)
-	} else {
-		printLog += ", CHit:0"
-	}
-	printLog += fmt.Sprintf(", TPersisCnt:%d", atomic.LoadInt64(&ndb.totalPersistedCount))
-	printLog += fmt.Sprintf(", TPersisSize:%d", atomic.LoadInt64(&ndb.totalPersistedSize))
-	printLog += fmt.Sprintf(", TDelCnt:%d", atomic.LoadInt64(&ndb.totalDeletedCount))
-	printLog += fmt.Sprintf(", TOrphanCnt:%d", atomic.LoadInt64(&ndb.totalOrphanCount))
-
-	return printLog
 }
 
 func (ndb *nodeDB) getTppNodesNum() int {
@@ -289,142 +201,6 @@ func (ndb *nodeDB) getTppNodesNum() int {
 func (ndb *nodeDB) NewBatch() dbm.Batch {
 	return ndb.db.NewBatch()
 }
-
-func (ndb *nodeDB) updateBranch(node *Node, savedNodes map[string]*Node) []byte {
-	if node.persisted || node.prePersisted {
-		return node.hash
-	}
-
-	if node.leftNode != nil {
-		node.leftHash = ndb.updateBranch(node.leftNode, savedNodes)
-	}
-	if node.rightNode != nil {
-		node.rightHash = ndb.updateBranch(node.rightNode, savedNodes)
-	}
-
-	node._hash()
-	ndb.saveNodeToPrePersistCache(node)
-
-	node.leftNode = nil
-	node.rightNode = nil
-
-	// TODO: handle magic number
-	savedNodes[string(node.hash)] = node
-
-	return node.hash
-}
-
-func (ndb *nodeDB) updateBranchConcurrency(node *Node, savedNodes map[string]*Node) []byte {
-	if node.persisted || node.prePersisted {
-		return node.hash
-	}
-
-	nodeCh := make(chan *Node, 1024)
-	leftHashCh := make(chan []byte, 1)
-	rightHashCh := make(chan []byte, 1)
-	wg := &sync.WaitGroup{}
-
-	var needNilNodeNum = 0
-	if node.leftNode != nil {
-		needNilNodeNum += 1
-		go updateBranchRoutine(node.leftNode, nodeCh, leftHashCh)
-	}
-	if node.rightNode != nil {
-		needNilNodeNum += 1
-		go updateBranchRoutine(node.rightNode, nodeCh, rightHashCh)
-	}
-
-	if needNilNodeNum > 0 {
-		wg.Add(1)
-		go func(wg *sync.WaitGroup, needNilNodeNum int, savedNodes map[string]*Node, ndb *nodeDB, nodeCh <-chan *Node) {
-			getNodeNil := 0
-			for n := range nodeCh {
-				if n == nil {
-					getNodeNil += 1
-					if getNodeNil == needNilNodeNum {
-						wg.Done()
-						return
-					}
-				} else {
-					ndb.saveNodeToPrePersistCache(n)
-					n.leftNode = nil
-					n.rightNode = nil
-					if savedNodes != nil {
-						savedNodes[string(n.hash)] = n
-					}
-				}
-			}
-		}(wg, needNilNodeNum, savedNodes, ndb, nodeCh)
-	}
-
-	if node.leftNode != nil {
-		node.leftHash = <-leftHashCh
-		close(leftHashCh)
-	}
-
-	if node.rightNode != nil {
-		node.rightHash = <-rightHashCh
-		close(rightHashCh)
-	}
-	node._hash()
-
-	wg.Wait()
-	close(nodeCh)
-	ndb.saveNodeToPrePersistCache(node)
-
-	node.leftNode = nil
-	node.rightNode = nil
-
-	// TODO: handle magic number
-	if savedNodes != nil {
-		savedNodes[string(node.hash)] = node
-	}
-
-	return node.hash
-}
-
-func updateBranchRoutine(node *Node, saveNodesCh chan<- *Node, result chan<- []byte) {
-	if node.persisted || node.prePersisted {
-		saveNodesCh <- nil
-		result <- node.hash
-		return
-	}
-
-	if node.leftNode != nil {
-		node.leftHash = updateBranchAndSaveNodeToChan(node.leftNode, saveNodesCh)
-	}
-	if node.rightNode != nil {
-		node.rightHash = updateBranchAndSaveNodeToChan(node.rightNode, saveNodesCh)
-	}
-
-	node._hash()
-
-	saveNodesCh <- node
-	saveNodesCh <- nil
-
-	result <- node.hash
-	return
-}
-
-func updateBranchAndSaveNodeToChan(node *Node, saveNodesCh chan<- *Node) []byte {
-	if node.persisted || node.prePersisted {
-		return node.hash
-	}
-
-	if node.leftNode != nil {
-		node.leftHash = updateBranchAndSaveNodeToChan(node.leftNode, saveNodesCh)
-	}
-	if node.rightNode != nil {
-		node.rightHash = updateBranchAndSaveNodeToChan(node.rightNode, saveNodesCh)
-	}
-
-	node._hash()
-
-	saveNodesCh <- node
-
-	return node.hash
-}
-
 
 // Saves orphaned nodes to disk under a special prefix.
 // version: the new version being saved.
