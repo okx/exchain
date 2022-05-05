@@ -286,9 +286,7 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 				}
 			}
 		}
-		filter := filterVersion(ver, rs.versionFilters)
-		filter(callback)
-
+		filterVersion(ver, rs.versionFilters, callback)
 	}
 
 	roots := make(map[int64][]byte)
@@ -1111,13 +1109,12 @@ func filter(name string, h int64, st types.CommitKVStore, filters []types.StoreF
 	return false
 }
 
-func filterVersion(h int64, filters []types.VersionFilter) func(cb func(name string, version int64)) {
+func filterVersion(h int64, filters []types.VersionFilter, cb types.VersionCallback) {
 	for _, filter := range filters {
 		if c := filter(h); c != nil {
-			return c
+			c(cb)
 		}
 	}
-	return func(cb func(name string, version int64)) {}
 }
 
 // Gets commitInfo from disk.
