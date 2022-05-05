@@ -17,11 +17,7 @@ const (
 	AnteChain       = "AnteChain"
 	AnteOther       = "AnteOther"
 	CacheStoreWrite = "cacheStoreWrite"
-
 	//----- RunMsgs details
-
-
-
 
 	//----- handler details
 	ParseChainID = "ParseChainID"
