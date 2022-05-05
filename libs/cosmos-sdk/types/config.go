@@ -8,7 +8,7 @@ import (
 )
 
 // DefaultKeyringServiceName defines a default service name for the keyring.
-const DefaultKeyringServiceName = "exchain"
+const DefaultKeyringServiceName = "cosmos"
 
 // Config is the structure that holds the SDK configuration parameters.
 // This could be used to initialize certain configuration parameters for the SDK.
