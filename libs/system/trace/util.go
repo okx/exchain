@@ -8,7 +8,6 @@ import (
 const FlagEnableAnalyzer string = "enable-analyzer"
 
 var (
-	analyzer *Analyzer = &Analyzer{}
 	openAnalyzer bool
 	dynamicConfig IDynamicConfig = MockDynamicConfig{}
 	forceAnalyzerTags map[string]struct{}
@@ -44,7 +43,7 @@ func init() {
 }
 
 func OnAppBeginBlockEnter(height int64) {
-	newAnalyzer(height)
+	analyzer.reset(height)
 	if !dynamicConfig.GetEnableAnalyzer() {
 		openAnalyzer = false
 		return
@@ -56,16 +55,12 @@ func OnAppBeginBlockEnter(height int64) {
 	}
 }
 
-func skip(a *Analyzer, oper string) bool {
-	if a != nil {
-		if openAnalyzer {
-			return false
-		}
-		_, ok := forceAnalyzerTags[oper]
-		return !ok
-	} else {
-		return true
+func skip(oper string) bool {
+	if openAnalyzer {
+		return false
 	}
+	_, ok := forceAnalyzerTags[oper]
+	return !ok
 }
 
 func OnAppDeliverTxEnter() {
@@ -81,17 +76,16 @@ func OnCommitDone() {
 }
 
 func StartTxLog(oper string) {
-	if !skip(analyzer, oper) {
+	if !skip(oper) {
 		analyzer.startTxLog(oper)
 	}
 }
 
 func StopTxLog(oper string) {
-	if !skip(analyzer, oper) {
+	if !skip(oper) {
 		analyzer.stopTxLog(oper)
 	}
 }
-
 
 func SetDynamicConfig(c IDynamicConfig) {
 	dynamicConfig = c

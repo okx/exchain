@@ -6,6 +6,10 @@ import (
 	"strings"
 )
 
+var (
+	analyzer *Analyzer = &Analyzer{}
+)
+
 type Analyzer struct {
 	status         bool
 	currentTxIndex int64
@@ -16,12 +20,15 @@ type Analyzer struct {
 	txs            []*txLog
 }
 
-func newAnalyzer(height int64) {
-	*analyzer = Analyzer{}
-	analyzer.blockHeight = height
-	analyzer.status = status
+func (s *Analyzer) reset (height int64) {
+	s.status = status
+	s.currentTxIndex = 0
+	s.blockHeight = height
+	s.dbRead = 0
+	s.dbWrite = 0
+	s.evmCost = 0
+	s.txs = nil
 }
-
 
 func (s *Analyzer) onAppDeliverTxEnter() {
 	if s.status {
