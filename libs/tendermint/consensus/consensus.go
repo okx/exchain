@@ -792,7 +792,7 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 		trace.GetElapsedInfo().AddInfo(trace.Produce, cs.trc.Format())
 		trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
 
-		cs.trc.Reset()
+		cs.trc.Reset(ti.Height - 1)
 		cs.enterNewRound(ti.Height, 0)
 	case cstypes.RoundStepNewRound:
 		cs.enterPropose(ti.Height, 0)
@@ -1973,6 +1973,12 @@ func (cs *State) addVote(
 		case cs.Proposal != nil && 0 <= cs.Proposal.POLRound && cs.Proposal.POLRound == vote.Round:
 			// If the proposal is now complete, enter prevote of cs.Round.
 			if cs.isProposalComplete() {
+				if height > cs.trc.GetLastDumpHeight() {
+					trace.GetElapsedInfo().AddInfo(trace.Produce, cs.trc.Format())
+					trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
+
+					cs.trc.Reset(height - 1)
+				}
 				cs.enterPrevote(height, cs.Round)
 			}
 		}
@@ -2106,6 +2112,7 @@ func (cs *State) updatePrivValidatorPubKey() error {
 func (cs *State) BlockExec() *sm.BlockExecutor {
 	return cs.blockExec
 }
+
 //---------------------------------------------------------
 
 func CompareHRS(h1 int64, r1 int, s1 cstypes.RoundStepType, h2 int64, r2 int, s2 cstypes.RoundStepType) int {

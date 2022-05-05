@@ -64,6 +64,7 @@ func GetElapsedInfo() IElapsedTimeInfos {
 }
 
 type Tracer struct {
+	height           int64
 	name             string
 	startTime        time.Time
 	lastPin          string
@@ -185,13 +186,18 @@ func (t *Tracer) GetElapsedTime() int64 {
 	return t.elapsedTime.Milliseconds()
 }
 
-func (t *Tracer) Reset() {
+func (t *Tracer) Reset(height int64) {
 	t.startTime = time.Now()
 	t.lastPin = ""
 	t.lastPinStartTime = time.Date(2018, 1, 1, 1, 1, 1, 1, time.Local)
 	t.pins = nil
 	t.intervals = nil
 	t.pinMap = make(map[string]time.Duration)
+	t.height = height
+}
+
+func (t *Tracer) GetLastDumpHeight() int64 {
+	return t.height
 }
 
 type EmptyTimeInfo struct {
