@@ -1,10 +1,9 @@
-package baseapp
+package trace
 
 const (
 	//----- DeliverTx
 	DeliverTx = "DeliverTx"
 	TxDecoder = "TxDecoder"
-	RunTx     = "RunTx"
 
 	//----- RunTx details
 	ValTxMsgs   = "valTxMsgs"

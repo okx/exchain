@@ -2,6 +2,7 @@ package baseapp
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/system/trace"
 	"github.com/pkg/errors"
 	"runtime/debug"
 
@@ -50,7 +51,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	info.tx = tx
 	info.txBytes = txBytes
 	handler := info.handler
-	app.pin(ValTxMsgs, true, mode)
+	app.pin(trace.ValTxMsgs, true, mode)
 
 	if tx.GetType() != sdk.EvmTxType && mode == runTxModeDeliver {
 		// should update the balance of FeeCollector's account when run non-evm tx
@@ -106,24 +107,24 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	}()
 
 	defer func() {
-		app.pin(Refund, true, mode)
-		defer app.pin(Refund, false, mode)
+		app.pin(trace.Refund, true, mode)
+		defer app.pin(trace.Refund, false, mode)
 		handler.handleDeferRefund(info)
 	}()
 
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
 		return err
 	}
-	app.pin(ValTxMsgs, false, mode)
+	app.pin(trace.ValTxMsgs, false, mode)
 
-	app.pin(RunAnte, true, mode)
+	app.pin(trace.RunAnte, true, mode)
 	if app.anteHandler != nil {
 		err = app.runAnte(info, mode)
 		if err != nil {
 			return err
 		}
 	}
-	app.pin(RunAnte, false, mode)
+	app.pin(trace.RunAnte, false, mode)
 
 	if app.getTxFeeHandler != nil && mode == runTxModeDeliver {
 		fee := app.getTxFeeHandler(tx)
@@ -131,9 +132,9 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	}
 
 	isAnteSucceed = true
-	app.pin(RunMsg, true, mode)
+	app.pin(trace.RunMsg, true, mode)
 	err = handler.handleRunMsg(info)
-	app.pin(RunMsg, false, mode)
+	app.pin(trace.RunMsg, false, mode)
 	return err
 }
 
@@ -150,7 +151,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	// performance benefits, but it'll be more difficult to get right.
 
 	// 1. CacheTxContext
-	app.pin(CacheTxContext, true, mode)
+	app.pin(trace.CacheTxContext, true, mode)
 	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
 
 	if mode == runTxModeDeliverInAsync {
@@ -163,18 +164,18 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 		anteCtx.SetMultiStore(info.msCacheAnte)
 	}
 	anteCtx.SetEventManager(sdk.NewEventManager())
-	app.pin(CacheTxContext, false, mode)
+	app.pin(trace.CacheTxContext, false, mode)
 
 	// 2. AnteChain
-	app.pin(AnteChain, true, mode)
+	app.pin(trace.AnteChain, true, mode)
 	if mode == runTxModeDeliver {
 		anteCtx.SetAnteTracer(app.anteTracer)
 	}
 	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
-	app.pin(AnteChain, false, mode)
+	app.pin(trace.AnteChain, false, mode)
 
 	// 3. AnteOther
-	app.pin(AnteOther, true, mode)
+	app.pin(trace.AnteOther, true, mode)
 	ms := info.ctx.MultiStore()
 	info.accountNonce = newCtx.AccountNonce()
 
@@ -200,14 +201,14 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	if err != nil {
 		return err
 	}
-	app.pin(AnteOther, false, mode)
+	app.pin(trace.AnteOther, false, mode)
 
 	// 4. CacheStoreWrite
 	if mode != runTxModeDeliverInAsync {
-		app.pin(CacheStoreWrite, true, mode)
+		app.pin(trace.CacheStoreWrite, true, mode)
 		info.msCacheAnte.Write()
 		info.ctx.Cache().Write(true)
-		app.pin(CacheStoreWrite, false, mode)
+		app.pin(trace.CacheStoreWrite, false, mode)
 	}
 
 	return nil

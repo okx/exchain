@@ -1,12 +1,12 @@
 package base
 
 import (
+	bam "github.com/okex/exchain/libs/system/trace"
 	"github.com/okex/exchain/libs/system/trace/analyzer"
 	"math/big"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
-	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"

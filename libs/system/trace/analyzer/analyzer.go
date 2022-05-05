@@ -9,7 +9,6 @@ import (
 	"strings"
 	"sync"
 
-	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/spf13/viper"
 )
@@ -39,9 +38,9 @@ func SetInsertFunc(f insertFuncType)  {
 
 func initForceAnalyzerTags() {
 	forceAnalyzerTags = map[string]struct{}{
-		bam.RunAnte: {},
-		bam.Refund:  {},
-		bam.RunMsg:  {},
+		trace.RunAnte: {},
+		trace.Refund:  {},
+		trace.RunMsg:  {},
 	}
 }
 
@@ -262,9 +261,9 @@ func (s *analyer) genRecord() (int64, map[string]int64) {
 func formatNecessaryDeliverTx(record map[string]int64) {
 	// deliver txs
 	var deliverTxsKeys = []string{
-		bam.RunAnte,
-		bam.RunMsg,
-		bam.Refund,
+		trace.RunAnte,
+		trace.RunMsg,
+		trace.Refund,
 	}
 	addInfo(trace.DeliverTxs, deliverTxsKeys, record)
 }
@@ -279,11 +278,11 @@ func formatDeliverTx(record map[string]int64) {
 		//bam.RunTx,
 		//----- run_tx
 		//bam.InitCtx,
-		bam.ValTxMsgs,
-		bam.RunAnte,
-		bam.RunMsg,
-		bam.Refund,
-		bam.EvmHandler,
+		trace.ValTxMsgs,
+		trace.RunAnte,
+		trace.RunMsg,
+		trace.Refund,
+		trace.EvmHandler,
 	}
 	addInfo(trace.DeliverTxs, deliverTxsKeys, record)
 }
@@ -298,9 +297,9 @@ func formatEvmHandlerDetail(record map[string]int64) {
 		//bam.EvmHandler,
 		//bam.ParseChainID,
 		//bam.VerifySig,
-		bam.Txhash,
-		bam.SaveTx,
-		bam.TransitionDb,
+		trace.Txhash,
+		trace.SaveTx,
+		trace.TransitionDb,
 		//bam.Bloomfilter,
 		//bam.EmitEvents,
 		//bam.HandlerDefer,
@@ -313,10 +312,10 @@ func formatRunAnteDetail(record map[string]int64) {
 
 	// ante
 	var anteKeys = []string{
-		bam.CacheTxContext,
-		bam.AnteChain,
-		bam.AnteOther,
-		bam.CacheStoreWrite,
+		trace.CacheTxContext,
+		trace.AnteChain,
+		trace.AnteOther,
+		trace.CacheStoreWrite,
 	}
 	addInfo(trace.RunAnteDetail, anteKeys, record)
 
