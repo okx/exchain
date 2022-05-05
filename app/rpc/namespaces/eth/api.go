@@ -489,32 +489,6 @@ func (api *PublicEthereumAPI) GetStorageAtInternal(address common.Address, key [
 	return api.getStorageAt(address, key, 0, true)
 }
 
-func (api *PublicEthereumAPI) GetTransactionPendingCountInternal(address common.Address) (*hexutil.Uint64, error) {
-	var ret hexutil.Uint64
-	pendingNonce, ok := api.backend.GetPendingNonce(address.String())
-	if ok {
-		ret = hexutil.Uint64(pendingNonce + 1)
-		return &ret, nil
-	}
-
-	// Get nonce (sequence) of account from  watch db
-	acc, err := api.wrappedBackend.GetAccount(address.Bytes())
-	if err == nil {
-		ret = hexutil.Uint64(acc.GetSequence())
-		return &ret, nil
-	}
-
-	clientCtx := api.clientCtx
-	// Get nonce (sequence) of account from  chain db
-	account, err := getAccountFromChain(clientCtx, address)
-	if err != nil {
-		return &ret, nil
-	}
-	ret = hexutil.Uint64(account.GetSequence())
-
-	return &ret, nil
-}
-
 // GetTransactionCount returns the number of transactions at the given address up to the given block number.
 func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockNrOrHash rpctypes.BlockNumberOrHash) (*hexutil.Uint64, error) {
 	monitor := monitor.GetMonitor("eth_getTransactionCount", api.logger, api.Metrics).OnBegin()
@@ -1744,7 +1718,7 @@ func (api *PublicEthereumAPI) accountNonce(
 	}
 
 	// Get nonce (sequence) of account from  watch db
-	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
+	acc, err := api.wrappedBackend.GetAccount(address.Bytes())
 	if err == nil {
 		return acc.GetSequence(), nil
 	}
