@@ -25,6 +25,16 @@ type Cm39HttpJSONClientAdapter struct {
 	*Client
 }
 
+func NewCm39HttpJSONClient(remote string, client *http.Client) (*Cm39HttpJSONClientAdapter, error) {
+	p, err := NewWithHTTPClient(remote, client)
+	if nil != err {
+		return nil, err
+	}
+	ret := &Cm39HttpJSONClientAdapter{Client: p}
+	ret.seal()
+	return ret, nil
+}
+
 func (c *Cm39HttpJSONClientAdapter) seal() {
 	c.planb = make(map[string]*couple)
 	c.planb["tx"] = &couple{
@@ -45,15 +55,6 @@ func (c *Cm39HttpJSONClientAdapter) seal() {
 			ConvTCM39ResultABCIQuery2CM4(cm39, cm4)
 		},
 	}
-}
-func NewCm39HttpJSONClient(remote string, client *http.Client) (*Cm39HttpJSONClientAdapter, error) {
-	p, err := NewWithHTTPClient(remote, client)
-	if nil != err {
-		return nil, err
-	}
-	ret := &Cm39HttpJSONClientAdapter{Client: p}
-	ret.seal()
-	return ret, nil
 }
 
 func (c *Cm39HttpJSONClientAdapter) Call(method string, params map[string]interface{}, result interface{}) (ret interface{}, err error) {
