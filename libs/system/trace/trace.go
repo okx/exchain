@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	//"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 const (
@@ -46,7 +46,7 @@ const (
 
 type IElapsedTimeInfos interface {
 	AddInfo(key string, info string)
-	Dump(logger log.Logger)
+	Dump(logger interface{})
 	SetElapsedTime(elapsedTime int64)
 	GetElapsedTime() int64
 }
@@ -200,7 +200,7 @@ type EmptyTimeInfo struct {
 func (e *EmptyTimeInfo) AddInfo(key string, info string) {
 }
 
-func (e *EmptyTimeInfo) Dump(logger log.Logger) {
+func (e *EmptyTimeInfo) Dump(logger interface{}) {
 }
 
 func (e *EmptyTimeInfo) SetElapsedTime(elapsedTime int64) {

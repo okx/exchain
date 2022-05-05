@@ -2,12 +2,12 @@ package analyzer
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/system/trace"
 	"strconv"
 	"strings"
 
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sm "github.com/okex/exchain/libs/tendermint/state"
-	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/spf13/viper"
 )
 

@@ -4,8 +4,8 @@ import (
 	appconfig "github.com/okex/exchain/app/config"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/system/analyzer"
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/x/evm"
 )
 

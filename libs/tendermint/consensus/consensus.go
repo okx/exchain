@@ -4,14 +4,13 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/libs/system/trace"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/spf13/viper"
 	"reflect"
 	"runtime/debug"
 	"sync"
 	"time"
-
-	"github.com/okex/exchain/libs/tendermint/trace"
 
 	"github.com/pkg/errors"
 
