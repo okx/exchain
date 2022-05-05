@@ -35,19 +35,19 @@ func (s *Summary) Init(keys ...string)  {
 	}
 	s.keys = keys
 }
+
 //func (s *Summary) Dump(logger log.Logger)  {
 //	for _, k := range s.keys {
 //		logger.With("module", "main").Info("Summary", k, s.statisticMap[k])
 //	}
 //}
 
-
-func (s *Summary) Dump2()  {
+func (s *Summary) Dump(context string)  {
 	var res string
 	for _, k := range s.keys {
 		res += fmt.Sprintf("%s=%d, ", k, s.statisticMap[k])
 	}
-	systemlog.Println("Summary", "res", res)
+	systemlog.Println("Trace Summary", context, res)
 }
 
 func (s *Summary) insert(tag string, elapse int64)  {

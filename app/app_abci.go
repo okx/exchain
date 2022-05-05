@@ -66,8 +66,7 @@ func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEn
 // Commit implements the Application interface
 func (app *OKExChainApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 
-	//defer trace.GetTraceSummary().Dump2(app.Logger())
-	defer trace.GetTraceSummary().Dump2()
+	//defer trace.GetTraceSummary().Dump()
 	defer trace.OnCommitDone()
 
 	tasks := app.heightTasks[app.BaseApp.LastBlockHeight()+1]
