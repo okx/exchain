@@ -1,39 +1,39 @@
-package analyzer
+package trace
 
 import (
 	"fmt"
+	"github.com/spf13/viper"
 	"strconv"
 	"strings"
-
-	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
-	sm "github.com/okex/exchain/libs/tendermint/state"
-	"github.com/okex/exchain/libs/tendermint/trace"
-	"github.com/spf13/viper"
+	"sync"
 )
 
 const FlagEnableAnalyzer string = "enable-analyzer"
 
 var (
-	singleAnalys *analyer
+	analyzer *Analyzer
 	openAnalyzer bool
-
 	dynamicConfig IDynamicConfig = MockDynamicConfig{}
-
 	forceAnalyzerTags map[string]struct{}
-
-	isParalleledTxOn *bool
+	status            bool
+	once              sync.Once
 )
+
+func EnableAnalyzer(flag bool)  {
+	status = flag
+}
 
 func initForceAnalyzerTags() {
 	forceAnalyzerTags = map[string]struct{}{
-		bam.RunAnte: {},
-		bam.Refund:  {},
-		bam.RunMsg:  {},
+		RunAnte: {},
+		Refund:  {},
+		RunMsg:  {},
 	}
 }
 
 func init() {
 	initForceAnalyzerTags()
+	analyzer = &Analyzer{}
 }
 
 func SetDynamicConfig(c IDynamicConfig) {
@@ -51,7 +51,7 @@ func (c MockDynamicConfig) GetEnableAnalyzer() bool {
 	return viper.GetBool(FlagEnableAnalyzer)
 }
 
-type analyer struct {
+type Analyzer struct {
 	status         bool
 	currentTxIndex int64
 	blockHeight    int64
@@ -74,34 +74,26 @@ func init() {
 	}
 }
 
-func newAnalys(height int64) {
-	if isParalleledTxOn == nil {
-		isParalleledTxOn = new(bool)
-		*isParalleledTxOn =  sm.DeliverTxsExecMode(viper.GetInt(sm.FlagDeliverTxsExecMode)) != sm.DeliverTxsExecModeParallel
-	}
-	if singleAnalys == nil {
-		singleAnalys = &analyer{}
-	} else {
-		*singleAnalys = analyer{}
-	}
-	singleAnalys.blockHeight = height
-	singleAnalys.status = *isParalleledTxOn
+func newAnalyzer(height int64) {
+	*analyzer = Analyzer{}
+	analyzer.blockHeight = height
+	analyzer.status = status
 }
 
 func OnAppBeginBlockEnter(height int64) {
-	newAnalys(height)
+	newAnalyzer(height)
 	if !dynamicConfig.GetEnableAnalyzer() {
 		openAnalyzer = false
 		return
 	}
 	openAnalyzer = true
-	lastElapsedTime := trace.GetElapsedInfo().GetElapsedTime()
+	lastElapsedTime := GetElapsedInfo().GetElapsedTime()
 	if singlePprofDumper != nil && lastElapsedTime > singlePprofDumper.triggerAbciElapsed {
 		singlePprofDumper.cpuProfile(height)
 	}
 }
 
-func skip(a *analyer, oper string) bool {
+func skip(a *Analyzer, oper string) bool {
 	if a != nil {
 		if openAnalyzer {
 			return false
@@ -114,47 +106,47 @@ func skip(a *analyer, oper string) bool {
 }
 
 func OnAppDeliverTxEnter() {
-	if singleAnalys != nil {
-		singleAnalys.onAppDeliverTxEnter()
+	if analyzer != nil {
+		analyzer.onAppDeliverTxEnter()
 	}
 }
 
 func OnCommitDone() {
-	if singleAnalys != nil {
-		singleAnalys.onCommitDone()
+	if analyzer != nil {
+		analyzer.onCommitDone()
 	}
 }
 
 func StartTxLog(oper string) {
-	if !skip(singleAnalys, oper) {
-		singleAnalys.startTxLog(oper)
+	if !skip(analyzer, oper) {
+		analyzer.startTxLog(oper)
 	}
 }
 
 func StopTxLog(oper string) {
-	if !skip(singleAnalys, oper) {
-		singleAnalys.stopTxLog(oper)
+	if !skip(analyzer, oper) {
+		analyzer.stopTxLog(oper)
 	}
 }
 
-func (s *analyer) onAppDeliverTxEnter() {
+func (s *Analyzer) onAppDeliverTxEnter() {
 	if s.status {
 		s.newTxLog()
 	}
 }
 
-func (s *analyer) onCommitDone() {
+func (s *Analyzer) onCommitDone() {
 	if s.status {
 		s.format()
 	}
 }
 
-func (s *analyer) newTxLog() {
+func (s *Analyzer) newTxLog() {
 	s.currentTxIndex++
 	s.txs = append(s.txs, newTxLog())
 }
 
-func (s *analyer) startTxLog(oper string) {
+func (s *Analyzer) startTxLog(oper string) {
 	if s.status {
 		if s.currentTxIndex > 0 && int64(len(s.txs)) == s.currentTxIndex {
 			s.txs[s.currentTxIndex-1].StartTxLog(oper)
@@ -162,16 +154,22 @@ func (s *analyer) startTxLog(oper string) {
 	}
 }
 
-func (s *analyer) stopTxLog(oper string) {
+func (s *Analyzer) stopTxLog(oper string) {
 	if s.status {
 		if s.currentTxIndex > 0 && int64(len(s.txs)) == s.currentTxIndex {
 			s.txs[s.currentTxIndex-1].StopTxLog(oper)
 		}
 	}
 }
-func (s *analyer) format() {
+
+
+func (s *Analyzer) format() {
 
 	evmcore, record := s.genRecord()
+
+	for k, v := range record {
+		insertElapse(k, v)
+	}
 
 	if !openAnalyzer {
 		formatNecessaryDeliverTx(record)
@@ -180,8 +178,9 @@ func (s *analyer) format() {
 	formatDeliverTx(record)
 	formatRunAnteDetail(record)
 	formatEvmHandlerDetail(record)
+
 	// evm
-	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
+	GetElapsedInfo().AddInfo(Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
 }
 
 // formatRecord format the record in the format fmt.Sprintf(", %s<%dms>", v, record[v])
@@ -211,10 +210,10 @@ func addInfo(name string, keys []string, record map[string]int64) {
 	for _, v := range strs {
 		builder.WriteString(v)
 	}
-	trace.GetElapsedInfo().AddInfo(name, builder.String())
+	GetElapsedInfo().AddInfo(name, builder.String())
 }
 
-func (s *analyer) genRecord() (int64, map[string]int64) {
+func (s *Analyzer) genRecord() (int64, map[string]int64) {
 	var evmcore int64
 	var record = make(map[string]int64)
 	for _, v := range s.txs {
@@ -243,11 +242,11 @@ func (s *analyer) genRecord() (int64, map[string]int64) {
 func formatNecessaryDeliverTx(record map[string]int64) {
 	// deliver txs
 	var deliverTxsKeys = []string{
-		bam.RunAnte,
-		bam.RunMsg,
-		bam.Refund,
+		RunAnte,
+		RunMsg,
+		Refund,
 	}
-	addInfo(trace.DeliverTxs, deliverTxsKeys, record)
+	addInfo(DeliverTxs, deliverTxsKeys, record)
 }
 
 func formatDeliverTx(record map[string]int64) {
@@ -260,13 +259,13 @@ func formatDeliverTx(record map[string]int64) {
 		//bam.RunTx,
 		//----- run_tx
 		//bam.InitCtx,
-		bam.ValTxMsgs,
-		bam.RunAnte,
-		bam.RunMsg,
-		bam.Refund,
-		bam.EvmHandler,
+		ValTxMsgs,
+		RunAnte,
+		RunMsg,
+		Refund,
+		//EvmHandler,
 	}
-	addInfo(trace.DeliverTxs, deliverTxsKeys, record)
+	addInfo(DeliverTxs, deliverTxsKeys, record)
 }
 
 func formatEvmHandlerDetail(record map[string]int64) {
@@ -279,26 +278,26 @@ func formatEvmHandlerDetail(record map[string]int64) {
 		//bam.EvmHandler,
 		//bam.ParseChainID,
 		//bam.VerifySig,
-		bam.Txhash,
-		bam.SaveTx,
-		bam.TransitionDb,
+		Txhash,
+		SaveTx,
+		TransitionDb,
 		//bam.Bloomfilter,
 		//bam.EmitEvents,
 		//bam.HandlerDefer,
 		//-----
 	}
-	addInfo(trace.EvmHandlerDetail, evmHandlerKeys, record)
+	addInfo(EvmHandlerDetail, evmHandlerKeys, record)
 }
 
 func formatRunAnteDetail(record map[string]int64) {
 
 	// ante
 	var anteKeys = []string{
-		bam.CacheTxContext,
-		bam.AnteChain,
-		bam.AnteOther,
-		bam.CacheStoreWrite,
+		CacheTxContext,
+		AnteChain,
+		AnteOther,
+		CacheStoreWrite,
 	}
-	addInfo(trace.RunAnteDetail, anteKeys, record)
+	addInfo(RunAnteDetail, anteKeys, record)
 
 }
