@@ -1,6 +1,9 @@
 package trace
 
-import "github.com/okex/exchain/libs/tendermint/libs/log"
+import (
+	systemlog "log"
+	//"github.com/okex/exchain/libs/tendermint/libs/log"
+)
 
 var sum *Summary
 type Summary struct {
@@ -30,9 +33,16 @@ func (s *Summary) Init(keys ...string)  {
 	}
 	s.keys = keys
 }
-func (s *Summary) Dump(logger log.Logger)  {
+//func (s *Summary) Dump(logger log.Logger)  {
+//	for _, k := range s.keys {
+//		logger.With("module", "main").Info("Summary", k, s.statisticMap[k])
+//	}
+//}
+
+
+func (s *Summary) Dump2()  {
 	for _, k := range s.keys {
-		logger.With("module", "main").Info("Summary", k, s.statisticMap[k])
+		systemlog.Println("Summary", k, s.statisticMap[k])
 	}
 }
 

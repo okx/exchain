@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/system/trace"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -292,6 +293,8 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 			SaveBlock(ctx, originBlockStore, height)
 		}
 	}
+
+	trace.GetTraceSummary().Dump2()
 }
 
 func dumpMemPprof() error {
