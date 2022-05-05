@@ -33,7 +33,7 @@ func (c *Cm39HttpJSONClientAdapter) seal() {
 		after: func(beforeReturnV interface{}, originV interface{}) {
 			cm39 := beforeReturnV.(*CM39ResultTx)
 			cm4 := originV.(*coretypes.ResultTx)
-			ConvCM39ToCM4(cm39, cm4)
+			ConvTCM392CM4(cm39, cm4)
 		},
 	}
 	c.planb["abci_query"] = &couple{
