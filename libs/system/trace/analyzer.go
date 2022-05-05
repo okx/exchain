@@ -22,12 +22,6 @@ var (
 	once             sync.Once
 )
 
-//func SetInsertFunc(f insertFuncType)  {
-//	once.Do(func() {
-//		insertElapse = f
-//	})
-//}
-
 func SetParalleledTxFlag(flag bool)  {
 	isParalleledTxOn = flag
 }
@@ -42,6 +36,7 @@ func initForceAnalyzerTags() {
 
 func init() {
 	initForceAnalyzerTags()
+	singleAnalys = &analyer{}
 }
 
 func SetDynamicConfig(c IDynamicConfig) {
@@ -83,7 +78,7 @@ func init() {
 }
 
 func newAnalys(height int64) {
-	singleAnalys = &analyer{}
+	*singleAnalys = analyer{}
 	singleAnalys.blockHeight = height
 	singleAnalys.status = true
 }
