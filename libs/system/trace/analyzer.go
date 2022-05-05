@@ -90,10 +90,10 @@ func newAnalys(height int64) {
 
 func OnAppBeginBlockEnter(height int64) {
 	newAnalys(height)
-	//if !dynamicConfig.GetEnableAnalyzer() {
-	//	openAnalyzer = false
-	//	return
-	//}
+	if !dynamicConfig.GetEnableAnalyzer() {
+		openAnalyzer = false
+		return
+	}
 	openAnalyzer = true
 	lastElapsedTime := GetElapsedInfo().GetElapsedTime()
 	if singlePprofDumper != nil && lastElapsedTime > singlePprofDumper.triggerAbciElapsed {

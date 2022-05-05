@@ -556,7 +556,7 @@ func NewOKExChainApp(
 
 	trace.GetTraceSummary().Init(
 		trace.Abci,
-		trace.ValTxMsgs,
+		//trace.ValTxMsgs,
 		trace.RunAnte,
 		trace.RunMsg,
 		trace.Refund,
