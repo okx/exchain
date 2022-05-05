@@ -12,6 +12,7 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
+	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/iavl"
@@ -112,18 +113,31 @@ func RepairState(ctx *server.Context, onStart bool) {
 		if onStart {
 			startVersion = commitVersion
 		} else {
+			if types.HigherThanMars(commitVersion) {
+				lastMptVersion := int64(repairApp.EvmKeeper.GetLatestStoredBlockHeight())
+				if lastMptVersion < commitVersion {
+					commitVersion = lastMptVersion
+				}
+			}
 			startVersion = commitVersion - 2 // case: state machine broken
 		}
 	}
 	if startVersion <= 0 {
 		panic("height too low, please restart from height 0 with genesis file")
 	}
+	log.Println(fmt.Sprintf("repair state at version = %d", startVersion))
 
 	err = repairApp.LoadStartVersion(startVersion)
 	panicError(err)
 
+	rawTrieDirtyDisabledFlag := viper.GetBool(mpttypes.FlagTrieDirtyDisabled)
+	mpttypes.TrieDirtyDisabled = true
+	repairApp.EvmKeeper.SetTargetMptVersion(startVersion)
+
 	// repair data by apply the latest two blocks
 	doRepair(ctx, state, stateStoreDB, proxyApp, startVersion, latestBlockHeight, dataDir)
+
+	mpttypes.TrieDirtyDisabled = rawTrieDirtyDisabledFlag
 }
 
 func createRepairApp(ctx *server.Context) (proxy.AppConns, *repairApp, error) {

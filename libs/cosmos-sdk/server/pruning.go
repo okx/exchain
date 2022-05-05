@@ -22,6 +22,7 @@ func GetPruningOptionsFromFlags() (types.PruningOptions, error) {
 		if strategy == types.PruningOptionNothing {
 			tmiavl.EnablePruningHistoryState = false
 			tmiavl.CommitIntervalHeight = 1
+			tmiavl.CommitGapHeight = 1
 		}
 		return types.NewPruningOptionsFromString(strategy), nil
 

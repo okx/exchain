@@ -1,6 +1,7 @@
 package types_test
 
 import (
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -122,6 +123,7 @@ var (
 //  },
 //]
 func (suite *StateDBTestSuite) TestGetHashFn() {
+	types2.UnittestOnlySetMilestoneMarsHeight(0)
 	testCase := []struct {
 		name         string
 		height       uint64
