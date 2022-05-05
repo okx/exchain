@@ -11,19 +11,16 @@ import (
 const FlagEnableAnalyzer string = "enable-analyzer"
 
 var (
-	singleAnalys *analyer
+	analyzer *Analyzer
 	openAnalyzer bool
-
 	dynamicConfig IDynamicConfig = MockDynamicConfig{}
-
 	forceAnalyzerTags map[string]struct{}
-
-	isParalleledTxOn bool
-	once             sync.Once
+	status            bool
+	once              sync.Once
 )
 
-func SetParalleledTxFlag(flag bool)  {
-	isParalleledTxOn = flag
+func EnableAnalyzer(flag bool)  {
+	status = flag
 }
 
 func initForceAnalyzerTags() {
@@ -36,7 +33,7 @@ func initForceAnalyzerTags() {
 
 func init() {
 	initForceAnalyzerTags()
-	singleAnalys = &analyer{}
+	analyzer = &Analyzer{}
 }
 
 func SetDynamicConfig(c IDynamicConfig) {
@@ -54,7 +51,7 @@ func (c MockDynamicConfig) GetEnableAnalyzer() bool {
 	return viper.GetBool(FlagEnableAnalyzer)
 }
 
-type analyer struct {
+type Analyzer struct {
 	status         bool
 	currentTxIndex int64
 	blockHeight    int64
@@ -77,14 +74,14 @@ func init() {
 	}
 }
 
-func newAnalys(height int64) {
-	*singleAnalys = analyer{}
-	singleAnalys.blockHeight = height
-	singleAnalys.status = true
+func newAnalyzer(height int64) {
+	*analyzer = Analyzer{}
+	analyzer.blockHeight = height
+	analyzer.status = status
 }
 
 func OnAppBeginBlockEnter(height int64) {
-	newAnalys(height)
+	newAnalyzer(height)
 	if !dynamicConfig.GetEnableAnalyzer() {
 		openAnalyzer = false
 		return
@@ -96,7 +93,7 @@ func OnAppBeginBlockEnter(height int64) {
 	}
 }
 
-func skip(a *analyer, oper string) bool {
+func skip(a *Analyzer, oper string) bool {
 	if a != nil {
 		if openAnalyzer {
 			return false
@@ -109,47 +106,47 @@ func skip(a *analyer, oper string) bool {
 }
 
 func OnAppDeliverTxEnter() {
-	if singleAnalys != nil {
-		singleAnalys.onAppDeliverTxEnter()
+	if analyzer != nil {
+		analyzer.onAppDeliverTxEnter()
 	}
 }
 
 func OnCommitDone() {
-	if singleAnalys != nil {
-		singleAnalys.onCommitDone()
+	if analyzer != nil {
+		analyzer.onCommitDone()
 	}
 }
 
 func StartTxLog(oper string) {
-	if !skip(singleAnalys, oper) {
-		singleAnalys.startTxLog(oper)
+	if !skip(analyzer, oper) {
+		analyzer.startTxLog(oper)
 	}
 }
 
 func StopTxLog(oper string) {
-	if !skip(singleAnalys, oper) {
-		singleAnalys.stopTxLog(oper)
+	if !skip(analyzer, oper) {
+		analyzer.stopTxLog(oper)
 	}
 }
 
-func (s *analyer) onAppDeliverTxEnter() {
+func (s *Analyzer) onAppDeliverTxEnter() {
 	if s.status {
 		s.newTxLog()
 	}
 }
 
-func (s *analyer) onCommitDone() {
+func (s *Analyzer) onCommitDone() {
 	if s.status {
 		s.format()
 	}
 }
 
-func (s *analyer) newTxLog() {
+func (s *Analyzer) newTxLog() {
 	s.currentTxIndex++
 	s.txs = append(s.txs, newTxLog())
 }
 
-func (s *analyer) startTxLog(oper string) {
+func (s *Analyzer) startTxLog(oper string) {
 	if s.status {
 		if s.currentTxIndex > 0 && int64(len(s.txs)) == s.currentTxIndex {
 			s.txs[s.currentTxIndex-1].StartTxLog(oper)
@@ -157,7 +154,7 @@ func (s *analyer) startTxLog(oper string) {
 	}
 }
 
-func (s *analyer) stopTxLog(oper string) {
+func (s *Analyzer) stopTxLog(oper string) {
 	if s.status {
 		if s.currentTxIndex > 0 && int64(len(s.txs)) == s.currentTxIndex {
 			s.txs[s.currentTxIndex-1].StopTxLog(oper)
@@ -166,7 +163,7 @@ func (s *analyer) stopTxLog(oper string) {
 }
 
 
-func (s *analyer) format() {
+func (s *Analyzer) format() {
 
 	evmcore, record := s.genRecord()
 
@@ -216,7 +213,7 @@ func addInfo(name string, keys []string, record map[string]int64) {
 	GetElapsedInfo().AddInfo(name, builder.String())
 }
 
-func (s *analyer) genRecord() (int64, map[string]int64) {
+func (s *Analyzer) genRecord() (int64, map[string]int64) {
 	var evmcore int64
 	var record = make(map[string]int64)
 	for _, v := range s.txs {

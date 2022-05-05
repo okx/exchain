@@ -2,6 +2,7 @@ package app
 
 import (
 	"github.com/okex/exchain/libs/system/trace"
+	sm "github.com/okex/exchain/libs/tendermint/state"
 	"io"
 	"math/big"
 	"os"
@@ -566,6 +567,9 @@ func NewOKExChainApp(
 	//	trace.SaveState,
 	//	trace.FireEvents,
 	//	)
+
+	enableAnalyzer := sm.DeliverTxsExecMode(viper.GetInt(sm.FlagDeliverTxsExecMode)) == sm.DeliverTxsExecModeSerial
+	trace.EnableAnalyzer(enableAnalyzer)
 	return app
 }
 
