@@ -4,14 +4,13 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/libs/system/trace"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/spf13/viper"
 	"reflect"
 	"runtime/debug"
 	"sync"
 	"time"
-
-	"github.com/okex/exchain/libs/tendermint/trace"
 
 	"github.com/pkg/errors"
 
@@ -2103,6 +2102,9 @@ func (cs *State) updatePrivValidatorPubKey() error {
 	return nil
 }
 
+func (cs *State) BlockExec() *sm.BlockExecutor {
+	return cs.blockExec
+}
 //---------------------------------------------------------
 
 func CompareHRS(h1 int64, r1 int, s1 cstypes.RoundStepType, h2 int64, r2 int, s2 cstypes.RoundStepType) int {

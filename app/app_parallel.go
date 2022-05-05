@@ -1,11 +1,16 @@
 package app
 
 import (
+	"encoding/hex"
+	"strings"
+
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
+	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
@@ -36,6 +41,10 @@ func preDeliverTxHandler(ak auth.AccountKeeper) sdk.PreDeliverTxHandler {
 				_ = evmTxVerifySigHandler(ctx.ChainID(), ctx.BlockHeight(), evmTx)
 			}
 
+			if types.HigherThanMars(ctx.BlockHeight()) {
+				return
+			}
+			
 			if onlyVerifySig {
 				return
 			}
@@ -60,4 +69,42 @@ func evmTxVerifySigHandler(chainID string, blockHeight int64, evmTx *evmtypes.Ms
 		return err
 	}
 	return nil
+}
+
+func getTxFeeHandler() sdk.GetTxFeeHandler {
+	return func(tx sdk.Tx) (fee sdk.Coins) {
+		if feeTx, ok := tx.(authante.FeeTx); ok {
+			fee = feeTx.GetFee()
+		}
+
+		return
+	}
+}
+
+// getTxFeeAndFromHandler get tx fee and from
+func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
+	return func(ctx sdk.Context, tx sdk.Tx) (fee sdk.Coins, isEvm bool, from string, to string, err error) {
+		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
+			isEvm = true
+			err = evmTx.VerifySig(evmTx.ChainID(), ctx.BlockHeight())
+			if err != nil {
+				return
+			}
+			fee = evmTx.GetFee()
+			from = evmTx.BaseTx.From
+			if len(from) > 2 {
+				from = strings.ToLower(from[2:])
+			}
+			if evmTx.To() != nil {
+				to = strings.ToLower(evmTx.To().String()[2:])
+			}
+		} else if feeTx, ok := tx.(authante.FeeTx); ok {
+			fee = feeTx.GetFee()
+			feePayer := feeTx.FeePayer(ctx)
+			feePayerAcc := ak.GetAccount(ctx, feePayer)
+			from = hex.EncodeToString(feePayerAcc.GetAddress())
+		}
+
+		return
+	}
 }

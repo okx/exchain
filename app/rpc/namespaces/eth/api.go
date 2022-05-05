@@ -19,7 +19,6 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
 	lru "github.com/hashicorp/golang-lru"
-
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
@@ -34,6 +33,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
 	cmserver "github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -1446,6 +1446,14 @@ func (api *PublicEthereumAPI) GetProof(address common.Address, storageKeys []str
 	if err != nil {
 		return nil, err
 	}
+	if blockNum == rpctypes.LatestBlockNumber {
+		n, err := api.BlockNumber()
+		if err != nil {
+			return nil, err
+		}
+		blockNum = rpctypes.BlockNumber(n)
+	}
+
 	clientCtx := api.clientCtx.WithHeight(int64(blockNum))
 	path := fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryAccount, address.Hex())
 
@@ -1454,10 +1462,17 @@ func (api *PublicEthereumAPI) GetProof(address common.Address, storageKeys []str
 	if err != nil {
 		return nil, err
 	}
-
-	var account evmtypes.QueryResAccount
+	var account *evmtypes.QueryResAccount
 	clientCtx.Codec.MustUnmarshalJSON(resBz, &account)
 
+	// query eth proof storage after MarsHeight
+	if tmtypes.HigherThanMars(int64(blockNum)) {
+		return api.getStorageProofInMpt(address, storageKeys, int64(blockNum), account)
+	}
+
+	/*
+	 * query cosmos proof before MarsHeight
+	 */
 	storageProofs := make([]rpctypes.StorageResult, len(storageKeys))
 	for i, k := range storageKeys {
 		data := append(evmtypes.AddressStoragePrefix(address), getStorageByAddressKey(address, common.HexToHash(k).Bytes()).Bytes()...)
@@ -1519,6 +1534,70 @@ func (api *PublicEthereumAPI) GetProof(address common.Address, storageKeys []str
 		StorageHash:  common.Hash{}, // Ethermint doesn't have a storage hash
 		StorageProof: storageProofs,
 	}, nil
+}
+
+func (api *PublicEthereumAPI) getStorageProofInMpt(address common.Address, storageKeys []string, blockNum int64, account *evmtypes.QueryResAccount) (*rpctypes.AccountResult, error) {
+	clientCtx := api.clientCtx.WithHeight(blockNum)
+
+	// query storage proof
+	storageProofs := make([]rpctypes.StorageResult, len(storageKeys))
+	for i, k := range storageKeys {
+		queryStr := fmt.Sprintf("custom/%s/%s/%s/%X", evmtypes.ModuleName, evmtypes.QueryStorageProof, address.Hex(), common.HexToHash(k).Bytes())
+		res, _, err := clientCtx.QueryWithData(queryStr, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		var out evmtypes.QueryResStorageProof
+		api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
+
+		storageProofs[i] = rpctypes.StorageResult{
+			Key:   k,
+			Value: (*hexutil.Big)(common.BytesToHash(out.Value).Big()),
+			Proof: toHexSlice(out.Proof),
+		}
+	}
+
+	// query account proof
+	req := abci.RequestQuery{
+		Path:   fmt.Sprintf("store/%s/key", mpt.StoreKey),
+		Data:   auth.AddressStoreKey(sdk.AccAddress(address.Bytes())),
+		Height: int64(blockNum),
+		Prove:  true,
+	}
+	res, err := clientCtx.QueryABCI(req)
+	if err != nil {
+		return nil, err
+	}
+	var accProofList mpt.ProofList
+	clientCtx.Codec.MustUnmarshalBinaryLengthPrefixed(res.GetProof().Ops[0].Data, &accProofList)
+
+	// query account storage Hash
+	queryStr := fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryStorageRoot, address.Hex())
+	storageRootBytes, _, err := clientCtx.QueryWithData(queryStr, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// return result
+	return &rpctypes.AccountResult{
+		Address:      address,
+		AccountProof: toHexSlice(accProofList),
+		Balance:      (*hexutil.Big)(utils.MustUnmarshalBigInt(account.Balance)),
+		CodeHash:     common.BytesToHash(account.CodeHash),
+		Nonce:        hexutil.Uint64(account.Nonce),
+		StorageHash:  common.BytesToHash(storageRootBytes),
+		StorageProof: storageProofs,
+	}, nil
+}
+
+// toHexSlice creates a slice of hex-strings based on []byte.
+func toHexSlice(b [][]byte) []string {
+	r := make([]string, len(b))
+	for i := range b {
+		r[i] = hexutil.Encode(b[i])
+	}
+	return r
 }
 
 // generateFromArgs populates tx message with args (used in RPC API)

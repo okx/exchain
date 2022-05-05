@@ -16,6 +16,9 @@ const (
 
 	// RouterKey uses module name for routing
 	RouterKey = ModuleName
+
+	// Store2Key represents the key for storing EVM state after MarsHeight upgraded
+	Store2Key = "evm2"
 )
 
 // KVStore key prefixes
@@ -28,6 +31,8 @@ var (
 	KeyPrefixHeightHash                  = []byte{0x07}
 	KeyPrefixContractDeploymentWhitelist = []byte{0x08}
 	KeyPrefixContractBlockedList         = []byte{0x09}
+
+	KeyPrefixEvmRootHash = []byte("evmRootHash")
 )
 
 // HeightHashKey returns the key for the given chain epoch and height.
