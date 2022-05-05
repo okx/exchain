@@ -9,7 +9,7 @@ import (
 	"github.com/okex/exchain/app/rpc/namespaces/eth/filters"
 	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils/sanity"
-	"github.com/okex/exchain/libs/system/analyzer"
+	"github.com/okex/exchain/libs/system/trace/analyzer"
 	"github.com/okex/exchain/libs/tendermint/consensus"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"

@@ -2,10 +2,7 @@ package trace
 
 import (
 	"fmt"
-	//"github.com/okex/exchain/libs/system/summary"
 	"time"
-
-	//"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 const (
@@ -106,7 +103,7 @@ func (t *Tracer) pinByFormat(tag string) {
 		t.pins = append(t.pins, t.lastPin)
 		duration := now.Sub(t.lastPinStartTime)
 		t.intervals = append(t.intervals, duration)
-		//summary.InsertElapse(t.lastPin, duration.Milliseconds())
+		InsertElapse(t.lastPin, duration.Milliseconds())
 	}
 	t.lastPinStartTime = now
 	t.lastPin = tag

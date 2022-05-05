@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	analyzer "github.com/okex/exchain/libs/system/analyzer"
+	analyzer "github.com/okex/exchain/libs/system/trace/analyzer"
 	"math/big"
 	"strings"
 

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/okex/exchain/libs/system/analyzer"
+	"github.com/okex/exchain/libs/system/trace/analyzer"
 	"log"
 
 	types2 "github.com/okex/exchain/x/evm/types"

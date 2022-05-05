@@ -1,7 +1,7 @@
 package simapp
 
 import (
-	"github.com/okex/exchain/libs/system/analyzer"
+	"github.com/okex/exchain/libs/system/trace/analyzer"
 	"io"
 	"math/big"
 	"os"

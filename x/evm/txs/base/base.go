@@ -1,7 +1,7 @@
 package base
 
 import (
-	"github.com/okex/exchain/libs/system/analyzer"
+	"github.com/okex/exchain/libs/system/trace/analyzer"
 	"math/big"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"

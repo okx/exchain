@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 	"github.com/okex/exchain/libs/system"
-	"github.com/okex/exchain/libs/system/analyzer"
+	"github.com/okex/exchain/libs/system/trace/analyzer"
 	"strconv"
 	"strings"
 	"sync"

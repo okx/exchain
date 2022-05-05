@@ -1,7 +1,7 @@
 package config
 
 import (
-	"github.com/okex/exchain/libs/system/analyzer"
+	"github.com/okex/exchain/libs/system/trace/analyzer"
 	"path"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/server"

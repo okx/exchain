@@ -8,7 +8,7 @@ import (
 	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	capabilityModule "github.com/okex/exchain/libs/cosmos-sdk/x/capability"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/genutil"
-	"github.com/okex/exchain/libs/system/analyzer"
+	"github.com/okex/exchain/libs/system/trace/analyzer"
 	commonversion "github.com/okex/exchain/x/common/version"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"

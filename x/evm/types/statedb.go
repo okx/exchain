@@ -2,7 +2,7 @@ package types
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/system/analyzer"
+	"github.com/okex/exchain/libs/system/trace/analyzer"
 	"math/big"
 	"sort"
 	"sync"
