@@ -1709,6 +1709,18 @@ func (api *PublicEthereumAPI) pendingMsgs() ([]sdk.Msg, error) {
 func (api *PublicEthereumAPI) accountNonce(
 	clientCtx clientcontext.CLIContext, address common.Address, pending bool,
 ) (uint64, error) {
+	return api.accountNonceInner(clientCtx, address, pending, api.wrappedBackend.GetAccount)
+}
+
+func (api *PublicEthereumAPI) accountNonceWithRdb(
+	clientCtx clientcontext.CLIContext, address common.Address, pending bool,
+) (uint64, error) {
+	return api.accountNonceInner(clientCtx, address, pending, api.wrappedBackend.MustGetAccount)
+}
+
+func (api *PublicEthereumAPI) accountNonceInner(
+	clientCtx clientcontext.CLIContext, address common.Address, pending bool,
+	getAccount func(accAddress sdk.AccAddress) (*ethermint.EthAccount, error)) (uint64, error) {
 	if pending {
 		// nonce is continuous in mempool txs
 		pendingNonce, ok := api.backend.GetPendingNonce(address.String())
@@ -1718,7 +1730,7 @@ func (api *PublicEthereumAPI) accountNonce(
 	}
 
 	// Get nonce (sequence) of account from  watch db
-	acc, err := api.wrappedBackend.GetAccount(address.Bytes())
+	acc, err := getAccount(address.Bytes())
 	if err == nil {
 		return acc.GetSequence(), nil
 	}
