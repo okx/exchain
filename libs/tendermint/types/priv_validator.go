@@ -106,11 +106,7 @@ func (pv MockPV) SignProposal(chainID string, proposal *Proposal) error {
 
 // Implements PrivValidator.
 func (pv MockPV) SignBytes(bz []byte) ([]byte, error) {
-	sig, err := pv.PrivKey.Sign(bz)
-	if err != nil {
-		return nil, err
-	}
-	return sig, nil
+	return pv.PrivKey.Sign(bz)
 }
 
 // String returns a string representation of the MockPV.
