@@ -78,8 +78,9 @@ func (suite *KeeperTestSuite) TestTransactionLogs() {
 	}
 	expLogs := []*ethtypes.Log{log}
 
-	suite.stateDB.WithContext(suite.ctx).SetLogs(expLogs)
-	logs := suite.stateDB.WithContext(suite.ctx).GetLogs()
+	suite.stateDB.WithContext(suite.ctx).SetLogs(ethHash, expLogs)
+	logs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(ethHash)
+	suite.Require().NoError(err)
 	suite.Require().Equal(expLogs, logs)
 
 	expLogs = []*ethtypes.Log{log, log2}
@@ -93,8 +94,9 @@ func (suite *KeeperTestSuite) TestTransactionLogs() {
 	}
 
 	expLogs = append(expLogs, log3)
-	suite.stateDB.WithContext(suite.ctx).SetLogs(expLogs)
-	txLogs := suite.stateDB.WithContext(suite.ctx).GetLogs()
+	suite.stateDB.WithContext(suite.ctx).SetLogs(ethHash, expLogs)
+	txLogs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(ethHash)
+	suite.Require().NoError(err)
 	suite.Require().Equal(3, len(txLogs))
 
 	suite.Require().Equal(ethHash.String(), txLogs[0].TxHash.String())
@@ -141,8 +143,7 @@ func (suite *KeeperTestSuite) TestDBStorage() {
 	bloom := suite.app.EvmKeeper.GetBlockBloom(suite.ctx, 4)
 	suite.Require().Equal(bloom, testBloom)
 
-	err := suite.stateDB.WithContext(suite.ctx).Finalise(false)
-	suite.Require().NoError(err, "failed to finalise evm state")
+	suite.stateDB.WithContext(suite.ctx).IntermediateRoot(false)
 
 	stg, err := suite.app.EvmKeeper.GetAccountStorage(suite.ctx, suite.address)
 	suite.Require().NoError(err, "failed to get account storage")
