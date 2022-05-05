@@ -11,7 +11,6 @@ import (
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 
 	"github.com/ethereum/go-ethereum/common"
-	rpctypes "github.com/okex/exchain/app/rpc/types"
 	ethermint "github.com/okex/exchain/app/types"
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -103,8 +102,7 @@ func (pool *TxPool) initDB(api *PublicEthereumAPI) error {
 		if int(tx.Data.AccountNonce) != txNonce {
 			return fmt.Errorf("nonce[%d] in key is not equal to nonce[%d] in value", tx.Data.AccountNonce, txNonce)
 		}
-		blockNrOrHash := rpctypes.BlockNumberOrHashWithNumber(rpctypes.PendingBlockNumber)
-		pCurrentNonce, err := api.GetTransactionCount(address, blockNrOrHash)
+		pCurrentNonce, err := api.GetTransactionPendingCountInternal(address)
 		if err != nil {
 			return err
 		}
@@ -152,8 +150,7 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 
 func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.Address, tx *evmtypes.MsgEthereumTx) error {
 	// get currentNonce
-	blockNrOrHash := rpctypes.BlockNumberOrHashWithNumber(rpctypes.PendingBlockNumber)
-	pCurrentNonce, err := api.GetTransactionCount(address, blockNrOrHash)
+	pCurrentNonce, err := api.GetTransactionPendingCountInternal(address)
 	if err != nil {
 		return err
 	}
@@ -343,9 +340,8 @@ func (pool *TxPool) broadcastPeriod(api *PublicEthereumAPI) {
 func (pool *TxPool) broadcastPeriodCore(api *PublicEthereumAPI) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-	blockNrOrHash := rpctypes.BlockNumberOrHashWithNumber(rpctypes.PendingBlockNumber)
 	for address, _ := range pool.addressTxsPool {
-		pCurrentNonce, err := api.GetTransactionCount(address, blockNrOrHash)
+		pCurrentNonce, err := api.GetTransactionPendingCountInternal(address)
 		if err != nil {
 			pool.logger.Error(err.Error())
 			continue
@@ -359,9 +355,8 @@ func (pool *TxPool) broadcastPeriodCore(api *PublicEthereumAPI) {
 func (pool *TxPool) broadcastOnce(api *PublicEthereumAPI) {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-	blockNrOrHash := rpctypes.BlockNumberOrHashWithNumber(rpctypes.PendingBlockNumber)
 	for address, _ := range pool.addressTxsPool {
-		pCurrentNonce, err := api.GetTransactionCount(address, blockNrOrHash)
+		pCurrentNonce, err := api.GetTransactionPendingCountInternal(address)
 		if err != nil {
 			continue
 		}

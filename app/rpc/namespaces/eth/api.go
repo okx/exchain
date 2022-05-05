@@ -489,6 +489,17 @@ func (api *PublicEthereumAPI) GetStorageAtInternal(address common.Address, key [
 	return api.getStorageAt(address, key, 0, true)
 }
 
+func (api *PublicEthereumAPI) GetTransactionPendingCountInternal(address common.Address) (*hexutil.Uint64, error) {
+	clientCtx := api.clientCtx
+	nonce, err := api.accountNonce(clientCtx, address, true)
+	if err != nil {
+		return nil, err
+	}
+
+	n := hexutil.Uint64(nonce)
+	return &n, nil
+}
+
 // GetTransactionCount returns the number of transactions at the given address up to the given block number.
 func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockNrOrHash rpctypes.BlockNumberOrHash) (*hexutil.Uint64, error) {
 	monitor := monitor.GetMonitor("eth_getTransactionCount", api.logger, api.Metrics).OnBegin()
@@ -505,7 +516,7 @@ func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockN
 		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
 	}
 
-	nonce, err := api.accountNonce(clientCtx, address, pending)
+	nonce, err := api.accountNonceWithRdb(clientCtx, address, pending)
 	if err != nil {
 		return nil, err
 	}
