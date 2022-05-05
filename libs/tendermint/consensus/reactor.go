@@ -568,8 +568,8 @@ OUTER_LOOP:
 
 		// Send proposal Block parts?
 		if rs.ProposalBlockParts.HasHeader(prs.ProposalBlockPartsHeader) {
-			if index, ok := rs.ProposalBlockParts.BitArray().Sub(prs.ProposalBlockParts.Copy()).PickRandom(); ok {
-				part := rs.ProposalBlockParts.GetPart(index)
+			for i := 0; i < rs.ProposalBlockParts.Total(); i++ {
+				part := rs.ProposalBlockParts.GetPart(i)
 				msg := &BlockPartMessage{
 					Height: rs.Height, // This tells peer that this part applies to us.
 					Round:  rs.Round,  // This tells peer that this part applies to us.
@@ -577,10 +577,11 @@ OUTER_LOOP:
 				}
 				logger.Debug("Sending block part", "height", prs.Height, "round", prs.Round)
 				if peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg)) {
-					ps.SetHasProposalBlockPart(prs.Height, prs.Round, index)
+					ps.SetHasProposalBlockPart(prs.Height, prs.Round, i)
 				}
-				continue OUTER_LOOP
 			}
+			time.Sleep(conR.conS.config.PeerGossipSleepDuration * 2)
+			continue OUTER_LOOP
 		}
 
 		// If the peer is on a previous height that we have, help catch up.
@@ -617,7 +618,7 @@ OUTER_LOOP:
 		// Now consider sending other things, like the Proposal itself.
 
 		// Send Proposal && ProposalPOL BitArray?
-		if rs.Proposal != nil && !prs.Proposal {
+		if rs.Proposal != nil {
 			// Proposal: share the proposal metadata with peer.
 			{
 				msg := &ProposalMessage{Proposal: rs.Proposal}
@@ -640,6 +641,7 @@ OUTER_LOOP:
 				logger.Debug("Sending POL", "height", prs.Height, "round", prs.Round)
 				peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg))
 			}
+			time.Sleep(conR.conS.config.PeerGossipSleepDuration * 2)
 			continue OUTER_LOOP
 		}
 
