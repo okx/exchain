@@ -554,19 +554,6 @@ func NewOKExChainApp(
 	// NOTE: the IBC mock keeper and application module is used only for testing core IBC. Do
 	// note replicate if you do not need to test core IBC or light clients.
 	app.ScopedIBCMockKeeper = scopedIBCMockKeeper
-	//
-	//trace.GetTraceSummary().Init(
-	//	trace.Abci,
-	//	//trace.ValTxMsgs,
-	//	trace.RunAnte,
-	//	trace.RunMsg,
-	//	trace.Refund,
-	//	trace.SaveResp,
-	//	trace.Persist,
-	//	trace.Evpool,
-	//	trace.SaveState,
-	//	trace.FireEvents,
-	//	)
 
 	enableAnalyzer := sm.DeliverTxsExecMode(viper.GetInt(sm.FlagDeliverTxsExecMode)) == sm.DeliverTxsExecModeSerial
 	trace.EnableAnalyzer(enableAnalyzer)
