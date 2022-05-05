@@ -5,43 +5,6 @@ import (
 	"time"
 )
 
-const (
-	GasUsed          = "GasUsed"
-	Produce          = "Produce"
-	RunTx            = "RunTx"
-	Height           = "Height"
-	Tx               = "Tx"
-	BlockSize        = "BlockSize"
-	Elapsed          = "Elapsed"
-	CommitRound      = "CommitRound"
-	Round            = "Round"
-	Evm              = "Evm"
-	Iavl             = "Iavl"
-	FlatKV           = "FlatKV"
-	WtxRatio         = "WtxRatio"
-	SigCacheRatio    = "SigCacheRatio"
-	DeliverTxs       = "DeliverTxs"
-	EvmHandlerDetail = "EvmHandlerDetail"
-	RunAnteDetail    = "RunAnteDetail"
-	AnteChainDetail  = "AnteChainDetail"
-
-	Delta = "Delta"
-
-	Abci       = "abci"
-	InvalidTxs = "InvalidTxs"
-	SaveResp   = "saveResp"
-	Persist    = "persist"
-	SaveState  = "saveState"
-
-	ApplyBlock = "ApplyBlock"
-	Consensus  = "Consensus"
-
-	MempoolCheckTxCnt = "checkTxCnt"
-	MempoolTxsCnt     = "mempoolTxsCnt"
-
-	Prerun = "Prerun"
-)
-
 type IElapsedTimeInfos interface {
 	AddInfo(key string, info string)
 	Dump(logger interface{})

@@ -3,14 +3,10 @@ package analyzer
 import (
 	"fmt"
 	"github.com/okex/exchain/libs/system/trace"
-
-	//"github.com/okex/exchain/libs/system/trace"
+	"github.com/spf13/viper"
 	"strconv"
 	"strings"
 	"sync"
-
-	sm "github.com/okex/exchain/libs/tendermint/state"
-	"github.com/spf13/viper"
 )
 
 const FlagEnableAnalyzer string = "enable-analyzer"
@@ -25,7 +21,7 @@ var (
 
 	forceAnalyzerTags map[string]struct{}
 
-	isParalleledTxOn *bool
+	isParalleledTxOn bool
 	insertElapse     insertFuncType
 	once             sync.Once
 )
@@ -34,6 +30,10 @@ func SetInsertFunc(f insertFuncType)  {
 	once.Do(func() {
 		insertElapse = f
 	})
+}
+
+func SetParalleledTxFlag(flag bool)  {
+	isParalleledTxOn = flag
 }
 
 func initForceAnalyzerTags() {
@@ -87,14 +87,9 @@ func init() {
 }
 
 func newAnalys(height int64) {
-	if isParalleledTxOn == nil {
-		isParalleledTxOn = new(bool)
-		*isParalleledTxOn =  sm.DeliverTxsExecMode(viper.GetInt(sm.FlagDeliverTxsExecMode)) != sm.DeliverTxsExecModeParallel
-	}
-
 	singleAnalys = &analyer{}
 	singleAnalys.blockHeight = height
-	singleAnalys.status = *isParalleledTxOn
+	singleAnalys.status = isParalleledTxOn
 }
 
 func OnAppBeginBlockEnter(height int64) {
