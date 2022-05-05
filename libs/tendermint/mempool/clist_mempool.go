@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/libs/system/trace"
 	"math/big"
 	"sort"
 	"sync"
@@ -20,7 +21,6 @@ import (
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	"github.com/okex/exchain/libs/tendermint/proxy"
-	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/pkg/errors"
 )

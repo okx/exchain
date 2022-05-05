@@ -1,15 +1,14 @@
 package base
 
 import (
+	bam "github.com/okex/exchain/libs/system/trace"
 	"math/big"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
-	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/types"
 )
@@ -132,11 +131,11 @@ func NewTx(config Config) *Tx {
 }
 
 func (tx *Tx) AnalyzeStart(tag string) {
-	analyzer.StartTxLog(tag)
+	bam.StartTxLog(tag)
 }
 
 func (tx *Tx) AnalyzeStop(tag string) {
-	analyzer.StopTxLog(tag)
+	bam.StopTxLog(tag)
 }
 
 // SaveTx check Tx do not transition state db
