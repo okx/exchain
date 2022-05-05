@@ -46,7 +46,7 @@ func (s *Summary) Dump(context string)  {
 		res += fmt.Sprintf("%s=%d, ", k, s.statisticMap[k])
 	}
 	//systemlog.Println("Elapse Summary", context, res)
-	fmt.Printf("Elapse Summary\n", context, res)
+	fmt.Printf("Elapse Summary: %s\n", res)
 }
 
 func (s *Summary) insert(tag string, elapse int64)  {
