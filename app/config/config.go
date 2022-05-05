@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"github.com/okex/exchain/libs/system"
+	"github.com/okex/exchain/libs/system/analyzer"
 	"strconv"
 	"strings"
 	"sync"
@@ -13,8 +14,6 @@ import (
 	tmconfig "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/state"
-	"github.com/okex/exchain/x/common/analyzer"
-
 	"github.com/spf13/viper"
 )
 

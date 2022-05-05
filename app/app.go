@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/okex/exchain/libs/system/analyzer"
 	"io"
 	"math/big"
 	"os"
@@ -48,7 +49,6 @@ import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/ammswap"
-	"github.com/okex/exchain/x/common/analyzer"
 	commonversion "github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/dex"
 	dexclient "github.com/okex/exchain/x/dex/client"

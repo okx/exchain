@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	analyzer "github.com/okex/exchain/libs/system/analyzer"
 	"math/big"
 	"strings"
 
@@ -16,7 +17,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/innertx"
-	"github.com/okex/exchain/x/common/analyzer"
 )
 
 // StateTransition defines data to transitionDB in evm

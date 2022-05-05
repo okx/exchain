@@ -1,11 +1,10 @@
 package config
 
 import (
+	"github.com/okex/exchain/libs/system/analyzer"
 	"path"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
-
-	"github.com/okex/exchain/x/common/analyzer"
 
 	"github.com/mosn/holmes"
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
