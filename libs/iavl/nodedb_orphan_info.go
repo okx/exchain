@@ -101,7 +101,6 @@ func (oi *OrphanInfo) feedOrphanNodeCache(node *Node) {
 	oi.orphanNodeCache[string(node.hash)] = node
 }
 
-
 func (oi *OrphanInfo) getNodeFromOrphanCache(hash []byte) *Node {
 	elem, ok := oi.orphanNodeCache[string(hash)]
 	if ok {
