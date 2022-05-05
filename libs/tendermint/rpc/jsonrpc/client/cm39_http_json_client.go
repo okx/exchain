@@ -10,8 +10,8 @@ var (
 	defaultCM39ErrorHit = func(e error) bool {
 		return strings.Contains(e.Error(), "error unmarshalling result")
 	}
-	defaultCM39ResultTXBefore  = func() interface{} { return new(coretypes.CM39ResultTx) }
-	defaultCM39ResultABCIQuery = func() interface{} { return new(coretypes.CM39ResultABCIQuery) }
+	defaultCM39ResultTXBefore  = func() interface{} { return new(CM39ResultTx) }
+	defaultCM39ResultABCIQuery = func() interface{} { return new(CM39ResultABCIQuery) }
 )
 
 type couple struct {
@@ -31,7 +31,7 @@ func (c *Cm39HttpJSONClientAdapter) seal() {
 		onHitError: defaultCM39ErrorHit,
 		before:     defaultCM39ResultTXBefore,
 		after: func(beforeReturnV interface{}, originV interface{}) {
-			cm39 := beforeReturnV.(*coretypes.CM39ResultTx)
+			cm39 := beforeReturnV.(*CM39ResultTx)
 			cm4 := originV.(*coretypes.ResultTx)
 			ConvCM39ToCM4(cm39, cm4)
 		},
@@ -40,7 +40,7 @@ func (c *Cm39HttpJSONClientAdapter) seal() {
 		onHitError: defaultCM39ErrorHit,
 		before:     defaultCM39ResultABCIQuery,
 		after: func(beforeReturnV interface{}, originV interface{}) {
-			cm39 := beforeReturnV.(*coretypes.CM39ResultABCIQuery)
+			cm39 := beforeReturnV.(*CM39ResultABCIQuery)
 			cm4 := originV.(*coretypes.ResultABCIQuery)
 			ConvTCM39ResultABCIQuery2CM4(cm39, cm4)
 		},
