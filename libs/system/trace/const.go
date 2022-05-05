@@ -1,4 +1,4 @@
-package analyzer
+package trace
 
 const (
 	READ         = 1

@@ -9,7 +9,7 @@ import (
 	"github.com/okex/exchain/app/rpc/namespaces/eth/filters"
 	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils/sanity"
-	"github.com/okex/exchain/libs/system/trace/analyzer"
+	"github.com/okex/exchain/libs/system/trace"
 	"github.com/okex/exchain/libs/tendermint/consensus"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
@@ -100,7 +100,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 
 	cmd.Flags().Bool(app.FlagEnableRepairState, false, "Enable auto repair state on start")
 
-	cmd.Flags().Bool(analyzer.FlagEnableAnalyzer, false, "Enable auto open log analyzer")
+	cmd.Flags().Bool(trace.FlagEnableAnalyzer, false, "Enable auto open log analyzer")
 	cmd.Flags().Bool(sanity.FlagDisableSanity, false, "Disable sanity check")
 	cmd.Flags().Int(tmtypes.FlagSigCacheSize, 200000, "Maximum number of signatures in the cache")
 }

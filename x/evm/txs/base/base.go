@@ -2,7 +2,6 @@ package base
 
 import (
 	bam "github.com/okex/exchain/libs/system/trace"
-	"github.com/okex/exchain/libs/system/trace/analyzer"
 	"math/big"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -132,11 +131,11 @@ func NewTx(config Config) *Tx {
 }
 
 func (tx *Tx) AnalyzeStart(tag string) {
-	analyzer.StartTxLog(tag)
+	bam.StartTxLog(tag)
 }
 
 func (tx *Tx) AnalyzeStop(tag string) {
-	analyzer.StopTxLog(tag)
+	bam.StopTxLog(tag)
 }
 
 // SaveTx check Tx do not transition state db

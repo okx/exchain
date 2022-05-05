@@ -1,8 +1,7 @@
-package analyzer
+package trace
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/system/trace"
 	"github.com/spf13/viper"
 	"strconv"
 	"strings"
@@ -38,9 +37,9 @@ func SetParalleledTxFlag(flag bool)  {
 
 func initForceAnalyzerTags() {
 	forceAnalyzerTags = map[string]struct{}{
-		trace.RunAnte: {},
-		trace.Refund:  {},
-		trace.RunMsg:  {},
+		RunAnte: {},
+		Refund:  {},
+		RunMsg:  {},
 	}
 }
 
@@ -99,7 +98,7 @@ func OnAppBeginBlockEnter(height int64) {
 		return
 	}
 	openAnalyzer = true
-	lastElapsedTime := trace.GetElapsedInfo().GetElapsedTime()
+	lastElapsedTime := GetElapsedInfo().GetElapsedTime()
 	if singlePprofDumper != nil && lastElapsedTime > singlePprofDumper.triggerAbciElapsed {
 		singlePprofDumper.cpuProfile(height)
 	}
@@ -194,7 +193,7 @@ func (s *analyer) format() {
 	}
 
 	// evm
-	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
+	GetElapsedInfo().AddInfo(Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
 }
 
 // formatRecord format the record in the format fmt.Sprintf(", %s<%dms>", v, record[v])
@@ -224,7 +223,7 @@ func addInfo(name string, keys []string, record map[string]int64) {
 	for _, v := range strs {
 		builder.WriteString(v)
 	}
-	trace.GetElapsedInfo().AddInfo(name, builder.String())
+	GetElapsedInfo().AddInfo(name, builder.String())
 }
 
 func (s *analyer) genRecord() (int64, map[string]int64) {
@@ -256,11 +255,11 @@ func (s *analyer) genRecord() (int64, map[string]int64) {
 func formatNecessaryDeliverTx(record map[string]int64) {
 	// deliver txs
 	var deliverTxsKeys = []string{
-		trace.RunAnte,
-		trace.RunMsg,
-		trace.Refund,
+		RunAnte,
+		RunMsg,
+		Refund,
 	}
-	addInfo(trace.DeliverTxs, deliverTxsKeys, record)
+	addInfo(DeliverTxs, deliverTxsKeys, record)
 }
 
 func formatDeliverTx(record map[string]int64) {
@@ -273,13 +272,13 @@ func formatDeliverTx(record map[string]int64) {
 		//bam.RunTx,
 		//----- run_tx
 		//bam.InitCtx,
-		trace.ValTxMsgs,
-		trace.RunAnte,
-		trace.RunMsg,
-		trace.Refund,
-		trace.EvmHandler,
+		ValTxMsgs,
+		RunAnte,
+		RunMsg,
+		Refund,
+		EvmHandler,
 	}
-	addInfo(trace.DeliverTxs, deliverTxsKeys, record)
+	addInfo(DeliverTxs, deliverTxsKeys, record)
 }
 
 func formatEvmHandlerDetail(record map[string]int64) {
@@ -292,26 +291,26 @@ func formatEvmHandlerDetail(record map[string]int64) {
 		//bam.EvmHandler,
 		//bam.ParseChainID,
 		//bam.VerifySig,
-		trace.Txhash,
-		trace.SaveTx,
-		trace.TransitionDb,
+		Txhash,
+		SaveTx,
+		TransitionDb,
 		//bam.Bloomfilter,
 		//bam.EmitEvents,
 		//bam.HandlerDefer,
 		//-----
 	}
-	addInfo(trace.EvmHandlerDetail, evmHandlerKeys, record)
+	addInfo(EvmHandlerDetail, evmHandlerKeys, record)
 }
 
 func formatRunAnteDetail(record map[string]int64) {
 
 	// ante
 	var anteKeys = []string{
-		trace.CacheTxContext,
-		trace.AnteChain,
-		trace.AnteOther,
-		trace.CacheStoreWrite,
+		CacheTxContext,
+		AnteChain,
+		AnteOther,
+		CacheStoreWrite,
 	}
-	addInfo(trace.RunAnteDetail, anteKeys, record)
+	addInfo(RunAnteDetail, anteKeys, record)
 
 }

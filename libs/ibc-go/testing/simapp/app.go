@@ -1,7 +1,7 @@
 package simapp
 
 import (
-	"github.com/okex/exchain/libs/system/trace/analyzer"
+	"github.com/okex/exchain/libs/system/trace"
 	"io"
 	"math/big"
 	"os"
@@ -256,8 +256,8 @@ func NewSimApp(
 
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
-	bApp.SetStartLogHandler(analyzer.StartTxLog)
-	bApp.SetEndLogHandler(analyzer.StopTxLog)
+	bApp.SetStartLogHandler(trace.StartTxLog)
+	bApp.SetEndLogHandler(trace.StopTxLog)
 
 	bApp.SetInterfaceRegistry(interfaceReg)
 

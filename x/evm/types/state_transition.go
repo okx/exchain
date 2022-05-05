@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	analyzer "github.com/okex/exchain/libs/system/trace/analyzer"
+	"github.com/okex/exchain/libs/system/trace"
 	"math/big"
 	"strings"
 
@@ -154,12 +154,12 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	StartTxLog := func(tag string) {
 		if !ctx.IsCheckTx() {
-			analyzer.StartTxLog(tag)
+			trace.StartTxLog(tag)
 		}
 	}
 	StopTxLog := func(tag string) {
 		if !ctx.IsCheckTx() {
-			analyzer.StopTxLog(tag)
+			trace.StopTxLog(tag)
 		}
 	}
 
@@ -220,8 +220,8 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 			return exeRes, resData, ErrUnauthorizedAccount(senderAccAddr), innerTxs, erc20Contracts
 		}
 
-		StartTxLog(analyzer.EVMCORE)
-		defer StopTxLog(analyzer.EVMCORE)
+		StartTxLog(trace.EVMCORE)
+		defer StopTxLog(trace.EVMCORE)
 		ret, contractAddress, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
 
 		contractAddressStr := EthAddressToString(&contractAddress)
@@ -239,8 +239,8 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 		// Increment the nonce for the next transaction	(just for evm state transition)
 		csdb.SetNonce(st.Sender, csdb.GetNonce(st.Sender)+1)
-		StartTxLog(analyzer.EVMCORE)
-		defer StopTxLog(analyzer.EVMCORE)
+		StartTxLog(trace.EVMCORE)
+		defer StopTxLog(trace.EVMCORE)
 		ret, leftOverGas, err = evm.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
 
 		if recipientStr == "" {

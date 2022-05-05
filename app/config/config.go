@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 	"github.com/okex/exchain/libs/system"
-	"github.com/okex/exchain/libs/system/trace/analyzer"
+	"github.com/okex/exchain/libs/system/trace"
 	"strconv"
 	"strings"
 	"sync"
@@ -172,7 +172,7 @@ func RegisterDynamicConfig(logger log.Logger) {
 	oecConfig := GetOecConfig()
 	tmconfig.SetDynamicConfig(oecConfig)
 	iavlconfig.SetDynamicConfig(oecConfig)
-	analyzer.SetDynamicConfig(oecConfig)
+	trace.SetDynamicConfig(oecConfig)
 }
 
 func (c *OecConfig) loadFromConfig() {
@@ -194,7 +194,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetIavlCacheSize(viper.GetInt(iavl.FlagIavlCacheSize))
 	c.SetNodeKeyWhitelist(viper.GetString(FlagNodeKeyWhitelist))
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
-	c.SetEnableAnalyzer(viper.GetBool(analyzer.FlagEnableAnalyzer))
+	c.SetEnableAnalyzer(viper.GetBool(trace.FlagEnableAnalyzer))
 	c.SetDeliverTxsExecuteMode(viper.GetInt(state.FlagDeliverTxsExecMode))
 }
 
@@ -357,7 +357,7 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetIavlCacheSize(r)
-	case analyzer.FlagEnableAnalyzer:
+	case trace.FlagEnableAnalyzer:
 		r, err := strconv.ParseBool(v)
 		if err != nil {
 			return
