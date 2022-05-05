@@ -10,8 +10,6 @@ import (
 
 const FlagEnableAnalyzer string = "enable-analyzer"
 
-type insertFuncType func(tag string, elaspe int64)
-
 var (
 	singleAnalys *analyer
 	openAnalyzer bool
@@ -21,15 +19,14 @@ var (
 	forceAnalyzerTags map[string]struct{}
 
 	isParalleledTxOn bool
-	insertElapse     insertFuncType
 	once             sync.Once
 )
 
-func SetInsertFunc(f insertFuncType)  {
-	once.Do(func() {
-		insertElapse = f
-	})
-}
+//func SetInsertFunc(f insertFuncType)  {
+//	once.Do(func() {
+//		insertElapse = f
+//	})
+//}
 
 func SetParalleledTxFlag(flag bool)  {
 	isParalleledTxOn = flag
@@ -88,15 +85,15 @@ func init() {
 func newAnalys(height int64) {
 	singleAnalys = &analyer{}
 	singleAnalys.blockHeight = height
-	singleAnalys.status = isParalleledTxOn
+	singleAnalys.status = true
 }
 
 func OnAppBeginBlockEnter(height int64) {
 	newAnalys(height)
-	if !dynamicConfig.GetEnableAnalyzer() {
-		openAnalyzer = false
-		return
-	}
+	//if !dynamicConfig.GetEnableAnalyzer() {
+	//	openAnalyzer = false
+	//	return
+	//}
 	openAnalyzer = true
 	lastElapsedTime := GetElapsedInfo().GetElapsedTime()
 	if singlePprofDumper != nil && lastElapsedTime > singlePprofDumper.triggerAbciElapsed {
@@ -186,10 +183,8 @@ func (s *analyer) format() {
 	formatRunAnteDetail(record)
 	formatEvmHandlerDetail(record)
 
-	if insertElapse != nil {
-		for k, v := range record {
-			insertElapse(k, v)
-		}
+	for k, v := range record {
+		insertElapse(k, v)
 	}
 
 	// evm
@@ -276,7 +271,7 @@ func formatDeliverTx(record map[string]int64) {
 		RunAnte,
 		RunMsg,
 		Refund,
-		EvmHandler,
+		//EvmHandler,
 	}
 	addInfo(DeliverTxs, deliverTxsKeys, record)
 }

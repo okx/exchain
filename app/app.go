@@ -554,6 +554,18 @@ func NewOKExChainApp(
 	// note replicate if you do not need to test core IBC or light clients.
 	app.ScopedIBCMockKeeper = scopedIBCMockKeeper
 
+	trace.GetTraceSummary().Init(
+		trace.Abci,
+		trace.ValTxMsgs,
+		trace.RunAnte,
+		trace.RunMsg,
+		trace.Refund,
+		trace.SaveResp,
+		trace.Persist,
+		trace.Evpool,
+		trace.SaveState,
+		trace.FireEvents,
+		)
 	return app
 }
 

@@ -66,7 +66,7 @@ func (t *Tracer) pinByFormat(tag string) {
 		t.pins = append(t.pins, t.lastPin)
 		duration := now.Sub(t.lastPinStartTime)
 		t.intervals = append(t.intervals, duration)
-		InsertElapse(t.lastPin, duration.Milliseconds())
+		insertElapse(t.lastPin, duration.Milliseconds())
 	}
 	t.lastPinStartTime = now
 	t.lastPin = tag

@@ -268,7 +268,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	}
 	global.SetGlobalHeight(block.Height)
 
-	trc.Pin("evpool")
+	trc.Pin(trace.Evpool)
 	// Update evpool with the block and state.
 	blockExec.evpool.Update(block, state)
 
@@ -279,7 +279,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data
 	blockExec.trySaveStateAsync(state)
-	trc.Pin("fireEvents")
+	trc.Pin(trace.FireEvents)
 
 	blockExec.logger.Debug("SaveState", "state", &state)
 	fail.Fail() // XXX
