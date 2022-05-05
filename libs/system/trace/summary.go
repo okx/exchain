@@ -1,7 +1,9 @@
 package trace
 
 import (
+	"fmt"
 	systemlog "log"
+
 	//"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
@@ -41,9 +43,11 @@ func (s *Summary) Init(keys ...string)  {
 
 
 func (s *Summary) Dump2()  {
+	var res string
 	for _, k := range s.keys {
-		systemlog.Println("Summary", k, s.statisticMap[k])
+		res += fmt.Sprintf("%s=%d, ", k, s.statisticMap[k])
 	}
+	systemlog.Println("Summary", "res", res)
 }
 
 func (s *Summary) insert(tag string, elapse int64)  {
