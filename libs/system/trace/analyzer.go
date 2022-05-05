@@ -175,6 +175,10 @@ func (s *analyer) format() {
 
 	evmcore, record := s.genRecord()
 
+	for k, v := range record {
+		insertElapse(k, v)
+	}
+
 	if !openAnalyzer {
 		formatNecessaryDeliverTx(record)
 		return
@@ -182,10 +186,6 @@ func (s *analyer) format() {
 	formatDeliverTx(record)
 	formatRunAnteDetail(record)
 	formatEvmHandlerDetail(record)
-
-	for k, v := range record {
-		insertElapse(k, v)
-	}
 
 	// evm
 	GetElapsedInfo().AddInfo(Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
