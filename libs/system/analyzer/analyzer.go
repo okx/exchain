@@ -3,8 +3,11 @@ package analyzer
 import (
 	"fmt"
 	"github.com/okex/exchain/libs/system/trace"
+
+	//"github.com/okex/exchain/libs/system/trace"
 	"strconv"
 	"strings"
+	"sync"
 
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sm "github.com/okex/exchain/libs/tendermint/state"
@@ -12,6 +15,8 @@ import (
 )
 
 const FlagEnableAnalyzer string = "enable-analyzer"
+
+type insertFuncType func(tag string, elaspe int64)
 
 var (
 	singleAnalys *analyer
@@ -22,7 +27,15 @@ var (
 	forceAnalyzerTags map[string]struct{}
 
 	isParalleledTxOn *bool
+	insertElapse     insertFuncType
+	once             sync.Once
 )
+
+func SetInsertFunc(f insertFuncType)  {
+	once.Do(func() {
+		insertElapse = f
+	})
+}
 
 func initForceAnalyzerTags() {
 	forceAnalyzerTags = map[string]struct{}{
@@ -79,11 +92,8 @@ func newAnalys(height int64) {
 		isParalleledTxOn = new(bool)
 		*isParalleledTxOn =  sm.DeliverTxsExecMode(viper.GetInt(sm.FlagDeliverTxsExecMode)) != sm.DeliverTxsExecModeParallel
 	}
-	if singleAnalys == nil {
-		singleAnalys = &analyer{}
-	} else {
-		*singleAnalys = analyer{}
-	}
+
+	singleAnalys = &analyer{}
 	singleAnalys.blockHeight = height
 	singleAnalys.status = *isParalleledTxOn
 }
@@ -169,6 +179,8 @@ func (s *analyer) stopTxLog(oper string) {
 		}
 	}
 }
+
+
 func (s *analyer) format() {
 
 	evmcore, record := s.genRecord()
@@ -180,6 +192,13 @@ func (s *analyer) format() {
 	formatDeliverTx(record)
 	formatRunAnteDetail(record)
 	formatEvmHandlerDetail(record)
+
+	if insertElapse != nil {
+		for k, v := range record {
+			insertElapse(k, v)
+		}
+	}
+
 	// evm
 	trace.GetElapsedInfo().AddInfo(trace.Evm, fmt.Sprintf(EVM_FORMAT, s.dbRead, s.dbWrite, evmcore-s.dbRead-s.dbWrite))
 }
