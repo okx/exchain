@@ -2,7 +2,6 @@ package iavl
 
 import (
 	"github.com/tendermint/go-amino"
-	"sync/atomic"
 )
 
 func (ndb *nodeDB) enqueueOrphanTask(version int64, rootHash []byte, newOrphans []*Node) {
@@ -34,7 +33,7 @@ func (ndb *nodeDB) saveNewOrphans(version int64, orphans []*Node, lock bool) {
 
 	version--
 	ndb.log(IavlDebug, "saving orphan node to OrphanCache", "size", len(orphans))
-	atomic.AddInt64(&ndb.totalOrphanCount, int64(len(orphans)))
+	ndb.state.increasOrphanCount(len(orphans))
 
 	if lock {
 		ndb.mtx.Lock()

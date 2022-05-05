@@ -51,33 +51,12 @@ type nodeDB struct {
 	tppMap              map[int64]*tppItem
 	tppVersionList      *list.List
 
-	dbReadTime    int64
-	dbReadCount   int64
-	nodeReadCount int64
-	dbWriteCount  int64
-
-	totalPersistedCount int64
-	totalPersistedSize  int64
-	totalDeletedCount   int64
-	totalOrphanCount    int64
-
 	name string
-
 	preWriteNodeCache cmap.ConcurrentMap
 
 	oi *OrphanInfo
 	nc *NodeCache
-}
-
-func makeNodeCacheMap(cacheSize int, initRatio float64) map[string]*list.Element {
-	if initRatio <= 0 {
-		return make(map[string]*list.Element)
-	}
-	if initRatio >= 1 {
-		return make(map[string]*list.Element, cacheSize)
-	}
-	cacheSize = int(float64(cacheSize) * initRatio)
-	return make(map[string]*list.Element, cacheSize)
+	state *RuntimeState
 }
 
 func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
@@ -94,6 +73,7 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		tppVersionList:          list.New(),
 		name:                    ParseDBName(db),
 		preWriteNodeCache:       cmap.New(),
+		state:                   &RuntimeState{},
 	}
 
 	ndb.oi = newOrphanInfo(ndb)
@@ -432,7 +412,7 @@ func (ndb *nodeDB) deleteOrphans(batch dbm.Batch, version int64) {
 			ndb.log(IavlDebug, "DELETE", "predecessor", predecessor, "fromVersion", fromVersion, "toVersion", toVersion, "hash", hash)
 			batch.Delete(ndb.nodeKey(hash))
 			ndb.syncUnCacheNode(hash)
-			ndb.totalDeletedCount++
+			ndb.state.increaseDeletedCount()
 		} else {
 			ndb.log(IavlDebug, "MOVE", "predecessor", predecessor, "fromVersion", fromVersion, "toVersion", toVersion, "hash", hash)
 			ndb.saveOrphan(batch, hash, fromVersion, predecessor)
