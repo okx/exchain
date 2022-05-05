@@ -8,6 +8,13 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 )
 
+type CM39ResultBroadcastTxCommit struct {
+	CheckTx   abci.ResponseCheckTx  `json:"check_tx"`
+	DeliverTx CM39ResponseDeliverTx `json:"deliver_tx"`
+	Hash      bytes.HexBytes        `json:"hash"`
+	Height    int64                 `json:"height"`
+}
+
 type CM39ResponseQuery struct {
 	Code uint32 `protobuf:"varint,1,opt,name=code,proto3" json:"code,omitempty"`
 	// bytes data = 2; // use "value" instead.
@@ -55,6 +62,22 @@ type CM39ResultTx struct {
 
 /////////
 
+func ConvTCM39BroadcastCommitTx2CM4(c *CM39ResultBroadcastTxCommit, ret *coretypes.ResultBroadcastTxCommit) {
+	ret.CheckTx = c.CheckTx
+	ret.DeliverTx = abci.ResponseDeliverTx{
+		Code:      c.DeliverTx.Code,
+		Data:      c.DeliverTx.Data,
+		Log:       c.DeliverTx.Log,
+		Info:      c.DeliverTx.Info,
+		GasWanted: c.DeliverTx.GasWanted,
+		GasUsed:   c.DeliverTx.GasUsed,
+		Events:    c.DeliverTx.Events,
+		Codespace: c.DeliverTx.Codespace,
+	}
+	ret.Hash = c.Hash
+	ret.Height = c.Height
+}
+
 func ConvTCM392CM4(c *CM39ResultTx, ret *coretypes.ResultTx) {
 	ret.Hash = c.Hash
 	ret.Height = c.Height
@@ -67,6 +90,7 @@ func ConvTCM392CM4(c *CM39ResultTx, ret *coretypes.ResultTx) {
 		GasWanted: c.TxResult.GasWanted,
 		GasUsed:   c.TxResult.GasUsed,
 		Events:    c.TxResult.Events,
+		Codespace: c.TxResult.Codespace,
 	}
 	ret.Tx = c.Tx
 	ret.Proof = c.Proof

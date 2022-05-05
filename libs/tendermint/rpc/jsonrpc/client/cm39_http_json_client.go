@@ -55,6 +55,17 @@ func (c *Cm39HttpJSONClientAdapter) seal() {
 			ConvTCM39ResultABCIQuery2CM4(cm39, cm4)
 		},
 	}
+	c.planb["broadcast_tx_commit"] = &couple{
+		onHitError: defaultCM39ErrorHit,
+		before: func() interface{} {
+			return new(CM39ResultBroadcastTxCommit)
+		},
+		after: func(beforeReturnV interface{}, originV interface{}) {
+			cm39 := beforeReturnV.(*CM39ResultBroadcastTxCommit)
+			cm4 := originV.(*coretypes.ResultBroadcastTxCommit)
+			ConvTCM39BroadcastCommitTx2CM4(cm39, cm4)
+		},
+	}
 }
 
 func (c *Cm39HttpJSONClientAdapter) Call(method string, params map[string]interface{}, result interface{}) (ret interface{}, err error) {
