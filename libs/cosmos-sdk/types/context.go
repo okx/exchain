@@ -483,7 +483,7 @@ type ContextOption struct {
 //func Apply sets the the param to context and verify it by mode
 func (o *ContextOption) Apply(opts *RuntxModeOptions) {
 	o.applyWithNoVerify(opts)
-	if !opts.Verify() {
+	if !opts.verify() {
 		err := fmt.Errorf("failed to verify runtxOpt, mode = %s, opts = %v", opts.runtxMode.String(), *opts)
 		panic(err)
 	}
@@ -506,13 +506,13 @@ func (c *Context) SetMultiRuntxParams(opts ...*ContextOption) error {
 	for _, opt := range opts {
 		opt.applyWithNoVerify(&c.runtxOpt)
 	}
-	if !c.runtxOpt.Verify() {
+	if !c.runtxOpt.verify() {
 		return fmt.Errorf("failed to verify runtxOpt, mode = %s, opts = %v", c.runtxOpt.runtxMode.String(), c.runtxOpt)
 	}
 	return nil
 }
 
-func (o *RuntxModeOptions) Verify() bool {
+func (o *RuntxModeOptions) verify() bool {
 	switch o.runtxMode {
 	case RunTxModeCheck:
 		return !o.isDeliver &&
@@ -580,7 +580,7 @@ func (o *RuntxModeOptions) Verify() bool {
 			!o.traceTxLog &&
 			o.wrappedCheckTx
 	default:
-		if o.isDeliver && (o.checkTx || o.isSimulate || o.traceTx || o.wrappedCheckTx) {
+		if o.isDeliver && (o.checkTx || o.isSimulate || o.traceTx || o.wrappedCheckTx || o.recheckTx || o.traceTxLog) {
 			return false
 		}
 		return true
