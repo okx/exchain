@@ -615,7 +615,7 @@ func (suite *EvmTestSuite) TestSimulateConflict() {
 	suite.Require().NoError(err)
 
 	suite.ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
-	suite.ctx.SetIsCheckTx(true).SetIsDeliverTx(false)
+	suite.ctx.SetIsDeliverTx(false).SetIsCheckTx(true)
 	result, err := suite.handler(suite.ctx, tx)
 	suite.Require().NotNil(result)
 	suite.Require().Nil(err)
@@ -1039,6 +1039,7 @@ func (suite *EvmContractBlockedListTestSuite) TestEvmParamsAndContractMethodBloc
 
 	for _, tc := range testCases {
 		suite.Run(tc.msg, func() {
+			suite.ctx.SetIsDeliverTx(false)
 			suite.ctx = suite.ctx.WithIsCheckTx(true)
 
 			// set contract code
