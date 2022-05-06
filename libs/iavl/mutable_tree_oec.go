@@ -42,6 +42,10 @@ type commitEvent struct {
 	iavlHeight int
 }
 
+type commitOrphan struct {
+	Version  int64
+	NodeHash []byte
+}
 
 func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte, int64, error) {
 
@@ -113,7 +117,7 @@ func (tree *MutableTree) removeVersion(version int64) {
 	tree.versions.Delete(version)
 }
 
-func (tree *MutableTree) persist(version int64)  {
+func (tree *MutableTree) persist(version int64) {
 	var err error
 	batch := tree.NewBatch()
 	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0}
@@ -134,8 +138,8 @@ func (tree *MutableTree) persist(version int64)  {
 		panic(err)
 	}
 
-	for k := range tree.commitOrphans {
-		delete(tree.commitOrphans, k)
+	if tree.commitOrphans != nil {
+		tree.commitOrphans = tree.commitOrphans[:0]
 	}
 	versions := tree.deepCopyVersions()
 	tree.commitCh <- commitEvent{version, versions, batch,
@@ -224,7 +228,6 @@ func (tree *MutableTree) log(level int, msg string, kvs ...interface{}) {
 	iavlLog(tree.GetModuleName(), level, msg, kvs...)
 }
 
-
 func (tree *MutableTree) updateCommittedStateHeightPool(batch dbm.Batch, version int64, versions map[int64]bool) {
 	queue := tree.committedHeightQueue
 	queue.PushBack(version)
@@ -283,18 +286,15 @@ func (tree *MutableTree) addOrphansOptimized(orphans []*Node) {
 			}
 			tree.orphans = append(tree.orphans, node)
 			if node.persisted && EnablePruningHistoryState {
-				k := string(node.hash)
-				tree.commitOrphans[k] = node.version
+				tree.commitOrphans = append(tree.commitOrphans, commitOrphan{Version: node.version, NodeHash: node.hash})
 				if produceDelta {
-					commitOrp := &CommitOrphansImp{Key: k, CommitValue: node.version}
+					commitOrp := &CommitOrphansImp{Key: string(node.hash), CommitValue: node.version}
 					tree.deltas.CommitOrphansDelta = append(tree.deltas.CommitOrphansDelta, commitOrp)
 				}
 			}
 		}
-
 	}
 }
-
 
 func (tree *MutableTree) deepCopyVersions() map[int64]bool {
 	if !EnablePruningHistoryState {

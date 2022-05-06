@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"encoding/binary"
 	"fmt"
+
 	cmap "github.com/orcaman/concurrent-map"
 
 	"github.com/tendermint/go-amino"
@@ -185,7 +186,7 @@ func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
 	nodeKey := ndb.nodeKey(node.hash)
 	nodeValue := buf.Bytes()
 	batch.Set(nodeKey, nodeValue)
-	ndb.state.increasePersistedSize(len(nodeKey)+len(nodeValue))
+	ndb.state.increasePersistedSize(len(nodeKey) + len(nodeValue))
 	ndb.log(IavlDebug, "BATCH SAVE", "hash", node.hash)
 	//node.persisted = true // move to function MovePrePersistCacheToTempCache
 }
@@ -205,12 +206,12 @@ func (ndb *nodeDB) NewBatch() dbm.Batch {
 // Saves orphaned nodes to disk under a special prefix.
 // version: the new version being saved.
 // orphans: the orphan nodes created since version-1
-func (ndb *nodeDB) saveCommitOrphans(batch dbm.Batch, version int64, orphans map[string]int64) {
+func (ndb *nodeDB) saveCommitOrphans(batch dbm.Batch, version int64, orphans []commitOrphan) {
 	ndb.log(IavlDebug, "saving committed orphan node log to disk")
 	toVersion := ndb.getPreviousVersion(version)
-	for hash, fromVersion := range orphans {
-		// ndb.log(IavlDebug, "SAVEORPHAN", "from", fromVersion, "to", toVersion, "hash", amino.BytesHexStringer(amino.StrToBytes(hash)))
-		ndb.saveOrphan(batch, amino.StrToBytes(hash), fromVersion, toVersion)
+	for _, orphan := range orphans {
+		// ndb.log(IavlDebug, "SAVEORPHAN", "from", orphan.Version, "to", toVersion, "hash", amino.BytesHexStringer(orphan.NodeHash))
+		ndb.saveOrphan(batch, orphan.NodeHash, orphan.Version, toVersion)
 	}
 }
 
@@ -235,7 +236,6 @@ func (ndb *nodeDB) getRootWithCacheAndDB(version int64) ([]byte, error) {
 	}
 	return ndb.getRoot(version)
 }
-
 
 // DeleteVersion deletes a tree version from disk.
 func (ndb *nodeDB) DeleteVersion(batch dbm.Batch, version int64, checkLatestVersion bool) error {
