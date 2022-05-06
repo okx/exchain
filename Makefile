@@ -34,6 +34,9 @@ ifeq ($(WITH_ROCKSDB),true)
   CGO_ENABLED=1
   build_tags += rocksdb
 endif
+ifeq ($(WITH_BOLTDB),true)
+  build_tags += boltdb
+endif
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
 
@@ -66,6 +69,9 @@ ifeq ($(WITH_ROCKSDB),true)
   ldflags += -X github.com/okex/exchain/libs/cosmos-sdk/types.DBBackend=rocksdb
 endif
 
+ifeq ($(WITH_BOLTDB),true)
+  ldflags += -X github.com/okex/exchain/libs/cosmos-sdk/types.DBBackend=boltdb
+endif
 BUILD_FLAGS := -ldflags '$(ldflags)'
 
 ifeq ($(DEBUG),true)
