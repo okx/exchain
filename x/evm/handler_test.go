@@ -225,8 +225,10 @@ func (suite *EvmTestSuite) TestHandlerLogs() {
 	suite.Require().Equal(len(resultData.Logs), 1)
 	suite.Require().Equal(len(resultData.Logs[0].Topics), 2)
 
-	suite.stateDB.WithContext(suite.ctx).SetLogs(resultData.Logs)
-	logs := suite.stateDB.WithContext(suite.ctx).GetLogs()
+	txHash := ethcmn.BytesToHash(tx.TxHash())
+	suite.stateDB.WithContext(suite.ctx).SetLogs(txHash, resultData.Logs)
+	logs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(txHash)
+	suite.Require().NoError(err)
 	suite.Require().Equal(logs, resultData.Logs)
 }
 
@@ -604,7 +606,6 @@ func (suite *EvmTestSuite) TestSimulateConflict() {
 	pub := priv.ToECDSA().Public().(*ecdsa.PublicKey)
 
 	suite.app.EvmKeeper.SetBalance(suite.ctx, ethcrypto.PubkeyToAddress(*pub), big.NewInt(100))
-	suite.stateDB.Finalise(false)
 
 	// send simple value transfer with gasLimit=21000
 	tx := types.NewMsgEthereumTx(1, &ethcmn.Address{0x1}, big.NewInt(100), gasLimit, gasPrice, nil)
@@ -612,12 +613,12 @@ func (suite *EvmTestSuite) TestSimulateConflict() {
 	suite.Require().NoError(err)
 
 	suite.ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
-	suite.ctx.SetIsCheckTx(true)
+	suite.ctx.SetIsCheckTx(true).SetIsDeliverTx(false)
 	result, err := suite.handler(suite.ctx, tx)
 	suite.Require().NotNil(result)
 	suite.Require().Nil(err)
 
-	suite.ctx.SetIsCheckTx(false)
+	suite.ctx.SetIsCheckTx(false).SetIsDeliverTx(true)
 	result, err = suite.handler(suite.ctx, tx)
 	suite.Require().NotNil(result)
 	suite.Require().Nil(err)
@@ -827,6 +828,7 @@ func (suite *EvmContractBlockedListTestSuite) SetupTest() {
 
 	// init contracts for test environment
 	suite.deployInterdependentContracts()
+	suite.app.EndBlock(abci.RequestEndBlock{Height: 1})
 }
 
 // deployInterdependentContracts deploys two contracts that Contract1 will be invoked by Contract2
@@ -1035,6 +1037,8 @@ func (suite *EvmContractBlockedListTestSuite) TestEvmParamsAndContractMethodBloc
 
 	for _, tc := range testCases {
 		suite.Run(tc.msg, func() {
+			suite.ctx = suite.ctx.WithIsCheckTx(true)
+
 			// set contract code
 			suite.stateDB.CreateAccount(callEthAcc)
 			suite.stateDB.CreateAccount(blockedEthAcc)
@@ -1055,7 +1059,6 @@ func (suite *EvmContractBlockedListTestSuite) TestEvmParamsAndContractMethodBloc
 				suite.stateDB.SetContractBlockedList(tc.contractBlockedList)
 			}
 
-			suite.stateDB.Finalise(true)
 			suite.stateDB.Commit(true)
 
 			// nonce here could be any value

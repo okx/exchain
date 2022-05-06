@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/okex/exchain/app/logevents"
+	"github.com/okex/exchain/cmd/exchaind/mpt"
 
 	"github.com/okex/exchain/app/rpc"
 	evmtypes "github.com/okex/exchain/x/evm/types"
@@ -84,6 +85,8 @@ func main() {
 		client.TestnetCmd(ctx, codecProxy.GetCdc(), app.ModuleBasics, auth.GenesisAccountIterator{}),
 		replayCmd(ctx, client.RegisterAppFlag),
 		repairStateCmd(ctx),
+		displayStateCmd(ctx),
+		mpt.MptCmd(ctx),
 		// AddGenesisAccountCmd allows users to add accounts to the genesis file
 		AddGenesisAccountCmd(ctx, codecProxy.GetCdc(), app.DefaultNodeHome, app.DefaultCLIHome),
 		flags.NewCompletionCmd(rootCmd, true),
@@ -104,6 +107,7 @@ func main() {
 	executor := cli.PrepareBaseCmd(rootCmd, "OKEXCHAIN", app.DefaultNodeHome)
 	rootCmd.PersistentFlags().UintVar(&invCheckPeriod, flagInvCheckPeriod,
 		0, "Assert registered invariants every N blocks")
+
 	err := executor.Execute()
 	if err != nil {
 		panic(err)
@@ -113,7 +117,7 @@ func main() {
 func closeApp(iApp abci.Application) {
 	fmt.Println("Close App")
 	app := iApp.(*app.OKExChainApp)
-	app.StopStore()
+	app.StopBaseApp()
 	evmtypes.CloseIndexer()
 	rpc.CloseEthBackend()
 }

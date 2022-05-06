@@ -5,15 +5,17 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	"github.com/okex/exchain/libs/system/trace"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"strings"
+	"time"
 
-	"github.com/okex/exchain/libs/tendermint/trace"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
@@ -136,7 +138,7 @@ type BaseApp struct { // nolint: maligned
 
 	anteHandler      sdk.AnteHandler      // ante handler for fee and auth
 	GasRefundHandler sdk.GasRefundHandler // gas refund handler for gas refund
-	AccHandler       sdk.AccHandler       // account handler for cm tx nonce
+	accNonceHandler  sdk.AccNonceHandler  // account handler for cm tx nonce
 
 	initChainer    sdk.InitChainer  // initialize state with validators and state blob
 	beginBlocker   sdk.BeginBlocker // logic to run before any txs
@@ -194,6 +196,9 @@ type BaseApp struct { // nolint: maligned
 	endLog recordHandle
 
 	parallelTxManage *parallelTxManager
+
+	customizeModuleOnStop []sdk.CustomizeOnStop
+	mptCommitHandler      sdk.MptCommitHandler // handler for mpt trie commit
 	deliverTxsMgr    *DTTManager
 	feeForCollector  sdk.Coins
 	feeChanged       bool // used to judge whether should update the fee-collector account
@@ -289,6 +294,21 @@ func (app *BaseApp) SetEndLogHandler(handle recordHandle) {
 	app.endLog = handle
 }
 
+// MockContext returns a initialized context
+func (app *BaseApp) MockContext() sdk.Context {
+	committedHeight, err := app.GetCommitVersion()
+	if err != nil {
+		panic(err)
+	}
+	mCtx := sdk.NewContext(app.cms, abci.Header{Height: committedHeight + 1}, false, app.logger)
+	return mCtx
+}
+
+// MockContext returns a initialized context
+func (app *BaseApp) GetDB() dbm.DB {
+	return app.db
+}
+
 // MountStores mounts all IAVL or DB stores to the provided keys in the BaseApp
 // multistore.
 func (app *BaseApp) MountStores(keys ...sdk.StoreKey) {
@@ -296,7 +316,11 @@ func (app *BaseApp) MountStores(keys ...sdk.StoreKey) {
 		switch key.(type) {
 		case *sdk.KVStoreKey:
 			if !app.fauxMerkleMode {
-				app.MountStore(key, sdk.StoreTypeIAVL)
+				if key.Name() == mpt.StoreKey {
+					app.MountStore(key, sdk.StoreTypeMPT)
+				} else {
+					app.MountStore(key, sdk.StoreTypeIAVL)
+				}
 			} else {
 				// StoreTypeDB doesn't do anything upon commit, and it doesn't
 				// retain history, but it's useful for faster simulation.
@@ -317,7 +341,11 @@ func (app *BaseApp) MountStores(keys ...sdk.StoreKey) {
 func (app *BaseApp) MountKVStores(keys map[string]*sdk.KVStoreKey) {
 	for _, key := range keys {
 		if !app.fauxMerkleMode {
-			app.MountStore(key, sdk.StoreTypeIAVL)
+			if key.Name() == mpt.StoreKey {
+				app.MountStore(key, sdk.StoreTypeMPT)
+			} else {
+				app.MountStore(key, sdk.StoreTypeIAVL)
+			}
 		} else {
 			// StoreTypeDB doesn't do anything upon commit, and it doesn't
 			// retain history, but it's useful for faster simulation.
@@ -866,8 +894,13 @@ func (app *BaseApp) Export(toApp *BaseApp, version int64) error {
 	return fromCms.Export(toCms, version)
 }
 
-func (app *BaseApp) StopStore() {
+func (app *BaseApp) StopBaseApp() {
 	app.cms.StopStore()
+
+	ctx := sdk.NewContext(nil, abci.Header{Height: app.LastBlockHeight(), Time: time.Now()}, false, app.logger)
+	for _, fn := range app.customizeModuleOnStop {
+		fn(ctx)
+	}
 }
 
 func (app *BaseApp) GetTxInfo(ctx sdk.Context, tx sdk.Tx) mempool.ExTxInfo {
@@ -877,9 +910,9 @@ func (app *BaseApp) GetTxInfo(ctx sdk.Context, tx sdk.Tx) mempool.ExTxInfo {
 		Nonce:    tx.GetNonce(),
 	}
 
-	if exTxInfo.Nonce == 0 && exTxInfo.Sender != "" && app.AccHandler != nil {
+	if exTxInfo.Nonce == 0 && exTxInfo.Sender != "" && app.accNonceHandler != nil {
 		addr, _ := sdk.AccAddressFromBech32(exTxInfo.Sender)
-		exTxInfo.Nonce = app.AccHandler(ctx, addr)
+		exTxInfo.Nonce = app.accNonceHandler(ctx, addr)
 
 		if app.anteHandler != nil && exTxInfo.Nonce > 0 {
 			exTxInfo.Nonce -= 1 // in ante handler logical, the nonce will incress one

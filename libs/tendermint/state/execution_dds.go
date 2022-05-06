@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/system/trace"
 	"sync/atomic"
 	"time"
 
@@ -10,7 +11,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/delta"
 	redis_cgi "github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/libs/tendermint/types"

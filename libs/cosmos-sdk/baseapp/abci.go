@@ -3,20 +3,20 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/system/trace"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
-	"sync/atomic"
 	"syscall"
 	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/trace"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/tendermint/go-amino"
 )
@@ -234,12 +234,12 @@ func (app *BaseApp) addCommitTraceInfo() {
 
 	elapsedInfo.AddInfo("FlatKV", flatInfo)
 
-	rtx := float64(atomic.LoadInt64(&app.checkTxNum))
-	wtx := float64(atomic.LoadInt64(&app.wrappedCheckTxNum))
+	//rtx := float64(atomic.LoadInt64(&app.checkTxNum))
+	//wtx := float64(atomic.LoadInt64(&app.wrappedCheckTxNum))
 
-	elapsedInfo.AddInfo(trace.WtxRatio,
-		amino.BytesToStr(strconv.AppendFloat(make([]byte, 0, 4), wtx/(wtx+rtx), 'f', 2, 32)),
-	)
+	//elapsedInfo.AddInfo(trace.WtxRatio,
+	//	amino.BytesToStr(strconv.AppendFloat(make([]byte, 0, 4), wtx/(wtx+rtx), 'f', 2, 32)),
+	//)
 
 	readCache := float64(tmtypes.SignatureCache().ReadCount())
 	hitCache := float64(tmtypes.SignatureCache().HitCount())
@@ -261,6 +261,15 @@ func (app *BaseApp) addCommitTraceInfo() {
 func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 
 	header := app.deliverState.ctx.BlockHeader()
+
+	if app.mptCommitHandler != nil {
+		app.mptCommitHandler(app.deliverState.ctx)
+	}
+	if mptStore := app.cms.GetCommitKVStore(sdk.NewKVStoreKey(mpt.StoreKey)); mptStore != nil {
+		// notify mptStore to tryUpdateTrie, must call before app.deliverState.ms.Write()
+		mpt.GAccTryUpdateTrieChannel <- struct{}{}
+		<-mpt.GAccTrieUpdatedChannel
+	}
 
 	// Write the DeliverTx state which is cache-wrapped and commit the MultiStore.
 	// The write to the DeliverTx state writes all state transitions to the root
