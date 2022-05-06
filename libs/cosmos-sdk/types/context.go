@@ -517,8 +517,7 @@ func (o *RuntxModeOptions) Verify() bool {
 			!o.recheckTx &&
 			!o.traceTx &&
 			!o.traceTxLog &&
-			!o.wrappedCheckTx &&
-			o.paraMsg == nil
+			!o.wrappedCheckTx
 	case RunTxModeReCheck:
 		return !o.isDeliver &&
 			!o.isSimulate &&
@@ -526,8 +525,7 @@ func (o *RuntxModeOptions) Verify() bool {
 			o.recheckTx &&
 			!o.traceTx &&
 			!o.traceTxLog &&
-			!o.wrappedCheckTx &&
-			o.paraMsg == nil
+			!o.wrappedCheckTx
 	case RunTxModeSimulate: // Simulate a transaction
 		return !o.isDeliver &&
 			o.isSimulate &&
@@ -569,7 +567,8 @@ func (o *RuntxModeOptions) Verify() bool {
 			!o.recheckTx &&
 			o.traceTx &&
 			!o.traceTxLog &&
-			!o.wrappedCheckTx
+			!o.wrappedCheckTx &&
+			o.paraMsg != nil
 	case RunTxModeWrappedCheck:
 		return !o.isDeliver &&
 			!o.isSimulate &&
