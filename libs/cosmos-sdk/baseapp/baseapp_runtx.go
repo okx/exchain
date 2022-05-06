@@ -32,7 +32,7 @@ type runTxInfo struct {
 	txIndex int
 }
 
-func (app *BaseApp) runTxWithIndex(txIndex int, mode sdk.RunTxMode,
+func (app *BaseApp) runTxWithIndex(txIndex int, mode runTxMode,
 	txBytes []byte, tx sdk.Tx, height int64, from ...string) (info *runTxInfo, err error) {
 
 	info = &runTxInfo{txIndex: txIndex}
@@ -40,7 +40,7 @@ func (app *BaseApp) runTxWithIndex(txIndex int, mode sdk.RunTxMode,
 	return
 }
 
-func (app *BaseApp) runTx(mode sdk.RunTxMode,
+func (app *BaseApp) runTx(mode runTxMode,
 	txBytes []byte, tx sdk.Tx, height int64, from ...string) (info *runTxInfo, err error) {
 
 	info = &runTxInfo{}
@@ -48,14 +48,14 @@ func (app *BaseApp) runTx(mode sdk.RunTxMode,
 	return
 }
 
-func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx, height int64, from ...string) (err error) {
+func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byte, tx sdk.Tx, height int64, from ...string) (err error) {
 	info.handler = app.getModeHandler(mode)
 	info.tx = tx
 	info.txBytes = txBytes
 	handler := info.handler
 	app.pin(trace.ValTxMsgs, true, mode)
 
-	if tx.GetType() != sdk.EvmTxType && mode == sdk.RunTxModeDeliver {
+	if tx.GetType() != sdk.EvmTxType && mode == runTxModeDeliver {
 		// should update the balance of FeeCollector's account when run non-evm tx
 		// which uses non-infiniteGasMeter during AnteHandleChain
 		app.updateFeeCollectorAccount()
@@ -67,7 +67,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode sdk.RunTxMode, txBytes [
 		return err
 	}
 	//info with cache saved in app to load predesessor tx state
-	if mode != sdk.RunTxModeTrace {
+	if mode != runTxModeTrace {
 		//in trace mode,  info ctx cache was already set to traceBlockCache instead of app.blockCache in app.tracetx()
 		//to prevent modifying the deliver state
 		//traceBlockCache was created with different root(chainCache) with app.blockCache in app.BeginBlockForTrace()
@@ -128,7 +128,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode sdk.RunTxMode, txBytes [
 	}
 	app.pin(trace.RunAnte, false, mode)
 
-	if app.getTxFeeHandler != nil && mode == sdk.RunTxModeDeliver {
+	if app.getTxFeeHandler != nil && mode == runTxModeDeliver {
 		fee := app.getTxFeeHandler(tx)
 		app.UpdateFeeForCollector(fee, true)
 	}
@@ -140,7 +140,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode sdk.RunTxMode, txBytes [
 	return err
 }
 
-func (app *BaseApp) runAnte(info *runTxInfo, mode sdk.RunTxMode) error {
+func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 
 	var anteCtx sdk.Context
 
@@ -156,7 +156,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode sdk.RunTxMode) error {
 	app.pin(trace.CacheTxContext, true, mode)
 	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
 
-	if mode == sdk.RunTxModeDeliverInAsync {
+	if mode == runTxModeDeliverInAsync {
 		info.msCacheAnte = nil
 		msCacheAnte := app.parallelTxManage.getTxResult(info.txIndex)
 		if msCacheAnte == nil {
@@ -170,10 +170,10 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode sdk.RunTxMode) error {
 
 	// 2. AnteChain
 	app.pin(trace.AnteChain, true, mode)
-	if mode == sdk.RunTxModeDeliver {
+	if mode == runTxModeDeliver {
 		anteCtx.SetAnteTracer(app.anteTracer)
 	}
-	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == sdk.RunTxModeSimulate) // NewAnteHandler
+	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
 	app.pin(trace.AnteChain, false, mode)
 
 	// 3. AnteOther
@@ -196,7 +196,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode sdk.RunTxMode) error {
 	// GasMeter expected to be set in AnteHandler
 	info.gasWanted = info.ctx.GasMeter().Limit()
 
-	if mode == sdk.RunTxModeDeliverInAsync {
+	if mode == runTxModeDeliverInAsync {
 		info.ctx.ParaMsg().AnteErr = err
 	}
 
@@ -206,7 +206,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode sdk.RunTxMode) error {
 	app.pin(trace.AnteOther, false, mode)
 
 	// 4. CacheStoreWrite
-	if mode != sdk.RunTxModeDeliverInAsync {
+	if mode != runTxModeDeliverInAsync {
 		app.pin(trace.CacheStoreWrite, true, mode)
 		info.msCacheAnte.Write()
 		info.ctx.Cache().Write(true)
@@ -230,7 +230,7 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 		}
 	}
 
-	info, err := app.runTx(sdk.RunTxModeDeliver, req.Tx, realTx, LatestSimulateTxHeight)
+	info, err := app.runTx(runTxModeDeliver, req.Tx, realTx, LatestSimulateTxHeight)
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}
@@ -279,7 +279,7 @@ func (app *BaseApp) DeliverRealTx(txes abci.TxEssentials) abci.ResponseDeliverTx
 			return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
 		}
 	}
-	info, err := app.runTx(sdk.RunTxModeDeliver, realTx.GetRaw(), realTx, LatestSimulateTxHeight)
+	info, err := app.runTx(runTxModeDeliver, realTx.GetRaw(), realTx, LatestSimulateTxHeight)
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}
@@ -343,7 +343,7 @@ func (app *BaseApp) asyncDeliverTx(txIndex int) {
 	}
 
 	var resp abci.ResponseDeliverTx
-	info, errM := app.runTxWithIndex(txIndex, sdk.RunTxModeDeliverInAsync, pmWorkGroup.txs[txIndex], txStatus.stdTx, LatestSimulateTxHeight)
+	info, errM := app.runTxWithIndex(txIndex, runTxModeDeliverInAsync, pmWorkGroup.txs[txIndex], txStatus.stdTx, LatestSimulateTxHeight)
 	if errM != nil {
 		resp = sdkerrors.ResponseDeliverTx(errM, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	} else {
@@ -360,11 +360,11 @@ func (app *BaseApp) asyncDeliverTx(txIndex int) {
 	pmWorkGroup.Push(asyncExe)
 }
 
-func useCache(mode sdk.RunTxMode) bool {
+func useCache(mode runTxMode) bool {
 	if !sdk.UseCache {
 		return false
 	}
-	if mode == sdk.RunTxModeDeliver || mode == sdk.RunTxModeDeliverPartConcurrent {
+	if mode == runTxModeDeliver || mode == runTxModeDeliverPartConcurrent {
 		return true
 	}
 	return false

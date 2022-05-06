@@ -292,7 +292,7 @@ func (dttm *DTTManager) concurrentBasic(txByte []byte, index int) *DeliverTxTask
 		return task
 	}
 
-	task.info.handler = dttm.app.getModeHandler(sdk.RunTxModeDeliverPartConcurrent) //dm.handler
+	task.info.handler = dttm.app.getModeHandler(runTxModeDeliverPartConcurrent) //dm.handler
 	task.fee, task.isEvm, task.from, task.to, err = dttm.app.getTxFeeAndFromHandler(dttm.checkStateCtx, task.info.tx)
 	if err != nil {
 		task.err = err
@@ -347,10 +347,10 @@ func (dttm *DTTManager) runConcurrentAnte(task *DeliverTxTask) error {
 		}
 	}()
 
-	task.info.ctx = dttm.app.getContextForTx(sdk.RunTxModeDeliverPartConcurrent, task.info.txBytes) // same context for all txs in a block
+	task.info.ctx = dttm.app.getContextForTx(runTxModeDeliverPartConcurrent, task.info.txBytes) // same context for all txs in a block
 	task.canRerun = 0
 
-	task.info.ctx.SetCache(sdk.NewCache(dttm.app.blockCache, useCache(sdk.RunTxModeDeliverPartConcurrent))) // one cache for a tx
+	task.info.ctx.SetCache(sdk.NewCache(dttm.app.blockCache, useCache(runTxModeDeliverPartConcurrent))) // one cache for a tx
 
 	err := dttm.runAnte(task)
 	task.err = err
@@ -512,7 +512,7 @@ func (dttm *DTTManager) setRerunAndNextSerial(task *DeliverTxTask) int8 {
 	if updateFeeAcc && dttm.app.updateFeeCollectorAccHandler != nil {
 		// should update the balance of FeeCollector's account when run non-evm tx
 		// which uses non-infiniteGasMeter during AnteHandleChain
-		ctx, cache := dttm.app.cacheTxContext(dttm.app.getContextForTx(sdk.RunTxModeDeliver, []byte{}), []byte{})
+		ctx, cache := dttm.app.cacheTxContext(dttm.app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
 		if err := dttm.app.updateFeeCollectorAccHandler(ctx, dttm.app.feeForCollector); err != nil {
 			panic(err)
 		}
@@ -577,7 +577,7 @@ func (dttm *DTTManager) serialExecution() {
 
 	defer handler.handleDeferGasConsumed(info)
 
-	mode := sdk.RunTxModeDeliver
+	mode := runTxModeDeliver
 	defer func() {
 		dttm.app.pin(trace.Refund, true, mode)
 		defer dttm.app.pin(trace.Refund, false, mode)

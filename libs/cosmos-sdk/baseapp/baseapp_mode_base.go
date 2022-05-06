@@ -13,7 +13,7 @@ import (
 )
 
 type modeHandler interface {
-	getMode() sdk.RunTxMode
+	getMode() runTxMode
 
 	handleStartHeight(info *runTxInfo, height int64) error
 	handleGasConsumed(info *runTxInfo) error
@@ -22,22 +22,22 @@ type modeHandler interface {
 	handleDeferGasConsumed(info *runTxInfo)
 }
 
-func (app *BaseApp) getModeHandler(mode sdk.RunTxMode) modeHandler {
+func (app *BaseApp) getModeHandler(mode runTxMode) modeHandler {
 	var h modeHandler
 	switch mode {
-	case sdk.RunTxModeCheck, sdk.RunTxModeWrappedCheck:
+	case runTxModeCheck, runTxModeWrappedCheck:
 		h = &modeHandlerCheck{&modeHandlerBase{mode: mode, app: app}}
-	case sdk.RunTxModeReCheck:
+	case runTxModeReCheck:
 		h = &modeHandlerRecheck{&modeHandlerBase{mode: mode, app: app}}
-	case sdk.RunTxModeTrace:
+	case runTxModeTrace:
 		h = &modeHandlerTrace{&modeHandlerDeliver{&modeHandlerBase{mode: mode, app: app}}}
-	case sdk.RunTxModeDeliver:
+	case runTxModeDeliver:
 		fallthrough
-	case sdk.RunTxModeDeliverPartConcurrent:
+	case runTxModeDeliverPartConcurrent:
 		h = &modeHandlerDeliver{&modeHandlerBase{mode: mode, app: app}}
-	case sdk.RunTxModeSimulate:
+	case runTxModeSimulate:
 		h = &modeHandlerSimulate{&modeHandlerBase{mode: mode, app: app}}
-	case sdk.RunTxModeDeliverInAsync:
+	case runTxModeDeliverInAsync:
 		h = &modeHandlerDeliverInAsync{&modeHandlerBase{mode: mode, app: app}}
 	default:
 		h = &modeHandlerBase{mode: mode, app: app}
@@ -47,7 +47,7 @@ func (app *BaseApp) getModeHandler(mode sdk.RunTxMode) modeHandler {
 }
 
 type modeHandlerBase struct {
-	mode sdk.RunTxMode
+	mode runTxMode
 	app  *BaseApp
 }
 
@@ -75,7 +75,7 @@ type modeHandlerTrace struct {
 	*modeHandlerDeliver
 }
 
-func (m *modeHandlerBase) getMode() sdk.RunTxMode {
+func (m *modeHandlerBase) getMode() runTxMode {
 	return m.mode
 }
 
@@ -164,7 +164,7 @@ func (m *modeHandlerBase) checkHigherThanMercury(err error, info *runTxInfo) err
 }
 
 func (m *modeHandlerBase) handleRunMsg4CheckMode(info *runTxInfo) {
-	if m.mode != sdk.RunTxModeCheck && m.mode != sdk.RunTxModeWrappedCheck {
+	if m.mode != runTxModeCheck && m.mode != runTxModeWrappedCheck {
 		return
 	}
 

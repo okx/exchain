@@ -3,13 +3,14 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/libs/system/trace"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/okex/exchain/libs/system/trace"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
@@ -192,7 +193,7 @@ func (app *BaseApp) updateFeeCollectorAccount() {
 		}
 	}()
 
-	ctx, cache := app.cacheTxContext(app.getContextForTx(sdk.RunTxModeDeliver, []byte{}), []byte{})
+	ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
 	if err := app.updateFeeCollectorAccHandler(ctx, app.feeForCollector); err != nil {
 		panic(err)
 	}

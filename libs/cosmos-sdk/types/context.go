@@ -421,7 +421,6 @@ func WithTraceTx(isTraceTx bool) *ContextOption {
 	return &ContextOption{
 		applier: func(opts *RuntxModeOptions) {
 			if isTraceTx {
-				opts.isSimulate = true
 				opts.checkTx = true
 			}
 			opts.traceTx = isTraceTx

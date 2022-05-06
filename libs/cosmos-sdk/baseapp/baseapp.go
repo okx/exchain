@@ -35,7 +35,14 @@ import (
 )
 
 const (
-
+	runTxModeCheck                 runTxMode = iota // Check a transaction
+	runTxModeReCheck                                // Recheck a (pending) transaction after a commit
+	runTxModeSimulate                               // Simulate a transaction
+	runTxModeDeliver                                // Deliver a transaction
+	runTxModeDeliverInAsync                         // Deliver a transaction in Aysnc
+	runTxModeDeliverPartConcurrent                  // Deliver a transaction partial concurrent
+	runTxModeTrace                                  // Trace a transaction
+	runTxModeWrappedCheck
 	// MainStoreKey is the string representation of the main store
 	MainStoreKey = "main"
 
@@ -80,12 +87,37 @@ func SetGlobalMempool(mempool mempool.Mempool, enableSort bool, enablePendingPoo
 }
 
 type (
+	// Enum mode for app.runTx
+	runTxMode uint8
 	// StoreLoader defines a customizable function to control how we load the CommitMultiStore
 	// from disk. This is useful for state migration, when loading a datastore written with
 	// an older version of the software. In particular, if a module changed the substore key name
 	// (or removed a substore) between two versions of the software.
 	StoreLoader func(ms sdk.CommitMultiStore) error
 )
+
+func (m runTxMode) String() (res string) {
+	switch m {
+	case runTxModeCheck:
+		res = "ModeCheck"
+	case runTxModeReCheck:
+		res = "ModeReCheck"
+	case runTxModeSimulate:
+		res = "ModeSimulate"
+	case runTxModeDeliver:
+		res = "ModeDeliver"
+	case runTxModeDeliverPartConcurrent:
+		res = "ModeDeliverPartConcurrent"
+	case runTxModeDeliverInAsync:
+		res = "ModeDeliverInAsync"
+	case runTxModeWrappedCheck:
+		res = "ModeWrappedCheck"
+	default:
+		res = "Unknown"
+	}
+
+	return res
+}
 
 // BaseApp reflects the ABCI application implementation.
 type BaseApp struct { // nolint: maligned
@@ -619,8 +651,8 @@ func validateBasicTxMsgs(msgs []sdk.Msg) error {
 
 // Returns the applications's deliverState if app is in runTxModeDeliver,
 // otherwise it returns the application's checkstate.
-func (app *BaseApp) getState(mode sdk.RunTxMode) *state {
-	if mode == sdk.RunTxModeDeliver || mode == sdk.RunTxModeDeliverInAsync || mode == sdk.RunTxModeDeliverPartConcurrent {
+func (app *BaseApp) getState(mode runTxMode) *state {
+	if mode == runTxModeDeliver || mode == runTxModeDeliverInAsync || mode == runTxModeDeliverPartConcurrent {
 		return app.deliverState
 	}
 
@@ -628,43 +660,46 @@ func (app *BaseApp) getState(mode sdk.RunTxMode) *state {
 }
 
 // retrieve the context for the tx w/ txBytes and other memoized values.
-func (app *BaseApp) getContextForTx(mode sdk.RunTxMode, txBytes []byte) sdk.Context {
+func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context {
 	ctx := app.getState(mode).ctx
 	ctx.SetTxBytes(txBytes).
 		SetVoteInfos(app.voteInfos).
 		SetConsensusParams(app.consensusParams)
 
-	if mode == sdk.RunTxModeCheck {
+	if mode == runTxModeCheck {
 		ctx.SetRunTxMode(
-			mode,
+			sdk.RunTxModeCheck,
 			sdk.WithCheckTx(true),
 		)
 	}
-	if mode == sdk.RunTxModeReCheck {
+	if mode == runTxModeReCheck {
 		ctx.SetRunTxMode(
-			mode,
+			sdk.RunTxModeReCheck,
+			sdk.WithCheckTx(true),
 			sdk.WithReCheckTx(true),
 		)
 	}
 
-	if mode == sdk.RunTxModeWrappedCheck {
+	if mode == runTxModeWrappedCheck {
 		ctx.SetRunTxMode(
-			mode,
+			sdk.RunTxModeWrappedCheck,
+			sdk.WithCheckTx(true),
 			sdk.WithWrappedCheckTx(true),
 		)
 	}
 
-	if mode == sdk.RunTxModeSimulate {
+	if mode == runTxModeSimulate {
 		ctx, _ = ctx.CacheContext()
 		ctx.SetRunTxMode(
-			mode,
+			sdk.RunTxModeSimulate,
 			sdk.WithSimulate(true),
+			sdk.WithCheckTx(true),
 		)
 		ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 	}
-	if app.parallelTxManage.isAsyncDeliverTx && mode == sdk.RunTxModeDeliverInAsync {
+	if app.parallelTxManage.isAsyncDeliverTx && mode == runTxModeDeliverInAsync {
 		ctx.SetRunTxMode(
-			mode,
+			sdk.RunTxModeDeliverInAsync,
 			sdk.WithParaMsg(&sdk.ParaMsg{
 				HaveCosmosTxInBlock: app.parallelTxManage.haveCosmosTxInBlock,
 			}),
@@ -672,9 +707,15 @@ func (app *BaseApp) getContextForTx(mode sdk.RunTxMode, txBytes []byte) sdk.Cont
 		ctx.SetTxBytes(txBytes)
 	}
 
-	if mode == sdk.RunTxModeDeliver || mode == sdk.RunTxModeDeliverPartConcurrent {
+	if mode == runTxModeDeliver {
 		ctx.SetRunTxMode(
-			mode,
+			sdk.RunTxModeDeliver,
+			sdk.WithDeliverTx(true),
+		)
+	}
+	if mode == runTxModeDeliverPartConcurrent {
+		ctx.SetRunTxMode(
+			sdk.RunTxModeDeliverPartConcurrent,
 			sdk.WithDeliverTx(true),
 		)
 	}
@@ -803,9 +844,9 @@ func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte) (sdk.Context
 	return ctx, msCache
 }
 
-func (app *BaseApp) pin(tag string, start bool, mode sdk.RunTxMode) {
+func (app *BaseApp) pin(tag string, start bool, mode runTxMode) {
 
-	if mode != sdk.RunTxModeDeliver {
+	if mode != runTxModeDeliver {
 		return
 	}
 
@@ -823,7 +864,7 @@ func (app *BaseApp) pin(tag string, start bool, mode sdk.RunTxMode) {
 // and DeliverTx. An error is returned if any single message fails or if a
 // Handler does not exist for a given message route. Otherwise, a reference to a
 // Result is returned. The caller must not commit state if an error is returned.
-func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode sdk.RunTxMode) (*sdk.Result, error) {
+func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*sdk.Result, error) {
 	msgLogs := make(sdk.ABCIMessageLogs, 0, len(msgs))
 	data := make([]byte, 0, len(msgs))
 	events := sdk.EmptyEvents()
@@ -831,7 +872,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode sdk.RunTxMode)
 	// NOTE: GasWanted is determined by the AnteHandler and GasUsed by the GasMeter.
 	for i, msg := range msgs {
 		// skip actual execution for (Re)CheckTx mode
-		if mode == sdk.RunTxModeCheck || mode == sdk.RunTxModeReCheck || mode == sdk.RunTxModeWrappedCheck {
+		if mode == runTxModeCheck || mode == runTxModeReCheck || mode == runTxModeWrappedCheck {
 			break
 		}
 		msgRoute := msg.Route()

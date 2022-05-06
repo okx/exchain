@@ -23,17 +23,17 @@ func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
 		return sdkerrors.ResponseCheckTx(err, 0, 0, app.trace)
 	}
 
-	var mode sdk.RunTxMode
+	var mode runTxMode
 
 	switch {
 	case req.Type == abci.CheckTxType_New:
-		mode = sdk.RunTxModeCheck
+		mode = runTxModeCheck
 		atomic.AddInt64(&app.checkTxNum, 1)
 	case req.Type == abci.CheckTxType_Recheck:
-		mode = sdk.RunTxModeReCheck
+		mode = runTxModeReCheck
 
 	case req.Type == abci.CheckTxType_WrappedCheck:
-		mode = sdk.RunTxModeWrappedCheck
+		mode = runTxModeWrappedCheck
 		atomic.AddInt64(&app.wrappedCheckTxNum, 1)
 
 	default:

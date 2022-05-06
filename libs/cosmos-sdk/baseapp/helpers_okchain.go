@@ -60,7 +60,7 @@ func (app *BaseApp) TraceTx(queryTraceTx sdk.QueryTraceTx, targetTx sdk.Tx, txIn
 }
 func (app *BaseApp) tracetx(txBytes []byte, tx sdk.Tx, height int64, traceState *state) (info *runTxInfo, err error) {
 
-	mode := sdk.RunTxModeTrace
+	mode := runTxModeTrace
 	//prepare runTxInfo to runtx
 	info = &runTxInfo{}
 	//init info.ctx
@@ -99,6 +99,7 @@ func (app *BaseApp) beginBlockForTracing(firstTx []byte, block *tmtypes.Block) (
 	//set the trace mode to prevent the ante handler to check the nounce
 	err = traceState.ctx.SetRunTxMode(
 		sdk.RunTxModeTrace,
+		sdk.WithCheckTx(true),
 		sdk.WithTraceTx(true),
 	)
 	if err != nil {
