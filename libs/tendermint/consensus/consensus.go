@@ -793,7 +793,7 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 		// XXX: should we fire timeout here (for timeout commit)?
 		trace.GetElapsedInfo().AddInfo(trace.Produce, cs.trc.Format())
 		trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
-		cs.trc.SetDumpHeight(ti.Height - 1)
+		cs.trc.SetDumpHeight(ti.Height)
 		cs.trc.Reset()
 		cs.StartTime = tmtime.Now()
 		cs.enterNewRound(ti.Height, 0)
@@ -1109,10 +1109,10 @@ func (cs *State) enterPrevote(height int64, round int) {
 			cs.Step))
 		return
 	}
+
 	if height > cs.trc.GetLastDumpHeight() {
 		trace.GetElapsedInfo().AddInfo(trace.Produce, cs.trc.Format())
 		trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
-		cs.trc.SetDumpHeight(height - 1)
 		cs.trc.Reset()
 		cs.StartTime = tmtime.Now()
 	}
