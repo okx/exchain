@@ -493,12 +493,14 @@ func (cs *State) updateRoundStep(round int, step cstypes.RoundStepType) {
 // enterNewRound(height, 0) at cs.StartTime.
 func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	overDuration := tmtime.Now().Sub(cs.StartTime)
+	if overDuration < 0 {
+		overDuration = 0
+	}
 	sleepDuration := cs.config.TimeoutCommit - overDuration
 	if sleepDuration < 0 {
 		sleepDuration = 0
 	}
 
-	cs.StartTime = tmtime.Now().Add(sleepDuration)
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
 }
 
@@ -793,6 +795,7 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 		trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
 		cs.trc.SetDumpHeight(ti.Height - 1)
 		cs.trc.Reset()
+		cs.StartTime = tmtime.Now()
 		cs.enterNewRound(ti.Height, 0)
 	case cstypes.RoundStepNewRound:
 		cs.enterPropose(ti.Height, 0)
@@ -1111,6 +1114,7 @@ func (cs *State) enterPrevote(height int64, round int) {
 		trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
 		cs.trc.SetDumpHeight(height - 1)
 		cs.trc.Reset()
+		cs.StartTime = tmtime.Now()
 	}
 
 	cs.trc.Pin("Prevote-%d", round)
