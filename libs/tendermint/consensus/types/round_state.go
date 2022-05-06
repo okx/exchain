@@ -17,7 +17,7 @@ type RoundStepType uint8 // These must be numeric, ordered.
 
 // RoundStepType
 const (
-	RoundStepNewHeight     = RoundStepType(0x01) // Wait til CommitTime + timeoutCommit
+	RoundStepNewHeight     = RoundStepType(0x01) // Wait til R0PrevoteTime + timeoutCommit
 	RoundStepNewRound      = RoundStepType(0x02) // Setup new round and go to RoundStepPropose
 	RoundStepPropose       = RoundStepType(0x03) // Did propose, gossip proposal
 	RoundStepPrevote       = RoundStepType(0x04) // Did prevote, gossip prevotes
@@ -65,14 +65,12 @@ func (rs RoundStepType) String() string {
 // NOTE: Not thread safe. Should only be manipulated by functions downstream
 // of the cs.receiveRoutine
 type RoundState struct {
-	Height          int64         `json:"height"` // Height we are working on
-	Round           int           `json:"round"`
-	Step            RoundStepType `json:"step"`
-	StartTime       time.Time     `json:"start_time"`
-	Round0StartTime int64         `json:"round0_start_time"`
+	Height    int64         `json:"height"` // Height we are working on
+	Round     int           `json:"round"`
+	Step      RoundStepType `json:"step"`
+	StartTime time.Time     `json:"start_time"`
 
 	// Subjective time when +2/3 precommits for Block at Round were found
-	CommitTime         time.Time           `json:"commit_time"`
 	Validators         *types.ValidatorSet `json:"validators"`
 	Proposal           *types.Proposal     `json:"proposal"`
 	ProposalBlock      *types.Block        `json:"proposal_block"`
@@ -182,7 +180,6 @@ func (rs *RoundState) StringIndented(indent string) string {
 	return fmt.Sprintf(`RoundState{
 %s  H:%v R:%v S:%v
 %s  StartTime:     %v
-%s  CommitTime:    %v
 %s  Validators:    %v
 %s  Proposal:      %v
 %s  ProposalBlock: %v %v
@@ -196,7 +193,6 @@ func (rs *RoundState) StringIndented(indent string) string {
 %s}`,
 		indent, rs.Height, rs.Round, rs.Step,
 		indent, rs.StartTime,
-		indent, rs.CommitTime,
 		indent, rs.Validators.StringIndented(indent+"  "),
 		indent, rs.Proposal,
 		indent, rs.ProposalBlockParts.StringShort(), rs.ProposalBlock.StringShort(),

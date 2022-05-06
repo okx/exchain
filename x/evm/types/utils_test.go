@@ -358,7 +358,7 @@ func BenchmarkEthAddressStringer(b *testing.B) {
 			_ = addr.String()
 		}
 	})
-	b.Run("oec stringer", func(b *testing.B) {
+	b.Run("okc stringer", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			_ = EthAddressStringer(addr).String()
@@ -376,7 +376,7 @@ func BenchmarkEthHashStringer(b *testing.B) {
 			_ = h.String()
 		}
 	})
-	b.Run("oec stringer", func(b *testing.B) {
+	b.Run("okc stringer", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			_ = EthHashStringer(h).String()

@@ -9,6 +9,8 @@ import (
 	"sync"
 	"unsafe"
 
+	"github.com/okex/exchain/libs/iavl"
+
 	"github.com/tendermint/go-amino"
 
 	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
@@ -23,27 +25,38 @@ import (
 type cValue struct {
 	value   []byte
 	deleted bool
-	dirty   bool
 }
+
+type PreChangesHandler func(keys []string, setOrDel []byte)
 
 // Store wraps an in-memory cache around an underlying types.KVStore.
 type Store struct {
 	mtx           sync.Mutex
-	cache         map[string]cValue
+	dirty         map[string]cValue
+	readList      map[string][]byte
 	unsortedCache map[string]struct{}
 	sortedCache   *list.List // always ascending sorted
 	parent        types.KVStore
+
+	preChangesHandler PreChangesHandler
 }
 
 var _ types.CacheKVStore = (*Store)(nil)
 
 func NewStore(parent types.KVStore) *Store {
 	return &Store{
-		cache:         make(map[string]cValue),
+		dirty:         make(map[string]cValue),
+		readList:      make(map[string][]byte),
 		unsortedCache: make(map[string]struct{}),
 		sortedCache:   list.New(),
 		parent:        parent,
 	}
+}
+
+func NewStoreWithPreChangeHandler(parent types.KVStore, preChangesHandler PreChangesHandler) *Store {
+	s := NewStore(parent)
+	s.preChangesHandler = preChangesHandler
+	return s
 }
 
 // Implements Store.
@@ -58,10 +71,14 @@ func (store *Store) Get(key []byte) (value []byte) {
 
 	types.AssertValidKey(key)
 
-	cacheValue, ok := store.cache[string(key)]
+	cacheValue, ok := store.dirty[string(key)]
 	if !ok {
-		value = store.parent.Get(key)
-		store.setCacheValue(key, value, false, false)
+		if c, ok := store.readList[string(key)]; ok {
+			value = c
+		} else {
+			value = store.parent.Get(key)
+			store.setCacheValue(key, value, false, false)
+		}
 	} else {
 		value = cacheValue.value
 	}
@@ -69,18 +86,27 @@ func (store *Store) Get(key []byte) (value []byte) {
 	return value
 }
 
-func (store *Store) IteratorCache(cb func(key, value []byte, isDirty bool) bool) bool {
-	if cb == nil || len(store.cache) == 0 {
+func (store *Store) IteratorCache(isdirty bool, cb func(key string, value []byte, isDirty bool, isDelete bool, sKey types.StoreKey) bool, sKey types.StoreKey) bool {
+	if cb == nil {
 		return true
 	}
 	store.mtx.Lock()
 	defer store.mtx.Unlock()
 
-	for key, v := range store.cache {
-		if !cb([]byte(key), v.value, v.dirty) {
-			return false
+	if isdirty {
+		for key, v := range store.dirty {
+			if !cb(key, v.value, true, v.deleted, sKey) {
+				return false
+			}
+		}
+	} else {
+		for key, v := range store.readList {
+			if !cb(key, v, false, false, sKey) {
+				return false
+			}
 		}
 	}
+
 	return true
 }
 
@@ -124,19 +150,22 @@ func (store *Store) Write() {
 
 	// We need a copy of all of the keys.
 	// Not the best, but probably not a bottleneck depending.
-	keys := make([]string, 0, len(store.cache))
-	for key, dbValue := range store.cache {
-		if dbValue.dirty {
-			keys = append(keys, key)
-		}
+	keys := make([]string, len(store.dirty))
+	index := 0
+	for key, _ := range store.dirty {
+		keys[index] = key
+		index++
+
 	}
 
 	sort.Strings(keys)
 
+	store.preWrite(keys)
+
 	// TODO: Consider allowing usage of Batch, which would allow the write to
 	// at least happen atomically.
 	for _, key := range keys {
-		cacheValue := store.cache[key]
+		cacheValue := store.dirty[key]
 		switch {
 		case cacheValue.deleted:
 			store.parent.Delete([]byte(key))
@@ -151,6 +180,29 @@ func (store *Store) Write() {
 	store.clearCache()
 }
 
+func (store *Store) preWrite(keys []string) {
+	if store.preChangesHandler == nil || len(keys) < 4 {
+		return
+	}
+
+	setOrDel := make([]byte, 0, len(keys))
+
+	for _, key := range keys {
+		cacheValue := store.dirty[key]
+		switch {
+		case cacheValue.deleted:
+			setOrDel = append(setOrDel, iavl.PreChangeOpDelete)
+		case cacheValue.value == nil:
+			// Skip, it already doesn't exist in parent.
+			setOrDel = append(setOrDel, iavl.PreChangeNop)
+		default:
+			setOrDel = append(setOrDel, iavl.PreChangeOpSet)
+		}
+	}
+
+	store.preChangesHandler(keys, setOrDel)
+}
+
 // writeToCacheKv will write cached kv to the parent Store, then clear the cache.
 func (store *Store) writeToCacheKv(parent *Store) {
 	store.mtx.Lock()
@@ -158,10 +210,7 @@ func (store *Store) writeToCacheKv(parent *Store) {
 
 	// TODO: Consider allowing usage of Batch, which would allow the write to
 	// at least happen atomically.
-	for key, cacheValue := range store.cache {
-		if !cacheValue.dirty {
-			continue
-		}
+	for key, cacheValue := range store.dirty {
 		switch {
 		case cacheValue.deleted:
 			parent.Delete(amino.StrToBytes(key))
@@ -178,8 +227,12 @@ func (store *Store) writeToCacheKv(parent *Store) {
 
 func (store *Store) clearCache() {
 	// https://github.com/golang/go/issues/20138
-	for key := range store.cache {
-		delete(store.cache, key)
+	for key := range store.dirty {
+		delete(store.dirty, key)
+	}
+
+	for Key := range store.readList {
+		delete(store.readList, Key)
 	}
 	for key := range store.unsortedCache {
 		delete(store.unsortedCache, key)
@@ -261,7 +314,7 @@ func (store *Store) dirtyItems(start, end []byte) {
 	n := len(store.unsortedCache)
 	for key := range store.unsortedCache {
 		if dbm.IsKeyInDomain(strToByte(key), start, end) {
-			cacheValue := store.cache[key]
+			cacheValue := store.dirty[key]
 			unsorted = append(unsorted, &tmkv.Pair{Key: []byte(key), Value: cacheValue.value})
 		}
 	}
@@ -309,10 +362,14 @@ func (store *Store) dirtyItems(start, end []byte) {
 // Only entrypoint to mutate store.cache.
 func (store *Store) setCacheValue(key, value []byte, deleted bool, dirty bool) {
 	keyStr := string(key)
-	store.cache[keyStr] = cValue{
+	if !dirty {
+		store.readList[keyStr] = value
+		return
+	}
+
+	store.dirty[keyStr] = cValue{
 		value:   value,
 		deleted: deleted,
-		dirty:   dirty,
 	}
 	if dirty {
 		store.unsortedCache[keyStr] = struct{}{}

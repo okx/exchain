@@ -18,7 +18,7 @@ import (
 const IGNORE_HEIGHT_CHECKING = -1
 
 // evmDecoder:  MsgEthereumTx decoder by Ethereum RLP
-// ubruDecoder: OKC customized unmarshalling implemented by UnmarshalFromAmino. higher performance!
+// ubruDecoder: customized unmarshalling implemented by UnmarshalFromAmino. higher performance!
 // ubDecoder:   The original amino decoder, decoding by reflection
 // ibcDecoder:  Protobuf decoder
 

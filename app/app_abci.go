@@ -3,16 +3,15 @@ package app
 import (
 	appconfig "github.com/okex/exchain/app/config"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/trace"
-	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/evm"
 )
 
 // BeginBlock implements the Application interface
 func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 
-	analyzer.OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
+	trace.OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
 	// dump app.LastBlockHeight()-1 info for reactor sync mode
 	trace.GetElapsedInfo().Dump(app.Logger())
 	return app.BaseApp.BeginBlock(req)
@@ -20,7 +19,7 @@ func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.Respon
 
 func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
 
-	analyzer.OnAppDeliverTxEnter()
+	trace.OnAppDeliverTxEnter()
 
 	resp := app.BaseApp.DeliverTx(req)
 
@@ -40,8 +39,9 @@ func (app *OKExChainApp) PreDeliverRealTx(req []byte) (res abci.TxEssentials) {
 }
 
 func (app *OKExChainApp) DeliverRealTx(req abci.TxEssentials) (res abci.ResponseDeliverTx) {
-	analyzer.OnAppDeliverTxEnter()
+	trace.OnAppDeliverTxEnter()
 	resp := app.BaseApp.DeliverRealTx(req)
+	app.EvmKeeper.Watcher.RecordTxAndFailedReceipt(req, &resp, app.GetTxDecoder())
 
 	var err error
 	if appconfig.GetOecConfig().GetEnableDynamicGp() {
@@ -66,7 +66,8 @@ func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEn
 // Commit implements the Application interface
 func (app *OKExChainApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 
-	defer analyzer.OnCommitDone()
+	//defer trace.GetTraceSummary().Dump()
+	defer trace.OnCommitDone()
 
 	tasks := app.heightTasks[app.BaseApp.LastBlockHeight()+1]
 	if tasks != nil {
