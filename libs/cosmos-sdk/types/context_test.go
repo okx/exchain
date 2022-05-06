@@ -309,7 +309,7 @@ func TestContext_SetRunTxMode(t *testing.T) {
 		check             func(*types.Context, testCase)
 	}
 	testCases := []testCase{
-		/*{
+		{
 			name: "test RunTxModeCheck",
 			test: func(ctx *types.Context) error {
 				return ctx.SetRunTxMode(
@@ -324,7 +324,7 @@ func TestContext_SetRunTxMode(t *testing.T) {
 				require.Equal(t, true, ctx.IsCheckTx(), tc.name)
 				require.Equal(t, false, ctx.IsReCheckTx(), tc.name)
 			},
-		},*/
+		},
 		{
 			name: "test RunTxModeCheck set deliver",
 			test: func(ctx *types.Context) error {

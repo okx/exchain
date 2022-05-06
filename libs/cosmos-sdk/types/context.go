@@ -481,14 +481,17 @@ type ContextOption struct {
 }
 
 func (o *ContextOption) Apply(opts *RuntxModeOptions) {
-	if opts == nil {
-		*opts = DefaultRuntxModeOptions(false)
-	}
-	o.applier(opts)
+	o.applyWithNoVerify(opts)
 	if !opts.Verify() {
 		err := fmt.Errorf("failed to verify runtxOpt, mode = %s", opts.runtxMode.String())
 		panic(err)
 	}
+}
+func (o *ContextOption) applyWithNoVerify(opts *RuntxModeOptions) {
+	if opts == nil {
+		*opts = DefaultRuntxModeOptions(false)
+	}
+	o.applier(opts)
 }
 
 func (c *Context) SetRunTxMode(mode RunTxMode, opts ...*ContextOption) error {
@@ -498,7 +501,7 @@ func (c *Context) SetRunTxMode(mode RunTxMode, opts ...*ContextOption) error {
 
 func (c *Context) SetMultiRuntxParams(opts ...*ContextOption) error {
 	for _, opt := range opts {
-		opt.Apply(&c.runtxOpt)
+		opt.applyWithNoVerify(&c.runtxOpt)
 	}
 	if !c.runtxOpt.Verify() {
 		return fmt.Errorf("failed to verify runtxOpt, mode = %s", c.runtxOpt.runtxMode.String())
