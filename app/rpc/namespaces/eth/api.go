@@ -294,7 +294,7 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNrOrHash r
 	}
 	clientCtx := api.clientCtx
 	// fast-query mod only get the latest block number's account
-	if !(blockNum == rpctypes.PendingBlockNumber || blockNum == rpctypes.LatestBlockNumber || api.watcherEnabled) {
+	if !api.ignoreHeight(blockNum) {
 		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
 	}
 
@@ -356,7 +356,7 @@ func (api *PublicEthereumAPI) GetBalanceBatch(addresses []common.Address, blockN
 		return nil, err
 	}
 	clientCtx := api.clientCtx
-	if !(blockNum == rpctypes.PendingBlockNumber || blockNum == rpctypes.LatestBlockNumber || api.watcherEnabled) {
+	if !api.ignoreHeight(blockNum) {
 		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
 	}
 
@@ -504,7 +504,7 @@ func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockN
 	clientCtx := api.clientCtx
 	pending := blockNum == rpctypes.PendingBlockNumber
 	// pass the given block height to the context if the height is not pending or latest
-	if !pending && blockNum != rpctypes.LatestBlockNumber && !api.watcherEnabled {
+	if !api.ignoreHeight(blockNum) {
 		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
 	}
 
@@ -1801,4 +1801,10 @@ func (api *PublicEthereumAPI) FillTransaction(args rpctypes.SendTxArgs) (*rpctyp
 		Raw: txBytes,
 		Tx:  rpcTx,
 	}, nil
+}
+
+func (api *PublicEthereumAPI) ignoreHeight(blockNum rpctypes.BlockNumber) bool {
+	return blockNum == rpctypes.PendingBlockNumber ||
+		blockNum == rpctypes.LatestBlockNumber ||
+		api.watcherEnabled
 }
