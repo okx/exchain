@@ -50,7 +50,11 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	k.UpdatedAccount = k.UpdatedAccount[:0]
 	k.EvmStateDb = types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 	k.EvmStateDb.StartPrefetcher("evm")
-	k.Watcher.NewHeight(uint64(req.Header.GetHeight()), blockHash, req.Header)
+	if ctx.IsSimulator() {
+		k.Watcher.NewHeightWithoutDelKey(uint64(req.Header.GetHeight()), blockHash, req.Header)
+	} else {
+		k.Watcher.NewHeight(uint64(req.Header.GetHeight()), blockHash, req.Header)
+	}
 }
 
 // EndBlock updates the accounts and commits state objects to the KV Store, while

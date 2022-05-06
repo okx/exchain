@@ -39,6 +39,8 @@ type Watcher struct {
 	watchData  *WatchData
 	wdDelayKey [][]byte
 
+	reDelayEraseKey [][]byte
+
 	jobChan chan func()
 
 	evmTxIndex uint64
@@ -92,10 +94,14 @@ func (w *Watcher) GetEvmTxIndex() uint64 {
 	return w.evmTxIndex
 }
 
-func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.Header) {
+func (w *Watcher) NewHeightWithoutDelKey(height uint64, blockHash common.Hash, header types.Header) {
 	if !w.Enabled() {
 		return
 	}
+	w.newHeight(height, blockHash, header)
+}
+
+func (w *Watcher) newHeight(height uint64, blockHash common.Hash, header types.Header) {
 	w.header = header
 	w.height = height
 	w.blockHash = blockHash
@@ -106,11 +112,23 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	w.evmTxIndex = 0
 }
 
+func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.Header) {
+	if !w.Enabled() {
+		return
+	}
+	w.newHeight(height, blockHash, header)
+	w.dispatchJob(func() {
+		w.ExecuteDelayEraseKey(w.reDelayEraseKey)
+	})
+}
+
 func (w *Watcher) clean() {
 	w.cumulativeGas = make(map[uint64]uint64)
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
 	w.wdDelayKey = w.delayEraseKey
+	w.reDelayEraseKey = make([][]byte, 0)
+	w.reDelayEraseKey = w.delayEraseKey
 	w.delayEraseKey = make([][]byte, 0)
 }
 
@@ -631,8 +649,8 @@ func (w *Watcher) jobRoutine() {
 func (w *Watcher) lazyInitialization() {
 	// lazy initial:
 	// now we will allocate chan memory
-	// 5*2 means watcherCommitJob+commitBatchJob(just in case)
-	w.jobChan = make(chan func(), 5*2)
+	// 5*3 means watcherCommitJob+newHeight+commitBatchJob(just in case)
+	w.jobChan = make(chan func(), 5*3)
 }
 
 func (w *Watcher) dispatchJob(f func()) {

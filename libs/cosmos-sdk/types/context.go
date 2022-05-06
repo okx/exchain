@@ -23,22 +23,22 @@ but please do not over-use it. We try to keep all data structured
 and standard additions here would be better just to add to the Context struct
 */
 type Context struct {
-	ctx            context.Context
-	ms             MultiStore
-	header         *abci.Header
-	chainID        string
-	from           string
-	txBytes        []byte
-	logger         log.Logger
-	voteInfo       []abci.VoteInfo
-	gasMeter       GasMeter
-	blockGasMeter  GasMeter
-	isDeliver      bool
-	checkTx        bool
-	recheckTx      bool // if recheckTx == true, then checkTx must also be true
-	wrappedCheckTx bool // if wrappedCheckTx == true, then checkTx must also be true
-	traceTx        bool // traceTx is set true for trace tx and its predesessors , traceTx was set in app.beginBlockForTrace()
-	traceTxLog     bool // traceTxLog is used to create trace logger for evm , traceTxLog is set to true when only tracing target tx (its predesessors will set false), traceTxLog is set before runtx
+	ctx                context.Context
+	ms                 MultiStore
+	header             *abci.Header
+	chainID            string
+	from               string
+	txBytes            []byte
+	logger             log.Logger
+	voteInfo           []abci.VoteInfo
+	gasMeter           GasMeter
+	blockGasMeter      GasMeter
+	isDeliver          bool
+	checkTx            bool
+	recheckTx          bool   // if recheckTx == true, then checkTx must also be true
+	wrappedCheckTx     bool   // if wrappedCheckTx == true, then checkTx must also be true
+	traceTx            bool   // traceTx is set true for trace tx and its predesessors , traceTx was set in app.beginBlockForTrace()
+	traceTxLog         bool   // traceTxLog is used to create trace logger for evm , traceTxLog is set to true when only tracing target tx (its predesessors will set false), traceTxLog is set before runtx
 	traceTxConfigBytes []byte // traceTxConfigBytes is used to save traceTxConfig, passed from api to x/evm
 	minGasPrice        DecCoins
 	consParams         *abci.ConsensusParams
@@ -48,6 +48,7 @@ type Context struct {
 	trc                *trace.Tracer
 	accountCache       *AccountCache
 	paraMsg            *ParaMsg
+	isSimulator        bool
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -92,6 +93,8 @@ func (c *Context) AnteTracer() *trace.Tracer   { return c.trc }
 func (c *Context) Cache() *Cache {
 	return c.cache
 }
+
+func (c *Context) IsSimulator() bool { return c.isSimulator }
 func (c Context) ParaMsg() *ParaMsg {
 	return c.paraMsg
 }
@@ -345,6 +348,11 @@ func (c *Context) SetParaMsg(m *ParaMsg) *Context {
 
 func (c *Context) SetVoteInfos(voteInfo []abci.VoteInfo) *Context {
 	c.voteInfo = voteInfo
+	return c
+}
+
+func (c *Context) SetIsSimulator(isSimulator bool) *Context {
+	c.isSimulator = isSimulator
 	return c
 }
 
