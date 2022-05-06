@@ -525,6 +525,7 @@ func (mem *CListMempool) addPendingTx(memTx *mempoolTx) error {
 	// nonce is continuous
 	pendingCnt := mem.GetUserPendingTxsCnt(memTx.from)
 	txNonce := memTx.realTx.GetNonce()
+	// cosmos tx does not support pending pool, so here must check whether txNonce is 0
 	if txNonce == 0 || txNonce == memTx.senderNonce+uint64(pendingCnt) {
 		err := mem.addTx(memTx)
 		if err == nil {
