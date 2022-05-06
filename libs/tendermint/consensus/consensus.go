@@ -109,7 +109,9 @@ type State struct {
 	evpool evidencePool
 
 	// internal state
-	mtx sync.RWMutex
+	csmtx sync.RWMutex
+	mtx   sync.RWMutex
+
 	cstypes.RoundState
 	state sm.State // State until height-1.
 	// privValidator pubkey, memoized for the duration of one block
@@ -243,8 +245,8 @@ func (cs *State) String() string {
 
 // GetState returns a copy of the chain state.
 func (cs *State) GetState() sm.State {
-	cs.mtx.RLock()
-	defer cs.mtx.RUnlock()
+	cs.csmtx.RLock()
+	defer cs.csmtx.RUnlock()
 	return cs.state.Copy()
 }
 
@@ -729,8 +731,8 @@ func (cs *State) receiveRoutine(maxSteps int) {
 
 // state transitions on complete-proposal, 2/3-any, 2/3-one
 func (cs *State) handleMsg(mi msgInfo) {
-	//cs.mtx.Lock()
-	//defer cs.mtx.Unlock()
+	cs.csmtx.Lock()
+	defer cs.csmtx.Unlock()
 
 	var (
 		added bool
@@ -805,8 +807,8 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 	}
 
 	// the timeout will now cause a state transition
-	//cs.mtx.Lock()
-	//defer cs.mtx.Unlock()
+	cs.csmtx.Lock()
+	defer cs.csmtx.Unlock()
 
 	switch ti.Step {
 	case cstypes.RoundStepNewHeight:
@@ -836,8 +838,8 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 }
 
 func (cs *State) handleTxsAvailable() {
-	//cs.mtx.Lock()
-	//defer cs.mtx.Unlock()
+	cs.csmtx.Lock()
+	defer cs.csmtx.Unlock()
 
 	// We only need to do this for round 0.
 	if cs.Round != 0 {
