@@ -634,6 +634,12 @@ func (app *BaseApp) getContextForTx(mode sdk.RunTxMode, txBytes []byte) sdk.Cont
 		SetVoteInfos(app.voteInfos).
 		SetConsensusParams(app.consensusParams)
 
+	if mode == sdk.RunTxModeCheck {
+		ctx.SetRunTxMode(
+			mode,
+			sdk.WithCheckTx(true),
+		)
+	}
 	if mode == sdk.RunTxModeReCheck {
 		ctx.SetRunTxMode(
 			mode,

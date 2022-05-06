@@ -481,10 +481,11 @@ type ContextOption struct {
 	applier func(opts *RuntxModeOptions)
 }
 
+//func Apply sets the the param to context and verify it by mode
 func (o *ContextOption) Apply(opts *RuntxModeOptions) {
 	o.applyWithNoVerify(opts)
 	if !opts.Verify() {
-		err := fmt.Errorf("failed to verify runtxOpt, mode = %s", opts.runtxMode.String())
+		err := fmt.Errorf("failed to verify runtxOpt, mode = %s, opts = %v", opts.runtxMode.String(), *opts)
 		panic(err)
 	}
 }
@@ -495,17 +496,19 @@ func (o *ContextOption) applyWithNoVerify(opts *RuntxModeOptions) {
 	o.applier(opts)
 }
 
+//SetRunTxMode sets the RunTxMode and runtx params to context all together ,then verify them by mode
 func (c *Context) SetRunTxMode(mode RunTxMode, opts ...*ContextOption) error {
 	c.runtxOpt.runtxMode = mode
 	return c.SetMultiRuntxParams(opts...)
 }
 
+//SetMultiRuntxParams sets the runtx params to context all together ,then verify them by mode
 func (c *Context) SetMultiRuntxParams(opts ...*ContextOption) error {
 	for _, opt := range opts {
 		opt.applyWithNoVerify(&c.runtxOpt)
 	}
 	if !c.runtxOpt.Verify() {
-		return fmt.Errorf("failed to verify runtxOpt, mode = %s", c.runtxOpt.runtxMode.String())
+		return fmt.Errorf("failed to verify runtxOpt, mode = %s, opts = %v", c.runtxOpt.runtxMode.String(), c.runtxOpt)
 	}
 	return nil
 }
