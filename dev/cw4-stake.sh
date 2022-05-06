@@ -1,4 +1,4 @@
-captain="ex1h0j8x0v9hs4eq6ppgamemfyu4vuvp2sl0q9p3v"
+captain=$(exchaincli keys show captain -a)
 # cw20
 # ex14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s6fqu27
 # cw4-stake

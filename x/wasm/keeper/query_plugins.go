@@ -174,7 +174,6 @@ func BankQuerier(bankKeeper types.BankViewKeeper) func(ctx sdk.Context, request 
 			}
 			coins := bankKeeper.GetAllBalances(ctx, addr)
 			adapters := sdk.CoinsToCoinAdapters(coins)
-			fmt.Println("adapter lifei111", adapters.String())
 			res := wasmvmtypes.AllBalancesResponse{
 				Amount: ConvertSdkCoinsToWasmCoins(adapters),
 			}
@@ -187,7 +186,6 @@ func BankQuerier(bankKeeper types.BankViewKeeper) func(ctx sdk.Context, request 
 			}
 			coin := bankKeeper.GetBalance(ctx, addr, request.Balance.Denom)
 			adapter := sdk.CoinToCoinAdapter(coin)
-			fmt.Println("adapter lifei", adapter.Amount.String())
 			res := wasmvmtypes.BalanceResponse{
 				Amount: ConvertSdkCoinToWasmCoin(adapter),
 			}
