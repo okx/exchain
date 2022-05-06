@@ -3,50 +3,11 @@ package trace
 import (
 	"fmt"
 	"time"
-
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-)
-
-const (
-	GasUsed          = "GasUsed"
-	Produce          = "Produce"
-	RunTx            = "RunTx"
-	Height           = "Height"
-	Tx               = "Tx"
-	BlockSize        = "BlockSize"
-	Elapsed          = "Elapsed"
-	CommitRound      = "CommitRound"
-	Round            = "Round"
-	Evm              = "Evm"
-	Iavl             = "Iavl"
-	FlatKV           = "FlatKV"
-	WtxRatio         = "WtxRatio"
-	SigCacheRatio    = "SigCacheRatio"
-	DeliverTxs       = "DeliverTxs"
-	EvmHandlerDetail = "EvmHandlerDetail"
-	RunAnteDetail    = "RunAnteDetail"
-	AnteChainDetail  = "AnteChainDetail"
-
-	Delta = "Delta"
-
-	Abci       = "abci"
-	InvalidTxs = "InvalidTxs"
-	SaveResp   = "saveResp"
-	Persist    = "persist"
-	SaveState  = "saveState"
-
-	ApplyBlock = "ApplyBlock"
-	Consensus  = "Consensus"
-
-	MempoolCheckTxCnt = "checkTxCnt"
-	MempoolTxsCnt     = "mempoolTxsCnt"
-
-	Prerun = "Prerun"
 )
 
 type IElapsedTimeInfos interface {
 	AddInfo(key string, info string)
-	Dump(logger log.Logger)
+	Dump(logger interface{})
 	SetElapsedTime(elapsedTime int64)
 	GetElapsedTime() int64
 }
@@ -103,7 +64,9 @@ func (t *Tracer) pinByFormat(tag string) {
 
 	if len(t.lastPin) > 0 {
 		t.pins = append(t.pins, t.lastPin)
-		t.intervals = append(t.intervals, now.Sub(t.lastPinStartTime))
+		duration := now.Sub(t.lastPinStartTime)
+		t.intervals = append(t.intervals, duration)
+		insertElapse(t.lastPin, duration.Milliseconds())
 	}
 	t.lastPinStartTime = now
 	t.lastPin = tag
@@ -200,7 +163,7 @@ type EmptyTimeInfo struct {
 func (e *EmptyTimeInfo) AddInfo(key string, info string) {
 }
 
-func (e *EmptyTimeInfo) Dump(logger log.Logger) {
+func (e *EmptyTimeInfo) Dump(logger interface{}) {
 }
 
 func (e *EmptyTimeInfo) SetElapsedTime(elapsedTime int64) {

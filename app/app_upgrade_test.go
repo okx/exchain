@@ -8,6 +8,7 @@ import (
 	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	capabilityModule "github.com/okex/exchain/libs/cosmos-sdk/x/capability"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/genutil"
+	"github.com/okex/exchain/libs/system/trace"
 	commonversion "github.com/okex/exchain/x/common/version"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
@@ -48,7 +49,6 @@ import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/ammswap"
-	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/dex"
 	distr "github.com/okex/exchain/x/distribution"
 	"github.com/okex/exchain/x/erc20"
@@ -279,8 +279,8 @@ func newTestOkcChainApp(
 
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
-	bApp.SetStartLogHandler(analyzer.StartTxLog)
-	bApp.SetEndLogHandler(analyzer.StopTxLog)
+	bApp.SetStartLogHandler(trace.StartTxLog)
+	bApp.SetEndLogHandler(trace.StopTxLog)
 
 	bApp.SetInterfaceRegistry(interfaceReg)
 
