@@ -138,6 +138,7 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 			"simulate tx",
 			func() {
 				suite.ctx.SetFrom(sender.String())
+				suite.ctx.SetIsDeliverTx(false)
 				suite.ctx.SetIsCheckTx(true)
 				suite.app.EvmKeeper.SetBalance(suite.ctx, sender, big.NewInt(100))
 				tx = types.NewMsgEthereumTx(0, &sender, big.NewInt(100), 3000000, big.NewInt(1), nil)
@@ -148,6 +149,7 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 			"trace log tx",
 			func() {
 				suite.ctx.SetFrom(sender.String())
+				suite.ctx.SetIsDeliverTx(false)
 				suite.ctx.SetIsTraceTxLog(true)
 				suite.app.EvmKeeper.SetBalance(suite.ctx, sender, big.NewInt(100))
 				tx = types.NewMsgEthereumTx(0, &sender, big.NewInt(100), 3000000, big.NewInt(1), nil)

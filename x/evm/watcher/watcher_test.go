@@ -223,6 +223,7 @@ func TestMsgEthereumTxByWatcher(t *testing.T) {
 			w = setupTest() // reset
 			//nolint
 			tc.malleate()
+			w.ctx.SetIsDeliverTx(false)
 			w.ctx.SetIsCheckTx(true)
 			w.ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 			w.ctx.SetFrom(from.String())
