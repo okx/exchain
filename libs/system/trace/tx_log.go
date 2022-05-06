@@ -1,4 +1,4 @@
-package analyzer
+package trace
 
 type txLog struct {
 	startTime int64

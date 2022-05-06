@@ -1,4 +1,4 @@
-package analyzer
+package trace
 
 type operateInfo struct {
 	TimeCost int64 `json:"timeCost"`
