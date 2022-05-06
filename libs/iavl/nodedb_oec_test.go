@@ -264,10 +264,10 @@ func Test_saveCommitOrphans(t *testing.T) {
 
 	ndb := mockNodeDB()
 	for n, c := range cases {
-		commitOrphans := make(map[string]int64)
+		var commitOrphans []commitOrphan
 		for i := 0; i < c.orphansNum; i++ {
 			node := mockNode(c.version)
-			commitOrphans[string(node._hash())] = rand.Int63n(100) + 100*int64(n)
+			commitOrphans = append(commitOrphans, commitOrphan{Version: rand.Int63n(100) + 100*int64(n), NodeHash: node._hash()})
 		}
 
 		batch1 := ndb.NewBatch()
@@ -278,11 +278,11 @@ func Test_saveCommitOrphans(t *testing.T) {
 		ndb.saveCommitOrphans(batch2, c.version+1, commitOrphans)
 		require.NoError(t, ndb.Commit(batch2))
 
-		for hash, fromVersion := range commitOrphans {
-			key := ndb.orphanKey(fromVersion, c.version, []byte(hash))
+		for _, orphan := range commitOrphans {
+			key := ndb.orphanKey(orphan.Version, c.version, orphan.NodeHash)
 			node, err := ndb.dbGet(key)
 			require.NoError(t, err)
-			require.Equal(t, []byte(hash), node)
+			require.Equal(t, orphan.NodeHash, node)
 		}
 	}
 }
