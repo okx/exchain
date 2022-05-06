@@ -76,6 +76,7 @@ type PublicEthereumAPI struct {
 	txPool         *TxPool
 	Metrics        map[string]*monitor.RpcMetrics
 	callCache      *lru.Cache
+	watcherEnabled bool
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -100,6 +101,7 @@ func NewAPI(
 		gasPrice:       ParseGasPrice(),
 		wrappedBackend: watcher.NewQuerier(),
 		watcherBackend: watcher.NewWatcher(log),
+		watcherEnabled: watcher.IsWatcherEnabled(),
 	}
 	api.evmFactory = simulation.NewEvmFactory(clientCtx.ChainID, api.wrappedBackend)
 
@@ -291,7 +293,8 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNrOrHash r
 		return nil, err
 	}
 	clientCtx := api.clientCtx
-	if !(blockNum == rpctypes.PendingBlockNumber || blockNum == rpctypes.LatestBlockNumber) {
+	// fast-query mod only get the latest block number's account
+	if !(blockNum == rpctypes.PendingBlockNumber || blockNum == rpctypes.LatestBlockNumber || api.watcherEnabled) {
 		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
 	}
 
@@ -1718,7 +1721,7 @@ func (api *PublicEthereumAPI) accountNonce(
 	}
 
 	// Get nonce (sequence) of account from  watch db
-	acc, err := api.wrappedBackend.GetAccount(address.Bytes())
+	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
 	if err == nil {
 		return acc.GetSequence(), nil
 	}
