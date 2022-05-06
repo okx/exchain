@@ -1718,7 +1718,7 @@ func (api *PublicEthereumAPI) accountNonce(
 	}
 
 	// Get nonce (sequence) of account from  watch db
-	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
+	acc, err := api.wrappedBackend.GetAccount(address.Bytes())
 	if err == nil {
 		return acc.GetSequence(), nil
 	}

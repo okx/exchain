@@ -39,8 +39,6 @@ type Watcher struct {
 	watchData  *WatchData
 	wdDelayKey [][]byte
 
-	reDelayEraseKey [][]byte
-
 	jobChan chan func()
 
 	evmTxIndex uint64
@@ -113,8 +111,6 @@ func (w *Watcher) clean() {
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
 	w.wdDelayKey = w.delayEraseKey
-	w.reDelayEraseKey = make([][]byte, 0)
-	w.reDelayEraseKey = w.delayEraseKey
 	w.delayEraseKey = make([][]byte, 0)
 }
 
@@ -394,15 +390,6 @@ func (w *Watcher) CommitWatchData(data WatchData, delayEraseKey [][]byte) {
 		}
 		w.CheckWatchDB(keys, "consumer")
 	}
-}
-
-func (w *Watcher) ReDelayDelEraseKeys() {
-	if !w.Enabled() {
-		return
-	}
-	w.dispatchJob(func() {
-		w.ExecuteDelayEraseKey(w.reDelayEraseKey)
-	})
 }
 
 func (w *Watcher) commitBatch(batch []WatchMessage, delayEraseKey [][]byte) {
