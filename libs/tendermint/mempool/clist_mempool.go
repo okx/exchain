@@ -6,13 +6,13 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"github.com/okex/exchain/libs/system/trace"
 	"math/big"
 	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
 
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	auto "github.com/okex/exchain/libs/tendermint/libs/autofile"
@@ -530,7 +530,9 @@ func (mem *CListMempool) addPendingTx(memTx *mempoolTx) error {
 	if ok {
 		expectedNonce = pendingNonce + 1
 	}
-	if memTx.realTx.GetNonce() == expectedNonce {
+	txNonce := memTx.realTx.GetNonce()
+	// cosmos tx does not support pending pool, so here must check whether txNonce is 0
+	if txNonce == 0 || txNonce == expectedNonce {
 		err := mem.addTx(memTx)
 		if err == nil {
 			go mem.consumePendingTx(memTx.from, memTx.realTx.GetNonce()+1)
