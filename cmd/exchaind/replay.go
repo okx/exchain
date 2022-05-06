@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/system/trace"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -241,6 +242,21 @@ func SaveBlock(ctx *server.Context, originDB *store.BlockStore, height int64) {
 
 func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	proxyApp proxy.AppConns, originDataDir string, lastAppHash []byte, lastBlockHeight int64) {
+	
+	trace.GetTraceSummary().Init(
+		trace.Abci,
+		//trace.ValTxMsgs,
+		trace.RunAnte,
+		trace.RunMsg,
+		trace.Refund,
+		//trace.SaveResp,
+		trace.Persist,
+		//trace.Evpool,
+		//trace.SaveState,
+		//trace.FireEvents,
+	)
+
+	defer trace.GetTraceSummary().Dump("Replay")
 	originBlockStoreDB, err := openDB(blockStoreDB, originDataDir)
 	panicError(err)
 	originBlockStore := store.NewBlockStore(originBlockStoreDB)
@@ -292,6 +308,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 			SaveBlock(ctx, originBlockStore, height)
 		}
 	}
+
 }
 
 func dumpMemPprof() error {

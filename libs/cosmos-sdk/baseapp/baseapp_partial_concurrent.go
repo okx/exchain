@@ -8,10 +8,10 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	sm "github.com/okex/exchain/libs/tendermint/state"
-	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/spf13/viper"
 )
 
@@ -579,15 +579,15 @@ func (dttm *DTTManager) serialExecution() {
 
 	mode := sdk.RunTxModeDeliver
 	defer func() {
-		dttm.app.pin(Refund, true, mode)
-		defer dttm.app.pin(Refund, false, mode)
+		dttm.app.pin(trace.Refund, true, mode)
+		defer dttm.app.pin(trace.Refund, false, mode)
 		handler.handleDeferRefund(info)
 	}()
 
 	// execute runMsgs
-	dttm.app.pin(RunMsg, true, mode)
+	dttm.app.pin(trace.RunMsg, true, mode)
 	err = handler.handleRunMsg(info)
-	dttm.app.pin(RunMsg, false, mode)
+	dttm.app.pin(trace.RunMsg, false, mode)
 }
 
 func (dttm *DTTManager) serialHandleBeforeRunMsg(info *runTxInfo) error {
