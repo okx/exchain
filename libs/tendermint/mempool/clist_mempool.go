@@ -523,10 +523,14 @@ func (mem *CListMempool) isFull(txSize int) error {
 
 func (mem *CListMempool) addPendingTx(memTx *mempoolTx) error {
 	// nonce is continuous
-	pendingCnt := mem.GetUserPendingTxsCnt(memTx.from)
+	expectedNonce := memTx.senderNonce
+	pendingNonce, ok := mem.GetPendingNonce(memTx.from)
+	if ok {
+		expectedNonce = pendingNonce + 1
+	}
 	txNonce := memTx.realTx.GetNonce()
 	// cosmos tx does not support pending pool, so here must check whether txNonce is 0
-	if txNonce == 0 || txNonce == memTx.senderNonce+uint64(pendingCnt) {
+	if txNonce == 0 || txNonce == expectedNonce {
 		err := mem.addTx(memTx)
 		if err == nil {
 			go mem.consumePendingTx(memTx.from, memTx.realTx.GetNonce()+1)
@@ -829,7 +833,7 @@ func (mem *CListMempool) GetAddressList() []string {
 	return mem.addressRecord.GetAddressList()
 }
 
-func (mem *CListMempool) GetPendingNonce(address string) uint64 {
+func (mem *CListMempool) GetPendingNonce(address string) (uint64, bool) {
 	return mem.addressRecord.GetAddressNonce(address)
 }
 
