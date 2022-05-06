@@ -356,7 +356,7 @@ func (api *PublicEthereumAPI) GetBalanceBatch(addresses []common.Address, blockN
 		return nil, err
 	}
 	clientCtx := api.clientCtx
-	if !(blockNum == rpctypes.PendingBlockNumber || blockNum == rpctypes.LatestBlockNumber) {
+	if !(blockNum == rpctypes.PendingBlockNumber || blockNum == rpctypes.LatestBlockNumber || api.watcherEnabled) {
 		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
 	}
 
@@ -423,7 +423,7 @@ func (api *PublicEthereumAPI) GetBalanceBatch(addresses []common.Address, blockN
 	return balances, nil
 }
 
-// GetAccount returns the provided account's balance up to the provided block number.
+// GetAccount returns the provided account's balance.
 func (api *PublicEthereumAPI) GetAccount(address common.Address) (*ethermint.EthAccount, error) {
 	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
 	if err == nil {
@@ -504,7 +504,7 @@ func (api *PublicEthereumAPI) GetTransactionCount(address common.Address, blockN
 	clientCtx := api.clientCtx
 	pending := blockNum == rpctypes.PendingBlockNumber
 	// pass the given block height to the context if the height is not pending or latest
-	if !pending && blockNum != rpctypes.LatestBlockNumber {
+	if !pending && blockNum != rpctypes.LatestBlockNumber && !api.watcherEnabled {
 		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
 	}
 
