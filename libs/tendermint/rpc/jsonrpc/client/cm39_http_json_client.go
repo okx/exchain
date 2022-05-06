@@ -1,8 +1,12 @@
 package client
 
 import (
-	"errors"
+	"bytes"
+	"encoding/json"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
+	"github.com/okex/exchain/libs/tendermint/rpc/jsonrpc/types"
+	"io/ioutil"
 	"net/http"
 	"strings"
 )
@@ -70,28 +74,51 @@ func (c *Cm39HttpJSONClientAdapter) seal() {
 }
 
 func (c *Cm39HttpJSONClientAdapter) Call(method string, params map[string]interface{}, result interface{}) (ret interface{}, err error) {
-	cp := c.planb[method]
+	return c.call(method, params, result, c.planb[method])
+}
 
-	if cp != nil {
-		defer func() {
-			if nil == err || !cp.onHitError(err) {
-				return
-			}
-			res := cp.before()
-			v, pbErr := c.Client.Call(method, params, res)
-			if nil != pbErr {
-				err = errors.New("first err:" + err.Error() + ",second error:" + pbErr.Error())
-				return
-			}
-			cp.after(v, result)
-			ret = result
+func (c *Cm39HttpJSONClientAdapter) call(method string, params map[string]interface{}, result interface{}, coup *couple) (interface{}, error) {
+	id := c.nextRequestID()
+
+	request, err := types.MapToRequest(c.cdc, id, method, params)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to encode params")
+	}
+
+	requestBytes, err := json.Marshal(request)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to marshal request")
+	}
+
+	requestBuf := bytes.NewBuffer(requestBytes)
+	httpRequest, err := http.NewRequest(http.MethodPost, c.address, requestBuf)
+	if err != nil {
+		return nil, errors.Wrap(err, "Request failed")
+	}
+	httpRequest.Header.Set("Content-Type", "text/json")
+	if c.username != "" || c.password != "" {
+		httpRequest.SetBasicAuth(c.username, c.password)
+	}
+	httpResponse, err := c.client.Do(httpRequest)
+	if err != nil {
+		return nil, errors.Wrap(err, "Post failed")
+	}
+	defer httpResponse.Body.Close() // nolint: errcheck
+
+	responseBytes, err := ioutil.ReadAll(httpResponse.Body)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read response body")
+	}
+
+	ret, err := unmarshalResponseBytes(c.cdc, responseBytes, id, result)
+	if nil != err && coup != nil && coup.onHitError(err) {
+		bef := coup.before()
+		if ret2, err2 := unmarshalResponseBytes(c.cdc, responseBytes, id, bef); nil != err2 {
+			err = errors.Wrap(err, "second error:"+err2.Error())
+		} else {
+			coup.after(ret2, result)
 			err = nil
-		}()
+		}
 	}
-
-	ret, err = c.Client.Call(method, params, result)
-	if nil != err {
-		return nil, err
-	}
-	return ret, nil
+	return ret, err
 }
