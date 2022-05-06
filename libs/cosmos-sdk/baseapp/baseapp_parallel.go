@@ -2,6 +2,8 @@ package baseapp
 
 import (
 	"bytes"
+	"sync"
+
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -9,7 +11,6 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/spf13/viper"
-	"sync"
 )
 
 var (
@@ -47,7 +48,7 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) {
 				}
 				return
 			}
-			coin, isEvm, s, toAddr, _ := app.getTxFeeAndFromHandler(app.getContextForTx(runTxModeDeliver, txBytes), tx)
+			coin, isEvm, s, toAddr, _ := app.getTxFeeAndFromHandler(app.getContextForTx(sdk.RunTxModeDeliver, txBytes), tx)
 			para.extraTxsInfo[index] = &extraDataForTx{
 				fee:   coin,
 				isEvm: isEvm,
@@ -158,7 +159,7 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 }
 
 func (app *BaseApp) fixFeeCollector() {
-	ctx, _ := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
+	ctx, _ := app.cacheTxContext(app.getContextForTx(sdk.RunTxModeDeliver, []byte{}), []byte{})
 
 	ctx.SetMultiStore(app.parallelTxManage.cms)
 	if err := app.updateFeeCollectorAccHandler(ctx, app.parallelTxManage.currTxFee); err != nil {
@@ -327,9 +328,9 @@ func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 	}
 	var (
 		resp abci.ResponseDeliverTx
-		mode runTxMode
+		mode sdk.RunTxMode
 	)
-	mode = runTxModeDeliverInAsync
+	mode = sdk.RunTxModeDeliverInAsync
 	info, errM := app.runTxWithIndex(txIndex, mode, app.parallelTxManage.workgroup.txs[txIndex], txStatus.stdTx, LatestSimulateTxHeight)
 	if errM != nil {
 		resp = sdkerrors.ResponseDeliverTx(errM, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)

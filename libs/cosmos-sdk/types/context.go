@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/okex/exchain/libs/tendermint/trace"
@@ -14,6 +15,62 @@ import (
 	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 )
 
+type RunTxMode uint8
+
+const (
+	RunTxModeUnknown               RunTxMode = iota
+	RunTxModeCheck                           // Check a transaction
+	RunTxModeReCheck                         // Recheck a (pending) transaction after a commit
+	RunTxModeSimulate                        // Simulate a transaction
+	RunTxModeDeliver                         // Deliver a transaction
+	RunTxModeDeliverInAsync                  // Deliver a transaction in Aysnc
+	RunTxModeDeliverPartConcurrent           // Deliver a transaction partial concurrent
+	RunTxModeTrace                           // Trace a transaction
+	RunTxModeWrappedCheck
+)
+
+func (m RunTxMode) String() (res string) {
+	switch m {
+	case RunTxModeCheck:
+		res = "ModeCheck"
+	case RunTxModeReCheck:
+		res = "ModeReCheck"
+	case RunTxModeSimulate:
+		res = "ModeSimulate"
+	case RunTxModeDeliver:
+		res = "ModeDeliver"
+	case RunTxModeDeliverPartConcurrent:
+		res = "ModeDeliverPartConcurrent"
+	case RunTxModeDeliverInAsync:
+		res = "ModeDeliverInAsync"
+	case RunTxModeWrappedCheck:
+		res = "ModeWrappedCheck"
+	default:
+		res = "Unknown"
+	}
+
+	return res
+}
+
+type RuntxModeOptions struct {
+	runtxMode          RunTxMode
+	isSimulate         bool
+	isDeliver          bool
+	checkTx            bool
+	recheckTx          bool   // if recheckTx == true, then checkTx must also be true
+	wrappedCheckTx     bool   // if wrappedCheckTx == true, then checkTx must also be true
+	traceTx            bool   // traceTx is set true for trace tx and its predesessors , traceTx was set in app.beginBlockForTrace()
+	traceTxLog         bool   // traceTxLog is used to create trace logger for evm , traceTxLog is set to true when only tracing target tx (its predesessors will set false), traceTxLog is set before runtx
+	traceTxConfigBytes []byte // traceTxConfigBytes is used to save traceTxConfig, passed from api to x/evm
+	paraMsg            *ParaMsg
+}
+
+func DefaultRuntxModeOptions(isCheckTx bool) RuntxModeOptions {
+	return RuntxModeOptions{
+		checkTx: isCheckTx,
+	}
+}
+
 /*
 Context is an immutable object contains all information needed to
 process a request.
@@ -23,31 +80,26 @@ but please do not over-use it. We try to keep all data structured
 and standard additions here would be better just to add to the Context struct
 */
 type Context struct {
-	ctx            context.Context
-	ms             MultiStore
-	header         *abci.Header
-	chainID        string
-	from           string
-	txBytes        []byte
-	logger         log.Logger
-	voteInfo       []abci.VoteInfo
-	gasMeter       GasMeter
-	blockGasMeter  GasMeter
-	isDeliver      bool
-	checkTx        bool
-	recheckTx      bool // if recheckTx == true, then checkTx must also be true
-	wrappedCheckTx bool // if wrappedCheckTx == true, then checkTx must also be true
-	traceTx        bool // traceTx is set true for trace tx and its predesessors , traceTx was set in app.beginBlockForTrace()
-	traceTxLog     bool // traceTxLog is used to create trace logger for evm , traceTxLog is set to true when only tracing target tx (its predesessors will set false), traceTxLog is set before runtx
-	traceTxConfigBytes []byte // traceTxConfigBytes is used to save traceTxConfig, passed from api to x/evm
-	minGasPrice        DecCoins
-	consParams         *abci.ConsensusParams
-	eventManager       *EventManager
-	accountNonce       uint64
-	cache              *Cache
-	trc                *trace.Tracer
-	accountCache       *AccountCache
-	paraMsg            *ParaMsg
+	ctx           context.Context
+	ms            MultiStore
+	header        *abci.Header
+	chainID       string
+	from          string
+	txBytes       []byte
+	logger        log.Logger
+	voteInfo      []abci.VoteInfo
+	gasMeter      GasMeter
+	blockGasMeter GasMeter
+
+	minGasPrice  DecCoins
+	consParams   *abci.ConsensusParams
+	eventManager *EventManager
+	accountNonce uint64
+	cache        *Cache
+	trc          *trace.Tracer
+	accountCache *AccountCache
+
+	runtxOpt RuntxModeOptions
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -76,15 +128,16 @@ func (c *Context) VoteInfos() []abci.VoteInfo { return c.voteInfo }
 func (c *Context) GasMeter() GasMeter         { return c.gasMeter }
 func (c *Context) BlockGasMeter() GasMeter    { return c.blockGasMeter }
 func (c *Context) IsDeliver() bool {
-	return c.isDeliver || (c.paraMsg != nil && !c.paraMsg.HaveCosmosTxInBlock)
+	return c.runtxOpt.isDeliver || (c.runtxOpt.paraMsg != nil && !c.runtxOpt.paraMsg.HaveCosmosTxInBlock)
 }
 
-func (c *Context) IsCheckTx() bool             { return c.checkTx }
-func (c *Context) IsReCheckTx() bool           { return c.recheckTx }
-func (c *Context) IsTraceTx() bool             { return c.traceTx }
-func (c *Context) IsTraceTxLog() bool          { return c.traceTxLog }
-func (c *Context) TraceTxLogConfig() []byte    { return c.traceTxConfigBytes }
-func (c *Context) IsWrappedCheckTx() bool      { return c.wrappedCheckTx }
+func (c *Context) IsSimulate() bool            { return c.runtxOpt.isSimulate }
+func (c *Context) IsCheckTx() bool             { return c.runtxOpt.checkTx }
+func (c *Context) IsReCheckTx() bool           { return c.runtxOpt.recheckTx }
+func (c *Context) IsTraceTx() bool             { return c.runtxOpt.traceTx }
+func (c *Context) IsTraceTxLog() bool          { return c.runtxOpt.traceTxLog }
+func (c *Context) TraceTxLogConfig() []byte    { return c.runtxOpt.traceTxConfigBytes }
+func (c *Context) IsWrappedCheckTx() bool      { return c.runtxOpt.wrappedCheckTx }
 func (c *Context) MinGasPrices() DecCoins      { return c.minGasPrice }
 func (c *Context) EventManager() *EventManager { return c.eventManager }
 func (c *Context) AccountNonce() uint64        { return c.accountNonce }
@@ -93,7 +146,11 @@ func (c *Context) Cache() *Cache {
 	return c.cache
 }
 func (c Context) ParaMsg() *ParaMsg {
-	return c.paraMsg
+	return c.runtxOpt.paraMsg
+}
+
+func (c Context) RuntxOpt() *RuntxModeOptions {
+	return &c.runtxOpt
 }
 
 func (c *Context) EnableAccountCache()  { c.accountCache = &AccountCache{} }
@@ -170,16 +227,16 @@ func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Lo
 		ms:           ms,
 		header:       &header,
 		chainID:      header.ChainID,
-		checkTx:      isCheckTx,
 		logger:       logger,
 		gasMeter:     stypes.NewInfiniteGasMeter(),
 		minGasPrice:  DecCoins{},
 		eventManager: NewEventManager(),
+		runtxOpt:     DefaultRuntxModeOptions(isCheckTx),
 	}
 }
 
 func (c *Context) SetDeliver() *Context {
-	c.isDeliver = true
+	WithDeliverTx(true).Apply(&c.runtxOpt)
 	return c
 }
 
@@ -271,49 +328,104 @@ func (c *Context) SetMinGasPrices(gasPrices DecCoins) *Context {
 }
 
 func (c *Context) SetIsCheckTx(isCheckTx bool) *Context {
-	c.checkTx = isCheckTx
+	WithCheckTx(isCheckTx).Apply(&c.runtxOpt)
 	return c
+}
+func WithCheckTx(isCheckTx bool) *ContextOption {
+	return &ContextOption{
+		applier: func(c *RuntxModeOptions) {
+			c.checkTx = isCheckTx
+		},
+	}
 }
 
 func (c *Context) SetIsDeliverTx(isDeliverTx bool) *Context {
-	c.isDeliver = isDeliverTx
+	WithDeliverTx(isDeliverTx).Apply(&c.runtxOpt)
 	return c
+}
+
+func WithDeliverTx(isDeliverTx bool) *ContextOption {
+	return &ContextOption{
+		applier: func(c *RuntxModeOptions) {
+			c.isDeliver = isDeliverTx
+		},
+	}
+}
+
+func WithSimulate(isSimulateTx bool) *ContextOption {
+	return &ContextOption{
+		applier: func(c *RuntxModeOptions) {
+			c.isSimulate = isSimulateTx
+		},
+	}
 }
 
 // SetIsWrappedCheckTx called with true will also set true on checkTx in order to
 // enforce the invariant that if recheckTx = true then checkTx = true as well.
 func (c *Context) SetIsWrappedCheckTx(isWrappedCheckTx bool) *Context {
-	if isWrappedCheckTx {
-		c.checkTx = true
-	}
-	c.wrappedCheckTx = isWrappedCheckTx
+	WithWrappedCheckTx(isWrappedCheckTx).Apply(&c.runtxOpt)
 	return c
+}
+
+func WithWrappedCheckTx(isWrappedCheckTx bool) *ContextOption {
+	return &ContextOption{
+		applier: func(c *RuntxModeOptions) {
+			if isWrappedCheckTx {
+				c.checkTx = true
+			}
+			c.wrappedCheckTx = isWrappedCheckTx
+		},
+	}
 }
 
 // SetIsReCheckTx called with true will also set true on checkTx in order to
 // enforce the invariant that if recheckTx = true then checkTx = true as well.
 func (c *Context) SetIsReCheckTx(isRecheckTx bool) *Context {
-	if isRecheckTx {
-		c.checkTx = true
-	}
-	c.recheckTx = isRecheckTx
+	WithReCheckTx(isRecheckTx).Apply(&c.runtxOpt)
 	return c
+}
+
+func WithReCheckTx(isRecheckTx bool) *ContextOption {
+	return &ContextOption{
+		applier: func(c *RuntxModeOptions) {
+			if isRecheckTx {
+				c.checkTx = true
+			}
+			c.recheckTx = isRecheckTx
+		},
+	}
 }
 
 func (c *Context) SetIsTraceTxLog(isTraceTxLog bool) *Context {
-	if isTraceTxLog {
-		c.checkTx = true
-	}
-	c.traceTxLog = isTraceTxLog
+	WithTraceTxLog(isTraceTxLog).Apply(&c.runtxOpt)
 	return c
 }
 
-func (c *Context) SetIsTraceTx(isTraceTx bool) *Context {
-	if isTraceTx {
-		c.checkTx = true
+func WithTraceTxLog(isTraceTxLog bool) *ContextOption {
+	return &ContextOption{
+		applier: func(c *RuntxModeOptions) {
+			if isTraceTxLog {
+				c.checkTx = true
+			}
+			c.traceTxLog = isTraceTxLog
+		},
 	}
-	c.traceTx = isTraceTx
+}
+
+func (c *Context) SetIsTraceTx(isTraceTx bool) *Context {
+	WithTraceTx(isTraceTx).Apply(&c.runtxOpt)
 	return c
+}
+
+func WithTraceTx(isTraceTx bool) *ContextOption {
+	return &ContextOption{
+		applier: func(opts *RuntxModeOptions) {
+			if isTraceTx {
+				opts.checkTx = true
+			}
+			opts.traceTx = isTraceTx
+		},
+	}
 }
 
 func (c *Context) SetProposer(addr ConsAddress) *Context {
@@ -324,8 +436,16 @@ func (c *Context) SetProposer(addr ConsAddress) *Context {
 }
 
 func (c *Context) SetTraceTxLogConfig(traceLogConfigBytes []byte) *Context {
-	c.traceTxConfigBytes = traceLogConfigBytes
+	WithTraceTxLogConfig(traceLogConfigBytes).Apply(&c.runtxOpt)
 	return c
+}
+
+func WithTraceTxLogConfig(traceLogConfigBytes []byte) *ContextOption {
+	return &ContextOption{
+		applier: func(opts *RuntxModeOptions) {
+			opts.traceTxConfigBytes = traceLogConfigBytes
+		},
+	}
 }
 
 func (c *Context) SetTxBytes(txBytes []byte) *Context {
@@ -339,13 +459,128 @@ func (c *Context) SetLogger(logger log.Logger) *Context {
 }
 
 func (c *Context) SetParaMsg(m *ParaMsg) *Context {
-	c.paraMsg = m
+	WithParaMsg(m).Apply(&c.runtxOpt)
 	return c
+}
+
+func WithParaMsg(m *ParaMsg) *ContextOption {
+	return &ContextOption{
+		applier: func(opts *RuntxModeOptions) {
+			opts.paraMsg = m
+		},
+	}
 }
 
 func (c *Context) SetVoteInfos(voteInfo []abci.VoteInfo) *Context {
 	c.voteInfo = voteInfo
 	return c
+}
+
+type ContextOption struct {
+	applier func(opts *RuntxModeOptions)
+}
+
+func (o *ContextOption) Apply(opts *RuntxModeOptions) {
+	if opts == nil {
+		*opts = DefaultRuntxModeOptions(false)
+	}
+	o.applier(opts)
+	if !opts.Verify() {
+		err := fmt.Errorf("failed to verify runtxOpt, mode = %s", opts.runtxMode.String())
+		panic(err)
+	}
+}
+
+func (c *Context) SetRunTxMode(mode RunTxMode, opts ...*ContextOption) error {
+	c.runtxOpt.runtxMode = mode
+	return c.SetMultiRuntxParams(opts...)
+}
+
+func (c *Context) SetMultiRuntxParams(opts ...*ContextOption) error {
+	for _, opt := range opts {
+		opt.Apply(&c.runtxOpt)
+	}
+	if !c.runtxOpt.Verify() {
+		return fmt.Errorf("failed to verify runtxOpt, mode = %s", c.runtxOpt.runtxMode.String())
+	}
+	return nil
+}
+
+func (o *RuntxModeOptions) Verify() bool {
+	switch o.runtxMode {
+	case RunTxModeCheck:
+		return !o.isDeliver &&
+			o.checkTx &&
+			!o.recheckTx &&
+			!o.traceTx &&
+			!o.traceTxLog &&
+			!o.wrappedCheckTx &&
+			o.paraMsg == nil
+	case RunTxModeReCheck:
+		return !o.isDeliver &&
+			!o.isSimulate &&
+			o.checkTx &&
+			o.recheckTx &&
+			!o.traceTx &&
+			!o.traceTxLog &&
+			!o.wrappedCheckTx &&
+			o.paraMsg == nil
+	case RunTxModeSimulate: // Simulate a transaction
+		return !o.isDeliver &&
+			o.isSimulate &&
+			o.checkTx &&
+			!o.recheckTx &&
+			!o.traceTx &&
+			!o.traceTxLog &&
+			!o.wrappedCheckTx &&
+			o.paraMsg == nil
+	case RunTxModeDeliver:
+		return o.isDeliver &&
+			!o.isSimulate &&
+			!o.checkTx &&
+			!o.recheckTx &&
+			!o.traceTx &&
+			!o.traceTxLog &&
+			!o.wrappedCheckTx
+	case RunTxModeDeliverInAsync: // Deliver a transaction in Aysnc
+		return !o.isDeliver &&
+			!o.isSimulate &&
+			!o.checkTx &&
+			!o.recheckTx &&
+			!o.traceTx &&
+			!o.traceTxLog &&
+			!o.wrappedCheckTx &&
+			o.paraMsg != nil
+	case RunTxModeDeliverPartConcurrent: // Deliver a transaction partial concurrent
+		return o.isDeliver &&
+			!o.isSimulate &&
+			!o.checkTx &&
+			!o.recheckTx &&
+			!o.traceTx &&
+			!o.traceTxLog &&
+			!o.wrappedCheckTx
+	case RunTxModeTrace: // Trace a transaction
+		return !o.isDeliver &&
+			o.isSimulate &&
+			o.checkTx &&
+			!o.recheckTx &&
+			o.traceTx &&
+			!o.traceTxLog &&
+			!o.wrappedCheckTx
+	case RunTxModeWrappedCheck:
+		return !o.isDeliver &&
+			!o.isSimulate &&
+			o.checkTx &&
+			!o.recheckTx &&
+			!o.traceTx &&
+			!o.traceTxLog &&
+			o.wrappedCheckTx
+	default:
+		if o.isDeliver && (o.checkTx || o.isSimulate || o.traceTx || o.wrappedCheckTx) {
+			return false
+		}
+		return true
+	}
 }
 
 // ----------------------------------------------------------------------------
@@ -390,25 +625,19 @@ func (c Context) WithBlockHeight(height int64) Context {
 }
 
 func (c Context) WithIsCheckTx(isCheckTx bool) Context {
-	c.checkTx = isCheckTx
+	WithCheckTx(isCheckTx).Apply(&c.runtxOpt)
 	return c
 }
 
 // WithIsReCheckTx called with true will also set true on checkTx in order to
 // enforce the invariant that if recheckTx = true then checkTx = true as well.
 func (c Context) WithIsReCheckTx(isRecheckTx bool) Context {
-	if isRecheckTx {
-		c.checkTx = true
-	}
-	c.recheckTx = isRecheckTx
+	WithReCheckTx(isRecheckTx).Apply(&c.runtxOpt)
 	return c
 }
 
 func (c Context) WithIsTraceTxLog(isTraceTxLog bool) Context {
-	if isTraceTxLog {
-		c.checkTx = true
-	}
-	c.traceTxLog = isTraceTxLog
+	WithTraceTxLog(isTraceTxLog).Apply(&c.runtxOpt)
 	return c
 }
 

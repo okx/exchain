@@ -279,3 +279,86 @@ func BenchmarkContextDuffCopy(b *testing.B) {
 		})
 	})
 }
+
+func TestContext_SetMultiRuntxParams(t *testing.T) {
+	key := types.NewKVStoreKey(t.Name())
+	ctx := defaultContext(key)
+	err := ctx.SetMultiRuntxParams(
+		types.WithCheckTx(true),
+		types.WithReCheckTx(true),
+	)
+	require.Nil(t, err)
+	require.Equal(t, false, ctx.IsDeliver())
+	require.Equal(t, false, ctx.IsSimulate())
+	require.Equal(t, true, ctx.IsCheckTx())
+	require.Equal(t, true, ctx.IsReCheckTx())
+
+	ctx = defaultContext(key)
+	err = ctx.SetMultiRuntxParams(
+		types.WithCheckTx(true),
+		types.WithDeliverTx(true),
+	)
+	require.NotNil(t, err)
+}
+
+func TestContext_SetRunTxMode(t *testing.T) {
+	type testCase struct {
+		name              string
+		test              func(*types.Context) error
+		expectedTestError bool
+		check             func(*types.Context, testCase)
+	}
+	testCases := []testCase{
+		/*{
+			name: "test RunTxModeCheck",
+			test: func(ctx *types.Context) error {
+				return ctx.SetRunTxMode(
+					types.RunTxModeCheck,
+					types.WithCheckTx(true),
+				)
+			},
+			expectedTestError: false,
+			check: func(ctx *types.Context, tc testCase) {
+				require.Equal(t, false, ctx.IsDeliver(), tc.name)
+				require.Equal(t, false, ctx.IsSimulate(), tc.name)
+				require.Equal(t, true, ctx.IsCheckTx(), tc.name)
+				require.Equal(t, false, ctx.IsReCheckTx(), tc.name)
+			},
+		},*/
+		{
+			name: "test RunTxModeCheck set deliver",
+			test: func(ctx *types.Context) error {
+				return ctx.SetRunTxMode(
+					types.RunTxModeCheck,
+					types.WithCheckTx(true),
+					types.WithDeliverTx(true),
+				)
+			},
+			expectedTestError: true,
+		},
+		{
+			name: "test RunTxModeCheck set simulate",
+			test: func(ctx *types.Context) error {
+				return ctx.SetRunTxMode(
+					types.RunTxModeCheck,
+					types.WithCheckTx(true),
+					types.WithSimulate(true),
+				)
+			},
+			expectedTestError: false,
+		},
+	}
+	key := types.NewKVStoreKey(t.Name())
+	for _, tc := range testCases {
+		ctx := defaultContext(key)
+		err := tc.test(&ctx)
+		if tc.expectedTestError {
+			require.NotNil(t, err, tc.name)
+		} else {
+			require.Nil(t, err, tc.name)
+		}
+		if tc.check != nil {
+			tc.check(&ctx, tc)
+		}
+	}
+}

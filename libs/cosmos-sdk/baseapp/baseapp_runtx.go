@@ -2,8 +2,9 @@ package baseapp
 
 import (
 	"fmt"
-	"github.com/pkg/errors"
 	"runtime/debug"
+
+	"github.com/pkg/errors"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -29,7 +30,7 @@ type runTxInfo struct {
 	txIndex int
 }
 
-func (app *BaseApp) runTxWithIndex(txIndex int, mode runTxMode,
+func (app *BaseApp) runTxWithIndex(txIndex int, mode sdk.RunTxMode,
 	txBytes []byte, tx sdk.Tx, height int64, from ...string) (info *runTxInfo, err error) {
 
 	info = &runTxInfo{txIndex: txIndex}
@@ -37,7 +38,7 @@ func (app *BaseApp) runTxWithIndex(txIndex int, mode runTxMode,
 	return
 }
 
-func (app *BaseApp) runTx(mode runTxMode,
+func (app *BaseApp) runTx(mode sdk.RunTxMode,
 	txBytes []byte, tx sdk.Tx, height int64, from ...string) (info *runTxInfo, err error) {
 
 	info = &runTxInfo{}
@@ -45,14 +46,14 @@ func (app *BaseApp) runTx(mode runTxMode,
 	return
 }
 
-func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byte, tx sdk.Tx, height int64, from ...string) (err error) {
+func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode sdk.RunTxMode, txBytes []byte, tx sdk.Tx, height int64, from ...string) (err error) {
 	info.handler = app.getModeHandler(mode)
 	info.tx = tx
 	info.txBytes = txBytes
 	handler := info.handler
 	app.pin(ValTxMsgs, true, mode)
 
-	if tx.GetType() != sdk.EvmTxType && mode == runTxModeDeliver {
+	if tx.GetType() != sdk.EvmTxType && mode == sdk.RunTxModeDeliver {
 		// should update the balance of FeeCollector's account when run non-evm tx
 		// which uses non-infiniteGasMeter during AnteHandleChain
 		app.updateFeeCollectorAccount()
@@ -64,7 +65,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		return err
 	}
 	//info with cache saved in app to load predesessor tx state
-	if mode != runTxModeTrace {
+	if mode != sdk.RunTxModeTrace {
 		//in trace mode,  info ctx cache was already set to traceBlockCache instead of app.blockCache in app.tracetx()
 		//to prevent modifying the deliver state
 		//traceBlockCache was created with different root(chainCache) with app.blockCache in app.BeginBlockForTrace()
@@ -125,7 +126,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	}
 	app.pin(RunAnte, false, mode)
 
-	if app.getTxFeeHandler != nil && mode == runTxModeDeliver {
+	if app.getTxFeeHandler != nil && mode == sdk.RunTxModeDeliver {
 		fee := app.getTxFeeHandler(tx)
 		app.UpdateFeeForCollector(fee, true)
 	}
@@ -137,7 +138,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	return err
 }
 
-func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
+func (app *BaseApp) runAnte(info *runTxInfo, mode sdk.RunTxMode) error {
 
 	var anteCtx sdk.Context
 
@@ -153,7 +154,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	app.pin(CacheTxContext, true, mode)
 	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
 
-	if mode == runTxModeDeliverInAsync {
+	if mode == sdk.RunTxModeDeliverInAsync {
 		info.msCacheAnte = nil
 		msCacheAnte := app.parallelTxManage.getTxResult(info.txIndex)
 		if msCacheAnte == nil {
@@ -167,10 +168,10 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 
 	// 2. AnteChain
 	app.pin(AnteChain, true, mode)
-	if mode == runTxModeDeliver {
+	if mode == sdk.RunTxModeDeliver {
 		anteCtx.SetAnteTracer(app.anteTracer)
 	}
-	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
+	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == sdk.RunTxModeSimulate) // NewAnteHandler
 	app.pin(AnteChain, false, mode)
 
 	// 3. AnteOther
@@ -193,7 +194,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	// GasMeter expected to be set in AnteHandler
 	info.gasWanted = info.ctx.GasMeter().Limit()
 
-	if mode == runTxModeDeliverInAsync {
+	if mode == sdk.RunTxModeDeliverInAsync {
 		info.ctx.ParaMsg().AnteErr = err
 	}
 
@@ -203,7 +204,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	app.pin(AnteOther, false, mode)
 
 	// 4. CacheStoreWrite
-	if mode != runTxModeDeliverInAsync {
+	if mode != sdk.RunTxModeDeliverInAsync {
 		app.pin(CacheStoreWrite, true, mode)
 		info.msCacheAnte.Write()
 		info.ctx.Cache().Write(true)
@@ -227,7 +228,7 @@ func (app *BaseApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeliverTx 
 		}
 	}
 
-	info, err := app.runTx(runTxModeDeliver, req.Tx, realTx, LatestSimulateTxHeight)
+	info, err := app.runTx(sdk.RunTxModeDeliver, req.Tx, realTx, LatestSimulateTxHeight)
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}
@@ -276,7 +277,7 @@ func (app *BaseApp) DeliverRealTx(txes abci.TxEssentials) abci.ResponseDeliverTx
 			return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
 		}
 	}
-	info, err := app.runTx(runTxModeDeliver, realTx.GetRaw(), realTx, LatestSimulateTxHeight)
+	info, err := app.runTx(sdk.RunTxModeDeliver, realTx.GetRaw(), realTx, LatestSimulateTxHeight)
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}
@@ -340,7 +341,7 @@ func (app *BaseApp) asyncDeliverTx(txIndex int) {
 	}
 
 	var resp abci.ResponseDeliverTx
-	info, errM := app.runTxWithIndex(txIndex, runTxModeDeliverInAsync, pmWorkGroup.txs[txIndex], txStatus.stdTx, LatestSimulateTxHeight)
+	info, errM := app.runTxWithIndex(txIndex, sdk.RunTxModeDeliverInAsync, pmWorkGroup.txs[txIndex], txStatus.stdTx, LatestSimulateTxHeight)
 	if errM != nil {
 		resp = sdkerrors.ResponseDeliverTx(errM, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	} else {
@@ -357,11 +358,11 @@ func (app *BaseApp) asyncDeliverTx(txIndex int) {
 	pmWorkGroup.Push(asyncExe)
 }
 
-func useCache(mode runTxMode) bool {
+func useCache(mode sdk.RunTxMode) bool {
 	if !sdk.UseCache {
 		return false
 	}
-	if mode == runTxModeDeliver || mode == runTxModeDeliverPartConcurrent {
+	if mode == sdk.RunTxModeDeliver || mode == sdk.RunTxModeDeliverPartConcurrent {
 		return true
 	}
 	return false

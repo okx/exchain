@@ -3,6 +3,7 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 
@@ -12,7 +13,7 @@ import (
 )
 
 type modeHandler interface {
-	getMode() runTxMode
+	getMode() sdk.RunTxMode
 
 	handleStartHeight(info *runTxInfo, height int64) error
 	handleGasConsumed(info *runTxInfo) error
@@ -21,22 +22,22 @@ type modeHandler interface {
 	handleDeferGasConsumed(info *runTxInfo)
 }
 
-func (app *BaseApp) getModeHandler(mode runTxMode) modeHandler {
+func (app *BaseApp) getModeHandler(mode sdk.RunTxMode) modeHandler {
 	var h modeHandler
 	switch mode {
-	case runTxModeCheck, runTxModeWrappedCheck:
+	case sdk.RunTxModeCheck, sdk.RunTxModeWrappedCheck:
 		h = &modeHandlerCheck{&modeHandlerBase{mode: mode, app: app}}
-	case runTxModeReCheck:
+	case sdk.RunTxModeReCheck:
 		h = &modeHandlerRecheck{&modeHandlerBase{mode: mode, app: app}}
-	case runTxModeTrace:
+	case sdk.RunTxModeTrace:
 		h = &modeHandlerTrace{&modeHandlerDeliver{&modeHandlerBase{mode: mode, app: app}}}
-	case runTxModeDeliver:
+	case sdk.RunTxModeDeliver:
 		fallthrough
-	case runTxModeDeliverPartConcurrent:
+	case sdk.RunTxModeDeliverPartConcurrent:
 		h = &modeHandlerDeliver{&modeHandlerBase{mode: mode, app: app}}
-	case runTxModeSimulate:
+	case sdk.RunTxModeSimulate:
 		h = &modeHandlerSimulate{&modeHandlerBase{mode: mode, app: app}}
-	case runTxModeDeliverInAsync:
+	case sdk.RunTxModeDeliverInAsync:
 		h = &modeHandlerDeliverInAsync{&modeHandlerBase{mode: mode, app: app}}
 	default:
 		h = &modeHandlerBase{mode: mode, app: app}
@@ -46,7 +47,7 @@ func (app *BaseApp) getModeHandler(mode runTxMode) modeHandler {
 }
 
 type modeHandlerBase struct {
-	mode runTxMode
+	mode sdk.RunTxMode
 	app  *BaseApp
 }
 
@@ -74,7 +75,7 @@ type modeHandlerTrace struct {
 	*modeHandlerDeliver
 }
 
-func (m *modeHandlerBase) getMode() runTxMode {
+func (m *modeHandlerBase) getMode() sdk.RunTxMode {
 	return m.mode
 }
 
@@ -163,7 +164,7 @@ func (m *modeHandlerBase) checkHigherThanMercury(err error, info *runTxInfo) err
 }
 
 func (m *modeHandlerBase) handleRunMsg4CheckMode(info *runTxInfo) {
-	if m.mode != runTxModeCheck && m.mode != runTxModeWrappedCheck {
+	if m.mode != sdk.RunTxModeCheck && m.mode != sdk.RunTxModeWrappedCheck {
 		return
 	}
 

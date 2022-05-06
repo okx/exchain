@@ -192,7 +192,7 @@ func (app *BaseApp) updateFeeCollectorAccount() {
 		}
 	}()
 
-	ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
+	ctx, cache := app.cacheTxContext(app.getContextForTx(sdk.RunTxModeDeliver, []byte{}), []byte{})
 	if err := app.updateFeeCollectorAccHandler(ctx, app.feeForCollector); err != nil {
 		panic(err)
 	}
