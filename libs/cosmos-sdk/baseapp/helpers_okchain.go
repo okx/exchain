@@ -97,8 +97,13 @@ func (app *BaseApp) beginBlockForTracing(firstTx []byte, block *tmtypes.Block) (
 	traceState.ctx.SetBlockGasMeter(gasMeter)
 
 	//set the trace mode to prevent the ante handler to check the nounce
-	traceState.ctx.SetIsTraceTx(true)
-	traceState.ctx.SetIsCheckTx(true)
+	err = traceState.ctx.SetRunTxMode(
+		sdk.RunTxModeTrace,
+		sdk.WithTraceTx(true),
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	//app begin block
 	if app.beginBlocker != nil {

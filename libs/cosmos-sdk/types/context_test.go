@@ -347,6 +347,37 @@ func TestContext_SetRunTxMode(t *testing.T) {
 			},
 			expectedTestError: false,
 		},
+		{
+			name: "test RunTxModeDeliver",
+			test: func(ctx *types.Context) error {
+				return ctx.SetRunTxMode(
+					types.RunTxModeDeliver,
+					types.WithDeliverTx(true),
+				)
+			},
+			expectedTestError: false,
+		},
+		{
+			name: "test RunTxModeDeliver set checktx",
+			test: func(ctx *types.Context) error {
+				return ctx.SetRunTxMode(
+					types.RunTxModeDeliver,
+					types.WithDeliverTx(true),
+					types.WithCheckTx(true),
+				)
+			},
+			expectedTestError: true,
+		},
+		{
+			name: "test RunTxModeTrace",
+			test: func(ctx *types.Context) error {
+				return ctx.SetRunTxMode(
+					types.RunTxModeTrace,
+					types.WithTraceTx(true),
+				)
+			},
+			expectedTestError: true,
+		},
 	}
 	key := types.NewKVStoreKey(t.Name())
 	for _, tc := range testCases {
