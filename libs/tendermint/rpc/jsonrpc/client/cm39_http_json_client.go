@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	"net/http"
 	"strings"
@@ -79,6 +80,7 @@ func (c *Cm39HttpJSONClientAdapter) Call(method string, params map[string]interf
 			res := cp.before()
 			v, pbErr := c.Client.Call(method, params, res)
 			if nil != pbErr {
+				err = errors.New("first err:" + err.Error() + ",second error:" + pbErr.Error())
 				return
 			}
 			cp.after(v, result)
