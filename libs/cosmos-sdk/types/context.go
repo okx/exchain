@@ -2,9 +2,8 @@ package types
 
 import (
 	"context"
+	"github.com/okex/exchain/libs/system/trace"
 	"time"
-
-	"github.com/okex/exchain/libs/tendermint/trace"
 
 	"github.com/gogo/protobuf/proto"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -87,8 +86,8 @@ func (c *Context) TraceTxLogConfig() []byte    { return c.traceTxConfigBytes }
 func (c *Context) IsWrappedCheckTx() bool      { return c.wrappedCheckTx }
 func (c *Context) MinGasPrices() DecCoins      { return c.minGasPrice }
 func (c *Context) EventManager() *EventManager { return c.eventManager }
-func (c *Context) AccountNonce() uint64        { return c.accountNonce }
-func (c *Context) AnteTracer() *trace.Tracer   { return c.trc }
+func (c *Context) AccountNonce() uint64      { return c.accountNonce }
+func (c *Context) AnteTracer() *trace.Tracer { return c.trc }
 func (c *Context) Cache() *Cache {
 	return c.cache
 }

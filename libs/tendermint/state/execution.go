@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/system/trace"
 	"strconv"
 	"time"
 
@@ -13,7 +14,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	mempl "github.com/okex/exchain/libs/tendermint/mempool"
 	"github.com/okex/exchain/libs/tendermint/proxy"
-	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/tendermint/go-amino"
@@ -268,7 +268,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	}
 	global.SetGlobalHeight(block.Height)
 
-	trc.Pin("evpool")
+	trc.Pin(trace.Evpool)
 	// Update evpool with the block and state.
 	blockExec.evpool.Update(block, state)
 
@@ -279,7 +279,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data
 	blockExec.trySaveStateAsync(state)
-	trc.Pin("fireEvents")
+	trc.Pin(trace.FireEvents)
 
 	blockExec.logger.Debug("SaveState", "state", &state)
 	fail.Fail() // XXX

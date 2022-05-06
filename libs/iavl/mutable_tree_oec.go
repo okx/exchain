@@ -30,7 +30,7 @@ var (
 	MaxCommittedHeightNum           = minHistoryStateNum
 	EnableAsyncCommit               = false
 	EnablePruningHistoryState       = true
-	CommitGapHeight           int64 = 50
+	CommitGapHeight           int64 = 100
 )
 
 type commitEvent struct {

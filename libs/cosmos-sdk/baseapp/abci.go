@@ -3,11 +3,11 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/system/trace"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
-	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -17,7 +17,6 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/trace"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/tendermint/go-amino"
 )
@@ -235,12 +234,12 @@ func (app *BaseApp) addCommitTraceInfo() {
 
 	elapsedInfo.AddInfo("FlatKV", flatInfo)
 
-	rtx := float64(atomic.LoadInt64(&app.checkTxNum))
-	wtx := float64(atomic.LoadInt64(&app.wrappedCheckTxNum))
+	//rtx := float64(atomic.LoadInt64(&app.checkTxNum))
+	//wtx := float64(atomic.LoadInt64(&app.wrappedCheckTxNum))
 
-	elapsedInfo.AddInfo(trace.WtxRatio,
-		amino.BytesToStr(strconv.AppendFloat(make([]byte, 0, 4), wtx/(wtx+rtx), 'f', 2, 32)),
-	)
+	//elapsedInfo.AddInfo(trace.WtxRatio,
+	//	amino.BytesToStr(strconv.AppendFloat(make([]byte, 0, 4), wtx/(wtx+rtx), 'f', 2, 32)),
+	//)
 
 	readCache := float64(tmtypes.SignatureCache().ReadCount())
 	hitCache := float64(tmtypes.SignatureCache().HitCount())
