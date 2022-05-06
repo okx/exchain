@@ -294,9 +294,9 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		}
 	}
 
-	//mem.updateMtx.RLock()
-	//// use defer to unlock mutex because application (*local client*) might panic
-	//defer mem.updateMtx.RUnlock()
+	mem.updateMtx.RLock()
+	// use defer to unlock mutex because application (*local client*) might panic
+	defer mem.updateMtx.RUnlock()
 
 	if mem.preCheck != nil {
 		if err = mem.preCheck(tx); err != nil {
@@ -629,8 +629,6 @@ func (mem *CListMempool) resCbFirstTime(
 
 			memTx.senders.Store(txInfo.SenderID, true)
 
-			mem.updateMtx.Lock()
-			defer mem.updateMtx.Unlock()
 			var err error
 			if mem.pendingPool != nil {
 				err = mem.addPendingTx(memTx)
