@@ -31,6 +31,8 @@ func (a CountTXDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, 
 	if simulate {
 		return next(ctx, tx, simulate)
 	}
+	currentGasmeter := ctx.GasMeter()
+	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 	store := ctx.KVStore(a.storeKey)
 	currentHeight := ctx.BlockHeight()
 
@@ -46,6 +48,7 @@ func (a CountTXDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, 
 	// store next counter value for current height
 	store.Set(types.TXCounterPrefix, encodeHeightCounter(currentHeight, txCounter+1))
 
+	ctx.SetGasMeter(currentGasmeter)
 	return next(types.WithTXCounter(ctx, txCounter), tx, simulate)
 }
 

@@ -121,7 +121,7 @@ func EncodeBankMsg(sender sdk.AccAddress, msg *wasmvmtypes.BankMsg) ([]ibcadapte
 	sdkMsg := bank.MsgSendAdapter{
 		FromAddress: sender.String(),
 		ToAddress:   toAddress.String(),
-		Amount:      sdk.CoinsToCoinAdapters(toSend),
+		Amount:      toSend,
 	}
 	return []ibcadapter.Msg{&sdkMsg}, nil
 }
@@ -244,7 +244,7 @@ func EncodeWasmMsg(sender sdk.AccAddress, msg *wasmvmtypes.WasmMsg) ([]ibcadapte
 			Sender:   sender.String(),
 			Contract: msg.Execute.ContractAddr,
 			Msg:      msg.Execute.Msg,
-			Funds:    sdk.CoinsToCoinAdapters(coins),
+			Funds:    coins,
 		}
 		return []ibcadapter.Msg{&sdkMsg}, nil
 	case msg.Instantiate != nil:
@@ -259,7 +259,7 @@ func EncodeWasmMsg(sender sdk.AccAddress, msg *wasmvmtypes.WasmMsg) ([]ibcadapte
 			Label:  msg.Instantiate.Label,
 			Msg:    msg.Instantiate.Msg,
 			Admin:  msg.Instantiate.Admin,
-			Funds:  sdk.CoinsToCoinAdapters(coins),
+			Funds:  coins,
 		}
 		return []ibcadapter.Msg{&sdkMsg}, nil
 	case msg.Migrate != nil:
@@ -303,12 +303,9 @@ func EncodeIBCMsg(portSource types.ICS20TransferPortSource) func(ctx sdk.Context
 				return nil, sdkerrors.Wrap(err, "amount")
 			}
 			msg := &ibctransfertypes.MsgTransfer{
-				SourcePort:    portSource.GetPort(ctx),
-				SourceChannel: msg.Transfer.ChannelID,
-				Token: sdk.CoinAdapter{
-					Denom:  amount.Denom,
-					Amount: sdk.NewIntFromBigInt(amount.Amount.BigInt()),
-				},
+				SourcePort:       portSource.GetPort(ctx),
+				SourceChannel:    msg.Transfer.ChannelID,
+				Token:            amount,
 				Sender:           sender.String(),
 				Receiver:         msg.Transfer.ToAddress,
 				TimeoutHeight:    ConvertWasmIBCTimeoutHeightToCosmosHeight(msg.Transfer.Timeout.Block),
@@ -350,8 +347,8 @@ func ConvertWasmIBCTimeoutHeightToCosmosHeight(ibcTimeoutBlock *wasmvmtypes.IBCT
 }
 
 // ConvertWasmCoinsToSdkCoins converts the wasm vm type coins to sdk type coins
-func ConvertWasmCoinsToSdkCoins(coins []wasmvmtypes.Coin) (sdk.Coins, error) {
-	var toSend sdk.Coins
+func ConvertWasmCoinsToSdkCoins(coins []wasmvmtypes.Coin) (sdk.CoinAdapters, error) {
+	var toSend sdk.CoinAdapters
 	for _, coin := range coins {
 		c, err := ConvertWasmCoinToSdkCoin(coin)
 		if err != nil {
@@ -363,20 +360,20 @@ func ConvertWasmCoinsToSdkCoins(coins []wasmvmtypes.Coin) (sdk.Coins, error) {
 }
 
 // ConvertWasmCoinToSdkCoin converts a wasm vm type coin to sdk type coin
-func ConvertWasmCoinToSdkCoin(coin wasmvmtypes.Coin) (sdk.Coin, error) {
+func ConvertWasmCoinToSdkCoin(coin wasmvmtypes.Coin) (sdk.CoinAdapter, error) {
 	amount, ok := sdk.NewIntFromString(coin.Amount)
 	if !ok {
-		return sdk.Coin{}, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, coin.Amount+coin.Denom)
+		return sdk.CoinAdapter{}, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, coin.Amount+coin.Denom)
 	}
-	r := sdk.Coin{
+	r := sdk.CoinAdapter{
 		Denom:  coin.Denom,
-		Amount: amount.ToDec(),
+		Amount: amount,
 	}
 	if err := sdk.ValidateDenom(coin.Denom); err != nil {
-		return sdk.Coin{}, nil
+		return sdk.CoinAdapter{}, nil
 	}
 	if r.IsNegative() {
-		return sdk.Coin{}, sdkerrors.Wrapf(sdkerrors.ErrInvalidCoins, coin.Amount+coin.Denom)
+		return sdk.CoinAdapter{}, sdkerrors.Wrapf(sdkerrors.ErrInvalidCoins, coin.Amount+coin.Denom)
 	}
 	return r, nil
 }
