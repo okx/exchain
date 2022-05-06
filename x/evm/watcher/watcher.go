@@ -94,14 +94,10 @@ func (w *Watcher) GetEvmTxIndex() uint64 {
 	return w.evmTxIndex
 }
 
-func (w *Watcher) NewHeightWithoutDelKey(height uint64, blockHash common.Hash, header types.Header) {
+func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.Header) {
 	if !w.Enabled() {
 		return
 	}
-	w.newHeight(height, blockHash, header)
-}
-
-func (w *Watcher) newHeight(height uint64, blockHash common.Hash, header types.Header) {
 	w.header = header
 	w.height = height
 	w.blockHash = blockHash
@@ -110,16 +106,6 @@ func (w *Watcher) newHeight(height uint64, blockHash common.Hash, header types.H
 	w.watchData = &WatchData{}
 	w.wdDelayKey = make([][]byte, 0)
 	w.evmTxIndex = 0
-}
-
-func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.Header) {
-	if !w.Enabled() {
-		return
-	}
-	w.newHeight(height, blockHash, header)
-	w.dispatchJob(func() {
-		w.ExecuteDelayEraseKey(w.reDelayEraseKey)
-	})
 }
 
 func (w *Watcher) clean() {
@@ -408,6 +394,15 @@ func (w *Watcher) CommitWatchData(data WatchData, delayEraseKey [][]byte) {
 		}
 		w.CheckWatchDB(keys, "consumer")
 	}
+}
+
+func (w *Watcher) ReDelayDelEraseKeys() {
+	if !w.Enabled() {
+		return
+	}
+	w.dispatchJob(func() {
+		w.ExecuteDelayEraseKey(w.reDelayEraseKey)
+	})
 }
 
 func (w *Watcher) commitBatch(batch []WatchMessage, delayEraseKey [][]byte) {

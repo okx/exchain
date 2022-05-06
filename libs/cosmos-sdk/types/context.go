@@ -47,7 +47,6 @@ type Context struct {
 	trc                *trace.Tracer
 	accountCache       *AccountCache
 	paraMsg            *ParaMsg
-	isSimulator        bool
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -87,13 +86,12 @@ func (c *Context) TraceTxLogConfig() []byte    { return c.traceTxConfigBytes }
 func (c *Context) IsWrappedCheckTx() bool      { return c.wrappedCheckTx }
 func (c *Context) MinGasPrices() DecCoins      { return c.minGasPrice }
 func (c *Context) EventManager() *EventManager { return c.eventManager }
-func (c *Context) AccountNonce() uint64      { return c.accountNonce }
-func (c *Context) AnteTracer() *trace.Tracer { return c.trc }
+func (c *Context) AccountNonce() uint64        { return c.accountNonce }
+func (c *Context) AnteTracer() *trace.Tracer   { return c.trc }
 func (c *Context) Cache() *Cache {
 	return c.cache
 }
 
-func (c *Context) IsSimulator() bool { return c.isSimulator }
 func (c Context) ParaMsg() *ParaMsg {
 	return c.paraMsg
 }
@@ -347,11 +345,6 @@ func (c *Context) SetParaMsg(m *ParaMsg) *Context {
 
 func (c *Context) SetVoteInfos(voteInfo []abci.VoteInfo) *Context {
 	c.voteInfo = voteInfo
-	return c
-}
-
-func (c *Context) SetIsSimulator(isSimulator bool) *Context {
-	c.isSimulator = isSimulator
 	return c
 }
 
