@@ -325,11 +325,6 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		panic(fmt.Sprintf("Peer %v has no state", src))
 	}
 
-	lock := &conR.conS.mtx
-	if ActiveViewChange {
-		lock = &conR.conS.stateMtx
-	}
-
 	switch chID {
 	case ViewChangeChannel:
 		if !ActiveViewChange {
@@ -347,8 +342,6 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		case *ProposeRequestMessage:
 			conR.mtx.Lock()
 			defer conR.mtx.Unlock()
-			conR.conS.stateMtx.Lock()
-			defer conR.conS.stateMtx.Unlock()
 			height := conR.conS.Height
 			// this peer has received a prMsg before
 			// or this peer is not proposer
@@ -379,9 +372,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			ps.ApplyHasVoteMessage(msg)
 		case *VoteSetMaj23Message:
 			cs := conR.conS
-			lock.RLock()
+			cs.mtx.RLock()
 			height, votes := cs.Height, cs.Votes
-			lock.RUnlock()
+			cs.mtx.RUnlock()
 			if height != msg.Height {
 				return
 			}
@@ -440,9 +433,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		switch msg := msg.(type) {
 		case *VoteMessage:
 			cs := conR.conS
-			lock.RLock()
+			cs.mtx.RLock()
 			height, valSize, lastCommitSize := cs.Height, cs.Validators.Size(), cs.LastCommit.Size()
-			lock.RUnlock()
+			cs.mtx.RUnlock()
 			ps.EnsureVoteBitArrays(height, valSize)
 			ps.EnsureVoteBitArrays(height-1, lastCommitSize)
 			ps.SetHasVote(msg.Vote)
@@ -462,9 +455,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		switch msg := msg.(type) {
 		case *VoteSetBitsMessage:
 			cs := conR.conS
-			lock.RLock()
+			cs.mtx.RLock()
 			height, votes := cs.Height, cs.Votes
-			lock.RUnlock()
+			cs.mtx.RUnlock()
 
 			if height == msg.Height {
 				var ourVotes *bits.BitArray
@@ -537,10 +530,6 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 			conR.broadcastProposeRequestMessage(data.(*ProposeRequestMessage))
 		})
 
-	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventSignVote,
-		func(data tmevents.EventData) {
-			conR.broadcastSignVoteMessage(data.(*types.Vote))
-		})
 }
 
 func (conR *Reactor) unsubscribeFromBroadcastEvents() {
@@ -607,10 +596,6 @@ func (conR *Reactor) broadcastHasVoteMessage(vote *types.Vote) {
 			}
 		}
 	*/
-}
-func (conR *Reactor) broadcastSignVoteMessage(vote *types.Vote) {
-	msg := &VoteMessage{vote}
-	conR.Switch.Broadcast(VoteChannel, cdc.MustMarshalBinaryBare(msg))
 }
 func makeRoundStepMessage(rs *cstypes.RoundState) (nrsMsg *NewRoundStepMessage) {
 	nrsMsg = &NewRoundStepMessage{
