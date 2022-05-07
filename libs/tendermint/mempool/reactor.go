@@ -338,6 +338,14 @@ func RegisterMessages(cdc *amino.Codec) {
 		}
 		return nil, fmt.Errorf("%T is not a TxMessage", i)
 	})
+	cdc.RegisterConcreteUnmarshaller("tendermint/mempool/TxMessage", func(cdc *amino.Codec, bz []byte) (interface{}, int, error) {
+		m := &TxMessage{}
+		err := m.UnmarshalFromAmino(cdc, bz)
+		if err != nil {
+			return nil, 0, err
+		}
+		return m, len(bz), nil
+	})
 }
 
 func (memR *Reactor) decodeMsg(bz []byte) (msg Message, err error) {
@@ -345,7 +353,10 @@ func (memR *Reactor) decodeMsg(bz []byte) (msg Message, err error) {
 	if l := len(bz); l > maxMsgSize {
 		return msg, ErrTxTooLarge{maxMsgSize, l}
 	}
-	err = cdc.UnmarshalBinaryBare(bz, &msg)
+	msg, err = cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(bz, &msg)
+	if err != nil {
+		err = cdc.UnmarshalBinaryBare(bz, &msg)
+	}
 	return
 }
 
@@ -406,6 +417,34 @@ func (m TxMessage) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) error {
 			return err
 		}
 	}
+	return nil
+}
+
+func (m *TxMessage) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
+	if len(data) == 0 {
+		return nil
+	}
+
+	if data[0] != 1<<3|byte(amino.Typ3_ByteLength) {
+		return fmt.Errorf("error pb type")
+	}
+
+	data = data[1:]
+	dataLen, n, err := amino.DecodeUvarint(data)
+	if err != nil {
+		return err
+	}
+	data = data[n:]
+	if len(data) != int(dataLen) {
+		return fmt.Errorf("invalid datalen")
+	}
+
+	m.Tx = nil
+	if dataLen > 0 {
+		m.Tx = make([]byte, dataLen)
+		copy(m.Tx, data)
+	}
+
 	return nil
 }
 

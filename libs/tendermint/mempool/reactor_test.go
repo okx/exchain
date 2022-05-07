@@ -297,6 +297,26 @@ func TestTxMessageAmino(t *testing.T) {
 		require.Equal(t, expectBz, actualBz)
 		require.Equal(t, cdc.MustMarshalBinaryBare(m), reactor.encodeMsg(&tx))
 		require.Equal(t, cdc.MustMarshalBinaryBare(m), reactor.encodeMsg(tx))
+
+		var expectValue Message
+		err = cdc.UnmarshalBinaryBare(expectBz, &expectValue)
+		require.NoError(t, err)
+		var actualValue Message
+		actualValue, err = cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(expectBz, &actualValue)
+		require.Equal(t, expectValue, actualValue)
+	}
+
+	// special case
+	{
+		var bz = []byte{1<<3 | 2, 0}
+		bz = append(typePrefix, bz...)
+		var expectValue Message
+		err = cdc.UnmarshalBinaryBare(bz, &expectValue)
+		require.NoError(t, err)
+		var actualValue Message
+		actualValue, err = cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(bz, &actualValue)
+		require.NoError(t, err)
+		require.Equal(t, expectValue, actualValue)
 	}
 }
 
