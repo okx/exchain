@@ -789,8 +789,6 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 	case cstypes.RoundStepNewHeight:
 		// NewRound event fired from enterNewRound.
 		// XXX: should we fire timeout here (for timeout commit)?
-		cs.traceDump(ti.Height)
-		cs.StartTime = tmtime.Now()
 		cs.enterNewRound(ti.Height, 0)
 	case cstypes.RoundStepNewRound:
 		cs.enterPropose(ti.Height, 0)
@@ -810,14 +808,10 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 
 }
 
-func (cs *State) traceDump(height int64) {
-	// if this height has dumped before, no need to dump again
-	if height > cs.trc.GetLastDumpHeight() {
-		trace.GetElapsedInfo().AddInfo(trace.Produce, cs.trc.Format())
-		trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
-		cs.trc.SetDumpHeight(height)
-		cs.trc.Reset()
-	}
+func (cs *State) traceDump() {
+	trace.GetElapsedInfo().AddInfo(trace.Produce, cs.trc.Format())
+	trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
+	cs.trc.Reset()
 }
 
 func (cs *State) handleTxsAvailable() {
@@ -865,6 +859,13 @@ func (cs *State) enterNewRound(height int64, round int) {
 			cs.Round,
 			cs.Step))
 		return
+	}
+
+	// waiting finished and enterNewHeight by timeoutNewHeight
+	if cs.Step == cstypes.RoundStepNewHeight {
+		// dump trace log
+		cs.traceDump()
+		cs.StartTime = tmtime.Now()
 	}
 
 	cs.trc.Pin("NewRound-%d", round)
@@ -1118,7 +1119,7 @@ func (cs *State) enterPrevote(height int64, round int) {
 	// enterPrevote by VoteMessage, and waiting is interrupted.
 	if cs.Step == cstypes.RoundStepNewHeight {
 		// dump trace log
-		cs.traceDump(height)
+		cs.traceDump()
 		cs.StartTime = tmtime.Now()
 	}
 
