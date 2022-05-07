@@ -108,9 +108,10 @@ type State struct {
 	// when it's detected
 	evpool evidencePool
 
-	// internal state
+	// state mutex
 	csmtx sync.RWMutex
-	mtx   sync.RWMutex
+	// consensus round state mutex
+	mtx sync.RWMutex
 
 	cstypes.RoundState
 	state sm.State // State until height-1.
