@@ -21,14 +21,6 @@ func NewHandler(k *Keeper) sdk.Handler {
 			k.UpdatedAccount = k.UpdatedAccount[:0]
 		}
 
-		defer func() {
-			if err != nil || ctx.IsCheckTx() {
-				return
-			}
-
-			updateHGU(ctx, msg)
-		}()
-
 		evmtx, ok := msg.(*types.MsgEthereumTx)
 		if ok {
 			result, err = handleMsgEthereumTx(ctx, k, evmtx)
@@ -102,5 +94,10 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (
 	}
 
 	// core logical to handle ethereum tx
-	return txs.TransitionEvmTx(tx, msg)
+	rst, err := txs.TransitionEvmTx(tx, msg)
+	if err == nil && !ctx.IsCheckTx() {
+		updateHGU(ctx, msg)
+	}
+
+	return rst, err
 }
