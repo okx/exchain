@@ -11,7 +11,9 @@ type TreeMap struct {
 	mtx sync.RWMutex
 	// used for checking whether a tree is saved or not
 	mutableTreeSavedMap     map[string]*MutableTree
-	totalPreCommitCacheSize int64
+	totalPpncSize int64
+	evmPpncSize int64
+	accPpncSize int64
 	lastUpdatedVersion      int64
 	evm *MutableTree
 }
@@ -53,16 +55,25 @@ func (tm *TreeMap) updateTotalPpnc(module string, version int64) {
 	}
 	var size int64 = 0
 	for _, tree := range tm.mutableTreeSavedMap {
-		size += int64(len(tree.ndb.prePersistNodeCache))
+		ppnc := int64(len(tree.ndb.prePersistNodeCache))
+		size += ppnc
+		if tree.GetModuleName() == "evm" {
+			tm.evmPpncSize = ppnc
+		}
+		if tree.GetModuleName() == "acc" {
+			tm.accPpncSize = ppnc
+		}
 	}
-	tm.totalPreCommitCacheSize = size
+	tm.totalPpncSize = size
 	tm.lastUpdatedVersion = version
 
-	tm.evm.ndb.log(IavlInfo,"updateMutableTreeMap",
-		"version", tm.lastUpdatedVersion-1,
-		"module-by", module,
-		"totalPreCommitCacheSize", tm.totalPreCommitCacheSize,
-		)
+	//tm.evm.ndb.log(IavlInfo,"updateMutableTreeMap",
+	//	"version", tm.lastUpdatedVersion-1,
+	//	"module-by", module,
+	//	"totalPpncSize", tm.totalPpncSize,
+	//	"evmPpncSize", tm.evmPpncSize,
+	//	"accPpncSize", tm.accPpncSize,
+	//	)
 }
 
 // resetMap clear the TreeMap, only for test.
