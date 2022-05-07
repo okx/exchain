@@ -1,20 +1,25 @@
 package ante_test
 
 import (
+	appante "github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/simapp/helpers"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
 	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/ante"
 	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
 	"github.com/okex/exchain/libs/ibc-go/testing/mock"
+	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/order"
 	"github.com/stretchr/testify/suite"
+	"math/big"
 	"testing"
 )
 
@@ -61,7 +66,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 					suite.path.EndpointB.ChannelConfig.PortID, suite.path.EndpointB.ChannelID,
 					clienttypes.NewHeight(1, 0), 0)
 
-				return []ibcmsg.Msg{channeltypes.NewMsgRecvPacket(packet, []byte("proof"), clienttypes.NewHeight(0, 1), "signer")}
+				return []ibcmsg.Msg{channeltypes.NewMsgRecvPacket(packet, []byte("proof"), clienttypes.NewHeight(0, 1), suite.chainB.SenderAccount().GetAddress().String())}
 			},
 			true,
 		},
@@ -76,7 +81,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 						suite.path.EndpointB.ChannelConfig.PortID, suite.path.EndpointB.ChannelID,
 						clienttypes.NewHeight(1, 0), 0)
 
-					msgs = append(msgs, channeltypes.NewMsgRecvPacket(packet, []byte("proof"), clienttypes.NewHeight(0, 1), "signer"))
+					msgs = append(msgs, channeltypes.NewMsgRecvPacket(packet, []byte("proof"), clienttypes.NewHeight(0, 1), suite.chainB.SenderAccount().GetAddress().String()))
 				}
 				return msgs
 			},
@@ -102,7 +107,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 						suite.Require().NoError(err)
 					}
 
-					msgs = append(msgs, channeltypes.NewMsgRecvPacket(packet, []byte("proof"), clienttypes.NewHeight(0, 1), "signer"))
+					msgs = append(msgs, channeltypes.NewMsgRecvPacket(packet, []byte("proof"), clienttypes.NewHeight(0, 1), suite.chainB.SenderAccount().GetAddress().String()))
 				}
 
 				return msgs
@@ -122,7 +127,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 					err := suite.path.EndpointA.SendPacket(packet)
 					suite.Require().NoError(err)
 
-					msgs = append(msgs, channeltypes.NewMsgRecvPacket(packet, []byte("proof"), clienttypes.NewHeight(0, 1), "signer"))
+					msgs = append(msgs, channeltypes.NewMsgRecvPacket(packet, []byte("proof"), clienttypes.NewHeight(0, 1), suite.chainB.SenderAccount().GetAddress().String()))
 				}
 				for i := 1; i <= 3; i++ {
 					packet := channeltypes.NewPacket([]byte(mock.MockPacketData), uint64(i),
@@ -132,7 +137,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 					err := suite.path.EndpointB.SendPacket(packet)
 					suite.Require().NoError(err)
 
-					msgs = append(msgs, channeltypes.NewMsgAcknowledgement(packet, []byte("ack"), []byte("proof"), clienttypes.NewHeight(0, 1), "signer"))
+					msgs = append(msgs, channeltypes.NewMsgAcknowledgement(packet, []byte("ack"), []byte("proof"), clienttypes.NewHeight(0, 1), suite.chainB.SenderAccount().GetAddress().String()))
 				}
 				for i := 4; i <= 6; i++ {
 					packet := channeltypes.NewPacket([]byte(mock.MockPacketData), uint64(i),
@@ -142,7 +147,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 					err := suite.path.EndpointB.SendPacket(packet)
 					suite.Require().NoError(err)
 
-					msgs = append(msgs, channeltypes.NewMsgTimeout(packet, uint64(i), []byte("proof"), clienttypes.NewHeight(0, 1), "signer"))
+					msgs = append(msgs, channeltypes.NewMsgTimeout(packet, uint64(i), []byte("proof"), clienttypes.NewHeight(0, 1), suite.chainB.SenderAccount().GetAddress().String()))
 				}
 				return msgs
 			},
@@ -168,7 +173,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 						suite.Require().NoError(err)
 					}
 
-					msgs = append(msgs, channeltypes.NewMsgRecvPacket(packet, []byte("proof"), clienttypes.NewHeight(0, 1), "signer"))
+					msgs = append(msgs, channeltypes.NewMsgRecvPacket(packet, []byte("proof"), clienttypes.NewHeight(0, 1), suite.chainB.SenderAccount().GetAddress().String()))
 				}
 				for i := 1; i <= 3; i++ {
 					packet := channeltypes.NewPacket([]byte(mock.MockPacketData), uint64(i),
@@ -186,7 +191,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 						suite.Require().NoError(err)
 					}
 
-					msgs = append(msgs, channeltypes.NewMsgAcknowledgement(packet, []byte("ack"), []byte("proof"), clienttypes.NewHeight(0, 1), "signer"))
+					msgs = append(msgs, channeltypes.NewMsgAcknowledgement(packet, []byte("ack"), []byte("proof"), clienttypes.NewHeight(0, 1), suite.chainB.SenderAccount().GetAddress().String()))
 				}
 				for i := 4; i <= 6; i++ {
 					height := suite.chainA.LastHeader().GetHeight()
@@ -208,7 +213,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 						suite.Require().NoError(err)
 					}
 
-					msgs = append(msgs, channeltypes.NewMsgTimeout(packet, uint64(i), []byte("proof"), clienttypes.NewHeight(0, 1), "signer"))
+					msgs = append(msgs, channeltypes.NewMsgTimeout(packet, uint64(i), []byte("proof"), clienttypes.NewHeight(0, 1), suite.chainB.SenderAccount().GetAddress().String()))
 				}
 				return msgs
 			},
@@ -229,7 +234,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 					suite.path.EndpointA.SendPacket(packet)
 					suite.path.EndpointB.RecvPacket(packet)
 
-					msgs = append(msgs, channeltypes.NewMsgRecvPacket(packet, []byte("proof"), clienttypes.NewHeight(0, 1), "signer"))
+					msgs = append(msgs, channeltypes.NewMsgRecvPacket(packet, []byte("proof"), clienttypes.NewHeight(0, 1), suite.chainB.SenderAccount().GetAddress().String()))
 				}
 				for i := 1; i <= 3; i++ {
 					packet := channeltypes.NewPacket([]byte(mock.MockPacketData), uint64(i),
@@ -242,7 +247,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 					suite.path.EndpointA.RecvPacket(packet)
 					suite.path.EndpointB.AcknowledgePacket(packet, mock.MockAcknowledgement.Acknowledgement())
 
-					msgs = append(msgs, channeltypes.NewMsgAcknowledgement(packet, []byte("ack"), []byte("proof"), clienttypes.NewHeight(0, 1), "signer"))
+					msgs = append(msgs, channeltypes.NewMsgAcknowledgement(packet, []byte("ack"), []byte("proof"), clienttypes.NewHeight(0, 1), suite.chainB.SenderAccount().GetAddress().String()))
 				}
 				for i := 4; i < 5; i++ {
 					height := suite.chainA.LastHeader().GetHeight()
@@ -255,7 +260,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 					// do not timeout packet, timeout msg is fresh
 					suite.path.EndpointB.SendPacket(packet)
 
-					msgs = append(msgs, channeltypes.NewMsgTimeout(packet, uint64(i), []byte("proof"), clienttypes.NewHeight(0, 1), "signer"))
+					msgs = append(msgs, channeltypes.NewMsgTimeout(packet, uint64(i), []byte("proof"), clienttypes.NewHeight(0, 1), suite.chainB.SenderAccount().GetAddress().String()))
 				}
 				return msgs
 			},
@@ -285,7 +290,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 					suite.path.EndpointB.ChannelConfig.PortID, suite.path.EndpointB.ChannelID,
 					clienttypes.NewHeight(1, 0), 0)
 
-				return append(msgs, channeltypes.NewMsgRecvPacket(packet, []byte("proof"), clienttypes.NewHeight(0, 1), "signer"))
+				return append(msgs, channeltypes.NewMsgRecvPacket(packet, []byte("proof"), clienttypes.NewHeight(0, 1), suite.chainB.SenderAccount().GetAddress().String()))
 			},
 			true,
 		},
@@ -304,7 +309,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 					suite.path.EndpointA.SendPacket(packet)
 					suite.path.EndpointB.RecvPacket(packet)
 
-					msgs = append(msgs, channeltypes.NewMsgRecvPacket(packet, []byte("proof"), clienttypes.NewHeight(0, 1), "signer"))
+					msgs = append(msgs, channeltypes.NewMsgRecvPacket(packet, []byte("proof"), clienttypes.NewHeight(0, 1), suite.chainB.SenderAccount().GetAddress().String()))
 				}
 				for i := 1; i <= 3; i++ {
 					packet := channeltypes.NewPacket([]byte(mock.MockPacketData), uint64(i),
@@ -317,7 +322,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 					suite.path.EndpointA.RecvPacket(packet)
 					suite.path.EndpointB.AcknowledgePacket(packet, mock.MockAcknowledgement.Acknowledgement())
 
-					msgs = append(msgs, channeltypes.NewMsgAcknowledgement(packet, []byte("ack"), []byte("proof"), clienttypes.NewHeight(0, 1), "signer"))
+					msgs = append(msgs, channeltypes.NewMsgAcknowledgement(packet, []byte("ack"), []byte("proof"), clienttypes.NewHeight(0, 1), suite.chainB.SenderAccount().GetAddress().String()))
 				}
 				for i := 4; i < 6; i++ {
 					height := suite.chainA.LastHeader().GetHeight()
@@ -336,7 +341,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 					suite.path.EndpointB.UpdateClient()
 					suite.path.EndpointB.TimeoutPacket(packet)
 
-					msgs = append(msgs, channeltypes.NewMsgTimeoutOnClose(packet, uint64(i), []byte("proof"), []byte("channelProof"), clienttypes.NewHeight(0, 1), "signer"))
+					msgs = append(msgs, channeltypes.NewMsgTimeoutOnClose(packet, uint64(i), []byte("proof"), []byte("channelProof"), clienttypes.NewHeight(0, 1), suite.chainB.SenderAccount().GetAddress().String()))
 				}
 
 				// append non packet and update message to msgs to ensure multimsg tx should pass
@@ -361,7 +366,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 					suite.path.EndpointA.SendPacket(packet)
 					suite.path.EndpointB.RecvPacket(packet)
 
-					msgs = append(msgs, channeltypes.NewMsgRecvPacket(packet, []byte("proof"), clienttypes.NewHeight(0, 1), "signer"))
+					msgs = append(msgs, channeltypes.NewMsgRecvPacket(packet, []byte("proof"), clienttypes.NewHeight(0, 1), suite.chainB.SenderAccount().GetAddress().String()))
 				}
 				for i := 1; i <= 3; i++ {
 					packet := channeltypes.NewPacket([]byte(mock.MockPacketData), uint64(i),
@@ -374,7 +379,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 					suite.path.EndpointA.RecvPacket(packet)
 					suite.path.EndpointB.AcknowledgePacket(packet, mock.MockAcknowledgement.Acknowledgement())
 
-					msgs = append(msgs, channeltypes.NewMsgAcknowledgement(packet, []byte("ack"), []byte("proof"), clienttypes.NewHeight(0, 1), "signer"))
+					msgs = append(msgs, channeltypes.NewMsgAcknowledgement(packet, []byte("ack"), []byte("proof"), clienttypes.NewHeight(0, 1), suite.chainB.SenderAccount().GetAddress().String()))
 				}
 				for i := 4; i < 6; i++ {
 					height := suite.chainA.LastHeader().GetHeight()
@@ -393,7 +398,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 					suite.path.EndpointB.UpdateClient()
 					suite.path.EndpointB.TimeoutPacket(packet)
 
-					msgs = append(msgs, channeltypes.NewMsgTimeoutOnClose(packet, uint64(i), []byte("proof"), []byte("channelProof"), clienttypes.NewHeight(0, 1), "signer"))
+					msgs = append(msgs, channeltypes.NewMsgTimeoutOnClose(packet, uint64(i), []byte("proof"), []byte("channelProof"), clienttypes.NewHeight(0, 1), suite.chainB.SenderAccount().GetAddress().String()))
 				}
 				return msgs
 			},
@@ -414,7 +419,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 					suite.path.EndpointA.SendPacket(packet)
 					suite.path.EndpointB.RecvPacket(packet)
 
-					msgs = append(msgs, channeltypes.NewMsgRecvPacket(packet, []byte("proof"), clienttypes.NewHeight(0, 1), "signer"))
+					msgs = append(msgs, channeltypes.NewMsgRecvPacket(packet, []byte("proof"), clienttypes.NewHeight(0, 1), suite.chainB.SenderAccount().GetAddress().String()))
 				}
 				for i := 1; i <= 3; i++ {
 					packet := channeltypes.NewPacket([]byte(mock.MockPacketData), uint64(i),
@@ -427,7 +432,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 					suite.path.EndpointA.RecvPacket(packet)
 					suite.path.EndpointB.AcknowledgePacket(packet, mock.MockAcknowledgement.Acknowledgement())
 
-					msgs = append(msgs, channeltypes.NewMsgAcknowledgement(packet, []byte("ack"), []byte("proof"), clienttypes.NewHeight(0, 1), "signer"))
+					msgs = append(msgs, channeltypes.NewMsgAcknowledgement(packet, []byte("ack"), []byte("proof"), clienttypes.NewHeight(0, 1), suite.chainB.SenderAccount().GetAddress().String()))
 				}
 				for i := 4; i < 6; i++ {
 					height := suite.chainA.LastHeader().GetHeight()
@@ -446,7 +451,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 					suite.path.EndpointB.UpdateClient()
 					suite.path.EndpointB.TimeoutPacket(packet)
 
-					msgs = append(msgs, channeltypes.NewMsgTimeoutOnClose(packet, uint64(i), []byte("proof"), []byte("channelProof"), clienttypes.NewHeight(0, 1), "signer"))
+					msgs = append(msgs, channeltypes.NewMsgTimeoutOnClose(packet, uint64(i), []byte("proof"), []byte("channelProof"), clienttypes.NewHeight(0, 1), suite.chainB.SenderAccount().GetAddress().String()))
 				}
 				return msgs
 			},
@@ -462,8 +467,10 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 			suite.SetupTest()
 
 			k := suite.chainB.App().GetIBCKeeper().ChannelKeeper
-			decorator := ante.NewAnteDecorator(k)
-
+			//decorator := ante.NewAnteDecorator(k)
+			app := suite.chainA.GetSimApp()
+			//auth.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), app.IBCKeeper.ChannelKeeper)
+			antehandler := appante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), k)
 			msgs := tc.malleate(suite)
 
 			deliverCtx := suite.chainB.GetContext().WithIsCheckTx(false)
@@ -472,10 +479,34 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 			// create multimsg tx
 			txBuilder := suite.chainB.TxConfig().NewTxBuilder()
 			err := txBuilder.SetMsgs(msgs...)
+			//sigs := make([]signing.SignatureV2, len(msgs))
+			//
+			sigs := make([]signing.SignatureV2, 1)
+
+			// create a random length memo
+			//r := rand.New(rand.NewSource(time.Now().UnixNano()))
+			//memo := simulation.RandStringOfLength(r, simulation.RandIntBetween(r, 0, 100))
+			signMode := signing.SignMode_SIGN_MODE_DIRECT //gen.SignModeHandler().DefaultMode()
+
+			// 1st round: set SignatureV2 with empty signatures, to set correct
+			// signer infos.
+			//for i, p := range priv {
+			sigs[0] = signing.SignatureV2{
+				PubKey: suite.chainB.SenderAccountPV().PubKey(),
+				Data: &signing.SingleSignatureData{
+					SignMode: signMode,
+				},
+				Sequence: suite.chainB.SenderAccount().GetAccountNumber(), //accSeqs[i],
+			}
+			//}
+			//
+			txBuilder.SetSignatures(sigs...)
+			txBuilder.SetFeeAmount(sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultBondDenom, sdk.NewIntFromBigInt(big.NewInt(10000)))})
+			txBuilder.SetGasLimit(helpers.DefaultGenTxGas)
 			suite.Require().NoError(err)
 			tx := txBuilder.GetTx()
 
-			next := func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error) { return ctx, nil }
+			//next := func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error) { return ctx, nil }
 			//ibcdecoder
 			//ibctx := ibcmsg.IbcTxDecoder()
 			txBytes, err := suite.chainB.TxConfig().TxEncoder()(tx)
@@ -485,10 +516,13 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 			cdcProxy := newProxyDecoder()
 
 			ibcTx, err := ibc_tx.IbcTxDecoder(cdcProxy.GetProtocMarshal())(txBytes)
-			_, err = decorator.AnteHandle(deliverCtx, ibcTx, false, next)
+			//antehandler()
+			antehandler(deliverCtx, ibcTx, false)
+			//_, err = decorator.AnteHandle(deliverCtx, ibcTx, false, next)
 			suite.Require().NoError(err, "antedecorator should not error on DeliverTx")
 
-			_, err = decorator.AnteHandle(checkCtx, ibcTx, false, next)
+			//_, err = decorator.AnteHandle(checkCtx, ibcTx, false, next)
+			_, err = antehandler(checkCtx, ibcTx, false)
 			if tc.expPass {
 				suite.Require().NoError(err, "non-strict decorator did not pass as expected")
 			} else {
@@ -507,4 +541,37 @@ func newProxyDecoder() *codec.CodecProxy {
 	protoCodec := codec.NewProtoCodec(interfaceReg)
 	codecProxy := codec.NewCodecProxy(protoCodec, cdc)
 	return codecProxy
+}
+
+func validateMsgHook(orderKeeper order.Keeper) appante.ValidateMsgHandler {
+	return func(newCtx sdk.Context, msgs []sdk.Msg) error {
+
+		wrongMsgErr := sdk.ErrUnknownRequest(
+			"It is not allowed that a transaction with more than one message contains order or evm message")
+		var err error
+
+		for _, msg := range msgs {
+			switch assertedMsg := msg.(type) {
+			case order.MsgNewOrders:
+				if len(msgs) > 1 {
+					return wrongMsgErr
+				}
+				_, err = order.ValidateMsgNewOrders(newCtx, orderKeeper, assertedMsg)
+			case order.MsgCancelOrders:
+				if len(msgs) > 1 {
+					return wrongMsgErr
+				}
+				err = order.ValidateMsgCancelOrders(newCtx, orderKeeper, assertedMsg)
+			case *evmtypes.MsgEthereumTx:
+				if len(msgs) > 1 {
+					return wrongMsgErr
+				}
+			}
+
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}
 }
