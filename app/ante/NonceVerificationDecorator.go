@@ -89,8 +89,10 @@ func (nvd NonceVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, sim
 					// will also reset checkState), so we will need to add pending txs len to get the right nonce
 					gPool := baseapp.GetGlobalMempool()
 					if gPool != nil {
-						cnt := gPool.GetUserPendingTxsCnt(evmtypes.EthAddressStringer(common.BytesToAddress(address.Bytes())).String())
-						checkTxModeNonce = seq + uint64(cnt)
+						addr := evmtypes.EthAddressStringer(common.BytesToAddress(msgEthTx.AccountAddress().Bytes())).String()
+						if pendingNonce, ok := gPool.GetPendingNonce(addr); ok {
+							checkTxModeNonce = pendingNonce + 1
+						}
 					}
 				}
 

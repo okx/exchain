@@ -85,7 +85,7 @@ func (e *ElapsedTimeInfos) Dump(input interface{}) {
 	e.mtx.Lock()
 	defer e.mtx.Unlock()
 
-	if len(e.infoMap) == 0 {
+	if _, ok := e.infoMap[trace.Height]; !ok {
 		return
 	}
 
