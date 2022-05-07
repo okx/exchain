@@ -3,6 +3,7 @@ package v0
 import (
 	"errors"
 	"fmt"
+	"github.com/okex/exchain/libs/system/trace"
 	"reflect"
 	"sync"
 	"time"
@@ -395,6 +396,9 @@ FOR_LOOP:
 						"max_peer_height", bcR.pool.MaxPeerHeight(), "blocks/s", lastRate)
 					lastHundred = time.Now()
 				}
+
+				// dump app.LastBlockHeight()-1 info for reactor sync mode
+				trace.GetElapsedInfo().Dump(bcR.Logger.With("module", "main"))
 			}
 			continue FOR_LOOP
 
