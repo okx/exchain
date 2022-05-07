@@ -127,7 +127,12 @@ func (c *Context) Logger() log.Logger         { return c.logger }
 func (c *Context) VoteInfos() []abci.VoteInfo { return c.voteInfo }
 func (c *Context) GasMeter() GasMeter         { return c.gasMeter }
 func (c *Context) BlockGasMeter() GasMeter    { return c.blockGasMeter }
+
 func (c *Context) IsDeliver() bool {
+	return c.runtxOpt.isDeliver
+}
+
+func (c *Context) UseParamCache() bool {
 	return c.runtxOpt.isDeliver || (c.runtxOpt.paraMsg != nil && !c.runtxOpt.paraMsg.HaveCosmosTxInBlock)
 }
 

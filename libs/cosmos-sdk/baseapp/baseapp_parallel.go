@@ -193,7 +193,11 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 	deliverTxs := make([]*abci.ResponseDeliverTx, pm.txSize)
 
 	asyncCb := func(execRes *executeResult) {
-		if !pm.workgroup.isReady {
+
+		if !pm.workgroup.isReady { // runTxs end
+			return
+		}
+		if execRes.blockHeight != app.deliverState.ctx.BlockHeight() { // not excepted resp
 			return
 		}
 		receiveTxIndex := int(execRes.counter)
@@ -323,7 +327,7 @@ func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 	txStatus := app.parallelTxManage.extraTxsInfo[txIndex]
 
 	if txStatus.stdTx == nil {
-		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr, 0, 0, app.trace), nil, uint32(txIndex), nil)
+		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr, 0, 0, app.trace), nil, uint32(txIndex), nil, 0)
 		return asyncExe
 	}
 	var (
@@ -344,23 +348,25 @@ func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 		}
 	}
 
-	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg())
+	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg(), 0)
 	return asyncExe
 }
 
 type executeResult struct {
-	resp    abci.ResponseDeliverTx
-	ms      sdk.CacheMultiStore
-	counter uint32
-	paraMsg *sdk.ParaMsg
+	resp        abci.ResponseDeliverTx
+	ms          sdk.CacheMultiStore
+	counter     uint32
+	paraMsg     *sdk.ParaMsg
+	blockHeight int64
 }
 
-func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32, paraMsg *sdk.ParaMsg) *executeResult {
+func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32, paraMsg *sdk.ParaMsg, height int64) *executeResult {
 	ans := &executeResult{
-		resp:    r,
-		ms:      ms,
-		counter: counter,
-		paraMsg: paraMsg,
+		resp:        r,
+		ms:          ms,
+		counter:     counter,
+		paraMsg:     paraMsg,
+		blockHeight: height,
 	}
 
 	if paraMsg == nil {
