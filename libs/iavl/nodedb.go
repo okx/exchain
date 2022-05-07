@@ -48,6 +48,8 @@ type nodeDB struct {
 	latestVersion  int64
 
 	prePersistNodeCache map[string]*Node
+
+	// temporary pre-persist map
 	tppMap              map[int64]*tppItem
 	tppVersionList      *list.List
 
@@ -73,7 +75,7 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		tppVersionList:          list.New(),
 		name:                    ParseDBName(db),
 		preWriteNodeCache:       cmap.New(),
-		state:                   &RuntimeState{},
+		state:                   newRuntimeState(),
 	}
 
 	ndb.oi = newOrphanInfo(ndb)
@@ -81,7 +83,24 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 	return ndb
 }
 
-func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) *Node {
+func (ndb *nodeDB) GetNodeCacheCounts() (int, int, int, int) {
+	ndb.mtx.RLock()
+	defer ndb.mtx.RUnlock()
+
+	ppnc := len(ndb.prePersistNodeCache)
+	tpp := 0
+	for _, v := range ndb.tppMap {
+		tpp += len(v.nodeMap)
+	}
+
+	nc := ndb.nc.nodeCacheLen()
+
+	onc := ndb.oi.orphanNodeCacheLen()
+
+	return ppnc, tpp, nc, onc
+}
+
+func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) (*Node, retrieveType) {
 	ndb.addNodeReadCount()
 	if len(hash) == 0 {
 		panic("nodeDB.GetNode() requires hash")
@@ -89,24 +108,23 @@ func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) *Node 
 	ndb.mtx.RLock()
 	defer ndb.mtx.RUnlock()
 	if elem, ok := ndb.prePersistNodeCache[string(hash)]; ok {
-		return elem
+		return elem, fromPpnc
 	}
 
 	if elem, ok := ndb.getNodeInTpp(hash); ok {
-		return elem
+		return elem, fromTpp
 	}
 
 	if elem := ndb.getNodeFromCache(hash, promoteRecentNode); elem != nil {
-		return elem
+		return elem, fromNodeCache
 	}
 
 	if elem := ndb.oi.getNodeFromOrphanCache(hash); elem != nil {
-		return elem
+		return elem, fromOrphanCache
 	}
 
-	return nil
+	return nil, unknown
 }
-
 
 func (ndb *nodeDB) getNodeFromDisk(hash []byte, updateCache bool) *Node {
 	node := ndb.makeNodeFromDbByHash(hash)
@@ -118,12 +136,14 @@ func (ndb *nodeDB) getNodeFromDisk(hash []byte, updateCache bool) *Node {
 	return node
 }
 
-func (ndb *nodeDB) loadNode(hash []byte, update bool) (n *Node, fromDisk bool) {
-	n = ndb.getNodeFromMemory(hash, update)
+func (ndb *nodeDB) loadNode(hash []byte, update bool) (n *Node, from retrieveType) {
+	n, from = ndb.getNodeFromMemory(hash, update)
 	if n == nil {
 		n = ndb.getNodeFromDisk(hash, update)
-		fromDisk = true
+		from = fromDisk
 	}
+
+	ndb.state.onLoadNode(from)
 	return
 }
 
@@ -134,8 +154,11 @@ func (ndb *nodeDB) GetNode(hash []byte) (n *Node) {
 	return
 }
 
-func (ndb *nodeDB) GetNodeWithoutUpdateCache(hash []byte) (n *Node, fromDisk bool) {
-	return ndb.loadNode(hash, false)
+func (ndb *nodeDB) GetNodeWithoutUpdateCache(hash []byte) (n *Node, gotFromDisk bool) {
+	var from retrieveType
+	n, from = ndb.loadNode(hash, false)
+	gotFromDisk = from == fromDisk
+	return
 }
 
 func (ndb *nodeDB) getDbName() string {

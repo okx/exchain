@@ -6,7 +6,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/okex/exchain/libs/iavl/trace"
+	"github.com/okex/exchain/libs/system/trace"
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
@@ -105,7 +105,7 @@ func (tree *MutableTree) setNewWorkingTree(version int64, newOrphans []*Node, pe
 		return true
 	})
 
-	tree.ndb.log(IavlDebug, tree.ndb.sprintCacheLog(version))
+	tree.ndb.log(IavlInfo, tree.ndb.sprintCacheLog(version))
 	return rootHash, version, nil
 }
 
@@ -158,7 +158,7 @@ func (tree *MutableTree) commitSchedule() {
 			continue
 		}
 
-		trc := trace.NewTracer()
+		trc := trace.NewTracer("iavl tree")
 		trc.Pin("Pruning")
 		tree.updateCommittedStateHeightPool(event.batch, event.version, event.versions)
 
