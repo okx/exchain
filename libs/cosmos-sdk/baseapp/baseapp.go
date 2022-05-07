@@ -666,29 +666,25 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 		SetVoteInfos(app.voteInfos).
 		SetConsensusParams(app.consensusParams)
 
-	if mode == runTxModeCheck {
+	switch mode {
+	case runTxModeCheck:
 		ctx.SetRunTxMode(
 			sdk.RunTxModeCheck,
 			sdk.WithCheckTx(true),
 		)
-	}
-	if mode == runTxModeReCheck {
+	case runTxModeReCheck:
 		ctx.SetRunTxMode(
 			sdk.RunTxModeReCheck,
 			sdk.WithCheckTx(true),
 			sdk.WithReCheckTx(true),
 		)
-	}
-
-	if mode == runTxModeWrappedCheck {
+	case runTxModeWrappedCheck:
 		ctx.SetRunTxMode(
 			sdk.RunTxModeWrappedCheck,
 			sdk.WithCheckTx(true),
 			sdk.WithWrappedCheckTx(true),
 		)
-	}
-
-	if mode == runTxModeSimulate {
+	case runTxModeSimulate:
 		ctx, _ = ctx.CacheContext()
 		ctx.SetRunTxMode(
 			sdk.RunTxModeSimulate,
@@ -696,30 +692,28 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 			sdk.WithCheckTx(true),
 		)
 		ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
-	}
-	if app.parallelTxManage.isAsyncDeliverTx && mode == runTxModeDeliverInAsync {
-		ctx.SetRunTxMode(
-			sdk.RunTxModeDeliverInAsync,
-			sdk.WithParaMsg(&sdk.ParaMsg{
-				HaveCosmosTxInBlock: app.parallelTxManage.haveCosmosTxInBlock,
-			}),
-		)
-		ctx.SetTxBytes(txBytes)
-	}
-
-	if mode == runTxModeDeliver {
+	case runTxModeDeliverInAsync:
+		if app.parallelTxManage.isAsyncDeliverTx {
+			ctx.SetRunTxMode(
+				sdk.RunTxModeDeliverInAsync,
+				sdk.WithParaMsg(&sdk.ParaMsg{
+					HaveCosmosTxInBlock: app.parallelTxManage.haveCosmosTxInBlock,
+				}),
+			)
+			ctx.SetTxBytes(txBytes)
+		}
+	case runTxModeDeliver:
 		ctx.SetRunTxMode(
 			sdk.RunTxModeDeliver,
 			sdk.WithDeliverTx(true),
 		)
-	}
-	if mode == runTxModeDeliverPartConcurrent {
+	case runTxModeDeliverPartConcurrent:
 		ctx.SetRunTxMode(
 			sdk.RunTxModeDeliverPartConcurrent,
 			sdk.WithDeliverTx(true),
 		)
+	default:
 	}
-
 	return ctx
 }
 
