@@ -13,7 +13,7 @@ func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.Respon
 
 	trace.OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
 	// dump app.LastBlockHeight()-1 info for reactor sync mode
-	// trace.GetElapsedInfo().Dump(app.Logger())
+	trace.GetElapsedInfo().Dump(app.Logger())
 	return app.BaseApp.BeginBlock(req)
 }
 
