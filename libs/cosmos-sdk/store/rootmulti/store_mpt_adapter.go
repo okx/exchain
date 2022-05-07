@@ -1,6 +1,7 @@
 package rootmulti
 
 import (
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
@@ -13,7 +14,9 @@ const (
 
 func evmAccStoreFilter(sName string, ver int64) bool {
 	if (sName == AccStore || sName == EvmStore) && tmtypes.HigherThanMars(ver) {
-		return true
+		// if mpt.TrieDirtyDisabled == true, means is a full node, should still use acc and evm store to query history state, keep them!
+		// else, no longer need them any more, filter them !!!
+		return !mpt.TrieDirtyDisabled
 	}
 	return false
 }
