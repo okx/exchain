@@ -76,7 +76,6 @@ type PublicEthereumAPI struct {
 	txPool         *TxPool
 	Metrics        map[string]*monitor.RpcMetrics
 	callCache      *lru.Cache
-	watcherEnabled bool
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -101,7 +100,6 @@ func NewAPI(
 		gasPrice:       ParseGasPrice(),
 		wrappedBackend: watcher.NewQuerier(),
 		watcherBackend: watcher.NewWatcher(log),
-		watcherEnabled: watcher.IsWatcherEnabled(),
 	}
 	api.evmFactory = simulation.NewEvmFactory(clientCtx.ChainID, api.wrappedBackend)
 
@@ -1806,5 +1804,5 @@ func (api *PublicEthereumAPI) FillTransaction(args rpctypes.SendTxArgs) (*rpctyp
 func (api *PublicEthereumAPI) ignoreHeight(blockNum rpctypes.BlockNumber) bool {
 	return blockNum == rpctypes.PendingBlockNumber ||
 		blockNum == rpctypes.LatestBlockNumber ||
-		api.watcherEnabled
+		api.watcherBackend.Enabled()
 }
