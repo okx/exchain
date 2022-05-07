@@ -154,7 +154,7 @@ func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer)
 		ndb.tppVersionList.Remove(tItem.listItem)
 	}
 	delete(ndb.tppMap, version)
-	ndb.log(IavlInfo, "CommitSchedule", "Height", version, "Tree", ndb.name, "IavlHeight", iavlHeight, "NodeNum", nodeNum, "trace", trc)
+	ndb.log(IavlInfo, "CommitSchedule", "Height", version, "Tree", ndb.name, "IavlHeight", iavlHeight, "NodeNum", nodeNum)
 }
 
 // SaveNode saves a node to disk.
