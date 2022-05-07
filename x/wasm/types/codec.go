@@ -5,6 +5,7 @@ import (
 	cryptocodec "github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/msgservice"
 	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
 )
@@ -30,6 +31,16 @@ func RegisterLegacyAminoCodec(cdc *codec.Codec) { //nolint:staticcheck
 func RegisterInterfaces(registry types.InterfaceRegistry) {
 	registry.RegisterImplementations(
 		(*sdk.Msg)(nil),
+		&MsgStoreCode{},
+		&MsgInstantiateContract{},
+		&MsgExecuteContract{},
+		&MsgMigrateContract{},
+		&MsgUpdateAdmin{},
+		&MsgClearAdmin{},
+		&MsgIBCCloseChannel{},
+		&MsgIBCSend{},
+	)
+	registry.RegisterImplementations((*txmsg.Msg)(nil),
 		&MsgStoreCode{},
 		&MsgInstantiateContract{},
 		&MsgExecuteContract{},

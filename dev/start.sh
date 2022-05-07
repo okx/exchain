@@ -81,7 +81,7 @@ exchaincli config keyring-backend test
 exchaincli keys add --recover captain -m "puzzle glide follow cruel say burst deliver wild tragic galaxy lumber offer" -y
 
 #    "eth_address": "0x83D83497431C2D3FEab296a9fba4e5FaDD2f7eD0",
-exchaincli keys add --recover admin16 -m "palace cube bitter light woman side pave cereal donor bronze twice work" -y
+exchaincli keys add --recover admin16 -m "palace cube bitter light woman side pave cereal donor bronze twice work" -y --algo="" --coin-type 118
 
 exchaincli keys add --recover admin17 -m "antique onion adult slot sad dizzy sure among cement demise submit scare" -y
 
