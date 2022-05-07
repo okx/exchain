@@ -10,6 +10,8 @@ import (
 
 type BackendType string
 
+var TestDbBackend = ""
+
 // These are valid backend types.
 const (
 	// GoLevelDBBackend represents goleveldb (github.com/syndtr/goleveldb - most

@@ -57,6 +57,7 @@ var _ DB = (*MemDB)(nil)
 
 // NewMemDB creates a new in-memory database.
 func NewMemDB() *MemDB {
+	TestDbBackend = "memdb"
 	database := &MemDB{
 		btree: btree.New(bTreeDegree),
 	}

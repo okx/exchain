@@ -2,6 +2,7 @@ package mpt
 
 import (
 	"encoding/binary"
+	db "github.com/okex/exchain/libs/tm-db"
 	"path/filepath"
 	"sync"
 
@@ -32,7 +33,11 @@ func InstanceOfMptStore() ethstate.Database {
 
 		backend := sdk.DBBackend
 		if backend == "" {
-			backend = string(types.GoLevelDBBackend)
+			if db.TestDbBackend != "" {
+				backend = db.TestDbBackend
+			} else {
+				backend = string(types.GoLevelDBBackend)
+			}
 		}
 
 		kvstore, e := types.CreateKvDB(mptSpace, types.BackendType(backend), path)
