@@ -2,16 +2,16 @@ package app
 
 import (
 	appconfig "github.com/okex/exchain/app/config"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/trace"
-	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/evm"
 )
 
 // BeginBlock implements the Application interface
 func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 
-	analyzer.OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
+	trace.OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
 	// dump app.LastBlockHeight()-1 info for reactor sync mode
 	trace.GetElapsedInfo().Dump(app.Logger())
 	return app.BaseApp.BeginBlock(req)
@@ -19,12 +19,36 @@ func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.Respon
 
 func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.ResponseDeliverTx) {
 
-	analyzer.OnAppDeliverTxEnter()
+	trace.OnAppDeliverTxEnter()
 
 	resp := app.BaseApp.DeliverTx(req)
 
 	if appconfig.GetOecConfig().GetEnableDynamicGp() {
 		tx, err := evm.TxDecoder(app.marshal)(req.Tx)
+		if err == nil {
+			//optimize get tx gas price can not get value from verifySign method
+			app.blockGasPrice = append(app.blockGasPrice, tx.GetGasPrice())
+		}
+	}
+
+	return resp
+}
+
+func (app *OKExChainApp) PreDeliverRealTx(req []byte) (res abci.TxEssentials) {
+	return app.BaseApp.PreDeliverRealTx(req)
+}
+
+func (app *OKExChainApp) DeliverRealTx(req abci.TxEssentials) (res abci.ResponseDeliverTx) {
+	trace.OnAppDeliverTxEnter()
+	resp := app.BaseApp.DeliverRealTx(req)
+	app.EvmKeeper.Watcher.RecordTxAndFailedReceipt(req, &resp, app.GetTxDecoder())
+
+	var err error
+	if appconfig.GetOecConfig().GetEnableDynamicGp() {
+		tx, _ := req.(sdk.Tx)
+		if tx == nil {
+			tx, err = evm.TxDecoder(app.Codec())(req.GetRaw())
+		}
 		if err == nil {
 			//optimize get tx gas price can not get value from verifySign method
 			app.blockGasPrice = append(app.blockGasPrice, tx.GetGasPrice())
@@ -42,7 +66,8 @@ func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEn
 // Commit implements the Application interface
 func (app *OKExChainApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 
-	defer analyzer.OnCommitDone()
+	//defer trace.GetTraceSummary().Dump()
+	defer trace.OnCommitDone()
 
 	tasks := app.heightTasks[app.BaseApp.LastBlockHeight()+1]
 	if tasks != nil {

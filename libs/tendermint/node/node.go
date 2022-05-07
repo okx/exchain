@@ -185,6 +185,9 @@ type Node struct {
 	txIndexer        txindex.TxIndexer
 	indexerService   *txindex.IndexerService
 	prometheusSrv    *http.Server
+
+	//blockExec
+	blockExec *sm.BlockExecutor
 }
 
 func initDBs(config *cfg.Config, dbProvider DBProvider) (blockStore *store.BlockStore,
@@ -652,6 +655,10 @@ func NewNode(config *cfg.Config,
 		evidencePool,
 		sm.BlockExecutorWithMetrics(smMetrics),
 	)
+	blockExec.SetIsAsyncSaveDB(true)
+	if _, ok := txIndexer.(*null.TxIndex); ok {
+		blockExec.SetIsNullIndexer(true)
+	}
 
 	// Make BlockchainReactor
 	bcReactor, err := createBlockchainReactor(config, state, blockExec, blockStore, deltasStore, fastSync, logger)
@@ -742,6 +749,8 @@ func NewNode(config *cfg.Config,
 		txIndexer:        txIndexer,
 		indexerService:   indexerService,
 		eventBus:         eventBus,
+
+		blockExec: blockExec,
 	}
 	node.BaseService = *service.NewBaseService(logger, "Node", node)
 
@@ -825,6 +834,7 @@ func (n *Node) OnStop() {
 	// now stop the reactors
 	n.sw.Stop()
 
+	n.blockExec.Stop()
 	// stop mempool WAL
 	if n.config.Mempool.WalEnabled() {
 		n.mempool.CloseWAL()

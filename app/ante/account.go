@@ -81,8 +81,10 @@ func nonceVerificationInCheckTx(seq uint64, msgEthTx *evmtypes.MsgEthereumTx, is
 				// will also reset checkState), so we will need to add pending txs len to get the right nonce
 				gPool := baseapp.GetGlobalMempool()
 				if gPool != nil {
-					cnt := gPool.GetUserPendingTxsCnt(evmtypes.EthAddressStringer(common.BytesToAddress(msgEthTx.AccountAddress().Bytes())).String())
-					checkTxModeNonce = seq + uint64(cnt)
+					addr := evmtypes.EthAddressStringer(common.BytesToAddress(msgEthTx.AccountAddress().Bytes())).String()
+					if pendingNonce, ok := gPool.GetPendingNonce(addr); ok {
+						checkTxModeNonce = pendingNonce + 1
+					}
 				}
 			}
 
@@ -132,7 +134,7 @@ func nonceVerification(ctx sdk.Context, acc exported.Account, msgEthTx *evmtypes
 	return ctx, nil
 }
 
-func ethGasConsume(ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, msgEthTx *evmtypes.MsgEthereumTx, simulate bool, sk types.SupplyKeeper) error {
+func ethGasConsume(ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, msgEthTx *evmtypes.MsgEthereumTx, simulate bool, ak auth.AccountKeeper) error {
 	gasLimit := msgEthTx.GetGas()
 	gas, err := ethcore.IntrinsicGas(msgEthTx.Data.Payload, []ethtypes.AccessTuple{}, msgEthTx.To() == nil, true, false)
 	if err != nil {
@@ -157,7 +159,7 @@ func ethGasConsume(ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, ms
 
 		ctx.UpdateFromAccountCache(acc, accGetGas)
 
-		err = auth.DeductFees(sk, *ctx, acc, feeAmt)
+		err = deductFees(ak, *ctx, acc, feeAmt)
 		if err != nil {
 			return err
 		}
@@ -165,6 +167,37 @@ func ethGasConsume(ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, ms
 
 	// Set gas meter after ante handler to ignore gaskv costs
 	auth.SetGasMeter(simulate, ctx, gasLimit)
+	return nil
+}
+
+func deductFees(ak auth.AccountKeeper, ctx sdk.Context, acc exported.Account, fees sdk.Coins) error {
+	blockTime := ctx.BlockTime()
+	coins := acc.GetCoins()
+
+	if !fees.IsValid() {
+		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFee, "invalid fee amount: %s", fees)
+	}
+
+	// verify the account has enough funds to pay for fees
+	balance, hasNeg := coins.SafeSub(fees)
+	if hasNeg {
+		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds,
+			"insufficient funds to pay for fees; %s < %s", coins, fees)
+	}
+
+	// Validate the account has enough "spendable" coins as this will cover cases
+	// such as vesting accounts.
+	spendableCoins := acc.SpendableCoins(blockTime)
+	if _, hasNeg := spendableCoins.SafeSub(fees); hasNeg {
+		return sdkerrors.Wrapf(sdkerrors.ErrInsufficientFunds,
+			"insufficient funds to pay for fees; %s < %s", spendableCoins, fees)
+	}
+
+	if err := acc.SetCoins(balance); err != nil {
+		return err
+	}
+	ak.SetAccount(ctx, acc)
+
 	return nil
 }
 
@@ -246,7 +279,7 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 
 		ctx.EnableAccountCache()
 		// account would be updated
-		err = ethGasConsume(&ctx, acc, getAccGasUsed, msgEthTx, simulate, avd.sk)
+		err = ethGasConsume(&ctx, acc, getAccGasUsed, msgEthTx, simulate, avd.ak)
 		acc = nil
 		acc, _ = ctx.GetFromAccountCacheData().(exported.Account)
 		ctx.DisableAccountCache()

@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/okex/exchain/app/config"
 	"io"
 	"io/ioutil"
 	"log"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
+	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/iavl"
@@ -111,18 +113,31 @@ func RepairState(ctx *server.Context, onStart bool) {
 		if onStart {
 			startVersion = commitVersion
 		} else {
+			if types.HigherThanMars(commitVersion) {
+				lastMptVersion := int64(repairApp.EvmKeeper.GetLatestStoredBlockHeight())
+				if lastMptVersion < commitVersion {
+					commitVersion = lastMptVersion
+				}
+			}
 			startVersion = commitVersion - 2 // case: state machine broken
 		}
 	}
 	if startVersion <= 0 {
 		panic("height too low, please restart from height 0 with genesis file")
 	}
+	log.Println(fmt.Sprintf("repair state at version = %d", startVersion))
 
 	err = repairApp.LoadStartVersion(startVersion)
 	panicError(err)
 
+	rawTrieDirtyDisabledFlag := viper.GetBool(mpttypes.FlagTrieDirtyDisabled)
+	mpttypes.TrieDirtyDisabled = true
+	repairApp.EvmKeeper.SetTargetMptVersion(startVersion)
+
 	// repair data by apply the latest two blocks
 	doRepair(ctx, state, stateStoreDB, proxyApp, startVersion, latestBlockHeight, dataDir)
+
+	mpttypes.TrieDirtyDisabled = rawTrieDirtyDisabledFlag
 }
 
 func createRepairApp(ctx *server.Context) (proxy.AppConns, *repairApp, error) {
@@ -151,6 +166,8 @@ func newRepairApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer) *repairA
 
 func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	proxyApp proxy.AppConns, startHeight, latestHeight int64, dataDir string) {
+	config.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
+
 	stateCopy := state.Copy()
 	ctx.Logger.Debug("stateCopy", "state", fmt.Sprintf("%+v", stateCopy))
 	// construct state for repair
@@ -162,7 +179,6 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	err = startEventBusAndIndexerService(ctx.Config, eventBus, ctx.Logger)
 	panicError(err)
 	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
-	blockExec.SetIsAsyncDeliverTx(viper.GetBool(sm.FlagParalleledTx))
 	blockExec.SetEventBus(eventBus)
 	global.SetGlobalHeight(startHeight + 1)
 	for height := startHeight + 1; height <= latestHeight; height++ {

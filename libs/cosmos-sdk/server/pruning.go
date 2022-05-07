@@ -2,6 +2,7 @@ package server
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	"strings"
 
 	"github.com/spf13/viper"
@@ -22,6 +23,8 @@ func GetPruningOptionsFromFlags() (types.PruningOptions, error) {
 		if strategy == types.PruningOptionNothing {
 			tmiavl.EnablePruningHistoryState = false
 			tmiavl.CommitIntervalHeight = 1
+			tmiavl.CommitGapHeight = 1
+			mpt.TrieDirtyDisabled = true
 		}
 		return types.NewPruningOptionsFromString(strategy), nil
 

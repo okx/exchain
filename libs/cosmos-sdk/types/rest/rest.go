@@ -383,3 +383,22 @@ func ParseHTTPArgsWithLimit(r *http.Request, defaultLimit int) (tags []string, p
 func ParseHTTPArgs(r *http.Request) (tags []string, page, limit int, err error) {
 	return ParseHTTPArgsWithLimit(r, DefaultLimit)
 }
+
+func CheckBadRequestError(w http.ResponseWriter, err error) bool {
+	return CheckError(w, http.StatusBadRequest, err)
+}
+
+func CheckInternalServerError(w http.ResponseWriter, err error) bool {
+	return CheckError(w, http.StatusInternalServerError, err)
+}
+
+// CheckError takes care of writing an error response if err is not nil.
+// Returns false when err is nil; it returns true otherwise.
+func CheckError(w http.ResponseWriter, status int, err error) bool {
+	if err != nil {
+		WriteErrorResponse(w, status, err.Error())
+		return true
+	}
+
+	return false
+}
