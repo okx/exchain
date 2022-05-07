@@ -4,29 +4,28 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/okex/exchain/libs/system/trace"
-	"github.com/okex/exchain/libs/tendermint/libs/automation"
-	"github.com/spf13/viper"
 	"reflect"
 	"runtime/debug"
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
-
+	"github.com/okex/exchain/libs/system/trace"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
+	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/libs/automation"
+	tmevents "github.com/okex/exchain/libs/tendermint/libs/events"
 	"github.com/okex/exchain/libs/tendermint/libs/fail"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	"github.com/okex/exchain/libs/tendermint/libs/service"
-	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
-
-	cfg "github.com/okex/exchain/libs/tendermint/config"
-	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
-	tmevents "github.com/okex/exchain/libs/tendermint/libs/events"
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
+	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+
+	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 )
 
 //-----------------------------------------------------------------------------
@@ -492,7 +491,7 @@ func (cs *State) updateRoundStep(round int, step cstypes.RoundStepType) {
 // enterNewRound(height, 0) at cs.StartTime.
 func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	overDuration := tmtime.Now().Sub(cs.StartTime)
-	sleepDuration := cs.config.TimeoutCommit - overDuration
+	sleepDuration := cfg.DynamicConfig.GetCsTimeoutCommit() - overDuration
 	if sleepDuration < 0 {
 		sleepDuration = 0
 	}
@@ -2105,6 +2104,7 @@ func (cs *State) updatePrivValidatorPubKey() error {
 func (cs *State) BlockExec() *sm.BlockExecutor {
 	return cs.blockExec
 }
+
 //---------------------------------------------------------
 
 func CompareHRS(h1 int64, r1 int, s1 cstypes.RoundStepType, h2 int64, r2 int, s2 cstypes.RoundStepType) int {
