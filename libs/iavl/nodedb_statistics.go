@@ -56,7 +56,7 @@ func newRuntimeState() *RuntimeState {
 }
 
 func (s *RuntimeState) onLoadNode(from retrieveType) {
-	return
+	//return
 	c, ok := s.fromChanMap[from]
 	if ok {
 		c <- struct{}{}
