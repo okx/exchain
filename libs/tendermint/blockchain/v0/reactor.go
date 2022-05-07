@@ -361,10 +361,14 @@ FOR_LOOP:
 				}
 				continue FOR_LOOP
 			} else {
-				bcR.pool.PopRequest()
+				bcR.pool.PopRequest() // pool.height ++
+
+				if first.Height < bcR.store.Height()+1 {
+					continue FOR_LOOP
+				}
 
 				// TODO: batch saves so we dont persist to disk every block
-				bcR.store.SaveBlock(first, firstParts, second.LastCommit)
+				bcR.store.SaveBlock(first, firstParts, second.LastCommit) // store.height++
 
 				// TODO: same thing for app - but we would need a way to
 				// get the hash without persisting the state
