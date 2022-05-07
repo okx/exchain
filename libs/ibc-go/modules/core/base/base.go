@@ -25,9 +25,6 @@ var (
 		}
 		return true
 	}
-	defaultDenyVersionFilter cosmost.VersionFilter = func(h int64) func(cb func(name string, version int64)) {
-		return func(cb func(name string, version int64)) {}
-	}
 	defaultIBCCommitFilter cosmost.StoreFilter = func(module string, h int64, store cosmost.CommitKVStore) bool {
 		_, exist := ibcMap[module]
 		if !exist {
