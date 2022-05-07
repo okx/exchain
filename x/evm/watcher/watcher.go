@@ -168,6 +168,7 @@ func (w *Watcher) SaveAccount(account auth.Account, isDirectly bool) {
 		} else {
 			w.staleBatch = append(w.staleBatch, wMsg)
 		}
+
 	}
 }
 

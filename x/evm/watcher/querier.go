@@ -338,7 +338,6 @@ func (q Querier) MustGetAccount(addr sdk.AccAddress) (*types.EthAccount, error) 
 	} else {
 		q.DeleteAccountFromRdb(addr)
 	}
-
 	return acc, e
 }
 

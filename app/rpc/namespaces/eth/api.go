@@ -1729,7 +1729,6 @@ func (api *PublicEthereumAPI) accountNonce(
 		return 0, nil
 	}
 	api.watcherBackend.CommitAccountToRpcDb(account)
-
 	return account.GetSequence(), nil
 }
 
