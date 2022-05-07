@@ -790,10 +790,7 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 	case cstypes.RoundStepNewHeight:
 		// NewRound event fired from enterNewRound.
 		// XXX: should we fire timeout here (for timeout commit)?
-		trace.GetElapsedInfo().AddInfo(trace.Produce, cs.trc.Format())
-		trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
-		cs.trc.SetDumpHeight(ti.Height)
-		cs.trc.Reset()
+		cs.traceDump(ti.Height)
 		cs.StartTime = tmtime.Now()
 		cs.enterNewRound(ti.Height, 0)
 	case cstypes.RoundStepNewRound:
@@ -812,6 +809,16 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 		panic(fmt.Sprintf("Invalid timeout step: %v", ti.Step))
 	}
 
+}
+
+func (cs *State) traceDump(height int64) {
+	// if this height has dumped before, no need to dump again
+	if height > cs.trc.GetLastDumpHeight() {
+		trace.GetElapsedInfo().AddInfo(trace.Produce, cs.trc.Format())
+		trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
+		cs.trc.SetDumpHeight(height)
+		cs.trc.Reset()
+	}
 }
 
 func (cs *State) handleTxsAvailable() {
@@ -1109,10 +1116,10 @@ func (cs *State) enterPrevote(height int64, round int) {
 		return
 	}
 
-	if height > cs.trc.GetLastDumpHeight() {
-		trace.GetElapsedInfo().AddInfo(trace.Produce, cs.trc.Format())
-		trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
-		cs.trc.Reset()
+	// enterPrevote by VoteMessage, and waiting is interrupted.
+	if cs.Step == cstypes.RoundStepNewHeight {
+		// dump trace log
+		cs.traceDump(height)
 		cs.StartTime = tmtime.Now()
 	}
 
@@ -2116,6 +2123,7 @@ func (cs *State) updatePrivValidatorPubKey() error {
 func (cs *State) BlockExec() *sm.BlockExecutor {
 	return cs.blockExec
 }
+
 //---------------------------------------------------------
 
 func CompareHRS(h1 int64, r1 int, s1 cstypes.RoundStepType, h2 int64, r2 int, s2 cstypes.RoundStepType) int {
