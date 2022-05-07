@@ -16,6 +16,7 @@ type IDynamicConfig interface {
 	GetCsTimeoutPrevoteDelta() time.Duration
 	GetCsTimeoutPrecommit() time.Duration
 	GetCsTimeoutPrecommitDelta() time.Duration
+	GetCsTimeoutCommit() time.Duration
 	GetEnableWtx() bool
 	GetDeliverTxsExecuteMode() int
 }
@@ -74,6 +75,9 @@ func (d MockDynamicConfig) GetCsTimeoutPrecommit() time.Duration {
 }
 func (d MockDynamicConfig) GetCsTimeoutPrecommitDelta() time.Duration {
 	return DefaultConsensusConfig().TimeoutPrecommitDelta
+}
+func (d MockDynamicConfig) GetCsTimeoutCommit() time.Duration {
+	return DefaultConsensusConfig().TimeoutCommit
 }
 
 func (d MockDynamicConfig) GetEnableWtx() bool {
