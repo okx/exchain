@@ -12,8 +12,12 @@ const (
 	NewEvmStore = "evm2" //new store for evm module, evm store will del after migration. the chainconfig, whiteList and block list info will store in evm2 store
 )
 
-func evmAccStoreFilter(sName string, ver int64) bool {
+func evmAccStoreFilter(sName string, ver int64, forceFilter ...bool) bool {
 	if (sName == AccStore || sName == EvmStore) && tmtypes.HigherThanMars(ver) {
+		if len(forceFilter) > 0 && forceFilter[0] {
+			return true
+		}
+
 		// if mpt.TrieDirtyDisabled == true, means is a full node, should still use acc and evm store to query history state, keep them!
 		// else, no longer need them any more, filter them !!!
 		return !mpt.TrieDirtyDisabled
