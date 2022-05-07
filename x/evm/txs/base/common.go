@@ -41,10 +41,11 @@ func msg2st(ctx *sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (st types.Sta
 		TraceTx:      ctx.IsTraceTx(),
 		TraceTxLog:   ctx.IsTraceTxLog(),
 	}
-	if ctx.IsDeliver() {
-		st.Csdb = k.EvmStateDb.WithContext(*ctx)
-	} else {
-		st.Csdb = types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), *ctx)
+	st.Csdb = types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), *ctx)
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
+		if ctx.IsDeliver() {
+			st.Csdb = k.EvmStateDb.WithContext(*ctx)
+		}
 	}
 
 	return
