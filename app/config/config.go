@@ -10,10 +10,10 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	iavlconfig "github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/system"
+	"github.com/okex/exchain/libs/system/trace"
 	tmconfig "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/state"
-	"github.com/okex/exchain/x/common/analyzer"
 
 	"github.com/spf13/viper"
 )
@@ -176,7 +176,7 @@ func RegisterDynamicConfig(logger log.Logger) {
 	oecConfig := GetOecConfig()
 	tmconfig.SetDynamicConfig(oecConfig)
 	iavlconfig.SetDynamicConfig(oecConfig)
-	analyzer.SetDynamicConfig(oecConfig)
+	trace.SetDynamicConfig(oecConfig)
 }
 
 func (c *OecConfig) loadFromConfig() {
@@ -199,7 +199,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetIavlCacheSize(viper.GetInt(iavl.FlagIavlCacheSize))
 	c.SetNodeKeyWhitelist(viper.GetString(FlagNodeKeyWhitelist))
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
-	c.SetEnableAnalyzer(viper.GetBool(analyzer.FlagEnableAnalyzer))
+	c.SetEnableAnalyzer(viper.GetBool(trace.FlagEnableAnalyzer))
 	c.SetDeliverTxsExecuteMode(viper.GetInt(state.FlagDeliverTxsExecMode))
 }
 
@@ -370,7 +370,7 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetIavlCacheSize(r)
-	case analyzer.FlagEnableAnalyzer:
+	case trace.FlagEnableAnalyzer:
 		r, err := strconv.ParseBool(v)
 		if err != nil {
 			return

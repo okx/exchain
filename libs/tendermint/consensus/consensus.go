@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/okex/exchain/libs/system/trace"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
@@ -20,7 +21,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/service"
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	sm "github.com/okex/exchain/libs/tendermint/state"
-	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/tendermint/types"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
 

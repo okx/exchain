@@ -1,6 +1,8 @@
 package app
 
 import (
+	"github.com/okex/exchain/libs/system/trace"
+	sm "github.com/okex/exchain/libs/tendermint/state"
 	"io"
 	"math/big"
 	"os"
@@ -48,7 +50,6 @@ import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/ammswap"
-	"github.com/okex/exchain/x/common/analyzer"
 	commonversion "github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/dex"
 	dexclient "github.com/okex/exchain/x/dex/client"
@@ -241,8 +242,8 @@ func NewOKExChainApp(
 
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
-	bApp.SetStartLogHandler(analyzer.StartTxLog)
-	bApp.SetEndLogHandler(analyzer.StopTxLog)
+	bApp.SetStartLogHandler(trace.StartTxLog)
+	bApp.SetEndLogHandler(trace.StopTxLog)
 
 	bApp.SetInterfaceRegistry(interfaceReg)
 
@@ -554,6 +555,8 @@ func NewOKExChainApp(
 	// note replicate if you do not need to test core IBC or light clients.
 	app.ScopedIBCMockKeeper = scopedIBCMockKeeper
 
+	enableAnalyzer := sm.DeliverTxsExecMode(viper.GetInt(sm.FlagDeliverTxsExecMode)) == sm.DeliverTxsExecModeSerial
+	trace.EnableAnalyzer(enableAnalyzer)
 	return app
 }
 
