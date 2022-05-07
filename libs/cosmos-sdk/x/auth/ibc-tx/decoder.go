@@ -157,6 +157,7 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 				if msgTransfer.Token.Denom == sdk.DefaultBondDenom {
 					return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "ibc tx decoder MsgTransfer not surport okt amount")
 				}
+				newMsg = &msgTransfer
 			default:
 				newMsg = m
 			}
