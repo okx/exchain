@@ -96,7 +96,7 @@ func (ndb *nodeDB) sprintCacheLog(version int64) string {
 	cacheReadCount := ndb.state.getNodeReadCount() - ndb.state.getDBReadCount()
 	printLog := fmt.Sprintf("Save Version<%d>: Tree<%s>", version, ndb.name)
 
-	printLog += fmt.Sprintf(", TotalPreCommitCacheSize:%d", treeMap.totalPreCommitCacheSize)
+	printLog += fmt.Sprintf(", TotalPreCommitCacheSize:%d", treeMap.totalPpncSize)
 	printLog += fmt.Sprintf(", nodeCCnt:%d", ndb.nc.nodeCacheLen())
 	printLog += fmt.Sprintf(", orphanCCnt:%d", ndb.oi.orphanNodeCacheLen())
 	printLog += fmt.Sprintf(", prePerCCnt:%d", len(ndb.prePersistNodeCache))
