@@ -295,7 +295,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	return state, retainHeight, nil
 }
 
-func (blockExec *BlockExecutor) ApplyBlockWithTrcDump(
+func (blockExec *BlockExecutor) ApplyBlockWithTrace(
 	state State, blockID types.BlockID, block *types.Block) (State, int64, error) {
 	s, id, err := blockExec.ApplyBlock(state, blockID, block)
 	trace.GetElapsedInfo().Dump(blockExec.logger)
