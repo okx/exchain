@@ -1,6 +1,8 @@
 package iavl
 
-import "sync"
+import (
+	"sync"
+)
 
 var onceTreeMap sync.Once
 var treeMap *TreeMap
@@ -60,7 +62,10 @@ func (tm *TreeMap) updateMutableTreeMap(module string) {
 
 // isMutableTreeSavedMapAllReady check if all trees are saved or not
 func (tm *TreeMap) isMutableTreeSavedMapAllReady() bool {
-	for _, isReady := range tm.mutableTreeSavedMap {
+	for name, isReady := range tm.mutableTreeSavedMap {
+		if name == "evm2" {
+			continue
+		}
 		if !isReady {
 			return false
 		}
