@@ -11,11 +11,10 @@ type TreeMap struct {
 	mtx sync.RWMutex
 	// used for checking whether a tree is saved or not
 	mutableTreeSavedMap     map[string]*MutableTree
-	totalPpncSize int64
-	evmPpncSize int64
-	accPpncSize int64
+	totalPpncSize           int64
+	evmPpncSize             int64
+	accPpncSize             int64
 	lastUpdatedVersion      int64
-	evm *MutableTree
 }
 
 func init() {
@@ -31,9 +30,6 @@ func (tm *TreeMap) addNewTree(tree *MutableTree) {
 	defer tm.mtx.Unlock()
 	if _, ok := tm.mutableTreeSavedMap[tree.GetModuleName()]; !ok {
 		tm.mutableTreeSavedMap[tree.GetModuleName()] = tree
-		if tree.GetModuleName() == "evm" {
-			tm.evm = tree
-		}
 		go tree.commitSchedule()
 	}
 }
@@ -46,7 +42,7 @@ func (tm *TreeMap) getTree(moduleName string) (tree *MutableTree, ok bool) {
 }
 
 // updateMutableTreeMap marks into true when operation of save-version is done
-func (tm *TreeMap) updateTotalPpnc(module string, version int64) {
+func (tm *TreeMap) updatePpnc(version int64) {
 	tm.mtx.Lock()
 	defer tm.mtx.Unlock()
 
@@ -66,14 +62,6 @@ func (tm *TreeMap) updateTotalPpnc(module string, version int64) {
 	}
 	tm.totalPpncSize = size
 	tm.lastUpdatedVersion = version
-
-	//tm.evm.ndb.log(IavlInfo,"updateMutableTreeMap",
-	//	"version", tm.lastUpdatedVersion-1,
-	//	"module-by", module,
-	//	"totalPpncSize", tm.totalPpncSize,
-	//	"evmPpncSize", tm.evmPpncSize,
-	//	"accPpncSize", tm.accPpncSize,
-	//	)
 }
 
 // resetMap clear the TreeMap, only for test.

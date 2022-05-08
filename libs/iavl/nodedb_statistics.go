@@ -56,7 +56,6 @@ func newRuntimeState() *RuntimeState {
 }
 
 func (s *RuntimeState) onLoadNode(from retrieveType) {
-
 	c, ok := s.fromChanMap[from]
 	if ok {
 		c <- struct{}{}
@@ -156,12 +155,12 @@ func (ndb *nodeDB) sprintCacheLog(version int64) string {
 	cacheReadCount := ndb.state.getNodeReadCount() - ndb.state.getDBReadCount()
 	printLog := fmt.Sprintf("Save Version<%d>: Tree<%s>", version, ndb.name)
 
-	printLog += fmt.Sprintf(", fromPpnc:%d, fromTpp:%d, fromNodeCache:%d, fromOrphanCache:%d, fromDisk:%d",
-		ndb.state.fromPpnc,
-		ndb.state.fromTpp,
-		ndb.state.fromNodeCache,
-		ndb.state.fromOrphanCache,
-		ndb.state.fromDisk)
+	//printLog += fmt.Sprintf(", fromPpnc:%d, fromTpp:%d, fromNodeCache:%d, fromOrphanCache:%d, fromDisk:%d",
+	//	ndb.state.fromPpnc,
+	//	ndb.state.fromTpp,
+	//	ndb.state.fromNodeCache,
+	//	ndb.state.fromOrphanCache,
+	//	ndb.state.fromDisk)
 	printLog += fmt.Sprintf(", ppnc:%d", len(ndb.prePersistNodeCache))
 	printLog += fmt.Sprintf(", nodeCache:%d", ndb.nc.nodeCacheLen())
 	printLog += fmt.Sprintf(", orphanCache:%d", ndb.oi.orphanNodeCacheLen())
