@@ -3,7 +3,6 @@ package v0
 import (
 	"errors"
 	"fmt"
-	"github.com/okex/exchain/libs/system/trace"
 	"reflect"
 	"sync"
 	"time"
@@ -370,7 +369,7 @@ FOR_LOOP:
 				// TODO: same thing for app - but we would need a way to
 				// get the hash without persisting the state
 				var err error
-				bcR.curState, _, err = bcR.blockExec.ApplyBlock(bcR.curState, firstID, first) // rpc
+				bcR.curState, _, err = bcR.blockExec.ApplyBlockWithTrace(bcR.curState, firstID, first) // rpc
 				if err != nil {
 					// TODO This is bad, are we zombie?
 					// The block can't be committed, do we need to delete it from store db?
@@ -396,9 +395,6 @@ FOR_LOOP:
 						"max_peer_height", bcR.pool.MaxPeerHeight(), "blocks/s", lastRate)
 					lastHundred = time.Now()
 				}
-
-				// dump app.LastBlockHeight()-1 info for reactor sync mode
-				trace.GetElapsedInfo().Dump(bcR.Logger.With("module", "main"))
 			}
 			continue FOR_LOOP
 
