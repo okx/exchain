@@ -6,8 +6,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
 	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	"google.golang.org/protobuf/encoding/protowire"
 
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -141,23 +139,12 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			}
 			var newMsg sdk.Msg
 			switch msg := m.(type) {
-			case *bank.AdapterMsgSend:
-				msgSend := *msg
-				msgSend.Amount = msg.Amount.Copy()
-				for i, amount := range msgSend.Amount {
-					if amount.Denom == sdk.DefaultIbcWei {
-						msgSend.Amount[i].Denom = sdk.DefaultBondDenom
-					} else if amount.Denom == sdk.DefaultBondDenom {
-						return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "ibc tx decoder AdapterMsgSend not surport okt amount")
-					}
+			case DenomAdapterIbcTransferMsg:
+				// ibc transfer okt is not allowed,should do filter
+				newMsg, err = msg.RulesFilter()
+				if err != nil {
+					return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "ibc tx decoder not surport okt amount")
 				}
-				newMsg = &msgSend
-			case *types.MsgTransfer:
-				msgTransfer := *msg
-				if msgTransfer.Token.Denom == sdk.DefaultBondDenom {
-					return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "ibc tx decoder MsgTransfer not surport okt amount")
-				}
-				newMsg = &msgTransfer
 			default:
 				newMsg = m
 			}

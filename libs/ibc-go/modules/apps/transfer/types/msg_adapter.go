@@ -1,5 +1,10 @@
 package types
 
+import (
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+)
+
 //import (
 //	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 //	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -18,6 +23,15 @@ package types
 //	_ types.MsgAdapter = (*MsgTransfer)(nil)
 //)
 //
+
+//for denom convert wei to okt and reject okt direct
+func (m *MsgTransfer) RulesFilter() (sdk.Msg, error) {
+	if m.Token.Denom == sdk.DefaultBondDenom {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, "ibc MsgTransfer not support okt denom")
+	}
+	return m, nil
+}
+
 //func (m *MsgTransfer) Reset()         {}
 //func (m *MsgTransfer) String() string { return proto.CompactTextString(m)  }
 //func (m *MsgTransfer) ProtoMessage()  {}
