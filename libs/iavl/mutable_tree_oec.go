@@ -158,7 +158,7 @@ func (tree *MutableTree) commitSchedule() {
 			continue
 		}
 
-		trc := trace.NewTracer("iavl tree")
+		trc := trace.NewTracer("commitSchedule")
 		trc.CloseSummary()
 		trc.Pin("Pruning")
 		tree.updateCommittedStateHeightPool(event.batch, event.version, event.versions)

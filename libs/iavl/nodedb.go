@@ -143,7 +143,7 @@ func (ndb *nodeDB) loadNode(hash []byte, update bool) (n *Node, from retrieveTyp
 		from = fromDisk
 	}
 
-	ndb.state.onLoadNode(from)
+	//ndb.state.onLoadNode(from)
 	return
 }
 
