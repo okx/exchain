@@ -56,7 +56,7 @@ func (tm *TreeMap) updateMutableTreeMap(module string, version int64) {
 		return
 	}
 	tm.lastUpdatedVersion = version
-	tm.updateTotalPreCommitCacheSize()
+	//tm.updateTotalPreCommitCacheSize()
 
 	//if _, ok := tm.mutableTreeSavedMap[module]; !ok {
 	//	return
