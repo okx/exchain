@@ -13,6 +13,7 @@ type TreeMap struct {
 	mutableTreeList         []*MutableTree
 	totalPreCommitCacheSize int64
 	mutableTreeSavedMap     map[string]bool
+	lastUpdatedVersion      int64
 }
 
 func init() {
@@ -48,33 +49,39 @@ func (tm *TreeMap) getTree(moduleName string) (*MutableTree, bool) {
 }
 
 // updateMutableTreeMap marks into true when operation of save-version is done
-func (tm *TreeMap) updateMutableTreeMap(module string) {
+func (tm *TreeMap) updateMutableTreeMap(module string, version int64) {
 	tm.mtx.Lock()
 	defer tm.mtx.Unlock()
-	if _, ok := tm.mutableTreeSavedMap[module]; !ok {
+	if version == tm.lastUpdatedVersion {
 		return
 	}
-	tm.mutableTreeSavedMap[module] = true
-	if tm.isMutableTreeSavedMapAllReady() {
-		tm.updateTotalPreCommitCacheSize()
-	}
+	tm.lastUpdatedVersion = version
+	tm.updateTotalPreCommitCacheSize()
+
+	//if _, ok := tm.mutableTreeSavedMap[module]; !ok {
+	//	return
+	//}
+	//tm.mutableTreeSavedMap[module] = true
+	//if tm.isMutableTreeSavedMapAllReady() {
+	//	tm.updateTotalPreCommitCacheSize()
+	//}
 }
 
 // isMutableTreeSavedMapAllReady check if all trees are saved or not
-func (tm *TreeMap) isMutableTreeSavedMapAllReady() bool {
-	for name, isReady := range tm.mutableTreeSavedMap {
-		if name == "evm2" {
-			continue
-		}
-		if !isReady {
-			return false
-		}
-	}
-	for key := range tm.mutableTreeSavedMap {
-		tm.mutableTreeSavedMap[key] = false
-	}
-	return true
-}
+//func (tm *TreeMap) isMutableTreeSavedMapAllReady() bool {
+//	for name, isReady := range tm.mutableTreeSavedMap {
+//		if name == "evm2" {
+//			continue
+//		}
+//		if !isReady {
+//			return false
+//		}
+//	}
+//	for key := range tm.mutableTreeSavedMap {
+//		tm.mutableTreeSavedMap[key] = false
+//	}
+//	return true
+//}
 
 // updateTotalPreCommitCacheSize counts the number of prePersis node
 func (tm *TreeMap) updateTotalPreCommitCacheSize() {
