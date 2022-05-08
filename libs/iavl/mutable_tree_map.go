@@ -43,12 +43,12 @@ func (tm *TreeMap) getTree(moduleName string) (tree *MutableTree, ok bool) {
 
 // updateMutableTreeMap marks into true when operation of save-version is done
 func (tm *TreeMap) updatePpnc(version int64) {
-	tm.mtx.Lock()
-	defer tm.mtx.Unlock()
-
 	if version == tm.lastUpdatedVersion {
 		return
 	}
+	tm.mtx.Lock()
+	defer tm.mtx.Unlock()
+
 	var size int64 = 0
 	for _, tree := range tm.mutableTreeSavedMap {
 		ppnc := int64(len(tree.ndb.prePersistNodeCache))
