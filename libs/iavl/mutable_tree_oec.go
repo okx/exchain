@@ -96,7 +96,7 @@ func (tree *MutableTree) setNewWorkingTree(version int64, newOrphans []*Node, pe
 	if persisted {
 		tree.versions.Set(version, true)
 	}
-	//treeMap.updatePpnc(version)
+	treeMap.updatePpnc(version)
 
 	tree.removedVersions.Range(func(k, v interface{}) bool {
 		tree.log(IavlDebug, "remove version from tree version map", "Height", k.(int64))
