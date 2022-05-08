@@ -143,7 +143,7 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 				// ibc transfer okt is not allowed,should do filter
 				newMsg, err = msg.RulesFilter()
 				if err != nil {
-					return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "ibc tx decoder not surport okt amount")
+					return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "ibc tx decoder not support okt amount")
 				}
 			default:
 				newMsg = m
