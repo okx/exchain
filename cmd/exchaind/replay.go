@@ -301,6 +301,8 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
 		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
+		// dump trace log info for lrp
+		trace.GetElapsedInfo().Dump("replay")
 		panicError(err)
 		if needSaveBlock {
 			SaveBlock(ctx, originBlockStore, height)
