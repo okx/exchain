@@ -14,6 +14,8 @@ type IbcTx struct {
 	AuthInfoBytes []byte
 	BodyBytes     []byte
 	SignMode      signing.SignMode
+	SigFee        IbcFee
+	SigMsgs       []sdk.Msg
 }
 
 type StdIBCSignDoc struct {
@@ -26,31 +28,9 @@ type StdIBCSignDoc struct {
 	Msgs          []json.RawMessage `json:"msgs" yaml:"msgs"`
 }
 
-type ibcCoin struct {
-	Denom  string  `json:"denom"`
-	Amount sdk.Int `json:"amount"`
-}
-
-type ibcFee struct {
-	Amount []ibcCoin `json:"amount" yaml:"amount"`
-	Gas    uint64    `json:"gas" yaml:"gas"`
-}
-
-func feeToIBCFeeBytes(fee StdFee) []byte {
-	var ibcFee ibcFee
-	ibcFee.Gas = fee.Gas
-	for _, coin := range fee.Amount {
-		ibcCoin := ibcCoin{
-			Denom:  coin.Denom,
-			Amount: coin.Amount.TruncateInt(),
-		}
-		ibcFee.Amount = append(ibcFee.Amount, ibcCoin)
-	}
-	bz, err := ModuleCdc.MarshalJSON(ibcFee)
-	if err != nil {
-		return nil
-	}
-	return bz
+type IbcFee struct {
+	Amount sdk.CoinAdapters `json:"amount" yaml:"amount"`
+	Gas    uint64           `json:"gas" yaml:"gas"`
 }
 
 func (tx *IbcTx) GetSignBytes(ctx sdk.Context, acc exported.Account) []byte {
@@ -68,12 +48,12 @@ func (tx *IbcTx) GetSignBytes(ctx sdk.Context, acc exported.Account) []byte {
 	}
 
 	return IbcAminoSignBytes(
-		chainID, accNum, acc.GetSequence(), tx.Fee, tx.Msgs, tx.Memo, tx.TimeoutHeight,
+		chainID, accNum, acc.GetSequence(), tx.SigFee, tx.SigMsgs, tx.Memo, tx.TimeoutHeight,
 	)
 }
 
 func IbcAminoSignBytes(chainID string, accNum uint64,
-	sequence uint64, fee StdFee, msgs []sdk.Msg,
+	sequence uint64, fee IbcFee, msgs []sdk.Msg,
 	memo string, height uint64) []byte {
 
 	msgsBytes := make([]json.RawMessage, 0, len(msgs))
@@ -83,7 +63,7 @@ func IbcAminoSignBytes(chainID string, accNum uint64,
 	bz, err := ModuleCdc.MarshalJSON(StdIBCSignDoc{
 		AccountNumber: accNum,
 		ChainID:       chainID,
-		Fee:           json.RawMessage(feeToIBCFeeBytes(fee)),
+		Fee:           ModuleCdc.MustMarshalJSON(fee),
 		Memo:          memo,
 		Msgs:          msgsBytes,
 		Sequence:      sequence,
