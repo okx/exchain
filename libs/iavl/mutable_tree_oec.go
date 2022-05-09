@@ -25,7 +25,7 @@ var (
 
 	// Parameters below here are changed from cosmos-sdk, controlled by flag
 	CommitIntervalHeight      int64 = 100
-	MinCommitItemCount        int64 = 1000000
+	MinCommitItemCount        int64 = 500000
 	HeightOrphansCacheSize          = 8
 	MaxCommittedHeightNum           = minHistoryStateNum
 	EnableAsyncCommit               = false
@@ -105,7 +105,7 @@ func (tree *MutableTree) setNewWorkingTree(version int64, newOrphans []*Node, pe
 		return true
 	})
 
-	tree.ndb.log(IavlInfo, tree.ndb.sprintCacheLog(version))
+	tree.ndb.log(IavlDebug, tree.ndb.sprintCacheLog(version))
 	return rootHash, version, nil
 }
 
