@@ -423,7 +423,6 @@ func (w *Watcher) commitBatch(batch []WatchMessage, delayEraseKey [][]byte) {
 			}
 		}
 	}
-	//	w.ExecuteDelayEraseKey(delayEraseKey)
 
 	if checkWd {
 		keys := make([][]byte, len(batch))
