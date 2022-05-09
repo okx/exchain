@@ -199,7 +199,6 @@ func (w *Watcher) DelayEraseKey() {
 	}
 	//hold it in temp
 	delayEraseKey := w.delayEraseKey
-	w.clean()
 	w.dispatchJob(func() {
 		w.ExecuteDelayEraseKey(delayEraseKey)
 	})
