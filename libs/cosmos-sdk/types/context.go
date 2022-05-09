@@ -2,10 +2,8 @@ package types
 
 import (
 	"context"
+	"github.com/okex/exchain/libs/system/trace"
 	"time"
-
-	"github.com/okex/exchain/libs/tendermint/trace"
-
 	"github.com/gogo/protobuf/proto"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -40,7 +38,6 @@ type Context struct {
 	traceTx            bool   // traceTx is set true for trace tx and its predesessors , traceTx was set in app.beginBlockForTrace()
 	traceTxLog         bool   // traceTxLog is used to create trace logger for evm , traceTxLog is set to true when only tracing target tx (its predesessors will set false), traceTxLog is set before runtx
 	traceTxConfigBytes []byte // traceTxConfigBytes is used to save traceTxConfig, passed from api to x/evm
-	isAsync            bool
 	minGasPrice        DecCoins
 	consParams         *abci.ConsensusParams
 	eventManager       *EventManager
@@ -48,6 +45,7 @@ type Context struct {
 	cache              *Cache
 	trc                *trace.Tracer
 	accountCache       *AccountCache
+	paraMsg            *ParaMsg
 	txCount            uint32
 }
 
@@ -77,7 +75,14 @@ func (c *Context) VoteInfos() []abci.VoteInfo { return c.voteInfo }
 func (c *Context) GasMeter() GasMeter         { return c.gasMeter }
 func (c *Context) BlockGasMeter() GasMeter    { return c.blockGasMeter }
 
-func (c *Context) IsDeliver() bool             { return c.isDeliver }
+func (c *Context) IsDeliver() bool {
+	return c.isDeliver
+}
+
+func (c *Context) UseParamCache() bool {
+	return c.isDeliver || (c.paraMsg != nil && !c.paraMsg.HaveCosmosTxInBlock)
+}
+
 func (c *Context) IsCheckTx() bool             { return c.checkTx }
 func (c *Context) IsReCheckTx() bool           { return c.recheckTx }
 func (c *Context) IsTraceTx() bool             { return c.traceTx }
@@ -86,10 +91,14 @@ func (c *Context) TraceTxLogConfig() []byte    { return c.traceTxConfigBytes }
 func (c *Context) IsWrappedCheckTx() bool      { return c.wrappedCheckTx }
 func (c *Context) MinGasPrices() DecCoins      { return c.minGasPrice }
 func (c *Context) EventManager() *EventManager { return c.eventManager }
-func (c *Context) IsAsync() bool               { return c.isAsync }
 func (c *Context) AccountNonce() uint64        { return c.accountNonce }
 func (c *Context) AnteTracer() *trace.Tracer   { return c.trc }
-func (c *Context) Cache() *Cache               { return c.cache }
+func (c *Context) Cache() *Cache {
+	return c.cache
+}
+func (c Context) ParaMsg() *ParaMsg {
+	return c.paraMsg
+}
 
 func (c *Context) EnableAccountCache()  { c.accountCache = &AccountCache{} }
 func (c *Context) DisableAccountCache() { c.accountCache = nil }
@@ -218,11 +227,6 @@ func (c *Context) SetFrom(from string) *Context {
 	return c
 }
 
-func (c *Context) SetAsync(isAsync bool) *Context {
-	c.isAsync = isAsync
-	return c
-}
-
 func (c *Context) SetAnteTracer(trc *trace.Tracer) *Context {
 	c.trc = trc
 	return c
@@ -277,6 +281,11 @@ func (c *Context) SetMinGasPrices(gasPrices DecCoins) *Context {
 
 func (c *Context) SetIsCheckTx(isCheckTx bool) *Context {
 	c.checkTx = isCheckTx
+	return c
+}
+
+func (c *Context) SetIsDeliverTx(isDeliverTx bool) *Context {
+	c.isDeliver = isDeliverTx
 	return c
 }
 
@@ -335,6 +344,11 @@ func (c *Context) SetTxBytes(txBytes []byte) *Context {
 
 func (c *Context) SetLogger(logger log.Logger) *Context {
 	c.logger = logger
+	return c
+}
+
+func (c *Context) SetParaMsg(m *ParaMsg) *Context {
+	c.paraMsg = m
 	return c
 }
 

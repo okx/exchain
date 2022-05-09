@@ -1,4 +1,4 @@
-package analyzer
+package trace
 
 type txLog struct {
 	startTime int64
@@ -8,7 +8,7 @@ type txLog struct {
 
 func newTxLog() *txLog {
 	tmp := &txLog{
-		startTime: GetNowTimeMs(),
+		startTime: getNowTimeMs(),
 		Record:    make(map[string]*operateInfo),
 	}
 

@@ -2,13 +2,12 @@ package app
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/system/trace"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"strings"
 	"sync"
 
 	"github.com/spf13/viper"
-
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/libs/tendermint/trace"
 )
 
 var (
@@ -77,12 +76,16 @@ func (e *ElapsedTimeInfos) AddInfo(key string, info string) {
 	e.infoMap[key] = info
 }
 
-func (e *ElapsedTimeInfos) Dump(logger log.Logger) {
+func (e *ElapsedTimeInfos) Dump(input interface{}) {
 
+	logger, ok := input.(log.Logger)
+	if !ok {
+		panic("Invalid input")
+	}
 	e.mtx.Lock()
 	defer e.mtx.Unlock()
 
-	if len(e.infoMap) == 0 {
+	if _, ok := e.infoMap[trace.Height]; !ok {
 		return
 	}
 
@@ -100,12 +103,12 @@ func (e *ElapsedTimeInfos) Dump(logger log.Logger) {
 		}
 	}
 
-	info := fmt.Sprintf("%s<%s>, %s<%s>, %s<%s>, %s<%s>, %s<%s>, %s<%s>, %s[%s], %s[%s], %s<%s>, %s<%s>, %s<%s>",
+	info := fmt.Sprintf("%s<%s>, %s<%s>, %s<%s>, %s<%s>, %s<%s>, %s[%s], %s[%s], %s<%s>, %s<%s>, %s<%s>",
 		trace.Height, e.infoMap[trace.Height],
 		trace.Tx, e.infoMap[trace.Tx],
 		trace.BlockSize, e.infoMap[trace.BlockSize],
 		trace.GasUsed, e.infoMap[trace.GasUsed],
-		trace.WtxRatio, e.infoMap[trace.WtxRatio],
+		//trace.WtxRatio, e.infoMap[trace.WtxRatio],
 		trace.InvalidTxs, e.infoMap[trace.InvalidTxs],
 		trace.RunTx, e.infoMap[trace.RunTx],
 		trace.Prerun, e.infoMap[trace.Prerun],

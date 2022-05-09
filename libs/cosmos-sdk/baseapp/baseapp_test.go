@@ -597,6 +597,7 @@ func (tx *txTest) GetTxFnSignatureInfo() ([]byte, int) {
 func (tx *txTest) GetGas() uint64 {
 	return 0
 }
+
 func (tx *txTest) GetType() sdk.TransactionType {
 	return sdk.UnknownType
 }

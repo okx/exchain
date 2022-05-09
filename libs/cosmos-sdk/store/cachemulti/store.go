@@ -136,12 +136,9 @@ func (cms Store) Write() {
 	}
 }
 
-func (cms Store) IteratorCache(cb func(key, value []byte, isDirty bool) bool) bool {
-	if !cms.db.IteratorCache(cb) {
-		return false
-	}
-	for _, store := range cms.stores {
-		if !store.IteratorCache(cb) {
+func (cms Store) IteratorCache(isdirty bool, cb func(key string, value []byte, isDirty bool, isDelete bool, storeKey types.StoreKey) bool, sKey types.StoreKey) bool {
+	for key, store := range cms.stores {
+		if !store.IteratorCache(isdirty, cb, key) {
 			return false
 		}
 	}

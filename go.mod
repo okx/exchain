@@ -49,6 +49,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mosn/holmes v0.0.0-20210830110104-685dc05437bf
 	github.com/nacos-group/nacos-sdk-go v1.0.0
+	github.com/orcaman/concurrent-map v1.0.0
 	github.com/pelletier/go-toml v1.6.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.5.1
@@ -149,7 +150,7 @@ require (
 	go.uber.org/multierr v1.5.0 // indirect
 	go.uber.org/zap v1.15.0 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
-	golang.org/x/sys v0.0.0-20210910150752-751e447fb3d0 // indirect
+	golang.org/x/sys v0.0.0-20220319134239-a9b59b0215f8 // indirect
 	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1 // indirect
 	golang.org/x/text v0.3.6 // indirect
 	gopkg.in/ini.v1 v1.51.0 // indirect

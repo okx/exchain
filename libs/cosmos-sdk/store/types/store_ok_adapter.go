@@ -14,7 +14,8 @@ const (
 )
 
 type StoreFilter func(module string, h int64, store CommitKVStore) bool
-type VersionFilter func(h int64) func(func(name string, version int64))
+type VersionFilter func(h int64) func(callback VersionCallback)
+type VersionCallback = func(name string, version int64)
 
 type CommitMultiStorePipeline interface {
 	AppendVersionFilters(filters []VersionFilter)

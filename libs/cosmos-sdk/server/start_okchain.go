@@ -13,17 +13,19 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
-	"github.com/okex/exchain/libs/system"
-	"github.com/okex/exchain/libs/tendermint/state"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmiavl "github.com/okex/exchain/libs/iavl"
+	"github.com/okex/exchain/libs/system"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cmn "github.com/okex/exchain/libs/tendermint/libs/os"
+	"github.com/okex/exchain/libs/tendermint/state"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // exchain full-node start flags
@@ -227,7 +229,8 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	viper.BindPFlag(FlagEvmImportPath, cmd.Flags().Lookup(FlagEvmImportPath))
 	viper.BindPFlag(FlagGoroutineNum, cmd.Flags().Lookup(FlagGoroutineNum))
 
-	cmd.Flags().Bool(state.FlagParalleledTx, false, "Enable Parallel Tx")
+	cmd.Flags().Int(state.FlagDeliverTxsExecMode, 0, "Execution mode for deliver txs")
+	cmd.Flags().Int(state.FlagDeliverTxsConcurrentNum, 0, "concurrent number for deliver txs when using partial-concurrent mode")
 
 	cmd.Flags().String(FlagListenAddr, "tcp://0.0.0.0:26659", "EVM RPC and cosmos-sdk REST API listen address.")
 	cmd.Flags().String(FlagUlockKey, "", "Select the keys to unlock on the RPC server")
@@ -241,6 +244,18 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Int(FlagWsSubChannelLength, 100, "the length of subscription channel")
 	cmd.Flags().String(flags.FlagChainID, "", "Chain ID of tendermint node for web3")
 	cmd.Flags().StringP(flags.FlagBroadcastMode, "b", flags.BroadcastSync, "Transaction broadcasting mode (sync|async|block) for web3")
+
+	cmd.Flags().UintVar(&mpttypes.TrieRocksdbBatchSize, mpttypes.FlagTrieRocksdbBatchSize, 10, "Concurrent rocksdb batch size for mpt")
+	cmd.Flags().BoolVar(&mpt.TrieWriteAhead, mpt.FlagTrieWriteAhead, false, "Enable double write data (acc & evm) to the MPT tree when using the IAVL tree")
+	cmd.Flags().BoolVar(&mpt.TrieDirtyDisabled, mpt.FlagTrieDirtyDisabled, false, "Disable cache dirty trie nodes")
+	cmd.Flags().UintVar(&mpt.TrieCacheSize, mpt.FlagTrieCacheSize, 2048, "Size (MB) to cache trie nodes")
+	cmd.Flags().UintVar(&mpt.TrieNodesLimit, mpt.FlagTrieNodesLimit, 256, "Max node size (MB) cached in triedb")
+	cmd.Flags().UintVar(&mpt.TrieImgsLimit, mpt.FlagTrieImgsLimit, 4, "Max img size (MB) cached in triedb")
+	cmd.Flags().UintVar(&mpt.TrieAccStoreCache, mpt.FlagTrieAccStoreCache, 2048, "Size (MB) to cache account")
+	cmd.Flags().BoolVar(&evmtypes.TrieUseCompositeKey, evmtypes.FlagTrieUseCompositeKey, false, "Use composite key to store contract state in mpt")
+	cmd.Flags().UintVar(&evmtypes.TrieContractStateCache, evmtypes.FlagTrieContractStateCache, 2048, "Size (MB) to cache contract state")
+	cmd.Flags().Int64(FlagCommitGapHeight, 100, "Block interval to commit cached data into db, affects iavl & mpt")
+
 	return cmd
 }
 
