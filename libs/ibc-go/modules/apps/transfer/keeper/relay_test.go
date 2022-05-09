@@ -34,13 +34,13 @@ func (suite *KeeperTestSuite) TestSendTransfer() {
 			func() {
 				suite.coordinator.CreateTransferChannels(path)
 				transferAmountDec = sdk.NewDecFromIntWithPrec(sdk.NewInt(100), 0)
-				amount = sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100))
+				amount = sdk.NewCoin(sdk.DefaultIbcWei, sdk.NewInt(100))
 			}, true, true},
 		{"successful transfer with coin from counterparty chain",
 			func() {
 				// send coin from chainA back to chainB
 				suite.coordinator.CreateTransferChannels(path)
-				amount = types.GetTransferCoin(path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, sdk.DefaultBondDenom, 100)
+				amount = types.GetTransferCoin(path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, sdk.DefaultIbcWei, 100)
 				transferAmountDec = sdk.NewDecFromIntWithPrec(sdk.NewInt(100), 0)
 			}, false, true},
 		{"source channel not found",
@@ -48,7 +48,7 @@ func (suite *KeeperTestSuite) TestSendTransfer() {
 				// channel references wrong ID
 				suite.coordinator.CreateTransferChannels(path)
 				path.EndpointA.ChannelID = ibctesting.InvalidID
-				amount = sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100))
+				amount = sdk.NewCoin(sdk.DefaultIbcWei, sdk.NewInt(100))
 				transferAmountDec = sdk.NewDecFromIntWithPrec(sdk.NewInt(100), 0)
 			}, true, false},
 		{"next seq send not found",
@@ -62,7 +62,7 @@ func (suite *KeeperTestSuite) TestSendTransfer() {
 					channeltypes.NewChannel(channeltypes.OPEN, channeltypes.ORDERED, channeltypes.NewCounterparty(path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID), []string{path.EndpointA.ConnectionID}, ibctesting.DefaultChannelVersion),
 				)
 				suite.chainA.CreateChannelCapability(suite.chainA.GetSimApp().ScopedIBCMockKeeper, path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID)
-				amount = sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100))
+				amount = sdk.NewCoin(sdk.DefaultIbcWei, sdk.NewInt(100))
 				transferAmountDec = sdk.NewDecFromIntWithPrec(sdk.NewInt(100), 0)
 			}, true, false},
 
@@ -88,7 +88,7 @@ func (suite *KeeperTestSuite) TestSendTransfer() {
 
 				// Release channel capability
 				suite.chainA.GetSimApp().ScopedTransferKeeper.ReleaseCapability(suite.chainA.GetContext(), cap)
-				amount = sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100))
+				amount = sdk.NewCoin(sdk.DefaultIbcWei, sdk.NewInt(100))
 			}, true, false},
 	}
 
@@ -104,7 +104,7 @@ func (suite *KeeperTestSuite) TestSendTransfer() {
 
 			if !tc.sendFromSource {
 				// send coin from chainB to chainA
-				coinFromBToA := sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100))
+				coinFromBToA := sdk.NewCoin(sdk.DefaultIbcWei, sdk.NewInt(100))
 				transferMsg := types.NewMsgTransfer(path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, coinFromBToA, suite.chainB.SenderAccount().GetAddress(), suite.chainA.SenderAccount().GetAddress().String(), clienttypes.NewHeight(0, 110), 0)
 				_, err = suite.chainB.SendMsgs(transferMsg)
 				suite.Require().NoError(err) // message committed
@@ -198,7 +198,7 @@ func (suite *KeeperTestSuite) TestOnRecvPacket() {
 
 			if tc.recvIsSource {
 				// send coin from chainB to chainA, receive them, acknowledge them, and send back to chainB
-				coinFromBToA := sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100))
+				coinFromBToA := sdk.NewCoin(sdk.DefaultIbcWei, sdk.NewInt(100))
 				transferMsg := types.NewMsgTransfer(path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, coinFromBToA, suite.chainB.SenderAccount().GetAddress(), suite.chainA.SenderAccount().GetAddress().String(), clienttypes.NewHeight(0, 110), 0)
 				_, err := suite.chainB.SendMsgs(transferMsg)
 				suite.Require().NoError(err) // message committed
@@ -213,9 +213,9 @@ func (suite *KeeperTestSuite) TestOnRecvPacket() {
 				seq++
 
 				// NOTE: trace must be explicitly changed in malleate to test invalid cases
-				trace = types.ParseDenomTrace(types.GetPrefixedDenom(path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, sdk.DefaultBondDenom))
+				trace = types.ParseDenomTrace(types.GetPrefixedDenom(path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, sdk.DefaultIbcWei))
 			} else {
-				trace = types.ParseDenomTrace(sdk.DefaultBondDenom)
+				trace = types.ParseDenomTrace(sdk.DefaultIbcWei)
 			}
 
 			// send coin from chainA to chainB
@@ -260,7 +260,7 @@ func (suite *KeeperTestSuite) TestOnAcknowledgementPacket() {
 		expPass  bool
 	}{
 		{"success ack causes no-op", successAck, func() {
-			trace = types.ParseDenomTrace(types.GetPrefixedDenom(path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, sdk.DefaultBondDenom))
+			trace = types.ParseDenomTrace(types.GetPrefixedDenom(path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, sdk.DefaultIbcWei))
 		}, true, true},
 		{"successful refund from source chain", failedAck, func() {
 			escrow := types.GetEscrowAddress(path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID)
@@ -271,12 +271,12 @@ func (suite *KeeperTestSuite) TestOnAcknowledgementPacket() {
 		}, false, true},
 		{"unsuccessful refund from source", failedAck,
 			func() {
-				trace = types.ParseDenomTrace(sdk.DefaultBondDenom)
+				trace = types.ParseDenomTrace(sdk.DefaultIbcWei)
 			}, false, false},
 		{"successful refund from with coin from external chain", failedAck,
 			func() {
 				escrow := types.GetEscrowAddress(path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID)
-				trace = types.ParseDenomTrace(types.GetPrefixedDenom(path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, sdk.DefaultBondDenom))
+				trace = types.ParseDenomTrace(types.GetPrefixedDenom(path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, sdk.DefaultIbcWei))
 				coin := sdk.NewCoin(trace.IBCDenom(), amount)
 
 				suite.Require().NoError(simapp.FundAccount(suite.chainA.GetSimApp(), suite.chainA.GetContext(), escrow, sdk.NewCoins(coin)))
@@ -351,7 +351,7 @@ func (suite *KeeperTestSuite) TestOnTimeoutPacket() {
 		{"successful timeout from external chain",
 			func() {
 				escrow := types.GetEscrowAddress(path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID)
-				trace = types.ParseDenomTrace(types.GetPrefixedDenom(path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, sdk.DefaultBondDenom))
+				trace = types.ParseDenomTrace(types.GetPrefixedDenom(path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, sdk.DefaultIbcWei))
 				coin := sdk.NewCoin(trace.IBCDenom(), amount)
 
 				suite.Require().NoError(simapp.FundAccount(suite.chainA.GetSimApp(), suite.chainA.GetContext(), escrow, sdk.NewCoins(coin)))
@@ -362,11 +362,11 @@ func (suite *KeeperTestSuite) TestOnTimeoutPacket() {
 			}, false},
 		{"unescrow failed",
 			func() {
-				trace = types.ParseDenomTrace(sdk.DefaultBondDenom)
+				trace = types.ParseDenomTrace(sdk.DefaultIbcWei)
 			}, false},
 		{"mint failed",
 			func() {
-				trace = types.ParseDenomTrace(types.GetPrefixedDenom(path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, sdk.DefaultBondDenom))
+				trace = types.ParseDenomTrace(types.GetPrefixedDenom(path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, sdk.DefaultIbcWei))
 				amount = sdk.OneInt()
 				sender = "invalid address"
 			}, false},
