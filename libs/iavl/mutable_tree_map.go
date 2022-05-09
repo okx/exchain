@@ -4,9 +4,7 @@ import (
 	"sync"
 )
 
-var onceTreeMap sync.Once
 var treeMap *TreeMap
-
 type TreeMap struct {
 	mtx sync.RWMutex
 	// used for checking whether a tree is saved or not
@@ -18,11 +16,9 @@ type TreeMap struct {
 }
 
 func init() {
-	onceTreeMap.Do(func() {
-		treeMap = &TreeMap{
-			mutableTreeSavedMap: make(map[string]*MutableTree),
-		}
-	})
+	treeMap = &TreeMap{
+		mutableTreeSavedMap: make(map[string]*MutableTree),
+	}
 }
 
 func (tm *TreeMap) addNewTree(tree *MutableTree) {
