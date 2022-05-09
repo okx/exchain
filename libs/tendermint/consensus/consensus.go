@@ -859,6 +859,16 @@ func (cs *State) traceDump() {
 	cs.trc.Reset()
 }
 
+func (cs *State) initNewHeight() {
+	// waiting finished and enterNewHeight by timeoutNewHeight
+	if cs.Step == cstypes.RoundStepNewHeight {
+		// dump trace log
+		cs.traceDump()
+		// init StartTime
+		cs.StartTime = tmtime.Now()
+	}
+}
+
 func (cs *State) handleTxsAvailable() {
 	cs.mtx.Lock()
 	defer cs.mtx.Unlock()
@@ -906,13 +916,7 @@ func (cs *State) enterNewRound(height int64, round int) {
 		return
 	}
 
-	// waiting finished and enterNewHeight by timeoutNewHeight
-	if cs.Step == cstypes.RoundStepNewHeight {
-		// dump trace log
-		cs.traceDump()
-		cs.StartTime = tmtime.Now()
-	}
-
+	cs.initNewHeight()
 	cs.trc.Pin("NewRound-%d", round)
 
 	if now := tmtime.Now(); cs.StartTime.After(now) {
@@ -978,6 +982,7 @@ func (cs *State) enterNewRoundWithVal(height int64, round int, val *types.Valida
 		return
 	}
 
+	cs.initNewHeight()
 	cs.trc.Pin("NewRoundVC-%d", round)
 	logger.Info(fmt.Sprintf("enterNewRoundWithVal(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
@@ -1097,6 +1102,8 @@ func (cs *State) enterProposeWithVal(height int64, round int) {
 
 func (cs *State) doPropose(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
+
+	cs.initNewHeight()
 	isBlockProducer, bpAddr := cs.isBlockProducer()
 	cs.trc.Pin("H%d-Propose-%d-%s-%s", height, round, isBlockProducer, bpAddr)
 
@@ -1246,13 +1253,7 @@ func (cs *State) enterPrevote(height int64, round int) {
 		return
 	}
 
-	// enterPrevote by VoteMessage, and waiting is interrupted.
-	if cs.Step == cstypes.RoundStepNewHeight {
-		// dump trace log
-		cs.traceDump()
-		cs.StartTime = tmtime.Now()
-	}
-
+	cs.initNewHeight()
 	cs.trc.Pin("Prevote-%d", round)
 
 	defer func() {
@@ -1322,6 +1323,8 @@ func (cs *State) enterPrevoteWait(height int64, round int) {
 			cs.Step))
 		return
 	}
+
+	cs.initNewHeight()
 	cs.trc.Pin("PrevoteWait-%d", round)
 
 	if !cs.Votes.Prevotes(round).HasTwoThirdsAny() {
@@ -1359,6 +1362,7 @@ func (cs *State) enterPrecommit(height int64, round int) {
 		return
 	}
 
+	cs.initNewHeight()
 	cs.trc.Pin("Precommit-%d", round)
 
 	logger.Info(fmt.Sprintf("enterPrecommit(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
@@ -1465,6 +1469,8 @@ func (cs *State) enterPrecommitWait(height int64, round int) {
 				height, round, cs.Height, cs.Round, cs.TriggeredTimeoutPrecommit))
 		return
 	}
+
+	cs.initNewHeight()
 	cs.trc.Pin("PrecommitWait-%d", round)
 
 	if !cs.Votes.Precommits(round).HasTwoThirdsAny() {
@@ -1497,6 +1503,8 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 			cs.Step))
 		return
 	}
+
+	cs.initNewHeight()
 	cs.trc.Pin("%s-%d-%d", "Commit", cs.Round, commitRound)
 
 	logger.Info(fmt.Sprintf("enterCommit(%v/%v). Current: %v/%v/%v", height, commitRound, cs.Height, cs.Round, cs.Step))
