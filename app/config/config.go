@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/system"
 	"strconv"
 	"strings"
 	"sync"
@@ -10,10 +9,11 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	iavlconfig "github.com/okex/exchain/libs/iavl/config"
+	"github.com/okex/exchain/libs/system"
+	"github.com/okex/exchain/libs/system/trace"
 	tmconfig "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/state"
-	"github.com/okex/exchain/x/common/analyzer"
 
 	"github.com/spf13/viper"
 )
@@ -56,6 +56,8 @@ type OecConfig struct {
 	csTimeoutPrecommit time.Duration
 	// consensus.timeout_precommit_delta
 	csTimeoutPrecommitDelta time.Duration
+	// consensus.timeout_commit
+	csTimeoutCommit time.Duration
 
 	// iavl-cache-size
 	iavlCacheSize int
@@ -90,6 +92,7 @@ const (
 	FlagCsTimeoutPrevoteDelta   = "consensus.timeout_prevote_delta"
 	FlagCsTimeoutPrecommit      = "consensus.timeout_precommit"
 	FlagCsTimeoutPrecommitDelta = "consensus.timeout_precommit_delta"
+	FlagCsTimeoutCommit         = "consensus.timeout_commit"
 )
 
 var (
@@ -173,7 +176,7 @@ func RegisterDynamicConfig(logger log.Logger) {
 	oecConfig := GetOecConfig()
 	tmconfig.SetDynamicConfig(oecConfig)
 	iavlconfig.SetDynamicConfig(oecConfig)
-	analyzer.SetDynamicConfig(oecConfig)
+	trace.SetDynamicConfig(oecConfig)
 }
 
 func (c *OecConfig) loadFromConfig() {
@@ -192,10 +195,11 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetCsTimeoutPrevoteDelta(viper.GetDuration(FlagCsTimeoutPrevoteDelta))
 	c.SetCsTimeoutPrecommit(viper.GetDuration(FlagCsTimeoutPrecommit))
 	c.SetCsTimeoutPrecommitDelta(viper.GetDuration(FlagCsTimeoutPrecommitDelta))
+	c.SetCsTimeoutCommit(viper.GetDuration(FlagCsTimeoutCommit))
 	c.SetIavlCacheSize(viper.GetInt(iavl.FlagIavlCacheSize))
 	c.SetNodeKeyWhitelist(viper.GetString(FlagNodeKeyWhitelist))
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
-	c.SetEnableAnalyzer(viper.GetBool(analyzer.FlagEnableAnalyzer))
+	c.SetEnableAnalyzer(viper.GetBool(trace.FlagEnableAnalyzer))
 	c.SetDeliverTxsExecuteMode(viper.GetInt(state.FlagDeliverTxsExecMode))
 }
 
@@ -230,6 +234,7 @@ func (c *OecConfig) format() string {
 	consensus.timeout_prevote_delta: %s
 	consensus.timeout_precommit: %s
 	consensus.timeout_precommit_delta: %s
+	consensus.timeout_commit: %s
 	
 	iavl-cache-size: %d
 	enable-analyzer: %v`, system.ChainName,
@@ -248,6 +253,7 @@ func (c *OecConfig) format() string {
 		c.GetCsTimeoutPrevoteDelta(),
 		c.GetCsTimeoutPrecommit(),
 		c.GetCsTimeoutPrecommitDelta(),
+		c.GetCsTimeoutCommit(),
 		c.GetIavlCacheSize(),
 		c.GetEnableAnalyzer(),
 	)
@@ -352,13 +358,19 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetCsTimeoutPrecommitDelta(r)
+	case FlagCsTimeoutCommit:
+		r, err := time.ParseDuration(v)
+		if err != nil {
+			return
+		}
+		c.SetCsTimeoutCommit(r)
 	case iavl.FlagIavlCacheSize:
 		r, err := strconv.Atoi(v)
 		if err != nil {
 			return
 		}
 		c.SetIavlCacheSize(r)
-	case analyzer.FlagEnableAnalyzer:
+	case trace.FlagEnableAnalyzer:
 		r, err := strconv.ParseBool(v)
 		if err != nil {
 			return
@@ -552,6 +564,16 @@ func (c *OecConfig) SetCsTimeoutPrecommitDelta(value time.Duration) {
 		return
 	}
 	c.csTimeoutPrecommitDelta = value
+}
+
+func (c *OecConfig) GetCsTimeoutCommit() time.Duration {
+	return c.csTimeoutCommit
+}
+func (c *OecConfig) SetCsTimeoutCommit(value time.Duration) {
+	if value < 0 {
+		return
+	}
+	c.csTimeoutCommit = value
 }
 
 func (c *OecConfig) GetIavlCacheSize() int {

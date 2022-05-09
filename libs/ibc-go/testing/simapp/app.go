@@ -7,13 +7,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
-	"github.com/okex/exchain/libs/ibc-go/testing/mock"
-	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/capability"
-	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/core"
-	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/transfer"
+	"github.com/okex/exchain/libs/system/trace"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
@@ -22,9 +16,12 @@ import (
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils/sanity"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
+	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/simapp"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	upgradetypes "github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
@@ -38,6 +35,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/crisis"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	govclient "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	ibctransferkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/keeper"
@@ -46,14 +44,17 @@ import (
 	ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
 	ibcporttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
 	ibchost "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okex/exchain/libs/ibc-go/testing/mock"
+	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/capability"
+	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/core"
 	staking2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/staking"
+	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/transfer"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/ammswap"
-	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/common/monitor"
 	commonversion "github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/dex"
@@ -256,8 +257,8 @@ func NewSimApp(
 
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
-	bApp.SetStartLogHandler(analyzer.StartTxLog)
-	bApp.SetEndLogHandler(analyzer.StopTxLog)
+	bApp.SetStartLogHandler(trace.StartTxLog)
+	bApp.SetEndLogHandler(trace.StopTxLog)
 
 	bApp.SetInterfaceRegistry(interfaceReg)
 
@@ -269,6 +270,7 @@ func NewSimApp(
 		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
 		ibchost.StoreKey,
 		erc20.StoreKey,
+		mpt.StoreKey, evm.LegacyStoreKey,
 	)
 
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
@@ -309,7 +311,7 @@ func NewSimApp(
 	app.marshal = codecProxy
 	// use custom OKExChain account for contracts
 	app.AccountKeeper = auth.NewAccountKeeper(
-		codecProxy.GetCdc(), keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
+		codecProxy.GetCdc(), keys[auth.StoreKey], keys[mpt.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
 	)
 
 	bankKeeper := bank.NewBaseKeeperWithMarshal(
@@ -342,7 +344,7 @@ func NewSimApp(
 	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], app.marshal.GetCdc())
 	app.ParamsKeeper.RegisterSignal(evmtypes.SetEvmParamsNeedUpdate)
 	app.EvmKeeper = evm.NewKeeper(
-		app.marshal.GetCdc(), keys[evm.StoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, logger)
+		app.marshal.GetCdc(), keys[evm.StoreKey], keys[evm.LegacyStoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, logger)
 	(&bankKeeper).SetInnerTxKeeper(app.EvmKeeper)
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
@@ -555,7 +557,8 @@ func NewSimApp(
 	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper)))
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
-	app.SetAccHandler(NewAccHandler(app.AccountKeeper))
+	app.SetAccNonceHandler(NewAccHandler(app.AccountKeeper))
+	//app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), evmTxFeeHandler(), fixLogForParallelTxHandler(app.EvmKeeper))
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -743,7 +746,7 @@ func validateMsgHook(orderKeeper order.Keeper) ante.ValidateMsgHandler {
 	}
 }
 
-func NewAccHandler(ak auth.AccountKeeper) sdk.AccHandler {
+func NewAccHandler(ak auth.AccountKeeper) sdk.AccNonceHandler {
 	return func(
 		ctx sdk.Context, addr sdk.AccAddress,
 	) uint64 {

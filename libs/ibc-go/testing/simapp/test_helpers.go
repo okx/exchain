@@ -242,7 +242,7 @@ func SignAndDeliver(
 		txCfg,
 		msgs,
 		//sdk.CoinAdapters{sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)},
-		sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultBondDenom, sdk.NewIntFromBigInt(big.NewInt(0)))},
+		sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultIbcWei, sdk.NewIntFromBigInt(big.NewInt(0)))},
 		helpers.DefaultGenTxGas,
 		chainID,
 		accNums,

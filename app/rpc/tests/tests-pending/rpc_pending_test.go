@@ -9,11 +9,12 @@ package pending
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math/big"
 	"net"
 	"net/http"
+	"os"
 	"testing"
-	"time"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -100,6 +101,23 @@ func commitBlock(suite *RPCPendingTestSuite) {
 	mck.CommitBlock()
 }
 func (suite *RPCPendingTestSuite) SetupTest() {
+	// set exchaincli path
+	cliDir, err := ioutil.TempDir("", ".exchaincli")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(cliDir)
+	viper.Set(cmserver.FlagUlockKeyHome, cliDir)
+
+	// set exchaind path
+	serverDir, err := ioutil.TempDir("", ".exchaind")
+	if err != nil {
+		panic(err)
+	}
+	defer os.RemoveAll(serverDir)
+	viper.Set(flags.FlagHome, serverDir)
+	viper.Set(rpc.FlagPersonalAPI, true)
+
 	chainId := apptesting.GetOKChainID(1)
 	suite.coordinator = apptesting.NewEthCoordinator(suite.T(), 1)
 	suite.chain = suite.coordinator.GetChain(chainId)
@@ -127,9 +145,6 @@ func (suite *RPCPendingTestSuite) SetupTest() {
 	viper.Set(watcher.FlagFastQueryLru, 100)
 	viper.Set("rpc.laddr", "127.0.0.1:0")
 	viper.Set(flags.FlagKeyringBackend, "test")
-	viper.Set(cmserver.FlagUlockKeyHome, fmt.Sprintf(".exchaincli/%s", time.Now().String()))
-
-	viper.Set(rpc.FlagPersonalAPI, true)
 
 	senderPv := suite.chain.SenderAccountPV()
 	genesisAcc = suite.chain.SenderAccount().GetAddress()

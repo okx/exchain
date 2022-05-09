@@ -1,4 +1,4 @@
-package analyzer
+package trace
 
 type operateInfo struct {
 	TimeCost int64 `json:"timeCost"`
@@ -8,7 +8,7 @@ type operateInfo struct {
 
 func newOperateInfo() *operateInfo {
 	tmp := &operateInfo{
-		LastCall: GetNowTimeMs(),
+		LastCall: getNowTimeMs(),
 	}
 	return tmp
 }
@@ -18,7 +18,7 @@ func (s *operateInfo) StartOper() {
 		panic("wrong state")
 	}
 	s.started = true
-	s.LastCall = GetNowTimeMs()
+	s.LastCall = getNowTimeMs()
 }
 
 func (s *operateInfo) StopOper() {
@@ -26,6 +26,6 @@ func (s *operateInfo) StopOper() {
 		panic("wrong state")
 	}
 	s.started = false
-	callTime := GetNowTimeMs() - s.LastCall
+	callTime := getNowTimeMs() - s.LastCall
 	s.TimeCost += callTime
 }

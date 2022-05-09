@@ -47,46 +47,16 @@ type nodeDB struct {
 
 	latestVersion  int64
 
-	//lruNodeCache   *lru.Cache
-
-	nodeCache      map[string]*list.Element // Node cache.
-	nodeCacheSize  int                      // Node cache size limit in elements.
-	nodeCacheQueue *syncList                // LRU queue of cache elements. Used for deletion.
-	nodeCacheMutex sync.RWMutex             // Mutex for node cache.
-
-	orphanNodeCache         map[string]*Node
-	heightOrphansCacheQueue *list.List
-	heightOrphansCacheSize  int
-	heightOrphansMap        map[int64]*heightOrphansItem
-
 	prePersistNodeCache map[string]*Node
 	tppMap              map[int64]*tppItem
 	tppVersionList      *list.List
 
-	dbReadTime    int64
-	dbReadCount   int64
-	nodeReadCount int64
-	dbWriteCount  int64
-
-	totalPersistedCount int64
-	totalPersistedSize  int64
-	totalDeletedCount   int64
-	totalOrphanCount    int64
-
 	name string
-
 	preWriteNodeCache cmap.ConcurrentMap
-}
 
-func makeNodeCacheMap(cacheSize int, initRatio float64) map[string]*list.Element {
-	if initRatio <= 0 {
-		return make(map[string]*list.Element)
-	}
-	if initRatio >= 1 {
-		return make(map[string]*list.Element, cacheSize)
-	}
-	cacheSize = int(float64(cacheSize) * initRatio)
-	return make(map[string]*list.Element, cacheSize)
+	oi *OrphanInfo
+	nc *NodeCache
+	state *RuntimeState
 }
 
 func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
@@ -97,25 +67,17 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 	ndb := &nodeDB{
 		db:                      db,
 		opts:                    *opts,
-		latestVersion:           0, // initially invalid
-		nodeCache:               makeNodeCacheMap(cacheSize, IavlCacheInitRatio),
-		nodeCacheSize:           cacheSize,
-		nodeCacheQueue:          newSyncList(),
 		versionReaders:          make(map[int64]uint32, 8),
-		orphanNodeCache:         make(map[string]*Node),
-		heightOrphansCacheQueue: list.New(),
-		heightOrphansCacheSize:  HeightOrphansCacheSize,
-		heightOrphansMap:        make(map[int64]*heightOrphansItem),
 		prePersistNodeCache:     make(map[string]*Node),
 		tppMap:                  make(map[int64]*tppItem),
 		tppVersionList:          list.New(),
-		dbReadCount:             0,
-		dbReadTime:              0,
-		dbWriteCount:            0,
 		name:                    ParseDBName(db),
 		preWriteNodeCache:       cmap.New(),
+		state:                   &RuntimeState{},
 	}
 
+	ndb.oi = newOrphanInfo(ndb)
+	ndb.nc = newNodeCache(cacheSize)
 	return ndb
 }
 
@@ -138,7 +100,7 @@ func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) *Node 
 		return elem
 	}
 
-	if elem, ok := ndb.orphanNodeCache[string(hash)]; ok {
+	if elem := ndb.oi.getNodeFromOrphanCache(hash); elem != nil {
 		return elem
 	}
 
@@ -328,7 +290,7 @@ func (ndb *nodeDB) DeleteVersionsFrom(batch dbm.Batch, version int64) error {
 }
 
 // DeleteVersionsRange deletes versions from an interval (not inclusive).
-func (ndb *nodeDB) DeleteVersionsRange(batch dbm.Batch, fromVersion, toVersion int64) error {
+func (ndb *nodeDB) DeleteVersionsRange(batch dbm.Batch, fromVersion, toVersion int64, enforce ...bool) error {
 	if fromVersion >= toVersion {
 		return errors.New("toVersion must be greater than fromVersion")
 	}
@@ -339,9 +301,16 @@ func (ndb *nodeDB) DeleteVersionsRange(batch dbm.Batch, fromVersion, toVersion i
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
 
-	latest := ndb.getLatestVersion()
-	if latest < toVersion {
-		return errors.Errorf("cannot delete latest saved version (%d)", latest)
+	ignore := false
+	if len(enforce) > 0 && enforce[0] {
+		ignore = true
+	}
+
+	if !ignore {
+		latest := ndb.getLatestVersion()
+		if latest < toVersion {
+			return errors.Errorf("cannot delete latest saved version (%d)", latest)
+		}
 	}
 
 	predecessor := ndb.getPreviousVersion(fromVersion)
@@ -443,7 +412,7 @@ func (ndb *nodeDB) deleteOrphans(batch dbm.Batch, version int64) {
 			ndb.log(IavlDebug, "DELETE", "predecessor", predecessor, "fromVersion", fromVersion, "toVersion", toVersion, "hash", hash)
 			batch.Delete(ndb.nodeKey(hash))
 			ndb.syncUnCacheNode(hash)
-			ndb.totalDeletedCount++
+			ndb.state.increaseDeletedCount()
 		} else {
 			ndb.log(IavlDebug, "MOVE", "predecessor", predecessor, "fromVersion", fromVersion, "toVersion", toVersion, "hash", hash)
 			ndb.saveOrphan(batch, hash, fromVersion, predecessor)
