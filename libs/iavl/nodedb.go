@@ -83,23 +83,6 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 	return ndb
 }
 
-func (ndb *nodeDB) GetNodeCacheCounts() (int, int, int, int) {
-	ndb.mtx.RLock()
-	defer ndb.mtx.RUnlock()
-
-	ppnc := len(ndb.prePersistNodeCache)
-	tpp := 0
-	for _, v := range ndb.tppMap {
-		tpp += len(v.nodeMap)
-	}
-
-	nc := ndb.nc.nodeCacheLen()
-
-	onc := ndb.oi.orphanNodeCacheLen()
-
-	return ppnc, tpp, nc, onc
-}
-
 func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) (*Node, retrieveType) {
 	ndb.addNodeReadCount()
 	if len(hash) == 0 {
@@ -143,6 +126,7 @@ func (ndb *nodeDB) loadNode(hash []byte, update bool) (n *Node, from retrieveTyp
 		from = fromDisk
 	}
 
+	// close onLoadNode as it leads to performance penalty
 	//ndb.state.onLoadNode(from)
 	return
 }

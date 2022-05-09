@@ -62,20 +62,6 @@ func (s *RuntimeState) onLoadNode(from retrieveType) {
 	}
 }
 
-	//switch from {
-	//case fromPpnc:
-	//	atomic.AddInt64(&s.fromPpnc, 1)
-	//case fromTpp:
-	//	atomic.AddInt64(&s.fromTpp, 1)
-	//case fromNodeCache:
-	//	atomic.AddInt64(&s.fromNodeCache, 1)
-	//case fromOrphanCache:
-	//	atomic.AddInt64(&s.fromOrphanCache, 1)
-	//case fromDisk:
-	//	atomic.AddInt64(&s.fromDisk, 1)
-	//}
-
-
 func (s *RuntimeState) addDBReadTime(ts int64) {
 	atomic.AddInt64(&s.dbReadTime, ts)
 }
