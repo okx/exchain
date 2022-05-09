@@ -61,7 +61,7 @@ type (
 	BaseViewKeeper              = keeper.BaseViewKeeper
 	GenesisState                = types.GenesisState
 	MsgSend                     = types.MsgSend
-	AdapterMsgSend     = typesadapter.MsgSend
+	AdapterMsgSend              = typesadapter.MsgSend
 	MsgMultiSend                = types.MsgMultiSend
 	Input                       = types.Input
 	Output                      = types.Output
