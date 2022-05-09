@@ -139,7 +139,7 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			}
 			var newMsg sdk.Msg
 			switch msg := m.(type) {
-			case DenomAdapterIbcTransferMsg:
+			case DenomAdapterMsg:
 				// ibc transfer okt is not allowed,should do filter
 				newMsg, err = msg.RulesFilter()
 				if err != nil {
