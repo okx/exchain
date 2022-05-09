@@ -65,8 +65,7 @@ const (
 	MempoolCheckTxCnt = "checkTxCnt"
 	MempoolTxsCnt     = "mempoolTxsCnt"
 
-	Prerun   = "Prerun"
-	ActiveVC = "ActiveVC"
+	Prerun = "Prerun"
 )
 
 const (

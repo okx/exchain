@@ -103,7 +103,7 @@ func (e *ElapsedTimeInfos) Dump(input interface{}) {
 		}
 	}
 
-	info := fmt.Sprintf("%s<%s>, %s<%s>, %s<%s>, %s<%s>, %s<%s>, %s[%s], %s[%s], %s<%s>, %s<%s>, %s<%s>, %s<%s>",
+	info := fmt.Sprintf("%s<%s>, %s<%s>, %s<%s>, %s<%s>, %s<%s>, %s[%s], %s[%s], %s<%s>, %s<%s>, %s<%s>",
 		trace.Height, e.infoMap[trace.Height],
 		trace.Tx, e.infoMap[trace.Tx],
 		trace.BlockSize, e.infoMap[trace.BlockSize],
@@ -115,7 +115,6 @@ func (e *ElapsedTimeInfos) Dump(input interface{}) {
 		trace.MempoolCheckTxCnt, e.infoMap[trace.MempoolCheckTxCnt],
 		trace.MempoolTxsCnt, e.infoMap[trace.MempoolTxsCnt],
 		trace.SigCacheRatio, e.infoMap[trace.SigCacheRatio],
-		trace.ActiveVC, e.infoMap[trace.ActiveVC],
 	)
 
 	if len(detailInfo) > 0 {
