@@ -3,7 +3,6 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/libs/system/trace"
 	"os"
 	"sort"
 	"strconv"
@@ -16,6 +15,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/iavl"
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/tendermint/go-amino"
@@ -575,6 +575,7 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) abci.
 		cacheMS, app.checkState.ctx.BlockHeader(), true, app.logger,
 	)
 	ctx.SetMinGasPrices(app.minGasPrices)
+	ctx.SetBlockHeight(req.Height)
 
 	// Passes the rest of the path as an argument to the querier.
 	//
