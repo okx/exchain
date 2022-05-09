@@ -203,15 +203,33 @@ func (ndb *nodeDB) NewBatch() dbm.Batch {
 	return ndb.db.NewBatch()
 }
 
+type commitedOrphanData struct {
+	Key  []byte
+	Hash []byte
+}
+
 // Saves orphaned nodes to disk under a special prefix.
 // version: the new version being saved.
 // orphans: the orphan nodes created since version-1
 func (ndb *nodeDB) saveCommitOrphans(batch dbm.Batch, version int64, orphans []commitOrphan) {
 	ndb.log(IavlDebug, "saving committed orphan node log to disk")
 	toVersion := ndb.getPreviousVersion(version)
-	for _, orphan := range orphans {
-		// ndb.log(IavlDebug, "SAVEORPHAN", "from", orphan.Version, "to", toVersion, "hash", amino.BytesHexStringer(orphan.NodeHash))
-		ndb.saveOrphan(batch, orphan.NodeHash, orphan.Version, toVersion)
+	orphansCh := make(chan commitedOrphanData, len(orphans))
+	go func(orphans []commitOrphan, toVersion int64, orphansCh chan commitedOrphanData) {
+		for _, orphan := range orphans {
+			// ndb.log(IavlDebug, "SAVEORPHAN", "from", orphan.Version, "to", toVersion, "hash", amino.BytesHexStringer(orphan.NodeHash))
+			// ndb.saveOrphan(batch, orphan.NodeHash, orphan.Version, toVersion)
+			if orphan.Version > toVersion {
+				panic(fmt.Sprintf("Orphan expires before it comes alive.  %d > %d", orphan.Version, toVersion))
+			}
+			key := ndb.orphanKey(orphan.Version, toVersion, orphan.NodeHash)
+			orphansCh <- commitedOrphanData{key, orphan.NodeHash}
+		}
+		close(orphansCh)
+	}(orphans, toVersion, orphansCh)
+
+	for d := range orphansCh {
+		batch.Set(d.Key, d.Hash)
 	}
 }
 

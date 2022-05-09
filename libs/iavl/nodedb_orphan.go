@@ -26,7 +26,6 @@ func (ndb *nodeDB) addOrphanItem(version int64, rootHash []byte) {
 }
 
 func (ndb *nodeDB) saveNewOrphans(version int64, orphans []*Node, lock bool) {
-
 	if orphans == nil {
 		return
 	}
@@ -59,4 +58,3 @@ func (ndb *nodeDB) findRootHash(version int64) (res []byte, found bool) {
 	defer ndb.mtx.RUnlock()
 	return ndb.oi.findRootHash(version)
 }
-
