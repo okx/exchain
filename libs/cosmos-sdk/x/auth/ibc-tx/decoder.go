@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 	"google.golang.org/protobuf/encoding/protowire"
-
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	//"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
@@ -72,84 +71,17 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			AuthInfo:   &authInfo,
 			Signatures: raw.Signatures,
 		}
-
-		gaslimit := uint64(0)
-		decCoins := sdk.DecCoins{}
-		// for verify signature
-		var signFee authtypes.IbcFee
-		if authInfo.Fee != nil {
-			if authInfo.Fee.Amount != nil {
-				for _, fee := range authInfo.Fee.Amount {
-					amount := fee.Amount.BigInt()
-					denom := fee.Denom
-					// convert ibc denom to DefaultBondDenom
-					if denom == sdk.DefaultIbcWei {
-						decCoins = append(decCoins, sdk.DecCoin{
-							Denom:  sdk.DefaultBondDenom,
-							Amount: sdk.NewDecFromIntWithPrec(sdk.NewIntFromBigInt(amount), sdk.Precision),
-						})
-					} else if denom == sdk.DefaultBondDenom {
-						//not surport okt for fees(only surport wei)
-						return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "ibc tx decoder not surport okt fee")
-					} else {
-						decCoins = append(decCoins, sdk.DecCoin{
-							Denom:  denom,
-							Amount: sdk.NewDecFromBigInt(amount),
-						})
-					}
-				}
-			}
-			gaslimit = authInfo.Fee.GasLimit
-			signFee = authtypes.IbcFee{
-				authInfo.Fee.Amount,
-				authInfo.Fee.GasLimit,
-			}
+		fee, signFee, err := convertFee(authInfo)
+		if err != nil {
+			return nil, err
 		}
 
-		fee := authtypes.StdFee{
-			Amount: decCoins,
-			Gas:    gaslimit,
-		}
-		signatures := []authtypes.StdSignature{}
-		for i, s := range ibcTx.Signatures {
-			pk := &ibckey.PubKey{}
-			if ibcTx.AuthInfo.SignerInfos != nil {
-				cdc.UnmarshalBinaryBare(ibcTx.AuthInfo.SignerInfos[i].PublicKey.Value, pk)
-			}
+		signatures := convertSignature(cdc, ibcTx)
 
-			//convert crypto pubkey to tm pubkey
-			tmPubKey := tmtypes.PubKeySecp256k1{}
-			copy(tmPubKey[:], pk.Bytes())
-			signatures = append(signatures,
-				authtypes.StdSignature{
-					Signature: s,
-					PubKey:    tmPubKey,
-				},
-			)
-		}
-		stdMsgs := []sdk.Msg{}
-		// for verify signature
-		signMsgs := []sdk.Msg{}
-		for _, ibcMsg := range ibcTx.Body.Messages {
-			m, ok := ibcMsg.GetCachedValue().(sdk.Msg)
-			if !ok {
-				return nil, sdkerrors.Wrap(
-					sdkerrors.ErrInternal, "messages in ibcTx.Body not implement sdk.Msg",
-				)
-			}
-			var newMsg sdk.Msg
-			switch msg := m.(type) {
-			case DenomAdapterMsg:
-				// ibc transfer okt is not allowed,should do filter
-				newMsg, err = msg.RulesFilter()
-				if err != nil {
-					return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "ibc tx decoder not support okt amount")
-				}
-			default:
-				newMsg = m
-			}
-			stdMsgs = append(stdMsgs, newMsg)
-			signMsgs = append(signMsgs, m)
+		// construct Msg
+		stdMsgs, signMsgs, err := constructMsgs(ibcTx)
+		if err != nil {
+			return nil, err
 		}
 
 		var modeInfo *tx.ModeInfo_Single_
@@ -168,19 +100,114 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 		stx := authtypes.IbcTx{
 			&authtypes.StdTx{
 				Msgs:       stdMsgs,
-				Fee:        fee,
+				Fee:        *fee,
 				Signatures: signatures,
 				Memo:       ibcTx.Body.Memo,
 			},
 			raw.AuthInfoBytes,
 			raw.BodyBytes,
 			signMode,
-			signFee,
+			*signFee,
 			signMsgs,
 		}
 
 		return &stx, nil
 	}
+}
+
+func constructMsgs(ibcTx *tx.Tx) ([]sdk.Msg, []sdk.Msg, error) {
+	var err error
+	stdMsgs, signMsgs := []sdk.Msg{}, []sdk.Msg{}
+	for _, ibcMsg := range ibcTx.Body.Messages {
+		m, ok := ibcMsg.GetCachedValue().(sdk.Msg)
+		if !ok {
+			return nil, nil, sdkerrors.Wrap(
+				sdkerrors.ErrInternal, "messages in ibcTx.Body not implement sdk.Msg",
+			)
+		}
+		var newMsg sdk.Msg
+		switch msg := m.(type) {
+		case DenomAdapterMsg:
+			// ibc transfer okt is not allowed,should do filter
+			newMsg, err = msg.RulesFilter()
+			if err != nil {
+				return nil, nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "ibc tx decoder not support okt amount")
+			}
+		default:
+			newMsg = m
+		}
+		stdMsgs = append(stdMsgs, newMsg)
+		signMsgs = append(signMsgs, m)
+	}
+	return stdMsgs, signMsgs, nil
+}
+
+func convertSignature(cdc codec.ProtoCodecMarshaler, ibcTx *tx.Tx) []authtypes.StdSignature {
+	signatures := []authtypes.StdSignature{}
+	for i, s := range ibcTx.Signatures {
+		pk := &ibckey.PubKey{}
+		if ibcTx.AuthInfo.SignerInfos != nil {
+			cdc.UnmarshalBinaryBare(ibcTx.AuthInfo.SignerInfos[i].PublicKey.Value, pk)
+		}
+
+		//convert crypto pubkey to tm pubkey
+		tmPubKey := tmtypes.PubKeySecp256k1{}
+		copy(tmPubKey[:], pk.Bytes())
+		signatures = append(signatures,
+			authtypes.StdSignature{
+				Signature: s,
+				PubKey:    tmPubKey,
+			},
+		)
+	}
+	return signatures
+}
+
+func convertFee(authInfo tx.AuthInfo) (*authtypes.StdFee, *authtypes.IbcFee, error) {
+
+	gaslimit := uint64(0)
+	var decCoins sdk.DecCoins
+	var err error
+	// for verify signature
+	var signFee *authtypes.IbcFee
+	if authInfo.Fee != nil {
+		decCoins, err = feeDenomFilter(authInfo.Fee.Amount)
+		if err != nil {
+			return nil, nil, err
+		}
+		gaslimit = authInfo.Fee.GasLimit
+		signFee = &authtypes.IbcFee{
+			authInfo.Fee.Amount,
+			authInfo.Fee.GasLimit,
+		}
+	}
+
+	return &authtypes.StdFee{
+		Amount: decCoins,
+		Gas:    gaslimit,
+	}, signFee, nil
+}
+
+func feeDenomFilter(coins sdk.CoinAdapters) (sdk.DecCoins, error) {
+	decCoins := sdk.DecCoins{}
+
+	if coins != nil {
+		for _, fee := range coins {
+			amount := fee.Amount.BigInt()
+			denom := fee.Denom
+			// convert ibc denom to DefaultBondDenom
+			if denom == sdk.DefaultIbcWei {
+				decCoins = append(decCoins, sdk.DecCoin{
+					Denom:  sdk.DefaultBondDenom,
+					Amount: sdk.NewDecFromIntWithPrec(sdk.NewIntFromBigInt(amount), sdk.Precision),
+				})
+			} else {
+				// not suport other denom fee
+				return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "ibc tx decoder only support wei fee")
+			}
+		}
+	}
+	return decCoins, nil
 }
 
 // DefaultJSONTxDecoder returns a default protobuf JSON TxDecoder using the provided Marshaler.
