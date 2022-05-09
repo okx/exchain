@@ -56,7 +56,7 @@ func (tm *TreeMap) updateMutableTreeMap(module string, version int64) {
 		return
 	}
 	tm.lastUpdatedVersion = version
-	//tm.updateTotalPreCommitCacheSize()
+	tm.updateTotalPreCommitCacheSize()
 
 	//if _, ok := tm.mutableTreeSavedMap[module]; !ok {
 	//	return
@@ -87,7 +87,9 @@ func (tm *TreeMap) updateMutableTreeMap(module string, version int64) {
 func (tm *TreeMap) updateTotalPreCommitCacheSize() {
 	var size int64 = 0
 	for _, tree := range tm.mutableTreeList {
-		size += int64(len(tree.ndb.prePersistNodeCache))
+		if tree.GetModuleName() == "evm" || tree.GetModuleName() == "acc" {
+			size += int64(len(tree.ndb.prePersistNodeCache))
+		}
 	}
 	tm.totalPreCommitCacheSize = size
 }
