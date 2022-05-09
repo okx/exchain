@@ -337,7 +337,6 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		}
 		switch msg := msg.(type) {
 		case *ViewChangeMessage:
-			//conR.Logger.Error("reactor vcMsg", "height", msg.Height, "curP", msg.CurrentProposer, "newP", msg.NewProposer, "hasVC", conR.hasViewChanged, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
 			// verify the signature of vcMsg
 			_, val := conR.conS.Validators.GetByAddress(msg.CurrentProposer)
 			if err := msg.Verify(val.PubKey); err != nil {
@@ -346,7 +345,6 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			}
 			conR.conS.peerMsgQueue <- msgInfo{msg, ""}
 		case *ProposeRequestMessage:
-			//conR.Logger.Error("reactor prMsg", "height", msg.Height, "curP", msg.CurrentProposer, "newP", msg.NewProposer, "hasVC", conR.hasViewChanged, "selfAdd", conR.conS.privValidatorPubKey.Address().String())
 			conR.mtx.Lock()
 			defer conR.mtx.Unlock()
 			conR.conS.stateMtx.Lock()
@@ -551,7 +549,6 @@ func (conR *Reactor) unsubscribeFromBroadcastEvents() {
 }
 
 func (conR *Reactor) broadcastProposeRequestMessage(prMsg *ProposeRequestMessage) {
-	//conR.Logger.Error("broadcastProposeRequestMessage", "prMsg", prMsg)
 	conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(prMsg))
 }
 
@@ -562,7 +559,6 @@ func (conR *Reactor) broadcastViewChangeMessage(prMsg *ProposeRequestMessage) *V
 		conR.Logger.Error("broadcastViewChangeMessage", "err", err)
 		return nil
 	}
-	//conR.Logger.Error("broadcastViewChangeMessage", "vcMsg", vcMsg)
 	vcMsg.Signature = signature
 	conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
 	return &vcMsg

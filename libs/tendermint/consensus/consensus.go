@@ -737,7 +737,6 @@ func (cs *State) handleMsg(mi msgInfo) {
 	msg, peerID := mi.Msg, mi.PeerID
 	switch msg := msg.(type) {
 	case *ViewChangeMessage:
-		//cs.Logger.Error("handle vcMsg", "msg.height", msg.Height, "cs.height", cs.Height)
 		if ActiveViewChange {
 			// only in round0 use vcMsg
 			// only handle when don't have valid vcMsg
@@ -972,7 +971,7 @@ func (cs *State) enterNewRound(height int64, round int) {
 func (cs *State) enterNewRoundWithVal(height int64, round int, val *types.Validator) {
 	logger := cs.Logger.With("height", height, "round", round)
 	if round != 0 || cs.Round != 0 || cs.Height != height {
-		logger.Error(fmt.Sprintf(
+		logger.Debug(fmt.Sprintf(
 			"enterNewRoundWithVal(%v/%v): Invalid args. Current step: %v/%v/%v",
 			height,
 			round,
@@ -1025,7 +1024,6 @@ func (cs *State) enterNewHeight(height int64) {
 // requestForProposer FireEvent to broadcast ProposeRequestMessage
 func (cs *State) requestForProposer(prMsg ProposeRequestMessage) {
 	if signature, err := cs.privValidator.SignBytes(prMsg.SignBytes()); err == nil {
-		//cs.Logger.Error("requestForProposer", "prMsg", prMsg)
 		prMsg.Signature = signature
 		cs.evsw.FireEvent(types.EventProposeRequest, &prMsg)
 	} else {
@@ -1073,7 +1071,7 @@ func (cs *State) isBlockProducer() (string, string) {
 func (cs *State) enterPropose(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
 	if cs.Height != height || round < cs.Round || (cs.Round == round && cstypes.RoundStepPropose <= cs.Step) {
-		logger.Error(fmt.Sprintf(
+		logger.Debug(fmt.Sprintf(
 			"enterPropose(%v/%v): Invalid args. Current step: %v/%v/%v",
 			height,
 			round,
@@ -1088,7 +1086,7 @@ func (cs *State) enterPropose(height int64, round int) {
 func (cs *State) enterProposeWithVal(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
 	if cs.Height != height || round < cs.Round || (cs.Round == round && cstypes.RoundStepPropose < cs.Step) {
-		logger.Error(fmt.Sprintf(
+		logger.Debug(fmt.Sprintf(
 			"enterPropose(%v/%v): Invalid args. Current step: %v/%v/%v",
 			height,
 			round,
@@ -1688,11 +1686,6 @@ func (cs *State) finalizeCommit(height int64) {
 		}
 		return
 	}
-
-	//if stateCopy.Validators.GetProposer().Address.String() == cs.privValidatorPubKey.Address().String() {
-	//	cs.Logger.Error("Proposer!!!", "height", height, "round", cs.Round)
-	//	time.Sleep(time.Second * 10)
-	//}
 
 	/*
 		if types.EnableBroadcastP2PDelta() {
