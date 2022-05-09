@@ -102,7 +102,6 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	// ResetTransferWatchData
 	w.watchData = &WatchData{}
 	w.evmTxIndex = 0
-	w.delayEraseKey = make([][]byte, 0)
 }
 
 func (w *Watcher) clean() {
@@ -199,6 +198,7 @@ func (w *Watcher) DelayEraseKey() {
 	}
 	//hold it in temp
 	delayEraseKey := w.delayEraseKey
+	w.delayEraseKey = make([][]byte, 0)
 	w.dispatchJob(func() {
 		w.ExecuteDelayEraseKey(delayEraseKey)
 	})
