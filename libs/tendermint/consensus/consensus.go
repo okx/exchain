@@ -491,12 +491,14 @@ func (cs *State) updateRoundStep(round int, step cstypes.RoundStepType) {
 // enterNewRound(height, 0) at cs.StartTime.
 func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	overDuration := tmtime.Now().Sub(cs.StartTime)
+	if overDuration < 0 {
+		overDuration = 0
+	}
 	sleepDuration := cfg.DynamicConfig.GetCsTimeoutCommit() - overDuration
 	if sleepDuration < 0 {
 		sleepDuration = 0
 	}
 
-	cs.StartTime = tmtime.Now().Add(sleepDuration)
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
 }
 
@@ -787,10 +789,6 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 	case cstypes.RoundStepNewHeight:
 		// NewRound event fired from enterNewRound.
 		// XXX: should we fire timeout here (for timeout commit)?
-		trace.GetElapsedInfo().AddInfo(trace.Produce, cs.trc.Format())
-		trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
-
-		cs.trc.Reset()
 		cs.enterNewRound(ti.Height, 0)
 	case cstypes.RoundStepNewRound:
 		cs.enterPropose(ti.Height, 0)
@@ -808,6 +806,12 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 		panic(fmt.Sprintf("Invalid timeout step: %v", ti.Step))
 	}
 
+}
+
+func (cs *State) traceDump() {
+	trace.GetElapsedInfo().AddInfo(trace.Produce, cs.trc.Format())
+	trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
+	cs.trc.Reset()
 }
 
 func (cs *State) handleTxsAvailable() {
@@ -855,6 +859,13 @@ func (cs *State) enterNewRound(height int64, round int) {
 			cs.Round,
 			cs.Step))
 		return
+	}
+
+	// waiting finished and enterNewHeight by timeoutNewHeight
+	if cs.Step == cstypes.RoundStepNewHeight {
+		// dump trace log
+		cs.traceDump()
+		cs.StartTime = tmtime.Now()
 	}
 
 	cs.trc.Pin("NewRound-%d", round)
@@ -1104,6 +1115,14 @@ func (cs *State) enterPrevote(height int64, round int) {
 			cs.Step))
 		return
 	}
+
+	// enterPrevote by VoteMessage, and waiting is interrupted.
+	if cs.Step == cstypes.RoundStepNewHeight {
+		// dump trace log
+		cs.traceDump()
+		cs.StartTime = tmtime.Now()
+	}
+
 	cs.trc.Pin("Prevote-%d", round)
 
 	defer func() {
