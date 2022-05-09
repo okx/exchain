@@ -4,29 +4,28 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/okex/exchain/libs/system/trace"
-	"github.com/okex/exchain/libs/tendermint/libs/automation"
-	"github.com/spf13/viper"
 	"reflect"
 	"runtime/debug"
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
-
+	"github.com/okex/exchain/libs/system/trace"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
+	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/libs/automation"
+	tmevents "github.com/okex/exchain/libs/tendermint/libs/events"
 	"github.com/okex/exchain/libs/tendermint/libs/fail"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	"github.com/okex/exchain/libs/tendermint/libs/service"
-	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
-
-	cfg "github.com/okex/exchain/libs/tendermint/config"
-	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
-	tmevents "github.com/okex/exchain/libs/tendermint/libs/events"
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
+	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+
+	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 )
 
 //-----------------------------------------------------------------------------
@@ -492,12 +491,14 @@ func (cs *State) updateRoundStep(round int, step cstypes.RoundStepType) {
 // enterNewRound(height, 0) at cs.StartTime.
 func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	overDuration := tmtime.Now().Sub(cs.StartTime)
-	sleepDuration := cs.config.TimeoutCommit - overDuration
+	if overDuration < 0 {
+		overDuration = 0
+	}
+	sleepDuration := cfg.DynamicConfig.GetCsTimeoutCommit() - overDuration
 	if sleepDuration < 0 {
 		sleepDuration = 0
 	}
 
-	cs.StartTime = tmtime.Now().Add(sleepDuration)
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
 }
 
@@ -788,10 +789,6 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 	case cstypes.RoundStepNewHeight:
 		// NewRound event fired from enterNewRound.
 		// XXX: should we fire timeout here (for timeout commit)?
-		trace.GetElapsedInfo().AddInfo(trace.Produce, cs.trc.Format())
-		trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
-
-		cs.trc.Reset()
 		cs.enterNewRound(ti.Height, 0)
 	case cstypes.RoundStepNewRound:
 		cs.enterPropose(ti.Height, 0)
@@ -809,6 +806,12 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 		panic(fmt.Sprintf("Invalid timeout step: %v", ti.Step))
 	}
 
+}
+
+func (cs *State) traceDump() {
+	trace.GetElapsedInfo().AddInfo(trace.Produce, cs.trc.Format())
+	trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
+	cs.trc.Reset()
 }
 
 func (cs *State) handleTxsAvailable() {
@@ -856,6 +859,13 @@ func (cs *State) enterNewRound(height int64, round int) {
 			cs.Round,
 			cs.Step))
 		return
+	}
+
+	// waiting finished and enterNewHeight by timeoutNewHeight
+	if cs.Step == cstypes.RoundStepNewHeight {
+		// dump trace log
+		cs.traceDump()
+		cs.StartTime = tmtime.Now()
 	}
 
 	cs.trc.Pin("NewRound-%d", round)
@@ -1105,6 +1115,14 @@ func (cs *State) enterPrevote(height int64, round int) {
 			cs.Step))
 		return
 	}
+
+	// enterPrevote by VoteMessage, and waiting is interrupted.
+	if cs.Step == cstypes.RoundStepNewHeight {
+		// dump trace log
+		cs.traceDump()
+		cs.StartTime = tmtime.Now()
+	}
+
 	cs.trc.Pin("Prevote-%d", round)
 
 	defer func() {
@@ -2105,6 +2123,7 @@ func (cs *State) updatePrivValidatorPubKey() error {
 func (cs *State) BlockExec() *sm.BlockExecutor {
 	return cs.blockExec
 }
+
 //---------------------------------------------------------
 
 func CompareHRS(h1 int64, r1 int, s1 cstypes.RoundStepType, h2 int64, r2 int, s2 cstypes.RoundStepType) int {

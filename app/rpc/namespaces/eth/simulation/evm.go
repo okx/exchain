@@ -92,7 +92,7 @@ func (ef EvmFactory) makeEvmKeeper(qoc QueryOnChainProxy) *evm.Keeper {
 	module := evm.AppModuleBasic{}
 	cdc := codec.New()
 	module.RegisterCodec(cdc)
-	return evm.NewSimulateKeeper(cdc, sdk.NewKVStoreKey(evm.StoreKey), sdk.NewKVStoreKey(evm.Store2Key), NewSubspaceProxy(), NewAccountKeeperProxy(qoc), SupplyKeeperProxy{}, NewBankKeeperProxy(), NewInternalDba(qoc), tmlog.NewNopLogger())
+	return evm.NewSimulateKeeper(cdc, sdk.NewKVStoreKey(evm.StoreKey), sdk.NewKVStoreKey(evm.LegacyStoreKey), NewSubspaceProxy(), NewAccountKeeperProxy(qoc), SupplyKeeperProxy{}, NewBankKeeperProxy(), NewInternalDba(qoc), tmlog.NewNopLogger())
 }
 
 func (ef EvmFactory) makeContext(k *evm.Keeper, header abci.Header) sdk.Context {
@@ -104,7 +104,7 @@ func (ef EvmFactory) makeContext(k *evm.Keeper, header abci.Header) sdk.Context 
 	cms.MountStoreWithDB(authKey, sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(paramsKey, sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(k.GetStoreKey(), sdk.StoreTypeIAVL, db)
-	cms.MountStoreWithDB(k.GetStore2Key(), sdk.StoreTypeIAVL, db)
+	cms.MountStoreWithDB(k.GetLegacyStoreKey(), sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(paramsTKey, sdk.StoreTypeTransient, db)
 
 	cms.LoadLatestVersion()

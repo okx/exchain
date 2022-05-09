@@ -22,22 +22,22 @@ but please do not over-use it. We try to keep all data structured
 and standard additions here would be better just to add to the Context struct
 */
 type Context struct {
-	ctx            context.Context
-	ms             MultiStore
-	header         *abci.Header
-	chainID        string
-	from           string
-	txBytes        []byte
-	logger         log.Logger
-	voteInfo       []abci.VoteInfo
-	gasMeter       GasMeter
-	blockGasMeter  GasMeter
-	isDeliver      bool
-	checkTx        bool
-	recheckTx      bool // if recheckTx == true, then checkTx must also be true
-	wrappedCheckTx bool // if wrappedCheckTx == true, then checkTx must also be true
-	traceTx        bool // traceTx is set true for trace tx and its predesessors , traceTx was set in app.beginBlockForTrace()
-	traceTxLog     bool // traceTxLog is used to create trace logger for evm , traceTxLog is set to true when only tracing target tx (its predesessors will set false), traceTxLog is set before runtx
+	ctx                context.Context
+	ms                 MultiStore
+	header             *abci.Header
+	chainID            string
+	from               string
+	txBytes            []byte
+	logger             log.Logger
+	voteInfo           []abci.VoteInfo
+	gasMeter           GasMeter
+	blockGasMeter      GasMeter
+	isDeliver          bool
+	checkTx            bool
+	recheckTx          bool   // if recheckTx == true, then checkTx must also be true
+	wrappedCheckTx     bool   // if wrappedCheckTx == true, then checkTx must also be true
+	traceTx            bool   // traceTx is set true for trace tx and its predesessors , traceTx was set in app.beginBlockForTrace()
+	traceTxLog         bool   // traceTxLog is used to create trace logger for evm , traceTxLog is set to true when only tracing target tx (its predesessors will set false), traceTxLog is set before runtx
 	traceTxConfigBytes []byte // traceTxConfigBytes is used to save traceTxConfig, passed from api to x/evm
 	minGasPrice        DecCoins
 	consParams         *abci.ConsensusParams
@@ -74,7 +74,12 @@ func (c *Context) Logger() log.Logger         { return c.logger }
 func (c *Context) VoteInfos() []abci.VoteInfo { return c.voteInfo }
 func (c *Context) GasMeter() GasMeter         { return c.gasMeter }
 func (c *Context) BlockGasMeter() GasMeter    { return c.blockGasMeter }
+
 func (c *Context) IsDeliver() bool {
+	return c.isDeliver
+}
+
+func (c *Context) UseParamCache() bool {
 	return c.isDeliver || (c.paraMsg != nil && !c.paraMsg.HaveCosmosTxInBlock)
 }
 
@@ -86,8 +91,8 @@ func (c *Context) TraceTxLogConfig() []byte    { return c.traceTxConfigBytes }
 func (c *Context) IsWrappedCheckTx() bool      { return c.wrappedCheckTx }
 func (c *Context) MinGasPrices() DecCoins      { return c.minGasPrice }
 func (c *Context) EventManager() *EventManager { return c.eventManager }
-func (c *Context) AccountNonce() uint64      { return c.accountNonce }
-func (c *Context) AnteTracer() *trace.Tracer { return c.trc }
+func (c *Context) AccountNonce() uint64        { return c.accountNonce }
+func (c *Context) AnteTracer() *trace.Tracer   { return c.trc }
 func (c *Context) Cache() *Cache {
 	return c.cache
 }
