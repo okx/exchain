@@ -246,6 +246,7 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyReso
 func SetExternalPackageValue(cmd *cobra.Command) {
 	iavl.IavlCacheSize = viper.GetInt(iavl.FlagIavlCacheSize)
 	tmiavl.IavlCacheInitRatio = viper.GetFloat64(tmiavl.FlagIavlCacheInitRatio)
+	tmiavl.IavlNodeFactorySize = viper.GetInt(tmiavl.FlagIavlNodeFactorySize)
 	tmiavl.OutputModules, _ = cmd.Flags().GetStringToInt(tmiavl.FlagOutputModules)
 	tmiavl.CommitIntervalHeight = viper.GetInt64(tmiavl.FlagIavlCommitIntervalHeight)
 	tmiavl.MinCommitItemCount = viper.GetInt64(tmiavl.FlagIavlMinCommitItemCount)

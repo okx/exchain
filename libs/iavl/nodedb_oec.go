@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"encoding/binary"
 	"fmt"
+
 	cmap "github.com/orcaman/concurrent-map"
 
 	"github.com/tendermint/go-amino"
@@ -19,11 +20,13 @@ import (
 )
 
 const (
-	FlagIavlCacheInitRatio = "iavl-cache-init-ratio"
+	FlagIavlCacheInitRatio  = "iavl-cache-init-ratio"
+	FlagIavlNodeFactorySize = "iavl-node-factory-size"
 )
 
 var (
-	IavlCacheInitRatio float64 = 0
+	IavlCacheInitRatio  float64 = 0
+	IavlNodeFactorySize         = 512
 )
 
 type tppItem struct {
@@ -185,7 +188,7 @@ func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
 	nodeKey := ndb.nodeKey(node.hash)
 	nodeValue := buf.Bytes()
 	batch.Set(nodeKey, nodeValue)
-	ndb.state.increasePersistedSize(len(nodeKey)+len(nodeValue))
+	ndb.state.increasePersistedSize(len(nodeKey) + len(nodeValue))
 	ndb.log(IavlDebug, "BATCH SAVE", "hash", node.hash)
 	//node.persisted = true // move to function MovePrePersistCacheToTempCache
 }
@@ -235,7 +238,6 @@ func (ndb *nodeDB) getRootWithCacheAndDB(version int64) ([]byte, error) {
 	}
 	return ndb.getRoot(version)
 }
-
 
 // DeleteVersion deletes a tree version from disk.
 func (ndb *nodeDB) DeleteVersion(batch dbm.Batch, version int64, checkLatestVersion bool) error {
