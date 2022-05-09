@@ -104,6 +104,7 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	w.watchData = &WatchData{}
 	w.wdDelayKey = make([][]byte, 0)
 	w.evmTxIndex = 0
+	w.delayEraseKey = make([][]byte, 0)
 }
 
 func (w *Watcher) clean() {
@@ -111,7 +112,6 @@ func (w *Watcher) clean() {
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
 	w.wdDelayKey = w.delayEraseKey
-	w.delayEraseKey = make([][]byte, 0)
 }
 
 func (w *Watcher) SaveContractCode(addr common.Address, code []byte) {
@@ -194,6 +194,18 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 	key2 := append(prefixRpcDb, key1...)
 	w.delayEraseKey = append(w.delayEraseKey, key1)
 	w.delayEraseKey = append(w.delayEraseKey, key2)
+}
+
+func (w *Watcher) DelayEraseKey() {
+	if !w.Enabled() {
+		return
+	}
+	//hold it in temp
+	delayEraseKey := w.delayEraseKey
+	w.clean()
+	w.dispatchJob(func() {
+		w.ExecuteDelayEraseKey(delayEraseKey)
+	})
 }
 
 func (w *Watcher) ExecuteDelayEraseKey(delayEraseKey [][]byte) {
@@ -411,7 +423,7 @@ func (w *Watcher) commitBatch(batch []WatchMessage, delayEraseKey [][]byte) {
 			}
 		}
 	}
-	w.ExecuteDelayEraseKey(delayEraseKey)
+	//	w.ExecuteDelayEraseKey(delayEraseKey)
 
 	if checkWd {
 		keys := make([][]byte, len(batch))
@@ -631,8 +643,8 @@ func (w *Watcher) jobRoutine() {
 func (w *Watcher) lazyInitialization() {
 	// lazy initial:
 	// now we will allocate chan memory
-	// 5*2 means watcherCommitJob+commitBatchJob(just in case)
-	w.jobChan = make(chan func(), 5*2)
+	// 5*3 means watcherCommitJob+DelayEraseKey+commitBatchJob(just in case)
+	w.jobChan = make(chan func(), 5*3)
 }
 
 func (w *Watcher) dispatchJob(f func()) {
