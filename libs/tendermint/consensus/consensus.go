@@ -1337,6 +1337,8 @@ func (cs *State) enterPrecommitWait(height int64, round int) {
 				height, round, cs.Height, cs.Round, cs.TriggeredTimeoutPrecommit))
 		return
 	}
+
+	cs.initNewHeight()
 	cs.trc.Pin("PrecommitWait-%d", round)
 
 	if !cs.Votes.Precommits(round).HasTwoThirdsAny() {
