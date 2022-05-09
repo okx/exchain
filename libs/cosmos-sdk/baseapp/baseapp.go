@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	"github.com/okex/exchain/libs/system/trace"
 	"io/ioutil"
 	"os"
 	"reflect"
 	"strings"
 	"time"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	"github.com/okex/exchain/libs/system/trace"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 
@@ -199,9 +200,9 @@ type BaseApp struct { // nolint: maligned
 
 	customizeModuleOnStop []sdk.CustomizeOnStop
 	mptCommitHandler      sdk.MptCommitHandler // handler for mpt trie commit
-	deliverTxsMgr    *DTTManager
-	feeForCollector  sdk.Coins
-	feeChanged       bool // used to judge whether should update the fee-collector account
+	deliverTxsMgr         *DTTManager
+	feeForCollector       sdk.Coins
+	feeChanged            bool // used to judge whether should update the fee-collector account
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
