@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/system"
 	"io"
 	"math/big"
 	"os"

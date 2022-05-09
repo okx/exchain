@@ -2,11 +2,11 @@ package types
 
 import (
 	"context"
-	"github.com/okex/exchain/libs/system/trace"
-	"time"
 	"github.com/gogo/protobuf/proto"
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/gaskv"
 	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
