@@ -2,6 +2,11 @@ package app
 
 import (
 	"encoding/json"
+	"io"
+	"os"
+	"strconv"
+	"testing"
+
 	"github.com/gorilla/mux"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
@@ -12,10 +17,6 @@ import (
 	commonversion "github.com/okex/exchain/x/common/version"
 	"github.com/spf13/cobra"
 	"github.com/stretchr/testify/require"
-	"io"
-	"os"
-	"strconv"
-	"testing"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
@@ -357,7 +358,7 @@ func newTestOkcChainApp(
 	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], app.marshal.GetCdc())
 	app.ParamsKeeper.RegisterSignal(evmtypes.SetEvmParamsNeedUpdate)
 	app.EvmKeeper = evm.NewKeeper(
-		app.marshal.GetCdc(), keys[evm.StoreKey], keys[evm.Store2Key], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, logger)
+		app.marshal.GetCdc(), keys[evm.StoreKey], keys[evm.LegacyStoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, logger)
 	(&bankKeeper).SetInnerTxKeeper(app.EvmKeeper)
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,

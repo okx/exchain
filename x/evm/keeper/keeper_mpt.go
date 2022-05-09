@@ -31,7 +31,7 @@ func (k *Keeper) SetMptRootHash(ctx sdk.Context, hash ethcmn.Hash) {
 
 	// put root hash to iavl and participate the process of calculate appHash
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		store := ctx.KVStore(k.store2Key)
+		store := ctx.KVStore(k.legacyStoreKey)
 		store.Set(types.KeyPrefixEvmRootHash, hash.Bytes())
 	}
 }
