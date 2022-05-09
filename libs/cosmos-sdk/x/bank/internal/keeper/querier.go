@@ -64,11 +64,7 @@ func grpcQueryBalanceAdapter(ctx sdk.Context, req abci.RequestQuery, k Keeper) (
 		if err := bk.marshal.GetProtocMarshal().UnmarshalBinaryBare(req.Data, &protoReq); nil != err {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 		}
-		if strings.HasPrefix("cosmos", protoReq.Address) {
-			a, er = sdk.AccAddressFromBech32ByPrefix(protoReq.Address, "cosmos")
-		} else {
-			a, er = sdk.AccAddressFromBech32(protoReq.Address)
-		}
+		a, er = sdk.AccAddressFromBech32(protoReq.Address)
 		if nil != er {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, er.Error())
 		}
@@ -78,16 +74,15 @@ func grpcQueryBalanceAdapter(ctx sdk.Context, req abci.RequestQuery, k Keeper) (
 		}
 		bs := make(sdk.CoinAdapters, 0)
 		for _, c := range coins {
-			var ada sdk.CoinAdapter
-			if c.Denom == sdk.DefaultBondDenom {
-				ada = sdk.CoinAdapter{
-					Denom:  sdk.DefaultIbcWei,
-					Amount: sdk.NewIntFromBigInt(c.Amount.BigInt()),
-				}
-			} else {
-				ada = sdk.CoinAdapter{
-					Denom:  c.Denom,
-					Amount: sdk.NewIntFromBigInt(c.Amount.BigInt()),
+			ada := sdk.CoinAdapter{
+				Denom:  c.Denom,
+				Amount: sdk.NewIntFromBigInt(c.Amount.BigInt()),
+			}
+			if strings.HasPrefix(c.Denom, "ibc") {
+				arrs := strings.Split(c.Denom, "/")
+				if len(arrs) == 2 {
+					arrs[1] = strings.ToUpper(arrs[1])
+					ada.Denom = strings.Join(arrs, "/")
 				}
 			}
 			bs = append(bs, ada)
