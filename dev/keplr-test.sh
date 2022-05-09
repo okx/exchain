@@ -23,8 +23,7 @@ killbyname() {
 run() {
     LOG_LEVEL=main:debug,iavl:info,*:error,state:info,provider:info
 
-#    exchaind start --pruning=nothing --rpc.unsafe \
-    exchaind start --rpc.unsafe \
+    exchaind start --pruning=nothing --rpc.unsafe \
       --local-rpc-port 26657 \
       --log_level $LOG_LEVEL \
       --log_file json \
@@ -34,10 +33,13 @@ run() {
       --iavl-enable-async-commit \
       --enable-gid \
       --append-pid=true \
+      --iavl-commit-interval-height 10 \
       --iavl-output-modules evm=0,acc=0 \
-      --commit-gap-height 3 \
       --trace --home $HOME_SERVER --chain-id $CHAINID \
       --elapsed Round=1,CommitRound=1,Produce=1 \
+      --rpc.laddr=tcp://0.0.0.0:26657 \
+      --rpc.external_laddr=0.0.0.0:26657 \
+      --p2p.laddr=tcp://0.0.0.0:26656 \
       --rest.laddr "tcp://localhost:8545" > okc.txt 2>&1 &
 
 # --iavl-commit-interval-height \
@@ -82,7 +84,7 @@ exchaincli config keyring-backend test
 exchaincli keys add --recover captain -m "puzzle glide follow cruel say burst deliver wild tragic galaxy lumber offer" -y
 
 #    "eth_address": "0x83D83497431C2D3FEab296a9fba4e5FaDD2f7eD0",
-exchaincli keys add --recover admin16 -m "palace cube bitter light woman side pave cereal donor bronze twice work" -y
+exchaincli keys add --recover admin16 -m "palace cube bitter light woman side pave cereal donor bronze twice work" -y --algo="" --coin-type 118
 
 exchaincli keys add --recover admin17 -m "antique onion adult slot sad dizzy sure among cement demise submit scare" -y
 
@@ -103,7 +105,7 @@ if [ "$(uname -s)" == "Darwin" ]; then
     sed -i "" 's/"enable_call": false/"enable_call": true/' $HOME_SERVER/config/genesis.json
     sed -i "" 's/"enable_create": false/"enable_create": true/' $HOME_SERVER/config/genesis.json
     sed -i "" 's/"enable_contract_blocked_list": false/"enable_contract_blocked_list": true/' $HOME_SERVER/config/genesis.json
-else 
+else
     sed -i 's/"enable_call": false/"enable_call": true/' $HOME_SERVER/config/genesis.json
     sed -i 's/"enable_create": false/"enable_create": true/' $HOME_SERVER/config/genesis.json
     sed -i 's/"enable_contract_blocked_list": false/"enable_contract_blocked_list": true/' $HOME_SERVER/config/genesis.json
@@ -126,5 +128,3 @@ exchaind validate-genesis --home $HOME_SERVER
 exchaincli config keyring-backend test
 
 run
-
-# exchaincli tx send captain 0x83D83497431C2D3FEab296a9fba4e5FaDD2f7eD0 1okt --fees 1okt -b block -y
