@@ -25,7 +25,7 @@ var (
 
 	// Parameters below here are changed from cosmos-sdk, controlled by flag
 	CommitIntervalHeight      int64 = 100
-	MinCommitItemCount        int64 = 500000
+	MinCommitItemCount        int64 = 1000000
 	HeightOrphansCacheSize          = 8
 	MaxCommittedHeightNum           = minHistoryStateNum
 	EnableAsyncCommit               = false
