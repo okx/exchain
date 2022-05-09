@@ -58,7 +58,7 @@ const (
 	KeyAcc          = "s/k:acc/"
 	KeySupply       = "s/k:supply/"
 	KeyEvm          = "s/k:evm/"
-	KeyEvm2         = "s/k:evm2/"
+	KeyEvmLegacy    = "s/k:evmlegacy/"
 	KeyParams       = "s/k:params/"
 	KeyStaking      = "s/k:staking/"
 	KeySlashing     = "s/k:slashing/"
@@ -75,7 +75,7 @@ const (
 
 var printKeysDict = map[string]formatKeyValue{
 	KeyEvm:          evmPrintKey,
-	KeyEvm2:         evmPrintKey,
+	KeyEvmLegacy:    evmPrintKey,
 	KeyAcc:          accPrintKey,
 	KeyParams:       paramsPrintKey,
 	KeyStaking:      stakingPrintKey,
