@@ -28,3 +28,11 @@ func NewKeeper(evmKeeper EvmKeeper, logger log.Logger, metrics *monitor.StreamMe
 func (k Keeper) OnSaveTransactionReceipt(tr evm.TransactionReceipt) {
 	k.stream.cache.AddTransactionReceipt(tr)
 }
+
+func (k Keeper) OnSaveBlock(b evm.Block) {
+	k.stream.cache.AddBlock(b)
+}
+
+func (k Keeper) OnSaveTransaction(t evm.Transaction) {
+	k.stream.cache.AddTransaction(t)
+}

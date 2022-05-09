@@ -8,17 +8,25 @@ import (
 
 type EngineData struct {
 	TransactionReceipts []*TransactionReceipt
-	//TransactionLogs     []*TransactionLog
-	//LogTopics           []*LogTopic
+	Block               *Block
 }
 
 type StreamData struct {
 	TransactionReceipts []evm.TransactionReceipt
+	Block               evm.Block
+	Transactions        []evm.Transaction
 }
 
 func (sd StreamData) ConvertEngineData() EngineData {
-	transactionReceipts := make([]*TransactionReceipt, len(sd.TransactionReceipts))
-	for i, t := range sd.TransactionReceipts {
+	return EngineData{
+		TransactionReceipts: convertTransactionReceipts(sd.TransactionReceipts),
+		Block:               convertBlocks(sd.Block, sd.Transactions),
+	}
+}
+
+func convertTransactionReceipts(trs []evm.TransactionReceipt) []*TransactionReceipt {
+	transactionReceipts := make([]*TransactionReceipt, len(trs))
+	for i, t := range trs {
 		// convert  TransactionReceipt
 		receipt := &TransactionReceipt{
 			Status:            uint64(t.Status),
@@ -54,8 +62,6 @@ func (sd StreamData) ConvertEngineData() EngineData {
 			logTopics := make([]LogTopic, len(l.Topics))
 			for i, topic := range l.Topics {
 				logTopics[i] = LogTopic{
-					//TransactionHash: t.TransactionHash,
-					//LogIndex:        uint64(l.Index),
 					Topic: topic.String(),
 				}
 			}
@@ -67,12 +73,47 @@ func (sd StreamData) ConvertEngineData() EngineData {
 		receipt.Logs = transactionLogs
 		transactionReceipts[i] = receipt
 	}
+	return transactionReceipts
+}
 
-	return EngineData{
-		TransactionReceipts: transactionReceipts,
-		//TransactionLogs:     transactionLogs,
-		//LogTopics:           logTopics,
+func convertBlocks(evmBlock evm.Block, evmTransactions []evm.Transaction) *Block {
+	block := &Block{
+		Number:           int64(evmBlock.Number),
+		Hash:             evmBlock.Hash.String(),
+		ParentHash:       evmBlock.ParentHash.String(),
+		TransactionsRoot: evmBlock.TransactionsRoot.String(),
+		StateRoot:        evmBlock.StateRoot.String(),
+		Miner:            evmBlock.Miner.String(),
+		Size:             uint64(evmBlock.Size),
+		GasLimit:         uint64(evmBlock.GasLimit),
+		GasUsed:          evmBlock.GasUsed.ToInt().Uint64(),
+		Timestamp:        uint64(evmBlock.Timestamp),
 	}
+
+	transactions := make([]Transaction, len(evmTransactions))
+	for i, t := range evmTransactions {
+		tx := Transaction{
+			BlockHash:   t.BlockHash.String(),
+			BlockNumber: t.BlockNumber.ToInt().Int64(),
+			From:        t.From.String(),
+			Gas:         uint64(t.Gas),
+			GasPrice:    t.GasPrice.String(),
+			Hash:        t.Hash.String(),
+			Input:       t.Input.String(),
+			Nonce:       uint64(t.Nonce),
+			Index:       uint64(*t.TransactionIndex),
+			Value:       t.Value.String(),
+			V:           t.V.String(),
+			R:           t.R.String(),
+			S:           t.S.String(),
+		}
+		if t.To != nil {
+			tx.To = t.To.String()
+		}
+		transactions[i] = tx
+	}
+	block.Transactions = transactions
+	return block
 }
 
 type TransactionReceipt struct {
@@ -105,8 +146,40 @@ type TransactionLog struct {
 
 type LogTopic struct {
 	gorm.Model
-	//TransactionHash string `gorm:"type:varchar(66);index;not null"`
-	//LogIndex        uint64 `gorm:"index;not null"`
 	Topic            string `gorm:"type:varchar(66)"`
 	TransactionLogID uint
+}
+
+type Block struct {
+	gorm.Model
+	Number           int64  `gorm:"index;not null"`
+	Hash             string `gorm:"type:varchar(66);index:unique_hash,unique;not null"`
+	ParentHash       string `gorm:"type:varchar(66)"`
+	TransactionsRoot string `gorm:"type:varchar(66)"`
+	StateRoot        string `gorm:"type:varchar(66)"`
+	Miner            string `gorm:"type:varchar(42)"`
+	Size             uint64 `gorm:"type:int(11)"`
+	GasLimit         uint64
+	GasUsed          uint64
+	Timestamp        uint64 `gorm:"type:int(11)"`
+	Transactions     []Transaction
+}
+
+type Transaction struct {
+	gorm.Model
+	BlockHash   string `gorm:"type:varchar(66)"`
+	BlockNumber int64
+	From        string `gorm:"type:varchar(42)"`
+	Gas         uint64 `gorm:"type:int(11)"`
+	GasPrice    string `gorm:"type:varchar(66)"`
+	Hash        string `gorm:"type:varchar(66)"`
+	Input       string `gorm:"type:text"`
+	Nonce       uint64 `gorm:"type:int(11)"`
+	To          string `gorm:"type:varchar(42)"`
+	Index       uint64 `gorm:"type:int(11)"`
+	Value       string `gorm:"type:varchar(255)"`
+	V           string `gorm:"type:varchar(255)"`
+	R           string `gorm:"type:varchar(255)"`
+	S           string `gorm:"type:varchar(255)"`
+	BlockID     uint
 }

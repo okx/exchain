@@ -113,7 +113,15 @@ func (w *Watcher) SaveEthereumTx(msg *evmtypes.MsgEthereumTx, txHash common.Hash
 	if !w.Enabled() {
 		return
 	}
-	wMsg := NewMsgEthTx(msg, txHash, w.blockHash, w.height, index)
+	ethTx, err := NewTransaction(msg, txHash, w.blockHash, w.height, index)
+	if err != nil {
+		return
+	}
+	if w.InfuraKeeper != nil {
+		w.InfuraKeeper.OnSaveTransaction(*ethTx)
+	}
+
+	wMsg := NewMsgEthTx(ethTx)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}
@@ -239,7 +247,11 @@ func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
 	if !w.Enabled() {
 		return
 	}
-	wMsg := NewMsgBlock(w.height, bloom, w.blockHash, w.header, uint64(0xffffffff), big.NewInt(int64(w.gasUsed)), w.blockTxs)
+	block := newBlock(w.height, bloom, w.blockHash, w.header, uint64(0xffffffff), big.NewInt(int64(w.gasUsed)), w.blockTxs)
+	if w.InfuraKeeper != nil {
+		w.InfuraKeeper.OnSaveBlock(block)
+	}
+	wMsg := NewMsgBlock(block)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}

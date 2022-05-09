@@ -379,13 +379,9 @@ func (w *WatchData) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	return nil
 }
 
-func NewMsgEthTx(tx *types.MsgEthereumTx, txHash, blockHash common.Hash, height, index uint64) *MsgEthTx {
-	ethTx, e := NewTransaction(tx, txHash, blockHash, height, index)
-	if e != nil {
-		return nil
-	}
+func NewMsgEthTx(ethTx *Transaction) *MsgEthTx {
 	msg := MsgEthTx{
-		Key:             txHash.Bytes(),
+		Key:             ethTx.Hash.Bytes(),
 		baseLazyMarshal: newBaseLazyMarshal(ethTx),
 	}
 	return &msg
@@ -590,8 +586,8 @@ type Transaction struct {
 	S                *hexutil.Big    `json:"s"`
 }
 
-func NewMsgBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash, header abci.Header, gasLimit uint64, gasUsed *big.Int, txs interface{}) *MsgBlock {
-	b := Block{
+func newBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash, header abci.Header, gasLimit uint64, gasUsed *big.Int, txs interface{}) Block {
+	return Block{
 		Number:           hexutil.Uint64(height),
 		Hash:             blockHash,
 		ParentHash:       common.BytesToHash(header.LastBlockId.Hash),
@@ -613,11 +609,14 @@ func NewMsgBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash
 		ReceiptsRoot:     common.Hash{},
 		Transactions:     txs,
 	}
+}
+
+func NewMsgBlock(b Block) *MsgBlock {
 	jsBlock, e := json.Marshal(b)
 	if e != nil {
 		return nil
 	}
-	return &MsgBlock{blockHash: blockHash.Bytes(), block: string(jsBlock)}
+	return &MsgBlock{blockHash: b.Hash.Bytes(), block: string(jsBlock)}
 }
 
 func (m MsgBlock) GetKey() []byte {

@@ -58,6 +58,8 @@ func newTask(blockHeight int64, cache *Cache) *Task {
 func getStreamData(cache *Cache) types.IStreamData {
 	return types.StreamData{
 		TransactionReceipts: cache.GetTransactionReceipts(),
+		Block:               cache.GetBlock(),
+		Transactions:        cache.GetTransactions(),
 	}
 }
 

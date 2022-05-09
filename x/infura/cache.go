@@ -6,16 +6,22 @@ const defaultCacheCap = 2000
 
 type Cache struct {
 	transactionReceipts []evm.TransactionReceipt
+	block               *evm.Block
+	transactions        []evm.Transaction
 }
 
 func NewCache() *Cache {
 	return &Cache{
 		transactionReceipts: make([]evm.TransactionReceipt, 0, defaultCacheCap),
+		block:               nil,
+		transactions:        make([]evm.Transaction, 0, defaultCacheCap),
 	}
 }
 
 func (c *Cache) Reset() {
 	c.transactionReceipts = make([]evm.TransactionReceipt, 0, defaultCacheCap)
+	c.block = nil
+	c.transactions = make([]evm.Transaction, 0, defaultCacheCap)
 }
 
 func (c *Cache) AddTransactionReceipt(tr evm.TransactionReceipt) {
@@ -24,4 +30,20 @@ func (c *Cache) AddTransactionReceipt(tr evm.TransactionReceipt) {
 
 func (c *Cache) GetTransactionReceipts() []evm.TransactionReceipt {
 	return c.transactionReceipts
+}
+
+func (c *Cache) AddBlock(b evm.Block) {
+	c.block = &b
+}
+
+func (c *Cache) GetBlock() evm.Block {
+	return *c.block
+}
+
+func (c *Cache) AddTransaction(t evm.Transaction) {
+	c.transactions = append(c.transactions, t)
+}
+
+func (c *Cache) GetTransactions() []evm.Transaction {
+	return c.transactions
 }
