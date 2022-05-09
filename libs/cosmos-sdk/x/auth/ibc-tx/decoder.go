@@ -100,14 +100,14 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 		stx := authtypes.IbcTx{
 			&authtypes.StdTx{
 				Msgs:       stdMsgs,
-				Fee:        *fee,
+				Fee:        fee,
 				Signatures: signatures,
 				Memo:       ibcTx.Body.Memo,
 			},
 			raw.AuthInfoBytes,
 			raw.BodyBytes,
 			signMode,
-			*signFee,
+			signFee,
 			signMsgs,
 		}
 
@@ -163,26 +163,26 @@ func convertSignature(cdc codec.ProtoCodecMarshaler, ibcTx *tx.Tx) []authtypes.S
 	return signatures
 }
 
-func convertFee(authInfo tx.AuthInfo) (*authtypes.StdFee, *authtypes.IbcFee, error) {
+func convertFee(authInfo tx.AuthInfo) (authtypes.StdFee, authtypes.IbcFee, error) {
 
 	gaslimit := uint64(0)
 	var decCoins sdk.DecCoins
 	var err error
 	// for verify signature
-	var signFee *authtypes.IbcFee
+	var signFee authtypes.IbcFee
 	if authInfo.Fee != nil {
 		decCoins, err = feeDenomFilter(authInfo.Fee.Amount)
 		if err != nil {
-			return nil, nil, err
+			return authtypes.StdFee{}, authtypes.IbcFee{}, err
 		}
 		gaslimit = authInfo.Fee.GasLimit
-		signFee = &authtypes.IbcFee{
+		signFee = authtypes.IbcFee{
 			authInfo.Fee.Amount,
 			authInfo.Fee.GasLimit,
 		}
 	}
 
-	return &authtypes.StdFee{
+	return authtypes.StdFee{
 		Amount: decCoins,
 		Gas:    gaslimit,
 	}, signFee, nil
