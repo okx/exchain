@@ -27,9 +27,9 @@ const (
 	accStoreKey = authtypes.StoreKey
 	evmStoreKey = evmtypes.StoreKey
 
-	iavlAccKey  = "s/k:acc/"
-	iavlEvmKey  = "s/k:evm/"
-	iavlEvm2Key = "s/k:evm2/"
+	iavlAccKey       = "s/k:acc/"
+	iavlEvmKey       = "s/k:evm/"
+	iavlEvmLegacyKey = "s/k:evmlegacy/"
 )
 
 func panicError(err error) {
@@ -40,7 +40,7 @@ func panicError(err error) {
 
 // checkValidKey checks if the key is equal to authtypes.StoreKey or evmtypes.StoreKey
 func checkValidKey(key string) error {
-	if key != accStoreKey && key != evmStoreKey && key != evmtypes.Store2Key {
+	if key != accStoreKey && key != evmStoreKey && key != evmtypes.LegacyStoreKey {
 		return fmt.Errorf("invalid key %s", key)
 	}
 	return nil
@@ -125,7 +125,7 @@ func getUpgradedTree(db dbm.DB) *iavl.MutableTree {
 		return nil
 	}
 
-	db = dbm.NewPrefixDB(db, []byte(iavlEvm2Key))
+	db = dbm.NewPrefixDB(db, []byte(iavlEvmLegacyKey))
 
 	tree, _ := iavl.NewMutableTree(db, iavlstore.IavlCacheSize)
 	if tree.Version() == 0 {
