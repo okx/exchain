@@ -105,7 +105,7 @@ func (tree *MutableTree) setNewWorkingTree(version int64, newOrphans []*Node, pe
 		return true
 	})
 
-	tree.ndb.log(IavlInfo, tree.ndb.sprintCacheLog(version))
+	tree.ndb.log(IavlDebug, tree.ndb.sprintCacheLog(version))
 	return rootHash, version, nil
 }
 
