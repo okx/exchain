@@ -127,7 +127,7 @@ func (ndb *nodeDB) loadNode(hash []byte, update bool) (n *Node, from retrieveTyp
 	}
 
 	// close onLoadNode as it leads to performance penalty
-	ndb.state.onLoadNode(from)
+	//ndb.state.onLoadNode(from)
 	return
 }
 
