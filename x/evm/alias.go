@@ -13,14 +13,15 @@ const (
 	StoreKey          = types.StoreKey
 	RouterKey         = types.RouterKey
 	DefaultParamspace = types.DefaultParamspace
+	LegacyStoreKey    = types.LegacyStoreKey
 )
 
 // nolint
 var (
-	NewKeeper              = keeper.NewKeeper
-	TxDecoder              = types.TxDecoder
-	NewSimulateKeeper      = keeper.NewSimulateKeeper
-	NewLogProcessEvmHook   = keeper.NewLogProcessEvmHook
+	NewKeeper            = keeper.NewKeeper
+	TxDecoder            = types.TxDecoder
+	NewSimulateKeeper    = keeper.NewSimulateKeeper
+	NewLogProcessEvmHook = keeper.NewLogProcessEvmHook
 )
 
 //nolint

@@ -6,6 +6,8 @@ import (
 	"os"
 	"runtime/pprof"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -58,6 +60,8 @@ const (
 	FlagPruningMaxWsNum = "pruning-max-worldstate-num"
 	FlagExportKeystore  = "export-keystore"
 	FlagLogServerUrl    = "log-server"
+
+	FlagCommitGapHeight = "commit-gap-height"
 )
 
 // StartCmd runs the service passed in, either stand-alone or in-process with
@@ -121,7 +125,6 @@ which accepts a path for the resulting pprof file.
 			return nil
 		},
 	}
-
 	RegisterServerFlags(cmd)
 	registerAppFlagFn(cmd)
 	// add support for all Tendermint-specific command line options
@@ -261,4 +264,7 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	tmtypes.UploadDelta = viper.GetBool(tmtypes.FlagUploadDDS)
 	tmtypes.FastQuery = viper.GetBool(tmtypes.FlagFastQuery)
 	tmtypes.DeltaVersion = viper.GetInt(tmtypes.FlagDeltaVersion)
+
+	tmiavl.CommitGapHeight = viper.GetInt64(FlagCommitGapHeight)
+	mpt.TrieCommitGap = viper.GetInt64(FlagCommitGapHeight)
 }

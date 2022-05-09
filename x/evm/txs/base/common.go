@@ -34,13 +34,18 @@ func msg2st(ctx *sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (st types.Sta
 		Recipient:    msg.Data.Recipient,
 		Amount:       msg.Data.Amount,
 		Payload:      msg.Data.Payload,
-		Csdb:         types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), *ctx),
 		ChainID:      chainIDEpoch,
 		TxHash:       &ethHash,
 		Sender:       sender,
 		Simulate:     ctx.IsCheckTx(),
 		TraceTx:      ctx.IsTraceTx(),
 		TraceTxLog:   ctx.IsTraceTxLog(),
+	}
+	st.Csdb = types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), *ctx)
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
+		if ctx.IsDeliver() {
+			st.Csdb = k.EvmStateDb.WithContext(*ctx)
+		}
 	}
 
 	return
@@ -49,8 +54,7 @@ func msg2st(ctx *sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (st types.Sta
 func getSender(ctx *sdk.Context, chainIDEpoch *big.Int, msg *types.MsgEthereumTx) (sender common.Address, err error) {
 	if ctx.IsCheckTx() {
 		if from := ctx.From(); len(from) > 0 {
-			sender = common.HexToAddress(from)
-			return
+			return common.HexToAddress(from), nil
 		}
 	}
 	err = msg.VerifySig(chainIDEpoch, ctx.BlockHeight())

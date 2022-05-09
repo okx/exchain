@@ -476,6 +476,11 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		func(data tmevents.EventData) {
 			conR.broadcastHasVoteMessage(data.(*types.Vote))
 		})
+
+	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventSignVote,
+		func(data tmevents.EventData) {
+			conR.broadcastSignVoteMessage(data.(*types.Vote))
+		})
 }
 
 func (conR *Reactor) unsubscribeFromBroadcastEvents() {
@@ -527,7 +532,10 @@ func (conR *Reactor) broadcastHasVoteMessage(vote *types.Vote) {
 		}
 	*/
 }
-
+func (conR *Reactor) broadcastSignVoteMessage(vote *types.Vote) {
+	msg := &VoteMessage{vote}
+	conR.Switch.Broadcast(VoteChannel, cdc.MustMarshalBinaryBare(msg))
+}
 func makeRoundStepMessage(rs *cstypes.RoundState) (nrsMsg *NewRoundStepMessage) {
 	nrsMsg = &NewRoundStepMessage{
 		Height:                rs.Height,

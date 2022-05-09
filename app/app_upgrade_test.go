@@ -2,18 +2,21 @@ package app
 
 import (
 	"encoding/json"
-	"github.com/gorilla/mux"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
-	capabilityModule "github.com/okex/exchain/libs/cosmos-sdk/x/capability"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/genutil"
-	commonversion "github.com/okex/exchain/x/common/version"
-	"github.com/spf13/cobra"
-	"github.com/stretchr/testify/require"
 	"io"
 	"os"
 	"strconv"
 	"testing"
+
+	"github.com/gorilla/mux"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	capabilityModule "github.com/okex/exchain/libs/cosmos-sdk/x/capability"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/genutil"
+	"github.com/okex/exchain/libs/system/trace"
+	commonversion "github.com/okex/exchain/x/common/version"
+	"github.com/spf13/cobra"
+	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
@@ -47,7 +50,6 @@ import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/ammswap"
-	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/dex"
 	distr "github.com/okex/exchain/x/distribution"
 	"github.com/okex/exchain/x/erc20"
@@ -278,8 +280,8 @@ func newTestOkcChainApp(
 
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
-	bApp.SetStartLogHandler(analyzer.StartTxLog)
-	bApp.SetEndLogHandler(analyzer.StopTxLog)
+	bApp.SetStartLogHandler(trace.StartTxLog)
+	bApp.SetEndLogHandler(trace.StopTxLog)
 
 	bApp.SetInterfaceRegistry(interfaceReg)
 
@@ -323,7 +325,7 @@ func newTestOkcChainApp(
 	app.marshal = codecProxy
 	// use custom OKExChain account for contracts
 	app.AccountKeeper = auth.NewAccountKeeper(
-		codecProxy.GetCdc(), keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
+		codecProxy.GetCdc(), keys[auth.StoreKey], keys[mpt.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
 	)
 
 	bankKeeper := bank.NewBaseKeeperWithMarshal(
@@ -356,7 +358,7 @@ func newTestOkcChainApp(
 	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], app.marshal.GetCdc())
 	app.ParamsKeeper.RegisterSignal(evmtypes.SetEvmParamsNeedUpdate)
 	app.EvmKeeper = evm.NewKeeper(
-		app.marshal.GetCdc(), keys[evm.StoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, logger)
+		app.marshal.GetCdc(), keys[evm.StoreKey], keys[evm.LegacyStoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, logger)
 	(&bankKeeper).SetInnerTxKeeper(app.EvmKeeper)
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
@@ -513,8 +515,8 @@ func newTestOkcChainApp(
 	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper)))
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
-	app.SetAccHandler(NewAccHandler(app.AccountKeeper))
-	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), evmTxFeeHandler(), fixLogForParallelTxHandler(app.EvmKeeper))
+	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
+	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), fixLogForParallelTxHandler(app.EvmKeeper))
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])

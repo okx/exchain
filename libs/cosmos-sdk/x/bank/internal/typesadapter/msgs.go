@@ -78,6 +78,20 @@ func (m *MsgSend) GetAmount() []sdk.DecCoin {
 	return convAmount
 }
 
+func (m *MsgSend) RulesFilter() (sdk.Msg, error) {
+	var msgSend *MsgSend
+
+	msgSend.Amount = m.Amount.Copy()
+	for i, amount := range msgSend.Amount {
+		if amount.Denom == sdk.DefaultIbcWei {
+			msgSend.Amount[i].Denom = sdk.DefaultBondDenom
+		} else if amount.Denom == sdk.DefaultBondDenom {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, "MsgSend not support okt denom")
+		}
+	}
+	return msgSend, nil
+}
+
 func (msg *MsgMultiSend) ValidateBasic() error {
 	// this just makes sure all the inputs and outputs are properly formatted,
 	// not that they actually have the money inside

@@ -56,7 +56,11 @@ func (tx *MsgEthereumTx) GetFrom() string {
 	if from == "" {
 		from, _ = tmtypes.SignatureCache().Get(tx.TxHash())
 		if from == "" {
-			from, _ = tx.firstVerifySig(tx.ChainID())
+			from, err := tx.firstVerifySig(tx.ChainID())
+			if err != nil {
+				tmtypes.SignatureCache().Add(tx.TxHash(), from)
+				tx.BaseTx.From = from
+			}
 		}
 	}
 
@@ -73,8 +77,7 @@ func (msg *MsgEthereumTx) GetFee() sdk.Coins {
 	return fee
 }
 
-func (msg *MsgEthereumTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
-
+func (msg MsgEthereumTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
 	err := msg.VerifySig(msg.ChainID(), ctx.BlockHeight())
 	if err != nil {
 		return nil

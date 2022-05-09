@@ -224,3 +224,13 @@ func (coins CoinAdapters) MarshalJSON() ([]byte, error) {
 
 	return json.Marshal(coinAdaptersJSON(coins))
 }
+
+func (coins CoinAdapters) Copy() CoinAdapters {
+	copyCoins := make(CoinAdapters, len(coins))
+
+	for i, coin := range coins {
+		copyCoins[i] = coin
+	}
+
+	return copyCoins
+}
