@@ -2,6 +2,7 @@ package iavl
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/system/trace"
 	"sync/atomic"
 )
 
@@ -122,16 +123,24 @@ func (s *RuntimeState) increaseDeletedCount() {
 	s.totalDeletedCount++
 }
 
+func inOutputModules(name string) bool {
+	v, ok := OutputModules[name]
+	return ok && v != 0
+}
 
 //================================
-func (ndb *nodeDB) sprintCacheLog(version int64) string {
+func (ndb *nodeDB) sprintCacheLog(version int64) (printLog string) {
 	if !EnableAsyncCommit {
-		return ""
+		return
+	}
+
+	if !inOutputModules(ndb.name) {
+		return
 	}
 
 	nodeReadCount := ndb.state.getNodeReadCount()
 	cacheReadCount := ndb.state.getNodeReadCount() - ndb.state.getDBReadCount()
-	printLog := fmt.Sprintf("Save Version<%d>: Tree<%s>", version, ndb.name)
+	printLog = fmt.Sprintf("Save Version<%d>: Tree<%s>", version, ndb.name)
 
 	printLog += fmt.Sprintf(", getNode[fromPpnc:%d, fromTpp:%d, fromNodeCache:%d, fromOrphanCache:%d, fromDisk:%d]",
 		ndb.state.fromPpnc,
@@ -159,7 +168,11 @@ func (ndb *nodeDB) sprintCacheLog(version int64) string {
 	printLog += fmt.Sprintf(", TDelCnt:%d", atomic.LoadInt64(&ndb.state.totalDeletedCount))
 	printLog += fmt.Sprintf(", TOrphanCnt:%d", atomic.LoadInt64(&ndb.state.totalOrphanCount))
 
-	return printLog
+	if ndb.name == "evm" {
+		trace.GetElapsedInfo().AddInfo(trace.IavlRuntime, printLog)
+	}
+
+	return
 }
 
 
