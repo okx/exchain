@@ -89,6 +89,7 @@ func (ndb *nodeDB) saveNodeToPrePersistCache(node *Node) {
 	node.prePersisted = true
 	ndb.mtx.Lock()
 	ndb.prePersistNodeCache[string(node.hash)] = node
+	ndb.ppncSize++
 	ndb.mtx.Unlock()
 }
 
@@ -117,6 +118,7 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) map[string]*Node {
 	defer ndb.mtx.Unlock()
 	tpp := ndb.prePersistNodeCache
 	ndb.prePersistNodeCache = map[string]*Node{}
+	ndb.ppncSize = 0
 
 	lItem := ndb.tppVersionList.PushBack(version)
 	ndb.tppMap[version] = &tppItem{

@@ -44,6 +44,7 @@ func (ndb *nodeDB) saveNewOrphans(version int64, orphans []*Node, lock bool) {
 	for _, node := range orphans {
 		ndb.oi.feedOrphanNodeCache(node)
 		delete(ndb.prePersistNodeCache, amino.BytesToStr(node.hash))
+		ndb.ppncSize--
 		node.leftNode = nil
 		node.rightNode = nil
 	}

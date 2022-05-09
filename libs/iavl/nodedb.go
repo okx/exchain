@@ -48,6 +48,7 @@ type nodeDB struct {
 	latestVersion  int64
 
 	prePersistNodeCache map[string]*Node
+	ppncSize int64
 	tppMap              map[int64]*tppItem
 	tppVersionList      *list.List
 

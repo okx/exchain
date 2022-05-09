@@ -87,10 +87,11 @@ func (tm *TreeMap) updateMutableTreeMap(module string, version int64) {
 func (tm *TreeMap) updateTotalPreCommitCacheSize() {
 	var size int64 = 0
 	for _, tree := range tm.mutableTreeList {
-		if tree.GetModuleName() == "evm" || tree.GetModuleName() == "acc" {
-			continue
-		}
-		size += int64(len(tree.ndb.prePersistNodeCache))
+		//if tree.GetModuleName() == "evm" || tree.GetModuleName() == "acc" {
+		//	continue
+		//}
+		//size += int64(len(tree.ndb.prePersistNodeCache))
+		size += tree.ndb.ppncSize
 
 	}
 	tm.totalPreCommitCacheSize = size
