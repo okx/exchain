@@ -41,8 +41,8 @@ func iavl2mptCmd(ctx *server.Context) *cobra.Command {
 				migrateAccFromIavlToMpt(ctx)
 			case evmStoreKey:
 				migrateEvmFromIavlToMpt(ctx)
-			case evmtypes.Store2Key:
-				migrateEvm2FromIavlToIavl(ctx)
+			case evmtypes.LegacyStoreKey:
+				migrateEvmLegacyFromIavlToIavl(ctx)
 			}
 			log.Printf("--------- migrate %s end ---------\n", args[0])
 		},
@@ -159,13 +159,13 @@ func migrateEvmFromIavlToMpt(ctx *server.Context) {
 	// 3. Migrates Bloom -> rawdb
 	miragteBloomsToDb(migrationApp, cmCtx, batch)
 
-	// 4. save an empty evm2 iavl tree in mirgate height
-	upgradedPrefixDb := dbm.NewPrefixDB(migrationApp.GetDB(), []byte(iavlEvm2Key))
+	// 4. save an empty evmlegacy iavl tree in mirgate height
+	upgradedPrefixDb := dbm.NewPrefixDB(migrationApp.GetDB(), []byte(iavlEvmLegacyKey))
 	upgradedTree, err := iavl.NewMutableTreeWithOpts(upgradedPrefixDb, iavlstore.IavlCacheSize, nil)
 	panicError(err)
 	_, version, err := upgradedTree.SaveVersionSync(cmCtx.BlockHeight()-1, false)
 	panicError(err)
-	fmt.Printf("Successfully save an empty evm2 iavl tree in %d\n", version)
+	fmt.Printf("Successfully save an empty evmlegacy iavl tree in %d\n", version)
 }
 
 // 1. migrateContractToMpt Migrates Accounts、Code、Storage
@@ -240,14 +240,14 @@ func miragteBloomsToDb(migrationApp *app.OKExChainApp, cmCtx sdk.Context, batch 
 	fmt.Printf("Successfully migrate %d blooms\n", count)
 }
 
-// migrateEvm2FromIavlToIavl only used for test!
-func migrateEvm2FromIavlToIavl(ctx *server.Context) {
+// migrateEvmLegacyFromIavlToIavl only used for test!
+func migrateEvmLegacyFromIavlToIavl(ctx *server.Context) {
 	// 0.1 initialize App and context
 	migrationApp := newMigrationApp(ctx)
 	cmCtx := migrationApp.MockContext()
 
 	upgradedTree := getUpgradedTree(migrationApp.GetDB())
-	// 1. Migrates ChainConfig -> evm2 iavl
+	// 1. Migrates ChainConfig -> evmlegacy iavl
 	config, _ := migrationApp.EvmKeeper.GetChainConfig(cmCtx)
 	upgradedTree.Set(evmtypes.KeyPrefixChainConfig, migrationApp.Codec().MustMarshalBinaryBare(config))
 	fmt.Printf("Successfully migrate chain config\n")
@@ -286,5 +286,5 @@ func migrateEvm2FromIavlToIavl(ctx *server.Context) {
 	iavl.SetIgnoreVersionCheck(true)
 	hash, version, _, err := upgradedTree.SaveVersion(false)
 	panicError(err)
-	fmt.Printf("Successfully save evm2, version: %d, hash: %s\n", version, ethcmn.BytesToHash(hash))
+	fmt.Printf("Successfully save evmlegacy, version: %d, hash: %s\n", version, ethcmn.BytesToHash(hash))
 }
