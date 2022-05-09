@@ -211,3 +211,13 @@ func (coins CoinAdapters) IsAllPositive() bool {
 
 	return true
 }
+
+func (coins CoinAdapters) Copy() CoinAdapters {
+	copyCoins := make(CoinAdapters, len(coins))
+
+	for i, coin := range coins {
+		copyCoins[i] = coin
+	}
+
+	return copyCoins
+}
