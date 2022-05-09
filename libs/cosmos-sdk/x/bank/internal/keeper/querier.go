@@ -1,15 +1,13 @@
 package keeper
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/typesadapter"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"strings"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/typesadapter"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 const (
@@ -64,11 +62,7 @@ func grpcQueryBalanceAdapter(ctx sdk.Context, req abci.RequestQuery, k Keeper) (
 		if err := bk.marshal.GetProtocMarshal().UnmarshalBinaryBare(req.Data, &protoReq); nil != err {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 		}
-		if strings.HasPrefix("cosmos", protoReq.Address) {
-			a, er = sdk.AccAddressFromBech32ByPrefix(protoReq.Address, "cosmos")
-		} else {
-			a, er = sdk.AccAddressFromBech32(protoReq.Address)
-		}
+		a, er = sdk.AccAddressFromBech32(protoReq.Address)
 		if nil != er {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, er.Error())
 		}
@@ -78,10 +72,19 @@ func grpcQueryBalanceAdapter(ctx sdk.Context, req abci.RequestQuery, k Keeper) (
 		}
 		bs := make(sdk.CoinAdapters, 0)
 		for _, c := range coins {
-			ada := sdk.CoinAdapter{
-				Denom:  c.Denom,
-				Amount: sdk.NewIntFromBigInt(c.Amount.BigInt()),
+			var ada sdk.CoinAdapter
+			if c.Denom == sdk.DefaultBondDenom {
+				ada = sdk.CoinAdapter{
+					Denom:  sdk.DefaultIbcWei,
+					Amount: sdk.NewIntFromBigInt(c.Amount.BigInt()),
+				}
+			} else {
+				ada = sdk.CoinAdapter{
+					Denom:  c.Denom,
+					Amount: sdk.NewIntFromBigInt(c.Amount.BigInt()),
+				}
 			}
+
 			bs = append(bs, ada)
 		}
 		resp := typesadapter.QueryAllBalancesResponse{
