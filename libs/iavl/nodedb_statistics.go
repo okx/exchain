@@ -21,8 +21,6 @@ type RuntimeState struct {
 	fromNodeCache    int64
 	fromOrphanCache  int64
 	fromDisk         int64
-
-	fromChanMap map[retrieveType]chan struct{}
 }
 
 type retrieveType int
@@ -36,22 +34,7 @@ const (
 )
 
 func newRuntimeState() *RuntimeState {
-	r := &RuntimeState{
-		fromChanMap: make(map[retrieveType]chan struct{}),
-	}
-
-	//buffer := 1000
-	//r.fromChanMap[fromPpnc] = make(chan struct{}, buffer)
-	//r.fromChanMap[fromTpp] = make(chan struct{}, buffer)
-	//r.fromChanMap[fromNodeCache] = make(chan struct{}, buffer)
-	//r.fromChanMap[fromOrphanCache] = make(chan struct{}, buffer)
-	//r.fromChanMap[fromDisk] = make(chan struct{}, buffer)
-	//
-	//go func() {for _ = range r.fromChanMap[fromPpnc] {r.fromPpnc++}}()
-	//go func() {for _ = range r.fromChanMap[fromTpp] {r.fromTpp++}}()
-	//go func() {for _ = range r.fromChanMap[fromNodeCache] {r.fromNodeCache++}}()
-	//go func() {for _ = range r.fromChanMap[fromOrphanCache] {r.fromOrphanCache++}}()
-	//go func() {for _ = range r.fromChanMap[fromDisk] {r.fromDisk++}}()
+	r := &RuntimeState{}
 	return r
 }
 
@@ -69,11 +52,6 @@ func (s *RuntimeState) onLoadNode(from retrieveType) {
 	case fromDisk:
 		atomic.AddInt64(&s.fromDisk, 1)
 	}
-
-	//c, ok := s.fromChanMap[from]
-	//if ok {
-	//	c <- struct{}{}
-	//}
 }
 
 func (s *RuntimeState) addDBReadTime(ts int64) {
