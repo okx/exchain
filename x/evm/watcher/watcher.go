@@ -389,7 +389,6 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 	if data.BloomData != nil {
 		w.commitBloomData(data.BloomData)
 	}
-	w.ExecuteDelayEraseKey(data.DelayEraseKey)
 
 	if checkWd {
 		keys := make([][]byte, len(data.Batches))
