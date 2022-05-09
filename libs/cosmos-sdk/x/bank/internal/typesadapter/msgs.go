@@ -79,7 +79,7 @@ func (m *MsgSend) GetAmount() []sdk.DecCoin {
 }
 
 func (m *MsgSend) RulesFilter() (sdk.Msg, error) {
-	var msgSend *MsgSend
+	msgSend := *m
 
 	msgSend.Amount = m.Amount.Copy()
 	for i, amount := range msgSend.Amount {
@@ -89,7 +89,7 @@ func (m *MsgSend) RulesFilter() (sdk.Msg, error) {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, "MsgSend not support okt denom")
 		}
 	}
-	return msgSend, nil
+	return &msgSend, nil
 }
 
 func (msg *MsgMultiSend) ValidateBasic() error {
