@@ -133,7 +133,7 @@ func (ndb *nodeDB) sprintCacheLog(version int64) string {
 	cacheReadCount := ndb.state.getNodeReadCount() - ndb.state.getDBReadCount()
 	printLog := fmt.Sprintf("Save Version<%d>: Tree<%s>", version, ndb.name)
 
-	printLog += fmt.Sprintf(", fromPpnc:%d, fromTpp:%d, fromNodeCache:%d, fromOrphanCache:%d, fromDisk:%d",
+	printLog += fmt.Sprintf(", getNode[fromPpnc:%d, fromTpp:%d, fromNodeCache:%d, fromOrphanCache:%d, fromDisk:%d]",
 		ndb.state.fromPpnc,
 		ndb.state.fromTpp,
 		ndb.state.fromNodeCache,
