@@ -34,7 +34,6 @@ type Keeper struct {
 	// - storing block height -> bloom filter map. Needed for the Web3 API.
 	// - storing block hash -> block height map. Needed for the Web3 API.
 	storeKey       sdk.StoreKey
-	legacyStoreKey sdk.StoreKey
 
 	// Account Keeper for fetching accounts
 	accountKeeper types.AccountKeeper
@@ -87,7 +86,7 @@ type chainConfigInfo struct {
 
 // NewKeeper generates new evm module keeper
 func NewKeeper(
-	cdc *codec.Codec, storeKey, legacyStoreKey sdk.StoreKey, paramSpace params.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper,
+	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper,
 	logger log.Logger) *Keeper {
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
@@ -107,7 +106,6 @@ func NewKeeper(
 	k := &Keeper{
 		cdc:            cdc,
 		storeKey:       storeKey,
-		legacyStoreKey: legacyStoreKey,
 		accountKeeper:  ak,
 		paramSpace:     paramSpace,
 		supplyKeeper:   sk,
@@ -137,13 +135,12 @@ func NewKeeper(
 
 // NewKeeper generates new evm module keeper
 func NewSimulateKeeper(
-	cdc *codec.Codec, storeKey, legacyStoreKey sdk.StoreKey, paramSpace types.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper, ada types.DbAdapter,
+	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace types.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper, ada types.DbAdapter,
 	logger log.Logger) *Keeper {
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
 	k := &Keeper{
 		cdc:            cdc,
 		storeKey:       storeKey,
-		legacyStoreKey: legacyStoreKey,
 		accountKeeper:  ak,
 		paramSpace:     paramSpace,
 		supplyKeeper:   sk,
@@ -179,7 +176,6 @@ func (k *Keeper) OnAccountUpdated(acc auth.Account, updateState bool) {
 func (k *Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 	return types.CommitStateDBParams{
 		StoreKey:       k.storeKey,
-		LegacyStoreKey: k.legacyStoreKey,
 		ParamSpace:     k.paramSpace,
 		AccountKeeper:  k.accountKeeper,
 		SupplyKeeper:   k.supplyKeeper,
@@ -199,7 +195,6 @@ func (k *Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 func (k Keeper) GeneratePureCSDBParams() types.CommitStateDBParams {
 	return types.CommitStateDBParams{
 		StoreKey:       k.storeKey,
-		LegacyStoreKey: k.legacyStoreKey,
 		Watcher:        k.Watcher,
 		Ada:            k.Ada,
 		Cdc:            k.cdc,
@@ -218,10 +213,6 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 
 func (k Keeper) GetStoreKey() store.StoreKey {
 	return k.storeKey
-}
-
-func (k Keeper) GetLegacyStoreKey() store.StoreKey {
-	return k.legacyStoreKey
 }
 
 // ----------------------------------------------------------------------------
@@ -363,7 +354,7 @@ func (k *Keeper) getChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 
 	var store types.StoreProxy
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		store = k.Ada.NewStore(ctx.KVStore(k.legacyStoreKey), types.KeyPrefixChainConfig)
+		store = k.Ada.NewStore(k.paramSpace.CustomKVStore(ctx), types.KeyPrefixChainConfig)
 	} else {
 		store = k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
 	}
@@ -411,7 +402,7 @@ func (k Keeper) GetChainConfig(ctx sdk.Context) (types.ChainConfig, bool) {
 func (k *Keeper) SetChainConfig(ctx sdk.Context, config types.ChainConfig) {
 	var store types.StoreProxy
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		store = k.Ada.NewStore(ctx.KVStore(k.legacyStoreKey), types.KeyPrefixChainConfig)
+		store = k.Ada.NewStore(k.paramSpace.CustomKVStore(ctx), types.KeyPrefixChainConfig)
 	} else {
 		store = k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixChainConfig)
 	}

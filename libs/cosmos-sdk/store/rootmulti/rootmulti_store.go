@@ -221,10 +221,6 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 				continue
 			}
 
-			if newEvmStoreFilter(sName, latestVersion) {
-				continue
-			}
-
 			commitVersion, err := rs.getCommitVersionFromParams(storeParams)
 			if err != nil {
 				return 0, err
@@ -270,7 +266,6 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 		}
 
 		rs.commitInfoFilter(infos, ver, MptStore)
-		rs.commitInfoFilter(infos, ver, NewEvmStore)
 
 		//if upgrade version ne
 		callback := func(name string, version int64) {
@@ -563,10 +558,6 @@ func (rs *Store) pruneStores() {
 			sName := key.Name()
 
 			if evmAccStoreFilter(sName, rs.lastCommitInfo.Version) {
-				continue
-			}
-
-			if newEvmStoreFilter(sName, rs.lastCommitInfo.Version) && !mpt.TrieWriteAhead {
 				continue
 			}
 
@@ -1067,7 +1058,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		}
 
 		if !mpt.TrieWriteAhead {
-			if newEvmStoreFilter(sName, version) || newMptStoreFilter(sName, version) {
+			if newMptStoreFilter(sName, version) {
 				continue
 			}
 		}
@@ -1083,7 +1074,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		}
 
 		// old version, mpt(acc) store, never allowed to participate the process of calculate root hash, or it will lead to SMB!
-		if newEvmStoreFilter(sName, version) || newMptStoreFilter(sName, version) {
+		if newMptStoreFilter(sName, version) {
 			continue
 		}
 
@@ -1386,10 +1377,6 @@ func (rs *Store) StopStore() {
 		case types.StoreTypeIAVL:
 			sName := key.Name()
 			if evmAccStoreFilter(sName, rs.GetLatestVersion()) {
-				continue
-			}
-
-			if newEvmStoreFilter(sName, rs.GetLatestVersion()) && !mpt.TrieWriteAhead {
 				continue
 			}
 

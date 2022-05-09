@@ -26,10 +26,12 @@ const (
 
 	accStoreKey = authtypes.StoreKey
 	evmStoreKey = evmtypes.StoreKey
+	legacyStoreKey = "evmlegacy"
 
 	iavlAccKey       = "s/k:acc/"
 	iavlEvmKey       = "s/k:evm/"
 	iavlEvmLegacyKey = "s/k:evmlegacy/"
+	KeyParams        = "s/k:params/"
 )
 
 func panicError(err error) {
@@ -40,7 +42,7 @@ func panicError(err error) {
 
 // checkValidKey checks if the key is equal to authtypes.StoreKey or evmtypes.StoreKey
 func checkValidKey(key string) error {
-	if key != accStoreKey && key != evmStoreKey && key != evmtypes.LegacyStoreKey {
+	if key != accStoreKey && key != evmStoreKey {
 		return fmt.Errorf("invalid key %s", key)
 	}
 	return nil
@@ -118,14 +120,14 @@ func writeDataToRawdb(batch ethdb.Batch) {
 	batch.Reset()
 }
 
-func getUpgradedTree(db dbm.DB) *iavl.MutableTree {
+func getUpgradedTree(db dbm.DB, prefix []byte) *iavl.MutableTree {
 	rs := rootmulti.NewStore(db)
 	latestVersion := rs.GetLatestVersion()
 	if latestVersion == 0 {
 		return nil
 	}
 
-	db = dbm.NewPrefixDB(db, []byte(iavlEvmLegacyKey))
+	db = dbm.NewPrefixDB(db, prefix)
 
 	tree, _ := iavl.NewMutableTree(db, iavlstore.IavlCacheSize)
 	if tree.Version() == 0 {
