@@ -101,7 +101,7 @@ func (suite *JournalTestSuite) setup() {
 	paramsTKey := sdk.NewTransientStoreKey(params.TStoreKey)
 	// bankKey := sdk.NewKVStoreKey(bank.StoreKey)
 	storeKey := sdk.NewKVStoreKey(StoreKey)
-	store2Key := sdk.NewKVStoreKey(Store2Key)
+	store2Key := sdk.NewKVStoreKey(LegacyStoreKey)
 
 	db := tmdb.NewDB("state", tmdb.GoLevelDBBackend, "temp")
 	defer func() {

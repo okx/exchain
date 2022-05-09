@@ -119,7 +119,7 @@ func (k *Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Vali
 	return []abci.ValidatorUpdate{}
 }
 
-// migrateDataInMarsHeight migrates data from evm store to evm2 store
+// migrateDataInMarsHeight migrates data from evm store to evmlegacy store
 // 0. chainConfig
 // 1. white address list
 // 2. blocked addresses list
