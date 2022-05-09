@@ -7,8 +7,8 @@ import (
 const (
 	AccStore    = "acc"
 	EvmStore    = "evm"
-	MptStore    = "mpt" // new store for acc module, will use mpt instead of iavl as store engine
-	NewEvmStore = ""    //new store for evm module, evm store will del after migration. the chainconfig, whiteList and block list info will store in evmlegacy store
+	MptStore    = "mpt"       // new store for acc module, will use mpt instead of iavl as store engine
+	NewEvmStore = "evmlegacy" //new store for evm module, evm store will del after migration. the chainconfig, whiteList and block list info will store in evmlegacy store
 )
 
 func evmAccStoreFilter(sName string, ver int64) bool {
