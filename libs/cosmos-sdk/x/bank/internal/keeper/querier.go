@@ -1,15 +1,13 @@
 package keeper
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/typesadapter"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"strings"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/typesadapter"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 const (
@@ -87,13 +85,6 @@ func grpcQueryBalanceAdapter(ctx sdk.Context, req abci.RequestQuery, k Keeper) (
 				}
 			}
 
-			if strings.HasPrefix(c.Denom, "ibc") {
-				arrs := strings.Split(c.Denom, "/")
-				if len(arrs) == 2 {
-					arrs[1] = strings.ToUpper(arrs[1])
-					ada.Denom = strings.Join(arrs, "/")
-				}
-			}
 			bs = append(bs, ada)
 		}
 		resp := typesadapter.QueryAllBalancesResponse{
