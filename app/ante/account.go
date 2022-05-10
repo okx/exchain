@@ -242,8 +242,13 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 	var acc exported.Account
 	var getAccGasUsed sdk.Gas
 
+	address := msgEthTx.AccountAddress()
+	if address.Empty() && ctx.From() != "" {
+		msgEthTx.SetFrom(ctx.From())
+		address = msgEthTx.AccountAddress()
+	}
+
 	if !simulate {
-		address := msgEthTx.AccountAddress()
 		if address.Empty() {
 			panic("sender address cannot be empty")
 		}
