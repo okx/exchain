@@ -2,6 +2,7 @@ package iavl
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/system/trace"
 	"sync/atomic"
 )
 
@@ -167,9 +168,9 @@ func (ndb *nodeDB) sprintCacheLog(version int64) (printLog string) {
 	printLog += fmt.Sprintf(", TDelCnt:%d", atomic.LoadInt64(&ndb.state.totalDeletedCount))
 	printLog += fmt.Sprintf(", TOrphanCnt:%d", atomic.LoadInt64(&ndb.state.totalOrphanCount))
 
-	//if ndb.name == "evm" {
-	//	trace.GetElapsedInfo().AddInfo(trace.IavlRuntime, printLog)
-	//}
+	if ndb.name == "evm" {
+		trace.GetElapsedInfo().AddInfo(trace.IavlRuntime, printLog)
+	}
 
 	return header+printLog
 }
