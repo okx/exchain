@@ -2,20 +2,14 @@ package ante_test
 
 import (
 	appante "github.com/okex/exchain/app/ante"
-	okexchaincodec "github.com/okex/exchain/app/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/simapp/helpers"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
-	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
-	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
-	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
 	"github.com/okex/exchain/libs/ibc-go/testing/mock"
+	helpers2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/helpers"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/order"
 	"github.com/stretchr/testify/suite"
@@ -269,21 +263,32 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 		{
 			"success on single update client msg",
 			func(suite *AnteTestSuite) []ibcmsg.Msg {
-				return []ibcmsg.Msg{&clienttypes.MsgUpdateClient{}}
+				return []ibcmsg.Msg{&clienttypes.MsgUpdateClient{
+					suite.chainB.ChainID(),
+					nil,
+					suite.chainB.SenderAccount().GetAddress().String(),
+				}}
 			},
 			true,
 		},
 		{
 			"success on multiple update clients",
 			func(suite *AnteTestSuite) []ibcmsg.Msg {
-				return []ibcmsg.Msg{&clienttypes.MsgUpdateClient{}, &clienttypes.MsgUpdateClient{}, &clienttypes.MsgUpdateClient{}}
+				return []ibcmsg.Msg{
+					&clienttypes.MsgUpdateClient{suite.chainB.ChainID(), nil, suite.chainB.SenderAccount().GetAddress().String()},
+					&clienttypes.MsgUpdateClient{suite.chainB.ChainID(), nil, suite.chainB.SenderAccount().GetAddress().String()},
+					&clienttypes.MsgUpdateClient{suite.chainB.ChainID(), nil, suite.chainB.SenderAccount().GetAddress().String()}}
 			},
 			true,
 		},
 		{
 			"success on multiple update clients and fresh packet message",
 			func(suite *AnteTestSuite) []ibcmsg.Msg {
-				msgs := []ibcmsg.Msg{&clienttypes.MsgUpdateClient{}, &clienttypes.MsgUpdateClient{}, &clienttypes.MsgUpdateClient{}}
+				msgs := []ibcmsg.Msg{
+					&clienttypes.MsgUpdateClient{suite.chainB.ChainID(), nil, suite.chainB.SenderAccount().GetAddress().String()},
+					&clienttypes.MsgUpdateClient{suite.chainB.ChainID(), nil, suite.chainB.SenderAccount().GetAddress().String()},
+					&clienttypes.MsgUpdateClient{suite.chainB.ChainID(), nil, suite.chainB.SenderAccount().GetAddress().String()},
+				}
 
 				packet := channeltypes.NewPacket([]byte(mock.MockPacketData), 1,
 					suite.path.EndpointA.ChannelConfig.PortID, suite.path.EndpointA.ChannelID,
@@ -297,7 +302,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 		{
 			"success of tx with different msg type even if all packet messages are redundant",
 			func(suite *AnteTestSuite) []ibcmsg.Msg {
-				msgs := []ibcmsg.Msg{&clienttypes.MsgUpdateClient{}}
+				msgs := []ibcmsg.Msg{&clienttypes.MsgUpdateClient{suite.chainB.ChainID(), nil, suite.chainB.SenderAccount().GetAddress().String()}}
 
 				for i := 1; i <= 3; i++ {
 					packet := channeltypes.NewPacket([]byte(mock.MockPacketData), uint64(i),
@@ -345,7 +350,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 				}
 
 				// append non packet and update message to msgs to ensure multimsg tx should pass
-				msgs = append(msgs, &clienttypes.MsgSubmitMisbehaviour{})
+				msgs = append(msgs, &clienttypes.MsgSubmitMisbehaviour{suite.chainB.ChainID(), nil, suite.chainB.SenderAccount().GetAddress().String()})
 
 				return msgs
 			},
@@ -468,9 +473,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 
 			k := suite.chainB.App().GetIBCKeeper().ChannelKeeper
 			//decorator := ante.NewAnteDecorator(k)
-			app := suite.chainA.GetSimApp()
-			//auth.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), app.IBCKeeper.ChannelKeeper)
-			antehandler := appante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), k)
+			app := suite.chainB.GetSimApp()
 			msgs := tc.malleate(suite)
 
 			deliverCtx := suite.chainB.GetContext().WithIsCheckTx(false)
@@ -479,44 +482,17 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 			// create multimsg tx
 			txBuilder := suite.chainB.TxConfig().NewTxBuilder()
 			err := txBuilder.SetMsgs(msgs...)
-			//sigs := make([]signing.SignatureV2, len(msgs))
-			//
-			sigs := make([]signing.SignatureV2, 1)
-
-			// create a random length memo
-			//r := rand.New(rand.NewSource(time.Now().UnixNano()))
-			//memo := simulation.RandStringOfLength(r, simulation.RandIntBetween(r, 0, 100))
-			signMode := signing.SignMode_SIGN_MODE_DIRECT //gen.SignModeHandler().DefaultMode()
-
-			// 1st round: set SignatureV2 with empty signatures, to set correct
-			// signer infos.
-			//for i, p := range priv {
-			sigs[0] = signing.SignatureV2{
-				PubKey: suite.chainB.SenderAccountPV().PubKey(),
-				Data: &signing.SingleSignatureData{
-					SignMode: signMode,
-				},
-				Sequence: suite.chainB.SenderAccount().GetAccountNumber(), //accSeqs[i],
-			}
-			//}
-			//
-			txBuilder.SetSignatures(sigs...)
-			txBuilder.SetFeeAmount(sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultBondDenom, sdk.NewIntFromBigInt(big.NewInt(10000)))})
-			txBuilder.SetGasLimit(helpers.DefaultGenTxGas)
-			suite.Require().NoError(err)
-			tx := txBuilder.GetTx()
-
-			//next := func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error) { return ctx, nil }
-			//ibcdecoder
-			//ibctx := ibcmsg.IbcTxDecoder()
-			txBytes, err := suite.chainB.TxConfig().TxEncoder()(tx)
-			if err != nil {
-				panic("construct tx error")
-			}
-			cdcProxy := newProxyDecoder()
-
-			ibcTx, err := ibc_tx.IbcTxDecoder(cdcProxy.GetProtocMarshal())(txBytes)
-			//antehandler()
+			ibcTx, err := helpers2.GenTx(
+				suite.chainB.TxConfig(),
+				msgs,
+				sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultIbcWei, sdk.NewIntFromBigInt(big.NewInt(0)))},
+				helpers.DefaultGenTxGas,
+				suite.chainB.ChainID(),
+				[]uint64{suite.chainB.SenderAccount().GetAccountNumber()},
+				[]uint64{suite.chainB.SenderAccount().GetSequence()},
+				suite.chainB.SenderAccountPV(),
+			)
+			antehandler := appante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), k)
 			antehandler(deliverCtx, ibcTx, false)
 			//_, err = decorator.AnteHandle(deliverCtx, ibcTx, false, next)
 			suite.Require().NoError(err, "antedecorator should not error on DeliverTx")
@@ -530,17 +506,6 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 			}
 		})
 	}
-}
-func newProxyDecoder() *codec.CodecProxy {
-	ModuleBasics := module.NewBasicManager(
-		ibc.AppModuleBasic{},
-		ibctransfer.AppModuleBasic{},
-	)
-	cdc := okexchaincodec.MakeCodec(ModuleBasics)
-	interfaceReg := okexchaincodec.MakeIBC(ModuleBasics)
-	protoCodec := codec.NewProtoCodec(interfaceReg)
-	codecProxy := codec.NewCodecProxy(protoCodec, cdc)
-	return codecProxy
 }
 
 func validateMsgHook(orderKeeper order.Keeper) appante.ValidateMsgHandler {
