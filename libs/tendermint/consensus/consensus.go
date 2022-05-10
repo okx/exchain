@@ -491,12 +491,14 @@ func (cs *State) updateRoundStep(round int, step cstypes.RoundStepType) {
 // enterNewRound(height, 0) at cs.StartTime.
 func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	overDuration := tmtime.Now().Sub(cs.StartTime)
+	if overDuration < 0 {
+		overDuration = 0
+	}
 	sleepDuration := cfg.DynamicConfig.GetCsTimeoutCommit() - overDuration
 	if sleepDuration < 0 {
 		sleepDuration = 0
 	}
 
-	cs.StartTime = tmtime.Now().Add(sleepDuration)
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
 }
 
@@ -787,10 +789,6 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 	case cstypes.RoundStepNewHeight:
 		// NewRound event fired from enterNewRound.
 		// XXX: should we fire timeout here (for timeout commit)?
-		trace.GetElapsedInfo().AddInfo(trace.Produce, cs.trc.Format())
-		trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
-
-		cs.trc.Reset()
 		cs.enterNewRound(ti.Height, 0)
 	case cstypes.RoundStepNewRound:
 		cs.enterPropose(ti.Height, 0)
@@ -808,6 +806,22 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 		panic(fmt.Sprintf("Invalid timeout step: %v", ti.Step))
 	}
 
+}
+
+func (cs *State) traceDump() {
+	trace.GetElapsedInfo().AddInfo(trace.Produce, cs.trc.Format())
+	trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
+	cs.trc.Reset()
+}
+
+func (cs *State) initNewHeight() {
+	// waiting finished and enterNewHeight by timeoutNewHeight
+	if cs.Step == cstypes.RoundStepNewHeight {
+		// dump trace log
+		cs.traceDump()
+		// init StartTime
+		cs.StartTime = tmtime.Now()
+	}
 }
 
 func (cs *State) handleTxsAvailable() {
@@ -857,6 +871,7 @@ func (cs *State) enterNewRound(height int64, round int) {
 		return
 	}
 
+	cs.initNewHeight()
 	cs.trc.Pin("NewRound-%d", round)
 
 	if now := tmtime.Now(); cs.StartTime.After(now) {
@@ -957,6 +972,7 @@ func (cs *State) enterPropose(height int64, round int) {
 		return
 	}
 
+	cs.initNewHeight()
 	isBlockProducer, bpAddr := cs.isBlockProducer()
 	cs.trc.Pin("H%d-Propose-%d-%s-%s", height, round, isBlockProducer, bpAddr)
 
@@ -1104,6 +1120,8 @@ func (cs *State) enterPrevote(height int64, round int) {
 			cs.Step))
 		return
 	}
+
+	cs.initNewHeight()
 	cs.trc.Pin("Prevote-%d", round)
 
 	defer func() {
@@ -1173,6 +1191,8 @@ func (cs *State) enterPrevoteWait(height int64, round int) {
 			cs.Step))
 		return
 	}
+
+	cs.initNewHeight()
 	cs.trc.Pin("PrevoteWait-%d", round)
 
 	if !cs.Votes.Prevotes(round).HasTwoThirdsAny() {
@@ -1210,6 +1230,7 @@ func (cs *State) enterPrecommit(height int64, round int) {
 		return
 	}
 
+	cs.initNewHeight()
 	cs.trc.Pin("Precommit-%d", round)
 
 	logger.Info(fmt.Sprintf("enterPrecommit(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
@@ -1316,6 +1337,8 @@ func (cs *State) enterPrecommitWait(height int64, round int) {
 				height, round, cs.Height, cs.Round, cs.TriggeredTimeoutPrecommit))
 		return
 	}
+
+	cs.initNewHeight()
 	cs.trc.Pin("PrecommitWait-%d", round)
 
 	if !cs.Votes.Precommits(round).HasTwoThirdsAny() {
@@ -1348,6 +1371,8 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 			cs.Step))
 		return
 	}
+
+	cs.initNewHeight()
 	cs.trc.Pin("%s-%d-%d", "Commit", cs.Round, commitRound)
 
 	logger.Info(fmt.Sprintf("enterCommit(%v/%v). Current: %v/%v/%v", height, commitRound, cs.Height, cs.Round, cs.Step))
