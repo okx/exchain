@@ -368,8 +368,8 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		case *ProposeRequestMessage:
 			conR.mtx.Lock()
 			defer conR.mtx.Unlock()
-			conR.conS.mtx.Lock()
-			defer conR.conS.mtx.Unlock()
+			conR.conS.rsMtx.Lock()
+			defer conR.conS.rsMtx.Unlock()
 			height := conR.conS.Height
 			// this peer has received a prMsg before
 			// or this peer is not proposer
