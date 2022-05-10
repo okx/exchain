@@ -8,15 +8,11 @@ import (
 
 	cmap "github.com/orcaman/concurrent-map"
 
-	"github.com/tendermint/go-amino"
-
 	"github.com/go-errors/errors"
-
-	"time"
-
-	"github.com/okex/exchain/libs/iavl/trace"
-
+	"github.com/okex/exchain/libs/system/trace"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/tendermint/go-amino"
+	"time"
 )
 
 const (
@@ -159,7 +155,11 @@ func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer)
 		ndb.tppVersionList.Remove(tItem.listItem)
 	}
 	delete(ndb.tppMap, version)
-	ndb.log(IavlInfo, "CommitSchedule", "Height", version, "Tree", ndb.name, "IavlHeight", iavlHeight, "NodeNum", nodeNum, "trace", trc)
+	ndb.log(IavlInfo, "CommitSchedule", "Height", version,
+		"Tree", ndb.name,
+		"IavlHeight", iavlHeight,
+		"NodeNum", nodeNum,
+		"trc", trc.Format())
 }
 
 // SaveNode saves a node to disk.

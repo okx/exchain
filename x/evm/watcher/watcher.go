@@ -36,8 +36,7 @@ type Watcher struct {
 	delayEraseKey [][]byte
 	log           log.Logger
 	// for state delta transfering in network
-	watchData  *WatchData
-	wdDelayKey [][]byte
+	watchData *WatchData
 
 	jobChan chan func()
 
@@ -102,7 +101,6 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	w.batch = []WatchMessage{} // reset batch
 	// ResetTransferWatchData
 	w.watchData = &WatchData{}
-	w.wdDelayKey = make([][]byte, 0)
 	w.evmTxIndex = 0
 }
 
@@ -110,8 +108,6 @@ func (w *Watcher) clean() {
 	w.cumulativeGas = make(map[uint64]uint64)
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
-	w.wdDelayKey = w.delayEraseKey
-	w.delayEraseKey = make([][]byte, 0)
 }
 
 func (w *Watcher) SaveContractCode(addr common.Address, code []byte) {
@@ -194,6 +190,18 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 	key2 := append(prefixRpcDb, key1...)
 	w.delayEraseKey = append(w.delayEraseKey, key1)
 	w.delayEraseKey = append(w.delayEraseKey, key2)
+}
+
+func (w *Watcher) DelayEraseKey() {
+	if !w.Enabled() {
+		return
+	}
+	//hold it in temp
+	delayEraseKey := w.delayEraseKey
+	w.delayEraseKey = make([][]byte, 0)
+	w.dispatchJob(func() {
+		w.ExecuteDelayEraseKey(delayEraseKey)
+	})
 }
 
 func (w *Watcher) ExecuteDelayEraseKey(delayEraseKey [][]byte) {
@@ -361,14 +369,13 @@ func (w *Watcher) Commit() {
 	}
 	//hold it in temp
 	batch := w.batch
-	delayEraseKey := w.delayEraseKey
 	w.clean()
 	w.dispatchJob(func() {
-		w.commitBatch(batch, delayEraseKey)
+		w.commitBatch(batch)
 	})
 }
 
-func (w *Watcher) CommitWatchData(data WatchData, delayEraseKey [][]byte) {
+func (w *Watcher) CommitWatchData(data WatchData) {
 	if data.Size() == 0 {
 		return
 	}
@@ -381,7 +388,6 @@ func (w *Watcher) CommitWatchData(data WatchData, delayEraseKey [][]byte) {
 	if data.BloomData != nil {
 		w.commitBloomData(data.BloomData)
 	}
-	w.ExecuteDelayEraseKey(data.DelayEraseKey)
 
 	if checkWd {
 		keys := make([][]byte, len(data.Batches))
@@ -392,7 +398,7 @@ func (w *Watcher) CommitWatchData(data WatchData, delayEraseKey [][]byte) {
 	}
 }
 
-func (w *Watcher) commitBatch(batch []WatchMessage, delayEraseKey [][]byte) {
+func (w *Watcher) commitBatch(batch []WatchMessage) {
 	filterMap := make(map[string]WatchMessage)
 	for _, b := range batch {
 		filterMap[bytes2Key(b.GetKey())] = b
@@ -411,7 +417,6 @@ func (w *Watcher) commitBatch(batch []WatchMessage, delayEraseKey [][]byte) {
 			}
 		}
 	}
-	w.ExecuteDelayEraseKey(delayEraseKey)
 
 	if checkWd {
 		keys := make([][]byte, len(batch))
@@ -456,7 +461,7 @@ func (w *Watcher) commitBloomData(bloomData []*evmtypes.KV) {
 
 func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
 	value := w.watchData
-	value.DelayEraseKey = w.wdDelayKey
+	value.DelayEraseKey = w.delayEraseKey
 
 	// hold it in temp
 	batch := w.batch
@@ -492,7 +497,7 @@ func (w *Watcher) UseWatchData(watchData interface{}) {
 	if !ok {
 		panic("use watch data failed")
 	}
-	w.dispatchJob(func() { w.CommitWatchData(wd, nil) })
+	w.dispatchJob(func() { w.CommitWatchData(wd) })
 }
 
 func (w *Watcher) SetWatchDataFunc() {
@@ -631,8 +636,8 @@ func (w *Watcher) jobRoutine() {
 func (w *Watcher) lazyInitialization() {
 	// lazy initial:
 	// now we will allocate chan memory
-	// 5*2 means watcherCommitJob+commitBatchJob(just in case)
-	w.jobChan = make(chan func(), 5*2)
+	// 5*3 means watcherCommitJob+DelayEraseKey+commitBatchJob(just in case)
+	w.jobChan = make(chan func(), 5*3)
 }
 
 func (w *Watcher) dispatchJob(f func()) {
