@@ -33,7 +33,7 @@ type Keeper struct {
 	// - storing transaction Logs
 	// - storing block height -> bloom filter map. Needed for the Web3 API.
 	// - storing block hash -> block height map. Needed for the Web3 API.
-	storeKey       sdk.StoreKey
+	storeKey sdk.StoreKey
 
 	// Account Keeper for fetching accounts
 	accountKeeper types.AccountKeeper
@@ -104,17 +104,17 @@ func NewKeeper(
 	}
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
 	k := &Keeper{
-		cdc:            cdc,
-		storeKey:       storeKey,
-		accountKeeper:  ak,
-		paramSpace:     paramSpace,
-		supplyKeeper:   sk,
-		bankKeeper:     bk,
-		TxCount:        0,
-		Bloom:          big.NewInt(0),
-		LogSize:        0,
-		Watcher:        watcher.NewWatcher(logger),
-		Ada:            types.DefaultPrefixDb{},
+		cdc:           cdc,
+		storeKey:      storeKey,
+		accountKeeper: ak,
+		paramSpace:    paramSpace,
+		supplyKeeper:  sk,
+		bankKeeper:    bk,
+		TxCount:       0,
+		Bloom:         big.NewInt(0),
+		LogSize:       0,
+		Watcher:       watcher.NewWatcher(logger),
+		Ada:           types.DefaultPrefixDb{},
 
 		innerBlockData: defaultBlockInnerData(),
 
@@ -139,17 +139,17 @@ func NewSimulateKeeper(
 	logger log.Logger) *Keeper {
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
 	k := &Keeper{
-		cdc:            cdc,
-		storeKey:       storeKey,
-		accountKeeper:  ak,
-		paramSpace:     paramSpace,
-		supplyKeeper:   sk,
-		bankKeeper:     bk,
-		TxCount:        0,
-		Bloom:          big.NewInt(0),
-		LogSize:        0,
-		Watcher:        watcher.NewWatcher(nil),
-		Ada:            ada,
+		cdc:           cdc,
+		storeKey:      storeKey,
+		accountKeeper: ak,
+		paramSpace:    paramSpace,
+		supplyKeeper:  sk,
+		bankKeeper:    bk,
+		TxCount:       0,
+		Bloom:         big.NewInt(0),
+		LogSize:       0,
+		Watcher:       watcher.NewWatcher(nil),
+		Ada:           ada,
 
 		db:             mpt.InstanceOfMptStore(),
 		triegc:         prque.New(nil),
@@ -175,14 +175,14 @@ func (k *Keeper) OnAccountUpdated(acc auth.Account, updateState bool) {
 // Logger returns a module-specific logger.
 func (k *Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 	return types.CommitStateDBParams{
-		StoreKey:       k.storeKey,
-		ParamSpace:     k.paramSpace,
-		AccountKeeper:  k.accountKeeper,
-		SupplyKeeper:   k.supplyKeeper,
-		BankKeeper:     k.bankKeeper,
-		Watcher:        k.Watcher,
-		Ada:            k.Ada,
-		Cdc:            k.cdc,
+		StoreKey:      k.storeKey,
+		ParamSpace:    k.paramSpace,
+		AccountKeeper: k.accountKeeper,
+		SupplyKeeper:  k.supplyKeeper,
+		BankKeeper:    k.bankKeeper,
+		Watcher:       k.Watcher,
+		Ada:           k.Ada,
+		Cdc:           k.cdc,
 
 		DB:         k.db,
 		Trie:       k.rootTrie,
@@ -194,10 +194,11 @@ func (k *Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 // GeneratePureCSDBParams generates an instance of csdb params ONLY for store setter and getter
 func (k Keeper) GeneratePureCSDBParams() types.CommitStateDBParams {
 	return types.CommitStateDBParams{
-		StoreKey:       k.storeKey,
-		Watcher:        k.Watcher,
-		Ada:            k.Ada,
-		Cdc:            k.cdc,
+		StoreKey:   k.storeKey,
+		ParamSpace: k.paramSpace,
+		Watcher:    k.Watcher,
+		Ada:        k.Ada,
+		Cdc:        k.cdc,
 
 		DB:         k.db,
 		Trie:       k.rootTrie,
