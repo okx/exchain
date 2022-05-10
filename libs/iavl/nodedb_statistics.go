@@ -15,6 +15,43 @@ type RuntimeState struct {
 	totalPersistedSize  int64
 	totalDeletedCount   int64
 	totalOrphanCount    int64
+
+	fromPpnc         int64
+	fromTpp          int64
+	fromNodeCache    int64
+	fromOrphanCache  int64
+	fromDisk         int64
+}
+
+type retrieveType int
+const (
+	unknown retrieveType = iota
+	fromPpnc
+	fromTpp
+	fromNodeCache
+	fromOrphanCache
+	fromDisk
+)
+
+func newRuntimeState() *RuntimeState {
+	r := &RuntimeState{}
+	return r
+}
+
+func (s *RuntimeState) onLoadNode(from retrieveType) {
+
+	switch from {
+	case fromPpnc:
+		atomic.AddInt64(&s.fromPpnc, 1)
+	case fromTpp:
+		atomic.AddInt64(&s.fromTpp, 1)
+	case fromNodeCache:
+		atomic.AddInt64(&s.fromNodeCache, 1)
+	case fromOrphanCache:
+		atomic.AddInt64(&s.fromOrphanCache, 1)
+	case fromDisk:
+		atomic.AddInt64(&s.fromDisk, 1)
+	}
 }
 
 func (s *RuntimeState) addDBReadTime(ts int64) {
@@ -96,10 +133,18 @@ func (ndb *nodeDB) sprintCacheLog(version int64) string {
 	cacheReadCount := ndb.state.getNodeReadCount() - ndb.state.getDBReadCount()
 	printLog := fmt.Sprintf("Save Version<%d>: Tree<%s>", version, ndb.name)
 
-	printLog += fmt.Sprintf(", TotalPreCommitCacheSize:%d", treeMap.totalPreCommitCacheSize)
-	printLog += fmt.Sprintf(", nodeCCnt:%d", ndb.nc.nodeCacheLen())
-	printLog += fmt.Sprintf(", orphanCCnt:%d", ndb.oi.orphanNodeCacheLen())
-	printLog += fmt.Sprintf(", prePerCCnt:%d", len(ndb.prePersistNodeCache))
+	printLog += fmt.Sprintf(", getNode[fromPpnc:%d, fromTpp:%d, fromNodeCache:%d, fromOrphanCache:%d, fromDisk:%d]",
+		ndb.state.fromPpnc,
+		ndb.state.fromTpp,
+		ndb.state.fromNodeCache,
+		ndb.state.fromOrphanCache,
+		ndb.state.fromDisk)
+	printLog += fmt.Sprintf(", ppnc:%d", len(ndb.prePersistNodeCache))
+	printLog += fmt.Sprintf(", nodeCache:%d", ndb.nc.nodeCacheLen())
+	printLog += fmt.Sprintf(", orphanCache:%d", ndb.oi.orphanNodeCacheLen())
+	printLog += fmt.Sprintf(", totalPpncSize:%d", treeMap.totalPpncSize)
+	printLog += fmt.Sprintf(", evmPpncSize:%d", treeMap.evmPpncSize)
+	printLog += fmt.Sprintf(", accPpncSize:%d", treeMap.accPpncSize)
 	printLog += fmt.Sprintf(", dbRCnt:%d", ndb.state.getDBReadCount())
 	printLog += fmt.Sprintf(", dbWCnt:%d", ndb.state.getDBWriteCount())
 	printLog += fmt.Sprintf(", nodeRCnt:%d", ndb.state.getNodeReadCount())

@@ -81,8 +81,10 @@ func nonceVerificationInCheckTx(seq uint64, msgEthTx *evmtypes.MsgEthereumTx, is
 				// will also reset checkState), so we will need to add pending txs len to get the right nonce
 				gPool := baseapp.GetGlobalMempool()
 				if gPool != nil {
-					cnt := gPool.GetUserPendingTxsCnt(evmtypes.EthAddressStringer(common.BytesToAddress(msgEthTx.AccountAddress().Bytes())).String())
-					checkTxModeNonce = seq + uint64(cnt)
+					addr := evmtypes.EthAddressStringer(common.BytesToAddress(msgEthTx.AccountAddress().Bytes())).String()
+					if pendingNonce, ok := gPool.GetPendingNonce(addr); ok {
+						checkTxModeNonce = pendingNonce + 1
+					}
 				}
 			}
 
@@ -240,8 +242,13 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 	var acc exported.Account
 	var getAccGasUsed sdk.Gas
 
+	address := msgEthTx.AccountAddress()
+	if address.Empty() && ctx.From() != "" {
+		msgEthTx.SetFrom(ctx.From())
+		address = msgEthTx.AccountAddress()
+	}
+
 	if !simulate {
-		address := msgEthTx.AccountAddress()
 		if address.Empty() {
 			panic("sender address cannot be empty")
 		}

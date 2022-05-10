@@ -325,17 +325,22 @@ func (app *BaseApp) asyncDeliverTx(txIndex int) {
 	if !pmWorkGroup.isReady {
 		return
 	}
+	if app.deliverState == nil { // runTxs already finish
+		return
+	}
+
+	blockHeight := app.deliverState.ctx.BlockHeight()
 
 	txStatus := app.parallelTxManage.extraTxsInfo[txIndex]
 
 	if txStatus.stdTx == nil {
-		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr, 0, 0, app.trace), nil, uint32(txIndex), nil)
+		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr, 0, 0, app.trace), nil, uint32(txIndex), nil, blockHeight)
 		pmWorkGroup.Push(asyncExe)
 		return
 	}
 
 	if !txStatus.isEvm {
-		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, uint32(txIndex), nil)
+		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, uint32(txIndex), nil, blockHeight)
 		pmWorkGroup.Push(asyncExe)
 		return
 	}
@@ -354,7 +359,7 @@ func (app *BaseApp) asyncDeliverTx(txIndex int) {
 		}
 	}
 
-	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg())
+	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg(), blockHeight)
 	pmWorkGroup.Push(asyncExe)
 }
 
