@@ -120,7 +120,7 @@ func writeDataToRawdb(batch ethdb.Batch) {
 	batch.Reset()
 }
 
-func getUpgradedTree(db dbm.DB, prefix []byte) *iavl.MutableTree {
+func getUpgradedTree(db dbm.DB, prefix []byte, usePreLatest bool) *iavl.MutableTree {
 	rs := rootmulti.NewStore(db)
 	latestVersion := rs.GetLatestVersion()
 	if latestVersion == 0 {
@@ -134,11 +134,18 @@ func getUpgradedTree(db dbm.DB, prefix []byte) *iavl.MutableTree {
 		panic("Fail to get tree: " + err.Error())
 	}
 
+	if usePreLatest {
+		latestVersion -= 1
+	}
+
+	if latestVersion <= 0 {
+		panic(fmt.Sprintf("invalid version to load: %d", latestVersion))
+	}
+
 	_, err = tree.LoadVersion(latestVersion)
 	if err != nil {
 		panic("fail to load target version tree: " + err.Error())
 	}
-	tree.SetUpgradeVersion(latestVersion)
 
 	return tree
 }

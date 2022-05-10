@@ -246,7 +246,15 @@ func migrateEvmLegacyFromIavlToIavl(ctx *server.Context) {
 	migrationApp := newMigrationApp(ctx)
 	cmCtx := migrationApp.MockContext()
 
-	upgradedTree := getUpgradedTree(migrationApp.GetDB(), []byte(KeyParams))
+	allParams := readAllParams(migrationApp)
+	upgradedTree := getUpgradedTree(migrationApp.GetDB(), []byte(KeyParams), true)
+
+	// 0. migrate latest params to pre-latest version
+	for key, value := range allParams {
+		upgradedTree.Set([]byte(key), value)
+	}
+	fmt.Printf("Successfully update all module params\n")
+
 	// 1. Migrates ChainConfig -> evmlegacy iavl
 	config, _ := migrationApp.EvmKeeper.GetChainConfig(cmCtx)
 	upgradedTree.Set(generateKeyForCustomParamStore(evmStoreKey, evmtypes.KeyPrefixChainConfig),
@@ -292,6 +300,18 @@ func migrateEvmLegacyFromIavlToIavl(ctx *server.Context) {
 	panicError(err)
 	fmt.Printf("Successfully save evmlegacy, version: %d, hash: %s\n", version, ethcmn.BytesToHash(hash))
 
+}
+
+func readAllParams(app *app.OKExChainApp) map[string][]byte{
+	tree := getUpgradedTree(app.GetDB(), []byte(KeyParams), false)
+
+	paramsMap := make(map[string][]byte)
+	tree.IterateRange(nil, nil, true, func(key, value []byte) bool{
+		paramsMap[string(key)] = value
+		return false
+	})
+
+	return paramsMap
 }
 
 func generateKeyForCustomParamStore(storeKey string, key []byte) []byte {
