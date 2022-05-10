@@ -42,7 +42,7 @@ func panicError(err error) {
 
 // checkValidKey checks if the key is equal to authtypes.StoreKey or evmtypes.StoreKey
 func checkValidKey(key string) error {
-	if key != accStoreKey && key != evmStoreKey {
+	if key != accStoreKey && key != evmStoreKey && key != legacyStoreKey {
 		return fmt.Errorf("invalid key %s", key)
 	}
 	return nil
@@ -129,12 +129,16 @@ func getUpgradedTree(db dbm.DB, prefix []byte) *iavl.MutableTree {
 
 	db = dbm.NewPrefixDB(db, prefix)
 
-	tree, _ := iavl.NewMutableTree(db, iavlstore.IavlCacheSize)
-	if tree.Version() == 0 {
-		tree, _ = iavl.NewMutableTreeWithOpts(db, iavlstore.IavlCacheSize, &iavl.Options{
-			InitialVersion: uint64(latestVersion - 1),
-		})
+	tree, err := iavl.NewMutableTree(db, iavlstore.IavlCacheSize)
+	if err != nil {
+		panic("Fail to get tree: " + err.Error())
 	}
+
+	_, err = tree.LoadVersion(latestVersion)
+	if err != nil {
+		panic("fail to load target version tree: " + err.Error())
+	}
+	tree.SetUpgradeVersion(latestVersion)
 
 	return tree
 }

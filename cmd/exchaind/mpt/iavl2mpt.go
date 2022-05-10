@@ -291,6 +291,7 @@ func migrateEvmLegacyFromIavlToIavl(ctx *server.Context) {
 	hash, version, _, err := upgradedTree.SaveVersion(false)
 	panicError(err)
 	fmt.Printf("Successfully save evmlegacy, version: %d, hash: %s\n", version, ethcmn.BytesToHash(hash))
+
 }
 
 func generateKeyForCustomParamStore(storeKey string, key []byte) []byte {
