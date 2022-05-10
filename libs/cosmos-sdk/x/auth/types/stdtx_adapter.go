@@ -97,36 +97,36 @@ func IbcDirectSignBytes(chainID string, accnum uint64,
 //////
 
 ///////////
-type ProtobufViewMsg struct {
+type IbcViewMsg struct {
 	TypeStr string `json:"type"`
 	Data    string `json:"data"`
 }
 
-func NewProtobufViewMsg(typeStr string, data string) *ProtobufViewMsg {
-	return &ProtobufViewMsg{TypeStr: typeStr, Data: data}
+func NewIbcViewMsg(typeStr string, data string) *IbcViewMsg {
+	return &IbcViewMsg{TypeStr: typeStr, Data: data}
 }
 
-func (b ProtobufViewMsg) Route() string {
+func (b IbcViewMsg) Route() string {
 	return ""
 }
 
-func (b ProtobufViewMsg) Type() string {
+func (b IbcViewMsg) Type() string {
 	return b.TypeStr
 }
 
-func (b ProtobufViewMsg) ValidateBasic() error {
+func (b IbcViewMsg) ValidateBasic() error {
 	return nil
 }
 
-func (b ProtobufViewMsg) GetSignBytes() []byte {
+func (b IbcViewMsg) GetSignBytes() []byte {
 	return nil
 }
 
-func (b ProtobufViewMsg) GetSigners() []sdk.AccAddress {
+func (b IbcViewMsg) GetSigners() []sdk.AccAddress {
 	return nil
 }
 
-func FromProtobufTx(cdc *codec.CodecProxy, tx *IbcTx) (*StdTx, error) {
+func FromRelayIBCTx(cdc *codec.CodecProxy, tx *IbcTx) (*StdTx, error) {
 	msgs := make([]sdk.Msg, 0)
 	for _, msg := range tx.GetMsgs() {
 		m := (interface{})(msg).(sdk.MsgProtoAdapter)
@@ -134,7 +134,7 @@ func FromProtobufTx(cdc *codec.CodecProxy, tx *IbcTx) (*StdTx, error) {
 		if nil != err {
 			return nil, err
 		}
-		msgs = append(msgs, NewProtobufViewMsg("/"+proto.MessageName(m), string(data)))
+		msgs = append(msgs, NewIbcViewMsg("/"+proto.MessageName(m), string(data)))
 	}
 	return NewStdTx(msgs, tx.Fee, tx.Signatures, tx.Memo), nil
 }
