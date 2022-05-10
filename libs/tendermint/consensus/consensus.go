@@ -744,7 +744,7 @@ func (cs *State) handleMsg(mi msgInfo) {
 			// only handle when don't have valid vcMsg
 			// only handle vcMsg of same height
 			if cs.Round != 0 ||
-				cs.vcMsg != nil && cs.vcMsg.Height >= msg.Height ||
+				(cs.vcMsg != nil && cs.vcMsg.Height >= msg.Height) ||
 				msg.Height != cs.Height {
 				return
 			}
