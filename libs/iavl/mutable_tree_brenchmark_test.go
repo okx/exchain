@@ -61,8 +61,7 @@ func clearDB(dbName string) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	treeMap.mutableTreeList = nil
-	treeMap.mutableTreeSavedMap = make(map[string]bool)
+	treeMap.mutableTreeSavedMap = make(map[string]*MutableTree)
 }
 
 func BenchmarkMutableTree_Get(b *testing.B) {
