@@ -68,7 +68,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		}
 	}
 
-	shouldPersist := (version-tree.lastPersistHeight > CommitGapHeight) ||
+	shouldPersist := ((version%CommitGapHeight == 0) && (version-tree.lastPersistHeight > CommitGapHeight)) ||
 		(treeMap.totalPpncSize >= MinCommitItemCount)
 
 	newOrphans := tree.orphans
