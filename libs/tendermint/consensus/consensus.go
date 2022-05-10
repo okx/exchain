@@ -102,10 +102,10 @@ type State struct {
 	// when it's detected
 	evpool evidencePool
 
-	// state mutex
-	csmtx sync.RWMutex
-	// consensus round state mutex
+	// consensus mutex
 	mtx sync.RWMutex
+	// consensus round state mutex
+	rsMtx sync.RWMutex
 
 	cstypes.RoundState
 	state sm.State // State until height-1.
@@ -237,38 +237,38 @@ func (cs *State) String() string {
 
 // GetState returns a copy of the chain state.
 func (cs *State) GetState() sm.State {
-	cs.csmtx.RLock()
-	defer cs.csmtx.RUnlock()
+	cs.mtx.RLock()
+	defer cs.mtx.RUnlock()
 	return cs.state.Copy()
 }
 
 // GetLastHeight returns the last height committed.
 // If there were no blocks, returns 0.
 func (cs *State) GetLastHeight() int64 {
-	cs.mtx.RLock()
-	defer cs.mtx.RUnlock()
+	cs.rsMtx.RLock()
+	defer cs.rsMtx.RUnlock()
 	return cs.RoundState.Height - 1
 }
 
 // GetRoundState returns a shallow copy of the internal consensus state.
 func (cs *State) GetRoundState() *cstypes.RoundState {
-	cs.mtx.RLock()
+	cs.rsMtx.RLock()
 	rs := cs.RoundState // copy
-	cs.mtx.RUnlock()
+	cs.rsMtx.RUnlock()
 	return &rs
 }
 
 // GetRoundStateJSON returns a json of RoundState, marshalled using go-amino.
 func (cs *State) GetRoundStateJSON() ([]byte, error) {
-	cs.mtx.RLock()
-	defer cs.mtx.RUnlock()
+	cs.rsMtx.RLock()
+	defer cs.rsMtx.RUnlock()
 	return cdc.MarshalJSON(cs.RoundState)
 }
 
 // GetRoundStateSimpleJSON returns a json of RoundStateSimple, marshalled using go-amino.
 func (cs *State) GetRoundStateSimpleJSON() ([]byte, error) {
-	cs.mtx.RLock()
-	defer cs.mtx.RUnlock()
+	cs.rsMtx.RLock()
+	defer cs.rsMtx.RUnlock()
 	return cdc.MarshalJSON(cs.RoundState.RoundStateSimple())
 }
 
@@ -301,8 +301,8 @@ func (cs *State) SetTimeoutTicker(timeoutTicker TimeoutTicker) {
 
 // LoadCommit loads the commit for a given height.
 func (cs *State) LoadCommit(height int64) *types.Commit {
-	cs.mtx.RLock()
-	defer cs.mtx.RUnlock()
+	cs.rsMtx.RLock()
+	defer cs.rsMtx.RUnlock()
 	if height == cs.blockStore.Height() {
 		return cs.blockStore.LoadSeenCommit(height)
 	}
@@ -709,8 +709,8 @@ func (cs *State) receiveRoutine(maxSteps int) {
 
 // state transitions on complete-proposal, 2/3-any, 2/3-one
 func (cs *State) handleMsg(mi msgInfo) {
-	cs.csmtx.Lock()
-	defer cs.csmtx.Unlock()
+	cs.mtx.Lock()
+	defer cs.mtx.Unlock()
 
 	var (
 		added bool
@@ -785,8 +785,8 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 	}
 
 	// the timeout will now cause a state transition
-	cs.csmtx.Lock()
-	defer cs.csmtx.Unlock()
+	cs.mtx.Lock()
+	defer cs.mtx.Unlock()
 
 	switch ti.Step {
 	case cstypes.RoundStepNewHeight:
@@ -828,8 +828,8 @@ func (cs *State) initNewHeight() {
 }
 
 func (cs *State) handleTxsAvailable() {
-	cs.csmtx.Lock()
-	defer cs.csmtx.Unlock()
+	cs.mtx.Lock()
+	defer cs.mtx.Unlock()
 
 	// We only need to do this for round 0.
 	if cs.Round != 0 {
@@ -893,7 +893,7 @@ func (cs *State) enterNewRound(height int64, round int) {
 	// Setup new round
 	// we don't fire newStep for this step,
 	// but we fire an event, so update the round step first
-	cs.mtx.Lock()
+	cs.rsMtx.Lock()
 	cs.updateRoundStep(round, cstypes.RoundStepNewRound)
 	cs.Validators = validators
 	if round == 0 {
@@ -906,7 +906,7 @@ func (cs *State) enterNewRound(height int64, round int) {
 		cs.ProposalBlock = nil
 		cs.ProposalBlockParts = nil
 	}
-	cs.mtx.Unlock()
+	cs.rsMtx.Unlock()
 	cs.Votes.SetRound(round + 1) // also track next round (round+1) to allow round-skipping
 	cs.TriggeredTimeoutPrecommit = false
 
@@ -985,10 +985,10 @@ func (cs *State) enterPropose(height int64, round int) {
 
 	defer func() {
 		// Done enterPropose:
-		cs.mtx.Lock()
+		cs.rsMtx.Lock()
 		cs.updateRoundStep(round, cstypes.RoundStepPropose)
 		cs.newStep()
-		cs.mtx.Unlock()
+		cs.rsMtx.Unlock()
 		// If we have the whole proposal + POL, then goto Prevote now.
 		// else, we'll enterPrevote when the rest of the proposal is received (in AddProposalBlockPart),
 		// or else after timeoutPropose
@@ -1132,10 +1132,10 @@ func (cs *State) enterPrevote(height int64, round int) {
 
 	defer func() {
 		// Done enterPrevote:
-		cs.mtx.Lock()
+		cs.rsMtx.Lock()
 		cs.updateRoundStep(round, cstypes.RoundStepPrevote)
 		cs.newStep()
-		cs.mtx.Unlock()
+		cs.rsMtx.Unlock()
 	}()
 
 	cs.Logger.Info(fmt.Sprintf("enterPrevote(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
@@ -1208,12 +1208,12 @@ func (cs *State) enterPrevoteWait(height int64, round int) {
 	}
 	logger.Info(fmt.Sprintf("enterPrevoteWait(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
-	cs.mtx.Lock()
+	cs.rsMtx.Lock()
 	defer func() {
 		// Done enterPrevoteWait:
 		cs.updateRoundStep(round, cstypes.RoundStepPrevoteWait)
 		cs.newStep()
-		cs.mtx.Unlock()
+		cs.rsMtx.Unlock()
 	}()
 
 	// Wait for some more prevotes; enterPrecommit
@@ -1245,12 +1245,12 @@ func (cs *State) enterPrecommit(height int64, round int) {
 
 	logger.Info(fmt.Sprintf("enterPrecommit(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
-	cs.mtx.Lock()
+	cs.rsMtx.Lock()
 	defer func() {
 		// Done enterPrecommit:
 		cs.updateRoundStep(round, cstypes.RoundStepPrecommit)
 		cs.newStep()
-		cs.mtx.Unlock()
+		cs.rsMtx.Unlock()
 	}()
 
 	if automation.PrecommitNil(height, round) {
@@ -1357,12 +1357,12 @@ func (cs *State) enterPrecommitWait(height int64, round int) {
 		panic(fmt.Sprintf("enterPrecommitWait(%v/%v), but Precommits does not have any +2/3 votes", height, round))
 	}
 	logger.Info(fmt.Sprintf("enterPrecommitWait(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
-	cs.mtx.Lock()
+	cs.rsMtx.Lock()
 	defer func() {
 		// Done enterPrecommitWait:
 		cs.TriggeredTimeoutPrecommit = true
 		cs.newStep()
-		cs.mtx.Unlock()
+		cs.rsMtx.Unlock()
 	}()
 
 	// Wait for some more precommits; enterNewRound
@@ -1390,14 +1390,14 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 
 	logger.Info(fmt.Sprintf("enterCommit(%v/%v). Current: %v/%v/%v", height, commitRound, cs.Height, cs.Round, cs.Step))
 
-	cs.mtx.Lock()
+	cs.rsMtx.Lock()
 	defer func() {
 		// Done enterCommit:
 		// keep cs.Round the same, commitRound points to the right Precommits set.
 		cs.updateRoundStep(cs.Round, cstypes.RoundStepCommit)
 		cs.CommitRound = commitRound
 		cs.newStep()
-		cs.mtx.Unlock()
+		cs.rsMtx.Unlock()
 		// Maybe finalize immediately.
 		cs.tryFinalizeCommit(height)
 	}()
@@ -1598,9 +1598,9 @@ func (cs *State) finalizeCommit(height int64) {
 	trace.GetElapsedInfo().AddInfo(trace.Round, fmt.Sprintf("%d", cs.Round))
 
 	// NewHeightStep!
-	cs.mtx.Lock()
+	cs.rsMtx.Lock()
 	cs.updateToState(stateCopy)
-	cs.mtx.Unlock()
+	cs.rsMtx.Unlock()
 
 	fail.Fail() // XXX
 
@@ -1741,8 +1741,8 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	if !cs.Validators.GetProposer().PubKey.VerifyBytes(proposal.SignBytes(cs.state.ChainID), proposal.Signature) {
 		return ErrInvalidProposalSignature
 	}
-	cs.mtx.Lock()
-	defer cs.mtx.Unlock()
+	cs.rsMtx.Lock()
+	defer cs.rsMtx.Unlock()
 
 	cs.Proposal = proposal
 	// We don't update cs.ProposalBlockParts if it is already set.
@@ -1815,11 +1815,11 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 			if cs.ProposalBlock.HashesTo(blockID.Hash) {
 				cs.Logger.Info("Updating valid block to new proposal block",
 					"valid-round", cs.Round, "valid-block-hash", cs.ProposalBlock.Hash())
-				cs.mtx.Lock()
+				cs.rsMtx.Lock()
 				cs.ValidRound = cs.Round
 				cs.ValidBlock = cs.ProposalBlock
 				cs.ValidBlockParts = cs.ProposalBlockParts
-				cs.mtx.Unlock()
+				cs.rsMtx.Unlock()
 			}
 			// TODO: In case there is +2/3 majority in Prevotes set for some
 			// block and cs.ProposalBlock contains different block, either
@@ -1954,7 +1954,7 @@ func (cs *State) addVote(
 		cs.Logger.Info("Added to prevote", "vote", vote, "prevotes", prevotes.StringShort())
 
 		// If +2/3 prevotes for a block or nil for *any* round:
-		cs.mtx.Lock()
+		cs.rsMtx.Lock()
 		if blockID, ok := prevotes.TwoThirdsMajority(); ok {
 
 			// There was a polka!
@@ -2001,7 +2001,7 @@ func (cs *State) addVote(
 				cs.eventBus.PublishEventValidBlock(cs.RoundStateEvent())
 			}
 		}
-		cs.mtx.Unlock()
+		cs.rsMtx.Unlock()
 
 		// If +2/3 prevotes for *anything* for future round:
 		switch {
