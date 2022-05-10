@@ -34,6 +34,7 @@ type Tracer struct {
 	elapsedTime      time.Duration
 
 	pinMap map[string]time.Duration
+	enableSummary    bool
 }
 
 func NewTracer(name string) *Tracer {
@@ -41,8 +42,15 @@ func NewTracer(name string) *Tracer {
 		startTime: time.Now(),
 		name:      name,
 		pinMap:    make(map[string]time.Duration),
+		enableSummary: true,
 	}
 	return t
+}
+
+
+
+func (t *Tracer) CloseSummary() {
+	t.enableSummary = false
 }
 
 func (t *Tracer) Pin(format string, args ...interface{}) {
@@ -66,7 +74,9 @@ func (t *Tracer) pinByFormat(tag string) {
 		t.pins = append(t.pins, t.lastPin)
 		duration := now.Sub(t.lastPinStartTime)
 		t.intervals = append(t.intervals, duration)
-		insertElapse(t.lastPin, duration.Milliseconds())
+		if t.enableSummary {
+			insertElapse(t.lastPin, duration.Milliseconds())
+		}
 	}
 	t.lastPinStartTime = now
 	t.lastPin = tag
