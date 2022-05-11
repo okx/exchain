@@ -289,10 +289,6 @@ func (ndb *nodeDB) cacheNode(node *Node) {
 	ndb.nc.cache(node)
 }
 
-func (ndb *nodeDB) cacheNodesFromMap(m map[string]*Node) {
-	ndb.nc.cacheNodesFromMap(m)
-}
-
 func (ndb *nodeDB) cacheWithKey(key string, node *Node) {
 	ndb.nc.cacheWithKey(key, node)
 }
