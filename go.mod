@@ -160,10 +160,11 @@ require (
 )
 
 replace (
+	// github.com/tendermint/tm-db => ./libs/tm-db
+	github.com/CosmWasm/wasmvm => github.com/BananaLF/wasmvm v1.0.0-soon2.0.20220511085319-cea9e35e241a
 	github.com/buger/jsonparser => github.com/buger/jsonparser v1.0.0 // imported by nacos-go-sdk, upgraded to v1.0.0 in case of a known vulnerable bug
 	github.com/ethereum/go-ethereum => github.com/okex/go-ethereum v1.10.8-oec3
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 	github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4
 	github.com/tendermint/go-amino => github.com/okex/go-amino v0.15.1-exchain6
-// github.com/tendermint/tm-db => ./libs/tm-db
 )
