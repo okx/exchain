@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/okex/exchain/libs/system/trace"
 	dbm "github.com/okex/exchain/libs/tm-db"
@@ -41,7 +42,6 @@ type commitEvent struct {
 	wg         *sync.WaitGroup
 	iavlHeight int
 }
-
 
 func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte, int64, error) {
 
@@ -113,7 +113,7 @@ func (tree *MutableTree) removeVersion(version int64) {
 	tree.versions.Delete(version)
 }
 
-func (tree *MutableTree) persist(version int64)  {
+func (tree *MutableTree) persist(version int64) {
 	var err error
 	batch := tree.NewBatch()
 	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0}
@@ -138,8 +138,11 @@ func (tree *MutableTree) persist(version int64)  {
 		delete(tree.commitOrphans, k)
 	}
 	versions := tree.deepCopyVersions()
+	waitStart := time.Now()
 	tree.commitCh <- commitEvent{version, versions, batch,
 		tpp, nil, int(tree.Height())}
+	elapsedTime := time.Since(waitStart) / time.Millisecond
+	tree.log(IavlInfo, "", "Tree", tree.GetModuleName(), "lcm, committed height queue wait ", elapsedTime, "ms")
 	tree.lastPersistHeight = version
 }
 
@@ -149,6 +152,7 @@ func (tree *MutableTree) commitSchedule() {
 		if event.version < 0 {
 			continue
 		}
+		waitStart := time.Now()
 		_, ok := tree.committedHeightMap[event.version]
 		if ok {
 			if event.wg != nil {
@@ -169,6 +173,8 @@ func (tree *MutableTree) commitSchedule() {
 			event.wg.Done()
 			break
 		}
+		elapsedTime := time.Since(waitStart) / time.Millisecond
+		tree.log(IavlInfo, "", "Tree", tree.GetModuleName(), "lcm, tpp time ", elapsedTime, "ms")
 	}
 }
 
@@ -224,7 +230,6 @@ func (tree *MutableTree) StopTree() {
 func (tree *MutableTree) log(level int, msg string, kvs ...interface{}) {
 	iavlLog(tree.GetModuleName(), level, msg, kvs...)
 }
-
 
 func (tree *MutableTree) updateCommittedStateHeightPool(batch dbm.Batch, version int64, versions map[int64]bool) {
 	queue := tree.committedHeightQueue
@@ -295,7 +300,6 @@ func (tree *MutableTree) addOrphansOptimized(orphans []*Node) {
 
 	}
 }
-
 
 func (tree *MutableTree) deepCopyVersions() map[int64]bool {
 	if !EnablePruningHistoryState {
