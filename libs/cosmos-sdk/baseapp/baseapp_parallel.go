@@ -9,13 +9,14 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/spf13/viper"
+	"runtime"
 	"sync"
 )
 
 var (
 	maxTxNumberInParallelChan = 20000
 	whiteAcc                  = string(hexutil.MustDecode("0x01f1829676db577682e944fc3493d451b67ff3e29f")) //fee
-	maxNums                   = 16
+	maxNums                   = runtime.NumCPU()
 )
 
 type extraDataForTx struct {
