@@ -63,10 +63,11 @@ const (
 	ApplyBlock = "ApplyBlock"
 	Consensus  = "Consensus"
 
-	MempoolCheckTxCnt = "checkTxCnt"
-	MempoolTxsCnt     = "mempoolTxsCnt"
+	MempoolCheckTxCnt    = "checkTxCnt"
+	MempoolTxsCnt        = "mempoolTxsCnt"
 
-	Prerun = "Prerun"
+	Prerun               = "Prerun"
+	IavlRuntime          = "IavlRuntime"
 )
 
 const (
