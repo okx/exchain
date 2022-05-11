@@ -327,7 +327,7 @@ func (ndb *nodeDB) cacheNodeToPreWriteCache(n *Node) {
 
 func (ndb *nodeDB) finishPreWriteCache() {
 	ndb.preWriteNodeCache.IterCb(func(key string, v interface{}) {
-		ndb.cacheNode(v.(*Node))
+		ndb.cacheWithKey(key, v.(*Node))
 	})
 	ndb.preWriteNodeCache = nil
 }
