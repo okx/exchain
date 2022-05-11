@@ -5,18 +5,15 @@ import (
 )
 
 func (ndb *nodeDB) enqueueOrphanTask(version int64, rootHash []byte, newOrphans []*Node) {
-
 	ndb.addOrphanItem(version, rootHash)
 
-	task := func() {
+	go func(ndb *nodeDB, version int64, newOrphans []*Node) {
 		ndb.mtx.Lock()
 		defer ndb.mtx.Unlock()
 		ndb.saveNewOrphans(version, newOrphans, false)
 		ndb.oi.removeOldOrphans(version)
 		ndb.oi.enqueueResult(version)
-	}
-
-	ndb.oi.enqueueTask(task)
+	}(ndb, version, newOrphans)
 }
 
 func (ndb *nodeDB) addOrphanItem(version int64, rootHash []byte) {
