@@ -69,7 +69,6 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command)) 
 				}
 			}()
 
-			startTimeStamp := time.Now()
 			replayBlock(ctx, dataDir)
 			log.Println("--------- replay success ---------", "Time Cost", time.Now().Sub(ts).Seconds())
 		},
