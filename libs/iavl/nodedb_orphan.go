@@ -26,7 +26,6 @@ func (ndb *nodeDB) addOrphanItem(version int64, rootHash []byte) {
 }
 
 func (ndb *nodeDB) saveNewOrphans(version int64, orphans []*Node, lock bool) {
-
 	if orphans == nil {
 		return
 	}
@@ -47,7 +46,7 @@ func (ndb *nodeDB) saveNewOrphans(version int64, orphans []*Node, lock bool) {
 		node.leftNode = nil
 		node.rightNode = nil
 	}
-	ndb.uncacheNodeRontine(orphans)
+	go ndb.uncacheNodeRontine(orphans)
 }
 
 func (ndb *nodeDB) sanityCheckHandleOrphansResult(version int64) {
@@ -59,4 +58,3 @@ func (ndb *nodeDB) findRootHash(version int64) (res []byte, found bool) {
 	defer ndb.mtx.RUnlock()
 	return ndb.oi.findRootHash(version)
 }
-
