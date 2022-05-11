@@ -291,7 +291,9 @@ func (conR *Reactor) AddPeer(peer p2p.Peer) {
 	// Begin routines for this peer.
 	go conR.gossipDataRoutine(peer, peerState)
 	go conR.gossipVotesRoutine(peer, peerState)
-	go conR.gossipVCRoutine(peer, peerState)
+	if ActiveViewChange {
+		go conR.gossipVCRoutine(peer, peerState)
+	}
 	go conR.queryMaj23Routine(peer, peerState)
 
 	// Send our state to peer.
@@ -857,6 +859,7 @@ OUTER_LOOP:
 
 func (conR *Reactor) gossipVCRoutine(peer p2p.Peer, ps *PeerState) {
 	logger := conR.Logger.With("peer", peer)
+	var vcHeight int64 = 0
 
 OUTER_LOOP:
 	for {
@@ -877,9 +880,11 @@ OUTER_LOOP:
 		if rs.Round != 0 || prs.Round != 0 {
 			continue OUTER_LOOP
 		}
+
 		// send vcMsg
-		if rs.Height == prs.Height || rs.Height == prs.Height+1 {
+		if vcHeight <= vcMsg.Height && (rs.Height == prs.Height || rs.Height == prs.Height+1) {
 			//peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
+			vcHeight = vcMsg.Height
 			conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
 		}
 
@@ -1681,6 +1686,10 @@ func (m *ProposeRequestMessage) Verify(pubKey crypto.PubKey) error {
 	return nil
 }
 
+func (m *ProposeRequestMessage) String() string {
+	return fmt.Sprintf("prMsg H:%d CurrentP:%s NewP:%s", m.Height, m.CurrentProposer, m.NewProposer)
+}
+
 // ViewChangeMessage is sent for remind peer to do vc
 type ViewChangeMessage struct {
 	Height          int64
@@ -1717,6 +1726,10 @@ func (m *ViewChangeMessage) Verify(pubKey crypto.PubKey) error {
 		return errors.New("invalid signature")
 	}
 	return nil
+}
+
+func (m *ViewChangeMessage) String() string {
+	return fmt.Sprintf("[vcMsg H:%d CurrentP:%s NewP:%s", m.Height, m.CurrentProposer, m.NewProposer)
 }
 
 // NewRoundStepMessage is sent for every step taken in the ConsensusState.
