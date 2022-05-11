@@ -23,7 +23,7 @@ func (sd StreamData) ConvertEngineData() EngineData {
 	return EngineData{
 		TransactionReceipts: convertTransactionReceipts(sd.TransactionReceipts),
 		Block:               convertBlocks(sd.Block, sd.Transactions),
-		ContractCodes:       convertContractCodes(sd.ContractCodes),
+		ContractCodes:       convertContractCodes(sd.ContractCodes, int64(sd.Block.Number)),
 	}
 }
 
@@ -119,12 +119,13 @@ func convertBlocks(evmBlock evm.Block, evmTransactions []evm.Transaction) *Block
 	return block
 }
 
-func convertContractCodes(codes map[string][]byte) []*ContractCode {
+func convertContractCodes(codes map[string][]byte, height int64) []*ContractCode {
 	contractCodes := make([]*ContractCode, 0, len(codes))
 	for k, v := range codes {
 		contractCodes = append(contractCodes, &ContractCode{
-			Address: k,
-			Code:    hexutil.Encode(v),
+			Address:     k,
+			Code:        hexutil.Encode(v),
+			BlockNumber: height,
 		})
 	}
 	return contractCodes
@@ -200,6 +201,7 @@ type Transaction struct {
 
 type ContractCode struct {
 	gorm.Model
-	Address string `gorm:"type:varchar(42);index:unique_address,unique;not null"`
-	Code    string
+	Address     string `gorm:"type:varchar(42);index:unique_address,unique;not null"`
+	Code        string
+	BlockNumber int64
 }
