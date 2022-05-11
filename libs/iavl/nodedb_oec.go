@@ -8,11 +8,12 @@ import (
 
 	cmap "github.com/orcaman/concurrent-map"
 
+	"time"
+
 	"github.com/go-errors/errors"
 	"github.com/okex/exchain/libs/system/trace"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/tendermint/go-amino"
-	"time"
 )
 
 const (
@@ -324,4 +325,11 @@ func (ndb *nodeDB) finishPreWriteCache() {
 		ndb.cacheNode(v.(*Node))
 	})
 	ndb.preWriteNodeCache = nil
+}
+
+func (ndb *nodeDB) prePersistNodeCacheLen() (l int) {
+	ndb.mtx.Lock()
+	l = len(ndb.prePersistNodeCache)
+	ndb.mtx.Unlock()
+	return
 }
