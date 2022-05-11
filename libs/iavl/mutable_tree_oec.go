@@ -76,27 +76,38 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 	shouldPersist := ((version%CommitGapHeight == 0) && (version-tree.lastPersistHeight > CommitGapHeight)) ||
 		(treeMap.totalPpncSize >= MinCommitItemCount)
 
-	newOrphans := tree.orphans
 	if shouldPersist {
-		tree.ndb.saveNewOrphans(version, newOrphans, true)
+		tree.ndb.saveNewOrphans(version, tree.orphans, true)
+		go tree.ndb.uncacheNodeRontine(tree.orphans)
 		tree.persist(version)
-		newOrphans = nil
+		tree.ndb.addOrphanItem(version, tree.ImmutableTree.Hash())
+		tree.ndb.oi.enqueueResult(version)
+	} else {
+		go func(ndb *nodeDB, version int64, newOrphans []*Node, rootHash []byte) {
+			ndb.mtx.Lock()
+			ndb.saveNewOrphans(version, newOrphans, false)
+			ndb.oi.removeOldOrphans(version)
+			ndb.oi.addOrphanItem(version, rootHash)
+			ndb.mtx.Unlock()
+			ndb.oi.enqueueResult(version)
+			ndb.uncacheNodeRontine(newOrphans)
+		}(tree.ndb, version, tree.orphans, tree.ImmutableTree.Hash())
 	}
 
-	return tree.setNewWorkingTree(version, newOrphans, shouldPersist)
+	return tree.setNewWorkingTree(version, shouldPersist)
 }
 
-func (tree *MutableTree) setNewWorkingTree(version int64, newOrphans []*Node, persisted bool) ([]byte, int64, error) {
+func (tree *MutableTree) setNewWorkingTree(version int64, persisted bool) ([]byte, int64, error) {
 	// set new working tree
 	tree.ImmutableTree = tree.ImmutableTree.clone()
 	tree.lastSaved = tree.ImmutableTree.clone()
+	// newOrphans := tree.orphans
 	tree.orphans = make([]*Node, 0, len(tree.orphans))
 	for k := range tree.savedNodes {
 		delete(tree.savedNodes, k)
 	}
 	rootHash := tree.lastSaved.Hash()
 
-	tree.ndb.enqueueOrphanTask(version, rootHash, newOrphans)
 	tree.version = version
 	if persisted {
 		tree.versions.Set(version, true)

@@ -9,10 +9,11 @@ func (ndb *nodeDB) enqueueOrphanTask(version int64, rootHash []byte, newOrphans 
 
 	go func(ndb *nodeDB, version int64, newOrphans []*Node) {
 		ndb.mtx.Lock()
-		defer ndb.mtx.Unlock()
 		ndb.saveNewOrphans(version, newOrphans, false)
 		ndb.oi.removeOldOrphans(version)
+		ndb.mtx.Unlock()
 		ndb.oi.enqueueResult(version)
+		ndb.uncacheNodeRontine(newOrphans)
 	}(ndb, version, newOrphans)
 }
 
@@ -43,7 +44,6 @@ func (ndb *nodeDB) saveNewOrphans(version int64, orphans []*Node, lock bool) {
 		node.leftNode = nil
 		node.rightNode = nil
 	}
-	go ndb.uncacheNodeRontine(orphans)
 }
 
 func (ndb *nodeDB) sanityCheckHandleOrphansResult(version int64) {
