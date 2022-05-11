@@ -293,6 +293,10 @@ func (ndb *nodeDB) cacheNodesFromMap(m map[string]*Node) {
 	ndb.nc.cacheNodesFromMap(m)
 }
 
+func (ndb *nodeDB) cacheWithKey(key string, node *Node) {
+	ndb.nc.cacheWithKey(key, node)
+}
+
 func (ndb *nodeDB) uncacheNode(hash []byte) {
 	ndb.nc.uncache(hash)
 }
