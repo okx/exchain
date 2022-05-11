@@ -4,17 +4,22 @@ import (
 	"github.com/tendermint/go-amino"
 )
 
-func (ndb *nodeDB) enqueueOrphanTask(version int64, rootHash []byte, newOrphans []*Node) {
+func (ndb *nodeDB) enqueueOrphanTask(version int64, orphans []*Node, rootHash []byte, persist bool) {
 	ndb.addOrphanItem(version, rootHash)
 
-	go func(ndb *nodeDB, version int64, newOrphans []*Node) {
+	task := func() {
 		ndb.mtx.Lock()
-		ndb.saveNewOrphans(version, newOrphans, false)
+		if !persist {
+			ndb.saveNewOrphans(version, orphans, false)
+		}
 		ndb.oi.removeOldOrphans(version)
 		ndb.mtx.Unlock()
+
 		ndb.oi.enqueueResult(version)
-		ndb.uncacheNodeRontine(newOrphans)
-	}(ndb, version, newOrphans)
+		ndb.uncacheNodeRontine(orphans)
+	}
+
+	ndb.oi.enqueueTask(task)
 }
 
 func (ndb *nodeDB) addOrphanItem(version int64, rootHash []byte) {
@@ -58,14 +63,13 @@ func (ndb *nodeDB) findRootHash(version int64) (res []byte, found bool) {
 
 func (ndb *nodeDB) orphanTask(version int64, orphans []*Node, rootHash []byte, persist bool) {
 	ndb.addOrphanItem(version, rootHash)
+	ndb.mtx.Lock()
 
 	go func(ndb *nodeDB, version int64, orphans []*Node, persist bool) {
 		if persist {
-			ndb.mtx.Lock()
 			ndb.oi.removeOldOrphans(version)
 			ndb.mtx.Unlock()
 		} else {
-			ndb.mtx.Lock()
 			ndb.saveNewOrphans(version, orphans, false)
 			ndb.oi.removeOldOrphans(version)
 			ndb.mtx.Unlock()

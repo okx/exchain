@@ -22,21 +22,32 @@ type orphanItem struct {
 }
 
 func newOrphanInfo(ndb *nodeDB) *OrphanInfo {
-
 	oi := &OrphanInfo{
 		ndb:             ndb,
 		orphanNodeCache: make(map[string]*Node),
 		orphanItemMap:   make(map[int64]*orphanItem),
 		itemSize:        HeightOrphansCacheSize,
+		orphanTaskChan:  make(chan func(), 1),
 		resultChan:      make(chan int64, 1),
 	}
 
 	oi.enqueueResult(0)
+	go oi.handleOrphansRoutine()
 	return oi
 }
 
 func (oi *OrphanInfo) enqueueResult(res int64) {
 	oi.resultChan <- res
+}
+
+func (oi *OrphanInfo) enqueueTask(t func()) {
+	oi.orphanTaskChan <- t
+}
+
+func (oi *OrphanInfo) handleOrphansRoutine() {
+	for task := range oi.orphanTaskChan {
+		task()
+	}
 }
 
 func (oi *OrphanInfo) wait4Result(version int64) {
