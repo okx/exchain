@@ -5,6 +5,7 @@ package bank
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/keeper"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/typesadapter"
 )
 
 const (
@@ -25,6 +26,7 @@ var (
 	RegisterInvariants          = keeper.RegisterInvariants
 	NonnegativeBalanceInvariant = keeper.NonnegativeBalanceInvariant
 	NewBaseKeeper               = keeper.NewBaseKeeper
+	NewBaseKeeperWithMarshal    = keeper.NewBaseKeeperWithMarshal
 	NewBaseSendKeeper           = keeper.NewBaseSendKeeper
 	NewBaseViewKeeper           = keeper.NewBaseViewKeeper
 	NewQuerier                  = keeper.NewQuerier
@@ -56,6 +58,7 @@ type (
 	BaseViewKeeper     = keeper.BaseViewKeeper
 	GenesisState       = types.GenesisState
 	MsgSend            = types.MsgSend
+	AdapterMsgSend     = typesadapter.MsgSend
 	MsgMultiSend       = types.MsgMultiSend
 	Input              = types.Input
 	Output             = types.Output

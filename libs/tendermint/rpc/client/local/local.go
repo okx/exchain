@@ -122,7 +122,7 @@ func (c *Local) GetAddressList() (*ctypes.ResultUnconfirmedAddresses, error) {
 	return core.GetAddressList()
 }
 
-func (c *Local) GetPendingNonce(address string) (*ctypes.ResultPendingNonce, error) {
+func (c *Local) GetPendingNonce(address string) (*ctypes.ResultPendingNonce, bool) {
 	return core.GetPendingNonce(address)
 }
 

@@ -5,18 +5,15 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"time"
-
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-
 	"math/big"
 	"strconv"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/evm/types"
@@ -56,15 +53,6 @@ type WatchMessage interface {
 	GetKey() []byte
 	GetValue() string
 	GetType() uint32
-}
-
-type MsgEthTx struct {
-	*baseLazyMarshal
-	Key []byte
-}
-
-func (m MsgEthTx) GetType() uint32 {
-	return TypeOthers
 }
 
 type Batch struct {
@@ -378,18 +366,6 @@ func (w *WatchData) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 		}
 	}
 	return nil
-}
-
-func NewMsgEthTx(ethTx *Transaction) *MsgEthTx {
-	msg := MsgEthTx{
-		Key:             ethTx.Hash.Bytes(),
-		baseLazyMarshal: newBaseLazyMarshal(ethTx),
-	}
-	return &msg
-}
-
-func (m MsgEthTx) GetKey() []byte {
-	return append(prefixTx, m.Key...)
 }
 
 type MsgCode struct {

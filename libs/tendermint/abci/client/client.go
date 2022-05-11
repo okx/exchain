@@ -28,6 +28,8 @@ type Client interface {
 	InfoAsync(types.RequestInfo) *ReqRes
 	SetOptionAsync(types.RequestSetOption) *ReqRes
 	DeliverTxAsync(types.RequestDeliverTx) *ReqRes
+	PreDeliverRealTxAsync([]byte) types.TxEssentials
+	DeliverRealTxAsync(types.TxEssentials) *ReqRes
 	CheckTxAsync(types.RequestCheckTx) *ReqRes
 	QueryAsync(types.RequestQuery) *ReqRes
 	CommitAsync(types.RequestCommit) *ReqRes
@@ -47,6 +49,7 @@ type Client interface {
 	BeginBlockSync(types.RequestBeginBlock) (*types.ResponseBeginBlock, error)
 	EndBlockSync(types.RequestEndBlock) (*types.ResponseEndBlock, error)
 	ParallelTxs([][]byte, bool) []*types.ResponseDeliverTx
+	DeliverTxsConcurrent([][]byte) []*types.ResponseDeliverTx
 }
 
 //----------------------------------------

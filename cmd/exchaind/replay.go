@@ -11,14 +11,14 @@ import (
 	"runtime/pprof"
 	"time"
 
-	tcmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
-
 	"github.com/okex/exchain/app/config"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tcmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
 	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/mock"
 	"github.com/okex/exchain/libs/tendermint/node"
@@ -58,6 +58,7 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command)) 
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
+			ts := time.Now()
 			log.Println("--------- replay start ---------")
 			pprofAddress := viper.GetString(pprofAddrFlag)
 			go func() {
@@ -69,7 +70,7 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command)) 
 
 			dataDir := viper.GetString(replayedBlockDir)
 			replayBlock(ctx, dataDir)
-			log.Println("--------- replay success ---------")
+			log.Println("--------- replay success ---------", "Time Cost", time.Now().Sub(ts).Seconds())
 		},
 		PostRun: func(cmd *cobra.Command, args []string) {
 			if viper.GetBool(runWithPprofMemFlag) {
@@ -127,9 +128,6 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 	}
 	// replay
 	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, currentAppHash, currentBlockHeight)
-	if viper.GetBool(sm.FlagParalleledTx) {
-		baseapp.ParaLog.PrintLog()
-	}
 }
 
 func registerReplayFlags(cmd *cobra.Command) *cobra.Command {
@@ -139,6 +137,7 @@ func registerReplayFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Bool(runWithPprofFlag, false, "Dump the pprof of the entire replay process")
 	cmd.Flags().Bool(runWithPprofMemFlag, false, "Dump the mem profile of the entire replay process")
 	cmd.Flags().Bool(saveBlock, false, "save block when replay")
+
 	return cmd
 }
 
@@ -242,6 +241,21 @@ func SaveBlock(ctx *server.Context, originDB *store.BlockStore, height int64) {
 
 func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	proxyApp proxy.AppConns, originDataDir string, lastAppHash []byte, lastBlockHeight int64) {
+
+	trace.GetTraceSummary().Init(
+		trace.Abci,
+		//trace.ValTxMsgs,
+		trace.RunAnte,
+		trace.RunMsg,
+		trace.Refund,
+		//trace.SaveResp,
+		trace.Persist,
+		//trace.Evpool,
+		//trace.SaveState,
+		//trace.FireEvents,
+	)
+
+	defer trace.GetTraceSummary().Dump("Replay")
 	originBlockStoreDB, err := openDB(blockStoreDB, originDataDir)
 	panicError(err)
 	originBlockStore := store.NewBlockStore(originBlockStoreDB)
@@ -267,8 +281,9 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		block := originBlockStore.LoadBlock(lastBlockHeight)
 		meta := originBlockStore.LoadBlockMeta(lastBlockHeight)
 		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, mockApp, mock.Mempool{}, sm.MockEvidencePool{})
-		blockExec.SetIsAsyncDeliverTx(false) // mockApp not support parallel tx
-		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
+		config.GetOecConfig().SetDeliverTxsExecuteMode(0) // mockApp not support parallel tx
+		state, _, err = blockExec.ApplyBlockWithTrace(state, meta.BlockID, block)
+		config.GetOecConfig().SetDeliverTxsExecuteMode(viper.GetInt(sm.FlagDeliverTxsExecMode))
 		panicError(err)
 	}
 
@@ -277,21 +292,21 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		startDumpPprof()
 		defer stopDumpPprof()
 	}
-
+	//Async save db during replay
+	blockExec.SetIsAsyncSaveDB(true)
 	baseapp.SetGlobalMempool(mock.Mempool{}, ctx.Config.Mempool.SortTxByGp, ctx.Config.Mempool.EnablePendingPool)
 	needSaveBlock := viper.GetBool(saveBlock)
 	global.SetGlobalHeight(lastBlockHeight + 1)
 	for height := lastBlockHeight + 1; height <= haltheight; height++ {
-		log.Println("replaying ", height)
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
-		blockExec.SetIsAsyncDeliverTx(viper.GetBool(sm.FlagParalleledTx))
-		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
+		state, _, err = blockExec.ApplyBlockWithTrace(state, meta.BlockID, block)
 		panicError(err)
 		if needSaveBlock {
 			SaveBlock(ctx, originBlockStore, height)
 		}
 	}
+
 }
 
 func dumpMemPprof() error {

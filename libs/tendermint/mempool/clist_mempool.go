@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	auto "github.com/okex/exchain/libs/tendermint/libs/autofile"
@@ -20,7 +21,6 @@ import (
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	"github.com/okex/exchain/libs/tendermint/proxy"
-	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/pkg/errors"
 )
@@ -294,9 +294,9 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		}
 	}
 
-	//mem.updateMtx.RLock()
-	//// use defer to unlock mutex because application (*local client*) might panic
-	//defer mem.updateMtx.RUnlock()
+	mem.updateMtx.RLock()
+	// use defer to unlock mutex because application (*local client*) might panic
+	defer mem.updateMtx.RUnlock()
 
 	if mem.preCheck != nil {
 		if err = mem.preCheck(tx); err != nil {
@@ -337,9 +337,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		return err
 	}
 
-	begin := time.Now()
 	reqRes := mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{Tx: tx, Type: txInfo.checkType, From: txInfo.wtx.GetFrom()})
-	mem.logger.Info("mempool.CheckTxAsync", "time cost", time.Since(begin))
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
 		if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok {
 			mem.logger.Info(fmt.Sprintf("mempool.SimulateTx: txhash<%s>, gasLimit<%d>, gasUsed<%d>",
@@ -432,6 +430,8 @@ func (mem *CListMempool) addAndSortTx(memTx *mempoolTx) error {
 		Tx:     memTx.tx,
 	}})
 
+	types.SignatureCache().Remove(memTx.realTx.TxHash())
+
 	return nil
 }
 
@@ -479,6 +479,8 @@ func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 		Tx:     memTx.tx,
 	}})
 
+	types.SignatureCache().Remove(memTx.realTx.TxHash())
+
 	return nil
 }
 
@@ -523,8 +525,14 @@ func (mem *CListMempool) isFull(txSize int) error {
 
 func (mem *CListMempool) addPendingTx(memTx *mempoolTx) error {
 	// nonce is continuous
-	pendingCnt := mem.GetUserPendingTxsCnt(memTx.from)
-	if memTx.realTx.GetNonce() == memTx.senderNonce+uint64(pendingCnt) {
+	expectedNonce := memTx.senderNonce
+	pendingNonce, ok := mem.GetPendingNonce(memTx.from)
+	if ok {
+		expectedNonce = pendingNonce + 1
+	}
+	txNonce := memTx.realTx.GetNonce()
+	// cosmos tx does not support pending pool, so here must check whether txNonce is 0
+	if txNonce == 0 || txNonce == expectedNonce {
 		err := mem.addTx(memTx)
 		if err == nil {
 			go mem.consumePendingTx(memTx.from, memTx.realTx.GetNonce()+1)
@@ -536,9 +544,7 @@ func (mem *CListMempool) addPendingTx(memTx *mempoolTx) error {
 	if err := mem.pendingPool.validate(memTx.from, memTx.tx, memTx.height); err != nil {
 		return err
 	}
-	pendingTx := &PendingTx{
-		mempoolTx: memTx,
-	}
+	pendingTx := memTx
 	mem.pendingPool.addTx(pendingTx)
 	mem.logger.Debug("pending pool addTx", "tx", pendingTx)
 
@@ -551,12 +557,12 @@ func (mem *CListMempool) consumePendingTx(address string, nonce uint64) {
 		if pendingTx == nil {
 			return
 		}
-		if err := mem.isFull(len(pendingTx.mempoolTx.tx)); err != nil {
+		if err := mem.isFull(len(pendingTx.tx)); err != nil {
 			time.Sleep(time.Duration(mem.pendingPool.period) * time.Second)
 			continue
 		}
 
-		mempoolTx := pendingTx.mempoolTx
+		mempoolTx := pendingTx
 		mempoolTx.height = mem.height
 		if err := mem.addTx(mempoolTx); err != nil {
 			mem.logger.Error(fmt.Sprintf("Pending Pool add tx failed:%s", err.Error()))
@@ -625,8 +631,6 @@ func (mem *CListMempool) resCbFirstTime(
 
 			memTx.senders.Store(txInfo.SenderID, true)
 
-			mem.updateMtx.Lock()
-			defer mem.updateMtx.Unlock()
 			var err error
 			if mem.pendingPool != nil {
 				err = mem.addPendingTx(memTx)
@@ -827,7 +831,7 @@ func (mem *CListMempool) GetAddressList() []string {
 	return mem.addressRecord.GetAddressList()
 }
 
-func (mem *CListMempool) GetPendingNonce(address string) uint64 {
+func (mem *CListMempool) GetPendingNonce(address string) (uint64, bool) {
 	return mem.addressRecord.GetAddressNonce(address)
 }
 
@@ -886,10 +890,15 @@ func (mem *CListMempool) Update(
 			nonce = ele.Nonce
 			mem.removeTx(ele)
 			mem.logger.Debug("Mempool update", "address", ele.Address, "nonce", ele.Nonce)
-		} else if mem.txInfoparser != nil {
-			txInfo := mem.txInfoparser.GetRawTxInfo(tx)
-			addr = txInfo.Sender
-			nonce = txInfo.Nonce
+		} else {
+			if mem.txInfoparser != nil {
+				txInfo := mem.txInfoparser.GetRawTxInfo(tx)
+				addr = txInfo.Sender
+				nonce = txInfo.Nonce
+			}
+
+			// remove tx signature cache
+			types.SignatureCache().Remove(tx.Hash(height))
 		}
 
 		if txCode == abci.CodeTypeOK || txCode > abci.CodeTypeNonceInc {
@@ -900,9 +909,6 @@ func (mem *CListMempool) Update(
 		if mem.pendingPool != nil {
 			mem.pendingPool.removeTxByHash(txID(tx, height))
 		}
-
-		// remove tx signature cache
-		types.SignatureCache().Remove(types.Bytes2Hash(tx, height))
 	}
 	mem.metrics.GasUsed.Set(float64(gasUsed))
 	trace.GetElapsedInfo().AddInfo(trace.GasUsed, fmt.Sprintf("%d", gasUsed))

@@ -9,6 +9,7 @@ import (
 // 1. TransferToContractBlock
 // 2. ChangeEvmDenomByProposal
 // 3. BankTransferBlock
+// 4. ibc
 
 var (
 	MILESTONE_GENESIS_HEIGHT string
@@ -20,6 +21,12 @@ var (
 	MILESTONE_VENUS_HEIGHT string
 	milestoneVenusHeight   int64
 
+	MILESTONE_MARS_HEIGHT string
+	milestoneMarsHeight   int64
+
+	MILESTONE_VENUS1_HEIGHT string
+	milestoneVenus1Height   int64
+
 	once sync.Once
 )
 
@@ -28,6 +35,8 @@ func init() {
 		genesisHeight = string2number(MILESTONE_GENESIS_HEIGHT)
 		milestoneMercuryHeight = string2number(MILESTONE_MERCURY_HEIGHT)
 		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
+		milestoneMarsHeight = string2number(MILESTONE_MARS_HEIGHT)
+		milestoneVenus1Height = string2number(MILESTONE_VENUS1_HEIGHT)
 	})
 }
 
@@ -58,6 +67,14 @@ func HigherThanVenus(height int64) bool {
 	return height >= milestoneVenusHeight
 }
 
+//use MPT storage model to replace IAVL storage model
+func HigherThanMars(height int64) bool {
+	if milestoneMarsHeight == 0 {
+		return false
+	}
+	return height > milestoneMarsHeight
+}
+
 // GetMilestoneVenusHeight returns milestoneVenusHeight
 func GetMilestoneVenusHeight() int64 {
 	return milestoneVenusHeight
@@ -85,7 +102,35 @@ func GetMercuryHeight() int64 {
 	return milestoneMercuryHeight
 }
 
+func GetMarsHeight() int64 {
+	return milestoneMarsHeight
+}
 // can be used in unit test only
 func UnittestOnlySetMilestoneVenusHeight(height int64) {
 	milestoneVenusHeight = height
 }
+
+// can be used in unit test only
+func UnittestOnlySetMilestoneMarsHeight(height int64) {
+	milestoneMarsHeight = height
+}
+
+// ==================================
+// =========== Venus1 ===============
+func HigherThanVenus1(h int64) bool {
+	if milestoneVenus1Height == 0 {
+		return false
+	}
+	return h >= milestoneVenus1Height
+}
+
+func UnittestOnlySetMilestoneVenus1Height(h int64) {
+	milestoneVenus1Height = h
+}
+
+func GetVenus1Height() int64 {
+	return milestoneVenus1Height
+}
+
+// =========== Venus1 ===============
+// ==================================

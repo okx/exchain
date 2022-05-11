@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/okex/exchain/app/logevents"
+	"github.com/okex/exchain/libs/system"
 	"github.com/spf13/cobra"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -11,7 +12,7 @@ import (
 func subscribeCmd(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "subscribe",
-		Short: "subscribe oec logs from kafka",
+		Short: "subscribe "+system.ChainName+" logs from kafka",
 	}
 	cmd.AddCommand(subscribeLog())
 	return cmd

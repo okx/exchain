@@ -183,19 +183,22 @@ func TestValidatorSimpleSaveLoad(t *testing.T) {
 	defer tearDown(t)
 	assert := assert.New(t)
 
+	var height int64 = 0
 	// Can't load anything for height 0.
-	_, err := sm.LoadValidators(stateDB, 0)
+	_, err := sm.LoadValidators(stateDB, height)
 	assert.IsType(sm.ErrNoValSetForHeight{}, err, "expected err at height 0")
 
 	// Should be able to load for height 1.
-	v, err := sm.LoadValidators(stateDB, 1)
+	height = 1
+	v, err := sm.LoadValidators(stateDB, height)
 	assert.Nil(err, "expected no err at height 1")
-	assert.Equal(v.Hash(), state.Validators.Hash(), "expected validator hashes to match")
+	assert.Equal(v.Hash(height), state.Validators.Hash(height), "expected validator hashes to match")
 
 	// Should be able to load for height 2.
-	v, err = sm.LoadValidators(stateDB, 2)
+	height = 2
+	v, err = sm.LoadValidators(stateDB, height)
 	assert.Nil(err, "expected no err at height 2")
-	assert.Equal(v.Hash(), state.NextValidators.Hash(), "expected validator hashes to match")
+	assert.Equal(v.Hash(height), state.NextValidators.Hash(height), "expected validator hashes to match")
 
 	// Increment height, save; should be able to load for next & next next height.
 	state.LastBlockHeight++
@@ -205,8 +208,8 @@ func TestValidatorSimpleSaveLoad(t *testing.T) {
 	assert.Nil(err, "expected no err")
 	vp1, err := sm.LoadValidators(stateDB, nextHeight+1)
 	assert.Nil(err, "expected no err")
-	assert.Equal(vp0.Hash(), state.Validators.Hash(), "expected validator hashes to match")
-	assert.Equal(vp1.Hash(), state.NextValidators.Hash(), "expected next validator hashes to match")
+	assert.Equal(vp0.Hash(nextHeight+0), state.Validators.Hash(nextHeight+0), "expected validator hashes to match")
+	assert.Equal(vp1.Hash(nextHeight+1), state.NextValidators.Hash(nextHeight+1), "expected next validator hashes to match")
 }
 
 // TestValidatorChangesSaveLoad tests saving and loading a validator set with changes.
@@ -939,6 +942,7 @@ func TestConsensusParamsChangesSaveLoad(t *testing.T) {
 	for i := 1; i < N+1; i++ {
 		params[i] = *types.DefaultConsensusParams()
 		params[i].Block.MaxBytes += int64(i)
+		params[i].Block.TimeIotaMs = 10
 	}
 
 	// Build the params history by running updateState
@@ -975,6 +979,7 @@ func TestConsensusParamsChangesSaveLoad(t *testing.T) {
 			changeIndex++
 			cp = params[changeIndex]
 		}
+
 		testCases[i-1] = paramsChangeTestCase{i, cp}
 	}
 

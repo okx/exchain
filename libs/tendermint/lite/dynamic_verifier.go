@@ -119,16 +119,16 @@ func (dv *DynamicVerifier) Verify(shdr types.SignedHeader) error {
 	if trustedFC.Height() == prevHeight {
 		// Return error if valset doesn't match.
 		if !bytes.Equal(
-			trustedFC.NextValidators.Hash(),
+			trustedFC.NextValidators.Hash(trustedFC.Height()),
 			shdr.Header.ValidatorsHash) {
 			return lerr.ErrUnexpectedValidators(
-				trustedFC.NextValidators.Hash(),
+				trustedFC.NextValidators.Hash(trustedFC.Height()),
 				shdr.Header.ValidatorsHash)
 		}
 	} else {
 		// If valset doesn't match, try to update
 		if !bytes.Equal(
-			trustedFC.NextValidators.Hash(),
+			trustedFC.NextValidators.Hash(trustedFC.Height()),
 			shdr.Header.ValidatorsHash) {
 			// ... update.
 			trustedFC, err = dv.updateToHeight(prevHeight)
@@ -136,10 +136,10 @@ func (dv *DynamicVerifier) Verify(shdr types.SignedHeader) error {
 				return err
 			}
 			// Return error if valset _still_ doesn't match.
-			if !bytes.Equal(trustedFC.NextValidators.Hash(),
+			if !bytes.Equal(trustedFC.NextValidators.Hash(trustedFC.Height()),
 				shdr.Header.ValidatorsHash) {
 				return lerr.ErrUnexpectedValidators(
-					trustedFC.NextValidators.Hash(),
+					trustedFC.NextValidators.Hash(trustedFC.Height()),
 					shdr.Header.ValidatorsHash)
 			}
 		}

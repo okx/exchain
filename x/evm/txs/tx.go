@@ -1,9 +1,9 @@
 package txs
 
 import (
-	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	bam "github.com/okex/exchain/libs/system/trace"
 	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/types"
 	"math/big"
@@ -35,9 +35,6 @@ type Tx interface {
 
 	// DecorateResult some case(trace tx log) will modify the inResult to log and swallow inErr
 	DecorateResult(inResult *base.Result, inErr error) (result *sdk.Result, err error)
-
-	// RestoreWatcherTransactionReceipt restore watcher TransactionReceipt
-	RestoreWatcherTransactionReceipt(msg *types.MsgEthereumTx)
 
 	// Commit save the inner tx and contracts
 	Commit(msg *types.MsgEthereumTx, result *base.Result)
@@ -95,8 +92,6 @@ func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err e
 		// Commit save the inner tx and contracts
 		tx.Commit(msg, &baseResult)
 		tx.EmitEvent(msg, &baseResult)
-	} else {
-		tx.RestoreWatcherTransactionReceipt(msg)
 	}
 
 	return tx.DecorateResult(&baseResult, err)
