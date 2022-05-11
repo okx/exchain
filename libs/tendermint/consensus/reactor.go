@@ -852,7 +852,6 @@ OUTER_LOOP:
 			return
 		}
 
-		conR.conS.stateMtx.Lock()
 		rs := conR.conS.GetRoundState()
 		prs := ps.GetRoundState()
 		vcMsg := conR.conS.vcMsg
@@ -877,7 +876,6 @@ OUTER_LOOP:
 				peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg))
 			}
 		}
-		conR.conS.stateMtx.Unlock()
 
 		time.Sleep(conR.conS.config.PeerGossipSleepDuration * 2)
 		continue OUTER_LOOP
