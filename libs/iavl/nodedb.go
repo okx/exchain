@@ -80,7 +80,7 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 	}
 
 	ndb.oi = newOrphanInfo(ndb)
-	ndb.nc = newNodeCache(cacheSize)
+	ndb.nc = newNodeCache(ndb.name, cacheSize)
 	return ndb
 }
 
