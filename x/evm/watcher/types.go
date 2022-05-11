@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
@@ -587,6 +588,10 @@ type Transaction struct {
 }
 
 func newBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash, header abci.Header, gasLimit uint64, gasUsed *big.Int, txs interface{}) Block {
+	timestamp := header.Time.Unix()
+	if timestamp < 0 {
+		timestamp = time.Now().Unix()
+	}
 	return Block{
 		Number:           hexutil.Uint64(height),
 		Hash:             blockHash,
@@ -604,7 +609,7 @@ func newBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash, h
 		Size:             hexutil.Uint64(header.Size()),
 		GasLimit:         hexutil.Uint64(gasLimit),
 		GasUsed:          (*hexutil.Big)(gasUsed),
-		Timestamp:        hexutil.Uint64(header.Time.Unix()),
+		Timestamp:        hexutil.Uint64(timestamp),
 		Uncles:           []common.Hash{},
 		ReceiptsRoot:     common.Hash{},
 		Transactions:     txs,
