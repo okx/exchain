@@ -866,7 +866,7 @@ OUTER_LOOP:
 			return
 		}
 
-		rs := conR.conS.GetRoundState()
+		rs := conR.getRoundState()
 		prs := ps.GetRoundState()
 		vcMsg := conR.conS.vcMsg
 
