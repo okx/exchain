@@ -288,6 +288,11 @@ func orphanKeyFast(fromVersion, toVersion int64, hash []byte) []byte {
 func (ndb *nodeDB) cacheNode(node *Node) {
 	ndb.nc.cache(node)
 }
+
+func (ndb *nodeDB) cacheNodesFromMap(m map[string]*Node) {
+	ndb.nc.cacheNodesFromMap(m)
+}
+
 func (ndb *nodeDB) uncacheNode(hash []byte) {
 	ndb.nc.uncache(hash)
 }

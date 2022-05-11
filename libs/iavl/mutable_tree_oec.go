@@ -165,11 +165,11 @@ func (tree *MutableTree) commitSchedule() {
 		trc.CloseSummary()
 
 		trc.Pin("cacheNode")
+		tree.ndb.cacheNodesFromMap(event.tpp)
 		for _, node := range event.tpp {
 			if !node.persisted {
 				panic("unexpected logic")
 			}
-			tree.ndb.cacheNode(node)
 		}
 
 		trc.Pin("Pruning")
