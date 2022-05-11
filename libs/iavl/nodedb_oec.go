@@ -8,11 +8,12 @@ import (
 
 	cmap "github.com/orcaman/concurrent-map"
 
+	"time"
+
 	"github.com/go-errors/errors"
 	"github.com/okex/exchain/libs/system/trace"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/tendermint/go-amino"
-	"time"
 )
 
 const (
@@ -40,21 +41,21 @@ func (ndb *nodeDB) SaveOrphans(batch dbm.Batch, version int64, orphans []*Node) 
 }
 
 func (ndb *nodeDB) dbGet(k []byte) ([]byte, error) {
+	ndb.addDBReadCount()
 	ts := time.Now()
 	defer func() {
 		ndb.addDBReadTime(time.Now().Sub(ts).Nanoseconds())
 	}()
-	ndb.addDBReadCount()
 	return ndb.db.Get(k)
 }
 
 func (ndb *nodeDB) makeNodeFromDbByHash(hash []byte) *Node {
 	k := ndb.nodeKey(hash)
+	ndb.addDBReadCount()
 	ts := time.Now()
 	defer func() {
 		ndb.addDBReadTime(time.Now().Sub(ts).Nanoseconds())
 	}()
-	ndb.addDBReadCount()
 
 	v, err := ndb.db.GetUnsafeValue(k, func(buf []byte) (interface{}, error) {
 		if buf == nil {
@@ -342,4 +343,11 @@ func (ndb *nodeDB) finishPreWriteCache() {
 		ndb.cacheNode(v.(*Node))
 	})
 	ndb.preWriteNodeCache = nil
+}
+
+func (ndb *nodeDB) prePersistNodeCacheLen() (l int) {
+	ndb.mtx.Lock()
+	l = len(ndb.prePersistNodeCache)
+	ndb.mtx.Unlock()
+	return
 }
