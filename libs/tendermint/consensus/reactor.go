@@ -345,8 +345,6 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			}
 			conR.conS.peerMsgQueue <- msgInfo{msg, ""}
 		case *ProposeRequestMessage:
-			conR.mtx.Lock()
-			defer conR.mtx.Unlock()
 			conR.conS.stateMtx.Lock()
 			defer conR.conS.stateMtx.Unlock()
 			height := conR.conS.Height
@@ -854,6 +852,7 @@ OUTER_LOOP:
 			return
 		}
 
+		conR.conS.stateMtx.Lock()
 		rs := conR.conS.GetRoundState()
 		prs := ps.GetRoundState()
 		vcMsg := conR.conS.vcMsg
@@ -871,13 +870,14 @@ OUTER_LOOP:
 			conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
 		}
 
-		if vcMsg != nil && rs.Height == vcMsg.Height {
+		if rs.Height == vcMsg.Height {
 			// send proposal
 			if rs.Proposal != nil {
 				msg := &ProposalMessage{Proposal: rs.Proposal}
 				peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg))
 			}
 		}
+		conR.conS.stateMtx.Unlock()
 
 		time.Sleep(conR.conS.config.PeerGossipSleepDuration * 2)
 		continue OUTER_LOOP
