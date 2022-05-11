@@ -14,9 +14,9 @@ import (
 )
 
 var (
-	maxTxNumberInParallelChan = 20000
-	whiteAcc                  = string(hexutil.MustDecode("0x01f1829676db577682e944fc3493d451b67ff3e29f")) //fee
-	maxNums                   = runtime.NumCPU()
+	maxTxNumberInParallelChan  = 20000
+	whiteAcc                   = string(hexutil.MustDecode("0x01f1829676db577682e944fc3493d451b67ff3e29f")) //fee
+	maxGoroutineNumberInParaTx = runtime.NumCPU()
 )
 
 type extraDataForTx struct {
@@ -456,13 +456,13 @@ func (a *asyncWorkGroup) AddTask(index int) {
 }
 
 func (a *asyncWorkGroup) Close() {
-	for index := 0; index <= maxNums; index++ {
+	for index := 0; index <= maxGoroutineNumberInParaTx; index++ {
 		a.stopChan <- struct{}{}
 	}
 }
 
 func (a *asyncWorkGroup) Start() {
-	for index := 0; index < maxNums; index++ {
+	for index := 0; index < maxGoroutineNumberInParaTx; index++ {
 		go func() {
 			for true {
 				select {
