@@ -2,6 +2,7 @@ package wasm
 
 import (
 	"encoding/json"
+
 	"github.com/gorilla/mux"
 	clictx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -10,6 +11,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/wasm/client/cli"
 	"github.com/okex/exchain/x/wasm/keeper"
 	"github.com/okex/exchain/x/wasm/types"
@@ -59,6 +61,9 @@ func (am AppModule) NewQuerierHandler() sdk.Querier {
 // InitGenesis performs genesis initialization for the wasm module. It returns
 // no validator updates.
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
+	if !types2.HigherThanSaturn(ctx.BlockHeight()) {
+		return nil
+	}
 	var genesisState GenesisState
 	ModuleCdc.MustUnmarshalJSON(data, &genesisState)
 	validators, err := InitGenesis(ctx, am.keeper, genesisState, am.NewHandler())
@@ -69,6 +74,9 @@ func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 }
 
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
+	if !types2.HigherThanSaturn(ctx.BlockHeight()) {
+		return nil
+	}
 	gs := ExportGenesis(ctx, am.keeper)
 	return ModuleCdc.MustMarshalJSON(gs)
 }
@@ -88,8 +96,7 @@ func (am AppModule) RegisterTask() upgrade.HeightTask {
 }
 
 func (am AppModule) UpgradeHeight() int64 {
-	//TODO need upgrade Height
-	return 0
+	return types2.GetSaturnHeight()
 }
 
 // ReadWasmConfig reads the wasm specifig configuration
