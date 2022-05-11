@@ -366,10 +366,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			}
 			conR.conS.peerMsgQueue <- msgInfo{msg, ""}
 		case *ProposeRequestMessage:
-			conR.mtx.Lock()
-			defer conR.mtx.Unlock()
 			conR.conS.rsMtx.Lock()
 			defer conR.conS.rsMtx.Unlock()
+
 			height := conR.conS.Height
 			// this peer has received a prMsg before
 			// or this peer is not proposer
@@ -884,7 +883,7 @@ OUTER_LOOP:
 			conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
 		}
 
-		if vcMsg != nil && rs.Height == vcMsg.Height {
+		if rs.Height == vcMsg.Height {
 			// send proposal
 			if rs.Proposal != nil {
 				msg := &ProposalMessage{Proposal: rs.Proposal}
