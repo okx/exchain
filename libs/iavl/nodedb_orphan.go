@@ -55,3 +55,21 @@ func (ndb *nodeDB) findRootHash(version int64) (res []byte, found bool) {
 	defer ndb.mtx.RUnlock()
 	return ndb.oi.findRootHash(version)
 }
+
+func (ndb *nodeDB) orphanTask(version int64, orphans []*Node, rootHash []byte, persist bool) {
+	if persist {
+		ndb.mtx.Lock()
+		ndb.oi.addOrphanItem(version, rootHash)
+		ndb.oi.removeOldOrphans(version)
+		ndb.mtx.Unlock()
+	} else {
+		ndb.mtx.Lock()
+		ndb.saveNewOrphans(version, orphans, false)
+		ndb.oi.addOrphanItem(version, rootHash)
+		ndb.oi.removeOldOrphans(version)
+		ndb.mtx.Unlock()
+	}
+
+	ndb.oi.enqueueResult(version)
+	ndb.uncacheNodeRontine(orphans)
+}
