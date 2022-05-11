@@ -27,6 +27,9 @@ var (
 	MILESTONE_VENUS1_HEIGHT string
 	milestoneVenus1Height   int64
 
+	MILESTONE_SATURN_HEIGHT string
+	milestoneSaturnHeight   int64
+
 	once sync.Once
 )
 
@@ -37,6 +40,7 @@ func init() {
 		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
 		milestoneMarsHeight = string2number(MILESTONE_MARS_HEIGHT)
 		milestoneVenus1Height = string2number(MILESTONE_VENUS1_HEIGHT)
+		milestoneSaturnHeight = string2number(MILESTONE_SATURN_HEIGHT)
 	})
 }
 
@@ -105,6 +109,7 @@ func GetMercuryHeight() int64 {
 func GetMarsHeight() int64 {
 	return milestoneMarsHeight
 }
+
 // can be used in unit test only
 func UnittestOnlySetMilestoneVenusHeight(height int64) {
 	milestoneVenusHeight = height
@@ -133,4 +138,20 @@ func GetVenus1Height() int64 {
 }
 
 // =========== Venus1 ===============
+// ==================================
+
+// ==================================
+// =========== Saturn ===============
+func HigherThanSaturn(h int64) bool {
+	if milestoneSaturnHeight == 0 {
+		return false
+	}
+	return h >= milestoneSaturnHeight
+}
+
+func GetSaturnHeight() int64 {
+	return milestoneSaturnHeight
+}
+
+// =========== Saturn ===============
 // ==================================

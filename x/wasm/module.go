@@ -113,11 +113,13 @@ func (AppModule) ConsensusVersion() uint64 { return 1 }
 
 // NewAppModule creates a new AppModule object
 func NewAppModule(cdc codec.CodecProxy, keeper *Keeper) AppModule {
-	return AppModule{
+	m := AppModule{
 		AppModuleBasic: AppModuleBasic{},
 		cdc:            cdc,
 		keeper:         keeper,
 	}
+	m.BaseIBCUpgradeModule = base.NewBaseIBCUpgradeModule(m)
+	return m
 }
 
 func (am AppModule) RegisterServices(cfg module.Configurator) {
