@@ -97,7 +97,6 @@ func NewCache(parent *Cache, useCache bool) *Cache {
 		codeMap:    make(map[ethcmn.Hash]*codeWithCache),
 		gasConfig:  types.KVGasConfig(),
 	}
-
 }
 
 func (c *Cache) skip() bool {
@@ -109,6 +108,11 @@ func (c *Cache) skip() bool {
 
 func (c *Cache) IsEnabled() bool {
 	return !c.skip()
+}
+
+func (c *Cache) IsEmpty() bool {
+	size := len(c.accMap) + len(c.storageMap) + len(c.codeMap)
+	return size == 0
 }
 
 func (c *Cache) UpdateAccount(addr AccAddress, acc Account, lenBytes int, isDirty bool) {
@@ -220,7 +224,7 @@ func (c *Cache) Write(updateDirty bool) {
 func (c *Cache) writeStorage(updateDirty bool) {
 	for addr, storages := range c.storageMap {
 		if _, ok := c.parent.storageMap[addr]; !ok {
-			c.parent.storageMap[addr] = make(map[ethcmn.Hash]*storageWithCache, 0)
+			c.parent.storageMap[addr] = make(map[ethcmn.Hash]*storageWithCache)
 		}
 
 		for key, v := range storages {
@@ -229,7 +233,9 @@ func (c *Cache) writeStorage(updateDirty bool) {
 			}
 		}
 	}
-	c.storageMap = make(map[ethcmn.Address]map[ethcmn.Hash]*storageWithCache)
+	for k := range c.storageMap {
+		delete(c.storageMap, k)
+	}
 }
 
 func (c *Cache) setAcc(addr ethcmn.Address, v *accountWithCache) {
@@ -260,7 +266,9 @@ func (c *Cache) writeCode(updateDirty bool) {
 			c.parent.codeMap[hash] = v
 		}
 	}
-	c.codeMap = make(map[ethcmn.Hash]*codeWithCache)
+	for k := range c.codeMap {
+		delete(c.codeMap, k)
+	}
 }
 
 func needWriteToParent(updateDirty bool, dirty bool) bool {

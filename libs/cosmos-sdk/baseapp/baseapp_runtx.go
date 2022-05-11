@@ -2,9 +2,10 @@ package baseapp
 
 import (
 	"fmt"
+	"runtime/debug"
+
 	"github.com/okex/exchain/libs/system/trace"
 	"github.com/pkg/errors"
-	"runtime/debug"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -374,7 +375,15 @@ func useCache(mode runTxMode) bool {
 }
 
 func (app *BaseApp) newBlockCache() {
-	app.blockCache = sdk.NewCache(app.chainCache, sdk.UseCache && !app.parallelTxManage.isAsyncDeliverTx)
+	enableCache := sdk.UseCache && !app.parallelTxManage.isAsyncDeliverTx
+	if app.blockCache == nil || !app.blockCache.IsEmpty() {
+		app.blockCache = sdk.NewCache(app.chainCache, enableCache)
+	} else {
+		if app.blockCache.IsEnabled() != sdk.UseCache && !app.parallelTxManage.isAsyncDeliverTx {
+			app.blockCache = sdk.NewCache(app.chainCache, enableCache)
+		}
+	}
+
 	app.deliverState.ctx.SetCache(app.blockCache)
 }
 
