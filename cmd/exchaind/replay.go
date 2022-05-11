@@ -11,6 +11,9 @@ import (
 	"runtime/pprof"
 	"time"
 
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+
 	"github.com/okex/exchain/app/config"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
@@ -27,8 +30,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/store"
 	"github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 const (
@@ -69,7 +70,9 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command)) 
 			}()
 
 			dataDir := viper.GetString(replayedBlockDir)
+			startTimeStamp := time.Now()
 			replayBlock(ctx, dataDir)
+			log.Printf("replay costs %v \n", time.Since(startTimeStamp))
 			log.Println("--------- replay success ---------", "Time Cost", time.Now().Sub(ts).Seconds())
 		},
 		PostRun: func(cmd *cobra.Command, args []string) {
