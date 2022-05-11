@@ -60,6 +60,7 @@ func getStreamData(cache *Cache) types.IStreamData {
 		TransactionReceipts: cache.GetTransactionReceipts(),
 		Block:               cache.GetBlock(),
 		Transactions:        cache.GetTransactions(),
+		ContractCodes:       cache.GetContractCodes(),
 	}
 }
 

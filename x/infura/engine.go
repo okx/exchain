@@ -34,7 +34,7 @@ func newMySQLEngine(url, user, pass string, l log.Logger) (types.IStreamEngine, 
 		return nil, err
 	}
 	db.AutoMigrate(&types.TransactionReceipt{}, &types.TransactionLog{},
-		&types.LogTopic{}, &types.Block{}, &types.Transaction{})
+		&types.LogTopic{}, &types.Block{}, &types.Transaction{}, &types.ContractCode{})
 	return &MySQLEngine{
 		db:     db,
 		logger: l,
@@ -57,6 +57,14 @@ func (e *MySQLEngine) Write(streamData types.IStreamData) bool {
 	ret := trx.Create(data.Block)
 	if ret.Error != nil {
 		return e.rollbackWithError(trx, ret.Error)
+	}
+
+	// write contract code
+	for _, code := range data.ContractCodes {
+		ret := trx.Create(code)
+		if ret.Error != nil {
+			return e.rollbackWithError(trx, ret.Error)
+		}
 	}
 
 	trx.Commit()

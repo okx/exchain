@@ -132,6 +132,9 @@ func (w *Watcher) SaveContractCode(addr common.Address, code []byte) {
 	if !w.Enabled() {
 		return
 	}
+	if w.InfuraKeeper != nil {
+		w.InfuraKeeper.OnSaveContractCode(addr.String(), code)
+	}
 	wMsg := NewMsgCode(addr, code, w.height)
 	if wMsg != nil {
 		w.staleBatch = append(w.staleBatch, wMsg)

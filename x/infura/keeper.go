@@ -36,3 +36,7 @@ func (k Keeper) OnSaveBlock(b evm.Block) {
 func (k Keeper) OnSaveTransaction(t evm.Transaction) {
 	k.stream.cache.AddTransaction(t)
 }
+
+func (k Keeper) OnSaveContractCode(address string, code []byte) {
+	k.stream.cache.AddContractCode(address, code)
+}

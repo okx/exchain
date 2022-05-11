@@ -9,18 +9,21 @@ import (
 type EngineData struct {
 	TransactionReceipts []*TransactionReceipt
 	Block               *Block
+	ContractCodes       []*ContractCode
 }
 
 type StreamData struct {
 	TransactionReceipts []evm.TransactionReceipt
 	Block               evm.Block
 	Transactions        []evm.Transaction
+	ContractCodes       map[string][]byte
 }
 
 func (sd StreamData) ConvertEngineData() EngineData {
 	return EngineData{
 		TransactionReceipts: convertTransactionReceipts(sd.TransactionReceipts),
 		Block:               convertBlocks(sd.Block, sd.Transactions),
+		ContractCodes:       convertContractCodes(sd.ContractCodes),
 	}
 }
 
@@ -116,6 +119,17 @@ func convertBlocks(evmBlock evm.Block, evmTransactions []evm.Transaction) *Block
 	return block
 }
 
+func convertContractCodes(codes map[string][]byte) []*ContractCode {
+	contractCodes := make([]*ContractCode, 0, len(codes))
+	for k, v := range codes {
+		contractCodes = append(contractCodes, &ContractCode{
+			Address: k,
+			Code:    hexutil.Encode(v),
+		})
+	}
+	return contractCodes
+}
+
 type TransactionReceipt struct {
 	gorm.Model
 	Status            uint64 `gorm:"type:tinyint(4)"`
@@ -182,4 +196,10 @@ type Transaction struct {
 	R           string `gorm:"type:varchar(255)"`
 	S           string `gorm:"type:varchar(255)"`
 	BlockID     uint
+}
+
+type ContractCode struct {
+	gorm.Model
+	Address string `gorm:"type:varchar(42);index:unique_hash,unique;not null"`
+	Code    string
 }
