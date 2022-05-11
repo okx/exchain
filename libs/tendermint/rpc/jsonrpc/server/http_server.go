@@ -159,8 +159,13 @@ func RecoverAndLogHandler(handler http.Handler, logger log.Logger) http.Handler 
 			// server to terminate the request and close the connection/stream:
 			// https://github.com/golang/go/issues/17790#issuecomment-258481416
 			if e := recover(); e != nil {
-				fmt.Fprintf(os.Stderr, "Panic during RPC panic recovery: %v\n%v\n", e, string(debug.Stack()))
-				w.WriteHeader(500)
+				switch e.(type) {
+				case net.Error:
+					fmt.Fprintf(os.Stderr, "net.Error Panic during RPC panic recovery: %v\n%v\n", e, string(debug.Stack()))
+				default:
+					fmt.Fprintf(os.Stderr, "Panic during RPC panic recovery: %v\n%v\n", e, string(debug.Stack()))
+					w.WriteHeader(500)
+				}
 			}
 		}()
 
