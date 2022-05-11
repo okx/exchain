@@ -35,17 +35,13 @@ func (ndb *nodeDB) updateBranchMoreConcurrency(node *Node) []byte {
 
 	if node.leftNode != nil {
 		wg.Add(1)
-		go func(node *Node, wg *sync.WaitGroup) {
+		go func(ndb *nodeDB, node *Node, wg *sync.WaitGroup) {
 			node.leftHash = ndb.updateBranchConcurrency(node.leftNode, nil)
 			wg.Done()
-		}(node, wg)
+		}(ndb, node, wg)
 	}
 	if node.rightNode != nil {
-		wg.Add(1)
-		go func(node *Node, wg *sync.WaitGroup) {
-			node.rightHash = ndb.updateBranchConcurrency(node.rightNode, nil)
-			wg.Done()
-		}(node, wg)
+		node.rightHash = ndb.updateBranchConcurrency(node.rightNode, nil)
 	}
 
 	wg.Wait()
