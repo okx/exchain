@@ -131,30 +131,12 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) map[string]*Node {
 		node.persisted = true
 	}
 
-	go func(ndb *nodeDB, tpp map[string]*Node) {
-		for _, node := range tpp {
-			if !node.persisted {
-				panic("unexpected logic")
-			}
-			ndb.cacheNode(node)
-		}
-	}(ndb, tpp)
-
 	return tpp
 }
 
 func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer) {
 	version := event.version
-	//tpp := event.tpp
 	iavlHeight := event.iavlHeight
-
-	//trc.Pin("cacheNode")
-	//for _, node := range tpp {
-	//	if !node.persisted {
-	//		panic("unexpected logic")
-	//	}
-	//	ndb.cacheNode(node)
-	//}
 
 	nodeNum := ndb.getTppNodesNum()
 
