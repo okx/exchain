@@ -45,19 +45,20 @@ type nodeDB struct {
 	opts           Options          // Options to customize for pruning/writing
 	versionReaders map[int64]uint32 // Number of active version readers
 
-	latestVersion  int64
+	latestVersion int64
 
 	prePersistNodeCache map[string]*Node
 
 	// temporary pre-persist map
-	tppMap              map[int64]*tppItem
-	tppVersionList      *list.List
+	tppMap         map[int64]*tppItem
+	tppVersionList *list.List
+	tppMtx         sync.RWMutex
 
-	name string
+	name              string
 	preWriteNodeCache cmap.ConcurrentMap
 
-	oi *OrphanInfo
-	nc *NodeCache
+	oi    *OrphanInfo
+	nc    *NodeCache
 	state *RuntimeState
 }
 
@@ -67,15 +68,15 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		opts = &o
 	}
 	ndb := &nodeDB{
-		db:                      db,
-		opts:                    *opts,
-		versionReaders:          make(map[int64]uint32, 8),
-		prePersistNodeCache:     make(map[string]*Node),
-		tppMap:                  make(map[int64]*tppItem),
-		tppVersionList:          list.New(),
-		name:                    ParseDBName(db),
-		preWriteNodeCache:       cmap.New(),
-		state:                   newRuntimeState(),
+		db:                  db,
+		opts:                *opts,
+		versionReaders:      make(map[int64]uint32, 8),
+		prePersistNodeCache: make(map[string]*Node),
+		tppMap:              make(map[int64]*tppItem),
+		tppVersionList:      list.New(),
+		name:                ParseDBName(db),
+		preWriteNodeCache:   cmap.New(),
+		state:               newRuntimeState(),
 	}
 
 	ndb.oi = newOrphanInfo(ndb)
@@ -525,7 +526,6 @@ func (ndb *nodeDB) traversePrefix(prefix []byte, fn func(k, v []byte)) {
 		fn(itr.Key(), itr.Value())
 	}
 }
-
 
 // Write to disk.
 func (ndb *nodeDB) Commit(batch dbm.Batch) error {

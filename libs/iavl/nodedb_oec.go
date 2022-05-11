@@ -91,7 +91,6 @@ func (ndb *nodeDB) saveNodeToPrePersistCache(node *Node) {
 }
 
 func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
-
 	batch := event.batch
 	tpp := event.tpp
 
@@ -112,15 +111,18 @@ func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
 func (ndb *nodeDB) asyncPersistTppStart(version int64) map[string]*Node {
 	ndb.log(IavlDebug, "moving prePersistCache to tempPrePersistCache", "size", len(ndb.prePersistNodeCache))
 	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
 	tpp := ndb.prePersistNodeCache
-	ndb.prePersistNodeCache = map[string]*Node{}
+	ndb.prePersistNodeCache = make(map[string]*Node, len(tpp))
 
+	ndb.tppMtx.Lock()
 	lItem := ndb.tppVersionList.PushBack(version)
 	ndb.tppMap[version] = &tppItem{
 		nodeMap:  tpp,
 		listItem: lItem,
 	}
+	ndb.tppMtx.Unlock()
+
+	ndb.mtx.Unlock()
 
 	for _, node := range tpp {
 		if node.persisted || !node.prePersisted {
@@ -133,7 +135,6 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) map[string]*Node {
 }
 
 func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer) {
-
 	version := event.version
 	tpp := event.tpp
 	iavlHeight := event.iavlHeight
@@ -146,16 +147,16 @@ func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer)
 		ndb.cacheNode(node)
 	}
 
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-
 	nodeNum := ndb.getTppNodesNum()
 
+	ndb.tppMtx.Lock()
 	tItem := ndb.tppMap[version]
 	if tItem != nil {
 		ndb.tppVersionList.Remove(tItem.listItem)
 	}
 	delete(ndb.tppMap, version)
+	ndb.tppMtx.Unlock()
+
 	ndb.log(IavlInfo, "CommitSchedule", "Height", version,
 		"Tree", ndb.name,
 		"IavlHeight", iavlHeight,
@@ -194,9 +195,11 @@ func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
 
 func (ndb *nodeDB) getTppNodesNum() int {
 	var size = 0
+	ndb.tppMtx.RLock()
 	for _, mp := range ndb.tppMap {
 		size += len(mp.nodeMap)
 	}
+	ndb.tppMtx.RUnlock()
 	return size
 }
 
@@ -217,6 +220,8 @@ func (ndb *nodeDB) saveCommitOrphans(batch dbm.Batch, version int64, orphans []c
 }
 
 func (ndb *nodeDB) getNodeInTpp(hash []byte) (*Node, bool) {
+	ndb.tppMtx.RLock()
+	defer ndb.tppMtx.RUnlock()
 	for v := ndb.tppVersionList.Back(); v != nil; v = v.Prev() {
 		ver := v.Value.(int64)
 		tppItem := ndb.tppMap[ver]
