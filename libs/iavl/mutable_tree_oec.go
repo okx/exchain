@@ -48,7 +48,6 @@ type commitOrphan struct {
 }
 
 func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte, int64, error) {
-
 	tree.ndb.sanityCheckHandleOrphansResult(version)
 
 	oldRoot, saved := tree.ndb.findRootHash(version)
@@ -78,10 +77,16 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 
 	if shouldPersist {
 		tree.ndb.saveNewOrphans(version, tree.orphans, true)
-		go tree.ndb.uncacheNodeRontine(tree.orphans)
 		tree.persist(version)
 		tree.ndb.addOrphanItem(version, tree.ImmutableTree.Hash())
 		tree.ndb.oi.enqueueResult(version)
+
+		go func(ndb *nodeDB, version int64, orphans []*Node) {
+			ndb.mtx.Lock()
+			ndb.oi.removeOldOrphans(version)
+			ndb.mtx.Unlock()
+			tree.ndb.uncacheNodeRontine(orphans)
+		}(tree.ndb, version, tree.orphans)
 	} else {
 		go func(ndb *nodeDB, version int64, newOrphans []*Node, rootHash []byte) {
 			ndb.mtx.Lock()
@@ -89,6 +94,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 			ndb.oi.removeOldOrphans(version)
 			ndb.oi.addOrphanItem(version, rootHash)
 			ndb.mtx.Unlock()
+
 			ndb.oi.enqueueResult(version)
 			ndb.uncacheNodeRontine(newOrphans)
 		}(tree.ndb, version, tree.orphans, tree.ImmutableTree.Hash())
