@@ -200,6 +200,6 @@ type Transaction struct {
 
 type ContractCode struct {
 	gorm.Model
-	Address string `gorm:"type:varchar(42);index:unique_hash,unique;not null"`
+	Address string `gorm:"type:varchar(42);index:unique_address,unique;not null"`
 	Code    string
 }
