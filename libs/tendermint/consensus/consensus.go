@@ -1778,7 +1778,8 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 	if len(b)-n != int(bLen) {
 		b, err = compress.UnCompress(2, b)
 		if err != nil {
-			panic(err)
+			cs.ProposalBlockParts = nil
+			return false, err
 		}
 	}
 	r = bytes.NewBuffer(b)
