@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	gogotypes "github.com/gogo/protobuf/types"
+	"github.com/okex/exchain/libs/tendermint/libs/compress"
 	"strings"
 	"sync"
 	"time"
@@ -239,7 +240,8 @@ func (b *Block) MakePartSet(partSize int) *PartSet {
 	if err != nil {
 		panic(err)
 	}
-	return NewPartSetFromData(bz, partSize)
+	cz, _ := compress.Compress(2, 0, bz)
+	return NewPartSetFromData(cz, partSize)
 }
 
 // HashesTo is a convenience function that checks if a block hashes to the given argument.
