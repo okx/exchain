@@ -26,35 +26,6 @@ func (ndb *nodeDB) updateBranch(node *Node, savedNodes map[string]*Node) []byte 
 	return node.hash
 }
 
-func (ndb *nodeDB) updateBranchMoreConcurrency(node *Node) []byte {
-	if node.persisted || node.prePersisted {
-		return node.hash
-	}
-
-	wg := &sync.WaitGroup{}
-
-	if node.leftNode != nil {
-		wg.Add(1)
-		go func(ndb *nodeDB, node *Node, wg *sync.WaitGroup) {
-			node.leftHash = ndb.updateBranchConcurrency(node.leftNode, nil)
-			wg.Done()
-		}(ndb, node, wg)
-	}
-	if node.rightNode != nil {
-		node.rightHash = ndb.updateBranchConcurrency(node.rightNode, nil)
-	}
-
-	wg.Wait()
-
-	node._hash()
-	ndb.saveNodeToPrePersistCache(node)
-
-	node.leftNode = nil
-	node.rightNode = nil
-
-	return node.hash
-}
-
 func (ndb *nodeDB) updateBranchConcurrency(node *Node, savedNodes map[string]*Node) []byte {
 	if node.persisted || node.prePersisted {
 		return node.hash
