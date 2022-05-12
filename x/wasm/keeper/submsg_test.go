@@ -3,6 +3,7 @@ package keeper
 import (
 	"encoding/json"
 	"fmt"
+	ibcadapter "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"io/ioutil"
 	"strconv"
 	"testing"
@@ -117,8 +118,8 @@ func TestDispatchSubMsgErrorHandling(t *testing.T) {
 
 	// prep - create one chain and upload the code
 	ctx, keepers := CreateTestInput(t, false, ReflectFeatures)
-	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-	ctx = ctx.WithBlockGasMeter(sdk.NewInfiniteGasMeter())
+	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
+	ctx.SetBlockGasMeter(sdk.NewInfiniteGasMeter())
 	keeper := keepers.WasmKeeper
 	contractStart := sdk.NewCoins(sdk.NewInt64Coin(fundedDenom, int64(fundedAmount)))
 	uploader := keepers.Faucet.NewFundedAccount(ctx, contractStart.Add(contractStart...)...)
@@ -227,7 +228,7 @@ func TestDispatchSubMsgErrorHandling(t *testing.T) {
 		assert.NotEqual(t, contract, eventAddr)
 
 		var res types.MsgInstantiateContractResponse
-		keepers.EncodingConfig.Marshaler.MustUnmarshal(response.Ok.Data, &res)
+		keepers.EncodingConfig.Marshaler.GetProtocMarshal().MustUnmarshal(response.Ok.Data, &res)
 		assert.Equal(t, eventAddr, res.Address)
 	}
 
@@ -315,7 +316,8 @@ func TestDispatchSubMsgErrorHandling(t *testing.T) {
 			reflectSendBz, err := json.Marshal(reflectSend)
 			require.NoError(t, err)
 
-			execCtx := ctx.WithGasMeter(sdk.NewGasMeter(ctxGasLimit))
+			execCtx := ctx
+			execCtx.SetGasMeter(sdk.NewGasMeter(ctxGasLimit))
 			defer func() {
 				if tc.isOutOfGasPanic {
 					r := recover()
@@ -367,7 +369,7 @@ func TestDispatchSubMsgErrorHandling(t *testing.T) {
 func TestDispatchSubMsgEncodeToNoSdkMsg(t *testing.T) {
 	SkipIfM1(t)
 	// fake out the bank handle to return success with no data
-	nilEncoder := func(sender sdk.AccAddress, msg *wasmvmtypes.BankMsg) ([]sdk.Msg, error) {
+	nilEncoder := func(sender sdk.AccAddress, msg *wasmvmtypes.BankMsg) ([]ibcadapter.Msg, error) {
 		return nil, nil
 	}
 	customEncoders := &MessageEncoders{

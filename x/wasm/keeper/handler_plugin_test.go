@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/json"
+	ibcadapter "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"testing"
 
 	wasmvm "github.com/CosmWasm/wasmvm"
@@ -9,7 +10,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	banktypes "github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
@@ -96,17 +96,18 @@ func TestSDKMessageHandlerDispatch(t *testing.T) {
 	const myData = "myData"
 	myRouterResult := sdk.Result{
 		Data:   []byte(myData),
-		Events: sdk.Events{myEvent}.ToABCIEvents(),
+		Events: sdk.Events{myEvent},
 	}
 
-	var gotMsg []sdk.Msg
-	capturingMessageRouter := wasmtesting.MessageRouterFunc(func(msg sdk.Msg) baseapp.MsgServiceHandler {
-		return func(ctx sdk.Context, req sdk.Msg) (*sdk.Result, error) {
-			gotMsg = append(gotMsg, msg)
+	//var gotMsg []sdk.Msg
+	var gotMsg []string
+	capturingMessageRouter := wasmtesting.MessageRouterFunc(func(methodName string) baseapp.MsgServiceHandler {
+		return func(ctx sdk.Context, req sdk.MsgRequest) (*sdk.Result, error) {
+			gotMsg = append(gotMsg, methodName)
 			return &myRouterResult, nil
 		}
 	})
-	noRouteMessageRouter := wasmtesting.MessageRouterFunc(func(msg sdk.Msg) baseapp.MsgServiceHandler {
+	noRouteMessageRouter := wasmtesting.MessageRouterFunc(func(methodName string) baseapp.MsgServiceHandler {
 		return nil
 	})
 	myContractAddr := RandomAccountAddress(t)
@@ -120,19 +121,19 @@ func TestSDKMessageHandlerDispatch(t *testing.T) {
 	}{
 		"all good": {
 			srcRoute: capturingMessageRouter,
-			srcEncoder: func(sender sdk.AccAddress, msg json.RawMessage) ([]sdk.Msg, error) {
+			srcEncoder: func(sender sdk.AccAddress, msg json.RawMessage) ([]ibcadapter.Msg, error) {
 				myMsg := types.MsgExecuteContract{
 					Sender:   myContractAddr.String(),
 					Contract: RandomBech32AccountAddress(t),
 					Msg:      []byte("{}"),
 				}
-				return []sdk.Msg{&myMsg}, nil
+				return []ibcadapter.Msg{&myMsg}, nil
 			},
 			expMsgDispatched: 1,
 		},
 		"multiple output msgs": {
 			srcRoute: capturingMessageRouter,
-			srcEncoder: func(sender sdk.AccAddress, msg json.RawMessage) ([]sdk.Msg, error) {
+			srcEncoder: func(sender sdk.AccAddress, msg json.RawMessage) ([]ibcadapter.Msg, error) {
 				first := &types.MsgExecuteContract{
 					Sender:   myContractAddr.String(),
 					Contract: RandomBech32AccountAddress(t),
@@ -143,49 +144,49 @@ func TestSDKMessageHandlerDispatch(t *testing.T) {
 					Contract: RandomBech32AccountAddress(t),
 					Msg:      []byte("{}"),
 				}
-				return []sdk.Msg{first, second}, nil
+				return []ibcadapter.Msg{first, second}, nil
 			},
 			expMsgDispatched: 2,
 		},
 		"invalid sdk message rejected": {
 			srcRoute: capturingMessageRouter,
-			srcEncoder: func(sender sdk.AccAddress, msg json.RawMessage) ([]sdk.Msg, error) {
+			srcEncoder: func(sender sdk.AccAddress, msg json.RawMessage) ([]ibcadapter.Msg, error) {
 				invalidMsg := types.MsgExecuteContract{
 					Sender:   myContractAddr.String(),
 					Contract: RandomBech32AccountAddress(t),
 					Msg:      []byte("INVALID_JSON"),
 				}
-				return []sdk.Msg{&invalidMsg}, nil
+				return []ibcadapter.Msg{&invalidMsg}, nil
 			},
 			expErr: types.ErrInvalid,
 		},
 		"invalid sender rejected": {
 			srcRoute: capturingMessageRouter,
-			srcEncoder: func(sender sdk.AccAddress, msg json.RawMessage) ([]sdk.Msg, error) {
+			srcEncoder: func(sender sdk.AccAddress, msg json.RawMessage) ([]ibcadapter.Msg, error) {
 				invalidMsg := types.MsgExecuteContract{
 					Sender:   RandomBech32AccountAddress(t),
 					Contract: RandomBech32AccountAddress(t),
 					Msg:      []byte("{}"),
 				}
-				return []sdk.Msg{&invalidMsg}, nil
+				return []ibcadapter.Msg{&invalidMsg}, nil
 			},
 			expErr: sdkerrors.ErrUnauthorized,
 		},
 		"unroutable message rejected": {
 			srcRoute: noRouteMessageRouter,
-			srcEncoder: func(sender sdk.AccAddress, msg json.RawMessage) ([]sdk.Msg, error) {
+			srcEncoder: func(sender sdk.AccAddress, msg json.RawMessage) ([]ibcadapter.Msg, error) {
 				myMsg := types.MsgExecuteContract{
 					Sender:   myContractAddr.String(),
 					Contract: RandomBech32AccountAddress(t),
 					Msg:      []byte("{}"),
 				}
-				return []sdk.Msg{&myMsg}, nil
+				return []ibcadapter.Msg{&myMsg}, nil
 			},
 			expErr: sdkerrors.ErrUnknownRequest,
 		},
 		"encoding error passed": {
 			srcRoute: capturingMessageRouter,
-			srcEncoder: func(sender sdk.AccAddress, msg json.RawMessage) ([]sdk.Msg, error) {
+			srcEncoder: func(sender sdk.AccAddress, msg json.RawMessage) ([]ibcadapter.Msg, error) {
 				myErr := types.ErrUnpinContractFailed // any error that is not used
 				return nil, myErr
 			},
@@ -194,7 +195,8 @@ func TestSDKMessageHandlerDispatch(t *testing.T) {
 	}
 	for name, spec := range specs {
 		t.Run(name, func(t *testing.T) {
-			gotMsg = make([]sdk.Msg, 0)
+			//gotMsg = make([]sdk.Msg, 0)
+			gotMsg = make([]string, 0)
 
 			// when
 			ctx := sdk.Context{}
@@ -324,8 +326,7 @@ func TestBurnCoinMessageHandlerIntegration(t *testing.T) {
 
 	example := InstantiateHackatomExampleContract(t, ctx, keepers) // with deposit of 100 stake
 
-	before, err := keepers.BankKeeper.TotalSupply(sdk.WrapSDKContext(ctx), &banktypes.QueryTotalSupplyRequest{})
-	require.NoError(t, err)
+	before := keepers.supplyKeepr.GetSupply(ctx).GetTotal()
 
 	specs := map[string]struct {
 		msg    wasmvmtypes.BurnMsg
@@ -379,7 +380,7 @@ func TestBurnCoinMessageHandlerIntegration(t *testing.T) {
 			}}
 
 			// when
-			_, err = k.execute(ctx, example.Contract, example.CreatorAddr, nil, nil)
+			_, err := k.execute(ctx, example.Contract, example.CreatorAddr, nil, nil)
 
 			// then
 			if spec.expErr {
@@ -389,9 +390,9 @@ func TestBurnCoinMessageHandlerIntegration(t *testing.T) {
 			require.NoError(t, err)
 
 			// and total supply reduced by burned amount
-			after, err := keepers.BankKeeper.TotalSupply(sdk.WrapSDKContext(ctx), &banktypes.QueryTotalSupplyRequest{})
+			after := keepers.supplyKeepr.GetSupply(ctx).GetTotal()
 			require.NoError(t, err)
-			diff := before.Supply.Sub(after.Supply)
+			diff := before.Sub(after)
 			assert.Equal(t, sdk.NewCoins(sdk.NewCoin("denom", sdk.NewInt(100))), diff)
 		})
 	}

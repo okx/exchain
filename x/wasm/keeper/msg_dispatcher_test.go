@@ -9,7 +9,6 @@ import (
 
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -95,16 +94,16 @@ func TestDispatchSubmessages(t *testing.T) {
 			},
 			msgHandler: &wasmtesting.MockMessageHandler{
 				DispatchMsgFn: func(ctx sdk.Context, contractAddr sdk.AccAddress, contractIBCPortID string, msg wasmvmtypes.CosmosMsg) (events []sdk.Event, data [][]byte, err error) {
-					myEvents := []sdk.Event{{Type: "myEvent", Attributes: []abci.EventAttribute{{Key: []byte("foo"), Value: []byte("bar")}}}}
+					myEvents := []sdk.Event{sdk.NewEvent("myEvent", sdk.NewAttribute("foo", "bar"))}
 					return myEvents, [][]byte{[]byte("myData")}, nil
 				},
 			},
 			expData:    []byte("myReplyData"),
 			expCommits: []bool{true},
-			expEvents: []sdk.Event{{
-				Type:       "myEvent",
-				Attributes: []abci.EventAttribute{{Key: []byte("foo"), Value: []byte("bar")}},
-			},
+			expEvents: []sdk.Event{
+				sdk.NewEvent(
+					"myEvent",
+					sdk.NewAttribute("foo", "bar")),
 				sdk.NewEvent("wasm-reply"),
 			},
 		},
@@ -115,16 +114,13 @@ func TestDispatchSubmessages(t *testing.T) {
 			replyer: &mockReplyer{},
 			msgHandler: &wasmtesting.MockMessageHandler{
 				DispatchMsgFn: func(ctx sdk.Context, contractAddr sdk.AccAddress, contractIBCPortID string, msg wasmvmtypes.CosmosMsg) (events []sdk.Event, data [][]byte, err error) {
-					myEvents := []sdk.Event{{Type: "myEvent", Attributes: []abci.EventAttribute{{Key: []byte("foo"), Value: []byte("bar")}}}}
+					myEvents := []sdk.Event{sdk.NewEvent("myEvent", sdk.NewAttribute("foo", "bar"))}
 					ctx.EventManager().EmitEvents(myEvents)
 					return nil, nil, nil
 				},
 			},
 			expCommits: []bool{true},
-			expEvents: []sdk.Event{{
-				Type:       "myEvent",
-				Attributes: []abci.EventAttribute{{Key: []byte("foo"), Value: []byte("bar")}},
-			}},
+			expEvents:  []sdk.Event{sdk.NewEvent("myEvent", sdk.NewAttribute("foo", "bar"))},
 		},
 		"with context events - discarded on failure": {
 			msgs: []wasmvmtypes.SubMsg{{
@@ -133,7 +129,7 @@ func TestDispatchSubmessages(t *testing.T) {
 			replyer: &mockReplyer{},
 			msgHandler: &wasmtesting.MockMessageHandler{
 				DispatchMsgFn: func(ctx sdk.Context, contractAddr sdk.AccAddress, contractIBCPortID string, msg wasmvmtypes.CosmosMsg) (events []sdk.Event, data [][]byte, err error) {
-					myEvents := []sdk.Event{{Type: "myEvent", Attributes: []abci.EventAttribute{{Key: []byte("foo"), Value: []byte("bar")}}}}
+					myEvents := []sdk.Event{sdk.NewEvent("myEvent", sdk.NewAttribute("foo", "bar"))}
 					ctx.EventManager().EmitEvents(myEvents)
 					return nil, nil, errors.New("testing")
 				},
@@ -347,9 +343,11 @@ func TestDispatchSubmessages(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			var mockStore wasmtesting.MockCommitMultiStore
 			em := sdk.NewEventManager()
-			ctx := sdk.Context{}.WithMultiStore(&mockStore).
-				WithGasMeter(sdk.NewGasMeter(100)).
-				WithEventManager(em).WithLogger(log.TestingLogger())
+			ctx := sdk.Context{}
+			ctx.SetMultiStore(&mockStore)
+			ctx.SetGasMeter(sdk.NewGasMeter(100))
+			ctx.SetEventManager(em)
+			ctx.SetLogger(log.TestingLogger())
 			d := NewMessageDispatcher(spec.msgHandler, spec.replyer)
 			gotData, gotErr := d.DispatchSubmessages(ctx, RandomAccountAddress(t), "any_port", spec.msgs)
 			if spec.expErr {

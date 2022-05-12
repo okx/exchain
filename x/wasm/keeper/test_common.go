@@ -39,28 +39,16 @@ import (
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/crisis"
 	crisistypes "github.com/okex/exchain/libs/cosmos-sdk/x/crisis"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/distribution"
-	distrclient "github.com/okex/exchain/libs/cosmos-sdk/x/distribution/client"
-	distributionkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/distribution/keeper"
-	distributiontypes "github.com/okex/exchain/libs/cosmos-sdk/x/distribution/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/evidence"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/gov"
-	govkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/gov/keeper"
-	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	minttypes "github.com/okex/exchain/libs/cosmos-sdk/x/mint"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
-	paramskeeper "github.com/okex/exchain/libs/cosmos-sdk/x/params"
-	paramsclient "github.com/okex/exchain/libs/cosmos-sdk/x/params/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/slashing"
 	slashingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/slashing"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/staking"
-	stakingkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/staking/keeper"
-	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	upgradekeeper "github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	upgradetypes "github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
-	upgradeclient "github.com/okex/exchain/libs/cosmos-sdk/x/upgrade/client"
+	"github.com/okex/exchain/x/staking"
+	//upgradeclient "github.com/okex/exchain/libs/cosmos-sdk/x/upgrade/client"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
 	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
@@ -72,8 +60,20 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/libs/rand"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/okex/exchain/x/distribution"
+	distrclient "github.com/okex/exchain/x/distribution/client"
+	distributionkeeper "github.com/okex/exchain/x/distribution/keeper"
+	distributiontypes "github.com/okex/exchain/x/distribution/types"
+	"github.com/okex/exchain/x/gov"
+	govkeeper "github.com/okex/exchain/x/gov/keeper"
+	govtypes "github.com/okex/exchain/x/gov/types"
+	"github.com/okex/exchain/x/params"
 	paramproposal "github.com/okex/exchain/x/params"
+	paramskeeper "github.com/okex/exchain/x/params"
 	paramstypes "github.com/okex/exchain/x/params"
+	paramsclient "github.com/okex/exchain/x/params/client"
+	stakingkeeper "github.com/okex/exchain/x/staking/keeper"
+	stakingtypes "github.com/okex/exchain/x/staking/types"
 	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/x/wasm/keeper/wasmtesting"
@@ -98,7 +98,7 @@ var ModuleBasics = module.NewBasicManager(
 	distribution.AppModuleBasic{},
 	supply.AppModuleBasic{},
 	gov.NewAppModuleBasic(
-		paramsclient.ProposalHandler, distrclient.ProposalHandler, upgradeclient.ProposalHandler,
+		paramsclient.ProposalHandler, distrclient.ProposalHandler, //upgradeclient.ProposalHandler,
 	),
 	params.AppModuleBasic{},
 	crisis.AppModuleBasic{},
@@ -134,9 +134,7 @@ func MakeEncodingConfig(_ testing.TB) EncodingConfig {
 var TestingStakeParams = stakingtypes.Params{
 	UnbondingTime:     100,
 	MaxValidators:     10,
-	MaxEntries:        10,
 	HistoricalEntries: 10,
-	BondDenom:         "stake",
 }
 
 type TestFaucet struct {
@@ -316,7 +314,7 @@ func createTestInput(
 		legacyAmino, keys[supply.StoreKey], &accountKeeper, bankKeeper, maccPerms,
 	)
 	stakingKeeper := stakingkeeper.NewKeeper(
-		legacyAmino,
+		&appCodec,
 		keys[stakingtypes.StoreKey],
 		supplyKeeper,
 		subspace(stakingtypes.ModuleName),
@@ -412,32 +410,32 @@ func createTestInput(
 	am := module.NewManager( // minimal module set that we use for message/ query tests
 		bank.NewAppModule(bankKeeper, accountKeeper),
 		staking.NewAppModule(stakingKeeper, accountKeeper, supplyKeeper),
-		distribution.NewAppModule(distKeeper, accountKeeper, supplyKeeper, stakingKeeper),
+		distribution.NewAppModule(distKeeper, supplyKeeper),
 		supply.NewAppModule(supplyKeeper, accountKeeper),
 	)
 	am.RegisterServices(module.NewConfigurator(legacyAmino, msgRouter, querier))
 	types.RegisterMsgServer(msgRouter, NewMsgServerImpl(NewDefaultPermissionKeeper(keeper)))
 	types.RegisterQueryServer(querier, NewGrpcQuerier(appCodec, keys[types.ModuleName], keeper, keeper.queryGasLimit))
 
-	govRouter := govtypes.NewRouter().
+	govRouter := gov.NewRouter().
 		AddRoute(govtypes.RouterKey, govtypes.ProposalHandler).
-		AddRoute(paramproposal.RouterKey, params.NewParamChangeProposalHandler(paramsKeeper)).
-		AddRoute(distributiontypes.RouterKey, distribution.NewCommunityPoolSpendProposalHandler(distKeeper)).
-		AddRoute(types.RouterKey, NewWasmProposalHandler(&keeper, types.EnableAllProposals))
+		AddRoute(paramproposal.RouterKey, params.NewParamChangeProposalHandler(&paramsKeeper)).
+		AddRoute(distributiontypes.RouterKey, distribution.NewCommunityPoolSpendProposalHandler(distKeeper))
+		//AddRoute(types.RouterKey, NewWasmProposalHandler(&keeper, types.EnableAllProposals))
 
-	govKeeper := govkeeper.NewKeeper(
-		legacyAmino,
-		keys[govtypes.StoreKey],
-		subspace(govtypes.ModuleName).WithKeyTable(govtypes.ParamKeyTable()),
-		supplyKeeper,
-		stakingKeeper,
-		govRouter,
+	govProposalHandlerRouter := govkeeper.NewProposalHandlerRouter()
+	govProposalHandlerRouter.AddRoute(params.RouterKey, &paramsKeeper)
+
+	govKeeper := gov.NewKeeper(
+		legacyAmino, keys[govtypes.StoreKey], paramsKeeper, subspace(govtypes.ModuleName).WithKeyTable(govtypes.ParamKeyTable()),
+		supplyKeeper, &stakingKeeper, gov.DefaultParamspace, govRouter,
+		bankKeeper, govProposalHandlerRouter, auth.FeeCollectorName,
 	)
 
-	govKeeper.SetProposalID(ctx, govtypes.DefaultStartingProposalID)
-	govKeeper.SetDepositParams(ctx, govtypes.DefaultDepositParams())
-	govKeeper.SetVotingParams(ctx, govtypes.DefaultVotingParams())
-	govKeeper.SetTallyParams(ctx, govtypes.DefaultTallyParams())
+	//govKeeper.SetProposalID(ctx, govtypes.DefaultStartingProposalID)
+	//govKeeper.SetDepositParams(ctx, govtypes.DefaultDepositParams())
+	//govKeeper.SetVotingParams(ctx, govtypes.DefaultVotingParams())
+	//govKeeper.SetTallyParams(ctx, govtypes.DefaultTallyParams())
 
 	keepers := TestKeepers{
 		AccountKeeper:  accountKeeper,

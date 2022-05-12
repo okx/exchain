@@ -161,7 +161,7 @@ func TestOnConnectChannel(t *testing.T) {
 			}
 
 			ctx, _ := parentCtx.CacheContext()
-			ctx = ctx.WithEventManager(sdk.NewEventManager())
+			ctx.SetEventManager(sdk.NewEventManager())
 
 			before := ctx.GasMeter().GasConsumed()
 			msger, capturedMsgs := wasmtesting.NewCapturingMessageHandler()

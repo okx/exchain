@@ -4,9 +4,7 @@ import (
 	"testing"
 
 	authkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
-	distributionkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/distribution/keeper"
-	stakingkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/staking/keeper"
-	paramtypes "github.com/okex/exchain/x/params"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -78,7 +76,7 @@ func TestConstructorOptions(t *testing.T) {
 	}
 	for name, spec := range specs {
 		t.Run(name, func(t *testing.T) {
-			k := NewKeeper(nil, nil, paramtypes.NewSubspace(nil, nil, nil, nil, ""), authkeeper.AccountKeeper{}, nil, stakingkeeper.Keeper{}, distributionkeeper.Keeper{}, nil, nil, nil, nil, nil, nil, "tempDir", types.DefaultWasmConfig(), SupportedFeatures, spec.srcOpt)
+			k := NewKeeper(nil, nil, params.NewSubspace(nil, nil, nil, ""), authkeeper.AccountKeeper{}, nil, nil, nil, nil, nil, nil, nil, "tempDir", types.DefaultWasmConfig(), SupportedFeatures, spec.srcOpt)
 			spec.verify(t, k)
 		})
 	}
