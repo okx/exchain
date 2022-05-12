@@ -3,10 +3,9 @@ package app
 import (
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	"github.com/okex/exchain/x/evm"
-	"github.com/status-im/keycard-go/hexutils"
+	sm "github.com/okex/exchain/libs/tendermint/state"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
-	"strings"
 	"testing"
 	"time"
 
@@ -15,24 +14,23 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	authclient "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+	tender_types "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/types"
 	evm_types "github.com/okex/exchain/x/evm/types"
 	"github.com/stretchr/testify/suite"
 )
 
 var (
-	tx_coin10             = sdk.NewInt64Coin(sdk.DefaultBondDenom, 10)
-	tx_coin90             = sdk.NewInt64Coin(sdk.DefaultBondDenom, 90)
-	tx_coin100            = sdk.NewInt64Coin(sdk.DefaultBondDenom, 100)
-	tx_fees               = auth.NewStdFee(21000, sdk.NewCoins(tx_coin10))
-	expectStdTxGas        = sdk.Gas(20780)
-	expectEVMDepolyGas    = sdk.Gas(60602)
-	expectEVMCallSaveGas  = sdk.Gas(61938)
-	expectEVMCallQueryGas = sdk.Gas(63274)
-	expectBlockGas        = sdk.Gas(63274)
+	tx_coin10      = sdk.NewInt64Coin(sdk.DefaultBondDenom, 10)
+	tx_coin90      = sdk.NewInt64Coin(sdk.DefaultBondDenom, 90)
+	tx_coin100     = sdk.NewInt64Coin(sdk.DefaultBondDenom, 100)
+	tx_fees        = auth.NewStdFee(21000, sdk.NewCoins(tx_coin10))
+	expectGas      = [...]int64{60602, 61938, 63274, 63274}
+	expectBlockGas = sdk.Gas(63274)
 )
 
 type BlockTxTestSuite struct {
@@ -41,7 +39,8 @@ type BlockTxTestSuite struct {
 	app     *OKExChainApp
 	stateDB *evm_types.CommitStateDB
 	codec   *codec.Codec
-	handler sdk.Handler
+	block   *tender_types.Block
+	txs     []tender_types.Tx
 
 	contractDeloyerPrivKey ethsecp256k1.PrivKey
 	contractAddress        ethcmn.Address
@@ -70,32 +69,46 @@ func TestBlcokInnerTxTestSuite(t *testing.T) {
 	suite.Run(t, new(BlockTxTestSuite))
 }
 
+func (suite *BlockTxTestSuite) makeBlock(height int64, state sm.State, lastCommit *tender_types.Commit) {
+	//suite.block, _ = state.MakeBlock(height, suite.makeTxs(height), lastCommit, nil, nil)
+}
+
+func (suite *BlockTxTestSuite) makeTxs(height int64) (txs []tender_types.Tx) {
+	txs = append(txs, suite.buildTxEvmDeploy(height))
+	txs = append(txs, suite.buildTxEvmDeployError(height))
+	txs = append(txs, suite.buildTxEvmCallStore(height))
+	txs = append(txs, suite.buildTxEvmCallStoreError(height))
+	txs = append(txs, suite.buildTxEvmCallQuery(height))
+	txs = append(txs, suite.buildTxEvmCallQueryError(height))
+	txs = append(txs, suite.buildStdTxSendMsgBank(height))
+	txs = append(txs, suite.buildStdTxSendMsgBankError(height))
+	return txs
+}
+
 func (suite *BlockTxTestSuite) TestDeployAndCallContract() {
 
 	startBlock := func() {
-		//newHeader := suite.ctx.BlockHeader()
-		//newHeader.Time = suite.ctx.BlockHeader().Time.Add(time.Duration(1) * time.Second)
-		//suite.ctx.SetBlockHeader(newHeader)
-		//suite.app.BeginBlocker(suite.ctx, abci.RequestBeginBlock{Header: abci.Header{Height: 1}})
+		newHeader := suite.ctx.BlockHeader()
+		newHeader.Time = suite.ctx.BlockHeader().Time.Add(time.Duration(1) * time.Second)
+		suite.ctx.SetBlockHeader(newHeader)
+		suite.app.BeginBlocker(suite.ctx, abci.RequestBeginBlock{Header: abci.Header{Height: 1}})
+		suite.makeTxs(12)
 	}
 
-	calcTxGas := func() {
-		suite.caseTxEvmDeploy()
-		suite.caseTxEvmDeployError()
-		suite.caseTxEvmCallStore()
-		suite.caseTxEvmCallStoreError()
-		suite.caseTxEvmCallQuery()
-		suite.caseTxEvmCallQueryError()
-		suite.caseStdTxSendMsgBank()
-		suite.caseStdTxSendMsgBankError()
+	deliverTxs := func() {
+		for i := 0; i < len(suite.txs); i++ {
+			txReal := suite.app.PreDeliverRealTx(suite.txs[i])
+			resp := suite.app.DeliverRealTx(txReal)
+			actualGas := resp.GasUsed
+			suite.Require().True(expectGas[i] == actualGas, "expect gas %d, not equal actual gas %d ", expectGas[i], actualGas)
+		}
 	}
 
 	endBlock := func() {
 		suite.app.Commit(abci.RequestCommit{})
 		suite.app.EndBlocker(suite.ctx, abci.RequestEndBlock{})
-		//TODO
-		//blockActualGas := suite.ctx.BlockGasMeter().GasConsumed()
-		//suite.Require().True(expectBlockGas == blockActualGas, "expect gas %d, not equal actual gas %d ", expectBlockGas, blockActualGas)
+		blockActualGas := suite.ctx.BlockGasMeter().GasConsumed()
+		suite.Require().True(expectBlockGas == blockActualGas, "expect gas %d, not equal actual gas %d ", expectBlockGas, blockActualGas)
 	}
 
 	testCases := []struct {
@@ -121,15 +134,14 @@ func (suite *BlockTxTestSuite) TestDeployAndCallContract() {
 			suite.SetupTest() // reset
 			startBlock()
 			tc.prepare()
-			calcTxGas()
+			deliverTxs()
 			endBlock()
 		})
 	}
 }
 
-func (suite *BlockTxTestSuite) caseTxEvmDeploy() {
+func (suite *BlockTxTestSuite) buildTxEvmDeploy(height int64) []byte {
 	//Create evm contract - Owner.sol
-	suite.handler = evm.NewHandler(suite.app.EvmKeeper)
 	gasLimit := uint64(100000000)
 	gasPrice := big.NewInt(10000)
 
@@ -143,26 +155,25 @@ func (suite *BlockTxTestSuite) caseTxEvmDeploy() {
 	tx := types.NewMsgEthereumTx(1, &sender, big.NewInt(0), gasLimit, gasPrice, bytecode)
 	tx.Sign(big.NewInt(3), priv.ToECDSA())
 
-	result, err := suite.handler(suite.ctx, tx)
-	suite.Require().NoError(err, "failed to handle eth tx msg")
-	resultData, err := types.DecodeResultData(result.Data)
-	suite.Require().NoError(err, "failed to decode result data")
-	actualGas := suite.ctx.GasMeter().GasConsumed()
-	suite.Require().True(expectEVMDepolyGas == actualGas, "expect gas %d, not equal actual gas %d ", expectEVMDepolyGas, actualGas)
-	contractAddress := common.HexToAddress(resultData.ContractAddress.String())
+	var txEncoder sdk.TxEncoder
+	if tmtypes.HigherThanVenus(int64(height)) {
+		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
+	} else {
+		txEncoder = authclient.GetTxEncoder(suite.codec)
+	}
+	// Encode transaction by RLP encoder
+	txBytes, err := txEncoder(tx)
 
-	//Set contract address and deployer
-	suite.contractAddress = contractAddress
-	suite.contractDeloyerPrivKey = sdk.CopyBytes(priv)
+	return txBytes
 }
 
-func (suite *BlockTxTestSuite) caseTxEvmDeployError() {
+func (suite *BlockTxTestSuite) buildTxEvmDeployError(height int64) []byte {
 	//TODO
+	return nil
 }
 
-func (suite *BlockTxTestSuite) caseTxEvmCallStore() {
+func (suite *BlockTxTestSuite) buildTxEvmCallStore(height int64) []byte {
 	// Execute evm contract with function changeOwner, for saving data.
-	suite.handler = evm.NewHandler(suite.app.EvmKeeper)
 	gasLimit := uint64(100000000000)
 	gasPrice := big.NewInt(100)
 
@@ -170,44 +181,63 @@ func (suite *BlockTxTestSuite) caseTxEvmCallStore() {
 	bytecode := common.FromHex(storeAddr)
 	tx := types.NewMsgEthereumTx(2, &suite.contractAddress, big.NewInt(0), gasLimit, gasPrice, bytecode)
 	tx.Sign(big.NewInt(3), suite.contractDeloyerPrivKey.ToECDSA())
-	result, err := suite.handler(suite.ctx, tx)
-	suite.Require().NoError(err, "failed to handle eth tx msg")
-	_, err = types.DecodeResultData(result.Data)
-	suite.Require().NoError(err, "failed to decode result data")
-	actualGas := suite.ctx.GasMeter().GasConsumed()
-	suite.Require().True(expectEVMCallSaveGas == actualGas, "expect gas %d, not equal actual gas %d ", expectEVMCallSaveGas, actualGas)
+
+	var txEncoder sdk.TxEncoder
+	if tmtypes.HigherThanVenus(int64(height)) {
+		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
+	} else {
+		txEncoder = authclient.GetTxEncoder(suite.codec)
+	}
+	// Encode transaction by RLP encoder
+	txBytes, _ := txEncoder(tx)
+
+	return txBytes
+
+	//suite.Require().NoError(err, "failed to handle eth tx msg")
+	//_, err = types.DecodeResultData(result.Data)
+	//suite.Require().NoError(err, "failed to decode result data")
+	//actualGas := suite.ctx.GasMeter().GasConsumed()
+	//suite.Require().True(expectEVMCallSaveGas == actualGas, "expect gas %d, not equal actual gas %d ", expectEVMCallSaveGas, actualGas)
 }
 
-func (suite *BlockTxTestSuite) caseTxEvmCallStoreError() {
-
+func (suite *BlockTxTestSuite) buildTxEvmCallStoreError(height int64) []byte {
+	return nil
 }
 
-func (suite *BlockTxTestSuite) caseTxEvmCallQuery() {
+func (suite *BlockTxTestSuite) buildTxEvmCallQuery(height int64) []byte {
 	//Execute evm contract with function getOwner, for querying data.
-	suite.handler = evm.NewHandler(suite.app.EvmKeeper)
 	bytecode := common.FromHex("0x893d20e8")
 	gasLimit := uint64(100000000000)
 	gasPrice := big.NewInt(100)
 	tx := types.NewMsgEthereumTx(2, &suite.contractAddress, big.NewInt(0), gasLimit, gasPrice, bytecode)
 	tx.Sign(big.NewInt(3), suite.contractDeloyerPrivKey.ToECDSA())
-	result, err := suite.handler(suite.ctx, tx)
-	suite.Require().NoError(err, "failed to handle eth tx msg")
-	resultData, _ := types.DecodeResultData(result.Data)
-	suite.Require().NoError(err, "failed to decode result data")
-
-	storeAddr := "0xa6f9dae10000000000000000000000006a82e4a67715c8412a9114fbd2cbaefbc8181424"
-	bytecode = common.FromHex(storeAddr)
-	getAddr := strings.ToLower(hexutils.BytesToHex(resultData.Ret))
-	suite.Require().True(strings.HasSuffix(storeAddr, getAddr), "Fail to query the address")
-	actualGas := suite.ctx.GasMeter().GasConsumed()
-	suite.Require().True(expectEVMCallQueryGas == actualGas, "expect gas %d, not equal actual gas %d ", expectEVMCallQueryGas, actualGas)
+	var txEncoder sdk.TxEncoder
+	if tmtypes.HigherThanVenus(int64(height)) {
+		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
+	} else {
+		txEncoder = authclient.GetTxEncoder(suite.codec)
+	}
+	// Encode transaction by RLP encoder
+	txBytes, _ := txEncoder(tx)
+	return txBytes
+	//suite.Require().NoError(err, "failed to handle eth tx msg")
+	//resultData, _ := types.DecodeResultData(result.Data)
+	//suite.Require().NoError(err, "failed to decode result data")
+	//
+	//storeAddr := "0xa6f9dae10000000000000000000000006a82e4a67715c8412a9114fbd2cbaefbc8181424"
+	//bytecode = common.FromHex(storeAddr)
+	//getAddr := strings.ToLower(hexutils.BytesToHex(resultData.Ret))
+	//suite.Require().True(strings.HasSuffix(storeAddr, getAddr), "Fail to query the address")
+	//actualGas := suite.ctx.GasMeter().GasConsumed()
+	//suite.Require().True(expectEVMCallQueryGas == actualGas, "expect gas %d, not equal actual gas %d ", expectEVMCallQueryGas, actualGas)
 }
 
-func (suite *BlockTxTestSuite) caseTxEvmCallQueryError() {
+func (suite *BlockTxTestSuite) buildTxEvmCallQueryError(height int64) []byte {
 	//TODO
+	return nil
 }
 
-func (suite *BlockTxTestSuite) caseStdTxSendMsgBank() {
+func (suite *BlockTxTestSuite) buildStdTxSendMsgBank(height int64) []byte {
 	var (
 		tx          sdk.Tx
 		privFrom, _ = ethsecp256k1.GenerateKey()
@@ -223,28 +253,37 @@ func (suite *BlockTxTestSuite) caseStdTxSendMsgBank() {
 	suite.SetupTest() // reset
 	normal()
 
-	suite.handler = bank.NewHandler(suite.app.BankKeeper)
 	msg := bank.NewMsgSend(cmFrom, cmTo, sdk.NewCoins(tx_coin10))
 	tx = auth.NewStdTx([]sdk.Msg{msg}, tx_fees, nil, "")
 
-	suite.ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
-
-	msgs := tx.GetMsgs()
-	for _, msg := range msgs {
-		_, err := suite.handler(suite.ctx, msg)
-		suite.Require().NoError(err)
+	var txEncoder sdk.TxEncoder
+	if tmtypes.HigherThanVenus(int64(height)) {
+		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
+	} else {
+		txEncoder = authclient.GetTxEncoder(suite.codec)
 	}
+	// Encode transaction by RLP encoder
+	txBytes, _ := txEncoder(tx)
+	return txBytes
 
-	fromBalance := suite.app.AccountKeeper.GetAccount(suite.ctx, cmFrom).GetCoins()
-	suite.Require().True(fromBalance.IsEqual(sdk.NewDecCoins(sdk.NewDecCoinFromCoin(tx_coin90))))
-
-	toBalance := suite.app.AccountKeeper.GetAccount(suite.ctx, cmTo).GetCoins()
-	suite.Require().True(toBalance.IsEqual(sdk.NewDecCoins(sdk.NewDecCoinFromCoin(tx_coin10))))
-
-	actualGas := suite.ctx.GasMeter().GasConsumed() //TODO is it cumulative?
-	suite.Require().True(expectStdTxGas == actualGas, "expect gas %d, not equal actual gas %d ", expectStdTxGas, actualGas)
+	//suite.ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
+	//
+	//msgs := tx.GetMsgs()
+	//for _, msg := range msgs {
+	//	suite.Require().NoError(err)
+	//}
+	//
+	//fromBalance := suite.app.AccountKeeper.GetAccount(suite.ctx, cmFrom).GetCoins()
+	//suite.Require().True(fromBalance.IsEqual(sdk.NewDecCoins(sdk.NewDecCoinFromCoin(tx_coin90))))
+	//
+	//toBalance := suite.app.AccountKeeper.GetAccount(suite.ctx, cmTo).GetCoins()
+	//suite.Require().True(toBalance.IsEqual(sdk.NewDecCoins(sdk.NewDecCoinFromCoin(tx_coin10))))
+	//
+	//actualGas := suite.ctx.GasMeter().GasConsumed() //TODO is it cumulative?
+	//suite.Require().True(expectStdTxGas == actualGas, "expect gas %d, not equal actual gas %d ", expectStdTxGas, actualGas)
 }
 
-func (suite *BlockTxTestSuite) caseStdTxSendMsgBankError() {
+func (suite *BlockTxTestSuite) buildStdTxSendMsgBankError(height int64) []byte {
 	//TODO
+	return nil
 }
