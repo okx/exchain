@@ -67,7 +67,7 @@ ifeq ($(WITH_ROCKSDB),true)
 endif
 
 ifeq ($(WITH_TCMALLOC),true)
-	ldflags += -extldflags "-L ./libs/tcmalloc/ -static -ltcmalloc_minimal -lc -lstdc++ -lpthread"
+	ldflags += -extldflags "-L ./libs/tcmalloc/ -static -ltcmalloc -lc -lstdc++ -lpthread"
 endif
 
 
