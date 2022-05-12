@@ -21,8 +21,7 @@ func NewAnteDecorator(k channelkeeper.Keeper) AnteDecorator {
 // and continues processing to ensure these transactions are included.
 // This will ensure that relayers do not waste fees on multiMsg transactions when another relayer has already submitted all packets, by rejecting the tx at the mempool layer.
 func (ad AnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
-	height := ctx.BlockHeight()
-	if !types.HigherThanVenus1(height) {
+	if !types.HigherThanVenus1(ctx.BlockHeight()) {
 		return next(ctx, tx, simulate)
 	}
 	// do not run redundancy check on DeliverTx or simulate
