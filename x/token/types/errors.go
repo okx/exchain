@@ -167,7 +167,7 @@ func ErrSendCoinsFromModuleToAccountFailed(msg string) sdk.EnvelopedErr {
 }
 
 func ErrSendCoinsFromAccountToAccountFailed(msg string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeSendCoinsFromAccountToAccountFailed, msg)}
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errCodeSendCoinsFromAccountToAccountFailed, fmt.Sprintf("send coins from account to account failed: %s", msg))}
 }
 
 func ErrBurnCoinsFailed(msg string) sdk.EnvelopedErr {
