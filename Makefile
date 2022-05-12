@@ -67,7 +67,11 @@ ifeq ($(WITH_ROCKSDB),true)
 endif
 
 ifeq ($(WITH_TCMALLOC),true)
-	ldflags += -extldflags "-L ./libs/tcmalloc/ -Wl,-Bstatic -ltcmalloc_minimal -Wl,-Bdynamic -lpthread -lstdc++ -lc"
+	OS_NAME = $(shell uname)
+	LC_OS_NAME = $(shell echo $(OS_NAME) | tr '[A-Z]' '[a-z]')
+	ifeq ($(LC_OS_NAME), linux)
+		ldflags += -extldflags "-L ./libs/tcmalloc/ -Wl,-Bstatic -ltcmalloc_minimal -Wl,-Bdynamic -lpthread -lstdc++ -lc"
+	endif
 endif
 
 
