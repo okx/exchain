@@ -1777,6 +1777,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 	pbpBytes, err := compress.UnCompress(cs.Proposal.CompressBlock, compressBytes)
 	if err != nil {
 		cs.ProposalBlockParts = nil
+		cs.Logger.Error("Uncompress block failed", "err", err)
 		return false, err
 	}
 	pbpReader = bytes.NewBuffer(pbpBytes)
