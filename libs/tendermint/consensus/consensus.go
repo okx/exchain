@@ -1758,6 +1758,9 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 	// Blocks might be reused, so round mismatch is OK
 	if cs.Height != height {
 		cs.Logger.Debug("Received block part from wrong height", "height", height, "round", round)
+		if cs.Height < height {
+			cs.blockpartsDiscardCount++
+		}
 		return false, nil
 	}
 
@@ -1767,7 +1770,9 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		// then receive parts from the previous round - not necessarily a bad peer.
 		cs.Logger.Info("Received a block part when we're not expecting any",
 			"height", height, "round", round, "index", part.Index, "peer", peerID)
-		cs.blockpartsDiscardCount++
+		if cs.Round <= round {
+			cs.blockpartsDiscardCount++
+		}
 		return false, nil
 	}
 
