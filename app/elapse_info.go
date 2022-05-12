@@ -10,34 +10,28 @@ import (
 	"github.com/spf13/viper"
 )
 
+type SchemaConfig struct {
+	schema string
+	open   int
+}
 var (
 	once         sync.Once
-	CUSTOM_PRINT = []string{
-		trace.Evm,
-		trace.Delta,
-		trace.Iavl,
-		trace.FlatKV,
-		trace.DeliverTxs,
-		trace.EvmHandlerDetail,
+	CUSTOM_PRINT = []SchemaConfig{
+		{trace.Evm, 1},
+		{trace.Delta, 0},
+		{trace.Iavl, 1},
+		{trace.RecvBlock, 1},
+		{trace.DeliverTxs, 0},
+		{trace.EvmHandlerDetail, 0},
 
-		trace.RunAnteDetail,
-		trace.AnteChainDetail,
-		trace.Round,
-		trace.CommitRound,
-		trace.Produce}
+		{trace.RunAnteDetail, 0},
+		{trace.AnteChainDetail, 0},
+		{trace.Round, 0},
+		{trace.CommitRound, 0},
+		{trace.Produce, 0},
+	}
 
-	DefaultElapsedSchemas = fmt.Sprintf("%s=1,%s=1,%s=1,%s=1,%s=1,%s=1,%s=1,%s=1,%s=0,%s=0,%s=0",
-		trace.Evm,
-		trace.Delta,
-		trace.Iavl,
-		trace.FlatKV,
-		trace.DeliverTxs,
-		trace.EvmHandlerDetail,
-		trace.RunAnteDetail,
-		trace.AnteChainDetail,
-		trace.Round,
-		trace.CommitRound,
-		trace.Produce)
+	DefaultElapsedSchemas string
 )
 
 const (
@@ -45,16 +39,18 @@ const (
 )
 
 func init() {
-	once.Do(func() {
-		elapsedInfo := &ElapsedTimeInfos{
-			infoMap:   make(map[string]string),
-			schemaMap: make(map[string]bool),
-		}
+	for _, k := range CUSTOM_PRINT {
+		DefaultElapsedSchemas += fmt.Sprintf("%s=%d,", k.schema, k.open)
+	}
 
-		elapsedInfo.decodeElapseParam(DefaultElapsedSchemas)
+	elapsedInfo := &ElapsedTimeInfos{
+		infoMap:   make(map[string]string),
+		schemaMap: make(map[string]bool),
+	}
 
-		trace.SetInfoObject(elapsedInfo)
-	})
+	elapsedInfo.decodeElapseParam(DefaultElapsedSchemas)
+	trace.SetInfoObject(elapsedInfo)
+
 }
 
 type ElapsedTimeInfos struct {
@@ -96,9 +92,9 @@ func (e *ElapsedTimeInfos) Dump(input interface{}) {
 
 	var detailInfo string
 	for _, k := range CUSTOM_PRINT {
-		if v, ok := e.schemaMap[k]; ok {
+		if v, ok := e.schemaMap[k.schema]; ok {
 			if v {
-				detailInfo += fmt.Sprintf("%s[%s], ", k, e.infoMap[k])
+				detailInfo += fmt.Sprintf("%s[%s], ", k.schema, e.infoMap[k.schema])
 			}
 		}
 	}
@@ -108,7 +104,6 @@ func (e *ElapsedTimeInfos) Dump(input interface{}) {
 		trace.Tx, e.infoMap[trace.Tx],
 		trace.BlockSize, e.infoMap[trace.BlockSize],
 		trace.GasUsed, e.infoMap[trace.GasUsed],
-		//trace.WtxRatio, e.infoMap[trace.WtxRatio],
 		trace.InvalidTxs, e.infoMap[trace.InvalidTxs],
 		trace.RunTx, e.infoMap[trace.RunTx],
 		trace.Prerun, e.infoMap[trace.Prerun],

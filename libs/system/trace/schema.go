@@ -43,7 +43,7 @@ const (
 	Evm              = "Evm"
 	Iavl             = "Iavl"
 	FlatKV           = "FlatKV"
-	WtxRatio         = "WtxRatio"
+	RecvBlock        = "RecvBlock"
 	SigCacheRatio    = "SigCacheRatio"
 	DeliverTxs       = "DeliverTxs"
 	EvmHandlerDetail = "EvmHandlerDetail"
