@@ -66,6 +66,10 @@ ifeq ($(WITH_ROCKSDB),true)
   ldflags += -X github.com/okex/exchain/libs/cosmos-sdk/types.DBBackend=rocksdb
 endif
 
+ifeq($(WITH_TCMALLOC),true)
+	ldflags += -ltcmalloc
+endif
+
 BUILD_FLAGS := -ldflags '$(ldflags)'
 
 ifeq ($(DEBUG),true)
