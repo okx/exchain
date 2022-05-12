@@ -128,3 +128,36 @@ func updateBranchAndSaveNodeToChan(node *Node, saveNodesCh chan<- *Node) []byte 
 
 	return node.hash
 }
+
+func (ndb *nodeDB) updateBranchMoreConcurrency(node *Node) []byte {
+	if node.persisted || node.prePersisted {
+		return node.hash
+	}
+
+	wg := &sync.WaitGroup{}
+
+	if node.leftNode != nil {
+		wg.Add(1)
+		go func(node *Node, wg *sync.WaitGroup) {
+			node.leftHash = ndb.updateBranchConcurrency(node.leftNode, nil)
+			wg.Done()
+		}(node, wg)
+	}
+	if node.rightNode != nil {
+		wg.Add(1)
+		go func(node *Node, wg *sync.WaitGroup) {
+			node.rightHash = ndb.updateBranchConcurrency(node.rightNode, nil)
+			wg.Done()
+		}(node, wg)
+	}
+
+	wg.Wait()
+
+	node._hash()
+	ndb.saveNodeToPrePersistCache(node)
+
+	node.leftNode = nil
+	node.rightNode = nil
+
+	return node.hash
+}
