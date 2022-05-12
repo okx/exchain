@@ -2,14 +2,14 @@ package wasm
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/libs/kv"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/okex/exchain/x/wasm/keeper"
-	"github.com/okex/exchain/x/wasm/types"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/tendermint/libs/kv"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okex/exchain/x/wasm/keeper"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 // NewHandler returns a handler for "wasm" type messages.
@@ -18,6 +18,11 @@ func NewHandler(k types.ContractOpsKeeper) sdk.Handler {
 
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		ctx.SetEventManager(sdk.NewEventManager())
+
+		if !types2.HigherThanSaturn(ctx.BlockHeight()) {
+			errMsg := fmt.Sprintf("wasm not supprt at height %d", ctx.BlockHeight())
+			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
+		}
 
 		var (
 			res proto.Message
