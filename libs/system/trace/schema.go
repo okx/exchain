@@ -68,6 +68,8 @@ const (
 
 	Prerun               = "Prerun"
 	IavlRuntime          = "IavlRuntime"
+
+	BlockPartsDiscard = "BlockPartsDiscard"
 )
 
 const (

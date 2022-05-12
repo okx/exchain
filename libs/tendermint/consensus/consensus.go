@@ -151,6 +151,8 @@ type State struct {
 	trc *trace.Tracer
 
 	prerunTx bool
+
+	blockpartsDiscardCount int8
 }
 
 // StateOption sets an optional parameter on the State.
@@ -810,6 +812,10 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 
 func (cs *State) traceDump() {
 	trace.GetElapsedInfo().AddInfo(trace.Produce, cs.trc.Format())
+
+	trace.GetElapsedInfo().AddInfo(trace.BlockPartsDiscard, fmt.Sprintf("%d", cs.blockpartsDiscardCount))
+	cs.blockpartsDiscardCount = 0
+
 	trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
 	cs.trc.Reset()
 }
@@ -1761,6 +1767,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		// then receive parts from the previous round - not necessarily a bad peer.
 		cs.Logger.Info("Received a block part when we're not expecting any",
 			"height", height, "round", round, "index", part.Index, "peer", peerID)
+		cs.blockpartsDiscardCount++
 		return false, nil
 	}
 
