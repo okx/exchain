@@ -21,47 +21,6 @@ func NewHandler(k *Keeper) sdk.Handler {
 			k.UpdatedAccount = k.UpdatedAccount[:0]
 		}
 
-		defer func() {
-			if cfg.DynamicConfig.GetMaxGasUsedPerBlock() < 0 {
-				return
-			}
-
-			if err != nil {
-				return
-			}
-
-			db := bam.InstanceOfHistoryGasUsedRecordDB()
-			msgFnSignature, toDeployContractSize := getMsgCallFnSignature(msg)
-
-			if msgFnSignature == nil {
-				return
-			}
-
-			hisGu, err := db.Get(msgFnSignature)
-			if err != nil {
-				return
-			}
-
-			gc := int64(ctx.GasMeter().GasConsumed())
-			if toDeployContractSize > 0 {
-				// calculate average gas consume for deploy contract case
-				gc = gc / int64(toDeployContractSize)
-			}
-
-			var avgGas int64
-			if hisGu != nil {
-				hgu := common2.BytesToInt64(hisGu)
-				avgGas = int64(bam.GasUsedFactor*float64(gc) + (1.0-bam.GasUsedFactor)*float64(hgu))
-			} else {
-				avgGas = gc
-			}
-
-			err = db.Set(msgFnSignature, common2.Int64ToBytes(avgGas))
-			if err != nil {
-				return
-			}
-		}()
-
 		evmtx, ok := msg.(*types.MsgEthereumTx)
 		if ok {
 			result, err = handleMsgEthereumTx(ctx, k, evmtx)
@@ -73,6 +32,43 @@ func NewHandler(k *Keeper) sdk.Handler {
 		}
 
 		return result, err
+	}
+}
+
+func updateHGU(ctx sdk.Context, msg sdk.Msg) {
+	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() <= 0 {
+		return
+	}
+
+	db := bam.InstanceOfHistoryGasUsedRecordDB()
+	msgFnSignature, toDeployContractSize := getMsgCallFnSignature(msg)
+
+	if msgFnSignature == nil {
+		return
+	}
+
+	hisGu, err := db.Get(msgFnSignature)
+	if err != nil {
+		return
+	}
+
+	gc := int64(ctx.GasMeter().GasConsumed())
+	if toDeployContractSize > 0 {
+		// calculate average gas consume for deploy contract case
+		gc = gc / int64(toDeployContractSize)
+	}
+
+	var avgGas int64
+	if hisGu != nil {
+		hgu := common2.BytesToInt64(hisGu)
+		avgGas = int64(bam.GasUsedFactor*float64(gc) + (1.0-bam.GasUsedFactor)*float64(hgu))
+	} else {
+		avgGas = gc
+	}
+
+	err = db.Set(msgFnSignature, common2.Int64ToBytes(avgGas))
+	if err != nil {
+		return
 	}
 }
 
@@ -98,5 +94,10 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (
 	}
 
 	// core logical to handle ethereum tx
-	return txs.TransitionEvmTx(tx, msg)
+	rst, err := txs.TransitionEvmTx(tx, msg)
+	if err == nil && !ctx.IsCheckTx() {
+		updateHGU(ctx, msg)
+	}
+
+	return rst, err
 }
