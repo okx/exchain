@@ -18,16 +18,16 @@ var (
 	once         sync.Once
 	CUSTOM_PRINT = []SchemaConfig{
 		{trace.Evm, 1},
-		{trace.Delta, 0},
+		{trace.Delta, 1},
 		{trace.Iavl, 1},
-		{trace.RecvBlock, 1},
-		{trace.DeliverTxs, 0},
+		{trace.DeliverTxs, 1},
 		{trace.EvmHandlerDetail, 0},
 
 		{trace.RunAnteDetail, 0},
 		{trace.AnteChainDetail, 0},
 		{trace.Round, 0},
 		{trace.CommitRound, 0},
+		{trace.RecvBlock, 1},
 		{trace.Produce, 0},
 	}
 

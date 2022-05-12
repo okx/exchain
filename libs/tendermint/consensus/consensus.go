@@ -163,31 +163,6 @@ type State struct {
 	bt *BlockTransport
 }
 
-type BlockTransport struct {
-	height int64
-	recvProposal time.Time
-	elapsed time.Duration
-}
-
-func (bt *BlockTransport) onProposal(height int64)  {
-	if bt.height+1 == height || bt.height == 0 {
-		bt.recvProposal = time.Now()
-		bt.height = height
-	} else {
-		panic("invalid height")
-	}
-}
-
-func (bt *BlockTransport) onRecvBlock(height int64)  {
-	if bt.height == height {
-		bt.elapsed = time.Now().Sub(bt.recvProposal)
-		trace.GetElapsedInfo().AddInfo(trace.RecvBlock,
-			fmt.Sprintf("%d<%dms>", height, bt.elapsed.Milliseconds()))
-	} else {
-		panic("invalid height")
-	}
-}
-
 // StateOption sets an optional parameter on the State.
 type StateOption func(*State)
 
@@ -1909,6 +1884,7 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 		cs.ProposalBlockParts = types.NewPartSetFromHeader(proposal.BlockID.PartsHeader)
 	}
 	cs.Logger.Info("Received proposal", "proposal", proposal)
+	cs.bt.onProposal(proposal.Height)
 	return nil
 }
 
@@ -1954,6 +1930,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 			return added, err
 		}
 
+		cs.bt.onRecvBlock(height)
 		if cs.prerunTx {
 			cs.blockExec.NotifyPrerun(cs.ProposalBlock) // 3. addProposalBlockPart
 		}
