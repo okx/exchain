@@ -35,7 +35,11 @@ func SetLogger(l logger) {
 }
 
 func iavlLog(module string, level int, msg string, keyvals ...interface{}) {
-	if v, ok := OutputModules[module]; ok && v != 0 && iavlLogger != nil {
+	if !inOutputModules(module) {
+		return
+	}
+
+	if iavlLogger != nil {
 		switch level {
 		case IavlErr:
 			iavlLogger.Error(msg, keyvals...)
