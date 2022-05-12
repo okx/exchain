@@ -91,6 +91,9 @@ type RoundState struct {
 	LastCommit                *types.VoteSet      `json:"last_commit"`  // Last precommits at Height-1
 	LastValidators            *types.ValidatorSet `json:"last_validators"`
 	TriggeredTimeoutPrecommit bool                `json:"triggered_timeout_precommit"`
+
+	// hasActiveVC is used to broadcast NewRoundStepMessage, tell other peer to init peerState
+	HasActiveVC bool `json:"has_active_vc"`
 }
 
 // Compressed version of the RoundState for use in RPC

@@ -6,11 +6,11 @@ const (
 	TxDecoder = "TxDecoder"
 
 	//----- RunTx details
-	ValTxMsgs   = "valTxMsgs"
-	RunAnte     = "RunAnte"
-	RunMsg      = "RunMsg"
-	Refund      = "refund"
-	EvmHandler  = "EvmHandler"
+	ValTxMsgs  = "valTxMsgs"
+	RunAnte    = "RunAnte"
+	RunMsg     = "RunMsg"
+	Refund     = "refund"
+	EvmHandler = "EvmHandler"
 
 	//------ RunAnte details
 	CacheTxContext  = "cacheTxContext"
@@ -30,7 +30,6 @@ const (
 	HandlerDefer = "handler_defer"
 )
 
-
 const (
 	GasUsed          = "GasUsed"
 	Produce          = "Produce"
@@ -44,14 +43,14 @@ const (
 	Evm              = "Evm"
 	Iavl             = "Iavl"
 	FlatKV           = "FlatKV"
-	WtxRatio         = "WtxRatio"
+	RecvBlock        = "RecvBlock"
 	SigCacheRatio    = "SigCacheRatio"
 	DeliverTxs       = "DeliverTxs"
 	EvmHandlerDetail = "EvmHandlerDetail"
 	RunAnteDetail    = "RunAnteDetail"
 	AnteChainDetail  = "AnteChainDetail"
 
-	Delta = "Delta"
+	Delta      = "Delta"
 	InvalidTxs = "InvalidTxs"
 
 	Abci       = "abci"
@@ -83,10 +82,10 @@ var (
 		"AddPreimage", "AddRefund", "SubRefund", "AddAddressToAccessList", "AddSlotToAccessList",
 		"PrepareAccessList", "AddressInAccessList", "Suicide", "CreateAccount", "ForEachStorage"}
 
-	STATEDB_READ  = []string{"SlotInAccessList", "GetBalance", "GetNonce", "GetCode", "GetCodeSize",
+	STATEDB_READ = []string{"SlotInAccessList", "GetBalance", "GetNonce", "GetCode", "GetCodeSize",
 		"GetCodeHash", "GetState", "GetCommittedState", "GetRefund",
 		"HasSuicided", "Snapshot", "RevertToSnapshot", "Empty", "Exist"}
 
-	EVM_OPER      = []string{EVMCORE}
-	dbOper        *DbRecord
+	EVM_OPER = []string{EVMCORE}
+	dbOper   *DbRecord
 )

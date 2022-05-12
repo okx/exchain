@@ -48,6 +48,8 @@ var (
 var (
 	msgQueueSize   = 1000
 	EnablePrerunTx = "enable-preruntx"
+
+	ActiveViewChange = false
 )
 
 // msgs from the reactor which may update the state
@@ -105,8 +107,11 @@ type State struct {
 	// when it's detected
 	evpool evidencePool
 
-	// internal state
+	// consensus mutex
 	mtx sync.RWMutex
+	// consensus round state mutex
+	rsMtx sync.RWMutex
+
 	cstypes.RoundState
 	state sm.State // State until height-1.
 	// privValidator pubkey, memoized for the duration of one block
@@ -154,6 +159,11 @@ type State struct {
 	trc *trace.Tracer
 
 	prerunTx bool
+
+	// assigned proposer when enterNewRound
+	vcMsg *ViewChangeMessage
+
+	bt *BlockTransport
 }
 
 // StateOption sets an optional parameter on the State.
@@ -188,6 +198,7 @@ func NewState(
 		metrics:          NopMetrics(),
 		trc:              trace.NewTracer(trace.Consensus),
 		prerunTx:         viper.GetBool(EnablePrerunTx),
+		bt: &BlockTransport{},
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
@@ -245,30 +256,30 @@ func (cs *State) GetState() sm.State {
 // GetLastHeight returns the last height committed.
 // If there were no blocks, returns 0.
 func (cs *State) GetLastHeight() int64 {
-	cs.mtx.RLock()
-	defer cs.mtx.RUnlock()
+	cs.rsMtx.RLock()
+	defer cs.rsMtx.RUnlock()
 	return cs.RoundState.Height - 1
 }
 
 // GetRoundState returns a shallow copy of the internal consensus state.
 func (cs *State) GetRoundState() *cstypes.RoundState {
-	cs.mtx.RLock()
+	cs.rsMtx.RLock()
 	rs := cs.RoundState // copy
-	cs.mtx.RUnlock()
+	cs.rsMtx.RUnlock()
 	return &rs
 }
 
 // GetRoundStateJSON returns a json of RoundState, marshalled using go-amino.
 func (cs *State) GetRoundStateJSON() ([]byte, error) {
-	cs.mtx.RLock()
-	defer cs.mtx.RUnlock()
+	cs.rsMtx.RLock()
+	defer cs.rsMtx.RUnlock()
 	return cdc.MarshalJSON(cs.RoundState)
 }
 
 // GetRoundStateSimpleJSON returns a json of RoundStateSimple, marshalled using go-amino.
 func (cs *State) GetRoundStateSimpleJSON() ([]byte, error) {
-	cs.mtx.RLock()
-	defer cs.mtx.RUnlock()
+	cs.rsMtx.RLock()
+	defer cs.rsMtx.RUnlock()
 	return cdc.MarshalJSON(cs.RoundState.RoundStateSimple())
 }
 
@@ -301,8 +312,8 @@ func (cs *State) SetTimeoutTicker(timeoutTicker TimeoutTicker) {
 
 // LoadCommit loads the commit for a given height.
 func (cs *State) LoadCommit(height int64) *types.Commit {
-	cs.mtx.RLock()
-	defer cs.mtx.RUnlock()
+	cs.rsMtx.RLock()
+	defer cs.rsMtx.RUnlock()
 	if height == cs.blockStore.Height() {
 		return cs.blockStore.LoadSeenCommit(height)
 	}
@@ -502,6 +513,16 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 		sleepDuration = 0
 	}
 
+	if ActiveViewChange {
+		// itself is proposer, no need to request
+		isBlockProducer, _ := cs.isBlockProducer()
+		if isBlockProducer != "y" {
+			// request for proposer of new height
+			prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address()}
+			go cs.requestForProposer(prMsg)
+		}
+	}
+
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
 }
 
@@ -557,6 +578,11 @@ func (cs *State) updateToState(state sm.State) {
 	//	panic(fmt.Sprintf("Inconsistent cs.state.LastBlockHeight+1 %v vs cs.Height %v",
 	//		cs.state.LastBlockHeight+1, cs.Height))
 	//}
+
+	if cs.vcMsg != nil && cs.vcMsg.Height <= cs.Height {
+		cs.vcMsg = nil
+		cs.HasActiveVC = false
+	}
 
 	// If state isn't further out than cs.state, just ignore.
 	// This happens when SwitchToConsensus() is called in the reactor.
@@ -675,7 +701,9 @@ func (cs *State) receiveRoutine(maxSteps int) {
 		case <-cs.txNotifier.TxsAvailable():
 			cs.handleTxsAvailable()
 		case mi = <-cs.peerMsgQueue:
-			cs.wal.Write(mi)
+			if _, ok := mi.Msg.(*ViewChangeMessage); !ok {
+				cs.wal.Write(mi)
+			}
 			// handles proposals, block parts, votes
 			// may generate internal events (votes, complete proposals, 2/3 majorities)
 			cs.handleMsg(mi)
@@ -718,6 +746,29 @@ func (cs *State) handleMsg(mi msgInfo) {
 	)
 	msg, peerID := mi.Msg, mi.PeerID
 	switch msg := msg.(type) {
+	case *ViewChangeMessage:
+		if ActiveViewChange {
+			// only in round0 use vcMsg
+			// only handle when don't have valid vcMsg
+			// only handle vcMsg of same height
+			if cs.Round != 0 ||
+				(cs.vcMsg != nil && cs.vcMsg.Height >= msg.Height) ||
+				msg.Height != cs.Height {
+				return
+			}
+
+			cs.vcMsg = msg
+			cs.HasActiveVC = true
+			// ApplyBlock of height-1 has finished
+			if cs.Step != cstypes.RoundStepNewHeight {
+				// at height, has enterNewHeight
+				// vc immediately
+				_, val := cs.Validators.GetByAddress(msg.NewProposer)
+				cs.enterNewRoundWithVal(cs.Height, 0, val)
+			}
+			// else: at height-1 and waiting, has not enterNewHeight
+			// enterNewHeight use msg.val
+		}
 	case *ProposalMessage:
 		// will not cause transition.
 		// once proposal is set, we can receive block parts
@@ -792,7 +843,7 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 	case cstypes.RoundStepNewHeight:
 		// NewRound event fired from enterNewRound.
 		// XXX: should we fire timeout here (for timeout commit)?
-		cs.enterNewRound(ti.Height, 0)
+		cs.enterNewHeight(ti.Height)
 	case cstypes.RoundStepNewRound:
 		cs.enterPropose(ti.Height, 0)
 	case cstypes.RoundStepPropose:
@@ -893,6 +944,7 @@ func (cs *State) enterNewRound(height int64, round int) {
 	// Setup new round
 	// we don't fire newStep for this step,
 	// but we fire an event, so update the round step first
+	cs.rsMtx.Lock()
 	cs.updateRoundStep(round, cstypes.RoundStepNewRound)
 	cs.Validators = validators
 	if round == 0 {
@@ -905,6 +957,7 @@ func (cs *State) enterNewRound(height int64, round int) {
 		cs.ProposalBlock = nil
 		cs.ProposalBlockParts = nil
 	}
+	cs.rsMtx.Unlock()
 	cs.Votes.SetRound(round + 1) // also track next round (round+1) to allow round-skipping
 	cs.TriggeredTimeoutPrecommit = false
 
@@ -922,6 +975,69 @@ func (cs *State) enterNewRound(height int64, round int) {
 		}
 	} else {
 		cs.enterPropose(height, round)
+	}
+}
+
+func (cs *State) enterNewRoundWithVal(height int64, round int, val *types.Validator) {
+	logger := cs.Logger.With("height", height, "round", round)
+	if round != 0 || cs.Round != 0 || cs.Height != height {
+		logger.Debug(fmt.Sprintf(
+			"enterNewRoundWithVal(%v/%v): Invalid args. Current step: %v/%v/%v",
+			height,
+			round,
+			cs.Height,
+			cs.Round,
+			cs.Step))
+		return
+	}
+
+	cs.initNewHeight()
+	cs.trc.Pin("NewRoundVC-%d", round)
+	logger.Info(fmt.Sprintf("enterNewRoundWithVal(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
+
+	// Setup new round
+	// we don't fire newStep for this step,
+	// but we fire an event, so update the round step first
+	cs.updateRoundStep(round, cstypes.RoundStepNewRound)
+	cs.Validators.Proposer = val
+	if cs.Votes.Round() == 0 {
+		cs.Votes.SetRound(1) // also track next round (round+1) to allow round-skipping
+	}
+	cs.TriggeredTimeoutPrecommit = false
+	cs.eventBus.PublishEventNewRound(cs.NewRoundEvent())
+	cs.metrics.Rounds.Set(float64(round))
+
+	// Wait for txs to be available in the mempool
+	// before we enterPropose in round 0. If the last block changed the app hash,
+	// we may need an empty "proof" block, and enterPropose immediately.
+	waitForTxs := cs.config.WaitForTxs() && round == 0 && !cs.needProofBlock(height)
+	if waitForTxs {
+		if cs.config.CreateEmptyBlocksInterval > 0 {
+			cs.scheduleTimeout(cs.config.CreateEmptyBlocksInterval, height, round,
+				cstypes.RoundStepNewRound)
+		}
+	} else {
+		cs.enterProposeWithVal(height, round)
+	}
+}
+
+// Enter: `timeoutNewHeight` by startTime (after timeoutCommit),
+func (cs *State) enterNewHeight(height int64) {
+	if ActiveViewChange && cs.vcMsg != nil && cs.vcMsg.Validate(height, cs.Validators.Proposer.Address) {
+		_, val := cs.Validators.GetByAddress(cs.vcMsg.NewProposer)
+		cs.enterNewRoundWithVal(height, 0, val)
+	} else {
+		cs.enterNewRound(height, 0)
+	}
+}
+
+// requestForProposer FireEvent to broadcast ProposeRequestMessage
+func (cs *State) requestForProposer(prMsg ProposeRequestMessage) {
+	if signature, err := cs.privValidator.SignBytes(prMsg.SignBytes()); err == nil {
+		prMsg.Signature = signature
+		cs.evsw.FireEvent(types.EventProposeRequest, &prMsg)
+	} else {
+		cs.Logger.Error("requestForProposer", "err", err)
 	}
 }
 
@@ -974,6 +1090,26 @@ func (cs *State) enterPropose(height int64, round int) {
 			cs.Step))
 		return
 	}
+	cs.doPropose(height, round)
+}
+
+func (cs *State) enterProposeWithVal(height int64, round int) {
+	logger := cs.Logger.With("height", height, "round", round)
+	if cs.Height != height || round < cs.Round || (cs.Round == round && cstypes.RoundStepPropose < cs.Step) {
+		logger.Debug(fmt.Sprintf(
+			"enterPropose(%v/%v): Invalid args. Current step: %v/%v/%v",
+			height,
+			round,
+			cs.Height,
+			cs.Round,
+			cs.Step))
+		return
+	}
+	cs.doPropose(height, round)
+}
+
+func (cs *State) doPropose(height int64, round int) {
+	logger := cs.Logger.With("height", height, "round", round)
 
 	cs.initNewHeight()
 	isBlockProducer, bpAddr := cs.isBlockProducer()
@@ -983,9 +1119,10 @@ func (cs *State) enterPropose(height int64, round int) {
 
 	defer func() {
 		// Done enterPropose:
+		cs.rsMtx.Lock()
 		cs.updateRoundStep(round, cstypes.RoundStepPropose)
 		cs.newStep()
-
+		cs.rsMtx.Unlock()
 		// If we have the whole proposal + POL, then goto Prevote now.
 		// else, we'll enterPrevote when the rest of the proposal is received (in AddProposalBlockPart),
 		// or else after timeoutPropose
@@ -1040,6 +1177,7 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 	// Make proposal
 	propBlockID := types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()}
 	proposal := types.NewProposal(height, round, cs.ValidRound, propBlockID)
+	proposal.HasActiveVC = cs.HasActiveVC
 	if err := cs.privValidator.SignProposal(cs.state.ChainID, proposal); err == nil {
 
 		// send proposal and block parts on internal msg queue
@@ -1050,7 +1188,7 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 		}
 		cs.Logger.Info("Signed proposal", "height", height, "round", round, "proposal", proposal)
 		cs.Logger.Debug(fmt.Sprintf("Signed proposal block: %v", block))
-	} else if !cs.replayMode {
+	} else if !cs.replayMode && !ActiveViewChange {
 		cs.Logger.Error("enterPropose: Error signing proposal", "height", height, "round", round, "err", err)
 	}
 }
@@ -1129,8 +1267,10 @@ func (cs *State) enterPrevote(height int64, round int) {
 
 	defer func() {
 		// Done enterPrevote:
+		cs.rsMtx.Lock()
 		cs.updateRoundStep(round, cstypes.RoundStepPrevote)
 		cs.newStep()
+		cs.rsMtx.Unlock()
 	}()
 
 	cs.Logger.Info(fmt.Sprintf("enterPrevote(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
@@ -1203,10 +1343,12 @@ func (cs *State) enterPrevoteWait(height int64, round int) {
 	}
 	logger.Info(fmt.Sprintf("enterPrevoteWait(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
+	cs.rsMtx.Lock()
 	defer func() {
 		// Done enterPrevoteWait:
 		cs.updateRoundStep(round, cstypes.RoundStepPrevoteWait)
 		cs.newStep()
+		cs.rsMtx.Unlock()
 	}()
 
 	// Wait for some more prevotes; enterPrecommit
@@ -1238,10 +1380,12 @@ func (cs *State) enterPrecommit(height int64, round int) {
 
 	logger.Info(fmt.Sprintf("enterPrecommit(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
+	cs.rsMtx.Lock()
 	defer func() {
 		// Done enterPrecommit:
 		cs.updateRoundStep(round, cstypes.RoundStepPrecommit)
 		cs.newStep()
+		cs.rsMtx.Unlock()
 	}()
 
 	if automation.PrecommitNil(height, round) {
@@ -1348,11 +1492,12 @@ func (cs *State) enterPrecommitWait(height int64, round int) {
 		panic(fmt.Sprintf("enterPrecommitWait(%v/%v), but Precommits does not have any +2/3 votes", height, round))
 	}
 	logger.Info(fmt.Sprintf("enterPrecommitWait(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
-
+	cs.rsMtx.Lock()
 	defer func() {
 		// Done enterPrecommitWait:
 		cs.TriggeredTimeoutPrecommit = true
 		cs.newStep()
+		cs.rsMtx.Unlock()
 	}()
 
 	// Wait for some more precommits; enterNewRound
@@ -1380,13 +1525,14 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 
 	logger.Info(fmt.Sprintf("enterCommit(%v/%v). Current: %v/%v/%v", height, commitRound, cs.Height, cs.Round, cs.Step))
 
+	cs.rsMtx.Lock()
 	defer func() {
 		// Done enterCommit:
 		// keep cs.Round the same, commitRound points to the right Precommits set.
 		cs.updateRoundStep(cs.Round, cstypes.RoundStepCommit)
 		cs.CommitRound = commitRound
 		cs.newStep()
-
+		cs.rsMtx.Unlock()
 		// Maybe finalize immediately.
 		cs.tryFinalizeCommit(height)
 	}()
@@ -1587,7 +1733,9 @@ func (cs *State) finalizeCommit(height int64) {
 	trace.GetElapsedInfo().AddInfo(trace.Round, fmt.Sprintf("%d", cs.Round))
 
 	// NewHeightStep!
+	cs.rsMtx.Lock()
 	cs.updateToState(stateCopy)
+	cs.rsMtx.Unlock()
 
 	fail.Fail() // XXX
 
@@ -1709,7 +1857,7 @@ func (cs *State) recordMetrics(height int64, block *types.Block) {
 func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	// Already have one
 	// TODO: possibly catch double proposals
-	if cs.Proposal != nil {
+	if cs.Proposal != nil && !proposal.HasActiveVC {
 		return nil
 	}
 
@@ -1719,8 +1867,8 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	}
 
 	// Verify POLRound, which must be -1 or in range [0, proposal.Round).
-	if proposal.POLRound < -1 ||
-		(proposal.POLRound >= 0 && proposal.POLRound >= proposal.Round) {
+	if !proposal.HasActiveVC && (proposal.POLRound < -1 ||
+		(proposal.POLRound >= 0 && proposal.POLRound >= proposal.Round)) {
 		return ErrInvalidProposalPOLRound
 	}
 
@@ -1728,6 +1876,8 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	if !cs.Validators.GetProposer().PubKey.VerifyBytes(proposal.SignBytes(cs.state.ChainID), proposal.Signature) {
 		return ErrInvalidProposalSignature
 	}
+	cs.rsMtx.Lock()
+	defer cs.rsMtx.Unlock()
 
 	cs.Proposal = proposal
 	// We don't update cs.ProposalBlockParts if it is already set.
@@ -1737,6 +1887,7 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 		cs.ProposalBlockParts = types.NewPartSetFromHeader(proposal.BlockID.PartsHeader)
 	}
 	cs.Logger.Info("Received proposal", "proposal", proposal)
+	cs.bt.onProposal(proposal.Height)
 	return nil
 }
 
@@ -1789,6 +1940,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 			return added, err
 		}
 
+		cs.bt.onRecvBlock(height)
 		if cs.prerunTx {
 			cs.blockExec.NotifyPrerun(cs.ProposalBlock) // 3. addProposalBlockPart
 		}
@@ -1807,9 +1959,11 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 			if cs.ProposalBlock.HashesTo(blockID.Hash) {
 				cs.Logger.Info("Updating valid block to new proposal block",
 					"valid-round", cs.Round, "valid-block-hash", cs.ProposalBlock.Hash())
+				cs.rsMtx.Lock()
 				cs.ValidRound = cs.Round
 				cs.ValidBlock = cs.ProposalBlock
 				cs.ValidBlockParts = cs.ProposalBlockParts
+				cs.rsMtx.Unlock()
 			}
 			// TODO: In case there is +2/3 majority in Prevotes set for some
 			// block and cs.ProposalBlock contains different block, either
@@ -1971,6 +2125,7 @@ func (cs *State) addVote(
 		cs.Logger.Info("Added to prevote", "vote", vote, "prevotes", prevotes.StringShort())
 
 		// If +2/3 prevotes for a block or nil for *any* round:
+		cs.rsMtx.Lock()
 		if blockID, ok := prevotes.TwoThirdsMajority(); ok {
 
 			// There was a polka!
@@ -2017,6 +2172,7 @@ func (cs *State) addVote(
 				cs.eventBus.PublishEventValidBlock(cs.RoundStateEvent())
 			}
 		}
+		cs.rsMtx.Unlock()
 
 		// If +2/3 prevotes for *anything* for future round:
 		switch {
@@ -2135,13 +2291,11 @@ func (cs *State) signAddVote(msgType types.SignedMsgType, hash []byte, header ty
 	// TODO: pass pubKey to signVote
 	vote, err := cs.signVote(msgType, hash, header)
 	if err == nil {
-		//broadcast vote immediately
-		cs.evsw.FireEvent(types.EventSignVote, vote)
 		cs.sendInternalMessage(msgInfo{&VoteMessage{vote}, ""})
 		cs.Logger.Info("Signed and pushed vote", "height", cs.Height, "round", cs.Round, "vote", vote, "err", err)
 		return vote
 	}
-	if !cs.replayMode {
+	if !cs.replayMode && !ActiveViewChange {
 		cs.Logger.Error("Error signing vote", "height", cs.Height, "round", cs.Round, "vote", vote, "err", err)
 	}
 	return nil
