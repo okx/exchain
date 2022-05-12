@@ -1885,6 +1885,7 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	}
 	cs.Logger.Info("Received proposal", "proposal", proposal)
 	cs.bt.onProposal(proposal.Height)
+	cs.trc.Pin("%d-RecvProposal", proposal.Height)
 	return nil
 }
 
@@ -1931,6 +1932,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		}
 
 		cs.bt.onRecvBlock(height)
+		cs.trc.Pin("%d-RecvBlock", height)
 		if cs.prerunTx {
 			cs.blockExec.NotifyPrerun(cs.ProposalBlock) // 3. addProposalBlockPart
 		}
