@@ -22,27 +22,25 @@ var (
 // a so-called Proof-of-Lock (POL) round, as noted in the POLRound.
 // If POLRound >= 0, then BlockID corresponds to the block that is locked in POLRound.
 type Proposal struct {
-	Type          SignedMsgType
-	Height        int64     `json:"height"`
-	Round         int       `json:"round"`
-	POLRound      int       `json:"pol_round"` // -1 if null.
-	BlockID       BlockID   `json:"block_id"`
-	Timestamp     time.Time `json:"timestamp"`
-	Signature     []byte    `json:"signature"`
-	CompressBlock int       `json:"compress_block"`
+	Type      SignedMsgType
+	Height    int64     `json:"height"`
+	Round     int       `json:"round"`
+	POLRound  int       `json:"pol_round"` // -1 if null.
+	BlockID   BlockID   `json:"block_id"`
+	Timestamp time.Time `json:"timestamp"`
+	Signature []byte    `json:"signature"`
 }
 
 // NewProposal returns a new Proposal.
 // If there is no POLRound, polRound should be -1.
 func NewProposal(height int64, round int, polRound int, blockID BlockID) *Proposal {
 	return &Proposal{
-		Type:          ProposalType,
-		Height:        height,
-		Round:         round,
-		BlockID:       blockID,
-		POLRound:      polRound,
-		CompressBlock: BlockCompressType,
-		Timestamp:     tmtime.Now(),
+		Type:      ProposalType,
+		Height:    height,
+		Round:     round,
+		BlockID:   blockID,
+		POLRound:  polRound,
+		Timestamp: tmtime.Now(),
 	}
 }
 
