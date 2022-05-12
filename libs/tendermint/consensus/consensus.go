@@ -2,7 +2,6 @@ package consensus
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/libs/compress"
@@ -1772,22 +1771,20 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		return added, err
 	}
 
-	r := cs.ProposalBlockParts.GetReader()
-	b, err := io.ReadAll(r)
-	bLen, n := binary.Uvarint(b)
-	if len(b)-n != int(bLen) {
-		b, err = compress.UnCompress(2, b)
-		if err != nil {
-			cs.ProposalBlockParts = nil
-			return false, err
-		}
+	// received compressed block bytes, uncompress with the flag:Proposal.CompressBlock
+	pbpReader := cs.ProposalBlockParts.GetReader()
+	compressBytes, err := io.ReadAll(pbpReader)
+	pbpBytes, err := compress.UnCompress(cs.Proposal.CompressBlock, compressBytes)
+	if err != nil {
+		cs.ProposalBlockParts = nil
+		return false, err
 	}
-	r = bytes.NewBuffer(b)
+	pbpReader = bytes.NewBuffer(pbpBytes)
 
 	if added && cs.ProposalBlockParts.IsComplete() {
 		// Added and completed!
 		_, err = cdc.UnmarshalBinaryLengthPrefixedReader(
-			r,
+			pbpReader,
 			&cs.ProposalBlock,
 			cs.state.ConsensusParams.Block.MaxBytes,
 		)

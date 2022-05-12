@@ -265,6 +265,8 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	tmtypes.FastQuery = viper.GetBool(tmtypes.FlagFastQuery)
 	tmtypes.DeltaVersion = viper.GetInt(tmtypes.FlagDeltaVersion)
 
+	tmtypes.BlockCompressType = viper.GetInt(tmtypes.FlagBlockCompressType)
+
 	tmiavl.CommitGapHeight = viper.GetInt64(FlagCommitGapHeight)
 	mpt.TrieCommitGap = viper.GetInt64(FlagCommitGapHeight)
 }

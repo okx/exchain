@@ -38,7 +38,11 @@ const (
 	// Uvarint length of Data.Txs:          4 bytes
 	// Data.Txs field:                      1 byte
 	MaxAminoOverheadForBlock int64 = 11
+
+	FlagBlockCompressType = "block-compress-type"
 )
+
+var BlockCompressType = 0
 
 // Block defines the atomic unit of a Tendermint blockchain.
 type Block struct {
@@ -240,7 +244,7 @@ func (b *Block) MakePartSet(partSize int) *PartSet {
 	if err != nil {
 		panic(err)
 	}
-	cz, _ := compress.Compress(2, 0, bz)
+	cz, _ := compress.Compress(BlockCompressType, 0, bz)
 	return NewPartSetFromData(cz, partSize)
 }
 
