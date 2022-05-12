@@ -161,6 +161,7 @@ type State struct {
 	vcMsg *ViewChangeMessage
 
 	bt *BlockTransport
+	logger  log.Logger
 }
 
 // StateOption sets an optional parameter on the State.
@@ -224,8 +225,8 @@ func NewState(
 func (cs *State) SetLogger(l log.Logger) {
 	cs.BaseService.Logger = l
 	cs.timeoutTicker.SetLogger(l)
+	cs.logger = l.With("module", "main")
 }
-
 // SetEventBus sets event bus.
 func (cs *State) SetEventBus(b *types.EventBus) {
 	cs.eventBus = b
@@ -611,8 +612,12 @@ func (cs *State) updateToState(state sm.State) {
 	height := state.LastBlockHeight + 1
 
 	// RoundState fields
+	if cs.logger != nil {
+		cs.logger.Info("updateHeight", "height", height)
+	}
 	cs.updateHeight(height)
 	cs.updateRoundStep(0, cstypes.RoundStepNewHeight)
+	cs.traceDump()
 
 	cs.Validators = validators
 	cs.Proposal = nil
@@ -860,6 +865,9 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 }
 
 func (cs *State) traceDump() {
+	if cs.Logger == nil {
+		return
+	}
 	trace.GetElapsedInfo().AddInfo(trace.Produce, cs.trc.Format())
 	trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
 	cs.trc.Reset()
@@ -869,7 +877,7 @@ func (cs *State) initNewHeight() {
 	// waiting finished and enterNewHeight by timeoutNewHeight
 	if cs.Step == cstypes.RoundStepNewHeight {
 		// dump trace log
-		cs.traceDump()
+		//cs.traceDump()
 		// init StartTime
 		cs.StartTime = tmtime.Now()
 	}
@@ -930,6 +938,8 @@ func (cs *State) enterNewRound(height int64, round int) {
 	}
 
 	logger.Info(fmt.Sprintf("enterNewRound(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
+
+	cs.logger.Info("enterNewRound", "height", height, )
 
 	// Increment validators if necessary
 	validators := cs.Validators
@@ -1131,6 +1141,10 @@ func (cs *State) doPropose(height int64, round int) {
 	// If we don't get the proposal and all block parts quick enough, enterPrevote
 	cs.scheduleTimeout(cs.config.Propose(round), height, round, cstypes.RoundStepPropose)
 
+	cs.logger.Info("enterPropose",
+		"height", height,
+		"isBlockProducer", isBlockProducer, )
+
 	if isBlockProducer == "y" {
 		logger.Info("enterPropose: Our turn to propose",
 			"proposer",
@@ -1184,6 +1198,8 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 			cs.sendInternalMessage(msgInfo{&BlockPartMessage{cs.Height, cs.Round, part, cs.Deltas}, ""})
 		}
 		cs.Logger.Info("Signed proposal", "height", height, "round", round, "proposal", proposal)
+		cs.logger.Info("Signed proposal", "height", height, )
+
 		cs.Logger.Debug(fmt.Sprintf("Signed proposal block: %v", block))
 	} else if !cs.replayMode && !ActiveViewChange {
 		cs.Logger.Error("enterPropose: Error signing proposal", "height", height, "round", round, "err", err)
@@ -1271,6 +1287,7 @@ func (cs *State) enterPrevote(height int64, round int) {
 	}()
 
 	cs.Logger.Info(fmt.Sprintf("enterPrevote(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
+	cs.logger.Info("enterPrevote", "height", height, )
 
 	// Sign and broadcast vote as necessary
 	cs.doPrevote(height, round)
@@ -1886,6 +1903,7 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	cs.Logger.Info("Received proposal", "proposal", proposal)
 	cs.bt.onProposal(proposal.Height)
 	cs.trc.Pin("%d-RecvProposal", proposal.Height)
+	cs.logger.Info("Received proposal", "height", proposal.Height, )
 	return nil
 }
 
@@ -1930,6 +1948,8 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		if err != nil {
 			return added, err
 		}
+
+		cs.logger.Info("Received block", "height", height, )
 
 		cs.bt.onRecvBlock(height)
 		cs.trc.Pin("%d-RecvBlock", height)
