@@ -874,10 +874,12 @@ OUTER_LOOP:
 		vcMsg := conR.conS.vcMsg
 
 		if vcMsg == nil || rs.Height > vcMsg.Height {
+			time.Sleep(conR.conS.config.PeerGossipSleepDuration * 2)
 			continue OUTER_LOOP
 		}
 		// only in round0 send vcMsg
 		if rs.Round != 0 || prs.Round != 0 {
+			time.Sleep(conR.conS.config.PeerGossipSleepDuration * 2)
 			continue OUTER_LOOP
 		}
 
@@ -895,7 +897,6 @@ OUTER_LOOP:
 				peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg))
 			}
 		}
-
 		time.Sleep(conR.conS.config.PeerGossipSleepDuration * 2)
 		continue OUTER_LOOP
 	}
