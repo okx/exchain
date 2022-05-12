@@ -1846,7 +1846,7 @@ func (cs *State) uncompressBlock() (io.Reader, error) {
 	if len(payload)-n == int(compressBytesLen) {
 		// the block has not compressed
 		pbpReader = bytes.NewReader(payload)
-	} else if len(payload)-n == int(compressBytesLen)+1 {
+	} else {
 		// the block has compressed and the last byte is compressType
 		compressType := int(payload[len(payload)-1])
 		pbpBytes, err := compress.UnCompress(compressType, payload[:len(payload)-1])
@@ -1856,8 +1856,6 @@ func (cs *State) uncompressBlock() (io.Reader, error) {
 			return nil, err
 		}
 		pbpReader = bytes.NewBuffer(pbpBytes)
-	} else {
-		return nil, fmt.Errorf("block compress bytes length is not correct")
 	}
 	return pbpReader, nil
 }

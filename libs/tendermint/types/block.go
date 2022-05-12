@@ -254,6 +254,7 @@ func (b *Block) compressBlock(bz []byte) []byte {
 	if BlockCompressType == 0 {
 		return bz
 	}
+
 	cz, err := compress.Compress(BlockCompressType, 0, bz)
 	if err != nil {
 		return bz
