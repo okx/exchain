@@ -42,7 +42,7 @@ const (
 	FlagBlockCompressType = "block-compress-type"
 )
 
-var BlockCompressType = 0
+var BlockCompressType = 0x00
 
 // Block defines the atomic unit of a Tendermint blockchain.
 type Block struct {
@@ -244,8 +244,22 @@ func (b *Block) MakePartSet(partSize int) *PartSet {
 	if err != nil {
 		panic(err)
 	}
-	cz, _ := compress.Compress(BlockCompressType, 0, bz)
-	return NewPartSetFromData(cz, partSize)
+
+	payload := b.compressBlock(bz)
+
+	return NewPartSetFromData(payload, partSize)
+}
+
+func (b *Block) compressBlock(bz []byte) []byte {
+	if BlockCompressType == 0 {
+		return bz
+	}
+	cz, err := compress.Compress(BlockCompressType, 0, bz)
+	if err != nil {
+		return bz
+	}
+	// tell receiver which compress type
+	return append(cz, byte(BlockCompressType))
 }
 
 // HashesTo is a convenience function that checks if a block hashes to the given argument.
