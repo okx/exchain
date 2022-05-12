@@ -242,7 +242,7 @@ func BenchmarkUpdateBranch(b *testing.B) {
 			for _, c := range cases {
 				capacity += c.nodeNums
 				root, _ := mockNodes(c.version, c.nodeNums)
-				ndb.updateBranchConcurrency(root, map[string]*Node{})
+				ndb.updateBranchConcurrency(root, nil)
 			}
 		}
 	})
