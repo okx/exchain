@@ -200,6 +200,7 @@ func NewState(
 	// We do that upon Start().
 	cs.reconstructLastCommit(state)
 	cs.BaseService = *service.NewBaseService(nil, "State", cs)
+
 	for _, option := range options {
 		option(cs)
 	}
@@ -364,6 +365,10 @@ go run scripts/json2wal/main.go wal.json $WALFILE # rebuild the file without cor
 
 	if cs.done == nil {
 		cs.done = make(chan struct{})
+	}
+
+	if cs.BlockPartsCache == nil {
+		cs.BlockPartsCache = cstypes.NewBlockPartsCacheMap()
 	}
 
 	// now start the receiveRoutine
@@ -1732,6 +1737,8 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	// TODO: We can check if Proposal is for a different block as this is a sign of misbehavior!
 	if cs.ProposalBlockParts == nil {
 		cs.ProposalBlockParts = types.NewPartSetFromHeader(proposal.BlockID.PartsHeader)
+		// todo:
+
 	}
 	cs.Logger.Info("Received proposal", "proposal", proposal)
 	return nil
@@ -1761,6 +1768,9 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		// then receive parts from the previous round - not necessarily a bad peer.
 		cs.Logger.Info("Received a block part when we're not expecting any",
 			"height", height, "round", round, "index", part.Index, "peer", peerID)
+		if cs.Height <= height && cs.Round <= round {
+			cs.BlockPartsCache.AddBlockPart(height, round, part)
+		}
 		return false, nil
 	}
 
