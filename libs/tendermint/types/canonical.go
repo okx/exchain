@@ -23,14 +23,13 @@ type CanonicalPartSetHeader struct {
 }
 
 type CanonicalProposal struct {
-	Type          SignedMsgType // type alias for byte
-	Height        int64         `binary:"fixed64"`
-	Round         int64         `binary:"fixed64"`
-	POLRound      int64         `binary:"fixed64"`
-	BlockID       CanonicalBlockID
-	Timestamp     time.Time
-	CompressBlock int
-	ChainID       string
+	Type      SignedMsgType // type alias for byte
+	Height    int64         `binary:"fixed64"`
+	Round     int64         `binary:"fixed64"`
+	POLRound  int64         `binary:"fixed64"`
+	BlockID   CanonicalBlockID
+	Timestamp time.Time
+	ChainID   string
 }
 
 type CanonicalVote struct {
@@ -51,6 +50,7 @@ func CanonicalizeBlockID(blockID BlockID) CanonicalBlockID {
 		PartsHeader: CanonicalizePartSetHeader(blockID.PartsHeader),
 	}
 }
+
 
 func CanonicalizePartSetHeader(psh PartSetHeader) CanonicalPartSetHeader {
 	return CanonicalPartSetHeader{
