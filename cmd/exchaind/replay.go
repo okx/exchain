@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/system/trace"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -12,14 +11,14 @@ import (
 	"runtime/pprof"
 	"time"
 
-	tcmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
-
 	"github.com/okex/exchain/app/config"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tcmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
 	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/mock"
 	"github.com/okex/exchain/libs/tendermint/node"
@@ -242,7 +241,7 @@ func SaveBlock(ctx *server.Context, originDB *store.BlockStore, height int64) {
 
 func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	proxyApp proxy.AppConns, originDataDir string, lastAppHash []byte, lastBlockHeight int64) {
-	
+
 	trace.GetTraceSummary().Init(
 		trace.Abci,
 		//trace.ValTxMsgs,
@@ -283,7 +282,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		meta := originBlockStore.LoadBlockMeta(lastBlockHeight)
 		blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, mockApp, mock.Mempool{}, sm.MockEvidencePool{})
 		config.GetOecConfig().SetDeliverTxsExecuteMode(0) // mockApp not support parallel tx
-		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
+		state, _, err = blockExec.ApplyBlockWithTrace(state, meta.BlockID, block)
 		config.GetOecConfig().SetDeliverTxsExecuteMode(viper.GetInt(sm.FlagDeliverTxsExecMode))
 		panicError(err)
 	}
@@ -299,10 +298,9 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	needSaveBlock := viper.GetBool(saveBlock)
 	global.SetGlobalHeight(lastBlockHeight + 1)
 	for height := lastBlockHeight + 1; height <= haltheight; height++ {
-		log.Println("replaying ", height)
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
-		state, _, err = blockExec.ApplyBlock(state, meta.BlockID, block)
+		state, _, err = blockExec.ApplyBlockWithTrace(state, meta.BlockID, block)
 		panicError(err)
 		if needSaveBlock {
 			SaveBlock(ctx, originBlockStore, height)

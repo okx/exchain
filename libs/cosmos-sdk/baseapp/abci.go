@@ -223,7 +223,7 @@ func (app *BaseApp) addCommitTraceInfo() {
 	iavlInfo := strings.Join([]string{"getnode<", nodeReadCountStr, ">, rdb<", dbReadCountStr, ">, rdbTs<", dbReadTimeStr, "ms>, savenode<", dbWriteCountStr, ">"}, "")
 
 	elapsedInfo := trace.GetElapsedInfo()
-	elapsedInfo.AddInfo("Iavl", iavlInfo)
+	elapsedInfo.AddInfo(trace.Iavl, iavlInfo)
 
 	flatKvReadCountStr := strconv.Itoa(app.cms.GetFlatKVReadCount())
 	flatKvReadTimeStr := strconv.FormatInt(time.Duration(app.cms.GetFlatKVReadTime()).Milliseconds(), 10)
@@ -232,7 +232,7 @@ func (app *BaseApp) addCommitTraceInfo() {
 
 	flatInfo := strings.Join([]string{"rflat<", flatKvReadCountStr, ">, rflatTs<", flatKvReadTimeStr, "ms>, wflat<", flatKvWriteCountStr, ">, wflatTs<", flatKvWriteTimeStr, "ms>"}, "")
 
-	elapsedInfo.AddInfo("FlatKV", flatInfo)
+	elapsedInfo.AddInfo(trace.FlatKV, flatInfo)
 
 	//rtx := float64(atomic.LoadInt64(&app.checkTxNum))
 	//wtx := float64(atomic.LoadInt64(&app.wrappedCheckTxNum))
