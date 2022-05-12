@@ -90,7 +90,7 @@ func ErrBlockedContractRecipient(contractAddr string) sdk.EnvelopedErr {
 
 // ErrBlockedRecipient returns an error when a transfer is tried on a blocked recipient
 func ErrBlockedRecipient(blockedAddr string) sdk.EnvelopedErr {
-	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errBlockedRecipient, "%s is not allowed to receive transactions", blockedAddr)}
+	return sdk.EnvelopedErr{Err: sdkerrors.Wrapf(errBlockedRecipient, "failed. %s is not allowed to receive transactions", blockedAddr)}
 }
 
 // ErrSendDisabled returns an error when the transaction sending is disabled in bank module
