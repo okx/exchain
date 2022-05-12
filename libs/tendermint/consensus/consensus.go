@@ -452,9 +452,9 @@ func (cs *State) SetProposal(proposal *types.Proposal, peerID p2p.ID) error {
 // AddProposalBlockPart inputs a part of the proposal block.
 func (cs *State) AddProposalBlockPart(height int64, round int, part *types.Part, peerID p2p.ID) error {
 	if peerID == "" {
-		cs.internalMsgQueue <- msgInfo{&BlockPartMessage{height, round, part, nil}, ""}
+		cs.internalMsgQueue <- msgInfo{&BlockPartMessage{height, round, part}, ""}
 	} else {
-		cs.peerMsgQueue <- msgInfo{&BlockPartMessage{height, round, part, nil}, peerID}
+		cs.peerMsgQueue <- msgInfo{&BlockPartMessage{height, round, part}, peerID}
 	}
 
 	// TODO: wait for event?!
@@ -1048,7 +1048,7 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 		cs.sendInternalMessage(msgInfo{&ProposalMessage{proposal}, ""})
 		for i := 0; i < blockParts.Total(); i++ {
 			part := blockParts.GetPart(i)
-			cs.sendInternalMessage(msgInfo{&BlockPartMessage{cs.Height, cs.Round, part, cs.Deltas}, ""})
+			cs.sendInternalMessage(msgInfo{&BlockPartMessage{cs.Height, cs.Round, part}, ""})
 		}
 		cs.Logger.Info("Signed proposal", "height", height, "round", round, "proposal", proposal)
 		cs.Logger.Debug(fmt.Sprintf("Signed proposal block: %v", block))
@@ -1324,7 +1324,7 @@ func (cs *State) enterPrecommit(height int64, round int) {
 	cs.LockedBlockParts = nil
 	if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {
 		cs.ProposalBlock = nil
-		cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
+		cs.initProposalBlockParts(blockID.PartsHeader)
 	}
 	cs.eventBus.PublishEventUnlock(cs.RoundStateEvent())
 	cs.signAddVote(types.PrecommitType, nil, types.PartSetHeader{})
@@ -1421,7 +1421,7 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 			cs.ProposalBlock = nil
 			cs.Logger.Info("enterCommit proposalBlockPart reset ,because of mismatch hash,",
 				"origin", hex.EncodeToString(cs.ProposalBlockParts.Hash()), "after", blockID.Hash)
-			cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
+			cs.initProposalBlockParts(blockID.PartsHeader)
 			cs.eventBus.PublishEventValidBlock(cs.RoundStateEvent())
 			cs.evsw.FireEvent(types.EventValidBlock, &cs.RoundState)
 		}
@@ -1736,9 +1736,7 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	// This happens if we're already in cstypes.RoundStepCommit or if there is a valid block in the current round.
 	// TODO: We can check if Proposal is for a different block as this is a sign of misbehavior!
 	if cs.ProposalBlockParts == nil {
-		cs.ProposalBlockParts = types.NewPartSetFromHeader(proposal.BlockID.PartsHeader)
-		// todo:
-
+		cs.initProposalBlockParts(proposal.BlockID.PartsHeader)
 	}
 	cs.Logger.Info("Received proposal", "proposal", proposal)
 	return nil
@@ -1759,6 +1757,9 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 	// Blocks might be reused, so round mismatch is OK
 	if cs.Height != height {
 		cs.Logger.Debug("Received block part from wrong height", "height", height, "round", round)
+		if cs.Height <= height {
+			cs.BlockPartsCache.AddBlockPart(height, round, part)
+		}
 		return false, nil
 	}
 
@@ -1768,13 +1769,17 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		// then receive parts from the previous round - not necessarily a bad peer.
 		cs.Logger.Info("Received a block part when we're not expecting any",
 			"height", height, "round", round, "index", part.Index, "peer", peerID)
-		if cs.Height <= height && cs.Round <= round {
+		if cs.Round <= round {
 			cs.BlockPartsCache.AddBlockPart(height, round, part)
 		}
 		return false, nil
 	}
 
-	added, err = cs.ProposalBlockParts.AddPart(part)
+	return cs.processAddBlockPart(part, height)
+}
+
+func (cs *State) processAddBlockPart(part *types.Part, height int64) (bool, error) {
+	added, err := cs.ProposalBlockParts.AddPart(part)
 	if err != nil {
 		return added, err
 	}
@@ -1792,9 +1797,6 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		if cs.prerunTx {
 			cs.blockExec.NotifyPrerun(cs.ProposalBlock) // 3. addProposalBlockPart
 		}
-
-		// receive Deltas from BlockMessage and put into State(cs)
-		cs.Deltas = msg.Deltas
 
 		// NOTE: it's possible to receive complete proposal blocks for future rounds without having the proposal
 		cs.Logger.Info("Received complete proposal block", "height", cs.ProposalBlock.Height, "hash", cs.ProposalBlock.Hash())
@@ -1831,6 +1833,19 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		return added, nil
 	}
 	return added, nil
+}
+
+func (cs *State) initProposalBlockParts(header types.PartSetHeader) {
+	cs.ProposalBlockParts = types.NewPartSetFromHeader(header)
+	// get blockparts from cache
+	partsCache := cs.BlockPartsCache.GetBlockParts(cs.Height, cs.Round)
+	if partsCache == nil {
+		return
+	}
+	for _, part := range partsCache.Parts {
+		cs.processAddBlockPart(part, cs.Height)
+	}
+	cs.BlockPartsCache.DeleteBackward(cs.Height)
 }
 
 // Attempt to add the vote. if its a duplicate signature, dupeout the validator
@@ -1984,7 +1999,7 @@ func (cs *State) addVote(
 				if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {
 					cs.Logger.Info("addVote proposalBlockPart reset ,because of mismatch hash,",
 						"origin", hex.EncodeToString(cs.ProposalBlockParts.Hash()), "after", blockID.Hash)
-					cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
+					cs.initProposalBlockParts(blockID.PartsHeader)
 				}
 				cs.evsw.FireEvent(types.EventValidBlock, &cs.RoundState)
 				cs.eventBus.PublishEventValidBlock(cs.RoundStateEvent())

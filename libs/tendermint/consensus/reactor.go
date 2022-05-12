@@ -1646,7 +1646,6 @@ type BlockPartMessage struct {
 	Height int64
 	Round  int
 	Part   *types.Part
-	Deltas *types.Deltas
 }
 
 // ValidateBasic performs basic validation.

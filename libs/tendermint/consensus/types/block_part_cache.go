@@ -6,18 +6,18 @@ import (
 )
 
 type BlockPartsCache struct {
-	parts map[int]*types.Part
+	Parts map[int]*types.Part
 }
 
 func newBlockPartsCache() *BlockPartsCache {
 	return &BlockPartsCache{
-		parts: make(map[int]*types.Part),
+		Parts: make(map[int]*types.Part),
 	}
 }
 
 func (bpc *BlockPartsCache)addBlockPart(part *types.Part) bool {
-	if bpc.parts[part.Index] == nil {
-		bpc.parts[part.Index] = part
+	if bpc.Parts[part.Index] == nil {
+		bpc.Parts[part.Index] = part
 		return true
 	}
 	return false
@@ -53,6 +53,24 @@ func (cm *BlockPartsCacheMap) AddBlockPart(height int64, round int, part *types.
 	return roundCache.addBlockPart(part)
 }
 
-func (cm *BlockPartsCacheMap) GetBlockParts(height int64, round int)  {
-	
+func (cm *BlockPartsCacheMap) GetBlockParts(height int64, round int) *BlockPartsCache {
+	cm.mtx.Lock()
+	defer cm.mtx.Unlock()
+
+	if cm.cache[height] == nil || cm.cache[height][round] == nil {
+		return nil
+	}
+
+	return cm.cache[height][round]
+}
+
+func (cm *BlockPartsCacheMap) DeleteBackward(height int64) {
+	cm.mtx.Lock()
+	defer cm.mtx.Unlock()
+
+	for h, _ := range cm.cache {
+		if h < height {
+			delete(cm.cache, h)
+		}
+	}
 }
