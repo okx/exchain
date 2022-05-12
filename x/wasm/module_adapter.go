@@ -2,6 +2,7 @@ package wasm
 
 import (
 	"encoding/json"
+	store "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 
 	"github.com/gorilla/mux"
 	clictx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -93,6 +94,69 @@ func (am AppModule) RegisterTask() upgrade.HeightTask {
 			am.InitGenesis(ctx, data)
 			return nil
 		})
+}
+
+var (
+	defaultDenyFilter store.StoreFilter = func(module string, h int64, s store.CommitKVStore) bool {
+		return module == ModuleName
+	}
+
+	defaultCommitFilter store.StoreFilter = func(module string, h int64, s store.CommitKVStore) bool {
+		if module != ModuleName {
+			return false
+		}
+
+		if h == types2.GetSaturnHeight() {
+			if s != nil {
+				s.SetUpgradeVersion(h)
+			}
+			return false
+		}
+
+		if types2.HigherThanSaturn(h) {
+			return false
+		}
+
+		return true
+	}
+	defaultPruneFilter store.StoreFilter = func(module string, h int64, s store.CommitKVStore) bool {
+		if module != ModuleName {
+			return false
+		}
+
+		if types2.HigherThanSaturn(h) {
+			return false
+		}
+
+		return true
+	}
+	defaultVersionFilter store.VersionFilter = func(h int64) func(cb func(name string, version int64)) {
+		if h < 0 {
+			return func(cb func(name string, version int64)) {}
+		}
+
+		return func(cb func(name string, version int64)) {
+			cb(ModuleName, types2.GetSaturnHeight())
+		}
+	}
+)
+
+func (am AppModule) CommitFilter() *store.StoreFilter {
+	if am.UpgradeHeight() == 0 {
+		return &defaultDenyFilter
+	}
+	return &defaultCommitFilter
+}
+
+func (am AppModule) PruneFilter() *store.StoreFilter {
+	if am.UpgradeHeight() == 0 {
+		return &defaultDenyFilter
+	}
+	return &defaultPruneFilter
+}
+
+func (am AppModule) VersionFilter() *store.VersionFilter {
+	return &defaultVersionFilter
 }
 
 func (am AppModule) UpgradeHeight() int64 {
