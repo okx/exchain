@@ -110,17 +110,12 @@ func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
 
 func (ndb *nodeDB) asyncPersistTppStart(version int64) map[string]*Node {
 	ndb.log(IavlDebug, "moving prePersistCache to tempPrePersistCache", "size", len(ndb.prePersistNodeCache))
+
 	ndb.mtx.Lock()
+
 	tpp := ndb.prePersistNodeCache
 	ndb.prePersistNodeCache = make(map[string]*Node, len(tpp))
-
-	ndb.tppMtx.Lock()
-	lItem := ndb.tppVersionList.PushBack(version)
-	ndb.tppMap[version] = &tppItem{
-		nodeMap:  tpp,
-		listItem: lItem,
-	}
-	ndb.tppMtx.Unlock()
+	ndb.pushToTpp(version, tpp)
 
 	ndb.mtx.Unlock()
 
@@ -140,6 +135,26 @@ func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer)
 
 	nodeNum := ndb.getTppNodesNum()
 
+	ndb.removeFromTpp(version)
+
+	ndb.log(IavlInfo, "CommitSchedule", "Height", version,
+		"Tree", ndb.name,
+		"IavlHeight", iavlHeight,
+		"NodeNum", nodeNum,
+		"trc", trc.Format())
+}
+
+func (ndb *nodeDB) pushToTpp(version int64, tpp map[string]*Node) {
+	ndb.tppMtx.Lock()
+	lItem := ndb.tppVersionList.PushBack(version)
+	ndb.tppMap[version] = &tppItem{
+		nodeMap:  tpp,
+		listItem: lItem,
+	}
+	ndb.tppMtx.Unlock()
+}
+
+func (ndb *nodeDB) removeFromTpp(version int64) {
 	ndb.tppMtx.Lock()
 	tItem := ndb.tppMap[version]
 	if tItem != nil {
@@ -147,12 +162,6 @@ func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer)
 	}
 	delete(ndb.tppMap, version)
 	ndb.tppMtx.Unlock()
-
-	ndb.log(IavlInfo, "CommitSchedule", "Height", version,
-		"Tree", ndb.name,
-		"IavlHeight", iavlHeight,
-		"NodeNum", nodeNum,
-		"trc", trc.Format())
 }
 
 // SaveNode saves a node to disk.
