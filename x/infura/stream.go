@@ -24,6 +24,7 @@ const (
 	FlagMysqlUrl       = "infura.mysql-url"
 	FlagMysqlUser      = "infura.mysql-user"
 	FlagMysqlPass      = "infura.mysql-pass"
+	FlagMysqlDB        = "infura.mysql-db"
 	FlagCacheQueueSize = "infura.cache-queue-size"
 )
 
@@ -82,6 +83,7 @@ func initConfig() *types.Config {
 		MysqlUrl:       viper.GetString(FlagMysqlUrl),
 		MysqlUser:      viper.GetString(FlagMysqlUser),
 		MysqlPass:      viper.GetString(FlagMysqlPass),
+		MysqlDB:        viper.GetString(FlagMysqlDB),
 		CacheQueueSize: viper.GetInt(FlagCacheQueueSize),
 	}
 }

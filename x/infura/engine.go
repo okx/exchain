@@ -15,7 +15,7 @@ func newStreamEngine(cfg *types.Config, logger log.Logger) (types.IStreamEngine,
 	if cfg.MysqlUrl == "" {
 		return nil, errors.New("infura.mysql-url is empty")
 	}
-	return newMySQLEngine(cfg.MysqlUrl, cfg.MysqlUser, cfg.MysqlPass, logger)
+	return newMySQLEngine(cfg.MysqlUrl, cfg.MysqlUser, cfg.MysqlPass, cfg.MysqlDB, logger)
 }
 
 type MySQLEngine struct {
@@ -23,9 +23,9 @@ type MySQLEngine struct {
 	logger log.Logger
 }
 
-func newMySQLEngine(url, user, pass string, l log.Logger) (types.IStreamEngine, error) {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s)/infura?charset=utf8mb4&parseTime=True&loc=Local",
-		user, pass, url)
+func newMySQLEngine(url, user, pass, dbName string, l log.Logger) (types.IStreamEngine, error) {
+	dsn := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		user, pass, url, dbName)
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),

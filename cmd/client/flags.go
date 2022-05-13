@@ -113,5 +113,6 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().String(infura.FlagMysqlUrl, "", "Mysql url(host:port) of infura rpc service")
 	cmd.Flags().String(infura.FlagMysqlUser, "", "Mysql user of infura rpc service")
 	cmd.Flags().String(infura.FlagMysqlPass, "", "Mysql password of infura rpc service")
+	cmd.Flags().String(infura.FlagMysqlDB, "infura", "Mysql db name of infura rpc service")
 	cmd.Flags().Int(infura.FlagCacheQueueSize, 0, "Cache queue size of infura rpc service")
 }
