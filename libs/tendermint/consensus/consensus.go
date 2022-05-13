@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"runtime/debug"
+	"strings"
 	"sync"
 	"time"
 
@@ -1073,7 +1074,7 @@ func (cs *State) isBlockProducer() (string, string) {
 		}
 	}
 
-	return isBlockProducer, bpStr
+	return isBlockProducer, strings.ToLower(bpStr)
 }
 
 // Enter (CreateEmptyBlocks): from enterNewRound(height,round)
