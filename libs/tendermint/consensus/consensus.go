@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"runtime/debug"
+	"strings"
 	"sync"
 	"time"
 
@@ -928,7 +929,7 @@ func (cs *State) enterNewRound(height int64, round int) {
 	}
 
 	cs.initNewHeight()
-	cs.trc.Pin("NewRound-%d", round)
+	//cs.trc.Pin("NewRound-%d", round)
 
 	if now := tmtime.Now(); cs.StartTime.After(now) {
 		logger.Info("Need to set a buffer and log message here for sanity.", "startTime", cs.StartTime, "now", now)
@@ -1073,7 +1074,7 @@ func (cs *State) isBlockProducer() (string, string) {
 		}
 	}
 
-	return isBlockProducer, bpStr
+	return isBlockProducer, strings.ToLower(bpStr)
 }
 
 // Enter (CreateEmptyBlocks): from enterNewRound(height,round)
@@ -1115,7 +1116,7 @@ func (cs *State) doPropose(height int64, round int) {
 
 	cs.initNewHeight()
 	isBlockProducer, bpAddr := cs.isBlockProducer()
-	cs.trc.Pin("Propose-%d-%s-%s", round, isBlockProducer, bpAddr)
+	cs.trc.Pin("enterPropose-%d-%s-%s", round, isBlockProducer, bpAddr)
 
 	logger.Info(fmt.Sprintf("enterPropose(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
@@ -1886,7 +1887,7 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	}
 	cs.Logger.Info("Received proposal", "proposal", proposal)
 	cs.bt.onProposal(proposal.Height)
-	cs.trc.Pin("RecvProposal")
+	cs.trc.Pin("recvProposal")
 	return nil
 }
 
@@ -1922,6 +1923,11 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		return added, err
 	}
 
+	if added && part.Index == 0 {
+		cs.bt.on1stPart(height)
+		cs.trc.Pin("1stPart")
+	}
+
 	if added && cs.ProposalBlockParts.IsComplete() {
 		// uncompress blockParts bytes if necessary
 		pbpReader, err := types.UncompressBlockFromReader(cs.ProposalBlockParts.GetReader())
@@ -1940,7 +1946,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		}
 
 		cs.bt.onRecvBlock(height)
-		cs.trc.Pin("RecvBlock")
+		cs.trc.Pin("lastPart")
 		if cs.prerunTx {
 			cs.blockExec.NotifyPrerun(cs.ProposalBlock) // 3. addProposalBlockPart
 		}

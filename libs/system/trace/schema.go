@@ -44,6 +44,8 @@ const (
 	Iavl             = "Iavl"
 	FlatKV           = "FlatKV"
 	RecvBlock        = "RecvBlock"
+	First2LastPart   = "First2LastPart"
+
 	SigCacheRatio    = "SigCacheRatio"
 	DeliverTxs       = "DeliverTxs"
 	EvmHandlerDetail = "EvmHandlerDetail"
@@ -57,8 +59,8 @@ const (
 	SaveResp   = "saveResp"
 	Persist    = "persist"
 	SaveState  = "saveState"
-	Evpool     = "evpool"
-	FireEvents = "fireEvents"
+	//Evpool     = "evpool"
+	//FireEvents = "fireEvents"
 	ApplyBlock = "ApplyBlock"
 	Consensus  = "Consensus"
 
