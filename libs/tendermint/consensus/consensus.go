@@ -2,11 +2,8 @@ package consensus
 
 import (
 	"bytes"
-	"encoding/binary"
 	"encoding/hex"
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/libs/compress"
-	"io"
 	"reflect"
 	"runtime/debug"
 	"sync"
@@ -1927,7 +1924,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 
 	if added && cs.ProposalBlockParts.IsComplete() {
 		// uncompress blockParts bytes if necessary
-		pbpReader, err := cs.uncompressBlock()
+		pbpReader, err := types.UncompressBlockFromReader(cs.ProposalBlockParts.GetReader())
 		if err != nil {
 			return added, err
 		}
@@ -1988,33 +1985,6 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		return added, nil
 	}
 	return added, nil
-}
-
-func (cs *State) uncompressBlock() (io.Reader, error) {
-	// received compressed block bytes, uncompress with the flag:Proposal.CompressBlock
-	pbpReader := cs.ProposalBlockParts.GetReader()
-	payload, err := io.ReadAll(pbpReader)
-	if err != nil {
-		return nil, err
-	}
-
-	// try parse Uvarint to check if it is compressed
-	compressBytesLen, n := binary.Uvarint(payload)
-	if len(payload)-n == int(compressBytesLen) {
-		// the block has not compressed
-		pbpReader = bytes.NewReader(payload)
-	} else {
-		// the block has compressed and the last byte is compressType
-		compressType := int(payload[len(payload)-1])
-		pbpBytes, err := compress.UnCompress(compressType, payload[:len(payload)-1])
-		if err != nil {
-			cs.ProposalBlockParts = nil
-			cs.Logger.Error("Uncompress block failed", "err", err)
-			return nil, err
-		}
-		pbpReader = bytes.NewBuffer(pbpBytes)
-	}
-	return pbpReader, nil
 }
 
 // Attempt to add the vote. if its a duplicate signature, dupeout the validator

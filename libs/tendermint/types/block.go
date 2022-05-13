@@ -2,9 +2,11 @@ package types
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	gogotypes "github.com/gogo/protobuf/types"
 	"github.com/okex/exchain/libs/tendermint/libs/compress"
+	"io"
 	"strings"
 	"sync"
 	"time"
@@ -245,12 +247,12 @@ func (b *Block) MakePartSet(partSize int) *PartSet {
 		panic(err)
 	}
 
-	payload := b.compressBlock(bz)
+	payload := CompressBlock(bz)
 
 	return NewPartSetFromData(payload, partSize)
 }
 
-func (b *Block) compressBlock(bz []byte) []byte {
+func CompressBlock(bz []byte) []byte {
 	if BlockCompressType == 0 {
 		return bz
 	}
@@ -261,6 +263,38 @@ func (b *Block) compressBlock(bz []byte) []byte {
 	}
 	// tell receiver which compress type
 	return append(cz, byte(BlockCompressType))
+}
+
+func UncompressBlockFromReader(pbpReader io.Reader) (io.Reader, error) {
+	// received compressed block bytes, uncompress with the flag:Proposal.CompressBlock
+	payload, err := io.ReadAll(pbpReader)
+	if err != nil {
+		return nil, err
+	}
+
+	nBytes, err := UncompressBlockFromBytes(payload)
+	if err != nil {
+		return nil, err
+	}
+
+	return bytes.NewBuffer(nBytes), nil
+}
+
+func UncompressBlockFromBytes(payload []byte) ([]byte, error) {
+	// try parse Uvarint to check if it is compressed
+	compressBytesLen, n := binary.Uvarint(payload)
+	if len(payload)-n == int(compressBytesLen) {
+		// the block has not compressed
+		return payload, nil
+	} else {
+		// the block has compressed and the last byte is compressType
+		compressType := int(payload[len(payload)-1])
+		pbpBytes, err := compress.UnCompress(compressType, payload[:len(payload)-1])
+		if err != nil {
+			return nil, err
+		}
+		return pbpBytes, nil
+	}
 }
 
 // HashesTo is a convenience function that checks if a block hashes to the given argument.
