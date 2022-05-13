@@ -187,7 +187,7 @@ func parseProtobufTx(cdc *sdkcodec.CodecProxy, txBytes []byte) (sdk.Tx, error) {
 	}
 	switch realTx := tx.(type) {
 	case *authtypes.IbcTx:
-		return authtypes.FromRelayIBCTx(cdc, realTx)
+		return authtypes.FromProtobufTx(cdc, realTx)
 	}
 	return tx, err
 }
