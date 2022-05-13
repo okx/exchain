@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"os"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
@@ -165,17 +166,16 @@ func buildUnsignedPbTx(txf authtypes.TxBuilder, txConfig client.TxConfig, msgs .
 	if err := tx.SetMsgs(msgs...); err != nil {
 		return nil, err
 	}
-
 	tx.SetMemo(txf.Memo())
 	//convert fees
 	//sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultIbcWei, sdk.NewIntFromBigInt(big.NewInt(0)))}
 	coins := []sdk.CoinAdapter{}
 	for _, fee := range txf.Fees() {
-		am := sdk.NewIntFromBigInt(fee.Amount.BigInt())
-		coins = append(coins, sdk.CoinAdapter{
-			Denom:  fee.Denom,
-			Amount: am,
-		})
+		prec := newCoinFromDec()
+
+		am := sdk.NewIntFromBigInt(fee.Amount.BigInt().Div(fee.Amount.BigInt(), prec))
+
+		coins = append(coins, sdk.NewCoinAdapter(fee.Denom, am))
 	}
 	tx.SetFeeAmount(coins)
 
@@ -183,6 +183,15 @@ func buildUnsignedPbTx(txf authtypes.TxBuilder, txConfig client.TxConfig, msgs .
 	//tx.SetTimeoutHeight(txf.TimeoutHeight())
 
 	return tx, nil
+}
+
+func newCoinFromDec() *big.Int {
+	n := big.Int{}
+	prec, ok := n.SetString("1000000000000000000", 10)
+	if !ok {
+		panic(errors.New("newCoinFromDec setstring error"))
+	}
+	return prec
 }
 
 func PbTxBuildAndSign(clientCtx context.CLIContext, txConfig client.TxConfig, txbld authtypes.TxBuilder, passphrase string, msgs []txmsg.Msg) ([]byte, error) {
