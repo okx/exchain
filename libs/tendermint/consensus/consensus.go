@@ -579,7 +579,6 @@ func (cs *State) updateToState(state sm.State) {
 
 	if cs.vcMsg != nil && cs.vcMsg.Height <= cs.Height {
 		cs.vcMsg = nil
-		cs.HasActiveVC = false
 	}
 
 	// If state isn't further out than cs.state, just ignore.
@@ -757,7 +756,6 @@ func (cs *State) handleMsg(mi msgInfo) {
 			}
 
 			cs.vcMsg = msg
-			cs.HasActiveVC = true
 			// ApplyBlock of height-1 has finished
 			if cs.Step != cstypes.RoundStepNewHeight {
 				// at height, has enterNewHeight
@@ -1180,7 +1178,6 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 	// Make proposal
 	propBlockID := types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()}
 	proposal := types.NewProposal(height, round, cs.ValidRound, propBlockID)
-	proposal.HasActiveVC = cs.HasActiveVC
 	if err := cs.privValidator.SignProposal(cs.state.ChainID, proposal); err == nil {
 
 		// send proposal and block parts on internal msg queue
@@ -1687,12 +1684,6 @@ func (cs *State) finalizeCommit(height int64) {
 
 	var err error
 	var retainHeight int64
-	/*
-		var deltas *types.Deltas
-		if types.EnableApplyP2PDelta() {
-			deltas = cs.Deltas
-		}
-	*/
 
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
@@ -1707,14 +1698,6 @@ func (cs *State) finalizeCommit(height int64) {
 		}
 		return
 	}
-
-	/*
-		if types.EnableBroadcastP2PDelta() {
-			// persists the given deltas to the underlying db.
-			deltas.Height = block.Height
-			cs.deltaStore.SaveDeltas(deltas, block.Height)
-		}
-	*/
 
 	fail.Fail() // XXX
 
@@ -1856,7 +1839,7 @@ func (cs *State) recordMetrics(height int64, block *types.Block) {
 func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	// Already have one
 	// TODO: possibly catch double proposals
-	if cs.Proposal != nil && !proposal.HasActiveVC {
+	if cs.Proposal != nil {
 		return nil
 	}
 
@@ -1866,8 +1849,8 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	}
 
 	// Verify POLRound, which must be -1 or in range [0, proposal.Round).
-	if !proposal.HasActiveVC && (proposal.POLRound < -1 ||
-		(proposal.POLRound >= 0 && proposal.POLRound >= proposal.Round)) {
+	if proposal.POLRound < -1 ||
+		(proposal.POLRound >= 0 && proposal.POLRound >= proposal.Round) {
 		return ErrInvalidProposalPOLRound
 	}
 

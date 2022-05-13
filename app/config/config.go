@@ -78,6 +78,7 @@ type OecConfig struct {
 
 	blockPartSizeBytes int
 	blockCompressType  int
+	blockCompressFlag  int
 }
 
 const (
@@ -412,6 +413,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetBlockCompressType(r)
+	case tmtypes.FlagBlockCompressFlag:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetBlockCompressFlag(r)
 	}
 }
 
@@ -636,4 +643,12 @@ func (c *OecConfig) GetBlockCompressType() int {
 func (c *OecConfig) SetBlockCompressType(value int) {
 	c.blockCompressType = value
 	tmtypes.BlockCompressType = value
+}
+
+func (c *OecConfig) GetBlockCompressFlag() int {
+	return c.blockCompressFlag
+}
+func (c *OecConfig) SetBlockCompressFlag(value int) {
+	c.blockCompressFlag = value
+	tmtypes.BlockCompressFlag = value
 }
