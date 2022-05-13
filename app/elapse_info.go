@@ -28,6 +28,7 @@ var (
 		{trace.Round, 0},
 		{trace.CommitRound, 0},
 		{trace.RecvBlock, 1},
+		{trace.First2LastPart, 1},
 		{trace.Produce, 0},
 	}
 

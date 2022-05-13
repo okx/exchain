@@ -44,6 +44,8 @@ const (
 	Iavl             = "Iavl"
 	FlatKV           = "FlatKV"
 	RecvBlock        = "RecvBlock"
+	First2LastPart   = "First2LastPart"
+
 	SigCacheRatio    = "SigCacheRatio"
 	DeliverTxs       = "DeliverTxs"
 	EvmHandlerDetail = "EvmHandlerDetail"
