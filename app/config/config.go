@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/tendermint/consensus"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"strconv"
 	"strings"
 	"sync"
@@ -74,6 +75,8 @@ type OecConfig struct {
 
 	// active view change
 	activeVC bool
+
+	blockPartSizeBytes int
 }
 
 const (
@@ -206,6 +209,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
 	c.SetEnableAnalyzer(viper.GetBool(trace.FlagEnableAnalyzer))
 	c.SetDeliverTxsExecuteMode(viper.GetInt(state.FlagDeliverTxsExecMode))
+	c.SetBlockPartSize(viper.GetInt(server.FlagBlockPartSizeBytes))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -395,6 +399,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetActiveVC(r)
+	case server.FlagBlockPartSizeBytes:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetBlockPartSize(r)
 	}
 }
 
@@ -603,4 +613,12 @@ func (c *OecConfig) GetActiveVC() bool {
 func (c *OecConfig) SetActiveVC(value bool) {
 	c.activeVC = value
 	consensus.ActiveViewChange = value
+}
+
+func (c *OecConfig) GetBlockPartSize() int {
+	return c.blockPartSizeBytes
+}
+func (c *OecConfig) SetBlockPartSize(value int) {
+	c.blockPartSizeBytes = value
+	tmtypes.UpdateBlockPartSizeBytes(value)
 }

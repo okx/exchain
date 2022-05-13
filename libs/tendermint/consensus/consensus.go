@@ -198,7 +198,7 @@ func NewState(
 		metrics:          NopMetrics(),
 		trc:              trace.NewTracer(trace.Consensus),
 		prerunTx:         viper.GetBool(EnablePrerunTx),
-		bt: &BlockTransport{},
+		bt:               &BlockTransport{},
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
@@ -616,6 +616,7 @@ func (cs *State) updateToState(state sm.State) {
 	// RoundState fields
 	cs.updateHeight(height)
 	cs.updateRoundStep(0, cstypes.RoundStepNewHeight)
+	cs.traceDump()
 
 	cs.Validators = validators
 	cs.Proposal = nil
@@ -863,6 +864,12 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 }
 
 func (cs *State) traceDump() {
+	if cs.Logger == nil {
+		return
+	}
+
+	trace.GetElapsedInfo().AddInfo(trace.CommitRound, fmt.Sprintf("%d", cs.CommitRound))
+	trace.GetElapsedInfo().AddInfo(trace.Round, fmt.Sprintf("%d", cs.Round))
 	trace.GetElapsedInfo().AddInfo(trace.Produce, cs.trc.Format())
 	trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
 	cs.trc.Reset()
@@ -871,8 +878,6 @@ func (cs *State) traceDump() {
 func (cs *State) initNewHeight() {
 	// waiting finished and enterNewHeight by timeoutNewHeight
 	if cs.Step == cstypes.RoundStepNewHeight {
-		// dump trace log
-		cs.traceDump()
 		// init StartTime
 		cs.StartTime = tmtime.Now()
 	}
@@ -1113,7 +1118,7 @@ func (cs *State) doPropose(height int64, round int) {
 
 	cs.initNewHeight()
 	isBlockProducer, bpAddr := cs.isBlockProducer()
-	cs.trc.Pin("H%d-Propose-%d-%s-%s", height, round, isBlockProducer, bpAddr)
+	cs.trc.Pin("Propose-%d-%s-%s", round, isBlockProducer, bpAddr)
 
 	logger.Info(fmt.Sprintf("enterPropose(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
@@ -1692,7 +1697,6 @@ func (cs *State) finalizeCommit(height int64) {
 	*/
 
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
-
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
 		stateCopy,
 		types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()},
@@ -1728,9 +1732,6 @@ func (cs *State) finalizeCommit(height int64) {
 
 	// must be called before we update state
 	cs.recordMetrics(height, block)
-
-	trace.GetElapsedInfo().AddInfo(trace.CommitRound, fmt.Sprintf("%d", cs.CommitRound))
-	trace.GetElapsedInfo().AddInfo(trace.Round, fmt.Sprintf("%d", cs.Round))
 
 	// NewHeightStep!
 	cs.rsMtx.Lock()
@@ -1888,6 +1889,7 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	}
 	cs.Logger.Info("Received proposal", "proposal", proposal)
 	cs.bt.onProposal(proposal.Height)
+	cs.trc.Pin("RecvProposal")
 	return nil
 }
 
@@ -1941,6 +1943,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		}
 
 		cs.bt.onRecvBlock(height)
+		cs.trc.Pin("RecvBlock")
 		if cs.prerunTx {
 			cs.blockExec.NotifyPrerun(cs.ProposalBlock) // 3. addProposalBlockPart
 		}

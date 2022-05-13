@@ -64,6 +64,8 @@ const (
 
 	FlagActiveViewChange = "active-view-change"
 	FlagCommitGapHeight  = "commit-gap-height"
+
+	FlagBlockPartSizeBytes = "block-part-size"
 )
 
 // StartCmd runs the service passed in, either stand-alone or in-process with

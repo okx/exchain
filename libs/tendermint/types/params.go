@@ -16,7 +16,9 @@ const (
 
 	// Max
 	MaxDeltasSizeBytes = 104857600 // 100MB
+)
 
+var (
 	// BlockPartSizeBytes is the size of one block part.
 	BlockPartSizeBytes = 65536 // 64kB
 
@@ -60,6 +62,11 @@ type EvidenceParams struct {
 // NOTE: uses ABCI pubkey naming, not Amino names.
 type ValidatorParams struct {
 	PubKeyTypes []string `json:"pub_key_types"`
+}
+
+func UpdateBlockPartSizeBytes(size int) {
+	BlockPartSizeBytes = size
+	MaxBlockPartsCount = (MaxBlockSizeBytes / BlockPartSizeBytes) + 1
 }
 
 // DefaultConsensusParams returns a default ConsensusParams.

@@ -12,7 +12,7 @@ import (
 
 type SchemaConfig struct {
 	schema string
-	open   int
+	enabled   int
 }
 var (
 	once         sync.Once
@@ -40,7 +40,7 @@ const (
 
 func init() {
 	for _, k := range CUSTOM_PRINT {
-		DefaultElapsedSchemas += fmt.Sprintf("%s=%d,", k.schema, k.open)
+		DefaultElapsedSchemas += fmt.Sprintf("%s=%d,", k.schema, k.enabled)
 	}
 
 	elapsedInfo := &ElapsedTimeInfos{
