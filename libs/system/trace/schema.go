@@ -66,6 +66,9 @@ const (
 	MempoolTxsCnt     = "mempoolTxsCnt"
 
 	Prerun = "Prerun"
+
+	BlockCompress   = "CompressBlock"
+	BlockUncompress = "UncompressBlock"
 )
 
 const (

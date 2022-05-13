@@ -5,7 +5,9 @@ import (
 	"encoding/binary"
 	"fmt"
 	gogotypes "github.com/gogo/protobuf/types"
+	"github.com/okex/exchain/libs/system/trace"
 	"github.com/okex/exchain/libs/tendermint/libs/compress"
+	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
 	"io"
 	"strings"
 	"sync"
@@ -257,10 +259,14 @@ func CompressBlock(bz []byte) []byte {
 		return bz
 	}
 
+	t0 := tmtime.Now()
 	cz, err := compress.Compress(BlockCompressType, 0, bz)
 	if err != nil {
 		return bz
 	}
+	t1 := tmtime.Now()
+
+	trace.GetElapsedInfo().AddInfo(trace.BlockCompress, fmt.Sprintf("%v", t1.Sub(t0)))
 	// tell receiver which compress type
 	return append(cz, byte(BlockCompressType))
 }
@@ -271,13 +277,16 @@ func UncompressBlockFromReader(pbpReader io.Reader) (io.Reader, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	nBytes, err := UncompressBlockFromBytes(payload)
+	t0 := tmtime.Now()
+	bpBytes, err := UncompressBlockFromBytes(payload)
 	if err != nil {
 		return nil, err
 	}
+	t1 := tmtime.Now()
+	compressRatio := float64(len(bpBytes)) / float64(len(payload))
+	trace.GetElapsedInfo().AddInfo(trace.BlockUncompress, fmt.Sprintf("%d/%d=%f;%v", len(bpBytes), len(payload), compressRatio, t1.Sub(t0)))
 
-	return bytes.NewBuffer(nBytes), nil
+	return bytes.NewBuffer(bpBytes), nil
 }
 
 func UncompressBlockFromBytes(payload []byte) ([]byte, error) {

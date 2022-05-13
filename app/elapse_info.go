@@ -11,9 +11,10 @@ import (
 )
 
 type SchemaConfig struct {
-	schema string
-	enabled   int
+	schema  string
+	enabled int
 }
+
 var (
 	once         sync.Once
 	CUSTOM_PRINT = []SchemaConfig{
@@ -99,10 +100,12 @@ func (e *ElapsedTimeInfos) Dump(input interface{}) {
 		}
 	}
 
-	info := fmt.Sprintf("%s<%s>, %s<%s>, %s<%s>, %s<%s>, %s<%s>, %s[%s], %s[%s], %s<%s>, %s<%s>, %s<%s>",
+	info := fmt.Sprintf("%s<%s>, %s<%s>, %s<%s>, %s[%s], %s[%s], %s<%s>, %s<%s>, %s[%s], %s[%s], %s<%s>, %s<%s>, %s<%s>",
 		trace.Height, e.infoMap[trace.Height],
 		trace.Tx, e.infoMap[trace.Tx],
 		trace.BlockSize, e.infoMap[trace.BlockSize],
+		trace.BlockCompress, e.infoMap[trace.BlockCompress],
+		trace.BlockUncompress, e.infoMap[trace.BlockUncompress],
 		trace.GasUsed, e.infoMap[trace.GasUsed],
 		trace.InvalidTxs, e.infoMap[trace.InvalidTxs],
 		trace.RunTx, e.infoMap[trace.RunTx],
