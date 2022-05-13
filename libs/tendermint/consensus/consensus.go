@@ -1687,12 +1687,6 @@ func (cs *State) finalizeCommit(height int64) {
 
 	var err error
 	var retainHeight int64
-	/*
-		var deltas *types.Deltas
-		if types.EnableApplyP2PDelta() {
-			deltas = cs.Deltas
-		}
-	*/
 
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
@@ -1707,14 +1701,6 @@ func (cs *State) finalizeCommit(height int64) {
 		}
 		return
 	}
-
-	/*
-		if types.EnableBroadcastP2PDelta() {
-			// persists the given deltas to the underlying db.
-			deltas.Height = block.Height
-			cs.deltaStore.SaveDeltas(deltas, block.Height)
-		}
-	*/
 
 	fail.Fail() // XXX
 
