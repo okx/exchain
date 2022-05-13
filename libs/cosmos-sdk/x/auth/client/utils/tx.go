@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
-	"math/big"
 	"os"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
@@ -172,17 +171,10 @@ func buildUnsignedPbTx(txf authtypes.TxBuilder, txConfig client.TxConfig, msgs .
 	//sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultIbcWei, sdk.NewIntFromBigInt(big.NewInt(0)))}
 	coins := []sdk.CoinAdapter{}
 	for _, fee := range txf.Fees() {
-		n := big.Int{}
-		prec, ok := n.SetString("1000000000000000000", 10)
-		if !ok {
-			return tx, errors.New("setstring error")
-		}
 		am := sdk.NewIntFromBigInt(fee.Amount.BigInt())
-		am.Mul(sdk.NewIntFromBigInt(prec))
 		coins = append(coins, sdk.CoinAdapter{
-			Denom: fee.Denom,
-			// mult 10 ^ 18
-			Amount: am, //sdk.NewIntFromBigInt(fee.Amount.BigInt()),
+			Denom:  fee.Denom,
+			Amount: am,
 		})
 	}
 	tx.SetFeeAmount(coins)
