@@ -59,8 +59,8 @@ const (
 	SaveResp   = "saveResp"
 	Persist    = "persist"
 	SaveState  = "saveState"
-	Evpool     = "evpool"
-	FireEvents = "fireEvents"
+	//Evpool     = "evpool"
+	//FireEvents = "fireEvents"
 	ApplyBlock = "ApplyBlock"
 	Consensus  = "Consensus"
 
