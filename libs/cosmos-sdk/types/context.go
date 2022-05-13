@@ -46,7 +46,7 @@ type Context struct {
 	trc                *trace.Tracer
 	accountCache       *AccountCache
 	paraMsg            *ParaMsg
-	txCount            uint32
+	//	txCount            uint32
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -165,10 +165,10 @@ func (c *Context) ConsensusParams() *abci.ConsensusParams {
 	return proto.Clone(c.consParams).(*abci.ConsensusParams)
 }
 
-//TxCount
-func (c *Context) TxCount() uint32 {
-	return c.txCount
-}
+////TxCount
+//func (c *Context) TxCount() uint32 {
+//	return c.txCount
+//}
 
 // NewContext create a new context
 func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Logger) Context {
@@ -357,10 +357,10 @@ func (c *Context) SetVoteInfos(voteInfo []abci.VoteInfo) *Context {
 	return c
 }
 
-func (c *Context) SetTxCount(count uint32) *Context {
-	c.txCount = count
-	return c
-}
+//func (c *Context) SetTxCount(count uint32) *Context {
+//	c.txCount = count
+//	return c
+//}
 
 // ----------------------------------------------------------------------------
 // Store / Caching
@@ -424,6 +424,25 @@ func (c Context) WithIsTraceTxLog(isTraceTxLog bool) Context {
 	}
 	c.traceTxLog = isTraceTxLog
 	return c
+}
+
+// WithValue is deprecated, provided for backwards compatibility
+// Please use
+//     ctx = ctx.WithContext(context.WithValue(ctx.Context(), key, false))
+// instead of
+//     ctx = ctx.WithValue(key, false)
+func (c Context) WithValue(key, value interface{}) Context {
+	c.ctx = context.WithValue(c.ctx, key, value)
+	return c
+}
+
+// Value is deprecated, provided for backwards compatibility
+// Please use
+//     ctx.Context().Value(key)
+// instead of
+//     ctx.Value(key)
+func (c Context) Value(key interface{}) interface{} {
+	return c.ctx.Value(key)
 }
 
 type AccountCache struct {

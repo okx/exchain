@@ -100,6 +100,7 @@ func TestCountTxDecorator(t *testing.T) {
 			var anyTx sdk.Tx
 
 			// when
+			t.Log("name", name, "simluate", spec.simulate)
 			ante := keeper.NewCountTXDecorator(keyWasm)
 			_, gotErr := ante.AnteHandle(ctx, anyTx, spec.simulate, spec.nextAssertAnte)
 			if spec.expErr {
