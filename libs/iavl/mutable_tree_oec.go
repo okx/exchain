@@ -141,8 +141,8 @@ func (tree *MutableTree) persist(version int64) {
 	waitStart := time.Now()
 	tree.commitCh <- commitEvent{version, versions, batch,
 		tpp, nil, int(tree.Height())}
-	elapsedTime := time.Since(waitStart) / time.Millisecond
-	tree.log(IavlInfo, "", "Tree", tree.GetModuleName(), "lcm, committed height queue wait ", elapsedTime, "ms")
+	elapsedTime := time.Since(waitStart)
+	tree.log(IavlInfo, "", "Tree", tree.GetModuleName(), "lcm, committed height queue wait ", elapsedTime)
 	tree.lastPersistHeight = version
 }
 
@@ -173,8 +173,8 @@ func (tree *MutableTree) commitSchedule() {
 			event.wg.Done()
 			break
 		}
-		elapsedTime := time.Since(waitStart) / time.Millisecond
-		tree.log(IavlInfo, "", "Tree", tree.GetModuleName(), "lcm, tpp time ", elapsedTime, "ms")
+		elapsedTime := time.Since(waitStart)
+		tree.log(IavlInfo, "", "Tree", tree.GetModuleName(), "lcm, tpp time ", elapsedTime)
 	}
 }
 
