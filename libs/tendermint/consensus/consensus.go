@@ -195,7 +195,7 @@ func NewState(
 		metrics:          NopMetrics(),
 		trc:              trace.NewTracer(trace.Consensus),
 		prerunTx:         viper.GetBool(EnablePrerunTx),
-		bt: &BlockTransport{},
+		bt:               &BlockTransport{},
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
@@ -1694,7 +1694,6 @@ func (cs *State) finalizeCommit(height int64) {
 	*/
 
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
-
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
 		stateCopy,
 		types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()},

@@ -101,8 +101,6 @@ const (
 	FlagCsTimeoutPrecommit      = "consensus.timeout_precommit"
 	FlagCsTimeoutPrecommitDelta = "consensus.timeout_precommit_delta"
 	FlagCsTimeoutCommit         = "consensus.timeout_commit"
-
-	FlagBlockPartSizeBytes = "block-part-size-bytes"
 )
 
 var (
@@ -211,7 +209,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
 	c.SetEnableAnalyzer(viper.GetBool(trace.FlagEnableAnalyzer))
 	c.SetDeliverTxsExecuteMode(viper.GetInt(state.FlagDeliverTxsExecMode))
-	c.SetBlockPartSize(viper.GetInt(FlagBlockPartSizeBytes))
+	c.SetBlockPartSize(viper.GetInt(server.FlagBlockPartSizeBytes))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -401,7 +399,7 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetActiveVC(r)
-	case FlagBlockPartSizeBytes:
+	case server.FlagBlockPartSizeBytes:
 		r, err := strconv.Atoi(v)
 		if err != nil {
 			return
