@@ -116,7 +116,11 @@ func (tree *MutableTree) removeVersion(version int64) {
 func (tree *MutableTree) persist(version int64) {
 	var err error
 	batch := tree.NewBatch()
+	waitStart := time.Now()
 	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0}
+	elapsedTime := time.Since(waitStart)
+	tree.log(IavlInfo, "", "Tree", tree.GetModuleName(), "lcm, wait_start", elapsedTime, "height", version)
+
 	var tpp map[string]*Node = nil
 	if EnablePruningHistoryState {
 		tree.ndb.saveCommitOrphans(batch, version, tree.commitOrphans)
@@ -138,11 +142,11 @@ func (tree *MutableTree) persist(version int64) {
 		delete(tree.commitOrphans, k)
 	}
 	versions := tree.deepCopyVersions()
-	waitStart := time.Now()
+	waitStop := time.Now()
 	tree.commitCh <- commitEvent{version, versions, batch,
 		tpp, nil, int(tree.Height())}
-	elapsedTime := time.Since(waitStart)
-	tree.log(IavlInfo, "", "Tree", tree.GetModuleName(), "lcm, committed height queue wait ", elapsedTime)
+	elapsedTime = time.Since(waitStop)
+	tree.log(IavlInfo, "", "Tree", tree.GetModuleName(), "lcm, wait_stop", elapsedTime, "height", version)
 	tree.lastPersistHeight = version
 }
 
@@ -174,7 +178,7 @@ func (tree *MutableTree) commitSchedule() {
 			break
 		}
 		elapsedTime := time.Since(waitStart)
-		tree.log(IavlInfo, "", "Tree", tree.GetModuleName(), "lcm, tpp time ", elapsedTime)
+		tree.log(IavlInfo, "", "Tree", tree.GetModuleName(), "lcm, tpp time ", elapsedTime, "size", len(event.tpp))
 	}
 }
 
