@@ -310,10 +310,6 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
 		abciResponses = deltaInfo.abciResponses
 	} else {
-		//if blockExec.deltaContext.downloadDelta {
-		//	time.Sleep(time.Second*1)
-		//}
-
 		pc := blockExec.prerunCtx
 		if pc.prerunTx {
 			abciResponses, err = pc.getPrerunResult(block.Height, blockExec.isFastSync)
