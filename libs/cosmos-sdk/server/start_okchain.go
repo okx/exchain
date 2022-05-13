@@ -189,6 +189,7 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Int(tmtypes.FlagBufferSize, 10, "delta buffer size")
 	cmd.Flags().String(FlagLogServerUrl, "", "log server url")
 	cmd.Flags().Int(tmtypes.FlagDeltaVersion, tmtypes.DeltaVersion, "Specify delta version")
+	cmd.Flags().Int(tmtypes.FlagBlockCompressType, 0, "block compress type. 0|1|2|3")
 	cmd.Flags().Bool(FlagActiveViewChange, false, "Enable active view change")
 
 	cmd.Flags().Int(iavl.FlagIavlCacheSize, 1000000, "Max size of iavl cache")

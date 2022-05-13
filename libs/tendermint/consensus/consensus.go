@@ -1929,9 +1929,15 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 	}
 
 	if added && cs.ProposalBlockParts.IsComplete() {
+		// uncompress blockParts bytes if necessary
+		pbpReader, err := types.UncompressBlockFromReader(cs.ProposalBlockParts.GetReader())
+		if err != nil {
+			return added, err
+		}
+
 		// Added and completed!
 		_, err = cdc.UnmarshalBinaryLengthPrefixedReader(
-			cs.ProposalBlockParts.GetReader(),
+			pbpReader,
 			&cs.ProposalBlock,
 			cs.state.ConsensusParams.Block.MaxBytes,
 		)
