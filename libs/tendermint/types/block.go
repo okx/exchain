@@ -45,11 +45,13 @@ const (
 
 	FlagBlockCompressType = "block-compress-type"
 	FlagBlockCompressFlag = "block-compress-flag"
+	FlagBlockCompressThreshold = "block-compress-threshold"
 )
 
 var (
 	BlockCompressType = 0x00
 	BlockCompressFlag = 0
+	BlockCompressThreshold = 1024000
 )
 
 // Block defines the atomic unit of a Tendermint blockchain.
@@ -253,13 +255,13 @@ func (b *Block) MakePartSet(partSize int) *PartSet {
 		panic(err)
 	}
 
-	payload := CompressBlock(bz)
+	payload := compressBlock(bz)
 
 	return NewPartSetFromData(payload, partSize)
 }
 
-func CompressBlock(bz []byte) []byte {
-	if BlockCompressType == 0 {
+func compressBlock(bz []byte) []byte {
+	if BlockCompressType == 0 || len(bz) <= BlockCompressThreshold {
 		return bz
 	}
 
@@ -290,8 +292,8 @@ func UncompressBlockFromReader(pbpReader io.Reader) (io.Reader, error) {
 
 	if compressType != 0 {
 		compressRatio := float64(len(original)) / float64(len(compressed))
-		trace.GetElapsedInfo().AddInfo(trace.UncompressBlock, fmt.Sprintf("%d/%d=%.2f; %dms",
-			len(original), len(compressed), compressRatio, t1.Sub(t0).Milliseconds()))
+		trace.GetElapsedInfo().AddInfo(trace.UncompressBlock, fmt.Sprintf("%.2f/%dms",
+			compressRatio, t1.Sub(t0).Milliseconds()))
 	}
 
 	return bytes.NewBuffer(original), nil

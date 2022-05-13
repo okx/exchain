@@ -270,6 +270,7 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	tmtypes.DeltaVersion = viper.GetInt(tmtypes.FlagDeltaVersion)
 	tmtypes.BlockCompressType = viper.GetInt(tmtypes.FlagBlockCompressType)
 	tmtypes.BlockCompressFlag = viper.GetInt(tmtypes.FlagBlockCompressFlag)
+	tmtypes.BlockCompressThreshold = viper.GetInt(tmtypes.FlagBlockCompressThreshold)
 
 	consensus.ActiveViewChange = viper.GetBool(FlagActiveViewChange)
 

@@ -191,6 +191,7 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Int(tmtypes.FlagDeltaVersion, tmtypes.DeltaVersion, "Specify delta version")
 	cmd.Flags().Int(tmtypes.FlagBlockCompressType, 0, "block compress type. 0|1|2|3")
 	cmd.Flags().Int(tmtypes.FlagBlockCompressFlag, 0, "block compress flag. 0|1|2")
+	cmd.Flags().Int(tmtypes.FlagBlockCompressThreshold, 1024000, "compress only if block size exceeds the threshold.")
 	cmd.Flags().Bool(FlagActiveViewChange, false, "Enable active view change")
 
 	cmd.Flags().Int(iavl.FlagIavlCacheSize, 1000000, "Max size of iavl cache")
