@@ -1,7 +1,9 @@
 package store
 
 import (
+	"encoding/binary"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/libs/compress"
 	"strconv"
 	"sync"
 
@@ -100,13 +102,18 @@ func (bs *BlockStore) LoadBlock(height int64) *types.Block {
 		buf.Write(part.Bytes)
 	}
 
-	bz, err := amino.GetBinaryBareFromBinaryLengthPrefixed(buf.Bytes())
+	partBytes, err := uncompress(buf.Bytes())
+	if err != nil {
+		panic(errors.Wrap(err, "failed to uncompress block"))
+	}
+
+	bz, err := amino.GetBinaryBareFromBinaryLengthPrefixed(partBytes)
 	if err == nil {
 		err = block.UnmarshalFromAmino(cdc, bz)
 	}
 	if err != nil {
 		block = new(types.Block)
-		err = cdc.UnmarshalBinaryLengthPrefixed(buf.Bytes(), block)
+		err = cdc.UnmarshalBinaryLengthPrefixed(partBytes, block)
 		if err != nil {
 			// NOTE: The existence of meta should imply the existence of the
 			// block. So, make sure meta is only saved after blocks are saved.
@@ -114,6 +121,23 @@ func (bs *BlockStore) LoadBlock(height int64) *types.Block {
 		}
 	}
 	return block
+}
+
+func uncompress(payload []byte) ([]byte, error) {
+	// try parse Uvarint to check if it is compressed
+	compressBytesLen, n := binary.Uvarint(payload)
+	if len(payload)-n == int(compressBytesLen) {
+		// the block has not compressed
+		return payload, nil
+	} else {
+		// the block has compressed and the last byte is compressType
+		compressType := int(payload[len(payload)-1])
+		pbpBytes, err := compress.UnCompress(compressType, payload[:len(payload)-1])
+		if err != nil {
+			return nil, err
+		}
+		return pbpBytes, nil
+	}
 }
 
 // LoadBlockByHash returns the block with the given hash.
