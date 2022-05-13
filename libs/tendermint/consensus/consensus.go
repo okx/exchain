@@ -225,6 +225,7 @@ func NewState(
 func (cs *State) SetLogger(l log.Logger) {
 	cs.BaseService.Logger = l
 	cs.timeoutTicker.SetLogger(l)
+	cs.bt.Logger = l.With("module", "main")
 }
 
 // SetEventBus sets event bus.
@@ -614,6 +615,7 @@ func (cs *State) updateToState(state sm.State) {
 	cs.updateHeight(height)
 	cs.updateRoundStep(0, cstypes.RoundStepNewHeight)
 	cs.traceDump()
+	cs.bt.reset(height)
 
 	cs.Validators = validators
 	cs.Proposal = nil
@@ -866,6 +868,13 @@ func (cs *State) traceDump() {
 
 	trace.GetElapsedInfo().AddInfo(trace.CommitRound, fmt.Sprintf("%d", cs.CommitRound))
 	trace.GetElapsedInfo().AddInfo(trace.Round, fmt.Sprintf("%d", cs.Round))
+	trace.GetElapsedInfo().AddInfo(trace.BlockParts, fmt.Sprintf("%d|%d|%d/%d",
+		cs.bt.droppedDue2WrongHeight,
+		cs.bt.droppedDue2NotExpected,
+		cs.bt.droppedDue2NotAdded,
+		cs.bt.totalParts,
+	))
+
 	trace.GetElapsedInfo().AddInfo(trace.Produce, cs.trc.Format())
 	trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
 	cs.trc.Reset()
@@ -1888,6 +1897,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 
 	// Blocks might be reused, so round mismatch is OK
 	if cs.Height != height {
+		cs.bt.droppedDue2WrongHeight++
 		cs.Logger.Debug("Received block part from wrong height", "height", height, "round", round)
 		return false, nil
 	}
@@ -1898,10 +1908,15 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		// then receive parts from the previous round - not necessarily a bad peer.
 		cs.Logger.Info("Received a block part when we're not expecting any",
 			"height", height, "round", round, "index", part.Index, "peer", peerID)
+		cs.bt.droppedDue2NotExpected++
 		return false, nil
 	}
 
 	added, err = cs.ProposalBlockParts.AddPart(part)
+
+	if !added {
+		cs.bt.droppedDue2NotAdded++
+	}
 	if err != nil {
 		return added, err
 	}
@@ -1929,6 +1944,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		}
 
 		cs.bt.onRecvBlock(height)
+		cs.bt.totalParts = cs.ProposalBlockParts.Total()
 		cs.trc.Pin("lastPart")
 		if cs.prerunTx {
 			cs.blockExec.NotifyPrerun(cs.ProposalBlock) // 3. addProposalBlockPart

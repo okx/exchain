@@ -16,7 +16,7 @@ type SchemaConfig struct {
 }
 
 var (
-	customizedSchema = []SchemaConfig{
+	optionalSchemas = []SchemaConfig{
 		{trace.MempoolCheckTxCnt, 0},
 		{trace.MempoolTxsCnt, 0},
 		{trace.SigCacheRatio, 0},
@@ -33,10 +33,11 @@ var (
 		{trace.CommitRound, 0},
 		{trace.RecvBlock, 1},
 		{trace.First2LastPart, 1},
+		{trace.BlockParts, 1},
 		{trace.Produce, 0},
 	}
 
-	fixedSchema = []string {
+	mandatorySchemas = []string {
 		trace.Height,
 		trace.Tx,
 		trace.BlockSize,
@@ -57,7 +58,7 @@ const (
 )
 
 func init() {
-	for _, k := range customizedSchema {
+	for _, k := range optionalSchemas {
 		DefaultElapsedSchemas += fmt.Sprintf("%s=%d,", k.schema, k.enabled)
 	}
 
@@ -108,26 +109,25 @@ func (e *ElapsedTimeInfos) Dump(input interface{}) {
 		e.initialized = true
 	}
 
-	var fixedinfo string
-	for _, key := range fixedSchema {
-		fixedinfo += fmt.Sprintf("%s<%s>, ", key, e.infoMap[key])
+	var mandatoryInfo string
+	for _, key := range mandatorySchemas {
+		mandatoryInfo += fmt.Sprintf("%s<%s>, ", key, e.infoMap[key])
 	}
 
-	var customizedInfo string
+	var optionalInfo string
 	var comma string
-	for _, k := range customizedSchema {
-		if v, ok := e.schemaMap[k.schema]; ok && v {
-			customizedInfo += fmt.Sprintf("%s%s[%s]", comma, k.schema, e.infoMap[k.schema])
+	for _, k := range optionalSchemas {
+		if enabled, found := e.schemaMap[k.schema]; found && enabled {
+			optionalInfo += fmt.Sprintf("%s%s[%s]", comma, k.schema, e.infoMap[k.schema])
 			comma = ", "
 		}
 	}
 
-	logger.Info(fixedinfo+customizedInfo)
+	logger.Info(mandatoryInfo+optionalInfo)
 	e.infoMap = make(map[string]string)
 }
 
 func (e *ElapsedTimeInfos) decodeElapseParam(elapsed string) {
-
 	// suppose elapsd is like Evm=x,Iavl=x,DeliverTxs=x,DB=x,Round=x,CommitRound=x,Produce=x
 	elapsdA := strings.Split(elapsed, ",")
 	for _, v := range elapsdA {

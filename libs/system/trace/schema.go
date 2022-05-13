@@ -40,6 +40,7 @@ const (
 	Elapsed          = "Elapsed"
 	CommitRound      = "CommitRound"
 	Round            = "Round"
+	BlockParts       = "BlockParts"
 	Evm              = "Evm"
 	Iavl             = "Iavl"
 	FlatKV           = "FlatKV"

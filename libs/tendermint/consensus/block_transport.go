@@ -3,6 +3,7 @@ package consensus
 import (
 	"fmt"
 	"github.com/okex/exchain/libs/system/trace"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"time"
 )
 
@@ -12,10 +13,15 @@ type BlockTransport struct {
 	firstPart time.Time
 	totalElapsed time.Duration
 	first2LastPartElapsed time.Duration
+	droppedDue2NotExpected int
+	droppedDue2NotAdded int
+	droppedDue2WrongHeight int
+	totalParts int
+	Logger  log.Logger
 }
 
 func (bt *BlockTransport) onProposal(height int64)  {
-	if bt.height+1 == height || bt.height == 0 {
+	if bt.height == height || bt.height == 0 {
 		bt.recvProposal = time.Now()
 		bt.height = height
 	} else {
@@ -23,8 +29,16 @@ func (bt *BlockTransport) onProposal(height int64)  {
 	}
 }
 
+func (bt *BlockTransport) reset(height int64) {
+	bt.height = height
+	bt.droppedDue2NotExpected = 0
+	bt.droppedDue2NotAdded = 0
+	bt.droppedDue2WrongHeight = 0
+	bt.totalParts = 0
+}
+
 func (bt *BlockTransport) on1stPart(height int64)  {
-	if bt.height+1 == height || bt.height == height || bt.height == 0 {
+	if bt.height == height || bt.height == 0 {
 		bt.firstPart = time.Now()
 		bt.height = height
 	} else {
