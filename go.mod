@@ -161,7 +161,7 @@ require (
 
 replace (
 	// github.com/tendermint/tm-db => ./libs/tm-db
-	github.com/CosmWasm/wasmvm => github.com/BananaLF/wasmvm v1.0.0-soon2.0.20220511101232-d0089d25b15d
+	//github.com/CosmWasm/wasmvm => github.com/BananaLF/wasmvm v1.0.0-soon2.0.20220511101232-d0089d25b15d
 	github.com/buger/jsonparser => github.com/buger/jsonparser v1.0.0 // imported by nacos-go-sdk, upgraded to v1.0.0 in case of a known vulnerable bug
 	github.com/ethereum/go-ethereum => github.com/okex/go-ethereum v1.10.8-oec3
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
