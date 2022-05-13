@@ -613,6 +613,7 @@ func (cs *State) updateToState(state sm.State) {
 	// RoundState fields
 	cs.updateHeight(height)
 	cs.updateRoundStep(0, cstypes.RoundStepNewHeight)
+	cs.traceDump()
 
 	cs.Validators = validators
 	cs.Proposal = nil
@@ -860,6 +861,12 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 }
 
 func (cs *State) traceDump() {
+	if cs.Logger == nil {
+		return
+	}
+
+	trace.GetElapsedInfo().AddInfo(trace.CommitRound, fmt.Sprintf("%d", cs.CommitRound))
+	trace.GetElapsedInfo().AddInfo(trace.Round, fmt.Sprintf("%d", cs.Round))
 	trace.GetElapsedInfo().AddInfo(trace.Produce, cs.trc.Format())
 	trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
 	cs.trc.Reset()
@@ -868,8 +875,6 @@ func (cs *State) traceDump() {
 func (cs *State) initNewHeight() {
 	// waiting finished and enterNewHeight by timeoutNewHeight
 	if cs.Step == cstypes.RoundStepNewHeight {
-		// dump trace log
-		cs.traceDump()
 		// init StartTime
 		cs.StartTime = tmtime.Now()
 	}
@@ -1726,9 +1731,6 @@ func (cs *State) finalizeCommit(height int64) {
 	// must be called before we update state
 	cs.recordMetrics(height, block)
 
-	trace.GetElapsedInfo().AddInfo(trace.CommitRound, fmt.Sprintf("%d", cs.CommitRound))
-	trace.GetElapsedInfo().AddInfo(trace.Round, fmt.Sprintf("%d", cs.Round))
-
 	// NewHeightStep!
 	cs.rsMtx.Lock()
 	cs.updateToState(stateCopy)
@@ -1885,7 +1887,7 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	}
 	cs.Logger.Info("Received proposal", "proposal", proposal)
 	cs.bt.onProposal(proposal.Height)
-	cs.trc.Pin("%d-RecvProposal", proposal.Height)
+	cs.trc.Pin("RecvProposal")
 	return nil
 }
 
@@ -1932,7 +1934,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		}
 
 		cs.bt.onRecvBlock(height)
-		cs.trc.Pin("%d-RecvBlock", height)
+		cs.trc.Pin("RecvBlock")
 		if cs.prerunTx {
 			cs.blockExec.NotifyPrerun(cs.ProposalBlock) // 3. addProposalBlockPart
 		}
