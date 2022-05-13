@@ -41,7 +41,6 @@ import (
 	crisistypes "github.com/okex/exchain/libs/cosmos-sdk/x/crisis"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/evidence"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
-	minttypes "github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/slashing"
 	slashingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/slashing"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
@@ -132,9 +131,13 @@ func MakeEncodingConfig(_ testing.TB) EncodingConfig {
 }
 
 var TestingStakeParams = stakingtypes.Params{
-	UnbondingTime:     100,
-	MaxValidators:     10,
-	HistoricalEntries: 10,
+	UnbondingTime:      100,
+	MaxValidators:      10,
+	Epoch:              10,
+	MaxValsToAddShares: 1,
+	MinDelegation:      sdk.OneDec(),
+	MinSelfDelegation:  sdk.OneDec(),
+	HistoricalEntries:  10,
 }
 
 type TestFaucet struct {
@@ -266,7 +269,7 @@ func createTestInput(
 	for _, m := range []string{authtypes.ModuleName,
 		bank.ModuleName,
 		stakingtypes.ModuleName,
-		minttypes.ModuleName,
+		mint.ModuleName,
 		distributiontypes.ModuleName,
 		slashingtypes.ModuleName,
 		crisistypes.ModuleName,
@@ -342,7 +345,7 @@ func createTestInput(
 		legacyAmino,
 	)
 
-	faucet := NewTestFaucet(t, ctx, bankKeeper, supplyKeeper, minttypes.ModuleName, sdk.NewCoin("stake", sdk.NewInt(100_000_000_000)))
+	faucet := NewTestFaucet(t, ctx, bankKeeper, supplyKeeper, mint.ModuleName, sdk.NewCoin("stake", sdk.NewInt(100_000_000_000)))
 
 	// set some funds ot pay out validatores, based on code from:
 	// https://github.com/okex/exchain/libs/cosmos-sdk/blob/fea231556aee4d549d7551a6190389c4328194eb/x/distribution/keeper/keeper_test.go#L50-L57
@@ -427,7 +430,7 @@ func createTestInput(
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &paramsKeeper)
 
 	govKeeper := gov.NewKeeper(
-		legacyAmino, keys[govtypes.StoreKey], paramsKeeper, subspace(govtypes.ModuleName).WithKeyTable(govtypes.ParamKeyTable()),
+		legacyAmino, keys[govtypes.StoreKey], paramsKeeper, subspace(govtypes.ModuleName),
 		supplyKeeper, &stakingKeeper, gov.DefaultParamspace, govRouter,
 		bankKeeper, govProposalHandlerRouter, auth.FeeCollectorName,
 	)
@@ -440,6 +443,7 @@ func createTestInput(
 	keepers := TestKeepers{
 		AccountKeeper:  accountKeeper,
 		StakingKeeper:  stakingKeeper,
+		supplyKeepr:    supplyKeeper,
 		DistKeeper:     distKeeper,
 		ContractKeeper: contractKeeper,
 		WasmKeeper:     &keeper,
@@ -711,7 +715,7 @@ func (m BurnerExampleInitMsg) GetBytes(t testing.TB) []byte {
 func fundAccounts(t testing.TB, ctx sdk.Context, am authkeeper.AccountKeeper, bank bank.Keeper, supplyKeeper supply.Keeper, addr sdk.AccAddress, coins sdk.Coins) {
 	acc := am.NewAccountWithAddress(ctx, addr)
 	am.SetAccount(ctx, acc)
-	NewTestFaucet(t, ctx, bank, supplyKeeper, minttypes.ModuleName, coins...).Fund(ctx, addr, coins...)
+	NewTestFaucet(t, ctx, bank, supplyKeeper, mint.ModuleName, coins...).Fund(ctx, addr, coins...)
 }
 
 var keyCounter uint64
