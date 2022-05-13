@@ -270,7 +270,7 @@ func CompressBlock(bz []byte) []byte {
 	}
 	t1 := tmtime.Now()
 
-	trace.GetElapsedInfo().AddInfo(trace.BlockCompress, fmt.Sprintf("%v", t1.Sub(t0)))
+	trace.GetElapsedInfo().AddInfo(trace.CompressBlock, fmt.Sprintf("%d", t1.Sub(t0).Milliseconds()))
 	// tell receiver which compress type
 	return append(cz, byte(BlockCompressType))
 }
@@ -288,8 +288,8 @@ func UncompressBlockFromReader(pbpReader io.Reader) (io.Reader, error) {
 	}
 	t1 := tmtime.Now()
 	compressRatio := float64(len(bpBytes)) / float64(len(payload))
-	trace.GetElapsedInfo().AddInfo(trace.BlockUncompress, fmt.Sprintf("%d/%d=%.2f;%v",
-		len(bpBytes), len(payload), compressRatio, t1.Sub(t0)))
+	trace.GetElapsedInfo().AddInfo(trace.UncompressBlock, fmt.Sprintf("%d/%d=%.2f;%d",
+		len(bpBytes), len(payload), compressRatio, t1.Sub(t0).Milliseconds()))
 
 	return bytes.NewBuffer(bpBytes), nil
 }

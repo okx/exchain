@@ -16,8 +16,10 @@ type SchemaConfig struct {
 }
 
 var (
-	once         sync.Once
-	CUSTOM_PRINT = []SchemaConfig{
+	customizedSchema = []SchemaConfig{
+		{trace.MempoolCheckTxCnt, 0},
+		{trace.MempoolTxsCnt, 0},
+		{trace.SigCacheRatio, 0},
 		{trace.Evm, 1},
 		{trace.Delta, 1},
 		{trace.Iavl, 1},
@@ -25,12 +27,26 @@ var (
 		{trace.EvmHandlerDetail, 0},
 
 		{trace.RunAnteDetail, 0},
+		{trace.RunAnteDetail, 0},
 		{trace.AnteChainDetail, 0},
 		{trace.Round, 0},
 		{trace.CommitRound, 0},
 		{trace.RecvBlock, 1},
 		{trace.First2LastPart, 1},
 		{trace.Produce, 0},
+	}
+
+	fixedSchema = []string {
+		trace.Height,
+		trace.Tx,
+		trace.BlockSize,
+		trace.CompressBlock,
+		trace.UncompressBlock,
+		trace.GasUsed,
+		trace.InvalidTxs,
+		trace.RunTx,
+		trace.Prerun,
+		trace.MempoolTxsCnt,
 	}
 
 	DefaultElapsedSchemas string
@@ -41,7 +57,7 @@ const (
 )
 
 func init() {
-	for _, k := range CUSTOM_PRINT {
+	for _, k := range customizedSchema {
 		DefaultElapsedSchemas += fmt.Sprintf("%s=%d,", k.schema, k.enabled)
 	}
 
@@ -92,36 +108,21 @@ func (e *ElapsedTimeInfos) Dump(input interface{}) {
 		e.initialized = true
 	}
 
-	var detailInfo string
-	for _, k := range CUSTOM_PRINT {
-		if v, ok := e.schemaMap[k.schema]; ok {
-			if v {
-				detailInfo += fmt.Sprintf("%s[%s], ", k.schema, e.infoMap[k.schema])
-			}
+	var fixedinfo string
+	for _, key := range fixedSchema {
+		fixedinfo += fmt.Sprintf("%s<%s>, ", key, e.infoMap[key])
+	}
+
+	var customizedInfo string
+	var comma string
+	for _, k := range customizedSchema {
+		if v, ok := e.schemaMap[k.schema]; ok && v {
+			customizedInfo += fmt.Sprintf("%s%s[%s]", comma, k.schema, e.infoMap[k.schema])
+			comma = ", "
 		}
 	}
 
-	info := fmt.Sprintf("%s<%s>, %s<%s>, %s<%s>, %s[%s], %s[%s], %s<%s>, %s<%s>, %s[%s], %s[%s], %s<%s>, %s<%s>, %s<%s>",
-		trace.Height, e.infoMap[trace.Height],
-		trace.Tx, e.infoMap[trace.Tx],
-		trace.BlockSize, e.infoMap[trace.BlockSize],
-		trace.BlockCompress, e.infoMap[trace.BlockCompress],
-		trace.BlockUncompress, e.infoMap[trace.BlockUncompress],
-		trace.GasUsed, e.infoMap[trace.GasUsed],
-		trace.InvalidTxs, e.infoMap[trace.InvalidTxs],
-		trace.RunTx, e.infoMap[trace.RunTx],
-		trace.Prerun, e.infoMap[trace.Prerun],
-		trace.MempoolCheckTxCnt, e.infoMap[trace.MempoolCheckTxCnt],
-		trace.MempoolTxsCnt, e.infoMap[trace.MempoolTxsCnt],
-		trace.SigCacheRatio, e.infoMap[trace.SigCacheRatio],
-	)
-
-	if len(detailInfo) > 0 {
-		detailInfo = strings.TrimRight(detailInfo, ", ")
-		info += ", " + detailInfo
-	}
-
-	logger.Info(info)
+	logger.Info(fixedinfo+customizedInfo)
 	e.infoMap = make(map[string]string)
 }
 

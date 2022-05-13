@@ -67,8 +67,8 @@ const (
 
 	Prerun = "Prerun"
 
-	BlockCompress   = "CompressBlock"
-	BlockUncompress = "UncompressBlock"
+	CompressBlock   = "CompressBlock"
+	UncompressBlock = "UncompressBlock"
 )
 
 const (
