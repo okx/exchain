@@ -11,10 +11,9 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmproto "github.com/okex/exchain/libs/tendermint/proto/types"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/x/wasm/types"
 )
@@ -92,7 +91,7 @@ func TestCountTxDecorator(t *testing.T) {
 	}
 	for name, spec := range specs {
 		t.Run(name, func(t *testing.T) {
-			ctx := sdk.NewContext(ms.CacheMultiStore(), tmproto.Header{
+			ctx := sdk.NewContext(ms.CacheMultiStore(), abci.Header{
 				Height: myCurrentBlockHeight,
 				Time:   time.Date(2021, time.September, 27, 12, 0, 0, 0, time.UTC),
 			}, false, log.NewNopLogger())
@@ -161,20 +160,19 @@ func TestLimitSimulationGasDecorator(t *testing.T) {
 	for name, spec := range specs {
 		t.Run(name, func(t *testing.T) {
 			nextAnte := consumeGasAnteHandler(spec.consumeGas)
-			ctx := sdk.Context{}.
-				WithGasMeter(sdk.NewInfiniteGasMeter()).
-				WithConsensusParams(&abci.ConsensusParams{
-					Block: &abci.BlockParams{MaxGas: spec.maxBlockGas}})
+			ctx := &sdk.Context{}
+			ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
+			ctx.SetConsensusParams(&abci.ConsensusParams{Block: &abci.BlockParams{MaxGas: spec.maxBlockGas}})
 			// when
 			if spec.expErr != nil {
 				require.PanicsWithValue(t, spec.expErr, func() {
 					ante := keeper.NewLimitSimulationGasDecorator(spec.customLimit)
-					ante.AnteHandle(ctx, nil, spec.simulation, nextAnte)
+					ante.AnteHandle(*ctx, nil, spec.simulation, nextAnte)
 				})
 				return
 			}
 			ante := keeper.NewLimitSimulationGasDecorator(spec.customLimit)
-			ante.AnteHandle(ctx, nil, spec.simulation, nextAnte)
+			ante.AnteHandle(*ctx, nil, spec.simulation, nextAnte)
 		})
 	}
 }

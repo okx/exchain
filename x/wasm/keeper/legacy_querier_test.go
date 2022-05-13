@@ -181,8 +181,8 @@ func TestLegacyQueryContractListByCodeOrdering(t *testing.T) {
 	setBlock := func(ctx sdk.Context, height int64) sdk.Context {
 		ctx = ctx.WithBlockHeight(height)
 		meter := sdk.NewGasMeter(1000000)
-		ctx = ctx.WithGasMeter(meter)
-		ctx = ctx.WithBlockGasMeter(meter)
+		ctx.SetGasMeter(meter)
+		ctx.SetBlockGasMeter(meter)
 		return ctx
 	}
 

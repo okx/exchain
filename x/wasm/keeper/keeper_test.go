@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"io/ioutil"
 	"math"
 	"testing"
@@ -18,12 +19,8 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	banktypes "github.com/okex/exchain/libs/cosmos-sdk/x/bank"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	tmproto "github.com/okex/exchain/libs/tendermint/proto/types"
 
 	"github.com/okex/exchain/x/wasm/keeper/wasmtesting"
 	"github.com/okex/exchain/x/wasm/types"
@@ -55,7 +52,9 @@ func TestCreateSuccess(t *testing.T) {
 	creator := keepers.Faucet.NewFundedAccount(ctx, deposit...)
 
 	em := sdk.NewEventManager()
-	contractID, err := keeper.Create(ctx.WithEventManager(em), creator, hackatomWasm, nil)
+	newCtx := ctx
+	ctx.SetEventManager(em)
+	contractID, err := keeper.Create(newCtx, creator, hackatomWasm, nil)
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), contractID)
 	// and verify content
@@ -128,7 +127,7 @@ func TestCreateStoresInstantiatePermission(t *testing.T) {
 				InstantiateDefaultPermission: spec.srcPermission,
 				MaxWasmCodeSize:              types.DefaultMaxWasmCodeSize,
 			})
-			fundAccounts(t, ctx, accKeeper, bankKeeper, myAddr, deposit)
+			fundAccounts(t, ctx, accKeeper, bankKeeper, keepers.supplyKeepr, myAddr, deposit)
 
 			codeID, err := keeper.Create(ctx, myAddr, hackatomWasm, nil)
 			require.NoError(t, err)
@@ -212,9 +211,8 @@ func TestCreateDuplicate(t *testing.T) {
 
 func TestCreateWithSimulation(t *testing.T) {
 	ctx, keepers := CreateTestInput(t, false, SupportedFeatures)
-
-	ctx = ctx.WithBlockHeader(tmproto.Header{Height: 1}).
-		WithGasMeter(stypes.NewInfiniteGasMeter())
+	ctx.SetBlockHeader(abci.Header{Height: 1})
+	ctx.SetGasMeter(stypes.NewInfiniteGasMeter())
 
 	deposit := sdk.NewCoins(sdk.NewInt64Coin("denom", 100000))
 	creator := keepers.Faucet.NewFundedAccount(ctx, deposit...)
@@ -226,7 +224,7 @@ func TestCreateWithSimulation(t *testing.T) {
 
 	// then try to create it in non-simulation mode (should not fail)
 	ctx, keepers = CreateTestInput(t, false, SupportedFeatures)
-	ctx = ctx.WithGasMeter(sdk.NewGasMeter(10_000_000))
+	ctx.SetGasMeter(sdk.NewGasMeter(10_000_000))
 	creator = keepers.Faucet.NewFundedAccount(ctx, deposit...)
 	contractID, err = keepers.ContractKeeper.Create(ctx, creator, hackatomWasm, nil)
 
@@ -240,20 +238,31 @@ func TestCreateWithSimulation(t *testing.T) {
 }
 
 func TestIsSimulationMode(t *testing.T) {
+	genesisCtx := sdk.Context{}
+	genesisCtx.SetBlockHeader(abci.Header{})
+	genesisCtx.SetGasMeter(stypes.NewInfiniteGasMeter())
+
+	regularBlockCtx := sdk.Context{}
+	regularBlockCtx.SetBlockHeader(abci.Header{Height: 1})
+	regularBlockCtx.SetGasMeter(stypes.NewGasMeter(10000000))
+
+	simulationCtx := sdk.Context{}
+	simulationCtx.SetBlockHeader(abci.Header{Height: 1})
+	simulationCtx.SetGasMeter(stypes.NewInfiniteGasMeter())
 	specs := map[string]struct {
 		ctx sdk.Context
 		exp bool
 	}{
 		"genesis block": {
-			ctx: sdk.Context{}.WithBlockHeader(tmproto.Header{}).WithGasMeter(stypes.NewInfiniteGasMeter()),
+			ctx: genesisCtx,
 			exp: false,
 		},
 		"any regular block": {
-			ctx: sdk.Context{}.WithBlockHeader(tmproto.Header{Height: 1}).WithGasMeter(stypes.NewGasMeter(10000000)),
+			ctx: regularBlockCtx,
 			exp: false,
 		},
 		"simulation": {
-			ctx: sdk.Context{}.WithBlockHeader(tmproto.Header{Height: 1}).WithGasMeter(stypes.NewInfiniteGasMeter()),
+			ctx: simulationCtx,
 			exp: true,
 		},
 	}
@@ -307,7 +316,9 @@ func TestInstantiate(t *testing.T) {
 
 	em := sdk.NewEventManager()
 	// create with no balance is also legal
-	gotContractAddr, _, err := keepers.ContractKeeper.Instantiate(ctx.WithEventManager(em), codeID, creator, nil, initMsgBz, "demo contract 1", nil)
+	newCtx := ctx
+	newCtx.SetEventManager(em)
+	gotContractAddr, _, err := keepers.ContractKeeper.Instantiate(newCtx, codeID, creator, nil, initMsgBz, "demo contract 1", nil)
 	require.NoError(t, err)
 	require.Equal(t, "cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr", gotContractAddr.String())
 
@@ -378,7 +389,7 @@ func TestInstantiateWithDeposit(t *testing.T) {
 			accKeeper, bankKeeper, keeper := keepers.AccountKeeper, keepers.BankKeeper, keepers.ContractKeeper
 
 			if spec.fundAddr {
-				fundAccounts(t, ctx, accKeeper, bankKeeper, spec.srcActor, sdk.NewCoins(sdk.NewInt64Coin("denom", 200)))
+				fundAccounts(t, ctx, accKeeper, bankKeeper, keepers.supplyKeepr, spec.srcActor, sdk.NewCoins(sdk.NewInt64Coin("denom", 200)))
 			}
 			contractID, err := keeper.Create(ctx, spec.srcActor, hackatomWasm, nil)
 			require.NoError(t, err)
@@ -391,7 +402,7 @@ func TestInstantiateWithDeposit(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
-			balances := bankKeeper.GetAllBalances(ctx, addr)
+			balances := bankKeeper.GetCoins(ctx, addr)
 			assert.Equal(t, deposit, balances)
 		})
 	}
@@ -443,7 +454,7 @@ func TestInstantiateWithPermissions(t *testing.T) {
 		t.Run(msg, func(t *testing.T) {
 			ctx, keepers := CreateTestInput(t, false, SupportedFeatures)
 			accKeeper, bankKeeper, keeper := keepers.AccountKeeper, keepers.BankKeeper, keepers.ContractKeeper
-			fundAccounts(t, ctx, accKeeper, bankKeeper, spec.srcActor, deposit)
+			fundAccounts(t, ctx, accKeeper, bankKeeper, keepers.supplyKeepr, spec.srcActor, deposit)
 
 			contractID, err := keeper.Create(ctx, myAddr, hackatomWasm, &spec.srcPermission)
 			require.NoError(t, err)
@@ -519,15 +530,16 @@ func TestExecute(t *testing.T) {
 	creatorAcct := accKeeper.GetAccount(ctx, creator)
 	require.NotNil(t, creatorAcct)
 	// we started at 2*deposit, should have spent one above
-	assert.Equal(t, deposit, bankKeeper.GetAllBalances(ctx, creatorAcct.GetAddress()))
+	assert.Equal(t, deposit, bankKeeper.GetCoins(ctx, creatorAcct.GetAddress()))
 
 	// ensure contract has updated balance
 	contractAcct := accKeeper.GetAccount(ctx, addr)
 	require.NotNil(t, contractAcct)
-	assert.Equal(t, deposit, bankKeeper.GetAllBalances(ctx, contractAcct.GetAddress()))
+	assert.Equal(t, deposit, bankKeeper.GetCoins(ctx, contractAcct.GetAddress()))
 
 	// unauthorized - trialCtx so we don't change state
-	trialCtx := ctx.WithMultiStore(ctx.MultiStore().CacheWrap().(sdk.MultiStore))
+	trialCtx := ctx
+	trialCtx.SetMultiStore(ctx.MultiStore().CacheWrap().(sdk.MultiStore))
 	res, err := keepers.ContractKeeper.Execute(trialCtx, addr, creator, []byte(`{"release":{}}`), nil)
 	require.Error(t, err)
 	require.True(t, errors.Is(err, types.ErrExecuteFailed))
@@ -538,7 +550,9 @@ func TestExecute(t *testing.T) {
 	gasBefore := ctx.GasMeter().GasConsumed()
 	em := sdk.NewEventManager()
 	// when
-	res, err = keepers.ContractKeeper.Execute(ctx.WithEventManager(em), addr, fred, []byte(`{"release":{}}`), topUp)
+	newCtx := ctx
+	newCtx.SetEventManager(em)
+	res, err = keepers.ContractKeeper.Execute(newCtx, addr, fred, []byte(`{"release":{}}`), topUp)
 	diff := time.Now().Sub(start)
 	require.NoError(t, err)
 	require.NotNil(t, res)
@@ -551,13 +565,13 @@ func TestExecute(t *testing.T) {
 	// ensure bob now exists and got both payments released
 	bobAcct = accKeeper.GetAccount(ctx, bob)
 	require.NotNil(t, bobAcct)
-	balance := bankKeeper.GetAllBalances(ctx, bobAcct.GetAddress())
+	balance := bankKeeper.GetCoins(ctx, bobAcct.GetAddress())
 	assert.Equal(t, deposit.Add(topUp...), balance)
 
 	// ensure contract has updated balance
 	contractAcct = accKeeper.GetAccount(ctx, addr)
 	require.NotNil(t, contractAcct)
-	assert.Equal(t, sdk.Coins{}, bankKeeper.GetAllBalances(ctx, contractAcct.GetAddress()))
+	assert.Equal(t, sdk.Coins{}, bankKeeper.GetCoins(ctx, contractAcct.GetAddress()))
 
 	// and events emitted
 	require.Len(t, em.Events(), 9)
@@ -576,10 +590,14 @@ func TestExecuteWithDeposit(t *testing.T) {
 		deposit     = sdk.NewCoins(sdk.NewInt64Coin("denom", 100))
 	)
 
+	type bankParams struct {
+		DefaultSendEnabled bool
+	}
+
 	specs := map[string]struct {
 		srcActor      sdk.AccAddress
 		beneficiary   sdk.AccAddress
-		newBankParams *banktypes.Params
+		newBankParams *bankParams
 		expError      bool
 		fundAddr      bool
 	}{
@@ -603,18 +621,8 @@ func TestExecuteWithDeposit(t *testing.T) {
 			srcActor:      bob,
 			fundAddr:      true,
 			beneficiary:   fred,
-			newBankParams: &banktypes.Params{DefaultSendEnabled: false},
+			newBankParams: &bankParams{DefaultSendEnabled: false},
 			expError:      true,
-		},
-		"coin transfer with transfer denom disabled": {
-			srcActor:    bob,
-			fundAddr:    true,
-			beneficiary: fred,
-			newBankParams: &banktypes.Params{
-				DefaultSendEnabled: true,
-				SendEnabled:        []*banktypes.SendEnabled{{Denom: "denom", Enabled: false}},
-			},
-			expError: true,
 		},
 		"blocked address as beneficiary": {
 			srcActor:    bob,
@@ -628,10 +636,10 @@ func TestExecuteWithDeposit(t *testing.T) {
 			ctx, keepers := CreateTestInput(t, false, SupportedFeatures)
 			accKeeper, bankKeeper, keeper := keepers.AccountKeeper, keepers.BankKeeper, keepers.ContractKeeper
 			if spec.newBankParams != nil {
-				bankKeeper.SetParams(ctx, *spec.newBankParams)
+				bankKeeper.SetSendEnabled(ctx, spec.newBankParams.DefaultSendEnabled)
 			}
 			if spec.fundAddr {
-				fundAccounts(t, ctx, accKeeper, bankKeeper, spec.srcActor, sdk.NewCoins(sdk.NewInt64Coin("denom", 200)))
+				fundAccounts(t, ctx, accKeeper, bankKeeper, keepers.supplyKeepr, spec.srcActor, sdk.NewCoins(sdk.NewInt64Coin("denom", 200)))
 			}
 			codeID, err := keeper.Create(ctx, spec.srcActor, hackatomWasm, nil)
 			require.NoError(t, err)
@@ -652,7 +660,7 @@ func TestExecuteWithDeposit(t *testing.T) {
 				return
 			}
 			require.NoError(t, err)
-			balances := bankKeeper.GetAllBalances(ctx, spec.beneficiary)
+			balances := bankKeeper.GetCoins(ctx, spec.beneficiary)
 			assert.Equal(t, deposit, balances)
 		})
 	}
@@ -729,7 +737,7 @@ func TestExecuteWithCpuLoop(t *testing.T) {
 
 	// make sure we set a limit before calling
 	var gasLimit uint64 = 400_000
-	ctx = ctx.WithGasMeter(sdk.NewGasMeter(gasLimit))
+	ctx.SetGasMeter(sdk.NewGasMeter(gasLimit))
 	require.Equal(t, uint64(0), ctx.GasMeter().GasConsumed())
 
 	// ensure we get an out of gas panic
@@ -772,7 +780,7 @@ func TestExecuteWithStorageLoop(t *testing.T) {
 
 	// make sure we set a limit before calling
 	var gasLimit uint64 = 400_002
-	ctx = ctx.WithGasMeter(sdk.NewGasMeter(gasLimit))
+	ctx.SetGasMeter(sdk.NewGasMeter(gasLimit))
 	require.Equal(t, uint64(0), ctx.GasMeter().GasConsumed())
 
 	// ensure we get an out of gas panic
@@ -1034,7 +1042,8 @@ func TestMigrateWithDispatchedMessage(t *testing.T) {
 	require.NoError(t, err)
 
 	migMsgBz := BurnerExampleInitMsg{Payout: myPayoutAddr}.GetBytes(t)
-	ctx = ctx.WithEventManager(sdk.NewEventManager()).WithBlockHeight(ctx.BlockHeight() + 1)
+	ctx.SetEventManager(sdk.NewEventManager())
+	ctx.SetBlockHeight((ctx.BlockHeight() + 1))
 	data, err := keeper.Migrate(ctx, contractAddr, fred, burnerContractID, migMsgBz)
 	require.NoError(t, err)
 	assert.Equal(t, "burnt 1 keys", string(data))
@@ -1086,7 +1095,7 @@ func TestMigrateWithDispatchedMessage(t *testing.T) {
 	require.Len(t, m, 0)
 
 	// and all deposit tokens sent to myPayoutAddr
-	balance := keepers.BankKeeper.GetAllBalances(ctx, myPayoutAddr)
+	balance := keepers.BankKeeper.GetCoins(ctx, myPayoutAddr)
 	assert.Equal(t, deposit, balance)
 }
 
@@ -1218,14 +1227,16 @@ func TestSudo(t *testing.T) {
 	em := sdk.NewEventManager()
 
 	// when
-	_, err = keepers.WasmKeeper.Sudo(ctx.WithEventManager(em), addr, sudoMsg)
+	newCtx := ctx
+	newCtx.SetEventManager(em)
+	_, err = keepers.WasmKeeper.Sudo(newCtx, addr, sudoMsg)
 	require.NoError(t, err)
 
 	// ensure community now exists and got paid
 	comAcct = accKeeper.GetAccount(ctx, community)
 	require.NotNil(t, comAcct)
-	balance := bankKeeper.GetBalance(ctx, comAcct.GetAddress(), "denom")
-	assert.Equal(t, sdk.NewInt64Coin("denom", 76543), balance)
+	balance := bankKeeper.GetCoins(ctx, comAcct.GetAddress())
+	assert.Equal(t, sdk.Coins{sdk.NewInt64Coin("denom", 76543)}, balance)
 	// and events emitted
 	require.Len(t, em.Events(), 4, prettyEvents(t, em.Events()))
 	expEvt := sdk.NewEvent("sudo",
@@ -1405,7 +1416,9 @@ func TestPinCode(t *testing.T) {
 	em := sdk.NewEventManager()
 
 	// when
-	gotErr := k.pinCode(ctx.WithEventManager(em), myCodeID)
+	newCtx := ctx
+	newCtx.SetEventManager(em)
+	gotErr := k.pinCode(newCtx, myCodeID)
 
 	// then
 	require.NoError(t, gotErr)
@@ -1438,7 +1451,9 @@ func TestUnpinCode(t *testing.T) {
 	em := sdk.NewEventManager()
 
 	// when
-	gotErr := k.unpinCode(ctx.WithEventManager(em), myCodeID)
+	newCtx := ctx
+	newCtx.SetEventManager(em)
+	gotErr := k.unpinCode(newCtx, myCodeID)
 
 	// then
 	require.NoError(t, gotErr)
@@ -1517,7 +1532,8 @@ func TestPinnedContractLoops(t *testing.T) {
 			},
 		}, 0, nil
 	}
-	ctx = ctx.WithGasMeter(sdk.NewGasMeter(20000))
+
+	ctx.SetGasMeter(sdk.NewGasMeter(20000))
 	require.PanicsWithValue(t, sdk.ErrorOutOfGas{Descriptor: "ReadFlat"}, func() {
 		_, err := k.execute(ctx, example.Contract, RandomAccountAddress(t), anyMsg, nil)
 		require.NoError(t, err)
@@ -1597,7 +1613,9 @@ func TestNewDefaultWasmVMContractResponseHandler(t *testing.T) {
 			em := sdk.NewEventManager()
 
 			// when
-			gotData, gotErr := d.Handle(sdk.Context{}.WithEventManager(em), RandomAccountAddress(t), "ibc-port", msgs, spec.srcData)
+			newCtx := sdk.Context{}
+			newCtx.SetEventManager(em)
+			gotData, gotErr := d.Handle(newCtx, RandomAccountAddress(t), "ibc-port", msgs, spec.srcData)
 			if spec.expErr {
 				require.Error(t, gotErr)
 				return
@@ -1666,7 +1684,9 @@ func TestReply(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			mock.ReplyFn = spec.replyFn
 			em := sdk.NewEventManager()
-			gotData, gotErr := k.reply(ctx.WithEventManager(em), example.Contract, wasmvmtypes.Reply{})
+			newCtx := ctx
+			ctx.SetEventManager(em)
+			gotData, gotErr := k.reply(newCtx, example.Contract, wasmvmtypes.Reply{})
 			if spec.expErr {
 				require.Error(t, gotErr)
 				return
@@ -1704,7 +1724,9 @@ func TestQueryIsolation(t *testing.T) {
 		return &wasmvmtypes.Response{}, 0, nil
 	}
 	em := sdk.NewEventManager()
-	_, gotErr := k.reply(ctx.WithEventManager(em), example.Contract, wasmvmtypes.Reply{})
+	newCtx := ctx
+	newCtx.SetEventManager(em)
+	_, gotErr := k.reply(newCtx, example.Contract, wasmvmtypes.Reply{})
 	require.NoError(t, gotErr)
 	assert.Nil(t, ctx.KVStore(k.storeKey).Get([]byte(`set_in_query`)))
 }

@@ -53,21 +53,23 @@ var (
 )
 
 type (
-	Keeper                      = keeper.Keeper
-	BaseKeeper                  = keeper.BaseKeeper
-	SendKeeper                  = keeper.SendKeeper
-	BaseSendKeeper              = keeper.BaseSendKeeper
-	ViewKeeper                  = keeper.ViewKeeper
-	BaseViewKeeper              = keeper.BaseViewKeeper
-	GenesisState                = types.GenesisState
-	MsgSend                     = types.MsgSend
-	AdapterMsgSend              = typesadapter.MsgSend
-	MsgMultiSend                = types.MsgMultiSend
-	Input                       = types.Input
-	Output                      = types.Output
-	QueryBalanceParams          = types.QueryBalanceParams
-	MsgMultiSendAdapter         = typesadapter.MsgMultiSend
-	MsgSendAdapter              = typesadapter.MsgSend
-	MsgSendResponseAdapter      = typesadapter.MsgSendResponse
-	MsgMultiSendResponseAdapter = typesadapter.MsgMultiSendResponse
+	Keeper                          = keeper.Keeper
+	BaseKeeper                      = keeper.BaseKeeper
+	SendKeeper                      = keeper.SendKeeper
+	BaseSendKeeper                  = keeper.BaseSendKeeper
+	ViewKeeper                      = keeper.ViewKeeper
+	BaseViewKeeper                  = keeper.BaseViewKeeper
+	GenesisState                    = types.GenesisState
+	MsgSend                         = types.MsgSend
+	AdapterMsgSend                  = typesadapter.MsgSend
+	MsgMultiSend                    = types.MsgMultiSend
+	Input                           = types.Input
+	Output                          = types.Output
+	QueryBalanceParams              = types.QueryBalanceParams
+	MsgMultiSendAdapter             = typesadapter.MsgMultiSend
+	MsgSendAdapter                  = typesadapter.MsgSend
+	MsgSendResponseAdapter          = typesadapter.MsgSendResponse
+	MsgMultiSendResponseAdapter     = typesadapter.MsgMultiSendResponse
+	QueryAllBalancesRequestAdapter  = typesadapter.QueryAllBalancesRequest
+	QueryAllBalancesResponseAdapter = typesadapter.QueryAllBalancesResponse
 )

@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	secp256k1 "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/stretchr/testify/require"
-	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/x/wasm/types"
 )

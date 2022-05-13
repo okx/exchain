@@ -17,17 +17,13 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
-	distributionkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/distribution/keeper"
-	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
 	paramskeeper "github.com/okex/exchain/libs/cosmos-sdk/x/params"
-	stakingkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/staking/keeper"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	tmproto "github.com/okex/exchain/libs/tendermint/proto/types"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	paramtypes "github.com/okex/exchain/x/params"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	dbm "github.com/tendermint/tm-db"
 
 	"github.com/okex/exchain/x/wasm/types"
 	wasmTypes "github.com/okex/exchain/x/wasm/types"
@@ -72,12 +68,12 @@ func TestGenesisExportImport(t *testing.T) {
 			contractKeeper.PinCode(srcCtx, codeID)
 		}
 		if contractExtension {
-			anyTime := time.Now().UTC()
-			var nestedType govtypes.TextProposal
-			f.NilChance(0).Fuzz(&nestedType)
-			myExtension, err := govtypes.NewProposal(&nestedType, 1, anyTime, anyTime)
-			require.NoError(t, err)
-			contract.SetExtension(&myExtension)
+			//TODO need not support proposal
+			//anyTime := time.Now().UTC()
+			//var nestedType govtypes.TextProposal
+			//f.NilChance(0).Fuzz(&nestedType)
+			//myExtension := govtypes.NewProposal(&nestedType, 1, anyTime, anyTime)
+			//contract.SetExtension(&myExtension)
 		}
 
 		contract.CodeID = codeID
@@ -102,7 +98,7 @@ func TestGenesisExportImport(t *testing.T) {
 	rand.Shuffle(len(exportedState.Sequences), func(i, j int) {
 		exportedState.Sequences[i], exportedState.Sequences[j] = exportedState.Sequences[j], exportedState.Sequences[i]
 	})
-	exportedGenesis, err := wasmKeeper.cdc.MarshalJSON(exportedState)
+	exportedGenesis, err := wasmKeeper.cdc.GetProtocMarshal().MarshalJSON(exportedState)
 	require.NoError(t, err)
 
 	// setup new instances
@@ -128,9 +124,9 @@ func TestGenesisExportImport(t *testing.T) {
 
 	// re-import
 	var importState wasmTypes.GenesisState
-	err = dstKeeper.cdc.UnmarshalJSON(exportedGenesis, &importState)
+	err = dstKeeper.cdc.GetProtocMarshal().UnmarshalJSON(exportedGenesis, &importState)
 	require.NoError(t, err)
-	InitGenesis(dstCtx, dstKeeper, importState, &StakingKeeperMock{}, TestHandler(contractKeeper))
+	InitGenesis(dstCtx, dstKeeper, importState, TestHandler(contractKeeper))
 
 	// compare whole DB
 	for j := range srcStoreKeys {
@@ -412,10 +408,7 @@ func TestGenesisInit(t *testing.T) {
 				Params: types.DefaultParams(),
 			},
 			stakingMock: StakingKeeperMock{expCalls: 1, validatorUpdate: []abci.ValidatorUpdate{
-				{PubKey: crypto.PublicKey{Sum: &crypto.PublicKey_Ed25519{
-					Ed25519: []byte("a valid key")}},
-					Power: 100,
-				},
+				abci.Ed25519ValidatorUpdate([]byte("a valid key"), 100),
 			}},
 			msgHandlerMock: MockMsgHandler{expCalls: 1, expMsg: types.MsgStoreCodeFixture()},
 			expSuccess:     true,
@@ -438,7 +431,7 @@ func TestGenesisInit(t *testing.T) {
 			keeper, ctx, _ := setupKeeper(t)
 
 			require.NoError(t, types.ValidateGenesis(spec.src))
-			gotValidatorSet, gotErr := InitGenesis(ctx, keeper, spec.src, &spec.stakingMock, spec.msgHandlerMock.Handle)
+			gotValidatorSet, gotErr := InitGenesis(ctx, keeper, spec.src, spec.msgHandlerMock.Handle)
 			if !spec.expSuccess {
 				require.Error(t, gotErr)
 				return
@@ -506,14 +499,15 @@ func TestImportContractWithCodeHistoryReset(t *testing.T) {
 	genesisStr := fmt.Sprintf(genesisTemplate, enc64(wasmCodeHash[:]), enc64(wasmCode))
 
 	var importState wasmTypes.GenesisState
-	err = keeper.cdc.UnmarshalJSON([]byte(genesisStr), &importState)
+	err = keeper.cdc.GetProtocMarshal().UnmarshalJSON([]byte(genesisStr), &importState)
 	require.NoError(t, err)
 	require.NoError(t, importState.ValidateBasic(), genesisStr)
 
-	ctx = ctx.WithBlockHeight(0).WithGasMeter(sdk.NewInfiniteGasMeter())
+	ctx = ctx.WithBlockHeight(0)
+	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 
 	// when
-	_, err = InitGenesis(ctx, keeper, importState, &StakingKeeperMock{}, TestHandler(contractKeeper))
+	_, err = InitGenesis(ctx, keeper, importState, TestHandler(contractKeeper))
 	require.NoError(t, err)
 
 	// verify wasm code
@@ -593,7 +587,7 @@ func TestSupportedGenMsgTypes(t *testing.T) {
 							Verifier:    verifierAddress,
 							Beneficiary: beneficiaryAddress,
 						}.GetBytes(t),
-						Funds: sdk.NewCoins(sdk.NewCoin(denom, sdk.NewInt(10))),
+						Funds: sdk.CoinsToCoinAdapters(sdk.NewCoins(sdk.NewCoin(denom, sdk.NewInt(10)))),
 					},
 				},
 			},
@@ -611,11 +605,12 @@ func TestSupportedGenMsgTypes(t *testing.T) {
 	require.NoError(t, importState.ValidateBasic())
 	ctx, keepers := CreateDefaultTestInput(t)
 	keeper := keepers.WasmKeeper
-	ctx = ctx.WithBlockHeight(0).WithGasMeter(sdk.NewInfiniteGasMeter())
+	ctx = ctx.WithBlockHeight(0)
+	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 	keepers.Faucet.Fund(ctx, myAddress, sdk.NewCoin(denom, sdk.NewInt(100)))
 
 	// when
-	_, err = InitGenesis(ctx, keeper, importState, &StakingKeeperMock{}, TestHandler(keepers.ContractKeeper))
+	_, err = InitGenesis(ctx, keeper, importState, TestHandler(keepers.ContractKeeper))
 	require.NoError(t, err)
 
 	// verify code stored
@@ -630,8 +625,9 @@ func TestSupportedGenMsgTypes(t *testing.T) {
 	require.NotNil(t, cInfo)
 
 	// verify contract executed
-	gotBalance := keepers.BankKeeper.GetBalance(ctx, beneficiaryAddress, denom)
-	assert.Equal(t, sdk.NewCoin(denom, sdk.NewInt(10)), gotBalance)
+	coins := keepers.BankKeeper.GetCoins(ctx, beneficiaryAddress)
+	gotBalance := coins.AmountOf(denom)
+	assert.Equal(t, sdk.NewCoin(denom, sdk.NewInt(10)), sdk.NewDecCoinFromDec(denom, gotBalance))
 }
 
 func setupKeeper(t *testing.T) (*Keeper, sdk.Context, []sdk.StoreKey) {
@@ -652,7 +648,7 @@ func setupKeeper(t *testing.T) (*Keeper, sdk.Context, []sdk.StoreKey) {
 	ms.MountStoreWithDB(tkeyParams, sdk.StoreTypeTransient, db)
 	require.NoError(t, ms.LoadLatestVersion())
 
-	ctx := sdk.NewContext(ms, tmproto.Header{
+	ctx := sdk.NewContext(ms, abci.Header{
 		Height: 1234567,
 		Time:   time.Date(2020, time.April, 22, 12, 0, 0, 0, time.UTC),
 	}, false, log.NewNopLogger())
@@ -661,15 +657,12 @@ func setupKeeper(t *testing.T) (*Keeper, sdk.Context, []sdk.StoreKey) {
 	// register an example extension. must be protobuf
 	encodingConfig.InterfaceRegistry.RegisterImplementations(
 		(*types.ContractInfoExtension)(nil),
-		&govtypes.Proposal{},
 	)
-	// also registering gov interfaces for nested Any type
-	govtypes.RegisterInterfaces(encodingConfig.InterfaceRegistry)
 
 	wasmConfig := wasmTypes.DefaultWasmConfig()
-	pk := paramskeeper.NewKeeper(encodingConfig.Marshaler, encodingConfig.Amino, keyParams, tkeyParams)
+	pk := paramskeeper.NewKeeper(encodingConfig.Amino, keyParams, tkeyParams)
 
-	srcKeeper := NewKeeper(encodingConfig.Marshaler, keyWasm, pk.Subspace(wasmTypes.ModuleName), authkeeper.AccountKeeper{}, nil, stakingkeeper.Keeper{}, distributionkeeper.Keeper{}, nil, nil, nil, nil, nil, nil, tempDir, wasmConfig, SupportedFeatures)
+	srcKeeper := NewKeeper(&encodingConfig.Marshaler, keyWasm, pk.Subspace(wasmTypes.ModuleName), authkeeper.AccountKeeper{}, nil, nil, nil, nil, nil, nil, nil, tempDir, wasmConfig, SupportedFeatures)
 	return &srcKeeper, ctx, []sdk.StoreKey{keyWasm, keyParams}
 }
 

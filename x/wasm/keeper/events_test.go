@@ -44,7 +44,9 @@ func TestHasWasmModuleEvent(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			em := sdk.NewEventManager()
 			em.EmitEvents(spec.srcEvents)
-			ctx := sdk.Context{}.WithContext(context.Background()).WithEventManager(em)
+			ctx := sdk.Context{}
+			ctx.SetContext(context.Background())
+			ctx.SetEventManager(em)
 
 			got := hasWasmModuleEvent(ctx, myContractAddr)
 			assert.Equal(t, spec.exp, got)
