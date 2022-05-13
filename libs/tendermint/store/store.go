@@ -100,7 +100,7 @@ func (bs *BlockStore) LoadBlock(height int64) *types.Block {
 		buf.Write(part.Bytes)
 	}
 
-	partBytes, err := types.UncompressBlockFromBytes(buf.Bytes())
+	partBytes, _, err := types.UncompressBlockFromBytes(buf.Bytes())
 	if err != nil {
 		panic(errors.Wrap(err, "failed to uncompress block"))
 	}

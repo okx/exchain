@@ -277,38 +277,38 @@ func CompressBlock(bz []byte) []byte {
 
 func UncompressBlockFromReader(pbpReader io.Reader) (io.Reader, error) {
 	// received compressed block bytes, uncompress with the flag:Proposal.CompressBlock
-	payload, err := io.ReadAll(pbpReader)
+	compressed, err := io.ReadAll(pbpReader)
 	if err != nil {
 		return nil, err
 	}
 	t0 := tmtime.Now()
-	bpBytes, err := UncompressBlockFromBytes(payload)
+	original, compressType, err := UncompressBlockFromBytes(compressed)
 	if err != nil {
 		return nil, err
 	}
 	t1 := tmtime.Now()
-	compressRatio := float64(len(bpBytes)) / float64(len(payload))
-	trace.GetElapsedInfo().AddInfo(trace.UncompressBlock, fmt.Sprintf("%d/%d=%.2f;%d",
-		len(bpBytes), len(payload), compressRatio, t1.Sub(t0).Milliseconds()))
 
-	return bytes.NewBuffer(bpBytes), nil
+	if compressType != 0 {
+		compressRatio := float64(len(original)) / float64(len(compressed))
+		trace.GetElapsedInfo().AddInfo(trace.UncompressBlock, fmt.Sprintf("%d/%d=%.2f; %dms",
+			len(original), len(compressed), compressRatio, t1.Sub(t0).Milliseconds()))
+	}
+
+	return bytes.NewBuffer(original), nil
 }
 
-func UncompressBlockFromBytes(payload []byte) ([]byte, error) {
+func UncompressBlockFromBytes(payload []byte) (res []byte, compressType int, err error) {
 	// try parse Uvarint to check if it is compressed
 	compressBytesLen, n := binary.Uvarint(payload)
 	if len(payload)-n == int(compressBytesLen) {
 		// the block has not compressed
-		return payload, nil
+		res = payload
 	} else {
 		// the block has compressed and the last byte is compressType
-		compressType := int(payload[len(payload)-1])
-		pbpBytes, err := compress.UnCompress(compressType, payload[:len(payload)-1])
-		if err != nil {
-			return nil, err
-		}
-		return pbpBytes, nil
+		compressType = int(payload[len(payload)-1])
+		res, err = compress.UnCompress(compressType, payload[:len(payload)-1])
 	}
+	return
 }
 
 // HashesTo is a convenience function that checks if a block hashes to the given argument.
