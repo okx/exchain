@@ -18,11 +18,11 @@ func NewBankMsgServer(bankKeeper BankKeeper) *BankMsgServer {
 
 func (bms BankMsgServer) Send(goCtx context.Context, msg *bank.MsgSendAdapter) (*bank.MsgSendResponseAdapter, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
-	senderAddr, err := sdk.AccAddressFromBech32(msg.FromAddress)
+	senderAddr, err := AccAddressFromBech32(msg.FromAddress)
 	if err != nil {
 		return nil, sdkerrors.Wrap(err, "sender")
 	}
-	toAddr, err := sdk.AccAddressFromBech32(msg.ToAddress)
+	toAddr, err := AccAddressFromBech32(msg.ToAddress)
 	if err != nil {
 		return nil, sdkerrors.Wrap(err, "to")
 	}
