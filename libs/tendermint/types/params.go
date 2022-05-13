@@ -16,14 +16,14 @@ const (
 
 	// Max
 	MaxDeltasSizeBytes = 104857600 // 100MB
-
-	// MaxBlockPartsCount is the maximum number of block parts.
-	MaxBlockPartsCount = (MaxBlockSizeBytes / 65536) + 1
 )
 
 var (
 	// BlockPartSizeBytes is the size of one block part.
 	BlockPartSizeBytes = 65536 // 64kB
+
+	// MaxBlockPartsCount is the maximum number of block parts.
+	MaxBlockPartsCount = (MaxBlockSizeBytes / BlockPartSizeBytes) + 1
 )
 
 // ConsensusParams contains consensus critical parameters that determine the
