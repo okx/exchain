@@ -620,5 +620,5 @@ func (c *OecConfig) GetBlockPartSize() int {
 }
 func (c *OecConfig) SetBlockPartSize(value int) {
 	c.blockPartSizeBytes = value
-	tmtypes.BlockPartSizeBytes = value
+	tmtypes.UpdateBlockPartSizeBytes(value)
 }
