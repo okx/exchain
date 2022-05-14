@@ -1,8 +1,9 @@
 #!/bin/sh
-set -e
-#set -x
+#set -e
+set -x
 VERSION_NUM=2.9.1
 VERSION=gperftools-$VERSION_NUM
+
 while [ $# -gt 0 ]; do
 	case "$1" in
 		--version)
@@ -56,11 +57,18 @@ install_linux() {
 	$sh_c "cd gperftools && make uninstall"
 	$sh_c "cd gperftools && make install"
 	$sh_c "ldconfig"
-	$sh_c "rm -rf gperftools"
+#	$sh_c "rm -rf gperftools"
 }
 
 install_macos(){
-	$sh_c "ldconfig"
+	GPERFTOOLS=gperftools-$VERSION_NUM
+	$sh_c "wget -c https://github.com/gperftools/gperftools/releases/download/$GPERFTOOLS/$GPERFTOOLS.tar.gz"
+	$sh_c "tar -xvf $GPERFTOOLS.tar.gz"
+	$sh_c "cd $GPERFTOOLS && ./configure --disable-cpu-profiler --disable-heap-profiler --disable-heap-checker --disable-debugalloc --enable-minimal"
+	$sh_c "cd $GPERFTOOLS && make uninstall"
+	$sh_c "cd $GPERFTOOLS && make install"
+	$sh_c "rm $GPERFTOOLS.tar.gz"
+	$sh_c "rm -r $GPERFTOOLS"
 }
 
 do_install() {
@@ -97,7 +105,7 @@ do_install() {
 			exit 0
 			;;
 		centos)
-			pre_reqs="git make autoconf automake libtool libunwind"
+			pre_reqs="git make autoconf automake libtool"
 			$sh_c "yum install -y -q $pre_reqs"
 			install_linux
 			exit 0
@@ -105,7 +113,7 @@ do_install() {
 		*)
 			if [ -z "$lsb_dist" ]; then
 				if is_darwin; then
-					pre_reqs="git make"
+					pre_reqs="wget"
 					$sh_c "xcode-select --install"
 					$sh_c "brew install $pre_reqs"
 					install_macos
