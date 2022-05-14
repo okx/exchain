@@ -2,6 +2,9 @@ package config
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/tendermint/consensus"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"strconv"
 	"strings"
 	"sync"
@@ -69,6 +72,13 @@ type OecConfig struct {
 	enableAnalyzer bool
 
 	deliverTxsMode int
+
+	// active view change
+	activeVC bool
+
+	blockPartSizeBytes int
+	blockCompressType  int
+	blockCompressFlag  int
 }
 
 const (
@@ -201,6 +211,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
 	c.SetEnableAnalyzer(viper.GetBool(trace.FlagEnableAnalyzer))
 	c.SetDeliverTxsExecuteMode(viper.GetInt(state.FlagDeliverTxsExecMode))
+	c.SetBlockPartSize(viper.GetInt(server.FlagBlockPartSizeBytes))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -237,7 +248,8 @@ func (c *OecConfig) format() string {
 	consensus.timeout_commit: %s
 	
 	iavl-cache-size: %d
-	enable-analyzer: %v`, system.ChainName,
+	enable-analyzer: %v
+	active-view-change: %v`, system.ChainName,
 		c.GetMempoolRecheck(),
 		c.GetMempoolForceRecheckGap(),
 		c.GetMempoolSize(),
@@ -256,6 +268,7 @@ func (c *OecConfig) format() string {
 		c.GetCsTimeoutCommit(),
 		c.GetIavlCacheSize(),
 		c.GetEnableAnalyzer(),
+		c.GetActiveVC(),
 	)
 }
 
@@ -382,6 +395,30 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetDeliverTxsExecuteMode(r)
+	case server.FlagActiveViewChange:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetActiveVC(r)
+	case server.FlagBlockPartSizeBytes:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetBlockPartSize(r)
+	case tmtypes.FlagBlockCompressType:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetBlockCompressType(r)
+	case tmtypes.FlagBlockCompressFlag:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetBlockCompressFlag(r)
 	}
 }
 
@@ -582,4 +619,36 @@ func (c *OecConfig) GetIavlCacheSize() int {
 func (c *OecConfig) SetIavlCacheSize(value int) {
 	c.iavlCacheSize = value
 	iavl.IavlCacheSize = value
+}
+
+func (c *OecConfig) GetActiveVC() bool {
+	return c.activeVC
+}
+func (c *OecConfig) SetActiveVC(value bool) {
+	c.activeVC = value
+	consensus.ActiveViewChange = value
+}
+
+func (c *OecConfig) GetBlockPartSize() int {
+	return c.blockPartSizeBytes
+}
+func (c *OecConfig) SetBlockPartSize(value int) {
+	c.blockPartSizeBytes = value
+	tmtypes.UpdateBlockPartSizeBytes(value)
+}
+
+func (c *OecConfig) GetBlockCompressType() int {
+	return c.blockCompressType
+}
+func (c *OecConfig) SetBlockCompressType(value int) {
+	c.blockCompressType = value
+	tmtypes.BlockCompressType = value
+}
+
+func (c *OecConfig) GetBlockCompressFlag() int {
+	return c.blockCompressFlag
+}
+func (c *OecConfig) SetBlockCompressFlag(value int) {
+	c.blockCompressFlag = value
+	tmtypes.BlockCompressFlag = value
 }
