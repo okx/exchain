@@ -42,9 +42,12 @@ type commitEvent struct {
 	iavlHeight int
 }
 
+type commitOrphan struct {
+	Version  int64
+	NodeHash []byte
+}
 
 func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte, int64, error) {
-
 	tree.ndb.sanityCheckHandleOrphansResult(version)
 
 	oldRoot, saved := tree.ndb.findRootHash(version)
@@ -58,7 +61,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		} else if produceDelta {
 			tree.ndb.updateBranchConcurrency(tree.root, tree.savedNodes)
 		} else {
-			tree.ndb.updateBranchConcurrency(tree.root, nil)
+			tree.ndb.updateBranchMoreConcurrency(tree.root)
 		}
 
 		// generate state delta
@@ -69,29 +72,29 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		}
 	}
 
-	shouldPersist := (version%CommitGapHeight == 0) || (treeMap.totalPpncSize >= MinCommitItemCount)
+	shouldPersist := ((version%CommitGapHeight == 0) && (version-tree.lastPersistHeight >= CommitGapHeight)) ||
+		(treeMap.totalPpncSize >= MinCommitItemCount)
 
-	newOrphans := tree.orphans
 	if shouldPersist {
-		tree.ndb.saveNewOrphans(version, newOrphans, true)
+		tree.ndb.saveNewOrphans(version, tree.orphans, true)
 		tree.persist(version)
-		newOrphans = nil
 	}
+	tree.ndb.enqueueOrphanTask(version, tree.orphans, tree.ImmutableTree.Hash(), shouldPersist)
 
-	return tree.setNewWorkingTree(version, newOrphans, shouldPersist)
+	return tree.setNewWorkingTree(version, shouldPersist)
 }
 
-func (tree *MutableTree) setNewWorkingTree(version int64, newOrphans []*Node, persisted bool) ([]byte, int64, error) {
+func (tree *MutableTree) setNewWorkingTree(version int64, persisted bool) ([]byte, int64, error) {
 	// set new working tree
 	tree.ImmutableTree = tree.ImmutableTree.clone()
 	tree.lastSaved = tree.ImmutableTree.clone()
+	// newOrphans := tree.orphans
 	tree.orphans = make([]*Node, 0, len(tree.orphans))
 	for k := range tree.savedNodes {
 		delete(tree.savedNodes, k)
 	}
 	rootHash := tree.lastSaved.Hash()
 
-	tree.ndb.enqueueOrphanTask(version, rootHash, newOrphans)
 	tree.version = version
 	if persisted {
 		tree.versions.Set(version, true)
@@ -113,7 +116,7 @@ func (tree *MutableTree) removeVersion(version int64) {
 	tree.versions.Delete(version)
 }
 
-func (tree *MutableTree) persist(version int64)  {
+func (tree *MutableTree) persist(version int64) {
 	var err error
 	batch := tree.NewBatch()
 	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0}
@@ -134,8 +137,8 @@ func (tree *MutableTree) persist(version int64)  {
 		panic(err)
 	}
 
-	for k := range tree.commitOrphans {
-		delete(tree.commitOrphans, k)
+	if tree.commitOrphans != nil {
+		tree.commitOrphans = tree.commitOrphans[:0]
 	}
 	versions := tree.deepCopyVersions()
 	tree.commitCh <- commitEvent{version, versions, batch,
@@ -160,6 +163,15 @@ func (tree *MutableTree) commitSchedule() {
 
 		trc := trace.NewTracer("commitSchedule")
 		trc.CloseSummary()
+
+		trc.Pin("cacheNode")
+		for k, node := range event.tpp {
+			if !node.persisted {
+				panic("unexpected logic")
+			}
+			tree.ndb.cacheWithKey(k, node)
+		}
+
 		trc.Pin("Pruning")
 		tree.updateCommittedStateHeightPool(event.batch, event.version, event.versions)
 
@@ -225,7 +237,6 @@ func (tree *MutableTree) log(level int, msg string, kvs ...interface{}) {
 	iavlLog(tree.GetModuleName(), level, msg, kvs...)
 }
 
-
 func (tree *MutableTree) updateCommittedStateHeightPool(batch dbm.Batch, version int64, versions map[int64]bool) {
 	queue := tree.committedHeightQueue
 	queue.PushBack(version)
@@ -284,18 +295,15 @@ func (tree *MutableTree) addOrphansOptimized(orphans []*Node) {
 			}
 			tree.orphans = append(tree.orphans, node)
 			if node.persisted && EnablePruningHistoryState {
-				k := string(node.hash)
-				tree.commitOrphans[k] = node.version
+				tree.commitOrphans = append(tree.commitOrphans, commitOrphan{Version: node.version, NodeHash: node.hash})
 				if produceDelta {
-					commitOrp := &CommitOrphansImp{Key: k, CommitValue: node.version}
+					commitOrp := &CommitOrphansImp{Key: string(node.hash), CommitValue: node.version}
 					tree.deltas.CommitOrphansDelta = append(tree.deltas.CommitOrphansDelta, commitOrp)
 				}
 			}
 		}
-
 	}
 }
-
 
 func (tree *MutableTree) deepCopyVersions() map[int64]bool {
 	if !EnablePruningHistoryState {
