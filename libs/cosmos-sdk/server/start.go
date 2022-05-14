@@ -61,7 +61,10 @@ const (
 	FlagExportKeystore  = "export-keystore"
 	FlagLogServerUrl    = "log-server"
 
-	FlagCommitGapHeight = "commit-gap-height"
+	FlagActiveViewChange = "active-view-change"
+	FlagCommitGapHeight  = "commit-gap-height"
+
+	FlagBlockPartSizeBytes = "block-part-size"
 )
 
 // StartCmd runs the service passed in, either stand-alone or in-process with
@@ -264,6 +267,9 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	tmtypes.UploadDelta = viper.GetBool(tmtypes.FlagUploadDDS)
 	tmtypes.FastQuery = viper.GetBool(tmtypes.FlagFastQuery)
 	tmtypes.DeltaVersion = viper.GetInt(tmtypes.FlagDeltaVersion)
+	tmtypes.BlockCompressType = viper.GetInt(tmtypes.FlagBlockCompressType)
+	tmtypes.BlockCompressFlag = viper.GetInt(tmtypes.FlagBlockCompressFlag)
+	tmtypes.BlockCompressThreshold = viper.GetInt(tmtypes.FlagBlockCompressThreshold)
 
 	tmiavl.CommitGapHeight = viper.GetInt64(FlagCommitGapHeight)
 	mpt.TrieCommitGap = viper.GetInt64(FlagCommitGapHeight)
