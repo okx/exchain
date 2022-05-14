@@ -26,7 +26,7 @@ var (
 		{trace.DeliverTxs, 1},
 		{trace.EvmHandlerDetail, 0},
 
-    {trace.IavlRuntime, 0}
+    	{trace.IavlRuntime, 0},
 		{trace.RunAnteDetail, 0},
 		{trace.RunAnteDetail, 0},
 		{trace.AnteChainDetail, 0},

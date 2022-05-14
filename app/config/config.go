@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	"github.com/okex/exchain/libs/tendermint/consensus"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"strconv"
 	"strings"
@@ -626,7 +625,6 @@ func (c *OecConfig) GetActiveVC() bool {
 }
 func (c *OecConfig) SetActiveVC(value bool) {
 	c.activeVC = value
-	consensus.ActiveViewChange = value
 }
 
 func (c *OecConfig) GetBlockPartSize() int {
