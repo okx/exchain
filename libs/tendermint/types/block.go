@@ -272,7 +272,7 @@ func compressBlock(bz []byte) []byte {
 	}
 	t1 := tmtime.Now()
 
-	trace.GetElapsedInfo().AddInfo(trace.CompressBlock, fmt.Sprintf("%d", t1.Sub(t0).Milliseconds()))
+	trace.GetElapsedInfo().AddInfo(trace.CompressBlock, fmt.Sprintf("%dms", t1.Sub(t0).Milliseconds()))
 	// tell receiver which compress type
 	return append(cz, byte(BlockCompressType))
 }

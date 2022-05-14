@@ -888,7 +888,6 @@ func (cs *State) enterNewRound(height int64, round int) {
 	}
 
 	cs.initNewHeight()
-	//cs.trc.Pin("NewRound-%d", round)
 
 	if now := tmtime.Now(); cs.StartTime.After(now) {
 		logger.Info("Need to set a buffer and log message here for sanity.", "startTime", cs.StartTime, "now", now)
