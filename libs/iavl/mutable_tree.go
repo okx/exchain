@@ -40,12 +40,12 @@ var (
 //
 // The inner ImmutableTree should not be used directly by callers.
 type MutableTree struct {
-	*ImmutableTree                   // The current, working tree.
-	lastSaved       *ImmutableTree   // The most recently saved tree.
-	orphans         []*Node          // Nodes removed by changes to working tree.Will refresh after each block
-	commitOrphans   map[string]int64 // Nodes removed by changes to working tree.Will refresh after each commit.
-	versions        *SyncMap         // The previous, saved versions of the tree.
-	removedVersions sync.Map         // The removed versions of the tree.
+	*ImmutableTree                 // The current, working tree.
+	lastSaved       *ImmutableTree // The most recently saved tree.
+	orphans         []*Node        // Nodes removed by changes to working tree.Will refresh after each block
+	commitOrphans   []commitOrphan // Nodes removed by changes to working tree.Will refresh after each commit.
+	versions        *SyncMap       // The previous, saved versions of the tree.
+	removedVersions sync.Map       // The removed versions of the tree.
 	ndb             *nodeDB
 
 	savedNodes map[string]*Node
@@ -88,7 +88,6 @@ func NewMutableTreeWithOpts(db dbm.DB, cacheSize int, opts *Options) (*MutableTr
 			savedNodes:    map[string]*Node{},
 			deltas:        &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}},
 			orphans:       []*Node{},
-			commitOrphans: map[string]int64{},
 			versions:      NewSyncMap(),
 			ndb:           ndb,
 
@@ -387,7 +386,7 @@ func (tree *MutableTree) LazyLoadVersion(targetVersion int64) (int64, error) {
 	tree.savedNodes = map[string]*Node{}
 	tree.deltas = &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
 	tree.orphans = []*Node{}
-	tree.commitOrphans = map[string]int64{}
+	tree.commitOrphans = nil
 	tree.ImmutableTree = iTree
 	tree.lastSaved = iTree.clone()
 
@@ -453,7 +452,7 @@ func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
 	tree.savedNodes = map[string]*Node{}
 	tree.deltas = &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
 	tree.orphans = []*Node{}
-	tree.commitOrphans = map[string]int64{}
+	tree.commitOrphans = nil
 	tree.ImmutableTree = t
 	tree.lastSaved = t.clone()
 	tree.lastPersistHeight = latestVersion
@@ -522,7 +521,7 @@ func (tree *MutableTree) Rollback() {
 	tree.savedNodes = map[string]*Node{}
 	tree.deltas = &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
 	tree.orphans = []*Node{}
-	tree.commitOrphans = map[string]int64{}
+	tree.commitOrphans = nil
 }
 
 // GetVersioned gets the value at the specified key and version. The returned value must not be
@@ -581,7 +580,7 @@ func (tree *MutableTree) SaveVersion(useDeltas bool) ([]byte, int64, TreeDelta, 
 			tree.savedNodes = map[string]*Node{}
 			tree.deltas = &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
 			tree.orphans = []*Node{}
-			tree.commitOrphans = map[string]int64{}
+			tree.commitOrphans = nil
 			return existingHash, version, *tree.deltas, nil
 		}
 
@@ -906,7 +905,7 @@ func (tree *MutableTree) SetDelta(delta *TreeDelta) {
 
 		// set tree.commitOrphans
 		for _, v := range delta.CommitOrphansDelta {
-			tree.commitOrphans[v.Key] = v.CommitValue
+			tree.commitOrphans = append(tree.commitOrphans, commitOrphan{Version: v.CommitValue, NodeHash: amino.StrToBytes(v.Key)})
 		}
 	}
 }
