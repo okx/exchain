@@ -2,8 +2,8 @@ package config
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/system"
-	"github.com/okex/exchain/libs/system/trace"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"strconv"
 	"strings"
 	"sync"
@@ -11,9 +11,12 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	iavlconfig "github.com/okex/exchain/libs/iavl/config"
+	"github.com/okex/exchain/libs/system"
+	"github.com/okex/exchain/libs/system/trace"
 	tmconfig "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/state"
+
 	"github.com/spf13/viper"
 )
 
@@ -55,6 +58,8 @@ type OecConfig struct {
 	csTimeoutPrecommit time.Duration
 	// consensus.timeout_precommit_delta
 	csTimeoutPrecommitDelta time.Duration
+	// consensus.timeout_commit
+	csTimeoutCommit time.Duration
 
 	// iavl-cache-size
 	iavlCacheSize int
@@ -66,6 +71,13 @@ type OecConfig struct {
 	enableAnalyzer bool
 
 	deliverTxsMode int
+
+	// active view change
+	activeVC bool
+
+	blockPartSizeBytes int
+	blockCompressType  int
+	blockCompressFlag  int
 }
 
 const (
@@ -89,6 +101,7 @@ const (
 	FlagCsTimeoutPrevoteDelta   = "consensus.timeout_prevote_delta"
 	FlagCsTimeoutPrecommit      = "consensus.timeout_precommit"
 	FlagCsTimeoutPrecommitDelta = "consensus.timeout_precommit_delta"
+	FlagCsTimeoutCommit         = "consensus.timeout_commit"
 )
 
 var (
@@ -191,11 +204,13 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetCsTimeoutPrevoteDelta(viper.GetDuration(FlagCsTimeoutPrevoteDelta))
 	c.SetCsTimeoutPrecommit(viper.GetDuration(FlagCsTimeoutPrecommit))
 	c.SetCsTimeoutPrecommitDelta(viper.GetDuration(FlagCsTimeoutPrecommitDelta))
+	c.SetCsTimeoutCommit(viper.GetDuration(FlagCsTimeoutCommit))
 	c.SetIavlCacheSize(viper.GetInt(iavl.FlagIavlCacheSize))
 	c.SetNodeKeyWhitelist(viper.GetString(FlagNodeKeyWhitelist))
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
 	c.SetEnableAnalyzer(viper.GetBool(trace.FlagEnableAnalyzer))
 	c.SetDeliverTxsExecuteMode(viper.GetInt(state.FlagDeliverTxsExecMode))
+	c.SetBlockPartSize(viper.GetInt(server.FlagBlockPartSizeBytes))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -229,9 +244,11 @@ func (c *OecConfig) format() string {
 	consensus.timeout_prevote_delta: %s
 	consensus.timeout_precommit: %s
 	consensus.timeout_precommit_delta: %s
+	consensus.timeout_commit: %s
 	
 	iavl-cache-size: %d
-	enable-analyzer: %v`, system.ChainName,
+	enable-analyzer: %v
+	active-view-change: %v`, system.ChainName,
 		c.GetMempoolRecheck(),
 		c.GetMempoolForceRecheckGap(),
 		c.GetMempoolSize(),
@@ -247,8 +264,10 @@ func (c *OecConfig) format() string {
 		c.GetCsTimeoutPrevoteDelta(),
 		c.GetCsTimeoutPrecommit(),
 		c.GetCsTimeoutPrecommitDelta(),
+		c.GetCsTimeoutCommit(),
 		c.GetIavlCacheSize(),
 		c.GetEnableAnalyzer(),
+		c.GetActiveVC(),
 	)
 }
 
@@ -351,6 +370,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetCsTimeoutPrecommitDelta(r)
+	case FlagCsTimeoutCommit:
+		r, err := time.ParseDuration(v)
+		if err != nil {
+			return
+		}
+		c.SetCsTimeoutCommit(r)
 	case iavl.FlagIavlCacheSize:
 		r, err := strconv.Atoi(v)
 		if err != nil {
@@ -369,6 +394,30 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetDeliverTxsExecuteMode(r)
+	case server.FlagActiveViewChange:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetActiveVC(r)
+	case server.FlagBlockPartSizeBytes:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetBlockPartSize(r)
+	case tmtypes.FlagBlockCompressType:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetBlockCompressType(r)
+	case tmtypes.FlagBlockCompressFlag:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetBlockCompressFlag(r)
 	}
 }
 
@@ -553,10 +602,51 @@ func (c *OecConfig) SetCsTimeoutPrecommitDelta(value time.Duration) {
 	c.csTimeoutPrecommitDelta = value
 }
 
+func (c *OecConfig) GetCsTimeoutCommit() time.Duration {
+	return c.csTimeoutCommit
+}
+func (c *OecConfig) SetCsTimeoutCommit(value time.Duration) {
+	if value < 0 {
+		return
+	}
+	c.csTimeoutCommit = value
+}
+
 func (c *OecConfig) GetIavlCacheSize() int {
 	return c.iavlCacheSize
 }
 func (c *OecConfig) SetIavlCacheSize(value int) {
 	c.iavlCacheSize = value
 	iavl.IavlCacheSize = value
+}
+
+func (c *OecConfig) GetActiveVC() bool {
+	return c.activeVC
+}
+func (c *OecConfig) SetActiveVC(value bool) {
+	c.activeVC = value
+}
+
+func (c *OecConfig) GetBlockPartSize() int {
+	return c.blockPartSizeBytes
+}
+func (c *OecConfig) SetBlockPartSize(value int) {
+	c.blockPartSizeBytes = value
+	tmtypes.UpdateBlockPartSizeBytes(value)
+}
+
+func (c *OecConfig) GetBlockCompressType() int {
+	return c.blockCompressType
+}
+func (c *OecConfig) SetBlockCompressType(value int) {
+	c.blockCompressType = value
+	tmtypes.BlockCompressType = value
+}
+
+func (c *OecConfig) GetBlockCompressFlag() int {
+	return c.blockCompressFlag
+}
+func (c *OecConfig) SetBlockCompressFlag(value int) {
+	c.blockCompressFlag = value
+	tmtypes.BlockCompressFlag = value
 }

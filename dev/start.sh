@@ -21,7 +21,7 @@ killbyname() {
 
 
 run() {
-    LOG_LEVEL=main:debug,iavl:info,*:error,state:info,provider:info
+    LOG_LEVEL=main:info,iavl:info,*:error,state:info,provider:info
 
 #    exchaind start --pruning=nothing --rpc.unsafe \
     exchaind start --rpc.unsafe \

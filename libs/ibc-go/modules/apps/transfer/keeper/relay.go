@@ -111,6 +111,9 @@ func (k Keeper) SendTransfer(
 		escrowAddress := types.GetEscrowAddress(sourcePort, sourceChannel)
 
 		// escrow source tokens. It fails if balance insufficient.
+		if token.Denom == sdk.DefaultIbcWei {
+			token.Denom = sdk.DefaultBondDenom
+		}
 		if err := k.bankKeeper.SendCoins(
 			ctx, sender, escrowAddress, sdk.NewCoins(token),
 		); err != nil {
@@ -213,6 +216,9 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 			denom = denomTrace.IBCDenom()
 		}
 
+		if denom == sdk.DefaultIbcWei {
+			denom = sdk.DefaultBondDenom
+		}
 		token := sdk.NewCoin(denom, transferAmountDec)
 
 		// unescrow tokens
@@ -337,6 +343,9 @@ func (k Keeper) refundPacketToken(ctx sdk.Context, packet channeltypes.Packet, d
 	if isSource {
 		// unescrow tokens back to sender
 		escrowAddress := types.GetEscrowAddress(packet.GetSourcePort(), packet.GetSourceChannel())
+		if token.Denom == sdk.DefaultIbcWei {
+			token.Denom = sdk.DefaultBondDenom
+		}
 		if err := k.bankKeeper.SendCoins(ctx, escrowAddress, sender, sdk.NewCoins(token)); err != nil {
 			// NOTE: this error is only expected to occur given an unexpected bug or a malicious
 			// counterparty module. The bug may occur in bank or any part of the code that allows

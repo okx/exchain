@@ -3,6 +3,8 @@ package app
 import (
 	"github.com/okex/exchain/libs/system/trace"
 	sm "github.com/okex/exchain/libs/tendermint/state"
+	"google.golang.org/grpc/encoding/proto"
+
 	"io"
 	"math/big"
 	"os"
@@ -74,7 +76,6 @@ import (
 
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/encoding"
-	"google.golang.org/grpc/encoding/proto"
 )
 
 func init() {
@@ -255,7 +256,7 @@ func NewOKExChainApp(
 		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
 		ibchost.StoreKey,
 		erc20.StoreKey,
-		mpt.StoreKey, evm.Store2Key,
+		mpt.StoreKey, evm.LegacyStoreKey,
 	)
 
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
@@ -330,7 +331,7 @@ func NewOKExChainApp(
 	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], app.marshal.GetCdc())
 	app.ParamsKeeper.RegisterSignal(evmtypes.SetEvmParamsNeedUpdate)
 	app.EvmKeeper = evm.NewKeeper(
-		app.marshal.GetCdc(), keys[evm.StoreKey], keys[evm.Store2Key], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, logger)
+		app.marshal.GetCdc(), keys[evm.StoreKey], keys[evm.LegacyStoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, logger)
 	(&bankKeeper).SetInnerTxKeeper(app.EvmKeeper)
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
@@ -530,7 +531,7 @@ func NewOKExChainApp(
 	// initialize BaseApp
 	app.SetInitChainer(app.InitChainer)
 	app.SetBeginBlocker(app.BeginBlocker)
-	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper)))
+	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), app.IBCKeeper.ChannelKeeper))
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
