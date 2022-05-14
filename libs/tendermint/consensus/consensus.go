@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"runtime/debug"
+	"strings"
 	"sync"
 	"time"
 
@@ -150,6 +151,7 @@ type State struct {
 	trc *trace.Tracer
 
 	prerunTx bool
+	bt *BlockTransport
 }
 
 // StateOption sets an optional parameter on the State.
@@ -184,6 +186,7 @@ func NewState(
 		metrics:          NopMetrics(),
 		trc:              trace.NewTracer(trace.Consensus),
 		prerunTx:         viper.GetBool(EnablePrerunTx),
+		bt:               &BlockTransport{},
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
@@ -586,6 +589,8 @@ func (cs *State) updateToState(state sm.State) {
 	// RoundState fields
 	cs.updateHeight(height)
 	cs.updateRoundStep(0, cstypes.RoundStepNewHeight)
+	cs.traceDump()
+	cs.bt.reset(height)
 
 	cs.Validators = validators
 	cs.Proposal = nil
@@ -808,6 +813,19 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 }
 
 func (cs *State) traceDump() {
+	if cs.Logger == nil {
+		return
+	}
+
+	trace.GetElapsedInfo().AddInfo(trace.CommitRound, fmt.Sprintf("%d", cs.CommitRound))
+	trace.GetElapsedInfo().AddInfo(trace.Round, fmt.Sprintf("%d", cs.Round))
+	trace.GetElapsedInfo().AddInfo(trace.BlockParts, fmt.Sprintf("%d|%d|%d/%d",
+		cs.bt.droppedDue2WrongHeight,
+		cs.bt.droppedDue2NotExpected,
+		cs.bt.droppedDue2NotAdded,
+		cs.bt.totalParts,
+	))
+
 	trace.GetElapsedInfo().AddInfo(trace.Produce, cs.trc.Format())
 	trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
 	cs.trc.Reset()
@@ -816,8 +834,6 @@ func (cs *State) traceDump() {
 func (cs *State) initNewHeight() {
 	// waiting finished and enterNewHeight by timeoutNewHeight
 	if cs.Step == cstypes.RoundStepNewHeight {
-		// dump trace log
-		cs.traceDump()
 		// init StartTime
 		cs.StartTime = tmtime.Now()
 	}
@@ -871,7 +887,6 @@ func (cs *State) enterNewRound(height int64, round int) {
 	}
 
 	cs.initNewHeight()
-	cs.trc.Pin("NewRound-%d", round)
 
 	if now := tmtime.Now(); cs.StartTime.After(now) {
 		logger.Info("Need to set a buffer and log message here for sanity.", "startTime", cs.StartTime, "now", now)
@@ -951,10 +966,8 @@ func (cs *State) isBlockProducer() (string, string) {
 		}
 	}
 
-	return isBlockProducer, bpStr
+	return isBlockProducer, strings.ToLower(bpStr)
 }
-
-
 
 
 func (cs *State) pruneBlocks(retainHeight int64) (uint64, error) {
@@ -1087,7 +1100,25 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 		cs.ProposalBlockParts = types.NewPartSetFromHeader(proposal.BlockID.PartsHeader)
 	}
 	cs.Logger.Info("Received proposal", "proposal", proposal)
+	cs.bt.onProposal(proposal.Height)
+	cs.trc.Pin("recvProposal")
 	return nil
+}
+
+func (cs *State) unmarshalBlock() error {
+	// uncompress blockParts bytes if necessary
+	pbpReader, err := types.UncompressBlockFromReader(cs.ProposalBlockParts.GetReader())
+	if err != nil {
+		return err
+	}
+
+	// Added and completed!
+	_, err = cdc.UnmarshalBinaryLengthPrefixedReader(
+		pbpReader,
+		&cs.ProposalBlock,
+		cs.state.ConsensusParams.Block.MaxBytes,
+	)
+	return err
 }
 
 // NOTE: block is not necessarily valid.
@@ -1104,6 +1135,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 
 	// Blocks might be reused, so round mismatch is OK
 	if cs.Height != height {
+		cs.bt.droppedDue2WrongHeight++
 		cs.Logger.Debug("Received block part from wrong height", "height", height, "round", round)
 		return false, nil
 	}
@@ -1114,24 +1146,31 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		// then receive parts from the previous round - not necessarily a bad peer.
 		cs.Logger.Info("Received a block part when we're not expecting any",
 			"height", height, "round", round, "index", part.Index, "peer", peerID)
+		cs.bt.droppedDue2NotExpected++
 		return false, nil
 	}
 
 	added, err = cs.ProposalBlockParts.AddPart(part)
+	if !added {
+		cs.bt.droppedDue2NotAdded++
+	}
+	if added && cs.ProposalBlockParts.Count() == 1 {
+		cs.trc.Pin("1stPart")
+		cs.bt.on1stPart(height)
+	}
+
 	if err != nil {
 		return added, err
 	}
 	if added && cs.ProposalBlockParts.IsComplete() {
-		// Added and completed!
-		_, err = cdc.UnmarshalBinaryLengthPrefixedReader(
-			cs.ProposalBlockParts.GetReader(),
-			&cs.ProposalBlock,
-			cs.state.ConsensusParams.Block.MaxBytes,
-		)
+		err = cs.unmarshalBlock()
 		if err != nil {
 			return added, err
 		}
 
+		cs.bt.onRecvBlock(height)
+		cs.bt.totalParts = cs.ProposalBlockParts.Total()
+		cs.trc.Pin("lastPart")
 		if cs.prerunTx {
 			cs.blockExec.NotifyPrerun(cs.ProposalBlock) // 3. addProposalBlockPart
 		}
