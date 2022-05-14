@@ -5,6 +5,7 @@ import (
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	channelkeeper "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/keeper"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	"github.com/okex/exchain/libs/tendermint/types"
 )
 
 type AnteDecorator struct {
@@ -20,6 +21,9 @@ func NewAnteDecorator(k channelkeeper.Keeper) AnteDecorator {
 // and continues processing to ensure these transactions are included.
 // This will ensure that relayers do not waste fees on multiMsg transactions when another relayer has already submitted all packets, by rejecting the tx at the mempool layer.
 func (ad AnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
+	if !types.HigherThanVenus1(ctx.BlockHeight()) {
+		return next(ctx, tx, simulate)
+	}
 	// do not run redundancy check on DeliverTx or simulate
 	if (ctx.IsCheckTx() || ctx.IsReCheckTx()) && !simulate {
 		// keep track of total packet messages and number of redundancies across `RecvPacket`, `AcknowledgePacket`, and `TimeoutPacket/OnClose`

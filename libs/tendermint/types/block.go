@@ -2,8 +2,13 @@ package types
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	gogotypes "github.com/gogo/protobuf/types"
+	"github.com/okex/exchain/libs/system/trace"
+	"github.com/okex/exchain/libs/tendermint/libs/compress"
+	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+	"io"
 	"strings"
 	"sync"
 	"time"
@@ -37,6 +42,16 @@ const (
 	// Uvarint length of Data.Txs:          4 bytes
 	// Data.Txs field:                      1 byte
 	MaxAminoOverheadForBlock int64 = 11
+
+	FlagBlockCompressType = "block-compress-type"
+	FlagBlockCompressFlag = "block-compress-flag"
+	FlagBlockCompressThreshold = "block-compress-threshold"
+)
+
+var (
+	BlockCompressType = 0x00
+	BlockCompressFlag = 0
+	BlockCompressThreshold = 1024000
 )
 
 // Block defines the atomic unit of a Tendermint blockchain.
@@ -239,7 +254,63 @@ func (b *Block) MakePartSet(partSize int) *PartSet {
 	if err != nil {
 		panic(err)
 	}
-	return NewPartSetFromData(bz, partSize)
+
+	payload := compressBlock(bz)
+
+	return NewPartSetFromData(payload, partSize)
+}
+
+func compressBlock(bz []byte) []byte {
+	if BlockCompressType == 0 || len(bz) <= BlockCompressThreshold {
+		return bz
+	}
+
+	t0 := tmtime.Now()
+	cz, err := compress.Compress(BlockCompressType, BlockCompressFlag, bz)
+	if err != nil {
+		return bz
+	}
+	t1 := tmtime.Now()
+
+	trace.GetElapsedInfo().AddInfo(trace.CompressBlock, fmt.Sprintf("%dms", t1.Sub(t0).Milliseconds()))
+	// tell receiver which compress type
+	return append(cz, byte(BlockCompressType))
+}
+
+func UncompressBlockFromReader(pbpReader io.Reader) (io.Reader, error) {
+	// received compressed block bytes, uncompress with the flag:Proposal.CompressBlock
+	compressed, err := io.ReadAll(pbpReader)
+	if err != nil {
+		return nil, err
+	}
+	t0 := tmtime.Now()
+	original, compressType, err := UncompressBlockFromBytes(compressed)
+	if err != nil {
+		return nil, err
+	}
+	t1 := tmtime.Now()
+
+	if compressType != 0 {
+		compressRatio := float64(len(compressed))/float64(len(original))
+		trace.GetElapsedInfo().AddInfo(trace.UncompressBlock, fmt.Sprintf("%.2f/%dms",
+			compressRatio, t1.Sub(t0).Milliseconds()))
+	}
+
+	return bytes.NewBuffer(original), nil
+}
+
+func UncompressBlockFromBytes(payload []byte) (res []byte, compressType int, err error) {
+	// try parse Uvarint to check if it is compressed
+	compressBytesLen, n := binary.Uvarint(payload)
+	if len(payload)-n == int(compressBytesLen) {
+		// the block has not compressed
+		res = payload
+	} else {
+		// the block has compressed and the last byte is compressType
+		compressType = int(payload[len(payload)-1])
+		res, err = compress.UnCompress(compressType, payload[:len(payload)-1])
+	}
+	return
 }
 
 // HashesTo is a convenience function that checks if a block hashes to the given argument.
