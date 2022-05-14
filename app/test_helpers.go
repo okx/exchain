@@ -32,3 +32,28 @@ func Setup(isCheckTx bool) *OKExChainApp {
 
 	return app
 }
+
+func SetupWithChainId(isCheckTx bool, chainId string) *OKExChainApp {
+	db := dbm.NewMemDB()
+	app := NewOKExChainApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, 0)
+
+	if !isCheckTx {
+		// init chain must be called to stop deliverState from being nil
+		genesisState := NewDefaultGenesisState()
+		stateBytes, err := codec.MarshalJSONIndent(app.Codec(), genesisState)
+		if err != nil {
+			panic(err)
+		}
+
+		// Initialize the chain
+		app.InitChain(
+			abci.RequestInitChain{
+				Validators:    []abci.ValidatorUpdate{},
+				AppStateBytes: stateBytes,
+				ChainId:       chainId,
+			},
+		)
+	}
+
+	return app
+}
