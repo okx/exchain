@@ -1913,19 +1913,17 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 	}
 
 	added, err = cs.ProposalBlockParts.AddPart(part)
-
 	if !added {
 		cs.bt.droppedDue2NotAdded++
 	}
+	if added && cs.ProposalBlockParts.Count() == 1 {
+		cs.trc.Pin("1stPart")
+		cs.bt.on1stPart(height)
+	}
+
 	if err != nil {
 		return added, err
 	}
-
-	if added && part.Index == 0 {
-		cs.bt.on1stPart(height)
-		cs.trc.Pin("1stPart")
-	}
-
 	if added && cs.ProposalBlockParts.IsComplete() {
 		// uncompress blockParts bytes if necessary
 		pbpReader, err := types.UncompressBlockFromReader(cs.ProposalBlockParts.GetReader())
