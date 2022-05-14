@@ -63,13 +63,13 @@ const (
 	ApplyBlock = "ApplyBlock"
 	Consensus  = "Consensus"
 
-	MempoolCheckTxCnt = "checkTxCnt"
-	MempoolTxsCnt     = "mempoolTxsCnt"
-
-	Prerun = "Prerun"
+	MempoolCheckTxCnt    = "checkTxCnt"
+	MempoolTxsCnt        = "mempoolTxsCnt"
 
 	CompressBlock   = "CompressBlock"
 	UncompressBlock = "UncompressBlock"
+	Prerun               = "Prerun"
+	IavlRuntime          = "IavlRuntime"
 )
 
 const (

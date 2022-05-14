@@ -7,6 +7,8 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	channelkeeper "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/keeper"
+	ibcante "github.com/okex/exchain/libs/ibc-go/modules/core/ante"
 	"github.com/okex/exchain/libs/system/trace"
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
 )
@@ -26,7 +28,7 @@ const (
 // Ethereum or SDK transaction to an internal ante handler for performing
 // transaction-level processing (e.g. fee payment, signature verification) before
 // being passed onto it's respective handler.
-func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper, validateMsgHandler ValidateMsgHandler) sdk.AnteHandler {
+func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper, validateMsgHandler ValidateMsgHandler, ibcChannelKeepr channelkeeper.Keeper) sdk.AnteHandler {
 	return func(
 		ctx sdk.Context, tx sdk.Tx, sim bool,
 	) (newCtx sdk.Context, err error) {
@@ -40,13 +42,14 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 				authante.NewValidateBasicDecorator(),
 				authante.NewValidateMemoDecorator(ak),
 				authante.NewConsumeGasForTxSizeDecorator(ak),
-				authante.NewSetPubKeyDecorator(ak),        // SetPubKeyDecorator must be called before all signature verification decorators
+				authante.NewSetPubKeyDecorator(ak), // SetPubKeyDecorator must be called before all signature verification decorators
 				authante.NewValidateSigCountDecorator(ak),
 				authante.NewDeductFeeDecorator(ak, sk),
 				authante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
 				authante.NewSigVerificationDecorator(ak),
 				authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
 				NewValidateMsgHandlerDecorator(validateMsgHandler),
+				ibcante.NewAnteDecorator(ibcChannelKeepr),
 			)
 
 		case sdk.EvmTxType:

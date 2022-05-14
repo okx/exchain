@@ -6,7 +6,7 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/okex/exchain/libs/iavl/trace"
+	"github.com/okex/exchain/libs/system/trace"
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
@@ -69,7 +69,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		}
 	}
 
-	shouldPersist := (version%CommitGapHeight == 0) || (treeMap.totalPreCommitCacheSize >= MinCommitItemCount)
+	shouldPersist := (version%CommitGapHeight == 0) || (treeMap.totalPpncSize >= MinCommitItemCount)
 
 	newOrphans := tree.orphans
 	if shouldPersist {
@@ -96,7 +96,7 @@ func (tree *MutableTree) setNewWorkingTree(version int64, newOrphans []*Node, pe
 	if persisted {
 		tree.versions.Set(version, true)
 	}
-	treeMap.updateMutableTreeMap(tree.GetModuleName())
+	treeMap.updatePpnc(version)
 
 	tree.removedVersions.Range(func(k, v interface{}) bool {
 		tree.log(IavlDebug, "remove version from tree version map", "Height", k.(int64))
@@ -158,7 +158,8 @@ func (tree *MutableTree) commitSchedule() {
 			continue
 		}
 
-		trc := trace.NewTracer()
+		trc := trace.NewTracer("commitSchedule")
+		trc.CloseSummary()
 		trc.Pin("Pruning")
 		tree.updateCommittedStateHeightPool(event.batch, event.version, event.versions)
 

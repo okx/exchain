@@ -26,6 +26,7 @@ var (
 		{trace.DeliverTxs, 1},
 		{trace.EvmHandlerDetail, 0},
 
+    {trace.IavlRuntime, 0}
 		{trace.RunAnteDetail, 0},
 		{trace.RunAnteDetail, 0},
 		{trace.AnteChainDetail, 0},
@@ -128,7 +129,7 @@ func (e *ElapsedTimeInfos) Dump(input interface{}) {
 }
 
 func (e *ElapsedTimeInfos) decodeElapseParam(elapsed string) {
-	// suppose elapsd is like Evm=x,Iavl=x,DeliverTxs=x,DB=x,Round=x,CommitRound=x,Produce=x
+	// suppose elapsd is like Evm=x,Iavl=x,DeliverTxs=x,DB=x,Round=x,CommitRound=x,Produce=x,IavlRuntime=x
 	elapsdA := strings.Split(elapsed, ",")
 	for _, v := range elapsdA {
 		setVal := strings.Split(v, "=")
