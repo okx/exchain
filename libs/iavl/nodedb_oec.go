@@ -115,7 +115,7 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) map[string]*Node {
 
 	tpp := ndb.prePersistNodeCache
 	ndb.prePersistNodeCache = make(map[string]*Node, len(tpp))
-	ndb.pushToTpp(version, tpp)
+	ndb.tpp.pushToTpp(version, tpp)
 
 	ndb.mtx.Unlock()
 
@@ -133,9 +133,9 @@ func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer)
 	version := event.version
 	iavlHeight := event.iavlHeight
 
-	nodeNum := ndb.getTppNodesNum()
+	nodeNum := ndb.tpp.getTppNodesNum()
 
-	ndb.removeFromTpp(version)
+	ndb.tpp.removeFromTpp(version)
 
 	ndb.log(IavlInfo, "CommitSchedule", "Height", version,
 		"Tree", ndb.name,
@@ -144,25 +144,6 @@ func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer)
 		"trc", trc.Format())
 }
 
-func (ndb *nodeDB) pushToTpp(version int64, tpp map[string]*Node) {
-	ndb.tppMtx.Lock()
-	lItem := ndb.tppVersionList.PushBack(version)
-	ndb.tppMap[version] = &tppItem{
-		nodeMap:  tpp,
-		listItem: lItem,
-	}
-	ndb.tppMtx.Unlock()
-}
-
-func (ndb *nodeDB) removeFromTpp(version int64) {
-	ndb.tppMtx.Lock()
-	tItem := ndb.tppMap[version]
-	if tItem != nil {
-		ndb.tppVersionList.Remove(tItem.listItem)
-	}
-	delete(ndb.tppMap, version)
-	ndb.tppMtx.Unlock()
-}
 
 // SaveNode saves a node to disk.
 func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
@@ -193,15 +174,6 @@ func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
 	//node.persisted = true // move to function MovePrePersistCacheToTempCache
 }
 
-func (ndb *nodeDB) getTppNodesNum() int {
-	var size = 0
-	ndb.tppMtx.RLock()
-	for _, mp := range ndb.tppMap {
-		size += len(mp.nodeMap)
-	}
-	ndb.tppMtx.RUnlock()
-	return size
-}
 
 func (ndb *nodeDB) NewBatch() dbm.Batch {
 	return ndb.db.NewBatch()
@@ -219,19 +191,6 @@ func (ndb *nodeDB) saveCommitOrphans(batch dbm.Batch, version int64, orphans []c
 	}
 }
 
-func (ndb *nodeDB) getNodeInTpp(hash []byte) (*Node, bool) {
-	ndb.tppMtx.RLock()
-	defer ndb.tppMtx.RUnlock()
-	for v := ndb.tppVersionList.Back(); v != nil; v = v.Prev() {
-		ver := v.Value.(int64)
-		tppItem := ndb.tppMap[ver]
-
-		if elem, ok := tppItem.nodeMap[string(hash)]; ok {
-			return elem, ok
-		}
-	}
-	return nil, false
-}
 
 func (ndb *nodeDB) getRootWithCacheAndDB(version int64) ([]byte, error) {
 	if EnableAsyncCommit {

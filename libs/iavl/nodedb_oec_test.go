@@ -309,14 +309,14 @@ func Test_getNodeInTpp(t *testing.T) {
 		}
 
 		tpp := ndb.prePersistNodeCache
-		lItem := ndb.tppVersionList.PushBack(c.version)
-		ndb.tppMap[c.version] = &tppItem{
+		lItem := ndb.tpp.tppVersionList.PushBack(c.version)
+		ndb.tpp.tppMap[c.version] = &tppItem{
 			nodeMap:  tpp,
 			listItem: lItem,
 		}
 
 		for hash, node := range tpp {
-			getNode, found := ndb.getNodeInTpp([]byte(hash))
+			getNode, found := ndb.tpp.getNode([]byte(hash))
 			require.True(t, found)
 			require.EqualValues(t, node, getNode)
 		}

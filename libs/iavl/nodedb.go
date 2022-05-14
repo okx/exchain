@@ -2,7 +2,6 @@ package iavl
 
 import (
 	"bytes"
-	"container/list"
 	"fmt"
 	"math"
 	"sort"
@@ -49,17 +48,13 @@ type nodeDB struct {
 
 	prePersistNodeCache map[string]*Node
 
-	// temporary pre-persist map
-	tppMap         map[int64]*tppItem
-	tppVersionList *list.List
-	tppMtx         sync.RWMutex
-
 	name              string
 	preWriteNodeCache cmap.ConcurrentMap
 
 	oi    *OrphanInfo
 	nc    *NodeCache
 	state *RuntimeState
+	tpp   *tempPrePersistNodes
 }
 
 func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
@@ -72,11 +67,10 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		opts:                *opts,
 		versionReaders:      make(map[int64]uint32, 8),
 		prePersistNodeCache: make(map[string]*Node),
-		tppMap:              make(map[int64]*tppItem),
-		tppVersionList:      list.New(),
 		name:                ParseDBName(db),
 		preWriteNodeCache:   cmap.New(),
 		state:               newRuntimeState(),
+		tpp:                 newTempPrePersistNodes(),
 	}
 
 	ndb.oi = newOrphanInfo(ndb)
@@ -95,7 +89,7 @@ func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) (*Node
 		return elem, fromPpnc
 	}
 
-	if elem, ok := ndb.getNodeInTpp(hash); ok {
+	if elem, ok := ndb.tpp.getNode(hash); ok {
 		return elem, fromTpp
 	}
 
