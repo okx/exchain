@@ -11,8 +11,6 @@ type BlockTransport struct {
 	height int64
 	recvProposal time.Time
 	firstPart time.Time
-	totalElapsed time.Duration
-	first2LastPartElapsed time.Duration
 	droppedDue2NotExpected int
 	droppedDue2NotAdded int
 	droppedDue2WrongHeight int
@@ -48,12 +46,12 @@ func (bt *BlockTransport) on1stPart(height int64)  {
 
 func (bt *BlockTransport) onRecvBlock(height int64)  {
 	if bt.height == height {
-		bt.totalElapsed = time.Now().Sub(bt.recvProposal)
-		bt.first2LastPartElapsed = time.Now().Sub(bt.firstPart)
+		totalElapsed := time.Now().Sub(bt.recvProposal)
+		first2LastPartElapsed := time.Now().Sub(bt.firstPart)
 		trace.GetElapsedInfo().AddInfo(trace.RecvBlock,
-			fmt.Sprintf("%d<%dms>", height, bt.totalElapsed.Milliseconds()))
+			fmt.Sprintf("%d<%dms>", height, totalElapsed.Milliseconds()))
 		trace.GetElapsedInfo().AddInfo(trace.First2LastPart,
-			fmt.Sprintf("%d<%dms>", height, bt.first2LastPartElapsed.Milliseconds()))
+			fmt.Sprintf("%d<%dms>", height, first2LastPartElapsed.Milliseconds()))
 	} else {
 		//panic("invalid height")
 	}

@@ -291,7 +291,7 @@ func UncompressBlockFromReader(pbpReader io.Reader) (io.Reader, error) {
 	t1 := tmtime.Now()
 
 	if compressType != 0 {
-		compressRatio := float64(len(original)) / float64(len(compressed))
+		compressRatio := float64(len(compressed))/float64(len(original))
 		trace.GetElapsedInfo().AddInfo(trace.UncompressBlock, fmt.Sprintf("%.2f/%dms",
 			compressRatio, t1.Sub(t0).Milliseconds()))
 	}
