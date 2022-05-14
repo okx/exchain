@@ -65,6 +65,9 @@ type ValidatorParams struct {
 }
 
 func UpdateBlockPartSizeBytes(size int) {
+	if size < 32 {
+		size = 32
+	}
 	BlockPartSizeBytes = size
 	MaxBlockPartsCount = (MaxBlockSizeBytes / BlockPartSizeBytes) + 1
 }
