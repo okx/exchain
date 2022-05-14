@@ -10,41 +10,48 @@ import (
 	"github.com/spf13/viper"
 )
 
+type SchemaConfig struct {
+	schema  string
+	enabled int
+}
+
 var (
-	once         sync.Once
-	CUSTOM_PRINT = []string{
-		trace.Evm,
-		trace.Delta,
-		trace.Iavl,
-		trace.FlatKV,
-		trace.DeliverTxs,
-		trace.EvmHandlerDetail,
+	optionalSchemas = []SchemaConfig{
+		{trace.MempoolCheckTxCnt, 0},
+		{trace.MempoolTxsCnt, 0},
+		{trace.SigCacheRatio, 0},
+		{trace.Evm, 1},
+		{trace.Delta, 1},
+		{trace.Iavl, 1},
+		{trace.DeliverTxs, 1},
+		{trace.EvmHandlerDetail, 0},
 
-		trace.RunAnteDetail,
-		trace.AnteChainDetail,
-		trace.Round,
-		trace.CommitRound,
-		trace.Produce,
-		trace.IavlRuntime}
+    	{trace.IavlRuntime, 0},
+		{trace.RunAnteDetail, 0},
+		{trace.RunAnteDetail, 0},
+		{trace.AnteChainDetail, 0},
+		{trace.Round, 0},
+		{trace.CommitRound, 0},
+		{trace.RecvBlock, 1},
+		{trace.First2LastPart, 1},
+		{trace.BlockParts, 1},
+		{trace.Produce, 0},
+	}
 
-	DefaultElapsedSchemas = fmt.Sprintf(
-		"%s=1,%s=1,%s=1," +
-			"%s=1,%s=1,%s=1," +
-		"%s=0,%s=0,%s=0," +
-		"%s=0,%s=0,%s=0",
-		trace.Evm,
-		trace.Delta,
-		trace.Iavl,
-		trace.DeliverTxs,
-		trace.EvmHandlerDetail,
-		trace.RunAnteDetail,
+	mandatorySchemas = []string {
+		trace.Height,
+		trace.Tx,
+		trace.BlockSize,
+		trace.CompressBlock,
+		trace.UncompressBlock,
+		trace.GasUsed,
+		trace.InvalidTxs,
+		trace.RunTx,
+		trace.Prerun,
+		trace.MempoolTxsCnt,
+	}
 
-		trace.FlatKV,
-		trace.AnteChainDetail,
-		trace.Round,
-		trace.CommitRound,
-		trace.Produce,
-		trace.IavlRuntime)
+	DefaultElapsedSchemas string
 )
 
 const (
@@ -52,16 +59,18 @@ const (
 )
 
 func init() {
-	once.Do(func() {
-		elapsedInfo := &ElapsedTimeInfos{
-			infoMap:   make(map[string]string),
-			schemaMap: make(map[string]bool),
-		}
+	for _, k := range optionalSchemas {
+		DefaultElapsedSchemas += fmt.Sprintf("%s=%d,", k.schema, k.enabled)
+	}
 
-		elapsedInfo.decodeElapseParam(DefaultElapsedSchemas)
+	elapsedInfo := &ElapsedTimeInfos{
+		infoMap:   make(map[string]string),
+		schemaMap: make(map[string]bool),
+	}
 
-		trace.SetInfoObject(elapsedInfo)
-	})
+	elapsedInfo.decodeElapseParam(DefaultElapsedSchemas)
+	trace.SetInfoObject(elapsedInfo)
+
 }
 
 type ElapsedTimeInfos struct {
@@ -101,39 +110,25 @@ func (e *ElapsedTimeInfos) Dump(input interface{}) {
 		e.initialized = true
 	}
 
-	var detailInfo string
-	for _, k := range CUSTOM_PRINT {
-		if v, ok := e.schemaMap[k]; ok {
-			if v {
-				detailInfo += fmt.Sprintf("%s[%s], ", k, e.infoMap[k])
-			}
+	var mandatoryInfo string
+	for _, key := range mandatorySchemas {
+		mandatoryInfo += fmt.Sprintf("%s<%s>, ", key, e.infoMap[key])
+	}
+
+	var optionalInfo string
+	var comma string
+	for _, k := range optionalSchemas {
+		if enabled, found := e.schemaMap[k.schema]; found && enabled {
+			optionalInfo += fmt.Sprintf("%s%s[%s]", comma, k.schema, e.infoMap[k.schema])
+			comma = ", "
 		}
 	}
 
-	info := fmt.Sprintf("%s<%s>, %s<%s>, %s<%s>, %s<%s>, %s<%s>, %s[%s], %s[%s], %s<%s>, %s<%s>, %s<%s>",
-		trace.Height, e.infoMap[trace.Height],
-		trace.Tx, e.infoMap[trace.Tx],
-		trace.BlockSize, e.infoMap[trace.BlockSize],
-		trace.GasUsed, e.infoMap[trace.GasUsed],
-		trace.InvalidTxs, e.infoMap[trace.InvalidTxs],
-		trace.RunTx, e.infoMap[trace.RunTx],
-		trace.Prerun, e.infoMap[trace.Prerun],
-		trace.MempoolCheckTxCnt, e.infoMap[trace.MempoolCheckTxCnt],
-		trace.MempoolTxsCnt, e.infoMap[trace.MempoolTxsCnt],
-		trace.SigCacheRatio, e.infoMap[trace.SigCacheRatio],
-	)
-
-	if len(detailInfo) > 0 {
-		detailInfo = strings.TrimRight(detailInfo, ", ")
-		info += ", " + detailInfo
-	}
-
-	logger.Info(info)
+	logger.Info(mandatoryInfo+optionalInfo)
 	e.infoMap = make(map[string]string)
 }
 
 func (e *ElapsedTimeInfos) decodeElapseParam(elapsed string) {
-
 	// suppose elapsd is like Evm=x,Iavl=x,DeliverTxs=x,DB=x,Round=x,CommitRound=x,Produce=x,IavlRuntime=x
 	elapsdA := strings.Split(elapsed, ",")
 	for _, v := range elapsdA {
