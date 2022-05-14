@@ -22,8 +22,6 @@ func (bt *BlockTransport) onProposal(height int64)  {
 	if bt.height == height || bt.height == 0 {
 		bt.recvProposal = time.Now()
 		bt.height = height
-	} else {
-		//panic("invalid height")
 	}
 }
 
@@ -39,8 +37,6 @@ func (bt *BlockTransport) on1stPart(height int64)  {
 	if bt.height == height || bt.height == 0 {
 		bt.firstPart = time.Now()
 		bt.height = height
-	} else {
-		//panic("invalid height")
 	}
 }
 
@@ -52,7 +48,5 @@ func (bt *BlockTransport) onRecvBlock(height int64)  {
 			fmt.Sprintf("%d<%dms>", height, totalElapsed.Milliseconds()))
 		trace.GetElapsedInfo().AddInfo(trace.First2LastPart,
 			fmt.Sprintf("%d<%dms>", height, first2LastPartElapsed.Milliseconds()))
-	} else {
-		//panic("invalid height")
 	}
 }

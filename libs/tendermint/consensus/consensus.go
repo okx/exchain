@@ -1736,6 +1736,22 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	return nil
 }
 
+func (cs *State) unmarshalBlock() error {
+	// uncompress blockParts bytes if necessary
+	pbpReader, err := types.UncompressBlockFromReader(cs.ProposalBlockParts.GetReader())
+	if err != nil {
+		return err
+	}
+
+	// Added and completed!
+	_, err = cdc.UnmarshalBinaryLengthPrefixedReader(
+		pbpReader,
+		&cs.ProposalBlock,
+		cs.state.ConsensusParams.Block.MaxBytes,
+	)
+	return err
+}
+
 // NOTE: block is not necessarily valid.
 // Asynchronously triggers either enterPrevote (before we timeout of propose) or tryFinalizeCommit,
 // once we have the full block.
@@ -1778,18 +1794,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		return added, err
 	}
 	if added && cs.ProposalBlockParts.IsComplete() {
-		// uncompress blockParts bytes if necessary
-		pbpReader, err := types.UncompressBlockFromReader(cs.ProposalBlockParts.GetReader())
-		if err != nil {
-			return added, err
-		}
-
-		// Added and completed!
-		_, err = cdc.UnmarshalBinaryLengthPrefixedReader(
-			pbpReader,
-			&cs.ProposalBlock,
-			cs.state.ConsensusParams.Block.MaxBytes,
-		)
+		err = cs.unmarshalBlock()
 		if err != nil {
 			return added, err
 		}
