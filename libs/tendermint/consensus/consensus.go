@@ -145,7 +145,7 @@ type State struct {
 	trc *trace.Tracer
 
 	prerunTx bool
-	bt *BlockTransport
+	bt       *BlockTransport
 }
 
 // StateOption sets an optional parameter on the State.
@@ -187,6 +187,9 @@ func NewState(
 	cs.doPrevote = cs.defaultDoPrevote
 	cs.setProposal = cs.defaultSetProposal
 
+	if state.LastBlockHeight > types.GetStartBlockHeight() {
+		cs.reconstructLastCommit(state)
+	}
 	cs.updateToState(state)
 	if cs.prerunTx {
 		cs.blockExec.InitPrerun()
@@ -194,7 +197,7 @@ func NewState(
 
 	// Don't call scheduleRound0 yet.
 	// We do that upon Start().
-	cs.reconstructLastCommit(state)
+
 	cs.BaseService = *service.NewBaseService(nil, "State", cs)
 	for _, option := range options {
 		option(cs)
@@ -438,9 +441,6 @@ func (cs *State) updateRoundStep(round int, step cstypes.RoundStepType) {
 // Reconstruct LastCommit from SeenCommit, which we saved along with the block,
 // (which happens even before saving the state)
 func (cs *State) reconstructLastCommit(state sm.State) {
-	if state.LastBlockHeight == types.GetStartBlockHeight() {
-		return
-	}
 	seenCommit := cs.blockStore.LoadSeenCommit(state.LastBlockHeight)
 	if seenCommit == nil {
 		panic(fmt.Sprintf("Failed to reconstruct LastCommit: seen commit for height %v not found",
@@ -485,7 +485,6 @@ func (cs *State) needProofBlock(height int64) bool {
 	}
 	return !bytes.Equal(cs.state.AppHash, lastBlockMeta.Header.AppHash)
 }
-
 
 func (cs *State) recordMetrics(height int64, block *types.Block) {
 	cs.metrics.Validators.Set(float64(cs.Validators.Size()))
