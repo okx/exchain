@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
@@ -20,10 +21,12 @@ import (
 
 var (
 	// simulation signature values used to estimate gas consumption
-	simSecp256k1Pubkey secp256k1.PubKeySecp256k1
-	simSecp256k1Sig    [64]byte
+	simSecp256k1Pubkey    secp256k1.PubKeySecp256k1
+	simEthSecp256k1Pubkey cryptotypes.PubKey
+	simSecp256k1Sig       [64]byte
 
 	_ SigVerifiableTx = (*types.StdTx)(nil) // assert StdTx implements SigVerifiableTx
+	_ SigVerifiableTx = (*types.IbcTx)(nil)
 )
 
 func init() {
@@ -80,8 +83,8 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 		fmt.Println("pubkey a", pk.Address())
 		fmt.Println("signer", signers[i].String())
 		if !simulate && !bytes.Equal(pk.Address(), signers[i]) {
-			//return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
-			//	"pubKey does not match signer address %s with signer index: %d", signers[i], i)
+			return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
+				"pubKey does not match signer address %s with signer index: %d", signers[i], i)
 		}
 
 		acc, err := GetSignerAcc(ctx, spkd.ak, signers[i])
@@ -211,6 +214,7 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 		}
 
 		// verify signature
+
 		if !simulate && !pubKey.VerifyBytes(signBytes, sig) {
 			return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "signature verification failed; verify correct account sequence and chain-id, sign msg:"+string(signBytes))
 		}

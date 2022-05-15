@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
+	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
@@ -97,6 +98,7 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 		if modeInfo != nil && modeInfo.Single != nil {
 			signMode = modeInfo.Single.Mode
 		}
+		pubKeys := constructPubKey(ibcTx)
 
 		stx := authtypes.IbcTx{
 			&authtypes.StdTx{
@@ -105,6 +107,7 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 				Signatures: signatures,
 				Memo:       ibcTx.Body.Memo,
 			},
+			pubKeys,
 			raw.AuthInfoBytes,
 			raw.BodyBytes,
 			signMode,
@@ -114,6 +117,28 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 
 		return &stx, nil
 	}
+}
+
+func constructPubKey(ibcTx *tx.Tx) []cryptotypes.PubKey {
+	signerInfos := ibcTx.AuthInfo.SignerInfos
+	pks := make([]cryptotypes.PubKey, len(signerInfos))
+
+	for i, si := range signerInfos {
+		// NOTE: it is okay to leave this nil if there is no PubKey in the SignerInfo.
+		// PubKey's can be left unset in SignerInfo.
+		if si.PublicKey == nil {
+			continue
+		}
+
+		pkAny := si.PublicKey.GetCachedValue()
+		pk, ok := pkAny.(cryptotypes.PubKey)
+		if ok && pk.Bytes() != nil {
+			pks[i] = pk
+		} else {
+			return nil
+		}
+	}
+	return pks
 }
 
 func constructMsgs(ibcTx *tx.Tx) ([]sdk.Msg, []sdk.Msg, error) {

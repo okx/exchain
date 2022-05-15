@@ -9,7 +9,9 @@ import (
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	ethsecp256k12 "github.com/okex/exchain/libs/cosmos-sdk/crypto/ethsecp256k1"
 	secp256k1 "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
+	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -234,12 +236,15 @@ func PbTxBuildAndSign(clientCtx context.CLIContext, txConfig client.TxConfig, tx
 func signPbTx2(txConfig client.TxConfig, txf authtypes.TxBuilder, name string, passwd string, pbTxBld client.TxBuilder, overwriteSig bool, msgs ...txmsg.Msg) ([]byte, error) {
 	sigs := make([]signing.SignatureV2, 1)
 	privKey, _ := txf.Keybase().ExportPrivateKeyObject(name, passwd)
-	ppk, ok := privKey.(ethsecp256k1.PrivKey)
+	pkBytes, ok := privKey.(ethsecp256k1.PrivKey)
 	if !ok {
 		panic("not ok")
 	}
-	privKey2 := secp256k1.PrivKey{
-		Key: ppk,
+	//privKey2 := secp256k1.PrivKey{
+	//	Key: ppk,
+	//}
+	privKeyPb := ethsecp256k12.PrivKey{
+		Key: pkBytes,
 	}
 	signMode := txConfig.SignModeHandler().DefaultMode()
 
@@ -254,7 +259,7 @@ func signPbTx2(txConfig client.TxConfig, txf authtypes.TxBuilder, name string, p
 	// signer infos.
 	for i, _ := range sigs {
 		sigs[i] = signing.SignatureV2{
-			PubKey: privKey2.PubKey(),
+			PubKey: privKeyPb.PubKey(),
 			Data: &signing.SingleSignatureData{
 				SignMode: signMode,
 			},
@@ -294,7 +299,7 @@ func signPbTx2(txConfig client.TxConfig, txf authtypes.TxBuilder, name string, p
 		if err != nil {
 			panic(err)
 		}
-		sig, err := privKey2.Sign(signBytes)
+		sig, err := privKeyPb.Sign(signBytes)
 		if err != nil {
 			panic(err)
 		}
@@ -374,8 +379,9 @@ func signPbTx(txConfig client.TxConfig, txf authtypes.TxBuilder, name string, pa
 		SignMode:  signMode,
 		Signature: nil,
 	}
+	aaa := key.GetPubKey()
 	sig := signing.SignatureV2{
-		PubKey:   pbPubkey, //key.GetPubKey(),
+		PubKey:   aaa.(cryptotypes.PubKey), //pbPubkey, //key.GetPubKey(),
 		Data:     &sigData,
 		Sequence: txf.Sequence(),
 	}
