@@ -37,6 +37,7 @@ func init() {
 		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
 		milestoneMarsHeight = string2number(MILESTONE_MARS_HEIGHT)
 		milestoneVenus1Height = string2number(MILESTONE_VENUS1_HEIGHT)
+		milestoneVenus1Height = 1
 	})
 }
 
@@ -105,6 +106,7 @@ func GetMercuryHeight() int64 {
 func GetMarsHeight() int64 {
 	return milestoneMarsHeight
 }
+
 // can be used in unit test only
 func UnittestOnlySetMilestoneVenusHeight(height int64) {
 	milestoneVenusHeight = height

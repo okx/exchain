@@ -102,6 +102,20 @@ func (key PubKey) Address() tmcrypto.Address {
 	return tmcrypto.Address(ethcrypto.PubkeyToAddress(*pubk).Bytes())
 }
 
+func (key PubKey) Raw() *ecdsa.PublicKey {
+	pubk, err := ethcrypto.DecompressPubkey(key)
+	if err != nil {
+		panic(err)
+	}
+	return pubk
+}
+
+func (key PubKey) RawData() []byte {
+	bs := []byte{}
+	copy(bs[:], key[:])
+	return bs
+}
+
 // Bytes returns the raw bytes of the ECDSA public key.
 // The function panics if the key cannot be marshaled to bytes.
 func (key PubKey) Bytes() []byte {

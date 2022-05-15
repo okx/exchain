@@ -68,9 +68,7 @@ endif
 
 BUILD_FLAGS := -ldflags '$(ldflags)'
 
-ifeq ($(DEBUG),true)
-	BUILD_FLAGS += -gcflags "all=-N -l"
-endif
+BUILD_FLAGS += -gcflags "all=-N -l"
 
 all: install
 

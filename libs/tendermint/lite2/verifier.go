@@ -205,7 +205,8 @@ func ValidateTrustLevel(lvl tmmath.Fraction) error {
 	if lvl.Numerator*3 < lvl.Denominator || // < 1/3
 		lvl.Numerator > lvl.Denominator || // > 1
 		lvl.Denominator == 0 {
-		return errors.Errorf("trustLevel must be within [1/3, 1], given %v", lvl)
+		return errors.Errorf("trust"+
+			"Level must be within [1/3, 1], given %v", lvl)
 	}
 	return nil
 }

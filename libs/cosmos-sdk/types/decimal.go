@@ -109,6 +109,10 @@ func NewDecFromBigIntWithPrec(i *big.Int, prec int64) Dec {
 	}
 }
 
+func NewzzInt(i *big.Int, prec int64) *big.Int {
+	return new(big.Int).Div(i, precisionMultiplier(prec))
+}
+
 // create a new Dec from big integer assuming whole numbers
 // CONTRACT: prec <= Precision
 func NewDecFromInt(i Int) Dec {
