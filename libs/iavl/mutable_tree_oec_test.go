@@ -110,10 +110,10 @@ func TestSaveVersionCommitIntervalHeight(t *testing.T) {
 	tree.Set([]byte(k2), []byte("k22"))
 	_, _, _, err = tree.SaveVersion(false)
 
-	tree.ndb.sanityCheckHandleOrphansResult(tree.version+1)
+	tree.ndb.sanityCheckHandleOrphansResult(tree.version + 1)
 	tree.ndb.oi.enqueueResult(tree.version)
 
-	require.Equal(t, 5, len(tree.ndb.prePersistNodeCache)+tree.ndb.nc.nodeCacheLen())
+	require.Equal(t, 5, tree.ndb.prePersistNodeCacheLen()+tree.ndb.nc.nodeCacheLen())
 	require.Equal(t, 3, tree.ndb.oi.orphanNodeCacheLen())
 
 	_, _, _, err = tree.SaveVersion(false)
@@ -126,7 +126,7 @@ func TestSaveVersionCommitIntervalHeight(t *testing.T) {
 
 	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
-	require.Equal(t, 0, len(tree.ndb.prePersistNodeCache))
+	require.Equal(t, 0, tree.ndb.prePersistNodeCacheLen())
 	require.Equal(t, 0, tree.ndb.oi.orphanNodeCacheLen())
 
 	//require.Equal(t, 5, len(tree.ndb.nodeCache)+len(tree.ndb.tempPrePersistNodeCache))

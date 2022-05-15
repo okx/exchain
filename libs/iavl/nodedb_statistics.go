@@ -2,6 +2,7 @@ package iavl
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/system/trace"
 	"sync/atomic"
 )
 
@@ -122,29 +123,37 @@ func (s *RuntimeState) increaseDeletedCount() {
 	s.totalDeletedCount++
 }
 
+func inOutputModules(name string) bool {
+	v, ok := OutputModules[name]
+	return ok && v != 0
+}
 
 //================================
-func (ndb *nodeDB) sprintCacheLog(version int64) string {
+func (ndb *nodeDB) sprintCacheLog(version int64) (printLog string) {
 	if !EnableAsyncCommit {
-		return ""
+		return
+	}
+
+	if !inOutputModules(ndb.name) {
+		return
 	}
 
 	nodeReadCount := ndb.state.getNodeReadCount()
 	cacheReadCount := ndb.state.getNodeReadCount() - ndb.state.getDBReadCount()
-	printLog := fmt.Sprintf("Save Version<%d>: Tree<%s>", version, ndb.name)
+	header := fmt.Sprintf("Save Version<%d>: Tree<%s>, ", version, ndb.name)
 
-	printLog += fmt.Sprintf(", getNode[fromPpnc:%d, fromTpp:%d, fromNodeCache:%d, fromOrphanCache:%d, fromDisk:%d]",
+	printLog = fmt.Sprintf("getNodeFrom<ppnc=%d, tpp=%d, nodeCache=%d, orphanCache=%d, disk=%d>",
 		ndb.state.fromPpnc,
 		ndb.state.fromTpp,
 		ndb.state.fromNodeCache,
 		ndb.state.fromOrphanCache,
 		ndb.state.fromDisk)
-	printLog += fmt.Sprintf(", ppnc:%d", len(ndb.prePersistNodeCache))
+	printLog += fmt.Sprintf(", ppncCache:%d", len(ndb.prePersistNodeCache))
 	printLog += fmt.Sprintf(", nodeCache:%d", ndb.nc.nodeCacheLen())
 	printLog += fmt.Sprintf(", orphanCache:%d", ndb.oi.orphanNodeCacheLen())
-	printLog += fmt.Sprintf(", totalPpncSize:%d", treeMap.totalPpncSize)
-	printLog += fmt.Sprintf(", evmPpncSize:%d", treeMap.evmPpncSize)
-	printLog += fmt.Sprintf(", accPpncSize:%d", treeMap.accPpncSize)
+	printLog += fmt.Sprintf(", totalPpnc:%d", treeMap.totalPpncSize)
+	printLog += fmt.Sprintf(", evmPpnc:%d", treeMap.evmPpncSize)
+	printLog += fmt.Sprintf(", accPpnc:%d", treeMap.accPpncSize)
 	printLog += fmt.Sprintf(", dbRCnt:%d", ndb.state.getDBReadCount())
 	printLog += fmt.Sprintf(", dbWCnt:%d", ndb.state.getDBWriteCount())
 	printLog += fmt.Sprintf(", nodeRCnt:%d", ndb.state.getNodeReadCount())
@@ -159,7 +168,11 @@ func (ndb *nodeDB) sprintCacheLog(version int64) string {
 	printLog += fmt.Sprintf(", TDelCnt:%d", atomic.LoadInt64(&ndb.state.totalDeletedCount))
 	printLog += fmt.Sprintf(", TOrphanCnt:%d", atomic.LoadInt64(&ndb.state.totalOrphanCount))
 
-	return printLog
+	if ndb.name == "evm" {
+		trace.GetElapsedInfo().AddInfo(trace.IavlRuntime, printLog)
+	}
+
+	return header+printLog
 }
 
 

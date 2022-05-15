@@ -154,11 +154,15 @@ run() {
     $p2p_seed_opt $p2p_seed_arg \
     --p2p.laddr tcp://${IP}:${p2pport} \
     --rpc.laddr tcp://${IP}:${rpcport} \
-    --consensus.timeout_commit 600ms \
     --log_level ${LOG_LEVEL} \
     --chain-id ${CHAIN_ID} \
     --upload-delta=false \
     --enable-gid \
+    --consensus.timeout_commit 6000ms \
+    --block-part-size 64 \
+    --block-compress-type 1 \
+    --block-compress-flag 1 \
+    --block-compress-threshold 512 \
     --append-pid=true \
     ${LOG_SERVER} \
     --elapsed DeliverTxs=0,Round=1,CommitRound=1,Produce=1 \

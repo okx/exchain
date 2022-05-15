@@ -105,6 +105,7 @@ func GetMercuryHeight() int64 {
 func GetMarsHeight() int64 {
 	return milestoneMarsHeight
 }
+
 // can be used in unit test only
 func UnittestOnlySetMilestoneVenusHeight(height int64) {
 	milestoneVenusHeight = height
