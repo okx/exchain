@@ -264,6 +264,7 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 }
 
 func (cs *State) unmarshalBlock() error {
+	// todo: suppress panic
 	// uncompress blockParts bytes if necessary
 	pbpReader, err := types.UncompressBlockFromReader(cs.ProposalBlockParts.GetReader())
 	if err != nil {
