@@ -126,10 +126,8 @@ func (cs *State) handleMsg(mi msgInfo) {
 		// RoundState with the updated copy or by emitting RoundState events in
 		// more places for routines depending on it to listen for.
 
-		// todo: release cs.mtx?
-		//cs.mtx.Unlock()
-		//cs.mtx.Lock()
-
+		cs.mtx.Unlock()
+		cs.mtx.Lock()
 		if added && cs.ProposalBlockParts.IsComplete() {
 			cs.handleCompleteProposal(msg.Height)
 		}
