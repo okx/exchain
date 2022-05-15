@@ -279,23 +279,13 @@ func (cs *State) unmarshalBlock() error {
 	return err
 }
 
-// NOTE: block is not necessarily valid.
-// Asynchronously triggers either enterPrevote (before we timeout of propose) or tryFinalizeCommit,
-// once we have the full block.
-func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (added bool, err error) {
-	height, round, part := msg.Height, msg.Round, msg.Part
-
-	if automation.BlockIsNotCompleted(height, round) {
-		return false, nil
-	}
-
-	automation.AddBlockTimeOut(height, round)
+func (cs *State) addBlockPart(height int64, round int, part *types.Part, peerID p2p.ID) (added bool, err error) {
 
 	// Blocks might be reused, so round mismatch is OK
 	if cs.Height != height {
 		cs.bt.droppedDue2WrongHeight++
 		cs.Logger.Debug("Received block part from wrong height", "height", height, "round", round)
-		return false, nil
+		return
 	}
 
 	// We're not expecting a block part.
@@ -305,7 +295,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		cs.Logger.Info("Received a block part when we're not expecting any",
 			"height", height, "round", round, "index", part.Index, "peer", peerID)
 		cs.bt.droppedDue2NotExpected++
-		return false, nil
+		return
 	}
 
 	added, err = cs.ProposalBlockParts.AddPart(part)
@@ -317,58 +307,68 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		cs.bt.on1stPart(height)
 	}
 
-	if err != nil {
-		return added, err
+	return
+}
+
+// NOTE: block is not necessarily valid.
+// Asynchronously triggers either enterPrevote (before we timeout of propose) or tryFinalizeCommit,
+// once we have the full block.
+func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (added bool, err error) {
+	height, round, part := msg.Height, msg.Round, msg.Part
+	if automation.BlockIsNotCompleted(height, round) {
+		return
 	}
+	automation.AddBlockTimeOut(height, round)
+
+	added, err = cs.addBlockPart(height, round, part, peerID)
+
 	if added && cs.ProposalBlockParts.IsComplete() {
 		err = cs.unmarshalBlock()
 		if err != nil {
-			return added, err
+			return
 		}
-
 		cs.bt.onRecvBlock(height)
 		cs.bt.totalParts = cs.ProposalBlockParts.Total()
 		cs.trc.Pin("lastPart")
 		if cs.prerunTx {
 			cs.blockExec.NotifyPrerun(cs.ProposalBlock) // 3. addProposalBlockPart
 		}
-
 		// receive Deltas from BlockMessage and put into State(cs)
 		cs.Deltas = msg.Deltas
-
 		// NOTE: it's possible to receive complete proposal blocks for future rounds without having the proposal
 		cs.Logger.Info("Received complete proposal block", "height", cs.ProposalBlock.Height, "hash", cs.ProposalBlock.Hash())
 		cs.eventBus.PublishEventCompleteProposal(cs.CompleteProposalEvent())
-
-		// Update Valid* if we can.
-		prevotes := cs.Votes.Prevotes(cs.Round)
-		blockID, hasTwoThirds := prevotes.TwoThirdsMajority()
-		if hasTwoThirds && !blockID.IsZero() && (cs.ValidRound < cs.Round) {
-			if cs.ProposalBlock.HashesTo(blockID.Hash) {
-				cs.Logger.Info("Updating valid block to new proposal block",
-					"valid-round", cs.Round, "valid-block-hash", cs.ProposalBlock.Hash())
-				cs.ValidRound = cs.Round
-				cs.ValidBlock = cs.ProposalBlock
-				cs.ValidBlockParts = cs.ProposalBlockParts
-			}
-			// TODO: In case there is +2/3 majority in Prevotes set for some
-			// block and cs.ProposalBlock contains different block, either
-			// proposer is faulty or voting power of faulty processes is more
-			// than 1/3. We should trigger in the future accountability
-			// procedure at this point.
-		}
-
-		if cs.Step <= cstypes.RoundStepPropose && cs.isProposalComplete() {
-			// Move onto the next step
-			cs.enterPrevote(height, cs.Round)
-			if hasTwoThirds { // this is optimisation as this will be triggered when prevote is added
-				cs.enterPrecommit(height, cs.Round)
-			}
-		} else if cs.Step == cstypes.RoundStepCommit {
-			// If we're waiting on the proposal block...
-			cs.tryFinalizeCommit(height)
-		}
-		return added, nil
 	}
-	return added, nil
+	return
+}
+
+func (cs *State) handleCompleteProposal(height int64) {
+	// Update Valid* if we can.
+	prevotes := cs.Votes.Prevotes(cs.Round)
+	blockID, hasTwoThirds := prevotes.TwoThirdsMajority()
+	if hasTwoThirds && !blockID.IsZero() && (cs.ValidRound < cs.Round) {
+		if cs.ProposalBlock.HashesTo(blockID.Hash) {
+			cs.Logger.Debug("Updating valid block to new proposal block",
+				"valid_round", cs.Round, "valid_block_hash", cs.ProposalBlock.Hash(), )
+			cs.ValidRound = cs.Round
+			cs.ValidBlock = cs.ProposalBlock
+			cs.ValidBlockParts = cs.ProposalBlockParts
+		}
+		// TODO: In case there is +2/3 majority in Prevotes set for some
+		// block and cs.ProposalBlock contains different block, either
+		// proposer is faulty or voting power of faulty processes is more
+		// than 1/3. We should trigger in the future accountability
+		// procedure at this point.
+	}
+
+	if cs.Step <= cstypes.RoundStepPropose && cs.isProposalComplete() {
+		// Move onto the next step
+		cs.enterPrevote(height, cs.Round)
+		if hasTwoThirds { // this is optimisation as this will be triggered when prevote is added
+			cs.enterPrecommit(height, cs.Round)
+		}
+	} else if cs.Step == cstypes.RoundStepCommit {
+		// If we're waiting on the proposal block...
+		cs.tryFinalizeCommit(height)
+	}
 }
