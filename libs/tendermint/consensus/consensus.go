@@ -148,7 +148,7 @@ type State struct {
 	trc *trace.Tracer
 
 	prerunTx bool
-	bt *BlockTransport
+	bt       *BlockTransport
 }
 
 // StateOption sets an optional parameter on the State.
@@ -488,7 +488,6 @@ func (cs *State) needProofBlock(height int64) bool {
 	}
 	return !bytes.Equal(cs.state.AppHash, lastBlockMeta.Header.AppHash)
 }
-
 
 func (cs *State) recordMetrics(height int64, block *types.Block) {
 	cs.metrics.Validators.Set(float64(cs.Validators.Size()))
