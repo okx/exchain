@@ -231,7 +231,7 @@ type KVStore interface {
 }
 
 type CacheManager interface {
-	IteratorCache(cb func(key, value []byte, isDirty bool) bool) bool
+	IteratorCache(isdirty bool, cb func(key string, value []byte, isDirty bool, isDelete bool, storeKey StoreKey) bool, sKey StoreKey) bool
 }
 
 // Alias iterator to db's Iterator for convenience.
@@ -304,6 +304,7 @@ const (
 	StoreTypeDB
 	StoreTypeIAVL
 	StoreTypeTransient
+	StoreTypeMPT
 	StoreTypeMemory
 )
 

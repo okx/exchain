@@ -3,7 +3,6 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 
@@ -32,6 +31,8 @@ func (app *BaseApp) getModeHandler(mode runTxMode) modeHandler {
 	case runTxModeTrace:
 		h = &modeHandlerTrace{&modeHandlerDeliver{&modeHandlerBase{mode: mode, app: app}}}
 	case runTxModeDeliver:
+		fallthrough
+	case runTxModeDeliverPartConcurrent:
 		h = &modeHandlerDeliver{&modeHandlerBase{mode: mode, app: app}}
 	case runTxModeSimulate:
 		h = &modeHandlerSimulate{&modeHandlerBase{mode: mode, app: app}}

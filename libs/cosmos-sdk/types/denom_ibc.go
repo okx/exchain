@@ -4,6 +4,9 @@ import (
 	"fmt"
 )
 
+// DefaultIbcWei for ibc transfer default okt min unit
+const DefaultIbcWei = "wei"
+
 // baseDenom is the denom of smallest unit registered
 var baseDenom string
 

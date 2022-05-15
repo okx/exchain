@@ -3,7 +3,12 @@ package secp256k1
 import (
 	"bytes"
 	"crypto/sha256"
+	"crypto/subtle"
 	"fmt"
+	"io"
+	"math/big"
+
+	secp256k1 "github.com/btcsuite/btcd/btcec"
 
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"golang.org/x/crypto/ripemd160" // nolint: staticcheck // necessary for Bitcoin address format
@@ -24,113 +29,113 @@ const (
 )
 
 // Bytes returns the byte representation of the Private Key.
-// func (privKey *PrivKey) Bytes() []byte {
-// 	return privKey.Key
-// }
+func (privKey *PrivKey) Bytes() []byte {
+	return privKey.Key
+}
 
-// // PubKey performs the point-scalar multiplication from the privKey on the
-// // generator point to get the pubkey.
-// func (privKey *PrivKey) PubKey() cryptotypes.PubKey {
-// 	_, pubkeyObject := secp256k1.PrivKeyFromBytes(secp256k1.S256(), privKey.Key)
-// 	pk := pubkeyObject.SerializeCompressed()
-// 	return &PubKey{Key: pk}
-// }
+// PubKey performs the point-scalar multiplication from the privKey on the
+// generator point to get the pubkey.
+func (privKey *PrivKey) PubKey() cryptotypes.PubKey {
+	_, pubkeyObject := secp256k1.PrivKeyFromBytes(secp256k1.S256(), privKey.Key)
+	pk := pubkeyObject.SerializeCompressed()
+	return &PubKey{Key: pk}
+}
 
-// // Equals - you probably don't need to use this.
-// // Runs in constant time based on length of the
-// func (privKey *PrivKey) Equals(other cryptotypes.LedgerPrivKey) bool {
-// 	return privKey.Type() == other.Type() && subtle.ConstantTimeCompare(privKey.Bytes(), other.Bytes()) == 1
-// }
+// Equals - you probably don't need to use this.
+// Runs in constant time based on length of the
+func (privKey *PrivKey) Equals(other cryptotypes.LedgerPrivKey) bool {
+	return privKey.Type() == other.Type() && subtle.ConstantTimeCompare(privKey.Bytes(), other.Bytes()) == 1
+}
 
-// func (privKey *PrivKey) Type() string {
-// 	return keyType
-// }
+func (privKey *PrivKey) Type() string {
+	return keyType
+}
 
-// // MarshalAmino overrides Amino binary marshalling.
-// func (privKey PrivKey) MarshalAmino() ([]byte, error) {
-// 	return privKey.Key, nil
-// }
+// MarshalAmino overrides Amino binary marshalling.
+func (privKey PrivKey) MarshalAmino() ([]byte, error) {
+	return privKey.Key, nil
+}
 
-// // UnmarshalAmino overrides Amino binary marshalling.
-// func (privKey *PrivKey) UnmarshalAmino(bz []byte) error {
-// 	if len(bz) != PrivKeySize {
-// 		return fmt.Errorf("invalid privkey size")
-// 	}
-// 	privKey.Key = bz
+// UnmarshalAmino overrides Amino binary marshalling.
+func (privKey *PrivKey) UnmarshalAmino(bz []byte) error {
+	if len(bz) != PrivKeySize {
+		return fmt.Errorf("invalid privkey size")
+	}
+	privKey.Key = bz
 
-// 	return nil
-// }
+	return nil
+}
 
-// // MarshalAminoJSON overrides Amino JSON marshalling.
-// func (privKey PrivKey) MarshalAminoJSON() ([]byte, error) {
-// 	// When we marshal to Amino JSON, we don't marshal the "key" field itself,
-// 	// just its contents (i.e. the key bytes).
-// 	return privKey.MarshalAmino()
-// }
+// MarshalAminoJSON overrides Amino JSON marshalling.
+func (privKey PrivKey) MarshalAminoJSON() ([]byte, error) {
+	// When we marshal to Amino JSON, we don't marshal the "key" field itself,
+	// just its contents (i.e. the key bytes).
+	return privKey.MarshalAmino()
+}
 
-// // UnmarshalAminoJSON overrides Amino JSON marshalling.
-// func (privKey *PrivKey) UnmarshalAminoJSON(bz []byte) error {
-// 	return privKey.UnmarshalAmino(bz)
-// }
+// UnmarshalAminoJSON overrides Amino JSON marshalling.
+func (privKey *PrivKey) UnmarshalAminoJSON(bz []byte) error {
+	return privKey.UnmarshalAmino(bz)
+}
 
-// // GenPrivKey generates a new ECDSA private key on curve secp256k1 private key.
-// // It uses OS randomness to generate the private key.
-// func GenPrivKey() *PrivKey {
-// 	return &PrivKey{Key: genPrivKey(crypto.CReader())}
-// }
+// GenPrivKey generates a new ECDSA private key on curve secp256k1 private key.
+// It uses OS randomness to generate the private key.
+func GenPrivKey() *PrivKey {
+	return &PrivKey{Key: genPrivKey(crypto.CReader())}
+}
 
-// // genPrivKey generates a new secp256k1 private key using the provided reader.
-// func genPrivKey(rand io.Reader) []byte {
-// 	var privKeyBytes [PrivKeySize]byte
-// 	d := new(big.Int)
-// 	for {
-// 		privKeyBytes = [PrivKeySize]byte{}
-// 		_, err := io.ReadFull(rand, privKeyBytes[:])
-// 		if err != nil {
-// 			panic(err)
-// 		}
+// genPrivKey generates a new secp256k1 private key using the provided reader.
+func genPrivKey(rand io.Reader) []byte {
+	var privKeyBytes [PrivKeySize]byte
+	d := new(big.Int)
+	for {
+		privKeyBytes = [PrivKeySize]byte{}
+		_, err := io.ReadFull(rand, privKeyBytes[:])
+		if err != nil {
+			panic(err)
+		}
 
-// 		d.SetBytes(privKeyBytes[:])
-// 		// break if we found a valid point (i.e. > 0 and < N == curverOrder)
-// 		isValidFieldElement := 0 < d.Sign() && d.Cmp(secp256k1.S256().N) < 0
-// 		if isValidFieldElement {
-// 			break
-// 		}
-// 	}
+		d.SetBytes(privKeyBytes[:])
+		// break if we found a valid point (i.e. > 0 and < N == curverOrder)
+		isValidFieldElement := 0 < d.Sign() && d.Cmp(secp256k1.S256().N) < 0
+		if isValidFieldElement {
+			break
+		}
+	}
 
-// 	return privKeyBytes[:]
-// }
+	return privKeyBytes[:]
+}
 
-// var one = new(big.Int).SetInt64(1)
+var one = new(big.Int).SetInt64(1)
 
-// // GenPrivKeyFromSecret hashes the secret with SHA2, and uses
-// // that 32 byte output to create the private key.
-// //
-// // It makes sure the private key is a valid field element by setting:
-// //
-// // c = sha256(secret)
-// // k = (c mod (n − 1)) + 1, where n = curve order.
-// //
-// // NOTE: secret should be the output of a KDF like bcrypt,
-// // if it's derived from user input.
-// func GenPrivKeyFromSecret(secret []byte) *PrivKey {
-// 	secHash := sha256.Sum256(secret)
-// 	// to guarantee that we have a valid field element, we use the approach of:
-// 	// "Suite B Implementer’s Guide to FIPS 186-3", A.2.1
-// 	// https://apps.nsa.gov/iaarchive/library/ia-guidance/ia-solutions-for-classified/algorithm-guidance/suite-b-implementers-guide-to-fips-186-3-ecdsa.cfm
-// 	// see also https://github.com/golang/go/blob/0380c9ad38843d523d9c9804fe300cb7edd7cd3c/src/crypto/ecdsa/ecdsa.go#L89-L101
-// 	fe := new(big.Int).SetBytes(secHash[:])
-// 	n := new(big.Int).Sub(secp256k1.S256().N, one)
-// 	fe.Mod(fe, n)
-// 	fe.Add(fe, one)
+// GenPrivKeyFromSecret hashes the secret with SHA2, and uses
+// that 32 byte output to create the private key.
+//
+// It makes sure the private key is a valid field element by setting:
+//
+// c = sha256(secret)
+// k = (c mod (n − 1)) + 1, where n = curve order.
+//
+// NOTE: secret should be the output of a KDF like bcrypt,
+// if it's derived from user input.
+func GenPrivKeyFromSecret(secret []byte) *PrivKey {
+	secHash := sha256.Sum256(secret)
+	// to guarantee that we have a valid field element, we use the approach of:
+	// "Suite B Implementer’s Guide to FIPS 186-3", A.2.1
+	// https://apps.nsa.gov/iaarchive/library/ia-guidance/ia-solutions-for-classified/algorithm-guidance/suite-b-implementers-guide-to-fips-186-3-ecdsa.cfm
+	// see also https://github.com/golang/go/blob/0380c9ad38843d523d9c9804fe300cb7edd7cd3c/src/crypto/ecdsa/ecdsa.go#L89-L101
+	fe := new(big.Int).SetBytes(secHash[:])
+	n := new(big.Int).Sub(secp256k1.S256().N, one)
+	fe.Mod(fe, n)
+	fe.Add(fe, one)
 
-// 	feB := fe.Bytes()
-// 	privKey32 := make([]byte, PrivKeySize)
-// 	// copy feB over to fixed 32 byte privKey32 and pad (if necessary)
-// 	copy(privKey32[32-len(feB):32], feB)
+	feB := fe.Bytes()
+	privKey32 := make([]byte, PrivKeySize)
+	// copy feB over to fixed 32 byte privKey32 and pad (if necessary)
+	copy(privKey32[32-len(feB):32], feB)
 
-// 	return &PrivKey{Key: privKey32}
-// }
+	return &PrivKey{Key: privKey32}
+}
 
 //-------------------------------------
 

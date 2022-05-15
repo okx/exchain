@@ -63,7 +63,7 @@ func main() {
 	// Add --chain-id to persistent flags and mark it required
 	rootCmd.PersistentFlags().String(flags.FlagChainID, "", "Chain ID of tendermint node")
 	rootCmd.PersistentPreRunE = func(_ *cobra.Command, _ []string) error {
-		utils.SetParseAppTx(parseMsgEthereumTx)
+		utils.SetParseAppTx(wrapDecoder(parseMsgEthereumTx, parseProtobufTx))
 		return client.InitConfig(rootCmd)
 	}
 	protoCdc := sdkcodec.NewProtoCodec(interfaceReg)
@@ -102,7 +102,7 @@ func queryCmd(proxy *sdkcodec.CodecProxy, reg interfacetypes.InterfaceRegistry) 
 		authcmd.GetAccountCmd(cdc),
 		flags.LineBreak,
 		authcmd.QueryTxsByEventsCmd(cdc),
-		authcmd.QueryTxCmd(cdc),
+		authcmd.QueryTxCmd(proxy),
 		flags.LineBreak,
 	)
 
@@ -152,7 +152,22 @@ func txCmd(proxy *sdkcodec.CodecProxy, reg interfacetypes.InterfaceRegistry) *co
 	return txCmd
 }
 
-func parseMsgEthereumTx(cdc *sdkcodec.Codec, txBytes []byte) (sdk.Tx, error) {
+func wrapDecoder(handlers ...utils.ParseAppTxHandler) utils.ParseAppTxHandler {
+	return func(cdc *sdkcodec.CodecProxy, txBytes []byte) (sdk.Tx, error) {
+		var (
+			tx  sdk.Tx
+			err error
+		)
+		for _, handler := range handlers {
+			tx, err = handler(cdc, txBytes)
+			if nil == err && tx != nil {
+				return tx, err
+			}
+		}
+		return tx, err
+	}
+}
+func parseMsgEthereumTx(cdc *sdkcodec.CodecProxy, txBytes []byte) (sdk.Tx, error) {
 	var tx evmtypes.MsgEthereumTx
 	// try to decode through RLP first
 	if err := authtypes.EthereumTxDecode(txBytes, &tx); err == nil {
@@ -163,4 +178,16 @@ func parseMsgEthereumTx(cdc *sdkcodec.Codec, txBytes []byte) (sdk.Tx, error) {
 		return nil, err
 	}
 	return &tx, nil
+}
+
+func parseProtobufTx(cdc *sdkcodec.CodecProxy, txBytes []byte) (sdk.Tx, error) {
+	tx, err := evmtypes.TxDecoder(cdc)(txBytes, evmtypes.IGNORE_HEIGHT_CHECKING)
+	if nil != err {
+		return nil, err
+	}
+	switch realTx := tx.(type) {
+	case *authtypes.IbcTx:
+		return authtypes.FromProtobufTx(cdc, realTx)
+	}
+	return tx, err
 }

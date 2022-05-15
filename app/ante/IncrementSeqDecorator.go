@@ -28,9 +28,10 @@ func NewIncrementSenderSequenceDecorator(ak auth.AccountKeeper) IncrementSenderS
 func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
 	pinAnte(ctx.AnteTracer(), "IncrementSenderSequenceDecorator")
 
-	// always incrementing the sequence when ctx is recheckTx mode (when mempool in disableRecheck mode, we will also has force recheck),
-	// when mempool is in enableRecheck mode, we will need to increase the nonce when ctx is checkTx mode
-	// when mempool is not in enableRecheck mode, we should not increment the nonce
+	// always incrementing the sequence when ctx is recheckTx mode (when mempool in disableRecheck mode, we will also has force recheck period),
+	// when just in check mode:
+	// A、when mempool is in enableRecheck mode, we will need to increase the nonce [means will not support tx replace with same nonce].
+	// B、when mempool is in disableRecheck mode [now support tx replace with same nonce], we should just return
 
 	// when IsCheckTx() is true, it will means checkTx and recheckTx mode, but IsReCheckTx() is true it must be recheckTx mode
 	// if IsTraceMode is true,  sequence must be set.

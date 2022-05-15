@@ -1,6 +1,7 @@
 package module
 
 import (
+	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	clictx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -17,6 +18,8 @@ type AppModuleBasicAdapter interface {
 	RegisterGRPCGatewayRoutes(clictx.CLIContext, *runtime.ServeMux)
 	GetTxCmdV2(cdc *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command
 	GetQueryCmdV2(cdc *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command
+
+	RegisterRouterForGRPC(cliCtx clictx.CLIContext, r *mux.Router)
 }
 
 // AppModuleGenesis is the standard form for an application module genesis functions

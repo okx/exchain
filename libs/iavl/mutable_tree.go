@@ -40,12 +40,12 @@ var (
 //
 // The inner ImmutableTree should not be used directly by callers.
 type MutableTree struct {
-	*ImmutableTree                   // The current, working tree.
-	lastSaved       *ImmutableTree   // The most recently saved tree.
-	orphans         []*Node          // Nodes removed by changes to working tree.Will refresh after each block
-	commitOrphans   map[string]int64 // Nodes removed by changes to working tree.Will refresh after each commit.
-	versions        *SyncMap         // The previous, saved versions of the tree.
-	removedVersions sync.Map         // The removed versions of the tree.
+	*ImmutableTree                 // The current, working tree.
+	lastSaved       *ImmutableTree // The most recently saved tree.
+	orphans         []*Node        // Nodes removed by changes to working tree.Will refresh after each block
+	commitOrphans   []commitOrphan // Nodes removed by changes to working tree.Will refresh after each commit.
+	versions        *SyncMap       // The previous, saved versions of the tree.
+	removedVersions sync.Map       // The removed versions of the tree.
 	ndb             *nodeDB
 
 	savedNodes map[string]*Node
@@ -59,6 +59,8 @@ type MutableTree struct {
 	lastPersistHeight int64
 	//for ibc module upgrade version
 	upgradeVersion int64
+
+	readableOrphansSlice []*Node
 }
 
 // NewMutableTree returns a new tree with the specified cache size and datastore.
@@ -86,7 +88,6 @@ func NewMutableTreeWithOpts(db dbm.DB, cacheSize int, opts *Options) (*MutableTr
 			savedNodes:    map[string]*Node{},
 			deltas:        &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}},
 			orphans:       []*Node{},
-			commitOrphans: map[string]int64{},
 			versions:      NewSyncMap(),
 			ndb:           ndb,
 
@@ -119,9 +120,8 @@ func (tree *MutableTree) IsEmpty() bool {
 
 // VersionExists returns whether or not a version exists.
 func (tree *MutableTree) VersionExists(version int64) bool {
-	tree.ndb.mtx.Lock()
-	defer tree.ndb.mtx.Unlock()
-	if tree.ndb.heightOrphansMap[version] != nil {
+	_, ok := tree.ndb.findRootHash(version)
+	if ok {
 		return true
 	}
 	return tree.versions.Get(version)
@@ -168,7 +168,9 @@ func (tree *MutableTree) prepareOrphansSlice() []*Node {
 // Set sets a key in the working tree. Nil values are invalid. The given key/value byte slices must
 // not be modified after this call, since they point to slices stored within IAVL.
 func (tree *MutableTree) Set(key, value []byte) bool {
-	orphaned, updated := tree.set(key, value)
+	// orphaned, updated := tree.set(key, value) // old code
+	orphaned := tree.makeOrphansSliceReady()
+	updated := tree.setWithOrphansSlice(key, value, &orphaned)
 	tree.addOrphans(orphaned)
 	return updated
 }
@@ -253,7 +255,9 @@ func (tree *MutableTree) recursiveSet(node *Node, key []byte, value []byte, orph
 // Remove removes a key from the working tree. The given key byte slice should not be modified
 // after this call, since it may point to data stored inside IAVL.
 func (tree *MutableTree) Remove(key []byte) ([]byte, bool) {
-	val, orphaned, removed := tree.remove(key)
+	// val, orphaned, removed := tree.remove(key) // old code
+	orphaned := tree.makeOrphansSliceReady()
+	val, removed := tree.removeWithOrphansSlice(key, &orphaned)
 	tree.addOrphans(orphaned)
 	return val, removed
 }
@@ -382,7 +386,7 @@ func (tree *MutableTree) LazyLoadVersion(targetVersion int64) (int64, error) {
 	tree.savedNodes = map[string]*Node{}
 	tree.deltas = &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
 	tree.orphans = []*Node{}
-	tree.commitOrphans = map[string]int64{}
+	tree.commitOrphans = nil
 	tree.ImmutableTree = iTree
 	tree.lastSaved = iTree.clone()
 
@@ -448,7 +452,7 @@ func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
 	tree.savedNodes = map[string]*Node{}
 	tree.deltas = &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
 	tree.orphans = []*Node{}
-	tree.commitOrphans = map[string]int64{}
+	tree.commitOrphans = nil
 	tree.ImmutableTree = t
 	tree.lastSaved = t.clone()
 	tree.lastPersistHeight = latestVersion
@@ -517,7 +521,7 @@ func (tree *MutableTree) Rollback() {
 	tree.savedNodes = map[string]*Node{}
 	tree.deltas = &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
 	tree.orphans = []*Node{}
-	tree.commitOrphans = map[string]int64{}
+	tree.commitOrphans = nil
 }
 
 // GetVersioned gets the value at the specified key and version. The returned value must not be
@@ -576,7 +580,7 @@ func (tree *MutableTree) SaveVersion(useDeltas bool) ([]byte, int64, TreeDelta, 
 			tree.savedNodes = map[string]*Node{}
 			tree.deltas = &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
 			tree.orphans = []*Node{}
-			tree.commitOrphans = map[string]int64{}
+			tree.commitOrphans = nil
 			return existingHash, version, *tree.deltas, nil
 		}
 
@@ -710,9 +714,9 @@ func (tree *MutableTree) DeleteVersions(versions ...int64) error {
 // DeleteVersionsRange removes versions from an interval from the MutableTree (not inclusive).
 // An error is returned if any single version has active readers.
 // All writes happen in a single batch with a single commit.
-func (tree *MutableTree) DeleteVersionsRange(fromVersion, toVersion int64) error {
+func (tree *MutableTree) DeleteVersionsRange(fromVersion, toVersion int64, enforce ...bool) error {
 	batch := tree.NewBatch()
-	if err := tree.ndb.DeleteVersionsRange(batch, fromVersion, toVersion); err != nil {
+	if err := tree.ndb.DeleteVersionsRange(batch, fromVersion, toVersion, enforce...); err != nil {
 		return err
 	}
 
@@ -901,7 +905,7 @@ func (tree *MutableTree) SetDelta(delta *TreeDelta) {
 
 		// set tree.commitOrphans
 		for _, v := range delta.CommitOrphansDelta {
-			tree.commitOrphans[v.Key] = v.CommitValue
+			tree.commitOrphans = append(tree.commitOrphans, commitOrphan{Version: v.CommitValue, NodeHash: amino.StrToBytes(v.Key)})
 		}
 	}
 }

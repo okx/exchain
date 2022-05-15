@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/okex/exchain/libs/system/trace"
+	"github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
 	"strings"
 
@@ -16,7 +18,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/innertx"
-	"github.com/okex/exchain/x/common/analyzer"
 )
 
 // StateTransition defines data to transitionDB in evm
@@ -111,8 +112,15 @@ func (st *StateTransition) newEVM(
 // returning the evm execution result.
 // NOTE: State transition checks are run during AnteHandler execution.
 func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exeRes *ExecutionResult, resData *ResultData, err error, innerTxs, erc20Contracts interface{}) {
+	preSSId := st.Csdb.Snapshot()
+	contractCreation := st.Recipient == nil
+
 	defer func() {
 		if e := recover(); e != nil {
+			if !st.Simulate {
+				st.Csdb.RevertToSnapshot(preSSId)
+			}
+
 			// if the msg recovered can be asserted into type 'ErrContractBlockedVerify', it must be captured by the panics of blocked
 			// contract calling
 			switch rType := e.(type) {
@@ -123,8 +131,6 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 			}
 		}
 	}()
-
-	contractCreation := st.Recipient == nil
 
 	cost, err := core.IntrinsicGas(st.Payload, []ethtypes.AccessTuple{}, contractCreation, config.IsHomestead(), config.IsIstanbul())
 	if err != nil {
@@ -149,12 +155,12 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	StartTxLog := func(tag string) {
 		if !ctx.IsCheckTx() {
-			analyzer.StartTxLog(tag)
+			trace.StartTxLog(tag)
 		}
 	}
 	StopTxLog := func(tag string) {
 		if !ctx.IsCheckTx() {
-			analyzer.StopTxLog(tag)
+			trace.StopTxLog(tag)
 		}
 	}
 
@@ -198,17 +204,25 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	switch contractCreation {
 	case true:
 		if !params.EnableCreate {
+			if !st.Simulate {
+				st.Csdb.RevertToSnapshot(preSSId)
+			}
+
 			return exeRes, resData, ErrCreateDisabled, innerTxs, erc20Contracts
 		}
 
 		// check whether the deployer address is in the whitelist if the whitelist is enabled
 		senderAccAddr := st.Sender.Bytes()
 		if params.EnableContractDeploymentWhitelist && !csdb.IsDeployerInWhitelist(senderAccAddr) {
+			if !st.Simulate {
+				st.Csdb.RevertToSnapshot(preSSId)
+			}
+
 			return exeRes, resData, ErrUnauthorizedAccount(senderAccAddr), innerTxs, erc20Contracts
 		}
 
-		StartTxLog(analyzer.EVMCORE)
-		defer StopTxLog(analyzer.EVMCORE)
+		StartTxLog(trace.EVMCORE)
+		defer StopTxLog(trace.EVMCORE)
 		ret, contractAddress, leftOverGas, err = evm.Create(senderRef, st.Payload, gasLimit, st.Amount)
 
 		contractAddressStr := EthAddressToString(&contractAddress)
@@ -217,13 +231,17 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		innertx.UpdateDefaultInnerTx(callTx, contractAddressStr, innertx.CosmosCallType, innertx.EvmCreateName, gasLimit-leftOverGas)
 	default:
 		if !params.EnableCall {
+			if !st.Simulate {
+				st.Csdb.RevertToSnapshot(preSSId)
+			}
+
 			return exeRes, resData, ErrCallDisabled, innerTxs, erc20Contracts
 		}
 
 		// Increment the nonce for the next transaction	(just for evm state transition)
 		csdb.SetNonce(st.Sender, csdb.GetNonce(st.Sender)+1)
-		StartTxLog(analyzer.EVMCORE)
-		defer StopTxLog(analyzer.EVMCORE)
+		StartTxLog(trace.EVMCORE)
+		defer StopTxLog(trace.EVMCORE)
 		ret, leftOverGas, err = evm.Call(senderRef, *st.Recipient, st.Payload, gasLimit, st.Amount)
 
 		if recipientStr == "" {
@@ -267,6 +285,10 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		}
 	}()
 	if err != nil {
+		if !st.Simulate {
+			st.Csdb.RevertToSnapshot(preSSId)
+		}
+
 		// Consume gas before returning
 		return exeRes, resData, newRevertError(ret, err), innerTxs, erc20Contracts
 	}
@@ -283,21 +305,23 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	)
 
 	if st.TxHash != nil && !st.Simulate {
-		logs = csdb.GetLogs()
+		logs, err = csdb.GetLogs(*st.TxHash)
+		if err != nil {
+			st.Csdb.RevertToSnapshot(preSSId)
+			return
+		}
 
 		bloomInt = big.NewInt(0).SetBytes(ethtypes.LogsBloom(logs))
 		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
 	}
 
-	if !st.Simulate || st.TraceTx {
-		// Finalise state if not a simulated transaction or a trace tx
-		// TODO: change to depend on config
-		if err = csdb.Finalise(true); err != nil {
-			return
-		}
-
-		if _, err = csdb.Commit(true); err != nil {
-			return
+	if !st.Simulate {
+		if types.HigherThanMars(ctx.BlockHeight()) {
+			if ctx.IsDeliver() {
+				csdb.IntermediateRoot(true)
+			}
+		} else {
+			csdb.Commit(true)
 		}
 	}
 

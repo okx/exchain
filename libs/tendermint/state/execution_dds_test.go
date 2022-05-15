@@ -219,20 +219,6 @@ func TestProduceDelta(t *testing.T) {
 	}
 }
 
-func TestAminoDecoder(t *testing.T) { testDecodeABCIResponse(t) }
-func testDecodeABCIResponse(t *testing.T) {
-	abciResponses1 := produceAbciRsp()
-
-	// encode
-	data, err := abciResponses1.MarshalToAmino(cdc)
-	require.NoError(t, err)
-
-	//decode
-	abciResponses2 := &ABCIResponses{}
-	err = abciResponses2.UnmarshalFromAmino(nil, data)
-	require.NoError(t, err)
-	require.Equal(t, abciResponses1, abciResponses2)
-}
 func BenchmarkMarshalJson(b *testing.B) {
 	abciResponses := produceAbciRsp()
 

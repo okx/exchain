@@ -26,10 +26,11 @@ var (
 // StdTx is a standard way to wrap a Msg with Fee and Signatures.
 // NOTE: the first signature is the fee payer (Signatures must not be nil).
 type StdTx struct {
-	Msgs       []sdk.Msg      `json:"msg" yaml:"msg"`
-	Fee        StdFee         `json:"fee" yaml:"fee"`
-	Signatures []StdSignature `json:"signatures" yaml:"signatures"`
-	Memo       string         `json:"memo" yaml:"memo"`
+	Msgs          []sdk.Msg      `json:"msg" yaml:"msg"`
+	Fee           StdFee         `json:"fee" yaml:"fee"`
+	Signatures    []StdSignature `json:"signatures" yaml:"signatures"`
+	Memo          string         `json:"memo" yaml:"memo"`
+	TimeoutHeight uint64         `json:"timeout_height" yaml:"timeout_height"`
 
 	sdk.BaseTx `json:"-" yaml:"-"`
 }
