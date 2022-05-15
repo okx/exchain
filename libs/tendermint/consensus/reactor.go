@@ -121,10 +121,7 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 	}
 
 	conR.Logger.Info("SwitchToConsensus")
-	// We have no votes, so reconstruct LastCommit from SeenCommit.
-	if state.LastBlockHeight > types.GetStartBlockHeight() {
-		conR.conS.reconstructLastCommit(state)
-	}
+	conR.conS.reconstructLastCommit(state)
 	// NOTE: The line below causes broadcastNewRoundStepRoutine() to
 	// broadcast a NewRoundStepMessage.
 	conR.conS.updateToState(state)
@@ -1537,7 +1534,7 @@ func (m *NewRoundStepMessage) ValidateBasic() error {
 	// NOTE: SecondsSinceStartTime may be negative
 
 	if (m.Height == types.GetStartBlockHeight()+1 && m.LastCommitRound != -1) ||
-		(m.Height > types.GetStartBlockHeight()+1 && m.LastCommitRound < 0) {
+		(m.Height > types.GetStartBlockHeight()+1 && m.LastCommitRound < -1) {
 		// TODO: #2737 LastCommitRound should always be >= 0 for heights > 1
 		return errors.New("invalid LastCommitRound (for 1st block: -1, for others: >= 0)")
 	}
