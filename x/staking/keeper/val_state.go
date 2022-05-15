@@ -88,7 +88,7 @@ func (k Keeper) KickOutAndReturnValidatorSetUpdates(ctx sdk.Context) (updates []
 				panic("Never occur")
 			}
 			var oldPower int64
-			k.cdc.MustUnmarshalBinaryLengthPrefixed(oldPowerBytes, &oldPower)
+			k.cdcMarshl.GetCdc().MustUnmarshalBinaryLengthPrefixed(oldPowerBytes, &oldPower)
 			totalPower = totalPower.Sub(sdk.NewInt(oldPower))
 		default:
 			panic("unexpected validator status")
@@ -127,7 +127,7 @@ func (k Keeper) AppendAbandonedValidatorAddrs(ctx sdk.Context, ConsAddr sdk.Cons
 	abandonedValAddr := k.getAbandonedValidatorAddrs(ctx)
 	// if there are several validators to destroy in one block
 	abandonedValAddr = append(abandonedValAddr, validator.OperatorAddress)
-	bytes := k.cdc.MustMarshalBinaryLengthPrefixed(abandonedValAddr)
+	bytes := k.cdcMarshl.GetCdc().MustMarshalBinaryLengthPrefixed(abandonedValAddr)
 	ctx.KVStore(k.storeKey).Set(types.ValidatorAbandonedKey, bytes)
 }
 
@@ -138,7 +138,7 @@ func (k Keeper) getAbandonedValidatorAddrs(ctx sdk.Context) (abandonedValAddr []
 		return
 	}
 
-	k.cdc.MustUnmarshalBinaryLengthPrefixed(bytes, &abandonedValAddr)
+	k.cdcMarshl.GetCdc().MustUnmarshalBinaryLengthPrefixed(bytes, &abandonedValAddr)
 	return
 }
 

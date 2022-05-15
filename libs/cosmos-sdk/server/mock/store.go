@@ -11,9 +11,14 @@ import (
 )
 
 var _ sdk.MultiStore = multiStore{}
+var _ sdk.CommitMultiStore = multiStore{}
 
 type multiStore struct {
 	kv map[sdk.StoreKey]kvStore
+}
+
+func (ms multiStore) AppendVersionFilters(filters []store.VersionFilter) {
+	panic("not implemented")
 }
 
 func (ms multiStore) CacheMultiStore() sdk.CacheMultiStore {
@@ -21,6 +26,13 @@ func (ms multiStore) CacheMultiStore() sdk.CacheMultiStore {
 }
 
 func (ms multiStore) CacheMultiStoreWithVersion(_ int64) (sdk.CacheMultiStore, error) {
+	panic("not implemented")
+}
+func (ms multiStore) AppendCommitFilters(filters []store.StoreFilter) {
+	panic("not implemented")
+}
+
+func (ms multiStore) AppendPruneFilters(filters []store.StoreFilter) {
 	panic("not implemented")
 }
 
@@ -133,6 +145,8 @@ func (ms multiStore) GetFlatKVReadCount() int {
 func (ms multiStore) GetFlatKVWriteCount() int {
 	return 0
 }
+
+func (ms multiStore) SetUpgradeVersion(int64) {}
 
 var _ sdk.KVStore = kvStore{}
 

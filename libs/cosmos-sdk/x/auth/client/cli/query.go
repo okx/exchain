@@ -156,13 +156,13 @@ $ %s query txs --%s 'message.sender=cosmos1...&message.action=withdraw_delegator
 }
 
 // QueryTxCmd implements the default command for a tx query.
-func QueryTxCmd(cdc *codec.Codec) *cobra.Command {
+func QueryTxCmd(cdc *codec.CodecProxy) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "tx [hash]",
 		Short: "Query for a transaction by hash in a committed block",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			cliCtx := context.NewCLIContext().WithProxy(cdc)
 
 			output, err := utils.QueryTx(cliCtx, args[0])
 			if err != nil {

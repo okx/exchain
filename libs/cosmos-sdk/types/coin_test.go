@@ -1,6 +1,8 @@
 package types
 
 import (
+	"fmt"
+	"math/big"
 	"strings"
 	"testing"
 
@@ -709,4 +711,17 @@ func TestMarshalJSONCoins(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestParsea(t *testing.T) {
+	r := new(big.Int)
+	re, ok := r.SetString("100123000000000000000", 10)
+	fmt.Println(ok)
+	fmt.Println(re.String())
+}
+
+func TestParseCoint(t *testing.T) {
+	ret, err := ParseCoin("10000123000000000000000okt")
+	fmt.Println(err)
+	fmt.Println(ret.String())
 }

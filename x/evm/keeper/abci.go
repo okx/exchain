@@ -20,6 +20,10 @@ import (
 // BeginBlock sets the block hash -> block height map for the previous block height
 // and resets the Bloom filter and the transaction count to 0.
 func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
+	if req.Header.GetHeight() == tmtypes.GetMarsHeight() {
+		migrateDataInMarsHeight(ctx, k)
+	}
+
 	if req.Header.LastBlockId.GetHash() == nil || req.Header.GetHeight() < 1 {
 		return
 	}
@@ -32,6 +36,7 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	lastHash := req.Header.LastBlockId.GetHash()
 	height := req.Header.GetHeight() - 1
 
+	blockHash := common.BytesToHash(currentHash)
 	k.SetHeightHash(ctx, uint64(height), common.BytesToHash(lastHash))
 	k.SetBlockHash(ctx, lastHash, height)
 	// reset counters that are used on CommitStateDB.Prepare
@@ -39,17 +44,20 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	k.TxCount = 0
 	k.LogSize = 0
 	k.LogsManages = NewLogManager()
-	k.Bhash = common.BytesToHash(currentHash)
+	k.Bhash = blockHash
 
 	//that can make sure latest block has been committed
-	k.Watcher.NewHeight(uint64(req.Header.GetHeight()), common.BytesToHash(currentHash), req.Header)
+	k.UpdatedAccount = k.UpdatedAccount[:0]
+	k.EvmStateDb = types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
+	k.EvmStateDb.StartPrefetcher("evm")
+	k.Watcher.NewHeight(uint64(req.Header.GetHeight()), blockHash, req.Header)
 }
 
 // EndBlock updates the accounts and commits state objects to the KV Store, while
 // deleting the empty ones. It also sets the bloom filers for the request block to
 // the store. The EVM end block logic doesn't update the validator set, thus it returns
 // an empty slice.
-func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
+func (k *Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
 	// Gas costs are handled within msg handler so costs should be ignored
 	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 
@@ -106,5 +114,43 @@ func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Valid
 
 	k.UpdateInnerBlockData()
 
+	k.Commit(ctx)
+
 	return []abci.ValidatorUpdate{}
+}
+
+// migrateDataInMarsHeight migrates data from evm store to evmlegacy store
+// 0. chainConfig
+// 1. white address list
+// 2. blocked addresses list
+func migrateDataInMarsHeight(ctx sdk.Context, k *Keeper) {
+	csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
+	newStore := ctx.KVStore(k.legacyStoreKey)
+
+	// 0. migrate chainConfig
+	config, _ := k.GetChainConfig(ctx)
+	newStore.Set(types.KeyPrefixChainConfig, k.cdc.MustMarshalBinaryBare(config))
+
+	// 1、migrate white list
+	whiteList := csdb.GetContractDeploymentWhitelist()
+	for i := 0; i < len(whiteList); i++ {
+		newStore.Set(types.GetContractDeploymentWhitelistMemberKey(whiteList[i]), []byte(""))
+	}
+
+	// 2.1、deploy blocked list
+	blockedList := csdb.GetContractBlockedList()
+	for i := 0; i < len(blockedList); i++ {
+		newStore.Set(types.GetContractBlockedListMemberKey(blockedList[i]), []byte(""))
+	}
+
+	// 2.2、migrate blocked method list
+	methodBlockedList := csdb.GetContractMethodBlockedList()
+	for i := 0; i < len(methodBlockedList); i++ {
+		if !methodBlockedList[i].IsAllMethodBlocked() {
+			types.SortContractMethods(methodBlockedList[i].BlockMethods)
+			value := k.cdc.MustMarshalJSON(methodBlockedList[i].BlockMethods)
+			sortedValue := sdk.MustSortJSON(value)
+			newStore.Set(types.GetContractBlockedListMemberKey(methodBlockedList[i].Address), sortedValue)
+		}
+	}
 }

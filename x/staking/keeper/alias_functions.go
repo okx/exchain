@@ -18,7 +18,7 @@ func (k Keeper) IterateValidators(ctx sdk.Context, fn func(index int64, validato
 	defer iterator.Close()
 	i := int64(0)
 	for ; iterator.Valid(); iterator.Next() {
-		validator := types.MustUnmarshalValidator(k.cdc, iterator.Value())
+		validator := types.MustUnmarshalValidator(k.cdcMarshl.GetCdc(), iterator.Value())
 		stop := fn(i, validator) // XXX is this safe will the validator unexposed fields be able to get written to?
 		if stop {
 			break

@@ -1252,14 +1252,14 @@ func newValidatorSMTestCase(mk keeper.MockStakingKeeper, params types.Params, st
 func getNewContext(ms store.MultiStore, height int64) sdk.Context {
 	header := abci.Header{ChainID: keeper.TestChainID, Height: height}
 	ctx := sdk.NewContext(ms, header, false, log.NewNopLogger())
-	ctx = ctx.WithConsensusParams(
+	ctx.SetConsensusParams(
 		&abci.ConsensusParams{
 			Validator: &abci.ValidatorParams{
 				PubKeyTypes: []string{tmtypes.ABCIPubKeyTypeEd25519},
 			},
 		},
 	)
-	ctx = ctx.WithBlockTime(time.Now())
+	ctx.SetBlockTime(time.Now())
 
 	GlobalContext = ctx
 	return ctx

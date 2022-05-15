@@ -1,15 +1,16 @@
 package deliver
 
 import (
+	bam "github.com/okex/exchain/libs/system/trace"
+	"github.com/okex/exchain/x/evm/watcher"
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/app/refund"
-	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/types"
-	"github.com/okex/exchain/x/evm/watcher"
-	"math/big"
 )
 
 type Tx struct {
@@ -29,7 +30,6 @@ func (tx *Tx) SaveTx(msg *types.MsgEthereumTx) {
 	tx.AnalyzeStart(bam.SaveTx)
 	defer tx.AnalyzeStop(bam.SaveTx)
 
-	tx.Keeper.Watcher.SaveEthereumTx(msg, *tx.StateTransition.TxHash, uint64(tx.Keeper.TxCount))
 	// Prepare db for logs
 	tx.StateTransition.Csdb.Prepare(*tx.StateTransition.TxHash, tx.Keeper.Bhash, tx.Keeper.TxCount)
 	tx.StateTransition.Csdb.SetLogSize(tx.Keeper.LogSize)
@@ -38,7 +38,8 @@ func (tx *Tx) SaveTx(msg *types.MsgEthereumTx) {
 
 func (tx *Tx) GetSenderAccount() authexported.Account {
 	pm := tx.Keeper.GenerateCSDBParams()
-	infCtx := tx.Ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+	infCtx := tx.Ctx
+	infCtx.SetGasMeter(sdk.NewInfiniteGasMeter())
 
 	return pm.AccountKeeper.GetAccount(infCtx, tx.StateTransition.Sender.Bytes())
 }
@@ -65,15 +66,6 @@ func (tx *Tx) RefundFeesWatcher(account authexported.Account, coin sdk.Coins, pr
 	pm.Watcher.SaveAccount(account, false)
 }
 
-func (tx *Tx) RestoreWatcherTransactionReceipt(msg *types.MsgEthereumTx) {
-	tx.Keeper.Watcher.SaveTransactionReceipt(
-		watcher.TransactionFailed,
-		msg,
-		*tx.StateTransition.TxHash,
-		uint64(tx.Keeper.TxCount-1),
-		&types.ResultData{}, tx.Ctx.GasMeter().GasConsumed())
-}
-
 func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *base.Result) {
 	if result.InnerTxs != nil {
 		tx.Keeper.AddInnerTx(tx.StateTransition.TxHash.Hex(), result.InnerTxs)
@@ -83,13 +75,13 @@ func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *base.Result) {
 	}
 
 	// update block bloom filter
-	if !tx.Ctx.IsAsync() {
+	if tx.Ctx.ParaMsg() == nil {
 		tx.Keeper.Bloom.Or(tx.Keeper.Bloom, result.ExecResult.Bloom)
 	}
 	tx.Keeper.LogSize = tx.StateTransition.Csdb.GetLogSize()
 	tx.Keeper.Watcher.SaveTransactionReceipt(watcher.TransactionSuccess,
 		msg, *tx.StateTransition.TxHash,
-		uint64(tx.Keeper.TxCount-1), result.ResultData, tx.Ctx.GasMeter().GasConsumed())
+		tx.Keeper.Watcher.GetEvmTxIndex(), result.ResultData, tx.Ctx.GasMeter().GasConsumed())
 	if msg.Data.Recipient == nil {
 		tx.StateTransition.Csdb.IteratorCode(func(addr common.Address, c types.CacheCode) bool {
 			tx.Keeper.Watcher.SaveContractCode(addr, c.Code)
