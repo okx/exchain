@@ -1,4 +1,4 @@
-package tendermint
+package testcases
 
 import (
 	"encoding/hex"
@@ -35,7 +35,7 @@ func TestP2PMsgProcess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	
+
 	err = parseMsg(msgBytes, wal)
 	if err != nil {
 		t.Fatal(err)
