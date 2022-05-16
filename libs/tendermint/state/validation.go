@@ -67,15 +67,15 @@ func validateBlock(evidencePool EvidencePool, stateDB dbm.DB, state State, block
 			block.LastResultsHash,
 		)
 	}
-	if !bytes.Equal(block.ValidatorsHash, state.Validators.Hash()) {
+	if !bytes.Equal(block.ValidatorsHash, state.Validators.Hash(block.Height)) {
 		return fmt.Errorf("wrong Block.Header.ValidatorsHash.  Expected %X, got %v",
-			state.Validators.Hash(),
+			state.Validators.Hash(block.Height),
 			block.ValidatorsHash,
 		)
 	}
-	if !bytes.Equal(block.NextValidatorsHash, state.NextValidators.Hash()) {
+	if !bytes.Equal(block.NextValidatorsHash, state.NextValidators.Hash(block.Height+1)) {
 		return fmt.Errorf("wrong Block.Header.NextValidatorsHash.  Expected %X, got %v",
-			state.NextValidators.Hash(),
+			state.NextValidators.Hash(block.Height+1),
 			block.NextValidatorsHash,
 		)
 	}

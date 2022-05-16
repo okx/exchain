@@ -8,6 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+
+	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 
 	"github.com/okex/exchain/x/staking/types"
@@ -108,6 +112,7 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initBalance int64) (sdk.Conte
 	keyStaking := sdk.NewKVStoreKey(types.StoreKey)
 	tkeyStaking := sdk.NewTransientStoreKey(types.TStoreKey)
 	keyAcc := sdk.NewKVStoreKey(auth.StoreKey)
+	keyMpt := sdk.NewKVStoreKey(mpt.StoreKey)
 	keyParams := sdk.NewKVStoreKey(params.StoreKey)
 	tkeyParams := sdk.NewTransientStoreKey(params.TStoreKey)
 	keySupply := sdk.NewKVStoreKey(supply.StoreKey)
@@ -117,6 +122,7 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initBalance int64) (sdk.Conte
 	ms.MountStoreWithDB(tkeyStaking, sdk.StoreTypeTransient, nil)
 	ms.MountStoreWithDB(keyStaking, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keyAcc, sdk.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(keyMpt, sdk.StoreTypeMPT, db)
 	ms.MountStoreWithDB(keyParams, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(tkeyParams, sdk.StoreTypeTransient, db)
 	ms.MountStoreWithDB(keySupply, sdk.StoreTypeIAVL, db)
@@ -125,15 +131,18 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initBalance int64) (sdk.Conte
 
 	// init context
 	ctx := sdk.NewContext(ms, abci.Header{ChainID: TestChainID}, isCheckTx, log.NewNopLogger())
-	ctx = ctx.WithConsensusParams(
+	ctx.SetConsensusParams(
 		&abci.ConsensusParams{
 			Validator: &abci.ValidatorParams{
 				PubKeyTypes: []string{tmtypes.ABCIPubKeyTypeEd25519},
 			},
 		},
 	)
-	ctx = ctx.WithBlockTime(time.Now())
+	ctx.SetBlockTime(time.Now())
 	cdc := MakeTestCodec()
+	reg := types2.NewInterfaceRegistry()
+	cc := codec.NewProtoCodec(reg)
+	pro := codec.NewCodecProxy(cc, cdc)
 
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
 	notBondedPool := supply.NewEmptyModuleAccount(types.NotBondedPoolName, supply.Burner, supply.Staking)
@@ -150,6 +159,7 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initBalance int64) (sdk.Conte
 	accountKeeper := auth.NewAccountKeeper(
 		cdc,    // amino codec
 		keyAcc, // target store
+		keyMpt,
 		pk.Subspace(auth.DefaultParamspace),
 		auth.ProtoBaseAccount, // prototype
 	)
@@ -173,7 +183,7 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initBalance int64) (sdk.Conte
 
 	supplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
 
-	keeper := NewKeeper(cdc, keyStaking, supplyKeeper, pk.Subspace(DefaultParamspace))
+	keeper := NewKeeper(pro, keyStaking, supplyKeeper, pk.Subspace(DefaultParamspace))
 	keeper.SetParams(ctx, types.DefaultParams())
 
 	// set module accounts

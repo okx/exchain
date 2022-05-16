@@ -92,6 +92,10 @@ func delegatorUnbondingDelegationsHandlerFn(cliCtx context.CLIContext) http.Hand
 	return queryDelegator(cliCtx, fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryUnbondingDelegation))
 }
 
+func delegatorUnbondingDelegationsHandlerFn2(cliCtx context.CLIContext) http.HandlerFunc {
+	return queryBonds(cliCtx, fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryUnbondingDelegation2))
+}
+
 // HTTP request handler to query the info of a delegator
 func delegatorHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return queryDelegator(cliCtx, fmt.Sprintf("custom/%s/%s", types.QuerierRoute, types.QueryDelegator))

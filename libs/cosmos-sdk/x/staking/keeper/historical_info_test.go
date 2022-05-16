@@ -84,7 +84,7 @@ func TestTrackHistoricalInfo(t *testing.T) {
 		ChainID: "HelloChain",
 		Height:  10,
 	}
-	ctx = ctx.WithBlockHeader(header)
+	ctx.SetBlockHeader(header)
 
 	k.TrackHistoricalInfo(ctx)
 

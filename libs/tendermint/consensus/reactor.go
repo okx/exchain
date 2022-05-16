@@ -55,6 +55,8 @@ type Reactor struct {
 	conHeight             int64
 
 	metrics *Metrics
+
+	rs *cstypes.RoundState
 }
 
 type ReactorOption func(*Reactor)
@@ -68,6 +70,7 @@ func NewReactor(consensusState *State, fastSync bool, autoFastSync bool, options
 		autoFastSync:          autoFastSync,
 		switchToFastSyncTimer: time.NewTimer(0),
 		conHeight:             consensusState.Height,
+		rs:                    consensusState.GetRoundState(),
 		metrics:               NopMetrics(),
 	}
 	conR.updateFastSyncingMetric()
@@ -99,7 +102,28 @@ func (conR *Reactor) OnStart() error {
 		}
 	}
 
+	go conR.updateRoundStateRoutine()
+
 	return nil
+}
+
+func (conR *Reactor) updateRoundStateRoutine() {
+	t := time.NewTicker(100 * time.Microsecond)
+	defer t.Stop()
+
+	for _ = range t.C {
+		rs := conR.conS.GetRoundState()
+		conR.mtx.Lock()
+		conR.rs = rs
+		conR.mtx.Unlock()
+	}
+
+}
+
+func (conR *Reactor) getRoundState() *cstypes.RoundState {
+	conR.mtx.RLock()
+	defer conR.mtx.RUnlock()
+	return conR.rs
 }
 
 // OnStop implements BaseService by unsubscribing from events and stopping
@@ -476,6 +500,11 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		func(data tmevents.EventData) {
 			conR.broadcastHasVoteMessage(data.(*types.Vote))
 		})
+
+	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventSignVote,
+		func(data tmevents.EventData) {
+			conR.broadcastSignVoteMessage(data.(*types.Vote))
+		})
 }
 
 func (conR *Reactor) unsubscribeFromBroadcastEvents() {
@@ -527,7 +556,10 @@ func (conR *Reactor) broadcastHasVoteMessage(vote *types.Vote) {
 		}
 	*/
 }
-
+func (conR *Reactor) broadcastSignVoteMessage(vote *types.Vote) {
+	msg := &VoteMessage{vote}
+	conR.Switch.Broadcast(VoteChannel, cdc.MustMarshalBinaryBare(msg))
+}
 func makeRoundStepMessage(rs *cstypes.RoundState) (nrsMsg *NewRoundStepMessage) {
 	nrsMsg = &NewRoundStepMessage{
 		Height:                rs.Height,
@@ -540,7 +572,7 @@ func makeRoundStepMessage(rs *cstypes.RoundState) (nrsMsg *NewRoundStepMessage) 
 }
 
 func (conR *Reactor) sendNewRoundStepMessage(peer p2p.Peer) {
-	rs := conR.conS.GetRoundState()
+	rs := conR.getRoundState()
 	nrsMsg := makeRoundStepMessage(rs)
 	peer.Send(StateChannel, cdc.MustMarshalBinaryBare(nrsMsg))
 }
@@ -555,7 +587,7 @@ OUTER_LOOP:
 			logger.Info("Stopping gossipDataRoutine for peer")
 			return
 		}
-		rs := conR.conS.GetRoundState()
+		rs := conR.getRoundState()
 		prs := ps.GetRoundState()
 
 		// Send proposal Block parts?
@@ -698,7 +730,7 @@ OUTER_LOOP:
 			logger.Info("Stopping gossipVotesRoutine for peer")
 			return
 		}
-		rs := conR.conS.GetRoundState()
+		rs := conR.getRoundState()
 		prs := ps.GetRoundState()
 
 		switch sleeping {
@@ -830,7 +862,7 @@ OUTER_LOOP:
 
 		// Maybe send Height/Round/Prevotes
 		{
-			rs := conR.conS.GetRoundState()
+			rs := conR.getRoundState()
 			prs := ps.GetRoundState()
 			if rs.Height == prs.Height {
 				if maj23, ok := rs.Votes.Prevotes(prs.Round).TwoThirdsMajority(); ok {
@@ -847,7 +879,7 @@ OUTER_LOOP:
 
 		// Maybe send Height/Round/Precommits
 		{
-			rs := conR.conS.GetRoundState()
+			rs := conR.getRoundState()
 			prs := ps.GetRoundState()
 			if rs.Height == prs.Height {
 				if maj23, ok := rs.Votes.Precommits(prs.Round).TwoThirdsMajority(); ok {
@@ -864,7 +896,7 @@ OUTER_LOOP:
 
 		// Maybe send Height/Round/ProposalPOL
 		{
-			rs := conR.conS.GetRoundState()
+			rs := conR.getRoundState()
 			prs := ps.GetRoundState()
 			if rs.Height == prs.Height && prs.ProposalPOLRound >= 0 {
 				if maj23, ok := rs.Votes.Prevotes(prs.ProposalPOLRound).TwoThirdsMajority(); ok {

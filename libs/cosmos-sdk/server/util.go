@@ -2,6 +2,7 @@ package server
 
 import (
 	"encoding/json"
+	"errors"
 	"net"
 	"os"
 	"os/signal"
@@ -9,22 +10,20 @@ import (
 	"syscall"
 	"time"
 
-	"errors"
-
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-
-	tcmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
-	cfg "github.com/okex/exchain/libs/tendermint/config"
-	"github.com/okex/exchain/libs/tendermint/libs/cli"
-	tmflags "github.com/okex/exchain/libs/tendermint/libs/cli/flags"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server/config"
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
+	tcmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
+	"github.com/okex/exchain/libs/tendermint/libs/cli"
+	tmflags "github.com/okex/exchain/libs/tendermint/libs/cli/flags"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 // server context
@@ -129,7 +128,8 @@ func interceptLoadConfig() (conf *cfg.Config, err error) {
 
 // add server commands
 func AddCommands(
-	ctx *Context, cdc *codec.Codec,
+	ctx *Context, cdc *codec.CodecProxy,
+	registry jsonpb.AnyResolver,
 	rootCmd *cobra.Command,
 	appCreator AppCreator, appStop AppStop, appExport AppExporter,
 	registerRouters func(rs *lcd.RestServer),
@@ -154,12 +154,12 @@ func AddCommands(
 	)
 
 	rootCmd.AddCommand(
-		StartCmd(ctx, cdc, appCreator, appStop, registerRouters, registerAppFlagFn, appPreRun, subFunc),
+		StartCmd(ctx, cdc, registry, appCreator, appStop, registerRouters, registerAppFlagFn, appPreRun, subFunc),
 		StopCmd(ctx),
 		UnsafeResetAllCmd(ctx),
 		flags.LineBreak,
 		tendermintCmd,
-		ExportCmd(ctx, cdc, appExport),
+		ExportCmd(ctx, cdc.GetCdc(), appExport),
 		flags.LineBreak,
 		version.Cmd,
 	)

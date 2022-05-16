@@ -838,7 +838,7 @@ func DefaultConsensusConfig() *ConsensusConfig {
 		TimeoutPrevoteDelta:         500 * time.Millisecond,
 		TimeoutPrecommit:            1000 * time.Millisecond,
 		TimeoutPrecommitDelta:       500 * time.Millisecond,
-		TimeoutCommit:               3000 * time.Millisecond,
+		TimeoutCommit:               3800 * time.Millisecond,
 		TimeoutConsensus:            1000 * time.Millisecond,
 		SkipTimeoutCommit:           false,
 		CreateEmptyBlocks:           true,
@@ -896,7 +896,7 @@ func (cfg *ConsensusConfig) Precommit(round int) time.Duration {
 // Commit returns the amount of time to wait for straggler votes after receiving +2/3 precommits
 // for a single block (ie. a commit).
 func (cfg *ConsensusConfig) Commit(t time.Time) time.Time {
-	return t.Add(cfg.TimeoutCommit)
+	return t.Add(DynamicConfig.GetCsTimeoutCommit())
 }
 
 // WalFile returns the full path to the write-ahead log file

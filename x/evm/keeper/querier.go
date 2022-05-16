@@ -6,8 +6,11 @@ import (
 	"strconv"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+	apptypes "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -16,7 +19,7 @@ import (
 
 // NewQuerier is the module level router for state queries
 func NewQuerier(keeper Keeper) sdk.Querier {
-	return func(ctx sdk.Context, path []string, _ abci.RequestQuery) ([]byte, error) {
+	return func(ctx sdk.Context, path []string, req abci.RequestQuery) ([]byte, error) {
 		if len(path) < 1 {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
 				"Insufficient parameters, at least 1 parameter is required")
@@ -29,6 +32,10 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryBlockNumber(ctx, keeper)
 		case types.QueryStorage:
 			return queryStorage(ctx, path, keeper)
+		case types.QueryStorageProof:
+			return queryStorageProof(ctx, path, keeper, req.Height)
+		case types.QueryStorageRoot:
+			return queryStorageRootHash(ctx, path, keeper, req.Height)
 		case types.QueryStorageByKey:
 			return queryStorageByKey(ctx, path, keeper)
 		case types.QueryCode:
@@ -141,6 +148,55 @@ func queryStorage(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error)
 	return bz, nil
 }
 
+func queryStorageProof(ctx sdk.Context, path []string, keeper Keeper, height int64) ([]byte, error) {
+	if len(path) < 3 {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
+			"Insufficient parameters, at least 3 parameters is required")
+	}
+
+	addr := ethcmn.HexToAddress(path[1])
+	storageRootHash, err := queryStorageRootBytesInHeight(keeper, addr, height)
+	if err != nil {
+		return nil, fmt.Errorf("get %s storage root hash failed: %s", addr, err.Error())
+	}
+
+	// check if storageRootHash is empty
+	var res types.QueryResStorageProof
+	if storageRootHash == nil {
+		res = types.QueryResStorageProof{Value: []byte{}, Proof: [][]byte{}}
+	} else {
+		// open storage trie base on storage root hash
+		storageTrie, err := keeper.db.OpenTrie(ethcmn.BytesToHash(storageRootHash))
+		if err != nil {
+			return nil, fmt.Errorf("open %s storage trie failed: %s", addr, err.Error())
+		}
+
+		// append key
+		key := ethcmn.HexToHash(path[2])
+		val, err := storageTrie.TryGet(crypto.Keccak256(append(addr.Bytes(), key.Bytes()...)))
+		if err != nil {
+			return nil, fmt.Errorf("get %s storage in location %s failed: %s", addr, key, err.Error())
+		}
+		// check if value is found
+		if val == nil {
+			res = types.QueryResStorageProof{Value: []byte{}, Proof: [][]byte{}}
+		} else {
+			var proof mpt.ProofList
+			if err = storageTrie.Prove(crypto.Keccak256(key.Bytes()), 0, &proof); err != nil {
+				return nil, fmt.Errorf("trie generate proof failed: %s", err.Error())
+			}
+			res = types.QueryResStorageProof{Value: val, Proof: proof}
+		}
+	}
+
+	// marshal result
+	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+	return bz, nil
+}
+
 func queryStorageByKey(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
 	if len(path) < 3 {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
@@ -156,6 +212,44 @@ func queryStorageByKey(ctx sdk.Context, path []string, keeper Keeper) ([]byte, e
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
 	return bz, nil
+}
+
+func queryStorageRootHash(ctx sdk.Context, path []string, keeper Keeper, height int64) ([]byte, error) {
+	if len(path) < 2 {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
+			"Insufficient parameters, at least 1 parameters is required")
+	}
+
+	addr := ethcmn.HexToAddress(path[1])
+	storageRootHash, err := queryStorageRootBytesInHeight(keeper, addr, height)
+	if err != nil {
+		return nil, fmt.Errorf("get %s storage root hash failed: %s", addr, err.Error())
+	}
+
+	if storageRootHash == nil {
+		return mpt.EmptyRootHashBytes, nil
+	} else {
+		return storageRootHash, nil
+	}
+}
+
+func queryStorageRootBytesInHeight(keeper Keeper, addr ethcmn.Address, height int64) ([]byte, error) {
+	// query evm tire root hash based on height
+	evmRootHash := keeper.GetMptRootHash(uint64(height))
+	if evmRootHash == mpt.NilHash {
+		return nil, fmt.Errorf("header %d not found", height)
+	}
+
+	// query storage root hash base on address in evmTrie
+	evmTrie, err := keeper.db.OpenTrie(evmRootHash)
+	if err != nil {
+		return nil, fmt.Errorf("open evm trie failed: %s", err.Error())
+	}
+	storageRootHash, err := evmTrie.TryGet(addr.Bytes())
+	if err != nil {
+		return nil, fmt.Errorf("get %s storage root hash failed: %s", addr, err.Error())
+	}
+	return storageRootHash, nil
 }
 
 func queryCode(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {
@@ -225,7 +319,9 @@ func queryBlockBloom(ctx sdk.Context, path []string, keeper Keeper) ([]byte, err
 		return nil, sdkerrors.Wrap(types.ErrStrConvertFailed, fmt.Sprintf("could not unmarshal block height: %s", err))
 	}
 
-	bloom := keeper.GetBlockBloom(ctx.WithBlockHeight(num), num)
+	copyCtx := ctx
+	copyCtx.SetBlockHeight(num)
+	bloom := keeper.GetBlockBloom(copyCtx, num)
 	res := types.QueryBloomFilter{Bloom: bloom}
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
 	if err != nil {
@@ -242,23 +338,49 @@ func queryAccount(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error)
 	}
 
 	addr := ethcmn.HexToAddress(path[1])
-	so := keeper.GetOrNewStateObject(ctx, addr)
-
-	balance, err := utils.MarshalBigInt(so.Balance())
+	res, err := resolveEthAccount(ctx, keeper, addr)
 	if err != nil {
 		return nil, err
-	}
-
-	res := types.QueryResAccount{
-		Balance:  balance,
-		CodeHash: so.CodeHash(),
-		Nonce:    so.Nonce(),
 	}
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, res)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
 	return bz, nil
+}
+
+func resolveEthAccount(ctx sdk.Context, k Keeper, addr ethcmn.Address) (*types.QueryResAccount, error) {
+	codeHash := mpt.EmptyCodeHashBytes
+	account := k.accountKeeper.GetAccount(ctx, addr.Bytes())
+	if account == nil {
+		return &types.QueryResAccount{Nonce: uint64(0), CodeHash: codeHash, Balance: "0x0"}, nil
+	}
+	ethAccount := account.(*apptypes.EthAccount)
+	if ethAccount == nil {
+		return &types.QueryResAccount{Nonce: uint64(0), CodeHash: codeHash, Balance: "0x0"}, nil
+	}
+
+	// get balance
+	balance := ethAccount.Balance(sdk.DefaultBondDenom).BigInt()
+	if balance == nil {
+		balance = sdk.ZeroInt().BigInt()
+	}
+	balanceStr, err := utils.MarshalBigInt(balance)
+	if err != nil {
+		return nil, err
+	}
+
+	// get codeHash
+	if ethAccount.CodeHash != nil {
+		codeHash = ethAccount.CodeHash
+	}
+
+	//return
+	return &types.QueryResAccount{
+		Balance:  balanceStr,
+		CodeHash: codeHash,
+		Nonce:    ethAccount.Sequence,
+	}, nil
 }
 
 func queryExportAccount(ctx sdk.Context, path []string, keeper Keeper) ([]byte, error) {

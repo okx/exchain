@@ -4,15 +4,12 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
 	"strconv"
 	"sync"
 	"time"
-
-	"github.com/okex/exchain/libs/tendermint/global"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
@@ -36,14 +33,17 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
 	cmserver "github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authclient "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
@@ -725,13 +725,8 @@ func (api *PublicEthereumAPI) SendTransaction(args rpctypes.SendTxArgs) (common.
 		return common.Hash{}, err
 	}
 
-	//todo: after upgrade of VenusHeight, this code need to be deleted, 1800 means two hours before arriving VenusHeight
-	VenusTxPoolHeight := int64(0)
-	if tmtypes.GetVenusHeight() > 1800 {
-		VenusTxPoolHeight = tmtypes.GetVenusHeight() - 1800
-	}
 	// send chanData to txPool
-	if (int64(height) < VenusTxPoolHeight || tmtypes.HigherThanVenus(int64(height))) && api.txPool != nil {
+	if tmtypes.HigherThanVenus(int64(height)) && api.txPool != nil {
 		return broadcastTxByTxPool(api, tx, txBytes)
 	}
 
@@ -774,13 +769,8 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 		}
 	}
 
-	//todo: after upgrade of VenusHeight, this code need to be deleted, 1800 means two hours before arriving VenusHeight
-	VenusTxPoolHeight := int64(0)
-	if tmtypes.GetVenusHeight() > 1800 {
-		VenusTxPoolHeight = tmtypes.GetVenusHeight() - 1800
-	}
 	// send chanData to txPool
-	if (int64(height) < VenusTxPoolHeight || tmtypes.HigherThanVenus(int64(height))) && api.txPool != nil {
+	if tmtypes.HigherThanVenus(int64(height)) && api.txPool != nil {
 		return broadcastTxByTxPool(api, tx, txBytes)
 	}
 
@@ -1456,6 +1446,14 @@ func (api *PublicEthereumAPI) GetProof(address common.Address, storageKeys []str
 	if err != nil {
 		return nil, err
 	}
+	if blockNum == rpctypes.LatestBlockNumber {
+		n, err := api.BlockNumber()
+		if err != nil {
+			return nil, err
+		}
+		blockNum = rpctypes.BlockNumber(n)
+	}
+
 	clientCtx := api.clientCtx.WithHeight(int64(blockNum))
 	path := fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryAccount, address.Hex())
 
@@ -1464,10 +1462,17 @@ func (api *PublicEthereumAPI) GetProof(address common.Address, storageKeys []str
 	if err != nil {
 		return nil, err
 	}
-
-	var account evmtypes.QueryResAccount
+	var account *evmtypes.QueryResAccount
 	clientCtx.Codec.MustUnmarshalJSON(resBz, &account)
 
+	// query eth proof storage after MarsHeight
+	if tmtypes.HigherThanMars(int64(blockNum)) {
+		return api.getStorageProofInMpt(address, storageKeys, int64(blockNum), account)
+	}
+
+	/*
+	 * query cosmos proof before MarsHeight
+	 */
 	storageProofs := make([]rpctypes.StorageResult, len(storageKeys))
 	for i, k := range storageKeys {
 		data := append(evmtypes.AddressStoragePrefix(address), getStorageByAddressKey(address, common.HexToHash(k).Bytes()).Bytes()...)
@@ -1529,6 +1534,70 @@ func (api *PublicEthereumAPI) GetProof(address common.Address, storageKeys []str
 		StorageHash:  common.Hash{}, // Ethermint doesn't have a storage hash
 		StorageProof: storageProofs,
 	}, nil
+}
+
+func (api *PublicEthereumAPI) getStorageProofInMpt(address common.Address, storageKeys []string, blockNum int64, account *evmtypes.QueryResAccount) (*rpctypes.AccountResult, error) {
+	clientCtx := api.clientCtx.WithHeight(blockNum)
+
+	// query storage proof
+	storageProofs := make([]rpctypes.StorageResult, len(storageKeys))
+	for i, k := range storageKeys {
+		queryStr := fmt.Sprintf("custom/%s/%s/%s/%X", evmtypes.ModuleName, evmtypes.QueryStorageProof, address.Hex(), common.HexToHash(k).Bytes())
+		res, _, err := clientCtx.QueryWithData(queryStr, nil)
+		if err != nil {
+			return nil, err
+		}
+
+		var out evmtypes.QueryResStorageProof
+		api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
+
+		storageProofs[i] = rpctypes.StorageResult{
+			Key:   k,
+			Value: (*hexutil.Big)(common.BytesToHash(out.Value).Big()),
+			Proof: toHexSlice(out.Proof),
+		}
+	}
+
+	// query account proof
+	req := abci.RequestQuery{
+		Path:   fmt.Sprintf("store/%s/key", mpt.StoreKey),
+		Data:   auth.AddressStoreKey(sdk.AccAddress(address.Bytes())),
+		Height: int64(blockNum),
+		Prove:  true,
+	}
+	res, err := clientCtx.QueryABCI(req)
+	if err != nil {
+		return nil, err
+	}
+	var accProofList mpt.ProofList
+	clientCtx.Codec.MustUnmarshalBinaryLengthPrefixed(res.GetProof().Ops[0].Data, &accProofList)
+
+	// query account storage Hash
+	queryStr := fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryStorageRoot, address.Hex())
+	storageRootBytes, _, err := clientCtx.QueryWithData(queryStr, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// return result
+	return &rpctypes.AccountResult{
+		Address:      address,
+		AccountProof: toHexSlice(accProofList),
+		Balance:      (*hexutil.Big)(utils.MustUnmarshalBigInt(account.Balance)),
+		CodeHash:     common.BytesToHash(account.CodeHash),
+		Nonce:        hexutil.Uint64(account.Nonce),
+		StorageHash:  common.BytesToHash(storageRootBytes),
+		StorageProof: storageProofs,
+	}, nil
+}
+
+// toHexSlice creates a slice of hex-strings based on []byte.
+func toHexSlice(b [][]byte) []string {
+	r := make([]string, len(b))
+	for i := range b {
+		r[i] = hexutil.Encode(b[i])
+	}
+	return r
 }
 
 // generateFromArgs populates tx message with args (used in RPC API)
@@ -1642,50 +1711,31 @@ func (api *PublicEthereumAPI) accountNonce(
 ) (uint64, error) {
 	if pending {
 		// nonce is continuous in mempool txs
-		pendingNonce, err := api.backend.GetPendingNonce(address.String())
-		if err == nil && pendingNonce > 0 {
+		pendingNonce, ok := api.backend.GetPendingNonce(address.String())
+		if ok {
 			return pendingNonce + 1, nil
 		}
 	}
 
-	// Get nonce (sequence) from sender account
-	nonce := uint64(0)
+	// Get nonce (sequence) of account from  watch db
 	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
-	if err == nil { // account in watch db
-		nonce = acc.GetSequence()
-	} else {
-		// use a the given client context in case its wrapped with a custom height
-		accRet := authtypes.NewAccountRetriever(clientCtx)
-		from := sdk.AccAddress(address.Bytes())
-		account, err := accRet.GetAccount(from)
-		if err != nil {
-			// account doesn't exist yet, return 0
-			return 0, nil
-		}
-		nonce = account.GetSequence()
-		api.watcherBackend.CommitAccountToRpcDb(account)
+	if err == nil {
+		return acc.GetSequence(), nil
 	}
 
-	return nonce, nil
-}
-
-// GetTxTrace returns the trace of tx execution by txhash.
-func (api *PublicEthereumAPI) GetTxTrace(txHash common.Hash) json.RawMessage {
-	monitor := monitor.GetMonitor("eth_getTxTrace", api.logger, api.Metrics).OnBegin()
-	defer monitor.OnEnd("hash", txHash)
-
-	return json.RawMessage(evmtypes.GetTracesFromDB(txHash.Bytes()))
-}
-
-// DeleteTxTrace delete the trace of tx execution by txhash.
-func (api *PublicEthereumAPI) DeleteTxTrace(txHash common.Hash) string {
-	monitor := monitor.GetMonitor("eth_deleteTxTrace", api.logger, api.Metrics).OnBegin()
-	defer monitor.OnEnd("hash", txHash)
-
-	if err := evmtypes.DeleteTracesFromDB(txHash.Bytes()); err != nil {
-		return "delete trace failed"
+	// Get nonce (sequence) of account from  chain db
+	account, err := getAccountFromChain(clientCtx, address)
+	if err != nil {
+		return 0, nil
 	}
-	return "delete trace succeed"
+	api.watcherBackend.CommitAccountToRpcDb(account)
+	return account.GetSequence(), nil
+}
+
+func getAccountFromChain(clientCtx clientcontext.CLIContext, address common.Address) (exported.Account, error) {
+	accRet := authtypes.NewAccountRetriever(clientCtx)
+	from := sdk.AccAddress(address.Bytes())
+	return accRet.GetAccount(from)
 }
 
 func (api *PublicEthereumAPI) saveZeroAccount(address common.Address) {

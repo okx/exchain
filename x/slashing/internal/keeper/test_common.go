@@ -8,6 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+
+	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+
 	"github.com/stretchr/testify/require"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -57,6 +61,7 @@ func createTestCodec() *codec.Codec {
 
 func CreateTestInput(t *testing.T, defaults types.Params) (*codec.Codec, sdk.Context, bank.Keeper, staking.Keeper, params.Subspace, Keeper) {
 	keyAcc := sdk.NewKVStoreKey(auth.StoreKey)
+	keyMpt := sdk.NewKVStoreKey(mpt.StoreKey)
 	keyStaking := sdk.NewKVStoreKey(staking.StoreKey)
 	keySlashing := sdk.NewKVStoreKey(types.StoreKey)
 	keySupply := sdk.NewKVStoreKey(supply.StoreKey)
@@ -67,6 +72,7 @@ func CreateTestInput(t *testing.T, defaults types.Params) (*codec.Codec, sdk.Con
 
 	ms := store.NewCommitMultiStore(db)
 	ms.MountStoreWithDB(keyAcc, sdk.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(keyMpt, sdk.StoreTypeMPT, db)
 	ms.MountStoreWithDB(keyStaking, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keySupply, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keySlashing, sdk.StoreTypeIAVL, db)
@@ -78,6 +84,9 @@ func CreateTestInput(t *testing.T, defaults types.Params) (*codec.Codec, sdk.Con
 
 	ctx := sdk.NewContext(ms, abci.Header{Time: time.Unix(0, 0)}, false, log.NewNopLogger())
 	cdc := createTestCodec()
+	reg := types2.NewInterfaceRegistry()
+	cc := codec.NewProtoCodec(reg)
+	pro := codec.NewCodecProxy(cc, cdc)
 
 	feeCollectorAcc := supply.NewEmptyModuleAccount(auth.FeeCollectorName)
 	notBondedPool := supply.NewEmptyModuleAccount(staking.NotBondedPoolName, supply.Burner, supply.Staking)
@@ -89,7 +98,7 @@ func CreateTestInput(t *testing.T, defaults types.Params) (*codec.Codec, sdk.Con
 	blacklistedAddrs[bondPool.GetAddress().String()] = true
 
 	paramsKeeper := params.NewKeeper(cdc, keyParams, tkeyParams)
-	accountKeeper := auth.NewAccountKeeper(cdc, keyAcc, paramsKeeper.Subspace(auth.DefaultParamspace), auth.ProtoBaseAccount)
+	accountKeeper := auth.NewAccountKeeper(cdc, keyAcc, keyMpt, paramsKeeper.Subspace(auth.DefaultParamspace), auth.ProtoBaseAccount)
 
 	bk := bank.NewBaseKeeper(accountKeeper, paramsKeeper.Subspace(bank.DefaultParamspace), blacklistedAddrs)
 	maccPerms := map[string][]string{
@@ -102,7 +111,7 @@ func CreateTestInput(t *testing.T, defaults types.Params) (*codec.Codec, sdk.Con
 	totalSupply := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, InitTokens.MulRaw(int64(len(Addrs)))))
 	supplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))
 
-	sk := staking.NewKeeper(cdc, keyStaking, nil, paramsKeeper.Subspace(staking.DefaultParamspace))
+	sk := staking.NewKeeper(pro, keyStaking, nil, paramsKeeper.Subspace(staking.DefaultParamspace))
 	genesis := staking.DefaultGenesisState()
 
 	// set module accounts

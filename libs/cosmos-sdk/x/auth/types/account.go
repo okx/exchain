@@ -98,7 +98,7 @@ func (acc *BaseAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error 
 	return nil
 }
 
-func (acc BaseAccount) Copy() interface{} {
+func (acc BaseAccount) Copy() sdk.Account {
 	return NewBaseAccount(acc.Address, acc.Coins, acc.PubKey, acc.AccountNumber, acc.Sequence)
 }
 
@@ -323,4 +323,11 @@ func (acc BaseAccount) MarshalYAML() (interface{}, error) {
 	}
 
 	return string(bz), err
+}
+
+
+
+// NewModuleAddress creates an AccAddress from the hash of the module's name
+func NewModuleAddress(name string) sdk.AccAddress {
+	return sdk.AccAddress(crypto.AddressHash([]byte(name)))
 }
