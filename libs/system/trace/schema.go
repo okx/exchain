@@ -63,8 +63,8 @@ const (
 	ApplyBlock = "ApplyBlock"
 	Consensus  = "Consensus"
 
-	MempoolCheckTxCnt    = "checkTxCnt"
-	MempoolTxsCnt        = "mempoolTxsCnt"
+	MempoolCheckTxCnt    = "CheckTx"
+	MempoolTxsCnt        = "MempoolTxs"
 
 	CompressBlock   = "Compress"
 	UncompressBlock = "Uncompress"

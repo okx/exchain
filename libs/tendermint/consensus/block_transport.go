@@ -47,6 +47,6 @@ func (bt *BlockTransport) onRecvBlock(height int64)  {
 		//totalElapsed := time.Now().Sub(bt.recvProposal)
 		//trace.GetElapsedInfo().AddInfo(trace.RecvBlock, fmt.Sprintf("<%dms>", totalElapsed.Milliseconds()))
 		first2LastPartElapsed := time.Now().Sub(bt.firstPart)
-		trace.GetElapsedInfo().AddInfo(trace.First2LastPart, fmt.Sprintf("<%dms>", first2LastPartElapsed.Milliseconds()))
+		trace.GetElapsedInfo().AddInfo(trace.First2LastPart, fmt.Sprintf("%dms", first2LastPartElapsed.Milliseconds()))
 	}
 }
