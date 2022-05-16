@@ -80,38 +80,38 @@ func (suite *FakeBlockTxTestSuite) Ctx() cosmossdk.Context {
 	return suite.app.BaseApp.GetDeliverStateCtx()
 }
 
+func (suite *FakeBlockTxTestSuite) beginFakeBlock() {
+	suite.evmSenderPrivKey, _ = ethsecp256k1.GenerateKey()
+	suite.evmContractAddress = ethcrypto.CreateAddress(ethcommon.HexToAddress(suite.evmSenderPrivKey.PubKey().Address().String()), 0)
+	accountEvm := suite.app.AccountKeeper.NewAccountWithAddress(suite.Ctx(), suite.evmSenderPrivKey.PubKey().Address().Bytes())
+	accountEvm.SetAccountNumber(accountNum)
+	accountEvm.SetCoins(cosmossdk.NewCoins(txCoin1000))
+	suite.app.AccountKeeper.SetAccount(suite.Ctx(), accountEvm)
+
+	suite.stdSenderPrivKey, _ = ethsecp256k1.GenerateKey()
+	suite.stdSenderAccAddress = cosmossdk.AccAddress(suite.stdSenderPrivKey.PubKey().Address())
+	accountStd := suite.app.AccountKeeper.NewAccountWithAddress(suite.Ctx(), suite.stdSenderAccAddress.Bytes())
+	accountStd.SetAccountNumber(accountNum)
+	accountStd.SetCoins(cosmossdk.NewCoins(txCoin1000))
+	suite.app.AccountKeeper.SetAccount(suite.Ctx(), accountStd)
+	err := suite.app.BankKeeper.SetCoins(suite.Ctx(), suite.stdSenderAccAddress, cosmossdk.NewCoins(txCoin1000))
+	suite.Require().NoError(err)
+
+	tendertypes.UnittestOnlySetMilestoneVenusHeight(blockHeight - 1)
+	global.SetGlobalHeight(blockHeight - 1)
+	suite.app.BeginBlocker(suite.Ctx(), abcitypes.RequestBeginBlock{Header: abcitypes.Header{Height: 1}})
+}
+
+func (suite *FakeBlockTxTestSuite) endFakeBlock(totalGas int64) {
+	suite.app.EndBlocker(suite.Ctx(), abcitypes.RequestEndBlock{})
+	ctx := suite.Ctx()
+	blockActualGas := ctx.BlockGasMeter().GasConsumed()
+	suite.Require().True(cosmossdk.Gas(totalGas) == blockActualGas, "block gas expect %d, but %d ", totalGas, blockActualGas)
+	suite.Require().False(ctx.BlockGasMeter().IsPastLimit())
+	suite.Require().False(ctx.BlockGasMeter().IsOutOfGas())
+}
+
 func (suite *FakeBlockTxTestSuite) TestFackBlockTx() {
-	beginBlock := func() {
-		suite.evmSenderPrivKey, _ = ethsecp256k1.GenerateKey()
-		suite.evmContractAddress = ethcrypto.CreateAddress(ethcommon.HexToAddress(suite.evmSenderPrivKey.PubKey().Address().String()), 0)
-		accountEvm := suite.app.AccountKeeper.NewAccountWithAddress(suite.Ctx(), suite.evmSenderPrivKey.PubKey().Address().Bytes())
-		accountEvm.SetAccountNumber(accountNum)
-		accountEvm.SetCoins(cosmossdk.NewCoins(txCoin1000))
-		suite.app.AccountKeeper.SetAccount(suite.Ctx(), accountEvm)
-
-		suite.stdSenderPrivKey, _ = ethsecp256k1.GenerateKey()
-		suite.stdSenderAccAddress = cosmossdk.AccAddress(suite.stdSenderPrivKey.PubKey().Address())
-		accountStd := suite.app.AccountKeeper.NewAccountWithAddress(suite.Ctx(), suite.stdSenderAccAddress.Bytes())
-		accountStd.SetAccountNumber(accountNum)
-		accountStd.SetCoins(cosmossdk.NewCoins(txCoin1000))
-		suite.app.AccountKeeper.SetAccount(suite.Ctx(), accountStd)
-		err := suite.app.BankKeeper.SetCoins(suite.Ctx(), suite.stdSenderAccAddress, cosmossdk.NewCoins(txCoin1000))
-		suite.Require().NoError(err)
-
-		tendertypes.UnittestOnlySetMilestoneVenusHeight(blockHeight - 1)
-		global.SetGlobalHeight(blockHeight - 1)
-		suite.app.BeginBlocker(suite.Ctx(), abcitypes.RequestBeginBlock{Header: abcitypes.Header{Height: 1}})
-	}
-
-	endBlock := func(totalGas int64) {
-		suite.app.EndBlocker(suite.Ctx(), abcitypes.RequestEndBlock{})
-		ctx := suite.Ctx()
-		blockActualGas := ctx.BlockGasMeter().GasConsumed()
-		suite.Require().True(cosmossdk.Gas(totalGas) == blockActualGas, "block gas expect %d, but %d ", totalGas, blockActualGas)
-		suite.Require().False(ctx.BlockGasMeter().IsPastLimit())
-		suite.Require().False(ctx.BlockGasMeter().IsOutOfGas())
-	}
-
 	testCases := []struct {
 		title      string
 		buildTx    func() []byte
@@ -244,7 +244,7 @@ func (suite *FakeBlockTxTestSuite) TestFackBlockTx() {
 	}
 
 	suite.SetupTest()
-	beginBlock()
+	suite.beginFakeBlock()
 	totalGas := int64(0)
 	for _, tc := range testCases {
 		suite.Run(tc.title, func() {
@@ -256,7 +256,7 @@ func (suite *FakeBlockTxTestSuite) TestFackBlockTx() {
 			suite.Require().True(tc.expectGas == resp.GasUsed, "%s, expect gas:%d, but %d ", tc.title, tc.expectGas, resp.GasUsed)
 		})
 	}
-	endBlock(totalGas)
+	suite.endFakeBlock(totalGas)
 }
 
 func newTestStdTx(msgs []cosmossdk.Msg, privs []crypto.PrivKey, accNums []uint64, seqs []uint64, fee auth.StdFee, memo string) cosmossdk.Tx {
