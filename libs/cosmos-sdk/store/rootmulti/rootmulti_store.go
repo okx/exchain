@@ -217,7 +217,7 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 	for _, storeParams := range rs.storesParams {
 		if storeParams.typ == types.StoreTypeIAVL {
 			sName := storeParams.key.Name()
-			if evmAccStoreFilter(sName, latestVersion) {
+			if evmAccStoreFilter(sName, latestVersion, true) {
 				continue
 			}
 
@@ -225,6 +225,7 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 			if err != nil {
 				return 0, err
 			}
+
 			// filter block modules {}
 			if filter(storeParams.key.Name(), commitVersion, nil, rs.commitFilters) {
 				continue
@@ -1075,6 +1076,11 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 
 		// old version, mpt(acc) store, never allowed to participate the process of calculate root hash, or it will lead to SMB!
 		if newMptStoreFilter(sName, version) {
+			continue
+		}
+
+		// evm and acc store should not participate in AppHash calculation process after Mars Height
+		if evmAccStoreFilter(sName, version, true) {
 			continue
 		}
 
