@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -46,7 +45,7 @@ func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exporte
 	} else {
 		store = ctx.KVStore(ak.key)
 	}
-	fmt.Println(addr.String())
+
 	bz := store.Get(types.AddressStoreKey(addr))
 	if bz == nil {
 		ctx.Cache().UpdateAccount(addr, nil, len(bz), false)

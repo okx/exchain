@@ -80,7 +80,7 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			return nil, err
 		}
 
-		signatures := convertSignature(cdc, ibcTx)
+		signatures := convertSignature(ibcTx)
 
 		// construct Msg
 		stdMsgs, signMsgs, err := constructMsgs(ibcTx)
@@ -146,26 +146,25 @@ func constructMsgs(ibcTx *tx.Tx) ([]sdk.Msg, []sdk.Msg, error) {
 	return stdMsgs, signMsgs, nil
 }
 
-func convertSignature(cdc codec.ProtoCodecMarshaler, ibcTx *tx.Tx) []authtypes.StdSignature {
+func convertSignature(ibcTx *tx.Tx) []authtypes.StdSignature {
 	signatures := []authtypes.StdSignature{}
 	for i, s := range ibcTx.Signatures {
-		var pk types.PubKey
+		var pkData types.PubKey
 		if ibcTx.AuthInfo.SignerInfos != nil {
-			//cdc.UnmarshalBinaryBare(ibcTx.AuthInfo.SignerInfos[i].PublicKey.Value, pk)
 			var ok bool
-			pk, ok = ibcTx.AuthInfo.SignerInfos[i].PublicKey.GetCachedValue().(types.PubKey)
+			pkData, ok = ibcTx.AuthInfo.SignerInfos[i].PublicKey.GetCachedValue().(types.PubKey)
 			if !ok {
 				return nil
 			}
 		}
-		var pkk crypto.PubKey
-		switch v := pk.(type) {
+		var pk crypto.PubKey
+		switch v := pkData.(type) {
 		case *ethsecp256k1.PubKey:
-			pkk = ethsecp256k12.PubKey(v.Bytes())
+			pk = ethsecp256k12.PubKey(v.Bytes())
 		case *secp256k1.PubKey:
-			pkk1 := &secp256k12.PubKeySecp256k1{}
-			copy(pkk1[:], v.Bytes())
-			pkk = (crypto.PubKey)(pkk1)
+			secpPk := &secp256k12.PubKeySecp256k1{}
+			copy(secpPk[:], v.Bytes())
+			pk = (crypto.PubKey)(secpPk)
 		default:
 			panic("not support pubkey type")
 		}
@@ -173,7 +172,7 @@ func convertSignature(cdc codec.ProtoCodecMarshaler, ibcTx *tx.Tx) []authtypes.S
 		signatures = append(signatures,
 			authtypes.StdSignature{
 				Signature: s,
-				PubKey:    pkk,
+				PubKey:    pk,
 			},
 		)
 	}
