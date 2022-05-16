@@ -157,14 +157,14 @@ func convertSignature(ibcTx *tx.Tx) []authtypes.StdSignature {
 				return nil
 			}
 		}
-		var pk crypto.PubKey
+		var pkRaw crypto.PubKey
 		switch v := pkData.(type) {
 		case *ethsecp256k1.PubKey:
-			pk = ethsecp256k12.PubKey(v.Bytes())
+			pkRaw = ethsecp256k12.PubKey(v.Bytes())
 		case *secp256k1.PubKey:
 			secpPk := &secp256k12.PubKeySecp256k1{}
 			copy(secpPk[:], v.Bytes())
-			pk = (crypto.PubKey)(secpPk)
+			pkRaw = (crypto.PubKey)(secpPk)
 		default:
 			panic("not support pubkey type")
 		}
@@ -172,7 +172,7 @@ func convertSignature(ibcTx *tx.Tx) []authtypes.StdSignature {
 		signatures = append(signatures,
 			authtypes.StdSignature{
 				Signature: s,
-				PubKey:    pk,
+				PubKey:    pkRaw,
 			},
 		)
 	}
