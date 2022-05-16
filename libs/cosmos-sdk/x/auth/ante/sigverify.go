@@ -3,8 +3,6 @@ package ante
 import (
 	"bytes"
 	"encoding/hex"
-	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
-
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
@@ -20,9 +18,8 @@ import (
 
 var (
 	// simulation signature values used to estimate gas consumption
-	simSecp256k1Pubkey    secp256k1.PubKeySecp256k1
-	simEthSecp256k1Pubkey cryptotypes.PubKey
-	simSecp256k1Sig       [64]byte
+	simSecp256k1Pubkey secp256k1.PubKeySecp256k1
+	simSecp256k1Sig    [64]byte
 
 	_ SigVerifiableTx = (*types.StdTx)(nil) // assert StdTx implements SigVerifiableTx
 )
@@ -65,7 +62,6 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 	if !ok {
 		return ctx, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "invalid tx type")
 	}
-	//if ibc tx /and ethpubkey --> recall getPubKyes
 
 	pubkeys := sigTx.GetPubKeys()
 	signers := sigTx.GetSigners()
