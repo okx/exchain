@@ -113,14 +113,10 @@ func EncodeBankMsg(sender sdk.AccAddress, msg *wasmvmtypes.BankMsg) ([]ibcadapte
 	if err != nil {
 		return nil, err
 	}
-	toAddress, err := sdk.AccAddressFromBech32(msg.Send.ToAddress)
-	if err != nil {
-		return nil, err
-	}
 
 	sdkMsg := bank.MsgSendAdapter{
 		FromAddress: sender.String(),
-		ToAddress:   toAddress.String(),
+		ToAddress:   msg.Send.ToAddress,
 		Amount:      toSend,
 	}
 	return []ibcadapter.Msg{&sdkMsg}, nil
@@ -370,7 +366,7 @@ func ConvertWasmCoinToSdkCoin(coin wasmvmtypes.Coin) (sdk.CoinAdapter, error) {
 		Amount: amount,
 	}
 	if err := sdk.ValidateDenom(coin.Denom); err != nil {
-		return sdk.CoinAdapter{}, nil
+		return sdk.CoinAdapter{}, err
 	}
 	if r.IsNegative() {
 		return sdk.CoinAdapter{}, sdkerrors.Wrapf(sdkerrors.ErrInvalidCoins, coin.Amount+coin.Denom)

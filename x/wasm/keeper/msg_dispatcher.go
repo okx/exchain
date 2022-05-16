@@ -48,7 +48,8 @@ func (d MessageDispatcher) DispatchMessages(ctx sdk.Context, contractAddr sdk.Ac
 // dispatchMsgWithGasLimit sends a message with gas limit applied
 func (d MessageDispatcher) dispatchMsgWithGasLimit(ctx sdk.Context, contractAddr sdk.AccAddress, ibcPort string, msg wasmvmtypes.CosmosMsg, gasLimit uint64) (events []sdk.Event, data [][]byte, err error) {
 	limitedMeter := sdk.NewGasMeter(gasLimit)
-	subCtx := *ctx.SetGasMeter(limitedMeter)
+	subCtx := ctx
+	subCtx.SetGasMeter(limitedMeter)
 
 	// catch out of gas panic and just charge the entire gas limit
 	defer func() {

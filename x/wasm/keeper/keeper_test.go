@@ -4,13 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"io/ioutil"
 	"math"
 	"testing"
 	"time"
-
-	distributiontypes "github.com/okex/exchain/libs/cosmos-sdk/x/distribution/types"
 
 	wasmvm "github.com/CosmWasm/wasmvm"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
@@ -63,7 +62,7 @@ func TestCreateSuccess(t *testing.T) {
 	require.Equal(t, hackatomWasm, storedCode)
 	// and events emitted
 	exp := sdk.Events{sdk.NewEvent("store_code", sdk.NewAttribute("code_id", "1"))}
-	assert.Equal(t, exp, em.Events())
+	assert.Equal(t, exp, newCtx.EventManager().Events())
 }
 
 func TestCreateNilCreatorAddress(t *testing.T) {
@@ -316,15 +315,14 @@ func TestInstantiate(t *testing.T) {
 
 	em := sdk.NewEventManager()
 	// create with no balance is also legal
-	newCtx := ctx
-	newCtx.SetEventManager(em)
-	gotContractAddr, _, err := keepers.ContractKeeper.Instantiate(newCtx, codeID, creator, nil, initMsgBz, "demo contract 1", nil)
+	ctx.SetEventManager(em)
+	gotContractAddr, _, err := keepers.ContractKeeper.Instantiate(ctx, codeID, creator, nil, initMsgBz, "demo contract 1", nil)
 	require.NoError(t, err)
 	require.Equal(t, "cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr", gotContractAddr.String())
 
 	gasAfter := ctx.GasMeter().GasConsumed()
 	if types.EnableGasVerification {
-		require.Equal(t, uint64(0x18db5), gasAfter-gasBefore)
+		require.Equal(t, uint64(0x16d87), gasAfter-gasBefore)
 	}
 
 	// ensure it is stored properly
@@ -543,16 +541,15 @@ func TestExecute(t *testing.T) {
 	res, err := keepers.ContractKeeper.Execute(trialCtx, addr, creator, []byte(`{"release":{}}`), nil)
 	require.Error(t, err)
 	require.True(t, errors.Is(err, types.ErrExecuteFailed))
-	require.Equal(t, "Unauthorized: execute wasm contract failed", err.Error())
+	require.Equal(t, "execute wasm contract failed: Unauthorized", err.Error())
 
 	// verifier can execute, and get proper gas amount
 	start := time.Now()
 	gasBefore := ctx.GasMeter().GasConsumed()
 	em := sdk.NewEventManager()
 	// when
-	newCtx := ctx
-	newCtx.SetEventManager(em)
-	res, err = keepers.ContractKeeper.Execute(newCtx, addr, fred, []byte(`{"release":{}}`), topUp)
+	ctx.SetEventManager(em)
+	res, err = keepers.ContractKeeper.Execute(ctx, addr, fred, []byte(`{"release":{}}`), topUp)
 	diff := time.Now().Sub(start)
 	require.NoError(t, err)
 	require.NotNil(t, res)
@@ -560,7 +557,7 @@ func TestExecute(t *testing.T) {
 	// make sure gas is properly deducted from ctx
 	gasAfter := ctx.GasMeter().GasConsumed()
 	if types.EnableGasVerification {
-		require.Equal(t, uint64(0x17cd2), gasAfter-gasBefore)
+		require.Equal(t, uint64(0x1832d), gasAfter-gasBefore)
 	}
 	// ensure bob now exists and got both payments released
 	bobAcct = accKeeper.GetAccount(ctx, bob)
@@ -571,13 +568,13 @@ func TestExecute(t *testing.T) {
 	// ensure contract has updated balance
 	contractAcct = accKeeper.GetAccount(ctx, addr)
 	require.NotNil(t, contractAcct)
-	assert.Equal(t, sdk.Coins{}, bankKeeper.GetCoins(ctx, contractAcct.GetAddress()))
+	assert.Equal(t, sdk.Coins{}.String(), bankKeeper.GetCoins(ctx, contractAcct.GetAddress()).String())
 
 	// and events emitted
-	require.Len(t, em.Events(), 9)
+	require.Len(t, em.Events(), 4)
 	expEvt := sdk.NewEvent("execute",
 		sdk.NewAttribute("_contract_address", addr.String()))
-	assert.Equal(t, expEvt, em.Events()[3], prettyEvents(t, em.Events()))
+	assert.Equal(t, expEvt, em.Events()[0], prettyEvents(t, em.Events()))
 
 	t.Logf("Duration: %v (%d gas)\n", diff, gasAfter-gasBefore)
 }
@@ -586,7 +583,7 @@ func TestExecuteWithDeposit(t *testing.T) {
 	var (
 		bob         = bytes.Repeat([]byte{1}, types.SDKAddrLen)
 		fred        = bytes.Repeat([]byte{2}, types.SDKAddrLen)
-		blockedAddr = authtypes.NewModuleAddress(distributiontypes.ModuleName)
+		blockedAddr = authtypes.NewModuleAddress(auth.FeeCollectorName)
 		deposit     = sdk.NewCoins(sdk.NewInt64Coin("denom", 100))
 	)
 
@@ -1065,25 +1062,11 @@ func TestMigrateWithDispatchedMessage(t *testing.T) {
 			},
 		},
 		{
-			"Type": "coin_spent",
-			"Attr": []dict{
-				{"spender": contractAddr},
-				{"amount": "100000denom"},
-			},
-		},
-		{
-			"Type": "coin_received",
-			"Attr": []dict{
-				{"receiver": myPayoutAddr},
-				{"amount": "100000denom"},
-			},
-		},
-		{
 			"Type": "transfer",
 			"Attr": []dict{
 				{"recipient": myPayoutAddr},
 				{"sender": contractAddr},
-				{"amount": "100000denom"},
+				{"amount": "100000.000000000000000000denom"},
 			},
 		},
 	}
@@ -1218,7 +1201,7 @@ func TestSudo(t *testing.T) {
 		// to end users (via Tx/Execute).
 		StealFunds: stealFundsMsg{
 			Recipient: community.String(),
-			Amount:    wasmvmtypes.Coins{wasmvmtypes.NewCoin(76543, "denom")},
+			Amount:    wasmvmtypes.Coins{wasmvmtypes.Coin{"denom", "76543000000000000000000"}},
 		},
 	}
 	sudoMsg, err := json.Marshal(msg)
@@ -1238,7 +1221,7 @@ func TestSudo(t *testing.T) {
 	balance := bankKeeper.GetCoins(ctx, comAcct.GetAddress())
 	assert.Equal(t, sdk.Coins{sdk.NewInt64Coin("denom", 76543)}, balance)
 	// and events emitted
-	require.Len(t, em.Events(), 4, prettyEvents(t, em.Events()))
+	require.Len(t, em.Events(), 2, prettyEvents(t, em.Events()))
 	expEvt := sdk.NewEvent("sudo",
 		sdk.NewAttribute("_contract_address", addr.String()))
 	assert.Equal(t, expEvt, em.Events()[0])
@@ -1684,16 +1667,16 @@ func TestReply(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			mock.ReplyFn = spec.replyFn
 			em := sdk.NewEventManager()
-			newCtx := ctx
+
 			ctx.SetEventManager(em)
-			gotData, gotErr := k.reply(newCtx, example.Contract, wasmvmtypes.Reply{})
+			gotData, gotErr := k.reply(ctx, example.Contract, wasmvmtypes.Reply{})
 			if spec.expErr {
 				require.Error(t, gotErr)
 				return
 			}
 			require.NoError(t, gotErr)
 			assert.Equal(t, spec.expData, gotData)
-			assert.Equal(t, spec.expEvt, em.Events())
+			assert.Equal(t, spec.expEvt, ctx.EventManager().Events())
 		})
 	}
 }

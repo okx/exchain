@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	ibcadapter "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"testing"
 
 	"github.com/golang/protobuf/proto"
@@ -51,7 +52,7 @@ func TestEncoding(t *testing.T) {
 		srcContractIBCPort string
 		transferPortSource types.ICS20TransferPortSource
 		// set if valid
-		output []sdk.Msg
+		output []ibcadapter.Msg
 		// set if invalid
 		isError bool
 	}{
@@ -74,7 +75,7 @@ func TestEncoding(t *testing.T) {
 					},
 				},
 			},
-			output: []sdk.Msg{
+			output: []ibcadapter.Msg{
 				&banktypes.MsgSendAdapter{
 					FromAddress: addr1.String(),
 					ToAddress:   addr2.String(),
@@ -118,7 +119,7 @@ func TestEncoding(t *testing.T) {
 				},
 			},
 			isError: false, // addresses are checked in the handler
-			output: []sdk.Msg{
+			output: []ibcadapter.Msg{
 				&banktypes.MsgSendAdapter{
 					FromAddress: addr1.String(),
 					ToAddress:   invalidAddr,
@@ -144,7 +145,7 @@ func TestEncoding(t *testing.T) {
 					},
 				},
 			},
-			output: []sdk.Msg{
+			output: []ibcadapter.Msg{
 				&types.MsgExecuteContract{
 					Sender:   addr1.String(),
 					Contract: addr2.String(),
@@ -171,7 +172,7 @@ func TestEncoding(t *testing.T) {
 					},
 				},
 			},
-			output: []sdk.Msg{
+			output: []ibcadapter.Msg{
 				&types.MsgInstantiateContract{
 					Sender: addr1.String(),
 					CodeID: 7,
@@ -193,7 +194,7 @@ func TestEncoding(t *testing.T) {
 					},
 				},
 			},
-			output: []sdk.Msg{
+			output: []ibcadapter.Msg{
 				&types.MsgMigrateContract{
 					Sender:   addr2.String(),
 					Contract: addr1.String(),
@@ -212,7 +213,7 @@ func TestEncoding(t *testing.T) {
 					},
 				},
 			},
-			output: []sdk.Msg{
+			output: []ibcadapter.Msg{
 				&types.MsgUpdateAdmin{
 					Sender:   addr2.String(),
 					Contract: addr1.String(),
@@ -229,7 +230,7 @@ func TestEncoding(t *testing.T) {
 					},
 				},
 			},
-			output: []sdk.Msg{
+			output: []ibcadapter.Msg{
 				&types.MsgClearAdmin{
 					Sender:   addr2.String(),
 					Contract: addr1.String(),
@@ -351,7 +352,7 @@ func TestEncoding(t *testing.T) {
 					Value:   bankMsgBin,
 				},
 			},
-			output: []sdk.Msg{bankMsg},
+			output: []ibcadapter.Msg{bankMsg},
 		},
 		"stargate encoded invalid typeUrl": {
 			sender: addr2,
@@ -614,7 +615,11 @@ func TestConvertWasmCoinToSdkCoin(t *testing.T) {
 				return
 			}
 			require.NoError(t, gotErr)
-			assert.Equal(t, spec.expVal, gotVal)
+			got := sdk.Coin{
+				Denom:  gotVal.Denom,
+				Amount: gotVal.Amount.ToDec(),
+			}
+			assert.Equal(t, spec.expVal, got)
 		})
 	}
 
