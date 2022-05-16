@@ -3,17 +3,16 @@ package ante
 import (
 	"bytes"
 	"encoding/hex"
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
-	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	"github.com/okex/exchain/libs/tendermint/crypto/multisig"
+	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 )
 
 var (
@@ -75,27 +74,11 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 			pk = simSecp256k1Pubkey
 		}
 		// Only make check if simulate=false
-		isEthPubKey := false
-		ibcTx, isIbcTx := tx.(*types.IbcTx)
-		if isIbcTx {
-			// ibctx will contain(secp256k1,ethsecp256k1) pubkey
-			// ethsecp256k1 pubkey use getPubKey from tx (not from account)
-			pubKeyEth := ibcTx.GetEthPubKeys(signers[i])
-			if pubKeyEth != nil {
-				isEthPubKey = true
-				if !simulate && !bytes.Equal(pubKeyEth.Address(), signers[i]) {
-					return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
-						"pubKey does not match signer address %s with signer index: %d", signers[i], i)
-				}
-			}
+		if !simulate && !bytes.Equal(pk.Address(), signers[i]) {
+			return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
+				"pubKey does not match signer address %s with signer index: %d", signers[i], i)
 		}
-		if !isEthPubKey {
-			// secp256k1 pubkey get from local account
-			if !simulate && !bytes.Equal(pk.Address(), signers[i]) {
-				return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
-					"pubKey does not match signer address %s with signer index: %d", signers[i], i)
-			}
-		}
+		//}
 
 		acc, err := GetSignerAcc(ctx, spkd.ak, signers[i])
 		if err != nil {
@@ -105,7 +88,9 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 		if acc.GetPubKey() != nil {
 			continue
 		}
+
 		err = acc.SetPubKey(pk)
+
 		if err != nil {
 			return ctx, sdkerrors.Wrap(sdkerrors.ErrInvalidPubKey, err.Error())
 		}
@@ -224,22 +209,8 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 		}
 
 		// verify signature
-		isEthPubKey := false
-		ibcTx, isIbcTx := tx.(*types.IbcTx)
-		// ibctx use ethsecp256k1
-		if isIbcTx {
-			pubKeyEth := ibcTx.GetEthPubKeys(signerAddrs[i])
-			if pubKeyEth != nil {
-				isEthPubKey = true
-				if !simulate && !pubKeyEth.VerifySignature(signBytes, sig) {
-					return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "signature verification failed; verify correct account sequence and chain-id, sign msg:"+string(signBytes))
-				}
-			}
-		}
-		if !isEthPubKey {
-			if !simulate && !pubKey.VerifyBytes(signBytes, sig) {
-				return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "signature verification failed; verify correct account sequence and chain-id, sign msg:"+string(signBytes))
-			}
+		if !simulate && !pubKey.VerifyBytes(signBytes, sig) {
+			return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "signature verification failed; verify correct account sequence and chain-id, sign msg:"+string(signBytes))
 		}
 	}
 

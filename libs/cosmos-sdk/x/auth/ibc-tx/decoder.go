@@ -2,20 +2,23 @@ package ibc_tx
 
 import (
 	"fmt"
+	ethsecp256k12 "github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/ethsecp256k1"
+	secp256k1 "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
+	"github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
+	"github.com/okex/exchain/libs/tendermint/crypto"
+	secp256k12 "github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 	"google.golang.org/protobuf/encoding/protowire"
 	//"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
-	ibckey "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
 	tx "github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 )
 
 // DefaultTxDecoder returns a default protobuf TxDecoder using the provided Marshaler.
@@ -171,18 +174,31 @@ func constructMsgs(ibcTx *tx.Tx) ([]sdk.Msg, []sdk.Msg, error) {
 func convertSignature(cdc codec.ProtoCodecMarshaler, ibcTx *tx.Tx) []authtypes.StdSignature {
 	signatures := []authtypes.StdSignature{}
 	for i, s := range ibcTx.Signatures {
-		pk := &ibckey.PubKey{}
+		var pk types.PubKey
 		if ibcTx.AuthInfo.SignerInfos != nil {
-			cdc.UnmarshalBinaryBare(ibcTx.AuthInfo.SignerInfos[i].PublicKey.Value, pk)
+			//cdc.UnmarshalBinaryBare(ibcTx.AuthInfo.SignerInfos[i].PublicKey.Value, pk)
+			var ok bool
+			pk, ok = ibcTx.AuthInfo.SignerInfos[i].PublicKey.GetCachedValue().(types.PubKey)
+			if !ok {
+				return nil
+			}
+		}
+		var pkk crypto.PubKey
+		switch v := pk.(type) {
+		case *ethsecp256k1.PubKey:
+			pkk = ethsecp256k12.PubKey(v.Bytes())
+		case *secp256k1.PubKey:
+			pkk1 := &secp256k12.PubKeySecp256k1{}
+			copy(pkk1[:], v.Bytes())
+			pkk = (crypto.PubKey)(pkk1)
+		default:
+			panic("not support pubkey type")
 		}
 
-		//convert crypto pubkey to tm pubkey
-		tmPubKey := tmtypes.PubKeySecp256k1{}
-		copy(tmPubKey[:], pk.Bytes())
 		signatures = append(signatures,
 			authtypes.StdSignature{
 				Signature: s,
-				PubKey:    tmPubKey,
+				PubKey:    pkk,
 			},
 		)
 	}
