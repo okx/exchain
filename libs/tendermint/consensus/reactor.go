@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"encoding/hex"
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"reflect"
@@ -316,6 +317,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		return
 	}
 
+	// todo: duplicate many times
 	msg, err := decodeMsg(msgBytes)
 	if err != nil {
 		conR.Logger.Error("Error decoding message", "src", src, "chId", chID, "msg", msg, "err", err, "bytes", msgBytes)
@@ -416,6 +418,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			ps.EnsureVoteBitArrays(height-1, lastCommitSize)
 			ps.SetHasVote(msg.Vote)
 
+			conR.Logger.Error("ReceiveVote", "src", src, "chId", chID, "msg", hex.EncodeToString(msg.Vote.Signature))
 			cs.peerMsgQueue <- msgInfo{msg, src.ID()}
 
 		default:

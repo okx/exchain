@@ -593,7 +593,8 @@ FOR_LOOP:
 		var _n int64
 		var err error
 		// _n, err = cdc.UnmarshalBinaryLengthPrefixedReader(c.bufConnReader, &packet, int64(c._maxPacketMsgSize))
-		packet, _n, err = unmarshalPacketFromAminoReader(c.bufConnReader, int64(c._maxPacketMsgSize))
+		// todo: duplicate many times
+		packet, _n, err = UnmarshalPacketFromAminoReader(c.bufConnReader, int64(c._maxPacketMsgSize))
 		c.recvMonitor.Update(int(_n))
 
 		if err != nil {
@@ -1109,7 +1110,7 @@ var (
 	PacketMsgTypePrefix  = []byte{0xB0, 0x5B, 0x4F, 0x2C}
 )
 
-func unmarshalPacketFromAminoReader(r io.Reader, maxSize int64) (packet Packet, n int64, err error) {
+func UnmarshalPacketFromAminoReader(r io.Reader, maxSize int64) (packet Packet, n int64, err error) {
 	if maxSize < 0 {
 		panic("maxSize cannot be negative.")
 	}

@@ -175,6 +175,14 @@ func (voteSet *VoteSet) addVote(vote *Vote) (added bool, err error) {
 			vote.Height, vote.Round, vote.Type)
 	}
 
+	// If we already know of this vote, return false.
+	if existing, ok := voteSet.getVote(valIndex, blockKey); ok {
+		if bytes.Equal(existing.Signature, vote.Signature) {
+			return false, nil // duplicate
+		}
+		return false, errors.Wrapf(ErrVoteNonDeterministicSignature, "Existing vote: %v; New vote: %v", existing, vote)
+	}
+
 	// Ensure that signer is a validator.
 	lookupAddr, val := voteSet.valSet.GetByIndex(valIndex)
 	if val == nil {
@@ -188,14 +196,6 @@ func (voteSet *VoteSet) addVote(vote *Vote) (added bool, err error) {
 			"vote.ValidatorAddress (%X) does not match address (%X) for vote.ValidatorIndex (%d)\n"+
 				"Ensure the genesis file is correct across all validators.",
 			valAddr, lookupAddr, valIndex)
-	}
-
-	// If we already know of this vote, return false.
-	if existing, ok := voteSet.getVote(valIndex, blockKey); ok {
-		if bytes.Equal(existing.Signature, vote.Signature) {
-			return false, nil // duplicate
-		}
-		return false, errors.Wrapf(ErrVoteNonDeterministicSignature, "Existing vote: %v; New vote: %v", existing, vote)
 	}
 
 	// Check signature.
