@@ -1,11 +1,9 @@
 package types
 
 import (
-	"bytes"
 	"encoding/json"
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/crypto/ethsecp256k1"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -13,7 +11,6 @@ import (
 
 type IbcTx struct {
 	*StdTx
-	PubKey        []*ethsecp256k1.PubKey
 	AuthInfoBytes []byte
 	BodyBytes     []byte
 	SignMode      signing.SignMode
@@ -53,18 +50,6 @@ func (tx *IbcTx) GetSignBytes(ctx sdk.Context, acc exported.Account) []byte {
 	return IbcAminoSignBytes(
 		chainID, accNum, acc.GetSequence(), tx.SigFee, tx.SigMsgs, tx.Memo, tx.TimeoutHeight,
 	)
-}
-
-func (tx *IbcTx) GetEthPubKeys(addr sdk.AccAddress) *ethsecp256k1.PubKey {
-	if tx.PubKey == nil {
-		return nil
-	}
-	for _, pk := range tx.PubKey {
-		if bytes.Equal(pk.Address(), addr) {
-			return pk
-		}
-	}
-	return nil
 }
 
 func IbcAminoSignBytes(chainID string, accNum uint64,

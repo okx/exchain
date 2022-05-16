@@ -78,7 +78,6 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 			return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
 				"pubKey does not match signer address %s with signer index: %d", signers[i], i)
 		}
-		//}
 
 		acc, err := GetSignerAcc(ctx, spkd.ak, signers[i])
 		if err != nil {
@@ -88,9 +87,7 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 		if acc.GetPubKey() != nil {
 			continue
 		}
-
 		err = acc.SetPubKey(pk)
-
 		if err != nil {
 			return ctx, sdkerrors.Wrap(sdkerrors.ErrInvalidPubKey, err.Error())
 		}
