@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"reflect"
@@ -1569,6 +1570,76 @@ func (m *NewRoundStepMessage) ValidateBasic() error {
 func (m *NewRoundStepMessage) String() string {
 	return fmt.Sprintf("[NewRoundStep H:%v R:%v S:%v LCR:%v]",
 		m.Height, m.Round, m.Step, m.LastCommitRound)
+}
+
+func (m NewRoundStepMessage) AminoSize(_ *amino.Codec) int {
+	size := 0
+	if m.Height != 0 {
+		size += 1 + amino.UvarintSize(uint64(m.Height))
+	}
+	if m.Round != 0 {
+		size += 1 + amino.UvarintSize(uint64(m.Round))
+	}
+	if m.Step != 0 {
+		size += 1 + amino.UvarintSize(uint64(m.Step))
+	}
+	if m.SecondsSinceStartTime != 0 {
+		size += 1 + amino.UvarintSize(uint64(m.SecondsSinceStartTime))
+	}
+	if m.LastCommitRound != 0 {
+		size += 1 + amino.UvarintSize(uint64(m.LastCommitRound))
+	}
+	return size
+}
+
+func (m NewRoundStepMessage) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) error {
+	var err error
+	// field 1
+	if m.Height != 0 {
+		const pbKey = byte(1<<3 | amino.Typ3_Varint)
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(m.Height), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	// field 2
+	if m.Round != 0 {
+		const pbKey = byte(2<<3 | amino.Typ3_Varint)
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(m.Round), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	// field 3
+	if m.Step != 0 {
+		const pbKey = byte(3<<3 | amino.Typ3_Varint)
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(m.Step), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	// field 4
+	if m.SecondsSinceStartTime != 0 {
+		const pbKey = byte(4<<3 | amino.Typ3_Varint)
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(m.SecondsSinceStartTime), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	// field 5
+	if m.LastCommitRound != 0 {
+		const pbKey = byte(5<<3 | amino.Typ3_Varint)
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(m.LastCommitRound), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 //-------------------------------------
