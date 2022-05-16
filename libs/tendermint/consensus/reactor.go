@@ -318,7 +318,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	}
 
 	// todo: duplicate many times
-	msg, err := decodeMsg(msgBytes)
+	msg, err := DecodeMsg(msgBytes)
 	if err != nil {
 		conR.Logger.Error("Error decoding message", "src", src, "chId", chID, "msg", msg, "err", err, "bytes", msgBytes)
 		conR.Switch.StopPeerForError(src, err)
@@ -1526,7 +1526,7 @@ func RegisterMessages(cdc *amino.Codec) {
 	cdc.RegisterConcrete(&VoteSetBitsMessage{}, "tendermint/VoteSetBits", nil)
 }
 
-func decodeMsg(bz []byte) (msg Message, err error) {
+func DecodeMsg(bz []byte) (msg Message, err error) {
 	if len(bz) > maxMsgSize {
 		return msg, fmt.Errorf("msg exceeds max size (%d > %d)", len(bz), maxMsgSize)
 	}

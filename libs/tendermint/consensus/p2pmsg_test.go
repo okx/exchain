@@ -102,7 +102,7 @@ func parseMsg(bz []byte, wal *BaseWAL) error {
 
 	switch pkt := packet.(type) {
 	case conn.PacketMsg:
-		msg, err := decodeMsg(pkt.Bytes)
+		msg, err := DecodeMsg(pkt.Bytes)
 		if err != nil {
 			return err
 		}
