@@ -133,7 +133,7 @@ type FakeBlockTxTestSuite struct {
 }
 
 func (suite *FakeBlockTxTestSuite) SetupTest() {
-	suite.app = SetupWithChainId(checkTx, cosmosChainId)
+	suite.app = Setup(checkTx, WithChainId(cosmosChainId))
 	suite.codec = suite.app.Codec()
 	params := evmtypes.DefaultParams()
 	params.EnableCreate = true
@@ -164,7 +164,7 @@ func (suite *FakeBlockTxTestSuite) beginFakeBlock() {
 
 	tendertypes.UnittestOnlySetMilestoneVenusHeight(blockHeight - 1)
 	global.SetGlobalHeight(blockHeight - 1)
-	suite.app.BeginBlocker(suite.Ctx(), abcitypes.RequestBeginBlock{Header: abcitypes.Header{Height: 1}})
+	suite.app.BeginBlocker(suite.Ctx(), abcitypes.RequestBeginBlock{Header: abcitypes.Header{Height: blockHeight}})
 }
 
 func (suite *FakeBlockTxTestSuite) endFakeBlock(totalGas int64) {
@@ -208,7 +208,7 @@ func (suite *FakeBlockTxTestSuite) TestFakeBlockTx() {
 				suite.Require().NoError(err)
 				return txBytes
 			},
-			7,
+			7, //invalid opcode: opcode 0xa6 not defined: failed to execute message; message index: 0
 			1000000,
 		},
 		{
@@ -239,7 +239,7 @@ func (suite *FakeBlockTxTestSuite) TestFakeBlockTx() {
 				txBytes, _ := authclient.GetTxEncoder(nil, authclient.WithEthereumTx())(tx)
 				return txBytes
 			},
-			7,
+			7, //execution reverted: failed to execute message; message index: 0
 			21195,
 		},
 		{
@@ -271,7 +271,7 @@ func (suite *FakeBlockTxTestSuite) TestFakeBlockTx() {
 				txBytes, _ := txEncoder(tx)
 				return txBytes
 			},
-			5,
+			5, //insufficient funds: insufficient funds to pay for fees; 890.000000000000000000okt < 1000000000000000000.000000000000000000okt
 			0,
 		},
 		{
@@ -287,7 +287,7 @@ func (suite *FakeBlockTxTestSuite) TestFakeBlockTx() {
 				txBytes, _ := txEncoder(tx)
 				return txBytes
 			},
-			68007,
+			68007, //the status of proposal is not for this operation: failed to execute message; message index: 1
 			121641,
 		},
 		{
