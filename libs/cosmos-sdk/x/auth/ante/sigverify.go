@@ -3,7 +3,6 @@ package ante
 import (
 	"bytes"
 	"encoding/hex"
-	"fmt"
 	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 
 	"github.com/okex/exchain/libs/tendermint/crypto"
@@ -67,6 +66,7 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 	if !ok {
 		return ctx, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "invalid tx type")
 	}
+	//if ibc tx /and ethpubkey --> recall getPubKyes
 
 	pubkeys := sigTx.GetPubKeys()
 	signers := sigTx.GetSigners()
@@ -80,11 +80,20 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 			pk = simSecp256k1Pubkey
 		}
 		// Only make check if simulate=false
-		fmt.Println("pubkey a", pk.Address())
-		fmt.Println("signer", signers[i].String())
-		if !simulate && !bytes.Equal(pk.Address(), signers[i]) {
-			return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
-				"pubKey does not match signer address %s with signer index: %d", signers[i], i)
+		ibcTx, isIbcTx := tx.(*types.IbcTx)
+		if isIbcTx {
+			pubKeyEth := ibcTx.GetEthPubKeys(signers[i])
+			if pubKeyEth == nil {
+				if !simulate && !bytes.Equal(pk.Address(), signers[i]) {
+					return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
+						"pubKey does not match signer address %s with signer index: %d", signers[i], i)
+				}
+			}
+		} else {
+			if !simulate && !bytes.Equal(pk.Address(), signers[i]) {
+				return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
+					"pubKey does not match signer address %s with signer index: %d", signers[i], i)
+			}
 		}
 
 		acc, err := GetSignerAcc(ctx, spkd.ak, signers[i])
@@ -214,9 +223,23 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 		}
 
 		// verify signature
-
-		if !simulate && !pubKey.VerifyBytes(signBytes, sig) {
-			return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "signature verification failed; verify correct account sequence and chain-id, sign msg:"+string(signBytes))
+		ibcTx, isIbcTx := tx.(*types.IbcTx)
+		// ibctx use ethsecp256k1
+		if isIbcTx {
+			pubKeyEth := ibcTx.GetEthPubKeys(signerAddrs[i])
+			if pubKeyEth != nil {
+				if !simulate && !pubKeyEth.VerifySignature(signBytes, sig) {
+					return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "signature verification failed; verify correct account sequence and chain-id, sign msg:"+string(signBytes))
+				}
+			} else {
+				if !simulate && !pubKey.VerifyBytes(signBytes, sig) {
+					return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "signature verification failed; verify correct account sequence and chain-id, sign msg:"+string(signBytes))
+				}
+			}
+		} else {
+			if !simulate && !pubKey.VerifyBytes(signBytes, sig) {
+				return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "signature verification failed; verify correct account sequence and chain-id, sign msg:"+string(signBytes))
+			}
 		}
 	}
 

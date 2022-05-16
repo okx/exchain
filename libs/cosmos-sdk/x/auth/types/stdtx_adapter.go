@@ -1,52 +1,24 @@
 package types
 
 import (
+	"bytes"
 	"encoding/json"
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/crypto/ethsecp256k1"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	"github.com/okex/exchain/libs/tendermint/crypto"
 )
 
 type IbcTx struct {
 	*StdTx
-	PubKey        []cryptotypes.PubKey
+	PubKey        []*ethsecp256k1.PubKey
 	AuthInfoBytes []byte
 	BodyBytes     []byte
 	SignMode      signing.SignMode
 	SigFee        IbcFee
 	SigMsgs       []sdk.Msg
-}
-
-var _ crypto.PubKey = (*PubKeyWrapper)(nil)
-
-type PubKeyWrapper struct {
-	pubkey cryptotypes.PubKey
-}
-
-func NewPubKeyWrapper(pubkey cryptotypes.PubKey) *PubKeyWrapper {
-	return &PubKeyWrapper{pubkey: pubkey}
-}
-
-func (p PubKeyWrapper) Address() crypto.Address {
-	return p.pubkey.Address()
-}
-
-func (p PubKeyWrapper) Bytes() []byte {
-	return p.pubkey.Bytes()
-}
-
-func (p PubKeyWrapper) VerifyBytes(msg []byte, sig []byte) bool {
-	return p.pubkey.VerifySignature(msg, sig)
-}
-
-func (p PubKeyWrapper) Equals(key crypto.PubKey) bool {
-	return true
-	//p.pubkey.Equals()
-	//return pubKey.Type() == other.Type() && bytes.Equal(pubKey.Bytes(), other.Bytes())
 }
 
 type StdIBCSignDoc struct {
@@ -83,12 +55,16 @@ func (tx *IbcTx) GetSignBytes(ctx sdk.Context, acc exported.Account) []byte {
 	)
 }
 
-func (tx *IbcTx) GetPubKeys() []crypto.PubKey {
-	pks := []crypto.PubKey{}
-	for _, pk := range tx.PubKey {
-		pks = append(pks, NewPubKeyWrapper(pk))
+func (tx *IbcTx) GetEthPubKeys(addr sdk.AccAddress) *ethsecp256k1.PubKey {
+	if tx.PubKey == nil {
+		return nil
 	}
-	return pks
+	for _, pk := range tx.PubKey {
+		if bytes.Equal(pk.Address(), addr) {
+			return pk
+		}
+	}
+	return nil
 }
 
 func IbcAminoSignBytes(chainID string, accNum uint64,
