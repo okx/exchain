@@ -2,9 +2,10 @@ package baseapp
 
 import (
 	"fmt"
+	"runtime/debug"
+
 	"github.com/okex/exchain/libs/system/trace"
 	"github.com/pkg/errors"
-	"runtime/debug"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -313,9 +314,10 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 	default:
 		err = sdkerrors.Wrap(
 			sdkerrors.ErrPanic, fmt.Sprintf(
-				"recovered: %v\nstack:\n%v", r, string(debug.Stack()),
+				"recovered: %v\n", r,
 			),
 		)
+		app.logger.Info("runTx panic recover : %v\nstack:\n%v", r, string(debug.Stack()))
 	}
 	return err
 }
