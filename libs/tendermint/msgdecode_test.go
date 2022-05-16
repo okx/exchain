@@ -1,11 +1,11 @@
 package tendermint
 
 import (
-	"bytes"
 	"encoding/hex"
 	"github.com/okex/exchain/libs/tendermint/consensus"
 	"github.com/okex/exchain/libs/tendermint/libs/autofile"
 	"github.com/okex/exchain/libs/tendermint/p2p/conn"
+	"github.com/tendermint/go-amino"
 	"os"
 	"path/filepath"
 	"testing"
@@ -15,7 +15,6 @@ import (
 func TestP2PMsgProcess(t *testing.T) {
 	// wal
 	walDir,_ := os.Getwd()
-	defer os.RemoveAll(walDir)
 	walFile := filepath.Join(walDir, "wal")
 	wal, err := consensus.NewWAL(walFile,
 		autofile.GroupHeadSizeLimit(4096),
@@ -36,7 +35,7 @@ func TestP2PMsgProcess(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-
+	
 	err = parseMsg(msgBytes, wal)
 	if err != nil {
 		t.Fatal(err)
@@ -45,12 +44,14 @@ func TestP2PMsgProcess(t *testing.T) {
 
 func parseMsg(bz []byte, wal *consensus.BaseWAL) error {
 	var packet conn.Packet
-	var bufTmp = bytes.NewBuffer(bz)
 
-	packet, _, err := conn.UnmarshalPacketFromAminoReader(bufTmp, int64(bufTmp.Len()))
+	cdc := amino.NewCodec()
+	msg := conn.PacketMsg{}
+	err := msg.UnmarshalFromAmino(cdc, bz[4:])
 	if err != nil {
 		return err
 	}
+	packet = msg
 
 	switch pkt := packet.(type) {
 	case conn.PacketMsg:
