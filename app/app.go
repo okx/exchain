@@ -1,17 +1,10 @@
 package app
 
 import (
-	"github.com/okex/exchain/libs/system/trace"
-	sm "github.com/okex/exchain/libs/tendermint/state"
-	"google.golang.org/grpc/encoding/proto"
-
 	"io"
 	"math/big"
 	"os"
 	"sync"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
-	"github.com/okex/exchain/libs/system"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
@@ -80,6 +73,7 @@ import (
 	"github.com/okex/exchain/x/token"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/encoding"
+	"google.golang.org/grpc/encoding/proto"
 )
 
 func init() {
