@@ -67,11 +67,7 @@ ifeq ($(WITH_ROCKSDB),true)
 endif
 
 ifeq ($(WITH_TCMALLOC),true)
-	OS_NAME = $(shell uname)
-	LC_OS_NAME = $(shell echo $(OS_NAME) | tr '[A-Z]' '[a-z]')
-	ifeq ($(LC_OS_NAME), linux)
-		ldflags += -extldflags "-ltcmalloc_minimal"
-	endif
+  ldflags += -extldflags "-ltcmalloc_minimal"
 endif
 
 BUILD_FLAGS := -ldflags '$(ldflags)'
@@ -191,3 +187,8 @@ rocksdb:
 .PHONY: rocksdb
 
 .PHONY: build
+
+tcmalloc:
+	@echo "Installing tcmalloc..."
+	@bash ./libs/tcmalloc/installer.sh
+
