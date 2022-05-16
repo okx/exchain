@@ -426,7 +426,7 @@ func createTestInput(
 		AddRoute(govtypes.RouterKey, govtypes.ProposalHandler).
 		AddRoute(paramproposal.RouterKey, params.NewParamChangeProposalHandler(&paramsKeeper)).
 		AddRoute(distributiontypes.RouterKey, distribution.NewCommunityPoolSpendProposalHandler(distKeeper))
-		//AddRoute(types.RouterKey, NewWasmProposalHandler(&keeper, types.EnableAllProposals))
+	//AddRoute(types.RouterKey, NewWasmProposalHandler(&keeper, types.EnableAllProposals))
 
 	govProposalHandlerRouter := govkeeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &paramsKeeper)
@@ -536,8 +536,11 @@ func handleExecute(ctx sdk.Context, k types.ContractOpsKeeper, msg *types.MsgExe
 	}, nil
 }
 
+var PubKeyCache = make(map[string]crypto.PubKey)
+
 func RandomAccountAddress(_ testing.TB) sdk.AccAddress {
-	_, _, addr := keyPubAddr()
+	_, pub, addr := keyPubAddr()
+	PubKeyCache[addr.String()] = pub
 	return addr
 }
 

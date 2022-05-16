@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -137,7 +138,7 @@ func TestInstantiateContractValidation(t *testing.T) {
 				CodeID: firstCodeID,
 				Label:  "foo",
 				Msg:    []byte(`{"some": "data"}`),
-				Funds:  sdk.Coins{sdk.Coin{Denom: "foobar", Amount: sdk.NewInt(200)}},
+				Funds:  sdk.CoinAdapters{{Denom: "foobar", Amount: sdk.NewInt(200)}},
 			},
 			valid: true,
 		},
@@ -148,7 +149,7 @@ func TestInstantiateContractValidation(t *testing.T) {
 				Label:  "foo",
 				Msg:    []byte(`{"some": "data"}`),
 				// we cannot use sdk.NewCoin() constructors as they panic on creating invalid data (before we can test)
-				Funds: sdk.Coins{sdk.Coin{Denom: "foobar", Amount: sdk.NewInt(-200)}},
+				Funds: sdk.CoinAdapters{{Denom: "foobar", Amount: sdk.NewInt(-200)}},
 			},
 			valid: false,
 		},
@@ -189,6 +190,7 @@ func TestExecuteContractValidation(t *testing.T) {
 	badAddress := bad.String()
 	// proper address size
 	goodAddress := sdk.AccAddress(make([]byte, 20)).String()
+	fmt.Println(badAddress, goodAddress)
 
 	cases := map[string]struct {
 		msg   MsgExecuteContract
@@ -211,7 +213,7 @@ func TestExecuteContractValidation(t *testing.T) {
 				Sender:   goodAddress,
 				Contract: goodAddress,
 				Msg:      []byte(`{"some": "data"}`),
-				Funds:    sdk.Coins{sdk.Coin{Denom: "foobar", Amount: sdk.NewInt(200)}},
+				Funds:    sdk.CoinAdapters{{Denom: "foobar", Amount: sdk.NewInt(200)}},
 			},
 			valid: true,
 		},
@@ -250,7 +252,7 @@ func TestExecuteContractValidation(t *testing.T) {
 				Sender:   goodAddress,
 				Contract: goodAddress,
 				Msg:      []byte(`{"some": "data"}`),
-				Funds:    sdk.Coins{sdk.Coin{Denom: "foobar", Amount: sdk.NewInt(-1)}},
+				Funds:    sdk.CoinAdapters{{Denom: "foobar", Amount: sdk.NewInt(-1)}},
 			},
 			valid: false,
 		},
@@ -259,7 +261,7 @@ func TestExecuteContractValidation(t *testing.T) {
 				Sender:   goodAddress,
 				Contract: goodAddress,
 				Msg:      []byte(`{"some": "data"}`),
-				Funds:    sdk.Coins{sdk.Coin{Denom: "foobar", Amount: sdk.NewInt(1)}, sdk.Coin{Denom: "foobar", Amount: sdk.NewInt(1)}},
+				Funds:    sdk.CoinAdapters{{Denom: "foobar", Amount: sdk.NewInt(1)}, {Denom: "foobar", Amount: sdk.NewInt(1)}},
 			},
 			valid: false,
 		},
@@ -502,10 +504,25 @@ func TestMsgMigrateContract(t *testing.T) {
 	}
 }
 
+type LegacyMsg interface {
+	sdk.Msg
+
+	// Get the canonical byte representation of the Msg.
+	GetSignBytes() []byte
+
+	// Return the message type.
+	// Must be alphanumeric or empty.
+	Route() string
+
+	// Returns a human-readable string for the message, intended for utilization
+	// within tags
+	Type() string
+}
+
 func TestMsgJsonSignBytes(t *testing.T) {
 	const myInnerMsg = `{"foo":"bar"}`
 	specs := map[string]struct {
-		src legacytx.LegacyMsg
+		src LegacyMsg
 		exp string
 	}{
 		"MsgInstantiateContract": {

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -17,9 +18,8 @@ import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/wasm/client/utils"
 	"github.com/okex/exchain/x/wasm/keeper"
-	"github.com/spf13/cobra"
-
 	"github.com/okex/exchain/x/wasm/types"
+	"github.com/spf13/cobra"
 )
 
 // GenesisReader reads genesis data. Extension point for custom genesis state readers.
@@ -273,7 +273,7 @@ func GetAllCodes(state *types.GenesisState) ([]CodeMeta, error) {
 				accessConfig = *msg.InstantiatePermission
 			} else {
 				// default
-				creator, err := sdk.AccAddressFromBech32(msg.Sender)
+				creator, err := types.AccAddressFromBech32(msg.Sender)
 				if err != nil {
 					return nil, fmt.Errorf("sender: %s", err)
 				}
@@ -390,7 +390,7 @@ func (d DefaultGenesisReader) ReadWasmGenesis(cmd *cobra.Command) (*GenesisData,
 	var wasmGenesisState types.GenesisState
 	if appState[types.ModuleName] != nil {
 		clientCtx := utils.GetClientContextFromCmd(cmd)
-		clientCtx.Codec.MustUnmarshalJSON(appState[types.ModuleName], &wasmGenesisState)
+		clientCtx.CodecProy.GetProtocMarshal().MustUnmarshalJSON(appState[types.ModuleName], &wasmGenesisState)
 	}
 
 	return NewGenesisData(
@@ -432,7 +432,7 @@ func (x DefaultGenesisIO) AlterWasmModuleState(cmd *cobra.Command, callback func
 		return err
 	}
 	clientCtx := utils.GetClientContextFromCmd(cmd)
-	wasmGenStateBz, err := clientCtx.Codec.MarshalJSON(g.WasmModuleState)
+	wasmGenStateBz, err := clientCtx.CodecProy.GetProtocMarshal().MarshalJSON(g.WasmModuleState)
 	if err != nil {
 		return sdkerrors.Wrap(err, "marshal wasm genesis state")
 	}
@@ -485,7 +485,7 @@ func getActorAddress(cmd *cobra.Command) (sdk.AccAddress, error) {
 		return nil, errors.New("run-as address is required")
 	}
 
-	actorAddr, err := sdk.AccAddressFromBech32(actorArg)
+	actorAddr, err := types.AccAddressFromBech32(actorArg)
 	if err == nil {
 		return actorAddr, nil
 	}

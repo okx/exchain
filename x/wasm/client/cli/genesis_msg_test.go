@@ -3,30 +3,35 @@ package cli
 import (
 	"context"
 	"encoding/json"
+	apptypes "github.com/okex/exchain/app/types"
+	clictx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	auth "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/tendermint/config"
+	"github.com/okex/exchain/x/wasm/client/utils"
 	"io/ioutil"
 	"os"
 	"path"
+	"strings"
 	"testing"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	//"github.com/okex/exchain/libs/cosmos-sdk/testutil"
-	//"github.com/okex/exchain/libs/cosmos-sdk/testutil/testdata"
+	"github.com/okex/exchain/libs/cosmos-sdk/tests"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	//banktypes "github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/types"
+	banktypes "github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/genutil"
-	//genutiltest "github.com/okex/exchain/libs/cosmos-sdk/x/genutil/client/testutil"
 	genutiltypes "github.com/okex/exchain/libs/cosmos-sdk/x/genutil/types"
 	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/x/wasm/keeper"
 	"github.com/okex/exchain/x/wasm/types"
 )
@@ -669,16 +674,24 @@ func setupGenesis(t *testing.T, wasmGenesis types.GenesisState) string {
 	require.NoError(t, os.Mkdir(path.Join(homeDir, "config"), 0700))
 	genFilename := path.Join(homeDir, "config", "genesis.json")
 	appState := make(map[string]json.RawMessage)
-	appState[types.ModuleName] = appCodec.MustMarshalJSON(&wasmGenesis)
+	appState[types.ModuleName] = appCodec.GetProtocMarshal().MustMarshalJSON(&wasmGenesis)
 
 	bankGenesis := banktypes.DefaultGenesisState()
-	bankGenesis.Balances = append(bankGenesis.Balances, banktypes.Balance{
-		// add a balance for the default sender account
-		Address: myWellFundedAccount,
-		Coins:   sdk.NewCoins(sdk.NewCoin("stake", sdk.NewInt(10000000000))),
-	})
-	appState[banktypes.ModuleName] = appCodec.MustMarshalJSON(bankGenesis)
-	appState[stakingtypes.ModuleName] = appCodec.MustMarshalJSON(stakingtypes.DefaultGenesisState())
+	//bankGenesis.Balances = append(bankGenesis.Balances, banktypes.Balance{
+	//	// add a balance for the default sender account
+	//	Address: myWellFundedAccount,
+	//	Coins:   sdk.NewCoins(sdk.NewCoin("stake", sdk.NewInt(10000000000))),
+	//})
+	appState[banktypes.ModuleName] = appCodec.GetCdc().MustMarshalJSON(bankGenesis)
+	appState[stakingtypes.ModuleName] = appCodec.GetCdc().MustMarshalJSON(stakingtypes.DefaultGenesisState())
+	i, ok := sdk.NewIntFromString("10000000000")
+	require.True(t, ok)
+	balance := sdk.NewCoins(apptypes.NewPhotonCoin(i))
+	my, err := sdk.AccAddressFromBech32(myWellFundedAccount)
+	require.NoError(t, err)
+	genesisAcc := auth.NewBaseAccount(my.Bytes(), balance, keeper.PubKeyCache[myWellFundedAccount], 0, 0)
+	authState := authtypes.NewGenesisState(authtypes.DefaultParams(), []authexported.GenesisAccount{genesisAcc})
+	appState[authtypes.ModuleName] = appCodec.GetCdc().MustMarshalJSON(authState)
 
 	appStateBz, err := json.Marshal(appState)
 	require.NoError(t, err)
@@ -694,36 +707,38 @@ func setupGenesis(t *testing.T, wasmGenesis types.GenesisState) string {
 
 func executeCmdWithContext(t *testing.T, homeDir string, cmd *cobra.Command) error {
 	logger := log.NewNopLogger()
-	cfg, err := genutiltest.CreateDefaultTendermintConfig(homeDir)
-	require.NoError(t, err)
-	appCodec := keeper.MakeEncodingConfig(t).Marshaler
-	serverCtx := server.NewContext(viper.New(), cfg, logger)
-	clientCtx := client.Context{}.WithCodec(appCodec).WithHomeDir(homeDir)
-
+	cfg := config.TestConfig()
+	cfg.SetRoot(homeDir)
+	//cfg, err := genutiltest.CreateDefaultTendermintConfig(homeDir)
+	//require.NoError(t, err)
 	ctx := context.Background()
-	ctx = context.WithValue(ctx, client.ClientContextKey, &clientCtx)
-	ctx = context.WithValue(ctx, server.ServerContextKey, serverCtx)
+	appCodec := keeper.MakeEncodingConfig(t).Marshaler
+	serverCtx := server.NewContext(cfg, logger)
+	clientCtx := clictx.CLIContext{HomeDir: homeDir}.WithCodec(appCodec.GetCdc()).WithProxy(&appCodec)
+
+	ctx = context.WithValue(ctx, utils.ClientContextKey, &clientCtx)
+	ctx = context.WithValue(ctx, utils.ServerContextKey, serverCtx)
 	flagSet := cmd.Flags()
 	flagSet.Set("home", homeDir)
 	flagSet.Set(flags.FlagKeyringBackend, keys.BackendTest)
 
-	mockIn := testutil.ApplyMockIODiscardOutErr(cmd)
+	mockIn := strings.NewReader("")
 
 	kb, err := keys.NewKeyring(sdk.KeyringServiceName(), keys.BackendTest, homeDir, mockIn)
 	require.NoError(t, err)
-	_, err = kb.NewAccount(defaultTestKeyName, testdata.TestMnemonic, "", sdk.FullFundraiserPath, keys.Secp256k1)
+	_, err = kb.CreateAccount(defaultTestKeyName, tests.TestMnemonic, "", "", sdk.FullFundraiserPath, keys.Secp256k1)
 	require.NoError(t, err)
 	return cmd.ExecuteContext(ctx)
 }
 
 func loadModuleState(t *testing.T, homeDir string) types.GenesisState {
+	appCodec := keeper.MakeEncodingConfig(t).Marshaler
 	genFilename := path.Join(homeDir, "config", "genesis.json")
-	appState, _, err := genutiltypes.GenesisStateFromGenFile(genFilename)
+	appState, _, err := genutiltypes.GenesisStateFromGenFile(appCodec.GetCdc(), genFilename)
 	require.NoError(t, err)
 	require.Contains(t, appState, types.ModuleName)
 
-	appCodec := keeper.MakeEncodingConfig(t).Marshaler
 	var moduleState types.GenesisState
-	require.NoError(t, appCodec.UnmarshalJSON(appState[types.ModuleName], &moduleState))
+	require.NoError(t, appCodec.GetProtocMarshal().UnmarshalJSON(appState[types.ModuleName], &moduleState))
 	return moduleState
 }
