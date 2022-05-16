@@ -228,6 +228,27 @@ type DuplicateVoteEvidence struct {
 	VoteB  *Vote
 }
 
+func (dve DuplicateVoteEvidence) AminoSize(cdc *amino.Codec) int {
+	var size = 0
+
+	if dve.PubKey != nil {
+		pubKeySize := cryptoamino.PubKeyAminoSize(dve.PubKey, cdc)
+		size += 1 + amino.UvarintSize(uint64(pubKeySize)) + pubKeySize
+	}
+
+	if dve.VoteA != nil {
+		voteASize := dve.VoteA.AminoSize(cdc)
+		size += 1 + amino.UvarintSize(uint64(voteASize)) + voteASize
+	}
+
+	if dve.VoteB != nil {
+		voteBSize := dve.VoteB.AminoSize(cdc)
+		size += 1 + amino.UvarintSize(uint64(voteBSize)) + voteBSize
+	}
+
+	return size
+}
+
 func (dve *DuplicateVoteEvidence) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte

@@ -5,6 +5,7 @@ import (
 	"math"
 	"math/big"
 	"strings"
+	"sync"
 	"testing"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -33,7 +34,7 @@ func TestEvmDataEncoding(t *testing.T) {
 		Ret: ret,
 	}
 
-	enc, err := EncodeResultData(data)
+	enc, err := EncodeResultData(&data)
 	require.NoError(t, err)
 
 	res, err := DecodeResultData(enc)
@@ -286,7 +287,7 @@ func TestResultDataAmino(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, expectRd, actualRd)
 
-		encoded, err := EncodeResultData(data)
+		encoded, err := EncodeResultData(&data)
 		require.NoError(t, err)
 		decodedRd, err := DecodeResultData(encoded)
 		require.NoError(t, err)
@@ -310,7 +311,7 @@ func BenchmarkDecodeResultData(b *testing.B) {
 		TxHash: ethcmn.BigToHash(big.NewInt(10)),
 	}
 
-	enc, err := EncodeResultData(data)
+	enc, err := EncodeResultData(&data)
 	require.NoError(b, err)
 	b.ResetTimer()
 	b.Run("amino", func(b *testing.B) {
@@ -328,6 +329,57 @@ func BenchmarkDecodeResultData(b *testing.B) {
 			if err != nil {
 				panic("err should be nil")
 			}
+		}
+	})
+}
+
+func TestEthStringer(t *testing.T) {
+	max := 10
+	wg := &sync.WaitGroup{}
+	wg.Add(max)
+	for i := 0; i < max; i++ {
+		go func() {
+			addr := GenerateEthAddress()
+			h := addr.Hash()
+			require.Equal(t, addr.String(), EthAddressStringer(addr).String())
+			require.Equal(t, h.String(), EthHashStringer(h).String())
+			wg.Done()
+		}()
+	}
+	wg.Wait()
+}
+
+func BenchmarkEthAddressStringer(b *testing.B) {
+	addr := GenerateEthAddress()
+	b.ResetTimer()
+	b.Run("eth", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = addr.String()
+		}
+	})
+	b.Run("okc stringer", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = EthAddressStringer(addr).String()
+		}
+	})
+}
+
+func BenchmarkEthHashStringer(b *testing.B) {
+	addr := GenerateEthAddress()
+	h := addr.Hash()
+	b.ResetTimer()
+	b.Run("eth", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = h.String()
+		}
+	})
+	b.Run("okc stringer", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = EthHashStringer(h).String()
 		}
 	})
 }

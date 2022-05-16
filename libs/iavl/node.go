@@ -67,7 +67,6 @@ func NewNode(key []byte, value []byte, version int64) *Node {
 	return &Node{
 		key:     key,
 		value:   value,
-		height:  0,
 		size:    1,
 		version: version,
 	}
@@ -160,12 +159,10 @@ func (node *Node) clone(version int64) *Node {
 		height:    node.height,
 		version:   version,
 		size:      node.size,
-		hash:      nil,
 		leftHash:  node.leftHash,
 		leftNode:  node.leftNode,
 		rightHash: node.rightHash,
 		rightNode: node.rightNode,
-		persisted: false,
 	}
 }
 
@@ -560,8 +557,10 @@ func (node *Node) getRightNode(t *ImmutableTree) *Node {
 
 // NOTE: mutates height and size
 func (node *Node) calcHeightAndSize(t *ImmutableTree) {
-	node.height = maxInt8(node.getLeftNode(t).height, node.getRightNode(t).height) + 1
-	node.size = node.getLeftNode(t).size + node.getRightNode(t).size
+	left := node.getLeftNode(t)
+	right := node.getRightNode(t)
+	node.height = maxInt8(left.height, right.height) + 1
+	node.size = left.size + right.size
 }
 
 func (node *Node) calcBalance(t *ImmutableTree) int {

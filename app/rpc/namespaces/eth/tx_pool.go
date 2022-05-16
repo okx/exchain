@@ -2,6 +2,7 @@ package eth
 
 import (
 	"fmt"
+	rpctypes "github.com/okex/exchain/app/rpc/types"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -11,7 +12,6 @@ import (
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 
 	"github.com/ethereum/go-ethereum/common"
-	rpctypes "github.com/okex/exchain/app/rpc/types"
 	ethermint "github.com/okex/exchain/app/types"
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -132,12 +132,14 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 	if err != nil {
 		return common.Hash{}, err
 	}
-	fromSigCache, err := tx.VerifySig(chainIDEpoch, api.clientCtx.Height, nil)
+	err = tx.VerifySig(chainIDEpoch, api.clientCtx.Height)
 	if err != nil {
 		return common.Hash{}, err
 	}
 
-	from := fromSigCache.GetFrom()
+	txHash := common.BytesToHash(types.Tx(txBytes).Hash(info.LastHeight))
+	tx.Data.Hash = &txHash
+	from := common.HexToAddress(tx.GetFrom())
 	api.txPool.mu.Lock()
 	defer api.txPool.mu.Unlock()
 	if err = api.txPool.CacheAndBroadcastTx(api, from, tx); err != nil {
@@ -145,7 +147,7 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 		return common.Hash{}, err
 	}
 
-	return common.BytesToHash(types.Tx(txBytes).Hash(info.LastHeight)), nil
+	return txHash, nil
 }
 
 func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.Address, tx *evmtypes.MsgEthereumTx) error {
@@ -253,6 +255,8 @@ func (pool *TxPool) continueBroadcast(api *PublicEthereumAPI, currentNonce uint6
 			pool.dropTxs(i, address)
 		}
 		pool.logger.Error(err.Error())
+	} else {
+		pool.dropTxs(i, address)
 	}
 
 	return err

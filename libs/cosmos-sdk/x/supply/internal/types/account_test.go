@@ -162,6 +162,8 @@ func TestModuleAccountAmino(t *testing.T) {
 		bz, err := cdc.MarshalBinaryBare(iacc)
 		require.NoError(t, err)
 
+		require.Equal(t, len(bz), 4+acc.AminoSize(cdc))
+
 		var accountExpect authexported.Account
 		err = cdc.UnmarshalBinaryBare(bz, &accountExpect)
 		require.NoError(t, err)

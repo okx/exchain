@@ -28,6 +28,8 @@ func TestKvPairAmino(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, expect, actual)
 
+		require.Equal(t, len(expect), pair.AminoSize(cdc))
+
 		var pair2 Pair
 		err = cdc.UnmarshalBinaryBare(expect, &pair2)
 		require.NoError(t, err)

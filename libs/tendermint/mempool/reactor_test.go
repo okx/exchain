@@ -1,10 +1,13 @@
 package mempool
 
 import (
+	"math/rand"
 	"net"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 
@@ -262,4 +265,70 @@ func TestVerifyWtx(t *testing.T) {
 	nodeKeyWhitelist[string(p2p.PubKeyToID(nodeKey.PubKey()))] = struct{}{}
 	err = wtx.verify(nodeKeyWhitelist)
 	assert.Nil(t, err)
+}
+
+func TestTxMessageAmino(t *testing.T) {
+	testcases := []TxMessage{
+		{},
+		{[]byte{}},
+		{[]byte{1, 2, 3, 4, 5, 6, 7}},
+	}
+
+	var typePrefix = make([]byte, 8)
+	tpLen, err := cdc.GetTypePrefix(TxMessage{}, typePrefix)
+	require.NoError(t, err)
+	typePrefix = typePrefix[:tpLen]
+	reactor := Reactor{}
+
+	for _, tx := range testcases {
+		var m Message
+		m = tx
+		expectBz, err := cdc.MarshalBinaryBare(m)
+		require.NoError(t, err)
+		actualBz, err := tx.MarshalToAmino(cdc)
+		require.NoError(t, err)
+
+		require.Equal(t, expectBz, append(typePrefix, actualBz...))
+		require.Equal(t, len(expectBz), tpLen+tx.AminoSize(cdc))
+
+		actualBz, err = cdc.MarshalBinaryBareWithRegisteredMarshaller(tx)
+		require.NoError(t, err)
+
+		require.Equal(t, expectBz, actualBz)
+		require.Equal(t, cdc.MustMarshalBinaryBare(m), reactor.encodeMsg(&tx))
+		require.Equal(t, cdc.MustMarshalBinaryBare(m), reactor.encodeMsg(tx))
+	}
+}
+
+func BenchmarkTxMessageAminoMarshal(b *testing.B) {
+	var bz = make([]byte, 256)
+	rand.Read(bz)
+	txm := TxMessage{bz}
+	reactor := &Reactor{}
+	b.ResetTimer()
+
+	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_, err := cdc.MarshalBinaryBare(&txm)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+	b.Run("marshaller", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_, err := cdc.MarshalBinaryBareWithRegisteredMarshaller(&txm)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+	b.Run("encodeMsg", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			reactor.encodeMsg(&txm)
+		}
+	})
 }

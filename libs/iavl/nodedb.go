@@ -2,17 +2,17 @@ package iavl
 
 import (
 	"bytes"
-	"container/list"
-	"encoding/hex"
 	"fmt"
 	"math"
 	"sort"
+	"strings"
 	"sync"
 
-	"github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	cmap "github.com/orcaman/concurrent-map"
 	"github.com/pkg/errors"
+	"github.com/tendermint/go-amino"
 )
 
 const (
@@ -44,31 +44,17 @@ type nodeDB struct {
 	opts           Options          // Options to customize for pruning/writing
 	versionReaders map[int64]uint32 // Number of active version readers
 
-	latestVersion  int64
-	nodeCache      map[string]*list.Element // Node cache.
-	nodeCacheSize  int                      // Node cache size limit in elements.
-	nodeCacheQueue *syncList                // LRU queue of cache elements. Used for deletion.
-
-	orphanNodeCache         map[string]*Node
-	heightOrphansCacheQueue *list.List
-	heightOrphansCacheSize  int
-	heightOrphansMap        map[int64]*heightOrphansItem
+	latestVersion int64
 
 	prePersistNodeCache map[string]*Node
-	tppMap              map[int64]*tppItem
-	tppVersionList      *list.List
 
-	dbReadTime    int64
-	dbReadCount   int64
-	nodeReadCount int64
-	dbWriteCount  int64
+	name              string
+	preWriteNodeCache cmap.ConcurrentMap
 
-	totalPersistedCount int64
-	totalPersistedSize  int64
-	totalDeletedCount   int64
-	totalOrphanCount    int64
-
-	name string
+	oi    *OrphanInfo
+	nc    *NodeCache
+	state *RuntimeState
+	tpp   *tempPrePersistNodes
 }
 
 func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
@@ -76,85 +62,82 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		o := DefaultOptions()
 		opts = &o
 	}
-	return &nodeDB{
-		db:                      db,
-		opts:                    *opts,
-		latestVersion:           0, // initially invalid
-		nodeCache:               make(map[string]*list.Element),
-		nodeCacheSize:           cacheSize,
-		nodeCacheQueue:          newSyncList(),
-		versionReaders:          make(map[int64]uint32, 8),
-		orphanNodeCache:         make(map[string]*Node),
-		heightOrphansCacheQueue: list.New(),
-		heightOrphansCacheSize:  HeightOrphansCacheSize,
-		heightOrphansMap:        make(map[int64]*heightOrphansItem),
-		prePersistNodeCache:     make(map[string]*Node),
-		tppMap:                  make(map[int64]*tppItem),
-		tppVersionList:          list.New(),
-		dbReadCount:             0,
-		dbReadTime:              0,
-		dbWriteCount:            0,
-		name:                    ParseDBName(db),
+	ndb := &nodeDB{
+		db:                  db,
+		opts:                *opts,
+		versionReaders:      make(map[int64]uint32, 8),
+		prePersistNodeCache: make(map[string]*Node),
+		name:                ParseDBName(db),
+		preWriteNodeCache:   cmap.New(),
+		state:               newRuntimeState(),
+		tpp:                 newTempPrePersistNodes(),
 	}
+
+	ndb.oi = newOrphanInfo(ndb)
+	ndb.nc = newNodeCache(ndb.name, cacheSize)
+	return ndb
+}
+
+func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) (*Node, retrieveType) {
+	ndb.addNodeReadCount()
+	if len(hash) == 0 {
+		panic("nodeDB.GetNode() requires hash")
+	}
+	ndb.mtx.RLock()
+	defer ndb.mtx.RUnlock()
+	if elem, ok := ndb.prePersistNodeCache[string(hash)]; ok {
+		return elem, fromPpnc
+	}
+
+	if elem, ok := ndb.tpp.getNode(hash); ok {
+		return elem, fromTpp
+	}
+
+	if elem := ndb.getNodeFromCache(hash, promoteRecentNode); elem != nil {
+		return elem, fromNodeCache
+	}
+
+	if elem := ndb.oi.getNodeFromOrphanCache(hash); elem != nil {
+		return elem, fromOrphanCache
+	}
+
+	return nil, unknown
+}
+
+func (ndb *nodeDB) getNodeFromDisk(hash []byte, updateCache bool) *Node {
+	node := ndb.makeNodeFromDbByHash(hash)
+	node.hash = hash
+	node.persisted = true
+	if updateCache {
+		ndb.cacheNodeByCheck(node)
+	}
+	return node
+}
+
+func (ndb *nodeDB) loadNode(hash []byte, update bool) (n *Node, from retrieveType) {
+	n, from = ndb.getNodeFromMemory(hash, update)
+	if n == nil {
+		n = ndb.getNodeFromDisk(hash, update)
+		from = fromDisk
+	}
+
+	// close onLoadNode as it leads to performance penalty
+	//ndb.state.onLoadNode(from)
+	return
 }
 
 // GetNode gets a node from memory or disk. If it is an inner node, it does not
 // load its children.
-func (ndb *nodeDB) GetNode(hash []byte) *Node {
+func (ndb *nodeDB) GetNode(hash []byte) (n *Node) {
+	n, _ = ndb.loadNode(hash, true)
+	return
+}
 
-	res := func() *Node {
-
-		ndb.mtx.RLock()
-		defer ndb.mtx.RUnlock()
-		ndb.addNodeReadCount()
-		if len(hash) == 0 {
-			panic("nodeDB.GetNode() requires hash")
-		}
-		if elem, ok := ndb.prePersistNodeCache[string(hash)]; ok {
-			return elem
-		}
-
-		if elem, ok := ndb.getNodeInTpp(hash); ok { // GetNode from tpp
-			return elem
-		}
-		// Check the cache.
-		if elem, ok := ndb.nodeCache[string(hash)]; ok {
-			// Already exists. Move to back of nodeCacheQueue.
-			ndb.nodeCacheQueue.MoveToBack(elem)
-			return elem.Value.(*Node)
-		}
-		if elem, ok := ndb.orphanNodeCache[string(hash)]; ok {
-			return elem
-		}
-
-		return nil
-	}()
-
-	if res != nil {
-		return res
-	}
-
-	// Doesn't exist, load.
-	buf, err := ndb.dbGet(ndb.nodeKey(hash))
-	if err != nil {
-		panic(fmt.Sprintf("can't get node %X: %v", hash, err))
-	}
-	if buf == nil {
-		panic(fmt.Sprintf("Value missing for hash %x corresponding to nodeKey %x", hash, ndb.nodeKey(hash)))
-	}
-
-	node, err := MakeNode(buf)
-	if err != nil {
-		panic(fmt.Sprintf("Error reading Node. bytes: %x, error: %v", buf, err))
-	}
-
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-	node.hash = hash
-	node.persisted = true
-	ndb.cacheNodeByCheck(node)
-
-	return node
+func (ndb *nodeDB) GetNodeWithoutUpdateCache(hash []byte) (n *Node, gotFromDisk bool) {
+	var from retrieveType
+	n, from = ndb.loadNode(hash, false)
+	gotFromDisk = from == fromDisk
+	return
 }
 
 func (ndb *nodeDB) getDbName() string {
@@ -182,7 +165,7 @@ func (ndb *nodeDB) SaveNode(batch dbm.Batch, node *Node) {
 	}
 
 	batch.Set(ndb.nodeKey(node.hash), buf.Bytes())
-	ndb.log(IavlDebug, "BATCH SAVE %X %p", node.hash, node)
+	ndb.log(IavlDebug, "BATCH SAVE", "hash", amino.BytesHexStringer(node.hash))
 	node.persisted = true
 	ndb.addDBWriteCount(1)
 	ndb.cacheNode(node)
@@ -238,7 +221,7 @@ func (ndb *nodeDB) SaveBranch(batch dbm.Batch, node *Node, savedNodes map[string
 	node.rightNode = nil
 
 	// TODO: handle magic number
-	savedNodes[hex.EncodeToString(node.hash)] = node
+	savedNodes[string(node.hash)] = node
 
 	return node.hash
 }
@@ -309,7 +292,7 @@ func (ndb *nodeDB) DeleteVersionsFrom(batch dbm.Batch, version int64) error {
 }
 
 // DeleteVersionsRange deletes versions from an interval (not inclusive).
-func (ndb *nodeDB) DeleteVersionsRange(batch dbm.Batch, fromVersion, toVersion int64) error {
+func (ndb *nodeDB) DeleteVersionsRange(batch dbm.Batch, fromVersion, toVersion int64, enforce ...bool) error {
 	if fromVersion >= toVersion {
 		return errors.New("toVersion must be greater than fromVersion")
 	}
@@ -320,9 +303,16 @@ func (ndb *nodeDB) DeleteVersionsRange(batch dbm.Batch, fromVersion, toVersion i
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
 
-	latest := ndb.getLatestVersion()
-	if latest < toVersion {
-		return errors.Errorf("cannot delete latest saved version (%d)", latest)
+	ignore := false
+	if len(enforce) > 0 && enforce[0] {
+		ignore = true
+	}
+
+	if !ignore {
+		latest := ndb.getLatestVersion()
+		if latest < toVersion {
+			return errors.Errorf("cannot delete latest saved version (%d)", latest)
+		}
 	}
 
 	predecessor := ndb.getPreviousVersion(fromVersion)
@@ -393,8 +383,8 @@ func (ndb *nodeDB) saveOrphan(batch dbm.Batch, hash []byte, fromVersion, toVersi
 	batch.Set(key, hash)
 }
 
-func (ndb *nodeDB) log(level int, format string, args ...interface{}) {
-	iavlLog(ndb.name, level, format, args...)
+func (ndb *nodeDB) log(level int, msg string, kv ...interface{}) {
+	iavlLog(ndb.name, level, msg, kv...)
 }
 
 // deleteOrphans deletes orphaned nodes from disk, and the associated orphan
@@ -421,12 +411,12 @@ func (ndb *nodeDB) deleteOrphans(batch dbm.Batch, version int64) {
 		// can delete the orphan.  Otherwise, we shorten its lifetime, by
 		// moving its endpoint to the previous version.
 		if predecessor < fromVersion || fromVersion == toVersion {
-			ndb.log(IavlDebug, "DELETE predecessor:%v fromVersion:%v toVersion:%v %X", predecessor, fromVersion, toVersion, hash)
+			ndb.log(IavlDebug, "DELETE", "predecessor", predecessor, "fromVersion", fromVersion, "toVersion", toVersion, "hash", hash)
 			batch.Delete(ndb.nodeKey(hash))
 			ndb.syncUnCacheNode(hash)
-			ndb.totalDeletedCount++
+			ndb.state.increaseDeletedCount()
 		} else {
-			ndb.log(IavlDebug, "MOVE predecessor:%v fromVersion:%v toVersion:%v %X", predecessor, fromVersion, toVersion, hash)
+			ndb.log(IavlDebug, "MOVE", "predecessor", predecessor, "fromVersion", fromVersion, "toVersion", toVersion, "hash", hash)
 			ndb.saveOrphan(batch, hash, fromVersion, predecessor)
 		}
 	})
@@ -437,7 +427,9 @@ func (ndb *nodeDB) nodeKey(hash []byte) []byte {
 }
 
 func (ndb *nodeDB) orphanKey(fromVersion, toVersion int64, hash []byte) []byte {
-	return orphanKeyFormat.Key(toVersion, fromVersion, hash)
+	// return orphanKeyFormat.Key(toVersion, fromVersion, hash)
+	// we use orphanKeyFast to replace orphanKeyFormat.Key(toVersion, fromVersion, hash) for performance
+	return orphanKeyFast(fromVersion, toVersion, hash)
 }
 
 func (ndb *nodeDB) rootKey(version int64) []byte {
@@ -529,32 +521,6 @@ func (ndb *nodeDB) traversePrefix(prefix []byte, fn func(k, v []byte)) {
 	}
 }
 
-func (ndb *nodeDB) uncacheNode(hash []byte) {
-	if elem, ok := ndb.nodeCache[string(hash)]; ok {
-		ndb.nodeCacheQueue.Remove(elem)
-		delete(ndb.nodeCache, string(hash))
-	}
-}
-
-// Add a node to the cache and pop the least recently used node if we've
-// reached the cache size limit.
-func (ndb *nodeDB) cacheNode(node *Node) {
-	elem := ndb.nodeCacheQueue.PushBack(node)
-	ndb.nodeCache[string(node.hash)] = elem
-
-	for ndb.nodeCacheQueue.Len() > config.DynamicConfig.GetIavlCacheSize() {
-		oldest := ndb.nodeCacheQueue.Front()
-		hash := ndb.nodeCacheQueue.Remove(oldest).(*Node).hash
-		delete(ndb.nodeCache, string(hash))
-	}
-}
-
-func (ndb *nodeDB) cacheNodeByCheck(node *Node) {
-	if _, ok := ndb.nodeCache[string(node.hash)]; !ok {
-		ndb.cacheNode(node)
-	}
-}
-
 // Write to disk.
 func (ndb *nodeDB) Commit(batch dbm.Batch) error {
 	ndb.log(IavlDebug, "committing data to disk")
@@ -596,7 +562,7 @@ func (ndb *nodeDB) SaveRoot(batch dbm.Batch, root *Node, version int64) error {
 	if len(root.hash) == 0 {
 		panic("SaveRoot: root hash should not be empty")
 	}
-	ndb.log(IavlDebug, "saving root hash(version %d) to disk", version)
+	ndb.log(IavlDebug, "saving root to disk", "version", version)
 	return ndb.saveRoot(batch, root.hash, version)
 }
 
@@ -708,31 +674,35 @@ func (ndb *nodeDB) traverseNodes(fn func(hash []byte, node *Node)) {
 func (ndb *nodeDB) String() string {
 	var str string
 	index := 0
-
+	strs := make([]string, 0)
 	ndb.traversePrefix(rootKeyFormat.Key(), func(key, value []byte) {
-		str += fmt.Sprintf("%s: %x\n", string(key), value)
+		strs = append(strs, fmt.Sprintf("%s: %x\n", string(key), value))
 	})
 	str += "\n"
 
 	ndb.traverseOrphans(func(key, value []byte) {
-		str += fmt.Sprintf("%s: %x\n", string(key), value)
+		strs = append(strs, fmt.Sprintf("%s: %x\n", string(key), value))
 	})
 	str += "\n"
 
 	ndb.traverseNodes(func(hash []byte, node *Node) {
+		v := ""
 		switch {
 		case len(hash) == 0:
-			str += "<nil>\n"
+			v = "<nil>\n"
 		case node == nil:
-			str += fmt.Sprintf("%s%40x: <nil>\n", nodeKeyFormat.Prefix(), hash)
+			v = fmt.Sprintf("%s%40x: <nil>\n", nodeKeyFormat.Prefix(), hash)
 		case node.value == nil && node.height > 0:
-			str += fmt.Sprintf("%s%40x: %s   %-16s h=%d version=%d\n",
+			v = fmt.Sprintf("%s%40x: %s   %-16s h=%d version=%d\n",
 				nodeKeyFormat.Prefix(), hash, node.key, "", node.height, node.version)
 		default:
-			str += fmt.Sprintf("%s%40x: %s = %-16s h=%d version=%d\n",
+			v = fmt.Sprintf("%s%40x: %s = %-16s h=%d version=%d\n",
 				nodeKeyFormat.Prefix(), hash, node.key, node.value, node.height, node.version)
 		}
 		index++
+		strs = append(strs, v)
 	})
+	sort.Strings(strs)
+	str = strings.Join(strs, ",")
 	return "-" + "\n" + str + "-"
 }

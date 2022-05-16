@@ -2,6 +2,7 @@ package iavl
 
 import (
 	"container/list"
+	"math"
 	"math/rand"
 	"testing"
 
@@ -241,7 +242,7 @@ func BenchmarkUpdateBranch(b *testing.B) {
 			for _, c := range cases {
 				capacity += c.nodeNums
 				root, _ := mockNodes(c.version, c.nodeNums)
-				ndb.updateBranchConcurrency(root, map[string]*Node{})
+				ndb.updateBranchConcurrency(root, nil)
 			}
 		}
 	})
@@ -263,10 +264,10 @@ func Test_saveCommitOrphans(t *testing.T) {
 
 	ndb := mockNodeDB()
 	for n, c := range cases {
-		commitOrphans := make(map[string]int64)
+		var commitOrphans []commitOrphan
 		for i := 0; i < c.orphansNum; i++ {
 			node := mockNode(c.version)
-			commitOrphans[string(node._hash())] = rand.Int63n(100) + 100*int64(n)
+			commitOrphans = append(commitOrphans, commitOrphan{Version: rand.Int63n(100) + 100*int64(n), NodeHash: node._hash()})
 		}
 
 		batch1 := ndb.NewBatch()
@@ -277,11 +278,11 @@ func Test_saveCommitOrphans(t *testing.T) {
 		ndb.saveCommitOrphans(batch2, c.version+1, commitOrphans)
 		require.NoError(t, ndb.Commit(batch2))
 
-		for hash, fromVersion := range commitOrphans {
-			key := ndb.orphanKey(fromVersion, c.version, []byte(hash))
+		for _, orphan := range commitOrphans {
+			key := ndb.orphanKey(orphan.Version, c.version, orphan.NodeHash)
 			node, err := ndb.dbGet(key)
 			require.NoError(t, err)
-			require.Equal(t, []byte(hash), node)
+			require.Equal(t, orphan.NodeHash, node)
 		}
 	}
 }
@@ -308,14 +309,14 @@ func Test_getNodeInTpp(t *testing.T) {
 		}
 
 		tpp := ndb.prePersistNodeCache
-		lItem := ndb.tppVersionList.PushBack(c.version)
-		ndb.tppMap[c.version] = &tppItem{
+		lItem := ndb.tpp.tppVersionList.PushBack(c.version)
+		ndb.tpp.tppMap[c.version] = &tppItem{
 			nodeMap:  tpp,
 			listItem: lItem,
 		}
 
 		for hash, node := range tpp {
-			getNode, found := ndb.getNodeInTpp([]byte(hash))
+			getNode, found := ndb.tpp.getNode([]byte(hash))
 			require.True(t, found)
 			require.EqualValues(t, node, getNode)
 		}
@@ -339,16 +340,17 @@ func Test_getRootWithCache(t *testing.T) {
 	ndb := mockNodeDB()
 	for _, c := range cases {
 		rootHash := randBytes(32)
-		ndb.heightOrphansMap[c.version] = &heightOrphansItem{c.version, rootHash, nil}
+		ndb.oi.orphanItemMap[c.version] = &orphanItem{rootHash, nil}
 
-		actualHash, err := ndb.getRootWithCache(c.version)
+		actualHash, ok := ndb.findRootHash(c.version)
 		if c.exist {
 			require.Equal(t, actualHash, rootHash)
 		} else {
 			require.Nil(t, actualHash)
 		}
-		require.NoError(t, err)
+		require.Equal(t, ok, true)
 
+		var err error
 		actualHash, err = ndb.getRootWithCacheAndDB(c.version)
 		if c.exist {
 			require.Equal(t, actualHash, rootHash)
@@ -373,10 +375,64 @@ func Test_inVersionCacheMap(t *testing.T) {
 	ndb := mockNodeDB()
 	for _, c := range cases {
 		rootHash := randBytes(32)
-		orphanObj := &heightOrphansItem{version: c.version, rootHash: rootHash}
-		ndb.heightOrphansMap[c.version] = orphanObj
-		actualHash, existed := ndb.inVersionCacheMap(c.version)
+		orphanObj := &orphanItem{rootHash: rootHash}
+		ndb.oi.orphanItemMap[c.version] = orphanObj
+		actualHash, existed := ndb.findRootHash(c.version)
 		require.Equal(t, actualHash, rootHash)
 		require.Equal(t, existed, c.expected)
 	}
+}
+
+func genHash(num int) []byte {
+	ret := make([]byte, num)
+	rand.Read(ret)
+	return ret
+}
+
+func TestOrphanKeyFast(t *testing.T) {
+	testCases := []struct {
+		From  int64
+		To    int64
+		Hash  []byte
+		panic bool
+	}{
+		{12345, 54321, genHash(32), false},
+		{0, 0, genHash(32), false},
+		{math.MinInt64, math.MinInt64, genHash(20), false},
+		{math.MaxInt64, math.MaxInt64, genHash(10), false},
+		{math.MaxInt64, math.MaxInt64, genHash(33), true},
+	}
+
+	for _, test := range testCases {
+		if !test.panic {
+			expect := orphanKeyFormat.Key(test.To, test.From, test.Hash)
+			actual := orphanKeyFast(test.From, test.To, test.Hash)
+			require.Equal(t, expect, actual)
+		} else {
+			require.Panics(t, func() {
+				orphanKeyFormat.Key(test.To, test.From, test.Hash)
+			})
+			require.Panics(t, func() {
+				orphanKeyFast(test.From, test.To, test.Hash)
+			})
+		}
+	}
+}
+
+func BenchmarkOrphanKeyFast(b *testing.B) {
+	hash := genHash(32)
+	var to int64 = math.MaxInt64
+	var from int64 = math.MaxInt64
+	b.Run("orphanKeyFormat", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			orphanKeyFormat.Key(to, from, hash)
+		}
+	})
+	b.Run("orphanKeyFast", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			orphanKeyFast(from, to, hash)
+		}
+	})
 }

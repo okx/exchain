@@ -128,6 +128,23 @@ type ABCIResponses struct {
 	BeginBlock *abci.ResponseBeginBlock  `json:"begin_block"`
 }
 
+func (arz ABCIResponses) AminoSize(cdc *amino.Codec) int {
+	size := 0
+	for _, tx := range arz.DeliverTxs {
+		txSize := tx.AminoSize(cdc)
+		size += 1 + amino.UvarintSize(uint64(txSize)) + txSize
+	}
+	if arz.EndBlock != nil {
+		endBlockSize := arz.EndBlock.AminoSize(cdc)
+		size += 1 + amino.UvarintSize(uint64(endBlockSize)) + endBlockSize
+	}
+	if arz.BeginBlock != nil {
+		beginBlockSize := arz.BeginBlock.AminoSize(cdc)
+		size += 1 + amino.UvarintSize(uint64(beginBlockSize)) + beginBlockSize
+	}
+	return size
+}
+
 func (arz ABCIResponses) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	fieldKeysType := [3]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2}

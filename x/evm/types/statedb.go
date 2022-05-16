@@ -2,25 +2,25 @@ package types
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"math/big"
 	"sort"
 	"sync"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/system/trace"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
-
+	"github.com/VictoriaMetrics/fastcache"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/rawdb"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethvm "github.com/ethereum/go-ethereum/core/vm"
-	ethermint "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/x/common/analyzer"
-	"github.com/okex/exchain/x/params"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 var (
@@ -35,15 +35,21 @@ type revision struct {
 }
 
 type CommitStateDBParams struct {
-	StoreKey      sdk.StoreKey
-	ParamSpace    Subspace
-	AccountKeeper AccountKeeper
-	SupplyKeeper  SupplyKeeper
-	Watcher       Watcher
-	BankKeeper    BankKeeper
-	Ada           DbAdapter
+	StoreKey       sdk.StoreKey
+	LegacyStoreKey sdk.StoreKey
+	ParamSpace     Subspace
+	AccountKeeper  AccountKeeper
+	SupplyKeeper   SupplyKeeper
+	Watcher        Watcher
+	BankKeeper     BankKeeper
+	Ada            DbAdapter
 	// Amino codec
 	Cdc *codec.Codec
+
+	DB         ethstate.Database
+	Trie       ethstate.Trie
+	RootHash   ethcmn.Hash
+	StateCache *fastcache.Cache
 }
 
 type Watcher interface {
@@ -70,22 +76,30 @@ type CacheCode struct {
 // TODO: This implementation is subject to change in regards to its statefull
 // manner. In otherwords, how this relates to the keeper in this module.
 type CommitStateDB struct {
+	db           ethstate.Database
+	trie         ethstate.Trie // only storage addr -> storageMptRoot in this mpt tree
+	StateCache   *fastcache.Cache
+	prefetcher   *mpt.TriePrefetcher
+	originalRoot ethcmn.Hash
+
 	// TODO: We need to store the context as part of the structure itself opposed
 	// to being passed as a parameter (as it should be) in order to implement the
 	// StateDB interface. Perhaps there is a better way.
 	ctx sdk.Context
 
-	storeKey      sdk.StoreKey
-	paramSpace    Subspace
-	accountKeeper AccountKeeper
-	supplyKeeper  SupplyKeeper
-	Watcher       Watcher
-	bankKeeper    BankKeeper
+	storeKey       sdk.StoreKey
+	legacyStoreKey sdk.StoreKey
+	paramSpace     Subspace
+	accountKeeper  AccountKeeper
+	supplyKeeper   SupplyKeeper
+	Watcher        Watcher
+	bankKeeper     BankKeeper
 
 	// array that hold 'live' objects, which will get modified while processing a
 	// state transition
-	stateObjects      map[ethcmn.Address]*stateEntry
-	stateObjectsDirty map[ethcmn.Address]struct{}
+	stateObjects        map[ethcmn.Address]*stateObject
+	stateObjectsPending map[ethcmn.Address]struct{} // State objects finalized but not yet written to the mpt tree
+	stateObjectsDirty   map[ethcmn.Address]struct{} // State objects modified in the current execution
 
 	// The refund counter, also used by state transitioning.
 	refund uint64
@@ -93,13 +107,9 @@ type CommitStateDB struct {
 	thash, bhash ethcmn.Hash
 	txIndex      int
 	logSize      uint
+	logs         map[ethcmn.Hash][]*ethtypes.Log
 
-	logs []*ethtypes.Log
-
-	// TODO: Determine if we actually need this as we do not need preimages in
-	// the SDK, but it seems to be used elsewhere in Geth.
-	preimages           []preimageEntry
-	hashToPreimageIndex map[ethcmn.Hash]int // map from hash to the index of the preimages slice
+	preimages map[ethcmn.Hash][]byte
 
 	// DB error.
 	// State objects are used by the consensus core and VM which are
@@ -120,14 +130,14 @@ type CommitStateDB struct {
 	// mutex for state deep copying
 	lock sync.Mutex
 
-	params *Params
-
+	params    *Params
 	codeCache map[ethcmn.Address]CacheCode
-
 	dbAdapter DbAdapter
 
 	// Amino codec
 	cdc *codec.Codec
+
+	updatedAccount map[ethcmn.Address]struct{} // will destroy every block
 }
 
 type StoreProxy interface {
@@ -148,60 +158,46 @@ func (d DefaultPrefixDb) NewStore(parent types.KVStore, Prefix []byte) StoreProx
 	return prefix.NewStore(parent, Prefix)
 }
 
-// newCommitStateDB returns a reference to a newly initialized CommitStateDB
+// NewCommitStateDB returns a reference to a newly initialized CommitStateDB
 // which implements Geth's state.StateDB interface.
 //
 // CONTRACT: Stores used for state must be cache-wrapped as the ordering of the
 // key/value space matters in determining the merkle root.
-func newCommitStateDB(
-	ctx sdk.Context, storeKey sdk.StoreKey, paramSpace params.Subspace, ak AccountKeeper, sk SupplyKeeper, bk BankKeeper, watcher Watcher,
-	cdc *codec.Codec) *CommitStateDB {
-	return &CommitStateDB{
-		ctx:                 ctx,
-		storeKey:            storeKey,
-		paramSpace:          paramSpace,
-		accountKeeper:       ak,
-		supplyKeeper:        sk,
-		bankKeeper:          bk,
-		Watcher:             watcher,
-		stateObjects:        make(map[ethcmn.Address]*stateEntry),
+func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
+	csdb := &CommitStateDB{
+		db:           csdbParams.DB,
+		trie:         csdbParams.Trie,
+		originalRoot: csdbParams.RootHash,
+
+		storeKey:       csdbParams.StoreKey,
+		legacyStoreKey: csdbParams.LegacyStoreKey,
+		paramSpace:     csdbParams.ParamSpace,
+		accountKeeper:  csdbParams.AccountKeeper,
+		supplyKeeper:   csdbParams.SupplyKeeper,
+		bankKeeper:     csdbParams.BankKeeper,
+		Watcher:        csdbParams.Watcher,
+		cdc:            csdbParams.Cdc,
+
+		stateObjects:        make(map[ethcmn.Address]*stateObject),
+		stateObjectsPending: make(map[ethcmn.Address]struct{}),
 		stateObjectsDirty:   make(map[ethcmn.Address]struct{}),
-		preimages:           []preimageEntry{},
-		hashToPreimageIndex: make(map[ethcmn.Hash]int),
-		journal:             newJournal(),
-		validRevisions:      []revision{},
-		accessList:          newAccessList(),
-		logs:                []*ethtypes.Log{},
-		codeCache:           make(map[ethcmn.Address]CacheCode, 0),
-		dbAdapter:           DefaultPrefixDb{},
-		cdc:                 cdc,
-	}
-}
-
-func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *CommitStateDB {
-	return &CommitStateDB{
-		ctx: ctx,
-
-		storeKey:      csdbParams.StoreKey,
-		paramSpace:    csdbParams.ParamSpace,
-		accountKeeper: csdbParams.AccountKeeper,
-		supplyKeeper:  csdbParams.SupplyKeeper,
-		bankKeeper:    csdbParams.BankKeeper,
-		Watcher:       csdbParams.Watcher,
-		cdc:           csdbParams.Cdc,
-
-		stateObjects:        make(map[ethcmn.Address]*stateEntry),
-		stateObjectsDirty:   make(map[ethcmn.Address]struct{}),
-		preimages:           []preimageEntry{},
-		hashToPreimageIndex: make(map[ethcmn.Hash]int),
+		preimages:           make(map[ethcmn.Hash][]byte),
 		journal:             newJournal(),
 		validRevisions:      []revision{},
 		accessList:          newAccessList(),
 		logSize:             0,
-		logs:                []*ethtypes.Log{},
+		logs:                make(map[ethcmn.Hash][]*ethtypes.Log),
 		codeCache:           make(map[ethcmn.Address]CacheCode, 0),
 		dbAdapter:           csdbParams.Ada,
+		updatedAccount:      make(map[ethcmn.Address]struct{}),
+		StateCache:          csdbParams.StateCache,
 	}
+
+	return csdb
+}
+
+func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *CommitStateDB {
+	return NewCommitStateDB(csdbParams).WithContext(ctx)
 }
 
 func (csdb *CommitStateDB) SetInternalDb(dba DbAdapter) {
@@ -217,8 +213,8 @@ func (csdb *CommitStateDB) WithContext(ctx sdk.Context) *CommitStateDB {
 func (csdb *CommitStateDB) GetCacheCode(addr ethcmn.Address) *CacheCode {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "GetCacheCode"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	code, ok := csdb.codeCache[addr]
@@ -243,19 +239,28 @@ func (csdb *CommitStateDB) IteratorCode(cb func(addr ethcmn.Address, c CacheCode
 func (csdb *CommitStateDB) SetHeightHash(height uint64, hash ethcmn.Hash) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "SetHeightHash"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
+	}
+
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		csdb.setHeightHashInRawDB(height, hash)
+		return
 	}
 
 	store := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
 	key := HeightHashKey(height)
 	store.Set(key, hash.Bytes())
+	if mpt.TrieWriteAhead {
+		csdb.setHeightHashInRawDB(height, hash)
+	}
 }
 
 // SetParams sets the evm parameters to the param space.
 func (csdb *CommitStateDB) SetParams(params Params) {
 	csdb.params = &params
 	csdb.paramSpace.SetParamSet(csdb.ctx, &params)
+	GetEvmParamsCache().SetNeedParamsUpdate()
 }
 
 // SetBalance sets the balance of an account.
@@ -270,8 +275,8 @@ func (csdb *CommitStateDB) SetBalance(addr ethcmn.Address, amount *big.Int) {
 func (csdb *CommitStateDB) AddBalance(addr ethcmn.Address, amount *big.Int) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "AddBalance"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	so := csdb.GetOrNewStateObject(addr)
@@ -284,8 +289,8 @@ func (csdb *CommitStateDB) AddBalance(addr ethcmn.Address, amount *big.Int) {
 func (csdb *CommitStateDB) SubBalance(addr ethcmn.Address, amount *big.Int) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "SubBalance"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	so := csdb.GetOrNewStateObject(addr)
@@ -298,8 +303,8 @@ func (csdb *CommitStateDB) SubBalance(addr ethcmn.Address, amount *big.Int) {
 func (csdb *CommitStateDB) SetNonce(addr ethcmn.Address, nonce uint64) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "SetNonce"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	so := csdb.GetOrNewStateObject(addr)
@@ -312,13 +317,13 @@ func (csdb *CommitStateDB) SetNonce(addr ethcmn.Address, nonce uint64) {
 func (csdb *CommitStateDB) SetState(addr ethcmn.Address, key, value ethcmn.Hash) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "SetState"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	so := csdb.GetOrNewStateObject(addr)
 	if so != nil {
-		so.SetState(nil, key, value)
+		so.SetState(csdb.db, key, value)
 	}
 }
 
@@ -326,13 +331,13 @@ func (csdb *CommitStateDB) SetState(addr ethcmn.Address, key, value ethcmn.Hash)
 func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "SetCode"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	so := csdb.GetOrNewStateObject(addr)
-	hash := Keccak256HashWithCache(code)
 	if so != nil {
+		hash := Keccak256HashWithCache(code)
 		so.SetCode(hash, code)
 		csdb.codeCache[addr] = CacheCode{
 			CodeHash: hash.Bytes(),
@@ -350,21 +355,21 @@ func (csdb *CommitStateDB) SetCode(addr ethcmn.Address, code []byte) {
 
 // SetLogs sets the logs for a transaction in the KVStore.
 func (csdb *CommitStateDB) SetLogs(hash ethcmn.Hash, logs []*ethtypes.Log) error {
-	csdb.logs = logs
+	csdb.logs[hash] = logs
 	return nil
 }
 
 // DeleteLogs removes the logs from the KVStore. It is used during journal.Revert.
 func (csdb *CommitStateDB) DeleteLogs(hash ethcmn.Hash) {
-	csdb.logs = []*ethtypes.Log{}
+	delete(csdb.logs, hash)
 }
 
 // AddLog adds a new log to the state and sets the log metadata from the state.
 func (csdb *CommitStateDB) AddLog(log *ethtypes.Log) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "AddLog"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	csdb.journal.append(addLogChange{txhash: csdb.thash})
@@ -375,25 +380,22 @@ func (csdb *CommitStateDB) AddLog(log *ethtypes.Log) {
 	log.Index = csdb.logSize
 
 	csdb.logSize = csdb.logSize + 1
-	csdb.logs = append(csdb.logs, log)
+	csdb.logs[csdb.thash] = append(csdb.logs[csdb.thash], log)
 }
 
 // AddPreimage records a SHA3 preimage seen by the VM.
 func (csdb *CommitStateDB) AddPreimage(hash ethcmn.Hash, preimage []byte) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "AddPreimage"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
-	if _, ok := csdb.hashToPreimageIndex[hash]; !ok {
+	if _, ok := csdb.preimages[hash]; !ok {
 		csdb.journal.append(addPreimageChange{hash: hash})
-
 		pi := make([]byte, len(preimage))
 		copy(pi, preimage)
-
-		csdb.preimages = append(csdb.preimages, preimageEntry{hash: hash, preimage: pi})
-		csdb.hashToPreimageIndex[hash] = len(csdb.preimages) - 1
+		csdb.preimages[hash] = pi
 	}
 }
 
@@ -401,8 +403,8 @@ func (csdb *CommitStateDB) AddPreimage(hash ethcmn.Hash, preimage []byte) {
 func (csdb *CommitStateDB) AddRefund(gas uint64) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "AddRefund"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	csdb.journal.append(refundChange{prev: csdb.refund})
@@ -414,8 +416,8 @@ func (csdb *CommitStateDB) AddRefund(gas uint64) {
 func (csdb *CommitStateDB) SubRefund(gas uint64) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "SubRefund"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	csdb.journal.append(refundChange{prev: csdb.refund})
@@ -430,8 +432,8 @@ func (csdb *CommitStateDB) SubRefund(gas uint64) {
 func (csdb *CommitStateDB) AddAddressToAccessList(addr ethcmn.Address) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "AddAddressToAccessList"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	if csdb.accessList.AddAddress(addr) {
@@ -443,8 +445,8 @@ func (csdb *CommitStateDB) AddAddressToAccessList(addr ethcmn.Address) {
 func (csdb *CommitStateDB) AddSlotToAccessList(addr ethcmn.Address, slot ethcmn.Hash) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "AddSlotToAccessList"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	addrMod, slotMod := csdb.accessList.AddSlot(addr, slot)
@@ -465,8 +467,8 @@ func (csdb *CommitStateDB) AddSlotToAccessList(addr ethcmn.Address, slot ethcmn.
 func (csdb *CommitStateDB) PrepareAccessList(sender ethcmn.Address, dest *ethcmn.Address, precompiles []ethcmn.Address, txAccesses ethtypes.AccessList) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "PrepareAccessList"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	csdb.AddAddressToAccessList(sender)
@@ -489,8 +491,8 @@ func (csdb *CommitStateDB) PrepareAccessList(sender ethcmn.Address, dest *ethcmn
 func (csdb *CommitStateDB) AddressInAccessList(addr ethcmn.Address) bool {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "AddressInAccessList"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	return csdb.accessList.ContainsAddress(addr)
@@ -500,8 +502,8 @@ func (csdb *CommitStateDB) AddressInAccessList(addr ethcmn.Address) bool {
 func (csdb *CommitStateDB) SlotInAccessList(addr ethcmn.Address, slot ethcmn.Hash) (bool, bool) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "SlotInAccessList"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	return csdb.accessList.Contains(addr, slot)
@@ -513,6 +515,10 @@ func (csdb *CommitStateDB) SlotInAccessList(addr ethcmn.Address, slot ethcmn.Has
 
 // GetHeightHash returns the block header hash associated with a given block height and chain epoch number.
 func (csdb *CommitStateDB) GetHeightHash(height uint64) ethcmn.Hash {
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		return csdb.getHeightHashInRawDB(height)
+	}
+
 	store := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixHeightHash)
 	key := HeightHashKey(height)
 	bz := store.Get(key)
@@ -527,7 +533,16 @@ func (csdb *CommitStateDB) GetHeightHash(height uint64) ethcmn.Hash {
 func (csdb *CommitStateDB) GetParams() Params {
 	if csdb.params == nil {
 		var params Params
-		csdb.paramSpace.GetParamSet(csdb.ctx, &params)
+		if csdb.ctx.UseParamCache() {
+			if GetEvmParamsCache().IsNeedParamsUpdate() {
+				csdb.paramSpace.GetParamSet(csdb.ctx, &params)
+				GetEvmParamsCache().UpdateParams(params)
+			} else {
+				params = GetEvmParamsCache().GetParams()
+			}
+		} else {
+			csdb.paramSpace.GetParamSet(csdb.ctx, &params)
+		}
 		csdb.params = &params
 	}
 	return *csdb.params
@@ -538,8 +553,8 @@ func (csdb *CommitStateDB) GetParams() Params {
 func (csdb *CommitStateDB) GetBalance(addr ethcmn.Address) *big.Int {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "GetBalance"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -554,8 +569,8 @@ func (csdb *CommitStateDB) GetBalance(addr ethcmn.Address) *big.Int {
 func (csdb *CommitStateDB) GetNonce(addr ethcmn.Address) uint64 {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "GetNonce"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -584,8 +599,8 @@ func (csdb *CommitStateDB) SetBlockHash(hash ethcmn.Hash) {
 func (csdb *CommitStateDB) GetCode(addr ethcmn.Address) []byte {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "GetCode"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	// check for the contract calling from blocked list if contract blocked list is enabled
@@ -596,18 +611,20 @@ func (csdb *CommitStateDB) GetCode(addr ethcmn.Address) []byte {
 
 	so := csdb.getStateObject(addr)
 	if so != nil {
-		return so.Code(nil)
+		return so.Code(csdb.db)
 	}
-
 	return nil
 }
 
 // GetCode returns the code for a given code hash.
 func (csdb *CommitStateDB) GetCodeByHash(hash ethcmn.Hash) []byte {
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		return csdb.GetCodeByHashInRawDB(hash)
+	}
+
 	ctx := csdb.ctx
 	store := csdb.dbAdapter.NewStore(ctx.KVStore(csdb.storeKey), KeyPrefixCode)
 	code := store.Get(hash.Bytes())
-
 	return code
 }
 
@@ -615,28 +632,23 @@ func (csdb *CommitStateDB) GetCodeByHash(hash ethcmn.Hash) []byte {
 func (csdb *CommitStateDB) GetCodeSize(addr ethcmn.Address) int {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "GetCodeSize"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	so := csdb.getStateObject(addr)
-	if so == nil {
-		return 0
+	if so != nil {
+		return so.CodeSize(csdb.db)
 	}
-
-	if so.code != nil {
-		return len(so.code)
-	}
-
-	return len(so.Code(nil))
+	return 0
 }
 
 // GetCodeHash returns the code hash for a given account.
 func (csdb *CommitStateDB) GetCodeHash(addr ethcmn.Address) ethcmn.Hash {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "GetCodeHash"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -651,23 +663,27 @@ func (csdb *CommitStateDB) GetCodeHash(addr ethcmn.Address) ethcmn.Hash {
 func (csdb *CommitStateDB) GetState(addr ethcmn.Address, hash ethcmn.Hash) ethcmn.Hash {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "GetState"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	so := csdb.getStateObject(addr)
 	if so != nil {
-		return so.GetState(nil, hash)
+		return so.GetState(csdb.db, hash)
 	}
 
 	return ethcmn.Hash{}
 }
 
 // GetStateByKey retrieves a value from the given account's storage store.
-func (csdb *CommitStateDB) GetStateByKey(addr ethcmn.Address, hash ethcmn.Hash) ethcmn.Hash {
+func (csdb *CommitStateDB) GetStateByKey(addr ethcmn.Address, key ethcmn.Hash) ethcmn.Hash {
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		return csdb.GetStateByKeyMpt(addr, key)
+	}
+
 	ctx := csdb.ctx
 	store := csdb.dbAdapter.NewStore(ctx.KVStore(csdb.storeKey), AddressStoragePrefix(addr))
-	data := store.Get(hash.Bytes())
+	data := store.Get(key.Bytes())
 
 	return ethcmn.BytesToHash(data)
 }
@@ -677,13 +693,13 @@ func (csdb *CommitStateDB) GetStateByKey(addr ethcmn.Address, hash ethcmn.Hash) 
 func (csdb *CommitStateDB) GetCommittedState(addr ethcmn.Address, hash ethcmn.Hash) ethcmn.Hash {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "GetCommittedState"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	so := csdb.getStateObject(addr)
 	if so != nil {
-		return so.GetCommittedState(nil, hash)
+		return so.GetCommittedState(csdb.db, hash)
 	}
 
 	return ethcmn.Hash{}
@@ -691,15 +707,15 @@ func (csdb *CommitStateDB) GetCommittedState(addr ethcmn.Address, hash ethcmn.Ha
 
 // GetLogs returns the current logs for a given transaction hash from the KVStore.
 func (csdb *CommitStateDB) GetLogs(hash ethcmn.Hash) ([]*ethtypes.Log, error) {
-	return csdb.logs, nil
+	return csdb.logs[hash], nil
 }
 
 // GetRefund returns the current value of the refund counter.
 func (csdb *CommitStateDB) GetRefund() uint64 {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "GetRefund"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	return csdb.refund
@@ -707,12 +723,7 @@ func (csdb *CommitStateDB) GetRefund() uint64 {
 
 // Preimages returns a list of SHA3 preimages that have been submitted.
 func (csdb *CommitStateDB) Preimages() map[ethcmn.Hash][]byte {
-	preimages := map[ethcmn.Hash][]byte{}
-
-	for _, pe := range csdb.preimages {
-		preimages[pe.hash] = pe.preimage
-	}
-	return preimages
+	return csdb.preimages
 }
 
 // HasSuicided returns if the given account for the specified address has been
@@ -720,8 +731,8 @@ func (csdb *CommitStateDB) Preimages() map[ethcmn.Hash][]byte {
 func (csdb *CommitStateDB) HasSuicided(addr ethcmn.Address) bool {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "HasSuicided"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -735,7 +746,13 @@ func (csdb *CommitStateDB) HasSuicided(addr ethcmn.Address) bool {
 // StorageTrie returns nil as the state in Ethermint does not use a direct
 // storage trie.
 func (csdb *CommitStateDB) StorageTrie(addr ethcmn.Address) ethstate.Trie {
-	return nil
+	stateObject := csdb.getStateObject(addr)
+	if stateObject == nil {
+		return nil
+	}
+	cpy := stateObject.deepCopy(csdb)
+	cpy.updateTrie(csdb.db)
+	return cpy.getTrie(csdb.db)
 }
 
 // ----------------------------------------------------------------------------
@@ -747,82 +764,128 @@ func (csdb *CommitStateDB) StorageTrie(addr ethcmn.Address) ethstate.Trie {
 // state (storage) updated. In addition, the state object (account) itself will
 // be written. Finally, the root hash (version) will be returned.
 func (csdb *CommitStateDB) Commit(deleteEmptyObjects bool) (ethcmn.Hash, error) {
-	defer csdb.clearJournalAndRefund()
+	// Finalize any pending changes and merge everything into the tries
+	csdb.IntermediateRoot(deleteEmptyObjects)
 
-	// remove dirty state object entries based on the journal
-	for _, dirty := range csdb.journal.dirties {
-		csdb.stateObjectsDirty[dirty.address] = struct{}{}
+	// If there was a trie prefetcher operating, it gets aborted and irrevocably
+	// modified after we start retrieving tries. Remove it from the statedb after
+	// this round of use.
+	//
+	// This is weird pre-byzantium since the first tx runs with a prefetcher and
+	// the remainder without, but pre-byzantium even the initial prefetcher is
+	// useless, so no sleep lost.
+	prefetcher := csdb.prefetcher
+	if csdb.prefetcher != nil {
+		defer func() {
+			csdb.prefetcher.Close()
+			csdb.prefetcher = nil
+		}()
 	}
 
-	// set the state objects
-	for _, stateEntry := range csdb.stateObjects {
-		_, isDirty := csdb.stateObjectsDirty[stateEntry.address]
+	// Now we're about to start to write changes to the trie. The trie is so far
+	// _untouched_. We can check with the prefetcher, if it can give us a trie
+	// which has the same root, but also has some content loaded into it.
+	if prefetcher != nil {
+		if trie := prefetcher.Trie(csdb.originalRoot); trie != nil {
+			csdb.trie = trie
+		}
+	}
 
-		switch {
-		case stateEntry.stateObject.suicided || (isDirty && deleteEmptyObjects && stateEntry.stateObject.empty()):
-			// If the state object has been removed, don't bother syncing it and just
-			// remove it from the store.
-			csdb.deleteStateObject(stateEntry.stateObject)
+	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		if mpt.TrieWriteAhead {
+			// Commit objects to the trie, measuring the elapsed time
+			codeWriter := csdb.db.TrieDB().DiskDB().NewBatch()
+			usedAddrs := make([][]byte, 0, len(csdb.stateObjectsPending))
 
-		case isDirty:
-			// write any contract code associated with the state object
-			if stateEntry.stateObject.code != nil && stateEntry.stateObject.dirtyCode {
-				stateEntry.stateObject.commitCode()
-				stateEntry.stateObject.dirtyCode = false
+			for addr := range csdb.stateObjectsDirty {
+				if obj := csdb.stateObjects[addr]; !obj.deleted {
+					// Write any contract code associated with the state object
+					if obj.code != nil && obj.dirtyCode {
+						obj.commitCode()
+
+						rawdb.WriteCode(codeWriter, ethcmn.BytesToHash(obj.CodeHash()), obj.code)
+						obj.dirtyCode = false
+					}
+
+					// Write any storage changes in the state object to its storage trie
+					if err := obj.CommitTrie(csdb.db); err != nil {
+						return ethcmn.Hash{}, err
+					}
+
+					csdb.UpdateAccountStorageInfo(obj)
+				} else {
+					csdb.DeleteAccountStorageInfo(obj)
+				}
+
+				usedAddrs = append(usedAddrs, ethcmn.CopyBytes(addr[:])) // Copy needed for closure
+			}
+			if prefetcher != nil {
+				prefetcher.Used(csdb.originalRoot, usedAddrs)
 			}
 
-			// update the object in the KVStore
-			if err := csdb.updateStateObject(stateEntry.stateObject); err != nil {
-				return ethcmn.Hash{}, err
+			if codeWriter.ValueSize() > 0 {
+				if err := codeWriter.Write(); err != nil {
+					csdb.SetError(fmt.Errorf("failed to commit dirty codes: %s", err.Error()))
+				}
+			}
+		} else {
+			// Commit objects to the trie, measuring the elapsed time
+			for addr := range csdb.stateObjectsDirty {
+				if so := csdb.stateObjects[addr]; !so.deleted {
+					// Write any contract code associated with the state object
+					if so.code != nil && so.dirtyCode {
+						so.commitCode()
+						so.dirtyCode = false
+					}
+				}
 			}
 		}
 
-		delete(csdb.stateObjectsDirty, stateEntry.address)
-	}
+		if len(csdb.stateObjectsDirty) > 0 {
+			csdb.stateObjectsDirty = make(map[ethcmn.Address]struct{})
+		}
 
-	// NOTE: Ethereum returns the trie merkle root here, but as commitment
-	// actually happens in the BaseApp at EndBlocker, we do not know the root at
-	// this time.
-	return ethcmn.Hash{}, nil
+		return ethcmn.Hash{}, nil
+	} else {
+		return csdb.CommitMpt(prefetcher)
+	}
 }
 
 // Finalise finalizes the state objects (accounts) state by setting their state,
 // removing the csdb destructed objects and clearing the journal as well as the
 // refunds.
-func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) error {
-	for _, dirty := range csdb.journal.dirties {
-		stateEntry, exist := csdb.stateObjects[dirty.address]
+func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) {
+	addressesToPrefetch := make([][]byte, 0, len(csdb.journal.dirties))
+	for addr := range csdb.journal.dirties {
+		obj, exist := csdb.stateObjects[addr]
 		if !exist {
-			// ripeMD is 'touched' at block 1714175, in tx:
-			// 0x1237f737031e40bcde4a8b7e717b2d15e3ecadfe49bb1bbc71ee9deb09c6fcf2
-			//
-			// That tx goes out of gas, and although the notion of 'touched' does not
-			// exist there, the touch-event will still be recorded in the journal.
-			// Since ripeMD is a special snowflake, it will persist in the journal even
-			// though the journal is reverted. In this special circumstance, it may
-			// exist in journal.dirties but not in stateObjects. Thus, we can safely
-			// ignore it here.
+			// ripeMD is 'touched' at block 1714175, in tx 0x1237f737031e40bcde4a8b7e717b2d15e3ecadfe49bb1bbc71ee9deb09c6fcf2
+			// That tx goes out of gas, and although the notion of 'touched' does not exist there, the
+			// touch-event will still be recorded in the journal. Since ripeMD is a special snowflake,
+			// it will persist in the journal even though the journal is reverted. In this special circumstance,
+			// it may exist in `s.journal.dirties` but not in `s.stateObjects`.
+			// Thus, we can safely ignore it here
 			continue
 		}
-
-		if stateEntry.stateObject.suicided || (deleteEmptyObjects && stateEntry.stateObject.empty()) {
-			csdb.deleteStateObject(stateEntry.stateObject)
+		if obj.suicided || (deleteEmptyObjects && obj.empty()) {
+			obj.deleted = true
 		} else {
-			// Set all the dirty state storage items for the state object in the
-			// KVStore and finally set the account in the account mapper.
-			stateEntry.stateObject.commitState()
-			if err := csdb.updateStateObject(stateEntry.stateObject); err != nil {
-				return err
-			}
+			obj.finalise(true) // Prefetch slots in the background
 		}
+		csdb.stateObjectsPending[addr] = struct{}{}
+		csdb.stateObjectsDirty[addr] = struct{}{}
 
-		csdb.stateObjectsDirty[dirty.address] = struct{}{}
+		// At this point, also ship the address off to the precacher. The precacher
+		// will start loading tries, and when the change is eventually committed,
+		// the commit-phase will be a lot faster
+		addressesToPrefetch = append(addressesToPrefetch, ethcmn.CopyBytes(addr[:])) // Copy needed for closure
+	}
+	if csdb.prefetcher != nil && len(addressesToPrefetch) > 0 {
+		csdb.prefetcher.Prefetch(csdb.originalRoot, addressesToPrefetch)
 	}
 
-	// invalidate journal because reverting across transactions is not allowed
+	// Invalidate journal because reverting across transactions is not allowed.
 	csdb.clearJournalAndRefund()
-	csdb.DeleteLogs(csdb.thash)
-	return nil
 }
 
 // IntermediateRoot returns the current root hash of the state. It is called in
@@ -832,16 +895,51 @@ func (csdb *CommitStateDB) Finalise(deleteEmptyObjects bool) error {
 // NOTE: The SDK has not concept or method of getting any intermediate merkle
 // root as commitment of the merkle-ized tree doesn't happen until the
 // BaseApps' EndBlocker.
-func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) (ethcmn.Hash, error) {
-	if err := csdb.Finalise(deleteEmptyObjects); err != nil {
-		return ethcmn.Hash{}, err
+func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) ethcmn.Hash {
+	// Finalise all the dirty storage states and write them into the tries
+	csdb.Finalise(deleteEmptyObjects)
+
+	if !tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		for addr := range csdb.stateObjectsPending {
+			if obj := csdb.stateObjects[addr]; !obj.deleted {
+				obj.commitState(csdb.db)
+			}
+		}
+	} else {
+		// Although naively it makes sense to retrieve the account trie and then do
+		// the contract storage and account updates sequentially, that short circuits
+		// the account prefetcher. Instead, let's process all the storage updates
+		// first, giving the account prefeches just a few more milliseconds of time
+		// to pull useful data from disk.
+		for addr := range csdb.stateObjectsPending {
+			if obj := csdb.stateObjects[addr]; !obj.deleted {
+				obj.updateRoot(csdb.db)
+			}
+		}
 	}
 
-	return ethcmn.Hash{}, nil
+	//usedAddrs := make([][]byte, 0, len(csdb.stateObjectsPending))
+	for addr := range csdb.stateObjectsPending {
+		if obj := csdb.stateObjects[addr]; obj.deleted {
+			csdb.deleteStateObject(obj)
+		} else {
+			csdb.updateStateObject(obj, true)
+		}
+		//usedAddrs = append(usedAddrs, ethcmn.CopyBytes(addr[:])) // Copy needed for closure
+	}
+	//if csdb.prefetcher != nil {
+	//	csdb.prefetcher.used(csdb.originalRoot, usedAddrs)
+	//}
+
+	if len(csdb.stateObjectsPending) > 0 {
+		csdb.stateObjectsPending = make(map[ethcmn.Address]struct{})
+	}
+
+	return ethcmn.Hash{}
 }
 
 // updateStateObject writes the given state object to the store.
-func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
+func (csdb *CommitStateDB) updateStateObject(so *stateObject, fromCommit bool) error {
 	// NOTE: we don't use sdk.NewCoin here to avoid panic on test importer's genesis
 	newBalance := sdk.Coin{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecFromBigIntWithPrec(so.Balance(), sdk.Precision)} // int2dec
 	if !newBalance.IsValid() {
@@ -863,13 +961,14 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 		return err
 	}
 
-	csdb.accountKeeper.SetAccount(csdb.ctx, so.account)
+	updateState := fromCommit && csdb.ctx.IsDeliver()
+	csdb.accountKeeper.SetAccount(csdb.ctx, so.account, updateState)
 	if !csdb.ctx.IsCheckTx() {
 		if csdb.Watcher.Enabled() {
 			csdb.Watcher.SaveAccount(so.account, false)
 		}
 	}
-	// return csdb.bankKeeper.SetBalance(csdb.ctx, so.account.Address, newBalance)
+
 	return nil
 }
 
@@ -877,6 +976,10 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 func (csdb *CommitStateDB) deleteStateObject(so *stateObject) {
 	so.deleted = true
 	csdb.accountKeeper.RemoveAccount(csdb.ctx, so.account)
+
+	//if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) || types2.EnableDoubleWrite {
+	//	csdb.DeleteAccountStorageInfo(so)
+	//}
 }
 
 // ----------------------------------------------------------------------------
@@ -887,8 +990,8 @@ func (csdb *CommitStateDB) deleteStateObject(so *stateObject) {
 func (csdb *CommitStateDB) Snapshot() int {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "Snapshot"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	id := csdb.nextRevisionID
@@ -909,8 +1012,8 @@ func (csdb *CommitStateDB) Snapshot() int {
 func (csdb *CommitStateDB) RevertToSnapshot(revID int) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "RevertToSnapshot"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	// find the snapshot in the stack of valid snapshots
@@ -936,7 +1039,7 @@ func (csdb *CommitStateDB) RevertToSnapshot(revID int) {
 // Database retrieves the low level database supporting the lower level trie
 // ops. It is not used in Ethermint, so it returns nil.
 func (csdb *CommitStateDB) Database() ethstate.Database {
-	return nil
+	return csdb.db
 }
 
 // Empty returns whether the state object is either non-existent or empty
@@ -944,8 +1047,8 @@ func (csdb *CommitStateDB) Database() ethstate.Database {
 func (csdb *CommitStateDB) Empty(addr ethcmn.Address) bool {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "Empty"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -957,8 +1060,8 @@ func (csdb *CommitStateDB) Empty(addr ethcmn.Address) bool {
 func (csdb *CommitStateDB) Exist(addr ethcmn.Address) bool {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "Exist"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	return csdb.getStateObject(addr) != nil
@@ -976,8 +1079,8 @@ func (csdb *CommitStateDB) Error() error {
 func (csdb *CommitStateDB) Suicide(addr ethcmn.Address) bool {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "Suicide"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	so := csdb.getStateObject(addr)
@@ -1001,14 +1104,14 @@ func (csdb *CommitStateDB) Suicide(addr ethcmn.Address) bool {
 // the underlying account mapper and store keys to avoid reloading data for the
 // next operations.
 func (csdb *CommitStateDB) Reset(_ ethcmn.Hash) error {
-	csdb.stateObjects = make(map[ethcmn.Address]*stateEntry)
+	csdb.stateObjects = make(map[ethcmn.Address]*stateObject)
+	csdb.stateObjectsPending = make(map[ethcmn.Address]struct{})
 	csdb.stateObjectsDirty = make(map[ethcmn.Address]struct{})
 	csdb.thash = ethcmn.Hash{}
 	csdb.bhash = ethcmn.Hash{}
 	csdb.txIndex = 0
 	csdb.logSize = 0
-	csdb.preimages = []preimageEntry{}
-	csdb.hashToPreimageIndex = make(map[ethcmn.Hash]int)
+	csdb.preimages = make(map[ethcmn.Hash][]byte)
 	csdb.accessList = newAccessList()
 	csdb.params = nil
 
@@ -1016,37 +1119,19 @@ func (csdb *CommitStateDB) Reset(_ ethcmn.Hash) error {
 	return nil
 }
 
-// UpdateAccounts updates the nonce and coin balances of accounts
-func (csdb *CommitStateDB) UpdateAccounts() {
-	for _, stateEntry := range csdb.stateObjects {
-		currAcc := csdb.accountKeeper.GetAccount(csdb.ctx, sdk.AccAddress(stateEntry.address.Bytes()))
-		ethermintAcc, ok := currAcc.(*ethermint.EthAccount)
-		if !ok {
-			continue
-		}
-
-		balance := sdk.Coin{
-			Denom:  sdk.DefaultBondDenom,
-			Amount: ethermintAcc.GetCoins().AmountOf(sdk.DefaultBondDenom),
-		}
-
-		if stateEntry.stateObject.Balance() != balance.Amount.BigInt() && balance.IsValid() ||
-			stateEntry.stateObject.Nonce() != ethermintAcc.GetSequence() {
-			stateEntry.stateObject.account = ethermintAcc
-		}
-	}
-}
-
 // ClearStateObjects clears cache of state objects to handle account changes outside of the EVM
 func (csdb *CommitStateDB) ClearStateObjects() {
-	csdb.stateObjects = make(map[ethcmn.Address]*stateEntry)
+	csdb.stateObjects = make(map[ethcmn.Address]*stateObject)
+	csdb.stateObjectsPending = make(map[ethcmn.Address]struct{})
 	csdb.stateObjectsDirty = make(map[ethcmn.Address]struct{})
 }
 
 func (csdb *CommitStateDB) clearJournalAndRefund() {
-	csdb.journal = newJournal()
-	csdb.validRevisions = csdb.validRevisions[:0]
-	csdb.refund = 0
+	if len(csdb.journal.entries) > 0 {
+		csdb.journal = newJournal()
+		csdb.refund = 0
+	}
+	csdb.validRevisions = csdb.validRevisions[:0] // Snapshots can be created without journal entires
 }
 
 // Prepare sets the current transaction hash and index and block hash which is
@@ -1070,8 +1155,8 @@ func (csdb *CommitStateDB) Prepare(thash, bhash ethcmn.Hash, txi int) {
 func (csdb *CommitStateDB) CreateAccount(addr ethcmn.Address) {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "CreateAccount"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	newobj, prevobj := csdb.createObject(addr)
@@ -1085,13 +1170,17 @@ func (csdb *CommitStateDB) CreateAccount(addr ethcmn.Address) {
 func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, value ethcmn.Hash) (stop bool)) error {
 	if !csdb.ctx.IsCheckTx() {
 		funcName := "ForEachStorage"
-		analyzer.StartTxLog(funcName)
-		defer analyzer.StopTxLog(funcName)
+		trace.StartTxLog(funcName)
+		defer trace.StopTxLog(funcName)
 	}
 
 	so := csdb.getStateObject(addr)
 	if so == nil {
 		return nil
+	}
+
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		return csdb.ForEachStorageMpt(so, cb)
 	}
 
 	store := csdb.ctx.KVStore(csdb.storeKey)
@@ -1103,12 +1192,10 @@ func (csdb *CommitStateDB) ForEachStorage(addr ethcmn.Address, cb func(key, valu
 		key := ethcmn.BytesToHash(iterator.Key())
 		value := ethcmn.BytesToHash(iterator.Value())
 
-		if idx, dirty := so.keyToDirtyStorageIndex[key]; dirty {
-			// check if iteration stops
-			if cb(key, so.dirtyStorage[idx].Value) {
+		if value, dirty := so.dirtyStorage[key]; dirty {
+			if cb(key, value) {
 				break
 			}
-
 			continue
 		}
 
@@ -1139,7 +1226,7 @@ func (csdb *CommitStateDB) createObject(addr ethcmn.Address) (newObj, prevObj *s
 
 	acc := csdb.accountKeeper.NewAccountWithAddress(csdb.ctx, sdk.AccAddress(addr.Bytes()))
 
-	newObj = newStateObject(csdb, acc)
+	newObj = newStateObject(csdb, acc, ethtypes.EmptyRootHash)
 	newObj.setNonce(0) // sets the object to dirty
 
 	if prevObj == nil {
@@ -1147,13 +1234,20 @@ func (csdb *CommitStateDB) createObject(addr ethcmn.Address) (newObj, prevObj *s
 	} else {
 		csdb.journal.append(resetObjectChange{prev: prevObj})
 	}
-
 	csdb.setStateObject(newObj)
-	return newObj, prevObj
+
+	if prevObj != nil && !prevObj.deleted {
+		return newObj, prevObj
+	}
+	return newObj, nil
 }
 
-// setError remembers the first non-nil error it is called with.
-func (csdb *CommitStateDB) setError(err error) {
+// SetError remembers the first non-nil error it is called with.
+func (csdb *CommitStateDB) SetError(err error) {
+	if err != nil {
+		csdb.Logger().Debug("CommitStateDB", "error", err)
+	}
+
 	if csdb.dbErr == nil {
 		csdb.dbErr = err
 	}
@@ -1162,45 +1256,14 @@ func (csdb *CommitStateDB) setError(err error) {
 // getStateObject attempts to retrieve a state object given by the address.
 // Returns nil and sets an error if not found.
 func (csdb *CommitStateDB) getStateObject(addr ethcmn.Address) (stateObject *stateObject) {
-	if v, found := csdb.stateObjects[addr]; found {
-		// prefer 'live' (cached) objects
-		if so := v.stateObject; so != nil {
-			if so.deleted {
-				return nil
-			}
-
-			return so
-		}
+	if obj := csdb.getDeletedStateObject(addr); obj != nil && !obj.deleted {
+		return obj
 	}
-
-	// otherwise, attempt to fetch the account from the account mapper
-	acc := csdb.accountKeeper.GetAccount(csdb.ctx, sdk.AccAddress(addr.Bytes()))
-	if acc == nil {
-		csdb.setError(fmt.Errorf("no account found for address: %s", addr.String()))
-		return nil
-	}
-
-	// insert the state object into the live set
-	so := newStateObject(csdb, acc)
-	csdb.setStateObject(so)
-
-	return so
+	return nil
 }
 
 func (csdb *CommitStateDB) setStateObject(so *stateObject) {
-	if _, found := csdb.stateObjects[so.Address()]; found {
-		// update the existing object
-		csdb.stateObjects[so.Address()].stateObject = so
-		return
-	}
-
-	// append the new state object to the stateObjects slice
-	se := &stateEntry{
-		address:     so.Address(),
-		stateObject: so,
-	}
-
-	csdb.stateObjects[se.address] = se
+	csdb.stateObjects[so.Address()] = so
 }
 
 // RawDump returns a raw state dump.
@@ -1231,7 +1294,14 @@ func (csdb *CommitStateDB) SetContractDeploymentWhitelist(addrList AddressList) 
 			csdb.Watcher.SaveContractDeploymentWhitelistItem(addrList[i])
 		}
 	}
-	store := csdb.ctx.KVStore(csdb.storeKey)
+
+	var store StoreProxy
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		store = csdb.ctx.KVStore(csdb.legacyStoreKey)
+	} else {
+		store = csdb.ctx.KVStore(csdb.storeKey)
+	}
+
 	for i := 0; i < len(addrList); i++ {
 		store.Set(GetContractDeploymentWhitelistMemberKey(addrList[i]), []byte(""))
 	}
@@ -1244,7 +1314,14 @@ func (csdb *CommitStateDB) DeleteContractDeploymentWhitelist(addrList AddressLis
 			csdb.Watcher.DeleteContractDeploymentWhitelist(addrList[i])
 		}
 	}
-	store := csdb.ctx.KVStore(csdb.storeKey)
+
+	var store StoreProxy
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		store = csdb.ctx.KVStore(csdb.legacyStoreKey)
+	} else {
+		store = csdb.ctx.KVStore(csdb.storeKey)
+	}
+
 	for i := 0; i < len(addrList); i++ {
 		store.Delete(GetContractDeploymentWhitelistMemberKey(addrList[i]))
 	}
@@ -1252,7 +1329,13 @@ func (csdb *CommitStateDB) DeleteContractDeploymentWhitelist(addrList AddressLis
 
 // GetContractDeploymentWhitelist gets the whole contract deployment whitelist currently
 func (csdb *CommitStateDB) GetContractDeploymentWhitelist() (whitelist AddressList) {
-	store := csdb.ctx.KVStore(csdb.storeKey)
+	var store sdk.KVStore
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		store = csdb.ctx.KVStore(csdb.legacyStoreKey)
+	} else {
+		store = csdb.ctx.KVStore(csdb.storeKey)
+	}
+
 	iterator := sdk.KVStorePrefixIterator(store, KeyPrefixContractDeploymentWhitelist)
 	defer iterator.Close()
 
@@ -1265,18 +1348,32 @@ func (csdb *CommitStateDB) GetContractDeploymentWhitelist() (whitelist AddressLi
 
 // IsDeployerInWhitelist checks whether the deployer is in the whitelist as a distributor
 func (csdb *CommitStateDB) IsDeployerInWhitelist(deployerAddr sdk.AccAddress) bool {
-	bs := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractDeploymentWhitelist)
+	var bs StoreProxy
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		bs = csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.legacyStoreKey), KeyPrefixContractDeploymentWhitelist)
+	} else {
+		bs = csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractDeploymentWhitelist)
+	}
+
 	return bs.Has(deployerAddr)
 }
 
 // SetContractBlockedList sets the target address list into blocked list store
 func (csdb *CommitStateDB) SetContractBlockedList(addrList AddressList) {
+	defer GetEvmParamsCache().SetNeedBlockedUpdate()
 	if csdb.Watcher.Enabled() {
 		for i := 0; i < len(addrList); i++ {
 			csdb.Watcher.SaveContractBlockedListItem(addrList[i])
 		}
 	}
-	store := csdb.ctx.KVStore(csdb.storeKey)
+
+	var store sdk.KVStore
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		store = csdb.ctx.KVStore(csdb.legacyStoreKey)
+	} else {
+		store = csdb.ctx.KVStore(csdb.storeKey)
+	}
+
 	for i := 0; i < len(addrList); i++ {
 		store.Set(GetContractBlockedListMemberKey(addrList[i]), []byte(""))
 	}
@@ -1284,12 +1381,20 @@ func (csdb *CommitStateDB) SetContractBlockedList(addrList AddressList) {
 
 // DeleteContractBlockedList deletes the target address list from blocked list store
 func (csdb *CommitStateDB) DeleteContractBlockedList(addrList AddressList) {
+	defer GetEvmParamsCache().SetNeedBlockedUpdate()
 	if csdb.Watcher.Enabled() {
 		for i := 0; i < len(addrList); i++ {
 			csdb.Watcher.DeleteContractBlockedList(addrList[i])
 		}
 	}
-	store := csdb.ctx.KVStore(csdb.storeKey)
+
+	var store sdk.KVStore
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		store = csdb.ctx.KVStore(csdb.legacyStoreKey)
+	} else {
+		store = csdb.ctx.KVStore(csdb.storeKey)
+	}
+
 	for i := 0; i < len(addrList); i++ {
 		store.Delete(GetContractBlockedListMemberKey(addrList[i]))
 	}
@@ -1297,7 +1402,13 @@ func (csdb *CommitStateDB) DeleteContractBlockedList(addrList AddressList) {
 
 // GetContractBlockedList gets the whole contract blocked list currently
 func (csdb *CommitStateDB) GetContractBlockedList() (blockedList AddressList) {
-	store := csdb.ctx.KVStore(csdb.storeKey)
+	var store sdk.KVStore
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		store = csdb.ctx.KVStore(csdb.legacyStoreKey)
+	} else {
+		store = csdb.ctx.KVStore(csdb.storeKey)
+	}
+
 	iterator := sdk.KVStorePrefixIterator(store, KeyPrefixContractBlockedList)
 	defer iterator.Close()
 
@@ -1322,33 +1433,47 @@ func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) 
 }
 
 // GetContractMethodBlockedByAddress gets contract methods blocked by address
-func (csdb CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.AccAddress) *BlockedContract {
+func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.AccAddress) *BlockedContract {
+	if csdb.ctx.UseParamCache() {
+		if GetEvmParamsCache().IsNeedBlockedUpdate() {
+			bcl := csdb.GetContractMethodBlockedList()
+			GetEvmParamsCache().UpdateBlockedContractMethod(bcl)
+		}
+		return GetEvmParamsCache().GetBlockedContractMethod(contractAddr.String())
+	}
+
 	//use dbAdapter for watchdb or prefixdb
-	bs := csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractBlockedList)
-	vaule := bs.Get(contractAddr)
-	if vaule == nil {
+	var bs StoreProxy
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		bs = csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.legacyStoreKey), KeyPrefixContractBlockedList)
+	} else {
+		bs = csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractBlockedList)
+	}
+
+	value := bs.Get(contractAddr)
+	if value == nil {
 		// address is not exist
 		return nil
 	} else {
 		methods := ContractMethods{}
 		var bc *BlockedContract
-		if len(vaule) == 0 {
+		if len(value) == 0 {
 			//address is exist,but the blocked is old version.
 			bc = NewBlockContract(contractAddr, methods)
 		} else {
 			// get block contract from cache without anmio
 			if contractMethodBlockedCache != nil {
-				if cm, ok := contractMethodBlockedCache.GetContractMethod(vaule); ok {
+				if cm, ok := contractMethodBlockedCache.GetContractMethod(value); ok {
 					return NewBlockContract(contractAddr, cm)
 				}
 			}
 			//address is exist,but the blocked is new version.
-			csdb.cdc.MustUnmarshalJSON(vaule, &methods)
+			csdb.cdc.MustUnmarshalJSON(value, &methods)
 			bc = NewBlockContract(contractAddr, methods)
 
 			// write block contract into cache
 			if contractMethodBlockedCache != nil {
-				contractMethodBlockedCache.SetContractMethod(vaule, methods)
+				contractMethodBlockedCache.SetContractMethod(value, methods)
 			}
 		}
 		return bc
@@ -1357,6 +1482,7 @@ func (csdb CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.Acc
 
 // InsertContractMethodBlockedList sets the list of contract method blocked into blocked list store
 func (csdb *CommitStateDB) InsertContractMethodBlockedList(contractList BlockedContractList) sdk.Error {
+	defer GetEvmParamsCache().SetNeedBlockedUpdate()
 	for i := 0; i < len(contractList); i++ {
 		bc := csdb.GetContractMethodBlockedByAddress(contractList[i].Address)
 		if bc != nil {
@@ -1376,6 +1502,7 @@ func (csdb *CommitStateDB) InsertContractMethodBlockedList(contractList BlockedC
 
 // DeleteContractMethodBlockedList delete the list of contract method blocked  from blocked list store
 func (csdb *CommitStateDB) DeleteContractMethodBlockedList(contractList BlockedContractList) sdk.Error {
+	defer GetEvmParamsCache().SetNeedBlockedUpdate()
 	for i := 0; i < len(contractList); i++ {
 		bc := csdb.GetContractMethodBlockedByAddress(contractList[i].Address)
 		if bc != nil {
@@ -1402,8 +1529,14 @@ func (csdb *CommitStateDB) DeleteContractMethodBlockedList(contractList BlockedC
 }
 
 // GetContractMethodBlockedList get the list of contract method blocked from blocked list store
-func (csdb CommitStateDB) GetContractMethodBlockedList() (blockedContractList BlockedContractList) {
-	store := csdb.ctx.KVStore(csdb.storeKey)
+func (csdb *CommitStateDB) GetContractMethodBlockedList() (blockedContractList BlockedContractList) {
+	var store sdk.KVStore
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		store = csdb.ctx.KVStore(csdb.legacyStoreKey)
+	} else {
+		store = csdb.ctx.KVStore(csdb.storeKey)
+	}
+
 	iterator := sdk.KVStorePrefixIterator(store, KeyPrefixContractBlockedList)
 	defer iterator.Close()
 
@@ -1437,15 +1570,20 @@ func (csdb *CommitStateDB) IsContractMethodBlocked(contractAddr sdk.AccAddress, 
 
 // SetContractMethodBlocked sets contract method blocked into blocked list store
 func (csdb *CommitStateDB) SetContractMethodBlocked(contract BlockedContract) {
-	key := GetContractBlockedListMemberKey(contract.Address)
 	SortContractMethods(contract.BlockMethods)
 	value := csdb.cdc.MustMarshalJSON(contract.BlockMethods)
 	value = sdk.MustSortJSON(value)
-	store := csdb.ctx.KVStore(csdb.storeKey)
-	store.Set(key, value)
-
-	watcherEnable := csdb.Watcher.Enabled()
-	if watcherEnable {
+	if csdb.Watcher.Enabled() {
 		csdb.Watcher.SaveContractMethodBlockedListItem(contract.Address, value)
 	}
+
+	var store sdk.KVStore
+	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
+		store = csdb.ctx.KVStore(csdb.legacyStoreKey)
+	} else {
+		store = csdb.ctx.KVStore(csdb.storeKey)
+	}
+
+	key := GetContractBlockedListMemberKey(contract.Address)
+	store.Set(key, value)
 }

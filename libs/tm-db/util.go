@@ -36,6 +36,27 @@ func cp(bz []byte) (ret []byte) {
 	return ret
 }
 
+func concat(bz1, bz2 []byte) (ret []byte) {
+	ret = make([]byte, len(bz1)+len(bz2))
+	copy(ret, bz1)
+	copy(ret[len(bz1):], bz2)
+	return ret
+}
+
+func concatAll(bzs ...[]byte) (ret []byte) {
+	totalLen := 0
+	for _, bz := range bzs {
+		totalLen += len(bz)
+	}
+	ret = make([]byte, totalLen)
+	cpLen := 0
+	for _, bz := range bzs {
+		copy(ret[cpLen:], bz)
+		cpLen += len(bz)
+	}
+	return ret
+}
+
 // Returns a slice of the same length (big endian)
 // except incremented by one.
 // Returns nil on overflow (e.g. if bz bytes are all 0xFF)

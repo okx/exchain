@@ -3,13 +3,14 @@ package watcher_test
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"math/big"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -55,13 +56,17 @@ type WatcherTestSt struct {
 func setupTest() *WatcherTestSt {
 	w := &WatcherTestSt{}
 	checkTx := false
+	chain_id := "ethermint-3"
 	viper.Set(watcher.FlagFastQuery, true)
 	viper.Set(watcher.FlagDBBackend, "memdb")
 	viper.Set(watcher.FlagCheckWd, true)
 
 	w.app = app.Setup(checkTx)
-	w.ctx = w.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
+	w.ctx = w.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: chain_id, Time: time.Now().UTC()})
+	w.ctx.SetDeliver()
 	w.handler = evm.NewHandler(w.app.EvmKeeper)
+
+	ethermint.SetChainId(chain_id)
 
 	params := types.DefaultParams()
 	params.EnableCreate = true
@@ -89,17 +94,6 @@ func flushDB(db *watcher.WatchStore) {
 	}
 }
 
-func delDirtyAccount(wdBytes []byte, w *WatcherTestSt) error {
-	wd := watcher.WatchData{}
-	if err := wd.UnmarshalFromAmino(nil, wdBytes); err != nil {
-		return err
-	}
-	for _, account := range wd.DirtyAccount {
-		w.app.EvmKeeper.Watcher.DeleteAccount(*account)
-	}
-	return nil
-}
-
 func checkWD(wdBytes []byte, w *WatcherTestSt) {
 	wd := watcher.WatchData{}
 	if err := wd.UnmarshalFromAmino(nil, wdBytes); err != nil {
@@ -115,14 +109,13 @@ func checkWD(wdBytes []byte, w *WatcherTestSt) {
 func testWatchData(t *testing.T, w *WatcherTestSt) {
 	// produce WatchData
 	w.app.EvmKeeper.Watcher.Commit()
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Millisecond)
 
 	// get WatchData
 	wdFunc := w.app.EvmKeeper.Watcher.GetWatchDataFunc()
 	wd, err := wdFunc()
 	require.Nil(t, err)
 	require.NotEmpty(t, wd)
-	w.app.EvmKeeper.Watcher.ExecuteDelayEraseKey()
 
 	store := watcher.InstanceOfWatchStore()
 	pWd := getDBKV(store)
@@ -133,8 +126,7 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	wData, err := w.app.EvmKeeper.Watcher.UnmarshalWatchData(wd)
 	require.Nil(t, err)
 	w.app.EvmKeeper.Watcher.UseWatchData(wData)
-	w.app.EvmKeeper.Watcher.ExecuteDelayEraseKey()
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Millisecond)
 
 	cWd := getDBKV(store)
 
@@ -155,7 +147,7 @@ func TestHandleMsgEthereumTx(t *testing.T) {
 	require.NoError(t, err)
 	sender := ethcmn.HexToAddress(privkey.PubKey().Address().String())
 
-	var tx types.MsgEthereumTx
+	var tx *types.MsgEthereumTx
 
 	testCases := []struct {
 		msg      string
@@ -185,7 +177,7 @@ func TestHandleMsgEthereumTx(t *testing.T) {
 			w = setupTest() // reset
 			//nolint
 			tc.malleate()
-			w.ctx = w.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+			w.ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 			res, err := w.handler(w.ctx, tx)
 
 			//nolint
@@ -206,7 +198,7 @@ func TestHandleMsgEthereumTx(t *testing.T) {
 
 func TestMsgEthereumTxByWatcher(t *testing.T) {
 	var (
-		tx   types.MsgEthereumTx
+		tx   *types.MsgEthereumTx
 		from = ethcmn.BytesToAddress(secp256k1.GenPrivKey().PubKey().Address())
 		to   = ethcmn.BytesToAddress(secp256k1.GenPrivKey().PubKey().Address())
 	)
@@ -231,9 +223,9 @@ func TestMsgEthereumTxByWatcher(t *testing.T) {
 			w = setupTest() // reset
 			//nolint
 			tc.malleate()
-			w.ctx = w.ctx.WithIsCheckTx(true)
-			w.ctx = w.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-			w.ctx = w.ctx.WithFrom(from.String())
+			w.ctx.SetIsCheckTx(true)
+			w.ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
+			w.ctx.SetFrom(from.String())
 			res, err := w.handler(w.ctx, tx)
 
 			//nolint
@@ -364,7 +356,7 @@ func TestDuplicateWatchMessage(t *testing.T) {
 	a2 := newMockAccount(1, 2)
 	w.app.EvmKeeper.Watcher.SaveAccount(a2, true)
 	w.app.EvmKeeper.Watcher.Commit()
-	time.Sleep(time.Second)
+	time.Sleep(time.Millisecond)
 	store := watcher.InstanceOfWatchStore()
 	pWd := getDBKV(store)
 	require.Equal(t, 1, len(pWd))
@@ -382,8 +374,10 @@ func TestWriteLatestMsg(t *testing.T) {
 	w.SaveAccount(a1, true)
 	w.SaveAccount(a11, true)
 	w.SaveAccount(a111, true)
+	// waiting 1 second for initializing jobChan
+	time.Sleep(time.Millisecond)
 	w.Commit()
-	time.Sleep(time.Second)
+	time.Sleep(time.Millisecond)
 	store := watcher.InstanceOfWatchStore()
 	pWd := getDBKV(store)
 	require.Equal(t, 1, len(pWd))

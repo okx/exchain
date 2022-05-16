@@ -365,7 +365,7 @@ func (k Keeper) AddFeeDetail(ctx sdk.Context, from string, fee sdk.SysCoins, fee
 			Address:   from,
 			Fee:       fee.String(),
 			FeeType:   feeType,
-			Timestamp: ctx.BlockHeader().Time.Unix(),
+			Timestamp: ctx.BlockTime().Unix(),
 			Receiver:  receiver,
 		}
 		k.cache.addFeeDetail(feeDetail)

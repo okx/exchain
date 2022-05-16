@@ -1,8 +1,11 @@
 package keeper
 
 import (
+	"bytes"
 	"fmt"
 	"time"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 
@@ -34,6 +37,8 @@ type BaseKeeper struct {
 
 	ak         types.AccountKeeper
 	paramSpace params.Subspace
+
+	marshal *codec.CodecProxy
 }
 
 // NewBaseKeeper returns a new BaseKeeper
@@ -49,6 +54,13 @@ func NewBaseKeeper(
 	}
 }
 
+func NewBaseKeeperWithMarshal(ak types.AccountKeeper, marshal *codec.CodecProxy, paramSpace params.Subspace, blacklistedAddrs map[string]bool,
+) BaseKeeper {
+	ret := NewBaseKeeper(ak, paramSpace, blacklistedAddrs)
+	ret.marshal = marshal
+	return ret
+}
+
 // DelegateCoins performs delegation by deducting amt coins from an account with
 // address addr. For vesting accounts, delegations amounts are tracked for both
 // vesting and vested coins.
@@ -57,7 +69,7 @@ func NewBaseKeeper(
 func (keeper BaseKeeper) DelegateCoins(ctx sdk.Context, delegatorAddr, moduleAccAddr sdk.AccAddress, amt sdk.Coins) (err error) {
 	defer func() {
 		if !ctx.IsCheckTx() && keeper.ik != nil {
-			keeper.ik.UpdateInnerTx(ctx.TxBytes(), innertx.CosmosDepth, delegatorAddr, moduleAccAddr, innertx.CosmosCallType, innertx.DelegateCallName, amt, err)
+			keeper.ik.UpdateInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, delegatorAddr, moduleAccAddr, innertx.CosmosCallType, innertx.DelegateCallName, amt, err)
 		}
 	}()
 	delegatorAcc := keeper.ak.GetAccount(ctx, delegatorAddr)
@@ -105,7 +117,7 @@ func (keeper BaseKeeper) DelegateCoins(ctx sdk.Context, delegatorAddr, moduleAcc
 func (keeper BaseKeeper) UndelegateCoins(ctx sdk.Context, moduleAccAddr, delegatorAddr sdk.AccAddress, amt sdk.Coins) (err error) {
 	defer func() {
 		if !ctx.IsCheckTx() && keeper.ik != nil {
-			keeper.ik.UpdateInnerTx(ctx.TxBytes(), innertx.CosmosDepth, moduleAccAddr, delegatorAddr, innertx.CosmosCallType, innertx.UndelegateCallName, amt, err)
+			keeper.ik.UpdateInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, moduleAccAddr, delegatorAddr, innertx.CosmosCallType, innertx.UndelegateCallName, amt, err)
 		}
 	}()
 
@@ -170,6 +182,7 @@ type BaseSendKeeper struct {
 	BaseViewKeeper
 
 	ak         types.AccountKeeper
+	ask        authexported.SizerAccountKeeper
 	paramSpace params.Subspace
 
 	// list of addresses that are restricted from receiving transactions
@@ -183,12 +196,14 @@ func NewBaseSendKeeper(
 	ak types.AccountKeeper, paramSpace params.Subspace, blacklistedAddrs map[string]bool,
 ) BaseSendKeeper {
 
-	return BaseSendKeeper{
+	bsk := BaseSendKeeper{
 		BaseViewKeeper:   NewBaseViewKeeper(ak),
 		ak:               ak,
 		paramSpace:       paramSpace,
 		blacklistedAddrs: blacklistedAddrs,
 	}
+	bsk.ask, _ = bsk.ak.(authexported.SizerAccountKeeper)
+	return bsk
 }
 
 // InputOutputCoins handles a list of inputs and outputs
@@ -196,11 +211,11 @@ func (keeper BaseSendKeeper) InputOutputCoins(ctx sdk.Context, inputs []types.In
 	defer func() {
 		if !ctx.IsCheckTx() && keeper.ik != nil {
 			for _, in := range inputs {
-				keeper.ik.UpdateInnerTx(ctx.TxBytes(), innertx.CosmosDepth, in.Address, sdk.AccAddress{}, innertx.CosmosCallType, innertx.MultiCallName, in.Coins, err)
+				keeper.ik.UpdateInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, in.Address, sdk.AccAddress{}, innertx.CosmosCallType, innertx.MultiCallName, in.Coins, err)
 			}
 
 			for _, out := range outputs {
-				keeper.ik.UpdateInnerTx(ctx.TxBytes(), innertx.CosmosDepth, sdk.AccAddress{}, out.Address, innertx.CosmosCallType, innertx.MultiCallName, out.Coins, err)
+				keeper.ik.UpdateInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, sdk.AccAddress{}, out.Address, innertx.CosmosCallType, innertx.MultiCallName, out.Coins, err)
 			}
 		}
 	}()
@@ -255,32 +270,47 @@ func (keeper BaseSendKeeper) InputOutputCoins(ctx sdk.Context, inputs []types.In
 func (keeper BaseSendKeeper) SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) (err error) {
 	defer func() {
 		if !ctx.IsCheckTx() && keeper.ik != nil {
-			keeper.ik.UpdateInnerTx(ctx.TxBytes(), innertx.CosmosDepth, fromAddr, toAddr, innertx.CosmosCallType, innertx.SendCallName, amt, err)
+			keeper.ik.UpdateInnerTx(ctx.TxBytes(), ctx.BlockHeight(), innertx.CosmosDepth, fromAddr, toAddr, innertx.CosmosCallType, innertx.SendCallName, amt, err)
 		}
 	}()
+	fromAddrStr := fromAddr.String()
 	ctx.EventManager().EmitEvents(sdk.Events{
 		// This event should have all info (to, from, amount) without looking at other events
 		sdk.NewEvent(
 			types.EventTypeTransfer,
 			sdk.NewAttribute(types.AttributeKeyRecipient, toAddr.String()),
-			sdk.NewAttribute(types.AttributeKeySender, fromAddr.String()),
+			sdk.NewAttribute(types.AttributeKeySender, fromAddrStr),
 			sdk.NewAttribute(sdk.AttributeKeyAmount, amt.String()),
 		),
 		sdk.NewEvent(
 			sdk.EventTypeMessage,
-			sdk.NewAttribute(types.AttributeKeySender, fromAddr.String()),
+			sdk.NewAttribute(types.AttributeKeySender, fromAddrStr),
 		),
 	})
 
-	_, err = keeper.SubtractCoins(ctx, fromAddr, amt)
+	if !amt.IsValid() {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
+	}
+
+	fromAcc, _ := ctx.GetFromAccountCacheData().(authexported.Account)
+	toAcc, _ := ctx.GetToAccountCacheData().(authexported.Account)
+	fromAccGas, toAccGas := ctx.GetFromAccountCacheGas(), ctx.GetToAccountCacheGas()
+
+	fromAcc, fromAccGas = keeper.getAccount(&ctx, fromAddr, fromAcc, fromAccGas)
+	_, err = keeper.subtractCoins(ctx, fromAddr, fromAcc, fromAccGas, amt)
 	if err != nil {
 		return err
 	}
 
-	_, err = keeper.AddCoins(ctx, toAddr, amt)
+	ctx.UpdateFromAccountCache(fromAcc, 0)
+
+	toAcc, toAccGas = keeper.getAccount(&ctx, toAddr, toAcc, toAccGas)
+	_, err = keeper.addCoins(ctx, toAddr, toAcc, toAccGas, amt)
 	if err != nil {
 		return err
 	}
+
+	ctx.UpdateToAccountCache(toAcc, 0)
 
 	return nil
 }
@@ -292,13 +322,15 @@ func (keeper BaseSendKeeper) SubtractCoins(ctx sdk.Context, addr sdk.AccAddress,
 	if !amt.IsValid() {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
 	}
+	acc, gasUsed := authexported.GetAccountAndGas(&ctx, keeper.ak, addr)
+	return keeper.subtractCoins(ctx, addr, acc, gasUsed, amt)
+}
 
+func (keeper *BaseSendKeeper) subtractCoins(ctx sdk.Context, addr sdk.AccAddress, acc authexported.Account, accGas sdk.Gas, amt sdk.Coins) (sdk.Coins, error) {
 	oldCoins, spendableCoins := sdk.NewCoins(), sdk.NewCoins()
-
-	acc := keeper.ak.GetAccount(ctx, addr)
 	if acc != nil {
 		oldCoins = acc.GetCoins()
-		spendableCoins = acc.SpendableCoins(ctx.BlockHeader().Time)
+		spendableCoins = acc.SpendableCoins(ctx.BlockTime())
 	}
 
 	// For non-vesting accounts, spendable coins will simply be the original coins.
@@ -311,7 +343,7 @@ func (keeper BaseSendKeeper) SubtractCoins(ctx sdk.Context, addr sdk.AccAddress,
 	}
 
 	newCoins := oldCoins.Sub(amt) // should not panic as spendable coins was already checked
-	err := keeper.SetCoins(ctx, addr, newCoins)
+	err := keeper.setCoinsToAccount(ctx, addr, acc, accGas, newCoins)
 
 	return newCoins, err
 }
@@ -322,7 +354,20 @@ func (keeper BaseSendKeeper) AddCoins(ctx sdk.Context, addr sdk.AccAddress, amt 
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
 	}
 
-	oldCoins := keeper.GetCoins(ctx, addr)
+	// oldCoins := keeper.GetCoins(ctx, addr)
+
+	acc, gasUsed := authexported.GetAccountAndGas(&ctx, keeper.ak, addr)
+	return keeper.addCoins(ctx, addr, acc, gasUsed, amt)
+}
+
+func (keeper *BaseSendKeeper) addCoins(ctx sdk.Context, addr sdk.AccAddress, acc authexported.Account, accGas sdk.Gas, amt sdk.Coins) (sdk.Coins, error) {
+	var oldCoins sdk.Coins
+	if acc == nil {
+		oldCoins = sdk.NewCoins()
+	} else {
+		oldCoins = acc.GetCoins()
+	}
+
 	newCoins := oldCoins.Add(amt...)
 
 	if newCoins.IsAnyNegative() {
@@ -331,7 +376,8 @@ func (keeper BaseSendKeeper) AddCoins(ctx sdk.Context, addr sdk.AccAddress, amt 
 		)
 	}
 
-	err := keeper.SetCoins(ctx, addr, newCoins)
+	err := keeper.setCoinsToAccount(ctx, addr, acc, accGas, newCoins)
+
 	return newCoins, err
 }
 
@@ -342,6 +388,39 @@ func (keeper BaseSendKeeper) SetCoins(ctx sdk.Context, addr sdk.AccAddress, amt 
 	}
 
 	acc := keeper.ak.GetAccount(ctx, addr)
+	if acc == nil {
+		acc = keeper.ak.NewAccountWithAddress(ctx, addr)
+	}
+
+	err := acc.SetCoins(amt)
+	if err != nil {
+		panic(err)
+	}
+
+	keeper.ak.SetAccount(ctx, acc)
+	return nil
+}
+
+func (keeper *BaseSendKeeper) getAccount(ctx *sdk.Context, addr sdk.AccAddress, acc authexported.Account, getgas sdk.Gas) (authexported.Account, sdk.Gas) {
+	gasMeter := ctx.GasMeter()
+	if acc != nil && bytes.Equal(acc.GetAddress(), addr) {
+		if getgas > 0 {
+			gasMeter.ConsumeGas(getgas, "get account")
+			return acc, getgas
+		}
+		if ok, gasused := authexported.TryAddGetAccountGas(gasMeter, keeper.ask, acc); ok {
+			return acc, gasused
+		}
+	}
+	return authexported.GetAccountAndGas(ctx, keeper.ak, addr)
+}
+
+func (keeper *BaseSendKeeper) setCoinsToAccount(ctx sdk.Context, addr sdk.AccAddress, acc authexported.Account, accGas sdk.Gas, amt sdk.Coins) error {
+	if !amt.IsValid() {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, amt.String())
+	}
+
+	acc, _ = keeper.getAccount(&ctx, addr, acc, accGas)
 	if acc == nil {
 		acc = keeper.ak.NewAccountWithAddress(ctx, addr)
 	}

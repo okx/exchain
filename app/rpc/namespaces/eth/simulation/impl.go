@@ -21,6 +21,7 @@ import (
 	"github.com/okex/exchain/x/ammswap"
 	"github.com/okex/exchain/x/dex"
 	distr "github.com/okex/exchain/x/distribution"
+	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/farm"
@@ -86,7 +87,7 @@ func (a AccountKeeperProxy) GetAccount(ctx sdk.Context, addr sdk.AccAddress) aut
 	return account
 }
 
-func (a AccountKeeperProxy) SetAccount(ctx sdk.Context, account authexported.Account) {
+func (a AccountKeeperProxy) SetAccount(ctx sdk.Context, account authexported.Account, updateState ...bool) {
 	acc, ok := account.(types.EthAccount)
 	if !ok {
 		return
@@ -129,6 +130,11 @@ func (p SubspaceProxy) GetParamSet(ctx sdk.Context, ps params.ParamSet) {
 	}
 
 }
+
+func (p SubspaceProxy) RegisterSignal(handler func()) {
+
+}
+
 func (p SubspaceProxy) SetParamSet(ctx sdk.Context, ps params.ParamSet) {
 
 }

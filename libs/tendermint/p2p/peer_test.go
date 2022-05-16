@@ -3,9 +3,12 @@ package p2p
 import (
 	"fmt"
 	golog "log"
+	"math"
 	"net"
 	"testing"
 	"time"
+
+	"github.com/tendermint/go-amino"
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -227,4 +230,51 @@ func (rp *remotePeer) nodeInfo() NodeInfo {
 		Channels:        rp.channels,
 		Moniker:         "remote_peer",
 	}
+}
+
+func TestGetChIdStr(t *testing.T) {
+	var i byte
+	for ; i < math.MaxUint8; i++ {
+		require.EqualValues(t, fmt.Sprintf("%#x", i), getChIdStr(i))
+	}
+}
+
+const hextable = "0123456789abcdef"
+
+func chidToHex(v byte) string {
+	size := 3
+	if v > 15 {
+		size += 1
+	}
+	ret := make([]byte, size)
+	ret[0] = '0'
+	ret[1] = 'x'
+	if v > 15 {
+		ret[2] = hextable[v>>4]
+		ret[3] = hextable[v&0x0f]
+	} else {
+		ret[2] = hextable[v]
+	}
+	return amino.BytesToStr(ret)
+}
+
+func BenchmarkChIdFormat(b *testing.B) {
+	b.Run("fmt", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = fmt.Sprintf("%#x", byte(i))
+		}
+	})
+	b.Run("hex", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = chidToHex(byte(i))
+		}
+	})
+	b.Run("table", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = getChIdStr(byte(i))
+		}
+	})
 }

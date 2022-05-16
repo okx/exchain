@@ -4,14 +4,16 @@ import (
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/rpc"
+	"github.com/okex/exchain/app/rpc/backend"
 	"github.com/okex/exchain/app/rpc/namespaces/eth"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/filters"
 	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils/sanity"
+	"github.com/okex/exchain/libs/system/trace"
 	"github.com/okex/exchain/libs/tendermint/consensus"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	tmdb "github.com/okex/exchain/libs/tm-db"
-	"github.com/okex/exchain/x/common/analyzer"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/token"
@@ -21,6 +23,8 @@ import (
 func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(watcher.FlagFastQuery, false, "Enable the fast query mode for rpc queries")
 	cmd.Flags().Int(watcher.FlagFastQueryLru, 1000, "Set the size of LRU cache under fast-query mode")
+	cmd.Flags().Int(backend.FlagApiBackendBlockLruCache, 30000, "Set the size of block LRU cache for backend mem cache")
+	cmd.Flags().Int(backend.FlagApiBackendTxLruCache, 100000, "Set the size of tx LRU cache for backend mem cache")
 	cmd.Flags().Bool(watcher.FlagCheckWd, false, "Enable check watchDB in log")
 	cmd.Flags().Bool(rpc.FlagPersonalAPI, true, "Enable the personal_ prefixed set of APIs in the Web3 JSON-RPC spec")
 	cmd.Flags().Bool(rpc.FlagDebugAPI, false, "Enable the debug_ prefixed set of APIs in the Web3 JSON-RPC spec")
@@ -71,17 +75,6 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(config.FlagEnableDynamic, false, "Enable dynamic configuration for nodes")
 	cmd.Flags().String(config.FlagApollo, "", "Apollo connection config(IP|AppID|NamespaceName) for dynamic configuration")
 
-	// flags for evm trace
-	cmd.Flags().Bool(evmtypes.FlagEnableTraces, false, "Enable traces db to save evm transaction trace")
-	cmd.Flags().String(evmtypes.FlagTraceSegment, "1-1-0", "Parameters for segmented execution of evm trace, such as \"step-total-num\"")
-	cmd.Flags().String(evmtypes.FlagTraceFromAddrs, "", "Generate traces for transactions at specified from addresses (comma separated)")
-	cmd.Flags().String(evmtypes.FlagTraceToAddrs, "", "Generate traces for transactions at specified to addresses (comma separated)")
-	cmd.Flags().Bool(evmtypes.FlagTraceDisableMemory, false, "Disable memory output for evm trace")
-	cmd.Flags().Bool(evmtypes.FlagTraceDisableStack, false, "Disable stack output for evm trace")
-	cmd.Flags().Bool(evmtypes.FlagTraceDisableStorage, false, "Disable storage output for evm trace")
-	cmd.Flags().Bool(evmtypes.FlagTraceDisableReturnData, false, "Disable return data output for evm trace")
-	cmd.Flags().Bool(evmtypes.FlagTraceDebug, false, "Output full trace logs for evm")
-
 	cmd.Flags().Bool(config.FlagPprofAutoDump, false, "Enable auto dump pprof")
 	cmd.Flags().String(config.FlagPprofCollectInterval, "5s", "Interval for pprof dump loop")
 	cmd.Flags().Int(config.FlagPprofCpuTriggerPercentMin, 45, "TriggerPercentMin of cpu to dump pprof")
@@ -107,6 +100,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 
 	cmd.Flags().Bool(app.FlagEnableRepairState, false, "Enable auto repair state on start")
 
-	cmd.Flags().Bool(analyzer.FlagEnableAnalyzer, true, "Enable auto open log analyzer")
+	cmd.Flags().Bool(trace.FlagEnableAnalyzer, false, "Enable auto open log analyzer")
 	cmd.Flags().Bool(sanity.FlagDisableSanity, false, "Disable sanity check")
+	cmd.Flags().Int(tmtypes.FlagSigCacheSize, 200000, "Maximum number of signatures in the cache")
 }

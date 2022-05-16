@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/alicebob/miniredis/v2"
+	"github.com/okex/exchain/libs/iavl"
 	redis_cgi "github.com/okex/exchain/libs/tendermint/delta/redis-cgi"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/types"
@@ -46,7 +47,6 @@ func deltaEqual(d1, d2 *types.Deltas) bool {
 		return false
 	}
 	return d1.Height == d2.Height &&
-		d1.Version == d2.Version &&
 		d1.From == d2.From &&
 		d1.CompressType == d2.CompressType &&
 		d1.CompressFlag == d2.CompressFlag &&
@@ -58,28 +58,35 @@ func deltaEqual(d1, d2 *types.Deltas) bool {
 func TestDeltaContext_prepareStateDelta(t *testing.T) {
 	dc := setupTest(t)
 	dc.downloadDelta = true
-	delta1 := &types.Deltas{Height: 1, Version: types.DeltaVersion, Payload: types.DeltaPayload{ABCIRsp: []byte("ABCIRsp"), DeltasBytes: []byte("DeltasBytes"), WatchBytes: []byte("WatchBytes")}}
-	delta2 := &types.Deltas{Height: 2, Version: types.DeltaVersion, Payload: types.DeltaPayload{ABCIRsp: []byte("ABCIRsp"), DeltasBytes: []byte("DeltasBytes"), WatchBytes: []byte("WatchBytes")}}
-	delta3 := &types.Deltas{Height: 3, Version: types.DeltaVersion, Payload: types.DeltaPayload{ABCIRsp: []byte("ABCIRsp"), DeltasBytes: []byte("DeltasBytes"), WatchBytes: []byte("WatchBytes")}}
-	dc.dataMap.insert(1, delta1, nil, 1)
-	dc.dataMap.insert(2, delta2, nil, 2)
-	dc.dataMap.insert(3, delta3, nil, 3)
+
+	deltaInfos := make([]*DeltaInfo, 3)
+	for i := 0; i <= 2; i++ {
+		h := int64(i + 1)
+		deltaInfos[i] = &DeltaInfo{
+			from:          "0x01",
+			deltaLen:      1000,
+			deltaHeight:   h,
+			abciResponses: &ABCIResponses{},
+			treeDeltaMap:  iavl.TreeDeltaMap{},
+		}
+		dc.dataMap.insert(h, deltaInfos[i], h)
+	}
 
 	tests := []struct {
-		name    string
-		height  int64
-		wantDds *types.Deltas
+		name     string
+		height   int64
+		wantInfo *DeltaInfo
 	}{
-		{"normal case", 1, delta1},
+		{"normal case", 1, deltaInfos[0]},
 		{"empty delta", 4, nil},
 		{"already remove", 1, nil},
-		{"higher height", 3, delta3},
-		{"lower remove", 2, delta2},
+		{"higher height", 3, deltaInfos[2]},
+		{"lower remove", 2, deltaInfos[1]},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if gotDds, _ := dc.prepareStateDelta(tt.height); !reflect.DeepEqual(gotDds, tt.wantDds) {
-				t.Errorf("prepareStateDelta() = %v, want %v", gotDds, tt.wantDds)
+			if gotInfo := dc.prepareStateDelta(tt.height); !reflect.DeepEqual(gotInfo, tt.wantInfo) {
+				t.Errorf("prepareStateDelta() = %v, want %v", gotInfo, tt.wantInfo)
 			}
 		})
 	}
@@ -212,20 +219,6 @@ func TestProduceDelta(t *testing.T) {
 	}
 }
 
-func TestAminoDecoder(t *testing.T) { testDecodeABCIResponse(t) }
-func testDecodeABCIResponse(t *testing.T) {
-	abciResponses1 := produceAbciRsp()
-
-	// encode
-	data, err := abciResponses1.MarshalToAmino(cdc)
-	require.NoError(t, err)
-
-	//decode
-	abciResponses2 := &ABCIResponses{}
-	err = abciResponses2.UnmarshalFromAmino(nil, data)
-	require.NoError(t, err)
-	require.Equal(t, abciResponses1, abciResponses2)
-}
 func BenchmarkMarshalJson(b *testing.B) {
 	abciResponses := produceAbciRsp()
 

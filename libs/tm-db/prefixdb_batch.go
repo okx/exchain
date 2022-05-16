@@ -16,13 +16,13 @@ func newPrefixBatch(prefix []byte, source Batch) prefixDBBatch {
 
 // Set implements Batch.
 func (pb prefixDBBatch) Set(key, value []byte) {
-	pkey := append(cp(pb.prefix), key...)
+	pkey := concat(pb.prefix, key)
 	pb.source.Set(pkey, value)
 }
 
 // Delete implements Batch.
 func (pb prefixDBBatch) Delete(key []byte) {
-	pkey := append(cp(pb.prefix), key...)
+	pkey := concat(pb.prefix, key)
 	pb.source.Delete(pkey)
 }
 

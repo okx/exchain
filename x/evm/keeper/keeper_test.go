@@ -1,27 +1,25 @@
 package keeper_test
 
 import (
-	"github.com/okex/exchain/x/evm/watcher"
-	"github.com/spf13/viper"
 	"math/big"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/suite"
-
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-
-	"github.com/okex/exchain/app"
-	ethermint "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/x/evm/keeper"
-	"github.com/okex/exchain/x/evm/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
+	"github.com/okex/exchain/app"
+	ethermint "github.com/okex/exchain/app/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/x/evm/keeper"
+	"github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/watcher"
+
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/suite"
 )
 
 const addrHex = "0x756F45E3FA69347A9A973A725E3C98bC4db0b4c1"
@@ -57,6 +55,7 @@ func (suite *KeeperTestSuite) SetupTest() {
 	}
 
 	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+	suite.app.EvmKeeper.ResetHooks()
 }
 
 func TestKeeperTestSuite(t *testing.T) {
@@ -79,9 +78,7 @@ func (suite *KeeperTestSuite) TestTransactionLogs() {
 	}
 	expLogs := []*ethtypes.Log{log}
 
-	err := suite.stateDB.WithContext(suite.ctx).SetLogs(ethHash, expLogs)
-	suite.Require().NoError(err)
-
+	suite.stateDB.WithContext(suite.ctx).SetLogs(ethHash, expLogs)
 	logs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(ethHash)
 	suite.Require().NoError(err)
 	suite.Require().Equal(expLogs, logs)
@@ -97,9 +94,7 @@ func (suite *KeeperTestSuite) TestTransactionLogs() {
 	}
 
 	expLogs = append(expLogs, log3)
-	err = suite.stateDB.WithContext(suite.ctx).SetLogs(ethHash, expLogs)
-	suite.Require().NoError(err)
-
+	suite.stateDB.WithContext(suite.ctx).SetLogs(ethHash, expLogs)
 	txLogs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(ethHash)
 	suite.Require().NoError(err)
 	suite.Require().Equal(3, len(txLogs))
@@ -148,8 +143,7 @@ func (suite *KeeperTestSuite) TestDBStorage() {
 	bloom := suite.app.EvmKeeper.GetBlockBloom(suite.ctx, 4)
 	suite.Require().Equal(bloom, testBloom)
 
-	err := suite.stateDB.WithContext(suite.ctx).Finalise(false)
-	suite.Require().NoError(err, "failed to finalise evm state")
+	suite.stateDB.WithContext(suite.ctx).IntermediateRoot(false)
 
 	stg, err := suite.app.EvmKeeper.GetAccountStorage(suite.ctx, suite.address)
 	suite.Require().NoError(err, "failed to get account storage")
@@ -173,4 +167,8 @@ func (suite *KeeperTestSuite) TestChainConfig() {
 	newConfig, found := suite.app.EvmKeeper.GetChainConfig(suite.ctx)
 	suite.Require().True(found)
 	suite.Require().Equal(config, newConfig)
+	// read config from cache
+	newCachedConfig, newCachedFound := suite.app.EvmKeeper.GetChainConfig(suite.ctx)
+	suite.Require().True(newCachedFound)
+	suite.Require().Equal(config, newCachedConfig)
 }

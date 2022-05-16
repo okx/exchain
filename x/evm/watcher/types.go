@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -16,7 +15,6 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-	rpctypes "github.com/okex/exchain/app/rpc/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/evm/types"
@@ -56,15 +54,6 @@ type WatchMessage interface {
 	GetKey() []byte
 	GetValue() string
 	GetType() uint32
-}
-
-type MsgEthTx struct {
-	*baseLazyMarshal
-	Key       []byte
-}
-
-func (m MsgEthTx) GetType() uint32 {
-	return TypeOthers
 }
 
 type Batch struct {
@@ -380,22 +369,6 @@ func (w *WatchData) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	return nil
 }
 
-func NewMsgEthTx(tx *types.MsgEthereumTx, txHash, blockHash common.Hash, height, index uint64) *MsgEthTx {
-	ethTx, e := rpctypes.NewTransaction(tx, txHash, blockHash, height, index)
-	if e != nil {
-		return nil
-	}
-	msg := MsgEthTx{
-		Key:         txHash.Bytes(),
-		baseLazyMarshal:newBaseLazyMarshal(ethTx),
-	}
-	return &msg
-}
-
-func (m MsgEthTx) GetKey() []byte {
-	return append(prefixTx, m.Key...)
-}
-
 type MsgCode struct {
 	Key  []byte
 	Code string
@@ -459,7 +432,7 @@ func (m MsgCodeByHash) GetValue() string {
 
 type MsgTransactionReceipt struct {
 	*baseLazyMarshal
-	txHash  []byte
+	txHash []byte
 }
 
 func (m MsgTransactionReceipt) GetType() uint32 {
@@ -481,29 +454,28 @@ type TransactionReceipt struct {
 	To                *common.Address `json:"to"`
 }
 
-func NewMsgTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, blockHash common.Hash, txIndex, height uint64, data *types.ResultData, cumulativeGas, GasUsed uint64) *MsgTransactionReceipt {
-
+func NewEvmTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, blockHash common.Hash, txIndex, height uint64, data *types.ResultData, cumulativeGas, GasUsed uint64) *MsgTransactionReceipt {
 	tr := TransactionReceipt{
 		Status:            hexutil.Uint64(status),
 		CumulativeGasUsed: hexutil.Uint64(cumulativeGas),
 		LogsBloom:         data.Bloom,
 		Logs:              data.Logs,
-		TransactionHash:   txHash.String(),
+		TransactionHash:   types.EthHashStringer(txHash).String(),
 		ContractAddress:   &data.ContractAddress,
 		GasUsed:           hexutil.Uint64(GasUsed),
-		BlockHash:         blockHash.String(),
+		BlockHash:         types.EthHashStringer(blockHash).String(),
 		BlockNumber:       hexutil.Uint64(height),
 		TransactionIndex:  hexutil.Uint64(txIndex),
-		From:              common.BytesToAddress(tx.From().Bytes()).Hex(),
+		From:              types.EthAddressStringer(common.BytesToAddress(tx.AccountAddress().Bytes())).String(),
 		To:                tx.To(),
 	}
 
 	//contract address will be set to 0x0000000000000000000000000000000000000000 if contract deploy failed
-	if tr.ContractAddress != nil && tr.ContractAddress.String() == "0x0000000000000000000000000000000000000000" {
+	if tr.ContractAddress != nil && types.EthAddressStringer(*tr.ContractAddress).String() == "0x0000000000000000000000000000000000000000" {
 		//set to nil to keep sync with ethereum rpc
 		tr.ContractAddress = nil
 	}
-	return &MsgTransactionReceipt{txHash: txHash.Bytes(),baseLazyMarshal:newBaseLazyMarshal(tr)}
+	return &MsgTransactionReceipt{txHash: txHash.Bytes(), baseLazyMarshal: newBaseLazyMarshal(tr)}
 }
 
 func (m MsgTransactionReceipt) GetKey() []byte {
@@ -546,7 +518,8 @@ func (n *BlockNonce) UnmarshalText(input []byte) error {
 	return hexutil.UnmarshalFixedText("BlockNonce", input, n[:])
 }
 
-type EthBlock struct {
+// Block represents a transaction returned to RPC clients.
+type Block struct {
 	Number           hexutil.Uint64 `json:"number"`
 	Hash             common.Hash    `json:"hash"`
 	ParentHash       common.Hash    `json:"parentHash"`
@@ -569,8 +542,26 @@ type EthBlock struct {
 	Transactions     interface{}    `json:"transactions"`
 }
 
+// Transaction represents a transaction returned to RPC clients.
+type Transaction struct {
+	BlockHash        *common.Hash    `json:"blockHash"`
+	BlockNumber      *hexutil.Big    `json:"blockNumber"`
+	From             common.Address  `json:"from"`
+	Gas              hexutil.Uint64  `json:"gas"`
+	GasPrice         *hexutil.Big    `json:"gasPrice"`
+	Hash             common.Hash     `json:"hash"`
+	Input            hexutil.Bytes   `json:"input"`
+	Nonce            hexutil.Uint64  `json:"nonce"`
+	To               *common.Address `json:"to"`
+	TransactionIndex *hexutil.Uint64 `json:"transactionIndex"`
+	Value            *hexutil.Big    `json:"value"`
+	V                *hexutil.Big    `json:"v"`
+	R                *hexutil.Big    `json:"r"`
+	S                *hexutil.Big    `json:"s"`
+}
+
 func NewMsgBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash, header abci.Header, gasLimit uint64, gasUsed *big.Int, txs interface{}) *MsgBlock {
-	b := EthBlock{
+	b := Block{
 		Number:           hexutil.Uint64(height),
 		Hash:             blockHash,
 		ParentHash:       common.BytesToHash(header.LastBlockId.Hash),

@@ -585,8 +585,7 @@ func (l *CList) DetachElement(ele *CElement) interface{} {
 	return ele.Value
 }
 
-func (l *CList) AddTxWithExInfo(v interface{}, addr string, gasPrice *big.Int, nonce uint64) *CElement {
-	// Construct a new element
+func NewCElement(v interface{}, addr string, gasPrice *big.Int, nonce uint64) *CElement {
 	e := &CElement{
 		prev:       nil,
 		prevWg:     waitGroup1(),
@@ -600,8 +599,5 @@ func (l *CList) AddTxWithExInfo(v interface{}, addr string, gasPrice *big.Int, n
 		GasPrice:   gasPrice,
 		Nonce:      nonce,
 	}
-
-	l.InsertElement(e)
-
 	return e
 }

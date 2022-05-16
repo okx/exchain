@@ -43,7 +43,6 @@ func TestBlockMethod(t *testing.T) {
 
 	//test decode and encode
 	buff := ModuleCdc.MustMarshalJSON(bcl)
-	t.Log(string(buff))
 	nbcl := BlockedContractList{}
 	ModuleCdc.MustUnmarshalJSON(buff, &nbcl)
 }

@@ -33,14 +33,18 @@ type AnteTestSuite struct {
 
 func (suite *AnteTestSuite) SetupTest() {
 	checkTx := false
+	chainId := "okexchain-3"
 
 	suite.app = app.Setup(checkTx)
 	suite.app.Codec().RegisterConcrete(&sdk.TestMsg{}, "test/TestMsg", nil)
 
-	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "okexchain-3", Time: time.Now().UTC()})
+	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: chainId, Time: time.Now().UTC()})
 	suite.app.EvmKeeper.SetParams(suite.ctx, evmtypes.DefaultParams())
 
-	suite.anteHandler = ante.NewAnteHandler(suite.app.AccountKeeper, suite.app.EvmKeeper, suite.app.SupplyKeeper, nil)
+	suite.anteHandler = ante.NewAnteHandler(suite.app.AccountKeeper, suite.app.EvmKeeper, suite.app.SupplyKeeper, nil, suite.app.IBCKeeper.ChannelKeeper)
+
+	err := okexchain.SetChainId(chainId)
+	suite.Nil(err)
 
 	appconfig.RegisterDynamicConfig(suite.app.Logger())
 }
@@ -92,7 +96,7 @@ func newTestSDKTx(
 	return auth.NewStdTx(msgs, fee, sigs, "")
 }
 
-func newTestEthTx(ctx sdk.Context, msg evmtypes.MsgEthereumTx, priv tmcrypto.PrivKey) (sdk.Tx, error) {
+func newTestEthTx(ctx sdk.Context, msg *evmtypes.MsgEthereumTx, priv tmcrypto.PrivKey) (sdk.Tx, error) {
 	chainIDEpoch, err := okexchain.ParseChainID(ctx.ChainID())
 	if err != nil {
 		return nil, err

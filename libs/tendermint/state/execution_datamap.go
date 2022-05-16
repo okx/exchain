@@ -2,7 +2,6 @@ package state
 
 import (
 	"container/list"
-	"github.com/okex/exchain/libs/tendermint/types"
 	"sync"
 )
 
@@ -22,23 +21,22 @@ func newDataMap() *deltaMap {
 
 type payload struct {
 	h  int64
-	d  *types.Deltas
 	di *DeltaInfo
 }
 
-func (m *deltaMap) insert(height int64, data *types.Deltas, deltaInfo *DeltaInfo, mrh int64) {
-	if data == nil {
+func (m *deltaMap) insert(height int64, deltaInfo *DeltaInfo, mrh int64) {
+	if deltaInfo == nil {
 		return
 	}
 
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
-	e := m.cacheList.PushBack(&payload{height, data, deltaInfo})
+	e := m.cacheList.PushBack(&payload{height, deltaInfo})
 	m.cacheMap[height] = e
 	m.mrh = mrh
 }
 
-func (m *deltaMap) fetch(height int64) (*types.Deltas, *DeltaInfo, int64) {
+func (m *deltaMap) fetch(height int64) (*DeltaInfo, int64) {
 	m.mtx.Lock()
 	defer m.mtx.Unlock()
 
@@ -47,10 +45,10 @@ func (m *deltaMap) fetch(height int64) (*types.Deltas, *DeltaInfo, int64) {
 	if popped != nil {
 		m.cacheList.Remove(popped)
 		pl := popped.Value.(*payload)
-		return pl.d, pl.di, m.mrh
+		return pl.di, m.mrh
 	}
 
-	return nil, nil, m.mrh
+	return nil, m.mrh
 }
 
 // remove all elements no higher than target

@@ -2,7 +2,7 @@
 
 KEY="captain"
 CHAINID="exchain-67"
-MONIKER="oec"
+MONIKER="okc"
 CURDIR=`dirname $0`
 HOME_SERVER=$CURDIR/"_cache_evm"
 
@@ -30,8 +30,8 @@ run() {
       --enable-dynamic-gp=false \
       --consensus.timeout_commit 100ms \
       --disable-abci-query-mutex=true \
-      --mempool.max_tx_num_per_block=4500 \
-      --mempool.size=15000 \
+      --mempool.max_tx_num_per_block=10000 \
+      --mempool.size=20000 \
       --local_perf=tx \
       --enable-preruntx=false \
       --iavl-enable-async-commit \
@@ -41,7 +41,7 @@ run() {
       --iavl-output-modules evm=0,acc=0 \
       --trace --home $HOME_SERVER --chain-id $CHAINID \
       --elapsed Round=1,CommitRound=1,Produce=1 \
-      --rest.laddr "tcp://localhost:8545" > oec.txt 2>&1 &
+      --rest.laddr "tcp://localhost:8545" > okc.txt 2>&1 &
 
 # --iavl-commit-interval-height \
 # --iavl-enable-async-commit \

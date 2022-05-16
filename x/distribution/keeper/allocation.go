@@ -114,8 +114,7 @@ func (k Keeper) allocateByShares(ctx sdk.Context, rewards sdk.SysCoins) sdk.SysC
 	k.stakingKeeper.IterateValidators(ctx, func(index int64, validator stakingexported.ValidatorI) (stop bool) {
 		if validator != nil {
 			if validator.IsJailed() {
-				logger.Debug(fmt.Sprintf("validator %s is jailed, not allowed to get reward by shares weight",
-					validator.GetOperator()))
+				logger.Debug("validator is jailed, not allowed to get reward by shares weight", "validator", validator.GetOperator())
 			} else {
 				validators = append(validators, validator)
 			}
@@ -136,7 +135,7 @@ func (k Keeper) allocateByShares(ctx sdk.Context, rewards sdk.SysCoins) sdk.SysC
 		powerFraction := val.GetDelegatorShares().QuoTruncate(totalVotes)
 		reward := rewards.MulDecTruncate(powerFraction)
 		k.AllocateTokensToValidator(ctx, val, reward)
-		logger.Debug("allocate by shares", val.GetOperator(), reward.String())
+		logger.Debug("allocate by shares", val.GetOperator(), reward)
 		remaining = remaining.Sub(reward)
 	}
 	return remaining

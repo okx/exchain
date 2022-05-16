@@ -7,15 +7,22 @@ type Handler func(ctx Context, msg Msg) (*Result, error)
 // If newCtx.IsZero(), ctx is used instead.
 type AnteHandler func(ctx Context, tx Tx, simulate bool) (newCtx Context, err error)
 
+type PreDeliverTxHandler func(ctx Context, tx Tx, onlyVerifySig bool)
+
 type GasRefundHandler func(ctx Context, tx Tx) (fee Coins, err error)
 
-type AccHandler func(ctx Context, address AccAddress) (nonce uint64)
+type AccNonceHandler func(ctx Context, address AccAddress) (nonce uint64)
 
 type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins) error
 
-type LogFix func(isAnteFailed [][]string) (logs [][]byte)
+type LogFix func(logIndex []int, errs []error) (logs [][]byte)
 
-type GetTxFeeHandler func(ctx Context, tx Tx) (Coins, bool, SigCache)
+type GetTxFeeAndFromHandler func(ctx Context, tx Tx) (Coins, bool, string, string, error)
+type GetTxFeeHandler func(tx Tx) Coins
+
+type CustomizeOnStop func(ctx Context) error
+
+type MptCommitHandler func(ctx Context)
 
 // AnteDecorator wraps the next AnteHandler to perform custom pre- and post-processing.
 type AnteDecorator interface {
@@ -71,6 +78,7 @@ func ChainAnteDecorators(chain ...AnteDecorator) AnteHandler {
 type Terminator struct{}
 
 const AnteTerminatorTag = "ante-terminator"
+
 // Simply return provided Context and nil error
 func (t Terminator) AnteHandle(ctx Context, _ Tx, _ bool, _ AnteHandler) (Context, error) {
 	trc := ctx.AnteTracer()

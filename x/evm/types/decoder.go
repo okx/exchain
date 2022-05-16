@@ -1,10 +1,15 @@
 package types
 
 import (
+	"errors"
 	"fmt"
+
+	"github.com/golang/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	typestx "github.com/okex/exchain/libs/cosmos-sdk/types/tx"
+	ibctxdecoder "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/types"
@@ -12,9 +17,24 @@ import (
 
 const IGNORE_HEIGHT_CHECKING = -1
 
-// TxDecoder returns an sdk.TxDecoder that can decode both auth.StdTx and
-// MsgEthereumTx transactions.
-func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
+// evmDecoder:  MsgEthereumTx decoder by Ethereum RLP
+// ubruDecoder: customized unmarshalling implemented by UnmarshalFromAmino. higher performance!
+// ubDecoder:   The original amino decoder, decoding by reflection
+// ibcDecoder:  Protobuf decoder
+
+// When and which decoder decoding what kind of tx:
+// | ------------| --------------------|---------------|-------------|-----------------|----------------|
+// |             | Before ubruDecoder  | Before Venus  | After Venus | Before VenusOne | After VenusOne |
+// |             | carried out         |               |             |                 |                |
+// | ------------|---------------------|---------------|-------------|-----------------|----------------|
+// | evmDecoder  |                     |               |    evmtx    |   evmtx         |   evmtx        |
+// | ubruDecoder |                     | stdtx & evmtx |    stdtx    |   stdtx         |   stdtx        |
+// | ubDecoder   | stdtx,evmtx,otherTx | otherTx       |    otherTx  |   otherTx       |   otherTx      |
+// | ibcDecoder  |                     |               |             |                 |   ibcTx        |
+// | ------------| --------------------|---------------|-------------|-----------------|----------------|
+
+func TxDecoder(cdc codec.CdcAbstraction) sdk.TxDecoder {
+
 	return func(txBytes []byte, heights ...int64) (sdk.Tx, error) {
 		if len(heights) > 1 {
 			return nil, fmt.Errorf("to many height parameters")
@@ -36,8 +56,11 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 			evmDecoder,
 			ubruDecoder,
 			ubDecoder,
+			ibcDecoder,
 		} {
 			if tx, err = f(cdc, txBytes, height); err == nil {
+				tx.SetRaw(txBytes)
+				tx.SetTxHash(types.Tx(txBytes).Hash(height))
 				return tx, nil
 			}
 		}
@@ -46,10 +69,47 @@ func TxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 	}
 }
 
-type decodeFunc func(*codec.Codec, []byte, int64) (sdk.Tx, error)
+// Unmarshaler is a generic type for Unmarshal functions
+type Unmarshaler func(bytes []byte, ptr interface{}) error
+
+func ibcDecoder(cdcWrapper codec.CdcAbstraction, bytes []byte, height int64) (tx sdk.Tx, err error) {
+	if height >= 0 && !types.HigherThanVenus1(height) {
+		err = fmt.Errorf("IbcTxDecoder decode tx err,lower than Venus1 height")
+		return
+	}
+	simReq := &typestx.SimulateRequest{}
+	txBytes := bytes
+
+	err = simReq.Unmarshal(bytes)
+	if err == nil && simReq.Tx != nil {
+		txBytes, err = proto.Marshal(simReq.Tx)
+		if err != nil {
+			return nil, fmt.Errorf("relayTx invalid tx Marshal err %v", err)
+		}
+	}
+
+	if txBytes == nil {
+		return nil, errors.New("relayTx empty txBytes is not allowed")
+	}
+
+	cdc, ok := cdcWrapper.(*codec.CodecProxy)
+	if !ok {
+		return nil, errors.New("Invalid cdc abstraction!")
+	}
+	marshaler := cdc.GetProtocMarshal()
+	decode := ibctxdecoder.IbcTxDecoder(marshaler)
+	tx, err = decode(txBytes)
+	if err != nil {
+		return nil, fmt.Errorf("IbcTxDecoder decode tx err %v", err)
+	}
+
+	return
+}
+
+type decodeFunc func(codec.CdcAbstraction, []byte, int64) (sdk.Tx, error)
 
 // 1. Try to decode as MsgEthereumTx by RLP
-func evmDecoder(_ *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err error) {
+func evmDecoder(_ codec.CdcAbstraction, txBytes []byte, height int64) (tx sdk.Tx, err error) {
 
 	// bypass height checking in case of a negative number
 	if height >= 0 && !types.HigherThanVenus(height) {
@@ -59,13 +119,13 @@ func evmDecoder(_ *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err er
 
 	var ethTx MsgEthereumTx
 	if err = authtypes.EthereumTxDecode(txBytes, &ethTx); err == nil {
-		tx = ethTx
+		tx = &ethTx
 	}
 	return
 }
 
 // 2. try customized unmarshalling implemented by UnmarshalFromAmino. higher performance!
-func ubruDecoder(cdc *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err error) {
+func ubruDecoder(cdc codec.CdcAbstraction, txBytes []byte, height int64) (tx sdk.Tx, err error) {
 	var v interface{}
 	if v, err = cdc.UnmarshalBinaryLengthPrefixedWithRegisteredUbmarshaller(txBytes, &tx); err != nil {
 		return nil, err
@@ -75,7 +135,7 @@ func ubruDecoder(cdc *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err
 
 // TODO: switch to UnmarshalBinaryBare on SDK v0.40.0
 // 3. the original amino way, decode by reflection.
-func ubDecoder(cdc *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err error) {
+func ubDecoder(cdc codec.CdcAbstraction, txBytes []byte, height int64) (tx sdk.Tx, err error) {
 	err = cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
 	if err != nil {
 		return nil, err
@@ -84,7 +144,7 @@ func ubDecoder(cdc *codec.Codec, txBytes []byte, height int64) (tx sdk.Tx, err e
 }
 
 func sanityCheck(tx sdk.Tx, height int64) (sdk.Tx, error) {
-	if _, ok := tx.(MsgEthereumTx); ok && types.HigherThanVenus(height) {
+	if tx.GetType() == sdk.EvmTxType && types.HigherThanVenus(height) {
 		return nil, fmt.Errorf("amino decode is not allowed for MsgEthereumTx")
 	}
 	return tx, nil

@@ -55,6 +55,32 @@ func NewFromKVStore(
 	return cms
 }
 
+// newFromKVStore creates a new Store object from a mapping of store keys to
+// CacheWrap objects and a KVStore as the database. Each CacheWrapper store
+// is cache-wrapped.
+func newFromKVStore(
+	store types.KVStore, stores map[types.StoreKey]types.CacheWrap,
+	keys map[string]types.StoreKey, traceWriter io.Writer, traceContext types.TraceContext,
+) Store {
+	cms := Store{
+		db:           cachekv.NewStore(store),
+		stores:       make(map[types.StoreKey]types.CacheWrap, len(stores)),
+		keys:         keys,
+		traceWriter:  traceWriter,
+		traceContext: traceContext,
+	}
+
+	for key, store := range stores {
+		if cms.TracingEnabled() {
+			cms.stores[key] = store.CacheWrapWithTrace(cms.traceWriter, cms.traceContext)
+		} else {
+			cms.stores[key] = store.CacheWrap()
+		}
+	}
+
+	return cms
+}
+
 // NewStore creates a new Store object from a mapping of store keys to
 // CacheWrapper objects. Each CacheWrapper store is cache-wrapped.
 func NewStore(
@@ -66,12 +92,7 @@ func NewStore(
 }
 
 func newCacheMultiStoreFromCMS(cms Store) Store {
-	stores := make(map[types.StoreKey]types.CacheWrapper)
-	for k, v := range cms.stores {
-		stores[k] = v
-	}
-
-	return NewFromKVStore(cms.db, stores, nil, cms.traceWriter, cms.traceContext)
+	return newFromKVStore(cms.db, cms.stores, nil, cms.traceWriter, cms.traceContext)
 }
 
 // SetTracer sets the tracer for the MultiStore that the underlying
@@ -115,12 +136,9 @@ func (cms Store) Write() {
 	}
 }
 
-func (cms Store) IteratorCache(cb func(key, value []byte, isDirty bool) bool) bool {
-	if !cms.db.IteratorCache(cb) {
-		return false
-	}
-	for _, store := range cms.stores {
-		if !store.IteratorCache(cb) {
+func (cms Store) IteratorCache(isdirty bool, cb func(key string, value []byte, isDirty bool, isDelete bool, storeKey types.StoreKey) bool, sKey types.StoreKey) bool {
+	for key, store := range cms.stores {
+		if !store.IteratorCache(isdirty, cb, key) {
 			return false
 		}
 	}
@@ -162,5 +180,6 @@ func (cms Store) GetKVStore(key types.StoreKey) types.KVStore {
 	if key == nil {
 		panic(fmt.Sprintf("kv store with key %v has not been registered in stores", key))
 	}
+
 	return store.(types.KVStore)
 }

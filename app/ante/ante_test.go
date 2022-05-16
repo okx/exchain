@@ -36,7 +36,7 @@ func requireInvalidTx(
 }
 
 func (suite *AnteTestSuite) TestValidEthTx() {
-	suite.ctx = suite.ctx.WithBlockHeight(1)
+	suite.ctx.SetBlockHeight(1)
 
 	addr1, priv1 := newTestAddrKey()
 	addr2, _ := newTestAddrKey()
@@ -61,7 +61,7 @@ func (suite *AnteTestSuite) TestValidEthTx() {
 }
 
 func (suite *AnteTestSuite) TestValidTx() {
-	suite.ctx = suite.ctx.WithBlockHeight(1)
+	suite.ctx.SetBlockHeight(1)
 
 	addr1, priv1 := newTestAddrKey()
 	addr2, priv2 := newTestAddrKey()
@@ -89,7 +89,7 @@ func (suite *AnteTestSuite) TestValidTx() {
 }
 
 func (suite *AnteTestSuite) TestSDKInvalidSigs() {
-	suite.ctx = suite.ctx.WithBlockHeight(1)
+	suite.ctx.SetBlockHeight(1)
 
 	addr1, priv1 := newTestAddrKey()
 	addr2, priv2 := newTestAddrKey()
@@ -139,7 +139,7 @@ func (suite *AnteTestSuite) TestSDKInvalidSigs() {
 }
 
 func (suite *AnteTestSuite) TestSDKInvalidAcc() {
-	suite.ctx = suite.ctx.WithBlockHeight(1)
+	suite.ctx.SetBlockHeight(1)
 
 	addr1, priv1 := newTestAddrKey()
 
@@ -168,7 +168,7 @@ func (suite *AnteTestSuite) TestSDKInvalidAcc() {
 }
 
 func (suite *AnteTestSuite) TestEthInvalidSig() {
-	suite.ctx = suite.ctx.WithBlockHeight(1)
+	suite.ctx.SetBlockHeight(1)
 
 	_, priv1 := newTestAddrKey()
 	addr2, _ := newTestAddrKey()
@@ -180,13 +180,14 @@ func (suite *AnteTestSuite) TestEthInvalidSig() {
 	tx, err := newTestEthTx(suite.ctx, ethMsg, priv1)
 	suite.Require().NoError(err)
 
-	ctx := suite.ctx.WithChainID("ethermint-4")
+	ctx := suite.ctx
+	ctx.SetChainID("ethermint-4")
 	requireInvalidTx(suite.T(), suite.anteHandler, ctx, tx, false)
 }
 
 func (suite *AnteTestSuite) TestEthInvalidNonce() {
 
-	suite.ctx = suite.ctx.WithBlockHeight(1)
+	suite.ctx.SetBlockHeight(1)
 
 	addr1, priv1 := newTestAddrKey()
 	addr2, _ := newTestAddrKey()
@@ -209,7 +210,7 @@ func (suite *AnteTestSuite) TestEthInvalidNonce() {
 }
 
 func (suite *AnteTestSuite) TestEthInsufficientBalance() {
-	suite.ctx = suite.ctx.WithBlockHeight(1)
+	suite.ctx.SetBlockHeight(1)
 
 	addr1, priv1 := newTestAddrKey()
 	addr2, _ := newTestAddrKey()
@@ -229,7 +230,7 @@ func (suite *AnteTestSuite) TestEthInsufficientBalance() {
 }
 
 func (suite *AnteTestSuite) TestEthInvalidIntrinsicGas() {
-	suite.ctx = suite.ctx.WithBlockHeight(1)
+	suite.ctx.SetBlockHeight(1)
 
 	addr1, priv1 := newTestAddrKey()
 	addr2, _ := newTestAddrKey()
@@ -256,8 +257,8 @@ func (suite *AnteTestSuite) TestEthInvalidMempoolFees() {
 	suite.ctx = suite.app.BaseApp.NewContext(true, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
 	suite.app.EvmKeeper.SetParams(suite.ctx, evmtypes.DefaultParams())
 
-	suite.anteHandler = ante.NewAnteHandler(suite.app.AccountKeeper, suite.app.EvmKeeper, suite.app.SupplyKeeper, nil)
-	suite.ctx = suite.ctx.WithMinGasPrices(sdk.NewDecCoins(sdk.NewDecCoinFromDec(types.NativeToken, sdk.NewDecFromBigIntWithPrec(big.NewInt(500000), sdk.Precision))))
+	suite.anteHandler = ante.NewAnteHandler(suite.app.AccountKeeper, suite.app.EvmKeeper, suite.app.SupplyKeeper, nil, suite.app.IBCKeeper.ChannelKeeper)
+	suite.ctx.SetMinGasPrices(sdk.NewDecCoins(sdk.NewDecCoinFromDec(types.NativeToken, sdk.NewDecFromBigIntWithPrec(big.NewInt(500000), sdk.Precision))))
 	addr1, priv1 := newTestAddrKey()
 	addr2, _ := newTestAddrKey()
 
@@ -274,27 +275,4 @@ func (suite *AnteTestSuite) TestEthInvalidMempoolFees() {
 	tx, err := newTestEthTx(suite.ctx, ethMsg, priv1)
 	suite.Require().NoError(err)
 	requireInvalidTx(suite.T(), suite.anteHandler, suite.ctx, tx, false)
-}
-
-func (suite *AnteTestSuite) TestEthInvalidChainID() {
-	suite.ctx = suite.ctx.WithBlockHeight(1)
-
-	addr1, priv1 := newTestAddrKey()
-	addr2, _ := newTestAddrKey()
-
-	acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr1)
-	_ = acc.SetCoins(newTestCoins())
-	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
-
-	// require a valid Ethereum tx to pass
-	to := ethcmn.BytesToAddress(addr2.Bytes())
-	amt := big.NewInt(32)
-	gas := big.NewInt(20)
-	ethMsg := evmtypes.NewMsgEthereumTx(0, &to, amt, 22000, gas, []byte("test"))
-
-	tx, err := newTestEthTx(suite.ctx, ethMsg, priv1)
-	suite.Require().NoError(err)
-
-	ctx := suite.ctx.WithChainID("bad-chain-id")
-	requireInvalidTx(suite.T(), suite.anteHandler, ctx, tx, false)
 }

@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"fmt"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/internal/types"
@@ -48,11 +47,13 @@ func (k Keeper) SendCoinsFromModuleToModule(
 func (k Keeper) SendCoinsFromAccountToModule(
 	ctx sdk.Context, senderAddr sdk.AccAddress, recipientModule string, amt sdk.Coins,
 ) error {
-
 	recipientAcc := k.GetModuleAccount(ctx, recipientModule)
 	if recipientAcc == nil {
 		panic(sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "module account %s does not exist", recipientModule))
 	}
+
+	// GetModuleAccount may create a new module account, we don't know does the gas consumed contains the gas of new account creation
+	ctx.UpdateToAccountCache(recipientAcc, 0)
 
 	return k.bk.SendCoins(ctx, senderAddr, recipientAcc.GetAddress(), amt)
 }

@@ -4,24 +4,20 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"math/big"
-	"sync"
-
-	jsoniter "github.com/json-iterator/go"
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-
-	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
-
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	jsoniter "github.com/json-iterator/go"
+	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmstate "github.com/okex/exchain/libs/tendermint/state"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
+	"math/big"
+	"sync"
 )
 
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -40,11 +36,12 @@ type Watcher struct {
 	firstUse      bool
 	delayEraseKey [][]byte
 	log           log.Logger
-
 	// for state delta transfering in network
 	watchData *WatchData
 
 	jobChan chan func()
+
+	evmTxIndex uint64
 }
 
 var (
@@ -91,31 +88,27 @@ func (w *Watcher) Enable(sw bool) {
 	w.sw = sw
 }
 
+func (w *Watcher) GetEvmTxIndex() uint64 {
+	return w.evmTxIndex
+}
+
 func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.Header) {
 	if !w.Enabled() {
 		return
 	}
-	w.batch = []WatchMessage{} // reset batch
 	w.header = header
 	w.height = height
 	w.blockHash = blockHash
+	w.batch = []WatchMessage{} // reset batch
+	// ResetTransferWatchData
+	w.watchData = &WatchData{}
+	w.evmTxIndex = 0
+}
+
+func (w *Watcher) clean() {
 	w.cumulativeGas = make(map[uint64]uint64)
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
-
-	// ResetTransferWatchData
-	w.watchData = &WatchData{}
-}
-
-func (w *Watcher) SaveEthereumTx(msg *evmtypes.MsgEthereumTx, txHash common.Hash, index uint64) {
-	if !w.Enabled() {
-		return
-	}
-	wMsg := NewMsgEthTx(msg, txHash, w.blockHash, w.height, index)
-	if wMsg != nil {
-		w.batch = append(w.batch, wMsg)
-	}
-	w.UpdateBlockTxs(txHash)
 }
 
 func (w *Watcher) SaveContractCode(addr common.Address, code []byte) {
@@ -143,7 +136,7 @@ func (w *Watcher) SaveTransactionReceipt(status uint32, msg *evmtypes.MsgEthereu
 		return
 	}
 	w.UpdateCumulativeGas(txIndex, gasUsed)
-	wMsg := NewMsgTransactionReceipt(status, msg, txHash, w.blockHash, txIndex, w.height, data, w.cumulativeGas[txIndex], gasUsed)
+	wMsg := NewEvmTransactionReceipt(status, msg, txHash, w.blockHash, txIndex, w.height, data, w.cumulativeGas[txIndex], gasUsed)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}
@@ -159,13 +152,6 @@ func (w *Watcher) UpdateCumulativeGas(txIndex, gasUsed uint64) {
 		w.cumulativeGas[txIndex] = w.cumulativeGas[txIndex-1] + gasUsed
 	}
 	w.gasUsed += gasUsed
-}
-
-func (w *Watcher) UpdateBlockTxs(txHash common.Hash) {
-	if !w.Enabled() {
-		return
-	}
-	w.blockTxs = append(w.blockTxs, txHash)
 }
 
 func (w *Watcher) SaveAccount(account auth.Account, isDirectly bool) {
@@ -207,21 +193,28 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 	w.delayEraseKey = append(w.delayEraseKey, key2)
 }
 
-func (w *Watcher) AddDirtyAccount(addr *sdk.AccAddress) {
-	w.watchData.DirtyAccount = append(w.watchData.DirtyAccount, addr)
-}
-
-func (w *Watcher) ExecuteDelayEraseKey() {
+func (w *Watcher) DelayEraseKey() {
 	if !w.Enabled() {
 		return
 	}
-	if len(w.delayEraseKey) <= 0 {
+	//hold it in temp
+	delayEraseKey := w.delayEraseKey
+	w.delayEraseKey = make([][]byte, 0)
+	w.dispatchJob(func() {
+		w.ExecuteDelayEraseKey(delayEraseKey)
+	})
+}
+
+func (w *Watcher) ExecuteDelayEraseKey(delayEraseKey [][]byte) {
+	if !w.Enabled() {
 		return
 	}
-	for _, k := range w.delayEraseKey {
+	if len(delayEraseKey) <= 0 {
+		return
+	}
+	for _, k := range delayEraseKey {
 		w.store.Delete(k)
 	}
-	w.delayEraseKey = make([][]byte, 0)
 }
 
 func (w *Watcher) SaveState(addr common.Address, key, value []byte) {
@@ -238,6 +231,7 @@ func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
 	if !w.Enabled() {
 		return
 	}
+
 	wMsg := NewMsgBlock(w.height, bloom, w.blockHash, w.header, uint64(0xffffffff), big.NewInt(int64(w.gasUsed)), w.blockTxs)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
@@ -376,7 +370,10 @@ func (w *Watcher) Commit() {
 	}
 	//hold it in temp
 	batch := w.batch
-	w.dispatchJob(func() { w.commitBatch(batch) })
+	w.clean()
+	w.dispatchJob(func() {
+		w.commitBatch(batch)
+	})
 }
 
 func (w *Watcher) CommitWatchData(data WatchData) {
@@ -385,9 +382,6 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 	}
 	if data.Batches != nil {
 		w.commitCenterBatch(data.Batches)
-	}
-	if data.DirtyAccount != nil {
-		w.delDirtyAccount(data.DirtyAccount)
 	}
 	if data.DirtyList != nil {
 		w.delDirtyList(data.DirtyList)
@@ -477,7 +471,7 @@ func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
 	value.DelayEraseKey = w.delayEraseKey
 
 	// hold it in temp
-	batch:=w.batch
+	batch := w.batch
 	return func() ([]byte, error) {
 		ddsBatch := make([]*Batch, len(batch))
 		for i, b := range batch {
@@ -510,8 +504,6 @@ func (w *Watcher) UseWatchData(watchData interface{}) {
 	if !ok {
 		panic("use watch data failed")
 	}
-	w.delayEraseKey = wd.DelayEraseKey
-
 	w.dispatchJob(func() { w.CommitWatchData(wd) })
 }
 
@@ -548,37 +540,14 @@ func key2Bytes(key string) []byte {
 	return []byte(key)
 }
 
-
 func filterCopy(origin *WatchData) *WatchData {
 	return &WatchData{
-		DirtyAccount:  filterAccount(origin.DirtyAccount),
 		Batches:       filterBatch(origin.Batches),
 		DelayEraseKey: filterDelayEraseKey(origin.DelayEraseKey),
 		BloomData:     filterBloomData(origin.BloomData),
 		DirtyList:     filterDirtyList(origin.DirtyList),
 	}
 }
-
-func filterAccount(accounts []*sdk.AccAddress) []*sdk.AccAddress {
-	if len(accounts) == 0 {
-		return nil
-	}
-
-	filterAccountMap := make(map[string]*sdk.AccAddress)
-	for _, account := range accounts {
-		filterAccountMap[bytes2Key(account.Bytes())] = account
-	}
-
-	ret := make([]*sdk.AccAddress, len(filterAccountMap))
-	i := 0
-	for _, acc := range filterAccountMap {
-		ret[i] = acc
-		i++
-	}
-
-	return ret
-}
-
 
 func filterBatch(datas []*Batch) []*Batch {
 	if len(datas) == 0 {
@@ -666,7 +635,6 @@ func (w *Watcher) jobRoutine() {
 	}
 
 	w.lazyInitialization()
-
 	for job := range w.jobChan {
 		job()
 	}
@@ -675,8 +643,8 @@ func (w *Watcher) jobRoutine() {
 func (w *Watcher) lazyInitialization() {
 	// lazy initial:
 	// now we will allocate chan memory
-	// 5*2 means watcherCommitJob+commitBatchJob(just in case)
-	w.jobChan = make(chan func(), 5*2)
+	// 5*3 means watcherCommitJob+DelayEraseKey+commitBatchJob(just in case)
+	w.jobChan = make(chan func(), 5*3)
 }
 
 func (w *Watcher) dispatchJob(f func()) {

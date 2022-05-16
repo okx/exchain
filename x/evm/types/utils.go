@@ -2,9 +2,11 @@ package types
 
 import (
 	"bytes"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"strings"
+	"sync"
 
 	"github.com/tendermint/go-amino"
 
@@ -450,7 +452,7 @@ func (rd *ResultData) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 
 var resultDataBufferPool = amino.NewBufferPool()
 
-func (rd ResultData) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
+func (rd *ResultData) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 	var buf = resultDataBufferPool.Get()
 	defer resultDataBufferPool.Put(buf)
 	fieldKeysType := [5]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2, 4<<3 | 2, 5<<3 | 2}
@@ -570,12 +572,12 @@ func (rd ResultData) String() string {
 
 // EncodeResultData takes all of the necessary data from the EVM execution
 // and returns the data as a byte slice encoded with amino
-func EncodeResultData(data ResultData) ([]byte, error) {
+func EncodeResultData(data *ResultData) ([]byte, error) {
 	var buf = new(bytes.Buffer)
 
 	bz, err := data.MarshalToAmino(ModuleCdc)
 	if err != nil {
-		bz, err = ModuleCdc.MarshalBinaryBare(data)
+		bz, err = ModuleCdc.MarshalBinaryBare(*data)
 		if err != nil {
 			return nil, err
 		}
@@ -650,7 +652,74 @@ func recoverEthSig(R, S, Vb *big.Int, sigHash ethcmn.Hash) (ethcmn.Address, erro
 	}
 
 	var addr ethcmn.Address
-	copy(addr[:], ethcrypto.Keccak256(pub[1:])[12:])
+	copy(addr[:], keccak256(pub[1:])[12:])
 
 	return addr, nil
+}
+
+// keccak256 calculates and returns the Keccak256 hash of the input data.
+func keccak256(data ...[]byte) []byte {
+	b := make([]byte, 32)
+	// d := ethcrypto.NewKeccakState()
+	d := keccakStatePool.Get().(ethcrypto.KeccakState)
+	d.Reset()
+	for _, b := range data {
+		d.Write(b)
+	}
+	d.Read(b)
+	keccakStatePool.Put(d)
+	return b
+}
+
+var ethAddrStringPool = &sync.Pool{
+	New: func() interface{} {
+		return &[32]byte{}
+	},
+}
+
+type EthAddressStringer ethcmn.Address
+
+func (address EthAddressStringer) String() string {
+	p := &address
+	return EthAddressToString((*ethcmn.Address)(p))
+}
+
+func EthAddressToString(address *ethcmn.Address) string {
+	var buf [len(address)*2 + 2]byte
+	buf[0] = '0'
+	buf[1] = 'x'
+	hex.Encode(buf[2:], address[:])
+
+	// compute checksum
+	sha := keccakStatePool.Get().(ethcrypto.KeccakState)
+	sha.Reset()
+	sha.Write(buf[2:])
+
+	hash := ethAddrStringPool.Get().(*[32]byte)
+	sha.Read(hash[:])
+
+	for i := 2; i < len(buf); i++ {
+		hashByte := hash[(i-2)/2]
+		if i%2 == 0 {
+			hashByte = hashByte >> 4
+		} else {
+			hashByte &= 0xf
+		}
+		if buf[i] > '9' && hashByte > 7 {
+			buf[i] -= 32
+		}
+	}
+	ethAddrStringPool.Put(hash)
+	keccakStatePool.Put(sha)
+	return amino.BytesToStr(buf[:])
+}
+
+type EthHashStringer ethcmn.Hash
+
+func (h EthHashStringer) String() string {
+	var enc [len(h)*2 + 2]byte
+	enc[0] = '0'
+	enc[1] = 'x'
+	hex.Encode(enc[2:], h[:])
+	return amino.BytesToStr(enc[:])
 }

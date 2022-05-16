@@ -1019,7 +1019,8 @@ func queryDelegatorProxyCheck(dlgAddr sdk.AccAddress, expIsProxy bool, expHasPro
 		// check if the shares correct
 		b6 := true
 		if len(dlg.GetShareAddedValidatorAddresses()) > 0 {
-			expectDlgShares, err := keeper.SimulateWeight(getGlobalContext().BlockTime().Unix(), (dlg.TotalDelegatedTokens.Add(dlg.Tokens)))
+			gctx := getGlobalContext()
+			expectDlgShares, err := keeper.SimulateWeight(gctx.BlockTime().Unix(), (dlg.TotalDelegatedTokens.Add(dlg.Tokens)))
 			b6 = err == nil
 			b6 = b6 && assert.Equal(t, expectDlgShares.String(), dlg.Shares.String(), dlg)
 		} else {
@@ -1251,14 +1252,14 @@ func newValidatorSMTestCase(mk keeper.MockStakingKeeper, params types.Params, st
 func getNewContext(ms store.MultiStore, height int64) sdk.Context {
 	header := abci.Header{ChainID: keeper.TestChainID, Height: height}
 	ctx := sdk.NewContext(ms, header, false, log.NewNopLogger())
-	ctx = ctx.WithConsensusParams(
+	ctx.SetConsensusParams(
 		&abci.ConsensusParams{
 			Validator: &abci.ValidatorParams{
 				PubKeyTypes: []string{tmtypes.ABCIPubKeyTypeEd25519},
 			},
 		},
 	)
-	ctx = ctx.WithBlockTime(time.Now())
+	ctx.SetBlockTime(time.Now())
 
 	GlobalContext = ctx
 	return ctx

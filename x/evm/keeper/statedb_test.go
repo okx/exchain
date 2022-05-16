@@ -4,14 +4,13 @@ import (
 	"fmt"
 	"math/big"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/exchain/app/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/evm/types"
 )
 
@@ -55,8 +54,8 @@ func (suite *KeeperTestSuite) TestBloomFilter() {
 	for _, tc := range testCase {
 		tc.malleate()
 		logs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(tHash)
+		suite.Require().NoError(err)
 		if !tc.isBloom {
-			suite.Require().NoError(err, tc.name)
 			suite.Require().Len(logs, tc.numLogs, tc.name)
 			if len(logs) != 0 {
 				suite.Require().Equal(log, *logs[0], tc.name)
@@ -119,7 +118,7 @@ func (suite *KeeperTestSuite) TestStateDB_Error() {
 }
 
 func (suite *KeeperTestSuite) TestStateDB_Database() {
-	suite.Require().Nil(suite.stateDB.WithContext(suite.ctx).Database())
+	suite.Require().NotNil(suite.stateDB.WithContext(suite.ctx).Database())
 }
 
 func (suite *KeeperTestSuite) TestStateDB_State() {
@@ -201,6 +200,7 @@ func (suite *KeeperTestSuite) TestStateDB_Code() {
 }
 
 func (suite *KeeperTestSuite) TestStateDB_Logs() {
+	txHash := ethcmn.BytesToHash([]byte("topic"))
 	testCase := []struct {
 		name string
 		log  ethtypes.Log
@@ -209,10 +209,10 @@ func (suite *KeeperTestSuite) TestStateDB_Logs() {
 			"state db log",
 			ethtypes.Log{
 				Address:     suite.address,
-				Topics:      []ethcmn.Hash{ethcmn.BytesToHash([]byte("topic"))},
+				Topics:      []ethcmn.Hash{txHash},
 				Data:        []byte("data"),
 				BlockNumber: 1,
-				TxHash:      ethcmn.Hash{},
+				TxHash:      txHash,
 				TxIndex:     1,
 				BlockHash:   ethcmn.Hash{},
 				Index:       1,
@@ -222,13 +222,11 @@ func (suite *KeeperTestSuite) TestStateDB_Logs() {
 	}
 
 	for _, tc := range testCase {
-		hash := ethcmn.BytesToHash([]byte("hash"))
 		logs := []*ethtypes.Log{&tc.log}
 
-		err := suite.stateDB.WithContext(suite.ctx).SetLogs(hash, logs)
-		suite.Require().NoError(err, tc.name)
-		dbLogs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(hash)
-		suite.Require().NoError(err, tc.name)
+		suite.stateDB.WithContext(suite.ctx).SetLogs(txHash, logs)
+		dbLogs, err := suite.stateDB.WithContext(suite.ctx).GetLogs(txHash)
+		suite.Require().NoError(err)
 		suite.Require().Equal(logs, dbLogs, tc.name)
 	}
 }
@@ -500,16 +498,14 @@ func (suite *KeeperTestSuite) TestCommitStateDB_Finalize() {
 	for _, tc := range testCase {
 		tc.malleate()
 
-		err := suite.stateDB.WithContext(suite.ctx).Finalise(tc.deleteObjs)
+		suite.stateDB.WithContext(suite.ctx).IntermediateRoot(tc.deleteObjs)
 
 		if !tc.expPass {
-			suite.Require().Error(err, tc.name)
 			hash := suite.stateDB.WithContext(suite.ctx).GetCommittedState(suite.address, ethcmn.BytesToHash([]byte("key")))
 			suite.Require().NotEqual(ethcmn.Hash{}, hash, tc.name)
 			continue
 		}
 
-		suite.Require().NoError(err, tc.name)
 		acc := suite.app.AccountKeeper.GetAccount(suite.ctx, sdk.AccAddress(suite.address.Bytes()))
 
 		if tc.deleteObjs {
@@ -519,9 +515,6 @@ func (suite *KeeperTestSuite) TestCommitStateDB_Finalize() {
 
 		suite.Require().NotNil(acc, tc.name)
 	}
-
-	_, err := suite.stateDB.WithContext(suite.ctx).IntermediateRoot(false)
-	suite.Require().Nil(err, "successful get the root hash of the state")
 }
 
 func (suite *KeeperTestSuite) TestCommitStateDB_GetCommittedState() {
@@ -591,7 +584,7 @@ func (suite *KeeperTestSuite) TestCommitStateDB_ForEachStorage() {
 		suite.Run(tc.name, func() {
 			suite.SetupTest() // reset
 			tc.malleate()
-			suite.stateDB.WithContext(suite.ctx).Finalise(false)
+			suite.stateDB.WithContext(suite.ctx).Commit(false)
 
 			err := suite.stateDB.WithContext(suite.ctx).ForEachStorage(suite.address, tc.callback)
 			suite.Require().NoError(err)
@@ -614,5 +607,5 @@ func (suite *KeeperTestSuite) TestStorageTrie() {
 	}
 
 	trie := suite.stateDB.WithContext(suite.ctx).StorageTrie(suite.address)
-	suite.Require().Equal(nil, trie, "Ethermint does not use a direct storage trie.")
+	suite.Require().NotNil(trie, "Ethermint now use a direct storage trie.")
 }

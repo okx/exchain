@@ -419,7 +419,7 @@ func (d Dec) IsInteger() bool {
 
 // format decimal state
 func (d Dec) Format(s fmt.State, verb rune) {
-	_, err := s.Write([]byte(d.String()))
+	_, err := s.Write(amino.StrToBytes(d.String()))
 	if err != nil {
 		panic(err)
 	}
@@ -475,7 +475,7 @@ func (d Dec) String() string {
 		return "-" + string(bzStr)
 	}
 
-	return string(bzStr)
+	return amino.BytesToStr(bzStr)
 }
 
 //     ____
@@ -713,6 +713,13 @@ func (d Dec) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
 	return bz, err
 }
 
+func (d Dec) AminoSize(_ *amino.Codec) int {
+	if d.Int == nil {
+		return len(nilAmino)
+	}
+	return amino.CalcBigIntTextSize(d.Int)
+}
+
 // MarshalJSON marshals the decimal
 func (d Dec) MarshalJSON() ([]byte, error) {
 	if d.Int == nil {
@@ -781,4 +788,59 @@ func MaxDec(d1, d2 Dec) Dec {
 // intended to be used with require/assert:  require.True(DecEq(...))
 func DecEq(t *testing.T, exp, got Dec) (*testing.T, bool, string, string, string) {
 	return t, exp.Equal(got), "expected:\t%v\ngot:\t\t%v", exp.String(), got.String()
+}
+
+// Size implements the gogo proto custom type interface.
+func (d *Dec) Size() int {
+	bz, _ := d.Marshal()
+	return len(bz)
+}
+
+func (d Dec) Marshal() ([]byte, error) {
+	if d.Int == nil {
+		d.Int = new(big.Int)
+	}
+	return d.Int.MarshalText()
+}
+
+// MarshalTo implements the gogo proto custom type interface.
+func (d *Dec) MarshalTo(data []byte) (n int, err error) {
+	if d.Int == nil {
+		d.Int = new(big.Int)
+	}
+
+	if d.Int.Cmp(zeroInt) == 0 {
+		copy(data, []byte{0x30})
+		return 1, nil
+	}
+
+	bz, err := d.Marshal()
+	if err != nil {
+		return 0, err
+	}
+
+	copy(data, bz)
+	return len(bz), nil
+}
+
+// Unmarshal implements the gogo proto custom type interface.
+func (d *Dec) Unmarshal(data []byte) error {
+	if len(data) == 0 {
+		d = nil
+		return nil
+	}
+
+	if d.Int == nil {
+		d.Int = new(big.Int)
+	}
+
+	if err := d.Int.UnmarshalText(data); err != nil {
+		return err
+	}
+
+	if d.Int.BitLen() > maxBitLen {
+		return fmt.Errorf("decimal out of range; got: %d, max: %d", d.Int.BitLen(), maxBitLen)
+	}
+
+	return nil
 }

@@ -5,6 +5,7 @@ import (
 	"math/big"
 	"regexp"
 	"strings"
+	"sync"
 
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	tendermintTypes "github.com/okex/exchain/libs/tendermint/types"
@@ -19,6 +20,12 @@ var (
 
 const mainnetChainId = "exchain-66"
 const testnetChainId = "exchain-65"
+
+var (
+	chainIdSetOnce    sync.Once
+	chainIdCache      string
+	chainIdEpochCache *big.Int
+)
 
 // IsValidChainID returns false if the given chain identifier is incorrectly formatted.
 func IsValidChainID(chainID string) bool {
@@ -35,9 +42,25 @@ func isTestNetChainID(chainID string) bool {
 	return chainID == testnetChainId
 }
 
+func SetChainId(chainid string) error {
+	epoch, err := ParseChainID(chainid)
+	if err != nil {
+		return err
+	}
+	chainIdSetOnce.Do(func() {
+		chainIdCache = chainid
+		chainIdEpochCache = epoch
+	})
+	return nil
+}
+
 // ParseChainID parses a string chain identifier's epoch to an Ethereum-compatible
 // chain-id in *big.Int format. The function returns an error if the chain-id has an invalid format
 func ParseChainID(chainID string) (*big.Int, error) {
+	//use chainIdEpochCache first.
+	if chainID == chainIdCache && chainIdEpochCache != nil {
+		return chainIdEpochCache, nil
+	}
 	chainID = strings.TrimSpace(chainID)
 	if len(chainID) > 48 {
 		return nil, sdkerrors.Wrapf(ErrInvalidChainID, "chain-id '%s' cannot exceed 48 chars", chainID)

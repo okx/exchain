@@ -42,7 +42,7 @@ func TestValidateBasic(t *testing.T) {
 	require.Nil(t, err, "ValidateBasicDecorator returned error on valid tx. err: %v", err)
 
 	// test decorator skips on recheck
-	ctx = ctx.WithIsReCheckTx(true)
+	ctx.SetIsReCheckTx(true)
 
 	// decorator should skip processing invalidTx on recheck and thus return nil-error
 	_, err = antehandler(ctx, invalidTx, false)
@@ -105,7 +105,7 @@ func TestConsumeGasForTxSize(t *testing.T) {
 	expectedGas := sdk.Gas(len(txBytes)) * params.TxSizeCostPerByte
 
 	// Set ctx with TxBytes manually
-	ctx = ctx.WithTxBytes(txBytes)
+	ctx.SetTxBytes(txBytes)
 
 	// track how much gas is necessary to retrieve parameters
 	beforeGas := ctx.GasMeter().GasConsumed()
@@ -122,7 +122,7 @@ func TestConsumeGasForTxSize(t *testing.T) {
 	require.Equal(t, expectedGas, consumedGas, "Decorator did not consume the correct amount of gas")
 
 	// simulation must not underestimate gas of this decorator even with nil signatures
-	sigTx := tx.(types.StdTx)
+	sigTx := tx.(*types.StdTx)
 	sigTx.Signatures = []types.StdSignature{{}}
 
 	simTxBytes, err := json.Marshal(sigTx)
@@ -131,7 +131,7 @@ func TestConsumeGasForTxSize(t *testing.T) {
 	require.True(t, len(simTxBytes) < len(txBytes), "simulated tx still has signatures")
 
 	// Set ctx with smaller simulated TxBytes manually
-	ctx = ctx.WithTxBytes(txBytes)
+	ctx.SetTxBytes(txBytes)
 
 	beforeSimGas := ctx.GasMeter().GasConsumed()
 

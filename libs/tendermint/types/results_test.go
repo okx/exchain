@@ -1,7 +1,10 @@
 package types
 
 import (
+	"math"
 	"testing"
+
+	"github.com/tendermint/go-amino"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -54,4 +57,48 @@ func TestABCIResultsBytes(t *testing.T) {
 		{Code: 14, Data: []byte("bar")},
 	})
 	assert.NotNil(t, results.Bytes())
+}
+
+func TestABCIResultAmino(t *testing.T) {
+	testCases := []ABCIResult{
+		{},
+		{Code: 100, Data: []byte("this is data")},
+		{Code: math.MaxUint32, Data: []byte{}},
+		{Code: 0, Data: []byte{}},
+		{Code: 0, Data: []byte("one")},
+		{Code: 14, Data: nil},
+		{Code: 14, Data: []byte("foo")},
+		{Code: 14, Data: []byte("bar")},
+	}
+	cdc := amino.NewCodec()
+	for _, res := range testCases {
+		expectData, err := cdc.MarshalBinaryBare(res)
+		require.NoError(t, err)
+
+		actualData, err := res.MarshalToAmino(cdc)
+		require.NoError(t, err)
+
+		require.Equal(t, expectData, actualData)
+		require.Equal(t, len(expectData), res.AminoSize())
+
+		bytesData := cdcEncode(res)
+		require.Equal(t, bytesData, actualData)
+	}
+}
+
+func BenchmarkABCIResultBytes(b *testing.B) {
+	res := ABCIResult{12345, []byte("some data")}
+	b.ResetTimer()
+	b.Run("cdcEncode", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_ = cdcEncode(res)
+		}
+	})
+	b.Run("marshaller", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_, _ = res.MarshalToAmino(cdc)
+		}
+	})
 }

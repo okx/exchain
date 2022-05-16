@@ -32,7 +32,7 @@ func TestPeerResetBlockResponseTimer(t *testing.T) {
 		lastErr         error      // last generated error
 		peerTestMtx     sync.Mutex // modifications of ^^ variables are also done from timer handler goroutine
 	)
-	params := &BpPeerParams{timeout: 2 * time.Millisecond}
+	params := &BpPeerParams{timeout: 20 * time.Millisecond}
 
 	peer := NewBpPeer(
 		p2p.ID(tmrand.Str(12)), 0, 10,
@@ -55,12 +55,12 @@ func TestPeerResetBlockResponseTimer(t *testing.T) {
 
 	// reset with running timer
 	peer.resetBlockResponseTimer()
-	time.Sleep(time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 	peer.resetBlockResponseTimer()
 	assert.NotNil(t, peer.blockResponseTimer)
 
 	// let the timer expire and ...
-	time.Sleep(3 * time.Millisecond)
+	time.Sleep(30 * time.Millisecond)
 	// ... check timer is not running
 	checkByStoppingPeerTimer(t, peer, false)
 
@@ -109,7 +109,7 @@ func TestPeerGetAndRemoveBlock(t *testing.T) {
 			// only receive blocks 1..5
 			continue
 		}
-		_ = peer.AddBlock(makeSmallBlock(i), nil, 10)
+		_ = peer.AddBlock(makeSmallBlock(i), 10)
 	}
 
 	tests := []struct {
@@ -151,7 +151,7 @@ func TestPeerAddBlock(t *testing.T) {
 		peer.RequestSent(int64(i))
 		if i == 5 {
 			// receive block 5
-			_ = peer.AddBlock(makeSmallBlock(i), nil, 10)
+			_ = peer.AddBlock(makeSmallBlock(i), 10)
 		}
 	}
 
@@ -171,7 +171,7 @@ func TestPeerAddBlock(t *testing.T) {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			// try to get the block
-			err := peer.AddBlock(makeSmallBlock(int(tt.height)), nil, 10)
+			err := peer.AddBlock(makeSmallBlock(int(tt.height)), 10)
 			assert.Equal(t, tt.wantErr, err)
 			_, err = peer.BlockAtHeight(tt.height)
 			assert.Equal(t, tt.blockPresent, err == nil)
@@ -231,14 +231,14 @@ func TestPeerCheckRate(t *testing.T) {
 
 	// normal peer - send a bit more than 100 bytes/sec, > 10 bytes/100msec, check peer is not considered slow
 	for i := 0; i < 10; i++ {
-		_ = peer.AddBlock(makeSmallBlock(i), nil, 11)
+		_ = peer.AddBlock(makeSmallBlock(i), 11)
 		time.Sleep(100 * time.Millisecond)
 		require.Nil(t, peer.CheckRate())
 	}
 
 	// slow peer - send a bit less than 10 bytes/100msec
 	for i := 10; i < 20; i++ {
-		_ = peer.AddBlock(makeSmallBlock(i), nil, 9)
+		_ = peer.AddBlock(makeSmallBlock(i), 9)
 		time.Sleep(100 * time.Millisecond)
 	}
 	// check peer is considered slow

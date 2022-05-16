@@ -1,11 +1,12 @@
 package types_test
 
 import (
-	"github.com/ethereum/go-ethereum/common/hexutil"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/exchain/app/types"
@@ -122,6 +123,7 @@ var (
 //  },
 //]
 func (suite *StateDBTestSuite) TestGetHashFn() {
+	types2.UnittestOnlySetMilestoneMarsHeight(0)
 	testCase := []struct {
 		name         string
 		height       uint64
@@ -132,7 +134,7 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 			"valid hash, case 1",
 			1,
 			func() {
-				suite.ctx = suite.ctx.WithBlockHeader(
+				suite.ctx.SetBlockHeader(
 					abci.Header{
 						ChainID:        "ethermint-1",
 						Height:         1,
@@ -154,7 +156,7 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 			"valid hash, case 2",
 			1,
 			func() {
-				suite.ctx = suite.ctx.WithBlockHeader(
+				suite.ctx.SetBlockHeader(
 					abci.Header{
 						ChainID:        "ethermint-1",
 						Height:         100,
@@ -170,7 +172,7 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 			"height not found, case 2",
 			1,
 			func() {
-				suite.ctx = suite.ctx.WithBlockHeader(
+				suite.ctx.SetBlockHeader(
 					abci.Header{
 						ChainID:        "ethermint-1",
 						Height:         100,
@@ -184,7 +186,7 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 			"empty hash, case 3",
 			1000,
 			func() {
-				suite.ctx = suite.ctx.WithBlockHeader(
+				suite.ctx.SetBlockHeader(
 					abci.Header{
 						ChainID:        "ethermint-1",
 						Height:         100,
@@ -336,7 +338,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 				invalidGas := sdk.DecCoins{
 					{Denom: ethermint.NativeToken},
 				}
-				suite.ctx = suite.ctx.WithMinGasPrices(invalidGas)
+				suite.ctx.SetMinGasPrices(invalidGas)
 			},
 			types.StateTransition{
 				AccountNonce: 123,

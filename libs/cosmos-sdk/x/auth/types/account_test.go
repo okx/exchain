@@ -170,6 +170,8 @@ func TestBaseAccountAmino(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, expectData, actualData)
 
+		require.Equal(t, len(expectData), acc.AminoSize(cdc))
+
 		expectValue := BaseAccount{}
 		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
 		require.NoError(t, err)
