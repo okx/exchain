@@ -66,8 +66,12 @@ ifeq ($(WITH_ROCKSDB),true)
   ldflags += -X github.com/okex/exchain/libs/cosmos-sdk/types.DBBackend=rocksdb
 endif
 
-ifeq ($(WITH_TCMALLOC),true)
+ifeq ($(OKCMALLOC),tcmalloc)
   ldflags += -extldflags "-ltcmalloc_minimal"
+endif
+
+ifeq ($(OKCMALLOC),jemalloc)
+  ldflags += -extldflags "-ljemalloc"
 endif
 
 BUILD_FLAGS := -ldflags '$(ldflags)'
