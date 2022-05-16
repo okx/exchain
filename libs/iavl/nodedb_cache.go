@@ -2,9 +2,10 @@ package iavl
 
 import (
 	"container/list"
+	"sync"
+
 	"github.com/okex/exchain/libs/iavl/config"
 	"github.com/tendermint/go-amino"
-	"sync"
 )
 
 type NodeCache struct {
@@ -14,14 +15,21 @@ type NodeCache struct {
 	nodeCacheMutex sync.RWMutex             // Mutex for node cache.
 }
 
-func newNodeCache(cacheSize int) *NodeCache {
-	return &NodeCache{
-		nodeCache:      makeNodeCacheMap(cacheSize, IavlCacheInitRatio),
-		nodeCacheSize:  cacheSize,
-		nodeCacheQueue: newSyncList(),
+func newNodeCache(dbName string, cacheSize int) *NodeCache {
+	if dbName == "evm" {
+		return &NodeCache{
+			nodeCache:      makeNodeCacheMap(cacheSize, IavlCacheInitRatio),
+			nodeCacheSize:  cacheSize,
+			nodeCacheQueue: newSyncList(),
+		}
+	} else {
+		return &NodeCache{
+			nodeCache:      make(map[string]*list.Element),
+			nodeCacheSize:  cacheSize,
+			nodeCacheQueue: newSyncList(),
+		}
 	}
 }
-
 
 func makeNodeCacheMap(cacheSize int, initRatio float64) map[string]*list.Element {
 	if initRatio <= 0 {
@@ -53,6 +61,19 @@ func (ndb *NodeCache) cache(node *Node) {
 	ndb.nodeCacheMutex.Lock()
 	elem := ndb.nodeCacheQueue.PushBack(node)
 	ndb.nodeCache[string(node.hash)] = elem
+
+	for ndb.nodeCacheQueue.Len() > config.DynamicConfig.GetIavlCacheSize() {
+		oldest := ndb.nodeCacheQueue.Front()
+		hash := ndb.nodeCacheQueue.Remove(oldest).(*Node).hash
+		delete(ndb.nodeCache, amino.BytesToStr(hash))
+	}
+	ndb.nodeCacheMutex.Unlock()
+}
+
+func (ndb *NodeCache) cacheWithKey(key string, node *Node) {
+	ndb.nodeCacheMutex.Lock()
+	elem := ndb.nodeCacheQueue.PushBack(node)
+	ndb.nodeCache[key] = elem
 
 	for ndb.nodeCacheQueue.Len() > config.DynamicConfig.GetIavlCacheSize() {
 		oldest := ndb.nodeCacheQueue.Front()
@@ -94,7 +115,6 @@ func (ndb *NodeCache) nodeCacheLen() int {
 // ======= github.com/hashicorp/golang-lru implementation
 // =========================================================
 
-
 //func (ndb *nodeDB) cacheNode(node *Node) {
 //	ndb.lruNodeCache.Add(string(node.hash), node)
 //}
@@ -132,4 +152,3 @@ func (ndb *NodeCache) nodeCacheLen() int {
 //func (ndb *nodeDB) nodeCacheLen() int {
 //	return ndb.lruNodeCache.Len()
 //}
-

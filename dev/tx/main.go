@@ -21,7 +21,7 @@ const (
 	abiFile = "../client/contracts/counter/counter.abi"
 	binFile = "../client/contracts/counter/counter.bin"
 
-	ChainId int64 = 67 //  okc
+	ChainId  int64  = 67        //  okc
 	GasPrice int64  = 100000000 // 0.1 gwei
 	GasLimit uint64 = 3000000
 )
@@ -35,19 +35,18 @@ var hexKeys = []string{
 
 const hexNodeKey = "d322864e848a3ebbb88cbd45b163db3c479b166937f10a14ab86a3f860b0b0b64506fc928bd335f434691375f63d0baf97968716a20b2ad15463e51ba5cf49fe"
 
-
 var (
 	// flag
-	txNum uint64
+	txNum   uint64
 	msgType int64
 
-	cdc *amino.Codec
+	cdc             *amino.Codec
 	counterContract *Contract
-	nodePrivKey ed25519.PrivKeyEd25519
-	nodeKey []byte
+	nodePrivKey     ed25519.PrivKeyEd25519
+	nodeKey         []byte
 
 	privateKeys []*ecdsa.PrivateKey
-	address []common.Address
+	address     []common.Address
 )
 
 func init() {
@@ -57,7 +56,7 @@ func init() {
 
 	cdc = amino.NewCodec()
 	mempool.RegisterMessages(cdc)
-	counterContract = newContract("counter", "", abiFile, binFile)
+	counterContract = newContract("counter", "0x45dD91b0289E60D89Cec94dF0Aac3a2f539c514a", abiFile, binFile)
 	b, _ := hex.DecodeString(hexNodeKey)
 	copy(nodePrivKey[:], b)
 	nodeKey = nodePrivKey.PubKey().Bytes()
@@ -100,7 +99,7 @@ func createTxs(index int) error {
 	defer txWriter.Flush()
 
 	var wtxWriter *bufio.Writer
-	if msgType & 2 == 2 {
+	if msgType&2 == 2 {
 		f2, err := os.OpenFile(fmt.Sprintf("WtxMessage-%s.txt", address[index]), os.O_RDWR|os.O_CREATE, 0666)
 		if err != nil {
 			return err
@@ -121,7 +120,6 @@ func createTxs(index int) error {
 	if err = writeWtxMessage(wtxWriter, tx, address[index].String()); err != nil {
 		panic(err)
 	}
-
 
 	addData, _ := hex.DecodeString("1003e2d20000000000000000000000000000000000000000000000000000000000000064")
 	subtractData, _ := hex.DecodeString("6deebae3")
@@ -152,7 +150,7 @@ func createTxs(index int) error {
 }
 
 func writeTxMessage(w *bufio.Writer, tx []byte) error {
-	if msgType & 1 != 1 {
+	if msgType&1 != 1 {
 		return nil
 	}
 	msg := mempool.TxMessage{Tx: tx}
@@ -163,12 +161,12 @@ func writeTxMessage(w *bufio.Writer, tx []byte) error {
 }
 
 func writeWtxMessage(w *bufio.Writer, tx []byte, from string) error {
-	if msgType & 2 != 2 {
+	if msgType&2 != 2 {
 		return nil
 	}
 	wtx := &mempool.WrappedTx{
 		Payload: tx,
-		From: from,
+		From:    from,
 		NodeKey: nodeKey,
 	}
 	sig, err := nodePrivKey.Sign(append(wtx.Payload, wtx.From...))
