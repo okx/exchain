@@ -55,7 +55,7 @@ corresponding to the counterparty channel. Any timeout set to 0 is disabled.`),
 			if err != nil {
 				return err
 			}
-			//if denom wei not div prec
+			//if denom wei div prec
 			if coin.Denom == sdk.DefaultIbcWei {
 				coin.Amount = sdk.Dec{
 					coin.Amount.Div(coin.Amount.BigInt(), big.NewInt(1000000000000000000)),
