@@ -111,7 +111,7 @@ func (suite *FakeBlockTxTestSuite) endFakeBlock(totalGas int64) {
 	suite.Require().False(ctx.BlockGasMeter().IsOutOfGas())
 }
 
-func (suite *FakeBlockTxTestSuite) TestFackBlockTx() {
+func (suite *FakeBlockTxTestSuite) TestFakeBlockTx() {
 	testCases := []struct {
 		title      string
 		buildTx    func() []byte
