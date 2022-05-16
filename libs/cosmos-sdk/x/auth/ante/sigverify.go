@@ -25,7 +25,6 @@ var (
 	simSecp256k1Sig       [64]byte
 
 	_ SigVerifiableTx = (*types.StdTx)(nil) // assert StdTx implements SigVerifiableTx
-	_ SigVerifiableTx = (*types.IbcTx)(nil)
 )
 
 func init() {
@@ -80,16 +79,22 @@ func (spkd SetPubKeyDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate b
 			pk = simSecp256k1Pubkey
 		}
 		// Only make check if simulate=false
+		isEthPubKey := false
 		ibcTx, isIbcTx := tx.(*types.IbcTx)
 		if isIbcTx {
+			// ibctx will contain(secp256k1,ethsecp256k1) pubkey
+			// ethsecp256k1 pubkey use getPubKey from tx (not from account)
 			pubKeyEth := ibcTx.GetEthPubKeys(signers[i])
-			if pubKeyEth == nil {
-				if !simulate && !bytes.Equal(pk.Address(), signers[i]) {
+			if pubKeyEth != nil {
+				isEthPubKey = true
+				if !simulate && !bytes.Equal(pubKeyEth.Address(), signers[i]) {
 					return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
 						"pubKey does not match signer address %s with signer index: %d", signers[i], i)
 				}
 			}
-		} else {
+		}
+		if !isEthPubKey {
+			// secp256k1 pubkey get from local account
 			if !simulate && !bytes.Equal(pk.Address(), signers[i]) {
 				return ctx, sdkerrors.Wrapf(sdkerrors.ErrInvalidPubKey,
 					"pubKey does not match signer address %s with signer index: %d", signers[i], i)
@@ -223,20 +228,19 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 		}
 
 		// verify signature
+		isEthPubKey := false
 		ibcTx, isIbcTx := tx.(*types.IbcTx)
 		// ibctx use ethsecp256k1
 		if isIbcTx {
 			pubKeyEth := ibcTx.GetEthPubKeys(signerAddrs[i])
 			if pubKeyEth != nil {
+				isEthPubKey = true
 				if !simulate && !pubKeyEth.VerifySignature(signBytes, sig) {
 					return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "signature verification failed; verify correct account sequence and chain-id, sign msg:"+string(signBytes))
 				}
-			} else {
-				if !simulate && !pubKey.VerifyBytes(signBytes, sig) {
-					return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "signature verification failed; verify correct account sequence and chain-id, sign msg:"+string(signBytes))
-				}
 			}
-		} else {
+		}
+		if !isEthPubKey {
 			if !simulate && !pubKey.VerifyBytes(signBytes, sig) {
 				return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "signature verification failed; verify correct account sequence and chain-id, sign msg:"+string(signBytes))
 			}

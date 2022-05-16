@@ -1,7 +1,6 @@
 package types
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io"
@@ -287,9 +286,6 @@ func MakeSignature(keybase keys.Keybase, name, passphrase string,
 	if err != nil {
 		return
 	}
-	fmt.Println("old pubkey bytes", hex.EncodeToString(pubkey.Bytes()))
-	fmt.Println("old pubkey", pubkey.Address().String())
-
 	return StdSignature{
 		PubKey:    pubkey,
 		Signature: sigBytes,

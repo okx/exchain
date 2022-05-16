@@ -3,15 +3,11 @@ package utils
 import (
 	"bufio"
 	"bytes"
-	"encoding/hex"
 	"fmt"
-	"github.com/btcsuite/btcd/btcec"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	ethsecp256k12 "github.com/okex/exchain/libs/cosmos-sdk/crypto/ethsecp256k1"
-	secp256k1 "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
-	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -48,7 +44,6 @@ func (gr GasEstimateResponse) String() string {
 // broadcasted.
 func GenerateOrBroadcastMsgs(cliCtx context.CLIContext, txBldr authtypes.TxBuilder, msgs []sdk.Msg) error {
 	if cliCtx.GenerateOnly {
-		//todo implete ibctx print unsigned
 		return PrintUnsignedStdTx(txBldr, cliCtx, msgs)
 	}
 
@@ -95,7 +90,7 @@ func CompleteAndBroadcastTxCLI(txBldr authtypes.TxBuilder, cliCtx context.CLICon
 			}
 			json, err = txConfig.TxJSONEncoder()(tx.GetTx())
 			if err != nil {
-				return err
+				panic(err)
 			}
 		} else {
 			signData, err = txBldr.BuildSignMsg(msgs)
@@ -172,8 +167,6 @@ func buildUnsignedPbTx(txf authtypes.TxBuilder, txConfig client.TxConfig, msgs .
 		return nil, err
 	}
 	tx.SetMemo(txf.Memo())
-	//convert fees
-	//sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultIbcWei, sdk.NewIntFromBigInt(big.NewInt(0)))}
 	coins := []sdk.CoinAdapter{}
 	for _, fee := range txf.Fees() {
 		prec := newCoinFromDec()
@@ -200,167 +193,52 @@ func newCoinFromDec() *big.Int {
 }
 
 func PbTxBuildAndSign(clientCtx context.CLIContext, txConfig client.TxConfig, txbld authtypes.TxBuilder, passphrase string, msgs []txmsg.Msg) ([]byte, error) {
-	//tb := txConfig.NewTxBuilder()
-	//txb.SetSignatures()
-	//txb, err := buildUnsignedPbTx(txbld, txConfig, msgs...)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//if !clientCtx.SkipConfirm {
-	//	out, err := txConfig.TxJSONEncoder()(txb.GetTx())
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//
-	//	_, _ = fmt.Fprintf(os.Stderr, "%s\n\n", out)
-	//
-	//	buf := bufio.NewReader(os.Stdin)
-	//	ok, err := input.GetConfirmation("confirm transaction before signing and broadcasting", buf)
-	//
-	//	if err != nil || !ok {
-	//		_, _ = fmt.Fprintf(os.Stderr, "%s\n", "cancelled transaction")
-	//		return nil, err
-	//	}
-	//}
+	//txb := txConfig.NewTxBuilder()
+	txb, err := buildUnsignedPbTx(txbld, txConfig, msgs...)
+	if err != nil {
+		return nil, err
+	}
+	if !clientCtx.SkipConfirm {
+		out, err := txConfig.TxJSONEncoder()(txb.GetTx())
+		if err != nil {
+			return nil, err
+		}
 
-	//factory.SetFeeGranter(clientCtx.GetFeeGranterAddress())
-	txb := txConfig.NewTxBuilder()
-	txby, err := signPbTx2(txConfig, txbld, clientCtx.GetFromName(), passphrase, txb, true, msgs...)
+		_, _ = fmt.Fprintf(os.Stderr, "%s\n\n", out)
+
+		buf := bufio.NewReader(os.Stdin)
+		ok, err := input.GetConfirmation("confirm transaction before signing and broadcasting", buf)
+
+		if err != nil || !ok {
+			_, _ = fmt.Fprintf(os.Stderr, "%s\n", "cancelled transaction")
+			return nil, err
+		}
+	}
+
+	err = signPbTx(txConfig, txbld, clientCtx.GetFromName(), passphrase, &txb, true)
 	if err != nil {
 		return nil, err
 	}
 
-	return txby, nil //txConfig.TxEncoder()(txb.GetTx())
+	return txConfig.TxEncoder()(txb.GetTx())
 }
 
-func signPbTx2(txConfig client.TxConfig, txf authtypes.TxBuilder, name string, passwd string, pbTxBld client.TxBuilder, overwriteSig bool, msgs ...txmsg.Msg) ([]byte, error) {
-	sigs := make([]signing.SignatureV2, 1)
+func signPbTx(txConfig client.TxConfig, txf authtypes.TxBuilder, name string, passwd string, pbTxBld *client.TxBuilder, overwriteSig bool) error {
+	if txf.Keybase() == nil {
+		return errors.New("keybase must be set prior to signing a transaction")
+	}
+	signMode := txConfig.SignModeHandler().DefaultMode()
+
 	privKey, _ := txf.Keybase().ExportPrivateKeyObject(name, passwd)
 	pkBytes, ok := privKey.(ethsecp256k1.PrivKey)
 	if !ok {
 		panic("not ok")
 	}
-	//privKey2 := secp256k1.PrivKey{
-	//	Key: ppk,
-	//}
+
 	privKeyPb := ethsecp256k12.PrivKey{
 		Key: pkBytes,
 	}
-	signMode := txConfig.SignModeHandler().DefaultMode()
 
-	// create a random length memo
-	//r := rand.New(rand.NewSource(time.Now().UnixNano()))
-
-	//memo := simulation.RandStringOfLength(r, simulation.RandIntBetween(r, 0, 100))
-
-	//signMode := gen.SignModeHandler().DefaultMode()
-
-	// 1st round: set SignatureV2 with empty signatures, to set correct
-	// signer infos.
-	for i, _ := range sigs {
-		sigs[i] = signing.SignatureV2{
-			PubKey: privKeyPb.PubKey(),
-			Data: &signing.SingleSignatureData{
-				SignMode: signMode,
-			},
-			Sequence: txf.Sequence(),
-		}
-	}
-
-	tx := txConfig.NewTxBuilder()
-	err := tx.SetMsgs(msgs...)
-	if err != nil {
-		return nil, err
-	}
-	err = tx.SetSignatures(sigs...)
-	if err != nil {
-		return nil, err
-	}
-	tx.SetMemo(txf.Memo())
-	coins := []sdk.CoinAdapter{}
-	for _, fee := range txf.Fees() {
-		prec := newCoinFromDec()
-
-		am := sdk.NewIntFromBigInt(fee.Amount.BigInt().Div(fee.Amount.BigInt(), prec))
-
-		coins = append(coins, sdk.NewCoinAdapter(fee.Denom, am))
-	}
-	tx.SetFeeAmount(coins)
-	tx.SetGasLimit(txf.Gas())
-
-	// 2nd round: once all signer infos are set, every signer can sign.
-	for i, _ := range sigs {
-		signerData := signingtypes.SignerData{
-			ChainID:       txf.ChainID(),
-			AccountNumber: txf.AccountNumber(),
-			Sequence:      txf.Sequence(),
-		}
-		signBytes, err := txConfig.SignModeHandler().GetSignBytes(signMode, signerData, tx.GetTx())
-		if err != nil {
-			panic(err)
-		}
-		sig, err := privKeyPb.Sign(signBytes)
-		if err != nil {
-			panic(err)
-		}
-		sigs[i].Data.(*signing.SingleSignatureData).Signature = sig
-		err = tx.SetSignatures(sigs...)
-		if err != nil {
-			panic(err)
-		}
-	}
-	bt, _ := txConfig.TxEncoder()(tx.GetTx())
-	return bt, nil
-}
-
-func signPbTx(txConfig client.TxConfig, txf authtypes.TxBuilder, name string, passwd string, pbTxBld client.TxBuilder, overwriteSig bool) error {
-	if txf.Keybase() == nil {
-		return errors.New("keybase must be set prior to signing a transaction")
-	}
-	signMode := txConfig.SignModeHandler().DefaultMode()
-	//signMode := txf.signMode
-	//if signMode == signing.SignMode_SIGN_MODE_UNSPECIFIED {
-	//	// use the SignModeHandler's default mode if unspecified
-	//	signMode = txConfig.SignModeHandler().DefaultMode()
-	//}
-	//if err := checkMultipleSigners(signMode, txBuilder.GetTx()); err != nil {
-	//	return err
-	//}
-
-	key, err := txf.Keybase().Get(name)
-	if err != nil {
-		return err
-	}
-
-	//pubk, err := ethcrypto.DecompressPubkey(key.GetPubKey())
-
-	//fmt.Println("look pb key11", key.GetPubKey().Address().String())
-	pk, ok := key.GetPubKey().(ethsecp256k1.PubKey)
-	if !ok {
-		panic("error")
-	}
-	ecdsaRawPk := pk.Raw()
-	var pubkey *btcec.PublicKey
-
-	pubkey = (*btcec.PublicKey)(ecdsaRawPk)
-	pk1 := pubkey.SerializeCompressed()
-	//ethcrypto.CompressPubkey
-
-	//pk := pubkeyObject.SerializeCompressed()
-	//convert ecdsaRawPk construct secp256k1 pubkey
-	//SerializeCompressed()
-
-	fmt.Println("1111", pk.Address().String())
-	fmt.Println("2222", hex.EncodeToString(pk))
-	fmt.Println("3333", hex.EncodeToString(pk))
-	fmt.Println("33334", hex.EncodeToString(pk.Address()))
-	pbPubkey := &secp256k1.PubKey{
-		Key: pk1,
-		//Key: pk.Raw(),
-		//Key :key.GetPubKey(),
-		//	//Key: []byte(pk.RawBytes()),
-	}
-	fmt.Println("wrong", pbPubkey.Address().String())
 	signerData := signingtypes.SignerData{
 		ChainID:       txf.ChainID(),
 		AccountNumber: txf.AccountNumber(),
@@ -379,85 +257,50 @@ func signPbTx(txConfig client.TxConfig, txf authtypes.TxBuilder, name string, pa
 		SignMode:  signMode,
 		Signature: nil,
 	}
-	aaa := key.GetPubKey()
+
 	sig := signing.SignatureV2{
-		PubKey:   aaa.(cryptotypes.PubKey), //pbPubkey, //key.GetPubKey(),
+		PubKey:   privKeyPb.PubKey(),
 		Data:     &sigData,
 		Sequence: txf.Sequence(),
 	}
 	var prevSignatures []signing.SignatureV2
+	var err error
 	if !overwriteSig {
-		prevSignatures, err = pbTxBld.GetTx().GetSignaturesV2()
+		prevSignatures, err = (*pbTxBld).GetTx().GetSignaturesV2()
 		if err != nil {
 			return err
 		}
 	}
-	if err := pbTxBld.SetSignatures(sig); err != nil {
+	if err := (*pbTxBld).SetSignatures(sig); err != nil {
 		return err
 	}
 
 	// Generate the bytes to be signed.
-	bytesToSign, err := txConfig.SignModeHandler().GetSignBytes(signMode, signerData, pbTxBld.GetTx())
+	bytesToSign, err := txConfig.SignModeHandler().GetSignBytes(signMode, signerData, (*pbTxBld).GetTx())
 	if err != nil {
 		return err
 	}
 
-	privKey, _ := txf.Keybase().ExportPrivateKeyObject(name, passwd)
-	ppk, ok := privKey.(ethsecp256k1.PrivKey)
-	if !ok {
-		panic("not ok")
-	}
-	privKey2 := secp256k1.PrivKey{
-		Key: ppk,
-	}
-	fmt.Println("test ok?", privKey2.PubKey().Address().String())
-	//
-	//signerData := signingtypes.SignerData{
-	//	ChainID:       chainID,
-	//	AccountNumber: accNums[i],
-	//	Sequence:      accSeqs[i],
-	//}
-	//signBytes, err := gen.SignModeHandler().GetSignBytes(signMode, signerData, tx.GetTx())
-	//if err != nil {
-	//	panic(err)
-	//}
-	sigbb, err := ppk.Sign(bytesToSign)
+	sigBytes, err := privKey.Sign(bytesToSign)
 	if err != nil {
 		panic(err)
 	}
-	sigs := make([]signing.SignatureV2, 1)
-	sigs[0].Data.(*signing.SingleSignatureData).Signature = sigbb
-	//err = pbTxBld.SetSignatures(sigs...)
-	//if err != nil {
-	//	panic(err)
-	//}
-
-	//
-	// Sign those bytes
-	//sigBytes, pubk, err := txf.Keybase().Sign(name, passwd, bytesToSign)
-	//if err != nil {
-	//	return err
-	//}
-
-	// Construct the SignatureV2 struct
-	//sigData = signing.SingleSignatureData{
-	//	SignMode:  signMode,
-	//	Signature: sigBytes,
-	//}
-	//fmt.Println(pubk.Address().String())
-	//fmt.Println("pbaaaa", hex.EncodeToString(pbPubkey.Address()))
-	//sig = signing.SignatureV2{
-	//	PubKey:   pbPubkey,
-	//	Data:     &sigData,
-	//	Sequence: txf.Sequence(),
-	//}
+	sigData = signing.SingleSignatureData{
+		SignMode:  signMode,
+		Signature: sigBytes,
+	}
+	sig = signing.SignatureV2{
+		PubKey:   privKeyPb.PubKey(),
+		Data:     &sigData,
+		Sequence: txf.Sequence(),
+	}
 
 	if overwriteSig {
-		return pbTxBld.SetSignatures(sig)
+		return (*pbTxBld).SetSignatures(sig)
 	}
 	prevSignatures = append(prevSignatures, sig)
 
-	return pbTxBld.SetSignatures(prevSignatures...)
+	return (*pbTxBld).SetSignatures(prevSignatures...)
 }
 
 func convertIfPbTx(msgs []sdk.Msg) ([]txmsg.Msg, bool) {

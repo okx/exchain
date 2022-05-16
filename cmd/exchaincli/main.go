@@ -84,6 +84,7 @@ func main() {
 
 	// Add flags and prefix all env exposed with OKEXCHAIN
 	executor := cli.PrepareMainCmd(rootCmd, "OKEXCHAIN", app.DefaultCLIHome)
+
 	err := executor.Execute()
 	if err != nil {
 		panic(fmt.Errorf("failed executing CLI command: %w", err))
