@@ -145,7 +145,7 @@ type State struct {
 	trc *trace.Tracer
 
 	prerunTx bool
-	bt *BlockTransport
+	bt       *BlockTransport
 }
 
 // StateOption sets an optional parameter on the State.
@@ -409,25 +409,6 @@ func (cs *State) OpenWAL(walFile string) (WAL, error) {
 }
 
 //------------------------------------------------------------
-// Public interface for passing messages into the consensus state, possibly causing a state transition.
-// If peerID == "", the msg is considered internal.
-// Messages are added to the appropriate queue (peer or internal).
-// If the queue is full, the function may block.
-// TODO: should these return anything or let callers just use events?
-
-// AddVote inputs a vote.
-func (cs *State) AddVote(vote *types.Vote, peerID p2p.ID) (added bool, err error) {
-	if peerID == "" {
-		cs.internalMsgQueue <- msgInfo{&VoteMessage{vote}, ""}
-	} else {
-		cs.peerMsgQueue <- msgInfo{&VoteMessage{vote}, peerID}
-	}
-
-	// TODO: wait for event?!
-	return false, nil
-}
-
-//------------------------------------------------------------
 // internal functions for managing the state
 
 func (cs *State) updateRoundStep(round int, step cstypes.RoundStepType) {
@@ -485,7 +466,6 @@ func (cs *State) needProofBlock(height int64) bool {
 	}
 	return !bytes.Equal(cs.state.AppHash, lastBlockMeta.Header.AppHash)
 }
-
 
 func (cs *State) recordMetrics(height int64, block *types.Block) {
 	cs.metrics.Validators.Set(float64(cs.Validators.Size()))
