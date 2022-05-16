@@ -2,12 +2,14 @@ package testcases
 
 import (
 	"encoding/hex"
+	"fmt"
 	"github.com/okex/exchain/libs/tendermint/consensus"
 	"github.com/okex/exchain/libs/tendermint/libs/autofile"
 	"github.com/okex/exchain/libs/tendermint/p2p/conn"
 	"github.com/tendermint/go-amino"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 )
@@ -36,10 +38,33 @@ func TestP2PMsgProcess(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	start := time.Now()
 	err = parseMsg(msgBytes, wal)
 	if err != nil {
 		t.Fatal(err)
 	}
+	oneDur := time.Since(start).Microseconds()
+	fmt.Println("peersNum: ", 1, " duration: ", oneDur)
+
+	//for k := 1; k < 16; k++ {
+		start = time.Now()
+		peersCount := 15
+		var wg sync.WaitGroup
+		wg.Add(peersCount)
+		for index := 0; index < peersCount; index++ {
+			go func(i int, wg *sync.WaitGroup) {
+				err = parseMsg(msgBytes, wal)
+				//fmt.Println(i)
+				if err != nil {
+					t.Fatal(err)
+				}
+				wg.Done()
+			}(index, &wg)
+		}
+		wg.Wait()
+		allDur := time.Since(start).Microseconds()
+		fmt.Println("peersNum: ", peersCount, " duration: ", allDur)
+	//}
 }
 
 func parseMsg(bz []byte, wal *consensus.BaseWAL) error {
