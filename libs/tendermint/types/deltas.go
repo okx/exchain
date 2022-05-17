@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"github.com/tendermint/go-amino"
 	"time"
 
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
@@ -57,6 +58,49 @@ type DeltaPayload struct {
 	WatchBytes  []byte
 }
 
+func (p DeltaPayload) AminoSize(_ *amino.Codec) int {
+	var size int
+	if len(p.ABCIRsp) != 0 {
+		size += 1 + amino.ByteSliceSize(p.ABCIRsp)
+	}
+	if len(p.DeltasBytes) != 0 {
+		size += 1 + amino.ByteSliceSize(p.DeltasBytes)
+	}
+	if len(p.WatchBytes) != 0 {
+		size += 1 + amino.ByteSliceSize(p.WatchBytes)
+	}
+	return size
+}
+
+func (p DeltaPayload) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) error {
+	var err error
+	// field 1
+	if len(p.ABCIRsp) != 0 {
+		const pbKey = byte(1<<3 | amino.Typ3_ByteLength)
+		err = amino.EncodeByteSliceWithKeyToBuffer(buf, p.ABCIRsp, pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	// field 2
+	if len(p.DeltasBytes) != 0 {
+		const pbKey = byte(2<<3 | amino.Typ3_ByteLength)
+		err = amino.EncodeByteSliceWithKeyToBuffer(buf, p.DeltasBytes, pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	// field 3
+	if len(p.WatchBytes) != 0 {
+		const pbKey = byte(3<<3 | amino.Typ3_ByteLength)
+		err = amino.EncodeByteSliceWithKeyToBuffer(buf, p.WatchBytes, pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Deltas defines the ABCIResponse and state delta
 type Deltas struct {
 	Height       int64
@@ -68,6 +112,78 @@ type Deltas struct {
 	marshalElapsed  time.Duration
 	compressElapsed time.Duration
 	hashElapsed     time.Duration
+}
+
+func (d *Deltas) AminoSize(cdc *amino.Codec) int {
+	var size int
+	if d.Height != 0 {
+		size += 1 + amino.UvarintSize(uint64(d.Height))
+	}
+	payloadSize := d.Payload.AminoSize(cdc)
+	if payloadSize > 0 {
+		size += 1 + amino.UvarintSize(uint64(payloadSize)) + payloadSize
+	}
+	if d.CompressType != 0 {
+		size += 1 + amino.UvarintSize(uint64(d.CompressType))
+	}
+	if d.CompressFlag != 0 {
+		size += 1 + amino.UvarintSize(uint64(d.CompressFlag))
+	}
+	if d.From != "" {
+		size += 1 + amino.EncodedStringSize(d.From)
+	}
+	return size
+}
+
+func (d *Deltas) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
+	var err error
+	// field 1
+	if d.Height != 0 {
+		const pbKey = byte(1<<3 | amino.Typ3_Varint)
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(d.Height), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	// field 2
+	payLoadSize := d.Payload.AminoSize(cdc)
+	if payLoadSize > 0 {
+		const pbKey = byte(2<<3 | amino.Typ3_ByteLength)
+		buf.WriteByte(pbKey)
+		lenBeforeData := buf.Len()
+		err = d.Payload.MarshalAminoTo(cdc, buf)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != payLoadSize {
+			return amino.NewSizerError(payLoadSize, buf.Len()-lenBeforeData, payLoadSize)
+		}
+	}
+	// field 3
+	if d.CompressType != 0 {
+		const pbKey = byte(3<<3 | amino.Typ3_Varint)
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(d.CompressType), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	// field 4
+	if d.CompressFlag != 0 {
+		const pbKey = byte(4<<3 | amino.Typ3_Varint)
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(d.CompressFlag), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	// field 5
+	if d.From != "" {
+		const pbKey = byte(5<<3 | amino.Typ3_ByteLength)
+		err = amino.EncodeStringWithKeyToBuffer(buf, d.From, pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Size returns size of the deltas in bytes.
