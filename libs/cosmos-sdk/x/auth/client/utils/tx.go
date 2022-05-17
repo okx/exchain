@@ -185,7 +185,7 @@ func buildUnsignedPbTx(txf authtypes.TxBuilder, txConfig client.TxConfig, msgs .
 
 func newCoinFromDec() *big.Int {
 	n := big.Int{}
-	prec, ok := n.SetString("1000000000000000000", 10)
+	prec, ok := n.SetString(sdk.DefaultDecStr, 10)
 	if !ok {
 		panic(errors.New("newCoinFromDec setstring error"))
 	}
