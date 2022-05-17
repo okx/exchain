@@ -3,13 +3,15 @@ package ibctesting
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
+	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 	solomachinetypes "github.com/okex/exchain/libs/ibc-go/modules/light-clients/06-solomachine/types"
+	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 	"github.com/stretchr/testify/require"
 	"testing"
 )
@@ -40,9 +42,9 @@ type Solomachine struct {
 
 	cdc         *codec.CodecProxy
 	ClientID    string
-	PrivateKeys []cryptotypes.PrivKey // keys used for signing
-	PublicKeys  []cryptotypes.PubKey  // keys used for generating solo machine pub key
-	PublicKey   cryptotypes.PubKey    // key used for verification
+	PrivateKeys []crypto.PrivKey // keys used for signing
+	PublicKeys  []crypto.PubKey  // keys used for generating solo machine pub key
+	PublicKey   crypto.PubKey    // key used for verification
 	Sequence    uint64
 	Time        uint64
 	Diversifier string
@@ -75,19 +77,19 @@ func NewSolomachine(t *testing.T, cdc *codec.CodecProxy, clientID, diversifier s
 // The key type can be swapped for any key type supported by the PublicKey
 // interface, if needed. The same is true for the amino based Multisignature
 // public key.
-func GenerateKeys(t *testing.T, n uint64) ([]cryptotypes.PrivKey, []cryptotypes.PubKey, cryptotypes.PubKey) {
+func GenerateKeys(t *testing.T, n uint64) ([]crypto.PrivKey, []crypto.PubKey, crypto.PubKey) {
 	require.NotEqual(t, uint64(0), n, "generation of zero keys is not allowed")
 
 	// privKeys := make([]cryptotypes.PrivKey, n)
-	privKeys := make([]cryptotypes.PrivKey, n)
-	pubKeys := make([]cryptotypes.PubKey, n)
+	privKeys := make([]crypto.PrivKey, n)
+	pubKeys := make([]crypto.PubKey, n)
 	for i := uint64(0); i < n; i++ {
 		privKeys[i] = secp256k1.GenPrivKey()
 		pubKeys[i] = privKeys[i].PubKey()
 	}
 
 	// var pk cryptotypes.PubKey
-	var pk cryptotypes.PubKey
+	var pk crypto.PubKey
 	if len(privKeys) > 1 {
 		// generate multi sig pk
 		//pk = kmultisig.NewLegacyAminoPubKey(int(n), pubKeys)
@@ -108,7 +110,8 @@ func (solo *Solomachine) ClientState() *solomachinetypes.ClientState {
 
 // ConsensusState returns a new solo machine ConsensusState instance
 func (solo *Solomachine) ConsensusState() *solomachinetypes.ConsensusState {
-	publicKey, err := codectypes.NewAnyWithValue(solo.PublicKey)
+	pbPk := ibc_tx.LagacyKey2PbKey(solo.PublicKey)
+	publicKey, err := codectypes.NewAnyWithValue(pbPk)
 	require.NoError(solo.t, err)
 
 	return &solomachinetypes.ConsensusState{
@@ -128,8 +131,8 @@ func (solo *Solomachine) GetHeight() exported.Height {
 func (solo *Solomachine) CreateHeader() *solomachinetypes.Header {
 	// generate new private keys and signature for header
 	newPrivKeys, newPubKeys, newPubKey := GenerateKeys(solo.t, uint64(len(solo.PrivateKeys)))
-
-	publicKey, err := codectypes.NewAnyWithValue(newPubKey)
+	newPbPubKey := ibc_tx.LagacyKey2PbKey(newPubKey)
+	publicKey, err := codectypes.NewAnyWithValue(newPbPubKey)
 	require.NoError(solo.t, err)
 
 	data := &solomachinetypes.HeaderData{

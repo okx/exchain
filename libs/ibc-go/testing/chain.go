@@ -3,7 +3,7 @@ package ibctesting
 import (
 	"bytes"
 	"fmt"
-	secp256k13 "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx/internal/ibc-key"
+	"github.com/okex/exchain/libs/tendermint/crypto"
 	"testing"
 	"time"
 
@@ -63,7 +63,7 @@ type TestChainI interface {
 	ChainID() string
 	Codec() *codec.CodecProxy
 	SenderAccount() sdk.Account
-	SenderAccountPV() *secp256k13.PrivKey
+	SenderAccountPV() crypto.PrivKey
 
 	CurrentTMClientHeader() *ibctmtypes.Header
 	CurrentHeader() tmproto.Header
@@ -113,7 +113,7 @@ type TestChain struct {
 	vals    *tmtypes.ValidatorSet
 	signers []tmtypes.PrivValidator
 
-	senderPrivKey *secp256k13.PrivKey
+	senderPrivKey crypto.PrivKey
 	senderAccount authtypes.Account
 }
 
@@ -137,15 +137,15 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 	signers := []tmtypes.PrivValidator{privVal}
 
 	// generate genesis account
-	senderPrivKey := secp256k13.GenPrivKey()
-	var pubkeyBytes secp256k1.PubKeySecp256k1
-	copy(pubkeyBytes[:], senderPrivKey.PubKey().Bytes())
+	senderPrivKey := secp256k1.GenPrivKey()
+	//var pubkeyBytes secp256k1.PubKeySecp256k1
+	//copy(pubkeyBytes[:], senderPrivKey.PubKey().Bytes())
 
 	i, ok := sdk.NewIntFromString("92233720368547758080")
 	require.True(t, ok)
 	balance := sdk.NewCoins(apptypes.NewPhotonCoin(i))
 	var genesisAcc authtypes.GenesisAccount
-	genesisAcc = auth.NewBaseAccount(senderPrivKey.PubKey().Address().Bytes(), balance, pubkeyBytes, 0, 0)
+	genesisAcc = auth.NewBaseAccount(senderPrivKey.PubKey().Address().Bytes(), balance, senderPrivKey.PubKey(), 0, 0)
 
 	//amount, ok := sdk.NewIntFromString("10000000000000000000")
 	//require.True(t, ok)
@@ -188,7 +188,7 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 		codec:         app.AppCodec(),
 		vals:          valSet,
 		signers:       signers,
-		senderPrivKey: senderPrivKey,
+		senderPrivKey: &senderPrivKey,
 		senderAccount: genesisAcc,
 	}
 
@@ -214,8 +214,8 @@ func NewTestEthChain(t *testing.T, coord *Coordinator, chainID string) *TestChai
 	//Kb := keys.NewInMemory(hd.EthSecp256k1Options()...)
 	// generate genesis account
 	//info, err = Kb.CreateAccount(name, mnemonic, "", passWd, hdPath, hd.EthSecp256k1)
-
-	senderPrivKey := secp256k13.GenPrivKey()
+	a := secp256k1.GenPrivKey()
+	senderPrivKey := &a
 	var pubkeyBytes secp256k1.PubKeySecp256k1
 	copy(pubkeyBytes[:], senderPrivKey.PubKey().Bytes())
 
@@ -737,7 +737,7 @@ func (chain *TestChain) Codec() *codec.CodecProxy {
 func (chain *TestChain) SenderAccount() sdk.Account {
 	return chain.senderAccount
 }
-func (chain *TestChain) SenderAccountPV() *secp256k13.PrivKey {
+func (chain *TestChain) SenderAccountPV() crypto.PrivKey {
 	return chain.senderPrivKey
 }
 

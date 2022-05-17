@@ -4,7 +4,6 @@ import (
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
@@ -14,6 +13,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
 	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
 	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
+	"github.com/okex/exchain/libs/tendermint/crypto"
 	"math/rand"
 	"time"
 )
@@ -25,7 +25,7 @@ const (
 )
 
 // GenTx generates a signed mock transaction.
-func GenTx(gen client.TxConfig, msgs []ibcmsg.Msg, feeAmt sdk.CoinAdapters, gas uint64, chainID string, accNums, accSeqs []uint64, priv ...cryptotypes.PrivKey) (sdk.Tx, error) {
+func GenTx(gen client.TxConfig, msgs []ibcmsg.Msg, feeAmt sdk.CoinAdapters, gas uint64, chainID string, accNums, accSeqs []uint64, priv ...crypto.PrivKey) (sdk.Tx, error) {
 	sigs := make([]signing.SignatureV2, len(priv))
 
 	// create a random length memo
@@ -38,8 +38,9 @@ func GenTx(gen client.TxConfig, msgs []ibcmsg.Msg, feeAmt sdk.CoinAdapters, gas 
 	// 1st round: set SignatureV2 with empty signatures, to set correct
 	// signer infos.
 	for i, p := range priv {
+		pubKey := ibc_tx.LagacyKey2PbKey(p.PubKey())
 		sigs[i] = signing.SignatureV2{
-			PubKey: p.PubKey(),
+			PubKey: pubKey,
 			Data: &signing.SingleSignatureData{
 				SignMode: signMode,
 			},
