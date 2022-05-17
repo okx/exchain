@@ -3,7 +3,7 @@ package simapp
 import (
 	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	cosmoscryptocodec "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx/internal/ibc-codec"
+	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
 	"testing"
 
@@ -22,7 +22,8 @@ func makeCodec(bm module.BasicManager) types.InterfaceRegistry {
 	// std.RegisterLegacyAminoCodec(cdc)
 	interfaceReg := types.NewInterfaceRegistry()
 	bm.RegisterInterfaces(interfaceReg)
-	cosmoscryptocodec.RegisterInterfaces(interfaceReg)
+
+	ibc_tx.PubKeyRegisterInterfaces(interfaceReg)
 
 	return interfaceReg
 }
