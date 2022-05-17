@@ -35,7 +35,7 @@ func MakeCodec(bm module.BasicManager) *codec.Codec {
 func MakeIBC(bm module.BasicManager) types.InterfaceRegistry {
 	interfaceReg := types.NewInterfaceRegistry()
 	bm.RegisterInterfaces(interfaceReg)
-	cosmoscryptocodec.RegisterInterfaces(interfaceReg)
+	cosmoscryptocodec.PubKeyRegisterInterfaces(interfaceReg)
 	return interfaceReg
 }
 
