@@ -78,6 +78,9 @@ type OecConfig struct {
 	blockPartSizeBytes int
 	blockCompressType  int
 	blockCompressFlag  int
+
+	// enable broadcast hasBlockPartMsg
+	enableHasBlockPartMsg bool
 }
 
 const (
@@ -102,6 +105,8 @@ const (
 	FlagCsTimeoutPrecommit      = "consensus.timeout_precommit"
 	FlagCsTimeoutPrecommitDelta = "consensus.timeout_precommit_delta"
 	FlagCsTimeoutCommit         = "consensus.timeout_commit"
+
+	FlagEnableHasBlockPartMsg = "enable_hasbpmsg"
 )
 
 var (
@@ -211,6 +216,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetEnableAnalyzer(viper.GetBool(trace.FlagEnableAnalyzer))
 	c.SetDeliverTxsExecuteMode(viper.GetInt(state.FlagDeliverTxsExecMode))
 	c.SetBlockPartSize(viper.GetInt(server.FlagBlockPartSizeBytes))
+	c.SetEnableHasBlockPartMsg(viper.GetBool(FlagEnableHasBlockPartMsg))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -418,6 +424,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetBlockCompressFlag(r)
+	case FlagEnableHasBlockPartMsg:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetEnableHasBlockPartMsg(r)
 	}
 }
 
@@ -649,4 +661,12 @@ func (c *OecConfig) GetBlockCompressFlag() int {
 func (c *OecConfig) SetBlockCompressFlag(value int) {
 	c.blockCompressFlag = value
 	tmtypes.BlockCompressFlag = value
+}
+
+func (c *OecConfig) GetEnableHasBlockPartMsg() bool {
+	return c.enableHasBlockPartMsg
+}
+
+func (c *OecConfig) SetEnableHasBlockPartMsg(value bool) {
+	c.enableHasBlockPartMsg = value
 }

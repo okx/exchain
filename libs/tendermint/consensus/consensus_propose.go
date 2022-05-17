@@ -3,6 +3,7 @@ package consensus
 import (
 	"bytes"
 	"fmt"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/okex/exchain/libs/tendermint/p2p"
@@ -53,7 +54,6 @@ func (cs *State) SetProposalAndBlock(
 	}
 	return nil
 }
-
 
 func (cs *State) isBlockProducer() (string, string) {
 	const len2display int = 6
@@ -224,7 +224,6 @@ func (cs *State) createProposalBlock() (block *types.Block, blockParts *types.Pa
 	return cs.blockExec.CreateProposalBlock(cs.Height, cs.state, commit, proposerAddr)
 }
 
-
 //-----------------------------------------------------------------------------
 
 func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
@@ -325,6 +324,11 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 
 	added, err = cs.addBlockPart(height, round, part, peerID)
 
+	// event to decrease blockpart transport
+	if added && cfg.DynamicConfig.GetEnableHasBlockPartMsg() {
+		cs.evsw.FireEvent(types.EventBlockPart, msg)
+	}
+
 	if added && cs.ProposalBlockParts.IsComplete() {
 		err = cs.unmarshalBlock()
 		if err != nil {
@@ -352,7 +356,7 @@ func (cs *State) handleCompleteProposal(height int64) {
 	if hasTwoThirds && !blockID.IsZero() && (cs.ValidRound < cs.Round) {
 		if cs.ProposalBlock.HashesTo(blockID.Hash) {
 			cs.Logger.Debug("Updating valid block to new proposal block",
-				"valid_round", cs.Round, "valid_block_hash", cs.ProposalBlock.Hash(), )
+				"valid_round", cs.Round, "valid_block_hash", cs.ProposalBlock.Hash())
 			cs.ValidRound = cs.Round
 			cs.ValidBlock = cs.ProposalBlock
 			cs.ValidBlockParts = cs.ProposalBlockParts

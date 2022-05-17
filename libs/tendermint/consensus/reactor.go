@@ -344,6 +344,8 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			ps.ApplyNewRoundStepMessage(msg)
 		case *NewValidBlockMessage:
 			ps.ApplyNewValidBlockMessage(msg)
+		case *HasBlockPartMessage:
+			ps.SetHasProposalBlockPart(msg.Height, msg.Round, msg.Index)
 		case *HasVoteMessage:
 			ps.ApplyHasVoteMessage(msg)
 		case *VoteSetMaj23Message:
@@ -505,6 +507,11 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		func(data tmevents.EventData) {
 			conR.broadcastSignVoteMessage(data.(*types.Vote))
 		})
+
+	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventBlockPart,
+		func(data tmevents.EventData) {
+			conR.broadcastHasBlockPartMessage(data.(*BlockPartMessage))
+		})
 }
 
 func (conR *Reactor) unsubscribeFromBroadcastEvents() {
@@ -526,6 +533,16 @@ func (conR *Reactor) broadcastNewValidBlockMessage(rs *cstypes.RoundState) {
 		IsCommit:         rs.Step == cstypes.RoundStepCommit,
 	}
 	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryBare(csMsg))
+}
+
+// Broadcasts HasBlockPartMessage to peers that care.
+func (conR *Reactor) broadcastHasBlockPartMessage(bpm *BlockPartMessage) {
+	msg := &HasBlockPartMessage{
+		Height: bpm.Height,
+		Round:  bpm.Round,
+		Index:  bpm.Part.Index,
+	}
+	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryBare(msg))
 }
 
 // Broadcasts HasVoteMessage to peers that care.
@@ -1521,6 +1538,7 @@ func RegisterMessages(cdc *amino.Codec) {
 	cdc.RegisterConcrete(&HasVoteMessage{}, "tendermint/HasVote", nil)
 	cdc.RegisterConcrete(&VoteSetMaj23Message{}, "tendermint/VoteSetMaj23", nil)
 	cdc.RegisterConcrete(&VoteSetBitsMessage{}, "tendermint/VoteSetBits", nil)
+	cdc.RegisterConcrete(&HasBlockPartMessage{}, "tendermint/HasBlockPart", nil)
 }
 
 func decodeMsg(bz []byte) (msg Message, err error) {
@@ -1710,6 +1728,32 @@ func (m *VoteMessage) String() string {
 }
 
 //-------------------------------------
+
+// HasBlockPartMessage is sent to indicate that a particular vote has been received.
+type HasBlockPartMessage struct {
+	Height int64
+	Round  int
+	Index  int
+}
+
+// ValidateBasic performs basic validation.
+func (m *HasBlockPartMessage) ValidateBasic() error {
+	if m.Height < 0 {
+		return errors.New("negative Height")
+	}
+	if m.Round < 0 {
+		return errors.New("negative Round")
+	}
+	if m.Index < 0 {
+		return errors.New("negative Index")
+	}
+	return nil
+}
+
+// String returns a string representation.
+func (m *HasBlockPartMessage) String() string {
+	return fmt.Sprintf("[HasBlockPart VI:%v V:{%v/%02d}]", m.Index, m.Height, m.Round)
+}
 
 // HasVoteMessage is sent to indicate that a particular vote has been received.
 type HasVoteMessage struct {
