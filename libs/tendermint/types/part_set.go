@@ -28,6 +28,60 @@ type Part struct {
 	Proof merkle.SimpleProof `json:"proof"`
 }
 
+func (part *Part) AminoSize(cdc *amino.Codec) int {
+	var size int
+	if part.Index != 0 {
+		size += 1 + amino.UvarintSize(uint64(part.Index))
+	}
+	if len(part.Bytes) != 0 {
+		size += 1 + amino.ByteSliceSize(part.Bytes)
+	}
+	proofSize := part.Proof.AminoSize(cdc)
+	if proofSize != 0 {
+		size += 1 + amino.UvarintSize(uint64(proofSize)) + proofSize
+	}
+	return size
+}
+
+func (part *Part) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
+	var err error
+	// field 1
+	if part.Index != 0 {
+		const pbKey = byte(1<<3 | amino.Typ3_Varint)
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(part.Index), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	// field 2
+	if len(part.Bytes) != 0 {
+		const pbKey = byte(2<<3 | amino.Typ3_ByteLength)
+		err = amino.EncodeByteSliceWithKeyToBuffer(buf, part.Bytes, pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	// field 3
+	proofSize := part.Proof.AminoSize(cdc)
+	if proofSize != 0 {
+		const pbKey = byte(3<<3 | amino.Typ3_ByteLength)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(proofSize))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = part.Proof.MarshalAminoTo(cdc, buf)
+		if err != nil {
+			return err
+		}
+		if buf.Len() != lenBeforeData+proofSize {
+			return amino.NewSizerError(proofSize, buf.Len()-lenBeforeData, proofSize)
+		}
+	}
+	return nil
+}
+
 func (part *Part) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
