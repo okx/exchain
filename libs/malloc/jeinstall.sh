@@ -123,6 +123,7 @@ do_install() {
 			fi
 			echo
 			echo "ERROR: Unsupported distribution '$lsb_dist'"
+			echo "Please install jemalloc from https://github.com/jemalloc/jemalloc"
 			echo
 			exit 1
 			;;
