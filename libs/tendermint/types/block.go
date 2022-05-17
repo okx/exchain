@@ -248,24 +248,20 @@ func (b *Block) Hash() tmbytes.HexBytes {
 // This is the form in which the block is gossipped to peers.
 // CONTRACT: partSize is greater than zero.
 func (b *Block) MakePartSet(partSize int) *PartSet {
-	return b.MakePartSetByExInfo(nil)
+	return b.MakePartSetByExInfo(&BlockExInfo{
+		BlockCompressType: BlockCompressType,
+		BlockCompressFlag: BlockCompressFlag,
+		BlockPartSize:     partSize,
+	})
 }
 
 func (b *Block) MakePartSetByExInfo(exInfo *BlockExInfo) *PartSet {
-	if b == nil {
+	if b == nil || exInfo == nil {
 		return nil
 	}
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 
-	partSize := BlockPartSizeBytes
-	compressType := BlockCompressType
-	compressFlag := BlockCompressFlag
-	if exInfo != nil {
-		partSize = exInfo.BlockPartSize
-		compressType = exInfo.BlockCompressType
-		compressFlag = exInfo.BlockCompressFlag
-	}
 	// We prefix the byte length, so that unmarshaling
 	// can easily happen via a reader.
 	bz, err := cdc.MarshalBinaryLengthPrefixed(b)
@@ -273,9 +269,9 @@ func (b *Block) MakePartSetByExInfo(exInfo *BlockExInfo) *PartSet {
 		panic(err)
 	}
 
-	payload := compressBlock(bz, compressType, compressFlag)
+	payload := compressBlock(bz, exInfo.BlockCompressType, exInfo.BlockCompressFlag)
 
-	return NewPartSetFromData(payload, partSize)
+	return NewPartSetFromData(payload, exInfo.BlockPartSize)
 
 }
 

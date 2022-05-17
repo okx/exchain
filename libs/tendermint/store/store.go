@@ -81,6 +81,9 @@ var blockBufferPool = amino.NewBufferPool()
 // If no block is found for that height, it returns nil.
 func (bs *BlockStore) LoadBlock(height int64) *types.Block {
 	bufBytes, _ := bs.loadBlockPartsBytes(height)
+	if bufBytes == nil {
+		return nil
+	}
 	// uncompress if the block part bytes was created by compress block
 	partBytes, _, err := types.UncompressBlockFromBytes(bufBytes)
 	if err != nil {
@@ -94,6 +97,9 @@ func (bs *BlockStore) LoadBlock(height int64) *types.Block {
 // and the BlockPartInfo is used to make block parts
 func (bs *BlockStore) LoadBlockWithExInfo(height int64) (*types.Block, *types.BlockExInfo) {
 	bufBytes, partSize := bs.loadBlockPartsBytes(height)
+	if bufBytes == nil {
+		return nil, nil
+	}
 	// uncompress if the block part bytes was created by compress block
 	partBytes, compressType, err := types.UncompressBlockFromBytes(bufBytes)
 	if err != nil {
