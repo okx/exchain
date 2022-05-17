@@ -43,16 +43,22 @@ const (
 	// Data.Txs field:                      1 byte
 	MaxAminoOverheadForBlock int64 = 11
 
-	FlagBlockCompressType = "block-compress-type"
-	FlagBlockCompressFlag = "block-compress-flag"
+	FlagBlockCompressType      = "block-compress-type"
+	FlagBlockCompressFlag      = "block-compress-flag"
 	FlagBlockCompressThreshold = "block-compress-threshold"
 )
 
 var (
-	BlockCompressType = 0x00
-	BlockCompressFlag = 0
+	BlockCompressType      = 0x00
+	BlockCompressFlag      = 0
 	BlockCompressThreshold = 1024000
 )
+
+type BlockPartInfo struct {
+	BlockCompressType int
+	BlockCompressFlag int
+	BlockPartSize     int
+}
 
 // Block defines the atomic unit of a Tendermint blockchain.
 type Block struct {
@@ -291,7 +297,7 @@ func UncompressBlockFromReader(pbpReader io.Reader) (io.Reader, error) {
 	t1 := tmtime.Now()
 
 	if compressType != 0 {
-		compressRatio := float64(len(compressed))/float64(len(original))
+		compressRatio := float64(len(compressed)) / float64(len(original))
 		trace.GetElapsedInfo().AddInfo(trace.UncompressBlock, fmt.Sprintf("%.2f/%dms",
 			compressRatio, t1.Sub(t0).Milliseconds()))
 	}
