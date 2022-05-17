@@ -64,7 +64,7 @@ type TestChainI interface {
 	Codec() *codec.CodecProxy
 	SenderAccount() sdk.Account
 	SenderAccountPV() crypto.PrivKey
-
+	SenderAccountPVBZ() []byte
 	CurrentTMClientHeader() *ibctmtypes.Header
 	CurrentHeader() tmproto.Header
 	CurrentHeaderTime(time.Time)
@@ -96,9 +96,9 @@ type TestChainI interface {
 // is used for delivering transactions through the application state.
 // NOTE: the actual application uses an empty chain-id for ease of testing.
 type TestChain struct {
-	t *testing.T
-
-	context sdk.Context
+	t         *testing.T
+	privKeyBz []byte
+	context   sdk.Context
 
 	coordinator   *Coordinator
 	TApp          TestingApp
@@ -179,6 +179,7 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 	// create an account to send transactions from
 	tchain := &TestChain{
 		t:             t,
+		privKeyBz:     senderPrivKey[:],
 		coordinator:   coord,
 		chainID:       chainID,
 		TApp:          app,
@@ -252,8 +253,9 @@ func NewTestEthChain(t *testing.T, coord *Coordinator, chainID string) *TestChai
 		codec:         app.AppCodec(),
 		vals:          valSet,
 		signers:       signers,
-		senderPrivKey: senderPrivKey,
+		senderPrivKey: &senderPrivKey,
 		senderAccount: genesisAcc,
+		privKeyBz:     senderPrivKey[:],
 	}
 
 	//coord.UpdateNextBlock(tchain)
@@ -735,7 +737,12 @@ func (chain *TestChain) SenderAccount() sdk.Account {
 	return chain.senderAccount
 }
 func (chain *TestChain) SenderAccountPV() crypto.PrivKey {
+
 	return chain.senderPrivKey
+}
+
+func (chain *TestChain) SenderAccountPVBZ() []byte {
+	return chain.privKeyBz
 }
 
 //func (chain *TestChain) CurrentTMClientHeader() *ibctmtypes.Header {}
