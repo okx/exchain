@@ -214,10 +214,7 @@ func NewTestEthChain(t *testing.T, coord *Coordinator, chainID string) *TestChai
 	//Kb := keys.NewInMemory(hd.EthSecp256k1Options()...)
 	// generate genesis account
 	//info, err = Kb.CreateAccount(name, mnemonic, "", passWd, hdPath, hd.EthSecp256k1)
-	a := secp256k1.GenPrivKey()
-	senderPrivKey := &a
-	var pubkeyBytes secp256k1.PubKeySecp256k1
-	copy(pubkeyBytes[:], senderPrivKey.PubKey().Bytes())
+	senderPrivKey := secp256k1.GenPrivKey()
 
 	ethPubkey := ethsecp256k1.PrivKey(senderPrivKey.Bytes()).PubKey()
 
