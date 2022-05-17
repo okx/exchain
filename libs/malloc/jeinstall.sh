@@ -53,11 +53,11 @@ install_linux() {
 	$sh_c "git clone https://github.com/jemalloc/jemalloc.git"
 	$sh_c "cd jemalloc && git checkout ${VERSION}"
 	$sh_c "cd jemalloc && ./autogen.sh"
-	$sh_c "cd gperftools && ./configure --disable-cpu-profiler --disable-heap-profiler --disable-heap-checker --disable-debugalloc --enable-minimal --prefix=/usr --libdir=/usr/lib"
-	$sh_c "cd gperftools && make uninstall"
-	$sh_c "cd gperftools && make install"
+	$sh_c "cd jemalloc && ./configure --prefix=/usr --libdir=/usr/lib"
+	$sh_c "cd jemalloc && make uninstall"
+	$sh_c "cd jemalloc && make install"
 	$sh_c "ldconfig"
-#	$sh_c "rm -rf gperftools"
+	$sh_c "rm -rf jemalloc"
 }
 
 install_macos(){
@@ -72,7 +72,7 @@ install_macos(){
 }
 
 do_install() {
-	echo "# Executing tcmalloc install script, version: $VERSION"
+	echo "# Executing jemalloc install script, version: $VERSION"
 
 	user="$(id -un 2>/dev/null || true)"
 
@@ -122,7 +122,7 @@ do_install() {
 				if is_wsl; then
 					echo
 					echo "ERROR: Unsupported OS 'Windows'"
-					echo "Please install tcmalloc from https://github.com/gperftools/gperftools/tree/gperftools-2.9.1"
+					echo "Please install jemalloc from https://github.com/jemalloc/jemalloc"
 					echo
 					exit 1
 				fi

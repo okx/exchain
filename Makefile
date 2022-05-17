@@ -194,5 +194,8 @@ rocksdb:
 
 tcmalloc:
 	@echo "Installing tcmalloc..."
-	@bash ./libs/tcmalloc/installer.sh
+	@bash ./libs/malloc/tcinstall.sh
 
+jemalloc:
+	@echo "Installing jemalloc..."
+	@bash ./libs/malloc/jeinstall.sh
