@@ -2,8 +2,8 @@ package codec
 
 import (
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/crypto/ethsecp256k1"
-	ibckey "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx/internal/ethsecp256k1"
+	ibckey "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx/internal/ibc-key"
 
 	//"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ed25519"
 	//"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/multisig"

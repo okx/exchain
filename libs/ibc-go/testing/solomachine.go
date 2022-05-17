@@ -3,7 +3,6 @@ package ibctesting
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	ibckey "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
 	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
@@ -83,7 +82,7 @@ func GenerateKeys(t *testing.T, n uint64) ([]cryptotypes.PrivKey, []cryptotypes.
 	privKeys := make([]cryptotypes.PrivKey, n)
 	pubKeys := make([]cryptotypes.PubKey, n)
 	for i := uint64(0); i < n; i++ {
-		privKeys[i] = ibckey.GenPrivKey()
+		privKeys[i] = secp256k1.GenPrivKey()
 		pubKeys[i] = privKeys[i].PubKey()
 	}
 

@@ -2,17 +2,13 @@ package ibc_tx
 
 import (
 	"fmt"
-	ethsecp256k12 "github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
-	"github.com/okex/exchain/libs/cosmos-sdk/crypto/ethsecp256k1"
-	secp256k1 "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	secp256k12 "github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx/internal/adapter"
 	"google.golang.org/protobuf/encoding/protowire"
 	//"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -157,22 +153,15 @@ func convertSignature(ibcTx *tx.Tx) []authtypes.StdSignature {
 				return nil
 			}
 		}
-		var pkRaw crypto.PubKey
-		switch v := pkData.(type) {
-		case *ethsecp256k1.PubKey:
-			pkRaw = ethsecp256k12.PubKey(v.Bytes())
-		case *secp256k1.PubKey:
-			secpPk := &secp256k12.PubKeySecp256k1{}
-			copy(secpPk[:], v.Bytes())
-			pkRaw = (crypto.PubKey)(secpPk)
-		default:
+		pubKey, err := adapter.ProtoBufPubkey2LagacyPubkey(pkData)
+		if err != nil {
 			return []authtypes.StdSignature{}
 		}
 
 		signatures = append(signatures,
 			authtypes.StdSignature{
 				Signature: s,
-				PubKey:    pkRaw,
+				PubKey:    pubKey,
 			},
 		)
 	}

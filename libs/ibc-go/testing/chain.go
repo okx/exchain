@@ -3,12 +3,12 @@ package ibctesting
 import (
 	"bytes"
 	"fmt"
+	secp256k13 "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx/internal/ibc-key"
 	"testing"
 	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	secp256k12 "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
 	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
@@ -63,7 +63,7 @@ type TestChainI interface {
 	ChainID() string
 	Codec() *codec.CodecProxy
 	SenderAccount() sdk.Account
-	SenderAccountPV() *secp256k12.PrivKey
+	SenderAccountPV() *secp256k13.PrivKey
 
 	CurrentTMClientHeader() *ibctmtypes.Header
 	CurrentHeader() tmproto.Header
@@ -113,7 +113,7 @@ type TestChain struct {
 	vals    *tmtypes.ValidatorSet
 	signers []tmtypes.PrivValidator
 
-	senderPrivKey *secp256k12.PrivKey
+	senderPrivKey *secp256k13.PrivKey
 	senderAccount authtypes.Account
 }
 
@@ -137,7 +137,7 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 	signers := []tmtypes.PrivValidator{privVal}
 
 	// generate genesis account
-	senderPrivKey := secp256k12.GenPrivKey()
+	senderPrivKey := secp256k13.GenPrivKey()
 	var pubkeyBytes secp256k1.PubKeySecp256k1
 	copy(pubkeyBytes[:], senderPrivKey.PubKey().Bytes())
 
@@ -215,7 +215,7 @@ func NewTestEthChain(t *testing.T, coord *Coordinator, chainID string) *TestChai
 	// generate genesis account
 	//info, err = Kb.CreateAccount(name, mnemonic, "", passWd, hdPath, hd.EthSecp256k1)
 
-	senderPrivKey := secp256k12.GenPrivKey()
+	senderPrivKey := secp256k13.GenPrivKey()
 	var pubkeyBytes secp256k1.PubKeySecp256k1
 	copy(pubkeyBytes[:], senderPrivKey.PubKey().Bytes())
 
@@ -737,7 +737,7 @@ func (chain *TestChain) Codec() *codec.CodecProxy {
 func (chain *TestChain) SenderAccount() sdk.Account {
 	return chain.senderAccount
 }
-func (chain *TestChain) SenderAccountPV() *secp256k12.PrivKey {
+func (chain *TestChain) SenderAccountPV() *secp256k13.PrivKey {
 	return chain.senderPrivKey
 }
 

@@ -4,22 +4,16 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
+	ibctx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	"io/ioutil"
 	"math/big"
 	"os"
 
-	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	ethsecp256k12 "github.com/okex/exchain/libs/cosmos-sdk/crypto/ethsecp256k1"
-	secp256k1 "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
-	"github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
-	secp256k12 "github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
-
-	//cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
-	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	signingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibcsigning"
 
 	"github.com/pkg/errors"
@@ -233,28 +227,12 @@ func signPbTx(txConfig client.TxConfig, txf authtypes.TxBuilder, name string, pa
 		return errors.New("keybase must be set prior to signing a transaction")
 	}
 	signMode := txConfig.SignModeHandler().DefaultMode()
-
 	privKey, err := txf.Keybase().ExportPrivateKeyObject(name, passwd)
 	if err != nil {
 		return err
 	}
 
-	pubKey := privKey.PubKey()
-	var pubKeyPB types.PubKey
-	switch v := pubKey.(type) {
-	case ethsecp256k1.PubKey:
-		ethsecp256k1Pk := &ethsecp256k12.PubKey{
-			Key: v,
-		}
-		pubKeyPB = ethsecp256k1Pk
-	case secp256k12.PubKeySecp256k1:
-		secp256k1Pk := &secp256k1.PubKey{
-			Key: v[:],
-		}
-		pubKeyPB = secp256k1Pk
-	default:
-		panic("not supported key algo")
-	}
+	pubKeyPB := ibctx.LagacyKey2PbKey(privKey.PubKey())
 
 	signerData := signingtypes.SignerData{
 		ChainID:       txf.ChainID(),
