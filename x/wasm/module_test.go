@@ -3,7 +3,8 @@ package wasm
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/libs/kv"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/spf13/viper"
 	"io/ioutil"
 	"testing"
 
@@ -15,12 +16,12 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	"github.com/okex/exchain/libs/tendermint/libs/kv"
 	stakingkeeper "github.com/okex/exchain/x/staking/keeper"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"github.com/okex/exchain/x/wasm/keeper"
 	"github.com/okex/exchain/x/wasm/types"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type testData struct {
@@ -72,6 +73,7 @@ var (
 )
 
 func TestHandleCreate(t *testing.T) {
+	types2.UnittestOnlySetMilestoneSaturnHeight(1)
 	cases := map[string]struct {
 		msg     sdk.Msg
 		isValid bool
@@ -143,6 +145,7 @@ type state struct {
 }
 
 func TestHandleInstantiate(t *testing.T) {
+	types2.UnittestOnlySetMilestoneSaturnHeight(1)
 	data := setupTest(t)
 	creator := data.faucet.NewFundedAccount(data.ctx, sdk.NewInt64Coin("denom", 100000))
 
@@ -200,6 +203,7 @@ func TestHandleInstantiate(t *testing.T) {
 }
 
 func TestHandleExecute(t *testing.T) {
+	types2.UnittestOnlySetMilestoneSaturnHeight(1)
 	data := setupTest(t)
 
 	deposit := sdk.NewCoins(sdk.NewInt64Coin("denom", 100000))
@@ -239,15 +243,22 @@ func TestHandleExecute(t *testing.T) {
 
 	require.Equal(t, "cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr", contractBech32Addr)
 	// this should be standard x/wasm message event,  init event, plus a bank send event (2), with no custom contract events
-	require.Equal(t, 6, len(res.Events), prettyEvents(res.Events))
+	//TODO
+	//require.Equal(t, 6, len(res.Events), prettyEvents(res.Events))
+	//require.Equal(t, "message", res.Events[0].Type)
+	//assertAttribute(t, "module", "wasm", res.Events[0].Attributes[0])
+	//require.Equal(t, "coin_spent", res.Events[1].Type)
+	//require.Equal(t, "coin_received", res.Events[2].Type)
+	//require.Equal(t, "transfer", res.Events[3].Type)
+	//require.Equal(t, "instantiate", res.Events[4].Type)
+	//require.Equal(t, "wasm", res.Events[5].Type)
+	//assertAttribute(t, "_contract_address", contractBech32Addr, res.Events[5].Attributes[0])
+	require.Equal(t, 3, len(res.Events), prettyEvents(res.Events))
 	require.Equal(t, "message", res.Events[0].Type)
 	assertAttribute(t, "module", "wasm", res.Events[0].Attributes[0])
-	require.Equal(t, "coin_spent", res.Events[1].Type)
-	require.Equal(t, "coin_received", res.Events[2].Type)
-	require.Equal(t, "transfer", res.Events[3].Type)
-	require.Equal(t, "instantiate", res.Events[4].Type)
-	require.Equal(t, "wasm", res.Events[5].Type)
-	assertAttribute(t, "_contract_address", contractBech32Addr, res.Events[5].Attributes[0])
+	require.Equal(t, "instantiate", res.Events[1].Type)
+	require.Equal(t, "wasm", res.Events[2].Type)
+	assertAttribute(t, "_contract_address", contractBech32Addr, res.Events[2].Attributes[0])
 
 	// ensure bob doesn't exist
 	bobAcct := data.acctKeeper.GetAccount(data.ctx, bob)
@@ -279,38 +290,58 @@ func TestHandleExecute(t *testing.T) {
 	assertExecuteResponse(t, res.Data, []byte{0xf0, 0x0b, 0xaa})
 
 	// this should be standard message event, plus x/wasm init event, plus 2 bank send event, plus a special event from the contract
-	require.Equal(t, 10, len(res.Events), prettyEvents(res.Events))
+	//require.Equal(t, 10, len(res.Events), prettyEvents(res.Events))
+	//
+	//assert.Equal(t, "message", res.Events[0].Type)
+	//assertAttribute(t, "module", "wasm", res.Events[0].Attributes[0])
+	//assert.Equal(t, "coin_spent", res.Events[1].Type)
+	//assert.Equal(t, "coin_received", res.Events[2].Type)
+	//
+	//require.Equal(t, "transfer", res.Events[3].Type)
+	//require.Len(t, res.Events[3].Attributes, 3)
+	//assertAttribute(t, "recipient", contractBech32Addr, res.Events[3].Attributes[0])
+	//assertAttribute(t, "sender", fred.String(), res.Events[3].Attributes[1])
+	//assertAttribute(t, "amount", "5000denom", res.Events[3].Attributes[2])
+	//
+	//assert.Equal(t, "execute", res.Events[4].Type)
+	//
+	//// custom contract event attribute
+	//assert.Equal(t, "wasm", res.Events[5].Type)
+	//assertAttribute(t, "_contract_address", contractBech32Addr, res.Events[5].Attributes[0])
+	//assertAttribute(t, "action", "release", res.Events[5].Attributes[1])
+	//// custom contract event
+	//assert.Equal(t, "wasm-hackatom", res.Events[6].Type)
+	//assertAttribute(t, "_contract_address", contractBech32Addr, res.Events[6].Attributes[0])
+	//assertAttribute(t, "action", "release", res.Events[6].Attributes[1])
+	//// second transfer (this without conflicting message)
+	//assert.Equal(t, "coin_spent", res.Events[7].Type)
+	//assert.Equal(t, "coin_received", res.Events[8].Type)
+	//
+	//assert.Equal(t, "transfer", res.Events[9].Type)
+	//assertAttribute(t, "recipient", bob.String(), res.Events[9].Attributes[0])
+	//assertAttribute(t, "sender", contractBech32Addr, res.Events[9].Attributes[1])
+	//assertAttribute(t, "amount", "105000denom", res.Events[9].Attributes[2])
+	// finally, standard x/wasm tag
+	require.Equal(t, 5, len(res.Events), prettyEvents(res.Events))
 
 	assert.Equal(t, "message", res.Events[0].Type)
 	assertAttribute(t, "module", "wasm", res.Events[0].Attributes[0])
-	assert.Equal(t, "coin_spent", res.Events[1].Type)
-	assert.Equal(t, "coin_received", res.Events[2].Type)
 
-	require.Equal(t, "transfer", res.Events[3].Type)
-	require.Len(t, res.Events[3].Attributes, 3)
-	assertAttribute(t, "recipient", contractBech32Addr, res.Events[3].Attributes[0])
-	assertAttribute(t, "sender", fred.String(), res.Events[3].Attributes[1])
-	assertAttribute(t, "amount", "5000denom", res.Events[3].Attributes[2])
-
-	assert.Equal(t, "execute", res.Events[4].Type)
+	assert.Equal(t, "execute", res.Events[1].Type)
 
 	// custom contract event attribute
-	assert.Equal(t, "wasm", res.Events[5].Type)
-	assertAttribute(t, "_contract_address", contractBech32Addr, res.Events[5].Attributes[0])
-	assertAttribute(t, "action", "release", res.Events[5].Attributes[1])
+	assert.Equal(t, "wasm", res.Events[2].Type)
+	assertAttribute(t, "_contract_address", contractBech32Addr, res.Events[2].Attributes[0])
+	assertAttribute(t, "action", "release", res.Events[2].Attributes[1])
 	// custom contract event
-	assert.Equal(t, "wasm-hackatom", res.Events[6].Type)
-	assertAttribute(t, "_contract_address", contractBech32Addr, res.Events[6].Attributes[0])
-	assertAttribute(t, "action", "release", res.Events[6].Attributes[1])
+	assert.Equal(t, "wasm-hackatom", res.Events[3].Type)
+	assertAttribute(t, "_contract_address", contractBech32Addr, res.Events[3].Attributes[0])
+	assertAttribute(t, "action", "release", res.Events[3].Attributes[1])
 	// second transfer (this without conflicting message)
-	assert.Equal(t, "coin_spent", res.Events[7].Type)
-	assert.Equal(t, "coin_received", res.Events[8].Type)
-
-	assert.Equal(t, "transfer", res.Events[9].Type)
-	assertAttribute(t, "recipient", bob.String(), res.Events[9].Attributes[0])
-	assertAttribute(t, "sender", contractBech32Addr, res.Events[9].Attributes[1])
-	assertAttribute(t, "amount", "105000denom", res.Events[9].Attributes[2])
-	// finally, standard x/wasm tag
+	assert.Equal(t, "transfer", res.Events[4].Type)
+	assertAttribute(t, "recipient", bob.String(), res.Events[4].Attributes[0])
+	assertAttribute(t, "sender", contractBech32Addr, res.Events[4].Attributes[1])
+	assertAttribute(t, "amount", "105000.000000000000000000denom", res.Events[4].Attributes[2])
 
 	// ensure bob now exists and got both payments released
 	bobAcct = data.acctKeeper.GetAccount(data.ctx, bob)
@@ -340,6 +371,7 @@ func TestHandleExecute(t *testing.T) {
 }
 
 func TestHandleExecuteEscrow(t *testing.T) {
+	types2.UnittestOnlySetMilestoneSaturnHeight(1)
 	data := setupTest(t)
 
 	deposit := sdk.NewCoins(sdk.NewInt64Coin("denom", 100000))
@@ -447,8 +479,10 @@ func TestReadWasmConfig(t *testing.T) {
 	}
 	for msg, spec := range specs {
 		t.Run(msg, func(t *testing.T) {
-			//TODO
-			//got, err := ReadWasmConfig(spec.src)
+			viper.Reset()
+			for k, v := range spec.src {
+				viper.Set(k, v)
+			}
 			got, err := ReadWasmConfig()
 			require.NoError(t, err)
 			assert.Equal(t, spec.exp, got)
