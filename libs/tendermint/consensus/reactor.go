@@ -2008,6 +2008,71 @@ func (m *VoteSetMaj23Message) String() string {
 	return fmt.Sprintf("[VSM23 %v/%02d/%v %v]", m.Height, m.Round, m.Type, m.BlockID)
 }
 
+func (m *VoteSetMaj23Message) AminoSize(cdc *amino.Codec) int {
+	var size int
+	if m.Height != 0 {
+		size += 1 + amino.UvarintSize(uint64(m.Height))
+	}
+	if m.Round != 0 {
+		size += 1 + amino.UvarintSize(uint64(m.Round))
+	}
+	if m.Type != 0 {
+		size += 1 + amino.UvarintSize(uint64(m.Type))
+	}
+	blockIDSize := m.BlockID.AminoSize(cdc)
+	if blockIDSize != 0 {
+		size += 1 + amino.UvarintSize(uint64(blockIDSize)) + blockIDSize
+	}
+	return size
+}
+
+func (m *VoteSetMaj23Message) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
+	var err error
+	// field 1
+	if m.Height != 0 {
+		const pbKey = byte(1<<3 | amino.Typ3_Varint)
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(m.Height), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	// field 2
+	if m.Round != 0 {
+		const pbKey = byte(2<<3 | amino.Typ3_Varint)
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(m.Round), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	// field 3
+	if m.Type != 0 {
+		const pbKey = byte(3<<3 | amino.Typ3_Varint)
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(m.Type), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	// field 4
+	blockIDSize := m.BlockID.AminoSize(cdc)
+	if blockIDSize != 0 {
+		const pbKey = byte(4<<3 | amino.Typ3_ByteLength)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(blockIDSize))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = m.BlockID.MarshalAminoTo(cdc, buf)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != blockIDSize {
+			return amino.NewSizerError(blockIDSize, buf.Len()-lenBeforeData, blockIDSize)
+		}
+	}
+	return nil
+}
+
 //-------------------------------------
 
 // VoteSetBitsMessage is sent to communicate the bit-array of votes seen for the BlockID.
