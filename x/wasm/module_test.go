@@ -3,9 +3,6 @@ package wasm
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/libs/kv"
-	types2 "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/spf13/viper"
 	"io/ioutil"
 	"testing"
 
@@ -17,13 +14,17 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	"github.com/okex/exchain/libs/tendermint/libs/kv"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 	stakingkeeper "github.com/okex/exchain/x/staking/keeper"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"github.com/okex/exchain/x/wasm/keeper"
 	"github.com/okex/exchain/x/wasm/types"
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
+
+var zeroCoins sdk.Coins
 
 type testData struct {
 	module        module.AppModule
@@ -146,6 +147,7 @@ type state struct {
 }
 
 func TestHandleInstantiate(t *testing.T) {
+	types2.UnittestOnlySetMilestoneSaturnHeight(1)
 	data := setupTest(t)
 	creator := data.faucet.NewFundedAccount(data.ctx, sdk.NewInt64Coin("denom", 100000))
 
@@ -203,6 +205,7 @@ func TestHandleInstantiate(t *testing.T) {
 }
 
 func TestHandleExecute(t *testing.T) {
+	types2.UnittestOnlySetMilestoneSaturnHeight(1)
 	data := setupTest(t)
 	types2.UnittestOnlySetMilestoneSaturnHeight(1)
 	deposit := sdk.NewCoins(sdk.NewInt64Coin("denom", 100000))
@@ -257,15 +260,13 @@ func TestHandleExecute(t *testing.T) {
 	creatorAcct := data.acctKeeper.GetAccount(data.ctx, creator)
 	require.NotNil(t, creatorAcct)
 	// we started at 2*deposit, should have spent one above
-	// TODO
-	//assert.Equal(t, deposit, data.bankKeeper.GetAllBalances(data.ctx, creatorAcct.GetAddress()))
+	assert.Equal(t, deposit, types.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, creatorAcct.GetAddress()))
 
 	// ensure contract has updated balance
 	contractAddr, _ := sdk.AccAddressFromBech32(contractBech32Addr)
 	contractAcct := data.acctKeeper.GetAccount(data.ctx, contractAddr)
 	require.NotNil(t, contractAcct)
-	//TODO
-	//assert.Equal(t, deposit, data.bankKeeper.GetAllBalances(data.ctx, contractAcct.GetAddress()))
+	assert.Equal(t, deposit, types.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, contractAcct.GetAddress()))
 
 	execCmd := MsgExecuteContract{
 		Sender:   fred.String(),
@@ -294,7 +295,7 @@ func TestHandleExecute(t *testing.T) {
 	assert.Equal(t, "wasm-hackatom", res.Events[3].Type)
 	assertAttribute(t, "_contract_address", contractBech32Addr, res.Events[3].Attributes[0])
 	assertAttribute(t, "action", "release", res.Events[3].Attributes[1])
-
+	// second transfer (this without conflicting message)
 	assert.Equal(t, "transfer", res.Events[4].Type)
 	assertAttribute(t, "recipient", bob.String(), res.Events[4].Attributes[0])
 	assertAttribute(t, "sender", contractBech32Addr, res.Events[4].Attributes[1])
@@ -304,16 +305,14 @@ func TestHandleExecute(t *testing.T) {
 	// ensure bob now exists and got both payments released
 	bobAcct = data.acctKeeper.GetAccount(data.ctx, bob)
 	require.NotNil(t, bobAcct)
-	//TODO
-	//balance := data.bankKeeper.GetAllBalances(data.ctx, bobAcct.GetAddress())
-	//assert.Equal(t, deposit.Add(topUp...), balance)
+	balance := types.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, bobAcct.GetAddress())
+	assert.Equal(t, deposit.Add(topUp...), balance)
 
 	// ensure contract has updated balance
 
 	contractAcct = data.acctKeeper.GetAccount(data.ctx, contractAddr)
 	require.NotNil(t, contractAcct)
-	//TODO
-	//assert.Equal(t, sdk.Coins{}, data.bankKeeper.GetAllBalances(data.ctx, contractAcct.GetAddress()))
+	assert.Equal(t, zeroCoins, types.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, contractAcct.GetAddress()))
 
 	// ensure all contract state is as after init
 	assertCodeList(t, q, data.ctx, 1)
@@ -329,6 +328,7 @@ func TestHandleExecute(t *testing.T) {
 }
 
 func TestHandleExecuteEscrow(t *testing.T) {
+	types2.UnittestOnlySetMilestoneSaturnHeight(1)
 	data := setupTest(t)
 	types2.UnittestOnlySetMilestoneSaturnHeight(1)
 	deposit := sdk.NewCoins(sdk.NewInt64Coin("denom", 100000))
@@ -384,16 +384,14 @@ func TestHandleExecuteEscrow(t *testing.T) {
 	// ensure bob now exists and got both payments released
 	bobAcct := data.acctKeeper.GetAccount(data.ctx, bob)
 	require.NotNil(t, bobAcct)
-	//TODO
-	//balance := data.bankKeeper.GetAllBalances(data.ctx, bobAcct.GetAddress())
-	//assert.Equal(t, deposit.Add(topUp...), balance)
+	balance := types.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, bobAcct.GetAddress())
+	assert.Equal(t, deposit.Add(topUp...), balance)
 
 	// ensure contract has updated balance
 	contractAddr, _ := sdk.AccAddressFromBech32(contractBech32Addr)
 	contractAcct := data.acctKeeper.GetAccount(data.ctx, contractAddr)
 	require.NotNil(t, contractAcct)
-	//TODO
-	//assert.Equal(t, sdk.Coins{}, data.bankKeeper.GetAllBalances(data.ctx, contractAcct.GetAddress()))
+	assert.Equal(t, zeroCoins, types.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, contractAcct.GetAddress()))
 }
 
 func TestReadWasmConfig(t *testing.T) {
@@ -436,8 +434,7 @@ func TestReadWasmConfig(t *testing.T) {
 	}
 	for msg, spec := range specs {
 		t.Run(msg, func(t *testing.T) {
-			//TODO
-			//got, err := ReadWasmConfig(spec.src)
+			viper.Reset()
 			for k, v := range spec.src {
 				viper.Set(k, v)
 			}
