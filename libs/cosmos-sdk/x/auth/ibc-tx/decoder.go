@@ -166,7 +166,7 @@ func convertSignature(ibcTx *tx.Tx) []authtypes.StdSignature {
 			copy(secpPk[:], v.Bytes())
 			pkRaw = (crypto.PubKey)(secpPk)
 		default:
-			return signatures
+			return []authtypes.StdSignature{}
 		}
 
 		signatures = append(signatures,
