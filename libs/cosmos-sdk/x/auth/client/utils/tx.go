@@ -4,13 +4,18 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"io/ioutil"
+	"math/big"
+	"os"
+
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	ethsecp256k12 "github.com/okex/exchain/libs/cosmos-sdk/crypto/ethsecp256k1"
-	"io/ioutil"
-	"math/big"
-	"os"
+	secp256k1 "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
+	"github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
+	secp256k12 "github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+
 	//cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
@@ -229,14 +234,26 @@ func signPbTx(txConfig client.TxConfig, txf authtypes.TxBuilder, name string, pa
 	}
 	signMode := txConfig.SignModeHandler().DefaultMode()
 
-	privKey, _ := txf.Keybase().ExportPrivateKeyObject(name, passwd)
-	pkBytes, ok := privKey.(ethsecp256k1.PrivKey)
-	if !ok {
-		panic("not ok")
+	privKey, err := txf.Keybase().ExportPrivateKeyObject(name, passwd)
+	if err != nil {
+		return err
 	}
 
-	privKeyPb := ethsecp256k12.PrivKey{
-		Key: pkBytes,
+	pubKey := privKey.PubKey()
+	var pubKeyPB types.PubKey
+	switch v := pubKey.(type) {
+	case ethsecp256k1.PubKey:
+		ethsecp256k1Pk := &ethsecp256k12.PubKey{
+			Key: v,
+		}
+		pubKeyPB = ethsecp256k1Pk
+	case secp256k12.PubKeySecp256k1:
+		secp256k1Pk := &secp256k1.PubKey{
+			Key: v[:],
+		}
+		pubKeyPB = secp256k1Pk
+	default:
+		panic("not supported key algo")
 	}
 
 	signerData := signingtypes.SignerData{
@@ -259,12 +276,11 @@ func signPbTx(txConfig client.TxConfig, txf authtypes.TxBuilder, name string, pa
 	}
 
 	sig := signing.SignatureV2{
-		PubKey:   privKeyPb.PubKey(),
+		PubKey:   pubKeyPB,
 		Data:     &sigData,
 		Sequence: txf.Sequence(),
 	}
 	var prevSignatures []signing.SignatureV2
-	var err error
 	if !overwriteSig {
 		prevSignatures, err = (*pbTxBld).GetTx().GetSignaturesV2()
 		if err != nil {
@@ -290,7 +306,7 @@ func signPbTx(txConfig client.TxConfig, txf authtypes.TxBuilder, name string, pa
 		Signature: sigBytes,
 	}
 	sig = signing.SignatureV2{
-		PubKey:   privKeyPb.PubKey(),
+		PubKey:   pubKeyPB,
 		Data:     &sigData,
 		Sequence: txf.Sequence(),
 	}
@@ -304,15 +320,15 @@ func signPbTx(txConfig client.TxConfig, txf authtypes.TxBuilder, name string, pa
 }
 
 func convertIfPbTx(msgs []sdk.Msg) ([]txmsg.Msg, bool) {
-	ms := []txmsg.Msg{}
-	for _, m := range msgs {
-		if mmm, ok := m.(txmsg.Msg); ok {
-			ms = append(ms, mmm)
+	retmsg := []txmsg.Msg{}
+	for _, msg := range msgs {
+		if m, ok := msg.(txmsg.Msg); ok {
+			retmsg = append(retmsg, m)
 		}
 	}
 
-	if len(ms) > 0 {
-		return ms, true
+	if len(retmsg) > 0 {
+		return retmsg, true
 	}
 	return nil, false
 }
