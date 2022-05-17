@@ -153,5 +153,9 @@ func GetSaturnHeight() int64 {
 	return milestoneSaturnHeight
 }
 
+func UnittestOnlySetMilestoneSaturnHeight(h int64) {
+	milestoneSaturnHeight = h
+}
+
 // =========== Saturn ===============
 // ==================================
