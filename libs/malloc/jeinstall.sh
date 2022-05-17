@@ -1,6 +1,6 @@
 #!/bin/sh
 #set -e
-set -x
+#set -x
 VERSION_NUM=5.3.0
 VERSION=jemalloc-$VERSION_NUM
 
@@ -82,12 +82,6 @@ do_install() {
 			sh_c='sudo -E sh -c'
 		elif command_exists su; then
 			sh_c='su -c'
-		else
-			cat >&2 <<-'EOF'
-			Error: this installer needs the ability to run commands as root.
-			We are unable to find either "sudo" or "su" available to make this happen.
-			EOF
-			exit 1
 		fi
 	fi
 

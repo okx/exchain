@@ -1,6 +1,6 @@
 #!/bin/sh
 #set -e
-set -x
+#set -x
 VERSION_NUM=2.9.1
 VERSION=gperftools-$VERSION_NUM
 
@@ -57,7 +57,7 @@ install_linux() {
 	$sh_c "cd gperftools && make uninstall"
 	$sh_c "cd gperftools && make install"
 	$sh_c "ldconfig"
-#	$sh_c "rm -rf gperftools"
+	#	$sh_c "rm -rf gperftools"
 }
 
 install_macos(){
@@ -82,12 +82,6 @@ do_install() {
 			sh_c='sudo -E sh -c'
 		elif command_exists su; then
 			sh_c='su -c'
-		else
-			cat >&2 <<-'EOF'
-			Error: this installer needs the ability to run commands as root.
-			We are unable to find either "sudo" or "su" available to make this happen.
-			EOF
-			exit 1
 		fi
 	fi
 
@@ -129,6 +123,7 @@ do_install() {
 			fi
 			echo
 			echo "ERROR: Unsupported distribution '$lsb_dist'"
+			echo "Please install tcmalloc from https://github.com/gperftools/gperftools/tree/gperftools-2.9.1"
 			echo
 			exit 1
 			;;
