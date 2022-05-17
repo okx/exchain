@@ -13,6 +13,7 @@ import (
 )
 
 func TestConstructorOptions(t *testing.T) {
+	cfg := MakeEncodingConfig(t)
 	specs := map[string]struct {
 		srcOpt Option
 		verify func(*testing.T, Keeper)
@@ -76,7 +77,7 @@ func TestConstructorOptions(t *testing.T) {
 	}
 	for name, spec := range specs {
 		t.Run(name, func(t *testing.T) {
-			k := NewKeeper(nil, nil, params.NewSubspace(nil, nil, nil, ""), authkeeper.AccountKeeper{}, nil, nil, nil, nil, nil, nil, nil, "tempDir", types.DefaultWasmConfig(), SupportedFeatures, spec.srcOpt)
+			k := NewKeeper(&cfg.Marshaler, nil, params.NewSubspace(nil, nil, nil, ""), authkeeper.AccountKeeper{}, nil, nil, nil, nil, nil, nil, nil, nil, "tempDir", types.DefaultWasmConfig(), SupportedFeatures, spec.srcOpt)
 			spec.verify(t, k)
 		})
 	}

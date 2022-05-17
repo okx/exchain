@@ -407,9 +407,7 @@ func TestGenesisInit(t *testing.T) {
 				},
 				Params: types.DefaultParams(),
 			},
-			stakingMock: StakingKeeperMock{expCalls: 1, validatorUpdate: []abci.ValidatorUpdate{
-				abci.Ed25519ValidatorUpdate([]byte("a valid key"), 100),
-			}},
+			stakingMock:    StakingKeeperMock{expCalls: 0, validatorUpdate: nil},
 			msgHandlerMock: MockMsgHandler{expCalls: 1, expMsg: types.MsgStoreCodeFixture()},
 			expSuccess:     true,
 		},
@@ -662,7 +660,7 @@ func setupKeeper(t *testing.T) (*Keeper, sdk.Context, []sdk.StoreKey) {
 	wasmConfig := wasmTypes.DefaultWasmConfig()
 	pk := paramskeeper.NewKeeper(encodingConfig.Amino, keyParams, tkeyParams)
 
-	srcKeeper := NewKeeper(&encodingConfig.Marshaler, keyWasm, pk.Subspace(wasmTypes.ModuleName), authkeeper.AccountKeeper{}, nil, nil, nil, nil, nil, nil, nil, tempDir, wasmConfig, SupportedFeatures)
+	srcKeeper := NewKeeper(&encodingConfig.Marshaler, keyWasm, pk.Subspace(wasmTypes.ModuleName), authkeeper.AccountKeeper{}, nil, nil, nil, nil, nil, nil, nil, nil, tempDir, wasmConfig, SupportedFeatures)
 	return &srcKeeper, ctx, []sdk.StoreKey{keyWasm, keyParams}
 }
 

@@ -590,7 +590,8 @@ func TestConvertWasmCoinToSdkCoin(t *testing.T) {
 				Denom:  "f",
 				Amount: "1",
 			},
-			expErr: true,
+			expErr: false,
+			expVal: sdk.NewCoin("f", sdk.NewIntFromUint64(1)),
 		},
 		"invalid demum char": {
 			src: wasmvmtypes.Coin{

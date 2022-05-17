@@ -1,6 +1,7 @@
 package types
 
 import (
+	"fmt"
 	sdkErrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
 
@@ -76,6 +77,10 @@ var (
 
 	ErrSendDisabled = sdkErrors.Register(DefaultCodespace, 23, "send transactions are disabled")
 )
+
+func ErrUnSupportQueryType(data string) *sdkErrors.Error {
+	return sdkErrors.Register(DefaultCodespace, 24, fmt.Sprintf("%s is not support", data))
+}
 
 type ErrNoSuchContract struct {
 	Addr string

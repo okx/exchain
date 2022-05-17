@@ -557,7 +557,7 @@ func TestExecute(t *testing.T) {
 	// make sure gas is properly deducted from ctx
 	gasAfter := ctx.GasMeter().GasConsumed()
 	if types.EnableGasVerification {
-		require.Equal(t, uint64(0x1832d), gasAfter-gasBefore)
+		require.Equal(t, uint64(0x18862), gasAfter-gasBefore)
 	}
 	// ensure bob now exists and got both payments released
 	bobAcct = accKeeper.GetAccount(ctx, bob)
@@ -1707,9 +1707,10 @@ func TestQueryIsolation(t *testing.T) {
 		return &wasmvmtypes.Response{}, 0, nil
 	}
 	em := sdk.NewEventManager()
-	newCtx := ctx
-	newCtx.SetEventManager(em)
-	_, gotErr := k.reply(newCtx, example.Contract, wasmvmtypes.Reply{})
+	//newCtx := ctx
+	ctx.SetEventManager(em)
+	assert.Nil(t, ctx.KVStore(k.storeKey).Get([]byte(`set_in_query`)))
+	_, gotErr := k.reply(ctx, example.Contract, wasmvmtypes.Reply{})
 	require.NoError(t, gotErr)
 	assert.Nil(t, ctx.KVStore(k.storeKey).Get([]byte(`set_in_query`)))
 }

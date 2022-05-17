@@ -86,7 +86,7 @@ func (d MessageDispatcher) DispatchSubmessages(ctx sdk.Context, contractAddr sdk
 		// first, we build a sub-context which we can use inside the submessages
 		subCtx, commit := ctx.CacheContext()
 		em := sdk.NewEventManager()
-		subCtx = *subCtx.SetEventManager(em)
+		subCtx.SetEventManager(em)
 
 		// check how much gas left locally, optionally wrap the gas meter
 		gasRemaining := ctx.GasMeter().Limit() - ctx.GasMeter().GasConsumed()
