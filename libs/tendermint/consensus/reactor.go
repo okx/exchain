@@ -1858,6 +1858,38 @@ func (m *VoteMessage) String() string {
 	return fmt.Sprintf("[Vote %v]", m.Vote)
 }
 
+func (m VoteMessage) AminoSize(cdc *amino.Codec) int {
+	var size int
+	if m.Vote != nil {
+		voteSize := m.Vote.AminoSize(cdc)
+		size += 1 + amino.UvarintSize(uint64(voteSize)) + voteSize
+	}
+	return size
+}
+
+func (m VoteMessage) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
+	var err error
+	// field 1
+	if m.Vote != nil {
+		const pbKey = byte(1<<3 | amino.Typ3_ByteLength)
+		buf.WriteByte(pbKey)
+		voteSize := m.Vote.AminoSize(cdc)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(voteSize))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = m.Vote.MarshalAminoTo(cdc, buf)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != voteSize {
+			return amino.NewSizerError(voteSize, buf.Len()-lenBeforeData, voteSize)
+		}
+	}
+	return nil
+}
+
 //-------------------------------------
 
 // HasVoteMessage is sent to indicate that a particular vote has been received.
