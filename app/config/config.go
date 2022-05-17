@@ -105,8 +105,7 @@ const (
 	FlagCsTimeoutPrecommit      = "consensus.timeout_precommit"
 	FlagCsTimeoutPrecommitDelta = "consensus.timeout_precommit_delta"
 	FlagCsTimeoutCommit         = "consensus.timeout_commit"
-
-	FlagEnableHasBlockPartMsg = "enable_hasbpmsg"
+	FlagEnableHasBlockPartMsg   = "enable-blockpart-ack"
 )
 
 var (
