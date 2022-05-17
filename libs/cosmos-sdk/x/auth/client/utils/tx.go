@@ -55,7 +55,7 @@ func GenerateOrBroadcastMsgs(cliCtx context.CLIContext, txBldr authtypes.TxBuild
 // sequence set. In addition, it builds and signs a transaction with the
 // supplied messages. Finally, it broadcasts the signed transaction to a node.
 func CompleteAndBroadcastTxCLI(txBldr authtypes.TxBuilder, cliCtx context.CLIContext, msgs []sdk.Msg) error {
-	txConfig := NewPbTxConfig()
+	txConfig := NewPbTxConfig(cliCtx.InterfaceRegistry)
 	txBldr, err := PrepareTxBuilder(txBldr, cliCtx)
 	if err != nil {
 		return err
@@ -120,6 +120,9 @@ func CompleteAndBroadcastTxCLI(txBldr authtypes.TxBuilder, cliCtx context.CLICon
 
 	if isPbTxMsg {
 		txBytes, err = PbTxBuildAndSign(cliCtx, txConfig, txBldr, keys.DefaultKeyPass, pbtxMsgs)
+		if err != nil {
+			panic(err)
+		}
 	} else {
 		// build and sign the transaction
 		txBytes, err = txBldr.BuildAndSign(fromName, keys.DefaultKeyPass, msgs)
@@ -344,9 +347,8 @@ func CalculateGas(
 	adjusted := adjustGasEstimate(simRes.GasUsed, adjustment)
 	return simRes, adjusted, nil
 }
-func NewPbTxConfig() client.TxConfig {
-	interfaceRegistry := types2.NewInterfaceRegistry()
-	marshaler := codec.NewProtoCodec(interfaceRegistry)
+func NewPbTxConfig(reg types2.InterfaceRegistry) client.TxConfig {
+	marshaler := codec.NewProtoCodec(reg)
 	return ibc_tx.NewTxConfig(marshaler, ibc_tx.DefaultSignModes)
 }
 
@@ -361,7 +363,7 @@ func PrintUnsignedStdTx(txBldr authtypes.TxBuilder, cliCtx context.CLIContext, m
 	pbTxMsgs, isPbTxMsg := convertIfPbTx(msgs)
 	if !cliCtx.SkipConfirm {
 		if isPbTxMsg {
-			txConfig := NewPbTxConfig()
+			txConfig := NewPbTxConfig(cliCtx.InterfaceRegistry)
 			tx, err := buildUnsignedPbTx(txBldr, txConfig, pbTxMsgs...)
 			if err != nil {
 				return err
