@@ -13,6 +13,7 @@ type BlockTransport struct {
 	firstPart time.Time
 	droppedDue2NotExpected int
 	droppedDue2NotAdded int
+	droppedDue2Error int
 	droppedDue2WrongHeight int
 	totalParts int
 	Logger  log.Logger
@@ -29,6 +30,7 @@ func (bt *BlockTransport) reset(height int64) {
 	bt.height = height
 	bt.droppedDue2NotExpected = 0
 	bt.droppedDue2NotAdded = 0
+	bt.droppedDue2Error = 0
 	bt.droppedDue2WrongHeight = 0
 	bt.totalParts = 0
 }
@@ -42,11 +44,9 @@ func (bt *BlockTransport) on1stPart(height int64)  {
 
 func (bt *BlockTransport) onRecvBlock(height int64)  {
 	if bt.height == height {
-		totalElapsed := time.Now().Sub(bt.recvProposal)
+		//totalElapsed := time.Now().Sub(bt.recvProposal)
+		//trace.GetElapsedInfo().AddInfo(trace.RecvBlock, fmt.Sprintf("<%dms>", totalElapsed.Milliseconds()))
 		first2LastPartElapsed := time.Now().Sub(bt.firstPart)
-		trace.GetElapsedInfo().AddInfo(trace.RecvBlock,
-			fmt.Sprintf("%d<%dms>", height, totalElapsed.Milliseconds()))
-		trace.GetElapsedInfo().AddInfo(trace.First2LastPart,
-			fmt.Sprintf("%d<%dms>", height, first2LastPartElapsed.Milliseconds()))
+		trace.GetElapsedInfo().AddInfo(trace.First2LastPart, fmt.Sprintf("%dms", first2LastPartElapsed.Milliseconds()))
 	}
 }
