@@ -48,7 +48,8 @@ func (q QueryHandler) Query(request wasmvmtypes.QueryRequest, gasLimit uint64) (
 	// set a limit for a subCtx
 	sdkGas := q.gasRegister.FromWasmVMGas(gasLimit)
 	// discard all changes/ events in subCtx by not committing the cached context
-	subCtx, _ := q.Ctx.SetGasMeter(sdk.NewGasMeter(sdkGas)).CacheContext()
+	subCtx, _ := q.Ctx.CacheContext()
+	subCtx.SetGasMeter(sdk.NewGasMeter(sdkGas))
 
 	// make sure we charge the higher level context even on panic
 	defer func() {

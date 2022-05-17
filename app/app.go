@@ -456,6 +456,7 @@ func NewOKExChainApp(
 		app.subspaces[wasm.ModuleName],
 		app.AccountKeeper,
 		wasm.NewBankKeeperAdapter(app.BankKeeper),
+		app.SupplyKeeper,
 		app.IBCKeeper.ChannelKeeper,
 		&app.IBCKeeper.PortKeeper,
 		nil,

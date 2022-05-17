@@ -39,3 +39,7 @@ func (adapter BankKeeperAdapter) GetBalance(ctx sdk.Context, addr sdk.AccAddress
 		Denom:  denom,
 	}
 }
+
+func (adapter BankKeeperAdapter) GetSendEnabled(ctx sdk.Context) bool {
+	return adapter.bankKeeper.GetSendEnabled(ctx)
+}

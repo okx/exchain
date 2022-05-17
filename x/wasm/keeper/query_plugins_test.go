@@ -329,7 +329,7 @@ func TestBankQuerierBalance(t *testing.T) {
 	gotBz, gotErr := q(ctx, &wasmvmtypes.BankQuery{
 		Balance: &wasmvmtypes.BalanceQuery{
 			Address: RandomBech32AccountAddress(t),
-			Denom:   "ALX",
+			Denom:   "alx",
 		},
 	})
 	require.NoError(t, gotErr)
@@ -337,8 +337,8 @@ func TestBankQuerierBalance(t *testing.T) {
 	require.NoError(t, json.Unmarshal(gotBz, &got))
 	exp := wasmvmtypes.BalanceResponse{
 		Amount: wasmvmtypes.Coin{
-			Denom:  "ALX",
-			Amount: "1",
+			Denom:  "alx",
+			Amount: "1000000000000000000",
 		},
 	}
 	assert.Equal(t, exp, got)

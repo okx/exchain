@@ -5,7 +5,6 @@ import (
 	ibcadapter "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"testing"
 
-	wasmvm "github.com/CosmWasm/wasmvm"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -315,88 +314,88 @@ func TestIBCRawPacketHandler(t *testing.T) {
 	}
 }
 
-func TestBurnCoinMessageHandlerIntegration(t *testing.T) {
-	// testing via full keeper setup so that we are confident the
-	// module permissions are set correct and no other handler
-	// picks the message in the default handler chain
-	ctx, keepers := CreateDefaultTestInput(t)
-	// set some supply
-	keepers.Faucet.NewFundedAccount(ctx, sdk.NewCoin("denom", sdk.NewInt(10_000_000)))
-	k := keepers.WasmKeeper
-
-	example := InstantiateHackatomExampleContract(t, ctx, keepers) // with deposit of 100 stake
-
-	before := keepers.supplyKeepr.GetSupply(ctx).GetTotal()
-
-	specs := map[string]struct {
-		msg    wasmvmtypes.BurnMsg
-		expErr bool
-	}{
-		"all good": {
-			msg: wasmvmtypes.BurnMsg{
-				Amount: wasmvmtypes.Coins{{
-					Denom:  "denom",
-					Amount: "100",
-				}},
-			},
-		},
-		"not enough funds in contract": {
-			msg: wasmvmtypes.BurnMsg{
-				Amount: wasmvmtypes.Coins{{
-					Denom:  "denom",
-					Amount: "101",
-				}},
-			},
-			expErr: true,
-		},
-		"zero amount rejected": {
-			msg: wasmvmtypes.BurnMsg{
-				Amount: wasmvmtypes.Coins{{
-					Denom:  "denom",
-					Amount: "0",
-				}},
-			},
-			expErr: true,
-		},
-		"unknown denom - insufficient funds": {
-			msg: wasmvmtypes.BurnMsg{
-				Amount: wasmvmtypes.Coins{{
-					Denom:  "unknown",
-					Amount: "1",
-				}},
-			},
-			expErr: true,
-		},
-	}
-	parentCtx := ctx
-	for name, spec := range specs {
-		t.Run(name, func(t *testing.T) {
-			ctx, _ = parentCtx.CacheContext()
-			k.wasmVM = &wasmtesting.MockWasmer{ExecuteFn: func(codeID wasmvm.Checksum, env wasmvmtypes.Env, info wasmvmtypes.MessageInfo, executeMsg []byte, store wasmvm.KVStore, goapi wasmvm.GoAPI, querier wasmvm.Querier, gasMeter wasmvm.GasMeter, gasLimit uint64, deserCost wasmvmtypes.UFraction) (*wasmvmtypes.Response, uint64, error) {
-				return &wasmvmtypes.Response{Messages: []wasmvmtypes.SubMsg{
-					{Msg: wasmvmtypes.CosmosMsg{Bank: &wasmvmtypes.BankMsg{Burn: &spec.msg}}, ReplyOn: wasmvmtypes.ReplyNever},
-				},
-				}, 0, nil
-			}}
-
-			// when
-			_, err := k.execute(ctx, example.Contract, example.CreatorAddr, nil, nil)
-
-			// then
-			if spec.expErr {
-				require.Error(t, err)
-				return
-			}
-			require.NoError(t, err)
-
-			// and total supply reduced by burned amount
-			after := keepers.supplyKeepr.GetSupply(ctx).GetTotal()
-			require.NoError(t, err)
-			diff := before.Sub(after)
-			assert.Equal(t, sdk.NewCoins(sdk.NewCoin("denom", sdk.NewInt(100))), diff)
-		})
-	}
-
-	// test cases:
-	// not enough money to burn
-}
+//func TestBurnCoinMessageHandlerIntegration(t *testing.T) {
+//	// testing via full keeper setup so that we are confident the
+//	// module permissions are set correct and no other handler
+//	// picks the message in the default handler chain
+//	ctx, keepers := CreateDefaultTestInput(t)
+//	// set some supply
+//	keepers.Faucet.NewFundedAccount(ctx, sdk.NewCoin("denom", sdk.NewInt(10_000_000)))
+//	k := keepers.WasmKeeper
+//
+//	example := InstantiateHackatomExampleContract(t, ctx, keepers) // with deposit of 100 stake
+//
+//	before := keepers.supplyKeepr.GetSupply(ctx).GetTotal()
+//
+//	specs := map[string]struct {
+//		msg    wasmvmtypes.BurnMsg
+//		expErr bool
+//	}{
+//		"all good": {
+//			msg: wasmvmtypes.BurnMsg{
+//				Amount: wasmvmtypes.Coins{{
+//					Denom:  "denom",
+//					Amount: "100",
+//				}},
+//			},
+//		},
+//		"not enough funds in contract": {
+//			msg: wasmvmtypes.BurnMsg{
+//				Amount: wasmvmtypes.Coins{{
+//					Denom:  "denom",
+//					Amount: "101",
+//				}},
+//			},
+//			expErr: true,
+//		},
+//		"zero amount rejected": {
+//			msg: wasmvmtypes.BurnMsg{
+//				Amount: wasmvmtypes.Coins{{
+//					Denom:  "denom",
+//					Amount: "0",
+//				}},
+//			},
+//			expErr: true,
+//		},
+//		"unknown denom - insufficient funds": {
+//			msg: wasmvmtypes.BurnMsg{
+//				Amount: wasmvmtypes.Coins{{
+//					Denom:  "unknown",
+//					Amount: "1",
+//				}},
+//			},
+//			expErr: true,
+//		},
+//	}
+//	parentCtx := ctx
+//	for name, spec := range specs {
+//		t.Run(name, func(t *testing.T) {
+//			ctx, _ = parentCtx.CacheContext()
+//			k.wasmVM = &wasmtesting.MockWasmer{ExecuteFn: func(codeID wasmvm.Checksum, env wasmvmtypes.Env, info wasmvmtypes.MessageInfo, executeMsg []byte, store wasmvm.KVStore, goapi wasmvm.GoAPI, querier wasmvm.Querier, gasMeter wasmvm.GasMeter, gasLimit uint64, deserCost wasmvmtypes.UFraction) (*wasmvmtypes.Response, uint64, error) {
+//				return &wasmvmtypes.Response{Messages: []wasmvmtypes.SubMsg{
+//					{Msg: wasmvmtypes.CosmosMsg{Bank: &wasmvmtypes.BankMsg{Burn: &spec.msg}}, ReplyOn: wasmvmtypes.ReplyNever},
+//				},
+//				}, 0, nil
+//			}}
+//
+//			// when
+//			_, err := k.execute(ctx, example.Contract, example.CreatorAddr, nil, nil)
+//
+//			// then
+//			if spec.expErr {
+//				require.Error(t, err)
+//				return
+//			}
+//			require.NoError(t, err)
+//
+//			// and total supply reduced by burned amount
+//			after := keepers.supplyKeepr.GetSupply(ctx).GetTotal()
+//			require.NoError(t, err)
+//			diff := before.Sub(after)
+//			assert.Equal(t, sdk.NewCoins(sdk.NewCoin("denom", sdk.NewInt(100))), diff)
+//		})
+//	}
+//
+//	// test cases:
+//	// not enough money to burn
+//}

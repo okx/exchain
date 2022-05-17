@@ -27,6 +27,14 @@ func (bms BankMsgServer) Send(goCtx context.Context, msg *bank.MsgSendAdapter) (
 		return nil, sdkerrors.Wrap(err, "to")
 	}
 	coins := sdk.CoinAdaptersToCoins(msg.Amount)
+
+	if err := bms.bankKeeper.IsSendEnabledCoins(ctx, coins...); err != nil {
+		return nil, err
+	}
+
+	if bms.bankKeeper.BlockedAddr(toAddr) {
+		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnauthorized, "%s is not allowed to receive transactions", msg.ToAddress)
+	}
 	if err := bms.bankKeeper.SendCoins(ctx, senderAddr, toAddr, coins); err != nil {
 		return nil, sdkerrors.Wrap(err, "send coins")
 	}

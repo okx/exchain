@@ -4,6 +4,7 @@ set -o errexit -o nounset -o pipefail
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 
 exchaincli keys add fred
+echo "0-----------------------"
 exchaincli tx send captain $(exchaincli keys show fred -a) 1000okt --fees 0.001okt -y -b block
 
 echo "1-----------------------"
