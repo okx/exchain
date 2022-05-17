@@ -1,8 +1,10 @@
 package bits
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
+	"github.com/tendermint/go-amino"
 	"regexp"
 	"strings"
 	"sync"
@@ -17,6 +19,38 @@ type BitArray struct {
 	mtx   sync.Mutex
 	Bits  int      `json:"bits"`  // NOTE: persisted via reflect, must be exported
 	Elems []uint64 `json:"elems"` // NOTE: persisted via reflect, must be exported
+}
+
+func (bA *BitArray) AminoSize(_ *amino.Codec) int {
+	var size int
+	if bA.Bits != 0 {
+		size += 1 + amino.UvarintSize(uint64(bA.Bits))
+	}
+	for _, ele := range bA.Elems {
+		size += 1 + amino.UvarintSize(ele)
+	}
+	return size
+}
+
+func (bA *BitArray) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) error {
+	var err error
+	// field 1
+	if bA.Bits != 0 {
+		const pbKey = byte(1<<3 | amino.Typ3_Varint)
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(bA.Bits), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	// field 2
+	for _, ele := range bA.Elems {
+		const pbKey = byte(2<<3 | amino.Typ3_Varint)
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, ele, pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // NewBitArray returns a new bit array.
