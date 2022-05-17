@@ -4,33 +4,24 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	okexchaincodec "github.com/okex/exchain/app/codec"
-	okexchain "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/client"
-	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	cosmoscryptocodec "github.com/okex/exchain/libs/cosmos-sdk/crypto/ibc-codec"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
-	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
-	"github.com/okex/exchain/x/ammswap"
-	dex "github.com/okex/exchain/x/dex/types"
-	distr "github.com/okex/exchain/x/distribution"
-	"github.com/okex/exchain/x/erc20"
-	"github.com/okex/exchain/x/evm"
-	"github.com/okex/exchain/x/farm"
-	"github.com/okex/exchain/x/order"
-	token "github.com/okex/exchain/x/token/types"
 	"io/ioutil"
 	"testing"
 	"time"
 
+	okexchaincodec "github.com/okex/exchain/app/codec"
+	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
+	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	cosmoscryptocodec "github.com/okex/exchain/libs/cosmos-sdk/crypto/ibc-codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	authkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
@@ -43,10 +34,19 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/slashing"
 	slashingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/slashing"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	upgradekeeper "github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	upgradetypes "github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
+	"github.com/okex/exchain/x/ammswap"
+	dex "github.com/okex/exchain/x/dex/types"
+	distr "github.com/okex/exchain/x/distribution"
+	"github.com/okex/exchain/x/erc20"
+	"github.com/okex/exchain/x/evm"
+	"github.com/okex/exchain/x/farm"
+	"github.com/okex/exchain/x/order"
 	"github.com/okex/exchain/x/staking"
+	token "github.com/okex/exchain/x/token/types"
 	//upgradeclient "github.com/okex/exchain/libs/cosmos-sdk/x/upgrade/client"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
 	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
@@ -73,10 +73,9 @@ import (
 	paramsclient "github.com/okex/exchain/x/params/client"
 	stakingkeeper "github.com/okex/exchain/x/staking/keeper"
 	stakingtypes "github.com/okex/exchain/x/staking/types"
-	"github.com/stretchr/testify/require"
-
 	"github.com/okex/exchain/x/wasm/keeper/wasmtesting"
 	"github.com/okex/exchain/x/wasm/types"
+	"github.com/stretchr/testify/require"
 )
 
 // EncodingConfig specifies the concrete encoding types to use for a given app.
@@ -421,6 +420,8 @@ func createTestInput(
 	bank.RegisterBankMsgServer(configurator.MsgServer(), types.NewBankMsgServer(keeper.GetBankKeeper()))
 	types.RegisterMsgServer(msgRouter, NewMsgServerImpl(NewDefaultPermissionKeeper(keeper)))
 	types.RegisterQueryServer(querier, NewGrpcQuerier(appCodec, keys[types.ModuleName], keeper, keeper.queryGasLimit))
+
+	bank.RegisterBankMsgServer(msgRouter, types.NewBankMsgServer(types.NewBankKeeperAdapter(bankKeeper)))
 
 	govRouter := gov.NewRouter().
 		AddRoute(govtypes.RouterKey, govtypes.ProposalHandler).
