@@ -150,6 +150,10 @@ func (d *Deltas) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
 	if payLoadSize > 0 {
 		const pbKey = byte(2<<3 | amino.Typ3_ByteLength)
 		buf.WriteByte(pbKey)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(payLoadSize))
+		if err != nil {
+			return err
+		}
 		lenBeforeData := buf.Len()
 		err = d.Payload.MarshalAminoTo(cdc, buf)
 		if err != nil {
