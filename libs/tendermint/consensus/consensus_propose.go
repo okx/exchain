@@ -278,16 +278,27 @@ func (cs *State) unmarshalBlock() error {
 	)
 	return err
 }
+func (cs *State) onBlockPartAdded(height int64, added bool, err error) {
+
+	if err != nil {
+		cs.bt.droppedDue2Error++
+	}
+	if !added {
+		cs.bt.droppedDue2NotAdded++
+	}
+	if added && cs.ProposalBlockParts.Count() == 1 {
+		cs.trc.Pin("1stPart")
+		cs.bt.on1stPart(height)
+	}
+}
 
 func (cs *State) addBlockPart(height int64, round int, part *types.Part, peerID p2p.ID) (added bool, err error) {
-
 	// Blocks might be reused, so round mismatch is OK
 	if cs.Height != height {
 		cs.bt.droppedDue2WrongHeight++
 		cs.Logger.Debug("Received block part from wrong height", "height", height, "round", round)
 		return
 	}
-
 	// We're not expecting a block part.
 	if cs.ProposalBlockParts == nil {
 		// NOTE: this can happen when we've gone to a higher round and
@@ -297,16 +308,8 @@ func (cs *State) addBlockPart(height int64, round int, part *types.Part, peerID 
 		cs.bt.droppedDue2NotExpected++
 		return
 	}
-
 	added, err = cs.ProposalBlockParts.AddPart(part)
-	if !added {
-		cs.bt.droppedDue2NotAdded++
-	}
-	if added && cs.ProposalBlockParts.Count() == 1 {
-		cs.trc.Pin("1stPart")
-		cs.bt.on1stPart(height)
-	}
-
+	cs.onBlockPartAdded(height, added, err)
 	return
 }
 
@@ -327,11 +330,11 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		if err != nil {
 			return
 		}
+		cs.trc.Pin("lastPart")
 		cs.bt.onRecvBlock(height)
 		cs.bt.totalParts = cs.ProposalBlockParts.Total()
-		cs.trc.Pin("lastPart")
 		if cs.prerunTx {
-			cs.blockExec.NotifyPrerun(cs.ProposalBlock) // 3. addProposalBlockPart
+			cs.blockExec.NotifyPrerun(cs.ProposalBlock)
 		}
 		// receive Deltas from BlockMessage and put into State(cs)
 		cs.Deltas = msg.Deltas
