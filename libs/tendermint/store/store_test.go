@@ -614,6 +614,35 @@ func TestBlockFetchAtHeight(t *testing.T) {
 	require.Nil(t, blockAtHeightPlus2, "expecting an unsuccessful load of Height()+2")
 }
 
+func TestBlockFetchAtHeightWithExInfo(t *testing.T) {
+	types.BlockCompressThreshold = 0
+	state, bs, cleanup := makeStateAndBlockStore(log.NewTMLogger(new(bytes.Buffer)))
+	defer cleanup()
+	require.Equal(t, bs.Height(), int64(0), "initially the height should be zero")
+	block := makeBlock(bs.Height()+1, state, new(types.Commit))
+
+	exInfo1 := &types.BlockExInfo{BlockCompressType: 2, BlockCompressFlag: 0, BlockPartSize: 2}
+	partSet := block.MakePartSetByExInfo(exInfo1)
+	seenCommit := makeTestCommit(10, tmtime.Now())
+	bs.SaveBlock(block, partSet, seenCommit)
+	require.Equal(t, bs.Height(), block.Header.Height, "expecting the new height to be changed")
+
+	blockAtHeight, exInfo2 := bs.LoadBlockWithExInfo(bs.Height())
+	bz1 := cdc.MustMarshalBinaryBare(block)
+	bz2 := cdc.MustMarshalBinaryBare(blockAtHeight)
+	require.Equal(t, bz1, bz2)
+	require.Equal(t, block.Hash(), blockAtHeight.Hash(),
+		"expecting a successful load of the last saved block")
+	require.EqualValues(t, exInfo1, exInfo2)
+
+	blockAtHeightPlus1, exInfoPlus1 := bs.LoadBlockWithExInfo(bs.Height() + 1)
+	require.Nil(t, blockAtHeightPlus1, "expecting an unsuccessful load of Height()+1")
+	require.Nil(t, exInfoPlus1)
+	blockAtHeightPlus2, exInfoPlus2 := bs.LoadBlockWithExInfo(bs.Height() + 2)
+	require.Nil(t, blockAtHeightPlus2, "expecting an unsuccessful load of Height()+2")
+	require.Nil(t, exInfoPlus2)
+}
+
 func doFn(fn func() (interface{}, error)) (res interface{}, err error, panicErr error) {
 	defer func() {
 		if r := recover(); r != nil {

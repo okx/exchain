@@ -113,6 +113,20 @@ func TestBlockMakePartSet(t *testing.T) {
 	assert.Equal(t, 1, partSet.Total())
 }
 
+func TestBlock_MakePartSetByExInfo(t *testing.T) {
+	assert.Nil(t, (*Block)(nil).MakePartSetByExInfo(nil))
+	block := MakeBlock(int64(3), []Tx{Tx("Hello World")}, nil, nil)
+	assert.Nil(t, block.MakePartSetByExInfo(nil))
+
+	partSet := block.MakePartSetByExInfo(&BlockExInfo{BlockPartSize: 1024})
+	assert.NotNil(t, partSet)
+	assert.Equal(t, 1, partSet.Total())
+
+	partSet = block.MakePartSetByExInfo(&BlockExInfo{BlockPartSize: 1024, BlockCompressType: 2, BlockCompressFlag: 0})
+	assert.NotNil(t, partSet)
+	assert.Equal(t, 1, partSet.Total())
+}
+
 func TestBlockMakePartSetWithEvidence(t *testing.T) {
 	assert.Nil(t, (*Block)(nil).MakePartSet(2))
 
