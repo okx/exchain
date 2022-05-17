@@ -183,7 +183,7 @@ func TestPartSetHeaderAmino(t *testing.T) {
 
 		require.EqualValues(t, psh, psh2)
 
-		require.EqualValues(t, len(bz), psh.AminoSize())
+		require.EqualValues(t, len(bz), psh.AminoSize(cdc))
 	}
 }
 

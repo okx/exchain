@@ -172,7 +172,7 @@ type PartSetHeader struct {
 	Hash  tmbytes.HexBytes `json:"hash"`
 }
 
-func (psh PartSetHeader) AminoSize() int {
+func (psh PartSetHeader) AminoSize(_ *amino.Codec) int {
 	var size int
 	if psh.Total != 0 {
 		size += 1 + amino.UvarintSize(uint64(psh.Total))
@@ -181,6 +181,27 @@ func (psh PartSetHeader) AminoSize() int {
 		size += 1 + amino.UvarintSize(uint64(len(psh.Hash))) + len(psh.Hash)
 	}
 	return size
+}
+
+func (psh PartSetHeader) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) error {
+	var err error
+	// field 1
+	if psh.Total != 0 {
+		const pbKey = byte(1<<3 | amino.Typ3_Varint)
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(psh.Total), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	// field 2
+	if len(psh.Hash) != 0 {
+		const pbKey = byte(2<<3 | amino.Typ3_ByteLength)
+		err = amino.EncodeByteSliceWithKeyToBuffer(buf, psh.Hash, pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (psh *PartSetHeader) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
