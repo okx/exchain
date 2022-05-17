@@ -134,7 +134,7 @@ func AddCommands(
 	appCreator AppCreator, appStop AppStop, appExport AppExporter,
 	registerRouters func(rs *lcd.RestServer),
 	registerAppFlagFn func(cmd *cobra.Command),
-	appPreRun func(ctx *Context) error,
+	appPreRun func(ctx *Context, cmd *cobra.Command) error,
 	subFunc func(logger log.Logger) log.Subscriber) {
 
 	rootCmd.PersistentFlags().String("log_level", ctx.Config.LogLevel, "Log level")

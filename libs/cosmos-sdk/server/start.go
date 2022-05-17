@@ -76,7 +76,7 @@ func StartCmd(ctx *Context,
 	appStop AppStop,
 	registerRoutesFn func(restServer *lcd.RestServer),
 	registerAppFlagFn func(cmd *cobra.Command),
-	appPreRun func(ctx *Context) error,
+	appPreRun func(ctx *Context, cmd *cobra.Command) error,
 	subFunc func(logger log.Logger) log.Subscriber,
 ) *cobra.Command {
 	cmd := &cobra.Command{
@@ -106,11 +106,9 @@ which accepts a path for the resulting pprof file.
 `,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			// app pre run
-			if err := appPreRun(ctx); err != nil {
+			if err := appPreRun(ctx, cmd); err != nil {
 				return err
 			}
-			// set external package flags
-			SetExternalPackageValue(cmd)
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
