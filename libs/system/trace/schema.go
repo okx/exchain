@@ -44,7 +44,7 @@ const (
 	Evm              = "Evm"
 	Iavl             = "Iavl"
 	FlatKV           = "FlatKV"
-	RecvBlock        = "RecvBlock"
+	//RecvBlock        = "RecvBlock"
 	First2LastPart   = "First2LastPart"
 
 	SigCacheRatio    = "SigCacheRatio"
@@ -63,11 +63,11 @@ const (
 	ApplyBlock = "ApplyBlock"
 	Consensus  = "Consensus"
 
-	MempoolCheckTxCnt    = "checkTxCnt"
-	MempoolTxsCnt        = "mempoolTxsCnt"
+	MempoolCheckTxCnt    = "CheckTx"
+	MempoolTxsCnt        = "MempoolTxs"
 
-	CompressBlock   = "CompressBlock"
-	UncompressBlock = "UncompressBlock"
+	CompressBlock   = "Compress"
+	UncompressBlock = "Uncompress"
 	Prerun               = "Prerun"
 	IavlRuntime          = "IavlRuntime"
 )
