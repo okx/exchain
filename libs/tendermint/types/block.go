@@ -54,7 +54,7 @@ var (
 	BlockCompressThreshold = 1024000
 )
 
-type BlockPartInfo struct {
+type BlockExInfo struct {
 	BlockCompressType int
 	BlockCompressFlag int
 	BlockPartSize     int
@@ -248,12 +248,24 @@ func (b *Block) Hash() tmbytes.HexBytes {
 // This is the form in which the block is gossipped to peers.
 // CONTRACT: partSize is greater than zero.
 func (b *Block) MakePartSet(partSize int) *PartSet {
+	return b.MakePartSetByExInfo(nil)
+}
+
+func (b *Block) MakePartSetByExInfo(exInfo *BlockExInfo) *PartSet {
 	if b == nil {
 		return nil
 	}
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
 
+	partSize := BlockPartSizeBytes
+	compressType := BlockCompressType
+	compressFlag := BlockCompressFlag
+	if exInfo != nil {
+		partSize = exInfo.BlockPartSize
+		compressType = exInfo.BlockCompressType
+		compressFlag = exInfo.BlockCompressFlag
+	}
 	// We prefix the byte length, so that unmarshaling
 	// can easily happen via a reader.
 	bz, err := cdc.MarshalBinaryLengthPrefixed(b)
@@ -261,18 +273,19 @@ func (b *Block) MakePartSet(partSize int) *PartSet {
 		panic(err)
 	}
 
-	payload := compressBlock(bz)
+	payload := compressBlock(bz, compressType, compressFlag)
 
 	return NewPartSetFromData(payload, partSize)
+
 }
 
-func compressBlock(bz []byte) []byte {
-	if BlockCompressType == 0 || len(bz) <= BlockCompressThreshold {
+func compressBlock(bz []byte, compressType, compressFlag int) []byte {
+	if compressType == 0 || len(bz) <= BlockCompressThreshold {
 		return bz
 	}
 
 	t0 := tmtime.Now()
-	cz, err := compress.Compress(BlockCompressType, BlockCompressFlag, bz)
+	cz, err := compress.Compress(compressType, compressFlag, bz)
 	if err != nil {
 		return bz
 	}
@@ -280,7 +293,7 @@ func compressBlock(bz []byte) []byte {
 
 	trace.GetElapsedInfo().AddInfo(trace.CompressBlock, fmt.Sprintf("%dms", t1.Sub(t0).Milliseconds()))
 	// tell receiver which compress type
-	return append(cz, byte(BlockCompressType))
+	return append(cz, byte(compressType))
 }
 
 func UncompressBlockFromReader(pbpReader io.Reader) (io.Reader, error) {

@@ -90,7 +90,9 @@ func (bs *BlockStore) LoadBlock(height int64) *types.Block {
 	return bs.unmarshalBlockByBytes(partBytes)
 }
 
-func (bs *BlockStore) LoadBlockWithPartInfo(height int64) (*types.Block, *types.BlockPartInfo) {
+// LoadBlockWithExInfo returns the block with the given height.
+// and the BlockPartInfo is used to make block parts
+func (bs *BlockStore) LoadBlockWithExInfo(height int64) (*types.Block, *types.BlockExInfo) {
 	bufBytes, partSize := bs.loadBlockPartsBytes(height)
 	// uncompress if the block part bytes was created by compress block
 	partBytes, compressType, err := types.UncompressBlockFromBytes(bufBytes)
@@ -98,9 +100,10 @@ func (bs *BlockStore) LoadBlockWithPartInfo(height int64) (*types.Block, *types.
 		panic(errors.Wrap(err, "failed to uncompress block"))
 	}
 
-	return bs.unmarshalBlockByBytes(partBytes), &types.BlockPartInfo{BlockCompressType: compressType, BlockPartSize: partSize}
+	return bs.unmarshalBlockByBytes(partBytes), &types.BlockExInfo{BlockCompressType: compressType, BlockPartSize: partSize}
 }
 
+// unmarshalBlockByBytes returns the block with the given block parts bytes
 func (bs *BlockStore) unmarshalBlockByBytes(blockBytes []byte) *types.Block {
 	var block = new(types.Block)
 	bz, err := amino.GetBinaryBareFromBinaryLengthPrefixed(blockBytes)
