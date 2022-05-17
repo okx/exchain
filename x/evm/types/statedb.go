@@ -197,7 +197,25 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 }
 
 func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *CommitStateDB {
-	return NewCommitStateDB(csdbParams).WithContext(ctx)
+	csdb := NewCommitStateDB(csdbParams).WithContext(ctx)
+	csdb.StateCache = fastcache.New(1024 * 1024)
+	return csdb
+}
+
+func (csdb *CommitStateDB) WithHistoricalTrie() *CommitStateDB {
+	heightBytes := sdk.Uint64ToBigEndian(uint64(csdb.ctx.BlockHeight()))
+	rst, err := csdb.db.TrieDB().DiskDB().Get(append(mpt.KeyPrefixEvmRootMptHash, heightBytes...))
+	if err != nil || len(rst) == 0 {
+		return csdb
+	}
+	rootHash := ethcmn.BytesToHash(rst)
+	tire, err := csdb.db.OpenTrie(rootHash)
+	if err != nil {
+		return csdb
+	}
+	csdb.originalRoot = rootHash
+	csdb.trie = tire
+	return csdb
 }
 
 func (csdb *CommitStateDB) SetInternalDb(dba DbAdapter) {

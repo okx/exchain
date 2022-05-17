@@ -268,7 +268,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	}
 	global.SetGlobalHeight(block.Height)
 
-	trc.Pin(trace.Evpool)
 	// Update evpool with the block and state.
 	blockExec.evpool.Update(block, state)
 
@@ -279,7 +278,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data
 	blockExec.trySaveStateAsync(state)
-	trc.Pin(trace.FireEvents)
 
 	blockExec.logger.Debug("SaveState", "state", &state)
 	fail.Fail() // XXX
@@ -312,10 +310,6 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
 		abciResponses = deltaInfo.abciResponses
 	} else {
-		//if blockExec.deltaContext.downloadDelta {
-		//	time.Sleep(time.Second*1)
-		//}
-
 		pc := blockExec.prerunCtx
 		if pc.prerunTx {
 			abciResponses, err = pc.getPrerunResult(block.Height, blockExec.isFastSync)
