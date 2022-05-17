@@ -59,7 +59,7 @@ type Vote struct {
 	Signature        []byte        `json:"signature"`
 }
 
-func (vote Vote) AminoSize(cdc *amino.Codec) int {
+func (vote *Vote) AminoSize(cdc *amino.Codec) int {
 	var size = 0
 
 	if vote.Type != 0 {
@@ -97,6 +97,104 @@ func (vote Vote) AminoSize(cdc *amino.Codec) int {
 	}
 
 	return size
+}
+
+func (vote *Vote) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
+	var err error
+
+	// field 1
+	if vote.Type != 0 {
+		const pbKey = byte(1<<3 | amino.Typ3_Varint)
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(vote.Type), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	// field 2
+	if vote.Height != 0 {
+		const pbKey = byte(2<<3 | amino.Typ3_Varint)
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(vote.Height), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	// field 3
+	if vote.Round != 0 {
+		const pbKey = byte(3<<3 | amino.Typ3_Varint)
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(vote.Round), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	// field 4
+	blockIDSize := vote.BlockID.AminoSize(cdc)
+	if blockIDSize != 0 {
+		const pbKey = byte(4<<3 | amino.Typ3_ByteLength)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(blockIDSize))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = vote.BlockID.MarshalAminoTo(cdc, buf)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != blockIDSize {
+			return amino.NewSizerError(blockIDSize, buf.Len()-lenBeforeData, blockIDSize)
+		}
+	}
+
+	// field 5
+	timestampSize := amino.TimeSize(vote.Timestamp)
+	if timestampSize != 0 {
+		const pbKey = byte(5<<3 | amino.Typ3_ByteLength)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(timestampSize))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = amino.EncodeTimeToBuffer(buf, vote.Timestamp)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != timestampSize {
+			return amino.NewSizerError(timestampSize, buf.Len()-lenBeforeData, timestampSize)
+		}
+	}
+
+	// field 6
+	if len(vote.ValidatorAddress) != 0 {
+		const pbKey = byte(6<<3 | amino.Typ3_ByteLength)
+		err = amino.EncodeByteSliceWithKeyToBuffer(buf, vote.ValidatorAddress, pbKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	// field 7
+	if vote.ValidatorIndex != 0 {
+		const pbKey = byte(7<<3 | amino.Typ3_Varint)
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(vote.ValidatorIndex), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	// field 8
+	if len(vote.Signature) != 0 {
+		const pbKey = byte(8<<3 | amino.Typ3_ByteLength)
+		err = amino.EncodeByteSliceWithKeyToBuffer(buf, vote.Signature, pbKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (vote *Vote) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {

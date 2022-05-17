@@ -1786,6 +1786,37 @@ func (blockID BlockID) AminoSize(cdc *amino.Codec) int {
 	return size
 }
 
+func (blockID BlockID) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
+	var err error
+	// field 1
+	if len(blockID.Hash) > 0 {
+		const pbKey = byte(1<<3 | amino.Typ3_ByteLength)
+		err = amino.EncodeByteSliceWithKeyToBuffer(buf, blockID.Hash, pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	// field 2
+	partsHeaderSize := blockID.PartsHeader.AminoSize(cdc)
+	if partsHeaderSize > 0 {
+		const pbKey = byte(2<<3 | amino.Typ3_ByteLength)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(partsHeaderSize))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = blockID.PartsHeader.MarshalAminoTo(cdc, buf)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != partsHeaderSize {
+			return amino.NewSizerError(partsHeaderSize, buf.Len()-lenBeforeData, partsHeaderSize)
+		}
+	}
+	return nil
+}
+
 func (blockID *BlockID) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
