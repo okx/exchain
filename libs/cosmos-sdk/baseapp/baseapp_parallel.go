@@ -268,7 +268,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 			currentGas += uint64(res.resp.GasUsed)
 			txIndex++
 			if txIndex == pm.txSize {
-				app.logger.Info("Paralleled-tx", "timeCost", time.Now().Sub(ts).Milliseconds(), "blockHeight", app.deliverState.ctx.BlockHeight(), "len(txs)", pm.txSize,
+				app.logger.Info("Paralleled-tx", "timeCost", fmt.Sprintf("%dms", time.Now().Sub(ts).Milliseconds()), "blockHeight", app.deliverState.ctx.BlockHeight(), "len(txs)", pm.txSize,
 					"Parallel run", pm.txSize-rerunIdx, "ReRun", rerunIdx, "len(group)", len(pm.groupList), "groupInfo", printGroupList(pm.groupList))
 				signal <- 0
 				return
