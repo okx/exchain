@@ -31,6 +31,61 @@ type SimpleProof struct {
 	Aunts    [][]byte `json:"aunts"`     // Hashes from leaf's sibling to a root's child.
 }
 
+func (sp SimpleProof) AminoSize(_ *amino.Codec) int {
+	var size int
+	if sp.Total != 0 {
+		size += 1 + amino.UvarintSize(uint64(sp.Total))
+	}
+	if sp.Index != 0 {
+		size += 1 + amino.UvarintSize(uint64(sp.Index))
+	}
+	if len(sp.LeafHash) != 0 {
+		size += 1 + amino.ByteSliceSize(sp.LeafHash)
+	}
+	for _, aunt := range sp.Aunts {
+		size += 1 + amino.ByteSliceSize(aunt)
+	}
+	return size
+}
+
+func (sp SimpleProof) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) error {
+	var err error
+
+	// field 1
+	if sp.Total != 0 {
+		const pbKey = byte(1<<3 | amino.Typ3_Varint)
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(sp.Total), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	// field 2
+	if sp.Index != 0 {
+		const pbKey = byte(2<<3 | amino.Typ3_Varint)
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(sp.Index), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	// field 3
+	if len(sp.LeafHash) != 0 {
+		const pbKey = byte(3<<3 | amino.Typ3_ByteLength)
+		err = amino.EncodeByteSliceWithKeyToBuffer(buf, sp.LeafHash, pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	// field 4
+	for _, aunt := range sp.Aunts {
+		const pbKey = byte(4<<3 | amino.Typ3_ByteLength)
+		err = amino.EncodeByteSliceWithKeyToBuffer(buf, aunt, pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (sp *SimpleProof) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
