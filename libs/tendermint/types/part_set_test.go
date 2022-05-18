@@ -247,6 +247,12 @@ func TestPartAmino(t *testing.T) {
 	for _, part := range partAminoTestCases {
 		expectData, err := cdc.MarshalBinaryBare(part)
 		require.NoError(t, err)
+
+		actualData, err := cdc.MarshalBinaryBareWithSizer(&part, false)
+		require.NoError(t, err)
+		require.Equal(t, expectData, actualData)
+		require.Equal(t, len(expectData), part.AminoSize(cdc))
+
 		var expectValue Part
 		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
 		require.NoError(t, err)
