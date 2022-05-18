@@ -1056,3 +1056,43 @@ func TestVoteMessageAmino(t *testing.T) {
 		require.Equal(t, len(expectData), tc.AminoSize(cdc)+4)
 	}
 }
+
+func TestHasVoteMessageAmino(t *testing.T) {
+	testCases := []HasVoteMessage{
+		{},
+		{
+			Height: 12345,
+			Round:  12345,
+			Type:   types.PrevoteType,
+			Index:  1,
+		},
+		{
+			Height: -12345,
+			Round:  -12345,
+			Type:   types.PrecommitType,
+			Index:  12345,
+		},
+		{
+			Height: math.MinInt64,
+			Round:  math.MinInt,
+			Type:   types.ProposalType,
+			Index:  math.MinInt,
+		},
+		{
+			Height: math.MaxInt64,
+			Round:  math.MaxInt,
+			Type:   types.PrevoteType,
+			Index:  math.MaxInt,
+		},
+	}
+
+	for _, tc := range testCases {
+		expectData, err := cdc.MarshalBinaryBare(tc)
+		require.NoError(t, err)
+		actualData, err := cdc.MarshalBinaryBareWithSizer(tc, false)
+		require.NoError(t, err)
+
+		require.Equal(t, expectData, actualData)
+		require.Equal(t, len(expectData), tc.AminoSize(cdc)+4)
+	}
+}
