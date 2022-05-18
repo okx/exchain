@@ -1019,3 +1019,40 @@ func TestBlockPartMessageAmino(t *testing.T) {
 		require.Equal(t, len(expectData), msg.AminoSize(cdc)+4)
 	}
 }
+
+func TestVoteMessageAmino(t *testing.T) {
+	testCases := []VoteMessage{
+		{},
+		{
+			Vote: &types.Vote{},
+		},
+		{
+			Vote: &types.Vote{
+				Type:   types.PrevoteType,
+				Height: 1,
+				Round:  1,
+				BlockID: types.BlockID{
+					Hash: tmhash.Sum([]byte("blockhash1")),
+					PartsHeader: types.PartSetHeader{
+						Total: 1,
+						Hash:  tmhash.Sum([]byte("blockparts1")),
+					},
+				},
+				Timestamp:        time.Now(),
+				ValidatorAddress: []byte("address1"),
+				ValidatorIndex:   1,
+				Signature:        []byte("signature1"),
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		expectData, err := cdc.MarshalBinaryBare(tc)
+		require.NoError(t, err)
+		actualData, err := cdc.MarshalBinaryBareWithSizer(tc, false)
+		require.NoError(t, err)
+
+		require.Equal(t, expectData, actualData)
+		require.Equal(t, len(expectData), tc.AminoSize(cdc)+4)
+	}
+}

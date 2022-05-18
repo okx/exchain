@@ -18,6 +18,9 @@ func RegisterBlockAmino(cdc *amino.Codec) {
 
 	cdc.EnableBufferMarshaler(&Part{})
 	cdc.EnableBufferMarshaler(PartSetHeader{})
+	cdc.EnableBufferMarshaler(BlockID{})
+	cdc.EnableBufferMarshaler(&Vote{})
+
 	cdc.EnableBufferMarshaler(DeltaPayload{})
 	cdc.EnableBufferMarshaler(&Deltas{})
 }
