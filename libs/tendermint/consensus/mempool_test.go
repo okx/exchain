@@ -116,11 +116,11 @@ func TestMempoolTxConcurrentWithCommit(t *testing.T) {
 	sm.SaveState(blockDB, state)
 	newBlockHeaderCh := subscribe(cs.eventBus, types.EventQueryNewBlockHeader)
 
-	const numTxs int64 = 3000
+	const numTxs int64 = 2
 	go deliverTxsRange(cs, 0, int(numTxs))
 
 	startTestRound(cs, cs.Height, cs.Round)
-	for n := int64(0); n < numTxs; {
+	for n := int64(0); n < numTxs; n++ {
 		select {
 		case msg := <-newBlockHeaderCh:
 			headerEvent := msg.Data().(types.EventDataNewBlockHeader)
@@ -229,12 +229,13 @@ func (app *CounterApplication) CheckTx(req abci.RequestCheckTx) abci.ResponseChe
 	txValue := txAsUint64(req.Tx)
 	if txValue != uint64(app.mempoolTxCount) {
 		return abci.ResponseCheckTx{
+			Tx:   &abci.MockTx{From: fmt.Sprintf("%+x", req.Tx), GasPrice: big.NewInt(1)},
 			Code: code.CodeTypeBadNonce,
 			Log:  fmt.Sprintf("Invalid nonce. Expected %v, got %v", app.mempoolTxCount, txValue)}
 	}
 	app.mempoolTxCount++
 	exinfo, _ := json.Marshal(mempl.ExTxInfo{Sender: fmt.Sprintf("%+x", req.Tx), GasPrice: big.NewInt(1)})
-	return abci.ResponseCheckTx{Code: code.CodeTypeOK, Data: exinfo}
+	return abci.ResponseCheckTx{Tx: &abci.MockTx{Raw: req.Tx, From: fmt.Sprintf("%+x", req.Tx), GasPrice: big.NewInt(1)}, Code: code.CodeTypeOK, Data: exinfo}
 }
 
 func txAsUint64(tx []byte) uint64 {
