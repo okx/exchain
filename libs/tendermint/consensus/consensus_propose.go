@@ -326,7 +326,7 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 
 	// event to decrease blockpart transport
 	if added && cfg.DynamicConfig.GetEnableHasBlockPartMsg() {
-		cs.evsw.FireEvent(types.EventBlockPart, msg)
+		cs.evsw.FireEvent(types.EventBlockPart, &HasBlockPartMessage{height,round,part.Index,})
 	}
 
 	if added && cs.ProposalBlockParts.IsComplete() {
