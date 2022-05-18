@@ -641,6 +641,9 @@ func TestBlockFetchAtHeightWithExInfo(t *testing.T) {
 	blockAtHeightPlus2, exInfoPlus2 := bs.LoadBlockWithExInfo(bs.Height() + 2)
 	require.Nil(t, blockAtHeightPlus2, "expecting an unsuccessful load of Height()+2")
 	require.Nil(t, exInfoPlus2)
+
+	partSet2 := block.MakePartSetByExInfo(exInfo2)
+	require.EqualValues(t, partSet, partSet2)
 }
 
 func doFn(fn func() (interface{}, error)) (res interface{}, err error, panicErr error) {
