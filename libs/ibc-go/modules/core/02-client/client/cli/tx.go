@@ -35,7 +35,7 @@ func NewCreateClientCmd(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistr
 			cdc := m.GetProtocMarshal()
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(m.GetCdc()))
-			clientCtx := context.NewCLIContext().WithCodec(m.GetCdc())
+			clientCtx := context.NewCLIContext().WithInterfaceRegistry(reg)
 
 			// attempt to unmarshal client state argument
 			var clientState exported.ClientState
@@ -85,7 +85,7 @@ func NewCreateClientCmd(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistr
 
 // NewUpdateClientCmd defines the command to update an IBC client.
 func NewUpdateClientCmd(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:     "update [client-id] [path/to/header.json]",
 		Short:   "update existing client with a header",
 		Long:    "update existing client with a header",
@@ -95,7 +95,7 @@ func NewUpdateClientCmd(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistr
 			cdc := m.GetProtocMarshal()
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(m.GetCdc()))
-			clientCtx := context.NewCLIContext().WithCodec(m.GetCdc())
+			clientCtx := context.NewCLIContext().WithInterfaceRegistry(reg)
 
 			clientID := args[0]
 
@@ -122,12 +122,14 @@ func NewUpdateClientCmd(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistr
 			return utils.GenerateOrBroadcastMsgs(clientCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
+	flags.AddTxFlagsToCmd(cmd)
+	return cmd
 }
 
 // NewSubmitMisbehaviourCmd defines the command to submit a misbehaviour to prevent
 // future updates.
 func NewSubmitMisbehaviourCmd(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
-	return &cobra.Command{
+	cmd := &cobra.Command{
 		Use:     "misbehaviour [path/to/misbehaviour.json]",
 		Short:   "submit a client misbehaviour",
 		Long:    "submit a client misbehaviour to prevent future updates",
@@ -137,7 +139,7 @@ func NewSubmitMisbehaviourCmd(m *codec.CodecProxy, reg interfacetypes.InterfaceR
 			cdc := m.GetProtocMarshal()
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(m.GetCdc()))
-			clientCtx := context.NewCLIContext().WithCodec(m.GetCdc())
+			clientCtx := context.NewCLIContext().WithInterfaceRegistry(reg)
 
 			var misbehaviour exported.Misbehaviour
 			misbehaviourContentOrFileName := args[0]
@@ -149,7 +151,7 @@ func NewSubmitMisbehaviourCmd(m *codec.CodecProxy, reg interfacetypes.InterfaceR
 					return errors.Wrap(err, "neither JSON input nor path to .json file for misbehaviour were provided")
 				}
 
-				if err := cdc.UnmarshalInterfaceJSON(contents, misbehaviour); err != nil {
+				if err := cdc.UnmarshalInterfaceJSON(contents, &misbehaviour); err != nil {
 					return errors.Wrap(err, "error unmarshalling misbehaviour file")
 				}
 			}
@@ -162,6 +164,9 @@ func NewSubmitMisbehaviourCmd(m *codec.CodecProxy, reg interfacetypes.InterfaceR
 			return utils.GenerateOrBroadcastMsgs(clientCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
+	flags.AddTxFlagsToCmd(cmd)
+
+	return cmd
 }
 
 // NewUpgradeClientCmd defines the command to upgrade an IBC light client.
@@ -178,7 +183,7 @@ func NewUpgradeClientCmd(m *codec.CodecProxy, reg interfacetypes.InterfaceRegist
 			cdc := m.GetProtocMarshal()
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(m.GetCdc()))
-			clientCtx := context.NewCLIContext().WithCodec(m.GetCdc())
+			clientCtx := context.NewCLIContext().WithInterfaceRegistry(reg)
 
 			clientID := args[0]
 

@@ -2,8 +2,8 @@ package codec
 
 import (
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-
-	ibckey "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx/internal/ethsecp256k1"
+	ibckey "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx/internal/secp256k1"
 
 	//"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ed25519"
 	//"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/multisig"
@@ -16,5 +16,7 @@ import (
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	var pk *cryptotypes.PubKey
 	registry.RegisterInterface("cosmos.crypto.PubKey", pk)
+	registry.RegisterInterface("ethermint.crypto.v1.ethsecp256k1.PubKey", pk)
 	registry.RegisterImplementations(pk, &ibckey.PubKey{})
+	registry.RegisterImplementations(pk, &ethsecp256k1.PubKey{})
 }
