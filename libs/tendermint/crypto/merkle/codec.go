@@ -8,5 +8,6 @@ var cdc *amino.Codec
 
 func init() {
 	cdc = amino.NewCodec()
+	cdc.EnableBufferMarshaler(SimpleProof{})
 	cdc.Seal()
 }
