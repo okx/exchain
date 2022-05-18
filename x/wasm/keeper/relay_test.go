@@ -1,10 +1,25 @@
 package keeper
 
+//import (
+//	"encoding/json"
+//	"errors"
+//	"math"
+//	"testing"
+//
+//	wasmvm "github.com/CosmWasm/wasmvm"
+//	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
+//	sdk "github.com/cosmos/cosmos-sdk/types"
+//	"github.com/stretchr/testify/assert"
+//	"github.com/stretchr/testify/require"
+//
+//	"github.com/CosmWasm/wasmd/x/wasm/keeper/wasmtesting"
+//	"github.com/CosmWasm/wasmd/x/wasm/types"
+//)
+//
 //func TestOnOpenChannel(t *testing.T) {
-//	SkipIfM1(t)
 //	var m wasmtesting.MockWasmer
 //	wasmtesting.MakeIBCInstantiable(&m)
-//	var messenger = &wasmtesting.MockMessageHandler{}
+//	messenger := &wasmtesting.MockMessageHandler{}
 //	parentCtx, keepers := CreateTestInput(t, false, SupportedFeatures, WithMessageHandler(messenger))
 //	example := SeedNewContractInstance(t, parentCtx, keepers, &m)
 //	const myContractGas = 40
@@ -41,9 +56,9 @@ package keeper
 //		t.Run(name, func(t *testing.T) {
 //			myChannel := wasmvmtypes.IBCChannel{Version: "my test channel"}
 //			myMsg := wasmvmtypes.IBCChannelOpenMsg{OpenTry: &wasmvmtypes.IBCOpenTry{Channel: myChannel, CounterpartyVersion: "foo"}}
-//			m.IBCChannelOpenFn = func(codeID wasmvm.Checksum, env wasmvmtypes.Env, msg wasmvmtypes.IBCChannelOpenMsg, store wasmvm.KVStore, goapi wasmvm.GoAPI, querier wasmvm.Querier, gasMeter wasmvm.GasMeter, gasLimit uint64, deserCost wasmvmtypes.UFraction) (uint64, error) {
+//			m.IBCChannelOpenFn = func(codeID wasmvm.Checksum, env wasmvmtypes.Env, msg wasmvmtypes.IBCChannelOpenMsg, store wasmvm.KVStore, goapi wasmvm.GoAPI, querier wasmvm.Querier, gasMeter wasmvm.GasMeter, gasLimit uint64, deserCost wasmvmtypes.UFraction) (*wasmvmtypes.IBC3ChannelOpenResponse, uint64, error) {
 //				assert.Equal(t, myMsg, msg)
-//				return spec.contractGas * DefaultGasMultiplier, spec.contractErr
+//				return &wasmvmtypes.IBC3ChannelOpenResponse{}, spec.contractGas * DefaultGasMultiplier, spec.contractErr
 //			}
 //
 //			ctx, _ := parentCtx.CacheContext()
@@ -56,7 +71,7 @@ package keeper
 //					CounterpartyVersion: "foo",
 //				},
 //			}
-//			err := keepers.WasmKeeper.OnOpenChannel(ctx, spec.contractAddr, msg)
+//			_, err := keepers.WasmKeeper.OnOpenChannel(ctx, spec.contractAddr, msg)
 //
 //			// then
 //			if spec.expErr {
@@ -72,10 +87,9 @@ package keeper
 //}
 //
 //func TestOnConnectChannel(t *testing.T) {
-//	SkipIfM1(t)
 //	var m wasmtesting.MockWasmer
 //	wasmtesting.MakeIBCInstantiable(&m)
-//	var messenger = &wasmtesting.MockMessageHandler{}
+//	messenger := &wasmtesting.MockMessageHandler{}
 //	parentCtx, keepers := CreateTestInput(t, false, SupportedFeatures, WithMessageHandler(messenger))
 //	example := SeedNewContractInstance(t, parentCtx, keepers, &m)
 //	const myContractGas = 40
@@ -145,7 +159,7 @@ package keeper
 //			}
 //
 //			ctx, _ := parentCtx.CacheContext()
-//			ctx.SetEventManager(sdk.NewEventManager())
+//			ctx = ctx.WithEventManager(sdk.NewEventManager())
 //
 //			before := ctx.GasMeter().GasConsumed()
 //			msger, capturedMsgs := wasmtesting.NewCapturingMessageHandler()
@@ -184,10 +198,9 @@ package keeper
 //}
 //
 //func TestOnCloseChannel(t *testing.T) {
-//	SkipIfM1(t)
 //	var m wasmtesting.MockWasmer
 //	wasmtesting.MakeIBCInstantiable(&m)
-//	var messenger = &wasmtesting.MockMessageHandler{}
+//	messenger := &wasmtesting.MockMessageHandler{}
 //	parentCtx, keepers := CreateTestInput(t, false, SupportedFeatures, WithMessageHandler(messenger))
 //	example := SeedNewContractInstance(t, parentCtx, keepers, &m)
 //	const myContractGas = 40
@@ -295,10 +308,9 @@ package keeper
 //}
 //
 //func TestOnRecvPacket(t *testing.T) {
-//	SkipIfM1(t)
 //	var m wasmtesting.MockWasmer
 //	wasmtesting.MakeIBCInstantiable(&m)
-//	var messenger = &wasmtesting.MockMessageHandler{}
+//	messenger := &wasmtesting.MockMessageHandler{}
 //	parentCtx, keepers := CreateTestInput(t, false, SupportedFeatures, WithMessageHandler(messenger))
 //	example := SeedNewContractInstance(t, parentCtx, keepers, &m)
 //	const myContractGas = 40
@@ -458,10 +470,9 @@ package keeper
 //}
 //
 //func TestOnAckPacket(t *testing.T) {
-//	SkipIfM1(t)
 //	var m wasmtesting.MockWasmer
 //	wasmtesting.MakeIBCInstantiable(&m)
-//	var messenger = &wasmtesting.MockMessageHandler{}
+//	messenger := &wasmtesting.MockMessageHandler{}
 //	parentCtx, keepers := CreateTestInput(t, false, SupportedFeatures, WithMessageHandler(messenger))
 //	example := SeedNewContractInstance(t, parentCtx, keepers, &m)
 //	const myContractGas = 40
@@ -523,7 +534,6 @@ package keeper
 //	}
 //	for name, spec := range specs {
 //		t.Run(name, func(t *testing.T) {
-//
 //			myAck := wasmvmtypes.IBCPacketAckMsg{Acknowledgement: wasmvmtypes.IBCAcknowledgement{Data: []byte("myAck")}}
 //			m.IBCPacketAckFn = func(codeID wasmvm.Checksum, env wasmvmtypes.Env, msg wasmvmtypes.IBCPacketAckMsg, store wasmvm.KVStore, goapi wasmvm.GoAPI, querier wasmvm.Querier, gasMeter wasmvm.GasMeter, gasLimit uint64, deserCost wasmvmtypes.UFraction) (*wasmvmtypes.IBCBasicResponse, uint64, error) {
 //				assert.Equal(t, myAck, msg)
@@ -565,10 +575,9 @@ package keeper
 //}
 //
 //func TestOnTimeoutPacket(t *testing.T) {
-//	SkipIfM1(t)
 //	var m wasmtesting.MockWasmer
 //	wasmtesting.MakeIBCInstantiable(&m)
-//	var messenger = &wasmtesting.MockMessageHandler{}
+//	messenger := &wasmtesting.MockMessageHandler{}
 //	parentCtx, keepers := CreateTestInput(t, false, SupportedFeatures, WithMessageHandler(messenger))
 //	example := SeedNewContractInstance(t, parentCtx, keepers, &m)
 //	const myContractGas = 40

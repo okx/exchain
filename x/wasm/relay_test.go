@@ -1,6 +1,5 @@
 package wasm_test
 
-//
 //import (
 //	"encoding/json"
 //	"errors"
@@ -9,19 +8,19 @@ package wasm_test
 //
 //	wasmvm "github.com/CosmWasm/wasmvm"
 //	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-//	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-//	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-//	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
-//	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-//	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
-//	//ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
+//	sdk "github.com/cosmos/cosmos-sdk/types"
+//	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+//	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
+//	clienttypes "github.com/cosmos/ibc-go/v3/modules/core/02-client/types"
+//	channeltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
+//	ibctesting "github.com/cosmos/ibc-go/v3/testing"
 //	"github.com/stretchr/testify/assert"
 //	"github.com/stretchr/testify/require"
 //
-//	wasmibctesting "github.com/okex/exchain/x/wasm/ibctesting"
-//	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
-//	wasmtesting "github.com/okex/exchain/x/wasm/keeper/wasmtesting"
-//	"github.com/okex/exchain/x/wasm/types"
+//	wasmibctesting "github.com/CosmWasm/wasmd/x/wasm/ibctesting"
+//	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
+//	wasmtesting "github.com/CosmWasm/wasmd/x/wasm/keeper/wasmtesting"
+//	"github.com/CosmWasm/wasmd/x/wasm/types"
 //)
 //
 //func TestFromIBCTransferToContract(t *testing.T) {
@@ -139,8 +138,9 @@ package wasm_test
 //
 //	myContract := &sendViaIBCTransferContract{t: t}
 //	var (
-//		chainAOpts = []wasmkeeper.Option{wasmkeeper.WithWasmEngine(
-//			wasmtesting.NewIBCContractMockWasmer(myContract)),
+//		chainAOpts = []wasmkeeper.Option{
+//			wasmkeeper.WithWasmEngine(
+//				wasmtesting.NewIBCContractMockWasmer(myContract)),
 //		}
 //		coordinator = wasmibctesting.NewCoordinator(t, 2, chainAOpts)
 //		chainA      = coordinator.GetChain(wasmibctesting.GetChainID(0))
@@ -208,8 +208,9 @@ package wasm_test
 //	myContract := &sendEmulatedIBCTransferContract{t: t}
 //
 //	var (
-//		chainAOpts = []wasmkeeper.Option{wasmkeeper.WithWasmEngine(
-//			wasmtesting.NewIBCContractMockWasmer(myContract)),
+//		chainAOpts = []wasmkeeper.Option{
+//			wasmkeeper.WithWasmEngine(
+//				wasmtesting.NewIBCContractMockWasmer(myContract)),
 //		}
 //		coordinator = wasmibctesting.NewCoordinator(t, 2, chainAOpts)
 //
@@ -282,8 +283,9 @@ package wasm_test
 //	myContract := &sendEmulatedIBCTransferContract{t: t}
 //
 //	var (
-//		chainAOpts = []wasmkeeper.Option{wasmkeeper.WithWasmEngine(
-//			wasmtesting.NewIBCContractMockWasmer(myContract)),
+//		chainAOpts = []wasmkeeper.Option{
+//			wasmkeeper.WithWasmEngine(
+//				wasmtesting.NewIBCContractMockWasmer(myContract)),
 //		}
 //		coordinator = wasmibctesting.NewCoordinator(t, 2, chainAOpts)
 //
@@ -361,11 +363,13 @@ package wasm_test
 //	myContractB := &captureCloseContract{}
 //
 //	var (
-//		chainAOpts = []wasmkeeper.Option{wasmkeeper.WithWasmEngine(
-//			wasmtesting.NewIBCContractMockWasmer(myContractA)),
+//		chainAOpts = []wasmkeeper.Option{
+//			wasmkeeper.WithWasmEngine(
+//				wasmtesting.NewIBCContractMockWasmer(myContractA)),
 //		}
-//		chainBOpts = []wasmkeeper.Option{wasmkeeper.WithWasmEngine(
-//			wasmtesting.NewIBCContractMockWasmer(myContractB)),
+//		chainBOpts = []wasmkeeper.Option{
+//			wasmkeeper.WithWasmEngine(
+//				wasmtesting.NewIBCContractMockWasmer(myContractB)),
 //		}
 //		coordinator = wasmibctesting.NewCoordinator(t, 2, chainAOpts, chainBOpts)
 //
@@ -480,7 +484,6 @@ package wasm_test
 //	}
 //	if err := data.ValidateBasic(); err != nil {
 //		return nil, 0, err
-//
 //	}
 //	amount, _ := sdk.NewIntFromString(data.Amount)
 //
@@ -488,7 +491,8 @@ package wasm_test
 //		Send: &wasmvmtypes.SendMsg{
 //			ToAddress: data.Sender,
 //			Amount:    wasmvmtypes.Coins{wasmvmtypes.NewCoin(amount.Uint64(), data.Denom)},
-//		}}
+//		},
+//	}
 //
 //	return &wasmvmtypes.IBCBasicResponse{Messages: []wasmvmtypes.SubMsg{{ReplyOn: wasmvmtypes.ReplyNever, Msg: wasmvmtypes.CosmosMsg{Bank: returnTokens}}}}, 0, nil
 //}
@@ -601,8 +605,8 @@ package wasm_test
 //// simple helper struct that implements connection setup methods.
 //type contractStub struct{}
 //
-//func (s *contractStub) IBCChannelOpen(codeID wasmvm.Checksum, env wasmvmtypes.Env, msg wasmvmtypes.IBCChannelOpenMsg, store wasmvm.KVStore, goapi wasmvm.GoAPI, querier wasmvm.Querier, gasMeter wasmvm.GasMeter, gasLimit uint64, deserCost wasmvmtypes.UFraction) (uint64, error) {
-//	return 0, nil
+//func (s *contractStub) IBCChannelOpen(codeID wasmvm.Checksum, env wasmvmtypes.Env, msg wasmvmtypes.IBCChannelOpenMsg, store wasmvm.KVStore, goapi wasmvm.GoAPI, querier wasmvm.Querier, gasMeter wasmvm.GasMeter, gasLimit uint64, deserCost wasmvmtypes.UFraction) (*wasmvmtypes.IBC3ChannelOpenResponse, uint64, error) {
+//	return &wasmvmtypes.IBC3ChannelOpenResponse{}, 0, nil
 //}
 //
 //func (s *contractStub) IBCChannelConnect(codeID wasmvm.Checksum, env wasmvmtypes.Env, msg wasmvmtypes.IBCChannelConnectMsg, store wasmvm.KVStore, goapi wasmvm.GoAPI, querier wasmvm.Querier, gasMeter wasmvm.GasMeter, gasLimit uint64, deserCost wasmvmtypes.UFraction) (*wasmvmtypes.IBCBasicResponse, uint64, error) {

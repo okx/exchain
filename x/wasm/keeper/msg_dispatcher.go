@@ -117,8 +117,8 @@ func (d MessageDispatcher) DispatchSubmessages(ctx sdk.Context, contractAddr sdk
 			continue
 		}
 
-		// otherwise, we create a SubcallResult and pass it into the calling contract
-		var result wasmvmtypes.SubcallResult
+		// otherwise, we create a SubMsgResult and pass it into the calling contract
+		var result wasmvmtypes.SubMsgResult
 		if err == nil {
 			// just take the first one for now if there are multiple sub-sdk messages
 			// and safely return nothing if no data
@@ -126,8 +126,8 @@ func (d MessageDispatcher) DispatchSubmessages(ctx sdk.Context, contractAddr sdk
 			if len(data) > 0 {
 				responseData = data[0]
 			}
-			result = wasmvmtypes.SubcallResult{
-				Ok: &wasmvmtypes.SubcallResponse{
+			result = wasmvmtypes.SubMsgResult{
+				Ok: &wasmvmtypes.SubMsgResponse{
 					Events: sdkEventsToWasmVMEvents(filteredEvents),
 					Data:   responseData,
 				},
@@ -135,7 +135,7 @@ func (d MessageDispatcher) DispatchSubmessages(ctx sdk.Context, contractAddr sdk
 		} else {
 			// Issue #759 - we don't return error string for worries of non-determinism
 			moduleLogger(ctx).Info("Redacting submessage error", "cause", err)
-			result = wasmvmtypes.SubcallResult{
+			result = wasmvmtypes.SubMsgResult{
 				Err: redactError(err).Error(),
 			}
 		}

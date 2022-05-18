@@ -88,6 +88,7 @@ type ChannelKeeper interface {
 	ChanCloseInit(ctx sdk.Context, portID, channelID string, chanCap *capabilitytypes.Capability) error
 	GetAllChannels(ctx sdk.Context) (channels []channeltypes.IdentifiedChannel)
 	IterateChannels(ctx sdk.Context, cb func(channeltypes.IdentifiedChannel) bool)
+	SetChannel(ctx sdk.Context, portID, channelID string, channel channeltypes.Channel)
 }
 
 // ClientKeeper defines the expected IBC client keeper

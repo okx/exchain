@@ -1,46 +1,45 @@
 package ibctesting
 
-//
 //import (
 //	"bytes"
 //	"fmt"
 //	"testing"
 //	"time"
 //
-//	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
-//	"github.com/okex/exchain/libs/cosmos-sdk/client"
-//	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-//	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/secp256k1"
-//	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
-//	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-//	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-//	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-//	banktypes "github.com/okex/exchain/libs/cosmos-sdk/x/bank/types"
-//	capabilitykeeper "github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
-//	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
-//	stakingkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/staking/keeper"
-//	"github.com/okex/exchain/libs/cosmos-sdk/x/staking/teststaking"
-//	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
-//	clienttypes "github.com/okex/exchain/libs/ibc-go/v2/modules/core/02-client/types"
-//	channeltypes "github.com/okex/exchain/libs/ibc-go/v2/modules/core/04-channel/types"
-//	commitmenttypes "github.com/okex/exchain/libs/ibc-go/v2/modules/core/23-commitment/types"
-//	host "github.com/okex/exchain/libs/ibc-go/v2/modules/core/24-host"
-//	"github.com/okex/exchain/libs/ibc-go/v2/modules/core/exported"
-//	ibckeeper "github.com/okex/exchain/libs/ibc-go/v2/modules/core/keeper"
-//	"github.com/okex/exchain/libs/ibc-go/v2/modules/core/types"
-//	ibctmtypes "github.com/okex/exchain/libs/ibc-go/v2/modules/light-clients/07-tendermint/types"
-//	ibctesting "github.com/okex/exchain/libs/ibc-go/v2/testing"
-//	"github.com/okex/exchain/libs/ibc-go/v2/testing/mock"
-//	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-//	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
-//	tmproto "github.com/okex/exchain/libs/tendermint/proto/tendermint/types"
-//	tmprotoversion "github.com/okex/exchain/libs/tendermint/proto/tendermint/version"
-//	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-//	tmversion "github.com/okex/exchain/libs/tendermint/version"
+//	"github.com/cosmos/cosmos-sdk/baseapp"
+//	"github.com/cosmos/cosmos-sdk/client"
+//	"github.com/cosmos/cosmos-sdk/codec"
+//	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
+//	cryptotypes "github.com/cosmos/cosmos-sdk/crypto/types"
+//	sdk "github.com/cosmos/cosmos-sdk/types"
+//	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+//	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+//	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+//	capabilitykeeper "github.com/cosmos/cosmos-sdk/x/capability/keeper"
+//	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
+//	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
+//	"github.com/cosmos/cosmos-sdk/x/staking/teststaking"
+//	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+//	clienttypes "github.com/cosmos/ibc-go/v3/modules/core/02-client/types"
+//	channeltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
+//	commitmenttypes "github.com/cosmos/ibc-go/v3/modules/core/23-commitment/types"
+//	host "github.com/cosmos/ibc-go/v3/modules/core/24-host"
+//	"github.com/cosmos/ibc-go/v3/modules/core/exported"
+//	ibckeeper "github.com/cosmos/ibc-go/v3/modules/core/keeper"
+//	"github.com/cosmos/ibc-go/v3/modules/core/types"
+//	ibctmtypes "github.com/cosmos/ibc-go/v3/modules/light-clients/07-tendermint/types"
+//	ibctesting "github.com/cosmos/ibc-go/v3/testing"
+//	"github.com/cosmos/ibc-go/v3/testing/mock"
 //	"github.com/stretchr/testify/require"
+//	abci "github.com/tendermint/tendermint/abci/types"
+//	"github.com/tendermint/tendermint/crypto/tmhash"
+//	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
+//	tmprotoversion "github.com/tendermint/tendermint/proto/tendermint/version"
+//	tmtypes "github.com/tendermint/tendermint/types"
+//	tmversion "github.com/tendermint/tendermint/version"
 //
-//	wasmd "github.com/okex/exchain/app"
-//	"github.com/okex/exchain/x/wasm"
+//	wasmd "github.com/CosmWasm/wasmd/app"
+//	"github.com/CosmWasm/wasmd/x/wasm"
 //)
 //
 //// TestChain is a testing struct that wraps a simapp with the last TM Header, the current ABCI
@@ -242,7 +241,6 @@ package ibctesting
 //// number and updates the TestChain's headers. It returns the result and error if one
 //// occurred.
 //func (chain *TestChain) SendMsgs(msgs ...sdk.Msg) (*sdk.Result, error) {
-//
 //	// ensure the chain has the latest time
 //	chain.Coordinator.UpdateTimeForChain(chain)
 //
@@ -380,7 +378,6 @@ package ibctesting
 //	header.TrustedValidators = trustedVals
 //
 //	return header, nil
-//
 //}
 //
 //// ExpireClient fast forwards the chain's block time by the provided amount of time which will
@@ -472,8 +469,8 @@ package ibctesting
 //// sorting of ValidatorSet.
 //// The sorting is first by .VotingPower (descending), with secondary index of .Address (ascending).
 //func CreateSortedSignerArray(altPrivVal, suitePrivVal tmtypes.PrivValidator,
-//	altVal, suiteVal *tmtypes.Validator) []tmtypes.PrivValidator {
-//
+//	altVal, suiteVal *tmtypes.Validator,
+//) []tmtypes.PrivValidator {
 //	switch {
 //	case altVal.VotingPower > suiteVal.VotingPower:
 //		return []tmtypes.PrivValidator{altPrivVal, suitePrivVal}

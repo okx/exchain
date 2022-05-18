@@ -6,8 +6,8 @@ package types
 //	"strings"
 //	"testing"
 //
-//	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-//	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
+//	sdk "github.com/cosmos/cosmos-sdk/types"
+//	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 //	"github.com/stretchr/testify/assert"
 //	"github.com/stretchr/testify/require"
 //	"gopkg.in/yaml.v2"
@@ -162,9 +162,7 @@ package types
 //}
 //
 //func TestValidateInstantiateContractProposal(t *testing.T) {
-//	var (
-//		invalidAddress = "invalid address"
-//	)
+//	invalidAddress := "invalid address"
 //
 //	specs := map[string]struct {
 //		src    *InstantiateContractProposal
@@ -233,13 +231,13 @@ package types
 //		},
 //		"init funds negative": {
 //			src: InstantiateContractProposalFixture(func(p *InstantiateContractProposal) {
-//				p.Funds = sdk.CoinAdapters{{Denom: "foo", Amount: sdk.NewInt(-1)}}
+//				p.Funds = sdk.Coins{{Denom: "foo", Amount: sdk.NewInt(-1)}}
 //			}),
 //			expErr: true,
 //		},
 //		"init funds with duplicates": {
 //			src: InstantiateContractProposalFixture(func(p *InstantiateContractProposal) {
-//				p.Funds = sdk.CoinAdapters{{Denom: "foo", Amount: sdk.NewInt(1)}, {Denom: "foo", Amount: sdk.NewInt(2)}}
+//				p.Funds = sdk.Coins{{Denom: "foo", Amount: sdk.NewInt(1)}, {Denom: "foo", Amount: sdk.NewInt(2)}}
 //			}),
 //			expErr: true,
 //		},
@@ -257,9 +255,7 @@ package types
 //}
 //
 //func TestValidateMigrateContractProposal(t *testing.T) {
-//	var (
-//		invalidAddress = "invalid address2"
-//	)
+//	invalidAddress := "invalid address2"
 //
 //	specs := map[string]struct {
 //		src    *MigrateContractProposal
@@ -317,10 +313,120 @@ package types
 //	}
 //}
 //
+//func TestValidateSudoContractProposal(t *testing.T) {
+//	invalidAddress := "invalid address"
+//
+//	specs := map[string]struct {
+//		src    *SudoContractProposal
+//		expErr bool
+//	}{
+//		"all good": {
+//			src: SudoContractProposalFixture(),
+//		},
+//		"msg is nil": {
+//			src: SudoContractProposalFixture(func(p *SudoContractProposal) {
+//				p.Msg = nil
+//			}),
+//			expErr: true,
+//		},
+//		"msg with invalid json": {
+//			src: SudoContractProposalFixture(func(p *SudoContractProposal) {
+//				p.Msg = []byte("not a json message")
+//			}),
+//			expErr: true,
+//		},
+//		"base data missing": {
+//			src: SudoContractProposalFixture(func(p *SudoContractProposal) {
+//				p.Title = ""
+//			}),
+//			expErr: true,
+//		},
+//		"contract missing": {
+//			src: SudoContractProposalFixture(func(p *SudoContractProposal) {
+//				p.Contract = ""
+//			}),
+//			expErr: true,
+//		},
+//		"contract invalid": {
+//			src: SudoContractProposalFixture(func(p *SudoContractProposal) {
+//				p.Contract = invalidAddress
+//			}),
+//			expErr: true,
+//		},
+//	}
+//	for msg, spec := range specs {
+//		t.Run(msg, func(t *testing.T) {
+//			err := spec.src.ValidateBasic()
+//			if spec.expErr {
+//				require.Error(t, err)
+//			} else {
+//				require.NoError(t, err)
+//			}
+//		})
+//	}
+//}
+//
+//func TestValidateExecuteContractProposal(t *testing.T) {
+//	invalidAddress := "invalid address"
+//
+//	specs := map[string]struct {
+//		src    *ExecuteContractProposal
+//		expErr bool
+//	}{
+//		"all good": {
+//			src: ExecuteContractProposalFixture(),
+//		},
+//		"msg is nil": {
+//			src: ExecuteContractProposalFixture(func(p *ExecuteContractProposal) {
+//				p.Msg = nil
+//			}),
+//			expErr: true,
+//		},
+//		"msg with invalid json": {
+//			src: ExecuteContractProposalFixture(func(p *ExecuteContractProposal) {
+//				p.Msg = []byte("not a valid json message")
+//			}),
+//			expErr: true,
+//		},
+//		"base data missing": {
+//			src: ExecuteContractProposalFixture(func(p *ExecuteContractProposal) {
+//				p.Title = ""
+//			}),
+//			expErr: true,
+//		},
+//		"contract missing": {
+//			src: ExecuteContractProposalFixture(func(p *ExecuteContractProposal) {
+//				p.Contract = ""
+//			}),
+//			expErr: true,
+//		},
+//		"contract invalid": {
+//			src: ExecuteContractProposalFixture(func(p *ExecuteContractProposal) {
+//				p.Contract = invalidAddress
+//			}),
+//			expErr: true,
+//		},
+//		"run as is invalid": {
+//			src: ExecuteContractProposalFixture(func(p *ExecuteContractProposal) {
+//				p.RunAs = invalidAddress
+//			}),
+//			expErr: true,
+//		},
+//	}
+//	for msg, spec := range specs {
+//		t.Run(msg, func(t *testing.T) {
+//			err := spec.src.ValidateBasic()
+//			if spec.expErr {
+//				require.Error(t, err)
+//			} else {
+//				require.NoError(t, err)
+//			}
+//		})
+//	}
+//}
+//
 //func TestValidateUpdateAdminProposal(t *testing.T) {
-//	var (
-//		invalidAddress = "invalid address"
-//	)
+//	invalidAddress := "invalid address"
 //
 //	specs := map[string]struct {
 //		src    *UpdateAdminProposal
@@ -373,9 +479,7 @@ package types
 //}
 //
 //func TestValidateClearAdminProposal(t *testing.T) {
-//	var (
-//		invalidAddress = "invalid address"
-//	)
+//	invalidAddress := "invalid address"
 //
 //	specs := map[string]struct {
 //		src    *ClearAdminProposal
@@ -422,7 +526,7 @@ package types
 //	}{
 //		"store code": {
 //			src: StoreCodeProposalFixture(func(p *StoreCodeProposal) {
-//				p.WASMByteCode = []byte{01, 02, 03, 04, 05, 06, 07, 0x08, 0x09, 0x0a}
+//				p.WASMByteCode = []byte{0o1, 0o2, 0o3, 0o4, 0o5, 0o6, 0o7, 0x08, 0x09, 0x0a}
 //			}),
 //			exp: `Store Code Proposal:
 //  Title:       Foo
@@ -433,7 +537,7 @@ package types
 //		},
 //		"instantiate contract": {
 //			src: InstantiateContractProposalFixture(func(p *InstantiateContractProposal) {
-//				p.Funds = sdk.CoinAdapters{{Denom: "foo", Amount: sdk.NewInt(1)}, {Denom: "bar", Amount: sdk.NewInt(2)}}
+//				p.Funds = sdk.Coins{{Denom: "foo", Amount: sdk.NewInt(1)}, {Denom: "bar", Amount: sdk.NewInt(2)}}
 //			}),
 //			exp: `Instantiate Code Proposal:
 //  Title:       Foo
@@ -538,7 +642,7 @@ package types
 //	}{
 //		"store code": {
 //			src: StoreCodeProposalFixture(func(p *StoreCodeProposal) {
-//				p.WASMByteCode = []byte{01, 02, 03, 04, 05, 06, 07, 0x08, 0x09, 0x0a}
+//				p.WASMByteCode = []byte{0o1, 0o2, 0o3, 0o4, 0o5, 0o6, 0o7, 0x08, 0x09, 0x0a}
 //			}),
 //			exp: `title: Foo
 //description: Bar
@@ -549,7 +653,7 @@ package types
 //		},
 //		"instantiate contract": {
 //			src: InstantiateContractProposalFixture(func(p *InstantiateContractProposal) {
-//				p.Funds = sdk.CoinAdapters{{Denom: "foo", Amount: sdk.NewInt(1)}, {Denom: "bar", Amount: sdk.NewInt(2)}}
+//				p.Funds = sdk.Coins{{Denom: "foo", Amount: sdk.NewInt(1)}, {Denom: "bar", Amount: sdk.NewInt(2)}}
 //			}),
 //			exp: `title: Foo
 //description: Bar
@@ -702,7 +806,7 @@ package types
 //				CodeID:      1,
 //				Label:       "testing",
 //				Msg:         []byte("{}"),
-//				Funds:       sdk.CoinsToCoinAdapters(sdk.Coins{{"ALX", sdk.NewInt(2).ToDec()}, {"BLX", sdk.NewInt(3).ToDec()}}),
+//				Funds:       sdk.NewCoins(sdk.NewCoin("ALX", sdk.NewInt(2)), sdk.NewCoin("BLX", sdk.NewInt(3))),
 //			},
 //		},
 //		"migrate ": {
@@ -758,7 +862,8 @@ package types
 //	}
 //	for name, spec := range specs {
 //		t.Run(name, func(t *testing.T) {
-//			msg := govtypes.NewMsgSubmitProposal(spec.src, sdk.NewCoins(), []byte{})
+//			msg, err := govtypes.NewMsgSubmitProposal(spec.src, sdk.NewCoins(), []byte{})
+//			require.NoError(t, err)
 //
 //			bz := msg.GetSignBytes()
 //			assert.JSONEq(t, spec.exp, string(bz), "raw: %s", string(bz))

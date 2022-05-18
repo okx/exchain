@@ -2,24 +2,23 @@ package keeper
 
 //import (
 //	"encoding/json"
-//	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
-//
 //	"io/ioutil"
 //	"testing"
 //
+//	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
+//
 //	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-//	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-//	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
-//	wasmtypes "github.com/okex/exchain/x/wasm/types"
-//	//"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/secp256k1"
-//	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-//	authkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
-//	//bankkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/bank/keeper"
-//	distributionkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/distribution/keeper"
-//	distributiontypes "github.com/okex/exchain/libs/cosmos-sdk/x/distribution/types"
-//	stakingtypes "github.com/okex/exchain/x/staking"
-//	stakingkeeper "github.com/okex/exchain/x/staking/keeper"
-//	"github.com/okex/exchain/x/staking/types"
+//	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+//	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
+//	sdk "github.com/cosmos/cosmos-sdk/types"
+//	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
+//	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
+//	distributionkeeper "github.com/cosmos/cosmos-sdk/x/distribution/keeper"
+//	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
+//	"github.com/cosmos/cosmos-sdk/x/staking"
+//	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
+//	"github.com/cosmos/cosmos-sdk/x/staking/types"
+//	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 //	"github.com/stretchr/testify/assert"
 //	"github.com/stretchr/testify/require"
 //)
@@ -93,7 +92,6 @@ package keeper
 //}
 //
 //func TestInitializeStaking(t *testing.T) {
-//	SkipIfM1(t)
 //	ctx, k := CreateTestInput(t, false, SupportedFeatures)
 //	accKeeper, stakingKeeper, keeper, bankKeeper := k.AccountKeeper, k.StakingKeeper, k.ContractKeeper, k.BankKeeper
 //
@@ -164,7 +162,7 @@ package keeper
 //	distKeeper     distributionkeeper.Keeper
 //	wasmKeeper     Keeper
 //	contractKeeper wasmtypes.ContractOpsKeeper
-//	bankKeeper     bank.Keeper
+//	bankKeeper     bankkeeper.Keeper
 //	faucet         *TestFaucet
 //}
 //
@@ -228,7 +226,6 @@ package keeper
 //}
 //
 //func TestBonding(t *testing.T) {
-//	SkipIfM1(t)
 //	initInfo := initializeStaking(t)
 //	ctx, valAddr, contractAddr := initInfo.ctx, initInfo.valAddr, initInfo.contractAddr
 //	keeper, stakingKeeper, accKeeper, bankKeeper := initInfo.wasmKeeper, initInfo.stakingKeeper, initInfo.accKeeper, initInfo.bankKeeper
@@ -277,7 +274,6 @@ package keeper
 //}
 //
 //func TestUnbonding(t *testing.T) {
-//	SkipIfM1(t)
 //	initInfo := initializeStaking(t)
 //	ctx, valAddr, contractAddr := initInfo.ctx, initInfo.valAddr, initInfo.contractAddr
 //	keeper, stakingKeeper, accKeeper, bankKeeper := initInfo.wasmKeeper, initInfo.stakingKeeper, initInfo.accKeeper, initInfo.bankKeeper
@@ -343,7 +339,6 @@ package keeper
 //}
 //
 //func TestReinvest(t *testing.T) {
-//	SkipIfM1(t)
 //	initInfo := initializeStaking(t)
 //	ctx, valAddr, contractAddr := initInfo.ctx, initInfo.valAddr, initInfo.contractAddr
 //	keeper, stakingKeeper, accKeeper, bankKeeper := initInfo.wasmKeeper, initInfo.stakingKeeper, initInfo.accKeeper, initInfo.bankKeeper
@@ -412,7 +407,6 @@ package keeper
 //}
 //
 //func TestQueryStakingInfo(t *testing.T) {
-//	SkipIfM1(t)
 //	// STEP 1: take a lot of setup from TestReinvest so we have non-zero info
 //	initInfo := initializeStaking(t)
 //	ctx, valAddr, contractAddr := initInfo.ctx, initInfo.valAddr, initInfo.contractAddr
@@ -592,7 +586,6 @@ package keeper
 //}
 //
 //func TestQueryStakingPlugin(t *testing.T) {
-//	SkipIfM1(t)
 //	// STEP 1: take a lot of setup from TestReinvest so we have non-zero info
 //	initInfo := initializeStaking(t)
 //	ctx, valAddr, contractAddr := initInfo.ctx, initInfo.valAddr, initInfo.contractAddr

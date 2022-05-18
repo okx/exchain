@@ -203,7 +203,6 @@ func (q grpcQuerier) SmartContractState(c context.Context, req *types.QuerySmart
 		return nil, types.ErrNotFound
 	}
 	return &types.QuerySmartContractStateResponse{Data: bz}, nil
-
 }
 
 func (q grpcQuerier) Code(c context.Context, req *types.QueryCodeRequest) (*types.QueryCodeResponse, error) {
@@ -240,9 +239,10 @@ func (q grpcQuerier) Codes(c context.Context, req *types.QueryCodesRequest) (*ty
 				return false, err
 			}
 			r = append(r, types.CodeInfoResponse{
-				CodeID:   binary.BigEndian.Uint64(key),
-				Creator:  c.Creator,
-				DataHash: c.CodeHash,
+				CodeID:                binary.BigEndian.Uint64(key),
+				Creator:               c.Creator,
+				DataHash:              c.CodeHash,
+				InstantiatePermission: c.InstantiateConfig,
 			})
 		}
 		return true, nil
@@ -276,9 +276,10 @@ func queryCode(ctx sdk.Context, codeID uint64, keeper types.ViewKeeper) (*types.
 		return nil, nil
 	}
 	info := types.CodeInfoResponse{
-		CodeID:   codeID,
-		Creator:  res.Creator,
-		DataHash: res.CodeHash,
+		CodeID:                codeID,
+		Creator:               res.Creator,
+		DataHash:              res.CodeHash,
+		InstantiatePermission: res.InstantiateConfig,
 	}
 
 	code, err := keeper.GetByteCode(ctx, codeID)
@@ -299,7 +300,6 @@ func (q grpcQuerier) PinnedCodes(c context.Context, req *types.QueryPinnedCodesR
 	prefixStore := prefix.NewStore(ctx.KVStore(q.storeKey), types.PinnedCodeIndexPrefix)
 	pageRes, err := query.FilteredPaginate(prefixStore, req.Pagination, func(key []byte, _ []byte, accumulate bool) (bool, error) {
 		if accumulate {
-
 			r = append(r, sdk.BigEndianToUint64(key))
 		}
 		return true, nil
@@ -311,5 +311,4 @@ func (q grpcQuerier) PinnedCodes(c context.Context, req *types.QueryPinnedCodesR
 		CodeIDs:    r,
 		Pagination: pageRes,
 	}, nil
-
 }

@@ -1,13 +1,12 @@
 package ibctesting
 
-//
 //import (
 //	"strconv"
 //	"strings"
 //
-//	clienttypes "github.com/okex/exchain/libs/ibc-go/v2/modules/core/02-client/types"
-//	channeltypes "github.com/okex/exchain/libs/ibc-go/v2/modules/core/04-channel/types"
-//	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+//	clienttypes "github.com/cosmos/ibc-go/v3/modules/core/02-client/types"
+//	channeltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
+//	abci "github.com/tendermint/tendermint/abci/types"
 //)
 //
 //func getSendPackets(evts []abci.Event) []channeltypes.Packet {

@@ -34,15 +34,36 @@ func NewQueryCmd(cdc *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra
 		NewCmdListCode(cdc, reg),
 		NewCmdListContractByCode(cdc, reg),
 		NewCmdQueryCode(cdc, reg),
+		GetCmdQueryCodeInfo(),
 		NewCmdGetContractInfo(cdc, reg),
 		NewCmdGetContractHistory(cdc, reg),
 		NewCmdGetContractState(cdc, reg),
 		NewCmdListPinnedCode(cdc, reg),
+		GetCmdLibVersion(),
 	)
 
 	return queryCmd
 }
 
+// GetCmdLibVersion gets current libwasmvm version.
+func GetCmdLibVersion() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "libwasmvm-version",
+		Short:   "Get libwasmvm version",
+		Long:    "Get libwasmvm version",
+		Aliases: []string{"lib-version"},
+		Args:    cobra.ExactArgs(0),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			version, err := wasmvm.LibwasmvmVersion()
+			if err != nil {
+				return fmt.Errorf("error retrieving libwasmvm version: %w", err)
+			}
+			fmt.Println(version)
+			return nil
+		},
+	}
+	return cmd
+}
 // NewCmdListCode lists all wasm code uploaded
 func NewCmdListCode(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
@@ -144,7 +165,46 @@ func NewCmdQueryCode(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cob
 			}
 
 			fmt.Printf("Downloading wasm code to %s\n", args[1])
-			return ioutil.WriteFile(args[1], res.Data, 0600)
+			return ioutil.WriteFile(args[1], res.Data, 0o600)
+		},
+	}
+	flags.AddQueryFlagsToCmd(cmd)
+	return cmd
+}
+
+// GetCmdQueryCodeInfo returns the code info for a given code id
+func GetCmdQueryCodeInfo() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "code-info [code_id]",
+		Short: "Prints out metadata of a code id",
+		Long:  "Prints out metadata of a code id",
+		Args:  cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientQueryContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			codeID, err := strconv.ParseUint(args[0], 10, 64)
+			if err != nil {
+				return err
+			}
+
+			queryClient := types.NewQueryClient(clientCtx)
+			res, err := queryClient.Code(
+				context.Background(),
+				&types.QueryCodeRequest{
+					CodeId: codeID,
+				},
+			)
+			if err != nil {
+				return err
+			}
+			if res.CodeInfoResponse == nil {
+				return fmt.Errorf("contract not found")
+			}
+
+			return clientCtx.PrintProto(res.CodeInfoResponse)
 		},
 	}
 	flags.AddQueryFlagsToCmd(cmd)

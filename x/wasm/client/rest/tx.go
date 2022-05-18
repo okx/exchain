@@ -8,7 +8,7 @@ import (
 	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
-	wasmUtils "github.com/okex/exchain/x/wasm/client/utils"
+	"github.com/CosmWasm/wasmd/x/wasm/ioutils"
 	"github.com/okex/exchain/x/wasm/types"
 )
 
@@ -53,13 +53,13 @@ func storeCodeHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 		wasm := req.WasmBytes
 
 		// gzip the wasm file
-		if wasmUtils.IsWasm(wasm) {
-			wasm, err = wasmUtils.GzipIt(wasm)
+		if ioutils.IsWasm(wasm) {
+			wasm, err = ioutils.GzipIt(wasm)
 			if err != nil {
 				rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 				return
 			}
-		} else if !wasmUtils.IsGzip(wasm) {
+		} else if !ioutils.IsGzip(wasm) {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, "Invalid input file, use wasm binary or zip")
 			return
 		}

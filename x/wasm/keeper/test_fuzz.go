@@ -16,6 +16,7 @@ func FuzzAddr(m *sdk.AccAddress, c fuzz.Continue) {
 	*m = make([]byte, 20)
 	c.Read(*m)
 }
+
 func FuzzAddrString(m *string, c fuzz.Continue) {
 	var x sdk.AccAddress
 	FuzzAddr(&x, c)
@@ -66,6 +67,7 @@ func FuzzAccessType(m *types.AccessType, c fuzz.Continue) {
 		pos--
 	}
 }
+
 func FuzzAccessConfig(m *types.AccessConfig, c fuzz.Continue) {
 	FuzzAccessType(&m.Permission, c)
 	var add sdk.AccAddress

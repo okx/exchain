@@ -6,13 +6,13 @@ package ibctesting
 //	"testing"
 //	"time"
 //
-//	channeltypes "github.com/okex/exchain/libs/ibc-go/v2/modules/core/04-channel/types"
-//	host "github.com/okex/exchain/libs/ibc-go/v2/modules/core/24-host"
-//	ibctesting "github.com/okex/exchain/libs/ibc-go/v2/testing"
-//	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+//	channeltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
+//	host "github.com/cosmos/ibc-go/v3/modules/core/24-host"
+//	ibctesting "github.com/cosmos/ibc-go/v3/testing"
 //	"github.com/stretchr/testify/require"
+//	abci "github.com/tendermint/tendermint/abci/types"
 //
-//	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
+//	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 //)
 //
 //const ChainIDPrefix = "testchain"
@@ -65,7 +65,6 @@ package ibctesting
 //func (coord *Coordinator) IncrementTimeBy(increment time.Duration) {
 //	coord.CurrentTime = coord.CurrentTime.Add(increment).UTC()
 //	coord.UpdateTime()
-//
 //}
 //
 //// UpdateTime updates all clocks for the TestChains to the current global time.
@@ -115,7 +114,6 @@ package ibctesting
 //// are returned within a TestConnection struct. The function expects the connections to be
 //// successfully opened otherwise testing will fail.
 //func (coord *Coordinator) CreateConnections(path *Path) {
-//
 //	err := path.EndpointA.ConnOpenInit()
 //	require.NoError(coord.t, err)
 //
@@ -189,155 +187,155 @@ package ibctesting
 //}
 //
 //// CommitBlock commits a block on the provided indexes and then increments the global time.
+//////
+////// CONTRACT: the passed in list of indexes must not contain duplicates
+////func (coord *Coordinator) CommitBlock(chains ...*TestChain) {
+////	for _, chain := range chains {
+////		chain.App.Commit()
+////		chain.NextBlock()
+////	}
+////	coord.IncrementTime()
+////}
 ////
-//// CONTRACT: the passed in list of indexes must not contain duplicates
-//func (coord *Coordinator) CommitBlock(chains ...*TestChain) {
-//	for _, chain := range chains {
-//		chain.App.Commit()
-//		chain.NextBlock()
-//	}
-//	coord.IncrementTime()
-//}
-//
-//// CommitNBlocks commits n blocks to state and updates the block height by 1 for each commit.
-//func (coord *Coordinator) CommitNBlocks(chain *TestChain, n uint64) {
-//	for i := uint64(0); i < n; i++ {
-//		chain.App.BeginBlock(abci.RequestBeginBlock{Header: chain.CurrentHeader})
-//		chain.App.Commit()
-//		chain.NextBlock()
-//		coord.IncrementTime()
-//	}
-//}
-//
-//// ConnOpenInitOnBothChains initializes a connection on both endpoints with the state INIT
-//// using the OpenInit handshake call.
-//func (coord *Coordinator) ConnOpenInitOnBothChains(path *Path) error {
-//	if err := path.EndpointA.ConnOpenInit(); err != nil {
-//		return err
-//	}
-//
-//	if err := path.EndpointB.ConnOpenInit(); err != nil {
-//		return err
-//	}
-//
-//	if err := path.EndpointA.UpdateClient(); err != nil {
-//		return err
-//	}
-//
-//	if err := path.EndpointB.UpdateClient(); err != nil {
-//		return err
-//	}
-//
-//	return nil
-//}
-//
-//// ChanOpenInitOnBothChains initializes a channel on the source chain and counterparty chain
-//// with the state INIT using the OpenInit handshake call.
-//func (coord *Coordinator) ChanOpenInitOnBothChains(path *Path) error {
-//	// NOTE: only creation of a capability for a transfer or mock port is supported
-//	// Other applications must bind to the port in InitGenesis or modify this code.
-//
-//	if err := path.EndpointA.ChanOpenInit(); err != nil {
-//		return err
-//	}
-//
-//	if err := path.EndpointB.ChanOpenInit(); err != nil {
-//		return err
-//	}
-//
-//	if err := path.EndpointA.UpdateClient(); err != nil {
-//		return err
-//	}
-//
-//	if err := path.EndpointB.UpdateClient(); err != nil {
-//		return err
-//	}
-//
-//	return nil
-//}
-//
-//// from A to B
-//func (coord *Coordinator) RelayAndAckPendingPackets(path *Path) error {
-//	// get all the packet to relay src->dest
-//	src := path.EndpointA
-//	dest := path.EndpointB
-//	toSend := src.Chain.PendingSendPackets
-//	coord.t.Logf("Relay %d Packets A->B\n", len(toSend))
-//
-//	// send this to the other side
-//	coord.IncrementTime()
-//	coord.CommitBlock(src.Chain)
-//	err := dest.UpdateClient()
-//	if err != nil {
-//		return err
-//	}
-//	for _, packet := range toSend {
-//		err = dest.RecvPacket(packet)
-//		if err != nil {
-//			return err
-//		}
-//	}
-//	src.Chain.PendingSendPackets = nil
-//
-//	// get all the acks to relay dest->src
-//	toAck := dest.Chain.PendingAckPackets
-//	// TODO: assert >= len(toSend)?
-//	coord.t.Logf("Ack %d Packets B->A\n", len(toAck))
-//
-//	// send the ack back from dest -> src
-//	coord.IncrementTime()
-//	coord.CommitBlock(dest.Chain)
-//	err = src.UpdateClient()
-//	if err != nil {
-//		return err
-//	}
-//	for _, ack := range toAck {
-//		err = src.AcknowledgePacket(ack.Packet, ack.Ack)
-//		if err != nil {
-//			return err
-//		}
-//	}
-//	dest.Chain.PendingAckPackets = nil
-//	return nil
-//}
-//
-//// TimeoutPendingPackets returns the package to source chain to let the IBC app revert any operation.
-//// from A to A
-//func (coord *Coordinator) TimeoutPendingPackets(path *Path) error {
-//	src := path.EndpointA
-//	dest := path.EndpointB
-//
-//	toSend := src.Chain.PendingSendPackets
-//	coord.t.Logf("Timeout %d Packets A->A\n", len(toSend))
-//
-//	if err := src.UpdateClient(); err != nil {
-//		return err
-//	}
-//	// Increment time and commit block so that 5 second delay period passes between send and receive
-//	coord.IncrementTime()
-//	coord.CommitBlock(src.Chain, dest.Chain)
-//	for _, packet := range toSend {
-//		// get proof of packet unreceived on dest
-//		packetKey := host.PacketReceiptKey(packet.GetDestPort(), packet.GetDestChannel(), packet.GetSequence())
-//		proofUnreceived, proofHeight := dest.QueryProof(packetKey)
-//		timeoutMsg := channeltypes.NewMsgTimeout(packet, packet.Sequence, proofUnreceived, proofHeight, src.Chain.SenderAccount.GetAddress().String())
-//		err := src.Chain.sendMsgs(timeoutMsg)
-//		if err != nil {
-//			return err
-//		}
-//	}
-//	src.Chain.PendingSendPackets = nil
-//	dest.Chain.PendingAckPackets = nil
-//	return nil
-//}
-//
-//// CloseChannel close channel on both sides
-//func (coord *Coordinator) CloseChannel(path *Path) {
-//	err := path.EndpointA.ChanCloseInit()
-//	require.NoError(coord.t, err)
-//	coord.IncrementTime()
-//	err = path.EndpointB.UpdateClient()
-//	require.NoError(coord.t, err)
-//	err = path.EndpointB.ChanCloseConfirm()
-//	require.NoError(coord.t, err)
-//}
+////// CommitNBlocks commits n blocks to state and updates the block height by 1 for each commit.
+////func (coord *Coordinator) CommitNBlocks(chain *TestChain, n uint64) {
+////	for i := uint64(0); i < n; i++ {
+////		chain.App.BeginBlock(abci.RequestBeginBlock{Header: chain.CurrentHeader})
+////		chain.App.Commit()
+////		chain.NextBlock()
+////		coord.IncrementTime()
+////	}
+////}
+////
+////// ConnOpenInitOnBothChains initializes a connection on both endpoints with the state INIT
+////// using the OpenInit handshake call.
+////func (coord *Coordinator) ConnOpenInitOnBothChains(path *Path) error {
+////	if err := path.EndpointA.ConnOpenInit(); err != nil {
+////		return err
+////	}
+////
+////	if err := path.EndpointB.ConnOpenInit(); err != nil {
+////		return err
+////	}
+////
+////	if err := path.EndpointA.UpdateClient(); err != nil {
+////		return err
+////	}
+////
+////	if err := path.EndpointB.UpdateClient(); err != nil {
+////		return err
+////	}
+////
+////	return nil
+////}
+////
+////// ChanOpenInitOnBothChains initializes a channel on the source chain and counterparty chain
+////// with the state INIT using the OpenInit handshake call.
+////func (coord *Coordinator) ChanOpenInitOnBothChains(path *Path) error {
+////	// NOTE: only creation of a capability for a transfer or mock port is supported
+////	// Other applications must bind to the port in InitGenesis or modify this code.
+////
+////	if err := path.EndpointA.ChanOpenInit(); err != nil {
+////		return err
+////	}
+////
+////	if err := path.EndpointB.ChanOpenInit(); err != nil {
+////		return err
+////	}
+////
+////	if err := path.EndpointA.UpdateClient(); err != nil {
+////		return err
+////	}
+////
+////	if err := path.EndpointB.UpdateClient(); err != nil {
+////		return err
+////	}
+////
+////	return nil
+////}
+////
+////// from A to B
+////func (coord *Coordinator) RelayAndAckPendingPackets(path *Path) error {
+////	// get all the packet to relay src->dest
+////	src := path.EndpointA
+////	dest := path.EndpointB
+////	toSend := src.Chain.PendingSendPackets
+////	coord.t.Logf("Relay %d Packets A->B\n", len(toSend))
+////
+////	// send this to the other side
+////	coord.IncrementTime()
+////	coord.CommitBlock(src.Chain)
+////	err := dest.UpdateClient()
+////	if err != nil {
+////		return err
+////	}
+////	for _, packet := range toSend {
+////		err = dest.RecvPacket(packet)
+////		if err != nil {
+////			return err
+////		}
+////	}
+////	src.Chain.PendingSendPackets = nil
+////
+////	// get all the acks to relay dest->src
+////	toAck := dest.Chain.PendingAckPackets
+////	// TODO: assert >= len(toSend)?
+////	coord.t.Logf("Ack %d Packets B->A\n", len(toAck))
+////
+////	// send the ack back from dest -> src
+////	coord.IncrementTime()
+////	coord.CommitBlock(dest.Chain)
+////	err = src.UpdateClient()
+////	if err != nil {
+////		return err
+////	}
+////	for _, ack := range toAck {
+////		err = src.AcknowledgePacket(ack.Packet, ack.Ack)
+////		if err != nil {
+////			return err
+////		}
+////	}
+////	dest.Chain.PendingAckPackets = nil
+////	return nil
+////}
+////
+////// TimeoutPendingPackets returns the package to source chain to let the IBC app revert any operation.
+////// from A to A
+////func (coord *Coordinator) TimeoutPendingPackets(path *Path) error {
+////	src := path.EndpointA
+////	dest := path.EndpointB
+////
+////	toSend := src.Chain.PendingSendPackets
+////	coord.t.Logf("Timeout %d Packets A->A\n", len(toSend))
+////
+////	if err := src.UpdateClient(); err != nil {
+////		return err
+////	}
+////	// Increment time and commit block so that 5 second delay period passes between send and receive
+////	coord.IncrementTime()
+////	coord.CommitBlock(src.Chain, dest.Chain)
+////	for _, packet := range toSend {
+////		// get proof of packet unreceived on dest
+////		packetKey := host.PacketReceiptKey(packet.GetDestPort(), packet.GetDestChannel(), packet.GetSequence())
+////		proofUnreceived, proofHeight := dest.QueryProof(packetKey)
+////		timeoutMsg := channeltypes.NewMsgTimeout(packet, packet.Sequence, proofUnreceived, proofHeight, src.Chain.SenderAccount.GetAddress().String())
+////		err := src.Chain.sendMsgs(timeoutMsg)
+////		if err != nil {
+////			return err
+////		}
+////	}
+////	src.Chain.PendingSendPackets = nil
+////	dest.Chain.PendingAckPackets = nil
+////	return nil
+////}
+////
+////// CloseChannel close channel on both sides
+////func (coord *Coordinator) CloseChannel(path *Path) {
+////	err := path.EndpointA.ChanCloseInit()
+////	require.NoError(coord.t, err)
+////	coord.IncrementTime()
+////	err = path.EndpointB.UpdateClient()
+////	require.NoError(coord.t, err)
+////	err = path.EndpointB.ChanCloseConfirm()
+////	require.NoError(coord.t, err)
+////}

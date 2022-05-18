@@ -73,13 +73,25 @@ var (
 
 	//  error if an address does not belong to a contract (just for registration)
 	_ = sdkErrors.Register(DefaultCodespace, 22, "no such contract")
+
+	// ErrNotAJSONObject error if given data is not a JSON object
+	ErrNotAJSONObject = sdkErrors.Register(DefaultCodespace, 23, "not a JSON object")
+
+	// ErrNoTopLevelKey error if a JSON object has no top-level key
+	ErrNoTopLevelKey = sdkErrors.Register(DefaultCodespace, 24, "no top-level key")
+
+	// ErrMultipleTopLevelKeys error if a JSON object has more than one top-level key
+	ErrMultipleTopLevelKeys = sdkErrors.Register(DefaultCodespace, 25, "multiple top-level keys")
+
+	// ErrTopKevelKeyNotAllowed error if a JSON object has a top-level key that is not allowed
+	ErrTopKevelKeyNotAllowed = sdkErrors.Register(DefaultCodespace, 26, "top-level key is not allowed")
 	// ErrInvalidEvent error if an attribute/event from the contract is invalid
 
-	ErrSendDisabled = sdkErrors.Register(DefaultCodespace, 23, "send transactions are disabled")
+	ErrSendDisabled = sdkErrors.Register(DefaultCodespace, 27, "send transactions are disabled")
 )
 
 func ErrUnSupportQueryType(data string) *sdkErrors.Error {
-	return sdkErrors.Register(DefaultCodespace, 24, fmt.Sprintf("%s is not support", data))
+	return sdkErrors.Register(DefaultCodespace, 28, fmt.Sprintf("%s is not support", data))
 }
 
 type ErrNoSuchContract struct {
