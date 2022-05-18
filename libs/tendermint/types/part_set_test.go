@@ -172,6 +172,10 @@ func TestPartSetHeaderAmino(t *testing.T) {
 	for _, tc := range partSetHeaderTestCases {
 		bz, err := cdc.MarshalBinaryBare(&tc)
 		require.NoError(t, err)
+		actualBz, err := cdc.MarshalBinaryBareWithSizer(tc, false)
+		require.NoError(t, err)
+		require.Equal(t, bz, actualBz)
+		require.Equal(t, len(bz), tc.AminoSize(cdc))
 
 		var psh PartSetHeader
 		err = cdc.UnmarshalBinaryBare(bz, &psh)
