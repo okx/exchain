@@ -13,15 +13,16 @@ import (
 type ProposalType string
 
 const (
-	ProposalTypeStoreCode           ProposalType = "StoreCode"
-	ProposalTypeInstantiateContract ProposalType = "InstantiateContract"
-	ProposalTypeMigrateContract     ProposalType = "MigrateContract"
-	ProposalTypeSudoContract        ProposalType = "SudoContract"
-	ProposalTypeExecuteContract     ProposalType = "ExecuteContract"
-	ProposalTypeUpdateAdmin         ProposalType = "UpdateAdmin"
-	ProposalTypeClearAdmin          ProposalType = "ClearAdmin"
-	ProposalTypePinCodes            ProposalType = "PinCodes"
-	ProposalTypeUnpinCodes          ProposalType = "UnpinCodes"
+	ProposalTypeStoreCode               ProposalType = "StoreCode"
+	ProposalTypeInstantiateContract     ProposalType = "InstantiateContract"
+	ProposalTypeMigrateContract         ProposalType = "MigrateContract"
+	ProposalTypeSudoContract            ProposalType = "SudoContract"
+	ProposalTypeExecuteContract         ProposalType = "ExecuteContract"
+	ProposalTypeUpdateAdmin             ProposalType = "UpdateAdmin"
+	ProposalTypeClearAdmin              ProposalType = "ClearAdmin"
+	ProposalTypePinCodes                ProposalType = "PinCodes"
+	ProposalTypeUnpinCodes              ProposalType = "UnpinCodes"
+	ProposalTypeUpdateInstantiateConfig ProposalType = "UpdateInstantiateConfig"
 )
 
 // DisableAllProposals contains no wasm gov types.
@@ -38,6 +39,7 @@ var EnableAllProposals = []ProposalType{
 	ProposalTypeClearAdmin,
 	ProposalTypePinCodes,
 	ProposalTypeUnpinCodes,
+	ProposalTypeUpdateInstantiateConfig,
 }
 
 // ConvertToProposals maps each key to a ProposalType and returns a typed list.
@@ -68,6 +70,7 @@ func init() { // register new content types with the sdk
 	govtypes.RegisterProposalType(string(ProposalTypeClearAdmin))
 	govtypes.RegisterProposalType(string(ProposalTypePinCodes))
 	govtypes.RegisterProposalType(string(ProposalTypeUnpinCodes))
+	govtypes.RegisterProposalType(string(ProposalTypeUpdateInstantiateConfig))
 	govtypes.RegisterProposalTypeCodec(&StoreCodeProposal{}, "wasm/StoreCodeProposal")
 	govtypes.RegisterProposalTypeCodec(&InstantiateContractProposal{}, "wasm/InstantiateContractProposal")
 	govtypes.RegisterProposalTypeCodec(&MigrateContractProposal{}, "wasm/MigrateContractProposal")
@@ -77,6 +80,7 @@ func init() { // register new content types with the sdk
 	govtypes.RegisterProposalTypeCodec(&ClearAdminProposal{}, "wasm/ClearAdminProposal")
 	govtypes.RegisterProposalTypeCodec(&PinCodesProposal{}, "wasm/PinCodesProposal")
 	govtypes.RegisterProposalTypeCodec(&UnpinCodesProposal{}, "wasm/UnpinCodesProposal")
+	govtypes.RegisterProposalTypeCodec(&UpdateInstantiateConfigProposal{}, "wasm/UpdateInstantiateConfigProposal")
 }
 
 // ProposalRoute returns the routing key of a parameter change proposal.
@@ -545,4 +549,57 @@ func validateProposalCommons(title, description string) error {
 		return sdkerrors.Wrapf(govtypes.ErrInvalidProposalContent, "proposal description is longer than max length of %d", govtypes.MaxDescriptionLength)
 	}
 	return nil
+}
+
+// ProposalRoute returns the routing key of a parameter change proposal.
+func (p UpdateInstantiateConfigProposal) ProposalRoute() string { return RouterKey }
+
+// GetTitle returns the title of the proposal
+func (p *UpdateInstantiateConfigProposal) GetTitle() string { return p.Title }
+
+// GetDescription returns the human readable description of the proposal
+func (p UpdateInstantiateConfigProposal) GetDescription() string { return p.Description }
+
+// ProposalType returns the type
+func (p UpdateInstantiateConfigProposal) ProposalType() string {
+	return string(ProposalTypeUpdateInstantiateConfig)
+}
+
+// ValidateBasic validates the proposal
+func (p UpdateInstantiateConfigProposal) ValidateBasic() error {
+	if err := validateProposalCommons(p.Title, p.Description); err != nil {
+		return err
+	}
+	if len(p.AccessConfigUpdates) == 0 {
+		return sdkerrors.Wrap(ErrEmpty, "code updates")
+	}
+	dedup := make(map[uint64]bool)
+	for _, codeUpdate := range p.AccessConfigUpdates {
+		_, found := dedup[codeUpdate.CodeID]
+		if found {
+			return sdkerrors.Wrapf(ErrDuplicate, "duplicate code: %d", codeUpdate.CodeID)
+		}
+		if err := codeUpdate.InstantiatePermission.ValidateBasic(); err != nil {
+			return sdkerrors.Wrap(err, "instantiate permission")
+		}
+		dedup[codeUpdate.CodeID] = true
+	}
+	return nil
+}
+
+// String implements the Stringer interface.
+func (p UpdateInstantiateConfigProposal) String() string {
+	return fmt.Sprintf(`Update Instantiate Config Proposal:
+  Title:       %s
+  Description: %s
+  AccessConfigUpdates: %v
+`, p.Title, p.Description, p.AccessConfigUpdates)
+}
+
+// String implements the Stringer interface.
+func (c AccessConfigUpdate) String() string {
+	return fmt.Sprintf(`AccessConfigUpdate:
+  CodeID:       %d
+  AccessConfig: %v
+`, c.CodeID, c.InstantiatePermission)
 }

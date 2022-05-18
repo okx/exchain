@@ -125,7 +125,7 @@ func WithSHA256CodeHash(wasmCode []byte) func(info *CodeInfo) {
 }
 
 func MsgStoreCodeFixture(mutators ...func(*MsgStoreCode)) *MsgStoreCode {
-	var wasmIdent = []byte("\x00\x61\x73\x6D")
+	wasmIdent := []byte("\x00\x61\x73\x6D")
 	const anyAddress = "cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4"
 	r := &MsgStoreCode{
 		Sender:                anyAddress,
@@ -249,6 +249,48 @@ func MigrateContractProposalFixture(mutators ...func(p *MigrateContractProposal)
 		Contract:    contractAddr,
 		CodeID:      1,
 		Msg:         migMsgBz,
+	}
+
+	for _, m := range mutators {
+		m(p)
+	}
+	return p
+}
+
+func SudoContractProposalFixture(mutators ...func(p *SudoContractProposal)) *SudoContractProposal {
+	const (
+		contractAddr = "cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr"
+	)
+
+	p := &SudoContractProposal{
+		Title:       "Foo",
+		Description: "Bar",
+		Contract:    contractAddr,
+		Msg:         []byte(`{"do":"something"}`),
+	}
+
+	for _, m := range mutators {
+		m(p)
+	}
+	return p
+}
+
+func ExecuteContractProposalFixture(mutators ...func(p *ExecuteContractProposal)) *ExecuteContractProposal {
+	const (
+		contractAddr = "cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr"
+		anyAddress   = "cosmos1qyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqszqgpqyqs2m6sx4"
+	)
+
+	p := &ExecuteContractProposal{
+		Title:       "Foo",
+		Description: "Bar",
+		Contract:    contractAddr,
+		RunAs:       anyAddress,
+		Msg:         []byte(`{"do":"something"}`),
+		Funds: sdk.Coins{{
+			Denom:  "stake",
+			Amount: sdk.NewInt(1),
+		}},
 	}
 
 	for _, m := range mutators {

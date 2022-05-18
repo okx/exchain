@@ -5,15 +5,15 @@ import (
 	"fmt"
 	"testing"
 
-	ibctransfertypes "github.com/cosmos/ibc-go/v2/modules/apps/transfer/types"
-	ibctesting "github.com/cosmos/ibc-go/v2/testing"
+	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
+	ibctesting "github.com/cosmos/ibc-go/v3/testing"
 
 	wasmvm "github.com/CosmWasm/wasmvm"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	"github.com/cosmos/cosmos-sdk/store/prefix"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	clienttypes "github.com/cosmos/ibc-go/v2/modules/core/02-client/types"
-	channeltypes "github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
+	clienttypes "github.com/cosmos/ibc-go/v3/modules/core/02-client/types"
+	channeltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -41,8 +41,9 @@ func TestPinPong(t *testing.T) {
 	pongContract := &player{t: t, actor: pong}
 
 	var (
-		chainAOpts = []wasmkeeper.Option{wasmkeeper.WithWasmEngine(
-			wasmtesting.NewIBCContractMockWasmer(pingContract)),
+		chainAOpts = []wasmkeeper.Option{
+			wasmkeeper.WithWasmEngine(
+				wasmtesting.NewIBCContractMockWasmer(pingContract)),
 		}
 		chainBOpts = []wasmkeeper.Option{wasmkeeper.WithWasmEngine(
 			wasmtesting.NewIBCContractMockWasmer(pongContract),
@@ -159,18 +160,19 @@ func (p *player) Execute(code wasmvm.Checksum, env wasmvmtypes.Env, info wasmvmt
 	store.Set(lastBallSentKey, sdk.Uint64ToBigEndian(start.Value))
 	return &wasmvmtypes.Response{
 		Messages: []wasmvmtypes.SubMsg{
-			{Msg: wasmvmtypes.CosmosMsg{
-				IBC: &wasmvmtypes.IBCMsg{
-					SendPacket: &wasmvmtypes.SendPacketMsg{
-						ChannelID: start.ChannelID,
-						Data:      service.GetBytes(),
-						Timeout: wasmvmtypes.IBCTimeout{Block: &wasmvmtypes.IBCTimeoutBlock{
-							Revision: doNotTimeout.RevisionNumber,
-							Height:   doNotTimeout.RevisionHeight,
-						}},
+			{
+				Msg: wasmvmtypes.CosmosMsg{
+					IBC: &wasmvmtypes.IBCMsg{
+						SendPacket: &wasmvmtypes.SendPacketMsg{
+							ChannelID: start.ChannelID,
+							Data:      service.GetBytes(),
+							Timeout: wasmvmtypes.IBCTimeout{Block: &wasmvmtypes.IBCTimeoutBlock{
+								Revision: doNotTimeout.RevisionNumber,
+								Height:   doNotTimeout.RevisionHeight,
+							}},
+						},
 					},
 				},
-			},
 				ReplyOn: wasmvmtypes.ReplyNever,
 			},
 		},
@@ -178,11 +180,11 @@ func (p *player) Execute(code wasmvm.Checksum, env wasmvmtypes.Env, info wasmvmt
 }
 
 // OnIBCChannelOpen ensures to accept only configured version
-func (p player) IBCChannelOpen(codeID wasmvm.Checksum, env wasmvmtypes.Env, msg wasmvmtypes.IBCChannelOpenMsg, store wasmvm.KVStore, goapi wasmvm.GoAPI, querier wasmvm.Querier, gasMeter wasmvm.GasMeter, gasLimit uint64, deserCost wasmvmtypes.UFraction) (uint64, error) {
+func (p player) IBCChannelOpen(codeID wasmvm.Checksum, env wasmvmtypes.Env, msg wasmvmtypes.IBCChannelOpenMsg, store wasmvm.KVStore, goapi wasmvm.GoAPI, querier wasmvm.Querier, gasMeter wasmvm.GasMeter, gasLimit uint64, deserCost wasmvmtypes.UFraction) (*wasmvmtypes.IBC3ChannelOpenResponse, uint64, error) {
 	if msg.GetChannel().Version != p.actor {
-		return 0, nil
+		return &wasmvmtypes.IBC3ChannelOpenResponse{}, 0, nil
 	}
-	return 0, nil
+	return &wasmvmtypes.IBC3ChannelOpenResponse{}, 0, nil
 }
 
 // OnIBCChannelConnect persists connection endpoints
@@ -245,10 +247,11 @@ func (p player) IBCPacketReceive(codeID wasmvm.Checksum, env wasmvmtypes.Env, ms
 	packet := msg.Packet
 	var receivedBall hit
 	if err := json.Unmarshal(packet.Data, &receivedBall); err != nil {
-		return &wasmvmtypes.IBCReceiveResult{Ok: &wasmvmtypes.IBCReceiveResponse{
-			Acknowledgement: hitAcknowledgement{Error: err.Error()}.GetBytes(),
-		},
-		// no hit msg, we stop the game
+		return &wasmvmtypes.IBCReceiveResult{
+			Ok: &wasmvmtypes.IBCReceiveResponse{
+				Acknowledgement: hitAcknowledgement{Error: err.Error()}.GetBytes(),
+			},
+			// no hit msg, we stop the game
 		}, 0, nil
 	}
 	p.incrementCounter(receivedBallsCountKey, store)
@@ -276,9 +279,11 @@ func (p player) IBCPacketReceive(codeID wasmvm.Checksum, env wasmvmtypes.Env, ms
 	p.incrementCounter(sentBallsCountKey, store)
 	p.t.Logf("[%s] received %d, returning %d: %v\n", p.actor, otherCount, nextValue, newHit)
 
-	return &wasmvmtypes.IBCReceiveResult{Ok: &wasmvmtypes.IBCReceiveResponse{
-		Acknowledgement: receivedBall.BuildAck().GetBytes(),
-		Messages:        []wasmvmtypes.SubMsg{{Msg: wasmvmtypes.CosmosMsg{IBC: respHit}, ReplyOn: wasmvmtypes.ReplyNever}}},
+	return &wasmvmtypes.IBCReceiveResult{
+		Ok: &wasmvmtypes.IBCReceiveResponse{
+			Acknowledgement: receivedBall.BuildAck().GetBytes(),
+			Messages:        []wasmvmtypes.SubMsg{{Msg: wasmvmtypes.CosmosMsg{IBC: respHit}, ReplyOn: wasmvmtypes.ReplyNever}},
+		},
 	}, 0, nil
 }
 
@@ -299,7 +304,6 @@ func (p player) IBCPacketAck(codeID wasmvm.Checksum, env wasmvmtypes.Env, msg wa
 		p.t.Logf("[%s] acknowledged %d: %v\n", p.actor, confirmedCount, sentBall)
 	} else {
 		p.t.Logf("[%s] received app layer error: %s\n", p.actor, ack.Error)
-
 	}
 
 	p.incrementCounter(confirmedBallsCountKey, store)
@@ -345,6 +349,7 @@ func NewHit(player string, count uint64) hit {
 		player: count,
 	}
 }
+
 func (h hit) GetBytes() []byte {
 	b, err := json.Marshal(h)
 	if err != nil {
@@ -352,6 +357,7 @@ func (h hit) GetBytes() []byte {
 	}
 	return b
 }
+
 func (h hit) String() string {
 	return fmt.Sprintf("Ball %s", string(h.GetBytes()))
 }

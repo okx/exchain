@@ -10,7 +10,7 @@ import (
 
 	wasmd "github.com/CosmWasm/wasmd/app"
 
-	ibctesting "github.com/cosmos/ibc-go/v2/testing"
+	ibctesting "github.com/cosmos/ibc-go/v3/testing"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/golang/protobuf/proto" //nolint

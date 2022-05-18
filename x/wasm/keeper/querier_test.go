@@ -12,7 +12,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	cosmwasm "github.com/CosmWasm/wasmvm"
+	wasmvm "github.com/CosmWasm/wasmvm"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkErrors "github.com/cosmos/cosmos-sdk/types/errors"
@@ -185,7 +185,7 @@ func TestQuerySmartContractPanics(t *testing.T) {
 	}
 	for msg, spec := range specs {
 		t.Run(msg, func(t *testing.T) {
-			keepers.WasmKeeper.wasmVM = &wasmtesting.MockWasmer{QueryFn: func(checksum cosmwasm.Checksum, env wasmvmtypes.Env, queryMsg []byte, store cosmwasm.KVStore, goapi cosmwasm.GoAPI, querier cosmwasm.Querier, gasMeter cosmwasm.GasMeter, gasLimit uint64, deserCost wasmvmtypes.UFraction) ([]byte, uint64, error) {
+			keepers.WasmKeeper.wasmVM = &wasmtesting.MockWasmer{QueryFn: func(checksum wasmvm.Checksum, env wasmvmtypes.Env, queryMsg []byte, store wasmvm.KVStore, goapi wasmvm.GoAPI, querier wasmvm.Querier, gasMeter wasmvm.GasMeter, gasLimit uint64, deserCost wasmvmtypes.UFraction) ([]byte, uint64, error) {
 				spec.doInContract()
 				return nil, 0, nil
 			}}
@@ -653,6 +653,125 @@ func TestQueryPinnedCodes(t *testing.T) {
 			assert.Equal(t, spec.expCodeIDs, got.CodeIDs)
 		})
 	}
+}
+
+func TestQueryCodeInfo(t *testing.T) {
+	wasmCode, err := ioutil.ReadFile("./testdata/hackatom.wasm")
+	require.NoError(t, err)
+
+	ctx, keepers := CreateTestInput(t, false, SupportedFeatures)
+	keeper := keepers.WasmKeeper
+
+	anyAddress, err := sdk.AccAddressFromBech32("cosmos100dejzacpanrldpjjwksjm62shqhyss44jf5xz")
+	require.NoError(t, err)
+	specs := map[string]struct {
+		codeId       uint64
+		accessConfig types.AccessConfig
+	}{
+		"everybody": {
+			codeId:       1,
+			accessConfig: types.AllowEverybody,
+		},
+		"nobody": {
+			codeId:       10,
+			accessConfig: types.AllowNobody,
+		},
+		"with_address": {
+			codeId:       20,
+			accessConfig: types.AccessTypeOnlyAddress.With(anyAddress),
+		},
+	}
+	for msg, spec := range specs {
+		t.Run(msg, func(t *testing.T) {
+			codeInfo := types.CodeInfoFixture(types.WithSHA256CodeHash(wasmCode))
+			codeInfo.InstantiateConfig = spec.accessConfig
+			require.NoError(t, keeper.importCode(ctx, spec.codeId,
+				codeInfo,
+				wasmCode),
+			)
+
+			q := Querier(keeper)
+			got, err := q.Code(sdk.WrapSDKContext(ctx), &types.QueryCodeRequest{
+				CodeId: spec.codeId,
+			})
+			require.NoError(t, err)
+			expectedResponse := &types.QueryCodeResponse{
+				CodeInfoResponse: &types.CodeInfoResponse{
+					CodeID:                spec.codeId,
+					Creator:               codeInfo.Creator,
+					DataHash:              codeInfo.CodeHash,
+					InstantiatePermission: spec.accessConfig,
+				},
+				Data: wasmCode,
+			}
+			require.NotNil(t, got.CodeInfoResponse)
+			require.EqualValues(t, expectedResponse, got)
+		})
+	}
+}
+
+func TestQueryCodeInfoList(t *testing.T) {
+	wasmCode, err := ioutil.ReadFile("./testdata/hackatom.wasm")
+	require.NoError(t, err)
+
+	ctx, keepers := CreateTestInput(t, false, SupportedFeatures)
+	keeper := keepers.WasmKeeper
+
+	anyAddress, err := sdk.AccAddressFromBech32("cosmos100dejzacpanrldpjjwksjm62shqhyss44jf5xz")
+	require.NoError(t, err)
+	codeInfoWithConfig := func(accessConfig types.AccessConfig) types.CodeInfo {
+		codeInfo := types.CodeInfoFixture(types.WithSHA256CodeHash(wasmCode))
+		codeInfo.InstantiateConfig = accessConfig
+		return codeInfo
+	}
+
+	codes := []struct {
+		name     string
+		codeId   uint64
+		codeInfo types.CodeInfo
+	}{
+		{
+			name:     "everybody",
+			codeId:   1,
+			codeInfo: codeInfoWithConfig(types.AllowEverybody),
+		},
+		{
+			codeId:   10,
+			name:     "nobody",
+			codeInfo: codeInfoWithConfig(types.AllowNobody),
+		},
+		{
+			name:     "with_address",
+			codeId:   20,
+			codeInfo: codeInfoWithConfig(types.AccessTypeOnlyAddress.With(anyAddress)),
+		},
+	}
+
+	allCodesResponse := make([]types.CodeInfoResponse, 0)
+	for _, code := range codes {
+		t.Run(fmt.Sprintf("import_%s", code.name), func(t *testing.T) {
+			require.NoError(t, keeper.importCode(ctx, code.codeId,
+				code.codeInfo,
+				wasmCode),
+			)
+		})
+
+		allCodesResponse = append(allCodesResponse, types.CodeInfoResponse{
+			CodeID:                code.codeId,
+			Creator:               code.codeInfo.Creator,
+			DataHash:              code.codeInfo.CodeHash,
+			InstantiatePermission: code.codeInfo.InstantiateConfig,
+		})
+	}
+	q := Querier(keeper)
+	got, err := q.Codes(sdk.WrapSDKContext(ctx), &types.QueryCodesRequest{
+		Pagination: &query.PageRequest{
+			Limit: 3,
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, got.CodeInfos, 3)
+	require.EqualValues(t, allCodesResponse, got.CodeInfos)
 }
 
 func fromBase64(s string) []byte {

@@ -92,7 +92,6 @@ type InvestmentResponse struct {
 }
 
 func TestInitializeStaking(t *testing.T) {
-	SkipIfM1(t)
 	ctx, k := CreateTestInput(t, false, SupportedFeatures)
 	accKeeper, stakingKeeper, keeper, bankKeeper := k.AccountKeeper, k.StakingKeeper, k.ContractKeeper, k.BankKeeper
 
@@ -227,7 +226,6 @@ func initializeStaking(t *testing.T) initInfo {
 }
 
 func TestBonding(t *testing.T) {
-	SkipIfM1(t)
 	initInfo := initializeStaking(t)
 	ctx, valAddr, contractAddr := initInfo.ctx, initInfo.valAddr, initInfo.contractAddr
 	keeper, stakingKeeper, accKeeper, bankKeeper := initInfo.wasmKeeper, initInfo.stakingKeeper, initInfo.accKeeper, initInfo.bankKeeper
@@ -276,7 +274,6 @@ func TestBonding(t *testing.T) {
 }
 
 func TestUnbonding(t *testing.T) {
-	SkipIfM1(t)
 	initInfo := initializeStaking(t)
 	ctx, valAddr, contractAddr := initInfo.ctx, initInfo.valAddr, initInfo.contractAddr
 	keeper, stakingKeeper, accKeeper, bankKeeper := initInfo.wasmKeeper, initInfo.stakingKeeper, initInfo.accKeeper, initInfo.bankKeeper
@@ -342,7 +339,6 @@ func TestUnbonding(t *testing.T) {
 }
 
 func TestReinvest(t *testing.T) {
-	SkipIfM1(t)
 	initInfo := initializeStaking(t)
 	ctx, valAddr, contractAddr := initInfo.ctx, initInfo.valAddr, initInfo.contractAddr
 	keeper, stakingKeeper, accKeeper, bankKeeper := initInfo.wasmKeeper, initInfo.stakingKeeper, initInfo.accKeeper, initInfo.bankKeeper
@@ -411,7 +407,6 @@ func TestReinvest(t *testing.T) {
 }
 
 func TestQueryStakingInfo(t *testing.T) {
-	SkipIfM1(t)
 	// STEP 1: take a lot of setup from TestReinvest so we have non-zero info
 	initInfo := initializeStaking(t)
 	ctx, valAddr, contractAddr := initInfo.ctx, initInfo.valAddr, initInfo.contractAddr
@@ -591,7 +586,6 @@ func TestQueryStakingInfo(t *testing.T) {
 }
 
 func TestQueryStakingPlugin(t *testing.T) {
-	SkipIfM1(t)
 	// STEP 1: take a lot of setup from TestReinvest so we have non-zero info
 	initInfo := initializeStaking(t)
 	ctx, valAddr, contractAddr := initInfo.ctx, initInfo.valAddr, initInfo.contractAddr

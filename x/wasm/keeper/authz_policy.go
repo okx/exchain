@@ -12,8 +12,7 @@ type AuthorizationPolicy interface {
 	CanModifyContract(admin, actor sdk.AccAddress) bool
 }
 
-type DefaultAuthorizationPolicy struct {
-}
+type DefaultAuthorizationPolicy struct{}
 
 func (p DefaultAuthorizationPolicy) CanCreateCode(config types.AccessConfig, actor sdk.AccAddress) bool {
 	return config.Allowed(actor)
@@ -27,8 +26,7 @@ func (p DefaultAuthorizationPolicy) CanModifyContract(admin, actor sdk.AccAddres
 	return admin != nil && admin.Equals(actor)
 }
 
-type GovAuthorizationPolicy struct {
-}
+type GovAuthorizationPolicy struct{}
 
 func (p GovAuthorizationPolicy) CanCreateCode(types.AccessConfig, sdk.AccAddress) bool {
 	return true

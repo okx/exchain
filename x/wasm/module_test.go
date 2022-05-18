@@ -36,7 +36,7 @@ func setupTest(t *testing.T) testData {
 	ctx, keepers := CreateTestInput(t, false, "iterator,staking,stargate")
 	cdc := keeper.MakeTestCodec(t)
 	data := testData{
-		module:        NewAppModule(cdc, keepers.WasmKeeper, keepers.StakingKeeper),
+		module:        NewAppModule(cdc, keepers.WasmKeeper, keepers.StakingKeeper, keepers.AccountKeeper, keepers.BankKeeper),
 		ctx:           ctx,
 		acctKeeper:    keepers.AccountKeeper,
 		keeper:        *keepers.WasmKeeper,
@@ -540,7 +540,7 @@ func assertContractList(t *testing.T, q sdk.Querier, ctx sdk.Context, codeID uin
 	err := json.Unmarshal(bz, &res)
 	require.NoError(t, err)
 
-	var hasAddrs = make([]string, len(res))
+	hasAddrs := make([]string, len(res))
 	for i, r := range res {
 		hasAddrs[i] = r
 	}

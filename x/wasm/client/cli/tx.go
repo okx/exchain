@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"
 
-	wasmUtils "github.com/CosmWasm/wasmd/x/wasm/client/utils"
+	"github.com/CosmWasm/wasmd/x/wasm/ioutils"
 	"github.com/CosmWasm/wasmd/x/wasm/types"
 )
 
@@ -25,6 +25,7 @@ const (
 	flagNoAdmin                = "no-admin"
 	flagRunAs                  = "run-as"
 	flagInstantiateByEverybody = "instantiate-everybody"
+	flagInstantiateNobody      = "instantiate-nobody"
 	flagInstantiateByAddress   = "instantiate-only-address"
 	flagProposalType           = "type"
 )
@@ -73,6 +74,7 @@ func StoreCodeCmd() *cobra.Command {
 	}
 
 	cmd.Flags().String(flagInstantiateByEverybody, "", "Everybody can instantiate a contract from the code, optional")
+	cmd.Flags().String(flagInstantiateNobody, "", "Nobody except the governance process can instantiate a contract from the code, optional")
 	cmd.Flags().String(flagInstantiateByAddress, "", "Only this address can instantiate a contract instance from the code, optional")
 	flags.AddTxFlagsToCmd(cmd)
 	return cmd
@@ -85,13 +87,13 @@ func parseStoreCodeArgs(file string, sender sdk.AccAddress, flags *flag.FlagSet)
 	}
 
 	// gzip the wasm file
-	if wasmUtils.IsWasm(wasm) {
-		wasm, err = wasmUtils.GzipIt(wasm)
+	if ioutils.IsWasm(wasm) {
+		wasm, err = ioutils.GzipIt(wasm)
 
 		if err != nil {
 			return types.MsgStoreCode{}, err
 		}
-	} else if !wasmUtils.IsGzip(wasm) {
+	} else if !ioutils.IsGzip(wasm) {
 		return types.MsgStoreCode{}, fmt.Errorf("invalid input file. Use wasm binary or gzip")
 	}
 
@@ -121,6 +123,21 @@ func parseStoreCodeArgs(file string, sender sdk.AccAddress, flags *flag.FlagSet)
 				perm = &types.AllowEverybody
 			}
 		}
+
+		nobodyStr, err := flags.GetString(flagInstantiateNobody)
+		if err != nil {
+			return types.MsgStoreCode{}, fmt.Errorf("instantiate by nobody: %s", err)
+		}
+		if nobodyStr != "" {
+			ok, err := strconv.ParseBool(nobodyStr)
+			if err != nil {
+				return types.MsgStoreCode{}, fmt.Errorf("boolean value expected for instantiate by nobody: %s", err)
+			}
+			if ok {
+				perm = &types.AllowNobody
+			}
+		}
+
 	}
 
 	msg := types.MsgStoreCode{

@@ -564,6 +564,7 @@ func TestExecuteContractCmd(t *testing.T) {
 		})
 	}
 }
+
 func TestGetAllContracts(t *testing.T) {
 	specs := map[string]struct {
 		src types.GenesisState
@@ -660,14 +661,13 @@ func TestGetAllContracts(t *testing.T) {
 			assert.Equal(t, spec.exp, got)
 		})
 	}
-
 }
 
 func setupGenesis(t *testing.T, wasmGenesis types.GenesisState) string {
 	appCodec := keeper.MakeEncodingConfig(t).Marshaler
 	homeDir := t.TempDir()
 
-	require.NoError(t, os.Mkdir(path.Join(homeDir, "config"), 0700))
+	require.NoError(t, os.Mkdir(path.Join(homeDir, "config"), 0o700))
 	genFilename := path.Join(homeDir, "config", "genesis.json")
 	appState := make(map[string]json.RawMessage)
 	appState[types.ModuleName] = appCodec.MustMarshalJSON(&wasmGenesis)

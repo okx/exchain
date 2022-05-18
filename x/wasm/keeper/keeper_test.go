@@ -126,7 +126,6 @@ func TestCreateStoresInstantiatePermission(t *testing.T) {
 			keepers.WasmKeeper.SetParams(ctx, types.Params{
 				CodeUploadAccess:             types.AllowEverybody,
 				InstantiateDefaultPermission: spec.srcPermission,
-				MaxWasmCodeSize:              types.DefaultMaxWasmCodeSize,
 			})
 			fundAccounts(t, ctx, accKeeper, bankKeeper, myAddr, deposit)
 
@@ -179,6 +178,84 @@ func TestCreateWithParamPermissions(t *testing.T) {
 			require.True(t, spec.expError.Is(err), err)
 			if spec.expError != nil {
 				return
+			}
+		})
+	}
+}
+
+// ensure that the user cannot set the code instantiate permission to something more permissive
+// than the default
+func TestEnforceValidPermissionsOnCreate(t *testing.T) {
+	ctx, keepers := CreateTestInput(t, false, SupportedFeatures)
+	keeper := keepers.WasmKeeper
+	contractKeeper := keepers.ContractKeeper
+
+	deposit := sdk.NewCoins(sdk.NewInt64Coin("denom", 100000))
+	creator := keepers.Faucet.NewFundedAccount(ctx, deposit...)
+	other := keepers.Faucet.NewFundedAccount(ctx, deposit...)
+
+	onlyCreator := types.AccessTypeOnlyAddress.With(creator)
+	onlyOther := types.AccessTypeOnlyAddress.With(other)
+
+	specs := map[string]struct {
+		defaultPermssion    types.AccessType
+		requestedPermission *types.AccessConfig
+		// grantedPermission is set iff no error
+		grantedPermission types.AccessConfig
+		// expError is nil iff the request is allowed
+		expError *sdkerrors.Error
+	}{
+		"override everybody": {
+			defaultPermssion:    types.AccessTypeEverybody,
+			requestedPermission: &onlyCreator,
+			grantedPermission:   onlyCreator,
+		},
+		"default to everybody": {
+			defaultPermssion:    types.AccessTypeEverybody,
+			requestedPermission: nil,
+			grantedPermission:   types.AccessConfig{Permission: types.AccessTypeEverybody},
+		},
+		"explicitly set everybody": {
+			defaultPermssion:    types.AccessTypeEverybody,
+			requestedPermission: &types.AccessConfig{Permission: types.AccessTypeEverybody},
+			grantedPermission:   types.AccessConfig{Permission: types.AccessTypeEverybody},
+		},
+		"cannot override nobody": {
+			defaultPermssion:    types.AccessTypeNobody,
+			requestedPermission: &onlyCreator,
+			expError:            sdkerrors.ErrUnauthorized,
+		},
+		"default to nobody": {
+			defaultPermssion:    types.AccessTypeNobody,
+			requestedPermission: nil,
+			grantedPermission:   types.AccessConfig{Permission: types.AccessTypeNobody},
+		},
+		"only defaults to code creator": {
+			defaultPermssion:    types.AccessTypeOnlyAddress,
+			requestedPermission: nil,
+			grantedPermission:   onlyCreator,
+		},
+		"can explicitly set to code creator": {
+			defaultPermssion:    types.AccessTypeOnlyAddress,
+			requestedPermission: &onlyCreator,
+			grantedPermission:   onlyCreator,
+		},
+		"cannot override which address in only": {
+			defaultPermssion:    types.AccessTypeOnlyAddress,
+			requestedPermission: &onlyOther,
+			expError:            sdkerrors.ErrUnauthorized,
+		},
+	}
+	for msg, spec := range specs {
+		t.Run(msg, func(t *testing.T) {
+			params := types.DefaultParams()
+			params.InstantiateDefaultPermission = spec.defaultPermssion
+			keeper.SetParams(ctx, params)
+			codeID, err := contractKeeper.Create(ctx, creator, hackatomWasm, spec.requestedPermission)
+			require.True(t, spec.expError.Is(err), err)
+			if spec.expError == nil {
+				codeInfo := keeper.GetCodeInfo(ctx, codeID)
+				require.Equal(t, codeInfo.InstantiateConfig, spec.grantedPermission)
 			}
 		})
 	}
@@ -259,7 +336,7 @@ func TestIsSimulationMode(t *testing.T) {
 	}
 	for msg := range specs {
 		t.Run(msg, func(t *testing.T) {
-			//assert.Equal(t, spec.exp, isSimulationMode(spec.ctx))
+			// assert.Equal(t, spec.exp, isSimulationMode(spec.ctx))
 		})
 	}
 }
@@ -672,7 +749,6 @@ func TestExecuteWithNonExistingAddress(t *testing.T) {
 }
 
 func TestExecuteWithPanic(t *testing.T) {
-	SkipIfM1(t)
 	ctx, keepers := CreateTestInput(t, false, SupportedFeatures)
 	keeper := keepers.ContractKeeper
 
@@ -704,7 +780,6 @@ func TestExecuteWithPanic(t *testing.T) {
 }
 
 func TestExecuteWithCpuLoop(t *testing.T) {
-	SkipIfM1(t)
 	ctx, keepers := CreateTestInput(t, false, SupportedFeatures)
 	keeper := keepers.ContractKeeper
 
@@ -743,11 +818,9 @@ func TestExecuteWithCpuLoop(t *testing.T) {
 	// this should throw out of gas exception (panic)
 	_, err = keepers.ContractKeeper.Execute(ctx, addr, fred, []byte(`{"cpu_loop":{}}`), nil)
 	require.True(t, false, "We must panic before this line")
-
 }
 
 func TestExecuteWithStorageLoop(t *testing.T) {
-	SkipIfM1(t)
 	ctx, keepers := CreateTestInput(t, false, SupportedFeatures)
 	keeper := keepers.ContractKeeper
 
@@ -789,7 +862,6 @@ func TestExecuteWithStorageLoop(t *testing.T) {
 }
 
 func TestMigrate(t *testing.T) {
-	SkipIfM1(t)
 	ctx, keepers := CreateTestInput(t, false, SupportedFeatures)
 	keeper := keepers.ContractKeeper
 
@@ -971,7 +1043,6 @@ func TestMigrate(t *testing.T) {
 }
 
 func TestMigrateReplacesTheSecondIndex(t *testing.T) {
-	SkipIfM1(t)
 	ctx, keepers := CreateTestInput(t, false, SupportedFeatures)
 	example := InstantiateHackatomExampleContract(t, ctx, keepers)
 
@@ -1231,7 +1302,6 @@ func TestSudo(t *testing.T) {
 	expEvt := sdk.NewEvent("sudo",
 		sdk.NewAttribute("_contract_address", addr.String()))
 	assert.Equal(t, expEvt, em.Events()[0])
-
 }
 
 func prettyEvents(t *testing.T, events sdk.Events) string {
@@ -1429,7 +1499,8 @@ func TestUnpinCode(t *testing.T) {
 		UnpinFn: func(checksum wasmvm.Checksum) error {
 			capturedChecksums = append(capturedChecksums, checksum)
 			return nil
-		}}
+		},
+	}
 	wasmtesting.MakeInstantiable(&mock)
 	myCodeID := StoreRandomContract(t, ctx, keepers, &mock).CodeID
 	require.Equal(t, uint64(1), myCodeID)
@@ -1524,7 +1595,6 @@ func TestPinnedContractLoops(t *testing.T) {
 	})
 	assert.True(t, ctx.GasMeter().IsOutOfGas())
 	assert.Greater(t, loops, 2)
-
 }
 
 func TestNewDefaultWasmVMContractResponseHandler(t *testing.T) {
@@ -1588,9 +1658,7 @@ func TestNewDefaultWasmVMContractResponseHandler(t *testing.T) {
 	}
 	for name, spec := range specs {
 		t.Run(name, func(t *testing.T) {
-			var (
-				msgs []wasmvmtypes.SubMsg
-			)
+			var msgs []wasmvmtypes.SubMsg
 			var mock wasmtesting.MockMsgDispatcher
 			spec.setup(&mock)
 			d := NewDefaultWasmVMContractResponseHandler(&mock)

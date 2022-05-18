@@ -330,3 +330,21 @@ func VerifyAddressLen() func(addr []byte) error {
 		return nil
 	}
 }
+
+// IsSubset will return true if the caller is the same as the superset,
+// or if the caller is more restrictive than the superset.
+func (a AccessConfig) IsSubset(superSet AccessConfig) bool {
+	switch superSet.Permission {
+	case AccessTypeEverybody:
+		// Everything is a subset of this
+		return a.Permission != AccessTypeUnspecified
+	case AccessTypeNobody:
+		// Only an exact match is a subset of this
+		return a.Permission == AccessTypeNobody
+	case AccessTypeOnlyAddress:
+		// An exact match or nobody
+		return a.Permission == AccessTypeNobody || (a.Permission == AccessTypeOnlyAddress && a.Address == superSet.Address)
+	default:
+		return false
+	}
+}

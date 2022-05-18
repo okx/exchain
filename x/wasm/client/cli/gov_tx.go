@@ -3,10 +3,12 @@ package cli
 import (
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/client/tx"
 	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/version"
 	"github.com/cosmos/cosmos-sdk/x/gov/client/cli"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	"github.com/pkg/errors"
@@ -76,6 +78,7 @@ func ProposalStoreCodeCmd() *cobra.Command {
 
 	cmd.Flags().String(flagRunAs, "", "The address that is stored as code creator")
 	cmd.Flags().String(flagInstantiateByEverybody, "", "Everybody can instantiate a contract from the code, optional")
+	cmd.Flags().String(flagInstantiateNobody, "", "Nobody except the governance process can instantiate a contract from the code, optional")
 	cmd.Flags().String(flagInstantiateByAddress, "", "Only this address can instantiate a contract instance from the code, optional")
 
 	// proposal flags
@@ -593,6 +596,113 @@ func ProposalUnpinCodesCmd() *cobra.Command {
 				CodeIDs:     codeIds,
 			}
 
+			msg, err := govtypes.NewMsgSubmitProposal(&content, deposit, clientCtx.GetFromAddress())
+			if err != nil {
+				return err
+			}
+			if err = msg.ValidateBasic(); err != nil {
+				return err
+			}
+
+			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
+		},
+	}
+	// proposal flags
+	cmd.Flags().String(cli.FlagTitle, "", "Title of proposal")
+	cmd.Flags().String(cli.FlagDescription, "", "Description of proposal")
+	cmd.Flags().String(cli.FlagDeposit, "", "Deposit of proposal")
+	cmd.Flags().String(cli.FlagProposal, "", "Proposal file path (if this path is given, other proposal flags are ignored)")
+	// type values must match the "ProposalHandler" "routes" in cli
+	cmd.Flags().String(flagProposalType, "", "Permission of proposal, types: store-code/instantiate/migrate/update-admin/clear-admin/text/parameter_change/software_upgrade")
+	return cmd
+}
+
+func parseAccessConfig(config string) (types.AccessConfig, error) {
+	switch config {
+	case "nobody":
+		return types.AllowNobody, nil
+	case "everybody":
+		return types.AllowEverybody, nil
+	default:
+		address, err := sdk.AccAddressFromBech32(config)
+		if err != nil {
+			return types.AccessConfig{}, fmt.Errorf("unable to parse address %s", config)
+		}
+		return types.AccessTypeOnlyAddress.With(address), nil
+	}
+}
+
+func parseAccessConfigUpdates(args []string) ([]types.AccessConfigUpdate, error) {
+	updates := make([]types.AccessConfigUpdate, len(args))
+	for i, c := range args {
+		// format: code_id,access_config
+		// access_config: nobody|everybody|address
+		parts := strings.Split(c, ",")
+		if len(parts) != 2 {
+			return nil, fmt.Errorf("invalid format")
+		}
+
+		codeID, err := strconv.ParseUint(parts[0], 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("invalid code ID: %s", err)
+		}
+
+		accessConfig, err := parseAccessConfig(parts[1])
+		if err != nil {
+			return nil, err
+		}
+		updates[i] = types.AccessConfigUpdate{
+			CodeID:                codeID,
+			InstantiatePermission: accessConfig,
+		}
+	}
+	return updates, nil
+}
+
+func ProposalUpdateInstantiateConfigCmd() *cobra.Command {
+	bech32Prefix := sdk.GetConfig().GetBech32AccountAddrPrefix()
+	cmd := &cobra.Command{
+		Use:   "update-instantiate-config [code-id,permission]...",
+		Short: "Submit an update instantiate config proposal.",
+		Args:  cobra.MinimumNArgs(1),
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Submit an update instantiate config  proposal for multiple code ids.
+
+Example: 
+$ %s tx gov submit-proposal update-instantiate-config 1,nobody 2,everybody 3,%s1l2rsakp388kuv9k8qzq6lrm9taddae7fpx59wm
+`, version.AppName, bech32Prefix)),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx, err := client.GetClientTxContext(cmd)
+			if err != nil {
+				return err
+			}
+
+			proposalTitle, err := cmd.Flags().GetString(cli.FlagTitle)
+			if err != nil {
+				return fmt.Errorf("proposal title: %s", err)
+			}
+			proposalDescr, err := cmd.Flags().GetString(cli.FlagDescription)
+			if err != nil {
+				return fmt.Errorf("proposal description: %s", err)
+			}
+			depositArg, err := cmd.Flags().GetString(cli.FlagDeposit)
+			if err != nil {
+				return fmt.Errorf("deposit: %s", err)
+			}
+			deposit, err := sdk.ParseCoinsNormalized(depositArg)
+			if err != nil {
+				return err
+			}
+			updates, err := parseAccessConfigUpdates(args)
+			if err != nil {
+				return err
+			}
+
+			content := types.UpdateInstantiateConfigProposal{
+				Title:               proposalTitle,
+				Description:         proposalDescr,
+				AccessConfigUpdates: updates,
+			}
 			msg, err := govtypes.NewMsgSubmitProposal(&content, deposit, clientCtx.GetFromAddress())
 			if err != nil {
 				return err
