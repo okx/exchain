@@ -978,7 +978,7 @@ func TestNewRoundStepMessageAmino(t *testing.T) {
 	for _, msg := range testCases {
 		expectData, err := cdc.MarshalBinaryBare(msg)
 		require.NoError(t, err)
-		actualData, err := cdc.MarshalBinaryBareWithSizer(msg, false)
+		actualData, err := cdc.MarshalBinaryWithSizer(msg, false)
 		require.NoError(t, err)
 
 		require.Equal(t, expectData, actualData)
@@ -1012,7 +1012,7 @@ func TestBlockPartMessageAmino(t *testing.T) {
 	for _, msg := range testCases {
 		expectData, err := cdc.MarshalBinaryBare(msg)
 		require.NoError(t, err)
-		actualData, err := cdc.MarshalBinaryBareWithSizer(msg, false)
+		actualData, err := cdc.MarshalBinaryWithSizer(msg, false)
 		require.NoError(t, err)
 
 		require.Equal(t, expectData, actualData)
@@ -1049,7 +1049,7 @@ func TestVoteMessageAmino(t *testing.T) {
 	for _, tc := range testCases {
 		expectData, err := cdc.MarshalBinaryBare(tc)
 		require.NoError(t, err)
-		actualData, err := cdc.MarshalBinaryBareWithSizer(tc, false)
+		actualData, err := cdc.MarshalBinaryWithSizer(tc, false)
 		require.NoError(t, err)
 
 		require.Equal(t, expectData, actualData)
@@ -1089,7 +1089,7 @@ func TestHasVoteMessageAmino(t *testing.T) {
 	for _, tc := range testCases {
 		expectData, err := cdc.MarshalBinaryBare(tc)
 		require.NoError(t, err)
-		actualData, err := cdc.MarshalBinaryBareWithSizer(tc, false)
+		actualData, err := cdc.MarshalBinaryWithSizer(tc, false)
 		require.NoError(t, err)
 
 		require.Equal(t, expectData, actualData)
@@ -1144,7 +1144,7 @@ func TestVoteSetMaj23MessageAmino(t *testing.T) {
 	for _, tc := range testCases {
 		expectData, err := cdc.MarshalBinaryBare(tc)
 		require.NoError(t, err)
-		actualData, err := cdc.MarshalBinaryBareWithSizer(&tc, false)
+		actualData, err := cdc.MarshalBinaryWithSizer(&tc, false)
 		require.NoError(t, err)
 
 		require.Equal(t, expectData, actualData)

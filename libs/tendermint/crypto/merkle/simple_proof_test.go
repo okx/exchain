@@ -69,7 +69,7 @@ func TestSimpleProofAmino(t *testing.T) {
 		expectData, err := cdc.MarshalBinaryBare(sp)
 		require.NoError(t, err)
 
-		actualData, err := cdc.MarshalBinaryBareWithSizer(sp, false)
+		actualData, err := cdc.MarshalBinaryWithSizer(sp, false)
 		require.NoError(t, err)
 		require.Equal(t, expectData, actualData)
 		require.Equal(t, len(expectData), sp.AminoSize(cdc))
