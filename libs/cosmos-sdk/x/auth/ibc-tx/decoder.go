@@ -1,23 +1,20 @@
-package tx
+package ibc_tx
 
 import (
 	"fmt"
-
-	"google.golang.org/protobuf/encoding/protowire"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
-
+	"github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx/internal/adapter"
+	"google.golang.org/protobuf/encoding/protowire"
 	//"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
-	ibckey "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
-	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	tx "github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-
-	tmtypes "github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 )
 
 // DefaultTxDecoder returns a default protobuf TxDecoder using the provided Marshaler.
@@ -74,69 +71,164 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			AuthInfo:   &authInfo,
 			Signatures: raw.Signatures,
 		}
-
-		amount := authInfo.Fee.Amount[0].Amount.BigInt()
-
-		fee := authtypes.StdFee{
-			Amount: []sdk.DecCoin{
-				sdk.DecCoin{
-					Denom:  ibcTx.AuthInfo.Fee.Amount[0].Denom,
-					Amount: sdk.NewDecFromBigInt(amount),
-				},
-			},
-			Gas: ibcTx.AuthInfo.Fee.GasLimit,
+		fee, signFee, err := convertFee(authInfo)
+		if err != nil {
+			return nil, err
 		}
-		signatures := []authtypes.StdSignature{}
-		for i, s := range ibcTx.Signatures {
-			pk := &ibckey.PubKey{}
-			cdc.UnmarshalBinaryBare(ibcTx.AuthInfo.SignerInfos[i].PublicKey.Value, pk)
 
-			//convert crypto pubkey to tm pubkey
-			tmPubKey := tmtypes.PubKeySecp256k1{}
-			copy(tmPubKey[:], pk.Bytes())
+		signatures := convertSignature(ibcTx)
 
-			signatures = append(signatures,
-				authtypes.StdSignature{
-					Signature: s,
-					PubKey:    tmPubKey,
-				},
-			)
+		// construct Msg
+		stdMsgs, signMsgs, err := constructMsgs(ibcTx)
+		if err != nil {
+			return nil, err
 		}
-		stdmsgs := []sdk.Msg{}
-		for _, ibcmsg := range ibcTx.Body.Messages {
-			m := ibcmsg.GetCachedValue().(sdk.Msg)
-			stdmsgs = append(stdmsgs, m)
+
+		var modeInfo *tx.ModeInfo_Single_
+		var ok bool
+		if len(authInfo.SignerInfos) > 0 {
+			modeInfo, ok = authInfo.SignerInfos[0].ModeInfo.Sum.(*tx.ModeInfo_Single_)
+			if !ok {
+				return nil, sdkerrors.Wrap(sdkerrors.ErrInternal, "only support ModeInfo_Single")
+			}
+		}
+		var signMode signing.SignMode
+		if modeInfo != nil && modeInfo.Single != nil {
+			signMode = modeInfo.Single.Mode
 		}
 
 		stx := authtypes.IbcTx{
 			&authtypes.StdTx{
-				Msgs:       stdmsgs,
+				Msgs:       stdMsgs,
 				Fee:        fee,
 				Signatures: signatures,
 				Memo:       ibcTx.Body.Memo,
 			},
 			raw.AuthInfoBytes,
 			raw.BodyBytes,
+			signMode,
+			signFee,
+			signMsgs,
 		}
 
 		return &stx, nil
 	}
 }
 
-// // DefaultJSONTxDecoder returns a default protobuf JSON TxDecoder using the provided Marshaler.
-// func DefaultJSONTxDecoder(cdc codec.ProtoCodecMarshaler) sdk.TxDecoder {
-// 	return func(txBytes []byte) (sdk.Tx, error) {
-// 		var theTx tx.Tx
-// 		err := cdc.UnmarshalJSON(txBytes, &theTx)
-// 		if err != nil {
-// 			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
-// 		}
+func constructMsgs(ibcTx *tx.Tx) ([]sdk.Msg, []sdk.Msg, error) {
+	var err error
+	stdMsgs, signMsgs := []sdk.Msg{}, []sdk.Msg{}
+	for _, ibcMsg := range ibcTx.Body.Messages {
+		m, ok := ibcMsg.GetCachedValue().(sdk.Msg)
+		if !ok {
+			return nil, nil, sdkerrors.Wrap(
+				sdkerrors.ErrInternal, "messages in ibcTx.Body not implement sdk.Msg",
+			)
+		}
+		var newMsg sdk.Msg
+		switch msg := m.(type) {
+		case DenomAdapterMsg:
+			// ibc transfer okt is not allowed,should do filter
+			newMsg, err = msg.RulesFilter()
+			if err != nil {
+				return nil, nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "ibc tx decoder not support okt amount")
+			}
+		default:
+			newMsg = m
+		}
+		stdMsgs = append(stdMsgs, newMsg)
+		signMsgs = append(signMsgs, m)
+	}
+	return stdMsgs, signMsgs, nil
+}
 
-// 		return &wrapper{
-// 			tx: &theTx,
-// 		}, nil
-// 	}
-// }
+func convertSignature(ibcTx *tx.Tx) []authtypes.StdSignature {
+	signatures := []authtypes.StdSignature{}
+	for i, s := range ibcTx.Signatures {
+		var pkData types.PubKey
+		if ibcTx.AuthInfo.SignerInfos != nil {
+			var ok bool
+			pkData, ok = ibcTx.AuthInfo.SignerInfos[i].PublicKey.GetCachedValue().(types.PubKey)
+			if !ok {
+				return nil
+			}
+		}
+		pubKey, err := adapter.ProtoBufPubkey2LagacyPubkey(pkData)
+		if err != nil {
+			return []authtypes.StdSignature{}
+		}
+
+		signatures = append(signatures,
+			authtypes.StdSignature{
+				Signature: s,
+				PubKey:    pubKey,
+			},
+		)
+	}
+	return signatures
+}
+
+func convertFee(authInfo tx.AuthInfo) (authtypes.StdFee, authtypes.IbcFee, error) {
+
+	gaslimit := uint64(0)
+	var decCoins sdk.DecCoins
+	var err error
+	// for verify signature
+	var signFee authtypes.IbcFee
+	if authInfo.Fee != nil {
+		decCoins, err = feeDenomFilter(authInfo.Fee.Amount)
+		if err != nil {
+			return authtypes.StdFee{}, authtypes.IbcFee{}, err
+		}
+		gaslimit = authInfo.Fee.GasLimit
+		signFee = authtypes.IbcFee{
+			authInfo.Fee.Amount,
+			authInfo.Fee.GasLimit,
+		}
+	}
+
+	return authtypes.StdFee{
+		Amount: decCoins,
+		Gas:    gaslimit,
+	}, signFee, nil
+}
+
+func feeDenomFilter(coins sdk.CoinAdapters) (sdk.DecCoins, error) {
+	decCoins := sdk.DecCoins{}
+
+	if coins != nil {
+		for _, fee := range coins {
+			amount := fee.Amount.BigInt()
+			denom := fee.Denom
+			// convert ibc denom to DefaultBondDenom
+			if denom == sdk.DefaultIbcWei {
+				decCoins = append(decCoins, sdk.DecCoin{
+					Denom:  sdk.DefaultBondDenom,
+					Amount: sdk.NewDecFromIntWithPrec(sdk.NewIntFromBigInt(amount), sdk.Precision),
+				})
+			} else {
+				// not suport other denom fee
+				return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "ibc tx decoder only support wei fee")
+			}
+		}
+	}
+	return decCoins, nil
+}
+
+// DefaultJSONTxDecoder returns a default protobuf JSON TxDecoder using the provided Marshaler.
+//func DefaultJSONTxDecoder(cdc codec.ProtoCodecMarshaler) sdk.TxDecoder {
+//	return func(txBytes []byte) (sdk.Tx, error) {
+//		var theTx tx.Tx
+//		err := cdc.UnmarshalJSON(txBytes, &theTx)
+//		if err != nil {
+//			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+//		}
+//
+//		return &wrapper{
+//			tx: &theTx,
+//		}, nil
+//	}
+//}
 
 // rejectNonADR027TxRaw rejects txBytes that do not follow ADR-027. This is NOT
 // a generic ADR-027 checker, it only applies decoding TxRaw. Specifically, it

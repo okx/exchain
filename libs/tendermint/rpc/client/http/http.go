@@ -63,7 +63,7 @@ Example:
 */
 type HTTP struct {
 	remote string
-	rpc    *jsonrpcclient.Client
+	rpc    *jsonrpcclient.Cm39HttpJSONClientAdapter
 
 	*baseRPCClient
 	*WSEvents
@@ -140,7 +140,7 @@ func NewWithClient(remote, wsEndpoint string, client *http.Client) (*HTTP, error
 		panic("nil http.Client provided")
 	}
 
-	rc, err := jsonrpcclient.NewWithHTTPClient(remote, client)
+	rc, err := jsonrpcclient.NewCm39HttpJSONClient(remote, client)
 	if err != nil {
 		return nil, err
 	}

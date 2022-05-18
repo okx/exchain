@@ -6,6 +6,9 @@ import (
 	"os"
 	"runtime/pprof"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
@@ -57,17 +60,23 @@ const (
 	FlagPruningMaxWsNum = "pruning-max-worldstate-num"
 	FlagExportKeystore  = "export-keystore"
 	FlagLogServerUrl    = "log-server"
+
+	FlagActiveViewChange = "active-view-change"
+	FlagCommitGapHeight  = "commit-gap-height"
+
+	FlagBlockPartSizeBytes = "block-part-size"
 )
 
 // StartCmd runs the service passed in, either stand-alone or in-process with
 // Tendermint.
 func StartCmd(ctx *Context,
 	cdc *codec.CodecProxy,
+	registry jsonpb.AnyResolver,
 	appCreator AppCreator,
 	appStop AppStop,
 	registerRoutesFn func(restServer *lcd.RestServer),
 	registerAppFlagFn func(cmd *cobra.Command),
-	appPreRun func(ctx *Context) error,
+	appPreRun func(ctx *Context, cmd *cobra.Command) error,
 	subFunc func(logger log.Logger) log.Subscriber,
 ) *cobra.Command {
 	cmd := &cobra.Command{
@@ -97,11 +106,9 @@ which accepts a path for the resulting pprof file.
 `,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			// app pre run
-			if err := appPreRun(ctx); err != nil {
+			if err := appPreRun(ctx, cmd); err != nil {
 				return err
 			}
-			// set external package flags
-			SetExternalPackageValue(cmd)
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -112,14 +119,13 @@ which accepts a path for the resulting pprof file.
 			log.SetSubscriber(sub)
 
 			setPID(ctx)
-			_, err := startInProcess(ctx, cdc, appCreator, appStop, registerRoutesFn)
+			_, err := startInProcess(ctx, cdc, registry, appCreator, appStop, registerRoutesFn)
 			if err != nil {
 				tmos.Exit(err.Error())
 			}
 			return nil
 		},
 	}
-
 	RegisterServerFlags(cmd)
 	registerAppFlagFn(cmd)
 	// add support for all Tendermint-specific command line options
@@ -128,7 +134,7 @@ which accepts a path for the resulting pprof file.
 	return cmd
 }
 
-func startInProcess(ctx *Context, cdc *codec.CodecProxy, appCreator AppCreator, appStop AppStop,
+func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyResolver, appCreator AppCreator, appStop AppStop,
 	registerRoutesFn func(restServer *lcd.RestServer)) (*node.Node, error) {
 
 	cfg := ctx.Config
@@ -216,7 +222,7 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, appCreator AppCreator, 
 	})
 
 	if registerRoutesFn != nil {
-		go lcd.StartRestServer(cdc, registerRoutesFn, tmNode, viper.GetString(FlagListenAddr))
+		go lcd.StartRestServer(cdc, registry, registerRoutesFn, tmNode, viper.GetString(FlagListenAddr))
 	}
 
 	baseapp.SetGlobalMempool(tmNode.Mempool(), cfg.Mempool.SortTxByGp, cfg.Mempool.EnablePendingPool)
@@ -259,4 +265,10 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	tmtypes.UploadDelta = viper.GetBool(tmtypes.FlagUploadDDS)
 	tmtypes.FastQuery = viper.GetBool(tmtypes.FlagFastQuery)
 	tmtypes.DeltaVersion = viper.GetInt(tmtypes.FlagDeltaVersion)
+	tmtypes.BlockCompressType = viper.GetInt(tmtypes.FlagBlockCompressType)
+	tmtypes.BlockCompressFlag = viper.GetInt(tmtypes.FlagBlockCompressFlag)
+	tmtypes.BlockCompressThreshold = viper.GetInt(tmtypes.FlagBlockCompressThreshold)
+
+	tmiavl.CommitGapHeight = viper.GetInt64(FlagCommitGapHeight)
+	mpt.TrieCommitGap = viper.GetInt64(FlagCommitGapHeight)
 }

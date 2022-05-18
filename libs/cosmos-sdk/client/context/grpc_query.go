@@ -7,6 +7,9 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	grpctypes "github.com/okex/exchain/libs/cosmos-sdk/types/grpc"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"reflect"
 	"strconv"
 
@@ -30,6 +33,21 @@ func (ctx CLIContext) Invoke(grpcCtx gocontext.Context, method string, req, repl
 	// In both cases, we don't allow empty request args (it will panic unexpectedly).
 	if reflect.ValueOf(req).IsNil() {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "request cannot be nil")
+	}
+
+	// Case 1. Broadcasting a Tx.
+	if reqProto, ok := req.(TxRequest); ok {
+		broadcastRes, err := TxServiceBroadcast(grpcCtx, ctx, reqProto)
+		if err != nil {
+			return err
+		}
+		if resp, ok := reply.(TxResponse); ok {
+			reply = resp.HandleResponse(ctx.CodecProy, broadcastRes)
+		} else {
+			reply = broadcastRes
+		}
+
+		return err
 	}
 
 	// Case 2. Querying state.
@@ -95,4 +113,33 @@ func (ctx CLIContext) Invoke(grpcCtx gocontext.Context, method string, req, repl
 // NewStream implements the grpc ClientConn.NewStream method
 func (CLIContext) NewStream(gocontext.Context, *grpc.StreamDesc, string, ...grpc.CallOption) (grpc.ClientStream, error) {
 	return nil, fmt.Errorf("streaming rpc not supported")
+}
+
+func TxServiceBroadcast(grpcCtx context.Context, clientCtx CLIContext, req TxRequest) (interface{}, error) {
+	if req == nil || req.GetData() == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid empty tx")
+	}
+
+	clientCtx = clientCtx.WithBroadcastMode(normalizeBroadcastMode(req.GetModeDetail()))
+	ret, err := clientCtx.BroadcastTx(req.GetData())
+	if err != nil {
+		return nil, err
+	}
+
+	return ret, nil
+}
+
+// normalizeBroadcastMode converts a broadcast mode into a normalized string
+// to be passed into the clientCtx.
+func normalizeBroadcastMode(mode int32) string {
+	switch mode {
+	case 3:
+		return "async"
+	case 1:
+		return "block"
+	case 2:
+		return "sync"
+	default:
+		return "unspecified"
+	}
 }

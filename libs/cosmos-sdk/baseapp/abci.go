@@ -7,16 +7,16 @@ import (
 	"sort"
 	"strconv"
 	"strings"
-	"sync/atomic"
 	"syscall"
 	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/iavl"
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/trace"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/tendermint/go-amino"
 )
@@ -41,7 +41,7 @@ func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitC
 	}
 
 	// add block gas meter for any genesis transactions (allow infinite gas)
-	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(sdk.NewInfiniteGasMeter())
+	app.deliverState.ctx.SetBlockGasMeter(sdk.NewInfiniteGasMeter())
 
 	res = app.initChainer(app.deliverState.ctx, req)
 
@@ -113,6 +113,7 @@ func (app *BaseApp) FilterPeerByID(info string) abci.ResponseQuery {
 
 // BeginBlock implements the ABCI application interface.
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
+	app.blockDataCache.Clear()
 	if app.cms.TracingEnabled() {
 		app.cms.SetTracingContext(sdk.TraceContext(
 			map[string]interface{}{"blockHeight": req.Header.Height},
@@ -136,9 +137,9 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	} else {
 		// In the first block, app.deliverState.ctx will already be initialized
 		// by InitChain. Context is now updated with Header information.
-		app.deliverState.ctx = app.deliverState.ctx.
-			WithBlockHeader(req.Header).
-			WithBlockHeight(req.Header.Height)
+		app.deliverState.ctx.
+			SetBlockHeader(req.Header).
+			SetBlockHeight(req.Header.Height)
 	}
 
 	app.newBlockCache()
@@ -150,7 +151,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		gasMeter = sdk.NewInfiniteGasMeter()
 	}
 
-	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(gasMeter)
+	app.deliverState.ctx.SetBlockGasMeter(gasMeter)
 
 	if app.beginBlocker != nil {
 		res = app.beginBlocker(app.deliverState.ctx, req)
@@ -161,11 +162,47 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 
 	app.anteTracer = trace.NewTracer(trace.AnteChainDetail)
 
+	app.feeForCollector = sdk.Coins{}
+	app.feeChanged = false
+
 	return res
+}
+
+func (app *BaseApp) UpdateFeeForCollector(fee sdk.Coins, add bool) {
+	if fee.IsZero() {
+		return
+	}
+	app.feeChanged = true
+	if add {
+		app.feeForCollector = app.feeForCollector.Add(fee...)
+	} else {
+		app.feeForCollector = app.feeForCollector.Sub(fee)
+	}
+}
+
+func (app *BaseApp) updateFeeCollectorAccount() {
+	if app.updateFeeCollectorAccHandler == nil || !app.feeChanged {
+		return
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			err := fmt.Errorf("panic: %v", r)
+			app.logger.Error("update fee collector account failed", "err", err)
+		}
+	}()
+
+	ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
+	if err := app.updateFeeCollectorAccHandler(ctx, app.feeForCollector); err != nil {
+		panic(err)
+	}
+	cache.Write()
 }
 
 // EndBlock implements the ABCI interface.
 func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
+	app.updateFeeCollectorAccount()
+
 	if app.deliverState.ms.TracingEnabled() {
 		app.deliverState.ms = app.deliverState.ms.SetTracingContext(nil).(sdk.CacheMultiStore)
 	}
@@ -186,7 +223,7 @@ func (app *BaseApp) addCommitTraceInfo() {
 	iavlInfo := strings.Join([]string{"getnode<", nodeReadCountStr, ">, rdb<", dbReadCountStr, ">, rdbTs<", dbReadTimeStr, "ms>, savenode<", dbWriteCountStr, ">"}, "")
 
 	elapsedInfo := trace.GetElapsedInfo()
-	elapsedInfo.AddInfo("Iavl", iavlInfo)
+	elapsedInfo.AddInfo(trace.Iavl, iavlInfo)
 
 	flatKvReadCountStr := strconv.Itoa(app.cms.GetFlatKVReadCount())
 	flatKvReadTimeStr := strconv.FormatInt(time.Duration(app.cms.GetFlatKVReadTime()).Milliseconds(), 10)
@@ -195,14 +232,14 @@ func (app *BaseApp) addCommitTraceInfo() {
 
 	flatInfo := strings.Join([]string{"rflat<", flatKvReadCountStr, ">, rflatTs<", flatKvReadTimeStr, "ms>, wflat<", flatKvWriteCountStr, ">, wflatTs<", flatKvWriteTimeStr, "ms>"}, "")
 
-	elapsedInfo.AddInfo("FlatKV", flatInfo)
+	elapsedInfo.AddInfo(trace.FlatKV, flatInfo)
 
-	rtx := float64(atomic.LoadInt64(&app.checkTxNum))
-	wtx := float64(atomic.LoadInt64(&app.wrappedCheckTxNum))
+	//rtx := float64(atomic.LoadInt64(&app.checkTxNum))
+	//wtx := float64(atomic.LoadInt64(&app.wrappedCheckTxNum))
 
-	elapsedInfo.AddInfo(trace.WtxRatio,
-		amino.BytesToStr(strconv.AppendFloat(make([]byte, 0, 4), wtx/(wtx+rtx), 'f', 2, 32)),
-	)
+	//elapsedInfo.AddInfo(trace.WtxRatio,
+	//	amino.BytesToStr(strconv.AppendFloat(make([]byte, 0, 4), wtx/(wtx+rtx), 'f', 2, 32)),
+	//)
 
 	readCache := float64(tmtypes.SignatureCache().ReadCount())
 	hitCache := float64(tmtypes.SignatureCache().HitCount())
@@ -222,7 +259,17 @@ func (app *BaseApp) addCommitTraceInfo() {
 // against that height and gracefully halt if it matches the latest committed
 // height.
 func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
+
 	header := app.deliverState.ctx.BlockHeader()
+
+	if app.mptCommitHandler != nil {
+		app.mptCommitHandler(app.deliverState.ctx)
+	}
+	if mptStore := app.cms.GetCommitKVStore(sdk.NewKVStoreKey(mpt.StoreKey)); mptStore != nil {
+		// notify mptStore to tryUpdateTrie, must call before app.deliverState.ms.Write()
+		mpt.GAccTryUpdateTrieChannel <- struct{}{}
+		<-mpt.GAccTrieUpdatedChannel
+	}
 
 	// Write the DeliverTx state which is cache-wrapped and commit the MultiStore.
 	// The write to the DeliverTx state writes all state transitions to the root
@@ -526,7 +573,9 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) abci.
 	// cache wrap the commit-multistore for safety
 	ctx := sdk.NewContext(
 		cacheMS, app.checkState.ctx.BlockHeader(), true, app.logger,
-	).WithMinGasPrices(app.minGasPrices)
+	)
+	ctx.SetMinGasPrices(app.minGasPrices)
+	ctx.SetBlockHeight(req.Height)
 
 	// Passes the rest of the path as an argument to the querier.
 	//

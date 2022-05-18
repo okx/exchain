@@ -1,89 +1,68 @@
 package iavl
 
-import "sync"
+import (
+	"sync"
+)
 
-var onceTreeMap sync.Once
 var treeMap *TreeMap
-
 type TreeMap struct {
 	mtx sync.RWMutex
 	// used for checking whether a tree is saved or not
-	mutableTreeList         []*MutableTree
-	totalPreCommitCacheSize int64
-	mutableTreeSavedMap     map[string]bool
+	mutableTreeSavedMap     map[string]*MutableTree
+	totalPpncSize           int64
+	evmPpncSize             int64
+	accPpncSize             int64
+	lastUpdatedVersion      int64
 }
 
 func init() {
-	onceTreeMap.Do(func() {
-		treeMap = &TreeMap{
-			mutableTreeSavedMap: make(map[string]bool),
-		}
-	})
+	treeMap = &TreeMap{
+		mutableTreeSavedMap: make(map[string]*MutableTree),
+	}
 }
 
 func (tm *TreeMap) addNewTree(tree *MutableTree) {
 	tm.mtx.Lock()
 	defer tm.mtx.Unlock()
 	if _, ok := tm.mutableTreeSavedMap[tree.GetModuleName()]; !ok {
-		tm.mutableTreeList = append(tm.mutableTreeList, tree)
-		tm.mutableTreeSavedMap[tree.GetModuleName()] = false
+		tm.mutableTreeSavedMap[tree.GetModuleName()] = tree
 		go tree.commitSchedule()
 	}
 }
 
-func (tm *TreeMap) getTree(moduleName string) (*MutableTree, bool) {
+func (tm *TreeMap) getTree(moduleName string) (tree *MutableTree, ok bool) {
 	tm.mtx.RLock()
 	defer tm.mtx.RUnlock()
-	if _, ok := tm.mutableTreeSavedMap[moduleName]; !ok {
-		return nil, false
-	}
-	for _, tree := range tm.mutableTreeList {
-		if tree.GetModuleName() == moduleName {
-			return tree, true
-		}
-	}
-	return nil, false
+	tree, ok = tm.mutableTreeSavedMap[moduleName]
+	return
 }
 
 // updateMutableTreeMap marks into true when operation of save-version is done
-func (tm *TreeMap) updateMutableTreeMap(module string) {
+func (tm *TreeMap) updatePpnc(version int64) {
 	tm.mtx.Lock()
 	defer tm.mtx.Unlock()
-	if _, ok := tm.mutableTreeSavedMap[module]; !ok {
+
+	if version == tm.lastUpdatedVersion {
 		return
 	}
-	tm.mutableTreeSavedMap[module] = true
-	if tm.isMutableTreeSavedMapAllReady() {
-		tm.updateTotalPreCommitCacheSize()
-	}
-}
-
-// isMutableTreeSavedMapAllReady check if all trees are saved or not
-func (tm *TreeMap) isMutableTreeSavedMapAllReady() bool {
-	for _, isReady := range tm.mutableTreeSavedMap {
-		if !isReady {
-			return false
+	var size int64 = 0
+	for _, tree := range tm.mutableTreeSavedMap {
+		ppnc := int64(len(tree.ndb.prePersistNodeCache))
+		size += ppnc
+		if tree.GetModuleName() == "evm" {
+			tm.evmPpncSize = ppnc
+		}
+		if tree.GetModuleName() == "acc" {
+			tm.accPpncSize = ppnc
 		}
 	}
-	for key := range tm.mutableTreeSavedMap {
-		tm.mutableTreeSavedMap[key] = false
-	}
-	return true
-}
-
-// updateTotalPreCommitCacheSize counts the number of prePersis node
-func (tm *TreeMap) updateTotalPreCommitCacheSize() {
-	var size int64 = 0
-	for _, tree := range tm.mutableTreeList {
-		size += int64(len(tree.ndb.prePersistNodeCache))
-	}
-	tm.totalPreCommitCacheSize = size
+	tm.totalPpncSize = size
+	tm.lastUpdatedVersion = version
 }
 
 // resetMap clear the TreeMap, only for test.
 func (tm *TreeMap) resetMap() {
 	tm.mtx.Lock()
 	defer tm.mtx.Unlock()
-	tm.mutableTreeSavedMap = make(map[string]bool)
-	tm.mutableTreeList = []*MutableTree{}
+	tm.mutableTreeSavedMap = make(map[string]*MutableTree)
 }

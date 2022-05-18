@@ -11,6 +11,7 @@
 *.tar.gz
 *.txt
 *.xls
+mpt.db
 
 /rocksdb/
 dump.rdb

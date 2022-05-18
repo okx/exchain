@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/okex/exchain/app"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 
 	mintclient "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client"
 	erc20client "github.com/okex/exchain/x/erc20/client"
@@ -39,6 +41,7 @@ import (
 // NOTE: details on the routes added for each module are in the module documentation
 // NOTE: If making updates here you also need to update the test helper in client/lcd/test_helper.go
 func registerRoutes(rs *lcd.RestServer) {
+	registerGrpc(rs)
 	rpc.RegisterRoutes(rs)
 	pathPrefix := viper.GetString(server.FlagRestPathPrefix)
 	if pathPrefix == "" {
@@ -46,6 +49,13 @@ func registerRoutes(rs *lcd.RestServer) {
 	}
 	registerRoutesV1(rs, pathPrefix)
 	registerRoutesV2(rs, pathPrefix)
+
+}
+
+func registerGrpc(rs *lcd.RestServer) {
+	app.ModuleBasics.RegisterGRPCGatewayRoutes(rs.CliCtx, rs.GRPCGatewayRouter)
+	app.ModuleBasics.RegisterRPCRouterForGRPC(rs.CliCtx, rs.Mux)
+	tx.RegisterGRPCGatewayRoutes(rs.CliCtx, rs.GRPCGatewayRouter)
 }
 
 func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
@@ -75,6 +85,7 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 			erc20client.TokenMappingProposalHandler.RESTHandler(rs.CliCtx),
 		},
 	)
+
 }
 
 func registerRoutesV2(rs *lcd.RestServer, pathPrefix string) {

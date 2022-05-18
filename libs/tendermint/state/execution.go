@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/system/trace"
 	"strconv"
 	"time"
 
@@ -13,14 +14,31 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	mempl "github.com/okex/exchain/libs/tendermint/mempool"
 	"github.com/okex/exchain/libs/tendermint/proxy"
-	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
-	"github.com/spf13/viper"
 	"github.com/tendermint/go-amino"
 )
 
 //-----------------------------------------------------------------------------
+type (
+	// Enum mode for executing [deliverTx, ...]
+	DeliverTxsExecMode int
+)
+
+const (
+	DeliverTxsExecModeSerial         DeliverTxsExecMode = iota // execute [deliverTx,...] sequentially
+	DeliverTxsExecModePartConcurrent                           // execute [deliverTx,...] partially-concurrent
+	DeliverTxsExecModeParallel                                 // execute [deliverTx,...] parallel
+
+	// There are three modes.
+	// 0: execute [deliverTx,...] sequentially (default)
+	// 1: execute [deliverTx,...] partially-concurrent
+	// 2: execute [deliverTx,...] parallel
+	FlagDeliverTxsExecMode = "deliver-txs-mode"
+
+	FlagDeliverTxsConcurrentNum = "deliver-txs-concurrent-num"
+)
+
 // BlockExecutor handles block execution and state updates.
 // It exposes ApplyBlock(), which validates & executes the block, updates state w/ ABCI responses,
 // then commits and updates the mempool atomically, then saves state.
@@ -43,7 +61,6 @@ type BlockExecutor struct {
 
 	logger  log.Logger
 	metrics *Metrics
-	isAsync bool
 
 	// download or upload data to dds
 	deltaContext *DeltaContext
@@ -51,6 +68,12 @@ type BlockExecutor struct {
 	prerunCtx *prerunContext
 
 	isFastSync bool
+
+	// async save state, validators, consensus params, abci responses here
+	asyncDBContext
+
+	// the owner is validator
+	isNullIndexer bool
 }
 
 type BlockExecutorOption func(executor *BlockExecutor)
@@ -79,7 +102,6 @@ func NewBlockExecutor(
 		evpool:       evpool,
 		logger:       logger,
 		metrics:      NopMetrics(),
-		isAsync:      viper.GetBool(FlagParalleledTx),
 		prerunCtx:    newPrerunContex(logger),
 		deltaContext: newDeltaContext(logger),
 	}
@@ -90,19 +112,24 @@ func NewBlockExecutor(
 	automation.LoadTestCase(logger)
 	res.deltaContext.init()
 
+	res.initAsyncDBContext()
 	return res
 }
 
-func (blockExec *BlockExecutor) SetIsAsyncDeliverTx(sw bool) {
-	blockExec.isAsync = sw
-
-}
 func (blockExec *BlockExecutor) DB() dbm.DB {
 	return blockExec.db
 }
 
 func (blockExec *BlockExecutor) SetIsFastSyncing(isSyncing bool) {
 	blockExec.isFastSync = isSyncing
+}
+
+func (blockExec *BlockExecutor) SetIsNullIndexer(isNullIndexer bool) {
+	blockExec.isNullIndexer = isNullIndexer
+}
+
+func (blockExec *BlockExecutor) Stop() {
+	blockExec.stopAsyncDBContext()
 }
 
 // SetEventBus - sets the event bus for publishing block related events.
@@ -188,6 +215,9 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	startTime := time.Now().UnixNano()
 
+	//wait till the last block async write be saved
+	blockExec.tryWaitLastBlockSave(block.Height - 1)
+
 	abciResponses, err := blockExec.runAbci(block, deltaInfo)
 
 	if err != nil {
@@ -199,7 +229,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	trc.Pin(trace.SaveResp)
 
 	// Save the results before we commit.
-	SaveABCIResponses(blockExec.db, block.Height, abciResponses)
+	blockExec.trySaveABCIResponsesAsync(block.Height, abciResponses)
 
 	fail.Fail() // XXX
 	endTime := time.Now().UnixNano()
@@ -238,7 +268,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	}
 	global.SetGlobalHeight(block.Height)
 
-	trc.Pin("evpool")
 	// Update evpool with the block and state.
 	blockExec.evpool.Update(block, state)
 
@@ -248,17 +277,27 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data
-	SaveState(blockExec.db, state)
+	blockExec.trySaveStateAsync(state)
+
 	blockExec.logger.Debug("SaveState", "state", &state)
 	fail.Fail() // XXX
 
 	// Events are fired after everything else.
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
-	fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
+	if !blockExec.isNullIndexer {
+		fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
+	}
 
 	dc.postApplyBlock(block.Height, deltaInfo, abciResponses, commitResp.DeltaMap, blockExec.isFastSync)
 
 	return state, retainHeight, nil
+}
+
+func (blockExec *BlockExecutor) ApplyBlockWithTrace(
+	state State, blockID types.BlockID, block *types.Block) (State, int64, error) {
+	s, id, err := blockExec.ApplyBlock(state, blockID, block)
+	trace.GetElapsedInfo().Dump(blockExec.logger.With("module", "main"))
+	return s, id, err
 }
 
 func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo) (*ABCIResponses, error) {
@@ -271,10 +310,6 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 		execBlockOnProxyAppWithDeltas(blockExec.proxyApp, block, blockExec.db)
 		abciResponses = deltaInfo.abciResponses
 	} else {
-		//if blockExec.deltaContext.downloadDelta {
-		//	time.Sleep(time.Second*1)
-		//}
-
 		pc := blockExec.prerunCtx
 		if pc.prerunTx {
 			abciResponses, err = pc.getPrerunResult(block.Height, blockExec.isFastSync)
@@ -287,9 +322,15 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 				db:       blockExec.db,
 				proxyApp: blockExec.proxyApp,
 			}
-			if blockExec.isAsync {
+			mode := DeliverTxsExecMode(cfg.DynamicConfig.GetDeliverTxsExecuteMode())
+			switch mode {
+			case DeliverTxsExecModeSerial:
+				abciResponses, err = execBlockOnProxyApp(ctx)
+			case DeliverTxsExecModePartConcurrent:
+				abciResponses, err = execBlockOnProxyAppPartConcurrent(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
+			case DeliverTxsExecModeParallel:
 				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
-			} else {
+			default:
 				abciResponses, err = execBlockOnProxyApp(ctx)
 			}
 		}
@@ -416,7 +457,7 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 	}
 	proxyAppConn.SetResponseCallback(proxyCb)
 
-	proxyAppConn.ParallelTxs(transTxsToBytes(block.Txs), true)
+	// proxyAppConn.ParallelTxs(transTxsToBytes(block.Txs), true)
 	commitInfo, byzVals := getBeginBlockValidatorInfo(block, stateDB)
 
 	// Begin block
@@ -432,17 +473,31 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 		return nil, err
 	}
 
-	for count, tx := range block.Txs {
-		proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: tx})
-		if err := proxyAppConn.Error(); err != nil {
-			return nil, err
+	realTxCh := make(chan abci.TxEssentials, len(block.Txs))
+	stopedCh := make(chan struct{}, 1)
+
+	go preDeliverRoutine(proxyAppConn, block.Txs, realTxCh, stopedCh)
+
+	count := 0
+	for realTx := range realTxCh {
+		if realTx != nil {
+			proxyAppConn.DeliverRealTxAsync(realTx)
+		} else {
+			proxyAppConn.DeliverTxAsync(abci.RequestDeliverTx{Tx: block.Txs[count]})
 		}
 
+		if err = proxyAppConn.Error(); err != nil {
+			return nil, err
+		}
 		if context != nil && context.stopped {
+			stopedCh <- struct{}{}
+			close(stopedCh)
 			context.dump(fmt.Sprintf("Prerun stopped, %d/%d tx executed", count+1, len(block.Txs)))
 			return nil, fmt.Errorf("Prerun stopped")
 		}
+		count += 1
 	}
+	close(stopedCh)
 
 	// End block.
 	abciResponses.EndBlock, err = proxyAppConn.EndBlockSync(abci.RequestEndBlock{Height: block.Height})
@@ -454,6 +509,19 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 	trace.GetElapsedInfo().AddInfo(trace.InvalidTxs, fmt.Sprintf("%d", invalidTxs))
 
 	return abciResponses, nil
+}
+
+func preDeliverRoutine(proxyAppConn proxy.AppConnConsensus, txs types.Txs, realTxCh chan<- abci.TxEssentials, stopedCh <-chan struct{}) {
+	for _, tx := range txs {
+		realTx := proxyAppConn.PreDeliverRealTxAsync(tx)
+		select {
+		case realTxCh <- realTx:
+		case <-stopedCh:
+			close(realTxCh)
+			return
+		}
+	}
+	close(realTxCh)
 }
 
 func execBlockOnProxyAppWithDeltas(

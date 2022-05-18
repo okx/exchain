@@ -1,10 +1,18 @@
 package app
 
 import (
+	"github.com/okex/exchain/libs/system/trace"
+	sm "github.com/okex/exchain/libs/tendermint/state"
+	"github.com/spf13/cobra"
+	"google.golang.org/grpc/encoding/proto"
+
 	"io"
 	"math/big"
 	"os"
 	"sync"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	"github.com/okex/exchain/libs/system"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
@@ -45,7 +53,6 @@ import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/ammswap"
-	"github.com/okex/exchain/x/common/analyzer"
 	commonversion "github.com/okex/exchain/x/common/version"
 	"github.com/okex/exchain/x/dex"
 	dexclient "github.com/okex/exchain/x/dex/client"
@@ -70,7 +77,6 @@ import (
 
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/encoding"
-	"google.golang.org/grpc/encoding/proto"
 )
 
 func init() {
@@ -220,10 +226,11 @@ func NewOKExChainApp(
 	invCheckPeriod uint,
 	baseAppOptions ...func(*bam.BaseApp),
 ) *OKExChainApp {
-	logger.Info("Starting OEC",
+	logger.Info("Starting "+system.ChainName,
 		"GenesisHeight", tmtypes.GetStartBlockHeight(),
 		"MercuryHeight", tmtypes.GetMercuryHeight(),
 		"VenusHeight", tmtypes.GetVenusHeight(),
+		"MarsHeight", tmtypes.GetMarsHeight(),
 	)
 	onceLog.Do(func() {
 		iavl.SetLogger(logger.With("module", "iavl"))
@@ -237,8 +244,8 @@ func NewOKExChainApp(
 
 	bApp.SetCommitMultiStoreTracer(traceStore)
 	bApp.SetAppVersion(version.Version)
-	bApp.SetStartLogHandler(analyzer.StartTxLog)
-	bApp.SetEndLogHandler(analyzer.StopTxLog)
+	bApp.SetStartLogHandler(trace.StartTxLog)
+	bApp.SetEndLogHandler(trace.StopTxLog)
 
 	bApp.SetInterfaceRegistry(interfaceReg)
 
@@ -250,6 +257,7 @@ func NewOKExChainApp(
 		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
 		ibchost.StoreKey,
 		erc20.StoreKey,
+		mpt.StoreKey, evm.LegacyStoreKey,
 	)
 
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
@@ -290,8 +298,9 @@ func NewOKExChainApp(
 	app.marshal = codecProxy
 	// use custom OKExChain account for contracts
 	app.AccountKeeper = auth.NewAccountKeeper(
-		codecProxy.GetCdc(), keys[auth.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
+		codecProxy.GetCdc(), keys[auth.StoreKey], keys[mpt.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
 	)
+	app.AccountKeeper.SetObserverKeeper(app)
 
 	bankKeeper := bank.NewBaseKeeperWithMarshal(
 		&app.AccountKeeper, codecProxy, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
@@ -323,7 +332,7 @@ func NewOKExChainApp(
 	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], app.marshal.GetCdc())
 	app.ParamsKeeper.RegisterSignal(evmtypes.SetEvmParamsNeedUpdate)
 	app.EvmKeeper = evm.NewKeeper(
-		app.marshal.GetCdc(), keys[evm.StoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, logger)
+		app.marshal.GetCdc(), keys[evm.StoreKey], keys[evm.LegacyStoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, logger)
 	(&bankKeeper).SetInnerTxKeeper(app.EvmKeeper)
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
@@ -523,11 +532,16 @@ func NewOKExChainApp(
 	// initialize BaseApp
 	app.SetInitChainer(app.InitChainer)
 	app.SetBeginBlocker(app.BeginBlocker)
-	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper)))
+	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), app.IBCKeeper.ChannelKeeper))
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
-	app.SetAccHandler(NewAccHandler(app.AccountKeeper))
-	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), evmTxFeeHandler(), fixLogForParallelTxHandler(app.EvmKeeper))
+	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
+	app.AddCustomizeModuleOnStopLogic(NewEvmModuleStopLogic(app.EvmKeeper))
+	app.SetMptCommitHandler(NewMptCommitHandler(app.EvmKeeper))
+	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), fixLogForParallelTxHandler(app.EvmKeeper))
+	app.SetPreDeliverTxHandler(preDeliverTxHandler(app.AccountKeeper))
+	app.SetPartialConcurrentHandlers(getTxFeeAndFromHandler(app.AccountKeeper))
+	app.SetGetTxFeeHandler(getTxFeeHandler())
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -543,6 +557,8 @@ func NewOKExChainApp(
 	// note replicate if you do not need to test core IBC or light clients.
 	app.ScopedIBCMockKeeper = scopedIBCMockKeeper
 
+	enableAnalyzer := sm.DeliverTxsExecMode(viper.GetInt(sm.FlagDeliverTxsExecMode)) == sm.DeliverTxsExecModeSerial
+	trace.EnableAnalyzer(enableAnalyzer)
 	return app
 }
 
@@ -690,18 +706,18 @@ func validateMsgHook(orderKeeper order.Keeper) ante.ValidateMsgHandler {
 	}
 }
 
-func NewAccHandler(ak auth.AccountKeeper) sdk.AccHandler {
+func NewAccNonceHandler(ak auth.AccountKeeper) sdk.AccNonceHandler {
 	return func(
 		ctx sdk.Context, addr sdk.AccAddress,
 	) uint64 {
-		return ak.GetAccount(ctx, addr).GetSequence()
+		if acc := ak.GetAccount(ctx, addr); acc != nil {
+			return acc.GetSequence()
+		}
+		return 0
 	}
 }
 
-func PreRun(ctx *server.Context) error {
-	// set the dynamic config
-	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
-
+func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 	// check start flag conflicts
 	err := sanity.CheckStart()
 	if err != nil {
@@ -726,5 +742,28 @@ func PreRun(ctx *server.Context) error {
 
 	// init tx signature cache
 	tmtypes.InitSignatureCache()
+
+	// set external package flags
+	server.SetExternalPackageValue(cmd)
+
+	// set the dynamic config
+	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 	return nil
+}
+
+func NewEvmModuleStopLogic(ak *evm.Keeper) sdk.CustomizeOnStop {
+	return func(ctx sdk.Context) error {
+		if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.TrieWriteAhead {
+			return ak.OnStop(ctx)
+		}
+		return nil
+	}
+}
+
+func NewMptCommitHandler(ak *evm.Keeper) sdk.MptCommitHandler {
+	return func(ctx sdk.Context) {
+		if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.TrieWriteAhead {
+			ak.PushData2Database(ctx.BlockHeight(), ctx.Logger())
+		}
+	}
 }

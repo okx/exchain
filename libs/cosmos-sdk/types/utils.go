@@ -95,3 +95,10 @@ func NewLevelDB(name, dir string) (db dbm.DB, err error) {
 	}()
 	return dbm.NewDB(name, backend, dir), err
 }
+
+type ParaMsg struct {
+	HaveCosmosTxInBlock bool
+	AnteErr             error
+	RefundFee           Coins
+	LogIndex            int
+}

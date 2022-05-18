@@ -100,13 +100,18 @@ func (bs *BlockStore) LoadBlock(height int64) *types.Block {
 		buf.Write(part.Bytes)
 	}
 
-	bz, err := amino.GetBinaryBareFromBinaryLengthPrefixed(buf.Bytes())
+	partBytes, _, err := types.UncompressBlockFromBytes(buf.Bytes())
+	if err != nil {
+		panic(errors.Wrap(err, "failed to uncompress block"))
+	}
+
+	bz, err := amino.GetBinaryBareFromBinaryLengthPrefixed(partBytes)
 	if err == nil {
 		err = block.UnmarshalFromAmino(cdc, bz)
 	}
 	if err != nil {
 		block = new(types.Block)
-		err = cdc.UnmarshalBinaryLengthPrefixed(buf.Bytes(), block)
+		err = cdc.UnmarshalBinaryLengthPrefixed(partBytes, block)
 		if err != nil {
 			// NOTE: The existence of meta should imply the existence of the
 			// block. So, make sure meta is only saved after blocks are saved.

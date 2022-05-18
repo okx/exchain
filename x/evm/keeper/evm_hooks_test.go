@@ -64,11 +64,13 @@ func (suite *KeeperTestSuite) TestEvmHooks() {
 		ctx := suite.ctx
 		txHash := common.BigToHash(big.NewInt(1))
 		vmdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
+		vmdb.Prepare(txHash, txHash, 0)
 		vmdb.AddLog(&ethtypes.Log{
 			Topics:  []common.Hash{},
 			Address: suite.address,
 		})
-		logs := vmdb.GetLogs()
+		logs, err := vmdb.GetLogs(txHash)
+		suite.Require().Nil(err)
 		receipt := &ethtypes.Receipt{
 			TxHash: txHash,
 			Logs:   logs,
