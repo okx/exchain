@@ -17,6 +17,8 @@ func RegisterBlockAmino(cdc *amino.Codec) {
 	RegisterEvidences(cdc)
 
 	cdc.EnableBufferMarshaler(&Part{})
+	cdc.EnableBufferMarshaler(DeltaPayload{})
+	cdc.EnableBufferMarshaler(&Deltas{})
 }
 
 // GetCodec returns a codec used by the package. For testing purposes only.
