@@ -385,7 +385,7 @@ func (bs *BlockStore) SaveBlock(block *types.Block, blockParts *types.PartSet, s
 }
 
 func (bs *BlockStore) saveBlockPart(height int64, index int, part *types.Part) {
-	partBytes := cdc.MustMarshalBinaryBare(part)
+	partBytes := cdc.MustMarshalBinaryWithSizer(part, false)
 	bs.db.Set(calcBlockPartKey(height, index), partBytes)
 }
 
