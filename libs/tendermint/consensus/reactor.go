@@ -352,7 +352,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		case *NewValidBlockMessage:
 			ps.ApplyNewValidBlockMessage(msg)
 		case *HasBlockPartMessage:
-			ps.SetHasProposalBlockPart(msg.Height, msg.Round, msg.Index, BP_ACK, conR)
+			ps.SetHasProposalBlockPart(msg.Height, msg.Round, msg.Index, BP_ACK, conR.conS.bt)
 		case *HasVoteMessage:
 			ps.ApplyHasVoteMessage(msg)
 		case *VoteSetMaj23Message:
@@ -403,7 +403,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		case *ProposalPOLMessage:
 			ps.ApplyProposalPOLMessage(msg)
 		case *BlockPartMessage:
-			ps.SetHasProposalBlockPart(msg.Height, msg.Round, msg.Part.Index, BP_RECV, conR)
+			ps.SetHasProposalBlockPart(msg.Height, msg.Round, msg.Part.Index, BP_RECV, conR.conS.bt)
 			conR.metrics.BlockParts.With("peer_id", string(src.ID())).Add(1)
 			conR.conS.peerMsgQueue <- msgInfo{msg, src.ID()}
 		default:
@@ -620,7 +620,7 @@ OUTER_LOOP:
 				}
 				logger.Debug("Sending block part", "height", prs.Height, "round", prs.Round)
 				if peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg)) {
-					ps.SetHasProposalBlockPart(prs.Height, prs.Round, index, BP_SEND, conR)
+					ps.SetHasProposalBlockPart(prs.Height, prs.Round, index, BP_SEND, conR.conS.bt)
 				}
 				continue OUTER_LOOP
 			}
@@ -726,7 +726,7 @@ func (conR *Reactor) gossipDataForCatchup(logger log.Logger, rs *cstypes.RoundSt
 		}
 		logger.Debug("Sending block part for catchup", "round", prs.Round, "index", index)
 		if peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg)) {
-			ps.SetHasProposalBlockPart(prs.Height, prs.Round, index, BP_CATCHUP, conR)
+			ps.SetHasProposalBlockPart(prs.Height, prs.Round, index, BP_CATCHUP, conR.conS.bt)
 		} else {
 			logger.Debug("Sending block part for catchup failed")
 		}
@@ -1159,7 +1159,7 @@ func (ps *PeerState) InitProposalBlockParts(partsHeader types.PartSetHeader) {
 }
 
 // SetHasProposalBlockPart sets the given block part index as known for the peer.
-func (ps *PeerState) SetHasProposalBlockPart(height int64, round int, index int, t bpType, conR *Reactor) {
+func (ps *PeerState) SetHasProposalBlockPart(height int64, round int, index int, t bpType, bt *BlockTransport) {
 	ps.mtx.Lock()
 	defer ps.mtx.Unlock()
 
@@ -1169,14 +1169,14 @@ func (ps *PeerState) SetHasProposalBlockPart(height int64, round int, index int,
 
 	switch t {
 	case BP_SEND:
-		conR.conS.bt.onBPSend()
+		bt.onBPSend()
 	case BP_ACK:
 		if !ps.PRS.ProposalBlockParts.GetIndex(index) {
-			conR.conS.bt.onBPACKHit()
+			bt.onBPACKHit()
 		}
 	case BP_RECV:
 		if !ps.PRS.ProposalBlockParts.GetIndex(index) {
-			conR.conS.bt.onBPDataHit()
+			bt.onBPDataHit()
 		}
 	}
 
