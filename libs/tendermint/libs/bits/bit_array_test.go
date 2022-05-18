@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/tendermint/go-amino"
+	"math"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -286,5 +288,31 @@ func TestBitArrayProtoBuf(t *testing.T) {
 		} else {
 			require.NotEqual(t, tc.bA1, ba, tc.msg)
 		}
+	}
+}
+
+func TestBitArrayAmino(t *testing.T) {
+	testCases := []BitArray{
+		{},
+		{
+			Bits:  123,
+			Elems: []uint64{1, 2, 3, math.MaxUint64, 0},
+		},
+		{
+			Bits:  math.MinInt,
+			Elems: []uint64{},
+		},
+		{
+			Bits: math.MaxInt,
+		},
+	}
+	cdc := amino.NewCodec()
+	cdc.EnableBufferMarshaler(&BitArray{})
+	for _, tc := range testCases {
+		expectData := cdc.MustMarshalBinaryBare(&tc)
+		actualData, err := cdc.MarshalBinaryBareWithSizer(&tc, false)
+		require.NoError(t, err)
+		require.Equal(t, expectData, actualData)
+		require.Equal(t, len(expectData), tc.AminoSize(cdc))
 	}
 }
