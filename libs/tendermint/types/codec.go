@@ -15,6 +15,8 @@ func init() {
 func RegisterBlockAmino(cdc *amino.Codec) {
 	cryptoamino.RegisterAmino(cdc)
 	RegisterEvidences(cdc)
+
+	cdc.EnableBufferMarshaler(&Part{})
 }
 
 // GetCodec returns a codec used by the package. For testing purposes only.
