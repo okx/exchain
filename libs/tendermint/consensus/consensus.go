@@ -60,7 +60,7 @@ func (ti *timeoutInfo) String() string {
 	return fmt.Sprintf("%v ; %d/%d %v", ti.Duration, ti.Height, ti.Round, ti.Step)
 }
 
-func (ti *timeoutInfo) AminoSize(_ *amino.Codec) int {
+func (ti timeoutInfo) AminoSize(_ *amino.Codec) int {
 	var size int
 	if ti.Duration != 0 {
 		size += 1 + amino.UvarintSize(uint64(ti.Duration))
@@ -78,7 +78,7 @@ func (ti *timeoutInfo) AminoSize(_ *amino.Codec) int {
 	return size
 }
 
-func (ti *timeoutInfo) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) error {
+func (ti timeoutInfo) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) error {
 	var err error
 	// field 1
 	if ti.Duration != 0 {
