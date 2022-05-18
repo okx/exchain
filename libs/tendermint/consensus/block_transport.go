@@ -17,6 +17,10 @@ type BlockTransport struct {
 	droppedDue2WrongHeight int
 	totalParts int
 	Logger  log.Logger
+
+	bpSend          int
+	bpNOTransByData int
+	bpNOTransByACK  int
 }
 
 func (bt *BlockTransport) onProposal(height int64)  {
@@ -33,6 +37,9 @@ func (bt *BlockTransport) reset(height int64) {
 	bt.droppedDue2Error = 0
 	bt.droppedDue2WrongHeight = 0
 	bt.totalParts = 0
+	bt.bpNOTransByData = 0
+	bt.bpNOTransByACK = 0
+	bt.bpSend = 0
 }
 
 func (bt *BlockTransport) on1stPart(height int64)  {

@@ -21,6 +21,8 @@ import (
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
 )
 
+type bpType int
+
 const (
 	StateChannel       = byte(0x20)
 	DataChannel        = byte(0x21)
@@ -32,6 +34,11 @@ const (
 
 	blocksToContributeToBecomeGoodPeer = 10000
 	votesToContributeToBecomeGoodPeer  = 10000
+
+	BP_SEND bpType = iota
+	BP_RECV
+	BP_ACK
+	BP_CATCHUP
 )
 
 //-----------------------------------------------------------------------------
@@ -57,6 +64,8 @@ type Reactor struct {
 	metrics *Metrics
 
 	rs *cstypes.RoundState
+
+	bpStatMtx sync.RWMutex
 }
 
 type ReactorOption func(*Reactor)
@@ -345,7 +354,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		case *NewValidBlockMessage:
 			ps.ApplyNewValidBlockMessage(msg)
 		case *HasBlockPartMessage:
-			ps.SetHasProposalBlockPart(msg.Height, msg.Round, msg.Index)
+			ps.SetHasProposalBlockPart(msg.Height, msg.Round, msg.Index, BP_ACK, conR)
 		case *HasVoteMessage:
 			ps.ApplyHasVoteMessage(msg)
 		case *VoteSetMaj23Message:
@@ -396,7 +405,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		case *ProposalPOLMessage:
 			ps.ApplyProposalPOLMessage(msg)
 		case *BlockPartMessage:
-			ps.SetHasProposalBlockPart(msg.Height, msg.Round, msg.Part.Index)
+			ps.SetHasProposalBlockPart(msg.Height, msg.Round, msg.Part.Index, BP_RECV, conR)
 			conR.metrics.BlockParts.With("peer_id", string(src.ID())).Add(1)
 			conR.conS.peerMsgQueue <- msgInfo{msg, src.ID()}
 		default:
@@ -613,7 +622,7 @@ OUTER_LOOP:
 				}
 				logger.Debug("Sending block part", "height", prs.Height, "round", prs.Round)
 				if peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg)) {
-					ps.SetHasProposalBlockPart(prs.Height, prs.Round, index)
+					ps.SetHasProposalBlockPart(prs.Height, prs.Round, index, BP_SEND, conR)
 				}
 				continue OUTER_LOOP
 			}
@@ -719,7 +728,7 @@ func (conR *Reactor) gossipDataForCatchup(logger log.Logger, rs *cstypes.RoundSt
 		}
 		logger.Debug("Sending block part for catchup", "round", prs.Round, "index", index)
 		if peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg)) {
-			ps.SetHasProposalBlockPart(prs.Height, prs.Round, index)
+			ps.SetHasProposalBlockPart(prs.Height, prs.Round, index, BP_CATCHUP, conR)
 		} else {
 			logger.Debug("Sending block part for catchup failed")
 		}
@@ -1152,13 +1161,27 @@ func (ps *PeerState) InitProposalBlockParts(partsHeader types.PartSetHeader) {
 }
 
 // SetHasProposalBlockPart sets the given block part index as known for the peer.
-func (ps *PeerState) SetHasProposalBlockPart(height int64, round int, index int) {
+func (ps *PeerState) SetHasProposalBlockPart(height int64, round int, index int, t bpType, conR *Reactor) {
 	ps.mtx.Lock()
 	defer ps.mtx.Unlock()
 
 	if ps.PRS.Height != height || ps.PRS.Round != round {
 		return
 	}
+	conR.bpStatMtx.Lock()
+	switch t {
+	case BP_SEND:
+		conR.conS.bt.bpSend++
+	case BP_ACK:
+		if !ps.PRS.ProposalBlockParts.GetIndex(index) {
+			conR.conS.bt.bpNOTransByACK++
+		}
+	case BP_RECV:
+		if !ps.PRS.ProposalBlockParts.GetIndex(index) {
+			conR.conS.bt.bpNOTransByData++
+		}
+	}
+	conR.bpStatMtx.Unlock()
 
 	ps.PRS.ProposalBlockParts.SetIndex(index, true)
 }
