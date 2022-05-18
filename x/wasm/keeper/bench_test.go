@@ -4,7 +4,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	secp256k1 "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
+	secp256k1 "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/stretchr/testify/require"
 
