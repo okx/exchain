@@ -7,6 +7,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/tendermint/go-amino"
 	"strings"
 )
 
@@ -53,7 +54,6 @@ func (cs *State) SetProposalAndBlock(
 	}
 	return nil
 }
-
 
 func (cs *State) isBlockProducer() (string, string) {
 	const len2display int = 6
@@ -224,7 +224,6 @@ func (cs *State) createProposalBlock() (block *types.Block, blockParts *types.Pa
 	return cs.blockExec.CreateProposalBlock(cs.Height, cs.state, commit, proposerAddr)
 }
 
-
 //-----------------------------------------------------------------------------
 
 func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
@@ -265,17 +264,27 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 
 func (cs *State) unmarshalBlock() error {
 	// uncompress blockParts bytes if necessary
-	pbpReader, err := types.UncompressBlockFromReader(cs.ProposalBlockParts.GetReader())
+	bz, err := types.UncompressBlockFromReader(cs.ProposalBlockParts.GetReader())
 	if err != nil {
 		return err
 	}
 
+	if cs.state.ConsensusParams.Block.MaxBytes != 0 && int64(len(bz)) > cs.state.ConsensusParams.Block.MaxBytes {
+		return fmt.Errorf("block is too big: %d, max: %d", len(bz), cs.state.ConsensusParams.Block.MaxBytes)
+	}
+
 	// Added and completed!
-	_, err = cdc.UnmarshalBinaryLengthPrefixedReader(
-		pbpReader,
-		&cs.ProposalBlock,
-		cs.state.ConsensusParams.Block.MaxBytes,
-	)
+	bzBare, err := amino.GetBinaryBareFromBinaryLengthPrefixed(bz)
+	if err == nil {
+		err = cs.ProposalBlock.UnmarshalFromAmino(cdc, bzBare)
+	}
+	if err != nil {
+		*cs.ProposalBlock = types.Block{}
+		err = cdc.UnmarshalBinaryLengthPrefixed(
+			bz,
+			&cs.ProposalBlock,
+		)
+	}
 	return err
 }
 
@@ -349,7 +358,7 @@ func (cs *State) handleCompleteProposal(height int64) {
 	if hasTwoThirds && !blockID.IsZero() && (cs.ValidRound < cs.Round) {
 		if cs.ProposalBlock.HashesTo(blockID.Hash) {
 			cs.Logger.Debug("Updating valid block to new proposal block",
-				"valid_round", cs.Round, "valid_block_hash", cs.ProposalBlock.Hash(), )
+				"valid_round", cs.Round, "valid_block_hash", cs.ProposalBlock.Hash())
 			cs.ValidRound = cs.Round
 			cs.ValidBlock = cs.ProposalBlock
 			cs.ValidBlockParts = cs.ProposalBlockParts
