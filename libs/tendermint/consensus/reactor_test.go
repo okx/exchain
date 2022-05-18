@@ -985,3 +985,37 @@ func TestNewRoundStepMessageAmino(t *testing.T) {
 		require.Equal(t, len(expectData), msg.AminoSize(cdc)+4)
 	}
 }
+
+func TestBlockPartMessageAmino(t *testing.T) {
+	testCases := []BlockPartMessage{
+		{},
+		{
+			Height: 12345,
+			Round:  12345,
+			Part:   &types.Part{Index: 12345, Bytes: []byte{0x01, 0x02, 0x03}},
+			Deltas: &types.Deltas{Height: 12345},
+		},
+		{
+			Height: -12345,
+			Round:  -12345,
+		},
+		{
+			Height: math.MinInt64,
+			Round:  math.MinInt,
+		},
+		{
+			Height: math.MaxInt64,
+			Round:  math.MaxInt,
+		},
+	}
+
+	for _, msg := range testCases {
+		expectData, err := cdc.MarshalBinaryBare(msg)
+		require.NoError(t, err)
+		actualData, err := cdc.MarshalBinaryBareWithSizer(msg, false)
+		require.NoError(t, err)
+
+		require.Equal(t, expectData, actualData)
+		require.Equal(t, len(expectData), msg.AminoSize(cdc)+4)
+	}
+}
