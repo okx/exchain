@@ -117,7 +117,7 @@ func TestMempoolTxConcurrentWithCommit(t *testing.T) {
 	sm.SaveState(blockDB, state)
 	newBlockHeaderCh := subscribe(cs.eventBus, types.EventQueryNewBlockHeader)
 
-	const numTxs int64 = 30
+	const numTxs int64 = 2
 	go deliverTxsRange(cs, 0, int(numTxs))
 
 	startTestRound(cs, cs.Height, cs.Round)
@@ -125,7 +125,7 @@ func TestMempoolTxConcurrentWithCommit(t *testing.T) {
 		select {
 		case msg := <-newBlockHeaderCh:
 			headerEvent := msg.Data().(types.EventDataNewBlockHeader)
-			n += headerEvent.NumTxs
+			n += headerEvent.NumTxs + 1
 		case <-time.After(30 * time.Second):
 			t.Fatal("Timed out waiting 30s to commit blocks with transactions")
 		}
