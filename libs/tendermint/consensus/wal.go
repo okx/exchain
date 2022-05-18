@@ -55,6 +55,8 @@ func RegisterWALMessages(cdc *amino.Codec) {
 	cdc.RegisterConcrete(msgInfo{}, "tendermint/wal/MsgInfo", nil)
 	cdc.RegisterConcrete(timeoutInfo{}, "tendermint/wal/TimeoutInfo", nil)
 	cdc.RegisterConcrete(EndHeightMessage{}, "tendermint/wal/EndHeightMessage", nil)
+
+	cdc.EnableBufferMarshaler(&timeoutInfo{})
 }
 
 //--------------------------------------------------------
