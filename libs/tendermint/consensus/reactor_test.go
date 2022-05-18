@@ -1096,3 +1096,58 @@ func TestHasVoteMessageAmino(t *testing.T) {
 		require.Equal(t, len(expectData), tc.AminoSize(cdc)+4)
 	}
 }
+
+func TestVoteSetMaj23MessageAmino(t *testing.T) {
+	testCases := []VoteSetMaj23Message{
+		{},
+		{
+			Height: 12345,
+			Round:  12345,
+			Type:   types.PrevoteType,
+			BlockID: types.BlockID{
+				Hash: tmhash.Sum([]byte("blockhash1")),
+				PartsHeader: types.PartSetHeader{
+					Total: 1,
+					Hash:  tmhash.Sum([]byte("blockparts1")),
+				},
+			},
+		},
+		{
+			Height: -12345,
+			Round:  -12345,
+			Type:   types.PrecommitType,
+			BlockID: types.BlockID{
+				Hash: tmhash.Sum([]byte("blockhash2")),
+				PartsHeader: types.PartSetHeader{
+					Total: 1,
+					Hash:  tmhash.Sum([]byte("blockparts2")),
+				},
+			},
+		},
+		{
+			Height: math.MinInt64,
+			Round:  math.MinInt,
+			Type:   types.ProposalType,
+			BlockID: types.BlockID{
+				Hash: tmhash.Sum([]byte("blockhash3")),
+				PartsHeader: types.PartSetHeader{
+					Total: 1,
+					Hash:  tmhash.Sum([]byte("blockparts3")),
+				},
+			},
+		},
+		{
+			Height: math.MaxInt64,
+			Round:  math.MaxInt,
+		},
+	}
+	for _, tc := range testCases {
+		expectData, err := cdc.MarshalBinaryBare(tc)
+		require.NoError(t, err)
+		actualData, err := cdc.MarshalBinaryBareWithSizer(&tc, false)
+		require.NoError(t, err)
+
+		require.Equal(t, expectData, actualData)
+		require.Equal(t, len(expectData), tc.AminoSize(cdc)+4)
+	}
+}
