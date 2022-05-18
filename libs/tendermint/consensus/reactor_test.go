@@ -3,6 +3,7 @@ package consensus
 import (
 	"context"
 	"fmt"
+	"math"
 	"os"
 	"path"
 	"runtime"
@@ -940,5 +941,47 @@ func TestVoteSetBitsMessageValidateBasic(t *testing.T) {
 				assert.Contains(t, err.Error(), tc.expErr)
 			}
 		})
+	}
+}
+
+func TestNewRoundStepMessageAmino(t *testing.T) {
+	testCases := []NewRoundStepMessage{
+		{},
+		{
+			Height:                12345,
+			Round:                 12345,
+			Step:                  10,
+			SecondsSinceStartTime: 12345,
+			LastCommitRound:       12345,
+		},
+		{
+			Height:                -12345,
+			Round:                 -12345,
+			SecondsSinceStartTime: -12345,
+			LastCommitRound:       -12345,
+		},
+		{
+			Height:                math.MinInt64,
+			Round:                 math.MinInt,
+			SecondsSinceStartTime: math.MinInt,
+			LastCommitRound:       math.MinInt,
+		},
+		{
+			Height:                math.MaxInt64,
+			Round:                 math.MaxInt,
+			Step:                  math.MaxUint8,
+			SecondsSinceStartTime: math.MaxInt,
+			LastCommitRound:       math.MaxInt,
+		},
+	}
+
+	for _, msg := range testCases {
+		expectData, err := cdc.MarshalBinaryBare(msg)
+		require.NoError(t, err)
+		actualData, err := cdc.MarshalBinaryBareWithSizer(msg, false)
+		require.NoError(t, err)
+
+		require.Equal(t, expectData, actualData)
+		require.Equal(t, len(expectData), msg.AminoSize(cdc)+4)
 	}
 }

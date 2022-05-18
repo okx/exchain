@@ -1522,6 +1522,12 @@ func RegisterMessages(cdc *amino.Codec) {
 	cdc.RegisterConcrete(&HasVoteMessage{}, "tendermint/HasVote", nil)
 	cdc.RegisterConcrete(&VoteSetMaj23Message{}, "tendermint/VoteSetMaj23", nil)
 	cdc.RegisterConcrete(&VoteSetBitsMessage{}, "tendermint/VoteSetBits", nil)
+
+	cdc.EnableBufferMarshaler(NewRoundStepMessage{})
+	cdc.EnableBufferMarshaler(BlockPartMessage{})
+	cdc.EnableBufferMarshaler(VoteMessage{})
+	cdc.EnableBufferMarshaler(HasVoteMessage{})
+	cdc.EnableBufferMarshaler(&VoteSetMaj23Message{})
 }
 
 func decodeMsg(bz []byte) (msg Message, err error) {
