@@ -1151,3 +1151,36 @@ func TestVoteSetMaj23MessageAmino(t *testing.T) {
 		require.Equal(t, len(expectData), tc.AminoSize(cdc)+4)
 	}
 }
+
+func BenchmarkVoteSetMaj23MessageAmino(b *testing.B) {
+	msg := VoteSetMaj23Message{
+		Height: 12345,
+		Round:  12345,
+		Type:   types.PrevoteType,
+		BlockID: types.BlockID{
+			Hash: tmhash.Sum([]byte("blockhash1")),
+			PartsHeader: types.PartSetHeader{
+				Total: 1,
+				Hash:  tmhash.Sum([]byte("blockparts1")),
+			},
+		},
+	}
+	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_, err := cdc.MarshalBinaryBare(&msg)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+	b.Run("sizer", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_, err := cdc.MarshalBinaryWithSizer(&msg, false)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+}
