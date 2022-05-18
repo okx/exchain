@@ -593,8 +593,7 @@ FOR_LOOP:
 		var _n int64
 		var err error
 		// _n, err = cdc.UnmarshalBinaryLengthPrefixedReader(c.bufConnReader, &packet, int64(c._maxPacketMsgSize))
-		// todo: duplicate many times
-		packet, _n, err = UnmarshalPacketFromAminoReader(c.bufConnReader, int64(c._maxPacketMsgSize))
+		packet, _n, err = unmarshalPacketFromAminoReader(c.bufConnReader, int64(c._maxPacketMsgSize))
 		c.recvMonitor.Update(int(_n))
 
 		if err != nil {
@@ -653,10 +652,13 @@ FOR_LOOP:
 				break FOR_LOOP
 			}
 			if msgBytes != nil {
-				msgStringer := bytesHexStringer(msgBytes)
-				c.Logger.Debug("Received bytes", "chID", pkt.ChannelID, "msgBytes", msgStringer)
+				fmt.Println("PacketMsg Size: ", len(msgBytes))
+				c.Logger.Debug("Received bytes", "chID", pkt.ChannelID, "msgBytes", bytesHexStringer(msgBytes))
 				// NOTE: This means the reactor.Receive runs in the same thread as the p2p recv routine
 				c.onReceive(pkt.ChannelID, msgBytes)
+			} else {
+				// todo: maybe happened when received a block part message?
+				fmt.Println("get nothing from channel.receiving")
 			}
 		default:
 			err := fmt.Errorf("unknown message type %v", reflect.TypeOf(packet))
@@ -1110,7 +1112,7 @@ var (
 	PacketMsgTypePrefix  = []byte{0xB0, 0x5B, 0x4F, 0x2C}
 )
 
-func UnmarshalPacketFromAminoReader(r io.Reader, maxSize int64) (packet Packet, n int64, err error) {
+func unmarshalPacketFromAminoReader(r io.Reader, maxSize int64) (packet Packet, n int64, err error) {
 	if maxSize < 0 {
 		panic("maxSize cannot be negative.")
 	}
@@ -1169,6 +1171,7 @@ func UnmarshalPacketFromAminoReader(r io.Reader, maxSize int64) (packet Packet, 
 		err = msg.UnmarshalFromAmino(cdc, bz[4:])
 		if err == nil {
 			packet = msg
+			//fmt.Println("unmarshalPacketFromAminoReader: ", hex.EncodeToString(bz))
 			return
 		}
 	}
