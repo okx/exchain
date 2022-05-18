@@ -156,7 +156,7 @@ func NewSimulateKeeper(
 
 		db:             mpt.InstanceOfMptStore(),
 		triegc:         prque.New(nil),
-		stateCache:     fastcache.New(int(types.TrieContractStateCache) * 1024 * 1024),
+		stateCache:     fastcache.New(1024),
 		UpdatedAccount: make([]ethcmn.Address, 0),
 		cci:            &chainConfigInfo{},
 	}

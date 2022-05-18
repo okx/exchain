@@ -71,6 +71,7 @@ import (
 	"github.com/okex/exchain/x/slashing"
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/encoding"
 	"google.golang.org/grpc/encoding/proto"
@@ -719,10 +720,7 @@ func NewAccNonceHandler(ak auth.AccountKeeper) sdk.AccNonceHandler {
 	}
 }
 
-func PreRun(ctx *server.Context) error {
-	// set the dynamic config
-	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
-
+func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 	// check start flag conflicts
 	err := sanity.CheckStart()
 	if err != nil {
@@ -747,6 +745,12 @@ func PreRun(ctx *server.Context) error {
 
 	// init tx signature cache
 	tmtypes.InitSignatureCache()
+
+	// set external package flags
+	server.SetExternalPackageValue(cmd)
+
+	// set the dynamic config
+	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 	return nil
 }
 
