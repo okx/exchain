@@ -355,6 +355,9 @@ func TestVoteAmino(t *testing.T) {
 	for _, vote := range voteAminoTestCases {
 		expectData, err := cdc.MarshalBinaryBare(vote)
 		require.NoError(t, err)
+		actualData, err := cdc.MarshalBinaryBareWithSizer(&vote, false)
+		require.NoError(t, err)
+		require.Equal(t, expectData, actualData)
 
 		require.Equal(t, len(expectData), vote.AminoSize(cdc))
 
