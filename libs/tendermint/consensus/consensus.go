@@ -3,6 +3,7 @@ package consensus
 import (
 	"bytes"
 	"fmt"
+	"github.com/tendermint/go-amino"
 	"sync"
 	"time"
 
@@ -57,6 +58,65 @@ type timeoutInfo struct {
 
 func (ti *timeoutInfo) String() string {
 	return fmt.Sprintf("%v ; %d/%d %v", ti.Duration, ti.Height, ti.Round, ti.Step)
+}
+
+func (ti *timeoutInfo) AminoSize(_ *amino.Codec) int {
+	var size int
+	if ti.Duration != 0 {
+		size += 1 + amino.UvarintSize(uint64(ti.Duration))
+	}
+	if ti.Height != 0 {
+		size += 1 + amino.UvarintSize(uint64(ti.Height))
+
+	}
+	if ti.Round != 0 {
+		size += 1 + amino.UvarintSize(uint64(ti.Round))
+	}
+	if ti.Step != 0 {
+		size += 1 + amino.UvarintSize(uint64(ti.Step))
+	}
+	return size
+}
+
+func (ti *timeoutInfo) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) error {
+	var err error
+	// field 1
+	if ti.Duration != 0 {
+		const pbKey = byte(1<<3 | amino.Typ3_Varint)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeUvarint(buf, uint64(ti.Duration))
+		if err != nil {
+			return err
+		}
+	}
+	// field 2
+	if ti.Height != 0 {
+		const pbKey = byte(2<<3 | amino.Typ3_Varint)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeUvarint(buf, uint64(ti.Height))
+		if err != nil {
+			return err
+		}
+	}
+	// field 3
+	if ti.Round != 0 {
+		const pbKey = byte(3<<3 | amino.Typ3_Varint)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeUvarint(buf, uint64(ti.Round))
+		if err != nil {
+			return err
+		}
+	}
+	// field 4
+	if ti.Step != 0 {
+		const pbKey = byte(4<<3 | amino.Typ3_Varint)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeUvarint(buf, uint64(ti.Step))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // interface to the mempool
