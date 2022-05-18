@@ -263,7 +263,6 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 }
 
 func (cs *State) unmarshalBlock() (err error) {
-	// todo: suppress panic
 	defer func() {
 		if x := recover(); x != nil {
 			err = fmt.Errorf("unmarshal block panic")
