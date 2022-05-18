@@ -40,7 +40,7 @@ func TestCompressTable(t *testing.T) {
 
 		actSuc = 0
 		actErr = 1
-		actPan = 2
+		actRec = 2
 		actDum = 3
 	)
 
@@ -58,31 +58,31 @@ func TestCompressTable(t *testing.T) {
 		want []byte
 		ret  resultMethod
 	}{
-		{"zlib      fast", args{compressType: zlib, flag: fastMode, src: testCompressShort, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressShort, resultMethod{actSuc, actErr, actPan, actDum}},
-		{"zlib      best", args{compressType: zlib, flag: bestMode, src: testCompressShort, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressShort, resultMethod{actSuc, actErr, actPan, actDum}},
-		{"zlib   default", args{compressType: zlib, flag: defaMode, src: testCompressShort, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressShort, resultMethod{actSuc, actErr, actPan, actDum}},
-		{"flate    fast", args{compressType: flate, flag: fastMode, src: testCompressShort, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressShort, resultMethod{actPan, actSuc, actPan, actDum}},
-		{"flate    best", args{compressType: flate, flag: bestMode, src: testCompressShort, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressShort, resultMethod{actPan, actSuc, actPan, actDum}},
-		{"falte default", args{compressType: flate, flag: defaMode, src: testCompressShort, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressShort, resultMethod{actPan, actSuc, actPan, actDum}},
-		{"gzip      fast", args{compressType: gzip, flag: fastMode, src: testCompressShort, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressShort, resultMethod{actPan, actErr, actSuc, actDum}},
-		{"gzip      best", args{compressType: gzip, flag: bestMode, src: testCompressShort, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressShort, resultMethod{actPan, actErr, actSuc, actDum}},
-		{"gzip   default", args{compressType: gzip, flag: defaMode, src: testCompressShort, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressShort, resultMethod{actPan, actErr, actSuc, actDum}},
-		{"dummy    fast", args{compressType: dummy, flag: fastMode, src: testCompressShort, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressShort, resultMethod{actPan, actErr, actPan, actSuc}},
-		{"dummy    best", args{compressType: dummy, flag: bestMode, src: testCompressShort, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressShort, resultMethod{actPan, actErr, actPan, actDum}},
-		{"dummy default", args{compressType: dummy, flag: defaMode, src: testCompressShort, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressShort, resultMethod{actPan, actErr, actPan, actDum}},
+		{"zlib      fast", args{compressType: zlib, flag: fastMode, src: testCompressShort, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressShort, resultMethod{actSuc, actErr, actRec, actDum}},
+		{"zlib      best", args{compressType: zlib, flag: bestMode, src: testCompressShort, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressShort, resultMethod{actSuc, actErr, actRec, actDum}},
+		{"zlib   default", args{compressType: zlib, flag: defaMode, src: testCompressShort, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressShort, resultMethod{actSuc, actErr, actRec, actDum}},
+		{"flate    fast", args{compressType: flate, flag: fastMode, src: testCompressShort, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressShort, resultMethod{actRec, actSuc, actRec, actDum}},
+		{"flate    best", args{compressType: flate, flag: bestMode, src: testCompressShort, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressShort, resultMethod{actRec, actSuc, actRec, actDum}},
+		{"falte default", args{compressType: flate, flag: defaMode, src: testCompressShort, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressShort, resultMethod{actRec, actSuc, actRec, actDum}},
+		{"gzip      fast", args{compressType: gzip, flag: fastMode, src: testCompressShort, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressShort, resultMethod{actRec, actErr, actSuc, actDum}},
+		{"gzip      best", args{compressType: gzip, flag: bestMode, src: testCompressShort, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressShort, resultMethod{actRec, actErr, actSuc, actDum}},
+		{"gzip   default", args{compressType: gzip, flag: defaMode, src: testCompressShort, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressShort, resultMethod{actRec, actErr, actSuc, actDum}},
+		{"dummy    fast", args{compressType: dummy, flag: fastMode, src: testCompressShort, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressShort, resultMethod{actRec, actErr, actRec, actSuc}},
+		{"dummy    best", args{compressType: dummy, flag: bestMode, src: testCompressShort, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressShort, resultMethod{actRec, actErr, actRec, actDum}},
+		{"dummy default", args{compressType: dummy, flag: defaMode, src: testCompressShort, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressShort, resultMethod{actRec, actErr, actRec, actDum}},
 
-		{"zlib      fast long", args{compressType: zlib, flag: fastMode, src: testCompressLong, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressLong, resultMethod{actSuc, actErr, actPan, actDum}},
-		{"zlib      best long", args{compressType: zlib, flag: bestMode, src: testCompressLong, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressLong, resultMethod{actSuc, actErr, actPan, actDum}},
-		{"zlib   default long", args{compressType: zlib, flag: defaMode, src: testCompressLong, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressLong, resultMethod{actSuc, actErr, actPan, actDum}},
-		{"flate    fast long", args{compressType: flate, flag: fastMode, src: testCompressLong, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressLong, resultMethod{actPan, actSuc, actPan, actDum}},
-		{"flate    best long", args{compressType: flate, flag: bestMode, src: testCompressLong, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressLong, resultMethod{actPan, actSuc, actPan, actDum}},
-		{"falte default long", args{compressType: flate, flag: defaMode, src: testCompressLong, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressLong, resultMethod{actPan, actSuc, actPan, actDum}},
-		{"gzip      fast long", args{compressType: gzip, flag: fastMode, src: testCompressLong, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressLong, resultMethod{actPan, actErr, actSuc, actDum}},
-		{"gzip      best long", args{compressType: gzip, flag: bestMode, src: testCompressLong, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressLong, resultMethod{actPan, actErr, actSuc, actDum}},
-		{"gzip   default long", args{compressType: gzip, flag: defaMode, src: testCompressLong, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressLong, resultMethod{actPan, actErr, actSuc, actDum}},
-		{"dummy    fast long", args{compressType: dummy, flag: fastMode, src: testCompressLong, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressLong, resultMethod{actPan, actErr, actPan, actSuc}},
-		{"dummy    best long", args{compressType: dummy, flag: bestMode, src: testCompressLong, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressLong, resultMethod{actPan, actErr, actPan, actDum}},
-		{"dummy default long", args{compressType: dummy, flag: defaMode, src: testCompressLong, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressLong, resultMethod{actPan, actErr, actPan, actDum}},
+		{"zlib      fast long", args{compressType: zlib, flag: fastMode, src: testCompressLong, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressLong, resultMethod{actSuc, actErr, actRec, actDum}},
+		{"zlib      best long", args{compressType: zlib, flag: bestMode, src: testCompressLong, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressLong, resultMethod{actSuc, actErr, actRec, actDum}},
+		{"zlib   default long", args{compressType: zlib, flag: defaMode, src: testCompressLong, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressLong, resultMethod{actSuc, actErr, actRec, actDum}},
+		{"flate    fast long", args{compressType: flate, flag: fastMode, src: testCompressLong, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressLong, resultMethod{actRec, actSuc, actRec, actDum}},
+		{"flate    best long", args{compressType: flate, flag: bestMode, src: testCompressLong, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressLong, resultMethod{actRec, actSuc, actRec, actDum}},
+		{"falte default long", args{compressType: flate, flag: defaMode, src: testCompressLong, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressLong, resultMethod{actRec, actSuc, actRec, actDum}},
+		{"gzip      fast long", args{compressType: gzip, flag: fastMode, src: testCompressLong, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressLong, resultMethod{actRec, actErr, actSuc, actDum}},
+		{"gzip      best long", args{compressType: gzip, flag: bestMode, src: testCompressLong, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressLong, resultMethod{actRec, actErr, actSuc, actDum}},
+		{"gzip   default long", args{compressType: gzip, flag: defaMode, src: testCompressLong, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressLong, resultMethod{actRec, actErr, actSuc, actDum}},
+		{"dummy    fast long", args{compressType: dummy, flag: fastMode, src: testCompressLong, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressLong, resultMethod{actRec, actErr, actRec, actSuc}},
+		{"dummy    best long", args{compressType: dummy, flag: bestMode, src: testCompressLong, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressLong, resultMethod{actRec, actErr, actRec, actDum}},
+		{"dummy default long", args{compressType: dummy, flag: defaMode, src: testCompressLong, unCompressType: []int{zlib, flate, gzip, dummy}}, testCompressLong, resultMethod{actRec, actErr, actRec, actDum}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -97,11 +97,9 @@ func TestCompressTable(t *testing.T) {
 				case actErr:
 					_, err := UnCompress(tt.args.unCompressType[i], got)
 					assert.Error(t, err)
-				case actPan:
-					f := func() {
-						UnCompress(tt.args.unCompressType[i], got)
-					}
-					assert.Panics(t, f)
+				case actRec:
+					_, err := UnCompress(tt.args.unCompressType[i], got)
+					assert.ErrorContainsf(t, err, "uncompress panic", err.Error())
 				case actDum:
 					restored, err := UnCompress(tt.args.unCompressType[i], got)
 					assert.NoError(t, err)

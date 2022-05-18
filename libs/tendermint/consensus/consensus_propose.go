@@ -263,12 +263,7 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 }
 
 func (cs *State) unmarshalBlock() (err error) {
-	defer func() {
-		if x := recover(); x != nil {
-			err = fmt.Errorf("unmarshal block panic")
-		}
-	}()
-	// uncompress blockParts bytes if necessary
+	// uncompress BlockParts bytes if necessary
 	pbpReader, err := types.UncompressBlockFromReader(cs.ProposalBlockParts.GetReader())
 	if err != nil {
 		return err
