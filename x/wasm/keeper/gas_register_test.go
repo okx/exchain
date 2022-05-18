@@ -183,8 +183,8 @@ func TestReplyCost(t *testing.T) {
 	}{
 		"subcall response with events and data - pinned": {
 			src: wasmvmtypes.Reply{
-				Result: wasmvmtypes.SubcallResult{
-					Ok: &wasmvmtypes.SubcallResponse{
+				Result: wasmvmtypes.SubMsgResult{
+					Ok: &wasmvmtypes.SubMsgResponse{
 						Events: []wasmvmtypes.Event{
 							{Type: "foo", Attributes: []wasmvmtypes.EventAttribute{{Key: "myKey", Value: "myData"}}},
 						},
@@ -198,8 +198,8 @@ func TestReplyCost(t *testing.T) {
 		},
 		"subcall response with events - pinned": {
 			src: wasmvmtypes.Reply{
-				Result: wasmvmtypes.SubcallResult{
-					Ok: &wasmvmtypes.SubcallResponse{
+				Result: wasmvmtypes.SubMsgResult{
+					Ok: &wasmvmtypes.SubMsgResponse{
 						Events: []wasmvmtypes.Event{
 							{Type: "foo", Attributes: []wasmvmtypes.EventAttribute{{Key: "myKey", Value: "myData"}}},
 						},
@@ -212,8 +212,8 @@ func TestReplyCost(t *testing.T) {
 		},
 		"subcall response with events exceeds free tier- pinned": {
 			src: wasmvmtypes.Reply{
-				Result: wasmvmtypes.SubcallResult{
-					Ok: &wasmvmtypes.SubcallResponse{
+				Result: wasmvmtypes.SubMsgResult{
+					Ok: &wasmvmtypes.SubMsgResponse{
 						Events: []wasmvmtypes.Event{
 							{Type: "foo", Attributes: []wasmvmtypes.EventAttribute{{Key: strings.Repeat("x", DefaultEventAttributeDataFreeTier), Value: "myData"}}},
 						},
@@ -226,7 +226,7 @@ func TestReplyCost(t *testing.T) {
 		},
 		"subcall response error - pinned": {
 			src: wasmvmtypes.Reply{
-				Result: wasmvmtypes.SubcallResult{
+				Result: wasmvmtypes.SubMsgResult{
 					Err: "foo",
 				},
 			},
@@ -236,8 +236,8 @@ func TestReplyCost(t *testing.T) {
 		},
 		"subcall response with events and data - unpinned": {
 			src: wasmvmtypes.Reply{
-				Result: wasmvmtypes.SubcallResult{
-					Ok: &wasmvmtypes.SubcallResponse{
+				Result: wasmvmtypes.SubMsgResult{
+					Ok: &wasmvmtypes.SubMsgResponse{
 						Events: []wasmvmtypes.Event{
 							{Type: "foo", Attributes: []wasmvmtypes.EventAttribute{{Key: "myKey", Value: "myData"}}},
 						},
@@ -250,8 +250,8 @@ func TestReplyCost(t *testing.T) {
 		},
 		"subcall response with events - unpinned": {
 			src: wasmvmtypes.Reply{
-				Result: wasmvmtypes.SubcallResult{
-					Ok: &wasmvmtypes.SubcallResponse{
+				Result: wasmvmtypes.SubMsgResult{
+					Ok: &wasmvmtypes.SubMsgResponse{
 						Events: []wasmvmtypes.Event{
 							{Type: "foo", Attributes: []wasmvmtypes.EventAttribute{{Key: "myKey", Value: "myData"}}},
 						},
@@ -263,8 +263,8 @@ func TestReplyCost(t *testing.T) {
 		},
 		"subcall response with events exceeds free tier- unpinned": {
 			src: wasmvmtypes.Reply{
-				Result: wasmvmtypes.SubcallResult{
-					Ok: &wasmvmtypes.SubcallResponse{
+				Result: wasmvmtypes.SubMsgResult{
+					Ok: &wasmvmtypes.SubMsgResponse{
 						Events: []wasmvmtypes.Event{
 							{Type: "foo", Attributes: []wasmvmtypes.EventAttribute{{Key: strings.Repeat("x", DefaultEventAttributeDataFreeTier), Value: "myData"}}},
 						},
@@ -276,12 +276,32 @@ func TestReplyCost(t *testing.T) {
 		},
 		"subcall response error - unpinned": {
 			src: wasmvmtypes.Reply{
-				Result: wasmvmtypes.SubcallResult{
+				Result: wasmvmtypes.SubMsgResult{
 					Err: "foo",
 				},
 			},
 			srcConfig: DefaultGasRegisterConfig(),
 			exp:       sdk.Gas(DefaultInstanceCost + 3*DefaultContractMessageDataCost),
+		},
+		"subcall response with empty events": {
+			src: wasmvmtypes.Reply{
+				Result: wasmvmtypes.SubMsgResult{
+					Ok: &wasmvmtypes.SubMsgResponse{
+						Events: make([]wasmvmtypes.Event, 10),
+					},
+				},
+			},
+			srcConfig: DefaultGasRegisterConfig(),
+			exp:       DefaultInstanceCost,
+		},
+		"subcall response with events unset": {
+			src: wasmvmtypes.Reply{
+				Result: wasmvmtypes.SubMsgResult{
+					Ok: &wasmvmtypes.SubMsgResponse{},
+				},
+			},
+			srcConfig: DefaultGasRegisterConfig(),
+			exp:       DefaultInstanceCost,
 		},
 	}
 	for name, spec := range specs {
@@ -294,6 +314,33 @@ func TestReplyCost(t *testing.T) {
 			}
 			gotGas := NewWasmGasRegister(spec.srcConfig).ReplyCosts(spec.pinned, spec.src)
 			assert.Equal(t, spec.exp, gotGas)
+		})
+	}
+}
+
+func TestEventCosts(t *testing.T) {
+	// most cases are covered in TestReplyCost already. This ensures some edge cases
+	specs := map[string]struct {
+		srcAttrs  []wasmvmtypes.EventAttribute
+		srcEvents wasmvmtypes.Events
+		expGas    sdk.Gas
+	}{
+		"empty events": {
+			srcEvents: make([]wasmvmtypes.Event, 1),
+			expGas:    DefaultPerCustomEventCost,
+		},
+		"empty attributes": {
+			srcAttrs: make([]wasmvmtypes.EventAttribute, 1),
+			expGas:   DefaultPerAttributeCost,
+		},
+		"both nil": {
+			expGas: 0,
+		},
+	}
+	for name, spec := range specs {
+		t.Run(name, func(t *testing.T) {
+			gotGas := NewDefaultWasmGasRegister().EventCosts(spec.srcAttrs, spec.srcEvents)
+			assert.Equal(t, spec.expGas, gotGas)
 		})
 	}
 }
@@ -340,6 +387,7 @@ func TestToWasmVMGasConversion(t *testing.T) {
 		})
 	}
 }
+
 func TestFromWasmVMGasConversion(t *testing.T) {
 	specs := map[string]struct {
 		src       uint64

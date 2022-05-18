@@ -1,6 +1,7 @@
 package types
 
 import (
+	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 )
@@ -97,4 +98,23 @@ func (m GenesisState_GenMsgs) ValidateBasic() error {
 // error for any failed validation criteria.
 func ValidateGenesis(data GenesisState) error {
 	return data.ValidateBasic()
+}
+
+var _ codectypes.UnpackInterfacesMessage = GenesisState{}
+
+// UnpackInterfaces implements codectypes.UnpackInterfaces
+func (s GenesisState) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
+	for _, v := range s.Contracts {
+		if err := v.UnpackInterfaces(unpacker); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+var _ codectypes.UnpackInterfacesMessage = &Contract{}
+
+// UnpackInterfaces implements codectypes.UnpackInterfaces
+func (c *Contract) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
+	return c.ContractInfo.UnpackInterfaces(unpacker)
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/types/rest"
 	"github.com/gorilla/mux"
 
-	wasmUtils "github.com/CosmWasm/wasmd/x/wasm/client/utils"
+	"github.com/CosmWasm/wasmd/x/wasm/ioutils"
 	"github.com/CosmWasm/wasmd/x/wasm/types"
 )
 
@@ -55,13 +55,13 @@ func storeCodeHandlerFn(cliCtx client.Context) http.HandlerFunc {
 		wasm := req.WasmBytes
 
 		// gzip the wasm file
-		if wasmUtils.IsWasm(wasm) {
-			wasm, err = wasmUtils.GzipIt(wasm)
+		if ioutils.IsWasm(wasm) {
+			wasm, err = ioutils.GzipIt(wasm)
 			if err != nil {
 				rest.WriteErrorResponse(w, http.StatusBadRequest, err.Error())
 				return
 			}
-		} else if !wasmUtils.IsGzip(wasm) {
+		} else if !ioutils.IsGzip(wasm) {
 			rest.WriteErrorResponse(w, http.StatusBadRequest, "Invalid input file, use wasm binary or zip")
 			return
 		}

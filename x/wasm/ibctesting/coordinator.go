@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	channeltypes "github.com/cosmos/ibc-go/v2/modules/core/04-channel/types"
-	host "github.com/cosmos/ibc-go/v2/modules/core/24-host"
-	ibctesting "github.com/cosmos/ibc-go/v2/testing"
+	channeltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
+	host "github.com/cosmos/ibc-go/v3/modules/core/24-host"
+	ibctesting "github.com/cosmos/ibc-go/v3/testing"
 	"github.com/stretchr/testify/require"
 	abci "github.com/tendermint/tendermint/abci/types"
 
@@ -65,7 +65,6 @@ func (coord *Coordinator) IncrementTime() {
 func (coord *Coordinator) IncrementTimeBy(increment time.Duration) {
 	coord.CurrentTime = coord.CurrentTime.Add(increment).UTC()
 	coord.UpdateTime()
-
 }
 
 // UpdateTime updates all clocks for the TestChains to the current global time.
@@ -115,7 +114,6 @@ func (coord *Coordinator) SetupConnections(path *Path) {
 // are returned within a TestConnection struct. The function expects the connections to be
 // successfully opened otherwise testing will fail.
 func (coord *Coordinator) CreateConnections(path *Path) {
-
 	err := path.EndpointA.ConnOpenInit()
 	require.NoError(coord.t, err)
 

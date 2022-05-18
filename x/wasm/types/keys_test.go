@@ -12,10 +12,12 @@ func TestGetContractByCodeIDSecondaryIndexPrefix(t *testing.T) {
 		src uint64
 		exp []byte
 	}{
-		"small number": {src: 1,
+		"small number": {
+			src: 1,
 			exp: []byte{6, 0, 0, 0, 0, 0, 0, 0, 1},
 		},
-		"big number": {src: 1 << (8 * 7),
+		"big number": {
+			src: 1 << (8 * 7),
 			exp: []byte{6, 1, 0, 0, 0, 0, 0, 0, 0},
 		},
 	}
@@ -28,11 +30,11 @@ func TestGetContractByCodeIDSecondaryIndexPrefix(t *testing.T) {
 }
 
 func TestGetContractCodeHistoryElementPrefix(t *testing.T) {
-
 	// test that contract addresses of 20 length are still supported
 	addr := bytes.Repeat([]byte{4}, 20)
 	got := GetContractCodeHistoryElementPrefix(addr)
-	exp := []byte{5, // prefix
+	exp := []byte{
+		5,                            // prefix
 		4, 4, 4, 4, 4, 4, 4, 4, 4, 4, // address 20 bytes
 		4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
 	}
@@ -40,7 +42,8 @@ func TestGetContractCodeHistoryElementPrefix(t *testing.T) {
 
 	addr = bytes.Repeat([]byte{4}, ContractAddrLen)
 	got = GetContractCodeHistoryElementPrefix(addr)
-	exp = []byte{5, // prefix
+	exp = []byte{
+		5,                            // prefix
 		4, 4, 4, 4, 4, 4, 4, 4, 4, 4, // address 32 bytes
 		4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
 		4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
@@ -58,7 +61,8 @@ func TestGetContractByCreatedSecondaryIndexKey(t *testing.T) {
 	// test that contract addresses of 20 length are still supported
 	addr := bytes.Repeat([]byte{4}, 20)
 	got := GetContractByCreatedSecondaryIndexKey(addr, e)
-	exp := []byte{6, // prefix
+	exp := []byte{
+		6,                      // prefix
 		0, 0, 0, 0, 0, 0, 0, 1, // codeID
 		1, 0, 0, 0, 0, 0, 0, 2, // height
 		1, 0, 0, 0, 0, 0, 0, 3, // index
@@ -69,7 +73,8 @@ func TestGetContractByCreatedSecondaryIndexKey(t *testing.T) {
 
 	addr = bytes.Repeat([]byte{4}, ContractAddrLen)
 	got = GetContractByCreatedSecondaryIndexKey(addr, e)
-	exp = []byte{6, // prefix
+	exp = []byte{
+		6,                      // prefix
 		0, 0, 0, 0, 0, 0, 0, 1, // codeID
 		1, 0, 0, 0, 0, 0, 0, 2, // height
 		1, 0, 0, 0, 0, 0, 0, 3, // index

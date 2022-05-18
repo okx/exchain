@@ -79,5 +79,4 @@ func TestContractFromPortID(t *testing.T) {
 			assert.Equal(t, spec.expAddr, gotAddr)
 		})
 	}
-
 }

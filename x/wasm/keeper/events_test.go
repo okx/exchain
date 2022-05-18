@@ -71,8 +71,10 @@ func TestNewCustomEvents(t *testing.T) {
 		"multiple attributes": {
 			src: wasmvmtypes.Events{{
 				Type: "foo",
-				Attributes: []wasmvmtypes.EventAttribute{{Key: "myKey", Value: "myVal"},
-					{Key: "myOtherKey", Value: "myOtherVal"}},
+				Attributes: []wasmvmtypes.EventAttribute{
+					{Key: "myKey", Value: "myVal"},
+					{Key: "myOtherKey", Value: "myOtherVal"},
+				},
 			}},
 			exp: sdk.Events{sdk.NewEvent("wasm-foo",
 				sdk.NewAttribute("_contract_address", myContract.String()),
@@ -121,7 +123,8 @@ func TestNewCustomEvents(t *testing.T) {
 				Type: "wasm",
 				Attributes: []wasmvmtypes.EventAttribute{
 					{Key: "_reserved", Value: "is skipped"},
-					{Key: "normal", Value: "is used"}},
+					{Key: "normal", Value: "is used"},
+				},
 			}},
 			isError: true,
 		},
@@ -183,6 +186,13 @@ func TestNewCustomEvents(t *testing.T) {
 				sdk.NewAttribute("_contract_address", myContract.String()),
 				sdk.NewAttribute("my Key", "myVal"))},
 		},
+		"empty event elements": {
+			src:     make(wasmvmtypes.Events, 10),
+			isError: true,
+		},
+		"nil": {
+			exp: sdk.Events{},
+		},
 	}
 	for name, spec := range specs {
 		t.Run(name, func(t *testing.T) {
@@ -211,8 +221,10 @@ func TestNewWasmModuleEvent(t *testing.T) {
 				sdk.NewAttribute("myKey", "myVal"))},
 		},
 		"multiple attributes": {
-			src: []wasmvmtypes.EventAttribute{{Key: "myKey", Value: "myVal"},
-				{Key: "myOtherKey", Value: "myOtherVal"}},
+			src: []wasmvmtypes.EventAttribute{
+				{Key: "myKey", Value: "myVal"},
+				{Key: "myOtherKey", Value: "myOtherVal"},
+			},
 			exp: sdk.Events{sdk.NewEvent("wasm",
 				sdk.NewAttribute("_contract_address", myContract.String()),
 				sdk.NewAttribute("myKey", "myVal"),
@@ -239,6 +251,15 @@ func TestNewWasmModuleEvent(t *testing.T) {
 			exp: sdk.Events{sdk.NewEvent("wasm",
 				sdk.NewAttribute("_contract_address", myContract.String()),
 				sdk.NewAttribute("my-real-key", "some-val"))},
+		},
+		"empty elements": {
+			src:     make([]wasmvmtypes.EventAttribute, 10),
+			isError: true,
+		},
+		"nil": {
+			exp: sdk.Events{sdk.NewEvent("wasm",
+				sdk.NewAttribute("_contract_address", myContract.String()),
+			)},
 		},
 	}
 	for name, spec := range specs {

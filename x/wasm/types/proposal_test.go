@@ -162,9 +162,7 @@ func TestValidateStoreCodeProposal(t *testing.T) {
 }
 
 func TestValidateInstantiateContractProposal(t *testing.T) {
-	var (
-		invalidAddress = "invalid address"
-	)
+	invalidAddress := "invalid address"
 
 	specs := map[string]struct {
 		src    *InstantiateContractProposal
@@ -257,9 +255,7 @@ func TestValidateInstantiateContractProposal(t *testing.T) {
 }
 
 func TestValidateMigrateContractProposal(t *testing.T) {
-	var (
-		invalidAddress = "invalid address2"
-	)
+	invalidAddress := "invalid address2"
 
 	specs := map[string]struct {
 		src    *MigrateContractProposal
@@ -317,10 +313,120 @@ func TestValidateMigrateContractProposal(t *testing.T) {
 	}
 }
 
+func TestValidateSudoContractProposal(t *testing.T) {
+	invalidAddress := "invalid address"
+
+	specs := map[string]struct {
+		src    *SudoContractProposal
+		expErr bool
+	}{
+		"all good": {
+			src: SudoContractProposalFixture(),
+		},
+		"msg is nil": {
+			src: SudoContractProposalFixture(func(p *SudoContractProposal) {
+				p.Msg = nil
+			}),
+			expErr: true,
+		},
+		"msg with invalid json": {
+			src: SudoContractProposalFixture(func(p *SudoContractProposal) {
+				p.Msg = []byte("not a json message")
+			}),
+			expErr: true,
+		},
+		"base data missing": {
+			src: SudoContractProposalFixture(func(p *SudoContractProposal) {
+				p.Title = ""
+			}),
+			expErr: true,
+		},
+		"contract missing": {
+			src: SudoContractProposalFixture(func(p *SudoContractProposal) {
+				p.Contract = ""
+			}),
+			expErr: true,
+		},
+		"contract invalid": {
+			src: SudoContractProposalFixture(func(p *SudoContractProposal) {
+				p.Contract = invalidAddress
+			}),
+			expErr: true,
+		},
+	}
+	for msg, spec := range specs {
+		t.Run(msg, func(t *testing.T) {
+			err := spec.src.ValidateBasic()
+			if spec.expErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateExecuteContractProposal(t *testing.T) {
+	invalidAddress := "invalid address"
+
+	specs := map[string]struct {
+		src    *ExecuteContractProposal
+		expErr bool
+	}{
+		"all good": {
+			src: ExecuteContractProposalFixture(),
+		},
+		"msg is nil": {
+			src: ExecuteContractProposalFixture(func(p *ExecuteContractProposal) {
+				p.Msg = nil
+			}),
+			expErr: true,
+		},
+		"msg with invalid json": {
+			src: ExecuteContractProposalFixture(func(p *ExecuteContractProposal) {
+				p.Msg = []byte("not a valid json message")
+			}),
+			expErr: true,
+		},
+		"base data missing": {
+			src: ExecuteContractProposalFixture(func(p *ExecuteContractProposal) {
+				p.Title = ""
+			}),
+			expErr: true,
+		},
+		"contract missing": {
+			src: ExecuteContractProposalFixture(func(p *ExecuteContractProposal) {
+				p.Contract = ""
+			}),
+			expErr: true,
+		},
+		"contract invalid": {
+			src: ExecuteContractProposalFixture(func(p *ExecuteContractProposal) {
+				p.Contract = invalidAddress
+			}),
+			expErr: true,
+		},
+		"run as is invalid": {
+			src: ExecuteContractProposalFixture(func(p *ExecuteContractProposal) {
+				p.RunAs = invalidAddress
+			}),
+			expErr: true,
+		},
+	}
+	for msg, spec := range specs {
+		t.Run(msg, func(t *testing.T) {
+			err := spec.src.ValidateBasic()
+			if spec.expErr {
+				require.Error(t, err)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestValidateUpdateAdminProposal(t *testing.T) {
-	var (
-		invalidAddress = "invalid address"
-	)
+	invalidAddress := "invalid address"
 
 	specs := map[string]struct {
 		src    *UpdateAdminProposal
@@ -373,9 +479,7 @@ func TestValidateUpdateAdminProposal(t *testing.T) {
 }
 
 func TestValidateClearAdminProposal(t *testing.T) {
-	var (
-		invalidAddress = "invalid address"
-	)
+	invalidAddress := "invalid address"
 
 	specs := map[string]struct {
 		src    *ClearAdminProposal
@@ -422,7 +526,7 @@ func TestProposalStrings(t *testing.T) {
 	}{
 		"store code": {
 			src: StoreCodeProposalFixture(func(p *StoreCodeProposal) {
-				p.WASMByteCode = []byte{01, 02, 03, 04, 05, 06, 07, 0x08, 0x09, 0x0a}
+				p.WASMByteCode = []byte{0o1, 0o2, 0o3, 0o4, 0o5, 0o6, 0o7, 0x08, 0x09, 0x0a}
 			}),
 			exp: `Store Code Proposal:
   Title:       Foo
@@ -538,7 +642,7 @@ func TestProposalYaml(t *testing.T) {
 	}{
 		"store code": {
 			src: StoreCodeProposalFixture(func(p *StoreCodeProposal) {
-				p.WASMByteCode = []byte{01, 02, 03, 04, 05, 06, 07, 0x08, 0x09, 0x0a}
+				p.WASMByteCode = []byte{0o1, 0o2, 0o3, 0o4, 0o5, 0o6, 0o7, 0x08, 0x09, 0x0a}
 			}),
 			exp: `title: Foo
 description: Bar
