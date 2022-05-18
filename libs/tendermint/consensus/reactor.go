@@ -64,8 +64,6 @@ type Reactor struct {
 	metrics *Metrics
 
 	rs *cstypes.RoundState
-
-	bpStatMtx sync.RWMutex
 }
 
 type ReactorOption func(*Reactor)
@@ -1168,20 +1166,19 @@ func (ps *PeerState) SetHasProposalBlockPart(height int64, round int, index int,
 	if ps.PRS.Height != height || ps.PRS.Round != round {
 		return
 	}
-	conR.bpStatMtx.Lock()
+
 	switch t {
 	case BP_SEND:
-		conR.conS.bt.bpSend++
+		conR.conS.bt.onBPSend()
 	case BP_ACK:
 		if !ps.PRS.ProposalBlockParts.GetIndex(index) {
-			conR.conS.bt.bpNOTransByACK++
+			conR.conS.bt.onBPACKHit()
 		}
 	case BP_RECV:
 		if !ps.PRS.ProposalBlockParts.GetIndex(index) {
-			conR.conS.bt.bpNOTransByData++
+			conR.conS.bt.onBPDataHit()
 		}
 	}
-	conR.bpStatMtx.Unlock()
 
 	ps.PRS.ProposalBlockParts.SetIndex(index, true)
 }

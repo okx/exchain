@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/okex/exchain/libs/system/trace"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"sync"
 	"time"
 )
 
@@ -18,6 +19,7 @@ type BlockTransport struct {
 	totalParts int
 	Logger  log.Logger
 
+	bpStatMtx sync.RWMutex
 	bpSend          int
 	bpNOTransByData int
 	bpNOTransByACK  int
@@ -56,4 +58,25 @@ func (bt *BlockTransport) onRecvBlock(height int64)  {
 		first2LastPartElapsed := time.Now().Sub(bt.firstPart)
 		trace.GetElapsedInfo().AddInfo(trace.First2LastPart, fmt.Sprintf("%dms", first2LastPartElapsed.Milliseconds()))
 	}
+}
+
+// blockpart send times
+func (bt *BlockTransport) onBPSend() {
+	bt.bpStatMtx.Lock()
+	bt.bpSend++
+	bt.bpStatMtx.Unlock()
+}
+
+// blockpart-ack receive times, specific blockpart won't send  to the peer from where the ack fired
+func (bt *BlockTransport) onBPACKHit() {
+	bt.bpStatMtx.Lock()
+	bt.bpNOTransByACK++
+	bt.bpStatMtx.Unlock()
+}
+
+// blockpart data receive times, specific blockpart won't send to the peer from where the data fired
+func (bt *BlockTransport) onBPDataHit() {
+	bt.bpStatMtx.Lock()
+	bt.bpNOTransByData++
+	bt.bpStatMtx.Unlock()
 }
