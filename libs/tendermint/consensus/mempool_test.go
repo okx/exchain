@@ -113,14 +113,15 @@ func TestMempoolTxConcurrentWithCommit(t *testing.T) {
 	state, privVals := randGenesisState(1, false, 10)
 	blockDB := dbm.NewMemDB()
 	cs := newStateWithConfigAndBlockStore(config, state, privVals[0], NewCounterApplication(), blockDB)
+	assertMempool(cs.txNotifier).EnableTxsAvailable()
 	sm.SaveState(blockDB, state)
 	newBlockHeaderCh := subscribe(cs.eventBus, types.EventQueryNewBlockHeader)
 
-	const numTxs int64 = 300
+	const numTxs int64 = 30
 	go deliverTxsRange(cs, 0, int(numTxs))
 
 	startTestRound(cs, cs.Height, cs.Round)
-	for n := int64(0); n < numTxs; n++ {
+	for n := int64(0); n < numTxs; {
 		select {
 		case msg := <-newBlockHeaderCh:
 			headerEvent := msg.Data().(types.EventDataNewBlockHeader)
