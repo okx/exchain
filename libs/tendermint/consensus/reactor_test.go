@@ -1152,6 +1152,43 @@ func TestVoteSetMaj23MessageAmino(t *testing.T) {
 	}
 }
 
+func TestNewValidBlockMessageAmino(t *testing.T) {
+	testCases := []NewValidBlockMessage{
+		{},
+		{
+			Height: 12345,
+			Round:  12345,
+			BlockPartsHeader: types.PartSetHeader{
+				Total: 1,
+				Hash:  tmhash.Sum([]byte("blockparts1")),
+			},
+			BlockParts: &bits.BitArray{
+				Bits:  10,
+				Elems: []uint64{1, 2, 3, 4},
+			},
+			IsCommit: true,
+		},
+		{
+			Height: math.MaxInt64,
+			Round:  math.MaxInt,
+		},
+		{
+			Height:     math.MinInt64,
+			Round:      math.MinInt,
+			BlockParts: &bits.BitArray{},
+		},
+	}
+	for _, tc := range testCases {
+		expectData, err := cdc.MarshalBinaryBare(tc)
+		require.NoError(t, err)
+		actualData, err := cdc.MarshalBinaryWithSizer(&tc, false)
+		require.NoError(t, err)
+
+		require.Equal(t, expectData, actualData)
+		require.Equal(t, len(expectData), tc.AminoSize(cdc)+4)
+	}
+}
+
 func BenchmarkVoteSetMaj23MessageAmino(b *testing.B) {
 	msg := VoteSetMaj23Message{
 		Height: 12345,

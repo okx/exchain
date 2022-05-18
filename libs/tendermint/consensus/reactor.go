@@ -1524,6 +1524,7 @@ func RegisterMessages(cdc *amino.Codec) {
 	cdc.RegisterConcrete(&VoteSetBitsMessage{}, "tendermint/VoteSetBits", nil)
 
 	cdc.EnableBufferMarshaler(NewRoundStepMessage{})
+	cdc.EnableBufferMarshaler(&NewValidBlockMessage{})
 	cdc.EnableBufferMarshaler(BlockPartMessage{})
 	cdc.EnableBufferMarshaler(VoteMessage{})
 	cdc.EnableBufferMarshaler(HasVoteMessage{})
@@ -1690,6 +1691,96 @@ func (m *NewValidBlockMessage) ValidateBasic() error {
 func (m *NewValidBlockMessage) String() string {
 	return fmt.Sprintf("[ValidBlockMessage H:%v R:%v BP:%v BA:%v IsCommit:%v]",
 		m.Height, m.Round, m.BlockPartsHeader, m.BlockParts, m.IsCommit)
+}
+
+func (m *NewValidBlockMessage) AminoSize(cdc *amino.Codec) int {
+	size := 0
+	if m.Height != 0 {
+		size += 1 + amino.UvarintSize(uint64(m.Height))
+	}
+	if m.Round != 0 {
+		size += 1 + amino.UvarintSize(uint64(m.Round))
+	}
+	bphSize := m.BlockPartsHeader.AminoSize(cdc)
+	if bphSize > 0 {
+		size += 1 + amino.UvarintSize(uint64(bphSize)) + bphSize
+	}
+	if m.BlockParts != nil {
+		bpSize := m.BlockParts.AminoSize(cdc)
+		size += 1 + amino.UvarintSize(uint64(bpSize)) + bpSize
+	}
+	if m.IsCommit {
+		size += 1 + 1
+	}
+	return size
+}
+
+func (m *NewValidBlockMessage) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
+	var err error
+	// field 1
+	if m.Height != 0 {
+		const pbKey = byte(1<<3 | amino.Typ3_Varint)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(m.Height))
+		if err != nil {
+			return err
+		}
+	}
+	// field 2
+	if m.Round != 0 {
+		const pbKey = byte(2<<3 | amino.Typ3_Varint)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(m.Round))
+		if err != nil {
+			return err
+		}
+	}
+	// field 3
+	bphSize := m.BlockPartsHeader.AminoSize(cdc)
+	if bphSize > 0 {
+		const pbKey = byte(3<<3 | amino.Typ3_ByteLength)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(bphSize))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = m.BlockPartsHeader.MarshalAminoTo(cdc, buf)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != bphSize {
+			return amino.NewSizerError(bphSize, buf.Len()-lenBeforeData, bphSize)
+		}
+	}
+	// field 4
+	if m.BlockParts != nil {
+		const pbKey = byte(4<<3 | amino.Typ3_ByteLength)
+		buf.WriteByte(pbKey)
+		bpSize := m.BlockParts.AminoSize(cdc)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(bpSize))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = m.BlockParts.MarshalAminoTo(cdc, buf)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != bpSize {
+			return amino.NewSizerError(bpSize, buf.Len()-lenBeforeData, bpSize)
+		}
+	}
+	// field 5
+	if m.IsCommit {
+		const pbKey = byte(5<<3 | amino.Typ3_Varint)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeBoolToBuffer(buf, true)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 //-------------------------------------
