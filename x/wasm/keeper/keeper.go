@@ -18,6 +18,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	paramtypes "github.com/okex/exchain/x/params"
 
+	"github.com/okex/exchain/x/wasm/ioutils"
 	"github.com/okex/exchain/x/wasm/types"
 )
 
@@ -140,12 +141,6 @@ func (k Keeper) getInstantiateAccessConfig(ctx sdk.Context) types.AccessType {
 	return a
 }
 
-func (k Keeper) GetMaxWasmCodeSize(ctx sdk.Context) uint64 {
-	var a uint64
-	k.paramSpace.Get(ctx, types.ParamStoreKeyMaxWasmCodeSize, &a)
-	return a
-}
-
 // GetParams returns the total set of wasm parameters.
 func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 	var params types.Params
@@ -165,7 +160,16 @@ func (k Keeper) create(ctx sdk.Context, creator sdk.AccAddress, wasmCode []byte,
 	if !authZ.CanCreateCode(k.getUploadAccessConfig(ctx), creator) {
 		return 0, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "can not create code")
 	}
-	wasmCode, err = uncompress(wasmCode, k.GetMaxWasmCodeSize(ctx))
+	// figure out proper instantiate access
+	defaultAccessConfig := k.getInstantiateAccessConfig(ctx).With(creator)
+	if instantiateAccess == nil {
+		instantiateAccess = &defaultAccessConfig
+	} else if !instantiateAccess.IsSubset(defaultAccessConfig) {
+		// we enforce this must be subset of default upload access
+		return 0, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "instantiate access must be subset of default upload access")
+	}
+
+	wasmCode, err = ioutils.Uncompress(wasmCode, uint64(types.MaxWasmSize))
 	if err != nil {
 		return 0, sdkerrors.Wrap(types.ErrCreateFailed, err.Error())
 	}
@@ -181,10 +185,6 @@ func (k Keeper) create(ctx sdk.Context, creator sdk.AccAddress, wasmCode []byte,
 	}
 	codeID = k.autoIncrementID(ctx, types.KeyLastCodeID)
 	k.Logger(ctx).Debug("storing new contract", "features", report.RequiredFeatures, "code_id", codeID)
-	if instantiateAccess == nil {
-		defaultAccessConfig := k.getInstantiateAccessConfig(ctx).With(creator)
-		instantiateAccess = &defaultAccessConfig
-	}
 	codeInfo := types.NewCodeInfo(checksum, creator, *instantiateAccess)
 	k.storeCodeInfo(ctx, codeID, codeInfo)
 
@@ -207,7 +207,7 @@ func (k Keeper) storeCodeInfo(ctx sdk.Context, codeID uint64, codeInfo types.Cod
 }
 
 func (k Keeper) importCode(ctx sdk.Context, codeID uint64, codeInfo types.CodeInfo, wasmCode []byte) error {
-	wasmCode, err := uncompress(wasmCode, k.GetMaxWasmCodeSize(ctx))
+	wasmCode, err := ioutils.Uncompress(wasmCode, uint64(types.MaxWasmSize))
 	if err != nil {
 		return sdkerrors.Wrap(types.ErrCreateFailed, err.Error())
 	}
@@ -247,7 +247,6 @@ func (k Keeper) instantiate(ctx sdk.Context, codeID uint64, creator, admin sdk.A
 		if err := k.bank.TransferCoins(ctx, creator, contractAddress, deposit); err != nil {
 			return nil, nil, err
 		}
-
 	} else {
 		// create an empty account (so we don't have issues later)
 		// TODO: can we remove this?
@@ -842,6 +841,17 @@ func (k Keeper) setContractInfoExtension(ctx sdk.Context, contractAddr sdk.AccAd
 	return nil
 }
 
+// setAccessConfig updates the access config of a code id.
+func (k Keeper) setAccessConfig(ctx sdk.Context, codeID uint64, config types.AccessConfig) error {
+	info := k.GetCodeInfo(ctx, codeID)
+	if info == nil {
+		return sdkerrors.Wrap(types.ErrNotFound, "code info")
+	}
+	info.InstantiateConfig = config
+	k.storeCodeInfo(ctx, codeID, *info)
+	return nil
+}
+
 // handleContractResponse processes the contract response data by emitting events and sending sub-/messages.
 func (k *Keeper) handleContractResponse(
 	ctx sdk.Context,
@@ -1021,7 +1031,8 @@ func NewBankCoinTransferrer(keeper types.BankKeeper) BankCoinTransferrer {
 // is not in the blocked address list.
 func (c BankCoinTransferrer) TransferCoins(parentCtx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amount sdk.Coins) error {
 	em := sdk.NewEventManager()
-	ctx := *parentCtx.SetEventManager(em)
+	ctx := parentCtx
+	ctx.SetEventManager(em)
 	if err := c.keeper.IsSendEnabledCoins(ctx, amount...); err != nil {
 		return err
 	}

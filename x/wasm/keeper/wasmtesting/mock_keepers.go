@@ -17,6 +17,7 @@ type MockChannelKeeper struct {
 	ChanCloseInitFn       func(ctx sdk.Context, portID, channelID string, chanCap *capabilitytypes.Capability) error
 	GetAllChannelsFn      func(ctx sdk.Context) []channeltypes.IdentifiedChannel
 	IterateChannelsFn     func(ctx sdk.Context, cb func(channeltypes.IdentifiedChannel) bool)
+	SetChannelFn          func(ctx sdk.Context, portID, channelID string, channel channeltypes.Channel)
 }
 
 func (m *MockChannelKeeper) GetChannel(ctx sdk.Context, srcPort, srcChan string) (channel channeltypes.Channel, found bool) {
@@ -59,6 +60,13 @@ func (m *MockChannelKeeper) IterateChannels(ctx sdk.Context, cb func(channeltype
 		panic("not expected to be called")
 	}
 	m.IterateChannelsFn(ctx, cb)
+}
+
+func (m *MockChannelKeeper) SetChannel(ctx sdk.Context, portID, channelID string, channel channeltypes.Channel) {
+	if m.GetChannelFn == nil {
+		panic("not supposed to be called!")
+	}
+	m.SetChannelFn(ctx, portID, channelID, channel)
 }
 
 func MockChannelKeeperIterator(s []channeltypes.IdentifiedChannel) func(ctx sdk.Context, cb func(channeltypes.IdentifiedChannel) bool) {

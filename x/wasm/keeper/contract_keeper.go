@@ -19,6 +19,7 @@ type decoratedKeeper interface {
 	execute(ctx sdk.Context, contractAddress sdk.AccAddress, caller sdk.AccAddress, msg []byte, coins sdk.Coins) ([]byte, error)
 	Sudo(ctx sdk.Context, contractAddress sdk.AccAddress, msg []byte) ([]byte, error)
 	setContractInfoExtension(ctx sdk.Context, contract sdk.AccAddress, extra types.ContractInfoExtension) error
+	setAccessConfig(ctx sdk.Context, codeID uint64, config types.AccessConfig) error
 }
 
 type PermissionedKeeper struct {
@@ -77,4 +78,9 @@ func (p PermissionedKeeper) UnpinCode(ctx sdk.Context, codeID uint64) error {
 // SetExtraContractAttributes updates the extra attributes that can be stored with the contract info
 func (p PermissionedKeeper) SetContractInfoExtension(ctx sdk.Context, contract sdk.AccAddress, extra types.ContractInfoExtension) error {
 	return p.nested.setContractInfoExtension(ctx, contract, extra)
+}
+
+// SetAccessConfig updates the access config of a code id.
+func (p PermissionedKeeper) SetAccessConfig(ctx sdk.Context, codeID uint64, config types.AccessConfig) error {
+	return p.nested.setAccessConfig(ctx, codeID, config)
 }

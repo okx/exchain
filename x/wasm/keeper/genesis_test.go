@@ -32,7 +32,6 @@ import (
 const firstCodeID = 1
 
 func TestGenesisExportImport(t *testing.T) {
-	SkipIfM1(t)
 	wasmKeeper, srcCtx, srcStoreKeys := setupKeeper(t)
 	contractKeeper := NewGovPermissionKeeper(wasmKeeper)
 
@@ -149,7 +148,6 @@ func TestGenesisExportImport(t *testing.T) {
 }
 
 func TestGenesisInit(t *testing.T) {
-	SkipIfM1(t)
 	wasmCode, err := ioutil.ReadFile("./testdata/hackatom.wasm")
 	require.NoError(t, err)
 
@@ -254,7 +252,8 @@ func TestGenesisInit(t *testing.T) {
 					},
 				},
 				Params: types.DefaultParams(),
-			}},
+			},
+		},
 		"happy path: code id in info and contract do match": {
 			src: types.GenesisState{
 				Codes: []types.Code{{
@@ -446,15 +445,13 @@ func TestGenesisInit(t *testing.T) {
 }
 
 func TestImportContractWithCodeHistoryReset(t *testing.T) {
-	SkipIfM1(t)
 	genesisTemplate := `
 {
 	"params":{
 		"code_upload_access": {
 			"permission": "Everybody"
 		},
-		"instantiate_default_permission": "Everybody",
-		"max_wasm_code_size": 500000
+		"instantiate_default_permission": "Everybody"
 	},
   "codes": [
     {
@@ -543,11 +540,12 @@ func TestImportContractWithCodeHistoryReset(t *testing.T) {
 	}
 	assert.Equal(t, expContractInfo, *gotContractInfo)
 
-	expHistory := []types.ContractCodeHistoryEntry{{
-		Operation: types.ContractCodeHistoryOperationTypeGenesis,
-		CodeID:    firstCodeID,
-		Updated:   types.NewAbsoluteTxPosition(ctx),
-	},
+	expHistory := []types.ContractCodeHistoryEntry{
+		{
+			Operation: types.ContractCodeHistoryOperationTypeGenesis,
+			CodeID:    firstCodeID,
+			Updated:   types.NewAbsoluteTxPosition(ctx),
+		},
 	}
 	assert.Equal(t, expHistory, keeper.GetContractHistory(ctx, contractAddr))
 	assert.Equal(t, uint64(2), keeper.PeekAutoIncrementID(ctx, types.KeyLastCodeID))
@@ -555,7 +553,6 @@ func TestImportContractWithCodeHistoryReset(t *testing.T) {
 }
 
 func TestSupportedGenMsgTypes(t *testing.T) {
-	SkipIfM1(t)
 	wasmCode, err := ioutil.ReadFile("./testdata/hackatom.wasm")
 	require.NoError(t, err)
 	var (

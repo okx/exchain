@@ -76,6 +76,18 @@ var (
 	// ErrInvalidEvent error if an attribute/event from the contract is invalid
 
 	ErrSendDisabled = sdkErrors.Register(DefaultCodespace, 23, "send transactions are disabled")
+
+	// ErrNotAJSONObject error if given data is not a JSON object
+	ErrNotAJSONObject = sdkErrors.Register(DefaultCodespace, 25, "not a JSON object")
+
+	// ErrNoTopLevelKey error if a JSON object has no top-level key
+	ErrNoTopLevelKey = sdkErrors.Register(DefaultCodespace, 26, "no top-level key")
+
+	// ErrMultipleTopLevelKeys error if a JSON object has more than one top-level key
+	ErrMultipleTopLevelKeys = sdkErrors.Register(DefaultCodespace, 27, "multiple top-level keys")
+
+	// ErrTopKevelKeyNotAllowed error if a JSON object has a top-level key that is not allowed
+	ErrTopKevelKeyNotAllowed = sdkErrors.Register(DefaultCodespace, 28, "top-level key is not allowed")
 )
 
 func ErrUnSupportQueryType(data string) *sdkErrors.Error {

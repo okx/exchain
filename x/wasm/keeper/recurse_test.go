@@ -207,8 +207,6 @@ func TestGasOnExternalQuery(t *testing.T) {
 }
 
 func TestLimitRecursiveQueryGas(t *testing.T) {
-	SkipIfM1(t)
-
 	// The point of this test from https://github.com/CosmWasm/cosmwasm/issues/456
 	// Basically, if I burn 90% of gas in CPU loop, then query out (to my self)
 	// the sub-query will have all the original gas (minus the 40k instance charge)

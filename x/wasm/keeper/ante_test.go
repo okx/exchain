@@ -111,6 +111,7 @@ func TestCountTxDecorator(t *testing.T) {
 		})
 	}
 }
+
 func TestLimitSimulationGasDecorator(t *testing.T) {
 	var (
 		hundred sdk.Gas = 100

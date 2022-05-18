@@ -200,6 +200,7 @@ type TestKeepers struct {
 	Router         *baseapp.Router
 	EncodingConfig EncodingConfig
 	Faucet         *TestFaucet
+	MultiStore     sdk.CommitMultiStore
 }
 
 // CreateDefaultTestInput common settings for CreateTestInput
@@ -276,7 +277,8 @@ func createTestInput(
 		capabilitytypes.ModuleName,
 		ibchost.ModuleName,
 		govtypes.ModuleName,
-		types.ModuleName} {
+		types.ModuleName,
+	} {
 		paramsKeeper.Subspace(m)
 	}
 	subspace := func(m string) paramstypes.Subspace {
@@ -456,6 +458,7 @@ func createTestInput(
 		Router:         router,
 		EncodingConfig: encodingConfig,
 		Faucet:         faucet,
+		MultiStore:     ms,
 	}
 	return ctx, keepers
 }
@@ -463,7 +466,7 @@ func createTestInput(
 // TestHandler returns a wasm handler for tests (to avoid circular imports)
 func TestHandler(k types.ContractOpsKeeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
-		ctx = *ctx.SetEventManager(sdk.NewEventManager())
+		ctx.SetEventManager(sdk.NewEventManager())
 		switch msg := msg.(type) {
 		case *types.MsgStoreCode:
 			return handleStoreCode(ctx, k, msg)
@@ -612,13 +615,22 @@ func SeedNewContractInstance(t testing.TB, ctx sdk.Context, keepers TestKeepers,
 
 // StoreRandomContract sets the mock wasmerEngine in keeper and calls store
 func StoreRandomContract(t testing.TB, ctx sdk.Context, keepers TestKeepers, mock types.WasmerEngine) ExampleContract {
+	return StoreRandomContractWithAccessConfig(t, ctx, keepers, mock, nil)
+}
+
+func StoreRandomContractWithAccessConfig(
+	t testing.TB, ctx sdk.Context,
+	keepers TestKeepers,
+	mock types.WasmerEngine,
+	cfg *types.AccessConfig,
+) ExampleContract {
 	t.Helper()
 	anyAmount := sdk.NewCoins(sdk.NewInt64Coin("denom", 1000))
 	creator, _, creatorAddr := keyPubAddr()
 	fundAccounts(t, ctx, keepers.AccountKeeper, keepers.BankKeeper, keepers.supplyKeepr, creatorAddr, anyAmount)
 	keepers.WasmKeeper.wasmVM = mock
 	wasmCode := append(wasmIdent, rand.Bytes(10)...) //nolint:gocritic
-	codeID, err := keepers.ContractKeeper.Create(ctx, creatorAddr, wasmCode, nil)
+	codeID, err := keepers.ContractKeeper.Create(ctx, creatorAddr, wasmCode, cfg)
 	require.NoError(t, err)
 	exampleContract := ExampleContract{InitialAmount: anyAmount, Creator: creator, CreatorAddr: creatorAddr, CodeID: codeID}
 	return exampleContract

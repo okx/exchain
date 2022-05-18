@@ -68,6 +68,7 @@ func GenesisStoreCodeCmd(defaultNodeHome string, genesisMutator GenesisMutator) 
 	}
 	cmd.Flags().String(flagRunAs, "", "The address that is stored as code creator")
 	cmd.Flags().String(flagInstantiateByEverybody, "", "Everybody can instantiate a contract from the code, optional")
+	cmd.Flags().String(flagInstantiateNobody, "", "Nobody except the governance process can instantiate a contract from the code, optional")
 	cmd.Flags().String(flagInstantiateByAddress, "", "Only this address can instantiate a contract instance from the code, optional")
 
 	cmd.Flags().String(flags.FlagHome, defaultNodeHome, "The application home directory")
@@ -211,7 +212,6 @@ func GenesisListCodesCmd(defaultNodeHome string, genReader GenesisReader) *cobra
 				return err
 			}
 			return printJSONOutput(cmd, all)
-
 		},
 	}
 	cmd.Flags().String(flags.FlagHome, defaultNodeHome, "The application home directory")
@@ -401,8 +401,10 @@ func (d DefaultGenesisReader) ReadWasmGenesis(cmd *cobra.Command) (*GenesisData,
 	), nil
 }
 
-var _ GenesisReader = DefaultGenesisIO{}
-var _ GenesisMutator = DefaultGenesisIO{}
+var (
+	_ GenesisReader  = DefaultGenesisIO{}
+	_ GenesisMutator = DefaultGenesisIO{}
+)
 
 // DefaultGenesisIO implements both interfaces to read and modify the genesis state for this module.
 // This implementation uses the default data structure that is used by the module.go genesis import/ export.

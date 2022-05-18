@@ -6,13 +6,13 @@ package ibctesting
 //	"testing"
 //	"time"
 //
-//	channeltypes "github.com/okex/exchain/libs/ibc-go/v2/modules/core/04-channel/types"
-//	host "github.com/okex/exchain/libs/ibc-go/v2/modules/core/24-host"
-//	ibctesting "github.com/okex/exchain/libs/ibc-go/v2/testing"
-//	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+//	channeltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
+//	host "github.com/cosmos/ibc-go/v3/modules/core/24-host"
+//	ibctesting "github.com/cosmos/ibc-go/v3/testing"
 //	"github.com/stretchr/testify/require"
+//	abci "github.com/tendermint/tendermint/abci/types"
 //
-//	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
+//	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
 //)
 //
 //const ChainIDPrefix = "testchain"
@@ -65,7 +65,6 @@ package ibctesting
 //func (coord *Coordinator) IncrementTimeBy(increment time.Duration) {
 //	coord.CurrentTime = coord.CurrentTime.Add(increment).UTC()
 //	coord.UpdateTime()
-//
 //}
 //
 //// UpdateTime updates all clocks for the TestChains to the current global time.
@@ -115,7 +114,6 @@ package ibctesting
 //// are returned within a TestConnection struct. The function expects the connections to be
 //// successfully opened otherwise testing will fail.
 //func (coord *Coordinator) CreateConnections(path *Path) {
-//
 //	err := path.EndpointA.ConnOpenInit()
 //	require.NoError(coord.t, err)
 //

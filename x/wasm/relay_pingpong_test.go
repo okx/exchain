@@ -5,22 +5,22 @@ package wasm_test
 //	"fmt"
 //	"testing"
 //
-//	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
-//	//ibctesting "github.com/okex/exchain/libs/ibc-go/v2/testing"
+//	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
+//	ibctesting "github.com/cosmos/ibc-go/v3/testing"
 //
 //	wasmvm "github.com/CosmWasm/wasmvm"
 //	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-//	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
-//	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-//	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-//	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+//	"github.com/cosmos/cosmos-sdk/store/prefix"
+//	sdk "github.com/cosmos/cosmos-sdk/types"
+//	clienttypes "github.com/cosmos/ibc-go/v3/modules/core/02-client/types"
+//	channeltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
 //	"github.com/stretchr/testify/assert"
 //	"github.com/stretchr/testify/require"
 //
-//	wasmibctesting "github.com/okex/exchain/x/wasm/ibctesting"
-//	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
-//	"github.com/okex/exchain/x/wasm/keeper/wasmtesting"
-//	wasmtypes "github.com/okex/exchain/x/wasm/types"
+//	wasmibctesting "github.com/CosmWasm/wasmd/x/wasm/ibctesting"
+//	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
+//	"github.com/CosmWasm/wasmd/x/wasm/keeper/wasmtesting"
+//	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 //)
 //
 //const (
@@ -41,8 +41,9 @@ package wasm_test
 //	pongContract := &player{t: t, actor: pong}
 //
 //	var (
-//		chainAOpts = []wasmkeeper.Option{wasmkeeper.WithWasmEngine(
-//			wasmtesting.NewIBCContractMockWasmer(pingContract)),
+//		chainAOpts = []wasmkeeper.Option{
+//			wasmkeeper.WithWasmEngine(
+//				wasmtesting.NewIBCContractMockWasmer(pingContract)),
 //		}
 //		chainBOpts = []wasmkeeper.Option{wasmkeeper.WithWasmEngine(
 //			wasmtesting.NewIBCContractMockWasmer(pongContract),
@@ -159,18 +160,19 @@ package wasm_test
 //	store.Set(lastBallSentKey, sdk.Uint64ToBigEndian(start.Value))
 //	return &wasmvmtypes.Response{
 //		Messages: []wasmvmtypes.SubMsg{
-//			{Msg: wasmvmtypes.CosmosMsg{
-//				IBC: &wasmvmtypes.IBCMsg{
-//					SendPacket: &wasmvmtypes.SendPacketMsg{
-//						ChannelID: start.ChannelID,
-//						Data:      service.GetBytes(),
-//						Timeout: wasmvmtypes.IBCTimeout{Block: &wasmvmtypes.IBCTimeoutBlock{
-//							Revision: doNotTimeout.RevisionNumber,
-//							Height:   doNotTimeout.RevisionHeight,
-//						}},
+//			{
+//				Msg: wasmvmtypes.CosmosMsg{
+//					IBC: &wasmvmtypes.IBCMsg{
+//						SendPacket: &wasmvmtypes.SendPacketMsg{
+//							ChannelID: start.ChannelID,
+//							Data:      service.GetBytes(),
+//							Timeout: wasmvmtypes.IBCTimeout{Block: &wasmvmtypes.IBCTimeoutBlock{
+//								Revision: doNotTimeout.RevisionNumber,
+//								Height:   doNotTimeout.RevisionHeight,
+//							}},
+//						},
 //					},
 //				},
-//			},
 //				ReplyOn: wasmvmtypes.ReplyNever,
 //			},
 //		},
@@ -178,11 +180,11 @@ package wasm_test
 //}
 //
 //// OnIBCChannelOpen ensures to accept only configured version
-//func (p player) IBCChannelOpen(codeID wasmvm.Checksum, env wasmvmtypes.Env, msg wasmvmtypes.IBCChannelOpenMsg, store wasmvm.KVStore, goapi wasmvm.GoAPI, querier wasmvm.Querier, gasMeter wasmvm.GasMeter, gasLimit uint64, deserCost wasmvmtypes.UFraction) (uint64, error) {
+//func (p player) IBCChannelOpen(codeID wasmvm.Checksum, env wasmvmtypes.Env, msg wasmvmtypes.IBCChannelOpenMsg, store wasmvm.KVStore, goapi wasmvm.GoAPI, querier wasmvm.Querier, gasMeter wasmvm.GasMeter, gasLimit uint64, deserCost wasmvmtypes.UFraction) (*wasmvmtypes.IBC3ChannelOpenResponse, uint64, error) {
 //	if msg.GetChannel().Version != p.actor {
-//		return 0, nil
+//		return &wasmvmtypes.IBC3ChannelOpenResponse{}, 0, nil
 //	}
-//	return 0, nil
+//	return &wasmvmtypes.IBC3ChannelOpenResponse{}, 0, nil
 //}
 //
 //// OnIBCChannelConnect persists connection endpoints
@@ -245,10 +247,11 @@ package wasm_test
 //	packet := msg.Packet
 //	var receivedBall hit
 //	if err := json.Unmarshal(packet.Data, &receivedBall); err != nil {
-//		return &wasmvmtypes.IBCReceiveResult{Ok: &wasmvmtypes.IBCReceiveResponse{
-//			Acknowledgement: hitAcknowledgement{Error: err.Error()}.GetBytes(),
-//		},
-//		// no hit msg, we stop the game
+//		return &wasmvmtypes.IBCReceiveResult{
+//			Ok: &wasmvmtypes.IBCReceiveResponse{
+//				Acknowledgement: hitAcknowledgement{Error: err.Error()}.GetBytes(),
+//			},
+//			// no hit msg, we stop the game
 //		}, 0, nil
 //	}
 //	p.incrementCounter(receivedBallsCountKey, store)
@@ -276,9 +279,11 @@ package wasm_test
 //	p.incrementCounter(sentBallsCountKey, store)
 //	p.t.Logf("[%s] received %d, returning %d: %v\n", p.actor, otherCount, nextValue, newHit)
 //
-//	return &wasmvmtypes.IBCReceiveResult{Ok: &wasmvmtypes.IBCReceiveResponse{
-//		Acknowledgement: receivedBall.BuildAck().GetBytes(),
-//		Messages:        []wasmvmtypes.SubMsg{{Msg: wasmvmtypes.CosmosMsg{IBC: respHit}, ReplyOn: wasmvmtypes.ReplyNever}}},
+//	return &wasmvmtypes.IBCReceiveResult{
+//		Ok: &wasmvmtypes.IBCReceiveResponse{
+//			Acknowledgement: receivedBall.BuildAck().GetBytes(),
+//			Messages:        []wasmvmtypes.SubMsg{{Msg: wasmvmtypes.CosmosMsg{IBC: respHit}, ReplyOn: wasmvmtypes.ReplyNever}},
+//		},
 //	}, 0, nil
 //}
 //
@@ -299,7 +304,6 @@ package wasm_test
 //		p.t.Logf("[%s] acknowledged %d: %v\n", p.actor, confirmedCount, sentBall)
 //	} else {
 //		p.t.Logf("[%s] received app layer error: %s\n", p.actor, ack.Error)
-//
 //	}
 //
 //	p.incrementCounter(confirmedBallsCountKey, store)
@@ -345,6 +349,7 @@ package wasm_test
 //		player: count,
 //	}
 //}
+//
 //func (h hit) GetBytes() []byte {
 //	b, err := json.Marshal(h)
 //	if err != nil {
@@ -352,6 +357,7 @@ package wasm_test
 //	}
 //	return b
 //}
+//
 //func (h hit) String() string {
 //	return fmt.Sprintf("Ball %s", string(h.GetBytes()))
 //}

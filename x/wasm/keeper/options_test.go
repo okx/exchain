@@ -81,7 +81,6 @@ func TestConstructorOptions(t *testing.T) {
 			spec.verify(t, k)
 		})
 	}
-
 }
 
 func setApiDefaults() {
