@@ -3,12 +3,12 @@ package ibctesting
 import (
 	"bytes"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/crypto"
 	"testing"
 	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	secp256k12 "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
 	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
@@ -63,8 +63,8 @@ type TestChainI interface {
 	ChainID() string
 	Codec() *codec.CodecProxy
 	SenderAccount() sdk.Account
-	SenderAccountPV() *secp256k12.PrivKey
-
+	SenderAccountPV() crypto.PrivKey
+	SenderAccountPVBZ() []byte
 	CurrentTMClientHeader() *ibctmtypes.Header
 	CurrentHeader() tmproto.Header
 	CurrentHeaderTime(time.Time)
@@ -96,9 +96,9 @@ type TestChainI interface {
 // is used for delivering transactions through the application state.
 // NOTE: the actual application uses an empty chain-id for ease of testing.
 type TestChain struct {
-	t *testing.T
-
-	context sdk.Context
+	t         *testing.T
+	privKeyBz []byte
+	context   sdk.Context
 
 	coordinator   *Coordinator
 	TApp          TestingApp
@@ -113,7 +113,7 @@ type TestChain struct {
 	vals    *tmtypes.ValidatorSet
 	signers []tmtypes.PrivValidator
 
-	senderPrivKey *secp256k12.PrivKey
+	senderPrivKey crypto.PrivKey
 	senderAccount authtypes.Account
 }
 
@@ -137,15 +137,15 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 	signers := []tmtypes.PrivValidator{privVal}
 
 	// generate genesis account
-	senderPrivKey := secp256k12.GenPrivKey()
-	var pubkeyBytes secp256k1.PubKeySecp256k1
-	copy(pubkeyBytes[:], senderPrivKey.PubKey().Bytes())
+	senderPrivKey := secp256k1.GenPrivKey()
+	//var pubkeyBytes secp256k1.PubKeySecp256k1
+	//copy(pubkeyBytes[:], senderPrivKey.PubKey().Bytes())
 
 	i, ok := sdk.NewIntFromString("92233720368547758080")
 	require.True(t, ok)
 	balance := sdk.NewCoins(apptypes.NewPhotonCoin(i))
 	var genesisAcc authtypes.GenesisAccount
-	genesisAcc = auth.NewBaseAccount(senderPrivKey.PubKey().Address().Bytes(), balance, pubkeyBytes, 0, 0)
+	genesisAcc = auth.NewBaseAccount(senderPrivKey.PubKey().Address().Bytes(), balance, senderPrivKey.PubKey(), 0, 0)
 
 	//amount, ok := sdk.NewIntFromString("10000000000000000000")
 	//require.True(t, ok)
@@ -179,6 +179,7 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 	// create an account to send transactions from
 	tchain := &TestChain{
 		t:             t,
+		privKeyBz:     senderPrivKey[:],
 		coordinator:   coord,
 		chainID:       chainID,
 		TApp:          app,
@@ -188,7 +189,7 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 		codec:         app.AppCodec(),
 		vals:          valSet,
 		signers:       signers,
-		senderPrivKey: senderPrivKey,
+		senderPrivKey: &senderPrivKey,
 		senderAccount: genesisAcc,
 	}
 
@@ -214,12 +215,9 @@ func NewTestEthChain(t *testing.T, coord *Coordinator, chainID string) *TestChai
 	//Kb := keys.NewInMemory(hd.EthSecp256k1Options()...)
 	// generate genesis account
 	//info, err = Kb.CreateAccount(name, mnemonic, "", passWd, hdPath, hd.EthSecp256k1)
+	senderPrivKey, _ := ethsecp256k1.GenerateKey() //secp256k1.GenPrivKey()
 
-	senderPrivKey := secp256k12.GenPrivKey()
-	var pubkeyBytes secp256k1.PubKeySecp256k1
-	copy(pubkeyBytes[:], senderPrivKey.PubKey().Bytes())
-
-	ethPubkey := ethsecp256k1.PrivKey(senderPrivKey.Bytes()).PubKey()
+	ethPubkey := senderPrivKey.PubKey() //ethsecp256k1.PrivKey(senderPrivKey.Bytes()).PubKey()
 
 	i, ok := sdk.NewIntFromString("92233720368547758080")
 	require.True(t, ok)
@@ -255,8 +253,9 @@ func NewTestEthChain(t *testing.T, coord *Coordinator, chainID string) *TestChai
 		codec:         app.AppCodec(),
 		vals:          valSet,
 		signers:       signers,
-		senderPrivKey: senderPrivKey,
+		senderPrivKey: &senderPrivKey,
 		senderAccount: genesisAcc,
+		privKeyBz:     senderPrivKey[:],
 	}
 
 	//coord.UpdateNextBlock(tchain)
@@ -737,8 +736,13 @@ func (chain *TestChain) Codec() *codec.CodecProxy {
 func (chain *TestChain) SenderAccount() sdk.Account {
 	return chain.senderAccount
 }
-func (chain *TestChain) SenderAccountPV() *secp256k12.PrivKey {
+func (chain *TestChain) SenderAccountPV() crypto.PrivKey {
+
 	return chain.senderPrivKey
+}
+
+func (chain *TestChain) SenderAccountPVBZ() []byte {
+	return chain.privKeyBz
 }
 
 //func (chain *TestChain) CurrentTMClientHeader() *ibctmtypes.Header {}
