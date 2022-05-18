@@ -2,7 +2,7 @@ package simapp
 
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	cosmoscryptocodec "github.com/okex/exchain/libs/cosmos-sdk/crypto/ibc-codec"
+	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	simappparams "github.com/okex/exchain/libs/ibc-go/testing/simapp/params"
 )
 
@@ -13,7 +13,7 @@ import (
 func MakeTestEncodingConfig() simappparams.EncodingConfig {
 	encodingConfig := simappparams.MakeTestEncodingConfig()
 	//std.RegisterLegacyAminoCodec(encodingConfig.Amino)
-	cosmoscryptocodec.RegisterInterfaces(encodingConfig.InterfaceRegistry)
+	ibc_tx.PubKeyRegisterInterfaces(encodingConfig.InterfaceRegistry)
 	//ModuleBasics.RegisterLegacyAminoCodec(encodingConfig.Amino)
 	interfaceReg := types.NewInterfaceRegistry()
 	ModuleBasics.RegisterInterfaces(interfaceReg)

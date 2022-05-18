@@ -146,10 +146,10 @@ func (suite *RPCPendingTestSuite) SetupTest() {
 	viper.Set("rpc.laddr", "127.0.0.1:0")
 	viper.Set(flags.FlagKeyringBackend, "test")
 
-	senderPv := suite.chain.SenderAccountPV()
+	senderPv := suite.chain.SenderAccountPVBZ()
 	genesisAcc = suite.chain.SenderAccount().GetAddress()
 	senderAddr = ethcmn.BytesToAddress(genesisAcc.Bytes())
-	apis := rpc.GetAPIs(cliCtx, log.NewNopLogger(), []ethsecp256k1.PrivKey{ethsecp256k1.PrivKey(senderPv.Bytes())}...)
+	apis := rpc.GetAPIs(cliCtx, log.NewNopLogger(), []ethsecp256k1.PrivKey{ethsecp256k1.PrivKey(senderPv)}...)
 	for _, api := range apis {
 		if err := suite.apiServer.RegisterName(api.Namespace, api.Service); err != nil {
 			panic(err)
