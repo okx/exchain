@@ -68,6 +68,12 @@ func TestSimpleProofAmino(t *testing.T) {
 	for _, sp := range spTestCases {
 		expectData, err := cdc.MarshalBinaryBare(sp)
 		require.NoError(t, err)
+
+		actualData, err := cdc.MarshalBinaryBareWithSizer(sp, false)
+		require.NoError(t, err)
+		require.Equal(t, expectData, actualData)
+		require.Equal(t, len(expectData), sp.AminoSize(cdc))
+
 		var expectValue SimpleProof
 		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
 		require.NoError(t, err)
