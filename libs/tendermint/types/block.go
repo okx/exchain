@@ -119,6 +119,8 @@ func (b *Block) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 				return fmt.Errorf("not enough data to read field %d", pos)
 			}
 			subData = data[:dataLen]
+		} else {
+			return fmt.Errorf("unexpected amino type %v", aminoType)
 		}
 
 		switch pos {
@@ -277,7 +279,7 @@ func compressBlock(bz []byte) []byte {
 	return append(cz, byte(BlockCompressType))
 }
 
-func UncompressBlockFromReader(pbpReader io.Reader) (io.Reader, error) {
+func UncompressBlockFromReader(pbpReader io.Reader) ([]byte, error) {
 	// received compressed block bytes, uncompress with the flag:Proposal.CompressBlock
 	compressed, err := io.ReadAll(pbpReader)
 	if err != nil {
@@ -296,7 +298,7 @@ func UncompressBlockFromReader(pbpReader io.Reader) (io.Reader, error) {
 			compressRatio, t1.Sub(t0).Milliseconds()))
 	}
 
-	return bytes.NewBuffer(original), nil
+	return original, nil
 }
 
 func UncompressBlockFromBytes(payload []byte) (res []byte, compressType int, err error) {
