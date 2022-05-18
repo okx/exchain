@@ -136,7 +136,7 @@ func TestDeltaPayloadAmino(t *testing.T) {
 
 	for _, testCase := range testCases {
 		expectData := cdc.MustMarshalBinaryBare(testCase)
-		actulaData, err := cdc.MarshalBinaryBareWithSizer(testCase, false)
+		actulaData, err := cdc.MarshalBinaryWithSizer(testCase, false)
 		require.NoError(t, err)
 		assert.Equal(t, expectData, actulaData)
 		require.Equal(t, len(expectData), testCase.AminoSize(cdc))
@@ -166,7 +166,7 @@ func TestDeltaAmino(t *testing.T) {
 	}
 	for _, testCase := range testCases {
 		expectData := cdc.MustMarshalBinaryBare(testCase)
-		actulaData, err := cdc.MarshalBinaryBareWithSizer(&testCase, false)
+		actulaData, err := cdc.MarshalBinaryWithSizer(&testCase, false)
 		require.NoError(t, err)
 		assert.Equal(t, expectData, actulaData)
 		require.Equal(t, len(expectData), testCase.AminoSize(cdc))

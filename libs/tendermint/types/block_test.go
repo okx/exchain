@@ -746,7 +746,7 @@ func TestBlockIDAmino(t *testing.T) {
 	for _, tc := range blockIDTestCases {
 		bz, err := cdc.MarshalBinaryBare(tc)
 		require.NoError(t, err)
-		actualData, err := cdc.MarshalBinaryBareWithSizer(tc, false)
+		actualData, err := cdc.MarshalBinaryWithSizer(tc, false)
 		require.NoError(t, err)
 		require.Equal(t, bz, actualData)
 		require.Equal(t, len(bz), tc.AminoSize(cdc))

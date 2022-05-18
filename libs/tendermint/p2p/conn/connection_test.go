@@ -697,12 +697,12 @@ func TestPacketMsgAmino(t *testing.T) {
 
 		require.Equal(t, len(actualData), msg.AminoSize(cdc))
 
-		actualData, err = cdc.MarshalBinaryBareWithSizer(msg, false)
+		actualData, err = cdc.MarshalBinaryWithSizer(msg, false)
 		require.EqualValues(t, expectData, actualData)
 
 		expectLenPrefixData, err := cdc.MarshalBinaryLengthPrefixed(msg)
 		require.NoError(t, err)
-		actualLenPrefixData, err := cdc.MarshalBinaryBareWithSizer(msg, true)
+		actualLenPrefixData, err := cdc.MarshalBinaryWithSizer(msg, true)
 		require.EqualValues(t, expectLenPrefixData, actualLenPrefixData)
 
 		var expectValue PacketMsg
@@ -766,7 +766,7 @@ func Benchmark(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			for _, msg := range testCases {
-				_, err := cdc.MarshalBinaryBareWithSizer(&msg, true)
+				_, err := cdc.MarshalBinaryWithSizer(&msg, true)
 				if err != nil {
 					b.Fatal(err)
 				}

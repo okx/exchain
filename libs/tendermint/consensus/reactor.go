@@ -575,7 +575,7 @@ func makeRoundStepMessage(rs *cstypes.RoundState) (nrsMsg *NewRoundStepMessage) 
 func (conR *Reactor) sendNewRoundStepMessage(peer p2p.Peer) {
 	rs := conR.getRoundState()
 	nrsMsg := makeRoundStepMessage(rs)
-	peer.Send(StateChannel, cdc.MustMarshalBinaryBare(nrsMsg))
+	peer.Send(StateChannel, cdc.MustMarshalBinaryWithSizer(nrsMsg, false))
 }
 
 func (conR *Reactor) gossipDataRoutine(peer p2p.Peer, ps *PeerState) {
@@ -601,7 +601,7 @@ OUTER_LOOP:
 					Part:   part,
 				}
 				logger.Debug("Sending block part", "height", prs.Height, "round", prs.Round)
-				if peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg)) {
+				if peer.Send(DataChannel, cdc.MustMarshalBinaryWithSizer(msg, false)) {
 					ps.SetHasProposalBlockPart(prs.Height, prs.Round, index)
 				}
 				continue OUTER_LOOP
@@ -707,7 +707,7 @@ func (conR *Reactor) gossipDataForCatchup(logger log.Logger, rs *cstypes.RoundSt
 			Part:   part,
 		}
 		logger.Debug("Sending block part for catchup", "round", prs.Round, "index", index)
-		if peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg)) {
+		if peer.Send(DataChannel, cdc.MustMarshalBinaryWithSizer(msg, false)) {
 			ps.SetHasProposalBlockPart(prs.Height, prs.Round, index)
 		} else {
 			logger.Debug("Sending block part for catchup failed")

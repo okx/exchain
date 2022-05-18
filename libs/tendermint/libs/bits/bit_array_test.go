@@ -310,7 +310,7 @@ func TestBitArrayAmino(t *testing.T) {
 	cdc.EnableBufferMarshaler(&BitArray{})
 	for _, tc := range testCases {
 		expectData := cdc.MustMarshalBinaryBare(&tc)
-		actualData, err := cdc.MarshalBinaryBareWithSizer(&tc, false)
+		actualData, err := cdc.MarshalBinaryWithSizer(&tc, false)
 		require.NoError(t, err)
 		require.Equal(t, expectData, actualData)
 		require.Equal(t, len(expectData), tc.AminoSize(cdc))
