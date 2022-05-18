@@ -5,7 +5,7 @@ import (
 	ethsecp256k12 "github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx/internal/ethsecp256k1"
-	secp256k1 "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx/internal/ibc-key"
+	secp256k1 "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx/internal/secp256k1"
 	LagacyPubKey "github.com/okex/exchain/libs/tendermint/crypto"
 	secp256k12 "github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 )
