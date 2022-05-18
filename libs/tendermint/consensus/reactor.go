@@ -510,7 +510,7 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 
 	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventBlockPart,
 		func(data tmevents.EventData) {
-			conR.broadcastHasBlockPartMessage(data.(*BlockPartMessage))
+			conR.broadcastHasBlockPartMessage(data.(*HasBlockPartMessage))
 		})
 }
 
@@ -536,12 +536,7 @@ func (conR *Reactor) broadcastNewValidBlockMessage(rs *cstypes.RoundState) {
 }
 
 // Broadcasts HasBlockPartMessage to peers that care.
-func (conR *Reactor) broadcastHasBlockPartMessage(bpm *BlockPartMessage) {
-	msg := &HasBlockPartMessage{
-		Height: bpm.Height,
-		Round:  bpm.Round,
-		Index:  bpm.Part.Index,
-	}
+func (conR *Reactor) broadcastHasBlockPartMessage(msg *HasBlockPartMessage) {
 	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryBare(msg))
 }
 
