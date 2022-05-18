@@ -1,10 +1,13 @@
 package types
 
 import (
+	stdbytes "bytes"
 	// it is ok to use math/rand here: we do not need a cryptographically secure random
 	// number generator here and we can run the tests a bit faster
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
+	"io"
 	"math"
 	"os"
 	"reflect"
@@ -1037,4 +1040,104 @@ func BenchmarkBlockAminoUnmarshal(b *testing.B) {
 			}
 		}
 	})
+}
+
+func Test_compressBlock(t *testing.T) {
+	bzShort := []byte("short bz value")
+	bzLarge := make([]byte, BlockCompressThreshold+1)
+	type args struct {
+		bz                  []byte
+		oldBlockComressType int
+		before              func()
+	}
+	tests := []struct {
+		name string
+		args args
+		want []byte
+		ret  func(got []byte) bool
+	}{
+		{"block compress type zero", args{bz: bzShort, oldBlockComressType: BlockCompressType, before: func() {}}, bzShort, func([]byte) bool { return true }},
+		{"block compress with short length", args{bz: bzShort, oldBlockComressType: BlockCompressType, before: func() { BlockCompressType = 1 }}, bzShort, func([]byte) bool { return true }},
+		{"block compress with large length", args{bz: bzLarge, oldBlockComressType: BlockCompressType, before: func() { BlockCompressType = 1 }}, nil, func(got []byte) bool { return len(got) < len(bzLarge) }},
+		{"block compress with unknown compress type", args{bz: bzLarge, oldBlockComressType: BlockCompressType, before: func() { BlockCompressType = 10 }}, nil, func(got []byte) bool { return len(got) > len(bzLarge) }},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.args.before()
+			got := compressBlock(tt.args.bz)
+			assert.NotNil(t, got)
+			assert.True(t, tt.ret(got))
+			BlockCompressType = tt.args.oldBlockComressType
+		})
+	}
+}
+
+func TestUncompressBlockFromReader(t *testing.T) {
+	unCompressedContent, _ := cdc.MarshalBinaryBare([]byte("this is unCompressed content"))
+	unCompressedReader := stdbytes.NewReader(unCompressedContent)
+
+	compressedBytes := make([]byte, BlockCompressThreshold+1)
+	content, _ := cdc.MarshalBinaryBare(compressedBytes)
+	oldCompressType := BlockCompressType
+	BlockCompressType = 1
+	compressedContent := compressBlock(content)
+	compressedReader := stdbytes.NewReader(compressedContent)
+
+	type args struct {
+		pbpReader io.Reader
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    []byte
+		wantErr assert.ErrorAssertionFunc
+	}{
+		{"uncompressed from not compressed reader", args{pbpReader: unCompressedReader}, unCompressedContent, assert.NoError},
+		{"uncompressed from compressed reader", args{pbpReader: compressedReader}, content, assert.NoError},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := UncompressBlockFromReader(tt.args.pbpReader)
+			if !tt.wantErr(t, err, fmt.Sprintf("UncompressBlockFromReader(%v)", tt.args.pbpReader)) {
+				return
+			}
+			gotBytes := make([]byte, BlockCompressThreshold+BlockCompressThreshold)
+			n, _ := got.Read(gotBytes)
+			assert.Equalf(t, tt.want, gotBytes[:n], "UncompressBlockFromReader(%v)", tt.args.pbpReader)
+		})
+	}
+	BlockCompressType = oldCompressType
+}
+
+func TestUncompressBlockFromBytes(t *testing.T) {
+	unCompressedContent, _ := cdc.MarshalBinaryBare([]byte("this is unCompressed content"))
+
+	compressedBytes := make([]byte, BlockCompressThreshold+1)
+	content, _ := cdc.MarshalBinaryBare(compressedBytes)
+	BlockCompressType = 1
+	compressedContent := compressBlock(content)
+
+	type args struct {
+		payload []byte
+	}
+	tests := []struct {
+		name             string
+		args             args
+		wantRes          []byte
+		wantCompressType int
+		wantErr          assert.ErrorAssertionFunc
+	}{
+		{"uncompressed from not compressed bytes", args{payload: unCompressedContent}, unCompressedContent, 0, assert.NoError},
+		{"uncompressed from compressed bytes", args{payload: compressedContent}, content, 1, assert.NoError},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			gotRes, gotCompressType, err := UncompressBlockFromBytes(tt.args.payload)
+			if !tt.wantErr(t, err, fmt.Sprintf("UncompressBlockFromBytes(%v)", tt.args.payload)) {
+				return
+			}
+			assert.Equalf(t, tt.wantRes, gotRes, "UncompressBlockFromBytes(%v)", tt.args.payload)
+			assert.Equalf(t, tt.wantCompressType, gotCompressType, "UncompressBlockFromBytes(%v)", tt.args.payload)
+		})
+	}
 }

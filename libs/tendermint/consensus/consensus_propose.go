@@ -3,11 +3,12 @@ package consensus
 import (
 	"bytes"
 	"fmt"
+	"strings"
+
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	"github.com/okex/exchain/libs/tendermint/types"
-	"strings"
 )
 
 // SetProposal inputs a proposal.
@@ -53,7 +54,6 @@ func (cs *State) SetProposalAndBlock(
 	}
 	return nil
 }
-
 
 func (cs *State) isBlockProducer() (string, string) {
 	const len2display int = 6
@@ -224,7 +224,6 @@ func (cs *State) createProposalBlock() (block *types.Block, blockParts *types.Pa
 	return cs.blockExec.CreateProposalBlock(cs.Height, cs.state, commit, proposerAddr)
 }
 
-
 //-----------------------------------------------------------------------------
 
 func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
@@ -263,8 +262,13 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	return nil
 }
 
-func (cs *State) unmarshalBlock() error {
+func (cs *State) unmarshalBlock() (err error) {
 	// todo: suppress panic
+	defer func() {
+		if x := recover(); x != nil {
+			err = fmt.Errorf("unmarshal block panic")
+		}
+	}()
 	// uncompress blockParts bytes if necessary
 	pbpReader, err := types.UncompressBlockFromReader(cs.ProposalBlockParts.GetReader())
 	if err != nil {
@@ -277,8 +281,10 @@ func (cs *State) unmarshalBlock() error {
 		&cs.ProposalBlock,
 		cs.state.ConsensusParams.Block.MaxBytes,
 	)
+
 	return err
 }
+
 func (cs *State) onBlockPartAdded(height int64, added bool, err error) {
 
 	if err != nil {
@@ -353,7 +359,7 @@ func (cs *State) handleCompleteProposal(height int64) {
 	if hasTwoThirds && !blockID.IsZero() && (cs.ValidRound < cs.Round) {
 		if cs.ProposalBlock.HashesTo(blockID.Hash) {
 			cs.Logger.Debug("Updating valid block to new proposal block",
-				"valid_round", cs.Round, "valid_block_hash", cs.ProposalBlock.Hash(), )
+				"valid_round", cs.Round, "valid_block_hash", cs.ProposalBlock.Hash())
 			cs.ValidRound = cs.Round
 			cs.ValidBlock = cs.ProposalBlock
 			cs.ValidBlockParts = cs.ProposalBlockParts
