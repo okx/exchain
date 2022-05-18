@@ -515,7 +515,7 @@ func (conR *Reactor) unsubscribeFromBroadcastEvents() {
 
 func (conR *Reactor) broadcastNewRoundStepMessage(rs *cstypes.RoundState) {
 	nrsMsg := makeRoundStepMessage(rs)
-	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryBare(nrsMsg))
+	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryWithSizer(nrsMsg, false))
 }
 
 func (conR *Reactor) broadcastNewValidBlockMessage(rs *cstypes.RoundState) {
@@ -537,7 +537,7 @@ func (conR *Reactor) broadcastHasVoteMessage(vote *types.Vote) {
 		Type:   vote.Type,
 		Index:  vote.ValidatorIndex,
 	}
-	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryBare(msg))
+	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryWithSizer(msg, false))
 	/*
 		// TODO: Make this broadcast more selective.
 		for _, peer := range conR.Switch.Peers().List() {
@@ -559,7 +559,7 @@ func (conR *Reactor) broadcastHasVoteMessage(vote *types.Vote) {
 }
 func (conR *Reactor) broadcastSignVoteMessage(vote *types.Vote) {
 	msg := &VoteMessage{vote}
-	conR.Switch.Broadcast(VoteChannel, cdc.MustMarshalBinaryBare(msg))
+	conR.Switch.Broadcast(VoteChannel, cdc.MustMarshalBinaryWithSizer(msg, false))
 }
 func makeRoundStepMessage(rs *cstypes.RoundState) (nrsMsg *NewRoundStepMessage) {
 	nrsMsg = &NewRoundStepMessage{
@@ -867,12 +867,12 @@ OUTER_LOOP:
 			prs := ps.GetRoundState()
 			if rs.Height == prs.Height {
 				if maj23, ok := rs.Votes.Prevotes(prs.Round).TwoThirdsMajority(); ok {
-					peer.TrySend(StateChannel, cdc.MustMarshalBinaryBare(&VoteSetMaj23Message{
+					peer.TrySend(StateChannel, cdc.MustMarshalBinaryWithSizer(&VoteSetMaj23Message{
 						Height:  prs.Height,
 						Round:   prs.Round,
 						Type:    types.PrevoteType,
 						BlockID: maj23,
-					}))
+					}, false))
 					time.Sleep(conR.conS.config.PeerQueryMaj23SleepDuration)
 				}
 			}
@@ -884,12 +884,12 @@ OUTER_LOOP:
 			prs := ps.GetRoundState()
 			if rs.Height == prs.Height {
 				if maj23, ok := rs.Votes.Precommits(prs.Round).TwoThirdsMajority(); ok {
-					peer.TrySend(StateChannel, cdc.MustMarshalBinaryBare(&VoteSetMaj23Message{
+					peer.TrySend(StateChannel, cdc.MustMarshalBinaryWithSizer(&VoteSetMaj23Message{
 						Height:  prs.Height,
 						Round:   prs.Round,
 						Type:    types.PrecommitType,
 						BlockID: maj23,
-					}))
+					}, false))
 					time.Sleep(conR.conS.config.PeerQueryMaj23SleepDuration)
 				}
 			}
@@ -901,12 +901,12 @@ OUTER_LOOP:
 			prs := ps.GetRoundState()
 			if rs.Height == prs.Height && prs.ProposalPOLRound >= 0 {
 				if maj23, ok := rs.Votes.Prevotes(prs.ProposalPOLRound).TwoThirdsMajority(); ok {
-					peer.TrySend(StateChannel, cdc.MustMarshalBinaryBare(&VoteSetMaj23Message{
+					peer.TrySend(StateChannel, cdc.MustMarshalBinaryWithSizer(&VoteSetMaj23Message{
 						Height:  prs.Height,
 						Round:   prs.ProposalPOLRound,
 						Type:    types.PrevoteType,
 						BlockID: maj23,
-					}))
+					}, false))
 					time.Sleep(conR.conS.config.PeerQueryMaj23SleepDuration)
 				}
 			}
@@ -921,12 +921,12 @@ OUTER_LOOP:
 			if prs.CatchupCommitRound != -1 && prs.Height > 0 && prs.Height <= conR.conS.blockStore.Height() &&
 				prs.Height >= conR.conS.blockStore.Base() {
 				if commit := conR.conS.LoadCommit(prs.Height); commit != nil {
-					peer.TrySend(StateChannel, cdc.MustMarshalBinaryBare(&VoteSetMaj23Message{
+					peer.TrySend(StateChannel, cdc.MustMarshalBinaryWithSizer(&VoteSetMaj23Message{
 						Height:  prs.Height,
 						Round:   commit.Round,
 						Type:    types.PrecommitType,
 						BlockID: commit.BlockID,
-					}))
+					}, false))
 					time.Sleep(conR.conS.config.PeerQueryMaj23SleepDuration)
 				}
 			}
@@ -1158,7 +1158,7 @@ func (ps *PeerState) PickSendVote(votes types.VoteSetReader) bool {
 	if vote, ok := ps.PickVoteToSend(votes); ok {
 		msg := &VoteMessage{vote}
 		ps.logger.Debug("Sending vote message", "ps", ps, "vote", vote)
-		if ps.peer.Send(VoteChannel, cdc.MustMarshalBinaryBare(msg)) {
+		if ps.peer.Send(VoteChannel, cdc.MustMarshalBinaryWithSizer(msg, false)) {
 			ps.SetHasVote(vote)
 			return true
 		}
