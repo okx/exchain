@@ -26,8 +26,13 @@ func (bA *BitArray) AminoSize(_ *amino.Codec) int {
 	if bA.Bits != 0 {
 		size += 1 + amino.UvarintSize(uint64(bA.Bits))
 	}
-	for _, ele := range bA.Elems {
-		size += 1 + amino.UvarintSize(ele)
+	if len(bA.Elems) != 0 {
+		size += 1
+		eleSize := 0
+		for _, ele := range bA.Elems {
+			eleSize += amino.UvarintSize(ele)
+		}
+		size += amino.UvarintSize(uint64(eleSize)) + eleSize
 	}
 	return size
 }
@@ -43,11 +48,26 @@ func (bA *BitArray) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) error {
 		}
 	}
 	// field 2
-	for _, ele := range bA.Elems {
-		const pbKey = byte(2<<3 | amino.Typ3_Varint)
-		err = amino.EncodeUvarintWithKeyToBuffer(buf, ele, pbKey)
+	if len(bA.Elems) != 0 {
+		const pbKey = byte(2<<3 | amino.Typ3_ByteLength)
+		buf.WriteByte(pbKey)
+		eleSize := 0
+		for _, ele := range bA.Elems {
+			eleSize += amino.UvarintSize(ele)
+		}
+		err = amino.EncodeUvarintToBuffer(buf, uint64(eleSize))
 		if err != nil {
 			return err
+		}
+		lenBeforeData := buf.Len()
+		for _, ele := range bA.Elems {
+			err = amino.EncodeUvarintToBuffer(buf, ele)
+			if err != nil {
+				return err
+			}
+		}
+		if buf.Len()-lenBeforeData != eleSize {
+			return amino.NewSizerError(eleSize, buf.Len()-lenBeforeData, eleSize)
 		}
 	}
 	return nil
