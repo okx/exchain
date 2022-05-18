@@ -63,7 +63,7 @@ See [params.go](https://github.com/okex/exchain/blob/master/x/wasm/types/params.
 
 The values can be updated via gov proposal implemented in the `params` module.
 
-### Update Params Via [ParamChangeProposal](https://github.com/cosmos/cosmos-sdk/blob/v0.45.3/proto/cosmos/params/v1beta1/params.proto#L10)
+### Update Params Via [ParamChangeProposal](https://github.com/okex/exchain/libs/cosmos-sdk/blob/v0.45.3/proto/cosmos/params/v1beta1/params.proto#L10)
 Example to submit a parameter change gov proposal:
 ```sh
 wasmd tx gov submit-proposal param-change <proposal-json-file> --from validator --chain-id=testing -b block

@@ -8,8 +8,8 @@ package wasm_test
 //
 //	wasmvm "github.com/CosmWasm/wasmvm"
 //	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-//	sdk "github.com/cosmos/cosmos-sdk/types"
-//	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+//	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+//	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 //	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
 //	clienttypes "github.com/cosmos/ibc-go/v3/modules/core/02-client/types"
 //	channeltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
@@ -17,10 +17,10 @@ package wasm_test
 //	"github.com/stretchr/testify/assert"
 //	"github.com/stretchr/testify/require"
 //
-//	wasmibctesting "github.com/CosmWasm/wasmd/x/wasm/ibctesting"
-//	wasmkeeper "github.com/CosmWasm/wasmd/x/wasm/keeper"
-//	wasmtesting "github.com/CosmWasm/wasmd/x/wasm/keeper/wasmtesting"
-//	"github.com/CosmWasm/wasmd/x/wasm/types"
+//	wasmibctesting "github.com/okex/exchain/x/wasm/ibctesting"
+//	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
+//	wasmtesting "github.com/okex/exchain/x/wasm/keeper/wasmtesting"
+//	"github.com/okex/exchain/x/wasm/types"
 //)
 //
 //func TestFromIBCTransferToContract(t *testing.T) {

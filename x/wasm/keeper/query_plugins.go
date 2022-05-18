@@ -3,8 +3,6 @@ package keeper
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
-	"strings"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 
@@ -17,7 +15,6 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	distributiontypes "github.com/okex/exchain/libs/cosmos-sdk/x/distribution/types"
 	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
 type QueryHandler struct {

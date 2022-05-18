@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	wasmvm "github.com/CosmWasm/wasmvm"
 	"io/ioutil"
 	"strconv"
 
@@ -34,19 +35,19 @@ func NewQueryCmd(cdc *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra
 		NewCmdListCode(cdc, reg),
 		NewCmdListContractByCode(cdc, reg),
 		NewCmdQueryCode(cdc, reg),
-		GetCmdQueryCodeInfo(),
+		GetCmdQueryCodeInfo(cdc, reg),
 		NewCmdGetContractInfo(cdc, reg),
 		NewCmdGetContractHistory(cdc, reg),
 		NewCmdGetContractState(cdc, reg),
 		NewCmdListPinnedCode(cdc, reg),
-		GetCmdLibVersion(),
+		GetCmdLibVersion(cdc, reg),
 	)
 
 	return queryCmd
 }
 
 // GetCmdLibVersion gets current libwasmvm version.
-func GetCmdLibVersion() *cobra.Command {
+func GetCmdLibVersion(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "libwasmvm-version",
 		Short:   "Get libwasmvm version",
@@ -64,6 +65,7 @@ func GetCmdLibVersion() *cobra.Command {
 	}
 	return cmd
 }
+
 // NewCmdListCode lists all wasm code uploaded
 func NewCmdListCode(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
@@ -173,17 +175,14 @@ func NewCmdQueryCode(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cob
 }
 
 // GetCmdQueryCodeInfo returns the code info for a given code id
-func GetCmdQueryCodeInfo() *cobra.Command {
+func GetCmdQueryCodeInfo(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "code-info [code_id]",
 		Short: "Prints out metadata of a code id",
 		Long:  "Prints out metadata of a code id",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			clientCtx, err := client.GetClientQueryContext(cmd)
-			if err != nil {
-				return err
-			}
+			clientCtx := clientCtx.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 
 			codeID, err := strconv.ParseUint(args[0], 10, 64)
 			if err != nil {

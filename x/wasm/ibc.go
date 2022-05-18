@@ -23,6 +23,14 @@ type IBCHandler struct {
 	channelKeeper types.ChannelKeeper
 }
 
+func (i IBCHandler) OnChanOpenTry(ctx sdk.Context, order channeltypes.Order, connectionHops []string, portID, channelID string, channelCap *capabilitytypes.Capability, counterparty channeltypes.Counterparty, version, counterpartyVersion string) error {
+	panic("implement me")
+}
+
+func (i IBCHandler) OnChanOpenAck(ctx sdk.Context, portID, channelID string, counterpartyVersion string) error {
+	panic("implement me")
+}
+
 func NewIBCHandler(k types.IBCContractKeeper, ck types.ChannelKeeper) IBCHandler {
 	return IBCHandler{keeper: k, channelKeeper: ck}
 }
@@ -71,7 +79,7 @@ func (i IBCHandler) OnChanOpenInit(
 }
 
 // OnChanOpenTry implements the IBCModule interface
-func (i IBCHandler) OnChanOpenTry(
+func (i IBCHandler) OnChanOpenTryV3(
 	ctx sdk.Context,
 	order channeltypes.Order,
 	connectionHops []string,
@@ -127,7 +135,7 @@ func (i IBCHandler) OnChanOpenTry(
 }
 
 // OnChanOpenAck implements the IBCModule interface
-func (i IBCHandler) OnChanOpenAck(
+func (i IBCHandler) OnChanOpenAckV3(
 	ctx sdk.Context,
 	portID, channelID string,
 	counterpartyChannelID string,

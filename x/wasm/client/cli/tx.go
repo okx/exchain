@@ -16,7 +16,7 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
-	"github.com/CosmWasm/wasmd/x/wasm/ioutils"
+	"github.com/okex/exchain/x/wasm/ioutils"
 	"github.com/okex/exchain/x/wasm/types"
 	"github.com/spf13/cobra"
 	flag "github.com/spf13/pflag"

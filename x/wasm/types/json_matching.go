@@ -3,7 +3,7 @@ package types
 import (
 	"encoding/json"
 
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
 
 // IsJSONObjectWithTopLevelKey checks if the given bytes are a valid JSON object

@@ -287,10 +287,10 @@ func ExecuteContractProposalFixture(mutators ...func(p *ExecuteContractProposal)
 		Contract:    contractAddr,
 		RunAs:       anyAddress,
 		Msg:         []byte(`{"do":"something"}`),
-		Funds: sdk.Coins{{
+		Funds: sdk.CoinsToCoinAdapters(sdk.Coins{{
 			Denom:  "stake",
-			Amount: sdk.NewInt(1),
-		}},
+			Amount: sdk.NewDec(1),
+		}}),
 	}
 
 	for _, m := range mutators {

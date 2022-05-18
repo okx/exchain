@@ -350,9 +350,10 @@ func TestReflectStargateQuery(t *testing.T) {
 	mustParse(t, simpleRes, &simpleChain)
 	var simpleBalance wasmvmtypes.AllBalancesResponse
 	mustParse(t, simpleChain.Data, &simpleBalance)
-	require.Equal(t, len(expectedBalance), len(simpleBalance.Amount))
-	assert.Equal(t, simpleBalance.Amount[0].Amount, expectedBalance[0].Amount.String())
-	assert.Equal(t, simpleBalance.Amount[0].Denom, expectedBalance[0].Denom)
+	expectedBalanceAdapter := sdk.CoinsToCoinAdapters(expectedBalance)
+	require.Equal(t, len(expectedBalanceAdapter), len(simpleBalance.Amount))
+	assert.Equal(t, simpleBalance.Amount[0].Amount, expectedBalanceAdapter[0].Amount.String())
+	assert.Equal(t, simpleBalance.Amount[0].Denom, expectedBalanceAdapter[0].Denom)
 }
 
 func TestReflectInvalidStargateQuery(t *testing.T) {
@@ -377,7 +378,7 @@ func TestReflectInvalidStargateQuery(t *testing.T) {
 	require.NotEmpty(t, contractAddr)
 
 	// now, try to build a protobuf query
-	protoQuery := banktypes.QueryAllBalancesRequest{
+	protoQuery := bank.QueryAllBalancesRequestAdapter{
 		Address: creator.String(),
 	}
 	protoQueryBin, err := proto.Marshal(&protoQuery)

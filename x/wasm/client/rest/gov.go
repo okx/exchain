@@ -475,12 +475,12 @@ func (s UpdateInstantiateConfigProposalJSONReq) GetBaseReq() rest.BaseReq {
 	return s.BaseReq
 }
 
-func UpdateInstantiateConfigProposalHandler(cliCtx client.Context) govrest.ProposalRESTHandler {
+func UpdateInstantiateConfigProposalHandler(cliCtx clientCtx.CLIContext) govrest.ProposalRESTHandler {
 	return govrest.ProposalRESTHandler{
 		SubRoute: "update_instantiate_config",
 		Handler: func(w http.ResponseWriter, r *http.Request) {
 			var req UpdateInstantiateConfigProposalJSONReq
-			if !rest.ReadRESTReq(w, r, cliCtx.LegacyAmino, &req) {
+			if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 				return
 			}
 			toStdTxResponse(cliCtx, w, req)
