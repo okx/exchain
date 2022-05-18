@@ -116,7 +116,7 @@ func TestMempoolTxConcurrentWithCommit(t *testing.T) {
 	sm.SaveState(blockDB, state)
 	newBlockHeaderCh := subscribe(cs.eventBus, types.EventQueryNewBlockHeader)
 
-	const numTxs int64 = 2
+	const numTxs int64 = 300
 	go deliverTxsRange(cs, 0, int(numTxs))
 
 	startTestRound(cs, cs.Height, cs.Round)
