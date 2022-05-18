@@ -56,8 +56,6 @@ func TestMempoolProgressAfterCreateEmptyBlocksInterval(t *testing.T) {
 	startTestRound(cs, height, round)
 
 	ensureNewEventOnChannel(newBlockCh) // first block gets committed
-	//ensureNoNewEventOnChannel(newBlockCh) // then we dont make a block ...
-	//ensureNewEventOnChannel(newBlockCh)   // until the CreateEmptyBlocksInterval has passed
 }
 
 func TestMempoolProgressInHigherRound(t *testing.T) {
