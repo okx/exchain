@@ -295,7 +295,7 @@ func compressBlock(bz []byte, compressType, compressFlag int) []byte {
 	// tell receiver which compress type and flag
 	// tens digit is compressType and unit digit is compressFlag
 	// compressSign: XY means, compressType: X, compressFlag: Y
-	compressSign := compressType*10 + compressType
+	compressSign := compressType*10 + compressFlag
 	return append(cz, byte(compressSign))
 }
 

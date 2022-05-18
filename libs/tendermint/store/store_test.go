@@ -621,7 +621,7 @@ func TestBlockFetchAtHeightWithExInfo(t *testing.T) {
 	require.Equal(t, bs.Height(), int64(0), "initially the height should be zero")
 	block := makeBlock(bs.Height()+1, state, new(types.Commit))
 
-	exInfo1 := &types.BlockExInfo{BlockCompressType: 2, BlockCompressFlag: 0, BlockPartSize: 2}
+	exInfo1 := &types.BlockExInfo{BlockCompressType: 2, BlockCompressFlag: 1, BlockPartSize: 2}
 	partSet := block.MakePartSetByExInfo(exInfo1)
 	seenCommit := makeTestCommit(10, tmtime.Now())
 	bs.SaveBlock(block, partSet, seenCommit)
