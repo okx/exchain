@@ -101,12 +101,12 @@ func (bs *BlockStore) LoadBlockWithExInfo(height int64) (*types.Block, *types.Bl
 		return nil, nil
 	}
 	// uncompress if the block part bytes was created by compress block
-	partBytes, compressType, err := types.UncompressBlockFromBytes(bufBytes)
+	partBytes, compressSign, err := types.UncompressBlockFromBytes(bufBytes)
 	if err != nil {
 		panic(errors.Wrap(err, "failed to uncompress block"))
 	}
 
-	return bs.unmarshalBlockByBytes(partBytes), &types.BlockExInfo{BlockCompressType: compressType, BlockPartSize: partSize}
+	return bs.unmarshalBlockByBytes(partBytes), &types.BlockExInfo{BlockCompressType: compressSign / 10, BlockCompressFlag: compressSign % 10, BlockPartSize: partSize}
 }
 
 // unmarshalBlockByBytes returns the block with the given block parts bytes

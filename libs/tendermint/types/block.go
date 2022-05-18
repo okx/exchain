@@ -279,6 +279,10 @@ func compressBlock(bz []byte, compressType, compressFlag int) []byte {
 	if compressType == 0 || len(bz) <= BlockCompressThreshold {
 		return bz
 	}
+	if compressType >= 10 || compressFlag >= 10 {
+		// unsupported compressType or compressFlag
+		return bz
+	}
 
 	t0 := tmtime.Now()
 	cz, err := compress.Compress(compressType, compressFlag, bz)
@@ -288,8 +292,11 @@ func compressBlock(bz []byte, compressType, compressFlag int) []byte {
 	t1 := tmtime.Now()
 
 	trace.GetElapsedInfo().AddInfo(trace.CompressBlock, fmt.Sprintf("%dms", t1.Sub(t0).Milliseconds()))
-	// tell receiver which compress type
-	return append(cz, byte(compressType))
+	// tell receiver which compress type and flag
+	// tens digit is compressType and unit digit is compressFlag
+	// compressSign: XY means, compressType: X, compressFlag: Y
+	compressSign := compressType*10 + compressType
+	return append(cz, byte(compressSign))
 }
 
 func UncompressBlockFromReader(pbpReader io.Reader) (io.Reader, error) {
@@ -299,13 +306,13 @@ func UncompressBlockFromReader(pbpReader io.Reader) (io.Reader, error) {
 		return nil, err
 	}
 	t0 := tmtime.Now()
-	original, compressType, err := UncompressBlockFromBytes(compressed)
+	original, compressSign, err := UncompressBlockFromBytes(compressed)
 	if err != nil {
 		return nil, err
 	}
 	t1 := tmtime.Now()
 
-	if compressType != 0 {
+	if compressSign != 0 {
 		compressRatio := float64(len(compressed)) / float64(len(original))
 		trace.GetElapsedInfo().AddInfo(trace.UncompressBlock, fmt.Sprintf("%.2f/%dms",
 			compressRatio, t1.Sub(t0).Milliseconds()))
@@ -314,16 +321,17 @@ func UncompressBlockFromReader(pbpReader io.Reader) (io.Reader, error) {
 	return bytes.NewBuffer(original), nil
 }
 
-func UncompressBlockFromBytes(payload []byte) (res []byte, compressType int, err error) {
+func UncompressBlockFromBytes(payload []byte) (res []byte, compressSign int, err error) {
 	// try parse Uvarint to check if it is compressed
 	compressBytesLen, n := binary.Uvarint(payload)
 	if len(payload)-n == int(compressBytesLen) {
 		// the block has not compressed
 		res = payload
 	} else {
-		// the block has compressed and the last byte is compressType
-		compressType = int(payload[len(payload)-1])
-		res, err = compress.UnCompress(compressType, payload[:len(payload)-1])
+		// the block has compressed and the last byte is compressSign
+		// the compressSign: XY means, compressType: X, compressFlag: Y
+		compressSign = int(payload[len(payload)-1])
+		res, err = compress.UnCompress(compressSign/10, payload[:len(payload)-1])
 	}
 	return
 }
