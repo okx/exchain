@@ -6,11 +6,11 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	cosmoscryptocodec "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/vesting"
 
 	cryptocodec "github.com/okex/exchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/exchain/app/types"
-	cosmoscryptocodec "github.com/okex/exchain/libs/cosmos-sdk/crypto/ibc-codec"
 )
 
 // MakeCodec registers the necessary types and interfaces for an sdk.App. This
@@ -35,7 +35,7 @@ func MakeCodec(bm module.BasicManager) *codec.Codec {
 func MakeIBC(bm module.BasicManager) types.InterfaceRegistry {
 	interfaceReg := types.NewInterfaceRegistry()
 	bm.RegisterInterfaces(interfaceReg)
-	cosmoscryptocodec.RegisterInterfaces(interfaceReg)
+	cosmoscryptocodec.PubKeyRegisterInterfaces(interfaceReg)
 	return interfaceReg
 }
 
