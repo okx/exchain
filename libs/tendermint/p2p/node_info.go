@@ -179,7 +179,9 @@ func (info DefaultNodeInfo) CompatibleWith(otherInfo NodeInfo) error {
 		return fmt.Errorf("wrong NodeInfo type. Expected DefaultNodeInfo, got %v", reflect.TypeOf(otherInfo))
 	}
 
-	if info.ProtocolVersion.Block != other.ProtocolVersion.Block {
+	if info.ProtocolVersion.Block != other.ProtocolVersion.Block &&
+		(other.ProtocolVersion.Block != version.IBCBlockProtocol &&
+			other.ProtocolVersion.Block != version.BlockProtocol) {
 		return fmt.Errorf("peer is on a different Block version. Got %v, expected %v",
 			other.ProtocolVersion.Block, info.ProtocolVersion.Block)
 	}
