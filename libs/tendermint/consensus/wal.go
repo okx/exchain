@@ -115,7 +115,10 @@ func (m TimedWALMessage) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) err
 				return amino.NewSizerError(msgSize, buf.Len()-lenBeforeData, msgSize)
 			}
 		} else {
-			msgData := cdc.MustMarshalBinaryBare(m.Msg)
+			msgData, err := cdc.MarshalBinaryBare(m.Msg)
+			if err != nil {
+				return err
+			}
 			err = amino.EncodeByteSliceToBuffer(buf, msgData)
 			if err != nil {
 				return err
@@ -142,6 +145,7 @@ func RegisterWALMessages(cdc *amino.Codec) {
 
 	cdc.EnableBufferMarshaler(timeoutInfo{})
 	cdc.EnableBufferMarshaler(TimedWALMessage{})
+	cdc.EnableBufferMarshaler(msgInfo{})
 }
 
 //--------------------------------------------------------
@@ -405,7 +409,13 @@ func NewWALEncoder(wr io.Writer) *WALEncoder {
 // the amino-encoded size of v is greater than 1MB. Any error encountered
 // during the write is also returned.
 func (enc *WALEncoder) Encode(v *TimedWALMessage) error {
-	data := cdc.MustMarshalBinaryBare(v)
+	var data []byte
+
+	if _, ok := v.Msg.(amino.MarshalBufferSizer); ok {
+		data = cdc.MustMarshalBinaryWithSizer(v, false)
+	} else {
+		data = cdc.MustMarshalBinaryBare(v)
+	}
 
 	crc := crc32.Checksum(data, crc32c)
 	length := uint32(len(data))
