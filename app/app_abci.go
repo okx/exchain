@@ -1,6 +1,8 @@
 package app
 
 import (
+	"runtime"
+
 	appconfig "github.com/okex/exchain/app/config"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/system/trace"
@@ -10,7 +12,9 @@ import (
 
 // BeginBlock implements the Application interface
 func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
-
+	if app.gcInterval > 0 && req.Header.Height%int64(app.gcInterval) == 0 {
+		runtime.GC()
+	}
 	trace.OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
 	app.EvmKeeper.Watcher.DelayEraseKey()
 	return app.BaseApp.BeginBlock(req)

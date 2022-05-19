@@ -1,6 +1,8 @@
 package app
 
 import (
+	"runtime/debug"
+
 	"github.com/okex/exchain/libs/system/trace"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"google.golang.org/grpc/encoding/proto"
@@ -86,7 +88,8 @@ func init() {
 }
 
 const (
-	appName = "OKExChain"
+	appName             = "OKExChain"
+	FlagDebugGcInterval = "debug.gc-interval"
 )
 
 var (
@@ -213,6 +216,7 @@ type OKExChainApp struct {
 	marshal              *codec.CodecProxy
 	heightTasks          map[int64]*upgradetypes.HeightTasks
 	Erc20Keeper          erc20.Keeper
+	gcInterval           int
 }
 
 // NewOKExChainApp returns a reference to a new initialized OKExChain application.
@@ -558,6 +562,7 @@ func NewOKExChainApp(
 
 	enableAnalyzer := sm.DeliverTxsExecMode(viper.GetInt(sm.FlagDeliverTxsExecMode)) == sm.DeliverTxsExecModeSerial
 	trace.EnableAnalyzer(enableAnalyzer)
+	app.gcInterval = viper.GetInt(FlagDebugGcInterval)
 	return app
 }
 
@@ -744,6 +749,11 @@ func PreRun(ctx *server.Context) error {
 
 	// init tx signature cache
 	tmtypes.InitSignatureCache()
+
+	gcInterval := viper.GetInt(FlagDebugGcInterval)
+	if gcInterval > 0 {
+		debug.SetGCPercent(-1)
+	}
 	return nil
 }
 
