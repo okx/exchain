@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"bytes"
 	"encoding/binary"
 	"fmt"
 	"hash/crc32"
@@ -41,6 +42,89 @@ type TimedWALMessage struct {
 	Msg  WALMessage `json:"msg"`
 }
 
+func (m TimedWALMessage) AminoSize(cdc *amino.Codec) int {
+	var size int
+	timeSize := amino.TimeSize(m.Time)
+	if timeSize > 0 {
+		size += 1 + amino.UvarintSize(uint64(timeSize)) + timeSize
+	}
+	if m.Msg != nil {
+		var msgSize int
+		if sizer, ok := m.Msg.(amino.Sizer); ok {
+			var typePrefix [8]byte
+			n, err := cdc.GetTypePrefix(m.Msg, typePrefix[:])
+			if err != nil {
+				panic(err)
+			}
+			msgSize = n + sizer.AminoSize(cdc)
+		} else {
+			msgData := cdc.MustMarshalBinaryBare(m.Msg)
+			msgSize = len(msgData)
+		}
+		size += 1 + amino.UvarintSize(uint64(msgSize)) + msgSize
+	}
+	return size
+}
+
+func (m TimedWALMessage) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
+	var err error
+	// field 1
+	timeSize := amino.TimeSize(m.Time)
+	if timeSize > 0 {
+		const pbKey = byte(1<<3 | amino.Typ3_ByteLength)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(timeSize))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = amino.EncodeTimeToBuffer(buf, m.Time)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != timeSize {
+			return amino.NewSizerError(timeSize, buf.Len()-lenBeforeData, timeSize)
+		}
+	}
+	// field 2
+	if m.Msg != nil {
+		const pbKey = byte(2<<3 | amino.Typ3_ByteLength)
+		buf.WriteByte(pbKey)
+
+		var typePrefix [8]byte
+		n, err := cdc.GetTypePrefix(m.Msg, typePrefix[:])
+		if err != nil {
+			return err
+		}
+		if n == 0 {
+			return fmt.Errorf("interface without type prefix")
+		}
+		if sizer, ok := m.Msg.(amino.MarshalBufferSizer); ok {
+			msgSize := n + sizer.AminoSize(cdc)
+			err = amino.EncodeUvarintToBuffer(buf, uint64(msgSize))
+			if err != nil {
+				return err
+			}
+			lenBeforeData := buf.Len()
+			buf.Write(typePrefix[:n])
+			err = sizer.MarshalAminoTo(cdc, buf)
+			if err != nil {
+				return err
+			}
+			if buf.Len()-lenBeforeData != msgSize {
+				return amino.NewSizerError(msgSize, buf.Len()-lenBeforeData, msgSize)
+			}
+		} else {
+			msgData := cdc.MustMarshalBinaryBare(m.Msg)
+			err = amino.EncodeByteSliceToBuffer(buf, msgData)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 // EndHeightMessage marks the end of the given height inside WAL.
 // @internal used by scripts/wal2json util.
 type EndHeightMessage struct {
@@ -57,6 +141,7 @@ func RegisterWALMessages(cdc *amino.Codec) {
 	cdc.RegisterConcrete(EndHeightMessage{}, "tendermint/wal/EndHeightMessage", nil)
 
 	cdc.EnableBufferMarshaler(timeoutInfo{})
+	cdc.EnableBufferMarshaler(TimedWALMessage{})
 }
 
 //--------------------------------------------------------

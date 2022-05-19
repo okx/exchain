@@ -271,3 +271,33 @@ func BenchmarkWalDecode100MB(b *testing.B) {
 func BenchmarkWalDecode1GB(b *testing.B) {
 	benchmarkWalDecode(b, 1024*1024*1024)
 }
+
+func TestTimedWALMessageAmino(t *testing.T) {
+	testCases := []TimedWALMessage{
+		{},
+		{
+			Time: time.Now(),
+			Msg:  NewRoundStepMessage{},
+		},
+		{
+			Time: time.Unix(1, 2),
+			Msg:  tmtypes.EventDataRoundState{},
+		},
+	}
+	for _, tc := range testCases {
+		expectData := cdc.MustMarshalBinaryBare(&tc)
+		actualData, err := cdc.MarshalBinaryWithSizer(tc, false)
+		require.NoError(t, err)
+		require.Equal(t, expectData, actualData)
+		require.Equal(t, len(expectData), tc.AminoSize(cdc))
+	}
+	{
+		// special case
+		msg := &TimedWALMessage{
+			Msg: []byte("test"),
+		}
+		require.Panics(t, func() { cdc.MustMarshalBinaryBare(msg) })
+		_, err := cdc.MarshalBinaryWithSizer(msg, false)
+		require.Error(t, err)
+	}
+}
