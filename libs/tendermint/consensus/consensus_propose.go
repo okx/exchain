@@ -276,10 +276,11 @@ func (cs *State) unmarshalBlock() error {
 	// Added and completed!
 	bzBare, err := amino.GetBinaryBareFromBinaryLengthPrefixed(bz)
 	if err == nil {
+		cs.ProposalBlock = new(types.Block)
 		err = cs.ProposalBlock.UnmarshalFromAmino(cdc, bzBare)
 	}
 	if err != nil {
-		*cs.ProposalBlock = types.Block{}
+		cs.ProposalBlock = new(types.Block)
 		err = cdc.UnmarshalBinaryLengthPrefixed(
 			bz,
 			&cs.ProposalBlock,
