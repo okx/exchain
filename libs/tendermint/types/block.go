@@ -43,6 +43,10 @@ const (
 	// Data.Txs field:                      1 byte
 	MaxAminoOverheadForBlock int64 = 11
 
+	// CompressDividing is used to divide compressType and compressFlag of compressSign
+	// the compressSign = CompressType * CompressDividing + CompressFlag
+	CompressDividing int = 10
+
 	FlagBlockCompressType      = "block-compress-type"
 	FlagBlockCompressFlag      = "block-compress-flag"
 	FlagBlockCompressThreshold = "block-compress-threshold"
@@ -279,7 +283,7 @@ func compressBlock(bz []byte, compressType, compressFlag int) []byte {
 	if compressType == 0 || len(bz) <= BlockCompressThreshold {
 		return bz
 	}
-	if compressType >= 10 || compressFlag >= 10 {
+	if compressType >= CompressDividing || compressFlag >= CompressDividing {
 		// unsupported compressType or compressFlag
 		return bz
 	}
@@ -295,7 +299,7 @@ func compressBlock(bz []byte, compressType, compressFlag int) []byte {
 	// tell receiver which compress type and flag
 	// tens digit is compressType and unit digit is compressFlag
 	// compressSign: XY means, compressType: X, compressFlag: Y
-	compressSign := compressType*10 + compressFlag
+	compressSign := compressType*CompressDividing + compressFlag
 	return append(cz, byte(compressSign))
 }
 
@@ -321,6 +325,9 @@ func UncompressBlockFromReader(pbpReader io.Reader) (io.Reader, error) {
 	return bytes.NewBuffer(original), nil
 }
 
+// UncompressBlockFromBytes uncompress from compressBytes to blockPart bytes, and returns the compressSign
+// compressSign contains compressType and compressFlag
+// the compressSign: XY means, compressType: X, compressFlag: Y
 func UncompressBlockFromBytes(payload []byte) (res []byte, compressSign int, err error) {
 	// try parse Uvarint to check if it is compressed
 	compressBytesLen, n := binary.Uvarint(payload)
@@ -329,9 +336,8 @@ func UncompressBlockFromBytes(payload []byte) (res []byte, compressSign int, err
 		res = payload
 	} else {
 		// the block has compressed and the last byte is compressSign
-		// the compressSign: XY means, compressType: X, compressFlag: Y
 		compressSign = int(payload[len(payload)-1])
-		res, err = compress.UnCompress(compressSign/10, payload[:len(payload)-1])
+		res, err = compress.UnCompress(compressSign/CompressDividing, payload[:len(payload)-1])
 	}
 	return
 }

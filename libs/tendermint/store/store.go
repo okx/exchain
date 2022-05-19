@@ -106,7 +106,7 @@ func (bs *BlockStore) LoadBlockWithExInfo(height int64) (*types.Block, *types.Bl
 		panic(errors.Wrap(err, "failed to uncompress block"))
 	}
 
-	return bs.unmarshalBlockByBytes(partBytes), &types.BlockExInfo{BlockCompressType: compressSign / 10, BlockCompressFlag: compressSign % 10, BlockPartSize: partSize}
+	return bs.unmarshalBlockByBytes(partBytes), &types.BlockExInfo{BlockCompressType: compressSign / types.CompressDividing, BlockCompressFlag: compressSign % types.CompressDividing, BlockPartSize: partSize}
 }
 
 // unmarshalBlockByBytes returns the block with the given block parts bytes

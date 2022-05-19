@@ -1145,10 +1145,11 @@ func TestUncompressBlockFromBytes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotRes, gotCompressType, err := UncompressBlockFromBytes(tt.args.payload)
+			gotRes, gotCompressSign, err := UncompressBlockFromBytes(tt.args.payload)
 			if !tt.wantErr(t, err, fmt.Sprintf("UncompressBlockFromBytes(%v)", tt.args.payload)) {
 				return
 			}
+			gotCompressType := gotCompressSign / CompressDividing
 			assert.Equalf(t, tt.wantRes, gotRes, "UncompressBlockFromBytes(%v)", tt.args.payload)
 			assert.Equalf(t, tt.wantCompressType, gotCompressType, "UncompressBlockFromBytes(%v)", tt.args.payload)
 		})
