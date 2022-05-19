@@ -1073,7 +1073,7 @@ func Test_compressBlock(t *testing.T) {
 		{"block compress type zero", args{bz: bzShort, oldBlockComressType: BlockCompressType, before: func() {}}, bzShort, func([]byte) bool { return true }},
 		{"block compress with short length", args{bz: bzShort, oldBlockComressType: BlockCompressType, before: func() { BlockCompressType = 1 }}, bzShort, func([]byte) bool { return true }},
 		{"block compress with large length", args{bz: bzLarge, oldBlockComressType: BlockCompressType, before: func() { BlockCompressType = 1 }}, nil, func(got []byte) bool { return len(got) < len(bzLarge) }},
-		{"block compress with unknown compress type", args{bz: bzLarge, oldBlockComressType: BlockCompressType, before: func() { BlockCompressType = 10 }}, nil, func(got []byte) bool { return len(got) > len(bzLarge) }},
+		{"block compress with unknown compress type", args{bz: bzLarge, oldBlockComressType: BlockCompressType, before: func() { BlockCompressType = 9 }}, nil, func(got []byte) bool { return len(got) > len(bzLarge) }},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
