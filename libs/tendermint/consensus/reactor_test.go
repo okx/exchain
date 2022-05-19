@@ -1236,6 +1236,33 @@ func TestVoteSetBitsMessageAmino(t *testing.T) {
 	}
 }
 
+func TestProposalMessageAmino(t *testing.T) {
+	testCases := []ProposalMessage{
+		{},
+		{
+			Proposal: &types.Proposal{
+				Height: 12345,
+				Round:  12345,
+				BlockID: types.BlockID{
+					Hash: tmhash.Sum([]byte("blockhash1")),
+				},
+			},
+		},
+		{
+			Proposal: &types.Proposal{},
+		},
+	}
+	for _, tc := range testCases {
+		expectData, err := cdc.MarshalBinaryBare(tc)
+		require.NoError(t, err)
+		actualData, err := cdc.MarshalBinaryWithSizer(&tc, false)
+		require.NoError(t, err)
+
+		require.Equal(t, expectData, actualData)
+		require.Equal(t, len(expectData), tc.AminoSize(cdc)+4)
+	}
+}
+
 func BenchmarkVoteSetMaj23MessageAmino(b *testing.B) {
 	msg := VoteSetMaj23Message{
 		Height: 12345,
