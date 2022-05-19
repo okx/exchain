@@ -20,6 +20,7 @@ type runTxInfo struct {
 	msCacheAnte    sdk.CacheMultiStore
 	accountNonce   uint64
 	runMsgFinished bool
+	runMsgSucess   bool
 	startingGas    uint64
 	gInfo          sdk.GasInfo
 
