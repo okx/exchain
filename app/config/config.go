@@ -2,12 +2,13 @@ package config
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	iavlconfig "github.com/okex/exchain/libs/iavl/config"
@@ -78,6 +79,8 @@ type OecConfig struct {
 	blockPartSizeBytes int
 	blockCompressType  int
 	blockCompressFlag  int
+
+	gcInterval int
 }
 
 const (
@@ -102,6 +105,8 @@ const (
 	FlagCsTimeoutPrecommit      = "consensus.timeout_precommit"
 	FlagCsTimeoutPrecommitDelta = "consensus.timeout_precommit_delta"
 	FlagCsTimeoutCommit         = "consensus.timeout_commit"
+
+	FlagDebugGcInterval = "debug.gc-interval"
 )
 
 var (
@@ -211,6 +216,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetEnableAnalyzer(viper.GetBool(trace.FlagEnableAnalyzer))
 	c.SetDeliverTxsExecuteMode(viper.GetInt(state.FlagDeliverTxsExecMode))
 	c.SetBlockPartSize(viper.GetInt(server.FlagBlockPartSizeBytes))
+	c.SetGcInterval(viper.GetInt(FlagDebugGcInterval))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -418,6 +424,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetBlockCompressFlag(r)
+	case FlagDebugGcInterval:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetGcInterval(r)
 	}
 }
 
@@ -649,4 +661,12 @@ func (c *OecConfig) GetBlockCompressFlag() int {
 func (c *OecConfig) SetBlockCompressFlag(value int) {
 	c.blockCompressFlag = value
 	tmtypes.BlockCompressFlag = value
+}
+
+func (c *OecConfig) GetGcInterval() int {
+	return c.gcInterval
+}
+
+func (c *OecConfig) SetGcInterval(value int) {
+	c.gcInterval = value
 }
