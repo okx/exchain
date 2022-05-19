@@ -17,11 +17,13 @@ import (
 )
 
 const (
-	FlagIavlCacheInitRatio = "iavl-cache-init-ratio"
+	FlagIavlCacheInitRatio  = "iavl-cache-init-ratio"
+	FlagIavlNodeFactorySize = "iavl-node-factory-size"
 )
 
 var (
-	IavlCacheInitRatio float64 = 0
+	IavlCacheInitRatio  float64 = 0
+	IavlNodeFactorySize         = 512
 )
 
 type tppItem struct {
@@ -144,7 +146,6 @@ func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer)
 		"trc", trc.Format())
 }
 
-
 // SaveNode saves a node to disk.
 func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
 	if node.hash == nil {
@@ -174,7 +175,6 @@ func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
 	//node.persisted = true // move to function MovePrePersistCacheToTempCache
 }
 
-
 func (ndb *nodeDB) NewBatch() dbm.Batch {
 	return ndb.db.NewBatch()
 }
@@ -190,7 +190,6 @@ func (ndb *nodeDB) saveCommitOrphans(batch dbm.Batch, version int64, orphans []c
 		ndb.saveOrphan(batch, orphan.NodeHash, orphan.Version, toVersion)
 	}
 }
-
 
 func (ndb *nodeDB) getRootWithCacheAndDB(version int64) ([]byte, error) {
 	if EnableAsyncCommit {
