@@ -181,8 +181,8 @@ func (info DefaultNodeInfo) CompatibleWith(otherInfo NodeInfo) error {
 
 	if other.ProtocolVersion.Block != version.IBCBlockProtocol &&
 		other.ProtocolVersion.Block != version.BlockProtocol {
-		return fmt.Errorf("peer is on a different Block version. Got %v, expected %v",
-			other.ProtocolVersion.Block, info.ProtocolVersion.Block)
+		return fmt.Errorf("peer is on a different Block version:%v. only support %v and %v ",
+			other.ProtocolVersion.Block, version.IBCBlockProtocol, version.BlockProtocol)
 	}
 
 	// nodes must be on the same network
