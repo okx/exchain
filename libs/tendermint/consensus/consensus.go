@@ -37,7 +37,7 @@ var (
 
 //-----------------------------------------------------------------------------
 
-var (
+const (
 	msgQueueSize   = 1000
 	EnablePrerunTx = "enable-preruntx"
 )

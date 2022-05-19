@@ -3,6 +3,7 @@ package consensus
 import (
 	"bytes"
 	"fmt"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/okex/exchain/libs/tendermint/p2p"
@@ -288,18 +289,25 @@ func (cs *State) unmarshalBlock() error {
 	}
 	return err
 }
-func (cs *State) onBlockPartAdded(height int64, added bool, err error) {
+func (cs *State) onBlockPartAdded(height int64, round, index int, added bool, err error) {
 
 	if err != nil {
 		cs.bt.droppedDue2Error++
 	}
-	if !added {
+	
+	if added {
+		if cs.ProposalBlockParts.Count() == 1 {
+			cs.trc.Pin("1stPart")
+			cs.bt.on1stPart(height)
+		}
+		// event to decrease blockpart transport
+		if cfg.DynamicConfig.GetEnableHasBlockPartMsg() {
+			cs.evsw.FireEvent(types.EventBlockPart, &HasBlockPartMessage{height, round, index,})
+		}
+	} else {
 		cs.bt.droppedDue2NotAdded++
 	}
-	if added && cs.ProposalBlockParts.Count() == 1 {
-		cs.trc.Pin("1stPart")
-		cs.bt.on1stPart(height)
-	}
+
 }
 
 func (cs *State) addBlockPart(height int64, round int, part *types.Part, peerID p2p.ID) (added bool, err error) {
@@ -319,7 +327,7 @@ func (cs *State) addBlockPart(height int64, round int, part *types.Part, peerID 
 		return
 	}
 	added, err = cs.ProposalBlockParts.AddPart(part)
-	cs.onBlockPartAdded(height, added, err)
+	cs.onBlockPartAdded(height, round, part.Index, added, err)
 	return
 }
 
@@ -332,7 +340,6 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		return
 	}
 	automation.AddBlockTimeOut(height, round)
-
 	added, err = cs.addBlockPart(height, round, part, peerID)
 
 	if added && cs.ProposalBlockParts.IsComplete() {
