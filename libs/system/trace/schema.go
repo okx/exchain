@@ -66,6 +66,7 @@ const (
 
 	MempoolCheckTxCnt = "checkTxCnt"
 	MempoolTxsCnt     = "mempoolTxsCnt"
+	P2PTxMsgs         = "p2pTxMsgs"
 
 	CompressBlock   = "CompressBlock"
 	UncompressBlock = "UncompressBlock"

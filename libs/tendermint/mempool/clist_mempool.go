@@ -74,6 +74,8 @@ type CListMempool struct {
 	// This reduces the pressure on the proxyApp.
 	// Save wtx as value if occurs or save nil as value
 	cache txCache
+	totalP2pTxMsgs int
+	DropedP2pTxMsgs int
 
 	eventBus types.TxEventPublisher
 
@@ -277,7 +279,9 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		return ErrTxTooLarge{mem.config.MaxTxBytes, txSize}
 	}
 	// CACHE
+	mem.totalP2pTxMsgs++
 	if !mem.cache.Push(tx) {
+		mem.DropedP2pTxMsgs++
 		return ErrTxInCache
 	}
 
@@ -784,7 +788,23 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 		txs = append(txs, memTx.tx)
 	}
 
+	// update trace info
+	mem.TraceDump()
+
 	return txs
+}
+
+func (mem *CListMempool) TraceDump() {
+	if mem.logger == nil {
+		return
+	}
+	trace.GetElapsedInfo().AddInfo(trace.P2PTxMsgs, fmt.Sprintf("%d|%d",
+		mem.DropedP2pTxMsgs,
+		mem.totalP2pTxMsgs,
+	))
+	trace.GetElapsedInfo().Dump(mem.logger.With("module", "main"))
+	mem.totalP2pTxMsgs=0
+	mem.DropedP2pTxMsgs=0
 }
 
 // Safe for concurrent use by multiple goroutines.
