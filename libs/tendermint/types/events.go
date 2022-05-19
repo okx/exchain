@@ -38,6 +38,7 @@ const (
 	EventValidBlock       = "ValidBlock"
 	EventVote             = "Vote"
 	EventSignVote         = "SignVote"
+	EventBlockPart        = "BlockPart"
 )
 
 ///////////////////////////////////////////////////////////////////////////////
