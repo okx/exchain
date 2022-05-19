@@ -1078,9 +1078,10 @@ func Test_compressBlock(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.args.before()
-			got := compressBlock(tt.args.bz, tt.args.oldBlockComressType, 0)
+			got := compressBlock(tt.args.bz, BlockCompressType, 0)
 			assert.NotNil(t, got)
 			assert.True(t, tt.ret(got))
+			BlockCompressType = tt.args.oldBlockComressType
 		})
 	}
 }
