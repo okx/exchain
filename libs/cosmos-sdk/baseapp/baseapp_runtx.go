@@ -21,7 +21,6 @@ type runTxInfo struct {
 	msCacheAnte    sdk.CacheMultiStore
 	accountNonce   uint64
 	runMsgFinished bool
-	runMsgSucess   bool
 	startingGas    uint64
 	gInfo          sdk.GasInfo
 
@@ -30,6 +29,8 @@ type runTxInfo struct {
 	tx      sdk.Tx
 
 	txIndex int
+
+	reusableCacheMultiStore sdk.CacheMultiStore
 }
 
 func (app *BaseApp) runTxWithIndex(txIndex int, mode runTxMode,
@@ -211,6 +212,10 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 		info.msCacheAnte.Write()
 		info.ctx.Cache().Write(true)
 		app.pin(trace.CacheStoreWrite, false, mode)
+	}
+
+	if mode == runTxModeDeliver {
+		info.reusableCacheMultiStore = info.msCacheAnte
 	}
 
 	return nil
