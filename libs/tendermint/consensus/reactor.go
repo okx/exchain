@@ -1525,6 +1525,7 @@ func RegisterMessages(cdc *amino.Codec) {
 
 	cdc.EnableBufferMarshaler(NewRoundStepMessage{})
 	cdc.EnableBufferMarshaler(&NewValidBlockMessage{})
+	cdc.EnableBufferMarshaler(ProposalMessage{})
 	cdc.EnableBufferMarshaler(BlockPartMessage{})
 	cdc.EnableBufferMarshaler(VoteMessage{})
 	cdc.EnableBufferMarshaler(HasVoteMessage{})
@@ -1799,6 +1800,36 @@ func (m *ProposalMessage) ValidateBasic() error {
 // String returns a string representation.
 func (m *ProposalMessage) String() string {
 	return fmt.Sprintf("[Proposal %v]", m.Proposal)
+}
+
+func (m ProposalMessage) AminoSize(cdc *amino.Codec) int {
+	var size int
+	if m.Proposal != nil {
+		propossalSize := m.Proposal.AminoSize(cdc)
+		size += 1 + amino.UvarintSize(uint64(propossalSize)) + propossalSize
+	}
+	return size
+}
+
+func (m ProposalMessage) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
+	if m.Proposal != nil {
+		const pbKey = byte(1<<3 | amino.Typ3_ByteLength)
+		buf.WriteByte(pbKey)
+		proposalSize := m.Proposal.AminoSize(cdc)
+		err := amino.EncodeUvarintToBuffer(buf, uint64(proposalSize))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = m.Proposal.MarshalAminoTo(cdc, buf)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != proposalSize {
+			return amino.NewSizerError(proposalSize, buf.Len()-lenBeforeData, proposalSize)
+		}
+	}
+	return nil
 }
 
 //-------------------------------------
