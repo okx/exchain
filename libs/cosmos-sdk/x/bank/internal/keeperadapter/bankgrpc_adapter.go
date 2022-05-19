@@ -1,4 +1,4 @@
-package types
+package keeperadapter
 
 import (
 	"context"
@@ -8,22 +8,23 @@ import (
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/typesadapter"
 )
 
 type BankQueryServer struct {
-	bankKeeper   BankKeeper
+	bankKeeper   BankKeeperAdapter
 	supplyKeeper SupplyKeeper
 }
 
-func NewBankQueryServer(bankKeeper BankKeeper, supplyKeeper SupplyKeeper) *BankQueryServer {
+func NewBankQueryServer(bankKeeper BankKeeperAdapter, supplyKeeper SupplyKeeper) *BankQueryServer {
 	return &BankQueryServer{bankKeeper: bankKeeper, supplyKeeper: supplyKeeper}
 }
 
-var _ bank.QueryServerAdapter = &BankQueryServer{}
+var _ typesadapter.QueryServer = &BankQueryServer{}
 
 // Balance implements the Query/Balance gRPC method
-func (k BankQueryServer) Balance(ctx context.Context, req *bank.QueryBalanceRequestAdapter) (*bank.QueryBalanceResponseAdapter, error) {
+func (k BankQueryServer) Balance(ctx context.Context, req *typesadapter.QueryBalanceRequest) (*typesadapter.QueryBalanceResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -44,11 +45,11 @@ func (k BankQueryServer) Balance(ctx context.Context, req *bank.QueryBalanceRequ
 
 	balance := k.bankKeeper.GetBalance(sdkCtx, address, req.Denom)
 	dapter := sdk.CoinToCoinAdapter(balance)
-	return &bank.QueryBalanceResponseAdapter{Balance: &dapter}, nil
+	return &typesadapter.QueryBalanceResponse{Balance: &dapter}, nil
 }
 
 // AllBalances implements the Query/AllBalances gRPC method
-func (k BankQueryServer) AllBalances(ctx context.Context, req *bank.QueryAllBalancesRequestAdapter) (*bank.QueryAllBalancesResponseAdapter, error) {
+func (k BankQueryServer) AllBalances(ctx context.Context, req *typesadapter.QueryAllBalancesRequest) (*typesadapter.QueryAllBalancesResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -69,21 +70,21 @@ func (k BankQueryServer) AllBalances(ctx context.Context, req *bank.QueryAllBala
 
 	pageRes := &query.PageResponse{NextKey: nil, Total: uint64(len(balances))}
 
-	return &bank.QueryAllBalancesResponseAdapter{Balances: adapters, Pagination: pageRes}, nil
+	return &typesadapter.QueryAllBalancesResponse{Balances: adapters, Pagination: pageRes}, nil
 }
 
 // TotalSupply implements the Query/TotalSupply gRPC method
-func (k BankQueryServer) TotalSupply(ctx context.Context, req *bank.QueryTotalSupplyRequestAdapter) (*bank.QueryTotalSupplyResponseAdapter, error) {
+func (k BankQueryServer) TotalSupply(ctx context.Context, req *typesadapter.QueryTotalSupplyRequest) (*typesadapter.QueryTotalSupplyResponse, error) {
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	supply := k.supplyKeeper.GetSupply(sdkCtx)
 	total := supply.GetTotal()
 	adapters := sdk.CoinsToCoinAdapters(total)
 	pageRes := &query.PageResponse{NextKey: nil, Total: uint64(len(adapters))}
-	return &bank.QueryTotalSupplyResponseAdapter{Supply: adapters, Pagination: pageRes}, nil
+	return &typesadapter.QueryTotalSupplyResponse{Supply: adapters, Pagination: pageRes}, nil
 }
 
 // SupplyOf implements the Query/SupplyOf gRPC method
-func (k BankQueryServer) SupplyOf(c context.Context, req *bank.QuerySupplyOfRequestAdapter) (*bank.QuerySupplyOfResponseAdapter, error) {
+func (k BankQueryServer) SupplyOf(c context.Context, req *typesadapter.QuerySupplyOfRequest) (*typesadapter.QuerySupplyOfResponse, error) {
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
@@ -100,11 +101,11 @@ func (k BankQueryServer) SupplyOf(c context.Context, req *bank.QuerySupplyOfRequ
 		total.AmountOf(req.Denom),
 	}
 	adapter := sdk.CoinToCoinAdapter(coin)
-	return &bank.QuerySupplyOfResponseAdapter{Amount: adapter}, nil
+	return &typesadapter.QuerySupplyOfResponse{Amount: adapter}, nil
 }
 
 // Params implements the gRPC service handler for querying x/bank parameters.
-func (k BankQueryServer) Params(ctx context.Context, req *bank.QueryParamsRequestAdapter) (*bank.QueryParamsResponseAdapter, error) {
+func (k BankQueryServer) Params(ctx context.Context, req *typesadapter.QueryParamsRequest) (*typesadapter.QueryParamsResponse, error) {
 	if req == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "empty request")
 	}
@@ -112,19 +113,19 @@ func (k BankQueryServer) Params(ctx context.Context, req *bank.QueryParamsReques
 	//TODO params is part adapter
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	sendEnable := k.bankKeeper.GetSendEnabled(sdkCtx)
-	adapter := bank.ParamsAdapter{
+	adapter := typesadapter.Params{
 		SendEnabled:        nil, // maybe need init
 		DefaultSendEnabled: sendEnable,
 	}
-	return &bank.QueryParamsResponseAdapter{Params: adapter}, nil
+	return &typesadapter.QueryParamsResponse{Params: adapter}, nil
 }
 
 // DenomsMetadata implements Query/DenomsMetadata gRPC method.
-func (k BankQueryServer) DenomsMetadata(c context.Context, req *bank.QueryDenomsMetadataRequestAdapter) (*bank.QueryDenomsMetadataResponseAdapter, error) {
-	return nil, ErrUnSupportQueryType("Query/DenomsMetadata")
+func (k BankQueryServer) DenomsMetadata(c context.Context, req *typesadapter.QueryDenomsMetadataRequest) (*typesadapter.QueryDenomsMetadataResponse, error) {
+	return nil, types.ErrUnSupportQueryType("Query/DenomsMetadata")
 }
 
 // DenomMetadata implements Query/DenomMetadata gRPC method.
-func (k BankQueryServer) DenomMetadata(c context.Context, req *bank.QueryDenomMetadataRequestAdapter) (*bank.QueryDenomMetadataResponseAdapter, error) {
-	return nil, ErrUnSupportQueryType("Query/DenomMetadata")
+func (k BankQueryServer) DenomMetadata(c context.Context, req *typesadapter.QueryDenomMetadataRequest) (*typesadapter.QueryDenomMetadataResponse, error) {
+	return nil, types.ErrUnSupportQueryType("Query/DenomMetadata")
 }

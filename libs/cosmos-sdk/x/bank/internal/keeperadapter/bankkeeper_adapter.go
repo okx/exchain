@@ -1,15 +1,17 @@
-package types
+package keeperadapter
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/keeper"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/types"
 )
 
 type BankKeeperAdapter struct {
-	bankKeeper BankKeeperOKC
+	bankKeeper keeper.Keeper
 }
 
-func NewBankKeeperAdapter(bankKeeper BankKeeperOKC) *BankKeeperAdapter {
+func NewBankKeeperAdapter(bankKeeper keeper.Keeper) *BankKeeperAdapter {
 	return &BankKeeperAdapter{bankKeeper: bankKeeper}
 }
 func (adapter BankKeeperAdapter) SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error {
@@ -22,7 +24,7 @@ func (adapter BankKeeperAdapter) BlockedAddr(addr sdk.AccAddress) bool {
 
 func (adapter BankKeeperAdapter) IsSendEnabledCoins(ctx sdk.Context, coins ...sdk.Coin) error {
 	if !adapter.bankKeeper.GetSendEnabled(ctx) {
-		return sdkerrors.Wrapf(ErrSendDisabled, "transfers are currently disabled")
+		return sdkerrors.Wrapf(types.ErrSendDisabled, "transfers are currently disabled")
 	}
 	// todo weather allow different form okt coin send enable
 	return nil

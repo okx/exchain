@@ -8,7 +8,6 @@ import (
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/distribution/types"
 	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
-	supplyexported "github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	ibcexported "github.com/okex/exchain/libs/ibc-go/modules/core/exported"
@@ -31,10 +30,6 @@ type BankKeeperOKC interface {
 	BlacklistedAddr(addr sdk.AccAddress) bool
 	GetCoins(ctx sdk.Context, addr sdk.AccAddress) sdk.Coins
 	GetSendEnabled(ctx sdk.Context) bool
-}
-
-type SupplyKeeper interface {
-	GetSupply(ctx sdk.Context) (supply supplyexported.SupplyI)
 }
 
 // BankKeeper defines a subset of methods implemented by the cosmos-sdk bank keeper

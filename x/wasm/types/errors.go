@@ -1,7 +1,6 @@
 package types
 
 import (
-	"fmt"
 	sdkErrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
 
@@ -87,12 +86,7 @@ var (
 	ErrTopKevelKeyNotAllowed = sdkErrors.Register(DefaultCodespace, 26, "top-level key is not allowed")
 	// ErrInvalidEvent error if an attribute/event from the contract is invalid
 
-	ErrSendDisabled = sdkErrors.Register(DefaultCodespace, 27, "send transactions are disabled")
 )
-
-func ErrUnSupportQueryType(data string) *sdkErrors.Error {
-	return sdkErrors.Register(DefaultCodespace, 28, fmt.Sprintf("%s is not support", data))
-}
 
 type ErrNoSuchContract struct {
 	Addr string

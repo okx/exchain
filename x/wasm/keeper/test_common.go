@@ -394,8 +394,7 @@ func createTestInput(
 		keys[types.StoreKey],
 		subspace(types.ModuleName),
 		accountKeeper,
-		types.NewBankKeeperAdapter(bankKeeper),
-		supplyKeeper,
+		bank.NewBankKeeperAdapter(bankKeeper),
 		ibcKeeper.ChannelKeeper,
 		&ibcKeeper.PortKeeper,
 		scopedWasmKeeper,
@@ -413,15 +412,13 @@ func createTestInput(
 	router.AddRoute(types.RouterKey, TestHandler(contractKeeper))
 
 	am := module.NewManager( // minimal module set that we use for message/ query tests
-		bank.NewAppModule(bankKeeper, accountKeeper),
+		bank.NewAppModule(bankKeeper, accountKeeper, supplyKeeper),
 		staking.NewAppModule(stakingKeeper, accountKeeper, supplyKeeper),
 		distribution.NewAppModule(distKeeper, supplyKeeper),
 		supply.NewAppModule(supplyKeeper, accountKeeper),
 	)
 	configurator := module.NewConfigurator(legacyAmino, msgRouter, querier)
 	am.RegisterServices(configurator)
-	bank.RegisterBankMsgServer(configurator.MsgServer(), types.NewBankMsgServer(keeper.GetBankKeeper()))
-	bank.RegisterQueryServer(querier, types.NewBankQueryServer(keeper.GetBankKeeper(), keeper.GetSupplyKeeper()))
 	types.RegisterMsgServer(msgRouter, NewMsgServerImpl(NewDefaultPermissionKeeper(keeper)))
 	types.RegisterQueryServer(querier, NewGrpcQuerier(appCodec, keys[types.ModuleName], keeper, keeper.queryGasLimit))
 

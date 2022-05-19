@@ -3,6 +3,7 @@ package wasm
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/keeperadapter"
 	"io/ioutil"
 	"testing"
 
@@ -260,13 +261,13 @@ func TestHandleExecute(t *testing.T) {
 	creatorAcct := data.acctKeeper.GetAccount(data.ctx, creator)
 	require.NotNil(t, creatorAcct)
 	// we started at 2*deposit, should have spent one above
-	assert.Equal(t, deposit, types.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, creatorAcct.GetAddress()))
+	assert.Equal(t, deposit, keeperadapter.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, creatorAcct.GetAddress()))
 
 	// ensure contract has updated balance
 	contractAddr, _ := sdk.AccAddressFromBech32(contractBech32Addr)
 	contractAcct := data.acctKeeper.GetAccount(data.ctx, contractAddr)
 	require.NotNil(t, contractAcct)
-	assert.Equal(t, deposit, types.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, contractAcct.GetAddress()))
+	assert.Equal(t, deposit, keeperadapter.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, contractAcct.GetAddress()))
 
 	execCmd := MsgExecuteContract{
 		Sender:   fred.String(),
@@ -305,14 +306,14 @@ func TestHandleExecute(t *testing.T) {
 	// ensure bob now exists and got both payments released
 	bobAcct = data.acctKeeper.GetAccount(data.ctx, bob)
 	require.NotNil(t, bobAcct)
-	balance := types.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, bobAcct.GetAddress())
+	balance := keeperadapter.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, bobAcct.GetAddress())
 	assert.Equal(t, deposit.Add(topUp...), balance)
 
 	// ensure contract has updated balance
 
 	contractAcct = data.acctKeeper.GetAccount(data.ctx, contractAddr)
 	require.NotNil(t, contractAcct)
-	assert.Equal(t, zeroCoins, types.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, contractAcct.GetAddress()))
+	assert.Equal(t, zeroCoins, keeperadapter.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, contractAcct.GetAddress()))
 
 	// ensure all contract state is as after init
 	assertCodeList(t, q, data.ctx, 1)
@@ -384,14 +385,14 @@ func TestHandleExecuteEscrow(t *testing.T) {
 	// ensure bob now exists and got both payments released
 	bobAcct := data.acctKeeper.GetAccount(data.ctx, bob)
 	require.NotNil(t, bobAcct)
-	balance := types.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, bobAcct.GetAddress())
+	balance := keeperadapter.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, bobAcct.GetAddress())
 	assert.Equal(t, deposit.Add(topUp...), balance)
 
 	// ensure contract has updated balance
 	contractAddr, _ := sdk.AccAddressFromBech32(contractBech32Addr)
 	contractAcct := data.acctKeeper.GetAccount(data.ctx, contractAddr)
 	require.NotNil(t, contractAcct)
-	assert.Equal(t, zeroCoins, types.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, contractAcct.GetAddress()))
+	assert.Equal(t, zeroCoins, keeperadapter.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, contractAcct.GetAddress()))
 }
 
 func TestReadWasmConfig(t *testing.T) {

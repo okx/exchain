@@ -51,6 +51,7 @@ var (
 	RegisterBankMsgServer       = typesadapter.RegisterMsgServer
 	NewMsgServerImpl            = keeperadapter.NewMsgServerImpl
 	RegisterQueryServer         = typesadapter.RegisterQueryServer
+	NewBankKeeperAdapter        = keeperadapter.NewBankKeeperAdapter
 )
 
 type (
@@ -67,6 +68,8 @@ type (
 	Input              = types.Input
 	Output             = types.Output
 	QueryBalanceParams = types.QueryBalanceParams
+	BankKeeperAdapter  = keeperadapter.BankKeeperAdapter
+	SupplyKeeper       = keeperadapter.SupplyKeeper
 )
 
 //adapter
