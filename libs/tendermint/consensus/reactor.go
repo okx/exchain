@@ -1526,6 +1526,7 @@ func RegisterMessages(cdc *amino.Codec) {
 	cdc.EnableBufferMarshaler(NewRoundStepMessage{})
 	cdc.EnableBufferMarshaler(&NewValidBlockMessage{})
 	cdc.EnableBufferMarshaler(ProposalMessage{})
+	cdc.EnableBufferMarshaler(&ProposalPOLMessage{})
 	cdc.EnableBufferMarshaler(BlockPartMessage{})
 	cdc.EnableBufferMarshaler(VoteMessage{})
 	cdc.EnableBufferMarshaler(HasVoteMessage{})
@@ -1861,6 +1862,65 @@ func (m *ProposalPOLMessage) ValidateBasic() error {
 // String returns a string representation.
 func (m *ProposalPOLMessage) String() string {
 	return fmt.Sprintf("[ProposalPOL H:%v POLR:%v POL:%v]", m.Height, m.ProposalPOLRound, m.ProposalPOL)
+}
+
+func (m *ProposalPOLMessage) AminoSize(cdc *amino.Codec) int {
+	var size int
+	// field 1
+	if m.Height != 0 {
+		size += 1 + amino.UvarintSize(uint64(m.Height))
+	}
+	// field 2
+	if m.ProposalPOLRound != 0 {
+		size += 1 + amino.UvarintSize(uint64(m.ProposalPOLRound))
+	}
+	// field 3
+	if m.ProposalPOL != nil {
+		propolsz := m.ProposalPOL.AminoSize(cdc)
+		size += 1 + amino.UvarintSize(uint64(propolsz)) + propolsz
+	}
+	return size
+}
+
+func (m *ProposalPOLMessage) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
+	var err error
+	// field 1
+	if m.Height != 0 {
+		const pbKey = byte(1<<3 | amino.Typ3_Varint)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(m.Height))
+		if err != nil {
+			return err
+		}
+	}
+	// field 2
+	if m.ProposalPOLRound != 0 {
+		const pbKey = byte(2<<3 | amino.Typ3_Varint)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(m.ProposalPOLRound))
+		if err != nil {
+			return err
+		}
+	}
+	// field 3
+	if m.ProposalPOL != nil {
+		const pbKey = byte(3<<3 | amino.Typ3_ByteLength)
+		buf.WriteByte(pbKey)
+		propolsz := m.ProposalPOL.AminoSize(cdc)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(propolsz))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = m.ProposalPOL.MarshalAminoTo(cdc, buf)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != propolsz {
+			return amino.NewSizerError(propolsz, buf.Len()-lenBeforeData, propolsz)
+		}
+	}
+	return nil
 }
 
 //-------------------------------------
