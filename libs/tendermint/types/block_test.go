@@ -1078,10 +1078,9 @@ func Test_compressBlock(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.args.before()
-			got := compressBlock(tt.args.bz)
+			got := compressBlock(tt.args.bz, tt.args.oldBlockComressType, 0)
 			assert.NotNil(t, got)
 			assert.True(t, tt.ret(got))
-			BlockCompressType = tt.args.oldBlockComressType
 		})
 	}
 }
@@ -1094,7 +1093,7 @@ func TestUncompressBlockFromReader(t *testing.T) {
 	content, _ := cdc.MarshalBinaryBare(compressedBytes)
 	oldCompressType := BlockCompressType
 	BlockCompressType = 1
-	compressedContent := compressBlock(content)
+	compressedContent := compressBlock(content, BlockCompressType, 0)
 	compressedReader := stdbytes.NewReader(compressedContent)
 
 	type args struct {
@@ -1129,7 +1128,7 @@ func TestUncompressBlockFromBytes(t *testing.T) {
 	compressedBytes := make([]byte, BlockCompressThreshold+1)
 	content, _ := cdc.MarshalBinaryBare(compressedBytes)
 	BlockCompressType = 1
-	compressedContent := compressBlock(content)
+	compressedContent := compressBlock(content, BlockCompressType, 0)
 
 	type args struct {
 		payload []byte
