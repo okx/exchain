@@ -48,6 +48,83 @@ type msgInfo struct {
 	PeerID p2p.ID  `json:"peer_key"`
 }
 
+func (info msgInfo) AminoSize(cdc *amino.Codec) int {
+	var size int
+	if info.Msg != nil {
+		var msgSize int
+		if sizer, ok := info.Msg.(amino.Sizer); ok {
+			var typePrefix [8]byte
+			n, err := cdc.GetTypePrefix(info.Msg, typePrefix[:])
+			if err != nil {
+				panic(err)
+			}
+			msgSize = n + sizer.AminoSize(cdc)
+		} else {
+			msgData := cdc.MustMarshalBinaryBare(info.Msg)
+			msgSize = len(msgData)
+		}
+		size += 1 + amino.UvarintSize(uint64(msgSize)) + msgSize
+	}
+	if info.PeerID != "" {
+		size += 1 + amino.EncodedStringSize(string(info.PeerID))
+	}
+	return size
+}
+
+func (info msgInfo) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
+	var err error
+	// field 1
+	if info.Msg != nil {
+		const pbKey = byte(1<<3 | amino.Typ3_ByteLength)
+		buf.WriteByte(pbKey)
+
+		var typePrefix [8]byte
+		n, err := cdc.GetTypePrefix(info.Msg, typePrefix[:])
+		if err != nil {
+			return err
+		}
+		if n == 0 {
+			return fmt.Errorf("interface without type prefix")
+		}
+
+		if sizer, ok := info.Msg.(amino.MarshalBufferSizer); ok {
+			msgSize := n + sizer.AminoSize(cdc)
+			err = amino.EncodeUvarintToBuffer(buf, uint64(msgSize))
+			if err != nil {
+				return err
+			}
+			lenBeforeData := buf.Len()
+			buf.Write(typePrefix[:n])
+			err = sizer.MarshalAminoTo(cdc, buf)
+			if err != nil {
+				return err
+			}
+			if buf.Len()-lenBeforeData != msgSize {
+				return amino.NewSizerError(msgSize, buf.Len()-lenBeforeData, msgSize)
+			}
+		} else {
+			msgData, err := cdc.MarshalBinaryBare(info.Msg)
+			if err != nil {
+				return err
+			}
+			err = amino.EncodeByteSliceToBuffer(buf, msgData)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	// field 2
+	if info.PeerID != "" {
+		const pbKey = byte(2<<3 | amino.Typ3_ByteLength)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeStringToBuffer(buf, string(info.PeerID))
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // internally generated messages which may update the state
 type timeoutInfo struct {
 	Duration time.Duration         `json:"duration"`
