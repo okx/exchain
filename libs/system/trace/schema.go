@@ -70,6 +70,8 @@ const (
 	UncompressBlock = "Uncompress"
 	Prerun               = "Prerun"
 	IavlRuntime          = "IavlRuntime"
+
+	BlockPartsP2P = "BlockPartsP2P"
 )
 
 const (
