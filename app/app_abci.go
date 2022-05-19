@@ -13,7 +13,9 @@ import (
 // BeginBlock implements the Application interface
 func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 	if app.gcInterval > 0 && req.Header.Height%int64(app.gcInterval) == 0 {
+		app.Logger().Info("begin gc for debug", "height", req.Header.Height)
 		runtime.GC()
+		app.Logger().Info("end gc for debug", "height", req.Header.Height)
 	}
 	trace.OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
 	app.EvmKeeper.Watcher.DelayEraseKey()
