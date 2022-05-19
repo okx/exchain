@@ -1263,6 +1263,38 @@ func TestProposalMessageAmino(t *testing.T) {
 	}
 }
 
+func TestProposalPOLMessageAmino(t *testing.T) {
+	testCases := []ProposalPOLMessage{
+		{},
+		{
+			Height:           12345,
+			ProposalPOLRound: 12345,
+			ProposalPOL: &bits.BitArray{
+				Bits:  10,
+				Elems: []uint64{1, 2, 3, 4},
+			},
+		},
+		{
+			Height:           math.MaxInt64,
+			ProposalPOLRound: math.MaxInt,
+			ProposalPOL:      &bits.BitArray{},
+		},
+		{
+			Height:           math.MinInt64,
+			ProposalPOLRound: math.MinInt,
+		},
+	}
+	for _, tc := range testCases {
+		expectData, err := cdc.MarshalBinaryBare(tc)
+		require.NoError(t, err)
+		actualData, err := cdc.MarshalBinaryWithSizer(&tc, false)
+		require.NoError(t, err)
+
+		require.Equal(t, expectData, actualData)
+		require.Equal(t, len(expectData), tc.AminoSize(cdc)+4)
+	}
+}
+
 func BenchmarkVoteSetMaj23MessageAmino(b *testing.B) {
 	msg := VoteSetMaj23Message{
 		Height: 12345,
