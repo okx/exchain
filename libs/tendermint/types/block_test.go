@@ -116,6 +116,20 @@ func TestBlockMakePartSet(t *testing.T) {
 	assert.Equal(t, 1, partSet.Total())
 }
 
+func TestBlock_MakePartSetByExInfo(t *testing.T) {
+	assert.Nil(t, (*Block)(nil).MakePartSetByExInfo(nil))
+	block := MakeBlock(int64(3), []Tx{Tx("Hello World")}, nil, nil)
+	assert.Nil(t, block.MakePartSetByExInfo(nil))
+
+	partSet := block.MakePartSetByExInfo(&BlockExInfo{BlockPartSize: 1024})
+	assert.NotNil(t, partSet)
+	assert.Equal(t, 1, partSet.Total())
+
+	partSet = block.MakePartSetByExInfo(&BlockExInfo{BlockPartSize: 1024, BlockCompressType: 2, BlockCompressFlag: 0})
+	assert.NotNil(t, partSet)
+	assert.Equal(t, 1, partSet.Total())
+}
+
 func TestBlockMakePartSetWithEvidence(t *testing.T) {
 	assert.Nil(t, (*Block)(nil).MakePartSet(2))
 
@@ -1059,12 +1073,12 @@ func Test_compressBlock(t *testing.T) {
 		{"block compress type zero", args{bz: bzShort, oldBlockComressType: BlockCompressType, before: func() {}}, bzShort, func([]byte) bool { return true }},
 		{"block compress with short length", args{bz: bzShort, oldBlockComressType: BlockCompressType, before: func() { BlockCompressType = 1 }}, bzShort, func([]byte) bool { return true }},
 		{"block compress with large length", args{bz: bzLarge, oldBlockComressType: BlockCompressType, before: func() { BlockCompressType = 1 }}, nil, func(got []byte) bool { return len(got) < len(bzLarge) }},
-		{"block compress with unknown compress type", args{bz: bzLarge, oldBlockComressType: BlockCompressType, before: func() { BlockCompressType = 10 }}, nil, func(got []byte) bool { return len(got) > len(bzLarge) }},
+		{"block compress with unknown compress type", args{bz: bzLarge, oldBlockComressType: BlockCompressType, before: func() { BlockCompressType = 9 }}, nil, func(got []byte) bool { return len(got) > len(bzLarge) }},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.args.before()
-			got := compressBlock(tt.args.bz)
+			got := compressBlock(tt.args.bz, BlockCompressType, 0)
 			assert.NotNil(t, got)
 			assert.True(t, tt.ret(got))
 			BlockCompressType = tt.args.oldBlockComressType
@@ -1080,7 +1094,7 @@ func TestUncompressBlockFromReader(t *testing.T) {
 	content, _ := cdc.MarshalBinaryBare(compressedBytes)
 	oldCompressType := BlockCompressType
 	BlockCompressType = 1
-	compressedContent := compressBlock(content)
+	compressedContent := compressBlock(content, BlockCompressType, 0)
 	compressedReader := stdbytes.NewReader(compressedContent)
 
 	type args struct {
@@ -1115,7 +1129,7 @@ func TestUncompressBlockFromBytes(t *testing.T) {
 	compressedBytes := make([]byte, BlockCompressThreshold+1)
 	content, _ := cdc.MarshalBinaryBare(compressedBytes)
 	BlockCompressType = 1
-	compressedContent := compressBlock(content)
+	compressedContent := compressBlock(content, BlockCompressType, 0)
 
 	type args struct {
 		payload []byte
@@ -1132,10 +1146,11 @@ func TestUncompressBlockFromBytes(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			gotRes, gotCompressType, err := UncompressBlockFromBytes(tt.args.payload)
+			gotRes, gotCompressSign, err := UncompressBlockFromBytes(tt.args.payload)
 			if !tt.wantErr(t, err, fmt.Sprintf("UncompressBlockFromBytes(%v)", tt.args.payload)) {
 				return
 			}
+			gotCompressType := gotCompressSign / CompressDividing
 			assert.Equalf(t, tt.wantRes, gotRes, "UncompressBlockFromBytes(%v)", tt.args.payload)
 			assert.Equalf(t, tt.wantCompressType, gotCompressType, "UncompressBlockFromBytes(%v)", tt.args.payload)
 		})

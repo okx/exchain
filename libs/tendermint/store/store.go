@@ -80,38 +80,45 @@ var blockBufferPool = amino.NewBufferPool()
 // LoadBlock returns the block with the given height.
 // If no block is found for that height, it returns nil.
 func (bs *BlockStore) LoadBlock(height int64) *types.Block {
-	var blockMeta = bs.LoadBlockMeta(height)
-	if blockMeta == nil {
+	bufBytes, _ := bs.loadBlockPartsBytes(height)
+	if bufBytes == nil {
 		return nil
 	}
-
-	var bufLen int
-	var block = new(types.Block)
-	parts := make([]*types.Part, 0, blockMeta.BlockID.PartsHeader.Total)
-	for i := 0; i < blockMeta.BlockID.PartsHeader.Total; i++ {
-		part := bs.LoadBlockPart(height, i)
-		bufLen += len(part.Bytes)
-		parts = append(parts, part)
-	}
-	buf := blockBufferPool.Get()
-	defer blockBufferPool.Put(buf)
-	buf.Grow(bufLen)
-	for _, part := range parts {
-		buf.Write(part.Bytes)
-	}
-
-	partBytes, _, err := types.UncompressBlockFromBytes(buf.Bytes())
+	// uncompress if the block part bytes was created by compress block
+	partBytes, _, err := types.UncompressBlockFromBytes(bufBytes)
 	if err != nil {
 		panic(errors.Wrap(err, "failed to uncompress block"))
 	}
 
-	bz, err := amino.GetBinaryBareFromBinaryLengthPrefixed(partBytes)
+	return bs.unmarshalBlockByBytes(partBytes)
+}
+
+// LoadBlockWithExInfo returns the block with the given height.
+// and the BlockPartInfo is used to make block parts
+func (bs *BlockStore) LoadBlockWithExInfo(height int64) (*types.Block, *types.BlockExInfo) {
+	bufBytes, partSize := bs.loadBlockPartsBytes(height)
+	if bufBytes == nil {
+		return nil, nil
+	}
+	// uncompress if the block part bytes was created by compress block
+	partBytes, compressSign, err := types.UncompressBlockFromBytes(bufBytes)
+	if err != nil {
+		panic(errors.Wrap(err, "failed to uncompress block"))
+	}
+
+	return bs.unmarshalBlockByBytes(partBytes), &types.BlockExInfo{BlockCompressType: compressSign / types.CompressDividing, BlockCompressFlag: compressSign % types.CompressDividing, BlockPartSize: partSize}
+}
+
+// unmarshalBlockByBytes returns the block with the given block parts bytes
+func (bs *BlockStore) unmarshalBlockByBytes(blockBytes []byte) *types.Block {
+	var block = new(types.Block)
+	bz, err := amino.GetBinaryBareFromBinaryLengthPrefixed(blockBytes)
 	if err == nil {
 		err = block.UnmarshalFromAmino(cdc, bz)
 	}
 	if err != nil {
 		block = new(types.Block)
-		err = cdc.UnmarshalBinaryLengthPrefixed(partBytes, block)
+		err = cdc.UnmarshalBinaryLengthPrefixed(blockBytes, block)
 		if err != nil {
 			// NOTE: The existence of meta should imply the existence of the
 			// block. So, make sure meta is only saved after blocks are saved.
@@ -169,6 +176,29 @@ func (bs *BlockStore) LoadBlockPart(height int64, index int) *types.Part {
 		panic(err)
 	}
 	return v.(*types.Part)
+}
+
+// loadBlockPartsBytes return the combined parts bytes and the number of block parts
+func (bs *BlockStore) loadBlockPartsBytes(height int64) ([]byte, int) {
+	var blockMeta = bs.LoadBlockMeta(height)
+	if blockMeta == nil {
+		return nil, 0
+	}
+
+	var bufLen int
+	parts := make([]*types.Part, 0, blockMeta.BlockID.PartsHeader.Total)
+	for i := 0; i < blockMeta.BlockID.PartsHeader.Total; i++ {
+		part := bs.LoadBlockPart(height, i)
+		bufLen += len(part.Bytes)
+		parts = append(parts, part)
+	}
+	buf := blockBufferPool.Get()
+	defer blockBufferPool.Put(buf)
+	buf.Grow(bufLen)
+	for _, part := range parts {
+		buf.Write(part.Bytes)
+	}
+	return buf.Bytes(), len(parts[0].Bytes)
 }
 
 // LoadBlockMeta returns the BlockMeta for the given height.
