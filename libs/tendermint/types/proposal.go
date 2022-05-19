@@ -1,8 +1,10 @@
 package types
 
 import (
+	gobytes "bytes"
 	"errors"
 	"fmt"
+	"github.com/tendermint/go-amino"
 	"time"
 
 	"github.com/okex/exchain/libs/tendermint/libs/bytes"
@@ -113,6 +115,120 @@ func (p *Proposal) ToProto() *tmproto.Proposal {
 	pb.Signature = p.Signature
 
 	return pb
+}
+
+func (p *Proposal) AminoSize(cdc *amino.Codec) int {
+	var size int
+	if p.Type != 0 {
+		size += 1 + amino.UvarintSize(uint64(p.Type))
+	}
+	if p.Height != 0 {
+		size += 1 + amino.UvarintSize(uint64(p.Height))
+	}
+	if p.Round != 0 {
+		size += 1 + amino.UvarintSize(uint64(p.Round))
+	}
+	if p.POLRound != 0 {
+		size += 1 + amino.UvarintSize(uint64(p.POLRound))
+	}
+	blockIDSize := p.BlockID.AminoSize(cdc)
+	if blockIDSize != 0 {
+		size += 1 + amino.UvarintSize(uint64(blockIDSize)) + blockIDSize
+	}
+	timestampSize := amino.TimeSize(p.Timestamp)
+	if timestampSize != 0 {
+		size += 1 + amino.UvarintSize(uint64(timestampSize)) + timestampSize
+	}
+	if len(p.Signature) != 0 {
+		size += 1 + amino.ByteSliceSize(p.Signature)
+	}
+	return size
+}
+
+func (p *Proposal) MarshalAminoTo(cdc *amino.Codec, buf *gobytes.Buffer) error {
+	var err error
+	// field 1
+	if p.Type != 0 {
+		const pbKey = byte(1<<3 | amino.Typ3_Varint)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(p.Type))
+		if err != nil {
+			return err
+		}
+	}
+	// field 2
+	if p.Height != 0 {
+		const pbKey = byte(2<<3 | amino.Typ3_Varint)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(p.Height))
+		if err != nil {
+			return err
+		}
+	}
+	// field 3
+	if p.Round != 0 {
+		const pbKey = byte(3<<3 | amino.Typ3_Varint)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(p.Round))
+		if err != nil {
+			return err
+		}
+	}
+	// field 4
+	if p.POLRound != 0 {
+		const pbKey = byte(4<<3 | amino.Typ3_Varint)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(p.POLRound))
+		if err != nil {
+			return err
+		}
+	}
+	// field 5
+	blockIDSize := p.BlockID.AminoSize(cdc)
+	if blockIDSize != 0 {
+		const pbKey = byte(5<<3 | amino.Typ3_ByteLength)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(blockIDSize))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = p.BlockID.MarshalAminoTo(cdc, buf)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != blockIDSize {
+			return amino.NewSizerError(blockIDSize, buf.Len()-lenBeforeData, blockIDSize)
+		}
+	}
+	// field 6
+	timestapSize := amino.TimeSize(p.Timestamp)
+	if timestapSize != 0 {
+		const pbKey = byte(6<<3 | amino.Typ3_ByteLength)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(timestapSize))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = amino.EncodeTime(buf, p.Timestamp)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != timestapSize {
+			return amino.NewSizerError(timestapSize, buf.Len()-lenBeforeData, timestapSize)
+		}
+	}
+	// field 7
+	if len(p.Signature) != 0 {
+		const pbKey = byte(7<<3 | amino.Typ3_ByteLength)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeByteSliceToBuffer(buf, p.Signature)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // FromProto sets a protobuf Proposal to the given pointer.

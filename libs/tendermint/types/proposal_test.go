@@ -170,3 +170,49 @@ func TestProposalProtoBuf(t *testing.T) {
 		}
 	}
 }
+
+func TestProposalAmino(t *testing.T) {
+	testCases := []Proposal{
+		{},
+		{
+			Type:     PrevoteType,
+			Height:   1,
+			Round:    2,
+			POLRound: 3,
+			BlockID: BlockID{
+				Hash: []byte("blockhash"),
+				PartsHeader: PartSetHeader{
+					Total: 6,
+					Hash:  []byte("partshash"),
+				},
+			},
+			Timestamp: time.Now(),
+			Signature: []byte("Signature"),
+		},
+		{
+			Type:      ProposalType,
+			Height:    math.MaxInt64,
+			Round:     math.MaxInt,
+			POLRound:  math.MaxInt,
+			Signature: []byte{},
+		},
+		{
+			Type:      PrecommitType,
+			Height:    math.MinInt64,
+			Round:     math.MinInt,
+			POLRound:  math.MinInt,
+			Timestamp: time.Unix(0, 0),
+		},
+		{
+			Type: math.MaxUint8,
+		},
+	}
+	for _, tc := range testCases {
+		bz, err := cdc.MarshalBinaryBare(tc)
+		require.NoError(t, err)
+		actualData, err := cdc.MarshalBinaryWithSizer(&tc, false)
+		require.NoError(t, err)
+		require.Equal(t, bz, actualData)
+		require.Equal(t, len(bz), tc.AminoSize(cdc))
+	}
+}
