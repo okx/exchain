@@ -450,7 +450,7 @@ func NewOKExChainApp(
 
 	// The last arguments can contain custom message handlers, and custom query handlers,
 	// if we want to allow any custom callbacks
-	supportedFeatures := "iterator,staking,stargate"
+	supportedFeatures := "iterator,stargate"
 	app.wasmKeeper = wasm.NewKeeper(
 		app.marshal,
 		keys[wasm.StoreKey],
