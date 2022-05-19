@@ -210,23 +210,31 @@ func (tree *MutableTree) recursiveSet(node *Node, key []byte, value []byte, orph
 	if node.isLeaf() {
 		switch bytes.Compare(key, node.key) {
 		case -1:
-			return &Node{
-				key:       node.key,
-				height:    1,
-				size:      2,
-				leftNode:  NewNode(key, value, version),
-				rightNode: node,
-				version:   version,
-			}, false
+			n := newNode()
+			n.key = node.key
+			n.height = 1
+			n.size = 2
+			n.leftNode = NewNode(key, value, version)
+			n.rightNode = node
+			n.version = version
+			return n, false
 		case 1:
-			return &Node{
-				key:       key,
-				height:    1,
-				size:      2,
-				leftNode:  node,
-				rightNode: NewNode(key, value, version),
-				version:   version,
-			}, false
+			n := newNode()
+			n.key = key
+			n.height = 1
+			n.size = 2
+			n.leftNode = node
+			n.rightNode = NewNode(key, value, version)
+			n.version = version
+			//n := &Node{
+			//	key:       key,
+			//	height:    1,
+			//	size:      2,
+			//	leftNode:  node,
+			//	rightNode: NewNode(key, value, version),
+			//	version:   version,
+			//}
+			return n, false
 		default:
 			*orphans = append(*orphans, node)
 			return NewNode(key, value, version), true
