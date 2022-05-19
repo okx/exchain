@@ -9,6 +9,7 @@ func (m *modeHandlerDeliver) handleRunMsg(info *runTxInfo) (err error) {
 	mode := m.mode
 	if info.reusableCacheMultiStore != nil {
 		info.runMsgCtx, info.msCache = info.ctx, info.reusableCacheMultiStore
+		info.runMsgCtx.SetMultiStore(info.msCache)
 		info.reusableCacheMultiStore = nil
 	} else {
 		info.runMsgCtx, info.msCache = app.cacheTxContext(info.ctx, info.txBytes)
