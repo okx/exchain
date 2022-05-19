@@ -5,8 +5,6 @@ import (
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"strings"
-
 	//"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
@@ -68,16 +66,11 @@ func (m *modeHandlerCheck) handleRunMsg(info *runTxInfo) (err error) {
 	}
 
 	info.runMsgCtx = info.ctx
-
-	msgLogs := make(sdk.ABCIMessageLogs, 0, len(info.tx.GetMsgs()))
-	data := make([]byte, 0, len(info.tx.GetMsgs()))
-
-	info.result, err = &sdk.Result{
-		Data:   data,
-		Log:    strings.TrimSpace(msgLogs.String()),
+	info.result = &sdk.Result{
+		Data:   make([]byte, 0),
+		Log:    "[]",
 		Events: sdk.EmptyEvents(),
-	}, nil
-
+	}
 	info.runMsgFinished = true
 
 	m.handleRunMsg4CheckMode(info)
