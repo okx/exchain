@@ -261,11 +261,3 @@ func (so *stateObject) UpdateAccInfo() error {
 	}
 	return fmt.Errorf("fail to update account for address: %s", so.account.Address.String())
 }
-
-func AssembleCompositeKey(prefix, key []byte) ethcmn.Hash {
-	compositeKey := make([]byte, (len(prefix)+len(key))/2)
-
-	copy(compositeKey, prefix[:len(prefix)/2])
-	copy(compositeKey[len(prefix)/2:], key[len(key)/2:])
-	return ethcmn.BytesToHash(compositeKey)
-}
