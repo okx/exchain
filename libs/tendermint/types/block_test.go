@@ -1119,9 +1119,11 @@ func TestUncompressBlockFromReader(t *testing.T) {
 			if !tt.wantErr(t, err, fmt.Sprintf("UncompressBlockFromReader(%v)", tt.args.pbpReader)) {
 				return
 			}
-			gotBytes := make([]byte, BlockCompressThreshold+BlockCompressThreshold)
-			n, _ := got.Read(gotBytes)
-			assert.Equalf(t, tt.want, gotBytes[:n], "UncompressBlockFromReader(%v)", tt.args.pbpReader)
+			n := BlockCompressThreshold + BlockCompressThreshold
+			if n > len(got) {
+				n = len(got)
+			}
+			assert.Equalf(t, tt.want, got[:n], "UncompressBlockFromReader(%v)", tt.args.pbpReader)
 		})
 	}
 	BlockCompressType = oldCompressType
