@@ -35,6 +35,7 @@ var (
 		{trace.RecvBlock, 1},
 		{trace.First2LastPart, 1},
 		{trace.BlockParts, 1},
+		{trace.P2PConsMsgs, 1},
 		{trace.Produce, 0},
 	}
 

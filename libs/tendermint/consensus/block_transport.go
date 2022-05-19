@@ -8,14 +8,16 @@ import (
 )
 
 type BlockTransport struct {
-	height int64
-	recvProposal time.Time
-	firstPart time.Time
+	height                 int64
+	recvProposal           time.Time
+	firstPart              time.Time
 	droppedDue2NotExpected int
-	droppedDue2NotAdded int
+	droppedDue2NotAdded    int
 	droppedDue2WrongHeight int
-	totalParts int
-	Logger  log.Logger
+	totalParts             int
+	Logger                 log.Logger
+	droppedDue2Existed     int
+	totalP2PConsMsgs       int
 }
 
 func (bt *BlockTransport) onProposal(height int64)  {
@@ -31,6 +33,8 @@ func (bt *BlockTransport) reset(height int64) {
 	bt.droppedDue2NotAdded = 0
 	bt.droppedDue2WrongHeight = 0
 	bt.totalParts = 0
+	bt.droppedDue2Existed = 0
+	bt.totalP2PConsMsgs = 0
 }
 
 func (bt *BlockTransport) on1stPart(height int64)  {

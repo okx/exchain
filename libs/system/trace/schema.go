@@ -31,21 +31,22 @@ const (
 )
 
 const (
-	GasUsed          = "GasUsed"
-	Produce          = "Produce"
-	RunTx            = "RunTx"
-	Height           = "Height"
-	Tx               = "Tx"
-	BlockSize        = "BlockSize"
-	Elapsed          = "Elapsed"
-	CommitRound      = "CommitRound"
-	Round            = "Round"
-	BlockParts       = "BlockParts"
-	Evm              = "Evm"
-	Iavl             = "Iavl"
-	FlatKV           = "FlatKV"
-	RecvBlock        = "RecvBlock"
-	First2LastPart   = "First2LastPart"
+	GasUsed        = "GasUsed"
+	Produce        = "Produce"
+	RunTx          = "RunTx"
+	Height         = "Height"
+	Tx             = "Tx"
+	BlockSize      = "BlockSize"
+	Elapsed        = "Elapsed"
+	CommitRound    = "CommitRound"
+	Round          = "Round"
+	BlockParts     = "BlockParts"
+	P2PConsMsgs    = "P2PConsMsgs"
+	Evm            = "Evm"
+	Iavl           = "Iavl"
+	FlatKV         = "FlatKV"
+	RecvBlock      = "RecvBlock"
+	First2LastPart = "First2LastPart"
 
 	SigCacheRatio    = "SigCacheRatio"
 	DeliverTxs       = "DeliverTxs"
@@ -63,13 +64,13 @@ const (
 	ApplyBlock = "ApplyBlock"
 	Consensus  = "Consensus"
 
-	MempoolCheckTxCnt    = "checkTxCnt"
-	MempoolTxsCnt        = "mempoolTxsCnt"
+	MempoolCheckTxCnt = "checkTxCnt"
+	MempoolTxsCnt     = "mempoolTxsCnt"
 
 	CompressBlock   = "CompressBlock"
 	UncompressBlock = "UncompressBlock"
-	Prerun               = "Prerun"
-	IavlRuntime          = "IavlRuntime"
+	Prerun          = "Prerun"
+	IavlRuntime     = "IavlRuntime"
 )
 
 const (

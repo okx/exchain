@@ -652,13 +652,13 @@ FOR_LOOP:
 				break FOR_LOOP
 			}
 			if msgBytes != nil {
-				fmt.Println("PacketMsg Size: ", len(msgBytes))
+				//fmt.Println("PacketMsg Size: ", len(msgBytes))
 				c.Logger.Debug("Received bytes", "chID", pkt.ChannelID, "msgBytes", bytesHexStringer(msgBytes))
 				// NOTE: This means the reactor.Receive runs in the same thread as the p2p recv routine
 				c.onReceive(pkt.ChannelID, msgBytes)
 			} else {
 				// todo: maybe happened when received a block part message?
-				fmt.Println("get nothing from channel.receiving")
+				//fmt.Println("get nothing from channel.receiving")
 			}
 		default:
 			err := fmt.Errorf("unknown message type %v", reflect.TypeOf(packet))

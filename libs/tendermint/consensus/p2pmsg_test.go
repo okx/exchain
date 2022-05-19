@@ -95,7 +95,7 @@ func parseMsg(bz []byte, wal *BaseWAL) error {
 	var packet conn.Packet
 	var bufTmp = bytes.NewBuffer(bz)
 
-	packet, _, err := conn.UnmarshalPacketFromAminoReader(bufTmp, int64(bufTmp.Len()))
+	packet, _, err := conn.unmarshalPacketFromAminoReader(bufTmp, int64(bufTmp.Len()))
 	if err != nil {
 		return err
 	}

@@ -342,16 +342,16 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	case StateChannel:
 		switch msg := msg.(type) {
 		case *NewRoundStepMessage:
-			conR.Logger.Error("ReceiveNewRoundStep", "height", msg.Height)
+			//conR.Logger.Error("ReceiveNewRoundStep", "height", msg.Height)
 			ps.ApplyNewRoundStepMessage(msg)
 		case *NewValidBlockMessage:
-			conR.Logger.Error("ReceiveNewValidBlock", "height", msg.Height)
+			//conR.Logger.Error("ReceiveNewValidBlock", "height", msg.Height)
 			ps.ApplyNewValidBlockMessage(msg)
 		case *HasVoteMessage:
-			conR.Logger.Error("ReceiveHasVote", "height", msg.Height)
+			//conR.Logger.Error("ReceiveHasVote", "height", msg.Height)
 			ps.ApplyHasVoteMessage(msg)
 		case *VoteSetMaj23Message:
-			conR.Logger.Error("ReceiveVoteSetMaj23", "height", msg.Height)
+			//conR.Logger.Error("ReceiveVoteSetMaj23", "height", msg.Height)
 			cs := conR.conS
 			cs.mtx.RLock()
 			height, votes := cs.Height, cs.Votes
@@ -394,14 +394,14 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		}
 		switch msg := msg.(type) {
 		case *ProposalMessage:
-			conR.Logger.Error("ReceiveProposal", "index", msg.Proposal.Type, "height", msg.Proposal.Height)
+			//conR.Logger.Error("ReceiveProposal", "index", msg.Proposal.Type, "height", msg.Proposal.Height)
 			ps.SetHasProposal(msg.Proposal)
 			conR.conS.peerMsgQueue <- msgInfo{msg, src.ID()}
 		case *ProposalPOLMessage:
-			conR.Logger.Error("ReceiveProposalPOL", "height", msg.Height)
+			//conR.Logger.Error("ReceiveProposalPOL", "height", msg.Height)
 			ps.ApplyProposalPOLMessage(msg)
 		case *BlockPartMessage:
-			conR.Logger.Error("ReceiveBlockPart", "index", msg.Part.Index, "height", msg.Height)
+			//conR.Logger.Error("ReceiveBlockPart", "index", msg.Part.Index, "height", msg.Height)
 			ps.SetHasProposalBlockPart(msg.Height, msg.Round, msg.Part.Index)
 			conR.metrics.BlockParts.With("peer_id", string(src.ID())).Add(1)
 			conR.conS.peerMsgQueue <- msgInfo{msg, src.ID()}
@@ -424,7 +424,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			ps.EnsureVoteBitArrays(height-1, lastCommitSize)
 			ps.SetHasVote(msg.Vote)
 
-			conR.Logger.Error("ReceiveVote", "type", msg.Vote.Type, "height", msg.Vote.Height)
+			//conR.Logger.Error("ReceiveVote", "type", msg.Vote.Type, "height", msg.Vote.Height)
 			cs.peerMsgQueue <- msgInfo{msg, src.ID()}
 
 		default:
@@ -444,7 +444,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			height, votes := cs.Height, cs.Votes
 			cs.mtx.RUnlock()
 
-			conR.Logger.Error("ReceiveVoteSetBits", "type", msg.Type, "height", msg.Height)
+			//conR.Logger.Error("ReceiveVoteSetBits", "type", msg.Type, "height", msg.Height)
 			if height == msg.Height {
 				var ourVotes *bits.BitArray
 				switch msg.Type {

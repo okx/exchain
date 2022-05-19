@@ -280,7 +280,6 @@ func (cs *State) unmarshalBlock() error {
 }
 
 func (cs *State) addBlockPart(height int64, round int, part *types.Part, peerID p2p.ID) (added bool, err error) {
-
 	// Blocks might be reused, so round mismatch is OK
 	if cs.Height != height {
 		cs.bt.droppedDue2WrongHeight++
