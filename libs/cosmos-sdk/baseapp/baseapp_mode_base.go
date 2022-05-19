@@ -5,6 +5,7 @@ import (
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"strings"
 
 	//"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -59,6 +60,29 @@ type modeHandlerDeliver struct {
 }
 type modeHandlerCheck struct {
 	*modeHandlerBase
+}
+
+func (m *modeHandlerCheck) handleRunMsg(info *runTxInfo) (err error) {
+	if m.mode != runTxModeCheck {
+		return m.modeHandlerBase.handleRunMsg(info)
+	}
+
+	info.runMsgCtx = info.ctx
+
+	msgLogs := make(sdk.ABCIMessageLogs, 0, len(info.tx.GetMsgs()))
+	data := make([]byte, 0, len(info.tx.GetMsgs()))
+
+	info.result, err = &sdk.Result{
+		Data:   data,
+		Log:    strings.TrimSpace(msgLogs.String()),
+		Events: sdk.EmptyEvents(),
+	}, nil
+
+	info.runMsgFinished = true
+
+	m.handleRunMsg4CheckMode(info)
+	err = m.checkHigherThanMercury(err, info)
+	return
 }
 
 type modeHandlerRecheck struct {
