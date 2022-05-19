@@ -124,7 +124,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	app.pin(trace.ValTxMsgs, false, mode)
 
 	if mode == runTxModeDeliver && app.reusableCacheMultiStore != nil {
-		info.reusableCacheMultiStore = app.reusableCacheMultiStore
+		info.reusableCacheMultiStore = updateCacheMultiStore(app.reusableCacheMultiStore, info.txBytes, info.ctx.BlockHeight())
 		app.reusableCacheMultiStore = nil
 	}
 
