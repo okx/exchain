@@ -50,6 +50,7 @@ func (m *modeHandlerDeliver) handleDeferRefund(info *runTxInfo) {
 		panic(err)
 	}
 	info.msCache.Write()
+	info.reusableCacheMultiStore = info.msCache
 	info.ctx.Cache().Write(true)
 
 	app.UpdateFeeForCollector(refund, false)

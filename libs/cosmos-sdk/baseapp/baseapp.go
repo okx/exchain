@@ -219,6 +219,8 @@ type BaseApp struct { // nolint: maligned
 	msgServiceRouter  *MsgServiceRouter // router for redirecting Msg service messages
 
 	interceptors map[string]Interceptor
+
+	reusableCacheMultiStore sdk.CacheMultiStore
 }
 
 type recordHandle func(string)
@@ -812,6 +814,17 @@ func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte) (sdk.Context
 
 	ctx.SetMultiStore(msCache)
 	return ctx, msCache
+}
+
+func updateCacheMultiStore(msCache sdk.CacheMultiStore, txBytes []byte, height int64) sdk.CacheMultiStore {
+	if msCache.TracingEnabled() {
+		msCache = msCache.SetTracingContext(
+			map[string]interface{}{
+				"txHash": fmt.Sprintf("%X", tmtypes.Tx(txBytes).Hash(height)),
+			},
+		).(sdk.CacheMultiStore)
+	}
+	return msCache
 }
 
 func (app *BaseApp) pin(tag string, start bool, mode runTxMode) {

@@ -101,6 +101,9 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 			gasUsed = 0
 		}
 		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: gasUsed}
+		if mode == runTxModeDeliver && info.reusableCacheMultiStore != nil {
+			app.reusableCacheMultiStore = info.reusableCacheMultiStore
+		}
 	}()
 
 	defer func() {
@@ -119,6 +122,11 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		return err
 	}
 	app.pin(trace.ValTxMsgs, false, mode)
+
+	if mode == runTxModeDeliver && app.reusableCacheMultiStore != nil {
+		info.reusableCacheMultiStore = app.reusableCacheMultiStore
+		app.reusableCacheMultiStore = nil
+	}
 
 	app.pin(trace.RunAnte, true, mode)
 	if app.anteHandler != nil {
@@ -155,7 +163,13 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 
 	// 1. CacheTxContext
 	app.pin(trace.CacheTxContext, true, mode)
-	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
+	if mode == runTxModeDeliver && info.reusableCacheMultiStore != nil {
+		anteCtx, info.msCacheAnte = info.ctx, info.reusableCacheMultiStore
+		anteCtx.SetMultiStore(info.msCacheAnte)
+		app.reusableCacheMultiStore = nil
+	} else {
+		anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
+	}
 
 	if mode == runTxModeDeliverInAsync {
 		info.msCacheAnte = nil
