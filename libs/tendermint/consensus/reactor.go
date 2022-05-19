@@ -1529,6 +1529,7 @@ func RegisterMessages(cdc *amino.Codec) {
 	cdc.EnableBufferMarshaler(VoteMessage{})
 	cdc.EnableBufferMarshaler(HasVoteMessage{})
 	cdc.EnableBufferMarshaler(&VoteSetMaj23Message{})
+	cdc.EnableBufferMarshaler(&VoteSetBitsMessage{})
 }
 
 func decodeMsg(bz []byte) (msg Message, err error) {
@@ -2205,6 +2206,93 @@ func (m *VoteSetBitsMessage) ValidateBasic() error {
 // String returns a string representation.
 func (m *VoteSetBitsMessage) String() string {
 	return fmt.Sprintf("[VSB %v/%02d/%v %v %v]", m.Height, m.Round, m.Type, m.BlockID, m.Votes)
+}
+
+func (m *VoteSetBitsMessage) AminoSize(cdc *amino.Codec) int {
+	var size int
+	if m.Height != 0 {
+		size += 1 + amino.UvarintSize(uint64(m.Height))
+	}
+	if m.Round != 0 {
+		size += 1 + amino.UvarintSize(uint64(m.Round))
+	}
+	if m.Type != 0 {
+		size += 1 + amino.UvarintSize(uint64(m.Type))
+	}
+	blockIDSize := m.BlockID.AminoSize(cdc)
+	if blockIDSize != 0 {
+		size += 1 + amino.UvarintSize(uint64(blockIDSize)) + blockIDSize
+	}
+	if m.Votes != nil {
+		votesSize := m.Votes.AminoSize(cdc)
+		size += 1 + amino.UvarintSize(uint64(votesSize)) + votesSize
+	}
+	return size
+}
+
+func (m *VoteSetBitsMessage) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
+	var err error
+	// field 1
+	if m.Height != 0 {
+		const pbKey = byte(1<<3 | amino.Typ3_Varint)
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(m.Height), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	// field 2
+	if m.Round != 0 {
+		const pbKey = byte(2<<3 | amino.Typ3_Varint)
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(m.Round), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	// field 3
+	if m.Type != 0 {
+		const pbKey = byte(3<<3 | amino.Typ3_Varint)
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(m.Type), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	// field 4
+	blockIDSize := m.BlockID.AminoSize(cdc)
+	if blockIDSize != 0 {
+		const pbKey = byte(4<<3 | amino.Typ3_ByteLength)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(blockIDSize))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = m.BlockID.MarshalAminoTo(cdc, buf)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != blockIDSize {
+			return amino.NewSizerError(blockIDSize, buf.Len()-lenBeforeData, blockIDSize)
+		}
+	}
+	// field 5
+	if m.Votes != nil {
+		const pbKey = byte(5<<3 | amino.Typ3_ByteLength)
+		buf.WriteByte(pbKey)
+		votesSize := m.Votes.AminoSize(cdc)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(votesSize))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = m.Votes.MarshalAminoTo(cdc, buf)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != votesSize {
+			return amino.NewSizerError(votesSize, buf.Len()-lenBeforeData, votesSize)
+		}
+	}
+	return nil
 }
 
 //-------------------------------------
