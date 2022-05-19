@@ -14,6 +14,7 @@ func (m *modeHandlerDeliver) handleRunMsg(info *runTxInfo) (err error) {
 	if err == nil {
 		info.msCache.Write()
 		info.ctx.Cache().Write(true)
+		info.runMsgSucess = true
 	}
 
 	info.runMsgFinished = true
@@ -30,7 +31,11 @@ func (m *modeHandlerDeliver) handleDeferRefund(info *runTxInfo) {
 
 	var gasRefundCtx sdk.Context
 	info.ctx.Cache().Write(false)
-	gasRefundCtx, info.msCache = app.cacheTxContext(info.ctx, info.txBytes)
+	if info.runMsgSucess && info.msCache != nil {
+		gasRefundCtx = info.runMsgCtx
+	} else {
+		gasRefundCtx, info.msCache = app.cacheTxContext(info.ctx, info.txBytes)
+	}
 
 	refund, err := app.GasRefundHandler(gasRefundCtx, info.tx)
 	if err != nil {
