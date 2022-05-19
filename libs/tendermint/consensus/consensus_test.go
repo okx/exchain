@@ -38,3 +38,28 @@ func TestTimeoutInfoAmino(t *testing.T) {
 		require.Equal(t, len(expectData), tc.AminoSize(cdc)+4)
 	}
 }
+
+type testMsg struct{}
+
+func (testMsg) ValidateBasic() error { return nil }
+
+func TestMsgInfoAmino(t *testing.T) {
+	cdc.RegisterConcrete(testMsg{}, "consensus/testMsg", nil)
+	testCases := []msgInfo{
+		{},
+		{
+			Msg:    &ProposalPOLMessage{},
+			PeerID: "test",
+		},
+		{
+			Msg: testMsg{},
+		},
+	}
+	for _, tc := range testCases {
+		expectData := cdc.MustMarshalBinaryBare(&tc)
+		actualData, err := cdc.MarshalBinaryWithSizer(&tc, false)
+		require.NoError(t, err)
+		require.Equal(t, expectData, actualData)
+		require.Equal(t, len(expectData), 4+tc.AminoSize(cdc))
+	}
+}
