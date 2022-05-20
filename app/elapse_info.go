@@ -19,6 +19,7 @@ var (
 	optionalSchemas = []SchemaConfig{
 		{trace.MempoolCheckTxCnt, 0},
 		{trace.MempoolTxsCnt, 0},
+		{trace.P2PTxMsgs, 1},
 		{trace.SigCacheRatio, 0},
 		{trace.Evm, 1},
 		{trace.Delta, 1},
@@ -36,6 +37,7 @@ var (
 		{trace.First2LastPart, 1},
 		{trace.BlockParts, 1},
 		{trace.BlockPartsP2P, 1},
+		{trace.P2PConsMsgs, 1},
 		{trace.Produce, 0},
 	}
 

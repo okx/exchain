@@ -23,6 +23,9 @@ type BlockTransport struct {
 	bpSend          int
 	bpNOTransByData int
 	bpNOTransByACK  int
+
+	droppedDue2Existed     int
+	totalP2PConsMsgs       int
 }
 
 func (bt *BlockTransport) onProposal(height int64)  {

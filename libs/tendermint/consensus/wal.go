@@ -295,6 +295,7 @@ func (wal *BaseWAL) Write(msg WALMessage) error {
 		return nil
 	}
 
+	// todo: duplicate many times
 	if err := wal.enc.Encode(&TimedWALMessage{tmtime.Now(), msg}); err != nil {
 		wal.Logger.Error("Error writing msg to consensus wal. WARNING: recover may not be possible for the current height",
 			"err", err, "msg", msg)

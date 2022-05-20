@@ -652,10 +652,13 @@ FOR_LOOP:
 				break FOR_LOOP
 			}
 			if msgBytes != nil {
-				msgStringer := bytesHexStringer(msgBytes)
-				c.Logger.Debug("Received bytes", "chID", pkt.ChannelID, "msgBytes", msgStringer)
+				//fmt.Println("PacketMsg Size: ", len(msgBytes))
+				c.Logger.Debug("Received bytes", "chID", pkt.ChannelID, "msgBytes", bytesHexStringer(msgBytes))
 				// NOTE: This means the reactor.Receive runs in the same thread as the p2p recv routine
 				c.onReceive(pkt.ChannelID, msgBytes)
+			} else {
+				// todo: maybe happened when received a block part message?
+				//fmt.Println("get nothing from channel.receiving")
 			}
 		default:
 			err := fmt.Errorf("unknown message type %v", reflect.TypeOf(packet))
@@ -1186,6 +1189,7 @@ func unmarshalPacketFromAminoReader(r io.Reader, maxSize int64) (packet Packet, 
 		err = msg.UnmarshalFromAmino(cdc, bz[4:])
 		if err == nil {
 			packet = msg
+			//fmt.Println("unmarshalPacketFromAminoReader: ", hex.EncodeToString(bz))
 			return
 		}
 	}

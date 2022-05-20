@@ -41,6 +41,7 @@ const (
 	CommitRound      = "CommitRound"
 	Round            = "Round"
 	BlockParts       = "BlockParts"
+	P2PConsMsgs    = "P2PConsMsgs"
 	Evm              = "Evm"
 	Iavl             = "Iavl"
 	FlatKV           = "FlatKV"
@@ -65,6 +66,7 @@ const (
 
 	MempoolCheckTxCnt    = "CheckTx"
 	MempoolTxsCnt        = "MempoolTxs"
+	P2PTxMsgs         = "p2pTxMsgs"
 
 	CompressBlock   = "Compress"
 	UncompressBlock = "Uncompress"

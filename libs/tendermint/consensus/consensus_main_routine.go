@@ -63,6 +63,7 @@ func (cs *State) receiveRoutine(maxSteps int) {
 		case <-cs.txNotifier.TxsAvailable():
 			cs.handleTxsAvailable()
 		case mi = <-cs.peerMsgQueue:
+			// todo: duplicate many times
 			cs.wal.Write(mi)
 			// handles proposals, block parts, votes
 			// may generate internal events (votes, complete proposals, 2/3 majorities)
@@ -134,7 +135,10 @@ func (cs *State) handleMsg(mi msgInfo) {
 
 		if added {
 			cs.statsMsgQueue <- mi
+		} else {
+			cs.bt.droppedDue2Existed++
 		}
+		cs.bt.totalP2PConsMsgs++
 
 		if err != nil && msg.Round != cs.Round {
 			cs.Logger.Debug(
@@ -153,7 +157,10 @@ func (cs *State) handleMsg(mi msgInfo) {
 		added, err = cs.tryAddVote(msg.Vote, peerID)
 		if added {
 			cs.statsMsgQueue <- mi
+		} else {
+			cs.bt.droppedDue2Existed++
 		}
+		cs.bt.totalP2PConsMsgs++
 
 		// if err == ErrAddingVote {
 		// TODO: punish peer
