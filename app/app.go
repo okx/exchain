@@ -3,6 +3,7 @@ package app
 import (
 	"github.com/okex/exchain/libs/system/trace"
 	sm "github.com/okex/exchain/libs/tendermint/state"
+	"github.com/spf13/cobra"
 	"google.golang.org/grpc/encoding/proto"
 
 	"io"
@@ -716,10 +717,7 @@ func NewAccNonceHandler(ak auth.AccountKeeper) sdk.AccNonceHandler {
 	}
 }
 
-func PreRun(ctx *server.Context) error {
-	// set the dynamic config
-	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
-
+func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 	// check start flag conflicts
 	err := sanity.CheckStart()
 	if err != nil {
@@ -744,6 +742,12 @@ func PreRun(ctx *server.Context) error {
 
 	// init tx signature cache
 	tmtypes.InitSignatureCache()
+
+	// set external package flags
+	server.SetExternalPackageValue(cmd)
+
+	// set the dynamic config
+	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 	return nil
 }
 

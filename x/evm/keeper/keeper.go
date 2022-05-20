@@ -120,7 +120,6 @@ func NewKeeper(
 
 		db:             mpt.InstanceOfMptStore(),
 		triegc:         prque.New(nil),
-		stateCache:     fastcache.New(int(types.TrieContractStateCache) * 1024 * 1024),
 		UpdatedAccount: make([]ethcmn.Address, 0),
 		cci:            &chainConfigInfo{},
 	}
@@ -153,7 +152,6 @@ func NewSimulateKeeper(
 
 		db:             mpt.InstanceOfMptStore(),
 		triegc:         prque.New(nil),
-		stateCache:     fastcache.New(1024),
 		UpdatedAccount: make([]ethcmn.Address, 0),
 		cci:            &chainConfigInfo{},
 	}
@@ -187,7 +185,6 @@ func (k *Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 		DB:         k.db,
 		Trie:       k.rootTrie,
 		RootHash:   k.rootHash,
-		StateCache: k.stateCache,
 	}
 }
 
@@ -203,7 +200,6 @@ func (k Keeper) GeneratePureCSDBParams() types.CommitStateDBParams {
 		DB:         k.db,
 		Trie:       k.rootTrie,
 		RootHash:   k.rootHash,
-		StateCache: k.stateCache,
 	}
 }
 
