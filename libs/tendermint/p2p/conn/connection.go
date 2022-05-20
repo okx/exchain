@@ -781,15 +781,25 @@ func (ch *Channel) SetLogger(l log.Logger) {
 	ch.Logger = l
 }
 
+var sendTimerPool = &sync.Pool{
+	New: func() interface{} {
+		return time.NewTimer(defaultSendTimeout)
+	},
+}
+
 // Queues message to send to this channel.
 // Goroutine-safe
 // Times out (and returns false) after defaultSendTimeout
 func (ch *Channel) sendBytes(bytes []byte) bool {
+	sendTimer := sendTimerPool.Get().(*time.Timer)
+	sendTimer.Reset(defaultSendTimeout)
 	select {
 	case ch.sendQueue <- bytes:
+		sendTimerPool.Put(sendTimer)
 		atomic.AddInt32(&ch.sendQueueSize, 1)
 		return true
-	case <-time.After(defaultSendTimeout):
+	case <-sendTimer.C:
+		sendTimerPool.Put(sendTimer)
 		return false
 	}
 }
