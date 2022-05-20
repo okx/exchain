@@ -80,7 +80,9 @@ type OecConfig struct {
 	blockCompressType  int
 	blockCompressFlag  int
 
-	gcInterval int
+	// enable broadcast hasBlockPartMsg
+	enableHasBlockPartMsg bool
+	gcInterval            int
 }
 
 const (
@@ -105,8 +107,8 @@ const (
 	FlagCsTimeoutPrecommit      = "consensus.timeout_precommit"
 	FlagCsTimeoutPrecommitDelta = "consensus.timeout_precommit_delta"
 	FlagCsTimeoutCommit         = "consensus.timeout_commit"
-
-	FlagDebugGcInterval = "debug.gc-interval"
+	FlagEnableHasBlockPartMsg   = "enable-blockpart-ack"
+	FlagDebugGcInterval         = "debug.gc-interval"
 )
 
 var (
@@ -216,6 +218,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetEnableAnalyzer(viper.GetBool(trace.FlagEnableAnalyzer))
 	c.SetDeliverTxsExecuteMode(viper.GetInt(state.FlagDeliverTxsExecMode))
 	c.SetBlockPartSize(viper.GetInt(server.FlagBlockPartSizeBytes))
+	c.SetEnableHasBlockPartMsg(viper.GetBool(FlagEnableHasBlockPartMsg))
 	c.SetGcInterval(viper.GetInt(FlagDebugGcInterval))
 }
 
@@ -424,6 +427,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetBlockCompressFlag(r)
+	case FlagEnableHasBlockPartMsg:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetEnableHasBlockPartMsg(r)
 	case FlagDebugGcInterval:
 		r, err := strconv.Atoi(v)
 		if err != nil {
@@ -669,4 +678,11 @@ func (c *OecConfig) GetGcInterval() int {
 
 func (c *OecConfig) SetGcInterval(value int) {
 	c.gcInterval = value
+}
+func (c *OecConfig) GetEnableHasBlockPartMsg() bool {
+	return c.enableHasBlockPartMsg
+}
+
+func (c *OecConfig) SetEnableHasBlockPartMsg(value bool) {
+	c.enableHasBlockPartMsg = value
 }

@@ -19,12 +19,16 @@ func (cs *State) traceDump() {
 
 	trace.GetElapsedInfo().AddInfo(trace.CommitRound, fmt.Sprintf("%d", cs.CommitRound))
 	trace.GetElapsedInfo().AddInfo(trace.Round, fmt.Sprintf("%d", cs.Round))
-	trace.GetElapsedInfo().AddInfo(trace.BlockParts, fmt.Sprintf("%d|%d|%d/%d",
+	trace.GetElapsedInfo().AddInfo(trace.BlockParts, fmt.Sprintf("%d|%d|%d|%d/%d",
 		cs.bt.droppedDue2WrongHeight,
 		cs.bt.droppedDue2NotExpected,
+		cs.bt.droppedDue2Error,
 		cs.bt.droppedDue2NotAdded,
 		cs.bt.totalParts,
 	))
+
+	trace.GetElapsedInfo().AddInfo(trace.BlockPartsP2P, fmt.Sprintf("%d|%d|%d",
+		cs.bt.bpNOTransByACK, cs.bt.bpNOTransByData, cs.bt.bpSend))
 
 	trace.GetElapsedInfo().AddInfo(trace.Produce, cs.trc.Format())
 	trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))

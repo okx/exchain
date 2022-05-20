@@ -3,6 +3,7 @@ package consensus
 import (
 	"bytes"
 	"fmt"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/okex/exchain/libs/tendermint/p2p"
@@ -53,7 +54,6 @@ func (cs *State) SetProposalAndBlock(
 	}
 	return nil
 }
-
 
 func (cs *State) isBlockProducer() (string, string) {
 	const len2display int = 6
@@ -224,7 +224,6 @@ func (cs *State) createProposalBlock() (block *types.Block, blockParts *types.Pa
 	return cs.blockExec.CreateProposalBlock(cs.Height, cs.state, commit, proposerAddr)
 }
 
-
 //-----------------------------------------------------------------------------
 
 func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
@@ -278,16 +277,34 @@ func (cs *State) unmarshalBlock() error {
 	)
 	return err
 }
+func (cs *State) onBlockPartAdded(height int64, round, index int, added bool, err error) {
+
+	if err != nil {
+		cs.bt.droppedDue2Error++
+	}
+	
+	if added {
+		if cs.ProposalBlockParts.Count() == 1 {
+			cs.trc.Pin("1stPart")
+			cs.bt.on1stPart(height)
+		}
+		// event to decrease blockpart transport
+		if cfg.DynamicConfig.GetEnableHasBlockPartMsg() {
+			cs.evsw.FireEvent(types.EventBlockPart, &HasBlockPartMessage{height, round, index,})
+		}
+	} else {
+		cs.bt.droppedDue2NotAdded++
+	}
+
+}
 
 func (cs *State) addBlockPart(height int64, round int, part *types.Part, peerID p2p.ID) (added bool, err error) {
-
 	// Blocks might be reused, so round mismatch is OK
 	if cs.Height != height {
 		cs.bt.droppedDue2WrongHeight++
 		cs.Logger.Debug("Received block part from wrong height", "height", height, "round", round)
 		return
 	}
-
 	// We're not expecting a block part.
 	if cs.ProposalBlockParts == nil {
 		// NOTE: this can happen when we've gone to a higher round and
@@ -297,16 +314,8 @@ func (cs *State) addBlockPart(height int64, round int, part *types.Part, peerID 
 		cs.bt.droppedDue2NotExpected++
 		return
 	}
-
 	added, err = cs.ProposalBlockParts.AddPart(part)
-	if !added {
-		cs.bt.droppedDue2NotAdded++
-	}
-	if added && cs.ProposalBlockParts.Count() == 1 {
-		cs.trc.Pin("1stPart")
-		cs.bt.on1stPart(height)
-	}
-
+	cs.onBlockPartAdded(height, round, part.Index, added, err)
 	return
 }
 
@@ -319,7 +328,6 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		return
 	}
 	automation.AddBlockTimeOut(height, round)
-
 	added, err = cs.addBlockPart(height, round, part, peerID)
 
 	if added && cs.ProposalBlockParts.IsComplete() {
@@ -327,11 +335,11 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 		if err != nil {
 			return
 		}
+		cs.trc.Pin("lastPart")
 		cs.bt.onRecvBlock(height)
 		cs.bt.totalParts = cs.ProposalBlockParts.Total()
-		cs.trc.Pin("lastPart")
 		if cs.prerunTx {
-			cs.blockExec.NotifyPrerun(cs.ProposalBlock) // 3. addProposalBlockPart
+			cs.blockExec.NotifyPrerun(cs.ProposalBlock)
 		}
 		// receive Deltas from BlockMessage and put into State(cs)
 		cs.Deltas = msg.Deltas
@@ -349,7 +357,7 @@ func (cs *State) handleCompleteProposal(height int64) {
 	if hasTwoThirds && !blockID.IsZero() && (cs.ValidRound < cs.Round) {
 		if cs.ProposalBlock.HashesTo(blockID.Hash) {
 			cs.Logger.Debug("Updating valid block to new proposal block",
-				"valid_round", cs.Round, "valid_block_hash", cs.ProposalBlock.Hash(), )
+				"valid_round", cs.Round, "valid_block_hash", cs.ProposalBlock.Hash())
 			cs.ValidRound = cs.Round
 			cs.ValidBlock = cs.ProposalBlock
 			cs.ValidBlockParts = cs.ProposalBlockParts

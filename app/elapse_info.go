@@ -32,9 +32,10 @@ var (
 		{trace.AnteChainDetail, 0},
 		{trace.Round, 0},
 		{trace.CommitRound, 0},
-		{trace.RecvBlock, 1},
+		//{trace.RecvBlock, 1},
 		{trace.First2LastPart, 1},
 		{trace.BlockParts, 1},
+		{trace.BlockPartsP2P, 1},
 		{trace.Produce, 0},
 	}
 
