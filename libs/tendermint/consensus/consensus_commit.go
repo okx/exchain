@@ -25,9 +25,10 @@ func (cs *State) traceDump() {
 		cs.bt.droppedDue2NotAdded,
 		cs.bt.totalParts,
 	))
-	trace.GetElapsedInfo().AddInfo(trace.P2PConsMsgs, fmt.Sprintf("%d|%d",
+	trace.GetElapsedInfo().AddInfo(trace.P2PConsMsgs, fmt.Sprintf("%d|%d|%f",
 		cs.bt.droppedDue2Existed,
 		cs.bt.totalP2PConsMsgs,
+		float32(cs.bt.droppedDue2Existed)/float32(cs.bt.totalP2PConsMsgs),
 	))
 
 	trace.GetElapsedInfo().AddInfo(trace.Produce, cs.trc.Format())

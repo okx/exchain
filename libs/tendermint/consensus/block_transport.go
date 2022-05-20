@@ -33,8 +33,8 @@ func (bt *BlockTransport) reset(height int64) {
 	bt.droppedDue2NotAdded = 0
 	bt.droppedDue2WrongHeight = 0
 	bt.totalParts = 0
-	bt.droppedDue2Existed = 0
-	bt.totalP2PConsMsgs = 0
+	//bt.droppedDue2Existed = 0
+	//bt.totalP2PConsMsgs = 0
 }
 
 func (bt *BlockTransport) on1stPart(height int64)  {

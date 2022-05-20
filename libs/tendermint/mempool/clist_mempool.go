@@ -788,9 +788,6 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 		txs = append(txs, memTx.tx)
 	}
 
-	// update trace info
-	mem.TraceDump()
-
 	return txs
 }
 
@@ -798,13 +795,18 @@ func (mem *CListMempool) TraceDump() {
 	if mem.logger == nil {
 		return
 	}
-	trace.GetElapsedInfo().AddInfo(trace.P2PTxMsgs, fmt.Sprintf("%d|%d",
+	//trace.GetElapsedInfo().AddInfo(trace.P2PTxMsgs, fmt.Sprintf("%d|%d",
+	//	mem.DropedP2pTxMsgs,
+	//	mem.totalP2pTxMsgs,
+	//))
+	trace.GetElapsedInfo().AddInfo(trace.P2PTxMsgs, fmt.Sprintf("%d|%d|%f",
 		mem.DropedP2pTxMsgs,
 		mem.totalP2pTxMsgs,
+		float32(mem.DropedP2pTxMsgs)/float32(mem.totalP2pTxMsgs),
 	))
 	trace.GetElapsedInfo().Dump(mem.logger.With("module", "main"))
-	mem.totalP2pTxMsgs=0
-	mem.DropedP2pTxMsgs=0
+	//mem.totalP2pTxMsgs=0
+	//mem.DropedP2pTxMsgs=0
 }
 
 // Safe for concurrent use by multiple goroutines.
@@ -968,6 +970,9 @@ func (mem *CListMempool) Update(
 	trace.GetElapsedInfo().AddInfo(trace.MempoolCheckTxCnt, fmt.Sprintf("%d", atomic.LoadInt64(&mem.checkCnt)))
 	trace.GetElapsedInfo().AddInfo(trace.MempoolTxsCnt, fmt.Sprintf("%d", mem.txs.Len()))
 	atomic.StoreInt64(&mem.checkCnt, 0)
+
+	// update trace info
+	mem.TraceDump()
 
 	// WARNING: The txs inserted between [ReapMaxBytesMaxGas, Update) is insert-sorted in the mempool.txs,
 	// but they are not included in the latest block, after remove the latest block txs, these txs may

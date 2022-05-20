@@ -3,15 +3,17 @@ package testcases
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/consensus"
-	"github.com/okex/exchain/libs/tendermint/libs/autofile"
-	"github.com/okex/exchain/libs/tendermint/p2p/conn"
-	"github.com/tendermint/go-amino"
 	"os"
 	"path/filepath"
 	"sync"
 	"testing"
 	"time"
+
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/okex/exchain/libs/tendermint/consensus"
+	"github.com/okex/exchain/libs/tendermint/libs/autofile"
+	"github.com/okex/exchain/libs/tendermint/p2p/conn"
+	"github.com/tendermint/go-amino"
 )
 
 var cdc = amino.NewCodec()
@@ -27,14 +29,16 @@ type MsgProcessRoutine struct {
 	stopSend   bool
 	msgNum     int
 	index      int
+	decode     bool
 }
 
-func newMsgProcessRoutine(index int, wwFn WriteWalFn, fFn RoutineFinishedFn) *MsgProcessRoutine {
+func newMsgProcessRoutine(index int, decode bool, wwFn WriteWalFn, fFn RoutineFinishedFn) *MsgProcessRoutine {
 	return &MsgProcessRoutine{
 		msgCh:      make(chan []byte, 1000000),
 		writeWalFn: wwFn,
 		finishedFn: fFn,
 		index:      index,
+		decode:     decode,
 	}
 }
 
@@ -59,17 +63,23 @@ func (mr *MsgProcessRoutine) receiveRoutine() {
 				fmt.Println(err)
 			}
 
-			msg, err := consensus.DecodeMsg(msgpkt.Bytes)
-			if err != nil {
-				fmt.Println(err)
+			if mr.decode {
+				msg, err := consensus.DecodeMsg(msgpkt.Bytes)
+				if err != nil {
+					fmt.Println(err)
+				}
+
+				if err = msg.ValidateBasic(); err != nil {
+					fmt.Println(err)
+				}
+
+				//wal.Write(msg)
+				mr.writeWalFn(msg)
+			} else {
+				// compute hash for msg bytes
+				ethcrypto.Keccak256Hash(msgpkt.Bytes)
 			}
 
-			if err = msg.ValidateBasic(); err != nil {
-				fmt.Println(err)
-			}
-
-			//wal.Write(msg)
-			mr.writeWalFn(msg)
 			count++
 			if count == mr.msgNum {
 				mr.finishedFn()
@@ -93,16 +103,18 @@ type MsgProcessMgr struct {
 	newStepBytes   []byte
 	blockpartBytes []byte
 	finished       int
+	decode         bool
 }
 
-func newMsgProcessMgr(count int) *MsgProcessMgr {
+func newMsgProcessMgr(count int, decode bool) *MsgProcessMgr {
 	m := &MsgProcessMgr{
-		walCh: make(chan consensus.Message, 1000000),
-		end:   make(chan int8),
+		walCh:  make(chan consensus.Message, 1000000),
+		end:    make(chan int8),
+		decode: decode,
 	}
 	m.routineList = make([]*MsgProcessRoutine, 0, count)
 	for i := 0; i < count; i++ {
-		r := newMsgProcessRoutine(i, m.newMsgToWal, m.routineFinished)
+		r := newMsgProcessRoutine(i, decode, m.newMsgToWal, m.routineFinished)
 		m.routineList = append(m.routineList, r)
 	}
 
@@ -136,17 +148,20 @@ func (mgr *MsgProcessMgr) start() {
 	mgr.done = make(chan int8)
 	mgr.finished = 0
 
-	mgr.sendMsgBytes(mgr.newStepBytes, 20*200)
-	mgr.sendMsgBytes(mgr.blockpartBytes, 13*200)
-	mgr.sendMsgBytes(mgr.prevoteBytes, 20*200)
-	mgr.sendMsgBytes(mgr.hasVoteBytes, 20*200)
-	mgr.sendMsgBytes(mgr.precommitBytes, 20*200)
-	mgr.sendMsgBytes(mgr.hasVoteBytes, 20*200)
-	go mgr.writeWalRoutine()
+	mgr.sendMsgBytes(mgr.newStepBytes, 20*10)
+	mgr.sendMsgBytes(mgr.blockpartBytes, 13*10)
+	mgr.sendMsgBytes(mgr.prevoteBytes, 20*10)
+	mgr.sendMsgBytes(mgr.hasVoteBytes, 20*10)
+	mgr.sendMsgBytes(mgr.precommitBytes, 20*10)
+	mgr.sendMsgBytes(mgr.hasVoteBytes, 20*10)
+
+	//if mgr.decode {
+		go mgr.writeWalRoutine()
+	//}
 
 	for i := 0; i < len(mgr.routineList); i++ {
 		r := mgr.routineList[i]
-		r.start(113 * 200)
+		r.start(113 * 10)
 	}
 }
 
@@ -193,23 +208,10 @@ func (mgr *MsgProcessMgr) routineFinished() {
 }
 
 func TestConsensusMsgProcessOnce(t *testing.T) {
-	mgr := newMsgProcessMgr(1)
-	start := time.Now()
-	//for i := 0; i < b.N; i++ {
-	mgr.start()
-	<-mgr.end
-	mgr.endWork()
-	//}
-	//avgDur := time.Since(start).Nanoseconds()/int64(b.N)
-	//fmt.Println(avgDur)
-	fmt.Println(time.Since(start).Nanoseconds())
-}
-
-func TestConsensusMsgProcess5(t *testing.T) {
 	goroutinesList := [5]int{1, 5, 10, 15, 20}
 	for i := 0; i < 5; i++ {
 		fmt.Print(goroutinesList[i], " : ")
-		mgr := newMsgProcessMgr(goroutinesList[i])
+		mgr := newMsgProcessMgr(i, false)
 		mgr.start()
 		<-mgr.end
 		mgr.endWork()
@@ -217,8 +219,23 @@ func TestConsensusMsgProcess5(t *testing.T) {
 	}
 }
 
+func TestConsensusMsgProcess5(t *testing.T) {
+	boolList := [2]bool{true, false}
+	goroutinesList := [5]int{1, 5, 10, 15, 20}
+	for j := 0; j < len(boolList); j++ {
+		for i := 0; i < 5; i++ {
+			fmt.Print(i, "-", j, " : ")
+			mgr := newMsgProcessMgr(goroutinesList[i], boolList[j])
+			mgr.start()
+			<-mgr.end
+			mgr.endWork()
+			fmt.Println()
+		}
+	}
+}
+
 func BenchmarkConsensusMsgProcessOnce(b *testing.B) {
-	mgr := newMsgProcessMgr(1)
+	mgr := newMsgProcessMgr(1, false)
 	b.ResetTimer()
 	start := time.Now()
 	//for i := 0; i < b.N; i++ {
@@ -232,7 +249,7 @@ func BenchmarkConsensusMsgProcessOnce(b *testing.B) {
 }
 
 func BenchmarkConsensusMsgProcess5(b *testing.B) {
-	mgr := newMsgProcessMgr(5)
+	mgr := newMsgProcessMgr(5, true)
 	b.ResetTimer()
 	start := time.Now()
 	//for i := 0; i < b.N; i++ {
