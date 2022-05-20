@@ -66,6 +66,14 @@ ifeq ($(WITH_ROCKSDB),true)
   ldflags += -X github.com/okex/exchain/libs/cosmos-sdk/types.DBBackend=rocksdb
 endif
 
+ifeq ($(OKCMALLOC),tcmalloc)
+  ldflags += -extldflags "-ltcmalloc_minimal"
+endif
+
+ifeq ($(OKCMALLOC),jemalloc)
+  ldflags += -extldflags "-ljemalloc"
+endif
+
 BUILD_FLAGS := -ldflags '$(ldflags)'
 
 ifeq ($(DEBUG),true)
@@ -183,3 +191,11 @@ rocksdb:
 .PHONY: rocksdb
 
 .PHONY: build
+
+tcmalloc:
+	@echo "Installing tcmalloc..."
+	@bash ./libs/malloc/tcinstall.sh
+
+jemalloc:
+	@echo "Installing jemalloc..."
+	@bash ./libs/malloc/jeinstall.sh
