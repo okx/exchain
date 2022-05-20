@@ -12,13 +12,6 @@ import (
 
 // BeginBlock implements the Application interface
 func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
-	if gcInterval := appconfig.GetOecConfig().GetGcInterval(); gcInterval > 0 {
-		if req.Header.Height%int64(gcInterval) == 0 {
-			app.Logger().Info("begin gc for debug", "height", req.Header.Height)
-			runtime.GC()
-			app.Logger().Info("end gc for debug", "height", req.Header.Height)
-		}
-	}
 	trace.OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
 	app.EvmKeeper.Watcher.DelayEraseKey()
 	return app.BaseApp.BeginBlock(req)
@@ -72,7 +65,13 @@ func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEn
 
 // Commit implements the Application interface
 func (app *OKExChainApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
-
+	if gcInterval := appconfig.GetOecConfig().GetGcInterval(); gcInterval > 0 {
+		if (app.BaseApp.LastBlockHeight()+1)%int64(gcInterval) == 0 {
+			app.Logger().Info("begin gc for debug", "height", app.BaseApp.LastBlockHeight()+1)
+			runtime.GC()
+			app.Logger().Info("end gc for debug", "height", app.BaseApp.LastBlockHeight()+1)
+		}
+	}
 	//defer trace.GetTraceSummary().Dump()
 	defer trace.OnCommitDone()
 
