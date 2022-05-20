@@ -278,7 +278,11 @@ func TestTxMessageAmino(t *testing.T) {
 	tpLen, err := cdc.GetTypePrefix(TxMessage{}, typePrefix)
 	require.NoError(t, err)
 	typePrefix = typePrefix[:tpLen]
-	reactor := Reactor{}
+	reactor := Reactor{
+		config: &cfg.MempoolConfig{
+			MaxTxBytes: 1024 * 1024,
+		},
+	}
 
 	for _, tx := range testcases {
 		var m Message
@@ -303,6 +307,10 @@ func TestTxMessageAmino(t *testing.T) {
 		require.NoError(t, err)
 		var actualValue Message
 		actualValue, err = cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(expectBz, &actualValue)
+		require.Equal(t, expectValue, actualValue)
+
+		actualValue, err = reactor.decodeMsg(expectBz)
+		require.NoError(t, err)
 		require.Equal(t, expectValue, actualValue)
 	}
 
