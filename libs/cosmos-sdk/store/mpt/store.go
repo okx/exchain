@@ -30,7 +30,7 @@ const (
 )
 
 var (
-	TrieAccStoreCache uint = 2048 // MB
+	TrieAccStoreCache uint = 32 // MB
 )
 
 var cdc = codec.New()

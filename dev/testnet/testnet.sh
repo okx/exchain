@@ -159,9 +159,10 @@ run() {
     --upload-delta=false \
     --enable-gid \
     --consensus.timeout_commit 6000ms \
-    --block-part-size 64 \
-    --block-compress-type 1 \
-    --block-compress-flag 1 \
+    --enable-blockpart-ack=false \
+    --block-part-size 16 \
+    --block-compress-type 0 \
+    --block-compress-flag 0 \
     --block-compress-threshold 512 \
     --append-pid=true \
     ${LOG_SERVER} \
