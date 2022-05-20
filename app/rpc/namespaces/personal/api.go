@@ -12,7 +12,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/mintkey"
 
@@ -49,10 +48,6 @@ func NewAPI(ethAPI *eth.PublicEthereumAPI, log log.Logger) *PrivateAccountAPI {
 	err := api.ethAPI.GetKeyringInfo()
 	if err != nil {
 		return api
-	}
-	backend := viper.GetString(flags.FlagKeyringBackend)
-	if backend == keys.BackendFile {
-		api.isFileKeyringBackend = true
 	}
 	api.keyInfos, err = api.ethAPI.ClientCtx().Keybase.List()
 	if err != nil {
