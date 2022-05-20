@@ -30,11 +30,10 @@ import (
 
 // PrivateAccountAPI is the personal_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PrivateAccountAPI struct {
-	ethAPI               *eth.PublicEthereumAPI
-	logger               log.Logger
-	keyInfos             []keys.Info // all keys, both locked and unlocked. unlocked keys are stored in ethAPI.keys
-	isExportKeystore     bool
-	isFileKeyringBackend bool
+	ethAPI           *eth.PublicEthereumAPI
+	logger           log.Logger
+	keyInfos         []keys.Info // all keys, both locked and unlocked. unlocked keys are stored in ethAPI.keys
+	isExportKeystore bool
 }
 
 // NewAPI creates an instance of the public Personal Eth API.
@@ -63,10 +62,6 @@ func NewAPI(ethAPI *eth.PublicEthereumAPI, log log.Logger) *PrivateAccountAPI {
 // NOTE: The key will be both armored and encrypted using the same passphrase.
 func (api *PrivateAccountAPI) ImportRawKey(privkey, password string) (common.Address, error) {
 	api.logger.Debug("personal_importRawKey")
-
-	if api.isFileKeyringBackend {
-		return common.Address{}, fmt.Errorf("personal_newAccount is unsupported in file keyring-backend mode")
-	}
 
 	priv, err := crypto.HexToECDSA(privkey)
 	if err != nil {
@@ -143,10 +138,6 @@ func (api *PrivateAccountAPI) LockAccount(address common.Address) bool {
 // NewAccount will create a new account and returns the address for the new account.
 func (api *PrivateAccountAPI) NewAccount(password string) (common.Address, error) {
 	api.logger.Debug("personal_newAccount")
-
-	if api.isFileKeyringBackend {
-		return common.Address{}, fmt.Errorf("personal_newAccount is unsupported in file keyring-backend mode")
-	}
 
 	name := "key_" + time.Now().UTC().Format(time.RFC3339) + uuid.New().String()
 	info, _, err := api.ethAPI.ClientCtx().Keybase.CreateMnemonic(name, keys.English, password, hd.EthSecp256k1, "")
