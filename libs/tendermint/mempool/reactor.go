@@ -348,7 +348,6 @@ func RegisterMessages(cdc *amino.Codec) {
 	})
 }
 
-// decodeMsg decode bz to a Message, decodeMsg take the ownership of bz, and bz should not be used after decodeMsg.
 func (memR *Reactor) decodeMsg(bz []byte) (msg Message, err error) {
 	maxMsgSize := calcMaxMsgSize(memR.config.MaxTxBytes)
 	if l := len(bz); l > maxMsgSize {
@@ -358,9 +357,7 @@ func (memR *Reactor) decodeMsg(bz []byte) (msg Message, err error) {
 	tp := getTxMessageAminoTypePrefix()
 	if len(bz) >= len(tp) && bytes.Equal(bz[:len(tp)], tp) {
 		txmsg := TxMessage{}
-		// we reuse the bz variable to avoid an extra allocation,
-		// raw bz should not be modified
-		err := txmsg.unmarshalFromAmino(cdc, bz[len(tp):])
+		err := txmsg.UnmarshalFromAmino(cdc, bz[len(tp):])
 		if err == nil {
 			return &txmsg, nil
 		}
@@ -455,37 +452,6 @@ func (m *TxMessage) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	if dataLen > 0 {
 		m.Tx = make([]byte, dataLen)
 		copy(m.Tx, data)
-	}
-
-	return nil
-}
-
-// unmarshalFromAmino unmarshals TxMessage from raw amino bytes,
-// the different between UnmarshalFromAmino and unmarshalFromAmino is unmarshalFromAmino takes ownership of data,
-// so we can unmarshal faster.
-func (m *TxMessage) unmarshalFromAmino(_ *amino.Codec, data []byte) error {
-	if len(data) == 0 {
-		return nil
-	}
-
-	if data[0] != 1<<3|byte(amino.Typ3_ByteLength) {
-		return fmt.Errorf("error pb type")
-	}
-
-	data = data[1:]
-	dataLen, n, err := amino.DecodeUvarint(data)
-	if err != nil {
-		return err
-	}
-	data = data[n:]
-	if len(data) != int(dataLen) {
-		return fmt.Errorf("invalid datalen")
-	}
-
-	m.Tx = nil
-	if dataLen > 0 {
-		m.Tx = data
-		// copy(m.Tx, data)
 	}
 
 	return nil

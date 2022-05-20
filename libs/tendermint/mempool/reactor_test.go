@@ -325,9 +325,6 @@ func TestTxMessageAmino(t *testing.T) {
 		actualValue, err = cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(bz, &actualValue)
 		require.NoError(t, err)
 		require.Equal(t, expectValue, actualValue)
-		actualValue, err = reactor.decodeMsg(bz)
-		require.NoError(t, err)
-		require.Equal(t, expectValue, actualValue)
 	}
 }
 
