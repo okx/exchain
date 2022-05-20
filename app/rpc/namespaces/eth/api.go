@@ -30,6 +30,7 @@ import (
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils"
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
 	cmserver "github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
@@ -131,10 +132,13 @@ func (api *PublicEthereumAPI) GetKeyringInfo() error {
 	if api.clientCtx.Keybase != nil {
 		return nil
 	}
-
+	backendType := viper.GetString(flags.FlagKeyringBackend)
+	if backendType == keys.BackendFile {
+		backendType = keys.BackendFileForRPC
+	}
 	keybase, err := keys.NewKeyring(
 		sdk.KeyringServiceName(),
-		keys.BackendTest,
+		backendType,
 		viper.GetString(cmserver.FlagUlockKeyHome),
 		api.clientCtx.Input,
 		hd.EthSecp256k1Options()...,
