@@ -8,7 +8,6 @@ import (
 
 	"github.com/okex/exchain/libs/system/trace"
 
-	"github.com/VictoriaMetrics/fastcache"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
@@ -49,7 +48,6 @@ type CommitStateDBParams struct {
 	DB         ethstate.Database
 	Trie       ethstate.Trie
 	RootHash   ethcmn.Hash
-	StateCache *fastcache.Cache
 }
 
 type Watcher interface {
@@ -78,7 +76,6 @@ type CacheCode struct {
 type CommitStateDB struct {
 	db           ethstate.Database
 	trie         ethstate.Trie // only storage addr -> storageMptRoot in this mpt tree
-	StateCache   *fastcache.Cache
 	prefetcher   *mpt.TriePrefetcher
 	originalRoot ethcmn.Hash
 
@@ -190,7 +187,6 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 		codeCache:           make(map[ethcmn.Address]CacheCode, 0),
 		dbAdapter:           csdbParams.Ada,
 		updatedAccount:      make(map[ethcmn.Address]struct{}),
-		StateCache:          csdbParams.StateCache,
 	}
 
 	return csdb
@@ -198,7 +194,6 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 
 func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *CommitStateDB {
 	csdb := NewCommitStateDB(csdbParams).WithContext(ctx)
-	csdb.StateCache = fastcache.New(1024 * 1024)
 	return csdb
 }
 
