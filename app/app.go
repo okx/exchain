@@ -4,7 +4,6 @@ import (
 	"io"
 	"math/big"
 	"os"
-	"runtime/debug"
 	"sync"
 
 	"github.com/okex/exchain/app/ante"
@@ -748,10 +747,6 @@ func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 	// set the dynamic config
 	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 
-	// close gc for debug
-	if appconfig.GetOecConfig().GetGcInterval() > 0 {
-		debug.SetGCPercent(-1)
-	}
 	return nil
 }
 

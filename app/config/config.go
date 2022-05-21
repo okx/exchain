@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
@@ -677,7 +678,14 @@ func (c *OecConfig) GetGcInterval() int {
 }
 
 func (c *OecConfig) SetGcInterval(value int) {
+	// close gc for debug
+	if value > 0 {
+		debug.SetGCPercent(-1)
+	} else {
+		debug.SetGCPercent(100)
+	}
 	c.gcInterval = value
+
 }
 func (c *OecConfig) GetEnableHasBlockPartMsg() bool {
 	return c.enableHasBlockPartMsg
