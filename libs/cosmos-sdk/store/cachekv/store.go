@@ -239,8 +239,8 @@ func (store *Store) clearCache() {
 		delete(store.unsortedCache, key)
 	}
 
-	//store.sortedCache.Init()
-	store.sortedCache = kv.NewList()
+	store.sortedCache.Init()
+	//store.sortedCache = kv.NewList()
 }
 
 //----------------------------------------
