@@ -7,23 +7,21 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/types"
 )
 
+// BankKeeperAdapter is used in wasm module
 type BankKeeperAdapter struct {
-	bankKeeper keeper.Keeper
+	keeper.Keeper
 }
 
 func NewBankKeeperAdapter(bankKeeper keeper.Keeper) *BankKeeperAdapter {
-	return &BankKeeperAdapter{bankKeeper: bankKeeper}
-}
-func (adapter BankKeeperAdapter) SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error {
-	return adapter.bankKeeper.SendCoins(ctx, fromAddr, toAddr, amt)
+	return &BankKeeperAdapter{Keeper: bankKeeper}
 }
 
 func (adapter BankKeeperAdapter) BlockedAddr(addr sdk.AccAddress) bool {
-	return adapter.bankKeeper.BlacklistedAddr(addr)
+	return adapter.Keeper.BlacklistedAddr(addr)
 }
 
 func (adapter BankKeeperAdapter) IsSendEnabledCoins(ctx sdk.Context, coins ...sdk.Coin) error {
-	if !adapter.bankKeeper.GetSendEnabled(ctx) {
+	if !adapter.Keeper.GetSendEnabled(ctx) {
 		return sdkerrors.Wrapf(types.ErrSendDisabled, "transfers are currently disabled")
 	}
 	// todo weather allow different form okt coin send enable
@@ -31,17 +29,13 @@ func (adapter BankKeeperAdapter) IsSendEnabledCoins(ctx sdk.Context, coins ...sd
 }
 
 func (adapter BankKeeperAdapter) GetAllBalances(ctx sdk.Context, addr sdk.AccAddress) sdk.Coins {
-	return adapter.bankKeeper.GetCoins(ctx, addr)
+	return adapter.Keeper.GetCoins(ctx, addr)
 }
 
 func (adapter BankKeeperAdapter) GetBalance(ctx sdk.Context, addr sdk.AccAddress, denom string) sdk.Coin {
-	coins := adapter.bankKeeper.GetCoins(ctx, addr)
+	coins := adapter.Keeper.GetCoins(ctx, addr)
 	return sdk.Coin{
 		Amount: coins.AmountOf(denom),
 		Denom:  denom,
 	}
-}
-
-func (adapter BankKeeperAdapter) GetSendEnabled(ctx sdk.Context) bool {
-	return adapter.bankKeeper.GetSendEnabled(ctx)
 }
