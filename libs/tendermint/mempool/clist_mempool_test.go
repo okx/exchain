@@ -900,3 +900,31 @@ func TestAddAndSortTxConcurrency(t *testing.T) {
 
 	wait.Wait()
 }
+
+func TestTxID(t *testing.T) {
+	var bytes = make([]byte, 256)
+	for i := 0; i < 10; i++ {
+		_, err := rand.Read(bytes)
+		require.NoError(t, err)
+		require.Equal(t, amino.HexEncodeToStringUpper(bytes), fmt.Sprintf("%X", bytes))
+	}
+}
+
+func BenchmarkTxID(b *testing.B) {
+	var bytes = make([]byte, 256)
+	_, _ = rand.Read(bytes)
+	var res string
+	b.Run("fmt", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			res = fmt.Sprintf("%X", bytes)
+		}
+	})
+	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			res = amino.HexEncodeToStringUpper(bytes)
+		}
+	})
+	_ = res
+}

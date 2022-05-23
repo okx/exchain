@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/tendermint/go-amino"
 	"math/big"
 	"sort"
 	"sync"
@@ -1104,7 +1105,7 @@ func txKey(tx types.Tx) (retHash [sha256.Size]byte) {
 
 // txID is the hex encoded hash of the bytes as a types.Tx.
 func txID(tx []byte, height int64) string {
-	return fmt.Sprintf("%X", types.Tx(tx).Hash(height))
+	return amino.HexEncodeToStringUpper(types.Tx(tx).Hash(height))
 }
 
 //--------------------------------------------------------------------------------
