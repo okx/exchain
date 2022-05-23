@@ -233,6 +233,24 @@ func (so *stateObject) CodeSize(db ethstate.Database) int {
 	}
 }
 
+// SetStorage replaces the entire state storage with the given one.
+//
+// After this function is called, all original state will be ignored and state
+// lookup only happens in the fake state storage.
+//
+// Note this function should only be used for debugging purpose.
+func (so *stateObject) SetStorage(storage map[ethcmn.Hash]ethcmn.Hash) {
+	// Allocate fake storage if it's nil.
+	if so.fakeStorage == nil {
+		so.fakeStorage = make(ethstate.Storage)
+	}
+	for key, value := range storage {
+		so.fakeStorage[key] = value
+	}
+	// Don't bother journal since this function should only be used for
+	// debugging and the `fake` storage won't be committed to database.
+}
+
 func (so *stateObject) UpdateAccInfo() error {
 	accProto := so.stateDB.accountKeeper.GetAccount(so.stateDB.ctx, so.account.Address)
 	if accProto != nil {
