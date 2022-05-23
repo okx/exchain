@@ -1,8 +1,11 @@
 package testcases
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	mempl "github.com/okex/exchain/libs/tendermint/mempool"
+	"github.com/okex/exchain/libs/tendermint/types"
 	"os"
 	"path/filepath"
 	"sync"
@@ -17,6 +20,7 @@ import (
 )
 
 var cdc = amino.NewCodec()
+var mtx sync.Mutex
 
 type WriteWalFn func(msg consensus.Message)
 type RoutineFinishedFn func()
@@ -30,16 +34,24 @@ type MsgProcessRoutine struct {
 	msgNum     int
 	index      int
 	decode     bool
+
+	reactor *mempl.Reactor
 }
 
 func newMsgProcessRoutine(index int, decode bool, wwFn WriteWalFn, fFn RoutineFinishedFn) *MsgProcessRoutine {
-	return &MsgProcessRoutine{
+	m := &MsgProcessRoutine{
 		msgCh:      make(chan []byte, 1000000),
 		writeWalFn: wwFn,
 		finishedFn: fFn,
 		index:      index,
 		decode:     decode,
 	}
+
+	//config := cfg.TestConfig()
+	//const N = 4
+	//m.reactor = mempl.NewReactor(nil, nil)
+
+	return m
 }
 
 func (mr *MsgProcessRoutine) start(count int) {
@@ -58,23 +70,41 @@ func (mr *MsgProcessRoutine) receiveRoutine() {
 		//	return
 		case msgBytes := <-mr.msgCh:
 			msgpkt := conn.PacketMsg{}
-			err := msgpkt.UnmarshalFromAmino(cdc, msgBytes[4:])
-			if err != nil {
-				fmt.Println(err)
-			}
+			//err := msgpkt.UnmarshalFromAmino(cdc, msgBytes[4:])
+			//if err != nil {
+			//	fmt.Println(err)
+			//}
 
 			if mr.decode {
-				msg, err := consensus.DecodeMsg(msgpkt.Bytes)
-				if err != nil {
-					fmt.Println(err)
-				}
+				switch msgpkt.ChannelID {
+				case consensus.StateChannel:
+					msg, err := consensus.DecodeMsg(msgpkt.Bytes)
+					if err != nil {
+						fmt.Println(err)
+					}
 
-				if err = msg.ValidateBasic(); err != nil {
-					fmt.Println(err)
-				}
+					if err = msg.ValidateBasic(); err != nil {
+						fmt.Println(err)
+					}
 
-				//wal.Write(msg)
-				mr.writeWalFn(msg)
+					//wal.Write(msg)
+					mr.writeWalFn(msg)
+
+				//case mempl.MempoolChannel:
+				default:
+					msg, err := mempl.DecodeMsg(msgBytes)
+					if err != nil {
+						fmt.Println(err)
+					}
+					switch msg := msg.(type) {
+					case *mempl.TxMessage:
+						tx := msg.Tx
+						var retHash [sha256.Size]byte
+						//mtx.Lock()
+						copy(retHash[:], tx.Hash(types.GetVenusHeight())[:sha256.Size])
+						//mtx.Unlock()
+					}
+				}
 			} else {
 				// compute hash for msg bytes
 				ethcrypto.Keccak256Hash(msgpkt.Bytes)
@@ -102,6 +132,7 @@ type MsgProcessMgr struct {
 	hasVoteBytes   []byte
 	newStepBytes   []byte
 	blockpartBytes []byte
+	txBytes []byte
 	finished       int
 	decode         bool
 }
@@ -141,6 +172,9 @@ func newMsgProcessMgr(count int, decode bool) *MsgProcessMgr {
 	blockpart := "b05b4f2c082110011afe0129e9ae8208031af501080112409aa51051d22a35521433c9c3373cef86e76dbaf3feb9fbeffe7fb6cfbecff30c20d0c3001a40a171e8d7de63d554b23994279243601006756afca80b8195aca91aae01080c10011a2028fcd60d68180f43dbf4fd7e4fb1b5005a500d15f598b1a05af3170adae9cf942220b7cf8d5a83aea7cc2d410b5358182e053010d232620c2269186714fc42613b012220c82dca7f5d7d21f14faef6faaa10e529ad09cd79a1edc5eb03a83f4dd9c3a08f222030ad77703cb8cd0616479f1b15a59a5a1870793de495b5a7fd5524733561c3d92220f41c34b3692a91b403273f4a29d54b68ea0da37c849c571cbee90d0d049a56c6"
 	m.blockpartBytes, _ = hex.DecodeString(blockpart)
 
+	tx := "2b06579d0aac01f8aa038405f5e100832dc6c0941033796b018b2bf0fc9cb88c0793b2f275edb62480b844a9059cbb00000000000000000000000083d83497431c2d3feab296a9fba4e5fadd2f7ed000000000000000000000000000000000000000000000152d02c7e14af680000081a9a0c5d31169294a8c1298fa4a178072b479666dc38fb994df02710ca165f91b6d14a047752e35109c52ac61496bf44ae545a2d5896a2e4bc59b10d9271748cc15f730"
+	m.txBytes, _ = hex.DecodeString(tx)
+
 	return m
 }
 
@@ -148,12 +182,13 @@ func (mgr *MsgProcessMgr) start() {
 	mgr.done = make(chan int8)
 	mgr.finished = 0
 
-	mgr.sendMsgBytes(mgr.newStepBytes, 20*10)
-	mgr.sendMsgBytes(mgr.blockpartBytes, 13*10)
-	mgr.sendMsgBytes(mgr.prevoteBytes, 20*10)
-	mgr.sendMsgBytes(mgr.hasVoteBytes, 20*10)
-	mgr.sendMsgBytes(mgr.precommitBytes, 20*10)
-	mgr.sendMsgBytes(mgr.hasVoteBytes, 20*10)
+	//mgr.sendMsgBytes(mgr.newStepBytes, 20*100)
+	//mgr.sendMsgBytes(mgr.blockpartBytes, 13*100)
+	//mgr.sendMsgBytes(mgr.prevoteBytes, 20*100)
+	//mgr.sendMsgBytes(mgr.hasVoteBytes, 20*100)
+	//mgr.sendMsgBytes(mgr.precommitBytes, 20*100)
+	//mgr.sendMsgBytes(mgr.hasVoteBytes, 20*100)
+	mgr.sendMsgBytes(mgr.txBytes, 200*100)
 
 	//if mgr.decode {
 		go mgr.writeWalRoutine()
@@ -161,7 +196,8 @@ func (mgr *MsgProcessMgr) start() {
 
 	for i := 0; i < len(mgr.routineList); i++ {
 		r := mgr.routineList[i]
-		r.start(113 * 10)
+		//r.start(113 * 100)
+		r.start(200 * 100)
 	}
 }
 
@@ -224,7 +260,7 @@ func TestConsensusMsgProcess5(t *testing.T) {
 	goroutinesList := [5]int{1, 5, 10, 15, 20}
 	for j := 0; j < len(boolList); j++ {
 		for i := 0; i < 5; i++ {
-			fmt.Print(i, "-", j, " : ")
+			fmt.Print(goroutinesList[i], "-", j, " : ")
 			mgr := newMsgProcessMgr(goroutinesList[i], boolList[j])
 			mgr.start()
 			<-mgr.end
@@ -306,7 +342,7 @@ func BenchmarkConsensusMsgProcess5(b *testing.B) {
 //					b.Fatal(err)
 //				}
 //
-//				msg, err := consensus.DecodeMsg(msgpkt.Bytes)
+//				msg, err := consensus.decodeMsg(msgpkt.Bytes)
 //				if err != nil {
 //					b.Fatal(err)
 //				}
@@ -388,7 +424,7 @@ func BenchmarkConsensusMsgProcess5(b *testing.B) {
 //					b.Fatal(err)
 //				}
 //
-//				msg, err := consensus.DecodeMsg(msgpkt.Bytes)
+//				msg, err := consensus.decodeMsg(msgpkt.Bytes)
 //				if err != nil {
 //					b.Fatal(err)
 //				}
@@ -452,7 +488,7 @@ func BenchmarkConsensusMsgProcess5(b *testing.B) {
 //					b.Fatal(err)
 //				}
 //
-//				msg, err := consensus.DecodeMsg(msgpkt.Bytes)
+//				msg, err := consensus.decodeMsg(msgpkt.Bytes)
 //				if err != nil {
 //					b.Fatal(err)
 //				}
@@ -483,7 +519,7 @@ func BenchmarkConsensusMsgProcess5(b *testing.B) {
 //		return err
 //	}
 //
-//	msg, err := consensus.DecodeMsg(msgpkt.Bytes)
+//	msg, err := consensus.decodeMsg(msgpkt.Bytes)
 //	if err != nil {
 //		return err
 //	}
