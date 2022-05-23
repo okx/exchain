@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -788,12 +789,21 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 	return common.HexToHash(res.TxHash), nil
 }
 
-func (api *PublicEthereumAPI) buildKey(args rpctypes.CallArgs) common.Hash {
-	latest, e := api.wrappedBackend.GetLatestBlockNumber()
-	if e != nil {
-		return common.Hash{}
+func (api *PublicEthereumAPI) buildKey(args rpctypes.CallArgs, overrides *evmtypes.StateOverrides) (common.Hash, error) {
+	latest, err := api.wrappedBackend.GetLatestBlockNumber()
+	if err != nil {
+		return common.Hash{}, err
 	}
-	return sha256.Sum256([]byte(args.String() + strconv.Itoa(int(latest))))
+	var overridesStr string
+	if overrides == nil {
+		overridesStr = ""
+	} else {
+		overridesStr, err = overrides.ToString()
+		if err != nil {
+			return common.Hash{}, err
+		}
+	}
+	return sha256.Sum256([]byte(args.String() + strconv.Itoa(int(latest)) + overridesStr)), nil
 }
 
 func (api *PublicEthereumAPI) getFromCallCache(key common.Hash) ([]byte, bool) {
@@ -822,19 +832,28 @@ func (api *PublicEthereumAPI) addCallCache(key common.Hash, data []byte) {
 }
 
 // Call performs a raw contract call.
-func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNrOrHash rpctypes.BlockNumberOrHash, _ *map[common.Address]rpctypes.Account) (hexutil.Bytes, error) {
+func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNrOrHash rpctypes.BlockNumberOrHash, overrides *evmtypes.StateOverrides) (hexutil.Bytes, error) {
 	monitor := monitor.GetMonitor("eth_call", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("args", args, "block number", blockNrOrHash)
-	key := api.buildKey(args)
-	cacheData, ok := api.getFromCallCache(key)
-	if ok {
-		return cacheData, nil
+
+	if overrides != nil {
+		if err := overrides.Check(); err != nil {
+			return nil, err
+		}
 	}
+
+	key, buildKeyErr := api.buildKey(args, overrides)
+	if buildKeyErr == nil {
+		if cacheData, ok := api.getFromCallCache(key); ok {
+			return cacheData, nil
+		}
+	}
+
 	blockNr, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
 	if err != nil {
 		return nil, err
 	}
-	simRes, err := api.doCall(args, blockNr, big.NewInt(ethermint.DefaultRPCGasLimit), false)
+	simRes, err := api.doCall(args, blockNr, big.NewInt(ethermint.DefaultRPCGasLimit), false, overrides)
 	if err != nil {
 		return []byte{}, TransformDataError(err, "eth_call")
 	}
@@ -843,12 +862,14 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNrOrHash rpctype
 	if err != nil {
 		return []byte{}, TransformDataError(err, "eth_call")
 	}
-	api.addCallCache(key, data.Ret)
+	if buildKeyErr == nil {
+		api.addCallCache(key, data.Ret)
+	}
 	return data.Ret, nil
 }
 
 // MultiCall performs multiple raw contract call.
-func (api *PublicEthereumAPI) MultiCall(args []rpctypes.CallArgs, blockNr rpctypes.BlockNumber, _ *map[common.Address]rpctypes.Account) ([]hexutil.Bytes, error) {
+func (api *PublicEthereumAPI) MultiCall(args []rpctypes.CallArgs, blockNr rpctypes.BlockNumber, overrides []*evmtypes.StateOverrides) ([]hexutil.Bytes, error) {
 	if !viper.GetBool(FlagEnableMultiCall) {
 		return nil, errors.New("the method is not allowed")
 	}
@@ -871,9 +892,13 @@ func (api *PublicEthereumAPI) MultiCall(args []rpctypes.CallArgs, blockNr rpctyp
 // DoCall performs a simulated call operation through the evmtypes. It returns the
 // estimated gas used on the operation or an error if fails.
 func (api *PublicEthereumAPI) doCall(
-	args rpctypes.CallArgs, blockNum rpctypes.BlockNumber, globalGasCap *big.Int, isEstimate bool,
+	args rpctypes.CallArgs,
+	blockNum rpctypes.BlockNumber,
+	globalGasCap *big.Int,
+	isEstimate bool,
+	overrides *evmtypes.StateOverrides,
 ) (*sdk.SimulationResponse, error) {
-
+	var err error
 	clientCtx := api.clientCtx
 	// pass the given block height to the context if the height is not pending or latest
 	if !(blockNum == rpctypes.PendingBlockNumber || blockNum == rpctypes.LatestBlockNumber) {
@@ -923,11 +948,16 @@ func (api *PublicEthereumAPI) doCall(
 
 	// Create new call message
 	msg := evmtypes.NewMsgEthereumTx(nonce, args.To, value, gas, gasPrice, data)
-
+	var overridesBytes []byte = nil
+	if overrides != nil {
+		if overridesBytes, err = overrides.GetBytes(); err != nil {
+			return nil, fmt.Errorf("fail to encode overrides")
+		}
+	}
 	sim := api.evmFactory.BuildSimulator(api)
 	//only worked when fast-query has been enabled
 	if sim != nil {
-		return sim.DoCall(msg, addr.String())
+		return sim.DoCall(msg, addr.String(), overridesBytes)
 	}
 
 	//Generate tx to be used to simulate (signature isn't needed)
@@ -946,11 +976,18 @@ func (api *PublicEthereumAPI) doCall(
 	if err != nil {
 		return nil, err
 	}
-
+	simulateQueryData := sdk.QuerySimulateData{
+		TxBytes:        txBytes,
+		OverridesBytes: overridesBytes,
+	}
+	queryBytes, err := json.Marshal(simulateQueryData)
+	if err != nil {
+		return nil, fmt.Errorf("fail to encode querySimulateData")
+	}
 	// Transaction simulation through query. only pass from when eth_estimateGas.
 	// eth_call's from maybe nil
 	simulatePath := fmt.Sprintf("app/simulate/%s", addr.String())
-	res, _, err := clientCtx.QueryWithData(simulatePath, txBytes)
+	res, _, err := clientCtx.QueryWithData(simulatePath, queryBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -970,7 +1007,7 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 	monitor := monitor.GetMonitor("eth_estimateGas", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("args", args)
 
-	simResponse, err := api.doCall(args, 0, big.NewInt(ethermint.DefaultRPCGasLimit), true)
+	simResponse, err := api.doCall(args, 0, big.NewInt(ethermint.DefaultRPCGasLimit), true, nil)
 	if err != nil {
 		return 0, TransformDataError(err, "eth_estimateGas")
 	}

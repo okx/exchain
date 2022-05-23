@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/okex/exchain/libs/system/trace"
-	"github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
 	"strings"
+
+	"github.com/okex/exchain/libs/system/trace"
+	"github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -108,6 +109,19 @@ func (st *StateTransition) newEVM(
 	return vm.NewEVM(blockCtx, txCtx, csdb, config.EthereumConfig(st.ChainID), vmConfig)
 }
 
+func (st *StateTransition) applyOverrides(ctx sdk.Context, csdb *CommitStateDB) error {
+	overrideBytes := ctx.OverrideBytes()
+	if overrideBytes != nil {
+		var stateOverrides StateOverrides
+		err := json.Unmarshal(overrideBytes, &stateOverrides)
+		if err != nil {
+			return fmt.Errorf("failed to decode stateOverrides")
+		}
+		stateOverrides.Apply(csdb)
+	}
+	return nil
+}
+
 // TransitionDb will transition the state by applying the current transaction and
 // returning the evm execution result.
 // NOTE: State transition checks are run during AnteHandler execution.
@@ -162,6 +176,10 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		if !ctx.IsCheckTx() {
 			trace.StopTxLog(tag)
 		}
+	}
+
+	if err = st.applyOverrides(ctx, csdb); err != nil {
+		return
 	}
 
 	params := csdb.GetParams()

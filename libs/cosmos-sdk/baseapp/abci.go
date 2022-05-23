@@ -12,6 +12,7 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	"github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/iavl"
@@ -391,8 +392,12 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 	if len(path) >= 2 {
 		switch path[1] {
 		case "simulate":
-			txBytes := req.Data
-
+			queryBytes := req.Data
+			var queryData types.QuerySimulateData
+			if err := json.Unmarshal(queryBytes, &queryData); err != nil {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode querySimulateData"))
+			}
+			txBytes := queryData.TxBytes
 			tx, err := app.txDecoder(txBytes)
 			if err != nil {
 				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))
@@ -409,7 +414,7 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 				}
 			}
 
-			gInfo, res, err := app.Simulate(txBytes, tx, req.Height, from)
+			gInfo, res, err := app.Simulate(txBytes, tx, req.Height, queryData.OverridesBytes, from)
 
 			// if path contains mempool, it means to enable MaxGasUsedPerBlock
 			// return the actual gasUsed even though simulate tx failed
