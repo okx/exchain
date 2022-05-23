@@ -2,23 +2,19 @@ package cachekv
 
 import (
 	"bytes"
-	//"github.com/okex/exchain/libs/cosmos-sdk/types/kv"
 	"io"
-	"reflect"
 	"sort"
 	"sync"
-	"unsafe"
 
 	"github.com/okex/exchain/libs/iavl"
 
 	"github.com/tendermint/go-amino"
 
-	//tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
-	dbm "github.com/okex/exchain/libs/tm-db"
-
+	"github.com/okex/exchain/libs/cosmos-sdk/internal/conv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/tracekv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	kv "github.com/okex/exchain/libs/cosmos-sdk/types/kv"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 // If value is nil but deleted is false, it means the parent doesn't have the
@@ -33,10 +29,11 @@ type PreChangesHandler func(keys []string, setOrDel []byte)
 // Store wraps an in-memory cache around an underlying types.KVStore.
 type Store struct {
 	mtx           sync.Mutex
-	dirty         map[string]cValue
-	readList      map[string][]byte
+	dirtyCache    map[string]*cValue
+	readListCache map[string][]byte
+	deleted       map[string]struct{}
 	unsortedCache map[string]struct{}
-	sortedCache   *kv.List // always ascending sorted
+	sortedCache   *dbm.MemDB // always ascending sorted
 	parent        types.KVStore
 
 	preChangesHandler PreChangesHandler
@@ -46,10 +43,11 @@ var _ types.CacheKVStore = (*Store)(nil)
 
 func NewStore(parent types.KVStore) *Store {
 	return &Store{
-		dirty:         make(map[string]cValue),
-		readList:      make(map[string][]byte),
+		dirtyCache:    make(map[string]*cValue),
+		readListCache: make(map[string][]byte),
+		deleted:       make(map[string]struct{}),
 		unsortedCache: make(map[string]struct{}),
-		sortedCache:   kv.NewList(),
+		sortedCache:   dbm.NewMemDB(),
 		parent:        parent,
 	}
 }
@@ -72,9 +70,9 @@ func (store *Store) Get(key []byte) (value []byte) {
 
 	types.AssertValidKey(key)
 
-	cacheValue, ok := store.dirty[string(key)]
+	cacheValue, ok := store.dirtyCache[string(key)]
 	if !ok {
-		if c, ok := store.readList[string(key)]; ok {
+		if c, ok := store.readListCache[string(key)]; ok {
 			value = c
 		} else {
 			value = store.parent.Get(key)
@@ -95,13 +93,13 @@ func (store *Store) IteratorCache(isdirty bool, cb func(key string, value []byte
 	defer store.mtx.Unlock()
 
 	if isdirty {
-		for key, v := range store.dirty {
+		for key, v := range store.dirtyCache {
 			if !cb(key, v.value, true, v.deleted, sKey) {
 				return false
 			}
 		}
 	} else {
-		for key, v := range store.readList {
+		for key, v := range store.readListCache {
 			if !cb(key, v, false, false, sKey) {
 				return false
 			}
@@ -151,9 +149,9 @@ func (store *Store) Write() {
 
 	// We need a copy of all of the keys.
 	// Not the best, but probably not a bottleneck depending.
-	keys := make([]string, len(store.dirty))
+	keys := make([]string, len(store.dirtyCache))
 	index := 0
-	for key, _ := range store.dirty {
+	for key, _ := range store.dirtyCache {
 		keys[index] = key
 		index++
 
@@ -166,7 +164,7 @@ func (store *Store) Write() {
 	// TODO: Consider allowing usage of Batch, which would allow the write to
 	// at least happen atomically.
 	for _, key := range keys {
-		cacheValue := store.dirty[key]
+		cacheValue := store.dirtyCache[key]
 		switch {
 		case cacheValue.deleted:
 			store.parent.Delete([]byte(key))
@@ -189,7 +187,7 @@ func (store *Store) preWrite(keys []string) {
 	setOrDel := make([]byte, 0, len(keys))
 
 	for _, key := range keys {
-		cacheValue := store.dirty[key]
+		cacheValue := store.dirtyCache[key]
 		switch {
 		case cacheValue.deleted:
 			setOrDel = append(setOrDel, iavl.PreChangeOpDelete)
@@ -211,7 +209,7 @@ func (store *Store) writeToCacheKv(parent *Store) {
 
 	// TODO: Consider allowing usage of Batch, which would allow the write to
 	// at least happen atomically.
-	for key, cacheValue := range store.dirty {
+	for key, cacheValue := range store.dirtyCache {
 		switch {
 		case cacheValue.deleted:
 			parent.Delete(amino.StrToBytes(key))
@@ -228,19 +226,22 @@ func (store *Store) writeToCacheKv(parent *Store) {
 
 func (store *Store) clearCache() {
 	// https://github.com/golang/go/issues/20138
-	for key := range store.dirty {
-		delete(store.dirty, key)
+	for key := range store.dirtyCache {
+		delete(store.dirtyCache, key)
 	}
 
-	for Key := range store.readList {
-		delete(store.readList, Key)
+	for key := range store.readListCache {
+		delete(store.readListCache, key)
 	}
+	
+	for key := range store.deleted {
+		delete(store.deleted, key)
+	}
+	
 	for key := range store.unsortedCache {
 		delete(store.unsortedCache, key)
 	}
-
-	store.sortedCache.Init()
-	//store.sortedCache = kv.NewList()
+	store.sortedCache = dbm.NewMemDB()
 }
 
 //----------------------------------------
@@ -282,80 +283,179 @@ func (store *Store) iterator(start, end []byte, ascending bool) types.Iterator {
 	}
 
 	store.dirtyItems(start, end)
-	cache = newMemIterator(start, end, store.sortedCache, ascending)
+	cache = newMemIterator(start, end, store.sortedCache, store.deleted, ascending)
 
 	return newCacheMergeIterator(parent, cache, ascending)
 }
 
-// strToByte is meant to make a zero allocation conversion
-// from string -> []byte to speed up operations, it is not meant
-// to be used generally, but for a specific pattern to check for available
-// keys within a domain.
-func strToByte(s string) []byte {
-	var b []byte
-	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&b))
-	hdr.Cap = len(s)
-	hdr.Len = len(s)
-	hdr.Data = (*reflect.StringHeader)(unsafe.Pointer(&s)).Data
-	return b
+func findStartIndex(strL []string, startQ string) int {
+	// Modified binary search to find the very first element in >=startQ.
+	if len(strL) == 0 {
+		return -1
+	}
+
+	var left, right, mid int
+	right = len(strL) - 1
+	for left <= right {
+		mid = (left + right) >> 1
+		midStr := strL[mid]
+		if midStr == startQ {
+			// Handle condition where there might be multiple values equal to startQ.
+			// We are looking for the very first value < midStL, that i+1 will be the first
+			// element >= midStr.
+			for i := mid - 1; i >= 0; i-- {
+				if strL[i] != midStr {
+					return i + 1
+				}
+			}
+			return 0
+		}
+		if midStr < startQ {
+			left = mid + 1
+		} else { // midStrL > startQ
+			right = mid - 1
+		}
+	}
+	if left >= 0 && left < len(strL) && strL[left] >= startQ {
+		return left
+	}
+	return -1
 }
 
-// byteSliceToStr is meant to make a zero allocation conversion
-// from []byte -> string to speed up operations, it is not meant
-// to be used generally, but for a specific pattern to delete keys
-// from a map.
-func byteSliceToStr(b []byte) string {
-	hdr := (*reflect.StringHeader)(unsafe.Pointer(&b))
-	return *(*string)(unsafe.Pointer(hdr))
-}
+func findEndIndex(strL []string, endQ string) int {
+	if len(strL) == 0 {
+		return -1
+	}
 
-// Constructs a slice of dirty items, to use w/ memIterator.
-func (store *Store) dirtyItems(start, end []byte) {
-	unsorted := make([]*kv.Pair, 0)
-
-	n := len(store.unsortedCache)
-	for key := range store.unsortedCache {
-		if dbm.IsKeyInDomain(strToByte(key), start, end) {
-			cacheValue := store.dirty[key]
-			unsorted = append(unsorted, &kv.Pair{Key: []byte(key), Value: cacheValue.value})
+	// Modified binary search to find the very first element <endQ.
+	var left, right, mid int
+	right = len(strL) - 1
+	for left <= right {
+		mid = (left + right) >> 1
+		midStr := strL[mid]
+		if midStr == endQ {
+			// Handle condition where there might be multiple values equal to startQ.
+			// We are looking for the very first value < midStL, that i+1 will be the first
+			// element >= midStr.
+			for i := mid - 1; i >= 0; i-- {
+				if strL[i] < midStr {
+					return i + 1
+				}
+			}
+			return 0
+		}
+		if midStr < endQ {
+			left = mid + 1
+		} else { // midStrL > startQ
+			right = mid - 1
 		}
 	}
 
+	// Binary search failed, now let's find a value less than endQ.
+	for i := right; i >= 0; i-- {
+		if strL[i] < endQ {
+			return i
+		}
+	}
+
+	return -1
+}
+
+type sortState int
+
+const (
+	stateUnsorted sortState = iota
+	stateAlreadySorted
+)
+
+// Constructs a slice of dirtyCache items, to use w/ memIterator.
+func (store *Store) dirtyItems(start, end []byte) {
+	startStr, endStr := conv.UnsafeBytesToStr(start), conv.UnsafeBytesToStr(end)
+	if startStr > endStr {
+		// Nothing to do here.
+		return
+	}
+
+	n := len(store.unsortedCache)
+	unsorted := make([]*kv.Pair, 0)
+	// If the unsortedCache is too big, its costs too much to determine
+	// whats in the subset we are concerned about.
+	// If you are interleaving iterator calls with writes, this can easily become an
+	// O(N^2) overhead.
+	// Even without that, too many range checks eventually becomes more expensive
+	// than just not having the cache.
+	if n < 1024 {
+		for key := range store.unsortedCache {
+			if dbm.IsKeyInDomain(conv.UnsafeStrToBytes(key), start, end) {
+				cacheValue := store.dirtyCache[key]
+				unsorted = append(unsorted, &kv.Pair{Key: []byte(key), Value: cacheValue.value})
+			}
+		}
+		store.clearUnsortedCacheSubset(unsorted, stateUnsorted)
+		return
+	}
+
+	// Otherwise it is large so perform a modified binary search to find
+	// the target ranges for the keys that we should be looking for.
+	strL := make([]string, 0, n)
+	for key := range store.unsortedCache {
+		strL = append(strL, key)
+	}
+	sort.Strings(strL)
+
+	// Now find the values within the domain
+	//  [start, end)
+	startIndex := findStartIndex(strL, startStr)
+	endIndex := findEndIndex(strL, endStr)
+
+	if endIndex < 0 {
+		endIndex = len(strL) - 1
+	}
+	if startIndex < 0 {
+		startIndex = 0
+	}
+
+	kvL := make([]*kv.Pair, 0)
+	for i := startIndex; i <= endIndex; i++ {
+		key := strL[i]
+		cacheValue := store.dirtyCache[key]
+		kvL = append(kvL, &kv.Pair{Key: []byte(key), Value: cacheValue.value})
+	}
+
+	// kvL was already sorted so pass it in as is.
+	store.clearUnsortedCacheSubset(kvL, stateAlreadySorted)
+}
+
+func (store *Store) clearUnsortedCacheSubset(unsorted []*kv.Pair, sortState sortState) {
+	n := len(store.unsortedCache)
 	if len(unsorted) == n { // This pattern allows the Go compiler to emit the map clearing idiom for the entire map.
 		for key := range store.unsortedCache {
 			delete(store.unsortedCache, key)
 		}
 	} else { // Otherwise, normally delete the unsorted keys from the map.
 		for _, kv := range unsorted {
-			delete(store.unsortedCache, byteSliceToStr(kv.Key))
+			delete(store.unsortedCache, conv.UnsafeBytesToStr(kv.Key))
 		}
 	}
 
-	sort.Slice(unsorted, func(i, j int) bool {
-		return bytes.Compare(unsorted[i].Key, unsorted[j].Key) < 0
-	})
+	if sortState == stateUnsorted {
+		sort.Slice(unsorted, func(i, j int) bool {
+			return bytes.Compare(unsorted[i].Key, unsorted[j].Key) < 0
+		})
+	}
 
-	for e := store.sortedCache.Front(); e != nil && len(unsorted) != 0; {
-		uitem := unsorted[0]
-		sitem := e.Value
-		comp := bytes.Compare(uitem.Key, sitem.Key)
-		switch comp {
-		case -1:
-			unsorted = unsorted[1:]
-			store.sortedCache.InsertBefore(uitem, e)
-		case 1:
-			e = e.Next()
-		case 0:
-			unsorted = unsorted[1:]
-			e.Value = uitem
-			e = e.Next()
+	for _, item := range unsorted {
+		if item.Value == nil {
+			// deleted element, tracked by store.deleted
+			// setting arbitrary value
+			store.sortedCache.Set(item.Key, []byte{})
+			continue
+		}
+		err := store.sortedCache.Set(item.Key, item.Value)
+		if err != nil {
+			panic(err)
 		}
 	}
-
-	for _, kvp := range unsorted {
-		store.sortedCache.PushBack(kvp)
-	}
-
 }
 
 //----------------------------------------
@@ -363,13 +463,19 @@ func (store *Store) dirtyItems(start, end []byte) {
 
 // Only entrypoint to mutate store.cache.
 func (store *Store) setCacheValue(key, value []byte, deleted bool, dirty bool) {
-	keyStr := string(key)
+	keyStr := conv.UnsafeBytesToStr(key)
 	if !dirty {
-		store.readList[keyStr] = value
+		store.readListCache[keyStr] = value
 		return
 	}
 
-	store.dirty[keyStr] = cValue{
+	if deleted {
+		store.deleted[keyStr] = struct{}{}
+	} else {
+		delete(store.deleted, keyStr)
+	}
+
+	store.dirtyCache[keyStr] = &cValue{
 		value:   value,
 		deleted: deleted,
 	}

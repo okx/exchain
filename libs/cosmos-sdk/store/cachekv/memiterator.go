@@ -1,8 +1,8 @@
 package cachekv
 
 import (
-	"errors"
-	kv "github.com/okex/exchain/libs/cosmos-sdk/types/kv"
+	"bytes"
+	"github.com/okex/exchain/libs/cosmos-sdk/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
@@ -10,86 +10,45 @@ import (
 // if key is nil, means it was deleted.
 // Implements Iterator.
 type memIterator struct {
-	start, end []byte
-	items      []*kv.Pair
-	ascending  bool
+	types.Iterator
+
+	lastKey []byte
+	deleted map[string]struct{}
 }
 
-func newMemIterator(start, end []byte, items *kv.List, ascending bool) *memIterator {
-	itemsInDomain := make([]*kv.Pair, 0, items.Len())
+func newMemIterator(start, end []byte, items *dbm.MemDB, deleted map[string]struct{}, ascending bool) *memIterator {
+	var iter types.Iterator
+	var err error
 
-	var entered bool
-	for e := items.Front(); e != nil; e = e.Next() {
-		item := e.Value
-		if !dbm.IsKeyInDomain(item.Key, start, end) {
-			if entered {
-				break
-			}
-			continue
-		}
-		itemsInDomain = append(itemsInDomain, item)
-		entered = true
+	if ascending {
+		iter, err = items.Iterator(start, end)
+	} else {
+		iter, err = items.ReverseIterator(start, end)
+	}
+
+	if err != nil {
+		panic(err)
 	}
 
 	return &memIterator{
-		start:     start,
-		end:       end,
-		items:     itemsInDomain,
-		ascending: ascending,
+		Iterator: iter,
+
+		lastKey: nil,
+		deleted: deleted,
 	}
-}
-
-func (mi *memIterator) Domain() ([]byte, []byte) {
-	return mi.start, mi.end
-}
-
-func (mi *memIterator) Valid() bool {
-	return len(mi.items) > 0
-}
-
-func (mi *memIterator) assertValid() {
-	if err := mi.Error(); err != nil {
-		panic(err)
-	}
-}
-
-func (mi *memIterator) Next() {
-	mi.assertValid()
-	if mi.ascending {
-		mi.items = mi.items[1:]
-	} else {
-		mi.items = mi.items[:len(mi.items)-1]
-	}
-}
-
-func (mi *memIterator) Key() []byte {
-	mi.assertValid()
-	if mi.ascending {
-		return mi.items[0].Key
-	}
-	return mi.items[len(mi.items)-1].Key
 }
 
 func (mi *memIterator) Value() []byte {
-	mi.assertValid()
-	if mi.ascending {
-		return mi.items[0].Value
+	key := mi.Iterator.Key()
+	// We need to handle the case where deleted is modified and includes our current key
+	// We handle this by maintaining a lastKey object in the iterator.
+	// If the current key is the same as the last key (and last key is not nil / the start)
+	// then we are calling value on the same thing as last time.
+	// Therefore we don't check the mi.deleted to see if this key is included in there.
+	reCallingOnOldLastKey := (mi.lastKey != nil) && bytes.Equal(key, mi.lastKey)
+	if _, ok := mi.deleted[string(key)]; ok && !reCallingOnOldLastKey {
+		return nil
 	}
-	return mi.items[len(mi.items)-1].Value
-}
-
-func (mi *memIterator) Close() {
-	mi.start = nil
-	mi.end = nil
-	mi.items = nil
-}
-
-// Error returns an error if the memIterator is invalid defined by the Valid
-// method.
-func (mi *memIterator) Error() error {
-	if !mi.Valid() {
-		return errors.New("invalid memIterator")
-	}
-
-	return nil
+	mi.lastKey = key
+	return mi.Iterator.Value()
 }
