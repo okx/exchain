@@ -80,7 +80,7 @@ var blockBufferPool = amino.NewBufferPool()
 // LoadBlock returns the block with the given height.
 // If no block is found for that height, it returns nil.
 func (bs *BlockStore) LoadBlock(height int64) *types.Block {
-	partBytes, _, _ := bs.loadBlockPartsBytes(height)
+	partBytes, _ := bs.loadBlockPartsBytes(height)
 	if partBytes == nil {
 		return nil
 	}
@@ -91,12 +91,12 @@ func (bs *BlockStore) LoadBlock(height int64) *types.Block {
 // LoadBlockWithExInfo returns the block with the given height.
 // and the BlockPartInfo is used to make block parts
 func (bs *BlockStore) LoadBlockWithExInfo(height int64) (*types.Block, *types.BlockExInfo) {
-	partBytes, compressSign, partSize := bs.loadBlockPartsBytes(height)
+	partBytes, exInfo := bs.loadBlockPartsBytes(height)
 	if partBytes == nil {
 		return nil, nil
 	}
 
-	return bs.unmarshalBlockByBytes(partBytes), &types.BlockExInfo{BlockCompressType: compressSign / types.CompressDividing, BlockCompressFlag: compressSign % types.CompressDividing, BlockPartSize: partSize}
+	return bs.unmarshalBlockByBytes(partBytes), exInfo
 }
 
 // unmarshalBlockByBytes returns the block with the given block parts bytes
@@ -169,10 +169,10 @@ func (bs *BlockStore) LoadBlockPart(height int64, index int) *types.Part {
 }
 
 // loadBlockPartsBytes return the combined parts bytes and the number of block parts
-func (bs *BlockStore) loadBlockPartsBytes(height int64) ([]byte, int, int) {
+func (bs *BlockStore) loadBlockPartsBytes(height int64) ([]byte, *types.BlockExInfo) {
 	var blockMeta = bs.LoadBlockMeta(height)
 	if blockMeta == nil {
-		return nil, 0, 0
+		return nil, nil
 	}
 
 	var bufLen int
@@ -195,7 +195,11 @@ func (bs *BlockStore) loadBlockPartsBytes(height int64) ([]byte, int, int) {
 		panic(errors.Wrap(err, "failed to uncompress block"))
 	}
 
-	return partBytes, compressSign, len(parts[0].Bytes)
+	return partBytes,
+		&types.BlockExInfo{
+			BlockCompressType: compressSign / types.CompressDividing,
+			BlockCompressFlag: compressSign % types.CompressDividing,
+			BlockPartSize:     len(parts[0].Bytes)}
 }
 
 // LoadBlockMeta returns the BlockMeta for the given height.
