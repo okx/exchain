@@ -21,6 +21,8 @@ import (
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
 )
 
+type bpType int
+
 const (
 	StateChannel       = byte(0x20)
 	DataChannel        = byte(0x21)
@@ -32,6 +34,11 @@ const (
 
 	blocksToContributeToBecomeGoodPeer = 10000
 	votesToContributeToBecomeGoodPeer  = 10000
+
+	BP_SEND bpType = iota
+	BP_RECV
+	BP_ACK
+	BP_CATCHUP
 )
 
 //-----------------------------------------------------------------------------
@@ -344,6 +351,8 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			ps.ApplyNewRoundStepMessage(msg)
 		case *NewValidBlockMessage:
 			ps.ApplyNewValidBlockMessage(msg)
+		case *HasBlockPartMessage:
+			ps.SetHasProposalBlockPart(msg.Height, msg.Round, msg.Index, BP_ACK, conR.conS.bt)
 		case *HasVoteMessage:
 			ps.ApplyHasVoteMessage(msg)
 		case *VoteSetMaj23Message:
@@ -394,7 +403,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		case *ProposalPOLMessage:
 			ps.ApplyProposalPOLMessage(msg)
 		case *BlockPartMessage:
-			ps.SetHasProposalBlockPart(msg.Height, msg.Round, msg.Part.Index)
+			ps.SetHasProposalBlockPart(msg.Height, msg.Round, msg.Part.Index, BP_RECV, conR.conS.bt)
 			conR.metrics.BlockParts.With("peer_id", string(src.ID())).Add(1)
 			conR.conS.peerMsgQueue <- msgInfo{msg, src.ID()}
 		default:
@@ -505,6 +514,11 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		func(data tmevents.EventData) {
 			conR.broadcastSignVoteMessage(data.(*types.Vote))
 		})
+
+	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventBlockPart,
+		func(data tmevents.EventData) {
+			conR.broadcastHasBlockPartMessage(data.(*HasBlockPartMessage))
+		})
 }
 
 func (conR *Reactor) unsubscribeFromBroadcastEvents() {
@@ -526,6 +540,11 @@ func (conR *Reactor) broadcastNewValidBlockMessage(rs *cstypes.RoundState) {
 		IsCommit:         rs.Step == cstypes.RoundStepCommit,
 	}
 	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryBare(csMsg))
+}
+
+// Broadcasts HasBlockPartMessage to peers that care.
+func (conR *Reactor) broadcastHasBlockPartMessage(msg *HasBlockPartMessage) {
+	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryBare(msg))
 }
 
 // Broadcasts HasVoteMessage to peers that care.
@@ -601,7 +620,7 @@ OUTER_LOOP:
 				}
 				logger.Debug("Sending block part", "height", prs.Height, "round", prs.Round)
 				if peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg)) {
-					ps.SetHasProposalBlockPart(prs.Height, prs.Round, index)
+					ps.SetHasProposalBlockPart(prs.Height, prs.Round, index, BP_SEND, conR.conS.bt)
 				}
 				continue OUTER_LOOP
 			}
@@ -707,7 +726,7 @@ func (conR *Reactor) gossipDataForCatchup(logger log.Logger, rs *cstypes.RoundSt
 		}
 		logger.Debug("Sending block part for catchup", "round", prs.Round, "index", index)
 		if peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg)) {
-			ps.SetHasProposalBlockPart(prs.Height, prs.Round, index)
+			ps.SetHasProposalBlockPart(prs.Height, prs.Round, index, BP_CATCHUP, conR.conS.bt)
 		} else {
 			logger.Debug("Sending block part for catchup failed")
 		}
@@ -1140,12 +1159,25 @@ func (ps *PeerState) InitProposalBlockParts(partsHeader types.PartSetHeader) {
 }
 
 // SetHasProposalBlockPart sets the given block part index as known for the peer.
-func (ps *PeerState) SetHasProposalBlockPart(height int64, round int, index int) {
+func (ps *PeerState) SetHasProposalBlockPart(height int64, round int, index int, t bpType, bt *BlockTransport) {
 	ps.mtx.Lock()
 	defer ps.mtx.Unlock()
 
 	if ps.PRS.Height != height || ps.PRS.Round != round {
 		return
+	}
+
+	switch t {
+	case BP_SEND:
+		bt.onBPSend()
+	case BP_ACK:
+		if !ps.PRS.ProposalBlockParts.GetIndex(index) {
+			bt.onBPACKHit()
+		}
+	case BP_RECV:
+		if !ps.PRS.ProposalBlockParts.GetIndex(index) {
+			bt.onBPDataHit()
+		}
 	}
 
 	ps.PRS.ProposalBlockParts.SetIndex(index, true)
@@ -1521,6 +1553,7 @@ func RegisterMessages(cdc *amino.Codec) {
 	cdc.RegisterConcrete(&HasVoteMessage{}, "tendermint/HasVote", nil)
 	cdc.RegisterConcrete(&VoteSetMaj23Message{}, "tendermint/VoteSetMaj23", nil)
 	cdc.RegisterConcrete(&VoteSetBitsMessage{}, "tendermint/VoteSetBits", nil)
+	cdc.RegisterConcrete(&HasBlockPartMessage{}, "tendermint/HasBlockPart", nil)
 }
 
 func decodeMsg(bz []byte) (msg Message, err error) {
@@ -1710,6 +1743,32 @@ func (m *VoteMessage) String() string {
 }
 
 //-------------------------------------
+
+// HasBlockPartMessage is sent to indicate that a particular vote has been received.
+type HasBlockPartMessage struct {
+	Height int64
+	Round  int
+	Index  int
+}
+
+// ValidateBasic performs basic validation.
+func (m *HasBlockPartMessage) ValidateBasic() error {
+	if m.Height < 0 {
+		return errors.New("negative Height")
+	}
+	if m.Round < 0 {
+		return errors.New("negative Round")
+	}
+	if m.Index < 0 {
+		return errors.New("negative Index")
+	}
+	return nil
+}
+
+// String returns a string representation.
+func (m *HasBlockPartMessage) String() string {
+	return fmt.Sprintf("[HasBlockPart VI:%v V:{%v/%02d}]", m.Index, m.Height, m.Round)
+}
 
 // HasVoteMessage is sent to indicate that a particular vote has been received.
 type HasVoteMessage struct {

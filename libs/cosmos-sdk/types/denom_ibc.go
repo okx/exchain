@@ -6,6 +6,8 @@ import (
 
 // DefaultIbcWei for ibc transfer default okt min unit
 const DefaultIbcWei = "wei"
+const DefaultDecInt = 1000000000000000000
+const DefaultDecStr = "1000000000000000000"
 
 // baseDenom is the denom of smallest unit registered
 var baseDenom string

@@ -19,6 +19,7 @@ type IDynamicConfig interface {
 	GetCsTimeoutCommit() time.Duration
 	GetEnableWtx() bool
 	GetDeliverTxsExecuteMode() int
+	GetEnableHasBlockPartMsg() bool
 }
 
 var DynamicConfig IDynamicConfig = MockDynamicConfig{}
@@ -85,4 +86,8 @@ func (d MockDynamicConfig) GetEnableWtx() bool {
 }
 func (d MockDynamicConfig) GetDeliverTxsExecuteMode() int {
 	return 0
+}
+
+func (d MockDynamicConfig) GetEnableHasBlockPartMsg() bool {
+	return false
 }

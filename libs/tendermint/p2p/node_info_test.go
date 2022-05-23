@@ -115,7 +115,7 @@ func TestNodeInfoCompatible(t *testing.T) {
 		testName         string
 		malleateNodeInfo func(*DefaultNodeInfo)
 	}{
-		{"Wrong block version", func(ni *DefaultNodeInfo) { ni.ProtocolVersion.Block++ }},
+		{"Wrong block version", func(ni *DefaultNodeInfo) { ni.ProtocolVersion.Block = 100 }},
 		{"Wrong network", func(ni *DefaultNodeInfo) { ni.Network += "-wrong" }},
 		{"No common channels", func(ni *DefaultNodeInfo) { ni.Channels = []byte{newTestChannel} }},
 	}

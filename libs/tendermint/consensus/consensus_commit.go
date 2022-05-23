@@ -27,6 +27,9 @@ func (cs *State) traceDump() {
 		cs.bt.totalParts,
 	))
 
+	trace.GetElapsedInfo().AddInfo(trace.BlockPartsP2P, fmt.Sprintf("%d|%d|%d",
+		cs.bt.bpNOTransByACK, cs.bt.bpNOTransByData, cs.bt.bpSend))
+
 	trace.GetElapsedInfo().AddInfo(trace.Produce, cs.trc.Format())
 	trace.GetElapsedInfo().Dump(cs.Logger.With("module", "main"))
 	cs.trc.Reset()
