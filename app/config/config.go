@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	iavlconfig "github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/system"
