@@ -260,8 +260,15 @@ func (b *Block) MakePartSet(partSize int) *PartSet {
 }
 
 func (b *Block) MakePartSetByExInfo(exInfo *BlockExInfo) *PartSet {
-	if b == nil || exInfo == nil {
+	if b == nil {
 		return nil
+	}
+	if exInfo == nil {
+		exInfo = &BlockExInfo{
+			BlockCompressType: BlockCompressType,
+			BlockCompressFlag: BlockCompressFlag,
+			BlockPartSize:     BlockPartSizeBytes,
+		}
 	}
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
