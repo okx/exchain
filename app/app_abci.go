@@ -2,6 +2,7 @@ package app
 
 import (
 	"runtime"
+	"time"
 
 	appconfig "github.com/okex/exchain/app/config"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -67,9 +68,11 @@ func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEn
 func (app *OKExChainApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	if gcInterval := appconfig.GetOecConfig().GetGcInterval(); gcInterval > 0 {
 		if (app.BaseApp.LastBlockHeight()+1)%int64(gcInterval) == 0 {
-			app.Logger().Info("begin gc for debug", "height", app.BaseApp.LastBlockHeight()+1)
+			startTime := time.Now()
 			runtime.GC()
-			app.Logger().Info("end gc for debug", "height", app.BaseApp.LastBlockHeight()+1)
+			elapsed := time.Now().Sub(startTime).Milliseconds()
+			app.Logger().Info("force gc for debug", "height", app.BaseApp.LastBlockHeight()+1,
+				"elapsed(ms)", elapsed)
 		}
 	}
 	//defer trace.GetTraceSummary().Dump()
