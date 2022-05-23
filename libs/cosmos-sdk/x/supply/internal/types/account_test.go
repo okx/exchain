@@ -181,7 +181,7 @@ func TestModuleAccountAmino(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, bz, nbz)
 
-		nbz, err = cdc.MarshalBinaryBareWithSizer(iacc.(amino.MarshalBufferSizer))
+		nbz, err = cdc.MarshalBinaryWithSizer(iacc.(amino.MarshalBufferSizer), false)
 		require.NoError(t, err)
 		require.EqualValues(t, bz, nbz)
 	}

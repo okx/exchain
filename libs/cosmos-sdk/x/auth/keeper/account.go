@@ -130,7 +130,7 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account, update
 func (ak *AccountKeeper) encodeAccount(acc exported.Account) (bz []byte) {
 	var err error
 	if accSizer, ok := acc.(amino.MarshalBufferSizer); ok {
-		bz, err = ak.cdc.MarshalBinaryBareWithSizer(accSizer)
+		bz, err = ak.cdc.MarshalBinaryWithSizer(accSizer, false)
 		if err == nil {
 			return bz
 		}

@@ -270,7 +270,7 @@ func TestEthAccountAmino(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, data, dataFromMarshaller)
 
-		dataFromSizer, err := cdc.MarshalBinaryBareWithSizer(&testAccount)
+		dataFromSizer, err := cdc.MarshalBinaryWithSizer(&testAccount, false)
 		require.NoError(t, err)
 		require.EqualValues(t, data, dataFromSizer)
 
@@ -370,7 +370,7 @@ func BenchmarkEthAccountAminoMarshal(b *testing.B) {
 	b.Run("sizer", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			data, _ := cdc.MarshalBinaryBareWithSizer(&testAccount)
+			data, _ := cdc.MarshalBinaryWithSizer(&testAccount, false)
 			_ = data
 		}
 	})
