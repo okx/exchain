@@ -9,8 +9,6 @@ import (
 	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	iavlconfig "github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/system"
@@ -18,6 +16,7 @@ import (
 	tmconfig "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/state"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/spf13/viper"
 )
@@ -639,7 +638,6 @@ func (c *OecConfig) GetIavlCacheSize() int {
 }
 func (c *OecConfig) SetIavlCacheSize(value int) {
 	c.iavlCacheSize = value
-	iavl.IavlCacheSize = value
 }
 
 func (c *OecConfig) GetActiveVC() bool {
