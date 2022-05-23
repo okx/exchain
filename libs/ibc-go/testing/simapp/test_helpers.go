@@ -235,14 +235,14 @@ func CheckBalance(t *testing.T, app *SimApp, addr sdk.AccAddress, balances sdk.C
 // ibc testing package causes checkState and deliverState to diverge in block time.
 func SignAndDeliver(
 	t *testing.T, txCfg client.TxConfig, app *bam.BaseApp, header tmproto.Header, msgs []ibcmsg.Msg,
-	chainID string, accNums, accSeqs []uint64, expSimPass, expPass bool, priv ...cryptotypes.PrivKey,
+	chainID string, accNums, accSeqs []uint64, expSimPass, expPass bool, priv ...cryptotypes2.PrivKey,
 ) (sdk.GasInfo, *sdk.Result, error) {
 
 	tx, err := helpers.GenTx(
 		txCfg,
 		msgs,
 		//sdk.CoinAdapters{sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)},
-		sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultBondDenom, sdk.NewIntFromBigInt(big.NewInt(0)))},
+		sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultIbcWei, sdk.NewIntFromBigInt(big.NewInt(0)))},
 		helpers.DefaultGenTxGas,
 		chainID,
 		accNums,
@@ -273,7 +273,7 @@ func SignAndDeliver(
 // GenSequenceOfTxs generates a set of signed transactions of messages, such
 // that they differ only by having the sequence numbers incremented between
 // every transaction.
-func GenSequenceOfTxs(txGen client.TxConfig, msgs []ibcmsg.Msg, accNums []uint64, initSeqNums []uint64, numToGenerate int, priv ...cryptotypes.PrivKey) ([]sdk.Tx, error) {
+func GenSequenceOfTxs(txGen client.TxConfig, msgs []ibcmsg.Msg, accNums []uint64, initSeqNums []uint64, numToGenerate int, priv ...cryptotypes2.PrivKey) ([]sdk.Tx, error) {
 	txs := make([]sdk.Tx, numToGenerate)
 	var err error
 	for i := 0; i < numToGenerate; i++ {

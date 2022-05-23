@@ -3,7 +3,6 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/libs/system/trace"
 	"os"
 	"sort"
 	"strconv"
@@ -16,6 +15,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/iavl"
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/tendermint/go-amino"
@@ -223,7 +223,7 @@ func (app *BaseApp) addCommitTraceInfo() {
 	iavlInfo := strings.Join([]string{"getnode<", nodeReadCountStr, ">, rdb<", dbReadCountStr, ">, rdbTs<", dbReadTimeStr, "ms>, savenode<", dbWriteCountStr, ">"}, "")
 
 	elapsedInfo := trace.GetElapsedInfo()
-	elapsedInfo.AddInfo("Iavl", iavlInfo)
+	elapsedInfo.AddInfo(trace.Iavl, iavlInfo)
 
 	flatKvReadCountStr := strconv.Itoa(app.cms.GetFlatKVReadCount())
 	flatKvReadTimeStr := strconv.FormatInt(time.Duration(app.cms.GetFlatKVReadTime()).Milliseconds(), 10)
@@ -232,7 +232,7 @@ func (app *BaseApp) addCommitTraceInfo() {
 
 	flatInfo := strings.Join([]string{"rflat<", flatKvReadCountStr, ">, rflatTs<", flatKvReadTimeStr, "ms>, wflat<", flatKvWriteCountStr, ">, wflatTs<", flatKvWriteTimeStr, "ms>"}, "")
 
-	elapsedInfo.AddInfo("FlatKV", flatInfo)
+	elapsedInfo.AddInfo(trace.FlatKV, flatInfo)
 
 	//rtx := float64(atomic.LoadInt64(&app.checkTxNum))
 	//wtx := float64(atomic.LoadInt64(&app.wrappedCheckTxNum))
@@ -575,6 +575,7 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) abci.
 		cacheMS, app.checkState.ctx.BlockHeader(), true, app.logger,
 	)
 	ctx.SetMinGasPrices(app.minGasPrices)
+	ctx.SetBlockHeight(req.Height)
 
 	// Passes the rest of the path as an argument to the querier.
 	//

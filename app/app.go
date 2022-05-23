@@ -1,15 +1,10 @@
 package app
 
 import (
-	"github.com/okex/exchain/libs/system/trace"
-	sm "github.com/okex/exchain/libs/tendermint/state"
 	"io"
 	"math/big"
 	"os"
 	"sync"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
-	"github.com/okex/exchain/libs/system"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
@@ -21,6 +16,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/simapp"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	upgradetypes "github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
@@ -44,9 +40,12 @@ import (
 	ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
 	ibcporttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
 	ibchost "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okex/exchain/libs/system"
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
+	sm "github.com/okex/exchain/libs/tendermint/state"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/ammswap"
@@ -71,10 +70,11 @@ import (
 	"github.com/okex/exchain/x/slashing"
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
+	"github.com/spf13/cobra"
+	"google.golang.org/grpc/encoding/proto"
 
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/encoding"
-	"google.golang.org/grpc/encoding/proto"
 )
 
 func init() {
@@ -255,7 +255,7 @@ func NewOKExChainApp(
 		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
 		ibchost.StoreKey,
 		erc20.StoreKey,
-		mpt.StoreKey, evm.Store2Key,
+		mpt.StoreKey, evm.LegacyStoreKey,
 	)
 
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
@@ -330,7 +330,7 @@ func NewOKExChainApp(
 	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], app.marshal.GetCdc())
 	app.ParamsKeeper.RegisterSignal(evmtypes.SetEvmParamsNeedUpdate)
 	app.EvmKeeper = evm.NewKeeper(
-		app.marshal.GetCdc(), keys[evm.StoreKey], keys[evm.Store2Key], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, logger)
+		app.marshal.GetCdc(), keys[evm.StoreKey], keys[evm.LegacyStoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, logger)
 	(&bankKeeper).SetInnerTxKeeper(app.EvmKeeper)
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
@@ -530,7 +530,7 @@ func NewOKExChainApp(
 	// initialize BaseApp
 	app.SetInitChainer(app.InitChainer)
 	app.SetBeginBlocker(app.BeginBlocker)
-	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper)))
+	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), app.IBCKeeper.ChannelKeeper))
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
@@ -715,10 +715,7 @@ func NewAccNonceHandler(ak auth.AccountKeeper) sdk.AccNonceHandler {
 	}
 }
 
-func PreRun(ctx *server.Context) error {
-	// set the dynamic config
-	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
-
+func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 	// check start flag conflicts
 	err := sanity.CheckStart()
 	if err != nil {
@@ -743,6 +740,13 @@ func PreRun(ctx *server.Context) error {
 
 	// init tx signature cache
 	tmtypes.InitSignatureCache()
+
+	// set external package flags
+	server.SetExternalPackageValue(cmd)
+
+	// set the dynamic config
+	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
+
 	return nil
 }
 

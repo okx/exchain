@@ -2,7 +2,6 @@ package iavl
 
 import (
 	"bytes"
-	"container/list"
 	"fmt"
 	"math"
 	"sort"
@@ -45,18 +44,17 @@ type nodeDB struct {
 	opts           Options          // Options to customize for pruning/writing
 	versionReaders map[int64]uint32 // Number of active version readers
 
-	latestVersion  int64
+	latestVersion int64
 
 	prePersistNodeCache map[string]*Node
-	tppMap              map[int64]*tppItem
-	tppVersionList      *list.List
 
-	name string
+	name              string
 	preWriteNodeCache cmap.ConcurrentMap
 
-	oi *OrphanInfo
-	nc *NodeCache
+	oi    *OrphanInfo
+	nc    *NodeCache
 	state *RuntimeState
+	tpp   *tempPrePersistNodes
 }
 
 func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
@@ -65,23 +63,22 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		opts = &o
 	}
 	ndb := &nodeDB{
-		db:                      db,
-		opts:                    *opts,
-		versionReaders:          make(map[int64]uint32, 8),
-		prePersistNodeCache:     make(map[string]*Node),
-		tppMap:                  make(map[int64]*tppItem),
-		tppVersionList:          list.New(),
-		name:                    ParseDBName(db),
-		preWriteNodeCache:       cmap.New(),
-		state:                   &RuntimeState{},
+		db:                  db,
+		opts:                *opts,
+		versionReaders:      make(map[int64]uint32, 8),
+		prePersistNodeCache: make(map[string]*Node),
+		name:                ParseDBName(db),
+		preWriteNodeCache:   cmap.New(),
+		state:               newRuntimeState(),
+		tpp:                 newTempPrePersistNodes(),
 	}
 
 	ndb.oi = newOrphanInfo(ndb)
-	ndb.nc = newNodeCache(cacheSize)
+	ndb.nc = newNodeCache(ndb.name, cacheSize)
 	return ndb
 }
 
-func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) *Node {
+func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) (*Node, retrieveType) {
 	ndb.addNodeReadCount()
 	if len(hash) == 0 {
 		panic("nodeDB.GetNode() requires hash")
@@ -89,24 +86,23 @@ func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) *Node 
 	ndb.mtx.RLock()
 	defer ndb.mtx.RUnlock()
 	if elem, ok := ndb.prePersistNodeCache[string(hash)]; ok {
-		return elem
+		return elem, fromPpnc
 	}
 
-	if elem, ok := ndb.getNodeInTpp(hash); ok {
-		return elem
+	if elem, ok := ndb.tpp.getNode(hash); ok {
+		return elem, fromTpp
 	}
 
 	if elem := ndb.getNodeFromCache(hash, promoteRecentNode); elem != nil {
-		return elem
+		return elem, fromNodeCache
 	}
 
 	if elem := ndb.oi.getNodeFromOrphanCache(hash); elem != nil {
-		return elem
+		return elem, fromOrphanCache
 	}
 
-	return nil
+	return nil, unknown
 }
-
 
 func (ndb *nodeDB) getNodeFromDisk(hash []byte, updateCache bool) *Node {
 	node := ndb.makeNodeFromDbByHash(hash)
@@ -118,12 +114,15 @@ func (ndb *nodeDB) getNodeFromDisk(hash []byte, updateCache bool) *Node {
 	return node
 }
 
-func (ndb *nodeDB) loadNode(hash []byte, update bool) (n *Node, fromDisk bool) {
-	n = ndb.getNodeFromMemory(hash, update)
+func (ndb *nodeDB) loadNode(hash []byte, update bool) (n *Node, from retrieveType) {
+	n, from = ndb.getNodeFromMemory(hash, update)
 	if n == nil {
 		n = ndb.getNodeFromDisk(hash, update)
-		fromDisk = true
+		from = fromDisk
 	}
+
+	// close onLoadNode as it leads to performance penalty
+	//ndb.state.onLoadNode(from)
 	return
 }
 
@@ -134,8 +133,11 @@ func (ndb *nodeDB) GetNode(hash []byte) (n *Node) {
 	return
 }
 
-func (ndb *nodeDB) GetNodeWithoutUpdateCache(hash []byte) (n *Node, fromDisk bool) {
-	return ndb.loadNode(hash, false)
+func (ndb *nodeDB) GetNodeWithoutUpdateCache(hash []byte) (n *Node, gotFromDisk bool) {
+	var from retrieveType
+	n, from = ndb.loadNode(hash, false)
+	gotFromDisk = from == fromDisk
+	return
 }
 
 func (ndb *nodeDB) getDbName() string {
@@ -518,7 +520,6 @@ func (ndb *nodeDB) traversePrefix(prefix []byte, fn func(k, v []byte)) {
 		fn(itr.Key(), itr.Value())
 	}
 }
-
 
 // Write to disk.
 func (ndb *nodeDB) Commit(batch dbm.Batch) error {

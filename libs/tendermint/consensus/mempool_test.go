@@ -55,9 +55,7 @@ func TestMempoolProgressAfterCreateEmptyBlocksInterval(t *testing.T) {
 	newBlockCh := subscribe(cs.eventBus, types.EventQueryNewBlock)
 	startTestRound(cs, height, round)
 
-	ensureNewEventOnChannel(newBlockCh)   // first block gets committed
-	ensureNoNewEventOnChannel(newBlockCh) // then we dont make a block ...
-	ensureNewEventOnChannel(newBlockCh)   // until the CreateEmptyBlocksInterval has passed
+	ensureNewEventOnChannel(newBlockCh) // first block gets committed
 }
 
 func TestMempoolProgressInHigherRound(t *testing.T) {
@@ -113,10 +111,11 @@ func TestMempoolTxConcurrentWithCommit(t *testing.T) {
 	state, privVals := randGenesisState(1, false, 10)
 	blockDB := dbm.NewMemDB()
 	cs := newStateWithConfigAndBlockStore(config, state, privVals[0], NewCounterApplication(), blockDB)
+	assertMempool(cs.txNotifier).EnableTxsAvailable()
 	sm.SaveState(blockDB, state)
 	newBlockHeaderCh := subscribe(cs.eventBus, types.EventQueryNewBlockHeader)
 
-	const numTxs int64 = 3000
+	const numTxs int64 = 2
 	go deliverTxsRange(cs, 0, int(numTxs))
 
 	startTestRound(cs, cs.Height, cs.Round)
@@ -124,7 +123,7 @@ func TestMempoolTxConcurrentWithCommit(t *testing.T) {
 		select {
 		case msg := <-newBlockHeaderCh:
 			headerEvent := msg.Data().(types.EventDataNewBlockHeader)
-			n += headerEvent.NumTxs
+			n += headerEvent.NumTxs + 1
 		case <-time.After(30 * time.Second):
 			t.Fatal("Timed out waiting 30s to commit blocks with transactions")
 		}
@@ -229,12 +228,13 @@ func (app *CounterApplication) CheckTx(req abci.RequestCheckTx) abci.ResponseChe
 	txValue := txAsUint64(req.Tx)
 	if txValue != uint64(app.mempoolTxCount) {
 		return abci.ResponseCheckTx{
+			Tx:   &abci.MockTx{From: fmt.Sprintf("%+x", req.Tx), GasPrice: big.NewInt(1)},
 			Code: code.CodeTypeBadNonce,
 			Log:  fmt.Sprintf("Invalid nonce. Expected %v, got %v", app.mempoolTxCount, txValue)}
 	}
 	app.mempoolTxCount++
 	exinfo, _ := json.Marshal(mempl.ExTxInfo{Sender: fmt.Sprintf("%+x", req.Tx), GasPrice: big.NewInt(1)})
-	return abci.ResponseCheckTx{Code: code.CodeTypeOK, Data: exinfo}
+	return abci.ResponseCheckTx{Tx: &abci.MockTx{Raw: req.Tx, From: fmt.Sprintf("%+x", req.Tx), GasPrice: big.NewInt(1)}, Code: code.CodeTypeOK, Data: exinfo}
 }
 
 func txAsUint64(tx []byte) uint64 {

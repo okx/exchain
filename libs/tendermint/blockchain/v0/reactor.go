@@ -173,9 +173,9 @@ func (bcR *BlockchainReactor) RemovePeer(peer p2p.Peer, reason interface{}) {
 func (bcR *BlockchainReactor) respondToPeer(msg *bcBlockRequestMessage,
 	src p2p.Peer) (queued bool) {
 
-	block := bcR.store.LoadBlock(msg.Height)
+	block, blockExInfo := bcR.store.LoadBlockWithExInfo(msg.Height)
 	if block != nil {
-		msgBytes := cdc.MustMarshalBinaryBare(&bcBlockResponseMessage{Block: block})
+		msgBytes := cdc.MustMarshalBinaryBare(&bcBlockResponseMessage{Block: block, ExInfo: blockExInfo})
 		return src.TrySend(BlockchainChannel, msgBytes)
 	}
 
@@ -207,7 +207,7 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 		bcR.respondToPeer(msg, src)
 	case *bcBlockResponseMessage:
 		bcR.Logger.Info("AddBlock.", "Height", msg.Block.Height, "Peer", src.ID())
-		bcR.pool.AddBlock(src.ID(), msg.Block, msg.Deltas, len(msgBytes))
+		bcR.pool.AddBlock(src.ID(), msg, len(msgBytes))
 	case *bcStatusRequestMessage:
 		// Send peer our state.
 		src.TrySend(BlockchainChannel, cdc.MustMarshalBinaryBare(&bcStatusResponseMessage{
@@ -323,7 +323,7 @@ FOR_LOOP:
 			// routine.
 
 			// See if there are any blocks to sync.
-			first, second, _ := bcR.pool.PeekTwoBlocks()
+			first, second, _, firstExInfo := bcR.pool.PeekTwoBlocks()
 			//bcR.Logger.Info("TrySync peeked", "first", first, "second", second)
 			if first == nil || second == nil {
 				// We need both to sync the first block.
@@ -334,14 +334,14 @@ FOR_LOOP:
 			}
 			bcR.Logger.Info("PeekTwoBlocks.", "First", first.Height, "Second", second.Height)
 
-			firstParts := first.MakePartSet(types.BlockPartSizeBytes)
+			firstParts := first.MakePartSetByExInfo(firstExInfo)
 			firstPartsHeader := firstParts.Header()
 			firstID := types.BlockID{Hash: first.Hash(), PartsHeader: firstPartsHeader}
 			// Finally, verify the first block using the second's commit
 			// NOTE: we can probably make this more efficient, but note that calling
 			// first.Hash() doesn't verify the tx contents, so MakePartSet() is
 			// currently necessary.
-			err := bcR.curState.Validators.VerifyCommit(
+			err := bcR.curState.Validators.VerifyCommitLight(
 				chainID, firstID, first.Height, second.LastCommit)
 			if err != nil {
 				bcR.Logger.Error("Error in validation", "err", err)
@@ -369,7 +369,7 @@ FOR_LOOP:
 				// TODO: same thing for app - but we would need a way to
 				// get the hash without persisting the state
 				var err error
-				bcR.curState, _, err = bcR.blockExec.ApplyBlock(bcR.curState, firstID, first) // rpc
+				bcR.curState, _, err = bcR.blockExec.ApplyBlockWithTrace(bcR.curState, firstID, first) // rpc
 				if err != nil {
 					// TODO This is bad, are we zombie?
 					// The block can't be committed, do we need to delete it from store db?
@@ -520,6 +520,7 @@ func (m *bcNoBlockResponseMessage) String() string {
 type bcBlockResponseMessage struct {
 	Block  *types.Block
 	Deltas *types.Deltas
+	ExInfo *types.BlockExInfo
 }
 
 // ValidateBasic performs basic validation.

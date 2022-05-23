@@ -1,6 +1,9 @@
 package app
 
 import (
+	"runtime"
+	"time"
+
 	appconfig "github.com/okex/exchain/app/config"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/system/trace"
@@ -10,10 +13,8 @@ import (
 
 // BeginBlock implements the Application interface
 func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
-
 	trace.OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
-	// dump app.LastBlockHeight()-1 info for reactor sync mode
-	trace.GetElapsedInfo().Dump(app.Logger())
+	app.EvmKeeper.Watcher.DelayEraseKey()
 	return app.BaseApp.BeginBlock(req)
 }
 
@@ -65,7 +66,15 @@ func (app *OKExChainApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEn
 
 // Commit implements the Application interface
 func (app *OKExChainApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
-
+	if gcInterval := appconfig.GetOecConfig().GetGcInterval(); gcInterval > 0 {
+		if (app.BaseApp.LastBlockHeight()+1)%int64(gcInterval) == 0 {
+			startTime := time.Now()
+			runtime.GC()
+			elapsed := time.Now().Sub(startTime).Milliseconds()
+			app.Logger().Info("force gc for debug", "height", app.BaseApp.LastBlockHeight()+1,
+				"elapsed(ms)", elapsed)
+		}
+	}
 	//defer trace.GetTraceSummary().Dump()
 	defer trace.OnCommitDone()
 

@@ -61,7 +61,10 @@ const (
 	FlagExportKeystore  = "export-keystore"
 	FlagLogServerUrl    = "log-server"
 
-	FlagCommitGapHeight = "commit-gap-height"
+	FlagActiveViewChange = "active-view-change"
+	FlagCommitGapHeight  = "commit-gap-height"
+
+	FlagBlockPartSizeBytes = "block-part-size"
 )
 
 // StartCmd runs the service passed in, either stand-alone or in-process with
@@ -73,7 +76,7 @@ func StartCmd(ctx *Context,
 	appStop AppStop,
 	registerRoutesFn func(restServer *lcd.RestServer),
 	registerAppFlagFn func(cmd *cobra.Command),
-	appPreRun func(ctx *Context) error,
+	appPreRun func(ctx *Context, cmd *cobra.Command) error,
 	subFunc func(logger log.Logger) log.Subscriber,
 ) *cobra.Command {
 	cmd := &cobra.Command{
@@ -103,11 +106,9 @@ which accepts a path for the resulting pprof file.
 `,
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			// app pre run
-			if err := appPreRun(ctx); err != nil {
+			if err := appPreRun(ctx, cmd); err != nil {
 				return err
 			}
-			// set external package flags
-			SetExternalPackageValue(cmd)
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -264,6 +265,9 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	tmtypes.UploadDelta = viper.GetBool(tmtypes.FlagUploadDDS)
 	tmtypes.FastQuery = viper.GetBool(tmtypes.FlagFastQuery)
 	tmtypes.DeltaVersion = viper.GetInt(tmtypes.FlagDeltaVersion)
+	tmtypes.BlockCompressType = viper.GetInt(tmtypes.FlagBlockCompressType)
+	tmtypes.BlockCompressFlag = viper.GetInt(tmtypes.FlagBlockCompressFlag)
+	tmtypes.BlockCompressThreshold = viper.GetInt(tmtypes.FlagBlockCompressThreshold)
 
 	tmiavl.CommitGapHeight = viper.GetInt64(FlagCommitGapHeight)
 	mpt.TrieCommitGap = viper.GetInt64(FlagCommitGapHeight)

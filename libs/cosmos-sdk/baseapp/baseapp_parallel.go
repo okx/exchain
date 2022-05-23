@@ -9,13 +9,14 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/spf13/viper"
+	"runtime"
 	"sync"
 )
 
 var (
-	maxTxNumberInParallelChan = 20000
-	whiteAcc                  = string(hexutil.MustDecode("0x01f1829676db577682e944fc3493d451b67ff3e29f")) //fee
-	maxNums                   = 16
+	maxTxNumberInParallelChan  = 20000
+	whiteAcc                   = string(hexutil.MustDecode("0x01f1829676db577682e944fc3493d451b67ff3e29f")) //fee
+	maxGoroutineNumberInParaTx = runtime.NumCPU()
 )
 
 type extraDataForTx struct {
@@ -192,7 +193,11 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 	deliverTxs := make([]*abci.ResponseDeliverTx, pm.txSize)
 
 	asyncCb := func(execRes *executeResult) {
-		if !pm.workgroup.isReady {
+
+		if !pm.workgroup.isReady { // runTxs end
+			return
+		}
+		if execRes.blockHeight != app.deliverState.ctx.BlockHeight() { // not excepted resp
 			return
 		}
 		receiveTxIndex := int(execRes.counter)
@@ -322,7 +327,7 @@ func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 	txStatus := app.parallelTxManage.extraTxsInfo[txIndex]
 
 	if txStatus.stdTx == nil {
-		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr, 0, 0, app.trace), nil, uint32(txIndex), nil)
+		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr, 0, 0, app.trace), nil, uint32(txIndex), nil, 0)
 		return asyncExe
 	}
 	var (
@@ -343,23 +348,25 @@ func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 		}
 	}
 
-	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg())
+	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg(), 0)
 	return asyncExe
 }
 
 type executeResult struct {
-	resp    abci.ResponseDeliverTx
-	ms      sdk.CacheMultiStore
-	counter uint32
-	paraMsg *sdk.ParaMsg
+	resp        abci.ResponseDeliverTx
+	ms          sdk.CacheMultiStore
+	counter     uint32
+	paraMsg     *sdk.ParaMsg
+	blockHeight int64
 }
 
-func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32, paraMsg *sdk.ParaMsg) *executeResult {
+func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32, paraMsg *sdk.ParaMsg, height int64) *executeResult {
 	ans := &executeResult{
-		resp:    r,
-		ms:      ms,
-		counter: counter,
-		paraMsg: paraMsg,
+		resp:        r,
+		ms:          ms,
+		counter:     counter,
+		paraMsg:     paraMsg,
+		blockHeight: height,
 	}
 
 	if paraMsg == nil {
@@ -449,13 +456,13 @@ func (a *asyncWorkGroup) AddTask(index int) {
 }
 
 func (a *asyncWorkGroup) Close() {
-	for index := 0; index <= maxNums; index++ {
+	for index := 0; index <= maxGoroutineNumberInParaTx; index++ {
 		a.stopChan <- struct{}{}
 	}
 }
 
 func (a *asyncWorkGroup) Start() {
-	for index := 0; index < maxNums; index++ {
+	for index := 0; index < maxGoroutineNumberInParaTx; index++ {
 		go func() {
 			for true {
 				select {
