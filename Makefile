@@ -8,7 +8,6 @@ export GO111MODULE=on
 GithubTop=github.com
 
 
-
 Version=v2.0.0
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
@@ -35,6 +34,10 @@ ifeq ($(WITH_ROCKSDB),true)
   CGO_ENABLED=1
   build_tags += rocksdb
 endif
+
+# TODO need use in dockerfile
+build_tags += muslc
+
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
 
