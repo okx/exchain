@@ -45,9 +45,9 @@ type CommitStateDBParams struct {
 	// Amino codec
 	Cdc *codec.Codec
 
-	DB         ethstate.Database
-	Trie       ethstate.Trie
-	RootHash   ethcmn.Hash
+	DB       ethstate.Database
+	Trie     ethstate.Trie
+	RootHash ethcmn.Hash
 }
 
 type Watcher interface {
@@ -190,6 +190,123 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 	}
 
 	return csdb
+}
+
+func ResetCommitStateDB(csdb *CommitStateDB, csdbParams CommitStateDBParams, ctx sdk.Context) {
+	csdb.db = csdbParams.DB
+	csdb.trie = csdbParams.Trie
+	csdb.originalRoot = csdbParams.RootHash
+
+	csdb.storeKey = csdbParams.StoreKey
+	csdb.legacyStoreKey = csdbParams.LegacyStoreKey
+	csdb.paramSpace = csdbParams.ParamSpace
+	csdb.accountKeeper = csdbParams.AccountKeeper
+	csdb.supplyKeeper = csdbParams.SupplyKeeper
+	csdb.bankKeeper = csdbParams.BankKeeper
+	csdb.Watcher = csdbParams.Watcher
+	csdb.cdc = csdbParams.Cdc
+
+	if csdb.stateObjects != nil {
+		for k := range csdb.stateObjects {
+			delete(csdb.stateObjects, k)
+		}
+	} else {
+		csdb.stateObjects = make(map[ethcmn.Address]*stateObject)
+	}
+
+	if csdb.stateObjectsPending != nil {
+		for k := range csdb.stateObjectsPending {
+			delete(csdb.stateObjectsPending, k)
+		}
+	} else {
+		csdb.stateObjectsPending = make(map[ethcmn.Address]struct{})
+	}
+
+	if csdb.stateObjectsDirty != nil {
+		for k := range csdb.stateObjectsDirty {
+			delete(csdb.stateObjectsDirty, k)
+		}
+	} else {
+		csdb.stateObjectsDirty = make(map[ethcmn.Address]struct{})
+	}
+
+	if csdb.preimages != nil {
+		for k := range csdb.preimages {
+			delete(csdb.preimages, k)
+		}
+	} else {
+		csdb.preimages = make(map[ethcmn.Hash][]byte)
+	}
+
+	if csdb.journal != nil {
+		csdb.journal.entries = nil
+		if csdb.journal.dirties != nil {
+			for k := range csdb.journal.dirties {
+				delete(csdb.journal.dirties, k)
+			}
+		} else {
+			csdb.journal.dirties = make(map[ethcmn.Address]int)
+		}
+	} else {
+		csdb.journal = newJournal()
+	}
+
+	if csdb.validRevisions != nil {
+		csdb.validRevisions = csdb.validRevisions[:0]
+	} else {
+		csdb.validRevisions = []revision{}
+	}
+
+	if csdb.accessList != nil {
+		if csdb.accessList.addresses != nil {
+			for k := range csdb.accessList.addresses {
+				delete(csdb.accessList.addresses, k)
+			}
+		} else {
+			csdb.accessList.addresses = make(map[ethcmn.Address]int)
+		}
+		csdb.accessList.slots = nil
+	} else {
+		csdb.accessList = newAccessList()
+	}
+
+	csdb.logSize = 0
+
+	if csdb.logs != nil {
+		for k := range csdb.logs {
+			delete(csdb.logs, k)
+		}
+	} else {
+		csdb.logs = make(map[ethcmn.Hash][]*ethtypes.Log)
+	}
+
+	if csdb.codeCache != nil {
+		for k := range csdb.codeCache {
+			delete(csdb.codeCache, k)
+		}
+	} else {
+		csdb.codeCache = make(map[ethcmn.Address]CacheCode, 0)
+	}
+
+	csdb.dbAdapter = csdbParams.Ada
+
+	if csdb.updatedAccount != nil {
+		for k := range csdb.updatedAccount {
+			delete(csdb.updatedAccount, k)
+		}
+	} else {
+		csdb.updatedAccount = make(map[ethcmn.Address]struct{})
+	}
+
+	csdb.prefetcher = nil
+	csdb.ctx = ctx
+	csdb.refund = 0
+	csdb.thash = ethcmn.Hash{}
+	csdb.bhash = ethcmn.Hash{}
+	csdb.txIndex = 0
+	csdb.dbErr = nil
+	csdb.nextRevisionID = 0
+	csdb.params = nil
 }
 
 func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *CommitStateDB {
