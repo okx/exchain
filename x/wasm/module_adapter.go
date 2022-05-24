@@ -88,11 +88,8 @@ func (am AppModule) RegisterTask() upgrade.HeightTask {
 			if am.Sealed() {
 				return nil
 			}
-			data := am.cdc.GetCdc().MustMarshalJSON(&GenesisState{
-				Params: DefaultParams(),
-			})
-			am.InitGenesis(ctx, data)
-			return nil
+			_, err := InitGenesis(ctx, am.keeper, GenesisState{Params: DefaultParams()}, am.NewHandler())
+			return err
 		})
 }
 
