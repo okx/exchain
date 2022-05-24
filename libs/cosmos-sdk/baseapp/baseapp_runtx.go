@@ -224,12 +224,12 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	if mode != runTxModeDeliverInAsync {
 		app.pin(trace.CacheStoreWrite, true, mode)
 		info.msCacheAnte.Write()
+		if mode == runTxModeDeliver {
+			info.reusableCacheMultiStore = info.msCacheAnte
+			info.msCacheAnte = nil
+		}
 		info.ctx.Cache().Write(true)
 		app.pin(trace.CacheStoreWrite, false, mode)
-	}
-
-	if mode == runTxModeDeliver {
-		info.reusableCacheMultiStore = info.msCacheAnte
 	}
 
 	return nil
