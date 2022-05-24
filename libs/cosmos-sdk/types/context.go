@@ -133,7 +133,7 @@ func (c *Context) GetToAccountCacheGas() Gas {
 	return c.accountCache.ToAccGotGas
 }
 
-func (c Context) OverrideBytes() []byte {
+func (c *Context) OverrideBytes() []byte {
 	return c.overridesBytes
 }
 
