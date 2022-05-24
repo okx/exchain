@@ -32,6 +32,8 @@ var (
 	ErrVoteHeightMismatch       = errors.New("error vote height mismatch")
 
 	errPubKeyIsNotSet = errors.New("pubkey is not set. Look for \"Can't get private validator pubkey\" errors")
+
+	ActiveViewChange = false
 )
 
 //-----------------------------------------------------------------------------
@@ -97,7 +99,8 @@ type State struct {
 	evpool evidencePool
 
 	// internal state
-	mtx sync.RWMutex
+	mtx      sync.RWMutex
+	stateMtx sync.RWMutex
 	cstypes.RoundState
 	state sm.State // State until height-1.
 	// privValidator pubkey, memoized for the duration of one block
@@ -146,6 +149,8 @@ type State struct {
 
 	prerunTx bool
 	bt       *BlockTransport
+
+	vcMsg *ViewChangeMessage
 }
 
 // StateOption sets an optional parameter on the State.

@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/consensus"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -645,6 +646,7 @@ func (c *OecConfig) GetActiveVC() bool {
 }
 func (c *OecConfig) SetActiveVC(value bool) {
 	c.activeVC = value
+	consensus.ActiveViewChange = value
 }
 
 func (c *OecConfig) GetBlockPartSize() int {

@@ -90,7 +90,26 @@ func (cs *State) enterPropose(height int64, round int) {
 			cs.Step))
 		return
 	}
+	cs.doPropose(height, round)
+}
 
+func (cs *State) enterProposeWithVal(height int64, round int) {
+	logger := cs.Logger.With("height", height, "round", round)
+	if cs.Height != height || round < cs.Round || (cs.Round == round && cstypes.RoundStepPropose < cs.Step) {
+		logger.Debug(fmt.Sprintf(
+			"enterPropose(%v/%v): Invalid args. Current step: %v/%v/%v",
+			height,
+			round,
+			cs.Height,
+			cs.Round,
+			cs.Step))
+		return
+	}
+	cs.doPropose(height, round)
+}
+
+func (cs *State) doPropose(height int64, round int) {
+	logger := cs.Logger.With("height", height, "round", round)
 	cs.initNewHeight()
 	isBlockProducer, bpAddr := cs.isBlockProducer()
 	cs.trc.Pin("enterPropose-%d-%s-%s", round, isBlockProducer, bpAddr)
@@ -282,7 +301,7 @@ func (cs *State) onBlockPartAdded(height int64, round, index int, added bool, er
 	if err != nil {
 		cs.bt.droppedDue2Error++
 	}
-	
+
 	if added {
 		if cs.ProposalBlockParts.Count() == 1 {
 			cs.trc.Pin("1stPart")
@@ -290,7 +309,7 @@ func (cs *State) onBlockPartAdded(height int64, round, index int, added bool, er
 		}
 		// event to decrease blockpart transport
 		if cfg.DynamicConfig.GetEnableHasBlockPartMsg() {
-			cs.evsw.FireEvent(types.EventBlockPart, &HasBlockPartMessage{height, round, index,})
+			cs.evsw.FireEvent(types.EventBlockPart, &HasBlockPartMessage{height, round, index})
 		}
 	} else {
 		cs.bt.droppedDue2NotAdded++

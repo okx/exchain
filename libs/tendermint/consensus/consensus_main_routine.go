@@ -5,6 +5,7 @@ import (
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
 	"github.com/okex/exchain/libs/tendermint/libs/fail"
+	"github.com/okex/exchain/libs/tendermint/types"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
 	"reflect"
 	"runtime/debug"
@@ -106,6 +107,29 @@ func (cs *State) handleMsg(mi msgInfo) {
 	)
 	msg, peerID := mi.Msg, mi.PeerID
 	switch msg := msg.(type) {
+	// todo review logice of vcMsg
+	case *ViewChangeMessage:
+		if ActiveViewChange {
+			// only in round0 use vcMsg
+			// only handle when don't have valid vcMsg
+			// only handle vcMsg of same height
+			if cs.Round != 0 ||
+				(cs.vcMsg != nil && cs.vcMsg.Height >= msg.Height) ||
+				msg.Height != cs.Height {
+				return
+			}
+
+			cs.vcMsg = msg
+			// ApplyBlock of height-1 has finished
+			if cs.Step != cstypes.RoundStepNewHeight {
+				// at height, has enterNewHeight
+				// vc immediately
+				_, val := cs.Validators.GetByAddress(msg.NewProposer)
+				cs.enterNewRoundWithVal(cs.Height, 0, val)
+			}
+			// else: at height-1 and waiting, has not enterNewHeight
+			// enterNewHeight use msg.val
+		}
 	case *ProposalMessage:
 		// will not cause transition.
 		// once proposal is set, we can receive block parts
@@ -199,7 +223,7 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 	case cstypes.RoundStepNewHeight:
 		// NewRound event fired from enterNewRound.
 		// XXX: should we fire timeout here (for timeout commit)?
-		cs.enterNewRound(ti.Height, 0)
+		cs.enterNewHeight(ti.Height)
 	case cstypes.RoundStepNewRound:
 		cs.enterPropose(ti.Height, 0)
 	case cstypes.RoundStepPropose:
@@ -218,7 +242,6 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 
 }
 
-
 // enterNewRound(height, 0) at cs.StartTime.
 func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	overDuration := tmtime.Now().Sub(cs.StartTime)
@@ -230,7 +253,27 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 		sleepDuration = 0
 	}
 
+	if ActiveViewChange {
+		// itself is proposer, no need to request
+		isBlockProducer, _ := cs.isBlockProducer()
+		if isBlockProducer != "y" {
+			// request for proposer of new height
+			prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address()}
+			go cs.requestForProposer(prMsg)
+		}
+	}
+
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
+}
+
+// requestForProposer FireEvent to broadcast ProposeRequestMessage
+func (cs *State) requestForProposer(prMsg ProposeRequestMessage) {
+	if signature, err := cs.privValidator.SignBytes(prMsg.SignBytes()); err == nil {
+		prMsg.Signature = signature
+		cs.evsw.FireEvent(types.EventProposeRequest, &prMsg)
+	} else {
+		cs.Logger.Error("requestForProposer", "err", err)
+	}
 }
 
 // Attempt to schedule a timeout (by sending timeoutInfo on the tickChan)

@@ -3,6 +3,7 @@ package consensus
 import (
 	"fmt"
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
+	"github.com/okex/exchain/libs/tendermint/types"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
 )
 
@@ -48,7 +49,9 @@ func (cs *State) enterNewRound(height int64, round int) {
 	// we don't fire newStep for this step,
 	// but we fire an event, so update the round step first
 	cs.updateRoundStep(round, cstypes.RoundStepNewRound)
+	cs.stateMtx.Lock()
 	cs.Validators = validators
+	cs.stateMtx.Unlock()
 	if round == 0 {
 		// We've already reset these upon new height,
 		// and meanwhile we might have received a proposal
@@ -76,5 +79,58 @@ func (cs *State) enterNewRound(height int64, round int) {
 		}
 	} else {
 		cs.enterPropose(height, round)
+	}
+}
+
+func (cs *State) enterNewRoundWithVal(height int64, round int, val *types.Validator) {
+	logger := cs.Logger.With("height", height, "round", round)
+	if round != 0 || cs.Round != 0 || cs.Height != height {
+		logger.Debug(fmt.Sprintf(
+			"enterNewRoundWithVal(%v/%v): Invalid args. Current step: %v/%v/%v",
+			height,
+			round,
+			cs.Height,
+			cs.Round,
+			cs.Step))
+		return
+	}
+
+	cs.initNewHeight()
+	cs.trc.Pin("NewRoundVC-%d", round)
+	logger.Info(fmt.Sprintf("enterNewRoundWithVal(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
+
+	// Setup new round
+	// we don't fire newStep for this step,
+	// but we fire an event, so update the round step first
+	cs.updateRoundStep(round, cstypes.RoundStepNewRound)
+	cs.Validators.Proposer = val
+	if cs.Votes.Round() == 0 {
+		cs.Votes.SetRound(1) // also track next round (round+1) to allow round-skipping
+	}
+	cs.TriggeredTimeoutPrecommit = false
+	cs.eventBus.PublishEventNewRound(cs.NewRoundEvent())
+	cs.metrics.Rounds.Set(float64(round))
+
+	// Wait for txs to be available in the mempool
+	// before we enterPropose in round 0. If the last block changed the app hash,
+	// we may need an empty "proof" block, and enterPropose immediately.
+	waitForTxs := cs.config.WaitForTxs() && round == 0 && !cs.needProofBlock(height)
+	if waitForTxs {
+		if cs.config.CreateEmptyBlocksInterval > 0 {
+			cs.scheduleTimeout(cs.config.CreateEmptyBlocksInterval, height, round,
+				cstypes.RoundStepNewRound)
+		}
+	} else {
+		cs.enterProposeWithVal(height, round)
+	}
+}
+
+// Enter: `timeoutNewHeight` by startTime (after timeoutCommit),
+func (cs *State) enterNewHeight(height int64) {
+	if ActiveViewChange && cs.vcMsg != nil && cs.vcMsg.Validate(height, cs.Validators.Proposer.Address) {
+		_, val := cs.Validators.GetByAddress(cs.vcMsg.NewProposer)
+		cs.enterNewRoundWithVal(height, 0, val)
+	} else {
+		cs.enterNewRound(height, 0)
 	}
 }
