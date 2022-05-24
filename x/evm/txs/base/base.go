@@ -1,13 +1,14 @@
 package base
 
 import (
+	"math/big"
+
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/x/common/analyzer"
 	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/types"
-	"math/big"
 )
 
 // Keeper alias of keeper.Keeper, to solve import circle. also evm.Keeper is alias keeper.Keeper
@@ -52,12 +53,7 @@ func (tx *Tx) GetChainConfig() (types.ChainConfig, bool) {
 // Transition execute evm tx
 func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 	result.ExecResult, result.ResultData, err, result.InnerTxs, result.Erc20Contracts = tx.StateTransition.TransitionDb(tx.Ctx, config)
-	if result.InnerTxs != nil {
-		tx.Keeper.AddInnerTx(tx.StateTransition.TxHash.Hex(), result.InnerTxs)
-	}
-	if result.Erc20Contracts != nil {
-		tx.Keeper.AddContract(result.Erc20Contracts)
-	}
+
 	// async mod goes immediately
 	if tx.Ctx.IsAsync() {
 		tx.Keeper.LogsManages.Set(string(tx.Ctx.TxBytes()), keeper.TxResult{

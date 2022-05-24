@@ -1,6 +1,8 @@
 package deliver
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/app/refund"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
@@ -9,7 +11,6 @@ import (
 	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
-	"math/big"
 )
 
 type Tx struct {
@@ -72,6 +73,19 @@ func (tx *Tx) RestoreWatcherTransactionReceipt(msg *types.MsgEthereumTx) {
 		*tx.StateTransition.TxHash,
 		uint64(tx.Keeper.TxCount-1),
 		&types.ResultData{}, tx.Ctx.GasMeter().GasConsumed())
+}
+
+func (tx *Tx) Transition(config types.ChainConfig) (result base.Result, err error) {
+	result, err = tx.Tx.Transition(config)
+
+	if result.InnerTxs != nil {
+		tx.Keeper.AddInnerTx(tx.StateTransition.TxHash.Hex(), result.InnerTxs)
+	}
+	if result.Erc20Contracts != nil {
+		tx.Keeper.AddContract(result.Erc20Contracts)
+	}
+
+	return
 }
 
 func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *base.Result) {
