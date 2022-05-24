@@ -55,7 +55,7 @@ jobs:
         run: |
           set -ex
           codePath="./x/..."
-          go list ${codePath} |xargs go test -mod=readonly -timeout 8m -coverprofile=coverage.data -covermode=atomic 
+          go list ${codePath} |xargs go test -mod=readonly -timeout 10m -coverprofile=coverage.data -covermode=atomic
         continue-on-error: true
 
       - name: Run Test exchain/x Retry
@@ -64,7 +64,7 @@ jobs:
         run: |
           set -ex
           codePath="./x/..."
-          go list ${codePath} |xargs go test -mod=readonly -timeout 8m -coverprofile=coverage.data -covermode=atomic 
+          go list ${codePath} |xargs go test -mod=readonly -timeout 10m -coverprofile=coverage.data -covermode=atomic 
 
       - name: Upload code coverage
         run: |
