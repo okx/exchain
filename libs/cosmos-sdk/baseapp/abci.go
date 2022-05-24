@@ -393,7 +393,7 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 		switch path[1] {
 		case "simulate":
 			queryBytes := req.Data
-			var queryData types.QuerySimulateData
+			var queryData types.SimulateData
 			var txBytes []byte
 			if err := json.Unmarshal(queryBytes, &queryData); err != nil {
 				//if cannot unmarshal req.Data as QuerySimulateData,  try decode as tx

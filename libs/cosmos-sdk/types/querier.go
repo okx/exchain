@@ -9,7 +9,7 @@ type QueryTraceTx struct {
 	ConfigBytes []byte      `json:"config"`
 }
 
-type QuerySimulateData struct {
+type SimulateData struct {
 	TxBytes        []byte `json:"tx"`
 	OverridesBytes []byte `json:"overrides"`
 }

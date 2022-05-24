@@ -996,7 +996,7 @@ func TestSimulateTx(t *testing.T) {
 		require.Equal(t, gasConsumed, gInfo.GasUsed)
 
 		// simulate by calling Query with encoded tx
-		queryData := sdk.QuerySimulateData{
+		queryData := sdk.SimulateData{
 			TxBytes: txBytes,
 		}
 		queryDataBz, err := json.Marshal(queryData)

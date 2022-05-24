@@ -335,7 +335,7 @@ func CalculateGas(
 
 	// run a simulation (via /app/simulate query) to
 	// estimate gas and update TxBuilder accordingly
-	queryData := sdk.QuerySimulateData{
+	queryData := sdk.SimulateData{
 		TxBytes: txBytes,
 	}
 	queryBz, err := json.Marshal(queryData)

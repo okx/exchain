@@ -967,13 +967,13 @@ func (api *PublicEthereumAPI) doCall(
 	if err != nil {
 		return nil, err
 	}
-	simulateQueryData := sdk.QuerySimulateData{
+	simulateQueryData := sdk.SimulateData{
 		TxBytes:        txBytes,
 		OverridesBytes: overridesBytes,
 	}
 	queryBytes, err := json.Marshal(simulateQueryData)
 	if err != nil {
-		return nil, fmt.Errorf("fail to encode querySimulateData")
+		return nil, fmt.Errorf("fail to encode simulateQueryData")
 	}
 	// Transaction simulation through query. only pass from when eth_estimateGas.
 	// eth_call's from maybe nil
