@@ -3,6 +3,7 @@ package iavl
 import (
 	"bytes"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 type traversal struct {
@@ -134,4 +135,81 @@ func (t *traversal) next() *Node {
 
 	// Keep traversing and expanding the remaning delayed nodes. A-4.
 	return t.next()
+}
+
+// Iterator is a dbm.Iterator for ImmutableTree
+type Iterator struct {
+	start, end []byte
+
+	key, value []byte
+
+	valid bool
+
+	t *traversal
+}
+
+func (t *ImmutableTree) Iterator(start, end []byte, ascending bool) *Iterator {
+	iter := &Iterator{
+		start: start,
+		end:   end,
+		valid: true,
+		t:     t.root.newTraversal(t, start, end, ascending, false, false),
+	}
+
+	iter.Next()
+	return iter
+}
+
+var _ dbm.Iterator = &Iterator{}
+
+// Domain implements dbm.Iterator.
+func (iter *Iterator) Domain() ([]byte, []byte) {
+	return iter.start, iter.end
+}
+
+// Valid implements dbm.Iterator.
+func (iter *Iterator) Valid() bool {
+	return iter.valid
+}
+
+// Key implements dbm.Iterator
+func (iter *Iterator) Key() []byte {
+	return iter.key
+}
+
+// Value implements dbm.Iterator
+func (iter *Iterator) Value() []byte {
+	return iter.value
+}
+
+// Next implements dbm.Iterator
+func (iter *Iterator) Next() {
+	if iter.t == nil {
+		return
+	}
+
+	node := iter.t.next()
+	if node == nil {
+		iter.t = nil
+		iter.valid = false
+		return
+	}
+
+	if node.height == 0 {
+		iter.key, iter.value = node.key, node.value
+		return
+	}
+
+	iter.Next()
+}
+
+// Close implements dbm.Iterator
+func (iter *Iterator) Close() {
+	iter.t = nil
+	iter.valid = false
+}
+
+// Error implements dbm.Iterator
+func (iter *Iterator) Error() error {
+	return nil
 }

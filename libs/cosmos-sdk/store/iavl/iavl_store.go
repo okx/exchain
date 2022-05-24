@@ -3,16 +3,13 @@ package iavl
 import (
 	"errors"
 	"fmt"
-	"io"
-	"sync"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"io"
 
 	"github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
-	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
 	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
@@ -380,178 +377,6 @@ func (st *Store) ResetCount() {
 	st.resetFlatKVCount()
 }
 
-//----------------------------------------
-
-// Implements types.Iterator.
-type iavlIterator struct {
-	// Domain
-	start, end []byte
-
-	key   []byte // The current key (mutable)
-	value []byte // The current value (mutable)
-
-	// Underlying store
-	tree *iavl.ImmutableTree
-
-	// Channel to push iteration values.
-	iterCh chan tmkv.Pair
-
-	// Close this to release goroutine.
-	quitCh chan struct{}
-
-	// Close this to signal that state is initialized.
-	initCh chan struct{}
-
-	mtx sync.Mutex
-
-	ascending bool // Iteration order
-
-	invalid bool // True once, true forever (mutable)
-}
-
-var _ types.Iterator = (*iavlIterator)(nil)
-
-// newIAVLIterator will create a new iavlIterator.
-// CONTRACT: Caller must release the iavlIterator, as each one creates a new
-// goroutine.
-func newIAVLIterator(tree *iavl.ImmutableTree, start, end []byte, ascending bool) *iavlIterator {
-	iter := &iavlIterator{
-		tree:      tree,
-		start:     types.Cp(start),
-		end:       types.Cp(end),
-		ascending: ascending,
-		iterCh:    make(chan tmkv.Pair), // Set capacity > 0?
-		quitCh:    make(chan struct{}),
-		initCh:    make(chan struct{}),
-	}
-	go iter.iterateRoutine()
-	go iter.initRoutine()
-	return iter
-}
-
-// Run this to funnel items from the tree to iterCh.
-func (iter *iavlIterator) iterateRoutine() {
-	iter.tree.IterateRange(
-		iter.start, iter.end, iter.ascending,
-		func(key, value []byte) bool {
-			select {
-			case <-iter.quitCh:
-				return true // done with iteration.
-			case iter.iterCh <- tmkv.Pair{Key: key, Value: value}:
-				return false // yay.
-			}
-		},
-	)
-	close(iter.iterCh) // done.
-}
-
-// Run this to fetch the first item.
-func (iter *iavlIterator) initRoutine() {
-	iter.receiveNext()
-	close(iter.initCh)
-}
-
-// Implements types.Iterator.
-func (iter *iavlIterator) Domain() (start, end []byte) {
-	return iter.start, iter.end
-}
-
-// Implements types.Iterator.
-func (iter *iavlIterator) Valid() bool {
-	iter.waitInit()
-	iter.mtx.Lock()
-
-	validity := !iter.invalid
-	iter.mtx.Unlock()
-	return validity
-}
-
-// Implements types.Iterator.
-func (iter *iavlIterator) Next() {
-	iter.waitInit()
-	iter.mtx.Lock()
-	iter.assertIsValid(true)
-
-	iter.receiveNext()
-	iter.mtx.Unlock()
-}
-
-// Implements types.Iterator.
-func (iter *iavlIterator) Key() []byte {
-	iter.waitInit()
-	iter.mtx.Lock()
-	iter.assertIsValid(true)
-
-	key := iter.key
-	iter.mtx.Unlock()
-	return key
-}
-
-// Implements types.Iterator.
-func (iter *iavlIterator) Value() []byte {
-	iter.waitInit()
-	iter.mtx.Lock()
-	iter.assertIsValid(true)
-
-	val := iter.value
-	iter.mtx.Unlock()
-	return val
-}
-
-// Close closes the IAVL iterator by closing the quit channel and waiting for
-// the iterCh to finish/close.
-func (iter *iavlIterator) Close() {
-	close(iter.quitCh)
-	// wait iterCh to close
-	for range iter.iterCh {
-	}
-}
-
-// Error performs a no-op.
-func (iter *iavlIterator) Error() error {
-	return nil
-}
-
-//----------------------------------------
-
-func (iter *iavlIterator) setNext(key, value []byte) {
-	iter.assertIsValid(false)
-
-	iter.key = key
-	iter.value = value
-}
-
-func (iter *iavlIterator) setInvalid() {
-	iter.assertIsValid(false)
-
-	iter.invalid = true
-}
-
-func (iter *iavlIterator) waitInit() {
-	<-iter.initCh
-}
-
-func (iter *iavlIterator) receiveNext() {
-	kvPair, ok := <-iter.iterCh
-	if ok {
-		iter.setNext(kvPair.Key, kvPair.Value)
-	} else {
-		iter.setInvalid()
-	}
-}
-
-// assertIsValid panics if the iterator is invalid. If unlockMutex is true,
-// it also unlocks the mutex before panicing, to prevent deadlocks in code that
-// recovers from panics
-func (iter *iavlIterator) assertIsValid(unlockMutex bool) {
-	if iter.invalid {
-		if unlockMutex {
-			iter.mtx.Unlock()
-		}
-		panic("invalid iterator")
-	}
-}
-
 // SetInitialVersion sets the initial version of the IAVL tree. It is used when
 // starting a new chain at an arbitrary height.
 func (st *Store) SetInitialVersion(version int64) {
@@ -586,4 +411,23 @@ func (st *Store) SetUpgradeVersion(version int64) {
 
 func (st *Store) GetUpgradeVersion() int64 {
 	return st.upgradeVersion
+}
+
+//----------------------------------------
+
+// Implements types.Iterator.
+type iavlIterator struct {
+	*iavl.Iterator
+}
+
+var _ types.Iterator = (*iavlIterator)(nil)
+
+// newIAVLIterator will create a new iavlIterator.
+// CONTRACT: Caller must release the iavlIterator, as each one creates a new
+// goroutine.
+func newIAVLIterator(tree *iavl.ImmutableTree, start, end []byte, ascending bool) *iavlIterator {
+	iter := &iavlIterator{
+		Iterator: tree.Iterator(start, end, ascending),
+	}
+	return iter
 }

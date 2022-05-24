@@ -569,74 +569,27 @@ func (node *Node) calcBalance(t *ImmutableTree) int {
 
 // traverse is a wrapper over traverseInRange when we want the whole tree
 func (node *Node) traverse(t *ImmutableTree, ascending bool, cb func(*Node) bool) bool {
-	return node.traverseInRange(t, nil, nil, ascending, false, 0, false, func(node *Node, depth uint8) bool {
+	return node.traverseInRange(t, nil, nil, ascending, false, false, func(node *Node) bool {
 		return cb(node)
 	})
 }
 
 // traversePost is a wrapper over traverseInRange when we want the whole tree post-order
 func (node *Node) traversePost(t *ImmutableTree, ascending bool, cb func(*Node) bool) bool {
-	return node.traverseInRange(t, nil, nil, ascending, false, 0, true, func(node *Node, depth uint8) bool {
+	return node.traverseInRange(t, nil, nil, ascending, false, true, func(node *Node) bool {
 		return cb(node)
 	})
 }
 
-func (node *Node) traverseInRange(t *ImmutableTree, start, end []byte, ascending bool, inclusive bool, depth uint8, post bool, cb func(*Node, uint8) bool) bool {
-	if node == nil {
-		return false
-	}
-	afterStart := start == nil || bytes.Compare(start, node.key) < 0
-	startOrAfter := start == nil || bytes.Compare(start, node.key) <= 0
-	beforeEnd := end == nil || bytes.Compare(node.key, end) < 0
-	if inclusive {
-		beforeEnd = end == nil || bytes.Compare(node.key, end) <= 0
-	}
-
-	// Run callback per inner/leaf node.
+func (node *Node) traverseInRange(tree *ImmutableTree, start, end []byte, ascending bool, inclusive bool, post bool, cb func(*Node) bool) bool {
 	stop := false
-	if !post && (!node.isLeaf() || (startOrAfter && beforeEnd)) {
-		stop = cb(node, depth)
+	t := node.newTraversal(tree, start, end, ascending, inclusive, post)
+	for node2 := t.next(); node2 != nil; node2 = t.next() {
+		stop = cb(node2)
 		if stop {
 			return stop
 		}
 	}
-
-	if !node.isLeaf() {
-		if ascending {
-			// check lower nodes, then higher
-			if afterStart {
-				stop = node.getLeftNode(t).traverseInRange(t, start, end, ascending, inclusive, depth+1, post, cb)
-			}
-			if stop {
-				return stop
-			}
-			if beforeEnd {
-				stop = node.getRightNode(t).traverseInRange(t, start, end, ascending, inclusive, depth+1, post, cb)
-			}
-		} else {
-			// check the higher nodes first
-			if beforeEnd {
-				stop = node.getRightNode(t).traverseInRange(t, start, end, ascending, inclusive, depth+1, post, cb)
-			}
-			if stop {
-				return stop
-			}
-			if afterStart {
-				stop = node.getLeftNode(t).traverseInRange(t, start, end, ascending, inclusive, depth+1, post, cb)
-			}
-		}
-	}
-	if stop {
-		return stop
-	}
-
-	if post && (!node.isLeaf() || (startOrAfter && beforeEnd)) {
-		stop = cb(node, depth)
-		if stop {
-			return stop
-		}
-	}
-
 	return stop
 }
 
