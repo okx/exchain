@@ -119,7 +119,7 @@ func TestBlockMakePartSet(t *testing.T) {
 func TestBlock_MakePartSetByExInfo(t *testing.T) {
 	assert.Nil(t, (*Block)(nil).MakePartSetByExInfo(nil))
 	block := MakeBlock(int64(3), []Tx{Tx("Hello World")}, nil, nil)
-	assert.Nil(t, block.MakePartSetByExInfo(nil))
+	assert.NotNil(t, block.MakePartSetByExInfo(nil))
 
 	partSet := block.MakePartSetByExInfo(&BlockExInfo{BlockPartSize: 1024})
 	assert.NotNil(t, partSet)

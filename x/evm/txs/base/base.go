@@ -55,6 +55,12 @@ func (tx *Tx) GetChainConfig() (types.ChainConfig, bool) {
 // Transition execute evm tx
 func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 	result.ExecResult, result.ResultData, err, result.InnerTxs, result.Erc20Contracts = tx.StateTransition.TransitionDb(tx.Ctx, config)
+	if result.InnerTxs != nil {
+		tx.Keeper.AddInnerTx(tx.StateTransition.TxHash.Hex(), result.InnerTxs)
+	}
+	if result.Erc20Contracts != nil {
+		tx.Keeper.AddContract(result.Erc20Contracts)
+	}
 	// async mod goes immediately
 	if tx.Ctx.ParaMsg() != nil {
 		index := tx.Keeper.LogsManages.Set(keeper.TxResult{

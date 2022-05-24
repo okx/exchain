@@ -2,13 +2,13 @@ package config
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	iavlconfig "github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/system"
@@ -16,6 +16,7 @@ import (
 	tmconfig "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/state"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/spf13/viper"
 )
@@ -81,6 +82,7 @@ type OecConfig struct {
 
 	// enable broadcast hasBlockPartMsg
 	enableHasBlockPartMsg bool
+	gcInterval            int
 }
 
 const (
@@ -106,6 +108,7 @@ const (
 	FlagCsTimeoutPrecommitDelta = "consensus.timeout_precommit_delta"
 	FlagCsTimeoutCommit         = "consensus.timeout_commit"
 	FlagEnableHasBlockPartMsg   = "enable-blockpart-ack"
+	FlagDebugGcInterval         = "debug.gc-interval"
 )
 
 var (
@@ -216,6 +219,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetDeliverTxsExecuteMode(viper.GetInt(state.FlagDeliverTxsExecMode))
 	c.SetBlockPartSize(viper.GetInt(server.FlagBlockPartSizeBytes))
 	c.SetEnableHasBlockPartMsg(viper.GetBool(FlagEnableHasBlockPartMsg))
+	c.SetGcInterval(viper.GetInt(FlagDebugGcInterval))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -429,6 +433,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetEnableHasBlockPartMsg(r)
+	case FlagDebugGcInterval:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetGcInterval(r)
 	}
 }
 
@@ -628,7 +638,6 @@ func (c *OecConfig) GetIavlCacheSize() int {
 }
 func (c *OecConfig) SetIavlCacheSize(value int) {
 	c.iavlCacheSize = value
-	iavl.IavlCacheSize = value
 }
 
 func (c *OecConfig) GetActiveVC() bool {
@@ -662,6 +671,20 @@ func (c *OecConfig) SetBlockCompressFlag(value int) {
 	tmtypes.BlockCompressFlag = value
 }
 
+func (c *OecConfig) GetGcInterval() int {
+	return c.gcInterval
+}
+
+func (c *OecConfig) SetGcInterval(value int) {
+	// close gc for debug
+	if value > 0 {
+		debug.SetGCPercent(-1)
+	} else {
+		debug.SetGCPercent(100)
+	}
+	c.gcInterval = value
+
+}
 func (c *OecConfig) GetEnableHasBlockPartMsg() bool {
 	return c.enableHasBlockPartMsg
 }
