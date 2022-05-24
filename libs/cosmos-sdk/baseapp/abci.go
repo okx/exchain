@@ -294,6 +294,8 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	app.cms.ResetCount()
 	app.logger.Debug("Commit synced", "commit", amino.BytesHexStringer(commitID.Hash))
 
+	app.checkTxCacheMultiStores.Clear()
+
 	// Reset the Check state to the latest committed.
 	//
 	// NOTE: This is safe because Tendermint holds a lock on the mempool for

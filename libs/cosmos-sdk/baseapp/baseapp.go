@@ -221,6 +221,7 @@ type BaseApp struct { // nolint: maligned
 	interceptors map[string]Interceptor
 
 	reusableCacheMultiStore sdk.CacheMultiStore
+	checkTxCacheMultiStores *cacheMultiStoreList
 }
 
 type recordHandle func(string)
@@ -254,6 +255,8 @@ func NewBaseApp(
 		msgServiceRouter: NewMsgServiceRouter(),
 		grpcQueryRouter:  NewGRPCQueryRouter(),
 		interceptors:     make(map[string]Interceptor),
+
+		checkTxCacheMultiStores: newCacheMultiStoreList(),
 	}
 
 	for _, option := range options {
