@@ -3,19 +3,17 @@ package iavl
 import (
 	"errors"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"io"
-
-	"github.com/okex/exchain/libs/iavl"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
-	dbm "github.com/okex/exchain/libs/tm-db"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/tracekv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/iavl"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	dbm "github.com/okex/exchain/libs/tm-db"
+	"io"
 )
 
 var (
