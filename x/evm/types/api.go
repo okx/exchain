@@ -89,7 +89,7 @@ type OverrideAccount struct {
 type StateOverrides map[common.Address]OverrideAccount
 
 // Apply overrides the fields of specified accounts into the given state.
-func (diff *StateOverrides) Apply(state *CommitStateDB) error {
+func (diff *StateOverrides) Apply(state *CommitStateDB) {
 	for addr, account := range *diff {
 		// Override account nonce.
 		if account.Nonce != nil {
@@ -103,9 +103,6 @@ func (diff *StateOverrides) Apply(state *CommitStateDB) error {
 		if account.Balance != nil {
 			state.SetBalance(addr, (*big.Int)(*account.Balance))
 		}
-		if account.State != nil && account.StateDiff != nil {
-			return fmt.Errorf("account %s has both 'state' and 'stateDiff'", addr.Hex())
-		}
 		// Replace entire state if caller requires.
 		if account.State != nil {
 			state.SetStorage(addr, *account.State)
@@ -117,7 +114,6 @@ func (diff *StateOverrides) Apply(state *CommitStateDB) error {
 			}
 		}
 	}
-	return nil
 }
 func (diff *StateOverrides) Check() error {
 	for addr, account := range *diff {
