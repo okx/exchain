@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/client"
 	"io"
 	"math/big"
 	"os"
@@ -114,6 +115,7 @@ var (
 			evmclient.ManageContractMethodBlockedListProposalHandler,
 			govclient.ManageTreasuresProposalHandler,
 			erc20client.TokenMappingProposalHandler,
+			client.UpdateClientProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},

@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	"strings"
 	"time"
 
@@ -352,8 +353,9 @@ func (sup SoftwareUpgradeProposal) String() string {
 }
 
 var validProposalTypes = map[string]struct{}{
-	ProposalTypeText:            {},
-	ProposalTypeSoftwareUpgrade: {},
+	ProposalTypeText:               {},
+	ProposalTypeSoftwareUpgrade:    {},
+	types.ProposalTypeClientUpdate: {},
 }
 
 // RegisterProposalType registers a proposal type. It will panic if the type is
