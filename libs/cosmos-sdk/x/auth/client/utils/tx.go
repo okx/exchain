@@ -236,7 +236,7 @@ func signPbTx(txConfig client.TxConfig, txf authtypes.TxBuilder, name string, pa
 		return err
 	}
 
-	pubKeyPB := ibctx.LagacyKey2PbKey(privKey.PubKey())
+	pubKeyPB := ibc_tx.LagacyKey2PbKey(privKey.PubKey())
 
 	signerData := signingtypes.SignerData{
 		ChainID:       txf.ChainID(),
