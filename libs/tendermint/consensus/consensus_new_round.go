@@ -127,7 +127,7 @@ func (cs *State) enterNewRoundWithVal(height int64, round int, val *types.Valida
 
 // Enter: `timeoutNewHeight` by startTime (after timeoutCommit),
 func (cs *State) enterNewHeight(height int64) {
-	if ActiveViewChange && cs.vcMsg != nil && cs.vcMsg.Validate(height, cs.Validators.Proposer.Address) {
+	if ActiveViewChange && cs.vcMsg != nil && cs.vcMsg.Height == cs.Height {
 		_, val := cs.Validators.GetByAddress(cs.vcMsg.NewProposer)
 		cs.enterNewRoundWithVal(height, 0, val)
 	} else {

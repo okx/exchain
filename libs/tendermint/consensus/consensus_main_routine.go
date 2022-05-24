@@ -64,7 +64,9 @@ func (cs *State) receiveRoutine(maxSteps int) {
 		case <-cs.txNotifier.TxsAvailable():
 			cs.handleTxsAvailable()
 		case mi = <-cs.peerMsgQueue:
-			cs.wal.Write(mi)
+			if _, ok := mi.Msg.(*ViewChangeMessage); !ok {
+				cs.wal.Write(mi)
+			}
 			// handles proposals, block parts, votes
 			// may generate internal events (votes, complete proposals, 2/3 majorities)
 			cs.handleMsg(mi)
@@ -109,27 +111,34 @@ func (cs *State) handleMsg(mi msgInfo) {
 	switch msg := msg.(type) {
 	// todo review logice of vcMsg
 	case *ViewChangeMessage:
-		if ActiveViewChange {
-			// only in round0 use vcMsg
-			// only handle when don't have valid vcMsg
-			// only handle vcMsg of same height
-			if cs.Round != 0 ||
-				(cs.vcMsg != nil && cs.vcMsg.Height >= msg.Height) ||
-				msg.Height != cs.Height {
-				return
-			}
-
-			cs.vcMsg = msg
-			// ApplyBlock of height-1 has finished
-			if cs.Step != cstypes.RoundStepNewHeight {
-				// at height, has enterNewHeight
-				// vc immediately
-				_, val := cs.Validators.GetByAddress(msg.NewProposer)
-				cs.enterNewRoundWithVal(cs.Height, 0, val)
-			}
-			// else: at height-1 and waiting, has not enterNewHeight
-			// enterNewHeight use msg.val
+		if !ActiveViewChange {
+			return
 		}
+
+		// only in round0 use vcMsg
+		// only handle when don't have valid vcMsg
+		// only handle vcMsg of bigger height
+		if cs.Round != 0 ||
+			(cs.vcMsg != nil && cs.vcMsg.Height >= msg.Height) ||
+			msg.Height < cs.Height {
+			return
+		}
+
+		cs.vcMsg = msg
+		// only handle enterNewRound of same height
+		if msg.Height > cs.Height {
+			return
+		}
+		// ApplyBlock of height-1 has finished
+		// at this height, it has enterNewHeight
+		// vc immediately
+		if cs.Step != cstypes.RoundStepNewHeight {
+			_, val := cs.Validators.GetByAddress(msg.NewProposer)
+			cs.enterNewRoundWithVal(cs.Height, 0, val)
+		}
+		// else: at height-1 and waiting, has not enterNewHeight
+		// and enterNewHeight use cs.vcMsg
+
 	case *ProposalMessage:
 		// will not cause transition.
 		// once proposal is set, we can receive block parts
