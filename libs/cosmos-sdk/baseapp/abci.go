@@ -394,10 +394,14 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 		case "simulate":
 			queryBytes := req.Data
 			var queryData types.QuerySimulateData
+			var txBytes []byte
 			if err := json.Unmarshal(queryBytes, &queryData); err != nil {
-				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode querySimulateData"))
+				//if cannot unmarshal req.Data as QuerySimulateData,  try decode as tx
+				txBytes = req.Data
+			} else {
+				txBytes = queryData.TxBytes
 			}
-			txBytes := queryData.TxBytes
+
 			tx, err := app.txDecoder(txBytes)
 			if err != nil {
 				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))

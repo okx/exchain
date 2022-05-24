@@ -3,12 +3,13 @@ package utils
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
-	ibctx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	"io/ioutil"
 	"math/big"
 	"os"
+
+	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
@@ -334,7 +335,14 @@ func CalculateGas(
 
 	// run a simulation (via /app/simulate query) to
 	// estimate gas and update TxBuilder accordingly
-	rawRes, _, err := queryFunc("/app/simulate", txBytes)
+	queryData := sdk.QuerySimulateData{
+		TxBytes: txBytes,
+	}
+	queryBz, err := json.Marshal(queryData)
+	if err != nil {
+		return sdk.SimulationResponse{}, 0, fmt.Errorf("fail to marshal querySimulateData")
+	}
+	rawRes, _, err := queryFunc("/app/simulate", queryBz)
 	if err != nil {
 		return sdk.SimulationResponse{}, 0, err
 	}

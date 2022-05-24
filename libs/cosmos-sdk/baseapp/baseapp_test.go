@@ -3,6 +3,7 @@ package baseapp
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -995,9 +996,15 @@ func TestSimulateTx(t *testing.T) {
 		require.Equal(t, gasConsumed, gInfo.GasUsed)
 
 		// simulate by calling Query with encoded tx
+		queryData := sdk.QuerySimulateData{
+			TxBytes: txBytes,
+		}
+		queryDataBz, err := json.Marshal(queryData)
+		require.NoError(t, err)
+
 		query := abci.RequestQuery{
 			Path: "/app/simulate",
-			Data: txBytes,
+			Data: queryDataBz,
 		}
 		queryResult := app.Query(query)
 		require.True(t, queryResult.IsOK(), queryResult.Log)
