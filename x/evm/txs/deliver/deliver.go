@@ -75,13 +75,6 @@ func (tx *Tx) RestoreWatcherTransactionReceipt(msg *types.MsgEthereumTx) {
 }
 
 func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *base.Result) {
-	if result.InnerTxs != nil {
-		tx.Keeper.AddInnerTx(tx.StateTransition.TxHash.Hex(), result.InnerTxs)
-	}
-	if result.Erc20Contracts != nil {
-		tx.Keeper.AddContract(result.Erc20Contracts)
-	}
-
 	// update block bloom filter
 	if !tx.Ctx.IsAsync() {
 		tx.Keeper.Bloom.Or(tx.Keeper.Bloom, result.ExecResult.Bloom)
