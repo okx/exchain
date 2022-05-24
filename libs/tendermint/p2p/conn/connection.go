@@ -58,6 +58,15 @@ func (b bytesHexStringer) String() string {
 	return fmt.Sprintf("%X", []byte(b))
 }
 
+var packetPing Packet = PacketPing{}
+var packetPong Packet = PacketPong{}
+
+var packetBzPool = &sync.Pool{
+	New: func() interface{} {
+		return new(bytes.Buffer)
+	},
+}
+
 /*
 Each peer has one `MConnection` (multiplex connection) instance.
 
@@ -1159,8 +1168,17 @@ func unmarshalPacketFromAminoReader(r io.Reader, maxSize int64) (packet Packet, 
 		err = fmt.Errorf("Read overflow, this implementation can't read this because, why would anyone have this much data? Hello from 2018.")
 	}
 
+	bbuf := packetBzPool.Get().(*bytes.Buffer)
+	defer packetBzPool.Put(bbuf)
+	bbuf.Grow(int(l))
+	var bz = bbuf.Bytes()
+	if int64(cap(bz)) >= l {
+		bz = bz[:l]
+	} else {
+		bz = make([]byte, l)
+	}
+
 	// Read that many bytes.
-	var bz = make([]byte, l, l)
 	_, err = io.ReadFull(r, bz)
 	if err != nil {
 		return
@@ -1168,10 +1186,10 @@ func unmarshalPacketFromAminoReader(r io.Reader, maxSize int64) (packet Packet, 
 	n += l
 
 	if bytes.Equal(PacketPingTypePrefix, bz) {
-		packet = PacketPing{}
+		packet = packetPing
 		return
 	} else if bytes.Equal(PacketPongTypePrefix, bz) {
-		packet = PacketPong{}
+		packet = packetPong
 		return
 	} else if bytes.Equal(PacketMsgTypePrefix, bz[0:4]) {
 		msg := PacketMsg{}
