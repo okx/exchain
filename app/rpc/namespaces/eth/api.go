@@ -789,21 +789,12 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 	return common.HexToHash(res.TxHash), nil
 }
 
-func (api *PublicEthereumAPI) buildKey(args rpctypes.CallArgs, overrides *evmtypes.StateOverrides) (common.Hash, error) {
+func (api *PublicEthereumAPI) buildKey(args rpctypes.CallArgs) common.Hash {
 	latest, err := api.wrappedBackend.GetLatestBlockNumber()
 	if err != nil {
-		return common.Hash{}, err
+		return common.Hash{}
 	}
-	var overridesStr string
-	if overrides == nil {
-		overridesStr = ""
-	} else {
-		overridesStr, err = overrides.ToString()
-		if err != nil {
-			return common.Hash{}, err
-		}
-	}
-	return sha256.Sum256([]byte(args.String() + strconv.Itoa(int(latest)) + overridesStr)), nil
+	return sha256.Sum256([]byte(args.String() + strconv.Itoa(int(latest))))
 }
 
 func (api *PublicEthereumAPI) getFromCallCache(key common.Hash) ([]byte, bool) {
@@ -841,9 +832,9 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNrOrHash rpctype
 			return nil, err
 		}
 	}
-
-	key, buildKeyErr := api.buildKey(args, overrides)
-	if buildKeyErr == nil {
+	var key common.Hash
+	if overrides == nil {
+		key = api.buildKey(args)
 		if cacheData, ok := api.getFromCallCache(key); ok {
 			return cacheData, nil
 		}
@@ -862,7 +853,7 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNrOrHash rpctype
 	if err != nil {
 		return []byte{}, TransformDataError(err, "eth_call")
 	}
-	if buildKeyErr == nil {
+	if overrides == nil {
 		api.addCallCache(key, data.Ret)
 	}
 	return data.Ret, nil
