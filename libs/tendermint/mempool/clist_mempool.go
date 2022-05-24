@@ -416,8 +416,11 @@ func (mem *CListMempool) addAndSortTx(memTx *mempoolTx) error {
 		return errors.New(fmt.Sprintf("Failed to replace tx for acccount %s with nonce %d, "+
 			"the provided gas price %d is not bigger enough", memTx.from, memTx.realTx.GetNonce(), memTx.realTx.GetGasPrice()))
 	}
-
-	mem.txs.InsertElement(elem)
+	// Insert the elem if the elem has not been inserted.
+	if elem.Prev() == nil && elem.Next() == nil {
+		mem.txs.InsertElement(elem)
+	}
+	mem.addressRecord.AddItem(memTx.from, elem)
 
 	txHash := txKey(memTx.tx)
 	mem.txsMap.Store(txHash, elem)
@@ -451,7 +454,11 @@ func (mem *CListMempool) reorganizeElements(items []*clist.CElement) {
 	// resulting in execution failure
 	sort.Slice(items, func(i, j int) bool { return items[i].Nonce < items[j].Nonce })
 
+	// detach the elements in the list
 	for _, item := range items {
+		if item.Prev() == nil && item.Next() == nil {
+			continue
+		}
 		mem.txs.DetachElement(item)
 		item.NewDetachPrev()
 		item.NewDetachNext()

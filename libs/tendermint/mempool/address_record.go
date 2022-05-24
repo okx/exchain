@@ -59,8 +59,6 @@ func (ar *AddressRecord) checkRepeatedAndAddItem(memTx *mempoolTx, txPriceBump i
 	defer am.Unlock()
 	// do not need to check element nonce
 	if newElement.Nonce > am.maxNonce {
-		am.maxNonce = newElement.Nonce
-		am.items[newElement.Nonce] = newElement
 		return newElement
 	}
 
@@ -72,9 +70,11 @@ func (ar *AddressRecord) checkRepeatedAndAddItem(memTx *mempoolTx, txPriceBump i
 				return nil
 			}
 
-			// delete the old element and reorganize the elements whose nonce is greater the the new element
+			// delete the old element
 			ar.removeElement(e)
-			var items []*clist.CElement
+
+			// reorganize the new element and the elements whose nonce is greater  than the new element
+			items := []*clist.CElement{newElement}
 			for _, item := range am.items {
 				if item.Nonce > nonce {
 					items = append(items, item)
@@ -83,8 +83,6 @@ func (ar *AddressRecord) checkRepeatedAndAddItem(memTx *mempoolTx, txPriceBump i
 			ar.reorganizeElements(items)
 		}
 	}
-
-	am.items[newElement.Nonce] = newElement
 
 	return newElement
 }

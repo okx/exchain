@@ -900,3 +900,30 @@ func TestAddAndSortTxConcurrency(t *testing.T) {
 
 	wait.Wait()
 }
+
+func TestReplaceTxWithMultiAddrs(t *testing.T) {
+	app := kvstore.NewApplication()
+	cc := proxy.NewLocalClientCreator(app)
+	config := cfg.ResetTestRoot("mempool_test")
+	mempool, cleanup := newMempoolWithAppAndConfig(cc, config)
+	defer cleanup()
+
+	tx1 := &mempoolTx{height: 1, gasWanted: 1, tx: []byte("10002"), from: "1", realTx: abci.MockTx{GasPrice: big.NewInt(9740), Nonce: 1}}
+	mempool.addAndSortTx(tx1)
+	tx2 := &mempoolTx{height: 1, gasWanted: 1, tx: []byte("90000"), from: "2", realTx: abci.MockTx{GasPrice: big.NewInt(10717), Nonce: 1}}
+	mempool.addAndSortTx(tx2)
+	tx3 := &mempoolTx{height: 1, gasWanted: 1, tx: []byte("90000"), from: "3", realTx: abci.MockTx{GasPrice: big.NewInt(10715), Nonce: 1}}
+	mempool.addAndSortTx(tx3)
+	tx4 := &mempoolTx{height: 1, gasWanted: 1, tx: []byte("10001"), from: "1", realTx: abci.MockTx{GasPrice: big.NewInt(10716), Nonce: 2}}
+	mempool.addAndSortTx(tx4)
+	tx5 := &mempoolTx{height: 1, gasWanted: 1, tx: []byte("10001"), from: "1", realTx: abci.MockTx{GasPrice: big.NewInt(10712), Nonce: 1}}
+	mempool.addAndSortTx(tx5)
+
+	var nonces []uint64
+	for e := mempool.txs.Front(); e != nil; e = e.Next() {
+		if e.Address == "1" {
+			nonces = append(nonces, e.Nonce)
+		}
+	}
+	require.Equal(t, []uint64{1, 2}, nonces)
+}
