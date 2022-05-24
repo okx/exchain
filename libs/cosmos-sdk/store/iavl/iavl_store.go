@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	//"sync"
+	"sync"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
@@ -12,10 +12,10 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/iavl"
-	//iavlconfig "github.com/okex/exchain/libs/iavl/config"
+	iavlconfig "github.com/okex/exchain/libs/iavl/config"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
-	//tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
+	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
@@ -432,4 +432,17 @@ func newIAVLIterator(tree *iavl.ImmutableTree, start, end []byte, ascending bool
 		Iterator: tree.Iterator(start, end, ascending),
 	}
 	return iter
+}
+
+//TODO delete it
+
+type deleteIavlIterator struct {
+	// Channel to push iteration values.
+	iterCh chan tmkv.Pair
+	mtx    sync.Mutex
+}
+
+func testHello() {
+	fmt.Errorf("")
+	iavlconfig.DynamicConfig.GetIavlCacheSize()
 }
