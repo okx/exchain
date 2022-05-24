@@ -21,7 +21,7 @@ MercuryHeight=1
 VenusHeight=1
 Venus1Height=0
 MarsHeight=0
-SaturnHeight=1
+SaturnHeight=0
 
 # process linker flags
 ifeq ($(VERSION),)
