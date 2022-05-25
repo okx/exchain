@@ -2,6 +2,7 @@ package types
 
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 )
 
 // module codec
@@ -18,6 +19,8 @@ func RegisterCodec(cdc *codec.Codec) {
 
 	cdc.RegisterConcrete(TextProposal{}, "okexchain/gov/TextProposal", nil)
 	cdc.RegisterConcrete(SoftwareUpgradeProposal{}, "okexchain/gov/SoftwareUpgradeProposal", nil)
+
+	cdc.RegisterConcrete(clienttypes.ClientUpdateProposal{}, "cosmos-sdk/ibc.core.client.v1.ClientUpdateProposal", nil)
 }
 
 // RegisterProposalTypeCodec registers an external proposal content type defined
