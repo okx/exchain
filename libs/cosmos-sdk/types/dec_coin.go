@@ -659,14 +659,23 @@ func (coins DecCoins) IsAllPositive() bool {
 }
 
 func removeZeroDecCoins(coins DecCoins) DecCoins {
-	result := make([]DecCoin, 0, len(coins))
+	for i := 0; i < len(coins); i++ {
+		if coins[i].IsZero() {
+			break
+		} else if i == len(coins)-1 {
+			return coins
+		}
+	}
+	var result []DecCoin
+	if len(coins) > 0 {
+		result = make([]DecCoin, 0, len(coins)-1)
+	}
 
 	for _, coin := range coins {
 		if !coin.IsZero() {
 			result = append(result, coin)
 		}
 	}
-
 	return result
 }
 
