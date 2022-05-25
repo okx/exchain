@@ -4,10 +4,10 @@ import (
 	"io/ioutil"
 	"testing"
 
-	secp256k1 "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/stretchr/testify/require"
 
+	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 	"github.com/okex/exchain/x/wasm/types"
 )
 
@@ -28,7 +28,7 @@ func BenchmarkGasNormalization(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		pub.VerifySignature(message, signature)
+		pub.VerifyBytes(message, signature)
 	}
 }
 
