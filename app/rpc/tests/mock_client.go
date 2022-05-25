@@ -3,6 +3,8 @@ package tests
 import (
 	"crypto/sha256"
 	"fmt"
+	"net"
+	"net/http"
 	"time"
 
 	apptesting "github.com/okex/exchain/libs/ibc-go/testing"
@@ -19,6 +21,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/rpc/client/mock"
 	rpccore "github.com/okex/exchain/libs/tendermint/rpc/core"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
+	rpcserver "github.com/okex/exchain/libs/tendermint/rpc/jsonrpc/server"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	tmstate "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/state/txindex"
@@ -27,6 +30,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/store"
 	"github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/tendermint/go-amino"
 )
 
 type MockClient struct {
@@ -37,6 +41,40 @@ type MockClient struct {
 	priv  types.PrivValidator
 }
 
+func (m *MockClient) StartTmRPC() (string, error) {
+
+	rpccore.SetEnvironment(m.env)
+	coreCodec := amino.NewCodec()
+	ctypes.RegisterAmino(coreCodec)
+	rpccore.AddUnsafeRoutes()
+	rpcLogger := log.NewNopLogger()
+	config := rpcserver.DefaultConfig()
+
+	// we may expose the rpc over both a unix and tcp socket
+	mux := http.NewServeMux()
+	wm := rpcserver.NewWebsocketManager(rpccore.Routes, coreCodec,
+		rpcserver.OnDisconnect(func(remoteAddr string) {}),
+		rpcserver.ReadLimit(config.MaxBodyBytes),
+	)
+	mux.HandleFunc("/websocket", wm.WebsocketHandler)
+	rpcserver.RegisterRPCFuncs(mux, rpccore.Routes, coreCodec, rpcLogger)
+	listener, err := rpcserver.Listen(
+		"tcp://127.0.0.1:0",
+		config,
+	)
+	if err != nil {
+		return "", err
+	}
+
+	var rootHandler http.Handler = mux
+	go rpcserver.Serve(
+		listener,
+		rootHandler,
+		rpcLogger,
+		config,
+	)
+	return fmt.Sprintf("http://localhost:%d", listener.Addr().(*net.TCPAddr).Port), nil
+}
 func createAndStartProxyAppConns(clientCreator proxy.ClientCreator, logger log.Logger) (proxy.AppConns, error) {
 	proxyApp := proxy.NewAppConns(clientCreator)
 	proxyApp.SetLogger(logger.With("module", "proxy"))
