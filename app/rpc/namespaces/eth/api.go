@@ -939,7 +939,7 @@ func (api *PublicEthereumAPI) doCall(
 
 	// Create new call message
 	msg := evmtypes.NewMsgEthereumTx(nonce, args.To, value, gas, gasPrice, data)
-	var overridesBytes []byte = nil
+	var overridesBytes []byte
 	if overrides != nil {
 		if overridesBytes, err = overrides.GetBytes(); err != nil {
 			return nil, fmt.Errorf("fail to encode overrides")
@@ -967,18 +967,27 @@ func (api *PublicEthereumAPI) doCall(
 	if err != nil {
 		return nil, err
 	}
-	simulateQueryData := sdk.SimulateData{
-		TxBytes:        txBytes,
-		OverridesBytes: overridesBytes,
-	}
-	queryBytes, err := json.Marshal(simulateQueryData)
-	if err != nil {
-		return nil, fmt.Errorf("fail to encode simulateQueryData")
-	}
 	// Transaction simulation through query. only pass from when eth_estimateGas.
 	// eth_call's from maybe nil
-	simulatePath := fmt.Sprintf("app/simulate/%s", addr.String())
-	res, _, err := clientCtx.QueryWithData(simulatePath, queryBytes)
+	var simulatePath string
+	var queryData []byte
+	if overrides != nil {
+		simulatePath = fmt.Sprintf("app/simulateWithOverrides/%s", addr.String())
+		queryOverridesData := sdk.SimulateData{
+			TxBytes:        txBytes,
+			OverridesBytes: overridesBytes,
+		}
+		queryData, err = json.Marshal(queryOverridesData)
+		if err != nil {
+			return nil, fmt.Errorf("fail to encode queryData for simulateWithOverrides")
+		}
+
+	} else {
+		simulatePath = fmt.Sprintf("app/simulate/%s", addr.String())
+		queryData = txBytes
+	}
+
+	res, _, err := clientCtx.QueryWithData(simulatePath, queryData)
 	if err != nil {
 		return nil, err
 	}

@@ -392,17 +392,51 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 	if len(path) >= 2 {
 		switch path[1] {
 		case "simulate":
+			txBytes := req.Data
+			tx, err := app.txDecoder(txBytes)
+			if err != nil {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))
+			}
+
+			// if path contains address, it means 'eth_estimateGas' the sender
+			hasExtraPaths := len(path) > 2
+			var from string
+			if hasExtraPaths {
+				if addr, err := sdk.AccAddressFromBech32(path[2]); err == nil {
+					if err = sdk.VerifyAddressFormat(addr); err == nil {
+						from = path[2]
+					}
+				}
+			}
+
+			gInfo, res, err := app.Simulate(txBytes, tx, req.Height, nil, from)
+
+			// if path contains mempool, it means to enable MaxGasUsedPerBlock
+			// return the actual gasUsed even though simulate tx failed
+			isMempoolSim := hasExtraPaths && path[2] == "mempool"
+			if err != nil && !isMempoolSim {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to simulate tx"))
+			}
+
+			simRes := sdk.SimulationResponse{
+				GasInfo: gInfo,
+				Result:  res,
+			}
+
+			return abci.ResponseQuery{
+				Codespace: sdkerrors.RootCodespace,
+				Height:    req.Height,
+				Value:     codec.Cdc.MustMarshalBinaryBare(simRes),
+			}
+
+		case "simulateWithOverrides":
 			queryBytes := req.Data
 			var queryData types.SimulateData
 			var txBytes []byte
 			if err := json.Unmarshal(queryBytes, &queryData); err != nil {
-				//if cannot unmarshal req.Data as QuerySimulateData,  try decode as tx
-				txBytes = req.Data
-			} else {
-				txBytes = queryData.TxBytes
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode simulateOverrideData"))
 			}
-
-			tx, err := app.txDecoder(txBytes)
+			tx, err := app.txDecoder(queryData.TxBytes)
 			if err != nil {
 				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))
 			}

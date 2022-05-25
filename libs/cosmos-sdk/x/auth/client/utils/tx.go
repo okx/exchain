@@ -3,7 +3,6 @@ package utils
 import (
 	"bufio"
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -335,14 +334,7 @@ func CalculateGas(
 
 	// run a simulation (via /app/simulate query) to
 	// estimate gas and update TxBuilder accordingly
-	queryData := sdk.SimulateData{
-		TxBytes: txBytes,
-	}
-	queryBz, err := json.Marshal(queryData)
-	if err != nil {
-		return sdk.SimulationResponse{}, 0, fmt.Errorf("fail to marshal querySimulateData")
-	}
-	rawRes, _, err := queryFunc("/app/simulate", queryBz)
+	rawRes, _, err := queryFunc("/app/simulate", txBytes)
 	if err != nil {
 		return sdk.SimulationResponse{}, 0, err
 	}
