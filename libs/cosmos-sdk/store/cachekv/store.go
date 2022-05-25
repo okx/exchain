@@ -2,7 +2,7 @@ package cachekv
 
 import (
 	"bytes"
-	"container/list"
+	//"github.com/okex/exchain/libs/cosmos-sdk/types/kv"
 	"io"
 	"reflect"
 	"sort"
@@ -13,11 +13,12 @@ import (
 
 	"github.com/tendermint/go-amino"
 
-	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
+	//tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
 	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/tracekv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	kv "github.com/okex/exchain/libs/cosmos-sdk/types/kv"
 )
 
 // If value is nil but deleted is false, it means the parent doesn't have the
@@ -35,7 +36,7 @@ type Store struct {
 	dirty         map[string]cValue
 	readList      map[string][]byte
 	unsortedCache map[string]struct{}
-	sortedCache   *list.List // always ascending sorted
+	sortedCache   *kv.List // always ascending sorted
 	parent        types.KVStore
 
 	preChangesHandler PreChangesHandler
@@ -48,7 +49,7 @@ func NewStore(parent types.KVStore) *Store {
 		dirty:         make(map[string]cValue),
 		readList:      make(map[string][]byte),
 		unsortedCache: make(map[string]struct{}),
-		sortedCache:   list.New(),
+		sortedCache:   kv.NewList(),
 		parent:        parent,
 	}
 }
@@ -309,13 +310,13 @@ func byteSliceToStr(b []byte) string {
 
 // Constructs a slice of dirty items, to use w/ memIterator.
 func (store *Store) dirtyItems(start, end []byte) {
-	unsorted := make([]*tmkv.Pair, 0)
+	unsorted := make([]*kv.Pair, 0)
 
 	n := len(store.unsortedCache)
 	for key := range store.unsortedCache {
 		if dbm.IsKeyInDomain(strToByte(key), start, end) {
 			cacheValue := store.dirty[key]
-			unsorted = append(unsorted, &tmkv.Pair{Key: []byte(key), Value: cacheValue.value})
+			unsorted = append(unsorted, &kv.Pair{Key: []byte(key), Value: cacheValue.value})
 		}
 	}
 
@@ -335,7 +336,7 @@ func (store *Store) dirtyItems(start, end []byte) {
 
 	for e := store.sortedCache.Front(); e != nil && len(unsorted) != 0; {
 		uitem := unsorted[0]
-		sitem := e.Value.(*tmkv.Pair)
+		sitem := e.Value
 		comp := bytes.Compare(uitem.Key, sitem.Key)
 		switch comp {
 		case -1:
