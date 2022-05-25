@@ -132,10 +132,13 @@ func (api *PublicEthereumAPI) GetKeyringInfo() error {
 	if api.clientCtx.Keybase != nil {
 		return nil
 	}
-
+	backendType := viper.GetString(flags.FlagKeyringBackend)
+	if backendType == keys.BackendFile {
+		backendType = keys.BackendFileForRPC
+	}
 	keybase, err := keys.NewKeyring(
 		sdk.KeyringServiceName(),
-		viper.GetString(flags.FlagKeyringBackend),
+		backendType,
 		viper.GetString(cmserver.FlagUlockKeyHome),
 		api.clientCtx.Input,
 		hd.EthSecp256k1Options()...,
