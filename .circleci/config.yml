@@ -40,7 +40,7 @@ jobs:
           command: make go-mod-cache
       - run:
           name: Build
-          command: go mod tidy && make build
+          command: make build
       - save_cache:
           name: Save go modules cache
           key: go-mod-v1-{{ checksum "go.sum" }}
