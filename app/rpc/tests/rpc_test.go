@@ -78,11 +78,13 @@ type RPCTestSuite struct {
 	// testing chains used for convenience and readability
 	chain apptesting.TestChainI
 
-	apiServer *gorpc.Server
-	Mux       *http.ServeMux
-	cliCtx    *cosmos_context.CLIContext
-	addr      string
-	tmAddr    string
+	apiServer     *gorpc.Server
+	Mux           *http.ServeMux
+	cliCtx        *cosmos_context.CLIContext
+	rpcListener   net.Listener
+	addr          string
+	tmRpcListener net.Listener
+	tmAddr        string
 }
 
 func (suite *RPCTestSuite) SetupTest() {
@@ -117,7 +119,7 @@ func (suite *RPCTestSuite) SetupTest() {
 	//info, err := Kb.CreateAccount("captain", "puzzle glide follow cruel say burst deliver wild tragic galaxy lumber offer", "", "12345678", "m/44'/60'/0'/0/1", "eth_secp256k1")
 
 	mck := NewMockClient(chainId, suite.chain, suite.chain.App())
-	suite.tmAddr, err = mck.StartTmRPC()
+	suite.tmRpcListener, suite.tmAddr, err = mck.StartTmRPC()
 	if err != nil {
 		panic(err)
 	}
@@ -154,7 +156,15 @@ func (suite *RPCTestSuite) SetupTest() {
 		}
 	}
 	StartRpc(suite)
+}
 
+func (suite *RPCTestSuite) TearDownTest() {
+	if suite.rpcListener != nil {
+		suite.rpcListener.Close()
+	}
+	if suite.tmRpcListener != nil {
+		suite.rpcListener.Close()
+	}
 }
 func StartRpc(suite *RPCTestSuite) {
 	suite.Mux = http.NewServeMux()
@@ -163,6 +173,7 @@ func StartRpc(suite *RPCTestSuite) {
 	if err != nil {
 		panic(err)
 	}
+	suite.rpcListener = listener
 	suite.addr = fmt.Sprintf("http://localhost:%d", listener.Addr().(*net.TCPAddr).Port)
 	go func() {
 		http.Serve(listener, suite.Mux)
@@ -419,6 +430,7 @@ func (suite *RPCTestSuite) TestDebug_traceTransaction_Transfer() {
 	rpcRes = Call(suite.T(), suite.addr, "debug_traceTransaction", debugParam)
 	suite.Require().NotNil(rpcRes.Result)
 }
+
 func (suite *RPCTestSuite) TestEth_SendTransaction_Transfer() {
 
 	value := sdk.NewDec(1)

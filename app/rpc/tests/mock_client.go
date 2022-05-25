@@ -41,7 +41,7 @@ type MockClient struct {
 	priv  types.PrivValidator
 }
 
-func (m *MockClient) StartTmRPC() (string, error) {
+func (m *MockClient) StartTmRPC() (net.Listener, string, error) {
 
 	rpccore.SetEnvironment(m.env)
 	coreCodec := amino.NewCodec()
@@ -63,7 +63,7 @@ func (m *MockClient) StartTmRPC() (string, error) {
 		config,
 	)
 	if err != nil {
-		return "", err
+		return nil, "", err
 	}
 
 	var rootHandler http.Handler = mux
@@ -73,7 +73,7 @@ func (m *MockClient) StartTmRPC() (string, error) {
 		rpcLogger,
 		config,
 	)
-	return fmt.Sprintf("http://localhost:%d", listener.Addr().(*net.TCPAddr).Port), nil
+	return listener, fmt.Sprintf("http://localhost:%d", listener.Addr().(*net.TCPAddr).Port), nil
 }
 func createAndStartProxyAppConns(clientCreator proxy.ClientCreator, logger log.Logger) (proxy.AppConns, error) {
 	proxyApp := proxy.NewAppConns(clientCreator)
