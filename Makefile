@@ -36,7 +36,7 @@ ifeq ($(WITH_ROCKSDB),true)
 endif
 
 # TODO need use in dockerfile
-build_tags += muslc
+#build_tags += muslc
 
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
