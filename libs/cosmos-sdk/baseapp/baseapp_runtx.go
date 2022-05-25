@@ -170,6 +170,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	} else if mode == runTxModeCheck {
 		info.msCacheAnte = app.checkTxCacheMultiStores.GetStore()
 		if info.msCacheAnte != nil {
+			info.msCacheAnte = updateCacheMultiStore(info.msCacheAnte, info.txBytes, info.ctx.BlockHeight())
 			anteCtx = info.ctx
 			anteCtx.SetMultiStore(info.msCacheAnte)
 		} else {
