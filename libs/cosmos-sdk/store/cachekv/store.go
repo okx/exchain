@@ -2,7 +2,6 @@ package cachekv
 
 import (
 	"bytes"
-	//"github.com/okex/exchain/libs/cosmos-sdk/types/kv"
 	"io"
 	"reflect"
 	"sort"
@@ -10,11 +9,8 @@ import (
 	"unsafe"
 
 	"github.com/okex/exchain/libs/iavl"
-
-	"github.com/tendermint/go-amino"
-
-	//tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/tendermint/go-amino"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/tracekv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
