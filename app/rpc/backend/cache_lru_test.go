@@ -99,7 +99,7 @@ func TestLruCache_AddOrUpdateBlock(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			alc.AddOrUpdateBlock(tt.args.block.Hash, tt.args.block, true)
-			blockLru := alc.lruBlock
+			blockLru := alc.lruBlockWithFullTx
 			require.NotNil(t, blockLru)
 			require.Equal(t, tt.result.blockCount, blockLru.Len())
 
@@ -221,7 +221,7 @@ func TestLruCache_GetBlockByNumber(t *testing.T) {
 			alc.AddOrUpdateBlock(tt.args.block.Hash, tt.args.block, true)
 			alc.AddOrUpdateBlockHash(uint64(tt.args.block.Number), tt.args.block.Hash)
 
-			blockLru := alc.lruBlock
+			blockLru := alc.lruBlockWithFullTx
 			require.NotNil(t, blockLru)
 			require.Equal(t, tt.result.blockCount, blockLru.Len())
 
