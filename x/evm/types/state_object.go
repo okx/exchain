@@ -101,6 +101,8 @@ type StateObject interface {
 
 	SetNonce(nonce uint64)
 	Nonce() uint64
+
+	SetStorage(storage map[ethcmn.Hash]ethcmn.Hash)
 }
 
 // stateObject represents an Ethereum account which is being modified.
@@ -115,8 +117,9 @@ type stateObject struct {
 	// unable to deal with database-level errors. Any error that occurs
 	// during a database read is memoized here and will eventually be returned
 	// by StateDB.Commit.
-	originStorage Storage // Storage cache of original entries to dedup rewrites
-	dirtyStorage  Storage // Storage entries that need to be flushed to disk
+	originStorage Storage          // Storage cache of original entries to dedup rewrites
+	dirtyStorage  Storage          // Storage entries that need to be flushed to disk
+	fakeStorage   ethstate.Storage // Fake storage which constructed by caller for debugging purpose.
 
 	// DB error
 	dbErr   error
@@ -186,6 +189,11 @@ func (so *stateObject) SetState(db ethstate.Database, key, value ethcmn.Hash) {
 
 // setState sets a state with a prefixed key and value to the dirty storage.
 func (so *stateObject) setState(key, value ethcmn.Hash) {
+	// If the fake storage is set, put the temporary state update here.
+	if so.fakeStorage != nil {
+		so.fakeStorage[key] = value
+		return
+	}
 	idx, ok := so.keyToDirtyStorageIndex[key]
 	if ok {
 		so.dirtyStorage[idx].Value = value
@@ -278,6 +286,24 @@ func (so *stateObject) setNonce(nonce uint64) {
 		panic("state object account is empty")
 	}
 	so.account.Sequence = nonce
+}
+
+// SetStorage replaces the entire state storage with the given one.
+//
+// After this function is called, all original state will be ignored and state
+// lookup only happens in the fake state storage.
+//
+// Note this function should only be used for debugging purpose.
+func (so *stateObject) SetStorage(storage map[ethcmn.Hash]ethcmn.Hash) {
+	// Allocate fake storage if it's nil.
+	if so.fakeStorage == nil {
+		so.fakeStorage = make(ethstate.Storage)
+	}
+	for key, value := range storage {
+		so.fakeStorage[key] = value
+	}
+	// Don't bother journal since this function should only be used for
+	// debugging and the `fake` storage won't be committed to database.
 }
 
 // setError remembers the first non-nil error it is called with.
@@ -415,6 +441,11 @@ func (so *stateObject) Code(_ ethstate.Database) []byte {
 // GetState retrieves a value from the account storage trie. Note, the key will
 // be prefixed with the address of the state object.
 func (so *stateObject) GetState(db ethstate.Database, key ethcmn.Hash) ethcmn.Hash {
+	// If the fake storage is set, only lookup the state here(in the debugging mode)
+	if so.fakeStorage != nil {
+		return so.fakeStorage[key]
+	}
+
 	prefixKey := so.GetStorageByAddressKey(key.Bytes())
 
 	// if we have a dirty value for this state entry, return it
@@ -432,6 +463,11 @@ func (so *stateObject) GetState(db ethstate.Database, key ethcmn.Hash) ethcmn.Ha
 //
 // NOTE: the key will be prefixed with the address of the state object.
 func (so *stateObject) GetCommittedState(_ ethstate.Database, key ethcmn.Hash) ethcmn.Hash {
+
+	// If the fake storage is set, only lookup the state here(in the debugging mode)
+	if so.fakeStorage != nil {
+		return so.fakeStorage[key]
+	}
 	prefixKey := so.GetStorageByAddressKey(key.Bytes())
 
 	// if we have the original value cached, return that

@@ -109,20 +109,6 @@ func (ca CallArgs) String() string {
 	return strings.TrimRight(arg, ", ")
 }
 
-// Account indicates the overriding fields of account during the execution of
-// a message call.
-// NOTE: state and stateDiff can't be specified at the same time. If state is
-// set, message execution will only use the data in the given state. Otherwise
-// if statDiff is set, all diff will be applied first and then execute the call
-// message.
-type Account struct {
-	Nonce     *hexutil.Uint64              `json:"nonce"`
-	Code      *hexutil.Bytes               `json:"code"`
-	Balance   **hexutil.Big                `json:"balance"`
-	State     *map[common.Hash]common.Hash `json:"state"`
-	StateDiff *map[common.Hash]common.Hash `json:"stateDiff"`
-}
-
 // EthHeaderWithBlockHash represents a block header in the Ethereum blockchain with block hash generated from Tendermint Block
 type EthHeaderWithBlockHash struct {
 	ParentHash  common.Hash         `json:"parentHash"`

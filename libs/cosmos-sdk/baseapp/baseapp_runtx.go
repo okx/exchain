@@ -21,9 +21,10 @@ type runTxInfo struct {
 	startingGas    uint64
 	gInfo          sdk.GasInfo
 
-	result  *sdk.Result
-	txBytes []byte
-	tx      sdk.Tx
+	result         *sdk.Result
+	txBytes        []byte
+	tx             sdk.Tx
+	overridesBytes []byte
 }
 
 func (app *BaseApp) runTx(mode runTxMode,
