@@ -98,12 +98,12 @@ func TestLruCache_AddOrUpdateBlock(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			alc.AddOrUpdateBlock(tt.args.block.Hash, tt.args.block)
+			alc.AddOrUpdateBlock(tt.args.block.Hash, tt.args.block, true)
 			blockLru := alc.lruBlock
 			require.NotNil(t, blockLru)
 			require.Equal(t, tt.result.blockCount, blockLru.Len())
 
-			block, err := alc.GetBlockByHash(tt.result.block.Hash)
+			block, err := alc.GetBlockByHash(tt.result.block.Hash, true)
 			require.Nil(t, err)
 			require.NotNil(t, block)
 			require.Equal(t, tt.result.block.Hash, block.Hash)
@@ -218,7 +218,7 @@ func TestLruCache_GetBlockByNumber(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			alc.AddOrUpdateBlock(tt.args.block.Hash, tt.args.block)
+			alc.AddOrUpdateBlock(tt.args.block.Hash, tt.args.block, true)
 			alc.AddOrUpdateBlockHash(uint64(tt.args.block.Number), tt.args.block.Hash)
 
 			blockLru := alc.lruBlock
@@ -229,7 +229,7 @@ func TestLruCache_GetBlockByNumber(t *testing.T) {
 			require.NotNil(t, blockInfoLru)
 			require.Equal(t, tt.result.blockCount, blockInfoLru.Len())
 
-			block, err := alc.GetBlockByNumber(uint64(tt.result.block.Number))
+			block, err := alc.GetBlockByNumber(uint64(tt.result.block.Number), true)
 			require.Nil(t, err)
 			require.NotNil(t, block)
 			require.Equal(t, tt.result.block.Hash, block.Hash)
