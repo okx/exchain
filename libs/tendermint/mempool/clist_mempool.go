@@ -411,13 +411,11 @@ func (mem *CListMempool) reqResCb(
 func (mem *CListMempool) addAndSortTx(memTx *mempoolTx) error {
 
 	// Replace the same Nonce transaction from the same account
-	elem := mem.addressRecord.checkRepeatedAndAddItem(memTx, int64(mem.config.TxPriceBump))
+	elem := mem.addressRecord.checkRepeatedAndAddItem(memTx, int64(mem.config.TxPriceBump), mem.txs.InsertElement)
 	if elem == nil {
 		return errors.New(fmt.Sprintf("Failed to replace tx for acccount %s with nonce %d, "+
 			"the provided gas price %d is not bigger enough", memTx.from, memTx.realTx.GetNonce(), memTx.realTx.GetGasPrice()))
 	}
-
-	mem.txs.InsertElement(elem)
 
 	txHash := txKey(memTx.tx)
 	mem.txsMap.Store(txHash, elem)
@@ -451,7 +449,7 @@ func (mem *CListMempool) reorganizeElements(items []*clist.CElement) {
 	// resulting in execution failure
 	sort.Slice(items, func(i, j int) bool { return items[i].Nonce < items[j].Nonce })
 
-	for _, item := range items {
+	for _, item := range items[1:] {
 		mem.txs.DetachElement(item)
 		item.NewDetachPrev()
 		item.NewDetachNext()
