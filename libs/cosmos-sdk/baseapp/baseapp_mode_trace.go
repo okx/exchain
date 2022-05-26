@@ -3,9 +3,8 @@ package baseapp
 func (m *modeHandlerTrace) handleStartHeight(info *runTxInfo, height int64) (err error) { return }
 
 func (m *modeHandlerTrace) handleDeferRefund(info *runTxInfo) {
-	app := m.app
-	if app.GasRefundHandler == nil {
+	if m.app.GasRefundHandler == nil {
 		return
 	}
-	handleGasRefund(info, app.cacheTxContext, app.GasRefundHandler)
+	handleGasRefund(info, m.app.cacheTxContext, m.app.GasRefundHandler)
 }
