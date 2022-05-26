@@ -46,8 +46,6 @@ ifeq ($(WITH_ROCKSDB),true)
 endif
 
 ifeq ($(LINK_STATICALLY),true)
-	ifeq
-	endif
 	build_tags += muslc
 endif
 
