@@ -52,7 +52,7 @@ else ifeq ($(MAKECMDGOALS),testnet)
    VenusHeight=8510000
 endif
 
-ifeq ($(./dev/os.sh),alpine)
+ifeq ($(shell ./dev/os.sh),alpine)
 	build_tags += muslc
 endif
 
@@ -75,7 +75,7 @@ ifeq ($(WITH_ROCKSDB),true)
   ldflags += -X github.com/okex/exchain/libs/cosmos-sdk/types.DBBackend=rocksdb
 endif
 
-ifeq ($(./dev/os.sh),alpine)
+ifeq ($(shell ./dev/os.sh),alpine)
 	ldflags += -linkmode=external -extldflags "-Wl,-z,muldefs -static"
 	export CGO_CFLAGS="-I/usr/include/rocksdb"
 	export CGO_LDFLAGS="-L/usr/lib -lrocksdb -lstdc++ -lm -lsnappy -llz4"
