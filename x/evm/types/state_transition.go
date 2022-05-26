@@ -177,9 +177,10 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 			trace.StopTxLog(tag)
 		}
 	}
-
-	if err = st.applyOverrides(ctx, csdb); err != nil {
-		return
+	if ctx.IsCheckTx() {
+		if err = st.applyOverrides(ctx, csdb); err != nil {
+			return
+		}
 	}
 
 	params := csdb.GetParams()

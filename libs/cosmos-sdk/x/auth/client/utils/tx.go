@@ -8,12 +8,11 @@ import (
 	"math/big"
 	"os"
 
-	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
+	ibctx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	signingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibcsigning"
 
 	"github.com/pkg/errors"
@@ -235,7 +234,7 @@ func signPbTx(txConfig client.TxConfig, txf authtypes.TxBuilder, name string, pa
 		return err
 	}
 
-	pubKeyPB := ibc_tx.LagacyKey2PbKey(privKey.PubKey())
+	pubKeyPB := ibctx.LagacyKey2PbKey(privKey.PubKey())
 
 	signerData := signingtypes.SignerData{
 		ChainID:       txf.ChainID(),
@@ -349,7 +348,7 @@ func CalculateGas(
 }
 func NewPbTxConfig(reg types2.InterfaceRegistry) client.TxConfig {
 	marshaler := codec.NewProtoCodec(reg)
-	return ibc_tx.NewTxConfig(marshaler, ibc_tx.DefaultSignModes)
+	return ibctx.NewTxConfig(marshaler, ibctx.DefaultSignModes)
 }
 
 // PrintUnsignedStdTx builds an unsigned StdTx and prints it to os.Stdout.
