@@ -29,10 +29,9 @@ func (c *cacheMultiStoreList) GetStore() types.CacheMultiStore {
 		front := c.stores.Remove(c.stores.Front())
 		c.mtx.Unlock()
 		return front.(types.CacheMultiStore)
-	} else {
-		c.mtx.Unlock()
-		return nil
 	}
+	c.mtx.Unlock()
+	return nil
 }
 
 func (c *cacheMultiStoreList) Clear() {
