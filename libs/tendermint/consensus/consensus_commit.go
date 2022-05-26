@@ -13,11 +13,18 @@ import (
 )
 
 
+
+func (cs *State) dumpElapsed(trc *trace.Tracer, schema string) {
+	trace.GetElapsedInfo().AddInfo(schema, trc.Format())
+	trc.Reset()
+}
+
 func (cs *State) initNewHeight() {
 	// waiting finished and enterNewHeight by timeoutNewHeight
 	if cs.Step == cstypes.RoundStepNewHeight {
 		// init StartTime
 		cs.StartTime = tmtime.Now()
+		cs.dumpElapsed(cs.blockTimeTrc, trace.LastBlockTime)
 	}
 }
 

@@ -62,7 +62,8 @@ const (
 	SaveState  = "saveState"
 	ApplyBlock = "ApplyBlock"
 	Consensus  = "Consensus"
-	BlockTime  = "BlockTime"
+	LastBlockTime  = "LastBlockTime"
+	TimeoutInterval  = "TimeoutInterval"
 
 	MempoolCheckTxCnt    = "CheckTx"
 	MempoolTxsCnt        = "MempoolTxs"

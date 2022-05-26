@@ -141,7 +141,8 @@ type State struct {
 	metrics *Metrics
 
 	trc *trace.Tracer
-	blockTimeTrc *trace.Tracer
+	blockTimeTrc       *trace.Tracer
+	timeoutIntervalTrc *trace.Tracer
 
 	prerunTx bool
 	bt       *BlockTransport
@@ -178,9 +179,10 @@ func NewState(
 		evsw:             tmevents.NewEventSwitch(),
 		metrics:          NopMetrics(),
 		trc:              trace.NewTracer(trace.Consensus),
-		blockTimeTrc:     trace.NewTracer(trace.BlockTime),
 		prerunTx:         viper.GetBool(EnablePrerunTx),
 		bt:               &BlockTransport{},
+		blockTimeTrc:           trace.NewTracer(trace.LastBlockTime),
+		timeoutIntervalTrc:     trace.NewTracer(trace.TimeoutInterval),
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal

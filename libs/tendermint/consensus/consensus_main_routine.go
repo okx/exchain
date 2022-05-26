@@ -182,16 +182,12 @@ func (cs *State) handleMsg(mi msgInfo) {
 		// 	"peer", peerID, "err", err, "msg", msg)
 	}
 }
-func (cs *State) dumpBlockTime() {
-	trace.GetElapsedInfo().AddInfo(trace.BlockTime, cs.blockTimeTrc.Format())
-	cs.blockTimeTrc.Reset()
-}
 
 func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 	cs.Logger.Debug("Received tock", "timeout", ti.Duration, "height", ti.Height, "round", ti.Round, "step", ti.Step)
 
 	if ti.Step == cstypes.RoundStepNewHeight {
-		cs.dumpBlockTime()
+		cs.dumpElapsed(cs.timeoutIntervalTrc, trace.TimeoutInterval)
 	}
 
 	// timeouts must be for current height, round, step
