@@ -23,6 +23,11 @@ Venus1Height=0
 MarsHeight=0
 SaturnHeight=0
 
+LINK_STATICALLY = false
+ifeq ($(shell ./dev/os.sh),alpine)
+ LINK_STATICALLY = true
+endif
+
 # process linker flags
 ifeq ($(VERSION),)
     VERSION = $(COMMIT)
@@ -35,8 +40,9 @@ ifeq ($(WITH_ROCKSDB),true)
   build_tags += rocksdb
 endif
 
-# TODO need use in dockerfile
-#build_tags += muslc
+ifeq ($(LINK_STATICALLY),true)
+	build_tags += muslc
+endif
 
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
@@ -52,9 +58,7 @@ else ifeq ($(MAKECMDGOALS),testnet)
    VenusHeight=8510000
 endif
 
-ifeq ($(shell ./dev/os.sh),alpine)
-	build_tags += muslc
-endif
+
 
 ldflags = -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Version=$(Version) \
 	-X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Name=$(Name) \
@@ -75,10 +79,10 @@ ifeq ($(WITH_ROCKSDB),true)
   ldflags += -X github.com/okex/exchain/libs/cosmos-sdk/types.DBBackend=rocksdb
 endif
 
-ifeq ($(shell ./dev/os.sh),alpine)
+ifeq ($(LINK_STATICALLY),true)
 	ldflags += -linkmode=external -extldflags "-Wl,-z,muldefs -static"
 	export CGO_CFLAGS="-I/usr/include/rocksdb"
-	export CGO_LDFLAGS="-L/usr/lib -lrocksdb -lstdc++ -lm -lsnappy -llz4"
+    export CGO_LDFLAGS="-L/usr/lib -lrocksdb -lstdc++ -lm  -lsnappy -llz4"
 endif
 
 BUILD_FLAGS := -ldflags '$(ldflags)'
