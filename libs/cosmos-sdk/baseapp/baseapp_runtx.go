@@ -167,6 +167,15 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 		anteCtx, info.msCacheAnte = info.ctx, info.reusableCacheMultiStore
 		anteCtx.SetMultiStore(info.msCacheAnte)
 		app.reusableCacheMultiStore = nil
+	} else if mode == runTxModeCheck || mode == runTxModeReCheck {
+		info.msCacheAnte = app.checkTxCacheMultiStores.GetStore()
+		if info.msCacheAnte != nil {
+			info.msCacheAnte = updateCacheMultiStore(info.msCacheAnte, info.txBytes, info.ctx.BlockHeight())
+			anteCtx = info.ctx
+			anteCtx.SetMultiStore(info.msCacheAnte)
+		} else {
+			anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
+		}
 	} else if mode == runTxModeDeliverInAsync {
 		anteCtx = info.ctx
 		info.msCacheAnte = nil
@@ -226,6 +235,9 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 		info.msCacheAnte.Write()
 		if mode == runTxModeDeliver {
 			info.reusableCacheMultiStore = info.msCacheAnte
+			info.msCacheAnte = nil
+		} else if mode == runTxModeCheck || mode == runTxModeReCheck {
+			app.checkTxCacheMultiStores.PushStore(info.msCacheAnte)
 			info.msCacheAnte = nil
 		}
 		info.ctx.Cache().Write(true)

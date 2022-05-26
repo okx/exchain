@@ -65,7 +65,6 @@ func (m *modeHandlerCheck) handleRunMsg(info *runTxInfo) (err error) {
 		return m.modeHandlerBase.handleRunMsg(info)
 	}
 
-	info.runMsgCtx = info.ctx
 	info.result = &sdk.Result{
 		Data:   make([]byte, 0),
 		Log:    "[]",
@@ -80,6 +79,23 @@ func (m *modeHandlerCheck) handleRunMsg(info *runTxInfo) (err error) {
 
 type modeHandlerRecheck struct {
 	*modeHandlerBase
+}
+
+func (m *modeHandlerRecheck) handleRunMsg(info *runTxInfo) (err error) {
+	if m.mode != runTxModeReCheck {
+		return m.modeHandlerBase.handleRunMsg(info)
+	}
+
+	info.result = &sdk.Result{
+		Data:   make([]byte, 0),
+		Log:    "[]",
+		Events: sdk.EmptyEvents(),
+	}
+	info.runMsgFinished = true
+
+	m.handleRunMsg4CheckMode(info)
+	err = m.checkHigherThanMercury(err, info)
+	return
 }
 
 type modeHandlerSimulate struct {

@@ -221,6 +221,7 @@ type BaseApp struct { // nolint: maligned
 	interceptors map[string]Interceptor
 
 	reusableCacheMultiStore sdk.CacheMultiStore
+	checkTxCacheMultiStores *cacheMultiStoreList
 }
 
 type recordHandle func(string)
@@ -254,6 +255,8 @@ func NewBaseApp(
 		msgServiceRouter: NewMsgServiceRouter(),
 		grpcQueryRouter:  NewGRPCQueryRouter(),
 		interceptors:     make(map[string]Interceptor),
+
+		checkTxCacheMultiStores: newCacheMultiStoreList(),
 	}
 
 	for _, option := range options {
@@ -559,6 +562,8 @@ func (app *BaseApp) setCheckState(header abci.Header) {
 		ctx: sdk.NewContext(ms, header, true, app.logger),
 	}
 	app.checkState.ctx.SetMinGasPrices(app.minGasPrices)
+
+	app.checkTxCacheMultiStores.Clear()
 }
 
 // setDeliverState sets the BaseApp's deliverState with a cache-wrapped multi-store

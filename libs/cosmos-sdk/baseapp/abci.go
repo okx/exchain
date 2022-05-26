@@ -89,7 +89,7 @@ func (app *BaseApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOp
 	switch req.Key {
 	case "ResetCheckState":
 		// reset check state
-		app.checkState.ms = app.cms.CacheMultiStore()
+		app.setCheckState(app.checkState.ctx.BlockHeader())
 	default:
 		// do nothing
 	}
