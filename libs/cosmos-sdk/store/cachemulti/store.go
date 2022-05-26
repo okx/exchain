@@ -183,3 +183,10 @@ func (cms Store) GetKVStore(key types.StoreKey) types.KVStore {
 
 	return store.(types.KVStore)
 }
+
+func (cms Store) Clear() {
+	cms.db.Clear()
+	for _, store := range cms.stores {
+		store.Clear()
+	}
+}

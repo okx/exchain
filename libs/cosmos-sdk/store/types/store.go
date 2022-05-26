@@ -232,6 +232,8 @@ type KVStore interface {
 
 type CacheManager interface {
 	IteratorCache(isdirty bool, cb func(key string, value []byte, isDirty bool, isDelete bool, storeKey StoreKey) bool, sKey StoreKey) bool
+	// Clear the cache without writing
+	Clear()
 }
 
 // Alias iterator to db's Iterator for convenience.
