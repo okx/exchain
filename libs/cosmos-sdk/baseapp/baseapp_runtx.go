@@ -31,6 +31,8 @@ type runTxInfo struct {
 	txIndex int
 
 	reusableCacheMultiStore sdk.CacheMultiStore
+
+	overridesBytes []byte
 }
 
 func (app *BaseApp) runTxWithIndex(txIndex int, mode runTxMode,
@@ -179,7 +181,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	} else {
 		anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
 	}
-	
+
 	anteCtx.SetEventManager(sdk.NewEventManager())
 	app.pin(trace.CacheTxContext, false, mode)
 
