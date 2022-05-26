@@ -353,7 +353,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			// or only then proposer ApplyBlock(height) has finished, do not handle prMsg
 			if msg.Height <= conR.hasViewChanged ||
 				!bytes.Equal(conR.conS.privValidatorPubKey.Address(), msg.CurrentProposer) ||
-				msg.Height != height+1 {
+				msg.Height <= height {
 				return
 			}
 
@@ -617,7 +617,6 @@ func makeRoundStepMessage(rs *cstypes.RoundState) (nrsMsg *NewRoundStepMessage) 
 		Step:                  rs.Step,
 		SecondsSinceStartTime: int(time.Since(rs.StartTime).Seconds()),
 		LastCommitRound:       rs.LastCommit.GetRound(),
-		hasActiveVC:           rs.HasActiveVC,
 	}
 	return
 }
@@ -865,8 +864,8 @@ OUTER_LOOP:
 		}
 		// send vcMsg
 		if rs.Height == prs.Height || rs.Height == prs.Height+1 {
-			//peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
-			conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
+			peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
+			//conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
 		}
 
 		if rs.Height == vcMsg.Height {
@@ -1203,14 +1202,6 @@ func (ps *PeerState) SetHasProposal(proposal *types.Proposal) {
 		return
 	}
 
-	if proposal.HasActiveVC {
-		ps.PRS.Proposal = true
-		ps.PRS.ProposalBlockPartsHeader = proposal.BlockID.PartsHeader
-		ps.PRS.ProposalBlockParts = bits.NewBitArray(proposal.BlockID.PartsHeader.Total)
-		ps.PRS.ProposalPOLRound = proposal.POLRound
-		ps.PRS.ProposalPOL = nil // Nil until ProposalPOLMessage received.
-	}
-
 	if ps.PRS.Proposal {
 		return
 	}
@@ -1470,7 +1461,7 @@ func (ps *PeerState) ApplyNewRoundStepMessage(msg *NewRoundStepMessage) {
 	defer ps.mtx.Unlock()
 
 	// Ignore duplicates or decreases
-	if CompareHRS(msg.Height, msg.Round, msg.Step, ps.PRS.Height, ps.PRS.Round, ps.PRS.Step) <= 0 && !msg.hasActiveVC {
+	if CompareHRS(msg.Height, msg.Round, msg.Step, ps.PRS.Height, ps.PRS.Round, ps.PRS.Step) <= 0 {
 		return
 	}
 
@@ -1485,7 +1476,7 @@ func (ps *PeerState) ApplyNewRoundStepMessage(msg *NewRoundStepMessage) {
 	ps.PRS.Round = msg.Round
 	ps.PRS.Step = msg.Step
 	ps.PRS.StartTime = startTime
-	if psHeight != msg.Height || psRound != msg.Round || msg.hasActiveVC {
+	if psHeight != msg.Height || psRound != msg.Round {
 		ps.PRS.Proposal = false
 		ps.PRS.ProposalBlockPartsHeader = types.PartSetHeader{}
 		ps.PRS.ProposalBlockParts = nil
@@ -1713,7 +1704,6 @@ type NewRoundStepMessage struct {
 	Step                  cstypes.RoundStepType
 	SecondsSinceStartTime int
 	LastCommitRound       int
-	hasActiveVC           bool
 }
 
 // ValidateBasic performs basic validation.
