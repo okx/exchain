@@ -24,8 +24,11 @@ MarsHeight=0
 SaturnHeight=0
 
 LINK_STATICALLY = false
+cgo_flags=
 ifeq ($(shell ./dev/os.sh),alpine)
  LINK_STATICALLY = true
+ cgo_flags = CGO_CFLAGS="-I/usr/include/rocksdb"
+ cgo_flags += CGO_LDFLAGS="-L/usr/lib -lrocksdb -lstdc++ -lm  -lsnappy -llz4"
 endif
 
 # process linker flags
@@ -81,8 +84,6 @@ endif
 
 ifeq ($(LINK_STATICALLY),true)
 	ldflags += -linkmode=external -extldflags "-Wl,-z,muldefs -static"
-	export CGO_CFLAGS="-I/usr/include/rocksdb"
-    export CGO_LDFLAGS="-L/usr/lib -lrocksdb -lstdc++ -lm  -lsnappy -llz4"
 endif
 
 BUILD_FLAGS := -ldflags '$(ldflags)'
@@ -96,8 +97,8 @@ all: install
 install: exchain
 
 exchain:
-	go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaind
-	go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaincli
+	$(cgo_flags) go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaind
+	$(cgo_flags) go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaincli
 
 mainnet: exchain
 
