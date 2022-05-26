@@ -37,14 +37,15 @@ var (
 		{trace.BlockParts, 1},
 		{trace.BlockPartsP2P, 1},
 		{trace.Produce, 0},
+		{trace.CompressBlock, 0},
+		{trace.UncompressBlock, 0},
 	}
 
 	mandatorySchemas = []string {
 		trace.Height,
 		trace.Tx,
 		trace.BlockSize,
-		trace.CompressBlock,
-		trace.UncompressBlock,
+		trace.BlockTime,
 		trace.GasUsed,
 		trace.InvalidTxs,
 		trace.RunTx,

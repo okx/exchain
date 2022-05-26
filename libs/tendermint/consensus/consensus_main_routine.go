@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/system/trace"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
 	"github.com/okex/exchain/libs/tendermint/libs/fail"
@@ -181,9 +182,17 @@ func (cs *State) handleMsg(mi msgInfo) {
 		// 	"peer", peerID, "err", err, "msg", msg)
 	}
 }
+func (cs *State) dumpBlockTime() {
+	trace.GetElapsedInfo().AddInfo(trace.BlockTime, cs.blockTimeTrc.Format())
+	cs.blockTimeTrc.Reset()
+}
 
 func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 	cs.Logger.Debug("Received tock", "timeout", ti.Duration, "height", ti.Height, "round", ti.Round, "step", ti.Step)
+
+	if ti.Step == cstypes.RoundStepNewHeight {
+		cs.dumpBlockTime()
+	}
 
 	// timeouts must be for current height, round, step
 	if ti.Height != rs.Height || ti.Round < rs.Round || (ti.Round == rs.Round && ti.Step < rs.Step) {
