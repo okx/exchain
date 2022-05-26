@@ -23,12 +23,13 @@ killbyname() {
 run() {
     LOG_LEVEL=main:debug,iavl:info,*:error,state:info,provider:info
 
-    exchaind start --pruning=nothing --rpc.unsafe \
+    exchaind start --rpc.unsafe \
       --local-rpc-port 26657 \
       --log_level $LOG_LEVEL \
       --log_file json \
       --enable-dynamic-gp=false \
       --consensus.timeout_commit 2000ms \
+      --fast-query=true \
       --enable-preruntx=false \
       --iavl-enable-async-commit \
       --enable-gid \
@@ -68,7 +69,7 @@ set -x # activate debugging
 rm -rf ~/.exchain*
 rm -rf $HOME_SERVER
 
-(cd .. && make install Venus1Height=1)
+(cd .. && make install Venus1Height=1 SaturnHeight=1)
 
 # Set up config for CLI
 exchaincli config chain-id $CHAINID

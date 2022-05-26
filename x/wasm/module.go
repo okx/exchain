@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
+	"github.com/okex/exchain/x/wasm/watcher"
 	"math/rand"
 
 	"github.com/gorilla/mux"
@@ -168,6 +169,7 @@ func (am AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {}
 // EndBlock returns the end blocker for the wasm module. It returns no validator
 // updates.
 func (AppModule) EndBlock(_ sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
+	watcher.Flush()
 	return []abci.ValidatorUpdate{}
 }
 
