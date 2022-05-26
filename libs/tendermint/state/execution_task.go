@@ -67,7 +67,7 @@ func (t *executionTask) stop() {
 
 func (t *executionTask) run() {
 	t.dump("Start prerun")
-	trc := trace.NewTracer(fmt.Sprintf("num<%d>, lastRun", t.index))
+	trc := trace.NewTracer("lastRun")
 
 	var abciResponses *ABCIResponses
 	var err error
@@ -88,7 +88,7 @@ func (t *executionTask) run() {
 		t.result = &executionResult{
 			abciResponses, err,
 		}
-		trace.GetElapsedInfo().AddInfo(trace.Prerun, trc.Format())
+		trace.GetElapsedInfo().AddInfo(trace.Prerun, fmt.Sprintf("num<%d>, lastRun<%s>", t.index, trc.Format()))
 	}
 	automation.PrerunTimeOut(t.block.Height, int(t.index)-1)
 	t.dump("Prerun completed")
