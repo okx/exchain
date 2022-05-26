@@ -27,8 +27,6 @@ LINK_STATICALLY = false
 cgo_flags=
 ifeq ($(shell ./dev/os.sh),alpine)
  LINK_STATICALLY = true
- cgo_flags = CGO_CFLAGS="-I/usr/include/rocksdb"
- cgo_flags += CGO_LDFLAGS="-L/usr/lib -lrocksdb -lstdc++ -lm  -lsnappy -llz4"
 endif
 
 # process linker flags
@@ -41,9 +39,15 @@ build_tags = netgo
 ifeq ($(WITH_ROCKSDB),true)
   CGO_ENABLED=1
   build_tags += rocksdb
+  ifeq ($(LINK_STATICALLY),true)
+  	  cgo_flags += CGO_CFLAGS="-I/usr/include/rocksdb"
+      cgo_flags += CGO_LDFLAGS="-L/usr/lib -lrocksdb -lstdc++ -lm  -lsnappy -llz4"
+  endif
 endif
 
 ifeq ($(LINK_STATICALLY),true)
+	ifeq
+	endif
 	build_tags += muslc
 endif
 
