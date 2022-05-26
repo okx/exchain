@@ -28,7 +28,8 @@ type runTxInfo struct {
 	txBytes []byte
 	tx      sdk.Tx
 
-	txIndex int
+	txIndex        int
+	overridesBytes []byte
 }
 
 func (app *BaseApp) runTxWithIndex(txIndex int, mode runTxMode,

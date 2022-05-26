@@ -18,7 +18,7 @@ func (suite *KeeperTestSuite) TestQuerier() {
 	}{
 		{"unknown request", []string{"other"}, func() {}, false},
 		{"parameters", []string{types.QueryParameters}, func() {}, true},
-		{"all mapping", []string{types.QueryAllMapping}, func() {
+		{"all mapping", []string{types.QueryTokenMapping}, func() {
 			denom1 := "testdenom1"
 			denom2 := "testdenom2"
 
