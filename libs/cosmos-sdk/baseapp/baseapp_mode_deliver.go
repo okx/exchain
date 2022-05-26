@@ -38,12 +38,11 @@ func handleGasRefund(info *runTxInfo, cacheTxCtxFunc CacheTxContextFunc, gasRefu
 	return refund
 }
 func (m *modeHandlerDeliver) handleDeferRefund(info *runTxInfo) {
-	app := m.app
-	if app.GasRefundHandler == nil {
+	if m.app.GasRefundHandler == nil {
 		return
 	}
-	refund := handleGasRefund(info, app.cacheTxContext, app.GasRefundHandler)
-	app.UpdateFeeForCollector(refund, false)
+	refund := handleGasRefund(info, m.app.cacheTxContext, m.app.GasRefundHandler)
+	m.app.UpdateFeeForCollector(refund, false)
 }
 
 func (m *modeHandlerDeliver) handleDeferGasConsumed(info *runTxInfo) {
