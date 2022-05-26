@@ -71,6 +71,10 @@ type Keeper struct {
 	queryGasLimit uint64
 	paramSpace    paramtypes.Subspace
 	gasRegister   GasRegister
+
+	// used for watchDB
+	queryRouter GRPCQueryRouter
+	bankKeeper  types.BankKeeper
 }
 
 // NewKeeper creates a new contract Keeper instance
@@ -114,6 +118,8 @@ func NewKeeper(
 		queryGasLimit:    wasmConfig.SmartQueryGasLimit,
 		paramSpace:       paramSpace,
 		gasRegister:      NewDefaultWasmGasRegister(),
+		queryRouter:      queryRouter,
+		bankKeeper:       bankKeeper,
 	}
 	keeper.wasmVMQueryHandler = DefaultQueryPlugins(bankKeeper, channelKeeper, queryRouter, keeper)
 	for _, o := range opts {
