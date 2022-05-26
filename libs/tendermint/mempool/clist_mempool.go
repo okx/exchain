@@ -606,6 +606,8 @@ func (mem *CListMempool) resCbFirstTime(
 				// remove from cache (mempool might have a space later)
 				mem.cache.Remove(tx)
 				mem.logger.Error(err.Error())
+				r.CheckTx.Code = 1
+				r.CheckTx.Log = err.Error()
 				return
 			}
 
@@ -617,7 +619,10 @@ func (mem *CListMempool) resCbFirstTime(
 			//}
 			if r.CheckTx.Tx.GetGasPrice().Sign() <= 0 {
 				mem.cache.Remove(tx)
-				mem.logger.Error("Failed to get extra info for this tx!")
+				errMsg := "Failed to get extra info for this tx!"
+				mem.logger.Error(errMsg)
+				r.CheckTx.Code = 1
+				r.CheckTx.Log = errMsg
 				return
 			}
 
