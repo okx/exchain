@@ -40,7 +40,7 @@ ifeq ($(WITH_ROCKSDB),true)
   CGO_ENABLED=1
   build_tags += rocksdb
   ifeq ($(LINK_STATICALLY),true)
-  	  cgo_flags += CGO_CFLAGS="-I/usr/include/rocksdb"
+      cgo_flags += CGO_CFLAGS="-I/usr/include/rocksdb"
       cgo_flags += CGO_LDFLAGS="-L/usr/lib -lrocksdb -lstdc++ -lm  -lsnappy -llz4"
   endif
 endif
