@@ -88,9 +88,7 @@ func (app *BaseApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOp
 	switch req.Key {
 	case "ResetCheckState":
 		// reset check state
-		app.checkState.ms = app.cms.CacheMultiStore()
-		app.checkState.ctx.SetMultiStore(app.checkState.ms)
-		app.checkTxCacheMultiStores.Clear()
+		app.setCheckState(app.checkState.ctx.BlockHeader())
 	default:
 		// do nothing
 	}
@@ -295,8 +293,6 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 
 	app.cms.ResetCount()
 	app.logger.Debug("Commit synced", "commit", amino.BytesHexStringer(commitID.Hash))
-
-	app.checkTxCacheMultiStores.Clear()
 
 	// Reset the Check state to the latest committed.
 	//

@@ -562,6 +562,8 @@ func (app *BaseApp) setCheckState(header abci.Header) {
 		ctx: sdk.NewContext(ms, header, true, app.logger),
 	}
 	app.checkState.ctx.SetMinGasPrices(app.minGasPrices)
+
+	app.checkTxCacheMultiStores.Clear()
 }
 
 // setDeliverState sets the BaseApp's deliverState with a cache-wrapped multi-store
