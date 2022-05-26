@@ -89,6 +89,8 @@ func (app *BaseApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOp
 	case "ResetCheckState":
 		// reset check state
 		app.checkState.ms = app.cms.CacheMultiStore()
+		app.checkState.ctx.SetMultiStore(app.checkState.ms)
+		app.checkTxCacheMultiStores.Clear()
 	default:
 		// do nothing
 	}
