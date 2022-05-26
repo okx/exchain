@@ -27,9 +27,10 @@ type runTxInfo struct {
 	result  *sdk.Result
 	txBytes []byte
 	tx      sdk.Tx
+	txIndex int
 
-	txIndex        int
-	overridesBytes []byte
+	reusableCacheMultiStore sdk.CacheMultiStore
+	overridesBytes          []byte
 }
 
 func (app *BaseApp) runTxWithIndex(txIndex int, mode runTxMode,
@@ -100,6 +101,9 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 			gasUsed = 0
 		}
 		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: gasUsed}
+		if mode == runTxModeDeliver && info.reusableCacheMultiStore != nil {
+			app.reusableCacheMultiStore = info.reusableCacheMultiStore
+		}
 	}()
 
 	defer func() {
@@ -118,6 +122,11 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		return err
 	}
 	app.pin(trace.ValTxMsgs, false, mode)
+
+	if mode == runTxModeDeliver && app.reusableCacheMultiStore != nil {
+		info.reusableCacheMultiStore = updateCacheMultiStore(app.reusableCacheMultiStore, info.txBytes, info.ctx.BlockHeight())
+		app.reusableCacheMultiStore = nil
+	}
 
 	app.pin(trace.RunAnte, true, mode)
 	if app.anteHandler != nil {
@@ -154,9 +163,21 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 
 	// 1. CacheTxContext
 	app.pin(trace.CacheTxContext, true, mode)
-	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
-
-	if mode == runTxModeDeliverInAsync {
+	if mode == runTxModeDeliver && info.reusableCacheMultiStore != nil {
+		anteCtx, info.msCacheAnte = info.ctx, info.reusableCacheMultiStore
+		anteCtx.SetMultiStore(info.msCacheAnte)
+		app.reusableCacheMultiStore = nil
+	} else if mode == runTxModeCheck || mode == runTxModeReCheck {
+		info.msCacheAnte = app.checkTxCacheMultiStores.GetStore()
+		if info.msCacheAnte != nil {
+			info.msCacheAnte = updateCacheMultiStore(info.msCacheAnte, info.txBytes, info.ctx.BlockHeight())
+			anteCtx = info.ctx
+			anteCtx.SetMultiStore(info.msCacheAnte)
+		} else {
+			anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
+		}
+	} else if mode == runTxModeDeliverInAsync {
+		anteCtx = info.ctx
 		info.msCacheAnte = nil
 		msCacheAnte := app.parallelTxManage.getTxResult(info.txIndex)
 		if msCacheAnte == nil {
@@ -164,7 +185,10 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 		}
 		info.msCacheAnte = msCacheAnte
 		anteCtx.SetMultiStore(info.msCacheAnte)
+	} else {
+		anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
 	}
+
 	anteCtx.SetEventManager(sdk.NewEventManager())
 	app.pin(trace.CacheTxContext, false, mode)
 
@@ -209,6 +233,13 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	if mode != runTxModeDeliverInAsync {
 		app.pin(trace.CacheStoreWrite, true, mode)
 		info.msCacheAnte.Write()
+		if mode == runTxModeDeliver {
+			info.reusableCacheMultiStore = info.msCacheAnte
+			info.msCacheAnte = nil
+		} else if mode == runTxModeCheck || mode == runTxModeReCheck {
+			app.checkTxCacheMultiStores.PushStore(info.msCacheAnte)
+			info.msCacheAnte = nil
+		}
 		info.ctx.Cache().Write(true)
 		app.pin(trace.CacheStoreWrite, false, mode)
 	}

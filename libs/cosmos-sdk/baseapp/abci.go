@@ -89,7 +89,7 @@ func (app *BaseApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOp
 	switch req.Key {
 	case "ResetCheckState":
 		// reset check state
-		app.checkState.ms = app.cms.CacheMultiStore()
+		app.setCheckState(app.checkState.ctx.BlockHeader())
 	default:
 		// do nothing
 	}
@@ -115,6 +115,7 @@ func (app *BaseApp) FilterPeerByID(info string) abci.ResponseQuery {
 // BeginBlock implements the ABCI application interface.
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 	app.blockDataCache.Clear()
+	app.reusableCacheMultiStore = nil
 	if app.cms.TracingEnabled() {
 		app.cms.SetTracingContext(sdk.TraceContext(
 			map[string]interface{}{"blockHeight": req.Header.Height},
