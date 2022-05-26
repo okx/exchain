@@ -365,3 +365,19 @@ func BenchmarkAccAddress_Bech32String(b *testing.B) {
 	})
 	require.EqualValues(b, acc.Bech32String(prefix), acc.Bech32StringOptimized(prefix))
 }
+
+func BenchmarkAccAddressFromBech32String(b *testing.B) {
+	buffer := make([]byte, 32)
+	copy(buffer, []byte("test"))
+	acc := types.AccAddress(buffer)
+	prefix := types.GetConfig().GetBech32AccountAddrPrefix()
+	sender := acc.Bech32String(prefix)
+	b.ResetTimer()
+	b.Run("AccAddressFromBech32", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_, err := types.AccAddressFromBech32(sender)
+			require.NoError(b, err)
+		}
+	})
+}
