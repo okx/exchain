@@ -27,12 +27,10 @@ type runTxInfo struct {
 	result  *sdk.Result
 	txBytes []byte
 	tx      sdk.Tx
-
 	txIndex int
 
 	reusableCacheMultiStore sdk.CacheMultiStore
-
-	overridesBytes []byte
+	overridesBytes          []byte
 }
 
 func (app *BaseApp) runTxWithIndex(txIndex int, mode runTxMode,
