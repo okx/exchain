@@ -9,7 +9,7 @@ GithubTop=github.com
 
 
 
-Version=v2.0.0
+Version=v1.5.0
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
@@ -46,6 +46,7 @@ else ifeq ($(MAKECMDGOALS),testnet)
    GenesisHeight=1121818
    MercuryHeight=5300000
    VenusHeight=8510000
+   Venus1Height=12067000
 endif
 
 ldflags = -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Version=$(Version) \
@@ -64,6 +65,14 @@ ldflags = -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Version=$(Version
 
 ifeq ($(WITH_ROCKSDB),true)
   ldflags += -X github.com/okex/exchain/libs/cosmos-sdk/types.DBBackend=rocksdb
+endif
+
+ifeq ($(OKCMALLOC),tcmalloc)
+  ldflags += -extldflags "-ltcmalloc_minimal"
+endif
+
+ifeq ($(OKCMALLOC),jemalloc)
+  ldflags += -extldflags "-ljemalloc"
 endif
 
 BUILD_FLAGS := -ldflags '$(ldflags)'
@@ -183,3 +192,11 @@ rocksdb:
 .PHONY: rocksdb
 
 .PHONY: build
+
+tcmalloc:
+	@echo "Installing tcmalloc..."
+	@bash ./libs/malloc/tcinstall.sh
+
+jemalloc:
+	@echo "Installing jemalloc..."
+	@bash ./libs/malloc/jeinstall.sh

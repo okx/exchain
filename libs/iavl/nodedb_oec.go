@@ -5,13 +5,15 @@ import (
 	"container/list"
 	"encoding/binary"
 	"fmt"
+
 	cmap "github.com/orcaman/concurrent-map"
+
+	"time"
 
 	"github.com/go-errors/errors"
 	"github.com/okex/exchain/libs/system/trace"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/tendermint/go-amino"
-	"time"
 )
 
 const (
@@ -89,7 +91,6 @@ func (ndb *nodeDB) saveNodeToPrePersistCache(node *Node) {
 }
 
 func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
-
 	batch := event.batch
 	tpp := event.tpp
 
@@ -109,16 +110,14 @@ func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
 
 func (ndb *nodeDB) asyncPersistTppStart(version int64) map[string]*Node {
 	ndb.log(IavlDebug, "moving prePersistCache to tempPrePersistCache", "size", len(ndb.prePersistNodeCache))
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-	tpp := ndb.prePersistNodeCache
-	ndb.prePersistNodeCache = map[string]*Node{}
 
-	lItem := ndb.tppVersionList.PushBack(version)
-	ndb.tppMap[version] = &tppItem{
-		nodeMap:  tpp,
-		listItem: lItem,
-	}
+	ndb.mtx.Lock()
+
+	tpp := ndb.prePersistNodeCache
+	ndb.prePersistNodeCache = make(map[string]*Node, len(tpp))
+	ndb.tpp.pushToTpp(version, tpp)
+
+	ndb.mtx.Unlock()
 
 	for _, node := range tpp {
 		if node.persisted || !node.prePersisted {
@@ -131,35 +130,20 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) map[string]*Node {
 }
 
 func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer) {
-
 	version := event.version
-	tpp := event.tpp
 	iavlHeight := event.iavlHeight
 
-	trc.Pin("cacheNode")
-	for _, node := range tpp {
-		if !node.persisted {
-			panic("unexpected logic")
-		}
-		ndb.cacheNode(node)
-	}
+	nodeNum := ndb.tpp.getTppNodesNum()
 
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
+	ndb.tpp.removeFromTpp(version)
 
-	nodeNum := ndb.getTppNodesNum()
-
-	tItem := ndb.tppMap[version]
-	if tItem != nil {
-		ndb.tppVersionList.Remove(tItem.listItem)
-	}
-	delete(ndb.tppMap, version)
 	ndb.log(IavlInfo, "CommitSchedule", "Height", version,
 		"Tree", ndb.name,
 		"IavlHeight", iavlHeight,
 		"NodeNum", nodeNum,
 		"trc", trc.Format())
 }
+
 
 // SaveNode saves a node to disk.
 func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
@@ -185,18 +169,11 @@ func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
 	nodeKey := ndb.nodeKey(node.hash)
 	nodeValue := buf.Bytes()
 	batch.Set(nodeKey, nodeValue)
-	ndb.state.increasePersistedSize(len(nodeKey)+len(nodeValue))
+	ndb.state.increasePersistedSize(len(nodeKey) + len(nodeValue))
 	ndb.log(IavlDebug, "BATCH SAVE", "hash", node.hash)
 	//node.persisted = true // move to function MovePrePersistCacheToTempCache
 }
 
-func (ndb *nodeDB) getTppNodesNum() int {
-	var size = 0
-	for _, mp := range ndb.tppMap {
-		size += len(mp.nodeMap)
-	}
-	return size
-}
 
 func (ndb *nodeDB) NewBatch() dbm.Batch {
 	return ndb.db.NewBatch()
@@ -205,26 +182,15 @@ func (ndb *nodeDB) NewBatch() dbm.Batch {
 // Saves orphaned nodes to disk under a special prefix.
 // version: the new version being saved.
 // orphans: the orphan nodes created since version-1
-func (ndb *nodeDB) saveCommitOrphans(batch dbm.Batch, version int64, orphans map[string]int64) {
+func (ndb *nodeDB) saveCommitOrphans(batch dbm.Batch, version int64, orphans []commitOrphan) {
 	ndb.log(IavlDebug, "saving committed orphan node log to disk")
 	toVersion := ndb.getPreviousVersion(version)
-	for hash, fromVersion := range orphans {
-		// ndb.log(IavlDebug, "SAVEORPHAN", "from", fromVersion, "to", toVersion, "hash", amino.BytesHexStringer(amino.StrToBytes(hash)))
-		ndb.saveOrphan(batch, amino.StrToBytes(hash), fromVersion, toVersion)
+	for _, orphan := range orphans {
+		// ndb.log(IavlDebug, "SAVEORPHAN", "from", orphan.Version, "to", toVersion, "hash", amino.BytesHexStringer(orphan.NodeHash))
+		ndb.saveOrphan(batch, orphan.NodeHash, orphan.Version, toVersion)
 	}
 }
 
-func (ndb *nodeDB) getNodeInTpp(hash []byte) (*Node, bool) {
-	for v := ndb.tppVersionList.Back(); v != nil; v = v.Prev() {
-		ver := v.Value.(int64)
-		tppItem := ndb.tppMap[ver]
-
-		if elem, ok := tppItem.nodeMap[string(hash)]; ok {
-			return elem, ok
-		}
-	}
-	return nil, false
-}
 
 func (ndb *nodeDB) getRootWithCacheAndDB(version int64) ([]byte, error) {
 	if EnableAsyncCommit {
@@ -235,7 +201,6 @@ func (ndb *nodeDB) getRootWithCacheAndDB(version int64) ([]byte, error) {
 	}
 	return ndb.getRoot(version)
 }
-
 
 // DeleteVersion deletes a tree version from disk.
 func (ndb *nodeDB) DeleteVersion(batch dbm.Batch, version int64, checkLatestVersion bool) error {
@@ -291,6 +256,11 @@ func orphanKeyFast(fromVersion, toVersion int64, hash []byte) []byte {
 func (ndb *nodeDB) cacheNode(node *Node) {
 	ndb.nc.cache(node)
 }
+
+func (ndb *nodeDB) cacheWithKey(key string, node *Node) {
+	ndb.nc.cacheWithKey(key, node)
+}
+
 func (ndb *nodeDB) uncacheNode(hash []byte) {
 	ndb.nc.uncache(hash)
 }
@@ -321,7 +291,14 @@ func (ndb *nodeDB) cacheNodeToPreWriteCache(n *Node) {
 
 func (ndb *nodeDB) finishPreWriteCache() {
 	ndb.preWriteNodeCache.IterCb(func(key string, v interface{}) {
-		ndb.cacheNode(v.(*Node))
+		ndb.cacheWithKey(key, v.(*Node))
 	})
 	ndb.preWriteNodeCache = nil
+}
+
+func (ndb *nodeDB) prePersistNodeCacheLen() (l int) {
+	ndb.mtx.Lock()
+	l = len(ndb.prePersistNodeCache)
+	ndb.mtx.Unlock()
+	return
 }

@@ -2,9 +2,10 @@ package baseapp
 
 import (
 	"fmt"
+	"runtime/debug"
+
 	"github.com/okex/exchain/libs/system/trace"
 	"github.com/pkg/errors"
-	"runtime/debug"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -26,8 +27,36 @@ type runTxInfo struct {
 	result  *sdk.Result
 	txBytes []byte
 	tx      sdk.Tx
-
 	txIndex int
+
+	reusableCacheMultiStore sdk.CacheMultiStore
+	overridesBytes          []byte
+}
+
+func (info *runTxInfo) GetCacheMultiStore() (sdk.CacheMultiStore, bool) {
+	if info.reusableCacheMultiStore == nil {
+		return nil, false
+	}
+	reuse := info.reusableCacheMultiStore
+	info.reusableCacheMultiStore = nil
+	return reuse, true
+}
+
+func (info *runTxInfo) PutCacheMultiStore(cms sdk.CacheMultiStore) {
+	info.reusableCacheMultiStore = cms
+}
+
+func (app *BaseApp) GetCacheMultiStore(txBytes []byte, height int64) (sdk.CacheMultiStore, bool) {
+	if app.reusableCacheMultiStore == nil {
+		return nil, false
+	}
+	reuse := updateCacheMultiStore(app.reusableCacheMultiStore, txBytes, height)
+	app.reusableCacheMultiStore = nil
+	return reuse, true
+}
+
+func (app *BaseApp) PutCacheMultiStore(cms sdk.CacheMultiStore) {
+	app.reusableCacheMultiStore = cms
 }
 
 func (app *BaseApp) runTxWithIndex(txIndex int, mode runTxMode,
@@ -98,6 +127,11 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 			gasUsed = 0
 		}
 		info.gInfo = sdk.GasInfo{GasWanted: info.gasWanted, GasUsed: gasUsed}
+		if mode == runTxModeDeliver {
+			if cms, ok := info.GetCacheMultiStore(); ok {
+				app.PutCacheMultiStore(cms)
+			}
+		}
 	}()
 
 	defer func() {
@@ -116,6 +150,12 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		return err
 	}
 	app.pin(trace.ValTxMsgs, false, mode)
+
+	if mode == runTxModeDeliver {
+		if cms, ok := app.GetCacheMultiStore(info.txBytes, info.ctx.BlockHeight()); ok {
+			info.PutCacheMultiStore(cms)
+		}
+	}
 
 	app.pin(trace.RunAnte, true, mode)
 	if app.anteHandler != nil {
@@ -152,9 +192,24 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 
 	// 1. CacheTxContext
 	app.pin(trace.CacheTxContext, true, mode)
-	anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
-
-	if mode == runTxModeDeliverInAsync {
+	if mode == runTxModeDeliver {
+		if cms, ok := info.GetCacheMultiStore(); ok {
+			anteCtx, info.msCacheAnte = info.ctx, cms
+			anteCtx.SetMultiStore(info.msCacheAnte)
+		} else {
+			anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
+		}
+	} else if mode == runTxModeCheck || mode == runTxModeReCheck {
+		info.msCacheAnte = app.checkTxCacheMultiStores.GetStore()
+		if info.msCacheAnte != nil {
+			info.msCacheAnte = updateCacheMultiStore(info.msCacheAnte, info.txBytes, info.ctx.BlockHeight())
+			anteCtx = info.ctx
+			anteCtx.SetMultiStore(info.msCacheAnte)
+		} else {
+			anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
+		}
+	} else if mode == runTxModeDeliverInAsync {
+		anteCtx = info.ctx
 		info.msCacheAnte = nil
 		msCacheAnte := app.parallelTxManage.getTxResult(info.txIndex)
 		if msCacheAnte == nil {
@@ -162,7 +217,10 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 		}
 		info.msCacheAnte = msCacheAnte
 		anteCtx.SetMultiStore(info.msCacheAnte)
+	} else {
+		anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
 	}
+
 	anteCtx.SetEventManager(sdk.NewEventManager())
 	app.pin(trace.CacheTxContext, false, mode)
 
@@ -207,6 +265,13 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	if mode != runTxModeDeliverInAsync {
 		app.pin(trace.CacheStoreWrite, true, mode)
 		info.msCacheAnte.Write()
+		if mode == runTxModeDeliver {
+			info.PutCacheMultiStore(info.msCacheAnte)
+			info.msCacheAnte = nil
+		} else if mode == runTxModeCheck || mode == runTxModeReCheck {
+			app.checkTxCacheMultiStores.PushStore(info.msCacheAnte)
+			info.msCacheAnte = nil
+		}
 		info.ctx.Cache().Write(true)
 		app.pin(trace.CacheStoreWrite, false, mode)
 	}
@@ -313,9 +378,10 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 	default:
 		err = sdkerrors.Wrap(
 			sdkerrors.ErrPanic, fmt.Sprintf(
-				"recovered: %v\nstack:\n%v", r, string(debug.Stack()),
+				"recovered: %v\n", r,
 			),
 		)
+		app.logger.Info("runTx panic recover : %v\nstack:\n%v", r, string(debug.Stack()))
 	}
 	return err
 }

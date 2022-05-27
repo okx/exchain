@@ -5,6 +5,7 @@ import (
 	"compress/flate"
 	"compress/gzip"
 	"compress/zlib"
+	"fmt"
 	"io"
 	"sync"
 )
@@ -45,8 +46,14 @@ func Compress(compressType, flag int, src []byte) ([]byte, error) {
 	return bk.defaultCompress(src)
 }
 
-func UnCompress(compressType int, src []byte) ([]byte, error) {
+func UnCompress(compressType int, src []byte) (ret []byte, err error) {
+	defer func() {
+		if x := recover(); x != nil {
+			err = fmt.Errorf("uncompress panic compress type %v recover %v", compressType, x)
+		}
+	}()
 	bk := getCompressBroker(compressType)
+
 	return bk.unCompress(src)
 }
 
