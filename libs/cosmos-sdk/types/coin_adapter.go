@@ -23,6 +23,10 @@ func CoinAdaptersToCoins(adapters CoinAdapters) Coins {
 }
 
 func CoinsToCoinAdapters(coins Coins) CoinAdapters {
+	//Note:
+	// `var adapters CoinAdapters = make([]CoinAdapter, 0)`
+	// The code above if invalid.
+	// []CoinAdapter{} and nil are different in json format which can make different signBytes.
 	var adapters CoinAdapters
 	for i, _ := range coins {
 		adapters = append(adapters, CoinToCoinAdapter(coins[i]))
