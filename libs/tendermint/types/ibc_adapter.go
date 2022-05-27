@@ -1,12 +1,15 @@
 package types
 
 import (
+	"encoding/hex"
+	"fmt"
+	"time"
+
 	ce "github.com/okex/exchain/libs/tendermint/crypto/encoding"
 	"github.com/okex/exchain/libs/tendermint/libs/bits"
 	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
 	tmproto "github.com/okex/exchain/libs/tendermint/proto/types"
 	tmversion "github.com/okex/exchain/libs/tendermint/proto/version"
-	"time"
 )
 
 // SignedHeader is a header along with the commits that prove it.
@@ -108,7 +111,9 @@ func (v *Validator) HeightBytes(h int64) []byte {
 		if err != nil {
 			panic(err)
 		}
+		fmt.Println("addr:" + v.Address.String() + "," + hex.EncodeToString(bz))
 		return bz
 	}
+	panic("yls IBC test")
 	return v.OriginBytes()
 }

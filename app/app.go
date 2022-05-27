@@ -229,6 +229,7 @@ func NewOKExChainApp(
 		"MercuryHeight", tmtypes.GetMercuryHeight(),
 		"VenusHeight", tmtypes.GetVenusHeight(),
 		"MarsHeight", tmtypes.GetMarsHeight(),
+		"Venus1Height", tmtypes.GetVenus1Height(),
 	)
 	onceLog.Do(func() {
 		iavl.SetLogger(logger.With("module", "iavl"))
