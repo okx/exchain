@@ -356,10 +356,10 @@ func (memR *Reactor) decodeMsg(bz []byte) (msg Message, err error) {
 
 	tp := getTxMessageAminoTypePrefix()
 	if len(bz) >= len(tp) && bytes.Equal(bz[:len(tp)], tp) {
-		txmsg := TxMessage{}
+		txmsg := &TxMessage{}
 		err := txmsg.UnmarshalFromAmino(cdc, bz[len(tp):])
 		if err == nil {
-			return &txmsg, nil
+			return txmsg, nil
 		}
 	}
 	msg, err = cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(bz, &msg)
