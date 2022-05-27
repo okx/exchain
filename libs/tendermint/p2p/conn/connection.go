@@ -855,7 +855,7 @@ func (ch *Channel) writePacketMsgTo(w io.Writer) (n int64, err error) {
 	var packet = ch.nextPacketMsg()
 
 	var bz []byte
-	bz, err = cdc.MarshalBinaryBareWithSizer(&packet, true)
+	bz, err = cdc.MarshalBinaryWithSizer(&packet, true)
 	if err == nil {
 		bzNum := 0
 		bzNum, err = w.Write(bz)
