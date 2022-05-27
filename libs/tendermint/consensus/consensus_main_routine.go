@@ -129,7 +129,7 @@ func (cs *State) handleMsg(mi msgInfo) {
 			cs.vcMsg = msg
 			if cs.Step != cstypes.RoundStepNewHeight && cs.Round == 0 {
 				_, val := cs.Validators.GetByAddress(msg.NewProposer)
-				cs.enterNewRoundWithVal(cs.Height, 0, val)
+				cs.enterNewRoundAVC(cs.Height, 0, val)
 			}
 		}
 

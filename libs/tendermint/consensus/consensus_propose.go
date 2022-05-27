@@ -93,7 +93,7 @@ func (cs *State) enterPropose(height int64, round int) {
 	cs.doPropose(height, round)
 }
 
-func (cs *State) enterProposeWithVal(height int64, round int) {
+func (cs *State) enterProposeAVC(height int64, round int) {
 	logger := cs.Logger.With("height", height, "round", round)
 	if cs.Height != height || round < cs.Round || (cs.Round == round && cstypes.RoundStepPropose < cs.Step) {
 		logger.Debug(fmt.Sprintf(

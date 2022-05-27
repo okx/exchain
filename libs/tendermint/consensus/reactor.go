@@ -2027,6 +2027,17 @@ func (m *ViewChangeMessage) ValidateBasic() error {
 	return nil
 }
 
+func (m *ViewChangeMessage) Validate(height int64, proposer types.Address) bool {
+	if m.Height != height {
+		return false
+	}
+	if !bytes.Equal(proposer, m.CurrentProposer) {
+		return false
+	}
+
+	return true
+}
+
 func (m *ViewChangeMessage) SignBytes() []byte {
 	return cdc.MustMarshalBinaryBare(ViewChangeMessage{Height: m.Height, CurrentProposer: m.CurrentProposer, NewProposer: m.NewProposer})
 }

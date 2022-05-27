@@ -82,11 +82,11 @@ func (cs *State) enterNewRound(height int64, round int) {
 	}
 }
 
-func (cs *State) enterNewRoundWithVal(height int64, round int, val *types.Validator) {
+func (cs *State) enterNewRoundAVC(height int64, round int, val *types.Validator) {
 	logger := cs.Logger.With("height", height, "round", round)
 	if round != 0 || cs.Round != 0 || cs.Height != height {
 		logger.Debug(fmt.Sprintf(
-			"enterNewRoundWithVal(%v/%v): Invalid args. Current step: %v/%v/%v",
+			"enterNewRoundAVC(%v/%v): Invalid args. Current step: %v/%v/%v",
 			height,
 			round,
 			cs.Height,
@@ -97,7 +97,7 @@ func (cs *State) enterNewRoundWithVal(height int64, round int, val *types.Valida
 
 	cs.initNewHeight()
 	cs.trc.Pin("NewRoundVC-%d", round)
-	logger.Info(fmt.Sprintf("enterNewRoundWithVal(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
+	logger.Info(fmt.Sprintf("enterNewRoundAVC(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
 	// Setup new round
 	// we don't fire newStep for this step,
@@ -125,15 +125,15 @@ func (cs *State) enterNewRoundWithVal(height int64, round int, val *types.Valida
 				cstypes.RoundStepNewRound)
 		}
 	} else {
-		cs.enterProposeWithVal(height, round)
+		cs.enterProposeAVC(height, round)
 	}
 }
 
 // Enter: `timeoutNewHeight` by startTime (after timeoutCommit),
 func (cs *State) enterNewHeight(height int64) {
-	if ActiveViewChange && cs.vcMsg != nil && cs.vcMsg.Height == cs.Height {
+	if ActiveViewChange && cs.vcMsg != nil && cs.vcMsg.Validate(height, cs.Validators.Proposer.Address) {
 		_, val := cs.Validators.GetByAddress(cs.vcMsg.NewProposer)
-		cs.enterNewRoundWithVal(height, 0, val)
+		cs.enterNewRoundAVC(height, 0, val)
 	} else {
 		cs.enterNewRound(height, 0)
 	}
