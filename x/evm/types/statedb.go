@@ -8,6 +8,7 @@ import (
 
 	"github.com/okex/exchain/libs/system/trace"
 
+	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
@@ -391,6 +392,15 @@ func (csdb *CommitStateDB) SetParams(params Params) {
 	csdb.params = &params
 	csdb.paramSpace.SetParamSet(csdb.ctx, &params)
 	GetEvmParamsCache().SetNeedParamsUpdate()
+}
+
+// SetStorage replaces the entire storage for the specified account with given
+// storage. This function should only be used for debugging.
+func (csdb *CommitStateDB) SetStorage(addr common.Address, storage map[common.Hash]common.Hash) {
+	stateObject := csdb.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.SetStorage(storage)
+	}
 }
 
 // SetBalance sets the balance of an account.
