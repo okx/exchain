@@ -1,8 +1,6 @@
 package types
 
 import (
-	"encoding/hex"
-	"fmt"
 	"time"
 
 	ce "github.com/okex/exchain/libs/tendermint/crypto/encoding"
@@ -111,7 +109,7 @@ func (v *Validator) HeightBytes(h int64) []byte {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println("addr:" + v.Address.String() + "," + hex.EncodeToString(bz))
+		//fmt.Println("addr:" + v.Address.String() + "," + hex.EncodeToString(bz))
 		return bz
 	}
 	panic("yls IBC test")
