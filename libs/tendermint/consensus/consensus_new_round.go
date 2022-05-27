@@ -104,6 +104,10 @@ func (cs *State) enterNewRoundWithVal(height int64, round int, val *types.Valida
 	// but we fire an event, so update the round step first
 	cs.updateRoundStep(round, cstypes.RoundStepNewRound)
 	cs.Validators.Proposer = val
+	logger.Info("Resetting Proposal info")
+	cs.Proposal = nil
+	cs.ProposalBlock = nil
+	cs.ProposalBlockParts = nil
 	if cs.Votes.Round() == 0 {
 		cs.Votes.SetRound(1) // also track next round (round+1) to allow round-skipping
 	}

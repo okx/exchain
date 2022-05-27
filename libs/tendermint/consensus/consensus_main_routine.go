@@ -109,7 +109,6 @@ func (cs *State) handleMsg(mi msgInfo) {
 	)
 	msg, peerID := mi.Msg, mi.PeerID
 	switch msg := msg.(type) {
-	// todo review logice of vcMsg
 	case *ViewChangeMessage:
 		if !ActiveViewChange {
 			return
@@ -263,6 +262,7 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 		if isBlockProducer != "y" {
 			// request for proposer of new height
 			prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address()}
+			// todo only put all request into one channel
 			go cs.requestForProposer(prMsg)
 		}
 	}
