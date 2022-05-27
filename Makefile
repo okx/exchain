@@ -25,9 +25,6 @@ SaturnHeight=0
 
 LINK_STATICALLY = false
 cgo_flags=
-ifeq ($(shell ./dev/os.sh),alpine)
- LINK_STATICALLY = true
-endif
 
 # process linker flags
 ifeq ($(VERSION),)
