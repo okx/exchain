@@ -1,12 +1,14 @@
 package merkle
 
 import (
+	"fmt"
 	"math/bits"
 )
 
 // SimpleHashFromByteSlices computes a Merkle tree where the leaves are the byte slice,
 // in the provided order.
 func SimpleHashFromByteSlices(items [][]byte) []byte {
+	fmt.Println(items)
 	switch len(items) {
 	case 0:
 		return nil
