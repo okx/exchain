@@ -7,7 +7,6 @@ import (
 func (m *modeHandlerDeliver) handleRunMsg(info *runTxInfo) (err error) {
 	app := m.app
 	mode := m.mode
-
 	if cms, ok := info.GetCacheMultiStore(); ok {
 		info.runMsgCtx, info.msCache = info.ctx, cms
 		info.runMsgCtx.SetMultiStore(info.msCache)
