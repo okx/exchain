@@ -7,12 +7,13 @@ import (
 func (m *modeHandlerDeliver) handleRunMsg(info *runTxInfo) (err error) {
 	app := m.app
 	mode := m.mode
-	if info.reusableCacheMultiStore != nil {
-		info.runMsgCtx, info.msCache = info.ctx, info.reusableCacheMultiStore
+
+	var ok bool
+	if info.msCache, ok = info.GetCacheMultiStore(); ok {
+		info.runMsgCtx = info.ctx
 		info.runMsgCtx.SetMultiStore(info.msCache)
-		info.reusableCacheMultiStore = nil
 	} else {
-		info.runMsgCtx, info.msCache = app.cacheTxContext(info.ctx, info.txBytes)
+		info.ctx, info.msCache = app.cacheTxContext(info.ctx, info.txBytes)
 	}
 
 	info.ctx.Cache().Write(false)
@@ -20,7 +21,7 @@ func (m *modeHandlerDeliver) handleRunMsg(info *runTxInfo) (err error) {
 	if err == nil {
 		info.msCache.Write()
 		info.ctx.Cache().Write(true)
-		info.reusableCacheMultiStore = info.msCache
+		info.PutCacheMultiStore(info.msCache)
 	}
 
 	info.runMsgFinished = true
@@ -37,10 +38,11 @@ func (m *modeHandlerDeliver) handleDeferRefund(info *runTxInfo) {
 
 	var gasRefundCtx sdk.Context
 	info.ctx.Cache().Write(false)
-	if info.reusableCacheMultiStore != nil {
-		gasRefundCtx, info.msCache = info.ctx, info.reusableCacheMultiStore
+
+	var ok bool
+	if info.msCache, ok = info.GetCacheMultiStore(); ok {
+		gasRefundCtx = info.ctx
 		gasRefundCtx.SetMultiStore(info.msCache)
-		info.reusableCacheMultiStore = nil
 	} else {
 		gasRefundCtx, info.msCache = app.cacheTxContext(info.ctx, info.txBytes)
 	}
@@ -50,7 +52,7 @@ func (m *modeHandlerDeliver) handleDeferRefund(info *runTxInfo) {
 		panic(err)
 	}
 	info.msCache.Write()
-	info.reusableCacheMultiStore = info.msCache
+	info.PutCacheMultiStore(info.msCache)
 	info.ctx.Cache().Write(true)
 
 	app.UpdateFeeForCollector(refund, false)
