@@ -20,6 +20,7 @@ func (m *modeHandlerDeliver) handleRunMsg(info *runTxInfo) (err error) {
 		info.msCache.Write()
 		info.ctx.Cache().Write(true)
 		info.PutCacheMultiStore(info.msCache)
+		info.msCache = nil
 	}
 
 	info.runMsgFinished = true
@@ -49,6 +50,7 @@ func (m *modeHandlerDeliver) handleDeferRefund(info *runTxInfo) {
 	}
 	info.msCache.Write()
 	info.PutCacheMultiStore(info.msCache)
+	info.msCache = nil
 	info.ctx.Cache().Write(true)
 
 	app.UpdateFeeForCollector(refund, false)
