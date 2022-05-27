@@ -938,6 +938,8 @@ func (conR *Reactor) gossipVCRoutine(peer p2p.Peer, ps *PeerState) {
 
 OUTER_LOOP:
 	for {
+		time.Sleep(conR.conS.config.PeerGossipSleepDuration * 2)
+
 		// Manage disconnects from self or peer.
 		if !peer.IsRunning() || !conR.IsRunning() {
 			logger.Info("Stopping gossipDataRoutine for peer")
@@ -974,7 +976,6 @@ OUTER_LOOP:
 			}
 		}
 
-		time.Sleep(conR.conS.config.PeerGossipSleepDuration * 2)
 		continue OUTER_LOOP
 	}
 }
