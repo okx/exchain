@@ -192,10 +192,9 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 
 	// 1. CacheTxContext
 	app.pin(trace.CacheTxContext, true, mode)
-	var ok bool
 	if mode == runTxModeDeliver {
-		if info.msCacheAnte, ok = info.GetCacheMultiStore(); ok {
-			anteCtx = info.ctx
+		if cms, ok := info.GetCacheMultiStore(); ok {
+			anteCtx, info.msCacheAnte = info.ctx, cms
 			anteCtx.SetMultiStore(info.msCacheAnte)
 		} else {
 			anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)

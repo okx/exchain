@@ -8,9 +8,8 @@ func (m *modeHandlerDeliver) handleRunMsg(info *runTxInfo) (err error) {
 	app := m.app
 	mode := m.mode
 
-	var ok bool
-	if info.msCache, ok = info.GetCacheMultiStore(); ok {
-		info.runMsgCtx = info.ctx
+	if cms, ok := info.GetCacheMultiStore(); ok {
+		info.runMsgCtx, info.msCache = info.ctx, cms
 		info.runMsgCtx.SetMultiStore(info.msCache)
 	} else {
 		info.runMsgCtx, info.msCache = app.cacheTxContext(info.ctx, info.txBytes)
@@ -39,9 +38,8 @@ func (m *modeHandlerDeliver) handleDeferRefund(info *runTxInfo) {
 	var gasRefundCtx sdk.Context
 	info.ctx.Cache().Write(false)
 
-	var ok bool
-	if info.msCache, ok = info.GetCacheMultiStore(); ok {
-		gasRefundCtx = info.ctx
+	if cms, ok := info.GetCacheMultiStore(); ok {
+		gasRefundCtx, info.msCache = info.ctx, cms
 		gasRefundCtx.SetMultiStore(info.msCache)
 	} else {
 		gasRefundCtx, info.msCache = app.cacheTxContext(info.ctx, info.txBytes)
