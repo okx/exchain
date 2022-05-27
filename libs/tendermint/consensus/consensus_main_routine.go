@@ -121,7 +121,7 @@ func (cs *State) handleMsg(mi msgInfo) {
 		}
 
 		// enterNewHeight use cs.vcMsg
-		if msg.Height > cs.Height {
+		if msg.Height == cs.Height+1 {
 			cs.vcMsg = msg
 		} else if msg.Height == cs.Height {
 			// ApplyBlock of height-1 has finished
