@@ -36,7 +36,6 @@ func (m *modeHandlerDeliver) handleDeferRefund(info *runTxInfo) {
 
 	var gasRefundCtx sdk.Context
 	info.ctx.Cache().Write(false)
-
 	if cms, ok := info.GetCacheMultiStore(); ok {
 		gasRefundCtx, info.msCache = info.ctx, cms
 		gasRefundCtx.SetMultiStore(info.msCache)
