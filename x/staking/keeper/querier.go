@@ -1,15 +1,16 @@
 package keeper
 
 import (
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
+	"strings"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"strings"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/x/common"
@@ -28,7 +29,8 @@ func NewQuerier(k Keeper) sdk.Querier {
 			return queryPool(ctx, k)
 		case types.QueryParameters:
 			return queryParameters(ctx, k)
-			// required by okexchain
+		case types.QueryParams4IBC:
+			return queryParams4IBC(ctx, k)
 		case types.QueryUnbondingDelegation:
 			return queryUndelegation(ctx, req, k)
 		case types.QueryValidatorAllShares:
@@ -156,6 +158,17 @@ func queryPool(ctx sdk.Context, k Keeper) ([]byte, error) {
 func queryParameters(ctx sdk.Context, k Keeper) ([]byte, error) {
 	params := k.GetParams(ctx)
 
+	res, err := codec.MarshalJSONIndent(types.ModuleCdc, params)
+	if err != nil {
+		return nil, common.ErrMarshalJSONFailed(err.Error())
+	}
+
+	return res, nil
+}
+
+func queryParams4IBC(ctx sdk.Context, k Keeper) ([]byte, error) {
+	params := k.GetParams(ctx)
+
 	//QueryParamsResponse
 	ret := &stakingtypes.QueryParamsResponse{
 		Params: stakingtypes.IBCParams{
@@ -163,7 +176,7 @@ func queryParameters(ctx sdk.Context, k Keeper) ([]byte, error) {
 			MaxValidators:     uint32(params.MaxValidators),
 			MaxEntries:        uint32(params.MaxValsToAddShares),
 			HistoricalEntries: params.HistoricalEntries,
-			BondDenom:         "okt",
+			BondDenom:         sdk.DefaultBondDenom,
 		},
 	}
 	res, err := k.cdcMarshl.GetProtocMarshal().MarshalBinaryBare(ret)

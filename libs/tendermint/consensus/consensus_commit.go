@@ -9,7 +9,22 @@ import (
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
+	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
 )
+
+func (cs *State) dumpElapsed(trc *trace.Tracer, schema string) {
+	trace.GetElapsedInfo().AddInfo(schema, trc.Format())
+	trc.Reset()
+}
+
+func (cs *State) initNewHeight() {
+	// waiting finished and enterNewHeight by timeoutNewHeight
+	if cs.Step == cstypes.RoundStepNewHeight {
+		// init StartTime
+		cs.StartTime = tmtime.Now()
+		cs.dumpElapsed(cs.blockTimeTrc, trace.LastBlockTime)
+	}
+}
 
 func (cs *State) traceDump() {
 	if cs.Logger == nil {
