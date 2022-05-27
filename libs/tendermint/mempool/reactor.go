@@ -364,11 +364,7 @@ func (memR *Reactor) decodeMsg(bz []byte) (Message, error) {
 		}
 	}
 	var msg Message
-	var err error
-	msg, err = cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(bz, &msg)
-	if err != nil {
-		err = cdc.UnmarshalBinaryBare(bz, &msg)
-	}
+	err := cdc.UnmarshalBinaryBare(bz, &msg)
 	return msg, err
 }
 
