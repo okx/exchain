@@ -115,29 +115,24 @@ func (cs *State) handleMsg(mi msgInfo) {
 			return
 		}
 
-		// only in round0 use vcMsg
-		// only handle when don't have valid vcMsg
-		// only handle vcMsg of bigger height
-		if cs.Round != 0 ||
-			(cs.vcMsg != nil && cs.vcMsg.Height >= msg.Height) ||
-			msg.Height < cs.Height {
+		// no need to handle duplicate vcMsg
+		if cs.vcMsg != nil && cs.vcMsg.Height >= msg.Height {
 			return
 		}
 
-		cs.vcMsg = msg
-		// only handle enterNewRound of same height
+		// enterNewHeight use cs.vcMsg
 		if msg.Height > cs.Height {
-			return
+			cs.vcMsg = msg
+		} else if msg.Height == cs.Height {
+			// ApplyBlock of height-1 has finished
+			// at this height, it has enterNewHeight
+			// vc immediately
+			cs.vcMsg = msg
+			if cs.Step != cstypes.RoundStepNewHeight && cs.Round == 0 {
+				_, val := cs.Validators.GetByAddress(msg.NewProposer)
+				cs.enterNewRoundWithVal(cs.Height, 0, val)
+			}
 		}
-		// ApplyBlock of height-1 has finished
-		// at this height, it has enterNewHeight
-		// vc immediately
-		if cs.Step != cstypes.RoundStepNewHeight {
-			_, val := cs.Validators.GetByAddress(msg.NewProposer)
-			cs.enterNewRoundWithVal(cs.Height, 0, val)
-		}
-		// else: at height-1 and waiting, has not enterNewHeight
-		// and enterNewHeight use cs.vcMsg
 
 	case *ProposalMessage:
 		// will not cause transition.
