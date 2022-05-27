@@ -348,25 +348,28 @@ func RegisterMessages(cdc *amino.Codec) {
 	})
 }
 
-func (memR *Reactor) decodeMsg(bz []byte) (msg Message, err error) {
+func (memR *Reactor) decodeMsg(bz []byte) (Message, error) {
 	maxMsgSize := calcMaxMsgSize(memR.config.MaxTxBytes)
-	if l := len(bz); l > maxMsgSize {
-		return msg, ErrTxTooLarge{maxMsgSize, l}
+	l := len(bz)
+	if l > maxMsgSize {
+		return nil, ErrTxTooLarge{maxMsgSize, l}
 	}
 
 	tp := getTxMessageAminoTypePrefix()
-	if len(bz) >= len(tp) && bytes.Equal(bz[:len(tp)], tp) {
+	if l >= len(tp) && bytes.Equal(bz[:len(tp)], tp) {
 		txmsg := &TxMessage{}
 		err := txmsg.UnmarshalFromAmino(cdc, bz[len(tp):])
 		if err == nil {
 			return txmsg, nil
 		}
 	}
+	var msg Message
+	var err error
 	msg, err = cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(bz, &msg)
 	if err != nil {
 		err = cdc.UnmarshalBinaryBare(bz, &msg)
 	}
-	return
+	return msg, err
 }
 
 func (memR *Reactor) encodeMsg(msg Message) []byte {

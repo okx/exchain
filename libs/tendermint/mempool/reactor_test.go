@@ -1,8 +1,6 @@
 package mempool
 
 import (
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/p2p/conn"
 	"math/rand"
 	"net"
 	"sync"
@@ -327,6 +325,10 @@ func TestTxMessageAmino(t *testing.T) {
 		actualValue, err = cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(bz, &actualValue)
 		require.NoError(t, err)
 		require.Equal(t, expectValue, actualValue)
+
+		actualValue, err = reactor.decodeMsg(bz)
+		require.NoError(t, err)
+		require.Equal(t, expectValue, actualValue)
 	}
 }
 
@@ -363,64 +365,91 @@ func BenchmarkTxMessageAminoMarshal(b *testing.B) {
 	})
 }
 
-func BenchmarkTxMessage(b *testing.B) {
+func decodeMsgOld(memR *Reactor, bz []byte) (msg Message, err error) {
+	maxMsgSize := calcMaxMsgSize(memR.config.MaxTxBytes)
+	if l := len(bz); l > maxMsgSize {
+		return msg, ErrTxTooLarge{maxMsgSize, l}
+	}
+	err = cdc.UnmarshalBinaryBare(bz, &msg)
+	return
+}
 
+func BenchmarkTxMessageUnmarshal(b *testing.B) {
 	txMsg := TxMessage{
 		Tx: make([]byte, 512),
 	}
 	rand.Read(txMsg.Tx)
 	bz := cdc.MustMarshalBinaryBare(&txMsg)
 
-	msg := conn.PacketMsg{
-		ChannelID: MempoolChannel,
-		Bytes:     bz,
-	}
-	msgBz := cdc.MustMarshalBinaryBare(&msg)
+	//msg := conn.PacketMsg{
+	//	ChannelID: MempoolChannel,
+	//	Bytes:     bz,
+	//}
+	// msgBz := cdc.MustMarshalBinaryBare(&msg)
 
 	//hashMap := make(map[string]struct{})
 	var h []byte
+
+	reactor := &Reactor{
+		config: &cfg.MempoolConfig{
+			MaxTxBytes: 1024 * 1024,
+		},
+	}
+
+	var msg Message
+
 	b.ResetTimer()
 
+	b.Run("decode", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			//var m conn.PacketMsg
+			//err := m.UnmarshalFromAmino(nil, msgBz)
+			//if err != nil {
+			//	b.Fatal(err)
+			//}
+			_, err := reactor.decodeMsg(bz)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+	b.Run("decode-old", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			//var m conn.PacketMsg
+			//err := m.UnmarshalFromAmino(nil, msgBz)
+			//if err != nil {
+			//	b.Fatal(err)
+			//}
+			_, err := decodeMsgOld(reactor, bz)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
 	b.Run("amino", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			var m conn.PacketMsg
-			err := m.UnmarshalFromAmino(nil, msgBz)
-			if err != nil {
-				b.Fatal(err)
-			}
-			var txMsg TxMessage
-			err = txMsg.UnmarshalFromAmino(cdc, m.Bytes[4:])
+			var m TxMessage
+			err := m.UnmarshalFromAmino(cdc, bz[4:])
+			msg = &m
 			if err != nil {
 				b.Fatal(err)
 			}
 		}
 	})
-	b.Run("amino-origin", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			var m conn.PacketMsg
-			err := m.UnmarshalFromAmino(nil, msgBz)
-			if err != nil {
-				b.Fatal(err)
-			}
-			var txMsg TxMessage
-			err = cdc.UnmarshalBinaryBare(m.Bytes, &txMsg)
-			if err != nil {
-				b.Fatal(err)
-			}
-		}
-	})
-	b.Run("hash", func(b *testing.B) {
-		b.ReportAllocs()
-		for i := 0; i < b.N; i++ {
-			var m conn.PacketMsg
-			err := m.UnmarshalFromAmino(nil, msgBz)
-			if err != nil {
-				b.Fatal(err)
-			}
-			_ = crypto.Sha256(bz)
-		}
-	})
+	//b.Run("hash", func(b *testing.B) {
+	//	b.ReportAllocs()
+	//	for i := 0; i < b.N; i++ {
+	//		var m conn.PacketMsg
+	//		err := m.UnmarshalFromAmino(nil, msgBz)
+	//		if err != nil {
+	//			b.Fatal(err)
+	//		}
+	//		_ = crypto.Sha256(bz)
+	//	}
+	//})
 	_ = h
+	_ = msg
 }
