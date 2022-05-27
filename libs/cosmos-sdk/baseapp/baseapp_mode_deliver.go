@@ -13,7 +13,7 @@ func (m *modeHandlerDeliver) handleRunMsg(info *runTxInfo) (err error) {
 		info.runMsgCtx = info.ctx
 		info.runMsgCtx.SetMultiStore(info.msCache)
 	} else {
-		info.ctx, info.msCache = app.cacheTxContext(info.ctx, info.txBytes)
+		info.runMsgCtx, info.msCache = app.cacheTxContext(info.ctx, info.txBytes)
 	}
 
 	info.ctx.Cache().Write(false)
