@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
 	"github.com/pkg/errors"
 )
@@ -51,7 +52,7 @@ func (vals *ValidatorSet) IBCVerifyCommitLightTrusting(chainID string, blockID B
 			seenVals[valIdx] = idx
 
 			// Validate signature.
-			voteSignBytes := commit.VoteSignBytes(chainID, idx)
+			voteSignBytes := commit.IBCVoteSignBytes(chainID, idx)
 			if !val.PubKey.VerifyBytes(voteSignBytes, commitSig.Signature) {
 				return errors.Errorf("wrong signature (#%d): %X", idx, commitSig.Signature)
 			}
@@ -74,4 +75,60 @@ func (vals *ValidatorSet) IBCGetByAddress(address []byte) (index int, val *Valid
 		}
 	}
 	return -1, nil
+}
+
+func (vals *ValidatorSet) IBCHash() []byte {
+	if len(vals.Validators) == 0 {
+		return nil
+	}
+	bzs := make([][]byte, len(vals.Validators))
+	for i, val := range vals.Validators {
+		bzs[i] = val.IBCHeightBytes()
+	}
+	return merkle.SimpleHashFromByteSlices(bzs)
+}
+
+func (vals *ValidatorSet) IBCVerifyCommitLight(chainID string, blockID BlockID,
+	height int64, commit *Commit) error {
+
+	if vals.Size() != len(commit.Signatures) {
+		return NewErrInvalidCommitSignatures(vals.Size(), len(commit.Signatures))
+	}
+
+	// Validate Height and BlockID.
+	if height != commit.Height {
+		return NewErrInvalidCommitHeight(height, commit.Height)
+	}
+	if !blockID.Equals(commit.BlockID) {
+		return fmt.Errorf("invalid commit -- wrong block ID: want %v, got %v",
+			blockID, commit.BlockID)
+	}
+
+	talliedVotingPower := int64(0)
+	votingPowerNeeded := vals.TotalVotingPower() * 2 / 3
+	for idx, commitSig := range commit.Signatures {
+		// No need to verify absent or nil votes.
+		if !commitSig.ForBlock() {
+			continue
+		}
+
+		// The vals and commit have a 1-to-1 correspondance.
+		// This means we don't need the validator address or to do any lookup.
+		val := vals.Validators[idx]
+
+		// Validate signature.
+		voteSignBytes := commit.IBCVoteSignBytes(chainID, idx)
+		if !val.PubKey.VerifyBytes(voteSignBytes, commitSig.Signature) {
+			return fmt.Errorf("wrong signature (#%d): %X", idx, commitSig.Signature)
+		}
+
+		talliedVotingPower += val.VotingPower
+
+		// return as soon as +2/3 of the signatures are verified
+		if talliedVotingPower > votingPowerNeeded {
+			return nil
+		}
+	}
+
+	return ErrNotEnoughVotingPowerSigned{Got: talliedVotingPower, Needed: votingPowerNeeded}
 }
