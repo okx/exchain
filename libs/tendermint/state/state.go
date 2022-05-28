@@ -155,6 +155,7 @@ func (state State) MakeBlock(
 		state.ConsensusParams.Hash(), state.AppHash, state.LastResultsHash,
 		proposerAddress,
 	)
+
 	return block, block.MakePartSet(types.BlockPartSizeBytes)
 }
 

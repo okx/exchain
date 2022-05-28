@@ -111,6 +111,5 @@ func (v *Validator) HeightBytes(h int64) []byte {
 		}
 		return bz
 	}
-
 	return v.OriginBytes()
 }
