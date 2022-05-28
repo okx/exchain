@@ -57,7 +57,7 @@ func (h Header) ValidateBasic() error {
 	if err != nil {
 		return sdkerrors.Wrap(err, "header is not a tendermint header")
 	}
-	if err := tmSignedHeader.ValidateBasic(h.Header.GetChainID()); err != nil {
+	if err := tmSignedHeader.ValidateBasicForIBC(h.Header.GetChainID()); err != nil {
 		return sdkerrors.Wrap(err, "header failed basic validation")
 	}
 
