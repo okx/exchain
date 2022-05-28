@@ -109,9 +109,8 @@ func (v *Validator) HeightBytes(h int64) []byte {
 		if err != nil {
 			panic(err)
 		}
-		//fmt.Println("addr:" + v.Address.String() + "," + hex.EncodeToString(bz))
 		return bz
 	}
-	panic("yls IBC test")
+
 	return v.OriginBytes()
 }

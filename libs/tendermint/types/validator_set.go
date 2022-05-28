@@ -317,19 +317,11 @@ func (vals *ValidatorSet) Hash(h int64) []byte {
 	if len(vals.Validators) == 0 {
 		return nil
 	}
-	//str := strings.Builder{}
-	//for _, v := range vals.Validators {
-	//	str.WriteString("info:" + v.String() + ",\n")
-	//}
-	//fmt.Println(str.String())
-
 	bzs := make([][]byte, len(vals.Validators))
 	for i, val := range vals.Validators {
 		bzs[i] = val.HeightBytes(h)
 	}
-
 	hash := merkle.SimpleHashFromByteSlices(bzs)
-	//fmt.Printf("%X\n", hash)
 	return hash
 }
 
