@@ -4,8 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
-	ibctx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	"io/ioutil"
 	"math/big"
 	"os"
@@ -14,6 +12,7 @@ import (
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
+	ibctx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	signingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibcsigning"
 
 	"github.com/pkg/errors"
@@ -349,7 +348,7 @@ func CalculateGas(
 }
 func NewPbTxConfig(reg types2.InterfaceRegistry) client.TxConfig {
 	marshaler := codec.NewProtoCodec(reg)
-	return ibc_tx.NewTxConfig(marshaler, ibc_tx.DefaultSignModes)
+	return ibctx.NewTxConfig(marshaler, ibctx.DefaultSignModes)
 }
 
 // PrintUnsignedStdTx builds an unsigned StdTx and prints it to os.Stdout.

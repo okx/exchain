@@ -12,6 +12,7 @@ const (
 	QueryUnbondingDelegation  = "unbondingDelegation"
 	QueryPool                 = "pool"
 	QueryParameters           = "parameters"
+	QueryParams4IBC           = "params4ibc"
 	QueryAddress              = "address"
 	QueryForAddress           = "validatorAddress"
 	QueryForAccAddress        = "validatorAccAddress"
