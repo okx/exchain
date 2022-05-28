@@ -1526,7 +1526,8 @@ func (sh SignedHeader) ValidateBasic(chainID string) error {
 		return fmt.Errorf("header and commit height mismatch: %d vs %d", sh.Height, sh.Commit.Height)
 	}
 	if hhash, chash := sh.Hash(), sh.Commit.BlockID.Hash; !bytes.Equal(hhash, chash) {
-		return fmt.Errorf("height:%d commit signs block %X, header is block %X", sh.Height, chash, hhash)
+		str := sh.String()
+		return fmt.Errorf("height:%d commit signs block %X, header is block %X,info=%s", sh.Height, chash, hhash, str)
 	}
 	return nil
 }
