@@ -3,7 +3,7 @@ package ed25519
 /*
 #cgo CFLAGS: -I./libed25519/include
 #cgo LDFLAGS: -led25519_okc
-#include "okc_ed25519.h"
+#include "ed25519_okc.h"
 */
 import "C"
 import (
