@@ -352,6 +352,7 @@ func (app *BaseApp) halt() {
 // Query implements the ABCI interface. It delegates to CommitMultiStore if it
 // implements Queryable.
 func (app *BaseApp) Query(req abci.RequestQuery) abci.ResponseQuery {
+	app.logger.Error("1 进入到了query")
 	ceptor := app.interceptors[req.Path]
 	if nil != ceptor {
 		// interceptor is like `aop`,it may record the request or rewrite the data in the request
@@ -392,12 +393,13 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 		switch path[1] {
 		case "simulate":
 			txBytes := req.Data
+			app.logger.Error("2 进入到了query sim")
 
 			tx, err := app.txDecoder(txBytes)
 			if err != nil {
 				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))
 			}
-
+			app.logger.Error("2222222")
 			// if path contains address, it means 'eth_estimateGas' the sender
 			hasExtraPaths := len(path) > 2
 			var from string
@@ -408,9 +410,12 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 					}
 				}
 			}
-
+			app.logger.Error("33333333")
 			gInfo, res, err := app.Simulate(txBytes, tx, req.Height, from)
-
+			app.logger.Error("44444444444")
+			if nil != err {
+				app.logger.Error("55555555555", "err", err)
+			}
 			// if path contains mempool, it means to enable MaxGasUsedPerBlock
 			// return the actual gasUsed even though simulate tx failed
 			isMempoolSim := hasExtraPaths && path[2] == "mempool"

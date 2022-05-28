@@ -13,6 +13,11 @@ import (
 // NewHandler defines the IBC handler
 func NewHandler(k keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
+		defer func() {
+			if e := recover(); nil != e {
+				ctx.Logger().Error("触发了panic:", "err", e)
+			}
+		}()
 		ctx.SetEventManager(sdk.NewEventManager())
 
 		if !k.GetIbcEnabled(ctx) {
@@ -26,6 +31,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 			return sdk.WrapServiceResult(ctx, res, err)
 
 		case *clienttypes.MsgUpdateClient:
+			ctx.Logger().Error("3 msgupdateclient")
 			res, err := k.UpdateClient(sdk.WrapSDKContext(ctx), msg)
 			return sdk.WrapServiceResult(ctx, res, err)
 
@@ -39,6 +45,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 
 		// IBC connection msgs
 		case *connectiontypes.MsgConnectionOpenInit:
+			ctx.Logger().Error("3 msg connectioninit")
 			res, err := k.ConnectionOpenInit(sdk.WrapSDKContext(ctx), msg)
 			return sdk.WrapServiceResult(ctx, res, err)
 
