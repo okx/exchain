@@ -770,6 +770,7 @@ func (h *Header) Hash() tmbytes.HexBytes {
 	if HigherThanVenus1(h.Height) {
 		return h.IBCHash()
 	}
+	panic("cant be here")
 	return h.originHash()
 }
 func (h *Header) originHash() tmbytes.HexBytes {
@@ -1524,7 +1525,7 @@ func (sh SignedHeader) ValidateBasic(chainID string) error {
 		return fmt.Errorf("header and commit height mismatch: %d vs %d", sh.Height, sh.Commit.Height)
 	}
 	if hhash, chash := sh.Hash(), sh.Commit.BlockID.Hash; !bytes.Equal(hhash, chash) {
-		return fmt.Errorf("commit signs block %X, header is block %X", chash, hhash)
+		return fmt.Errorf("height:%d commit signs block %X, header is block %X", sh.Height, chash, hhash)
 	}
 	return nil
 }
