@@ -354,6 +354,7 @@ func (app *BaseApp) halt() {
 // Query implements the ABCI interface. It delegates to CommitMultiStore if it
 // implements Queryable.
 func (app *BaseApp) Query(req abci.RequestQuery) abci.ResponseQuery {
+	app.logger.Error("1 进入到了query")
 	ceptor := app.interceptors[req.Path]
 	if nil != ceptor {
 		// interceptor is like `aop`,it may record the request or rewrite the data in the request
@@ -427,6 +428,7 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 	if len(path) >= 2 {
 		switch path[1] {
 		case "simulate":
+			app.logger.Error("2 进入到了query sim")
 			return handleSimulate(app, path, req.Height, req.Data, nil)
 
 		case "simulateWithOverrides":
