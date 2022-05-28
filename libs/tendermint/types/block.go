@@ -770,7 +770,8 @@ func (h *Header) Hash() tmbytes.HexBytes {
 	if HigherThanVenus1(h.Height) {
 		return h.IBCHash()
 	}
-	panic("cant be here")
+	str := strings.Repeat("impossible,impossible impossible impossible ", 10)
+	fmt.Println(str)
 	return h.originHash()
 }
 func (h *Header) originHash() tmbytes.HexBytes {
