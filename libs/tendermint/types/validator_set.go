@@ -314,6 +314,9 @@ func (vals *ValidatorSet) findProposer() *Validator {
 // Hash returns the Merkle root hash build using validators (as leaves) in the
 // set.
 func (vals *ValidatorSet) Hash(h int64) []byte {
+	if HigherThanVenus1(h) {
+		sort.Sort(ValidatorsByVotingPower(vals.Validators))
+	}
 	if len(vals.Validators) == 0 {
 		return nil
 	}

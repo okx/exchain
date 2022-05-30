@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
+	"sort"
 )
 
 func (vals *ValidatorSet) IBCVerifyCommitLightTrusting(chainID string, blockID BlockID,
@@ -22,6 +23,7 @@ func (vals *ValidatorSet) IBCGetByAddress(address []byte) (index int, val *Valid
 }
 
 func (vals *ValidatorSet) IBCHash() []byte {
+	sort.Sort(ValidatorsByVotingPower(vals.Validators))
 	if len(vals.Validators) == 0 {
 		return nil
 	}
@@ -36,4 +38,23 @@ func (vals *ValidatorSet) IBCVerifyCommitLight(chainID string, blockID BlockID,
 	height int64, commit *Commit) error {
 
 	return vals.commonVerifyCommitLight(chainID, blockID, height, commit, true)
+}
+
+//-------------------------------------
+
+// ValidatorsByVotingPower implements sort.Interface for []*Validator based on
+// the VotingPower and Address fields.
+type ValidatorsByVotingPower []*Validator
+
+func (valz ValidatorsByVotingPower) Len() int { return len(valz) }
+
+func (valz ValidatorsByVotingPower) Less(i, j int) bool {
+	if valz[i].VotingPower == valz[j].VotingPower {
+		return bytes.Compare(valz[i].Address, valz[j].Address) == -1
+	}
+	return valz[i].VotingPower > valz[j].VotingPower
+}
+
+func (valz ValidatorsByVotingPower) Swap(i, j int) {
+	valz[i], valz[j] = valz[j], valz[i]
 }
