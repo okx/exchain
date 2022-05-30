@@ -139,7 +139,7 @@ func checkTrustedHeader(header *Header, consState *ConsensusState) error {
 
 	// assert that trustedVals is NextValidators of last trusted header
 	// to do this, we check that trustedVals.Hash() == consState.NextValidatorsHash
-	tvalHash := tmTrustedValidators.Hash(header.Header.Height)
+	tvalHash := tmTrustedValidators.IBCHash()
 	if !bytes.Equal(consState.NextValidatorsHash, tvalHash) {
 		return sdkerrors.Wrapf(
 			ErrInvalidValidatorSet,
