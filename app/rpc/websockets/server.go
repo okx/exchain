@@ -242,6 +242,7 @@ func (s *Server) readLoop(wsConn *wsConn) {
 			}
 			s.logger.Debug("successfully unsubscribe", "ID", id)
 			delete(subIds, rpc.ID(id))
+			s.logger.Error("websocket unsubscribe", "subIds count", len(subIds))
 			continue
 		}
 
@@ -282,6 +283,7 @@ func (s *Server) tcpGetAndSendResponse(conn *wsConn, mb []byte) error {
 }
 
 func (s *Server) closeWsConnection(subIds map[rpc.ID]struct{}) {
+	s.logger.Error("websocket closeWsConnection", "subIds count", len(subIds))
 	for id := range subIds {
 		s.api.unsubscribe(id)
 		delete(subIds, id)
