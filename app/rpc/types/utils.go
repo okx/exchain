@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"reflect"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -59,7 +58,7 @@ func ToTransaction(tx *evmtypes.MsgEthereumTx, from *common.Address) *watcher.Tr
 }
 
 // RpcBlockFromTendermint returns a JSON-RPC compatible Ethereum blockfrom a given Tendermint block.
-func RpcBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.Block) (*watcher.Block, error) {
+func RpcBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.Block, fullTx bool) (*watcher.Block, error) {
 	gasLimit, err := BlockMaxGasFromConsensusParams(context.Background(), clientCtx)
 	if err != nil {
 		return nil, err
@@ -81,7 +80,7 @@ func RpcBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.B
 
 	bloom := bloomRes.Bloom
 
-	return FormatBlock(block.Header, block.Size(), block.Hash(), gasLimit, gasUsed, ethTxs, bloom), nil
+	return FormatBlock(block.Header, block.Size(), block.Hash(), gasLimit, gasUsed, ethTxs, bloom, fullTx), nil
 }
 
 // EthHeaderFromTendermint is an util function that returns an Ethereum Header
@@ -153,7 +152,7 @@ func BlockMaxGasFromConsensusParams(_ context.Context, clientCtx clientcontext.C
 // transactions.
 func FormatBlock(
 	header tmtypes.Header, size int, curBlockHash tmbytes.HexBytes, gasLimit int64,
-	gasUsed *big.Int, transactions interface{}, bloom ethtypes.Bloom,
+	gasUsed *big.Int, transactions []*watcher.Transaction, bloom ethtypes.Bloom, fullTx bool,
 ) *watcher.Block {
 	if len(header.DataHash) == 0 {
 		header.DataHash = tmbytes.HexBytes(common.Hash{}.Bytes())
@@ -183,10 +182,20 @@ func FormatBlock(
 		Uncles:           []common.Hash{},
 		ReceiptsRoot:     ethtypes.EmptyRootHash,
 	}
-	if !reflect.ValueOf(transactions).IsNil() {
-		ret.Transactions = transactions
+
+	if fullTx {
+		// return empty slice instead of nil for compatibility with Ethereum
+		if len(transactions) == 0 {
+			ret.Transactions = []*watcher.Transaction{}
+		} else {
+			ret.Transactions = transactions
+		}
 	} else {
-		ret.Transactions = []*watcher.Transaction{}
+		txHashes := make([]common.Hash, len(transactions))
+		for i, tx := range transactions {
+			txHashes[i] = tx.Hash
+		}
+		ret.Transactions = txHashes
 	}
 	return ret
 }

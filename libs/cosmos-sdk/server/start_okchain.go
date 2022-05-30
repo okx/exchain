@@ -37,7 +37,6 @@ const (
 	FlagCORS               = "cors"
 	FlagMaxOpenConnections = "max-open"
 	FlagHookstartInProcess = "startInProcess"
-	FlagWebsocket          = "wsport"
 	FlagWsMaxConnections   = "ws.max_connections"
 	FlagWsSubChannelLength = "ws.sub_channel_length"
 )
@@ -243,7 +242,6 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
 	cmd.Flags().String(FlagCORS, "", "Set the rest-server domains that can make CORS requests (* for all)")
 	cmd.Flags().Int(FlagMaxOpenConnections, 1000, "The number of maximum open connections of rest-server")
-	cmd.Flags().String(FlagWebsocket, "8546", "websocket port to listen to")
 	cmd.Flags().Int(FlagWsMaxConnections, 20000, "the max capacity number of websocket client connections")
 	cmd.Flags().Int(FlagWsSubChannelLength, 100, "the length of subscription channel")
 	cmd.Flags().String(flags.FlagChainID, "", "Chain ID of tendermint node for web3")
@@ -255,9 +253,8 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().UintVar(&mpt.TrieCacheSize, mpt.FlagTrieCacheSize, 2048, "Size (MB) to cache trie nodes")
 	cmd.Flags().UintVar(&mpt.TrieNodesLimit, mpt.FlagTrieNodesLimit, 256, "Max node size (MB) cached in triedb")
 	cmd.Flags().UintVar(&mpt.TrieImgsLimit, mpt.FlagTrieImgsLimit, 4, "Max img size (MB) cached in triedb")
-	cmd.Flags().UintVar(&mpt.TrieAccStoreCache, mpt.FlagTrieAccStoreCache, 2048, "Size (MB) to cache account")
+	cmd.Flags().UintVar(&mpt.TrieAccStoreCache, mpt.FlagTrieAccStoreCache, 32, "Size (MB) to cache account")
 	cmd.Flags().BoolVar(&evmtypes.TrieUseCompositeKey, evmtypes.FlagTrieUseCompositeKey, false, "Use composite key to store contract state in mpt")
-	cmd.Flags().UintVar(&evmtypes.TrieContractStateCache, evmtypes.FlagTrieContractStateCache, 2048, "Size (MB) to cache contract state")
 	cmd.Flags().Int64(FlagCommitGapHeight, 100, "Block interval to commit cached data into db, affects iavl & mpt")
 
 	return cmd

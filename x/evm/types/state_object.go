@@ -104,6 +104,8 @@ type StateObject interface {
 
 	SetNonce(nonce uint64)
 	Nonce() uint64
+
+	SetStorage(storage map[ethcmn.Hash]ethcmn.Hash)
 }
 
 // stateObject represents an Ethereum account which is being modified.

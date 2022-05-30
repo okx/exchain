@@ -42,15 +42,12 @@ func NewTracer(name string) *Tracer {
 		startTime: time.Now(),
 		name:      name,
 		pinMap:    make(map[string]time.Duration),
-		enableSummary: true,
 	}
 	return t
 }
 
-
-
-func (t *Tracer) CloseSummary() {
-	t.enableSummary = false
+func (t *Tracer) EnableSummary() {
+	t.enableSummary = true
 }
 
 func (t *Tracer) Pin(format string, args ...interface{}) {
@@ -86,10 +83,7 @@ func (t *Tracer) Format() string {
 	if len(t.pins) == 0 {
 		now := time.Now()
 		t.elapsedTime = now.Sub(t.startTime)
-		return fmt.Sprintf("%s<%dms>",
-			t.name,
-			t.elapsedTime.Milliseconds(),
-		)
+		return fmt.Sprintf("%dms", t.elapsedTime.Milliseconds())
 	}
 
 	t.Pin("_")
