@@ -75,10 +75,10 @@ func commonVerifyNonAdjacent(
 
 	// Ensure that +`trustLevel` (default 1/3) or more of last trusted validators signed correctly.
 	if isIbc {
-		err = trustedVals.VerifyCommitLightTrusting(chainID, untrustedHeader.Commit.BlockID, untrustedHeader.Height,
+		err = trustedVals.IBCVerifyCommitLightTrusting(chainID, untrustedHeader.Commit.BlockID, untrustedHeader.Height,
 			untrustedHeader.Commit, trustLevel)
 	} else {
-		err = trustedVals.IBCVerifyCommitLightTrusting(chainID, untrustedHeader.Commit.BlockID, untrustedHeader.Height,
+		err = trustedVals.VerifyCommitLightTrusting(chainID, untrustedHeader.Commit.BlockID, untrustedHeader.Height,
 			untrustedHeader.Commit, trustLevel)
 	}
 	if err != nil {
