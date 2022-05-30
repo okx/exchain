@@ -55,6 +55,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().String(rpc.FlagDisableAPI, "", "Set the RPC API to be disabled, such as \"eth_getLogs,eth_newFilter,eth_newBlockFilter,eth_newPendingTransactionFilter,eth_getFilterChanges\"")
 	cmd.Flags().Int(config.FlagDynamicGpWeight, 80, "The recommended weight of dynamic gas price [1,100])")
 	cmd.Flags().Bool(config.FlagEnableDynamicGp, true, "Enable node to dynamic support gas price suggest")
+	cmd.Flags().Bool(config.FlagEnableHasBlockPartMsg, false, "Enable peer to broadcast HasBlockPartMessage")
 	cmd.Flags().Bool(eth.FlagEnableMultiCall, false, "Enable node to support the eth_multiCall RPC API")
 
 	cmd.Flags().Bool(token.FlagOSSEnable, false, "Enable the function of exporting account data and uploading to oss")
@@ -104,6 +105,8 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(trace.FlagEnableAnalyzer, false, "Enable auto open log analyzer")
 	cmd.Flags().Bool(sanity.FlagDisableSanity, false, "Disable sanity check")
 	cmd.Flags().Int(tmtypes.FlagSigCacheSize, 200000, "Maximum number of signatures in the cache")
+	cmd.Flags().Int(config.FlagDebugGcInterval, 0, "Force gc every n heights for debug")
+	cmd.Flags().String(rpc.FlagWebsocket, "8546", "websocket port to listen to")
 
 	wasm.AddModuleInitFlags(cmd)
 }

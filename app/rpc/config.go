@@ -25,7 +25,7 @@ import (
 
 const (
 	flagUnlockKey             = "unlock-key"
-	flagWebsocket             = "wsport"
+	FlagWebsocket             = "wsport"
 	FlagPersonalAPI           = "personal-api"
 	FlagDebugAPI              = "debug-api"
 	FlagRateLimitAPI          = "rpc.rate-limit-api"
@@ -100,7 +100,7 @@ func RegisterRoutes(rs *lcd.RestServer) {
 	rs.Mux.HandleFunc("/", server.ServeHTTP).Methods("POST", "OPTIONS")
 
 	// start websockets server
-	websocketAddr := viper.GetString(flagWebsocket)
+	websocketAddr := viper.GetString(FlagWebsocket)
 	ws := websockets.NewServer(rs.CliCtx, rs.Logger(), websocketAddr)
 	ws.Start()
 

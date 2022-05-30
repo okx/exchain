@@ -43,16 +43,26 @@ const (
 	// Data.Txs field:                      1 byte
 	MaxAminoOverheadForBlock int64 = 11
 
-	FlagBlockCompressType = "block-compress-type"
-	FlagBlockCompressFlag = "block-compress-flag"
+	// CompressDividing is used to divide compressType and compressFlag of compressSign
+	// the compressSign = CompressType * CompressDividing + CompressFlag
+	CompressDividing int = 10
+
+	FlagBlockCompressType      = "block-compress-type"
+	FlagBlockCompressFlag      = "block-compress-flag"
 	FlagBlockCompressThreshold = "block-compress-threshold"
 )
 
 var (
-	BlockCompressType = 0x00
-	BlockCompressFlag = 0
+	BlockCompressType      = 0x00
+	BlockCompressFlag      = 0
 	BlockCompressThreshold = 1024000
 )
+
+type BlockExInfo struct {
+	BlockCompressType int
+	BlockCompressFlag int
+	BlockPartSize     int
+}
 
 // Block defines the atomic unit of a Tendermint blockchain.
 type Block struct {
@@ -242,8 +252,23 @@ func (b *Block) Hash() tmbytes.HexBytes {
 // This is the form in which the block is gossipped to peers.
 // CONTRACT: partSize is greater than zero.
 func (b *Block) MakePartSet(partSize int) *PartSet {
+	return b.MakePartSetByExInfo(&BlockExInfo{
+		BlockCompressType: BlockCompressType,
+		BlockCompressFlag: BlockCompressFlag,
+		BlockPartSize:     partSize,
+	})
+}
+
+func (b *Block) MakePartSetByExInfo(exInfo *BlockExInfo) *PartSet {
 	if b == nil {
 		return nil
+	}
+	if exInfo == nil {
+		exInfo = &BlockExInfo{
+			BlockCompressType: BlockCompressType,
+			BlockCompressFlag: BlockCompressFlag,
+			BlockPartSize:     BlockPartSizeBytes,
+		}
 	}
 	b.mtx.Lock()
 	defer b.mtx.Unlock()
@@ -255,26 +280,34 @@ func (b *Block) MakePartSet(partSize int) *PartSet {
 		panic(err)
 	}
 
-	payload := compressBlock(bz)
+	payload := compressBlock(bz, exInfo.BlockCompressType, exInfo.BlockCompressFlag)
 
-	return NewPartSetFromData(payload, partSize)
+	return NewPartSetFromData(payload, exInfo.BlockPartSize)
+
 }
 
-func compressBlock(bz []byte) []byte {
-	if BlockCompressType == 0 || len(bz) <= BlockCompressThreshold {
+func compressBlock(bz []byte, compressType, compressFlag int) []byte {
+	if compressType == 0 || len(bz) <= BlockCompressThreshold {
+		return bz
+	}
+	if compressType >= CompressDividing || compressFlag >= CompressDividing {
+		// unsupported compressType or compressFlag
 		return bz
 	}
 
 	t0 := tmtime.Now()
-	cz, err := compress.Compress(BlockCompressType, BlockCompressFlag, bz)
+	cz, err := compress.Compress(compressType, compressFlag, bz)
 	if err != nil {
 		return bz
 	}
 	t1 := tmtime.Now()
 
 	trace.GetElapsedInfo().AddInfo(trace.CompressBlock, fmt.Sprintf("%dms", t1.Sub(t0).Milliseconds()))
-	// tell receiver which compress type
-	return append(cz, byte(BlockCompressType))
+	// tell receiver which compress type and flag
+	// tens digit is compressType and unit digit is compressFlag
+	// compressSign: XY means, compressType: X, compressFlag: Y
+	compressSign := compressType*CompressDividing + compressFlag
+	return append(cz, byte(compressSign))
 }
 
 func UncompressBlockFromReader(pbpReader io.Reader) (io.Reader, error) {
@@ -284,14 +317,14 @@ func UncompressBlockFromReader(pbpReader io.Reader) (io.Reader, error) {
 		return nil, err
 	}
 	t0 := tmtime.Now()
-	original, compressType, err := UncompressBlockFromBytes(compressed)
+	original, compressSign, err := UncompressBlockFromBytes(compressed)
 	if err != nil {
 		return nil, err
 	}
 	t1 := tmtime.Now()
 
-	if compressType != 0 {
-		compressRatio := float64(len(compressed))/float64(len(original))
+	if compressSign != 0 {
+		compressRatio := float64(len(compressed)) / float64(len(original))
 		trace.GetElapsedInfo().AddInfo(trace.UncompressBlock, fmt.Sprintf("%.2f/%dms",
 			compressRatio, t1.Sub(t0).Milliseconds()))
 	}
@@ -299,16 +332,19 @@ func UncompressBlockFromReader(pbpReader io.Reader) (io.Reader, error) {
 	return bytes.NewBuffer(original), nil
 }
 
-func UncompressBlockFromBytes(payload []byte) (res []byte, compressType int, err error) {
+// UncompressBlockFromBytes uncompress from compressBytes to blockPart bytes, and returns the compressSign
+// compressSign contains compressType and compressFlag
+// the compressSign: XY means, compressType: X, compressFlag: Y
+func UncompressBlockFromBytes(payload []byte) (res []byte, compressSign int, err error) {
 	// try parse Uvarint to check if it is compressed
 	compressBytesLen, n := binary.Uvarint(payload)
 	if len(payload)-n == int(compressBytesLen) {
 		// the block has not compressed
 		res = payload
 	} else {
-		// the block has compressed and the last byte is compressType
-		compressType = int(payload[len(payload)-1])
-		res, err = compress.UnCompress(compressType, payload[:len(payload)-1])
+		// the block has compressed and the last byte is compressSign
+		compressSign = int(payload[len(payload)-1])
+		res, err = compress.UnCompress(compressSign/CompressDividing, payload[:len(payload)-1])
 	}
 	return
 }
@@ -1465,6 +1501,10 @@ type SignedHeader struct {
 // sure to use a Verifier to validate the signatures actually provide a
 // significantly strong proof for this header's validity.
 func (sh SignedHeader) ValidateBasic(chainID string) error {
+	return sh.commonValidateBasic(chainID, false)
+}
+
+func (sh SignedHeader) commonValidateBasic(chainID string, isIbc bool) error {
 	if sh.Header == nil {
 		return errors.New("missing header")
 	}
@@ -1487,7 +1527,14 @@ func (sh SignedHeader) ValidateBasic(chainID string) error {
 	if sh.Commit.Height != sh.Height {
 		return fmt.Errorf("header and commit height mismatch: %d vs %d", sh.Height, sh.Commit.Height)
 	}
-	if hhash, chash := sh.Hash(), sh.Commit.BlockID.Hash; !bytes.Equal(hhash, chash) {
+
+	var hhash tmbytes.HexBytes
+	if isIbc {
+		hhash = sh.PureIBCHash()
+	} else {
+		hhash = sh.Hash()
+	}
+	if chash := sh.Commit.BlockID.Hash; !bytes.Equal(hhash, chash) {
 		return fmt.Errorf("commit signs block %X, header is block %X", chash, hhash)
 	}
 	return nil
