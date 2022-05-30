@@ -23,7 +23,8 @@ func Status(ctx *rpctypes.Context) (*ctypes.ResultStatus, error) {
 		earliestBlockHeight = env.BlockStore.Base()
 	)
 
-	if earliestBlockMeta := env.BlockStore.LoadBlockMeta(earliestBlockHeight); earliestBlockMeta != nil {
+	earliestBlockMeta := env.BlockStore.LoadBlockMeta(earliestBlockHeight);
+	if earliestBlockMeta != nil {
 		earliestAppHash = earliestBlockMeta.Header.AppHash
 		earliestBlockHash = earliestBlockMeta.BlockID.Hash
 		earliestBlockTimeNano = earliestBlockMeta.Header.Time.UnixNano()
@@ -72,6 +73,8 @@ func Status(ctx *rpctypes.Context) (*ctypes.ResultStatus, error) {
 			VotingPower: votingPower,
 		},
 	}
+	// update Network to the ChainID in state
+	result.NodeInfo.Network = earliestBlockMeta.Header.ChainID
 
 	return result, nil
 }
