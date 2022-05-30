@@ -8,8 +8,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-func (vals *ValidatorSet) IBCVerifyCommitLightTrusting(chainID string, blockID BlockID,
-	height int64, commit *Commit, trustLevel tmmath.Fraction) error {
+func (vals *ValidatorSet) CommonVerifyCommitLightTrusting(chainID string, blockID BlockID,
+	height int64, commit *Commit, trustLevel tmmath.Fraction, isIbc bool) error {
 
 	// sanity check
 	if trustLevel.Numerator*3 < trustLevel.Denominator || // < 1/3
@@ -33,6 +33,24 @@ func (vals *ValidatorSet) IBCVerifyCommitLightTrusting(chainID string, blockID B
 	}
 	votingPowerNeeded := totalVotingPowerMulByNumerator / trustLevel.Denominator
 
+	var voteF func(i int) []byte
+	var getAddressF func(addr Address) (int, *Validator)
+	if isIbc {
+		voteF = func(i int) []byte {
+			return commit.IBCVoteSignBytes(chainID, i)
+		}
+		getAddressF = func(addr Address) (int, *Validator) {
+			return vals.IBCGetByAddress(addr)
+		}
+	} else {
+		voteF = func(i int) []byte {
+			return commit.VoteSignBytes(chainID, i)
+		}
+		getAddressF = func(addr Address) (int, *Validator) {
+			return vals.GetByAddress(addr)
+		}
+	}
+
 	for idx, commitSig := range commit.Signatures {
 		// No need to verify absent or nil votes.
 		if !commitSig.ForBlock() {
@@ -41,7 +59,7 @@ func (vals *ValidatorSet) IBCVerifyCommitLightTrusting(chainID string, blockID B
 
 		// We don't know the validators that committed this block, so we have to
 		// check for each vote if its validator is already known.
-		valIdx, val := vals.IBCGetByAddress(commitSig.ValidatorAddress)
+		valIdx, val := getAddressF(commitSig.ValidatorAddress)
 
 		if val != nil {
 			// check for double vote of validator on the same commit
@@ -52,7 +70,7 @@ func (vals *ValidatorSet) IBCVerifyCommitLightTrusting(chainID string, blockID B
 			seenVals[valIdx] = idx
 
 			// Validate signature.
-			voteSignBytes := commit.IBCVoteSignBytes(chainID, idx)
+			voteSignBytes := voteF(idx)
 			if !val.PubKey.VerifyBytes(voteSignBytes, commitSig.Signature) {
 				return errors.Errorf("wrong signature (#%d): %X", idx, commitSig.Signature)
 			}
@@ -88,8 +106,8 @@ func (vals *ValidatorSet) IBCHash() []byte {
 	return merkle.SimpleHashFromByteSlices(bzs)
 }
 
-func (vals *ValidatorSet) IBCVerifyCommitLight(chainID string, blockID BlockID,
-	height int64, commit *Commit) error {
+func (vals *ValidatorSet) CommonVerifyCommitLight(chainID string, blockID BlockID,
+	height int64, commit *Commit, isIbc bool) error {
 
 	if vals.Size() != len(commit.Signatures) {
 		return NewErrInvalidCommitSignatures(vals.Size(), len(commit.Signatures))
@@ -102,6 +120,17 @@ func (vals *ValidatorSet) IBCVerifyCommitLight(chainID string, blockID BlockID,
 	if !blockID.Equals(commit.BlockID) {
 		return fmt.Errorf("invalid commit -- wrong block ID: want %v, got %v",
 			blockID, commit.BlockID)
+	}
+
+	var voteF func(i int) []byte
+	if isIbc {
+		voteF = func(i int) []byte {
+			return commit.IBCVoteSignBytes(chainID, i)
+		}
+	} else {
+		voteF = func(i int) []byte {
+			return commit.VoteSignBytes(chainID, i)
+		}
 	}
 
 	talliedVotingPower := int64(0)
@@ -117,7 +146,7 @@ func (vals *ValidatorSet) IBCVerifyCommitLight(chainID string, blockID BlockID,
 		val := vals.Validators[idx]
 
 		// Validate signature.
-		voteSignBytes := commit.IBCVoteSignBytes(chainID, idx)
+		voteSignBytes := voteF(idx)
 		if !val.PubKey.VerifyBytes(voteSignBytes, commitSig.Signature) {
 			return fmt.Errorf("wrong signature (#%d): %X", idx, commitSig.Signature)
 		}
