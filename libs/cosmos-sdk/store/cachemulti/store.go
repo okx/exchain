@@ -3,6 +3,7 @@ package cachemulti
 import (
 	"fmt"
 	"io"
+	"sync"
 
 	dbm "github.com/okex/exchain/libs/tm-db"
 
@@ -93,6 +94,58 @@ func NewStore(
 
 func newCacheMultiStoreFromCMS(cms Store) Store {
 	return newFromKVStore(cms.db, cms.stores, nil, cms.traceWriter, cms.traceContext)
+}
+
+func (cms Store) Reset(ms types.MultiStore) bool {
+	switch rms := ms.(type) {
+	case Store:
+		return cms.reset(rms)
+	default:
+		return false
+	}
+}
+
+var keysPool = &sync.Pool{
+	New: func() interface{} {
+		return make(map[types.StoreKey]struct{})
+	},
+}
+
+func (cms Store) reset(ms Store) bool {
+	cms.db.(*cachekv.Store).Reset(ms.db)
+	cms.traceWriter = ms.traceWriter
+	cms.traceContext = ms.traceContext
+
+	keysMap := keysPool.Get().(map[types.StoreKey]struct{})
+	defer keysPool.Put(keysMap)
+
+	for k := range keysMap {
+		delete(keysMap, k)
+	}
+	for _, k := range ms.keys {
+		keysMap[k] = struct{}{}
+	}
+
+	for k := range keysMap {
+		if store, ok := cms.stores[k]; ok {
+			msstore, ok1 := ms.stores[k].(Store)
+			cmstore, ok2 := store.(Store)
+			if ok1 && ok2 {
+				cmstore.reset(msstore)
+			} else {
+				cms.stores[k] = ms.stores[k].CacheWrap()
+			}
+		} else {
+			cms.stores[k] = ms.stores[k].CacheWrap()
+		}
+	}
+
+	for k := range cms.stores {
+		if _, ok := keysMap[k]; !ok {
+			delete(cms.stores, k)
+		}
+	}
+	return true
 }
 
 // SetTracer sets the tracer for the MultiStore that the underlying

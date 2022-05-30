@@ -148,6 +148,11 @@ type CacheMultiStore interface {
 	Write() // Writes operations to underlying KVStore
 }
 
+type CacheMultiStoreResetter interface {
+	CacheMultiStore
+	Reset(MultiStore) bool
+}
+
 // A non-cache MultiStore.
 type CommitMultiStore interface {
 	Committer
