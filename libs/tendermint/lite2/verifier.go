@@ -218,7 +218,13 @@ func verifyNewHeaderAndVals(
 	now time.Time,
 	maxClockDrift time.Duration, isIbc bool) error {
 
-	if err := untrustedHeader.ValidateBasic(chainID); err != nil {
+	var err error
+	if isIbc {
+		err = untrustedHeader.ValidateBasicForIBC(chainID)
+	} else {
+		err = untrustedHeader.ValidateBasic(chainID)
+	}
+	if err != nil {
 		return errors.Wrap(err, "untrustedHeader.ValidateBasic failed")
 	}
 
