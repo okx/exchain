@@ -124,7 +124,7 @@ func (cms Store) reset(ms Store) {
 	for k := range keysMap {
 		delete(keysMap, k)
 	}
-	for _, k := range ms.keys {
+	for k := range ms.stores {
 		keysMap[k] = struct{}{}
 	}
 
