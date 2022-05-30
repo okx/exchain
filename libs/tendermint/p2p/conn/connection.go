@@ -58,15 +58,6 @@ func (b bytesHexStringer) String() string {
 	return fmt.Sprintf("%X", []byte(b))
 }
 
-var packetPing Packet = PacketPing{}
-var packetPong Packet = PacketPong{}
-
-var packetBzPool = &sync.Pool{
-	New: func() interface{} {
-		return new(bytes.Buffer)
-	},
-}
-
 /*
 Each peer has one `MConnection` (multiplex connection) instance.
 
@@ -1126,6 +1117,20 @@ var (
 	PacketPingTypePrefix = []byte{0x15, 0xC3, 0xD2, 0x89}
 	PacketPongTypePrefix = []byte{0x8A, 0x79, 0x7F, 0xE2}
 	PacketMsgTypePrefix  = []byte{0xB0, 0x5B, 0x4F, 0x2C}
+
+	packetPing Packet = PacketPing{}
+	packetPong Packet = PacketPong{}
+
+	packetBzPool = &sync.Pool{
+		New: func() interface{} {
+			return new(bytes.Buffer)
+		},
+	}
+	packetLengthPrefixBzPool = &sync.Pool{
+		New: func() interface{} {
+			return &[binary.MaxVarintLen64]byte{}
+		},
+	}
 )
 
 func unmarshalPacketFromAminoReader(r io.Reader, maxSize int64) (packet Packet, n int64, err error) {
@@ -1135,7 +1140,8 @@ func unmarshalPacketFromAminoReader(r io.Reader, maxSize int64) (packet Packet, 
 
 	// Read byte-length prefix.
 	var l int64
-	var buf [binary.MaxVarintLen64]byte
+	var buf = packetLengthPrefixBzPool.Get().(*[binary.MaxVarintLen64]byte)
+	defer packetLengthPrefixBzPool.Put(buf)
 	for i := 0; i < len(buf); i++ {
 		_, err = r.Read(buf[i : i+1])
 		if err != nil {
