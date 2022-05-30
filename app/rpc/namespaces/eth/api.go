@@ -20,6 +20,8 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
 	lru "github.com/hashicorp/golang-lru"
+	"github.com/spf13/viper"
+
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
@@ -51,7 +53,6 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/token"
-	"github.com/spf13/viper"
 )
 
 const (
@@ -1015,10 +1016,17 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 		return 0, TransformDataError(err, "eth_estimateGas")
 	}
 
-	// TODO: change 1000 buffer for more accurate buffer (eg: SDK's gasAdjusted)
 	estimatedGas := simResponse.GasInfo.GasUsed
+	if estimatedGas > evmtypes.DefaultMaxGasLimitPerTx {
+		return 0, fmt.Errorf("out of gas")
+	}
+
+	// TODO: change 1000 buffer for more accurate buffer (eg: SDK's gasAdjusted)
 	gasBuffer := estimatedGas / 100 * config.GetOecConfig().GetGasLimitBuffer()
 	gas := estimatedGas + gasBuffer
+	if gas > evmtypes.DefaultMaxGasLimitPerTx {
+		return evmtypes.DefaultMaxGasLimitPerTx, nil
+	}
 
 	return hexutil.Uint64(gas), nil
 }
