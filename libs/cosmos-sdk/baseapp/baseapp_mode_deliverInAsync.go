@@ -8,6 +8,9 @@ func (m *modeHandlerDeliverInAsync) handleDeferRefund(info *runTxInfo) {
 	if app.GasRefundHandler == nil {
 		return
 	}
+	if info.msCacheAnte == nil {
+		return
+	}
 	var gasRefundCtx sdk.Context
 	gasRefundCtx = info.runMsgCtx
 	if info.msCache == nil || !info.runMsgFinished { // case: panic when runMsg

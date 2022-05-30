@@ -539,6 +539,8 @@ type parallelTxManager struct {
 	cc        *conflictCheck
 	currIndex int
 	currTxFee sdk.Coins
+
+	checkTxCacheMultiStores *cacheMultiStoreList
 }
 
 func newParallelTxManager() *parallelTxManager {
@@ -551,9 +553,10 @@ func newParallelTxManager() *parallelTxManager {
 		nextTxInGroup: make(map[int]int),
 		preTxInGroup:  make(map[int]int),
 
-		cc:        newConflictCheck(),
-		currIndex: -1,
-		currTxFee: sdk.Coins{},
+		cc:                      newConflictCheck(),
+		currIndex:               -1,
+		currTxFee:               sdk.Coins{},
+		checkTxCacheMultiStores: newCacheMultiStoreList(),
 	}
 }
 
@@ -616,15 +619,25 @@ func (f *parallelTxManager) getTxResult(index int) sdk.CacheMultiStore {
 		return nil
 	}
 
-	ms := f.cms.CacheMultiStore()
+	var ms types.CacheMultiStore
 	preIndexInGroup, ok := f.preTxInGroup[index]
 	if ok && preIndexInGroup > f.currIndex {
 		// get parent tx ms
-		if f.txReps[preIndexInGroup].paraMsg.AnteErr == nil {
+		if f.txReps[preIndexInGroup] != nil && f.txReps[preIndexInGroup].paraMsg.AnteErr == nil {
+			if f.txReps[preIndexInGroup].ms == nil {
+				return nil
+			}
+
 			ms = f.txReps[preIndexInGroup].ms.CacheMultiStore()
-		} else {
-			ms = f.cms.CacheMultiStore()
+			//
+			//ff := f.checkTxCacheMultiStores.GetStore().(types.CacheMultiStoreResetter)
+			//ff.Reset(f.txReps[preIndexInGroup].ms)
+			//ms = ff
 		}
+	}
+
+	if ms == nil {
+		ms = f.cms.CacheMultiStore()
 	}
 
 	if next, ok := f.nextTxInGroup[index]; ok {
@@ -635,7 +648,6 @@ func (f *parallelTxManager) getTxResult(index int) sdk.CacheMultiStore {
 			f.txReps[next] = nil
 		}
 	}
-
 	return ms
 }
 
@@ -659,6 +671,7 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 	f.mu.Unlock()
 	f.cc.deleteFeeAccount()
 
+	//f.checkTxCacheMultiStores.PushStore(res.ms)
 	if res.paraMsg.AnteErr != nil {
 		return
 	}
