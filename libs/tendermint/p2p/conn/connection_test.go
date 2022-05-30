@@ -699,6 +699,7 @@ func TestPacketMsgAmino(t *testing.T) {
 
 		actualData, err = cdc.MarshalBinaryWithSizer(msg, false)
 		require.EqualValues(t, expectData, actualData)
+		require.Equal(t, getPacketMsgAminoTypePrefix(), actualData[0:4])
 
 		expectLenPrefixData, err := cdc.MarshalBinaryLengthPrefixed(msg)
 		require.NoError(t, err)

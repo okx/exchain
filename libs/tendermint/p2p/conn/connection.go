@@ -849,19 +849,38 @@ func (ch *Channel) nextPacketMsg() PacketMsg {
 	return packet
 }
 
+var packetBzPool = &sync.Pool{
+	New: func() interface{} {
+		return &bytes.Buffer{}
+	},
+}
+
 // Writes next PacketMsg to w and updates c.recentlySent.
 // Not goroutine-safe
 func (ch *Channel) writePacketMsgTo(w io.Writer) (n int64, err error) {
 	var packet = ch.nextPacketMsg()
 
-	var bz []byte
-	bz, err = cdc.MarshalBinaryWithSizer(&packet, true)
+	packetMsgTypePrefix := getPacketMsgAminoTypePrefix()
+	bzSize := len(packetMsgTypePrefix) + packet.AminoSize(cdc)
+	bzSizeWithLenPrefix := amino.UvarintSize(uint64(bzSize)) + bzSize
+
+	// var buf = bytes.NewBuffer(make([]byte, 0, bzSizeWithLenPrefix))
+	buf := packetBzPool.Get().(*bytes.Buffer)
+	defer packetBzPool.Put(buf)
+	buf.Reset()
+	buf.Grow(bzSizeWithLenPrefix)
+
+	err = amino.EncodeUvarintToBuffer(buf, uint64(bzSize))
 	if err == nil {
-		bzNum := 0
-		bzNum, err = w.Write(bz)
-		n = int64(bzNum)
-		atomic.AddInt64(&ch.recentlySent, n)
-		return
+		buf.Write(packetMsgTypePrefix)
+		err = packet.MarshalAminoTo(cdc, buf)
+		if err == nil && buf.Len() == bzSizeWithLenPrefix {
+			bzNum := 0
+			bzNum, err = w.Write(buf.Bytes())
+			n = int64(bzNum)
+			atomic.AddInt64(&ch.recentlySent, n)
+			return
+		}
 	}
 
 	n, err = cdc.MarshalBinaryLengthPrefixedWriterWithRegiteredMarshaller(w, packet)
