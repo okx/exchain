@@ -1,7 +1,6 @@
 package app
 
 import (
-	"fmt"
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
@@ -14,7 +13,6 @@ import (
 	"github.com/stretchr/testify/suite"
 	"math/big"
 	"os"
-	"reflect"
 	"testing"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"

@@ -492,7 +492,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 				[]uint64{suite.chainB.SenderAccount().GetSequence()},
 				suite.chainB.SenderAccountPV(),
 			)
-			antehandler := appante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), k)
+			antehandler := appante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), app.WasmHandler, k)
 			antehandler(deliverCtx, ibcTx, false)
 			//_, err = decorator.AnteHandle(deliverCtx, ibcTx, false, next)
 			suite.Require().NoError(err, "antedecorator should not error on DeliverTx")

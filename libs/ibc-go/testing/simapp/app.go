@@ -144,6 +144,7 @@ var (
 		transfer.TransferModule{},
 		erc20.AppModuleBasic{},
 		mock.AppModuleBasic{},
+		wasm.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -235,6 +236,7 @@ type SimApp struct {
 	Erc20Keeper          erc20.Keeper
 
 	ibcScopeKeep capabilitykeeper.ScopedKeeper
+	WasmHandler  wasmkeeper.HandlerOption
 }
 
 // NewSimApp returns a reference to a new initialized OKExChain application.
@@ -594,10 +596,11 @@ func NewSimApp(
 	// initialize BaseApp
 	app.SetInitChainer(app.InitChainer)
 	app.SetBeginBlocker(app.BeginBlocker)
-	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), wasmkeeper.HandlerOption{
+	app.WasmHandler = wasmkeeper.HandlerOption{
 		WasmConfig:        &wasmConfig,
 		TXCounterStoreKey: keys[wasm.StoreKey],
-	}, app.IBCKeeper.ChannelKeeper))
+	}
+	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), app.WasmHandler, app.IBCKeeper.ChannelKeeper))
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccNonceHandler(NewAccHandler(app.AccountKeeper))
