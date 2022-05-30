@@ -1137,7 +1137,7 @@ func makeNodeInfo(
 			state.Version.Consensus.App,
 		),
 		DefaultNodeID: nodeKey.ID(),
-		Network:       genDoc.ChainID,
+		Network:       state.ChainID,
 		Version:       version.TMCoreSemVer,
 		Channels: []byte{
 			bcChannel,
