@@ -2,6 +2,7 @@ package baseapp
 
 import (
 	"bytes"
+	"fmt"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -628,11 +629,17 @@ func (f *parallelTxManager) getTxResult(index int) sdk.CacheMultiStore {
 				return nil
 			}
 
-			ms = f.txReps[preIndexInGroup].ms.CacheMultiStore()
+			//ms = f.txReps[preIndexInGroup].ms.CacheMultiStore()
 			//
-			//ff := f.checkTxCacheMultiStores.GetStore().(types.CacheMultiStoreResetter)
-			//ff.Reset(f.txReps[preIndexInGroup].ms)
-			//ms = ff
+			ff := f.checkTxCacheMultiStores.GetStore().(types.CacheMultiStoreResetter)
+			if ff == nil {
+				ms = f.txReps[preIndexInGroup].ms.CacheMultiStore()
+			} else {
+				fmt.Println("not null")
+				ff.Reset(f.txReps[preIndexInGroup].ms)
+				ms = ff
+			}
+
 		}
 	}
 
@@ -671,7 +678,7 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 	f.mu.Unlock()
 	f.cc.deleteFeeAccount()
 
-	//f.checkTxCacheMultiStores.PushStore(res.ms)
+	f.checkTxCacheMultiStores.PushStore(res.ms)
 	if res.paraMsg.AnteErr != nil {
 		return
 	}
