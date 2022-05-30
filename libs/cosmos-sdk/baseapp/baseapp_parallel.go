@@ -629,10 +629,10 @@ func (f *parallelTxManager) getTxResult(index int) sdk.CacheMultiStore {
 				return nil
 			}
 
-			//ms = f.txReps[preIndexInGroup].ms.CacheMultiStore()
+			// ms = f.txReps[preIndexInGroup].ms.CacheMultiStore()
 			//
-			ff := f.checkTxCacheMultiStores.GetStore().(types.CacheMultiStoreResetter)
-			if ff == nil {
+			ff, ok := f.checkTxCacheMultiStores.GetStore().(types.CacheMultiStoreResetter)
+			if !ok {
 				ms = f.txReps[preIndexInGroup].ms.CacheMultiStore()
 			} else {
 				fmt.Println("not null")
