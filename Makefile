@@ -34,6 +34,11 @@ ifeq ($(WITH_ROCKSDB),true)
   CGO_ENABLED=1
   build_tags += rocksdb
 endif
+
+ifeq ($(WITH_ED25519), true)
+  build_tags += libed25519_okc
+endif
+
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
 
@@ -67,13 +72,24 @@ ifeq ($(WITH_ROCKSDB),true)
   ldflags += -X github.com/okex/exchain/libs/cosmos-sdk/types.DBBackend=rocksdb
 endif
 
+ext_libraries=
+
 ifeq ($(OKCMALLOC),tcmalloc)
-  ldflags += -extldflags "-ltcmalloc_minimal"
+ ext_libraries += -ltcmalloc_minimal
 endif
 
 ifeq ($(OKCMALLOC),jemalloc)
-  ldflags += -extldflags "-ljemalloc"
+  ext_libraries += -ljemalloc
 endif
+
+ifeq ($(WITH_ED25519), true)
+  ext_libraries += -led25519_okc
+endif
+
+ifneq ($(ext_libraries),)
+  ldflags += -extldflags "$(ext_libraries)"
+endif
+
 
 BUILD_FLAGS := -ldflags '$(ldflags)'
 

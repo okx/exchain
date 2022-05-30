@@ -4,6 +4,8 @@
 package secp256k1
 
 import (
+	stdlog "log"
+
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1/internal/secp256k1"
 )
@@ -20,5 +22,6 @@ func (privKey PrivKeySecp256k1) Sign(msg []byte) ([]byte, error) {
 }
 
 func (pubKey PubKeySecp256k1) VerifyBytes(msg []byte, sig []byte) bool {
+	stdlog.Println("verify from cgo")
 	return secp256k1.VerifySignature(pubKey[:], crypto.Sha256(msg), sig)
 }

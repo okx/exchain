@@ -3,7 +3,9 @@
 
 package ed25519
 
-import "golang.org/x/crypto/ed25519"
+import (
+	"golang.org/x/crypto/ed25519"
+)
 
 // Sign produces a signature on the provided message.
 // This assumes the privkey is wellformed in the golang format.
@@ -14,5 +16,15 @@ import "golang.org/x/crypto/ed25519"
 // incorrect signature.
 func (privKey PrivKeyEd25519) Sign(msg []byte) ([]byte, error) {
 	signatureBytes := ed25519.Sign(privKey[:], msg)
+
 	return signatureBytes, nil
+}
+
+func (pubKey PubKeyEd25519) VerifyBytes(msg []byte, sig []byte) bool {
+	// make sure we use the same algorithm to sign
+	if len(sig) != SignatureSize {
+		return false
+	}
+
+	return ed25519.Verify(pubKey[:], msg, sig)
 }

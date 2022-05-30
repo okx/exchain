@@ -2,6 +2,7 @@ package ed25519
 
 import (
 	stded25519 "crypto/ed25519"
+	"strconv"
 	"unsafe"
 )
 
@@ -37,23 +38,12 @@ type PublicKey = stded25519.PublicKey
 // PrivateKey is the type of Ed25519 private keys. It implements crypto.Signer.
 type PrivateKey = stded25519.PrivateKey
 
-// NewKeyFromSeed calculates a private key from a seed. It will panic if
-// len(seed) is not SeedSize. This function is provided for interoperability
-// with RFC 8032. RFC 8032's private keys correspond to seeds in this
-// package.
-func NewKeyFromSeed(seed []byte) PrivateKey {
-	// Outline the function body so that the returned key can be stack-allocated.
-	var keypair C.Buffer
-	keypair = C.okc_ed25519_gen_keypair()
-
-	buffer := cBufferToGoBuffer(&keypair)
-	C.free_buf(keypair)
-
-	return buffer[:]
-}
-
+// Sign signs the message with privateKey and returns a signature. It will
 // panic if len(privateKey) is not PrivateKeySize.
 func Sign(privateKey PrivateKey, message []byte) []byte {
+	if l := len(privateKey); l != stded25519.PrivateKeySize {
+		panic("ed25519: bad private key length: " + strconv.Itoa(l))
+	}
 	keypair := goBufferToCBuffer(privateKey)
 	msg := goBufferToCBuffer(message)
 	cSignature := C.okc_ed25519_sign(keypair, msg)
@@ -66,6 +56,13 @@ func Sign(privateKey PrivateKey, message []byte) []byte {
 // Verify reports whether sig is a valid signature of message by publicKey. It
 // will panic if len(publicKey) is not PublicKeySize.
 func Verify(publicKey PublicKey, message, sig []byte) bool {
+	if l := len(publicKey); l != stded25519.PublicKeySize {
+		panic("ed25519: bad public key length: " + strconv.Itoa(l))
+	}
+
+	if len(sig) != stded25519.SignatureSize || sig[63]&224 != 0 {
+		return false
+	}
 	cPublicKey := goBufferToCBuffer(publicKey)
 	cMsg := goBufferToCBuffer(message)
 	cSig := goBufferToCBuffer(sig)

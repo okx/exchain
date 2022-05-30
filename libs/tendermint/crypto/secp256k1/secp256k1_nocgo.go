@@ -4,6 +4,7 @@
 package secp256k1
 
 import (
+	stdlog "log"
 	"math/big"
 
 	secp256k1 "github.com/btcsuite/btcd/btcec"
@@ -46,6 +47,7 @@ func (pubKey PubKeySecp256k1) VerifyBytes(msg []byte, sigStr []byte) bool {
 	if signature.S.Cmp(secp256k1halfN) > 0 {
 		return false
 	}
+	stdlog.Println("verify from no cgo")
 	return signature.Verify(crypto.Sha256(msg), pub)
 }
 
