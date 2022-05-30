@@ -1199,6 +1199,8 @@ func unmarshalPacketFromAminoReader(r io.Reader, maxSize int64) (packet Packet, 
 			return
 		}
 	}
-	err = cdc.UnmarshalBinaryBare(bz, &packet)
+	var packet4amino Packet
+	err = cdc.UnmarshalBinaryBare(bz, &packet4amino)
+	packet = packet4amino
 	return
 }
