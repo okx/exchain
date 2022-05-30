@@ -99,7 +99,8 @@ func newCacheMultiStoreFromCMS(cms Store) Store {
 func (cms Store) Reset(ms types.MultiStore) bool {
 	switch rms := ms.(type) {
 	case Store:
-		return cms.reset(rms)
+		cms.reset(rms)
+		return true
 	default:
 		return false
 	}
@@ -111,10 +112,11 @@ var keysPool = &sync.Pool{
 	},
 }
 
-func (cms Store) reset(ms Store) bool {
+func (cms Store) reset(ms Store) {
 	cms.db.(*cachekv.Store).Reset(ms.db)
 	cms.traceWriter = ms.traceWriter
 	cms.traceContext = ms.traceContext
+	cms.keys = ms.keys
 
 	keysMap := keysPool.Get().(map[types.StoreKey]struct{})
 	defer keysPool.Put(keysMap)
@@ -127,25 +129,26 @@ func (cms Store) reset(ms Store) bool {
 	}
 
 	for k := range keysMap {
+		msstore := ms.stores[k]
 		if store, ok := cms.stores[k]; ok {
 			if cstore, ok := store.(*cachekv.Store); ok {
-				msstore, ok := ms.stores[k].(types.KVStore)
+				msKvstore, ok := msstore.(types.KVStore)
 				if ok {
-					cstore.Reset(msstore)
+					cstore.Reset(msKvstore)
 				} else {
-					cms.stores[k] = ms.stores[k].CacheWrap()
+					cms.stores[k] = msstore.CacheWrap()
 				}
 			} else {
-				msstore, ok1 := ms.stores[k].(Store)
+				msStore, ok1 := msstore.(Store)
 				cmstore, ok2 := store.(Store)
 				if ok1 && ok2 {
-					cmstore.reset(msstore)
+					cmstore.reset(msStore)
 				} else {
-					cms.stores[k] = ms.stores[k].CacheWrap()
+					cms.stores[k] = msstore.CacheWrap()
 				}
 			}
 		} else {
-			cms.stores[k] = ms.stores[k].CacheWrap()
+			cms.stores[k] = msstore.CacheWrap()
 		}
 	}
 
@@ -154,8 +157,6 @@ func (cms Store) reset(ms Store) bool {
 			delete(cms.stores, k)
 		}
 	}
-	cms.keys = ms.keys
-	return true
 }
 
 // SetTracer sets the tracer for the MultiStore that the underlying
