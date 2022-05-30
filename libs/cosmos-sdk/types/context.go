@@ -47,7 +47,7 @@ type Context struct {
 	accountCache       *AccountCache
 	paraMsg            *ParaMsg
 	//	txCount            uint32
-	overridesBytes     []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
+	overridesBytes []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
 }
 
 // Proposed rename, not done to avoid API breakage

@@ -2,11 +2,6 @@ package app
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/system/trace"
-	sm "github.com/okex/exchain/libs/tendermint/state"
-	"github.com/spf13/cobra"
-	"google.golang.org/grpc/encoding/proto"
-
 	"io"
 	"math/big"
 	"os"
