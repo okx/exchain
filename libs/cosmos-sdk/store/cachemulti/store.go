@@ -128,12 +128,21 @@ func (cms Store) reset(ms Store) bool {
 
 	for k := range keysMap {
 		if store, ok := cms.stores[k]; ok {
-			msstore, ok1 := ms.stores[k].(Store)
-			cmstore, ok2 := store.(Store)
-			if ok1 && ok2 {
-				cmstore.reset(msstore)
+			if cstore, ok := store.(*cachekv.Store); ok {
+				msstore, ok := ms.stores[k].(types.KVStore)
+				if ok {
+					cstore.Reset(msstore)
+				} else {
+					cms.stores[k] = ms.stores[k].CacheWrap()
+				}
 			} else {
-				cms.stores[k] = ms.stores[k].CacheWrap()
+				msstore, ok1 := ms.stores[k].(Store)
+				cmstore, ok2 := store.(Store)
+				if ok1 && ok2 {
+					cmstore.reset(msstore)
+				} else {
+					cms.stores[k] = ms.stores[k].CacheWrap()
+				}
 			}
 		} else {
 			cms.stores[k] = ms.stores[k].CacheWrap()
@@ -145,6 +154,7 @@ func (cms Store) reset(ms Store) bool {
 			delete(cms.stores, k)
 		}
 	}
+	cms.keys = ms.keys
 	return true
 }
 
