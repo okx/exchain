@@ -207,8 +207,8 @@ func (s *Server) readLoop(wsConn *wsConn) {
 				continue
 			}
 			s.logger.Debug("successfully subscribe", "ID", id)
-			s.logger.Error("all subscribe", "subIds", subIds)
 			subIds[id] = struct{}{}
+			s.logger.Error("websocket subscribe", "subIds count", len(subIds))
 			continue
 		} else if method.(string) == "eth_unsubscribe" {
 			ids, ok := msg["params"].([]interface{})
