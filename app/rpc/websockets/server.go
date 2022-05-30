@@ -10,17 +10,17 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/go-kit/kit/metrics"
 	"github.com/go-kit/kit/metrics/prometheus"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/x/common/monitor"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 	"github.com/spf13/viper"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 // Server defines a server that handles Ethereum websockets.
@@ -208,6 +208,7 @@ func (s *Server) readLoop(wsConn *wsConn) {
 			}
 			s.logger.Debug("successfully subscribe", "ID", id)
 			subIds[id] = struct{}{}
+			s.logger.Error("websocket subscribe", "subIds count", len(subIds))
 			continue
 		} else if method.(string) == "eth_unsubscribe" {
 			ids, ok := msg["params"].([]interface{})
@@ -241,6 +242,7 @@ func (s *Server) readLoop(wsConn *wsConn) {
 			}
 			s.logger.Debug("successfully unsubscribe", "ID", id)
 			delete(subIds, rpc.ID(id))
+			s.logger.Error("websocket unsubscribe", "subIds count", len(subIds))
 			continue
 		}
 
@@ -281,6 +283,7 @@ func (s *Server) tcpGetAndSendResponse(conn *wsConn, mb []byte) error {
 }
 
 func (s *Server) closeWsConnection(subIds map[rpc.ID]struct{}) {
+	s.logger.Error("websocket closeWsConnection", "subIds count", len(subIds))
 	for id := range subIds {
 		s.api.unsubscribe(id)
 		delete(subIds, id)
