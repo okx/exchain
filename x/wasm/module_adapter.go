@@ -2,16 +2,20 @@ package wasm
 
 import (
 	"encoding/json"
-	store "github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	"fmt"
+	"path/filepath"
+	"sync"
 
 	"github.com/gorilla/mux"
 	clictx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	cdctypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	store "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmcli "github.com/okex/exchain/libs/tendermint/libs/cli"
 	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/wasm/client/cli"
 	"github.com/okex/exchain/x/wasm/keeper"
@@ -20,6 +24,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
+
+const SupportedFeatures = "iterator,stargate"
 
 func (b AppModuleBasic) RegisterCodec(amino *codec.Codec) {
 	RegisterCodec(amino)
@@ -158,6 +164,32 @@ func (am AppModule) VersionFilter() *store.VersionFilter {
 
 func (am AppModule) UpgradeHeight() int64 {
 	return types2.GetSaturnHeight()
+}
+
+var (
+	once        sync.Once
+	gWasmConfig types.WasmConfig
+	gWasmDir    string
+)
+
+func WasmDir() string {
+	once.Do(Init)
+	return gWasmDir
+}
+
+func WasmConfig() types.WasmConfig {
+	once.Do(Init)
+	return gWasmConfig
+}
+
+func Init() {
+	wasmConfig, err := ReadWasmConfig()
+	if err != nil {
+		panic(fmt.Sprintf("error while reading wasm config: %s", err))
+	}
+	gWasmConfig = wasmConfig
+	gWasmDir = filepath.Join(viper.GetString(tmcli.HomeFlag), "wasm")
+
 }
 
 // ReadWasmConfig reads the wasm specifig configuration
