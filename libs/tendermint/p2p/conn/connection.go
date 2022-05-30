@@ -849,7 +849,7 @@ func (ch *Channel) nextPacketMsg() PacketMsg {
 	return packet
 }
 
-var packetBzPool = &sync.Pool{
+var packetBzSendPool = &sync.Pool{
 	New: func() interface{} {
 		return &bytes.Buffer{}
 	},
@@ -865,8 +865,8 @@ func (ch *Channel) writePacketMsgTo(w io.Writer) (n int64, err error) {
 	bzSizeWithLenPrefix := amino.UvarintSize(uint64(bzSize)) + bzSize
 
 	// var buf = bytes.NewBuffer(make([]byte, 0, bzSizeWithLenPrefix))
-	buf := packetBzPool.Get().(*bytes.Buffer)
-	defer packetBzPool.Put(buf)
+	buf := packetBzSendPool.Get().(*bytes.Buffer)
+	defer packetBzSendPool.Put(buf)
 	buf.Reset()
 	buf.Grow(bzSizeWithLenPrefix)
 
