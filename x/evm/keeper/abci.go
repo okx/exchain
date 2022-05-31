@@ -112,7 +112,6 @@ func (k *Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Vali
 
 		k.Watcher.SaveBlock(bloom)
 	}
-	types.SetMaxGasLimitPerTx(params.MaxGasLimitPerTx)
 
 	k.UpdateInnerBlockData()
 

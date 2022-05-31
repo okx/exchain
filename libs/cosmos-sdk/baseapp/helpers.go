@@ -15,9 +15,10 @@ func (app *BaseApp) Check(tx sdk.Tx) (sdk.GasInfo, *sdk.Result, error) {
 	return info.gInfo, info.result, e
 }
 
-func (app *BaseApp) Simulate(txBytes []byte, tx sdk.Tx, height int64, overridesBytes []byte, from ...string) (sdk.GasInfo, *sdk.Result, error) {
+func (app *BaseApp) Simulate(txBytes []byte, tx sdk.Tx, height int64, overridesBytes []byte, estimateGas bool, from ...string) (sdk.GasInfo, *sdk.Result, error) {
 	info := &runTxInfo{
 		overridesBytes: overridesBytes,
+		estimateGas:    estimateGas,
 	}
 	e := app.runtxWithInfo(info, runTxModeSimulate, txBytes, tx, height, from...)
 	return info.gInfo, info.result, e

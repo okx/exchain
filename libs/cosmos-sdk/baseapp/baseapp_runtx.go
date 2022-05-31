@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"runtime/debug"
 
-	"github.com/okex/exchain/libs/system/trace"
 	"github.com/pkg/errors"
+
+	"github.com/okex/exchain/libs/system/trace"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -31,6 +32,7 @@ type runTxInfo struct {
 
 	reusableCacheMultiStore sdk.CacheMultiStore
 	overridesBytes          []byte
+	estimateGas             bool
 }
 
 func (info *runTxInfo) GetCacheMultiStore() (sdk.CacheMultiStore, bool) {
@@ -106,6 +108,9 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 			info.ctx.SetFrom(addr)
 			break
 		}
+	}
+	if info.estimateGas {
+		info.ctx.SetEstimateGas(info.estimateGas)
 	}
 
 	err = handler.handleGasConsumed(info)

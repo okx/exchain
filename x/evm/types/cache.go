@@ -2,7 +2,6 @@ package types
 
 import (
 	"sync"
-	"sync/atomic"
 )
 
 var evmParamsCache = NewCache()
@@ -94,16 +93,4 @@ func SetEvmParamsNeedUpdate() {
 
 func GetEvmParamsCache() *Cache {
 	return evmParamsCache
-}
-
-var maxGasLimitPerTx uint64 = DefaultMaxGasLimitPerTx
-
-// SetMaxGasLimitPerTx sets maxGasLimitPerTx safely.
-func SetMaxGasLimitPerTx(maxGasLimitPerTx uint64) {
-	atomic.StoreUint64(&maxGasLimitPerTx, maxGasLimitPerTx)
-}
-
-// GetMaxGasLimitPerTx gets maxGasLimitPerTx safely.
-func GetMaxGasLimitPerTx() uint64 {
-	return atomic.LoadUint64(&maxGasLimitPerTx)
 }

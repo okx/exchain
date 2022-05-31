@@ -23,7 +23,6 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/app"
-	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/crypto/hd"
 	"github.com/okex/exchain/app/rpc/backend"
@@ -987,7 +986,11 @@ func (api *PublicEthereumAPI) doCall(
 		}
 
 	} else {
-		simulatePath = fmt.Sprintf("app/simulate/%s", addr.String())
+		if isEstimate {
+			simulatePath = fmt.Sprintf("app/simulate/%s/estimate", addr.String())
+		} else {
+			simulatePath = fmt.Sprintf("app/simulate/%s", addr.String())
+		}
 		queryData = txBytes
 	}
 
@@ -1005,8 +1008,6 @@ func (api *PublicEthereumAPI) doCall(
 }
 
 // EstimateGas returns an estimate of gas usage for the given smart contract call.
-// It adds 1,000 gas to the returned value instead of using the gas adjustment
-// param from the SDK.
 func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint64, error) {
 	monitor := monitor.GetMonitor("eth_estimateGas", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("args", args)
@@ -1016,20 +1017,7 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 		return 0, TransformDataError(err, "eth_estimateGas")
 	}
 
-	maxGasLimitPerTx := evmtypes.GetMaxGasLimitPerTx()
-	estimatedGas := simResponse.GasInfo.GasUsed
-	if estimatedGas > maxGasLimitPerTx {
-		return 0, fmt.Errorf("out of gas")
-	}
-
-	// TODO: change 1000 buffer for more accurate buffer (eg: SDK's gasAdjusted)
-	gasBuffer := estimatedGas / 100 * config.GetOecConfig().GetGasLimitBuffer()
-	gas := estimatedGas + gasBuffer
-	if gas > maxGasLimitPerTx {
-		gas = maxGasLimitPerTx
-	}
-
-	return hexutil.Uint64(gas), nil
+	return hexutil.Uint64(simResponse.GasInfo.GasUsed), nil
 }
 
 // GetBlockByHash returns the block identified by hash.
