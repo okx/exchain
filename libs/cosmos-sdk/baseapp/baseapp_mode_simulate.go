@@ -2,6 +2,7 @@ package baseapp
 
 import (
 	"fmt"
+
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
@@ -19,6 +20,8 @@ func (m *modeHandlerSimulate) handleStartHeight(info *runTxInfo, height int64) e
 	} else {
 		info.ctx = app.getContextForTx(m.mode, info.txBytes)
 	}
-
+	if info.overridesBytes != nil {
+		info.ctx.SetOverrideBytes(info.overridesBytes)
+	}
 	return err
 }

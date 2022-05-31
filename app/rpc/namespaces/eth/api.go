@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -792,8 +793,8 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 }
 
 func (api *PublicEthereumAPI) buildKey(args rpctypes.CallArgs) common.Hash {
-	latest, e := api.wrappedBackend.GetLatestBlockNumber()
-	if e != nil {
+	latest, err := api.wrappedBackend.GetLatestBlockNumber()
+	if err != nil {
 		return common.Hash{}
 	}
 	return sha256.Sum256([]byte(args.String() + strconv.Itoa(int(latest))))
@@ -825,19 +826,28 @@ func (api *PublicEthereumAPI) addCallCache(key common.Hash, data []byte) {
 }
 
 // Call performs a raw contract call.
-func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNrOrHash rpctypes.BlockNumberOrHash, _ *map[common.Address]rpctypes.Account) (hexutil.Bytes, error) {
+func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNrOrHash rpctypes.BlockNumberOrHash, overrides *evmtypes.StateOverrides) (hexutil.Bytes, error) {
 	monitor := monitor.GetMonitor("eth_call", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("args", args, "block number", blockNrOrHash)
-	key := api.buildKey(args)
-	cacheData, ok := api.getFromCallCache(key)
-	if ok {
-		return cacheData, nil
+
+	if overrides != nil {
+		if err := overrides.Check(); err != nil {
+			return nil, err
+		}
 	}
+	var key common.Hash
+	if overrides == nil {
+		key = api.buildKey(args)
+		if cacheData, ok := api.getFromCallCache(key); ok {
+			return cacheData, nil
+		}
+	}
+
 	blockNr, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
 	if err != nil {
 		return nil, err
 	}
-	simRes, err := api.doCall(args, blockNr, big.NewInt(ethermint.DefaultRPCGasLimit), false)
+	simRes, err := api.doCall(args, blockNr, big.NewInt(ethermint.DefaultRPCGasLimit), false, overrides)
 	if err != nil {
 		return []byte{}, TransformDataError(err, "eth_call")
 	}
@@ -846,12 +856,14 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNrOrHash rpctype
 	if err != nil {
 		return []byte{}, TransformDataError(err, "eth_call")
 	}
-	api.addCallCache(key, data.Ret)
+	if overrides == nil {
+		api.addCallCache(key, data.Ret)
+	}
 	return data.Ret, nil
 }
 
 // MultiCall performs multiple raw contract call.
-func (api *PublicEthereumAPI) MultiCall(args []rpctypes.CallArgs, blockNr rpctypes.BlockNumber, _ *map[common.Address]rpctypes.Account) ([]hexutil.Bytes, error) {
+func (api *PublicEthereumAPI) MultiCall(args []rpctypes.CallArgs, blockNr rpctypes.BlockNumber, _ *[]evmtypes.StateOverrides) ([]hexutil.Bytes, error) {
 	if !viper.GetBool(FlagEnableMultiCall) {
 		return nil, errors.New("the method is not allowed")
 	}
@@ -874,9 +886,13 @@ func (api *PublicEthereumAPI) MultiCall(args []rpctypes.CallArgs, blockNr rpctyp
 // DoCall performs a simulated call operation through the evmtypes. It returns the
 // estimated gas used on the operation or an error if fails.
 func (api *PublicEthereumAPI) doCall(
-	args rpctypes.CallArgs, blockNum rpctypes.BlockNumber, globalGasCap *big.Int, isEstimate bool,
+	args rpctypes.CallArgs,
+	blockNum rpctypes.BlockNumber,
+	globalGasCap *big.Int,
+	isEstimate bool,
+	overrides *evmtypes.StateOverrides,
 ) (*sdk.SimulationResponse, error) {
-
+	var err error
 	clientCtx := api.clientCtx
 	// pass the given block height to the context if the height is not pending or latest
 	if !(blockNum == rpctypes.PendingBlockNumber || blockNum == rpctypes.LatestBlockNumber) {
@@ -926,11 +942,16 @@ func (api *PublicEthereumAPI) doCall(
 
 	// Create new call message
 	msg := evmtypes.NewMsgEthereumTx(nonce, args.To, value, gas, gasPrice, data)
-
+	var overridesBytes []byte
+	if overrides != nil {
+		if overridesBytes, err = overrides.GetBytes(); err != nil {
+			return nil, fmt.Errorf("fail to encode overrides")
+		}
+	}
 	sim := api.evmFactory.BuildSimulator(api)
 	//only worked when fast-query has been enabled
 	if sim != nil {
-		return sim.DoCall(msg, addr.String())
+		return sim.DoCall(msg, addr.String(), overridesBytes)
 	}
 
 	//Generate tx to be used to simulate (signature isn't needed)
@@ -949,11 +970,27 @@ func (api *PublicEthereumAPI) doCall(
 	if err != nil {
 		return nil, err
 	}
-
 	// Transaction simulation through query. only pass from when eth_estimateGas.
 	// eth_call's from maybe nil
-	simulatePath := fmt.Sprintf("app/simulate/%s", addr.String())
-	res, _, err := clientCtx.QueryWithData(simulatePath, txBytes)
+	var simulatePath string
+	var queryData []byte
+	if overrides != nil {
+		simulatePath = fmt.Sprintf("app/simulateWithOverrides/%s", addr.String())
+		queryOverridesData := sdk.SimulateData{
+			TxBytes:        txBytes,
+			OverridesBytes: overridesBytes,
+		}
+		queryData, err = json.Marshal(queryOverridesData)
+		if err != nil {
+			return nil, fmt.Errorf("fail to encode queryData for simulateWithOverrides")
+		}
+
+	} else {
+		simulatePath = fmt.Sprintf("app/simulate/%s", addr.String())
+		queryData = txBytes
+	}
+
+	res, _, err := clientCtx.QueryWithData(simulatePath, queryData)
 	if err != nil {
 		return nil, err
 	}
@@ -973,7 +1010,7 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 	monitor := monitor.GetMonitor("eth_estimateGas", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("args", args)
 
-	simResponse, err := api.doCall(args, 0, big.NewInt(ethermint.DefaultRPCGasLimit), true)
+	simResponse, err := api.doCall(args, 0, big.NewInt(ethermint.DefaultRPCGasLimit), true, nil)
 	if err != nil {
 		return 0, TransformDataError(err, "eth_estimateGas")
 	}
@@ -990,39 +1027,16 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (*watcher.Block, error) {
 	monitor := monitor.GetMonitor("eth_getBlockByHash", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("hash", hash, "full", fullTx)
-	blockRes, err := api.backend.GetBlockByHash(hash)
+	blockRes, err := api.backend.GetBlockByHash(hash, fullTx)
 	if err != nil {
 		return nil, TransformDataError(err, RPCEthGetBlockByHash)
-	}
-	//extract tx hashs when not fullTx
-	if !fullTx && blockRes != nil {
-		blockRes = modifyTransactionsInBlock(blockRes)
 	}
 	return blockRes, err
 }
 
-//modifyTransactionsInBlock modifies the block.Transactions from  []Transaction to []common.hash
-//only when the fullTx is false.
-func modifyTransactionsInBlock(blockIn *watcher.Block) *watcher.Block {
-	//make a shallow copy of Block to modify block.Transactions from  []Transaction to []common.hash
-	block := *blockIn
-	if block.Transactions == nil {
-		block.Transactions = []common.Hash{}
-		return &block
-	}
-	txs, ok := block.Transactions.([]*watcher.Transaction)
-	if ok {
-		txHashs := make([]common.Hash, len(txs))
-		for i, tx := range txs {
-			txHashs[i] = tx.Hash
-		}
-		block.Transactions = txHashs
-	}
-	return &block
-}
-func (api *PublicEthereumAPI) getBlockByNumber(blockNum rpctypes.BlockNumber) (blockRes *watcher.Block, err error) {
+func (api *PublicEthereumAPI) getBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (blockRes *watcher.Block, err error) {
 	if blockNum != rpctypes.PendingBlockNumber {
-		blockRes, err = api.backend.GetBlockByNumber(blockNum)
+		blockRes, err = api.backend.GetBlockByNumber(blockNum, fullTx)
 		return
 	}
 
@@ -1064,6 +1078,7 @@ func (api *PublicEthereumAPI) getBlockByNumber(blockNum rpctypes.BlockNumber) (b
 		gasUsed,
 		ethTxs,
 		ethtypes.Bloom{},
+		fullTx,
 	), nil
 }
 
@@ -1072,11 +1087,7 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 	monitor := monitor.GetMonitor("eth_getBlockByNumber", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("number", blockNum, "full", fullTx)
 
-	blockRes, err := api.getBlockByNumber(blockNum)
-	//modify block.Transactions to hashs when not fullTx
-	if err == nil && blockRes != nil && !fullTx {
-		blockRes = modifyTransactionsInBlock(blockRes)
-	}
+	blockRes, err := api.getBlockByNumber(blockNum, fullTx)
 	return blockRes, err
 }
 
