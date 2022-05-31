@@ -26,7 +26,6 @@ type BankKeeper interface {
 	IsSendEnabledCoins(ctx sdk.Context, coins ...sdk.Coin) error
 	BlockedAddr(addr sdk.AccAddress) bool
 	SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error
-	GetSendEnabled(ctx sdk.Context) bool
 }
 
 // AccountKeeper defines a subset of methods implemented by the cosmos-sdk account keeper
