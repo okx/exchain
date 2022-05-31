@@ -14,6 +14,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+
 	"github.com/okex/exchain/x/evm/types"
 )
 
@@ -105,12 +106,13 @@ func (k *Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Vali
 		k.Watcher.Used()
 	}
 
+	params := k.GetParams(ctx)
 	if watcher.IsWatcherEnabled() {
-		params := k.GetParams(ctx)
 		k.Watcher.SaveParams(params)
 
 		k.Watcher.SaveBlock(bloom)
 	}
+	types.SetMaxGasLimitPerTx(params.MaxGasLimitPerTx)
 
 	k.UpdateInnerBlockData()
 
