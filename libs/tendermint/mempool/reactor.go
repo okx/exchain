@@ -358,6 +358,8 @@ func RegisterMessages(cdc *amino.Codec) {
 	})
 }
 
+// decodeMsg decodes the bz bytes into a Message,
+// if err is nil and Message is a TxMessage, you must put Message to txMessageDeocdePool after use.
 func (memR *Reactor) decodeMsg(bz []byte) (Message, error) {
 	maxMsgSize := calcMaxMsgSize(memR.config.MaxTxBytes)
 	l := len(bz)
