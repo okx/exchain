@@ -2,7 +2,6 @@ package baseapp
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -251,7 +250,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 
 			}
 			if txReps[txIndex].paraMsg.AnteErr != nil {
-				res.ms = nil
+				res.msAnte = nil
 			}
 
 			txRs := res.resp
@@ -317,6 +316,17 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 		logIndex[index] = paraM.LogIndex
 		errs[index] = paraM.AnteErr
 	}
+	beforeStorsSize := app.parallelTxManage.cacheMultiStores.stores.Len()
+	for _, v := range app.parallelTxManage.txReps {
+		if v.msAnte != nil {
+			app.parallelTxManage.cacheMultiStores.PushStore(v.msAnte)
+		}
+		if v.msCache != nil {
+			app.parallelTxManage.cacheMultiStores.PushStore(v.msCache)
+		}
+	}
+	// TODO need delete later
+	app.logger.Info("Para mempool", "beforeSize", beforeStorsSize, "nowSize", app.parallelTxManage.cacheMultiStores.stores.Len(), "allNewCacheCnt", app.parallelTxManage.cacheMultiStores.newCont)
 	app.parallelTxManage.clear()
 	return app.logFix(logIndex, errs)
 }
@@ -328,7 +338,7 @@ func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 	txStatus := app.parallelTxManage.extraTxsInfo[txIndex]
 
 	if txStatus.stdTx == nil {
-		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr, 0, 0, app.trace), nil, uint32(txIndex), nil, 0)
+		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr, 0, 0, app.trace), nil, nil, uint32(txIndex), nil, 0)
 		return asyncExe
 	}
 	var (
@@ -349,22 +359,25 @@ func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 		}
 	}
 
-	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg(), 0)
+	asyncExe := newExecuteResult(resp, info.msCacheAnte, info.msCache, uint32(txIndex), info.ctx.ParaMsg(), 0)
 	return asyncExe
 }
 
 type executeResult struct {
-	resp        abci.ResponseDeliverTx
-	ms          sdk.CacheMultiStore
+	resp    abci.ResponseDeliverTx
+	msAnte  sdk.CacheMultiStore
+	msCache sdk.CacheMultiStore
+
 	counter     uint32
 	paraMsg     *sdk.ParaMsg
 	blockHeight int64
 }
 
-func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32, paraMsg *sdk.ParaMsg, height int64) *executeResult {
+func newExecuteResult(r abci.ResponseDeliverTx, msAnte sdk.CacheMultiStore, msCache sdk.CacheMultiStore, counter uint32, paraMsg *sdk.ParaMsg, height int64) *executeResult {
 	ans := &executeResult{
 		resp:        r,
-		ms:          ms,
+		msAnte:      msAnte,
+		msCache:     msCache,
 		counter:     counter,
 		paraMsg:     paraMsg,
 		blockHeight: height,
@@ -541,7 +554,7 @@ type parallelTxManager struct {
 	currIndex int
 	currTxFee sdk.Coins
 
-	checkTxCacheMultiStores *cacheMultiStoreList
+	cacheMultiStores *cacheMultiStoreList
 }
 
 func newParallelTxManager() *parallelTxManager {
@@ -554,20 +567,20 @@ func newParallelTxManager() *parallelTxManager {
 		nextTxInGroup: make(map[int]int),
 		preTxInGroup:  make(map[int]int),
 
-		cc:                      newConflictCheck(),
-		currIndex:               -1,
-		currTxFee:               sdk.Coins{},
-		checkTxCacheMultiStores: newCacheMultiStoreList(),
+		cc:               newConflictCheck(),
+		currIndex:        -1,
+		currTxFee:        sdk.Coins{},
+		cacheMultiStores: newCacheMultiStoreList(),
 	}
 }
 
 func (f *parallelTxManager) newIsConflict(e *executeResult) bool {
-	if e.ms == nil {
+	if e.msAnte == nil {
 		return true //TODO fix later
 	}
 	conflict := false
 
-	e.ms.IteratorCache(false, func(key string, value []byte, isDirty bool, isDelete bool, storeKey types.StoreKey) bool {
+	e.msAnte.IteratorCache(false, func(key string, value []byte, isDirty bool, isDelete bool, storeKey types.StoreKey) bool {
 		if data, ok := f.cc.items[key]; ok {
 			if !bytes.Equal(data.value, value) {
 				conflict = true
@@ -625,26 +638,16 @@ func (f *parallelTxManager) getTxResult(index int) sdk.CacheMultiStore {
 	if ok && preIndexInGroup > f.currIndex {
 		// get parent tx ms
 		if f.txReps[preIndexInGroup] != nil && f.txReps[preIndexInGroup].paraMsg.AnteErr == nil {
-			if f.txReps[preIndexInGroup].ms == nil {
+			if f.txReps[preIndexInGroup].msAnte == nil {
 				return nil
 			}
 
-			// ms = f.txReps[preIndexInGroup].ms.CacheMultiStore()
-			//
-			ff, ok := f.checkTxCacheMultiStores.GetStore().(types.CacheMultiStoreResetter)
-			if !ok {
-				ms = f.txReps[preIndexInGroup].ms.CacheMultiStore()
-			} else {
-				fmt.Println("not null")
-				ff.Reset(f.txReps[preIndexInGroup].ms)
-				ms = ff
-			}
-
+			ms = f.cacheMultiStores.GetStoreWithParent(f.txReps[preIndexInGroup].msAnte)
 		}
 	}
 
 	if ms == nil {
-		ms = f.cms.CacheMultiStore()
+		ms = f.cacheMultiStores.GetStoreWithParent(f.cms)
 	}
 
 	if next, ok := f.nextTxInGroup[index]; ok {
@@ -659,12 +662,12 @@ func (f *parallelTxManager) getTxResult(index int) sdk.CacheMultiStore {
 }
 
 func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
-	if res.ms == nil {
+	if res.msAnte == nil {
 		return
 	}
 
 	f.mu.Lock()
-	res.ms.IteratorCache(true, func(key string, value []byte, isDirty bool, isdelete bool, storeKey sdk.StoreKey) bool {
+	res.msAnte.IteratorCache(true, func(key string, value []byte, isDirty bool, isdelete bool, storeKey sdk.StoreKey) bool {
 		f.cc.update(key, value, txIndex)
 		if isdelete {
 			f.cms.GetKVStore(storeKey).Delete([]byte(key))
@@ -678,7 +681,6 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 	f.mu.Unlock()
 	f.cc.deleteFeeAccount()
 
-	f.checkTxCacheMultiStores.PushStore(res.ms)
 	if res.paraMsg.AnteErr != nil {
 		return
 	}
