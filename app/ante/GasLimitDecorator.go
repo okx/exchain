@@ -26,11 +26,6 @@ type GasLimitDecorator struct {
 func (g GasLimitDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
 	pinAnte(ctx.AnteTracer(), "GasLimitDecorator")
 
-	// eth_estimateGas/eth_call use a simulated tx.GetGas().so we skip here
-	if simulate {
-		return next(ctx, tx, simulate)
-	}
-
 	if tx.GetGas() > g.evm.GetParams(ctx).MaxGasLimitPerTx {
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrTxTooLarge, "too large gas limit, it must be less than %d", g.evm.GetParams(ctx).MaxGasLimitPerTx)
 	}
