@@ -31,3 +31,7 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	localhosttypes.RegisterInterfaces(registry)
 	commitmenttypes.RegisterInterfaces(registry)
 }
+
+func RegisterCodec(cdc *codec.Codec) {
+	clienttypes.RegisterCodec(cdc)
+}

@@ -2,6 +2,7 @@ package types
 
 import (
 	"github.com/gogo/protobuf/proto"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -50,6 +51,9 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	)
 
 	msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)
+}
+
+func RegisterCodec(cdc *codec.Codec) {
 }
 
 // UnpackClientState unpacks an Any into a ClientState. It returns an error if the
