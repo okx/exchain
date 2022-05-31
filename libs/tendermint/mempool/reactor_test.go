@@ -338,14 +338,15 @@ func TestTxMessageAmino(t *testing.T) {
 func BenchmarkTxMessageAminoMarshal(b *testing.B) {
 	var bz = make([]byte, 256)
 	rand.Read(bz)
-	txm := TxMessage{bz}
 	reactor := &Reactor{}
+	var msg Message
 	b.ResetTimer()
 
 	b.Run("amino", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			_, err := cdc.MarshalBinaryBare(&txm)
+			msg = TxMessage{bz}
+			_, err := cdc.MarshalBinaryBare(&msg)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -354,16 +355,28 @@ func BenchmarkTxMessageAminoMarshal(b *testing.B) {
 	b.Run("marshaller", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			_, err := cdc.MarshalBinaryBareWithRegisteredMarshaller(&txm)
+			msg = &TxMessage{bz}
+			_, err := cdc.MarshalBinaryBareWithRegisteredMarshaller(msg)
 			if err != nil {
 				b.Fatal(err)
 			}
 		}
 	})
+	b.Run("encodeMsgOld", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			msg = &TxMessage{bz}
+			reactor.encodeMsg(msg)
+		}
+	})
 	b.Run("encodeMsg", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			reactor.encodeMsg(&txm)
+			txm := txMessageDeocdePool.Get().(*TxMessage)
+			txm.Tx = bz
+			msg = txm
+			reactor.encodeMsg(msg)
+			txMessageDeocdePool.Put(txm)
 		}
 	})
 }
