@@ -85,6 +85,8 @@ func NodeInfoRequestHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			DefaultNodeInfo:    status.NodeInfo,
 			ApplicationVersion: version.NewInfo(),
 		}
+		// update Network to the ChainID in state
+		resp.DefaultNodeInfo.Network = cliCtx.ChainID
 		rest.PostProcessResponseBare(w, cliCtx, resp)
 	}
 }

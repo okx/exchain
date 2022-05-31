@@ -94,21 +94,25 @@ func (c *IBCCommit) ToCommit() *Commit {
 
 func (v *Validator) HeightBytes(h int64) []byte {
 	if HigherThanVenus1(h) {
-		pk, err := ce.PubKeyToProto(v.PubKey)
-		if err != nil {
-			panic(err)
-		}
-
-		pbv := tmproto.SimpleValidator{
-			PubKey:      &pk,
-			VotingPower: v.VotingPower,
-		}
-
-		bz, err := pbv.Marshal()
-		if err != nil {
-			panic(err)
-		}
-		return bz
+		return v.IBCHeightBytes()
 	}
 	return v.OriginBytes()
+}
+
+func (v *Validator) IBCHeightBytes() []byte {
+	pk, err := ce.PubKeyToProto(v.PubKey)
+	if err != nil {
+		panic(err)
+	}
+
+	pbv := tmproto.SimpleValidator{
+		PubKey:      &pk,
+		VotingPower: v.VotingPower,
+	}
+
+	bz, err := pbv.Marshal()
+	if err != nil {
+		panic(err)
+	}
+	return bz
 }

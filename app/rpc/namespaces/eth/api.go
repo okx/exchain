@@ -863,7 +863,7 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNrOrHash rpctype
 }
 
 // MultiCall performs multiple raw contract call.
-func (api *PublicEthereumAPI) MultiCall(args []rpctypes.CallArgs, blockNr rpctypes.BlockNumber, _ []*evmtypes.StateOverrides) ([]hexutil.Bytes, error) {
+func (api *PublicEthereumAPI) MultiCall(args []rpctypes.CallArgs, blockNr rpctypes.BlockNumber, _ *[]evmtypes.StateOverrides) ([]hexutil.Bytes, error) {
 	if !viper.GetBool(FlagEnableMultiCall) {
 		return nil, errors.New("the method is not allowed")
 	}
@@ -1027,39 +1027,16 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 func (api *PublicEthereumAPI) GetBlockByHash(hash common.Hash, fullTx bool) (*watcher.Block, error) {
 	monitor := monitor.GetMonitor("eth_getBlockByHash", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("hash", hash, "full", fullTx)
-	blockRes, err := api.backend.GetBlockByHash(hash)
+	blockRes, err := api.backend.GetBlockByHash(hash, fullTx)
 	if err != nil {
 		return nil, TransformDataError(err, RPCEthGetBlockByHash)
-	}
-	//extract tx hashs when not fullTx
-	if !fullTx && blockRes != nil {
-		blockRes = modifyTransactionsInBlock(blockRes)
 	}
 	return blockRes, err
 }
 
-//modifyTransactionsInBlock modifies the block.Transactions from  []Transaction to []common.hash
-//only when the fullTx is false.
-func modifyTransactionsInBlock(blockIn *watcher.Block) *watcher.Block {
-	//make a shallow copy of Block to modify block.Transactions from  []Transaction to []common.hash
-	block := *blockIn
-	if block.Transactions == nil {
-		block.Transactions = []common.Hash{}
-		return &block
-	}
-	txs, ok := block.Transactions.([]*watcher.Transaction)
-	if ok {
-		txHashs := make([]common.Hash, len(txs))
-		for i, tx := range txs {
-			txHashs[i] = tx.Hash
-		}
-		block.Transactions = txHashs
-	}
-	return &block
-}
-func (api *PublicEthereumAPI) getBlockByNumber(blockNum rpctypes.BlockNumber) (blockRes *watcher.Block, err error) {
+func (api *PublicEthereumAPI) getBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (blockRes *watcher.Block, err error) {
 	if blockNum != rpctypes.PendingBlockNumber {
-		blockRes, err = api.backend.GetBlockByNumber(blockNum)
+		blockRes, err = api.backend.GetBlockByNumber(blockNum, fullTx)
 		return
 	}
 
@@ -1101,6 +1078,7 @@ func (api *PublicEthereumAPI) getBlockByNumber(blockNum rpctypes.BlockNumber) (b
 		gasUsed,
 		ethTxs,
 		ethtypes.Bloom{},
+		fullTx,
 	), nil
 }
 
@@ -1109,11 +1087,7 @@ func (api *PublicEthereumAPI) GetBlockByNumber(blockNum rpctypes.BlockNumber, fu
 	monitor := monitor.GetMonitor("eth_getBlockByNumber", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("number", blockNum, "full", fullTx)
 
-	blockRes, err := api.getBlockByNumber(blockNum)
-	//modify block.Transactions to hashs when not fullTx
-	if err == nil && blockRes != nil && !fullTx {
-		blockRes = modifyTransactionsInBlock(blockRes)
-	}
+	blockRes, err := api.getBlockByNumber(blockNum, fullTx)
 	return blockRes, err
 }
 
