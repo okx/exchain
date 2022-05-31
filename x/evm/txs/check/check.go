@@ -30,8 +30,13 @@ func (tx *Tx) DecorateResult(inResult *base.Result, inErr error) (result *sdk.Re
 	}
 
 	if tx.Ctx.EstimateGas() {
-		gasEstimated := tx.Ctx.GasMeter().GasConsumed()
+		currentGasMeter := tx.Ctx.GasMeter()
+		tx.Ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 		maxGasLimitPerTx := tx.Keeper.GetParams(tx.Ctx).MaxGasLimitPerTx
+
+		tx.Ctx.SetGasMeter(currentGasMeter)
+		gasEstimated := tx.Ctx.GasMeter().GasConsumed()
+
 		if gasEstimated > maxGasLimitPerTx {
 			return nil, sdk.ErrOutOfGas(fmt.Sprintf("gas estimated %v greater than system's max gas limit per tx %v", gasEstimated, maxGasLimitPerTx))
 		}
