@@ -280,30 +280,42 @@ func InitTestnet(
 			CodeHash:    ethcrypto.Keccak256(nil),
 		})
 
-		msg := stakingtypes.NewMsgCreateValidator(
-			sdk.ValAddress(addr),
-			valPubKeys[i],
-			stakingtypes.NewDescription(nodeDirName, "", "", ""),
-			sdk.NewDecCoinFromDec(common.NativeToken, stakingtypes.DefaultMinSelfDelegation),
-		)
-
-		tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{}, memo) //nolint:staticcheck // SA1019: authtypes.StdFee is deprecated
-		txBldr := authtypes.NewTxBuilderFromCLI(inBuf).WithChainID(chainID).WithMemo(memo).WithKeybase(kb)
-
-		signedTx, err := txBldr.SignStdTx(nodeDirName, clientkeys.DefaultKeyPass, tx, false)
+		//make and save create validator tx
+		sequence := uint64(0)
+		signedTx, err := makeTxCreateValidator(addr, inBuf, chainID, kb, nodeDirName, sequence, memo, valPubKeys[i])
+		if err != nil {
+			_ = os.RemoveAll(outputDir)
+			return err
+		}
+		err = writeGentxFile(signedTx, cdc, gentxsDir, nodeDirName, sequence)
 		if err != nil {
 			_ = os.RemoveAll(outputDir)
 			return err
 		}
 
-		txBytes, err := cdc.MarshalJSON(signedTx)
+		//make and save deposit tx
+		sequence++
+		signedTx, err = makeTxDeposit(addr, inBuf, chainID, kb, nodeDirName, sequence, i)
 		if err != nil {
 			_ = os.RemoveAll(outputDir)
 			return err
 		}
 
-		// gather gentxs folder
-		if err := writeFile(fmt.Sprintf("%v.json", nodeDirName), gentxsDir, txBytes); err != nil {
+		err = writeGentxFile(signedTx, cdc, gentxsDir, nodeDirName, sequence)
+		if err != nil {
+			_ = os.RemoveAll(outputDir)
+			return err
+		}
+
+		//make and save add shares tx
+		sequence++
+		signedTx, err = makeTxAddShares(addr, inBuf, chainID, kb, nodeDirName, sequence)
+		if err != nil {
+			_ = os.RemoveAll(outputDir)
+			return err
+		}
+		err = writeGentxFile(signedTx, cdc, gentxsDir, nodeDirName, sequence)
+		if err != nil {
 			_ = os.RemoveAll(outputDir)
 			return err
 		}
@@ -324,6 +336,51 @@ func InitTestnet(
 	}
 
 	cmd.Printf("Successfully initialized %d validator nodes directories, %d rpc nodes directories\n", numValidators, numRPCs)
+	return nil
+}
+
+func makeTxCreateValidator(addr sdk.AccAddress, inBuf *bufio.Reader, chainID string, kb keys.Keybase,
+	nodeDirName string, sequence uint64, memo string, pubKey tmcrypto.PubKey) (*authtypes.StdTx, error) {
+	msg := stakingtypes.NewMsgCreateValidator(
+		sdk.ValAddress(addr),
+		pubKey,
+		stakingtypes.NewDescription(nodeDirName, "", "", ""),
+		sdk.NewDecCoinFromDec(common.NativeToken, stakingtypes.DefaultMinSelfDelegation),
+	)
+	tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{}, memo) //nolint:staticcheck // SA1019: authtypes.StdFee is deprecated
+	txBldr := authtypes.NewTxBuilderFromCLI(inBuf).WithChainID(chainID).WithMemo(memo).WithKeybase(kb).WithSequence(sequence)
+
+	return txBldr.SignStdTx(nodeDirName, clientkeys.DefaultKeyPass, tx, false)
+}
+
+func makeTxDeposit(addr sdk.AccAddress, inBuf *bufio.Reader, chainID string, kb keys.Keybase,
+	nodeDirName string, sequence uint64, indexValidator int) (*authtypes.StdTx, error) {
+	msg := stakingtypes.NewMsgDeposit(addr, sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(10000*int64(indexValidator+1))))
+	tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{}, "")
+	txBldr := authtypes.NewTxBuilderFromCLI(inBuf).WithChainID(chainID).WithKeybase(kb).WithSequence(sequence)
+	return txBldr.SignStdTx(nodeDirName, clientkeys.DefaultKeyPass, tx, false)
+}
+
+func makeTxAddShares(addr sdk.AccAddress, inBuf *bufio.Reader, chainID string, kb keys.Keybase,
+	nodeDirName string, sequence uint64) (*authtypes.StdTx, error) {
+	msg := stakingtypes.NewMsgAddShares(addr, []sdk.ValAddress{sdk.ValAddress(addr)})
+	tx := authtypes.NewStdTx([]sdk.Msg{msg}, authtypes.StdFee{}, []authtypes.StdSignature{}, "")
+	txBldr := authtypes.NewTxBuilderFromCLI(inBuf).WithChainID(chainID).WithKeybase(kb).WithSequence(sequence)
+	signedTx, err := txBldr.SignStdTx(nodeDirName, clientkeys.DefaultKeyPass, tx, false)
+	return signedTx, err
+}
+
+func writeGentxFile(signedTx *authtypes.StdTx, cdc *codec.Codec, gentxsDir string, nodeDirName string, sequence uint64) error {
+	txBytes, err := cdc.MarshalJSON(signedTx)
+	if err != nil {
+		return err
+	}
+
+	// gather gentxs folder
+	if err := writeFile(fmt.Sprintf("%v-%d.json", nodeDirName, sequence), gentxsDir, txBytes); err != nil {
+		return err
+	}
+
 	return nil
 }
 

@@ -121,6 +121,18 @@ func CollectStdTxs(cdc *codec.Codec, moniker, genTxsDir string,
 		}
 		appGenTxs = append(appGenTxs, genStdTx)
 
+		// genesis transactions must be single-message
+		msgs := genStdTx.GetMsgs()
+		if len(msgs) != 1 {
+			return appGenTxs, persistentPeers, errors.New(
+				"each genesis transaction must provide a single genesis message")
+		}
+
+		//ignore not create validator tx
+		if msgs[0].Type() != stakingtypes.EventTypeCreateValidator {
+			continue
+		}
+
 		// the memo flag is used to store
 		// the ip and node-id, for example this may be:
 		// "528fd3df22b31f4969b05652bfe8f0fe921321d5@192.168.2.37:26656"
@@ -128,13 +140,6 @@ func CollectStdTxs(cdc *codec.Codec, moniker, genTxsDir string,
 		if len(nodeAddrIP) == 0 {
 			return appGenTxs, persistentPeers, fmt.Errorf(
 				"couldn't find node's address and IP in %s", fo.Name())
-		}
-
-		// genesis transactions must be single-message
-		msgs := genStdTx.GetMsgs()
-		if len(msgs) != 1 {
-			return appGenTxs, persistentPeers, errors.New(
-				"each genesis transaction must provide a single genesis message")
 		}
 
 		// TODO abstract out staking message validation back to staking
