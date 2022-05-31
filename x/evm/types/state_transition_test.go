@@ -1,8 +1,9 @@
 package types_test
 
 import (
-	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
+
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -14,6 +15,8 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/evm/types"
 )
+
+const maxGasLimitPerTx = 30000000
 
 var (
 	callAddr                  = "0x2B2641734D81a6B93C9aE1Ee6290258FB6666921"
@@ -292,7 +295,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 		{
 			"call disabled",
 			func() {
-				params := types.NewParams(true, false, false, false, types.DefaultMaxGasLimitPerTx)
+				params := types.NewParams(true, false, false, false, maxGasLimitPerTx)
 				suite.stateDB.SetParams(params)
 			},
 			types.StateTransition{
@@ -313,7 +316,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 		{
 			"create disabled",
 			func() {
-				params := types.NewParams(false, true, false, false, types.DefaultMaxGasLimitPerTx)
+				params := types.NewParams(false, true, false, false, maxGasLimitPerTx)
 				suite.stateDB.SetParams(params)
 			},
 			types.StateTransition{
@@ -358,7 +361,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 		{
 			"state transition simulation",
 			func() {
-				params := types.NewParams(false, true, false, false, types.DefaultMaxGasLimitPerTx)
+				params := types.NewParams(false, true, false, false, maxGasLimitPerTx)
 				suite.stateDB.SetParams(params)
 			},
 			types.StateTransition{
@@ -379,7 +382,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 		{
 			"contract failed call addr is blocked",
 			func() {
-				params := types.NewParams(false, true, false, true, types.DefaultMaxGasLimitPerTx)
+				params := types.NewParams(false, true, false, true, maxGasLimitPerTx)
 				suite.stateDB.SetParams(params)
 
 				suite.stateDB.SetCode(common.BytesToAddress(callAcc.Bytes()), callBuffer)
@@ -405,7 +408,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 		{
 			"contract failed call contract method blocked",
 			func() {
-				params := types.NewParams(false, true, false, true, types.DefaultMaxGasLimitPerTx)
+				params := types.NewParams(false, true, false, true, maxGasLimitPerTx)
 				suite.stateDB.SetParams(params)
 				suite.stateDB.SetCode(common.BytesToAddress(callAcc.Bytes()), callBuffer)
 				suite.stateDB.SetCode(common.BytesToAddress(blockedAcc.Bytes()), blockedBuffer)
@@ -429,7 +432,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 		{
 			"contract failed callcode contract method blocked",
 			func() {
-				params := types.NewParams(false, true, false, true, types.DefaultMaxGasLimitPerTx)
+				params := types.NewParams(false, true, false, true, maxGasLimitPerTx)
 				suite.stateDB.SetParams(params)
 				suite.stateDB.SetCode(common.BytesToAddress(callAcc.Bytes()), callBuffer)
 				suite.stateDB.SetCode(common.BytesToAddress(blockedAcc.Bytes()), blockedBuffer)
@@ -453,7 +456,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 		{
 			"contract failed delegate call contract method blocked",
 			func() {
-				params := types.NewParams(false, true, false, true, types.DefaultMaxGasLimitPerTx)
+				params := types.NewParams(false, true, false, true, maxGasLimitPerTx)
 				suite.stateDB.SetParams(params)
 				suite.stateDB.SetCode(common.BytesToAddress(callAcc.Bytes()), callBuffer)
 				suite.stateDB.SetCode(common.BytesToAddress(blockedAcc.Bytes()), blockedBuffer)
@@ -477,7 +480,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 		{
 			"contract failed selfdestruct contract method blocked",
 			func() {
-				params := types.NewParams(false, true, false, true, types.DefaultMaxGasLimitPerTx)
+				params := types.NewParams(false, true, false, true, maxGasLimitPerTx)
 				suite.stateDB.SetParams(params)
 
 				suite.stateDB.CreateAccount(callEthAcc)
