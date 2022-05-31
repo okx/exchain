@@ -10,7 +10,7 @@ do
       break
     fi
 #    echo "Waiting for a new block, cur height:" $curHeight
-    sleep 2
+    sleep 1
 done
 
 # deposit for different validators
@@ -21,7 +21,7 @@ exchaincli tx staking deposit 30okt --from admin17 --gas auto --gas-prices 0.000
 echo "Waiting to add shares operate..."
 for((i=1;i<=10;i++));
 do
-    sleep 2
+    sleep 1
     curHeight=`exchaincli status | grep "latest_block_height" | sed -r 's/.*"(.*)".*/\1/'`
     if [ $curHeight -gt $beginHeight ]
     then
