@@ -2,6 +2,7 @@ package eth
 
 import (
 	"fmt"
+	rpctypes "github.com/okex/exchain/app/rpc/types"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -11,7 +12,6 @@ import (
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 
 	"github.com/ethereum/go-ethereum/common"
-	rpctypes "github.com/okex/exchain/app/rpc/types"
 	ethermint "github.com/okex/exchain/app/types"
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -152,11 +152,12 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 
 func (pool *TxPool) CacheAndBroadcastTx(api *PublicEthereumAPI, address common.Address, tx *evmtypes.MsgEthereumTx) error {
 	// get currentNonce
-	acc, err := getAccountFromChain(api.clientCtx, address)
+	blockNrOrHash := rpctypes.BlockNumberOrHashWithNumber(rpctypes.PendingBlockNumber)
+	pCurrentNonce, err := api.GetTransactionCount(address, blockNrOrHash)
 	if err != nil {
 		return err
 	}
-	currentNonce := acc.GetSequence()
+	currentNonce := uint64(*pCurrentNonce)
 
 	if tx.Data.AccountNonce < currentNonce {
 		return fmt.Errorf("AccountNonce of tx is less than currentNonce in memPool: AccountNonce[%d], currentNonce[%d]", tx.Data.AccountNonce, currentNonce)

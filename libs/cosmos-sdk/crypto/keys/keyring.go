@@ -25,12 +25,13 @@ import (
 )
 
 const (
-	BackendFile    = "file"
-	BackendOS      = "os"
-	BackendKWallet = "kwallet"
-	BackendPass    = "pass"
-	BackendTest    = "test"
-	BackendMemory  = "memory"
+	BackendFile       = "file"
+	BackendFileForRPC = "file4rpc"
+	BackendOS         = "os"
+	BackendKWallet    = "kwallet"
+	BackendPass       = "pass"
+	BackendTest       = "test"
+	BackendMemory     = "memory"
 )
 
 const (
@@ -74,6 +75,8 @@ func NewKeyring(
 		config = lkbToKeyringConfig(appName, rootDir, nil, true)
 	case BackendFile:
 		config = newFileBackendKeyringConfig(appName, rootDir, userInput)
+	case BackendFileForRPC:
+		config = newFileBackendKeyringConfigForRPC(appName, rootDir, userInput)
 	case BackendOS:
 		config = lkbToKeyringConfig(appName, rootDir, userInput, false)
 	case BackendKWallet:
@@ -92,7 +95,6 @@ func NewKeyring(
 
 	return newKeyringKeybase(db, config.FileDir, opts...), nil
 }
-
 
 // CreateMnemonic generates a new key and persists it to storage, encrypted
 // using the provided password. It returns the generated mnemonic and the key Info.
@@ -519,9 +521,6 @@ func lkbToKeyringConfig(appName, dir string, buf io.Reader, test bool) keyring.C
 	}
 }
 
-
-
-
 func newKWalletBackendKeyringConfig(appName, _ string, _ io.Reader) keyring.Config {
 	return keyring.Config{
 		AllowedBackends: []keyring.BackendType{keyring.KWalletBackend},
@@ -547,6 +546,18 @@ func newFileBackendKeyringConfig(name, dir string, buf io.Reader) keyring.Config
 		ServiceName:      name,
 		FileDir:          fileDir,
 		FilePasswordFunc: newRealPrompt(fileDir, buf),
+	}
+}
+
+func newFileBackendKeyringConfigForRPC(name, dir string, buf io.Reader) keyring.Config {
+	fileDir := filepath.Join(dir, fmt.Sprintf(keyringDirNameFmt, name))
+	return keyring.Config{
+		AllowedBackends: []keyring.BackendType{keyring.FileBackend},
+		ServiceName:     name,
+		FileDir:         fileDir,
+		FilePasswordFunc: func(_ string) (string, error) {
+			return "test", nil
+		},
 	}
 }
 

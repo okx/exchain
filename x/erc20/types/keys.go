@@ -10,8 +10,10 @@ const (
 	// RouterKey uses module name for routing
 	RouterKey = ModuleName
 
-	QueryParameters = "params"
-	QueryAllMapping = "all-mapping"
+	QueryParameters      = "params"
+	QueryTokenMapping    = "token-mapping"
+	QueryContractByDenom = "contract-by-denom"
+	QueryDenomByContract = "denom-by-contract"
 )
 
 // KVStore key prefixes

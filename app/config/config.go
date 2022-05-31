@@ -2,11 +2,13 @@ package config
 
 import (
 	"fmt"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	iavlconfig "github.com/okex/exchain/libs/iavl/config"
 	"github.com/okex/exchain/libs/system"
@@ -14,6 +16,7 @@ import (
 	tmconfig "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/state"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/spf13/viper"
 )
@@ -69,6 +72,17 @@ type OecConfig struct {
 	enableAnalyzer bool
 
 	deliverTxsMode int
+
+	// active view change
+	activeVC bool
+
+	blockPartSizeBytes int
+	blockCompressType  int
+	blockCompressFlag  int
+
+	// enable broadcast hasBlockPartMsg
+	enableHasBlockPartMsg bool
+	gcInterval            int
 }
 
 const (
@@ -93,6 +107,8 @@ const (
 	FlagCsTimeoutPrecommit      = "consensus.timeout_precommit"
 	FlagCsTimeoutPrecommitDelta = "consensus.timeout_precommit_delta"
 	FlagCsTimeoutCommit         = "consensus.timeout_commit"
+	FlagEnableHasBlockPartMsg   = "enable-blockpart-ack"
+	FlagDebugGcInterval         = "debug.gc-interval"
 )
 
 var (
@@ -201,6 +217,9 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
 	c.SetEnableAnalyzer(viper.GetBool(trace.FlagEnableAnalyzer))
 	c.SetDeliverTxsExecuteMode(viper.GetInt(state.FlagDeliverTxsExecMode))
+	c.SetBlockPartSize(viper.GetInt(server.FlagBlockPartSizeBytes))
+	c.SetEnableHasBlockPartMsg(viper.GetBool(FlagEnableHasBlockPartMsg))
+	c.SetGcInterval(viper.GetInt(FlagDebugGcInterval))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -237,7 +256,8 @@ func (c *OecConfig) format() string {
 	consensus.timeout_commit: %s
 	
 	iavl-cache-size: %d
-	enable-analyzer: %v`, system.ChainName,
+	enable-analyzer: %v
+	active-view-change: %v`, system.ChainName,
 		c.GetMempoolRecheck(),
 		c.GetMempoolForceRecheckGap(),
 		c.GetMempoolSize(),
@@ -256,6 +276,7 @@ func (c *OecConfig) format() string {
 		c.GetCsTimeoutCommit(),
 		c.GetIavlCacheSize(),
 		c.GetEnableAnalyzer(),
+		c.GetActiveVC(),
 	)
 }
 
@@ -382,6 +403,42 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetDeliverTxsExecuteMode(r)
+	case server.FlagActiveViewChange:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetActiveVC(r)
+	case server.FlagBlockPartSizeBytes:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetBlockPartSize(r)
+	case tmtypes.FlagBlockCompressType:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetBlockCompressType(r)
+	case tmtypes.FlagBlockCompressFlag:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetBlockCompressFlag(r)
+	case FlagEnableHasBlockPartMsg:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetEnableHasBlockPartMsg(r)
+	case FlagDebugGcInterval:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetGcInterval(r)
 	}
 }
 
@@ -581,5 +638,57 @@ func (c *OecConfig) GetIavlCacheSize() int {
 }
 func (c *OecConfig) SetIavlCacheSize(value int) {
 	c.iavlCacheSize = value
-	iavl.IavlCacheSize = value
+}
+
+func (c *OecConfig) GetActiveVC() bool {
+	return c.activeVC
+}
+func (c *OecConfig) SetActiveVC(value bool) {
+	c.activeVC = value
+}
+
+func (c *OecConfig) GetBlockPartSize() int {
+	return c.blockPartSizeBytes
+}
+func (c *OecConfig) SetBlockPartSize(value int) {
+	c.blockPartSizeBytes = value
+	tmtypes.UpdateBlockPartSizeBytes(value)
+}
+
+func (c *OecConfig) GetBlockCompressType() int {
+	return c.blockCompressType
+}
+func (c *OecConfig) SetBlockCompressType(value int) {
+	c.blockCompressType = value
+	tmtypes.BlockCompressType = value
+}
+
+func (c *OecConfig) GetBlockCompressFlag() int {
+	return c.blockCompressFlag
+}
+func (c *OecConfig) SetBlockCompressFlag(value int) {
+	c.blockCompressFlag = value
+	tmtypes.BlockCompressFlag = value
+}
+
+func (c *OecConfig) GetGcInterval() int {
+	return c.gcInterval
+}
+
+func (c *OecConfig) SetGcInterval(value int) {
+	// close gc for debug
+	if value > 0 {
+		debug.SetGCPercent(-1)
+	} else {
+		debug.SetGCPercent(100)
+	}
+	c.gcInterval = value
+
+}
+func (c *OecConfig) GetEnableHasBlockPartMsg() bool {
+	return c.enableHasBlockPartMsg
+}
+
+func (c *OecConfig) SetEnableHasBlockPartMsg(value bool) {
+	c.enableHasBlockPartMsg = value
 }

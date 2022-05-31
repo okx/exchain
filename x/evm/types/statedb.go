@@ -8,7 +8,7 @@ import (
 
 	"github.com/okex/exchain/libs/system/trace"
 
-	"github.com/VictoriaMetrics/fastcache"
+	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
@@ -46,10 +46,9 @@ type CommitStateDBParams struct {
 	// Amino codec
 	Cdc *codec.Codec
 
-	DB         ethstate.Database
-	Trie       ethstate.Trie
-	RootHash   ethcmn.Hash
-	StateCache *fastcache.Cache
+	DB       ethstate.Database
+	Trie     ethstate.Trie
+	RootHash ethcmn.Hash
 }
 
 type Watcher interface {
@@ -78,7 +77,6 @@ type CacheCode struct {
 type CommitStateDB struct {
 	db           ethstate.Database
 	trie         ethstate.Trie // only storage addr -> storageMptRoot in this mpt tree
-	StateCache   *fastcache.Cache
 	prefetcher   *mpt.TriePrefetcher
 	originalRoot ethcmn.Hash
 
@@ -190,14 +188,30 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 		codeCache:           make(map[ethcmn.Address]CacheCode, 0),
 		dbAdapter:           csdbParams.Ada,
 		updatedAccount:      make(map[ethcmn.Address]struct{}),
-		StateCache:          csdbParams.StateCache,
 	}
 
 	return csdb
 }
 
 func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *CommitStateDB {
-	return NewCommitStateDB(csdbParams).WithContext(ctx)
+	csdb := NewCommitStateDB(csdbParams).WithContext(ctx)
+	return csdb
+}
+
+func (csdb *CommitStateDB) WithHistoricalTrie() *CommitStateDB {
+	heightBytes := sdk.Uint64ToBigEndian(uint64(csdb.ctx.BlockHeight()))
+	rst, err := csdb.db.TrieDB().DiskDB().Get(append(mpt.KeyPrefixEvmRootMptHash, heightBytes...))
+	if err != nil || len(rst) == 0 {
+		return csdb
+	}
+	rootHash := ethcmn.BytesToHash(rst)
+	tire, err := csdb.db.OpenTrie(rootHash)
+	if err != nil {
+		return csdb
+	}
+	csdb.originalRoot = rootHash
+	csdb.trie = tire
+	return csdb
 }
 
 func (csdb *CommitStateDB) SetInternalDb(dba DbAdapter) {
@@ -261,6 +275,15 @@ func (csdb *CommitStateDB) SetParams(params Params) {
 	csdb.params = &params
 	csdb.paramSpace.SetParamSet(csdb.ctx, &params)
 	GetEvmParamsCache().SetNeedParamsUpdate()
+}
+
+// SetStorage replaces the entire storage for the specified account with given
+// storage. This function should only be used for debugging.
+func (csdb *CommitStateDB) SetStorage(addr common.Address, storage map[common.Hash]common.Hash) {
+	stateObject := csdb.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.SetStorage(storage)
+	}
 }
 
 // SetBalance sets the balance of an account.
