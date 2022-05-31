@@ -41,6 +41,7 @@ type BankKeeper interface {
 type EvmKeeper interface {
 	GetChainConfig(ctx sdk.Context) (evmtypes.ChainConfig, bool)
 	GenerateCSDBParams() evmtypes.CommitStateDBParams
+	GetParams(ctx sdk.Context) evmtypes.Params
 }
 
 type TransferKeeper interface {
