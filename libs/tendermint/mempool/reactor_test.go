@@ -272,6 +272,7 @@ func TestTxMessageAmino(t *testing.T) {
 		{},
 		{[]byte{}},
 		{[]byte{1, 2, 3, 4, 5, 6, 7}},
+		{[]byte{}},
 	}
 
 	var typePrefix = make([]byte, 8)
@@ -312,6 +313,8 @@ func TestTxMessageAmino(t *testing.T) {
 		actualValue, err = reactor.decodeMsg(expectBz)
 		require.NoError(t, err)
 		require.Equal(t, expectValue, actualValue)
+		actualValue.(*TxMessage).Tx = nil
+		txMessageDeocdePool.Put(actualValue)
 	}
 
 	// special case
@@ -397,6 +400,7 @@ func BenchmarkTxMessageUnmarshal(b *testing.B) {
 	}
 
 	var msg Message
+	var err error
 
 	b.ResetTimer()
 
@@ -408,10 +412,12 @@ func BenchmarkTxMessageUnmarshal(b *testing.B) {
 			//if err != nil {
 			//	b.Fatal(err)
 			//}
-			_, err := reactor.decodeMsg(bz)
+			msg, err = reactor.decodeMsg(bz)
 			if err != nil {
 				b.Fatal(err)
 			}
+			msg.(*TxMessage).Tx = nil
+			txMessageDeocdePool.Put(msg)
 		}
 	})
 	b.Run("decode-old", func(b *testing.B) {
@@ -422,7 +428,7 @@ func BenchmarkTxMessageUnmarshal(b *testing.B) {
 			//if err != nil {
 			//	b.Fatal(err)
 			//}
-			_, err := decodeMsgOld(reactor, bz)
+			msg, err = decodeMsgOld(reactor, bz)
 			if err != nil {
 				b.Fatal(err)
 			}
