@@ -283,6 +283,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 
 		// ensure peer hasn't already sent us this tx
 		if _, ok := memTx.senders.Load(peerID); !ok {
+			var getFromPool bool
 			// send memTx
 			var msg Message
 			if memTx.nodeKey != nil && memTx.signature != nil {
@@ -300,14 +301,20 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 						Wtx: wtx,
 					}
 				}
-
 			} else {
-				msg = &TxMessage{
-					Tx: memTx.tx,
-				}
+				txMsg := txMessageDeocdePool.Get().(*TxMessage)
+				txMsg.Tx = memTx.tx
+				msg = txMsg
+				getFromPool = true
 			}
 
-			success := peer.Send(MempoolChannel, memR.encodeMsg(msg))
+			msgBz := memR.encodeMsg(msg)
+			if getFromPool {
+				getFromPool = false
+				txMessageDeocdePool.Put(msg)
+			}
+
+			success := peer.Send(MempoolChannel, msgBz)
 			if !success {
 				time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 				continue
