@@ -49,10 +49,11 @@ type msgInfo struct {
 
 // internally generated messages which may update the state
 type timeoutInfo struct {
-	Duration time.Duration         `json:"duration"`
-	Height   int64                 `json:"height"`
-	Round    int                   `json:"round"`
-	Step     cstypes.RoundStepType `json:"step"`
+	Duration         time.Duration         `json:"duration"`
+	Height           int64                 `json:"height"`
+	Round            int                   `json:"round"`
+	Step             cstypes.RoundStepType `json:"step"`
+	ActiveViewChange bool                  `json:"active-view-change"`
 }
 
 func (ti *timeoutInfo) String() string {
@@ -143,7 +144,7 @@ type State struct {
 	// for reporting metrics
 	metrics *Metrics
 
-	trc *trace.Tracer
+	trc                *trace.Tracer
 	blockTimeTrc       *trace.Tracer
 	timeoutIntervalTrc *trace.Tracer
 
@@ -168,26 +169,26 @@ func NewState(
 	options ...StateOption,
 ) *State {
 	cs := &State{
-		config:           config,
-		blockExec:        blockExec,
-		blockStore:       blockStore,
-		deltaStore:       deltaStore,
-		txNotifier:       txNotifier,
-		peerMsgQueue:     make(chan msgInfo, msgQueueSize),
-		internalMsgQueue: make(chan msgInfo, msgQueueSize),
-		timeoutTicker:    NewTimeoutTicker(),
-		statsMsgQueue:    make(chan msgInfo, msgQueueSize),
-		done:             make(chan struct{}),
-		doWALCatchup:     true,
-		wal:              nilWAL{},
-		evpool:           evpool,
-		evsw:             tmevents.NewEventSwitch(),
-		metrics:          NopMetrics(),
-		trc:              trace.NewTracer(trace.Consensus),
-		prerunTx:         viper.GetBool(EnablePrerunTx),
-		bt:               &BlockTransport{},
-		blockTimeTrc:           trace.NewTracer(trace.LastBlockTime),
-		timeoutIntervalTrc:     trace.NewTracer(trace.TimeoutInterval),
+		config:             config,
+		blockExec:          blockExec,
+		blockStore:         blockStore,
+		deltaStore:         deltaStore,
+		txNotifier:         txNotifier,
+		peerMsgQueue:       make(chan msgInfo, msgQueueSize),
+		internalMsgQueue:   make(chan msgInfo, msgQueueSize),
+		timeoutTicker:      NewTimeoutTicker(),
+		statsMsgQueue:      make(chan msgInfo, msgQueueSize),
+		done:               make(chan struct{}),
+		doWALCatchup:       true,
+		wal:                nilWAL{},
+		evpool:             evpool,
+		evsw:               tmevents.NewEventSwitch(),
+		metrics:            NopMetrics(),
+		trc:                trace.NewTracer(trace.Consensus),
+		prerunTx:           viper.GetBool(EnablePrerunTx),
+		bt:                 &BlockTransport{},
+		blockTimeTrc:       trace.NewTracer(trace.LastBlockTime),
+		timeoutIntervalTrc: trace.NewTracer(trace.TimeoutInterval),
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal

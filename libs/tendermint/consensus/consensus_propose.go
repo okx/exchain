@@ -78,7 +78,7 @@ func (cs *State) isBlockProducer() (string, string) {
 // Enter (CreateEmptyBlocks, CreateEmptyBlocksInterval > 0 ):
 // 		after enterNewRound(height,round), after timeout of CreateEmptyBlocksInterval
 // Enter (!CreateEmptyBlocks) : after enterNewRound(height,round), once txs are in the mempool
-func (cs *State) enterPropose(height int64, round int) {
+func (cs *State) enterPropose(height int64, round int, avc bool) {
 	logger := cs.Logger.With("height", height, "round", round)
 	if cs.Height != height || round < cs.Round || (cs.Round == round && cstypes.RoundStepPropose <= cs.Step) {
 		logger.Debug(fmt.Sprintf(
@@ -90,26 +90,7 @@ func (cs *State) enterPropose(height int64, round int) {
 			cs.Step))
 		return
 	}
-	cs.doPropose(height, round)
-}
 
-func (cs *State) enterProposeAVC(height int64, round int) {
-	logger := cs.Logger.With("height", height, "round", round)
-	if cs.Height != height || round < cs.Round || (cs.Round == round && cstypes.RoundStepPropose < cs.Step) {
-		logger.Debug(fmt.Sprintf(
-			"enterPropose(%v/%v): Invalid args. Current step: %v/%v/%v",
-			height,
-			round,
-			cs.Height,
-			cs.Round,
-			cs.Step))
-		return
-	}
-	cs.doPropose(height, round)
-}
-
-func (cs *State) doPropose(height int64, round int) {
-	logger := cs.Logger.With("height", height, "round", round)
 	cs.initNewHeight()
 	isBlockProducer, bpAddr := cs.isBlockProducer()
 	cs.trc.Pin("enterPropose-%d-%s-%s", round, isBlockProducer, bpAddr)
@@ -130,7 +111,7 @@ func (cs *State) doPropose(height int64, round int) {
 	}()
 
 	// If we don't get the proposal and all block parts quick enough, enterPrevote
-	cs.scheduleTimeout(cs.config.Propose(round), height, round, cstypes.RoundStepPropose)
+	cs.timeoutTicker.ScheduleTimeout(timeoutInfo{Duration: cs.config.Propose(round), Height: height, Round: round, Step: cstypes.RoundStepPropose, ActiveViewChange: avc})
 
 	if isBlockProducer == "y" {
 		logger.Info("enterPropose: Our turn to propose",

@@ -78,7 +78,7 @@ func (cs *State) enterNewRound(height int64, round int) {
 				cstypes.RoundStepNewRound)
 		}
 	} else {
-		cs.enterPropose(height, round)
+		cs.enterPropose(height, round, false)
 	}
 }
 
@@ -125,7 +125,7 @@ func (cs *State) enterNewRoundAVC(height int64, round int, val *types.Validator)
 				cstypes.RoundStepNewRound)
 		}
 	} else {
-		cs.enterProposeAVC(height, round)
+		cs.enterPropose(height, round, true)
 	}
 }
 

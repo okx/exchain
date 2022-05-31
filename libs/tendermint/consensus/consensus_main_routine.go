@@ -233,7 +233,7 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 		// XXX: should we fire timeout here (for timeout commit)?
 		cs.enterNewHeight(ti.Height)
 	case cstypes.RoundStepNewRound:
-		cs.enterPropose(ti.Height, 0)
+		cs.enterPropose(ti.Height, 0, false)
 	case cstypes.RoundStepPropose:
 		cs.eventBus.PublishEventTimeoutPropose(cs.RoundStateEvent())
 		cs.enterPrevote(ti.Height, ti.Round)
@@ -287,7 +287,7 @@ func (cs *State) requestForProposer(prMsg ProposeRequestMessage) {
 
 // Attempt to schedule a timeout (by sending timeoutInfo on the tickChan)
 func (cs *State) scheduleTimeout(duration time.Duration, height int64, round int, step cstypes.RoundStepType) {
-	cs.timeoutTicker.ScheduleTimeout(timeoutInfo{duration, height, round, step})
+	cs.timeoutTicker.ScheduleTimeout(timeoutInfo{Duration: duration, Height: height, Round: round, Step: step})
 }
 
 // send a msg into the receiveRoutine regarding our own proposal, block part, or vote
@@ -324,6 +324,6 @@ func (cs *State) handleTxsAvailable() {
 		timeoutCommit := cs.StartTime.Sub(tmtime.Now()) + 1*time.Millisecond
 		cs.scheduleTimeout(timeoutCommit, cs.Height, 0, cstypes.RoundStepNewRound)
 	case cstypes.RoundStepNewRound: // after timeoutCommit
-		cs.enterPropose(cs.Height, 0)
+		cs.enterPropose(cs.Height, 0, false)
 	}
 }
