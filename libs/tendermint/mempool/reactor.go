@@ -173,6 +173,14 @@ func (memR *Reactor) RemovePeer(peer p2p.Peer, reason interface{}) {
 	// broadcast routine checks if peer is gone and returns
 }
 
+// txMessageDecodePool is a sync.Pool of *TxMessage.
+// memR.decodeMsg will call txMessageDeocdePool.Get, and memR.Receive will reset the Msg after use, then call txMessageDeocdePool.Put.
+var txMessageDeocdePool = &sync.Pool{
+	New: func() interface{} {
+		return &TxMessage{}
+	},
+}
+
 // Receive implements Reactor.
 // It adds any received transactions to the mempool.
 func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
@@ -196,6 +204,8 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	switch msg := msg.(type) {
 	case *TxMessage:
 		tx = msg.Tx
+		msg.Tx = nil
+		txMessageDeocdePool.Put(msg)
 
 	case *WtxMessage:
 		tx = msg.Wtx.Payload
@@ -357,11 +367,13 @@ func (memR *Reactor) decodeMsg(bz []byte) (Message, error) {
 
 	tp := getTxMessageAminoTypePrefix()
 	if l >= len(tp) && bytes.Equal(bz[:len(tp)], tp) {
-		txmsg := &TxMessage{}
+		txmsg := txMessageDeocdePool.Get().(*TxMessage)
 		err := txmsg.UnmarshalFromAmino(cdc, bz[len(tp):])
 		if err == nil {
 			return txmsg, nil
 		}
+		txmsg.Tx = nil
+		txMessageDeocdePool.Put(txmsg)
 	}
 	var msg Message
 	err := cdc.UnmarshalBinaryBare(bz, &msg)
