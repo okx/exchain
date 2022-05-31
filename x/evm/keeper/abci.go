@@ -106,8 +106,8 @@ func (k *Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Vali
 		k.Watcher.Used()
 	}
 
-	params := k.GetParams(ctx)
 	if watcher.IsWatcherEnabled() {
+		params := k.GetParams(ctx)
 		k.Watcher.SaveParams(params)
 
 		k.Watcher.SaveBlock(bloom)
