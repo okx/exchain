@@ -23,12 +23,13 @@ func (vals *ValidatorSet) IBCGetByAddress(address []byte) (index int, val *Valid
 }
 
 func (vals *ValidatorSet) IBCHash() []byte {
-	sort.Sort(ValidatorsByVotingPower(vals.Validators))
+	valsCopy := vals.Copy()
+	sort.Sort(ValidatorsByVotingPower(valsCopy.Validators))
 	if len(vals.Validators) == 0 {
 		return nil
 	}
-	bzs := make([][]byte, len(vals.Validators))
-	for i, val := range vals.Validators {
+	bzs := make([][]byte, len(valsCopy.Validators))
+	for i, val := range valsCopy.Validators {
 		bzs[i] = val.IBCHeightBytes()
 	}
 	return merkle.SimpleHashFromByteSlices(bzs)

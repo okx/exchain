@@ -314,14 +314,15 @@ func (vals *ValidatorSet) findProposer() *Validator {
 // Hash returns the Merkle root hash build using validators (as leaves) in the
 // set.
 func (vals *ValidatorSet) Hash(h int64) []byte {
+	valsCopy := vals.Copy()
 	if HigherThanVenus1(h) {
-		sort.Sort(ValidatorsByVotingPower(vals.Validators))
+		sort.Sort(ValidatorsByVotingPower(valsCopy.Validators))
 	}
-	if len(vals.Validators) == 0 {
+	if len(valsCopy.Validators) == 0 {
 		return nil
 	}
-	bzs := make([][]byte, len(vals.Validators))
-	for i, val := range vals.Validators {
+	bzs := make([][]byte, len(valsCopy.Validators))
+	for i, val := range valsCopy.Validators {
 		bzs[i] = val.HeightBytes(h)
 	}
 	return merkle.SimpleHashFromByteSlices(bzs)
