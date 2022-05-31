@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -73,11 +74,15 @@ type EvmSimulator struct {
 }
 
 // DoCall call simulate tx. we pass the sender by args to reduce address convert
-func (es *EvmSimulator) DoCall(msg *evmtypes.MsgEthereumTx, sender string, overridesBytes []byte) (*sdk.SimulationResponse, error) {
+func (es *EvmSimulator) DoCall(msg *evmtypes.MsgEthereumTx, sender string, overridesBytes []byte, estimateGas bool) (*sdk.SimulationResponse, error) {
 	es.ctx.SetFrom(sender)
 	if overridesBytes != nil {
 		es.ctx.SetOverrideBytes(overridesBytes)
 	}
+	if estimateGas {
+		es.ctx.SetEstimateGas(estimateGas)
+	}
+
 	r, e := es.handler(es.ctx, msg)
 	if e != nil {
 		return nil, e
