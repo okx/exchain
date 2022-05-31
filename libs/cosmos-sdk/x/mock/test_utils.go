@@ -7,9 +7,10 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 
+	"github.com/stretchr/testify/require"
+
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/stretchr/testify/require"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -85,7 +86,7 @@ func SignCheckDeliver(
 	require.Nil(t, err)
 
 	// Must simulate now as CheckTx doesn't run Msgs anymore
-	_, res, err := app.Simulate(txBytes, tx, 0, nil)
+	_, res, err := app.Simulate(txBytes, tx, 0, nil, false)
 
 	if expSimPass {
 		require.NoError(t, err)
