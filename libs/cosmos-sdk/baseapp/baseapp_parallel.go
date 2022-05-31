@@ -317,7 +317,6 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 		logIndex[index] = paraM.LogIndex
 		errs[index] = paraM.AnteErr
 	}
-
 	app.parallelTxManage.clear()
 	return app.logFix(logIndex, errs)
 }
@@ -365,9 +364,8 @@ type executeResult struct {
 
 func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32, paraMsg *sdk.ParaMsg, height int64) *executeResult {
 	ans := &executeResult{
-		resp: r,
-		ms:   ms,
-
+		resp:        r,
+		ms:          ms,
 		counter:     counter,
 		paraMsg:     paraMsg,
 		blockHeight: height,
@@ -687,6 +685,7 @@ func (f *parallelTxManager) getTxResult(index int) sdk.CacheMultiStore {
 			f.txReps[next] = nil
 		}
 	}
+
 	return ms
 }
 

@@ -1,8 +1,6 @@
 package baseapp
 
-import (
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-)
+import sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 func (m *modeHandlerDeliverInAsync) handleDeferRefund(info *runTxInfo) {
 	app := m.app
@@ -34,6 +32,7 @@ func (m *modeHandlerDeliverInAsync) handleDeferGasConsumed(info *runTxInfo) {
 func (m *modeHandlerDeliverInAsync) handleRunMsg(info *runTxInfo) (err error) {
 	app := m.app
 	mode := m.mode
+
 	info.msCache = app.parallelTxManage.cacheMultiStores.GetStoreWithParent(info.msCacheAnte)
 	info.runMsgCtx = info.ctx
 	info.runMsgCtx.SetMultiStore(info.msCache)
