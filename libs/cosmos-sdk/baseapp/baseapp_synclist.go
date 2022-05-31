@@ -18,6 +18,14 @@ func newCacheMultiStoreList() *cacheMultiStoreList {
 	}
 }
 
+func (c *cacheMultiStoreList) PushStores(stores map[int]types.CacheMultiStore) {
+	c.mtx.Lock()
+	for _, v := range stores {
+		c.stores.PushBack(v)
+	}
+	c.mtx.Unlock()
+}
+
 func (c *cacheMultiStoreList) PushStore(store types.CacheMultiStore) {
 	c.mtx.Lock()
 	c.stores.PushBack(store)
