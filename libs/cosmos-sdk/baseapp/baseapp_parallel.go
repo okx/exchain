@@ -317,7 +317,6 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 		logIndex[index] = paraM.LogIndex
 		errs[index] = paraM.AnteErr
 	}
-	app.parallelTxManage.AddTempCacheToCachePool()
 
 	app.parallelTxManage.clear()
 	return app.logFix(logIndex, errs)
@@ -352,14 +351,13 @@ func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 	}
 
 	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg(), 0)
-	app.parallelTxManage.AddMultiCache(info.msCacheAnte, info.msCache)
+	app.parallelTxManage.addMultiCache(info.msCacheAnte, info.msCache)
 	return asyncExe
 }
 
 type executeResult struct {
-	resp abci.ResponseDeliverTx
-	ms   sdk.CacheMultiStore
-
+	resp        abci.ResponseDeliverTx
+	ms          sdk.CacheMultiStore
 	counter     uint32
 	paraMsg     *sdk.ParaMsg
 	blockHeight int64
@@ -573,21 +571,21 @@ func newParallelTxManager() *parallelTxManager {
 	}
 }
 
-func (f *parallelTxManager) AddMultiCache(ms1 types.CacheMultiStore, ms2 types.CacheMultiStore) {
+func (f *parallelTxManager) addMultiCache(msAnte types.CacheMultiStore, msCache types.CacheMultiStore) {
 	f.tmpCachePoolMu.Lock()
-	if ms1 != nil {
-		f.tmpCachePool[f.tmpCachePoolSize] = ms1
+	if msAnte != nil {
+		f.tmpCachePool[f.tmpCachePoolSize] = msAnte
 		f.tmpCachePoolSize++
 	}
 
-	if ms2 != nil {
-		f.tmpCachePool[f.tmpCachePoolSize] = ms2
+	if msCache != nil {
+		f.tmpCachePool[f.tmpCachePoolSize] = msCache
 		f.tmpCachePoolSize++
 	}
 	f.tmpCachePoolMu.Unlock()
 }
 
-func (f *parallelTxManager) AddTempCacheToCachePool() {
+func (f *parallelTxManager) addTempCacheToCachePool() {
 	f.tmpCachePoolMu.Lock()
 
 	beforeStorsSize := f.cacheMultiStores.stores.Len()
@@ -624,6 +622,7 @@ func (f *parallelTxManager) newIsConflict(e *executeResult) bool {
 }
 
 func (f *parallelTxManager) clear() {
+	f.addTempCacheToCachePool()
 	f.workgroup.Close()
 	f.workgroup.isReady = false
 	f.workgroup.indexInAll = 0
