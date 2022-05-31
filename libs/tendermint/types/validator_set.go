@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"math"
 	"math/big"
 	"sort"
@@ -606,6 +607,10 @@ func (vals *ValidatorSet) updateWithChangeSet(changes []*Validator, allowDeletes
 	// Scale and center.
 	vals.RescalePriorities(PriorityWindowSizeFactor * vals.TotalVotingPower())
 	vals.shiftByAvgProposerPriority()
+
+	if HigherThanVenus1(global.GetGlobalHeight()) {
+		sort.Sort(ValidatorsByVotingPower(vals.Validators))
+	}
 
 	return nil
 }
