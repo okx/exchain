@@ -25,7 +25,7 @@ const (
 const (
 
 	// Default unbonding duration, 14 days
-	DefaultUnbondingTime time.Duration = time.Hour * 2
+	DefaultUnbondingTime time.Duration = time.Hour * 24
 
 	// Default maximum number of bonded validators
 	DefaultMaxValidators uint16 = 21
