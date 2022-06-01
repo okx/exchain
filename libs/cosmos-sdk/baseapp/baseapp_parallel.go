@@ -587,6 +587,26 @@ func (f *parallelTxManager) addTempCacheToCachePool() {
 	f.tmpCachePoolMu.Lock()
 
 	beforeStorsSize := f.cacheMultiStores.stores.Len()
+
+	size := len(f.tmpCachePool)
+	jobChan := make(chan types.CacheMultiStore, size)
+	var wg sync.WaitGroup
+	wg.Add(size)
+
+	for index := 0; index < maxGoroutineNumberInParaTx; index++ {
+		go func(ch chan types.CacheMultiStore, wg *sync.WaitGroup) {
+			for j := range ch {
+				j.Clear()
+				wg.Done()
+			}
+		}(jobChan, &wg)
+	}
+	for _, v := range f.tmpCachePool {
+		jobChan <- v
+	}
+	close(jobChan)
+	wg.Wait()
+
 	f.cacheMultiStores.PushStores(f.tmpCachePool)
 
 	fmt.Println("Para mempool", "beforeSize", beforeStorsSize, "nowSize",
