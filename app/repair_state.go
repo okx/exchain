@@ -176,11 +176,16 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	// construct state for repair
 	state = constructStartState(state, stateStoreDB, startHeight)
 	ctx.Logger.Debug("constructStartState", "state", fmt.Sprintf("%+v", state))
-	var err error
 	// repair state
 	eventBus := types.NewEventBus()
-	err = startEventBusAndIndexerService(ctx.Config, eventBus, ctx.Logger)
+	txStore, err := startEventBusAndIndexerService(ctx.Config, eventBus, ctx.Logger)
 	panicError(err)
+	defer func() {
+		if txStore != nil {
+			err := txStore.Close()
+			panicError(err)
+		}
+	}()
 	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
 	blockExec.SetEventBus(eventBus)
 	global.SetGlobalHeight(startHeight + 1)
@@ -207,26 +212,26 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	}
 }
 
-func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus, logger tmlog.Logger) error {
+func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus, logger tmlog.Logger) (txStore dbm.DB, err error) {
 	eventBus.SetLogger(logger.With("module", "events"))
 	if err := eventBus.Start(); err != nil {
-		return err
+		return nil, err
 	}
 	// Transaction indexing
 	var txIndexer txindex.TxIndexer
 	switch config.TxIndex.Indexer {
 	case "kv":
-		store, err := openDB(txIndexDB, filepath.Join(config.RootDir, "data"))
+		txStore, err = openDB(txIndexDB, filepath.Join(config.RootDir, "data"))
 		if err != nil {
-			return err
+			return nil, err
 		}
 		switch {
 		case config.TxIndex.IndexKeys != "":
-			txIndexer = kv.NewTxIndex(store, kv.IndexEvents(splitAndTrimEmpty(config.TxIndex.IndexKeys, ",", " ")))
+			txIndexer = kv.NewTxIndex(txStore, kv.IndexEvents(splitAndTrimEmpty(config.TxIndex.IndexKeys, ",", " ")))
 		case config.TxIndex.IndexAllKeys:
-			txIndexer = kv.NewTxIndex(store, kv.IndexAllEvents())
+			txIndexer = kv.NewTxIndex(txStore, kv.IndexAllEvents())
 		default:
-			txIndexer = kv.NewTxIndex(store)
+			txIndexer = kv.NewTxIndex(txStore)
 		}
 	default:
 		txIndexer = &null.TxIndex{}
@@ -235,9 +240,12 @@ func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus
 	indexerService := txindex.NewIndexerService(txIndexer, eventBus)
 	indexerService.SetLogger(logger.With("module", "txindex"))
 	if err := indexerService.Start(); err != nil {
-		return err
+		if txStore != nil {
+			txStore.Close()
+		}
+		return nil, err
 	}
-	return nil
+	return txStore, nil
 }
 
 // splitAndTrimEmpty slices s into all subslices separated by sep and returns a
