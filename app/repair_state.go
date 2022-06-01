@@ -2,13 +2,12 @@ package app
 
 import (
 	"fmt"
-	"github.com/okex/exchain/app/config"
 	"io"
-	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/okex/exchain/app/config"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
@@ -29,6 +28,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/store"
 	"github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
 )
 
@@ -69,8 +69,6 @@ func repairStateOnStart(ctx *server.Context) {
 	iavl.EnableAsyncCommit = viper.GetBool(iavl.FlagIavlEnableAsyncCommit)
 	viper.Set(flatkv.FlagEnable, orgEnableFlatKV)
 	// load latest block height
-	dataDir := filepath.Join(ctx.Config.RootDir, "data")
-	rmLockByDir(dataDir)
 }
 
 func RepairState(ctx *server.Context, onStart bool) {
@@ -89,6 +87,9 @@ func RepairState(ctx *server.Context, onStart bool) {
 	// create proxy app
 	proxyApp, repairApp, err := createRepairApp(ctx)
 	panicError(err)
+	defer func() {
+		repairApp.Close()
+	}()
 
 	// get async commit version
 	commitVersion, err := repairApp.GetCommitVersion()
@@ -103,6 +104,10 @@ func RepairState(ctx *server.Context, onStart bool) {
 	// load state
 	stateStoreDB, err := openDB(stateDB, dataDir)
 	panicError(err)
+	defer func() {
+		err := stateStoreDB.Close()
+		panicError(err)
+	}()
 	genesisDocProvider := node.DefaultGenesisDocProviderFunc(ctx.Config)
 	state, _, err := node.LoadStateFromDBOrGenesisDocProvider(stateStoreDB, genesisDocProvider)
 	panicError(err)
@@ -299,15 +304,6 @@ func latestBlockHeight(dataDir string) int64 {
 	return blockStore.Height()
 }
 
-func rmLockByDir(dataDir string) {
-	files, _ := ioutil.ReadDir(dataDir)
-	for _, f := range files {
-		if f.IsDir() {
-			os.Remove(filepath.Join(dataDir, f.Name(), "LOCK"))
-		}
-	}
-}
-
 // panic if error is not nil
 func panicError(err error) {
 	if err != nil {
@@ -325,4 +321,13 @@ func createAndStartProxyAppConns(clientCreator proxy.ClientCreator) (proxy.AppCo
 		return nil, fmt.Errorf("error starting proxy app connections: %v", err)
 	}
 	return proxyApp, nil
+}
+
+func (app *repairApp) Close() {
+	err := app.db.Close()
+	panicError(err)
+	if indexer := evmtypes.GetIndexer(); indexer != nil {
+		err = indexer.GetDB().Close()
+		panicError(err)
+	}
 }
