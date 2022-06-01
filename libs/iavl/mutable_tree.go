@@ -101,7 +101,7 @@ func NewMutableTreeWithOpts(db dbm.DB, cacheSize int, opts *Options) (*MutableTr
 			lastPersistHeight: initVersion,
 			upgradeVersion:    -1,
 		}
-		log.Println(fmt.Sprintf("lcm new tree : %s, version : %d", tree.GetModuleName(), tree.version))
+		log.Println(fmt.Sprintf("lcm new tree : %s, initversion : %d", tree.GetModuleName(), initVersion))
 	}
 
 	if tree.historyStateNum < minHistoryStateNum {

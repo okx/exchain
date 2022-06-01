@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"sync"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
@@ -65,7 +66,7 @@ func LoadStoreWithInitialVersion(db dbm.DB, flatKVDB dbm.DB, id types.CommitID, 
 	if err != nil {
 		return nil, err
 	}
-
+	log.Println(fmt.Sprintf("lcm [%s] tree load version %d, lazy : %v", tree.GetModuleName(), id.Version, lazyLoading))
 	if lazyLoading {
 		_, err = tree.LazyLoadVersion(id.Version)
 	} else {
