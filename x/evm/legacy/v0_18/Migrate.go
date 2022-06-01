@@ -3,7 +3,6 @@ package v018
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/evm/legacy/v0_16"
-	evmTypes "github.com/okex/exchain/x/evm/types"
 )
 
 const (
@@ -18,7 +17,7 @@ func Migrate(oldGenState v0_16.GenesisState) GenesisState {
 		ExtraEIPs:                         oldGenState.Params.ExtraEIPs,
 		EnableContractDeploymentWhitelist: true,
 		EnableContractBlockedList:         true,
-		MaxGasLimitPerTx:                  evmTypes.DefaultMaxGasLimitPerTx,
+		MaxGasLimitPerTx:                  30000000,
 	}
 
 	return GenesisState{
