@@ -584,24 +584,24 @@ func (f *parallelTxManager) addMultiCache(msAnte types.CacheMultiStore, msCache 
 
 func (f *parallelTxManager) addTempCacheToCachePool() {
 	f.tmpCachePoolMu.Lock()
-	size := len(f.tmpCachePool)
-	jobChan := make(chan types.CacheMultiStore, size)
-	var wg sync.WaitGroup
-	wg.Add(size)
+
+	jobChan := make(chan types.CacheMultiStore, len(f.tmpCachePool))
+	//var wg sync.WaitGroup
+	//wg.Add(size)
 
 	for index := 0; index < maxGoroutineNumberInParaTx; index++ {
-		go func(ch chan types.CacheMultiStore, wg *sync.WaitGroup) {
+		go func(ch chan types.CacheMultiStore) {
 			for j := range ch {
 				j.Clear()
-				wg.Done()
+				//wg.Done()
 			}
-		}(jobChan, &wg)
+		}(jobChan)
 	}
 	for _, v := range f.tmpCachePool {
 		jobChan <- v
 	}
 	close(jobChan)
-	wg.Wait()
+	//wg.Wait()
 
 	f.cacheMultiStores.PushStores(f.tmpCachePool)
 	for k := range f.tmpCachePool {
