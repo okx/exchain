@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"runtime/debug"
 
-	"github.com/pkg/errors"
-
 	"github.com/okex/exchain/libs/system/trace"
+	"github.com/pkg/errors"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"

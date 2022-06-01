@@ -7,7 +7,6 @@ import (
 	"github.com/okex/exchain/libs/system/trace"
 
 	"github.com/gogo/protobuf/proto"
-
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 

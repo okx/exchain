@@ -10,8 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/tendermint/go-amino"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -21,6 +19,7 @@ import (
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/tendermint/go-amino"
 )
 
 // InitChain implements the ABCI interface. It runs the initialization logic
@@ -405,7 +404,6 @@ func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, o
 		return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))
 	}
 
-	// if path contains estimate, it means calls from 'eth_estimateGas'
 	gInfo, res, err := app.Simulate(txBytes, tx, height, overrideBytes, from)
 
 	// if path contains mempool, it means to enable MaxGasUsedPerBlock

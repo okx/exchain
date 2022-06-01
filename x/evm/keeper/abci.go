@@ -14,7 +14,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-
 	"github.com/okex/exchain/x/evm/types"
 )
 
