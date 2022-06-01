@@ -119,7 +119,7 @@ func (logs ABCIMessageLogs) String() (str string) {
 			raw, err = codec.Cdc.MarshalJSON(logs)
 		}
 		if err == nil {
-			str = string(raw)
+			str = amino.BytesToStr(raw)
 		}
 	}
 
