@@ -2,7 +2,6 @@ package baseapp
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -585,9 +584,6 @@ func (f *parallelTxManager) addMultiCache(msAnte types.CacheMultiStore, msCache 
 
 func (f *parallelTxManager) addTempCacheToCachePool() {
 	f.tmpCachePoolMu.Lock()
-
-	beforeStorsSize := f.cacheMultiStores.stores.Len()
-
 	size := len(f.tmpCachePool)
 	jobChan := make(chan types.CacheMultiStore, size)
 	var wg sync.WaitGroup
@@ -608,10 +604,6 @@ func (f *parallelTxManager) addTempCacheToCachePool() {
 	wg.Wait()
 
 	f.cacheMultiStores.PushStores(f.tmpCachePool)
-
-	fmt.Println("Para mempool", "beforeSize", beforeStorsSize, "nowSize",
-		f.cacheMultiStores.stores.Len(), "allNewCacheCnt", f.cacheMultiStores.newCont)
-
 	for k := range f.tmpCachePool {
 		delete(f.tmpCachePool, k)
 	}
