@@ -89,10 +89,10 @@ func (es *EvmSimulator) DoCall(msg *evmtypes.MsgEthereumTx, sender string, overr
 		return nil, e
 	}
 
-	checkedGas := es.ctx.GasMeter().GasConsumed()
+	gasConsumed := es.ctx.GasMeter().GasConsumed()
 	if estimateGas {
 		maxGasLimitPerTx := es.keeper.GetParams(es.ctx).MaxGasLimitPerTx
-		checkedGas, e = CheckEstimatedGas(es.ctx.GasMeter().GasConsumed(), maxGasLimitPerTx)
+		gasConsumed, e = CheckEstimatedGas(gasConsumed, maxGasLimitPerTx)
 		if e != nil {
 			return nil, e
 		}
@@ -101,7 +101,7 @@ func (es *EvmSimulator) DoCall(msg *evmtypes.MsgEthereumTx, sender string, overr
 	return &sdk.SimulationResponse{
 		GasInfo: sdk.GasInfo{
 			GasWanted: es.ctx.GasMeter().Limit(),
-			GasUsed:   checkedGas,
+			GasUsed:   gasConsumed,
 		},
 		Result: r,
 	}, nil
