@@ -406,11 +406,7 @@ func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, o
 	}
 
 	// if path contains estimate, it means calls from 'eth_estimateGas'
-	var estimateGas bool
-	if len(path) > 3 && path[3] == "estimate" {
-		estimateGas = true
-	}
-	gInfo, res, err := app.Simulate(txBytes, tx, height, overrideBytes, estimateGas, from)
+	gInfo, res, err := app.Simulate(txBytes, tx, height, overrideBytes, from)
 
 	// if path contains mempool, it means to enable MaxGasUsedPerBlock
 	// return the actual gasUsed even though simulate tx failed

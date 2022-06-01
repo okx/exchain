@@ -50,7 +50,6 @@ type Context struct {
 	accountCache       *AccountCache
 	paraMsg            *ParaMsg
 	overridesBytes     []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
-	estimateGas        bool   // estimateGas is used to distinguish simulate with eth_estimateGas or eth_call
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -137,10 +136,6 @@ func (c *Context) GetToAccountCacheGas() Gas {
 
 func (c *Context) OverrideBytes() []byte {
 	return c.overridesBytes
-}
-
-func (c *Context) EstimateGas() bool {
-	return c.estimateGas
 }
 
 func (c *Context) UpdateFromAccountCache(fromAcc interface{}, fromAccGettedGas Gas) {
@@ -366,11 +361,6 @@ func (c *Context) SetVoteInfos(voteInfo []abci.VoteInfo) *Context {
 
 func (c *Context) SetOverrideBytes(b []byte) *Context {
 	c.overridesBytes = b
-	return c
-}
-
-func (c *Context) SetEstimateGas(estimateGas bool) *Context {
-	c.estimateGas = estimateGas
 	return c
 }
 

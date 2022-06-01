@@ -32,7 +32,6 @@ type runTxInfo struct {
 
 	reusableCacheMultiStore sdk.CacheMultiStore
 	overridesBytes          []byte
-	estimateGas             bool
 }
 
 func (info *runTxInfo) GetCacheMultiStore() (sdk.CacheMultiStore, bool) {
@@ -108,9 +107,6 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 			info.ctx.SetFrom(addr)
 			break
 		}
-	}
-	if info.estimateGas {
-		info.ctx.SetEstimateGas(info.estimateGas)
 	}
 
 	err = handler.handleGasConsumed(info)

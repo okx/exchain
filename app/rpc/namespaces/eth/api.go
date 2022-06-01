@@ -986,11 +986,7 @@ func (api *PublicEthereumAPI) doCall(
 		}
 
 	} else {
-		if isEstimate {
-			simulatePath = fmt.Sprintf("app/simulate/%s/estimate", addr.String())
-		} else {
-			simulatePath = fmt.Sprintf("app/simulate/%s", addr.String())
-		}
+		simulatePath = fmt.Sprintf("app/simulate/%s", addr.String())
 		queryData = txBytes
 	}
 
@@ -1004,7 +1000,26 @@ func (api *PublicEthereumAPI) doCall(
 		return nil, err
 	}
 
+	if isEstimate {
+		return api.checkEstimateGasResponse(&simResponse, &clientCtx)
+	}
+
 	return &simResponse, nil
+}
+
+func (api *PublicEthereumAPI) checkEstimateGasResponse(estimatedGasResponse *sdk.SimulationResponse, clientCtx *clientcontext.CLIContext) (*sdk.SimulationResponse, error) {
+	evmParams, err := getEvmParams(clientCtx)
+	if err != nil {
+		api.logger.Error("eth_estimateGas checkEstimateGasResponse error", "error", err)
+	} else {
+		checkedGas, err := simulation.CheckEstimatedGas(estimatedGasResponse.GasUsed, evmParams.MaxGasLimitPerTx)
+		if err != nil {
+			return nil, err
+		}
+		estimatedGasResponse.GasUsed = checkedGas
+	}
+
+	return estimatedGasResponse, nil
 }
 
 // EstimateGas returns an estimate of gas usage for the given smart contract call.

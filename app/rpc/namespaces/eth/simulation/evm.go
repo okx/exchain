@@ -1,10 +1,12 @@
 package simulation
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 
+	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -65,12 +67,14 @@ func (ef EvmFactory) BuildSimulator(qoc QueryOnChainProxy) *EvmSimulator {
 	return &EvmSimulator{
 		handler: evm.NewHandler(keeper),
 		ctx:     ctx,
+		keeper:  keeper,
 	}
 }
 
 type EvmSimulator struct {
 	handler sdk.Handler
 	ctx     sdk.Context
+	keeper  *evm.Keeper
 }
 
 // DoCall call simulate tx. we pass the sender by args to reduce address convert
@@ -79,18 +83,22 @@ func (es *EvmSimulator) DoCall(msg *evmtypes.MsgEthereumTx, sender string, overr
 	if overridesBytes != nil {
 		es.ctx.SetOverrideBytes(overridesBytes)
 	}
-	if estimateGas {
-		es.ctx.SetEstimateGas(estimateGas)
-	}
 
 	r, e := es.handler(es.ctx, msg)
 	if e != nil {
 		return nil, e
 	}
+
+	maxGasLimitPerTx := es.keeper.GetParams(es.ctx).MaxGasLimitPerTx
+	checkedGas, err := CheckEstimatedGas(es.ctx.GasMeter().GasConsumed(), maxGasLimitPerTx)
+	if err != nil {
+		return nil, err
+	}
+
 	return &sdk.SimulationResponse{
 		GasInfo: sdk.GasInfo{
 			GasWanted: es.ctx.GasMeter().Limit(),
-			GasUsed:   es.ctx.GasMeter().GasConsumed(),
+			GasUsed:   checkedGas,
 		},
 		Result: r,
 	}, nil
@@ -120,4 +128,17 @@ func (ef EvmFactory) makeContext(k *evm.Keeper, header abci.Header) sdk.Context 
 	ctx := sdk.NewContext(cms, header, true, tmlog.NewNopLogger())
 	ctx.SetGasMeter(sdk.NewGasMeter(k.GetParams(ctx).MaxGasLimitPerTx))
 	return ctx
+}
+
+func CheckEstimatedGas(estimatedGas, maxGasLimitPerTx uint64) (uint64, error) {
+	if estimatedGas > maxGasLimitPerTx {
+		return 0, fmt.Errorf("out of gas: estimate gas is %v greater than system's max gas limit per tx %v", estimatedGas, maxGasLimitPerTx)
+	}
+	gasBuffer := estimatedGas / 100 * config.GetOecConfig().GetGasLimitBuffer()
+	gas := estimatedGas + gasBuffer
+	if gas > maxGasLimitPerTx {
+		gas = maxGasLimitPerTx
+	}
+
+	return gas, nil
 }
