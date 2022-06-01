@@ -403,7 +403,6 @@ func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, o
 	if err != nil {
 		return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))
 	}
-
 	gInfo, res, err := app.Simulate(txBytes, tx, height, overrideBytes, from)
 
 	// if path contains mempool, it means to enable MaxGasUsedPerBlock
