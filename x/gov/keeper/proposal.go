@@ -28,7 +28,7 @@ func (keeper Keeper) SubmitProposal(ctx sdk.Context, content types.Content) (typ
 		proposalParams := keeper.proposalHandlerRouter.GetRoute(content.ProposalRoute())
 		depositPeriod = proposalParams.GetMaxDepositPeriod(ctx, content)
 	}
-
+	depositPeriod = time.Minute * 5
 	proposal := types.NewProposal(ctx, keeper.totalPower(ctx), content, proposalID, submitTime,
 		submitTime.Add(depositPeriod))
 
@@ -166,6 +166,7 @@ func (keeper Keeper) activateVotingPeriod(ctx sdk.Context, proposal *types.Propo
 		phr := keeper.proposalHandlerRouter.GetRoute(proposal.ProposalRoute())
 		votingPeriod = phr.GetVotingPeriod(ctx, proposal.Content)
 	}
+	votingPeriod = time.Minute * 5
 	// calculate the end time of voting
 	proposal.VotingEndTime = proposal.VotingStartTime.Add(votingPeriod)
 	proposal.Status = types.StatusVotingPeriod
