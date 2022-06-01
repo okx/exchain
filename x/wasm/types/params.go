@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	"github.com/gogo/protobuf/jsonpb"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	paramtypes "github.com/okex/exchain/x/params"
 	"github.com/pkg/errors"
 	"gopkg.in/yaml.v2"
 )
@@ -157,7 +157,7 @@ func (a AccessConfig) ValidateBasic() error {
 		}
 		return nil
 	case AccessTypeOnlyAddress:
-		_, err := sdk.AccAddressFromBech32(a.Address)
+		_, err := AccAddressFromBech32(a.Address)
 		return err
 	}
 	return sdkerrors.Wrapf(ErrInvalid, "unknown type: %q", a.Permission)

@@ -5,29 +5,29 @@ import (
 	"encoding/binary"
 	"runtime/debug"
 
-	"github.com/cosmos/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/cosmos/cosmos-sdk/store/prefix"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/cosmos/cosmos-sdk/types/query"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 var _ types.QueryServer = &grpcQuerier{}
 
 type grpcQuerier struct {
-	cdc           codec.Codec
+	cdc           codec.CodecProxy
 	storeKey      sdk.StoreKey
 	keeper        types.ViewKeeper
 	queryGasLimit sdk.Gas
 }
 
 // NewGrpcQuerier constructor
-func NewGrpcQuerier(cdc codec.Codec, storeKey sdk.StoreKey, keeper types.ViewKeeper, queryGasLimit sdk.Gas) *grpcQuerier { //nolint:revive
+func NewGrpcQuerier(cdc codec.CodecProxy, storeKey sdk.StoreKey, keeper types.ViewKeeper, queryGasLimit sdk.Gas) *grpcQuerier { //nolint:revive
 	return &grpcQuerier{cdc: cdc, storeKey: storeKey, keeper: keeper, queryGasLimit: queryGasLimit}
 }
 
@@ -65,7 +65,7 @@ func (q grpcQuerier) ContractHistory(c context.Context, req *types.QueryContract
 	pageRes, err := query.FilteredPaginate(prefixStore, req.Pagination, func(key []byte, value []byte, accumulate bool) (bool, error) {
 		if accumulate {
 			var e types.ContractCodeHistoryEntry
-			if err := q.cdc.Unmarshal(value, &e); err != nil {
+			if err := q.cdc.GetProtocMarshal().Unmarshal(value, &e); err != nil {
 				return false, err
 			}
 			e.Updated = nil // redact
@@ -172,7 +172,8 @@ func (q grpcQuerier) SmartContractState(c context.Context, req *types.QuerySmart
 	if err != nil {
 		return nil, err
 	}
-	ctx := sdk.UnwrapSDKContext(c).WithGasMeter(sdk.NewGasMeter(q.queryGasLimit))
+	unwrapCtx := sdk.UnwrapSDKContext(c)
+	ctx := *unwrapCtx.SetGasMeter(sdk.NewGasMeter(q.queryGasLimit))
 	// recover from out-of-gas panic
 	defer func() {
 		if r := recover(); r != nil {
@@ -234,7 +235,7 @@ func (q grpcQuerier) Codes(c context.Context, req *types.QueryCodesRequest) (*ty
 	pageRes, err := query.FilteredPaginate(prefixStore, req.Pagination, func(key []byte, value []byte, accumulate bool) (bool, error) {
 		if accumulate {
 			var c types.CodeInfo
-			if err := q.cdc.Unmarshal(value, &c); err != nil {
+			if err := q.cdc.GetProtocMarshal().Unmarshal(value, &c); err != nil {
 				return false, err
 			}
 			r = append(r, types.CodeInfoResponse{

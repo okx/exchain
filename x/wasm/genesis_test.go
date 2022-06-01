@@ -4,11 +4,13 @@ import (
 	"encoding/json"
 	"testing"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/stretchr/testify/require"
 )
 
 func TestInitGenesis(t *testing.T) {
+	types.UnittestOnlySetMilestoneSaturnHeight(1)
 	data := setupTest(t)
 
 	deposit := sdk.NewCoins(sdk.NewInt64Coin("denom", 100000))
@@ -16,8 +18,9 @@ func TestInitGenesis(t *testing.T) {
 	creator := data.faucet.NewFundedAccount(data.ctx, deposit.Add(deposit...)...)
 	fred := data.faucet.NewFundedAccount(data.ctx, topUp...)
 
-	h := data.module.Route().Handler()
-	q := data.module.LegacyQuerierHandler(nil)
+	_ = data.module.Route()
+	h := data.module.NewHandler()
+	q := data.module.NewQuerierHandler()
 
 	msg := MsgStoreCode{
 		Sender:       creator.String(),
@@ -42,7 +45,7 @@ func TestInitGenesis(t *testing.T) {
 		Sender: creator.String(),
 		CodeID: firstCodeID,
 		Msg:    initMsgBz,
-		Funds:  deposit,
+		Funds:  sdk.CoinsToCoinAdapters(deposit),
 	}
 	res, err = h(data.ctx, &initCmd)
 	require.NoError(t, err)
@@ -52,7 +55,7 @@ func TestInitGenesis(t *testing.T) {
 		Sender:   fred.String(),
 		Contract: contractBech32Addr,
 		Msg:      []byte(`{"release":{}}`),
-		Funds:    topUp,
+		Funds:    sdk.CoinsToCoinAdapters(topUp),
 	}
 	res, err = h(data.ctx, &execCmd)
 	require.NoError(t, err)
@@ -76,10 +79,10 @@ func TestInitGenesis(t *testing.T) {
 
 	// create new app to import genstate into
 	newData := setupTest(t)
-	q2 := newData.module.LegacyQuerierHandler(nil)
+	q2 := newData.module.NewQuerierHandler()
 
 	// initialize new app with genstate
-	InitGenesis(newData.ctx, &newData.keeper, *genState, newData.stakingKeeper, newData.module.Route().Handler())
+	InitGenesis(newData.ctx, &newData.keeper, *genState, newData.module.NewHandler())
 
 	// run same checks again on newdata, to make sure it was reinitialized correctly
 	assertCodeList(t, q2, newData.ctx, 1)

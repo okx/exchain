@@ -17,6 +17,7 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/token"
+	"github.com/okex/exchain/x/wasm"
 	"github.com/spf13/cobra"
 )
 
@@ -106,4 +107,6 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Int(tmtypes.FlagSigCacheSize, 200000, "Maximum number of signatures in the cache")
 	cmd.Flags().Int(config.FlagDebugGcInterval, 0, "Force gc every n heights for debug")
 	cmd.Flags().String(rpc.FlagWebsocket, "8546", "websocket port to listen to")
+
+	wasm.AddModuleInitFlags(cmd)
 }

@@ -1,7 +1,7 @@
 package types
 
 import (
-	sdkErrors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdkErrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
 
 // Codes for wasm contract errors
@@ -84,6 +84,8 @@ var (
 
 	// ErrTopKevelKeyNotAllowed error if a JSON object has a top-level key that is not allowed
 	ErrTopKevelKeyNotAllowed = sdkErrors.Register(DefaultCodespace, 26, "top-level key is not allowed")
+	// ErrInvalidEvent error if an attribute/event from the contract is invalid
+
 )
 
 type ErrNoSuchContract struct {

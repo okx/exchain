@@ -1,8 +1,8 @@
 package wasmtesting
 
 import (
-	"github.com/cosmos/cosmos-sdk/baseapp"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 // MockMessageRouter mock for testing
@@ -19,9 +19,9 @@ func (m MockMessageRouter) Handler(msg sdk.Msg) baseapp.MsgServiceHandler {
 }
 
 // MessageRouterFunc convenient type to match the keeper.MessageRouter interface
-type MessageRouterFunc func(msg sdk.Msg) baseapp.MsgServiceHandler
+type MessageRouterFunc func(methodName string) baseapp.MsgServiceHandler
 
 // Handler is the entry point
-func (m MessageRouterFunc) Handler(msg sdk.Msg) baseapp.MsgServiceHandler {
-	return m(msg)
+func (m MessageRouterFunc) Handler(methodName string) baseapp.MsgServiceHandler {
+	return m(methodName)
 }

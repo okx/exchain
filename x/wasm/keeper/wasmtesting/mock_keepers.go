@@ -1,12 +1,13 @@
 package wasmtesting
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
-	channeltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
-	ibcexported "github.com/cosmos/ibc-go/v3/modules/core/exported"
+	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
+	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	ibcexported "github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 type MockChannelKeeper struct {
@@ -110,6 +111,10 @@ var _ types.ICS20TransferPortSource = &MockIBCTransferKeeper{}
 
 type MockIBCTransferKeeper struct {
 	GetPortFn func(ctx sdk.Context) string
+}
+
+func (m MockIBCTransferKeeper) Handler(methodName string) baseapp.MsgServiceHandler {
+	panic("implement me")
 }
 
 func (m MockIBCTransferKeeper) GetPort(ctx sdk.Context) string {

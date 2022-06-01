@@ -22,6 +22,10 @@ MercuryHeight=1
 VenusHeight=1
 Venus1Height=0
 MarsHeight=0
+SaturnHeight=0
+
+LINK_STATICALLY = false
+cgo_flags=
 
 # process linker flags
 ifeq ($(VERSION),)
@@ -33,7 +37,16 @@ build_tags = netgo
 ifeq ($(WITH_ROCKSDB),true)
   CGO_ENABLED=1
   build_tags += rocksdb
+  ifeq ($(LINK_STATICALLY),true)
+      cgo_flags += CGO_CFLAGS="-I/usr/include/rocksdb"
+      cgo_flags += CGO_LDFLAGS="-L/usr/lib -lrocksdb -lstdc++ -lm  -lsnappy -llz4"
+  endif
 endif
+
+ifeq ($(LINK_STATICALLY),true)
+	build_tags += muslc
+endif
+
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
 
@@ -61,10 +74,15 @@ ldflags = -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Version=$(Version
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS1_HEIGHT=$(Venus1Height) \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_MERCURY_HEIGHT=$(MercuryHeight) \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS_HEIGHT=$(VenusHeight) \
-  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_MARS_HEIGHT=$(MarsHeight)
+  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_MARS_HEIGHT=$(MarsHeight) \
+  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_SATURN_HEIGHT=$(SaturnHeight)
 
 ifeq ($(WITH_ROCKSDB),true)
   ldflags += -X github.com/okex/exchain/libs/cosmos-sdk/types.DBBackend=rocksdb
+endif
+
+ifeq ($(LINK_STATICALLY),true)
+	ldflags += -linkmode=external -extldflags "-Wl,-z,muldefs -static"
 endif
 
 ifeq ($(OKCMALLOC),tcmalloc)
@@ -86,8 +104,8 @@ all: install
 install: exchain
 
 exchain:
-	go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaind
-	go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaincli
+	$(cgo_flags) go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaind
+	$(cgo_flags) go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaincli
 
 mainnet: exchain
 

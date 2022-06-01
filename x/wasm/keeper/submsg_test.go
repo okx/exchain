@@ -3,16 +3,17 @@ package keeper
 import (
 	"encoding/json"
 	"fmt"
+	ibcadapter "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"io/ioutil"
 	"strconv"
 	"testing"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/types"
 
 	"github.com/stretchr/testify/assert"
 
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/stretchr/testify/require"
 )
 
@@ -54,7 +55,7 @@ func TestDispatchSubMsgSuccessCase(t *testing.T) {
 				ToAddress: fred.String(),
 				Amount: []wasmvmtypes.Coin{{
 					Denom:  "denom",
-					Amount: "15000",
+					Amount: "15000000000000000000000",
 				}},
 			},
 		},
@@ -96,10 +97,8 @@ func TestDispatchSubMsgSuccessCase(t *testing.T) {
 	require.NotNil(t, res.Result.Ok)
 	sub := res.Result.Ok
 	assert.Empty(t, sub.Data)
-	require.Len(t, sub.Events, 3)
-	assert.Equal(t, "coin_spent", sub.Events[0].Type)
-	assert.Equal(t, "coin_received", sub.Events[1].Type)
-	transfer := sub.Events[2]
+	require.Len(t, sub.Events, 1)
+	transfer := sub.Events[0]
 	assert.Equal(t, "transfer", transfer.Type)
 	assert.Equal(t, wasmvmtypes.EventAttribute{
 		Key:   "recipient",
@@ -115,8 +114,8 @@ func TestDispatchSubMsgErrorHandling(t *testing.T) {
 
 	// prep - create one chain and upload the code
 	ctx, keepers := CreateTestInput(t, false, ReflectFeatures)
-	ctx = ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-	ctx = ctx.WithBlockGasMeter(sdk.NewInfiniteGasMeter())
+	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
+	ctx.SetBlockGasMeter(sdk.NewInfiniteGasMeter())
 	keeper := keepers.WasmKeeper
 	contractStart := sdk.NewCoins(sdk.NewInt64Coin(fundedDenom, int64(fundedAmount)))
 	uploader := keepers.Faucet.NewFundedAccount(ctx, contractStart.Add(contractStart...)...)
@@ -150,7 +149,7 @@ func TestDispatchSubMsgErrorHandling(t *testing.T) {
 					ToAddress: emptyAccount,
 					Amount: []wasmvmtypes.Coin{{
 						Denom:  fundedDenom,
-						Amount: strconv.Itoa(fundedAmount / 2),
+						Amount: strconv.Itoa(fundedAmount/2) + "000000000000000000",
 					}},
 				},
 			},
@@ -164,7 +163,7 @@ func TestDispatchSubMsgErrorHandling(t *testing.T) {
 					ToAddress: emptyAccount,
 					Amount: []wasmvmtypes.Coin{{
 						Denom:  fundedDenom,
-						Amount: strconv.Itoa(fundedAmount * 2),
+						Amount: strconv.Itoa(fundedAmount*2) + "000000000000000000",
 					}},
 				},
 			},
@@ -225,7 +224,7 @@ func TestDispatchSubMsgErrorHandling(t *testing.T) {
 		assert.NotEqual(t, contract, eventAddr)
 
 		var res types.MsgInstantiateContractResponse
-		keepers.EncodingConfig.Marshaler.MustUnmarshal(response.Ok.Data, &res)
+		keepers.EncodingConfig.Marshaler.GetProtocMarshal().MustUnmarshal(response.Ok.Data, &res)
 		assert.Equal(t, eventAddr, res.Address)
 	}
 
@@ -247,14 +246,14 @@ func TestDispatchSubMsgErrorHandling(t *testing.T) {
 		"send tokens": {
 			submsgID:         5,
 			msg:              validBankSend,
-			resultAssertions: []assertion{assertReturnedEvents(3), assertGasUsed(112000, 112900)},
+			resultAssertions: []assertion{assertReturnedEvents(1), assertGasUsed(98000, 98900)},
 		},
 		"not enough tokens": {
 			submsgID:    6,
 			msg:         invalidBankSend,
 			subMsgError: true,
 			// uses less gas than the send tokens (cost of bank transfer)
-			resultAssertions: []assertion{assertGasUsed(76000, 79000), assertErrorString("codespace: sdk, code: 5")},
+			resultAssertions: []assertion{assertGasUsed(73000, 76000), assertErrorString("codespace: sdk, code: 5")},
 		},
 		"out of gas panic with no gas limit": {
 			submsgID:        7,
@@ -267,7 +266,7 @@ func TestDispatchSubMsgErrorHandling(t *testing.T) {
 			msg:      validBankSend,
 			gasLimit: &subGasLimit,
 			// uses same gas as call without limit (note we do not charge the 40k on reply)
-			resultAssertions: []assertion{assertReturnedEvents(3), assertGasUsed(112000, 113000)},
+			resultAssertions: []assertion{assertReturnedEvents(1), assertGasUsed(98000, 99000)},
 		},
 		"not enough tokens with limit": {
 			submsgID:    16,
@@ -275,7 +274,7 @@ func TestDispatchSubMsgErrorHandling(t *testing.T) {
 			subMsgError: true,
 			gasLimit:    &subGasLimit,
 			// uses same gas as call without limit (note we do not charge the 40k on reply)
-			resultAssertions: []assertion{assertGasUsed(77800, 77900), assertErrorString("codespace: sdk, code: 5")},
+			resultAssertions: []assertion{assertGasUsed(73000, 76000), assertErrorString("codespace: sdk, code: 5")},
 		},
 		"out of gas caught with gas limit": {
 			submsgID:    17,
@@ -283,7 +282,7 @@ func TestDispatchSubMsgErrorHandling(t *testing.T) {
 			subMsgError: true,
 			gasLimit:    &subGasLimit,
 			// uses all the subGasLimit, plus the 52k or so for the main contract
-			resultAssertions: []assertion{assertGasUsed(subGasLimit+73000, subGasLimit+74000), assertErrorString("codespace: sdk, code: 11")},
+			resultAssertions: []assertion{assertGasUsed(subGasLimit+71000, subGasLimit+72000), assertErrorString("codespace: sdk, code: 11")},
 		},
 		"instantiate contract gets address in data and events": {
 			submsgID:         21,
@@ -313,7 +312,8 @@ func TestDispatchSubMsgErrorHandling(t *testing.T) {
 			reflectSendBz, err := json.Marshal(reflectSend)
 			require.NoError(t, err)
 
-			execCtx := ctx.WithGasMeter(sdk.NewGasMeter(ctxGasLimit))
+			execCtx := ctx
+			execCtx.SetGasMeter(sdk.NewGasMeter(ctxGasLimit))
 			defer func() {
 				if tc.isOutOfGasPanic {
 					r := recover()
@@ -364,7 +364,7 @@ func TestDispatchSubMsgErrorHandling(t *testing.T) {
 // This occurs with the IBC encoder. Test this.
 func TestDispatchSubMsgEncodeToNoSdkMsg(t *testing.T) {
 	// fake out the bank handle to return success with no data
-	nilEncoder := func(sender sdk.AccAddress, msg *wasmvmtypes.BankMsg) ([]sdk.Msg, error) {
+	nilEncoder := func(sender sdk.AccAddress, msg *wasmvmtypes.BankMsg) ([]ibcadapter.Msg, error) {
 		return nil, nil
 	}
 	customEncoders := &MessageEncoders{
@@ -398,7 +398,7 @@ func TestDispatchSubMsgEncodeToNoSdkMsg(t *testing.T) {
 				ToAddress: fred.String(),
 				Amount: []wasmvmtypes.Coin{{
 					Denom:  "denom",
-					Amount: "15000",
+					Amount: "15000000000000000000000",
 				}},
 			},
 		},

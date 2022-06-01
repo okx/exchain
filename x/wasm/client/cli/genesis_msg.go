@@ -8,21 +8,18 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/CosmWasm/wasmd/x/wasm/keeper"
-
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/flags"
-	"github.com/cosmos/cosmos-sdk/crypto/keyring"
-	"github.com/cosmos/cosmos-sdk/server"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	"github.com/cosmos/cosmos-sdk/x/genutil"
-	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/genutil"
+	genutiltypes "github.com/okex/exchain/libs/cosmos-sdk/x/genutil/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okex/exchain/x/wasm/client/utils"
+	"github.com/okex/exchain/x/wasm/keeper"
+	"github.com/okex/exchain/x/wasm/types"
 	"github.com/spf13/cobra"
-	tmtypes "github.com/tendermint/tendermint/types"
-
-	"github.com/CosmWasm/wasmd/x/wasm/types"
 )
 
 // GenesisReader reads genesis data. Extension point for custom genesis state readers.
@@ -103,7 +100,7 @@ func GenesisInstantiateContractCmd(defaultNodeHome string, genesisMutator Genesi
 
 			return genesisMutator.AlterWasmModuleState(cmd, func(state *types.GenesisState, appState map[string]json.RawMessage) error {
 				// simple sanity check that sender has some balance although it may be consumed by appState previous message already
-				switch ok, err := hasAccountBalance(cmd, appState, senderAddr, msg.Funds); {
+				switch ok, err := hasAccountBalance(cmd, appState, senderAddr, sdk.CoinAdaptersToCoins(msg.Funds)); {
 				case err != nil:
 					return err
 				case !ok:
@@ -171,7 +168,7 @@ func GenesisExecuteContractCmd(defaultNodeHome string, genesisMutator GenesisMut
 
 			return genesisMutator.AlterWasmModuleState(cmd, func(state *types.GenesisState, appState map[string]json.RawMessage) error {
 				// simple sanity check that sender has some balance although it may be consumed by appState previous message already
-				switch ok, err := hasAccountBalance(cmd, appState, senderAddr, msg.Funds); {
+				switch ok, err := hasAccountBalance(cmd, appState, senderAddr, sdk.CoinAdaptersToCoins(msg.Funds)); {
 				case err != nil:
 					return err
 				case !ok:
@@ -246,12 +243,12 @@ func GenesisListContractsCmd(defaultNodeHome string, genReader GenesisReader) *c
 
 // clientCtx marshaller works only with proto or bytes so we marshal the output ourself
 func printJSONOutput(cmd *cobra.Command, obj interface{}) error {
-	clientCtx := client.GetClientContextFromCmd(cmd)
+	clientCtx := utils.GetClientContextFromCmd(cmd)
 	bz, err := json.MarshalIndent(obj, "", " ")
 	if err != nil {
 		return err
 	}
-	return clientCtx.PrintString(string(bz))
+	return clientCtx.PrintOutput(string(bz))
 }
 
 type CodeMeta struct {
@@ -276,7 +273,7 @@ func GetAllCodes(state *types.GenesisState) ([]CodeMeta, error) {
 				accessConfig = *msg.InstantiatePermission
 			} else {
 				// default
-				creator, err := sdk.AccAddressFromBech32(msg.Sender)
+				creator, err := types.AccAddressFromBech32(msg.Sender)
 				if err != nil {
 					return nil, fmt.Errorf("sender: %s", err)
 				}
@@ -334,12 +331,12 @@ func hasAccountBalance(cmd *cobra.Command, appState map[string]json.RawMessage, 
 	if coins.IsZero() {
 		return true, nil
 	}
-	clientCtx, err := client.GetClientQueryContext(cmd)
+	clientCtx, err := utils.GetClientQueryContext(cmd)
 	if err != nil {
 		return false, err
 	}
 	cdc := clientCtx.Codec
-	var genBalIterator banktypes.GenesisBalancesIterator
+	var genBalIterator auth.GenesisAccountIterator
 	err = genutil.ValidateAccountInGenesis(appState, genBalIterator, sender, coins, cdc)
 	if err != nil {
 		return false, err
@@ -380,20 +377,20 @@ func NewGenesisData(genesisFile string, genDoc *tmtypes.GenesisDoc, appState map
 type DefaultGenesisReader struct{}
 
 func (d DefaultGenesisReader) ReadWasmGenesis(cmd *cobra.Command) (*GenesisData, error) {
-	clientCtx := client.GetClientContextFromCmd(cmd)
-	serverCtx := server.GetServerContextFromCmd(cmd)
+	clientCtx := utils.GetClientContextFromCmd(cmd)
+	serverCtx := utils.GetServerContextFromCmd(cmd)
 	config := serverCtx.Config
 	config.SetRoot(clientCtx.HomeDir)
 
 	genFile := config.GenesisFile()
-	appState, genDoc, err := genutiltypes.GenesisStateFromGenFile(genFile)
+	appState, genDoc, err := genutiltypes.GenesisStateFromGenFile(clientCtx.Codec, genFile)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unmarshal genesis state: %w", err)
 	}
 	var wasmGenesisState types.GenesisState
 	if appState[types.ModuleName] != nil {
-		clientCtx := client.GetClientContextFromCmd(cmd)
-		clientCtx.Codec.MustUnmarshalJSON(appState[types.ModuleName], &wasmGenesisState)
+		clientCtx := utils.GetClientContextFromCmd(cmd)
+		clientCtx.CodecProy.GetProtocMarshal().MustUnmarshalJSON(appState[types.ModuleName], &wasmGenesisState)
 	}
 
 	return NewGenesisData(
@@ -436,8 +433,8 @@ func (x DefaultGenesisIO) AlterWasmModuleState(cmd *cobra.Command, callback func
 	if err := g.WasmModuleState.ValidateBasic(); err != nil {
 		return err
 	}
-	clientCtx := client.GetClientContextFromCmd(cmd)
-	wasmGenStateBz, err := clientCtx.Codec.MarshalJSON(g.WasmModuleState)
+	clientCtx := utils.GetClientContextFromCmd(cmd)
+	wasmGenStateBz, err := clientCtx.CodecProy.GetProtocMarshal().MarshalJSON(g.WasmModuleState)
 	if err != nil {
 		return sdkerrors.Wrap(err, "marshal wasm genesis state")
 	}
@@ -490,7 +487,7 @@ func getActorAddress(cmd *cobra.Command) (sdk.AccAddress, error) {
 		return nil, errors.New("run-as address is required")
 	}
 
-	actorAddr, err := sdk.AccAddressFromBech32(actorArg)
+	actorAddr, err := types.AccAddressFromBech32(actorArg)
 	if err == nil {
 		return actorAddr, nil
 	}
@@ -500,14 +497,14 @@ func getActorAddress(cmd *cobra.Command) (sdk.AccAddress, error) {
 		return nil, err
 	}
 
-	homeDir := client.GetClientContextFromCmd(cmd).HomeDir
+	homeDir := utils.GetClientContextFromCmd(cmd).HomeDir
 	// attempt to lookup address from Keybase if no address was provided
-	kb, err := keyring.New(sdk.KeyringServiceName(), keyringBackend, homeDir, inBuf)
+	kb, err := keys.NewKeyring(sdk.KeyringServiceName(), keyringBackend, homeDir, inBuf)
 	if err != nil {
 		return nil, err
 	}
 
-	info, err := kb.Key(actorArg)
+	info, err := kb.Get(actorArg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get address from Keybase: %w", err)
 	}

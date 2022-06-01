@@ -2,6 +2,8 @@ package keeper
 
 import (
 	"encoding/json"
+	ibcadapter "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	"io/ioutil"
 	"strings"
 	"testing"
@@ -9,17 +11,17 @@ import (
 	"github.com/golang/protobuf/proto"
 
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-	"github.com/cosmos/cosmos-sdk/codec"
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
-	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
-	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	authkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
+	//bankkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/bank/keeper"
+	//banktypes "github.com/okex/exchain/libs/cosmos-sdk/x/bank/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 // ReflectInitMsg is {}
@@ -143,7 +145,7 @@ func TestReflectContractSend(t *testing.T) {
 				Msg:          approveMsg,
 				Funds: []wasmvmtypes.Coin{{
 					Denom:  "denom",
-					Amount: "14000",
+					Amount: "14000000000000000000000",
 				}},
 			},
 		},
@@ -211,7 +213,7 @@ func TestReflectCustomMsg(t *testing.T) {
 				ToAddress: fred.String(),
 				Amount: []wasmvmtypes.Coin{{
 					Denom:  "denom",
-					Amount: "15000",
+					Amount: "15000000000000000000000",
 				}},
 			},
 		},
@@ -233,10 +235,10 @@ func TestReflectCustomMsg(t *testing.T) {
 	checkAccount(t, ctx, accKeeper, bankKeeper, bob, deposit)
 
 	// construct an opaque message
-	var sdkSendMsg sdk.Msg = &banktypes.MsgSend{
+	var sdkSendMsg ibcadapter.Msg = &bank.MsgSendAdapter{
 		FromAddress: contractAddr.String(),
 		ToAddress:   fred.String(),
-		Amount:      sdk.NewCoins(sdk.NewInt64Coin("denom", 23000)),
+		Amount:      sdk.CoinsToCoinAdapters(sdk.NewCoins(sdk.NewInt64Coin("denom", 23000))),
 	}
 	opaque, err := toReflectRawMsg(cdc, sdkSendMsg)
 	require.NoError(t, err)
@@ -348,9 +350,10 @@ func TestReflectStargateQuery(t *testing.T) {
 	mustParse(t, simpleRes, &simpleChain)
 	var simpleBalance wasmvmtypes.AllBalancesResponse
 	mustParse(t, simpleChain.Data, &simpleBalance)
-	require.Equal(t, len(expectedBalance), len(simpleBalance.Amount))
-	assert.Equal(t, simpleBalance.Amount[0].Amount, expectedBalance[0].Amount.String())
-	assert.Equal(t, simpleBalance.Amount[0].Denom, expectedBalance[0].Denom)
+	expectedBalanceAdapter := sdk.CoinsToCoinAdapters(expectedBalance)
+	require.Equal(t, len(expectedBalanceAdapter), len(simpleBalance.Amount))
+	assert.Equal(t, simpleBalance.Amount[0].Amount, expectedBalanceAdapter[0].Amount.String())
+	assert.Equal(t, simpleBalance.Amount[0].Denom, expectedBalanceAdapter[0].Denom)
 }
 
 func TestReflectInvalidStargateQuery(t *testing.T) {
@@ -375,7 +378,7 @@ func TestReflectInvalidStargateQuery(t *testing.T) {
 	require.NotEmpty(t, contractAddr)
 
 	// now, try to build a protobuf query
-	protoQuery := banktypes.QueryAllBalancesRequest{
+	protoQuery := bank.QueryAllBalancesRequestAdapter{
 		Address: creator.String(),
 	}
 	protoQueryBin, err := proto.Marshal(&protoQuery)
@@ -552,7 +555,7 @@ func TestWasmRawQueryWithNil(t *testing.T) {
 	require.Equal(t, []byte{}, reflectRawRes.Data)
 }
 
-func checkAccount(t *testing.T, ctx sdk.Context, accKeeper authkeeper.AccountKeeper, bankKeeper bankkeeper.Keeper, addr sdk.AccAddress, expected sdk.Coins) {
+func checkAccount(t *testing.T, ctx sdk.Context, accKeeper authkeeper.AccountKeeper, bankKeeper bank.Keeper, addr sdk.AccAddress, expected sdk.Coins) {
 	acct := accKeeper.GetAccount(ctx, addr)
 	if expected == nil {
 		assert.Nil(t, acct)
@@ -560,9 +563,9 @@ func checkAccount(t *testing.T, ctx sdk.Context, accKeeper authkeeper.AccountKee
 		assert.NotNil(t, acct)
 		if expected.Empty() {
 			// there is confusion between nil and empty slice... let's just treat them the same
-			assert.True(t, bankKeeper.GetAllBalances(ctx, acct.GetAddress()).Empty())
+			assert.True(t, bankKeeper.GetCoins(ctx, acct.GetAddress()).Empty())
 		} else {
-			assert.Equal(t, bankKeeper.GetAllBalances(ctx, acct.GetAddress()), expected)
+			assert.Equal(t, bankKeeper.GetCoins(ctx, acct.GetAddress()), expected)
 		}
 	}
 }
@@ -576,12 +579,12 @@ type reflectCustomMsg struct {
 
 // toReflectRawMsg encodes an sdk msg using any type with json encoding.
 // Then wraps it as an opaque message
-func toReflectRawMsg(cdc codec.Codec, msg sdk.Msg) (wasmvmtypes.CosmosMsg, error) {
+func toReflectRawMsg(cdc codec.CodecProxy, msg ibcadapter.Msg) (wasmvmtypes.CosmosMsg, error) {
 	any, err := codectypes.NewAnyWithValue(msg)
 	if err != nil {
 		return wasmvmtypes.CosmosMsg{}, err
 	}
-	rawBz, err := cdc.MarshalJSON(any)
+	rawBz, err := cdc.GetProtocMarshal().MarshalJSON(any)
 	if err != nil {
 		return wasmvmtypes.CosmosMsg{}, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
@@ -595,7 +598,7 @@ func toReflectRawMsg(cdc codec.Codec, msg sdk.Msg) (wasmvmtypes.CosmosMsg, error
 }
 
 // reflectEncoders needs to be registered in test setup to handle custom message callbacks
-func reflectEncoders(cdc codec.Codec) *MessageEncoders {
+func reflectEncoders(cdc codec.CodecProxy) *MessageEncoders {
 	return &MessageEncoders{
 		Custom: fromReflectRawMsg(cdc),
 	}
@@ -603,8 +606,8 @@ func reflectEncoders(cdc codec.Codec) *MessageEncoders {
 
 // fromReflectRawMsg decodes msg.Data to an sdk.Msg using proto Any and json encoding.
 // this needs to be registered on the Encoders
-func fromReflectRawMsg(cdc codec.Codec) CustomEncoder {
-	return func(_sender sdk.AccAddress, msg json.RawMessage) ([]sdk.Msg, error) {
+func fromReflectRawMsg(cdc codec.CodecProxy) CustomEncoder {
+	return func(_sender sdk.AccAddress, msg json.RawMessage) ([]ibcadapter.Msg, error) {
 		var custom reflectCustomMsg
 		err := json.Unmarshal(msg, &custom)
 		if err != nil {
@@ -612,14 +615,14 @@ func fromReflectRawMsg(cdc codec.Codec) CustomEncoder {
 		}
 		if custom.Raw != nil {
 			var any codectypes.Any
-			if err := cdc.UnmarshalJSON(custom.Raw, &any); err != nil {
+			if err := cdc.GetProtocMarshal().UnmarshalJSON(custom.Raw, &any); err != nil {
 				return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 			}
-			var msg sdk.Msg
-			if err := cdc.UnpackAny(&any, &msg); err != nil {
+			var msg ibcadapter.Msg
+			if err := cdc.GetProtocMarshal().UnpackAny(&any, &msg); err != nil {
 				return nil, err
 			}
-			return []sdk.Msg{msg}, nil
+			return []ibcadapter.Msg{msg}, nil
 		}
 		if custom.Debug != "" {
 			return nil, sdkerrors.Wrapf(types.ErrInvalidMsg, "Custom Debug: %s", custom.Debug)

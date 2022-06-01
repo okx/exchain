@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"math/rand"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 func GenesisFixture(mutators ...func(*GenesisState)) GenesisState {
@@ -146,7 +146,7 @@ func MsgInstantiateContractFixture(mutators ...func(*MsgInstantiateContract)) *M
 		CodeID: 1,
 		Label:  "testing",
 		Msg:    []byte(`{"foo":"bar"}`),
-		Funds: sdk.Coins{{
+		Funds: sdk.CoinAdapters{{
 			Denom:  "stake",
 			Amount: sdk.NewInt(1),
 		}},
@@ -166,7 +166,7 @@ func MsgExecuteContractFixture(mutators ...func(*MsgExecuteContract)) *MsgExecut
 		Sender:   anyAddress,
 		Contract: firstContractAddress,
 		Msg:      []byte(`{"do":"something"}`),
-		Funds: sdk.Coins{{
+		Funds: sdk.CoinAdapters{{
 			Denom:  "stake",
 			Amount: sdk.NewInt(1),
 		}},
@@ -287,10 +287,10 @@ func ExecuteContractProposalFixture(mutators ...func(p *ExecuteContractProposal)
 		Contract:    contractAddr,
 		RunAs:       anyAddress,
 		Msg:         []byte(`{"do":"something"}`),
-		Funds: sdk.Coins{{
+		Funds: sdk.CoinsToCoinAdapters(sdk.Coins{{
 			Denom:  "stake",
-			Amount: sdk.NewInt(1),
-		}},
+			Amount: sdk.NewDec(1),
+		}}),
 	}
 
 	for _, m := range mutators {

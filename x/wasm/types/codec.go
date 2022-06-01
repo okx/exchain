@@ -1,16 +1,17 @@
 package types
 
 import (
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/codec/types"
-	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/msgservice"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	cryptocodec "github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/msgservice"
+	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
 )
 
 // RegisterLegacyAminoCodec registers the account types and interface
-func RegisterLegacyAminoCodec(cdc *codec.LegacyAmino) { //nolint:staticcheck
+func RegisterLegacyAminoCodec(cdc *codec.Codec) { //nolint:staticcheck
 	cdc.RegisterConcrete(&MsgStoreCode{}, "wasm/MsgStoreCode", nil)
 	cdc.RegisterConcrete(&MsgInstantiateContract{}, "wasm/MsgInstantiateContract", nil)
 	cdc.RegisterConcrete(&MsgExecuteContract{}, "wasm/MsgExecuteContract", nil)
@@ -42,6 +43,16 @@ func RegisterInterfaces(registry types.InterfaceRegistry) {
 		&MsgIBCCloseChannel{},
 		&MsgIBCSend{},
 	)
+	registry.RegisterImplementations((*txmsg.Msg)(nil),
+		&MsgStoreCode{},
+		&MsgInstantiateContract{},
+		&MsgExecuteContract{},
+		&MsgMigrateContract{},
+		&MsgUpdateAdmin{},
+		&MsgClearAdmin{},
+		&MsgIBCCloseChannel{},
+		&MsgIBCSend{},
+	)
 	registry.RegisterImplementations(
 		(*govtypes.Content)(nil),
 		&StoreCodeProposal{},
@@ -62,15 +73,10 @@ func RegisterInterfaces(registry types.InterfaceRegistry) {
 }
 
 var (
-	amino = codec.NewLegacyAmino()
-
-	// ModuleCdc references the global x/wasm module codec.
-
-	ModuleCdc = codec.NewAminoCodec(amino)
+	ModuleCdc = codec.New()
 )
 
 func init() {
-	RegisterLegacyAminoCodec(amino)
-	cryptocodec.RegisterCrypto(amino)
-	amino.Seal()
+	RegisterLegacyAminoCodec(ModuleCdc)
+	cryptocodec.RegisterCrypto(ModuleCdc)
 }

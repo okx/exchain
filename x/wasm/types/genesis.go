@@ -1,9 +1,9 @@
 package types
 
 import (
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
 
 func (s Sequence) ValidateBasic() error {
@@ -54,7 +54,7 @@ func (c Code) ValidateBasic() error {
 }
 
 func (c Contract) ValidateBasic() error {
-	if _, err := sdk.AccAddressFromBech32(c.ContractAddress); err != nil {
+	if _, err := AccAddressFromBech32(c.ContractAddress); err != nil {
 		return sdkerrors.Wrap(err, "contract address")
 	}
 	if err := c.ContractInfo.ValidateBasic(); err != nil {

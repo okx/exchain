@@ -8,12 +8,12 @@ import (
 	"io/ioutil"
 	"testing"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 func TestLegacyQueryContractState(t *testing.T) {
@@ -181,8 +181,8 @@ func TestLegacyQueryContractListByCodeOrdering(t *testing.T) {
 	setBlock := func(ctx sdk.Context, height int64) sdk.Context {
 		ctx = ctx.WithBlockHeight(height)
 		meter := sdk.NewGasMeter(1000000)
-		ctx = ctx.WithGasMeter(meter)
-		ctx = ctx.WithBlockGasMeter(meter)
+		ctx.SetGasMeter(meter)
+		ctx.SetBlockGasMeter(meter)
 		return ctx
 	}
 

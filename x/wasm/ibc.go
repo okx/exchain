@@ -3,17 +3,17 @@ package wasm
 import (
 	"math"
 
-	ibcexported "github.com/cosmos/ibc-go/v3/modules/core/exported"
+	ibcexported "github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
-	channeltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
-	porttypes "github.com/cosmos/ibc-go/v3/modules/core/05-port/types"
-	host "github.com/cosmos/ibc-go/v3/modules/core/24-host"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
+	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 
-	types "github.com/CosmWasm/wasmd/x/wasm/types"
+	types "github.com/okex/exchain/x/wasm/types"
 )
 
 var _ porttypes.IBCModule = IBCHandler{}
@@ -21,6 +21,14 @@ var _ porttypes.IBCModule = IBCHandler{}
 type IBCHandler struct {
 	keeper        types.IBCContractKeeper
 	channelKeeper types.ChannelKeeper
+}
+
+func (i IBCHandler) OnChanOpenTry(ctx sdk.Context, order channeltypes.Order, connectionHops []string, portID, channelID string, channelCap *capabilitytypes.Capability, counterparty channeltypes.Counterparty, version, counterpartyVersion string) error {
+	panic("implement me")
+}
+
+func (i IBCHandler) OnChanOpenAck(ctx sdk.Context, portID, channelID string, counterpartyVersion string) error {
+	panic("implement me")
 }
 
 func NewIBCHandler(k types.IBCContractKeeper, ck types.ChannelKeeper) IBCHandler {
@@ -71,7 +79,7 @@ func (i IBCHandler) OnChanOpenInit(
 }
 
 // OnChanOpenTry implements the IBCModule interface
-func (i IBCHandler) OnChanOpenTry(
+func (i IBCHandler) OnChanOpenTryV3(
 	ctx sdk.Context,
 	order channeltypes.Order,
 	connectionHops []string,
@@ -127,7 +135,7 @@ func (i IBCHandler) OnChanOpenTry(
 }
 
 // OnChanOpenAck implements the IBCModule interface
-func (i IBCHandler) OnChanOpenAck(
+func (i IBCHandler) OnChanOpenAckV3(
 	ctx sdk.Context,
 	portID, channelID string,
 	counterpartyChannelID string,
@@ -332,7 +340,7 @@ func newIBCPacket(packet channeltypes.Packet) wasmvmtypes.IBCPacket {
 
 func ValidateChannelParams(channelID string) error {
 	// NOTE: for escrow address security only 2^32 channels are allowed to be created
-	// Issue: https://github.com/cosmos/cosmos-sdk/issues/7737
+	// Issue: https://github.com/okex/exchain/libs/cosmos-sdk/issues/7737
 	channelSequence, err := channeltypes.ParseChannelSequence(channelID)
 	if err != nil {
 		return err

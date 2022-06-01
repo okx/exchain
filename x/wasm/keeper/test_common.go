@@ -8,69 +8,84 @@ import (
 	"testing"
 	"time"
 
-	"github.com/cosmos/cosmos-sdk/baseapp"
-	"github.com/cosmos/cosmos-sdk/codec"
-	"github.com/cosmos/cosmos-sdk/std"
-	"github.com/cosmos/cosmos-sdk/store"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	"github.com/cosmos/cosmos-sdk/types/module"
-	"github.com/cosmos/cosmos-sdk/x/auth"
-	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
-	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	authzkeeper "github.com/cosmos/cosmos-sdk/x/authz/keeper"
-	"github.com/cosmos/cosmos-sdk/x/bank"
-	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
-	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	"github.com/cosmos/cosmos-sdk/x/capability"
-	capabilitykeeper "github.com/cosmos/cosmos-sdk/x/capability/keeper"
-	capabilitytypes "github.com/cosmos/cosmos-sdk/x/capability/types"
-	"github.com/cosmos/cosmos-sdk/x/crisis"
-	crisistypes "github.com/cosmos/cosmos-sdk/x/crisis/types"
-	"github.com/cosmos/cosmos-sdk/x/distribution"
-	distrclient "github.com/cosmos/cosmos-sdk/x/distribution/client"
-	distributionkeeper "github.com/cosmos/cosmos-sdk/x/distribution/keeper"
-	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
-	"github.com/cosmos/cosmos-sdk/x/evidence"
-	evidencetypes "github.com/cosmos/cosmos-sdk/x/evidence/types"
-	"github.com/cosmos/cosmos-sdk/x/feegrant"
-	"github.com/cosmos/cosmos-sdk/x/gov"
-	govkeeper "github.com/cosmos/cosmos-sdk/x/gov/keeper"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	"github.com/cosmos/cosmos-sdk/x/mint"
-	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
-	"github.com/cosmos/cosmos-sdk/x/params"
-	paramsclient "github.com/cosmos/cosmos-sdk/x/params/client"
-	paramskeeper "github.com/cosmos/cosmos-sdk/x/params/keeper"
-	paramstypes "github.com/cosmos/cosmos-sdk/x/params/types"
-	paramproposal "github.com/cosmos/cosmos-sdk/x/params/types/proposal"
-	"github.com/cosmos/cosmos-sdk/x/slashing"
-	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
-	"github.com/cosmos/cosmos-sdk/x/staking"
-	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	"github.com/cosmos/cosmos-sdk/x/upgrade"
-	upgradeclient "github.com/cosmos/cosmos-sdk/x/upgrade/client"
-	upgradekeeper "github.com/cosmos/cosmos-sdk/x/upgrade/keeper"
-	upgradetypes "github.com/cosmos/cosmos-sdk/x/upgrade/types"
-	"github.com/cosmos/ibc-go/v3/modules/apps/transfer"
-	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
-	ibc "github.com/cosmos/ibc-go/v3/modules/core"
-	ibchost "github.com/cosmos/ibc-go/v3/modules/core/24-host"
-	ibckeeper "github.com/cosmos/ibc-go/v3/modules/core/keeper"
+	okexchaincodec "github.com/okex/exchain/app/codec"
+	okexchain "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
+	"github.com/okex/exchain/libs/cosmos-sdk/client"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/store"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	cosmoscryptocodec "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
+	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
+	authkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/capability"
+	capabilitykeeper "github.com/okex/exchain/libs/cosmos-sdk/x/capability/keeper"
+	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/crisis"
+	crisistypes "github.com/okex/exchain/libs/cosmos-sdk/x/crisis"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/evidence"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/slashing"
+	slashingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/slashing"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
+	upgradekeeper "github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
+	upgradetypes "github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
+	"github.com/okex/exchain/x/ammswap"
+	dex "github.com/okex/exchain/x/dex/types"
+	distr "github.com/okex/exchain/x/distribution"
+	"github.com/okex/exchain/x/erc20"
+	"github.com/okex/exchain/x/evm"
+	"github.com/okex/exchain/x/farm"
+	"github.com/okex/exchain/x/order"
+	"github.com/okex/exchain/x/staking"
+	token "github.com/okex/exchain/x/token/types"
+	//upgradeclient "github.com/okex/exchain/libs/cosmos-sdk/x/upgrade/client"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
+	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
+	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
+	ibchost "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	ibckeeper "github.com/okex/exchain/libs/ibc-go/modules/core/keeper"
+	tmproto "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/libs/rand"
+	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/okex/exchain/x/distribution"
+	distrclient "github.com/okex/exchain/x/distribution/client"
+	distributionkeeper "github.com/okex/exchain/x/distribution/keeper"
+	distributiontypes "github.com/okex/exchain/x/distribution/types"
+	"github.com/okex/exchain/x/gov"
+	govkeeper "github.com/okex/exchain/x/gov/keeper"
+	govtypes "github.com/okex/exchain/x/gov/types"
+	"github.com/okex/exchain/x/params"
+	paramproposal "github.com/okex/exchain/x/params"
+	paramskeeper "github.com/okex/exchain/x/params"
+	paramstypes "github.com/okex/exchain/x/params"
+	paramsclient "github.com/okex/exchain/x/params/client"
+	stakingkeeper "github.com/okex/exchain/x/staking/keeper"
+	stakingtypes "github.com/okex/exchain/x/staking/types"
+	"github.com/okex/exchain/x/wasm/keeper/wasmtesting"
+	"github.com/okex/exchain/x/wasm/types"
 	"github.com/stretchr/testify/require"
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/ed25519"
-	"github.com/tendermint/tendermint/libs/log"
-	"github.com/tendermint/tendermint/libs/rand"
-	tmproto "github.com/tendermint/tendermint/proto/tendermint/types"
-	dbm "github.com/tendermint/tm-db"
-
-	wasmappparams "github.com/CosmWasm/wasmd/app/params"
-
-	"github.com/CosmWasm/wasmd/x/wasm/keeper/wasmtesting"
-	"github.com/CosmWasm/wasmd/x/wasm/types"
 )
+
+// EncodingConfig specifies the concrete encoding types to use for a given app.
+// This is provided for compatibility between protobuf and amino implementations.
+type EncodingConfig struct {
+	InterfaceRegistry interfacetypes.InterfaceRegistry
+	Marshaler         codec.CodecProxy
+	TxConfig          client.TxConfig
+	Amino             *codec.Codec
+}
 
 var ModuleBasics = module.NewBasicManager(
 	auth.AppModuleBasic{},
@@ -79,8 +94,9 @@ var ModuleBasics = module.NewBasicManager(
 	staking.AppModuleBasic{},
 	mint.AppModuleBasic{},
 	distribution.AppModuleBasic{},
+	supply.AppModuleBasic{},
 	gov.NewAppModuleBasic(
-		paramsclient.ProposalHandler, distrclient.ProposalHandler, upgradeclient.ProposalHandler,
+		paramsclient.ProposalHandler, distrclient.ProposalHandler, //upgradeclient.ProposalHandler,
 	),
 	params.AppModuleBasic{},
 	crisis.AppModuleBasic{},
@@ -91,20 +107,21 @@ var ModuleBasics = module.NewBasicManager(
 	transfer.AppModuleBasic{},
 )
 
-func MakeTestCodec(t testing.TB) codec.Codec {
+func MakeTestCodec(t testing.TB) codec.CodecProxy {
 	return MakeEncodingConfig(t).Marshaler
 }
 
-func MakeEncodingConfig(_ testing.TB) wasmappparams.EncodingConfig {
-	encodingConfig := wasmappparams.MakeEncodingConfig()
+func MakeEncodingConfig(_ testing.TB) EncodingConfig {
+	codecProxy, interfaceReg := okexchaincodec.MakeCodecSuit(ModuleBasics)
+	txConfig := ibc_tx.NewTxConfig(codecProxy.GetProtocMarshal(), ibc_tx.DefaultSignModes)
+	encodingConfig := EncodingConfig{
+		InterfaceRegistry: interfaceReg,
+		Marshaler:         *codecProxy,
+		Amino:             codecProxy.GetCdc(),
+		TxConfig:          txConfig}
 	amino := encodingConfig.Amino
 	interfaceRegistry := encodingConfig.InterfaceRegistry
-
-	std.RegisterInterfaces(interfaceRegistry)
-	std.RegisterLegacyAminoCodec(amino)
-
-	ModuleBasics.RegisterLegacyAminoCodec(amino)
-	ModuleBasics.RegisterInterfaces(interfaceRegistry)
+	cosmoscryptocodec.PubKeyRegisterInterfaces(interfaceReg)
 	// add wasmd types
 	types.RegisterInterfaces(interfaceRegistry)
 	types.RegisterLegacyAminoCodec(amino)
@@ -113,24 +130,27 @@ func MakeEncodingConfig(_ testing.TB) wasmappparams.EncodingConfig {
 }
 
 var TestingStakeParams = stakingtypes.Params{
-	UnbondingTime:     100,
-	MaxValidators:     10,
-	MaxEntries:        10,
-	HistoricalEntries: 10,
-	BondDenom:         "stake",
+	UnbondingTime:      100,
+	MaxValidators:      10,
+	Epoch:              10,
+	MaxValsToAddShares: 1,
+	MinDelegation:      sdk.OneDec(),
+	MinSelfDelegation:  sdk.OneDec(),
+	HistoricalEntries:  10,
 }
 
 type TestFaucet struct {
 	t                testing.TB
-	bankKeeper       bankkeeper.Keeper
+	bankKeeper       bank.Keeper
+	supplyKeeper     supply.Keeper
 	sender           sdk.AccAddress
 	balance          sdk.Coins
 	minterModuleName string
 }
 
-func NewTestFaucet(t testing.TB, ctx sdk.Context, bankKeeper bankkeeper.Keeper, minterModuleName string, initialAmount ...sdk.Coin) *TestFaucet {
+func NewTestFaucet(t testing.TB, ctx sdk.Context, bankKeeper bank.Keeper, supplyKeeper supply.Keeper, minterModuleName string, initialAmount ...sdk.Coin) *TestFaucet {
 	require.NotEmpty(t, initialAmount)
-	r := &TestFaucet{t: t, bankKeeper: bankKeeper, minterModuleName: minterModuleName}
+	r := &TestFaucet{t: t, bankKeeper: bankKeeper, minterModuleName: minterModuleName, supplyKeeper: supplyKeeper}
 	_, _, addr := keyPubAddr()
 	r.sender = addr
 	r.Mint(ctx, addr, initialAmount...)
@@ -140,10 +160,11 @@ func NewTestFaucet(t testing.TB, ctx sdk.Context, bankKeeper bankkeeper.Keeper, 
 
 func (f *TestFaucet) Mint(parentCtx sdk.Context, addr sdk.AccAddress, amounts ...sdk.Coin) {
 	require.NotEmpty(f.t, amounts)
-	ctx := parentCtx.WithEventManager(sdk.NewEventManager()) // discard all faucet related events
-	err := f.bankKeeper.MintCoins(ctx, f.minterModuleName, amounts)
+	ctx := parentCtx.SetEventManager(sdk.NewEventManager()) // discard all faucet related events
+
+	err := f.supplyKeeper.MintCoins(*ctx, f.minterModuleName, amounts)
 	require.NoError(f.t, err)
-	err = f.bankKeeper.SendCoinsFromModuleToAccount(ctx, f.minterModuleName, addr, amounts)
+	err = f.supplyKeeper.SendCoinsFromModuleToAccount(*ctx, f.minterModuleName, addr, amounts)
 	require.NoError(f.t, err)
 	f.balance = f.balance.Add(amounts...)
 }
@@ -154,8 +175,8 @@ func (f *TestFaucet) Fund(parentCtx sdk.Context, receiver sdk.AccAddress, amount
 	if !f.balance.IsAllGTE(amounts) {
 		f.Mint(parentCtx, f.sender, amounts...)
 	}
-	ctx := parentCtx.WithEventManager(sdk.NewEventManager()) // discard all faucet related events
-	err := f.bankKeeper.SendCoins(ctx, f.sender, receiver, amounts)
+	ctx := parentCtx.SetEventManager(sdk.NewEventManager()) // discard all faucet related events
+	err := f.bankKeeper.SendCoins(*ctx, f.sender, receiver, amounts)
 	require.NoError(f.t, err)
 	f.balance = f.balance.Sub(amounts)
 }
@@ -168,15 +189,16 @@ func (f *TestFaucet) NewFundedAccount(ctx sdk.Context, amounts ...sdk.Coin) sdk.
 
 type TestKeepers struct {
 	AccountKeeper  authkeeper.AccountKeeper
+	supplyKeepr    supply.Keeper
 	StakingKeeper  stakingkeeper.Keeper
 	DistKeeper     distributionkeeper.Keeper
-	BankKeeper     bankkeeper.Keeper
+	BankKeeper     bank.Keeper
 	GovKeeper      govkeeper.Keeper
 	ContractKeeper types.ContractOpsKeeper
 	WasmKeeper     *Keeper
 	IBCKeeper      *ibckeeper.Keeper
 	Router         *baseapp.Router
-	EncodingConfig wasmappparams.EncodingConfig
+	EncodingConfig EncodingConfig
 	Faucet         *TestFaucet
 	MultiStore     sdk.CommitMultiStore
 }
@@ -204,11 +226,14 @@ func createTestInput(
 	tempDir := t.TempDir()
 
 	keys := sdk.NewKVStoreKeys(
-		authtypes.StoreKey, banktypes.StoreKey, stakingtypes.StoreKey,
-		minttypes.StoreKey, distributiontypes.StoreKey, slashingtypes.StoreKey,
-		govtypes.StoreKey, paramstypes.StoreKey, ibchost.StoreKey, upgradetypes.StoreKey,
-		evidencetypes.StoreKey, ibctransfertypes.StoreKey,
-		capabilitytypes.StoreKey, feegrant.StoreKey, authzkeeper.StoreKey,
+		auth.StoreKey, staking.StoreKey,
+		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
+		gov.StoreKey, params.StoreKey, upgrade.StoreKey, evidence.StoreKey,
+		evm.StoreKey, token.StoreKey, token.KeyLock, dex.StoreKey, dex.TokenPairStoreKey,
+		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
+		ibchost.StoreKey,
+		erc20.StoreKey,
+		mpt.StoreKey, evm.LegacyStoreKey,
 		types.StoreKey,
 	)
 	ms := store.NewCommitMultiStore(db)
@@ -237,16 +262,14 @@ func createTestInput(
 	appCodec, legacyAmino := encodingConfig.Marshaler, encodingConfig.Amino
 
 	paramsKeeper := paramskeeper.NewKeeper(
-		appCodec,
 		legacyAmino,
 		keys[paramstypes.StoreKey],
 		tkeys[paramstypes.TStoreKey],
 	)
-	for _, m := range []string{
-		authtypes.ModuleName,
-		banktypes.ModuleName,
+	for _, m := range []string{authtypes.ModuleName,
+		bank.ModuleName,
 		stakingtypes.ModuleName,
-		minttypes.ModuleName,
+		mint.ModuleName,
 		distributiontypes.ModuleName,
 		slashingtypes.ModuleName,
 		crisistypes.ModuleName,
@@ -264,54 +287,52 @@ func createTestInput(
 		return r
 	}
 	maccPerms := map[string][]string{ // module account permissions
-		authtypes.FeeCollectorName:     nil,
-		distributiontypes.ModuleName:   nil,
-		minttypes.ModuleName:           {authtypes.Minter},
-		stakingtypes.BondedPoolName:    {authtypes.Burner, authtypes.Staking},
-		stakingtypes.NotBondedPoolName: {authtypes.Burner, authtypes.Staking},
-		govtypes.ModuleName:            {authtypes.Burner},
-		ibctransfertypes.ModuleName:    {authtypes.Minter, authtypes.Burner},
-		types.ModuleName:               {authtypes.Burner},
+		auth.FeeCollectorName:       nil,
+		distr.ModuleName:            nil,
+		mint.ModuleName:             {supply.Minter},
+		staking.BondedPoolName:      {supply.Burner, supply.Staking},
+		staking.NotBondedPoolName:   {supply.Burner, supply.Staking},
+		gov.ModuleName:              nil,
+		token.ModuleName:            {supply.Minter, supply.Burner},
+		dex.ModuleName:              nil,
+		order.ModuleName:            nil,
+		ammswap.ModuleName:          {supply.Minter, supply.Burner},
+		farm.ModuleName:             nil,
+		farm.YieldFarmingAccount:    nil,
+		farm.MintFarmingAccount:     {supply.Burner},
+		ibctransfertypes.ModuleName: {authtypes.Minter, authtypes.Burner},
+		erc20.ModuleName:            {authtypes.Minter, authtypes.Burner},
+		types.ModuleName:            nil,
 	}
-	accountKeeper := authkeeper.NewAccountKeeper(
-		appCodec,
-		keys[authtypes.StoreKey], // target store
-		subspace(authtypes.ModuleName),
-		authtypes.ProtoBaseAccount, // prototype
-		maccPerms,
-	)
+	accountKeeper := auth.NewAccountKeeper(legacyAmino, keys[authtypes.StoreKey], keys[mpt.StoreKey], subspace(authtypes.ModuleName), okexchain.ProtoAccount)
 	blockedAddrs := make(map[string]bool)
 	for acc := range maccPerms {
 		blockedAddrs[authtypes.NewModuleAddress(acc).String()] = true
 	}
-
-	bankKeeper := bankkeeper.NewBaseKeeper(
-		appCodec,
-		keys[banktypes.StoreKey],
-		accountKeeper,
-		subspace(banktypes.ModuleName),
-		blockedAddrs,
+	bankKeeper := bank.NewBaseKeeperWithMarshal(
+		&accountKeeper, &appCodec, subspace(bank.ModuleName), blockedAddrs,
 	)
-	bankKeeper.SetParams(ctx, banktypes.DefaultParams())
+	bankKeeper.SetSendEnabled(ctx, true)
 
+	supplyKeeper := supply.NewKeeper(
+		legacyAmino, keys[supply.StoreKey], &accountKeeper, bankKeeper, maccPerms,
+	)
 	stakingKeeper := stakingkeeper.NewKeeper(
-		appCodec,
+		&appCodec,
 		keys[stakingtypes.StoreKey],
-		accountKeeper,
-		bankKeeper,
+		supplyKeeper,
 		subspace(stakingtypes.ModuleName),
 	)
 	stakingKeeper.SetParams(ctx, TestingStakeParams)
 
 	distKeeper := distributionkeeper.NewKeeper(
-		appCodec,
+		legacyAmino,
 		keys[distributiontypes.StoreKey],
 		subspace(distributiontypes.ModuleName),
-		accountKeeper,
-		bankKeeper,
 		stakingKeeper,
+		supplyKeeper,
 		authtypes.FeeCollectorName,
-		nil,
+		blockedAddrs,
 	)
 	distKeeper.SetParams(ctx, distributiontypes.DefaultParams())
 	stakingKeeper.SetHooks(distKeeper.Hooks())
@@ -322,21 +343,20 @@ func createTestInput(
 	upgradeKeeper := upgradekeeper.NewKeeper(
 		map[int64]bool{},
 		keys[upgradetypes.StoreKey],
-		appCodec,
-		tempDir,
-		nil,
+		legacyAmino,
 	)
 
-	faucet := NewTestFaucet(t, ctx, bankKeeper, minttypes.ModuleName, sdk.NewCoin("stake", sdk.NewInt(100_000_000_000)))
+	faucet := NewTestFaucet(t, ctx, bankKeeper, supplyKeeper, mint.ModuleName, sdk.NewCoin("stake", sdk.NewInt(100_000_000_000)))
 
 	// set some funds ot pay out validatores, based on code from:
-	// https://github.com/cosmos/cosmos-sdk/blob/fea231556aee4d549d7551a6190389c4328194eb/x/distribution/keeper/keeper_test.go#L50-L57
+	// https://github.com/okex/exchain/libs/cosmos-sdk/blob/fea231556aee4d549d7551a6190389c4328194eb/x/distribution/keeper/keeper_test.go#L50-L57
 	distrAcc := distKeeper.GetDistributionAccount(ctx)
 	faucet.Fund(ctx, distrAcc.GetAddress(), sdk.NewCoin("stake", sdk.NewInt(2000000)))
-	accountKeeper.SetModuleAccount(ctx, distrAcc)
+
+	supplyKeeper.SetModuleAccount(ctx, distrAcc)
 
 	capabilityKeeper := capabilitykeeper.NewKeeper(
-		appCodec,
+		&appCodec,
 		keys[capabilitytypes.StoreKey],
 		memKeys[capabilitytypes.MemStoreKey],
 	)
@@ -344,21 +364,22 @@ func createTestInput(
 	scopedWasmKeeper := capabilityKeeper.ScopeToModule(types.ModuleName)
 
 	ibcKeeper := ibckeeper.NewKeeper(
-		appCodec,
+		&appCodec,
 		keys[ibchost.StoreKey],
 		subspace(ibchost.ModuleName),
 		stakingKeeper,
 		upgradeKeeper,
-		scopedIBCKeeper,
+		&scopedIBCKeeper,
+		encodingConfig.InterfaceRegistry,
 	)
 
 	router := baseapp.NewRouter()
 	bh := bank.NewHandler(bankKeeper)
-	router.AddRoute(sdk.NewRoute(banktypes.RouterKey, bh))
+	router.AddRoute(bank.RouterKey, bh)
 	sh := staking.NewHandler(stakingKeeper)
-	router.AddRoute(sdk.NewRoute(stakingtypes.RouterKey, sh))
+	router.AddRoute(stakingtypes.RouterKey, sh)
 	dh := distribution.NewHandler(distKeeper)
-	router.AddRoute(sdk.NewRoute(distributiontypes.RouterKey, dh))
+	router.AddRoute(distributiontypes.RouterKey, dh)
 
 	querier := baseapp.NewGRPCQueryRouter()
 	querier.SetInterfaceRegistry(encodingConfig.InterfaceRegistry)
@@ -369,13 +390,11 @@ func createTestInput(
 	cfg.SetAddressVerifier(types.VerifyAddressLen())
 
 	keeper := NewKeeper(
-		appCodec,
+		&appCodec,
 		keys[types.StoreKey],
 		subspace(types.ModuleName),
 		accountKeeper,
-		bankKeeper,
-		stakingKeeper,
-		distKeeper,
+		bank.NewBankKeeperAdapter(bankKeeper),
 		ibcKeeper.ChannelKeeper,
 		&ibcKeeper.PortKeeper,
 		scopedWasmKeeper,
@@ -390,41 +409,43 @@ func createTestInput(
 	keeper.SetParams(ctx, types.DefaultParams())
 	// add wasm handler so we can loop-back (contracts calling contracts)
 	contractKeeper := NewDefaultPermissionKeeper(&keeper)
-	router.AddRoute(sdk.NewRoute(types.RouterKey, TestHandler(contractKeeper)))
+	router.AddRoute(types.RouterKey, TestHandler(contractKeeper))
 
 	am := module.NewManager( // minimal module set that we use for message/ query tests
-		bank.NewAppModule(appCodec, bankKeeper, accountKeeper),
-		staking.NewAppModule(appCodec, stakingKeeper, accountKeeper, bankKeeper),
-		distribution.NewAppModule(appCodec, distKeeper, accountKeeper, bankKeeper, stakingKeeper),
+		bank.NewAppModule(bankKeeper, accountKeeper, supplyKeeper),
+		staking.NewAppModule(stakingKeeper, accountKeeper, supplyKeeper),
+		distribution.NewAppModule(distKeeper, supplyKeeper),
+		supply.NewAppModule(supplyKeeper, accountKeeper),
 	)
-	am.RegisterServices(module.NewConfigurator(appCodec, msgRouter, querier))
+	configurator := module.NewConfigurator(legacyAmino, msgRouter, querier)
+	am.RegisterServices(configurator)
 	types.RegisterMsgServer(msgRouter, NewMsgServerImpl(NewDefaultPermissionKeeper(keeper)))
 	types.RegisterQueryServer(querier, NewGrpcQuerier(appCodec, keys[types.ModuleName], keeper, keeper.queryGasLimit))
 
-	govRouter := govtypes.NewRouter().
+	govRouter := gov.NewRouter().
 		AddRoute(govtypes.RouterKey, govtypes.ProposalHandler).
-		AddRoute(paramproposal.RouterKey, params.NewParamChangeProposalHandler(paramsKeeper)).
-		AddRoute(distributiontypes.RouterKey, distribution.NewCommunityPoolSpendProposalHandler(distKeeper)).
-		AddRoute(types.RouterKey, NewWasmProposalHandler(&keeper, types.EnableAllProposals))
+		AddRoute(paramproposal.RouterKey, params.NewParamChangeProposalHandler(&paramsKeeper)).
+		AddRoute(distributiontypes.RouterKey, distribution.NewCommunityPoolSpendProposalHandler(distKeeper))
+	//AddRoute(types.RouterKey, NewWasmProposalHandler(&keeper, types.EnableAllProposals))
 
-	govKeeper := govkeeper.NewKeeper(
-		appCodec,
-		keys[govtypes.StoreKey],
-		subspace(govtypes.ModuleName).WithKeyTable(govtypes.ParamKeyTable()),
-		accountKeeper,
-		bankKeeper,
-		stakingKeeper,
-		govRouter,
+	govProposalHandlerRouter := govkeeper.NewProposalHandlerRouter()
+	govProposalHandlerRouter.AddRoute(params.RouterKey, &paramsKeeper)
+
+	govKeeper := gov.NewKeeper(
+		legacyAmino, keys[govtypes.StoreKey], paramsKeeper, subspace(govtypes.ModuleName),
+		supplyKeeper, &stakingKeeper, gov.DefaultParamspace, govRouter,
+		bankKeeper, govProposalHandlerRouter, auth.FeeCollectorName,
 	)
 
-	govKeeper.SetProposalID(ctx, govtypes.DefaultStartingProposalID)
-	govKeeper.SetDepositParams(ctx, govtypes.DefaultDepositParams())
-	govKeeper.SetVotingParams(ctx, govtypes.DefaultVotingParams())
-	govKeeper.SetTallyParams(ctx, govtypes.DefaultTallyParams())
+	//govKeeper.SetProposalID(ctx, govtypes.DefaultStartingProposalID)
+	//govKeeper.SetDepositParams(ctx, govtypes.DefaultDepositParams())
+	//govKeeper.SetVotingParams(ctx, govtypes.DefaultVotingParams())
+	//govKeeper.SetTallyParams(ctx, govtypes.DefaultTallyParams())
 
 	keepers := TestKeepers{
 		AccountKeeper:  accountKeeper,
 		StakingKeeper:  stakingKeeper,
+		supplyKeepr:    supplyKeeper,
 		DistKeeper:     distKeeper,
 		ContractKeeper: contractKeeper,
 		WasmKeeper:     &keeper,
@@ -442,7 +463,7 @@ func createTestInput(
 // TestHandler returns a wasm handler for tests (to avoid circular imports)
 func TestHandler(k types.ContractOpsKeeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
-		ctx = ctx.WithEventManager(sdk.NewEventManager())
+		ctx = *ctx.SetEventManager(sdk.NewEventManager())
 		switch msg := msg.(type) {
 		case *types.MsgStoreCode:
 			return handleStoreCode(ctx, k, msg)
@@ -469,7 +490,7 @@ func handleStoreCode(ctx sdk.Context, k types.ContractOpsKeeper, msg *types.MsgS
 
 	return &sdk.Result{
 		Data:   []byte(fmt.Sprintf("%d", codeID)),
-		Events: ctx.EventManager().ABCIEvents(),
+		Events: ctx.EventManager().Events(),
 	}, nil
 }
 
@@ -485,14 +506,14 @@ func handleInstantiate(ctx sdk.Context, k types.ContractOpsKeeper, msg *types.Ms
 		}
 	}
 
-	contractAddr, _, err := k.Instantiate(ctx, msg.CodeID, senderAddr, adminAddr, msg.Msg, msg.Label, msg.Funds)
+	contractAddr, _, err := k.Instantiate(ctx, msg.CodeID, senderAddr, adminAddr, msg.Msg, msg.Label, sdk.CoinAdaptersToCoins(msg.Funds))
 	if err != nil {
 		return nil, err
 	}
 
 	return &sdk.Result{
 		Data:   contractAddr,
-		Events: ctx.EventManager().Events().ToABCIEvents(),
+		Events: ctx.EventManager().Events(),
 	}, nil
 }
 
@@ -505,19 +526,22 @@ func handleExecute(ctx sdk.Context, k types.ContractOpsKeeper, msg *types.MsgExe
 	if err != nil {
 		return nil, sdkerrors.Wrap(err, "admin")
 	}
-	data, err := k.Execute(ctx, contractAddr, senderAddr, msg.Msg, msg.Funds)
+	data, err := k.Execute(ctx, contractAddr, senderAddr, msg.Msg, sdk.CoinAdaptersToCoins(msg.Funds))
 	if err != nil {
 		return nil, err
 	}
 
 	return &sdk.Result{
 		Data:   data,
-		Events: ctx.EventManager().Events().ToABCIEvents(),
+		Events: ctx.EventManager().Events(),
 	}, nil
 }
 
+var PubKeyCache = make(map[string]crypto.PubKey)
+
 func RandomAccountAddress(_ testing.TB) sdk.AccAddress {
-	_, _, addr := keyPubAddr()
+	_, pub, addr := keyPubAddr()
+	PubKeyCache[addr.String()] = pub
 	return addr
 }
 
@@ -557,7 +581,7 @@ func StoreReflectContract(t testing.TB, ctx sdk.Context, keepers TestKeepers) ui
 func StoreExampleContract(t testing.TB, ctx sdk.Context, keepers TestKeepers, wasmFile string) ExampleContract {
 	anyAmount := sdk.NewCoins(sdk.NewInt64Coin("denom", 1000))
 	creator, _, creatorAddr := keyPubAddr()
-	fundAccounts(t, ctx, keepers.AccountKeeper, keepers.BankKeeper, creatorAddr, anyAmount)
+	fundAccounts(t, ctx, keepers.AccountKeeper, keepers.BankKeeper, keepers.supplyKeepr, creatorAddr, anyAmount)
 
 	wasmCode, err := ioutil.ReadFile(wasmFile)
 	require.NoError(t, err)
@@ -600,7 +624,7 @@ func StoreRandomContractWithAccessConfig(
 	t.Helper()
 	anyAmount := sdk.NewCoins(sdk.NewInt64Coin("denom", 1000))
 	creator, _, creatorAddr := keyPubAddr()
-	fundAccounts(t, ctx, keepers.AccountKeeper, keepers.BankKeeper, creatorAddr, anyAmount)
+	fundAccounts(t, ctx, keepers.AccountKeeper, keepers.BankKeeper, keepers.supplyKeepr, creatorAddr, anyAmount)
 	keepers.WasmKeeper.wasmVM = mock
 	wasmCode := append(wasmIdent, rand.Bytes(10)...) //nolint:gocritic
 	codeID, err := keepers.ContractKeeper.Create(ctx, creatorAddr, wasmCode, cfg)
@@ -623,7 +647,7 @@ func InstantiateHackatomExampleContract(t testing.TB, ctx sdk.Context, keepers T
 	contract := StoreHackatomExampleContract(t, ctx, keepers)
 
 	verifier, _, verifierAddr := keyPubAddr()
-	fundAccounts(t, ctx, keepers.AccountKeeper, keepers.BankKeeper, verifierAddr, contract.InitialAmount)
+	fundAccounts(t, ctx, keepers.AccountKeeper, keepers.BankKeeper, keepers.supplyKeepr, verifierAddr, contract.InitialAmount)
 
 	beneficiary, _, beneficiaryAddr := keyPubAddr()
 	initMsgBz := HackatomExampleInitMsg{
@@ -703,10 +727,10 @@ func (m BurnerExampleInitMsg) GetBytes(t testing.TB) []byte {
 	return initMsgBz
 }
 
-func fundAccounts(t testing.TB, ctx sdk.Context, am authkeeper.AccountKeeper, bank bankkeeper.Keeper, addr sdk.AccAddress, coins sdk.Coins) {
+func fundAccounts(t testing.TB, ctx sdk.Context, am authkeeper.AccountKeeper, bank bank.Keeper, supplyKeeper supply.Keeper, addr sdk.AccAddress, coins sdk.Coins) {
 	acc := am.NewAccountWithAddress(ctx, addr)
 	am.SetAccount(ctx, acc)
-	NewTestFaucet(t, ctx, bank, minttypes.ModuleName, coins...).Fund(ctx, addr, coins...)
+	NewTestFaucet(t, ctx, bank, supplyKeeper, mint.ModuleName, coins...).Fund(ctx, addr, coins...)
 }
 
 var keyCounter uint64

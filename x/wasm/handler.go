@@ -4,13 +4,12 @@ import (
 	"fmt"
 
 	"github.com/gogo/protobuf/proto"
-	abci "github.com/tendermint/tendermint/abci/types"
-
-	"github.com/CosmWasm/wasmd/x/wasm/keeper"
-	"github.com/CosmWasm/wasmd/x/wasm/types"
-
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/tendermint/libs/kv"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okex/exchain/x/wasm/keeper"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 // NewHandler returns a handler for "wasm" type messages.
@@ -18,7 +17,12 @@ func NewHandler(k types.ContractOpsKeeper) sdk.Handler {
 	msgServer := keeper.NewMsgServerImpl(k)
 
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
-		ctx = ctx.WithEventManager(sdk.NewEventManager())
+		ctx.SetEventManager(sdk.NewEventManager())
+
+		if !types2.HigherThanSaturn(ctx.BlockHeight()) {
+			errMsg := fmt.Sprintf("wasm not supprt at height %d", ctx.BlockHeight())
+			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
+		}
 
 		var (
 			res proto.Message
@@ -42,7 +46,7 @@ func NewHandler(k types.ContractOpsKeeper) sdk.Handler {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
 		}
 
-		ctx = ctx.WithEventManager(filterMessageEvents(ctx))
+		ctx.SetEventManager(filterMessageEvents(ctx))
 		return sdk.WrapServiceResult(ctx, res, err)
 	}
 }
@@ -62,7 +66,7 @@ func filterMessageEvents(ctx sdk.Context) *sdk.EventManager {
 	return m
 }
 
-func hasWasmModuleAttribute(attrs []abci.EventAttribute) bool {
+func hasWasmModuleAttribute(attrs []kv.Pair) bool {
 	for _, a := range attrs {
 		if sdk.AttributeKeyModule == string(a.Key) &&
 			types.ModuleName == string(a.Value) {

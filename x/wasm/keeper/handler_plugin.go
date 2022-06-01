@@ -3,27 +3,27 @@ package keeper
 import (
 	"errors"
 	"fmt"
-
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-	"github.com/cosmos/cosmos-sdk/baseapp"
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	channeltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
-	host "github.com/cosmos/ibc-go/v3/modules/core/24-host"
+	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
+	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	ibcadapter "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 // msgEncoder is an extension point to customize encodings
 type msgEncoder interface {
 	// Encode converts wasmvm message to n cosmos message types
-	Encode(ctx sdk.Context, contractAddr sdk.AccAddress, contractIBCPortID string, msg wasmvmtypes.CosmosMsg) ([]sdk.Msg, error)
+	Encode(ctx sdk.Context, contractAddr sdk.AccAddress, contractIBCPortID string, msg wasmvmtypes.CosmosMsg) ([]ibcadapter.Msg, error)
 }
 
 // MessageRouter ADR 031 request type routing
 type MessageRouter interface {
-	Handler(msg sdk.Msg) baseapp.MsgServiceHandler
+	Handler(methodName string) baseapp.MsgServiceHandler
 }
 
 // SDKMessageHandler can handles messages that can be encoded into sdk.Message types and routed.
@@ -36,7 +36,7 @@ func NewDefaultMessageHandler(
 	router MessageRouter,
 	channelKeeper types.ChannelKeeper,
 	capabilityKeeper types.CapabilityKeeper,
-	bankKeeper types.Burner,
+	//bankKeeper types.Burner,
 	unpacker codectypes.AnyUnpacker,
 	portSource types.ICS20TransferPortSource,
 	customEncoders ...*MessageEncoders,
@@ -47,8 +47,9 @@ func NewDefaultMessageHandler(
 	}
 	return NewMessageHandlerChain(
 		NewSDKMessageHandler(router, encoders),
-		NewIBCRawPacketHandler(channelKeeper, capabilityKeeper),
-		NewBurnCoinMessageHandler(bankKeeper),
+		//NewIBCRawPacketHandler(channelKeeper, capabilityKeeper),
+		// un use burn coin message
+		//NewBurnCoinMessageHandler(bankKeeper),
 	)
 }
 
@@ -81,7 +82,7 @@ func (h SDKMessageHandler) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAddr
 	return
 }
 
-func (h SDKMessageHandler) handleSdkMessage(ctx sdk.Context, contractAddr sdk.Address, msg sdk.Msg) (*sdk.Result, error) {
+func (h SDKMessageHandler) handleSdkMessage(ctx sdk.Context, contractAddr sdk.Address, msg ibcadapter.Msg) (*sdk.Result, error) {
 	if err := msg.ValidateBasic(); err != nil {
 		return nil, err
 	}
@@ -93,7 +94,8 @@ func (h SDKMessageHandler) handleSdkMessage(ctx sdk.Context, contractAddr sdk.Ad
 	}
 
 	// find the handler and execute it
-	if handler := h.router.Handler(msg); handler != nil {
+	msgUrl := ibcadapter.MsgTypeURL(msg)
+	if handler := h.router.Handler(msgUrl); handler != nil {
 		// ADR 031 request type routing
 		msgResult, err := handler(ctx, msg)
 		return msgResult, err
@@ -202,7 +204,7 @@ func (m MessageHandlerFunc) DispatchMsg(ctx sdk.Context, contractAddr sdk.AccAdd
 }
 
 // NewBurnCoinMessageHandler handles wasmvm.BurnMsg messages
-func NewBurnCoinMessageHandler(burner types.Burner) MessageHandlerFunc {
+/*func NewBurnCoinMessageHandler(burner types.Burner) MessageHandlerFunc {
 	return func(ctx sdk.Context, contractAddr sdk.AccAddress, _ string, msg wasmvmtypes.CosmosMsg) (events []sdk.Event, data [][]byte, err error) {
 		if msg.Bank != nil && msg.Bank.Burn != nil {
 			coins, err := ConvertWasmCoinsToSdkCoins(msg.Bank.Burn.Amount)
@@ -220,4 +222,4 @@ func NewBurnCoinMessageHandler(burner types.Burner) MessageHandlerFunc {
 		}
 		return nil, nil, types.ErrUnknownMsg
 	}
-}
+}*/

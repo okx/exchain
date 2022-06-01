@@ -2,11 +2,17 @@ package keeper
 
 import (
 	"encoding/binary"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/types"
 )
+
+type HandlerOption struct {
+	WasmConfig        *types.WasmConfig
+	TXCounterStoreKey sdk.StoreKey
+}
 
 // CountTXDecorator ante handler to count the tx position in a block.
 type CountTXDecorator struct {
@@ -23,9 +29,11 @@ func NewCountTXDecorator(storeKey sdk.StoreKey) *CountTXDecorator {
 // The ante handler passes the counter value via sdk.Context upstream. See `types.TXCounter(ctx)` to read the value.
 // Simulations don't get a tx counter value assigned.
 func (a CountTXDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
-	if simulate {
+	if simulate || !types2.HigherThanSaturn(ctx.BlockHeight()) {
 		return next(ctx, tx, simulate)
 	}
+	currentGasmeter := ctx.GasMeter()
+	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 	store := ctx.KVStore(a.storeKey)
 	currentHeight := ctx.BlockHeight()
 
@@ -41,6 +49,7 @@ func (a CountTXDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, 
 	// store next counter value for current height
 	store.Set(types.TXCounterPrefix, encodeHeightCounter(currentHeight, txCounter+1))
 
+	ctx.SetGasMeter(currentGasmeter)
 	return next(types.WithTXCounter(ctx, txCounter), tx, simulate)
 }
 
@@ -85,12 +94,14 @@ func (d LimitSimulationGasDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simu
 
 	// apply custom node gas limit
 	if d.gasLimit != nil {
-		return next(ctx.WithGasMeter(sdk.NewGasMeter(*d.gasLimit)), tx, simulate)
+		newCtx := ctx.SetGasMeter(sdk.NewGasMeter(*d.gasLimit))
+		return next(*newCtx, tx, simulate)
 	}
 
 	// default to max block gas when set, to be on the safe side
 	if maxGas := ctx.ConsensusParams().GetBlock().MaxGas; maxGas > 0 {
-		return next(ctx.WithGasMeter(sdk.NewGasMeter(sdk.Gas(maxGas))), tx, simulate)
+		newCtx := ctx.SetGasMeter(sdk.NewGasMeter(sdk.Gas(maxGas)))
+		return next(*newCtx, tx, simulate)
 	}
 	return next(ctx, tx, simulate)
 }

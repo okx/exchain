@@ -30,6 +30,8 @@ const (
 
 	// AddrLen defines a valid address length
 	AddrLen = 20
+	// WasmContractAddrLen defines a valid wasm contract address length
+	WasmContractAddrLen = 32
 	// Bech32MainPrefix defines the main SDK Bech32 prefix of an account's address
 	Bech32MainPrefix = "cosmos"
 
@@ -96,6 +98,10 @@ var _ yaml.Marshaler = ConsAddress{}
 // When marshaled to a string or JSON, it uses Bech32.
 type AccAddress []byte
 
+func IsWasmAddress(acc AccAddress) bool {
+	return len(acc) == WasmContractAddrLen
+}
+
 // AccAddressFromHex creates an AccAddress from a hex string.
 func AccAddressFromHex(address string) (addr AccAddress, err error) {
 	if len(address) == 0 {
@@ -118,7 +124,7 @@ func VerifyAddressFormat(bz []byte) error {
 	if verifier != nil {
 		return verifier(bz)
 	}
-	if len(bz) != AddrLen {
+	if len(bz) != AddrLen && len(bz) != WasmContractAddrLen {
 		return errors.New("incorrect address length")
 	}
 	return nil

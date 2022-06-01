@@ -3,11 +3,11 @@ package keeper
 import (
 	"encoding/hex"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 // NewWasmProposalHandler creates a new governance Handler for wasm proposals
@@ -86,7 +86,7 @@ func handleInstantiateProposal(ctx sdk.Context, k types.ContractOpsKeeper, p typ
 		}
 	}
 
-	_, data, err := k.Instantiate(ctx, p.CodeID, runAsAddr, adminAddr, p.Msg, p.Label, p.Funds)
+	_, data, err := k.Instantiate(ctx, p.CodeID, runAsAddr, adminAddr, p.Msg, p.Label, sdk.CoinAdaptersToCoins(p.Funds))
 	if err != nil {
 		return err
 	}
@@ -157,7 +157,7 @@ func handleExecuteProposal(ctx sdk.Context, k types.ContractOpsKeeper, p types.E
 	if err != nil {
 		return sdkerrors.Wrap(err, "run as address")
 	}
-	data, err := k.Execute(ctx, contractAddr, runAsAddr, p.Msg, p.Funds)
+	data, err := k.Execute(ctx, contractAddr, runAsAddr, p.Msg, sdk.CoinAdaptersToCoins(p.Funds))
 	if err != nil {
 		return err
 	}

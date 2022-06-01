@@ -1,25 +1,24 @@
 package keeper
 
 import (
+	ibcadapter "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"testing"
 
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
-	ibctransfertypes "github.com/cosmos/ibc-go/v3/modules/apps/transfer/types"
-	clienttypes "github.com/cosmos/ibc-go/v3/modules/core/02-client/types"
-	channeltypes "github.com/cosmos/ibc-go/v3/modules/core/04-channel/types"
 	"github.com/golang/protobuf/proto"
+	//ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
+	//clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	//channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	"github.com/stretchr/testify/assert"
 
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
-	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	banktypes "github.com/okex/exchain/libs/cosmos-sdk/x/bank"
+	//distributiontypes "github.com/okex/exchain/libs/cosmos-sdk/x/distribution/types"
+	//stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/CosmWasm/wasmd/x/wasm/keeper/wasmtesting"
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	//"github.com/okex/exchain/x/wasm/keeper/wasmtesting"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 func TestEncoding(t *testing.T) {
@@ -35,27 +34,16 @@ func TestEncoding(t *testing.T) {
 	valAddr2[1] = 123
 
 	jsonMsg := types.RawContractMessage(`{"foo": 123}`)
-
-	bankMsg := &banktypes.MsgSend{
+	coins := sdk.Coins{
+		sdk.NewInt64Coin("uatom", 12345),
+		sdk.NewInt64Coin("utgd", 54321),
+	}
+	bankMsg := &banktypes.MsgSendAdapter{
 		FromAddress: addr2.String(),
 		ToAddress:   addr1.String(),
-		Amount: sdk.Coins{
-			sdk.NewInt64Coin("uatom", 12345),
-			sdk.NewInt64Coin("utgd", 54321),
-		},
+		Amount:      sdk.CoinsToCoinAdapters(coins),
 	}
 	bankMsgBin, err := proto.Marshal(bankMsg)
-	require.NoError(t, err)
-
-	content, err := codectypes.NewAnyWithValue(types.StoreCodeProposalFixture())
-	require.NoError(t, err)
-
-	proposalMsg := &govtypes.MsgSubmitProposal{
-		Proposer:       addr1.String(),
-		InitialDeposit: sdk.NewCoins(sdk.NewInt64Coin("uatom", 12345)),
-		Content:        content,
-	}
-	proposalMsgBin, err := proto.Marshal(proposalMsg)
 	require.NoError(t, err)
 
 	cases := map[string]struct {
@@ -64,7 +52,7 @@ func TestEncoding(t *testing.T) {
 		srcContractIBCPort string
 		transferPortSource types.ICS20TransferPortSource
 		// set if valid
-		output []sdk.Msg
+		output []ibcadapter.Msg
 		// set if invalid
 		isError bool
 	}{
@@ -77,24 +65,24 @@ func TestEncoding(t *testing.T) {
 						Amount: []wasmvmtypes.Coin{
 							{
 								Denom:  "uatom",
-								Amount: "12345",
+								Amount: "12345000000000000000000",
 							},
 							{
 								Denom:  "usdt",
-								Amount: "54321",
+								Amount: "54321000000000000000000",
 							},
 						},
 					},
 				},
 			},
-			output: []sdk.Msg{
-				&banktypes.MsgSend{
+			output: []ibcadapter.Msg{
+				&banktypes.MsgSendAdapter{
 					FromAddress: addr1.String(),
 					ToAddress:   addr2.String(),
-					Amount: sdk.Coins{
+					Amount: sdk.CoinsToCoinAdapters(sdk.Coins{
 						sdk.NewInt64Coin("uatom", 12345),
 						sdk.NewInt64Coin("usdt", 54321),
-					},
+					}),
 				},
 			},
 		},
@@ -107,7 +95,7 @@ func TestEncoding(t *testing.T) {
 						Amount: []wasmvmtypes.Coin{
 							{
 								Denom:  "uatom",
-								Amount: "123.456",
+								Amount: "123000000000000000000.456",
 							},
 						},
 					},
@@ -124,20 +112,20 @@ func TestEncoding(t *testing.T) {
 						Amount: []wasmvmtypes.Coin{
 							{
 								Denom:  "uatom",
-								Amount: "7890",
+								Amount: "7890000000000000000000",
 							},
 						},
 					},
 				},
 			},
 			isError: false, // addresses are checked in the handler
-			output: []sdk.Msg{
-				&banktypes.MsgSend{
+			output: []ibcadapter.Msg{
+				&banktypes.MsgSendAdapter{
 					FromAddress: addr1.String(),
 					ToAddress:   invalidAddr,
-					Amount: sdk.Coins{
+					Amount: sdk.CoinsToCoinAdapters(sdk.Coins{
 						sdk.NewInt64Coin("uatom", 7890),
-					},
+					}),
 				},
 			},
 		},
@@ -149,17 +137,20 @@ func TestEncoding(t *testing.T) {
 						ContractAddr: addr2.String(),
 						Msg:          jsonMsg,
 						Funds: []wasmvmtypes.Coin{
-							wasmvmtypes.NewCoin(12, "eth"),
+							{
+								Denom:  "eth",
+								Amount: "12000000000000000000",
+							},
 						},
 					},
 				},
 			},
-			output: []sdk.Msg{
+			output: []ibcadapter.Msg{
 				&types.MsgExecuteContract{
 					Sender:   addr1.String(),
 					Contract: addr2.String(),
 					Msg:      jsonMsg,
-					Funds:    sdk.NewCoins(sdk.NewInt64Coin("eth", 12)),
+					Funds:    sdk.CoinsToCoinAdapters(sdk.NewCoins(sdk.NewInt64Coin("eth", 12))),
 				},
 			},
 		},
@@ -171,20 +162,23 @@ func TestEncoding(t *testing.T) {
 						CodeID: 7,
 						Msg:    jsonMsg,
 						Funds: []wasmvmtypes.Coin{
-							wasmvmtypes.NewCoin(123, "eth"),
+							{
+								Denom:  "eth",
+								Amount: "123000000000000000000",
+							},
 						},
 						Label: "myLabel",
 						Admin: addr2.String(),
 					},
 				},
 			},
-			output: []sdk.Msg{
+			output: []ibcadapter.Msg{
 				&types.MsgInstantiateContract{
 					Sender: addr1.String(),
 					CodeID: 7,
 					Label:  "myLabel",
 					Msg:    jsonMsg,
-					Funds:  sdk.NewCoins(sdk.NewInt64Coin("eth", 123)),
+					Funds:  sdk.CoinsToCoinAdapters(sdk.NewCoins(sdk.NewInt64Coin("eth", 123))),
 					Admin:  addr2.String(),
 				},
 			},
@@ -200,7 +194,7 @@ func TestEncoding(t *testing.T) {
 					},
 				},
 			},
-			output: []sdk.Msg{
+			output: []ibcadapter.Msg{
 				&types.MsgMigrateContract{
 					Sender:   addr2.String(),
 					Contract: addr1.String(),
@@ -219,7 +213,7 @@ func TestEncoding(t *testing.T) {
 					},
 				},
 			},
-			output: []sdk.Msg{
+			output: []ibcadapter.Msg{
 				&types.MsgUpdateAdmin{
 					Sender:   addr2.String(),
 					Contract: addr1.String(),
@@ -236,120 +230,120 @@ func TestEncoding(t *testing.T) {
 					},
 				},
 			},
-			output: []sdk.Msg{
+			output: []ibcadapter.Msg{
 				&types.MsgClearAdmin{
 					Sender:   addr2.String(),
 					Contract: addr1.String(),
 				},
 			},
 		},
-		"staking delegate": {
-			sender: addr1,
-			srcMsg: wasmvmtypes.CosmosMsg{
-				Staking: &wasmvmtypes.StakingMsg{
-					Delegate: &wasmvmtypes.DelegateMsg{
-						Validator: valAddr.String(),
-						Amount:    wasmvmtypes.NewCoin(777, "stake"),
-					},
-				},
-			},
-			output: []sdk.Msg{
-				&stakingtypes.MsgDelegate{
-					DelegatorAddress: addr1.String(),
-					ValidatorAddress: valAddr.String(),
-					Amount:           sdk.NewInt64Coin("stake", 777),
-				},
-			},
-		},
-		"staking delegate to non-validator": {
-			sender: addr1,
-			srcMsg: wasmvmtypes.CosmosMsg{
-				Staking: &wasmvmtypes.StakingMsg{
-					Delegate: &wasmvmtypes.DelegateMsg{
-						Validator: addr2.String(),
-						Amount:    wasmvmtypes.NewCoin(777, "stake"),
-					},
-				},
-			},
-			isError: false, // fails in the handler
-			output: []sdk.Msg{
-				&stakingtypes.MsgDelegate{
-					DelegatorAddress: addr1.String(),
-					ValidatorAddress: addr2.String(),
-					Amount:           sdk.NewInt64Coin("stake", 777),
-				},
-			},
-		},
-		"staking undelegate": {
-			sender: addr1,
-			srcMsg: wasmvmtypes.CosmosMsg{
-				Staking: &wasmvmtypes.StakingMsg{
-					Undelegate: &wasmvmtypes.UndelegateMsg{
-						Validator: valAddr.String(),
-						Amount:    wasmvmtypes.NewCoin(555, "stake"),
-					},
-				},
-			},
-			output: []sdk.Msg{
-				&stakingtypes.MsgUndelegate{
-					DelegatorAddress: addr1.String(),
-					ValidatorAddress: valAddr.String(),
-					Amount:           sdk.NewInt64Coin("stake", 555),
-				},
-			},
-		},
-		"staking redelegate": {
-			sender: addr1,
-			srcMsg: wasmvmtypes.CosmosMsg{
-				Staking: &wasmvmtypes.StakingMsg{
-					Redelegate: &wasmvmtypes.RedelegateMsg{
-						SrcValidator: valAddr.String(),
-						DstValidator: valAddr2.String(),
-						Amount:       wasmvmtypes.NewCoin(222, "stake"),
-					},
-				},
-			},
-			output: []sdk.Msg{
-				&stakingtypes.MsgBeginRedelegate{
-					DelegatorAddress:    addr1.String(),
-					ValidatorSrcAddress: valAddr.String(),
-					ValidatorDstAddress: valAddr2.String(),
-					Amount:              sdk.NewInt64Coin("stake", 222),
-				},
-			},
-		},
-		"staking withdraw (explicit recipient)": {
-			sender: addr1,
-			srcMsg: wasmvmtypes.CosmosMsg{
-				Distribution: &wasmvmtypes.DistributionMsg{
-					WithdrawDelegatorReward: &wasmvmtypes.WithdrawDelegatorRewardMsg{
-						Validator: valAddr2.String(),
-					},
-				},
-			},
-			output: []sdk.Msg{
-				&distributiontypes.MsgWithdrawDelegatorReward{
-					DelegatorAddress: addr1.String(),
-					ValidatorAddress: valAddr2.String(),
-				},
-			},
-		},
-		"staking set withdraw address": {
-			sender: addr1,
-			srcMsg: wasmvmtypes.CosmosMsg{
-				Distribution: &wasmvmtypes.DistributionMsg{
-					SetWithdrawAddress: &wasmvmtypes.SetWithdrawAddressMsg{
-						Address: addr2.String(),
-					},
-				},
-			},
-			output: []sdk.Msg{
-				&distributiontypes.MsgSetWithdrawAddress{
-					DelegatorAddress: addr1.String(),
-					WithdrawAddress:  addr2.String(),
-				},
-			},
-		},
+		//"staking delegate": {
+		//	sender: addr1,
+		//	srcMsg: wasmvmtypes.CosmosMsg{
+		//		Staking: &wasmvmtypes.StakingMsg{
+		//			Delegate: &wasmvmtypes.DelegateMsg{
+		//				Validator: valAddr.String(),
+		//				Amount:    wasmvmtypes.NewCoin(777, "stake"),
+		//			},
+		//		},
+		//	},
+		//	output: []sdk.Msg{
+		//		&stakingtypes.MsgDelegate{
+		//			DelegatorAddress: addr1.String(),
+		//			ValidatorAddress: valAddr.String(),
+		//			Amount:           sdk.NewInt64Coin("stake", 777),
+		//		},
+		//	},
+		//},
+		//"staking delegate to non-validator": {
+		//	sender: addr1,
+		//	srcMsg: wasmvmtypes.CosmosMsg{
+		//		Staking: &wasmvmtypes.StakingMsg{
+		//			Delegate: &wasmvmtypes.DelegateMsg{
+		//				Validator: addr2.String(),
+		//				Amount:    wasmvmtypes.NewCoin(777, "stake"),
+		//			},
+		//		},
+		//	},
+		//	isError: false, // fails in the handler
+		//	output: []sdk.Msg{
+		//		&stakingtypes.MsgDelegate{
+		//			DelegatorAddress: addr1.String(),
+		//			ValidatorAddress: addr2.String(),
+		//			Amount:           sdk.NewInt64Coin("stake", 777),
+		//		},
+		//	},
+		//},
+		//"staking undelegate": {
+		//	sender: addr1,
+		//	srcMsg: wasmvmtypes.CosmosMsg{
+		//		Staking: &wasmvmtypes.StakingMsg{
+		//			Undelegate: &wasmvmtypes.UndelegateMsg{
+		//				Validator: valAddr.String(),
+		//				Amount:    wasmvmtypes.NewCoin(555, "stake"),
+		//			},
+		//		},
+		//	},
+		//	output: []sdk.Msg{
+		//		&stakingtypes.MsgUndelegate{
+		//			DelegatorAddress: addr1.String(),
+		//			ValidatorAddress: valAddr.String(),
+		//			Amount:           sdk.NewInt64Coin("stake", 555),
+		//		},
+		//	},
+		//},
+		//"staking redelegate": {
+		//	sender: addr1,
+		//	srcMsg: wasmvmtypes.CosmosMsg{
+		//		Staking: &wasmvmtypes.StakingMsg{
+		//			Redelegate: &wasmvmtypes.RedelegateMsg{
+		//				SrcValidator: valAddr.String(),
+		//				DstValidator: valAddr2.String(),
+		//				Amount:       wasmvmtypes.NewCoin(222, "stake"),
+		//			},
+		//		},
+		//	},
+		//	output: []sdk.Msg{
+		//		&stakingtypes.MsgBeginRedelegate{
+		//			DelegatorAddress:    addr1.String(),
+		//			ValidatorSrcAddress: valAddr.String(),
+		//			ValidatorDstAddress: valAddr2.String(),
+		//			Amount:              sdk.NewInt64Coin("stake", 222),
+		//		},
+		//	},
+		//},
+		//"staking withdraw (explicit recipient)": {
+		//	sender: addr1,
+		//	srcMsg: wasmvmtypes.CosmosMsg{
+		//		Distribution: &wasmvmtypes.DistributionMsg{
+		//			WithdrawDelegatorReward: &wasmvmtypes.WithdrawDelegatorRewardMsg{
+		//				Validator: valAddr2.String(),
+		//			},
+		//		},
+		//	},
+		//	output: []sdk.Msg{
+		//		&distributiontypes.MsgWithdrawDelegatorReward{
+		//			DelegatorAddress: addr1.String(),
+		//			ValidatorAddress: valAddr2.String(),
+		//		},
+		//	},
+		//},
+		//"staking set withdraw address": {
+		//	sender: addr1,
+		//	srcMsg: wasmvmtypes.CosmosMsg{
+		//		Distribution: &wasmvmtypes.DistributionMsg{
+		//			SetWithdrawAddress: &wasmvmtypes.SetWithdrawAddressMsg{
+		//				Address: addr2.String(),
+		//			},
+		//		},
+		//	},
+		//	output: []sdk.Msg{
+		//		&distributiontypes.MsgSetWithdrawAddress{
+		//			DelegatorAddress: addr1.String(),
+		//			WithdrawAddress:  addr2.String(),
+		//		},
+		//	},
+		//},
 		"stargate encoded bank msg": {
 			sender: addr2,
 			srcMsg: wasmvmtypes.CosmosMsg{
@@ -358,17 +352,7 @@ func TestEncoding(t *testing.T) {
 					Value:   bankMsgBin,
 				},
 			},
-			output: []sdk.Msg{bankMsg},
-		},
-		"stargate encoded msg with any type": {
-			sender: addr2,
-			srcMsg: wasmvmtypes.CosmosMsg{
-				Stargate: &wasmvmtypes.StargateMsg{
-					TypeURL: "/cosmos.gov.v1beta1.MsgSubmitProposal",
-					Value:   proposalMsgBin,
-				},
-			},
-			output: []sdk.Msg{proposalMsg},
+			output: []ibcadapter.Msg{bankMsg},
 		},
 		"stargate encoded invalid typeUrl": {
 			sender: addr2,
@@ -380,196 +364,196 @@ func TestEncoding(t *testing.T) {
 			},
 			isError: true,
 		},
-		"IBC transfer with block timeout": {
-			sender:             addr1,
-			srcContractIBCPort: "myIBCPort",
-			srcMsg: wasmvmtypes.CosmosMsg{
-				IBC: &wasmvmtypes.IBCMsg{
-					Transfer: &wasmvmtypes.TransferMsg{
-						ChannelID: "myChanID",
-						ToAddress: addr2.String(),
-						Amount: wasmvmtypes.Coin{
-							Denom:  "ALX",
-							Amount: "1",
-						},
-						Timeout: wasmvmtypes.IBCTimeout{
-							Block: &wasmvmtypes.IBCTimeoutBlock{Revision: 1, Height: 2},
-						},
-					},
-				},
-			},
-			transferPortSource: wasmtesting.MockIBCTransferKeeper{GetPortFn: func(ctx sdk.Context) string {
-				return "myTransferPort"
-			}},
-			output: []sdk.Msg{
-				&ibctransfertypes.MsgTransfer{
-					SourcePort:    "myTransferPort",
-					SourceChannel: "myChanID",
-					Token: sdk.Coin{
-						Denom:  "ALX",
-						Amount: sdk.NewInt(1),
-					},
-					Sender:        addr1.String(),
-					Receiver:      addr2.String(),
-					TimeoutHeight: clienttypes.Height{RevisionNumber: 1, RevisionHeight: 2},
-				},
-			},
-		},
-		"IBC transfer with time timeout": {
-			sender:             addr1,
-			srcContractIBCPort: "myIBCPort",
-			srcMsg: wasmvmtypes.CosmosMsg{
-				IBC: &wasmvmtypes.IBCMsg{
-					Transfer: &wasmvmtypes.TransferMsg{
-						ChannelID: "myChanID",
-						ToAddress: addr2.String(),
-						Amount: wasmvmtypes.Coin{
-							Denom:  "ALX",
-							Amount: "1",
-						},
-						Timeout: wasmvmtypes.IBCTimeout{Timestamp: 100},
-					},
-				},
-			},
-			transferPortSource: wasmtesting.MockIBCTransferKeeper{GetPortFn: func(ctx sdk.Context) string {
-				return "transfer"
-			}},
-			output: []sdk.Msg{
-				&ibctransfertypes.MsgTransfer{
-					SourcePort:    "transfer",
-					SourceChannel: "myChanID",
-					Token: sdk.Coin{
-						Denom:  "ALX",
-						Amount: sdk.NewInt(1),
-					},
-					Sender:           addr1.String(),
-					Receiver:         addr2.String(),
-					TimeoutTimestamp: 100,
-				},
-			},
-		},
-		"IBC transfer with time and height timeout": {
-			sender:             addr1,
-			srcContractIBCPort: "myIBCPort",
-			srcMsg: wasmvmtypes.CosmosMsg{
-				IBC: &wasmvmtypes.IBCMsg{
-					Transfer: &wasmvmtypes.TransferMsg{
-						ChannelID: "myChanID",
-						ToAddress: addr2.String(),
-						Amount: wasmvmtypes.Coin{
-							Denom:  "ALX",
-							Amount: "1",
-						},
-						Timeout: wasmvmtypes.IBCTimeout{Timestamp: 100, Block: &wasmvmtypes.IBCTimeoutBlock{Height: 1, Revision: 2}},
-					},
-				},
-			},
-			transferPortSource: wasmtesting.MockIBCTransferKeeper{GetPortFn: func(ctx sdk.Context) string {
-				return "transfer"
-			}},
-			output: []sdk.Msg{
-				&ibctransfertypes.MsgTransfer{
-					SourcePort:    "transfer",
-					SourceChannel: "myChanID",
-					Token: sdk.Coin{
-						Denom:  "ALX",
-						Amount: sdk.NewInt(1),
-					},
-					Sender:           addr1.String(),
-					Receiver:         addr2.String(),
-					TimeoutTimestamp: 100,
-					TimeoutHeight:    clienttypes.NewHeight(2, 1),
-				},
-			},
-		},
-		"IBC close channel": {
-			sender:             addr1,
-			srcContractIBCPort: "myIBCPort",
-			srcMsg: wasmvmtypes.CosmosMsg{
-				IBC: &wasmvmtypes.IBCMsg{
-					CloseChannel: &wasmvmtypes.CloseChannelMsg{
-						ChannelID: "channel-1",
-					},
-				},
-			},
-			output: []sdk.Msg{
-				&channeltypes.MsgChannelCloseInit{
-					PortId:    "wasm." + addr1.String(),
-					ChannelId: "channel-1",
-					Signer:    addr1.String(),
-				},
-			},
-		},
-		"Gov vote: yes": {
-			sender:             addr1,
-			srcContractIBCPort: "myIBCPort",
-			srcMsg: wasmvmtypes.CosmosMsg{
-				Gov: &wasmvmtypes.GovMsg{
-					Vote: &wasmvmtypes.VoteMsg{ProposalId: 1, Vote: wasmvmtypes.Yes},
-				},
-			},
-			output: []sdk.Msg{
-				&govtypes.MsgVote{
-					ProposalId: 1,
-					Voter:      addr1.String(),
-					Option:     govtypes.OptionYes,
-				},
-			},
-		},
-		"Gov vote: No": {
-			sender:             addr1,
-			srcContractIBCPort: "myIBCPort",
-			srcMsg: wasmvmtypes.CosmosMsg{
-				Gov: &wasmvmtypes.GovMsg{
-					Vote: &wasmvmtypes.VoteMsg{ProposalId: 1, Vote: wasmvmtypes.No},
-				},
-			},
-			output: []sdk.Msg{
-				&govtypes.MsgVote{
-					ProposalId: 1,
-					Voter:      addr1.String(),
-					Option:     govtypes.OptionNo,
-				},
-			},
-		},
-		"Gov vote: Abstain": {
-			sender:             addr1,
-			srcContractIBCPort: "myIBCPort",
-			srcMsg: wasmvmtypes.CosmosMsg{
-				Gov: &wasmvmtypes.GovMsg{
-					Vote: &wasmvmtypes.VoteMsg{ProposalId: 10, Vote: wasmvmtypes.Abstain},
-				},
-			},
-			output: []sdk.Msg{
-				&govtypes.MsgVote{
-					ProposalId: 10,
-					Voter:      addr1.String(),
-					Option:     govtypes.OptionAbstain,
-				},
-			},
-		},
-		"Gov vote: No with veto": {
-			sender:             addr1,
-			srcContractIBCPort: "myIBCPort",
-			srcMsg: wasmvmtypes.CosmosMsg{
-				Gov: &wasmvmtypes.GovMsg{
-					Vote: &wasmvmtypes.VoteMsg{ProposalId: 1, Vote: wasmvmtypes.NoWithVeto},
-				},
-			},
-			output: []sdk.Msg{
-				&govtypes.MsgVote{
-					ProposalId: 1,
-					Voter:      addr1.String(),
-					Option:     govtypes.OptionNoWithVeto,
-				},
-			},
-		},
+		//"IBC transfer with block timeout": {
+		//	sender:             addr1,
+		//	srcContractIBCPort: "myIBCPort",
+		//	srcMsg: wasmvmtypes.CosmosMsg{
+		//		IBC: &wasmvmtypes.IBCMsg{
+		//			Transfer: &wasmvmtypes.TransferMsg{
+		//				ChannelID: "myChanID",
+		//				ToAddress: addr2.String(),
+		//				Amount: wasmvmtypes.Coin{
+		//					Denom:  "ALX",
+		//					Amount: "1",
+		//				},
+		//				Timeout: wasmvmtypes.IBCTimeout{
+		//					Block: &wasmvmtypes.IBCTimeoutBlock{Revision: 1, Height: 2},
+		//				},
+		//			},
+		//		},
+		//	},
+		//	transferPortSource: wasmtesting.MockIBCTransferKeeper{GetPortFn: func(ctx sdk.Context) string {
+		//		return "myTransferPort"
+		//	}},
+		//	output: []sdk.Msg{
+		//		&ibctransfertypes.MsgTransfer{
+		//			SourcePort:    "myTransferPort",
+		//			SourceChannel: "myChanID",
+		//			Token: sdk.Coin{
+		//				Denom:  "ALX",
+		//				Amount: sdk.NewInt(1),
+		//			},
+		//			Sender:        addr1.String(),
+		//			Receiver:      addr2.String(),
+		//			TimeoutHeight: clienttypes.Height{RevisionNumber: 1, RevisionHeight: 2},
+		//		},
+		//	},
+		//},
+		//"IBC transfer with time timeout": {
+		//	sender:             addr1,
+		//	srcContractIBCPort: "myIBCPort",
+		//	srcMsg: wasmvmtypes.CosmosMsg{
+		//		IBC: &wasmvmtypes.IBCMsg{
+		//			Transfer: &wasmvmtypes.TransferMsg{
+		//				ChannelID: "myChanID",
+		//				ToAddress: addr2.String(),
+		//				Amount: wasmvmtypes.Coin{
+		//					Denom:  "ALX",
+		//					Amount: "1",
+		//				},
+		//				Timeout: wasmvmtypes.IBCTimeout{Timestamp: 100},
+		//			},
+		//		},
+		//	},
+		//	transferPortSource: wasmtesting.MockIBCTransferKeeper{GetPortFn: func(ctx sdk.Context) string {
+		//		return "transfer"
+		//	}},
+		//	output: []sdk.Msg{
+		//		&ibctransfertypes.MsgTransfer{
+		//			SourcePort:    "transfer",
+		//			SourceChannel: "myChanID",
+		//			Token: sdk.Coin{
+		//				Denom:  "ALX",
+		//				Amount: sdk.NewInt(1),
+		//			},
+		//			Sender:           addr1.String(),
+		//			Receiver:         addr2.String(),
+		//			TimeoutTimestamp: 100,
+		//		},
+		//	},
+		//},
+		//"IBC transfer with time and height timeout": {
+		//	sender:             addr1,
+		//	srcContractIBCPort: "myIBCPort",
+		//	srcMsg: wasmvmtypes.CosmosMsg{
+		//		IBC: &wasmvmtypes.IBCMsg{
+		//			Transfer: &wasmvmtypes.TransferMsg{
+		//				ChannelID: "myChanID",
+		//				ToAddress: addr2.String(),
+		//				Amount: wasmvmtypes.Coin{
+		//					Denom:  "ALX",
+		//					Amount: "1",
+		//				},
+		//				Timeout: wasmvmtypes.IBCTimeout{Timestamp: 100, Block: &wasmvmtypes.IBCTimeoutBlock{Height: 1, Revision: 2}},
+		//			},
+		//		},
+		//	},
+		//	transferPortSource: wasmtesting.MockIBCTransferKeeper{GetPortFn: func(ctx sdk.Context) string {
+		//		return "transfer"
+		//	}},
+		//	output: []sdk.Msg{
+		//		&ibctransfertypes.MsgTransfer{
+		//			SourcePort:    "transfer",
+		//			SourceChannel: "myChanID",
+		//			Token: sdk.Coin{
+		//				Denom:  "ALX",
+		//				Amount: sdk.NewInt(1),
+		//			},
+		//			Sender:           addr1.String(),
+		//			Receiver:         addr2.String(),
+		//			TimeoutTimestamp: 100,
+		//			TimeoutHeight:    clienttypes.NewHeight(2, 1),
+		//		},
+		//	},
+		//},
+		//"IBC close channel": {
+		//	sender:             addr1,
+		//	srcContractIBCPort: "myIBCPort",
+		//	srcMsg: wasmvmtypes.CosmosMsg{
+		//		IBC: &wasmvmtypes.IBCMsg{
+		//			CloseChannel: &wasmvmtypes.CloseChannelMsg{
+		//				ChannelID: "channel-1",
+		//			},
+		//		},
+		//	},
+		//	output: []sdk.Msg{
+		//		&channeltypes.MsgChannelCloseInit{
+		//			PortId:    "wasm." + addr1.String(),
+		//			ChannelId: "channel-1",
+		//			Signer:    addr1.String(),
+		//		},
+		//	},
+		//},
+		//"Gov vote: yes": {
+		//	sender:             addr1,
+		//	srcContractIBCPort: "myIBCPort",
+		//	srcMsg: wasmvmtypes.CosmosMsg{
+		//		Gov: &wasmvmtypes.GovMsg{
+		//			Vote: &wasmvmtypes.VoteMsg{ProposalId: 1, Vote: wasmvmtypes.Yes},
+		//		},
+		//	},
+		//	output: []sdk.Msg{
+		//		&govtypes.MsgVote{
+		//			ProposalId: 1,
+		//			Voter:      addr1.String(),
+		//			Option:     govtypes.OptionYes,
+		//		},
+		//	},
+		//},
+		//"Gov vote: No": {
+		//	sender:             addr1,
+		//	srcContractIBCPort: "myIBCPort",
+		//	srcMsg: wasmvmtypes.CosmosMsg{
+		//		Gov: &wasmvmtypes.GovMsg{
+		//			Vote: &wasmvmtypes.VoteMsg{ProposalId: 1, Vote: wasmvmtypes.No},
+		//		},
+		//	},
+		//	output: []sdk.Msg{
+		//		&govtypes.MsgVote{
+		//			ProposalId: 1,
+		//			Voter:      addr1.String(),
+		//			Option:     govtypes.OptionNo,
+		//		},
+		//	},
+		//},
+		//"Gov vote: Abstain": {
+		//	sender:             addr1,
+		//	srcContractIBCPort: "myIBCPort",
+		//	srcMsg: wasmvmtypes.CosmosMsg{
+		//		Gov: &wasmvmtypes.GovMsg{
+		//			Vote: &wasmvmtypes.VoteMsg{ProposalId: 10, Vote: wasmvmtypes.Abstain},
+		//		},
+		//	},
+		//	output: []sdk.Msg{
+		//		&govtypes.MsgVote{
+		//			ProposalId: 10,
+		//			Voter:      addr1.String(),
+		//			Option:     govtypes.OptionAbstain,
+		//		},
+		//	},
+		//},
+		//"Gov vote: No with veto": {
+		//	sender:             addr1,
+		//	srcContractIBCPort: "myIBCPort",
+		//	srcMsg: wasmvmtypes.CosmosMsg{
+		//		Gov: &wasmvmtypes.GovMsg{
+		//			Vote: &wasmvmtypes.VoteMsg{ProposalId: 1, Vote: wasmvmtypes.NoWithVeto},
+		//		},
+		//	},
+		//	output: []sdk.Msg{
+		//		&govtypes.MsgVote{
+		//			ProposalId: 1,
+		//			Voter:      addr1.String(),
+		//			Option:     govtypes.OptionNoWithVeto,
+		//		},
+		//	},
+		//},
 	}
 	encodingConfig := MakeEncodingConfig(t)
 	for name, tc := range cases {
 		t.Run(name, func(t *testing.T) {
 			var ctx sdk.Context
-			encoder := DefaultEncoders(encodingConfig.Marshaler, tc.transferPortSource)
+			encoder := DefaultEncoders(encodingConfig.Marshaler.GetProtocMarshal(), tc.transferPortSource)
 			res, err := encoder.Encode(ctx, tc.sender, tc.srcContractIBCPort, tc.srcMsg)
 			if tc.isError {
 				require.Error(t, err)
@@ -606,7 +590,8 @@ func TestConvertWasmCoinToSdkCoin(t *testing.T) {
 				Denom:  "f",
 				Amount: "1",
 			},
-			expErr: true,
+			expErr: false,
+			expVal: sdk.NewCoin("f", sdk.NewIntFromUint64(1)),
 		},
 		"invalid demum char": {
 			src: wasmvmtypes.Coin{
@@ -631,7 +616,11 @@ func TestConvertWasmCoinToSdkCoin(t *testing.T) {
 				return
 			}
 			require.NoError(t, gotErr)
-			assert.Equal(t, spec.expVal, gotVal)
+			got := sdk.Coin{
+				Denom:  gotVal.Denom,
+				Amount: gotVal.Amount.ToDec(),
+			}
+			assert.Equal(t, spec.expVal, got)
 		})
 	}
 }

@@ -5,10 +5,10 @@ import (
 	"reflect"
 
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
 	"github.com/gogo/protobuf/proto"
+	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
 
 const (
@@ -33,7 +33,7 @@ func (c CodeInfo) ValidateBasic() error {
 	if len(c.CodeHash) == 0 {
 		return sdkerrors.Wrap(ErrEmpty, "code hash")
 	}
-	if _, err := sdk.AccAddressFromBech32(c.Creator); err != nil {
+	if _, err := AccAddressFromBech32(c.Creator); err != nil {
 		return sdkerrors.Wrap(err, "creator")
 	}
 	if err := c.InstantiateConfig.ValidateBasic(); err != nil {
@@ -80,11 +80,11 @@ func (c *ContractInfo) ValidateBasic() error {
 	if c.CodeID == 0 {
 		return sdkerrors.Wrap(ErrEmpty, "code id")
 	}
-	if _, err := sdk.AccAddressFromBech32(c.Creator); err != nil {
+	if _, err := AccAddressFromBech32(c.Creator); err != nil {
 		return sdkerrors.Wrap(err, "creator")
 	}
 	if len(c.Admin) != 0 {
-		if _, err := sdk.AccAddressFromBech32(c.Admin); err != nil {
+		if _, err := AccAddressFromBech32(c.Admin); err != nil {
 			return sdkerrors.Wrap(err, "admin")
 		}
 	}
@@ -185,7 +185,7 @@ func (c *ContractInfo) AdminAddr() sdk.AccAddress {
 	if c.Admin == "" {
 		return nil
 	}
-	admin, err := sdk.AccAddressFromBech32(c.Admin)
+	admin, err := AccAddressFromBech32(c.Admin)
 	if err != nil { // should never happen
 		panic(err.Error())
 	}
@@ -280,7 +280,7 @@ func NewEnv(ctx sdk.Context, contractAddr sdk.AccAddress) wasmvmtypes.Env {
 }
 
 // NewInfo initializes the MessageInfo for a contract instance
-func NewInfo(creator sdk.AccAddress, deposit sdk.Coins) wasmvmtypes.MessageInfo {
+func NewInfo(creator sdk.AccAddress, deposit sdk.CoinAdapters) wasmvmtypes.MessageInfo {
 	return wasmvmtypes.MessageInfo{
 		Sender: creator.String(),
 		Funds:  NewWasmCoins(deposit),
@@ -288,7 +288,7 @@ func NewInfo(creator sdk.AccAddress, deposit sdk.Coins) wasmvmtypes.MessageInfo 
 }
 
 // NewWasmCoins translates between Cosmos SDK coins and Wasm coins
-func NewWasmCoins(cosmosCoins sdk.Coins) (wasmCoins []wasmvmtypes.Coin) {
+func NewWasmCoins(cosmosCoins sdk.CoinAdapters) (wasmCoins []wasmvmtypes.Coin) {
 	for _, coin := range cosmosCoins {
 		wasmCoin := wasmvmtypes.Coin{
 			Denom:  coin.Denom,

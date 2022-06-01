@@ -1,20 +1,19 @@
 package rest
 
 import (
+	"github.com/gorilla/mux"
+	"github.com/okex/exchain/x/wasm/ioutils"
 	"net/http"
 	"strconv"
 
-	"github.com/cosmos/cosmos-sdk/client"
-	"github.com/cosmos/cosmos-sdk/client/tx"
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/rest"
-	"github.com/gorilla/mux"
-
-	"github.com/CosmWasm/wasmd/x/wasm/ioutils"
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
+	wasmUtils "github.com/okex/exchain/x/wasm/client/utils"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
-func registerTxRoutes(cliCtx client.Context, r *mux.Router) {
+func registerTxRoutes(cliCtx clientCtx.CLIContext, r *mux.Router) {
 	r.HandleFunc("/wasm/code", storeCodeHandlerFn(cliCtx)).Methods("POST")
 	r.HandleFunc("/wasm/code/{codeId}", instantiateContractHandlerFn(cliCtx)).Methods("POST")
 	r.HandleFunc("/wasm/contract/{contractAddr}", executeContractHandlerFn(cliCtx)).Methods("POST")
@@ -39,10 +38,10 @@ type executeContractReq struct {
 	Amount  sdk.Coins    `json:"coins" yaml:"coins"`
 }
 
-func storeCodeHandlerFn(cliCtx client.Context) http.HandlerFunc {
+func storeCodeHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req storeCodeReq
-		if !rest.ReadRESTReq(w, r, cliCtx.LegacyAmino, &req) {
+		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 			return
 		}
 
@@ -77,14 +76,14 @@ func storeCodeHandlerFn(cliCtx client.Context) http.HandlerFunc {
 			return
 		}
 
-		tx.WriteGeneratedTxResponse(cliCtx, w, req.BaseReq, &msg)
+		wasmUtils.WriteGeneratedTxResponse(cliCtx, w, req.BaseReq, &msg)
 	}
 }
 
-func instantiateContractHandlerFn(cliCtx client.Context) http.HandlerFunc {
+func instantiateContractHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req instantiateContractReq
-		if !rest.ReadRESTReq(w, r, cliCtx.LegacyAmino, &req) {
+		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 			return
 		}
 		vars := mux.Vars(r)
@@ -104,7 +103,7 @@ func instantiateContractHandlerFn(cliCtx client.Context) http.HandlerFunc {
 			Sender: req.BaseReq.From,
 			CodeID: codeID,
 			Label:  req.Label,
-			Funds:  req.Deposit,
+			Funds:  sdk.CoinsToCoinAdapters(req.Deposit),
 			Msg:    req.Msg,
 			Admin:  req.Admin,
 		}
@@ -114,14 +113,14 @@ func instantiateContractHandlerFn(cliCtx client.Context) http.HandlerFunc {
 			return
 		}
 
-		tx.WriteGeneratedTxResponse(cliCtx, w, req.BaseReq, &msg)
+		wasmUtils.WriteGeneratedTxResponse(cliCtx, w, req.BaseReq, &msg)
 	}
 }
 
-func executeContractHandlerFn(cliCtx client.Context) http.HandlerFunc {
+func executeContractHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req executeContractReq
-		if !rest.ReadRESTReq(w, r, cliCtx.LegacyAmino, &req) {
+		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
 			return
 		}
 		vars := mux.Vars(r)
@@ -136,7 +135,7 @@ func executeContractHandlerFn(cliCtx client.Context) http.HandlerFunc {
 			Sender:   req.BaseReq.From,
 			Contract: contractAddr,
 			Msg:      req.ExecMsg,
-			Funds:    req.Amount,
+			Funds:    sdk.CoinsToCoinAdapters(req.Amount),
 		}
 
 		if err := msg.ValidateBasic(); err != nil {
@@ -144,6 +143,6 @@ func executeContractHandlerFn(cliCtx client.Context) http.HandlerFunc {
 			return
 		}
 
-		tx.WriteGeneratedTxResponse(cliCtx, w, req.BaseReq, &msg)
+		wasmUtils.WriteGeneratedTxResponse(cliCtx, w, req.BaseReq, &msg)
 	}
 }

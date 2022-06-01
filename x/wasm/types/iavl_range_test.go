@@ -3,11 +3,11 @@ package types
 import (
 	"testing"
 
-	"github.com/cosmos/cosmos-sdk/store"
-	"github.com/cosmos/cosmos-sdk/store/iavl"
-	iavl2 "github.com/cosmos/iavl"
+	"github.com/okex/exchain/libs/cosmos-sdk/store"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
+	iavl2 "github.com/okex/exchain/libs/iavl"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/stretchr/testify/require"
-	dbm "github.com/tendermint/tm-db"
 )
 
 // This is modeled close to

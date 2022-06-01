@@ -6,21 +6,26 @@ import (
 	"io/ioutil"
 	"testing"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/types/module"
-	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
-	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
-	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	"github.com/dvsekhvalnov/jose2go/base64url"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	authkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
+	bankkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/bank"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	"github.com/okex/exchain/libs/tendermint/libs/kv"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
+	stakingkeeper "github.com/okex/exchain/x/staking/keeper"
+	"github.com/okex/exchain/x/wasm/keeper"
+	"github.com/okex/exchain/x/wasm/types"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	abci "github.com/tendermint/tendermint/abci/types"
-	"github.com/tendermint/tendermint/crypto"
-	"github.com/tendermint/tendermint/crypto/ed25519"
-
-	"github.com/CosmWasm/wasmd/x/wasm/keeper"
-	"github.com/CosmWasm/wasmd/x/wasm/types"
 )
+
+var zeroCoins sdk.Coins
 
 type testData struct {
 	module        module.AppModule
@@ -36,7 +41,7 @@ func setupTest(t *testing.T) testData {
 	ctx, keepers := CreateTestInput(t, false, "iterator,staking,stargate")
 	cdc := keeper.MakeTestCodec(t)
 	data := testData{
-		module:        NewAppModule(cdc, keepers.WasmKeeper, keepers.StakingKeeper, keepers.AccountKeeper, keepers.BankKeeper),
+		module:        NewAppModule(cdc, keepers.WasmKeeper),
 		ctx:           ctx,
 		acctKeeper:    keepers.AccountKeeper,
 		keeper:        *keepers.WasmKeeper,
@@ -71,6 +76,7 @@ var (
 )
 
 func TestHandleCreate(t *testing.T) {
+	types2.UnittestOnlySetMilestoneSaturnHeight(1)
 	cases := map[string]struct {
 		msg     sdk.Msg
 		isValid bool
@@ -114,8 +120,8 @@ func TestHandleCreate(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			data := setupTest(t)
 
-			h := data.module.Route().Handler()
-			q := data.module.LegacyQuerierHandler(nil)
+			h := data.module.NewHandler()
+			q := data.module.NewQuerierHandler()
 
 			res, err := h(data.ctx, tc.msg)
 			if !tc.isValid {
@@ -142,11 +148,12 @@ type state struct {
 }
 
 func TestHandleInstantiate(t *testing.T) {
+	types2.UnittestOnlySetMilestoneSaturnHeight(1)
 	data := setupTest(t)
 	creator := data.faucet.NewFundedAccount(data.ctx, sdk.NewInt64Coin("denom", 100000))
 
-	h := data.module.Route().Handler()
-	q := data.module.LegacyQuerierHandler(nil)
+	h := data.module.NewHandler()
+	q := data.module.NewQuerierHandler()
 
 	msg := &MsgStoreCode{
 		Sender:       creator.String(),
@@ -199,16 +206,17 @@ func TestHandleInstantiate(t *testing.T) {
 }
 
 func TestHandleExecute(t *testing.T) {
+	types2.UnittestOnlySetMilestoneSaturnHeight(1)
 	data := setupTest(t)
-
+	types2.UnittestOnlySetMilestoneSaturnHeight(1)
 	deposit := sdk.NewCoins(sdk.NewInt64Coin("denom", 100000))
 	topUp := sdk.NewCoins(sdk.NewInt64Coin("denom", 5000))
 
 	creator := data.faucet.NewFundedAccount(data.ctx, deposit.Add(deposit...)...)
 	fred := data.faucet.NewFundedAccount(data.ctx, topUp...)
 
-	h := data.module.Route().Handler()
-	q := data.module.LegacyQuerierHandler(nil)
+	h := data.module.NewHandler()
+	q := data.module.NewQuerierHandler()
 
 	msg := &MsgStoreCode{
 		Sender:       creator.String(),
@@ -230,7 +238,7 @@ func TestHandleExecute(t *testing.T) {
 		Sender: creator.String(),
 		CodeID: firstCodeID,
 		Msg:    initMsgBz,
-		Funds:  deposit,
+		Funds:  sdk.CoinsToCoinAdapters(deposit),
 	}
 	res, err = h(data.ctx, &initCmd)
 	require.NoError(t, err)
@@ -238,15 +246,12 @@ func TestHandleExecute(t *testing.T) {
 
 	require.Equal(t, "cosmos14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s4hmalr", contractBech32Addr)
 	// this should be standard x/wasm message event,  init event, plus a bank send event (2), with no custom contract events
-	require.Equal(t, 6, len(res.Events), prettyEvents(res.Events))
+	require.Equal(t, 3, len(res.Events), prettyEvents(res.Events))
 	require.Equal(t, "message", res.Events[0].Type)
 	assertAttribute(t, "module", "wasm", res.Events[0].Attributes[0])
-	require.Equal(t, "coin_spent", res.Events[1].Type)
-	require.Equal(t, "coin_received", res.Events[2].Type)
-	require.Equal(t, "transfer", res.Events[3].Type)
-	require.Equal(t, "instantiate", res.Events[4].Type)
-	require.Equal(t, "wasm", res.Events[5].Type)
-	assertAttribute(t, "_contract_address", contractBech32Addr, res.Events[5].Attributes[0])
+	require.Equal(t, "instantiate", res.Events[1].Type)
+	require.Equal(t, "wasm", res.Events[2].Type)
+	assertAttribute(t, "_contract_address", contractBech32Addr, res.Events[2].Attributes[0])
 
 	// ensure bob doesn't exist
 	bobAcct := data.acctKeeper.GetAccount(data.ctx, bob)
@@ -256,19 +261,19 @@ func TestHandleExecute(t *testing.T) {
 	creatorAcct := data.acctKeeper.GetAccount(data.ctx, creator)
 	require.NotNil(t, creatorAcct)
 	// we started at 2*deposit, should have spent one above
-	assert.Equal(t, deposit, data.bankKeeper.GetAllBalances(data.ctx, creatorAcct.GetAddress()))
+	assert.Equal(t, deposit, bank.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, creatorAcct.GetAddress()))
 
 	// ensure contract has updated balance
 	contractAddr, _ := sdk.AccAddressFromBech32(contractBech32Addr)
 	contractAcct := data.acctKeeper.GetAccount(data.ctx, contractAddr)
 	require.NotNil(t, contractAcct)
-	assert.Equal(t, deposit, data.bankKeeper.GetAllBalances(data.ctx, contractAcct.GetAddress()))
+	assert.Equal(t, deposit, bank.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, contractAcct.GetAddress()))
 
 	execCmd := MsgExecuteContract{
 		Sender:   fred.String(),
 		Contract: contractBech32Addr,
 		Msg:      []byte(`{"release":{}}`),
-		Funds:    topUp,
+		Funds:    sdk.CoinsToCoinAdapters(topUp),
 	}
 	res, err = h(data.ctx, &execCmd)
 	require.NoError(t, err)
@@ -276,50 +281,39 @@ func TestHandleExecute(t *testing.T) {
 	assertExecuteResponse(t, res.Data, []byte{0xf0, 0x0b, 0xaa})
 
 	// this should be standard message event, plus x/wasm init event, plus 2 bank send event, plus a special event from the contract
-	require.Equal(t, 10, len(res.Events), prettyEvents(res.Events))
+	require.Equal(t, 5, len(res.Events), prettyEvents(res.Events))
 
 	assert.Equal(t, "message", res.Events[0].Type)
 	assertAttribute(t, "module", "wasm", res.Events[0].Attributes[0])
-	assert.Equal(t, "coin_spent", res.Events[1].Type)
-	assert.Equal(t, "coin_received", res.Events[2].Type)
 
-	require.Equal(t, "transfer", res.Events[3].Type)
-	require.Len(t, res.Events[3].Attributes, 3)
-	assertAttribute(t, "recipient", contractBech32Addr, res.Events[3].Attributes[0])
-	assertAttribute(t, "sender", fred.String(), res.Events[3].Attributes[1])
-	assertAttribute(t, "amount", "5000denom", res.Events[3].Attributes[2])
-
-	assert.Equal(t, "execute", res.Events[4].Type)
+	assert.Equal(t, "execute", res.Events[1].Type)
 
 	// custom contract event attribute
-	assert.Equal(t, "wasm", res.Events[5].Type)
-	assertAttribute(t, "_contract_address", contractBech32Addr, res.Events[5].Attributes[0])
-	assertAttribute(t, "action", "release", res.Events[5].Attributes[1])
+	assert.Equal(t, "wasm", res.Events[2].Type)
+	assertAttribute(t, "_contract_address", contractBech32Addr, res.Events[2].Attributes[0])
+	assertAttribute(t, "action", "release", res.Events[2].Attributes[1])
 	// custom contract event
-	assert.Equal(t, "wasm-hackatom", res.Events[6].Type)
-	assertAttribute(t, "_contract_address", contractBech32Addr, res.Events[6].Attributes[0])
-	assertAttribute(t, "action", "release", res.Events[6].Attributes[1])
+	assert.Equal(t, "wasm-hackatom", res.Events[3].Type)
+	assertAttribute(t, "_contract_address", contractBech32Addr, res.Events[3].Attributes[0])
+	assertAttribute(t, "action", "release", res.Events[3].Attributes[1])
 	// second transfer (this without conflicting message)
-	assert.Equal(t, "coin_spent", res.Events[7].Type)
-	assert.Equal(t, "coin_received", res.Events[8].Type)
-
-	assert.Equal(t, "transfer", res.Events[9].Type)
-	assertAttribute(t, "recipient", bob.String(), res.Events[9].Attributes[0])
-	assertAttribute(t, "sender", contractBech32Addr, res.Events[9].Attributes[1])
-	assertAttribute(t, "amount", "105000denom", res.Events[9].Attributes[2])
+	assert.Equal(t, "transfer", res.Events[4].Type)
+	assertAttribute(t, "recipient", bob.String(), res.Events[4].Attributes[0])
+	assertAttribute(t, "sender", contractBech32Addr, res.Events[4].Attributes[1])
+	assertAttribute(t, "amount", "105000.000000000000000000denom", res.Events[4].Attributes[2])
 	// finally, standard x/wasm tag
 
 	// ensure bob now exists and got both payments released
 	bobAcct = data.acctKeeper.GetAccount(data.ctx, bob)
 	require.NotNil(t, bobAcct)
-	balance := data.bankKeeper.GetAllBalances(data.ctx, bobAcct.GetAddress())
+	balance := bank.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, bobAcct.GetAddress())
 	assert.Equal(t, deposit.Add(topUp...), balance)
 
 	// ensure contract has updated balance
 
 	contractAcct = data.acctKeeper.GetAccount(data.ctx, contractAddr)
 	require.NotNil(t, contractAcct)
-	assert.Equal(t, sdk.Coins{}, data.bankKeeper.GetAllBalances(data.ctx, contractAcct.GetAddress()))
+	assert.Equal(t, zeroCoins, bank.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, contractAcct.GetAddress()))
 
 	// ensure all contract state is as after init
 	assertCodeList(t, q, data.ctx, 1)
@@ -335,14 +329,15 @@ func TestHandleExecute(t *testing.T) {
 }
 
 func TestHandleExecuteEscrow(t *testing.T) {
+	types2.UnittestOnlySetMilestoneSaturnHeight(1)
 	data := setupTest(t)
-
+	types2.UnittestOnlySetMilestoneSaturnHeight(1)
 	deposit := sdk.NewCoins(sdk.NewInt64Coin("denom", 100000))
 	topUp := sdk.NewCoins(sdk.NewInt64Coin("denom", 5000))
 	creator := data.faucet.NewFundedAccount(data.ctx, deposit.Add(deposit...)...)
 	fred := data.faucet.NewFundedAccount(data.ctx, topUp...)
 
-	h := data.module.Route().Handler()
+	h := data.module.NewHandler()
 
 	msg := &MsgStoreCode{
 		Sender:       creator.String(),
@@ -363,7 +358,7 @@ func TestHandleExecuteEscrow(t *testing.T) {
 		Sender: creator.String(),
 		CodeID: firstCodeID,
 		Msg:    initMsgBz,
-		Funds:  deposit,
+		Funds:  sdk.CoinsToCoinAdapters(deposit),
 	}
 	res, err = h(data.ctx, &initCmd)
 	require.NoError(t, err)
@@ -380,7 +375,7 @@ func TestHandleExecuteEscrow(t *testing.T) {
 		Sender:   fred.String(),
 		Contract: contractBech32Addr,
 		Msg:      handleMsgBz,
-		Funds:    topUp,
+		Funds:    sdk.CoinsToCoinAdapters(topUp),
 	}
 	res, err = h(data.ctx, &execCmd)
 	require.NoError(t, err)
@@ -390,14 +385,14 @@ func TestHandleExecuteEscrow(t *testing.T) {
 	// ensure bob now exists and got both payments released
 	bobAcct := data.acctKeeper.GetAccount(data.ctx, bob)
 	require.NotNil(t, bobAcct)
-	balance := data.bankKeeper.GetAllBalances(data.ctx, bobAcct.GetAddress())
+	balance := bank.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, bobAcct.GetAddress())
 	assert.Equal(t, deposit.Add(topUp...), balance)
 
 	// ensure contract has updated balance
 	contractAddr, _ := sdk.AccAddressFromBech32(contractBech32Addr)
 	contractAcct := data.acctKeeper.GetAccount(data.ctx, contractAddr)
 	require.NotNil(t, contractAcct)
-	assert.Equal(t, sdk.Coins{}, data.bankKeeper.GetAllBalances(data.ctx, contractAcct.GetAddress()))
+	assert.Equal(t, zeroCoins, bank.NewBankKeeperAdapter(data.bankKeeper).GetAllBalances(data.ctx, contractAcct.GetAddress()))
 }
 
 func TestReadWasmConfig(t *testing.T) {
@@ -440,9 +435,14 @@ func TestReadWasmConfig(t *testing.T) {
 	}
 	for msg, spec := range specs {
 		t.Run(msg, func(t *testing.T) {
-			got, err := ReadWasmConfig(spec.src)
+			viper.Reset()
+			for k, v := range spec.src {
+				viper.Set(k, v)
+			}
+			got, err := ReadWasmConfig()
 			require.NoError(t, err)
 			assert.Equal(t, spec.exp, got)
+			viper.Reset()
 		})
 	}
 }
@@ -458,7 +458,7 @@ type prettyEvent struct {
 	Attr []sdk.Attribute
 }
 
-func prettyEvents(evts []abci.Event) string {
+func prettyEvents(evts []sdk.Event) string {
 	res := make([]prettyEvent, len(evts))
 	for i, e := range evts {
 		res[i] = prettyEvent{
@@ -473,7 +473,7 @@ func prettyEvents(evts []abci.Event) string {
 	return string(bz)
 }
 
-func prettyAttrs(attrs []abci.EventAttribute) []sdk.Attribute {
+func prettyAttrs(attrs []kv.Pair) []sdk.Attribute {
 	pretty := make([]sdk.Attribute, len(attrs))
 	for i, a := range attrs {
 		pretty[i] = prettyAttr(a)
@@ -481,11 +481,11 @@ func prettyAttrs(attrs []abci.EventAttribute) []sdk.Attribute {
 	return pretty
 }
 
-func prettyAttr(attr abci.EventAttribute) sdk.Attribute {
+func prettyAttr(attr kv.Pair) sdk.Attribute {
 	return sdk.NewAttribute(string(attr.Key), string(attr.Value))
 }
 
-func assertAttribute(t *testing.T, key string, value string, attr abci.EventAttribute) {
+func assertAttribute(t *testing.T, key string, value string, attr kv.Pair) {
 	t.Helper()
 	assert.Equal(t, key, string(attr.Key), prettyAttr(attr))
 	assert.Equal(t, value, string(attr.Value), prettyAttr(attr))

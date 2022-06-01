@@ -1,8 +1,8 @@
 package wasmtesting
 
 import (
-	storetypes "github.com/cosmos/cosmos-sdk/store/types"
-	sdk "github.com/cosmos/cosmos-sdk/types"
+	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 // MockCommitMultiStore mock with a CacheMultiStore to capture commits
@@ -19,6 +19,10 @@ func (m *MockCommitMultiStore) CacheMultiStore() storetypes.CacheMultiStore {
 type mockCMS struct {
 	sdk.CommitMultiStore
 	committed *bool
+}
+
+func (m *mockCMS) IteratorCache(isdirty bool, cb func(key string, value []byte, isDirty bool, isDelete bool, storeKey storetypes.StoreKey) bool, sKey storetypes.StoreKey) bool {
+	panic("implement me")
 }
 
 func (m *mockCMS) Write() {

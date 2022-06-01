@@ -1,11 +1,11 @@
 package keeper
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	abci "github.com/tendermint/tendermint/abci/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 // ValidatorSetSource is a subset of the staking keeper
@@ -16,7 +16,7 @@ type ValidatorSetSource interface {
 // InitGenesis sets supply information for genesis.
 //
 // CONTRACT: all types of accounts must have been already initialized/created
-func InitGenesis(ctx sdk.Context, keeper *Keeper, data types.GenesisState, stakingKeeper ValidatorSetSource, msgHandler sdk.Handler) ([]abci.ValidatorUpdate, error) {
+func InitGenesis(ctx sdk.Context, keeper *Keeper, data types.GenesisState, msgHandler sdk.Handler) ([]abci.ValidatorUpdate, error) {
 	contractKeeper := NewGovPermissionKeeper(keeper)
 	keeper.SetParams(ctx, data.Params)
 	var maxCodeID uint64
@@ -78,7 +78,7 @@ func InitGenesis(ctx sdk.Context, keeper *Keeper, data types.GenesisState, staki
 			return nil, sdkerrors.Wrap(err, "genesis")
 		}
 	}
-	return stakingKeeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	return nil, nil
 }
 
 // ExportGenesis returns a GenesisState for a given context and keeper.

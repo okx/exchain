@@ -5,11 +5,11 @@ import (
 	"reflect"
 	"strconv"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	sdkerrors "github.com/cosmos/cosmos-sdk/types/errors"
-	abci "github.com/tendermint/tendermint/abci/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 
-	"github.com/CosmWasm/wasmd/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/types"
 )
 
 const (
@@ -107,7 +107,7 @@ func queryContractState(ctx sdk.Context, bech, queryMethod string, data []byte, 
 		return keeper.QueryRaw(ctx, contractAddr, data), nil
 	case QueryMethodContractStateSmart:
 		// we enforce a subjective gas limit on all queries to avoid infinite loops
-		ctx = ctx.WithGasMeter(sdk.NewGasMeter(gasLimit))
+		ctx.SetGasMeter(sdk.NewGasMeter(gasLimit))
 		msg := types.RawContractMessage(data)
 		if err := msg.ValidateBasic(); err != nil {
 			return nil, sdkerrors.Wrap(err, "json msg")
