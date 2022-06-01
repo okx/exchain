@@ -174,18 +174,7 @@ func (store *Store) Write() {
 	}
 
 	// Clear the cache
-	for key := range store.dirty {
-		delete(store.dirty, key)
-	}
-
-	for Key := range store.readList {
-		delete(store.readList, Key)
-	}
-	for key := range store.unsortedCache {
-		delete(store.unsortedCache, key)
-	}
-
-	store.sortedCache.Init()
+	store.clearCache()
 }
 
 func (store *Store) preWrite(keys []string) {
@@ -230,18 +219,7 @@ func (store *Store) writeToCacheKv(parent *Store) {
 	}
 
 	// Clear the cache
-	for key := range store.dirty {
-		delete(store.dirty, key)
-	}
-
-	for Key := range store.readList {
-		delete(store.readList, Key)
-	}
-	for key := range store.unsortedCache {
-		delete(store.unsortedCache, key)
-	}
-
-	store.sortedCache.Init()
+	store.clearCache()
 }
 
 //go:noinline
@@ -403,18 +381,7 @@ func (store *Store) Reset(parent types.KVStore) {
 
 	store.preChangesHandler = nil
 	store.parent = parent
-	for key := range store.dirty {
-		delete(store.dirty, key)
-	}
-
-	for Key := range store.readList {
-		delete(store.readList, Key)
-	}
-	for key := range store.unsortedCache {
-		delete(store.unsortedCache, key)
-	}
-
-	store.sortedCache.Init()
+	store.clearCache()
 
 	store.mtx.Unlock()
 }
@@ -422,17 +389,6 @@ func (store *Store) Reset(parent types.KVStore) {
 // Clear will clear all internal data without writing to the parent.
 func (store *Store) Clear() {
 	store.mtx.Lock()
-	for key := range store.dirty {
-		delete(store.dirty, key)
-	}
-
-	for Key := range store.readList {
-		delete(store.readList, Key)
-	}
-	for key := range store.unsortedCache {
-		delete(store.unsortedCache, key)
-	}
-
-	store.sortedCache.Init()
+	store.clearCache()
 	store.mtx.Unlock()
 }
