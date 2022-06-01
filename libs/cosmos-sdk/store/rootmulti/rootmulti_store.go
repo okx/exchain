@@ -229,6 +229,7 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 			if err != nil {
 				return 0, err
 			}
+			log.Println(fmt.Sprintf("lcm load db: %s, version : %d", storeParams.key.Name(), commitVersion))
 
 			// filter block modules {}
 			if filter(storeParams.key.Name(), commitVersion, nil, rs.commitFilters) {
