@@ -65,7 +65,9 @@ func (cs *State) receiveRoutine(maxSteps int) {
 		case <-cs.txNotifier.TxsAvailable():
 			cs.handleTxsAvailable()
 		case mi = <-cs.peerMsgQueue:
-			if _, ok := mi.Msg.(*ViewChangeMessage); !ok {
+			_, ok1 := mi.Msg.(*ViewChangeMessage)
+			_, ok2 := mi.Msg.(*BlockPartMessage)
+			if !ok1 && !ok2 {
 				cs.wal.Write(mi)
 			}
 			// handles proposals, block parts, votes
@@ -161,6 +163,7 @@ func (cs *State) handleMsg(mi msgInfo) {
 		}
 
 		if added {
+			cs.wal.Write(mi)
 			cs.statsMsgQueue <- mi
 		}
 
@@ -233,7 +236,7 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 		// XXX: should we fire timeout here (for timeout commit)?
 		cs.enterNewHeight(ti.Height)
 	case cstypes.RoundStepNewRound:
-		cs.enterPropose(ti.Height, 0, false)
+		cs.enterPropose(ti.Height, 0)
 	case cstypes.RoundStepPropose:
 		cs.eventBus.PublishEventTimeoutPropose(cs.RoundStateEvent())
 		cs.enterPrevote(ti.Height, ti.Round)
@@ -324,6 +327,6 @@ func (cs *State) handleTxsAvailable() {
 		timeoutCommit := cs.StartTime.Sub(tmtime.Now()) + 1*time.Millisecond
 		cs.scheduleTimeout(timeoutCommit, cs.Height, 0, cstypes.RoundStepNewRound)
 	case cstypes.RoundStepNewRound: // after timeoutCommit
-		cs.enterPropose(cs.Height, 0, false)
+		cs.enterPropose(cs.Height, 0)
 	}
 }

@@ -49,9 +49,8 @@ func (cs *State) enterNewRound(height int64, round int) {
 	// we don't fire newStep for this step,
 	// but we fire an event, so update the round step first
 	cs.updateRoundStep(round, cstypes.RoundStepNewRound)
-	cs.stateMtx.Lock()
+	cs.hasVC = false
 	cs.Validators = validators
-	cs.stateMtx.Unlock()
 	if round == 0 {
 		// We've already reset these upon new height,
 		// and meanwhile we might have received a proposal
@@ -78,7 +77,7 @@ func (cs *State) enterNewRound(height int64, round int) {
 				cstypes.RoundStepNewRound)
 		}
 	} else {
-		cs.enterPropose(height, round, false)
+		cs.enterPropose(height, round)
 	}
 }
 
@@ -103,6 +102,7 @@ func (cs *State) enterNewRoundAVC(height int64, round int, val *types.Validator)
 	// we don't fire newStep for this step,
 	// but we fire an event, so update the round step first
 	cs.updateRoundStep(round, cstypes.RoundStepNewRound)
+	cs.hasVC = true
 	cs.Validators.Proposer = val
 	logger.Info("Resetting Proposal info")
 	cs.Proposal = nil
@@ -125,7 +125,7 @@ func (cs *State) enterNewRoundAVC(height int64, round int, val *types.Validator)
 				cstypes.RoundStepNewRound)
 		}
 	} else {
-		cs.enterPropose(height, round, true)
+		cs.enterPropose(height, round)
 	}
 }
 
