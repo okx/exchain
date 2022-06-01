@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"sort"
 	"sync"
 
@@ -80,6 +81,7 @@ func NewMutableTreeWithOpts(db dbm.DB, cacheSize int, opts *Options) (*MutableTr
 	}
 	var tree *MutableTree
 	if savedTree, ok := treeMap.getTree(ndb.name); ok {
+		log.Println(fmt.Sprintf("lcm get saved tree : %s, version : %d", savedTree.GetModuleName(), savedTree.version))
 		tree = savedTree
 	} else {
 		tree = &MutableTree{
@@ -99,6 +101,7 @@ func NewMutableTreeWithOpts(db dbm.DB, cacheSize int, opts *Options) (*MutableTr
 			lastPersistHeight: initVersion,
 			upgradeVersion:    -1,
 		}
+		log.Println(fmt.Sprintf("lcm new tree : %s, version : %d", tree.GetModuleName(), tree.version))
 	}
 
 	if tree.historyStateNum < minHistoryStateNum {
