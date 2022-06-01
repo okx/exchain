@@ -87,9 +87,7 @@ func RepairState(ctx *server.Context, onStart bool) {
 	// create proxy app
 	proxyApp, repairApp, err := createRepairApp(ctx)
 	panicError(err)
-	defer func() {
-		repairApp.Close()
-	}()
+	defer repairApp.Close()
 
 	// get async commit version
 	commitVersion, err := repairApp.GetCommitVersion()
@@ -326,8 +324,5 @@ func createAndStartProxyAppConns(clientCreator proxy.ClientCreator) (proxy.AppCo
 func (app *repairApp) Close() {
 	err := app.db.Close()
 	panicError(err)
-	if indexer := evmtypes.GetIndexer(); indexer != nil {
-		err = indexer.GetDB().Close()
-		panicError(err)
-	}
+	evmtypes.CloseIndexer()
 }
