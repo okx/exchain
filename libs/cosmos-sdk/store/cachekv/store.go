@@ -222,9 +222,7 @@ func (store *Store) writeToCacheKv(parent *Store) {
 	store.clearCache()
 }
 
-//go:noinline
 func (store *Store) clearCache() {
-	// https://github.com/golang/go/issues/53157
 	// https://github.com/golang/go/issues/20138
 	for key := range store.dirty {
 		delete(store.dirty, key)
