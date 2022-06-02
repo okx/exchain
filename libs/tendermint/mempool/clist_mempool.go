@@ -573,7 +573,7 @@ func (mem *CListMempool) consumePendingTx(address string, nonce uint64) {
 		}
 
 		mem.logger.Info("Added good transaction",
-			"tx", txID(mempoolTx.tx, mempoolTx.height),
+			"tx", txIDStringer{mempoolTx.tx, mempoolTx.height},
 			"height", mempoolTx.height,
 			"total", mem.Size(),
 		)
@@ -647,7 +647,7 @@ func (mem *CListMempool) resCbFirstTime(
 
 			if err == nil {
 				mem.logger.Info("Added good transaction",
-					"tx", txID(tx, mem.height),
+					"tx", txIDStringer{tx, mem.height},
 					"res", r,
 					"height", memTx.height,
 					"total", mem.Size(),
@@ -656,7 +656,7 @@ func (mem *CListMempool) resCbFirstTime(
 			} else {
 				// ignore bad transaction
 				mem.logger.Info("Fail to add transaction into mempool, rejected it",
-					"tx", txID(tx, mem.height), "peerID", txInfo.SenderP2PID, "res", r, "err", postCheckErr)
+					"tx", txIDStringer{tx, mem.height}, "peerID", txInfo.SenderP2PID, "res", r, "err", postCheckErr)
 				mem.metrics.FailedTxs.Add(1)
 				// remove from cache (it might be good later)
 				mem.cache.Remove(tx)
@@ -667,7 +667,7 @@ func (mem *CListMempool) resCbFirstTime(
 		} else {
 			// ignore bad transaction
 			mem.logger.Info("Rejected bad transaction",
-				"tx", txID(tx, mem.height), "peerID", txInfo.SenderP2PID, "res", r, "err", postCheckErr)
+				"tx", txIDStringer{tx, mem.height}, "peerID", txInfo.SenderP2PID, "res", r, "err", postCheckErr)
 			mem.metrics.FailedTxs.Add(1)
 			// remove from cache (it might be good later)
 			mem.cache.Remove(tx)
@@ -700,7 +700,7 @@ func (mem *CListMempool) resCbRecheck(req *abci.Request, res *abci.Response) {
 			// Good, nothing to do.
 		} else {
 			// Tx became invalidated due to newly committed block.
-			mem.logger.Info("Tx is no longer valid", "tx", txID(tx, memTx.height), "res", r, "err", postCheckErr)
+			mem.logger.Info("Tx is no longer valid", "tx", txIDStringer{tx, memTx.height}, "res", r, "err", postCheckErr)
 			// NOTE: we remove tx from the cache because it might be good later
 			mem.cache.Remove(tx)
 			mem.removeTx(mem.recheckCursor)
@@ -1109,6 +1109,15 @@ func (nopTxCache) Remove(types.Tx)    {}
 func txKey(tx types.Tx) (retHash [sha256.Size]byte) {
 	copy(retHash[:], tx.Hash(types.GetVenusHeight())[:sha256.Size])
 	return
+}
+
+type txIDStringer struct {
+	tx     []byte
+	height int64
+}
+
+func (txs txIDStringer) String() string {
+	return amino.HexEncodeToStringUpper(types.Tx(txs.tx).Hash(txs.height))
 }
 
 // txID is the hex encoded hash of the bytes as a types.Tx.
