@@ -6,7 +6,33 @@ import (
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 )
+
+var (
+	_ ibcmsg.Msg = (*ProtobufMsgSubmitProposal)(nil)
+)
+
+func NewProtobufMsgSubmitProposal(content ContentAdapter, initialDeposit sdk.SysCoins, proposer sdk.AccAddress) ProtobufMsgSubmitProposal {
+	any, err := PackContent(content)
+	if nil != err {
+		// cant happen
+		panic(err)
+	}
+	cs := make(sdk.CoinAdapters, 0)
+	for _, c := range initialDeposit {
+		cs = append(cs, sdk.CoinAdapter{
+			Denom:  c.Denom,
+			Amount: sdk.NewIntFromBigInt(c.Amount.BigInt()),
+		})
+	}
+	ret := ProtobufMsgSubmitProposal{
+		Content:        any,
+		InitialDeposit: cs,
+		Proposer:       proposer.String(),
+	}
+	return ret
+}
 
 func PackContent(c ContentAdapter) (*codectypes.Any, error) {
 	msg, ok := c.(proto.Message)

@@ -76,7 +76,7 @@ func (cup *ClientUpdateProposal) ValidateBasic() error {
 // }
 
 // NewUpgradeProposal creates a new IBC breaking upgrade proposal.
-func NewUpgradeProposal(title, description string, plan types.Plan, upgradedClientState exported.ClientState) (govtypes.Content, error) {
+func NewUpgradeProposal(title, description string, plan types.Plan, upgradedClientState exported.ClientState) (*UpgradeProposal, error) {
 	any, err := PackClientState(upgradedClientState)
 	if err != nil {
 		return nil, err

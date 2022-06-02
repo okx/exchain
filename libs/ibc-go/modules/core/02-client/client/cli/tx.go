@@ -372,7 +372,7 @@ func NewCmdSubmitUpgradeProposal(m *codec.CodecProxy, reg interfacetypes.Interfa
 			if err != nil {
 				return err
 			}
-			msg := govtypes.NewMsgSubmitProposal(content, deposit, from)
+			msg := govtypes.NewProtobufMsgSubmitProposal(content, deposit, from)
 
 			if err = msg.ValidateBasic(); err != nil {
 				return err
