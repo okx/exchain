@@ -1016,13 +1016,14 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 
 	params, err := api.getEvmParams()
 	if err != nil {
-		return 0, fmt.Errorf("eth_estimateGas get evm params error %v", err)
+		return 0, TransformDataError(err, "eth_estimateGas")
 	}
 	maxGasLimitPerTx := params.MaxGasLimitPerTx
 
 	estimatedGas := simResponse.GasInfo.GasUsed
 	if estimatedGas > maxGasLimitPerTx {
-		return 0, fmt.Errorf("out of gas: estimate gas is %v greater than system max gas limit per tx %v", estimatedGas, maxGasLimitPerTx)
+		errMsg := fmt.Sprintf("estimate gas %v greater than system max gas limit per tx %v", estimatedGas, maxGasLimitPerTx)
+		return 0, TransformDataError(sdk.ErrOutOfGas(errMsg), "eth_estimateGas")
 	}
 	gasBuffer := estimatedGas / 100 * config.GetOecConfig().GetGasLimitBuffer()
 	gas := estimatedGas + gasBuffer
