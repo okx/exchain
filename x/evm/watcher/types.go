@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -431,7 +432,8 @@ func (m MsgCodeByHash) GetValue() string {
 }
 
 type MsgTransactionReceipt struct {
-	*baseLazyMarshal
+	//*baseLazyMarshal
+	*TransactionReceipt
 	txHash []byte
 }
 
@@ -440,34 +442,49 @@ func (m MsgTransactionReceipt) GetType() uint32 {
 }
 
 type TransactionReceipt struct {
-	Status            hexutil.Uint64  `json:"status"`
-	CumulativeGasUsed hexutil.Uint64  `json:"cumulativeGasUsed"`
-	LogsBloom         ethtypes.Bloom  `json:"logsBloom"`
-	Logs              []*ethtypes.Log `json:"logs"`
-	TransactionHash   string          `json:"transactionHash"`
-	ContractAddress   *common.Address `json:"contractAddress"`
-	GasUsed           hexutil.Uint64  `json:"gasUsed"`
-	BlockHash         string          `json:"blockHash"`
-	BlockNumber       hexutil.Uint64  `json:"blockNumber"`
-	TransactionIndex  hexutil.Uint64  `json:"transactionIndex"`
-	From              string          `json:"from"`
-	To                *common.Address `json:"to"`
+	Status                hexutil.Uint64       `json:"status"`
+	CumulativeGasUsed     hexutil.Uint64       `json:"cumulativeGasUsed"`
+	LogsBloom             ethtypes.Bloom       `json:"logsBloom"`
+	Logs                  []*ethtypes.Log      `json:"logs"`
+	originTransactionHash common.Hash          `json:"-"`
+	TransactionHash       string               `json:"transactionHash"`
+	ContractAddress       *common.Address      `json:"contractAddress"`
+	GasUsed               hexutil.Uint64       `json:"gasUsed"`
+	originBlockHash       common.Hash          `json:"-"`
+	BlockHash             string               `json:"blockHash"`
+	BlockNumber           hexutil.Uint64       `json:"blockNumber"`
+	TransactionIndex      hexutil.Uint64       `json:"transactionIndex"`
+	tx                    *types.MsgEthereumTx `json:"-"`
+	From                  string               `json:"from"`
+	To                    *common.Address      `json:"to"`
+}
+
+func (tr *TransactionReceipt) GetValue() string {
+	tr.TransactionHash = types.EthHashStringer(tr.originTransactionHash).String()
+	tr.BlockHash = types.EthHashStringer(tr.originBlockHash).String()
+	tr.From = types.EthAddressStringer(common.BytesToAddress(tr.tx.AccountAddress().Bytes())).String()
+	tr.To = tr.tx.To()
+	buf, err := json.Marshal(tr)
+	if err != nil {
+		panic("cant happen")
+	}
+
+	return string(buf)
 }
 
 func NewEvmTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, blockHash common.Hash, txIndex, height uint64, data *types.ResultData, cumulativeGas, GasUsed uint64) *MsgTransactionReceipt {
 	tr := TransactionReceipt{
-		Status:            hexutil.Uint64(status),
-		CumulativeGasUsed: hexutil.Uint64(cumulativeGas),
-		LogsBloom:         data.Bloom,
-		Logs:              data.Logs,
-		TransactionHash:   types.EthHashStringer(txHash).String(),
-		ContractAddress:   &data.ContractAddress,
-		GasUsed:           hexutil.Uint64(GasUsed),
-		BlockHash:         types.EthHashStringer(blockHash).String(),
-		BlockNumber:       hexutil.Uint64(height),
-		TransactionIndex:  hexutil.Uint64(txIndex),
-		From:              types.EthAddressStringer(common.BytesToAddress(tx.AccountAddress().Bytes())).String(),
-		To:                tx.To(),
+		Status:                hexutil.Uint64(status),
+		CumulativeGasUsed:     hexutil.Uint64(cumulativeGas),
+		LogsBloom:             data.Bloom,
+		Logs:                  data.Logs,
+		originTransactionHash: txHash,
+		ContractAddress:       &data.ContractAddress,
+		GasUsed:               hexutil.Uint64(GasUsed),
+		originBlockHash:       blockHash,
+		BlockNumber:           hexutil.Uint64(height),
+		TransactionIndex:      hexutil.Uint64(txIndex),
+		tx:                    tx,
 	}
 
 	//contract address will be set to 0x0000000000000000000000000000000000000000 if contract deploy failed
@@ -475,7 +492,7 @@ func NewEvmTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, bl
 		//set to nil to keep sync with ethereum rpc
 		tr.ContractAddress = nil
 	}
-	return &MsgTransactionReceipt{txHash: txHash.Bytes(), baseLazyMarshal: newBaseLazyMarshal(tr)}
+	return &MsgTransactionReceipt{txHash: txHash.Bytes(), TransactionReceipt: &tr}
 }
 
 func (m MsgTransactionReceipt) GetKey() []byte {
