@@ -143,7 +143,7 @@ $ %s tx gov submit-proposal --title="Test Proposal" --description="My awesome pr
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
-	cmd.Flags().String(flagProposal, "false", "protobuf msg")
+	cmd.Flags().String(flagProtobuf, "false", "protobuf msg")
 	cmd.Flags().String(flagTitle, "", "title of proposal")
 	cmd.Flags().String(flagDescription, "", "description of proposal")
 	cmd.Flags().String(flagProposalType, "",

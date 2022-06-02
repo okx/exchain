@@ -1,6 +1,7 @@
 package types
 
 import (
+	"github.com/gogo/protobuf/proto"
 	"strings"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -11,6 +12,11 @@ const (
 	MaxDescriptionLength int = 5000
 	MaxTitleLength       int = 140
 )
+
+type ContentAdapter interface {
+	proto.Message
+	Content
+}
 
 // Content defines an interface that a proposal must implement. It contains
 // information such as the title and description along with the type and routing
