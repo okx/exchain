@@ -3,6 +3,7 @@ package iavl
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"math"
 	"sort"
 	"strings"
@@ -551,6 +552,7 @@ func (ndb *nodeDB) getRoots() (map[int64][]byte, error) {
 	ndb.traversePrefix(rootKeyFormat.Key(), func(k, v []byte) {
 		var version int64
 		rootKeyFormat.Scan(k, &version)
+		log.Println("lcm getRoots key :", version)
 		roots[version] = v
 	})
 	return roots, nil
