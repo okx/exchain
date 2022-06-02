@@ -420,18 +420,18 @@ func (mem *CListMempool) reqResCb(
 func (mem *CListMempool) addAndSortTx(memTx *mempoolTx) error {
 
 	// Replace the same Nonce transaction from the same account
-	elem := mem.addressRecord.checkRepeatedAndAddItem(memTx, int64(mem.config.TxPriceBump))
+	elem := mem.addressRecord.checkRepeatedAndAddItem(memTx, int64(mem.config.TxPriceBump), mem.txs.InsertElement)
 	if elem == nil {
 		return errors.New(fmt.Sprintf("Failed to replace tx for acccount %s with nonce %d, "+
 			"the provided gas price %d is not bigger enough", memTx.from, memTx.realTx.GetNonce(), memTx.realTx.GetGasPrice()))
 	}
 
-	mem.txs.InsertElement(elem)
-	mem.txsMap.Store(txKey(memTx.tx), elem)
+	txHash := txKey(memTx.tx)
+	mem.txsMap.Store(txHash, elem)
 	atomic.AddInt64(&mem.txsBytes, int64(len(memTx.tx)))
 
 	ele := mem.bcTxsList.PushBack(memTx)
-	mem.bcTxsMap.Store(txKey(memTx.tx), ele)
+	mem.bcTxsMap.Store(txHash, ele)
 
 	mem.metrics.TxSizeBytes.Observe(float64(len(memTx.tx)))
 	mem.eventBus.PublishEventPendingTx(types.EventDataTx{TxResult: types.TxResult{
@@ -458,7 +458,7 @@ func (mem *CListMempool) reorganizeElements(items []*clist.CElement) {
 	// resulting in execution failure
 	sort.Slice(items, func(i, j int) bool { return items[i].Nonce < items[j].Nonce })
 
-	for _, item := range items {
+	for _, item := range items[1:] {
 		mem.txs.DetachElement(item)
 		item.NewDetachPrev()
 		item.NewDetachNext()
@@ -498,8 +498,9 @@ func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 // 	- resCbRecheck (lock not held) if tx was invalidated
 func (mem *CListMempool) removeTx(elem *clist.CElement, ignoreAddressRecord ...bool) {
 	tx := elem.Value.(*mempoolTx).tx
+	txHash := txKey(tx)
 	if mem.config.SortTxByGp {
-		if e, ok := mem.bcTxsMap.LoadAndDelete(txKey(tx)); ok {
+		if e, ok := mem.bcTxsMap.LoadAndDelete(txHash); ok {
 			tmpEle := e.(*clist.CElement)
 			mem.bcTxsList.Remove(tmpEle)
 			tmpEle.DetachPrev()
@@ -513,7 +514,7 @@ func (mem *CListMempool) removeTx(elem *clist.CElement, ignoreAddressRecord ...b
 		mem.addressRecord.DeleteItem(elem)
 	}
 
-	mem.txsMap.Delete(txKey(tx))
+	mem.txsMap.Delete(txHash)
 	atomic.AddInt64(&mem.txsBytes, int64(-len(tx)))
 }
 
@@ -610,6 +611,8 @@ func (mem *CListMempool) resCbFirstTime(
 			// limits.
 			if err := mem.isFull(len(tx)); err != nil {
 				mem.logger.Error(err.Error())
+				r.CheckTx.Code = 1
+				r.CheckTx.Log = err.Error()
 				return
 			}
 
@@ -620,7 +623,11 @@ func (mem *CListMempool) resCbFirstTime(
 			//	return
 			//}
 			if r.CheckTx.Tx.GetGasPrice().Sign() <= 0 {
-				mem.logger.Error("Failed to get extra info for this tx!")
+				mem.cache.Remove(tx)
+				errMsg := "Failed to get extra info for this tx!"
+				mem.logger.Error(errMsg)
+				r.CheckTx.Code = 1
+				r.CheckTx.Log = errMsg
 				return
 			}
 
@@ -1049,11 +1056,12 @@ func (cache *mapTxCache) Reset() {
 // Push adds the given tx to the cache and returns true. It returns
 // false if tx is already in the cache.
 func (cache *mapTxCache) Push(tx types.Tx) bool {
+	// Use the tx hash in the cache
+	txHash := txKey(tx)
+
 	cache.mtx.Lock()
 	defer cache.mtx.Unlock()
 
-	// Use the tx hash in the cache
-	txHash := txKey(tx)
 	if moved, exists := cache.cacheMap[txHash]; exists {
 		cache.list.MoveToBack(moved)
 		return false
@@ -1074,8 +1082,9 @@ func (cache *mapTxCache) Push(tx types.Tx) bool {
 
 // Remove removes the given tx from the cache.
 func (cache *mapTxCache) Remove(tx types.Tx) {
-	cache.mtx.Lock()
 	txHash := txKey(tx)
+
+	cache.mtx.Lock()
 	popped := cache.cacheMap[txHash]
 	delete(cache.cacheMap, txHash)
 	if popped != nil {

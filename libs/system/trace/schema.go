@@ -6,11 +6,11 @@ const (
 	TxDecoder = "TxDecoder"
 
 	//----- RunTx details
-	ValTxMsgs   = "valTxMsgs"
-	RunAnte     = "RunAnte"
-	RunMsg      = "RunMsg"
-	Refund      = "refund"
-	EvmHandler  = "EvmHandler"
+	ValTxMsgs  = "valTxMsgs"
+	RunAnte    = "RunAnte"
+	RunMsg     = "RunMsg"
+	Refund     = "refund"
+	EvmHandler = "EvmHandler"
 
 	//------ RunAnte details
 	CacheTxContext  = "cacheTxContext"
@@ -30,7 +30,6 @@ const (
 	HandlerDefer = "handler_defer"
 )
 
-
 const (
 	GasUsed          = "GasUsed"
 	Produce          = "Produce"
@@ -41,33 +40,40 @@ const (
 	Elapsed          = "Elapsed"
 	CommitRound      = "CommitRound"
 	Round            = "Round"
+	BlockParts       = "BlockParts"
 	Evm              = "Evm"
 	Iavl             = "Iavl"
 	FlatKV           = "FlatKV"
-	WtxRatio         = "WtxRatio"
+	//RecvBlock        = "RecvBlock"
+	First2LastPart   = "First2LastPart"
+
 	SigCacheRatio    = "SigCacheRatio"
 	DeliverTxs       = "DeliverTxs"
 	EvmHandlerDetail = "EvmHandlerDetail"
 	RunAnteDetail    = "RunAnteDetail"
 	AnteChainDetail  = "AnteChainDetail"
 
-	Delta = "Delta"
+	Delta      = "Delta"
 	InvalidTxs = "InvalidTxs"
 
 	Abci       = "abci"
 	SaveResp   = "saveResp"
 	Persist    = "persist"
 	SaveState  = "saveState"
-	Evpool     = "evpool"
-	FireEvents = "fireEvents"
 	ApplyBlock = "ApplyBlock"
 	Consensus  = "Consensus"
+	LastBlockTime  = "LastBlockTime"
+	TimeoutInterval  = "TimeoutInterval"
 
-	MempoolCheckTxCnt    = "checkTxCnt"
-	MempoolTxsCnt        = "mempoolTxsCnt"
+	MempoolCheckTxCnt    = "CheckTx"
+	MempoolTxsCnt        = "MempoolTxs"
 
+	CompressBlock   = "Compress"
+	UncompressBlock = "Uncompress"
 	Prerun               = "Prerun"
 	IavlRuntime          = "IavlRuntime"
+
+	BlockPartsP2P = "BlockPartsP2P"
 )
 
 const (
@@ -84,10 +90,10 @@ var (
 		"AddPreimage", "AddRefund", "SubRefund", "AddAddressToAccessList", "AddSlotToAccessList",
 		"PrepareAccessList", "AddressInAccessList", "Suicide", "CreateAccount", "ForEachStorage"}
 
-	STATEDB_READ  = []string{"SlotInAccessList", "GetBalance", "GetNonce", "GetCode", "GetCodeSize",
+	STATEDB_READ = []string{"SlotInAccessList", "GetBalance", "GetNonce", "GetCode", "GetCodeSize",
 		"GetCodeHash", "GetState", "GetCommittedState", "GetRefund",
 		"HasSuicided", "Snapshot", "RevertToSnapshot", "Empty", "Exist"}
 
-	EVM_OPER      = []string{EVMCORE}
-	dbOper        *DbRecord
+	EVM_OPER = []string{EVMCORE}
+	dbOper   *DbRecord
 )

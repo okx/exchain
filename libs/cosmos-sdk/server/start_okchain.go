@@ -37,7 +37,6 @@ const (
 	FlagCORS               = "cors"
 	FlagMaxOpenConnections = "max-open"
 	FlagHookstartInProcess = "startInProcess"
-	FlagWebsocket          = "wsport"
 	FlagWsMaxConnections   = "ws.max_connections"
 	FlagWsSubChannelLength = "ws.sub_channel_length"
 )
@@ -189,9 +188,13 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Int(tmtypes.FlagBufferSize, 10, "delta buffer size")
 	cmd.Flags().String(FlagLogServerUrl, "", "log server url")
 	cmd.Flags().Int(tmtypes.FlagDeltaVersion, tmtypes.DeltaVersion, "Specify delta version")
+	cmd.Flags().Int(tmtypes.FlagBlockCompressType, 0, "block compress type. 0|1|2|3")
+	cmd.Flags().Int(tmtypes.FlagBlockCompressFlag, 0, "block compress flag. 0|1|2")
+	cmd.Flags().Int(tmtypes.FlagBlockCompressThreshold, 1024000, "Compress only if block size exceeds the threshold.")
+	cmd.Flags().Bool(FlagActiveViewChange, false, "Enable active view change")
 
 	cmd.Flags().Int(iavl.FlagIavlCacheSize, 1000000, "Max size of iavl cache")
-	cmd.Flags().Float64(tmiavl.FlagIavlCacheInitRatio, 0, "iavl cache init ratio, 0.0~1.0, default is 0, iavl cache map would be init with (cache size * init ratio)")
+	cmd.Flags().Float64(tmiavl.FlagIavlCacheInitRatio, 1, "iavl cache init ratio, 0.0~1.0, default is 0, iavl cache map would be init with (cache size * init ratio)")
 	cmd.Flags().StringToInt(tmiavl.FlagOutputModules, map[string]int{"evm": 1, "acc": 1}, "decide which module in iavl to be printed")
 	cmd.Flags().Int64(tmiavl.FlagIavlCommitIntervalHeight, 100, "Max interval to commit node cache into leveldb")
 	cmd.Flags().Int64(tmiavl.FlagIavlMinCommitItemCount, 1000000, "Min nodes num to triggle node cache commit")
@@ -205,7 +208,7 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().MarkHidden(abci.FlagCloseMutex)
 	cmd.Flags().Bool(FlagExportKeystore, false, "export keystore file when call newaccount ")
 	cmd.Flags().Bool(system.FlagEnableGid, false, "Display goroutine id in log")
-
+	cmd.Flags().Int(FlagBlockPartSizeBytes, 65536, "Size of one block part by byte")
 	cmd.Flags().Int(state.FlagApplyBlockPprofTime, -1, "time(ms) of executing ApplyBlock, if it is higher than this value, save pprof")
 
 	cmd.Flags().Float64Var(&baseapp.GasUsedFactor, baseapp.FlagGasUsedFactor, 0.4, "factor to calculate history gas used")
@@ -239,7 +242,6 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
 	cmd.Flags().String(FlagCORS, "", "Set the rest-server domains that can make CORS requests (* for all)")
 	cmd.Flags().Int(FlagMaxOpenConnections, 1000, "The number of maximum open connections of rest-server")
-	cmd.Flags().String(FlagWebsocket, "8546", "websocket port to listen to")
 	cmd.Flags().Int(FlagWsMaxConnections, 20000, "the max capacity number of websocket client connections")
 	cmd.Flags().Int(FlagWsSubChannelLength, 100, "the length of subscription channel")
 	cmd.Flags().String(flags.FlagChainID, "", "Chain ID of tendermint node for web3")
@@ -251,9 +253,8 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().UintVar(&mpt.TrieCacheSize, mpt.FlagTrieCacheSize, 2048, "Size (MB) to cache trie nodes")
 	cmd.Flags().UintVar(&mpt.TrieNodesLimit, mpt.FlagTrieNodesLimit, 256, "Max node size (MB) cached in triedb")
 	cmd.Flags().UintVar(&mpt.TrieImgsLimit, mpt.FlagTrieImgsLimit, 4, "Max img size (MB) cached in triedb")
-	cmd.Flags().UintVar(&mpt.TrieAccStoreCache, mpt.FlagTrieAccStoreCache, 2048, "Size (MB) to cache account")
+	cmd.Flags().UintVar(&mpt.TrieAccStoreCache, mpt.FlagTrieAccStoreCache, 32, "Size (MB) to cache account")
 	cmd.Flags().BoolVar(&evmtypes.TrieUseCompositeKey, evmtypes.FlagTrieUseCompositeKey, false, "Use composite key to store contract state in mpt")
-	cmd.Flags().UintVar(&evmtypes.TrieContractStateCache, evmtypes.FlagTrieContractStateCache, 2048, "Size (MB) to cache contract state")
 	cmd.Flags().Int64(FlagCommitGapHeight, 100, "Block interval to commit cached data into db, affects iavl & mpt")
 
 	return cmd

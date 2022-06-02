@@ -1,17 +1,10 @@
 package app
 
 import (
-	"github.com/okex/exchain/libs/system/trace"
-	sm "github.com/okex/exchain/libs/tendermint/state"
-	"google.golang.org/grpc/encoding/proto"
-
 	"io"
 	"math/big"
 	"os"
 	"sync"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
-	"github.com/okex/exchain/libs/system"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
@@ -23,6 +16,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/simapp"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	upgradetypes "github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
@@ -46,9 +40,12 @@ import (
 	ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
 	ibcporttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
 	ibchost "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
+	"github.com/okex/exchain/libs/system"
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
+	sm "github.com/okex/exchain/libs/tendermint/state"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/ammswap"
@@ -73,6 +70,8 @@ import (
 	"github.com/okex/exchain/x/slashing"
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
+	"github.com/spf13/cobra"
+	"google.golang.org/grpc/encoding/proto"
 
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/encoding"
@@ -658,7 +657,7 @@ func makeInterceptors() map[string]bam.Interceptor {
 	m := make(map[string]bam.Interceptor)
 	m["/cosmos.tx.v1beta1.Service/Simulate"] = bam.NewRedirectInterceptor("app/simulate")
 	m["/cosmos.bank.v1beta1.Query/AllBalances"] = bam.NewRedirectInterceptor("custom/bank/grpc_balances")
-	m["/cosmos.staking.v1beta1.Query/Params"] = bam.NewRedirectInterceptor("custom/staking/parameters")
+	m["/cosmos.staking.v1beta1.Query/Params"] = bam.NewRedirectInterceptor("custom/staking/params4ibc")
 	return m
 }
 
@@ -716,10 +715,7 @@ func NewAccNonceHandler(ak auth.AccountKeeper) sdk.AccNonceHandler {
 	}
 }
 
-func PreRun(ctx *server.Context) error {
-	// set the dynamic config
-	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
-
+func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 	// check start flag conflicts
 	err := sanity.CheckStart()
 	if err != nil {
@@ -744,6 +740,13 @@ func PreRun(ctx *server.Context) error {
 
 	// init tx signature cache
 	tmtypes.InitSignatureCache()
+
+	// set external package flags
+	server.SetExternalPackageValue(cmd)
+
+	// set the dynamic config
+	appconfig.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
+
 	return nil
 }
 

@@ -4,17 +4,17 @@ import (
 	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
+	"github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx/internal/adapter"
 	"google.golang.org/protobuf/encoding/protowire"
 	//"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
-	ibckey "github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/ibc-key"
 	tx "github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 )
 
 // DefaultTxDecoder returns a default protobuf TxDecoder using the provided Marshaler.
@@ -76,7 +76,7 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			return nil, err
 		}
 
-		signatures := convertSignature(cdc, ibcTx)
+		signatures := convertSignature(ibcTx)
 
 		// construct Msg
 		stdMsgs, signMsgs, err := constructMsgs(ibcTx)
@@ -142,21 +142,26 @@ func constructMsgs(ibcTx *tx.Tx) ([]sdk.Msg, []sdk.Msg, error) {
 	return stdMsgs, signMsgs, nil
 }
 
-func convertSignature(cdc codec.ProtoCodecMarshaler, ibcTx *tx.Tx) []authtypes.StdSignature {
+func convertSignature(ibcTx *tx.Tx) []authtypes.StdSignature {
 	signatures := []authtypes.StdSignature{}
 	for i, s := range ibcTx.Signatures {
-		pk := &ibckey.PubKey{}
+		var pkData types.PubKey
 		if ibcTx.AuthInfo.SignerInfos != nil {
-			cdc.UnmarshalBinaryBare(ibcTx.AuthInfo.SignerInfos[i].PublicKey.Value, pk)
+			var ok bool
+			pkData, ok = ibcTx.AuthInfo.SignerInfos[i].PublicKey.GetCachedValue().(types.PubKey)
+			if !ok {
+				return nil
+			}
+		}
+		pubKey, err := adapter.ProtoBufPubkey2LagacyPubkey(pkData)
+		if err != nil {
+			return []authtypes.StdSignature{}
 		}
 
-		//convert crypto pubkey to tm pubkey
-		tmPubKey := tmtypes.PubKeySecp256k1{}
-		copy(tmPubKey[:], pk.Bytes())
 		signatures = append(signatures,
 			authtypes.StdSignature{
 				Signature: s,
-				PubKey:    tmPubKey,
+				PubKey:    pubKey,
 			},
 		)
 	}
