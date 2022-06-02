@@ -7,7 +7,6 @@ import (
 	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
 	types "github.com/okex/exchain/libs/cosmos-sdk/x/upgrade/typesadapter"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
-	//types2 "github.com/okex/exchain/x/gov/types"
 )
 
 const (
@@ -17,9 +16,8 @@ const (
 )
 
 var (
-	_ govtypes.Content = &ClientUpdateProposal{}
-	_ govtypes.Content = &UpgradeProposal{}
-	//_ types2.Content                     = &ClientUpdateProposal{}
+	_ govtypes.Content                   = &ClientUpdateProposal{}
+	_ govtypes.Content                   = &UpgradeProposal{}
 	_ codectypes.UnpackInterfacesMessage = &UpgradeProposal{}
 )
 
