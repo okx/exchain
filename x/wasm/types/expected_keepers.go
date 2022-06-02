@@ -7,6 +7,7 @@ import (
 	auth "github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/distribution/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
 	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
@@ -96,4 +97,13 @@ type CapabilityKeeper interface {
 // ICS20TransferPortSource is a subset of the ibc transfer keeper.
 type ICS20TransferPortSource interface {
 	GetPort(ctx sdk.Context) string
+}
+
+type Subspace interface {
+	GetParamSet(ctx sdk.Context, ps params.ParamSet)
+	SetParamSet(ctx sdk.Context, ps params.ParamSet)
+}
+
+type DBAdapter interface {
+	NewStore(parent sdk.KVStore, prefix []byte) sdk.KVStore
 }
