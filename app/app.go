@@ -401,7 +401,6 @@ func NewOKExChainApp(
 		AddRoute(farm.RouterKey, &app.FarmKeeper).
 		AddRoute(evm.RouterKey, app.EvmKeeper).
 		AddRoute(mint.RouterKey, &app.MintKeeper).
-		//AddRoute(ibcclienttypes.RouterKey, &app.IBCKeeper.ClientKeeper).
 		AddRoute(erc20.RouterKey, &app.Erc20Keeper)
 	app.GovKeeper = gov.NewKeeper(
 		app.marshal.GetCdc(), app.keys[gov.StoreKey], app.ParamsKeeper, app.subspaces[gov.DefaultParamspace],
