@@ -20,6 +20,7 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
 	lru "github.com/hashicorp/golang-lru"
+	"github.com/okex/exchain/app/config"
 	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/app"
@@ -951,7 +952,7 @@ func (api *PublicEthereumAPI) doCall(
 	sim := api.evmFactory.BuildSimulator(api)
 	//only worked when fast-query has been enabled
 	if sim != nil {
-		return sim.DoCall(msg, addr.String(), overridesBytes, isEstimate)
+		return sim.DoCall(msg, addr.String(), overridesBytes)
 	}
 
 	//Generate tx to be used to simulate (signature isn't needed)
@@ -1000,26 +1001,7 @@ func (api *PublicEthereumAPI) doCall(
 		return nil, err
 	}
 
-	if isEstimate {
-		return api.checkEstimateGasResponse(&simResponse, &clientCtx)
-	}
-
 	return &simResponse, nil
-}
-
-func (api *PublicEthereumAPI) checkEstimateGasResponse(estimatedGasResponse *sdk.SimulationResponse, clientCtx *clientcontext.CLIContext) (*sdk.SimulationResponse, error) {
-	evmParams, err := getEvmParams(clientCtx)
-	if err != nil {
-		api.logger.Error("eth_estimateGas checkEstimateGasResponse error", "error", err)
-	} else {
-		checkedGas, err := simulation.CheckEstimatedGas(estimatedGasResponse.GasUsed, evmParams.MaxGasLimitPerTx)
-		if err != nil {
-			return nil, err
-		}
-		estimatedGasResponse.GasUsed = checkedGas
-	}
-
-	return estimatedGasResponse, nil
 }
 
 // EstimateGas returns an estimate of gas usage for the given smart contract call.
@@ -1032,7 +1014,23 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 		return 0, TransformDataError(err, "eth_estimateGas")
 	}
 
-	return hexutil.Uint64(simResponse.GasInfo.GasUsed), nil
+	params, err := api.getEvmParams()
+	if err != nil {
+		return 0, fmt.Errorf("eth_estimateGas get evm params error %v", err)
+	}
+	maxGasLimitPerTx := params.MaxGasLimitPerTx
+
+	estimatedGas := simResponse.GasInfo.GasUsed
+	if estimatedGas > maxGasLimitPerTx {
+		return 0, fmt.Errorf("out of gas: estimate gas is %v greater than system max gas limit per tx %v", estimatedGas, maxGasLimitPerTx)
+	}
+	gasBuffer := estimatedGas / 100 * config.GetOecConfig().GetGasLimitBuffer()
+	gas := estimatedGas + gasBuffer
+	if gas > maxGasLimitPerTx {
+		gas = maxGasLimitPerTx
+	}
+
+	return hexutil.Uint64(gas), nil
 }
 
 // GetBlockByHash returns the block identified by hash.
@@ -1824,4 +1822,25 @@ func (api *PublicEthereumAPI) FillTransaction(args rpctypes.SendTxArgs) (*rpctyp
 		Raw: txBytes,
 		Tx:  rpcTx,
 	}, nil
+}
+
+func (api *PublicEthereumAPI) getEvmParams() (*evmtypes.Params, error) {
+	if api.watcherBackend.Enabled() {
+		params, err := api.wrappedBackend.GetParams()
+		if err == nil {
+			return params, nil
+		}
+	}
+
+	paramsPath := fmt.Sprintf("custom/%s/%s", evmtypes.ModuleName, evmtypes.QueryParameters)
+	res, _, err := api.clientCtx.QueryWithData(paramsPath, nil)
+	var evmParams evmtypes.Params
+	if err != nil {
+		return nil, err
+	}
+	if err = api.clientCtx.Codec.UnmarshalJSON(res, &evmParams); err != nil {
+		return nil, err
+	}
+
+	return &evmParams, nil
 }
