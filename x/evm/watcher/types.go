@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -431,7 +432,7 @@ func (m MsgCodeByHash) GetValue() string {
 }
 
 type MsgTransactionReceipt struct {
-	*baseLazyMarshal
+	*TransactionReceipt
 	txHash []byte
 }
 
@@ -440,42 +441,57 @@ func (m MsgTransactionReceipt) GetType() uint32 {
 }
 
 type TransactionReceipt struct {
-	Status            hexutil.Uint64  `json:"status"`
-	CumulativeGasUsed hexutil.Uint64  `json:"cumulativeGasUsed"`
-	LogsBloom         ethtypes.Bloom  `json:"logsBloom"`
-	Logs              []*ethtypes.Log `json:"logs"`
-	TransactionHash   string          `json:"transactionHash"`
-	ContractAddress   *common.Address `json:"contractAddress"`
-	GasUsed           hexutil.Uint64  `json:"gasUsed"`
-	BlockHash         string          `json:"blockHash"`
-	BlockNumber       hexutil.Uint64  `json:"blockNumber"`
-	TransactionIndex  hexutil.Uint64  `json:"transactionIndex"`
-	From              string          `json:"from"`
-	To                *common.Address `json:"to"`
+	Status                hexutil.Uint64  `json:"status"`
+	CumulativeGasUsed     hexutil.Uint64  `json:"cumulativeGasUsed"`
+	LogsBloom             ethtypes.Bloom  `json:"logsBloom"`
+	Logs                  []*ethtypes.Log `json:"logs"`
+	originTransactionHash common.Hash
+	TransactionHash       string          `json:"transactionHash"`
+	ContractAddress       *common.Address `json:"contractAddress"`
+	GasUsed               hexutil.Uint64  `json:"gasUsed"`
+	originBlockHash       common.Hash
+	BlockHash             string         `json:"blockHash"`
+	BlockNumber           hexutil.Uint64 `json:"blockNumber"`
+	TransactionIndex      hexutil.Uint64 `json:"transactionIndex"`
+	tx                    *types.MsgEthereumTx
+	From                  string          `json:"from"`
+	To                    *common.Address `json:"to"`
 }
 
-func NewEvmTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, blockHash common.Hash, txIndex, height uint64, data *types.ResultData, cumulativeGas, GasUsed uint64) *MsgTransactionReceipt {
-	tr := TransactionReceipt{
-		Status:            hexutil.Uint64(status),
-		CumulativeGasUsed: hexutil.Uint64(cumulativeGas),
-		LogsBloom:         data.Bloom,
-		Logs:              data.Logs,
-		TransactionHash:   types.EthHashStringer(txHash).String(),
-		ContractAddress:   &data.ContractAddress,
-		GasUsed:           hexutil.Uint64(GasUsed),
-		BlockHash:         types.EthHashStringer(blockHash).String(),
-		BlockNumber:       hexutil.Uint64(height),
-		TransactionIndex:  hexutil.Uint64(txIndex),
-		From:              types.EthAddressStringer(common.BytesToAddress(tx.AccountAddress().Bytes())).String(),
-		To:                tx.To(),
-	}
-
+func (tr *TransactionReceipt) GetValue() string {
+	tr.TransactionHash = types.EthHashStringer(tr.originTransactionHash).String()
+	tr.BlockHash = types.EthHashStringer(tr.originBlockHash).String()
+	tr.From = types.EthAddressStringer(common.BytesToAddress(tr.tx.AccountAddress().Bytes())).String()
+	tr.To = tr.tx.To()
 	//contract address will be set to 0x0000000000000000000000000000000000000000 if contract deploy failed
 	if tr.ContractAddress != nil && types.EthAddressStringer(*tr.ContractAddress).String() == "0x0000000000000000000000000000000000000000" {
 		//set to nil to keep sync with ethereum rpc
 		tr.ContractAddress = nil
 	}
-	return &MsgTransactionReceipt{txHash: txHash.Bytes(), baseLazyMarshal: newBaseLazyMarshal(tr)}
+	buf, err := json.Marshal(tr)
+	if err != nil {
+		panic("cant happen")
+	}
+
+	return string(buf)
+}
+
+func NewEvmTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, blockHash common.Hash, txIndex, height uint64, data *types.ResultData, cumulativeGas, GasUsed uint64) *MsgTransactionReceipt {
+	tr := TransactionReceipt{
+		Status:                hexutil.Uint64(status),
+		CumulativeGasUsed:     hexutil.Uint64(cumulativeGas),
+		LogsBloom:             data.Bloom,
+		Logs:                  data.Logs,
+		originTransactionHash: txHash,
+		ContractAddress:       &data.ContractAddress,
+		GasUsed:               hexutil.Uint64(GasUsed),
+		originBlockHash:       blockHash,
+		BlockNumber:           hexutil.Uint64(height),
+		TransactionIndex:      hexutil.Uint64(txIndex),
+		tx:                    tx,
+	}
+
+	return &MsgTransactionReceipt{txHash: txHash.Bytes(), TransactionReceipt: &tr}
 }
 
 func (m MsgTransactionReceipt) GetKey() []byte {
@@ -544,20 +560,55 @@ type Block struct {
 
 // Transaction represents a transaction returned to RPC clients.
 type Transaction struct {
-	BlockHash        *common.Hash    `json:"blockHash"`
-	BlockNumber      *hexutil.Big    `json:"blockNumber"`
-	From             common.Address  `json:"from"`
-	Gas              hexutil.Uint64  `json:"gas"`
-	GasPrice         *hexutil.Big    `json:"gasPrice"`
-	Hash             common.Hash     `json:"hash"`
-	Input            hexutil.Bytes   `json:"input"`
-	Nonce            hexutil.Uint64  `json:"nonce"`
-	To               *common.Address `json:"to"`
-	TransactionIndex *hexutil.Uint64 `json:"transactionIndex"`
-	Value            *hexutil.Big    `json:"value"`
-	V                *hexutil.Big    `json:"v"`
-	R                *hexutil.Big    `json:"r"`
-	S                *hexutil.Big    `json:"s"`
+	BlockHash         *common.Hash    `json:"blockHash"`
+	BlockNumber       *hexutil.Big    `json:"blockNumber"`
+	From              common.Address  `json:"from"`
+	Gas               hexutil.Uint64  `json:"gas"`
+	GasPrice          *hexutil.Big    `json:"gasPrice"`
+	Hash              common.Hash     `json:"hash"`
+	Input             hexutil.Bytes   `json:"input"`
+	Nonce             hexutil.Uint64  `json:"nonce"`
+	To                *common.Address `json:"to"`
+	TransactionIndex  *hexutil.Uint64 `json:"transactionIndex"`
+	Value             *hexutil.Big    `json:"value"`
+	V                 *hexutil.Big    `json:"v"`
+	R                 *hexutil.Big    `json:"r"`
+	S                 *hexutil.Big    `json:"s"`
+	tx                *types.MsgEthereumTx
+	originBlockHash   *common.Hash
+	originBlockNumber uint64
+	originIndex       uint64
+}
+
+func (tr *Transaction) GetValue() string {
+	// Verify signature and retrieve sender address
+	err := tr.tx.VerifySig(tr.tx.ChainID(), int64(tr.originBlockNumber))
+	if err != nil {
+		return ""
+	}
+
+	tr.From = common.HexToAddress(tr.tx.GetFrom())
+	tr.Gas = hexutil.Uint64(tr.tx.Data.GasLimit)
+	tr.GasPrice = (*hexutil.Big)(tr.tx.Data.Price)
+	tr.Input = tr.tx.Data.Payload
+	tr.Nonce = hexutil.Uint64(tr.tx.Data.AccountNonce)
+	tr.To = tr.tx.To()
+	tr.Value = (*hexutil.Big)(tr.tx.Data.Amount)
+	tr.V = (*hexutil.Big)(tr.tx.Data.V)
+	tr.R = (*hexutil.Big)(tr.tx.Data.R)
+	tr.S = (*hexutil.Big)(tr.tx.Data.S)
+
+	if *tr.originBlockHash != (common.Hash{}) {
+		tr.BlockHash = tr.originBlockHash
+		tr.BlockNumber = (*hexutil.Big)(new(big.Int).SetUint64(tr.originBlockNumber))
+		tr.TransactionIndex = (*hexutil.Uint64)(&tr.originIndex)
+	}
+	buf, err := json.Marshal(tr)
+	if err != nil {
+		panic("cant happen")
+	}
+
+	return string(buf)
 }
 
 func NewMsgBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash, header abci.Header, gasLimit uint64, gasUsed *big.Int, txs interface{}) *MsgBlock {
