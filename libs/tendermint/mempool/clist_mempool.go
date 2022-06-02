@@ -623,7 +623,6 @@ func (mem *CListMempool) resCbFirstTime(
 			//	return
 			//}
 			if r.CheckTx.Tx.GetGasPrice().Sign() <= 0 {
-				mem.cache.Remove(tx)
 				errMsg := "Failed to get extra info for this tx!"
 				mem.logger.Error(errMsg)
 				r.CheckTx.Code = 1
