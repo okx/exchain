@@ -3,6 +3,7 @@ package iavl
 import (
 	"errors"
 	"fmt"
+	"log"
 	"sort"
 	"sync"
 
@@ -206,6 +207,7 @@ func (tree *MutableTree) loadVersionToCommittedHeightMap() {
 
 func (tree *MutableTree) StopTree() {
 	tree.log(IavlInfo, "stopping iavl", "commit height", tree.version)
+	log.Println("stopping iavl-", tree.GetModuleName(), "commit height", tree.version)
 	defer tree.log(IavlInfo, "stopping iavl completed", "commit height", tree.version)
 
 	if !EnableAsyncCommit {
