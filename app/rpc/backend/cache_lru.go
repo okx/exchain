@@ -19,9 +19,10 @@ const (
 )
 
 type LruCache struct {
-	lruTx        *lru.Cache
-	lruBlock     *lru.Cache
-	lruBlockInfo *lru.Cache
+	lruTx              *lru.Cache
+	lruBlock           *lru.Cache
+	lruBlockInfo       *lru.Cache
+	lruBlockWithFullTx *lru.Cache
 }
 
 func NewLruCache() *LruCache {
@@ -42,22 +43,34 @@ func NewLruCache() *LruCache {
 	if err != nil {
 		panic(errors.New("Failed to init LRU for Block, err :" + err.Error()))
 	}
+	//init lru cache for blockWithFullTx
+	lruBlockWithFullTx, err := lru.New(blockLruSize)
+	if err != nil {
+		panic(errors.New("Failed to init LRU for Block, err :" + err.Error()))
+	}
 	return &LruCache{
-		lruTx:        lruTx,
-		lruBlock:     lruBlock,
-		lruBlockInfo: lruBlockInfo,
+		lruTx:              lruTx,
+		lruBlock:           lruBlock,
+		lruBlockInfo:       lruBlockInfo,
+		lruBlockWithFullTx: lruBlockWithFullTx,
 	}
 }
 
-func (lc *LruCache) GetBlockByNumber(number uint64) (*watcher.Block, error) {
+func (lc *LruCache) GetBlockByNumber(number uint64, fullTx bool) (*watcher.Block, error) {
 	hash, err := lc.GetBlockHash(number)
 	if err != nil {
 		return nil, err
 	}
-	return lc.GetBlockByHash(hash)
+	return lc.GetBlockByHash(hash, fullTx)
 }
-func (lc *LruCache) GetBlockByHash(hash common.Hash) (*watcher.Block, error) {
-	data, ok := lc.lruBlock.Get(hash)
+func (lc *LruCache) GetBlockByHash(hash common.Hash, fullTx bool) (*watcher.Block, error) {
+	var data interface{}
+	var ok bool
+	if fullTx {
+		data, ok = lc.lruBlockWithFullTx.Get(hash)
+	} else {
+		data, ok = lc.lruBlock.Get(hash)
+	}
 	if !ok {
 		return nil, ErrLruDataNotFound
 	}
@@ -67,10 +80,14 @@ func (lc *LruCache) GetBlockByHash(hash common.Hash) (*watcher.Block, error) {
 	}
 	return res, nil
 }
-func (lc *LruCache) AddOrUpdateBlock(hash common.Hash, block *watcher.Block) {
-	lc.lruBlock.PeekOrAdd(hash, block)
+func (lc *LruCache) AddOrUpdateBlock(hash common.Hash, block *watcher.Block, fullTx bool) {
+	if fullTx {
+		lc.lruBlockWithFullTx.PeekOrAdd(hash, block)
+	} else {
+		lc.lruBlock.PeekOrAdd(hash, block)
+	}
 	lc.AddOrUpdateBlockHash(uint64(block.Number), hash)
-	if block.Transactions != nil {
+	if block.Transactions != nil && fullTx {
 		txs, ok := block.Transactions.([]*watcher.Transaction)
 		if ok {
 			for _, tx := range txs {

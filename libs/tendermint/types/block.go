@@ -1504,6 +1504,10 @@ type SignedHeader struct {
 // sure to use a Verifier to validate the signatures actually provide a
 // significantly strong proof for this header's validity.
 func (sh SignedHeader) ValidateBasic(chainID string) error {
+	return sh.commonValidateBasic(chainID, false)
+}
+
+func (sh SignedHeader) commonValidateBasic(chainID string, isIbc bool) error {
 	if sh.Header == nil {
 		return errors.New("missing header")
 	}
@@ -1526,7 +1530,14 @@ func (sh SignedHeader) ValidateBasic(chainID string) error {
 	if sh.Commit.Height != sh.Height {
 		return fmt.Errorf("header and commit height mismatch: %d vs %d", sh.Height, sh.Commit.Height)
 	}
-	if hhash, chash := sh.Hash(), sh.Commit.BlockID.Hash; !bytes.Equal(hhash, chash) {
+
+	var hhash tmbytes.HexBytes
+	if isIbc {
+		hhash = sh.PureIBCHash()
+	} else {
+		hhash = sh.Hash()
+	}
+	if chash := sh.Commit.BlockID.Hash; !bytes.Equal(hhash, chash) {
 		return fmt.Errorf("commit signs block %X, header is block %X", chash, hhash)
 	}
 	return nil

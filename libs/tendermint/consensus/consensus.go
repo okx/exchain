@@ -17,8 +17,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
-	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
-
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 )
@@ -280,6 +278,8 @@ type State struct {
 	metrics *Metrics
 
 	trc *trace.Tracer
+	blockTimeTrc       *trace.Tracer
+	timeoutIntervalTrc *trace.Tracer
 
 	prerunTx bool
 	bt       *BlockTransport
@@ -318,6 +318,8 @@ func NewState(
 		trc:              trace.NewTracer(trace.Consensus),
 		prerunTx:         viper.GetBool(EnablePrerunTx),
 		bt:               &BlockTransport{},
+		blockTimeTrc:           trace.NewTracer(trace.LastBlockTime),
+		timeoutIntervalTrc:     trace.NewTracer(trace.TimeoutInterval),
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
@@ -579,14 +581,6 @@ func (cs *State) newStep() {
 	if cs.eventBus != nil {
 		cs.eventBus.PublishEventNewRoundStep(rs)
 		cs.evsw.FireEvent(types.EventNewRoundStep, &cs.RoundState)
-	}
-}
-
-func (cs *State) initNewHeight() {
-	// waiting finished and enterNewHeight by timeoutNewHeight
-	if cs.Step == cstypes.RoundStepNewHeight {
-		// init StartTime
-		cs.StartTime = tmtime.Now()
 	}
 }
 

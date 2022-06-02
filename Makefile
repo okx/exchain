@@ -9,7 +9,7 @@ GithubTop=github.com
 
 
 
-Version=v1.5.0
+Version=v1.5.2
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
@@ -46,6 +46,7 @@ else ifeq ($(MAKECMDGOALS),testnet)
    GenesisHeight=1121818
    MercuryHeight=5300000
    VenusHeight=8510000
+   Venus1Height=12067000
 endif
 
 ldflags = -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Version=$(Version) \

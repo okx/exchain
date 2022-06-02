@@ -37,14 +37,16 @@ var (
 		{trace.BlockParts, 1},
 		{trace.BlockPartsP2P, 1},
 		{trace.Produce, 0},
+		{trace.CompressBlock, 0},
+		{trace.UncompressBlock, 0},
 	}
 
 	mandatorySchemas = []string {
 		trace.Height,
 		trace.Tx,
 		trace.BlockSize,
-		trace.CompressBlock,
-		trace.UncompressBlock,
+		trace.TimeoutInterval,
+		trace.LastBlockTime,
 		trace.GasUsed,
 		trace.InvalidTxs,
 		trace.RunTx,
@@ -66,7 +68,7 @@ func init() {
 
 	elapsedInfo := &ElapsedTimeInfos{
 		infoMap:   make(map[string]string),
-		schemaMap: make(map[string]bool),
+		schemaMap: make(map[string]struct{}),
 	}
 
 	elapsedInfo.decodeElapseParam(DefaultElapsedSchemas)
@@ -77,13 +79,18 @@ func init() {
 type ElapsedTimeInfos struct {
 	mtx         sync.Mutex
 	infoMap     map[string]string
-	schemaMap   map[string]bool
+	schemaMap   map[string]struct{}
 	initialized bool
 	elapsedTime int64
 }
 
 func (e *ElapsedTimeInfos) AddInfo(key string, info string) {
 	if len(key) == 0 || len(info) == 0 {
+		return
+	}
+
+	_, ok := e.schemaMap[key]
+	if !ok {
 		return
 	}
 
@@ -113,13 +120,21 @@ func (e *ElapsedTimeInfos) Dump(input interface{}) {
 
 	var mandatoryInfo string
 	for _, key := range mandatorySchemas {
+		_, ok := e.infoMap[key]
+		if !ok {
+			continue
+		}
 		mandatoryInfo += fmt.Sprintf("%s<%s>, ", key, e.infoMap[key])
 	}
 
 	var optionalInfo string
 	var comma string
 	for _, k := range optionalSchemas {
-		if enabled, found := e.schemaMap[k.schema]; found && enabled {
+		if _, found := e.schemaMap[k.schema]; found {
+			_, ok := e.infoMap[k.schema]
+			if !ok {
+				continue
+			}
 			optionalInfo += fmt.Sprintf("%s%s[%s]", comma, k.schema, e.infoMap[k.schema])
 			comma = ", "
 		}
@@ -130,13 +145,17 @@ func (e *ElapsedTimeInfos) Dump(input interface{}) {
 }
 
 func (e *ElapsedTimeInfos) decodeElapseParam(elapsed string) {
-	// suppose elapsd is like Evm=x,Iavl=x,DeliverTxs=x,DB=x,Round=x,CommitRound=x,Produce=x,IavlRuntime=x
-	elapsdA := strings.Split(elapsed, ",")
-	for _, v := range elapsdA {
+	// elapsed looks like: Evm=x,Iavl=x,DeliverTxs=x,DB=x,Round=x,CommitRound=x,Produce=x,IavlRuntime=x
+	elapsedKV := strings.Split(elapsed, ",")
+	for _, v := range elapsedKV {
 		setVal := strings.Split(v, "=")
 		if len(setVal) == 2 && setVal[1] == "1" {
-			e.schemaMap[setVal[0]] = true
+			e.schemaMap[setVal[0]] = struct{}{}
 		}
+	}
+
+	for _, key := range mandatorySchemas {
+		e.schemaMap[key] = struct{}{}
 	}
 }
 
