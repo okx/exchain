@@ -356,6 +356,7 @@ var validProposalTypes = map[string]struct{}{
 	ProposalTypeText:               {},
 	ProposalTypeSoftwareUpgrade:    {},
 	types.ProposalTypeClientUpdate: {},
+	types.ProposalTypeUpgrade:      {},
 }
 
 // RegisterProposalType registers a proposal type. It will panic if the type is
