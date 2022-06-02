@@ -296,6 +296,7 @@ func (cs *State) updateToState(state sm.State) {
 	//		cs.state.LastBlockHeight+1, cs.Height))
 	//}
 
+	cs.hasVC = false
 	if cs.vcMsg != nil && cs.vcMsg.Height <= cs.Height {
 		cs.vcMsg = nil
 	}

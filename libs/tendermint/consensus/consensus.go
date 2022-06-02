@@ -152,6 +152,7 @@ type State struct {
 	bt       *BlockTransport
 
 	vcMsg *ViewChangeMessage
+	hasVC bool // active-view-change(enterNewRoundAVC) at this Height
 }
 
 // StateOption sets an optional parameter on the State.
