@@ -219,6 +219,9 @@ type BaseApp struct { // nolint: maligned
 	msgServiceRouter  *MsgServiceRouter // router for redirecting Msg service messages
 
 	interceptors map[string]Interceptor
+
+	reusableCacheMultiStore sdk.CacheMultiStore
+	checkTxCacheMultiStores *cacheMultiStoreList
 }
 
 type recordHandle func(string)
@@ -252,6 +255,8 @@ func NewBaseApp(
 		msgServiceRouter: NewMsgServiceRouter(),
 		grpcQueryRouter:  NewGRPCQueryRouter(),
 		interceptors:     make(map[string]Interceptor),
+
+		checkTxCacheMultiStores: newCacheMultiStoreList(),
 	}
 
 	for _, option := range options {
@@ -557,6 +562,8 @@ func (app *BaseApp) setCheckState(header abci.Header) {
 		ctx: sdk.NewContext(ms, header, true, app.logger),
 	}
 	app.checkState.ctx.SetMinGasPrices(app.minGasPrices)
+
+	app.checkTxCacheMultiStores.Clear()
 }
 
 // setDeliverState sets the BaseApp's deliverState with a cache-wrapped multi-store
@@ -812,6 +819,17 @@ func (app *BaseApp) cacheTxContext(ctx sdk.Context, txBytes []byte) (sdk.Context
 
 	ctx.SetMultiStore(msCache)
 	return ctx, msCache
+}
+
+func updateCacheMultiStore(msCache sdk.CacheMultiStore, txBytes []byte, height int64) sdk.CacheMultiStore {
+	if msCache.TracingEnabled() {
+		msCache = msCache.SetTracingContext(
+			map[string]interface{}{
+				"txHash": fmt.Sprintf("%X", tmtypes.Tx(txBytes).Hash(height)),
+			},
+		).(sdk.CacheMultiStore)
+	}
+	return msCache
 }
 
 func (app *BaseApp) pin(tag string, start bool, mode runTxMode) {

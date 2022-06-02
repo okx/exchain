@@ -73,8 +73,11 @@ type EvmSimulator struct {
 }
 
 // DoCall call simulate tx. we pass the sender by args to reduce address convert
-func (es *EvmSimulator) DoCall(msg *evmtypes.MsgEthereumTx, sender string) (*sdk.SimulationResponse, error) {
+func (es *EvmSimulator) DoCall(msg *evmtypes.MsgEthereumTx, sender string, overridesBytes []byte) (*sdk.SimulationResponse, error) {
 	es.ctx.SetFrom(sender)
+	if overridesBytes != nil {
+		es.ctx.SetOverrideBytes(overridesBytes)
+	}
 	r, e := es.handler(es.ctx, msg)
 	if e != nil {
 		return nil, e
@@ -109,6 +112,6 @@ func (ef EvmFactory) makeContext(k *evm.Keeper, header abci.Header) sdk.Context 
 	cms.LoadLatestVersion()
 
 	ctx := sdk.NewContext(cms, header, true, tmlog.NewNopLogger())
-	ctx.SetGasMeter(sdk.NewGasMeter(evmtypes.DefaultMaxGasLimitPerTx))
+	ctx.SetGasMeter(sdk.NewGasMeter(k.GetParams(ctx).MaxGasLimitPerTx))
 	return ctx
 }

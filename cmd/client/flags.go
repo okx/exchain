@@ -104,4 +104,6 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(trace.FlagEnableAnalyzer, false, "Enable auto open log analyzer")
 	cmd.Flags().Bool(sanity.FlagDisableSanity, false, "Disable sanity check")
 	cmd.Flags().Int(tmtypes.FlagSigCacheSize, 200000, "Maximum number of signatures in the cache")
+	cmd.Flags().Int(config.FlagDebugGcInterval, 0, "Force gc every n heights for debug")
+	cmd.Flags().String(rpc.FlagWebsocket, "8546", "websocket port to listen to")
 }
