@@ -51,6 +51,7 @@ var (
 	flagIPAddrs           = "ip-addrs"
 	flagBaseport          = "base-port"
 	flagLocal             = "local"
+	flagEqualVotingPower  = "equal-voting-power"
 	flagNumRPCs           = "r"
 )
 
@@ -94,10 +95,11 @@ Note, strict routability for addresses is turned off in the config file.`,
 			coinDenom, _ := cmd.Flags().GetString(flagCoinDenom)
 			algo, _ := cmd.Flags().GetString(flagKeyAlgo)
 			isLocal := viper.GetBool(flagLocal)
+			isEqualVotingPower, _ := cmd.Flags().GetBool(flagEqualVotingPower)
 			return InitTestnet(
 				cmd, config, cdc, mbm, genAccIterator, outputDir, chainID, coinDenom, minGasPrices,
 				nodeDirPrefix, nodeDaemonHome, nodeCLIHome, startingIPAddress, ipAddresses, keyringBackend,
-				algo, numValidators, isLocal, numRPCs)
+				algo, numValidators, isLocal, numRPCs, isEqualVotingPower)
 		},
 	}
 
@@ -116,6 +118,7 @@ Note, strict routability for addresses is turned off in the config file.`,
 	cmd.Flags().Int(flagBaseport, 26656, "testnet base port")
 	cmd.Flags().BoolP(flagLocal, "l", false, "run all nodes on local host")
 	cmd.Flags().Int(flagNumRPCs, 0, "Number of RPC nodes to initialize the testnet with")
+	cmd.Flags().BoolP(flagEqualVotingPower, "", false, "Create validators with equal voting power")
 
 	return cmd
 }
@@ -143,6 +146,7 @@ func InitTestnet(
 	numValidators int,
 	isLocal bool,
 	numRPCs int,
+	isEqualVotingPower bool,
 ) error {
 
 	if chainID == "" {
@@ -291,18 +295,20 @@ func InitTestnet(
 			return err
 		}
 
-		//make and save deposit tx
-		sequence++
-		msgDeposit := stakingtypes.NewMsgDeposit(addr, sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(10000*int64(i+1))))
-		if err := makeTxAndWriteFile(msgDeposit, inBuf, chainID, kb, nodeDirName, sequence, "", cdc, gentxsDir, outputDir); err != nil {
-			return err
-		}
+		if !isEqualVotingPower {
+			//make and save deposit tx
+			sequence++
+			msgDeposit := stakingtypes.NewMsgDeposit(addr, sdk.NewDecCoinFromDec(common.NativeToken, sdk.NewDec(10000*int64(i+1))))
+			if err := makeTxAndWriteFile(msgDeposit, inBuf, chainID, kb, nodeDirName, sequence, "", cdc, gentxsDir, outputDir); err != nil {
+				return err
+			}
 
-		//make and save add shares tx
-		sequence++
-		msgAddShares := stakingtypes.NewMsgAddShares(addr, []sdk.ValAddress{sdk.ValAddress(addr)})
-		if err := makeTxAndWriteFile(msgAddShares, inBuf, chainID, kb, nodeDirName, sequence, "", cdc, gentxsDir, outputDir); err != nil {
-			return err
+			//make and save add shares tx
+			sequence++
+			msgAddShares := stakingtypes.NewMsgAddShares(addr, []sdk.ValAddress{sdk.ValAddress(addr)})
+			if err := makeTxAndWriteFile(msgAddShares, inBuf, chainID, kb, nodeDirName, sequence, "", cdc, gentxsDir, outputDir); err != nil {
+				return err
+			}
 		}
 
 		srvconfig.WriteConfigFile(filepath.Join(nodeDir, "config/app.toml"), simappConfig)
