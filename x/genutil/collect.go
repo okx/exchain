@@ -129,7 +129,8 @@ func CollectStdTxs(cdc *codec.Codec, moniker, genTxsDir string,
 		}
 
 		//ignore not create validator tx
-		if msgs[0].Type() != stakingtypes.EventTypeCreateValidator {
+		msg, ok := msgs[0].(stakingtypes.MsgCreateValidator)
+		if !ok {
 			continue
 		}
 
@@ -143,7 +144,6 @@ func CollectStdTxs(cdc *codec.Codec, moniker, genTxsDir string,
 		}
 
 		// TODO abstract out staking message validation back to staking
-		msg := msgs[0].(stakingtypes.MsgCreateValidator)
 		// validate delegator and validator addresses and funds against the accounts in the state
 		delAddr := msg.DelegatorAddress.String()
 		valAddr := sdk.AccAddress(msg.ValidatorAddress).String()
