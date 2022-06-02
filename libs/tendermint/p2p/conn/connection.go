@@ -853,17 +853,6 @@ func (ch *Channel) nextPacketMsg() PacketMsg {
 // Not goroutine-safe
 func (ch *Channel) writePacketMsgTo(w io.Writer) (n int64, err error) {
 	var packet = ch.nextPacketMsg()
-
-	var bz []byte
-	bz, err = cdc.MarshalBinaryWithSizer(&packet, true)
-	if err == nil {
-		bzNum := 0
-		bzNum, err = w.Write(bz)
-		n = int64(bzNum)
-		atomic.AddInt64(&ch.recentlySent, n)
-		return
-	}
-
 	n, err = cdc.MarshalBinaryLengthPrefixedWriterWithRegiteredMarshaller(w, packet)
 	if err != nil {
 		n, err = cdc.MarshalBinaryLengthPrefixedWriter(w, packet)
@@ -952,8 +941,6 @@ func RegisterPacket(cdc *amino.Codec) {
 			return msg, len(data), nil
 		}
 	})
-
-	cdc.EnableBufferMarshaler(PacketMsg{})
 }
 
 func (PacketPing) AssertIsPacket() {}
@@ -992,79 +979,74 @@ func (mp PacketMsg) String() string {
 	return fmt.Sprintf("PacketMsg{%X:%X T:%X}", mp.ChannelID, mp.Bytes, mp.EOF)
 }
 
-func (mp PacketMsg) AminoSize(_ *amino.Codec) int {
-	size := 0
-	if mp.ChannelID != 0 {
-		if mp.ChannelID <= 0b0111_1111 {
-			size += 2
-		} else {
-			size += 3
+var packetMsgBufferPool = amino.NewBufferPool()
+
+func (mp PacketMsg) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
+	var buf = packetMsgBufferPool.Get()
+	defer packetMsgBufferPool.Put(buf)
+	fieldKeysType := [3]byte{1 << 3, 2 << 3, 3<<3 | 2}
+	for pos := 1; pos <= 3; pos++ {
+		var err error
+		switch pos {
+		case 1:
+			if mp.ChannelID == 0 {
+				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			if mp.ChannelID <= 0b0111_1111 {
+				err = buf.WriteByte(mp.ChannelID)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				err = buf.WriteByte(0b1000_0000 | (mp.ChannelID & 0x7F))
+				if err != nil {
+					return nil, err
+				}
+				err = buf.WriteByte(mp.ChannelID >> 7)
+				if err != nil {
+					return nil, err
+				}
+			}
+		case 2:
+			if mp.EOF == 0 {
+				break
+			}
+			err = buf.WriteByte(fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+			if mp.EOF <= 0b0111_1111 {
+				err = buf.WriteByte(mp.EOF)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				err = buf.WriteByte(0b1000_0000 | (mp.EOF & 0x7F))
+				if err != nil {
+					return nil, err
+				}
+				err = buf.WriteByte(mp.EOF >> 7)
+				if err != nil {
+					return nil, err
+				}
+			}
+		case 3:
+			if len(mp.Bytes) == 0 {
+				break
+			}
+			err = amino.EncodeByteSliceWithKeyToBuffer(buf, mp.Bytes, fieldKeysType[pos-1])
+			if err != nil {
+				return nil, err
+			}
+		default:
+			panic("unreachable")
 		}
 	}
-
-	if mp.EOF != 0 {
-		if mp.EOF <= 0b0111_1111 {
-			size += 2
-		} else {
-			size += 3
-		}
-	}
-
-	if len(mp.Bytes) != 0 {
-		size += 1 + amino.ByteSliceSize(mp.Bytes)
-	}
-
-	return size
-}
-
-func (mp PacketMsg) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
-	var buf bytes.Buffer
-	buf.Grow(mp.AminoSize(cdc))
-	err := mp.MarshalAminoTo(cdc, &buf)
-	if err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
-}
-
-func (mp PacketMsg) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) error {
-	var err error
-	// field 1
-	if mp.ChannelID != 0 {
-		const pbKey = 1 << 3
-		buf.WriteByte(pbKey)
-		if mp.ChannelID <= 0b0111_1111 {
-			buf.WriteByte(mp.ChannelID)
-		} else {
-			buf.WriteByte(0b1000_0000 | (mp.ChannelID & 0x7F))
-			buf.WriteByte(mp.ChannelID >> 7)
-		}
-	}
-
-	// field 2
-	if mp.EOF != 0 {
-		const pbKey = 2 << 3
-		buf.WriteByte(pbKey)
-		if mp.EOF <= 0b0111_1111 {
-			buf.WriteByte(mp.EOF)
-		} else {
-			buf.WriteByte(0b1000_0000 | (mp.EOF & 0x7F))
-			buf.WriteByte(mp.EOF >> 7)
-		}
-	}
-
-	// field 3
-	if len(mp.Bytes) != 0 {
-		const pbKey = 3<<3 | 2
-		buf.WriteByte(pbKey)
-		err = amino.EncodeUvarintToBuffer(buf, uint64(len(mp.Bytes)))
-		if err != nil {
-			return err
-		}
-		buf.Write(mp.Bytes)
-	}
-
-	return nil
+	return amino.GetBytesBufferCopy(buf), nil
 }
 
 func (mp *PacketMsg) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
