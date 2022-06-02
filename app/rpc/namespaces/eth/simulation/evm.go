@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -79,12 +78,10 @@ func (es *EvmSimulator) DoCall(msg *evmtypes.MsgEthereumTx, sender string, overr
 	if overridesBytes != nil {
 		es.ctx.SetOverrideBytes(overridesBytes)
 	}
-
 	r, e := es.handler(es.ctx, msg)
 	if e != nil {
 		return nil, e
 	}
-
 	return &sdk.SimulationResponse{
 		GasInfo: sdk.GasInfo{
 			GasWanted: es.ctx.GasMeter().Limit(),
@@ -116,6 +113,6 @@ func (ef EvmFactory) makeContext(k *evm.Keeper, header abci.Header) sdk.Context 
 	cms.LoadLatestVersion()
 
 	ctx := sdk.NewContext(cms, header, true, tmlog.NewNopLogger())
-	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
+	ctx.SetGasMeter(sdk.NewGasMeter(k.GetParams(ctx).MaxGasLimitPerTx))
 	return ctx
 }
