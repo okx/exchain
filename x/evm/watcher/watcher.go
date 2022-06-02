@@ -3,6 +3,9 @@ package watcher
 import (
 	"encoding/hex"
 	"fmt"
+	"math/big"
+	"sync"
+
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	jsoniter "github.com/json-iterator/go"
@@ -15,8 +18,6 @@ import (
 	tmstate "github.com/okex/exchain/libs/tendermint/state"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
-	"math/big"
-	"sync"
 )
 
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -399,18 +400,13 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 }
 
 func (w *Watcher) commitBatch(batch []WatchMessage) {
-	filterMap := make(map[string]WatchMessage)
 	for _, b := range batch {
-		filterMap[bytes2Key(b.GetKey())] = b
-	}
-
-	for _, b := range filterMap {
 		key := b.GetKey()
-		value := []byte(b.GetValue())
 		typeValue := b.GetType()
 		if typeValue == TypeDelete {
 			w.store.Delete(key)
 		} else {
+			value := []byte(b.GetValue())
 			w.store.Set(key, value)
 			if typeValue == TypeState {
 				state.SetStateToLru(common.BytesToHash(key), value)
