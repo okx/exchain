@@ -55,7 +55,7 @@ func WriteDOTGraph(w io.Writer, tree *ImmutableTree, paths []PathToLeaf) {
 		}
 		shortHash := graphNode.Hash[:7]
 
-		graphNode.Label = mkLabel(fmt.Sprintf("%s", node.key), 16, "sans-serif")
+		graphNode.Label = mkLabel(string(node.key), 16, "sans-serif")
 		graphNode.Label += mkLabel(shortHash, 10, "monospace")
 		graphNode.Label += mkLabel(fmt.Sprintf("version=%d", node.version), 10, "monospace")
 

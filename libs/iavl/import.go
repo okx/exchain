@@ -119,8 +119,11 @@ func (i *Importer) Add(exportNode *ExportNode) error {
 		return err
 	}
 
-	var buf bytes.Buffer
-	err = node.writeBytes(&buf)
+	buf := bufPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer bufPool.Put(buf)
+
+	err = node.writeBytes(buf)
 	if err != nil {
 		return err
 	}

@@ -3,6 +3,7 @@ package iavl
 import (
 	"bytes"
 	"fmt"
+	"sync"
 
 	"github.com/pkg/errors"
 
@@ -10,6 +11,12 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	amino "github.com/tendermint/go-amino"
 )
+
+var bufPool = &sync.Pool{
+	New: func() interface{} {
+		return new(bytes.Buffer)
+	},
+}
 
 var (
 	// ErrInvalidProof is returned by Verify when a proof cannot be validated.
@@ -54,7 +61,9 @@ func (pin ProofInnerNode) stringIndented(indent string) string {
 
 func (pin ProofInnerNode) Hash(childHash []byte) []byte {
 	hasher := tmhash.New()
-	buf := new(bytes.Buffer)
+	buf := bufPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer bufPool.Put(buf)
 
 	err := amino.EncodeInt8(buf, pin.Height)
 	if err == nil {
@@ -116,7 +125,10 @@ func (pln ProofLeafNode) stringIndented(indent string) string {
 
 func (pln ProofLeafNode) Hash() []byte {
 	hasher := tmhash.New()
-	buf := new(bytes.Buffer)
+
+	buf := bufPool.Get().(*bytes.Buffer)
+	buf.Reset()
+	defer bufPool.Put(buf)
 
 	err := amino.EncodeInt8(buf, 0)
 	if err == nil {
