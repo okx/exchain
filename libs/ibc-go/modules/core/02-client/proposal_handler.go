@@ -13,7 +13,7 @@ func NewClientUpdateProposalHandler(k keeper.Keeper) govtypes.Handler {
 	return func(ctx sdk.Context, content *govtypes.Proposal) sdk.Error {
 		cont := content.Content
 		if cm39, ok := content.Content.(govtypes.CM39ContentAdapter); ok {
-			cc, err := cm39.Conv2CM39Content(k.GetCdcProxy())
+			cc, err := cm39.Conv2CM40Content(k.GetCdcProxy())
 			if nil != err {
 				return sdkerrors.Wrapf(err, "convert failed")
 			}

@@ -23,7 +23,6 @@ var (
 	_ govtypes.Content                   = &UpgradeProposal{}
 	_ codectypes.UnpackInterfacesMessage = &UpgradeProposal{}
 	_ exchaingov.CM39ContentAdapter      = (*CM39UpgradeProposal)(nil)
-	//_ exchaingov.Content                 = &CM39UpgradeProposal{}
 )
 
 func init() {
@@ -181,7 +180,7 @@ type CM39UpgradeProposal struct {
 	UpgradedClientState []byte     `protobuf:"bytes,4,opt,name=upgraded_client_state,json=upgradedClientState,proto3" json:"upgraded_client_state,omitempty" yaml:"upgraded_client_state"`
 }
 
-func (up *CM39UpgradeProposal) Conv2CM39Content(cdc *codec.CodecProxy) (exchaingov.ContentAdapter, error) {
+func (up *CM39UpgradeProposal) Conv2CM40Content(cdc *codec.CodecProxy) (exchaingov.ContentAdapter, error) {
 	ret := UpgradeProposal{
 		Title:               up.Title,
 		Description:         up.Description,

@@ -22,7 +22,7 @@ type ContentAdapter interface {
 
 type CM39ContentAdapter interface {
 	Content
-	Conv2CM39Content(cdc *codec.CodecProxy) (ContentAdapter, error)
+	Conv2CM40Content(cdc *codec.CodecProxy) (ContentAdapter, error)
 }
 
 // Content defines an interface that a proposal must implement. It contains

@@ -36,7 +36,6 @@ const (
 	flagProposalType = "type"
 	flagDeposit      = "deposit"
 	flagProposal     = "proposal"
-	flagProtobuf     = "protobuf"
 )
 
 type proposal struct {
@@ -129,13 +128,7 @@ $ %s tx gov submit-proposal --title="Test Proposal" --description="My awesome pr
 			}
 
 			content := types.ContentFromProposalType(proposal.Title, proposal.Description, proposal.Type)
-			var msg sdk.Msg
-			//isPorotbuf := viper.GetBool(flagProtobuf)
-			//if isPorotbuf {
-			//	msg =newsubmiproposal
-			//} else {
-			msg = types.NewMsgSubmitProposal(content, amount, cliCtx.GetFromAddress())
-			//}
+			msg := types.NewMsgSubmitProposal(content, amount, cliCtx.GetFromAddress())
 			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
@@ -143,7 +136,6 @@ $ %s tx gov submit-proposal --title="Test Proposal" --description="My awesome pr
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
-	cmd.Flags().String(flagProtobuf, "false", "protobuf msg")
 	cmd.Flags().String(flagTitle, "", "title of proposal")
 	cmd.Flags().String(flagDescription, "", "description of proposal")
 	cmd.Flags().String(flagProposalType, "",
