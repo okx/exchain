@@ -2,6 +2,7 @@ package types
 
 import (
 	"github.com/gogo/protobuf/proto"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"strings"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -16,6 +17,12 @@ const (
 type ContentAdapter interface {
 	proto.Message
 	Content
+	Conv2CM39Content(cdc codec.ProtoCodecMarshaler) (Content, error)
+}
+
+type CM39ContentAdapter interface {
+	Content
+	Conv2CM39Content(cdc *codec.CodecProxy) (ContentAdapter, error)
 }
 
 // Content defines an interface that a proposal must implement. It contains

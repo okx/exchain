@@ -9,6 +9,7 @@ import (
 	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/msgservice"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	"github.com/okex/exchain/x/gov/types"
 )
 
 // RegisterInterfaces registers the client interfaces to protobuf Any.
@@ -50,10 +51,18 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 		&MsgSubmitMisbehaviour{},
 	)
 
+	registry.RegisterImplementations(
+		(*types.ContentAdapter)(nil),
+		&UpgradeProposal{},
+	)
+
 	msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)
 }
 
 func RegisterCodec(cdc *codec.Codec) {
+	cdc.RegisterConcrete(&ClientUpdateProposal{}, "ibc.core.client.v1.ClientUpdateProposal", nil)
+	cdc.RegisterConcrete(&MsgUpgradeClient{}, "ibc.core.client.v1.MsgUpgradeClient", nil)
+	cdc.RegisterConcrete(&CM39UpgradeProposal{}, "okexchain/cm39/ibc.core.client.v1.MsgUpgradeClient", nil)
 }
 
 // UnpackClientState unpacks an Any into a ClientState. It returns an error if the

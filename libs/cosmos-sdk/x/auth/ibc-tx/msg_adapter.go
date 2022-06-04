@@ -1,6 +1,9 @@
 package ibc_tx
 
-import sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+import (
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+)
 
 type DenomAdapterMsg interface {
 	sdk.Msg
@@ -8,5 +11,5 @@ type DenomAdapterMsg interface {
 }
 
 type DenomOpr interface {
-	RulesFilter() (sdk.Msg, error)
+	RulesFilter(cdc codec.ProtoCodecMarshaler) (sdk.Msg, error)
 }

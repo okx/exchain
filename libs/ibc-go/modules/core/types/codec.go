@@ -34,4 +34,5 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 
 func RegisterCodec(cdc *codec.Codec) {
 	clienttypes.RegisterCodec(cdc)
+	ibctmtypes.RegisterCodec(cdc)
 }

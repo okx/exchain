@@ -3,17 +3,21 @@ package types
 import (
 	"fmt"
 	"github.com/gogo/protobuf/proto"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 )
 
 var (
-	_ ibcmsg.Msg = (*ProtobufMsgSubmitProposal)(nil)
+	_ ibcmsg.Msg                         = (*ProtobufMsgSubmitProposal)(nil)
+	_ codectypes.UnpackInterfacesMessage = (*ProtobufMsgSubmitProposal)(nil)
+	_ ibc_tx.DenomOpr                    = (*ProtobufMsgSubmitProposal)(nil)
 )
 
-func NewProtobufMsgSubmitProposal(content ContentAdapter, initialDeposit sdk.SysCoins, proposer sdk.AccAddress) ProtobufMsgSubmitProposal {
+func NewProtobufMsgSubmitProposal(content ContentAdapter, initialDeposit sdk.SysCoins, proposer sdk.AccAddress) *ProtobufMsgSubmitProposal {
 	any, err := PackContent(content)
 	if nil != err {
 		// cant happen
@@ -26,7 +30,7 @@ func NewProtobufMsgSubmitProposal(content ContentAdapter, initialDeposit sdk.Sys
 			Amount: sdk.NewIntFromBigInt(c.Amount.BigInt()),
 		})
 	}
-	ret := ProtobufMsgSubmitProposal{
+	ret := &ProtobufMsgSubmitProposal{
 		Content:        any,
 		InitialDeposit: cs,
 		Proposer:       proposer.String(),
@@ -62,11 +66,11 @@ func UnPackContent(any *codectypes.Any) (ContentAdapter, error) {
 }
 
 //nolint
-func (msg ProtobufMsgSubmitProposal) Route() string { return RouterKey }
-func (msg ProtobufMsgSubmitProposal) Type() string  { return TypeMsgSubmitProposal }
+func (msg *ProtobufMsgSubmitProposal) Route() string { return RouterKey }
+func (msg *ProtobufMsgSubmitProposal) Type() string  { return TypeMsgSubmitProposal }
 
 // Implements Msg.
-func (msg ProtobufMsgSubmitProposal) ValidateBasic() sdk.Error {
+func (msg *ProtobufMsgSubmitProposal) ValidateBasic() sdk.Error {
 	if msg.Content == nil {
 		return ErrInvalidProposalContent("content is required")
 	}
@@ -109,13 +113,50 @@ func (msg ProtobufMsgSubmitProposal) ValidateBasic() sdk.Error {
 }
 
 // Implements Msg.
-func (msg ProtobufMsgSubmitProposal) GetSignBytes() []byte {
+func (msg *ProtobufMsgSubmitProposal) GetSignBytes() []byte {
 	bz := ModuleCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
 }
 
 // Implements Msg.
-func (msg ProtobufMsgSubmitProposal) GetSigners() []sdk.AccAddress {
+func (msg *ProtobufMsgSubmitProposal) GetSigners() []sdk.AccAddress {
 	p, _ := sdk.AccAddressFromBech32(msg.Proposer)
 	return []sdk.AccAddress{p}
+}
+
+func (msg *ProtobufMsgSubmitProposal) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
+	var ct ContentAdapter
+	return unpacker.UnpackAny(msg.Content, &ct)
+}
+
+func (msg *ProtobufMsgSubmitProposal) RulesFilter(cdc codec.ProtoCodecMarshaler) (sdk.Msg, error) {
+	ct, err := UnPackContent(msg.Content)
+	if nil != err {
+		return nil, err
+	}
+	deps := make(sdk.SysCoins, 0)
+	for _, amount := range msg.InitialDeposit {
+		//if amount.Denom == sdk.DefaultBondDenom {
+		//	return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, "ProtobufMsgSubmitProposal not support okt denom")
+		//}
+		c := sdk.SysCoin{Denom: amount.Denom}
+		c.Amount = sdk.NewDecFromIntWithPrec(amount.Amount, sdk.Precision)
+		deps = append(deps, c)
+	}
+
+	prop, err := sdk.AccAddressFromBech32(msg.Proposer)
+	if nil != err {
+		return nil, err
+	}
+	cm39, err := ct.Conv2CM39Content(cdc)
+	if nil != err {
+		return nil, err
+	}
+	ret := MsgSubmitProposal{
+		//Content:        ct,
+		Content:        cm39,
+		InitialDeposit: deps,
+		Proposer:       prop,
+	}
+	return ret, nil
 }

@@ -11,12 +11,19 @@ import (
 // NewClientUpdateProposalHandler defines the client update proposal handler
 func NewClientUpdateProposalHandler(k keeper.Keeper) govtypes.Handler {
 	return func(ctx sdk.Context, content *govtypes.Proposal) sdk.Error {
-		switch c := content.Content.(type) {
+		cont := content.Content
+		if cm39, ok := content.Content.(govtypes.CM39ContentAdapter); ok {
+			cc, err := cm39.Conv2CM39Content(k.GetCdcProxy())
+			if nil != err {
+				return sdkerrors.Wrapf(err, "convert failed")
+			}
+			cont = cc
+		}
+		switch c := cont.(type) {
 		case *types.ClientUpdateProposal:
 			return k.ClientUpdateProposal(ctx, c)
 		case *types.UpgradeProposal:
 			return k.HandleUpgradeProposal(ctx, c)
-
 		default:
 			return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized ibc proposal content type: %T", c)
 		}

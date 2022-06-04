@@ -79,7 +79,7 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 		signatures := convertSignature(ibcTx)
 
 		// construct Msg
-		stdMsgs, signMsgs, err := constructMsgs(ibcTx)
+		stdMsgs, signMsgs, err := constructMsgs(cdc, ibcTx)
 		if err != nil {
 			return nil, err
 		}
@@ -115,7 +115,7 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 	}
 }
 
-func constructMsgs(ibcTx *tx.Tx) ([]sdk.Msg, []sdk.Msg, error) {
+func constructMsgs(cdc codec.ProtoCodecMarshaler, ibcTx *tx.Tx) ([]sdk.Msg, []sdk.Msg, error) {
 	var err error
 	stdMsgs, signMsgs := []sdk.Msg{}, []sdk.Msg{}
 	for _, ibcMsg := range ibcTx.Body.Messages {
@@ -129,7 +129,7 @@ func constructMsgs(ibcTx *tx.Tx) ([]sdk.Msg, []sdk.Msg, error) {
 		switch msg := m.(type) {
 		case DenomAdapterMsg:
 			// ibc transfer okt is not allowed,should do filter
-			newMsg, err = msg.RulesFilter()
+			newMsg, err = msg.RulesFilter(cdc)
 			if err != nil {
 				return nil, nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, "ibc tx decoder not support okt amount")
 			}

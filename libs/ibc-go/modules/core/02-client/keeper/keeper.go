@@ -394,3 +394,7 @@ func (k Keeper) GetUpgradedClient(ctx sdk.Context, planHeight int64) ([]byte, bo
 func (k Keeper) GetUpgradedConsensusState(ctx sdk.Context, planHeight int64) ([]byte, bool) {
 	return k.upgradeKeeper.GetUpgradedConsensusState(ctx, planHeight)
 }
+
+func (k Keeper) GetCdcProxy() *codec.CodecProxy {
+	return k.cdc
+}

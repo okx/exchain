@@ -4,7 +4,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 )
 
 // module codec
@@ -21,9 +20,6 @@ func RegisterCodec(cdc *codec.Codec) {
 
 	cdc.RegisterConcrete(TextProposal{}, "okexchain/gov/TextProposal", nil)
 	cdc.RegisterConcrete(SoftwareUpgradeProposal{}, "okexchain/gov/SoftwareUpgradeProposal", nil)
-
-	cdc.RegisterConcrete(&clienttypes.ClientUpdateProposal{}, "ibc.core.client.v1.ClientUpdateProposal", nil)
-	cdc.RegisterConcrete(&clienttypes.MsgUpgradeClient{}, "ibc.core.client.v1.MsgUpgradeClient", nil)
 }
 
 func RegisterInterface(reg interfacetypes.InterfaceRegistry) {
