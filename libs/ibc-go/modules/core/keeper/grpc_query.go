@@ -149,3 +149,7 @@ func (q Keeper) IbcParams(c context.Context, req *types.QueryIbcParamsRequest) (
 		Params: &params,
 	}, nil
 }
+
+func (q Keeper) UpgradedConsensusState(c context.Context, req *clienttypes.QueryUpgradedConsensusStateRequest) (*clienttypes.QueryUpgradedConsensusStateResponse, error) {
+	return q.ClientKeeper.UpgradedConsensusState(c, req)
+}
