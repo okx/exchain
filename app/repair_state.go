@@ -5,6 +5,8 @@ import (
 	"io"
 	"log"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/okex/exchain/app/config"
@@ -42,6 +44,10 @@ const (
 	FlagEnableRepairState string = "enable-repair-state"
 )
 
+var (
+	errReg *regexp.Regexp
+)
+
 type repairApp struct {
 	db dbm.DB
 	*OKExChainApp
@@ -53,6 +59,7 @@ func (app *repairApp) getLatestVersion() int64 {
 }
 
 func repairStateOnStart(ctx *server.Context) {
+	errReg = regexp.MustCompile("[0-9]+")
 	// set flag
 	orgIgnoreSmbCheck := sm.IgnoreSmbCheck
 	orgIgnoreVersionCheck := iavl.GetIgnoreVersionCheck()
@@ -130,8 +137,26 @@ func RepairState(ctx *server.Context, onStart bool) {
 	}
 	log.Println(fmt.Sprintf("repair state at version = %d", startVersion))
 
-	err = repairApp.LoadStartVersion(startVersion)
-	panicError(err)
+	times := 3
+	needRetry := false
+	for ; times > 0; times-- {
+		err = repairApp.LoadStartVersion(startVersion)
+		if err == nil {
+			needRetry = false
+			log.Println(fmt.Sprintf("load state successfully at version = %d", startVersion))
+			break
+		}
+
+		needRetry, startVersion = getRetryHeight(err)
+		if needRetry {
+			log.Println(fmt.Sprintf("load state retry at version = %d, (%d times left)", startVersion, times-1))
+			continue
+		}
+		panicError(err)
+	}
+	if times == 0 && needRetry {
+		panicError(err)
+	}
 
 	rawTrieDirtyDisabledFlag := viper.GetBool(mpttypes.FlagTrieDirtyDisabled)
 	mpttypes.TrieDirtyDisabled = true
@@ -141,6 +166,25 @@ func RepairState(ctx *server.Context, onStart bool) {
 	doRepair(ctx, state, stateStoreDB, proxyApp, startVersion, latestBlockHeight, dataDir)
 
 	mpttypes.TrieDirtyDisabled = rawTrieDirtyDisabledFlag
+}
+
+func getRetryHeight(err error) (bool, int64) {
+
+	errInfo := err.Error()
+	retry := strings.Contains(errInfo, "but only found up to")
+	if !retry {
+		return false, 0
+	}
+	vs := errReg.FindAllString(errInfo, -1)
+	if len(vs) != 2 {
+		return false, 0
+	}
+
+	version, e := strconv.ParseInt(vs[1], 0, 64)
+	if e != nil {
+		return false, 0
+	}
+	return retry, version
 }
 
 func createRepairApp(ctx *server.Context) (proxy.AppConns, *repairApp, error) {

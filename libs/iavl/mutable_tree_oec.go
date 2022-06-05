@@ -3,7 +3,6 @@ package iavl
 import (
 	"errors"
 	"fmt"
-	"log"
 	"sort"
 	"sync"
 
@@ -206,10 +205,8 @@ func (tree *MutableTree) loadVersionToCommittedHeightMap() {
 }
 
 func (tree *MutableTree) StopTree() {
-	version := tree.version
-	tree.log(IavlInfo, "stopping iavl-", tree.GetModuleName(), ",commit height", version)
-	log.Println("stopping iavl-", tree.GetModuleName(), ",commit height", version)
-	defer tree.log(IavlInfo, "stopping iavl completed", ",commit height", version)
+	tree.log(IavlInfo, "stopping iavl commit height", tree.version)
+	defer tree.log(IavlInfo, "stopping iavl completed", ",commit height", tree.version)
 
 	if !EnableAsyncCommit {
 		return
@@ -217,21 +214,21 @@ func (tree *MutableTree) StopTree() {
 
 	batch := tree.NewBatch()
 	if tree.root == nil {
-		if err := tree.ndb.SaveEmptyRoot(batch, version); err != nil {
+		if err := tree.ndb.SaveEmptyRoot(batch, tree.version); err != nil {
 			panic(err)
 		}
 	} else {
-		if err := tree.ndb.SaveRoot(batch, tree.root, version); err != nil {
+		if err := tree.ndb.SaveRoot(batch, tree.root, tree.version); err != nil {
 			panic(err)
 		}
 	}
-	tpp := tree.ndb.asyncPersistTppStart(version)
+	tpp := tree.ndb.asyncPersistTppStart(tree.version)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 	versions := tree.deepCopyVersions()
 
-	tree.commitCh <- commitEvent{version, versions, batch, tpp, &wg, 0}
+	tree.commitCh <- commitEvent{tree.version, versions, batch, tpp, &wg, 0}
 	wg.Wait()
 }
 
