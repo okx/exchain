@@ -42,6 +42,7 @@ type Watcher struct {
 	jobChan chan func()
 
 	evmTxIndex uint64
+	filterMap  map[string]WatchMessage
 }
 
 var (
@@ -67,7 +68,14 @@ func GetWatchLruSize() int {
 }
 
 func NewWatcher(logger log.Logger) *Watcher {
-	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}, log: logger}
+	watcher := &Watcher{store: InstanceOfWatchStore(),
+		cumulativeGas: make(map[uint64]uint64),
+		sw:            IsWatcherEnabled(),
+		firstUse:      true,
+		delayEraseKey: make([][]byte, 0),
+		watchData:     &WatchData{},
+		log:           logger,
+		filterMap:     make(map[string]WatchMessage)}
 	checkWd = viper.GetBool(FlagCheckWd)
 	return watcher
 }
@@ -106,7 +114,9 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 }
 
 func (w *Watcher) clean() {
-	w.cumulativeGas = make(map[uint64]uint64)
+	for k := range w.cumulativeGas {
+		delete(w.cumulativeGas, k)
+	}
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
 }
@@ -400,12 +410,11 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 }
 
 func (w *Watcher) commitBatch(batch []WatchMessage) {
-	filterMap := make(map[string]WatchMessage)
 	for _, b := range batch {
-		filterMap[bytes2Key(b.GetKey())] = b
+		w.filterMap[bytes2Key(b.GetKey())] = b
 	}
 
-	for _, b := range filterMap {
+	for _, b := range w.filterMap {
 		key := b.GetKey()
 		value := []byte(b.GetValue())
 		typeValue := b.GetType()
@@ -417,6 +426,10 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 				state.SetStateToLru(common.BytesToHash(key), value)
 			}
 		}
+	}
+
+	for k := range w.filterMap {
+		delete(w.filterMap, k)
 	}
 
 	if checkWd {
