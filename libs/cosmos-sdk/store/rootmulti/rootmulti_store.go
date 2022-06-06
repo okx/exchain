@@ -236,6 +236,7 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 	//sort the versions list
 	sort.Slice(versions, func(i, j int) bool { return versions[i] > versions[j] })
 	log.Println(fmt.Sprintf("get iavl-%s versions: %v", firstKey.Name(), versions))
+	//find version in rootmultistore
 	for _, version := range versions {
 		hasVersion, err := rs.hasVersion(version)
 		if err != nil {

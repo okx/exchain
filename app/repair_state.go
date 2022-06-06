@@ -132,9 +132,7 @@ func RepairState(ctx *server.Context, onStart bool) {
 	log.Println(fmt.Sprintf("repair state at version = %d", startVersion))
 
 	err = repairApp.LoadStartVersion(startVersion)
-	if err != nil {
-		panicError(err)
-	}
+	panicError(err)
 
 	rawTrieDirtyDisabledFlag := viper.GetBool(mpttypes.FlagTrieDirtyDisabled)
 	mpttypes.TrieDirtyDisabled = true
@@ -218,6 +216,7 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		log.Println("Repaired block height", repairedBlockHeight)
 		log.Println("Repaired app hash", fmt.Sprintf("%X", repairedAppHash))
 	}
+	// need to wait endblock to be done
 	time.Sleep(3 * time.Second)
 }
 
@@ -249,12 +248,13 @@ func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus
 	indexerService = txindex.NewIndexerService(txIndexer, eventBus)
 	indexerService.SetLogger(logger.With("module", "txindex"))
 	if err := indexerService.Start(); err != nil {
-		if txStore != nil {
-			txStore.Close()
-		}
 		if eventBus != nil {
 			eventBus.Stop()
 		}
+		if txStore != nil {
+			txStore.Close()
+		}
+
 		return nil, nil, err
 	}
 	return txStore, indexerService, nil
