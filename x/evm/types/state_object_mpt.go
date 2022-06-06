@@ -13,13 +13,11 @@ import (
 )
 
 const (
-	FlagTrieContractStateCache = "trie.contract-state-cache"
-	FlagTrieUseCompositeKey    = "trie.use-composite-key"
+	FlagTrieUseCompositeKey = "trie.use-composite-key"
 )
 
 var (
-	TrieContractStateCache uint = 2048 // MB
-	TrieUseCompositeKey         = true
+	TrieUseCompositeKey = true
 )
 
 func (so *stateObject) deepCopyMpt(db *CommitStateDB) *stateObject {
@@ -60,27 +58,22 @@ func (so *stateObject) GetCommittedStateMpt(db ethstate.Database, key ethcmn.Has
 		value ethcmn.Hash
 	)
 
-	compKey := AssembleCompositeKey(so.address.Bytes(), key.Bytes())
-	if enc = so.stateDB.StateCache.Get(nil, compKey.Bytes()); len(enc) > 0 {
-		value.SetBytes(enc)
-	} else {
-		tmpKey := key
-		if TrieUseCompositeKey {
-			tmpKey = GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
-		}
+	tmpKey := key
+	if TrieUseCompositeKey {
+		tmpKey = GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
+	}
 
-		if enc, err = so.getTrie(db).TryGet(tmpKey.Bytes()); err != nil {
+	if enc, err = so.getTrie(db).TryGet(tmpKey.Bytes()); err != nil {
+		so.setError(err)
+		return ethcmn.Hash{}
+	}
+
+	if len(enc) > 0 {
+		_, content, _, err := rlp.Split(enc)
+		if err != nil {
 			so.setError(err)
-			return ethcmn.Hash{}
 		}
-
-		if len(enc) > 0 {
-			_, content, _, err := rlp.Split(enc)
-			if err != nil {
-				so.setError(err)
-			}
-			value.SetBytes(content)
-		}
+		value.SetBytes(content)
 	}
 
 	so.originStorage[key] = value
@@ -156,7 +149,6 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 		}
 		so.originStorage[key] = value
 
-		compKey := AssembleCompositeKey(so.address.Bytes(), key.Bytes())
 		if TrieUseCompositeKey {
 			key = GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
 		}
@@ -164,12 +156,10 @@ func (so *stateObject) updateTrie(db ethstate.Database) ethstate.Trie {
 		usedStorage = append(usedStorage, ethcmn.CopyBytes(key[:])) // Copy needed for closure
 		if (value == ethcmn.Hash{}) {
 			so.setError(tr.TryDelete(key[:]))
-			so.stateDB.StateCache.Del(compKey.Bytes())
 		} else {
 			// Encoding []byte cannot fail, ok to ignore the error.
 			v, _ := rlp.EncodeToBytes(ethcmn.TrimLeftZeroes(value[:]))
 			so.setError(tr.TryUpdate(key[:], v))
-			so.stateDB.StateCache.Set(compKey.Bytes(), value.Bytes())
 		}
 	}
 	if so.stateDB.prefetcher != nil {
@@ -270,12 +260,4 @@ func (so *stateObject) UpdateAccInfo() error {
 		}
 	}
 	return fmt.Errorf("fail to update account for address: %s", so.account.Address.String())
-}
-
-func AssembleCompositeKey(prefix, key []byte) ethcmn.Hash {
-	compositeKey := make([]byte, (len(prefix)+len(key))/2)
-
-	copy(compositeKey, prefix[:len(prefix)/2])
-	copy(compositeKey[len(prefix)/2:], key[len(key)/2:])
-	return ethcmn.BytesToHash(compositeKey)
 }

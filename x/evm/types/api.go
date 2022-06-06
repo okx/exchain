@@ -1,8 +1,12 @@
 package types
 
 import (
+	"encoding/json"
 	"fmt"
+	"math/big"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/vm"
 )
 
@@ -65,4 +69,64 @@ func FormatLogs(logs []vm.StructLog) []*StructLogRes {
 		}
 	}
 	return formatted
+}
+
+// Account indicates the overriding fields of account during the execution of
+// a message call.
+// NOTE: state and stateDiff can't be specified at the same time. If state is
+// set, message execution will only use the data in the given state. Otherwise
+// if statDiff is set, all diff will be applied first and then execute the call
+// message.
+type OverrideAccount struct {
+	Nonce     *hexutil.Uint64              `json:"nonce"`
+	Code      *hexutil.Bytes               `json:"code"`
+	Balance   **hexutil.Big                `json:"balance"`
+	State     *map[common.Hash]common.Hash `json:"state"`
+	StateDiff *map[common.Hash]common.Hash `json:"stateDiff"`
+}
+
+// StateOverride is the collection of overridden accounts.
+type StateOverrides map[common.Address]OverrideAccount
+
+// Apply overrides the fields of specified accounts into the given state.
+func (diff *StateOverrides) Apply(state *CommitStateDB) {
+	for addr, account := range *diff {
+		// Override account nonce.
+		if account.Nonce != nil {
+			state.SetNonce(addr, uint64(*account.Nonce))
+		}
+		// Override account(contract) code.
+		if account.Code != nil {
+			state.SetCode(addr, *account.Code)
+		}
+		// Override account balance.
+		if account.Balance != nil {
+			state.SetBalance(addr, (*big.Int)(*account.Balance))
+		}
+		// Replace entire state if caller requires.
+		if account.State != nil {
+			state.SetStorage(addr, *account.State)
+		}
+		// Apply state diff into specified accounts.
+		if account.StateDiff != nil {
+			for key, value := range *account.StateDiff {
+				state.SetState(addr, key, value)
+			}
+		}
+	}
+}
+func (diff *StateOverrides) Check() error {
+	for addr, account := range *diff {
+		if account.State != nil && account.StateDiff != nil {
+			return fmt.Errorf("account %s has both 'state' and 'stateDiff'", addr.Hex())
+		}
+	}
+	return nil
+}
+func (diff *StateOverrides) ToString() (string, error) {
+	valStr, err := json.Marshal(diff)
+	return string(valStr), err
+}
+func (diff *StateOverrides) GetBytes() ([]byte, error) {
+	return json.Marshal(diff)
 }

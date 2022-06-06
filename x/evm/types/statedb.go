@@ -8,7 +8,7 @@ import (
 
 	"github.com/okex/exchain/libs/system/trace"
 
-	"github.com/VictoriaMetrics/fastcache"
+	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/rawdb"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
@@ -36,7 +36,6 @@ type revision struct {
 
 type CommitStateDBParams struct {
 	StoreKey       sdk.StoreKey
-	LegacyStoreKey sdk.StoreKey
 	ParamSpace     Subspace
 	AccountKeeper  AccountKeeper
 	SupplyKeeper   SupplyKeeper
@@ -46,10 +45,9 @@ type CommitStateDBParams struct {
 	// Amino codec
 	Cdc *codec.Codec
 
-	DB         ethstate.Database
-	Trie       ethstate.Trie
-	RootHash   ethcmn.Hash
-	StateCache *fastcache.Cache
+	DB       ethstate.Database
+	Trie     ethstate.Trie
+	RootHash ethcmn.Hash
 }
 
 type Watcher interface {
@@ -78,7 +76,6 @@ type CacheCode struct {
 type CommitStateDB struct {
 	db           ethstate.Database
 	trie         ethstate.Trie // only storage addr -> storageMptRoot in this mpt tree
-	StateCache   *fastcache.Cache
 	prefetcher   *mpt.TriePrefetcher
 	originalRoot ethcmn.Hash
 
@@ -88,7 +85,6 @@ type CommitStateDB struct {
 	ctx sdk.Context
 
 	storeKey       sdk.StoreKey
-	legacyStoreKey sdk.StoreKey
 	paramSpace     Subspace
 	accountKeeper  AccountKeeper
 	supplyKeeper   SupplyKeeper
@@ -170,7 +166,6 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 		originalRoot: csdbParams.RootHash,
 
 		storeKey:       csdbParams.StoreKey,
-		legacyStoreKey: csdbParams.LegacyStoreKey,
 		paramSpace:     csdbParams.ParamSpace,
 		accountKeeper:  csdbParams.AccountKeeper,
 		supplyKeeper:   csdbParams.SupplyKeeper,
@@ -190,7 +185,6 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 		codeCache:           make(map[ethcmn.Address]CacheCode, 0),
 		dbAdapter:           csdbParams.Ada,
 		updatedAccount:      make(map[ethcmn.Address]struct{}),
-		StateCache:          csdbParams.StateCache,
 	}
 
 	return csdb
@@ -198,7 +192,6 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 
 func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *CommitStateDB {
 	csdb := NewCommitStateDB(csdbParams).WithContext(ctx)
-	csdb.StateCache = fastcache.New(1024 * 1024)
 	return csdb
 }
 
@@ -279,6 +272,15 @@ func (csdb *CommitStateDB) SetParams(params Params) {
 	csdb.params = &params
 	csdb.paramSpace.SetParamSet(csdb.ctx, &params)
 	GetEvmParamsCache().SetNeedParamsUpdate()
+}
+
+// SetStorage replaces the entire storage for the specified account with given
+// storage. This function should only be used for debugging.
+func (csdb *CommitStateDB) SetStorage(addr common.Address, storage map[common.Hash]common.Hash) {
+	stateObject := csdb.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.SetStorage(storage)
+	}
 }
 
 // SetBalance sets the balance of an account.
@@ -1315,7 +1317,7 @@ func (csdb *CommitStateDB) SetContractDeploymentWhitelist(addrList AddressList) 
 
 	var store StoreProxy
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		store = csdb.ctx.KVStore(csdb.legacyStoreKey)
+		store = csdb.paramSpace.CustomKVStore(csdb.ctx)
 	} else {
 		store = csdb.ctx.KVStore(csdb.storeKey)
 	}
@@ -1335,7 +1337,7 @@ func (csdb *CommitStateDB) DeleteContractDeploymentWhitelist(addrList AddressLis
 
 	var store StoreProxy
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		store = csdb.ctx.KVStore(csdb.legacyStoreKey)
+		store = csdb.paramSpace.CustomKVStore(csdb.ctx)
 	} else {
 		store = csdb.ctx.KVStore(csdb.storeKey)
 	}
@@ -1349,7 +1351,7 @@ func (csdb *CommitStateDB) DeleteContractDeploymentWhitelist(addrList AddressLis
 func (csdb *CommitStateDB) GetContractDeploymentWhitelist() (whitelist AddressList) {
 	var store sdk.KVStore
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		store = csdb.ctx.KVStore(csdb.legacyStoreKey)
+		store = csdb.paramSpace.CustomKVStore(csdb.ctx)
 	} else {
 		store = csdb.ctx.KVStore(csdb.storeKey)
 	}
@@ -1368,7 +1370,7 @@ func (csdb *CommitStateDB) GetContractDeploymentWhitelist() (whitelist AddressLi
 func (csdb *CommitStateDB) IsDeployerInWhitelist(deployerAddr sdk.AccAddress) bool {
 	var bs StoreProxy
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		bs = csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.legacyStoreKey), KeyPrefixContractDeploymentWhitelist)
+		bs = csdb.dbAdapter.NewStore(csdb.paramSpace.CustomKVStore(csdb.ctx), KeyPrefixContractDeploymentWhitelist)
 	} else {
 		bs = csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractDeploymentWhitelist)
 	}
@@ -1387,7 +1389,7 @@ func (csdb *CommitStateDB) SetContractBlockedList(addrList AddressList) {
 
 	var store sdk.KVStore
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		store = csdb.ctx.KVStore(csdb.legacyStoreKey)
+		store = csdb.paramSpace.CustomKVStore(csdb.ctx)
 	} else {
 		store = csdb.ctx.KVStore(csdb.storeKey)
 	}
@@ -1408,7 +1410,7 @@ func (csdb *CommitStateDB) DeleteContractBlockedList(addrList AddressList) {
 
 	var store sdk.KVStore
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		store = csdb.ctx.KVStore(csdb.legacyStoreKey)
+		store = csdb.paramSpace.CustomKVStore(csdb.ctx)
 	} else {
 		store = csdb.ctx.KVStore(csdb.storeKey)
 	}
@@ -1422,7 +1424,7 @@ func (csdb *CommitStateDB) DeleteContractBlockedList(addrList AddressList) {
 func (csdb *CommitStateDB) GetContractBlockedList() (blockedList AddressList) {
 	var store sdk.KVStore
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		store = csdb.ctx.KVStore(csdb.legacyStoreKey)
+		store = csdb.paramSpace.CustomKVStore(csdb.ctx)
 	} else {
 		store = csdb.ctx.KVStore(csdb.storeKey)
 	}
@@ -1463,7 +1465,7 @@ func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.Ac
 	//use dbAdapter for watchdb or prefixdb
 	var bs StoreProxy
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		bs = csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.legacyStoreKey), KeyPrefixContractBlockedList)
+		bs = csdb.dbAdapter.NewStore(csdb.paramSpace.CustomKVStore(csdb.ctx), KeyPrefixContractBlockedList)
 	} else {
 		bs = csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractBlockedList)
 	}
@@ -1550,7 +1552,7 @@ func (csdb *CommitStateDB) DeleteContractMethodBlockedList(contractList BlockedC
 func (csdb *CommitStateDB) GetContractMethodBlockedList() (blockedContractList BlockedContractList) {
 	var store sdk.KVStore
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		store = csdb.ctx.KVStore(csdb.legacyStoreKey)
+		store = csdb.paramSpace.CustomKVStore(csdb.ctx)
 	} else {
 		store = csdb.ctx.KVStore(csdb.storeKey)
 	}
@@ -1597,7 +1599,7 @@ func (csdb *CommitStateDB) SetContractMethodBlocked(contract BlockedContract) {
 
 	var store sdk.KVStore
 	if tmtypes.HigherThanMars(csdb.ctx.BlockHeight()) {
-		store = csdb.ctx.KVStore(csdb.legacyStoreKey)
+		store = csdb.paramSpace.CustomKVStore(csdb.ctx)
 	} else {
 		store = csdb.ctx.KVStore(csdb.storeKey)
 	}

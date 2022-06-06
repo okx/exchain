@@ -119,13 +119,13 @@ func (k *Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Vali
 	return []abci.ValidatorUpdate{}
 }
 
-// migrateDataInMarsHeight migrates data from evm store to evmlegacy store
+// migrateDataInMarsHeight migrates data from evm store to param store
 // 0. chainConfig
 // 1. white address list
 // 2. blocked addresses list
 func migrateDataInMarsHeight(ctx sdk.Context, k *Keeper) {
 	csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
-	newStore := ctx.KVStore(k.legacyStoreKey)
+	newStore := k.paramSpace.CustomKVStore(ctx)
 
 	// 0. migrate chainConfig
 	config, _ := k.GetChainConfig(ctx)

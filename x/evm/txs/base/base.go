@@ -1,13 +1,13 @@
 package base
 
 import (
-	bam "github.com/okex/exchain/libs/system/trace"
 	"math/big"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	bam "github.com/okex/exchain/libs/system/trace"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/types"
@@ -55,6 +55,7 @@ func (tx *Tx) GetChainConfig() (types.ChainConfig, bool) {
 // Transition execute evm tx
 func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 	result.ExecResult, result.ResultData, err, result.InnerTxs, result.Erc20Contracts = tx.StateTransition.TransitionDb(tx.Ctx, config)
+
 	// async mod goes immediately
 	if tx.Ctx.ParaMsg() != nil {
 		index := tx.Keeper.LogsManages.Set(keeper.TxResult{
