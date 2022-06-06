@@ -2,7 +2,6 @@ package simulation
 
 import (
 	"encoding/binary"
-	"github.com/okex/exchain/x/evm"
 	"github.com/okex/exchain/x/evm/keeper"
 	"sync"
 
