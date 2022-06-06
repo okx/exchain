@@ -48,7 +48,6 @@ func NewAPI(ethAPI *eth.PublicEthereumAPI, log log.Logger) *PrivateAccountAPI {
 	if err != nil {
 		return api
 	}
-
 	api.keyInfos, err = api.ethAPI.ClientCtx().Keybase.List()
 	if err != nil {
 		return api
@@ -63,6 +62,7 @@ func NewAPI(ethAPI *eth.PublicEthereumAPI, log log.Logger) *PrivateAccountAPI {
 // NOTE: The key will be both armored and encrypted using the same passphrase.
 func (api *PrivateAccountAPI) ImportRawKey(privkey, password string) (common.Address, error) {
 	api.logger.Debug("personal_importRawKey")
+
 	priv, err := crypto.HexToECDSA(privkey)
 	if err != nil {
 		return common.Address{}, err

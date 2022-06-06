@@ -45,7 +45,7 @@ func (ar *AddressRecord) AddItem(address string, cElement *clist.CElement) {
 	}
 }
 
-func (ar *AddressRecord) checkRepeatedAndAddItem(memTx *mempoolTx, txPriceBump int64) *clist.CElement {
+func (ar *AddressRecord) checkRepeatedAndAddItem(memTx *mempoolTx, txPriceBump int64, cb func(*clist.CElement) *clist.CElement) *clist.CElement {
 	gasPrice := memTx.realTx.GetGasPrice()
 	nonce := memTx.realTx.GetNonce()
 	newElement := clist.NewCElement(memTx, memTx.from, gasPrice, nonce)
@@ -59,6 +59,7 @@ func (ar *AddressRecord) checkRepeatedAndAddItem(memTx *mempoolTx, txPriceBump i
 	defer am.Unlock()
 	// do not need to check element nonce
 	if newElement.Nonce > am.maxNonce {
+		cb(newElement)
 		am.maxNonce = newElement.Nonce
 		am.items[newElement.Nonce] = newElement
 		return newElement
@@ -74,16 +75,19 @@ func (ar *AddressRecord) checkRepeatedAndAddItem(memTx *mempoolTx, txPriceBump i
 
 			// delete the old element and reorganize the elements whose nonce is greater the the new element
 			ar.removeElement(e)
-			var items []*clist.CElement
+			items := []*clist.CElement{newElement}
 			for _, item := range am.items {
 				if item.Nonce > nonce {
 					items = append(items, item)
 				}
 			}
 			ar.reorganizeElements(items)
+			am.items[newElement.Nonce] = newElement
+			return newElement
 		}
 	}
 
+	cb(newElement)
 	am.items[newElement.Nonce] = newElement
 
 	return newElement

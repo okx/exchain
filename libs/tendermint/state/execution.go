@@ -191,6 +191,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		defer PprofEnd(int(block.Height), f, t)
 	}
 	trc := trace.NewTracer(trace.ApplyBlock)
+	trc.EnableSummary()
 	dc := blockExec.deltaContext
 
 	defer func() {
