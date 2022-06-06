@@ -143,7 +143,7 @@ func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.
 	st := evmtypes.StateTransition{
 		AccountNonce: nonce,
 		Price:        big.NewInt(0),
-		GasLimit:     evmtypes.DefaultMaxGasLimitPerTx,
+		GasLimit:     k.evmKeeper.GetParams(ctx).MaxGasLimitPerTx,
 		Recipient:    to,
 		Amount:       value,
 		Payload:      data,

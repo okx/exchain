@@ -31,6 +31,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	cmserver "github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/watcher"
@@ -77,13 +78,19 @@ type RPCTestSuite struct {
 	// testing chains used for convenience and readability
 	chain apptesting.TestChainI
 
-	apiServer *gorpc.Server
-	Mux       *http.ServeMux
-	cliCtx    *cosmos_context.CLIContext
-	addr      string
+	apiServer     *gorpc.Server
+	Mux           *http.ServeMux
+	cliCtx        *cosmos_context.CLIContext
+	rpcListener   net.Listener
+	addr          string
+	tmRpcListener net.Listener
+	tmAddr        string
 }
 
 func (suite *RPCTestSuite) SetupTest() {
+
+	viper.Set(rpc.FlagDebugAPI, true)
+	viper.Set(cmserver.FlagPruning, cosmost.PruningOptionNothing)
 	// set exchaincli path
 	cliDir, err := ioutil.TempDir("", ".exchaincli")
 	if err != nil {
@@ -111,11 +118,18 @@ func (suite *RPCTestSuite) SetupTest() {
 	//Kb = keys.NewInMemory(hd.EthSecp256k1Options()...)
 	//info, err := Kb.CreateAccount("captain", "puzzle glide follow cruel say burst deliver wild tragic galaxy lumber offer", "", "12345678", "m/44'/60'/0'/0/1", "eth_secp256k1")
 
+	mck := NewMockClient(chainId, suite.chain, suite.chain.App())
+	suite.tmRpcListener, suite.tmAddr, err = mck.StartTmRPC()
+	if err != nil {
+		panic(err)
+	}
+	viper.Set("rpc.laddr", suite.tmAddr)
+
 	cliCtx := cosmos_context.NewCLIContext().
 		WithProxy(suite.chain.Codec()).
 		WithTrustNode(true).
 		WithChainID(chainId).
-		WithClient(NewMockClient(chainId, suite.chain, suite.chain.App())).
+		WithClient(mck).
 		WithBroadcastMode(flags.BroadcastSync)
 
 	suite.cliCtx = &cliCtx
@@ -124,10 +138,10 @@ func (suite *RPCTestSuite) SetupTest() {
 	suite.apiServer = gorpc.NewServer()
 
 	viper.Set(rpc.FlagDisableAPI, "")
+
 	viper.Set(backend.FlagApiBackendBlockLruCache, 100)
 	viper.Set(backend.FlagApiBackendTxLruCache, 100)
 	viper.Set(watcher.FlagFastQueryLru, 100)
-	viper.Set("rpc.laddr", "127.0.0.1:0")
 	viper.Set(flags.FlagKeyringBackend, "test")
 
 	viper.Set(rpc.FlagPersonalAPI, true)
@@ -141,18 +155,30 @@ func (suite *RPCTestSuite) SetupTest() {
 			panic(err)
 		}
 	}
+	StartRpc(suite)
+}
+
+func (suite *RPCTestSuite) TearDownTest() {
+	if suite.rpcListener != nil {
+		suite.rpcListener.Close()
+	}
+	if suite.tmRpcListener != nil {
+		suite.rpcListener.Close()
+	}
+}
+func StartRpc(suite *RPCTestSuite) {
 	suite.Mux = http.NewServeMux()
 	suite.Mux.HandleFunc("/", suite.apiServer.ServeHTTP)
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {
 		panic(err)
 	}
+	suite.rpcListener = listener
 	suite.addr = fmt.Sprintf("http://localhost:%d", listener.Addr().(*net.TCPAddr).Port)
 	go func() {
 		http.Serve(listener, suite.Mux)
 	}()
 }
-
 func TestRPCTestSuite(t *testing.T) {
 	suite.Run(t, new(RPCTestSuite))
 }
@@ -375,6 +401,34 @@ func (suite *RPCTestSuite) TestEth_BlockNumber() {
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &blockNumber2))
 
 	suite.Require().True(blockNumber2 > blockNumber1)
+}
+func (suite *RPCTestSuite) TestDebug_traceTransaction_Transfer() {
+
+	value := sdk.NewDec(1)
+	param := make([]map[string]string, 1)
+	param[0] = make(map[string]string)
+	param[0]["from"] = senderAddr.Hex()
+	param[0]["to"] = receiverAddr.Hex()
+	param[0]["value"] = (*hexutil.Big)(value.BigInt()).String()
+	param[0]["gasPrice"] = (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String()
+
+	rpcRes := Call(suite.T(), suite.addr, "eth_sendTransaction", param)
+
+	var hash ethcmn.Hash
+	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &hash))
+
+	commitBlock(suite)
+	commitBlock(suite)
+	receipt := WaitForReceipt(suite.T(), suite.addr, hash)
+	suite.Require().NotNil(receipt)
+	suite.Require().Equal("0x1", receipt["status"].(string))
+
+	debugParam := make([]interface{}, 2)
+	debugParam[0] = hash.Hex()
+	debugParam[1] = map[string]string{}
+
+	rpcRes = Call(suite.T(), suite.addr, "debug_traceTransaction", debugParam)
+	suite.Require().NotNil(rpcRes.Result)
 }
 
 func (suite *RPCTestSuite) TestEth_SendTransaction_Transfer() {
@@ -786,7 +840,45 @@ func (suite *RPCTestSuite) TestEth_Call() {
 	_, err = CallWithError(suite.addr, "eth_call", nil)
 	suite.Require().Error(err)
 }
+func (suite *RPCTestSuite) TestEth_Call_Overrides() {
+	// simulate evm transfer
+	callArgs := make(map[string]string)
+	callArgs["from"] = senderAddr.Hex()
+	callArgs["to"] = "0x45dD91b0289E60D89Cec94dF0Aac3a2f539c514a"
+	callArgs["data"] = "0x2e64cec1"
+	expected := "0x0000000000000000000000000000000000000000000000000000000000000007"
+	overridesArgs := map[string]interface{}{}
+	overrideAccount := map[string]interface{}{}
+	code := "0x608060405234801561001057600080fd5b506004361061004c5760003560e01c80632e64cec1146100515780634cd8de131461006f5780636057361d1461009f578063f8b2cb4f146100bb575b600080fd5b6100596100eb565b604051610066919061025a565b60405180910390f35b61008960048036038101906100849190610196565b6100f4565b6040516100969190610238565b60405180910390f35b6100b960048036038101906100b491906101c3565b610130565b005b6100d560048036038101906100d09190610196565b61014b565b6040516100e2919061025a565b60405180910390f35b60008054905090565b60608173ffffffffffffffffffffffffffffffffffffffff16803b806020016040519081016040528181526000908060200190933c9050919050565b806000808282546101419190610291565b9250508190555050565b60008173ffffffffffffffffffffffffffffffffffffffff16319050919050565b60008135905061017b8161039b565b92915050565b600081359050610190816103b2565b92915050565b6000602082840312156101ac576101ab610385565b5b60006101ba8482850161016c565b91505092915050565b6000602082840312156101d9576101d8610385565b5b60006101e784828501610181565b91505092915050565b60006101fb82610275565b6102058185610280565b9350610215818560208601610323565b61021e8161038a565b840191505092915050565b61023281610319565b82525050565b6000602082019050818103600083015261025281846101f0565b905092915050565b600060208201905061026f6000830184610229565b92915050565b600081519050919050565b600082825260208201905092915050565b600061029c82610319565b91506102a783610319565b9250827fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff038211156102dc576102db610356565b5b828201905092915050565b60006102f2826102f9565b9050919050565b600073ffffffffffffffffffffffffffffffffffffffff82169050919050565b6000819050919050565b60005b83811015610341578082015181840152602081019050610326565b83811115610350576000848401525b50505050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b600080fd5b6000601f19601f8301169050919050565b6103a4816102e7565b81146103af57600080fd5b50565b6103bb81610319565b81146103c657600080fd5b5056fea26469706673582212202f99901e5c26c9c389fef67564f7c7b71316025fe9346120d3b01d4b7066034364736f6c63430008070033"
+	overrideAccount["code"] = code
+	overrideAccount["state"] = map[string]string{
+		"0x0000000000000000000000000000000000000000000000000000000000000000": expected,
+	}
+	overridesArgs["0x45dD91b0289E60D89Cec94dF0Aac3a2f539c514a"] = overrideAccount
 
+	resp, err := CallWithError(suite.addr, "eth_call", []interface{}{callArgs, latestBlockNumber, overridesArgs})
+	suite.Require().NoError(err)
+
+	var res string
+	_ = json.Unmarshal(resp.Result, &res)
+	suite.Require().EqualValues(expected, res)
+
+	callArgs["data"] = "0xf8b2cb4f000000000000000000000000bbe4733d85bc2b90682147779da49cab38c0aa1f" // get balance of bbe4733d85bc2b90682147779da49cab38c0aa1f
+	expectedBal := "0x10000000000000000000000000000000000000000000000000000000003e8000"
+	overridesArgs["0xbbE4733d85bc2b90682147779DA49caB38C0aA1F"] = map[string]string{"balance": expectedBal}
+	resp, err = CallWithError(suite.addr, "eth_call", []interface{}{callArgs, latestBlockNumber, overridesArgs})
+	suite.Require().NoError(err)
+
+	_ = json.Unmarshal(resp.Result, &res)
+	suite.Require().EqualValues(expectedBal, res)
+
+	callArgs["data"] = "0x4cd8de1300000000000000000000000045dd91b0289e60d89cec94df0aac3a2f539c514a" // get code of 0x45dD91b0289E60D89Cec94dF0Aac3a2f539c514a
+	resp, err = CallWithError(suite.addr, "eth_call", []interface{}{callArgs, latestBlockNumber, overridesArgs})
+	suite.Require().NoError(err)
+
+	_ = json.Unmarshal(resp.Result, &res)
+	suite.Require().EqualValues(code+"00", strings.Replace(res, "0x000000000000000000000000000000000000000000000000000000000000002000000000000000000000000000000000000000000000000000000000000003ff", "0x", -1))
+}
 func (suite *RPCTestSuite) TestEth_EstimateGas_WithoutArgs() {
 	// error check
 	// miss argument

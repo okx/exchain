@@ -162,7 +162,6 @@ func (tree *MutableTree) commitSchedule() {
 		}
 
 		trc := trace.NewTracer("commitSchedule")
-		trc.CloseSummary()
 
 		trc.Pin("cacheNode")
 		for k, node := range event.tpp {
