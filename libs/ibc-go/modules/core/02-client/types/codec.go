@@ -12,6 +12,12 @@ import (
 	"github.com/okex/exchain/x/gov/types"
 )
 
+func init() {
+	types.RegisterProposalTypeCodec(&ClientUpdateProposal{}, "ibc.core.client.v1.ClientUpdateProposal")
+	types.RegisterProposalTypeCodec(&MsgUpgradeClient{}, "ibc.core.client.v1.MsgUpgradeClient")
+	types.RegisterProposalTypeCodec(&CM39UpgradeProposal{}, "okexchain/cm39/ibc.core.client.v1.MsgUpgradeClient")
+}
+
 // RegisterInterfaces registers the client interfaces to protobuf Any.
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 
