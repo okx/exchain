@@ -136,9 +136,6 @@ func (msg *ProtobufMsgSubmitProposal) RulesFilter(cdc codec.ProtoCodecMarshaler)
 	}
 	deps := make(sdk.SysCoins, 0)
 	for _, amount := range msg.InitialDeposit {
-		//if amount.Denom == sdk.DefaultBondDenom {
-		//	return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, "ProtobufMsgSubmitProposal not support okt denom")
-		//}
 		c := sdk.SysCoin{Denom: amount.Denom}
 		c.Amount = sdk.NewDecFromIntWithPrec(amount.Amount, sdk.Precision)
 		deps = append(deps, c)
@@ -153,7 +150,6 @@ func (msg *ProtobufMsgSubmitProposal) RulesFilter(cdc codec.ProtoCodecMarshaler)
 		return nil, err
 	}
 	ret := MsgSubmitProposal{
-		//Content:        ct,
 		Content:        cm39,
 		InitialDeposit: deps,
 		Proposer:       prop,
