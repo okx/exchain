@@ -266,8 +266,7 @@ func (q Keeper) UpgradedConsensusState(c context.Context, req *types.QueryUpgrad
 
 	ctx := sdk.UnwrapSDKContext(c)
 
-	//bz, found := q.GetUpgradedConsensusState(ctx, ctx.BlockHeight())
-	bz, found := q.GetUpgradedConsensusState(ctx, 100)
+	bz, found := q.GetUpgradedConsensusState(ctx, ctx.BlockHeight())
 	if !found {
 		return nil, status.Errorf(codes.NotFound, "%s, height %d", types.ErrConsensusStateNotFound.Error(), ctx.BlockHeight())
 	}
