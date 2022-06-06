@@ -1037,6 +1037,8 @@ func (suite *EvmContractBlockedListTestSuite) TestEvmParamsAndContractMethodBloc
 
 	for _, tc := range testCases {
 		suite.Run(tc.msg, func() {
+			suite.ctx.SetIsDeliverTx(true).SetIsCheckTx(false)
+
 			// set contract code
 			suite.stateDB.CreateAccount(callEthAcc)
 			suite.stateDB.CreateAccount(blockedEthAcc)
