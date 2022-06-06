@@ -23,7 +23,6 @@ type GasLimitDecorator struct {
 	evm EVMKeeper
 }
 
-// AnteHandle handles incrementing the sequence of the sender.
 func (g GasLimitDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
 	pinAnte(ctx.AnteTracer(), "GasLimitDecorator")
 
