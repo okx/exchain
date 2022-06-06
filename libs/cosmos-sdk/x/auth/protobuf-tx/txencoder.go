@@ -1,13 +1,13 @@
-package ibc_tx
+package protobuf_tx
 
 import (
 	"fmt"
 	"github.com/gogo/protobuf/proto"
-	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/pb-tx"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 )
 
-func IbcTxEncoder() ibctx.IBCTxEncoder {
+func IbcTxEncoder() ibctx.PbTxEncoder {
 	return func(tx ibctx.Tx) ([]byte, error) {
 		txWrapper, ok := tx.(*wrapper)
 		if !ok {

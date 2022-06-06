@@ -9,16 +9,16 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 )
 
-type IbcTx struct {
+type PbTx struct {
 	*StdTx
 	AuthInfoBytes []byte
 	BodyBytes     []byte
 	SignMode      signing.SignMode
-	SigFee        IbcFee
+	SigFee        PbFee
 	SigMsgs       []sdk.Msg
 }
 
-type StdIBCSignDoc struct {
+type StdPBSignDoc struct {
 	AccountNumber uint64            `json:"account_number" yaml:"account_number"`
 	Sequence      uint64            `json:"sequence" yaml:"sequence"`
 	TimeoutHeight uint64            `json:"timeout_height,omitempty" yaml:"timeout_height"`
@@ -28,12 +28,12 @@ type StdIBCSignDoc struct {
 	Msgs          []json.RawMessage `json:"msgs" yaml:"msgs"`
 }
 
-type IbcFee struct {
+type PbFee struct {
 	Amount sdk.CoinAdapters `json:"amount" yaml:"amount"`
 	Gas    uint64           `json:"gas" yaml:"gas"`
 }
 
-func (tx *IbcTx) GetSignBytes(ctx sdk.Context, acc exported.Account) []byte {
+func (tx *PbTx) GetSignBytes(ctx sdk.Context, acc exported.Account) []byte {
 	genesis := ctx.BlockHeight() == 0
 	chainID := ctx.ChainID()
 	var accNum uint64
@@ -42,25 +42,25 @@ func (tx *IbcTx) GetSignBytes(ctx sdk.Context, acc exported.Account) []byte {
 	}
 
 	if tx.SignMode == signing.SignMode_SIGN_MODE_DIRECT {
-		return IbcDirectSignBytes(
+		return PbDirectSignBytes(
 			chainID, accNum, acc.GetSequence(), tx.Fee, tx.Msgs, tx.Memo, tx.AuthInfoBytes, tx.BodyBytes,
 		)
 	}
 
-	return IbcAminoSignBytes(
+	return PbTxAminoSignBytes(
 		chainID, accNum, acc.GetSequence(), tx.SigFee, tx.SigMsgs, tx.Memo, tx.TimeoutHeight,
 	)
 }
 
-func IbcAminoSignBytes(chainID string, accNum uint64,
-	sequence uint64, fee IbcFee, msgs []sdk.Msg,
+func PbTxAminoSignBytes(chainID string, accNum uint64,
+	sequence uint64, fee PbFee, msgs []sdk.Msg,
 	memo string, height uint64) []byte {
 
 	msgsBytes := make([]json.RawMessage, 0, len(msgs))
 	for _, msg := range msgs {
 		msgsBytes = append(msgsBytes, json.RawMessage(msg.GetSignBytes()))
 	}
-	bz, err := ModuleCdc.MarshalJSON(StdIBCSignDoc{
+	bz, err := ModuleCdc.MarshalJSON(StdPBSignDoc{
 		AccountNumber: accNum,
 		ChainID:       chainID,
 		Fee:           ModuleCdc.MustMarshalJSON(fee),
@@ -75,8 +75,8 @@ func IbcAminoSignBytes(chainID string, accNum uint64,
 	return sdk.MustSortJSON(bz)
 }
 
-// IbcDirectSignBytes returns the bytes to sign for a transaction.
-func IbcDirectSignBytes(chainID string, accnum uint64,
+// PbDirectSignBytes returns the bytes to sign for a transaction.
+func PbDirectSignBytes(chainID string, accnum uint64,
 	sequence uint64, fee StdFee, msgs []sdk.Msg,
 	memo string, authInfoBytes []byte, bodyBytes []byte) []byte {
 
@@ -126,7 +126,7 @@ func (b ProtobufViewMsg) GetSigners() []sdk.AccAddress {
 	return nil
 }
 
-func FromProtobufTx(cdc *codec.CodecProxy, tx *IbcTx) (*StdTx, error) {
+func FromProtobufTx(cdc *codec.CodecProxy, tx *PbTx) (*StdTx, error) {
 	msgs := make([]sdk.Msg, 0)
 	for _, msg := range tx.GetMsgs() {
 		m := (interface{})(msg).(sdk.MsgProtoAdapter)

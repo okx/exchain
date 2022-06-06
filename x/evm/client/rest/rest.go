@@ -110,8 +110,8 @@ func QueryTx(cliCtx context.CLIContext, hashHexStr string) (interface{}, error) 
 	}
 	var ret interface{}
 	switch tx.(type) {
-	case *types.IbcTx:
-		jsonTx, err := types.FromProtobufTx(cliCtx.CodecProy, tx.(*types.IbcTx))
+	case *types.PbTx:
+		jsonTx, err := types.FromProtobufTx(cliCtx.CodecProy, tx.(*types.PbTx))
 		if nil != err {
 			return nil, err
 		}

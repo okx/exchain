@@ -10,10 +10,10 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/pb-tx"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
-	ibctx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	signingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibcsigning"
+	pbtx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/protobuf-tx"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -234,7 +234,7 @@ func signPbTx(txConfig client.TxConfig, txf authtypes.TxBuilder, name string, pa
 		return err
 	}
 
-	pubKeyPB := ibctx.LagacyKey2PbKey(privKey.PubKey())
+	pubKeyPB := pbtx.LagacyKey2PbKey(privKey.PubKey())
 
 	signerData := signingtypes.SignerData{
 		ChainID:       txf.ChainID(),
@@ -348,7 +348,7 @@ func CalculateGas(
 }
 func NewPbTxConfig(reg types2.InterfaceRegistry) client.TxConfig {
 	marshaler := codec.NewProtoCodec(reg)
-	return ibctx.NewTxConfig(marshaler, ibctx.DefaultSignModes)
+	return pbtx.NewTxConfig(marshaler, pbtx.DefaultSignModes)
 }
 
 // PrintUnsignedStdTx builds an unsigned StdTx and prints it to os.Stdout.

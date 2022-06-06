@@ -6,7 +6,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/msgservice"
 
-	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/pb-tx"
 )
 
 // RegisterLegacyAminoCodec registers the necessary x/ibc transfer interfaces and concrete types

@@ -2,7 +2,7 @@ package testdata
 
 import (
 	"encoding/json"
-	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/pb-tx"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )

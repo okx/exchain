@@ -5,8 +5,8 @@ import (
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/msgservice"
+	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/pb-tx"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
 

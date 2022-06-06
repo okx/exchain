@@ -3,7 +3,7 @@ package typesadapter
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/pb-tx"
 )
 
 var (

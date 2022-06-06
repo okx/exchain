@@ -9,8 +9,8 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
-	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
+	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/pb-tx"
+	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/protobuf-tx"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"

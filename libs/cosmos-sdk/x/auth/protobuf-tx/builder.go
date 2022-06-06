@@ -1,4 +1,4 @@
-package ibc_tx
+package protobuf_tx
 
 import (
 	"github.com/gogo/protobuf/proto"
@@ -7,7 +7,7 @@ import (
 	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/pb-tx"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 	sigtx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibcsigning"

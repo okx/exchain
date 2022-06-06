@@ -1,4 +1,4 @@
-package ibc_tx
+package protobuf_tx
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/pb-tx"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 )
 
@@ -31,7 +31,7 @@ func DefaultTxEncoder() ibctx.TxEncoder {
 }
 
 // DefaultJSONTxEncoder returns a default protobuf JSON TxEncoder using the provided Marshaler.
-func DefaultJSONTxEncoder(cdc codec.ProtoCodecMarshaler) ibctx.IBCTxEncoder {
+func DefaultJSONTxEncoder(cdc codec.ProtoCodecMarshaler) ibctx.PbTxEncoder {
 	return func(tx ibctx.Tx) ([]byte, error) {
 		txWrapper, ok := tx.(*wrapper)
 		if ok {

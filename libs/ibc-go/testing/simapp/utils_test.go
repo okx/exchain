@@ -3,7 +3,7 @@ package simapp
 import (
 	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
+	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/protobuf-tx"
 	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
 	"testing"
 

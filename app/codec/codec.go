@@ -6,7 +6,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	cosmoscryptocodec "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
+	cosmoscryptocodec "github.com/okex/exchain/libs/cosmos-sdk/x/auth/protobuf-tx"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/vesting"
 
 	cryptocodec "github.com/okex/exchain/app/crypto/ethsecp256k1"

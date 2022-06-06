@@ -1,4 +1,4 @@
-package ibc_tx
+package protobuf_tx
 
 import (
 	"fmt"

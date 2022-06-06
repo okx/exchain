@@ -4,7 +4,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
-	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
+	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/protobuf-tx"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"

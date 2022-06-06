@@ -5,11 +5,11 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/pb-tx"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
-	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	signing2 "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibcsigning"
+	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/protobuf-tx"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
 	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
 	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
@@ -89,7 +89,7 @@ func GenTx(gen client.TxConfig, msgs []ibcmsg.Msg, feeAmt sdk.CoinAdapters, gas 
 
 	cdcProxy := newProxyDecoder()
 
-	ibcTx, err := ibc_tx.IbcTxDecoder(cdcProxy.GetProtocMarshal())(txBytes)
+	ibcTx, err := ibc_tx.ProtoBufTxDecoder(cdcProxy.GetProtocMarshal())(txBytes)
 
 	return ibcTx, nil
 }

@@ -1,8 +1,8 @@
-package ibc_tx
+package protobuf_tx
 
 import (
 	"fmt"
-	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/pb-tx"
 	signing2 "github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 	signing "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibcsigning"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"

@@ -1,20 +1,20 @@
-package ibc_tx
+package protobuf_tx
 
 import (
 	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/pb-tx"
 	signing2 "github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 	signing "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibcsigning"
 )
 
 type config struct {
 	handler signing.SignModeHandler
-	decoder ibctx.IbcTxDecoder
-	encoder ibctx.IBCTxEncoder
-	//jsonDecoder ibctx.IBCTxEncoder
-	jsonEncoder ibctx.IBCTxEncoder
+	decoder ibctx.PbTxDecoder
+	encoder ibctx.PbTxEncoder
+	//jsonDecoder ibctx.PbTxEncoder
+	jsonEncoder ibctx.PbTxEncoder
 	protoCodec  codec.ProtoCodecMarshaler
 }
 
@@ -23,7 +23,7 @@ type config struct {
 func NewTxConfig(protoCodec codec.ProtoCodecMarshaler, enabledSignModes []signing2.SignMode) client.TxConfig {
 	return &config{
 		handler: makeSignModeHandler(enabledSignModes),
-		decoder: IbcTxDecoder(protoCodec),
+		decoder: ProtoBufTxDecoder(protoCodec),
 		encoder: IbcTxEncoder(),
 		//jsonDecoder: DefaultJSONTxDecoder(protoCodec),
 		jsonEncoder: DefaultJSONTxEncoder(protoCodec),
@@ -49,16 +49,16 @@ func (g config) SignModeHandler() signing.SignModeHandler {
 	return g.handler
 }
 
-func (g config) TxEncoder() ibctx.IBCTxEncoder {
+func (g config) TxEncoder() ibctx.PbTxEncoder {
 	return g.encoder
 }
 
-func (g config) TxDecoder() ibctx.IbcTxDecoder {
+func (g config) TxDecoder() ibctx.PbTxDecoder {
 	return g.decoder
 }
 
 //
-func (g config) TxJSONEncoder() ibctx.IBCTxEncoder {
+func (g config) TxJSONEncoder() ibctx.PbTxEncoder {
 	return g.jsonEncoder
 }
 

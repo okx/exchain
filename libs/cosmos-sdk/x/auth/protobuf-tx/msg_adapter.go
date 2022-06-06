@@ -1,4 +1,4 @@
-package ibc_tx
+package protobuf_tx
 
 import sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 

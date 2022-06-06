@@ -4,7 +4,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/pb-tx"
 )
 
 var (

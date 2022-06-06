@@ -2,7 +2,7 @@ package simapp
 
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
+	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/protobuf-tx"
 	simappparams "github.com/okex/exchain/libs/ibc-go/testing/simapp/params"
 )
 

@@ -7,7 +7,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	anytypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdktypes "github.com/okex/exchain/libs/cosmos-sdk/types"
-	types "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	types "github.com/okex/exchain/libs/cosmos-sdk/types/pb-tx"
 )
 
 var (

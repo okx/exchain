@@ -3,7 +3,7 @@ package tx
 import (
 	"fmt"
 
-	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/pb-tx"
 
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"

@@ -3,7 +3,7 @@ package signing
 import (
 	types3 "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/types"
-	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/pb-tx"
 	signing2 "github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 )
 

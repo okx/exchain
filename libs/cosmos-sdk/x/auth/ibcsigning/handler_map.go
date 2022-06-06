@@ -2,7 +2,7 @@ package signing
 
 import (
 	"fmt"
-	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	pbtx "github.com/okex/exchain/libs/cosmos-sdk/types/pb-tx"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 )
 
@@ -49,7 +49,7 @@ func (h SignModeHandlerMap) Modes() []signing.SignMode {
 }
 
 // DefaultMode implements SignModeHandler.GetSignBytes
-func (h SignModeHandlerMap) GetSignBytes(mode signing.SignMode, data SignerData, tx ibctx.Tx) ([]byte, error) {
+func (h SignModeHandlerMap) GetSignBytes(mode signing.SignMode, data SignerData, tx pbtx.Tx) ([]byte, error) {
 	handler, found := h.signModeHandlers[mode]
 	if !found {
 		return nil, fmt.Errorf("can't verify sign mode %s", mode.String())

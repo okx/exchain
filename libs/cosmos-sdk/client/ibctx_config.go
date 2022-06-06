@@ -2,7 +2,7 @@ package client
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/pb-tx"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 	signingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibcsigning"
 )
@@ -11,9 +11,9 @@ type (
 	// TxEncodingConfig defines an interface that contains transaction
 	// encoders and decoders
 	TxEncodingConfig interface {
-		TxEncoder() ibcmsg.IBCTxEncoder
-		TxDecoder() ibcmsg.IbcTxDecoder
-		TxJSONEncoder() ibcmsg.IBCTxEncoder
+		TxEncoder() ibcmsg.PbTxEncoder
+		TxDecoder() ibcmsg.PbTxDecoder
+		TxJSONEncoder() ibcmsg.PbTxEncoder
 		//TxJSONDecoder() sdk.TxDecoder
 		MarshalSignatureJSON([]signing.SignatureV2) ([]byte, error)
 

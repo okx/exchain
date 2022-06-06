@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
-	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/pb-tx"
 	"math/big"
 	"strconv"
 	"testing"

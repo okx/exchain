@@ -9,7 +9,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	typestx "github.com/okex/exchain/libs/cosmos-sdk/types/tx"
-	ibctxdecoder "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
+	ibctxdecoder "github.com/okex/exchain/libs/cosmos-sdk/x/auth/protobuf-tx"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/types"
@@ -74,7 +74,7 @@ type Unmarshaler func(bytes []byte, ptr interface{}) error
 
 func ibcDecoder(cdcWrapper codec.CdcAbstraction, bytes []byte, height int64) (tx sdk.Tx, err error) {
 	if height >= 0 && !types.HigherThanVenus1(height) {
-		err = fmt.Errorf("IbcTxDecoder decode tx err,lower than Venus1 height")
+		err = fmt.Errorf("ProtoBufTxDecoder decode tx err,lower than Venus1 height")
 		return
 	}
 	simReq := &typestx.SimulateRequest{}
@@ -97,10 +97,10 @@ func ibcDecoder(cdcWrapper codec.CdcAbstraction, bytes []byte, height int64) (tx
 		return nil, errors.New("Invalid cdc abstraction!")
 	}
 	marshaler := cdc.GetProtocMarshal()
-	decode := ibctxdecoder.IbcTxDecoder(marshaler)
+	decode := ibctxdecoder.ProtoBufTxDecoder(marshaler)
 	tx, err = decode(txBytes)
 	if err != nil {
-		return nil, fmt.Errorf("IbcTxDecoder decode tx err %v", err)
+		return nil, fmt.Errorf("ProtoBufTxDecoder decode tx err %v", err)
 	}
 
 	return

@@ -1,7 +1,7 @@
 package signing
 
 import (
-	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	pbtx "github.com/okex/exchain/libs/cosmos-sdk/types/pb-tx"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 )
 
@@ -17,7 +17,7 @@ type SignModeHandler interface {
 
 	// GetSignBytes returns the sign bytes for the provided SignMode, SignerData and Tx,
 	// or an error
-	GetSignBytes(mode signing.SignMode, data SignerData, tx ibctx.Tx) ([]byte, error)
+	GetSignBytes(mode signing.SignMode, data SignerData, tx pbtx.Tx) ([]byte, error)
 }
 
 // SignerData is the specific information needed to sign a transaction that generally

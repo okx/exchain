@@ -1,4 +1,4 @@
-package ibc_tx
+package protobuf_tx
 
 import (
 	"fmt"
@@ -6,9 +6,9 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	pbtx "github.com/okex/exchain/libs/cosmos-sdk/types/pb-tx"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx/internal/adapter"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/protobuf-tx/internal/adapter"
 	"google.golang.org/protobuf/encoding/protowire"
 	//"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -18,9 +18,8 @@ import (
 )
 
 // DefaultTxDecoder returns a default protobuf TxDecoder using the provided Marshaler.
-//func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibcadapter.TxDecoder {
-func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
-	return func(txBytes []byte) (*authtypes.IbcTx, error) {
+func ProtoBufTxDecoder(cdc codec.ProtoCodecMarshaler) pbtx.PbTxDecoder {
+	return func(txBytes []byte) (*authtypes.PbTx, error) {
 		// Make sure txBytes follow ADR-027.
 		err := rejectNonADR027TxRaw(txBytes)
 		if err != nil {
@@ -66,7 +65,7 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
 		}
 
-		ibcTx := &tx.Tx{
+		pbTx := &tx.Tx{
 			Body:       &body,
 			AuthInfo:   &authInfo,
 			Signatures: raw.Signatures,
@@ -76,10 +75,10 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			return nil, err
 		}
 
-		signatures := convertSignature(ibcTx)
+		signatures := convertSignature(pbTx)
 
 		// construct Msg
-		stdMsgs, signMsgs, err := constructMsgs(ibcTx)
+		stdMsgs, signMsgs, err := constructMsgs(pbTx)
 		if err != nil {
 			return nil, err
 		}
@@ -97,12 +96,12 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			signMode = modeInfo.Single.Mode
 		}
 
-		stx := authtypes.IbcTx{
+		stx := authtypes.PbTx{
 			&authtypes.StdTx{
 				Msgs:       stdMsgs,
 				Fee:        fee,
 				Signatures: signatures,
-				Memo:       ibcTx.Body.Memo,
+				Memo:       pbTx.Body.Memo,
 			},
 			raw.AuthInfoBytes,
 			raw.BodyBytes,
@@ -115,14 +114,14 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 	}
 }
 
-func constructMsgs(ibcTx *tx.Tx) ([]sdk.Msg, []sdk.Msg, error) {
+func constructMsgs(pbTx *tx.Tx) ([]sdk.Msg, []sdk.Msg, error) {
 	var err error
 	stdMsgs, signMsgs := []sdk.Msg{}, []sdk.Msg{}
-	for _, ibcMsg := range ibcTx.Body.Messages {
+	for _, ibcMsg := range pbTx.Body.Messages {
 		m, ok := ibcMsg.GetCachedValue().(sdk.Msg)
 		if !ok {
 			return nil, nil, sdkerrors.Wrap(
-				sdkerrors.ErrInternal, "messages in ibcTx.Body not implement sdk.Msg",
+				sdkerrors.ErrInternal, "messages in pbTx.Body not implement sdk.Msg",
 			)
 		}
 		var newMsg sdk.Msg
@@ -142,13 +141,13 @@ func constructMsgs(ibcTx *tx.Tx) ([]sdk.Msg, []sdk.Msg, error) {
 	return stdMsgs, signMsgs, nil
 }
 
-func convertSignature(ibcTx *tx.Tx) []authtypes.StdSignature {
+func convertSignature(pbTx *tx.Tx) []authtypes.StdSignature {
 	signatures := []authtypes.StdSignature{}
-	for i, s := range ibcTx.Signatures {
+	for i, s := range pbTx.Signatures {
 		var pkData types.PubKey
-		if ibcTx.AuthInfo.SignerInfos != nil {
+		if pbTx.AuthInfo.SignerInfos != nil {
 			var ok bool
-			pkData, ok = ibcTx.AuthInfo.SignerInfos[i].PublicKey.GetCachedValue().(types.PubKey)
+			pkData, ok = pbTx.AuthInfo.SignerInfos[i].PublicKey.GetCachedValue().(types.PubKey)
 			if !ok {
 				return nil
 			}
@@ -168,20 +167,20 @@ func convertSignature(ibcTx *tx.Tx) []authtypes.StdSignature {
 	return signatures
 }
 
-func convertFee(authInfo tx.AuthInfo) (authtypes.StdFee, authtypes.IbcFee, error) {
+func convertFee(authInfo tx.AuthInfo) (authtypes.StdFee, authtypes.PbFee, error) {
 
 	gaslimit := uint64(0)
 	var decCoins sdk.DecCoins
 	var err error
 	// for verify signature
-	var signFee authtypes.IbcFee
+	var signFee authtypes.PbFee
 	if authInfo.Fee != nil {
 		decCoins, err = feeDenomFilter(authInfo.Fee.Amount)
 		if err != nil {
-			return authtypes.StdFee{}, authtypes.IbcFee{}, err
+			return authtypes.StdFee{}, authtypes.PbFee{}, err
 		}
 		gaslimit = authInfo.Fee.GasLimit
-		signFee = authtypes.IbcFee{
+		signFee = authtypes.PbFee{
 			authInfo.Fee.Amount,
 			authInfo.Fee.GasLimit,
 		}
