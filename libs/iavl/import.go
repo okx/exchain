@@ -127,8 +127,10 @@ func (i *Importer) Add(exportNode *ExportNode) error {
 	if err != nil {
 		return err
 	}
+	bytesCopy := make([]byte, buf.Len())
+	copy(bytesCopy, buf.Bytes())
 
-	i.batch.Set(i.tree.ndb.nodeKey(node.hash), buf.Bytes())
+	i.batch.Set(i.tree.ndb.nodeKey(node.hash), bytesCopy)
 	i.batchSize++
 	if i.batchSize >= maxBatchSize {
 		err = i.batch.Write()
