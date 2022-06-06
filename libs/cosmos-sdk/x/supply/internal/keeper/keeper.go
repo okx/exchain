@@ -9,6 +9,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/internal/types"
+	"github.com/okex/exchain/libs/tendermint/global"
 )
 
 // Keeper of the supply store
@@ -61,6 +62,7 @@ func (k Keeper) GetSupply(ctx sdk.Context) (supply exported.SupplyI) {
 // SetSupply sets the Supply to store
 func (k Keeper) SetSupply(ctx sdk.Context, supply exported.SupplyI) {
 	tokensSupply := supply.GetTotal()
+	global.SetSupply(tokensSupply)
 	for i := 0; i < len(tokensSupply); i++ {
 		k.setTokenSupplyAmount(ctx, tokensSupply[i].Denom, tokensSupply[i].Amount)
 	}

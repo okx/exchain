@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/okex/exchain/app/rpc/simulator"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -406,6 +407,28 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 					if err = sdk.VerifyAddressFormat(addr); err == nil {
 						from = path[2]
 					}
+				}
+			}
+
+			if msgs := tx.GetMsgs(); len(msgs) > 0 && msgs[0].Route() == "wasm" {
+				wasmSimulator := simulator.NewWasmSimulator(simulator.SimulateCliCtx)
+				res, err := wasmSimulator.Simulate(msgs[0])
+				if err != nil {
+					return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to simulate wasm tx"))
+				}
+
+				gasMeter := wasmSimulator.Context().GasMeter()
+				simRes := sdk.SimulationResponse{
+					GasInfo: sdk.GasInfo{
+						GasUsed: gasMeter.GasConsumed(),
+					},
+					Result: res,
+				}
+				fmt.Println("gas used:", simRes.GasUsed, gasMeter.GasConsumed(), gasMeter.Limit(), gasMeter.GasConsumedToLimit())
+				return abci.ResponseQuery{
+					Codespace: sdkerrors.RootCodespace,
+					Height:    req.Height,
+					Value:     codec.Cdc.MustMarshalBinaryBare(simRes),
 				}
 			}
 

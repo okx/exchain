@@ -2,20 +2,21 @@ package wasm
 
 import (
 	"context"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
-	"github.com/okex/exchain/x/wasm/watcher"
 	"math/rand"
 
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/okex/exchain/app/rpc/simulator"
 	clictx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	cdctypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	simtypes "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/x/wasm/watcher"
 	"github.com/spf13/cobra"
 
 	"github.com/okex/exchain/x/wasm/client/rest"
@@ -46,6 +47,8 @@ type AppModuleBasic struct{}
 //}
 
 func (b AppModuleBasic) RegisterGRPCGatewayRoutes(clientCtx clictx.CLIContext, serveMux *runtime.ServeMux) {
+	simulator.SimulateCliCtx = clientCtx
+	simulator.NewWasmSimulator = NewWasmSimulator
 	err := types.RegisterQueryHandlerClient(context.Background(), serveMux, types.NewQueryClient(clientCtx))
 	if err != nil {
 		panic(err)
@@ -124,7 +127,8 @@ func NewAppModule(cdc codec.CodecProxy, keeper *Keeper) AppModule {
 
 func (am AppModule) RegisterServices(cfg module.Configurator) {
 	types.RegisterMsgServer(cfg.MsgServer(), keeper.NewMsgServerImpl(keeper.NewDefaultPermissionKeeper(am.keeper)))
-	types.RegisterQueryServer(cfg.QueryServer(), NewQuerier(am.keeper))
+	k := NewProxyKeeper(simulator.SimulateCliCtx)
+	types.RegisterQueryServer(cfg.QueryServer(), NewQuerier(&k))
 }
 
 //func (am AppModule) LegacyQuerierHandler(amino *codec.LegacyAmino) sdk.Querier { //nolint:staticcheck
