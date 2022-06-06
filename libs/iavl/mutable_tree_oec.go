@@ -219,8 +219,8 @@ func (tree *MutableTree) loadVersionToCommittedHeightMap() {
 }
 
 func (tree *MutableTree) StopTree() {
-	tree.log(IavlInfo, "stopping iavl commit height", tree.version)
-	defer tree.log(IavlInfo, "stopping iavl completed", ",commit height", tree.version)
+	tree.log(IavlInfo, "stopping iavl", "commit height", tree.version)
+	defer tree.log(IavlInfo, "stopping iavl completed", "commit height", tree.version)
 
 	if !EnableAsyncCommit {
 		return
