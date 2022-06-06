@@ -26,10 +26,12 @@ const (
 
 	accStoreKey = authtypes.StoreKey
 	evmStoreKey = evmtypes.StoreKey
+	legacyStoreKey = "evmlegacy"
 
 	iavlAccKey       = "s/k:acc/"
 	iavlEvmKey       = "s/k:evm/"
 	iavlEvmLegacyKey = "s/k:evmlegacy/"
+	KeyParams        = "s/k:params/"
 )
 
 func panicError(err error) {
@@ -40,7 +42,7 @@ func panicError(err error) {
 
 // checkValidKey checks if the key is equal to authtypes.StoreKey or evmtypes.StoreKey
 func checkValidKey(key string) error {
-	if key != accStoreKey && key != evmStoreKey && key != evmtypes.LegacyStoreKey {
+	if key != accStoreKey && key != evmStoreKey && key != legacyStoreKey {
 		return fmt.Errorf("invalid key %s", key)
 	}
 	return nil
@@ -118,20 +120,31 @@ func writeDataToRawdb(batch ethdb.Batch) {
 	batch.Reset()
 }
 
-func getUpgradedTree(db dbm.DB) *iavl.MutableTree {
+func getUpgradedTree(db dbm.DB, prefix []byte, usePreLatest bool) *iavl.MutableTree {
 	rs := rootmulti.NewStore(db)
 	latestVersion := rs.GetLatestVersion()
 	if latestVersion == 0 {
 		return nil
 	}
 
-	db = dbm.NewPrefixDB(db, []byte(iavlEvmLegacyKey))
+	db = dbm.NewPrefixDB(db, prefix)
 
-	tree, _ := iavl.NewMutableTree(db, iavlstore.IavlCacheSize)
-	if tree.Version() == 0 {
-		tree, _ = iavl.NewMutableTreeWithOpts(db, iavlstore.IavlCacheSize, &iavl.Options{
-			InitialVersion: uint64(latestVersion - 1),
-		})
+	tree, err := iavl.NewMutableTree(db, iavlstore.IavlCacheSize)
+	if err != nil {
+		panic("Fail to get tree: " + err.Error())
+	}
+
+	if usePreLatest {
+		latestVersion -= 1
+	}
+
+	if latestVersion <= 0 {
+		panic(fmt.Sprintf("invalid version to load: %d", latestVersion))
+	}
+
+	_, err = tree.LoadVersion(latestVersion)
+	if err != nil {
+		panic("fail to load target version tree: " + err.Error())
 	}
 
 	return tree
