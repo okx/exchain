@@ -3,6 +3,9 @@ package watcher
 import (
 	"encoding/hex"
 	"fmt"
+	"math/big"
+	"sync"
+
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	jsoniter "github.com/json-iterator/go"
@@ -15,8 +18,6 @@ import (
 	tmstate "github.com/okex/exchain/libs/tendermint/state"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
-	"math/big"
-	"sync"
 )
 
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
@@ -646,4 +647,8 @@ func (w *Watcher) dispatchJob(f func()) {
 	// why: something wrong happened: such as db panic(disk maybe is full)(it should be the only reason)
 	//								  UseWatchData were executed every 4 seoncds(block schedual)
 	w.jobChan <- f
+}
+
+func (w *Watcher) Height() uint64 {
+	return w.height
 }
