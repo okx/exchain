@@ -208,7 +208,7 @@ func (m *Part) GetProof() merkle.SimpleProof {
 // BlockID
 type BlockID struct {
 	Hash                 []byte        `protobuf:"bytes,1,opt,name=hash,proto3" json:"hash,omitempty"`
-	PartsHeader          PartSetHeader `protobuf:"bytes,2,opt,name=parts_header,json=part_set_header,proto3" json:"part_set_header"`
+	PartsHeader          PartSetHeader `protobuf:"bytes,2,opt,name=parts_header,json=partsHeader,proto3" json:"parts_header"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
 	XXX_sizecache        int32         `json:"-"`
