@@ -212,9 +212,10 @@ func (rs *Store) LoadVersion(ver int64) error {
 
 func (rs *Store) GetCommitVersion() (int64, error) {
 	var firstSp storeParams
+	var firstKey types.StoreKey
 	isFindIavlStoreParam := false
 	//find a versions list in one iavl store
-	for _, firstSp = range rs.storesParams {
+	for firstKey, firstSp = range rs.storesParams {
 		if firstSp.typ == types.StoreTypeIAVL {
 			isFindIavlStoreParam = true
 			break
@@ -234,14 +235,14 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 
 	//sort the versions list
 	sort.Slice(versions, func(i, j int) bool { return versions[i] > versions[j] })
-	log.Println("lcm get versions :", versions)
+	log.Println(fmt.Sprintf("get iavl-%s versions: %v", firstKey.Name(), versions))
 	for _, version := range versions {
 		hasVersion, err := rs.hasVersion(version)
 		if err != nil {
 			return 0, err
 		}
 		if hasVersion {
-			log.Println("lcm GetCommitVersion :", version)
+			log.Println("GetCommitVersion :", version)
 			return version, nil
 		}
 	}

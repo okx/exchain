@@ -5,8 +5,6 @@ import (
 	"io"
 	"log"
 	"path/filepath"
-	"regexp"
-	"strconv"
 	"strings"
 	"time"
 
@@ -45,10 +43,6 @@ const (
 	FlagEnableRepairState string = "enable-repair-state"
 )
 
-var (
-	errReg *regexp.Regexp
-)
-
 type repairApp struct {
 	db dbm.DB
 	*OKExChainApp
@@ -60,7 +54,6 @@ func (app *repairApp) getLatestVersion() int64 {
 }
 
 func repairStateOnStart(ctx *server.Context) {
-	errReg = regexp.MustCompile("[0-9]+")
 	// set flag
 	orgIgnoreSmbCheck := sm.IgnoreSmbCheck
 	orgIgnoreVersionCheck := iavl.GetIgnoreVersionCheck()
@@ -152,26 +145,6 @@ func RepairState(ctx *server.Context, onStart bool) {
 
 	mpttypes.TrieDirtyDisabled = rawTrieDirtyDisabledFlag
 }
-
-func getRetryHeight(err error) (bool, int64) {
-
-	errInfo := err.Error()
-	retry := strings.Contains(errInfo, "but only found up to")
-	if !retry {
-		return false, 0
-	}
-	vs := errReg.FindAllString(errInfo, -1)
-	if len(vs) != 2 {
-		return false, 0
-	}
-
-	version, e := strconv.ParseInt(vs[1], 0, 64)
-	if e != nil {
-		return false, 0
-	}
-	return retry, version
-}
-
 func createRepairApp(ctx *server.Context) (proxy.AppConns, *repairApp, error) {
 	rootDir := ctx.Config.RootDir
 	dataDir := filepath.Join(rootDir, "data")
