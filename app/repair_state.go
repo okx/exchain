@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/okex/exchain/app/config"
 
@@ -164,7 +165,7 @@ func RepairState(ctx *server.Context, onStart bool) {
 
 	// repair data by apply the latest two blocks
 	doRepair(ctx, state, stateStoreDB, proxyApp, startVersion, latestBlockHeight, dataDir)
-
+	time.Sleep(2 * time.Second)
 	mpttypes.TrieDirtyDisabled = rawTrieDirtyDisabledFlag
 }
 
