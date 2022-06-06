@@ -19,7 +19,7 @@ func TestParamsValidate(t *testing.T) {
 		{"default", DefaultParams(), false},
 		{
 			"valid",
-			NewParams(true, true, false, false, DefaultMaxGasLimitPerTx, 2929, 1884, 1344),
+			NewParams(true, true, false, false, defaultMaxGasLimitPerTx, 2929, 1884, 1344),
 			false,
 		},
 		{

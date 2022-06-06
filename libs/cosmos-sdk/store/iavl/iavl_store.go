@@ -6,19 +6,18 @@ import (
 	"io"
 	"sync"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-
-	"github.com/okex/exchain/libs/iavl"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
-	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
-	dbm "github.com/okex/exchain/libs/tm-db"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/tracekv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/iavl"
+	iavlconfig "github.com/okex/exchain/libs/iavl/config"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
+	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 var (
@@ -58,11 +57,11 @@ func LoadStore(db dbm.DB, flatKVDB dbm.DB, id types.CommitID, lazyLoading bool, 
 	return LoadStoreWithInitialVersion(db, flatKVDB, id, lazyLoading, uint64(startVersion), uint64(0))
 }
 
-// LoadStore returns an IAVL Store as a CommitKVStore setting its initialVersion
+// LoadStoreWithInitialVersion returns an IAVL Store as a CommitKVStore setting its initialVersion
 // to the one given. Internally, it will load the store's version (id) from the
 // provided DB. An error is returned if the version fails to load.
 func LoadStoreWithInitialVersion(db dbm.DB, flatKVDB dbm.DB, id types.CommitID, lazyLoading bool, initialVersion uint64, upgradeVersion uint64) (types.CommitKVStore, error) {
-	tree, err := iavl.NewMutableTreeWithOpts(db, IavlCacheSize, &iavl.Options{InitialVersion: initialVersion, UpgradeVersion: upgradeVersion})
+	tree, err := iavl.NewMutableTreeWithOpts(db, iavlconfig.DynamicConfig.GetIavlCacheSize(), &iavl.Options{InitialVersion: initialVersion, UpgradeVersion: upgradeVersion})
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +90,7 @@ func LoadStoreWithInitialVersion(db dbm.DB, flatKVDB dbm.DB, id types.CommitID, 
 }
 
 func GetCommitVersion(db dbm.DB) (int64, error) {
-	tree, err := iavl.NewMutableTreeWithOpts(db, IavlCacheSize, &iavl.Options{InitialVersion: 0})
+	tree, err := iavl.NewMutableTreeWithOpts(db, iavlconfig.DynamicConfig.GetIavlCacheSize(), &iavl.Options{InitialVersion: 0})
 	if err != nil {
 		return 0, err
 	}

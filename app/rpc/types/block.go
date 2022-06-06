@@ -9,25 +9,23 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
-
 	"github.com/ethereum/go-ethereum/common/hexutil"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 // BlockNumber represents decoding hex string to block values
 type BlockNumber int64
 
-const (
+var (
 	// LatestBlockNumber mapping from "latest" to 0 for tm query
 	LatestBlockNumber = BlockNumber(0)
-
-	// EarliestBlockNumber mapping from "earliest" to 1 for tm query (earliest query not supported)
-	EarliestBlockNumber = BlockNumber(1)
-
 	// PendingBlockNumber mapping from "pending" to -1 for tm query
 	PendingBlockNumber = BlockNumber(-1)
-)
+	// EarliestBlockNumber mapping from "earliest" to (genesisHeight + 1) for tm query (earliest query not supported)
+	EarliestBlockNumber = BlockNumber(tmtypes.GetStartBlockHeight() + 1)
 
-var ErrResourceNotFound = errors.New("resource not found")
+	ErrResourceNotFound = errors.New("resource not found")
+)
 
 // NewBlockNumber creates a new BlockNumber instance.
 func NewBlockNumber(n *big.Int) BlockNumber {

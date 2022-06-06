@@ -13,11 +13,11 @@ import (
 )
 
 const (
-	FlagTrieUseCompositeKey    = "trie.use-composite-key"
+	FlagTrieUseCompositeKey = "trie.use-composite-key"
 )
 
 var (
-	TrieUseCompositeKey         = true
+	TrieUseCompositeKey = true
 )
 
 func (so *stateObject) deepCopyMpt(db *CommitStateDB) *stateObject {

@@ -23,7 +23,7 @@ func GetQueryCmd(moduleName string, cdc *codec.Codec) *cobra.Command {
 	}
 	cmd.AddCommand(flags.GetCommands(
 		GetCmdQueryParams(moduleName, cdc),
-		GetCmdQueryAllMapping(moduleName, cdc),
+		GetCmdQueryTokenMapping(moduleName, cdc),
 	)...)
 	return cmd
 }
@@ -55,19 +55,19 @@ $ exchaincli query erc20 params
 }
 
 //
-func GetCmdQueryAllMapping(queryRoute string, cdc *codec.Codec) *cobra.Command {
+func GetCmdQueryTokenMapping(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "all-mapping",
-		Short: "Query all mapping of denom and contract",
+		Use:   "token-mapping",
+		Short: "Query all token mapping of denom and contract",
 		Long: strings.TrimSpace(`Query all mapping of denom and contract:
 
-$ exchaincli query erc20 all-mapping
+$ exchaincli query erc20 token-mapping
 `),
 		Args: cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			route := fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryAllMapping)
+			route := fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryTokenMapping)
 			bz, _, err := cliCtx.QueryWithData(route, nil)
 			if err != nil {
 				return err
