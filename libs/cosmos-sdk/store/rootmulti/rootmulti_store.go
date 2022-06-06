@@ -211,10 +211,47 @@ func (rs *Store) LoadVersion(ver int64) error {
 }
 
 func (rs *Store) GetCommitVersion() (int64, error) {
-	var minVersion int64 = 1<<63 - 1
-	latestVersion := rs.GetLatestVersion()
+	var firstSp storeParams
+	isFindIavlStoreParam := false
+	//find a versions list in one iavl store
+	for _, firstSp = range rs.storesParams {
+		if firstSp.typ == types.StoreTypeIAVL {
+			isFindIavlStoreParam = true
+			break
+		}
+	}
+	var versions []int64
+	var err error
+	if isFindIavlStoreParam {
+		versions, err = rs.getCommitVersionFromParams(firstSp)
+		if err != nil {
+			return 0, err
+		}
+	} else {
+		version := GetLatestStoredMptHeight()
+		versions = []int64{int64(version)}
+	}
 
-	for _, storeParams := range rs.storesParams {
+	//sort the versions list
+	sort.Slice(versions, func(i, j int) bool { return versions[i] > versions[j] })
+	log.Println("lcm get versions :", versions)
+	for _, version := range versions {
+		hasVersion, err := rs.hasVersion(version)
+		if err != nil {
+			return 0, err
+		}
+		if hasVersion {
+			return version, nil
+		}
+	}
+
+	return 0, fmt.Errorf("not found")
+}
+
+//hasVersion means every storesParam in store has this version.
+func (rs *Store) hasVersion(targetVersion int64) (bool, error) {
+	latestVersion := rs.GetLatestVersion()
+	for key, storeParams := range rs.storesParams {
 		if storeParams.typ == types.StoreTypeIAVL {
 			sName := storeParams.key.Name()
 			if evmAccStoreFilter(sName, latestVersion, true) {
@@ -224,33 +261,31 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 			if newEvmStoreFilter(sName, latestVersion) {
 				continue
 			}
-
-			commitVersion, err := rs.getCommitVersionFromParams(storeParams)
-			if err != nil {
-				return 0, err
-			}
-			log.Println(fmt.Sprintf("lcm load db: %s, version : %d", storeParams.key.Name(), commitVersion))
-
 			// filter block modules {}
-			if filter(storeParams.key.Name(), commitVersion, nil, rs.commitFilters) {
+			if filter(storeParams.key.Name(), targetVersion, rs.stores[key], rs.commitFilters) {
 				continue
 			}
 
-			if commitVersion < minVersion {
-				minVersion = commitVersion
+			ok, err := hasVersion(rs, storeParams, targetVersion)
+			if err != nil {
+				return false, err
+			}
+			if !ok {
+				log.Println(fmt.Sprintf("iavl-%s does not have version: %d", key.Name(), targetVersion))
+				return false, nil
 			}
 
 		} else if storeParams.typ == types.StoreTypeMPT {
-			mptHeight := int64(GetLatestStoredMptHeight())
-			if !tmtypes.HigherThanMars(mptHeight) {
+			if !tmtypes.HigherThanMars(targetVersion) {
 				continue
 			}
-			if mptHeight < minVersion {
-				minVersion = mptHeight
+			if ok := rs.stores[key].(*mpt.MptStore).HasVersion(targetVersion); !ok {
+				log.Println(fmt.Sprintf("mpt-%s does not have version: %d", key.Name(), targetVersion))
+				return false, nil
 			}
 		}
 	}
-	return minVersion, nil
+	return true, nil
 }
 
 func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
@@ -854,8 +889,7 @@ func (rs *Store) GetDBReadTime() int {
 	}
 	return count
 }
-
-func (rs *Store) getCommitVersionFromParams(params storeParams) (int64, error) {
+func hasVersion(rs *Store, params storeParams, version int64) (bool, error) {
 	var db dbm.DB
 
 	if params.db != nil {
@@ -865,7 +899,19 @@ func (rs *Store) getCommitVersionFromParams(params storeParams) (int64, error) {
 		db = dbm.NewPrefixDB(rs.db, []byte(prefix))
 	}
 
-	return iavl.GetCommitVersion(db)
+	return iavl.HasVersion(db, version)
+}
+func (rs *Store) getCommitVersionFromParams(params storeParams) ([]int64, error) {
+	var db dbm.DB
+
+	if params.db != nil {
+		db = dbm.NewPrefixDB(params.db, []byte("s/_/"))
+	} else {
+		prefix := "s/k:" + params.key.Name() + "/"
+		db = dbm.NewPrefixDB(rs.db, []byte(prefix))
+	}
+
+	return iavl.GetCommitVersionSlice(db)
 }
 
 func (rs *Store) GetDBWriteCount() int {

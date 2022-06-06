@@ -8,7 +8,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/okex/exchain/app/config"
 
@@ -138,24 +137,8 @@ func RepairState(ctx *server.Context, onStart bool) {
 	}
 	log.Println(fmt.Sprintf("repair state at version = %d", startVersion))
 
-	times := 3
-	needRetry := false
-	for ; times > 0; times-- {
-		err = repairApp.LoadStartVersion(startVersion)
-		if err == nil {
-			needRetry = false
-			log.Println(fmt.Sprintf("load state successfully at version = %d", startVersion))
-			break
-		}
-
-		needRetry, startVersion = getRetryHeight(err)
-		if needRetry {
-			log.Println(fmt.Sprintf("load state retry at version = %d, (%d times left)", startVersion, times-1))
-			continue
-		}
-		panicError(err)
-	}
-	if times == 0 && needRetry {
+	err = repairApp.LoadStartVersion(startVersion)
+	if err != nil {
 		panicError(err)
 	}
 
@@ -165,7 +148,6 @@ func RepairState(ctx *server.Context, onStart bool) {
 
 	// repair data by apply the latest two blocks
 	doRepair(ctx, state, stateStoreDB, proxyApp, startVersion, latestBlockHeight, dataDir)
-	time.Sleep(2 * time.Second)
 	mpttypes.TrieDirtyDisabled = rawTrieDirtyDisabledFlag
 }
 

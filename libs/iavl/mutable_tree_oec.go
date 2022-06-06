@@ -182,7 +182,21 @@ func (tree *MutableTree) commitSchedule() {
 		}
 	}
 }
-
+func (tree *MutableTree) HasVersion(version int64) bool {
+	treeVer := tree.ndb.getPreviousVersion(version + 1)
+	return treeVer == version
+}
+func (tree *MutableTree) GetVersionSlice() []int64 {
+	versions, err := tree.ndb.getRoots()
+	if err != nil {
+		tree.log(IavlErr, "failed to get versions from db", "error", err.Error())
+	}
+	versionSlice := make([]int64, 0, len(versions))
+	for version := range versions {
+		versionSlice = append(versionSlice, version)
+	}
+	return versionSlice
+}
 func (tree *MutableTree) loadVersionToCommittedHeightMap() {
 	versions, err := tree.ndb.getRoots()
 	if err != nil {
