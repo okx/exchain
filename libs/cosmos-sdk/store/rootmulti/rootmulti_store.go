@@ -241,11 +241,12 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 			return 0, err
 		}
 		if hasVersion {
+			log.Println("lcm GetCommitVersion :", version)
 			return version, nil
 		}
 	}
 
-	return 0, fmt.Errorf("not found")
+	return 0, fmt.Errorf("not found any proper version")
 }
 
 //hasVersion means every storesParam in store has this version.
