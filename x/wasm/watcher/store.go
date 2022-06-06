@@ -23,8 +23,15 @@ var (
 	once          sync.Once
 )
 
+type watcherMessage struct {
+	key      []byte
+	value    []byte
+	isDelete bool
+}
+
 var (
-	wasmStateCache = make(map[string][]byte)
+	txStateCache    []*watcherMessage
+	blockStateCache = make(map[string]*watcherMessage)
 )
 
 func NewReadStore(prefixes ...[]byte) sdk.KVStore {

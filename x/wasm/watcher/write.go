@@ -4,18 +4,36 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
+func Reset() {
+	if !enableWatcher {
+		return
+	}
+	txStateCache = txStateCache[:0]
+
+}
+
+func Commit() {
+	if !enableWatcher {
+		return
+	}
+	for _, msg := range txStateCache {
+		blockStateCache[string(msg.key)] = msg
+	}
+	txStateCache = txStateCache[:0]
+}
+
 func Flush() {
 	if !enableWatcher {
 		return
 	}
-	for k, v := range wasmStateCache {
-		if v != nil {
-			_ = db.Set([]byte(k), v)
+	for key, msg := range blockStateCache {
+		if msg.isDelete {
+			_ = db.Delete(msg.key)
 		} else {
-			_ = db.Delete([]byte(k))
+			_ = db.Set(msg.key, msg.value)
 		}
+		delete(blockStateCache, key)
 	}
-	wasmStateCache = make(map[string][]byte)
 }
 
 type writeKVStore struct {
@@ -38,10 +56,10 @@ func WrapWriteKVStore(store sdk.KVStore) sdk.KVStore {
 
 func (w *writeKVStore) Set(key, value []byte) {
 	w.KVStore.Set(key, value)
-	wasmStateCache[string(key)] = value
+	txStateCache = append(txStateCache, &watcherMessage{key: key, value: value})
 }
 
 func (w *writeKVStore) Delete(key []byte) {
 	w.KVStore.Delete(key)
-	wasmStateCache[string(key)] = nil
+	txStateCache = append(txStateCache, &watcherMessage{key: key, isDelete: true})
 }

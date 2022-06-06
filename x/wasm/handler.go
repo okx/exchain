@@ -10,6 +10,7 @@ import (
 	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/wasm/keeper"
 	"github.com/okex/exchain/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/watcher"
 )
 
 // NewHandler returns a handler for "wasm" type messages.
@@ -28,6 +29,15 @@ func NewHandler(k types.ContractOpsKeeper) sdk.Handler {
 			res proto.Message
 			err error
 		)
+		// update watcher
+		defer func() {
+			fmt.Println("yxq debug error:", err)
+			if err != nil {
+				watcher.Reset()
+			} else {
+				watcher.Commit()
+			}
+		}()
 		switch msg := msg.(type) {
 		case *MsgStoreCode: //nolint:typecheck
 			res, err = msgServer.StoreCode(sdk.WrapSDKContext(ctx), msg)
