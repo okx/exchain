@@ -28,23 +28,21 @@ func (m *modeHandlerDeliver) handleRunMsg(info *runTxInfo) (err error) {
 	return
 }
 
-func (m *modeHandlerDeliver) handleDeferRefund(info *runTxInfo) {
-	app := m.app
+type CacheTxContextFunc func(ctx sdk.Context, txBytes []byte) (sdk.Context, sdk.CacheMultiStore)
 
-	if app.GasRefundHandler == nil {
-		return
-	}
-
+//this handleGasRefund func is also called by modeHandlerTrace.handleDeferRefund
+//in this func, edit any member in BaseApp is prohibited
+func handleGasRefund(info *runTxInfo, cacheTxCtxFunc CacheTxContextFunc, gasRefundHandler sdk.GasRefundHandler) sdk.DecCoins {
 	var gasRefundCtx sdk.Context
 	info.ctx.Cache().Write(false)
 	if cms, ok := info.GetCacheMultiStore(); ok {
 		gasRefundCtx, info.msCache = info.ctx, cms
 		gasRefundCtx.SetMultiStore(info.msCache)
 	} else {
-		gasRefundCtx, info.msCache = app.cacheTxContext(info.ctx, info.txBytes)
+		gasRefundCtx, info.msCache = cacheTxCtxFunc(info.ctx, info.txBytes)
 	}
 
-	refund, err := app.GasRefundHandler(gasRefundCtx, info.tx)
+	refund, err := gasRefundHandler(gasRefundCtx, info.tx)
 	if err != nil {
 		panic(err)
 	}
@@ -52,8 +50,14 @@ func (m *modeHandlerDeliver) handleDeferRefund(info *runTxInfo) {
 	info.PutCacheMultiStore(info.msCache)
 	info.msCache = nil
 	info.ctx.Cache().Write(true)
-
-	app.UpdateFeeForCollector(refund, false)
+	return refund
+}
+func (m *modeHandlerDeliver) handleDeferRefund(info *runTxInfo) {
+	if m.app.GasRefundHandler == nil {
+		return
+	}
+	refund := handleGasRefund(info, m.app.cacheTxContext, m.app.GasRefundHandler)
+	m.app.UpdateFeeForCollector(refund, false)
 }
 
 func (m *modeHandlerDeliver) handleDeferGasConsumed(info *runTxInfo) {
