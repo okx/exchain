@@ -31,10 +31,8 @@ func NewHandler(k types.ContractOpsKeeper) sdk.Handler {
 		)
 		// update watcher
 		defer func() {
-			if err != nil {
-				watcher.Reset()
-			} else {
-				watcher.Commit()
+			if ctx.IsDeliver() {
+				watcher.Commit(err)
 			}
 		}()
 		switch msg := msg.(type) {

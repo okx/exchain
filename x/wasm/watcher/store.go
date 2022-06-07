@@ -38,13 +38,13 @@ func Enable() bool {
 	return enableWatcher
 }
 
-func NewReadStore(prefixes ...[]byte) sdk.KVStore {
+func NewReadStore(pre []byte) sdk.KVStore {
 	once.Do(initDB)
 	rs := &readStore{
 		Store: dbadapter.Store{DB: db},
 	}
-	if len(prefixes) != 0 && len(prefixes[0]) != 0 {
-		return prefix.NewStore(rs, prefixes[0])
+	if len(pre) != 0 {
+		return prefix.NewStore(rs, pre)
 	}
 	return rs
 }
@@ -76,4 +76,13 @@ func initDB() {
 		backend = string(dbm.GoLevelDBBackend)
 	}
 	db = dbm.NewDB(watchDBName, dbm.BackendType(backend), dbPath)
+	go taskRoutine()
+}
+
+var tasks = make(chan func(), 10)
+
+func taskRoutine() {
+	for task := range tasks {
+		task()
+	}
 }

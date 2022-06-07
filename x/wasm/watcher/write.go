@@ -4,36 +4,35 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
-func Reset() {
-	if !enableWatcher {
+func Commit(err error) {
+	if !Enable() {
 		return
 	}
-	txStateCache = txStateCache[:0]
-
-}
-
-func Commit() {
-	if !enableWatcher {
-		return
-	}
-	for _, msg := range txStateCache {
-		blockStateCache[string(msg.key)] = msg
+	if err == nil {
+		for _, msg := range txStateCache {
+			blockStateCache[string(msg.key)] = msg
+		}
 	}
 	txStateCache = txStateCache[:0]
 }
 
 func Flush() {
-	if !enableWatcher {
+	if !Enable() {
 		return
 	}
-	for key, msg := range blockStateCache {
-		if msg.isDelete {
-			_ = db.Delete(msg.key)
-		} else {
-			_ = db.Set(msg.key, msg.value)
+	blockStateCacheCopy := blockStateCache
+	blockStateCache = make(map[string]*watcherMessage)
+	task := func() {
+		for _, msg := range blockStateCacheCopy {
+			if msg.isDelete {
+				_ = db.Delete(msg.key)
+			} else {
+				_ = db.Set(msg.key, msg.value)
+			}
 		}
-		delete(blockStateCache, key)
 	}
+	tasks <- task
+
 }
 
 type writeKVStore struct {
@@ -45,7 +44,7 @@ func WrapWriteKVStore(store sdk.KVStore) sdk.KVStore {
 		initDB()
 	})
 
-	if !enableWatcher {
+	if !Enable() {
 		return store
 	}
 
