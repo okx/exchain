@@ -178,31 +178,33 @@ func (vu *ValidatorUpdate) UnmarshalFromAmino(cdc *amino.Codec, data []byte) err
 
 func (params BlockParams) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
-	fieldKeysType := [2]byte{1 << 3, 2 << 3}
-	for pos := 1; pos <= 2; pos++ {
-		var err error
-		switch pos {
-		case 1:
-			if params.MaxBytes == 0 {
-				break
-			}
-			err = amino.EncodeUvarintWithKeyToBuffer(&buf, uint64(params.MaxBytes), fieldKeysType[pos-1])
-			if err != nil {
-				return nil, err
-			}
-		case 2:
-			if params.MaxGas == 0 {
-				break
-			}
-			err = amino.EncodeUvarintWithKeyToBuffer(&buf, uint64(params.MaxGas), fieldKeysType[pos-1])
-			if err != nil {
-				return nil, err
-			}
-		default:
-			panic("unreachable")
-		}
+	buf.Grow(params.AminoSize(cdc))
+	err := params.MarshalAminoTo(cdc, &buf)
+	if err != nil {
+		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+func (params BlockParams) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) error {
+	// field 1
+	if params.MaxBytes != 0 {
+		const pbKey = 1 << 3
+		err := amino.EncodeUvarintWithKeyToBuffer(buf, uint64(params.MaxBytes), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	// field 2
+	if params.MaxGas != 0 {
+		const pbKey = 2 << 3
+		err := amino.EncodeUvarintWithKeyToBuffer(buf, uint64(params.MaxGas), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // UnmarshalFromAmino unmarshal data from amino bytes.
