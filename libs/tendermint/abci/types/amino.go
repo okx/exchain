@@ -317,19 +317,29 @@ func (ep *EvidenceParams) UnmarshalFromAmino(cdc *amino.Codec, data []byte) erro
 
 func (params ValidatorParams) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
-	var err error
-	var pubKeyTypesPbKey = byte(1<<3 | 2)
-	for i := 0; i < len(params.PubKeyTypes); i++ {
-		err = buf.WriteByte(pubKeyTypesPbKey)
-		if err != nil {
-			return nil, err
-		}
-		err = amino.EncodeStringToBuffer(&buf, params.PubKeyTypes[i])
-		if err != nil {
-			return nil, err
-		}
+	buf.Grow(params.AminoSize(cdc))
+	err := params.MarshalAminoTo(cdc, &buf)
+	if err != nil {
+		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+func (params ValidatorParams) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) error {
+	var err error
+	// field 1
+	const pbKey = 1<<3 | 2
+	for i := 0; i < len(params.PubKeyTypes); i++ {
+		err = buf.WriteByte(pbKey)
+		if err != nil {
+			return err
+		}
+		err = amino.EncodeStringToBuffer(buf, params.PubKeyTypes[i])
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // UnmarshalFromAmino unmarshal data from amino bytes.
