@@ -328,9 +328,10 @@ func TestLoadVersionInvalid(t *testing.T) {
 func TestLoadVersionPruning(t *testing.T) {
 	logger := log.NewNopLogger()
 	pruningOptions := store.PruningOptions{
-		KeepRecent: 2,
-		KeepEvery:  3,
-		Interval:   1,
+		KeepRecent:   2,
+		KeepEvery:    3,
+		Interval:     1,
+		MaxRetainNum: 10,
 	}
 	pruningOpt := SetPruning(pruningOptions)
 	db := dbm.NewMemDB()
