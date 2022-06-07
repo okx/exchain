@@ -13,38 +13,34 @@ import (
 
 func (pubkey PubKey) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
-	fieldKeysType := [2]byte{1<<3 | 2, 2<<3 | 2}
-	for pos := 1; pos <= 2; pos++ {
-		switch pos {
-		case 1:
-			if pubkey.Type == "" {
-				break
-			}
-			err := buf.WriteByte(fieldKeysType[pos-1])
-			if err != nil {
-				return nil, err
-			}
-			err = amino.EncodeStringToBuffer(&buf, pubkey.Type)
-			if err != nil {
-				return nil, err
-			}
-		case 2:
-			if len(pubkey.Data) == 0 {
-				break
-			}
-			err := buf.WriteByte(fieldKeysType[pos-1])
-			if err != nil {
-				return nil, err
-			}
-			err = amino.EncodeByteSliceToBuffer(&buf, pubkey.Data)
-			if err != nil {
-				return nil, err
-			}
-		default:
-			panic("unreachable")
-		}
+	buf.Grow(pubkey.AminoSize(cdc))
+	err := pubkey.MarshalAminoTo(cdc, &buf)
+	if err != nil {
+		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+func (pubkey *PubKey) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) error {
+	// field 1
+	if pubkey.Type != "" {
+		const pbKey = 1<<3 | 2
+		err := amino.EncodeStringWithKeyToBuffer(buf, pubkey.Type, pbKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	// field 2
+	if len(pubkey.Data) != 0 {
+		const pbKey = 2<<3 | 2
+		err := amino.EncodeByteSliceWithKeyToBuffer(buf, pubkey.Data, pbKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // UnmarshalFromAmino unmarshal data from amino bytes.
