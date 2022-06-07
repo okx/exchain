@@ -19,6 +19,7 @@ import (
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/spf13/viper"
 	"github.com/tendermint/go-amino"
 )
 
@@ -409,9 +410,11 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 					}
 				}
 			}
-
-			if msgs := tx.GetMsgs(); len(msgs) > 0 && msgs[0].Route() == "wasm" {
-				wasmSimulator := simulator.NewWasmSimulator(simulator.SimulateCliCtx)
+			msgs := tx.GetMsgs()
+			if viper.GetBool("fast-query") && len(msgs) > 0 && msgs[0].Route() == "wasm" {
+				wasmSimulator := simulator.NewWasmSimulator()
+				wasmSimulator.Context().GasMeter().ConsumeGas(73000, "general ante check cost")
+				wasmSimulator.Context().GasMeter().ConsumeGas(uint64(10*len(txBytes)), "tx size cost")
 				res, err := wasmSimulator.Simulate(msgs[0])
 				if err != nil {
 					return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to simulate wasm tx"))
@@ -424,7 +427,6 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 					},
 					Result: res,
 				}
-				fmt.Println("gas used:", simRes.GasUsed, gasMeter.GasConsumed(), gasMeter.Limit(), gasMeter.GasConsumedToLimit())
 				return abci.ResponseQuery{
 					Codespace: sdkerrors.RootCodespace,
 					Height:    req.Height,

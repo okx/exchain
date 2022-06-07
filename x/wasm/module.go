@@ -47,7 +47,6 @@ type AppModuleBasic struct{}
 //}
 
 func (b AppModuleBasic) RegisterGRPCGatewayRoutes(clientCtx clictx.CLIContext, serveMux *runtime.ServeMux) {
-	simulator.SimulateCliCtx = clientCtx
 	simulator.NewWasmSimulator = NewWasmSimulator
 	err := types.RegisterQueryHandlerClient(context.Background(), serveMux, types.NewQueryClient(clientCtx))
 	if err != nil {
@@ -127,8 +126,13 @@ func NewAppModule(cdc codec.CodecProxy, keeper *Keeper) AppModule {
 
 func (am AppModule) RegisterServices(cfg module.Configurator) {
 	types.RegisterMsgServer(cfg.MsgServer(), keeper.NewMsgServerImpl(keeper.NewDefaultPermissionKeeper(am.keeper)))
-	k := NewProxyKeeper(simulator.SimulateCliCtx)
-	types.RegisterQueryServer(cfg.QueryServer(), NewQuerier(&k))
+	if watcher.Enable() {
+		k := NewProxyKeeper()
+		types.RegisterQueryServer(cfg.QueryServer(), NewQuerier(&k))
+	} else {
+		types.RegisterQueryServer(cfg.QueryServer(), NewQuerier(am.keeper))
+	}
+
 }
 
 //func (am AppModule) LegacyQuerierHandler(amino *codec.LegacyAmino) sdk.Querier { //nolint:staticcheck
