@@ -7,16 +7,14 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
-	"github.com/okex/exchain/x/wasm/proxy"
-	"github.com/okex/exchain/x/wasm/watcher"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
-
+	"github.com/okex/exchain/x/wasm/proxy"
 	"github.com/okex/exchain/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/watcher"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 var _ types.QueryServer = &grpcQuerier{}

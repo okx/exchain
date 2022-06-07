@@ -144,6 +144,7 @@ var (
 		transfer.TransferModule{},
 		erc20.AppModuleBasic{},
 		mock.AppModuleBasic{},
+		wasm.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -235,6 +236,7 @@ type SimApp struct {
 	Erc20Keeper          erc20.Keeper
 
 	ibcScopeKeep capabilitykeeper.ScopedKeeper
+	WasmHandler  wasmkeeper.HandlerOption
 }
 
 // NewSimApp returns a reference to a new initialized OKExChain application.
@@ -594,10 +596,11 @@ func NewSimApp(
 	// initialize BaseApp
 	app.SetInitChainer(app.InitChainer)
 	app.SetBeginBlocker(app.BeginBlocker)
-	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), wasmkeeper.HandlerOption{
+	app.WasmHandler = wasmkeeper.HandlerOption{
 		WasmConfig:        &wasmConfig,
 		TXCounterStoreKey: keys[wasm.StoreKey],
-	}, app.IBCKeeper.ChannelKeeper))
+	}
+	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), app.WasmHandler, app.IBCKeeper.ChannelKeeper))
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccNonceHandler(NewAccHandler(app.AccountKeeper))
@@ -742,7 +745,7 @@ func makeInterceptors() map[string]bam.Interceptor {
 	m := make(map[string]bam.Interceptor)
 	m["/cosmos.tx.v1beta1.Service/Simulate"] = bam.NewRedirectInterceptor("app/simulate")
 	m["/cosmos.bank.v1beta1.Query/AllBalances"] = bam.NewRedirectInterceptor("custom/bank/grpc_balances")
-	m["/cosmos.staking.v1beta1.Query/Params"] = bam.NewRedirectInterceptor("custom/staking/parameters")
+	m["/cosmos.staking.v1beta1.Query/Params"] = bam.NewRedirectInterceptor("custom/staking/params4ibc")
 	return m
 }
 

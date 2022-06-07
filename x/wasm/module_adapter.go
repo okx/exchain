@@ -68,16 +68,16 @@ func (am AppModule) NewQuerierHandler() sdk.Querier {
 // InitGenesis performs genesis initialization for the wasm module. It returns
 // no validator updates.
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	if !types2.HigherThanSaturn(ctx.BlockHeight()) {
-		return nil
-	}
-	var genesisState GenesisState
-	ModuleCdc.MustUnmarshalJSON(data, &genesisState)
-	validators, err := InitGenesis(ctx, am.keeper, genesisState, am.NewHandler())
-	if err != nil {
-		panic(err)
-	}
-	return validators
+	// Note: use RegisterTask instead
+	
+	//var genesisState GenesisState
+	//ModuleCdc.MustUnmarshalJSON(data, &genesisState)
+	//validators, err := InitGenesis(ctx, am.keeper, genesisState, am.NewHandler())
+	//if err != nil {
+	//	panic(err)
+	//}
+	//return validators
+	return nil
 }
 
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {

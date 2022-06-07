@@ -30,8 +30,8 @@ type Backend interface {
 	LatestBlockNumber() (int64, error)
 	HeaderByNumber(blockNum rpctypes.BlockNumber) (*ethtypes.Header, error)
 	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
-	GetBlockByNumber(blockNum rpctypes.BlockNumber) (*watcher.Block, error)
-	GetBlockByHash(hash common.Hash) (*watcher.Block, error)
+	GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (*watcher.Block, error)
+	GetBlockByHash(hash common.Hash, fullTx bool) (*watcher.Block, error)
 
 	GetTransactionByHash(hash common.Hash) (*watcher.Transaction, error)
 
@@ -111,17 +111,16 @@ func (b *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 }
 
 // GetBlockByNumber returns the block identified by number.
-func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber) (*watcher.Block, error) {
+func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (*watcher.Block, error) {
 	//query block in cache first
-	block, err := b.backendCache.GetBlockByNumber(uint64(blockNum))
+	block, err := b.backendCache.GetBlockByNumber(uint64(blockNum), fullTx)
 	if err == nil {
 		return block, nil
 	}
 	//query block from watch db
-	block, err = b.wrappedBackend.GetBlockByNumber(uint64(blockNum), true)
+	block, err = b.wrappedBackend.GetBlockByNumber(uint64(blockNum), fullTx)
 	if err == nil {
-		//update block to cache
-		b.backendCache.AddOrUpdateBlock(block.Hash, block)
+		b.backendCache.AddOrUpdateBlock(block.Hash, block, fullTx)
 		return block, nil
 	}
 	//query block from db
@@ -140,25 +139,25 @@ func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber) (*wat
 		return nil, nil
 	}
 
-	block, err = rpctypes.RpcBlockFromTendermint(b.clientCtx, resBlock.Block)
+	block, err = rpctypes.RpcBlockFromTendermint(b.clientCtx, resBlock.Block, fullTx)
 	if err != nil {
 		return nil, err
 	}
-	b.backendCache.AddOrUpdateBlock(block.Hash, block)
+	b.backendCache.AddOrUpdateBlock(block.Hash, block, fullTx)
 	return block, nil
 }
 
 // GetBlockByHash returns the block identified by hash.
-func (b *EthermintBackend) GetBlockByHash(hash common.Hash) (*watcher.Block, error) {
+func (b *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (*watcher.Block, error) {
 	//query block in cache first
-	block, err := b.backendCache.GetBlockByHash(hash)
+	block, err := b.backendCache.GetBlockByHash(hash, fullTx)
 	if err == nil {
 		return block, err
 	}
 	//query block from watch db
-	block, err = b.wrappedBackend.GetBlockByHash(hash, true)
+	block, err = b.wrappedBackend.GetBlockByHash(hash, fullTx)
 	if err == nil {
-		b.backendCache.AddOrUpdateBlock(hash, block)
+		b.backendCache.AddOrUpdateBlock(hash, block, fullTx)
 		return block, nil
 	}
 	//query block from tendermint
@@ -177,11 +176,11 @@ func (b *EthermintBackend) GetBlockByHash(hash common.Hash) (*watcher.Block, err
 		return nil, nil
 	}
 
-	block, err = rpctypes.RpcBlockFromTendermint(b.clientCtx, resBlock.Block)
+	block, err = rpctypes.RpcBlockFromTendermint(b.clientCtx, resBlock.Block, fullTx)
 	if err != nil {
 		return nil, err
 	}
-	b.backendCache.AddOrUpdateBlock(hash, block)
+	b.backendCache.AddOrUpdateBlock(hash, block, fullTx)
 	return block, nil
 }
 

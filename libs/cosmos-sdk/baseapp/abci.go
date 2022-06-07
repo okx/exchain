@@ -3,6 +3,8 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/app/rpc/simulator"
+	"github.com/spf13/viper"
 	"os"
 	"sort"
 	"strconv"
@@ -10,16 +12,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/okex/exchain/app/rpc/simulator"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	"github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/spf13/viper"
 	"github.com/tendermint/go-amino"
 )
 
@@ -90,7 +91,7 @@ func (app *BaseApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOp
 	switch req.Key {
 	case "ResetCheckState":
 		// reset check state
-		app.checkState.ms = app.cms.CacheMultiStore()
+		app.setCheckState(app.checkState.ctx.BlockHeader())
 	default:
 		// do nothing
 	}
@@ -116,6 +117,7 @@ func (app *BaseApp) FilterPeerByID(info string) abci.ResponseQuery {
 // BeginBlock implements the ABCI application interface.
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 	app.blockDataCache.Clear()
+	app.PutCacheMultiStore(nil)
 	if app.cms.TracingEnabled() {
 		app.cms.SetTracingContext(sdk.TraceContext(
 			map[string]interface{}{"blockHeight": req.Header.Height},
@@ -388,71 +390,78 @@ func (app *BaseApp) Query(req abci.RequestQuery) abci.ResponseQuery {
 		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query path"))
 	}
 }
+func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, overrideBytes []byte) abci.ResponseQuery {
+	// if path contains address, it means 'eth_estimateGas' the sender
+	hasExtraPaths := len(path) > 2
+	var from string
+	if hasExtraPaths {
+		if addr, err := sdk.AccAddressFromBech32(path[2]); err == nil {
+			if err = sdk.VerifyAddressFormat(addr); err == nil {
+				from = path[2]
+			}
+		}
+	}
+	tx, err := app.txDecoder(txBytes)
+	if err != nil {
+		return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))
+	}
+	msgs := tx.GetMsgs()
+	if viper.GetBool("fast-query") && len(msgs) > 0 && msgs[0].Route() == "wasm" {
+		wasmSimulator := simulator.NewWasmSimulator()
+		wasmSimulator.Context().GasMeter().ConsumeGas(73000, "general ante check cost")
+		wasmSimulator.Context().GasMeter().ConsumeGas(uint64(10*len(txBytes)), "tx size cost")
+		res, err := wasmSimulator.Simulate(msgs[0])
+		if err != nil {
+			return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to simulate wasm tx"))
+		}
 
+		gasMeter := wasmSimulator.Context().GasMeter()
+		simRes := sdk.SimulationResponse{
+			GasInfo: sdk.GasInfo{
+				GasUsed: gasMeter.GasConsumed(),
+			},
+			Result: res,
+		}
+		return abci.ResponseQuery{
+			Codespace: sdkerrors.RootCodespace,
+			Height:    height,
+			Value:     codec.Cdc.MustMarshalBinaryBare(simRes),
+		}
+	}
+	gInfo, res, err := app.Simulate(txBytes, tx, height, overrideBytes, from)
+
+	// if path contains mempool, it means to enable MaxGasUsedPerBlock
+	// return the actual gasUsed even though simulate tx failed
+	isMempoolSim := hasExtraPaths && path[2] == "mempool"
+	if err != nil && !isMempoolSim {
+		return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to simulate tx"))
+	}
+
+	simRes := sdk.SimulationResponse{
+		GasInfo: gInfo,
+		Result:  res,
+	}
+
+	return abci.ResponseQuery{
+		Codespace: sdkerrors.RootCodespace,
+		Height:    height,
+		Value:     codec.Cdc.MustMarshalBinaryBare(simRes),
+	}
+}
 func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.ResponseQuery {
 	if len(path) >= 2 {
 		switch path[1] {
 		case "simulate":
-			txBytes := req.Data
+			return handleSimulate(app, path, req.Height, req.Data, nil)
 
-			tx, err := app.txDecoder(txBytes)
-			if err != nil {
-				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))
+		case "simulateWithOverrides":
+			queryBytes := req.Data
+			var queryData types.SimulateData
+			if err := json.Unmarshal(queryBytes, &queryData); err != nil {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode simulateOverrideData"))
 			}
+			return handleSimulate(app, path, req.Height, queryData.TxBytes, queryData.OverridesBytes)
 
-			// if path contains address, it means 'eth_estimateGas' the sender
-			hasExtraPaths := len(path) > 2
-			var from string
-			if hasExtraPaths {
-				if addr, err := sdk.AccAddressFromBech32(path[2]); err == nil {
-					if err = sdk.VerifyAddressFormat(addr); err == nil {
-						from = path[2]
-					}
-				}
-			}
-			msgs := tx.GetMsgs()
-			if viper.GetBool("fast-query") && len(msgs) > 0 && msgs[0].Route() == "wasm" {
-				wasmSimulator := simulator.NewWasmSimulator()
-				wasmSimulator.Context().GasMeter().ConsumeGas(73000, "general ante check cost")
-				wasmSimulator.Context().GasMeter().ConsumeGas(uint64(10*len(txBytes)), "tx size cost")
-				res, err := wasmSimulator.Simulate(msgs[0])
-				if err != nil {
-					return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to simulate wasm tx"))
-				}
-
-				gasMeter := wasmSimulator.Context().GasMeter()
-				simRes := sdk.SimulationResponse{
-					GasInfo: sdk.GasInfo{
-						GasUsed: gasMeter.GasConsumed(),
-					},
-					Result: res,
-				}
-				return abci.ResponseQuery{
-					Codespace: sdkerrors.RootCodespace,
-					Height:    req.Height,
-					Value:     codec.Cdc.MustMarshalBinaryBare(simRes),
-				}
-			}
-
-			gInfo, res, err := app.Simulate(txBytes, tx, req.Height, from)
-
-			// if path contains mempool, it means to enable MaxGasUsedPerBlock
-			// return the actual gasUsed even though simulate tx failed
-			isMempoolSim := hasExtraPaths && path[2] == "mempool"
-			if err != nil && !isMempoolSim {
-				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to simulate tx"))
-			}
-
-			simRes := sdk.SimulationResponse{
-				GasInfo: gInfo,
-				Result:  res,
-			}
-
-			return abci.ResponseQuery{
-				Codespace: sdkerrors.RootCodespace,
-				Height:    req.Height,
-				Value:     codec.Cdc.MustMarshalBinaryBare(simRes),
-			}
 		case "trace":
 			var queryParam sdk.QueryTraceTx
 			err := json.Unmarshal(req.Data, &queryParam)

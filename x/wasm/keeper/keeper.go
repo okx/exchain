@@ -17,10 +17,9 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	paramtypes "github.com/okex/exchain/x/params"
-	"github.com/okex/exchain/x/wasm/watcher"
-
 	"github.com/okex/exchain/x/wasm/ioutils"
 	"github.com/okex/exchain/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/watcher"
 )
 
 // contractMemoryLimit is the memory limit of each contract execution (in MiB)
@@ -315,7 +314,6 @@ func (k Keeper) instantiate(ctx sdk.Context, codeID uint64, creator, admin sdk.A
 	}
 	var codeInfo types.CodeInfo
 	k.cdc.GetProtocMarshal().MustUnmarshal(bz, &codeInfo)
-
 	if !authZ.CanInstantiateContract(codeInfo.InstantiateConfig, creator) {
 		return nil, nil, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "can not instantiate")
 	}
@@ -327,9 +325,9 @@ func (k Keeper) instantiate(ctx sdk.Context, codeID uint64, creator, admin sdk.A
 
 	// create prefixed data store
 	// 0x03 | BuildContractAddress (sdk.AccAddress)
-	prefixStoreKey := types.GetContractStorePrefix(contractAddress)
-	prefixStore := prefix.NewStore(store, prefixStoreKey)
+	prefixStore := prefix.NewStore(store, types.GetContractStorePrefix(contractAddress))
 	prefixStoreAdapter := types.NewStoreAdapter(prefixStore)
+
 	// prepare querier
 	querier := k.newQueryHandler(ctx, contractAddress)
 
@@ -1124,4 +1122,13 @@ func (h DefaultWasmVMContractResponseHandler) Handle(ctx sdk.Context, contractAd
 		result = rsp
 	}
 	return result, nil
+}
+
+func getPrefixStore(ctx sdk.Context, contractAddress sdk.AccAddress, storeKey sdk.StoreKey) types.StoreAdapter {
+	// create prefixed data store
+	// 0x03 | BuildContractAddress (sdk.AccAddress)
+	prefixStoreKey := types.GetContractStorePrefix(contractAddress)
+	prefixStore := prefix.NewStore(ctx.KVStore(storeKey), prefixStoreKey)
+	prefixStoreAdapter := types.NewStoreAdapter(prefixStore)
+	return prefixStoreAdapter
 }

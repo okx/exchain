@@ -62,6 +62,8 @@ const (
 	SaveState  = "saveState"
 	ApplyBlock = "ApplyBlock"
 	Consensus  = "Consensus"
+	LastBlockTime  = "LastBlockTime"
+	TimeoutInterval  = "TimeoutInterval"
 
 	MempoolCheckTxCnt    = "CheckTx"
 	MempoolTxsCnt        = "MempoolTxs"
@@ -70,6 +72,8 @@ const (
 	UncompressBlock = "Uncompress"
 	Prerun               = "Prerun"
 	IavlRuntime          = "IavlRuntime"
+
+	BlockPartsP2P = "BlockPartsP2P"
 )
 
 const (

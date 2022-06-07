@@ -4,7 +4,7 @@ import (
 	"context"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	auth "github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/distribution/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
@@ -27,6 +27,7 @@ type BankKeeper interface {
 	IsSendEnabledCoins(ctx sdk.Context, coins ...sdk.Coin) error
 	BlockedAddr(addr sdk.AccAddress) bool
 	SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error
+	GetSendEnabled(ctx sdk.Context) bool
 }
 
 // AccountKeeper defines a subset of methods implemented by the cosmos-sdk account keeper

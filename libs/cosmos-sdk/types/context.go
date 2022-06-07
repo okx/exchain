@@ -47,6 +47,7 @@ type Context struct {
 	accountCache       *AccountCache
 	paraMsg            *ParaMsg
 	//	txCount            uint32
+	overridesBytes []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -129,6 +130,10 @@ func (c *Context) GetToAccountCacheGas() Gas {
 		return 0
 	}
 	return c.accountCache.ToAccGotGas
+}
+
+func (c *Context) OverrideBytes() []byte {
+	return c.overridesBytes
 }
 
 func (c *Context) UpdateFromAccountCache(fromAcc interface{}, fromAccGettedGas Gas) {
@@ -354,6 +359,11 @@ func (c *Context) SetParaMsg(m *ParaMsg) *Context {
 
 func (c *Context) SetVoteInfos(voteInfo []abci.VoteInfo) *Context {
 	c.voteInfo = voteInfo
+	return c
+}
+
+func (c *Context) SetOverrideBytes(b []byte) *Context {
+	c.overridesBytes = b
 	return c
 }
 

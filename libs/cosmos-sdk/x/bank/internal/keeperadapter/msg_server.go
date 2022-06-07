@@ -6,7 +6,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/types"
-	typesadapter "github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/typesadapter"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/typesadapter"
 )
 
 type msgServer struct {

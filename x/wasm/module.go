@@ -16,13 +16,12 @@ import (
 	simtypes "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/x/wasm/watcher"
-	"github.com/spf13/cobra"
-
 	"github.com/okex/exchain/x/wasm/client/rest"
 	"github.com/okex/exchain/x/wasm/keeper"
 	"github.com/okex/exchain/x/wasm/simulation"
 	"github.com/okex/exchain/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/watcher"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -132,7 +131,6 @@ func (am AppModule) RegisterServices(cfg module.Configurator) {
 	} else {
 		types.RegisterQueryServer(cfg.QueryServer(), NewQuerier(am.keeper))
 	}
-
 }
 
 //func (am AppModule) LegacyQuerierHandler(amino *codec.LegacyAmino) sdk.Querier { //nolint:staticcheck

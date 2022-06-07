@@ -8,7 +8,8 @@ export GO111MODULE=on
 GithubTop=github.com
 
 
-Version=v2.0.0
+
+Version=v1.5.2
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
@@ -23,6 +24,9 @@ Venus1Height=0
 MarsHeight=0
 SaturnHeight=0
 
+LINK_STATICALLY = false
+cgo_flags=
+
 # process linker flags
 ifeq ($(VERSION),)
     VERSION = $(COMMIT)
@@ -33,10 +37,15 @@ build_tags = netgo
 ifeq ($(WITH_ROCKSDB),true)
   CGO_ENABLED=1
   build_tags += rocksdb
+  ifeq ($(LINK_STATICALLY),true)
+      cgo_flags += CGO_CFLAGS="-I/usr/include/rocksdb"
+      cgo_flags += CGO_LDFLAGS="-L/usr/lib -lrocksdb -lstdc++ -lm  -lsnappy -llz4"
+  endif
 endif
 
-# TODO need use in dockerfile
-#build_tags += muslc
+ifeq ($(LINK_STATICALLY),true)
+	build_tags += muslc
+endif
 
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
@@ -50,10 +59,7 @@ else ifeq ($(MAKECMDGOALS),testnet)
    GenesisHeight=1121818
    MercuryHeight=5300000
    VenusHeight=8510000
-endif
-
-ifeq ($(shell ./dev/os.sh),alpine)
-	build_tags += muslc
+   Venus1Height=12067000
 endif
 
 ldflags = -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Version=$(Version) \
@@ -75,10 +81,16 @@ ifeq ($(WITH_ROCKSDB),true)
   ldflags += -X github.com/okex/exchain/libs/cosmos-sdk/types.DBBackend=rocksdb
 endif
 
-ifeq ($(shell ./dev/os.sh),alpine)
+ifeq ($(LINK_STATICALLY),true)
 	ldflags += -linkmode=external -extldflags "-Wl,-z,muldefs -static"
-	export CGO_CFLAGS="-I/usr/include/rocksdb"
-	export CGO_LDFLAGS="-L/usr/lib -lrocksdb -lstdc++ -lm -lsnappy -llz4"
+endif
+
+ifeq ($(OKCMALLOC),tcmalloc)
+  ldflags += -extldflags "-ltcmalloc_minimal"
+endif
+
+ifeq ($(OKCMALLOC),jemalloc)
+  ldflags += -extldflags "-ljemalloc"
 endif
 
 BUILD_FLAGS := -ldflags '$(ldflags)'
@@ -92,8 +104,8 @@ all: install
 install: exchain
 
 exchain:
-	go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaind
-	go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaincli
+	$(cgo_flags) go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaind
+	$(cgo_flags) go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaincli
 
 mainnet: exchain
 
@@ -198,3 +210,11 @@ rocksdb:
 .PHONY: rocksdb
 
 .PHONY: build
+
+tcmalloc:
+	@echo "Installing tcmalloc..."
+	@bash ./libs/malloc/tcinstall.sh
+
+jemalloc:
+	@echo "Installing jemalloc..."
+	@bash ./libs/malloc/jeinstall.sh

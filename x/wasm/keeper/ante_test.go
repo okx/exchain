@@ -1,6 +1,7 @@
 package keeper_test
 
 import (
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"testing"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 )
 
 func TestCountTxDecorator(t *testing.T) {
+	types2.UnittestOnlySetMilestoneSaturnHeight(1)
 	keyWasm := sdk.NewKVStoreKey(types.StoreKey)
 	db := dbm.NewMemDB()
 	ms := store.NewCommitMultiStore(db)

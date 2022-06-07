@@ -3,7 +3,6 @@ package core
 import (
 	"context"
 	"crypto/sha256"
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -44,10 +43,8 @@ func BroadcastTxSync(ctx *rpctypes.Context, tx types.Tx) (*ctypes.ResultBroadcas
 	}
 	res := <-resCh
 	r := res.GetCheckTx()
-	var info mempl.ExTxInfo
-	if err := json.Unmarshal(r.Data, &info); err == nil {
-		r.Data = nil
-	}
+	// reset r.Data for compatibility with cosmwasmJS
+	r.Data = nil
 	return &ctypes.ResultBroadcastTx{
 		Code:      r.Code,
 		Data:      r.Data,

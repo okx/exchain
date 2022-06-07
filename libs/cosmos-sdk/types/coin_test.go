@@ -212,6 +212,58 @@ func TestCoinIsZero(t *testing.T) {
 	require.False(t, res)
 }
 
+func TestFilteredZeroCoins(t *testing.T) {
+	cases := []struct {
+		name     string
+		input    Coins
+		original string
+		expected string
+	}{
+		{
+			name: "all greater than zero",
+			input: Coins{
+				NewInt64Coin("testa", 1),
+				NewInt64Coin("testb", 2),
+				NewInt64Coin("testc", 3),
+				NewInt64Coin("testd", 4),
+				NewInt64Coin("teste", 5),
+			},
+			original: "1.000000000000000000testa,2.000000000000000000testb,3.000000000000000000testc,4.000000000000000000testd,5.000000000000000000teste",
+			expected: "1.000000000000000000testa,2.000000000000000000testb,3.000000000000000000testc,4.000000000000000000testd,5.000000000000000000teste",
+		},
+		{
+			name: "zero coin in middle",
+			input: Coins{
+				NewInt64Coin("testa", 1),
+				NewInt64Coin("testb", 2),
+				NewInt64Coin("testc", 0),
+				NewInt64Coin("testd", 4),
+				NewInt64Coin("teste", 5),
+			},
+			original: "1.000000000000000000testa,2.000000000000000000testb,0.000000000000000000testc,4.000000000000000000testd,5.000000000000000000teste",
+			expected: "1.000000000000000000testa,2.000000000000000000testb,4.000000000000000000testd,5.000000000000000000teste",
+		},
+		{
+			name: "zero coin end (unordered)",
+			input: Coins{
+				NewInt64Coin("teste", 5),
+				NewInt64Coin("testc", 3),
+				NewInt64Coin("testa", 1),
+				NewInt64Coin("testd", 4),
+				NewInt64Coin("testb", 0),
+			},
+			original: "5.000000000000000000teste,3.000000000000000000testc,1.000000000000000000testa,4.000000000000000000testd,0.000000000000000000testb",
+			expected: "1.000000000000000000testa,3.000000000000000000testc,4.000000000000000000testd,5.000000000000000000teste",
+		},
+	}
+
+	for _, tt := range cases {
+		undertest := NewCoins(tt.input...)
+		require.Equal(t, tt.expected, undertest.String(), "NewCoins must return expected results")
+		require.Equal(t, tt.original, tt.input.String(), "input must be unmodified and match original")
+	}
+}
+
 // ----------------------------------------------------------------------------
 // Coins tests
 

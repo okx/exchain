@@ -50,6 +50,7 @@ get_distribution() {
 install_linux() {
   $sh_c "git clone https://github.com/facebook/rocksdb.git"
   $sh_c "cd rocksdb && git checkout ${VERSION}"
+  $sh_c "cd rocksdb && make clean PREFIX=/usr LIBDIR=/usr/lib"
   $sh_c "cd rocksdb && make uninstall PREFIX=/usr LIBDIR=/usr/lib"
   $sh_c "cd rocksdb && make shared_lib PREFIX=/usr LIBDIR=/usr/lib"
   $sh_c "cd rocksdb && make install-shared PREFIX=/usr LIBDIR=/usr/lib"
@@ -59,6 +60,7 @@ install_linux() {
 install_macos(){
   $sh_c "git clone https://github.com/facebook/rocksdb.git"
   $sh_c "cd rocksdb && git checkout ${VERSION} && git apply --reject ../libs/rocksdb/arm64_crc.patch"
+  $sh_c "cd rocksdb && make clean"
   $sh_c "cd rocksdb && make uninstall"
   $sh_c "cd rocksdb && make shared_lib"
   $sh_c "cd rocksdb && make install-shared"

@@ -11,7 +11,7 @@ import (
 
 func AccAddressFromBech32(addr string) (sdk.AccAddress, error) {
 	if strings.TrimSpace(addr) == "" {
-		return sdk.AccAddress{}, errors.New("empty address")
+		return nil, errors.New("empty address")
 	}
 	return sdk.AccAddressFromBech32(addr)
 }
