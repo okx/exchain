@@ -7,6 +7,7 @@ import (
 	"hash/crc32"
 	"io"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/pkg/errors"
@@ -405,6 +406,12 @@ func NewWALEncoder(wr io.Writer) *WALEncoder {
 	return &WALEncoder{wr}
 }
 
+var msgBzPool = &sync.Pool{
+	New: func() interface{} {
+		return &bytes.Buffer{}
+	},
+}
+
 // Encode writes the custom encoding of v to the stream. It returns an error if
 // the amino-encoded size of v is greater than 1MB. Any error encountered
 // during the write is also returned.
@@ -423,8 +430,17 @@ func (enc *WALEncoder) Encode(v *TimedWALMessage) error {
 		return fmt.Errorf("msg is too big: %d bytes, max: %d bytes", length, maxMsgSizeBytes)
 	}
 	totalLength := 8 + int(length)
-
-	msg := make([]byte, totalLength)
+	buf := msgBzPool.Get().(*bytes.Buffer)
+	defer msgBzPool.Put(buf)
+	buf.Reset()
+	buf.Grow(totalLength)
+	bz := buf.Bytes()
+	var msg []byte
+	if cap(bz) >= totalLength {
+		msg = bz[:totalLength]
+	} else {
+		msg = make([]byte, totalLength)
+	}
 	binary.BigEndian.PutUint32(msg[0:4], crc)
 	binary.BigEndian.PutUint32(msg[4:8], length)
 	copy(msg[8:], data)
