@@ -1,7 +1,6 @@
 package typesadapter
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -77,7 +76,7 @@ func (m *MsgSend) GetAmount() []sdk.DecCoin {
 	return convAmount
 }
 
-func (m *MsgSend) RulesFilter(cdc codec.ProtoCodecMarshaler) (sdk.Msg, error) {
+func (m *MsgSend) RulesFilter() (sdk.Msg, error) {
 	msgSend := *m
 
 	msgSend.Amount = m.Amount.Copy()

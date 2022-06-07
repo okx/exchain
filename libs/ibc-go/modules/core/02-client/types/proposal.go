@@ -2,9 +2,7 @@ package types
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
 	types "github.com/okex/exchain/libs/cosmos-sdk/x/upgrade/typesadapter"
@@ -22,7 +20,6 @@ var (
 	_ govtypes.Content                   = &ClientUpdateProposal{}
 	_ govtypes.Content                   = &UpgradeProposal{}
 	_ codectypes.UnpackInterfacesMessage = &UpgradeProposal{}
-	_ exchaingov.CM39ContentAdapter      = (*CM39UpgradeProposal)(nil)
 )
 
 func init() {
@@ -151,89 +148,4 @@ func (up *UpgradeProposal) String() string {
 // UnpackInterfaces implements UnpackInterfacesMessage.UnpackInterfaces
 func (up *UpgradeProposal) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
 	return unpacker.UnpackAny(up.UpgradedClientState, new(exported.ClientState))
-}
-
-func (up *UpgradeProposal) Conv2CM39Content(cdc codec.ProtoCodecMarshaler) (exchaingov.Content, error) {
-	st, err := UnpackClientState(up.UpgradedClientState)
-	if nil != err {
-		return nil, err
-	}
-
-	data, err := cdc.MarshalInterface(st)
-	if nil != err {
-		return nil, err
-	}
-	ret := CM39UpgradeProposal{
-		Title:               up.Title,
-		Description:         up.Description,
-		Plan:                up.Plan,
-		UpgradedClientState: data,
-	}
-
-	return &ret, nil
-}
-
-type CM39UpgradeProposal struct {
-	Title               string     `protobuf:"bytes,1,opt,name=title,proto3" json:"title,omitempty"`
-	Description         string     `protobuf:"bytes,2,opt,name=description,proto3" json:"description,omitempty"`
-	Plan                types.Plan `protobuf:"bytes,3,opt,name=plan,proto3" json:"plan"`
-	UpgradedClientState []byte     `protobuf:"bytes,4,opt,name=upgraded_client_state,json=upgradedClientState,proto3" json:"upgraded_client_state,omitempty" yaml:"upgraded_client_state"`
-}
-
-func (up *CM39UpgradeProposal) Conv2CM40Content(cdc *codec.CodecProxy) (exchaingov.ContentAdapter, error) {
-	ret := UpgradeProposal{
-		Title:               up.Title,
-		Description:         up.Description,
-		Plan:                up.Plan,
-		UpgradedClientState: nil,
-	}
-	var client exported.ClientState
-	err := cdc.GetProtocMarshal().UnmarshalInterface(up.UpgradedClientState, &client)
-	if nil != err {
-		return nil, err
-	}
-	any, err := PackClientState(client)
-	if nil != err {
-		return nil, err
-	}
-	ret.UpgradedClientState = any
-	return &ret, nil
-}
-
-// GetTitle returns the title of a upgrade proposal.
-func (up *CM39UpgradeProposal) GetTitle() string { return up.Title }
-
-// GetDescription returns the description of a upgrade proposal.
-func (up *CM39UpgradeProposal) GetDescription() string { return up.Description }
-
-// ProposalRoute returns the routing key of a upgrade proposal.
-func (up *CM39UpgradeProposal) ProposalRoute() string { return RouterKey }
-
-// ProposalType returns the upgrade proposal type.
-func (up *CM39UpgradeProposal) ProposalType() string { return ProposalTypeUpgrade }
-
-func (up *CM39UpgradeProposal) ValidateBasic() sdk.Error {
-	if err := govtypes.ValidateAbstract(up); err != nil {
-		return err
-	}
-
-	if err := up.Plan.ValidateBasic(); err != nil {
-		return err
-	}
-
-	if up.UpgradedClientState == nil {
-		return sdkerrors.Wrap(ErrInvalidUpgradeProposal, "upgraded client state cannot be nil")
-	}
-
-	return nil
-}
-
-func (up *CM39UpgradeProposal) String() string {
-	upgradedClientStr := string(up.UpgradedClientState)
-
-	return fmt.Sprintf(`IBC Upgrade Proposal
-Title: %s
-Description: %s
-%s
-Upgraded IBC Client: %s`, up.Title, up.Description, up.Plan, upgradedClientStr)
 }

@@ -1,8 +1,6 @@
 package types
 
 import (
-	"github.com/gogo/protobuf/proto"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"strings"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -13,17 +11,6 @@ const (
 	MaxDescriptionLength int = 5000
 	MaxTitleLength       int = 140
 )
-
-type ContentAdapter interface {
-	proto.Message
-	Content
-	Conv2CM39Content(cdc codec.ProtoCodecMarshaler) (Content, error)
-}
-
-type CM39ContentAdapter interface {
-	Content
-	Conv2CM40Content(cdc *codec.CodecProxy) (ContentAdapter, error)
-}
 
 // Content defines an interface that a proposal must implement. It contains
 // information such as the title and description along with the type and routing

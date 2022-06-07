@@ -15,7 +15,6 @@ import (
 func init() {
 	types.RegisterProposalTypeCodec(&ClientUpdateProposal{}, "ibc.core.client.v1.ClientUpdateProposal")
 	types.RegisterProposalTypeCodec(&MsgUpgradeClient{}, "ibc.core.client.v1.MsgUpgradeClient")
-	types.RegisterProposalTypeCodec(&CM39UpgradeProposal{}, "okexchain/cm39/ibc.core.client.v1.MsgUpgradeClient")
 }
 
 // RegisterInterfaces registers the client interfaces to protobuf Any.
@@ -57,18 +56,12 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 		&MsgSubmitMisbehaviour{},
 	)
 
-	registry.RegisterImplementations(
-		(*types.ContentAdapter)(nil),
-		&UpgradeProposal{},
-	)
-
 	msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)
 }
 
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(&ClientUpdateProposal{}, "ibc.core.client.v1.ClientUpdateProposal", nil)
 	cdc.RegisterConcrete(&MsgUpgradeClient{}, "ibc.core.client.v1.MsgUpgradeClient", nil)
-	cdc.RegisterConcrete(&CM39UpgradeProposal{}, "okexchain/cm39/ibc.core.client.v1.MsgUpgradeClient", nil)
 }
 
 // UnpackClientState unpacks an Any into a ClientState. It returns an error if the
