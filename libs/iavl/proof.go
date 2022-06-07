@@ -3,7 +3,6 @@ package iavl
 import (
 	"bytes"
 	"fmt"
-	stdlog "log"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -130,8 +129,6 @@ func (pln ProofLeafNode) Hash() []byte {
 	buf := bufPool.Get().(*bytes.Buffer)
 	buf.Reset()
 	defer bufPool.Put(buf)
-
-	stdlog.Println("giskook")
 
 	err := amino.EncodeInt8(buf, 0)
 	if err == nil {
