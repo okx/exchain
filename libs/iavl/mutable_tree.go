@@ -126,7 +126,7 @@ func (tree *MutableTree) VersionExists(version int64) bool {
 	}
 	return tree.versions.Get(version)
 }
-func (tree *MutableTree) VersionExistsInNdb(version int64) bool {
+func (tree *MutableTree) VersionExistsInDb(version int64) bool {
 	treeVer := tree.ndb.getPreviousVersion(version + 1)
 	return treeVer == version
 }
