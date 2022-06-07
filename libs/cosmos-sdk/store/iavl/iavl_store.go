@@ -92,7 +92,7 @@ func HasVersion(db dbm.DB, version int64) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return tree.VersionExists(version), nil
+	return tree.VersionExistsInNdb(version), nil
 }
 func GetCommitVersions(db dbm.DB) ([]int64, error) {
 	tree, err := iavl.NewMutableTreeWithOpts(db, iavlconfig.DynamicConfig.GetIavlCacheSize(), &iavl.Options{InitialVersion: 0})
