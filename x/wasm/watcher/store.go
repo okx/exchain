@@ -6,7 +6,9 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/dbadapter"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/gaskv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
+	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/evm/watcher"
@@ -18,9 +20,11 @@ const (
 )
 
 var (
-	enableWatcher bool
-	db            dbm.DB
-	once          sync.Once
+	enableWatcher   bool
+	db              dbm.DB
+	once            sync.Once
+	txStateCache    []*watcherMessage
+	blockStateCache = make(map[string]*watcherMessage)
 )
 
 type watcherMessage struct {
@@ -29,10 +33,10 @@ type watcherMessage struct {
 	isDelete bool
 }
 
-var (
-	txStateCache    []*watcherMessage
-	blockStateCache = make(map[string]*watcherMessage)
-)
+func Enable() bool {
+	once.Do(initDB)
+	return enableWatcher
+}
 
 func NewReadStore(prefixes ...[]byte) sdk.KVStore {
 	once.Do(initDB)
@@ -47,8 +51,9 @@ func NewReadStore(prefixes ...[]byte) sdk.KVStore {
 
 type Adapter struct{}
 
-func (a Adapter) NewStore(store sdk.KVStore, pre []byte) sdk.KVStore {
-	return NewReadStore(pre)
+func (a Adapter) NewStore(gasMeter sdk.GasMeter, _ sdk.KVStore, pre []byte) sdk.KVStore {
+	store := NewReadStore(pre)
+	return gaskv.NewStore(store, gasMeter, stypes.KVGasConfig())
 }
 
 type readStore struct {
