@@ -6,7 +6,6 @@ import (
 	"log"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/okex/exchain/app/config"
 
@@ -183,9 +182,11 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	defer func() {
 		if txindexServer != nil {
 			txindexServer.Stop()
+			txindexServer.Wait()
 		}
 		if eventBus != nil {
 			eventBus.Stop()
+			eventBus.Wait()
 		}
 		if txStore != nil {
 			err := txStore.Close()
@@ -216,8 +217,6 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		log.Println("Repaired block height", repairedBlockHeight)
 		log.Println("Repaired app hash", fmt.Sprintf("%X", repairedAppHash))
 	}
-	// need to wait endblock to be done
-	time.Sleep(3 * time.Second)
 }
 
 func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus, logger tmlog.Logger) (txStore dbm.DB, indexerService *txindex.IndexerService, err error) {
