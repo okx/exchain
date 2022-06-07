@@ -13,7 +13,6 @@ const (
 	StoreKey          = types.StoreKey
 	RouterKey         = types.RouterKey
 	DefaultParamspace = types.DefaultParamspace
-	LegacyStoreKey    = types.LegacyStoreKey
 )
 
 // nolint

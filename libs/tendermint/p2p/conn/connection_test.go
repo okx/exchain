@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"math/rand"
 	"net"
 	"testing"
 	"time"
@@ -659,6 +660,9 @@ func TestBytesStringer(t *testing.T) {
 }
 
 func TestPacketMsgAmino(t *testing.T) {
+	var longBytes = make([]byte, 1024)
+	rand.Read(longBytes)
+
 	testCases := []PacketMsg{
 		{},
 		{
@@ -672,6 +676,9 @@ func TestPacketMsgAmino(t *testing.T) {
 		},
 		{
 			Bytes: []byte{},
+		},
+		{
+			Bytes: longBytes,
 		},
 	}
 	for _, msg := range testCases {
@@ -688,6 +695,17 @@ func TestPacketMsgAmino(t *testing.T) {
 		}
 		require.EqualValues(t, expectData[4:], actualData)
 
+		require.Equal(t, len(actualData), msg.AminoSize(cdc))
+
+		actualData, err = cdc.MarshalBinaryWithSizer(msg, false)
+		require.EqualValues(t, expectData, actualData)
+		require.Equal(t, getPacketMsgAminoTypePrefix(), actualData[0:4])
+
+		expectLenPrefixData, err := cdc.MarshalBinaryLengthPrefixed(msg)
+		require.NoError(t, err)
+		actualLenPrefixData, err := cdc.MarshalBinaryWithSizer(msg, true)
+		require.EqualValues(t, expectLenPrefixData, actualLenPrefixData)
+
 		var expectValue PacketMsg
 		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
 		require.NoError(t, err)
@@ -703,5 +721,57 @@ func TestPacketMsgAmino(t *testing.T) {
 		err = actulaValue.UnmarshalFromAmino(cdc, expectData[4:])
 		require.NoError(t, err)
 		require.EqualValues(t, expectValue, actulaValue)
+
+		actulaValue = PacketMsg{}
+		err = cdc.UnmarshalBinaryLengthPrefixed(actualLenPrefixData, &actulaValue)
+		require.NoError(t, err)
+		require.EqualValues(t, expectValue, actulaValue)
 	}
+}
+
+func Benchmark(b *testing.B) {
+	var longBytes = make([]byte, 1024)
+	rand.Read(longBytes)
+
+	testCases := []PacketMsg{
+		{},
+		{
+			ChannelID: 12,
+			EOF:       25,
+		},
+		{
+			ChannelID: math.MaxInt8,
+			EOF:       math.MaxInt8,
+			Bytes:     []byte("Bytes"),
+		},
+		{
+			Bytes: []byte{},
+		},
+		{
+			Bytes: longBytes,
+		},
+	}
+
+	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, msg := range testCases {
+				_, err := cdc.MarshalBinaryLengthPrefixedWithRegisteredMarshaller(&msg)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
+	b.Run("sizer", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			for _, msg := range testCases {
+				_, err := cdc.MarshalBinaryWithSizer(&msg, true)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		}
+	})
 }
