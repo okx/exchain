@@ -101,7 +101,6 @@ func (suite *JournalTestSuite) setup() {
 	paramsTKey := sdk.NewTransientStoreKey(params.TStoreKey)
 	// bankKey := sdk.NewKVStoreKey(bank.StoreKey)
 	storeKey := sdk.NewKVStoreKey(StoreKey)
-	store2Key := sdk.NewKVStoreKey(LegacyStoreKey)
 
 	db := tmdb.NewDB("state", tmdb.GoLevelDBBackend, "temp")
 	defer func() {
@@ -113,7 +112,6 @@ func (suite *JournalTestSuite) setup() {
 	cms.MountStoreWithDB(mptKey, sdk.StoreTypeMPT, db)
 	cms.MountStoreWithDB(paramsKey, sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(storeKey, sdk.StoreTypeIAVL, db)
-	cms.MountStoreWithDB(store2Key, sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(paramsTKey, sdk.StoreTypeTransient, db)
 
 	err := cms.LoadLatestVersion()
@@ -133,7 +131,6 @@ func (suite *JournalTestSuite) setup() {
 	suite.ctx = sdk.NewContext(cms, abci.Header{ChainID: "ethermint-8"}, false, tmlog.NewNopLogger())
 	csdbParams := CommitStateDBParams{
 		StoreKey:       storeKey,
-		LegacyStoreKey: store2Key,
 		ParamSpace:     evmSubspace,
 		AccountKeeper:  &ak,
 		SupplyKeeper:   sk,
