@@ -218,8 +218,6 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		log.Println("Repaired block height", repairedBlockHeight)
 		log.Println("Repaired app hash", fmt.Sprintf("%X", repairedAppHash))
 	}
-	//wait for go routines to end
-	time.Sleep(time.Second)
 }
 
 func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus, logger tmlog.Logger) (txStore dbm.DB, indexerService *txindex.IndexerService, err error) {
@@ -344,6 +342,9 @@ func createAndStartProxyAppConns(clientCreator proxy.ClientCreator) (proxy.AppCo
 }
 
 func (app *repairApp) Close() {
+	for evmtypes.GetIndexer().IsProcessing() {
+		time.Sleep(100 * time.Millisecond)
+	}
 	evmtypes.CloseIndexer()
 	err := app.db.Close()
 	panicError(err)
