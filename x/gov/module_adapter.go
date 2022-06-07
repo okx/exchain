@@ -19,7 +19,6 @@ var (
 )
 
 func (a AppModuleBasic) RegisterInterfaces(registry anytypes.InterfaceRegistry) {
-	RegisterInterface(registry)
 }
 
 func (a AppModuleBasic) RegisterGRPCGatewayRoutes(cliContext context.CLIContext, serveMux *runtime.ServeMux) {

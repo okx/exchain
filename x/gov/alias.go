@@ -27,7 +27,6 @@ const (
 var (
 	// functions aliases
 	RegisterCodec              = types.RegisterCodec
-	RegisterInterface          = types.RegisterInterface
 	RegisterProposalTypeCodec  = types.RegisterProposalTypeCodec
 	ErrInvalidProposer         = types.ErrInvalidProposer
 	ErrInvalidHeight           = types.ErrInvalidHeight

@@ -11,7 +11,6 @@ import (
 
 var (
 	UpdateClientProposalHandler = govclient.NewProposalHandler(cli.NewCmdSubmitUpdateClientProposal, emptyRestHandler)
-	UpgradeProposalHandler      = govclient.NewProposalHandler(cli.NewCmdSubmitUpgradeProposal, emptyRestHandler)
 )
 
 func emptyRestHandler(ctx cliContext.CLIContext) govrest.ProposalRESTHandler {
