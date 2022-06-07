@@ -182,11 +182,7 @@ func (tree *MutableTree) commitSchedule() {
 		}
 	}
 }
-func (tree *MutableTree) HasVersion(version int64) bool {
-	treeVer := tree.ndb.getPreviousVersion(version + 1)
-	return treeVer == version
-}
-func (tree *MutableTree) GetVersionSlice() []int64 {
+func (tree *MutableTree) GetVersions() []int64 {
 	versions, err := tree.ndb.getRoots()
 	if err != nil {
 		tree.log(IavlErr, "failed to get versions from db", "error", err.Error())

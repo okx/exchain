@@ -92,14 +92,14 @@ func HasVersion(db dbm.DB, version int64) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	return tree.HasVersion(version), nil
+	return tree.VersionExists(version), nil
 }
-func GetCommitVersionSlice(db dbm.DB) ([]int64, error) {
+func GetCommitVersions(db dbm.DB) ([]int64, error) {
 	tree, err := iavl.NewMutableTreeWithOpts(db, iavlconfig.DynamicConfig.GetIavlCacheSize(), &iavl.Options{InitialVersion: 0})
 	if err != nil {
 		return nil, err
 	}
-	return tree.GetVersionSlice(), nil
+	return tree.GetVersions(), nil
 }
 
 // UnsafeNewStore returns a reference to a new IAVL Store with a given mutable

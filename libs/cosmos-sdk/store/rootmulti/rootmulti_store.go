@@ -266,7 +266,7 @@ func (rs *Store) hasVersion(targetVersion int64) (bool, error) {
 				continue
 			}
 
-			ok, err := hasVersion(rs, storeParams, targetVersion)
+			ok, err := findVersionInSubStores(rs, storeParams, targetVersion)
 			if err != nil {
 				return false, err
 			}
@@ -884,7 +884,7 @@ func (rs *Store) GetDBReadTime() int {
 	}
 	return count
 }
-func hasVersion(rs *Store, params storeParams, version int64) (bool, error) {
+func findVersionInSubStores(rs *Store, params storeParams, version int64) (bool, error) {
 	var db dbm.DB
 
 	if params.db != nil {
@@ -906,7 +906,7 @@ func (rs *Store) getCommitVersionFromParams(params storeParams) ([]int64, error)
 		db = dbm.NewPrefixDB(rs.db, []byte(prefix))
 	}
 
-	return iavl.GetCommitVersionSlice(db)
+	return iavl.GetCommitVersions(db)
 }
 
 func (rs *Store) GetDBWriteCount() int {
