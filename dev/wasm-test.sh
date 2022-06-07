@@ -29,7 +29,6 @@ run() {
       --log_file json \
       --enable-dynamic-gp=false \
       --consensus.timeout_commit 2000ms \
-      --fast-query=true \
       --enable-preruntx=false \
       --iavl-enable-async-commit \
       --enable-gid \
