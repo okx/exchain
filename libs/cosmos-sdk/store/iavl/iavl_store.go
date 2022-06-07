@@ -99,7 +99,7 @@ func GetCommitVersions(db dbm.DB) ([]int64, error) {
 	if err != nil {
 		return nil, err
 	}
-	return tree.GetVersions(), nil
+	return tree.GetVersions()
 }
 
 // UnsafeNewStore returns a reference to a new IAVL Store with a given mutable

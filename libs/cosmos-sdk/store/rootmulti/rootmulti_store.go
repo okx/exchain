@@ -235,7 +235,7 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 
 	//sort the versions list
 	sort.Slice(versions, func(i, j int) bool { return versions[i] > versions[j] })
-	log.Println(fmt.Sprintf("get iavl-%s versions: %v", firstKey.Name(), versions))
+	rs.logger.Info("GetCommitVersion", "iavl:", firstKey.Name(), "versions :", versions)
 	//find version in rootmultistore
 	for _, version := range versions {
 		hasVersion, err := rs.hasVersion(version)
@@ -243,7 +243,7 @@ func (rs *Store) GetCommitVersion() (int64, error) {
 			return 0, err
 		}
 		if hasVersion {
-			log.Println("GetCommitVersion :", version)
+			rs.logger.Info("GetCommitVersion", "version :", version)
 			return version, nil
 		}
 	}
@@ -271,7 +271,7 @@ func (rs *Store) hasVersion(targetVersion int64) (bool, error) {
 				return false, err
 			}
 			if !ok {
-				log.Println(fmt.Sprintf("iavl-%s does not have version: %d", key.Name(), targetVersion))
+				rs.logger.Info(fmt.Sprintf("iavl-%s does not have version: %d", key.Name(), targetVersion))
 				return false, nil
 			}
 
@@ -280,7 +280,7 @@ func (rs *Store) hasVersion(targetVersion int64) (bool, error) {
 				continue
 			}
 			if ok := rs.stores[key].(*mpt.MptStore).HasVersion(targetVersion); !ok {
-				log.Println(fmt.Sprintf("mpt-%s does not have version: %d", key.Name(), targetVersion))
+				rs.logger.Info(fmt.Sprintf("mpt-%s does not have version: %d", key.Name(), targetVersion))
 				return false, nil
 			}
 		}
