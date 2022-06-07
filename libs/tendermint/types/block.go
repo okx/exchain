@@ -1715,7 +1715,12 @@ func (d EvidenceData) AminoSize(cdc *amino.Codec) int {
 		if ev != nil {
 			var evSize int
 			if sizer, ok := ev.(amino.Sizer); ok {
-				evSize = 4 + sizer.AminoSize(cdc)
+				var tp [8]byte
+				tpl, err := cdc.GetTypePrefix(ev, tp[:])
+				if err != nil {
+					panic(err)
+				}
+				evSize = tpl + sizer.AminoSize(cdc)
 			} else {
 				evSize = len(cdc.MustMarshalBinaryBare(ev))
 			}
