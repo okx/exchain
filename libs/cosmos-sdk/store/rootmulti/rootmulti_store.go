@@ -617,6 +617,10 @@ func (rs *Store) CacheMultiStoreWithVersion(version int64) (types.CacheMultiStor
 			// it to get the underlying IAVL store.
 			store = rs.GetCommitKVStore(key)
 
+			if evmAccStoreFilter(key.Name(), version) {
+				cachedStores[key] = store.(*iavl.Store).GetEmptyImmutable()
+				continue
+			}
 			// filter block modules {}
 			if filter(key.Name(), version, nil, rs.commitFilters) {
 				cachedStores[key] = store.(*iavl.Store).GetEmptyImmutable()
