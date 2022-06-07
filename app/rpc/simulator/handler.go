@@ -1,7 +1,6 @@
 package simulator
 
 import (
-	cliContext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
@@ -10,5 +9,4 @@ type Simulator interface {
 	Context() *sdk.Context
 }
 
-var SimulateCliCtx cliContext.CLIContext
-var NewWasmSimulator func(cliCtx cliContext.CLIContext) Simulator
+var NewWasmSimulator func() Simulator

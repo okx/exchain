@@ -3,7 +3,6 @@ package wasm
 import (
 	"github.com/okex/exchain/app/rpc/simulator"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
-	cliContext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -14,18 +13,16 @@ import (
 )
 
 type Simulator struct {
-	cliCtx  cliContext.CLIContext
 	handler sdk.Handler
 	ctx     sdk.Context
 	k       *keeper.Keeper
 }
 
-func NewWasmSimulator(cliCtx cliContext.CLIContext) simulator.Simulator {
-	k := NewProxyKeeper(cliCtx)
+func NewWasmSimulator() simulator.Simulator {
+	k := NewProxyKeeper()
 	h := NewHandler(keeper.NewDefaultPermissionKeeper(k))
-	ctx := proxy.MakeContext(k.GetStoreKey(), cliCtx.ChainID)
+	ctx := proxy.MakeContext(k.GetStoreKey())
 	return &Simulator{
-		cliCtx:  cliCtx,
 		handler: h,
 		k:       &k,
 		ctx:     ctx,
@@ -40,7 +37,7 @@ func (w *Simulator) Context() *sdk.Context {
 	return &w.ctx
 }
 
-func NewProxyKeeper(cliCtx cliContext.CLIContext) keeper.Keeper {
+func NewProxyKeeper() keeper.Keeper {
 	cdc := codec.New()
 	RegisterCodec(cdc)
 	bank.RegisterCodec(cdc)
@@ -50,7 +47,7 @@ func NewProxyKeeper(cliCtx cliContext.CLIContext) keeper.Keeper {
 	protoCdc := codec.NewProtoCodec(interfaceReg)
 
 	ss := proxy.SubspaceProxy{}
-	akp := proxy.NewAccountKeeperProxy(cliCtx.Codec, cliCtx)
+	akp := proxy.NewAccountKeeperProxy()
 	bkp := proxy.NewBankKeeperProxy(akp)
 	pkp := proxy.PortKeeperProxy{}
 	ckp := proxy.CapabilityKeeperProxy{}

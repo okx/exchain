@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"github.com/okex/exchain/x/wasm/types"
 	"sync"
 	"time"
 
@@ -16,7 +15,11 @@ import (
 	evmwatcher "github.com/okex/exchain/x/evm/watcher"
 )
 
-func MakeContext(storeKey sdk.StoreKey, chainID string) sdk.Context {
+const (
+	simulationGasLimit = 3000000
+)
+
+func MakeContext(storeKey sdk.StoreKey) sdk.Context {
 	db := dbm.NewMemDB()
 	cms := store.NewCommitMultiStore(db)
 	authKey := sdk.NewKVStoreKey(auth.StoreKey)
@@ -32,10 +35,10 @@ func MakeContext(storeKey sdk.StoreKey, chainID string) sdk.Context {
 		panic(err)
 	}
 
-	header := getHeader(chainID)
+	header := getHeader()
 
 	ctx := sdk.NewContext(cms, header, true, tmlog.NewNopLogger())
-	ctx.SetGasMeter(sdk.NewGasMeter(*types.DefaultWasmConfig().SimulationGasLimit))
+	ctx.SetGasMeter(sdk.NewGasMeter(simulationGasLimit))
 	return ctx
 }
 
@@ -44,7 +47,7 @@ var (
 	evmQuerier *evmwatcher.Querier
 )
 
-func getHeader(chainID string) abci.Header {
+func getHeader() abci.Header {
 	qOnce.Do(func() {
 		evmQuerier = evmwatcher.NewQuerier()
 	})
@@ -61,7 +64,6 @@ func getHeader(chainID string) abci.Header {
 	}
 
 	header := abci.Header{
-		ChainID: chainID,
 		LastBlockId: abci.BlockID{
 			Hash: hash.Bytes(),
 		},
