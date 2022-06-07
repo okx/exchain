@@ -5,10 +5,9 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/tendermint/go-amino"
 	"math/big"
 	"strconv"
 
@@ -20,7 +19,6 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/pkg/errors"
 	"github.com/status-im/keycard-go/hexutils"
-	"github.com/tendermint/go-amino"
 )
 
 var (
@@ -45,9 +43,10 @@ var (
 )
 
 const (
-	TypeOthers = uint32(1)
-	TypeState  = uint32(2)
-	TypeDelete = uint32(3)
+	TypeOthers    = uint32(1)
+	TypeState     = uint32(2)
+	TypeDelete    = uint32(3)
+	TypeEvmParams = uint32(4)
 )
 
 type WatchMessage interface {
@@ -731,7 +730,7 @@ type MsgParams struct {
 }
 
 func (msgParams *MsgParams) GetType() uint32 {
-	return TypeOthers
+	return TypeEvmParams
 }
 
 func NewMsgParams(params types.Params) *MsgParams {

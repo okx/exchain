@@ -1,7 +1,6 @@
 package watcher
 
 import (
-	"bytes"
 	"encoding/hex"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
@@ -414,10 +413,9 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 		} else {
 			w.store.Set(key, value)
 			//need update params
-			if bytes.Compare(key, prefixParams) == 0 {
-				if msgParams, ok := b.(*MsgParams); ok {
-					w.store.SetEvmParams(msgParams.Params)
-				}
+			if typeValue == TypeEvmParams {
+				msgParams := b.(*MsgParams)
+				w.store.SetEvmParams(msgParams.Params)
 			}
 			if typeValue == TypeState {
 				state.SetStateToLru(common.BytesToHash(key), value)
