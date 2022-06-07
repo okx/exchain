@@ -138,6 +138,11 @@ func (st *Store) GetImmutable(version int64) (*Store, error) {
 	}, nil
 }
 
+// GetEmptyImmutable returns an empty immutable IAVL tree
+func (st *Store) GetEmptyImmutable() *Store {
+	return &Store{tree: &immutableTree{&iavl.ImmutableTree{}}}
+}
+
 func (st *Store) CommitterCommit(inputDelta *iavl.TreeDelta) (types.CommitID, *iavl.TreeDelta) { // CommitterCommit
 	flag := false
 	if inputDelta != nil {
