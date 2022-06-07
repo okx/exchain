@@ -366,11 +366,7 @@ func (b *Block) HashesTo(hash []byte) bool {
 
 // Size returns size of the block in bytes.
 func (b *Block) Size() int {
-	bz, err := cdc.MarshalBinaryBare(b)
-	if err != nil {
-		return 0
-	}
-	return len(bz)
+	return b.FastSize()
 }
 
 // TODO : Replace the original logic of Size with the logic of FastSize
