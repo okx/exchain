@@ -10,6 +10,7 @@ import (
 	"github.com/go-kit/kit/metrics/prometheus"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/txpool"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
@@ -26,6 +27,7 @@ import (
 	"github.com/okex/exchain/app/rpc/namespaces/personal"
 	"github.com/okex/exchain/app/rpc/namespaces/web3"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
+	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 )
 
 // RPC namespaces and API version
@@ -101,7 +103,7 @@ func GetAPIs(clientCtx context.CLIContext, log log.Logger, keys ...ethsecp256k1.
 		})
 	}
 
-	if viper.GetBool(FlagDebugAPI) {
+	if viper.GetBool(FlagDebugAPI) && viper.GetString(server.FlagPruning) == cosmost.PruningOptionNothing {
 		apis = append(apis, rpc.API{
 			Namespace: DebugNamespace,
 			Version:   apiVersion,

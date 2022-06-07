@@ -173,6 +173,14 @@ func (memR *Reactor) RemovePeer(peer p2p.Peer, reason interface{}) {
 	// broadcast routine checks if peer is gone and returns
 }
 
+// txMessageDecodePool is a sync.Pool of *TxMessage.
+// memR.decodeMsg will call txMessageDeocdePool.Get, and memR.Receive will reset the Msg after use, then call txMessageDeocdePool.Put.
+var txMessageDeocdePool = &sync.Pool{
+	New: func() interface{} {
+		return &TxMessage{}
+	},
+}
+
 // Receive implements Reactor.
 // It adds any received transactions to the mempool.
 func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
@@ -196,6 +204,8 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	switch msg := msg.(type) {
 	case *TxMessage:
 		tx = msg.Tx
+		msg.Tx = nil
+		txMessageDeocdePool.Put(msg)
 
 	case *WtxMessage:
 		tx = msg.Wtx.Payload
@@ -273,6 +283,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 
 		// ensure peer hasn't already sent us this tx
 		if _, ok := memTx.senders.Load(peerID); !ok {
+			var getFromPool bool
 			// send memTx
 			var msg Message
 			if memTx.nodeKey != nil && memTx.signature != nil {
@@ -290,14 +301,20 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 						Wtx: wtx,
 					}
 				}
-
 			} else {
-				msg = &TxMessage{
-					Tx: memTx.tx,
-				}
+				txMsg := txMessageDeocdePool.Get().(*TxMessage)
+				txMsg.Tx = memTx.tx
+				msg = txMsg
+				getFromPool = true
 			}
 
-			success := peer.Send(MempoolChannel, memR.encodeMsg(msg))
+			msgBz := memR.encodeMsg(msg)
+			if getFromPool {
+				getFromPool = false
+				txMessageDeocdePool.Put(msg)
+			}
+
+			success := peer.Send(MempoolChannel, msgBz)
 			if !success {
 				time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 				continue
@@ -338,15 +355,38 @@ func RegisterMessages(cdc *amino.Codec) {
 		}
 		return nil, fmt.Errorf("%T is not a TxMessage", i)
 	})
+	cdc.RegisterConcreteUnmarshaller("tendermint/mempool/TxMessage", func(cdc *amino.Codec, bz []byte) (interface{}, int, error) {
+		m := &TxMessage{}
+		err := m.UnmarshalFromAmino(cdc, bz)
+		if err != nil {
+			return nil, 0, err
+		}
+		return m, len(bz), nil
+	})
 }
 
-func (memR *Reactor) decodeMsg(bz []byte) (msg Message, err error) {
+// decodeMsg decodes the bz bytes into a Message,
+// if err is nil and Message is a TxMessage, you must put Message to txMessageDeocdePool after use.
+func (memR *Reactor) decodeMsg(bz []byte) (Message, error) {
 	maxMsgSize := calcMaxMsgSize(memR.config.MaxTxBytes)
-	if l := len(bz); l > maxMsgSize {
-		return msg, ErrTxTooLarge{maxMsgSize, l}
+	l := len(bz)
+	if l > maxMsgSize {
+		return nil, ErrTxTooLarge{maxMsgSize, l}
 	}
-	err = cdc.UnmarshalBinaryBare(bz, &msg)
-	return
+
+	tp := getTxMessageAminoTypePrefix()
+	if l >= len(tp) && bytes.Equal(bz[:len(tp)], tp) {
+		txmsg := txMessageDeocdePool.Get().(*TxMessage)
+		err := txmsg.UnmarshalFromAmino(cdc, bz[len(tp):])
+		if err == nil {
+			return txmsg, nil
+		}
+		txmsg.Tx = nil
+		txMessageDeocdePool.Put(txmsg)
+	}
+	var msg Message
+	err := cdc.UnmarshalBinaryBare(bz, &msg)
+	return msg, err
 }
 
 func (memR *Reactor) encodeMsg(msg Message) []byte {
@@ -406,6 +446,34 @@ func (m TxMessage) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) error {
 			return err
 		}
 	}
+	return nil
+}
+
+func (m *TxMessage) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
+	if len(data) == 0 {
+		return nil
+	}
+
+	if data[0] != 1<<3|byte(amino.Typ3_ByteLength) {
+		return fmt.Errorf("error pb type")
+	}
+
+	data = data[1:]
+	dataLen, n, err := amino.DecodeUvarint(data)
+	if err != nil {
+		return err
+	}
+	data = data[n:]
+	if len(data) != int(dataLen) {
+		return fmt.Errorf("invalid datalen")
+	}
+
+	m.Tx = nil
+	if dataLen > 0 {
+		m.Tx = make([]byte, dataLen)
+		copy(m.Tx, data)
+	}
+
 	return nil
 }
 
