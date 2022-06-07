@@ -655,23 +655,33 @@ func (tx *ResponseDeliverTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) e
 
 func (beginBlock ResponseBeginBlock) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
-	fieldKey := byte(1<<3 | 2)
+	buf.Grow(beginBlock.AminoSize(cdc))
+	err := beginBlock.MarshalAminoTo(cdc, &buf)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func (beginBlock ResponseBeginBlock) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
 	for i := 0; i < len(beginBlock.Events); i++ {
-		err := buf.WriteByte(fieldKey)
+		const pbKey = 1<<3 | 2
+		buf.WriteByte(pbKey)
+		eventSize := beginBlock.Events[i].AminoSize(cdc)
+		err := amino.EncodeUvarintToBuffer(buf, uint64(eventSize))
 		if err != nil {
-			return nil, err
+			return err
 		}
-		data, err := beginBlock.Events[i].MarshalToAmino(cdc)
+		lenBeforeData := buf.Len()
+		err = beginBlock.Events[i].MarshalAminoTo(cdc, buf)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		err = amino.EncodeByteSliceToBuffer(&buf, data)
-		if err != nil {
-			return nil, err
+		if buf.Len()-lenBeforeData != eventSize {
+			return amino.NewSizerError(beginBlock.Events[i], buf.Len()-lenBeforeData, eventSize)
 		}
 	}
-
-	return buf.Bytes(), nil
+	return nil
 }
 
 func (bb *ResponseBeginBlock) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
