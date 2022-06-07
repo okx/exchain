@@ -27,7 +27,6 @@ func init() {
 	govtypes.RegisterProposalType(ProposalTypeUpgrade)
 
 	exchaingov.RegisterProposalType(ProposalTypeClientUpdate)
-	exchaingov.RegisterProposalType(ProposalTypeUpgrade)
 }
 
 // NewClientUpdateProposal creates a new client update proposal.
