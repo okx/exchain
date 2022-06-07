@@ -26,6 +26,7 @@ type IndexerService struct {
 func NewIndexerService(idr TxIndexer, eventBus *types.EventBus) *IndexerService {
 	is := &IndexerService{idr: idr, eventBus: eventBus}
 	is.BaseService = *service.NewBaseService(nil, "IndexerService", is)
+	is.quit = make(chan struct{})
 	return is
 }
 
