@@ -31,7 +31,6 @@ func NewHandler(k types.ContractOpsKeeper) sdk.Handler {
 		)
 		// update watcher
 		defer func() {
-			fmt.Println("yxq debug error:", err)
 			if err != nil {
 				watcher.Reset()
 			} else {
