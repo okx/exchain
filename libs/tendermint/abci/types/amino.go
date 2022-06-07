@@ -724,66 +724,81 @@ func (bb *ResponseBeginBlock) UnmarshalFromAmino(cdc *amino.Codec, data []byte) 
 	return nil
 }
 
-func (params ConsensusParams) MarshalToAmino(cdc *amino.Codec) (data []byte, err error) {
+func (params ConsensusParams) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
-	fieldKeysType := [3]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2}
-	for pos := 1; pos <= 3; pos++ {
-		lBeforeKey := buf.Len()
-		var noWrite bool
-		err = buf.WriteByte(fieldKeysType[pos-1])
-		if err != nil {
-			return nil, err
-		}
-		switch pos {
-		case 1:
-			if params.Block == nil {
-				noWrite = true
-				break
-			}
-			data, err = params.Block.MarshalToAmino(cdc)
-			if err != nil {
-				return nil, err
-			}
-			err = amino.EncodeByteSliceToBuffer(&buf, data)
-			if err != nil {
-				return nil, err
-			}
-		case 2:
-			if params.Evidence == nil {
-				noWrite = true
-				break
-			}
-			data, err = params.Evidence.MarshalToAmino(cdc)
-			if err != nil {
-				return nil, err
-			}
-			err = amino.EncodeByteSliceToBuffer(&buf, data)
-			if err != nil {
-				return nil, err
-			}
-		case 3:
-			if params.Validator == nil {
-				noWrite = true
-				break
-			}
-			data, err = params.Validator.MarshalToAmino(cdc)
-			if err != nil {
-				return nil, err
-			}
-			err = amino.EncodeByteSliceToBuffer(&buf, data)
-			if err != nil {
-				return nil, err
-			}
-		default:
-			panic("unreachable")
-		}
-
-		if noWrite {
-			buf.Truncate(lBeforeKey)
-		}
+	buf.Grow(params.AminoSize(cdc))
+	err := params.MarshalAminoTo(cdc, &buf)
+	if err != nil {
+		return nil, err
 	}
 	return buf.Bytes(), nil
 }
+
+func (params *ConsensusParams) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
+	var err error
+	if params == nil {
+		return nil
+	}
+
+	// field 1
+	if params.Block != nil {
+		const pbKey = 1<<3 | 2
+		buf.WriteByte(pbKey)
+		blockSize := params.Block.AminoSize(cdc)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(blockSize))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = params.Block.MarshalAminoTo(cdc, buf)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != blockSize {
+			return amino.NewSizerError(params.Block, buf.Len()-lenBeforeData, blockSize)
+		}
+	}
+
+	// field 2
+	if params.Evidence != nil {
+		const pbKey = 2<<3 | 2
+		buf.WriteByte(pbKey)
+		evidenceSize := params.Evidence.AminoSize(cdc)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(evidenceSize))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = params.Evidence.MarshalAminoTo(cdc, buf)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != evidenceSize {
+			return amino.NewSizerError(params.Evidence, buf.Len()-lenBeforeData, evidenceSize)
+		}
+	}
+
+	// field 3
+	if params.Validator != nil {
+		const pbKey = 3<<3 | 2
+		buf.WriteByte(pbKey)
+		validatorSize := params.Validator.AminoSize(cdc)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(validatorSize))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = params.Validator.MarshalAminoTo(cdc, buf)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != validatorSize {
+			return amino.NewSizerError(params.Validator, buf.Len()-lenBeforeData, validatorSize)
+		}
+	}
+	return nil
+}
+
 func (cp *ConsensusParams) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
