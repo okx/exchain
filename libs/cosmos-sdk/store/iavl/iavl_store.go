@@ -120,7 +120,7 @@ func (st *Store) GetImmutable(version int64) (*Store, error) {
 	var err error
 	if !abci.GetDisableABCIQueryMutex() {
 		if !st.VersionExists(version) {
-			return &Store{tree: &immutableTree{&iavl.ImmutableTree{}}}, nil
+			return nil, iavl.ErrVersionDoesNotExist
 		}
 
 		iTree, err = st.tree.GetImmutable(version)
@@ -130,7 +130,7 @@ func (st *Store) GetImmutable(version int64) (*Store, error) {
 	} else {
 		iTree, err = st.tree.GetImmutable(version)
 		if err != nil {
-			return &Store{tree: &immutableTree{&iavl.ImmutableTree{}}}, nil
+			return nil, iavl.ErrVersionDoesNotExist
 		}
 	}
 	return &Store{

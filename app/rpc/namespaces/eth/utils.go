@@ -251,3 +251,7 @@ func accountType(account authexported.Account) token.AccType {
 		return token.OtherAccount
 	}
 }
+
+func isAccountNotExistErr(err error) bool {
+	return strings.HasPrefix(err.Error(), "{\"code\":9")
+}

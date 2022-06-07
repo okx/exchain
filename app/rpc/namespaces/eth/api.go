@@ -58,7 +58,7 @@ const (
 	CacheOfEthCallLru = 40960
 
 	FlagEnableMultiCall = "rpc.enable-multi-call"
-	fastQueryGap        = 10
+	fastQueryThreshold  = 10
 )
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -310,8 +310,13 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNrOrHash r
 
 	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", auth.QuerierRoute, auth.QueryAccount), bs)
 	if err != nil {
-		api.saveZeroAccount(address)
-		return (*hexutil.Big)(sdk.ZeroInt().BigInt()), nil
+		if isAccountNotExistErr(err) {
+			if useWatchBackend {
+				api.saveZeroAccount(address)
+			}
+			return (*hexutil.Big)(sdk.ZeroInt().BigInt()), nil
+		}
+		return nil, err
 	}
 
 	var account ethermint.EthAccount
@@ -1753,7 +1758,10 @@ func (api *PublicEthereumAPI) accountNonce(
 	// Get nonce (sequence) of account from  chain db
 	account, err := getAccountFromChain(clientCtx, address)
 	if err != nil {
-		return 0, nil
+		if isAccountNotExistErr(err) {
+			return 0, nil
+		}
+		return 0, err
 	}
 	if useWatchBackend {
 		api.watcherBackend.CommitAccountToRpcDb(account)
@@ -1833,5 +1841,5 @@ func (api *PublicEthereumAPI) useWatchBackend(blockNum rpctypes.BlockNumber) boo
 	if !api.watcherBackend.Enabled() {
 		return false
 	}
-	return blockNum == rpctypes.LatestBlockNumber || api.watcherBackend.Height()-uint64(blockNum) <= fastQueryGap
+	return blockNum == rpctypes.LatestBlockNumber || api.watcherBackend.Height()-uint64(blockNum) <= fastQueryThreshold
 }

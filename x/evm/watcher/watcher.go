@@ -37,19 +37,19 @@ type Watcher struct {
 	delayEraseKey [][]byte
 	log           log.Logger
 	// for state delta transfering in network
-	watchData *WatchData
-
-	jobChan chan func()
-
+	watchData  *WatchData
+	jobChan    chan func()
 	evmTxIndex uint64
+	checkWd    bool
 }
 
 var (
-	watcherEnable  = false
-	watcherLruSize = 1000
-	checkWd        = false
-	onceEnable     sync.Once
-	onceLru        sync.Once
+	watcherEnable   = false
+	watcherLruSize  = 1000
+	onceEnable      sync.Once
+	onceLru         sync.Once
+	watcherInstance *Watcher
+	onceWatcher     sync.Once
 )
 
 func IsWatcherEnabled() bool {
@@ -67,9 +67,13 @@ func GetWatchLruSize() int {
 }
 
 func NewWatcher(logger log.Logger) *Watcher {
-	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}, log: logger}
-	checkWd = viper.GetBool(FlagCheckWd)
-	return watcher
+	onceWatcher.Do(func() {
+		watcherInstance = &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64),
+			sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{},
+			log: logger, checkWd: viper.GetBool(FlagCheckWd)}
+	})
+
+	return watcherInstance
 }
 
 func (w *Watcher) IsFirstUse() bool {
@@ -390,7 +394,7 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 		w.commitBloomData(data.BloomData)
 	}
 
-	if checkWd {
+	if w.checkWd {
 		keys := make([][]byte, len(data.Batches))
 		for i, _ := range data.Batches {
 			keys[i] = data.Batches[i].Key
@@ -419,7 +423,7 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 		}
 	}
 
-	if checkWd {
+	if w.checkWd {
 		keys := make([][]byte, len(batch))
 		for i, _ := range batch {
 			keys[i] = batch[i].GetKey()
