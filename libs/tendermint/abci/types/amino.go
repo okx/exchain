@@ -86,44 +86,45 @@ func (pub *PubKey) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 
 func (valUpdate ValidatorUpdate) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
-	var err error
-	fieldKeysType := [2]byte{1<<3 | 2, 2 << 3}
-	for pos := 1; pos <= 2; pos++ {
-		switch pos {
-		case 1:
-			var data []byte
-			data, err = valUpdate.PubKey.MarshalToAmino(cdc)
-			if err != nil {
-				return nil, err
-			}
-			if len(data) == 0 {
-				break
-			}
-			err = buf.WriteByte(fieldKeysType[pos-1])
-			if err != nil {
-				return nil, err
-			}
-			err = amino.EncodeByteSliceToBuffer(&buf, data)
-			if err != nil {
-				return nil, err
-			}
-		case 2:
-			if valUpdate.Power == 0 {
-				break
-			}
-			err = buf.WriteByte(fieldKeysType[pos-1])
-			if err != nil {
-				return nil, err
-			}
-			err = amino.EncodeUvarintToBuffer(&buf, uint64(valUpdate.Power))
-			if err != nil {
-				return nil, err
-			}
-		default:
-			panic("unreachable")
-		}
+	buf.Grow(valUpdate.AminoSize(cdc))
+	err := valUpdate.MarshalAminoTo(cdc, &buf)
+	if err != nil {
+		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+func (valUpdate ValidatorUpdate) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
+	var err error
+	// field 1
+	pubkeySize := valUpdate.PubKey.AminoSize(cdc)
+	if pubkeySize > 0 {
+		const pbKey = 1<<3 | 2
+		buf.WriteByte(pbKey)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(pubkeySize))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = valUpdate.PubKey.MarshalAminoTo(cdc, buf)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != pubkeySize {
+			return amino.NewSizerError(valUpdate.PubKey, buf.Len()-lenBeforeData, pubkeySize)
+		}
+	}
+
+	// field 2
+	if valUpdate.Power != 0 {
+		const pbKey = 2 << 3
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(valUpdate.Power), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // UnmarshalFromAmino unmarshal data from amino bytes.
