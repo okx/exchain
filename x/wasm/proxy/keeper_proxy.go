@@ -1,12 +1,8 @@
 package proxy
 
 import (
-	"fmt"
-
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	apptypes "github.com/okex/exchain/app/types"
-	ethermint "github.com/okex/exchain/app/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	types2 "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -29,35 +25,30 @@ import (
 	"github.com/okex/exchain/x/wasm/watcher"
 )
 
-type ChainQuerier interface {
-	QueryWithData(path string, data []byte) ([]byte, int64, error)
-}
+const (
+	accountBytesLen = 80
+)
 
-// AccountKeeper defines the expected account keeper interface
+var gasConfig = types2.KVGasConfig()
+
+// AccountKeeperProxy defines the expected account keeper interface
 type AccountKeeperProxy struct {
-	cdc       *codec.Codec
-	cq        ChainQuerier
 	cachedAcc map[string]*apptypes.EthAccount
 }
 
-func NewAccountKeeperProxy(cdc *codec.Codec, cq ChainQuerier) AccountKeeperProxy {
-	return AccountKeeperProxy{
-		cdc: cdc,
-		cq:  cq,
-	}
+func NewAccountKeeperProxy() AccountKeeperProxy {
+	return AccountKeeperProxy{}
 }
 
 func (a AccountKeeperProxy) SetObserverKeeper(observer auth.ObserverI) {}
 
 func (a AccountKeeperProxy) NewAccountWithAddress(ctx sdk.Context, addr sdk.AccAddress) authexported.Account {
+	ctx.GasMeter().ConsumeGas(3066, "AccountKeeperProxy NewAccountWithAddress")
 	acc := apptypes.EthAccount{
 		BaseAccount: &auth.BaseAccount{
 			Address: addr,
 		},
-		CodeHash: ethcrypto.Keccak256(nil),
 	}
-
-	a.SetAccount(ctx, acc)
 	return &acc
 }
 
@@ -66,54 +57,42 @@ func (a AccountKeeperProxy) GetAllAccounts(ctx sdk.Context) (accounts []authexpo
 }
 
 func (a AccountKeeperProxy) IterateAccounts(ctx sdk.Context, cb func(account authexported.Account) bool) {
-	return
 }
 
 func (a AccountKeeperProxy) GetAccount(ctx sdk.Context, addr sdk.AccAddress) authexported.Account {
+	ctx.GasMeter().ConsumeGas(gasConfig.ReadCostFlat, types2.GasReadCostFlatDesc)
+	ctx.GasMeter().ConsumeGas(gasConfig.ReadCostPerByte*accountBytesLen, types2.GasReadPerByteDesc)
 	acc, ok := a.cachedAcc[addr.String()]
 	if ok {
 		return acc
 	}
-	bs, err := a.cdc.MarshalJSON(auth.NewQueryAccountParams(addr.Bytes()))
-	if err != nil {
-		return nil
-	}
-
-	res, _, err := a.cq.QueryWithData(fmt.Sprintf("custom/%s/%s", auth.QuerierRoute, auth.QueryAccount), bs)
-	if err != nil {
-		return nil
-	}
-
-	var account ethermint.EthAccount
-	if err := a.cdc.UnmarshalJSON(res, &account); err != nil {
-		return nil
-	}
-	a.SetAccount(ctx, account)
-	// TODO:
-	// set account to watch db
-	return account
+	return nil
 }
 
 func (a AccountKeeperProxy) SetAccount(ctx sdk.Context, account authexported.Account, updateState ...bool) {
-	acc, ok := account.(apptypes.EthAccount)
+	acc, ok := account.(*apptypes.EthAccount)
 	if !ok {
 		return
 	}
-	// delay make
+	// delay to make
 	if a.cachedAcc == nil {
 		a.cachedAcc = make(map[string]*apptypes.EthAccount)
 	}
-	a.cachedAcc[account.GetAddress().String()] = &acc
+	a.cachedAcc[account.GetAddress().String()] = acc
+	ctx.GasMeter().ConsumeGas(gasConfig.WriteCostFlat, types2.GasWriteCostFlatDesc)
+	ctx.GasMeter().ConsumeGas(gasConfig.WriteCostPerByte*accountBytesLen, types2.GasWritePerByteDesc)
 	return
 }
 
 func (a AccountKeeperProxy) RemoveAccount(ctx sdk.Context, account authexported.Account) {
 	delete(a.cachedAcc, account.GetAddress().String())
+	ctx.GasMeter().ConsumeGas(gasConfig.DeleteCost, types2.GasDeleteDesc)
 }
 
 type SubspaceProxy struct{}
 
 func (s SubspaceProxy) GetParamSet(ctx sdk.Context, ps params.ParamSet) {
+	ctx.GasMeter().ConsumeGas(2111, "SubspaceProxy GetParamSet")
 	if wasmParams, ok := ps.(*types.Params); ok {
 		wasmParams.CodeUploadAccess = watcher.Params.CodeUploadAccess
 		wasmParams.InstantiateDefaultPermission = watcher.Params.InstantiateDefaultPermission
@@ -154,15 +133,21 @@ func NewBankKeeperProxy(akp AccountKeeperProxy) BankKeeperProxy {
 }
 
 func (b BankKeeperProxy) GetAllBalances(ctx sdk.Context, addr sdk.AccAddress) sdk.Coins {
-	acc := b.akp.GetAccount(ctx, addr)
-	return acc.GetCoins()
+	//acc := b.akp.GetAccount(ctx, addr)
+	//return acc.GetCoins()
+	return global.GetSupply()
 }
 
 func (b BankKeeperProxy) GetBalance(ctx sdk.Context, addr sdk.AccAddress, denom string) sdk.Coin {
-	acc := b.akp.GetAccount(ctx, addr)
+	//acc := b.akp.GetAccount(ctx, addr)
+	//return sdk.Coin{
+	//	Denom:  denom,
+	//	Amount: acc.GetCoins().AmountOf(denom),
+	//}
+	s := global.GetSupply()
 	return sdk.Coin{
 		Denom:  denom,
-		Amount: acc.GetCoins().AmountOf(denom),
+		Amount: s.AmountOf(denom),
 	}
 }
 
@@ -174,6 +159,7 @@ func (b BankKeeperProxy) IsSendEnabledCoins(ctx sdk.Context, coins ...sdk.Coin) 
 }
 
 func (b BankKeeperProxy) GetSendEnabled(ctx sdk.Context) bool {
+	ctx.GasMeter().ConsumeGas(1012, "BankKeeperProxy GetSendEnabled")
 	return global.GetSendEnabled()
 }
 
@@ -186,6 +172,7 @@ func (b BankKeeperProxy) BlacklistedAddr(addr sdk.AccAddress) bool {
 }
 
 func (b BankKeeperProxy) SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error {
+	ctx.GasMeter().ConsumeGas(16748, "BankKeeperProxy SendCoins")
 	return nil
 }
 
