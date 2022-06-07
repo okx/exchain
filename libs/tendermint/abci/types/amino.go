@@ -249,31 +249,33 @@ func (bp *BlockParams) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 
 func (params EvidenceParams) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
-	fieldKeysType := [2]byte{1 << 3, 2 << 3}
-	for pos := 1; pos <= 2; pos++ {
-		var err error
-		switch pos {
-		case 1:
-			if params.MaxAgeNumBlocks == 0 {
-				break
-			}
-			err = amino.EncodeUvarintWithKeyToBuffer(&buf, uint64(params.MaxAgeNumBlocks), fieldKeysType[pos-1])
-			if err != nil {
-				return nil, err
-			}
-		case 2:
-			if params.MaxAgeDuration == 0 {
-				break
-			}
-			err = amino.EncodeUvarintWithKeyToBuffer(&buf, uint64(params.MaxAgeDuration), fieldKeysType[pos-1])
-			if err != nil {
-				return nil, err
-			}
-		default:
-			panic("unreachable")
-		}
+	buf.Grow(params.AminoSize(cdc))
+	err := params.MarshalAminoTo(cdc, &buf)
+	if err != nil {
+		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+func (params EvidenceParams) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) error {
+	var err error
+	// field 1
+	if params.MaxAgeNumBlocks != 0 {
+		const pbKey = 1 << 3
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(params.MaxAgeNumBlocks), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	// field 2
+	if params.MaxAgeDuration != 0 {
+		const pbKey = 2 << 3
+		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(params.MaxAgeDuration), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // UnmarshalFromAmino unmarshal data from amino bytes.
