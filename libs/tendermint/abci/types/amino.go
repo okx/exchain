@@ -374,34 +374,43 @@ func (vp *ValidatorParams) UnmarshalFromAmino(cdc *amino.Codec, data []byte) err
 
 func (event *Event) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
-	var err error
-	fieldKeysType := [2]byte{1<<3 | 2, 2<<3 | 2}
-	for pos := 1; pos <= 2; pos++ {
-		switch pos {
-		case 1:
-			if event.Type == "" {
-				break
-			}
-			err = amino.EncodeStringWithKeyToBuffer(&buf, event.Type, fieldKeysType[pos-1])
-			if err != nil {
-				return nil, err
-			}
-		case 2:
-			for i := 0; i < len(event.Attributes); i++ {
-				data, err := event.Attributes[i].MarshalToAmino(cdc)
-				if err != nil {
-					return nil, err
-				}
-				err = amino.EncodeByteSliceWithKeyToBuffer(&buf, data, fieldKeysType[pos-1])
-				if err != nil {
-					return nil, err
-				}
-			}
-		default:
-			panic("unreachable")
-		}
+	buf.Grow(event.AminoSize(cdc))
+	err := event.MarshalAminoTo(cdc, &buf)
+	if err != nil {
+		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+func (event *Event) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
+	// field 1
+	if event.Type != "" {
+		const pbKey = 1<<3 | 2
+		err := amino.EncodeStringWithKeyToBuffer(buf, event.Type, pbKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	// field 2
+	for i := 0; i < len(event.Attributes); i++ {
+		const pbKey = 2<<3 | 2
+		buf.WriteByte(pbKey)
+		attrSize := event.Attributes[i].AminoSize(cdc)
+		err := amino.EncodeUvarintToBuffer(buf, uint64(attrSize))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = event.Attributes[i].MarshalAminoTo(cdc, buf)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != attrSize {
+			return amino.NewSizerError(event.Attributes[i], buf.Len()-lenBeforeData, attrSize)
+		}
+	}
+	return nil
 }
 
 func (event *Event) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
