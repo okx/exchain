@@ -88,7 +88,7 @@ func (msg MsgTransfer) ValidateBasic() error {
 		return sdkerrors.Wrap(sdkerrors.ErrInsufficientFunds, msg.Token.String())
 	}
 	// NOTE: sender format must be validated as it is required by the GetSigners function.
-	_, err := sdk.IBCAccAddressFromBech32(msg.Sender)
+	_, err := sdk.AccAddressFromBech32(msg.Sender)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "string could not be parsed as address: %v", err)
 	}

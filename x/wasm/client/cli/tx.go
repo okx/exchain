@@ -238,7 +238,7 @@ func parseStoreCodeArgs(file string, sender sdk.AccAddress, flags *flag.FlagSet)
 		return types.MsgStoreCode{}, fmt.Errorf("instantiate by address: %s", err)
 	}
 	if onlyAddrStr != "" {
-		allowedAddr, err := types.AccAddressFromBech32(onlyAddrStr)
+		allowedAddr, err := sdk.AccAddressFromBech32(onlyAddrStr)
 		if err != nil {
 			return types.MsgStoreCode{}, sdkerrors.Wrap(err, flagInstantiateByAddress)
 		}

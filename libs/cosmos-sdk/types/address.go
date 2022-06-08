@@ -138,13 +138,17 @@ func AccAddressFromBech32(address string) (AccAddress, error) {
 // AccAddressFromBech32ByPrefix create an AccAddress from a Bech32 string by address prefix
 func AccAddressFromBech32ByPrefix(address string, bech32PrefixAccAddr string) (addr AccAddress, err error) {
 	if len(strings.TrimSpace(address)) == 0 {
-		return AccAddress{}, nil
+		return nil, errors.New("empty address string is not allowed")
 	}
 
 	if !strings.HasPrefix(address, bech32PrefixAccAddr) {
 		// strip 0x prefix if exists
 		addrStr := strings.TrimPrefix(address, "0x")
-		return AccAddressFromHex(addrStr)
+		addr, err = AccAddressFromHex(addrStr)
+		if err != nil {
+			return addr, err
+		}
+		return addr, VerifyAddressFormat(addr)
 	}
 
 	//decodes a bytestring from a Bech32 encoded string
@@ -211,6 +215,11 @@ func (aa *AccAddress) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
+	if s == "" {
+		*aa = AccAddress{}
+		return nil
+	}
+
 	aa2, err := AccAddressFromBech32(s)
 	if err != nil {
 		return err
@@ -226,6 +235,11 @@ func (aa *AccAddress) UnmarshalYAML(data []byte) error {
 	err := yaml.Unmarshal(data, &s)
 	if err != nil {
 		return err
+	}
+
+	if s == "" {
+		*aa = AccAddress{}
+		return nil
 	}
 
 	aa2, err := AccAddressFromBech32(s)
@@ -299,7 +313,7 @@ func ValAddressFromHex(address string) (addr ValAddress, err error) {
 // ValAddressFromBech32 creates a ValAddress from a Bech32 string.
 func ValAddressFromBech32(address string) (addr ValAddress, err error) {
 	if len(strings.TrimSpace(address)) == 0 {
-		return ValAddress{}, nil
+		return nil, errors.New("empty address string is not allowed")
 	}
 
 	bech32PrefixValAddr := GetConfig().GetBech32ValidatorAddrPrefix()
@@ -368,6 +382,11 @@ func (va *ValAddress) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
+	if s == "" {
+		*va = ValAddress{}
+		return nil
+	}
+
 	va2, err := ValAddressFromBech32(s)
 	if err != nil {
 		return err
@@ -386,6 +405,10 @@ func (va *ValAddress) UnmarshalYAML(data []byte) error {
 		return err
 	}
 
+	if s == "" {
+		*va = ValAddress{}
+		return nil
+	}
 	va2, err := ValAddressFromBech32(s)
 	if err != nil {
 		return err
@@ -454,7 +477,7 @@ func ConsAddressFromHex(address string) (addr ConsAddress, err error) {
 // ConsAddressFromBech32 creates a ConsAddress from a Bech32 string.
 func ConsAddressFromBech32(address string) (addr ConsAddress, err error) {
 	if len(strings.TrimSpace(address)) == 0 {
-		return ConsAddress{}, nil
+		return ConsAddress{}, errors.New("empty address string is not allowed")
 	}
 
 	bech32PrefixConsAddr := GetConfig().GetBech32ConsensusAddrPrefix()
@@ -528,6 +551,11 @@ func (ca *ConsAddress) UnmarshalJSON(data []byte) error {
 		return err
 	}
 
+	if s == "" {
+		*ca = ConsAddress{}
+		return nil
+	}
+
 	ca2, err := ConsAddressFromBech32(s)
 	if err != nil {
 		return err
@@ -544,6 +572,11 @@ func (ca *ConsAddress) UnmarshalYAML(data []byte) error {
 	err := yaml.Unmarshal(data, &s)
 	if err != nil {
 		return err
+	}
+
+	if s == "" {
+		*ca = ConsAddress{}
+		return nil
 	}
 
 	ca2, err := ConsAddressFromBech32(s)
