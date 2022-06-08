@@ -101,8 +101,8 @@ type ContractTemplateProposal struct {
 	Contract    CompiledContract `json:"contract"`
 }
 
-func NewContractTemplateProposal(title string, description string, contract CompiledContract) *ContractTemplateProposal {
-	return &ContractTemplateProposal{Title: title, Description: description, Contract: contract}
+func NewContractTemplateProposal(title string, description string, contract CompiledContract) ContractTemplateProposal {
+	return ContractTemplateProposal{Title: title, Description: description, Contract: contract}
 }
 
 func (b ContractTemplateProposal) GetTitle() string { return b.Title }
@@ -131,6 +131,9 @@ func (b ContractTemplateProposal) ValidateBasic() sdk.Error {
 
 	if b.ProposalType() != proposalTypeContractTemplate {
 		return govtypes.ErrInvalidProposalType(b.ProposalType())
+	}
+	if err := b.Contract.ValidBasic(); nil != err {
+		return err
 	}
 	return nil
 }

@@ -16,7 +16,7 @@ const (
 // erc20 module
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(TokenMappingProposal{}, TokenMappingProposalName, nil)
-	cdc.RegisterConcrete(ContractTemplateProposal{}, TokenMappingProposalName, nil)
+	cdc.RegisterConcrete(ContractTemplateProposal{}, ContractTemplateProposalName, nil)
 }
 
 func init() {
