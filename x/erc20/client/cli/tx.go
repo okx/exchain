@@ -120,13 +120,13 @@ $ %s tx gov submit-proposal contract-template ~/bytecode.json --from=<key_or_add
 				return err
 			}
 
-			var contract types.CompiledContract
-			contract, err = types.UnmarshalCompileContract(data)
+			_, err = types.UnmarshalCompileContract(data)
 			if nil != err {
 				return err
 			}
+
 			content := types.NewContractTemplateProposal(
-				title, description, contract,
+				title, description, string(data),
 			)
 			if err := content.ValidateBasic(); err != nil {
 				return err

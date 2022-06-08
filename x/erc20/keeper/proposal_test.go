@@ -59,7 +59,7 @@ func (suite *KeeperTestSuite) TestProposal_ContractTemplateProposal() {
 	proposal := types.NewContractTemplateProposal(
 		"default title",
 		"default description",
-		types.ModuleERC20Contract,
+		"empty",
 	)
 
 	minDeposit := suite.app.Erc20Keeper.GetMinDeposit(suite.ctx, proposal)

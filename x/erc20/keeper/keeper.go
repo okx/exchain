@@ -190,12 +190,8 @@ func (k Keeper) GetCurrentTemplateContract(ctx sdk.Context) types.CompiledContra
 	return types.MustUnmarshalCompileContract(data)
 }
 
-func (k Keeper) SetCurrentTemplateContract(ctx sdk.Context, c types.CompiledContract) error {
+func (k Keeper) SetCurrentTemplateContract(ctx sdk.Context, str string) error {
 	store := ctx.KVStore(k.storeKey)
-	value, err := types.MarshalCompileContract(c)
-	if nil != err {
-		return err
-	}
-	store.Set(types.KeyPrefixTemplateContract, value)
+	store.Set(types.KeyPrefixTemplateContract, []byte(str))
 	return nil
 }

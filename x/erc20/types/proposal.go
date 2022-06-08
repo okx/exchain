@@ -96,12 +96,12 @@ func (tp TokenMappingProposal) String() string {
 }
 
 type ContractTemplateProposal struct {
-	Title       string           `json:"title" yaml:"title"`
-	Description string           `json:"description" yaml:"description"`
-	Contract    CompiledContract `json:"contract"`
+	Title       string `json:"title" yaml:"title"`
+	Description string `json:"description" yaml:"description"`
+	Contract    string `json:"contract"`
 }
 
-func NewContractTemplateProposal(title string, description string, contract CompiledContract) ContractTemplateProposal {
+func NewContractTemplateProposal(title string, description string, contract string) ContractTemplateProposal {
 	return ContractTemplateProposal{Title: title, Description: description, Contract: contract}
 }
 
@@ -132,7 +132,8 @@ func (b ContractTemplateProposal) ValidateBasic() sdk.Error {
 	if b.ProposalType() != proposalTypeContractTemplate {
 		return govtypes.ErrInvalidProposalType(b.ProposalType())
 	}
-	if err := b.Contract.ValidBasic(); nil != err {
+	_, err := UnmarshalCompileContract([]byte(b.Contract))
+	if nil != err {
 		return err
 	}
 	return nil

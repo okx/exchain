@@ -2,6 +2,8 @@ package keeper_test
 
 import (
 	"errors"
+	"fmt"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"math/big"
 	"testing"
 	"time"
@@ -15,6 +17,10 @@ import (
 	"github.com/okex/exchain/x/erc20/keeper"
 	"github.com/okex/exchain/x/erc20/types"
 	"github.com/stretchr/testify/suite"
+)
+
+var (
+	Uint256, _ = abi.NewType("uint256", "", nil)
 )
 
 func TestKeeperTestSuite(t *testing.T) {
@@ -130,6 +136,59 @@ func (suite *KeeperTestSuite) TestDenomContractMap() {
 				suite.Require().NoError(err)
 				err = keeper.SetExternalContractForDenom(suite.ctx, denom2, externalContract)
 				suite.Require().Error(err)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			suite.SetupTest()
+			tc.malleate()
+		})
+	}
+}
+
+func (suite *KeeperTestSuite) TestSetGetTemplateContract() {
+	f := func(bin string) string {
+		json := `[{	"inputs": [{"internalType": "uint256","name": "a","type": "uint256"	},{	"internalType": "uint256","name": "b","type": "uint256"}],"stateMutability": "nonpayable","type": "constructor"}]`
+		str := fmt.Sprintf(`{"abi":%s,"bin":"%s"}`, json, bin)
+		return str
+	}
+	testCases := []struct {
+		name     string
+		malleate func()
+	}{
+		{
+			"success, there is no data ",
+			func() {
+				contract := suite.app.Erc20Keeper.GetCurrentTemplateContract(suite.ctx)
+				suite.Require().Equal(contract, types.ModuleERC20Contract)
+			},
+		},
+		{
+			"success,set contract first",
+			func() {
+				c1 := f("c1")
+				err := suite.app.Erc20Keeper.SetCurrentTemplateContract(suite.ctx, c1)
+				suite.Require().NoError(err)
+				c11 := suite.app.Erc20Keeper.GetCurrentTemplateContract(suite.ctx)
+				suite.Require().NotEqual(c11, types.ModuleERC20Contract)
+				suite.Require().Equal(c11.Bin, "c1")
+			},
+		},
+		{
+			"success, set contract twice",
+			func() {
+				c1 := f("c1")
+				c2 := f("c2")
+				err := suite.app.Erc20Keeper.SetCurrentTemplateContract(suite.ctx, c1)
+				suite.Require().NoError(err)
+				err = suite.app.Erc20Keeper.SetCurrentTemplateContract(suite.ctx, c2)
+				suite.Require().NoError(err)
+				c11 := suite.app.Erc20Keeper.GetCurrentTemplateContract(suite.ctx)
+				suite.Require().NotEqual(c11, types.ModuleERC20Contract)
+				suite.Require().NotEqual(c11.Bin, "c1")
+				suite.Require().Equal(c11.Bin, "c2")
 			},
 		},
 	}
