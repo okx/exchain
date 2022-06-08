@@ -132,8 +132,11 @@ func (b ContractTemplateProposal) ValidateBasic() sdk.Error {
 	if b.ProposalType() != proposalTypeContractTemplate {
 		return govtypes.ErrInvalidProposalType(b.ProposalType())
 	}
-	_, err := UnmarshalCompileContract([]byte(b.Contract))
+	con, err := UnmarshalCompileContract([]byte(b.Contract))
 	if nil != err {
+		return err
+	}
+	if err := con.ValidBasic(); nil != err {
 		return err
 	}
 	return nil
