@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"math/bits"
 	"strings"
 	"sync"
 
@@ -16,7 +17,6 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/pkg/errors"
-	"golang.org/x/crypto/sha3"
 )
 
 type KV struct {
@@ -133,11 +133,14 @@ func ValidateSigner(signBytes, sig []byte, signer ethcmn.Address) error {
 }
 
 func rlpHash(x interface{}) (hash ethcmn.Hash) {
-	hasher := sha3.NewLegacyKeccak256()
-	_ = rlp.Encode(hasher, x)
-	_ = hasher.Sum(hash[:0])
+	hasher := keccakStatePool.Get().(ethcrypto.KeccakState)
+	defer keccakStatePool.Put(hasher)
+	hasher.Reset()
 
-	return hash
+	_ = rlp.Encode(hasher, x)
+	hasher.Read(hash[:])
+
+	return
 }
 
 // ResultData represents the data returned in an sdk.Result
@@ -618,6 +621,26 @@ func DecodeResultData(in []byte) (ResultData, error) {
 	return data, nil
 }
 
+var rsBytesPool = &sync.Pool{
+	New: func() interface{} {
+		return new(bytes.Buffer)
+	},
+}
+
+var sigPool = &sync.Pool{
+	New: func() interface{} {
+		return &[65]byte{}
+	},
+}
+
+func getZeroPrefixLen(buf []byte) int {
+	var i int
+	for i < len(buf) && buf[i] == 0 {
+		i++
+	}
+	return i
+}
+
 // recoverEthSig recovers a signature according to the Ethereum specification and
 // returns the sender or an error.
 //
@@ -634,10 +657,38 @@ func recoverEthSig(R, S, Vb *big.Int, sigHash ethcmn.Hash) (ethcmn.Address, erro
 	}
 
 	// encode the signature in uncompressed format
-	r, s := R.Bytes(), S.Bytes()
-	sig := make([]byte, 65)
+
+	const _S = (bits.UintSize / 8)
+
+	buffer := rsBytesPool.Get().(*bytes.Buffer)
+	defer rsBytesPool.Put(buffer)
+
+	rBzLen := len(R.Bits()) * _S
+
+	buffer.Reset()
+	buffer.Grow(rBzLen)
+	var buf = buffer.Bytes()[:rBzLen]
+
+	R.FillBytes(buf)
+	r := buf[getZeroPrefixLen(buf):]
+
+	sig := sigPool.Get().(*[65]byte)[:]
+	defer sigPool.Put((*[65]byte)(sig))
+	for i := range sig {
+		sig[i] = 0
+	}
 
 	copy(sig[32-len(r):32], r)
+
+	sBzLen := len(S.Bits()) * _S
+
+	buffer.Reset()
+	buffer.Grow(sBzLen)
+	buf = buffer.Bytes()[:sBzLen]
+
+	S.FillBytes(buf)
+	s := buf[getZeroPrefixLen(buf):]
+
 	copy(sig[64-len(s):64], s)
 	sig[64] = V
 
@@ -652,7 +703,7 @@ func recoverEthSig(R, S, Vb *big.Int, sigHash ethcmn.Hash) (ethcmn.Address, erro
 	}
 
 	var addr ethcmn.Address
-	copy(addr[:], keccak256(pub[1:])[12:])
+	copy(addr[:], keccak256To(sig[:32], pub[1:])[12:])
 
 	return addr, nil
 }
@@ -669,6 +720,21 @@ func keccak256(data ...[]byte) []byte {
 	d.Read(b)
 	keccakStatePool.Put(d)
 	return b
+}
+
+func keccak256To(target []byte, data ...[]byte) []byte {
+	if len(target) != 32 {
+		panic("target size mismatch")
+	}
+
+	d := keccakStatePool.Get().(ethcrypto.KeccakState)
+	d.Reset()
+	for _, b := range data {
+		d.Write(b)
+	}
+	d.Read(target)
+	keccakStatePool.Put(d)
+	return target
 }
 
 var ethAddrStringPool = &sync.Pool{

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"sync"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -184,18 +185,27 @@ func (msg *MsgEthereumTx) GetSignBytes() []byte {
 	panic("must use 'RLPSignBytes' with a chain ID to get the valid bytes to sign")
 }
 
+var rlpHashParamsPool = &sync.Pool{
+	New: func() interface{} {
+		return &[9]interface{}{}
+	},
+}
+
 // RLPSignBytes returns the RLP hash of an Ethereum transaction message with a
 // given chainID used for signing.
 func (msg *MsgEthereumTx) RLPSignBytes(chainID *big.Int) ethcmn.Hash {
-	return rlpHash([]interface{}{
-		msg.Data.AccountNonce,
-		msg.Data.Price,
-		msg.Data.GasLimit,
-		msg.Data.Recipient,
-		msg.Data.Amount,
-		msg.Data.Payload,
-		chainID, uint(0), uint(0),
-	})
+	rlpParams := rlpHashParamsPool.Get().(*[9]interface{})
+	defer rlpHashParamsPool.Put(rlpParams)
+	rlpParams[0] = msg.Data.AccountNonce
+	rlpParams[1] = msg.Data.Price
+	rlpParams[2] = msg.Data.GasLimit
+	rlpParams[3] = msg.Data.Recipient
+	rlpParams[4] = msg.Data.Amount
+	rlpParams[5] = msg.Data.Payload
+	rlpParams[6] = chainID
+	rlpParams[7] = uint(0)
+	rlpParams[8] = uint(0)
+	return rlpHash(rlpParams)
 }
 
 // Hash returns the hash to be signed by the sender.
@@ -267,6 +277,12 @@ func (msg *MsgEthereumTx) Sign(chainID *big.Int, priv *ecdsa.PrivateKey) error {
 	return nil
 }
 
+var sigBigNumPool = &sync.Pool{
+	New: func() interface{} {
+		return new(big.Int)
+	},
+}
+
 func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (string, error) {
 	var V *big.Int
 	var sigHash ethcmn.Hash
@@ -276,8 +292,13 @@ func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (string, error) {
 			return "", errors.New("chainID cannot be zero")
 		}
 
-		chainIDMul := new(big.Int).Mul(chainID, big2)
-		V = new(big.Int).Sub(msg.Data.V, chainIDMul)
+		bigNum := sigBigNumPool.Get().(*big.Int)
+		defer sigBigNumPool.Put(bigNum)
+		chainIDMul := bigNum.Mul(chainID, big2)
+		V = chainIDMul.Sub(msg.Data.V, chainIDMul)
+
+		// chainIDMul := new(big.Int).Mul(chainID, big2)
+		// V = new(big.Int).Sub(msg.Data.V, chainIDMul)
 		V.Sub(V, big8)
 
 		sigHash = msg.RLPSignBytes(chainID)
