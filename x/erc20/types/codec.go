@@ -17,6 +17,7 @@ const (
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(TokenMappingProposal{}, TokenMappingProposalName, nil)
 	cdc.RegisterConcrete(ContractTemplateProposal{}, ContractTemplateProposalName, nil)
+	cdc.RegisterConcrete(CompiledContract{}, "okexchain/erc20/Contract", nil)
 }
 
 func init() {

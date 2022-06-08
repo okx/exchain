@@ -14,6 +14,7 @@ const (
 	QueryTokenMapping    = "token-mapping"
 	QueryContractByDenom = "contract-by-denom"
 	QueryDenomByContract = "denom-by-contract"
+	QueryTemplateCrt     = "current-template-contract"
 )
 
 // KVStore key prefixes

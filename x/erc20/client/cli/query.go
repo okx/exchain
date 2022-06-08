@@ -24,6 +24,7 @@ func GetQueryCmd(moduleName string, cdc *codec.Codec) *cobra.Command {
 	cmd.AddCommand(flags.GetCommands(
 		GetCmdQueryParams(moduleName, cdc),
 		GetCmdQueryTokenMapping(moduleName, cdc),
+		GetCmdCurrentTemplateContract(moduleName, cdc),
 	)...)
 	return cmd
 }
@@ -62,6 +63,30 @@ func GetCmdQueryTokenMapping(queryRoute string, cdc *codec.Codec) *cobra.Command
 		Long: strings.TrimSpace(`Query all mapping of denom and contract:
 
 $ exchaincli query erc20 token-mapping
+`),
+		Args: cobra.NoArgs,
+		RunE: func(_ *cobra.Command, _ []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			route := fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryTemplateCrt)
+			bz, _, err := cliCtx.QueryWithData(route, nil)
+			if err != nil {
+				return err
+			}
+
+			var mapping []types.TokenMapping
+			cdc.MustUnmarshalJSON(bz, &mapping)
+			return cliCtx.PrintOutput(mapping)
+		},
+	}
+}
+
+func GetCmdCurrentTemplateContract(queryRoute string, cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "contract-template",
+		Short: "Query current contract-template and note the return value is not enable to post as proposal",
+		Long: strings.TrimSpace(`Query all mapping of denom and contract:
+$ exchaincli query erc20 contract-template
 `),
 		Args: cobra.NoArgs,
 		RunE: func(_ *cobra.Command, _ []string) error {
