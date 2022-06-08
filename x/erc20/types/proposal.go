@@ -12,15 +12,22 @@ import (
 
 const (
 	// proposalTypeTokenMapping defines the type for a TokenMappingProposal
-	proposalTypeTokenMapping = "TokenMapping"
+	proposalTypeTokenMapping     = "TokenMapping"
+	proposalTypeContractTemplate = "ContractTemplate"
 )
 
 func init() {
 	govtypes.RegisterProposalType(proposalTypeTokenMapping)
 	govtypes.RegisterProposalTypeCodec(TokenMappingProposal{}, "okexchain/erc20/TokenMappingProposal")
+
+	govtypes.RegisterProposalType(proposalTypeContractTemplate)
+	govtypes.RegisterProposalTypeCodec(ContractTemplateProposal{}, "okexchain/erc20/ContractTemplateProposal")
 }
 
-var _ govtypes.Content = (*TokenMappingProposal)(nil)
+var (
+	_ govtypes.Content = (*TokenMappingProposal)(nil)
+	_ govtypes.Content = (*ContractTemplateProposal)(nil)
+)
 
 type TokenMappingProposal struct {
 	Title       string `json:"title" yaml:"title"`
@@ -86,4 +93,48 @@ func (tp TokenMappingProposal) String() string {
 `, tp.Title, tp.Description, tp.Denom, tp.Contract))
 
 	return b.String()
+}
+
+type ContractTemplateProposal struct {
+	Title       string           `json:"title" yaml:"title"`
+	Description string           `json:"description" yaml:"description"`
+	Contract    CompiledContract `json:"contract"`
+}
+
+func NewContractTemplateProposal(title string, description string, contract CompiledContract) *ContractTemplateProposal {
+	return &ContractTemplateProposal{Title: title, Description: description, Contract: contract}
+}
+
+func (b ContractTemplateProposal) GetTitle() string { return b.Title }
+
+func (b ContractTemplateProposal) GetDescription() string { return b.Description }
+
+func (b ContractTemplateProposal) ProposalRoute() string { return RouterKey }
+
+func (b ContractTemplateProposal) ProposalType() string { return proposalTypeContractTemplate }
+
+func (b ContractTemplateProposal) ValidateBasic() sdk.Error {
+	if len(strings.TrimSpace(b.Title)) == 0 {
+		return govtypes.ErrInvalidProposalContent("title is required")
+	}
+	if len(b.Title) > govtypes.MaxTitleLength {
+		return govtypes.ErrInvalidProposalContent("title length is longer than the max")
+	}
+
+	if len(b.Description) == 0 {
+		return govtypes.ErrInvalidProposalContent("description is required")
+	}
+
+	if len(b.Description) > govtypes.MaxDescriptionLength {
+		return govtypes.ErrInvalidProposalContent("description length is longer than the max")
+	}
+
+	if b.ProposalType() != proposalTypeContractTemplate {
+		return govtypes.ErrInvalidProposalType(b.ProposalType())
+	}
+	return nil
+}
+
+func (b ContractTemplateProposal) String() string {
+	return ""
 }

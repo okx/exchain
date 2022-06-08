@@ -21,6 +21,7 @@ var (
 	KeyPrefixContractToDenom         = []byte{0x01}
 	KeyPrefixDenomToExternalContract = []byte{0x02}
 	KeyPrefixDenoToAutoContract      = []byte{0x03}
+	KeyPrefixTemplateContract        = []byte{0x04}
 )
 
 // ContractToDenomKey defines the store key for contract to denom reverse index

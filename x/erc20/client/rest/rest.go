@@ -93,3 +93,7 @@ func denomByContractHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 func TokenMappingProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
 	return govRest.ProposalRESTHandler{}
 }
+
+func ContractTemplateProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
+	return govRest.ProposalRESTHandler{}
+}

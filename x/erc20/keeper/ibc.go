@@ -93,8 +93,9 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 
 // deployModuleERC20 deploy an embed erc20 contract
 func (k Keeper) deployModuleERC20(ctx sdk.Context, denom string) (common.Address, error) {
-	byteCode := common.Hex2Bytes(types.ModuleERC20Contract.Bin)
-	input, err := types.ModuleERC20Contract.ABI.Pack("", denom, uint8(0))
+	contract := k.GetCurrentTemplateContract(ctx)
+	byteCode := common.Hex2Bytes(contract.Bin)
+	input, err := contract.ABI.Pack("", denom, uint8(0))
 	if err != nil {
 		return common.Address{}, err
 	}

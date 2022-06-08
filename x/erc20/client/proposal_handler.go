@@ -12,4 +12,9 @@ var (
 		cli.GetCmdTokenMappingProposal,
 		rest.TokenMappingProposalRESTHandler,
 	)
+
+	ContractTemplateProposalHandler = govcli.NewProposalHandler(
+		cli.SetContractTemplateProposal,
+		rest.ContractTemplateProposalRESTHandler,
+	)
 )
