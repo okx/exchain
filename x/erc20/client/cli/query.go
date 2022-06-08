@@ -84,7 +84,7 @@ $ exchaincli query erc20 token-mapping
 func GetCmdCurrentTemplateContract(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
 		Use:   "contract-template",
-		Short: "Query current contract-template and note the return value is not enable to post as proposal",
+		Short: "Query current contract-template and note the return value is not available to post as proposal",
 		Long: strings.TrimSpace(`Query all mapping of denom and contract:
 $ exchaincli query erc20 contract-template
 `),
