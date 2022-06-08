@@ -476,7 +476,7 @@ func (tr *TransactionReceipt) GetValue() string {
 	return string(buf)
 }
 
-func NewEvmTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, blockHash common.Hash, txIndex, height uint64, data *types.ResultData, cumulativeGas, GasUsed uint64) *MsgTransactionReceipt {
+func newEvmTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, blockHash common.Hash, txIndex, height uint64, data *types.ResultData, cumulativeGas, GasUsed uint64) *MsgTransactionReceipt {
 	tr := TransactionReceipt{
 		Status:                hexutil.Uint64(status),
 		CumulativeGasUsed:     hexutil.Uint64(cumulativeGas),
