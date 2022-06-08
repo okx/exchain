@@ -112,7 +112,8 @@ func (k Keeper) deployModuleERC20(ctx sdk.Context, denom string) (common.Address
 func (k Keeper) CallModuleERC20(ctx sdk.Context, contract common.Address, method string, args ...interface{}) ([]byte, error) {
 	k.Logger(ctx).Info("call erc20 module contract", "contract", contract.String(), "method", method, "args", args)
 
-	data, err := types.ModuleERC20Contract.ABI.Pack(method, args...)
+	cc := k.GetCurrentTemplateContract(ctx)
+	data, err := cc.ABI.Pack(method, args...)
 	if err != nil {
 		return nil, err
 	}

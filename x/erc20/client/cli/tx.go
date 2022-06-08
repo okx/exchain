@@ -91,7 +91,7 @@ $ %s tx gov submit-proposal token-mapping xxb 0x0000...0000 --from=<key_or_addre
 func SetContractTemplateProposal(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "contract-template  [file-path]",
-		Args:  cobra.ExactArgs(2),
+		Args:  cobra.ExactArgs(1),
 		Short: "Submit a new bytecode template contract proposal",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`Submit a contract template proposal.

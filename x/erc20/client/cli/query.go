@@ -68,7 +68,7 @@ $ exchaincli query erc20 token-mapping
 		RunE: func(_ *cobra.Command, _ []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			route := fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryTemplateCrt)
+			route := fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryTokenMapping)
 			bz, _, err := cliCtx.QueryWithData(route, nil)
 			if err != nil {
 				return err
@@ -92,15 +92,13 @@ $ exchaincli query erc20 contract-template
 		RunE: func(_ *cobra.Command, _ []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			route := fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryTokenMapping)
+			route := fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryContractTem)
 			bz, _, err := cliCtx.QueryWithData(route, nil)
 			if err != nil {
 				return err
 			}
 
-			var mapping []types.TokenMapping
-			cdc.MustUnmarshalJSON(bz, &mapping)
-			return cliCtx.PrintOutput(mapping)
+			return cliCtx.PrintOutput(string(bz))
 		},
 	}
 }

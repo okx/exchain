@@ -29,7 +29,7 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryDenomByContract(ctx, req, keeper)
 		case types.QueryContractByDenom:
 			return queryContractByDenom(ctx, req, keeper)
-		case types.QueryTemplateCrt:
+		case types.QueryContractTem:
 			return queryCurrentContractTemplate(ctx, req, keeper)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query endpoint")
