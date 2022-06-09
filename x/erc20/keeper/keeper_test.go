@@ -193,6 +193,25 @@ func (suite *KeeperTestSuite) TestSetGetTemplateContract() {
 				suite.Require().Equal(c11.Bin, "c2")
 			},
 		},
+		{
+			"success ,no proxy contract",
+			func() {
+				_, found := suite.app.Erc20Keeper.GetCurrentProxyTemplateContract(suite.ctx)
+				suite.Require().Equal(false, found)
+			},
+		},
+		{
+			"success ,set proxy contract",
+			func() {
+				_, found := suite.app.Erc20Keeper.GetCurrentProxyTemplateContract(suite.ctx)
+				suite.Require().Equal(false, found)
+				proxy := f("proxy")
+				suite.app.Erc20Keeper.SetCurrentTemplateContract(suite.ctx, types.ProposalTypeContextTemplateProxy, proxy)
+				cc, found := suite.app.Erc20Keeper.GetCurrentProxyTemplateContract(suite.ctx)
+				suite.Require().Equal(true, found)
+				suite.Require().Equal(cc.Bin, "proxy")
+			},
+		},
 	}
 
 	for _, tc := range testCases {
