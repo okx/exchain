@@ -273,7 +273,7 @@ func GetAllCodes(state *types.GenesisState) ([]CodeMeta, error) {
 				accessConfig = *msg.InstantiatePermission
 			} else {
 				// default
-				creator, err := types.AccAddressFromBech32(msg.Sender)
+				creator, err := sdk.AccAddressFromBech32(msg.Sender)
 				if err != nil {
 					return nil, fmt.Errorf("sender: %s", err)
 				}
@@ -487,7 +487,7 @@ func getActorAddress(cmd *cobra.Command) (sdk.AccAddress, error) {
 		return nil, errors.New("run-as address is required")
 	}
 
-	actorAddr, err := types.AccAddressFromBech32(actorArg)
+	actorAddr, err := sdk.AccAddressFromBech32(actorArg)
 	if err == nil {
 		return actorAddr, nil
 	}

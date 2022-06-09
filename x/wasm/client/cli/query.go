@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	wasmvm "github.com/CosmWasm/wasmvm"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"io/ioutil"
 	"strconv"
 
@@ -222,7 +223,7 @@ func NewCmdGetContractInfo(m *codec.CodecProxy, reg codectypes.InterfaceRegistry
 			clientCtx := clientCtx.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			queryClient := types.NewQueryClient(clientCtx)
 
-			_, err := types.AccAddressFromBech32(args[0])
+			_, err := sdk.AccAddressFromBech32(args[0])
 			if err != nil {
 				return err
 			}
@@ -254,7 +255,7 @@ func NewCmdGetContractHistory(m *codec.CodecProxy, reg codectypes.InterfaceRegis
 			clientCtx := clientCtx.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			queryClient := types.NewQueryClient(clientCtx)
 
-			_, err := types.AccAddressFromBech32(args[0])
+			_, err := sdk.AccAddressFromBech32(args[0])
 			if err != nil {
 				return err
 			}
@@ -310,7 +311,7 @@ func newCmdGetContractStateAll(m *codec.CodecProxy, reg codectypes.InterfaceRegi
 			clientCtx := clientCtx.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			queryClient := types.NewQueryClient(clientCtx)
 
-			_, err := types.AccAddressFromBech32(args[0])
+			_, err := sdk.AccAddressFromBech32(args[0])
 			if err != nil {
 				return err
 			}
@@ -347,7 +348,7 @@ func newCmdGetContractStateRaw(m *codec.CodecProxy, reg codectypes.InterfaceRegi
 			clientCtx := clientCtx.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			queryClient := types.NewQueryClient(clientCtx)
 
-			_, err := types.AccAddressFromBech32(args[0])
+			_, err := sdk.AccAddressFromBech32(args[0])
 			if err != nil {
 				return err
 			}
@@ -385,7 +386,7 @@ func newCmdGetContractStateSmart(m *codec.CodecProxy, reg codectypes.InterfaceRe
 			clientCtx := clientCtx.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
 			queryClient := types.NewQueryClient(clientCtx)
 
-			_, err := types.AccAddressFromBech32(args[0])
+			_, err := sdk.AccAddressFromBech32(args[0])
 			if err != nil {
 				return err
 			}
