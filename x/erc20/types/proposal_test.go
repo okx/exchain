@@ -60,8 +60,6 @@ func TestContractTemplateProposal_ValidateBasic(t *testing.T) {
 		result bool
 	}{
 		{"invalid hex", ContractTemplateProposal{"title", "desc", ProposalTypeContextTemplateProxy, f("invalid hex")}, false},
-		{"invalid abi", ContractTemplateProposal{"title", "desc", ProposalTypeContextTemplateProxy, f(hex.EncodeToString([]byte("valid hex")))}, false},
-
 		{"invalid type", ContractTemplateProposal{"title", "desc", "mis", f(hex.EncodeToString([]byte("valid hex")))}, false},
 	}
 	for _, tt := range tests {

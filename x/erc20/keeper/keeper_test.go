@@ -154,6 +154,7 @@ func (suite *KeeperTestSuite) TestSetGetTemplateContract() {
 		str := fmt.Sprintf(`{"abi":%s,"bin":"%s"}`, json, bin)
 		return str
 	}
+
 	testCases := []struct {
 		name     string
 		malleate func()
