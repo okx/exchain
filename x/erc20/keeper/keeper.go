@@ -181,17 +181,27 @@ func (k Keeper) IterateMapping(ctx sdk.Context, cb func(denom, contract string) 
 	}
 }
 
-func (k Keeper) GetCurrentTemplateContract(ctx sdk.Context) types.CompiledContract {
+func (k Keeper) GetCurrentProxyTemplateContract(ctx sdk.Context) (types.CompiledContract, bool) {
 	store := ctx.KVStore(k.storeKey)
-	data := store.Get(types.KeyPrefixTemplateContract)
+	data := store.Get(types.ConstructContractKey(types.ProposalTypeContextTemplateProxy))
+	if nil == data {
+		return types.CompiledContract{}, false
+	}
+	return types.MustUnmarshalCompileContract(data), true
+}
+
+func (k Keeper) GetCurrentImplementTemplateContract(ctx sdk.Context) types.CompiledContract {
+	store := ctx.KVStore(k.storeKey)
+	data := store.Get(types.ConstructContractKey(types.ProposalTypeContextTemplateImpl))
 	if nil == data {
 		return types.ModuleERC20Contract
 	}
 	return types.MustUnmarshalCompileContract(data)
 }
 
-func (k Keeper) SetCurrentTemplateContract(ctx sdk.Context, str string) error {
+// high level will check the argument
+func (k Keeper) SetCurrentTemplateContract(ctx sdk.Context, typeStr string, str string) error {
 	store := ctx.KVStore(k.storeKey)
-	store.Set(types.KeyPrefixTemplateContract, []byte(str))
+	store.Set(types.ConstructContractKey(typeStr), []byte(str))
 	return nil
 }

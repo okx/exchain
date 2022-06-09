@@ -59,6 +59,7 @@ func (suite *KeeperTestSuite) TestProposal_ContractTemplateProposal() {
 	proposal := types.NewContractTemplateProposal(
 		"default title",
 		"default description",
+		types.ProposalTypeContextTemplateImpl,
 		"empty",
 	)
 

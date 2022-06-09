@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"encoding/json"
 	"fmt"
 
 	ethcmm "github.com/ethereum/go-ethereum/common"
@@ -91,6 +92,13 @@ func queryContractByDenom(ctx sdk.Context, req abci.RequestQuery, keeper Keeper)
 }
 
 func queryCurrentContractTemplate(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
-	contract := keeper.GetCurrentTemplateContract(ctx)
-	return types.MustMarshalCompileContract(contract), nil
+	ret := types.CurrentContractTemplate{}
+	proxy, found := keeper.GetCurrentProxyTemplateContract(ctx)
+	if found {
+		ret.Proxy = types.MustMarshalCompileContract(proxy)
+	}
+	imple := keeper.GetCurrentImplementTemplateContract(ctx)
+	ret.Implement = types.MustMarshalCompileContract(imple)
+	data, _ := json.Marshal(ret)
+	return data, nil
 }

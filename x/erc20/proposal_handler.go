@@ -37,5 +37,5 @@ func handleTokenMappingProposal(ctx sdk.Context, k *Keeper, p types.TokenMapping
 }
 
 func handleContractTemplateProposal(ctx sdk.Context, k *Keeper, p types.ContractTemplateProposal) sdk.Error {
-	return k.SetCurrentTemplateContract(ctx, p.Contract)
+	return k.SetCurrentTemplateContract(ctx, p.ContractType, p.Contract)
 }
