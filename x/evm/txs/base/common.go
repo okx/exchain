@@ -42,7 +42,7 @@ func msg2st(ctx *sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (st types.Sta
 		TraceTxLog:   ctx.IsTraceTxLog(),
 	}
 	st.Csdb = types.CommitStateDBPool.Get().(*types.CommitStateDB)
-	csdbParams := k.GeneratePureCSDBParams()
+	csdbParams := k.GenerateCSDBParams()
 	st.Csdb.Init(&csdbParams, *ctx)
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
 		if ctx.IsDeliver() {

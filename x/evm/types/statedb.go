@@ -203,7 +203,6 @@ func (csdb *CommitStateDB) Init(csdbParams *CommitStateDBParams, ctx sdk.Context
 	csdb.cdc = csdbParams.Cdc
 	csdb.dbAdapter = csdbParams.Ada
 	csdb.prefetcher = nil
-	csdb.ctx = sdk.Context{}
 	for k := range csdb.stateObjects {
 		delete(csdb.stateObjects, k)
 	}
