@@ -55,8 +55,7 @@ func (c CompiledContract) ValidBasic() error {
 	if nil != err {
 		return err
 	}
-	_, err = c.ABI.Pack("", sdk.DefaultBondDenom, uint8(0))
-	return err
+	return nil
 }
 
 func MustMarshalCompileContract(data CompiledContract) []byte {
