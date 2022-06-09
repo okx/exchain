@@ -193,9 +193,8 @@ var rlpHashParamsPool = &sync.Pool{
 
 // RLPSignBytes returns the RLP hash of an Ethereum transaction message with a
 // given chainID used for signing.
-func (msg *MsgEthereumTx) RLPSignBytes(chainID *big.Int) ethcmn.Hash {
+func (msg *MsgEthereumTx) RLPSignBytes(chainID *big.Int) (h ethcmn.Hash) {
 	rlpParams := rlpHashParamsPool.Get().(*[9]interface{})
-	defer rlpHashParamsPool.Put(rlpParams)
 	rlpParams[0] = msg.Data.AccountNonce
 	rlpParams[1] = msg.Data.Price
 	rlpParams[2] = msg.Data.GasLimit
@@ -205,7 +204,9 @@ func (msg *MsgEthereumTx) RLPSignBytes(chainID *big.Int) ethcmn.Hash {
 	rlpParams[6] = chainID
 	rlpParams[7] = uint(0)
 	rlpParams[8] = uint(0)
-	return rlpHash(rlpParams)
+	h = rlpHash(rlpParams[:])
+	rlpHashParamsPool.Put(rlpParams)
+	return
 }
 
 // Hash returns the hash to be signed by the sender.
