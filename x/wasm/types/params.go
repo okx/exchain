@@ -157,7 +157,7 @@ func (a AccessConfig) ValidateBasic() error {
 		}
 		return nil
 	case AccessTypeOnlyAddress:
-		_, err := AccAddressFromBech32(a.Address)
+		_, err := sdk.AccAddressFromBech32(a.Address)
 		return err
 	}
 	return sdkerrors.Wrapf(ErrInvalid, "unknown type: %q", a.Permission)
