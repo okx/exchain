@@ -108,6 +108,10 @@ type SubspaceProxy struct {
 	q *watcher.Querier
 }
 
+func (p SubspaceProxy) CustomKVStore(ctx sdk.Context) sdk.KVStore {
+	panic("implement me")
+}
+
 func NewSubspaceProxy() SubspaceProxy {
 	return SubspaceProxy{
 		q: watcher.NewQuerier(),

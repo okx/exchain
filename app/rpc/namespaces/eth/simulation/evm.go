@@ -95,7 +95,7 @@ func (ef EvmFactory) makeEvmKeeper(qoc QueryOnChainProxy) *evm.Keeper {
 	module := evm.AppModuleBasic{}
 	cdc := codec.New()
 	module.RegisterCodec(cdc)
-	return evm.NewSimulateKeeper(cdc, sdk.NewKVStoreKey(evm.StoreKey), sdk.NewKVStoreKey(evm.LegacyStoreKey), NewSubspaceProxy(), NewAccountKeeperProxy(qoc), SupplyKeeperProxy{}, NewBankKeeperProxy(), NewInternalDba(qoc), tmlog.NewNopLogger())
+	return evm.NewSimulateKeeper(cdc, sdk.NewKVStoreKey(evm.StoreKey), NewSubspaceProxy(), NewAccountKeeperProxy(qoc), SupplyKeeperProxy{}, NewBankKeeperProxy(), NewInternalDba(qoc), tmlog.NewNopLogger())
 }
 
 func (ef EvmFactory) makeContext(k *evm.Keeper, header abci.Header) sdk.Context {
@@ -107,12 +107,11 @@ func (ef EvmFactory) makeContext(k *evm.Keeper, header abci.Header) sdk.Context 
 	cms.MountStoreWithDB(authKey, sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(paramsKey, sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(k.GetStoreKey(), sdk.StoreTypeIAVL, db)
-	cms.MountStoreWithDB(k.GetLegacyStoreKey(), sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(paramsTKey, sdk.StoreTypeTransient, db)
 
 	cms.LoadLatestVersion()
 
 	ctx := sdk.NewContext(cms, header, true, tmlog.NewNopLogger())
-	ctx.SetGasMeter(sdk.NewGasMeter(k.GetParams(ctx).MaxGasLimitPerTx))
+	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 	return ctx
 }
