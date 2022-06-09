@@ -97,7 +97,7 @@ func SetContractTemplateProposal(cdc *codec.Codec) *cobra.Command {
 			fmt.Sprintf(`Submit a contract template proposal.
 
 Example:
-$ %s tx gov submit-proposal contract-template ~/template.json --from=<key_or_address>
+$ %s tx gov submit-proposal contract-template ~/template.json proxy/implement --from=<key_or_address>
 the template.json should be like : 
 {
 	"abi":[xxxxx],
