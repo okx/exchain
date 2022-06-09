@@ -370,7 +370,7 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 	case sdk.ErrorOutOfGas:
 		err = sdkerrors.Wrap(
 			sdkerrors.ErrOutOfGas, fmt.Sprintf(
-				"rout of gas in location: %v; gasWanted: %d, gasUsed: %d",
+				"out of gas in location: %v; gasWanted: %d, gasUsed: %d",
 				rType.Descriptor, info.gasWanted, info.ctx.GasMeter().GasConsumed(),
 			),
 		)
