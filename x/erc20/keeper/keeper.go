@@ -181,7 +181,7 @@ func (k Keeper) IterateMapping(ctx sdk.Context, cb func(denom, contract string) 
 	}
 }
 
-func (k Keeper) GetCurrentProxyTemplateContract(ctx sdk.Context) (types.CompiledContract, bool) {
+func (k Keeper) GetProxyTemplateContract(ctx sdk.Context) (types.CompiledContract, bool) {
 	store := ctx.KVStore(k.storeKey)
 	data := store.Get(types.ConstructContractKey(types.ProposalTypeContextTemplateProxy))
 	if nil == data {
@@ -190,7 +190,7 @@ func (k Keeper) GetCurrentProxyTemplateContract(ctx sdk.Context) (types.Compiled
 	return types.MustUnmarshalCompileContract(data), true
 }
 
-func (k Keeper) GetCurrentImplementTemplateContract(ctx sdk.Context) (types.CompiledContract, bool) {
+func (k Keeper) GetImplementTemplateContract(ctx sdk.Context) (types.CompiledContract, bool) {
 	store := ctx.KVStore(k.storeKey)
 	data := store.Get(types.ConstructContractKey(types.ProposalTypeContextTemplateImpl))
 	if nil == data {

@@ -161,7 +161,7 @@ func (suite *KeeperTestSuite) TestSetGetTemplateContract() {
 		{
 			"success, there is no data ",
 			func() {
-				_, found := suite.app.Erc20Keeper.GetCurrentImplementTemplateContract(suite.ctx)
+				_, found := suite.app.Erc20Keeper.GetImplementTemplateContract(suite.ctx)
 				suite.Require().Equal(found, false)
 			},
 		},
@@ -171,7 +171,7 @@ func (suite *KeeperTestSuite) TestSetGetTemplateContract() {
 				c1 := f("c1")
 				err := suite.app.Erc20Keeper.SetCurrentTemplateContract(suite.ctx, types.ProposalTypeContextTemplateImpl, c1)
 				suite.Require().NoError(err)
-				c11, found := suite.app.Erc20Keeper.GetCurrentImplementTemplateContract(suite.ctx)
+				c11, found := suite.app.Erc20Keeper.GetImplementTemplateContract(suite.ctx)
 				suite.Require().NoError(err)
 				suite.Require().Equal(found, true)
 				suite.Require().NotEqual(c11, types.ModuleERC20Contract)
@@ -187,7 +187,7 @@ func (suite *KeeperTestSuite) TestSetGetTemplateContract() {
 				suite.Require().NoError(err)
 				err = suite.app.Erc20Keeper.SetCurrentTemplateContract(suite.ctx, types.ProposalTypeContextTemplateImpl, c2)
 				suite.Require().NoError(err)
-				c11, found := suite.app.Erc20Keeper.GetCurrentImplementTemplateContract(suite.ctx)
+				c11, found := suite.app.Erc20Keeper.GetImplementTemplateContract(suite.ctx)
 				suite.Require().Equal(found, true)
 				suite.Require().NoError(err)
 				suite.Require().NotEqual(c11, types.ModuleERC20Contract)
@@ -198,18 +198,18 @@ func (suite *KeeperTestSuite) TestSetGetTemplateContract() {
 		{
 			"success ,no proxy contract",
 			func() {
-				_, found := suite.app.Erc20Keeper.GetCurrentProxyTemplateContract(suite.ctx)
+				_, found := suite.app.Erc20Keeper.GetProxyTemplateContract(suite.ctx)
 				suite.Require().Equal(false, found)
 			},
 		},
 		{
 			"success ,set proxy contract",
 			func() {
-				_, found := suite.app.Erc20Keeper.GetCurrentProxyTemplateContract(suite.ctx)
+				_, found := suite.app.Erc20Keeper.GetProxyTemplateContract(suite.ctx)
 				suite.Require().Equal(false, found)
 				proxy := f("proxy")
 				suite.app.Erc20Keeper.SetCurrentTemplateContract(suite.ctx, types.ProposalTypeContextTemplateProxy, proxy)
-				cc, found := suite.app.Erc20Keeper.GetCurrentProxyTemplateContract(suite.ctx)
+				cc, found := suite.app.Erc20Keeper.GetProxyTemplateContract(suite.ctx)
 				suite.Require().Equal(true, found)
 				suite.Require().Equal(cc.Bin, "proxy")
 			},

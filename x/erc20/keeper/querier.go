@@ -93,11 +93,11 @@ func queryContractByDenom(ctx sdk.Context, req abci.RequestQuery, keeper Keeper)
 
 func queryCurrentContractTemplate(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
 	ret := types.CurrentContractTemplate{}
-	proxy, found := keeper.GetCurrentProxyTemplateContract(ctx)
+	proxy, found := keeper.GetProxyTemplateContract(ctx)
 	if found {
 		ret.Proxy = types.MustMarshalCompileContract(proxy)
 	}
-	imple, found := keeper.GetCurrentImplementTemplateContract(ctx)
+	imple, found := keeper.GetImplementTemplateContract(ctx)
 	if found {
 		ret.Implement = types.MustMarshalCompileContract(imple)
 	}
