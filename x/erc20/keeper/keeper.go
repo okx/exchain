@@ -190,13 +190,13 @@ func (k Keeper) GetCurrentProxyTemplateContract(ctx sdk.Context) (types.Compiled
 	return types.MustUnmarshalCompileContract(data), true
 }
 
-func (k Keeper) GetCurrentImplementTemplateContract(ctx sdk.Context) types.CompiledContract {
+func (k Keeper) GetCurrentImplementTemplateContract(ctx sdk.Context) (types.CompiledContract, bool) {
 	store := ctx.KVStore(k.storeKey)
 	data := store.Get(types.ConstructContractKey(types.ProposalTypeContextTemplateImpl))
 	if nil == data {
-		return types.ModuleERC20Contract
+		return types.CompiledContract{}, false
 	}
-	return types.MustUnmarshalCompileContract(data)
+	return types.MustUnmarshalCompileContract(data), true
 }
 
 // high level will check the argument

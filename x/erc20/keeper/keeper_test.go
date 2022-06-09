@@ -161,8 +161,8 @@ func (suite *KeeperTestSuite) TestSetGetTemplateContract() {
 		{
 			"success, there is no data ",
 			func() {
-				contract := suite.app.Erc20Keeper.GetCurrentImplementTemplateContract(suite.ctx)
-				suite.Require().Equal(contract, types.ModuleERC20Contract)
+				_, found := suite.app.Erc20Keeper.GetCurrentImplementTemplateContract(suite.ctx)
+				suite.Require().Equal(found, false)
 			},
 		},
 		{
@@ -171,8 +171,9 @@ func (suite *KeeperTestSuite) TestSetGetTemplateContract() {
 				c1 := f("c1")
 				err := suite.app.Erc20Keeper.SetCurrentTemplateContract(suite.ctx, types.ProposalTypeContextTemplateImpl, c1)
 				suite.Require().NoError(err)
-				c11 := suite.app.Erc20Keeper.GetCurrentImplementTemplateContract(suite.ctx)
+				c11, found := suite.app.Erc20Keeper.GetCurrentImplementTemplateContract(suite.ctx)
 				suite.Require().NoError(err)
+				suite.Require().Equal(found, true)
 				suite.Require().NotEqual(c11, types.ModuleERC20Contract)
 				suite.Require().Equal(c11.Bin, "c1")
 			},
@@ -186,7 +187,8 @@ func (suite *KeeperTestSuite) TestSetGetTemplateContract() {
 				suite.Require().NoError(err)
 				err = suite.app.Erc20Keeper.SetCurrentTemplateContract(suite.ctx, types.ProposalTypeContextTemplateImpl, c2)
 				suite.Require().NoError(err)
-				c11 := suite.app.Erc20Keeper.GetCurrentImplementTemplateContract(suite.ctx)
+				c11, found := suite.app.Erc20Keeper.GetCurrentImplementTemplateContract(suite.ctx)
+				suite.Require().Equal(found, true)
 				suite.Require().NoError(err)
 				suite.Require().NotEqual(c11, types.ModuleERC20Contract)
 				suite.Require().NotEqual(c11.Bin, "c1")

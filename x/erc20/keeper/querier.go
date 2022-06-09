@@ -97,8 +97,10 @@ func queryCurrentContractTemplate(ctx sdk.Context, req abci.RequestQuery, keeper
 	if found {
 		ret.Proxy = types.MustMarshalCompileContract(proxy)
 	}
-	imple := keeper.GetCurrentImplementTemplateContract(ctx)
-	ret.Implement = types.MustMarshalCompileContract(imple)
+	imple, found := keeper.GetCurrentImplementTemplateContract(ctx)
+	if found {
+		ret.Implement = types.MustMarshalCompileContract(imple)
+	}
 	data, _ := json.Marshal(ret)
 	return data, nil
 }
