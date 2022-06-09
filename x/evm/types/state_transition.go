@@ -194,14 +194,49 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		recipientStr = to
 	}
 	tracer := newTracer(ctx, st.TxHash)
-	vmConfig := vm.Config{
-		ExtraEips:        params.ExtraEIPs,
-		Debug:            st.TraceTxLog,
-		Tracer:           tracer,
-		ContractVerifier: NewContractVerifier(params),
-	}
 
-	evm := st.newEVM(ctx, csdb, gasLimit, st.Price, &config, vmConfig)
+	constractVerifier := contractVerifierPool.Get().(*ContractVerifier)
+	initContractVerifier(constractVerifier, params)
+
+	vmConfig := vmConfigPool.Get().(*vm.Config)
+	initVmConfig(
+		vmConfig,
+		params.ExtraEIPs,
+		st.TraceTxLog,
+		tracer,
+		constractVerifier)
+
+	// Create context for evm
+	blockCtx := vmBlockCtxPool.Get().(*vm.BlockContext)
+	initBlockCtx(
+		blockCtx,
+		core.CanTransfer,
+		core.Transfer,
+		GetHashFn(ctx, csdb),
+		common.BytesToAddress(ctx.BlockProposerAddress()),
+		gasLimit,
+		big.NewInt(ctx.BlockHeight()),
+		big.NewInt(ctx.BlockTime().Unix()),
+		big.NewInt(0), // unused. Only required in PoW context
+	)
+
+	txCtx := vmTxContextPool.Get().(*vm.TxContext)
+	initTxContext(
+		txCtx,
+		st.Sender,
+		st.Price,
+	)
+
+	defer func() {
+		contractVerifierPool.Put(constractVerifier)
+		vmConfigPool.Put(vmConfig)
+		vmBlockCtxPool.Put(blockCtx)
+		vmTxContextPool.Put(txCtx)
+	}()
+
+	evm := vm.NewEVM(*blockCtx, *txCtx, csdb, config.EthereumConfig(st.ChainID), *vmConfig)
+
+	// evm := st.newEVM(ctx, csdb, gasLimit, st.Price, &config, vmConfig)
 
 	var (
 		ret             []byte

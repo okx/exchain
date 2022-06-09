@@ -2,11 +2,12 @@ package types
 
 import (
 	"fmt"
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/ethereum/go-ethereum/core/vm"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"math/big"
 )
 
 // ContractVerifier which verify contract method whether blocked
@@ -17,6 +18,10 @@ type ContractVerifier struct {
 // NewContractVerifier return a point of ContractVerifier
 func NewContractVerifier(params Params) *ContractVerifier {
 	return &ContractVerifier{params: params}
+}
+
+func (cv *ContractVerifier) SetParams(params Params) {
+	cv.params = params
 }
 
 // Verify check the contract whether is blocked.
