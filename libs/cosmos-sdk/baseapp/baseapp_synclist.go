@@ -9,7 +9,7 @@ import (
 type cacheMultiStoreList struct {
 	mtx     sync.Mutex
 	stores  *list.List
-	newCont int
+	newCont int // TODO delete
 }
 
 func newCacheMultiStoreList() *cacheMultiStoreList {
@@ -30,6 +30,12 @@ func (c *cacheMultiStoreList) PushStore(store types.CacheMultiStore) {
 	c.mtx.Lock()
 	c.stores.PushBack(store)
 	c.mtx.Unlock()
+}
+
+func (c *cacheMultiStoreList) Range(cb func(c types.CacheMultiStore)) {
+	for i := c.stores.Front(); i != nil; i = i.Next() {
+		cb(i.Value.(types.CacheMultiStore))
+	}
 }
 
 func (c *cacheMultiStoreList) GetStoreWithParent(parent types.CacheMultiStore) types.CacheMultiStore {

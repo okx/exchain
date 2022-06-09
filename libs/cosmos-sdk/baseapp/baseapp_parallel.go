@@ -7,6 +7,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/spf13/viper"
 	"runtime"
@@ -14,9 +15,10 @@ import (
 )
 
 var (
-	maxTxNumberInParallelChan  = 20000
-	whiteAcc                   = string(hexutil.MustDecode("0x01f1829676db577682e944fc3493d451b67ff3e29f")) //fee
-	maxGoroutineNumberInParaTx = runtime.NumCPU()
+	maxTxNumberInParallelChan   = 20000
+	whiteAcc                    = string(hexutil.MustDecode("0x01f1829676db577682e944fc3493d451b67ff3e29f")) //fee
+	maxGoroutineNumberInParaTx  = runtime.NumCPU()
+	multiCacheListClearInterval = int64(100)
 )
 
 type extraDataForTx struct {
@@ -146,6 +148,7 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 	pm.workgroup.txs = txs
 	pm.isAsyncDeliverTx = true
 	pm.cms = app.deliverState.ms.CacheMultiStore()
+	pm.blockHeight = app.deliverState.ctx.BlockHeight()
 
 	if txSize == 0 {
 		return make([]*abci.ResponseDeliverTx, 0)
@@ -316,7 +319,7 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 		logIndex[index] = paraM.LogIndex
 		errs[index] = paraM.AnteErr
 	}
-	app.parallelTxManage.clear()
+	app.parallelTxManage.clear(app.logger) // TODO delete app.logger
 	return app.logFix(logIndex, errs)
 }
 
@@ -533,18 +536,17 @@ type parallelTxManager struct {
 	nextTxInGroup map[int]int
 	preTxInGroup  map[int]int
 
-	mu  sync.RWMutex
-	cms sdk.CacheMultiStore
+	mu          sync.RWMutex
+	cms         sdk.CacheMultiStore
+	blockHeight int64
 
 	txSize    int
 	cc        *conflictCheck
 	currIndex int
 	currTxFee sdk.Coins
 
-	tmpCachePoolSize int
-	tmpCachePoolMu   sync.Mutex
-	tmpCachePool     map[int]types.CacheMultiStore
-	cacheMultiStores *cacheMultiStoreList
+	blockMultiStores *cacheMultiStoreList
+	chainMultiStores *cacheMultiStoreList
 }
 
 func newParallelTxManager() *parallelTxManager {
@@ -561,55 +563,50 @@ func newParallelTxManager() *parallelTxManager {
 		currIndex: -1,
 		currTxFee: sdk.Coins{},
 
-		tmpCachePoolSize: 0,
-		tmpCachePoolMu:   sync.Mutex{},
-		tmpCachePool:     make(map[int]types.CacheMultiStore),
-		cacheMultiStores: newCacheMultiStoreList(),
+		blockMultiStores: newCacheMultiStoreList(),
+		chainMultiStores: newCacheMultiStoreList(),
 	}
 }
 
 func (f *parallelTxManager) addMultiCache(msAnte types.CacheMultiStore, msCache types.CacheMultiStore) {
-	f.tmpCachePoolMu.Lock()
 	if msAnte != nil {
-		f.tmpCachePool[f.tmpCachePoolSize] = msAnte
-		f.tmpCachePoolSize++
+		f.blockMultiStores.PushStore(msAnte)
 	}
 
 	if msCache != nil {
-		f.tmpCachePool[f.tmpCachePoolSize] = msCache
-		f.tmpCachePoolSize++
+		f.blockMultiStores.PushStore(msCache)
 	}
-	f.tmpCachePoolMu.Unlock()
 }
 
-func (f *parallelTxManager) addTempCacheToCachePool() {
-	f.tmpCachePoolMu.Lock()
+func shouldCleanChainCache(height int64) bool {
+	return height%multiCacheListClearInterval == 0
+}
 
-	jobChan := make(chan types.CacheMultiStore, len(f.tmpCachePool))
-	//var wg sync.WaitGroup
-	//wg.Add(size)
+func (f *parallelTxManager) addBlockCacheToChainCache(l log.Logger) {
 
-	for index := 0; index < maxGoroutineNumberInParaTx; index++ {
-		go func(ch chan types.CacheMultiStore) {
-			for j := range ch {
-				j.Clear()
-				//wg.Done()
-			}
-		}(jobChan)
+	beforeBlockCache := f.blockMultiStores.stores.Len()
+
+	if shouldCleanChainCache(f.blockHeight) {
+		f.chainMultiStores.Clear()
+	} else {
+		jobChan := make(chan types.CacheMultiStore, f.blockMultiStores.stores.Len())
+		for index := 0; index < maxGoroutineNumberInParaTx; index++ {
+			go func(ch chan types.CacheMultiStore) {
+				for j := range ch {
+					j.Clear()
+					f.chainMultiStores.PushStore(j)
+				}
+			}(jobChan)
+		}
+
+		f.blockMultiStores.Range(func(c types.CacheMultiStore) {
+			jobChan <- c
+		})
+		close(jobChan)
 	}
-	for _, v := range f.tmpCachePool {
-		jobChan <- v
-	}
-	close(jobChan)
-	//wg.Wait()
 
-	f.cacheMultiStores.PushStores(f.tmpCachePool)
-	for k := range f.tmpCachePool {
-		delete(f.tmpCachePool, k)
-	}
-	f.tmpCachePoolSize = 0
-
-	f.tmpCachePoolMu.Unlock()
+	f.blockMultiStores.Clear()
+	l.Info("ReUseCachePool", "beforeTmpCache", beforeBlockCache, "nowTmpCache", f.blockMultiStores.stores.Len(), "cacheMultiStore", f.chainMultiStores.stores.Len(), "allNewMs", f.chainMultiStores.newCont)
 }
 
 func (f *parallelTxManager) newIsConflict(e *executeResult) bool {
@@ -631,8 +628,8 @@ func (f *parallelTxManager) newIsConflict(e *executeResult) bool {
 	return conflict
 }
 
-func (f *parallelTxManager) clear() {
-	f.addTempCacheToCachePool()
+func (f *parallelTxManager) clear(l log.Logger) {
+	f.addBlockCacheToChainCache(l)
 	f.workgroup.Close()
 	f.workgroup.isReady = false
 	f.workgroup.indexInAll = 0
@@ -681,12 +678,12 @@ func (f *parallelTxManager) getTxResult(index int) sdk.CacheMultiStore {
 				return nil
 			}
 
-			ms = f.cacheMultiStores.GetStoreWithParent(f.txReps[preIndexInGroup].ms)
+			ms = f.chainMultiStores.GetStoreWithParent(f.txReps[preIndexInGroup].ms)
 		}
 	}
 
 	if ms == nil {
-		ms = f.cacheMultiStores.GetStoreWithParent(f.cms)
+		ms = f.chainMultiStores.GetStoreWithParent(f.cms)
 	}
 
 	if next, ok := f.nextTxInGroup[index]; ok {

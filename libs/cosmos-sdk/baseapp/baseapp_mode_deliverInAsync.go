@@ -14,7 +14,7 @@ func (m *modeHandlerDeliverInAsync) handleDeferRefund(info *runTxInfo) {
 	var gasRefundCtx sdk.Context
 	gasRefundCtx = info.runMsgCtx
 	if info.msCache == nil || !info.runMsgFinished { // case: panic when runMsg
-		info.msCache = app.parallelTxManage.cacheMultiStores.GetStoreWithParent(info.msCacheAnte)
+		info.msCache = app.parallelTxManage.chainMultiStores.GetStoreWithParent(info.msCacheAnte)
 		gasRefundCtx = info.ctx
 		gasRefundCtx.SetMultiStore(info.msCache)
 	}
@@ -33,7 +33,7 @@ func (m *modeHandlerDeliverInAsync) handleRunMsg(info *runTxInfo) (err error) {
 	app := m.app
 	mode := m.mode
 
-	info.msCache = app.parallelTxManage.cacheMultiStores.GetStoreWithParent(info.msCacheAnte)
+	info.msCache = app.parallelTxManage.chainMultiStores.GetStoreWithParent(info.msCacheAnte)
 	info.runMsgCtx = info.ctx
 	info.runMsgCtx.SetMultiStore(info.msCache)
 
