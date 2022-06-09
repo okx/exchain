@@ -80,7 +80,7 @@ func (w *Watcher) IsFirstUse() bool {
 	return w.firstUse
 }
 
-// SetFirstUse sets fistUser of Watcher only could use for ut
+// SetFirstUse sets fistUse of Watcher only could use for ut
 func (w *Watcher) SetFirstUse(v bool) {
 	w.firstUse = v
 }
