@@ -352,15 +352,32 @@ func (c *MConnection) stopForError(r interface{}) {
 	}
 }
 
+var logParamsPool = &sync.Pool{
+	New: func() interface{} {
+		return &[6]interface{}{}
+	},
+}
+
+func (c *MConnection) initSendLogParams(logParams *[6]interface{}, chID byte, msgBytes []byte) {
+	logParams[0] = "channel"
+	logParams[1] = chID
+	logParams[2] = "conn"
+	logParams[3] = c
+	logParams[4] = "msgBytes"
+	logParams[5] = bytesHexStringer(msgBytes)
+}
+
 // Queues a message to be sent to channel.
 func (c *MConnection) Send(chID byte, msgBytes []byte) bool {
 	if !c.IsRunning() {
 		return false
 	}
 
-	msgStringer := bytesHexStringer(msgBytes)
+	logParams := logParamsPool.Get().(*[6]interface{})
+	defer logParamsPool.Put(logParams)
+	c.initSendLogParams(logParams, chID, msgBytes)
 
-	c.Logger.Debug("Send", "channel", chID, "conn", c, "msgBytes", msgStringer)
+	c.Logger.Debug("Send", logParams[:]...)
 
 	// Send message to channel.
 	channel, ok := c.channelsIdx[chID]
@@ -377,7 +394,7 @@ func (c *MConnection) Send(chID byte, msgBytes []byte) bool {
 		default:
 		}
 	} else {
-		c.Logger.Debug("Send failed", "channel", chID, "conn", c, "msgBytes", msgStringer)
+		c.Logger.Debug("Send failed", logParams[:]...)
 	}
 	return success
 }
@@ -652,8 +669,10 @@ FOR_LOOP:
 				break FOR_LOOP
 			}
 			if msgBytes != nil {
-				msgStringer := bytesHexStringer(msgBytes)
-				c.Logger.Debug("Received bytes", "chID", pkt.ChannelID, "msgBytes", msgStringer)
+				logParams := logParamsPool.Get().(*[6]interface{})
+				initReceiveMsgLog(logParams, pkt.ChannelID, msgBytes)
+				c.Logger.Debug("Received bytes", logParams[:4]...)
+				logParamsPool.Put(logParams)
 				// NOTE: This means the reactor.Receive runs in the same thread as the p2p recv routine
 				c.onReceive(pkt.ChannelID, msgBytes)
 			}
@@ -670,6 +689,13 @@ FOR_LOOP:
 	for range c.pong {
 		// Drain
 	}
+}
+
+func initReceiveMsgLog(logParams *[6]interface{}, channelID byte, msgBytes []byte) {
+	logParams[0] = "chID"
+	logParams[1] = channelID
+	logParams[2] = "msgBytes"
+	logParams[3] = bytesHexStringer(msgBytes)
 }
 
 // not goroutine-safe
@@ -901,11 +927,22 @@ func (ch *Channel) writePacketMsgTo(w io.Writer) (n int64, err error) {
 	return
 }
 
+func (ch *Channel) initRecvPacketMsgLogParams(logParams *[6]interface{}, packet PacketMsg) {
+	logParams[0] = "conn"
+	logParams[1] = ch.conn
+	logParams[2] = "packet"
+	logParams[3] = packet
+}
+
 // Handles incoming PacketMsgs. It returns a message bytes if message is
 // complete. NOTE message bytes may change on next call to recvPacketMsg.
 // Not goroutine-safe
 func (ch *Channel) recvPacketMsg(packet PacketMsg) ([]byte, error) {
-	ch.Logger.Debug("Read PacketMsg", "conn", ch.conn, "packet", packet)
+	logParams := logParamsPool.Get().(*[6]interface{})
+	ch.initRecvPacketMsgLogParams(logParams, packet)
+	ch.Logger.Debug("Read PacketMsg", logParams[:4]...)
+	logParamsPool.Put(logParams)
+
 	var recvCap, recvReceived = ch.desc.RecvMessageCapacity, len(ch.recving) + len(packet.Bytes)
 	if recvCap < recvReceived {
 		return nil, fmt.Errorf("received message exceeds available capacity: %v < %v", recvCap, recvReceived)
