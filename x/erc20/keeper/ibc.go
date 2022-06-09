@@ -15,7 +15,7 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
-// OnMintVouchers after minting vouchers on this chain, convert these vouchers into evm tokens.
+// OnMintVouchers after minting vouchers on this chain
 func (k Keeper) OnMintVouchers(ctx sdk.Context, vouchers sdk.SysCoins, receiver string) {
 	cacheCtx, commit := ctx.CacheContext()
 	err := k.ConvertVouchers(cacheCtx, receiver, vouchers)
@@ -28,7 +28,20 @@ func (k Keeper) OnMintVouchers(ctx sdk.Context, vouchers sdk.SysCoins, receiver 
 	ctx.EventManager().EmitEvents(cacheCtx.EventManager().Events())
 }
 
-// ConvertVouchers convert vouchers into native coins or evm tokens.
+// OnUnescrowNatives after unescrow natives on this chain
+func (k Keeper) OnUnescrowNatives(ctx sdk.Context, natives sdk.SysCoins, receiver string) {
+	cacheCtx, commit := ctx.CacheContext()
+	err := k.ConvertNatives(cacheCtx, receiver, natives)
+	if err != nil {
+		k.Logger(ctx).Error(
+			fmt.Sprintf("Failed to convert natives to evm tokens for receiver %s, coins %s. Receive error %s",
+				receiver, natives.String(), err))
+	}
+	commit()
+	ctx.EventManager().EmitEvents(cacheCtx.EventManager().Events())
+}
+
+// ConvertVouchers convert vouchers into evm tokens.
 func (k Keeper) ConvertVouchers(ctx sdk.Context, from string, vouchers sdk.SysCoins) error {
 	if len(strings.TrimSpace(from)) == 0 {
 		return errors.New("empty from address string is not allowed")
@@ -49,7 +62,31 @@ func (k Keeper) ConvertVouchers(ctx sdk.Context, from string, vouchers sdk.SysCo
 	return nil
 }
 
-// ConvertVoucherToERC20 convert vouchers into evm token.
+// ConvertNatives convert natives into evm tokens.
+func (k Keeper) ConvertNatives(ctx sdk.Context, from string, vouchers sdk.SysCoins) error {
+	if len(strings.TrimSpace(from)) == 0 {
+		return errors.New("empty from address string is not allowed")
+	}
+	fromAddr, err := sdk.AccAddressFromBech32(from)
+	if err != nil {
+		return err
+	}
+
+	for _, c := range vouchers {
+		// if there is a contract associated with this native coin,
+		// the native coin come from native erc20
+		// okc1:erc20/xxb----->okc2:ibc/xxb---->okc1:ibc/yyb---->okc2:erc20/xxb
+		if contract, found := k.GetContractByDenom(ctx, c.Denom); found {
+			if err := k.ConvertNativeToERC20(ctx, fromAddr, c, contract); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+// ConvertVoucherToERC20 convert voucher into evm token.
 func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, voucher sdk.SysCoin, autoDeploy bool) error {
 	k.Logger(ctx).Info("convert vouchers into evm tokens",
 		"fromBech32", from.String(),
@@ -60,14 +97,13 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 		return fmt.Errorf("coin %s is not supported for wrapping", voucher.Denom)
 	}
 
-	var err error
 	contract, found := k.GetContractByDenom(ctx, voucher.Denom)
 	if !found {
 		// automated deployment contracts
 		if !autoDeploy {
 			return fmt.Errorf("no contract found for the denom %s", voucher.Denom)
 		}
-		contract, err = k.deployModuleERC20(ctx, voucher.Denom)
+		contract, err := k.deployModuleERC20(ctx, voucher.Denom)
 		if err != nil {
 			return err
 		}
@@ -86,6 +122,34 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 		types.ContractMintMethod,
 		common.BytesToAddress(from.Bytes()),
 		voucher.Amount.BigInt()); err != nil {
+		return err
+	}
+	return nil
+}
+
+// ConvertNativeToERC20 convert native into evm token.
+func (k Keeper) ConvertNativeToERC20(ctx sdk.Context, from sdk.AccAddress, native sdk.SysCoin, contract common.Address) error {
+	k.Logger(ctx).Info("convert native into evm tokens",
+		"fromBech32", from.String(),
+		"fromEth", common.BytesToAddress(from.Bytes()).String(),
+		"native", native.String(),
+		"contract", contract.String())
+
+	// 1. transfer native from user address to module address and burn them
+	if err := k.supplyKeeper.SendCoinsFromAccountToModule(ctx, from, types.ModuleName, sdk.NewCoins(native)); err != nil {
+		return err
+	}
+	if err := k.supplyKeeper.BurnCoins(ctx, types.ModuleName, sdk.NewCoins(native)); err != nil {
+		return err
+	}
+
+	// 2. call contract, mint token to user address in contract
+	if _, err := k.CallModuleERC20(
+		ctx,
+		contract,
+		types.ContractMintMethod,
+		common.BytesToAddress(from.Bytes()),
+		native.Amount.BigInt()); err != nil {
 		return err
 	}
 	return nil
@@ -189,6 +253,34 @@ func (k Keeper) IbcTransferVouchers(ctx sdk.Context, from, to string, vouchers s
 	return nil
 }
 
+// IbcTransferNative20 transfer native20 to other chain by ibc
+func (k Keeper) IbcTransferNative20(ctx sdk.Context, from, to string, native20s sdk.SysCoins, portID, channelID string) error {
+	if len(strings.TrimSpace(from)) == 0 {
+		return errors.New("empty from address string is not allowed")
+	}
+	fromAddr, err := sdk.AccAddressFromBech32(from)
+	if err != nil {
+		return err
+	}
+
+	if len(to) == 0 {
+		return errors.New("to address cannot be empty")
+	}
+	k.Logger(ctx).Info("transfer native20 to other chain by ibc", "from", from, "to", to, "vouchers", native20s)
+
+	for _, c := range native20s {
+		if _, found := k.GetContractByDenom(ctx, c.Denom); !found {
+			return fmt.Errorf("coin %s is not supported", c.Denom)
+		}
+		// okc2:erc20/xxb----->okc2:ibc/xxb---ibc--->okc1:xxb
+		if err := k.ibcSendTransferWithChannel(ctx, fromAddr, to, c, portID, channelID); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func (k Keeper) ibcSendTransfer(ctx sdk.Context, sender sdk.AccAddress, to string, coin sdk.Coin) error {
 	// Coin needs to be a voucher so that we can extract the channel id from the denom
 	channelID, err := k.GetSourceChannelID(ctx, coin.Denom)
@@ -206,6 +298,26 @@ func (k Keeper) ibcSendTransfer(ctx sdk.Context, sender sdk.AccAddress, to strin
 	return k.transferKeeper.SendTransfer(
 		ctx,
 		ibctransferType.PortID,
+		channelID,
+		sdk.NewCoinAdapter(coin.Denom, sdk.NewIntFromBigInt(coin.Amount.BigInt())),
+		sender,
+		to,
+		timeoutHeight,
+		timeoutTimestamp,
+	)
+}
+
+func (k Keeper) ibcSendTransferWithChannel(ctx sdk.Context, sender sdk.AccAddress, to string, coin sdk.Coin, portID, channelID string) error {
+	// Transfer coins to receiver through IBC
+	// We use current time for timeout timestamp and zero height for timeoutHeight
+	// it means it can never fail by timeout
+	params := k.GetParams(ctx)
+	timeoutTimestamp := uint64(ctx.BlockTime().UnixNano()) + params.IbcTimeout
+	timeoutHeight := ibcclienttypes.ZeroHeight()
+
+	return k.transferKeeper.SendTransfer(
+		ctx,
+		portID,
 		channelID,
 		sdk.NewCoinAdapter(coin.Denom, sdk.NewIntFromBigInt(coin.Amount.BigInt())),
 		sender,

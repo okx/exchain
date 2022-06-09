@@ -20,7 +20,7 @@ const (
 var (
 	KeyPrefixContractToDenom         = []byte{0x01}
 	KeyPrefixDenomToExternalContract = []byte{0x02}
-	KeyPrefixDenoToAutoContract      = []byte{0x03}
+	KeyPrefixDenomToAutoContract     = []byte{0x03}
 )
 
 // ContractToDenomKey defines the store key for contract to denom reverse index
@@ -35,5 +35,5 @@ func DenomToExternalContractKey(denom string) []byte {
 
 // DenomToAutoContractKey defines the store key for denom to auto contract mapping
 func DenomToAutoContractKey(denom string) []byte {
-	return append(KeyPrefixDenoToAutoContract, denom...)
+	return append(KeyPrefixDenomToAutoContract, denom...)
 }

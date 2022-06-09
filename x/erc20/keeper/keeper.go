@@ -82,7 +82,7 @@ func (k Keeper) SetExternalContractForDenom(ctx sdk.Context, denom string, contr
 func (k Keeper) GetExternalContracts(ctx sdk.Context) (out []types.TokenMapping) {
 	store := ctx.KVStore(k.storeKey)
 	iter := sdk.KVStorePrefixIterator(store, types.KeyPrefixDenomToExternalContract)
-
+	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
 		out = append(out, types.TokenMapping{
 			Denom:    string(iter.Key()),
@@ -125,7 +125,8 @@ func (k Keeper) SetAutoContractForDenom(ctx sdk.Context, denom string, contract 
 // GetAutoContracts returns all auto-deployed contract mappings
 func (k Keeper) GetAutoContracts(ctx sdk.Context) (out []types.TokenMapping) {
 	store := ctx.KVStore(k.storeKey)
-	iter := sdk.KVStorePrefixIterator(store, types.KeyPrefixDenoToAutoContract)
+	iter := sdk.KVStorePrefixIterator(store, types.KeyPrefixDenomToAutoContract)
+	defer iter.Close()
 	for ; iter.Valid(); iter.Next() {
 		out = append(out, types.TokenMapping{
 			Denom:    string(iter.Key()),
@@ -168,12 +169,11 @@ func (k Keeper) GetContractByDenom(ctx sdk.Context, denom string) (contract comm
 // IterateMapping iterates over all the stored mapping and performs a callback function
 func (k Keeper) IterateMapping(ctx sdk.Context, cb func(denom, contract string) (stop bool)) {
 	store := ctx.KVStore(k.storeKey)
-	iterator := sdk.KVStorePrefixIterator(store, types.KeyPrefixContractToDenom)
-
-	defer iterator.Close()
-	for ; iterator.Valid(); iterator.Next() {
-		denom := string(iterator.Value())
-		conotract := common.BytesToAddress(iterator.Key()).String()
+	iter := sdk.KVStorePrefixIterator(store, types.KeyPrefixContractToDenom)
+	defer iter.Close()
+	for ; iter.Valid(); iter.Next() {
+		denom := string(iter.Value())
+		conotract := common.BytesToAddress(iter.Key()).String()
 
 		if cb(denom, conotract) {
 			break
