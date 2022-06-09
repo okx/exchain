@@ -156,3 +156,9 @@ func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *Result) {}
 
 // FinalizeWatcher check Tx do not need this
 func (tx *Tx) FinalizeWatcher(account authexported.Account, err error) {}
+
+func (tx *Tx) Finalize() {
+	if tx.StateTransition.Csdb != nil {
+		types.CommitStateDBPool.Put(tx.StateTransition.Csdb)
+	}
+}

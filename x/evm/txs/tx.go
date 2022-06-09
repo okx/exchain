@@ -1,12 +1,13 @@
 package txs
 
 import (
+	"math/big"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	bam "github.com/okex/exchain/libs/system/trace"
 	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/types"
-	"math/big"
 )
 
 type Tx interface {
@@ -50,6 +51,8 @@ type Tx interface {
 
 	// AnalyzeStop stop record tag
 	AnalyzeStop(tag string)
+
+	Finalize()
 }
 
 // TransitionEvmTx execute evm transition template
@@ -59,6 +62,7 @@ func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err e
 
 	// Prepare convert msg to state transition
 	err = tx.Prepare(msg)
+	defer tx.Finalize()
 	if err != nil {
 		return nil, err
 	}

@@ -35,13 +35,13 @@ type revision struct {
 }
 
 type CommitStateDBParams struct {
-	StoreKey       sdk.StoreKey
-	ParamSpace     Subspace
-	AccountKeeper  AccountKeeper
-	SupplyKeeper   SupplyKeeper
-	Watcher        Watcher
-	BankKeeper     BankKeeper
-	Ada            DbAdapter
+	StoreKey      sdk.StoreKey
+	ParamSpace    Subspace
+	AccountKeeper AccountKeeper
+	SupplyKeeper  SupplyKeeper
+	Watcher       Watcher
+	BankKeeper    BankKeeper
+	Ada           DbAdapter
 	// Amino codec
 	Cdc *codec.Codec
 
@@ -84,12 +84,12 @@ type CommitStateDB struct {
 	// StateDB interface. Perhaps there is a better way.
 	ctx sdk.Context
 
-	storeKey       sdk.StoreKey
-	paramSpace     Subspace
-	accountKeeper  AccountKeeper
-	supplyKeeper   SupplyKeeper
-	Watcher        Watcher
-	bankKeeper     BankKeeper
+	storeKey      sdk.StoreKey
+	paramSpace    Subspace
+	accountKeeper AccountKeeper
+	supplyKeeper  SupplyKeeper
+	Watcher       Watcher
+	bankKeeper    BankKeeper
 
 	// array that hold 'live' objects, which will get modified while processing a
 	// state transition
@@ -165,13 +165,13 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 		trie:         csdbParams.Trie,
 		originalRoot: csdbParams.RootHash,
 
-		storeKey:       csdbParams.StoreKey,
-		paramSpace:     csdbParams.ParamSpace,
-		accountKeeper:  csdbParams.AccountKeeper,
-		supplyKeeper:   csdbParams.SupplyKeeper,
-		bankKeeper:     csdbParams.BankKeeper,
-		Watcher:        csdbParams.Watcher,
-		cdc:            csdbParams.Cdc,
+		storeKey:      csdbParams.StoreKey,
+		paramSpace:    csdbParams.ParamSpace,
+		accountKeeper: csdbParams.AccountKeeper,
+		supplyKeeper:  csdbParams.SupplyKeeper,
+		bankKeeper:    csdbParams.BankKeeper,
+		Watcher:       csdbParams.Watcher,
+		cdc:           csdbParams.Cdc,
 
 		stateObjects:        make(map[ethcmn.Address]*stateObject),
 		stateObjectsPending: make(map[ethcmn.Address]struct{}),
@@ -188,6 +188,56 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 	}
 
 	return csdb
+}
+
+func (csdb *CommitStateDB) Init(csdbParams *CommitStateDBParams, ctx sdk.Context) {
+	csdb.db = csdbParams.DB
+	csdb.trie = csdbParams.Trie
+	csdb.originalRoot = csdbParams.RootHash
+	csdb.storeKey = csdbParams.StoreKey
+	csdb.paramSpace = csdbParams.ParamSpace
+	csdb.accountKeeper = csdbParams.AccountKeeper
+	csdb.supplyKeeper = csdbParams.SupplyKeeper
+	csdb.bankKeeper = csdbParams.BankKeeper
+	csdb.Watcher = csdbParams.Watcher
+	csdb.cdc = csdbParams.Cdc
+	csdb.dbAdapter = csdbParams.Ada
+	csdb.prefetcher = nil
+	csdb.ctx = sdk.Context{}
+	for k := range csdb.stateObjects {
+		delete(csdb.stateObjects, k)
+	}
+	for k := range csdb.stateObjectsPending {
+		delete(csdb.stateObjectsPending, k)
+	}
+	for k := range csdb.stateObjectsDirty {
+		delete(csdb.stateObjectsDirty, k)
+	}
+	csdb.refund = 0
+	csdb.thash = ethcmn.Hash{}
+	csdb.bhash = ethcmn.Hash{}
+	csdb.txIndex = 0
+	csdb.logSize = 0
+	for k := range csdb.logs {
+		delete(csdb.logs, k)
+	}
+	for k := range csdb.preimages {
+		delete(csdb.preimages, k)
+	}
+	csdb.dbErr = nil
+	csdb.journal = nil
+	csdb.validRevisions = nil
+	csdb.nextRevisionID = 0
+	csdb.accessList = nil
+	csdb.lock = sync.Mutex{}
+	csdb.params = nil
+	for k := range csdb.codeCache {
+		delete(csdb.codeCache, k)
+	}
+	for k := range csdb.updatedAccount {
+		delete(csdb.updatedAccount, k)
+	}
+	csdb.WithContext(ctx)
 }
 
 func CreateEmptyCommitStateDB(csdbParams CommitStateDBParams, ctx sdk.Context) *CommitStateDB {
