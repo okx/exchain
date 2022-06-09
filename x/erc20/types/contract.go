@@ -2,6 +2,7 @@ package types
 
 import (
 	_ "embed"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 
@@ -50,7 +51,12 @@ func (c CompiledContract) ValidBasic() error {
 	if len(c.Bin) == 0 {
 		return errors.New("empty bin data")
 	}
-	return nil
+	_, err := hex.DecodeString(c.Bin)
+	if nil != err {
+		return err
+	}
+	_, err = c.ABI.Pack("", sdk.DefaultBondDenom, uint8(0))
+	return err
 }
 
 func MustMarshalCompileContract(data CompiledContract) []byte {
