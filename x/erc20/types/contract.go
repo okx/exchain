@@ -31,6 +31,9 @@ const (
 	IbcEvmModuleName = "ibc-evm"
 
 	ContractMintMethod = "mint_by_okc_module"
+
+	ProxyContractUpgradeTo   = "upgradeTo"
+	ProxyContractChangeAdmin = "changeProxyAdmin"
 )
 
 func init() {
