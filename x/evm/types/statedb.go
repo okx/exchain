@@ -224,11 +224,12 @@ func (csdb *CommitStateDB) Init(csdbParams *CommitStateDBParams, ctx sdk.Context
 	for k := range csdb.preimages {
 		delete(csdb.preimages, k)
 	}
+
 	csdb.dbErr = nil
-	csdb.journal = nil
-	csdb.validRevisions = nil
+	csdb.journal = newJournal()
+	csdb.validRevisions = []revision{}
 	csdb.nextRevisionID = 0
-	csdb.accessList = nil
+	csdb.accessList = newAccessList()
 	csdb.lock = sync.Mutex{}
 	csdb.params = nil
 	for k := range csdb.codeCache {
