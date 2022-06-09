@@ -90,14 +90,14 @@ $ %s tx gov submit-proposal token-mapping xxb 0x0000...0000 --from=<key_or_addre
 // a token mapping proposal governance transaction.
 func SetContractTemplateProposal(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "contract-template  [file-path]",
-		Args:  cobra.ExactArgs(1),
+		Use:   "contract-template  [file-path] proxy/implement",
+		Args:  cobra.ExactArgs(2),
 		Short: "Submit a new bytecode template contract proposal",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`Submit a contract template proposal.
 
 Example:
-$ %s tx gov submit-proposal contract-template ~/template.json --from=<key_or_address>
+$ %s tx gov submit-proposal contract-template ~/template.json proxy/implement --from=<key_or_address>
 the template.json should be like : 
 {
 	"abi":[xxxxx],
@@ -131,7 +131,7 @@ the template.json should be like :
 			}
 
 			content := types.NewContractTemplateProposal(
-				title, description, string(data),
+				title, description, args[1], string(data),
 			)
 			if err := content.ValidateBasic(); err != nil {
 				return err

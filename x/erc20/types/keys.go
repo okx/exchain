@@ -39,3 +39,7 @@ func DenomToExternalContractKey(denom string) []byte {
 func DenomToAutoContractKey(denom string) []byte {
 	return append(KeyPrefixDenomToAutoContract, denom...)
 }
+
+func ConstructContractKey(str string) []byte {
+	return append(KeyPrefixTemplateContract, []byte(str)...)
+}

@@ -14,6 +14,9 @@ const (
 	// proposalTypeTokenMapping defines the type for a TokenMappingProposal
 	proposalTypeTokenMapping     = "TokenMapping"
 	proposalTypeContractTemplate = "ContractTemplate"
+
+	ProposalTypeContextTemplateProxy = "proxy"
+	ProposalTypeContextTemplateImpl  = "implement"
 )
 
 func init() {
@@ -96,13 +99,14 @@ func (tp TokenMappingProposal) String() string {
 }
 
 type ContractTemplateProposal struct {
-	Title       string `json:"title" yaml:"title"`
-	Description string `json:"description" yaml:"description"`
-	Contract    string `json:"contract"`
+	Title        string `json:"title" yaml:"title"`
+	Description  string `json:"description" yaml:"description"`
+	ContractType string `json:"contract_type"`
+	Contract     string `json:"contract"`
 }
 
-func NewContractTemplateProposal(title string, description string, contract string) ContractTemplateProposal {
-	return ContractTemplateProposal{Title: title, Description: description, Contract: contract}
+func NewContractTemplateProposal(title string, description string, contractType string, contract string) ContractTemplateProposal {
+	return ContractTemplateProposal{Title: title, Description: description, ContractType: contractType, Contract: contract}
 }
 
 func (b ContractTemplateProposal) GetTitle() string { return b.Title }
@@ -127,6 +131,9 @@ func (b ContractTemplateProposal) ValidateBasic() sdk.Error {
 
 	if len(b.Description) > govtypes.MaxDescriptionLength {
 		return govtypes.ErrInvalidProposalContent("description length is longer than the max")
+	}
+	if len(b.ContractType) == 0 || b.ContractType != ProposalTypeContextTemplateProxy && b.ContractType != ProposalTypeContextTemplateImpl {
+		return govtypes.ErrInvalidProposalContent("invalid type , should be proxy or implement")
 	}
 
 	if b.ProposalType() != proposalTypeContractTemplate {
