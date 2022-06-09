@@ -29,6 +29,8 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryDenomByContract(ctx, req, keeper)
 		case types.QueryContractByDenom:
 			return queryContractByDenom(ctx, req, keeper)
+		case types.QueryContractTem:
+			return queryCurrentContractTemplate(ctx, req, keeper)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query endpoint")
 		}
@@ -86,4 +88,9 @@ func queryContractByDenom(ctx sdk.Context, req abci.RequestQuery, keeper Keeper)
 	}
 
 	return []byte(contract.String()), nil
+}
+
+func queryCurrentContractTemplate(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+	contract := keeper.GetCurrentTemplateContract(ctx)
+	return types.MustMarshalCompileContract(contract), nil
 }

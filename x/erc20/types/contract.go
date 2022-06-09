@@ -2,7 +2,9 @@ package types
 
 import (
 	_ "embed"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -43,4 +45,45 @@ func init() {
 	if len(ModuleERC20Contract.Bin) == 0 {
 		panic("load contract failed")
 	}
+}
+
+func (c CompiledContract) ValidBasic() error {
+	if len(c.Bin) == 0 {
+		return errors.New("empty bin data")
+	}
+	_, err := hex.DecodeString(c.Bin)
+	if nil != err {
+		return err
+	}
+	_, err = c.ABI.Pack("", sdk.DefaultBondDenom, uint8(0))
+	return err
+}
+
+func MustMarshalCompileContract(data CompiledContract) []byte {
+	ret, err := MarshalCompileContract(data)
+	if nil != err {
+		panic(err)
+	}
+	return ret
+}
+
+func MarshalCompileContract(data CompiledContract) ([]byte, error) {
+	return json.Marshal(data)
+}
+
+func MustUnmarshalCompileContract(data []byte) CompiledContract {
+	ret, err := UnmarshalCompileContract(data)
+	if nil != err {
+		panic(err)
+	}
+	return ret
+}
+
+func UnmarshalCompileContract(data []byte) (CompiledContract, error) {
+	var ret CompiledContract
+	err := json.Unmarshal(data, &ret)
+	if nil != err {
+		return CompiledContract{}, err
+	}
+	return ret, nil
 }

@@ -14,6 +14,8 @@ func NewProposalHandler(k *Keeper) govTypes.Handler {
 		switch content := proposal.Content.(type) {
 		case types.TokenMappingProposal:
 			return handleTokenMappingProposal(ctx, k, content)
+		case types.ContractTemplateProposal:
+			return handleContractTemplateProposal(ctx, k, content)
 		default:
 			return common.ErrUnknownProposalType(types.DefaultCodespace, content.ProposalType())
 		}
@@ -32,4 +34,8 @@ func handleTokenMappingProposal(ctx sdk.Context, k *Keeper, p types.TokenMapping
 		}
 	}
 	return nil
+}
+
+func handleContractTemplateProposal(ctx sdk.Context, k *Keeper, p types.ContractTemplateProposal) sdk.Error {
+	return k.SetCurrentTemplateContract(ctx, p.Contract)
 }

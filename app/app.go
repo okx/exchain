@@ -114,6 +114,7 @@ var (
 			evmclient.ManageContractMethodBlockedListProposalHandler,
 			govclient.ManageTreasuresProposalHandler,
 			erc20client.TokenMappingProposalHandler,
+			erc20client.ContractTemplateProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},

@@ -180,3 +180,18 @@ func (k Keeper) IterateMapping(ctx sdk.Context, cb func(denom, contract string) 
 		}
 	}
 }
+
+func (k Keeper) GetCurrentTemplateContract(ctx sdk.Context) types.CompiledContract {
+	store := ctx.KVStore(k.storeKey)
+	data := store.Get(types.KeyPrefixTemplateContract)
+	if nil == data {
+		return types.ModuleERC20Contract
+	}
+	return types.MustUnmarshalCompileContract(data)
+}
+
+func (k Keeper) SetCurrentTemplateContract(ctx sdk.Context, str string) error {
+	store := ctx.KVStore(k.storeKey)
+	store.Set(types.KeyPrefixTemplateContract, []byte(str))
+	return nil
+}
