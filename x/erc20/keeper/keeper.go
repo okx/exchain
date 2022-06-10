@@ -82,7 +82,7 @@ func (k Keeper) SetExternalContractForDenom(ctx sdk.Context, denom string, contr
 func (k Keeper) GetExternalContracts(ctx sdk.Context) (out []types.TokenMapping) {
 	store := ctx.KVStore(k.storeKey)
 	iter := sdk.KVStorePrefixIterator(store, types.KeyPrefixDenomToExternalContract)
-	defer iter.Close()
+
 	for ; iter.Valid(); iter.Next() {
 		out = append(out, types.TokenMapping{
 			Denom:    string(iter.Key()),
@@ -125,8 +125,7 @@ func (k Keeper) SetAutoContractForDenom(ctx sdk.Context, denom string, contract 
 // GetAutoContracts returns all auto-deployed contract mappings
 func (k Keeper) GetAutoContracts(ctx sdk.Context) (out []types.TokenMapping) {
 	store := ctx.KVStore(k.storeKey)
-	iter := sdk.KVStorePrefixIterator(store, types.KeyPrefixDenomToAutoContract)
-	defer iter.Close()
+	iter := sdk.KVStorePrefixIterator(store, types.KeyPrefixDenoToAutoContract)
 	for ; iter.Valid(); iter.Next() {
 		out = append(out, types.TokenMapping{
 			Denom:    string(iter.Key()),
@@ -169,11 +168,12 @@ func (k Keeper) GetContractByDenom(ctx sdk.Context, denom string) (contract comm
 // IterateMapping iterates over all the stored mapping and performs a callback function
 func (k Keeper) IterateMapping(ctx sdk.Context, cb func(denom, contract string) (stop bool)) {
 	store := ctx.KVStore(k.storeKey)
-	iter := sdk.KVStorePrefixIterator(store, types.KeyPrefixContractToDenom)
-	defer iter.Close()
-	for ; iter.Valid(); iter.Next() {
-		denom := string(iter.Value())
-		conotract := common.BytesToAddress(iter.Key()).String()
+	iterator := sdk.KVStorePrefixIterator(store, types.KeyPrefixContractToDenom)
+
+	defer iterator.Close()
+	for ; iterator.Valid(); iterator.Next() {
+		denom := string(iterator.Value())
+		conotract := common.BytesToAddress(iterator.Key()).String()
 
 		if cb(denom, conotract) {
 			break
@@ -181,22 +181,54 @@ func (k Keeper) IterateMapping(ctx sdk.Context, cb func(denom, contract string) 
 	}
 }
 
-func (k Keeper) GetCurrentProxyTemplateContract(ctx sdk.Context) (types.CompiledContract, bool) {
+func (k Keeper) ProxyContractRedirect(ctx sdk.Context, denom string, tp types.RedirectType, addr common.Address) error {
+	err := k.redirectProxyContractInfoByTp(ctx, denom, addr, tp)
+	if err != nil {
+		return types.ErrProxyContractRedirect(denom, int(tp), addr.String())
+	}
+	return nil
+}
+
+func (k Keeper) redirectProxyContractInfoByTp(ctx sdk.Context, denom string, contract common.Address, tp types.RedirectType) error {
+	method := ""
+	switch tp {
+	case types.RedirectImplementation:
+		method = types.ProxyContractUpgradeTo
+	case types.RedirectOwner:
+		method = types.ProxyContractChangeAdmin
+	default:
+		return fmt.Errorf("no such tp %d", tp)
+	}
+	contractProxy, found := k.GetContractByDenom(ctx, denom)
+	if !found {
+		return fmt.Errorf("GetContractByDenom contract not found,denom: %s", denom)
+	}
+	_, err := k.CallModuleERC20(ctx, contractProxy, method, contract)
+
+	return err
+}
+
+func (k Keeper) GetProxyTemplateContract(ctx sdk.Context) (types.CompiledContract, bool) {
+	return k.getTemplateContract(ctx, types.ProposalTypeContextTemplateProxy)
+}
+
+func (k Keeper) GetImplementTemplateContract(ctx sdk.Context) (types.CompiledContract, bool) {
+	return k.getTemplateContract(ctx, types.ProposalTypeContextTemplateImpl)
+}
+
+func (k Keeper) getTemplateContract(ctx sdk.Context, typeStr string) (types.CompiledContract, bool) {
 	store := ctx.KVStore(k.storeKey)
-	data := store.Get(types.ConstructContractKey(types.ProposalTypeContextTemplateProxy))
+	data := store.Get(types.ConstructContractKey(typeStr))
 	if nil == data {
 		return types.CompiledContract{}, false
 	}
+
 	return types.MustUnmarshalCompileContract(data), true
 }
 
-func (k Keeper) GetCurrentImplementTemplateContract(ctx sdk.Context) types.CompiledContract {
-	store := ctx.KVStore(k.storeKey)
-	data := store.Get(types.ConstructContractKey(types.ProposalTypeContextTemplateImpl))
-	if nil == data {
-		return types.ModuleERC20Contract
-	}
-	return types.MustUnmarshalCompileContract(data)
+func (k Keeper) InitInternalTemplateContract(ctx sdk.Context) {
+	k.SetCurrentTemplateContract(ctx, types.ProposalTypeContextTemplateImpl, string(types.GetInternalImplementationTemplateContractBytes()))
+	k.SetCurrentTemplateContract(ctx, types.ProposalTypeContextTemplateProxy, string(types.GetInternalProxyTemplateContractBytes()))
 }
 
 // high level will check the argument

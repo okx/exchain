@@ -13,6 +13,11 @@ var (
 		rest.TokenMappingProposalRESTHandler,
 	)
 
+	// ProxyContractRedirectHandler alias gov NewProposalHandler
+	ProxyContractRedirectHandler = govcli.NewProposalHandler(
+		cli.GetCmdProxyContractRedirectProposal,
+		rest.ProxyContractRedirectRESTHandler,
+	)
 	ContractTemplateProposalHandler = govcli.NewProposalHandler(
 		cli.SetContractTemplateProposal,
 		rest.ContractTemplateProposalRESTHandler,

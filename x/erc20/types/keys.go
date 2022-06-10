@@ -21,7 +21,7 @@ const (
 var (
 	KeyPrefixContractToDenom         = []byte{0x01}
 	KeyPrefixDenomToExternalContract = []byte{0x02}
-	KeyPrefixDenomToAutoContract     = []byte{0x03}
+	KeyPrefixDenoToAutoContract      = []byte{0x03}
 	KeyPrefixTemplateContract        = []byte{0x04}
 )
 
@@ -37,7 +37,7 @@ func DenomToExternalContractKey(denom string) []byte {
 
 // DenomToAutoContractKey defines the store key for denom to auto contract mapping
 func DenomToAutoContractKey(denom string) []byte {
-	return append(KeyPrefixDenomToAutoContract, denom...)
+	return append(KeyPrefixDenoToAutoContract, denom...)
 }
 
 func ConstructContractKey(str string) []byte {
