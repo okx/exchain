@@ -18,7 +18,7 @@ var (
 	maxTxNumberInParallelChan   = 20000
 	whiteAcc                    = string(hexutil.MustDecode("0x01f1829676db577682e944fc3493d451b67ff3e29f")) //fee
 	maxGoroutineNumberInParaTx  = runtime.NumCPU()
-	multiCacheListClearInterval = int64(100)
+	multiCacheListClearInterval = int64(20)
 )
 
 type extraDataForTx struct {
@@ -585,6 +585,7 @@ func shouldCleanChainCache(height int64) bool {
 func (f *parallelTxManager) addBlockCacheToChainCache(l log.Logger) {
 
 	beforeBlockCache := f.blockMultiStores.stores.Len()
+	beforeChainCache := f.chainMultiStores.stores.Len()
 
 	if shouldCleanChainCache(f.blockHeight) {
 		f.chainMultiStores.Clear()
@@ -606,7 +607,7 @@ func (f *parallelTxManager) addBlockCacheToChainCache(l log.Logger) {
 	}
 
 	f.blockMultiStores.Clear()
-	l.Info("ReUseCachePool", "beforeTmpCache", beforeBlockCache, "nowTmpCache", f.blockMultiStores.stores.Len(), "cacheMultiStore", f.chainMultiStores.stores.Len(), "allNewMs", f.chainMultiStores.newCont)
+	l.Info("ReUseCachePool", "beforeTmpCache", beforeBlockCache, "nowTmpCache", f.blockMultiStores.stores.Len(), "beforeChainCache", beforeChainCache, "nowChainCache", f.chainMultiStores.stores.Len(), "allNewMs", f.chainMultiStores.newCont)
 }
 
 func (f *parallelTxManager) newIsConflict(e *executeResult) bool {
