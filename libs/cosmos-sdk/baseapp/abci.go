@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -406,7 +407,7 @@ func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, o
 		return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))
 	}
 	msgs := tx.GetMsgs()
-	if viper.GetBool("fast-query") && len(msgs) > 0 && msgs[0].Route() == "wasm" {
+	if enableFastQuery() && len(msgs) > 0 && msgs[0].Route() == "wasm" {
 		wasmSimulator := simulator.NewWasmSimulator()
 		wasmSimulator.Context().GasMeter().ConsumeGas(73000, "general ante check cost")
 		wasmSimulator.Context().GasMeter().ConsumeGas(uint64(10*len(txBytes)), "tx size cost")
@@ -644,4 +645,16 @@ func splitPath(requestPath string) (path []string) {
 	}
 
 	return path
+}
+
+var (
+	fastQuery bool
+	fqOnce    sync.Once
+)
+
+func enableFastQuery() bool {
+	fqOnce.Do(func() {
+		fastQuery = viper.GetBool("fast-query")
+	})
+	return fastQuery
 }
