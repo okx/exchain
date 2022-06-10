@@ -35,6 +35,8 @@ func InitGenesis(ctx sdk.Context, k Keeper, data GenesisState) []abci.ValidatorU
 		k.SetAutoContractForDenom(ctx, m.Denom, common.HexToAddress(m.Contract))
 	}
 
+	k.InitInternalTemplateContract(ctx)
+
 	return []abci.ValidatorUpdate{}
 }
 

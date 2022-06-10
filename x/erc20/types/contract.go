@@ -86,3 +86,7 @@ func UnmarshalCompileContract(data []byte) (CompiledContract, error) {
 	}
 	return ret, nil
 }
+
+func GetInternalTemplateContract() []byte {
+	return moduleERC20Json
+}
