@@ -4,6 +4,7 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -105,7 +106,7 @@ $ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg 
 }
 
 // GetCmdSubmitProposal implements the command to submit a community-pool-spend proposal
-func GetCmdSubmitProposal(cdc *codec.Codec) *cobra.Command {
+func GetCmdSubmitProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "community-pool-spend [proposal-file]",
 		Args:  cobra.ExactArgs(1),
@@ -141,6 +142,7 @@ Where proposal.json contains:
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cdc := cdcP.GetCdc()
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
