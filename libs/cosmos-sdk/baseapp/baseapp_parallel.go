@@ -18,7 +18,7 @@ var (
 	maxTxNumberInParallelChan   = 20000
 	whiteAcc                    = string(hexutil.MustDecode("0x01f1829676db577682e944fc3493d451b67ff3e29f")) //fee
 	maxGoroutineNumberInParaTx  = runtime.NumCPU()
-	multiCacheListClearInterval = int64(20)
+	multiCacheListClearInterval = int64(100)
 )
 
 type extraDataForTx struct {
