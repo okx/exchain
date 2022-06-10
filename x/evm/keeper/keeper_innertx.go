@@ -69,11 +69,8 @@ func (k *Keeper) UpdateInnerBlockData() {
 // AddInnerTx add inner tx
 func (k *Keeper) AddInnerTx(hash string, txs interface{}) {
 	if innerTxs, ok := txs.([]*ethvm.InnerTx); ok {
-		k.innerTxLock.RLock()
-		existedTxs, ok := k.innerBlockData.TxMap[hash]
-		k.innerTxLock.RUnlock()
-
 		k.innerTxLock.Lock()
+		existedTxs, ok := k.innerBlockData.TxMap[hash]
 		if !ok {
 			//Empty the TxHashes and TxMap
 			//Here, TxHashes and TxMap need to be updated synchronously

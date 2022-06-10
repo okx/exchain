@@ -52,7 +52,7 @@ type Keeper struct {
 
 	// add inner block data
 	innerBlockData BlockInnerData
-	innerTxLock    sync.RWMutex
+	innerTxLock    sync.Mutex
 	// cache chain config
 	cci chainConfigInfo
 }
