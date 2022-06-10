@@ -25,8 +25,10 @@ var (
 	// ModuleERC20Contract is the compiled okc erc20 contract
 	ModuleERC20Contract CompiledContract
 
-	//go:embed contracts/ModuleERC20.json
-	moduleERC20Json []byte
+	//go:embed contracts/implement.json
+	implementationERC20ContractJson []byte
+	//go:embed contracts/proxy.json
+	proxyERC20ContractJson []byte
 )
 
 const (
@@ -39,7 +41,7 @@ func init() {
 	EVMModuleBechAddr = authtypes.NewModuleAddress(IbcEvmModuleName)
 	EVMModuleETHAddr = common.BytesToAddress(EVMModuleBechAddr.Bytes())
 
-	if err := json.Unmarshal(moduleERC20Json, &ModuleERC20Contract); err != nil {
+	if err := json.Unmarshal(implementationERC20ContractJson, &ModuleERC20Contract); err != nil {
 		panic(err)
 	}
 	if len(ModuleERC20Contract.Bin) == 0 {
@@ -87,6 +89,10 @@ func UnmarshalCompileContract(data []byte) (CompiledContract, error) {
 	return ret, nil
 }
 
-func GetInternalTemplateContractBytes() []byte {
-	return moduleERC20Json
+func GetInternalImplementationTemplateContractBytes() []byte {
+	return implementationERC20ContractJson
+}
+
+func GetInternalProxyTemplateContractBytes() []byte {
+	return implementationERC20ContractJson
 }
