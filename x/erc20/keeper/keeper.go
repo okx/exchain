@@ -200,7 +200,7 @@ func (k Keeper) getTemplateContract(ctx sdk.Context, typeStr string) (types.Comp
 }
 
 func (k Keeper) InitInternalTemplateContract(ctx sdk.Context) {
-	k.SetCurrentTemplateContract(ctx, types.ProposalTypeContextTemplateImpl, string(types.GetInternalTemplateContract()))
+	k.SetCurrentTemplateContract(ctx, types.ProposalTypeContextTemplateImpl, string(types.GetInternalTemplateContractBytes()))
 }
 
 // high level will check the argument
