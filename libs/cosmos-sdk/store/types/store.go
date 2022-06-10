@@ -148,6 +148,11 @@ type CacheMultiStore interface {
 	Write() // Writes operations to underlying KVStore
 }
 
+type CacheMultiStoreResetter interface {
+	CacheMultiStore
+	Reset(MultiStore) bool
+}
+
 // A non-cache MultiStore.
 type CommitMultiStore interface {
 	Committer
@@ -232,6 +237,8 @@ type KVStore interface {
 
 type CacheManager interface {
 	IteratorCache(isdirty bool, cb func(key string, value []byte, isDirty bool, isDelete bool, storeKey StoreKey) bool, sKey StoreKey) bool
+	// Clear the cache without writing
+	Clear()
 }
 
 // Alias iterator to db's Iterator for convenience.

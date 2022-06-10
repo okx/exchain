@@ -81,3 +81,7 @@ func (ms *MptStore) SetMptRootHash(height uint64, hash ethcmn.Hash) {
 	hhash := sdk.Uint64ToBigEndian(height)
 	ms.db.TrieDB().DiskDB().Put(append(KeyPrefixAccRootMptHash, hhash...), hash.Bytes())
 }
+
+func (ms *MptStore) HasVersion(height int64) bool {
+	return ms.GetMptRootHash(uint64(height)) != ethcmn.Hash{}
+}

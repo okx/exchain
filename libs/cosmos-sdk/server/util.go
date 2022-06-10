@@ -14,6 +14,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"github.com/google/gops/agent"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -25,6 +26,8 @@ import (
 	tmflags "github.com/okex/exchain/libs/tendermint/libs/cli/flags"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
+
+const FlagGops = "gops"
 
 // server context
 type Context struct {
@@ -77,6 +80,13 @@ func PersistentPreRunEFn(context *Context) func(*cobra.Command, []string) error 
 		logger = logger.With("module", "main")
 		context.Config = config
 		context.Logger = logger
+
+		if viper.GetBool(FlagGops) {
+			err = agent.Listen(agent.Options{ShutdownCleanup: true})
+			if err != nil {
+				logger.Error("gops agent error", "err", err)
+			}
+		}
 
 		return nil
 	}
