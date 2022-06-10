@@ -227,12 +227,11 @@ func (k Keeper) getTemplateContract(ctx sdk.Context, typeStr string) (types.Comp
 }
 
 func (k Keeper) InitInternalTemplateContract(ctx sdk.Context) {
-	k.SetCurrentTemplateContract(ctx, types.ProposalTypeContextTemplateImpl, string(types.GetInternalImplementationTemplateContractBytes()))
-	k.SetCurrentTemplateContract(ctx, types.ProposalTypeContextTemplateProxy, string(types.GetInternalProxyTemplateContractBytes()))
+	k.SetTemplateContract(ctx, types.ProposalTypeContextTemplateImpl, string(types.GetInternalImplementationBytes()))
+	k.SetTemplateContract(ctx, types.ProposalTypeContextTemplateProxy, string(types.GetInternalProxyBytes()))
 }
 
-// high level will check the argument
-func (k Keeper) SetCurrentTemplateContract(ctx sdk.Context, typeStr string, str string) error {
+func (k Keeper) SetTemplateContract(ctx sdk.Context, typeStr string, str string) error {
 	store := ctx.KVStore(k.storeKey)
 	store.Set(types.ConstructContractKey(typeStr), []byte(str))
 	return nil

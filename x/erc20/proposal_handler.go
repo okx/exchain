@@ -45,5 +45,5 @@ func handleProxyContractRedirectProposal(ctx sdk.Context, k *Keeper, p types.Pro
 }
 
 func handleContractTemplateProposal(ctx sdk.Context, k *Keeper, p types.ContractTemplateProposal) sdk.Error {
-	return k.SetCurrentTemplateContract(ctx, p.ContractType, p.Contract)
+	return k.SetTemplateContract(ctx, p.ContractType, p.Contract)
 }
