@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
@@ -18,9 +19,8 @@ var (
 	// ErrUnexpectedProposalType returns an error when the proposal type is not supported in erc20 module
 	ErrUnexpectedProposalType = sdkerrors.Register(ModuleName, 3, "Unsupported proposal type of erc20 module")
 	// ErrEmptyAddressList returns an error if the address list is empty
-	ErrEmptyAddressList            = sdkerrors.Register(ModuleName, 4, "Empty account address list")
-	ErrIbcDenomInvalid             = sdkerrors.Register(ModuleName, 5, "ibc denom is invalid")
-	ErrCodeTemplateVersionMismatch = sdkerrors.Register(ModuleName, 6, "code template version exsits but no template bin saved ")
+	ErrEmptyAddressList = sdkerrors.Register(ModuleName, 4, "Empty account address list")
+	ErrIbcDenomInvalid  = sdkerrors.Register(ModuleName, 5, "ibc denom is invalid")
 )
 
 func ErrRegisteredContract(contract string) sdk.EnvelopedErr {
