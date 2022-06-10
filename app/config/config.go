@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/consensus"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -15,6 +14,7 @@ import (
 	"github.com/okex/exchain/libs/system"
 	"github.com/okex/exchain/libs/system/trace"
 	tmconfig "github.com/okex/exchain/libs/tendermint/config"
+	"github.com/okex/exchain/libs/tendermint/consensus"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/state"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"

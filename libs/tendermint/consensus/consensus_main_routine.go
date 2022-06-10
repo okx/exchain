@@ -65,14 +65,11 @@ func (cs *State) receiveRoutine(maxSteps int) {
 		case <-cs.txNotifier.TxsAvailable():
 			cs.handleTxsAvailable()
 		case mi = <-cs.peerMsgQueue:
-			_, ok1 := mi.Msg.(*ViewChangeMessage)
-			_, ok2 := mi.Msg.(*BlockPartMessage)
-			if !ok1 && !ok2 {
-				cs.wal.Write(mi)
-			}
 			// handles proposals, block parts, votes
 			// may generate internal events (votes, complete proposals, 2/3 majorities)
-			cs.handleMsg(mi)
+			if cs.handleMsg(mi) {
+				cs.wal.Write(mi)
+			}
 		case mi = <-cs.internalMsgQueue:
 			err := cs.wal.WriteSync(mi) // NOTE: fsync
 			if err != nil {
@@ -102,13 +99,12 @@ func (cs *State) receiveRoutine(maxSteps int) {
 }
 
 // state transitions on complete-proposal, 2/3-any, 2/3-one
-func (cs *State) handleMsg(mi msgInfo) {
+func (cs *State) handleMsg(mi msgInfo) (added bool) {
 	cs.mtx.Lock()
 	defer cs.mtx.Unlock()
 
 	var (
-		added bool
-		err   error
+		err error
 	)
 	msg, peerID := mi.Msg, mi.PeerID
 	switch msg := msg.(type) {
@@ -139,7 +135,9 @@ func (cs *State) handleMsg(mi msgInfo) {
 	case *ProposalMessage:
 		// will not cause transition.
 		// once proposal is set, we can receive block parts
-		err = cs.setProposal(msg.Proposal)
+		if err = cs.setProposal(msg.Proposal); err == nil {
+			added = true
+		}
 	case *BlockPartMessage:
 		// if the proposal is complete, we'll enterPrevote or tryFinalizeCommit
 		added, err = cs.addProposalBlockPart(msg, peerID)
@@ -163,7 +161,6 @@ func (cs *State) handleMsg(mi msgInfo) {
 		}
 
 		if added {
-			cs.wal.Write(mi)
 			cs.statsMsgQueue <- mi
 		}
 
@@ -211,6 +208,7 @@ func (cs *State) handleMsg(mi msgInfo) {
 		// cs.Logger.Error("Error with msg", "height", cs.Height, "round", cs.Round,
 		// 	"peer", peerID, "err", err, "msg", msg)
 	}
+	return
 }
 
 func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
