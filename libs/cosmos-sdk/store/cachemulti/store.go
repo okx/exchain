@@ -139,13 +139,7 @@ func (cms Store) reset(ms Store) {
 					cms.stores[k] = msstore.CacheWrap()
 				}
 			} else {
-				msStore, ok1 := msstore.(Store)
-				cmstore, ok2 := store.(Store)
-				if ok1 && ok2 {
-					cmstore.reset(msStore)
-				} else {
-					cms.stores[k] = msstore.CacheWrap()
-				}
+				cms.stores[k] = msstore.CacheWrap()
 			}
 		} else {
 			cms.stores[k] = msstore.CacheWrap()
