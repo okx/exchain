@@ -17,17 +17,17 @@ var (
 )
 
 const (
-	SendToIbcEventName = "__OkcSendToIbc"
-
-	SendNative20ToIbcEventName = "__OkcSendNative20ToIbc"
+	SendToIbcEventName         = "__OKCSendToIbc"
+	SendNative20ToIbcEventName = "__OKCSendNative20ToIbc"
+	SendToWasmEventName        = "__OKCSendToWasm"
 )
 
 // SendToIbcEvent represent the signature of
-// `event __OkcSendToIbc(string recipient, uint256 amount)`
+// `event __OKCSendToIbc(string recipient, uint256 amount)`
 var SendToIbcEvent abi.Event
 
 // SendNative20ToIbcEvent represent the signature of
-// `event __OkcSendNative20ToIbc(string recipient, uint256 amount, string portID, string channelID)`
+// `event __OKCSendNative20ToIbc(string recipient, uint256 amount, string portID, string channelID)`
 var SendNative20ToIbcEvent abi.Event
 
 func init() {
@@ -99,7 +99,7 @@ func (h SendToIbcEventHandler) EventID() common.Hash {
 func (h SendToIbcEventHandler) Handle(ctx sdk.Context, contract common.Address, data []byte) error {
 	h.Logger(ctx).Info("trigger evm event", "event", SendToIbcEvent.Name, "contract", contract)
 	// first confirm that the contract address and denom are registered,
-	// to avoid unpacking any contract '__OkcSendToIbc' event, which consumes performance
+	// to avoid unpacking any contract '__OKCSendToIbc' event, which consumes performance
 	denom, found := h.Keeper.GetDenomByContract(ctx, contract)
 	if !found {
 		return fmt.Errorf("contract %s is not connected to native token", contract)
@@ -150,7 +150,7 @@ func (h SendNative20ToIbcEventHandler) EventID() common.Hash {
 func (h SendNative20ToIbcEventHandler) Handle(ctx sdk.Context, contract common.Address, data []byte) error {
 	h.Logger(ctx).Info("trigger evm event", "event", SendNative20ToIbcEvent.Name, "contract", contract)
 	// first confirm that the contract address and denom are registered,
-	// to avoid unpacking any contract '__OkcSendNative20ToIbc' event, which consumes performance
+	// to avoid unpacking any contract '__OKCSendNative20ToIbc' event, which consumes performance
 	denom, found := h.Keeper.GetDenomByContract(ctx, contract)
 	if !found {
 		return fmt.Errorf("contract %s is not connected to native token", contract)

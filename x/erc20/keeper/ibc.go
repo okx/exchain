@@ -97,13 +97,14 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 		return fmt.Errorf("coin %s is not supported for wrapping", voucher.Denom)
 	}
 
+	var err error
 	contract, found := k.GetContractByDenom(ctx, voucher.Denom)
 	if !found {
 		// automated deployment contracts
 		if !autoDeploy {
 			return fmt.Errorf("no contract found for the denom %s", voucher.Denom)
 		}
-		contract, err := k.deployModuleERC20(ctx, voucher.Denom)
+		contract, err = k.deployModuleERC20(ctx, voucher.Denom)
 		if err != nil {
 			return err
 		}
@@ -157,14 +158,40 @@ func (k Keeper) ConvertNativeToERC20(ctx sdk.Context, from sdk.AccAddress, nativ
 
 // deployModuleERC20 deploy an embed erc20 contract
 func (k Keeper) deployModuleERC20(ctx sdk.Context, denom string) (common.Address, error) {
-	byteCode := common.Hex2Bytes(types.ModuleERC20Contract.Bin)
-	input, err := types.ModuleERC20Contract.ABI.Pack("", denom, uint8(0))
+	implContract, found := k.GetCurrentImplementTemplateContract(ctx)
+	if !found {
+		return common.Address{}, errors.New("not found implement contract")
+	}
+	proxyContract, found := k.GetCurrentProxyTemplateContract(ctx)
+	if !found {
+		return common.Address{}, errors.New("not found proxy contract")
+	}
+
+	nonce := uint64(0)
+	acc := k.accountKeeper.GetAccount(ctx, types.EVMModuleBechAddr)
+	if acc != nil {
+		nonce = acc.GetSequence()
+	}
+
+	// 1. deploy implement contract
+	byteCode := common.Hex2Bytes(implContract.Bin)
+	_, implRes, err := k.callEvmByModule(ctx, nil, big.NewInt(0), byteCode, nonce)
 	if err != nil {
 		return common.Address{}, err
 	}
 
+	// 2. deploy proxy contract
+	byteCode = common.Hex2Bytes(proxyContract.Bin)
+	implInput, err := implContract.ABI.Pack("initialize", denom, uint8(0))
+	if err != nil {
+		return common.Address{}, err
+	}
+	input, err := proxyContract.ABI.Pack("", implRes.ContractAddress, implInput)
+	if err != nil {
+		return common.Address{}, err
+	}
 	data := append(byteCode, input...)
-	_, res, err := k.callEvmByModule(ctx, nil, big.NewInt(0), data)
+	_, res, err := k.callEvmByModule(ctx, nil, big.NewInt(0), data, nonce+1)
 	if err != nil {
 		return common.Address{}, err
 	}
@@ -175,12 +202,22 @@ func (k Keeper) deployModuleERC20(ctx sdk.Context, denom string) (common.Address
 func (k Keeper) CallModuleERC20(ctx sdk.Context, contract common.Address, method string, args ...interface{}) ([]byte, error) {
 	k.Logger(ctx).Info("call erc20 module contract", "contract", contract.String(), "method", method, "args", args)
 
-	data, err := types.ModuleERC20Contract.ABI.Pack(method, args...)
+	implContract, found := k.GetCurrentImplementTemplateContract(ctx)
+	if !found {
+		return nil, errors.New("not found proxy contract")
+	}
+	data, err := implContract.ABI.Pack(method, args...)
 	if err != nil {
 		return nil, err
 	}
 
-	_, res, err := k.callEvmByModule(ctx, &contract, big.NewInt(0), data)
+	nonce := uint64(0)
+	acc := k.accountKeeper.GetAccount(ctx, types.EVMModuleBechAddr)
+	if acc != nil {
+		nonce = acc.GetSequence()
+	}
+
+	_, res, err := k.callEvmByModule(ctx, &contract, big.NewInt(0), data, nonce)
 	if err != nil {
 		return nil, fmt.Errorf("call contract failed: %s, %s, %s", contract.Hex(), method, err)
 	}
@@ -188,7 +225,7 @@ func (k Keeper) CallModuleERC20(ctx sdk.Context, contract common.Address, method
 }
 
 // callEvmByModule execute an evm message from native module
-func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.Int, data []byte) (*evmtypes.ExecutionResult, *evmtypes.ResultData, error) {
+func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.Int, data []byte, nonce uint64) (*evmtypes.ExecutionResult, *evmtypes.ResultData, error) {
 	config, found := k.evmKeeper.GetChainConfig(ctx)
 	if !found {
 		return nil, nil, types.ErrChainConfigNotFound
@@ -199,11 +236,6 @@ func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.
 		return nil, nil, err
 	}
 
-	nonce := uint64(0)
-	acc := k.accountKeeper.GetAccount(ctx, types.EVMModuleBechAddr)
-	if acc != nil {
-		nonce = acc.GetSequence()
-	}
 	st := evmtypes.StateTransition{
 		AccountNonce: nonce,
 		Price:        big.NewInt(0),
