@@ -2,7 +2,6 @@ package types
 
 import (
 	"fmt"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
@@ -29,6 +28,16 @@ func ErrRegisteredContract(contract string) sdk.EnvelopedErr {
 			ModuleName,
 			21,
 			fmt.Sprintf("the contract is already registered: %s", contract),
+		),
+	}
+}
+
+func ErrProxyContractRedirect(denom string, tp int, addr string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{
+		Err: sdkerrors.New(
+			ModuleName,
+			22,
+			fmt.Sprintf("proxy contract redirect error: denom:%s,tp:%d,addr:%s", denom, tp, addr),
 		),
 	}
 }

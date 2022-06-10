@@ -181,6 +181,33 @@ func (k Keeper) IterateMapping(ctx sdk.Context, cb func(denom, contract string) 
 	}
 }
 
+func (k Keeper) ProxyContractRedirect(ctx sdk.Context, denom string, tp types.RedirectType, addr common.Address) error {
+	err := k.redirectProxyContractInfoByTp(ctx, denom, addr, tp)
+	if err != nil {
+		return types.ErrProxyContractRedirect(denom, int(tp), addr.String())
+	}
+	return nil
+}
+
+func (k Keeper) redirectProxyContractInfoByTp(ctx sdk.Context, denom string, contract common.Address, tp types.RedirectType) error {
+	method := ""
+	switch tp {
+	case types.RedirectImplementation:
+		method = types.ProxyContractUpgradeTo
+	case types.RedirectOwner:
+		method = types.ProxyContractChangeAdmin
+	default:
+		return fmt.Errorf("no such tp %d", tp)
+	}
+	contractProxy, found := k.GetContractByDenom(ctx, denom)
+	if !found {
+		return fmt.Errorf("GetContractByDenom contract not found,denom: %s", denom)
+	}
+	_, err := k.CallModuleERC20(ctx, contractProxy, method, contract)
+
+	return err
+}
+
 func (k Keeper) GetProxyTemplateContract(ctx sdk.Context) (types.CompiledContract, bool) {
 	return k.getTemplateContract(ctx, types.ProposalTypeContextTemplateProxy)
 }
