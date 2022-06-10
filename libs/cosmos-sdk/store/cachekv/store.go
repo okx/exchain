@@ -377,7 +377,6 @@ func (store *Store) Reset(parent types.KVStore) {
 	store.mtx.Lock()
 
 	store.preChangesHandler = nil
-	store.parent = nil
 	store.parent = parent
 	store.clearCache()
 
@@ -387,7 +386,6 @@ func (store *Store) Reset(parent types.KVStore) {
 // Clear will clear all internal data without writing to the parent.
 func (store *Store) Clear() {
 	store.mtx.Lock()
-	store.parent = nil
 	store.clearCache()
 	store.mtx.Unlock()
 }
