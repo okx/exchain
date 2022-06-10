@@ -72,36 +72,31 @@ func (k *Keeper) AddInnerTx(hash string, txs interface{}) {
 		k.innerTxLock.RLock()
 		existedTxs, ok := k.innerBlockData.TxMap[hash]
 		k.innerTxLock.RUnlock()
+
+		k.innerTxLock.Lock()
 		if !ok {
-			//Initialization
-			k.innerTxLock.Lock()
+			//Empty the TxHashes and TxMap
+			//Here, TxHashes and TxMap need to be updated synchronously
 			k.innerBlockData.TxHashes = append(k.innerBlockData.TxHashes, hash)
 			k.innerBlockData.TxMap[hash] = innerTxs
-			k.innerTxLock.Unlock()
 		} else {
-			hasDeductTx := false
-			//Determine if the pending innerTx contains deductTx
-			//todo: binary search
-			for _, tx := range innerTxs {
-				//"To" address of deduct fee
-				if tx.To == "0xf1829676DB577682E944fc3493d451B67Ff3E29F" {
-					hasDeductTx = true
-					break
-				}
-			}
-			k.innerTxLock.Lock()
-			if hasDeductTx {
+			//Determine if the pending innerTx is deductTx
+			if isDeductTx(innerTxs) {
 				delete(k.innerBlockData.TxMap, hash)
 				k.innerBlockData.TxMap[hash] = innerTxs
 			} else {
 				existedTxs = append(existedTxs, innerTxs...)
 				k.innerBlockData.TxMap[hash] = existedTxs
 			}
-			k.innerTxLock.Unlock()
 		}
+		k.innerTxLock.Unlock()
 	} else {
 		panic("Invalid parameter types for evm")
 	}
+}
+
+func isDeductTx(txs []*ethvm.InnerTx) bool {
+	return len(txs) == 1 && txs[0].To == "0xf1829676DB577682E944fc3493d451B67Ff3E29F"
 }
 
 func (k *Keeper) UpdateInnerTx(txBytes []byte, blockHeight int64, dept int64, from, to sdk.AccAddress, callType, name string, amt sdk.Coins, err error) {
