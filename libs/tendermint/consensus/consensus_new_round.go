@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"fmt"
+	"github.com/nacos-group/nacos-sdk-go/common/logger"
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
 	"github.com/okex/exchain/libs/tendermint/types"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
@@ -30,28 +31,41 @@ func (cs *State) enterNewRound(height int64, round int) {
 		return
 	}
 
+	cs.doNewRound(height, round, false, nil)
+}
+
+func (cs *State) doNewRound(height int64, round int, avc bool, val *types.Validator) {
 	cs.initNewHeight()
+	if !avc {
+		if now := tmtime.Now(); cs.StartTime.After(now) {
+			logger.Info("Need to set a buffer and log message here for sanity.", "startTime", cs.StartTime, "now", now)
+		}
+		logger.Info(fmt.Sprintf("enterNewRound(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
-	if now := tmtime.Now(); cs.StartTime.After(now) {
-		logger.Info("Need to set a buffer and log message here for sanity.", "startTime", cs.StartTime, "now", now)
-	}
+		// Increment validators if necessary
+		validators := cs.Validators
+		if cs.Round < round {
+			validators = validators.Copy()
+			validators.IncrementProposerPriority(round - cs.Round)
+		}
+		cs.Validators = validators
+		cs.Votes.SetRound(round + 1) // also track next round (round+1) to allow round-skipping
+	} else {
+		cs.trc.Pin("NewRoundVC-%d", round)
+		logger.Info(fmt.Sprintf("enterNewRoundAVC(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
-	logger.Info(fmt.Sprintf("enterNewRound(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
-
-	// Increment validators if necessary
-	validators := cs.Validators
-	if cs.Round < round {
-		validators = validators.Copy()
-		validators.IncrementProposerPriority(round - cs.Round)
+		cs.Validators.Proposer = val
+		if cs.Votes.Round() == 0 {
+			cs.Votes.SetRound(1) // also track next round (round+1) to allow round-skipping
+		}
 	}
 
 	// Setup new round
 	// we don't fire newStep for this step,
 	// but we fire an event, so update the round step first
 	cs.updateRoundStep(round, cstypes.RoundStepNewRound)
-	cs.hasVC = false
-	cs.Validators = validators
-	if round == 0 {
+	cs.hasVC = avc
+	if round == 0 && !avc {
 		// We've already reset these upon new height,
 		// and meanwhile we might have received a proposal
 		// for round 0.
@@ -61,9 +75,8 @@ func (cs *State) enterNewRound(height int64, round int) {
 		cs.ProposalBlock = nil
 		cs.ProposalBlockParts = nil
 	}
-	cs.Votes.SetRound(round + 1) // also track next round (round+1) to allow round-skipping
-	cs.TriggeredTimeoutPrecommit = false
 
+	cs.TriggeredTimeoutPrecommit = false
 	cs.eventBus.PublishEventNewRound(cs.NewRoundEvent())
 	cs.metrics.Rounds.Set(float64(round))
 
@@ -94,39 +107,7 @@ func (cs *State) enterNewRoundAVC(height int64, round int, val *types.Validator)
 		return
 	}
 
-	cs.initNewHeight()
-	cs.trc.Pin("NewRoundVC-%d", round)
-	logger.Info(fmt.Sprintf("enterNewRoundAVC(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
-
-	// Setup new round
-	// we don't fire newStep for this step,
-	// but we fire an event, so update the round step first
-	cs.updateRoundStep(round, cstypes.RoundStepNewRound)
-	cs.hasVC = true
-	cs.Validators.Proposer = val
-	logger.Info("Resetting Proposal info")
-	cs.Proposal = nil
-	cs.ProposalBlock = nil
-	cs.ProposalBlockParts = nil
-	if cs.Votes.Round() == 0 {
-		cs.Votes.SetRound(1) // also track next round (round+1) to allow round-skipping
-	}
-	cs.TriggeredTimeoutPrecommit = false
-	cs.eventBus.PublishEventNewRound(cs.NewRoundEvent())
-	cs.metrics.Rounds.Set(float64(round))
-
-	// Wait for txs to be available in the mempool
-	// before we enterPropose in round 0. If the last block changed the app hash,
-	// we may need an empty "proof" block, and enterPropose immediately.
-	waitForTxs := cs.config.WaitForTxs() && round == 0 && !cs.needProofBlock(height)
-	if waitForTxs {
-		if cs.config.CreateEmptyBlocksInterval > 0 {
-			cs.scheduleTimeout(cs.config.CreateEmptyBlocksInterval, height, round,
-				cstypes.RoundStepNewRound)
-		}
-	} else {
-		cs.enterPropose(height, round)
-	}
+	cs.doNewRound(height, round, true, val)
 }
 
 // Enter: `timeoutNewHeight` by startTime (after timeoutCommit),
