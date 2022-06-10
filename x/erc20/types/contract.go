@@ -87,10 +87,10 @@ func UnmarshalCompileContract(data []byte) (CompiledContract, error) {
 	return ret, nil
 }
 
-func GetInternalImplementationTemplateContractBytes() []byte {
+func GetInternalImplementationBytes() []byte {
 	return implementationERC20ContractJson
 }
 
-func GetInternalProxyTemplateContractBytes() []byte {
-	return implementationERC20ContractJson
+func GetInternalProxyBytes() []byte {
+	return proxyERC20ContractJson
 }

@@ -215,7 +215,7 @@ func (suite *KeeperTestSuite) TestSetGetTemplateContract() {
 			"success,set contract first",
 			func() {
 				c1 := f("c1")
-				err := suite.app.Erc20Keeper.SetCurrentTemplateContract(suite.ctx, types.ProposalTypeContextTemplateImpl, c1)
+				err := suite.app.Erc20Keeper.SetTemplateContract(suite.ctx, types.ProposalTypeContextTemplateImpl, c1)
 				suite.Require().NoError(err)
 				c11, found := suite.app.Erc20Keeper.GetImplementTemplateContract(suite.ctx)
 				suite.Require().NoError(err)
@@ -229,9 +229,9 @@ func (suite *KeeperTestSuite) TestSetGetTemplateContract() {
 			func() {
 				c1 := f("c1")
 				c2 := f("c2")
-				err := suite.app.Erc20Keeper.SetCurrentTemplateContract(suite.ctx, types.ProposalTypeContextTemplateImpl, c1)
+				err := suite.app.Erc20Keeper.SetTemplateContract(suite.ctx, types.ProposalTypeContextTemplateImpl, c1)
 				suite.Require().NoError(err)
-				err = suite.app.Erc20Keeper.SetCurrentTemplateContract(suite.ctx, types.ProposalTypeContextTemplateImpl, c2)
+				err = suite.app.Erc20Keeper.SetTemplateContract(suite.ctx, types.ProposalTypeContextTemplateImpl, c2)
 				suite.Require().NoError(err)
 				c11, found := suite.app.Erc20Keeper.GetImplementTemplateContract(suite.ctx)
 				suite.Require().Equal(found, true)
@@ -254,7 +254,7 @@ func (suite *KeeperTestSuite) TestSetGetTemplateContract() {
 				_, found := suite.app.Erc20Keeper.GetProxyTemplateContract(suite.ctx)
 				suite.Require().Equal(false, found)
 				proxy := f("proxy")
-				suite.app.Erc20Keeper.SetCurrentTemplateContract(suite.ctx, types.ProposalTypeContextTemplateProxy, proxy)
+				suite.app.Erc20Keeper.SetTemplateContract(suite.ctx, types.ProposalTypeContextTemplateProxy, proxy)
 				cc, found := suite.app.Erc20Keeper.GetProxyTemplateContract(suite.ctx)
 				suite.Require().Equal(true, found)
 				suite.Require().Equal(cc.Bin, "proxy")
