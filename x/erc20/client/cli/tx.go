@@ -86,8 +86,7 @@ $ %s tx gov submit-proposal token-mapping xxb 0x0000...0000 --from=<key_or_addre
 	return cmd
 }
 
-// GetCmdTokenMappingProposal returns a CLI command handler for creating
-// a token mapping proposal governance transaction.
+// SetContractTemplateProposal
 func SetContractTemplateProposal(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "contract-template  [file-path] proxy/implement",
