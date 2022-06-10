@@ -19,8 +19,8 @@ type CompiledContract struct {
 }
 
 var (
-	EVMModuleETHAddr  common.Address
-	EVMModuleBechAddr sdk.AccAddress
+	IbcEvmModuleETHAddr  common.Address
+	IbcEvmModuleBechAddr sdk.AccAddress
 
 	// ModuleERC20Contract is the compiled okc erc20 contract
 	ModuleERC20Contract CompiledContract
@@ -41,8 +41,8 @@ const (
 )
 
 func init() {
-	EVMModuleBechAddr = authtypes.NewModuleAddress(IbcEvmModuleName)
-	EVMModuleETHAddr = common.BytesToAddress(EVMModuleBechAddr.Bytes())
+	IbcEvmModuleBechAddr = authtypes.NewModuleAddress(IbcEvmModuleName)
+	IbcEvmModuleETHAddr = common.BytesToAddress(IbcEvmModuleBechAddr.Bytes())
 	MustUnmarshalCompileContract(implementationERC20ContractJson)
 	MustUnmarshalCompileContract(proxyERC20ContractJson)
 }

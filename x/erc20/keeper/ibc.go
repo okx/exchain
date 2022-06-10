@@ -167,15 +167,9 @@ func (k Keeper) deployModuleERC20(ctx sdk.Context, denom string) (common.Address
 		return common.Address{}, errors.New("not found proxy contract")
 	}
 
-	nonce := uint64(0)
-	acc := k.accountKeeper.GetAccount(ctx, types.EVMModuleBechAddr)
-	if acc != nil {
-		nonce = acc.GetSequence()
-	}
-
 	// 1. deploy implement contract
 	byteCode := common.Hex2Bytes(implContract.Bin)
-	_, implRes, err := k.callEvmByModule(ctx, nil, big.NewInt(0), byteCode, nonce)
+	_, implRes, err := k.callEvmByModule(ctx, nil, big.NewInt(0), byteCode)
 	if err != nil {
 		return common.Address{}, err
 	}
@@ -191,7 +185,7 @@ func (k Keeper) deployModuleERC20(ctx sdk.Context, denom string) (common.Address
 		return common.Address{}, err
 	}
 	data := append(byteCode, input...)
-	_, res, err := k.callEvmByModule(ctx, nil, big.NewInt(0), data, nonce+1)
+	_, res, err := k.callEvmByModule(ctx, nil, big.NewInt(0), data)
 	if err != nil {
 		return common.Address{}, err
 	}
@@ -211,13 +205,7 @@ func (k Keeper) CallModuleERC20(ctx sdk.Context, contract common.Address, method
 		return nil, err
 	}
 
-	nonce := uint64(0)
-	acc := k.accountKeeper.GetAccount(ctx, types.EVMModuleBechAddr)
-	if acc != nil {
-		nonce = acc.GetSequence()
-	}
-
-	_, res, err := k.callEvmByModule(ctx, &contract, big.NewInt(0), data, nonce)
+	_, res, err := k.callEvmByModule(ctx, &contract, big.NewInt(0), data)
 	if err != nil {
 		return nil, fmt.Errorf("call contract failed: %s, %s, %s", contract.Hex(), method, err)
 	}
@@ -225,7 +213,7 @@ func (k Keeper) CallModuleERC20(ctx sdk.Context, contract common.Address, method
 }
 
 // callEvmByModule execute an evm message from native module
-func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.Int, data []byte, nonce uint64) (*evmtypes.ExecutionResult, *evmtypes.ResultData, error) {
+func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.Int, data []byte) (*evmtypes.ExecutionResult, *evmtypes.ResultData, error) {
 	config, found := k.evmKeeper.GetChainConfig(ctx)
 	if !found {
 		return nil, nil, types.ErrChainConfigNotFound
@@ -235,6 +223,12 @@ func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.
 	if err != nil {
 		return nil, nil, err
 	}
+
+	acc := k.accountKeeper.GetAccount(ctx, types.IbcEvmModuleBechAddr)
+	if acc == nil {
+		acc = k.accountKeeper.NewAccountWithAddress(ctx, types.IbcEvmModuleBechAddr)
+	}
+	nonce := acc.GetSequence()
 
 	st := evmtypes.StateTransition{
 		AccountNonce: nonce,
@@ -246,7 +240,7 @@ func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.
 		Csdb:         evmtypes.CreateEmptyCommitStateDB(k.evmKeeper.GenerateCSDBParams(), ctx),
 		ChainID:      chainIDEpoch,
 		TxHash:       &common.Hash{},
-		Sender:       types.EVMModuleETHAddr,
+		Sender:       types.IbcEvmModuleETHAddr,
 		Simulate:     ctx.IsCheckTx(),
 		TraceTx:      false,
 		TraceTxLog:   false,
@@ -254,6 +248,10 @@ func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.
 
 	executionResult, resultData, err, _, _ := st.TransitionDb(ctx, config)
 	st.Csdb.Commit(false) // write code to db
+
+	acc.SetSequence(nonce + 1)
+	k.accountKeeper.SetAccount(ctx, acc)
+
 	return executionResult, resultData, err
 }
 
