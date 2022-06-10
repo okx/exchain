@@ -98,7 +98,7 @@ func (lss *FilePVLastSignState) CheckHRS(height int64, round int, step int8, avc
 
 		if lss.Round == round {
 			if avc {
-				return true, nil
+				return false, nil
 			}
 			if lss.Step > step {
 				return false, fmt.Errorf(
