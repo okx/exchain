@@ -40,13 +40,8 @@ const (
 func init() {
 	EVMModuleBechAddr = authtypes.NewModuleAddress(IbcEvmModuleName)
 	EVMModuleETHAddr = common.BytesToAddress(EVMModuleBechAddr.Bytes())
-
-	if err := json.Unmarshal(implementationERC20ContractJson, &ModuleERC20Contract); err != nil {
-		panic(err)
-	}
-	if len(ModuleERC20Contract.Bin) == 0 {
-		panic("load contract failed")
-	}
+	MustUnmarshalCompileContract(implementationERC20ContractJson)
+	MustUnmarshalCompileContract(proxyERC20ContractJson)
 }
 
 func (c CompiledContract) ValidBasic() error {
