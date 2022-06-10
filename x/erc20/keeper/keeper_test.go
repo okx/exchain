@@ -2,7 +2,11 @@ package keeper_test
 
 import (
 	"errors"
+
 	evmtypes "github.com/okex/exchain/x/evm/types"
+
+	"github.com/ethereum/go-ethereum/accounts/abi"
+
 	"math/big"
 	"testing"
 	"time"
@@ -16,6 +20,10 @@ import (
 	"github.com/okex/exchain/x/erc20/keeper"
 	"github.com/okex/exchain/x/erc20/types"
 	"github.com/stretchr/testify/suite"
+)
+
+var (
+	Uint256, _ = abi.NewType("uint256", "", nil)
 )
 
 func TestKeeperTestSuite(t *testing.T) {
@@ -173,6 +181,83 @@ func (suite *KeeperTestSuite) TestProxyContractRedirect() {
 				suite.app.Erc20Keeper.SetAutoContractForDenom(suite.ctx, denom, addr1)
 				err := suite.app.Erc20Keeper.ProxyContractRedirect(suite.ctx, denom, types.RedirectImplementation, addr1)
 				suite.Require().NoError(err)
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.name, func() {
+			suite.SetupTest()
+			tc.malleate()
+		})
+	}
+}
+
+func (suite *KeeperTestSuite) TestSetGetTemplateContract() {
+	f := func(bin string) string {
+		json := `[{	"inputs": [{"internalType": "uint256","name": "a","type": "uint256"	},{	"internalType": "uint256","name": "b","type": "uint256"}],"stateMutability": "nonpayable","type": "constructor"}]`
+		str := fmt.Sprintf(`{"abi":%s,"bin":"%s"}`, json, bin)
+		return str
+	}
+
+	testCases := []struct {
+		name     string
+		malleate func()
+	}{
+		{
+			"success, there is no data ",
+			func() {
+				_, found := suite.app.Erc20Keeper.GetImplementTemplateContract(suite.ctx)
+				suite.Require().Equal(found, false)
+			},
+		},
+		{
+			"success,set contract first",
+			func() {
+				c1 := f("c1")
+				err := suite.app.Erc20Keeper.SetCurrentTemplateContract(suite.ctx, types.ProposalTypeContextTemplateImpl, c1)
+				suite.Require().NoError(err)
+				c11, found := suite.app.Erc20Keeper.GetImplementTemplateContract(suite.ctx)
+				suite.Require().NoError(err)
+				suite.Require().Equal(found, true)
+				suite.Require().NotEqual(c11, types.ModuleERC20Contract)
+				suite.Require().Equal(c11.Bin, "c1")
+			},
+		},
+		{
+			"success, set contract twice",
+			func() {
+				c1 := f("c1")
+				c2 := f("c2")
+				err := suite.app.Erc20Keeper.SetCurrentTemplateContract(suite.ctx, types.ProposalTypeContextTemplateImpl, c1)
+				suite.Require().NoError(err)
+				err = suite.app.Erc20Keeper.SetCurrentTemplateContract(suite.ctx, types.ProposalTypeContextTemplateImpl, c2)
+				suite.Require().NoError(err)
+				c11, found := suite.app.Erc20Keeper.GetImplementTemplateContract(suite.ctx)
+				suite.Require().Equal(found, true)
+				suite.Require().NoError(err)
+				suite.Require().NotEqual(c11, types.ModuleERC20Contract)
+				suite.Require().NotEqual(c11.Bin, "c1")
+				suite.Require().Equal(c11.Bin, "c2")
+			},
+		},
+		{
+			"success ,no proxy contract",
+			func() {
+				_, found := suite.app.Erc20Keeper.GetProxyTemplateContract(suite.ctx)
+				suite.Require().Equal(false, found)
+			},
+		},
+		{
+			"success ,set proxy contract",
+			func() {
+				_, found := suite.app.Erc20Keeper.GetProxyTemplateContract(suite.ctx)
+				suite.Require().Equal(false, found)
+				proxy := f("proxy")
+				suite.app.Erc20Keeper.SetCurrentTemplateContract(suite.ctx, types.ProposalTypeContextTemplateProxy, proxy)
+				cc, found := suite.app.Erc20Keeper.GetProxyTemplateContract(suite.ctx)
+				suite.Require().Equal(true, found)
+				suite.Require().Equal(cc.Bin, "proxy")
 			},
 		},
 	}

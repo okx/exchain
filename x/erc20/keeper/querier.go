@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"encoding/json"
 	"fmt"
 
 	ethcmm "github.com/ethereum/go-ethereum/common"
@@ -29,6 +30,8 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryDenomByContract(ctx, req, keeper)
 		case types.QueryContractByDenom:
 			return queryContractByDenom(ctx, req, keeper)
+		case types.QueryContractTem:
+			return queryCurrentContractTemplate(ctx, req, keeper)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query endpoint")
 		}
@@ -86,4 +89,18 @@ func queryContractByDenom(ctx sdk.Context, req abci.RequestQuery, keeper Keeper)
 	}
 
 	return []byte(contract.String()), nil
+}
+
+func queryCurrentContractTemplate(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+	ret := types.CurrentContractTemplate{}
+	proxy, found := keeper.GetProxyTemplateContract(ctx)
+	if found {
+		ret.Proxy = types.MustMarshalCompileContract(proxy)
+	}
+	imple, found := keeper.GetImplementTemplateContract(ctx)
+	if found {
+		ret.Implement = types.MustMarshalCompileContract(imple)
+	}
+	data, _ := json.Marshal(ret)
+	return data, nil
 }

@@ -16,6 +16,8 @@ func NewProposalHandler(k *Keeper) govTypes.Handler {
 			return handleTokenMappingProposal(ctx, k, content)
 		case types.ProxyContractRedirectProposal:
 			return handleProxyContractRedirectProposal(ctx, k, content)
+		case types.ContractTemplateProposal:
+			return handleContractTemplateProposal(ctx, k, content)
 		default:
 			return common.ErrUnknownProposalType(types.DefaultCodespace, content.ProposalType())
 		}
@@ -40,4 +42,8 @@ func handleProxyContractRedirectProposal(ctx sdk.Context, k *Keeper, p types.Pro
 	address := ethcmm.HexToAddress(p.Addr)
 
 	return k.ProxyContractRedirect(ctx, p.Denom, p.Tp, address)
+}
+
+func handleContractTemplateProposal(ctx sdk.Context, k *Keeper, p types.ContractTemplateProposal) sdk.Error {
+	return k.SetCurrentTemplateContract(ctx, p.ContractType, p.Contract)
 }

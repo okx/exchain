@@ -18,4 +18,8 @@ var (
 		cli.GetCmdProxyContractRedirectProposal,
 		rest.ProxyContractRedirectRESTHandler,
 	)
+	ContractTemplateProposalHandler = govcli.NewProposalHandler(
+		cli.SetContractTemplateProposal,
+		rest.ContractTemplateProposalRESTHandler,
+	)
 )

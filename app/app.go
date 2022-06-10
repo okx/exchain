@@ -117,6 +117,7 @@ var (
 			govclient.ManageTreasuresProposalHandler,
 			erc20client.TokenMappingProposalHandler,
 			erc20client.ProxyContractRedirectHandler,
+			erc20client.ContractTemplateProposalHandler,
 			client.UpdateClientProposalHandler,
 		),
 		params.AppModuleBasic{},

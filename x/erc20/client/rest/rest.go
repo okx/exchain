@@ -98,3 +98,6 @@ func TokenMappingProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHan
 func ProxyContractRedirectRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
 	return govRest.ProposalRESTHandler{}
 }
+func ContractTemplateProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
+	return govRest.ProposalRESTHandler{}
+}
