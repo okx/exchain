@@ -107,6 +107,7 @@ func main() {
 	executor := cli.PrepareBaseCmd(rootCmd, "OKEXCHAIN", app.DefaultNodeHome)
 	rootCmd.PersistentFlags().UintVar(&invCheckPeriod, flagInvCheckPeriod,
 		0, "Assert registered invariants every N blocks")
+	rootCmd.PersistentFlags().Bool(server.FlagGops, false, "Enable gops metrics collection")
 
 	err := executor.Execute()
 	if err != nil {

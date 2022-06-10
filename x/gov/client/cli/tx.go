@@ -128,7 +128,6 @@ $ %s tx gov submit-proposal --title="Test Proposal" --description="My awesome pr
 			}
 
 			content := types.ContentFromProposalType(proposal.Title, proposal.Description, proposal.Type)
-
 			msg := types.NewMsgSubmitProposal(content, amount, cliCtx.GetFromAddress())
 			if err := msg.ValidateBasic(); err != nil {
 				return err
@@ -137,7 +136,6 @@ $ %s tx gov submit-proposal --title="Test Proposal" --description="My awesome pr
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
-
 	cmd.Flags().String(flagTitle, "", "title of proposal")
 	cmd.Flags().String(flagDescription, "", "description of proposal")
 	cmd.Flags().String(flagProposalType, "",
