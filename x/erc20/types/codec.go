@@ -8,13 +8,16 @@ import (
 var ModuleCdc = codec.New()
 
 const (
-	TokenMappingProposalName = "okexchain/erc20/TokenMappingProposal"
+	TokenMappingProposalName     = "okexchain/erc20/TokenMappingProposal"
+	ContractTemplateProposalName = "okexchain/erc20/ContractTemplateProposal"
 )
 
 // RegisterCodec registers all the necessary types and interfaces for the
 // erc20 module
 func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(TokenMappingProposal{}, TokenMappingProposalName, nil)
+	cdc.RegisterConcrete(ContractTemplateProposal{}, ContractTemplateProposalName, nil)
+	cdc.RegisterConcrete(CompiledContract{}, "okexchain/erc20/Contract", nil)
 }
 
 func init() {
