@@ -171,7 +171,7 @@ func (suite *KeeperTestSuite) TestProxyContractRedirect() {
 				evmParams.EnableCall = true
 				suite.app.EvmKeeper.SetParams(suite.ctx, evmParams)
 				suite.app.Erc20Keeper.SetAutoContractForDenom(suite.ctx, denom, addr1)
-				err := suite.app.Erc20Keeper.ProxyContractRedirect(suite.ctx, denom, types.RedirectContract, addr1)
+				err := suite.app.Erc20Keeper.ProxyContractRedirect(suite.ctx, denom, types.RedirectImplementation, addr1)
 				suite.Require().NoError(err)
 			},
 		},

@@ -192,7 +192,7 @@ func (k Keeper) ProxyContractRedirect(ctx sdk.Context, denom string, tp types.Re
 func (k Keeper) redirectProxyContractInfoByTp(ctx sdk.Context, denom string, contract common.Address, tp types.RedirectType) error {
 	method := ""
 	switch tp {
-	case types.RedirectContract:
+	case types.RedirectImplementation:
 		method = types.ProxyContractUpgradeTo
 	case types.RedirectOwner:
 		method = types.ProxyContractChangeAdmin
@@ -203,14 +203,7 @@ func (k Keeper) redirectProxyContractInfoByTp(ctx sdk.Context, denom string, con
 	if !found {
 		return fmt.Errorf("GetContractByDenom contract not found,denom: %s", denom)
 	}
-	if _, err := k.CallModuleERC20(
-		ctx,
-		contractProxy,
-		method,
-		contract,
-	); err != nil {
-		return err
-	}
+	_, err := k.CallModuleERC20(ctx, contractProxy, method, contract)
 
-	return nil
+	return err
 }

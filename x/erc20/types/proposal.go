@@ -96,13 +96,13 @@ func (tp TokenMappingProposal) String() string {
 type RedirectType int
 
 const (
-	RedirectContract = iota
+	RedirectImplementation = iota
 	RedirectOwner
 )
 
 var RedirectMap = map[RedirectType]string{
-	RedirectContract: "ContractAddr",
-	RedirectOwner:    "OwnerAddr",
+	RedirectImplementation: "ImplementationAddr",
+	RedirectOwner:          "OwnerAddr",
 }
 
 type ProxyContractRedirectProposal struct {
@@ -165,7 +165,7 @@ func (tp ProxyContractRedirectProposal) ValidateBasic() sdk.Error {
 		return govtypes.ErrInvalidProposalContent("invalid denom")
 	}
 	switch tp.Tp {
-	case RedirectContract, RedirectOwner:
+	case RedirectImplementation, RedirectOwner:
 	default:
 		return govtypes.ErrInvalidProposer()
 	}

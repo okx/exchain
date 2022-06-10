@@ -94,8 +94,8 @@ func GetCmdProxyContractRedirectProposal(cdc *codec.Codec) *cobra.Command {
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`Submit a proxy contract redirect proposal.
   tp: 
-	0	contract	contract address 
-	1	owner		owner address
+	0	implementation	implementation address
+	1	owner			owner address
 Example:
 $ %s tx gov submit-proposal contract-redirect xxb 0 0xffffffffffffffffffff
 `, version.ClientName,
@@ -119,18 +119,17 @@ $ %s tx gov submit-proposal contract-redirect xxb 0 0xffffffffffffffffffff
 			if err != nil {
 				return fmt.Errorf("invalid redirect tp,only support 0(change contract) or 1(change owner),but give %s", args[1])
 			}
-			var redirectaddr *common.Address
+			var redirectaddr common.Address
 			if len(args[1]) > 0 {
 				if common.IsHexAddress(args[2]) {
-					addr := common.HexToAddress(args[2])
-					redirectaddr = &addr
+					redirectaddr = common.HexToAddress(args[2])
 				} else {
 					return fmt.Errorf("invalid contract address %s", args[1])
 				}
 			}
 
 			content := types.NewProxyContractRedirectProposal(
-				title, description, args[0], types.RedirectType(tp), redirectaddr,
+				title, description, args[0], types.RedirectType(tp), &redirectaddr,
 			)
 			if err := content.ValidateBasic(); err != nil {
 				return err

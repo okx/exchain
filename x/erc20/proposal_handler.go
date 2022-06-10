@@ -39,9 +39,5 @@ func handleTokenMappingProposal(ctx sdk.Context, k *Keeper, p types.TokenMapping
 func handleProxyContractRedirectProposal(ctx sdk.Context, k *Keeper, p types.ProxyContractRedirectProposal) sdk.Error {
 	address := ethcmm.HexToAddress(p.Addr)
 
-	if err := k.ProxyContractRedirect(ctx, p.Denom, p.Tp, address); err != nil {
-		return err
-	}
-
-	return nil
+	return k.ProxyContractRedirect(ctx, p.Denom, p.Tp, address)
 }
