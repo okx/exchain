@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	"math/big"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -51,7 +52,7 @@ type Keeper struct {
 
 	// add inner block data
 	innerBlockData BlockInnerData
-
+	innerTxLock    sync.RWMutex
 	// cache chain config
 	cci chainConfigInfo
 }

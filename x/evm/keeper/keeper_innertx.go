@@ -69,13 +69,36 @@ func (k *Keeper) UpdateInnerBlockData() {
 // AddInnerTx add inner tx
 func (k *Keeper) AddInnerTx(hash string, txs interface{}) {
 	if innerTxs, ok := txs.([]*ethvm.InnerTx); ok {
-		targetTxS, ok := k.innerBlockData.TxMap[hash]
+		k.innerTxLock.RLock()
+		existedTxs, ok := k.innerBlockData.TxMap[hash]
+		k.innerTxLock.RUnlock()
 		if !ok {
+			//Initialization
+			k.innerTxLock.Lock()
 			k.innerBlockData.TxHashes = append(k.innerBlockData.TxHashes, hash)
-			targetTxS = make([]*ethvm.InnerTx, 0)
+			k.innerBlockData.TxMap[hash] = innerTxs
+			k.innerTxLock.Unlock()
+		} else {
+			hasDeductTx := false
+			//Determine if the pending innerTx contains deductTx
+			//todo: binary search
+			for _, tx := range innerTxs {
+				//"To" address of deduct fee
+				if tx.To == "0xf1829676DB577682E944fc3493d451B67Ff3E29F" {
+					hasDeductTx = true
+					break
+				}
+			}
+			k.innerTxLock.Lock()
+			if hasDeductTx {
+				delete(k.innerBlockData.TxMap, hash)
+				k.innerBlockData.TxMap[hash] = innerTxs
+			} else {
+				existedTxs = append(existedTxs, innerTxs...)
+				k.innerBlockData.TxMap[hash] = existedTxs
+			}
+			k.innerTxLock.Unlock()
 		}
-		targetTxS = append(targetTxS, innerTxs...)
-		k.innerBlockData.TxMap[hash] = targetTxS
 	} else {
 		panic("Invalid parameter types for evm")
 	}
