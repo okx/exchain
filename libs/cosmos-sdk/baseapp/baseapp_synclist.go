@@ -7,9 +7,8 @@ import (
 )
 
 type cacheMultiStoreList struct {
-	mtx     sync.Mutex
-	stores  *list.List
-	newCont int // TODO delete
+	mtx    sync.Mutex
+	stores *list.List
 }
 
 func newCacheMultiStoreList() *cacheMultiStoreList {
@@ -47,7 +46,6 @@ func (c *cacheMultiStoreList) GetStoreWithParent(parent types.CacheMultiStore) t
 		return front
 
 	}
-	c.newCont++
 	c.mtx.Unlock()
 	return parent.CacheMultiStore()
 }

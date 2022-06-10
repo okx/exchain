@@ -7,7 +7,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/spf13/viper"
 	"runtime"
@@ -319,7 +318,7 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 		logIndex[index] = paraM.LogIndex
 		errs[index] = paraM.AnteErr
 	}
-	app.parallelTxManage.clear(app.logger) // TODO delete app.logger
+	app.parallelTxManage.clear()
 	return app.logFix(logIndex, errs)
 }
 
@@ -582,10 +581,7 @@ func shouldCleanChainCache(height int64) bool {
 	return height%multiCacheListClearInterval == 0
 }
 
-func (f *parallelTxManager) addBlockCacheToChainCache(l log.Logger) {
-
-	beforeBlockCache := f.blockMultiStores.stores.Len()
-	beforeChainCache := f.chainMultiStores.stores.Len()
+func (f *parallelTxManager) addBlockCacheToChainCache() {
 
 	if shouldCleanChainCache(f.blockHeight) {
 		f.chainMultiStores.Clear()
@@ -607,7 +603,6 @@ func (f *parallelTxManager) addBlockCacheToChainCache(l log.Logger) {
 	}
 
 	f.blockMultiStores.Clear()
-	l.Info("ReUseCachePool", "beforeTmpCache", beforeBlockCache, "nowTmpCache", f.blockMultiStores.stores.Len(), "beforeChainCache", beforeChainCache, "nowChainCache", f.chainMultiStores.stores.Len(), "allNewMs", f.chainMultiStores.newCont)
 }
 
 func (f *parallelTxManager) newIsConflict(e *executeResult) bool {
@@ -629,8 +624,8 @@ func (f *parallelTxManager) newIsConflict(e *executeResult) bool {
 	return conflict
 }
 
-func (f *parallelTxManager) clear(l log.Logger) {
-	f.addBlockCacheToChainCache(l)
+func (f *parallelTxManager) clear() {
+	f.addBlockCacheToChainCache()
 	f.workgroup.Close()
 	f.workgroup.isReady = false
 	f.workgroup.indexInAll = 0
