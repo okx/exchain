@@ -2,7 +2,6 @@ package consensus
 
 import (
 	"fmt"
-	"github.com/nacos-group/nacos-sdk-go/common/logger"
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
 	"github.com/okex/exchain/libs/tendermint/types"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
@@ -35,6 +34,7 @@ func (cs *State) enterNewRound(height int64, round int) {
 }
 
 func (cs *State) doNewRound(height int64, round int, avc bool, val *types.Validator) {
+	logger := cs.Logger.With("height", height, "round", round)
 	cs.initNewHeight()
 	if !avc {
 		if now := tmtime.Now(); cs.StartTime.After(now) {
