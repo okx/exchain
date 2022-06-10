@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
-	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
 	"github.com/okex/exchain/libs/tendermint/types"
 )
 
@@ -178,7 +177,7 @@ func (ar *AddressRecord) GetAddressNonce(address string) (uint64, bool) {
 	return nonce, true
 }
 
-func (ar *AddressRecord) GetAddressTxs(address string, txCount int, max int) types.Txs {
+func (ar *AddressRecord) GetAddressTxs(address string, max int) types.Txs {
 	v, ok := ar.addrTxs.Load(address)
 	if !ok {
 		return nil
@@ -189,9 +188,9 @@ func (ar *AddressRecord) GetAddressTxs(address string, txCount int, max int) typ
 	if max <= 0 || max > len(am.items) {
 		max = len(am.items)
 	}
-	txs := make([]types.Tx, 0, tmmath.MinInt(txCount, max))
+	txs := make([]types.Tx, 0, max)
 	for _, e := range am.items {
-		if len(txs) == cap(txs) {
+		if len(txs) == max {
 			break
 		}
 		txs = append(txs, e.Value.(*mempoolTx).tx)

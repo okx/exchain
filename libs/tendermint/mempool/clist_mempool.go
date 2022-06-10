@@ -826,7 +826,8 @@ func (mem *CListMempool) ReapUserTxsCnt(address string) int {
 }
 
 func (mem *CListMempool) ReapUserTxs(address string, max int) types.Txs {
-	return mem.addressRecord.GetAddressTxs(address, mem.txs.Len(), max)
+	max = tmmath.MinInt(mem.txs.Len(), max)
+	return mem.addressRecord.GetAddressTxs(address, max)
 }
 
 func (mem *CListMempool) GetUserPendingTxsCnt(address string) int {
