@@ -372,3 +372,21 @@ func (store *Store) setCacheValue(key, value []byte, deleted bool, dirty bool) {
 		store.unsortedCache[keyStr] = struct{}{}
 	}
 }
+
+// Reset will clear all internal data without writing to the parent and set the new parent.
+func (store *Store) Reset(parent types.KVStore) {
+	store.mtx.Lock()
+
+	store.preChangesHandler = nil
+	store.parent = parent
+	store.clearCache()
+
+	store.mtx.Unlock()
+}
+
+// Clear will clear all internal data without writing to the parent.
+func (store *Store) Clear() {
+	store.mtx.Lock()
+	store.clearCache()
+	store.mtx.Unlock()
+}

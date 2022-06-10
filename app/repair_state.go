@@ -6,6 +6,7 @@ import (
 	"log"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/okex/exchain/app/config"
 
@@ -142,7 +143,6 @@ func RepairState(ctx *server.Context, onStart bool) {
 
 	mpttypes.TrieDirtyDisabled = rawTrieDirtyDisabledFlag
 }
-
 func createRepairApp(ctx *server.Context) (proxy.AppConns, *repairApp, error) {
 	rootDir := ctx.Config.RootDir
 	dataDir := filepath.Join(rootDir, "data")
@@ -178,9 +178,17 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	ctx.Logger.Debug("constructStartState", "state", fmt.Sprintf("%+v", state))
 	// repair state
 	eventBus := types.NewEventBus()
-	txStore, err := startEventBusAndIndexerService(ctx.Config, eventBus, ctx.Logger)
+	txStore, txindexServer, err := startEventBusAndIndexerService(ctx.Config, eventBus, ctx.Logger)
 	panicError(err)
 	defer func() {
+		if txindexServer != nil {
+			txindexServer.Stop()
+			txindexServer.Wait()
+		}
+		if eventBus != nil {
+			eventBus.Stop()
+			eventBus.Wait()
+		}
 		if txStore != nil {
 			err := txStore.Close()
 			panicError(err)
@@ -212,10 +220,10 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	}
 }
 
-func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus, logger tmlog.Logger) (txStore dbm.DB, err error) {
+func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus, logger tmlog.Logger) (txStore dbm.DB, indexerService *txindex.IndexerService, err error) {
 	eventBus.SetLogger(logger.With("module", "events"))
 	if err := eventBus.Start(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	// Transaction indexing
 	var txIndexer txindex.TxIndexer
@@ -223,7 +231,7 @@ func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus
 	case "kv":
 		txStore, err = openDB(txIndexDB, filepath.Join(config.RootDir, "data"))
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		switch {
 		case config.TxIndex.IndexKeys != "":
@@ -237,15 +245,19 @@ func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus
 		txIndexer = &null.TxIndex{}
 	}
 
-	indexerService := txindex.NewIndexerService(txIndexer, eventBus)
+	indexerService = txindex.NewIndexerService(txIndexer, eventBus)
 	indexerService.SetLogger(logger.With("module", "txindex"))
 	if err := indexerService.Start(); err != nil {
+		if eventBus != nil {
+			eventBus.Stop()
+		}
 		if txStore != nil {
 			txStore.Close()
 		}
-		return nil, err
+
+		return nil, nil, err
 	}
-	return txStore, nil
+	return txStore, indexerService, nil
 }
 
 // splitAndTrimEmpty slices s into all subslices separated by sep and returns a
@@ -330,7 +342,10 @@ func createAndStartProxyAppConns(clientCreator proxy.ClientCreator) (proxy.AppCo
 }
 
 func (app *repairApp) Close() {
+	for evmtypes.GetIndexer().IsProcessing() {
+		time.Sleep(100 * time.Millisecond)
+	}
+	evmtypes.CloseIndexer()
 	err := app.db.Close()
 	panicError(err)
-	evmtypes.CloseIndexer()
 }
