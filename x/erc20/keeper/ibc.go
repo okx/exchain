@@ -158,11 +158,11 @@ func (k Keeper) ConvertNativeToERC20(ctx sdk.Context, from sdk.AccAddress, nativ
 
 // deployModuleERC20 deploy an embed erc20 contract
 func (k Keeper) deployModuleERC20(ctx sdk.Context, denom string) (common.Address, error) {
-	implContract, found := k.GetCurrentImplementTemplateContract(ctx)
+	implContract, found := k.GetImplementTemplateContract(ctx)
 	if !found {
 		return common.Address{}, errors.New("not found implement contract")
 	}
-	proxyContract, found := k.GetCurrentProxyTemplateContract(ctx)
+	proxyContract, found := k.GetProxyTemplateContract(ctx)
 	if !found {
 		return common.Address{}, errors.New("not found proxy contract")
 	}
@@ -202,7 +202,7 @@ func (k Keeper) deployModuleERC20(ctx sdk.Context, denom string) (common.Address
 func (k Keeper) CallModuleERC20(ctx sdk.Context, contract common.Address, method string, args ...interface{}) ([]byte, error) {
 	k.Logger(ctx).Info("call erc20 module contract", "contract", contract.String(), "method", method, "args", args)
 
-	implContract, found := k.GetCurrentImplementTemplateContract(ctx)
+	implContract, found := k.GetImplementTemplateContract(ctx)
 	if !found {
 		return nil, errors.New("not found proxy contract")
 	}
