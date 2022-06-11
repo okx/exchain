@@ -2,6 +2,9 @@ package baseapp
 
 import (
 	"bytes"
+	"runtime"
+	"sync"
+
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -9,8 +12,6 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/spf13/viper"
-	"runtime"
-	"sync"
 )
 
 var (
@@ -30,35 +31,13 @@ type extraDataForTx struct {
 
 // getExtraDataByTxs preprocessing tx : verify tx, get sender, get toAddress, get txFee
 func (app *BaseApp) getExtraDataByTxs(txs [][]byte) {
-	para := app.parallelTxManage
-	para.txReps = make([]*executeResult, para.txSize)
-	para.extraTxsInfo = make([]*extraDataForTx, para.txSize)
-	para.workgroup.runningStatus = make(map[int]int)
-	para.workgroup.isrunning = make(map[int]bool)
+	initParallelTxManage(app.parallelTxManage)
 
-	var wg sync.WaitGroup
+	ptxPool := getParallelTxPool()
 	for index, txBytes := range txs {
-		wg.Add(1)
-		go func(index int, txBytes []byte) {
-			defer wg.Done()
-			tx, err := app.txDecoder(txBytes)
-			if err != nil {
-				para.extraTxsInfo[index] = &extraDataForTx{
-					decodeErr: err,
-				}
-				return
-			}
-			coin, isEvm, s, toAddr, _ := app.getTxFeeAndFromHandler(app.getContextForTx(runTxModeDeliver, txBytes), tx)
-			para.extraTxsInfo[index] = &extraDataForTx{
-				fee:   coin,
-				isEvm: isEvm,
-				from:  s,
-				to:    toAddr,
-				stdTx: tx,
-			}
-		}(index, txBytes)
+		ptxPool.getExtraData(app, index, txBytes)
 	}
-	wg.Wait()
+	waitTxPrepared(uint64(len(txs)))
 }
 
 var (
@@ -589,9 +568,6 @@ func (f *parallelTxManager) clear() {
 	for key := range f.workgroup.markFailedStats {
 		delete(f.workgroup.markFailedStats, key)
 	}
-
-	f.extraTxsInfo = nil
-	f.txReps = nil
 
 	for key := range f.groupList {
 		delete(f.groupList, key)

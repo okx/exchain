@@ -1,6 +1,8 @@
 package baseapp
 
-import sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+import (
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+)
 
 func (m *modeHandlerDeliverInAsync) handleDeferRefund(info *runTxInfo) {
 	app := m.app

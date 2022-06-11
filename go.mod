@@ -47,6 +47,7 @@ require (
 	github.com/mosn/holmes v0.0.0-20210830110104-685dc05437bf
 	github.com/nacos-group/nacos-sdk-go v1.0.0
 	github.com/orcaman/concurrent-map v1.0.0
+	github.com/panjf2000/ants/v2 v2.5.0
 	github.com/pelletier/go-toml v1.6.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.5.1
@@ -149,7 +150,7 @@ require (
 	gopkg.in/ini.v1 v1.51.0 // indirect
 	gopkg.in/natefinch/npipe.v2 v2.0.0-20160621034901-c1b8fa8bdcce // indirect
 	gopkg.in/olebedev/go-duktape.v3 v3.0.0-20200619000410-60c24ae608a6 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c // indirect
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
 
 replace (
