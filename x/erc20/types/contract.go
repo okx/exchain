@@ -52,10 +52,7 @@ func (c CompiledContract) ValidBasic() error {
 		return errors.New("empty bin data")
 	}
 	_, err := hex.DecodeString(c.Bin)
-	if nil != err {
-		return err
-	}
-	return nil
+	return err
 }
 
 func MustMarshalCompileContract(data CompiledContract) []byte {
