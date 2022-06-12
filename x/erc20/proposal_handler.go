@@ -27,11 +27,11 @@ func NewProposalHandler(k *Keeper) govTypes.Handler {
 func handleTokenMappingProposal(ctx sdk.Context, k *Keeper, p types.TokenMappingProposal) sdk.Error {
 	if len(p.Contract) == 0 {
 		// delete existing mapping
-		k.DeleteExternalContractForDenom(ctx, p.Denom)
+		k.DeleteContractForDenom(ctx, p.Denom)
 	} else {
 		// update the mapping
 		contract := ethcmm.HexToAddress(p.Contract)
-		if err := k.SetExternalContractForDenom(ctx, p.Denom, contract); err != nil {
+		if err := k.SetContractForDenom(ctx, p.Denom, contract); err != nil {
 			return err
 		}
 	}

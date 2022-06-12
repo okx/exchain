@@ -48,7 +48,7 @@ func (suite *KeeperTestSuite) TestSendToIbcHandler() {
 		{
 			"non IBC denom, expect fail",
 			func() {
-				suite.app.Erc20Keeper.SetExternalContractForDenom(suite.ctx, invalidDenom, contract)
+				suite.app.Erc20Keeper.SetContractForDenom(suite.ctx, invalidDenom, contract)
 				coin := sdk.NewCoin(invalidDenom, sdk.NewInt(100))
 				err := suite.MintCoins(sdk.AccAddress(contract.Bytes()), sdk.NewCoins(coin))
 				suite.Require().NoError(err)
@@ -70,7 +70,7 @@ func (suite *KeeperTestSuite) TestSendToIbcHandler() {
 			"success send to ibc",
 			func() {
 				amount := sdk.NewInt(100)
-				suite.app.Erc20Keeper.SetExternalContractForDenom(suite.ctx, validDenom, contract)
+				suite.app.Erc20Keeper.SetContractForDenom(suite.ctx, validDenom, contract)
 				coin := sdk.NewCoin(validDenom, amount)
 				err := suite.MintCoins(sdk.AccAddress(contract.Bytes()), sdk.NewCoins(coin))
 				suite.Require().NoError(err)

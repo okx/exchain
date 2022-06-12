@@ -2,16 +2,14 @@ package keeper_test
 
 import (
 	"errors"
-
-	evmtypes "github.com/okex/exchain/x/evm/types"
-
-	"github.com/ethereum/go-ethereum/accounts/abi"
-
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
 
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/okex/exchain/app"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	minttypes "github.com/okex/exchain/libs/cosmos-sdk/x/mint"
@@ -19,6 +17,8 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/erc20/keeper"
 	"github.com/okex/exchain/x/erc20/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
+
 	"github.com/stretchr/testify/suite"
 )
 
@@ -105,7 +105,7 @@ func (suite *KeeperTestSuite) TestDenomContractMap() {
 				contract, found := keeper.GetContractByDenom(suite.ctx, denom1)
 				suite.Require().False(found)
 
-				keeper.SetAutoContractForDenom(suite.ctx, denom1, autoContract)
+				keeper.SetContractForDenom(suite.ctx, denom1, autoContract)
 
 				contract, found = keeper.GetContractByDenom(suite.ctx, denom1)
 				suite.Require().True(found)
@@ -115,7 +115,7 @@ func (suite *KeeperTestSuite) TestDenomContractMap() {
 				suite.Require().True(found)
 				suite.Require().Equal(denom1, denom)
 
-				keeper.SetExternalContractForDenom(suite.ctx, denom1, externalContract)
+				keeper.SetContractForDenom(suite.ctx, denom1, externalContract)
 
 				contract, found = keeper.GetContractByDenom(suite.ctx, denom1)
 				suite.Require().True(found)
@@ -126,8 +126,8 @@ func (suite *KeeperTestSuite) TestDenomContractMap() {
 			"failure, multiple denoms map to same contract",
 			func() {
 				keeper := suite.app.Erc20Keeper
-				keeper.SetAutoContractForDenom(suite.ctx, denom1, autoContract)
-				err := keeper.SetExternalContractForDenom(suite.ctx, denom2, autoContract)
+				keeper.SetContractForDenom(suite.ctx, denom1, autoContract)
+				err := keeper.SetContractForDenom(suite.ctx, denom2, autoContract)
 				suite.Require().Error(err)
 			},
 		},
@@ -135,9 +135,9 @@ func (suite *KeeperTestSuite) TestDenomContractMap() {
 			"failure, multiple denoms map to same external contract",
 			func() {
 				keeper := suite.app.Erc20Keeper
-				err := keeper.SetExternalContractForDenom(suite.ctx, denom1, externalContract)
+				err := keeper.SetContractForDenom(suite.ctx, denom1, externalContract)
 				suite.Require().NoError(err)
-				err = keeper.SetExternalContractForDenom(suite.ctx, denom2, externalContract)
+				err = keeper.SetContractForDenom(suite.ctx, denom2, externalContract)
 				suite.Require().Error(err)
 			},
 		},
@@ -166,7 +166,7 @@ func (suite *KeeperTestSuite) TestProxyContractRedirect() {
 				evmParams.EnableCreate = true
 				evmParams.EnableCall = true
 				suite.app.EvmKeeper.SetParams(suite.ctx, evmParams)
-				suite.app.Erc20Keeper.SetAutoContractForDenom(suite.ctx, denom, addr1)
+				suite.app.Erc20Keeper.SetContractForDenom(suite.ctx, denom, addr1)
 				err := suite.app.Erc20Keeper.ProxyContractRedirect(suite.ctx, denom, types.RedirectOwner, addr1)
 				suite.Require().NoError(err)
 			},
@@ -178,7 +178,7 @@ func (suite *KeeperTestSuite) TestProxyContractRedirect() {
 				evmParams.EnableCreate = true
 				evmParams.EnableCall = true
 				suite.app.EvmKeeper.SetParams(suite.ctx, evmParams)
-				suite.app.Erc20Keeper.SetAutoContractForDenom(suite.ctx, denom, addr1)
+				suite.app.Erc20Keeper.SetContractForDenom(suite.ctx, denom, addr1)
 				err := suite.app.Erc20Keeper.ProxyContractRedirect(suite.ctx, denom, types.RedirectImplementation, addr1)
 				suite.Require().NoError(err)
 			},

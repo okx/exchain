@@ -55,7 +55,7 @@ func (iths IBCTransferHooks) AfterRecvTransfer(
 		// only after minting vouchers on this chain
 		// the native coin come from other chain with ibc
 		iths.Keeper.OnMintVouchers(ctx, sdk.NewCoins(token), receiver)
-	} else {
+	} else if token.Denom != sdk.DefaultBondDenom {
 		// the native coin come from this chain,
 		iths.Keeper.OnUnescrowNatives(ctx, sdk.NewCoins(token), receiver)
 	}
@@ -79,7 +79,7 @@ func (iths IBCTransferHooks) AfterRefundTransfer(
 	// the native coin come from other chain with ibc
 	if !isSource {
 		iths.Keeper.OnMintVouchers(ctx, sdk.NewCoins(token), sender)
-	} else {
+	} else if token.Denom != sdk.DefaultBondDenom {
 		// the native coin come from this chain,
 		iths.Keeper.OnUnescrowNatives(ctx, sdk.NewCoins(token), sender)
 	}

@@ -108,7 +108,7 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 		if err != nil {
 			return err
 		}
-		k.SetAutoContractForDenom(ctx, voucher.Denom, contract)
+		k.SetContractForDenom(ctx, voucher.Denom, contract)
 		k.Logger(ctx).Info("contract created for coin", "contract", contract.String(), "denom", voucher.Denom)
 	}
 
@@ -198,7 +198,7 @@ func (k Keeper) CallModuleERC20(ctx sdk.Context, contract common.Address, method
 
 	implContract, found := k.GetImplementTemplateContract(ctx)
 	if !found {
-		return nil, errors.New("not found proxy contract")
+		return nil, errors.New("not found implement contract")
 	}
 	data, err := implContract.ABI.Pack(method, args...)
 	if err != nil {

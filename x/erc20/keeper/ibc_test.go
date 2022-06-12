@@ -66,6 +66,8 @@ func (suite *KeeperTestSuite) TestConvertVouchers() {
 				params.EnableAutoDeployment = true
 				suite.app.Erc20Keeper.SetParams(suite.ctx, params)
 
+				suite.app.Erc20Keeper.InitInternalTemplateContract(suite.ctx)
+
 				evmParams := evmtypes.DefaultParams()
 				evmParams.EnableCreate = true
 				evmParams.EnableCall = true
@@ -87,6 +89,8 @@ func (suite *KeeperTestSuite) TestConvertVouchers() {
 				params := types.DefaultParams()
 				params.EnableAutoDeployment = true
 				suite.app.Erc20Keeper.SetParams(suite.ctx, params)
+
+				suite.app.Erc20Keeper.InitInternalTemplateContract(suite.ctx)
 
 				evmParams := evmtypes.DefaultParams()
 				evmParams.EnableCreate = true
@@ -112,6 +116,8 @@ func (suite *KeeperTestSuite) TestConvertVouchers() {
 				params := types.DefaultParams()
 				params.EnableAutoDeployment = true
 				suite.app.Erc20Keeper.SetParams(suite.ctx, params)
+
+				suite.app.Erc20Keeper.InitInternalTemplateContract(suite.ctx)
 
 				evmParams := evmtypes.DefaultParams()
 				evmParams.EnableCreate = true
@@ -246,7 +252,7 @@ func (suite *KeeperTestSuite) TestIbcTransferVouchers() {
 			sdk.NewCoins(sdk.NewCoin("incorrect", sdk.NewInt(123))),
 			func() {
 				// Add support for the IBC token
-				suite.app.Erc20Keeper.SetAutoContractForDenom(suite.ctx, "incorrect", common.HexToAddress("0x11"))
+				suite.app.Erc20Keeper.SetContractForDenom(suite.ctx, "incorrect", common.HexToAddress("0x11"))
 			},
 			errors.New("ibc denom is invalid: incorrect is invalid"),
 			func() {
@@ -261,7 +267,7 @@ func (suite *KeeperTestSuite) TestIbcTransferVouchers() {
 				// Mint IBC token for user
 				suite.MintCoins(addr1Bech, sdk.NewCoins(sdk.NewCoin(CorrectIbcDenom, sdk.NewInt(123))))
 				// Add support for the IBC token
-				suite.app.Erc20Keeper.SetAutoContractForDenom(suite.ctx, CorrectIbcDenom, common.HexToAddress("0x11"))
+				suite.app.Erc20Keeper.SetContractForDenom(suite.ctx, CorrectIbcDenom, common.HexToAddress("0x11"))
 			},
 			nil,
 			func() {},
