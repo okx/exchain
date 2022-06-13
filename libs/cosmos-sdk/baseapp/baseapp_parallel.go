@@ -11,6 +11,7 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	sm "github.com/okex/exchain/libs/tendermint/state"
+	"github.com/okex/exchain/libs/utils/gopool"
 	"github.com/spf13/viper"
 )
 
@@ -454,7 +455,7 @@ func (a *asyncWorkGroup) Close() {
 
 func (a *asyncWorkGroup) Start() {
 	for index := 0; index < maxGoroutineNumberInParaTx; index++ {
-		go func() {
+		gopool.Run(func() {
 			for true {
 				select {
 				case task := <-a.taskCh:
@@ -463,11 +464,10 @@ func (a *asyncWorkGroup) Start() {
 					return
 				}
 			}
-		}()
-
+		})
 	}
 
-	go func() {
+	gopool.Run(func() {
 		for {
 			select {
 			case exec := <-a.resultCh:
@@ -476,7 +476,7 @@ func (a *asyncWorkGroup) Start() {
 				return
 			}
 		}
-	}()
+	})
 }
 
 type valueWithIndex struct {
