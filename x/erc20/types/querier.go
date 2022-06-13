@@ -9,6 +9,6 @@ type DenomByContractRequest struct {
 }
 
 type CurrentContractTemplate struct {
-	Proxy     []byte `json:"proxy"`
-	Implement []byte `json:"implement"`
+	Proxy     string `json:"proxy"`
+	Implement string `json:"implement"`
 }
