@@ -162,6 +162,7 @@ func (suite *KeeperTestSuite) TestProxyContractRedirect() {
 		{
 			"success, proxy contract redirect owner",
 			func() {
+				suite.app.Erc20Keeper.InitInternalTemplateContract(suite.ctx)
 				evmParams := evmtypes.DefaultParams()
 				evmParams.EnableCreate = true
 				evmParams.EnableCall = true
@@ -174,6 +175,7 @@ func (suite *KeeperTestSuite) TestProxyContractRedirect() {
 		{
 			"success, proxy contract redirect contract",
 			func() {
+				suite.app.Erc20Keeper.InitInternalTemplateContract(suite.ctx)
 				evmParams := evmtypes.DefaultParams()
 				evmParams.EnableCreate = true
 				evmParams.EnableCall = true
