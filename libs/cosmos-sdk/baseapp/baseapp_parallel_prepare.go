@@ -73,6 +73,8 @@ func (p *parallelTxPool) getExtraData(app *BaseApp, index int, txBytes []byte) e
 
 func waitTxPrepared(expectedTxCount uint64) {
 	for !atomic.CompareAndSwapUint64(&preparedTxCount, expectedTxCount, 0) {
+		for atomic.LoadUint64(&preparedTxCount) != expectedTxCount {
+		}
 	}
 }
 
