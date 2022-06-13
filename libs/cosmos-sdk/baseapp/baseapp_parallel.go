@@ -2,7 +2,6 @@ package baseapp
 
 import (
 	"bytes"
-	stdlog "log"
 	"runtime"
 	"sync"
 
@@ -34,21 +33,24 @@ type extraDataForTx struct {
 func (app *BaseApp) getExtraDataByTxs(txs [][]byte) {
 	initParallelTxManage(app.parallelTxManage)
 
+	var wg sync.WaitGroup
 	ptxPool := getParallelTxPool()
+	wg.Add(len(txs))
 	for index, txBytes := range txs {
-		err := ptxPool.getExtraData(app, index, txBytes)
+		err := ptxPool.getExtraData(app, &wg, index, txBytes)
 		if err != nil {
 			go func(index int, txBytes []byte) {
-				stdlog.Println("giskook ----- full")
 				prepare(&parallelTx{
 					app:     app,
+					wg:      &wg,
 					index:   index,
 					txBytes: txBytes,
 				})
 			}(index, txBytes)
 		}
 	}
-	waitTxPrepared(uint64(len(txs)))
+	// waitTxPrepared(uint64(len(txs)))
+	wg.Wait()
 }
 
 var (

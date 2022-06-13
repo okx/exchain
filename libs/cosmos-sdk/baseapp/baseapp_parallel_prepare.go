@@ -19,16 +19,18 @@ type parallelTxPool struct {
 
 type parallelTx struct {
 	app     *BaseApp
+	wg      *sync.WaitGroup
 	index   int
 	txBytes []byte
 }
 
 func prepare(args interface{}) {
-	defer atomic.AddUint64(&preparedTxCount, 1)
+	// defer atomic.AddUint64(&preparedTxCount, 1)
 	ptx := args.(*parallelTx)
 	app := ptx.app
 	index := ptx.index
 	txBytes := ptx.txBytes
+	defer ptx.wg.Done()
 
 	para := app.parallelTxManage
 
@@ -63,9 +65,10 @@ func getParallelTxPool() *parallelTxPool {
 	return gpTxPool
 }
 
-func (p *parallelTxPool) getExtraData(app *BaseApp, index int, txBytes []byte) error {
+func (p *parallelTxPool) getExtraData(app *BaseApp, wg *sync.WaitGroup, index int, txBytes []byte) error {
 	return p.Invoke(&parallelTx{
 		app:     app,
+		wg:      wg,
 		index:   index,
 		txBytes: txBytes,
 	})
