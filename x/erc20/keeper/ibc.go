@@ -212,12 +212,12 @@ func (k Keeper) CallModuleERC20(ctx sdk.Context, contract common.Address, method
 	return res.Ret, nil
 }
 
-func (k Keeper) CallProxyModuleERC20(ctx sdk.Context, contract common.Address, method string, args ...interface{}) ([]byte, error) {
+func (k Keeper) CallModuleERC20Proxy(ctx sdk.Context, contract common.Address, method string, args ...interface{}) ([]byte, error) {
 	k.Logger(ctx).Info("call proxy erc20 module contract", "contract", contract.String(), "method", method, "args", args)
 
 	implContract, found := k.GetProxyTemplateContract(ctx)
 	if !found {
-		return nil, errors.New("not found implement contract")
+		return nil, errors.New("not found proxy contract")
 	}
 	data, err := implContract.ABI.Pack(method, args...)
 	if err != nil {

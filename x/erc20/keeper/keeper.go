@@ -163,7 +163,7 @@ func (k Keeper) redirectProxyContractInfoByTp(ctx sdk.Context, denom string, con
 	if !found {
 		return fmt.Errorf("GetContractByDenom contract not found,denom: %s", denom)
 	}
-	_, err := k.CallProxyModuleERC20(ctx, contractProxy, method, contract)
+	_, err := k.CallModuleERC20Proxy(ctx, contractProxy, method, contract)
 
 	return err
 }
