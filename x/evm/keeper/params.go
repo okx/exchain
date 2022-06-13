@@ -10,7 +10,7 @@ func (k *Keeper) GetParams(ctx sdk.Context) (params types.Params) {
 	if ctx.UseParamCache() {
 		if types.GetEvmParamsCache().IsNeedParamsUpdate() {
 			k.paramSpace.GetParamSet(ctx, &params)
-			types.GetEvmParamsCache().UpdateParams(params)
+			types.GetEvmParamsCache().UpdateParams(params, ctx.IsCheckTx())
 		} else {
 			params = types.GetEvmParamsCache().GetParams()
 		}
