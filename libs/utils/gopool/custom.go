@@ -11,8 +11,21 @@ type CustomPool struct {
 	pool   *ants.PoolWithFunc
 }
 
-func NewPool(config CustomPoolConfig, fn func(interface{})) (*CustomPool, error) {
-	poolWithFunc, err := ants.NewPoolWithFunc(config.Size, fn)
+type Option ants.Option
+
+// WithNonblocking indicates that pool will return nil when there is no available workers.
+func WithNonblocking(nonblocking bool) Option {
+	return func(opts *ants.Options) {
+		opts.Nonblocking = nonblocking
+	}
+}
+
+func NewPool(config CustomPoolConfig, fn func(interface{}), opts ...Option) (*CustomPool, error) {
+	var antsOpts []ants.Option
+	for _, v := range opts {
+		antsOpts = append(antsOpts, ants.Option(v))
+	}
+	poolWithFunc, err := ants.NewPoolWithFunc(config.Size, fn, antsOpts...)
 	if err != nil {
 		return nil, err
 	}
