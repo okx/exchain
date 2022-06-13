@@ -37,6 +37,9 @@ func (cs *State) tryAddVote(vote *types.Vote, peerID p2p.ID) (bool, error) {
 					vote.Type)
 				return added, err
 			}
+			if ActiveViewChange && cs.Round == 0 {
+				return added, err
+			}
 			cs.evpool.AddEvidence(voteErr.DuplicateVoteEvidence)
 			return added, err
 		} else if err == types.ErrVoteNonDeterministicSignature {
