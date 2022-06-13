@@ -53,7 +53,7 @@ func prepare(args interface{}) {
 func getParallelTxPool() *parallelTxPool {
 	createCustomPoolOnce.Do(
 		func() {
-			pool, err := gopool.NewPool(gopool.CustomPoolConfig{Size: 10000}, prepare)
+			pool, err := gopool.NewPool(gopool.CustomPoolConfig{Size: 10000}, prepare, gopool.WithNonblocking(true))
 			if err != nil {
 				panic(err)
 			}

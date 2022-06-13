@@ -2,6 +2,7 @@ package baseapp
 
 import (
 	"bytes"
+	stdlog "log"
 	"runtime"
 	"sync"
 
@@ -35,7 +36,17 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) {
 
 	ptxPool := getParallelTxPool()
 	for index, txBytes := range txs {
-		ptxPool.getExtraData(app, index, txBytes)
+		err := ptxPool.getExtraData(app, index, txBytes)
+		if err != nil {
+			go func(index int, txBytes []byte) {
+				stdlog.Println("giskook ----- full")
+				prepare(&parallelTx{
+					app:     app,
+					index:   index,
+					txBytes: txBytes,
+				})
+			}(index, txBytes)
+		}
 	}
 	waitTxPrepared(uint64(len(txs)))
 }
