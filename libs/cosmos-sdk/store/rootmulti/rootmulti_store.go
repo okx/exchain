@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
@@ -289,6 +290,10 @@ func (rs *Store) hasVersion(targetVersion int64) (bool, error) {
 }
 
 func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
+	timeStart := time.Now()
+	defer func() {
+		log.Println("lcm loadVersion, time:", time.Since(timeStart))
+	}()
 	infos := make(map[string]storeInfo)
 	var cInfo commitInfo
 	cInfo.Version = tmtypes.GetStartBlockHeight()
@@ -386,8 +391,9 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	if err != nil {
 		return err
 	}
-
+	timeStart = time.Now()
 	vs, err := getVersions(rs.db)
+	log.Println("lcm getVersions, time:", time.Since(timeStart))
 	if err != nil {
 		return err
 	}
@@ -811,6 +817,12 @@ func parsePath(path string) (storeName string, subpath string, err error) {
 }
 
 func (rs *Store) loadCommitStoreFromParams(key types.StoreKey, id types.CommitID, params storeParams) (types.CommitKVStore, error) {
+
+	timeStart := time.Now()
+	defer func() {
+		log.Println("lcm loadCommitStoreFromParams key: ", key.Name(), ", time:", time.Since(timeStart))
+	}()
+
 	var db dbm.DB
 
 	if params.db != nil {
