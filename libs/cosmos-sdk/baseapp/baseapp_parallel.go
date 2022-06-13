@@ -49,7 +49,6 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) {
 			}(index, txBytes)
 		}
 	}
-	// waitTxPrepared(uint64(len(txs)))
 	wg.Wait()
 }
 
