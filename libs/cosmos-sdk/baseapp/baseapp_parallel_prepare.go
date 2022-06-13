@@ -2,7 +2,6 @@ package baseapp
 
 import (
 	"sync"
-	"sync/atomic"
 
 	"github.com/okex/exchain/libs/utils/gopool"
 )
@@ -10,7 +9,6 @@ import (
 var (
 	gpTxPool             *parallelTxPool
 	createCustomPoolOnce sync.Once
-	preparedTxCount      uint64
 )
 
 type parallelTxPool struct {
@@ -25,7 +23,6 @@ type parallelTx struct {
 }
 
 func prepare(args interface{}) {
-	// defer atomic.AddUint64(&preparedTxCount, 1)
 	ptx := args.(*parallelTx)
 	app := ptx.app
 	index := ptx.index
@@ -72,13 +69,6 @@ func (p *parallelTxPool) getExtraData(app *BaseApp, wg *sync.WaitGroup, index in
 		index:   index,
 		txBytes: txBytes,
 	})
-}
-
-func waitTxPrepared(expectedTxCount uint64) {
-	for !atomic.CompareAndSwapUint64(&preparedTxCount, expectedTxCount, 0) {
-		for atomic.LoadUint64(&preparedTxCount) != expectedTxCount {
-		}
-	}
 }
 
 func initParallelTxManage(txManager *parallelTxManager) {
