@@ -37,7 +37,7 @@ const (
 	ContractMintMethod = "mint_by_okc_module"
 
 	ProxyContractUpgradeTo   = "upgradeTo"
-	ProxyContractChangeAdmin = "changeProxyAdmin"
+	ProxyContractChangeAdmin = "changeAdmin"
 )
 
 func init() {
