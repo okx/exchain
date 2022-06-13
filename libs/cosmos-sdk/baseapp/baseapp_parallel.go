@@ -559,12 +559,6 @@ func (f *parallelTxManager) clear() {
 	f.workgroup.Close()
 	f.workgroup.isReady = false
 	f.workgroup.indexInAll = 0
-	for key := range f.workgroup.runningStatus {
-		delete(f.workgroup.runningStatus, key)
-	}
-	for key := range f.workgroup.isrunning {
-		delete(f.workgroup.isrunning, key)
-	}
 	for key := range f.workgroup.markFailedStats {
 		delete(f.workgroup.markFailedStats, key)
 	}

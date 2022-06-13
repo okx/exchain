@@ -98,10 +98,11 @@ func initParallelTxManage(txManager *parallelTxManager) {
 			txManager.extraTxsInfo[i] = nil
 		}
 	}
-	for k := range txManager.workgroup.runningStatus {
-		delete(txManager.workgroup.runningStatus, k)
+
+	for key := range txManager.workgroup.runningStatus {
+		delete(txManager.workgroup.runningStatus, key)
 	}
-	for k := range txManager.workgroup.isrunning {
-		delete(txManager.workgroup.isrunning, k)
+	for key := range txManager.workgroup.isrunning {
+		delete(txManager.workgroup.isrunning, key)
 	}
 }
