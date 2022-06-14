@@ -438,6 +438,9 @@ func (b *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 	}
 
 	var blockLogs = [][]*ethtypes.Log{}
+	if len(block.Block.Txs) > 2000 {
+		return blockLogs, nil
+	}
 	for _, tx := range block.Block.Txs {
 		// NOTE: we query the state in case the tx result logs are not persisted after an upgrade.
 		txRes, err := b.clientCtx.Client.Tx(tx.Hash(block.Block.Height), !b.clientCtx.TrustNode)
