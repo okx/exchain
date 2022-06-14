@@ -258,6 +258,9 @@ func (f *Filter) unindexedLogs(ctx context.Context, end uint64) ([]*ethtypes.Log
 			return logs, err
 		}
 		logs = append(logs, found...)
+		if len(logs) > backend.LogsLimit {
+			break
+		}
 	}
 	return logs, nil
 }
