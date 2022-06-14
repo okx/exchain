@@ -22,6 +22,8 @@ import (
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
+const LogsLimit = 10000
+
 // Backend implements the functionality needed to filter changes.
 // Implemented by EthermintBackend.
 type Backend interface {
@@ -448,6 +450,9 @@ func (b *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 		}
 
 		blockLogs = append(blockLogs, execRes.Logs)
+		if len(blockLogs) > LogsLimit {
+			break
+		}
 	}
 
 	return blockLogs, nil

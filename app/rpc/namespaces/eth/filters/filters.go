@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/okex/exchain/app/rpc/backend"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -224,6 +226,9 @@ func (f *Filter) indexedLogs(ctx context.Context, end uint64) ([]*ethtypes.Log, 
 				return logs, err
 			}
 			logs = append(logs, found...)
+			if len(logs) > backend.LogsLimit {
+				break
+			}
 
 		case <-ctx.Done():
 			return logs, ctx.Err()
