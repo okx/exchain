@@ -411,8 +411,6 @@ func (suite *KeeperTestSuite) TestConvertNatives() {
 				suite.app.Erc20Keeper.SetContractForDenom(suite.ctx, NativeDenom, contract)
 			},
 			func() {
-				//coin := sdk.NewCoin(NativeDenom, amountDec)
-
 				// 1. Verify balance native coin post operation
 				balance := suite.GetBalance(addr1Bech, NativeDenom)
 				suite.Require().Equal(sdk.NewDec(0), balance.Amount)
@@ -435,8 +433,6 @@ func (suite *KeeperTestSuite) TestConvertNatives() {
 
 			err := suite.app.Erc20Keeper.ConvertNatives(suite.ctx, tc.from, tc.natives)
 			if tc.expError != nil {
-				fmt.Println(err)
-				fmt.Println(tc.expError.Error())
 				suite.Require().EqualError(err, tc.expError.Error(), tc.msg)
 			} else {
 				suite.Require().NoError(err, tc.msg)
