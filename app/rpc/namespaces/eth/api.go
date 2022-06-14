@@ -58,27 +58,28 @@ import (
 const (
 	CacheOfEthCallLru = 40960
 
-	FlagEnableMultiCall = "rpc.enable-multi-call"
-	fastQueryThreshold  = 10
+	FlagEnableMultiCall    = "rpc.enable-multi-call"
+	FlagFastQueryThreshold = "fast-query-threshold"
 )
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PublicEthereumAPI struct {
-	ctx            context.Context
-	clientCtx      clientcontext.CLIContext
-	chainIDEpoch   *big.Int
-	logger         log.Logger
-	backend        backend.Backend
-	keys           []ethsecp256k1.PrivKey // unlocked keys
-	nonceLock      *rpctypes.AddrLocker
-	keyringLock    sync.Mutex
-	gasPrice       *hexutil.Big
-	wrappedBackend *watcher.Querier
-	watcherBackend *watcher.Watcher
-	evmFactory     simulation.EvmFactory
-	txPool         *TxPool
-	Metrics        map[string]*monitor.RpcMetrics
-	callCache      *lru.Cache
+	ctx                context.Context
+	clientCtx          clientcontext.CLIContext
+	chainIDEpoch       *big.Int
+	logger             log.Logger
+	backend            backend.Backend
+	keys               []ethsecp256k1.PrivKey // unlocked keys
+	nonceLock          *rpctypes.AddrLocker
+	keyringLock        sync.Mutex
+	gasPrice           *hexutil.Big
+	wrappedBackend     *watcher.Querier
+	watcherBackend     *watcher.Watcher
+	evmFactory         simulation.EvmFactory
+	txPool             *TxPool
+	Metrics            map[string]*monitor.RpcMetrics
+	callCache          *lru.Cache
+	fastQueryThreshold uint64
 }
 
 // NewAPI creates an instance of the public ETH Web3 API.
@@ -93,16 +94,17 @@ func NewAPI(
 	}
 
 	api := &PublicEthereumAPI{
-		ctx:            context.Background(),
-		clientCtx:      clientCtx,
-		chainIDEpoch:   epoch,
-		logger:         log.With("module", "json-rpc", "namespace", "eth"),
-		backend:        backend,
-		keys:           keys,
-		nonceLock:      nonceLock,
-		gasPrice:       ParseGasPrice(),
-		wrappedBackend: watcher.NewQuerier(),
-		watcherBackend: watcher.NewWatcher(log),
+		ctx:                context.Background(),
+		clientCtx:          clientCtx,
+		chainIDEpoch:       epoch,
+		logger:             log.With("module", "json-rpc", "namespace", "eth"),
+		backend:            backend,
+		keys:               keys,
+		nonceLock:          nonceLock,
+		gasPrice:           ParseGasPrice(),
+		wrappedBackend:     watcher.NewQuerier(),
+		watcherBackend:     watcher.NewWatcher(log),
+		fastQueryThreshold: viper.GetUint64(FlagFastQueryThreshold),
 	}
 	api.evmFactory = simulation.NewEvmFactory(clientCtx.ChainID, api.wrappedBackend)
 
@@ -1852,7 +1854,7 @@ func (api *PublicEthereumAPI) useWatchBackend(blockNum rpctypes.BlockNumber) boo
 	if !api.watcherBackend.Enabled() {
 		return false
 	}
-	return blockNum == rpctypes.LatestBlockNumber || api.watcherBackend.Height()-uint64(blockNum) <= fastQueryThreshold
+	return blockNum == rpctypes.LatestBlockNumber || api.fastQueryThreshold <= 0 || api.watcherBackend.Height()-uint64(blockNum) <= api.fastQueryThreshold
 }
 
 func (api *PublicEthereumAPI) getEvmParams() (*evmtypes.Params, error) {
