@@ -59,6 +59,7 @@ func NewLogManager() *LogsManager {
 			Results: make(map[int]TxResult),
 		}
 	})
+	logsManager.Reset()
 
 	return logsManager
 }
