@@ -104,7 +104,7 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 		if !autoDeploy {
 			return fmt.Errorf("no contract found for the denom %s", voucher.Denom)
 		}
-		contract, err = k.deployModuleERC20(ctx, voucher.Denom)
+		contract, err = k.DeployModuleERC20(ctx, voucher.Denom)
 		if err != nil {
 			return err
 		}
@@ -156,8 +156,8 @@ func (k Keeper) ConvertNativeToERC20(ctx sdk.Context, from sdk.AccAddress, nativ
 	return nil
 }
 
-// deployModuleERC20 deploy an embed erc20 contract
-func (k Keeper) deployModuleERC20(ctx sdk.Context, denom string) (common.Address, error) {
+// DeployModuleERC20 deploy an embed erc20 contract
+func (k Keeper) DeployModuleERC20(ctx sdk.Context, denom string) (common.Address, error) {
 	implContract, found := k.GetImplementTemplateContract(ctx)
 	if !found {
 		return common.Address{}, errors.New("not found implement contract")
