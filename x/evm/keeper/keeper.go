@@ -427,7 +427,7 @@ var commitStateDBPool = &sync.Pool{
 func (k *Keeper) IsAddressBlocked(ctx sdk.Context, addr sdk.AccAddress) bool {
 	csdb := commitStateDBPool.Get().(*types.CommitStateDB)
 	defer commitStateDBPool.Put(csdb)
-	types.ResetCommitStateDB(csdb, k.GenerateCSDBParams(), ctx)
+	types.ResetCommitStateDB(csdb, k.GenerateCSDBParams(), &ctx)
 
 	// csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 	return csdb.GetParams().EnableContractBlockedList && csdb.IsContractInBlockedList(addr.Bytes())

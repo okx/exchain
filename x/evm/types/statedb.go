@@ -190,7 +190,7 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 	return csdb
 }
 
-func ResetCommitStateDB(csdb *CommitStateDB, csdbParams CommitStateDBParams, ctx sdk.Context) {
+func ResetCommitStateDB(csdb *CommitStateDB, csdbParams CommitStateDBParams, ctx *sdk.Context) {
 	csdb.db = csdbParams.DB
 	csdb.trie = csdbParams.Trie
 	csdb.originalRoot = csdbParams.RootHash
@@ -296,7 +296,7 @@ func ResetCommitStateDB(csdb *CommitStateDB, csdbParams CommitStateDBParams, ctx
 	}
 
 	csdb.prefetcher = nil
-	csdb.ctx = ctx
+	csdb.ctx = *ctx
 	csdb.refund = 0
 	csdb.thash = ethcmn.Hash{}
 	csdb.bhash = ethcmn.Hash{}

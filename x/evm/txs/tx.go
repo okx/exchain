@@ -50,6 +50,9 @@ type Tx interface {
 
 	// AnalyzeStop stop record tag
 	AnalyzeStop(tag string)
+
+	// Dispose release the resources of the tx, should be called after the tx is unused
+	Dispose()
 }
 
 // TransitionEvmTx execute evm transition template
