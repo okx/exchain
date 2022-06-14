@@ -1,8 +1,6 @@
 package app
 
 import (
-	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/client"
-	ibcclienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	"io"
 	"math/big"
 	"os"
@@ -40,6 +38,8 @@ import (
 	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
 	ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/client"
+	ibcclienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	ibcporttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
 	ibchost "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	"github.com/okex/exchain/libs/system"
@@ -72,11 +72,11 @@ import (
 	"github.com/okex/exchain/x/slashing"
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
-	"github.com/spf13/cobra"
-	"google.golang.org/grpc/encoding/proto"
 
+	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/encoding"
+	"google.golang.org/grpc/encoding/proto"
 )
 
 func init() {
@@ -116,6 +116,8 @@ var (
 			evmclient.ManageContractMethodBlockedListProposalHandler,
 			govclient.ManageTreasuresProposalHandler,
 			erc20client.TokenMappingProposalHandler,
+			erc20client.ProxyContractRedirectHandler,
+			erc20client.ContractTemplateProposalHandler,
 			client.UpdateClientProposalHandler,
 		),
 		params.AppModuleBasic{},
@@ -414,7 +416,8 @@ func NewOKExChainApp(
 	app.Erc20Keeper.SetGovKeeper(app.GovKeeper)
 
 	// Set EVM hooks
-	app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper)))
+	app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper),
+		erc20.NewSendNative20ToIbcEventHandler(app.Erc20Keeper)))
 	// Set IBC hooks
 	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
 	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
