@@ -77,7 +77,8 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 	govrest.RegisterRoutes(rs.CliCtx, v1Router,
 		[]govrest.ProposalRESTHandler{
 			paramsclient.ProposalHandler.RESTHandler(rs.CliCtx),
-			distr.ProposalHandler.RESTHandler(rs.CliCtx),
+			distr.CommunityPoolSpendProposalHandler.RESTHandler(rs.CliCtx),
+			distr.ChangeDistributionModelProposalHandler.RESTHandler(rs.CliCtx), //TODO zhujianguo
 			dexclient.DelistProposalHandler.RESTHandler(rs.CliCtx),
 			farmclient.ManageWhiteListProposalHandler.RESTHandler(rs.CliCtx),
 			evmclient.ManageContractDeploymentWhitelistProposalHandler.RESTHandler(rs.CliCtx),

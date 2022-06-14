@@ -16,6 +16,7 @@ const (
 var (
 	ParamStoreKeyCommunityTax        = []byte("communitytax")
 	ParamStoreKeyWithdrawAddrEnabled = []byte("withdrawaddrenabled")
+	ParamDistributionModel           = []byte("distributionmodel")
 )
 
 // Params defines the set of distribution parameters.

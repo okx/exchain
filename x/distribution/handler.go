@@ -60,11 +60,13 @@ func handleMsgWithdrawValidatorCommission(ctx sdk.Context, msg types.MsgWithdraw
 	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
-func NewCommunityPoolSpendProposalHandler(k Keeper) govtypes.Handler {
+func NewDistributionProposalHandler(k Keeper) govtypes.Handler {
 	return func(ctx sdk.Context, content *govtypes.Proposal) error {
 		switch c := content.Content.(type) {
 		case types.CommunityPoolSpendProposal:
 			return keeper.HandleCommunityPoolSpendProposal(ctx, k, c)
+		case types.ChangeDistributionModelProposal:
+			return keeper.HandleChangeDistributionModelProposal(ctx, k, c)
 
 		default:
 			return types.ErrUnknownDistributionCommunityPoolProposaType()

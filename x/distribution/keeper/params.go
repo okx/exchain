@@ -42,3 +42,14 @@ func (k Keeper) GetWithdrawAddrEnabled(ctx sdk.Context) (enabled bool) {
 func (k Keeper) SetWithdrawAddrEnabled(ctx sdk.Context, enabled bool) {
 	k.paramSpace.Set(ctx, types.ParamStoreKeyWithdrawAddrEnabled, &enabled)
 }
+
+func (k Keeper) GetDistributionModel(ctx sdk.Context) (model uint32) {
+	//TODO zhujianguo
+	//k.paramSpace.Get(ctx, types.ParamDistributionModel, &model)
+	return types.DistributionModelOnChain
+}
+
+func (k Keeper) SetDistributionModel(ctx sdk.Context, model uint32) {
+	//TODO zhujianguo
+	//k.paramSpace.Set(ctx, types.ParamDistributionModel, &model)
+}

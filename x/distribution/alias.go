@@ -48,19 +48,20 @@ var (
 	InitialValidatorAccumulatedCommission    = types.InitialValidatorAccumulatedCommission
 
 	// variable aliases
-	FeePoolKey                           = types.FeePoolKey
-	ProposerKey                          = types.ProposerKey
-	DelegatorWithdrawAddrPrefix          = types.DelegatorWithdrawAddrPrefix
-	ValidatorAccumulatedCommissionPrefix = types.ValidatorAccumulatedCommissionPrefix
-	ModuleCdc                            = types.ModuleCdc
-	EventTypeSetWithdrawAddress          = types.EventTypeSetWithdrawAddress
-	EventTypeCommission                  = types.EventTypeCommission
-	EventTypeWithdrawCommission          = types.EventTypeWithdrawCommission
-	EventTypeProposerReward              = types.EventTypeProposerReward
-	AttributeKeyWithdrawAddress          = types.AttributeKeyWithdrawAddress
-	AttributeKeyValidator                = types.AttributeKeyValidator
-	AttributeValueCategory               = types.AttributeValueCategory
-	ProposalHandler                      = client.ProposalHandler
+	FeePoolKey                             = types.FeePoolKey
+	ProposerKey                            = types.ProposerKey
+	DelegatorWithdrawAddrPrefix            = types.DelegatorWithdrawAddrPrefix
+	ValidatorAccumulatedCommissionPrefix   = types.ValidatorAccumulatedCommissionPrefix
+	ModuleCdc                              = types.ModuleCdc
+	EventTypeSetWithdrawAddress            = types.EventTypeSetWithdrawAddress
+	EventTypeCommission                    = types.EventTypeCommission
+	EventTypeWithdrawCommission            = types.EventTypeWithdrawCommission
+	EventTypeProposerReward                = types.EventTypeProposerReward
+	AttributeKeyWithdrawAddress            = types.AttributeKeyWithdrawAddress
+	AttributeKeyValidator                  = types.AttributeKeyValidator
+	AttributeValueCategory                 = types.AttributeValueCategory
+	CommunityPoolSpendProposalHandler      = client.CommunityPoolSpendProposalHandler
+	ChangeDistributionModelProposalHandler = client.ChangeDistributionModelProposalHandler
 )
 
 type (
