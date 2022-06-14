@@ -338,10 +338,6 @@ func (c *Context) SetOverrideBytes(b []byte) *Context {
 	return c
 }
 
-// ----------------------------------------------------------------------------
-// Store / Caching
-// ----------------------------------------------------------------------------
-
 // WithValue is deprecated, provided for backwards compatibility
 // Please use
 //     ctx = ctx.WithContext(context.WithValue(ctx.Context(), key, false))
