@@ -104,7 +104,5 @@ func (q *BaseTxQueue) removeElement(element *clist.CElement) {
 }
 
 func (q *BaseTxQueue) CleanItems(address string, nonce uint64) {
-	for _, ele := range q.AddressRecord.CleanItems(address, nonce) {
-		q.removeElement(ele)
-	}
+	q.AddressRecord.CleanItems(address, nonce, q.removeElement)
 }

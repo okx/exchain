@@ -92,25 +92,23 @@ func (ar *AddressRecord) checkRepeatedAndAddItem(memTx *mempoolTx, txPriceBump i
 	return newElement
 }
 
-func (ar *AddressRecord) CleanItems(address string, nonce uint64) []*clist.CElement {
+func (ar *AddressRecord) CleanItems(address string, nonce uint64, cb func(element *clist.CElement)) {
 	v, ok := ar.addrTxs.Load(address)
 	if !ok {
-		return nil
+		return
 	}
 	am := v.(*addrMap)
-	var l []*clist.CElement
 	am.Lock()
 	defer am.Unlock()
 	for k, v := range am.items {
 		if v.Nonce <= nonce {
-			l = append(l, v)
+			cb(v)
 			delete(am.items, k)
 		}
 	}
 	if len(am.items) == 0 {
 		ar.addrTxs.Delete(address)
 	}
-	return l
 }
 
 func (ar *AddressRecord) GetItems(address string) []*clist.CElement {

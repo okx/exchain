@@ -87,9 +87,7 @@ func (q *GasTxQueue) Load(hash [sha256.Size]byte) (*clist.CElement, bool) {
 }
 
 func (q *GasTxQueue) CleanItems(address string, nonce uint64) {
-	for _, ele := range q.AddressRecord.CleanItems(address, nonce) {
-		q.removeElement(ele)
-	}
+	q.AddressRecord.CleanItems(address, nonce, q.removeElement)
 }
 
 func (q *GasTxQueue) reorganizeElements(items []*clist.CElement) {
