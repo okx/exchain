@@ -3,6 +3,7 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"strconv"
 	"strings"
 
@@ -221,7 +222,7 @@ $ %s tx farm claim --from mykey
 }
 
 // GetCmdManageWhiteListProposal implements a command handler for submitting a farm manage white list proposal transaction
-func GetCmdManageWhiteListProposal(cdc *codec.Codec) *cobra.Command {
+func GetCmdManageWhiteListProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	return &cobra.Command{
 		Use:   "manage-white-list [proposal-file]",
 		Args:  cobra.ExactArgs(1),
@@ -250,6 +251,7 @@ Where proposal.json contains:
 `, version.ClientName, sdk.DefaultBondDenom,
 			)),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cdc := cdcP.GetCdc()
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
