@@ -3,6 +3,7 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -20,7 +21,7 @@ import (
 
 // GetCmdTokenMappingProposal returns a CLI command handler for creating
 // a token mapping proposal governance transaction.
-func GetCmdTokenMappingProposal(cdc *codec.Codec) *cobra.Command {
+func GetCmdTokenMappingProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "token-mapping [denom] [contract]",
 		Args:  cobra.ExactArgs(2),
@@ -33,6 +34,7 @@ $ %s tx gov submit-proposal token-mapping xxb 0x0000...0000 --from=<key_or_addre
 `, version.ClientName,
 			)),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cdc := cdcP.GetCdc()
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
