@@ -3,6 +3,7 @@ package mempool
 import (
 	"math/rand"
 	"net"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -471,4 +472,32 @@ func BenchmarkTxMessageUnmarshal(b *testing.B) {
 	//})
 	_ = h
 	_ = msg
+}
+
+func BenchmarkReactorLogReceive(b *testing.B) {
+	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "benchmark")
+	var options []log.Option
+	options = append(options, log.AllowInfoWith("module", "benchmark"))
+	logger = log.NewFilter(logger, options...)
+
+	memR := &Reactor{}
+	memR.Logger = logger
+
+	chID := byte(10)
+	var msg Message = &TxMessage{Tx: make([]byte, 512)}
+	var src p2p.Peer
+
+	b.Run("pool", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			memR.logReceive(src, chID, msg)
+		}
+	})
+
+	b.Run("logger", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			memR.Logger.Debug("Receive", "src", src, "chId", chID, "msg", msg)
+		}
+	})
 }
