@@ -49,6 +49,18 @@ const (
 	defaultPongTimeout         = 45 * time.Second
 )
 
+type logData struct {
+	Params [6]interface{}
+	Bytes  bytesHexStringer
+	Packet PacketMsg
+}
+
+var logDataPool = &sync.Pool{
+	New: func() interface{} {
+		return &logData{}
+	},
+}
+
 type receiveCbFunc func(chID byte, msgBytes []byte)
 type errorCbFunc func(interface{})
 
@@ -352,19 +364,19 @@ func (c *MConnection) stopForError(r interface{}) {
 	}
 }
 
-var logParamsPool = &sync.Pool{
-	New: func() interface{} {
-		return &[6]interface{}{}
-	},
-}
+func (c *MConnection) logSendData(msg string, chID byte, msgBytes []byte) {
+	logParams := logDataPool.Get().(*logData)
+	logParams.Bytes = msgBytes
+	params := &logParams.Params
+	params[0] = "channel"
+	params[1] = chID
+	params[2] = "conn"
+	params[3] = c
+	params[4] = "msgBytes"
+	params[5] = &logParams.Bytes
 
-func (c *MConnection) initSendLogParams(logParams *[6]interface{}, chID byte, msgBytes []byte) {
-	logParams[0] = "channel"
-	logParams[1] = chID
-	logParams[2] = "conn"
-	logParams[3] = c
-	logParams[4] = "msgBytes"
-	logParams[5] = bytesHexStringer(msgBytes)
+	c.Logger.Debug(msg, logParams.Params[:]...)
+	logDataPool.Put(logParams)
 }
 
 // Queues a message to be sent to channel.
@@ -373,11 +385,7 @@ func (c *MConnection) Send(chID byte, msgBytes []byte) bool {
 		return false
 	}
 
-	logParams := logParamsPool.Get().(*[6]interface{})
-	defer logParamsPool.Put(logParams)
-	c.initSendLogParams(logParams, chID, msgBytes)
-
-	c.Logger.Debug("Send", logParams[:]...)
+	c.logSendData("Send", chID, msgBytes)
 
 	// Send message to channel.
 	channel, ok := c.channelsIdx[chID]
@@ -394,7 +402,7 @@ func (c *MConnection) Send(chID byte, msgBytes []byte) bool {
 		default:
 		}
 	} else {
-		c.Logger.Debug("Send failed", logParams[:]...)
+		c.logSendData("Send failed", chID, msgBytes)
 	}
 	return success
 }
@@ -669,10 +677,7 @@ FOR_LOOP:
 				break FOR_LOOP
 			}
 			if msgBytes != nil {
-				logParams := logParamsPool.Get().(*[6]interface{})
-				initReceiveMsgLog(logParams, pkt.ChannelID, msgBytes)
-				c.Logger.Debug("Received bytes", logParams[:4]...)
-				logParamsPool.Put(logParams)
+				c.logReceiveMsg(pkt.ChannelID, msgBytes)
 				// NOTE: This means the reactor.Receive runs in the same thread as the p2p recv routine
 				c.onReceive(pkt.ChannelID, msgBytes)
 			}
@@ -691,11 +696,16 @@ FOR_LOOP:
 	}
 }
 
-func initReceiveMsgLog(logParams *[6]interface{}, channelID byte, msgBytes []byte) {
-	logParams[0] = "chID"
-	logParams[1] = channelID
-	logParams[2] = "msgBytes"
-	logParams[3] = bytesHexStringer(msgBytes)
+func (c *MConnection) logReceiveMsg(channelID byte, msgBytes []byte) {
+	logParams := logDataPool.Get().(*logData)
+	logParams.Bytes = msgBytes
+	params := &logParams.Params
+	params[0] = "chID"
+	params[1] = channelID
+	params[2] = "msgBytes"
+	params[3] = &logParams.Bytes
+	c.Logger.Debug("Received bytes", logParams.Params[:4]...)
+	logDataPool.Put(logParams)
 }
 
 // not goroutine-safe
@@ -927,21 +937,23 @@ func (ch *Channel) writePacketMsgTo(w io.Writer) (n int64, err error) {
 	return
 }
 
-func (ch *Channel) initRecvPacketMsgLogParams(logParams *[6]interface{}, packet PacketMsg) {
-	logParams[0] = "conn"
-	logParams[1] = ch.conn
-	logParams[2] = "packet"
-	logParams[3] = packet
+func (ch *Channel) logRecvPacketMsg(packet PacketMsg) {
+	logParams := logDataPool.Get().(*logData)
+	logParams.Packet = packet
+	params := &logParams.Params
+	params[0] = "conn"
+	params[1] = ch.conn
+	params[2] = "packet"
+	params[3] = &logParams.Packet
+	ch.Logger.Debug("Read PacketMsg", logParams.Params[:4]...)
+	logDataPool.Put(logParams)
 }
 
 // Handles incoming PacketMsgs. It returns a message bytes if message is
 // complete. NOTE message bytes may change on next call to recvPacketMsg.
 // Not goroutine-safe
 func (ch *Channel) recvPacketMsg(packet PacketMsg) ([]byte, error) {
-	logParams := logParamsPool.Get().(*[6]interface{})
-	ch.initRecvPacketMsgLogParams(logParams, packet)
-	ch.Logger.Debug("Read PacketMsg", logParams[:4]...)
-	logParamsPool.Put(logParams)
+	ch.logRecvPacketMsg(packet)
 
 	var recvCap, recvReceived = ch.desc.RecvMessageCapacity, len(ch.recving) + len(packet.Bytes)
 	if recvCap < recvReceived {
