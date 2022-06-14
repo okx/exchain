@@ -41,6 +41,7 @@ type Watcher struct {
 	jobChan    chan func()
 	evmTxIndex uint64
 	checkWd    bool
+	filterMap  map[string]WatchMessage
 }
 
 var (
@@ -68,11 +69,16 @@ func GetWatchLruSize() int {
 
 func NewWatcher(logger log.Logger) *Watcher {
 	onceWatcher.Do(func() {
-		watcherInstance = &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64),
-			sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{},
-			log: logger, checkWd: viper.GetBool(FlagCheckWd)}
+		watcherInstance = &Watcher{store: InstanceOfWatchStore(),
+			cumulativeGas: make(map[uint64]uint64),
+			sw:            IsWatcherEnabled(),
+			firstUse:      true,
+			delayEraseKey: make([][]byte, 0),
+			watchData:     &WatchData{},
+			log:           logger,
+			checkWd:       viper.GetBool(FlagCheckWd),
+			filterMap:     make(map[string]WatchMessage)}
 	})
-
 	return watcherInstance
 }
 
@@ -115,7 +121,9 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 }
 
 func (w *Watcher) clean() {
-	w.cumulativeGas = make(map[uint64]uint64)
+	for k := range w.cumulativeGas {
+		delete(w.cumulativeGas, k)
+	}
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
 }
@@ -145,7 +153,7 @@ func (w *Watcher) SaveTransactionReceipt(status uint32, msg *evmtypes.MsgEthereu
 		return
 	}
 	w.UpdateCumulativeGas(txIndex, gasUsed)
-	wMsg := NewEvmTransactionReceipt(status, msg, txHash, w.blockHash, txIndex, w.height, data, w.cumulativeGas[txIndex], gasUsed)
+	wMsg := newEvmTransactionReceipt(status, msg, txHash, w.blockHash, txIndex, w.height, data, w.cumulativeGas[txIndex], gasUsed)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}
@@ -409,12 +417,11 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 }
 
 func (w *Watcher) commitBatch(batch []WatchMessage) {
-	filterMap := make(map[string]WatchMessage)
 	for _, b := range batch {
-		filterMap[bytes2Key(b.GetKey())] = b
+		w.filterMap[bytes2Key(b.GetKey())] = b
 	}
 
-	for _, b := range filterMap {
+	for _, b := range w.filterMap {
 		key := b.GetKey()
 		value := []byte(b.GetValue())
 		typeValue := b.GetType()
@@ -426,6 +433,10 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 				state.SetStateToLru(common.BytesToHash(key), value)
 			}
 		}
+	}
+
+	for k := range w.filterMap {
+		delete(w.filterMap, k)
 	}
 
 	if w.checkWd {

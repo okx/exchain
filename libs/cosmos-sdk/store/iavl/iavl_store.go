@@ -65,7 +65,6 @@ func LoadStoreWithInitialVersion(db dbm.DB, flatKVDB dbm.DB, id types.CommitID, 
 	if err != nil {
 		return nil, err
 	}
-
 	if lazyLoading {
 		_, err = tree.LazyLoadVersion(id.Version)
 	} else {
@@ -88,13 +87,19 @@ func LoadStoreWithInitialVersion(db dbm.DB, flatKVDB dbm.DB, id types.CommitID, 
 
 	return st, nil
 }
-
-func GetCommitVersion(db dbm.DB) (int64, error) {
+func HasVersion(db dbm.DB, version int64) (bool, error) {
 	tree, err := iavl.NewMutableTreeWithOpts(db, iavlconfig.DynamicConfig.GetIavlCacheSize(), &iavl.Options{InitialVersion: 0})
 	if err != nil {
-		return 0, err
+		return false, err
 	}
-	return tree.GetCommitVersion(), nil
+	return tree.VersionExistsInDb(version), nil
+}
+func GetCommitVersions(db dbm.DB) ([]int64, error) {
+	tree, err := iavl.NewMutableTreeWithOpts(db, iavlconfig.DynamicConfig.GetIavlCacheSize(), &iavl.Options{InitialVersion: 0})
+	if err != nil {
+		return nil, err
+	}
+	return tree.GetVersions()
 }
 
 // UnsafeNewStore returns a reference to a new IAVL Store with a given mutable
