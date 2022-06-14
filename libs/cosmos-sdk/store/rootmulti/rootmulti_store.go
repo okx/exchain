@@ -391,9 +391,9 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	if err != nil {
 		return err
 	}
-	timeStart = time.Now()
+	timeStartGetVersion := time.Now()
 	vs, err := getVersions(rs.db)
-	log.Println("lcm getVersions, time:", time.Since(timeStart))
+	log.Println("lcm getVersions, time:", time.Since(timeStartGetVersion))
 	if err != nil {
 		return err
 	}
