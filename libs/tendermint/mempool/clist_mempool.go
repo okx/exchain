@@ -81,7 +81,7 @@ type CListMempool struct {
 	txInfoparser TxInfoParser
 	checkCnt     int64
 
-	txQueue ITransactionQueue
+	txs ITransactionQueue
 }
 
 var _ Mempool = &CListMempool{}
@@ -111,7 +111,7 @@ func NewCListMempool(
 		eventBus:      types.NopEventBus{},
 		logger:        log.NewNopLogger(),
 		metrics:       NopMetrics(),
-		txQueue:       txQueue,
+		txs:           txQueue,
 	}
 	if config.CacheSize > 0 {
 		mempool.cache = newMapTxCache(config.CacheSize)
@@ -204,7 +204,7 @@ func (mem *CListMempool) Unlock() {
 
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) Size() int {
-	return mem.txQueue.Len()
+	return mem.txs.Len()
 }
 
 // Safe for concurrent use by multiple goroutines.
@@ -222,7 +222,7 @@ func (mem *CListMempool) Flush() {
 	mem.updateMtx.Lock()
 	defer mem.updateMtx.Unlock()
 
-	for e := mem.txQueue.Front(); e != nil; e = e.Next() {
+	for e := mem.txs.Front(); e != nil; e = e.Next() {
 		mem.removeTx(e)
 	}
 
@@ -236,11 +236,11 @@ func (mem *CListMempool) Flush() {
 //
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) TxsFront() *clist.CElement {
-	return mem.txQueue.Front()
+	return mem.txs.Front()
 }
 
 func (mem *CListMempool) BroadcastTxsFront() *clist.CElement {
-	return mem.txQueue.BroadcastFront()
+	return mem.txs.BroadcastFront()
 }
 
 // TxsWaitChan returns a channel to wait on transactions. It will be closed
@@ -249,7 +249,7 @@ func (mem *CListMempool) BroadcastTxsFront() *clist.CElement {
 //
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
-	return mem.txQueue.TxsWaitChan()
+	return mem.txs.TxsWaitChan()
 }
 
 // It blocks if we're waiting on Update() or Reap().
@@ -303,7 +303,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	// Note it's possible a tx is still in the cache but no longer in the mempool
 	// (eg. after committing a block, txs are removed from mempool but not cache),
 	// so we only record the sender for txs still in the mempool.
-	if ele, ok := mem.txQueue.Load(txKey(tx)); ok {
+	if ele, ok := mem.txs.Load(txKey(tx)); ok {
 		memTx := ele.Value.(*mempoolTx)
 		memTx.senders.LoadOrStore(txInfo.SenderID, true)
 		// TODO: consider punishing peer for dups,
@@ -403,7 +403,7 @@ func (mem *CListMempool) reqResCb(
 // Called from:
 //  - resCbFirstTime (lock not held) if tx is valid
 func (mem *CListMempool) addTx(memTx *mempoolTx) error {
-	if err := mem.txQueue.Insert(memTx); err != nil {
+	if err := mem.txs.Insert(memTx); err != nil {
 		return err
 	}
 	atomic.AddInt64(&mem.txsBytes, int64(len(memTx.tx)))
@@ -422,7 +422,7 @@ func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 //  - Update (lock held) if tx was committed
 // 	- resCbRecheck (lock not held) if tx was invalidated
 func (mem *CListMempool) removeTx(elem *clist.CElement) {
-	mem.txQueue.Remove(elem)
+	mem.txs.Remove(elem)
 	tx := elem.Value.(*mempoolTx).tx
 	atomic.AddInt64(&mem.txsBytes, int64(-len(tx)))
 }
@@ -659,7 +659,7 @@ func (mem *CListMempool) notifyTxsAvailable() {
 }
 
 func (mem *CListMempool) ReapEssentialTx(tx types.Tx) abci.TxEssentials {
-	if ele, ok := mem.txQueue.Load(txKey(tx)); ok {
+	if ele, ok := mem.txs.Load(txKey(tx)); ok {
 		return ele.Value.(*mempoolTx).realTx
 	}
 	return nil
@@ -678,12 +678,12 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 	// TODO: we will get a performance boost if we have a good estimate of avg
 	// size per tx, and set the initial capacity based off of that.
 	// txs := make([]types.Tx, 0, tmmath.MinInt(mem.txs.Len(), max/mem.avgTxSize))
-	txs := make([]types.Tx, 0, tmmath.MinInt(mem.txQueue.Len(), int(cfg.DynamicConfig.GetMaxTxNumPerBlock())))
+	txs := make([]types.Tx, 0, tmmath.MinInt(mem.txs.Len(), int(cfg.DynamicConfig.GetMaxTxNumPerBlock())))
 	defer func() {
 		mem.logger.Info("ReapMaxBytesMaxGas", "ProposingHeight", mem.height+1,
-			"MempoolTxs", mem.txQueue.Len(), "ReapTxs", len(txs))
+			"MempoolTxs", mem.txs.Len(), "ReapTxs", len(txs))
 	}()
-	for e := mem.txQueue.Front(); e != nil; e = e.Next() {
+	for e := mem.txs.Front(); e != nil; e = e.Next() {
 		memTx := e.Value.(*mempoolTx)
 		// Check total size requirement
 		aminoOverhead := types.ComputeAminoOverhead(memTx.tx, 1)
@@ -717,11 +717,11 @@ func (mem *CListMempool) ReapMaxTxs(max int) types.Txs {
 	defer mem.updateMtx.RUnlock()
 
 	if max < 0 {
-		max = mem.txQueue.Len()
+		max = mem.txs.Len()
 	}
 
-	txs := make([]types.Tx, 0, tmmath.MinInt(mem.txQueue.Len(), max))
-	for e := mem.txQueue.Front(); e != nil && len(txs) <= max; e = e.Next() {
+	txs := make([]types.Tx, 0, tmmath.MinInt(mem.txs.Len(), max))
+	for e := mem.txs.Front(); e != nil && len(txs) <= max; e = e.Next() {
 		memTx := e.Value.(*mempoolTx)
 		txs = append(txs, memTx.tx)
 	}
@@ -729,7 +729,7 @@ func (mem *CListMempool) ReapMaxTxs(max int) types.Txs {
 }
 
 func (mem *CListMempool) GetTxByHash(hash [sha256.Size]byte) (types.Tx, error) {
-	if ele, ok := mem.txQueue.Load(hash); ok {
+	if ele, ok := mem.txs.Load(hash); ok {
 		return ele.Value.(*mempoolTx).tx, nil
 	}
 	return nil, ErrNoSuchTx
@@ -743,20 +743,20 @@ func (mem *CListMempool) ReapUserTxsCnt(address string) int {
 }
 
 func (mem *CListMempool) ReapUserTxs(address string, max int) types.Txs {
-	max = tmmath.MinInt(mem.txQueue.Len(), max)
-	return mem.txQueue.GetAddressTxs(address, max)
+	max = tmmath.MinInt(mem.txs.Len(), max)
+	return mem.txs.GetAddressTxs(address, max)
 }
 
 func (mem *CListMempool) GetUserPendingTxsCnt(address string) int {
-	return mem.txQueue.GetAddressTxsCnt(address)
+	return mem.txs.GetAddressTxsCnt(address)
 }
 
 func (mem *CListMempool) GetAddressList() []string {
-	return mem.txQueue.GetAddressList()
+	return mem.txs.GetAddressList()
 }
 
 func (mem *CListMempool) GetPendingNonce(address string) (uint64, bool) {
-	return mem.txQueue.GetAddressNonce(address)
+	return mem.txs.GetAddressNonce(address)
 }
 
 // Lock() must be help by the caller during execution.
@@ -808,7 +808,7 @@ func (mem *CListMempool) Update(
 		// https://github.com/tendermint/tendermint/issues/3322.
 		addr := ""
 		nonce := uint64(0)
-		if ele, ok := mem.txQueue.Load(txKey(tx)); ok {
+		if ele, ok := mem.txs.Load(txKey(tx)); ok {
 			addr = ele.Address
 			nonce = ele.Nonce
 			mem.removeTx(ele)
@@ -837,7 +837,7 @@ func (mem *CListMempool) Update(
 	trace.GetElapsedInfo().AddInfo(trace.GasUsed, fmt.Sprintf("%d", gasUsed))
 
 	for accAddr, accMaxNonce := range toCleanAccMap {
-		mem.txQueue.CleanItems(accAddr, accMaxNonce)
+		mem.txs.CleanItems(accAddr, accMaxNonce)
 	}
 
 	// Either recheck non-committed txs to see if they became invalid
@@ -866,7 +866,7 @@ func (mem *CListMempool) Update(
 	}
 
 	trace.GetElapsedInfo().AddInfo(trace.MempoolCheckTxCnt, fmt.Sprintf("%d", atomic.LoadInt64(&mem.checkCnt)))
-	trace.GetElapsedInfo().AddInfo(trace.MempoolTxsCnt, fmt.Sprintf("%d", mem.txQueue.Len()))
+	trace.GetElapsedInfo().AddInfo(trace.MempoolTxsCnt, fmt.Sprintf("%d", mem.txs.Len()))
 	atomic.StoreInt64(&mem.checkCnt, 0)
 
 	// WARNING: The txs inserted between [ReapMaxBytesMaxGas, Update) is insert-sorted in the mempool.txs,
@@ -882,12 +882,12 @@ func (mem *CListMempool) recheckTxs() {
 		panic("recheckTxs is called, but the mempool is empty")
 	}
 
-	mem.recheckCursor = mem.txQueue.Front()
-	mem.recheckEnd = mem.txQueue.Back()
+	mem.recheckCursor = mem.txs.Front()
+	mem.recheckEnd = mem.txs.Back()
 
 	// Push txs to proxyAppConn
 	// NOTE: globalCb may be called concurrently.
-	for e := mem.txQueue.Front(); e != nil; e = e.Next() {
+	for e := mem.txs.Front(); e != nil; e = e.Next() {
 		memTx := e.Value.(*mempoolTx)
 		mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{
 			Tx:   memTx.tx,
