@@ -43,6 +43,10 @@ var (
 	fees    = auth.NewStdFee(21000, sdk.NewCoins(coin10))
 )
 
+const (
+	TestDataPath = "testdata"
+)
+
 type InnerTxTestSuite struct {
 	suite.Suite
 

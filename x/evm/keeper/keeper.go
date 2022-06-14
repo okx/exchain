@@ -56,6 +56,7 @@ type Keeper struct {
 
 	// add inner block data
 	innerBlockData BlockInnerData
+	innerTxLock    sync.Mutex
 
 	db          ethstate.Database
 	rootTrie    ethstate.Trie
@@ -182,9 +183,9 @@ func (k *Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 		Ada:           k.Ada,
 		Cdc:           k.cdc,
 
-		DB:         k.db,
-		Trie:       k.rootTrie,
-		RootHash:   k.rootHash,
+		DB:       k.db,
+		Trie:     k.rootTrie,
+		RootHash: k.rootHash,
 	}
 }
 
@@ -197,9 +198,9 @@ func (k Keeper) GeneratePureCSDBParams() types.CommitStateDBParams {
 		Ada:        k.Ada,
 		Cdc:        k.cdc,
 
-		DB:         k.db,
-		Trie:       k.rootTrie,
-		RootHash:   k.rootHash,
+		DB:       k.db,
+		Trie:     k.rootTrie,
+		RootHash: k.rootHash,
 	}
 }
 
