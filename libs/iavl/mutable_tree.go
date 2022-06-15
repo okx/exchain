@@ -5,8 +5,10 @@ import (
 	"container/list"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"sort"
 	"sync"
+	"time"
 
 	"github.com/tendermint/go-amino"
 
@@ -404,6 +406,10 @@ func (tree *MutableTree) GetCommitVersion() int64 {
 
 // Returns the version number of the latest version found
 func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
+	timeStart := time.Now()
+	defer func() {
+		log.Println("loadversion targetVersion=", targetVersion, ", key=", tree.GetModuleName(), ",versions count=", tree.versions.Len(), ", time=", time.Since(timeStart))
+	}()
 	roots, err := tree.ndb.getRoots()
 	if err != nil {
 		return 0, err
