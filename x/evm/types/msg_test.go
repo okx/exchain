@@ -5,6 +5,7 @@ import (
 	"fmt"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
+	"math/rand"
 	"strings"
 	"testing"
 
@@ -450,4 +451,14 @@ func BenchmarkEvmTxVerifySig(b *testing.B) {
 			}
 		}
 	})
+}
+
+func TestRlpPointerEncode(t *testing.T) {
+	bz := make([]byte, 512)
+	rand.Read(bz)
+
+	h1 := rlpHash([]interface{}{bz})
+	h2 := rlpHash([]interface{}{&bz})
+
+	require.Equal(t, h1, h2)
 }
