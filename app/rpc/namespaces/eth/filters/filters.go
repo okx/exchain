@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/big"
 
+	"github.com/okex/exchain/app/rpc/backend"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -203,31 +205,38 @@ func (f *Filter) indexedLogs(ctx context.Context, end uint64) ([]*ethtypes.Log, 
 	var logs []*ethtypes.Log
 	logsLimit := f.backend.LogsLimit()
 	bigEnd := big.NewInt(int64(end))
+	timeCtx, cancel := context.WithTimeout(context.Background(), f.backend.LogsTimeout())
+	defer cancel()
 	for {
 		select {
 		case number, ok := <-matches:
-			number += uint64(tmtypes.GetStartBlockHeight())
-			// Abort if all matches have been fulfilled
-			if !ok {
-				err := session.Error()
-				if err == nil {
-					f.criteria.FromBlock = bigEnd.Add(bigEnd, big.NewInt(1))
+			select {
+			case <-timeCtx.Done():
+				return nil, backend.ErrTimeout
+			default:
+				number += uint64(tmtypes.GetStartBlockHeight())
+				// Abort if all matches have been fulfilled
+				if !ok {
+					err := session.Error()
+					if err == nil {
+						f.criteria.FromBlock = bigEnd.Add(bigEnd, big.NewInt(1))
+					}
+					return logs, err
 				}
-				return logs, err
-			}
-			f.criteria.FromBlock = big.NewInt(int64(number)).Add(big.NewInt(int64(number)), big.NewInt(1))
+				f.criteria.FromBlock = big.NewInt(int64(number)).Add(big.NewInt(int64(number)), big.NewInt(1))
 
-			// Retrieve the suggested block and pull any truly matching logs
-			hash, err := f.backend.GetBlockHashByHeight(rpctypes.BlockNumber(number))
-			found, err := f.checkMatches(hash)
-			if err != nil {
-				return logs, err
+				// Retrieve the suggested block and pull any truly matching logs
+				hash, err := f.backend.GetBlockHashByHeight(rpctypes.BlockNumber(number))
+				found, err := f.checkMatches(hash)
+				if err != nil {
+					return logs, err
+				}
+				logs = append(logs, found...)
+				// eth_getLogs limitation
+				if logsLimit > 0 && len(logs) > logsLimit {
+					return nil, LimitError(logsLimit)
+				}
 			}
-			logs = append(logs, found...)
-			if logsLimit > 0 && len(logs) > logsLimit {
-				break
-			}
-
 		case <-ctx.Done():
 			return logs, ctx.Err()
 		}
@@ -242,22 +251,30 @@ func (f *Filter) unindexedLogs(ctx context.Context, end uint64) ([]*ethtypes.Log
 	beginPtr := &begin
 	defer f.criteria.FromBlock.SetInt64(*beginPtr)
 	logsLimit := f.backend.LogsLimit()
+	ctx, cancel := context.WithTimeout(ctx, f.backend.LogsTimeout())
+	defer cancel()
 	for ; begin <= int64(end); begin++ {
-		header, err := f.backend.HeaderByNumber(rpctypes.BlockNumber(begin))
-		if header == nil || err != nil {
-			return logs, err
-		}
-		hash, err := f.backend.GetBlockHashByHeight(rpctypes.BlockNumber(begin))
-		if err != nil {
-			return logs, err
-		}
-		found, err := f.blockLogs(header, hash)
-		if err != nil {
-			return logs, err
-		}
-		logs = append(logs, found...)
-		if logsLimit > 0 && len(logs) > logsLimit {
-			break
+		select {
+		case <-ctx.Done():
+			return nil, backend.ErrTimeout
+		default:
+			header, err := f.backend.HeaderByNumber(rpctypes.BlockNumber(begin))
+			if header == nil || err != nil {
+				return logs, err
+			}
+			hash, err := f.backend.GetBlockHashByHeight(rpctypes.BlockNumber(begin))
+			if err != nil {
+				return logs, err
+			}
+			found, err := f.blockLogs(header, hash)
+			if err != nil {
+				return logs, err
+			}
+			logs = append(logs, found...)
+			// eth_getLogs limitation
+			if logsLimit > 0 && len(logs) > logsLimit {
+				return nil, LimitError(logsLimit)
+			}
 		}
 	}
 	return logs, nil

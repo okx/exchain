@@ -25,8 +25,10 @@ import (
 	"golang.org/x/time/rate"
 )
 
-var ErrServerBusy = errors.New("server is too busy")
-var ErrMethodNotAllowed = errors.New("the method is not allowed")
+var (
+	ErrServerBusy       = errors.New("server is too busy")
+	ErrMethodNotAllowed = errors.New("the method is not allowed")
+)
 
 // Backend defines the methods requided by the PublicFilterAPI backend
 type Backend interface {
@@ -43,6 +45,7 @@ type Backend interface {
 	IsDisabled(apiName string) bool
 	// logs limitations
 	LogsLimit() int
+	LogsTimeout() time.Duration
 }
 
 // consider a filter inactive if it has not been polled for within deadline

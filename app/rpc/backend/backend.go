@@ -107,6 +107,10 @@ func (b *EthermintBackend) LogsLimit() int {
 	return b.logsLimit
 }
 
+func (b *EthermintBackend) LogsTimeout() time.Duration {
+	return time.Duration(b.logsTimeout) * time.Second
+}
+
 // BlockNumber returns the current block number.
 func (b *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 	ublockNumber, err := b.wrappedBackend.GetLatestBlockNumber()
