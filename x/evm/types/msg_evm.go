@@ -316,7 +316,7 @@ func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (string, error) {
 		sigHash = msg.HomesteadSignHash()
 	}
 
-	sender, err := recoverEthSig(msg.Data.R, msg.Data.S, V, sigHash)
+	sender, err := recoverEthSig(msg.Data.R, msg.Data.S, V, &sigHash)
 	if err != nil {
 		return "", err
 	}

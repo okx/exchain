@@ -656,7 +656,7 @@ func getZeroPrefixLen(buf []byte) int {
 //
 // Ref: Ethereum Yellow Paper (BYZANTIUM VERSION 69351d5) Appendix F
 // nolint: gocritic
-func recoverEthSig(R, S, Vb *big.Int, sigHash ethcmn.Hash) (ethcmn.Address, error) {
+func recoverEthSig(R, S, Vb *big.Int, sigHash *ethcmn.Hash) (ethcmn.Address, error) {
 	if Vb.BitLen() > 8 {
 		return ethcmn.Address{}, errors.New("invalid signature")
 	}
@@ -703,7 +703,7 @@ func recoverEthSig(R, S, Vb *big.Int, sigHash ethcmn.Hash) (ethcmn.Address, erro
 	copy(sig[64-len(s):64], s)
 	sig[64] = V
 
-	ethSigData.SigHash = sigHash
+	ethSigData.SigHash = *sigHash
 
 	// recover the public key from the signature
 	pub, err := ethcrypto.Ecrecover(ethSigData.SigHash[:], sig)
