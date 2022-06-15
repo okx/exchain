@@ -408,12 +408,13 @@ func (tree *MutableTree) GetCommitVersion() int64 {
 func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
 	timeStart := time.Now()
 	defer func() {
-		log.Println("loadversion targetVersion=", targetVersion, ", key=", tree.GetModuleName(), ",versions count=", tree.versions.Len(), ", time=", time.Since(timeStart))
+		log.Println("lcm loadversion targetVersion=", targetVersion, ", key=", tree.GetModuleName(), ",versions count=", tree.versions.Len(), ", time=", time.Since(timeStart))
 	}()
 	roots, err := tree.ndb.getRoots()
 	if err != nil {
 		return 0, err
 	}
+	log.Println("lcm tree.ndb.getRoots key=", tree.GetModuleName(), ", time=", time.Since(timeStart))
 
 	if len(roots) == 0 {
 		return 0, nil
@@ -421,7 +422,7 @@ func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
 
 	firstVersion := int64(0)
 	latestVersion := int64(0)
-
+	timeFindLastestVersion := time.Now()
 	var latestRoot []byte
 	if tree.ndb.opts.UpgradeVersion == 0 {
 		for version, r := range roots {
@@ -435,8 +436,6 @@ func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
 			}
 
 		}
-		log.Println("tree.versions.Set key=", tree.GetModuleName(), ",versions count=", tree.versions.Len(), ", time=", time.Since(timeStart))
-
 		if !(targetVersion == 0 || latestVersion == targetVersion) {
 			return latestVersion, fmt.Errorf("wanted to load target %v but only found up to %v",
 				targetVersion, latestVersion)
@@ -449,15 +448,16 @@ func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
 	} else {
 		latestVersion = int64(tree.ndb.opts.UpgradeVersion)
 	}
+	log.Println("lcm tree.versions.Set key=", tree.GetModuleName(), ", time=", time.Since(timeFindLastestVersion))
 
 	t := &ImmutableTree{
 		ndb:     tree.ndb,
 		version: latestVersion,
 	}
-	timeVersions := time.Now()
+	timelatestRoot := time.Now()
 	if len(latestRoot) != 0 {
 		t.root = tree.ndb.GetNode(latestRoot)
-		log.Println("tree.ndb.GetNode key=", tree.GetModuleName(), ", time=", time.Since(timeVersions))
+		log.Println("tree.ndb.GetNode key=", tree.GetModuleName(), ", time=", time.Since(timelatestRoot))
 	}
 
 	tree.savedNodes = map[string]*Node{}
