@@ -143,6 +143,16 @@ func rlpHash(x interface{}) (hash ethcmn.Hash) {
 	return
 }
 
+func rlpHashTo(x interface{}, hash *ethcmn.Hash) {
+	hasher := keccakStatePool.Get().(ethcrypto.KeccakState)
+	defer keccakStatePool.Put(hasher)
+	hasher.Reset()
+
+	_ = rlp.Encode(hasher, x)
+	hasher.Read(hash[:])
+	return
+}
+
 // ResultData represents the data returned in an sdk.Result
 type ResultData struct {
 	ContractAddress ethcmn.Address  `json:"contract_address"`
@@ -621,15 +631,15 @@ func DecodeResultData(in []byte) (ResultData, error) {
 	return data, nil
 }
 
-var rsBytesPool = &sync.Pool{
-	New: func() interface{} {
-		return new(bytes.Buffer)
-	},
+type recoverEthSigData struct {
+	Buffer  bytes.Buffer
+	Sig     [65]byte
+	SigHash ethcmn.Hash
 }
 
-var sigPool = &sync.Pool{
+var recoverEthSigDataPool = sync.Pool{
 	New: func() interface{} {
-		return &[65]byte{}
+		return &recoverEthSigData{}
 	},
 }
 
@@ -660,8 +670,10 @@ func recoverEthSig(R, S, Vb *big.Int, sigHash ethcmn.Hash) (ethcmn.Address, erro
 
 	const _S = (bits.UintSize / 8)
 
-	buffer := rsBytesPool.Get().(*bytes.Buffer)
-	defer rsBytesPool.Put(buffer)
+	ethSigData := recoverEthSigDataPool.Get().(*recoverEthSigData)
+	defer recoverEthSigDataPool.Put(ethSigData)
+
+	buffer := &ethSigData.Buffer
 
 	rBzLen := len(R.Bits()) * _S
 
@@ -672,8 +684,7 @@ func recoverEthSig(R, S, Vb *big.Int, sigHash ethcmn.Hash) (ethcmn.Address, erro
 	R.FillBytes(buf)
 	r := buf[getZeroPrefixLen(buf):]
 
-	sig := sigPool.Get().(*[65]byte)[:]
-	defer sigPool.Put((*[65]byte)(sig))
+	sig := (&ethSigData.Sig)[:]
 	for i := range sig {
 		sig[i] = 0
 	}
@@ -692,8 +703,10 @@ func recoverEthSig(R, S, Vb *big.Int, sigHash ethcmn.Hash) (ethcmn.Address, erro
 	copy(sig[64-len(s):64], s)
 	sig[64] = V
 
+	ethSigData.SigHash = sigHash
+
 	// recover the public key from the signature
-	pub, err := ethcrypto.Ecrecover(sigHash[:], sig)
+	pub, err := ethcrypto.Ecrecover(ethSigData.SigHash[:], sig)
 	if err != nil {
 		return ethcmn.Address{}, err
 	}

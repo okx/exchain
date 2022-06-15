@@ -185,16 +185,22 @@ func (msg *MsgEthereumTx) GetSignBytes() []byte {
 	panic("must use 'RLPSignBytes' with a chain ID to get the valid bytes to sign")
 }
 
-var rlpHashParamsPool = &sync.Pool{
+type rlpHashData struct {
+	Params [9]interface{}
+	Hash   ethcmn.Hash
+}
+
+var rlpHashDataPool = &sync.Pool{
 	New: func() interface{} {
-		return &[9]interface{}{}
+		return &rlpHashData{}
 	},
 }
 
 // RLPSignBytes returns the RLP hash of an Ethereum transaction message with a
 // given chainID used for signing.
 func (msg *MsgEthereumTx) RLPSignBytes(chainID *big.Int) (h ethcmn.Hash) {
-	rlpParams := rlpHashParamsPool.Get().(*[9]interface{})
+	rlpData := rlpHashDataPool.Get().(*rlpHashData)
+	rlpParams := &rlpData.Params
 	rlpParams[0] = msg.Data.AccountNonce
 	rlpParams[1] = msg.Data.Price
 	rlpParams[2] = msg.Data.GasLimit
@@ -204,8 +210,9 @@ func (msg *MsgEthereumTx) RLPSignBytes(chainID *big.Int) (h ethcmn.Hash) {
 	rlpParams[6] = chainID
 	rlpParams[7] = uint(0)
 	rlpParams[8] = uint(0)
-	h = rlpHash(rlpParams[:])
-	rlpHashParamsPool.Put(rlpParams)
+	rlpHashTo(rlpParams[:], &rlpData.Hash)
+	h = rlpData.Hash
+	rlpHashDataPool.Put(rlpData)
 	return
 }
 
