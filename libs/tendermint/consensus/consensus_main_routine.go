@@ -109,7 +109,7 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 	msg, peerID := mi.Msg, mi.PeerID
 	switch msg := msg.(type) {
 	case *ViewChangeMessage:
-		if !ActiveViewChange {
+		if !GetActiveVC() {
 			return
 		}
 
@@ -262,7 +262,7 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 		sleepDuration = 0
 	}
 
-	if ActiveViewChange {
+	if GetActiveVC() {
 		// itself is proposer, no need to request
 		isBlockProducer, _ := cs.isBlockProducer()
 		if isBlockProducer != "y" {

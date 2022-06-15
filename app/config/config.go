@@ -646,7 +646,7 @@ func (c *OecConfig) GetActiveVC() bool {
 }
 func (c *OecConfig) SetActiveVC(value bool) {
 	c.activeVC = value
-	consensus.ActiveViewChange = value
+	consensus.SetActiveVC(value)
 }
 
 func (c *OecConfig) GetBlockPartSize() int {

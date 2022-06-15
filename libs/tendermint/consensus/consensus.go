@@ -31,8 +31,16 @@ var (
 
 	errPubKeyIsNotSet = errors.New("pubkey is not set. Look for \"Can't get private validator pubkey\" errors")
 
-	ActiveViewChange = false
+	activeViewChange = false
 )
+
+func SetActiveVC(value bool) {
+	activeViewChange = value
+}
+
+func GetActiveVC() bool {
+	return activeViewChange
+}
 
 //-----------------------------------------------------------------------------
 

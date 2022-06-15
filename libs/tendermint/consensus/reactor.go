@@ -358,7 +358,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 
 	switch chID {
 	case ViewChangeChannel:
-		if !ActiveViewChange {
+		if !GetActiveVC() {
 			return
 		}
 		switch msg := msg.(type) {
@@ -946,7 +946,7 @@ OUTER_LOOP:
 			return
 		}
 
-		if !ActiveViewChange {
+		if !GetActiveVC() {
 			time.Sleep(time.Second)
 			continue OUTER_LOOP
 		}

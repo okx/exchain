@@ -37,7 +37,7 @@ func (cs *State) tryAddVote(vote *types.Vote, peerID p2p.ID) (bool, error) {
 					vote.Type)
 				return added, err
 			}
-			if ActiveViewChange && vote.Round == 0 {
+			if GetActiveVC() && vote.Round == 0 {
 				return added, err
 			}
 			cs.evpool.AddEvidence(voteErr.DuplicateVoteEvidence)
