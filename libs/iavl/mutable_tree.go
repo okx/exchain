@@ -423,7 +423,6 @@ func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
 	latestVersion := int64(0)
 
 	var latestRoot []byte
-
 	if tree.ndb.opts.UpgradeVersion == 0 {
 		for version, r := range roots {
 			tree.versions.Set(version, true)
@@ -436,6 +435,7 @@ func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
 			}
 
 		}
+		log.Println("tree.versions.Set key=", tree.GetModuleName(), ",versions count=", tree.versions.Len(), ", time=", time.Since(timeStart))
 
 		if !(targetVersion == 0 || latestVersion == targetVersion) {
 			return latestVersion, fmt.Errorf("wanted to load target %v but only found up to %v",
@@ -454,9 +454,10 @@ func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
 		ndb:     tree.ndb,
 		version: latestVersion,
 	}
-
+	timeVersions := time.Now()
 	if len(latestRoot) != 0 {
 		t.root = tree.ndb.GetNode(latestRoot)
+		log.Println("tree.ndb.GetNode key=", tree.GetModuleName(), ", time=", time.Since(timeVersions))
 	}
 
 	tree.savedNodes = map[string]*Node{}
