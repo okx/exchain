@@ -624,6 +624,7 @@ func (mem *CListMempool) resCbRecheck(req *abci.Request, res *abci.Response) {
 		}
 		if mem.recheckCursor == mem.recheckEnd {
 			mem.recheckCursor = nil
+			mem.recheckEnd = nil
 		} else {
 			mem.recheckCursor = mem.recheckCursor.Next()
 		}
