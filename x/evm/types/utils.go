@@ -17,6 +17,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/pkg/errors"
+	"golang.org/x/crypto/sha3"
 )
 
 type KV struct {
@@ -133,14 +134,11 @@ func ValidateSigner(signBytes, sig []byte, signer ethcmn.Address) error {
 }
 
 func rlpHash(x interface{}) (hash ethcmn.Hash) {
-	hasher := keccakStatePool.Get().(ethcrypto.KeccakState)
-	defer keccakStatePool.Put(hasher)
-	hasher.Reset()
-
+	hasher := sha3.NewLegacyKeccak256()
 	_ = rlp.Encode(hasher, x)
-	hasher.Read(hash[:])
+	_ = hasher.Sum(hash[:0])
 
-	return
+	return hash
 }
 
 func rlpHashTo(x interface{}, hash *ethcmn.Hash) {
