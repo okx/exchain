@@ -429,3 +429,22 @@ func TestMsgIbcTxMarshalSignBytes(t *testing.T) {
 	require.Equal(t, expectedHexResult, fmt.Sprintf("%X", signBytes))
 
 }
+
+func BenchmarkEvmTxVerifySig(b *testing.B) {
+	chainID := big.NewInt(3)
+	priv1, _ := ethsecp256k1.GenerateKey()
+	addr1 := ethcmn.BytesToAddress(priv1.PubKey().Address().Bytes())
+
+	// require valid signature passes validation
+	msg := NewMsgEthereumTx(0, &addr1, nil, 100000, nil, []byte("test"))
+	_ = msg.Sign(chainID, priv1.ToECDSA())
+
+	b.ResetTimer()
+
+	b.Run("firstVerifySig", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			_, _ = msg.firstVerifySig(chainID)
+		}
+	})
+}
