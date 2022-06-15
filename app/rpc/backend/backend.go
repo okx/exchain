@@ -2,7 +2,9 @@ package backend
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
 
 	"github.com/spf13/viper"
 
@@ -26,8 +28,10 @@ import (
 
 const (
 	FlagLogsLimit   = "rpc.logs-limit"
-	FlagLogsTxLimit = "rpc.logs-tx-limit"
+	FlagLogsTimeout = "rpc.logs-timeout"
 )
+
+var ErrTimeout = errors.New("query timeout exceeded")
 
 // Backend implements the functionality needed to filter changes.
 // Implemented by EthermintBackend.
@@ -78,7 +82,7 @@ type EthermintBackend struct {
 	disableAPI        map[string]bool
 	backendCache      Cache
 	logsLimit         int
-	logsTxLimit       int
+	logsTimeout       int // timeout second
 }
 
 // New creates a new EthermintBackend instance
@@ -95,7 +99,7 @@ func New(clientCtx clientcontext.CLIContext, log log.Logger, rateLimiters map[st
 		disableAPI:        disableAPI,
 		backendCache:      NewLruCache(),
 		logsLimit:         viper.GetInt(FlagLogsLimit),
-		logsTxLimit:       viper.GetInt(FlagLogsTxLimit),
+		logsTimeout:       viper.GetInt(FlagLogsTimeout),
 	}
 }
 
@@ -451,23 +455,26 @@ func (b *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 	}
 
 	var blockLogs = [][]*ethtypes.Log{}
-	txLimit := len(block.Block.Txs)
-	if b.logsTxLimit > 0 && b.logsTxLimit < txLimit {
-		txLimit = b.logsTxLimit
-	}
-	for i := 0; i < txLimit; i++ {
-		tx := block.Block.Txs[i]
-		// NOTE: we query the state in case the tx result logs are not persisted after an upgrade.
-		txRes, err := b.clientCtx.Client.Tx(tx.Hash(block.Block.Height), !b.clientCtx.TrustNode)
-		if err != nil {
-			continue
-		}
-		execRes, err := evmtypes.DecodeResultData(txRes.TxResult.Data)
-		if err != nil {
-			continue
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(b.logsTimeout)*time.Second)
+	defer cancel()
+	for _, tx := range block.Block.Txs {
+		select {
+		case <-ctx.Done():
+			return nil, ErrTimeout
+		default:
+			// NOTE: we query the state in case the tx result logs are not persisted after an upgrade.
+			txRes, err := b.clientCtx.Client.Tx(tx.Hash(block.Block.Height), !b.clientCtx.TrustNode)
+			if err != nil {
+				continue
+			}
+			execRes, err := evmtypes.DecodeResultData(txRes.TxResult.Data)
+			if err != nil {
+				continue
+			}
+
+			blockLogs = append(blockLogs, execRes.Logs)
 		}
 
-		blockLogs = append(blockLogs, execRes.Logs)
 	}
 
 	return blockLogs, nil
