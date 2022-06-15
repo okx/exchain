@@ -47,6 +47,7 @@ type Context struct {
 	cache          *Cache
 	trc            *trace.Tracer
 	accountCache   *AccountCache
+	overridesBytes []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -127,6 +128,10 @@ func (c *Context) GetToAccountCacheGas() Gas {
 		return 0
 	}
 	return c.accountCache.ToAccGotGas
+}
+
+func (c *Context) OverrideBytes() []byte {
+	return c.overridesBytes
 }
 
 func (c *Context) UpdateFromAccountCache(fromAcc interface{}, fromAccGettedGas Gas) {
@@ -327,6 +332,10 @@ func (c Context) WithCache(cache *Cache) Context {
 // TODO: remove???
 func (c *Context) IsZero() bool {
 	return c.ms == nil
+}
+func (c *Context) SetOverrideBytes(b []byte) *Context {
+	c.overridesBytes = b
+	return c
 }
 
 // WithValue is deprecated, provided for backwards compatibility
