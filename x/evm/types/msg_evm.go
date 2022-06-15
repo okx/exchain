@@ -188,11 +188,18 @@ func (msg *MsgEthereumTx) GetSignBytes() []byte {
 type rlpHashData struct {
 	Params [9]interface{}
 	Hash   ethcmn.Hash
+
+	GasLimit uint64
+	Payload  []byte
+
+	ParamsSlice interface{}
 }
 
 var rlpHashDataPool = &sync.Pool{
 	New: func() interface{} {
-		return &rlpHashData{}
+		data := &rlpHashData{}
+		data.ParamsSlice = data.Params[:]
+		return data
 	},
 }
 
@@ -200,17 +207,20 @@ var rlpHashDataPool = &sync.Pool{
 // given chainID used for signing.
 func (msg *MsgEthereumTx) RLPSignBytes(chainID *big.Int) (h ethcmn.Hash) {
 	rlpData := rlpHashDataPool.Get().(*rlpHashData)
+	rlpData.GasLimit = msg.Data.GasLimit
+	rlpData.Payload = msg.Data.Payload
+
 	rlpParams := &rlpData.Params
 	rlpParams[0] = msg.Data.AccountNonce
 	rlpParams[1] = msg.Data.Price
-	rlpParams[2] = msg.Data.GasLimit
+	rlpParams[2] = &rlpData.GasLimit
 	rlpParams[3] = msg.Data.Recipient
 	rlpParams[4] = msg.Data.Amount
-	rlpParams[5] = msg.Data.Payload
+	rlpParams[5] = &rlpData.Payload
 	rlpParams[6] = chainID
 	rlpParams[7] = uint(0)
 	rlpParams[8] = uint(0)
-	rlpHashTo(rlpParams[:], &rlpData.Hash)
+	rlpHashTo(rlpData.ParamsSlice, &rlpData.Hash)
 	h = rlpData.Hash
 	rlpHashDataPool.Put(rlpData)
 	return
