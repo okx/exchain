@@ -24,8 +24,8 @@ func (suite *KeeperTestSuite) TestQuerier() {
 
 			autoContract := common.BigToAddress(big.NewInt(1))
 			externalContract := common.BigToAddress(big.NewInt(2))
-			suite.app.Erc20Keeper.SetExternalContractForDenom(suite.ctx, denom1, autoContract)
-			suite.app.Erc20Keeper.SetExternalContractForDenom(suite.ctx, denom2, externalContract)
+			suite.app.Erc20Keeper.SetContractForDenom(suite.ctx, denom1, autoContract)
+			suite.app.Erc20Keeper.SetContractForDenom(suite.ctx, denom2, externalContract)
 		}, true},
 	}
 
