@@ -41,6 +41,8 @@ type Backend interface {
 	GetBlockHashByHeight(height rpctypes.BlockNumber) (common.Hash, error)
 	GetRateLimiter(apiName string) *rate.Limiter
 	IsDisabled(apiName string) bool
+	// logs limitations
+	LogsLimit() int
 }
 
 // consider a filter inactive if it has not been polled for within deadline

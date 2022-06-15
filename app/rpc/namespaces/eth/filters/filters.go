@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/okex/exchain/app/rpc/backend"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/bloombits"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -203,7 +201,7 @@ func (f *Filter) indexedLogs(ctx context.Context, end uint64) ([]*ethtypes.Log, 
 
 	// Iterate over the matches until exhausted or context closed
 	var logs []*ethtypes.Log
-
+	logsLimit := f.backend.LogsLimit()
 	bigEnd := big.NewInt(int64(end))
 	for {
 		select {
@@ -226,7 +224,7 @@ func (f *Filter) indexedLogs(ctx context.Context, end uint64) ([]*ethtypes.Log, 
 				return logs, err
 			}
 			logs = append(logs, found...)
-			if len(logs) > backend.LogsLimit {
+			if logsLimit > 0 && len(logs) > logsLimit {
 				break
 			}
 
@@ -243,7 +241,7 @@ func (f *Filter) unindexedLogs(ctx context.Context, end uint64) ([]*ethtypes.Log
 	begin := f.criteria.FromBlock.Int64()
 	beginPtr := &begin
 	defer f.criteria.FromBlock.SetInt64(*beginPtr)
-
+	logsLimit := f.backend.LogsLimit()
 	for ; begin <= int64(end); begin++ {
 		header, err := f.backend.HeaderByNumber(rpctypes.BlockNumber(begin))
 		if header == nil || err != nil {
@@ -258,7 +256,7 @@ func (f *Filter) unindexedLogs(ctx context.Context, end uint64) ([]*ethtypes.Log
 			return logs, err
 		}
 		logs = append(logs, found...)
-		if len(logs) > backend.LogsLimit {
+		if logsLimit > 0 && len(logs) > logsLimit {
 			break
 		}
 	}

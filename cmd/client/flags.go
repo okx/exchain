@@ -106,4 +106,6 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Int(tmtypes.FlagSigCacheSize, 200000, "Maximum number of signatures in the cache")
 	cmd.Flags().Int(config.FlagDebugGcInterval, 0, "Force gc every n heights for debug")
 	cmd.Flags().String(rpc.FlagWebsocket, "8546", "websocket port to listen to")
+	cmd.Flags().Int(backend.FlagLogsLimit, 0, "Maximum number of logs returned when calling eth_getLogs")
+	cmd.Flags().Int(backend.FlagLogsTxLimit, 0, "Maximum number of tx handled when calling eth_getLogs")
 }

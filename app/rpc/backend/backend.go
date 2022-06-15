@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/spf13/viper"
+
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/x/evm/watcher"
 	"golang.org/x/time/rate"
@@ -22,7 +24,10 @@ import (
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
-const LogsLimit = 10000
+const (
+	FlagLogsLimit   = "rpc.logs-limit"
+	FlagLogsTxLimit = "rpc.logs-tx-limit"
+)
 
 // Backend implements the functionality needed to filter changes.
 // Implemented by EthermintBackend.
@@ -72,6 +77,8 @@ type EthermintBackend struct {
 	rateLimiters      map[string]*rate.Limiter
 	disableAPI        map[string]bool
 	backendCache      Cache
+	logsLimit         int
+	logsTxLimit       int
 }
 
 // New creates a new EthermintBackend instance
@@ -87,7 +94,13 @@ func New(clientCtx clientcontext.CLIContext, log log.Logger, rateLimiters map[st
 		rateLimiters:      rateLimiters,
 		disableAPI:        disableAPI,
 		backendCache:      NewLruCache(),
+		logsLimit:         viper.GetInt(FlagLogsLimit),
+		logsTxLimit:       viper.GetInt(FlagLogsTxLimit),
 	}
+}
+
+func (b *EthermintBackend) LogsLimit() int {
+	return b.logsLimit
 }
 
 // BlockNumber returns the current block number.
@@ -438,10 +451,12 @@ func (b *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 	}
 
 	var blockLogs = [][]*ethtypes.Log{}
-	if len(block.Block.Txs) > 2000 {
-		return blockLogs, nil
+	txLimit := len(block.Block.Txs)
+	if b.logsTxLimit > 0 && b.logsTxLimit < txLimit {
+		txLimit = b.logsTxLimit
 	}
-	for _, tx := range block.Block.Txs {
+	for i := 0; i < txLimit; i++ {
+		tx := block.Block.Txs[i]
 		// NOTE: we query the state in case the tx result logs are not persisted after an upgrade.
 		txRes, err := b.clientCtx.Client.Tx(tx.Hash(block.Block.Height), !b.clientCtx.TrustNode)
 		if err != nil {
@@ -453,9 +468,6 @@ func (b *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 		}
 
 		blockLogs = append(blockLogs, execRes.Logs)
-		if len(blockLogs) > LogsLimit {
-			break
-		}
 	}
 
 	return blockLogs, nil
