@@ -9,7 +9,6 @@ import (
 	"sort"
 	"strings"
 	"sync"
-	"time"
 
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
@@ -46,6 +45,7 @@ const (
 	versionsKey           = "s/versions"
 	commitInfoKeyFmt      = "s/%d" // s/<version>
 	maxPruneHeightsLength = 100
+	FlagLoadVersionAsync  = "store-load-async"
 )
 
 // Store is composed of many CommitStores. Name contrasts with
@@ -289,11 +289,9 @@ func (rs *Store) hasVersion(targetVersion int64) (bool, error) {
 	}
 	return true, nil
 }
-func (rs *Store) loadSubStoreVersionAsync(ver int64, key types.StoreKey, storeParams storeParams, upgrades *types.StoreUpgrades, infos map[string]storeInfo) (types.CommitKVStore, error) {
-	startTime := time.Now()
-	defer func(start time.Time) {
-		log.Println("lcm loadSubStoreVersionAsync, key=", key.Name(), ",time :", time.Since(start))
-	}(startTime)
+
+//loadSubStoreVersion loads specific version for sub kvstore by given key and storeParams.
+func (rs *Store) loadSubStoreVersion(ver int64, key types.StoreKey, storeParams storeParams, upgrades *types.StoreUpgrades, infos map[string]storeInfo) (types.CommitKVStore, error) {
 
 	commitID := rs.getCommitID(infos, key.Name())
 	// Load it
@@ -331,11 +329,42 @@ func (rs *Store) loadSubStoreVersionAsync(ver int64, key types.StoreKey, storePa
 	}
 	return store, nil
 }
+
+//loadSubStoreVersionsAsync uses go-routines to load version async for each sub kvstore and returns kvstore maps
+func (rs *Store) loadSubStoreVersionsAsync(ver int64, upgrades *types.StoreUpgrades, infos map[string]storeInfo) (map[types.StoreKey]types.CommitKVStore, error) {
+	lock := &sync.Mutex{}
+	wg := &sync.WaitGroup{}
+	var newStores = make(map[types.StoreKey]types.CommitKVStore)
+	errs := []error{}
+	for key, sp := range rs.storesParams {
+		if evmAccStoreFilter(key.Name(), ver) {
+			continue
+		}
+		wg.Add(1)
+		go func(_key types.StoreKey, _sp storeParams) {
+			store, err := rs.loadSubStoreVersion(ver, _key, _sp, upgrades, infos)
+			lock.Lock()
+			if err != nil {
+				errs = append(errs, err)
+			} else {
+				newStores[_key] = store
+			}
+			lock.Unlock()
+			wg.Done()
+		}(key, sp)
+	}
+	wg.Wait()
+	if len(errs) != 0 {
+		var errStr strings.Builder
+		for _, err := range errs {
+			errStr.WriteString(fmt.Sprintf("%s\n", err.Error()))
+		}
+		return nil, fmt.Errorf("failed to load version async, err:%s", errStr.String())
+	}
+	return newStores, nil
+}
+
 func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
-	startTime := time.Now()
-	defer func(start time.Time) {
-		log.Println("lcm loadVersion, time :", time.Since(start))
-	}(startTime)
 	infos := make(map[string]storeInfo)
 	var cInfo commitInfo
 	cInfo.Version = tmtypes.GetStartBlockHeight()
@@ -373,43 +402,33 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	}
 
 	// load each Store (note this doesn't panic on unmounted keys now)
-	var newStores = make(map[types.StoreKey]types.CommitKVStore)
-	lock := &sync.Mutex{}
-	wg := &sync.WaitGroup{}
-	roots := make(map[int64][]byte)
-	for key, sp := range rs.storesParams {
-		if evmAccStoreFilter(key.Name(), ver) {
-			continue
+	var err error
+	var newStores map[types.StoreKey]types.CommitKVStore
+	loadVersionAsync := viper.GetBool(FlagLoadVersionAsync)
+	if loadVersionAsync {
+		newStores, err = rs.loadSubStoreVersionsAsync(ver, upgrades, infos)
+		if err != nil {
+			return err
 		}
-		wg.Add(1)
-		go func(_key types.StoreKey, _sp storeParams) {
-			store, err := rs.loadSubStoreVersionAsync(ver, _key, _sp, upgrades, infos)
-			if err != nil {
-				//todo
-				log.Println(err)
+	} else {
+		var newStores = make(map[types.StoreKey]types.CommitKVStore)
+		for key, sp := range rs.storesParams {
+			if evmAccStoreFilter(key.Name(), ver) {
+				continue
 			}
-			lock.Lock()
-			newStores[_key] = store
-			lock.Unlock()
-			wg.Done()
-		}(key, sp)
+
+			store, err := rs.loadSubStoreVersion(ver, key, sp, upgrades, infos)
+			if err != nil {
+				return err
+			}
+			newStores[key] = store
+		}
 	}
-	wg.Wait()
+	//
 	rs.lastCommitInfo = cInfo
 	rs.stores = newStores
 
-	for key, storeParams := range rs.storesParams {
-		store := rs.stores[key]
-		if storeParams.typ == types.StoreTypeIAVL {
-			if len(roots) == 0 {
-				iStore := store.(*iavl.Store)
-				roots = iStore.GetHeights()
-			}
-			break
-		}
-	}
-
-	err := rs.checkAndResetPruningHeights(roots)
+	err = rs.checkAndResetPruningHeights()
 	if err != nil {
 		return err
 	}
@@ -432,7 +451,21 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	return nil
 }
 
-func (rs *Store) checkAndResetPruningHeights(roots map[int64][]byte) error {
+func (rs *Store) checkAndResetPruningHeights() error {
+	var roots map[int64][]byte
+	for key, storeParams := range rs.storesParams {
+		store := rs.stores[key]
+		if storeParams.typ == types.StoreTypeIAVL {
+			if roots == nil {
+				iStore := store.(*iavl.Store)
+				roots = iStore.GetHeights()
+				break
+			}
+		}
+	}
+	if roots == nil {
+		//todo
+	}
 	ph, err := getPruningHeights(rs.db, false)
 	if err != nil {
 		return err
