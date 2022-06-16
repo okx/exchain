@@ -193,18 +193,24 @@ func (so *stateObject) CommitTrie(db ethstate.Database) error {
 // finalise moves all dirty storage slots into the pending area to be hashed or
 // committed later. It is invoked at the end of every transaction.
 func (so *stateObject) finalise(prefetch bool) {
-	slotsToPrefetch := make([][]byte, 0, len(so.dirtyStorage))
-	for key, value := range so.dirtyStorage {
-		so.pendingStorage[key] = value
-		if value != so.originStorage[key] {
-			if TrieUseCompositeKey {
-				key = GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
+	if so.stateDB.prefetcher != nil && prefetch && so.stateRoot != types2.EmptyRootHash {
+		slotsToPrefetch := make([][]byte, 0, len(so.dirtyStorage))
+		for key, value := range so.dirtyStorage {
+			so.pendingStorage[key] = value
+			if value != so.originStorage[key] {
+				if TrieUseCompositeKey {
+					key = GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
+				}
+				slotsToPrefetch = append(slotsToPrefetch, ethcmn.CopyBytes(key[:])) // Copy needed for closure
 			}
-			slotsToPrefetch = append(slotsToPrefetch, ethcmn.CopyBytes(key[:])) // Copy needed for closure
 		}
-	}
-	if so.stateDB.prefetcher != nil && prefetch && len(slotsToPrefetch) > 0 && so.stateRoot != types2.EmptyRootHash {
-		so.stateDB.prefetcher.Prefetch(so.stateRoot, slotsToPrefetch)
+		if len(slotsToPrefetch) > 0 {
+			so.stateDB.prefetcher.Prefetch(so.stateRoot, slotsToPrefetch)
+		}
+	} else {
+		for key, value := range so.dirtyStorage {
+			so.pendingStorage[key] = value
+		}
 	}
 
 	if len(so.dirtyStorage) > 0 {
