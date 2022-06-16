@@ -451,19 +451,16 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 }
 
 func (rs *Store) checkAndResetPruningHeights() error {
-	var roots map[int64][]byte
-	for key, storeParams := range rs.storesParams {
-		store := rs.stores[key]
-		if storeParams.typ == types.StoreTypeIAVL {
-			if roots == nil {
-				iStore := store.(*iavl.Store)
-				roots = iStore.GetHeights()
-				break
-			}
+	roots := make(map[int64][]byte)
+	for _, store := range rs.stores {
+		iStore, ok := store.(*iavl.Store)
+		if !ok {
+			continue
 		}
-	}
-	if roots == nil {
-		//todo
+		if roots == nil {
+			roots = iStore.GetHeights()
+			break
+		}
 	}
 	ph, err := getPruningHeights(rs.db, false)
 	if err != nil {
