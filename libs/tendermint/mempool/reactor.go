@@ -211,7 +211,7 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		tx = msg.Wtx.Payload
 		if err := msg.Wtx.verify(memR.nodeKeyWhitelist); err != nil {
 			memR.Logger.Error("wtx.verify", "error", err, "txhash",
-				common.BytesToHash(types.Tx(msg.Wtx.Payload).Hash(memR.mempool.height)),
+				common.BytesToHash(types.Tx(msg.Wtx.Payload).Hash(memR.mempool.Height())),
 			)
 		} else {
 			txInfo.wtx = msg.Wtx
@@ -225,7 +225,7 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 
 	err = memR.mempool.CheckTx(tx, nil, txInfo)
 	if err != nil {
-		memR.Logger.Info("Could not check tx", "tx", txID(tx, memR.mempool.height), "err", err)
+		memR.Logger.Info("Could not check tx", "tx", txID(tx, memR.mempool.Height()), "err", err)
 	}
 }
 
