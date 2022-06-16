@@ -609,7 +609,7 @@ func TestAddAndSortTx(t *testing.T) {
 	}
 
 	for _, exInfo := range testCases {
-		mempool.addAndSortTx(exInfo.Tx)
+		mempool.addTx(exInfo.Tx)
 	}
 	require.Equal(t, 18, mempool.txs.Len(), fmt.Sprintf("Expected to txs length %v but got %v", 18, mempool.txs.Len()))
 
@@ -634,9 +634,9 @@ func TestAddAndSortTx(t *testing.T) {
 	//Address:  18  , GasPrice:  2698  , Nonce:  1
 	//Address:  19  , GasPrice:  2484  , Nonce:  0
 
-	require.Equal(t, 3, mempool.addressRecord.GetAddressTxsCnt("1"))
-	require.Equal(t, 1, mempool.addressRecord.GetAddressTxsCnt("15"))
-	require.Equal(t, 2, mempool.addressRecord.GetAddressTxsCnt("18"))
+	require.Equal(t, 3, mempool.GetUserPendingTxsCnt("1"))
+	require.Equal(t, 1, mempool.GetUserPendingTxsCnt("15"))
+	require.Equal(t, 2, mempool.GetUserPendingTxsCnt("18"))
 
 	require.Equal(t, "18", mempool.txs.Front().Address)
 	require.Equal(t, big.NewInt(9740), mempool.txs.Front().GasPrice)
@@ -658,8 +658,8 @@ func TestAddAndSortTx(t *testing.T) {
 
 	mempool.Flush()
 	require.Equal(t, 0, mempool.txs.Len())
-	require.Equal(t, 0, mempool.bcTxsList.Len())
-	require.Equal(t, 0, len(mempool.addressRecord.GetAddressList()))
+	require.Equal(t, 0, mempool.txs.BroadcastLen())
+	require.Equal(t, 0, len(mempool.GetAddressList()))
 
 }
 
@@ -683,7 +683,7 @@ func TestReplaceTx(t *testing.T) {
 	}
 
 	for _, exInfo := range testCases {
-		mempool.addAndSortTx(exInfo.Tx)
+		mempool.addTx(exInfo.Tx)
 	}
 	require.Equal(t, 5, mempool.txs.Len(), fmt.Sprintf("Expected to txs length %v but got %v", 5, mempool.txs.Len()))
 
@@ -707,11 +707,11 @@ func TestAddAndSortTxByRandom(t *testing.T) {
 
 	AddrNonce := make(map[string]int)
 	for i := 0; i < 1000; i++ {
-		mempool.addAndSortTx(generateNode(AddrNonce, i))
+		mempool.addTx(generateNode(AddrNonce, i))
 	}
 
 	require.Equal(t, true, checkTx(mempool.txs.Front()))
-	addressList := mempool.addressRecord.GetAddressList()
+	addressList := mempool.GetAddressList()
 	for _, addr := range addressList {
 		require.Equal(t, true, checkAccNonce(addr, mempool.txs.Front()))
 	}
@@ -751,7 +751,7 @@ func TestReapUserTxs(t *testing.T) {
 	}
 
 	for _, exInfo := range testCases {
-		mempool.addAndSortTx(exInfo.Tx)
+		mempool.addTx(exInfo.Tx)
 	}
 	require.Equal(t, 18, mempool.txs.Len(), fmt.Sprintf("Expected to txs length %v but got %v", 18,
 		mempool.txs.Len()))
@@ -903,7 +903,7 @@ func TestAddAndSortTxConcurrency(t *testing.T) {
 	for _, exInfo := range testCases {
 		wait.Add(1)
 		go func(p Case) {
-			mempool.addAndSortTx(p.Tx)
+			mempool.addTx(p.Tx)
 			wait.Done()
 		}(exInfo)
 	}
@@ -919,15 +919,15 @@ func TestReplaceTxWithMultiAddrs(t *testing.T) {
 	defer cleanup()
 
 	tx1 := &mempoolTx{height: 1, gasWanted: 1, tx: []byte("10002"), from: "1", realTx: abci.MockTx{GasPrice: big.NewInt(9740), Nonce: 1}}
-	mempool.addAndSortTx(tx1)
+	mempool.addTx(tx1)
 	tx2 := &mempoolTx{height: 1, gasWanted: 1, tx: []byte("90000"), from: "2", realTx: abci.MockTx{GasPrice: big.NewInt(10717), Nonce: 1}}
-	mempool.addAndSortTx(tx2)
+	mempool.addTx(tx2)
 	tx3 := &mempoolTx{height: 1, gasWanted: 1, tx: []byte("90000"), from: "3", realTx: abci.MockTx{GasPrice: big.NewInt(10715), Nonce: 1}}
-	mempool.addAndSortTx(tx3)
+	mempool.addTx(tx3)
 	tx4 := &mempoolTx{height: 1, gasWanted: 1, tx: []byte("10001"), from: "1", realTx: abci.MockTx{GasPrice: big.NewInt(10716), Nonce: 2}}
-	mempool.addAndSortTx(tx4)
+	mempool.addTx(tx4)
 	tx5 := &mempoolTx{height: 1, gasWanted: 1, tx: []byte("10001"), from: "1", realTx: abci.MockTx{GasPrice: big.NewInt(10712), Nonce: 1}}
-	mempool.addAndSortTx(tx5)
+	mempool.addTx(tx5)
 
 	var nonces []uint64
 	for e := mempool.txs.Front(); e != nil; e = e.Next() {

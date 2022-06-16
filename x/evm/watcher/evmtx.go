@@ -54,7 +54,7 @@ func (etx *evmTx) GetIndex() uint64 {
 }
 
 type MsgEthTx struct {
-	*baseLazyMarshal
+	*Transaction
 	Key []byte
 }
 
@@ -67,9 +67,17 @@ func (m MsgEthTx) GetKey() []byte {
 }
 
 func newMsgEthTx(ethTx *Transaction) *MsgEthTx {
-	msg := MsgEthTx{
-		Key:             ethTx.Hash.Bytes(),
-		baseLazyMarshal: newBaseLazyMarshal(ethTx),
+	return &MsgEthTx{
+		Key:         ethTx.Hash.Bytes(),
+		Transaction: ethTx,
 	}
-	return &msg
+}
+func newTransaction(tx *types.MsgEthereumTx, txHash, blockHash ethcmn.Hash, blockNumber, index uint64) *Transaction {
+	return &Transaction{
+		Hash:              txHash,
+		tx:                tx,
+		originBlockHash:   &blockHash,
+		originBlockNumber: blockNumber,
+		originIndex:       index,
+	}
 }

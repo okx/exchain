@@ -37,20 +37,21 @@ type Watcher struct {
 	delayEraseKey [][]byte
 	log           log.Logger
 	// for state delta transfering in network
-	watchData *WatchData
-
-	jobChan chan func()
-
-	InfuraKeeper InfuraKeeper
+	watchData    *WatchData
+	jobChan      chan func()
 	evmTxIndex   uint64
+	checkWd      bool
+	filterMap    map[string]WatchMessage
+	InfuraKeeper InfuraKeeper
 }
 
 var (
-	watcherEnable  = false
-	watcherLruSize = 1000
-	checkWd        = false
-	onceEnable     sync.Once
-	onceLru        sync.Once
+	watcherEnable   = false
+	watcherLruSize  = 1000
+	onceEnable      sync.Once
+	onceLru         sync.Once
+	watcherInstance *Watcher
+	onceWatcher     sync.Once
 )
 
 func IsWatcherEnabled() bool {
@@ -68,13 +69,27 @@ func GetWatchLruSize() int {
 }
 
 func NewWatcher(logger log.Logger) *Watcher {
-	watcher := &Watcher{store: InstanceOfWatchStore(), cumulativeGas: make(map[uint64]uint64), sw: IsWatcherEnabled(), firstUse: true, delayEraseKey: make([][]byte, 0), watchData: &WatchData{}, log: logger}
-	checkWd = viper.GetBool(FlagCheckWd)
-	return watcher
+	onceWatcher.Do(func() {
+		watcherInstance = &Watcher{store: InstanceOfWatchStore(),
+			cumulativeGas: make(map[uint64]uint64),
+			sw:            IsWatcherEnabled(),
+			firstUse:      true,
+			delayEraseKey: make([][]byte, 0),
+			watchData:     &WatchData{},
+			log:           logger,
+			checkWd:       viper.GetBool(FlagCheckWd),
+			filterMap:     make(map[string]WatchMessage)}
+	})
+	return watcherInstance
 }
 
 func (w *Watcher) IsFirstUse() bool {
 	return w.firstUse
+}
+
+// SetFirstUse sets fistUse of Watcher only could use for ut
+func (w *Watcher) SetFirstUse(v bool) {
+	w.firstUse = v
 }
 
 func (w *Watcher) Used() {
@@ -107,7 +122,9 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 }
 
 func (w *Watcher) clean() {
-	w.cumulativeGas = make(map[uint64]uint64)
+	for k := range w.cumulativeGas {
+		delete(w.cumulativeGas, k)
+	}
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
 }
@@ -401,7 +418,7 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 		w.commitBloomData(data.BloomData)
 	}
 
-	if checkWd {
+	if w.checkWd {
 		keys := make([][]byte, len(data.Batches))
 		for i, _ := range data.Batches {
 			keys[i] = data.Batches[i].Key
@@ -411,12 +428,11 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 }
 
 func (w *Watcher) commitBatch(batch []WatchMessage) {
-	filterMap := make(map[string]WatchMessage)
 	for _, b := range batch {
-		filterMap[bytes2Key(b.GetKey())] = b
+		w.filterMap[bytes2Key(b.GetKey())] = b
 	}
 
-	for _, b := range filterMap {
+	for _, b := range w.filterMap {
 		key := b.GetKey()
 		value := []byte(b.GetValue())
 		typeValue := b.GetType()
@@ -430,7 +446,11 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 		}
 	}
 
-	if checkWd {
+	for k := range w.filterMap {
+		delete(w.filterMap, k)
+	}
+
+	if w.checkWd {
 		keys := make([][]byte, len(batch))
 		for i, _ := range batch {
 			keys[i] = batch[i].GetKey()
@@ -658,4 +678,8 @@ func (w *Watcher) dispatchJob(f func()) {
 	// why: something wrong happened: such as db panic(disk maybe is full)(it should be the only reason)
 	//								  UseWatchData were executed every 4 seoncds(block schedual)
 	w.jobChan <- f
+}
+
+func (w *Watcher) Height() uint64 {
+	return w.height
 }
