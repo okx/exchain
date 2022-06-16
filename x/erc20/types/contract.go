@@ -2,7 +2,9 @@ package types
 
 import (
 	_ "embed"
+	"encoding/hex"
 	"encoding/json"
+	"errors"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -17,30 +19,75 @@ type CompiledContract struct {
 }
 
 var (
-	EVMModuleETHAddr  common.Address
-	EVMModuleBechAddr sdk.AccAddress
+	IbcEvmModuleETHAddr  common.Address
+	IbcEvmModuleBechAddr sdk.AccAddress
 
 	// ModuleERC20Contract is the compiled okc erc20 contract
 	ModuleERC20Contract CompiledContract
 
-	//go:embed contracts/ModuleERC20.json
-	moduleERC20Json []byte
+	//go:embed contracts/implement.json
+	implementationERC20ContractJson []byte
+	//go:embed contracts/proxy.json
+	proxyERC20ContractJson []byte
 )
 
 const (
 	IbcEvmModuleName = "ibc-evm"
 
 	ContractMintMethod = "mint_by_okc_module"
+
+	ProxyContractUpgradeTo   = "upgradeTo"
+	ProxyContractChangeAdmin = "changeAdmin"
 )
 
 func init() {
-	EVMModuleBechAddr = authtypes.NewModuleAddress(IbcEvmModuleName)
-	EVMModuleETHAddr = common.BytesToAddress(EVMModuleBechAddr.Bytes())
+	IbcEvmModuleBechAddr = authtypes.NewModuleAddress(IbcEvmModuleName)
+	IbcEvmModuleETHAddr = common.BytesToAddress(IbcEvmModuleBechAddr.Bytes())
+	MustUnmarshalCompileContract(implementationERC20ContractJson)
+	MustUnmarshalCompileContract(proxyERC20ContractJson)
+}
 
-	if err := json.Unmarshal(moduleERC20Json, &ModuleERC20Contract); err != nil {
+func (c CompiledContract) ValidBasic() error {
+	if len(c.Bin) == 0 {
+		return errors.New("empty bin data")
+	}
+	_, err := hex.DecodeString(c.Bin)
+	return err
+}
+
+func MustMarshalCompileContract(data CompiledContract) []byte {
+	ret, err := MarshalCompileContract(data)
+	if nil != err {
 		panic(err)
 	}
-	if len(ModuleERC20Contract.Bin) == 0 {
-		panic("load contract failed")
+	return ret
+}
+
+func MarshalCompileContract(data CompiledContract) ([]byte, error) {
+	return json.Marshal(data)
+}
+
+func MustUnmarshalCompileContract(data []byte) CompiledContract {
+	ret, err := UnmarshalCompileContract(data)
+	if nil != err {
+		panic(err)
 	}
+	return ret
+}
+
+func UnmarshalCompileContract(data []byte) (CompiledContract, error) {
+	var ret CompiledContract
+	err := json.Unmarshal(data, &ret)
+	if nil != err {
+		return CompiledContract{}, err
+	}
+	return ret, nil
+}
+
+func GetInternalImplementationBytes() []byte {
+	return implementationERC20ContractJson
+}
+
+func GetInternalProxyBytes() []byte {
+	return proxyERC20ContractJson
 }

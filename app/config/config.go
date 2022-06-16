@@ -14,6 +14,7 @@ import (
 	"github.com/okex/exchain/libs/system"
 	"github.com/okex/exchain/libs/system/trace"
 	tmconfig "github.com/okex/exchain/libs/tendermint/config"
+	"github.com/okex/exchain/libs/tendermint/consensus"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/state"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
@@ -645,6 +646,7 @@ func (c *OecConfig) GetActiveVC() bool {
 }
 func (c *OecConfig) SetActiveVC(value bool) {
 	c.activeVC = value
+	consensus.SetActiveVC(value)
 }
 
 func (c *OecConfig) GetBlockPartSize() int {
