@@ -120,3 +120,19 @@ func (sc *SignerClient) SignProposal(chainID string, proposal *types.Proposal) e
 
 	return nil
 }
+
+func (sc *SignerClient) SignBytes(_ []byte) ([]byte, error) {
+	response, err := sc.endpoint.SendRequest(&SignBytesRequest{})
+	if err != nil {
+		return nil, err
+	}
+
+	resp, ok := response.(*SignedBytesResponse)
+	if !ok {
+		return nil, ErrUnexpectedResponse
+	}
+	if resp.Error != nil {
+		return nil, resp.Error
+	}
+	return resp.Bytes, nil
+}
