@@ -89,6 +89,10 @@ func (k Keeper) WithdrawValidatorCommission(ctx sdk.Context, valAddr sdk.ValAddr
 	commission, remainder := accumCommission.TruncateDecimal()
 	k.SetValidatorAccumulatedCommission(ctx, valAddr, remainder) // leave remainder to withdraw later
 
+	// update outstanding
+	outstanding := k.GetValidatorOutstandingRewards(ctx, valAddr)
+	k.SetValidatorOutstandingRewards(ctx, valAddr, outstanding.Sub(sdk.NewDecCoinsFromCoins(commission...)))
+
 	if !commission.IsZero() {
 		accAddr := sdk.AccAddress(valAddr)
 		withdrawAddr := k.GetDelegatorWithdrawAddr(ctx, accAddr)
@@ -106,4 +110,35 @@ func (k Keeper) WithdrawValidatorCommission(ctx sdk.Context, valAddr sdk.ValAddr
 	)
 
 	return commission, nil
+}
+
+// withdraw rewards from a delegation
+func (k Keeper) WithdrawDelegationRewards(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) (sdk.Coins, error) {
+	val := k.stakingKeeper.Validator(ctx, valAddr)
+	if val == nil {
+		return nil, types.ErrCodeEmptyValidatorDistInfo()
+	}
+
+	del := k.stakingKeeper.Delegator(ctx, delAddr)
+	if del == nil {
+		return nil, types.ErrCodeEmptyDelegationDistInfo()
+	}
+
+	// withdraw rewards
+	rewards, err := k.withdrawDelegationRewards(ctx, val, del)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			types.EventTypeWithdrawRewards,
+			sdk.NewAttribute(sdk.AttributeKeyAmount, rewards.String()),
+			sdk.NewAttribute(types.AttributeKeyValidator, valAddr.String()),
+		),
+	)
+
+	// reinitialize the delegation
+	k.initializeDelegation(ctx, []sdk.ValAddress{valAddr}, delAddr)
+	return rewards, nil
 }

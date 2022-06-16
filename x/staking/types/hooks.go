@@ -8,6 +8,31 @@ import (
 // TODO:need to trim the staking hooks as the okexchain design
 type MultiStakingHooks []StakingHooks
 
+func (h MultiStakingHooks) BeforeDelegationCreated(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (h MultiStakingHooks) BeforeDelegationSharesModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (h MultiStakingHooks) BeforeDelegationRemoved(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (h MultiStakingHooks) AfterDelegationModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (h MultiStakingHooks) BeforeValidatorSlashed(ctx sdk.Context, valAddr sdk.ValAddress, fraction sdk.Dec) {
+	//TODO implement me
+	panic("implement me")
+}
+
 // NewMultiStakingHooks creates a new object of MultiStakingHooks
 func NewMultiStakingHooks(hooks ...StakingHooks) MultiStakingHooks {
 	return hooks

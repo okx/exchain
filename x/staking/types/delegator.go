@@ -71,3 +71,8 @@ func MustUnMarshalDelegator(cdc *codec.Codec, value []byte) (delegator Delegator
 	cdc.MustUnmarshalBinaryLengthPrefixed(value, &delegator)
 	return
 }
+
+// GetLastAddedShares gets the last shares added to validators of a delegator for other module
+func (d Delegator) GetDelegatorAddress() sdk.AccAddress {
+	return d.DelegatorAddress
+}

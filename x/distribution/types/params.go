@@ -16,13 +16,14 @@ const (
 var (
 	ParamStoreKeyCommunityTax        = []byte("communitytax")
 	ParamStoreKeyWithdrawAddrEnabled = []byte("withdrawaddrenabled")
-	ParamDistributionModel           = []byte("distributionmodel")
+	ParamStoreKeyDistributionType    = []byte("distributiontype")
 )
 
 // Params defines the set of distribution parameters.
 type Params struct {
 	CommunityTax        sdk.Dec `json:"community_tax" yaml:"community_tax"`
 	WithdrawAddrEnabled bool    `json:"withdraw_addr_enabled" yaml:"withdraw_addr_enabled"`
+	DistributionType    uint32  `json:"distribution_type" yaml:"distribution_type"`
 }
 
 // ParamKeyTable returns the parameter key table.
@@ -94,10 +95,11 @@ func validateWithdrawAddrEnabled(i interface{}) error {
 }
 
 // NewParams creates a new instance of Params
-func NewParams(communityTax sdk.Dec, withdrawAddrEnabled bool) Params {
+func NewParams(communityTax sdk.Dec, withdrawAddrEnabled bool, distributionType uint32) Params {
 	return Params{
 		CommunityTax:        communityTax,
 		WithdrawAddrEnabled: withdrawAddrEnabled,
+		DistributionType:    distributionType,
 	}
 }
 

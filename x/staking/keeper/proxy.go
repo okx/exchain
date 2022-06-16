@@ -51,6 +51,8 @@ func (k Keeper) IterateProxy(ctx sdk.Context, proxyAddr sdk.AccAddress, isClear 
 
 // UpdateShares withdraws and adds shares continuously on the same validator set with different amount of shares
 func (k Keeper) UpdateShares(ctx sdk.Context, delAddr sdk.AccAddress, tokens sdk.Dec) error {
+	//TODO zhujianguo, can write here?
+
 	// get last validators that were added shares to and existing in the store
 	vals, lastShares := k.GetLastValsAddedSharesExisted(ctx, delAddr)
 	if vals == nil {
@@ -89,6 +91,8 @@ func (k Keeper) UpdateShares(ctx sdk.Context, delAddr sdk.AccAddress, tokens sdk
 	// update the delegator struct
 	delegator.Shares = shares
 	k.SetDelegator(ctx, delegator)
+
+	//TODO zhujianguo, can write here?
 
 	return nil
 }

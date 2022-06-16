@@ -17,7 +17,7 @@ type (
 		Deposit     sdk.SysCoins   `json:"deposit" yaml:"deposit"`
 	}
 
-	// ChangeDistributionModelProposalJSON defines a ChangeDistributionModelProposal with a deposit
+	// ChangeDistributionModelProposalJSON defines a ChangeDistributionTypeProposal with a deposit
 	ChangeDistributionModelProposalJSON struct {
 		Title       string       `json:"title" yaml:"title"`
 		Description string       `json:"description" yaml:"description"`

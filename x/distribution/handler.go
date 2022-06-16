@@ -20,6 +20,9 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 		case types.MsgWithdrawValidatorCommission:
 			return handleMsgWithdrawValidatorCommission(ctx, msg, k)
 
+		case types.MsgWithdrawDelegatorReward:
+			return handleMsgWithdrawDelegatorReward(ctx, msg, k)
+
 		default:
 			return nil, types.ErrUnknownDistributionMsgType()
 		}
@@ -29,6 +32,23 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 // These functions assume everything has been authenticated (ValidateBasic passed, and signatures checked)
 func handleMsgModifyWithdrawAddress(ctx sdk.Context, msg types.MsgSetWithdrawAddress, k keeper.Keeper) (*sdk.Result, error) {
 	err := k.SetWithdrawAddr(ctx, msg.DelegatorAddress, msg.WithdrawAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.DelegatorAddress.String()),
+		),
+	)
+
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+}
+
+func handleMsgWithdrawDelegatorReward(ctx sdk.Context, msg types.MsgWithdrawDelegatorReward, k keeper.Keeper) (*sdk.Result, error) {
+	_, err := k.WithdrawDelegationRewards(ctx, msg.DelegatorAddress, msg.ValidatorAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +85,7 @@ func NewDistributionProposalHandler(k Keeper) govtypes.Handler {
 		switch c := content.Content.(type) {
 		case types.CommunityPoolSpendProposal:
 			return keeper.HandleCommunityPoolSpendProposal(ctx, k, c)
-		case types.ChangeDistributionModelProposal:
+		case types.ChangeDistributionTypeProposal:
 			return keeper.HandleChangeDistributionModelProposal(ctx, k, c)
 
 		default:

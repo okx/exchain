@@ -25,9 +25,15 @@ func (h Hooks) AfterValidatorCreated(ctx sdk.Context, valAddr sdk.ValAddress) {
 
 // AfterValidatorRemoved cleans up for after validator is removed
 func (h Hooks) AfterValidatorRemoved(ctx sdk.Context, _ sdk.ConsAddress, valAddr sdk.ValAddress) {
+	// fetch outstanding
+	outstanding := h.k.GetValidatorOutstandingRewards(ctx, valAddr)
+
 	// force-withdraw commission
 	commission := h.k.GetValidatorAccumulatedCommission(ctx, valAddr)
 	if !commission.IsZero() {
+		// subtract from outstanding
+		outstanding = outstanding.Sub(commission)
+
 		// split into integral & remainder
 		coins, remainder := commission.TruncateDecimal()
 		// remainder to community pool
@@ -47,16 +53,62 @@ func (h Hooks) AfterValidatorRemoved(ctx sdk.Context, _ sdk.ConsAddress, valAddr
 		}
 	}
 
+	// add outstanding to community pool
+	feePool := h.k.GetFeePool(ctx)
+	feePool.CommunityPool = feePool.CommunityPool.Add(outstanding...)
+	h.k.SetFeePool(ctx, feePool)
+
+	// delete outstanding
+	h.k.DeleteValidatorOutstandingRewards(ctx, valAddr)
+
 	// remove commission record
 	h.k.deleteValidatorAccumulatedCommission(ctx, valAddr)
+
+	// clear slashes
+	h.k.DeleteValidatorSlashEvents(ctx, valAddr)
+
+	// clear historical rewards
+	h.k.DeleteValidatorHistoricalRewards(ctx, valAddr)
+
+	// clear current rewards
+	h.k.DeleteValidatorCurrentRewards(ctx, valAddr)
 }
 
-// AfterValidatorDestroyed nothing to do
+// AfterValidatorDestroyed increment period
 func (h Hooks) AfterValidatorDestroyed(ctx sdk.Context, consAddr sdk.ConsAddress, valAddr sdk.ValAddress) {
+	val := h.k.stakingKeeper.Validator(ctx, valAddr)
+	h.k.incrementValidatorPeriod(ctx, val)
+}
 
+// increment period
+func (h Hooks) BeforeDelegationCreated(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) {
+	val := h.k.stakingKeeper.Validator(ctx, valAddr)
+	h.k.incrementValidatorPeriod(ctx, val)
+}
+
+// withdraw delegation rewards (which also increments period)
+func (h Hooks) BeforeDelegationSharesModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
+	del := h.k.stakingKeeper.Delegator(ctx, delAddr)
+	for _, valAddr := range valAddrs {
+		val := h.k.stakingKeeper.Validator(ctx, valAddr)
+		if _, err := h.k.withdrawDelegationRewards(ctx, val, del); err != nil {
+			panic(err)
+		}
+	}
+}
+
+// create new delegation period record
+func (h Hooks) AfterDelegationModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
+	h.k.initializeDelegation(ctx, valAddrs, delAddr)
+}
+
+// record the slash event
+func (h Hooks) BeforeValidatorSlashed(ctx sdk.Context, valAddr sdk.ValAddress, fraction sdk.Dec) {
+	h.k.updateValidatorSlashFraction(ctx, valAddr, fraction)
 }
 
 // nolint - unused hooks
 func (h Hooks) BeforeValidatorModified(_ sdk.Context, _ sdk.ValAddress)                         {}
 func (h Hooks) AfterValidatorBonded(_ sdk.Context, _ sdk.ConsAddress, _ sdk.ValAddress)         {}
 func (h Hooks) AfterValidatorBeginUnbonding(_ sdk.Context, _ sdk.ConsAddress, _ sdk.ValAddress) {}
+func (h Hooks) BeforeDelegationRemoved(_ sdk.Context, _ sdk.AccAddress, _ sdk.ValAddress)       {}

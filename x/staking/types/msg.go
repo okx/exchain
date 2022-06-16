@@ -132,6 +132,7 @@ func (msg MsgCreateValidator) ValidateBasic() error {
 type MsgEditValidator struct {
 	Description
 	ValidatorAddress sdk.ValAddress `json:"address" yaml:"address"`
+	CommissionRate   *sdk.Dec       `json:"commission_rate" yaml:"commission_rate"`
 }
 
 // NewMsgEditValidator creates a msg of edit-validator

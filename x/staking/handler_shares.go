@@ -35,12 +35,17 @@ func handleMsgBindProxy(ctx sdk.Context, msg types.MsgBindProxy, k keeper.Keeper
 		return types.ErrDoubleProxy(delegator.DelegatorAddress.String()).Result()
 	}
 
+	k.BeforeDelegationSharesModified(ctx, proxyDelegator.DelegatorAddress, proxyDelegator.ValidatorAddresses)
+
 	// same proxy, only update shares
 	if delegator.HasProxy() && delegator.ProxyAddress.Equals(proxyDelegator.DelegatorAddress) {
 		updateTokens := proxyDelegator.TotalDelegatedTokens.Add(proxyDelegator.Tokens)
 		if err := k.UpdateShares(ctx, proxyDelegator.DelegatorAddress, updateTokens); err != nil {
 			return types.ErrInvalidDelegation(proxyDelegator.DelegatorAddress.String()).Result()
 		}
+
+		// Call the after-modification hook
+		k.AfterDelegationModified(ctx, proxyDelegator.GetDelegatorAddress(), proxyDelegator.GetShareAddedValidatorAddresses())
 		return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 	}
 
@@ -67,6 +72,8 @@ func handleMsgBindProxy(ctx sdk.Context, msg types.MsgBindProxy, k keeper.Keeper
 		return types.ErrInvalidDelegation(proxyDelegator.DelegatorAddress.String()).Result()
 	}
 
+	// Call the after-modification hook
+	k.AfterDelegationModified(ctx, proxyDelegator.GetDelegatorAddress(), proxyDelegator.GetShareAddedValidatorAddresses())
 	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
@@ -114,12 +121,18 @@ func regProxy(ctx sdk.Context, proxyAddr sdk.AccAddress, k keeper.Keeper) (*sdk.
 		return types.ErrAlreadyBound(proxyAddr.String()).Result()
 	}
 
+	// call the appropriate hook if present
+	k.BeforeDelegationSharesModified(ctx, proxy.DelegatorAddress, proxy.ValidatorAddresses)
+
 	proxy.RegProxy(true)
 	k.SetDelegator(ctx, proxy)
 
 	if k.UpdateShares(ctx, proxy.DelegatorAddress, proxy.Tokens) != nil {
 		return types.ErrInvalidDelegation(proxy.DelegatorAddress.String()).Result()
 	}
+
+	// Call the after-modification hook
+	k.AfterDelegationModified(ctx, proxy.GetDelegatorAddress(), proxy.GetShareAddedValidatorAddresses())
 
 	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 
@@ -136,6 +149,9 @@ func unregProxy(ctx sdk.Context, proxyAddr sdk.AccAddress, k keeper.Keeper) (*sd
 		return types.ErrProxyNotFound(proxyAddr.String()).Result()
 	}
 
+	// call the appropriate hook if present
+	k.BeforeDelegationSharesModified(ctx, proxy.DelegatorAddress, proxy.ValidatorAddresses)
+
 	proxy.RegProxy(false)
 	// unreg action, we need to erase all proxy relationship
 	proxy.TotalDelegatedTokens = sdk.ZeroDec()
@@ -145,6 +161,9 @@ func unregProxy(ctx sdk.Context, proxyAddr sdk.AccAddress, k keeper.Keeper) (*sd
 	if k.UpdateShares(ctx, proxy.DelegatorAddress, proxy.Tokens) != nil {
 		return types.ErrInvalidDelegation(proxy.DelegatorAddress.String()).Result()
 	}
+
+	// Call the after-modification hook
+	k.AfterDelegationModified(ctx, proxy.GetDelegatorAddress(), proxy.GetShareAddedValidatorAddresses())
 
 	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 
@@ -176,6 +195,9 @@ func handleMsgAddShares(ctx sdk.Context, msg types.MsgAddShares, k keeper.Keeper
 			delegator.ProxyAddress.String()).Result()
 	}
 
+	// call the appropriate hook if present
+	k.BeforeDelegationSharesModified(ctx, delegator.DelegatorAddress, msg.ValAddrs)
+
 	// 1. get last validators which were added shares to and existing in the store
 	lastVals, lastShares := k.GetLastValsAddedSharesExisted(ctx, msg.DelAddr)
 
@@ -204,6 +226,11 @@ func handleMsgAddShares(ctx sdk.Context, msg types.MsgAddShares, k keeper.Keeper
 	delegator.ValidatorAddresses = getValsAddrs(vals)
 	delegator.Shares = shares
 	k.SetDelegator(ctx, delegator)
+
+	// Call the after-modification hook
+	k.AfterDelegationModified(ctx, delegator.GetDelegatorAddress(), delegator.GetShareAddedValidatorAddresses())
+
+	//TODO zhujianguo need emit event?
 
 	ctx.EventManager().EmitEvent(buildEventForHandlerAddShares(delegator))
 	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
@@ -267,6 +294,7 @@ func handleMsgDeposit(ctx sdk.Context, msg types.MsgDeposit, k keeper.Keeper) (*
 		return nil, err
 	}
 
+	//TODO zhujianguo emit event?
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(
 			types.EventTypeDelegate,

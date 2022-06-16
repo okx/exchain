@@ -48,22 +48,22 @@ func (k Keeper) distributeFromFeePool(ctx sdk.Context, amount sdk.Coins, receive
 	return nil
 }
 
-// ChangeDistributionModelProposal is a handler for executing a passed change distribution mode proposal
-func HandleChangeDistributionModelProposal(ctx sdk.Context, k Keeper, p types.ChangeDistributionModelProposal) error {
+// ChangeDistributionTypeProposal is a handler for executing a passed change distribution mode proposal
+func HandleChangeDistributionModelProposal(ctx sdk.Context, k Keeper, p types.ChangeDistributionTypeProposal) error {
 	logger := k.Logger(ctx)
 
-	logger.Info(fmt.Sprintf("distribution model, %d", p.Model))
+	logger.Info(fmt.Sprintf("distribution model, %d", p.Type))
 
 	//1.check if it's the same
-	if k.GetDistributionModel(ctx) == p.Model {
-		logger.Info(fmt.Sprintf("do nothing, same distribution model, %u", p.Model))
+	if k.GetDistributionType(ctx) == p.Type {
+		logger.Info(fmt.Sprintf("do nothing, same distribution model, %u", p.Type))
 		return nil
 	}
 
 	//2.TODO init the new validators status
 
 	//3. set it
-	k.SetDistributionModel(ctx, p.Model)
+	k.SetDistributionType(ctx, p.Type)
 
 	return nil
 }

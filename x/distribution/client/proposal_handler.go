@@ -8,6 +8,6 @@ import (
 
 // param change proposal handler
 var (
-	CommunityPoolSpendProposalHandler      = govclient.NewProposalHandler(cli.GetCmdCommunityPoolSpendProposal, rest.ProposalRESTHandler)
-	ChangeDistributionModelProposalHandler = govclient.NewProposalHandler(cli.GetChangeDistributionModelProposal, rest.ProposalRESTHandler) //TODO zhujianguo
+	CommunityPoolSpendProposalHandler      = govclient.NewProposalHandler(cli.GetCmdCommunityPoolSpendProposal, rest.CommunityPoolSpendProposalRESTHandler)
+	ChangeDistributionModelProposalHandler = govclient.NewProposalHandler(cli.GetChangeDistributionModelProposal, rest.ChangeDistributionModelProposalRESTHandler)
 )

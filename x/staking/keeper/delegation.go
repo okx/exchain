@@ -12,8 +12,13 @@ func (k Keeper) UpdateProxy(ctx sdk.Context, delegator types.Delegator, tokens s
 	if !delegator.HasProxy() {
 		return nil
 	}
+
 	// delegator has bound a proxy, need update proxy's shares
 	if proxy, found := k.GetDelegator(ctx, delegator.ProxyAddress); found {
+
+		// call the appropriate hook if present
+		k.BeforeDelegationSharesModified(ctx, proxy.DelegatorAddress, proxy.ValidatorAddresses)
+
 		// tokens might be negative
 		proxy.TotalDelegatedTokens = proxy.TotalDelegatedTokens.Add(tokens)
 		if proxy.TotalDelegatedTokens.LT(sdk.ZeroDec()) {
@@ -22,7 +27,12 @@ func (k Keeper) UpdateProxy(ctx sdk.Context, delegator types.Delegator, tokens s
 
 		finalTokens := proxy.TotalDelegatedTokens.Add(proxy.Tokens)
 		k.SetDelegator(ctx, proxy)
-		return k.UpdateShares(ctx, proxy.DelegatorAddress, finalTokens)
+		err := k.UpdateShares(ctx, proxy.DelegatorAddress, finalTokens)
+		if err == nil {
+			// Call the after-modification hook
+			k.AfterDelegationModified(ctx, proxy.GetDelegatorAddress(), proxy.GetShareAddedValidatorAddresses())
+		}
+		return err
 	}
 	return sdk.ErrInvalidAddress(delegator.ProxyAddress.String())
 }
@@ -47,13 +57,25 @@ func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.SysC
 		delegator = types.NewDelegator(delAddr)
 	}
 
+	// call the appropriate hook if present
+	if found {
+		k.BeforeDelegationSharesModified(ctx, delegator.DelegatorAddress, delegator.ValidatorAddresses)
+	} else {
+		//k.BeforeDelegationCreated(ctx, delegator.DelegatorAddress, valAdd)
+	}
+
 	// 3.update delegator
 	delegator.Tokens = delegator.Tokens.Add(delQuantity)
 	k.SetDelegator(ctx, delegator)
 
 	if delegator.HasProxy() {
 		//delegator have bound with some proxy, need update proxy's shares
-		return k.UpdateProxy(ctx, delegator, delQuantity)
+		err := k.UpdateProxy(ctx, delegator, delQuantity)
+		if err == nil {
+			// Call the after-modification hook
+			k.AfterDelegationModified(ctx, delegator.GetDelegatorAddress(), delegator.GetShareAddedValidatorAddresses())
+		}
+		return err
 
 	}
 	// 4.update shares when delAddr has added already
@@ -62,7 +84,13 @@ func (k Keeper) Delegate(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.SysC
 	if delegator.IsProxy {
 		finalTokens = finalTokens.Add(delegator.TotalDelegatedTokens)
 	}
-	return k.UpdateShares(ctx, delegator.DelegatorAddress, finalTokens)
+
+	err := k.UpdateShares(ctx, delegator.DelegatorAddress, finalTokens)
+	if err == nil {
+		// Call the after-modification hook
+		k.AfterDelegationModified(ctx, delegator.GetDelegatorAddress(), delegator.GetShareAddedValidatorAddresses())
+	}
+	return err
 }
 
 // Withdraw handles the process of withdrawing token from deposit account
@@ -71,6 +99,11 @@ func (k Keeper) Withdraw(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.SysC
 	if !found {
 		return time.Time{}, types.ErrNoDelegationToAddShares(delAddr.String())
 	}
+
+	if !delegator.HasProxy() {
+		k.BeforeDelegationSharesModified(ctx, delegator.DelegatorAddress, delegator.ValidatorAddresses)
+	}
+
 	quantity, minDelLimit := token.Amount, k.ParamsMinDelegation(ctx)
 	if quantity.LT(minDelLimit) {
 		return time.Time{}, types.ErrInsufficientQuantity(quantity.String(), minDelLimit.String())
@@ -113,6 +146,9 @@ func (k Keeper) Withdraw(ctx sdk.Context, delAddr sdk.AccAddress, token sdk.SysC
 			if err := k.UpdateShares(ctx, delegator.DelegatorAddress, finalTokens); err != nil {
 				return time.Time{}, err
 			}
+
+			// Call the after-modification hook
+			k.AfterDelegationModified(ctx, delegator.DelegatorAddress, delegator.ValidatorAddresses)
 		}
 	}
 

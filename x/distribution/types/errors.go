@@ -29,6 +29,8 @@ const (
 	CodeInvalidProposalAmount                       uint32 = 67817
 	CodeEmptyProposalRecipient                      uint32 = 67818
 	CodeInvalidDistributionModelType                uint32 = 67819
+	CodeEmptyDelegationDistInfo                     uint32 = 67820
+	CodeEmptyValidatorDistInfo                      uint32 = 67821
 )
 
 func ErrNilDelegatorAddr() sdk.Error {
@@ -93,4 +95,12 @@ func ErrEmptyProposalRecipient() sdk.Error {
 
 func ErrInvalidDistributionModelType() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeInvalidDistributionModelType, "invalid change distribution model")
+}
+
+func ErrCodeEmptyDelegationDistInfo() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeEmptyDelegationDistInfo, "no delegation distribution info")
+}
+
+func ErrCodeEmptyValidatorDistInfo() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeEmptyValidatorDistInfo, "no validator distribution info")
 }
