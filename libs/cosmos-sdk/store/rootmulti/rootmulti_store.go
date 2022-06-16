@@ -320,7 +320,6 @@ func (rs *Store) loadSubStoreVersion(ver int64, key types.StoreKey, storeParams 
 		if err != nil {
 			return nil, fmt.Errorf("failed to load old Store '%s': %v", oldName, err)
 		}
-
 		// move all data
 		if err := moveKVStoreData(oldStore.(types.KVStore), store.(types.KVStore)); err != nil {
 			return nil, fmt.Errorf("failed to move store %s -> %s: %v", oldName, key.Name(), err)
@@ -330,10 +329,11 @@ func (rs *Store) loadSubStoreVersion(ver int64, key types.StoreKey, storeParams 
 }
 
 //loadSubStoreVersionsAsync uses go-routines to load version async for each sub kvstore and returns kvstore maps
-func (rs *Store) loadSubStoreVersionsAsync(ver int64, upgrades *types.StoreUpgrades, infos map[string]storeInfo) (map[types.StoreKey]types.CommitKVStore, error) {
+func (rs *Store) loadSubStoreVersionsAsync(ver int64, upgrades *types.StoreUpgrades, infos map[string]storeInfo) (map[types.StoreKey]types.CommitKVStore, map[int64][]byte, error) {
 	lock := &sync.Mutex{}
 	wg := &sync.WaitGroup{}
 	var newStores = make(map[types.StoreKey]types.CommitKVStore)
+	roots := make(map[int64][]byte)
 	errs := []error{}
 	for key, sp := range rs.storesParams {
 		if evmAccStoreFilter(key.Name(), ver) {
@@ -348,6 +348,12 @@ func (rs *Store) loadSubStoreVersionsAsync(ver int64, upgrades *types.StoreUpgra
 			} else {
 				newStores[_key] = store
 			}
+			if _sp.typ == types.StoreTypeIAVL {
+				if len(roots) == 0 {
+					iStore := store.(*iavl.Store)
+					roots = iStore.GetHeights()
+				}
+			}
 			lock.Unlock()
 			wg.Done()
 		}(key, sp)
@@ -358,9 +364,9 @@ func (rs *Store) loadSubStoreVersionsAsync(ver int64, upgrades *types.StoreUpgra
 		for _, err := range errs {
 			errStr.WriteString(fmt.Sprintf("%s\n", err.Error()))
 		}
-		return nil, fmt.Errorf("failed to load version async, err:%s", errStr.String())
+		return nil, nil, fmt.Errorf("failed to load version async, err:%s", errStr.String())
 	}
-	return newStores, nil
+	return newStores, roots, nil
 }
 
 func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
@@ -404,14 +410,16 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	// load each Store (note this doesn't panic on unmounted keys now)
 
 	var newStores map[types.StoreKey]types.CommitKVStore
+	var roots map[int64][]byte
 	loadVersionAsync := viper.GetBool(types.FlagLoadVersionAsync)
 	if loadVersionAsync {
-		newStores, err = rs.loadSubStoreVersionsAsync(ver, upgrades, infos)
+		newStores, roots, err = rs.loadSubStoreVersionsAsync(ver, upgrades, infos)
 		if err != nil {
 			return err
 		}
 	} else {
 		newStores = make(map[types.StoreKey]types.CommitKVStore)
+		roots = make(map[int64][]byte)
 		for key, sp := range rs.storesParams {
 			if evmAccStoreFilter(key.Name(), ver) {
 				continue
@@ -421,6 +429,12 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 			if err != nil {
 				return err
 			}
+			if sp.typ == types.StoreTypeIAVL {
+				if len(roots) == 0 {
+					iStore := store.(*iavl.Store)
+					roots = iStore.GetHeights()
+				}
+			}
 			newStores[key] = store
 		}
 	}
@@ -428,7 +442,7 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	rs.lastCommitInfo = cInfo
 	rs.stores = newStores
 
-	err = rs.checkAndResetPruningHeights()
+	err = rs.checkAndResetPruningHeights(roots)
 	if err != nil {
 		return err
 	}
@@ -451,18 +465,8 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	return nil
 }
 
-func (rs *Store) checkAndResetPruningHeights() error {
-	roots := make(map[int64][]byte)
-	for _, store := range rs.stores {
-		iStore, ok := store.(*iavl.Store)
-		if !ok {
-			continue
-		}
-		if len(roots) == 0 {
-			roots = iStore.GetHeights()
-			break
-		}
-	}
+func (rs *Store) checkAndResetPruningHeights(roots map[int64][]byte) error {
+
 	ph, err := getPruningHeights(rs.db, false)
 	if err != nil {
 		return err
