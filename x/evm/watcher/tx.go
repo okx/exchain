@@ -2,6 +2,7 @@ package watcher
 
 import (
 	"fmt"
+
 	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tm "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -9,9 +10,9 @@ import (
 )
 
 type WatchTx interface {
-	GetTxWatchMessage() WatchMessage
+	GetTransaction() *Transaction
 	GetTxHash() common.Hash
-	GetFailedReceipts(cumulativeGas, gasUsed uint64) WatchMessage
+	GetFailedReceipts(cumulativeGas, gasUsed uint64) *TransactionReceipt
 	GetIndex() uint64
 }
 
@@ -82,9 +83,16 @@ func (w *Watcher) saveTx(tx WatchTx) {
 	if w == nil || tx == nil {
 		return
 	}
-
-	if txWatchMessage := tx.GetTxWatchMessage(); txWatchMessage != nil {
-		w.batch = append(w.batch, txWatchMessage)
+	ethTx := tx.GetTransaction()
+	if ethTx == nil {
+		return
+	}
+	if w.InfuraKeeper != nil {
+		w.InfuraKeeper.OnSaveTransaction(*ethTx)
+	}
+	wMsg := newMsgEthTx(ethTx)
+	if wMsg != nil {
+		w.batch = append(w.batch, wMsg)
 	}
 	w.blockTxs = append(w.blockTxs, tx.GetTxHash())
 }
@@ -94,7 +102,12 @@ func (w *Watcher) saveFailedReceipts(watchTx WatchTx, gasUsed uint64) {
 		return
 	}
 	w.UpdateCumulativeGas(watchTx.GetIndex(), gasUsed)
-	if receipts := watchTx.GetFailedReceipts(w.cumulativeGas[watchTx.GetIndex()], gasUsed); receipts != nil {
-		w.batch = append(w.batch, receipts)
+	receipt := watchTx.GetFailedReceipts(w.cumulativeGas[watchTx.GetIndex()], gasUsed)
+	if w.InfuraKeeper != nil {
+		w.InfuraKeeper.OnSaveTransactionReceipt(*receipt)
+	}
+	wMsg := NewMsgTransactionReceipt(*receipt, watchTx.GetTxHash())
+	if wMsg != nil {
+		w.batch = append(w.batch, wMsg)
 	}
 }

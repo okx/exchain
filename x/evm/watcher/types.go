@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"time"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
@@ -476,7 +477,7 @@ func (tr *TransactionReceipt) GetValue() string {
 	return string(buf)
 }
 
-func newEvmTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, blockHash common.Hash, txIndex, height uint64, data *types.ResultData, cumulativeGas, GasUsed uint64) *MsgTransactionReceipt {
+func newTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, blockHash common.Hash, txIndex, height uint64, data *types.ResultData, cumulativeGas, GasUsed uint64) TransactionReceipt {
 	tr := TransactionReceipt{
 		Status:                hexutil.Uint64(status),
 		CumulativeGasUsed:     hexutil.Uint64(cumulativeGas),
@@ -490,7 +491,10 @@ func newEvmTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, bl
 		TransactionIndex:      hexutil.Uint64(txIndex),
 		tx:                    tx,
 	}
+	return tr
+}
 
+func NewMsgTransactionReceipt(tr TransactionReceipt, txHash common.Hash) *MsgTransactionReceipt {
 	return &MsgTransactionReceipt{txHash: txHash.Bytes(), TransactionReceipt: &tr}
 }
 
@@ -611,8 +615,12 @@ func (tr *Transaction) GetValue() string {
 	return string(buf)
 }
 
-func NewMsgBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash, header abci.Header, gasLimit uint64, gasUsed *big.Int, txs interface{}) *MsgBlock {
-	b := Block{
+func newBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash, header abci.Header, gasLimit uint64, gasUsed *big.Int, txs interface{}) Block {
+	timestamp := header.Time.Unix()
+	if timestamp < 0 {
+		timestamp = time.Now().Unix()
+	}
+	return Block{
 		Number:           hexutil.Uint64(height),
 		Hash:             blockHash,
 		ParentHash:       common.BytesToHash(header.LastBlockId.Hash),
@@ -629,16 +637,19 @@ func NewMsgBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash
 		Size:             hexutil.Uint64(header.Size()),
 		GasLimit:         hexutil.Uint64(gasLimit),
 		GasUsed:          (*hexutil.Big)(gasUsed),
-		Timestamp:        hexutil.Uint64(header.Time.Unix()),
+		Timestamp:        hexutil.Uint64(timestamp),
 		Uncles:           []common.Hash{},
 		ReceiptsRoot:     common.Hash{},
 		Transactions:     txs,
 	}
+}
+
+func NewMsgBlock(b Block) *MsgBlock {
 	jsBlock, e := json.Marshal(b)
 	if e != nil {
 		return nil
 	}
-	return &MsgBlock{blockHash: blockHash.Bytes(), block: string(jsBlock)}
+	return &MsgBlock{blockHash: b.Hash.Bytes(), block: string(jsBlock)}
 }
 
 func (m MsgBlock) GetKey() []byte {
