@@ -429,6 +429,10 @@ func (k *Keeper) IsContractInBlockedList(ctx sdk.Context, addr sdk.AccAddress) b
 	return csdb.IsContractInBlockedList(addr.Bytes())
 }
 
+func (k *Keeper) SetObserverKeeper(infuraKeeper watcher.InfuraKeeper) {
+	k.Watcher.InfuraKeeper = infuraKeeper
+}
+
 // SetHooks sets the hooks for the EVM module
 // It should be called only once during initialization, it panics if called more than once.
 func (k *Keeper) SetHooks(hooks types.EvmHooks) *Keeper {

@@ -37,20 +37,21 @@ type Watcher struct {
 	delayEraseKey [][]byte
 	log           log.Logger
 	// for state delta transfering in network
-	watchData *WatchData
-
-	jobChan chan func()
-
-	evmTxIndex uint64
-	filterMap  map[string]WatchMessage
+	watchData    *WatchData
+	jobChan      chan func()
+	evmTxIndex   uint64
+	checkWd      bool
+	filterMap    map[string]WatchMessage
+	InfuraKeeper InfuraKeeper
 }
 
 var (
-	watcherEnable  = false
-	watcherLruSize = 1000
-	checkWd        = false
-	onceEnable     sync.Once
-	onceLru        sync.Once
+	watcherEnable   = false
+	watcherLruSize  = 1000
+	onceEnable      sync.Once
+	onceLru         sync.Once
+	watcherInstance *Watcher
+	onceWatcher     sync.Once
 )
 
 func IsWatcherEnabled() bool {
@@ -68,20 +69,27 @@ func GetWatchLruSize() int {
 }
 
 func NewWatcher(logger log.Logger) *Watcher {
-	watcher := &Watcher{store: InstanceOfWatchStore(),
-		cumulativeGas: make(map[uint64]uint64),
-		sw:            IsWatcherEnabled(),
-		firstUse:      true,
-		delayEraseKey: make([][]byte, 0),
-		watchData:     &WatchData{},
-		log:           logger,
-		filterMap:     make(map[string]WatchMessage)}
-	checkWd = viper.GetBool(FlagCheckWd)
-	return watcher
+	onceWatcher.Do(func() {
+		watcherInstance = &Watcher{store: InstanceOfWatchStore(),
+			cumulativeGas: make(map[uint64]uint64),
+			sw:            IsWatcherEnabled(),
+			firstUse:      true,
+			delayEraseKey: make([][]byte, 0),
+			watchData:     &WatchData{},
+			log:           logger,
+			checkWd:       viper.GetBool(FlagCheckWd),
+			filterMap:     make(map[string]WatchMessage)}
+	})
+	return watcherInstance
 }
 
 func (w *Watcher) IsFirstUse() bool {
 	return w.firstUse
+}
+
+// SetFirstUse sets fistUse of Watcher only could use for ut
+func (w *Watcher) SetFirstUse(v bool) {
+	w.firstUse = v
 }
 
 func (w *Watcher) Used() {
@@ -89,7 +97,7 @@ func (w *Watcher) Used() {
 }
 
 func (w *Watcher) Enabled() bool {
-	return w.sw
+	return w.sw || w.InfuraKeeper != nil
 }
 
 func (w *Watcher) Enable(sw bool) {
@@ -125,6 +133,9 @@ func (w *Watcher) SaveContractCode(addr common.Address, code []byte) {
 	if !w.Enabled() {
 		return
 	}
+	if w.InfuraKeeper != nil {
+		w.InfuraKeeper.OnSaveContractCode(addr.String(), code)
+	}
 	wMsg := NewMsgCode(addr, code, w.height)
 	if wMsg != nil {
 		w.staleBatch = append(w.staleBatch, wMsg)
@@ -146,7 +157,11 @@ func (w *Watcher) SaveTransactionReceipt(status uint32, msg *evmtypes.MsgEthereu
 		return
 	}
 	w.UpdateCumulativeGas(txIndex, gasUsed)
-	wMsg := newEvmTransactionReceipt(status, msg, txHash, w.blockHash, txIndex, w.height, data, w.cumulativeGas[txIndex], gasUsed)
+	tr := newTransactionReceipt(status, msg, txHash, w.blockHash, txIndex, w.height, data, w.cumulativeGas[txIndex], gasUsed)
+	if w.InfuraKeeper != nil {
+		w.InfuraKeeper.OnSaveTransactionReceipt(tr)
+	}
+	wMsg := NewMsgTransactionReceipt(tr, txHash)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}
@@ -241,8 +256,11 @@ func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
 	if !w.Enabled() {
 		return
 	}
-
-	wMsg := NewMsgBlock(w.height, bloom, w.blockHash, w.header, uint64(0xffffffff), big.NewInt(int64(w.gasUsed)), w.blockTxs)
+	block := newBlock(w.height, bloom, w.blockHash, w.header, uint64(0xffffffff), big.NewInt(int64(w.gasUsed)), w.blockTxs)
+	if w.InfuraKeeper != nil {
+		w.InfuraKeeper.OnSaveBlock(block)
+	}
+	wMsg := NewMsgBlock(block)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}
@@ -400,7 +418,7 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 		w.commitBloomData(data.BloomData)
 	}
 
-	if checkWd {
+	if w.checkWd {
 		keys := make([][]byte, len(data.Batches))
 		for i, _ := range data.Batches {
 			keys[i] = data.Batches[i].Key
@@ -432,7 +450,7 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 		delete(w.filterMap, k)
 	}
 
-	if checkWd {
+	if w.checkWd {
 		keys := make([][]byte, len(batch))
 		for i, _ := range batch {
 			keys[i] = batch[i].GetKey()
@@ -660,4 +678,8 @@ func (w *Watcher) dispatchJob(f func()) {
 	// why: something wrong happened: such as db panic(disk maybe is full)(it should be the only reason)
 	//								  UseWatchData were executed every 4 seoncds(block schedual)
 	w.jobChan <- f
+}
+
+func (w *Watcher) Height() uint64 {
+	return w.height
 }
