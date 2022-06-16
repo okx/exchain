@@ -26,6 +26,7 @@ const (
 	DefaultEVMErrorCode          = -32000
 	VMExecuteException           = -32015
 	VMExecuteExceptionInEstimate = 3
+	AccountNotExistsCode         = 9
 
 	RPCEthCall           = "eth_call"
 	RPCEthEstimateGas    = "eth_estimateGas"
@@ -71,6 +72,18 @@ func newWrappedCosmosError(code int, log, codeSpace string) cosmosError {
 	return e
 }
 
+func parseCosmosError(err error) (*cosmosError, bool) {
+	msg := err.Error()
+	var realErr cosmosError
+	if len(msg) == 0 {
+		return nil, false
+	}
+	if err := json.Unmarshal([]byte(msg), &realErr); err != nil {
+		return nil, false
+	}
+	return &realErr, true
+}
+
 type wrappedEthError struct {
 	Wrap ethDataError `json:"0x00000000000000000000000000000000"`
 }
@@ -111,70 +124,61 @@ func newDataError(revert string, data string) *wrappedEthError {
 }
 
 func TransformDataError(err error, method string) error {
-	msg := err.Error()
-	var realErr cosmosError
-	if len(msg) > 0 {
-		e := json.Unmarshal([]byte(msg), &realErr)
-		if e != nil {
-			return DataError{
-				code: DefaultEVMErrorCode,
-				Msg:  err.Error(),
-				data: RPCNullData,
-			}
+	realErr, ok := parseCosmosError(err)
+	if !ok {
+		return DataError{
+			code: DefaultEVMErrorCode,
+			Msg:  err.Error(),
+			data: RPCNullData,
 		}
-		if method == RPCEthGetBlockByHash {
-			return DataError{
-				code: DefaultEVMErrorCode,
-				Msg:  realErr.Error(),
-				data: RPCNullData,
-			}
-		}
-		m, retErr := preProcessError(realErr, err.Error())
-		if retErr != nil {
-			return realErr
-		}
-		//if there have multi error type of EVM, this need a reactor mode to process error
-		revert, f := m[vm.ErrExecutionReverted.Error()]
-		if !f {
-			revert = RPCUnknowErr
-		}
-		data, f := m[types.ErrorHexData]
-		if !f {
-			data = RPCNullData
-		}
-		switch method {
-		case RPCEthEstimateGas:
-			return DataError{
-				code: VMExecuteExceptionInEstimate,
-				Msg:  revert,
-				data: data,
-			}
-		case RPCEthCall:
-			return DataError{
-				code: VMExecuteException,
-				Msg:  revert,
-				data: newDataError(revert, data),
-			}
-		default:
-			return DataError{
-				code: DefaultEVMErrorCode,
-				Msg:  revert,
-				data: newDataError(revert, data),
-			}
-		}
-
 	}
-	return DataError{
-		code: DefaultEVMErrorCode,
-		Msg:  err.Error(),
-		data: RPCNullData,
+
+	if method == RPCEthGetBlockByHash {
+		return DataError{
+			code: DefaultEVMErrorCode,
+			Msg:  realErr.Error(),
+			data: RPCNullData,
+		}
+	}
+	m, retErr := preProcessError(realErr, err.Error())
+	if retErr != nil {
+		return realErr
+	}
+	//if there have multi error type of EVM, this need a reactor mode to process error
+	revert, f := m[vm.ErrExecutionReverted.Error()]
+	if !f {
+		revert = RPCUnknowErr
+	}
+	data, f := m[types.ErrorHexData]
+	if !f {
+		data = RPCNullData
+	}
+	switch method {
+	case RPCEthEstimateGas:
+		return DataError{
+			code: VMExecuteExceptionInEstimate,
+			Msg:  revert,
+			data: data,
+		}
+	case RPCEthCall:
+		return DataError{
+			code: VMExecuteException,
+			Msg:  revert,
+			data: newDataError(revert, data),
+		}
+	default:
+		return DataError{
+			code: DefaultEVMErrorCode,
+			Msg:  revert,
+			data: newDataError(revert, data),
+		}
 	}
 }
 
 //Preprocess error string, the string of realErr.Log is most like:
 //`["execution reverted","message","HexData","0x00000000000"];some failed information`
 //we need marshalled json slice from realErr.Log and using segment tag `[` and `]` to cut it
-func preProcessError(realErr cosmosError, origErrorMsg string) (map[string]string, error) {
+func preProcessError(realErr *cosmosError, origErrorMsg string) (map[string]string, error) {
 	var logs []string
 	lastSeg := strings.LastIndexAny(realErr.Log, "]")
 	if lastSeg < 0 {
@@ -250,4 +254,12 @@ func accountType(account authexported.Account) token.AccType {
 	default:
 		return token.OtherAccount
 	}
+}
+
+func isAccountNotExistErr(err error) bool {
+	cosmosErr, ok := parseCosmosError(err)
+	if !ok {
+		return false
+	}
+	return cosmosErr.Code == AccountNotExistsCode
 }
