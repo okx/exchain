@@ -45,7 +45,6 @@ const (
 	versionsKey           = "s/versions"
 	commitInfoKeyFmt      = "s/%d" // s/<version>
 	maxPruneHeightsLength = 100
-	FlagLoadVersionAsync  = "store-load-async"
 )
 
 // Store is composed of many CommitStores. Name contrasts with
@@ -404,7 +403,7 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	// load each Store (note this doesn't panic on unmounted keys now)
 	var err error
 	var newStores map[types.StoreKey]types.CommitKVStore
-	loadVersionAsync := viper.GetBool(FlagLoadVersionAsync)
+	loadVersionAsync := viper.GetBool(types.FlagLoadVersionAsync)
 	if loadVersionAsync {
 		newStores, err = rs.loadSubStoreVersionsAsync(ver, upgrades, infos)
 		if err != nil {

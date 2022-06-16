@@ -12,6 +12,10 @@ import (
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
+const (
+	FlagLoadVersionAsync = "store-load-async"
+)
+
 type Store interface { //nolint
 	GetStoreType() StoreType
 	CacheWrapper
