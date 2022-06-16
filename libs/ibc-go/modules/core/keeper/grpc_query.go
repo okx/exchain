@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
@@ -41,9 +42,9 @@ func (q Keeper) ClientParams(c context.Context, req *clienttypes.QueryClientPara
 }
 
 // UpgradedClientState implements the IBC QueryServer interface
-// func (q Keeper) UpgradedClientState(c context.Context, req *clienttypes.QueryUpgradedClientStateRequest) (*clienttypes.QueryUpgradedClientStateResponse, error) {
-// 	return q.ClientKeeper.UpgradedClientState(c, req)
-// }
+func (q Keeper) UpgradedClientState(c context.Context, req *clienttypes.QueryUpgradedClientStateRequest) (*clienttypes.QueryUpgradedClientStateResponse, error) {
+	return q.ClientKeeper.UpgradedClientState(c, req)
+}
 
 // Connection implements the IBC QueryServer interface
 func (q Keeper) Connection(c context.Context, req *connectiontypes.QueryConnectionRequest) (*connectiontypes.QueryConnectionResponse, error) {
@@ -136,9 +137,9 @@ func (q Keeper) NextSequenceReceive(c context.Context, req *channeltypes.QueryNe
 }
 
 // AppVersion implements the IBC QueryServer interface
-// func (q Keeper) AppVersion(c context.Context, req *porttypes.QueryAppVersionRequest) (*porttypes.QueryAppVersionResponse, error) {
-// 	return q.PortKeeper.AppVersion(c, req)
-// }
+func (q Keeper) AppVersion(c context.Context, req *porttypes.QueryAppVersionRequest) (*porttypes.QueryAppVersionResponse, error) {
+	return q.PortKeeper.AppVersion(c, req)
+}
 
 func (q Keeper) IbcParams(c context.Context, req *types.QueryIbcParamsRequest) (*types.QueryIbcParamsResponse, error) {
 	ctx := sdk.UnwrapSDKContext(c)
@@ -147,4 +148,8 @@ func (q Keeper) IbcParams(c context.Context, req *types.QueryIbcParamsRequest) (
 	return &types.QueryIbcParamsResponse{
 		Params: &params,
 	}, nil
+}
+
+func (q Keeper) UpgradedConsensusState(c context.Context, req *clienttypes.QueryUpgradedConsensusStateRequest) (*clienttypes.QueryUpgradedConsensusStateResponse, error) {
+	return q.ClientKeeper.UpgradedConsensusState(c, req)
 }
