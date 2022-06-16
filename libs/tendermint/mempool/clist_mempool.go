@@ -181,6 +181,11 @@ func (mem *CListMempool) TxsBytes() int64 {
 	return atomic.LoadInt64(&mem.txsBytes)
 }
 
+// Safe for concurrent use by multiple goroutines.
+func (mem *CListMempool) Height() int64 {
+	return atomic.LoadInt64(&mem.height)
+}
+
 // Lock() must be help by the caller during execution.
 func (mem *CListMempool) FlushAppConn() error {
 	return mem.proxyAppConn.FlushSync()
@@ -290,7 +295,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
 		if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok {
 			mem.logger.Info(fmt.Sprintf("mempool.SimulateTx: txhash<%s>, gasLimit<%d>, gasUsed<%d>",
-				hex.EncodeToString(tx.Hash(mem.height)), r.CheckTx.GasWanted, gasUsed))
+				hex.EncodeToString(tx.Hash(mem.Height())), r.CheckTx.GasWanted, gasUsed))
 			r.CheckTx.GasWanted = gasUsed
 		}
 	}
@@ -437,7 +442,7 @@ func (mem *CListMempool) consumePendingTx(address string, nonce uint64) {
 		}
 
 		mempoolTx := pendingTx
-		mempoolTx.height = mem.height
+		mempoolTx.height = mem.Height()
 		if err := mem.addTx(mempoolTx); err != nil {
 			mem.logger.Error(fmt.Sprintf("Pending Pool add tx failed:%s", err.Error()))
 			mem.pendingPool.removeTx(address, nonce)
@@ -498,7 +503,7 @@ func (mem *CListMempool) resCbFirstTime(
 			}
 
 			memTx := &mempoolTx{
-				height:      mem.height,
+				height:      mem.Height(),
 				gasWanted:   r.CheckTx.GasWanted,
 				tx:          tx,
 				realTx:      r.CheckTx.Tx,
@@ -519,7 +524,7 @@ func (mem *CListMempool) resCbFirstTime(
 
 			if err == nil {
 				mem.logger.Info("Added good transaction",
-					"tx", txID(tx, mem.height),
+					"tx", txID(tx, mem.Height()),
 					"res", r,
 					"height", memTx.height,
 					"total", mem.Size(),
@@ -528,7 +533,7 @@ func (mem *CListMempool) resCbFirstTime(
 			} else {
 				// ignore bad transaction
 				mem.logger.Info("Fail to add transaction into mempool, rejected it",
-					"tx", txID(tx, mem.height), "peerID", txInfo.SenderP2PID, "res", r, "err", postCheckErr)
+					"tx", txID(tx, mem.Height()), "peerID", txInfo.SenderP2PID, "res", r, "err", postCheckErr)
 				mem.metrics.FailedTxs.Add(1)
 				// remove from cache (it might be good later)
 				mem.cache.Remove(tx)
@@ -539,7 +544,7 @@ func (mem *CListMempool) resCbFirstTime(
 		} else {
 			// ignore bad transaction
 			mem.logger.Info("Rejected bad transaction",
-				"tx", txID(tx, mem.height), "peerID", txInfo.SenderP2PID, "res", r, "err", postCheckErr)
+				"tx", txID(tx, mem.Height()), "peerID", txInfo.SenderP2PID, "res", r, "err", postCheckErr)
 			mem.metrics.FailedTxs.Add(1)
 			// remove from cache (it might be good later)
 			mem.cache.Remove(tx)
@@ -636,7 +641,7 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 	// txs := make([]types.Tx, 0, tmmath.MinInt(mem.txs.Len(), max/mem.avgTxSize))
 	txs := make([]types.Tx, 0, tmmath.MinInt(mem.txs.Len(), int(cfg.DynamicConfig.GetMaxTxNumPerBlock())))
 	defer func() {
-		mem.logger.Info("ReapMaxBytesMaxGas", "ProposingHeight", mem.height+1,
+		mem.logger.Info("ReapMaxBytesMaxGas", "ProposingHeight", mem.Height()+1,
 			"MempoolTxs", mem.txs.Len(), "ReapTxs", len(txs))
 	}()
 	for e := mem.txs.Front(); e != nil; e = e.Next() {
@@ -724,7 +729,7 @@ func (mem *CListMempool) Update(
 	postCheck PostCheckFunc,
 ) error {
 	// Set height
-	mem.height = height
+	atomic.StoreInt64(&mem.height, height)
 	mem.notifiedTxsAvailable = false
 
 	if preCheck != nil {
