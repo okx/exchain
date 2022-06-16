@@ -16,9 +16,6 @@ const (
 
 	// RouterKey uses module name for routing
 	RouterKey = ModuleName
-
-	// LegacyStoreKey represents the key for storing EVM state after MarsHeight upgraded
-	LegacyStoreKey = "evmlegacy"
 )
 
 // KVStore key prefixes

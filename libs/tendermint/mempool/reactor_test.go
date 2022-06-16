@@ -272,13 +272,18 @@ func TestTxMessageAmino(t *testing.T) {
 		{},
 		{[]byte{}},
 		{[]byte{1, 2, 3, 4, 5, 6, 7}},
+		{[]byte{}},
 	}
 
 	var typePrefix = make([]byte, 8)
 	tpLen, err := cdc.GetTypePrefix(TxMessage{}, typePrefix)
 	require.NoError(t, err)
 	typePrefix = typePrefix[:tpLen]
-	reactor := Reactor{}
+	reactor := Reactor{
+		config: &cfg.MempoolConfig{
+			MaxTxBytes: 1024 * 1024,
+		},
+	}
 
 	for _, tx := range testcases {
 		var m Message
@@ -297,20 +302,51 @@ func TestTxMessageAmino(t *testing.T) {
 		require.Equal(t, expectBz, actualBz)
 		require.Equal(t, cdc.MustMarshalBinaryBare(m), reactor.encodeMsg(&tx))
 		require.Equal(t, cdc.MustMarshalBinaryBare(m), reactor.encodeMsg(tx))
+
+		var expectValue Message
+		err = cdc.UnmarshalBinaryBare(expectBz, &expectValue)
+		require.NoError(t, err)
+		var actualValue Message
+		actualValue, err = cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(expectBz, &actualValue)
+		require.Equal(t, expectValue, actualValue)
+
+		actualValue, err = reactor.decodeMsg(expectBz)
+		require.NoError(t, err)
+		require.Equal(t, expectValue, actualValue)
+		actualValue.(*TxMessage).Tx = nil
+		txMessageDeocdePool.Put(actualValue)
+	}
+
+	// special case
+	{
+		var bz = []byte{1<<3 | 2, 0}
+		bz = append(typePrefix, bz...)
+		var expectValue Message
+		err = cdc.UnmarshalBinaryBare(bz, &expectValue)
+		require.NoError(t, err)
+		var actualValue Message
+		actualValue, err = cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(bz, &actualValue)
+		require.NoError(t, err)
+		require.Equal(t, expectValue, actualValue)
+
+		actualValue, err = reactor.decodeMsg(bz)
+		require.NoError(t, err)
+		require.Equal(t, expectValue, actualValue)
 	}
 }
 
 func BenchmarkTxMessageAminoMarshal(b *testing.B) {
 	var bz = make([]byte, 256)
 	rand.Read(bz)
-	txm := TxMessage{bz}
 	reactor := &Reactor{}
+	var msg Message
 	b.ResetTimer()
 
 	b.Run("amino", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			_, err := cdc.MarshalBinaryBare(&txm)
+			msg = TxMessage{bz}
+			_, err := cdc.MarshalBinaryBare(&msg)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -319,16 +355,120 @@ func BenchmarkTxMessageAminoMarshal(b *testing.B) {
 	b.Run("marshaller", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			_, err := cdc.MarshalBinaryBareWithRegisteredMarshaller(&txm)
+			msg = &TxMessage{bz}
+			_, err := cdc.MarshalBinaryBareWithRegisteredMarshaller(msg)
 			if err != nil {
 				b.Fatal(err)
 			}
 		}
 	})
+	b.Run("encodeMsgOld", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			msg = &TxMessage{bz}
+			reactor.encodeMsg(msg)
+		}
+	})
 	b.Run("encodeMsg", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			reactor.encodeMsg(&txm)
+			txm := txMessageDeocdePool.Get().(*TxMessage)
+			txm.Tx = bz
+			msg = txm
+			reactor.encodeMsg(msg)
+			txMessageDeocdePool.Put(txm)
 		}
 	})
+}
+
+func decodeMsgOld(memR *Reactor, bz []byte) (msg Message, err error) {
+	maxMsgSize := calcMaxMsgSize(memR.config.MaxTxBytes)
+	if l := len(bz); l > maxMsgSize {
+		return msg, ErrTxTooLarge{maxMsgSize, l}
+	}
+	err = cdc.UnmarshalBinaryBare(bz, &msg)
+	return
+}
+
+func BenchmarkTxMessageUnmarshal(b *testing.B) {
+	txMsg := TxMessage{
+		Tx: make([]byte, 512),
+	}
+	rand.Read(txMsg.Tx)
+	bz := cdc.MustMarshalBinaryBare(&txMsg)
+
+	//msg := conn.PacketMsg{
+	//	ChannelID: MempoolChannel,
+	//	Bytes:     bz,
+	//}
+	// msgBz := cdc.MustMarshalBinaryBare(&msg)
+
+	//hashMap := make(map[string]struct{})
+	var h []byte
+
+	reactor := &Reactor{
+		config: &cfg.MempoolConfig{
+			MaxTxBytes: 1024 * 1024,
+		},
+	}
+
+	var msg Message
+	var err error
+
+	b.ResetTimer()
+
+	b.Run("decode", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			//var m conn.PacketMsg
+			//err := m.UnmarshalFromAmino(nil, msgBz)
+			//if err != nil {
+			//	b.Fatal(err)
+			//}
+			msg, err = reactor.decodeMsg(bz)
+			if err != nil {
+				b.Fatal(err)
+			}
+			msg.(*TxMessage).Tx = nil
+			txMessageDeocdePool.Put(msg)
+		}
+	})
+	b.Run("decode-old", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			//var m conn.PacketMsg
+			//err := m.UnmarshalFromAmino(nil, msgBz)
+			//if err != nil {
+			//	b.Fatal(err)
+			//}
+			msg, err = decodeMsgOld(reactor, bz)
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			var m TxMessage
+			err := m.UnmarshalFromAmino(cdc, bz[4:])
+			msg = &m
+			if err != nil {
+				b.Fatal(err)
+			}
+		}
+	})
+	//b.Run("hash", func(b *testing.B) {
+	//	b.ReportAllocs()
+	//	for i := 0; i < b.N; i++ {
+	//		var m conn.PacketMsg
+	//		err := m.UnmarshalFromAmino(nil, msgBz)
+	//		if err != nil {
+	//			b.Fatal(err)
+	//		}
+	//		_ = crypto.Sha256(bz)
+	//	}
+	//})
+	_ = h
+	_ = msg
 }

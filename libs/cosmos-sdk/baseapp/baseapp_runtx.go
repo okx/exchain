@@ -427,6 +427,7 @@ func (app *BaseApp) asyncDeliverTx(txIndex int) {
 
 	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg(), blockHeight)
 	pmWorkGroup.Push(asyncExe)
+	app.parallelTxManage.addMultiCache(info.msCacheAnte, info.msCache)
 }
 
 func useCache(mode runTxMode) bool {

@@ -233,7 +233,7 @@ func createTestInput(
 		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
 		ibchost.StoreKey,
 		erc20.StoreKey,
-		mpt.StoreKey, evm.LegacyStoreKey,
+		mpt.StoreKey,
 		types.StoreKey,
 	)
 	ms := store.NewCommitMultiStore(db)
