@@ -196,6 +196,7 @@ func (so *stateObject) finalise(prefetch bool) {
 	if so.stateDB.prefetcher != nil && prefetch && so.stateRoot != types2.EmptyRootHash {
 		slotsToPrefetch := make([][]byte, 0, len(so.dirtyStorage))
 		for key, value := range so.dirtyStorage {
+			so.pendingStorage[key] = value
 			if value != so.originStorage[key] {
 				if TrieUseCompositeKey {
 					key = GetStorageByAddressKey(so.Address().Bytes(), key.Bytes())
@@ -206,10 +207,10 @@ func (so *stateObject) finalise(prefetch bool) {
 		if len(slotsToPrefetch) > 0 {
 			so.stateDB.prefetcher.Prefetch(so.stateRoot, slotsToPrefetch)
 		}
-	}
-
-	for key, value := range so.dirtyStorage {
-		so.pendingStorage[key] = value
+	} else {
+		for key, value := range so.dirtyStorage {
+			so.pendingStorage[key] = value
+		}
 	}
 
 	if len(so.dirtyStorage) > 0 {
