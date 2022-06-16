@@ -21,6 +21,10 @@ type mockCMS struct {
 	committed *bool
 }
 
+func (m *mockCMS) Clear() {
+	panic("implement me")
+}
+
 func (m *mockCMS) IteratorCache(isdirty bool, cb func(key string, value []byte, isDirty bool, isDelete bool, storeKey storetypes.StoreKey) bool, sKey storetypes.StoreKey) bool {
 	panic("implement me")
 }
