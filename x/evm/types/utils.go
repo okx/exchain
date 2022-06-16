@@ -649,6 +649,19 @@ func getZeroPrefixLen(buf []byte) int {
 	return i
 }
 
+func getSigRSData(d *big.Int, buffer *bytes.Buffer) []byte {
+	const _S = (bits.UintSize / 8)
+
+	bzLen := len(d.Bits()) * _S
+
+	buffer.Reset()
+	buffer.Grow(bzLen)
+	var buf = buffer.Bytes()[:bzLen]
+
+	d.FillBytes(buf)
+	return buf[getZeroPrefixLen(buf):]
+}
+
 // recoverEthSig recovers a signature according to the Ethereum specification and
 // returns the sender or an error.
 //
@@ -664,39 +677,20 @@ func recoverEthSig(R, S, Vb *big.Int, sigHash *ethcmn.Hash) (ethcmn.Address, err
 		return ethcmn.Address{}, errors.New("invalid signature")
 	}
 
-	// encode the signature in uncompressed format
-
-	const _S = (bits.UintSize / 8)
-
 	ethSigData := recoverEthSigDataPool.Get().(*recoverEthSigData)
 	defer recoverEthSigDataPool.Put(ethSigData)
-
-	buffer := &ethSigData.Buffer
-
-	rBzLen := len(R.Bits()) * _S
-
-	buffer.Reset()
-	buffer.Grow(rBzLen)
-	var buf = buffer.Bytes()[:rBzLen]
-
-	R.FillBytes(buf)
-	r := buf[getZeroPrefixLen(buf):]
-
 	sig := (&ethSigData.Sig)[:]
 	for i := range sig {
 		sig[i] = 0
 	}
 
+	// encode the signature in uncompressed format
+	buffer := &ethSigData.Buffer
+	r := getSigRSData(R, buffer)
+
 	copy(sig[32-len(r):32], r)
 
-	sBzLen := len(S.Bits()) * _S
-
-	buffer.Reset()
-	buffer.Grow(sBzLen)
-	buf = buffer.Bytes()[:sBzLen]
-
-	S.FillBytes(buf)
-	s := buf[getZeroPrefixLen(buf):]
+	s := getSigRSData(S, buffer)
 
 	copy(sig[64-len(s):64], s)
 	sig[64] = V
