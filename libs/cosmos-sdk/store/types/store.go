@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	FlagLoadVersionAsync = "store-load-async"
+	FlagLoadVersionAsync = "enable-store-load-async"
 )
 
 type Store interface { //nolint
