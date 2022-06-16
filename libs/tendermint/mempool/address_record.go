@@ -4,7 +4,6 @@ import (
 	"sync"
 
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
-	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
 	"github.com/okex/exchain/libs/tendermint/types"
 )
 
@@ -93,25 +92,23 @@ func (ar *AddressRecord) checkRepeatedAndAddItem(memTx *mempoolTx, txPriceBump i
 	return newElement
 }
 
-func (ar *AddressRecord) CleanItems(address string, nonce uint64) []*clist.CElement {
+func (ar *AddressRecord) CleanItems(address string, nonce uint64, cb func(element *clist.CElement)) {
 	v, ok := ar.addrTxs.Load(address)
 	if !ok {
-		return nil
+		return
 	}
 	am := v.(*addrMap)
-	var l []*clist.CElement
 	am.Lock()
 	defer am.Unlock()
 	for k, v := range am.items {
 		if v.Nonce <= nonce {
-			l = append(l, v)
+			cb(v)
 			delete(am.items, k)
 		}
 	}
 	if len(am.items) == 0 {
 		ar.addrTxs.Delete(address)
 	}
-	return l
 }
 
 func (ar *AddressRecord) GetItems(address string) []*clist.CElement {
@@ -178,7 +175,7 @@ func (ar *AddressRecord) GetAddressNonce(address string) (uint64, bool) {
 	return nonce, true
 }
 
-func (ar *AddressRecord) GetAddressTxs(address string, txCount int, max int) types.Txs {
+func (ar *AddressRecord) GetAddressTxs(address string, max int) types.Txs {
 	v, ok := ar.addrTxs.Load(address)
 	if !ok {
 		return nil
@@ -189,9 +186,9 @@ func (ar *AddressRecord) GetAddressTxs(address string, txCount int, max int) typ
 	if max <= 0 || max > len(am.items) {
 		max = len(am.items)
 	}
-	txs := make([]types.Tx, 0, tmmath.MinInt(txCount, max))
+	txs := make([]types.Tx, 0, max)
 	for _, e := range am.items {
-		if len(txs) == cap(txs) {
+		if len(txs) == max {
 			break
 		}
 		txs = append(txs, e.Value.(*mempoolTx).tx)

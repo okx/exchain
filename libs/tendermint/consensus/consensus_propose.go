@@ -111,7 +111,7 @@ func (cs *State) enterPropose(height int64, round int) {
 	}()
 
 	// If we don't get the proposal and all block parts quick enough, enterPrevote
-	cs.scheduleTimeout(cs.config.Propose(round), height, round, cstypes.RoundStepPropose)
+	cs.timeoutTicker.ScheduleTimeout(timeoutInfo{Duration: cs.config.Propose(round), Height: height, Round: round, Step: cstypes.RoundStepPropose, ActiveViewChange: cs.hasVC})
 
 	if isBlockProducer == "y" {
 		logger.Info("enterPropose: Our turn to propose",
@@ -156,6 +156,7 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 	// Make proposal
 	propBlockID := types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()}
 	proposal := types.NewProposal(height, round, cs.ValidRound, propBlockID)
+	proposal.HasVC = cs.hasVC
 	if err := cs.privValidator.SignProposal(cs.state.ChainID, proposal); err == nil {
 
 		// send proposal and block parts on internal msg queue
@@ -282,7 +283,7 @@ func (cs *State) onBlockPartAdded(height int64, round, index int, added bool, er
 	if err != nil {
 		cs.bt.droppedDue2Error++
 	}
-	
+
 	if added {
 		if cs.ProposalBlockParts.Count() == 1 {
 			cs.trc.Pin("1stPart")
@@ -290,7 +291,7 @@ func (cs *State) onBlockPartAdded(height int64, round, index int, added bool, er
 		}
 		// event to decrease blockpart transport
 		if cfg.DynamicConfig.GetEnableHasBlockPartMsg() {
-			cs.evsw.FireEvent(types.EventBlockPart, &HasBlockPartMessage{height, round, index,})
+			cs.evsw.FireEvent(types.EventBlockPart, &HasBlockPartMessage{height, round, index})
 		}
 	} else {
 		cs.bt.droppedDue2NotAdded++
