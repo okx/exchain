@@ -7,11 +7,6 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 )
 
-var (
-	newOnce     sync.Once
-	logsManager *LogsManager
-)
-
 func (k *Keeper) FixLog(logIndex []int, anteErrs []error) [][]byte {
 	txSize := len(logIndex)
 	res := make([][]byte, txSize, txSize)
@@ -42,7 +37,7 @@ func (k *Keeper) FixLog(logIndex []int, anteErrs []error) [][]byte {
 		}
 		res[index] = data
 	}
-	k.LogsManages.Reset()
+
 	return res
 }
 
@@ -53,15 +48,10 @@ type LogsManager struct {
 }
 
 func NewLogManager() *LogsManager {
-	newOnce.Do(func() {
-		logsManager = &LogsManager{
-			mu:      sync.RWMutex{},
-			Results: make(map[int]TxResult),
-		}
-	})
-	logsManager.Reset()
-
-	return logsManager
+	return &LogsManager{
+		mu:      sync.RWMutex{},
+		Results: make(map[int]TxResult),
+	}
 }
 
 func (l *LogsManager) Set(value TxResult) int {

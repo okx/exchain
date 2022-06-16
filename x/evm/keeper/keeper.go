@@ -122,6 +122,7 @@ func NewKeeper(
 		triegc:         prque.New(nil),
 		UpdatedAccount: make([]ethcmn.Address, 0),
 		cci:            &chainConfigInfo{},
+		LogsManages:    NewLogManager(),
 	}
 	k.Watcher.SetWatchDataFunc()
 	ak.SetObserverKeeper(k)
@@ -182,9 +183,9 @@ func (k *Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 		Ada:           k.Ada,
 		Cdc:           k.cdc,
 
-		DB:         k.db,
-		Trie:       k.rootTrie,
-		RootHash:   k.rootHash,
+		DB:       k.db,
+		Trie:     k.rootTrie,
+		RootHash: k.rootHash,
 	}
 }
 
@@ -197,9 +198,9 @@ func (k Keeper) GeneratePureCSDBParams() types.CommitStateDBParams {
 		Ada:        k.Ada,
 		Cdc:        k.cdc,
 
-		DB:         k.db,
-		Trie:       k.rootTrie,
-		RootHash:   k.rootHash,
+		DB:       k.db,
+		Trie:     k.rootTrie,
+		RootHash: k.rootHash,
 	}
 }
 
