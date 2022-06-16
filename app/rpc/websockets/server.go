@@ -208,6 +208,7 @@ func (s *Server) readLoop(wsConn *wsConn) {
 			}
 			s.logger.Debug("successfully subscribe", "ID", id)
 			subIds[id] = struct{}{}
+			s.logger.Error("websocket subscribe", "subIdsCount", len(subIds))
 			continue
 		} else if method.(string) == "eth_unsubscribe" {
 			ids, ok := msg["params"].([]interface{})
@@ -241,6 +242,7 @@ func (s *Server) readLoop(wsConn *wsConn) {
 			}
 			s.logger.Debug("successfully unsubscribe", "ID", id)
 			delete(subIds, rpc.ID(id))
+			s.logger.Error("websocket unsubscribe", "subIdsCount", len(subIds))
 			continue
 		}
 
@@ -281,6 +283,7 @@ func (s *Server) tcpGetAndSendResponse(conn *wsConn, mb []byte) error {
 }
 
 func (s *Server) closeWsConnection(subIds map[rpc.ID]struct{}) {
+	s.logger.Error("websocket closeWsConnection", "subIdsCount", len(subIds))
 	for id := range subIds {
 		s.api.unsubscribe(id)
 		delete(subIds, id)
