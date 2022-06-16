@@ -364,6 +364,7 @@ func (rs *Store) loadSubStoreVersionsAsync(ver int64, upgrades *types.StoreUpgra
 }
 
 func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
+	var err error
 	infos := make(map[string]storeInfo)
 	var cInfo commitInfo
 	cInfo.Version = tmtypes.GetStartBlockHeight()
@@ -401,7 +402,7 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	}
 
 	// load each Store (note this doesn't panic on unmounted keys now)
-	var err error
+
 	var newStores map[types.StoreKey]types.CommitKVStore
 	loadVersionAsync := viper.GetBool(types.FlagLoadVersionAsync)
 	if loadVersionAsync {
@@ -410,7 +411,7 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 			return err
 		}
 	} else {
-		var newStores = make(map[types.StoreKey]types.CommitKVStore)
+		newStores = make(map[types.StoreKey]types.CommitKVStore)
 		for key, sp := range rs.storesParams {
 			if evmAccStoreFilter(key.Name(), ver) {
 				continue
@@ -457,7 +458,7 @@ func (rs *Store) checkAndResetPruningHeights() error {
 		if !ok {
 			continue
 		}
-		if roots == nil {
+		if len(roots) == 0 {
 			roots = iStore.GetHeights()
 			break
 		}
