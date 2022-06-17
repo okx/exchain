@@ -32,3 +32,13 @@ func ErrRegisteredContract(contract string) sdk.EnvelopedErr {
 		),
 	}
 }
+
+func ErrProxyContractRedirect(denom string, tp int, addr string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{
+		Err: sdkerrors.New(
+			ModuleName,
+			22,
+			fmt.Sprintf("proxy contract redirect error: denom:%s,tp:%d,addr:%s", denom, tp, addr),
+		),
+	}
+}

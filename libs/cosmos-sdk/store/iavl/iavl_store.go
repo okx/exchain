@@ -65,7 +65,6 @@ func LoadStoreWithInitialVersion(db dbm.DB, flatKVDB dbm.DB, id types.CommitID, 
 	if err != nil {
 		return nil, err
 	}
-
 	if lazyLoading {
 		_, err = tree.LazyLoadVersion(id.Version)
 	} else {
@@ -88,13 +87,19 @@ func LoadStoreWithInitialVersion(db dbm.DB, flatKVDB dbm.DB, id types.CommitID, 
 
 	return st, nil
 }
-
-func GetCommitVersion(db dbm.DB) (int64, error) {
+func HasVersion(db dbm.DB, version int64) (bool, error) {
 	tree, err := iavl.NewMutableTreeWithOpts(db, iavlconfig.DynamicConfig.GetIavlCacheSize(), &iavl.Options{InitialVersion: 0})
 	if err != nil {
-		return 0, err
+		return false, err
 	}
-	return tree.GetCommitVersion(), nil
+	return tree.VersionExistsInDb(version), nil
+}
+func GetCommitVersions(db dbm.DB) ([]int64, error) {
+	tree, err := iavl.NewMutableTreeWithOpts(db, iavlconfig.DynamicConfig.GetIavlCacheSize(), &iavl.Options{InitialVersion: 0})
+	if err != nil {
+		return nil, err
+	}
+	return tree.GetVersions()
 }
 
 // UnsafeNewStore returns a reference to a new IAVL Store with a given mutable
@@ -120,7 +125,7 @@ func (st *Store) GetImmutable(version int64) (*Store, error) {
 	var err error
 	if !abci.GetDisableABCIQueryMutex() {
 		if !st.VersionExists(version) {
-			return &Store{tree: &immutableTree{&iavl.ImmutableTree{}}}, nil
+			return nil, iavl.ErrVersionDoesNotExist
 		}
 
 		iTree, err = st.tree.GetImmutable(version)
@@ -130,12 +135,17 @@ func (st *Store) GetImmutable(version int64) (*Store, error) {
 	} else {
 		iTree, err = st.tree.GetImmutable(version)
 		if err != nil {
-			return &Store{tree: &immutableTree{&iavl.ImmutableTree{}}}, nil
+			return nil, iavl.ErrVersionDoesNotExist
 		}
 	}
 	return &Store{
 		tree: &immutableTree{iTree},
 	}, nil
+}
+
+// GetEmptyImmutable returns an empty immutable IAVL tree
+func (st *Store) GetEmptyImmutable() *Store {
+	return &Store{tree: &immutableTree{&iavl.ImmutableTree{}}}
 }
 
 func (st *Store) CommitterCommit(inputDelta *iavl.TreeDelta) (types.CommitID, *iavl.TreeDelta) { // CommitterCommit
