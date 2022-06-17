@@ -1,7 +1,7 @@
 package deliver
 
 import (
-	"github.com/okex/exchain/x/evm/keeper"
+	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -10,6 +10,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	bam "github.com/okex/exchain/libs/system/trace"
+  "github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
@@ -62,6 +63,12 @@ func (tx *Tx) RefundFeesWatcher(account authexported.Account, coin sdk.Coins, pr
 	if account == nil || !tx.Keeper.Watcher.Enabled() {
 		return
 	}
+	defer func() {
+		//panic was not allowed in this function
+		if e := recover(); e != nil {
+			tx.Ctx.Logger().Error(fmt.Sprintf("recovered panic at func RefundFeesWatcher %v\n", e))
+		}
+	}()
 	gasConsumed := tx.Ctx.GasMeter().GasConsumed()
 	fixedFees := refund.CaculateRefundFees(gasConsumed, coin, price)
 	coins := account.GetCoins().Add2(fixedFees)
