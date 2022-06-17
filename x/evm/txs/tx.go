@@ -1,12 +1,13 @@
 package txs
 
 import (
+	"math/big"
+
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/types"
-	"math/big"
 )
 
 type Tx interface {
@@ -80,11 +81,11 @@ func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err e
 
 	defer func() {
 		senderAccount := tx.GetSenderAccount()
-		tx.RefundFeesWatcher(senderAccount, msg.GetFee(), msg.Data.Price)
 		if e := recover(); e != nil {
 			tx.ResetWatcher(senderAccount)
 			panic(e)
 		}
+		tx.RefundFeesWatcher(senderAccount, msg.GetFee(), msg.Data.Price)
 		tx.FinalizeWatcher(senderAccount, err)
 	}()
 
