@@ -30,20 +30,23 @@ func (etx *evmTx) GetTxHash() ethcmn.Hash {
 	return etx.txHash
 }
 
-func (etx *evmTx) GetTxWatchMessage() WatchMessage {
+func (etx *evmTx) GetTransaction() *Transaction {
 	if etx == nil || etx.msgEvmTx == nil {
 		return nil
 	}
-
-	return newMsgEthTx(etx.msgEvmTx, etx.txHash, etx.blockHash, etx.height, etx.index)
+	ethTx, e := NewTransaction(etx.msgEvmTx, etx.txHash, etx.blockHash, etx.height, etx.index)
+	if e != nil {
+		return nil
+	}
+	return ethTx
 }
 
-func (etx *evmTx) GetFailedReceipts(cumulativeGas, gasUsed uint64) WatchMessage {
+func (etx *evmTx) GetFailedReceipts(cumulativeGas, gasUsed uint64) *TransactionReceipt {
 	if etx == nil {
 		return nil
 	}
-
-	return newEvmTransactionReceipt(TransactionFailed, etx.msgEvmTx, etx.txHash, etx.blockHash, etx.index, etx.height, &types.ResultData{}, cumulativeGas, gasUsed)
+	tr := newTransactionReceipt(TransactionFailed, etx.msgEvmTx, etx.txHash, etx.blockHash, etx.index, etx.height, &types.ResultData{}, cumulativeGas, gasUsed)
+	return &tr
 }
 
 func (etx *evmTx) GetIndex() uint64 {
@@ -63,6 +66,12 @@ func (m MsgEthTx) GetKey() []byte {
 	return append(prefixTx, m.Key...)
 }
 
+func newMsgEthTx(ethTx *Transaction) *MsgEthTx {
+	return &MsgEthTx{
+		Key:         ethTx.Hash.Bytes(),
+		Transaction: ethTx,
+	}
+}
 func newTransaction(tx *types.MsgEthereumTx, txHash, blockHash ethcmn.Hash, blockNumber, index uint64) *Transaction {
 	return &Transaction{
 		Hash:              txHash,
@@ -70,14 +79,5 @@ func newTransaction(tx *types.MsgEthereumTx, txHash, blockHash ethcmn.Hash, bloc
 		originBlockHash:   &blockHash,
 		originBlockNumber: blockNumber,
 		originIndex:       index,
-	}
-}
-
-func newMsgEthTx(tx *types.MsgEthereumTx, txHash, blockHash ethcmn.Hash, height, index uint64) *MsgEthTx {
-	ethTx := newTransaction(tx, txHash, blockHash, height, index)
-
-	return &MsgEthTx{
-		Transaction: ethTx,
-		Key:         txHash.Bytes(),
 	}
 }
