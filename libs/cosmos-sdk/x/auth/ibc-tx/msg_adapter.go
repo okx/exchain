@@ -1,6 +1,8 @@
 package ibc_tx
 
-import sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+import (
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+)
 
 type DenomAdapterMsg interface {
 	sdk.Msg

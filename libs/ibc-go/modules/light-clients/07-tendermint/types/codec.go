@@ -1,6 +1,7 @@
 package types
 
 import (
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
@@ -24,4 +25,8 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 		(*exported.Misbehaviour)(nil),
 		&Misbehaviour{},
 	)
+}
+
+func RegisterCodec(cdc *codec.Codec) {
+	cdc.RegisterConcrete(&ClientState{}, "ibc.lightclients.tendermint.v1.ClientState", nil)
 }

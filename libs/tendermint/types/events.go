@@ -39,6 +39,7 @@ const (
 	EventVote             = "Vote"
 	EventSignVote         = "SignVote"
 	EventBlockPart        = "BlockPart"
+	EventProposeRequest   = "ProposeRequest"
 )
 
 ///////////////////////////////////////////////////////////////////////////////
