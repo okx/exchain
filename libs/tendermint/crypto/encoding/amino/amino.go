@@ -215,6 +215,15 @@ func MarshalPubKeyAminoTo(cdc *amino.Codec, key crypto.PubKey, buf *bytes.Buffer
 }
 
 func PubKeyAminoSize(pubKey crypto.PubKey, cdc *amino.Codec) int {
+	switch k := pubKey.(type) {
+	case secp256k1.PubKeySecp256k1:
+		return 4 + k.AminoSize(cdc)
+	case ed25519.PubKeyEd25519:
+		return 4 + k.AminoSize(cdc)
+	case sr25519.PubKeySr25519:
+		return 4 + k.AminoSize(cdc)
+	}
+
 	if sizer, ok := pubKey.(amino.Sizer); ok {
 		var typePrefix [8]byte
 		tpl, err := cdc.GetTypePrefix(pubKey, typePrefix[:])
