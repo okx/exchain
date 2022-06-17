@@ -102,7 +102,7 @@ func (acc BaseAccount) Copy() sdk.Account {
 	return NewBaseAccount(acc.Address, acc.Coins, acc.PubKey, acc.AccountNumber, acc.Sequence)
 }
 
-func (acc BaseAccount) AminoSize(cdc *amino.Codec) int {
+func (acc *BaseAccount) AminoSize(cdc *amino.Codec) int {
 	size := 0
 	if len(acc.Address) != 0 {
 		size += 1 + amino.ByteSliceSize(acc.Address)
@@ -124,7 +124,7 @@ func (acc BaseAccount) AminoSize(cdc *amino.Codec) int {
 	return size
 }
 
-func (acc BaseAccount) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
+func (acc *BaseAccount) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
 	buf.Grow(acc.AminoSize(cdc))
 	err := acc.MarshalAminoTo(cdc, &buf)
@@ -134,7 +134,7 @@ func (acc BaseAccount) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func (acc BaseAccount) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
+func (acc *BaseAccount) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
 	// field 1
 	if len(acc.Address) != 0 {
 		const pbKey = 1<<3 | 2
@@ -340,8 +340,6 @@ func (acc BaseAccount) MarshalYAML() (interface{}, error) {
 
 	return string(bz), err
 }
-
-
 
 // NewModuleAddress creates an AccAddress from the hash of the module's name
 func NewModuleAddress(name string) sdk.AccAddress {
