@@ -51,7 +51,7 @@ func (is *IndexerService) OnStart() error {
 	}
 
 	go func() {
-		for is.IsRunning() {
+		for {
 			select {
 			case msg := <-blockHeadersSub.Out():
 				eventDataHeader := msg.Data().(types.EventDataNewBlockHeader)
@@ -78,7 +78,6 @@ func (is *IndexerService) OnStart() error {
 			}
 
 		}
-		close(is.quit)
 	}()
 	return nil
 }
