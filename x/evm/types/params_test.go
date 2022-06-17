@@ -2,12 +2,13 @@ package types
 
 import (
 	"encoding/json"
+	"strings"
+	"testing"
+
 	"github.com/json-iterator/go"
 	"github.com/pquerna/ffjson/ffjson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"strings"
-	"testing"
 )
 
 func TestParamsValidate(t *testing.T) {

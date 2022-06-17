@@ -7,13 +7,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/x/evm"
-	"github.com/okex/exchain/x/evm/keeper"
 	"math/big"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/x/evm"
+	"github.com/okex/exchain/x/evm/keeper"
 
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
@@ -23,8 +24,9 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/okex/exchain/app/config"
 	"github.com/spf13/viper"
+
+	"github.com/okex/exchain/app/config"
 
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"

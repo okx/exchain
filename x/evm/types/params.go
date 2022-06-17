@@ -2,11 +2,14 @@ package types
 
 import (
 	"fmt"
+
 	"github.com/valyala/fastjson"
 	"gopkg.in/yaml.v2"
 
 	"encoding/json"
+
 	"github.com/ethereum/go-ethereum/core/vm"
+
 	"github.com/okex/exchain/x/params"
 )
 
