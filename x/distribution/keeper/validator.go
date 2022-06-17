@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	"github.com/okex/exchain/x/distribution/types"
@@ -10,20 +9,17 @@ import (
 
 // initialize rewards for a new validator
 func (k Keeper) initializeValidator(ctx sdk.Context, val exported.ValidatorI) {
-	// set accumulated commissions
-	k.SetValidatorAccumulatedCommission(ctx, val.GetOperator(), types.InitialValidatorAccumulatedCommission())
-
 	// set initial historical rewards (period 0) with reference count of 1
-	k.SetValidatorHistoricalRewards(ctx, val.GetOperator(), 0, types.NewValidatorHistoricalRewards(sdk.DecCoins{}, 1))
+	k.SetValidatorHistoricalRewards(ctx, val.GetOperator(), 0, types.NewValidatorHistoricalRewards(sdk.SysCoins{}, 1))
 
 	// set current rewards (starting at period 1)
-	k.SetValidatorCurrentRewards(ctx, val.GetOperator(), types.NewValidatorCurrentRewards(sdk.DecCoins{}, 1))
+	k.SetValidatorCurrentRewards(ctx, val.GetOperator(), types.NewValidatorCurrentRewards(sdk.SysCoins{}, 1))
 
 	// set accumulated commission
 	k.SetValidatorAccumulatedCommission(ctx, val.GetOperator(), types.InitialValidatorAccumulatedCommission())
 
 	// set outstanding rewards
-	k.SetValidatorOutstandingRewards(ctx, val.GetOperator(), sdk.DecCoins{})
+	k.SetValidatorOutstandingRewards(ctx, val.GetOperator(), sdk.SysCoins{})
 }
 
 // increment validator period, returning the period just ended
@@ -32,10 +28,9 @@ func (k Keeper) incrementValidatorPeriod(ctx sdk.Context, val exported.Validator
 	rewards := k.GetValidatorCurrentRewards(ctx, val.GetOperator())
 
 	// calculate current ratio
-	var current sdk.DecCoins
-	if val.GetTokens().IsZero() {
-
-		// can't calculate ratio for zero-token validators
+	var current sdk.SysCoins
+	if val.GetDelegatorShares().IsZero() {
+		// can't calculate ratio for zero-shares validators
 		// ergo we instead add to the community pool
 		feePool := k.GetFeePool(ctx)
 		outstanding := k.GetValidatorOutstandingRewards(ctx, val.GetOperator())
@@ -44,10 +39,10 @@ func (k Keeper) incrementValidatorPeriod(ctx sdk.Context, val exported.Validator
 		k.SetFeePool(ctx, feePool)
 		k.SetValidatorOutstandingRewards(ctx, val.GetOperator(), outstanding)
 
-		current = sdk.DecCoins{}
+		current = sdk.SysCoins{}
 	} else {
 		// note: necessary to truncate so we don't allow withdrawing more rewards than owed
-		current = rewards.Rewards.QuoDecTruncate(val.GetTokens().ToDec())
+		current = rewards.Rewards.QuoDecTruncate(val.GetDelegatorShares())
 	}
 
 	// fetch historical rewards for last period
@@ -60,7 +55,7 @@ func (k Keeper) incrementValidatorPeriod(ctx sdk.Context, val exported.Validator
 	k.SetValidatorHistoricalRewards(ctx, val.GetOperator(), rewards.Period, types.NewValidatorHistoricalRewards(historical.Add(current...), 1))
 
 	// set current rewards, incrementing period by 1
-	k.SetValidatorCurrentRewards(ctx, val.GetOperator(), types.NewValidatorCurrentRewards(sdk.DecCoins{}, rewards.Period+1))
+	k.SetValidatorCurrentRewards(ctx, val.GetOperator(), types.NewValidatorCurrentRewards(sdk.SysCoins{}, rewards.Period+1))
 
 	return rewards.Period
 }
@@ -87,23 +82,4 @@ func (k Keeper) decrementReferenceCount(ctx sdk.Context, valAddr sdk.ValAddress,
 	} else {
 		k.SetValidatorHistoricalRewards(ctx, valAddr, period, historical)
 	}
-}
-
-func (k Keeper) updateValidatorSlashFraction(ctx sdk.Context, valAddr sdk.ValAddress, fraction sdk.Dec) {
-	if fraction.GT(sdk.OneDec()) || fraction.IsNegative() {
-		panic(fmt.Sprintf("fraction must be >=0 and <=1, current fraction: %v", fraction))
-	}
-
-	val := k.stakingKeeper.Validator(ctx, valAddr)
-
-	// increment current period
-	newPeriod := k.incrementValidatorPeriod(ctx, val)
-
-	// increment reference count on period we need to track
-	k.incrementReferenceCount(ctx, valAddr, newPeriod)
-
-	slashEvent := types.NewValidatorSlashEvent(newPeriod, fraction)
-	height := uint64(ctx.BlockHeight())
-
-	k.SetValidatorSlashEvent(ctx, valAddr, height, newPeriod, slashEvent)
 }

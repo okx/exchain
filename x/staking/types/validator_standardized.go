@@ -43,6 +43,8 @@ func (v Validator) Standardize() StandardizedValidator {
 		v.UnbondingHeight,
 		v.UnbondingCompletionTime,
 		v.MinSelfDelegation,
+		v.Commission,
+		v.Tokens,
 	}
 }
 
@@ -79,6 +81,8 @@ type StandardizedValidator struct {
 	UnbondingHeight         int64          `json:"unbonding_height" yaml:"unbonding_height"`
 	UnbondingCompletionTime time.Time      `json:"unbonding_time" yaml:"unbonding_time"`
 	MinSelfDelegation       sdk.Dec        `json:"min_self_delegation" yaml:"min_self_delegation"`
+	Commission              Commission     `json:"commission" yaml:"commission"`
+	Tokens                  sdk.Int        `json:"tokens" yaml:"tokens"`
 }
 
 // String returns a human readable string representation of a StandardizeValidator

@@ -74,24 +74,20 @@ func (h Hooks) AfterValidatorRemoved(ctx sdk.Context, _ sdk.ConsAddress, valAddr
 	h.k.DeleteValidatorCurrentRewards(ctx, valAddr)
 }
 
-// AfterValidatorDestroyed increment period
-func (h Hooks) AfterValidatorDestroyed(ctx sdk.Context, consAddr sdk.ConsAddress, valAddr sdk.ValAddress) {
-	val := h.k.stakingKeeper.Validator(ctx, valAddr)
-	h.k.incrementValidatorPeriod(ctx, val)
-}
-
 // increment period
-func (h Hooks) BeforeDelegationCreated(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) {
-	val := h.k.stakingKeeper.Validator(ctx, valAddr)
-	h.k.incrementValidatorPeriod(ctx, val)
+func (h Hooks) BeforeDelegationCreated(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
+	for _, valAddr := range valAddrs {
+		val := h.k.stakingKeeper.Validator(ctx, valAddr)
+		h.k.incrementValidatorPeriod(ctx, val)
+	}
 }
 
 // withdraw delegation rewards (which also increments period)
 func (h Hooks) BeforeDelegationSharesModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
-	del := h.k.stakingKeeper.Delegator(ctx, delAddr)
+	//del := h.k.stakingKeeper.Delegator(ctx, delAddr)
 	for _, valAddr := range valAddrs {
 		val := h.k.stakingKeeper.Validator(ctx, valAddr)
-		if _, err := h.k.withdrawDelegationRewards(ctx, val, del); err != nil {
+		if _, err := h.k.withdrawDelegationRewards(ctx, val, delAddr); err != nil {
 			panic(err)
 		}
 	}
@@ -99,12 +95,19 @@ func (h Hooks) BeforeDelegationSharesModified(ctx sdk.Context, delAddr sdk.AccAd
 
 // create new delegation period record
 func (h Hooks) AfterDelegationModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
-	h.k.initializeDelegation(ctx, valAddrs, delAddr)
+	for _, valAddr := range valAddrs {
+		h.k.initializeDelegation(ctx, valAddr, delAddr)
+	}
 }
 
-// record the slash event
-func (h Hooks) BeforeValidatorSlashed(ctx sdk.Context, valAddr sdk.ValAddress, fraction sdk.Dec) {
-	h.k.updateValidatorSlashFraction(ctx, valAddr, fraction)
+//// record the slash event
+//func (h Hooks) BeforeValidatorSlashed(ctx sdk.Context, valAddr sdk.ValAddress, fraction sdk.Dec) {
+//	h.k.updateValidatorSlashFraction(ctx, valAddr, fraction)
+//}
+
+// AfterValidatorDestroyed nothing to do
+func (h Hooks) AfterValidatorDestroyed(ctx sdk.Context, consAddr sdk.ConsAddress, valAddr sdk.ValAddress) {
+
 }
 
 // nolint - unused hooks

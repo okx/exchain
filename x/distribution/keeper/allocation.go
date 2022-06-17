@@ -146,17 +146,36 @@ func (k Keeper) allocateByShares(ctx sdk.Context, rewards sdk.SysCoins) sdk.SysC
 
 // AllocateTokensToValidator allocate tokens to a particular validator, splitting according to commissions
 func (k Keeper) AllocateTokensToValidator(ctx sdk.Context, val exported.ValidatorI, tokens sdk.SysCoins) {
-	// split tokens between validator and delegators according to commissions
-	// commissions is always 1.0, so tokens.MulDec(val.GetCommission()) = tokens
-	// only update current commissions
-	commission := k.GetValidatorAccumulatedCommission(ctx, val.GetOperator())
-	commission = commission.Add(tokens...)
-	k.SetValidatorAccumulatedCommission(ctx, val.GetOperator(), commission)
+	// split tokens between validator and delegators according to commission
+	commission := tokens.MulDec(val.GetCommission())
+	shared := tokens.Sub(commission)
+
+	// update current commission
 	ctx.EventManager().EmitEvent(
 		sdk.NewEvent(
 			types.EventTypeCommission,
+			sdk.NewAttribute(sdk.AttributeKeyAmount, commission.String()),
+			sdk.NewAttribute(types.AttributeKeyValidator, val.GetOperator().String()),
+		),
+	)
+	currentCommission := k.GetValidatorAccumulatedCommission(ctx, val.GetOperator())
+	currentCommission = currentCommission.Add(commission...)
+	k.SetValidatorAccumulatedCommission(ctx, val.GetOperator(), currentCommission)
+
+	// update current rewards
+	currentRewards := k.GetValidatorCurrentRewards(ctx, val.GetOperator())
+	currentRewards.Rewards = currentRewards.Rewards.Add(shared...)
+	k.SetValidatorCurrentRewards(ctx, val.GetOperator(), currentRewards)
+
+	// update outstanding rewards
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			types.EventTypeRewards,
 			sdk.NewAttribute(sdk.AttributeKeyAmount, tokens.String()),
 			sdk.NewAttribute(types.AttributeKeyValidator, val.GetOperator().String()),
 		),
 	)
+	outstanding := k.GetValidatorOutstandingRewards(ctx, val.GetOperator())
+	outstanding = outstanding.Add(tokens...)
+	k.SetValidatorOutstandingRewards(ctx, val.GetOperator(), outstanding)
 }

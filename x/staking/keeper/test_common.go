@@ -315,7 +315,7 @@ func SimpleCheckValidator(t *testing.T, ctx sdk.Context, stkKeeper Keeper, vaAdd
 // mockDistributionKeeper is supported to test Hooks
 type mockDistributionKeeper struct{}
 
-func (dk mockDistributionKeeper) BeforeDelegationCreated(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) {
+func (dk mockDistributionKeeper) BeforeDelegationCreated(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
 	//TODO implement me
 	panic("implement me")
 }

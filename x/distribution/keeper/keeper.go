@@ -125,7 +125,7 @@ func (k Keeper) WithdrawDelegationRewards(ctx sdk.Context, delAddr sdk.AccAddres
 	}
 
 	// withdraw rewards
-	rewards, err := k.withdrawDelegationRewards(ctx, val, del)
+	rewards, err := k.withdrawDelegationRewards(ctx, val, delAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -139,6 +139,6 @@ func (k Keeper) WithdrawDelegationRewards(ctx sdk.Context, delAddr sdk.AccAddres
 	)
 
 	// reinitialize the delegation
-	k.initializeDelegation(ctx, []sdk.ValAddress{valAddr}, delAddr)
+	k.initializeDelegation(ctx, valAddr, delAddr)
 	return rewards, nil
 }

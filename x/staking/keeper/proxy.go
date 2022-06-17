@@ -51,14 +51,14 @@ func (k Keeper) IterateProxy(ctx sdk.Context, proxyAddr sdk.AccAddress, isClear 
 
 // UpdateShares withdraws and adds shares continuously on the same validator set with different amount of shares
 func (k Keeper) UpdateShares(ctx sdk.Context, delAddr sdk.AccAddress, tokens sdk.Dec) error {
-	//TODO zhujianguo, can write here?
-
 	// get last validators that were added shares to and existing in the store
 	vals, lastShares := k.GetLastValsAddedSharesExisted(ctx, delAddr)
 	if vals == nil {
 		// if the delegator never adds shares, just pass
 		return nil
 	}
+	delegatorValAddresses := vals.ToValAddresses()
+	k.BeforeDelegationSharesModified(ctx, delAddr, delegatorValAddresses)
 
 	lenVals := len(vals)
 	shares, sdkErr := calculateWeight(ctx.BlockTime().Unix(), tokens)
@@ -92,7 +92,7 @@ func (k Keeper) UpdateShares(ctx sdk.Context, delAddr sdk.AccAddress, tokens sdk
 	delegator.Shares = shares
 	k.SetDelegator(ctx, delegator)
 
-	//TODO zhujianguo, can write here?
+	k.AfterDelegationModified(ctx, delegator.DelegatorAddress, delegatorValAddresses)
 
 	return nil
 }
@@ -101,6 +101,9 @@ func (k Keeper) UpdateShares(ctx sdk.Context, delAddr sdk.AccAddress, tokens sdk
 func (k Keeper) AddSharesToValidators(ctx sdk.Context, delAddr sdk.AccAddress, vals types.Validators, tokens sdk.Dec) (
 	shares types.Shares, sdkErr error) {
 	lenVals := len(vals)
+	delegatorValAddresses := vals.ToValAddresses()
+	k.BeforeDelegationCreated(ctx, delAddr, delegatorValAddresses)
+
 	shares, sdkErr = calculateWeight(ctx.BlockTime().Unix(), tokens)
 	if sdkErr != nil {
 		return
@@ -108,6 +111,8 @@ func (k Keeper) AddSharesToValidators(ctx sdk.Context, delAddr sdk.AccAddress, v
 	for i := 0; i < lenVals; i++ {
 		k.addShares(ctx, delAddr, vals[i], shares)
 	}
+
+	k.AfterDelegationModified(ctx, delAddr, delegatorValAddresses)
 	return
 }
 
@@ -115,6 +120,10 @@ func (k Keeper) AddSharesToValidators(ctx sdk.Context, delAddr sdk.AccAddress, v
 func (k Keeper) WithdrawLastShares(ctx sdk.Context, delAddr sdk.AccAddress, lastValsAddedSharesTo types.Validators,
 	lastShares types.Shares) {
 	lenLastVals := len(lastValsAddedSharesTo)
+	if lenLastVals > 0 {
+		k.BeforeDelegationSharesModified(ctx, delAddr, lastValsAddedSharesTo.ToValAddresses())
+	}
+
 	for i := 0; i < lenLastVals; i++ {
 		k.withdrawShares(ctx, delAddr, lastValsAddedSharesTo[i], lastShares)
 	}

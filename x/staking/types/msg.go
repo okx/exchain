@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/json"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/x/common"
 
@@ -132,14 +133,19 @@ func (msg MsgCreateValidator) ValidateBasic() error {
 type MsgEditValidator struct {
 	Description
 	ValidatorAddress sdk.ValAddress `json:"address" yaml:"address"`
-	CommissionRate   *sdk.Dec       `json:"commission_rate" yaml:"commission_rate"`
+	// We pass a reference to the new commission rate as it's not mandatory to
+	// update. If not updated, the deserialized rate will be zero with no way to
+	// distinguish if an update was intended.
+
+	CommissionRate *sdk.Dec `json:"commission_rate" yaml:"commission_rate"`
 }
 
 // NewMsgEditValidator creates a msg of edit-validator
-func NewMsgEditValidator(valAddr sdk.ValAddress, description Description) MsgEditValidator {
+func NewMsgEditValidator(valAddr sdk.ValAddress, description Description, newRate *sdk.Dec) MsgEditValidator {
 	return MsgEditValidator{
 		Description:      description,
 		ValidatorAddress: valAddr,
+		CommissionRate:   newRate,
 	}
 }
 
@@ -164,6 +170,12 @@ func (msg MsgEditValidator) ValidateBasic() error {
 
 	if msg.Description == (Description{}) {
 		return ErrNilValidatorAddr()
+	}
+
+	if msg.CommissionRate != nil {
+		if msg.CommissionRate.GT(sdk.OneDec()) || msg.CommissionRate.IsNegative() {
+			return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "commission rate must be between 0 and 1 (inclusive)")
+		}
 	}
 
 	return nil

@@ -121,7 +121,20 @@ func GetCmdEditValidator(cdc *codec.Codec) *cobra.Command {
 			//}
 			//
 			//msg := types.NewMsgEditValidator(sdk.ValAddress(valAddr), description, newRate, newMinSelfDelegation)
-			msg := types.NewMsgEditValidator(sdk.ValAddress(valAddr), description)
+
+			var newRate *sdk.Dec
+
+			commissionRate := viper.GetString(FlagCommissionRate)
+			if commissionRate != "" {
+				rate, err := sdk.NewDecFromStr(commissionRate)
+				if err != nil {
+					return fmt.Errorf("invalid new commission rate: %v", err)
+				}
+
+				newRate = &rate
+			}
+
+			msg := types.NewMsgEditValidator(sdk.ValAddress(valAddr), description, newRate)
 
 			// build and sign the transaction, then broadcast to Tendermint
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
@@ -129,7 +142,7 @@ func GetCmdEditValidator(cdc *codec.Codec) *cobra.Command {
 	}
 
 	cmd.Flags().AddFlagSet(fsDescriptionEdit)
-	//cmd.Flags().AddFlagSet(fsCommissionUpdate)
+	cmd.Flags().AddFlagSet(fsCommissionUpdate)
 
 	return cmd
 }

@@ -51,9 +51,9 @@ func (k Keeper) AfterValidatorDestroyed(ctx sdk.Context, consAddr sdk.ConsAddres
 }
 
 // BeforeDelegationCreated - call hook if registered
-func (k Keeper) BeforeDelegationCreated(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) {
+func (k Keeper) BeforeDelegationCreated(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
 	if k.hooks != nil {
-		k.hooks.BeforeDelegationCreated(ctx, delAddr, valAddr)
+		k.hooks.BeforeDelegationCreated(ctx, delAddr, valAddrs)
 	}
 }
 
@@ -78,9 +78,9 @@ func (k Keeper) AfterDelegationModified(ctx sdk.Context, delAddr sdk.AccAddress,
 	}
 }
 
-// BeforeValidatorSlashed - call hook if registered
-func (k Keeper) BeforeValidatorSlashed(ctx sdk.Context, valAddr sdk.ValAddress, fraction sdk.Dec) {
-	if k.hooks != nil {
-		k.hooks.BeforeValidatorSlashed(ctx, valAddr, fraction)
-	}
-}
+//// BeforeValidatorSlashed - call hook if registered
+//func (k Keeper) BeforeValidatorSlashed(ctx sdk.Context, valAddr sdk.ValAddress, fraction sdk.Dec) {
+//	if k.hooks != nil {
+//		k.hooks.BeforeValidatorSlashed(ctx, valAddr, fraction)
+//	}
+//}

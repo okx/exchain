@@ -5,6 +5,7 @@ const (
 	EventTypeSetWithdrawAddress = "set_withdraw_address"
 	EventTypeCommission         = "commission"
 	EventTypeWithdrawCommission = "withdraw_commission"
+	EventTypeRewards            = "rewards"
 
 	EventTypeWithdrawRewards = "withdraw_rewards"
 	EventTypeProposerReward  = "proposer_reward"
