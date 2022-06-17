@@ -313,13 +313,15 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 	// handle receipt's logs
 	logIndex := make([]int, app.parallelTxManage.txSize)
 	errs := make([]error, app.parallelTxManage.txSize)
+	hasEnterEvmTx := make([]bool, app.parallelTxManage.txSize)
 	for index := 0; index < app.parallelTxManage.txSize; index++ {
 		paraM := app.parallelTxManage.txReps[index].paraMsg
 		logIndex[index] = paraM.LogIndex
 		errs[index] = paraM.AnteErr
+		hasEnterEvmTx[index] = paraM.HasRunEvmTx
 	}
 	app.parallelTxManage.clear()
-	return app.logFix(logIndex, errs)
+	return app.logFix(logIndex, hasEnterEvmTx, errs)
 }
 
 //we reuse the nonce that changed by the last async call

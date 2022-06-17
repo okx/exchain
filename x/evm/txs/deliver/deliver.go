@@ -10,6 +10,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	bam "github.com/okex/exchain/libs/system/trace"
+  "github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
@@ -36,6 +37,9 @@ func (tx *Tx) SaveTx(msg *types.MsgEthereumTx) {
 	tx.StateTransition.Csdb.Prepare(*tx.StateTransition.TxHash, tx.Keeper.Bhash, tx.Keeper.TxCount)
 	tx.StateTransition.Csdb.SetLogSize(tx.Keeper.LogSize)
 	tx.Keeper.TxCount++
+	if tx.Ctx.ParaMsg() != nil {
+		tx.Ctx.ParaMsg().HasRunEvmTx = true
+	}
 }
 
 func (tx *Tx) GetSenderAccount() authexported.Account {
@@ -89,6 +93,12 @@ func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *base.Result) {
 	// update block bloom filter
 	if tx.Ctx.ParaMsg() == nil {
 		tx.Keeper.Bloom.Or(tx.Keeper.Bloom, result.ExecResult.Bloom)
+	} else {
+		// async mod goes immediately
+		index := tx.Keeper.LogsManages.Set(keeper.TxResult{
+			ResultData: result.ResultData,
+		})
+		tx.Ctx.ParaMsg().LogIndex = index
 	}
 	tx.Keeper.LogSize = tx.StateTransition.Csdb.GetLogSize()
 	tx.Keeper.Watcher.SaveTransactionReceipt(watcher.TransactionSuccess,
