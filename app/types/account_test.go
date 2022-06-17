@@ -311,6 +311,7 @@ func BenchmarkEthAccountAminoUnmarshal(b *testing.B) {
 	b.ReportAllocs()
 
 	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			var account exported.Account
 			_ = cdc.UnmarshalBinaryBare(data, &account)
@@ -318,6 +319,7 @@ func BenchmarkEthAccountAminoUnmarshal(b *testing.B) {
 	})
 
 	b.Run("unmarshaller", func(b *testing.B) {
+		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			var account exported.Account
 			_, _ = cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(data, &account)
