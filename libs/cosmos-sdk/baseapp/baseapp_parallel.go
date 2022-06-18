@@ -147,6 +147,7 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 	pm.workgroup.txs = txs
 	pm.isAsyncDeliverTx = true
 	pm.cms = app.deliverState.ms.CacheMultiStore()
+	pm.cms.DisableCacheReadList()
 	pm.blockHeight = app.deliverState.ctx.BlockHeight()
 
 	if txSize == 0 {
