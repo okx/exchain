@@ -3,7 +3,6 @@ package baseapp
 import (
 	"bytes"
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/cachekv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -581,35 +580,28 @@ func (f *parallelTxManager) addMultiCache(msAnte types.CacheMultiStore, msCache 
 }
 
 func shouldCleanChainCache(height int64) bool {
-	return false
 	return height%multiCacheListClearInterval == 0
 }
 
 func (f *parallelTxManager) addBlockCacheToChainCache() {
-	cachekv.CleanLog()
+
 	if shouldCleanChainCache(f.blockHeight) {
 		f.chainMultiStores.Clear()
 	} else {
-		//var wg sync.WaitGroup
 		jobChan := make(chan types.CacheMultiStore, f.blockMultiStores.stores.Len())
 		for index := 0; index < maxGoroutineNumberInParaTx; index++ {
 			go func(ch chan types.CacheMultiStore) {
 				for j := range ch {
 					j.Clear()
 					f.chainMultiStores.PushStore(j)
-					//wg.Done()
 				}
 			}(jobChan)
 		}
 
 		f.blockMultiStores.Range(func(c types.CacheMultiStore) {
-			//wg.Add(1)
 			jobChan <- c
 		})
 		close(jobChan)
-		//wg.Wait()
-
-		cachekv.PrintLog()
 	}
 
 	f.blockMultiStores.Clear()
@@ -684,7 +676,6 @@ func (f *parallelTxManager) getTxResult(index int) sdk.CacheMultiStore {
 				return nil
 			}
 
-			//f.txReps[preIndexInGroup].ms.DisableCacheReadList()
 			ms = f.chainMultiStores.GetStoreWithParent(f.txReps[preIndexInGroup].ms)
 		}
 	}

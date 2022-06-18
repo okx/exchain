@@ -225,74 +225,7 @@ func (store *Store) writeToCacheKv(parent *Store) {
 	store.clearCache()
 }
 
-type ScfLog struct {
-	StoreSize    int
-	DirtyCount   int
-	DirtyB       int
-	ReadCount    int
-	ReadB        int
-	UnSortedSize int
-	UnSortedB    int
-}
-
-var (
-	Scf = &ScfLog{}
-	mu  = sync.Mutex{}
-)
-
-type hmap struct {
-	count      int
-	flags      uint8
-	B          uint8
-	hash0      uint32
-	buckets    unsafe.Pointer
-	oldbuckets unsafe.Pointer
-}
-
-func CleanLog() {
-	//mu.Lock()
-	//Scf = &ScfLog{}
-	//mu.Unlock()
-}
-func AddLog(dirtyCount, dirtyB, readCount, readB, unsortedCount, unsortedB int) {
-	mu.Lock()
-	defer mu.Unlock()
-	Scf.StoreSize++
-	Scf.DirtyCount += dirtyCount
-	Scf.DirtyB += dirtyB
-	Scf.ReadCount += readCount
-	Scf.ReadB += readB
-	Scf.UnSortedSize += unsortedCount
-	Scf.UnSortedB += unsortedB
-}
-
-func PrintLog() {
-	//fmt.Println("ScfLog", Scf)
-}
-
-func getInfo(m map[string]cValue) (int, int) {
-	point := (**hmap)(unsafe.Pointer(&m))
-	value := *point
-	return value.count, int(value.B)
-}
-func getInfo1(m map[string][]byte) (int, int) {
-	point := (**hmap)(unsafe.Pointer(&m))
-	value := *point
-	return value.count, int(value.B)
-}
-func getInfo2(m map[string]struct{}) (int, int) {
-	point := (**hmap)(unsafe.Pointer(&m))
-	value := *point
-	return value.count, int(value.B)
-}
-
 func (store *Store) clearCache() {
-
-	//dirtyCount, dirtyB := getInfo(store.dirty)
-	//readCount, readB := getInfo1(store.readList)
-	//unsortedCount, unsortedB := getInfo2(store.unsortedCache)
-	//AddLog(dirtyCount, dirtyB, readCount, readB, unsortedCount, unsortedB)
-
 	// https://github.com/golang/go/issues/20138
 	for key := range store.dirty {
 		delete(store.dirty, key)
