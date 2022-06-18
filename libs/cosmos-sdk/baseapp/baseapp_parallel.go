@@ -580,6 +580,7 @@ func (f *parallelTxManager) addMultiCache(msAnte types.CacheMultiStore, msCache 
 }
 
 func shouldCleanChainCache(height int64) bool {
+	return false
 	return height%multiCacheListClearInterval == 0
 }
 
@@ -676,6 +677,7 @@ func (f *parallelTxManager) getTxResult(index int) sdk.CacheMultiStore {
 				return nil
 			}
 
+			f.txReps[preIndexInGroup].ms.DisableCacheReadList()
 			ms = f.chainMultiStores.GetStoreWithParent(f.txReps[preIndexInGroup].ms)
 		}
 	}
