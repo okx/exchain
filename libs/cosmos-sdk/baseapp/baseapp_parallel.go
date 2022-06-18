@@ -676,6 +676,7 @@ func (f *parallelTxManager) getTxResult(index int) sdk.CacheMultiStore {
 				return nil
 			}
 
+			f.txReps[preIndexInGroup].ms.DisableCacheReadList()
 			ms = f.chainMultiStores.GetStoreWithParent(f.txReps[preIndexInGroup].ms)
 		}
 	}
