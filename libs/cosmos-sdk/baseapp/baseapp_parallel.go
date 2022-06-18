@@ -590,24 +590,24 @@ func (f *parallelTxManager) addBlockCacheToChainCache() {
 	if shouldCleanChainCache(f.blockHeight) {
 		f.chainMultiStores.Clear()
 	} else {
-		var wg sync.WaitGroup
+		//var wg sync.WaitGroup
 		jobChan := make(chan types.CacheMultiStore, f.blockMultiStores.stores.Len())
 		for index := 0; index < maxGoroutineNumberInParaTx; index++ {
 			go func(ch chan types.CacheMultiStore) {
 				for j := range ch {
 					j.Clear()
 					f.chainMultiStores.PushStore(j)
-					wg.Done()
+					//wg.Done()
 				}
 			}(jobChan)
 		}
 
 		f.blockMultiStores.Range(func(c types.CacheMultiStore) {
-			wg.Add(1)
+			//wg.Add(1)
 			jobChan <- c
 		})
 		close(jobChan)
-		wg.Wait()
+		//wg.Wait()
 
 		cachekv.PrintLog()
 	}

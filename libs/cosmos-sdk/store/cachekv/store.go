@@ -2,7 +2,6 @@ package cachekv
 
 import (
 	"bytes"
-	"fmt"
 	"io"
 	"reflect"
 	"sort"
@@ -251,9 +250,9 @@ type hmap struct {
 }
 
 func CleanLog() {
-	mu.Lock()
-	Scf = &ScfLog{}
-	mu.Unlock()
+	//mu.Lock()
+	//Scf = &ScfLog{}
+	//mu.Unlock()
 }
 func AddLog(dirtyCount, dirtyB, readCount, readB, unsortedCount, unsortedB int) {
 	mu.Lock()
@@ -268,7 +267,7 @@ func AddLog(dirtyCount, dirtyB, readCount, readB, unsortedCount, unsortedB int) 
 }
 
 func PrintLog() {
-	fmt.Println("ScfLog", Scf)
+	//fmt.Println("ScfLog", Scf)
 }
 
 func getInfo(m map[string]cValue) (int, int) {
@@ -289,10 +288,10 @@ func getInfo2(m map[string]struct{}) (int, int) {
 
 func (store *Store) clearCache() {
 
-	dirtyCount, dirtyB := getInfo(store.dirty)
-	readCount, readB := getInfo1(store.readList)
-	unsortedCount, unsortedB := getInfo2(store.unsortedCache)
-	AddLog(dirtyCount, dirtyB, readCount, readB, unsortedCount, unsortedB)
+	//dirtyCount, dirtyB := getInfo(store.dirty)
+	//readCount, readB := getInfo1(store.readList)
+	//unsortedCount, unsortedB := getInfo2(store.unsortedCache)
+	//AddLog(dirtyCount, dirtyB, readCount, readB, unsortedCount, unsortedB)
 
 	// https://github.com/golang/go/issues/20138
 	for key := range store.dirty {
