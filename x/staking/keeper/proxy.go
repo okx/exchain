@@ -101,8 +101,6 @@ func (k Keeper) UpdateShares(ctx sdk.Context, delAddr sdk.AccAddress, tokens sdk
 func (k Keeper) AddSharesToValidators(ctx sdk.Context, delAddr sdk.AccAddress, vals types.Validators, tokens sdk.Dec) (
 	shares types.Shares, sdkErr error) {
 	lenVals := len(vals)
-	delegatorValAddresses := vals.ToValAddresses()
-	k.BeforeDelegationCreated(ctx, delAddr, delegatorValAddresses)
 
 	shares, sdkErr = calculateWeight(ctx.BlockTime().Unix(), tokens)
 	if sdkErr != nil {
@@ -112,7 +110,6 @@ func (k Keeper) AddSharesToValidators(ctx sdk.Context, delAddr sdk.AccAddress, v
 		k.addShares(ctx, delAddr, vals[i], shares)
 	}
 
-	k.AfterDelegationModified(ctx, delAddr, delegatorValAddresses)
 	return
 }
 

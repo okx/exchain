@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	"github.com/okex/exchain/x/distribution/types"
@@ -24,8 +25,11 @@ func (k Keeper) initializeValidator(ctx sdk.Context, val exported.ValidatorI) {
 
 // increment validator period, returning the period just ended
 func (k Keeper) incrementValidatorPeriod(ctx sdk.Context, val exported.ValidatorI) uint64 {
+	logger := k.Logger(ctx)
 	// fetch current rewards
 	rewards := k.GetValidatorCurrentRewards(ctx, val.GetOperator())
+
+	logger.Debug(fmt.Sprintf("increment val period %s, cur period:%d, cur reward:%s", val.GetOperator().String(), rewards.Period, rewards.Rewards.String()))
 
 	// calculate current ratio
 	var current sdk.SysCoins
@@ -40,6 +44,7 @@ func (k Keeper) incrementValidatorPeriod(ctx sdk.Context, val exported.Validator
 		k.SetValidatorOutstandingRewards(ctx, val.GetOperator(), outstanding)
 
 		current = sdk.SysCoins{}
+		logger.Info(fmt.Sprintf("delegator shares is zero, add to the community pool, val:%s", val.GetOperator().String()))
 	} else {
 		// note: necessary to truncate so we don't allow withdrawing more rewards than owed
 		current = rewards.Rewards.QuoDecTruncate(val.GetDelegatorShares())
@@ -57,6 +62,8 @@ func (k Keeper) incrementValidatorPeriod(ctx sdk.Context, val exported.Validator
 	// set current rewards, incrementing period by 1
 	k.SetValidatorCurrentRewards(ctx, val.GetOperator(), types.NewValidatorCurrentRewards(sdk.SysCoins{}, rewards.Period+1))
 
+	logger.Info(fmt.Sprintf("increment period val:%s, current reward ratio%s, historical:%s, ",
+		val.GetOperator().String(), current.String(), historical.String()))
 	return rewards.Period
 }
 

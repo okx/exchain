@@ -146,6 +146,7 @@ func (k Keeper) allocateByShares(ctx sdk.Context, rewards sdk.SysCoins) sdk.SysC
 
 // AllocateTokensToValidator allocate tokens to a particular validator, splitting according to commissions
 func (k Keeper) AllocateTokensToValidator(ctx sdk.Context, val exported.ValidatorI, tokens sdk.SysCoins) {
+	logger := k.Logger(ctx)
 	// split tokens between validator and delegators according to commission
 	commission := tokens.MulDec(val.GetCommission())
 	shared := tokens.Sub(commission)
@@ -178,4 +179,9 @@ func (k Keeper) AllocateTokensToValidator(ctx sdk.Context, val exported.Validato
 	outstanding := k.GetValidatorOutstandingRewards(ctx, val.GetOperator())
 	outstanding = outstanding.Add(tokens...)
 	k.SetValidatorOutstandingRewards(ctx, val.GetOperator(), outstanding)
+
+	logger.Debug(fmt.Sprintf("allocate val %s commission rate:%s, tokens:%s, commission:%s, shared:%s, "+
+		"outstanding:%s, current period:%d, reward:%s ", val.GetOperator().String(), val.GetCommission().String(),
+		tokens.String(), commission.String(), shared.String(), outstanding.String(), currentRewards.Period,
+		currentRewards.Rewards.String()))
 }

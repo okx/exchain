@@ -9,6 +9,7 @@ import (
 
 // initialize starting info for a new delegation
 func (k Keeper) initializeDelegation(ctx sdk.Context, val sdk.ValAddress, del sdk.AccAddress) {
+	logger := k.Logger(ctx)
 	// period has already been incremented - we want to store the period ended by this delegation action
 	previousPeriod := k.GetValidatorCurrentRewards(ctx, val).Period - 1
 
@@ -16,7 +17,7 @@ func (k Keeper) initializeDelegation(ctx sdk.Context, val sdk.ValAddress, del sd
 	k.incrementReferenceCount(ctx, val, previousPeriod)
 
 	delegation := k.stakingKeeper.Delegator(ctx, del)
-
+	logger.Debug(fmt.Sprintf("initialize delegation, val:%s, del:%s, shares:%s", val.String(), del.String(), delegation.GetLastAddedShares().String()))
 	k.SetDelegatorStartingInfo(ctx, val, del, types.NewDelegatorStartingInfo(previousPeriod, delegation.GetLastAddedShares(), uint64(ctx.BlockHeight())))
 }
 
@@ -47,6 +48,7 @@ func (k Keeper) calculateDelegationRewardsBetween(ctx sdk.Context, val stakingex
 
 // calculate the total rewards accrued by a delegation
 func (k Keeper) calculateDelegationRewards(ctx sdk.Context, val stakingexported.ValidatorI, delAddr sdk.AccAddress, endingPeriod uint64) (rewards sdk.DecCoins) {
+	logger := k.Logger(ctx)
 	del := k.stakingKeeper.Delegator(ctx, delAddr)
 
 	// fetch starting info for delegation
@@ -66,74 +68,11 @@ func (k Keeper) calculateDelegationRewards(ctx sdk.Context, val stakingexported.
 			del.GetDelegatorAddress(), stake, del.GetLastAddedShares()))
 	}
 
-	// Iterate through slashes and withdraw with calculated staking for
-	// distribution periods. These period offsets are dependent on *when* slashes
-	// happen - namely, in BeginBlock, after rewards are allocated...
-	// Slashes which happened in the first block would have been before this
-	// delegation existed, UNLESS they were slashes of a redelegation to this
-	// validator which was itself slashed (from a fault committed by the
-	// redelegation source validator) earlier in the same BeginBlock.
-	//startingHeight := startingInfo.Height
-	// Slashes this block happened after reward allocation, but we have to account
-	// for them for the stake sanity check below.
-	//endingHeight := uint64(ctx.BlockHeight())
-	//if endingHeight > startingHeight {
-	//	k.IterateValidatorSlashEventsBetween(ctx, val.GetOperator(), startingHeight, endingHeight,
-	//		func(height uint64, event types.ValidatorSlashEvent) (stop bool) {
-	//			endingPeriod := event.ValidatorPeriod
-	//			if endingPeriod > startingPeriod {
-	//				rewards = rewards.Add(k.calculateDelegationRewardsBetween(ctx, val, startingPeriod, endingPeriod, stake)...)
-	//
-	//				// Note: It is necessary to truncate so we don't allow withdrawing
-	//				// more rewards than owed.
-	//				stake = stake.MulTruncate(sdk.OneDec().Sub(event.Fraction))
-	//				startingPeriod = endingPeriod
-	//			}
-	//			return false
-	//		},
-	//	)
-	//}
-
-	// A total stake sanity check; Recalculated final stake should be less than or
-	// equal to current stake here. We cannot use Equals because stake is truncated
-	// when multiplied by slash fractions (see above). We could only use equals if
-	// we had arbitrary-precision rationals.
-	//currentStake := del.GetLastAddedShares()
-
-	//if stake.GT(currentStake) {
-	//	// Account for rounding inconsistencies between:
-	//	//
-	//	//     currentStake: calculated as in staking with a single computation
-	//	//     stake:        calculated as an accumulation of stake
-	//	//                   calculations across validator's distribution periods
-	//	//
-	//	// These inconsistencies are due to differing order of operations which
-	//	// will inevitably have different accumulated rounding and may lead to
-	//	// the smallest decimal place being one greater in stake than
-	//	// currentStake. When we calculated slashing by period, even if we
-	//	// round down for each slash fraction, it's possible due to how much is
-	//	// being rounded that we slash less when slashing by period instead of
-	//	// for when we slash without periods. In other words, the single slash,
-	//	// and the slashing by period could both be rounding down but the
-	//	// slashing by period is simply rounding down less, thus making stake >
-	//	// currentStake
-	//	//
-	//	// A small amount of this error is tolerated and corrected for,
-	//	// however any greater amount should be considered a breach in expected
-	//	// behaviour.
-	//	marginOfErr := sdk.SmallestDec().MulInt64(3)
-	//	if stake.LTE(currentStake.Add(marginOfErr)) {
-	//		stake = currentStake
-	//	} else {
-	//		panic(fmt.Sprintf("calculated final stake for delegator %s greater than current stake"+
-	//			"\n\tfinal stake:\t%s"+
-	//			"\n\tcurrent stake:\t%s",
-	//			del.GetDelegatorAddress(), stake, currentStake))
-	//	}
-	//}
-
 	// calculate rewards for final period
 	rewards = rewards.Add(k.calculateDelegationRewardsBetween(ctx, val, startingPeriod, endingPeriod, stake)...)
+
+	logger.Debug(fmt.Sprintf("calculate delegation rewards, val:%s, del:%s, period:[%d,%d], stake:%s,reward:%s",
+		val.GetOperator().String(), delAddr.String(), startingPeriod, endingPeriod, stake.String(), rewards.String()))
 
 	return rewards
 }

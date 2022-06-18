@@ -140,9 +140,11 @@ $ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg 
 				return err
 			}
 
-			msgs := []sdk.Msg{types.NewMsgWithdrawDelegatorReward(delAddr, valAddr)}
+			msgs := []sdk.Msg{}
 			if viper.GetBool(flagCommission) {
 				msgs = append(msgs, types.NewMsgWithdrawValidatorCommission(valAddr))
+			} else {
+				msgs = append(msgs, types.NewMsgWithdrawDelegatorReward(delAddr, valAddr))
 			}
 
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, msgs)

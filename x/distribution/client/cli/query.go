@@ -188,7 +188,7 @@ $ %s query distribution rewards cosmos1gghjut3ccd8ay0zduzj64hwre2fxs9ld75ru9p co
 // GetCmdQueryValidatorOutstandingRewards implements the query validator outstanding rewards command.
 func GetCmdQueryValidatorOutstandingRewards(queryRoute string, cdc *codec.Codec) *cobra.Command {
 	return &cobra.Command{
-		Use:   "validator-outstanding-rewards [validator]",
+		Use:   "outstanding-rewards [validator]",
 		Args:  cobra.ExactArgs(1),
 		Short: "Query distribution outstanding (un-withdrawn) rewards for a validator and all their delegations",
 		Long: strings.TrimSpace(
