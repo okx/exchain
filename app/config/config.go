@@ -40,6 +40,8 @@ type OecConfig struct {
 	maxGasUsedPerBlock int64
 	// mempool.node_key_whitelist
 	nodeKeyWhitelist []string
+	// p2p.sentry_addrs
+	sentryAddrs []string
 
 	// gas-limit-buffer
 	gasLimitBuffer uint64
@@ -100,6 +102,7 @@ const (
 	FlagEnableDynamicGp        = "enable-dynamic-gp"
 	FlagDynamicGpWeight        = "dynamic-gp-weight"
 	FlagEnableWrappedTx        = "enable-wtx"
+	FlagSentryAddrs            = "p2p.sentry_addrs"
 
 	FlagCsTimeoutPropose        = "consensus.timeout_propose"
 	FlagCsTimeoutProposeDelta   = "consensus.timeout_propose_delta"
@@ -214,6 +217,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetCsTimeoutPrecommitDelta(viper.GetDuration(FlagCsTimeoutPrecommitDelta))
 	c.SetCsTimeoutCommit(viper.GetDuration(FlagCsTimeoutCommit))
 	c.SetIavlCacheSize(viper.GetInt(iavl.FlagIavlCacheSize))
+	c.SetSentryAddrs(viper.GetString(FlagSentryAddrs))
 	c.SetNodeKeyWhitelist(viper.GetString(FlagNodeKeyWhitelist))
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
 	c.SetEnableAnalyzer(viper.GetBool(trace.FlagEnableAnalyzer))
@@ -224,6 +228,13 @@ func (c *OecConfig) loadFromConfig() {
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
+	if len(plain) == 0 {
+		return []string{}
+	}
+	return strings.Split(plain, ",")
+}
+
+func resolveSentryAddrs(plain string) []string {
 	if len(plain) == 0 {
 		return []string{}
 	}
@@ -320,6 +331,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetNodeKeyWhitelist(r)
+	case FlagSentryAddrs:
+		r, ok := value.(string)
+		if !ok {
+			return
+		}
+		c.SetSentryAddrs(r)
 	case FlagMaxGasUsedPerBlock:
 		r, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
@@ -515,6 +532,17 @@ func (c *OecConfig) SetNodeKeyWhitelist(value string) {
 		} else {
 			c.nodeKeyWhitelist = append(c.nodeKeyWhitelist, id)
 		}
+	}
+}
+
+func (c *OecConfig) GetSentryAddrs() []string {
+	return c.sentryAddrs
+}
+
+func (c *OecConfig) SetSentryAddrs(value string) {
+	addrs := resolveSentryAddrs(value)
+	for _, addr := range addrs {
+		c.sentryAddrs = append(c.sentryAddrs, strings.TrimSpace(addr))
 	}
 }
 

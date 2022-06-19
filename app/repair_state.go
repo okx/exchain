@@ -342,8 +342,11 @@ func createAndStartProxyAppConns(clientCreator proxy.ClientCreator) (proxy.AppCo
 }
 
 func (app *repairApp) Close() {
-	for evmtypes.GetIndexer().IsProcessing() {
-		time.Sleep(100 * time.Millisecond)
+	indexer := evmtypes.GetIndexer()
+	if indexer != nil {
+		for indexer.IsProcessing() {
+			time.Sleep(100 * time.Millisecond)
+		}
 	}
 	evmtypes.CloseIndexer()
 	err := app.db.Close()

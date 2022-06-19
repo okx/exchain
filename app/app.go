@@ -66,13 +66,13 @@ import (
 	"github.com/okex/exchain/x/genutil"
 	"github.com/okex/exchain/x/gov"
 	"github.com/okex/exchain/x/gov/keeper"
+	"github.com/okex/exchain/x/infura"
 	"github.com/okex/exchain/x/order"
 	"github.com/okex/exchain/x/params"
 	paramsclient "github.com/okex/exchain/x/params/client"
 	"github.com/okex/exchain/x/slashing"
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
-
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/encoding"
@@ -131,6 +131,7 @@ var (
 		order.AppModuleBasic{},
 		ammswap.AppModuleBasic{},
 		farm.AppModuleBasic{},
+		infura.AppModuleBasic{},
 		capabilityModule.AppModuleBasic{},
 		ibc.AppModuleBasic{},
 		ibctransfer.AppModuleBasic{},
@@ -197,6 +198,7 @@ type OKExChainApp struct {
 	OrderKeeper    order.Keeper
 	SwapKeeper     ammswap.Keeper
 	FarmKeeper     farm.Keeper
+	InfuraKeeper   infura.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -352,7 +354,7 @@ func NewOKExChainApp(
 
 	app.FarmKeeper = farm.NewKeeper(auth.FeeCollectorName, app.SupplyKeeper, app.TokenKeeper, app.SwapKeeper, *app.EvmKeeper, app.subspaces[farm.StoreKey],
 		app.keys[farm.StoreKey], app.marshal.GetCdc())
-
+	app.InfuraKeeper = infura.NewKeeper(app.EvmKeeper, logger, streamMetrics)
 	// create evidence keeper with router
 	evidenceKeeper := evidence.NewKeeper(
 		codecProxy.GetCdc(), keys[evidence.StoreKey], app.subspaces[evidence.ModuleName], &app.StakingKeeper, app.SlashingKeeper,
@@ -454,6 +456,7 @@ func NewOKExChainApp(
 		order.NewAppModule(commonversion.ProtocolVersionV0, app.OrderKeeper, app.SupplyKeeper),
 		ammswap.NewAppModule(app.SwapKeeper),
 		farm.NewAppModule(app.FarmKeeper),
+		infura.NewAppModule(app.InfuraKeeper),
 		params.NewAppModule(app.ParamsKeeper),
 		// ibc
 		ibc.NewAppModule(app.IBCKeeper),
@@ -466,6 +469,7 @@ func NewOKExChainApp(
 	// there is nothing left over in the validator fee pool, so as to keep the
 	// CanWithdrawInvariant invariant.
 	app.mm.SetOrderBeginBlockers(
+		infura.ModuleName,
 		bank.ModuleName,
 		capabilitytypes.ModuleName,
 		order.ModuleName,
@@ -488,6 +492,7 @@ func NewOKExChainApp(
 		order.ModuleName,
 		staking.ModuleName,
 		evm.ModuleName,
+		infura.ModuleName,
 	)
 
 	// NOTE: The genutils module must occur after staking so that pools are
