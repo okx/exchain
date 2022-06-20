@@ -159,7 +159,7 @@ func (acc *BaseAccount) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) erro
 			return err
 		}
 		if buf.Len()-lenBeforeData != coinSize {
-			return amino.NewSizerError(coin, buf.Len()-lenBeforeData, coinSize)
+			return amino.NewSizerError(coin, coinSize, buf.Len()-lenBeforeData)
 		}
 	}
 
@@ -178,7 +178,7 @@ func (acc *BaseAccount) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) erro
 			return err
 		}
 		if buf.Len()-lenBeforeData != pubKeySize {
-			return amino.NewSizerError(acc.PubKey, buf.Len()-lenBeforeData, pubKeySize)
+			return amino.NewSizerError(acc.PubKey, pubKeySize, buf.Len()-lenBeforeData)
 		}
 	}
 
