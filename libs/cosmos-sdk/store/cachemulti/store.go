@@ -248,3 +248,9 @@ func (cms Store) Clear() {
 		store.Clear()
 	}
 }
+
+func (cms Store) DisableCacheReadList() {
+	for _, store := range cms.stores {
+		store.DisableCacheReadList()
+	}
+}
