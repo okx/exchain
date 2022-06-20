@@ -1,6 +1,7 @@
 package deliver
 
 import (
+	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -9,6 +10,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	bam "github.com/okex/exchain/libs/system/trace"
+  "github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
@@ -35,6 +37,9 @@ func (tx *Tx) SaveTx(msg *types.MsgEthereumTx) {
 	tx.StateTransition.Csdb.Prepare(*tx.StateTransition.TxHash, tx.Keeper.Bhash, tx.Keeper.TxCount)
 	tx.StateTransition.Csdb.SetLogSize(tx.Keeper.LogSize)
 	tx.Keeper.TxCount++
+	if tx.Ctx.ParaMsg() != nil {
+		tx.Ctx.ParaMsg().HasRunEvmTx = true
+	}
 }
 
 func (tx *Tx) GetSenderAccount() authexported.Account {
@@ -58,6 +63,12 @@ func (tx *Tx) RefundFeesWatcher(account authexported.Account, coin sdk.Coins, pr
 	if account == nil || !tx.Keeper.Watcher.Enabled() {
 		return
 	}
+	defer func() {
+		//panic was not allowed in this function
+		if e := recover(); e != nil {
+			tx.Ctx.Logger().Error(fmt.Sprintf("recovered panic at func RefundFeesWatcher %v\n", e))
+		}
+	}()
 	gasConsumed := tx.Ctx.GasMeter().GasConsumed()
 	fixedFees := refund.CaculateRefundFees(gasConsumed, coin, price)
 	coins := account.GetCoins().Add2(fixedFees)
@@ -82,6 +93,12 @@ func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *base.Result) {
 	// update block bloom filter
 	if tx.Ctx.ParaMsg() == nil {
 		tx.Keeper.Bloom.Or(tx.Keeper.Bloom, result.ExecResult.Bloom)
+	} else {
+		// async mod goes immediately
+		index := tx.Keeper.LogsManages.Set(keeper.TxResult{
+			ResultData: result.ResultData,
+		})
+		tx.Ctx.ParaMsg().LogIndex = index
 	}
 	tx.Keeper.LogSize = tx.StateTransition.Csdb.GetLogSize()
 	tx.Keeper.Watcher.SaveTransactionReceipt(watcher.TransactionSuccess,

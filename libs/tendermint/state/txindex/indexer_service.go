@@ -19,12 +19,14 @@ type IndexerService struct {
 
 	idr      TxIndexer
 	eventBus *types.EventBus
+	quit     chan struct{}
 }
 
 // NewIndexerService returns a new service instance.
 func NewIndexerService(idr TxIndexer, eventBus *types.EventBus) *IndexerService {
 	is := &IndexerService{idr: idr, eventBus: eventBus}
 	is.BaseService = *service.NewBaseService(nil, "IndexerService", is)
+	is.quit = make(chan struct{})
 	return is
 }
 
@@ -49,7 +51,7 @@ func (is *IndexerService) OnStart() error {
 	}
 
 	go func() {
-		for {
+		for is.IsRunning() {
 			msg := <-blockHeadersSub.Out()
 			eventDataHeader := msg.Data().(types.EventDataNewBlockHeader)
 			height := eventDataHeader.Header.Height
@@ -70,6 +72,7 @@ func (is *IndexerService) OnStart() error {
 				is.Logger.Info("Indexed block", "height", height)
 			}
 		}
+		close(is.quit)
 	}()
 	return nil
 }
@@ -79,4 +82,8 @@ func (is *IndexerService) OnStop() {
 	if is.eventBus.IsRunning() {
 		_ = is.eventBus.UnsubscribeAll(context.Background(), subscriber)
 	}
+}
+
+func (is *IndexerService) Wait() {
+	<-is.quit
 }

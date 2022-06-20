@@ -672,7 +672,7 @@ func (csdb *CommitStateDB) GetParams() Params {
 		if csdb.ctx.UseParamCache() {
 			if GetEvmParamsCache().IsNeedParamsUpdate() {
 				csdb.paramSpace.GetParamSet(csdb.ctx, &params)
-				GetEvmParamsCache().UpdateParams(params)
+				GetEvmParamsCache().UpdateParams(params, csdb.ctx.IsCheckTx())
 			} else {
 				params = GetEvmParamsCache().GetParams()
 			}
@@ -1573,7 +1573,7 @@ func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.Ac
 	if csdb.ctx.UseParamCache() {
 		if GetEvmParamsCache().IsNeedBlockedUpdate() {
 			bcl := csdb.GetContractMethodBlockedList()
-			GetEvmParamsCache().UpdateBlockedContractMethod(bcl)
+			GetEvmParamsCache().UpdateBlockedContractMethod(bcl, csdb.ctx.IsCheckTx())
 		}
 		return GetEvmParamsCache().GetBlockedContractMethod(contractAddr.String())
 	}

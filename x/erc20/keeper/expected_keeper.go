@@ -19,12 +19,15 @@ type GovKeeper interface {
 // AccountKeeper defines the expected account keeper interface
 type AccountKeeper interface {
 	GetAccount(ctx sdk.Context, addr sdk.AccAddress) authexported.Account
+	SetAccount(ctx sdk.Context, acc authexported.Account, updateState ...bool)
+	NewAccountWithAddress(ctx sdk.Context, addr sdk.AccAddress) authexported.Account
 }
 
 type SupplyKeeper interface {
 	SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) error
 	SendCoinsFromAccountToModule(ctx sdk.Context, senderAddr sdk.AccAddress, recipientModule string, amt sdk.Coins) error
 	MintCoins(ctx sdk.Context, name string, amt sdk.Coins) error
+	BurnCoins(ctx sdk.Context, moduleName string, amt sdk.Coins) error
 	GetModuleAccount(ctx sdk.Context, moduleName string) exported.ModuleAccountI
 }
 

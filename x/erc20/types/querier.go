@@ -7,3 +7,8 @@ type ContractByDenomRequest struct {
 type DenomByContractRequest struct {
 	Contract string `json:"contract,omitempty"`
 }
+
+type ContractTemplate struct {
+	Proxy     string `json:"proxy"`
+	Implement string `json:"implement"`
+}

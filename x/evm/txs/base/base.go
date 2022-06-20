@@ -57,14 +57,6 @@ func (tx *Tx) GetChainConfig() (types.ChainConfig, bool) {
 func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 	result.ExecResult, result.ResultData, err, result.InnerTxs, result.Erc20Contracts = tx.StateTransition.TransitionDb(tx.Ctx, config)
 
-	// async mod goes immediately
-	if tx.Ctx.ParaMsg() != nil {
-		index := tx.Keeper.LogsManages.Set(keeper.TxResult{
-			ResultData: result.ResultData,
-			Err:        err,
-		})
-		tx.Ctx.ParaMsg().LogIndex = index
-	}
 	if err != nil {
 		return
 	}
