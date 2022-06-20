@@ -55,25 +55,21 @@ check_rocksdb_version() {
 
     lsb_dist=$( get_distribution )
   	lsb_dist="$(echo "$lsb_dist" | tr '[:upper:]' '[:lower:]')"
-
+    rocksdb_version=
   	case "$lsb_dist" in
     		ubuntu)
-    		  file_path="/usr/lib/"
-    			suffix=".so"
+    		  rocksdb_version=$(ls -al /usr/lib/librocksdb.so | awk '{print$11}' | awk '{ gsub(/'librocksdb.'/,""); gsub(/'so.'/,"");print $0 }')
     			;;
     		centos)
-    		  file_path="/usr/lib/"
-    		  suffix=".so"
+    		  rocksdb_version=$(ls -al /usr/lib/librocksdb.so | awk '{print$11}' | awk '{ gsub(/'librocksdb.'/,""); gsub(/'so.'/,"");print $0 }')
     			;;
     	  alpine)
-    	    file_path="/usr/lib/"
-    	    suffix=".a"
+    	    rocksdb_version=$(ls -al /usr/lib/librocksdb.so | awk '{print$11}' | awk '{ gsub(/'librocksdb.'/,""); gsub(/'a.'/,"");print $0 }')
     	    ;;
     		*)
     			if [ -z "$lsb_dist" ]; then
     				if is_darwin; then
-    				  file_path="/usr/local/lib/"
-              suffix=".dylib"
+    				      rocksdb_version=$(ls -al /usr/local/lib/librocksdb.dylib | awk '{print$11}' | awk '{ gsub(/'librocksdb.'/,""); gsub(/'.dylib'/,"");print $0 }')
     				fi
     			else
           echo
@@ -85,15 +81,14 @@ check_rocksdb_version() {
     	esac
 
     # checkout go version
-    rocksdb_version=$(ls -al ${file_path}librocksdb${suffix} | awk '{print$11}' | awk '{ gsub(/'$prefix'/,""); gsub(/'$suffix'/,"");print $0 }')
 
     if [ "$rocksdb_version" != "$ROCKSDB_VERSION" ] ;then
       echo "exchain need rocksdb-v${ROCKSDB_VERSION},please install with command <make rocksdb>"
       exit 1
     fi
     echo "check version success:"
-    echo "      go check: go-"$GO_VERSION
-    echo "      rocksdb check: "${file_path}librocksdb${suffix}"-"$rocksdb_version
+    echo "      go check: "$GO_VERSION
+    echo "      rocksdb check: "$rocksdb_version
     echo "------------------------------------------------------------------------"
 }
 
