@@ -10,6 +10,7 @@ import (
 )
 
 type WatchTx interface {
+	GetTxWatchMessage() WatchMessage
 	GetTransaction() *Transaction
 	GetTxHash() common.Hash
 	GetFailedReceipts(cumulativeGas, gasUsed uint64) *TransactionReceipt
@@ -83,16 +84,14 @@ func (w *Watcher) saveTx(tx WatchTx) {
 	if w == nil || tx == nil {
 		return
 	}
-	ethTx := tx.GetTransaction()
-	if ethTx == nil {
-		return
-	}
 	if w.InfuraKeeper != nil {
-		w.InfuraKeeper.OnSaveTransaction(*ethTx)
+		ethTx := tx.GetTransaction()
+		if ethTx != nil {
+			w.InfuraKeeper.OnSaveTransaction(*ethTx)
+		}
 	}
-	wMsg := newMsgEthTx(ethTx)
-	if wMsg != nil {
-		w.batch = append(w.batch, wMsg)
+	if txWatchMessage := tx.GetTxWatchMessage(); txWatchMessage != nil {
+		w.batch = append(w.batch, txWatchMessage)
 	}
 	w.blockTxs = append(w.blockTxs, tx.GetTxHash())
 }
