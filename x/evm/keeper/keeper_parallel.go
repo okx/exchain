@@ -7,7 +7,7 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 )
 
-func (k *Keeper) FixLog(logIndex []int, anteErrs []error) [][]byte {
+func (k *Keeper) FixLog(logIndex []int, hasEnterEvmTx []bool, anteErrs []error) [][]byte {
 	txSize := len(logIndex)
 	res := make([][]byte, txSize, txSize)
 	logSize := uint(0)
@@ -15,11 +15,13 @@ func (k *Keeper) FixLog(logIndex []int, anteErrs []error) [][]byte {
 	k.Bloom = new(big.Int)
 
 	for index := 0; index < txSize; index++ {
+		if hasEnterEvmTx[index] {
+			txInBlock++
+		}
 		rs, ok := k.LogsManages.Get(logIndex[index])
 		if !ok || anteErrs[index] != nil {
 			continue
 		}
-		txInBlock++
 		if rs.ResultData == nil {
 			continue
 		}
@@ -83,5 +85,4 @@ func (l *LogsManager) Reset() {
 
 type TxResult struct {
 	ResultData *types.ResultData
-	Err        error
 }

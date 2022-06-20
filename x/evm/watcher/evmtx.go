@@ -66,12 +66,14 @@ func (m MsgEthTx) GetKey() []byte {
 	return append(prefixTx, m.Key...)
 }
 
-func newMsgEthTx(ethTx *Transaction) *MsgEthTx {
-	return &MsgEthTx{
-		Key:         ethTx.Hash.Bytes(),
-		Transaction: ethTx,
+func (etx *evmTx) GetTxWatchMessage() WatchMessage {
+	if etx == nil || etx.msgEvmTx == nil {
+		return nil
 	}
+
+	return newMsgEthTx(etx.msgEvmTx, etx.txHash, etx.blockHash, etx.height, etx.index)
 }
+
 func newTransaction(tx *types.MsgEthereumTx, txHash, blockHash ethcmn.Hash, blockNumber, index uint64) *Transaction {
 	return &Transaction{
 		Hash:              txHash,
@@ -79,5 +81,14 @@ func newTransaction(tx *types.MsgEthereumTx, txHash, blockHash ethcmn.Hash, bloc
 		originBlockHash:   &blockHash,
 		originBlockNumber: blockNumber,
 		originIndex:       index,
+	}
+}
+
+func newMsgEthTx(tx *types.MsgEthereumTx, txHash, blockHash ethcmn.Hash, height, index uint64) *MsgEthTx {
+	ethTx := newTransaction(tx, txHash, blockHash, height, index)
+
+	return &MsgEthTx{
+		Transaction: ethTx,
+		Key:         txHash.Bytes(),
 	}
 }

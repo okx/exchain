@@ -24,8 +24,8 @@ func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCo
 
 // fixLogForParallelTxHandler fix log for parallel tx
 func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
-	return func(logIndex []int, anteErrs []error) (logs [][]byte) {
-		return ek.FixLog(logIndex, anteErrs)
+	return func(logIndex []int, hasEnterEvmTx []bool, anteErrs []error) (logs [][]byte) {
+		return ek.FixLog(logIndex, hasEnterEvmTx, anteErrs)
 	}
 }
 
