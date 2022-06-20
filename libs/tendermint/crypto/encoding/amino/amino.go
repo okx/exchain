@@ -232,10 +232,10 @@ func PubKeyAminoSize(pubKey crypto.PubKey, cdc *amino.Codec) int {
 		}
 		return tpl + sizer.AminoSize(cdc)
 	} else {
-		encdoedPubKey, err := cdc.MarshalBinaryBare(pubKey)
+		encodedPubKey, err := cdc.MarshalBinaryBare(pubKey)
 		if err != nil {
 			return 0
 		}
-		return len(encdoedPubKey)
+		return len(encodedPubKey)
 	}
 }
