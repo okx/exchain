@@ -709,7 +709,7 @@ func DefaultMempoolConfig() *MempoolConfig {
 		PendingPoolMaxTxPerAddress: 100,
 		NodeKeyWhitelist:           []string{},
 		TTLDuration:                10 * time.Minute, //seconds
-		TTLNumBlocks:               10,
+		TTLNumBlocks:               20,
 	}
 }
 
@@ -717,6 +717,8 @@ func DefaultMempoolConfig() *MempoolConfig {
 func TestMempoolConfig() *MempoolConfig {
 	cfg := DefaultMempoolConfig()
 	cfg.CacheSize = 1000
+	cfg.TTLNumBlocks = 10
+	cfg.TTLDuration = 5 * time.Second
 	return cfg
 }
 

@@ -876,3 +876,99 @@ func TestReplaceTxWithMultiAddrs(t *testing.T) {
 	}
 	require.Equal(t, []uint64{1, 2}, nonces)
 }
+
+func TestTxMempool_ExpiredTxs_NumBlocks(t *testing.T) {
+	app := kvstore.NewApplication()
+	cc := proxy.NewLocalClientCreator(app)
+	mempool, cleanup := newMempoolWithApp(cc)
+	defer cleanup()
+	mempool.height = 100
+
+	tTxs := checkTxs(t, mempool, 100, 0)
+	require.Equal(t, len(tTxs), mempool.Size())
+	require.Equal(t, 100, mempool.heightIndex.Size())
+
+	// reap 5 txs at the next height -- no txs should expire
+	reapedTxs := mempool.ReapMaxTxs(4)
+	responses := make([]*abci.ResponseDeliverTx, len(reapedTxs))
+	for i := 0; i < len(responses); i++ {
+		responses[i] = &abci.ResponseDeliverTx{Code: abci.CodeTypeOK}
+	}
+
+	mempool.Lock()
+	require.NoError(t, mempool.Update(mempool.height+1, reapedTxs, responses, nil, nil))
+	mempool.Unlock()
+
+	require.Equal(t, 95, mempool.Size())
+	require.Equal(t, 95, mempool.heightIndex.Size())
+
+	// check more txs at height 101
+	_ = checkTxs(t, mempool, 50, 1)
+	require.Equal(t, 145, mempool.Size())
+	require.Equal(t, 145, mempool.heightIndex.Size())
+
+	// Reap 5 txs at a height that would expire all the transactions from before
+	// the previous Update (height 100)
+	reapedTxs = mempool.ReapMaxTxs(4)
+	responses = make([]*abci.ResponseDeliverTx, len(reapedTxs))
+	for i := 0; i < len(responses); i++ {
+		responses[i] = &abci.ResponseDeliverTx{Code: abci.CodeTypeOK}
+	}
+
+	mempool.Lock()
+	require.NoError(t, mempool.Update(mempool.height+10, reapedTxs, responses, nil, nil))
+	mempool.Unlock()
+
+	require.Equal(t, 50, mempool.Size())
+	require.Equal(t, 50, mempool.heightIndex.Size())
+	require.Equal(t, 50, mempool.timestampIndex.Size())
+}
+
+func TestTxMempool_ExpiredTxs_Duration(t *testing.T) {
+	app := kvstore.NewApplication()
+	cc := proxy.NewLocalClientCreator(app)
+	mempool, cleanup := newMempoolWithApp(cc)
+	defer cleanup()
+	mempool.height = 100
+
+	tTxs := checkTxs(t, mempool, 100, 0)
+	require.Equal(t, len(tTxs), mempool.Size())
+	require.Equal(t, 100, mempool.heightIndex.Size())
+
+	// reap 5 txs at the next height -- no txs should expire
+	reapedTxs := mempool.ReapMaxTxs(4)
+	responses := make([]*abci.ResponseDeliverTx, len(reapedTxs))
+	for i := 0; i < len(responses); i++ {
+		responses[i] = &abci.ResponseDeliverTx{Code: abci.CodeTypeOK}
+	}
+
+	mempool.Lock()
+	require.NoError(t, mempool.Update(mempool.height+1, reapedTxs, responses, nil, nil))
+	mempool.Unlock()
+
+	require.Equal(t, 95, mempool.Size())
+	require.Equal(t, 95, mempool.heightIndex.Size())
+
+	time.Sleep(5 * time.Second)
+
+	// check more txs at height 101
+	_ = checkTxs(t, mempool, 50, 1)
+	require.Equal(t, 145, mempool.Size())
+	require.Equal(t, 145, mempool.heightIndex.Size())
+
+	// Reap 5 txs at a height that would expire all the transactions from before
+	// the previous Update (height 100).
+	reapedTxs = mempool.ReapMaxTxs(4)
+	responses = make([]*abci.ResponseDeliverTx, len(reapedTxs))
+	for i := 0; i < len(responses); i++ {
+		responses[i] = &abci.ResponseDeliverTx{Code: abci.CodeTypeOK}
+	}
+
+	mempool.Lock()
+	require.NoError(t, mempool.Update(mempool.height+2, reapedTxs, responses, nil, nil))
+	mempool.Unlock()
+
+	require.Equal(t, 50, mempool.Size())
+	require.Equal(t, 50, mempool.timestampIndex.Size())
+	require.Equal(t, 50, mempool.heightIndex.Size())
+}

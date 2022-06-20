@@ -51,11 +51,11 @@ func (d MockDynamicConfig) GetMaxTxNumPerBlock() int64 {
 }
 
 func (d MockDynamicConfig) GetTTLNumBlocks() int64 {
-	return DefaultMempoolConfig().TTLNumBlocks
+	return TestMempoolConfig().TTLNumBlocks
 }
 
 func (d MockDynamicConfig) GetTTLDuration() time.Duration {
-	return DefaultMempoolConfig().TTLDuration
+	return TestMempoolConfig().TTLDuration
 }
 
 func (d MockDynamicConfig) GetMaxGasUsedPerBlock() int64 {

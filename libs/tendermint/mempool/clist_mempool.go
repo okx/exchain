@@ -1052,7 +1052,7 @@ func (mem *CListMempool) purgeExpiredTxs(blockHeight int64) {
 		}
 
 		if purgeIdx >= 0 {
-			fmt.Printf("Starts to purge TTLNumBlocks, purgeIdx:%d, size:%d\n", purgeIdx, len(mem.heightIndex.txs))
+			mem.logger.Debug(fmt.Sprintf("Starts to purge TTLNumBlocks, purgeIdx:%d, size:%d", purgeIdx, len(mem.heightIndex.txs)))
 			mem.heightIndex.txs = mem.heightIndex.txs[purgeIdx+1:]
 		}
 	}
@@ -1070,13 +1070,13 @@ func (mem *CListMempool) purgeExpiredTxs(blockHeight int64) {
 		}
 
 		if purgeIdx >= 0 {
-			fmt.Printf("Starts to purge TTLDuration, purgeIdx:%d, size:%d\n", purgeIdx, len(mem.heightIndex.txs))
+			mem.logger.Debug(fmt.Sprintf("Starts to purge TTLDuration, purgeIdx:%d, size:%d", purgeIdx, len(mem.heightIndex.txs)))
 			mem.timestampIndex.txs = mem.timestampIndex.txs[purgeIdx+1:]
 		}
 	}
 
 	if len(expiredTxs) > 0 {
-		fmt.Println("Remove expiredTxs from mempool, len:", len(expiredTxs))
+		mem.logger.Debug(fmt.Sprintf("Remove expiredTxs from mempool, len:%d", len(expiredTxs)))
 	}
 
 	for _, mtx := range expiredTxs {
