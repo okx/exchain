@@ -20,10 +20,28 @@ import (
 type EvmFactory struct {
 	ChainId        string
 	WrappedQuerier *watcher.Querier
+	storeKey       *sdk.KVStoreKey
+	cms            sdk.CommitMultiStore
 }
 
 func NewEvmFactory(chainId string, q *watcher.Querier) EvmFactory {
-	return EvmFactory{ChainId: chainId, WrappedQuerier: q}
+	ef := EvmFactory{ChainId: chainId, WrappedQuerier: q, storeKey: sdk.NewKVStoreKey(evm.StoreKey)}
+	ef.cms = initCommitMultiStore(ef.storeKey)
+	return ef
+}
+
+func initCommitMultiStore(storeKey *sdk.KVStoreKey) sdk.CommitMultiStore {
+	db := dbm.NewMemDB()
+	cms := store.NewCommitMultiStore(db)
+	authKey := sdk.NewKVStoreKey(auth.StoreKey)
+	paramsKey := sdk.NewKVStoreKey(params.StoreKey)
+	paramsTKey := sdk.NewTransientStoreKey(params.TStoreKey)
+	cms.MountStoreWithDB(authKey, sdk.StoreTypeIAVL, db)
+	cms.MountStoreWithDB(paramsKey, sdk.StoreTypeIAVL, db)
+	cms.MountStoreWithDB(storeKey, sdk.StoreTypeIAVL, db)
+	cms.MountStoreWithDB(paramsTKey, sdk.StoreTypeTransient, db)
+	cms.LoadLatestVersion()
+	return cms
 }
 
 func (ef EvmFactory) BuildSimulator(qoc QueryOnChainProxy) *EvmSimulator {
@@ -57,7 +75,7 @@ func (ef EvmFactory) BuildSimulator(qoc QueryOnChainProxy) *EvmSimulator {
 		Hash: hash.Bytes(),
 	}
 
-	ctx := ef.makeContext(keeper, req.Header)
+	ctx := ef.makeContext(req.Header)
 
 	keeper.BeginBlock(ctx, req)
 
@@ -95,23 +113,11 @@ func (ef EvmFactory) makeEvmKeeper(qoc QueryOnChainProxy) *evm.Keeper {
 	module := evm.AppModuleBasic{}
 	cdc := codec.New()
 	module.RegisterCodec(cdc)
-	return evm.NewSimulateKeeper(cdc, sdk.NewKVStoreKey(evm.StoreKey), NewSubspaceProxy(), NewAccountKeeperProxy(qoc), SupplyKeeperProxy{}, NewBankKeeperProxy(), NewInternalDba(qoc), tmlog.NewNopLogger())
+	return evm.NewSimulateKeeper(cdc, ef.storeKey, NewSubspaceProxy(), NewAccountKeeperProxy(qoc), SupplyKeeperProxy{}, NewBankKeeperProxy(), NewInternalDba(qoc), tmlog.NewNopLogger())
 }
 
-func (ef EvmFactory) makeContext(k *evm.Keeper, header abci.Header) sdk.Context {
-	db := dbm.NewMemDB()
-	cms := store.NewCommitMultiStore(db)
-	authKey := sdk.NewKVStoreKey(auth.StoreKey)
-	paramsKey := sdk.NewKVStoreKey(params.StoreKey)
-	paramsTKey := sdk.NewTransientStoreKey(params.TStoreKey)
-	cms.MountStoreWithDB(authKey, sdk.StoreTypeIAVL, db)
-	cms.MountStoreWithDB(paramsKey, sdk.StoreTypeIAVL, db)
-	cms.MountStoreWithDB(k.GetStoreKey(), sdk.StoreTypeIAVL, db)
-	cms.MountStoreWithDB(paramsTKey, sdk.StoreTypeTransient, db)
-
-	cms.LoadLatestVersion()
-
-	ctx := sdk.NewContext(cms, header, true, tmlog.NewNopLogger())
+func (ef EvmFactory) makeContext(header abci.Header) sdk.Context {
+	ctx := sdk.NewContext(ef.cms.CacheMultiStore(), header, true, tmlog.NewNopLogger())
 	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 	return ctx
 }
