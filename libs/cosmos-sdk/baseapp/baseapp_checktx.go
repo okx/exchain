@@ -18,9 +18,20 @@ import (
 // will contain releveant error information. Regardless of tx execution outcome,
 // the ResponseCheckTx will contain relevant gas execution context.
 func (app *BaseApp) CheckTx(req abci.RequestCheckTx) abci.ResponseCheckTx {
-	tx, err := app.txDecoder(req.Tx, global.GetGlobalHeight())
-	if err != nil {
-		return sdkerrors.ResponseCheckTx(err, 0, 0, app.trace)
+	var tx sdk.Tx
+	var err error
+
+	if req.Type == abci.CheckTxType_Recheck {
+		if mem := GetGlobalMempool(); mem != nil {
+			tx, _ = mem.ReapEssentialTx(req.Tx).(sdk.Tx)
+		}
+	}
+
+	if tx == nil {
+		tx, err = app.txDecoder(req.Tx, global.GetGlobalHeight())
+		if err != nil {
+			return sdkerrors.ResponseCheckTx(err, 0, 0, app.trace)
+		}
 	}
 
 	var mode runTxMode
