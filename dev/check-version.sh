@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e
+#set -e
 GO_VERSION=$1
 ROCKSDB_VERSION=$2
 
@@ -88,7 +88,7 @@ check_rocksdb_version() {
     rocksdb_version=$(ls -al ${file_path}librocksdb${suffix} | awk '{print$11}' | awk '{ gsub(/'$prefix'/,""); gsub(/'$suffix'/,"");print $0 }')
 
     if [ "$rocksdb_version" != "$ROCKSDB_VERSION" ] ;then
-      echo "exchain need rocksdb-v${ROCKSDB_VERSION},please install"
+      echo "exchain need rocksdb-v${ROCKSDB_VERSION},please install with command <make rocksdb>"
       exit 1
     fi
     echo "check version success:"
