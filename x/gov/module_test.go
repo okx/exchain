@@ -2,6 +2,7 @@ package gov
 
 import (
 	okexchaincodec "github.com/okex/exchain/app/codec"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
 	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
@@ -23,7 +24,7 @@ func TestAppModule_BeginBlock(t *testing.T) {
 
 }
 
-func getCmdSubmitProposal(cdc *codec.Codec) *cobra.Command {
+func getCmdSubmitProposal(proxy *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	return &cobra.Command{}
 }
 
@@ -62,7 +63,7 @@ func TestNewAppModuleBasic(t *testing.T) {
 	err = moduleBasic.ValidateGenesis(jsonMsg[:len(jsonMsg)-1])
 	require.NotNil(t, err)
 
-	rs := cliLcd.NewRestServer(codecProxy, interfaceReg,nil)
+	rs := cliLcd.NewRestServer(codecProxy, interfaceReg, nil)
 	moduleBasic.RegisterRESTRoutes(rs.CliCtx, rs.Mux)
 
 	// todo: check diff after GetTxCmd

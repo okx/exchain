@@ -4,6 +4,7 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/x/distribution/client/common"
 	"github.com/spf13/viper"
 	"strings"
@@ -196,8 +197,8 @@ $ %s tx distribution withdraw-all-rewards --from mykey
 	return cmd
 }
 
-// GetCmdCommunityPoolSpendProposal implements the command to submit a community-pool-spend proposal
-func GetCmdCommunityPoolSpendProposal(cdc *codec.Codec) *cobra.Command {
+// GetCmdSubmitProposal implements the command to submit a community-pool-spend proposal
+func GetCmdCommunityPoolSpendProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "community-pool-spend [proposal-file]",
 		Args:  cobra.ExactArgs(1),
@@ -233,6 +234,7 @@ Where proposal.json contains:
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cdc := cdcP.GetCdc()
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
@@ -258,7 +260,7 @@ Where proposal.json contains:
 }
 
 // GetChangeDistributionModelProposal implements the command to submit a change-distr-model proposal
-func GetChangeDistributionModelProposal(cdc *codec.Codec) *cobra.Command {
+func GetChangeDistributionModelProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "change-distr-mode [proposal-file]",
 		Args:  cobra.ExactArgs(1),
@@ -287,6 +289,7 @@ Where proposal.json contains:
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cdc := cdcP.GetCdc()
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
