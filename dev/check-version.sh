@@ -31,7 +31,7 @@ is_linux() {
   	esac
 }
 
-function check_go_verison() {
+check_go_verison() {
     # check go,awk is install
     hasgo=$(which go)
     if [ -z "$hasgo" ] ;then
@@ -48,7 +48,7 @@ function check_go_verison() {
     fi
 }
 
-function check_rocksdb_version() {
+check_rocksdb_version() {
     prefix="librocksdb."
     suffix=".dylib"
     file_path="/usr/local/lib/"
