@@ -17,11 +17,11 @@ type (
 		Deposit     sdk.SysCoins   `json:"deposit" yaml:"deposit"`
 	}
 
-	// ChangeDistributionModelProposalJSON defines a ChangeDistributionTypeProposal with a deposit
-	ChangeDistributionModelProposalJSON struct {
+	// ChangeDistributionTypeProposalJSON defines a ChangeDistributionTypeProposal with a deposit
+	ChangeDistributionTypeProposalJSON struct {
 		Title       string       `json:"title" yaml:"title"`
 		Description string       `json:"description" yaml:"description"`
-		Model       uint32       `json:"model" yaml:"model"`
+		Type        uint32       `json:"type" yaml:"type"`
 		Deposit     sdk.SysCoins `json:"deposit" yaml:"deposit"`
 	}
 )
@@ -42,9 +42,9 @@ func ParseCommunityPoolSpendProposalJSON(cdc *codec.Codec, proposalFile string) 
 	return proposal, nil
 }
 
-// ParseChangeDistributionModelProposalJSON reads and parses a ChangeDistributionModelProposalJSON from a file.
-func ParseChangeDistributionModelProposalJSON(cdc *codec.Codec, proposalFile string) (ChangeDistributionModelProposalJSON, error) {
-	proposal := ChangeDistributionModelProposalJSON{}
+// ParseChangeDistributionTypeProposalJSON reads and parses a ChangeDistributionTypeProposalJSON from a file.
+func ParseChangeDistributionTypeProposalJSON(cdc *codec.Codec, proposalFile string) (ChangeDistributionTypeProposalJSON, error) {
+	proposal := ChangeDistributionTypeProposalJSON{}
 
 	contents, err := ioutil.ReadFile(proposalFile)
 	if err != nil {

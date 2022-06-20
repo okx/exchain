@@ -120,7 +120,7 @@ $ %s tx distr set-withdraw-addr ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02 --from
 func GetCmdWithdrawRewards(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "withdraw-rewards [validator-addr]",
-		Short: "Withdraw rewards from a given delegation address, and optionally withdraw validator commission if the delegation address given is a validator operator",
+		Short: "withdraw rewards from a given delegation address, and optionally withdraw validator commission if the delegation address given is a validator operator",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`
 Example:
@@ -259,14 +259,14 @@ Where proposal.json contains:
 	return cmd
 }
 
-// GetChangeDistributionModelProposal implements the command to submit a change-distr-model proposal
-func GetChangeDistributionModelProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
+// GetChangeDistributionTypeProposal implements the command to submit a change-distr-model proposal
+func GetChangeDistributionTypeProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "change-distr-mode [proposal-file]",
 		Args:  cobra.ExactArgs(1),
-		Short: "Submit a change distribution model proposal",
+		Short: "Submit a change distribution type proposal",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Submit a change distribution model proposal with the specified value, 0: offchain model, 1:onchain model
+			fmt.Sprintf(`Submit a change distribution type proposal with the specified value, 0: offchain model, 1:onchain model
 
 Example:
 $ %s tx gov submit-proposal change-distr-mode <path/to/proposal.json> --from=<key_or_address>
@@ -275,7 +275,7 @@ Where proposal.json contains:
 
 {
   "title": "Change Distribution Type",
-  "description": "Will change the distribution model",
+  "description": "Will change the distribution type",
   "model": 0,
   "deposit": [
     {
@@ -294,13 +294,13 @@ Where proposal.json contains:
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			proposal, err := ParseChangeDistributionModelProposalJSON(cdc, args[0])
+			proposal, err := ParseChangeDistributionTypeProposalJSON(cdc, args[0])
 			if err != nil {
 				return err
 			}
 
 			from := cliCtx.GetFromAddress()
-			content := types.NewChangeDistributionModelProposal(proposal.Title, proposal.Description, proposal.Model)
+			content := types.NewChangeDistributionTypeProposal(proposal.Title, proposal.Description, proposal.Type)
 
 			msg := gov.NewMsgSubmitProposal(content, proposal.Deposit, from)
 			if err := msg.ValidateBasic(); err != nil {

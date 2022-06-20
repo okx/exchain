@@ -156,6 +156,7 @@ func CreateTestInputDefault(t *testing.T, isCheckTx bool, initPower int64) (
 		_, e := h(ctx, msg)
 		require.Nil(t, e)
 		require.True(t, dk.GetValidatorAccumulatedCommission(ctx, valOpAddrs[i]).IsZero())
+		//TODO zhujianguo, need to check more?
 	}
 	return ctx, ak, dk, sk, supplyKeeper
 }

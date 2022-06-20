@@ -14,8 +14,6 @@ func QueryParams(cliCtx context.CLIContext, queryRoute string) (params types.Par
 	route := fmt.Sprintf("custom/%s/params/%s", queryRoute, types.ParamCommunityTax)
 	var communityTax sdk.Dec
 	var withdrawAddrEnabled bool
-	var distributionType uint32
-
 	bytes, _, err := cliCtx.QueryWithData(route, []byte{})
 	if err != nil {
 		return
@@ -29,6 +27,7 @@ func QueryParams(cliCtx context.CLIContext, queryRoute string) (params types.Par
 	}
 	cliCtx.Codec.MustUnmarshalJSON(bytes, &withdrawAddrEnabled)
 
+	var distributionType uint32
 	route = fmt.Sprintf("custom/%s/params/%s", queryRoute, types.ParamDistributionType)
 	bytes, _, err = cliCtx.QueryWithData(route, []byte{})
 	if err != nil {

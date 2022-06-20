@@ -12,8 +12,9 @@ import (
 const (
 	// ProposalTypeCommunityPoolSpend defines the type for a CommunityPoolSpendProposal
 	ProposalTypeCommunityPoolSpend = "CommunityPoolSpend"
-	// ProposalTypeChangeDistributionModel defines the type for a ChangeDistributionTypeProposal
-	ProposalTypeChangeDistributionModel = "ChangeDistributionModel"
+	
+	// ProposalTypeChangeDistributionType defines the type for a ChangeDistributionTypeProposal
+	ProposalTypeChangeDistributionType = "ChangeDistributionType"
 )
 
 const (
@@ -29,7 +30,7 @@ var _ govtypes.Content = ChangeDistributionTypeProposal{}
 
 func init() {
 	govtypes.RegisterProposalType(ProposalTypeCommunityPoolSpend)
-	govtypes.RegisterProposalType(ProposalTypeChangeDistributionModel)
+	govtypes.RegisterProposalType(ProposalTypeChangeDistributionType)
 	govtypes.RegisterProposalTypeCodec(CommunityPoolSpendProposal{}, "okexchain/distribution/CommunityPoolSpendProposal")
 	govtypes.RegisterProposalTypeCodec(ChangeDistributionTypeProposal{}, "okexchain/distribution/ChangeDistributionTypeProposal")
 }
@@ -93,23 +94,23 @@ type ChangeDistributionTypeProposal struct {
 	Type        uint32 `json:"type" yaml:"type"`
 }
 
-// NewChangeDistributionModelProposal creates a new change distribution model proposal.
-func NewChangeDistributionModelProposal(title, description string, model uint32) ChangeDistributionTypeProposal {
+// NewChangeDistributionTypeProposal creates a new change distribution type proposal.
+func NewChangeDistributionTypeProposal(title, description string, model uint32) ChangeDistributionTypeProposal {
 	return ChangeDistributionTypeProposal{title, description, model}
 }
 
-// GetTitle returns the title of a change distribution model proposal.
+// GetTitle returns the title of a change distribution type proposal.
 func (cdmp ChangeDistributionTypeProposal) GetTitle() string { return cdmp.Title }
 
-// GetDescription returns the description of a change distribution model proposal.
+// GetDescription returns the description of a change distribution type proposal.
 func (cdmp ChangeDistributionTypeProposal) GetDescription() string { return cdmp.Description }
 
-// GetDescription returns the routing key of a change distribution model proposal.
+// GetDescription returns the routing key of a change distribution type proposal.
 func (cdmp ChangeDistributionTypeProposal) ProposalRoute() string { return RouterKey }
 
-// ProposalType returns the type of a change distribution model proposal.
+// ProposalType returns the type of a change distribution type proposal.
 func (cdmp ChangeDistributionTypeProposal) ProposalType() string {
-	return ProposalTypeChangeDistributionModel
+	return ProposalTypeChangeDistributionType
 }
 
 // ValidateBasic runs basic stateless validity checks
@@ -119,7 +120,7 @@ func (cdmp ChangeDistributionTypeProposal) ValidateBasic() error {
 		return err
 	}
 	if cdmp.Type != DistributionTypeOffChain && cdmp.Type != DistributionTypeOnChain {
-		return ErrInvalidDistributionModelType()
+		return ErrInvalidDistributionType()
 	}
 
 	return nil

@@ -30,6 +30,7 @@ var (
 	NewQuerier                         = keeper.NewQuerier
 	RegisterCodec                      = types.RegisterCodec
 	NewCommission                      = types.NewCommission
+	NewCommissionRates                 = types.NewCommissionRates
 	ErrNoValidatorFound                = types.ErrNoValidatorFound
 	ErrValidatorOwnerExists            = types.ErrValidatorOwnerExists
 	ErrValidatorPubKeyExists           = types.ErrValidatorPubKeyExists

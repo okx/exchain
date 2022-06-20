@@ -54,8 +54,8 @@ func postCommunityPoolSpendProposalHandlerFn(cliCtx context.CLIContext) http.Han
 	}
 }
 
-// ChangeDistributionModelProposalRESTHandler returns a ChangeDistributionTypeProposal that exposes the community pool spend REST handler with a given sub-route.
-func ChangeDistributionModelProposalRESTHandler(cliCtx context.CLIContext) govrest.ProposalRESTHandler {
+// ChangeDistributionTypeProposalRESTHandler returns a ChangeDistributionTypeProposal that exposes the community pool spend REST handler with a given sub-route.
+func ChangeDistributionTypeProposalRESTHandler(cliCtx context.CLIContext) govrest.ProposalRESTHandler {
 	return govrest.ProposalRESTHandler{
 		SubRoute: "change_distribution_type",
 		Handler:  postChangeDistributionTypeProposalHandlerFn(cliCtx),
@@ -74,7 +74,7 @@ func postChangeDistributionTypeProposalHandlerFn(cliCtx context.CLIContext) http
 			return
 		}
 
-		content := types.NewChangeDistributionModelProposal(req.Title, req.Description, req.Type)
+		content := types.NewChangeDistributionTypeProposal(req.Title, req.Description, req.Type)
 
 		msg := gov.NewMsgSubmitProposal(content, req.Deposit, req.Proposer)
 		if err := msg.ValidateBasic(); err != nil {

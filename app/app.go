@@ -111,7 +111,7 @@ var (
 		gov.NewAppModuleBasic(
 			paramsclient.ProposalHandler,
 			distr.CommunityPoolSpendProposalHandler,
-			distr.ChangeDistributionModelProposalHandler,
+			distr.ChangeDistributionTypeProposalHandler,
 			dexclient.DelistProposalHandler, farmclient.ManageWhiteListProposalHandler,
 			evmclient.ManageContractDeploymentWhitelistProposalHandler,
 			evmclient.ManageContractBlockedListProposalHandler,

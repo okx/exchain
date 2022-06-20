@@ -28,7 +28,7 @@ const (
 	CodeBadDistribution                             uint32 = 67816
 	CodeInvalidProposalAmount                       uint32 = 67817
 	CodeEmptyProposalRecipient                      uint32 = 67818
-	CodeInvalidDistributionModelType                uint32 = 67819
+	CodeInvalidDistributionType                     uint32 = 67819
 	CodeEmptyDelegationDistInfo                     uint32 = 67820
 	CodeEmptyValidatorDistInfo                      uint32 = 67821
 )
@@ -93,8 +93,8 @@ func ErrEmptyProposalRecipient() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeEmptyProposalRecipient, "invalid community pool spend proposal recipient")
 }
 
-func ErrInvalidDistributionModelType() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeInvalidDistributionModelType, "invalid change distribution model")
+func ErrInvalidDistributionType() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeInvalidDistributionType, "invalid change distribution type")
 }
 
 func ErrCodeEmptyDelegationDistInfo() sdk.Error {

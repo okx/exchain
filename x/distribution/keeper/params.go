@@ -44,12 +44,14 @@ func (k Keeper) SetWithdrawAddrEnabled(ctx sdk.Context, enabled bool) {
 }
 
 func (k Keeper) GetDistributionType(ctx sdk.Context) (distrType uint32) {
-	//TODO zhujianguo
-	//k.paramSpace.Get(ctx, types.ParamStoreKeyDistributionType, &distrType)
-	return types.DistributionTypeOnChain
+	distrType = types.DistributionTypeOffChain
+	if k.paramSpace.Has(ctx, types.ParamStoreKeyDistributionType) {
+		k.paramSpace.Get(ctx, types.ParamStoreKeyDistributionType, &distrType)
+	}
+
+	return distrType
 }
 
 func (k Keeper) SetDistributionType(ctx sdk.Context, distrType uint32) {
-	//TODO zhujianguo
-	//k.paramSpace.Set(ctx, types.ParamStoreKeyDistributionType, &distrType)
+	k.paramSpace.Set(ctx, types.ParamStoreKeyDistributionType, &distrType)
 }

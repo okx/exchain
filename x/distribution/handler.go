@@ -86,7 +86,7 @@ func NewDistributionProposalHandler(k Keeper) govtypes.Handler {
 		case types.CommunityPoolSpendProposal:
 			return keeper.HandleCommunityPoolSpendProposal(ctx, k, c)
 		case types.ChangeDistributionTypeProposal:
-			return keeper.HandleChangeDistributionModelProposal(ctx, k, c)
+			return keeper.HandleChangeDistributionTypeProposal(ctx, k, c)
 
 		default:
 			return types.ErrUnknownDistributionCommunityPoolProposaType()

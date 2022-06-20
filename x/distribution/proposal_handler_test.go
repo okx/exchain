@@ -1,6 +1,7 @@
 package distribution
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -20,7 +21,7 @@ var (
 	amount = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1)))
 )
 
-func testProposal(recipient sdk.AccAddress, amount sdk.Coins) govtypes.Proposal {
+func makeCommunityPoolSendProposal(recipient sdk.AccAddress, amount sdk.Coins) govtypes.Proposal {
 	return govtypes.Proposal{Content: types.NewCommunityPoolSpendProposal(
 		"Test",
 		"description",
@@ -29,7 +30,7 @@ func testProposal(recipient sdk.AccAddress, amount sdk.Coins) govtypes.Proposal 
 	)}
 }
 
-func TestProposalHandlerPassed(t *testing.T) {
+func TestCommunityPoolSendProposalHandlerPassed(t *testing.T) {
 	ctx, accountKeeper, k, _, supplyKeeper := keeper.CreateTestInputDefault(t, false, 10)
 	recipient := delAddr1
 
@@ -48,13 +49,13 @@ func TestProposalHandlerPassed(t *testing.T) {
 	feePool.CommunityPool = sdk.NewCoins(amount...)
 	k.SetFeePool(ctx, feePool)
 
-	tp := testProposal(recipient, amount)
+	tp := makeCommunityPoolSendProposal(recipient, amount)
 	hdlr := NewDistributionProposalHandler(k)
 	require.NoError(t, hdlr(ctx, &tp))
 	require.Equal(t, accountKeeper.GetAccount(ctx, recipient).GetCoins(), amount)
 }
 
-func TestProposalHandlerFailed(t *testing.T) {
+func TestCommunityPoolSendProposalHandlerFailed(t *testing.T) {
 	ctx, accountKeeper, k, _, _ := keeper.CreateTestInputDefault(t, false, 10)
 	recipient := delAddr1
 
@@ -62,8 +63,61 @@ func TestProposalHandlerFailed(t *testing.T) {
 	require.True(t, account.GetCoins().IsZero())
 	accountKeeper.SetAccount(ctx, account)
 
-	tp := testProposal(recipient, amount)
+	tp := makeCommunityPoolSendProposal(recipient, amount)
 	hdlr := NewDistributionProposalHandler(k)
-	require.Error(t, hdlr(ctx, &tp))
+	err := hdlr(ctx, &tp)
+	fmt.Println(err)
+	require.Error(t, err)
 	require.True(t, accountKeeper.GetAccount(ctx, recipient).GetCoins().IsZero())
+}
+
+func makeChangeDistributionTypeProposal(distrType uint32) govtypes.Proposal {
+	return govtypes.Proposal{Content: types.NewChangeDistributionTypeProposal(
+		"Test",
+		"description",
+		distrType,
+	)}
+}
+
+func TestChangeDistributionTypeProposalHandlerPassed(t *testing.T) {
+	ctx, _, k, _, _ := keeper.CreateTestInputDefault(t, false, 10)
+
+	//init status, distribution off chain
+	queryDistrType := k.GetDistributionType(ctx)
+	require.Equal(t, queryDistrType, types.DistributionTypeOffChain)
+
+	//set same type
+	proposal := makeChangeDistributionTypeProposal(types.DistributionTypeOffChain)
+	hdlr := NewDistributionProposalHandler(k)
+	require.NoError(t, hdlr(ctx, &proposal))
+	queryDistrType = k.GetDistributionType(ctx)
+	require.Equal(t, queryDistrType, types.DistributionTypeOffChain)
+
+	//set diff type, first
+	proposal = makeChangeDistributionTypeProposal(types.DistributionTypeOnChain)
+	hdlr = NewDistributionProposalHandler(k)
+	require.NoError(t, hdlr(ctx, &proposal))
+	queryDistrType = k.GetDistributionType(ctx)
+	require.Equal(t, queryDistrType, types.DistributionTypeOnChain)
+
+	//set diff type, second
+	proposal = makeChangeDistributionTypeProposal(types.DistributionTypeOffChain)
+	hdlr = NewDistributionProposalHandler(k)
+	require.NoError(t, hdlr(ctx, &proposal))
+	queryDistrType = k.GetDistributionType(ctx)
+	require.Equal(t, queryDistrType, types.DistributionTypeOffChain)
+
+	//set diff type, third
+	proposal = makeChangeDistributionTypeProposal(types.DistributionTypeOnChain)
+	hdlr = NewDistributionProposalHandler(k)
+	require.NoError(t, hdlr(ctx, &proposal))
+	queryDistrType = k.GetDistributionType(ctx)
+	require.Equal(t, queryDistrType, types.DistributionTypeOnChain)
+
+	//set same type
+	proposal = makeChangeDistributionTypeProposal(types.DistributionTypeOnChain)
+	hdlr = NewDistributionProposalHandler(k)
+	require.NoError(t, hdlr(ctx, &proposal))
+	queryDistrType = k.GetDistributionType(ctx)
+	require.Equal(t, queryDistrType, types.DistributionTypeOnChain)
 }
