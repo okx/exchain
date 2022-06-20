@@ -132,7 +132,7 @@ func (acc EthAccount) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error 
 			return err
 		}
 		if buf.Len()-lenBeforeData != baccSize {
-			return amino.NewSizerError(baccSize, buf.Len()-lenBeforeData, baccSize)
+			return amino.NewSizerError(acc.BaseAccount, baccSize, buf.Len()-lenBeforeData)
 		}
 	}
 
