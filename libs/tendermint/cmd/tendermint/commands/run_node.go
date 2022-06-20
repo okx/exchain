@@ -156,6 +156,18 @@ func AddNodeFlags(cmd *cobra.Command) {
 		"Maximum number of transactions per address in the pending pool",
 	)
 
+	cmd.Flags().Int64(
+		"mempool.ttl_num_blocks",
+		config.Mempool.TTLNumBlocks,
+		"ttl of transactions across block",
+	)
+
+	cmd.Flags().Duration(
+		"mempool.ttl_duration",
+		config.Mempool.TTLDuration,
+		"ttl of transactions across time",
+	)
+
 	cmd.Flags().String(
 		"mempool.node_key_whitelist",
 		strings.Join(config.Mempool.NodeKeyWhitelist, ","),
