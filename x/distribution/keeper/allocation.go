@@ -62,9 +62,6 @@ func (k Keeper) AllocateTokens(ctx sdk.Context, totalPreviousPower int64,
 	}
 
 	feesToVals := feesCollected.MulDecTruncate(sdk.OneDec().Sub(k.GetCommunityTax(ctx)))
-	temp := k.GetCommunityTax(ctx).String()
-	fmt.Println(temp)
-
 	feeByEqual, feeByVote := feesToVals.MulDecTruncate(valPortion), feesToVals.MulDecTruncate(votePortion)
 	feesToCommunity := feesCollected.Sub(feeByEqual.Add(feeByVote...))
 	remainByEqual := k.allocateByEqual(ctx, feeByEqual, previousVotes) //allocate rewards equally between validators
