@@ -7,7 +7,9 @@ export GO111MODULE=on
 
 GithubTop=github.com
 
-
+GO_VERSION=1.17
+ROCKSDB_VERSION=6.27.3
+IGNORE_CHECK_GO=flase
 
 Version=v1.5.4
 CosmosSDK=v0.39.2
@@ -26,6 +28,10 @@ SaturnHeight=0
 
 LINK_STATICALLY = false
 cgo_flags=
+
+ifeq ($(IGNORE_CHECK_GO),true)
+GO_VERSION=0
+endif
 
 # process linker flags
 ifeq ($(VERSION),)
@@ -103,9 +109,12 @@ all: install
 
 install: exchain
 
-exchain:
+exchain: check_verison
 	$(cgo_flags) go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaind
 	$(cgo_flags) go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaincli
+
+check_verison:
+	@sh $(shell pwd)/dev/check-version.sh $(GO_VERSION) $(ROCKSDB_VERSION)
 
 mainnet: exchain
 
@@ -206,7 +215,7 @@ localnet-stop:
 
 rocksdb:
 	@echo "Installing rocksdb..."
-	@bash ./libs/rocksdb/install.sh
+	@bash ./libs/rocksdb/install.sh --version v$(ROCKSDB_VERSION)
 .PHONY: rocksdb
 
 .PHONY: build
