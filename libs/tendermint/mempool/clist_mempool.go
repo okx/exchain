@@ -78,6 +78,13 @@ type CListMempool struct {
 	checkCnt     int64
 
 	txs ITransactionQueue
+	// heightIndex defines a height-based, in ascending order, transaction index.
+	// i.e. older transactions are first.
+	heightIndex *MempoolTxList
+
+	// timestampIndex defines a timestamp-based, in ascending order, transaction
+	// index. i.e. older transactions are first.
+	timestampIndex *MempoolTxList
 }
 
 var _ Mempool = &CListMempool{}
@@ -108,6 +115,12 @@ func NewCListMempool(
 		logger:        log.NewNopLogger(),
 		metrics:       NopMetrics(),
 		txs:           txQueue,
+		heightIndex: NewMempoolTxList(func(mtx1, mtx2 *mempoolTx) bool {
+			return mtx1.height >= mtx2.height
+		}),
+		timestampIndex: NewMempoolTxList(func(mtx1, mtx2 *mempoolTx) bool {
+			return mtx1.timestamp.After(mtx2.timestamp) || mtx1.timestamp.Equal(mtx2.timestamp)
+		}),
 	}
 	if config.CacheSize > 0 {
 		mempool.cache = newMapTxCache(config.CacheSize)
@@ -195,6 +208,9 @@ func (mem *CListMempool) FlushAppConn() error {
 func (mem *CListMempool) Flush() {
 	mem.updateMtx.Lock()
 	defer mem.updateMtx.Unlock()
+
+	mem.heightIndex.Reset()
+	mem.timestampIndex.Reset()
 
 	for e := mem.txs.Front(); e != nil; e = e.Next() {
 		mem.removeTx(e)
@@ -372,7 +388,8 @@ func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 		Height: memTx.height,
 		Tx:     memTx.tx,
 	}})
-
+	mem.heightIndex.Insert(memTx)
+	mem.timestampIndex.Insert(memTx)
 	types.SignatureCache().Remove(memTx.realTx.TxHash())
 
 	return nil
@@ -383,8 +400,12 @@ func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 // 	- resCbRecheck (lock not held) if tx was invalidated
 func (mem *CListMempool) removeTx(elem *clist.CElement) {
 	mem.txs.Remove(elem)
-	tx := elem.Value.(*mempoolTx).tx
+	mtx := elem.Value.(*mempoolTx)
+	tx := mtx.tx
 	atomic.AddInt64(&mem.txsBytes, int64(-len(tx)))
+
+	mem.heightIndex.Remove(mtx)
+	mem.timestampIndex.Remove(mtx)
 }
 
 func (mem *CListMempool) isFull(txSize int) error {
@@ -511,6 +532,7 @@ func (mem *CListMempool) resCbFirstTime(
 				signature:   txInfo.wtx.GetSignature(),
 				from:        r.CheckTx.Tx.GetFrom(),
 				senderNonce: r.CheckTx.SenderNonce,
+				timestamp:   time.Now().UTC(),
 			}
 
 			memTx.senders.Store(txInfo.SenderID, true)
@@ -797,6 +819,8 @@ func (mem *CListMempool) Update(
 	mem.metrics.GasUsed.Set(float64(gasUsed))
 	trace.GetElapsedInfo().AddInfo(trace.GasUsed, fmt.Sprintf("%d", gasUsed))
 
+	mem.purgeExpiredTxs(height)
+
 	for accAddr, accMaxNonce := range toCleanAccMap {
 		mem.txs.CleanItems(accAddr, accMaxNonce)
 	}
@@ -868,29 +892,6 @@ func MultiPriceBump(rawPrice *big.Int, priceBump int64) *big.Int {
 	inc := new(big.Int).Mul(tmpPrice, big.NewInt(priceBump))
 
 	return new(big.Int).Add(inc, rawPrice)
-}
-
-//--------------------------------------------------------------------------------
-
-// mempoolTx is a transaction that successfully ran
-type mempoolTx struct {
-	height      int64    // height that this tx had been validated in
-	gasWanted   int64    // amount of gas this tx states it will require
-	tx          types.Tx //
-	realTx      abci.TxEssentials
-	nodeKey     []byte
-	signature   []byte
-	from        string
-	senderNonce uint64
-
-	// ids of peers who've sent us this tx (as a map for quick lookups).
-	// senders: PeerID -> bool
-	senders sync.Map
-}
-
-// Height returns the height for this transaction
-func (memTx *mempoolTx) Height() int64 {
-	return atomic.LoadInt64(&memTx.height)
 }
 
 //--------------------------------------------------------------------------------
@@ -990,14 +991,6 @@ func txID(tx []byte, height int64) string {
 	return fmt.Sprintf("%X", types.Tx(tx).Hash(height))
 }
 
-//--------------------------------------------------------------------------------
-type ExTxInfo struct {
-	Sender      string   `json:"sender"`
-	SenderNonce uint64   `json:"sender_nonce"`
-	GasPrice    *big.Int `json:"gas_price"`
-	Nonce       uint64   `json:"nonce"`
-}
-
 func (mem *CListMempool) SetAccountRetriever(retriever AccountRetriever) {
 	mem.accountRetriever = retriever
 }
@@ -1033,4 +1026,63 @@ func (mem *CListMempool) simulateTx(tx types.Tx) (*SimulationResponse, error) {
 	}
 	err = cdc.UnmarshalBinaryBare(res.Value, &simuRes)
 	return &simuRes, err
+}
+
+// purgeExpiredTxs removes all transactions that have exceeded their respective
+// height- and/or time-based TTLs from their respective indexes. Every expired
+// transaction will be removed from the mempool, but preserved in the cache.
+//
+// NOTE: purgeExpiredTxs must only be called during TxMempool#Update in which
+// the caller has a write-lock on the mempool and so we can safely iterate over
+// the height and time based indexes.
+func (mem *CListMempool) purgeExpiredTxs(blockHeight int64) {
+	now := time.Now()
+	expiredTxs := make(map[types.TxKey]*mempoolTx)
+
+	if cfg.DynamicConfig.GetTTLNumBlocks() > 0 {
+		purgeIdx := -1
+		for i, mtx := range mem.heightIndex.txs {
+			if (blockHeight - mtx.height) > cfg.DynamicConfig.GetTTLNumBlocks() {
+				expiredTxs[txKey(mtx.tx)] = mtx
+				purgeIdx = i
+			} else {
+				// since the index is sorted, we know no other txs can be be purged
+				break
+			}
+		}
+
+		if purgeIdx >= 0 {
+			fmt.Printf("Starts to purge TTLNumBlocks, purgeIdx:%d, size:%d\n", purgeIdx, len(mem.heightIndex.txs))
+			mem.heightIndex.txs = mem.heightIndex.txs[purgeIdx+1:]
+		}
+	}
+
+	if cfg.DynamicConfig.GetTTLDuration() > 0 {
+		purgeIdx := -1
+		for i, mtx := range mem.timestampIndex.txs {
+			if now.Sub(mtx.timestamp) > cfg.DynamicConfig.GetTTLDuration() {
+				expiredTxs[txKey(mtx.tx)] = mtx
+				purgeIdx = i
+			} else {
+				// since the index is sorted, we know no other txs can be be purged
+				break
+			}
+		}
+
+		if purgeIdx >= 0 {
+			fmt.Printf("Starts to purge TTLDuration, purgeIdx:%d, size:%d\n", purgeIdx, len(mem.heightIndex.txs))
+			mem.timestampIndex.txs = mem.timestampIndex.txs[purgeIdx+1:]
+		}
+	}
+
+	if len(expiredTxs) > 0 {
+		fmt.Println("Remove expiredTxs from mempool, len:", len(expiredTxs))
+	}
+
+	for _, mtx := range expiredTxs {
+		if ele, ok := mem.txs.Load(txKey(mtx.tx)); ok {
+			mem.removeTx(ele)
+			mem.logger.Debug("Mempool update", "address", ele.Address, "nonce", ele.Nonce)
+		}
+	}
 }

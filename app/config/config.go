@@ -42,6 +42,10 @@ type OecConfig struct {
 	nodeKeyWhitelist []string
 	// p2p.sentry_addrs
 	sentryAddrs []string
+	// mempool.ttlNumBlocks
+	ttlNumBlocks int64
+	// mempool.ttlDuration
+	ttlDuration time.Duration
 
 	// gas-limit-buffer
 	gasLimitBuffer uint64
@@ -98,6 +102,8 @@ const (
 	FlagMaxTxNumPerBlock       = "mempool.max_tx_num_per_block"
 	FlagMaxGasUsedPerBlock     = "mempool.max_gas_used_per_block"
 	FlagNodeKeyWhitelist       = "mempool.node_key_whitelist"
+	FlagTTLNumBlocks           = "mempool.ttl_num_blocks"
+	FlagTTLDuration            = "mempool.ttl_duration"
 	FlagGasLimitBuffer         = "gas-limit-buffer"
 	FlagEnableDynamicGp        = "enable-dynamic-gp"
 	FlagDynamicGpWeight        = "dynamic-gp-weight"
@@ -225,6 +231,8 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetBlockPartSize(viper.GetInt(server.FlagBlockPartSizeBytes))
 	c.SetEnableHasBlockPartMsg(viper.GetBool(FlagEnableHasBlockPartMsg))
 	c.SetGcInterval(viper.GetInt(FlagDebugGcInterval))
+	c.SetTTLNumBlocks(viper.GetInt64(FlagTTLNumBlocks))
+	c.SetTTLDuration(viper.GetDuration(FlagTTLDuration))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
@@ -325,6 +333,18 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetMaxTxNumPerBlock(r)
+	case FlagTTLNumBlocks:
+		r, err := strconv.ParseInt(v, 10, 64)
+		if err != nil {
+			return
+		}
+		c.SetTTLNumBlocks(r)
+	case FlagTTLDuration:
+		r, err := time.ParseDuration(v)
+		if err != nil {
+			return
+		}
+		c.SetTTLDuration(r)
 	case FlagNodeKeyWhitelist:
 		r, ok := value.(string)
 		if !ok {
@@ -544,6 +564,28 @@ func (c *OecConfig) SetSentryAddrs(value string) {
 	for _, addr := range addrs {
 		c.sentryAddrs = append(c.sentryAddrs, strings.TrimSpace(addr))
 	}
+}
+
+func (c *OecConfig) GetTTLNumBlocks() int64 {
+	return c.ttlNumBlocks
+}
+
+func (c *OecConfig) SetTTLNumBlocks(value int64) {
+	if value < 0 {
+		return
+	}
+	c.ttlNumBlocks = value
+}
+
+func (c *OecConfig) GetTTLDuration() time.Duration {
+	return c.ttlDuration
+}
+
+func (c *OecConfig) SetTTLDuration(value time.Duration) {
+	if value < 0 {
+		return
+	}
+	c.ttlDuration = value
 }
 
 func (c *OecConfig) GetMaxTxNumPerBlock() int64 {

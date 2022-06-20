@@ -664,25 +664,27 @@ func DefaultFuzzConnConfig() *FuzzConnConfig {
 
 // MempoolConfig defines the configuration options for the Tendermint mempool
 type MempoolConfig struct {
-	RootDir                    string   `mapstructure:"home"`
-	Sealed                     bool     `mapstructure:"sealed"`
-	Recheck                    bool     `mapstructure:"recheck"`
-	Broadcast                  bool     `mapstructure:"broadcast"`
-	Size                       int      `mapstructure:"size"`
-	MaxTxsBytes                int64    `mapstructure:"max_txs_bytes"`
-	CacheSize                  int      `mapstructure:"cache_size"`
-	MaxTxBytes                 int      `mapstructure:"max_tx_bytes"`
-	MaxTxNumPerBlock           int64    `mapstructure:"max_tx_num_per_block"`
-	MaxGasUsedPerBlock         int64    `mapstructure:"max_gas_used_per_block"`
-	SortTxByGp                 bool     `mapstructure:"sort_tx_by_gp"`
-	ForceRecheckGap            int64    `mapstructure:"force_recheck_gap"`
-	TxPriceBump                uint64   `mapstructure:"tx_price_bump"`
-	EnablePendingPool          bool     `mapstructure:"enable_pending_pool"`
-	PendingPoolSize            int      `mapstructure:"pending_pool_size"`
-	PendingPoolPeriod          int      `mapstructure:"pending_pool_period"`
-	PendingPoolReserveBlocks   int      `mapstructure:"pending_pool_reserve_blocks"`
-	PendingPoolMaxTxPerAddress int      `mapstructure:"pending_pool_max_tx_per_address"`
-	NodeKeyWhitelist           []string `mapstructure:"node_key_whitelist"`
+	RootDir                    string        `mapstructure:"home"`
+	Sealed                     bool          `mapstructure:"sealed"`
+	Recheck                    bool          `mapstructure:"recheck"`
+	Broadcast                  bool          `mapstructure:"broadcast"`
+	Size                       int           `mapstructure:"size"`
+	MaxTxsBytes                int64         `mapstructure:"max_txs_bytes"`
+	CacheSize                  int           `mapstructure:"cache_size"`
+	MaxTxBytes                 int           `mapstructure:"max_tx_bytes"`
+	MaxTxNumPerBlock           int64         `mapstructure:"max_tx_num_per_block"`
+	MaxGasUsedPerBlock         int64         `mapstructure:"max_gas_used_per_block"`
+	SortTxByGp                 bool          `mapstructure:"sort_tx_by_gp"`
+	ForceRecheckGap            int64         `mapstructure:"force_recheck_gap"`
+	TxPriceBump                uint64        `mapstructure:"tx_price_bump"`
+	EnablePendingPool          bool          `mapstructure:"enable_pending_pool"`
+	PendingPoolSize            int           `mapstructure:"pending_pool_size"`
+	PendingPoolPeriod          int           `mapstructure:"pending_pool_period"`
+	PendingPoolReserveBlocks   int           `mapstructure:"pending_pool_reserve_blocks"`
+	PendingPoolMaxTxPerAddress int           `mapstructure:"pending_pool_max_tx_per_address"`
+	NodeKeyWhitelist           []string      `mapstructure:"node_key_whitelist"`
+	TTLDuration                time.Duration `mapstructure:"pool_ttl_duration"`
+	TTLNumBlocks               int64         `mapstructure:"pool_ttl_num_blocks"`
 }
 
 // DefaultMempoolConfig returns a default configuration for the Tendermint mempool
@@ -706,6 +708,8 @@ func DefaultMempoolConfig() *MempoolConfig {
 		PendingPoolReserveBlocks:   100,
 		PendingPoolMaxTxPerAddress: 100,
 		NodeKeyWhitelist:           []string{},
+		TTLDuration:                10 * time.Minute, //seconds
+		TTLNumBlocks:               10,
 	}
 }
 

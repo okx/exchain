@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -18,6 +19,9 @@ import (
 // NOTE: Tx has no types at this level, so when wire encoded it's just length-prefixed.
 // Might we want types here ?
 type Tx []byte
+
+// TxKey is the fixed length array key used as an index.
+type TxKey [sha256.Size]byte
 
 func Bytes2Hash(txBytes []byte, height int64) string {
 	txHash := Tx(txBytes).Hash(height)

@@ -21,6 +21,8 @@ type IDynamicConfig interface {
 	GetEnableWtx() bool
 	GetDeliverTxsExecuteMode() int
 	GetEnableHasBlockPartMsg() bool
+	GetTTLNumBlocks() int64
+	GetTTLDuration() time.Duration
 }
 
 var DynamicConfig IDynamicConfig = MockDynamicConfig{}
@@ -46,6 +48,14 @@ func (d MockDynamicConfig) GetMempoolSize() int {
 
 func (d MockDynamicConfig) GetMaxTxNumPerBlock() int64 {
 	return DefaultMempoolConfig().MaxTxNumPerBlock
+}
+
+func (d MockDynamicConfig) GetTTLNumBlocks() int64 {
+	return DefaultMempoolConfig().TTLNumBlocks
+}
+
+func (d MockDynamicConfig) GetTTLDuration() time.Duration {
+	return DefaultMempoolConfig().TTLDuration
 }
 
 func (d MockDynamicConfig) GetMaxGasUsedPerBlock() int64 {
