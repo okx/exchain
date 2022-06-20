@@ -12,9 +12,13 @@ type BlockTransport struct {
 	height int64
 	recvProposal time.Time
 	firstPart time.Time
+	// because ProposalBlockParts=nil
 	droppedDue2NotExpected int
+	// because the same blockPart already added
 	droppedDue2NotAdded int
+	// because wrong data format
 	droppedDue2Error int
+	//because cs.Height != blockPart.height
 	droppedDue2WrongHeight int
 	totalParts int
 	Logger  log.Logger
