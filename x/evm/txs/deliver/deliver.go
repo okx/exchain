@@ -10,7 +10,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	bam "github.com/okex/exchain/libs/system/trace"
-  "github.com/okex/exchain/x/evm/keeper"
+	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
@@ -56,6 +56,31 @@ func (tx *Tx) ResetWatcher(account authexported.Account) {
 	if account != nil {
 		tx.Keeper.Watcher.AddDelAccMsg(account, true)
 	}
+}
+
+func (tx *Tx) RefundFeesWatcherEx(account authexported.Account, ethereumTx *types.MsgEthereumTx) {
+	// fix account balance in watcher with refund fees
+	if account == nil || !tx.Keeper.Watcher.Enabled() {
+		return
+	}
+	defer func() {
+		//panic was not allowed in this function
+		if e := recover(); e != nil {
+			tx.Ctx.Logger().Error(fmt.Sprintf("recovered panic at func RefundFeesWatcher %v\n", e))
+		}
+	}()
+	gasConsumed := tx.Ctx.GasMeter().GasConsumed()
+	gasLimit := ethereumTx.Data.GasLimit
+	if gasConsumed >= gasLimit {
+		return
+	}
+
+	//	fixedFees := refund.CaculateRefundFees(gasConsumed, coin, price)
+	//	coins := account.GetCoins().Add2(fixedFees)
+	//	account.SetCoins(coins) //ignore err, no err will be returned in SetCoins
+	//
+	//	pm := tx.Keeper.GenerateCSDBParams()
+	//	pm.Watcher.SaveAccount(account, false)
 }
 
 func (tx *Tx) RefundFeesWatcher(account authexported.Account, coin sdk.Coins, price *big.Int) {
