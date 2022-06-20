@@ -36,7 +36,7 @@ type Store struct {
 	parent        types.KVStore
 
 	preChangesHandler    PreChangesHandler
-	disableCacheReadList bool
+	disableCacheReadList bool // not cache readList for group-paralleled-tx
 }
 
 var _ types.CacheKVStore = (*Store)(nil)
