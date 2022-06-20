@@ -58,15 +58,15 @@ function check_rocksdb_version() {
 
   	case "$lsb_dist" in
     		ubuntu)
-    		  file_path="/usr/lib"
+    		  file_path="/usr/lib/"
     			suffix=".so"
     			;;
     		centos)
-    		  file_path="/usr/lib"
+    		  file_path="/usr/lib/"
     		  suffix=".so"
     			;;
     	  alpine)
-    	    file_path="/usr/lib"
+    	    file_path="/usr/lib/"
     	    suffix=".a"
     	    ;;
     		*)
