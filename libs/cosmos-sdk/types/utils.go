@@ -101,4 +101,5 @@ type ParaMsg struct {
 	AnteErr             error
 	RefundFee           Coins
 	LogIndex            int
+	HasRunEvmTx         bool
 }

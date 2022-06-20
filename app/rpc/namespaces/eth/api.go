@@ -302,7 +302,7 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNrOrHash r
 	}
 
 	clientCtx := api.clientCtx
-	if !(blockNum == rpctypes.PendingBlockNumber || blockNum == rpctypes.LatestBlockNumber) {
+	if !(blockNum == rpctypes.PendingBlockNumber || blockNum == rpctypes.LatestBlockNumber) && !useWatchBackend {
 		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
 	}
 
@@ -372,7 +372,9 @@ func (api *PublicEthereumAPI) GetBalanceBatch(addresses []common.Address, blockN
 		return nil, err
 	}
 	clientCtx := api.clientCtx
-	if !(blockNum == rpctypes.PendingBlockNumber || blockNum == rpctypes.LatestBlockNumber) {
+
+	useWatchBackend := api.useWatchBackend(blockNum)
+	if !(blockNum == rpctypes.PendingBlockNumber || blockNum == rpctypes.LatestBlockNumber) && !useWatchBackend {
 		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
 	}
 
