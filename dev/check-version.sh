@@ -58,18 +58,18 @@ check_rocksdb_version() {
     rocksdb_version=
   	case "$lsb_dist" in
     		ubuntu)
-    		  rocksdb_version=$(ls -al /usr/lib/librocksdb.so | awk '{print$11}' | awk '{ gsub(/'librocksdb.'/,""); gsub(/'so.'/,"");print $0 }')
+    		  rocksdb_version=$(cat /usr/lib/pkgconfig/rocksdb.pc | grep Version: | awk '{print $2}')
     			;;
     		centos)
-    		  rocksdb_version=$(ls -al /usr/lib/librocksdb.so | awk '{print$11}' | awk '{ gsub(/'librocksdb.'/,""); gsub(/'so.'/,"");print $0 }')
+    		  rocksdb_version=$(cat /usr/lib/pkgconfig/rocksdb.pc | grep Version: | awk '{print $2}')
     			;;
     	  alpine)
-    	    rocksdb_version=$(ls -al /usr/lib/librocksdb.so | awk '{print$11}' | awk '{ gsub(/'librocksdb.'/,""); gsub(/'a.'/,"");print $0 }')
+    	    rocksdb_version=$(cat /usr/lib/pkgconfig/rocksdb.pc | grep Version: | awk '{print $2}')
     	    ;;
     		*)
     			if [ -z "$lsb_dist" ]; then
     				if is_darwin; then
-    				      rocksdb_version=$(ls -al /usr/local/lib/librocksdb.dylib | awk '{print$11}' | awk '{ gsub(/'librocksdb.'/,""); gsub(/'.dylib'/,"");print $0 }')
+    				      rocksdb_version=$(cat /usr/local/lib/pkgconfig/rocksdb.pc | grep Version: | awk '{print $2}')
     				fi
     			else
           echo
@@ -83,7 +83,7 @@ check_rocksdb_version() {
     # checkout go version
 
     if [ "$rocksdb_version" != "$ROCKSDB_VERSION" ] ;then
-      echo "exchain need rocksdb-v${ROCKSDB_VERSION},please install with command <make rocksdb>"
+      echo "exchain need rocksdb-v${ROCKSDB_VERSION},current: v$rocksdb_version , please install with command (make rocksdb)"
       exit 1
     fi
     echo "check version success:"
