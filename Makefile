@@ -109,11 +109,11 @@ all: install
 
 install: exchain
 
-exchain: check_verison
+exchain: check_version
 	$(cgo_flags) go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaind
 	$(cgo_flags) go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaincli
 
-check_verison:
+check_version:
 	@sh $(shell pwd)/dev/check-version.sh $(GO_VERSION) $(ROCKSDB_VERSION)
 
 mainnet: exchain
