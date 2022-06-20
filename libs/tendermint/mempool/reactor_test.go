@@ -501,3 +501,32 @@ func BenchmarkReactorLogReceive(b *testing.B) {
 		}
 	})
 }
+
+func BenchmarkReactorLogCheckTxError(b *testing.B) {
+	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "benchmark")
+	var options []log.Option
+	options = append(options, log.AllowErrorWith("module", "benchmark"))
+	logger = log.NewFilter(logger, options...)
+
+	memR := &Reactor{}
+	memR.Logger = logger
+	memR.mempool = &CListMempool{height: 123456}
+
+	var msg Message = &TxMessage{Tx: make([]byte, 512)}
+	tx := msg.(*TxMessage).Tx
+	err := errors.New("error")
+
+	b.Run("pool", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			memR.logCheckTxError(tx, memR.mempool.height, err)
+		}
+	})
+
+	b.Run("logger", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			memR.Logger.Info("Could not check tx", "tx", txIDStringer{tx, memR.mempool.height}, "err", err)
+		}
+	})
+}

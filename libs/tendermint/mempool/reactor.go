@@ -202,6 +202,29 @@ func (memR *Reactor) logReceive(peer p2p.Peer, chID byte, msg Message) {
 	logParamsPool.Put(logParams)
 }
 
+var txIDStringerPool = &sync.Pool{
+	New: func() interface{} {
+		return &txIDStringer{}
+	},
+}
+
+func (memR *Reactor) logCheckTxError(tx []byte, height int64, err error) {
+	logParams := logParamsPool.Get().(*[6]interface{})
+	txStr := txIDStringerPool.Get().(*txIDStringer)
+	txStr.tx = tx
+	txStr.height = height
+
+	logParams[0] = "tx"
+	logParams[1] = txStr
+	logParams[2] = "err"
+	logParams[3] = err
+
+	memR.Logger.Info("Could not check tx", logParams[:4]...)
+
+	txIDStringerPool.Put(txStr)
+	logParamsPool.Put(logParams)
+}
+
 // Receive implements Reactor.
 // It adds any received transactions to the mempool.
 func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
@@ -246,7 +269,7 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 
 	err = memR.mempool.CheckTx(tx, nil, txInfo)
 	if err != nil {
-		memR.Logger.Info("Could not check tx", "tx", txIDStringer{tx, memR.mempool.height}, "err", err)
+		memR.logCheckTxError(tx, memR.mempool.height, err)
 	}
 }
 
