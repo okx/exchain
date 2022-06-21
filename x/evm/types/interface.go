@@ -13,6 +13,7 @@ import (
 type EvmHooks interface {
 	// PostTxProcessing Must be called after tx is processed successfully, if return an error, the whole transaction is reverted.
 	PostTxProcessing(ctx sdk.Context, from common.Address, to *common.Address, receipt *ethtypes.Receipt) error
+	HasEvent(eventId common.Hash) bool
 }
 
 // EvmLogHandler defines the interface for evm log handler

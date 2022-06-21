@@ -50,11 +50,12 @@ type GasInfo struct {
 
 // ExecutionResult represents what's returned from a transition
 type ExecutionResult struct {
-	Logs      []*ethtypes.Log
-	Bloom     *big.Int
-	Result    *sdk.Result
-	GasInfo   GasInfo
-	TraceLogs []byte
+	SimulateLogs []*ethtypes.Log
+	Logs         []*ethtypes.Log
+	Bloom        *big.Int
+	Result       *sdk.Result
+	GasInfo      GasInfo
+	TraceLogs    []byte
 }
 
 // GetHashFn implements vm.GetHashFunc for Ethermint. It handles 3 cases:
@@ -362,9 +363,14 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 	}
 
 	resultLog := strings.Join([]string{"executed EVM state transition; sender address ", senderStr, "; ", recipientLog}, "")
+	simLogs, err := csdb.GetLogs(common.HexToHash("0x0000000000000000000000000000000000000000"))
+	if err != nil {
+		return
+	}
 	exeRes = &ExecutionResult{
-		Logs:  logs,
-		Bloom: bloomInt,
+		SimulateLogs: simLogs,
+		Logs:         logs,
+		Bloom:        bloomInt,
 		Result: &sdk.Result{
 			Data: resBz,
 			Log:  resultLog,

@@ -61,7 +61,7 @@ func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 	}
 
 	// call evm hooks
-	if tmtypes.HigherThanVenus1(tx.Ctx.BlockHeight()) && !tx.Ctx.IsCheckTx() {
+	if tmtypes.HigherThanVenus1(tx.Ctx.BlockHeight()) /*&& !tx.Ctx.IsCheckTx()*/ {
 		receipt := &ethtypes.Receipt{
 			Status:           ethtypes.ReceiptStatusSuccessful,
 			Bloom:            result.ResultData.Bloom,
@@ -72,9 +72,41 @@ func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 			BlockNumber:      big.NewInt(tx.Ctx.BlockHeight()),
 			TransactionIndex: uint(tx.Keeper.TxCount),
 		}
-		err = tx.Keeper.CallEvmHooks(tx.Ctx, tx.StateTransition.Sender, tx.StateTransition.Recipient, receipt)
-		if err != nil {
-			tx.Keeper.Logger(tx.Ctx).Error("tx call evm hooks failed", "error", err)
+		if tx.Ctx.IsCheckTx() {
+			// checktx add receipt logs for evmhook simulate
+			// get topic from event logs，and run hook
+			if len(receipt.Logs) == 0 && len(result.ExecResult.SimulateLogs) != 0 {
+				receipt.Logs = result.ExecResult.SimulateLogs
+			}
+			//if ibc hook event
+			isTxWithIbcHook := false
+			for _, log := range receipt.Logs {
+				if ok := tx.Keeper.GetHooks().HasEvent(log.Topics[0]); ok {
+					isTxWithIbcHook = true
+					break
+				}
+			}
+			if isTxWithIbcHook {
+				cb := tx.Ctx.GetHookCallBack()
+				if cb != nil {
+					var gasUsed uint64
+					gasUsed, err = cb()
+					if err != nil {
+						tx.Keeper.Logger(tx.Ctx).Error("checktx tx call evm hooks failed", "error", err)
+					}
+					tx.Ctx.GasMeter().ConsumeGas(gasUsed-tx.Ctx.GasMeter().GasConsumed(), "recall verb")
+				} else {
+					err = tx.Keeper.CallEvmHooks(tx.Ctx, tx.StateTransition.Sender, tx.StateTransition.Recipient, receipt)
+					if err != nil {
+						tx.Keeper.Logger(tx.Ctx).Error("tx call evm hooks failed", "error", err)
+					}
+				}
+			}
+		} else {
+			err = tx.Keeper.CallEvmHooks(tx.Ctx, tx.StateTransition.Sender, tx.StateTransition.Recipient, receipt)
+			if err != nil {
+				tx.Keeper.Logger(tx.Ctx).Error("tx call evm hooks failed", "error", err)
+			}
 		}
 	}
 

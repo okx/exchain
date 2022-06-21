@@ -967,10 +967,39 @@ func (api *PublicEthereumAPI) doCall(
 			return nil, fmt.Errorf("fail to encode overrides")
 		}
 	}
-	sim := api.evmFactory.BuildSimulator(api)
+	sim := api.evmFactory.BuildSimulator(api, app.EvmHooks)
+	hookCallBack := func() (uint64, error) {
+		var txEncoder sdk.TxEncoder
+		height := global.GetGlobalHeight()
+		if tmtypes.HigherThanVenus(height) {
+			txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
+		} else {
+			txEncoder = authclient.GetTxEncoder(clientCtx.Codec)
+		}
+		txBytes, err := txEncoder(msg)
+		if err != nil {
+			return 0, err
+		}
+
+		var simulatePath string
+		var queryData []byte
+
+		simulatePath = fmt.Sprintf("app/simulate/%s", addr.String())
+		queryData = txBytes
+
+		res, _, err := clientCtx.QueryWithData(simulatePath, queryData)
+		if err != nil {
+			return 0, err
+		}
+		var simResponse sdk.SimulationResponse
+		if err := clientCtx.Codec.UnmarshalBinaryBare(res, &simResponse); err != nil {
+			return 0, err
+		}
+		return simResponse.GasUsed, nil
+	}
 	//only worked when fast-query has been enabled
 	if sim != nil {
-		return sim.DoCall(msg, addr.String(), overridesBytes)
+		return sim.DoCall(msg, addr.String(), overridesBytes, hookCallBack)
 	}
 
 	//Generate tx to be used to simulate (signature isn't needed)

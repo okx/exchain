@@ -30,6 +30,9 @@ func (mh MultiEvmHooks) PostTxProcessing(ctx sdk.Context, from common.Address, t
 	}
 	return nil
 }
+func (mh MultiEvmHooks) HasEvent(eventId common.Hash) bool {
+	panic("implement me")
+}
 
 // LogProcessEvmHook is an evm hook that convert specific contract logs into native module calls
 type LogProcessEvmHook struct {
@@ -57,4 +60,9 @@ func (lh LogProcessEvmHook) PostTxProcessing(ctx sdk.Context, from common.Addres
 		}
 	}
 	return nil
+}
+
+func (lh LogProcessEvmHook) HasEvent(eventId common.Hash) bool {
+	_, ok := lh.handlers[eventId]
+	return ok
 }

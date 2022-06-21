@@ -49,10 +49,12 @@ type Context struct {
 	accountCache       *AccountCache
 	paraMsg            *ParaMsg
 	overridesBytes     []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
+	hookCB             HookCallBack
 }
 
 // Proposed rename, not done to avoid API breakage
 type Request = Context
+type HookCallBack func() (uint64, error)
 
 // Read-only accessors
 func (c *Context) Context() context.Context { return c.ctx }
@@ -135,6 +137,10 @@ func (c *Context) GetToAccountCacheGas() Gas {
 
 func (c *Context) OverrideBytes() []byte {
 	return c.overridesBytes
+}
+
+func (c *Context) GetHookCallBack() HookCallBack {
+	return c.hookCB
 }
 
 func (c *Context) UpdateFromAccountCache(fromAcc interface{}, fromAccGettedGas Gas) {
@@ -360,6 +366,11 @@ func (c *Context) SetVoteInfos(voteInfo []abci.VoteInfo) *Context {
 
 func (c *Context) SetOverrideBytes(b []byte) *Context {
 	c.overridesBytes = b
+	return c
+}
+
+func (c *Context) SetHookCallback(cb HookCallBack) *Context {
+	c.hookCB = cb
 	return c
 }
 

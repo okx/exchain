@@ -1,6 +1,7 @@
 package simulation
 
 import (
+	"github.com/okex/exchain/x/erc20"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -26,8 +27,8 @@ func NewEvmFactory(chainId string, q *watcher.Querier) EvmFactory {
 	return EvmFactory{ChainId: chainId, WrappedQuerier: q}
 }
 
-func (ef EvmFactory) BuildSimulator(qoc QueryOnChainProxy) *EvmSimulator {
-	keeper := ef.makeEvmKeeper(qoc)
+func (ef EvmFactory) BuildSimulator(qoc QueryOnChainProxy, hooks evmtypes.EvmHooks) *EvmSimulator {
+	keeper := ef.makeEvmKeeper(qoc, hooks)
 
 	if !watcher.IsWatcherEnabled() {
 		return nil
@@ -73,8 +74,9 @@ type EvmSimulator struct {
 }
 
 // DoCall call simulate tx. we pass the sender by args to reduce address convert
-func (es *EvmSimulator) DoCall(msg *evmtypes.MsgEthereumTx, sender string, overridesBytes []byte) (*sdk.SimulationResponse, error) {
+func (es *EvmSimulator) DoCall(msg *evmtypes.MsgEthereumTx, sender string, overridesBytes []byte, cb sdk.HookCallBack) (*sdk.SimulationResponse, error) {
 	es.ctx.SetFrom(sender)
+	es.ctx.SetHookCallback(cb)
 	if overridesBytes != nil {
 		es.ctx.SetOverrideBytes(overridesBytes)
 	}
@@ -91,19 +93,21 @@ func (es *EvmSimulator) DoCall(msg *evmtypes.MsgEthereumTx, sender string, overr
 	}, nil
 }
 
-func (ef EvmFactory) makeEvmKeeper(qoc QueryOnChainProxy) *evm.Keeper {
+func (ef EvmFactory) makeEvmKeeper(qoc QueryOnChainProxy, hooks evmtypes.EvmHooks) *evm.Keeper {
 	module := evm.AppModuleBasic{}
 	cdc := codec.New()
 	module.RegisterCodec(cdc)
-	return evm.NewSimulateKeeper(cdc, sdk.NewKVStoreKey(evm.StoreKey), NewSubspaceProxy(), NewAccountKeeperProxy(qoc), SupplyKeeperProxy{}, NewBankKeeperProxy(), NewInternalDba(qoc), tmlog.NewNopLogger())
+	return evm.NewSimulateKeeper(cdc, sdk.NewKVStoreKey(evm.StoreKey), NewSubspaceProxy(), NewAccountKeeperProxy(qoc), SupplyKeeperProxy{}, NewBankKeeperProxy(), NewInternalDba(qoc), hooks, tmlog.NewNopLogger())
 }
 
 func (ef EvmFactory) makeContext(k *evm.Keeper, header abci.Header) sdk.Context {
 	db := dbm.NewMemDB()
 	cms := store.NewCommitMultiStore(db)
+	erc20Key := sdk.NewKVStoreKey(erc20.StoreKey)
 	authKey := sdk.NewKVStoreKey(auth.StoreKey)
 	paramsKey := sdk.NewKVStoreKey(params.StoreKey)
 	paramsTKey := sdk.NewTransientStoreKey(params.TStoreKey)
+	cms.MountStoreWithDB(erc20Key, sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(authKey, sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(paramsKey, sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(k.GetStoreKey(), sdk.StoreTypeIAVL, db)
