@@ -16,6 +16,7 @@ type PrivValidator interface {
 
 	SignVote(chainID string, vote *Vote) error
 	SignProposal(chainID string, proposal *Proposal) error
+	SignBytes(bz []byte) ([]byte, error)
 }
 
 //----------------------------------------
@@ -101,6 +102,11 @@ func (pv MockPV) SignProposal(chainID string, proposal *Proposal) error {
 	}
 	proposal.Signature = sig
 	return nil
+}
+
+// Implements PrivValidator.
+func (pv MockPV) SignBytes(bz []byte) ([]byte, error) {
+	return pv.PrivKey.Sign(bz)
 }
 
 // String returns a string representation of the MockPV.

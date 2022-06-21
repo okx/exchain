@@ -703,6 +703,10 @@ func stakingPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
 }
 
 func paramsPrintKey(cdc *codec.Codec, key []byte, value []byte) string {
+	if bytes.Contains(key, []byte("custom")) {
+		length := len([]byte("custom/evm/"))
+		return evmPrintKey(cdc, key[length:], value)
+	}
 	return fmt.Sprintf("paramsKey:%s;value:%s", string(key), string(value))
 }
 

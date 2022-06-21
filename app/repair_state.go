@@ -2,13 +2,13 @@ package app
 
 import (
 	"fmt"
-	"github.com/okex/exchain/app/config"
 	"io"
-	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 	"strings"
+	"time"
+
+	"github.com/okex/exchain/app/config"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
@@ -29,6 +29,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/store"
 	"github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
 )
 
@@ -69,8 +70,6 @@ func repairStateOnStart(ctx *server.Context) {
 	iavl.EnableAsyncCommit = viper.GetBool(iavl.FlagIavlEnableAsyncCommit)
 	viper.Set(flatkv.FlagEnable, orgEnableFlatKV)
 	// load latest block height
-	dataDir := filepath.Join(ctx.Config.RootDir, "data")
-	rmLockByDir(dataDir)
 }
 
 func RepairState(ctx *server.Context, onStart bool) {
@@ -89,6 +88,7 @@ func RepairState(ctx *server.Context, onStart bool) {
 	// create proxy app
 	proxyApp, repairApp, err := createRepairApp(ctx)
 	panicError(err)
+	defer repairApp.Close()
 
 	// get async commit version
 	commitVersion, err := repairApp.GetCommitVersion()
@@ -103,6 +103,10 @@ func RepairState(ctx *server.Context, onStart bool) {
 	// load state
 	stateStoreDB, err := openDB(stateDB, dataDir)
 	panicError(err)
+	defer func() {
+		err := stateStoreDB.Close()
+		panicError(err)
+	}()
 	genesisDocProvider := node.DefaultGenesisDocProviderFunc(ctx.Config)
 	state, _, err := node.LoadStateFromDBOrGenesisDocProvider(stateStoreDB, genesisDocProvider)
 	panicError(err)
@@ -139,7 +143,6 @@ func RepairState(ctx *server.Context, onStart bool) {
 
 	mpttypes.TrieDirtyDisabled = rawTrieDirtyDisabledFlag
 }
-
 func createRepairApp(ctx *server.Context) (proxy.AppConns, *repairApp, error) {
 	rootDir := ctx.Config.RootDir
 	dataDir := filepath.Join(rootDir, "data")
@@ -173,11 +176,24 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	// construct state for repair
 	state = constructStartState(state, stateStoreDB, startHeight)
 	ctx.Logger.Debug("constructStartState", "state", fmt.Sprintf("%+v", state))
-	var err error
 	// repair state
 	eventBus := types.NewEventBus()
-	err = startEventBusAndIndexerService(ctx.Config, eventBus, ctx.Logger)
+	txStore, txindexServer, err := startEventBusAndIndexerService(ctx.Config, eventBus, ctx.Logger)
 	panicError(err)
+	defer func() {
+		if txindexServer != nil {
+			txindexServer.Stop()
+			txindexServer.Wait()
+		}
+		if eventBus != nil {
+			eventBus.Stop()
+			eventBus.Wait()
+		}
+		if txStore != nil {
+			err := txStore.Close()
+			panicError(err)
+		}
+	}()
 	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
 	blockExec.SetEventBus(eventBus)
 	global.SetGlobalHeight(startHeight + 1)
@@ -204,37 +220,44 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	}
 }
 
-func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus, logger tmlog.Logger) error {
+func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus, logger tmlog.Logger) (txStore dbm.DB, indexerService *txindex.IndexerService, err error) {
 	eventBus.SetLogger(logger.With("module", "events"))
 	if err := eventBus.Start(); err != nil {
-		return err
+		return nil, nil, err
 	}
 	// Transaction indexing
 	var txIndexer txindex.TxIndexer
 	switch config.TxIndex.Indexer {
 	case "kv":
-		store, err := openDB(txIndexDB, filepath.Join(config.RootDir, "data"))
+		txStore, err = openDB(txIndexDB, filepath.Join(config.RootDir, "data"))
 		if err != nil {
-			return err
+			return nil, nil, err
 		}
 		switch {
 		case config.TxIndex.IndexKeys != "":
-			txIndexer = kv.NewTxIndex(store, kv.IndexEvents(splitAndTrimEmpty(config.TxIndex.IndexKeys, ",", " ")))
+			txIndexer = kv.NewTxIndex(txStore, kv.IndexEvents(splitAndTrimEmpty(config.TxIndex.IndexKeys, ",", " ")))
 		case config.TxIndex.IndexAllKeys:
-			txIndexer = kv.NewTxIndex(store, kv.IndexAllEvents())
+			txIndexer = kv.NewTxIndex(txStore, kv.IndexAllEvents())
 		default:
-			txIndexer = kv.NewTxIndex(store)
+			txIndexer = kv.NewTxIndex(txStore)
 		}
 	default:
 		txIndexer = &null.TxIndex{}
 	}
 
-	indexerService := txindex.NewIndexerService(txIndexer, eventBus)
+	indexerService = txindex.NewIndexerService(txIndexer, eventBus)
 	indexerService.SetLogger(logger.With("module", "txindex"))
 	if err := indexerService.Start(); err != nil {
-		return err
+		if eventBus != nil {
+			eventBus.Stop()
+		}
+		if txStore != nil {
+			txStore.Close()
+		}
+
+		return nil, nil, err
 	}
-	return nil
+	return txStore, indexerService, nil
 }
 
 // splitAndTrimEmpty slices s into all subslices separated by sep and returns a
@@ -299,15 +322,6 @@ func latestBlockHeight(dataDir string) int64 {
 	return blockStore.Height()
 }
 
-func rmLockByDir(dataDir string) {
-	files, _ := ioutil.ReadDir(dataDir)
-	for _, f := range files {
-		if f.IsDir() {
-			os.Remove(filepath.Join(dataDir, f.Name(), "LOCK"))
-		}
-	}
-}
-
 // panic if error is not nil
 func panicError(err error) {
 	if err != nil {
@@ -325,4 +339,16 @@ func createAndStartProxyAppConns(clientCreator proxy.ClientCreator) (proxy.AppCo
 		return nil, fmt.Errorf("error starting proxy app connections: %v", err)
 	}
 	return proxyApp, nil
+}
+
+func (app *repairApp) Close() {
+	indexer := evmtypes.GetIndexer()
+	if indexer != nil {
+		for indexer.IsProcessing() {
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+	evmtypes.CloseIndexer()
+	err := app.db.Close()
+	panicError(err)
 }

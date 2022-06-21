@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"math/bits"
 	"strings"
 	"sync"
 
@@ -138,6 +139,16 @@ func rlpHash(x interface{}) (hash ethcmn.Hash) {
 	_ = hasher.Sum(hash[:0])
 
 	return hash
+}
+
+func rlpHashTo(x interface{}, hash *ethcmn.Hash) {
+	hasher := keccakStatePool.Get().(ethcrypto.KeccakState)
+	defer keccakStatePool.Put(hasher)
+	hasher.Reset()
+
+	_ = rlp.Encode(hasher, x)
+	hasher.Read(hash[:])
+	return
 }
 
 // ResultData represents the data returned in an sdk.Result
@@ -618,12 +629,45 @@ func DecodeResultData(in []byte) (ResultData, error) {
 	return data, nil
 }
 
+type recoverEthSigData struct {
+	Buffer  bytes.Buffer
+	Sig     [65]byte
+	SigHash ethcmn.Hash
+}
+
+var recoverEthSigDataPool = sync.Pool{
+	New: func() interface{} {
+		return &recoverEthSigData{}
+	},
+}
+
+func getZeroPrefixLen(buf []byte) int {
+	var i int
+	for i < len(buf) && buf[i] == 0 {
+		i++
+	}
+	return i
+}
+
+func getSigRSData(d *big.Int, buffer *bytes.Buffer) []byte {
+	const _S = (bits.UintSize / 8)
+
+	bzLen := len(d.Bits()) * _S
+
+	buffer.Reset()
+	buffer.Grow(bzLen)
+	var buf = buffer.Bytes()[:bzLen]
+
+	d.FillBytes(buf)
+	return buf[getZeroPrefixLen(buf):]
+}
+
 // recoverEthSig recovers a signature according to the Ethereum specification and
 // returns the sender or an error.
 //
 // Ref: Ethereum Yellow Paper (BYZANTIUM VERSION 69351d5) Appendix F
 // nolint: gocritic
-func recoverEthSig(R, S, Vb *big.Int, sigHash ethcmn.Hash) (ethcmn.Address, error) {
+func recoverEthSig(R, S, Vb *big.Int, sigHash *ethcmn.Hash) (ethcmn.Address, error) {
 	if Vb.BitLen() > 8 {
 		return ethcmn.Address{}, errors.New("invalid signature")
 	}
@@ -633,16 +677,28 @@ func recoverEthSig(R, S, Vb *big.Int, sigHash ethcmn.Hash) (ethcmn.Address, erro
 		return ethcmn.Address{}, errors.New("invalid signature")
 	}
 
+	ethSigData := recoverEthSigDataPool.Get().(*recoverEthSigData)
+	defer recoverEthSigDataPool.Put(ethSigData)
+	sig := (&ethSigData.Sig)[:]
+	for i := range sig {
+		sig[i] = 0
+	}
+
 	// encode the signature in uncompressed format
-	r, s := R.Bytes(), S.Bytes()
-	sig := make([]byte, 65)
+	buffer := &ethSigData.Buffer
+	r := getSigRSData(R, buffer)
 
 	copy(sig[32-len(r):32], r)
+
+	s := getSigRSData(S, buffer)
+
 	copy(sig[64-len(s):64], s)
 	sig[64] = V
 
+	ethSigData.SigHash = *sigHash
+
 	// recover the public key from the signature
-	pub, err := ethcrypto.Ecrecover(sigHash[:], sig)
+	pub, err := ethcrypto.Ecrecover(ethSigData.SigHash[:], sig)
 	if err != nil {
 		return ethcmn.Address{}, err
 	}
@@ -652,7 +708,7 @@ func recoverEthSig(R, S, Vb *big.Int, sigHash ethcmn.Hash) (ethcmn.Address, erro
 	}
 
 	var addr ethcmn.Address
-	copy(addr[:], keccak256(pub[1:])[12:])
+	copy(addr[:], keccak256To(sig[:32], pub[1:])[12:])
 
 	return addr, nil
 }
@@ -669,6 +725,21 @@ func keccak256(data ...[]byte) []byte {
 	d.Read(b)
 	keccakStatePool.Put(d)
 	return b
+}
+
+func keccak256To(target []byte, data ...[]byte) []byte {
+	if len(target) != 32 {
+		panic("target size mismatch")
+	}
+
+	d := keccakStatePool.Get().(ethcrypto.KeccakState)
+	d.Reset()
+	for _, b := range data {
+		d.Write(b)
+	}
+	d.Read(target)
+	keccakStatePool.Put(d)
+	return target
 }
 
 var ethAddrStringPool = &sync.Pool{

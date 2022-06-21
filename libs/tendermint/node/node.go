@@ -17,8 +17,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/cors"
 
-	dbm "github.com/okex/exchain/libs/tm-db"
 	amino "github.com/tendermint/go-amino"
+
+	dbm "github.com/okex/exchain/libs/tm-db"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	bcv0 "github.com/okex/exchain/libs/tendermint/blockchain/v0"
@@ -799,13 +800,6 @@ func (n *Node) OnStart() error {
 
 	n.isListening = true
 
-	if n.config.Mempool.WalEnabled() {
-		err = n.mempool.InitWAL()
-		if err != nil {
-			return fmt.Errorf("init mempool WAL: %w", err)
-		}
-	}
-
 	// Start the switch (the P2P server).
 	err = n.sw.Start()
 	if err != nil {
@@ -835,10 +829,6 @@ func (n *Node) OnStop() {
 	n.sw.Stop()
 
 	n.blockExec.Stop()
-	// stop mempool WAL
-	if n.config.Mempool.WalEnabled() {
-		n.mempool.CloseWAL()
-	}
 
 	if err := n.transport.Close(); err != nil {
 		n.Logger.Error("Error closing transport", "err", err)
@@ -1141,7 +1131,7 @@ func makeNodeInfo(
 		Version:       version.TMCoreSemVer,
 		Channels: []byte{
 			bcChannel,
-			cs.StateChannel, cs.DataChannel, cs.VoteChannel, cs.VoteSetBitsChannel,
+			cs.StateChannel, cs.DataChannel, cs.VoteChannel, cs.VoteSetBitsChannel, cs.ViewChangeChannel,
 			mempl.MempoolChannel,
 			evidence.EvidenceChannel,
 		},
