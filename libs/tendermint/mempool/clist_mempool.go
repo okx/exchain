@@ -724,6 +724,31 @@ func (mem *CListMempool) GetPendingNonce(address string) (uint64, bool) {
 	return mem.txs.GetAddressNonce(address)
 }
 
+type logData struct {
+	Params  [4]interface{}
+	Address string
+	Nonce   uint64
+}
+
+var logDataPool = sync.Pool{
+	New: func() interface{} {
+		return &logData{}
+	},
+}
+
+func (mem *CListMempool) logUpdate(address string, nonce uint64) {
+	logData := logDataPool.Get().(*logData)
+	logData.Address = address
+	logData.Nonce = nonce
+	params := &logData.Params
+	params[0] = "address"
+	params[1] = &logData.Address
+	params[2] = "nonce"
+	params[3] = &logData.Nonce
+	mem.logger.Debug("mempool update", params[:4]...)
+	logDataPool.Put(logData)
+}
+
 // Lock() must be help by the caller during execution.
 func (mem *CListMempool) Update(
 	height int64,
@@ -781,7 +806,7 @@ func (mem *CListMempool) Update(
 			addr = ele.Address
 			nonce = ele.Nonce
 			mem.removeTx(ele)
-			mem.logger.Debug("mempool update", "address", ele.Address, "nonce", ele.Nonce)
+			mem.logUpdate(ele.Address, ele.Nonce)
 		} else {
 			if mem.txInfoparser != nil {
 				txInfo := mem.txInfoparser.GetRawTxInfo(tx)
