@@ -37,6 +37,8 @@ check_go_verison() {
     echo "exchain need go${GO_VERSION},please install"
     exit 1
   fi
+
+  echo "go check success: "$go_version
 }
 
 check_rocksdb_version() {
@@ -74,11 +76,11 @@ check_rocksdb_version() {
     echo "exchain need rocksdb-v${ROCKSDB_VERSION},current: v$rocksdb_version , please install with command (make rocksdb)"
     exit 1
   fi
-  echo "check version success:"
-  echo "      go check: "$GO_VERSION
-  echo "      rocksdb check: "$rocksdb_version
-  echo "------------------------------------------------------------------------"
+  echo "rocksdb check success: "$rocksdb_version
+
 }
+
+echo "check go and rocksdb version: "
 
 hasawk=$(which awk)
 
@@ -90,9 +92,14 @@ fi
 if [ "$GO_VERSION" != "0" ]; then
   check_go_verison
 else
-  echo "ignore go version check"
+  echo "go version check: ignore "
 fi
 
-check_rocksdb_version
+if [ "$ROCKSDB_VERSION" != "0" ]; then
+  check_rocksdb_version
+else
+  echo "rocksdb version check: ignore "
+fi
 
+echo "------------------------------------------------------------------------"
 exit 0
