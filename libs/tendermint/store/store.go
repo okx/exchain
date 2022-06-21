@@ -83,6 +83,7 @@ var blockBufferPool = amino.NewBufferPool()
 func (bs *BlockStore) LoadBlock(height int64) *types.Block {
 	buf := blockBufferPool.Get()
 	defer blockBufferPool.Put(buf)
+	buf.Reset()
 	partBytes, _ := bs.loadBlockPartsBytes(height, buf)
 	if partBytes == nil {
 		return nil
@@ -96,6 +97,7 @@ func (bs *BlockStore) LoadBlock(height int64) *types.Block {
 func (bs *BlockStore) LoadBlockWithExInfo(height int64) (*types.Block, *types.BlockExInfo) {
 	buf := blockBufferPool.Get()
 	defer blockBufferPool.Put(buf)
+	buf.Reset()
 	partBytes, exInfo := bs.loadBlockPartsBytes(height, buf)
 	if partBytes == nil {
 		return nil, nil
@@ -187,7 +189,6 @@ func (bs *BlockStore) loadBlockPartsBytes(height int64, buf *bytes.Buffer) ([]by
 		bufLen += len(part.Bytes)
 		parts = append(parts, part)
 	}
-	buf.Reset()
 	buf.Grow(bufLen)
 	for _, part := range parts {
 		buf.Write(part.Bytes)
