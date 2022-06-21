@@ -14,11 +14,9 @@ import (
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
-	auto "github.com/okex/exchain/libs/tendermint/libs/autofile"
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
-	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/types"
 )
@@ -52,8 +50,6 @@ type CListMempool struct {
 	preCheck  PreCheckFunc
 	postCheck PostCheckFunc
 
-	wal *auto.AutoFile // a log of mempool txs
-	//txs          *clist.CList   // concurrent linked-list of good txs
 	//bcTxsList    *clist.CList   // only for tx sort model
 	proxyAppConn proxy.AppConnMempool
 
@@ -163,33 +159,6 @@ func WithPostCheck(f PostCheckFunc) CListMempoolOption {
 // WithMetrics sets the metrics.
 func WithMetrics(metrics *Metrics) CListMempoolOption {
 	return func(mem *CListMempool) { mem.metrics = metrics }
-}
-
-func (mem *CListMempool) InitWAL() error {
-	var (
-		walDir  = mem.config.WalDir()
-		walFile = walDir + "/wal"
-	)
-
-	const perm = 0700
-	if err := tmos.EnsureDir(walDir, perm); err != nil {
-		return err
-	}
-
-	af, err := auto.OpenAutoFile(walFile)
-	if err != nil {
-		return fmt.Errorf("can't open autofile %s: %w", walFile, err)
-	}
-
-	mem.wal = af
-	return nil
-}
-
-func (mem *CListMempool) CloseWAL() {
-	if err := mem.wal.Close(); err != nil {
-		mem.logger.Error("Error closing WAL", "err", err)
-	}
-	mem.wal = nil
 }
 
 // Safe for concurrent use by multiple goroutines.
@@ -316,20 +285,6 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		// but they can spam the same tx with little cost to them atm.
 	}
 	// END CACHE
-
-	// WAL
-	if mem.wal != nil {
-		// TODO: Notify administrators when WAL fails
-		_, err = mem.wal.Write([]byte(tx))
-		if err != nil {
-			mem.logger.Error("Error writing to WAL", "err", err)
-		}
-		_, err = mem.wal.Write([]byte("\n"))
-		if err != nil {
-			mem.logger.Error("Error writing to WAL", "err", err)
-		}
-	}
-	// END WAL
 
 	// NOTE: proxyAppConn may error if tx buffer is full
 	if err = mem.proxyAppConn.Error(); err != nil {

@@ -7,9 +7,11 @@ export GO111MODULE=on
 
 GithubTop=github.com
 
+GO_VERSION=1.17
+ROCKSDB_VERSION=6.15.5
+IGNORE_CHECK_GO=false
 
-
-Version=v1.5.4
+Version=v1.5.5
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
@@ -23,6 +25,10 @@ VenusHeight=1
 Venus1Height=0
 MarsHeight=0
 
+ifeq ($(IGNORE_CHECK_GO),true)
+    GO_VERSION=0
+endif
+
 # process linker flags
 ifeq ($(VERSION),)
     VERSION = $(COMMIT)
@@ -33,6 +39,8 @@ build_tags = netgo
 ifeq ($(WITH_ROCKSDB),true)
   CGO_ENABLED=1
   build_tags += rocksdb
+else
+  ROCKSDB_VERSION=0
 endif
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
@@ -85,9 +93,12 @@ all: install
 
 install: exchain
 
-exchain:
+exchain: check_version
 	go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaind
 	go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaincli
+
+check_version:
+	@sh $(shell pwd)/dev/check-version.sh $(GO_VERSION) $(ROCKSDB_VERSION)
 
 mainnet: exchain
 
@@ -188,7 +199,7 @@ localnet-stop:
 
 rocksdb:
 	@echo "Installing rocksdb..."
-	@bash ./libs/rocksdb/install.sh
+	@bash ./libs/rocksdb/install.sh --version v$(ROCKSDB_VERSION)
 .PHONY: rocksdb
 
 .PHONY: build

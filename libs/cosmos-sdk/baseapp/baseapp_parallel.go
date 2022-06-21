@@ -147,6 +147,8 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 	pm.workgroup.txs = txs
 	pm.isAsyncDeliverTx = true
 	pm.cms = app.deliverState.ms.CacheMultiStore()
+	pm.cms.DisableCacheReadList()
+	app.deliverState.ms.DisableCacheReadList()
 	pm.blockHeight = app.deliverState.ctx.BlockHeight()
 
 	if txSize == 0 {
@@ -313,13 +315,15 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 	// handle receipt's logs
 	logIndex := make([]int, app.parallelTxManage.txSize)
 	errs := make([]error, app.parallelTxManage.txSize)
+	hasEnterEvmTx := make([]bool, app.parallelTxManage.txSize)
 	for index := 0; index < app.parallelTxManage.txSize; index++ {
 		paraM := app.parallelTxManage.txReps[index].paraMsg
 		logIndex[index] = paraM.LogIndex
 		errs[index] = paraM.AnteErr
+		hasEnterEvmTx[index] = paraM.HasRunEvmTx
 	}
 	app.parallelTxManage.clear()
-	return app.logFix(logIndex, errs)
+	return app.logFix(logIndex, hasEnterEvmTx, errs)
 }
 
 //we reuse the nonce that changed by the last async call
@@ -674,6 +678,7 @@ func (f *parallelTxManager) getTxResult(index int) sdk.CacheMultiStore {
 				return nil
 			}
 
+			f.txReps[preIndexInGroup].ms.DisableCacheReadList()
 			ms = f.chainMultiStores.GetStoreWithParent(f.txReps[preIndexInGroup].ms)
 		}
 	}
