@@ -21,6 +21,10 @@ type mockCMS struct {
 	committed *bool
 }
 
+func (m *mockCMS) DisableCacheReadList() {
+	panic("implement me")
+}
+
 func (m *mockCMS) Clear() {
 	panic("implement me")
 }
