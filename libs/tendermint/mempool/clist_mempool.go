@@ -247,7 +247,8 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		return ErrTxTooLarge{mem.config.MaxTxBytes, txSize}
 	}
 	// CACHE
-	if !mem.cache.Push(tx) {
+	txkey := txKey(tx)
+	if !mem.cache.PushKey(txkey) {
 		return ErrTxInCache
 	}
 
@@ -279,7 +280,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	// Note it's possible a tx is still in the cache but no longer in the mempool
 	// (eg. after committing a block, txs are removed from mempool but not cache),
 	// so we only record the sender for txs still in the mempool.
-	if ele, ok := mem.txs.Load(txKey(tx)); ok {
+	if ele, ok := mem.txs.Load(txkey); ok {
 		memTx := ele.Value.(*mempoolTx)
 		memTx.senders.LoadOrStore(txInfo.SenderID, true)
 		// TODO: consider punishing peer for dups,
@@ -742,9 +743,13 @@ func (mem *CListMempool) Update(
 	}
 
 	var gasUsed uint64
-	toCleanAccMap := make(map[string]uint64)
-	addressNonce := make(map[string]uint64)
+	var toCleanAccMap, addressNonce map[string]uint64
+	toCleanAccMap = make(map[string]uint64)
+	if mem.pendingPool != nil {
+		addressNonce = make(map[string]uint64)
+	}
 	for i, tx := range txs {
+		txkey := txKey(tx)
 		txCode := deliverTxResponses[i].Code
 		// CodeTypeOK means tx was successfully executed.
 		// CodeTypeNonceInc means tx fails but the nonce of the account increases,
@@ -753,7 +758,7 @@ func (mem *CListMempool) Update(
 			// add gas used with valid committed tx
 			gasUsed += uint64(deliverTxResponses[i].GasUsed)
 			// Add valid committed tx to the cache (if missing).
-			_ = mem.cache.Push(tx)
+			_ = mem.cache.PushKey(txkey)
 		} else {
 			// Allow invalid transactions to be resubmitted.
 			mem.cache.Remove(tx)
@@ -771,11 +776,11 @@ func (mem *CListMempool) Update(
 		// https://github.com/tendermint/tendermint/issues/3322.
 		addr := ""
 		nonce := uint64(0)
-		if ele, ok := mem.txs.Load(txKey(tx)); ok {
+		if ele, ok := mem.txs.Load(txkey); ok {
 			addr = ele.Address
 			nonce = ele.Nonce
 			mem.removeTx(ele)
-			mem.logger.Debug("Mempool update", "address", ele.Address, "nonce", ele.Nonce)
+			mem.logger.Debug("mempool update", "address", ele.Address, "nonce", ele.Nonce)
 		} else {
 			if mem.txInfoparser != nil {
 				txInfo := mem.txInfoparser.GetRawTxInfo(tx)
@@ -790,7 +795,9 @@ func (mem *CListMempool) Update(
 		if txCode == abci.CodeTypeOK || txCode > abci.CodeTypeNonceInc {
 			toCleanAccMap[addr] = nonce
 		}
-		addressNonce[addr] = nonce
+		if mem.pendingPool != nil {
+			addressNonce[addr] = nonce
+		}
 
 		if mem.pendingPool != nil {
 			mem.pendingPool.removeTxByHash(txID(tx, height))
@@ -900,6 +907,7 @@ func (memTx *mempoolTx) Height() int64 {
 type txCache interface {
 	Reset()
 	Push(tx types.Tx) bool
+	PushKey(key [32]byte) bool
 	Remove(tx types.Tx)
 }
 
@@ -958,6 +966,28 @@ func (cache *mapTxCache) Push(tx types.Tx) bool {
 	return true
 }
 
+func (cache *mapTxCache) PushKey(txHash [32]byte) bool {
+	cache.mtx.Lock()
+	defer cache.mtx.Unlock()
+
+	if moved, exists := cache.cacheMap[txHash]; exists {
+		cache.list.MoveToBack(moved)
+		return false
+	}
+
+	if cache.list.Len() >= cache.size {
+		popped := cache.list.Front()
+		poppedTxHash := popped.Value.([sha256.Size]byte)
+		delete(cache.cacheMap, poppedTxHash)
+		if popped != nil {
+			cache.list.Remove(popped)
+		}
+	}
+	e := cache.list.PushBack(txHash)
+	cache.cacheMap[txHash] = e
+	return true
+}
+
 // Remove removes the given tx from the cache.
 func (cache *mapTxCache) Remove(tx types.Tx) {
 	txHash := txKey(tx)
@@ -976,9 +1006,10 @@ type nopTxCache struct{}
 
 var _ txCache = (*nopTxCache)(nil)
 
-func (nopTxCache) Reset()             {}
-func (nopTxCache) Push(types.Tx) bool { return true }
-func (nopTxCache) Remove(types.Tx)    {}
+func (nopTxCache) Reset()                    {}
+func (nopTxCache) Push(types.Tx) bool        { return true }
+func (nopTxCache) PushKey(key [32]byte) bool { return true }
+func (nopTxCache) Remove(types.Tx)           {}
 
 //--------------------------------------------------------------------------------
 // txKey is the fixed length array sha256 hash used as the key in maps.
