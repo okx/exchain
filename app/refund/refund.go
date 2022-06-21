@@ -1,6 +1,8 @@
 package refund
 
 import (
+	"fmt"
+	"log"
 	"math/big"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -64,6 +66,9 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 	gasFees := caculateRefundFees(gasUsed, gas, fees)
 	ctx.EnableAccountCache()
 	ctx.UpdateToAccountCache(feePayerAcc, getAccountGasUsed)
+	if ctx.IsTraceTxLog() {
+		log.Println(fmt.Sprintf("lcm RefundFees : %s, gasfee: %d", feePayerAcc.GetAddress().String(), gasFees.AmountOf("okt").Uint64()))
+	}
 	err = refund.RefundFees(handler.supplyKeeper, ctx, feePayerAcc.GetAddress(), gasFees)
 	if err != nil {
 		return nil, err
