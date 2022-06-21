@@ -594,6 +594,7 @@ func (c *MConnection) sendPacketMsg() bool {
 func (c *MConnection) recvRoutine() {
 	defer c._recover()
 
+	var packetMsg PacketMsg
 FOR_LOOP:
 	for {
 		// Block until .recvMonitor says we can read.
@@ -618,7 +619,7 @@ FOR_LOOP:
 		var _n int64
 		var err error
 		// _n, err = cdc.UnmarshalBinaryLengthPrefixedReader(c.bufConnReader, &packet, int64(c._maxPacketMsgSize))
-		packet, _n, err = unmarshalPacketFromAminoReader(c.bufConnReader, int64(c._maxPacketMsgSize))
+		packet, _n, err = unmarshalPacketFromAminoReader(c.bufConnReader, int64(c._maxPacketMsgSize), &packetMsg)
 		c.recvMonitor.Update(int(_n))
 
 		if err != nil {
@@ -659,7 +660,7 @@ FOR_LOOP:
 			default:
 				// never block
 			}
-		case PacketMsg:
+		case *PacketMsg:
 			channel, ok := c.channelsIdx[pkt.ChannelID]
 			if !ok || channel == nil {
 				err := fmt.Errorf("unknown channel %X", pkt.ChannelID)
@@ -668,7 +669,7 @@ FOR_LOOP:
 				break FOR_LOOP
 			}
 
-			msgBytes, err := channel.recvPacketMsg(pkt)
+			msgBytes, err := channel.recvPacketMsg(*pkt)
 			if err != nil {
 				if c.IsRunning() {
 					c.Logger.Error("Connection failed @ recvRoutine", "conn", c, "err", err)
@@ -998,7 +999,7 @@ func RegisterPacket(cdc *amino.Codec) {
 	cdc.RegisterInterface((*Packet)(nil), nil)
 	cdc.RegisterConcrete(PacketPing{}, PacketPingName, nil)
 	cdc.RegisterConcrete(PacketPong{}, PacketPongName, nil)
-	cdc.RegisterConcrete(PacketMsg{}, PacketMsgName, nil)
+	cdc.RegisterConcrete(&PacketMsg{}, PacketMsgName, nil)
 
 	cdc.RegisterConcreteMarshaller(PacketPingName, func(_ *amino.Codec, i interface{}) ([]byte, error) {
 		return []byte{}, nil
@@ -1027,7 +1028,7 @@ func RegisterPacket(cdc *amino.Codec) {
 		if err != nil {
 			return nil, 0, err
 		} else {
-			return msg, len(data), nil
+			return &msg, len(data), nil
 		}
 	})
 
@@ -1192,7 +1193,11 @@ func (mp *PacketMsg) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 			mp.EOF = byte(vari)
 			dataLen = uint64(n)
 		case 3:
-			mp.Bytes = make([]byte, len(subData))
+			if cap(mp.Bytes) >= len(subData) {
+				mp.Bytes = mp.Bytes[:len(subData)]
+			} else {
+				mp.Bytes = make([]byte, len(subData))
+			}
 			copy(mp.Bytes, subData)
 		}
 	}
@@ -1219,7 +1224,7 @@ var (
 	}
 )
 
-func unmarshalPacketFromAminoReader(r io.Reader, maxSize int64) (packet Packet, n int64, err error) {
+func unmarshalPacketFromAminoReader(r io.Reader, maxSize int64, targetMsg *PacketMsg) (packet Packet, n int64, err error) {
 	if maxSize < 0 {
 		panic("maxSize cannot be negative.")
 	}
@@ -1284,7 +1289,15 @@ func unmarshalPacketFromAminoReader(r io.Reader, maxSize int64) (packet Packet, 
 		packet = packetPong
 		return
 	} else if bytes.Equal(PacketMsgTypePrefix, bz[0:4]) {
-		msg := PacketMsg{}
+		var msg *PacketMsg
+		if targetMsg != nil {
+			msg = targetMsg
+			msg.ChannelID = 0
+			msg.EOF = 0
+			msg.Bytes = msg.Bytes[:0]
+		} else {
+			msg = &PacketMsg{}
+		}
 		err = msg.UnmarshalFromAmino(cdc, bz[4:])
 		if err == nil {
 			packet = msg

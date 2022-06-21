@@ -573,7 +573,7 @@ func TestPacketAmino(t *testing.T) {
 
 		var buf bytes.Buffer
 		buf.Write(bz)
-		newPacket2, n, err := unmarshalPacketFromAminoReader(&buf, int64(buf.Len()))
+		newPacket2, n, err := unmarshalPacketFromAminoReader(&buf, int64(buf.Len()), nil)
 		require.NoError(t, err)
 		require.EqualValues(t, len(bz), n)
 
@@ -641,7 +641,7 @@ func BenchmarkPacketAmino(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			var packet Packet
 			var buf = bytes.NewBuffer(bz)
-			packet, _, err = unmarshalPacketFromAminoReader(buf, int64(buf.Len()))
+			packet, _, err = unmarshalPacketFromAminoReader(buf, int64(buf.Len()), nil)
 			if err != nil {
 				b.Fatal(err)
 			}
