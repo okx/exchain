@@ -112,7 +112,7 @@ func (bs *BlockStore) unmarshalBlockByBytes(blockBytes []byte) *types.Block {
 		if err != nil {
 			// NOTE: The existence of meta should imply the existence of the
 			// block. So, make sure meta is only saved after blocks are saved.
-			panic(errors.Wrap(err, "Error reading block"))
+			panic(errors.Wrap(err, fmt.Sprintf("Error reading block, height:%d", block.Height)))
 		}
 	}
 	return block
