@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/okex/exchain/libs/tendermint/p2p/conn"
 	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/libs/tendermint/abci/example/kvstore"
@@ -302,6 +303,14 @@ func TestNodeNewNodeCustomReactors(t *testing.T) {
 	config.Instrumentation.Prometheus = false
 
 	cr := p2pmock.NewReactor()
+	cr.Channels = []*conn.ChannelDescriptor{
+		{
+			ID:                  byte(0x31),
+			Priority:            5,
+			SendQueueCapacity:   100,
+			RecvMessageCapacity: 100,
+		},
+	}
 	customBlockchainReactor := p2pmock.NewReactor()
 
 	nodeKey, err := p2p.LoadOrGenNodeKey(config.NodeKeyFile())
@@ -328,6 +337,10 @@ func TestNodeNewNodeCustomReactors(t *testing.T) {
 
 	assert.True(t, customBlockchainReactor.IsRunning())
 	assert.Equal(t, customBlockchainReactor, n.Switch().Reactor("BLOCKCHAIN"))
+
+	channels := n.NodeInfo().(p2p.DefaultNodeInfo).Channels
+	assert.Contains(t, channels, mempl.MempoolChannel)
+	assert.Contains(t, channels, cr.Channels[0].ID)
 }
 
 func state(nVals int, height int64) (sm.State, dbm.DB) {
