@@ -8,7 +8,7 @@ export GO111MODULE=on
 GithubTop=github.com
 
 GO_VERSION=1.17
-ROCKSDB_VERSION=6.15.5
+ROCKSDB_VERSION=6.27.3
 IGNORE_CHECK_GO=false
 
 Version=v1.5.5
