@@ -9,7 +9,7 @@ GithubTop=github.com
 
 GO_VERSION=1.17
 ROCKSDB_VERSION=6.15.5
-IGNORE_CHECK_GO=true
+IGNORE_CHECK_GO=false
 
 Version=v1.5.5
 CosmosSDK=v0.39.2
