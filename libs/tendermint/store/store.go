@@ -1,6 +1,7 @@
 package store
 
 import (
+	"bytes"
 	"fmt"
 	"strconv"
 	"sync"
@@ -80,7 +81,9 @@ var blockBufferPool = amino.NewBufferPool()
 // LoadBlock returns the block with the given height.
 // If no block is found for that height, it returns nil.
 func (bs *BlockStore) LoadBlock(height int64) *types.Block {
-	partBytes, _ := bs.loadBlockPartsBytes(height)
+	buf := blockBufferPool.Get()
+	defer blockBufferPool.Put(buf)
+	partBytes, _ := bs.loadBlockPartsBytes(height, buf)
 	if partBytes == nil {
 		return nil
 	}
@@ -91,7 +94,9 @@ func (bs *BlockStore) LoadBlock(height int64) *types.Block {
 // LoadBlockWithExInfo returns the block with the given height.
 // and the BlockPartInfo is used to make block parts
 func (bs *BlockStore) LoadBlockWithExInfo(height int64) (*types.Block, *types.BlockExInfo) {
-	partBytes, exInfo := bs.loadBlockPartsBytes(height)
+	buf := blockBufferPool.Get()
+	defer blockBufferPool.Put(buf)
+	partBytes, exInfo := bs.loadBlockPartsBytes(height, buf)
 	if partBytes == nil {
 		return nil, nil
 	}
@@ -169,7 +174,7 @@ func (bs *BlockStore) LoadBlockPart(height int64, index int) *types.Part {
 }
 
 // loadBlockPartsBytes return the combined parts bytes and the number of block parts
-func (bs *BlockStore) loadBlockPartsBytes(height int64) ([]byte, *types.BlockExInfo) {
+func (bs *BlockStore) loadBlockPartsBytes(height int64, buf *bytes.Buffer) ([]byte, *types.BlockExInfo) {
 	var blockMeta = bs.LoadBlockMeta(height)
 	if blockMeta == nil {
 		return nil, nil
@@ -182,8 +187,7 @@ func (bs *BlockStore) loadBlockPartsBytes(height int64) ([]byte, *types.BlockExI
 		bufLen += len(part.Bytes)
 		parts = append(parts, part)
 	}
-	buf := blockBufferPool.Get()
-	defer blockBufferPool.Put(buf)
+	buf.Reset()
 	buf.Grow(bufLen)
 	for _, part := range parts {
 		buf.Write(part.Bytes)

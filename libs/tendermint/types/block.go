@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	gogotypes "github.com/gogo/protobuf/types"
-	"github.com/nacos-group/nacos-sdk-go/common/logger"
 	"github.com/okex/exchain/libs/system/trace"
 	"github.com/okex/exchain/libs/tendermint/libs/compress"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
@@ -346,8 +345,6 @@ func UncompressBlockFromBytes(payload []byte) (res []byte, compressSign int, err
 		// the block has compressed and the last byte is compressSign
 		compressSign = int(payload[len(payload)-1])
 		res, err = compress.UnCompress(compressSign/CompressDividing, payload[:len(payload)-1])
-		logger.Info(fmt.Sprintf("UncompressBlockFromBytes, compressBytesLen: %v , len(payload)-n: %v",
-			compressBytesLen, len(payload)-n))
 	}
 	return
 }
