@@ -22,20 +22,22 @@ is_darwin() {
   esac
 }
 
+version_lt() { test "$(echo "$@" | tr " " "\n" | sort -rV | head -n 1)" != "$1"; }
+
+
 check_go_verison() {
   # check go,awk is install
   hasgo=$(which go)
   if [ -z "$hasgo" ]; then
-    echo "command go is not found,please install go${GO_VERSION}"
+    echo "ERROR: command go is not found,please install go${GO_VERSION}"
     exit 1
   fi
 
   # checkout go version
   go_version=$(go version | awk '{print$3}' | awk '{ gsub(/go/,""); print $0 }')
-  find=$(echo $go_version $GO_VERSION | awk '{print index($1,$2)}')
-  if [ "$find" != "1" ]; then
-    echo "exchain need go${GO_VERSION},please install"
-    exit 1
+  if version_lt $go_version $GO_VERSION; then
+     echo "ERROR: exchain need go${GO_VERSION}+,please install"
+     exit 1
   fi
 
   echo "go check success: "$go_version
@@ -73,7 +75,7 @@ check_rocksdb_version() {
   # checkout go version
 
   if [ "$rocksdb_version" != "$ROCKSDB_VERSION" ]; then
-    echo "exchain need rocksdb-v${ROCKSDB_VERSION},current: v$rocksdb_version , please install with command (make rocksdb)"
+    echo "ERROR: exchain need rocksdb-v${ROCKSDB_VERSION},current: v$rocksdb_version , please install with command (make rocksdb)"
     exit 1
   fi
   echo "rocksdb check success: "$rocksdb_version

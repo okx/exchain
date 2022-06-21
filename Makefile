@@ -26,7 +26,7 @@ Venus1Height=0
 MarsHeight=0
 
 ifeq ($(IGNORE_CHECK_GO),true)
-GO_VERSION=0
+    GO_VERSION=0
 endif
 
 # process linker flags
