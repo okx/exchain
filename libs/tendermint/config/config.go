@@ -708,8 +708,8 @@ func DefaultMempoolConfig() *MempoolConfig {
 		PendingPoolReserveBlocks:   100,
 		PendingPoolMaxTxPerAddress: 100,
 		NodeKeyWhitelist:           []string{},
-		TTLDuration:                10 * time.Minute, //seconds
-		TTLNumBlocks:               20,
+		TTLDuration:                0,
+		TTLNumBlocks:               0,
 	}
 }
 
