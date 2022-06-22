@@ -569,7 +569,7 @@ func (app *BaseApp) setCheckState(header abci.Header) {
 	}
 	app.checkState.ctx.SetMinGasPrices(app.minGasPrices)
 
-	if header.Height%100 == 0 {
+	if header.Height%multiCacheListClearInterval == 0 {
 		app.checkTxCacheMultiStores.Clear()
 	}
 }
