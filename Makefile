@@ -7,9 +7,11 @@ export GO111MODULE=on
 
 GithubTop=github.com
 
+GO_VERSION=1.17
+ROCKSDB_VERSION=6.15.5
+IGNORE_CHECK_GO=false
 
-
-Version=v1.5.5
+Version=v1.5.6
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
@@ -22,6 +24,10 @@ MercuryHeight=1
 VenusHeight=1
 Venus1Height=0
 MarsHeight=0
+
+ifeq ($(IGNORE_CHECK_GO),true)
+    GO_VERSION=0
+endif
 
 # process linker flags
 ifeq ($(VERSION),)
@@ -88,6 +94,9 @@ install: exchain
 exchain:
 	go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaind
 	go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaincli
+
+check_version:
+	@sh $(shell pwd)/dev/check-version.sh $(GO_VERSION) $(ROCKSDB_VERSION)
 
 mainnet: exchain
 
