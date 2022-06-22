@@ -1,45 +1,43 @@
 package iavl
 
 import (
-	"container/list"
 	"sync"
 
 	"github.com/okex/exchain/libs/iavl/config"
-	"github.com/tendermint/go-amino"
 )
 
 type NodeCache struct {
-	nodeCache      map[string]*list.Element // Node cache.
-	nodeCacheSize  int                      // Node cache size limit in elements.
-	nodeCacheQueue *syncList                // LRU queue of cache elements. Used for deletion.
-	nodeCacheMutex sync.RWMutex             // Mutex for node cache.
+	nodeCache     map[string]*Node // Node cache.
+	nodeCacheSize int              // Node cache size limit in elements.
+	// nodeCacheQueue *syncList                // LRU queue of cache elements. Used for deletion.
+	nodeCacheMutex sync.RWMutex // Mutex for node cache.
 }
 
 func newNodeCache(dbName string, cacheSize int) *NodeCache {
 	if dbName == "evm" {
 		return &NodeCache{
-			nodeCache:      makeNodeCacheMap(cacheSize, IavlCacheInitRatio),
-			nodeCacheSize:  cacheSize,
-			nodeCacheQueue: newSyncList(),
+			nodeCache:     makeNodeCacheMap(cacheSize, IavlCacheInitRatio),
+			nodeCacheSize: cacheSize,
+			// nodeCacheQueue: newSyncList(),
 		}
 	} else {
 		return &NodeCache{
-			nodeCache:      make(map[string]*list.Element),
-			nodeCacheSize:  cacheSize,
-			nodeCacheQueue: newSyncList(),
+			nodeCache:     make(map[string]*Node),
+			nodeCacheSize: cacheSize,
+			// nodeCacheQueue: newSyncList(),
 		}
 	}
 }
 
-func makeNodeCacheMap(cacheSize int, initRatio float64) map[string]*list.Element {
+func makeNodeCacheMap(cacheSize int, initRatio float64) map[string]*Node {
 	if initRatio <= 0 {
-		return make(map[string]*list.Element)
+		return make(map[string]*Node)
 	}
 	if initRatio >= 1 {
-		return make(map[string]*list.Element, cacheSize)
+		return make(map[string]*Node, cacheSize)
 	}
 	cacheSize = int(float64(cacheSize) * initRatio)
-	return make(map[string]*list.Element, cacheSize)
+	return make(map[string]*Node, cacheSize)
 }
 
 // ===================================================
@@ -48,8 +46,8 @@ func makeNodeCacheMap(cacheSize int, initRatio float64) map[string]*list.Element
 
 func (ndb *NodeCache) uncache(hash []byte) {
 	ndb.nodeCacheMutex.Lock()
-	if elem, ok := ndb.nodeCache[string(hash)]; ok {
-		ndb.nodeCacheQueue.Remove(elem)
+	if _, ok := ndb.nodeCache[string(hash)]; ok {
+		// ndb.nodeCacheQueue.Remove(elem)
 		delete(ndb.nodeCache, string(hash))
 	}
 	ndb.nodeCacheMutex.Unlock()
@@ -59,26 +57,33 @@ func (ndb *NodeCache) uncache(hash []byte) {
 // reached the cache size limit.
 func (ndb *NodeCache) cache(node *Node) {
 	ndb.nodeCacheMutex.Lock()
-	elem := ndb.nodeCacheQueue.PushBack(node)
-	ndb.nodeCache[string(node.hash)] = elem
+	// elem := ndb.nodeCacheQueue.PushBack(node)
+	ndb.nodeCache[string(node.hash)] = node
 
-	for ndb.nodeCacheQueue.Len() > config.DynamicConfig.GetIavlCacheSize() {
-		oldest := ndb.nodeCacheQueue.Front()
-		hash := ndb.nodeCacheQueue.Remove(oldest).(*Node).hash
-		delete(ndb.nodeCache, amino.BytesToStr(hash))
+	if needDelCnt := len(ndb.nodeCache) - config.DynamicConfig.GetIavlCacheSize(); needDelCnt > 0 {
+		for k := range ndb.nodeCache {
+			delete(ndb.nodeCache, k)
+			needDelCnt--
+			if needDelCnt <= 0 {
+				break
+			}
+		}
 	}
 	ndb.nodeCacheMutex.Unlock()
 }
 
 func (ndb *NodeCache) cacheWithKey(key string, node *Node) {
 	ndb.nodeCacheMutex.Lock()
-	elem := ndb.nodeCacheQueue.PushBack(node)
-	ndb.nodeCache[key] = elem
+	ndb.nodeCache[key] = node
 
-	for ndb.nodeCacheQueue.Len() > config.DynamicConfig.GetIavlCacheSize() {
-		oldest := ndb.nodeCacheQueue.Front()
-		hash := ndb.nodeCacheQueue.Remove(oldest).(*Node).hash
-		delete(ndb.nodeCache, amino.BytesToStr(hash))
+	if needDelCnt := len(ndb.nodeCache) - config.DynamicConfig.GetIavlCacheSize(); needDelCnt > 0 {
+		for k := range ndb.nodeCache {
+			delete(ndb.nodeCache, k)
+			needDelCnt--
+			if needDelCnt <= 0 {
+				break
+			}
+		}
 	}
 	ndb.nodeCacheMutex.Unlock()
 }
@@ -99,9 +104,9 @@ func (ndb *NodeCache) get(hash []byte, promoteRecentNode bool) (n *Node) {
 	if ok {
 		if promoteRecentNode {
 			// Already exists. Move to back of nodeCacheQueue.
-			ndb.nodeCacheQueue.MoveToBack(elem)
+			// ndb.nodeCacheQueue.MoveToBack(elem)
 		}
-		n = elem.Value.(*Node)
+		n = elem
 	}
 	ndb.nodeCacheMutex.RUnlock()
 	return
