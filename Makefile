@@ -11,7 +11,7 @@ GO_VERSION=1.17
 ROCKSDB_VERSION=6.27.3
 IGNORE_CHECK_GO=false
 
-Version=v1.5.5
+Version=v1.5.6
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
@@ -47,8 +47,6 @@ ifeq ($(WITH_ROCKSDB),true)
       cgo_flags += CGO_CFLAGS="-I/usr/include/rocksdb"
       cgo_flags += CGO_LDFLAGS="-L/usr/lib -lrocksdb -lstdc++ -lm  -lsnappy -llz4"
   endif
-else
-  ROCKSDB_VERSION=0
 endif
 
 ifeq ($(LINK_STATICALLY),true)
@@ -111,7 +109,8 @@ all: install
 
 install: exchain
 
-exchain: check_version
+
+exchain: 
 	$(cgo_flags) go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaind
 	$(cgo_flags) go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaincli
 
@@ -217,7 +216,7 @@ localnet-stop:
 
 rocksdb:
 	@echo "Installing rocksdb..."
-	@bash ./libs/rocksdb/install.sh --version v$(ROCKSDB_VERSION)
+	@bash ./libs/rocksdb/install.sh
 .PHONY: rocksdb
 
 .PHONY: build
