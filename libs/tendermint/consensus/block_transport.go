@@ -9,9 +9,9 @@ import (
 )
 
 type BlockTransport struct {
-	height int64
+	height       int64
 	recvProposal time.Time
-	firstPart time.Time
+	firstPart    time.Time
 	// because ProposalBlockParts=nil
 	droppedDue2NotExpected int
 	// because the same blockPart already added
@@ -20,16 +20,19 @@ type BlockTransport struct {
 	droppedDue2Error int
 	//because cs.Height != blockPart.height
 	droppedDue2WrongHeight int
-	totalParts int
-	Logger  log.Logger
+	//because cs.Height < blockPart.height
+	droppedDue2HigerHeight int
 
-	bpStatMtx sync.RWMutex
+	totalParts int
+	Logger     log.Logger
+
+	bpStatMtx       sync.RWMutex
 	bpSend          int
 	bpNOTransByData int
 	bpNOTransByACK  int
 }
 
-func (bt *BlockTransport) onProposal(height int64)  {
+func (bt *BlockTransport) onProposal(height int64) {
 	if bt.height == height || bt.height == 0 {
 		bt.recvProposal = time.Now()
 		bt.height = height
@@ -42,20 +45,21 @@ func (bt *BlockTransport) reset(height int64) {
 	bt.droppedDue2NotAdded = 0
 	bt.droppedDue2Error = 0
 	bt.droppedDue2WrongHeight = 0
+	bt.droppedDue2HigerHeight = 0
 	bt.totalParts = 0
 	bt.bpNOTransByData = 0
 	bt.bpNOTransByACK = 0
 	bt.bpSend = 0
 }
 
-func (bt *BlockTransport) on1stPart(height int64)  {
+func (bt *BlockTransport) on1stPart(height int64) {
 	if bt.height == height || bt.height == 0 {
 		bt.firstPart = time.Now()
 		bt.height = height
 	}
 }
 
-func (bt *BlockTransport) onRecvBlock(height int64)  {
+func (bt *BlockTransport) onRecvBlock(height int64) {
 	if bt.height == height {
 		//totalElapsed := time.Now().Sub(bt.recvProposal)
 		//trace.GetElapsedInfo().AddInfo(trace.RecvBlock, fmt.Sprintf("<%dms>", totalElapsed.Milliseconds()))

@@ -304,6 +304,9 @@ func (cs *State) addBlockPart(height int64, round int, part *types.Part, peerID 
 	if cs.Height != height {
 		cs.bt.droppedDue2WrongHeight++
 		cs.Logger.Debug("Received block part from wrong height", "height", height, "round", round)
+		if cs.Height < height {
+			cs.bt.droppedDue2HigerHeight++
+		}
 		return
 	}
 	// We're not expecting a block part.
