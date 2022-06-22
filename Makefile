@@ -39,8 +39,6 @@ build_tags = netgo
 ifeq ($(WITH_ROCKSDB),true)
   CGO_ENABLED=1
   build_tags += rocksdb
-else
-  ROCKSDB_VERSION=0
 endif
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
@@ -199,7 +197,7 @@ localnet-stop:
 
 rocksdb:
 	@echo "Installing rocksdb..."
-	@bash ./libs/rocksdb/install.sh --version v$(ROCKSDB_VERSION)
+	@bash ./libs/rocksdb/install.sh
 .PHONY: rocksdb
 
 .PHONY: build
