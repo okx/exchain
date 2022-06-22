@@ -126,7 +126,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	if mode == runTxModeDeliver {
 		anteCtx = anteCtx.WithAnteTracer(app.anteTracer)
 	}
-	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate) // NewAnteHandler
+	newCtx, err := app.anteHandler(anteCtx, info.tx, mode == runTxModeSimulate || mode == runTxModeTrace) // NewAnteHandler
 	app.pin(AnteChain, false, mode)
 
 	// 3. AnteOther
