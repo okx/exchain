@@ -11,7 +11,8 @@ GO_VERSION=1.17
 ROCKSDB_VERSION=6.27.3
 IGNORE_CHECK_GO=false
 
-Version=v1.6
+
+Version=v1.6.0
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
