@@ -21,6 +21,7 @@ func TestHooks(t *testing.T) {
 	require.NoError(t, err)
 	ak.SetAccount(ctx, acc)
 	k.SetValidatorAccumulatedCommission(ctx, valOpAddr1, NewTestSysCoins(123, 2))
+	k.SetValidatorOutstandingRewards(ctx, valOpAddr1, NewTestSysCoins(123, 2))
 	hook.AfterValidatorRemoved(ctx, nil, valOpAddr1)
 	require.True(t, ctx.KVStore(k.storeKey).Get(valOpAddr1) == nil)
 

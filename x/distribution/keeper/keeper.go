@@ -142,3 +142,7 @@ func (k Keeper) WithdrawDelegationRewards(ctx sdk.Context, delAddr sdk.AccAddres
 	k.initializeDelegation(ctx, valAddr, delAddr)
 	return rewards, nil
 }
+
+func (k Keeper) GetCdc() *codec.Codec {
+	return k.cdc
+}

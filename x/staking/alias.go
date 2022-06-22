@@ -41,6 +41,7 @@ var (
 	GetValidatorsByPowerIndexKey       = types.GetValidatorsByPowerIndexKey
 	NewMsgCreateValidator              = types.NewMsgCreateValidator
 	NewMsgEditValidator                = types.NewMsgEditValidator
+	NewMsgDestroyValidator             = types.NewMsgDestroyValidator
 	NewMsgDeposit                      = types.NewMsgDeposit
 	NewMsgWithdraw                     = types.NewMsgWithdraw
 	DefaultParams                      = types.DefaultParams
@@ -49,6 +50,9 @@ var (
 	NewMsgAddShares                    = types.NewMsgAddShares
 	NewGenesisState                    = types.NewGenesisState
 	DelegatorAddSharesInvariant        = keeper.DelegatorAddSharesInvariant
+	NewMsgRegProxy                     = types.NewMsgRegProxy
+	NewMsgBindProxy                    = types.NewMsgBindProxy
+	NewMsgUnbindProxy                  = types.NewMsgUnbindProxy
 
 	// variable aliases
 	ModuleCdc     = types.ModuleCdc

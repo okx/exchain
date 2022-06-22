@@ -184,3 +184,37 @@ func TestEditValidatorDecreaseMinSelfDelegation(t *testing.T) {
 	SimpleCheckValidator(t, ctx, keeper, validatorAddr, DefaultMSD, sdk.Bonded,
 		SharesFromDefaultMSD, false)
 }
+
+func TestEditValidatorCommission(t *testing.T) {
+	ctx, _, mKeeper := CreateTestInput(t, false, SufficientInitPower)
+	keeper := mKeeper.Keeper
+	_ = setInstantUnbondPeriod(keeper, ctx)
+	handler := NewHandler(keeper)
+
+	newRate, _ := sdk.NewDecFromStr("0.5")
+	msgEditValidator := NewMsgEditValidator(sdk.ValAddress(keep.Addrs[0]), Description{Moniker: "moniker"}, &newRate)
+	require.Nil(t, msgEditValidator.ValidateBasic())
+
+	// validator not exist
+	got, err := handler(ctx, msgEditValidator)
+	require.NotNil(t, err, "%v", got)
+
+	//create validator
+	validatorAddr := sdk.ValAddress(keep.Addrs[0])
+	msgCreateValidator := NewTestMsgCreateValidator(validatorAddr, keep.PKs[0], DefaultMSD)
+	got, err = handler(ctx, msgCreateValidator)
+	require.Nil(t, err, "expected create-validator to be ok, got %v", got)
+
+	// must end-block
+	updates := keeper.ApplyAndReturnValidatorSetUpdates(ctx)
+	require.Equal(t, 1, len(updates))
+	SimpleCheckValidator(t, ctx, keeper, validatorAddr, DefaultMSD, sdk.Bonded,
+		SharesFromDefaultMSD, false)
+
+	// invalid rate
+	newRate, _ = sdk.NewDecFromStr("-0.5")
+	msgEditValidator = NewMsgEditValidator(validatorAddr, Description{Moniker: "moniker"}, &newRate)
+	require.NotNil(t, msgEditValidator.ValidateBasic())
+	got, err = handler(ctx, msgEditValidator)
+	require.NotNil(t, err)
+}

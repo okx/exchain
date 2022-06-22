@@ -168,7 +168,7 @@ func (msg MsgEditValidator) ValidateBasic() error {
 		return ErrNilValidatorAddr()
 	}
 
-	if msg.Description == (Description{}) {
+	if msg.Description == (Description{}) && msg.CommissionRate == nil {
 		return ErrNilValidatorAddr()
 	}
 

@@ -16,7 +16,7 @@ func (k Keeper) initializeValidator(ctx sdk.Context, val exported.ValidatorI) {
 	// set current rewards (starting at period 1)
 	k.SetValidatorCurrentRewards(ctx, val.GetOperator(), types.NewValidatorCurrentRewards(sdk.SysCoins{}, 1))
 
-	// set accumulated commission
+	// set accumulated commissions
 	k.SetValidatorAccumulatedCommission(ctx, val.GetOperator(), types.InitialValidatorAccumulatedCommission())
 
 	// set outstanding rewards
@@ -44,7 +44,7 @@ func (k Keeper) incrementValidatorPeriod(ctx sdk.Context, val exported.Validator
 		k.SetValidatorOutstandingRewards(ctx, val.GetOperator(), outstanding)
 
 		current = sdk.SysCoins{}
-		logger.Info(fmt.Sprintf("delegator shares is zero, add to the community pool, val:%s", val.GetOperator().String()))
+		logger.Debug(fmt.Sprintf("delegator shares is zero, add to the community pool, val:%s", val.GetOperator().String()))
 	} else {
 		// note: necessary to truncate so we don't allow withdrawing more rewards than owed
 		current = rewards.Rewards.QuoDecTruncate(val.GetDelegatorShares())
@@ -62,8 +62,8 @@ func (k Keeper) incrementValidatorPeriod(ctx sdk.Context, val exported.Validator
 	// set current rewards, incrementing period by 1
 	k.SetValidatorCurrentRewards(ctx, val.GetOperator(), types.NewValidatorCurrentRewards(sdk.SysCoins{}, rewards.Period+1))
 
-	logger.Info(fmt.Sprintf("increment period val:%s, current reward ratio%s, historical:%s, ",
-		val.GetOperator().String(), current.String(), historical.String()))
+	logger.Debug(fmt.Sprintf("increment period val:%s, current reward ratio%s, historical:%s, val shares:%s",
+		val.GetOperator().String(), current.String(), historical.String(), val.GetDelegatorShares()))
 	return rewards.Period
 }
 

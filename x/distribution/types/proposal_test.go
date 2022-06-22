@@ -37,7 +37,6 @@ func TestNewCommunityPoolSpendProposal(t *testing.T) {
 	require.Error(t, proposal.ValidateBasic())
 }
 
-//TODO migrate to a public module
 func RandStr(length int) string {
 	str := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 	bytes := []byte(str)

@@ -24,6 +24,7 @@ func (k Keeper) initializeDelegation(ctx sdk.Context, val sdk.ValAddress, del sd
 // calculate the rewards accrued by a delegation between two periods
 func (k Keeper) calculateDelegationRewardsBetween(ctx sdk.Context, val stakingexported.ValidatorI,
 	startingPeriod, endingPeriod uint64, stake sdk.Dec) (rewards sdk.DecCoins) {
+	logger := k.Logger(ctx)
 	// sanity check
 	if startingPeriod > endingPeriod {
 		panic("startingPeriod cannot be greater than endingPeriod")
@@ -43,6 +44,9 @@ func (k Keeper) calculateDelegationRewardsBetween(ctx sdk.Context, val stakingex
 	}
 	// note: necessary to truncate so we don't allow withdrawing more rewards than owed
 	rewards = difference.MulDecTruncate(stake)
+	logger.Debug(fmt.Sprintf("starting ratio:%s, ending:%s, diff:%s, stake:%s, rewards:%s",
+		starting.CumulativeRewardRatio.String(), ending.CumulativeRewardRatio.String(), difference.String(),
+		stake.String(), rewards.String()))
 	return
 }
 
