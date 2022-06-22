@@ -1,6 +1,7 @@
 package types_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -277,5 +278,43 @@ func BenchmarkContextDuffCopy(b *testing.B) {
 				testFoo(newCtx)
 			}
 		})
+	})
+}
+
+func BenchmarkContextWrapAndUnwrap(b *testing.B) {
+	key := types.NewKVStoreKey(b.Name())
+
+	ctx := defaultContext(key)
+	logger := NewMockLogger()
+	ctx.SetLogger(logger)
+
+	height := int64(1)
+	chainid := "chainid"
+	txbytes := []byte("txbytes")
+	voteinfos := []abci.VoteInfo{{}}
+	meter := types.NewGasMeter(10000)
+	minGasPrices := types.DecCoins{types.NewInt64DecCoin("feetoken", 1)}
+	ctx.
+		SetBlockHeight(height).
+		SetChainID(chainid).
+		SetTxBytes(txbytes).
+		SetVoteInfos(voteinfos).
+		SetGasMeter(meter).
+		SetMinGasPrices(minGasPrices).SetContext(context.Background())
+	ctxC := types.WrapSDKContext(ctx)
+	b.Run("UnwrapSDKContext", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			types.UnwrapSDKContext(ctxC)
+		}
+	})
+
+	b.Run("WrapSDKContext", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			types.WrapSDKContext(ctx)
+		}
 	})
 }
