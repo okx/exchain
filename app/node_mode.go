@@ -92,11 +92,7 @@ func logStartingFlags(logger log.Logger) {
 	kvMap := make(map[string]interface{})
 	var keys []string
 	for _, key := range viper.AllKeys() {
-
-		if strings.Index(key, "stream.") == 0 {
-			continue
-		}
-		if strings.Index(key, "backend.") == 0 {
+		if strings.Index(key, "infura.") == 0 {
 			continue
 		}
 

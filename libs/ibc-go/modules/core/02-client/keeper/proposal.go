@@ -3,6 +3,7 @@ package keeper
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
@@ -60,4 +61,31 @@ func (k Keeper) ClientUpdateProposal(ctx sdk.Context, p *types.ClientUpdatePropo
 	)
 
 	return nil
+}
+
+func (k Keeper) HandleUpgradeProposal(ctx sdk.Context, p *types.UpgradeProposal) error {
+	clientState, err := types.UnpackClientState(p.UpgradedClientState)
+	if err != nil {
+		return sdkerrors.Wrap(err, "could not unpack UpgradedClientState")
+	}
+
+	// zero out any custom fields before setting
+	cs := clientState.ZeroCustomFields()
+	bz, err := types.MarshalClientState(k.cdc, cs)
+	if err != nil {
+		return sdkerrors.Wrap(err, "could not marshal UpgradedClientState")
+	}
+
+	if err := k.upgradeKeeper.ScheduleUpgrade(ctx, upgrade.Plan{
+		Name:   p.Plan.Name,
+		Time:   p.Plan.Time,
+		Height: p.Plan.Height,
+		Info:   p.Plan.Info,
+	}); err != nil {
+		return err
+	}
+
+	// sets the new upgraded client in last height committed on this chain is at plan.Height,
+	// since the chain will panic at plan.Height and new chain will resume at plan.Height
+	return k.upgradeKeeper.SetUpgradedClient(ctx, p.Plan.Height, bz)
 }

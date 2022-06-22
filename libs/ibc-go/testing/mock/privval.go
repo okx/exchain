@@ -46,3 +46,8 @@ func (pv PV) SignProposal(chainID string, proposal *tmtypes.Proposal) error {
 	proposal.Signature = sig
 	return nil
 }
+
+// SignBytes implements PrivValidator interface
+func (pv PV) SignBytes(bz []byte) ([]byte, error) {
+	return pv.PrivKey.Sign(bz)
+}
