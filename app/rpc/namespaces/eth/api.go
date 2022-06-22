@@ -969,33 +969,7 @@ func (api *PublicEthereumAPI) doCall(
 	}
 	sim := api.evmFactory.BuildSimulator(api, app.EvmHooks)
 	hookCallBack := func() (uint64, error) {
-		var txEncoder sdk.TxEncoder
-		height := global.GetGlobalHeight()
-		if tmtypes.HigherThanVenus(height) {
-			txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
-		} else {
-			txEncoder = authclient.GetTxEncoder(clientCtx.Codec)
-		}
-		txBytes, err := txEncoder(msg)
-		if err != nil {
-			return 0, err
-		}
-
-		var simulatePath string
-		var queryData []byte
-
-		simulatePath = fmt.Sprintf("app/simulate/%s", addr.String())
-		queryData = txBytes
-
-		res, _, err := clientCtx.QueryWithData(simulatePath, queryData)
-		if err != nil {
-			return 0, err
-		}
-		var simResponse sdk.SimulationResponse
-		if err := clientCtx.Codec.UnmarshalBinaryBare(res, &simResponse); err != nil {
-			return 0, err
-		}
-		return simResponse.GasUsed, nil
+		return simulateEvmWithHookTxGas(clientCtx, msg, addr)
 	}
 	//only worked when fast-query has been enabled
 	if sim != nil {
@@ -1049,6 +1023,36 @@ func (api *PublicEthereumAPI) doCall(
 	}
 
 	return &simResponse, nil
+}
+
+func simulateEvmWithHookTxGas(clientCtx clientcontext.CLIContext, msg *evmtypes.MsgEthereumTx, addr common.Address) (uint64, error) {
+	var txEncoder sdk.TxEncoder
+	height := global.GetGlobalHeight()
+	if tmtypes.HigherThanVenus(height) {
+		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
+	} else {
+		txEncoder = authclient.GetTxEncoder(clientCtx.Codec)
+	}
+	txBytes, err := txEncoder(msg)
+	if err != nil {
+		return 0, err
+	}
+
+	var simulatePath string
+	var queryData []byte
+
+	simulatePath = fmt.Sprintf("app/simulate/%s", addr.String())
+	queryData = txBytes
+
+	res, _, err := clientCtx.QueryWithData(simulatePath, queryData)
+	if err != nil {
+		return 0, err
+	}
+	var simResponse sdk.SimulationResponse
+	if err := clientCtx.Codec.UnmarshalBinaryBare(res, &simResponse); err != nil {
+		return 0, err
+	}
+	return simResponse.GasUsed, nil
 }
 
 // EstimateGas returns an estimate of gas usage for the given smart contract call.

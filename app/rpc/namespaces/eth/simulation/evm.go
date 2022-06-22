@@ -1,7 +1,6 @@
 package simulation
 
 import (
-	"github.com/okex/exchain/x/erc20"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -103,11 +102,9 @@ func (ef EvmFactory) makeEvmKeeper(qoc QueryOnChainProxy, hooks evmtypes.EvmHook
 func (ef EvmFactory) makeContext(k *evm.Keeper, header abci.Header) sdk.Context {
 	db := dbm.NewMemDB()
 	cms := store.NewCommitMultiStore(db)
-	erc20Key := sdk.NewKVStoreKey(erc20.StoreKey)
 	authKey := sdk.NewKVStoreKey(auth.StoreKey)
 	paramsKey := sdk.NewKVStoreKey(params.StoreKey)
 	paramsTKey := sdk.NewTransientStoreKey(params.TStoreKey)
-	cms.MountStoreWithDB(erc20Key, sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(authKey, sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(paramsKey, sdk.StoreTypeIAVL, db)
 	cms.MountStoreWithDB(k.GetStoreKey(), sdk.StoreTypeIAVL, db)

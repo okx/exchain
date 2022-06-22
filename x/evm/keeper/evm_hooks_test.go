@@ -21,11 +21,19 @@ func (dh *LogRecordHook) PostTxProcessing(ctx sdk.Context, from common.Address, 
 	return nil
 }
 
+func (dh *LogRecordHook) HasEvent(eventId common.Hash) bool {
+	panic("implement me")
+}
+
 // FailureHook always fail
 type FailureHook struct{}
 
 func (dh FailureHook) PostTxProcessing(ctx sdk.Context, from common.Address, to *common.Address, receipt *ethtypes.Receipt) error {
 	return errors.New("post tx processing failed")
+}
+
+func (dh *FailureHook) HasEvent(eventId common.Hash) bool {
+	panic("implement me")
 }
 
 func (suite *KeeperTestSuite) TestEvmHooks() {

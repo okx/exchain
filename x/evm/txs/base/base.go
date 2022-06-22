@@ -95,18 +95,14 @@ func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 						tx.Keeper.Logger(tx.Ctx).Error("checktx tx call evm hooks failed", "error", err)
 					}
 					tx.Ctx.GasMeter().ConsumeGas(gasUsed-tx.Ctx.GasMeter().GasConsumed(), "recall verb")
-				} else {
-					err = tx.Keeper.CallEvmHooks(tx.Ctx, tx.StateTransition.Sender, tx.StateTransition.Recipient, receipt)
-					if err != nil {
-						tx.Keeper.Logger(tx.Ctx).Error("tx call evm hooks failed", "error", err)
-					}
+					return
 				}
 			}
-		} else {
-			err = tx.Keeper.CallEvmHooks(tx.Ctx, tx.StateTransition.Sender, tx.StateTransition.Recipient, receipt)
-			if err != nil {
-				tx.Keeper.Logger(tx.Ctx).Error("tx call evm hooks failed", "error", err)
-			}
+		}
+
+		err = tx.Keeper.CallEvmHooks(tx.Ctx, tx.StateTransition.Sender, tx.StateTransition.Recipient, receipt)
+		if err != nil {
+			tx.Keeper.Logger(tx.Ctx).Error("tx call evm hooks failed", "error", err)
 		}
 	}
 
