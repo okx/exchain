@@ -49,7 +49,7 @@ ifeq ($(WITH_ROCKSDB),true)
       cgo_flags += CGO_LDFLAGS="-L/usr/lib -lrocksdb -lstdc++ -lm  -lsnappy -llz4"
   endif
 else
-ROCKSDB_VERSION=0
+  ROCKSDB_VERSION=0
 endif
 
 ifeq ($(LINK_STATICALLY),true)
