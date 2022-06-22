@@ -1,6 +1,7 @@
 package iavl
 
 import (
+	"github.com/tendermint/go-amino"
 	"sync"
 
 	"github.com/okex/exchain/libs/iavl/config"
@@ -62,6 +63,9 @@ func (ndb *NodeCache) cache(node *Node) {
 
 	if needDelCnt := len(ndb.nodeCache) - config.DynamicConfig.GetIavlCacheSize(); needDelCnt > 0 {
 		for k := range ndb.nodeCache {
+			if k == amino.BytesToStr(node.hash) {
+				continue
+			}
 			delete(ndb.nodeCache, k)
 			needDelCnt--
 			if needDelCnt <= 0 {
@@ -78,6 +82,9 @@ func (ndb *NodeCache) cacheWithKey(key string, node *Node) {
 
 	if needDelCnt := len(ndb.nodeCache) - config.DynamicConfig.GetIavlCacheSize(); needDelCnt > 0 {
 		for k := range ndb.nodeCache {
+			if k == key {
+				continue
+			}
 			delete(ndb.nodeCache, k)
 			needDelCnt--
 			if needDelCnt <= 0 {
