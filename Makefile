@@ -12,7 +12,7 @@ ROCKSDB_VERSION=6.15.5
 IGNORE_CHECK_GO=false
 install_rocksdb_version:=$(ROCKSDB_VERSION)
 
-Version=v1.5.5
+Version=v1.5.6
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
@@ -40,8 +40,6 @@ build_tags = netgo
 ifeq ($(WITH_ROCKSDB),true)
   CGO_ENABLED=1
   build_tags += rocksdb
-else
-  ROCKSDB_VERSION=0
 endif
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
