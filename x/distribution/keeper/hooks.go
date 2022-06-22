@@ -2,6 +2,7 @@ package keeper
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/okex/exchain/x/distribution/types"
 	stakingtypes "github.com/okex/exchain/x/staking/types"
@@ -25,6 +26,38 @@ func (h Hooks) AfterValidatorCreated(ctx sdk.Context, valAddr sdk.ValAddress) {
 
 // AfterValidatorRemoved cleans up for after validator is removed
 func (h Hooks) AfterValidatorRemoved(ctx sdk.Context, _ sdk.ConsAddress, valAddr sdk.ValAddress) {
+	if tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+		h.newAfterValidatorRemoved(ctx, nil, valAddr)
+		return
+	}
+
+	// force-withdraw commission
+	commission := h.k.GetValidatorAccumulatedCommission(ctx, valAddr)
+	if !commission.IsZero() {
+		// split into integral & remainder
+		coins, remainder := commission.TruncateDecimal()
+		// remainder to community pool
+		if !remainder.IsZero() {
+			feePool := h.k.GetFeePool(ctx)
+			feePool.CommunityPool = feePool.CommunityPool.Add(remainder...)
+			h.k.SetFeePool(ctx, feePool)
+		}
+		// add to validator account
+		if !coins.IsZero() {
+			accAddr := sdk.AccAddress(valAddr)
+			withdrawAddr := h.k.GetDelegatorWithdrawAddr(ctx, accAddr)
+			err := h.k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, withdrawAddr, coins)
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
+
+	// remove commission record
+	h.k.deleteValidatorAccumulatedCommission(ctx, valAddr)
+}
+
+func (h Hooks) newAfterValidatorRemoved(ctx sdk.Context, _ sdk.ConsAddress, valAddr sdk.ValAddress) {
 	// fetch outstanding
 	outstanding := h.k.GetValidatorOutstandingRewards(ctx, valAddr)
 
@@ -76,6 +109,10 @@ func (h Hooks) AfterValidatorRemoved(ctx sdk.Context, _ sdk.ConsAddress, valAddr
 
 // increment period
 func (h Hooks) BeforeDelegationCreated(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
+	if !tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+		return
+	}
+
 	for _, valAddr := range valAddrs {
 		val := h.k.stakingKeeper.Validator(ctx, valAddr)
 		h.k.incrementValidatorPeriod(ctx, val)
@@ -84,6 +121,10 @@ func (h Hooks) BeforeDelegationCreated(ctx sdk.Context, delAddr sdk.AccAddress, 
 
 // withdraw delegation rewards (which also increments period)
 func (h Hooks) BeforeDelegationSharesModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
+	if !tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+		return
+	}
+
 	//del := h.k.stakingKeeper.Delegator(ctx, delAddr)
 	for _, valAddr := range valAddrs {
 		val := h.k.stakingKeeper.Validator(ctx, valAddr)
@@ -95,6 +136,9 @@ func (h Hooks) BeforeDelegationSharesModified(ctx sdk.Context, delAddr sdk.AccAd
 
 // create new delegation period record
 func (h Hooks) AfterDelegationModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
+	if !tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+		return
+	}
 	for _, valAddr := range valAddrs {
 		h.k.initializeDelegation(ctx, valAddr, delAddr)
 	}

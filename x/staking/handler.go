@@ -164,25 +164,24 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 
 	validator.Description = description
 
-	if msg.CommissionRate != nil {
-		commission, err := k.UpdateValidatorCommission(ctx, validator, *msg.CommissionRate)
-		if err != nil {
-			return nil, err
+	if tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+		if msg.CommissionRate != nil {
+			commission, err := k.UpdateValidatorCommission(ctx, validator, *msg.CommissionRate)
+			if err != nil {
+				return nil, err
+			}
+
+			// call the before-modification hook since we're about to update the commission
+			k.BeforeValidatorModified(ctx, msg.ValidatorAddress)
+
+			validator.Commission = commission
 		}
-
-		// call the before-modification hook since we're about to update the commission
-		k.BeforeValidatorModified(ctx, msg.ValidatorAddress)
-
-		validator.Commission = commission
 	}
 
 	k.SetValidator(ctx, validator)
 
-	//TODO zhujianguo need to consider changed event
 	ctx.EventManager().EmitEvents(sdk.Events{
-		sdk.NewEvent(
-			types.EventTypeEditValidator,
-			sdk.NewAttribute(types.AttributeKeyCommissionRate, validator.Commission.String()),
+		sdk.NewEvent(types.EventTypeEditValidator,
 			sdk.NewAttribute(types.AttributeKeyMinSelfDelegation, validator.MinSelfDelegation.String()),
 		),
 		sdk.NewEvent(sdk.EventTypeMessage,

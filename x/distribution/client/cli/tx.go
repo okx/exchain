@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"fmt"
 	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/client/common"
 	"github.com/spf13/viper"
 	"strings"
@@ -174,6 +175,9 @@ $ %s tx distribution withdraw-all-rewards --from mykey
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
+			if !tmtypes.HigherThanVenus2(cliCtx.Height) {
+				return fmt.Errorf("not support it with this version")
+			}
 
 			delAddr := cliCtx.GetFromAddress()
 

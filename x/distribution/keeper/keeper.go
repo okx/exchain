@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -89,9 +90,11 @@ func (k Keeper) WithdrawValidatorCommission(ctx sdk.Context, valAddr sdk.ValAddr
 	commission, remainder := accumCommission.TruncateDecimal()
 	k.SetValidatorAccumulatedCommission(ctx, valAddr, remainder) // leave remainder to withdraw later
 
-	// update outstanding
-	outstanding := k.GetValidatorOutstandingRewards(ctx, valAddr)
-	k.SetValidatorOutstandingRewards(ctx, valAddr, outstanding.Sub(sdk.NewDecCoinsFromCoins(commission...)))
+	if tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+		// update outstanding
+		outstanding := k.GetValidatorOutstandingRewards(ctx, valAddr)
+		k.SetValidatorOutstandingRewards(ctx, valAddr, outstanding.Sub(sdk.NewDecCoinsFromCoins(commission...)))
+	}
 
 	if !commission.IsZero() {
 		accAddr := sdk.AccAddress(valAddr)

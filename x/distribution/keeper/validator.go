@@ -3,6 +3,7 @@ package keeper
 import (
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/okex/exchain/x/distribution/types"
 	"github.com/okex/exchain/x/staking/exported"
@@ -10,6 +11,12 @@ import (
 
 // initialize rewards for a new validator
 func (k Keeper) initializeValidator(ctx sdk.Context, val exported.ValidatorI) {
+	if !tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+		// set accumulated commissions
+		k.SetValidatorAccumulatedCommission(ctx, val.GetOperator(), types.InitialValidatorAccumulatedCommission())
+		return
+	}
+
 	// set initial historical rewards (period 0) with reference count of 1
 	k.SetValidatorHistoricalRewards(ctx, val.GetOperator(), 0, types.NewValidatorHistoricalRewards(sdk.SysCoins{}, 1))
 
@@ -25,6 +32,10 @@ func (k Keeper) initializeValidator(ctx sdk.Context, val exported.ValidatorI) {
 
 // increment validator period, returning the period just ended
 func (k Keeper) incrementValidatorPeriod(ctx sdk.Context, val exported.ValidatorI) uint64 {
+	if !tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+		return 0
+	}
+
 	logger := k.Logger(ctx)
 	// fetch current rewards
 	rewards := k.GetValidatorCurrentRewards(ctx, val.GetOperator())

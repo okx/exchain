@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -143,6 +144,27 @@ func (k Keeper) allocateByShares(ctx sdk.Context, rewards sdk.SysCoins) sdk.SysC
 
 // AllocateTokensToValidator allocate tokens to a particular validator, splitting according to commissions
 func (k Keeper) AllocateTokensToValidator(ctx sdk.Context, val exported.ValidatorI, tokens sdk.SysCoins) {
+	if tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+		k.newAllocateTokensToValidator(ctx, val, tokens)
+		return
+	}
+
+	// split tokens between validator and delegators according to commissions
+	// commissions is always 1.0, so tokens.MulDec(val.GetCommission()) = tokens
+	// only update current commissions
+	commission := k.GetValidatorAccumulatedCommission(ctx, val.GetOperator())
+	commission = commission.Add(tokens...)
+	k.SetValidatorAccumulatedCommission(ctx, val.GetOperator(), commission)
+	ctx.EventManager().EmitEvent(
+		sdk.NewEvent(
+			types.EventTypeCommission,
+			sdk.NewAttribute(sdk.AttributeKeyAmount, tokens.String()),
+			sdk.NewAttribute(types.AttributeKeyValidator, val.GetOperator().String()),
+		),
+	)
+}
+
+func (k Keeper) newAllocateTokensToValidator(ctx sdk.Context, val exported.ValidatorI, tokens sdk.SysCoins) {
 	logger := k.Logger(ctx)
 	commission := tokens
 	if k.GetDistributionType(ctx) == types.DistributionTypeOnChain {

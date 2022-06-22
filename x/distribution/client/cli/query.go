@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -142,6 +143,10 @@ $ %s query distribution rewards cosmos1gghjut3ccd8ay0zduzj64hwre2fxs9ld75ru9p co
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
+			if !tmtypes.HigherThanVenus2(cliCtx.Height) {
+				return fmt.Errorf("not support it with this version")
+			}
+
 			// query for rewards from a particular delegation
 			if len(args) == 2 {
 				resp, _, err := common.QueryDelegationRewards(cliCtx, queryRoute, args[0], args[1])
@@ -203,6 +208,9 @@ $ %s query distribution validator-outstanding-rewards cosmosvaloper1lwjmdnks33xw
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
+			if !tmtypes.HigherThanVenus2(cliCtx.Height) {
+				return fmt.Errorf("not support it with this version")
+			}
 
 			valAddr, err := sdk.ValAddressFromBech32(args[0])
 			if err != nil {

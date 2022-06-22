@@ -27,6 +27,9 @@ var (
 	MILESTONE_VENUS1_HEIGHT string
 	milestoneVenus1Height   int64
 
+	MILESTONE_VENUS2_HEIGHT string
+	milestoneVenus2Height   int64
+
 	once sync.Once
 )
 
@@ -37,6 +40,7 @@ func init() {
 		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
 		milestoneMarsHeight = string2number(MILESTONE_MARS_HEIGHT)
 		milestoneVenus1Height = string2number(MILESTONE_VENUS1_HEIGHT)
+		milestoneVenus2Height = string2number(MILESTONE_VENUS2_HEIGHT)
 	})
 }
 
@@ -135,3 +139,10 @@ func GetVenus1Height() int64 {
 
 // =========== Venus1 ===============
 // ==================================
+
+func HigherThanVenus2(h int64) bool {
+	if milestoneVenus2Height == 0 {
+		return false
+	}
+	return h >= milestoneVenus2Height
+}

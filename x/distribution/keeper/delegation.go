@@ -3,12 +3,17 @@ package keeper
 import (
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/types"
 	stakingexported "github.com/okex/exchain/x/staking/exported"
 )
 
 // initialize starting info for a new delegation
 func (k Keeper) initializeDelegation(ctx sdk.Context, val sdk.ValAddress, del sdk.AccAddress) {
+	if !tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+		return
+	}
+
 	logger := k.Logger(ctx)
 	// period has already been incremented - we want to store the period ended by this delegation action
 	previousPeriod := k.GetValidatorCurrentRewards(ctx, val).Period - 1
