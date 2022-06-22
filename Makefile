@@ -94,7 +94,7 @@ all: install
 
 install: exchain
 
-exchain: check_version
+exchain:
 	go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaind
 	go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaincli
 
