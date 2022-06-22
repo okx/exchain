@@ -2,7 +2,6 @@ package deliver
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 
@@ -76,26 +75,6 @@ func (tx *Tx) RefundFeesWatcher(account authexported.Account, ethereumTx *types.
 	}
 
 	fixedFees := refund.CalculateRefundFees(gasConsumed, ethereumTx.GetFee(), ethereumTx.Data.Price)
-	coins := account.GetCoins().Add2(fixedFees)
-	account.SetCoins(coins) //ignore err, no err will be returned in SetCoins
-
-	pm := tx.Keeper.GenerateCSDBParams()
-	pm.Watcher.SaveAccount(account, false)
-}
-
-func (tx *Tx) RefundFeesWatcherExx(account authexported.Account, coin sdk.Coins, price *big.Int) {
-	// fix account balance in watcher with refund fees
-	if account == nil || !tx.Keeper.Watcher.Enabled() {
-		return
-	}
-	defer func() {
-		//panic was not allowed in this function
-		if e := recover(); e != nil {
-			tx.Ctx.Logger().Error(fmt.Sprintf("recovered panic at func RefundFeesWatcher %v\n", e))
-		}
-	}()
-	gasConsumed := tx.Ctx.GasMeter().GasConsumed()
-	fixedFees := refund.CalculateRefundFees(gasConsumed, coin, price)
 	coins := account.GetCoins().Add2(fixedFees)
 	account.SetCoins(coins) //ignore err, no err will be returned in SetCoins
 
