@@ -10,6 +10,7 @@ GithubTop=github.com
 GO_VERSION=1.17
 ROCKSDB_VERSION=6.15.5
 IGNORE_CHECK_GO=false
+install_rocksdb_version:=$(ROCKSDB_VERSION)
 
 Version=v1.5.5
 CosmosSDK=v0.39.2
@@ -93,7 +94,7 @@ all: install
 
 install: exchain
 
-exchain:
+exchain: check_version
 	go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaind
 	go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaincli
 
@@ -199,7 +200,7 @@ localnet-stop:
 
 rocksdb:
 	@echo "Installing rocksdb..."
-	@bash ./libs/rocksdb/install.sh --version v$(ROCKSDB_VERSION)
+	@bash ./libs/rocksdb/install.sh --version v$(install_rocksdb_version)
 .PHONY: rocksdb
 
 .PHONY: build
