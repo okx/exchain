@@ -1015,7 +1015,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		if store.GetStoreType() == types.StoreTypeTransient {
 			continue
 		}
-		log.Println(fmt.Sprintf("key : %s, %s", key.Name(), commitID.String()))
+		log.Println(fmt.Sprintf("lcm key : %s, version: %d, %s", key.Name(), version, commitID.String()))
 
 		si := storeInfo{}
 		si.Name = key.Name()

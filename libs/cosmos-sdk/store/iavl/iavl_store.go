@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
+	"runtime/debug"
 	"sync"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
@@ -202,6 +204,9 @@ func (st *Store) CacheWrapWithTrace(w io.Writer, tc types.TraceContext) types.Ca
 func (st *Store) Set(key, value []byte) {
 	types.AssertValidValue(value)
 	st.tree.Set(key, value)
+	if st.tree.GetModuleName() == "evm" {
+		log.Println(fmt.Sprintf("lcm evm set height(%d), stack: %s", st.tree.Version(), string(debug.Stack())))
+	}
 	st.setFlatKV(key, value)
 }
 

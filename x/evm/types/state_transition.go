@@ -289,7 +289,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 		bloomFilter = ethtypes.BytesToBloom(bloomInt.Bytes())
 	}
 
-	if !st.Simulate {
+	if !st.Simulate || st.TraceTx {
 		// Finalise state if not a simulated transaction or a trace tx
 		// TODO: change to depend on config
 		if err = csdb.Finalise(true); err != nil {
