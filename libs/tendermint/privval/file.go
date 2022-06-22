@@ -306,7 +306,7 @@ func (pv *FilePV) signVote(chainID string, vote *types.Vote) error {
 
 	lss := pv.LastSignState
 
-	sameHRS, err := lss.CheckHRS(height, round, step, false)
+	sameHRS, err := lss.CheckHRS(height, round, step, vote.HasVC)
 	if err != nil {
 		return err
 	}
