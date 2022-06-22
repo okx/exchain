@@ -2,7 +2,6 @@ package baseapp
 
 import (
 	"fmt"
-	"log"
 	"runtime/debug"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -46,9 +45,6 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	err = handler.handleStartHeight(info, height)
 	if err != nil {
 		return err
-	}
-	if info.ctx.IsTraceTxLog() {
-		log.Println(fmt.Sprintf("lcm handleStartHeight, ctx: %v", info.ctx))
 	}
 	//info with cache saved in app to load predesessor tx state
 	if mode != runTxModeTrace {
