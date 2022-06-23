@@ -205,8 +205,8 @@ func (st *Store) CacheWrapWithTrace(w io.Writer, tc types.TraceContext) types.Ca
 func (st *Store) Set(key, value []byte) {
 	types.AssertValidValue(value)
 	st.tree.Set(key, value)
-	log.Println(fmt.Sprintf("lcm evm set height(%d), key(%s)", st.tree.Version(), st.tree.GetModuleName()))
 	if st.tree.GetModuleName() == "evm" {
+		log.Println(fmt.Sprintf("lcm evm store set height(%d), key(%v), value(%v)", st.tree.Version(), key, value))
 		stack := string(debug.Stack())
 		if !strings.Contains(stack, "baseapp.(*BaseApp).Commit") {
 			log.Println(fmt.Sprintf("lcm evm set height(%d), stack: %s", st.tree.Version(), stack))

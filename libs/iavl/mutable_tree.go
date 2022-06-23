@@ -5,9 +5,7 @@ import (
 	"container/list"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"sort"
-	"strings"
 	"sync"
 
 	"github.com/tendermint/go-amino"
@@ -594,15 +592,6 @@ func (tree *MutableTree) SaveVersion(useDeltas bool) ([]byte, int64, TreeDelta, 
 }
 func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte, int64, error) {
 	batch := tree.NewBatch()
-	defer func() {
-		if tree.GetModuleName() == "evm" {
-			str := strings.Builder{}
-			str.WriteString(fmt.Sprintf("nodes的数量=%d,", len(tree.savedNodes)))
-			str.WriteString(fmt.Sprintf("orphans=%d,", len(tree.orphans)))
-			str.WriteString(fmt.Sprintf("string=%s,", tree.String()))
-			log.Println(str.String())
-		}
-	}()
 
 	if tree.root == nil {
 		// There can still be orphans, for example if the root is the node being
