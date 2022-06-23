@@ -2,12 +2,12 @@ package evidence
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/consensus"
 	"sync"
 	"time"
 
 	dbm "github.com/okex/exchain/libs/tm-db"
 
+	"github.com/okex/exchain/libs/tendermint/consensus"
 	clist "github.com/okex/exchain/libs/tendermint/libs/clist"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	sm "github.com/okex/exchain/libs/tendermint/state"
@@ -97,9 +97,11 @@ func (evpool *Pool) Update(block *types.Block, state sm.State) {
 
 // AddEvidence checks the evidence is valid and adds it to the pool.
 func (evpool *Pool) AddEvidence(evidence types.Evidence) error {
-	if ev, ok := evidence.(*types.DuplicateVoteEvidence); ok {
-		if consensus.GetActiveVC() && ev.VoteA.Round == 0 && ev.VoteB.Round == 0 {
-			return nil
+	if consensus.GetActiveVC() {
+		if ev, ok := evidence.(*types.DuplicateVoteEvidence); ok {
+			if ev.VoteA.Round == 0 && ev.VoteB.Round == 0 {
+				return nil
+			}
 		}
 	}
 
