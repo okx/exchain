@@ -2,7 +2,7 @@ package evidence
 
 import (
 	"fmt"
-
+	"github.com/okex/exchain/libs/tendermint/consensus"
 	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/libs/tendermint/types"
@@ -115,6 +115,11 @@ func (store *Store) listEvidence(prefixKey string, maxNum int64) (evidence []typ
 		err := cdc.UnmarshalBinaryBare(val, &ei)
 		if err != nil {
 			panic(err)
+		}
+		if ev, ok := ei.Evidence.(*types.DuplicateVoteEvidence); ok {
+			if consensus.GetActiveVC() && ev.VoteA.Round == 0 && ev.VoteB.Round == 0 {
+				continue
+			}
 		}
 		evidence = append(evidence, ei.Evidence)
 	}

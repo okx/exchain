@@ -2,6 +2,7 @@ package evidence
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/consensus"
 	"sync"
 	"time"
 
@@ -96,6 +97,11 @@ func (evpool *Pool) Update(block *types.Block, state sm.State) {
 
 // AddEvidence checks the evidence is valid and adds it to the pool.
 func (evpool *Pool) AddEvidence(evidence types.Evidence) error {
+	if ev, ok := evidence.(*types.DuplicateVoteEvidence); ok {
+		if consensus.GetActiveVC() && ev.VoteA.Round == 0 && ev.VoteB.Round == 0 {
+			return nil
+		}
+	}
 
 	// check if evidence is already stored
 	if evpool.store.Has(evidence) {
