@@ -7,6 +7,7 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 
 	"github.com/okex/exchain/x/distribution/types"
+	stakingexported "github.com/okex/exchain/x/staking/exported"
 )
 
 // HandleCommunityPoolSpendProposal is a handler for executing a passed community spend proposal
@@ -60,7 +61,15 @@ func HandleChangeDistributionTypeProposal(ctx sdk.Context, k Keeper, p types.Cha
 		return nil
 	}
 
-	//2.TODO zhujianguo init the new validators status
+	if p.Type == types.DistributionTypeOnChain {
+		//iteration validators, init val which has not outstanding
+		k.stakingKeeper.IterateValidators(ctx, func(index int64, validator stakingexported.ValidatorI) (stop bool) {
+			if validator != nil {
+				k.checkNotExistAndInitializeValidator(ctx, validator)
+			}
+			return false
+		})
+	}
 
 	//3. set it
 	k.SetDistributionType(ctx, p.Type)

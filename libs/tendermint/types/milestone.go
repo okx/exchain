@@ -140,6 +140,10 @@ func GetVenus1Height() int64 {
 // =========== Venus1 ===============
 // ==================================
 
+func UnittestOnlySetMilestoneVenus2Height(h int64) {
+	milestoneVenus2Height = h
+}
+
 func HigherThanVenus2(h int64) bool {
 	if milestoneVenus2Height == 0 {
 		return false

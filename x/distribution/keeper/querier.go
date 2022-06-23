@@ -6,6 +6,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	comm "github.com/okex/exchain/x/common"
 
 	"github.com/okex/exchain/x/distribution/types"
@@ -144,6 +145,10 @@ func queryDelegatorValidators(ctx sdk.Context, _ []string, req abci.RequestQuery
 }
 
 func queryDelegationRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, k Keeper) ([]byte, error) {
+	if !tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidVersion, "not support")
+	}
+
 	var params types.QueryDelegationRewardsParams
 	err := k.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
@@ -173,6 +178,10 @@ func queryDelegationRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, 
 		return nil, sdkerrors.Wrap(types.ErrCodeEmptyValidatorDistInfo(), params.ValidatorAddress.String())
 	}
 
+	if !k.HasDelegatorStartingInfo(ctx, val.GetOperator(), params.DelegatorAddress) && !del.GetLastAddedShares().IsZero() {
+		k.initDelegationStartInfo(ctx, val, del)
+	}
+
 	endingPeriod := k.incrementValidatorPeriod(ctx, val)
 	rewards := k.calculateDelegationRewards(ctx, val, params.DelegatorAddress, endingPeriod)
 	if rewards == nil {
@@ -188,6 +197,10 @@ func queryDelegationRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, 
 }
 
 func queryDelegatorTotalRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, k Keeper) ([]byte, error) {
+	if !tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidVersion, "not support")
+	}
+
 	var params types.QueryDelegatorParams
 	err := k.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
@@ -211,6 +224,10 @@ func queryDelegatorTotalRewards(ctx sdk.Context, _ []string, req abci.RequestQue
 			continue
 		}
 
+		if !k.HasDelegatorStartingInfo(ctx, val.GetOperator(), params.DelegatorAddress) && !del.GetLastAddedShares().IsZero() {
+			k.initDelegationStartInfo(ctx, val, del)
+		}
+
 		endingPeriod := k.incrementValidatorPeriod(ctx, val)
 		delReward := k.calculateDelegationRewards(ctx, val, params.DelegatorAddress, endingPeriod)
 		if delReward == nil {
@@ -231,6 +248,10 @@ func queryDelegatorTotalRewards(ctx sdk.Context, _ []string, req abci.RequestQue
 }
 
 func queryValidatorOutstandingRewards(ctx sdk.Context, path []string, req abci.RequestQuery, k Keeper) ([]byte, error) {
+	if !tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidVersion, "not support")
+	}
+
 	var params types.QueryValidatorOutstandingRewardsParams
 	err := k.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {

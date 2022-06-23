@@ -30,6 +30,24 @@ func (k Keeper) initializeValidator(ctx sdk.Context, val exported.ValidatorI) {
 	k.SetValidatorOutstandingRewards(ctx, val.GetOperator(), sdk.SysCoins{})
 }
 
+func (k Keeper) checkNotExistAndInitializeValidator(ctx sdk.Context, val exported.ValidatorI) {
+	if k.HasValidatorOutstandingRewards(ctx, val.GetOperator()) {
+		return
+	}
+
+	// set initial historical rewards (period 0) with reference count of 1
+	k.SetValidatorHistoricalRewards(ctx, val.GetOperator(), 0, types.NewValidatorHistoricalRewards(sdk.SysCoins{}, 1))
+
+	// set current rewards (starting at period 1)
+	k.SetValidatorCurrentRewards(ctx, val.GetOperator(), types.NewValidatorCurrentRewards(sdk.SysCoins{}, 1))
+
+	// get accumulated commissions
+	commission := k.GetValidatorAccumulatedCommission(ctx, val.GetOperator())
+
+	// set outstanding rewards with commission
+	k.SetValidatorOutstandingRewards(ctx, val.GetOperator(), commission)
+}
+
 // increment validator period, returning the period just ended
 func (k Keeper) incrementValidatorPeriod(ctx sdk.Context, val exported.ValidatorI) uint64 {
 	if !tmtypes.HigherThanVenus2(ctx.BlockHeight()) {

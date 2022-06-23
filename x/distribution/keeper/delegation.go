@@ -3,6 +3,7 @@ package keeper
 import (
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/types"
 	stakingexported "github.com/okex/exchain/x/staking/exported"
@@ -87,15 +88,23 @@ func (k Keeper) calculateDelegationRewards(ctx sdk.Context, val stakingexported.
 }
 
 //withdraw rewards according to the specified validator by delegator
-func (k Keeper) withdrawDelegationRewards(ctx sdk.Context, val stakingexported.ValidatorI, del sdk.AccAddress) (sdk.Coins, error) {
+func (k Keeper) withdrawDelegationRewards(ctx sdk.Context, val stakingexported.ValidatorI, delAddress sdk.AccAddress) (sdk.Coins, error) {
+	if !tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidVersion, "not support")
+	}
+
 	// check existence of delegator starting info
-	if !k.HasDelegatorStartingInfo(ctx, val.GetOperator(), del) {
-		return nil, types.ErrCodeEmptyDelegationDistInfo()
+	if !k.HasDelegatorStartingInfo(ctx, val.GetOperator(), delAddress) {
+		del := k.stakingKeeper.Delegator(ctx, delAddress)
+		if del.GetLastAddedShares().IsZero() {
+			return nil, types.ErrCodeEmptyDelegationDistInfo()
+		}
+		k.initDelegationStartInfo(ctx, val, del)
 	}
 
 	// end current period and calculate rewards
 	endingPeriod := k.incrementValidatorPeriod(ctx, val)
-	rewardsRaw := k.calculateDelegationRewards(ctx, val, del, endingPeriod)
+	rewardsRaw := k.calculateDelegationRewards(ctx, val, delAddress, endingPeriod)
 	outstanding := k.GetValidatorOutstandingRewards(ctx, val.GetOperator())
 
 	// defensive edge case may happen on the very final digits
@@ -105,7 +114,7 @@ func (k Keeper) withdrawDelegationRewards(ctx sdk.Context, val stakingexported.V
 		logger := k.Logger(ctx)
 		logger.Info(fmt.Sprintf("missing rewards rounding error, delegator %v"+
 			"withdrawing rewards from validator %v, should have received %v, got %v",
-			val.GetOperator(), del, rewardsRaw, rewards))
+			val.GetOperator(), delAddress, rewardsRaw, rewards))
 	}
 
 	// truncate coins, return remainder to community pool
@@ -113,7 +122,7 @@ func (k Keeper) withdrawDelegationRewards(ctx sdk.Context, val stakingexported.V
 
 	// add coins to user account
 	if !coins.IsZero() {
-		withdrawAddr := k.GetDelegatorWithdrawAddr(ctx, del)
+		withdrawAddr := k.GetDelegatorWithdrawAddr(ctx, delAddress)
 		err := k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, withdrawAddr, coins)
 		if err != nil {
 			return nil, err
@@ -128,12 +137,32 @@ func (k Keeper) withdrawDelegationRewards(ctx sdk.Context, val stakingexported.V
 	k.SetFeePool(ctx, feePool)
 
 	// decrement reference count of starting period
-	startingInfo := k.GetDelegatorStartingInfo(ctx, val.GetOperator(), del)
+	startingInfo := k.GetDelegatorStartingInfo(ctx, val.GetOperator(), delAddress)
 	startingPeriod := startingInfo.PreviousPeriod
 	k.decrementReferenceCount(ctx, val.GetOperator(), startingPeriod)
 
 	// remove delegator starting info
-	k.DeleteDelegatorStartingInfo(ctx, val.GetOperator(), del)
+	k.DeleteDelegatorStartingInfo(ctx, val.GetOperator(), delAddress)
 
 	return coins, nil
+}
+
+func (k Keeper) initDelegationStartInfo(ctx sdk.Context, val stakingexported.ValidatorI, del stakingexported.DelegatorI) {
+	if !tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+		return
+	}
+
+	logger := k.Logger(ctx)
+	//If the delegator a shares but no start info,
+	//it add shares before distribution proposal, and need to set a new start info
+
+	//set previous validator period 0
+	previousPeriod := uint64(0)
+	// increment reference count for the period we're going to track
+	k.incrementReferenceCount(ctx, val.GetOperator(), previousPeriod)
+
+	logger.Debug(fmt.Sprintf("initialize delegation, val:%s, del:%s, shares:%s",
+		val.GetOperator().String(), del.GetDelegatorAddress().String(), del.GetLastAddedShares().String()))
+	k.SetDelegatorStartingInfo(ctx, val.GetOperator(), del.GetDelegatorAddress(), types.NewDelegatorStartingInfo(previousPeriod, del.GetLastAddedShares(), uint64(ctx.BlockHeight())))
+	return
 }

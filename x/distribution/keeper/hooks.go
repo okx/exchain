@@ -109,10 +109,6 @@ func (h Hooks) newAfterValidatorRemoved(ctx sdk.Context, _ sdk.ConsAddress, valA
 
 // increment period
 func (h Hooks) BeforeDelegationCreated(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
-	if !tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
-		return
-	}
-
 	for _, valAddr := range valAddrs {
 		val := h.k.stakingKeeper.Validator(ctx, valAddr)
 		h.k.incrementValidatorPeriod(ctx, val)

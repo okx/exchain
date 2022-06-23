@@ -7,12 +7,15 @@ import (
 	"testing"
 	"time"
 
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/stretchr/testify/require"
 )
 
 func TestCalculateRewardsBasic(t *testing.T) {
+
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
+	tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
 
 	// create validator
@@ -61,7 +64,9 @@ func TestCalculateRewardsBasic(t *testing.T) {
 func TestCalculateRewardsMultiDelegator(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
+	tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
+
 	// create validator
 	doCreateValidator(t, ctx, sk, valOpAddr1, valConsPk1)
 
@@ -115,15 +120,15 @@ func TestCalculateRewardsMultiDelegator(t *testing.T) {
 	rewards := dk.calculateDelegationRewards(ctx, val, delAddr1, endingPeriod)
 
 	// rewards for del1 should be close to 1/2 initial
-	dec, _ := sdk.NewDecFromStr("9.999999983455619972")
-	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: dec}}, rewards)
+	require.True(t, rewards[0].Amount.LT(sdk.NewDec(initial/2)))
+	require.True(t, rewards[0].Amount.GT(sdk.NewDec((initial/2)-1)))
 
 	// calculate delegation rewards for del1
 	rewards = dk.calculateDelegationRewards(ctx, val, delAddr1, endingPeriod)
 
 	// rewards for del1 should be close to 1/2 initial
-	dec, _ = sdk.NewDecFromStr("9.999999983455619972")
-	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: dec}}, rewards)
+	require.True(t, rewards[0].Amount.LT(sdk.NewDec(initial/2)))
+	require.True(t, rewards[0].Amount.GT(sdk.NewDec((initial/2)-1)))
 
 	// commission should be equal to initial (50% twice)
 	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(initial)}}, dk.GetValidatorAccumulatedCommission(ctx, valOpAddr1))
@@ -132,6 +137,7 @@ func TestCalculateRewardsMultiDelegator(t *testing.T) {
 func TestWithdrawDelegationRewardsBasic(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, ak, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
+	tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
 
 	balanceTokens := sdk.NewCoins(sdk.NewCoin(sk.BondDenom(ctx), sdk.TokensFromConsensusPower(int64(1000))))
@@ -193,6 +199,7 @@ func TestWithdrawDelegationRewardsBasic(t *testing.T) {
 func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, ak, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
+	tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
 
 	balanceTokens := sdk.NewCoins(sdk.NewCoin(sk.BondDenom(ctx), sdk.TokensFromConsensusPower(int64(1000))))
@@ -320,8 +327,8 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	rewards = dk.calculateDelegationRewards(ctx, val, delAddr2, endingPeriod)
 
 	// rewards for del2 should be close to 1/4 initial
-	dec, _ := sdk.NewDecFromStr("4.999999995687546933")
-	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: dec}}, rewards)
+	require.True(t, rewards[0].Amount.LT(sdk.NewDec(initial/4)))
+	require.True(t, rewards[0].Amount.GT(sdk.NewDec((initial/4)-1)))
 
 	// commission should be half initial
 	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(initial / 2)}}, dk.GetValidatorAccumulatedCommission(ctx, valOpAddr1))
@@ -341,15 +348,16 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	rewards = dk.calculateDelegationRewards(ctx, val, delAddr1, endingPeriod)
 
 	// rewards for del1 should be 1/4 initial
-	dec, _ = sdk.NewDecFromStr("4.999999995687546933")
-	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: dec}}, rewards)
+	require.True(t, rewards[0].Amount.LT(sdk.NewDec(initial/4)))
+	require.True(t, rewards[0].Amount.GT(sdk.NewDec((initial/4)-1)))
 
 	// calculate delegation rewards for del2
 	rewards = dk.calculateDelegationRewards(ctx, val, delAddr2, endingPeriod)
 
 	// rewards for del2 should be 1/4 + 1/4 initial
-	dec, _ = sdk.NewDecFromStr("9.999999991375093866")
-	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: dec}}, rewards)
+	// rewards for del1 should be close to 1/2 initial
+	require.True(t, rewards[0].Amount.LT(sdk.NewDec(initial/2)))
+	require.True(t, rewards[0].Amount.GT(sdk.NewDec((initial/2)-1)))
 
 	// commission should be zero
 	require.True(t, dk.GetValidatorAccumulatedCommission(ctx, valOpAddr1).IsZero())

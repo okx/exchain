@@ -156,8 +156,6 @@ func CreateTestInputDefault(t *testing.T, isCheckTx bool, initPower int64) (
 		_, e := h(ctx, msg)
 		require.Nil(t, e)
 		require.True(t, dk.GetValidatorAccumulatedCommission(ctx, valOpAddrs[i]).IsZero())
-		require.True(t, dk.GetValidatorOutstandingRewards(ctx, valOpAddrs[i]).IsZero())
-		require.True(t, dk.GetFeePoolCommunityCoins(ctx).IsZero())
 	}
 	return ctx, ak, dk, sk, supplyKeeper
 }
