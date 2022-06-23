@@ -2,7 +2,6 @@ package deliver
 
 import (
 	"fmt"
-	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
 
@@ -10,7 +9,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	bam "github.com/okex/exchain/libs/system/trace"
-  "github.com/okex/exchain/x/evm/keeper"
+	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
@@ -58,7 +57,7 @@ func (tx *Tx) ResetWatcher(account authexported.Account) {
 	}
 }
 
-func (tx *Tx) RefundFeesWatcher(account authexported.Account, coin sdk.Coins, price *big.Int) {
+func (tx *Tx) RefundFeesWatcher(account authexported.Account, ethereumTx *types.MsgEthereumTx) {
 	// fix account balance in watcher with refund fees
 	if account == nil || !tx.Keeper.Watcher.Enabled() {
 		return
@@ -70,7 +69,12 @@ func (tx *Tx) RefundFeesWatcher(account authexported.Account, coin sdk.Coins, pr
 		}
 	}()
 	gasConsumed := tx.Ctx.GasMeter().GasConsumed()
-	fixedFees := refund.CaculateRefundFees(gasConsumed, coin, price)
+	gasLimit := ethereumTx.Data.GasLimit
+	if gasConsumed >= gasLimit {
+		return
+	}
+
+	fixedFees := refund.CalculateRefundFees(gasConsumed, ethereumTx.GetFee(), ethereumTx.Data.Price)
 	coins := account.GetCoins().Add2(fixedFees)
 	account.SetCoins(coins) //ignore err, no err will be returned in SetCoins
 
