@@ -47,10 +47,11 @@ func makeNodeCacheMap(cacheSize int, initRatio float64) map[string]*Node {
 
 func (ndb *NodeCache) uncache(hash []byte) {
 	ndb.nodeCacheMutex.Lock()
-	if _, ok := ndb.nodeCache[string(hash)]; ok {
-		// ndb.nodeCacheQueue.Remove(elem)
-		delete(ndb.nodeCache, string(hash))
-	}
+	delete(ndb.nodeCache, amino.BytesToStr(hash))
+	//if _, ok := ndb.nodeCache[string(hash)]; ok {
+	//	// ndb.nodeCacheQueue.Remove(elem)
+	//	delete(ndb.nodeCache, amino.BytesToStr(hash))
+	//}
 	ndb.nodeCacheMutex.Unlock()
 }
 
