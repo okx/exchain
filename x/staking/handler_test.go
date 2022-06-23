@@ -187,6 +187,7 @@ func TestEditValidatorDecreaseMinSelfDelegation(t *testing.T) {
 
 func TestEditValidatorCommission(t *testing.T) {
 	ctx, _, mKeeper := CreateTestInput(t, false, SufficientInitPower)
+	tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 	keeper := mKeeper.Keeper
 	_ = setInstantUnbondPeriod(keeper, ctx)
 	handler := NewHandler(keeper)

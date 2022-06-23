@@ -156,7 +156,7 @@ $ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg 
 	return cmd
 }
 
-// command to withdraw all rewards
+// GetCmdWithdrawAllRewards command to withdraw all rewards
 func GetCmdWithdrawAllRewards(cdc *codec.Codec, queryRoute string) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "withdraw-all-rewards",
@@ -201,7 +201,7 @@ $ %s tx distribution withdraw-all-rewards --from mykey
 	return cmd
 }
 
-// GetCmdSubmitProposal implements the command to submit a community-pool-spend proposal
+// GetCmdCommunityPoolSpendProposal implements the command to submit a community-pool-spend proposal
 func GetCmdCommunityPoolSpendProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "community-pool-spend [proposal-file]",
@@ -263,7 +263,7 @@ Where proposal.json contains:
 	return cmd
 }
 
-// GetChangeDistributionTypeProposal implements the command to submit a change-distr-model proposal
+// GetChangeDistributionTypeProposal implements the command to submit a change-distr-type proposal
 func GetChangeDistributionTypeProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "change-distr-mode [proposal-file]",

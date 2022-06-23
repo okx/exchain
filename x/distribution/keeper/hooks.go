@@ -98,7 +98,7 @@ func (h Hooks) newAfterValidatorRemoved(ctx sdk.Context, _ sdk.ConsAddress, valA
 	h.k.deleteValidatorAccumulatedCommission(ctx, valAddr)
 
 	// clear slashes
-	h.k.DeleteValidatorSlashEvents(ctx, valAddr)
+	//h.k.DeleteValidatorSlashEvents(ctx, valAddr)
 
 	// clear historical rewards
 	h.k.DeleteValidatorHistoricalRewards(ctx, valAddr)
@@ -109,6 +109,9 @@ func (h Hooks) newAfterValidatorRemoved(ctx sdk.Context, _ sdk.ConsAddress, valA
 
 // increment period
 func (h Hooks) BeforeDelegationCreated(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
+	if !tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+		return
+	}
 	for _, valAddr := range valAddrs {
 		val := h.k.stakingKeeper.Validator(ctx, valAddr)
 		h.k.incrementValidatorPeriod(ctx, val)

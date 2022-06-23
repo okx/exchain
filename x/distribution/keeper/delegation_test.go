@@ -19,7 +19,7 @@ func TestCalculateRewardsBasic(t *testing.T) {
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
 
 	// create validator
-	doCreateValidator(t, ctx, sk, valOpAddr1, valConsPk1)
+	DoCreateValidator(t, ctx, sk, valOpAddr1, valConsPk1)
 
 	// end block to bond validator
 	staking.EndBlocker(ctx, sk)
@@ -30,7 +30,7 @@ func TestCalculateRewardsBasic(t *testing.T) {
 	// set new rate 0.5
 	newRate, _ := sdk.NewDecFromStr("0.5")
 	ctx.SetBlockTime(time.Now().UTC().Add(48 * time.Hour))
-	doEditValidator(t, ctx, sk, valOpAddr1, &newRate)
+	DoEditValidator(t, ctx, sk, valOpAddr1, &newRate)
 	staking.EndBlocker(ctx, sk)
 
 	// next block
@@ -68,7 +68,7 @@ func TestCalculateRewardsMultiDelegator(t *testing.T) {
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
 
 	// create validator
-	doCreateValidator(t, ctx, sk, valOpAddr1, valConsPk1)
+	DoCreateValidator(t, ctx, sk, valOpAddr1, valConsPk1)
 
 	// end block to bond validator
 	staking.EndBlocker(ctx, sk)
@@ -79,7 +79,7 @@ func TestCalculateRewardsMultiDelegator(t *testing.T) {
 	// set new rate 0.5
 	newRate, _ := sdk.NewDecFromStr("0.5")
 	ctx.SetBlockTime(time.Now().UTC().Add(48 * time.Hour))
-	doEditValidator(t, ctx, sk, valOpAddr1, &newRate)
+	DoEditValidator(t, ctx, sk, valOpAddr1, &newRate)
 	staking.EndBlocker(ctx, sk)
 
 	// next block
@@ -94,7 +94,7 @@ func TestCalculateRewardsMultiDelegator(t *testing.T) {
 	dk.AllocateTokensToValidator(ctx, val, tokens)
 
 	//first delegation
-	doDeposit(t, ctx, sk, delAddr1, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
+	DoDeposit(t, ctx, sk, delAddr1, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
 	require.Equal(t, uint64(1), dk.GetValidatorHistoricalReferenceCount(ctx))
 	valOpAddrs := []sdk.ValAddress{valOpAddr1}
 	DoAddShares(t, ctx, sk, delAddr1, valOpAddrs)
@@ -148,7 +148,7 @@ func TestWithdrawDelegationRewardsBasic(t *testing.T) {
 	dk.supplyKeeper.SetModuleAccount(ctx, distrAcc)
 
 	// create validator
-	doCreateValidator(t, ctx, sk, valOpAddr1, valConsPk1)
+	DoCreateValidator(t, ctx, sk, valOpAddr1, valConsPk1)
 
 	// end block to bond validator
 	staking.EndBlocker(ctx, sk)
@@ -159,7 +159,7 @@ func TestWithdrawDelegationRewardsBasic(t *testing.T) {
 	// set new rate 0.5
 	newRate, _ := sdk.NewDecFromStr("0.5")
 	ctx.SetBlockTime(time.Now().UTC().Add(48 * time.Hour))
-	doEditValidator(t, ctx, sk, valOpAddr1, &newRate)
+	DoEditValidator(t, ctx, sk, valOpAddr1, &newRate)
 	staking.EndBlocker(ctx, sk)
 	valTokens := sdk.Coins{sdk.NewCoin(sdk.DefaultBondDenom, sk.ParamsMinSelfDelegation(ctx))}
 	// assert correct initial balance
@@ -210,7 +210,7 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	dk.supplyKeeper.SetModuleAccount(ctx, distrAcc)
 
 	// create validator
-	doCreateValidator(t, ctx, sk, valOpAddr1, valConsPk1)
+	DoCreateValidator(t, ctx, sk, valOpAddr1, valConsPk1)
 
 	// end block to bond validator
 	staking.EndBlocker(ctx, sk)
@@ -221,7 +221,7 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	// set new rate 0.5
 	newRate, _ := sdk.NewDecFromStr("0.5")
 	ctx.SetBlockTime(time.Now().UTC().Add(48 * time.Hour))
-	doEditValidator(t, ctx, sk, valOpAddr1, &newRate)
+	DoEditValidator(t, ctx, sk, valOpAddr1, &newRate)
 	staking.EndBlocker(ctx, sk)
 	valTokens := sdk.Coins{sdk.NewCoin(sdk.DefaultBondDenom, sk.ParamsMinSelfDelegation(ctx))}
 	// assert correct initial balance
@@ -246,7 +246,7 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	require.Equal(t, uint64(1), dk.GetValidatorHistoricalReferenceCount(ctx))
 
 	//first delegation
-	doDeposit(t, ctx, sk, delAddr1, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
+	DoDeposit(t, ctx, sk, delAddr1, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
 	// historical count should be 1
 	require.Equal(t, uint64(1), dk.GetValidatorHistoricalReferenceCount(ctx))
 	valOpAddrs := []sdk.ValAddress{valOpAddr1}
@@ -257,7 +257,7 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	staking.EndBlocker(ctx, sk)
 
 	//second delegation
-	doDeposit(t, ctx, sk, delAddr2, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
+	DoDeposit(t, ctx, sk, delAddr2, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
 	// historical count should be 2
 	require.Equal(t, uint64(2), dk.GetValidatorHistoricalReferenceCount(ctx))
 	DoAddShares(t, ctx, sk, delAddr2, valOpAddrs)

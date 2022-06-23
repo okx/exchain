@@ -179,7 +179,7 @@ func queryDelegationRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, 
 	}
 
 	if !k.HasDelegatorStartingInfo(ctx, val.GetOperator(), params.DelegatorAddress) && !del.GetLastAddedShares().IsZero() {
-		k.initDelegationStartInfo(ctx, val, del)
+		k.initExistedDelegationStartInfo(ctx, val, del)
 	}
 
 	endingPeriod := k.incrementValidatorPeriod(ctx, val)
@@ -225,7 +225,7 @@ func queryDelegatorTotalRewards(ctx sdk.Context, _ []string, req abci.RequestQue
 		}
 
 		if !k.HasDelegatorStartingInfo(ctx, val.GetOperator(), params.DelegatorAddress) && !del.GetLastAddedShares().IsZero() {
-			k.initDelegationStartInfo(ctx, val, del)
+			k.initExistedDelegationStartInfo(ctx, val, del)
 		}
 
 		endingPeriod := k.incrementValidatorPeriod(ctx, val)

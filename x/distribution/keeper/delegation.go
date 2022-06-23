@@ -99,7 +99,7 @@ func (k Keeper) withdrawDelegationRewards(ctx sdk.Context, val stakingexported.V
 		if del.GetLastAddedShares().IsZero() {
 			return nil, types.ErrCodeEmptyDelegationDistInfo()
 		}
-		k.initDelegationStartInfo(ctx, val, del)
+		k.initExistedDelegationStartInfo(ctx, val, del)
 	}
 
 	// end current period and calculate rewards
@@ -147,14 +147,13 @@ func (k Keeper) withdrawDelegationRewards(ctx sdk.Context, val stakingexported.V
 	return coins, nil
 }
 
-func (k Keeper) initDelegationStartInfo(ctx sdk.Context, val stakingexported.ValidatorI, del stakingexported.DelegatorI) {
+//initExistedDelegationStartInfo If the delegator existed but no start info, it add shares before distribution proposal, and need to set a new start info
+func (k Keeper) initExistedDelegationStartInfo(ctx sdk.Context, val stakingexported.ValidatorI, del stakingexported.DelegatorI) {
 	if !tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
 		return
 	}
 
 	logger := k.Logger(ctx)
-	//If the delegator a shares but no start info,
-	//it add shares before distribution proposal, and need to set a new start info
 
 	//set previous validator period 0
 	previousPeriod := uint64(0)
