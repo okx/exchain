@@ -3,8 +3,11 @@ package cachekv
 import (
 	"bytes"
 	"container/list"
+	"fmt"
 	"io"
+	"log"
 	"reflect"
+	"runtime/debug"
 	"sort"
 	"sync"
 	"unsafe"
@@ -118,7 +121,7 @@ func (store *Store) Write() {
 		store.writeToCacheKv(pStore)
 		return
 	}
-
+	log.Println(fmt.Sprintf("lcm cacheKv, stack: %s", string(debug.Stack())))
 	store.mtx.Lock()
 	defer store.mtx.Unlock()
 

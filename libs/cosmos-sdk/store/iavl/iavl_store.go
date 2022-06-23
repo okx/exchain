@@ -205,7 +205,7 @@ func (st *Store) CacheWrapWithTrace(w io.Writer, tc types.TraceContext) types.Ca
 func (st *Store) Set(key, value []byte) {
 	types.AssertValidValue(value)
 	st.tree.Set(key, value)
-
+	log.Println(fmt.Sprintf("lcm evm set height(%d), key(%s)", st.tree.Version(), st.tree.GetModuleName()))
 	if st.tree.GetModuleName() == "evm" {
 		stack := string(debug.Stack())
 		if !strings.Contains(stack, "baseapp.(*BaseApp).Commit") {
@@ -240,6 +240,12 @@ func (st *Store) Has(key []byte) (exists bool) {
 // Implements types.KVStore.
 func (st *Store) Delete(key []byte) {
 	st.tree.Remove(key)
+	if st.tree.GetModuleName() == "evm" {
+		stack := string(debug.Stack())
+		if !strings.Contains(stack, "baseapp.(*BaseApp).Commit") {
+			log.Println(fmt.Sprintf("lcm evm delete height(%d), stack: %s", st.tree.Version(), stack))
+		}
+	}
 	st.deleteFlatKV(key)
 }
 
