@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/x/erc20/types"
 	"github.com/spf13/viper"
 	"sync"
@@ -15,6 +16,7 @@ type Watcher struct {
 	store         *WatchStore
 	sw            bool
 	isLoadHistory int32
+	log           log.Logger
 }
 
 var (
@@ -29,36 +31,37 @@ func IsWatcherEnabled() bool {
 	return watcherEnable
 }
 
-func NewWatcher( /*logger log.Logger*/ ) *Watcher {
+func NewWatcher(logger log.Logger) *Watcher {
 	return &Watcher{
 		store:         InstanceOfWatchStore(),
 		sw:            IsWatcherEnabled(),
 		isLoadHistory: 0,
+		log:           logger,
 	}
 }
 
-func (w *Watcher) LoadHistoryTokenMapping(ctx clientcontext.CLIContext) {
+func (w *Watcher) LoadHistoryTokenMapping(ctx clientcontext.CLIContext) error {
 	if atomic.CompareAndSwapInt32(&w.isLoadHistory, 0, 1) {
 		queryPath := fmt.Sprintf("custom/erc20/token-mapping")
 		res, _, err := ctx.QueryWithData(queryPath, []byte{})
 		if err != nil {
-			fmt.Println("query with data", err)
-			return
+			return err
 		}
 		var mapping []types.TokenMapping
 		err = json.Unmarshal(res, &mapping)
 		if err != nil {
-			return
+			return err
 		}
 		for _, v := range mapping {
 			//rm 0x prefix
 			denom, err := hex.DecodeString(v.Contract[2:])
 			if err != nil {
-				return
+				return err
 			}
 			w.SetContractToDenom(denom, []byte(v.Denom))
 		}
 	}
+	return nil
 }
 
 func (w *Watcher) SetContractToDenom(key, value []byte) {
@@ -68,7 +71,10 @@ func (w *Watcher) SetContractToDenom(key, value []byte) {
 }
 
 func (w *Watcher) GetDenomByContract(ctx clientcontext.CLIContext, key []byte) []byte {
-	w.LoadHistoryTokenMapping(ctx)
+	err := w.LoadHistoryTokenMapping(ctx)
+	if err != nil {
+		w.log.Error("GetDenomByContract LoadHistoryTokenMapping error", err)
+	}
 	if w.Enabled() {
 		r, err := w.store.Get(types.ContractToDenomKey(key))
 		if err != nil {
