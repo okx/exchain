@@ -207,9 +207,8 @@ func (st *Store) Set(key, value []byte) {
 	st.tree.Set(key, value)
 	if st.tree.GetModuleName() == "evm" {
 		log.Println(fmt.Sprintf("lcm evm store set height(%d), key(%v), value(%v)", st.tree.Version(), key, value))
-		stack := string(debug.Stack())
-		if !strings.Contains(stack, "baseapp.(*BaseApp).Commit") {
-			log.Println(fmt.Sprintf("lcm evm set height(%d), stack: %s", st.tree.Version(), stack))
+		if string(key) == string([]byte{7, 0, 0, 0, 0, 0, 171, 165, 72}) || string(key) == string([]byte{2, 0, 0, 0, 0, 0, 171, 165, 73}) {
+			log.Println(fmt.Sprintf("lcm evm set height(%d), stack: %s", st.tree.Version(), string(debug.Stack())))
 		}
 	}
 	st.setFlatKV(key, value)
