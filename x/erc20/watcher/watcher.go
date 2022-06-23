@@ -20,6 +20,7 @@ type Watcher struct {
 var (
 	watcherEnable = false
 	onceEnable    sync.Once
+	isLoadHistory = int32(0)
 )
 
 func IsWatcherEnabled() bool {
@@ -31,14 +32,13 @@ func IsWatcherEnabled() bool {
 
 func NewWatcher() *Watcher {
 	return &Watcher{
-		store:         InstanceOfWatchStore(),
-		sw:            IsWatcherEnabled(),
-		isLoadHistory: 0,
+		store: InstanceOfWatchStore(),
+		sw:    IsWatcherEnabled(),
 	}
 }
 
 func (w *Watcher) LoadHistoryTokenMapping(ctx clientcontext.CLIContext) error {
-	if atomic.CompareAndSwapInt32(&w.isLoadHistory, 0, 1) {
+	if atomic.CompareAndSwapInt32(&isLoadHistory, 0, 1) {
 		queryPath := fmt.Sprintf("custom/erc20/token-mapping")
 		res, _, err := ctx.QueryWithData(queryPath, []byte{})
 		if err != nil {
