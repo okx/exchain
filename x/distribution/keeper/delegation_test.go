@@ -97,7 +97,7 @@ func TestCalculateRewardsMultiDelegator(t *testing.T) {
 	doDeposit(t, ctx, sk, delAddr1, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
 	require.Equal(t, uint64(1), dk.GetValidatorHistoricalReferenceCount(ctx))
 	valOpAddrs := []sdk.ValAddress{valOpAddr1}
-	doAddShares(t, ctx, sk, delAddr1, valOpAddrs)
+	DoAddShares(t, ctx, sk, delAddr1, valOpAddrs)
 	// historical count should be 2(first is init validator)
 	require.Equal(t, uint64(2), dk.GetValidatorHistoricalReferenceCount(ctx))
 
@@ -250,7 +250,7 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	// historical count should be 1
 	require.Equal(t, uint64(1), dk.GetValidatorHistoricalReferenceCount(ctx))
 	valOpAddrs := []sdk.ValAddress{valOpAddr1}
-	doAddShares(t, ctx, sk, delAddr1, valOpAddrs)
+	DoAddShares(t, ctx, sk, delAddr1, valOpAddrs)
 	// historical count should be 2 (first delegation init)
 	require.Equal(t, uint64(2), dk.GetValidatorHistoricalReferenceCount(ctx))
 	// end block
@@ -260,7 +260,7 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	doDeposit(t, ctx, sk, delAddr2, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
 	// historical count should be 2
 	require.Equal(t, uint64(2), dk.GetValidatorHistoricalReferenceCount(ctx))
-	doAddShares(t, ctx, sk, delAddr2, valOpAddrs)
+	DoAddShares(t, ctx, sk, delAddr2, valOpAddrs)
 	// historical count should be 3 (second delegation init)
 	require.Equal(t, uint64(3), dk.GetValidatorHistoricalReferenceCount(ctx))
 	// end block

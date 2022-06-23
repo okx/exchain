@@ -12,7 +12,7 @@ import (
 const (
 	// ProposalTypeCommunityPoolSpend defines the type for a CommunityPoolSpendProposal
 	ProposalTypeCommunityPoolSpend = "CommunityPoolSpend"
-	
+
 	// ProposalTypeChangeDistributionType defines the type for a ChangeDistributionTypeProposal
 	ProposalTypeChangeDistributionType = "ChangeDistributionType"
 )
@@ -95,8 +95,8 @@ type ChangeDistributionTypeProposal struct {
 }
 
 // NewChangeDistributionTypeProposal creates a new change distribution type proposal.
-func NewChangeDistributionTypeProposal(title, description string, model uint32) ChangeDistributionTypeProposal {
-	return ChangeDistributionTypeProposal{title, description, model}
+func NewChangeDistributionTypeProposal(title, description string, distrType uint32) ChangeDistributionTypeProposal {
+	return ChangeDistributionTypeProposal{title, description, distrType}
 }
 
 // GetTitle returns the title of a change distribution type proposal.

@@ -63,6 +63,10 @@ var (
 		delAddr1, delAddr2, delAddr3, delAddr4,
 		valAccAddr1, valAccAddr2, valAccAddr3, valAccAddr4,
 	}
+	TestDelAddrs    = []sdk.AccAddress{delAddr1, delAddr2, delAddr3, delAddr4}
+	TestValAddrs    = []sdk.ValAddress{valOpAddr1, valOpAddr2, valOpAddr3, valOpAddr4}
+	TestConsAddrs   = []sdk.ConsAddress{valConsAddr1, valConsAddr2, valConsAddr3, valConsAddr4}
+	TestValAccAddrs = []sdk.AccAddress{valAccAddr1, valAccAddr2, valAccAddr3, valAccAddr4}
 
 	distrAcc = supply.NewEmptyModuleAccount(types.ModuleName)
 )
@@ -251,61 +255,4 @@ func CreateTestInputAdvanced(t *testing.T, isCheckTx bool, initPower int64, comm
 	keeper.SetCommunityTax(ctx, communityTax)
 
 	return ctx, accountKeeper, bankKeeper, keeper, sk, pk, supplyKeeper
-}
-
-func doCreateValidator(t *testing.T, ctx sdk.Context, sk staking.Keeper, valAddr sdk.ValAddress, valConsPk crypto.PubKey) {
-	sh := staking.NewHandler(sk)
-	msg := staking.NewMsgCreateValidator(valAddr, valConsPk, staking.Description{}, NewTestSysCoin(1, 0))
-	res, err := sh(ctx, msg)
-	require.NoError(t, err)
-	require.NotNil(t, res)
-}
-
-func doEditValidator(t *testing.T, ctx sdk.Context, sk staking.Keeper, valAddr sdk.ValAddress, newRate *sdk.Dec) {
-	h := staking.NewHandler(sk)
-	msg := staking.NewMsgEditValidator(valAddr, staking.Description{Moniker: "moniker"}, newRate)
-	_, e := h(ctx, msg)
-	require.Nil(t, e)
-}
-
-func doDestroyValidator(t *testing.T, ctx sdk.Context, sk staking.Keeper, delAddr sdk.AccAddress) {
-	h := staking.NewHandler(sk)
-	msg := staking.NewMsgDestroyValidator(delAddr)
-	_, e := h(ctx, msg)
-	require.Nil(t, e)
-}
-
-func doDeposit(t *testing.T, ctx sdk.Context, sk staking.Keeper, delAddr sdk.AccAddress, amount sdk.SysCoin) {
-	h := staking.NewHandler(sk)
-	msg := staking.NewMsgDeposit(delAddr, amount)
-	_, e := h(ctx, msg)
-	require.Nil(t, e)
-}
-
-func doAddShares(t *testing.T, ctx sdk.Context, sk staking.Keeper, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
-	h := staking.NewHandler(sk)
-	msg := staking.NewMsgAddShares(delAddr, valAddrs)
-	_, e := h(ctx, msg)
-	require.Nil(t, e)
-}
-
-func doRegProxy(t *testing.T, ctx sdk.Context, sk staking.Keeper, delAddr sdk.AccAddress, reg bool) {
-	h := staking.NewHandler(sk)
-	msg := staking.NewMsgRegProxy(delAddr, reg)
-	_, e := h(ctx, msg)
-	require.Nil(t, e)
-}
-
-func doBindProxy(t *testing.T, ctx sdk.Context, sk staking.Keeper, delAddr sdk.AccAddress, proxyAddr sdk.AccAddress) {
-	h := staking.NewHandler(sk)
-	msg := staking.NewMsgBindProxy(delAddr, proxyAddr)
-	_, e := h(ctx, msg)
-	require.Nil(t, e)
-}
-
-func doUnBindProxy(t *testing.T, ctx sdk.Context, sk staking.Keeper, delAddr sdk.AccAddress) {
-	h := staking.NewHandler(sk)
-	msg := staking.NewMsgUnbindProxy(delAddr)
-	_, e := h(ctx, msg)
-	require.Nil(t, e)
 }
