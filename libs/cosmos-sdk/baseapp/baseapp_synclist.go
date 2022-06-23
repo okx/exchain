@@ -66,3 +66,12 @@ func (c *cacheMultiStoreList) Clear() {
 	c.stores.Init()
 	c.mtx.Unlock()
 }
+
+func (c *cacheMultiStoreList) ClearHalf() {
+	c.mtx.Lock()
+	half := c.stores.Len() / 2
+	for i := 0; i < half; i++ {
+		c.stores.Remove(c.stores.Front())
+	}
+	c.mtx.Unlock()
+}
