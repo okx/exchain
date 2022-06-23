@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/x/erc20/types"
 	"github.com/spf13/viper"
 	"sync"
@@ -16,7 +15,6 @@ type Watcher struct {
 	store         *WatchStore
 	sw            bool
 	isLoadHistory int32
-	log           log.Logger
 }
 
 var (
@@ -31,12 +29,11 @@ func IsWatcherEnabled() bool {
 	return watcherEnable
 }
 
-func NewWatcher(logger log.Logger) *Watcher {
+func NewWatcher() *Watcher {
 	return &Watcher{
 		store:         InstanceOfWatchStore(),
 		sw:            IsWatcherEnabled(),
 		isLoadHistory: 0,
-		log:           logger,
 	}
 }
 
@@ -73,7 +70,7 @@ func (w *Watcher) SetContractToDenom(key, value []byte) {
 func (w *Watcher) GetDenomByContract(ctx clientcontext.CLIContext, key []byte) []byte {
 	err := w.LoadHistoryTokenMapping(ctx)
 	if err != nil {
-		w.log.Error("GetDenomByContract LoadHistoryTokenMapping error", err)
+		panic(fmt.Sprintf("GetDenomByContract LoadHistoryTokenMapping %v", err))
 	}
 	if w.Enabled() {
 		r, err := w.store.Get(types.ContractToDenomKey(key))
