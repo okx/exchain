@@ -970,14 +970,14 @@ func (api *PublicEthereumAPI) doCall(
 		}
 	}
 	sim := api.evmFactory.BuildSimulator(api, app.EvmHooks)
-	hookCallBack := func() (uint64, error) {
-		return simulateEvmWithHookTxGas(clientCtx, msg, addr)
-	}
 	//only worked when fast-query has been enabled
 	if sim != nil {
-		return sim.DoCall(msg, addr.String(), overridesBytes, api.evmFactory.PutBackStorePool, hookCallBack)
+		ret, isWithHook, err := sim.DoCall(msg, addr.String(), overridesBytes, api.evmFactory.PutBackStorePool, isEvmTxWithHook, clientCtx)
+		if err != nil || !isWithHook {
+			return ret, err
+		}
+		//if isWithHook: go on to simulate tx without watcher
 	}
-
 	//Generate tx to be used to simulate (signature isn't needed)
 	var txEncoder sdk.TxEncoder
 
@@ -1027,37 +1027,26 @@ func (api *PublicEthereumAPI) doCall(
 	return &simResponse, nil
 }
 
-func simulateEvmWithHookTxGas(clientCtx clientcontext.CLIContext, msg *evmtypes.MsgEthereumTx, addr common.Address) (uint64, error) {
-	var txEncoder sdk.TxEncoder
-	height := global.GetGlobalHeight()
-	if tmtypes.HigherThanVenus(height) {
-		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
-	} else {
-		txEncoder = authclient.GetTxEncoder(clientCtx.Codec)
+func isEvmTxWithHook(logs []*ethtypes.Log) bool {
+	isTxWithIbcHook := false
+	if len(logs) == 0 {
+		return false
 	}
-	txBytes, err := txEncoder(msg)
-	if err != nil {
-		return 0, err
+	//if ibc hook event
+	for _, log := range logs {
+		hooks := app.EvmHooks
+		if hooks != nil {
+			if ok := hooks.HasEvent(log.Topics[0]); ok {
+				isTxWithIbcHook = true
+				break
+			}
+		}
 	}
 
-	var simulatePath string
-	var queryData []byte
-
-	simulatePath = fmt.Sprintf("app/simulate/%s", addr.String())
-	queryData = txBytes
-
-	res, _, err := clientCtx.QueryWithData(simulatePath, queryData)
-	if err != nil {
-		return 0, err
-	}
-	var simResponse sdk.SimulationResponse
-	if err := clientCtx.Codec.UnmarshalBinaryBare(res, &simResponse); err != nil {
-		return 0, err
-	}
-	return simResponse.GasUsed, nil
+	return isTxWithIbcHook
 }
 
-// EstimateGas returns an estimate of gas usage for the given smart contract call.
+// Esti]mateGas returns an estimate of gas usage for the given smart contract call.
 func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint64, error) {
 	monitor := monitor.GetMonitor("eth_estimateGas", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("args", args)

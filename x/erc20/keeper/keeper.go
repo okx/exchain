@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	"github.com/okex/exchain/x/erc20/watcher"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -23,6 +24,7 @@ type Keeper struct {
 	govKeeper      GovKeeper
 	evmKeeper      EvmKeeper
 	transferKeeper TransferKeeper
+	Watcher        *watcher.Watcher
 }
 
 // NewKeeper generates new erc20 module keeper
@@ -44,6 +46,7 @@ func NewKeeper(
 		bankKeeper:     bk,
 		evmKeeper:      ek,
 		transferKeeper: tk,
+		Watcher:        watcher.NewWatcher(),
 	}
 }
 
@@ -75,6 +78,9 @@ func (k Keeper) SetContractForDenom(ctx sdk.Context, denom string, contract comm
 	}
 	store.Set(types.DenomToContractKey(denom), contract.Bytes())
 	store.Set(types.ContractToDenomKey(contract.Bytes()), []byte(denom))
+	if ctx.IsDeliver() {
+		k.Watcher.SetContractToDenom(contract.Bytes(), []byte(denom))
+	}
 	return nil
 }
 
@@ -112,6 +118,9 @@ func (k Keeper) DeleteContractForDenom(ctx sdk.Context, denom string) bool {
 	}
 	store.Delete(types.ContractToDenomKey(existingContract.Bytes()))
 	store.Delete(types.DenomToContractKey(denom))
+	if ctx.IsDeliver() {
+		k.Watcher.Delete(types.ContractToDenomKey(existingContract.Bytes()))
+	}
 	return true
 }
 

@@ -40,6 +40,7 @@ type Context struct {
 	traceTx            bool   // traceTx is set true for trace tx and its predesessors , traceTx was set in app.beginBlockForTrace()
 	traceTxLog         bool   // traceTxLog is used to create trace logger for evm , traceTxLog is set to true when only tracing target tx (its predesessors will set false), traceTxLog is set before runtx
 	traceTxConfigBytes []byte // traceTxConfigBytes is used to save traceTxConfig, passed from api to x/evm
+	evmTxNotRunHook    bool
 	minGasPrice        DecCoins
 	consParams         *abci.ConsensusParams
 	eventManager       *EventManager
@@ -49,12 +50,10 @@ type Context struct {
 	accountCache       *AccountCache
 	paraMsg            *ParaMsg
 	overridesBytes     []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
-	hookCB             HookCallBack
 }
 
 // Proposed rename, not done to avoid API breakage
 type Request = Context
-type HookCallBack func() (uint64, error)
 
 // Read-only accessors
 func (c *Context) Context() context.Context { return c.ctx }
@@ -91,6 +90,7 @@ func (c *Context) IsCheckTx() bool             { return c.checkTx }
 func (c *Context) IsReCheckTx() bool           { return c.recheckTx }
 func (c *Context) IsTraceTx() bool             { return c.traceTx }
 func (c *Context) IsTraceTxLog() bool          { return c.traceTxLog }
+func (c Context) IsEvmNotRunHook() bool        { return c.evmTxNotRunHook }
 func (c *Context) TraceTxLogConfig() []byte    { return c.traceTxConfigBytes }
 func (c *Context) IsWrappedCheckTx() bool      { return c.wrappedCheckTx }
 func (c *Context) MinGasPrices() DecCoins      { return c.minGasPrice }
@@ -137,10 +137,6 @@ func (c *Context) GetToAccountCacheGas() Gas {
 
 func (c *Context) OverrideBytes() []byte {
 	return c.overridesBytes
-}
-
-func (c *Context) GetHookCallBack() HookCallBack {
-	return c.hookCB
 }
 
 func (c *Context) UpdateFromAccountCache(fromAcc interface{}, fromAccGettedGas Gas) {
@@ -332,6 +328,11 @@ func (c *Context) SetIsTraceTx(isTraceTx bool) *Context {
 	return c
 }
 
+func (c *Context) SetNotRunEvmHook(isNotRun bool) *Context {
+	c.evmTxNotRunHook = isNotRun
+	return c
+}
+
 func (c *Context) SetProposer(addr ConsAddress) *Context {
 	newHeader := c.BlockHeader()
 	newHeader.ProposerAddress = addr.Bytes()
@@ -366,11 +367,6 @@ func (c *Context) SetVoteInfos(voteInfo []abci.VoteInfo) *Context {
 
 func (c *Context) SetOverrideBytes(b []byte) *Context {
 	c.overridesBytes = b
-	return c
-}
-
-func (c *Context) SetHookCallback(cb HookCallBack) *Context {
-	c.hookCB = cb
 	return c
 }
 

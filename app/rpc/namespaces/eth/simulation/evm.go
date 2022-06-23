@@ -1,6 +1,9 @@
 package simulation
 
 import (
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	erc20watcher "github.com/okex/exchain/x/erc20/watcher"
 	"sync"
 	"time"
 
@@ -104,25 +107,36 @@ type EvmSimulator struct {
 }
 
 // DoCall call simulate tx. we pass the sender by args to reduce address convert
-
-func (es *EvmSimulator) DoCall(msg *evmtypes.MsgEthereumTx, sender string, overridesBytes []byte, callBack func(sdk.CacheMultiStore), cb sdk.HookCallBack) (*sdk.SimulationResponse, error) {
+func (es *EvmSimulator) DoCall(msg *evmtypes.MsgEthereumTx, sender string, overridesBytes []byte, callBack func(sdk.CacheMultiStore), hookCB func(logs []*ethtypes.Log) bool, cliContext clientcontext.CLIContext) (*sdk.SimulationResponse, bool, error) {
 	defer callBack(es.ctx.MultiStore().(sdk.CacheMultiStore))
+	isWithHook := false
 	es.ctx.SetFrom(sender)
-	es.ctx.SetHookCallback(cb)
+	es.ctx.SetNotRunEvmHook(true)
 	if overridesBytes != nil {
 		es.ctx.SetOverrideBytes(overridesBytes)
 	}
 	r, err := es.handler(es.ctx, msg)
 	if err != nil {
-		return nil, err
+		return nil, isWithHook, err
 	}
+
+	resData, err := evmtypes.DecodeResultData(r.Data)
+	if err == nil {
+		//1. resData.ContractAddress in tokenmapping
+		//2. event in hooks
+		r := erc20watcher.NewWatcher().GetDenomByContract(cliContext, msg.Data.Recipient.Bytes())
+		if r != nil {
+			isWithHook = hookCB(resData.Logs)
+		}
+	}
+
 	return &sdk.SimulationResponse{
 		GasInfo: sdk.GasInfo{
 			GasWanted: es.ctx.GasMeter().Limit(),
 			GasUsed:   es.ctx.GasMeter().GasConsumed(),
 		},
 		Result: r,
-	}, nil
+	}, isWithHook, nil
 }
 
 func (ef EvmFactory) makeEvmKeeper(qoc QueryOnChainProxy, hooks evmtypes.EvmHooks) *evm.Keeper {

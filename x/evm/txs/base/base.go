@@ -55,13 +55,15 @@ func (tx *Tx) GetChainConfig() (types.ChainConfig, bool) {
 // Transition execute evm tx
 func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 	result.ExecResult, result.ResultData, err, result.InnerTxs, result.Erc20Contracts = tx.StateTransition.TransitionDb(tx.Ctx, config)
-
 	if err != nil {
 		return
 	}
 
 	// call evm hooks
 	if tmtypes.HigherThanVenus1(tx.Ctx.BlockHeight()) {
+		if tx.Ctx.IsCheckTx() && tx.Ctx.IsEvmNotRunHook() {
+			return
+		}
 		receipt := &ethtypes.Receipt{
 			Status:           ethtypes.ReceiptStatusSuccessful,
 			Bloom:            result.ResultData.Bloom,
@@ -72,38 +74,6 @@ func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 			BlockNumber:      big.NewInt(tx.Ctx.BlockHeight()),
 			TransactionIndex: uint(tx.Keeper.TxCount),
 		}
-		if tx.Ctx.IsCheckTx() {
-			// checktx add receipt logs for evmhook simulate
-			// get topic from event logs，and run hook
-			isTxWithIbcHook := false
-			if len(receipt.Logs) == 0 && len(result.ExecResult.SimulateLogs) != 0 {
-				//if ibc hook event
-				for _, log := range result.ExecResult.SimulateLogs {
-					hooks := tx.Keeper.GetHooks()
-					if hooks != nil {
-						if ok := hooks.HasEvent(log.Topics[0]); ok {
-							isTxWithIbcHook = true
-							break
-						}
-					}
-				}
-			}
-
-			if isTxWithIbcHook {
-				cb := tx.Ctx.GetHookCallBack()
-				if cb != nil {
-					var gasUsed uint64
-					gasUsed, err = cb()
-					if err != nil {
-						tx.Keeper.Logger(tx.Ctx).Error("checktx tx call evm hooks failed", "error", err)
-						return
-					}
-					tx.Ctx.GasMeter().ConsumeGas(gasUsed-tx.Ctx.GasMeter().GasConsumed(), "recall verb")
-					return
-				}
-			}
-		}
-
 		err = tx.Keeper.CallEvmHooks(tx.Ctx, tx.StateTransition.Sender, tx.StateTransition.Recipient, receipt)
 		if err != nil {
 			tx.Keeper.Logger(tx.Ctx).Error("tx call evm hooks failed", "error", err)
