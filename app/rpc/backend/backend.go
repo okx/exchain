@@ -447,7 +447,13 @@ func (b *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 			continue
 		}
 
-		blockLogs = append(blockLogs, execRes.Logs)
+		var validLogs []*ethtypes.Log
+		for _, log := range execRes.Logs {
+			if int64(log.BlockNumber) == block.Block.Height {
+				validLogs = append(validLogs, log)
+			}
+		}
+		blockLogs = append(blockLogs, validLogs)
 	}
 
 	return blockLogs, nil
