@@ -1,6 +1,6 @@
 #!/bin/sh
 #set -e
-#set -x
+set -x
 VERSION_NUM=2.9.1
 VERSION=gperftools-$VERSION_NUM
 
@@ -92,7 +92,7 @@ do_install() {
 	# Run setup for each distro accordingly
 	case "$lsb_dist" in
 		ubuntu)
-			pre_reqs="git make autoreconf autoconf automake libtool gcc-c++"
+			pre_reqs="git make dh-autoreconf autoconf automake libtool gcc-c++"
 			$sh_c 'apt-get update -qq >/dev/null'
 			$sh_c "apt-get install -y -qq $pre_reqs >/dev/null"
 			install_linux
