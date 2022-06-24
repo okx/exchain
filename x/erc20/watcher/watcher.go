@@ -7,6 +7,7 @@ import (
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/x/erc20/types"
 	"github.com/spf13/viper"
+	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -37,6 +38,23 @@ func NewWatcher() *Watcher {
 	}
 }
 
+func (w *Watcher) LoadItem(denom, contract string) bool {
+	if strings.HasPrefix(contract, "0x") {
+		contractBytes, err := hex.DecodeString(contract[2:])
+		if err != nil {
+			panic(fmt.Errorf("erc20  LoadTokenMapping error", err))
+		}
+		w.SetContractToDenom(contractBytes, []byte(denom))
+	}
+	return false
+}
+
+func (w *Watcher) LoadTokenMapping(f func(func(denom, contract string) bool)) {
+	if atomic.CompareAndSwapInt32(&isLoadHistory, 0, 1) {
+		f(w.LoadItem)
+	}
+}
+
 func (w *Watcher) LoadHistoryTokenMapping(ctx clientcontext.CLIContext) error {
 	if atomic.CompareAndSwapInt32(&isLoadHistory, 0, 1) {
 		queryPath := fmt.Sprintf("custom/erc20/token-mapping")
@@ -51,11 +69,11 @@ func (w *Watcher) LoadHistoryTokenMapping(ctx clientcontext.CLIContext) error {
 		}
 		for _, v := range mapping {
 			//rm 0x prefix
-			denom, err := hex.DecodeString(v.Contract[2:])
+			contract, err := hex.DecodeString(v.Contract[2:])
 			if err != nil {
 				return err
 			}
-			w.SetContractToDenom(denom, []byte(v.Denom))
+			w.SetContractToDenom(contract, []byte(v.Denom))
 		}
 	}
 	return nil
@@ -67,11 +85,8 @@ func (w *Watcher) SetContractToDenom(key, value []byte) {
 	}
 }
 
-func (w *Watcher) GetDenomByContract(ctx clientcontext.CLIContext, key []byte) []byte {
-	err := w.LoadHistoryTokenMapping(ctx)
-	if err != nil {
-		panic(fmt.Sprintf("GetDenomByContract LoadHistoryTokenMapping %v", err))
-	}
+func (w *Watcher) GetDenomByContract(key []byte) []byte {
+
 	if w.Enabled() {
 		r, err := w.store.Get(types.ContractToDenomKey(key))
 		if err != nil {

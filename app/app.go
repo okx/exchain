@@ -488,6 +488,7 @@ func NewOKExChainApp(
 		evm.ModuleName,
 		ibchost.ModuleName,
 		ibctransfertypes.ModuleName,
+		erc20.ModuleName,
 	)
 	app.mm.SetOrderEndBlockers(
 		crisis.ModuleName,

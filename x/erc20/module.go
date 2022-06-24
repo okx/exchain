@@ -110,7 +110,11 @@ func (am AppModule) NewQuerierHandler() sdk.Querier {
 }
 
 // BeginBlock function for module at start of each block
-func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {}
+func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
+	am.keeper.Watcher.LoadTokenMapping(func(f func(denom, contract string) bool) {
+		am.keeper.IterateMapping(ctx, f)
+	})
+}
 
 // EndBlock function for module at end of block
 func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {

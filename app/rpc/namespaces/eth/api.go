@@ -972,7 +972,7 @@ func (api *PublicEthereumAPI) doCall(
 	sim := api.evmFactory.BuildSimulator(api, app.EvmHooks)
 	//only worked when fast-query has been enabled
 	if sim != nil {
-		ret, isWithHook, err := sim.DoCall(msg, addr.String(), overridesBytes, api.evmFactory.PutBackStorePool, isEvmTxWithHook, clientCtx)
+		ret, isWithHook, err := sim.DoCall(msg, addr.String(), overridesBytes, api.evmFactory.PutBackStorePool, isEvmTxWithHook)
 		if err != nil || !isWithHook {
 			return ret, err
 		}
