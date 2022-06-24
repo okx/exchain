@@ -387,12 +387,12 @@ func (cs *State) handleCompleteProposal(height int64) {
 // create new PartSet, then populate with the bp cache
 func (cs *State) newPartSetFromHeadeWithCache(header types.PartSetHeader, height int64) *types.PartSet {
 	partSet := types.NewPartSetFromHeader(header)
-	if height == cs.hbc.Height() {
-		for _, part := range cs.hbc.Cache() {
-			if added, _ := partSet.AddPart(part); added {
-				cs.bt.bpCacheHit++
-			}
-		}
-	}
+	//if height == cs.hbc.Height() {
+	//	for _, part := range cs.hbc.Cache() {
+	//		if added, _ := partSet.AddPart(part); added {
+	//			cs.bt.bpCacheHit++
+	//		}
+	//	}
+	//}
 	return partSet
 }
