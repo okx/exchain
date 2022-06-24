@@ -74,7 +74,7 @@ const (
 	IavlRuntime     = "IavlRuntime"
 
 	BlockPartsP2P   = "BlockPartsP2P"
-	BlockPartsCACHE = "BlockPartsCACHE"
+	BlockPartsCache = "BlockPartsCache"
 )
 
 const (

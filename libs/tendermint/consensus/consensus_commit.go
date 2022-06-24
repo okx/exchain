@@ -41,7 +41,7 @@ func (cs *State) traceDump() {
 		cs.bt.totalParts,
 	))
 
-	trace.GetElapsedInfo().AddInfo(trace.BlockPartsCACHE, fmt.Sprintf("%d/%d",
+	trace.GetElapsedInfo().AddInfo(trace.BlockPartsCache, fmt.Sprintf("%d/%d",
 		cs.bt.bpCacheHit, cs.hbc.Count()))
 
 	trace.GetElapsedInfo().AddInfo(trace.BlockPartsP2P, fmt.Sprintf("%d|%d|%d",

@@ -36,7 +36,7 @@ var (
 		{trace.First2LastPart, 1},
 		{trace.BlockParts, 1},
 		{trace.BlockPartsP2P, 1},
-		{trace.BlockPartsCACHE, 1},
+		{trace.BlockPartsCache, 1},
 		{trace.Produce, 0},
 		{trace.CompressBlock, 0},
 		{trace.UncompressBlock, 0},
