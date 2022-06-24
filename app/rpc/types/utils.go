@@ -69,16 +69,14 @@ func RpcBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.B
 		return nil, err
 	}
 
+	var bloom ethtypes.Bloom
 	clientCtx = clientCtx.WithHeight(block.Height)
 	res, _, err := clientCtx.Query(fmt.Sprintf("custom/%s/%s/%d", evmtypes.ModuleName, evmtypes.QueryBloom, block.Height))
-	if err != nil {
-		return nil, err
+	if err == nil {
+		var bloomRes evmtypes.QueryBloomFilter
+		clientCtx.Codec.MustUnmarshalJSON(res, &bloomRes)
+		bloom = bloomRes.Bloom
 	}
-
-	var bloomRes evmtypes.QueryBloomFilter
-	clientCtx.Codec.MustUnmarshalJSON(res, &bloomRes)
-
-	bloom := bloomRes.Bloom
 
 	return FormatBlock(block.Header, block.Size(), block.Hash(), gasLimit, gasUsed, ethTxs, bloom, fullTx), nil
 }
