@@ -56,14 +56,6 @@ func (tx *Tx) GetChainConfig() (types.ChainConfig, bool) {
 func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 	result.ExecResult, result.ResultData, err, result.InnerTxs, result.Erc20Contracts = tx.StateTransition.TransitionDb(tx.Ctx, config)
 
-	// async mod goes immediately
-	if tx.Ctx.ParaMsg() != nil {
-		index := tx.Keeper.LogsManages.Set(keeper.TxResult{
-			ResultData: result.ResultData,
-			Err:        err,
-		})
-		tx.Ctx.ParaMsg().LogIndex = index
-	}
 	if err != nil {
 		return
 	}
@@ -149,7 +141,7 @@ func (tx *Tx) GetSenderAccount() authexported.Account { return nil }
 func (tx *Tx) ResetWatcher(account authexported.Account) {}
 
 // RefundFeesWatcher refund the watcher, check Tx do not save state so. skip
-func (tx *Tx) RefundFeesWatcher(account authexported.Account, coins sdk.Coins, price *big.Int) {}
+func (tx *Tx) RefundFeesWatcher(account authexported.Account, ethereumTx *types.MsgEthereumTx) {}
 
 // Commit check Tx do not need
 func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *Result) {}

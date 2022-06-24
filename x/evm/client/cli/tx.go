@@ -3,6 +3,7 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"strings"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -19,7 +20,7 @@ import (
 
 // GetCmdManageContractDeploymentWhitelistProposal implements a command handler for submitting a manage contract deployment
 // whitelist proposal transaction
-func GetCmdManageContractDeploymentWhitelistProposal(cdc *codec.Codec) *cobra.Command {
+func GetCmdManageContractDeploymentWhitelistProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	return &cobra.Command{
 		Use:   "update-contract-deployment-whitelist [proposal-file]",
 		Args:  cobra.ExactArgs(1),
@@ -51,6 +52,7 @@ Where proposal.json contains:
 `, version.ClientName, sdk.DefaultBondDenom,
 			)),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cdc := cdcP.GetCdc()
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
@@ -80,7 +82,7 @@ Where proposal.json contains:
 
 // GetCmdManageContractBlockedListProposal implements a command handler for submitting a manage contract blocked list
 // proposal transaction
-func GetCmdManageContractBlockedListProposal(cdc *codec.Codec) *cobra.Command {
+func GetCmdManageContractBlockedListProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	return &cobra.Command{
 		Use:   "update-contract-blocked-list [proposal-file]",
 		Args:  cobra.ExactArgs(1),
@@ -112,6 +114,7 @@ Where proposal.json contains:
 `, version.ClientName, sdk.DefaultBondDenom,
 			)),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cdc := cdcP.GetCdc()
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
@@ -141,7 +144,7 @@ Where proposal.json contains:
 
 // GetCmdManageContractMethodBlockedListProposal implements a command handler for submitting a manage contract blocked list
 // proposal transaction
-func GetCmdManageContractMethodBlockedListProposal(cdc *codec.Codec) *cobra.Command {
+func GetCmdManageContractMethodBlockedListProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	return &cobra.Command{
 		Use:   "update-contract-method-blocked-list [proposal-file]",
 		Args:  cobra.ExactArgs(1),
@@ -197,6 +200,7 @@ Where proposal.json contains:
 `, version.ClientName, sdk.DefaultBondDenom,
 			)),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cdc := cdcP.GetCdc()
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)

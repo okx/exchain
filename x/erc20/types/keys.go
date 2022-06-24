@@ -14,13 +14,14 @@ const (
 	QueryTokenMapping    = "token-mapping"
 	QueryContractByDenom = "contract-by-denom"
 	QueryDenomByContract = "denom-by-contract"
+	QueryContractTem     = "current-template-contract"
 )
 
 // KVStore key prefixes
 var (
-	KeyPrefixContractToDenom         = []byte{0x01}
-	KeyPrefixDenomToExternalContract = []byte{0x02}
-	KeyPrefixDenoToAutoContract      = []byte{0x03}
+	KeyPrefixContractToDenom  = []byte{0x01}
+	KeyPrefixDenomToContract  = []byte{0x02}
+	KeyPrefixTemplateContract = []byte{0x03}
 )
 
 // ContractToDenomKey defines the store key for contract to denom reverse index
@@ -28,12 +29,11 @@ func ContractToDenomKey(contract []byte) []byte {
 	return append(KeyPrefixContractToDenom, contract...)
 }
 
-// DenomToExternalContractKey defines the store key for denom to external contract mapping
-func DenomToExternalContractKey(denom string) []byte {
-	return append(KeyPrefixDenomToExternalContract, denom...)
+// DenomToContractKey defines the store key for denom to contract mapping
+func DenomToContractKey(denom string) []byte {
+	return append(KeyPrefixDenomToContract, denom...)
 }
 
-// DenomToAutoContractKey defines the store key for denom to auto contract mapping
-func DenomToAutoContractKey(denom string) []byte {
-	return append(KeyPrefixDenoToAutoContract, denom...)
+func ConstructContractKey(str string) []byte {
+	return append(KeyPrefixTemplateContract, []byte(str)...)
 }
