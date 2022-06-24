@@ -158,6 +158,7 @@ type State struct {
 
 	prerunTx bool
 	bt       *BlockTransport
+	hbc      *cstypes.HeightBPCache
 
 	vcMsg *ViewChangeMessage
 	hasVC bool // active-view-change(enterNewRoundAVC) at this Height

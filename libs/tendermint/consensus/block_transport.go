@@ -20,16 +20,19 @@ type BlockTransport struct {
 	droppedDue2Error int
 	//because cs.Height != blockPart.height
 	droppedDue2WrongHeight int
-	//because cs.Height < blockPart.height
-	droppedDue2HigerHeight int
 
 	totalParts int
 	Logger     log.Logger
 
+	// feature BPACK
 	bpStatMtx       sync.RWMutex
 	bpSend          int
 	bpNOTransByData int
 	bpNOTransByACK  int
+
+	// feature cache BP
+	// the number of in-use cached bp
+	bpCacheHit int
 }
 
 func (bt *BlockTransport) onProposal(height int64) {
@@ -45,11 +48,12 @@ func (bt *BlockTransport) reset(height int64) {
 	bt.droppedDue2NotAdded = 0
 	bt.droppedDue2Error = 0
 	bt.droppedDue2WrongHeight = 0
-	bt.droppedDue2HigerHeight = 0
 	bt.totalParts = 0
 	bt.bpNOTransByData = 0
 	bt.bpNOTransByACK = 0
 	bt.bpSend = 0
+
+	bt.bpCacheHit = 0
 }
 
 func (bt *BlockTransport) on1stPart(height int64) {

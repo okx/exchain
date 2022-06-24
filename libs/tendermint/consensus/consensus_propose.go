@@ -255,7 +255,7 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	// This happens if we're already in cstypes.RoundStepCommit or if there is a valid block in the current round.
 	// TODO: We can check if Proposal is for a different block as this is a sign of misbehavior!
 	if cs.ProposalBlockParts == nil {
-		cs.ProposalBlockParts = types.NewPartSetFromHeader(proposal.BlockID.PartsHeader)
+		cs.ProposalBlockParts = cs.newPartSetFromHeadeWithCache(proposal.BlockID.PartsHeader, cs.Height)
 	}
 	cs.Logger.Info("Received proposal", "proposal", proposal)
 	cs.bt.onProposal(proposal.Height)
@@ -304,9 +304,6 @@ func (cs *State) addBlockPart(height int64, round int, part *types.Part, peerID 
 	if cs.Height != height {
 		cs.bt.droppedDue2WrongHeight++
 		cs.Logger.Debug("Received block part from wrong height", "height", height, "round", round)
-		if cs.Height < height {
-			cs.bt.droppedDue2HigerHeight++
-		}
 		return
 	}
 	// We're not expecting a block part.
@@ -316,6 +313,8 @@ func (cs *State) addBlockPart(height int64, round int, part *types.Part, peerID 
 		cs.Logger.Info("Received a block part when we're not expecting any",
 			"height", height, "round", round, "index", part.Index, "peer", peerID)
 		cs.bt.droppedDue2NotExpected++
+		// cache the bp part
+		cs.hbc.AddBlockPart(height, part)
 		return
 	}
 	added, err = cs.ProposalBlockParts.AddPart(part)
@@ -383,4 +382,17 @@ func (cs *State) handleCompleteProposal(height int64) {
 		// If we're waiting on the proposal block...
 		cs.tryFinalizeCommit(height)
 	}
+}
+
+// create new PartSet, then populate with the bp cache
+func (cs *State) newPartSetFromHeadeWithCache(header types.PartSetHeader, height int64) *types.PartSet {
+	partSet := types.NewPartSetFromHeader(header)
+	if height == cs.hbc.Height() {
+		for _, part := range cs.hbc.Cache() {
+			if added, _ := partSet.AddPart(part); added {
+				cs.bt.bpCacheHit++
+			}
+		}
+	}
+	return partSet
 }
