@@ -34,15 +34,18 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 
 	k.SetHeightHash(ctx, uint64(height), common.BytesToHash(lastHash))
 	k.SetBlockHash(ctx, lastHash, height)
-	// reset counters that are used on CommitStateDB.Prepare
-	k.Bloom = big.NewInt(0)
-	k.TxCount = 0
-	k.LogSize = 0
-	k.LogsManages = NewLogManager()
-	k.Bhash = common.BytesToHash(currentHash)
 
-	//that can make sure latest block has been committed
-	k.Watcher.NewHeight(uint64(req.Header.GetHeight()), common.BytesToHash(currentHash), req.Header)
+	// reset counters that are used on CommitStateDB.Prepare
+	if !ctx.IsTraceTx() {
+		k.Bloom = big.NewInt(0)
+		k.TxCount = 0
+		k.LogSize = 0
+		k.LogsManages = NewLogManager()
+		k.Bhash = common.BytesToHash(currentHash)
+		//that can make sure latest block has been committed
+		k.Watcher.NewHeight(uint64(req.Header.GetHeight()), common.BytesToHash(currentHash), req.Header)
+	}
+
 }
 
 // EndBlock updates the accounts and commits state objects to the KV Store, while

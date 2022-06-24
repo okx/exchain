@@ -205,10 +205,10 @@ func (st *Store) CacheWrapWithTrace(w io.Writer, tc types.TraceContext) types.Ca
 func (st *Store) Set(key, value []byte) {
 	types.AssertValidValue(value)
 	st.tree.Set(key, value)
+
 	if st.tree.GetModuleName() == "evm" {
-		log.Println(fmt.Sprintf("lcm evm store set height(%d), key(%v), value(%v)", st.tree.Version(), key, value))
-		if string(key) == string([]byte{7, 0, 0, 0, 0, 0, 171, 165, 72}) || string(key) == string([]byte{2, 0, 0, 0, 0, 0, 171, 165, 73}) {
-			log.Println(fmt.Sprintf("lcm evm set height(%d), stack: %s", st.tree.Version(), string(debug.Stack())))
+		if key[0] == 0x07 || key[0] == 0x02 {
+			log.Println(fmt.Sprintf("lcm evm store set height(%d), key(%v), value(%v)", st.tree.Version(), key, value))
 		}
 	}
 	st.setFlatKV(key, value)
