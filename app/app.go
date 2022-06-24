@@ -166,6 +166,8 @@ var (
 
 	GlobalGpIndex = GasPriceIndex{}
 
+	EvmHooks evmtypes.EvmHooks
+
 	onceLog sync.Once
 )
 
@@ -430,8 +432,9 @@ func NewOKExChainApp(
 	app.Erc20Keeper.SetGovKeeper(app.GovKeeper)
 
 	// Set EVM hooks
-	app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper),
-		erc20.NewSendNative20ToIbcEventHandler(app.Erc20Keeper)))
+	EvmHooks = evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper),
+		erc20.NewSendNative20ToIbcEventHandler(app.Erc20Keeper))
+	app.EvmKeeper.SetHooks(EvmHooks)
 
 	// Set IBC hooks
 	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
