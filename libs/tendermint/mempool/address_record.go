@@ -166,13 +166,7 @@ func (ar *AddressRecord) GetAddressNonce(address string) (uint64, bool) {
 	am := v.(*addrMap)
 	am.RLock()
 	defer am.RUnlock()
-	var nonce uint64
-	for _, e := range am.items {
-		if e.Nonce > nonce {
-			nonce = e.Nonce
-		}
-	}
-	return nonce, true
+	return am.maxNonce, true
 }
 
 func (ar *AddressRecord) GetAddressTxs(address string, max int) types.Txs {
