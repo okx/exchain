@@ -1856,7 +1856,7 @@ func (api *PublicEthereumAPI) useWatchBackend(blockNum rpctypes.BlockNumber) boo
 	if !api.watcherBackend.Enabled() {
 		return false
 	}
-	return blockNum == rpctypes.LatestBlockNumber || api.fastQueryThreshold <= 0 || api.watcherBackend.Height()-uint64(blockNum) <= api.fastQueryThreshold
+	return blockNum == rpctypes.LatestBlockNumber || api.fastQueryThreshold <= 0 || global.GetGlobalHeight()-blockNum.Int64() <= int64(api.fastQueryThreshold)
 }
 
 func (api *PublicEthereumAPI) getEvmParams() (*evmtypes.Params, error) {
