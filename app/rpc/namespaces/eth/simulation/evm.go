@@ -58,8 +58,8 @@ func (ef *EvmFactory) PutBackStorePool(multiStore sdk.CacheMultiStore) {
 	ef.storePool.Put(multiStore)
 }
 
-func (ef EvmFactory) BuildSimulator(qoc QueryOnChainProxy, hooks evmtypes.EvmHooks) *EvmSimulator {
-	keeper := ef.makeEvmKeeper(qoc, hooks)
+func (ef EvmFactory) BuildSimulator(qoc QueryOnChainProxy) *EvmSimulator {
+	keeper := ef.makeEvmKeeper(qoc)
 
 	if !watcher.IsWatcherEnabled() {
 		return nil
@@ -138,12 +138,12 @@ func (es *EvmSimulator) DoCall(msg *evmtypes.MsgEthereumTx, sender string, overr
 	}, isWithHook, nil
 }
 
-func (ef EvmFactory) makeEvmKeeper(qoc QueryOnChainProxy, hooks evmtypes.EvmHooks) *evm.Keeper {
+func (ef EvmFactory) makeEvmKeeper(qoc QueryOnChainProxy) *evm.Keeper {
 	module := evm.AppModuleBasic{}
 	cdc := codec.New()
 	module.RegisterCodec(cdc)
 
-	return evm.NewSimulateKeeper(cdc, ef.storeKey, NewSubspaceProxy(), NewAccountKeeperProxy(qoc), SupplyKeeperProxy{}, NewBankKeeperProxy(), NewInternalDba(qoc), hooks, tmlog.NewNopLogger())
+	return evm.NewSimulateKeeper(cdc, ef.storeKey, NewSubspaceProxy(), NewAccountKeeperProxy(qoc), SupplyKeeperProxy{}, NewBankKeeperProxy(), NewInternalDba(qoc), tmlog.NewNopLogger())
 }
 
 func (ef EvmFactory) makeContext(multiStore sdk.CacheMultiStore, header abci.Header) sdk.Context {

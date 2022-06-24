@@ -135,7 +135,7 @@ func NewKeeper(
 // NewKeeper generates new evm module keeper
 func NewSimulateKeeper(
 	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace types.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper, ada types.DbAdapter,
-	hooks types.EvmHooks, logger log.Logger) *Keeper {
+	logger log.Logger) *Keeper {
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
 	k := &Keeper{
 		cdc:           cdc,
@@ -154,7 +154,6 @@ func NewSimulateKeeper(
 		triegc:         prque.New(nil),
 		UpdatedAccount: make([]ethcmn.Address, 0),
 		cci:            &chainConfigInfo{},
-		hooks:          hooks,
 	}
 
 	k.OpenTrie()

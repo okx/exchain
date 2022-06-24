@@ -969,7 +969,7 @@ func (api *PublicEthereumAPI) doCall(
 			return nil, fmt.Errorf("fail to encode overrides")
 		}
 	}
-	sim := api.evmFactory.BuildSimulator(api, app.EvmHooks)
+	sim := api.evmFactory.BuildSimulator(api)
 	//only worked when fast-query has been enabled
 	if sim != nil {
 		ret, isWithHook, err := sim.DoCall(msg, addr.String(), overridesBytes, api.evmFactory.PutBackStorePool, isEvmTxWithHook)
