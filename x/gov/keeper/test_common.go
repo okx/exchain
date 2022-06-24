@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	"github.com/okex/exchain/x/common/monitor"
 
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -177,7 +178,7 @@ func CreateTestInput(
 
 	// for staking/distr rollback to cosmos-sdk
 	stakingKeeper := staking.NewKeeper(pro, stakingSk, supplyKeeper,
-		pk.Subspace(staking.DefaultParamspace))
+		pk.Subspace(staking.DefaultParamspace), monitor.NopStakingMetric())
 
 	stakingKeeper.SetParams(ctx, staking.DefaultParams())
 	pk.SetStakingKeeper(stakingKeeper)

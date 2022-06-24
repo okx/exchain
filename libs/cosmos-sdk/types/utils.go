@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
 	dbm "github.com/okex/exchain/libs/tm-db"
@@ -56,7 +57,6 @@ func Uint64ToBigEndian(i uint64) []byte {
 	return b
 }
 
-
 // BigEndianToUint64 returns an uint64 from big endian encoded bytes. If encoding
 // is empty, zero is returned.
 func BigEndianToUint64(bz []byte) uint64 {
@@ -66,7 +66,6 @@ func BigEndianToUint64(bz []byte) uint64 {
 
 	return binary.BigEndian.Uint64(bz)
 }
-
 
 // Slight modification of the RFC3339Nano but it right pads all zeros and drops the time zone info
 const SortableTimeFormat = "2006-01-02T15:04:05.000000000"
@@ -102,4 +101,25 @@ type ParaMsg struct {
 	RefundFee           Coins
 	LogIndex            int
 	HasRunEvmTx         bool
+}
+
+func ConvertDecToFloat64(dec Dec) float64 {
+	if dec.IsZero() {
+		return 0.0
+	}
+	decStr := dec.String()
+	f, err := strconv.ParseFloat(decStr, 64)
+	if err != nil {
+		panic(err)
+	}
+	return f
+}
+
+func StringsContains(array []string, val string) int {
+	for i := 0; i < len(array); i++ {
+		if array[i] == val {
+			return i
+		}
+	}
+	return -1
 }
