@@ -6,7 +6,6 @@ import (
 	bam "github.com/okex/exchain/libs/system/trace"
 	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/types"
-	"math/big"
 )
 
 type Tx interface {
@@ -28,7 +27,7 @@ type Tx interface {
 	ResetWatcher(account authexported.Account)
 
 	// RefundFeesWatcher fix account balance in watcher with refund fees
-	RefundFeesWatcher(account authexported.Account, coins sdk.Coins, price *big.Int)
+	RefundFeesWatcher(account authexported.Account, ethereumTx *types.MsgEthereumTx)
 
 	// Transition execute evm tx
 	Transition(config types.ChainConfig) (result base.Result, err error)
@@ -77,11 +76,11 @@ func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err e
 
 	defer func() {
 		senderAccount := tx.GetSenderAccount()
-		tx.RefundFeesWatcher(senderAccount, msg.GetFee(), msg.Data.Price)
 		if e := recover(); e != nil {
 			tx.ResetWatcher(senderAccount)
 			panic(e)
 		}
+		tx.RefundFeesWatcher(senderAccount, msg)
 		tx.FinalizeWatcher(senderAccount, err)
 	}()
 
