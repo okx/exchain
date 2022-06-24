@@ -62,3 +62,9 @@ func (hbc *HeightBPCache) Cache() map[int]*types.Part {
 	defer hbc.mtx.Unlock()
 	return hbc.cache
 }
+
+func (hbc *HeightBPCache) GetPart(index int) *types.Part {
+	hbc.mtx.Lock()
+	defer hbc.mtx.Unlock()
+	return hbc.cache[index]
+}
