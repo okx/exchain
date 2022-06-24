@@ -181,11 +181,11 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	txStore, txindexServer, err := startEventBusAndIndexerService(ctx.Config, eventBus, ctx.Logger)
 	panicError(err)
 	defer func() {
-		if txindexServer != nil {
+		if txindexServer != nil && txindexServer.IsRunning() {
 			txindexServer.Stop()
 			txindexServer.Wait()
 		}
-		if eventBus != nil {
+		if eventBus != nil && eventBus.IsRunning() {
 			eventBus.Stop()
 			eventBus.Wait()
 		}

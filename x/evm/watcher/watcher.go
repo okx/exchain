@@ -46,12 +46,10 @@ type Watcher struct {
 }
 
 var (
-	watcherEnable   = false
-	watcherLruSize  = 1000
-	onceEnable      sync.Once
-	onceLru         sync.Once
-	watcherInstance *Watcher
-	onceWatcher     sync.Once
+	watcherEnable  = false
+	watcherLruSize = 1000
+	onceEnable     sync.Once
+	onceLru        sync.Once
 )
 
 func IsWatcherEnabled() bool {
@@ -69,18 +67,15 @@ func GetWatchLruSize() int {
 }
 
 func NewWatcher(logger log.Logger) *Watcher {
-	onceWatcher.Do(func() {
-		watcherInstance = &Watcher{store: InstanceOfWatchStore(),
-			cumulativeGas: make(map[uint64]uint64),
-			sw:            IsWatcherEnabled(),
-			firstUse:      true,
-			delayEraseKey: make([][]byte, 0),
-			watchData:     &WatchData{},
-			log:           logger,
-			checkWd:       viper.GetBool(FlagCheckWd),
-			filterMap:     make(map[string]WatchMessage)}
-	})
-	return watcherInstance
+	return &Watcher{store: InstanceOfWatchStore(),
+		cumulativeGas: make(map[uint64]uint64),
+		sw:            IsWatcherEnabled(),
+		firstUse:      true,
+		delayEraseKey: make([][]byte, 0),
+		watchData:     &WatchData{},
+		log:           logger,
+		checkWd:       viper.GetBool(FlagCheckWd),
+		filterMap:     make(map[string]WatchMessage)}
 }
 
 func (w *Watcher) IsFirstUse() bool {

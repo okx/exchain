@@ -18,6 +18,7 @@ import (
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/infura"
 	"github.com/okex/exchain/x/token"
+	"github.com/okex/exchain/x/wasm"
 	"github.com/spf13/cobra"
 )
 
@@ -119,4 +120,6 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Int(infura.FlagCacheQueueSize, 0, "Cache queue size of infura rpc service")
 	cmd.Flags().Int(config.FlagDebugGcInterval, 0, "Force gc every n heights for debug")
 	cmd.Flags().String(rpc.FlagWebsocket, "8546", "websocket port to listen to")
+
+	wasm.AddModuleInitFlags(cmd)
 }

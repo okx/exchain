@@ -338,7 +338,7 @@ func UncompressBlockFromReader(pbpReader io.Reader) (io.Reader, error) {
 func UncompressBlockFromBytes(payload []byte) (res []byte, compressSign int, err error) {
 	// try parse Uvarint to check if it is compressed
 	compressBytesLen, n := binary.Uvarint(payload)
-	if len(payload)-n == int(compressBytesLen) {
+	if compressBytesLen == uint64(len(payload)-n) {
 		// the block has not compressed
 		res = payload
 	} else {
