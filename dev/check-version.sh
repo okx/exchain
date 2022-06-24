@@ -56,7 +56,7 @@ check_rocksdb_version() {
     rocksdb_version=$(cat /usr/lib/pkgconfig/rocksdb.pc | grep Version: | awk '{print $2}')
     ;;
   alpine)
-    rocksdb_version=$(cat /usr/local/lib/pkgconfig/rocksdb.pc | grep Version: | awk '{print $2}')
+    rocksdb_version=$(cat /usr/lib/pkgconfig/rocksdb.pc | grep Version: | awk '{print $2}')
     ;;
   *)
     if [ -z "$lsb_dist" ]; then
