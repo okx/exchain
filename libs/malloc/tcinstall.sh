@@ -92,7 +92,7 @@ do_install() {
 	# Run setup for each distro accordingly
 	case "$lsb_dist" in
 		ubuntu)
-			pre_reqs="git make autoconf automake libtool gcc-c++"
+			pre_reqs="git make autoreconf autoconf automake libtool gcc-c++"
 			$sh_c 'apt-get update -qq >/dev/null'
 			$sh_c "apt-get install -y -qq $pre_reqs >/dev/null"
 			install_linux
