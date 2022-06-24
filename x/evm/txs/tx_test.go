@@ -54,9 +54,9 @@ func (e EmptyTx) GetChainConfig() (types.ChainConfig, bool) {
 	}
 	return types.ChainConfig{}, true
 }
-func (e EmptyTx) GetSenderAccount() authexported.Account                                          { return EmptyAccount{} }
-func (e EmptyTx) ResetWatcher(account authexported.Account)                                       {}
-func (e EmptyTx) RefundFeesWatcher(account authexported.Account, coins sdk.Coins, price *big.Int) {}
+func (e EmptyTx) GetSenderAccount() authexported.Account                                  { return EmptyAccount{} }
+func (e EmptyTx) ResetWatcher(account authexported.Account)                               {}
+func (e EmptyTx) RefundFeesWatcher(account authexported.Account, tx *types.MsgEthereumTx) {}
 func (e EmptyTx) Transition(config types.ChainConfig) (result base.Result, err error) {
 	if e.TransitionFail {
 		err = fmt.Errorf("transition error")

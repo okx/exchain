@@ -11,7 +11,7 @@ import (
 
 // initialize rewards for a new validator
 func (k Keeper) initializeValidator(ctx sdk.Context, val exported.ValidatorI) {
-	if !tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) {
 		// set accumulated commissions
 		k.SetValidatorAccumulatedCommission(ctx, val.GetOperator(), types.InitialValidatorAccumulatedCommission())
 		return
@@ -50,7 +50,7 @@ func (k Keeper) checkNotExistAndInitializeValidator(ctx sdk.Context, val exporte
 
 // increment validator period, returning the period just ended
 func (k Keeper) incrementValidatorPeriod(ctx sdk.Context, val exported.ValidatorI) uint64 {
-	if !tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) {
 		return 0
 	}
 

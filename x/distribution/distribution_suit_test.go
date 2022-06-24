@@ -196,7 +196,7 @@ func firstOffChain(t *testing.T) {
 
 func firstOnChain(t *testing.T) {
 	//set onchain
-	tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
+	tmtypes.UnittestOnlySetMilestoneSaturn1Height(-1)
 
 	//set diff type, first
 	proposal := makeChangeDistributionTypeProposal(types.DistributionTypeOnChain)

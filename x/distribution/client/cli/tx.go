@@ -175,7 +175,7 @@ $ %s tx distribution withdraw-all-rewards --from mykey
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
-			if !tmtypes.HigherThanVenus2(cliCtx.Height) {
+			if !tmtypes.HigherThanSaturn1(cliCtx.Height) {
 				return fmt.Errorf("not support it with this version")
 			}
 

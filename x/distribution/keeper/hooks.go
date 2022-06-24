@@ -26,7 +26,7 @@ func (h Hooks) AfterValidatorCreated(ctx sdk.Context, valAddr sdk.ValAddress) {
 
 // AfterValidatorRemoved cleans up for after validator is removed
 func (h Hooks) AfterValidatorRemoved(ctx sdk.Context, _ sdk.ConsAddress, valAddr sdk.ValAddress) {
-	if tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+	if tmtypes.HigherThanSaturn1(ctx.BlockHeight()) {
 		h.newAfterValidatorRemoved(ctx, nil, valAddr)
 		return
 	}
@@ -109,7 +109,7 @@ func (h Hooks) newAfterValidatorRemoved(ctx sdk.Context, _ sdk.ConsAddress, valA
 
 // increment period
 func (h Hooks) BeforeDelegationCreated(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
-	if !tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) {
 		return
 	}
 	for _, valAddr := range valAddrs {
@@ -120,7 +120,7 @@ func (h Hooks) BeforeDelegationCreated(ctx sdk.Context, delAddr sdk.AccAddress, 
 
 // withdraw delegation rewards (which also increments period)
 func (h Hooks) BeforeDelegationSharesModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
-	if !tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) {
 		return
 	}
 
@@ -135,7 +135,7 @@ func (h Hooks) BeforeDelegationSharesModified(ctx sdk.Context, delAddr sdk.AccAd
 
 // create new delegation period record
 func (h Hooks) AfterDelegationModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
-	if !tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) {
 		return
 	}
 	for _, valAddr := range valAddrs {

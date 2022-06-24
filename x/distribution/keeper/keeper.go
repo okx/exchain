@@ -90,7 +90,7 @@ func (k Keeper) WithdrawValidatorCommission(ctx sdk.Context, valAddr sdk.ValAddr
 	commission, remainder := accumCommission.TruncateDecimal()
 	k.SetValidatorAccumulatedCommission(ctx, valAddr, remainder) // leave remainder to withdraw later
 
-	if tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+	if tmtypes.HigherThanSaturn1(ctx.BlockHeight()) {
 		// update outstanding
 		outstanding := k.GetValidatorOutstandingRewards(ctx, valAddr)
 		k.SetValidatorOutstandingRewards(ctx, valAddr, outstanding.Sub(sdk.NewDecCoinsFromCoins(commission...)))

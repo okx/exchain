@@ -143,7 +143,7 @@ $ %s query distribution rewards cosmos1gghjut3ccd8ay0zduzj64hwre2fxs9ld75ru9p co
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
-			if !tmtypes.HigherThanVenus2(cliCtx.Height) {
+			if !tmtypes.HigherThanSaturn1(cliCtx.Height) {
 				return fmt.Errorf("not support it with this version")
 			}
 
@@ -208,7 +208,7 @@ $ %s query distribution validator-outstanding-rewards cosmosvaloper1lwjmdnks33xw
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			if !tmtypes.HigherThanVenus2(cliCtx.Height) {
+			if !tmtypes.HigherThanSaturn1(cliCtx.Height) {
 				return fmt.Errorf("not support it with this version")
 			}
 

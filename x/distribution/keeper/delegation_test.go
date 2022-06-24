@@ -15,7 +15,7 @@ func TestCalculateRewardsBasic(t *testing.T) {
 
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
-	tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
+	tmtypes.UnittestOnlySetMilestoneSaturn1Height(-1)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
 
 	// create validator
@@ -64,7 +64,7 @@ func TestCalculateRewardsBasic(t *testing.T) {
 func TestCalculateRewardsMultiDelegator(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
-	tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
+	tmtypes.UnittestOnlySetMilestoneSaturn1Height(-1)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
 
 	// create validator
@@ -137,7 +137,7 @@ func TestCalculateRewardsMultiDelegator(t *testing.T) {
 func TestWithdrawDelegationRewardsBasic(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, ak, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
-	tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
+	tmtypes.UnittestOnlySetMilestoneSaturn1Height(-1)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
 
 	balanceTokens := sdk.NewCoins(sdk.NewCoin(sk.BondDenom(ctx), sdk.TokensFromConsensusPower(int64(1000))))
@@ -199,7 +199,7 @@ func TestWithdrawDelegationRewardsBasic(t *testing.T) {
 func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, ak, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
-	tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
+	tmtypes.UnittestOnlySetMilestoneSaturn1Height(-1)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
 
 	balanceTokens := sdk.NewCoins(sdk.NewCoin(sk.BondDenom(ctx), sdk.TokensFromConsensusPower(int64(1000))))

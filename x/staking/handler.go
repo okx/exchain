@@ -164,7 +164,7 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 
 	validator.Description = description
 
-	if tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+	if tmtypes.HigherThanSaturn1(ctx.BlockHeight()) {
 		if msg.CommissionRate != nil {
 			commission, err := k.UpdateValidatorCommission(ctx, validator, *msg.CommissionRate)
 			if err != nil {

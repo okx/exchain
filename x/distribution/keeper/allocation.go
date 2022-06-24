@@ -144,7 +144,7 @@ func (k Keeper) allocateByShares(ctx sdk.Context, rewards sdk.SysCoins) sdk.SysC
 
 // AllocateTokensToValidator allocate tokens to a particular validator, splitting according to commissions
 func (k Keeper) AllocateTokensToValidator(ctx sdk.Context, val exported.ValidatorI, tokens sdk.SysCoins) {
-	if tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+	if tmtypes.HigherThanSaturn1(ctx.BlockHeight()) {
 		k.newAllocateTokensToValidator(ctx, val, tokens)
 		return
 	}
