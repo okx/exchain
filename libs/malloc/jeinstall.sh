@@ -51,7 +51,7 @@ get_distribution() {
 install_linux() {
 	$sh_c "rm -rf jemalloc"
 	$sh_c "git clone https://github.com/jemalloc/jemalloc.git"
-	$sh_c "cd jemalloc && git checkout ${VERSION}"
+	$sh_c "cd jemalloc && git checkout ${VERSION_NUM}"
 	$sh_c "cd jemalloc && ./autogen.sh"
 	$sh_c "cd jemalloc && ./configure --prefix=/usr --libdir=/usr/lib"
 	$sh_c "cd jemalloc && make uninstall"
