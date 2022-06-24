@@ -313,8 +313,10 @@ func (cs *State) addBlockPart(height int64, round int, part *types.Part, peerID 
 		cs.Logger.Info("Received a block part when we're not expecting any",
 			"height", height, "round", round, "index", part.Index, "peer", peerID)
 		cs.bt.droppedDue2NotExpected++
-		// cache the bp part
-		cs.hbc.AddBlockPart(height, part)
+		// cache the bp part that is not from the cache itself
+		if peerID != BPCachePeerID {
+			cs.hbc.AddBlockPart(height, part)
+		}
 		return
 	}
 	added, err = cs.ProposalBlockParts.AddPart(part)
@@ -332,6 +334,10 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 	}
 	automation.AddBlockTimeOut(height, round)
 	added, err = cs.addBlockPart(height, round, part, peerID)
+
+	if added && peerID == BPCachePeerID {
+		cs.bt.bpCacheHit++
+	}
 
 	if added && cs.ProposalBlockParts.IsComplete() {
 		err = cs.unmarshalBlock()
@@ -389,14 +395,8 @@ func (cs *State) newPartSetFromHeadeWithCache(header types.PartSetHeader, height
 	partSet := types.NewPartSetFromHeader(header)
 	if height == cs.hbc.Height() {
 		for _, part := range cs.hbc.Cache() {
-			if added, _ := partSet.AddPart(part); added {
-				cs.bt.bpCacheHit++
-			}
+			cs.sendInternalMessage(msgInfo{&BlockPartMessage{cs.Height, cs.Round, part, cs.Deltas}, BPCachePeerID})
 		}
-	}
-
-	if partSet.IsComplete() {
-		fmt.Println("PartSet complete by Cache..")
 	}
 	return partSet
 }

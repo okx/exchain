@@ -47,6 +47,7 @@ func GetActiveVC() bool {
 const (
 	msgQueueSize   = 1000
 	EnablePrerunTx = "enable-preruntx"
+	BPCachePeerID  = "BPCache"
 )
 
 // msgs from the reactor which may update the state
