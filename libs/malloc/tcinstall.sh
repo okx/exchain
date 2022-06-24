@@ -1,6 +1,6 @@
 #!/bin/sh
 #set -e
-set -x
+#set -x
 VERSION_NUM=2.9.1
 VERSION=gperftools-$VERSION_NUM
 
