@@ -47,6 +47,8 @@ func (hbc *HeightBPCache) AddBlockPart(height int64, part *types.Part) {
 }
 
 func (hbc *HeightBPCache) Count() int {
+	hbc.mtx.Lock()
+	defer hbc.mtx.Unlock()
 	return hbc.count
 }
 
