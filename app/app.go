@@ -166,8 +166,6 @@ var (
 
 	GlobalGpIndex = GasPriceIndex{}
 
-	EvmHooks evmtypes.EvmHooks
-
 	onceLog sync.Once
 )
 
