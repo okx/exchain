@@ -40,7 +40,7 @@ func (w *Watcher) LoadItem(denom, contract string) bool {
 	if strings.HasPrefix(contract, "0x") {
 		contractBytes, err := hex.DecodeString(contract[2:])
 		if err != nil {
-			panic(fmt.Errorf("erc20  LoadTokenMapping error", err))
+			panic(fmt.Errorf("erc20  LoadTokenMapping error %v", err))
 		}
 		w.SetContractToDenom(contractBytes, []byte(denom))
 	}
