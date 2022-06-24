@@ -389,9 +389,10 @@ func (cs *State) newPartSetFromHeadeWithCache(header types.PartSetHeader, height
 	partSet := types.NewPartSetFromHeader(header)
 	if height == cs.hbc.Height() {
 		for _, part := range cs.hbc.Cache() {
-			if added, _ := partSet.AddPart(part); added {
-				cs.bt.bpCacheHit++
-			}
+			//if added, _ := partSet.AddPart(part); added {
+			//	cs.bt.bpCacheHit++
+			//}
+			_ = part.Index
 		}
 	}
 	return partSet
