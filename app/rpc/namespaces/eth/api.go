@@ -12,6 +12,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/x/evm"
+	"github.com/okex/exchain/x/evm/keeper"
+
 	"github.com/ethereum/go-ethereum/accounts"
 	"github.com/ethereum/go-ethereum/accounts/keystore"
 	"github.com/ethereum/go-ethereum/common"
@@ -20,8 +24,9 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/okex/exchain/app/config"
 	"github.com/spf13/viper"
+
+	"github.com/okex/exchain/app/config"
 
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
@@ -64,21 +69,22 @@ const (
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
 type PublicEthereumAPI struct {
-	ctx                context.Context
-	clientCtx          clientcontext.CLIContext
-	chainIDEpoch       *big.Int
-	logger             log.Logger
-	backend            backend.Backend
-	keys               []ethsecp256k1.PrivKey // unlocked keys
-	nonceLock          *rpctypes.AddrLocker
-	keyringLock        sync.Mutex
-	gasPrice           *hexutil.Big
-	wrappedBackend     *watcher.Querier
-	watcherBackend     *watcher.Watcher
-	evmFactory         simulation.EvmFactory
-	txPool             *TxPool
-	Metrics            map[string]*monitor.RpcMetrics
-	callCache          *lru.Cache
+	ctx            context.Context
+	clientCtx      clientcontext.CLIContext
+	chainIDEpoch   *big.Int
+	logger         log.Logger
+	backend        backend.Backend
+	keys           []ethsecp256k1.PrivKey // unlocked keys
+	nonceLock      *rpctypes.AddrLocker
+	keyringLock    sync.Mutex
+	gasPrice       *hexutil.Big
+	wrappedBackend *watcher.Querier
+	watcherBackend *watcher.Watcher
+	evmFactory     simulation.EvmFactory
+	txPool         *TxPool
+	Metrics        map[string]*monitor.RpcMetrics
+	callCache      *lru.Cache
+	cdc            *codec.Codec
 	fastQueryThreshold uint64
 }
 
@@ -107,7 +113,9 @@ func NewAPI(
 		fastQueryThreshold: viper.GetUint64(FlagFastQueryThreshold),
 	}
 	api.evmFactory = simulation.NewEvmFactory(clientCtx.ChainID, api.wrappedBackend)
-
+	module := evm.AppModuleBasic{}
+	api.cdc = codec.New()
+	module.RegisterCodec(api.cdc)
 	if watcher.IsWatcherEnabled() {
 		callCache, err := lru.New(CacheOfEthCallLru)
 		if err != nil {
@@ -159,6 +167,10 @@ func (api *PublicEthereumAPI) GetKeyringInfo() error {
 // ClientCtx returns the Cosmos SDK client context.
 func (api *PublicEthereumAPI) ClientCtx() clientcontext.CLIContext {
 	return api.clientCtx
+}
+
+func (api *PublicEthereumAPI) GetSimulateKeeper() *keeper.Keeper {
+	return evm.NewSimulateKeeper(api.cdc, sdk.NewKVStoreKey(evm.StoreKey), simulation.NewSubspaceProxy(), simulation.NewAccountKeeperProxy(api), simulation.SupplyKeeperProxy{}, simulation.NewBankKeeperProxy(), simulation.NewInternalDba(api), log.NewNopLogger())
 }
 
 // GetKeys returns the Cosmos SDK client context.
@@ -972,7 +984,7 @@ func (api *PublicEthereumAPI) doCall(
 	sim := api.evmFactory.BuildSimulator(api)
 	//only worked when fast-query has been enabled
 	if sim != nil {
-		return sim.DoCall(msg, addr.String(), overridesBytes)
+		return sim.DoCall(msg, addr.String(), overridesBytes, api.evmFactory.PutBackStorePool)
 	}
 
 	//Generate tx to be used to simulate (signature isn't needed)
@@ -1856,7 +1868,7 @@ func (api *PublicEthereumAPI) useWatchBackend(blockNum rpctypes.BlockNumber) boo
 	if !api.watcherBackend.Enabled() {
 		return false
 	}
-	return blockNum == rpctypes.LatestBlockNumber || api.fastQueryThreshold <= 0 || api.watcherBackend.Height()-uint64(blockNum) <= api.fastQueryThreshold
+	return blockNum == rpctypes.LatestBlockNumber || api.fastQueryThreshold <= 0 || global.GetGlobalHeight()-blockNum.Int64() <= int64(api.fastQueryThreshold)
 }
 
 func (api *PublicEthereumAPI) getEvmParams() (*evmtypes.Params, error) {

@@ -147,6 +147,8 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 	pm.workgroup.txs = txs
 	pm.isAsyncDeliverTx = true
 	pm.cms = app.deliverState.ms.CacheMultiStore()
+	pm.cms.DisableCacheReadList()
+	app.deliverState.ms.DisableCacheReadList()
 	pm.blockHeight = app.deliverState.ctx.BlockHeight()
 
 	if txSize == 0 {
@@ -676,6 +678,7 @@ func (f *parallelTxManager) getTxResult(index int) sdk.CacheMultiStore {
 				return nil
 			}
 
+			f.txReps[preIndexInGroup].ms.DisableCacheReadList()
 			ms = f.chainMultiStores.GetStoreWithParent(f.txReps[preIndexInGroup].ms)
 		}
 	}
