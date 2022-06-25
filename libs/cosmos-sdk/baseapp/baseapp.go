@@ -569,9 +569,7 @@ func (app *BaseApp) setCheckState(header abci.Header) {
 	}
 	app.checkState.ctx.SetMinGasPrices(app.minGasPrices)
 
-	if header.Height%multiCacheListClearInterval*2 == 0 {
-		app.checkTxCacheMultiStores.Clear()
-	}
+	app.checkTxCacheMultiStores.GetStore()
 }
 
 // setDeliverState sets the BaseApp's deliverState with a cache-wrapped multi-store
