@@ -128,3 +128,34 @@ func BenchmarkParamsUnmarshal(b *testing.B) {
 		}
 	})
 }
+
+func BenchmarkParamsMarshal(b *testing.B) {
+	params := NewParams(true, false, true, true, 100)
+	b.ResetTimer()
+	b.Run("json", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+		for n := 0; n < b.N; n++ {
+			_, _ = json.Marshal(&params)
+
+		}
+	})
+
+	b.Run("jsoniter", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+		for n := 0; n < b.N; n++ {
+			_, _ = jsoniter.Marshal(&params)
+
+		}
+	})
+
+	b.Run("ffjson", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+		for n := 0; n < b.N; n++ {
+			_, _ = ffjson.Marshal(&params)
+		}
+	})
+	//NOTE: fastjson is just a parser, it does not provide "Marshal" method.
+}

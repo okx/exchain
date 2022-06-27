@@ -3,10 +3,9 @@ package types
 import (
 	"fmt"
 
+	"github.com/pquerna/ffjson/ffjson"
 	"github.com/valyala/fastjson"
 	"gopkg.in/yaml.v2"
-
-	"encoding/json"
 
 	"github.com/ethereum/go-ethereum/core/vm"
 
@@ -81,24 +80,9 @@ func (p Params) String() string {
 	return string(out)
 }
 
+// MarshalJSON use ffjson to marshal params
 func (p Params) MarshalJSON() ([]byte, error) {
-	alias := &struct {
-		EnableCreate                      bool   `json:"enable_create"`
-		EnableCall                        bool   `json:"enable_call"`
-		ExtraEIPs                         []int  `json:"extra_eips"`
-		EnableContractDeploymentWhitelist bool   `json:"enable_contract_deployment_whitelist"`
-		EnableContractBlockedList         bool   `json:"enable_contract_blocked_list"`
-		MaxGasLimitPerTx                  uint64 `json:"max_gas_limit_per_tx"`
-	}{
-		p.EnableCreate,
-		p.EnableCall,
-		p.ExtraEIPs,
-		p.EnableContractDeploymentWhitelist,
-		p.EnableContractBlockedList,
-		p.MaxGasLimitPerTx,
-	}
-
-	return json.Marshal(alias)
+	return ffjson.Marshal(&p)
 }
 
 // UnmarshalJSON use fastjson to unmarshal params
