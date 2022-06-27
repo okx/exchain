@@ -2,7 +2,11 @@ package backend
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"time"
+
+	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/x/evm/watcher"
@@ -21,6 +25,13 @@ import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
+
+const (
+	FlagLogsLimit   = "rpc.logs-limit"
+	FlagLogsTimeout = "rpc.logs-timeout"
+)
+
+var ErrTimeout = errors.New("query timeout exceeded")
 
 // Backend implements the functionality needed to filter changes.
 // Implemented by EthermintBackend.
@@ -70,6 +81,8 @@ type EthermintBackend struct {
 	rateLimiters      map[string]*rate.Limiter
 	disableAPI        map[string]bool
 	backendCache      Cache
+	logsLimit         int
+	logsTimeout       int // timeout second
 }
 
 // New creates a new EthermintBackend instance
@@ -85,7 +98,17 @@ func New(clientCtx clientcontext.CLIContext, log log.Logger, rateLimiters map[st
 		rateLimiters:      rateLimiters,
 		disableAPI:        disableAPI,
 		backendCache:      NewLruCache(),
+		logsLimit:         viper.GetInt(FlagLogsLimit),
+		logsTimeout:       viper.GetInt(FlagLogsTimeout),
 	}
+}
+
+func (b *EthermintBackend) LogsLimit() int {
+	return b.logsLimit
+}
+
+func (b *EthermintBackend) LogsTimeout() time.Duration {
+	return time.Duration(b.logsTimeout) * time.Second
 }
 
 // BlockNumber returns the current block number.
@@ -436,24 +459,30 @@ func (b *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 	}
 
 	var blockLogs = [][]*ethtypes.Log{}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(b.logsTimeout)*time.Second)
+	defer cancel()
 	for _, tx := range block.Block.Txs {
-		// NOTE: we query the state in case the tx result logs are not persisted after an upgrade.
-		txRes, err := b.clientCtx.Client.Tx(tx.Hash(block.Block.Height), !b.clientCtx.TrustNode)
-		if err != nil {
-			continue
-		}
-		execRes, err := evmtypes.DecodeResultData(txRes.TxResult.Data)
-		if err != nil {
-			continue
-		}
-
-		var validLogs []*ethtypes.Log
-		for _, log := range execRes.Logs {
-			if int64(log.BlockNumber) == block.Block.Height {
-				validLogs = append(validLogs, log)
+		select {
+		case <-ctx.Done():
+			return nil, ErrTimeout
+		default:
+			// NOTE: we query the state in case the tx result logs are not persisted after an upgrade.
+			txRes, err := b.clientCtx.Client.Tx(tx.Hash(block.Block.Height), !b.clientCtx.TrustNode)
+			if err != nil {
+				continue
 			}
+			execRes, err := evmtypes.DecodeResultData(txRes.TxResult.Data)
+			if err != nil {
+				continue
+			}
+			var validLogs []*ethtypes.Log
+			for _, log := range execRes.Logs {
+				if int64(log.BlockNumber) == block.Block.Height {
+					validLogs = append(validLogs, log)
+				}
+			}
+			blockLogs = append(blockLogs, validLogs)
 		}
-		blockLogs = append(blockLogs, validLogs)
 	}
 
 	return blockLogs, nil
