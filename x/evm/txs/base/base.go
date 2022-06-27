@@ -36,6 +36,7 @@ type Tx struct {
 	Keeper *Keeper
 
 	StateTransition types.StateTransition
+	reuseCsdb       bool
 }
 
 // Prepare convert msg to state transition
@@ -43,7 +44,7 @@ func (tx *Tx) Prepare(msg *types.MsgEthereumTx) (err error) {
 	tx.AnalyzeStart(bam.Txhash)
 	defer tx.AnalyzeStop(bam.Txhash)
 
-	tx.StateTransition, err = msg2st(&tx.Ctx, tx.Keeper, msg)
+	tx.reuseCsdb, err = msg2st(&tx.Ctx, tx.Keeper, msg, &tx.StateTransition)
 	return
 }
 
@@ -148,3 +149,13 @@ func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *Result) {}
 
 // FinalizeWatcher check Tx do not need this
 func (tx *Tx) FinalizeWatcher(account authexported.Account, err error) {}
+
+func (tx *Tx) Dispose() {
+	if tx != nil && tx.reuseCsdb {
+		tx.reuseCsdb = false
+		if tx.StateTransition.Csdb != nil {
+			putCommitStateDB(tx.StateTransition.Csdb)
+			tx.StateTransition.Csdb = nil
+		}
+	}
+}
