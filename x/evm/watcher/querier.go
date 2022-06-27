@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"math/big"
 	"strconv"
 	"sync"
 
@@ -117,9 +118,6 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
 	if fullTx && block.Transactions != nil {
 		txsHash := block.Transactions.([]interface{})
 		txList := make([]*Transaction, 0, len(txsHash))
-		if len(txsHash) == 0 {
-			block.TransactionsRoot = ethtypes.EmptyRootHash
-		}
 		for _, tx := range txsHash {
 			transaction, e := q.GetTransactionByHash(common.HexToHash(tx.(string)))
 			if e == nil && transaction != nil {
@@ -127,6 +125,9 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
 			}
 		}
 		block.Transactions = txList
+	}
+	if block.TransactionsRoot.Big().Cmp(new(big.Int)) == 0 {
+		block.TransactionsRoot = ethtypes.EmptyRootHash
 	}
 	block.UncleHash = ethtypes.EmptyUncleHash
 	block.ReceiptsRoot = ethtypes.EmptyRootHash
