@@ -457,7 +457,10 @@ func (b *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 	if err != nil {
 		return nil, err
 	}
-
+	// return timeout error directly when block was produced during stress testing.
+	if len(block.Block.Txs) > b.logsLimit {
+		return nil, ErrTimeout
+	}
 	var blockLogs = [][]*ethtypes.Log{}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(b.logsTimeout)*time.Second)
 	defer cancel()
