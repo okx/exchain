@@ -152,9 +152,11 @@ func FormatBlock(
 	header tmtypes.Header, size int, curBlockHash tmbytes.HexBytes, gasLimit int64,
 	gasUsed *big.Int, transactions []*watcher.Transaction, bloom ethtypes.Bloom, fullTx bool,
 ) *watcher.Block {
-	if len(header.DataHash) == 0 {
-		header.DataHash = tmbytes.HexBytes(common.Hash{}.Bytes())
+	transactionsRoot := ethtypes.EmptyRootHash
+	if len(header.DataHash) > 0 {
+		transactionsRoot = common.BytesToHash(header.DataHash)
 	}
+
 	parentHash := header.LastBlockID.Hash
 	if parentHash == nil {
 		parentHash = ethtypes.EmptyRootHash.Bytes()
@@ -166,7 +168,7 @@ func FormatBlock(
 		Nonce:            watcher.BlockNonce{},    // PoW specific
 		UncleHash:        ethtypes.EmptyUncleHash, // No uncles in Tendermint
 		LogsBloom:        bloom,
-		TransactionsRoot: common.BytesToHash(header.DataHash),
+		TransactionsRoot: transactionsRoot,
 		StateRoot:        common.BytesToHash(header.AppHash),
 		Miner:            common.BytesToAddress(header.ProposerAddress),
 		MixHash:          common.Hash{},
