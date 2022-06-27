@@ -972,25 +972,7 @@ func (cache *mapTxCache) Push(tx types.Tx) bool {
 	// Use the tx hash in the cache
 	txHash := txKey(tx)
 
-	cache.mtx.Lock()
-	defer cache.mtx.Unlock()
-
-	if moved, exists := cache.cacheMap[txHash]; exists {
-		cache.list.MoveToBack(moved)
-		return false
-	}
-
-	if cache.list.Len() >= cache.size {
-		popped := cache.list.Front()
-		poppedTxHash := popped.Value.([sha256.Size]byte)
-		delete(cache.cacheMap, poppedTxHash)
-		if popped != nil {
-			cache.list.Remove(popped)
-		}
-	}
-	e := cache.list.PushBack(txHash)
-	cache.cacheMap[txHash] = e
-	return true
+	return cache.PushKey(txHash)
 }
 
 func (cache *mapTxCache) PushKey(txHash [32]byte) bool {
