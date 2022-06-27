@@ -8,11 +8,12 @@ import (
 
 	"time"
 
+	"math/big"
+	"strconv"
+
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/tendermint/go-amino"
-	"math/big"
-	"strconv"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -621,6 +622,10 @@ func newBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash, h
 	if timestamp < 0 {
 		timestamp = time.Now().Unix()
 	}
+	transactionsRoot := ethtypes.EmptyRootHash
+	if len(header.DataHash) > 0 {
+		transactionsRoot = common.BytesToHash(header.DataHash)
+	}
 	return Block{
 		Number:           hexutil.Uint64(height),
 		Hash:             blockHash,
@@ -628,7 +633,7 @@ func newBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash, h
 		Nonce:            BlockNonce{},
 		UncleHash:        common.Hash{},
 		LogsBloom:        blockBloom,
-		TransactionsRoot: common.BytesToHash(header.DataHash),
+		TransactionsRoot: transactionsRoot,
 		StateRoot:        common.BytesToHash(header.AppHash),
 		Miner:            common.BytesToAddress(header.ProposerAddress),
 		MixHash:          common.Hash{},

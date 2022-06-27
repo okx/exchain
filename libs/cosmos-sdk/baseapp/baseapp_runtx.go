@@ -98,7 +98,11 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		//in trace mode,  info ctx cache was already set to traceBlockCache instead of app.blockCache in app.tracetx()
 		//to prevent modifying the deliver state
 		//traceBlockCache was created with different root(chainCache) with app.blockCache in app.BeginBlockForTrace()
-		info.ctx.SetCache(sdk.NewCache(app.blockCache, useCache(mode)))
+		if useCache(mode) {
+			info.ctx.SetCache(sdk.NewCache(app.blockCache, true))
+		} else {
+			info.ctx.SetCache(nil)
+		}
 	}
 	for _, addr := range from {
 		// cache from if exist

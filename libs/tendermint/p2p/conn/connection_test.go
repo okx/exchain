@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"math/rand"
 	"net"
+	"os"
 	"testing"
 	"time"
 
@@ -772,6 +773,97 @@ func Benchmark(b *testing.B) {
 					b.Fatal(err)
 				}
 			}
+		}
+	})
+}
+
+func BenchmarkMConnectionLogSendData(b *testing.B) {
+	c := new(MConnection)
+	chID := byte(10)
+	msgBytes := []byte("Hello World!")
+
+	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "benchmark")
+	var options []log.Option
+	options = append(options, log.AllowInfoWith("module", "benchmark"))
+	logger = log.NewFilter(logger, options...)
+
+	c.Logger = logger
+	b.ResetTimer()
+
+	b.Run("pool", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			c.logSendData("Send", chID, msgBytes)
+		}
+	})
+
+	b.Run("logger", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			logger.Debug("Send", "channel", chID, "conn", c, "msgBytes", bytesHexStringer(msgBytes))
+		}
+	})
+}
+
+func BenchmarkMConnectionLogReceiveMsg(b *testing.B) {
+	c := new(MConnection)
+	chID := byte(10)
+	msgBytes := []byte("Hello World!")
+
+	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "benchmark")
+	var options []log.Option
+	options = append(options, log.AllowInfoWith("module", "benchmark"))
+	logger = log.NewFilter(logger, options...)
+
+	c.Logger = logger
+	b.ResetTimer()
+
+	b.Run("pool", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			c.logReceiveMsg(chID, msgBytes)
+		}
+	})
+
+	b.Run("logger", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			logger.Debug("Received bytes", "chID", chID, "msgBytes", bytesHexStringer(msgBytes))
+		}
+	})
+}
+
+func BenchmarkChannelLogRecvPacketMsg(b *testing.B) {
+	conn := new(MConnection)
+	c := new(Channel)
+	chID := byte(10)
+	msgBytes := []byte("Hello World!")
+	pk := PacketMsg{
+		ChannelID: chID,
+		EOF:       25,
+		Bytes:     msgBytes,
+	}
+
+	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "benchmark")
+	var options []log.Option
+	options = append(options, log.AllowInfoWith("module", "benchmark"))
+	logger = log.NewFilter(logger, options...)
+
+	c.Logger = logger
+	c.conn = conn
+	b.ResetTimer()
+
+	b.Run("pool", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			c.logRecvPacketMsg(pk)
+		}
+	})
+
+	b.Run("logger", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			c.Logger.Debug("Read PacketMsg", "conn", c.conn, "packet", pk)
 		}
 	})
 }

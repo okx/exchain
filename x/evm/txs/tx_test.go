@@ -41,6 +41,8 @@ type EmptyTx struct {
 	DecorateResultFail bool
 }
 
+func (e EmptyTx) Dispose() {}
+
 func (e EmptyTx) Prepare(msg *types.MsgEthereumTx) (err error) {
 	if e.PrepareFail {
 		return fmt.Errorf("prepare error")
