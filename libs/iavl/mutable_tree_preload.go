@@ -141,6 +141,7 @@ func (tree *MutableTree) removeWithOrphansSlice(key []byte, orphaned *[]*Node) (
 	if len(*orphaned) == 0 {
 		return nil, false
 	}
+	tree.addUnsavedRemoval(key)
 
 	if newRoot == nil && newRootHash != nil {
 		tree.root = tree.ndb.GetNode(newRootHash)

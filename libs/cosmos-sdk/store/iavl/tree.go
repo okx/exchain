@@ -18,7 +18,7 @@ type (
 	// must be made.
 	Tree interface {
 		Has(key []byte) bool
-		Get(key []byte) (index int64, value []byte)
+		FastGet(key []byte) (value []byte)
 		Set(key, value []byte) bool
 		Remove(key []byte) ([]byte, bool)
 		PreChanges(keys []string, setOrDel []byte)
