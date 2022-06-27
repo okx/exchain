@@ -4,19 +4,6 @@
 VERSION_NUM=2.9.1
 VERSION=gperftools-$VERSION_NUM
 
-while [ $# -gt 0 ]; do
-	case "$1" in
-		--version)
-			VERSION="$2"
-			shift
-			;;
-		--*)
-			echo "Illegal option $1"
-			;;
-	esac
-	shift $(( $# > 0 ? 1 : 0 ))
-done
-
 command_exists() {
 	command -v "$@" > /dev/null 2>&1
 }
