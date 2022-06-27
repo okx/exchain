@@ -57,8 +57,7 @@ func (ef *EvmFactory) PutBackStorePool(multiStore sdk.CacheMultiStore) {
 }
 
 func (ef EvmFactory) BuildSimulator(qoc QueryOnChainProxy) *EvmSimulator {
-	keeper := ef.makeEvmKeeper(qoc)
-
+	keeper := qoc.GetSimulateKeeper()
 	if !watcher.IsWatcherEnabled() {
 		return nil
 	}
