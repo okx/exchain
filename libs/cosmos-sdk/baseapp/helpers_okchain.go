@@ -1,10 +1,14 @@
 package baseapp
 
 import (
+	"encoding/json"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (app *BaseApp) PushAnteHandler(ah sdk.AnteHandler) {
@@ -13,6 +17,57 @@ func (app *BaseApp) PushAnteHandler(ah sdk.AnteHandler) {
 
 func (app *BaseApp) GetDeliverStateCtx() sdk.Context {
 	return app.deliverState.ctx
+}
+
+//TraceTx returns the trace log for the target tx
+//To trace the target tx, the context must be set to the specific block at first,
+//and the predesessors in the same block must be run before tracing the tx.
+//The runtx procedure for TraceTx is nearly same with that for DeliverTx,  but the
+//state was saved in different Cache in app.
+func (app *BaseApp) TraceBlock(queryTraceTx sdk.QueryTraceBlock, block *tmtypes.Block) (*sdk.Result, error) {
+
+	var initialTxBytes []byte
+	txsLength := len(block.Txs)
+
+	if txsLength == 0 {
+		return &sdk.Result{}, nil
+	}
+	results := make([]sdk.QueryTraceTxResult, 0, txsLength)
+
+	//get first tx
+	//begin trace block to init traceState and traceBlockCache
+	traceState, err := app.beginBlockForTracing(initialTxBytes, block)
+	if err != nil {
+		return nil, sdkerrors.Wrap(err, "failed to beginblock for tracing")
+	}
+
+	traceState.ctx.SetIsTraceTxLog(true)
+	traceState.ctx.SetTraceTxLogConfig(queryTraceTx.ConfigBytes)
+	//pre deliver prodesessor tx to get the right state
+	for _, txBz := range block.Txs {
+		tx, err := app.txDecoder(txBz, block.Height)
+		if err != nil {
+			return nil, sdkerrors.Wrap(err, "invalid prodesessor")
+		}
+		result := sdk.QueryTraceTxResult{}
+		info, err := app.tracetx(txBz, tx, block.Height, traceState)
+		if err != nil {
+			result.Error = err.Error()
+		} else {
+			result.Data = info.result.Data
+		}
+
+		results = append(results, result)
+	}
+
+	resultData, err := json.Marshal(results)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+
+	return &sdk.Result{
+		Data: resultData,
+	}, nil
 }
 
 //TraceTx returns the trace log for the target tx

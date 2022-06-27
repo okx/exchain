@@ -12,6 +12,7 @@ import (
 	"github.com/okex/exchain/app/rpc/backend"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 
+	rpctypes "github.com/okex/exchain/app/rpc/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
@@ -57,6 +58,49 @@ func (api *PublicDebugAPI) TraceTransaction(txHash common.Hash, config evmtypes.
 		return nil, err
 	}
 	resTrace, _, err := api.clientCtx.QueryWithData("app/trace", queryBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	var res sdk.Result
+	if err := api.clientCtx.Codec.UnmarshalBinaryBare(resTrace, &res); err != nil {
+		return nil, err
+	}
+	var decodedResult interface{}
+	if err := json.Unmarshal(res.Data, &decodedResult); err != nil {
+		return nil, err
+	}
+
+	return decodedResult, nil
+}
+
+func (api *PublicDebugAPI) TraceBlockByNumber(blockNum rpctypes.BlockNumber, config *evmtypes.TraceConfig) (interface{}, error) {
+
+	err := evmtypes.TestTracerConfig(config)
+	if err != nil {
+		return nil, fmt.Errorf("tracer err : %s", err.Error())
+	}
+	configBytes, err := json.Marshal(config)
+	if err != nil {
+		return nil, err
+	}
+
+	//query block from db
+	height := blockNum.Int64()
+	_, err = api.clientCtx.Client.Block(&height)
+	if err != nil {
+		return nil, nil
+	}
+
+	queryParam := sdk.QueryTraceBlock{
+		Height:      height,
+		ConfigBytes: configBytes,
+	}
+	queryBytes, err := json.Marshal(&queryParam)
+	if err != nil {
+		return nil, err
+	}
+	resTrace, _, err := api.clientCtx.QueryWithData("app/traceBlock", queryBytes)
 	if err != nil {
 		return nil, err
 	}

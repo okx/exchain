@@ -465,6 +465,26 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 				Value:     codec.Cdc.MustMarshalBinaryBare(res),
 			}
 
+		case "traceBlock":
+			var queryParam sdk.QueryTraceBlock
+			err := json.Unmarshal(req.Data, &queryParam)
+			if err != nil {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "invalid trace block params"))
+			}
+			tmBlock, err := GetABCIBlock(queryParam.Height)
+			if err != nil {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "invalid trace block"))
+			}
+			res, err := app.TraceBlock(queryParam, tmBlock.Block)
+			if err != nil {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to trace block"))
+			}
+			return abci.ResponseQuery{
+				Codespace: sdkerrors.RootCodespace,
+				Height:    req.Height,
+				Value:     codec.Cdc.MustMarshalBinaryBare(res),
+			}
+
 		case "version":
 			return abci.ResponseQuery{
 				Codespace: sdkerrors.RootCodespace,
