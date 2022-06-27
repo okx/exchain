@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	gojson "github.com/goccy/go-json"
 	"github.com/json-iterator/go"
 	"github.com/pquerna/ffjson/ffjson"
 	"github.com/stretchr/testify/assert"
@@ -127,6 +128,14 @@ func BenchmarkParamsUnmarshal(b *testing.B) {
 			_ = p.UnmarshalJSON(bz)
 		}
 	})
+	b.Run("go-json", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+		for n := 0; n < b.N; n++ {
+			var params Params
+			_ = gojson.Unmarshal(bz, &params)
+		}
+	})
 }
 
 func BenchmarkParamsMarshal(b *testing.B) {
@@ -155,6 +164,14 @@ func BenchmarkParamsMarshal(b *testing.B) {
 		b.ReportAllocs()
 		for n := 0; n < b.N; n++ {
 			_, _ = ffjson.Marshal(&params)
+		}
+	})
+
+	b.Run("go-json", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+		for n := 0; n < b.N; n++ {
+			_, _ = gojson.Marshal(&params)
 		}
 	})
 	//NOTE: fastjson is just a parser, it does not provide "Marshal" method.

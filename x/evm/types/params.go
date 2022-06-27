@@ -81,7 +81,23 @@ func (p Params) String() string {
 }
 
 func (p Params) MarshalJSON() ([]byte, error) {
-	return ffjson.Marshal(&p)
+	alias := &struct {
+		EnableCreate                      bool   `json:"enable_create"`
+		EnableCall                        bool   `json:"enable_call"`
+		ExtraEIPs                         []int  `json:"extra_eips"`
+		EnableContractDeploymentWhitelist bool   `json:"enable_contract_deployment_whitelist"`
+		EnableContractBlockedList         bool   `json:"enable_contract_blocked_list"`
+		MaxGasLimitPerTx                  uint64 `json:"max_gas_limit_per_tx"`
+	}{
+		p.EnableCreate,
+		p.EnableCall,
+		p.ExtraEIPs,
+		p.EnableContractDeploymentWhitelist,
+		p.EnableContractBlockedList,
+		p.MaxGasLimitPerTx,
+	}
+
+	return ffjson.Marshal(alias)
 }
 
 // UnmarshalJSON use fastjson to unmarshal params
