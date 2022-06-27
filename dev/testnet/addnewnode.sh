@@ -143,6 +143,8 @@ start() {
 #    LOG_LEVEL=main:info,*:error,state:debug,consensus:debug
 
     ${BIN_NAME} start \
+    --fast-query \
+    --rpc.enable-multi-call \
     --chain-id ${CHAIN_ID} \
     --home ${OKCHAIN_NET_CACHE}/${NAME}/exchaind \
     --p2p.laddr tcp://${IP}:${p2pport} \

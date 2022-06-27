@@ -205,18 +205,28 @@ func (t *ImmutableTree) GetByIndex(index int64) (key []byte, value []byte) {
 	return t.root.getByIndex(t, index)
 }
 
-// Iterate iterates over all keys of the tree, in order. The keys and values must not be modified,
-// since they may point to data stored within IAVL.
+// Iterate iterates over all keys of the tree. The keys and values must not be modified,
+// since they may point to data stored within IAVL.Returns true if stopped by callback, false otherwise
 func (t *ImmutableTree) Iterate(fn func(key []byte, value []byte) bool) (stopped bool) {
 	if t.root == nil {
 		return false
 	}
-	return t.root.traverse(t, true, func(node *Node) bool {
-		if node.height == 0 {
-			return fn(node.key, node.value)
+	itr := t.Iterator(nil, nil, true)
+	defer itr.Close()
+	for ; itr.Valid(); itr.Next() {
+		if fn(itr.Key(), itr.Value()) {
+			return true
 		}
-		return false
-	})
+	}
+	return false
+}
+
+// Iterator returns an iterator over the immutable tree.
+func (t *ImmutableTree) Iterator(start, end []byte, ascending bool) dbm.Iterator {
+	if t.IsFastCacheEnabled() {
+		return NewFastIterator(start, end, ascending, t.ndb)
+	}
+	return NewIterator(start, end, ascending, t)
 }
 
 // IterateRange makes a callback for all nodes with key between start and end non-inclusive.
@@ -247,6 +257,18 @@ func (t *ImmutableTree) IterateRangeInclusive(start, end []byte, ascending bool,
 		}
 		return false
 	})
+}
+
+// IsFastCacheEnabled returns true if fast cache is enabled, false otherwise.
+// For fast cache to be enabled, the following 2 conditions must be met:
+// 1. The tree is of the latest version.
+// 2. The underlying storage has been upgraded to fast cache
+func (t *ImmutableTree) IsFastCacheEnabled() bool {
+	return t.isLatestTreeVersion() && t.ndb.hasUpgradedToFastStorage()
+}
+
+func (t *ImmutableTree) isLatestTreeVersion() bool {
+	return t.version == t.ndb.getLatestVersion()
 }
 
 // Clone creates a clone of the tree.
