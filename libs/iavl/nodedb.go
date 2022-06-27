@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -123,6 +124,43 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 	return ndb
 }
 
+func (ndb *nodeDB) GetFastNode(key []byte) (*FastNode, error) {
+	if !ndb.hasUpgradedToFastStorage() {
+		return nil, errors.New("storage version is not fast")
+	}
+
+	ndb.mtx.Lock()
+	defer ndb.mtx.Unlock()
+
+	if len(key) == 0 {
+		return nil, fmt.Errorf("nodeDB.GetFastNode() requires key, len(key) equals 0")
+	}
+
+	// Check the cache.
+	if elem, ok := ndb.fastNodeCache[string(key)]; ok {
+		// Already exists. Move to back of fastNodeCacheQueue.
+		ndb.fastNodeCacheQueue.MoveToBack(elem)
+		return elem.Value.(*FastNode), nil
+	}
+
+	// Doesn't exist, load.
+	buf, err := ndb.db.Get(ndb.fastNodeKey(key))
+	if err != nil {
+		return nil, fmt.Errorf("can't get FastNode %X: %w", key, err)
+	}
+	if buf == nil {
+		return nil, nil
+	}
+
+	fastNode, err := DeserializeFastNode(key, buf)
+	if err != nil {
+		return nil, fmt.Errorf("error reading FastNode. bytes: %x, error: %w", buf, err)
+	}
+
+	ndb.cacheFastNode(fastNode)
+	return fastNode, nil
+}
+
 func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) (*Node, retrieveType) {
 	ndb.addNodeReadCount()
 	if len(hash) == 0 {
@@ -216,6 +254,95 @@ func (ndb *nodeDB) SaveNode(batch dbm.Batch, node *Node) {
 	ndb.cacheNode(node)
 }
 
+// SaveNode saves a FastNode to disk and add to cache.
+func (ndb *nodeDB) SaveFastNode(node *FastNode) error {
+	ndb.mtx.Lock()
+	defer ndb.mtx.Unlock()
+	return ndb.saveFastNodeUnlocked(node, true)
+}
+
+// SaveNode saves a FastNode to disk without adding to cache.
+func (ndb *nodeDB) SaveFastNodeNoCache(node *FastNode) error {
+	ndb.mtx.Lock()
+	defer ndb.mtx.Unlock()
+	return ndb.saveFastNodeUnlocked(node, false)
+}
+
+// setFastStorageVersionToBatch sets storage version to fast where the version is
+// 1.1.0-<version of the current live state>. Returns error if storage version is incorrect or on
+// db error, nil otherwise. Requires changes to be committed after to be persisted.
+func (ndb *nodeDB) setFastStorageVersionToBatch() error {
+	var newVersion string
+	if ndb.storageVersion >= fastStorageVersionValue {
+		// Storage version should be at index 0 and latest fast cache version at index 1
+		versions := strings.Split(ndb.storageVersion, fastStorageVersionDelimiter)
+
+		if len(versions) > 2 {
+			return errors.New(errInvalidFastStorageVersion)
+		}
+
+		newVersion = versions[0]
+	} else {
+		newVersion = fastStorageVersionValue
+	}
+
+	newVersion += fastStorageVersionDelimiter + strconv.Itoa(int(ndb.getLatestVersion()))
+	// todo giskook check batch
+	// if err := ndb.batch.Set(metadataKeyFormat.Key([]byte(storageVersionKey)), []byte(newVersion)); err != nil {
+	// 	return err
+	// }
+	ndb.storageVersion = newVersion
+	return nil
+}
+
+func (ndb *nodeDB) getStorageVersion() string {
+	return ndb.storageVersion
+}
+
+// Returns true if the upgrade to latest storage version has been performed, false otherwise.
+func (ndb *nodeDB) hasUpgradedToFastStorage() bool {
+	return ndb.getStorageVersion() >= fastStorageVersionValue
+}
+
+// Returns true if the upgrade to fast storage has occurred but it does not match the live state, false otherwise.
+// When the live state is not matched, we must force reupgrade.
+// We determine this by checking the version of the live state and the version of the live state when
+// latest storage was updated on disk the last time.
+func (ndb *nodeDB) shouldForceFastStorageUpgrade() bool {
+	versions := strings.Split(ndb.storageVersion, fastStorageVersionDelimiter)
+
+	if len(versions) == 2 {
+		if versions[1] != strconv.Itoa(int(ndb.getLatestVersion())) {
+			return true
+		}
+	}
+	return false
+}
+
+// SaveNode saves a FastNode to disk.
+func (ndb *nodeDB) saveFastNodeUnlocked(node *FastNode, shouldAddToCache bool) error {
+	if node.key == nil {
+		return fmt.Errorf("cannot have FastNode with a nil value for key")
+	}
+
+	// Save node bytes to db.
+	var buf bytes.Buffer
+	buf.Grow(node.encodedSize())
+
+	if err := node.writeBytes(&buf); err != nil {
+		return fmt.Errorf("error while writing fastnode bytes. Err: %w", err)
+	}
+
+	// todo giskook check this
+	//	if err := ndb.batch.Set(ndb.fastNodeKey(node.key), buf.Bytes()); err != nil {
+	//		return fmt.Errorf("error while writing key/val to nodedb batch. Err: %w", err)
+	//	}
+	if shouldAddToCache {
+		ndb.cacheFastNode(node)
+	}
+	return nil
+}
+
 // Has checks if a hash exists in the database.
 func (ndb *nodeDB) Has(hash []byte) (bool, error) {
 	key := ndb.nodeKey(hash)
@@ -239,16 +366,26 @@ func (ndb *nodeDB) Has(hash []byte) (bool, error) {
 // NOTE: This function clears leftNode/rigthNode recursively and
 // calls _hash() on the given node.
 // TODO refactor, maybe use hashWithCount() but provide a callback.
-func (ndb *nodeDB) SaveBranch(batch dbm.Batch, node *Node, savedNodes map[string]*Node) []byte {
+func (ndb *nodeDB) SaveBranch(batch dbm.Batch, node *Node, savedNodes map[string]*Node) ([]byte, error) {
 	if node.persisted {
-		return node.hash
+		return node.hash, nil
 	}
 
+	var err error
 	if node.leftNode != nil {
-		node.leftHash = ndb.SaveBranch(batch, node.leftNode, savedNodes)
+		node.leftHash, err = ndb.SaveBranch(batch, node.leftNode, savedNodes)
 	}
+
+	if err != nil {
+		return nil, err
+	}
+
 	if node.rightNode != nil {
-		node.rightHash = ndb.SaveBranch(batch, node.rightNode, savedNodes)
+		node.rightHash, err = ndb.SaveBranch(batch, node.rightNode, savedNodes)
+	}
+
+	if err != nil {
+		return nil, err
 	}
 
 	node._hash()
@@ -268,7 +405,7 @@ func (ndb *nodeDB) SaveBranch(batch dbm.Batch, node *Node, savedNodes map[string
 	// TODO: handle magic number
 	savedNodes[string(node.hash)] = node
 
-	return node.hash
+	return node.hash, nil
 }
 
 //resetBatch reset the db batch, keep low memory used
@@ -333,6 +470,21 @@ func (ndb *nodeDB) DeleteVersionsFrom(batch dbm.Batch, version int64) error {
 		batch.Delete(k)
 	})
 
+	// Delete fast node entries
+	ndb.traverseFastNodes(func(keyWithPrefix, v []byte) {
+		key := keyWithPrefix[1:]
+		fastNode, err := DeserializeFastNode(key, v)
+
+		if err != nil {
+			return
+		}
+
+		if version <= fastNode.versionLastUpdatedAt {
+			batch.Delete(keyWithPrefix)
+			ndb.uncacheFastNode(key)
+		}
+	})
+
 	return nil
 }
 
@@ -389,6 +541,17 @@ func (ndb *nodeDB) DeleteVersionsRange(batch dbm.Batch, fromVersion, toVersion i
 		batch.Delete(k)
 	})
 
+	return nil
+}
+
+func (ndb *nodeDB) DeleteFastNode(key []byte) error {
+	ndb.mtx.Lock()
+	defer ndb.mtx.Unlock()
+	// todo check batch
+	//err := ndb.batch.Delete(ndb.fastNodeKey(key)); err != nil {
+	//	return err
+	//}
+	ndb.uncacheFastNode(key)
 	return nil
 }
 
@@ -471,6 +634,10 @@ func (ndb *nodeDB) nodeKey(hash []byte) []byte {
 	return nodeKeyFormat.KeyBytes(hash)
 }
 
+func (ndb *nodeDB) fastNodeKey(key []byte) []byte {
+	return fastKeyFormat.KeyBytes(key)
+}
+
 func (ndb *nodeDB) orphanKey(fromVersion, toVersion int64, hash []byte) []byte {
 	// return orphanKeyFormat.Key(toVersion, fromVersion, hash)
 	// we use orphanKeyFast to replace orphanKeyFormat.Key(toVersion, fromVersion, hash) for performance
@@ -530,6 +697,11 @@ func (ndb *nodeDB) traverseOrphans(fn func(k, v []byte)) {
 	ndb.traversePrefix(orphanKeyFormat.Key(), fn)
 }
 
+// Traverse fast nodes and return error if any, nil otherwise
+func (ndb *nodeDB) traverseFastNodes(fn func(k, v []byte)) {
+	ndb.traversePrefix(fastKeyFormat.Key(), fn)
+}
+
 // Traverse orphans ending at a certain version.
 func (ndb *nodeDB) traverseOrphansVersion(version int64, fn func(k, v []byte)) {
 	ndb.traversePrefix(orphanKeyFormat.Key(version), fn)
@@ -564,6 +736,30 @@ func (ndb *nodeDB) traversePrefix(prefix []byte, fn func(k, v []byte)) {
 	for ; itr.Valid(); itr.Next() {
 		fn(itr.Key(), itr.Value())
 	}
+}
+
+// Get iterator for fast prefix and error, if any
+func (ndb *nodeDB) getFastIterator(start, end []byte, ascending bool) (dbm.Iterator, error) {
+	var startFormatted, endFormatted []byte
+
+	if start != nil {
+		startFormatted = fastKeyFormat.KeyBytes(start)
+	} else {
+		startFormatted = fastKeyFormat.Key()
+	}
+
+	if end != nil {
+		endFormatted = fastKeyFormat.KeyBytes(end)
+	} else {
+		endFormatted = fastKeyFormat.Key()
+		endFormatted[0]++
+	}
+
+	if ascending {
+		return ndb.db.Iterator(startFormatted, endFormatted)
+	}
+
+	return ndb.db.ReverseIterator(startFormatted, endFormatted)
 }
 
 // Write to disk.

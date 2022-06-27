@@ -144,7 +144,6 @@ func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer)
 		"trc", trc.Format())
 }
 
-
 // SaveNode saves a node to disk.
 func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
 	if node.hash == nil {
@@ -174,7 +173,6 @@ func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
 	//node.persisted = true // move to function MovePrePersistCacheToTempCache
 }
 
-
 func (ndb *nodeDB) NewBatch() dbm.Batch {
 	return ndb.db.NewBatch()
 }
@@ -190,7 +188,6 @@ func (ndb *nodeDB) saveCommitOrphans(batch dbm.Batch, version int64, orphans []c
 		ndb.saveOrphan(batch, orphan.NodeHash, orphan.Version, toVersion)
 	}
 }
-
 
 func (ndb *nodeDB) getRootWithCacheAndDB(version int64) ([]byte, error) {
 	if EnableAsyncCommit {
@@ -263,6 +260,26 @@ func (ndb *nodeDB) cacheWithKey(key string, node *Node) {
 
 func (ndb *nodeDB) uncacheNode(hash []byte) {
 	ndb.nc.uncache(hash)
+}
+
+func (ndb *nodeDB) uncacheFastNode(key []byte) {
+	if elem, ok := ndb.fastNodeCache[string(key)]; ok {
+		ndb.fastNodeCacheQueue.Remove(elem)
+		delete(ndb.fastNodeCache, string(key))
+	}
+}
+
+// Add a node to the cache and pop the least recently used node if we've
+// reached the cache size limit.
+func (ndb *nodeDB) cacheFastNode(node *FastNode) {
+	elem := ndb.fastNodeCacheQueue.PushBack(node)
+	ndb.fastNodeCache[string(node.key)] = elem
+
+	if ndb.fastNodeCacheQueue.Len() > ndb.fastNodeCacheSize {
+		oldest := ndb.fastNodeCacheQueue.Front()
+		key := ndb.fastNodeCacheQueue.Remove(oldest).(*FastNode).key
+		delete(ndb.fastNodeCache, string(key))
+	}
 }
 
 func (ndb *nodeDB) getNodeFromCache(hash []byte, promoteRecentNode bool) (n *Node) {
