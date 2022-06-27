@@ -155,6 +155,7 @@ func NewSimulateKeeper(
 		triegc:         prque.New(nil),
 		UpdatedAccount: make([]ethcmn.Address, 0),
 		cci:            &chainConfigInfo{},
+		LogsManages:    NewLogManager(),
 	}
 
 	k.OpenTrie()
