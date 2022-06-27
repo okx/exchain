@@ -122,6 +122,7 @@ func NewKeeper(
 		triegc:         prque.New(nil),
 		UpdatedAccount: make([]ethcmn.Address, 0),
 		cci:            &chainConfigInfo{},
+		LogsManages:    NewLogManager(),
 	}
 	k.Watcher.SetWatchDataFunc()
 	ak.SetObserverKeeper(k)
