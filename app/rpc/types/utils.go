@@ -153,7 +153,7 @@ func FormatBlock(
 	gasUsed *big.Int, transactions []*watcher.Transaction, bloom ethtypes.Bloom, fullTx bool,
 ) *watcher.Block {
 	if len(header.DataHash) == 0 {
-		header.DataHash = tmbytes.HexBytes(common.Hash{}.Bytes())
+		header.DataHash = ethtypes.EmptyRootHash.Bytes()
 	}
 	parentHash := header.LastBlockID.Hash
 	if parentHash == nil {
