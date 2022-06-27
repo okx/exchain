@@ -2,6 +2,7 @@ package iavl
 
 import (
 	"bytes"
+	"container/list"
 	"fmt"
 	"math"
 	"sort"
@@ -19,6 +20,17 @@ const (
 	int64Size      = 8
 	hashSize       = tmhash.Size
 	genesisVersion = 1
+
+	storageVersionKey = "storage_version"
+	// We store latest saved version together with storage version delimited by the constant below.
+	// This delimiter is valid only if fast storage is enabled (i.e. storageVersion >= fastStorageVersionValue).
+	// The latest saved version is needed for protection against downgrade and re-upgrade. In such a case, it would
+	// be possible to observe mismatch between the latest version state and the fast nodes on disk.
+	// Therefore, we would like to detect that and overwrite fast nodes on disk with the latest version state.
+	fastStorageVersionDelimiter = "-"
+	// Using semantic versioning: https://semver.org/
+	defaultStorageVersionValue = "1.0.0"
+	fastStorageVersionValue    = "1.1.0"
 )
 
 var (
@@ -31,11 +43,29 @@ var (
 	// to exist, while the second number represents the *earliest* version at
 	// which it is expected to exist - which starts out by being the version
 	// of the node being orphaned.
+	// To clarify:
+	// When I write to key {X} with value V and old value O, we orphan O with <last-version>=time of write
+	// and <first-version> = version O was created at.
 	orphanKeyFormat = NewKeyFormat('o', int64Size, int64Size, hashSize) // o<last-version><first-version><hash>
+
+	// Key Format for making reads and iterates go through a data-locality preserving db.
+	// The value at an entry will list what version it was written to.
+	// Then to query values, you first query state via this fast method.
+	// If its present, then check the tree version. If tree version >= result_version,
+	// return result_version. Else, go through old (slow) IAVL get method that walks through tree.
+	fastKeyFormat = NewKeyFormat('f', 0) // f<keystring>
+
+	// Key Format for storing metadata about the chain such as the version number.
+	// The value at an entry will be in a variable format and up to the caller to
+	// decide how to parse.
+	metadataKeyFormat = NewKeyFormat('m', 0) // v<keystring>
 
 	// Root nodes are indexed separately by their version
 	rootKeyFormat = NewKeyFormat('r', int64Size) // r<version>
+)
 
+var (
+	errInvalidFastStorageVersion = fmt.Sprintf("Fast storage version must be in the format <storage version>%s<latest fast cache version>", fastStorageVersionDelimiter)
 )
 
 type nodeDB struct {
@@ -43,6 +73,7 @@ type nodeDB struct {
 	db             dbm.DB           // Persistent node storage.
 	opts           Options          // Options to customize for pruning/writing
 	versionReaders map[int64]uint32 // Number of active version readers
+	storageVersion string           // Storage version
 
 	latestVersion int64
 
@@ -55,6 +86,10 @@ type nodeDB struct {
 	nc    *NodeCache
 	state *RuntimeState
 	tpp   *tempPrePersistNodes
+
+	fastNodeCache      map[string]*list.Element // FastNode cache.
+	fastNodeCacheSize  int                      // FastNode cache size limit in elements.
+	fastNodeCacheQueue *list.List               // LRU queue of cache elements. Used for deletion.
 }
 
 func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
@@ -62,6 +97,13 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		o := DefaultOptions()
 		opts = &o
 	}
+
+	storeVersion, err := db.Get(metadataKeyFormat.Key([]byte(storageVersionKey)))
+
+	if err != nil || storeVersion == nil {
+		storeVersion = []byte(defaultStorageVersionValue)
+	}
+
 	ndb := &nodeDB{
 		db:                  db,
 		opts:                *opts,
@@ -71,6 +113,9 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		preWriteNodeCache:   cmap.New(),
 		state:               newRuntimeState(),
 		tpp:                 newTempPrePersistNodes(),
+		fastNodeCache:       make(map[string]*list.Element),
+		fastNodeCacheSize:   100000,
+		fastNodeCacheQueue:  list.New(),
 	}
 
 	ndb.oi = newOrphanInfo(ndb)
