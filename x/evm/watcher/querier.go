@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"math/big"
 	"strconv"
 	"sync"
 
@@ -125,9 +124,6 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
 			}
 		}
 		block.Transactions = txList
-	}
-	if block.TransactionsRoot.Big().Cmp(new(big.Int)) == 0 {
-		block.TransactionsRoot = ethtypes.EmptyRootHash
 	}
 	block.UncleHash = ethtypes.EmptyUncleHash
 	block.ReceiptsRoot = ethtypes.EmptyRootHash
