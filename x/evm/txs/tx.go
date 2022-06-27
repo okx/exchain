@@ -1,8 +1,6 @@
 package txs
 
 import (
-	"math/big"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	bam "github.com/okex/exchain/libs/system/trace"
@@ -29,7 +27,7 @@ type Tx interface {
 	ResetWatcher(account authexported.Account)
 
 	// RefundFeesWatcher fix account balance in watcher with refund fees
-	RefundFeesWatcher(account authexported.Account, coins sdk.Coins, price *big.Int)
+	RefundFeesWatcher(account authexported.Account, ethereumTx *types.MsgEthereumTx)
 
 	// Transition execute evm tx
 	Transition(config types.ChainConfig) (result base.Result, err error)
@@ -85,7 +83,7 @@ func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err e
 			tx.ResetWatcher(senderAccount)
 			panic(e)
 		}
-		tx.RefundFeesWatcher(senderAccount, msg.GetFee(), msg.Data.Price)
+		tx.RefundFeesWatcher(senderAccount, msg)
 		tx.FinalizeWatcher(senderAccount, err)
 	}()
 
