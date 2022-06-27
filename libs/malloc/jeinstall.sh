@@ -1,7 +1,7 @@
 #!/bin/sh
 #set -e
 #set -x
-VERSION_NUM=5.3.0
+VERSION_NUM=5.2.1
 VERSION=jemalloc-$VERSION_NUM
 
 while [ $# -gt 0 ]; do
