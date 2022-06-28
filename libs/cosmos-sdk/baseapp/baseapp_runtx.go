@@ -99,16 +99,11 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		//in trace mode,  info ctx cache was already set to traceBlockCache instead of app.blockCache in app.tracetx()
 		//to prevent modifying the deliver state
 		//traceBlockCache was created with different root(chainCache) with app.blockCache in app.BeginBlockForTrace()
-		if useCache(mode) {
+		if useCache(mode) && tx.GetType() == sdk.EvmTxType {
 			info.ctx.SetCache(sdk.NewCache(app.blockCache, true))
 		} else {
 			info.ctx.SetCache(nil)
 		}
-	}
-	if tx.GetType() == sdk.EvmTxType {
-		info.ctx.SetOnlyRunEvmTx(true)
-	} else {
-		info.ctx.SetCache(nil)
 	}
 	for _, addr := range from {
 		// cache from if exist
@@ -353,8 +348,7 @@ func (app *BaseApp) DeliverRealTx(txes abci.TxEssentials) abci.ResponseDeliverTx
 		}
 	}
 	info, err := app.runTx(runTxModeDeliver, realTx.GetRaw(), realTx, LatestSimulateTxHeight)
-	if !info.ctx.OnlyRunEvmTx() {
-		info.ctx.SetCache(nil)
+	if !info.ctx.Cache().IsEnabled() {
 		app.blockCache = nil
 		app.chainCache = nil
 		app.logger.Info("cleanMultiCache", "txHash", hex.EncodeToString(realTx.TxHash()))

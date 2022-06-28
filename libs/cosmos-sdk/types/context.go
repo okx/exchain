@@ -102,14 +102,6 @@ func (c Context) ParaMsg() *ParaMsg {
 	return c.paraMsg
 }
 
-func (c *Context) SetOnlyRunEvmTx(data bool) {
-	c.onlyRunEvmTx = data
-}
-
-func (c *Context) OnlyRunEvmTx() bool {
-	return c.onlyRunEvmTx
-}
-
 func (c *Context) EnableAccountCache()  { c.accountCache = &AccountCache{} }
 func (c *Context) DisableAccountCache() { c.accountCache = nil }
 
