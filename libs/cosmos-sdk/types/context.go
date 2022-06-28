@@ -48,7 +48,6 @@ type Context struct {
 	paraMsg            *ParaMsg
 	//	txCount            uint32
 	overridesBytes []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
-	onlyRunEvmTx   bool
 }
 
 // Proposed rename, not done to avoid API breakage
