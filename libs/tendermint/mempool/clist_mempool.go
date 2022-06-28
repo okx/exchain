@@ -2,7 +2,6 @@ package mempool
 
 import (
 	"bytes"
-	"container/list"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -11,6 +10,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/VictoriaMetrics/fastcache"
 
 	"github.com/tendermint/go-amino"
 
@@ -250,6 +251,9 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	// CACHE
 	txkey := txKey(tx)
 	if !mem.cache.PushKey(txkey) {
+		if ele, ok := mem.txs.Load(txkey); ok {
+			ele.Value.(*mempoolTx).senders.LoadOrStore(txInfo.SenderID, true)
+		}
 		return ErrTxInCache
 	}
 
@@ -287,6 +291,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		// TODO: consider punishing peer for dups,
 		// its non-trivial since invalid txs can become valid,
 		// but they can spam the same tx with little cost to them atm.
+		return ErrTxInCache
 	}
 	// END CACHE
 
@@ -943,8 +948,7 @@ type txCache interface {
 type mapTxCache struct {
 	mtx      sync.Mutex
 	size     int
-	cacheMap map[[sha256.Size]byte]*list.Element
-	list     *list.List
+	cacheMap *fastcache.Cache
 }
 
 var _ txCache = (*mapTxCache)(nil)
@@ -953,16 +957,14 @@ var _ txCache = (*mapTxCache)(nil)
 func newMapTxCache(cacheSize int) *mapTxCache {
 	return &mapTxCache{
 		size:     cacheSize,
-		cacheMap: make(map[[sha256.Size]byte]*list.Element, cacheSize),
-		list:     list.New(),
+		cacheMap: fastcache.New(cacheSize * 32),
 	}
 }
 
 // Reset resets the cache to an empty state.
 func (cache *mapTxCache) Reset() {
 	cache.mtx.Lock()
-	cache.cacheMap = make(map[[sha256.Size]byte]*list.Element, cache.size)
-	cache.list.Init()
+	cache.cacheMap = fastcache.New(cache.size * 32)
 	cache.mtx.Unlock()
 }
 
@@ -979,36 +981,18 @@ func (cache *mapTxCache) PushKey(txHash [32]byte) bool {
 	cache.mtx.Lock()
 	defer cache.mtx.Unlock()
 
-	if moved, exists := cache.cacheMap[txHash]; exists {
-		cache.list.MoveToBack(moved)
+	if exists := cache.cacheMap.Has(txHash[:]); exists {
 		return false
 	}
 
-	if cache.list.Len() >= cache.size {
-		popped := cache.list.Front()
-		poppedTxHash := popped.Value.([sha256.Size]byte)
-		delete(cache.cacheMap, poppedTxHash)
-		if popped != nil {
-			cache.list.Remove(popped)
-		}
-	}
-	e := cache.list.PushBack(txHash)
-	cache.cacheMap[txHash] = e
+	cache.cacheMap.Set(txHash[:], nil)
 	return true
 }
 
 // Remove removes the given tx from the cache.
 func (cache *mapTxCache) Remove(tx types.Tx) {
 	txHash := txKey(tx)
-
-	cache.mtx.Lock()
-	popped := cache.cacheMap[txHash]
-	delete(cache.cacheMap, txHash)
-	if popped != nil {
-		cache.list.Remove(popped)
-	}
-
-	cache.mtx.Unlock()
+	cache.cacheMap.Del(txHash[:])
 }
 
 type nopTxCache struct{}
