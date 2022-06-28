@@ -90,7 +90,7 @@ func (api *PublicDebugAPI) TraceBlockByNumber(blockNum rpctypes.BlockNumber, con
 	height := blockNum.Int64()
 	_, err = api.clientCtx.Client.Block(&height)
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 
 	queryParam := sdk.QueryTraceBlock{
@@ -110,7 +110,7 @@ func (api *PublicDebugAPI) TraceBlockByNumber(blockNum rpctypes.BlockNumber, con
 	if err := json.Unmarshal(resTrace, &results); err != nil {
 		return nil, err
 	}
-	var rpcResults []types.TraceTxResult
+	rpcResults := []types.TraceTxResult{}
 	for _, res := range results {
 		rpcRes := types.TraceTxResult{}
 		rpcRes.TxIndex = res.TxIndex
