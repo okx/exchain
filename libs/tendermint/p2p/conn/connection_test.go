@@ -711,22 +711,22 @@ func TestPacketMsgAmino(t *testing.T) {
 		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
 		require.NoError(t, err)
 
-		var actulaValue PacketMsg
-		tmp, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(expectData, &actulaValue)
+		var actulaValue = &PacketMsg{}
+		tmp, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(expectData, actulaValue)
 		require.NoError(t, err)
-		_, ok := tmp.(PacketMsg)
+		_, ok := tmp.(*PacketMsg)
 		require.True(t, ok)
-		actulaValue = tmp.(PacketMsg)
+		actulaValue = tmp.(*PacketMsg)
 
-		require.EqualValues(t, expectValue, actulaValue)
+		require.EqualValues(t, expectValue, *actulaValue)
 		err = actulaValue.UnmarshalFromAmino(cdc, expectData[4:])
 		require.NoError(t, err)
-		require.EqualValues(t, expectValue, actulaValue)
+		require.EqualValues(t, expectValue, *actulaValue)
 
-		actulaValue = PacketMsg{}
-		err = cdc.UnmarshalBinaryLengthPrefixed(actualLenPrefixData, &actulaValue)
+		actulaValue = &PacketMsg{}
+		err = cdc.UnmarshalBinaryLengthPrefixed(actualLenPrefixData, actulaValue)
 		require.NoError(t, err)
-		require.EqualValues(t, expectValue, actulaValue)
+		require.EqualValues(t, expectValue, *actulaValue)
 	}
 }
 
