@@ -10,6 +10,7 @@ import (
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 
 	"github.com/okex/exchain/app/rpc/backend"
+	"github.com/okex/exchain/app/rpc/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 
 	rpctypes "github.com/okex/exchain/app/rpc/types"
@@ -105,14 +106,22 @@ func (api *PublicDebugAPI) TraceBlockByNumber(blockNum rpctypes.BlockNumber, con
 		return nil, err
 	}
 
-	var res sdk.Result
-	if err := api.clientCtx.Codec.UnmarshalBinaryBare(resTrace, &res); err != nil {
+	var results []sdk.QueryTraceTxResult
+	if err := json.Unmarshal(resTrace, &results); err != nil {
 		return nil, err
 	}
-	var decodedResult interface{}
-	if err := json.Unmarshal(res.Data, &decodedResult); err != nil {
-		return nil, err
+	var rpcResults []types.TraceTxResult
+	for _, res := range results {
+		rpcRes := types.TraceTxResult{}
+		rpcRes.TxIndex = res.TxIndex
+		if res.Error != nil {
+			rpcRes.Error = res.Error.Error()
+		} else {
+			if err := json.Unmarshal(res.Result, &rpcRes.Result); err != nil {
+				rpcRes.Error = err.Error()
+			}
+		}
+		rpcResults = append(rpcResults, rpcRes)
 	}
-
-	return decodedResult, nil
+	return rpcResults, nil
 }

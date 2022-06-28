@@ -140,3 +140,9 @@ type SignTransactionResult struct {
 	Raw hexutil.Bytes        `json:"raw"`
 	Tx  *watcher.Transaction `json:"tx"`
 }
+
+type TraceTxResult struct {
+	TxIndex int         `json:"tx_index"`
+	Result  interface{} `json:"result"`
+	Error   string      `json:"error"`
+}

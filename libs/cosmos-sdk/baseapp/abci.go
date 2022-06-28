@@ -479,10 +479,14 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 			if err != nil {
 				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to trace block"))
 			}
+			bz, err := json.Marshal(res)
+			if err != nil {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to trace block"))
+			}
 			return abci.ResponseQuery{
 				Codespace: sdkerrors.RootCodespace,
 				Height:    req.Height,
-				Value:     codec.Cdc.MustMarshalBinaryBare(res),
+				Value:     bz,
 			}
 
 		case "version":
