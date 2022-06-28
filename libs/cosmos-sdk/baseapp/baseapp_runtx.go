@@ -94,9 +94,6 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	if err != nil {
 		return err
 	}
-	if tx.GetType() == sdk.EvmTxType {
-		info.ctx.SetOnlyRunEvmTx(true)
-	}
 	//info with cache saved in app to load predesessor tx state
 	if mode != runTxModeTrace {
 		//in trace mode,  info ctx cache was already set to traceBlockCache instead of app.blockCache in app.tracetx()
@@ -107,6 +104,11 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		} else {
 			info.ctx.SetCache(nil)
 		}
+	}
+	if tx.GetType() == sdk.EvmTxType {
+		info.ctx.SetOnlyRunEvmTx(true)
+	} else {
+		info.ctx.SetCache(nil)
 	}
 	for _, addr := range from {
 		// cache from if exist
@@ -352,9 +354,9 @@ func (app *BaseApp) DeliverRealTx(txes abci.TxEssentials) abci.ResponseDeliverTx
 	}
 	info, err := app.runTx(runTxModeDeliver, realTx.GetRaw(), realTx, LatestSimulateTxHeight)
 	if !info.ctx.OnlyRunEvmTx() {
-		info.ctx.Cache().ClearCache()
-		app.blockCache.ClearCache()
-		app.chainCache.ClearCache()
+		info.ctx.SetCache(nil)
+		app.blockCache = nil
+		app.chainCache = nil
 		app.logger.Info("cleanMultiCache", "txHash", hex.EncodeToString(realTx.TxHash()))
 	}
 	if err != nil {
