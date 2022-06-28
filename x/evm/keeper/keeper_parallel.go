@@ -39,7 +39,7 @@ func (k *Keeper) FixLog(logIndex []int, hasEnterEvmTx []bool, anteErrs []error) 
 		}
 		res[index] = data
 	}
-	k.LogsManages.Reset()
+
 	return res
 }
 
@@ -79,7 +79,9 @@ func (l *LogsManager) Len() int {
 }
 
 func (l *LogsManager) Reset() {
-	l.Results = make(map[int]TxResult)
+	for k := range l.Results {
+		delete(l.Results, k)
+	}
 	l.cnt = 0
 }
 
