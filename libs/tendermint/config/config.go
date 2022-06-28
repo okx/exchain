@@ -672,6 +672,7 @@ type MempoolConfig struct {
 	MaxTxsBytes                int64    `mapstructure:"max_txs_bytes"`
 	CacheSize                  int      `mapstructure:"cache_size"`
 	MaxTxBytes                 int      `mapstructure:"max_tx_bytes"`
+	MaxBatchBytes              int      `mapstructure:"max_batch_bytes"`
 	MaxTxNumPerBlock           int64    `mapstructure:"max_tx_num_per_block"`
 	MaxGasUsedPerBlock         int64    `mapstructure:"max_gas_used_per_block"`
 	SortTxByGp                 bool     `mapstructure:"sort_tx_by_gp"`
@@ -695,7 +696,8 @@ func DefaultMempoolConfig() *MempoolConfig {
 		Size:                       10000,              // exchain memory pool size(max tx num)
 		MaxTxsBytes:                1024 * 1024 * 1024, // 1GB
 		CacheSize:                  10000,
-		MaxTxBytes:                 1024 * 1024, // 1MB
+		MaxTxBytes:                 1024 * 1024,      // 1MB
+		MaxBatchBytes:              10 * 1024 * 1024, // 10MB
 		MaxTxNumPerBlock:           300,
 		MaxGasUsedPerBlock:         -1,
 		SortTxByGp:                 true,
@@ -746,6 +748,13 @@ func (cfg *MempoolConfig) ValidateBasic() error {
 	}
 	if cfg.ForceRecheckGap <= 0 {
 		return errors.New("force_recheck_gap can't be negative or zero")
+	}
+	if cfg.MaxBatchBytes < 0 {
+		return errors.New("max_batch_bytes can't be negative")
+
+	}
+	if cfg.MaxBatchBytes <= cfg.MaxTxBytes {
+		return errors.New("max_batch_bytes can't be less or equal to max_tx_bytes")
 	}
 	return nil
 }

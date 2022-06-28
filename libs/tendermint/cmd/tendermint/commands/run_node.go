@@ -174,6 +174,18 @@ func AddNodeFlags(cmd *cobra.Command) {
 		"send tx/wtx to mempool, only for local performance test",
 	)
 
+	cmd.Flags().Bool(
+		"enable-stx",
+		false,
+		"enable sentry tx",
+	)
+
+	cmd.Flags().Bool(
+		"enable-batch-tx",
+		false,
+		"enable batch tx",
+	)
+
 	// db flags
 	cmd.Flags().String(
 		"db_backend",

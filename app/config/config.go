@@ -71,6 +71,12 @@ type OecConfig struct {
 	// enable-wtx
 	enableWtx bool
 
+	// enable-stx
+	enableStx bool
+
+	// enable-batch-tx
+	enableBatchTx bool
+
 	// enable-analyzer
 	enableAnalyzer bool
 
@@ -102,7 +108,9 @@ const (
 	FlagEnableDynamicGp        = "enable-dynamic-gp"
 	FlagDynamicGpWeight        = "dynamic-gp-weight"
 	FlagEnableWrappedTx        = "enable-wtx"
+	FLagEnableSentryTx         = "enable-stx"
 	FlagSentryAddrs            = "p2p.sentry_addrs"
+	FlagEnableBatchTx          = "enable-batch-tx"
 
 	FlagCsTimeoutPropose        = "consensus.timeout_propose"
 	FlagCsTimeoutProposeDelta   = "consensus.timeout_propose_delta"
@@ -217,7 +225,9 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetCsTimeoutPrecommitDelta(viper.GetDuration(FlagCsTimeoutPrecommitDelta))
 	c.SetCsTimeoutCommit(viper.GetDuration(FlagCsTimeoutCommit))
 	c.SetIavlCacheSize(viper.GetInt(iavl.FlagIavlCacheSize))
+	c.SetEnableStx(viper.GetBool(FLagEnableSentryTx))
 	c.SetSentryAddrs(viper.GetString(FlagSentryAddrs))
+	c.SetEnableBatchTx(viper.GetBool(FlagEnableBatchTx))
 	c.SetNodeKeyWhitelist(viper.GetString(FlagNodeKeyWhitelist))
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
 	c.SetEnableAnalyzer(viper.GetBool(trace.FlagEnableAnalyzer))
@@ -331,6 +341,18 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetNodeKeyWhitelist(r)
+	case FlagEnableBatchTx:
+		r, ok := value.(bool)
+		if !ok {
+			return
+		}
+		c.SetEnableBatchTx(r)
+	case FLagEnableSentryTx:
+		r, ok := value.(bool)
+		if !ok {
+			return
+		}
+		c.SetEnableStx(r)
 	case FlagSentryAddrs:
 		r, ok := value.(string)
 		if !ok {
@@ -533,6 +555,22 @@ func (c *OecConfig) SetNodeKeyWhitelist(value string) {
 			c.nodeKeyWhitelist = append(c.nodeKeyWhitelist, id)
 		}
 	}
+}
+
+func (c *OecConfig) GetEnableBatchTx() bool {
+	return c.enableBatchTx
+}
+
+func (c *OecConfig) SetEnableBatchTx(value bool) {
+	c.enableBatchTx = value
+}
+
+func (c *OecConfig) GetEnableStx() bool {
+	return c.enableStx
+}
+
+func (c *OecConfig) SetEnableStx(value bool) {
+	c.enableStx = value
 }
 
 func (c *OecConfig) GetSentryAddrs() []string {
