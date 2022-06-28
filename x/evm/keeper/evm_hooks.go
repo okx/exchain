@@ -51,6 +51,7 @@ func (lh LogProcessEvmHook) PostTxProcessing(ctx sdk.Context, from common.Addres
 			continue
 		}
 		if handler, ok := lh.handlers[log.Topics[0]]; ok {
+			ctx.SetOnlyRunEvmTx(false)
 			if err := handler.Handle(ctx, log.Address, log.Data); err != nil {
 				return err
 			}

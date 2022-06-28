@@ -284,6 +284,24 @@ func (c *Cache) storageSize() int {
 	return lenStorage
 }
 
+func (c *Cache) ClearCache() {
+	if c.skip() {
+		return
+	}
+
+	for k := range c.accMap {
+		delete(c.accMap, k)
+	}
+
+	for k := range c.storageMap {
+		delete(c.storageMap, k)
+	}
+
+	for k := range c.codeMap {
+		delete(c.codeMap, k)
+	}
+}
+
 func (c *Cache) TryDelete(logger log.Logger, height int64) {
 	if c.skip() {
 		return

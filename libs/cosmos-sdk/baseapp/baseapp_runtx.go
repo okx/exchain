@@ -1,6 +1,7 @@
 package baseapp
 
 import (
+	"encoding/hex"
 	"fmt"
 	"runtime/debug"
 
@@ -92,6 +93,9 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	err = handler.handleStartHeight(info, height)
 	if err != nil {
 		return err
+	}
+	if tx.GetType() == sdk.EvmTxType {
+		info.ctx.SetOnlyRunEvmTx(true)
 	}
 	//info with cache saved in app to load predesessor tx state
 	if mode != runTxModeTrace {
@@ -347,6 +351,12 @@ func (app *BaseApp) DeliverRealTx(txes abci.TxEssentials) abci.ResponseDeliverTx
 		}
 	}
 	info, err := app.runTx(runTxModeDeliver, realTx.GetRaw(), realTx, LatestSimulateTxHeight)
+	if !info.ctx.OnlyRunEvmTx() {
+		info.ctx.Cache().ClearCache()
+		app.blockCache.ClearCache()
+		app.chainCache.ClearCache()
+		app.logger.Info("cleanMultiCache", "txHash", hex.EncodeToString(realTx.TxHash()))
+	}
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}

@@ -48,6 +48,7 @@ type Context struct {
 	paraMsg            *ParaMsg
 	//	txCount            uint32
 	overridesBytes []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
+	onlyRunEvmTx   bool
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -99,6 +100,14 @@ func (c *Context) Cache() *Cache {
 }
 func (c Context) ParaMsg() *ParaMsg {
 	return c.paraMsg
+}
+
+func (c *Context) SetOnlyRunEvmTx(data bool) {
+	c.onlyRunEvmTx = data
+}
+
+func (c *Context) OnlyRunEvmTx() bool {
+	return c.onlyRunEvmTx
 }
 
 func (c *Context) EnableAccountCache()  { c.accountCache = &AccountCache{} }
