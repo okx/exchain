@@ -50,11 +50,13 @@ func (p Params) String() string {
 
 // ParamSetPairs returns the parameter set pairs.
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
+	exist := true
 	return params.ParamSetPairs{
 		params.NewParamSetPair(ParamStoreKeyCommunityTax, &p.CommunityTax, validateCommunityTax),
 		params.NewParamSetPair(ParamStoreKeyWithdrawAddrEnabled, &p.WithdrawAddrEnabled, validateWithdrawAddrEnabled),
+		//TODO how to set paris
 		params.NewParamSetPair(ParamStoreKeyDistributionType, &p.DistributionType, validateDistributionType),
-		params.NewParamSetPair(ParamStoreKeyInitAllocateValidator, true, validateInitAllocateValidator),
+		params.NewParamSetPair(ParamStoreKeyInitAllocateValidator, &exist, validateInitAllocateValidator),
 	}
 }
 
