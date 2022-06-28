@@ -188,9 +188,9 @@ func (tree *MutableTree) Set(key, value []byte) bool {
 	return updated
 }
 
-// Get returns the value of the specified key if it exists, or nil otherwise.
+// FastGet returns the value of the specified key if it exists, or nil otherwise.
 // The returned value must not be modified, since it may point to data stored within IAVL.
-func (tree *MutableTree) Get(key []byte) []byte {
+func (tree *MutableTree) FastGet(key []byte) []byte {
 	if tree.root == nil {
 		return nil
 	}
@@ -558,7 +558,7 @@ func (tree *MutableTree) LoadVersionForOverwriting(targetVersion int64) (int64, 
 	}
 
 	// if err = tree.ndb.Commit(batch); err != nil {
-	if err = tree.enableFastStorageAndCommitLocked(); err != nil {
+	if err = tree.enableFastStorageAndCommitLocked(batch); err != nil {
 		return latestVersion, err
 	}
 
@@ -609,20 +609,22 @@ func (tree *MutableTree) enableFastStorageAndCommitIfNotEnabled() (bool, error) 
 	// Force garbage collection before we proceed to enabling fast storage.
 	runtime.GC()
 
-	if err := tree.enableFastStorageAndCommit(); err != nil {
+	// todo giskook make batch
+	batch := tree.NewBatch()
+	if err := tree.enableFastStorageAndCommit(batch); err != nil {
 		tree.ndb.storageVersion = defaultStorageVersionValue
 		return false, err
 	}
 	return true, nil
 }
 
-func (tree *MutableTree) enableFastStorageAndCommitLocked() error {
+func (tree *MutableTree) enableFastStorageAndCommitLocked(batch dbm.Batch) error {
 	tree.mtx.Lock()
 	defer tree.mtx.Unlock()
-	return tree.enableFastStorageAndCommit()
+	return tree.enableFastStorageAndCommit(batch)
 }
 
-func (tree *MutableTree) enableFastStorageAndCommit() error {
+func (tree *MutableTree) enableFastStorageAndCommit(batch dbm.Batch) error {
 	var err error
 
 	// We start a new thread to keep on checking if we are above 4GB, and if so garbage collect.
@@ -676,7 +678,7 @@ func (tree *MutableTree) enableFastStorageAndCommit() error {
 		return err
 	}
 
-	return tree.ndb.Commit()
+	return tree.ndb.Commit(batch)
 }
 
 // GetImmutable loads an ImmutableTree at a given version for querying. The returned tree is
