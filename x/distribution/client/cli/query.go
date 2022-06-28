@@ -2,7 +2,6 @@ package cli
 
 import (
 	"fmt"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -35,6 +34,7 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		GetCmdQueryCommunityPool(queryRoute, cdc),
 		GetCmdQueryDelegatorRewards(queryRoute, cdc),
 		GetCmdQueryValidatorOutstandingRewards(queryRoute, cdc),
+		GetCmdQueryWithdrawAddr(queryRoute, cdc),
 	)...)
 
 	return distQueryCmd
@@ -134,18 +134,14 @@ func GetCmdQueryDelegatorRewards(queryRoute string, cdc *codec.Codec) *cobra.Com
 			fmt.Sprintf(`Query all rewards earned by a delegator, optionally restrict to rewards from a single validator.
 
 Example:
-$ %s query distribution rewards cosmos1gghjut3ccd8ay0zduzj64hwre2fxs9ld75ru9p
-$ %s query distribution rewards cosmos1gghjut3ccd8ay0zduzj64hwre2fxs9ld75ru9p cosmosvaloper1gghjut3ccd8ay0zduzj64hwre2fxs9ldmqhffj
+$ %s query distribution rewards ex1j5mr2jhr9pf20e7yhln5zkcsgqtdt7cydr8x3y
+$ %s query distribution rewards ex1j5mr2jhr9pf20e7yhln5zkcsgqtdt7cydr8x3y exvaloper1pt7xrmxul7sx54ml44lvv403r06clrdkehd8z7
 `,
 				version.ClientName, version.ClientName,
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-
-			if !tmtypes.HigherThanSaturn1(cliCtx.Height) {
-				return fmt.Errorf("not support it with this version")
-			}
 
 			// query for rewards from a particular delegation
 			if len(args) == 2 {
@@ -201,16 +197,13 @@ func GetCmdQueryValidatorOutstandingRewards(queryRoute string, cdc *codec.Codec)
 for a validator and all their delegations.
 
 Example:
-$ %s query distribution validator-outstanding-rewards cosmosvaloper1lwjmdnks33xwnmfayc64ycprww49n33mtm92ne
+$ %s query distribution validator-outstanding-rewards exvaloper1pt7xrmxul7sx54ml44lvv403r06clrdkehd8z7
 `,
 				version.ClientName,
 			),
 		),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
-			if !tmtypes.HigherThanSaturn1(cliCtx.Height) {
-				return fmt.Errorf("not support it with this version")
-			}
 
 			valAddr, err := sdk.ValAddressFromBech32(args[0])
 			if err != nil {
@@ -237,6 +230,54 @@ $ %s query distribution validator-outstanding-rewards cosmosvaloper1lwjmdnks33xw
 			}
 
 			return cliCtx.PrintOutput(outstandingRewards)
+		},
+	}
+}
+
+// GetCmdQueryWithdrawAddr implements the query the delegator's withdraw address for commission and reward
+func GetCmdQueryWithdrawAddr(queryRoute string, cdc *codec.Codec) *cobra.Command {
+	return &cobra.Command{
+		Use:   "withdraw-addr [delegator]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Query delegator's withdraw address",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Query delegator's withdraw address.
+
+Example:
+$ %s query distr withdraw-addr ex17kn7d20d85yymu45h79dqs5pxq9m3nyx2mdmcs
+`,
+				version.ClientName,
+			),
+		),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			delegatorAddr, err := sdk.AccAddressFromBech32(args[0])
+			if err != nil {
+				return err
+			}
+
+			params := types.NewQueryDelegatorWithdrawAddrParams(delegatorAddr)
+
+			bz, err := cdc.MarshalJSON(params)
+			if err != nil {
+				return err
+			}
+
+			resp, _, err := cliCtx.QueryWithData(
+				fmt.Sprintf("custom/%s/%s", queryRoute, types.QueryWithdrawAddr),
+				bz,
+			)
+			if err != nil {
+				return err
+			}
+
+			var accAddress sdk.AccAddress
+			if err := cdc.UnmarshalJSON(resp, &accAddress); err != nil {
+				return err
+			}
+
+			return cliCtx.PrintOutput(accAddress)
 		},
 	}
 }

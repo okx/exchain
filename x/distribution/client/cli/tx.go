@@ -5,7 +5,6 @@ import (
 	"bufio"
 	"fmt"
 	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/client/common"
 	"github.com/spf13/viper"
 	"strings"
@@ -175,9 +174,6 @@ $ %s tx distribution withdraw-all-rewards --from mykey
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
-			if !tmtypes.HigherThanSaturn1(cliCtx.Height) {
-				return fmt.Errorf("not support it with this version")
-			}
 
 			delAddr := cliCtx.GetFromAddress()
 
@@ -266,14 +262,14 @@ Where proposal.json contains:
 // GetChangeDistributionTypeProposal implements the command to submit a change-distr-type proposal
 func GetChangeDistributionTypeProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "change-distr-mode [proposal-file]",
+		Use:   "change-distr-type [proposal-file]",
 		Args:  cobra.ExactArgs(1),
 		Short: "Submit a change distribution type proposal",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`Submit a change distribution type proposal with the specified value, 0: offchain model, 1:onchain model
 
 Example:
-$ %s tx gov submit-proposal change-distr-mode <path/to/proposal.json> --from=<key_or_address>
+$ %s tx gov submit-proposal change-distr-type <path/to/proposal.json> --from=<key_or_address>
 
 Where proposal.json contains:
 

@@ -145,7 +145,7 @@ func queryDelegatorValidators(ctx sdk.Context, _ []string, req abci.RequestQuery
 }
 
 func queryDelegationRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, k Keeper) ([]byte, error) {
-	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) {
+	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) || !k.HasInitAllocateValidator(ctx) {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidVersion, "not support")
 	}
 
@@ -197,7 +197,7 @@ func queryDelegationRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, 
 }
 
 func queryDelegatorTotalRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, k Keeper) ([]byte, error) {
-	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) {
+	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) || !k.HasInitAllocateValidator(ctx) {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidVersion, "not support")
 	}
 
@@ -248,7 +248,7 @@ func queryDelegatorTotalRewards(ctx sdk.Context, _ []string, req abci.RequestQue
 }
 
 func queryValidatorOutstandingRewards(ctx sdk.Context, path []string, req abci.RequestQuery, k Keeper) ([]byte, error) {
-	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) {
+	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) || !k.HasInitAllocateValidator(ctx) {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidVersion, "not support")
 	}
 

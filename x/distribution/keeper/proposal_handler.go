@@ -2,12 +2,12 @@ package keeper
 
 import (
 	"fmt"
+	stakingexported "github.com/okex/exchain/x/staking/exported"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 
 	"github.com/okex/exchain/x/distribution/types"
-	stakingexported "github.com/okex/exchain/x/staking/exported"
 )
 
 // HandleCommunityPoolSpendProposal is a handler for executing a passed community spend proposal
@@ -63,12 +63,17 @@ func HandleChangeDistributionTypeProposal(ctx sdk.Context, k Keeper, p types.Cha
 
 	//2. if onchain, iteration validators and init val which has not outstanding
 	if p.Type == types.DistributionTypeOnChain {
-		k.stakingKeeper.IterateValidators(ctx, func(index int64, validator stakingexported.ValidatorI) (stop bool) {
-			if validator != nil {
-				k.checkNotExistAndInitializeValidator(ctx, validator)
-			}
-			return false
-		})
+		if !k.HasInitAllocateValidator(ctx) {
+			k.SetInitAllocateValidator(ctx)
+			logger.Debug(fmt.Sprintf("Set init allocate validator. "))
+			k.stakingKeeper.IterateValidators(ctx, func(index int64, validator stakingexported.ValidatorI) (stop bool) {
+				if validator != nil {
+					logger.Debug(fmt.Sprintf("check not exist and initialize validator."))
+					k.checkNotExistAndInitializeValidator(ctx, validator)
+				}
+				return false
+			})
+		}
 	}
 
 	//3. set it

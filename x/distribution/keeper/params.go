@@ -2,7 +2,6 @@ package keeper
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-
 	"github.com/okex/exchain/x/distribution/types"
 )
 
@@ -54,4 +53,16 @@ func (k Keeper) GetDistributionType(ctx sdk.Context) (distrType uint32) {
 
 func (k Keeper) SetDistributionType(ctx sdk.Context, distrType uint32) {
 	k.paramSpace.Set(ctx, types.ParamStoreKeyDistributionType, &distrType)
+}
+
+func (k Keeper) SetInitAllocateValidator(ctx sdk.Context) {
+	exsit := true
+	logger := k.Logger(ctx)
+	logger.Info("SetInitAllocateValidator start")
+	k.paramSpace.Set(ctx, types.ParamStoreKeyInitAllocateValidator, &exsit)
+	logger.Info("SetInitAllocateValidator end")
+}
+
+func (k Keeper) HasInitAllocateValidator(ctx sdk.Context) bool {
+	return k.paramSpace.Has(ctx, types.ParamStoreKeyInitAllocateValidator)
 }

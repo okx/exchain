@@ -2,7 +2,6 @@ package types
 
 import (
 	"fmt"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/params"
 )
@@ -14,9 +13,10 @@ const (
 
 // Parameter keys
 var (
-	ParamStoreKeyCommunityTax        = []byte("communitytax")
-	ParamStoreKeyWithdrawAddrEnabled = []byte("withdrawaddrenabled")
-	ParamStoreKeyDistributionType    = []byte("distributiontype")
+	ParamStoreKeyCommunityTax          = []byte("communitytax")
+	ParamStoreKeyWithdrawAddrEnabled   = []byte("withdrawaddrenabled")
+	ParamStoreKeyDistributionType      = []byte("distributiontype")
+	ParamStoreKeyInitAllocateValidator = []byte("initallocatevalidator")
 )
 
 // Params defines the set of distribution parameters.
@@ -24,6 +24,7 @@ type Params struct {
 	CommunityTax        sdk.Dec `json:"community_tax" yaml:"community_tax"`
 	WithdrawAddrEnabled bool    `json:"withdraw_addr_enabled" yaml:"withdraw_addr_enabled"`
 	DistributionType    uint32  `json:"distribution_type" yaml:"distribution_type"`
+	//InitAllocateValidator bool    `json:"init_allocate_validator" yaml:"init_allocate_validator"`
 }
 
 // ParamKeyTable returns the parameter key table.
@@ -53,6 +54,7 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		params.NewParamSetPair(ParamStoreKeyCommunityTax, &p.CommunityTax, validateCommunityTax),
 		params.NewParamSetPair(ParamStoreKeyWithdrawAddrEnabled, &p.WithdrawAddrEnabled, validateWithdrawAddrEnabled),
 		params.NewParamSetPair(ParamStoreKeyDistributionType, &p.DistributionType, validateDistributionType),
+		params.NewParamSetPair(ParamStoreKeyInitAllocateValidator, true, validateInitAllocateValidator),
 	}
 }
 
@@ -108,12 +110,18 @@ func validateDistributionType(i interface{}) error {
 	return nil
 }
 
+//do nothing
+func validateInitAllocateValidator(i interface{}) error {
+	return nil
+}
+
 // NewParams creates a new instance of Params
 func NewParams(communityTax sdk.Dec, withdrawAddrEnabled bool, distributionType uint32) Params {
 	return Params{
 		CommunityTax:        communityTax,
 		WithdrawAddrEnabled: withdrawAddrEnabled,
 		DistributionType:    distributionType,
+		//InitAllocateValidator: true,
 	}
 }
 

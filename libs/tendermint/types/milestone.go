@@ -30,8 +30,8 @@ var (
 	MILESTONE_SATURN_HEIGHT string
 	milestoneSaturnHeight   int64
 
-	MILESTONE_VENUS2_HEIGHT string
-	milestoneSaturn1Height  int64
+	MILESTONE_SATURN1_HEIGHT string
+	milestoneSaturn1Height   int64
 
 	once sync.Once
 )
@@ -44,7 +44,7 @@ func init() {
 		milestoneMarsHeight = string2number(MILESTONE_MARS_HEIGHT)
 		milestoneVenus1Height = string2number(MILESTONE_VENUS1_HEIGHT)
 		milestoneSaturnHeight = string2number(MILESTONE_SATURN_HEIGHT)
-		milestoneSaturn1Height = string2number(MILESTONE_VENUS2_HEIGHT)
+		milestoneSaturn1Height = string2number(MILESTONE_SATURN1_HEIGHT)
 
 	})
 }

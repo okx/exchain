@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	"github.com/nacos-group/nacos-sdk-go/common/logger"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
@@ -11,7 +12,7 @@ import (
 
 // initialize rewards for a new validator
 func (k Keeper) initializeValidator(ctx sdk.Context, val exported.ValidatorI) {
-	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) {
+	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) || !k.HasInitAllocateValidator(ctx) {
 		// set accumulated commissions
 		k.SetValidatorAccumulatedCommission(ctx, val.GetOperator(), types.InitialValidatorAccumulatedCommission())
 		return
@@ -32,6 +33,7 @@ func (k Keeper) initializeValidator(ctx sdk.Context, val exported.ValidatorI) {
 
 func (k Keeper) checkNotExistAndInitializeValidator(ctx sdk.Context, val exported.ValidatorI) {
 	if k.HasValidatorOutstandingRewards(ctx, val.GetOperator()) {
+		logger.Debug(fmt.Sprintf("has validator, %s", val.GetOperator().String()))
 		return
 	}
 
@@ -46,11 +48,13 @@ func (k Keeper) checkNotExistAndInitializeValidator(ctx sdk.Context, val exporte
 
 	// set outstanding rewards with commission
 	k.SetValidatorOutstandingRewards(ctx, val.GetOperator(), commission)
+
+	logger.Debug(fmt.Sprintf("set val: %s, commission:%s, historical reward period: 0, cur.", val.GetOperator().String(), commission.String()))
 }
 
 // increment validator period, returning the period just ended
 func (k Keeper) incrementValidatorPeriod(ctx sdk.Context, val exported.ValidatorI) uint64 {
-	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) {
+	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) || !k.HasInitAllocateValidator(ctx) {
 		return 0
 	}
 
@@ -91,7 +95,7 @@ func (k Keeper) incrementValidatorPeriod(ctx sdk.Context, val exported.Validator
 	// set current rewards, incrementing period by 1
 	k.SetValidatorCurrentRewards(ctx, val.GetOperator(), types.NewValidatorCurrentRewards(sdk.SysCoins{}, rewards.Period+1))
 
-	logger.Debug(fmt.Sprintf("increment period val:%s, current reward ratio%s, historical:%s, val shares:%s",
+	logger.Debug(fmt.Sprintf("increment period val:%s, current reward ratio:%s, historical:%s, val shares:%s",
 		val.GetOperator().String(), current.String(), historical.String(), val.GetDelegatorShares()))
 	return rewards.Period
 }
@@ -103,6 +107,8 @@ func (k Keeper) incrementReferenceCount(ctx sdk.Context, valAddr sdk.ValAddress,
 		panic("reference count should never exceed 2")
 	}
 	historical.ReferenceCount++
+	logger := k.Logger(ctx)
+	logger.Debug(fmt.Sprintf("increment reference count, val:%s, period:%d, count:%d", valAddr.String(), period, historical.ReferenceCount))
 	k.SetValidatorHistoricalRewards(ctx, valAddr, period, historical)
 }
 
@@ -113,6 +119,8 @@ func (k Keeper) decrementReferenceCount(ctx sdk.Context, valAddr sdk.ValAddress,
 		panic("cannot set negative reference count")
 	}
 	historical.ReferenceCount--
+	logger := k.Logger(ctx)
+	logger.Debug(fmt.Sprintf("increment reference count, val:%s, period:%d, count:%d", valAddr.String(), period, historical.ReferenceCount))
 	if historical.ReferenceCount == 0 {
 		k.DeleteValidatorHistoricalReward(ctx, valAddr, period)
 	} else {

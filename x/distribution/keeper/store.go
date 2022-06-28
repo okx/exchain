@@ -1,8 +1,8 @@
 package keeper
 
 import (
+	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-
 	"github.com/okex/exchain/x/distribution/types"
 )
 
@@ -172,6 +172,9 @@ func (k Keeper) IterateDelegatorStartingInfos(ctx sdk.Context, handler func(val 
 
 // get historical rewards for a particular period
 func (k Keeper) GetValidatorHistoricalRewards(ctx sdk.Context, val sdk.ValAddress, period uint64) (rewards types.ValidatorHistoricalRewards) {
+	logger := k.Logger(ctx)
+	logger.Debug(fmt.Sprintf("HistoricalRewards, get val:%s, period:%d", val.String(), period))
+
 	store := ctx.KVStore(k.storeKey)
 	b := store.Get(types.GetValidatorHistoricalRewardsKey(val, period))
 	k.cdc.MustUnmarshalBinaryLengthPrefixed(b, &rewards)
@@ -180,6 +183,8 @@ func (k Keeper) GetValidatorHistoricalRewards(ctx sdk.Context, val sdk.ValAddres
 
 // set historical rewards for a particular period
 func (k Keeper) SetValidatorHistoricalRewards(ctx sdk.Context, val sdk.ValAddress, period uint64, rewards types.ValidatorHistoricalRewards) {
+	logger := k.Logger(ctx)
+	logger.Debug(fmt.Sprintf("HistoricalRewards, set val:%s, period:%d", val.String(), period))
 	store := ctx.KVStore(k.storeKey)
 	b := k.cdc.MustMarshalBinaryLengthPrefixed(rewards)
 	store.Set(types.GetValidatorHistoricalRewardsKey(val, period), b)
@@ -202,8 +207,11 @@ func (k Keeper) IterateValidatorHistoricalRewards(ctx sdk.Context, handler func(
 
 // delete a historical reward
 func (k Keeper) DeleteValidatorHistoricalReward(ctx sdk.Context, val sdk.ValAddress, period uint64) {
+	logger := k.Logger(ctx)
+	logger.Debug(fmt.Sprintf("HistoricalRewards, del val:%s, period:%d", val.String(), period))
 	store := ctx.KVStore(k.storeKey)
 	store.Delete(types.GetValidatorHistoricalRewardsKey(val, period))
+
 }
 
 // delete historical rewards for a validator
