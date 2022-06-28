@@ -79,6 +79,9 @@ func (l *LogsManager) Len() int {
 }
 
 func (l *LogsManager) Reset() {
+	if l == nil {
+		return
+	}
 	for k := range l.Results {
 		delete(l.Results, k)
 	}
