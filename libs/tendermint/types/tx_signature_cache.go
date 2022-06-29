@@ -55,9 +55,8 @@ func (c *Cache) Get(key []byte) (string, bool) {
 	// get cache
 	value, ok := c.data.HasGet(nil, key)
 	if ok {
-		sigCache := amino.BytesToStr(value)
 		atomic.AddInt64(&c.hitCount, 1)
-		return sigCache, true
+		return amino.BytesToStr(value), true
 	}
 	return "", false
 }
@@ -68,7 +67,7 @@ func (c *Cache) Add(key []byte, value string) {
 		return
 	}
 	// add cache
-	c.data.Set((key), amino.StrToBytes(value))
+	c.data.Set(key, amino.StrToBytes(value))
 }
 
 func (c *Cache) Remove(key []byte) {
