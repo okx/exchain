@@ -269,7 +269,8 @@ func (c *OecConfig) format() string {
 	
 	iavl-cache-size: %d
 	enable-analyzer: %v
-	active-view-change: %v`, system.ChainName,
+	active-view-change: %v
+	sentryAddrs: %v`, system.ChainName,
 		c.GetMempoolRecheck(),
 		c.GetMempoolForceRecheckGap(),
 		c.GetMempoolSize(),
@@ -289,6 +290,7 @@ func (c *OecConfig) format() string {
 		c.GetIavlCacheSize(),
 		c.GetEnableAnalyzer(),
 		c.GetActiveVC(),
+		c.GetSentryAddrs(),
 	)
 }
 
