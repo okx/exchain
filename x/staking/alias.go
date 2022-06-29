@@ -36,11 +36,13 @@ var (
 	ErrValidatorPubKeyExists           = types.ErrValidatorPubKeyExists
 	ErrValidatorPubKeyTypeNotSupported = types.ErrValidatorPubKeyTypeNotSupported
 	ErrBadDenom                        = types.ErrBadDenom
+	ErrNotSupport                      = types.ErrNotSupport
 	DefaultGenesisState                = types.DefaultGenesisState
 	NewMultiStakingHooks               = types.NewMultiStakingHooks
 	GetValidatorsByPowerIndexKey       = types.GetValidatorsByPowerIndexKey
 	NewMsgCreateValidator              = types.NewMsgCreateValidator
 	NewMsgEditValidator                = types.NewMsgEditValidator
+	NewMsgEditValidatorCommissionRate  = types.NewMsgEditValidatorCommissionRate
 	NewMsgDestroyValidator             = types.NewMsgDestroyValidator
 	NewMsgDeposit                      = types.NewMsgDeposit
 	NewMsgWithdraw                     = types.NewMsgWithdraw

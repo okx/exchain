@@ -133,19 +133,13 @@ func (msg MsgCreateValidator) ValidateBasic() error {
 type MsgEditValidator struct {
 	Description
 	ValidatorAddress sdk.ValAddress `json:"address" yaml:"address"`
-	// We pass a reference to the new commission rate as it's not mandatory to
-	// update. If not updated, the deserialized rate will be zero with no way to
-	// distinguish if an update was intended.
-
-	CommissionRate *sdk.Dec `json:"commission_rate" yaml:"commission_rate"`
 }
 
 // NewMsgEditValidator creates a msg of edit-validator
-func NewMsgEditValidator(valAddr sdk.ValAddress, description Description, newRate *sdk.Dec) MsgEditValidator {
+func NewMsgEditValidator(valAddr sdk.ValAddress, description Description) MsgEditValidator {
 	return MsgEditValidator{
 		Description:      description,
 		ValidatorAddress: valAddr,
-		CommissionRate:   newRate,
 	}
 }
 
@@ -168,15 +162,47 @@ func (msg MsgEditValidator) ValidateBasic() error {
 		return ErrNilValidatorAddr()
 	}
 
-	if msg.Description == (Description{}) && msg.CommissionRate == nil {
+	if msg.Description == (Description{}) {
+		return ErrNilValidatorAddr()
+	}
+	return nil
+}
+
+// MsgEditValidatorCommissionRate - struct for editing a validator commission rate
+type MsgEditValidatorCommissionRate struct {
+	CommissionRate   sdk.Dec        `json:"commission_rate" yaml:"commission_rate"`
+	ValidatorAddress sdk.ValAddress `json:"address" yaml:"address"`
+}
+
+// NewMsgEditValidatorCommissionRate creates a msg of edit-validator-commission-rate
+func NewMsgEditValidatorCommissionRate(valAddr sdk.ValAddress, newRate sdk.Dec) MsgEditValidatorCommissionRate {
+	return MsgEditValidatorCommissionRate{
+		CommissionRate:   newRate,
+		ValidatorAddress: valAddr,
+	}
+}
+
+// nolint
+func (msg MsgEditValidatorCommissionRate) Route() string { return RouterKey }
+func (msg MsgEditValidatorCommissionRate) Type() string  { return "edit_validator_commission_rate" }
+func (msg MsgEditValidatorCommissionRate) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{sdk.AccAddress(msg.ValidatorAddress)}
+}
+
+// GetSignBytes gets the bytes for the message signer to sign on
+func (msg MsgEditValidatorCommissionRate) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
+}
+
+// ValidateBasic gives a quick validity check
+func (msg MsgEditValidatorCommissionRate) ValidateBasic() error {
+	if msg.ValidatorAddress.Empty() {
 		return ErrNilValidatorAddr()
 	}
 
-	if msg.CommissionRate != nil {
-		if msg.CommissionRate.GT(sdk.OneDec()) || msg.CommissionRate.IsNegative() {
-			return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "commission rate must be between 0 and 1 (inclusive)")
-		}
+	if msg.CommissionRate.GT(sdk.OneDec()) || msg.CommissionRate.IsNegative() {
+		return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "commission rate must be between 0 and 1 (inclusive)")
 	}
-
 	return nil
 }

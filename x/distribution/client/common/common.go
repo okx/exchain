@@ -84,6 +84,10 @@ func WithdrawAllDelegatorRewards(cliCtx context.CLIContext, queryRoute string, d
 		return nil, err
 	}
 
+	if len(validators) <= 0 {
+		return nil, fmt.Errorf("no validators")
+	}
+
 	// build multi-message transaction
 	msgs := make([]sdk.Msg, 0, len(validators))
 	for _, valAddr := range validators {

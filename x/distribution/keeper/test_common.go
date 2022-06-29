@@ -265,9 +265,9 @@ func DoCreateValidator(t *testing.T, ctx sdk.Context, sk staking.Keeper, valAddr
 	require.NotNil(t, res)
 }
 
-func DoEditValidator(t *testing.T, ctx sdk.Context, sk staking.Keeper, valAddr sdk.ValAddress, newRate *sdk.Dec) {
+func DoEditValidator(t *testing.T, ctx sdk.Context, sk staking.Keeper, valAddr sdk.ValAddress, newRate sdk.Dec) {
 	h := staking.NewHandler(sk)
-	msg := staking.NewMsgEditValidator(valAddr, staking.Description{Moniker: "moniker"}, newRate)
+	msg := staking.NewMsgEditValidatorCommissionRate(valAddr, newRate)
 	_, e := h(ctx, msg)
 	require.Nil(t, e)
 }

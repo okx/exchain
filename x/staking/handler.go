@@ -20,6 +20,8 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 			return handleMsgCreateValidator(ctx, msg, k)
 		case types.MsgEditValidator:
 			return handleMsgEditValidator(ctx, msg, k)
+		case types.MsgEditValidatorCommissionRate:
+			return handleMsgEditValidatorCommissionRate(ctx, msg, k)
 		case types.MsgDeposit:
 			return handleMsgDeposit(ctx, msg, k)
 		case types.MsgWithdraw:
@@ -164,25 +166,47 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 
 	validator.Description = description
 
-	if tmtypes.HigherThanSaturn1(ctx.BlockHeight()) {
-		if msg.CommissionRate != nil {
-			commission, err := k.UpdateValidatorCommission(ctx, validator, *msg.CommissionRate)
-			if err != nil {
-				return nil, err
-			}
-
-			// call the before-modification hook since we're about to update the commission
-			k.BeforeValidatorModified(ctx, msg.ValidatorAddress)
-
-			validator.Commission = commission
-		}
-	}
-
 	k.SetValidator(ctx, validator)
 
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(types.EventTypeEditValidator,
 			sdk.NewAttribute(types.AttributeKeyMinSelfDelegation, validator.MinSelfDelegation.String()),
+		),
+		sdk.NewEvent(sdk.EventTypeMessage,
+			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
+			sdk.NewAttribute(sdk.AttributeKeySender, msg.ValidatorAddress.String()),
+		),
+	})
+
+	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
+}
+
+func handleMsgEditValidatorCommissionRate(ctx sdk.Context, msg types.MsgEditValidatorCommissionRate, k keeper.Keeper) (*sdk.Result, error) {
+	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) {
+		return nil, ErrNotSupport()
+	}
+
+	// validator must already be registered
+	validator, found := k.GetValidator(ctx, msg.ValidatorAddress)
+	if !found {
+		return nil, ErrNoValidatorFound(msg.ValidatorAddress.String())
+	}
+
+	commission, err := k.UpdateValidatorCommission(ctx, validator, msg.CommissionRate)
+	if err != nil {
+		return nil, err
+	}
+
+	// call the before-modification hook since we're about to update the commission
+	k.BeforeValidatorModified(ctx, msg.ValidatorAddress)
+
+	validator.Commission = commission
+
+	k.SetValidator(ctx, validator)
+
+	ctx.EventManager().EmitEvents(sdk.Events{
+		sdk.NewEvent(types.EventTypeEditValidatorCommissionRate,
+			sdk.NewAttribute(types.AttributeKeyCommissionRate, msg.CommissionRate.String()),
 		),
 		sdk.NewEvent(sdk.EventTypeMessage,
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),

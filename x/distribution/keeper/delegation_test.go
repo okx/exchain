@@ -31,7 +31,7 @@ func TestCalculateRewardsBasic(t *testing.T) {
 	// set new rate 0.5
 	newRate, _ := sdk.NewDecFromStr("0.5")
 	ctx.SetBlockTime(time.Now().UTC().Add(48 * time.Hour))
-	DoEditValidator(t, ctx, sk, valOpAddr1, &newRate)
+	DoEditValidator(t, ctx, sk, valOpAddr1, newRate)
 	staking.EndBlocker(ctx, sk)
 
 	// next block
@@ -81,7 +81,7 @@ func TestCalculateRewardsMultiDelegator(t *testing.T) {
 	// set new rate 0.5
 	newRate, _ := sdk.NewDecFromStr("0.5")
 	ctx.SetBlockTime(time.Now().UTC().Add(48 * time.Hour))
-	DoEditValidator(t, ctx, sk, valOpAddr1, &newRate)
+	DoEditValidator(t, ctx, sk, valOpAddr1, newRate)
 	staking.EndBlocker(ctx, sk)
 
 	// next block
@@ -162,7 +162,7 @@ func TestWithdrawDelegationRewardsBasic(t *testing.T) {
 	// set new rate 0.5
 	newRate, _ := sdk.NewDecFromStr("0.5")
 	ctx.SetBlockTime(time.Now().UTC().Add(48 * time.Hour))
-	DoEditValidator(t, ctx, sk, valOpAddr1, &newRate)
+	DoEditValidator(t, ctx, sk, valOpAddr1, newRate)
 	staking.EndBlocker(ctx, sk)
 	valTokens := sdk.Coins{sdk.NewCoin(sdk.DefaultBondDenom, sk.ParamsMinSelfDelegation(ctx))}
 	// assert correct initial balance
@@ -225,7 +225,7 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	// set new rate 0.5
 	newRate, _ := sdk.NewDecFromStr("0.5")
 	ctx.SetBlockTime(time.Now().UTC().Add(48 * time.Hour))
-	DoEditValidator(t, ctx, sk, valOpAddr1, &newRate)
+	DoEditValidator(t, ctx, sk, valOpAddr1, newRate)
 	staking.EndBlocker(ctx, sk)
 	valTokens := sdk.Coins{sdk.NewCoin(sdk.DefaultBondDenom, sk.ParamsMinSelfDelegation(ctx))}
 	// assert correct initial balance

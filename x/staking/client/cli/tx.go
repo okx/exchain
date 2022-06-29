@@ -40,6 +40,7 @@ func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 			GetCmdCreateValidator(cdc),
 			GetCmdDestroyValidator(cdc),
 			GetCmdEditValidator(cdc),
+			GetCmdEditValidatorCommissionRate(cdc),
 			GetCmdDeposit(cdc),
 			GetCmdWithdraw(cdc),
 			GetCmdAddShares(cdc),
@@ -121,20 +122,7 @@ func GetCmdEditValidator(cdc *codec.Codec) *cobra.Command {
 			//}
 			//
 			//msg := types.NewMsgEditValidator(sdk.ValAddress(valAddr), description, newRate, newMinSelfDelegation)
-
-			var newRate *sdk.Dec
-
-			commissionRate := viper.GetString(FlagCommissionRate)
-			if commissionRate != "" {
-				rate, err := sdk.NewDecFromStr(commissionRate)
-				if err != nil {
-					return fmt.Errorf("invalid new commission rate: %v", err)
-				}
-
-				newRate = &rate
-			}
-
-			msg := types.NewMsgEditValidator(sdk.ValAddress(valAddr), description, newRate)
+			msg := types.NewMsgEditValidator(sdk.ValAddress(valAddr), description)
 
 			// build and sign the transaction, then broadcast to Tendermint
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
@@ -142,7 +130,35 @@ func GetCmdEditValidator(cdc *codec.Codec) *cobra.Command {
 	}
 
 	cmd.Flags().AddFlagSet(fsDescriptionEdit)
-	cmd.Flags().AddFlagSet(fsCommissionUpdate)
+	//cmd.Flags().AddFlagSet(fsCommissionUpdate)
+
+	return cmd
+}
+
+// GetCmdEditValidatorCommissionRate gets the edit validator commission rate command
+func GetCmdEditValidatorCommissionRate(cdc *codec.Codec) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "edit-validator-commission-rate [commission-rate]",
+		Args:  cobra.ExactArgs(1),
+		Short: "edit an existing validator account",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(auth.DefaultTxEncoder(cdc))
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			valAddr := cliCtx.GetFromAddress()
+
+			rate, err := sdk.NewDecFromStr(args[0])
+			if err != nil {
+				return fmt.Errorf("invalid new commission rate: %v", err)
+			}
+
+			msg := types.NewMsgEditValidatorCommissionRate(sdk.ValAddress(valAddr), rate)
+
+			// build and sign the transaction, then broadcast to Tendermint
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
 
 	return cmd
 }

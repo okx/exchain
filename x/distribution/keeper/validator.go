@@ -112,6 +112,18 @@ func (k Keeper) incrementReferenceCount(ctx sdk.Context, valAddr sdk.ValAddress,
 	k.SetValidatorHistoricalRewards(ctx, valAddr, period, historical)
 }
 
+// increment the reference count for a historical rewards value for old delegator
+func (k Keeper) incrementReferenceCountOldDelegator(ctx sdk.Context, valAddr sdk.ValAddress, period uint64) {
+	historical := k.GetValidatorHistoricalRewards(ctx, valAddr, period)
+	if historical.ReferenceCount > 3 {
+		panic("reference count should never exceed 3")
+	}
+	historical.ReferenceCount += 2
+	logger := k.Logger(ctx)
+	logger.Debug(fmt.Sprintf("increment reference count, val:%s, period:%d, count:%d", valAddr.String(), period, historical.ReferenceCount))
+	k.SetValidatorHistoricalRewards(ctx, valAddr, period, historical)
+}
+
 // decrement the reference count for a historical rewards value, and delete if zero references remain
 func (k Keeper) decrementReferenceCount(ctx sdk.Context, valAddr sdk.ValAddress, period uint64) {
 	historical := k.GetValidatorHistoricalRewards(ctx, valAddr, period)

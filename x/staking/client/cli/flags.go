@@ -15,7 +15,7 @@ const (
 	FlagWebsite  = "website"
 	FlagDetails  = "details"
 
-	FlagCommissionRate = "commission-rate"
+	//FlagCommissionRate          = "commission-rate"
 	//FlagCommissionMaxRate       = "commission-max-rate"
 	//FlagCommissionMaxChangeRate = "commission-max-change-rate"
 
@@ -30,7 +30,7 @@ var (
 	FsPk                = flag.NewFlagSet("", flag.ContinueOnError)
 	fsDescriptionCreate = flag.NewFlagSet("", flag.ContinueOnError)
 	//FsCommissionCreate  = flag.NewFlagSet("", flag.ContinueOnError)
-	fsCommissionUpdate = flag.NewFlagSet("", flag.ContinueOnError)
+	//fsCommissionUpdate  = flag.NewFlagSet("", flag.ContinueOnError)
 	//FsMinSelfDelegation = flag.NewFlagSet("", flag.ContinueOnError)
 	fsDescriptionEdit = flag.NewFlagSet("", flag.ContinueOnError)
 )
@@ -41,7 +41,7 @@ func init() {
 	fsDescriptionCreate.String(FlagIdentity, "", "The optional identity signature (ex. UPort or Keybase)")
 	fsDescriptionCreate.String(FlagWebsite, "", "The validator's (optional) website")
 	fsDescriptionCreate.String(FlagDetails, "", "The validator's (optional) details")
-	fsCommissionUpdate.String(FlagCommissionRate, "", "The new commission rate percentage")
+	//fsCommissionUpdate.String(FlagCommissionRate, "", "The new commission rate percentage")
 	//FsCommissionCreate.String(FlagCommissionRate, "", "The initial commission rate percentage")
 	//FsCommissionCreate.String(FlagCommissionMaxRate, "", "The maximum commission rate percentage")
 	//FsCommissionCreate.String(FlagCommissionMaxChangeRate, "", "The maximum commission change rate percentage (per day)")

@@ -143,7 +143,9 @@ func (k Keeper) withdrawDelegationRewards(ctx sdk.Context, val stakingexported.V
 
 	// remove delegator starting info
 	k.DeleteDelegatorStartingInfo(ctx, val.GetOperator(), delAddress)
-
+	logger := k.Logger(ctx)
+	logger.Debug(fmt.Sprintf("withdrawDelegationRewards, val:%s, del:%s, shares:%s, start period:%d, coins:%s",
+		val.GetOperator().String(), delAddress.String(), startingInfo.Stake.String(), startingPeriod, coins.String()))
 	return coins, nil
 }
 
@@ -158,7 +160,7 @@ func (k Keeper) initExistedDelegationStartInfo(ctx sdk.Context, val stakingexpor
 	//set previous validator period 0
 	previousPeriod := uint64(0)
 	// increment reference count for the period we're going to track
-	k.incrementReferenceCount(ctx, val.GetOperator(), previousPeriod)
+	k.incrementReferenceCountOldDelegator(ctx, val.GetOperator(), previousPeriod)
 
 	logger.Debug(fmt.Sprintf("initialize delegation, val:%s, del:%s, shares:%s",
 		val.GetOperator().String(), del.GetDelegatorAddress().String(), del.GetLastAddedShares().String()))

@@ -58,12 +58,14 @@ const (
 	CodeNoDelegatorExisted              uint32 = 67044
 	CodeTargetValsDuplicate             uint32 = 67045
 	CodeAlreadyBound                    uint32 = 67046
+	CodeNotSupport                      uint32 = 67047
 )
 
 var (
-	ErrInvalidHistoricalInfo           = sdkerrors.Register(ModuleName, 144, "invalid historical info")
-	ErrNoHistoricalInfo                = sdkerrors.Register(ModuleName, 145, "no historical info found")
+	ErrInvalidHistoricalInfo = sdkerrors.Register(ModuleName, 144, "invalid historical info")
+	ErrNoHistoricalInfo      = sdkerrors.Register(ModuleName, 145, "no historical info found")
 )
+
 // ErrNoValidatorFound returns an error when a validator doesn't exist
 func ErrNoValidatorFound(valAddr string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeNoValidatorFound, fmt.Sprintf("validator %s does not exist", valAddr))}
@@ -315,4 +317,10 @@ func ErrAlreadyBound(delAddr string) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeAlreadyBound,
 		fmt.Sprintf("failed. %s has already bound a proxy. it's necessary to unbind before proxy register",
 			delAddr))}
+}
+
+// ErrNotSupport returns an error when not support
+func ErrNotSupport() sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(DefaultCodespace, CodeNotSupport,
+		fmt.Sprintf("failed. The current version does not support it"))}
 }

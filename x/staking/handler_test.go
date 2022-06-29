@@ -175,7 +175,7 @@ func TestEditValidatorDecreaseMinSelfDelegation(t *testing.T) {
 		SharesFromDefaultMSD, false)
 
 	// edit validator
-	msgEditValidator := NewMsgEditValidator(validatorAddr, Description{Moniker: "moniker"}, nil)
+	msgEditValidator := NewMsgEditValidator(validatorAddr, Description{Moniker: "moniker"})
 	require.Nil(t, msgEditValidator.ValidateBasic())
 
 	// no one could change msd
@@ -193,7 +193,7 @@ func TestEditValidatorCommission(t *testing.T) {
 	handler := NewHandler(keeper)
 
 	newRate, _ := sdk.NewDecFromStr("0.5")
-	msgEditValidator := NewMsgEditValidator(sdk.ValAddress(keep.Addrs[0]), Description{Moniker: "moniker"}, &newRate)
+	msgEditValidator := NewMsgEditValidatorCommissionRate(sdk.ValAddress(keep.Addrs[0]), newRate)
 	require.Nil(t, msgEditValidator.ValidateBasic())
 
 	// validator not exist
@@ -214,7 +214,7 @@ func TestEditValidatorCommission(t *testing.T) {
 
 	// invalid rate
 	newRate, _ = sdk.NewDecFromStr("-0.5")
-	msgEditValidator = NewMsgEditValidator(validatorAddr, Description{Moniker: "moniker"}, &newRate)
+	msgEditValidator = NewMsgEditValidatorCommissionRate(validatorAddr, newRate)
 	require.NotNil(t, msgEditValidator.ValidateBasic())
 	got, err = handler(ctx, msgEditValidator)
 	require.NotNil(t, err)
