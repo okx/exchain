@@ -4,8 +4,6 @@ import (
 	"encoding/binary"
 	"sync"
 
-	"github.com/okex/exchain/x/evm/keeper"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -36,7 +34,7 @@ type QueryOnChainProxy interface {
 	GetAccount(address common.Address) (*types.EthAccount, error)
 	GetStorageAtInternal(address common.Address, key []byte) (hexutil.Bytes, error)
 	GetCodeByHash(hash common.Hash) (hexutil.Bytes, error)
-	GetSimulateKeeper() *keeper.Keeper
+	GetCodec() *codec.Codec
 }
 
 // AccountKeeper defines the expected account keeper interface
