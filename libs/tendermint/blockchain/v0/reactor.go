@@ -320,7 +320,7 @@ FOR_LOOP:
 			// routine.
 
 			// See if there are any blocks to sync.
-			first, second, _, firstExInfo := bcR.pool.PeekTwoBlocks()
+			first, second, firstExInfo := bcR.pool.PeekTwoBlocks()
 			//bcR.Logger.Info("TrySync peeked", "first", first, "second", second)
 			if first == nil || second == nil {
 				// We need both to sync the first block.
@@ -377,14 +377,6 @@ FOR_LOOP:
 					panic(fmt.Sprintf("Failed to process committed block (%d:%X): %v", first.Height, first.Hash(), err))
 				}
 				blocksSynced++
-
-				/*
-					if types.EnableBroadcastP2PDelta() {
-						// persists the given deltas to the underlying db.
-						deltas.Height = first.Height
-						bcR.dstore.SaveDeltas(deltas, first.Height)
-					}
-				*/
 
 				if blocksSynced%100 == 0 {
 					lastRate = 0.9*lastRate + 0.1*(100/time.Since(lastHundred).Seconds())
@@ -516,7 +508,6 @@ func (m *bcNoBlockResponseMessage) String() string {
 
 type bcBlockResponseMessage struct {
 	Block  *types.Block
-	Deltas *types.Deltas
 	ExInfo *types.BlockExInfo
 }
 

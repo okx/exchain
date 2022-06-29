@@ -211,13 +211,12 @@ func (pool *BlockPool) IsCaughtUp() bool {
 // We need to see the second block's Commit to validate the first block.
 // So we peek two blocks at a time.
 // The caller will verify the commit.
-func (pool *BlockPool) PeekTwoBlocks() (first, second *types.Block, deltas *types.Deltas, firstExInfo *types.BlockExInfo) {
+func (pool *BlockPool) PeekTwoBlocks() (first, second *types.Block, firstExInfo *types.BlockExInfo) {
 	pool.mtx.Lock()
 	defer pool.mtx.Unlock()
 
 	if r := pool.requesters[pool.height]; r != nil {
 		first, firstExInfo = r.getBlock()
-		deltas = r.getDeltas()
 	}
 	if r := pool.requesters[pool.height+1]; r != nil {
 		second, _ = r.getBlock()
@@ -552,7 +551,6 @@ type bpRequester struct {
 	mtx    sync.Mutex
 	peerID p2p.ID
 	block  *types.Block
-	deltas *types.Deltas
 	exInfo *types.BlockExInfo
 }
 
@@ -565,7 +563,6 @@ func newBPRequester(pool *BlockPool, height int64) *bpRequester {
 
 		peerID: "",
 		block:  nil,
-		deltas: nil,
 	}
 	bpr.BaseService = *service.NewBaseService(nil, "bpRequester", bpr)
 	return bpr
@@ -601,12 +598,6 @@ func (bpr *bpRequester) getBlock() (*types.Block, *types.BlockExInfo) {
 	return bpr.block, bpr.exInfo
 }
 
-func (bpr *bpRequester) getDeltas() *types.Deltas {
-	bpr.mtx.Lock()
-	defer bpr.mtx.Unlock()
-	return bpr.deltas
-}
-
 func (bpr *bpRequester) getPeerID() p2p.ID {
 	bpr.mtx.Lock()
 	defer bpr.mtx.Unlock()
@@ -624,7 +615,6 @@ func (bpr *bpRequester) reset() {
 
 	bpr.peerID = ""
 	bpr.block = nil
-	bpr.deltas = nil
 }
 
 // Tells bpRequester to pick another peer and try again.
