@@ -69,16 +69,14 @@ func RpcBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.B
 		return nil, err
 	}
 
+	var bloom ethtypes.Bloom
 	clientCtx = clientCtx.WithHeight(block.Height)
 	res, _, err := clientCtx.Query(fmt.Sprintf("custom/%s/%s/%d", evmtypes.ModuleName, evmtypes.QueryBloom, block.Height))
-	if err != nil {
-		return nil, err
+	if err == nil {
+		var bloomRes evmtypes.QueryBloomFilter
+		clientCtx.Codec.MustUnmarshalJSON(res, &bloomRes)
+		bloom = bloomRes.Bloom
 	}
-
-	var bloomRes evmtypes.QueryBloomFilter
-	clientCtx.Codec.MustUnmarshalJSON(res, &bloomRes)
-
-	bloom := bloomRes.Bloom
 
 	return FormatBlock(block.Header, block.Size(), block.Hash(), gasLimit, gasUsed, ethTxs, bloom, fullTx), nil
 }
@@ -154,9 +152,11 @@ func FormatBlock(
 	header tmtypes.Header, size int, curBlockHash tmbytes.HexBytes, gasLimit int64,
 	gasUsed *big.Int, transactions []*watcher.Transaction, bloom ethtypes.Bloom, fullTx bool,
 ) *watcher.Block {
-	if len(header.DataHash) == 0 {
-		header.DataHash = tmbytes.HexBytes(common.Hash{}.Bytes())
+	transactionsRoot := ethtypes.EmptyRootHash
+	if len(header.DataHash) > 0 {
+		transactionsRoot = common.BytesToHash(header.DataHash)
 	}
+
 	parentHash := header.LastBlockID.Hash
 	if parentHash == nil {
 		parentHash = ethtypes.EmptyRootHash.Bytes()
@@ -168,7 +168,7 @@ func FormatBlock(
 		Nonce:            watcher.BlockNonce{},    // PoW specific
 		UncleHash:        ethtypes.EmptyUncleHash, // No uncles in Tendermint
 		LogsBloom:        bloom,
-		TransactionsRoot: common.BytesToHash(header.DataHash),
+		TransactionsRoot: transactionsRoot,
 		StateRoot:        common.BytesToHash(header.AppHash),
 		Miner:            common.BytesToAddress(header.ProposerAddress),
 		MixHash:          common.Hash{},

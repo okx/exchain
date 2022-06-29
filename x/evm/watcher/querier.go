@@ -117,9 +117,6 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
 	if fullTx && block.Transactions != nil {
 		txsHash := block.Transactions.([]interface{})
 		txList := make([]*Transaction, 0, len(txsHash))
-		if len(txsHash) == 0 {
-			block.TransactionsRoot = ethtypes.EmptyRootHash
-		}
 		for _, tx := range txsHash {
 			transaction, e := q.GetTransactionByHash(common.HexToHash(tx.(string)))
 			if e == nil && transaction != nil {
@@ -447,18 +444,7 @@ func (q Querier) GetParams() (*evmtypes.Params, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	b, e := q.store.Get(prefixParams)
-	if e != nil {
-		return nil, e
-	}
-	if b == nil {
-		return nil, errNotFound
-	}
-	var params evmtypes.Params
-	e = json.Unmarshal(b, &params)
-	if e != nil {
-		return nil, e
-	}
+	params := q.store.GetEvmParams()
 	return &params, nil
 }
 

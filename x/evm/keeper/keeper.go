@@ -122,6 +122,7 @@ func NewKeeper(
 		triegc:         prque.New(nil),
 		UpdatedAccount: make([]ethcmn.Address, 0),
 		cci:            &chainConfigInfo{},
+		LogsManages:    NewLogManager(),
 	}
 	k.Watcher.SetWatchDataFunc()
 	ak.SetObserverKeeper(k)
@@ -417,9 +418,19 @@ func (k *Keeper) SetGovKeeper(gk GovKeeper) {
 	k.govKeeper = gk
 }
 
+var commitStateDBPool = &sync.Pool{
+	New: func() interface{} {
+		return &types.CommitStateDB{}
+	},
+}
+
 // checks whether the address is blocked
 func (k *Keeper) IsAddressBlocked(ctx sdk.Context, addr sdk.AccAddress) bool {
-	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
+	csdb := commitStateDBPool.Get().(*types.CommitStateDB)
+	defer commitStateDBPool.Put(csdb)
+	types.ResetCommitStateDB(csdb, k.GenerateCSDBParams(), &ctx)
+
+	// csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 	return csdb.GetParams().EnableContractBlockedList && csdb.IsContractInBlockedList(addr.Bytes())
 }
 
