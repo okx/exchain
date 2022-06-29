@@ -1071,6 +1071,12 @@ func (mp PacketMsg) String() string {
 	return fmt.Sprintf("PacketMsg{%X:%X T:%X}", mp.ChannelID, mp.Bytes, mp.EOF)
 }
 
+func (mp *PacketMsg) Reset() {
+	mp.ChannelID = 0
+	mp.EOF = 0
+	mp.Bytes = mp.Bytes[:0]
+}
+
 func (mp PacketMsg) AminoSize(_ *amino.Codec) int {
 	size := 0
 	if mp.ChannelID != 0 {
@@ -1292,9 +1298,7 @@ func unmarshalPacketFromAminoReader(r io.Reader, maxSize int64, targetMsg *Packe
 		var msg *PacketMsg
 		if targetMsg != nil {
 			msg = targetMsg
-			msg.ChannelID = 0
-			msg.EOF = 0
-			msg.Bytes = msg.Bytes[:0]
+			msg.Reset()
 		} else {
 			msg = &PacketMsg{}
 		}
