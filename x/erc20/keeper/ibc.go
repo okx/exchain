@@ -266,6 +266,9 @@ func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.
 	}
 
 	executionResult, resultData, err, _, _ := st.TransitionDb(ctx, config)
+	if err != nil {
+		return nil, nil, err
+	}
 	st.Csdb.Commit(false) // write code to db
 
 	acc.SetSequence(nonce + 1)
