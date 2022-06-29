@@ -117,9 +117,6 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
 	if fullTx && block.Transactions != nil {
 		txsHash := block.Transactions.([]interface{})
 		txList := make([]*Transaction, 0, len(txsHash))
-		if len(txsHash) == 0 {
-			block.TransactionsRoot = ethtypes.EmptyRootHash
-		}
 		for _, tx := range txsHash {
 			transaction, e := q.GetTransactionByHash(common.HexToHash(tx.(string)))
 			if e == nil && transaction != nil {

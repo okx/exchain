@@ -3,10 +3,9 @@ package types
 import (
 	"fmt"
 
+	"github.com/pquerna/ffjson/ffjson"
 	"github.com/valyala/fastjson"
 	"gopkg.in/yaml.v2"
-
-	"encoding/json"
 
 	"github.com/ethereum/go-ethereum/core/vm"
 
@@ -98,7 +97,7 @@ func (p Params) MarshalJSON() ([]byte, error) {
 		p.MaxGasLimitPerTx,
 	}
 
-	return json.Marshal(alias)
+	return ffjson.Marshal(alias)
 }
 
 // UnmarshalJSON use fastjson to unmarshal params
