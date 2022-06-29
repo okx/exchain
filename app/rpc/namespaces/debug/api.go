@@ -10,6 +10,7 @@ import (
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 
 	"github.com/okex/exchain/app/rpc/backend"
+	"github.com/okex/exchain/app/rpc/monitor"
 	"github.com/okex/exchain/app/rpc/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 
@@ -22,6 +23,7 @@ type PublicDebugAPI struct {
 	clientCtx clientcontext.CLIContext
 	logger    log.Logger
 	backend   backend.Backend
+	Metrics   map[string]*monitor.RpcMetrics
 }
 
 // NewPublicTxPoolAPI creates a new tx pool service that gives information about the transaction pool.
@@ -37,7 +39,8 @@ func NewAPI(clientCtx clientcontext.CLIContext, log log.Logger, backend backend.
 // TraceTransaction returns the structured logs created during the execution of EVM
 // and returns them as a JSON object.
 func (api *PublicDebugAPI) TraceTransaction(txHash common.Hash, config evmtypes.TraceConfig) (interface{}, error) {
-
+	monitor := monitor.GetMonitor("debug_traceTransaction", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd()
 	err := evmtypes.TestTracerConfig(&config)
 	if err != nil {
 		return nil, fmt.Errorf("tracer err : %s", err.Error())
@@ -75,7 +78,7 @@ func (api *PublicDebugAPI) TraceTransaction(txHash common.Hash, config evmtypes.
 	return decodedResult, nil
 }
 
-func (api *PublicDebugAPI) TraceBlockByNumber(blockNum rpctypes.BlockNumber, config *evmtypes.TraceConfig) (interface{}, error) {
+func (api *PublicDebugAPI) traceBlockByNumber(blockNum rpctypes.BlockNumber, config *evmtypes.TraceConfig) (interface{}, error) {
 
 	err := evmtypes.TestTracerConfig(config)
 	if err != nil {
@@ -124,4 +127,20 @@ func (api *PublicDebugAPI) TraceBlockByNumber(blockNum rpctypes.BlockNumber, con
 		rpcResults = append(rpcResults, rpcRes)
 	}
 	return rpcResults, nil
+}
+
+func (api *PublicDebugAPI) TraceBlockByHash(hash common.Hash, config *evmtypes.TraceConfig) (interface{}, error) {
+	monitor := monitor.GetMonitor("debug_traceBlockByHash", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd()
+	block, err := api.backend.GetBlockByHash(hash, false)
+	if err != nil {
+		return nil, err
+	}
+	return api.TraceBlockByNumber(rpctypes.BlockNumber(block.Number), config)
+}
+
+func (api *PublicDebugAPI) TraceBlockByNumber(blockNum rpctypes.BlockNumber, config *evmtypes.TraceConfig) (interface{}, error) {
+	monitor := monitor.GetMonitor("debug_traceBlockByNumber", api.logger, api.Metrics).OnBegin()
+	defer monitor.OnEnd()
+	return api.traceBlockByNumber(blockNum, config)
 }
