@@ -69,7 +69,6 @@ type BlockchainReactor struct {
 
 	blockExec    *sm.BlockExecutor
 	store        *store.BlockStore
-	dstore       *store.DeltaStore
 	pool         *BlockPool
 	fastSync     bool
 	autoFastSync bool
@@ -81,8 +80,7 @@ type BlockchainReactor struct {
 }
 
 // NewBlockchainReactor returns new reactor instance.
-func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *store.BlockStore, dstore *store.DeltaStore,
-	fastSync bool) *BlockchainReactor {
+func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *store.BlockStore, fastSync bool) *BlockchainReactor {
 	if state.LastBlockHeight != store.Height() {
 		panic(fmt.Sprintf("state (%v) and store (%v) height mismatch", state.LastBlockHeight,
 			store.Height()))
@@ -103,7 +101,6 @@ func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *st
 		curState:   state,
 		blockExec:  blockExec,
 		store:      store,
-		dstore:     dstore,
 		pool:       pool,
 		fastSync:   fastSync,
 		mtx:        sync.RWMutex{},
