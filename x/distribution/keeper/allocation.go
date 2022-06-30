@@ -29,11 +29,12 @@ func (k Keeper) AllocateTokens(ctx sdk.Context, totalPreviousPower int64,
 	feeCollector := k.supplyKeeper.GetModuleAccount(ctx, k.feeCollectorName)
 	feesCollected := feeCollector.GetCoins()
 
+	logger.Debug(fmt.Sprintf("AllocateTokens start, feesCollected:%s", feesCollected.String()))
+
 	if feesCollected.Empty() {
 		logger.Debug("No fee to distributed.")
 		return
 	}
-	logger.Debug("AllocateTokens", "TotalFee", feesCollected.String())
 
 	// transfer collected fees to the distribution module account
 	err := k.supplyKeeper.SendCoinsFromModuleToModule(ctx, k.feeCollectorName, types.ModuleName, feesCollected)
@@ -45,7 +46,8 @@ func (k Keeper) AllocateTokens(ctx sdk.Context, totalPreviousPower int64,
 	if totalPreviousPower == 0 {
 		feePool.CommunityPool = feePool.CommunityPool.Add(feesCollected...)
 		k.SetFeePool(ctx, feePool)
-		logger.Debug("totalPreviousPower is zero, send fees to community pool", "fees", feesCollected)
+
+		logger.Debug(fmt.Sprintf("AllocateTokens end, totalPreviousPower is zero, send fees to community pool, feesCollected:%s", feesCollected.String()))
 		return
 	}
 
@@ -73,8 +75,10 @@ func (k Keeper) AllocateTokens(ctx sdk.Context, totalPreviousPower int64,
 	if !feesToCommunity.IsZero() {
 		feePool.CommunityPool = feePool.CommunityPool.Add(feesToCommunity...)
 		k.SetFeePool(ctx, feePool)
-		logger.Debug("Send fees to community pool", "community_pool", feesToCommunity)
 	}
+
+	logger.Debug(fmt.Sprintf("AllocateTokens end, feeByEqual:%s,feeByVote:%s, remainByEqual:%s, remainByShare:%s, feesToCommunity:%s, feesCollected:%s",
+		feeByEqual.String(), feeByVote.String(), remainByEqual.String(), remainByShare.String(), feesToCommunity.String(), feesCollected.String()))
 }
 
 func (k Keeper) allocateByEqual(ctx sdk.Context, rewards sdk.SysCoins, previousVotes []abci.VoteInfo) sdk.SysCoins {
@@ -100,9 +104,11 @@ func (k Keeper) allocateByEqual(ctx sdk.Context, rewards sdk.SysCoins, previousV
 	remaining := rewards
 	reward := rewards.MulDecTruncate(powerFraction)
 	for _, val := range validators {
+		logger.Debug(fmt.Sprintf("allocateByEqual start, val:%s, reward:%s", val.GetOperator(), reward.String()))
 		k.AllocateTokensToValidator(ctx, val, reward)
-		logger.Debug("allocate by equal", val.GetOperator(), reward.String())
 		remaining = remaining.Sub(reward)
+		logger.Debug(fmt.Sprintf("allocateByEqual end, val:%s, reward:%s, remaining:%s",
+			val.GetOperator(), reward.String(), remaining.String()))
 	}
 	return remaining
 }
@@ -135,9 +141,12 @@ func (k Keeper) allocateByShares(ctx sdk.Context, rewards sdk.SysCoins) sdk.SysC
 	for _, val := range validators {
 		powerFraction := val.GetDelegatorShares().QuoTruncate(totalVotes)
 		reward := rewards.MulDecTruncate(powerFraction)
+		logger.Debug(fmt.Sprintf("allocateByShares start, val:%s, reward:%s, powerFraction:%s",
+			val.GetOperator(), reward.String(), powerFraction.String()))
 		k.AllocateTokensToValidator(ctx, val, reward)
-		logger.Debug("allocate by shares", val.GetOperator(), reward)
 		remaining = remaining.Sub(reward)
+		logger.Debug(fmt.Sprintf("allocateByShares end, val:%s, reward:%s, remaining:%s",
+			val.GetOperator(), reward.String(), remaining.String()))
 	}
 	return remaining
 }
@@ -167,9 +176,16 @@ func (k Keeper) AllocateTokensToValidator(ctx sdk.Context, val exported.Validato
 func (k Keeper) newAllocateTokensToValidator(ctx sdk.Context, val exported.ValidatorI, tokens sdk.SysCoins) {
 	logger := k.Logger(ctx)
 	commission := tokens
+
+	rate, _ := sdk.NewDecFromStr("1.0")
 	if k.GetDistributionType(ctx) == types.DistributionTypeOnChain {
-		commission = tokens.MulDec(val.GetCommission())
+		rate = val.GetCommission()
 	}
+
+	commission = tokens.MulDec(rate)
+
+	logger.Debug(fmt.Sprintf("newAllocateTokensToValidator start, val %s, type:%d, set commission rate:%s, tokens:%s, commission:%s",
+		val.GetOperator().String(), k.GetDistributionType(ctx), rate.String(), tokens.String(), commission.String()))
 
 	// split tokens between validator and delegators according to commission
 	shared := tokens.Sub(commission)
@@ -189,7 +205,6 @@ func (k Keeper) newAllocateTokensToValidator(ctx sdk.Context, val exported.Valid
 	// update current rewards
 	currentRewards := k.GetValidatorCurrentRewards(ctx, val.GetOperator())
 	currentRewards.Rewards = currentRewards.Rewards.Add(shared...)
-	logger.Debug(fmt.Sprintf("current rewards:%s", currentRewards.Rewards.String()))
 	k.SetValidatorCurrentRewards(ctx, val.GetOperator(), currentRewards)
 
 	// update outstanding rewards
@@ -204,8 +219,7 @@ func (k Keeper) newAllocateTokensToValidator(ctx sdk.Context, val exported.Valid
 	outstanding = outstanding.Add(tokens...)
 	k.SetValidatorOutstandingRewards(ctx, val.GetOperator(), outstanding)
 
-	logger.Debug(fmt.Sprintf("allocate val %s commission rate:%s, tokens:%s, commission:%s, shared:%s, "+
-		"outstanding:%s, current period:%d, reward:%s ", val.GetOperator().String(), val.GetCommission().String(),
-		tokens.String(), commission.String(), shared.String(), outstanding.String(), currentRewards.Period,
-		currentRewards.Rewards.String()))
+	logger.Debug(fmt.Sprintf("newAllocateTokensToValidator end, val %s, set commission rate:%s, tokens:%s, commission:%s, shared:%s, "+
+		"outstanding:%s, current period:%d, reward:%s,currentCommission:%s ", val.GetOperator().String(), rate.String(),
+		tokens.String(), commission.String(), shared.String(), outstanding.String(), currentRewards.Period, currentRewards.Rewards.String(), currentCommission.String()))
 }

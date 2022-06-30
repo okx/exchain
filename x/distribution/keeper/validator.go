@@ -37,8 +37,8 @@ func (k Keeper) checkNotExistAndInitializeValidator(ctx sdk.Context, val exporte
 		return
 	}
 
-	// set initial historical rewards (period 0) with reference count of 1
-	k.SetValidatorHistoricalRewards(ctx, val.GetOperator(), 0, types.NewValidatorHistoricalRewards(sdk.SysCoins{}, 1))
+	// set initial historical rewards (period 0) with reference count of 2, for all old delegator count repetition
+	k.SetValidatorHistoricalRewards(ctx, val.GetOperator(), 0, types.NewValidatorHistoricalRewards(sdk.SysCoins{}, 2))
 
 	// set current rewards (starting at period 1)
 	k.SetValidatorCurrentRewards(ctx, val.GetOperator(), types.NewValidatorCurrentRewards(sdk.SysCoins{}, 1))
@@ -62,7 +62,7 @@ func (k Keeper) incrementValidatorPeriod(ctx sdk.Context, val exported.Validator
 	// fetch current rewards
 	rewards := k.GetValidatorCurrentRewards(ctx, val.GetOperator())
 
-	logger.Debug(fmt.Sprintf("increment val period %s, cur period:%d, cur reward:%s", val.GetOperator().String(), rewards.Period, rewards.Rewards.String()))
+	logger.Debug(fmt.Sprintf("incrementValidatorPeriod start, increment val period %s, cur period:%d, cur reward:%s", val.GetOperator().String(), rewards.Period, rewards.Rewards.String()))
 
 	// calculate current ratio
 	var current sdk.SysCoins
@@ -95,47 +95,40 @@ func (k Keeper) incrementValidatorPeriod(ctx sdk.Context, val exported.Validator
 	// set current rewards, incrementing period by 1
 	k.SetValidatorCurrentRewards(ctx, val.GetOperator(), types.NewValidatorCurrentRewards(sdk.SysCoins{}, rewards.Period+1))
 
-	logger.Debug(fmt.Sprintf("increment period val:%s, current reward ratio:%s, historical:%s, val shares:%s",
+	logger.Debug(fmt.Sprintf("incrementValidatorPeriod end, increment period val:%s, current reward ratio:%s, historical:%s, val shares:%s",
 		val.GetOperator().String(), current.String(), historical.String(), val.GetDelegatorShares()))
 	return rewards.Period
 }
 
 // increment the reference count for a historical rewards value
 func (k Keeper) incrementReferenceCount(ctx sdk.Context, valAddr sdk.ValAddress, period uint64) {
+	logger := k.Logger(ctx)
+	logger.Debug(fmt.Sprintf("incrementReferenceCount  start, val:%s, period:%d", valAddr.String(), period))
 	historical := k.GetValidatorHistoricalRewards(ctx, valAddr, period)
 	if historical.ReferenceCount > 2 {
 		panic("reference count should never exceed 2")
 	}
 	historical.ReferenceCount++
-	logger := k.Logger(ctx)
-	logger.Debug(fmt.Sprintf("increment reference count, val:%s, period:%d, count:%d", valAddr.String(), period, historical.ReferenceCount))
+	logger.Debug(fmt.Sprintf("incrementReferenceCount  end, val:%s, period:%d, count:%d", valAddr.String(), period, historical.ReferenceCount))
 	k.SetValidatorHistoricalRewards(ctx, valAddr, period, historical)
 }
 
-// increment the reference count for a historical rewards value for old delegator
-func (k Keeper) incrementReferenceCountOldDelegator(ctx sdk.Context, valAddr sdk.ValAddress, period uint64) {
-	historical := k.GetValidatorHistoricalRewards(ctx, valAddr, period)
-	if historical.ReferenceCount > 3 {
-		panic("reference count should never exceed 3")
-	}
-	historical.ReferenceCount += 2
-	logger := k.Logger(ctx)
-	logger.Debug(fmt.Sprintf("increment reference count, val:%s, period:%d, count:%d", valAddr.String(), period, historical.ReferenceCount))
-	k.SetValidatorHistoricalRewards(ctx, valAddr, period, historical)
-}
 
 // decrement the reference count for a historical rewards value, and delete if zero references remain
 func (k Keeper) decrementReferenceCount(ctx sdk.Context, valAddr sdk.ValAddress, period uint64) {
+	logger := k.Logger(ctx)
+	logger.Debug(fmt.Sprintf("decrementReferenceCount start, reference decrement ok, val:%s, period:%d", valAddr.String(), period))
 	historical := k.GetValidatorHistoricalRewards(ctx, valAddr, period)
 	if historical.ReferenceCount == 0 {
 		panic("cannot set negative reference count")
 	}
 	historical.ReferenceCount--
-	logger := k.Logger(ctx)
-	logger.Debug(fmt.Sprintf("increment reference count, val:%s, period:%d, count:%d", valAddr.String(), period, historical.ReferenceCount))
+
 	if historical.ReferenceCount == 0 {
 		k.DeleteValidatorHistoricalReward(ctx, valAddr, period)
 	} else {
 		k.SetValidatorHistoricalRewards(ctx, valAddr, period, historical)
 	}
+
+	logger.Debug(fmt.Sprintf("decrementReferenceCount end, reference decrement ok, val:%s, period:%d, count:%d", valAddr.String(), period, historical.ReferenceCount))
 }

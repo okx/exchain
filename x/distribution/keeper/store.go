@@ -172,9 +172,6 @@ func (k Keeper) IterateDelegatorStartingInfos(ctx sdk.Context, handler func(val 
 
 // get historical rewards for a particular period
 func (k Keeper) GetValidatorHistoricalRewards(ctx sdk.Context, val sdk.ValAddress, period uint64) (rewards types.ValidatorHistoricalRewards) {
-	logger := k.Logger(ctx)
-	logger.Debug(fmt.Sprintf("HistoricalRewards, get val:%s, period:%d", val.String(), period))
-
 	store := ctx.KVStore(k.storeKey)
 	b := store.Get(types.GetValidatorHistoricalRewardsKey(val, period))
 	k.cdc.MustUnmarshalBinaryLengthPrefixed(b, &rewards)
@@ -183,8 +180,6 @@ func (k Keeper) GetValidatorHistoricalRewards(ctx sdk.Context, val sdk.ValAddres
 
 // set historical rewards for a particular period
 func (k Keeper) SetValidatorHistoricalRewards(ctx sdk.Context, val sdk.ValAddress, period uint64, rewards types.ValidatorHistoricalRewards) {
-	logger := k.Logger(ctx)
-	logger.Debug(fmt.Sprintf("HistoricalRewards, set val:%s, period:%d", val.String(), period))
 	store := ctx.KVStore(k.storeKey)
 	b := k.cdc.MustMarshalBinaryLengthPrefixed(rewards)
 	store.Set(types.GetValidatorHistoricalRewardsKey(val, period), b)

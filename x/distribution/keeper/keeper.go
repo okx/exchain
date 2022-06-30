@@ -121,6 +121,8 @@ func (k Keeper) WithdrawDelegationRewards(ctx sdk.Context, delAddr sdk.AccAddres
 	if val == nil {
 		return nil, types.ErrCodeEmptyValidatorDistInfo()
 	}
+	logger := k.Logger(ctx)
+	logger.Debug(fmt.Sprintf("WithdrawDelegationRewards start, val:%s, del:%s", valAddr.String(), delAddr.String()))
 
 	del := k.stakingKeeper.Delegator(ctx, delAddr)
 	if del == nil {
@@ -143,5 +145,6 @@ func (k Keeper) WithdrawDelegationRewards(ctx sdk.Context, delAddr sdk.AccAddres
 
 	// reinitialize the delegation
 	k.initializeDelegation(ctx, valAddr, delAddr)
+	logger.Debug(fmt.Sprintf("WithdrawDelegationRewards end, val:%s, del:%s", valAddr.String(), delAddr.String()))
 	return rewards, nil
 }

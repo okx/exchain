@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -156,14 +157,14 @@ func queryDelegationRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, 
 	}
 
 	// cache-wrap context as to not persist state changes during querying
-	ctx, _ = ctx.CacheContext()
+	cacheCtx, _ := ctx.CacheContext()
 
-	val := k.stakingKeeper.Validator(ctx, params.ValidatorAddress)
+	val := k.stakingKeeper.Validator(cacheCtx, params.ValidatorAddress)
 	if val == nil {
 		return nil, sdkerrors.Wrap(types.ErrCodeEmptyValidatorDistInfo(), params.ValidatorAddress.String())
 	}
 
-	del := k.stakingKeeper.Delegator(ctx, params.DelegatorAddress)
+	del := k.stakingKeeper.Delegator(cacheCtx, params.DelegatorAddress)
 	if del == nil {
 		return nil, types.ErrCodeEmptyDelegationDistInfo()
 	}
@@ -178,15 +179,20 @@ func queryDelegationRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, 
 		return nil, sdkerrors.Wrap(types.ErrCodeEmptyValidatorDistInfo(), params.ValidatorAddress.String())
 	}
 
-	if !k.HasDelegatorStartingInfo(ctx, val.GetOperator(), params.DelegatorAddress) && !del.GetLastAddedShares().IsZero() {
-		k.initExistedDelegationStartInfo(ctx, val, del)
+	logger := k.Logger(cacheCtx)
+	logger.Info(fmt.Sprintf("queryDelegationRewards start, val:%s, del:%s", val.GetOperator().String(), params.DelegatorAddress.String()))
+	if !k.HasDelegatorStartingInfo(cacheCtx, val.GetOperator(), params.DelegatorAddress) && !del.GetLastAddedShares().IsZero() {
+		k.initExistedDelegationStartInfo(cacheCtx, val, del)
 	}
 
-	endingPeriod := k.incrementValidatorPeriod(ctx, val)
-	rewards := k.calculateDelegationRewards(ctx, val, params.DelegatorAddress, endingPeriod)
+	endingPeriod := k.incrementValidatorPeriod(cacheCtx, val)
+	rewards := k.calculateDelegationRewards(cacheCtx, val, params.DelegatorAddress, endingPeriod)
 	if rewards == nil {
 		rewards = sdk.DecCoins{}
 	}
+
+	logger.Info(fmt.Sprintf("queryDelegationRewards end, val:%s, del:%s, rewards:%s",
+		val.GetOperator().String(), params.DelegatorAddress.String(), rewards.String()))
 
 	bz, err := codec.MarshalJSONIndent(k.cdc, rewards)
 	if err != nil {
@@ -208,9 +214,9 @@ func queryDelegatorTotalRewards(ctx sdk.Context, _ []string, req abci.RequestQue
 	}
 
 	// cache-wrap context as to not persist state changes during querying
-	ctx, _ = ctx.CacheContext()
+	cacheCtx, _ := ctx.CacheContext()
 
-	del := k.stakingKeeper.Delegator(ctx, params.DelegatorAddress)
+	del := k.stakingKeeper.Delegator(cacheCtx, params.DelegatorAddress)
 	if del == nil {
 		return nil, types.ErrCodeEmptyDelegationDistInfo()
 	}
@@ -219,22 +225,26 @@ func queryDelegatorTotalRewards(ctx sdk.Context, _ []string, req abci.RequestQue
 	var delRewards []types.DelegationDelegatorReward
 
 	for _, valAddr := range del.GetShareAddedValidatorAddresses() {
-		val := k.stakingKeeper.Validator(ctx, valAddr)
+		val := k.stakingKeeper.Validator(cacheCtx, valAddr)
 		if val == nil {
 			continue
 		}
 
-		if !k.HasDelegatorStartingInfo(ctx, val.GetOperator(), params.DelegatorAddress) && !del.GetLastAddedShares().IsZero() {
-			k.initExistedDelegationStartInfo(ctx, val, del)
+		logger := k.Logger(cacheCtx)
+		logger.Info(fmt.Sprintf("queryDelegatorTotalRewards-total-start, val:%s, del:%s", val.GetOperator().String(), params.DelegatorAddress.String()))
+		if !k.HasDelegatorStartingInfo(cacheCtx, val.GetOperator(), params.DelegatorAddress) && !del.GetLastAddedShares().IsZero() {
+			k.initExistedDelegationStartInfo(cacheCtx, val, del)
 		}
 
-		endingPeriod := k.incrementValidatorPeriod(ctx, val)
-		delReward := k.calculateDelegationRewards(ctx, val, params.DelegatorAddress, endingPeriod)
+		endingPeriod := k.incrementValidatorPeriod(cacheCtx, val)
+		delReward := k.calculateDelegationRewards(cacheCtx, val, params.DelegatorAddress, endingPeriod)
 		if delReward == nil {
 			delReward = sdk.DecCoins{}
 		}
 		delRewards = append(delRewards, types.NewDelegationDelegatorReward(valAddr, delReward))
 		total = total.Add(delReward...)
+		logger.Info(fmt.Sprintf("queryDelegatorTotalRewards-total-end, val:%s, del:%s, delReward:%s",
+			val.GetOperator().String(), params.DelegatorAddress.String(), delReward.String()))
 	}
 
 	totalRewards := types.NewQueryDelegatorTotalRewardsResponse(delRewards, total)
