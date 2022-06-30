@@ -2,8 +2,6 @@ package pendingtx
 
 import (
 	"context"
-	"fmt"
-	"time"
 
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/segmentio/kafka-go"
@@ -32,14 +30,10 @@ func (kc *KafkaClient) Send(hash []byte, tx *watcher.Transaction) error {
 		Data:  tx,
 	}
 
-	start := time.Now()
 	msg, err := kafkaMsg.MarshalJSON()
 	if err != nil {
 		return err
 	}
-	fmt.Println("encode:", time.Since(start).Nanoseconds())
-	start = time.Now()
-	defer fmt.Println("send:", time.Since(start).Nanoseconds())
 	// Automatic retries and reconnections on errors.
 	return kc.WriteMessages(context.Background(),
 		kafka.Message{

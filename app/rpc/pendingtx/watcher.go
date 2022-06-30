@@ -2,7 +2,6 @@ package pendingtx
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	rpcfilters "github.com/okex/exchain/app/rpc/namespaces/eth/filters"
@@ -67,7 +66,7 @@ func (w *Watcher) Start() {
 				}
 
 				go func(hash []byte, tx *watcher.Transaction) {
-					w.logger.Debug("push pending tx to MQ", "txHash=", txHash.String(), "time=", time.Now().UnixMilli())
+					w.logger.Debug("push pending tx to MQ", "txHash=", txHash.String())
 					err = w.sender.Send(hash, tx)
 					if err != nil {
 						w.logger.Error("failed to send pending tx", "hash", txHash.String(), "error", err)
