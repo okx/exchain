@@ -2,11 +2,12 @@ package types
 
 import (
 	"context"
+	"time"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/gaskv"
 	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
@@ -48,6 +49,7 @@ type Context struct {
 	paraMsg            *ParaMsg
 	//	txCount            uint32
 	overridesBytes []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
+	watcher        IWatcher
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -365,6 +367,14 @@ func (c *Context) SetVoteInfos(voteInfo []abci.VoteInfo) *Context {
 func (c *Context) SetOverrideBytes(b []byte) *Context {
 	c.overridesBytes = b
 	return c
+}
+
+func (c *Context) SetWatcher(w IWatcher) {
+	c.watcher = w
+}
+
+func (c *Context) GetWatcher() IWatcher {
+	return c.watcher
 }
 
 //func (c *Context) SetTxCount(count uint32) *Context {
