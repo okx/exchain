@@ -37,9 +37,9 @@ func (kc *KafkaClient) Send(hash []byte, tx *watcher.Transaction) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("encode:", time.Since(start).Milliseconds())
+	fmt.Println("encode:", time.Since(start).Nanoseconds())
 	start = time.Now()
-	defer fmt.Println("send:", time.Since(start).Milliseconds())
+	defer fmt.Println("send:", time.Since(start).Nanoseconds())
 	// Automatic retries and reconnections on errors.
 	return kc.WriteMessages(context.Background(),
 		kafka.Message{
