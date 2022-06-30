@@ -41,11 +41,11 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	k.SetBlockHash(ctx, lastHash, height)
 
 	// reset counters that are used on CommitStateDB.Prepare
-	if !ctx.IsTraceTx() {
+	if ctx.IsTraceTx() {
 		k.Bloom = big.NewInt(0)
 		k.TxCount = 0
 		k.LogSize = 0
-		k.LogsManages = NewLogManager()
+		k.LogsManages.Reset()
 		k.Bhash = blockHash
 
 		//that can make sure latest block has been committed

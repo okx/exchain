@@ -7,6 +7,7 @@ import (
 	"math/big"
 	"math/rand"
 	"net"
+	"os"
 	"testing"
 	"time"
 
@@ -572,7 +573,7 @@ func TestPacketAmino(t *testing.T) {
 
 		var buf bytes.Buffer
 		buf.Write(bz)
-		newPacket2, n, err := unmarshalPacketFromAminoReader(&buf, int64(buf.Len()))
+		newPacket2, n, err := unmarshalPacketFromAminoReader(&buf, int64(buf.Len()), nil)
 		require.NoError(t, err)
 		require.EqualValues(t, len(bz), n)
 
@@ -640,7 +641,7 @@ func BenchmarkPacketAmino(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			var packet Packet
 			var buf = bytes.NewBuffer(bz)
-			packet, _, err = unmarshalPacketFromAminoReader(buf, int64(buf.Len()))
+			packet, _, err = unmarshalPacketFromAminoReader(buf, int64(buf.Len()), nil)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -710,22 +711,22 @@ func TestPacketMsgAmino(t *testing.T) {
 		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
 		require.NoError(t, err)
 
-		var actulaValue PacketMsg
-		tmp, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(expectData, &actulaValue)
+		var actulaValue = &PacketMsg{}
+		tmp, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(expectData, actulaValue)
 		require.NoError(t, err)
-		_, ok := tmp.(PacketMsg)
+		_, ok := tmp.(*PacketMsg)
 		require.True(t, ok)
-		actulaValue = tmp.(PacketMsg)
+		actulaValue = tmp.(*PacketMsg)
 
-		require.EqualValues(t, expectValue, actulaValue)
+		require.EqualValues(t, expectValue, *actulaValue)
 		err = actulaValue.UnmarshalFromAmino(cdc, expectData[4:])
 		require.NoError(t, err)
-		require.EqualValues(t, expectValue, actulaValue)
+		require.EqualValues(t, expectValue, *actulaValue)
 
-		actulaValue = PacketMsg{}
-		err = cdc.UnmarshalBinaryLengthPrefixed(actualLenPrefixData, &actulaValue)
+		actulaValue = &PacketMsg{}
+		err = cdc.UnmarshalBinaryLengthPrefixed(actualLenPrefixData, actulaValue)
 		require.NoError(t, err)
-		require.EqualValues(t, expectValue, actulaValue)
+		require.EqualValues(t, expectValue, *actulaValue)
 	}
 }
 
@@ -772,6 +773,97 @@ func Benchmark(b *testing.B) {
 					b.Fatal(err)
 				}
 			}
+		}
+	})
+}
+
+func BenchmarkMConnectionLogSendData(b *testing.B) {
+	c := new(MConnection)
+	chID := byte(10)
+	msgBytes := []byte("Hello World!")
+
+	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "benchmark")
+	var options []log.Option
+	options = append(options, log.AllowInfoWith("module", "benchmark"))
+	logger = log.NewFilter(logger, options...)
+
+	c.Logger = logger
+	b.ResetTimer()
+
+	b.Run("pool", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			c.logSendData("Send", chID, msgBytes)
+		}
+	})
+
+	b.Run("logger", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			logger.Debug("Send", "channel", chID, "conn", c, "msgBytes", bytesHexStringer(msgBytes))
+		}
+	})
+}
+
+func BenchmarkMConnectionLogReceiveMsg(b *testing.B) {
+	c := new(MConnection)
+	chID := byte(10)
+	msgBytes := []byte("Hello World!")
+
+	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "benchmark")
+	var options []log.Option
+	options = append(options, log.AllowInfoWith("module", "benchmark"))
+	logger = log.NewFilter(logger, options...)
+
+	c.Logger = logger
+	b.ResetTimer()
+
+	b.Run("pool", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			c.logReceiveMsg(chID, msgBytes)
+		}
+	})
+
+	b.Run("logger", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			logger.Debug("Received bytes", "chID", chID, "msgBytes", bytesHexStringer(msgBytes))
+		}
+	})
+}
+
+func BenchmarkChannelLogRecvPacketMsg(b *testing.B) {
+	conn := new(MConnection)
+	c := new(Channel)
+	chID := byte(10)
+	msgBytes := []byte("Hello World!")
+	pk := PacketMsg{
+		ChannelID: chID,
+		EOF:       25,
+		Bytes:     msgBytes,
+	}
+
+	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "benchmark")
+	var options []log.Option
+	options = append(options, log.AllowInfoWith("module", "benchmark"))
+	logger = log.NewFilter(logger, options...)
+
+	c.Logger = logger
+	c.conn = conn
+	b.ResetTimer()
+
+	b.Run("pool", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			c.logRecvPacketMsg(pk)
+		}
+	})
+
+	b.Run("logger", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			c.Logger.Debug("Read PacketMsg", "conn", c.conn, "packet", pk)
 		}
 	})
 }

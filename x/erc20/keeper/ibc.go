@@ -23,6 +23,7 @@ func (k Keeper) OnMintVouchers(ctx sdk.Context, vouchers sdk.SysCoins, receiver 
 		k.Logger(ctx).Error(
 			fmt.Sprintf("Failed to convert vouchers to evm tokens for receiver %s, coins %s. Receive error %s",
 				receiver, vouchers.String(), err))
+		return
 	}
 	commit()
 	ctx.EventManager().EmitEvents(cacheCtx.EventManager().Events())
@@ -36,6 +37,7 @@ func (k Keeper) OnUnescrowNatives(ctx sdk.Context, natives sdk.SysCoins, receive
 		k.Logger(ctx).Error(
 			fmt.Sprintf("Failed to convert natives to evm tokens for receiver %s, coins %s. Receive error %s",
 				receiver, natives.String(), err))
+		return
 	}
 	commit()
 	ctx.EventManager().EmitEvents(cacheCtx.EventManager().Events())
@@ -266,6 +268,9 @@ func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.
 	}
 
 	executionResult, resultData, err, _, _ := st.TransitionDb(ctx, config)
+	if err != nil {
+		return nil, nil, err
+	}
 	st.Csdb.Commit(false) // write code to db
 
 	acc.SetSequence(nonce + 1)
