@@ -191,6 +191,7 @@ func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Lo
 		gasMeter:     stypes.NewInfiniteGasMeter(),
 		minGasPrice:  DecCoins{},
 		eventManager: NewEventManager(),
+		watcher:      EmptyWatcher{},
 	}
 }
 

@@ -50,7 +50,8 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	k.UpdatedAccount = k.UpdatedAccount[:0]
 	k.EvmStateDb = types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 	k.EvmStateDb.StartPrefetcher("evm")
-	k.Watcher.NewHeight(uint64(req.Header.GetHeight()), blockHash, req.Header)
+	//todo still need a global watcher to record some info
+	//	k.Watcher.NewHeight(uint64(req.Header.GetHeight()), blockHash, req.Header)
 }
 
 // EndBlock updates the accounts and commits state objects to the KV Store, while
@@ -77,40 +78,42 @@ func (k *Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Vali
 			} else {
 				interval := uint64(req.Height - tmtypes.GetStartBlockHeight())
 				if interval >= (indexer.GetValidSections()+1)*types.BloomBitsBlocks {
-					go types.GetIndexer().ProcessSection(ctx, k, interval, k.Watcher.GetBloomDataPoint())
+					//	go types.GetIndexer().ProcessSection(ctx, k, interval, k.Watcher.GetBloomDataPoint())
 				}
 			}
 		}
 	}
 
-	if watcher.IsWatcherEnabled() && k.Watcher.IsFirstUse() {
+	//todo fix
+	if watcher.IsWatcherEnabled() /*&& k.Watcher.IsFirstUse()*/ {
 		store := ctx.KVStore(k.storeKey)
 		iteratorBlockedList := sdk.KVStorePrefixIterator(store, types.KeyPrefixContractBlockedList)
 		defer iteratorBlockedList.Close()
 		for ; iteratorBlockedList.Valid(); iteratorBlockedList.Next() {
 			vaule := iteratorBlockedList.Value()
 			if len(vaule) == 0 {
-				k.Watcher.SaveContractBlockedListItem(iteratorBlockedList.Key()[1:])
+				//same as other abci , need a global watcher
+				//k.Watcher.SaveContractBlockedListItem(iteratorBlockedList.Key()[1:])
 			} else {
-				k.Watcher.SaveContractMethodBlockedListItem(iteratorBlockedList.Key()[1:], vaule)
+				//k.Watcher.SaveContractMethodBlockedListItem(iteratorBlockedList.Key()[1:], vaule)
 			}
 		}
 
 		iteratorDeploymentWhitelist := sdk.KVStorePrefixIterator(store, types.KeyPrefixContractDeploymentWhitelist)
 		defer iteratorDeploymentWhitelist.Close()
 		for ; iteratorDeploymentWhitelist.Valid(); iteratorDeploymentWhitelist.Next() {
-			k.Watcher.SaveContractDeploymentWhitelistItem(iteratorDeploymentWhitelist.Key()[1:])
+			//	k.Watcher.SaveContractDeploymentWhitelistItem(iteratorDeploymentWhitelist.Key()[1:])
 		}
 
-		k.Watcher.Used()
+		//k.Watcher.Used()
 	}
 
-	if watcher.IsWatcherEnabled() {
-		params := k.GetParams(ctx)
-		k.Watcher.SaveParams(params)
-
-		k.Watcher.SaveBlock(bloom)
-	}
+	//if watcher.IsWatcherEnabled() {
+	//	params := k.GetParams(ctx)
+	//	k.Watcher.SaveParams(params)
+	//
+	//	k.Watcher.SaveBlock(bloom)
+	//}
 
 	k.UpdateInnerBlockData()
 

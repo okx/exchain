@@ -49,7 +49,6 @@ type Keeper struct {
 	Bloom   *big.Int
 	Bhash   ethcmn.Hash
 	LogSize uint
-	Watcher *watcher.Watcher
 	Ada     types.DbAdapter
 
 	LogsManages *LogsManager
@@ -113,7 +112,6 @@ func NewKeeper(
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 		LogSize:       0,
-		Watcher:       watcher.NewWatcher(logger),
 		Ada:           types.DefaultPrefixDb{},
 
 		innerBlockData: defaultBlockInnerData(),
@@ -124,7 +122,6 @@ func NewKeeper(
 		cci:            &chainConfigInfo{},
 		LogsManages:    NewLogManager(),
 	}
-	k.Watcher.SetWatchDataFunc()
 	ak.SetObserverKeeper(k)
 
 	k.OpenTrie()
@@ -148,7 +145,6 @@ func NewSimulateKeeper(
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 		LogSize:       0,
-		Watcher:       watcher.NewWatcher(nil),
 		Ada:           ada,
 
 		db:             mpt.InstanceOfMptStore(),
@@ -165,8 +161,9 @@ func NewSimulateKeeper(
 
 // Warning, you need to use pointer object here, for you need to update UpdatedAccount var
 func (k *Keeper) OnAccountUpdated(acc auth.Account, updateState bool) {
-	account := acc.GetAddress()
-	k.Watcher.DeleteAccount(account)
+	//	account := acc.GetAddress()
+	//todo: need resolve
+	//	k.Watcher.DeleteAccount(account)
 
 	k.UpdatedAccount = append(k.UpdatedAccount, ethcmn.BytesToAddress(acc.GetAddress().Bytes()))
 }
@@ -179,13 +176,11 @@ func (k *Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 		AccountKeeper: k.accountKeeper,
 		SupplyKeeper:  k.supplyKeeper,
 		BankKeeper:    k.bankKeeper,
-		Watcher:       k.Watcher,
 		Ada:           k.Ada,
 		Cdc:           k.cdc,
-
-		DB:       k.db,
-		Trie:     k.rootTrie,
-		RootHash: k.rootHash,
+		DB:            k.db,
+		Trie:          k.rootTrie,
+		RootHash:      k.rootHash,
 	}
 }
 
@@ -194,7 +189,6 @@ func (k Keeper) GeneratePureCSDBParams() types.CommitStateDBParams {
 	return types.CommitStateDBParams{
 		StoreKey:   k.storeKey,
 		ParamSpace: k.paramSpace,
-		Watcher:    k.Watcher,
 		Ada:        k.Ada,
 		Cdc:        k.cdc,
 
@@ -440,7 +434,7 @@ func (k *Keeper) IsContractInBlockedList(ctx sdk.Context, addr sdk.AccAddress) b
 }
 
 func (k *Keeper) SetObserverKeeper(infuraKeeper watcher.InfuraKeeper) {
-	k.Watcher.InfuraKeeper = infuraKeeper
+	// k.Watcher.InfuraKeeper = infuraKeeper todo??
 }
 
 // SetHooks sets the hooks for the EVM module

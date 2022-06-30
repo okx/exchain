@@ -9,6 +9,7 @@ import (
 	"github.com/okex/exchain/x/evm/txs"
 	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/watcher"
 )
 
 // NewHandler returns a handler for Ethermint type messages.
@@ -23,6 +24,7 @@ func NewHandler(k *Keeper) sdk.Handler {
 
 		evmtx, ok := msg.(*types.MsgEthereumTx)
 		if ok {
+			ctx.SetWatcher(watcher.NewWatcherTx(k.Logger(ctx)))
 			result, err = handleMsgEthereumTx(ctx, k, evmtx)
 			if err != nil {
 				err = sdkerrors.New(types.ModuleName, types.CodeSpaceEvmCallFailed, err.Error())

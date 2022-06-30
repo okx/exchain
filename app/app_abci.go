@@ -14,7 +14,8 @@ import (
 // BeginBlock implements the Application interface
 func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 	trace.OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
-	app.EvmKeeper.Watcher.DelayEraseKey()
+	//todo earsedelete key also needed
+	//	app.EvmKeeper.Watcher.DelayEraseKey()
 	return app.BaseApp.BeginBlock(req)
 }
 
@@ -42,7 +43,8 @@ func (app *OKExChainApp) PreDeliverRealTx(req []byte) (res abci.TxEssentials) {
 func (app *OKExChainApp) DeliverRealTx(req abci.TxEssentials) (res abci.ResponseDeliverTx) {
 	trace.OnAppDeliverTxEnter()
 	resp := app.BaseApp.DeliverRealTx(req)
-	app.EvmKeeper.Watcher.RecordTxAndFailedReceipt(req, &resp, app.GetTxDecoder())
+	//todo need record tx result here by using global watcher
+	//	app.EvmKeeper.Watcher.RecordTxAndFailedReceipt(req, &resp, app.GetTxDecoder())
 
 	var err error
 	if appconfig.GetOecConfig().GetEnableDynamicGp() {
@@ -93,7 +95,8 @@ func (app *OKExChainApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// 1. this round commit a valid block
 	// 2. before commit the block,State#updateToState hasent not called yet,so the proposalBlockPart is not nil which means we wont
 	// 	  call the prerun during commit step(edge case)
-	app.EvmKeeper.Watcher.Commit()
+	//disable this commit and move it into cosmos-sdk
+	//app.EvmKeeper.Watcher.Commit()
 
 	return res
 }

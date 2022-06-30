@@ -140,12 +140,20 @@ func (w *WatcherTx) SaveContractCodeByHash(hash []byte, code []byte) {
 	}
 }
 
-func (w *WatcherTx) SaveTransactionReceipt(status uint32, msg *evmtypes.MsgEthereumTx, txHash common.Hash, txIndex uint64, data *evmtypes.ResultData, gasUsed uint64) {
+func (w *WatcherTx) SaveTransactionReceipt(status uint32, msg interface{}, txHash common.Hash, txIndex uint64, data interface{}, gasUsed uint64) {
 	if !w.Enabled() {
 		return
 	}
+	realMsg, ok := msg.(*evmtypes.MsgEthereumTx)
+	if !ok {
+		return
+	}
+	realData, ok := data.(*evmtypes.ResultData)
+	if !ok {
+		return
+	}
 	w.UpdateCumulativeGas(txIndex, gasUsed)
-	tr := newTransactionReceipt(status, msg, txHash, w.blockHash, txIndex, w.height, data, w.cumulativeGas[txIndex], gasUsed)
+	tr := newTransactionReceipt(status, realMsg, txHash, w.blockHash, txIndex, w.height, realData, w.cumulativeGas[txIndex], gasUsed)
 
 	wMsg := NewMsgTransactionReceipt(tr, txHash)
 	if wMsg != nil {
@@ -165,11 +173,15 @@ func (w *WatcherTx) UpdateCumulativeGas(txIndex, gasUsed uint64) {
 	w.gasUsed += gasUsed
 }
 
-func (w *WatcherTx) SaveAccount(account auth.Account, isDirectly bool) {
+func (w *WatcherTx) SaveAccount(account interface{}, isDirectly bool) {
 	if !w.Enabled() {
 		return
 	}
-	wMsg := NewMsgAccount(account)
+	acc, ok := account.(auth.Account)
+	if !ok {
+		return
+	}
+	wMsg := NewMsgAccount(acc)
 	if wMsg != nil {
 		if isDirectly {
 			w.batch = append(w.batch, wMsg)
@@ -180,11 +192,15 @@ func (w *WatcherTx) SaveAccount(account auth.Account, isDirectly bool) {
 	}
 }
 
-func (w *WatcherTx) AddDelAccMsg(account auth.Account, isDirectly bool) {
+func (w *WatcherTx) AddDelAccMsg(account interface{}, isDirectly bool) {
 	if !w.Enabled() {
 		return
 	}
-	wMsg := NewDelAccMsg(account)
+	acc, ok := account.(auth.Account)
+	if !ok {
+		return
+	}
+	wMsg := NewDelAccMsg(acc)
 	if wMsg != nil {
 		if isDirectly {
 			w.batch = append(w.batch, wMsg)
@@ -194,11 +210,15 @@ func (w *WatcherTx) AddDelAccMsg(account auth.Account, isDirectly bool) {
 	}
 }
 
-func (w *WatcherTx) DeleteAccount(addr sdk.AccAddress) {
+func (w *WatcherTx) DeleteAccount(addr interface{}) {
 	if !w.Enabled() {
 		return
 	}
-	key1 := GetMsgAccountKey(addr.Bytes())
+	realAddr, ok := addr.(sdk.AccAddress)
+	if !ok {
+		return
+	}
+	key1 := GetMsgAccountKey(realAddr.Bytes())
 	key2 := append(prefixRpcDb, key1...)
 	w.delayEraseKey = append(w.delayEraseKey, key1)
 	w.delayEraseKey = append(w.delayEraseKey, key2)
@@ -265,51 +285,71 @@ func (w *WatcherTx) SaveLatestHeight(height uint64) {
 	}
 }
 
-func (w *WatcherTx) SaveParams(params evmtypes.Params) {
+func (w *WatcherTx) SaveParams(params interface{}) {
 	if !w.Enabled() {
 		return
 	}
-	wMsg := NewMsgParams(params)
+	realParam, ok := params.(evmtypes.Params)
+	if !ok {
+		return
+	}
+	wMsg := NewMsgParams(realParam)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}
 }
 
-func (w *WatcherTx) SaveContractBlockedListItem(addr sdk.AccAddress) {
+func (w *WatcherTx) SaveContractBlockedListItem(addr interface{}) {
 	if !w.Enabled() {
 		return
 	}
-	wMsg := NewMsgContractBlockedListItem(addr)
+	realAddr, ok := addr.(sdk.AccAddress)
+	if !ok {
+		return
+	}
+	wMsg := NewMsgContractBlockedListItem(realAddr)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}
 }
 
-func (w *WatcherTx) SaveContractMethodBlockedListItem(addr sdk.AccAddress, methods []byte) {
+func (w *WatcherTx) SaveContractMethodBlockedListItem(addr interface{}, methods []byte) {
 	if !w.Enabled() {
 		return
 	}
-	wMsg := NewMsgContractMethodBlockedListItem(addr, methods)
+	realAddr, ok := addr.(sdk.AccAddress)
+	if !ok {
+		return
+	}
+	wMsg := NewMsgContractMethodBlockedListItem(realAddr, methods)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}
 }
 
-func (w *WatcherTx) SaveContractDeploymentWhitelistItem(addr sdk.AccAddress) {
+func (w *WatcherTx) SaveContractDeploymentWhitelistItem(addr interface{}) {
 	if !w.Enabled() {
 		return
 	}
-	wMsg := NewMsgContractDeploymentWhitelistItem(addr)
+	realAddr, ok := addr.(sdk.AccAddress)
+	if !ok {
+		return
+	}
+	wMsg := NewMsgContractDeploymentWhitelistItem(realAddr)
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}
 }
 
-func (w *WatcherTx) DeleteContractBlockedList(addr sdk.AccAddress) {
+func (w *WatcherTx) DeleteContractBlockedList(addr interface{}) {
 	if !w.Enabled() {
 		return
 	}
-	wMsg := NewMsgContractBlockedListItem(addr)
+	realAddr, ok := addr.(sdk.AccAddress)
+	if !ok {
+		return
+	}
+	wMsg := NewMsgContractBlockedListItem(realAddr)
 	if wMsg != nil {
 		key := wMsg.GetKey()
 		w.store.Delete(key)
@@ -317,11 +357,15 @@ func (w *WatcherTx) DeleteContractBlockedList(addr sdk.AccAddress) {
 	}
 }
 
-func (w *WatcherTx) DeleteContractDeploymentWhitelist(addr sdk.AccAddress) {
+func (w *WatcherTx) DeleteContractDeploymentWhitelist(addr interface{}) {
 	if !w.Enabled() {
 		return
 	}
-	wMsg := NewMsgContractDeploymentWhitelistItem(addr)
+	realAddr, ok := addr.(sdk.AccAddress)
+	if !ok {
+		return
+	}
+	wMsg := NewMsgContractDeploymentWhitelistItem(realAddr)
 	if wMsg != nil {
 		key := wMsg.GetKey()
 		w.store.Delete(key)
@@ -387,7 +431,11 @@ func (w *WatcherTx) Commit() {
 	})
 }
 
-func (w *WatcherTx) CommitWatchData(data WatchData) {
+func (w *WatcherTx) CommitWatchData(d interface{}) {
+	data, ok := d.(WatchData)
+	if !ok {
+		return
+	}
 	if data.Size() == 0 {
 		return
 	}

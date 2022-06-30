@@ -50,16 +50,16 @@ func (tx *Tx) GetSenderAccount() authexported.Account {
 }
 
 func (tx *Tx) ResetWatcher(account authexported.Account) {
-	tx.Keeper.Watcher.Reset()
+	tx.Ctx.GetWatcher().Reset()
 	// delete account which is already in Watcher.batch
 	if account != nil {
-		tx.Keeper.Watcher.AddDelAccMsg(account, true)
+		tx.Ctx.GetWatcher().AddDelAccMsg(account, true)
 	}
 }
 
 func (tx *Tx) RefundFeesWatcher(account authexported.Account, ethereumTx *types.MsgEthereumTx) {
 	// fix account balance in watcher with refund fees
-	if account == nil || !tx.Keeper.Watcher.Enabled() {
+	if account == nil || !tx.Ctx.GetWatcher().Enabled() {
 		return
 	}
 	defer func() {
@@ -105,13 +105,13 @@ func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *base.Result) {
 		tx.Ctx.ParaMsg().LogIndex = index
 	}
 	tx.Keeper.LogSize = tx.StateTransition.Csdb.GetLogSize()
-	tx.Keeper.Watcher.SaveTransactionReceipt(watcher.TransactionSuccess,
+	tx.Ctx.GetWatcher().SaveTransactionReceipt(watcher.TransactionSuccess,
 		msg, *tx.StateTransition.TxHash,
-		tx.Keeper.Watcher.GetEvmTxIndex(), result.ResultData, tx.Ctx.GasMeter().GasConsumed())
+		tx.Ctx.GetWatcher().GetEvmTxIndex(), result.ResultData, tx.Ctx.GasMeter().GasConsumed())
 	if msg.Data.Recipient == nil {
 		tx.StateTransition.Csdb.IteratorCode(func(addr common.Address, c types.CacheCode) bool {
-			tx.Keeper.Watcher.SaveContractCode(addr, c.Code)
-			tx.Keeper.Watcher.SaveContractCodeByHash(c.CodeHash, c.Code)
+			tx.Ctx.GetWatcher().SaveContractCode(addr, c.Code)
+			tx.Ctx.GetWatcher().SaveContractCodeByHash(c.CodeHash, c.Code)
 			return true
 		})
 	}
@@ -122,5 +122,5 @@ func (tx *Tx) FinalizeWatcher(account authexported.Account, err error) {
 		tx.ResetWatcher(account)
 		return
 	}
-	tx.Keeper.Watcher.Finalize()
+	tx.Ctx.GetWatcher().Finalize()
 }

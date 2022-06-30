@@ -6,6 +6,12 @@ import (
 	"fmt"
 	"time"
 
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+
+	tmtypes "github.com/okex/exchain/libs/tendermint/abci/types"
+
+	"github.com/ethereum/go-ethereum/common"
+
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
@@ -103,4 +109,69 @@ type ParaMsg struct {
 }
 
 type IWatcher interface {
+	SetFirstUse(v bool)
+	Used()
+	Enabled() bool
+	GetEvmTxIndex() uint64
+	NewHeight(height uint64, blockHash common.Hash, header tmtypes.Header)
+	SaveContractCode(addr common.Address, code []byte)
+	SaveContractCodeByHash(hash []byte, code []byte)
+	SaveTransactionReceipt(status uint32, msg interface{}, txHash common.Hash, txIndex uint64, data interface{}, gasUsed uint64)
+	UpdateCumulativeGas(txIndex, gasUsed uint64)
+	SaveAccount(account interface{}, isDirectly bool)
+	AddDelAccMsg(account interface{}, isDirectly bool)
+	DeleteAccount(addr interface{})
+	DelayEraseKey()
+	ExecuteDelayEraseKey(delayEraseKey [][]byte)
+	SaveState(addr common.Address, key, value []byte)
+	SaveBlock(bloom ethtypes.Bloom)
+	SaveLatestHeight(height uint64)
+	SaveParams(params interface{})
+	SaveContractBlockedListItem(addr interface{})
+	SaveContractMethodBlockedListItem(addr interface{}, methods []byte)
+	SaveContractDeploymentWhitelistItem(addr interface{})
+	DeleteContractBlockedList(addr interface{})
+	DeleteContractDeploymentWhitelist(addr interface{})
+	Finalize()
+	CommitCodeHashToDb(hash []byte, code []byte)
+	Reset()
+	Commit()
+	CommitWatchData(data interface{})
 }
+
+type EmptyWatcher struct {
+}
+
+func (e EmptyWatcher) SetFirstUse(v bool) {}
+func (e EmptyWatcher) Used()              {}
+func (e EmptyWatcher) Enabled() bool {
+	return false
+}
+func (e EmptyWatcher) GetEvmTxIndex() uint64 {
+	return 0
+}
+func (e EmptyWatcher) NewHeight(height uint64, blockHash common.Hash, header tmtypes.Header) {}
+func (e EmptyWatcher) SaveContractCode(addr common.Address, code []byte)                     {}
+func (e EmptyWatcher) SaveContractCodeByHash(hash []byte, code []byte)                       {}
+func (e EmptyWatcher) SaveTransactionReceipt(status uint32, msg interface{}, txHash common.Hash, txIndex uint64, data interface{}, gasUsed uint64) {
+}
+func (e EmptyWatcher) UpdateCumulativeGas(txIndex, gasUsed uint64)                        {}
+func (e EmptyWatcher) SaveAccount(account interface{}, isDirectly bool)                   {}
+func (e EmptyWatcher) AddDelAccMsg(account interface{}, isDirectly bool)                  {}
+func (e EmptyWatcher) DeleteAccount(addr interface{})                                     {}
+func (e EmptyWatcher) DelayEraseKey()                                                     {}
+func (e EmptyWatcher) ExecuteDelayEraseKey(delayEraseKey [][]byte)                        {}
+func (e EmptyWatcher) SaveState(addr common.Address, key, value []byte)                   {}
+func (e EmptyWatcher) SaveBlock(bloom ethtypes.Bloom)                                     {}
+func (e EmptyWatcher) SaveLatestHeight(height uint64)                                     {}
+func (e EmptyWatcher) SaveParams(params interface{})                                      {}
+func (e EmptyWatcher) SaveContractBlockedListItem(addr interface{})                       {}
+func (e EmptyWatcher) SaveContractMethodBlockedListItem(addr interface{}, methods []byte) {}
+func (e EmptyWatcher) SaveContractDeploymentWhitelistItem(addr interface{})               {}
+func (e EmptyWatcher) DeleteContractBlockedList(addr interface{})                         {}
+func (e EmptyWatcher) DeleteContractDeploymentWhitelist(addr interface{})                 {}
+func (e EmptyWatcher) Finalize()                                                          {}
+func (e EmptyWatcher) CommitCodeHashToDb(hash []byte, code []byte)                        {}
+func (e EmptyWatcher) Reset()                                                             {}
+func (e EmptyWatcher) Commit()                                                            {}
+func (e EmptyWatcher) CommitWatchData(data interface{})                                   {}
