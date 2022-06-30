@@ -62,20 +62,25 @@ func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 	}
 
 	// call evm hooks
-	if tmtypes.HigherThanVenus1(tx.Ctx.BlockHeight()) && !tx.Ctx.IsCheckTx() {
-		receipt := &ethtypes.Receipt{
-			Status:           ethtypes.ReceiptStatusSuccessful,
-			Bloom:            result.ResultData.Bloom,
-			Logs:             result.ResultData.Logs,
-			TxHash:           result.ResultData.TxHash,
-			ContractAddress:  result.ResultData.ContractAddress,
-			GasUsed:          result.ExecResult.GasInfo.GasConsumed,
-			BlockNumber:      big.NewInt(tx.Ctx.BlockHeight()),
-			TransactionIndex: uint(tx.Keeper.TxCount),
-		}
-		err = tx.Keeper.CallEvmHooks(tx.Ctx, tx.StateTransition.Sender, tx.StateTransition.Recipient, receipt)
-		if err != nil {
-			tx.Keeper.Logger(tx.Ctx).Error("tx call evm hooks failed", "error", err)
+	if tmtypes.HigherThanVenus1(tx.Ctx.BlockHeight()) {
+		if tx.Ctx.IsCheckTx() {
+			// hook cosmos tx usually use 49943 gas,this give 50000 enough. cos after tx excuted will refund
+			tx.Ctx.GasMeter().ConsumeGas(50000, "ibc hook gas cost")
+		} else {
+			receipt := &ethtypes.Receipt{
+				Status:           ethtypes.ReceiptStatusSuccessful,
+				Bloom:            result.ResultData.Bloom,
+				Logs:             result.ResultData.Logs,
+				TxHash:           result.ResultData.TxHash,
+				ContractAddress:  result.ResultData.ContractAddress,
+				GasUsed:          result.ExecResult.GasInfo.GasConsumed,
+				BlockNumber:      big.NewInt(tx.Ctx.BlockHeight()),
+				TransactionIndex: uint(tx.Keeper.TxCount),
+			}
+			err = tx.Keeper.CallEvmHooks(tx.Ctx, tx.StateTransition.Sender, tx.StateTransition.Recipient, receipt)
+			if err != nil {
+				tx.Keeper.Logger(tx.Ctx).Error("tx call evm hooks failed", "error", err)
+			}
 		}
 	}
 
