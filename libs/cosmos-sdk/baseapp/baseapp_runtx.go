@@ -1,7 +1,6 @@
 package baseapp
 
 import (
-	"encoding/hex"
 	"fmt"
 	"runtime/debug"
 
@@ -352,7 +351,6 @@ func (app *BaseApp) DeliverRealTx(txes abci.TxEssentials) abci.ResponseDeliverTx
 	if !info.ctx.Cache().IsEnabled() {
 		app.blockCache = nil
 		app.chainCache = nil
-		app.logger.Info("clean-multi-cache", "txType", realTx.GetType().String(), "txHash", hex.EncodeToString(realTx.TxHash()))
 	}
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
