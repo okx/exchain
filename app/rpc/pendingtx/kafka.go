@@ -19,6 +19,7 @@ func NewKafkaClient(addrs []string, topic string) *KafkaClient {
 			Brokers:  addrs,
 			Topic:    topic,
 			Balancer: &kafka.LeastBytes{},
+			Async:    true,
 		}),
 	}
 }
