@@ -42,6 +42,8 @@ type OecConfig struct {
 	nodeKeyWhitelist []string
 	// p2p.sentry_addrs
 	sentryAddrs []string
+	// p2p.sentry_partner
+	sentryPartner string
 
 	// gas-limit-buffer
 	gasLimitBuffer uint64
@@ -71,8 +73,8 @@ type OecConfig struct {
 	// enable-wtx
 	enableWtx bool
 
-	// enable-stx
-	enableStx bool
+	// sentry-node
+	isSentryNode bool
 
 	// enable-batch-tx
 	enableBatchTx bool
@@ -108,7 +110,8 @@ const (
 	FlagEnableDynamicGp        = "enable-dynamic-gp"
 	FlagDynamicGpWeight        = "dynamic-gp-weight"
 	FlagEnableWrappedTx        = "enable-wtx"
-	FLagEnableSentryTx         = "enable-stx"
+	FLagSentryNode             = "sentry-node"
+	FlagSentryPartner          = "p2p.sentry_partner"
 	FlagSentryAddrs            = "p2p.sentry_addrs"
 	FlagEnableBatchTx          = "enable-batch-tx"
 
@@ -225,7 +228,8 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetCsTimeoutPrecommitDelta(viper.GetDuration(FlagCsTimeoutPrecommitDelta))
 	c.SetCsTimeoutCommit(viper.GetDuration(FlagCsTimeoutCommit))
 	c.SetIavlCacheSize(viper.GetInt(iavl.FlagIavlCacheSize))
-	c.SetEnableStx(viper.GetBool(FLagEnableSentryTx))
+	c.SetSentryNode(viper.GetBool(FLagSentryNode))
+	c.SetSentryPartner(viper.GetString(FlagSentryPartner))
 	c.SetSentryAddrs(viper.GetString(FlagSentryAddrs))
 	c.SetEnableBatchTx(viper.GetBool(FlagEnableBatchTx))
 	c.SetNodeKeyWhitelist(viper.GetString(FlagNodeKeyWhitelist))
@@ -347,12 +351,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetEnableBatchTx(r)
-	case FLagEnableSentryTx:
+	case FLagSentryNode:
 		r, ok := value.(bool)
 		if !ok {
 			return
 		}
-		c.SetEnableStx(r)
+		c.SetSentryNode(r)
 	case FlagSentryAddrs:
 		r, ok := value.(string)
 		if !ok {
@@ -565,12 +569,20 @@ func (c *OecConfig) SetEnableBatchTx(value bool) {
 	c.enableBatchTx = value
 }
 
-func (c *OecConfig) GetEnableStx() bool {
-	return c.enableStx
+func (c *OecConfig) IsSentryNode() bool {
+	return c.isSentryNode
 }
 
-func (c *OecConfig) SetEnableStx(value bool) {
-	c.enableStx = value
+func (c *OecConfig) SetSentryNode(value bool) {
+	c.isSentryNode = value
+}
+
+func (c *OecConfig) GetSentryPartner() string {
+	return c.sentryPartner
+}
+
+func (c *OecConfig) SetSentryPartner(value string) {
+	c.sentryPartner = value
 }
 
 func (c *OecConfig) GetSentryAddrs() []string {

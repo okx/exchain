@@ -696,8 +696,8 @@ func DefaultMempoolConfig() *MempoolConfig {
 		Size:                       10000,              // exchain memory pool size(max tx num)
 		MaxTxsBytes:                1024 * 1024 * 1024, // 1GB
 		CacheSize:                  10000,
-		MaxTxBytes:                 1024 * 1024,      // 1MB
-		MaxBatchBytes:              10 * 1024 * 1024, // 10MB
+		MaxTxBytes:                 1024 * 1024,     // 1MB
+		MaxBatchBytes:              2 * 1024 * 1024, // 2MB
 		MaxTxNumPerBlock:           300,
 		MaxGasUsedPerBlock:         -1,
 		SortTxByGp:                 true,

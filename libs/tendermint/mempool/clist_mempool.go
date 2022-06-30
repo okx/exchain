@@ -78,6 +78,12 @@ type CListMempool struct {
 	checkCnt     int64
 
 	txs ITransactionQueue
+
+	sentryMempool SentryMempool
+}
+
+type SentryMempool interface {
+	ReapTxs(maxBytes, maxGas, maxNum int64) []types.Tx
 }
 
 var _ Mempool = &CListMempool{}
@@ -127,6 +133,12 @@ func NewCListMempool(
 	}
 
 	return mempool
+}
+
+func (mem *CListMempool) SetSentryMempool(sm SentryMempool) {
+	if mem.sentryMempool == nil {
+		mem.sentryMempool = sm
+	}
 }
 
 // NOTE: not thread safe - should only be called once, on startup
@@ -628,6 +640,9 @@ func (mem *CListMempool) ReapEssentialTx(tx types.Tx) abci.TxEssentials {
 
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
+	if mem.sentryMempool != nil {
+		return mem.sentryMempool.ReapTxs(maxBytes, maxGas, cfg.DynamicConfig.GetMaxTxNumPerBlock())
+	}
 	mem.updateMtx.RLock()
 	defer mem.updateMtx.RUnlock()
 
@@ -731,6 +746,12 @@ func (mem *CListMempool) Update(
 	// Set height
 	atomic.StoreInt64(&mem.height, height)
 	mem.notifiedTxsAvailable = false
+	if mem.sentryMempool != nil {
+		for _, tx := range txs {
+			types.SignatureCache().Remove(tx.Hash(height))
+		}
+		return nil
+	}
 
 	if preCheck != nil {
 		mem.preCheck = preCheck
@@ -857,6 +878,48 @@ func (mem *CListMempool) recheckTxs() {
 	}
 
 	mem.proxyAppConn.FlushAsync()
+}
+
+const maxBatchTx = 100
+
+func (mem *CListMempool) getTxs(start *clist.CElement, peerID uint16) (batch []types.Tx, end *clist.CElement) {
+	var size, count int
+	end = start
+
+	for {
+		memTx := end.Value.(*mempoolTx)
+
+		if _, ok := memTx.senders.Load(peerID); !ok {
+			batch = append(batch, memTx.tx)
+			// If size of {current batch} is greater than MaxBatchBytes => return.
+			size += len(memTx.tx)
+			count++
+			if size >= mem.config.MaxBatchBytes || count >= maxBatchTx {
+				return batch, end
+			}
+		}
+
+		if end.Next() == nil {
+			return batch, end
+		}
+		end = end.Next()
+	}
+}
+
+func (mem *CListMempool) sentryTxs(start *clist.CElement) (batch []*SentryTx, end *clist.CElement) {
+	end = start
+
+	for {
+		memTx := end.Value.(*mempoolTx)
+		batch = append(batch, &SentryTx{
+			TxHash: memTx.realTx.TxHash(),
+			From:   memTx.from,
+		})
+		if len(batch) >= maxBatchTx || end.Next() == nil {
+			return batch, end
+		}
+		end = end.Next()
+	}
 }
 
 func (mem *CListMempool) GetConfig() *cfg.MempoolConfig {

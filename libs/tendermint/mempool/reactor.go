@@ -44,8 +44,9 @@ type Reactor struct {
 	nodeKey          *p2p.NodeKey
 	nodeKeyWhitelist map[string]struct{}
 	enableWtx        bool
-	enableStx        bool
 	enableBatchTx    bool
+	isSentryNode     bool
+	sentryPartner    string
 }
 
 func (memR *Reactor) SetNodeKey(key *p2p.NodeKey) {
@@ -123,15 +124,49 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 		ids:              newMempoolIDs(),
 		nodeKeyWhitelist: make(map[string]struct{}),
 		enableWtx:        cfg.DynamicConfig.GetEnableWtx(),
-		enableStx:        cfg.DynamicConfig.GetEnableStx(),
-		enableBatchTx:    cfg.DynamicConfig.GetEnableWtx(),
+		isSentryNode:     cfg.DynamicConfig.IsSentryNode(),
+		enableBatchTx:    cfg.DynamicConfig.GetEnableBatchTx(),
+		sentryPartner:    cfg.DynamicConfig.GetSentryPartner(),
 	}
+
+	if memR.sentryPartner != "" && !memR.isSentryNode {
+		mempool.SetSentryMempool(memR)
+	}
+
 	for _, nodeKey := range config.GetNodeKeyWhitelist() {
 		memR.nodeKeyWhitelist[nodeKey] = struct{}{}
 	}
 	memR.BaseReactor = *p2p.NewBaseReactor("Mempool", memR)
 	memR.press()
 	return memR
+}
+
+var (
+	sentryPartnerPeer p2p.Peer
+	responseChan      = make(chan types.Txs, 10)
+)
+
+func (memR *Reactor) ReapTxs(maxBytes, maxGas, maxNum int64) []types.Tx {
+	msg := &FetchMessage{
+		maxBytes: maxBytes,
+		maxGas:   maxGas,
+		maxNum:   maxNum,
+	}
+	msgBz := memR.encodeMsg(msg)
+	success := sentryPartnerPeer.Send(MempoolChannel, msgBz)
+	if !success {
+		memR.Logger.Error("fetch txs from sentry node failed", "peer id", sentryPartnerPeer.ID())
+		return nil
+	}
+
+	select {
+	case txs := <-responseChan:
+		return txs
+	case <-time.After(time.Second * 3):
+		memR.Logger.Error("wait for txs from sentry node timeout", "peer id", sentryPartnerPeer.ID())
+	}
+
+	return nil
 }
 
 // InitPeer implements Reactor by creating a state for the peer.
@@ -168,6 +203,9 @@ func (memR *Reactor) GetChannels() []*p2p.ChannelDescriptor {
 // AddPeer implements Reactor.
 // It starts a broadcast routine ensuring all txs are forwarded to the given peer.
 func (memR *Reactor) AddPeer(peer p2p.Peer) {
+	if string(peer.ID()) == memR.sentryPartner {
+		sentryPartnerPeer = peer
+	}
 	go memR.broadcastTxRoutine(peer)
 }
 
@@ -207,7 +245,19 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 
 	//TODO: simplify the code
 	switch msg := msg.(type) {
+	case *StxMessage:
+		if string(src.ID()) == memR.sentryPartner {
+			for _, stx := range msg.Stx {
+				types.SignatureCache().Add(stx.TxHash, stx.From)
+			}
+			memR.mempool.notifyTxsAvailable()
+		}
+		return
 	case *TxsMessage:
+		if string(src.ID()) == memR.sentryPartner {
+			responseChan <- msg.Txs
+			return
+		}
 		for _, tx := range msg.Txs {
 			err = memR.mempool.CheckTx(tx, nil, txInfo)
 			if err != nil {
@@ -295,18 +345,29 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 		}
 
 		if memR.enableBatchTx {
-			var txs []types.Tx
-			txs, next = memR.txs(next, peerID)
-			msg := TxsMessage{
-				Txs: txs,
-			}
-			msgBz := memR.encodeMsg(msg)
+			var msg Message
+			if memR.isSentryNode && string(peer.ID()) == memR.sentryPartner {
+				var sentryTxs []*SentryTx
+				sentryTxs, next = memR.mempool.sentryTxs(next)
+				msg = StxMessage{
+					Stx: sentryTxs,
+				}
 
+			} else {
+				var txs []types.Tx
+				txs, next = memR.mempool.getTxs(next, peerID)
+				msg = TxsMessage{
+					Txs: txs,
+				}
+			}
+
+			msgBz := memR.encodeMsg(msg)
 			success := peer.Send(MempoolChannel, msgBz)
 			if !success {
 				time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 				continue
 			}
+
 		} else {
 			// ensure peer hasn't already sent us this tx
 			if _, ok := memTx.senders.Load(peerID); !ok {
@@ -361,30 +422,6 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 	}
 }
 
-func (memR *Reactor) txs(next *clist.CElement, peerID uint16) ([]types.Tx, *clist.CElement) {
-	var batch []types.Tx
-	var size int
-
-	for {
-		memTx := next.Value.(*mempoolTx)
-
-		if _, ok := memTx.senders.Load(peerID); !ok {
-			// If size of {current batch + this tx} is greater than MaxBatchBytes => return.
-			size += len(memTx.tx)
-			if size > memR.config.MaxBatchBytes {
-				return batch, next
-			}
-
-			batch = append(batch, memTx.tx)
-		}
-
-		if next.Next() == nil {
-			return batch, next
-		}
-		next = next.Next()
-	}
-}
-
 //-----------------------------------------------------------------------------
 // Messages
 
@@ -397,6 +434,7 @@ func RegisterMessages(cdc *amino.Codec) {
 	cdc.RegisterConcrete(&WtxMessage{}, "tendermint/mempool/WtxMessage", nil)
 	cdc.RegisterConcrete(&StxMessage{}, "tendermint/mempool/StxMessage", nil)
 	cdc.RegisterConcrete(&TxsMessage{}, "tendermint/mempool/TxsMessage", nil)
+	cdc.RegisterConcrete(&FetchMessage{}, "tendermint/mempool/FetchMessage", nil)
 
 	cdc.RegisterConcreteMarshaller("tendermint/mempool/TxMessage", func(codec *amino.Codec, i interface{}) ([]byte, error) {
 		txmp, ok := i.(*TxMessage)
@@ -542,6 +580,13 @@ func calcMaxMsgSize(maxTxSize int) int {
 	return maxTxSize + aminoOverheadForTxMessage
 }
 
+// FetchMessage is a Message of info to fetch txs from sentry mempool.
+type FetchMessage struct {
+	maxBytes int64
+	maxGas   int64
+	maxNum   int64
+}
+
 // TxsMessage is a Message containing transactions.
 type TxsMessage struct {
 	Txs []types.Tx
@@ -554,7 +599,7 @@ func (m *TxsMessage) String() string {
 
 // StxMessage is a Message containing a Stx.
 type StxMessage struct {
-	Stx *[]SentryTx
+	Stx []*SentryTx
 }
 
 // String returns a string representation of the StxMessage.

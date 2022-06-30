@@ -19,7 +19,8 @@ type IDynamicConfig interface {
 	GetEnableWtx() bool
 	GetNodeKeyWhitelist() []string
 	GetEnableBatchTx() bool
-	GetEnableStx() bool
+	IsSentryNode() bool
+	GetSentryPartner() string
 	GetSentryAddrs() []string
 	GetDeliverTxsExecuteMode() int
 	GetEnableHasBlockPartMsg() bool
@@ -66,8 +67,12 @@ func (d MockDynamicConfig) GetEnableBatchTx() bool {
 	return false
 }
 
-func (d MockDynamicConfig) GetEnableStx() bool {
+func (d MockDynamicConfig) IsSentryNode() bool {
 	return false
+}
+
+func (d MockDynamicConfig) GetSentryPartner() string {
+	return ""
 }
 
 func (d MockDynamicConfig) GetSentryAddrs() []string {
