@@ -983,9 +983,7 @@ func (api *PublicEthereumAPI) doCall(
 	sim := api.evmFactory.BuildSimulator(api)
 	//only worked when fast-query has been enabled
 	if sim != nil {
-		r, err := sim.DoCall(msg, addr.String(), overridesBytes, api.evmFactory.PutBackStorePool)
-		r.GasUsed = addEvmHookGasEstimateSimple(r.GasUsed)
-		return r, err
+		return sim.DoCall(msg, addr.String(), overridesBytes, api.evmFactory.PutBackStorePool)
 	}
 
 	//Generate tx to be used to simulate (signature isn't needed)
@@ -1033,14 +1031,8 @@ func (api *PublicEthereumAPI) doCall(
 	if err := clientCtx.Codec.UnmarshalBinaryBare(res, &simResponse); err != nil {
 		return nil, err
 	}
-	simResponse.GasUsed = addEvmHookGasEstimateSimple(simResponse.GasUsed)
 
 	return &simResponse, nil
-}
-
-// Uniform add 50000 for cosmos hook gas use which after evm
-func addEvmHookGasEstimateSimple(cost uint64) uint64 {
-	return cost + EvmHookGasEstimate
 }
 
 // EstimateGas returns an estimate of gas usage for the given smart contract call.
@@ -1059,7 +1051,9 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 	}
 	maxGasLimitPerTx := params.MaxGasLimitPerTx
 
-	estimatedGas := simResponse.GasInfo.GasUsed
+	//evm tx with cosmos hook,we cannot estimate hook gas
+	//simple add EvmHookGasEstimate,run tx will refund the extra gas
+	estimatedGas := simResponse.GasInfo.GasUsed + EvmHookGasEstimate
 	if estimatedGas > maxGasLimitPerTx {
 		errMsg := fmt.Sprintf("estimate gas %v greater than system max gas limit per tx %v", estimatedGas, maxGasLimitPerTx)
 		return 0, TransformDataError(sdk.ErrOutOfGas(errMsg), "eth_estimateGas")
