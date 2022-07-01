@@ -70,6 +70,7 @@ const (
 	flagHex       = "hex"
 	flagPrefix    = "prefix"
 	flagKey       = "key"
+	flagNodeHash  = "nodehash"
 	flagKeyPrefix = "keyprefix"
 )
 
@@ -117,6 +118,7 @@ func iaviewerCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 
 	cmd.AddCommand(
 		iaviewerReadCmd(iavlCtx),
+		iaviewerReadNodeCmd(iavlCtx),
 		iaviewerStatusCmd(iavlCtx),
 		iaviewerDiffCmd(iavlCtx),
 		iaviewerVersionsCmd(iavlCtx),
@@ -204,6 +206,23 @@ func iaviewerReadCmd(ctx *iaviewerContext) *cobra.Command {
 	cmd.PersistentFlags().String(flagKey, "", "print only the value for this key, key must be in hex format.\n"+
 		"if specified, keyprefix, start and limit flags would be ignored")
 	cmd.PersistentFlags().String(flagKeyPrefix, "", "print values for keys with specified prefix, prefix must be in hex format.")
+	return cmd
+}
+
+func iaviewerReadNodeCmd(ctx *iaviewerContext) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "read-node <data_dir> <module> [version]",
+		Short: "Read iavl tree node from db",
+		Long:  "Read iavl tree node from db, you must specify data_dir and module, if version is 0 or not specified, read data from the latest version.\n",
+		PreRunE: func(cmd *cobra.Command, args []string) (err error) {
+			iaviewerCmdParseFlags(ctx)
+			return iaviewerCmdParseArgs(ctx, args)
+		},
+		RunE: func(cmd *cobra.Command, args []string) (err error) {
+			return iaviewerReadNodeData(ctx)
+		},
+	}
+	cmd.PersistentFlags().String(flagNodeHash, "", "print only the value for this hash, key must be in hex format.")
 	return cmd
 }
 
@@ -375,6 +394,42 @@ func iaviewerReadData(ctx *iaviewerContext) error {
 	}
 
 	printTree(ctx, tree)
+	return nil
+}
+
+func iaviewerReadNodeData(ctx *iaviewerContext) error {
+	db, err := OpenDB(ctx.DataDir, ctx.DbBackend)
+	if err != nil {
+		return fmt.Errorf("error opening DB: %w", err)
+	}
+	defer db.Close()
+
+	tree, err := ReadTree(db, ctx.Version, []byte(ctx.Prefix), DefaultCacheSize)
+	if err != nil {
+		return fmt.Errorf("error reading data: %w", err)
+	}
+	fmt.Printf("module: %s, prefix key: %s\n\n", ctx.Module, ctx.Prefix)
+
+	var nodeHash []byte
+	if key := viper.GetString(flagNodeHash); key != "" {
+		nodeHash, err = hex.DecodeString(key)
+		if err != nil {
+			return fmt.Errorf("error decoding key: %w", err)
+		}
+		if len(nodeHash) != 32 {
+			return fmt.Errorf("invalid node hash: %s", key)
+		}
+
+	} else {
+		nodeHash = tree.Hash()
+	}
+
+	node := tree.Debug(nodeHash)
+	if node == nil {
+		return fmt.Errorf("node not found: %s", nodeHash)
+	}
+	fmt.Println(node.String())
+
 	return nil
 }
 

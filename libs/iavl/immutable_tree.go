@@ -239,3 +239,10 @@ func (t *ImmutableTree) SetUpgradeVersion(version int64) {
 func (t *ImmutableTree) GetUpgradeVersion() int64 {
 	return t.upgradeVersion
 }
+
+func (t *ImmutableTree) Debug(nodeHash []byte) *Node {
+	if string(t.Hash()) == string(nodeHash) {
+		return t.root
+	}
+	return t.ndb.GetNode(nodeHash)
+}
