@@ -850,7 +850,6 @@ func (api *PublicEthereumAPI) addCallCache(key common.Hash, data []byte) {
 func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNrOrHash rpctypes.BlockNumberOrHash, overrides *evmtypes.StateOverrides) (hexutil.Bytes, error) {
 	monitor := monitor.GetMonitor("eth_call", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("args", args, "block number", blockNrOrHash)
-
 	if overrides != nil {
 		if err := overrides.Check(); err != nil {
 			return nil, err
@@ -868,6 +867,7 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNrOrHash rpctype
 	if err != nil {
 		return nil, err
 	}
+	api.logger.Info("eth_call", "height", blockNr.Int64())
 	simRes, err := api.doCall(args, blockNr, big.NewInt(ethermint.DefaultRPCGasLimit), false, overrides)
 	if err != nil {
 		return []byte{}, TransformDataError(err, "eth_call")
