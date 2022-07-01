@@ -98,6 +98,7 @@ func NewCListMempool(
 	var txQueue ITransactionQueue
 	if config.SortTxByGp {
 		txQueue = NewOptimizedTxQueue(int64(config.TxPriceBump))
+		fmt.Printf("debug txQueue: type: %T, value: %+v \n", txQueue, txQueue)
 	} else {
 		txQueue = NewBaseTxQueue()
 	}

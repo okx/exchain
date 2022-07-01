@@ -248,6 +248,7 @@ func (c *OecConfig) loadFromApollo() bool {
 
 func (c *OecConfig) format() string {
 	return fmt.Sprintf(`%s config:
+	sentry_addrs: %v
 	mempool.recheck: %v
 	mempool.force_recheck_gap: %d
 	mempool.size: %d
@@ -270,6 +271,7 @@ func (c *OecConfig) format() string {
 	iavl-cache-size: %d
 	enable-analyzer: %v
 	active-view-change: %v`, system.ChainName,
+		c.GetSentryAddrs(),
 		c.GetMempoolRecheck(),
 		c.GetMempoolForceRecheckGap(),
 		c.GetMempoolSize(),
