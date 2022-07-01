@@ -1051,15 +1051,15 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 	}
 	maxGasLimitPerTx := params.MaxGasLimitPerTx
 
-	//evm tx with cosmos hook,we cannot estimate hook gas
-	//simple add EvmHookGasEstimate,run tx will refund the extra gas
-	estimatedGas := simResponse.GasInfo.GasUsed + EvmHookGasEstimate
+	estimatedGas := simResponse.GasInfo.GasUsed
 	if estimatedGas > maxGasLimitPerTx {
 		errMsg := fmt.Sprintf("estimate gas %v greater than system max gas limit per tx %v", estimatedGas, maxGasLimitPerTx)
 		return 0, TransformDataError(sdk.ErrOutOfGas(errMsg), "eth_estimateGas")
 	}
 	gasBuffer := estimatedGas / 100 * config.GetOecConfig().GetGasLimitBuffer()
-	gas := estimatedGas + gasBuffer
+	//EvmHookGasEstimate: evm tx with cosmos hook,we cannot estimate hook gas
+	//simple add EvmHookGasEstimate,run tx will refund the extra gas
+	gas := estimatedGas + gasBuffer + EvmHookGasEstimate
 	if gas > maxGasLimitPerTx {
 		gas = maxGasLimitPerTx
 	}
