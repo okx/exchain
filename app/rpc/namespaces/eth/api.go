@@ -62,6 +62,8 @@ const (
 
 	FlagEnableMultiCall    = "rpc.enable-multi-call"
 	FlagFastQueryThreshold = "fast-query-threshold"
+
+	EvmHookGasEstimate = uint64(50000)
 )
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -1055,7 +1057,9 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 		return 0, TransformDataError(sdk.ErrOutOfGas(errMsg), "eth_estimateGas")
 	}
 	gasBuffer := estimatedGas / 100 * config.GetOecConfig().GetGasLimitBuffer()
-	gas := estimatedGas + gasBuffer
+	//EvmHookGasEstimate: evm tx with cosmos hook,we cannot estimate hook gas
+	//simple add EvmHookGasEstimate,run tx will refund the extra gas
+	gas := estimatedGas + gasBuffer + EvmHookGasEstimate
 	if gas > maxGasLimitPerTx {
 		gas = maxGasLimitPerTx
 	}
