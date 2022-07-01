@@ -28,11 +28,10 @@ type Watcher struct {
 	blockHash     common.Hash
 	header        types.Header
 	batch         []WatchMessage
-	staleBatch    []WatchMessage
 	cumulativeGas map[uint64]uint64
 	gasUsed       uint64
 	blockTxs      []common.Hash
-	sw            bool
+	enable        bool
 	firstUse      bool
 	delayEraseKey [][]byte
 	log           log.Logger
@@ -69,7 +68,7 @@ func GetWatchLruSize() int {
 func NewWatcher(logger log.Logger) *Watcher {
 	return &Watcher{store: InstanceOfWatchStore(),
 		cumulativeGas: make(map[uint64]uint64),
-		sw:            IsWatcherEnabled(),
+		enable:        IsWatcherEnabled(),
 		firstUse:      true,
 		delayEraseKey: make([][]byte, 0),
 		watchData:     &WatchData{},
@@ -92,11 +91,11 @@ func (w *Watcher) Used() {
 }
 
 func (w *Watcher) Enabled() bool {
-	return w.sw || w.InfuraKeeper != nil
+	return w.enable || w.InfuraKeeper != nil
 }
 
-func (w *Watcher) Enable(sw bool) {
-	w.sw = sw
+func (w *Watcher) Enable(enable bool) {
+	w.enable = enable
 }
 
 func (w *Watcher) GetEvmTxIndex() uint64 {
@@ -122,29 +121,6 @@ func (w *Watcher) clean() {
 	}
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
-}
-
-func (w *Watcher) SaveContractCode(addr common.Address, code []byte) {
-	if !w.Enabled() {
-		return
-	}
-	if w.InfuraKeeper != nil {
-		w.InfuraKeeper.OnSaveContractCode(addr.String(), code)
-	}
-	wMsg := NewMsgCode(addr, code, w.height)
-	if wMsg != nil {
-		w.staleBatch = append(w.staleBatch, wMsg)
-	}
-}
-
-func (w *Watcher) SaveContractCodeByHash(hash []byte, code []byte) {
-	if !w.Enabled() {
-		return
-	}
-	wMsg := NewMsgCodeByHash(hash, code)
-	if wMsg != nil {
-		w.staleBatch = append(w.staleBatch, wMsg)
-	}
 }
 
 func (w *Watcher) SaveTransactionReceipt(status uint32, msg *evmtypes.MsgEthereumTx, txHash common.Hash, txIndex uint64, data *evmtypes.ResultData, gasUsed uint64) {
@@ -174,32 +150,13 @@ func (w *Watcher) UpdateCumulativeGas(txIndex, gasUsed uint64) {
 	w.gasUsed += gasUsed
 }
 
-func (w *Watcher) SaveAccount(account auth.Account, isDirectly bool) {
+func (w *Watcher) SaveAccount(account auth.Account) {
 	if !w.Enabled() {
 		return
 	}
 	wMsg := NewMsgAccount(account)
 	if wMsg != nil {
-		if isDirectly {
-			w.batch = append(w.batch, wMsg)
-		} else {
-			w.staleBatch = append(w.staleBatch, wMsg)
-		}
-
-	}
-}
-
-func (w *Watcher) AddDelAccMsg(account auth.Account, isDirectly bool) {
-	if !w.Enabled() {
-		return
-	}
-	wMsg := NewDelAccMsg(account)
-	if wMsg != nil {
-		if isDirectly {
-			w.batch = append(w.batch, wMsg)
-		} else {
-			w.staleBatch = append(w.staleBatch, wMsg)
-		}
+		w.batch = append(w.batch, wMsg)
 	}
 }
 
@@ -234,16 +191,6 @@ func (w *Watcher) ExecuteDelayEraseKey(delayEraseKey [][]byte) {
 	}
 	for _, k := range delayEraseKey {
 		w.store.Delete(k)
-	}
-}
-
-func (w *Watcher) SaveState(addr common.Address, key, value []byte) {
-	if !w.Enabled() {
-		return
-	}
-	wMsg := NewMsgState(addr, key, value)
-	if wMsg != nil {
-		w.staleBatch = append(w.staleBatch, wMsg)
 	}
 }
 
@@ -317,38 +264,6 @@ func (w *Watcher) SaveContractDeploymentWhitelistItem(addr sdk.AccAddress) {
 	}
 }
 
-func (w *Watcher) DeleteContractBlockedList(addr sdk.AccAddress) {
-	if !w.Enabled() {
-		return
-	}
-	wMsg := NewMsgContractBlockedListItem(addr)
-	if wMsg != nil {
-		key := wMsg.GetKey()
-		w.store.Delete(key)
-		w.watchData.DirtyList = append(w.watchData.DirtyList, key)
-	}
-}
-
-func (w *Watcher) DeleteContractDeploymentWhitelist(addr sdk.AccAddress) {
-	if !w.Enabled() {
-		return
-	}
-	wMsg := NewMsgContractDeploymentWhitelistItem(addr)
-	if wMsg != nil {
-		key := wMsg.GetKey()
-		w.store.Delete(key)
-		w.watchData.DirtyList = append(w.watchData.DirtyList, key)
-	}
-}
-
-func (w *Watcher) Finalize() {
-	if !w.Enabled() {
-		return
-	}
-	w.batch = append(w.batch, w.staleBatch...)
-	w.Reset()
-}
-
 func (w *Watcher) CommitStateToRpcDb(addr common.Address, key, value []byte) {
 	if !w.Enabled() {
 		return
@@ -378,13 +293,6 @@ func (w *Watcher) CommitCodeHashToDb(hash []byte, code []byte) {
 	if wMsg != nil {
 		w.store.Set(wMsg.GetKey(), []byte(wMsg.GetValue()))
 	}
-}
-
-func (w *Watcher) Reset() {
-	if !w.Enabled() {
-		return
-	}
-	w.staleBatch = []WatchMessage{}
 }
 
 func (w *Watcher) Commit() {
@@ -469,12 +377,6 @@ func (w *Watcher) commitCenterBatch(batch []*Batch) {
 				state.SetStateToLru(common.BytesToHash(b.Key), b.Value)
 			}
 		}
-	}
-}
-
-func (w *Watcher) delDirtyAccount(accounts []*sdk.AccAddress) {
-	for _, account := range accounts {
-		w.store.Delete(GetMsgAccountKey(account.Bytes()))
 	}
 }
 

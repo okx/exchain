@@ -14,8 +14,7 @@ import (
 // BeginBlock implements the Application interface
 func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 	trace.OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
-	//todo earsedelete key also needed
-	//	app.EvmKeeper.Watcher.DelayEraseKey()
+	app.EvmKeeper.Watcher.DelayEraseKey()
 	return app.BaseApp.BeginBlock(req)
 }
 
@@ -95,8 +94,7 @@ func (app *OKExChainApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// 1. this round commit a valid block
 	// 2. before commit the block,State#updateToState hasent not called yet,so the proposalBlockPart is not nil which means we wont
 	// 	  call the prerun during commit step(edge case)
-	//disable this commit and move it into cosmos-sdk
-	//app.EvmKeeper.Watcher.Commit()
+	app.EvmKeeper.Watcher.Commit()
 
 	return res
 }

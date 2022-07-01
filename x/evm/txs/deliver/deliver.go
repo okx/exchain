@@ -12,7 +12,6 @@ import (
 	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/types"
-	"github.com/okex/exchain/x/evm/watcher"
 )
 
 type Tx struct {
@@ -50,10 +49,9 @@ func (tx *Tx) GetSenderAccount() authexported.Account {
 }
 
 func (tx *Tx) ResetWatcher(account authexported.Account) {
-	tx.Ctx.GetWatcher().Reset()
 	// delete account which is already in Watcher.batch
 	if account != nil {
-		tx.Ctx.GetWatcher().AddDelAccMsg(account, true)
+		tx.Ctx.GetWatcher().DeleteAccount(account, true)
 	}
 }
 
@@ -105,12 +103,13 @@ func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *base.Result) {
 		tx.Ctx.ParaMsg().LogIndex = index
 	}
 	tx.Keeper.LogSize = tx.StateTransition.Csdb.GetLogSize()
-	tx.Ctx.GetWatcher().SaveTransactionReceipt(watcher.TransactionSuccess,
-		msg, *tx.StateTransition.TxHash,
-		tx.Ctx.GetWatcher().GetEvmTxIndex(), result.ResultData, tx.Ctx.GasMeter().GasConsumed())
+	// todo
+	//tx.Ctx.GetWatcher().SaveTransactionReceipt(watcher.TransactionSuccess,
+	//	msg, *tx.StateTransition.TxHash,
+	//	tx.Ctx.GetWatcher().GetEvmTxIndex(), result.ResultData, tx.Ctx.GasMeter().GasConsumed())
 	if msg.Data.Recipient == nil {
 		tx.StateTransition.Csdb.IteratorCode(func(addr common.Address, c types.CacheCode) bool {
-			tx.Ctx.GetWatcher().SaveContractCode(addr, c.Code)
+			tx.Ctx.GetWatcher().SaveContractCode(addr, c.Code, uint64(tx.Ctx.BlockHeight()))
 			tx.Ctx.GetWatcher().SaveContractCodeByHash(c.CodeHash, c.Code)
 			return true
 		})

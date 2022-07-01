@@ -54,11 +54,7 @@ const (
 	TypeEvmParams = uint32(4)
 )
 
-type WatchMessage interface {
-	GetKey() []byte
-	GetValue() string
-	GetType() uint32
-}
+type WatchMessage = sdk.WatchMessage
 
 type Batch struct {
 	Key       []byte `json:"key"`

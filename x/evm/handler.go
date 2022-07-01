@@ -22,10 +22,12 @@ func NewHandler(k *Keeper) sdk.Handler {
 			k.UpdatedAccount = k.UpdatedAccount[:0]
 		}
 
-		evmtx, ok := msg.(*types.MsgEthereumTx)
+		evmTx, ok := msg.(*types.MsgEthereumTx)
 		if ok {
-			ctx.SetWatcher(watcher.NewWatcherTx(k.Logger(ctx)))
-			result, err = handleMsgEthereumTx(ctx, k, evmtx)
+			if watcher.IsWatcherEnabled() {
+				ctx.SetWatcher(watcher.NewTxWatcher())
+			}
+			result, err = handleMsgEthereumTx(ctx, k, evmTx)
 			if err != nil {
 				err = sdkerrors.New(types.ModuleName, types.CodeSpaceEvmCallFailed, err.Error())
 			}

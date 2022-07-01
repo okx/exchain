@@ -59,11 +59,6 @@ var (
 			configA: boolItem{name: watcher.FlagFastQuery, value: true},
 			configB: intItem{name: state.FlagDeliverTxsExecMode, value: 1},
 		},
-		// --fast-query      conflict with --deliver-txs-mode=2
-		{
-			configA: boolItem{name: watcher.FlagFastQuery, value: true},
-			configB: intItem{name: state.FlagDeliverTxsExecMode, value: 2},
-		},
 		// --fast-query      conflict with --pruning=nothing
 		{
 			configA: boolItem{name: watcher.FlagFastQuery, value: true},
