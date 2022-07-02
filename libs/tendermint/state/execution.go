@@ -2,9 +2,10 @@ package state
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/system/trace"
 	"strconv"
 	"time"
+
+	"github.com/okex/exchain/libs/system/trace"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
@@ -327,8 +328,6 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 			switch mode {
 			case DeliverTxsExecModeSerial:
 				abciResponses, err = execBlockOnProxyApp(ctx)
-			case DeliverTxsExecModePartConcurrent:
-				abciResponses, err = execBlockOnProxyAppPartConcurrent(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			case DeliverTxsExecModeParallel:
 				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			default:
