@@ -31,6 +31,7 @@ const (
 	CodeInvalidDistributionType                     uint32 = 67819
 	CodeEmptyDelegationDistInfo                     uint32 = 67820
 	CodeEmptyValidatorDistInfo                      uint32 = 67821
+	CodeEmptyDelegationVoteValidator                uint32 = 67822
 )
 
 func ErrNilDelegatorAddr() sdk.Error {
@@ -103,4 +104,8 @@ func ErrCodeEmptyDelegationDistInfo() sdk.Error {
 
 func ErrCodeEmptyValidatorDistInfo() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeEmptyValidatorDistInfo, "no validator distribution info")
+}
+
+func ErrCodeCodeEmptyDelegationVoteValidator() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeEmptyDelegationVoteValidator, "delegation not vote validator")
 }

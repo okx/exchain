@@ -129,6 +129,18 @@ func (k Keeper) WithdrawDelegationRewards(ctx sdk.Context, delAddr sdk.AccAddres
 		return nil, types.ErrCodeEmptyDelegationDistInfo()
 	}
 
+	valAddressArray := del.GetShareAddedValidatorAddresses()
+	exist := false
+	for _, valAddress := range valAddressArray {
+		if valAddress.Equals(valAddr) {
+			exist = true
+			break
+		}
+	}
+	if !exist {
+		return nil, types.ErrCodeCodeEmptyDelegationVoteValidator()
+	}
+
 	// withdraw rewards
 	rewards, err := k.withdrawDelegationRewards(ctx, val, delAddr)
 	if err != nil {

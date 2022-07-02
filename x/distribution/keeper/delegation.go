@@ -175,7 +175,8 @@ func (k Keeper) initExistedDelegationStartInfo(ctx sdk.Context, val stakingexpor
 	// increment reference count for the period we're going to track
 	k.incrementReferenceCount(ctx, val.GetOperator(), previousPeriod)
 
-	k.SetDelegatorStartingInfo(ctx, val.GetOperator(), del.GetDelegatorAddress(), types.NewDelegatorStartingInfo(previousPeriod, del.GetLastAddedShares(), uint64(ctx.BlockHeight())))
+	k.SetDelegatorStartingInfo(ctx, val.GetOperator(), del.GetDelegatorAddress(),
+		types.NewDelegatorStartingInfo(previousPeriod, del.GetLastAddedShares(), 0))
 
 	logger.Debug(fmt.Sprintf("initExistedDelegationStartInfo end, val:%s, del:%s, shares:%s",
 		val.GetOperator().String(), del.GetDelegatorAddress().String(), del.GetLastAddedShares().String()))
