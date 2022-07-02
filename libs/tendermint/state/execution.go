@@ -27,17 +27,14 @@ type (
 )
 
 const (
-	DeliverTxsExecModeSerial         DeliverTxsExecMode = iota // execute [deliverTx,...] sequentially
-	DeliverTxsExecModePartConcurrent                           // execute [deliverTx,...] partially-concurrent
-	DeliverTxsExecModeParallel                                 // execute [deliverTx,...] parallel
+	DeliverTxsExecModeSerial   DeliverTxsExecMode = iota // execute [deliverTx,...] sequentially
+	DeliverTxsExecModeParallel                    = 2    // execute [deliverTx,...] parallel
 
 	// There are three modes.
 	// 0: execute [deliverTx,...] sequentially (default)
 	// 1: execute [deliverTx,...] partially-concurrent
 	// 2: execute [deliverTx,...] parallel
 	FlagDeliverTxsExecMode = "deliver-txs-mode"
-
-	FlagDeliverTxsConcurrentNum = "deliver-txs-concurrent-num"
 )
 
 // BlockExecutor handles block execution and state updates.
