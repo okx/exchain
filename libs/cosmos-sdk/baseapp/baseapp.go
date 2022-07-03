@@ -222,6 +222,8 @@ type BaseApp struct { // nolint: maligned
 
 	reusableCacheMultiStore sdk.CacheMultiStore
 	checkTxCacheMultiStores *cacheMultiStoreList
+
+	watcherCollector sdk.EvmWatcherCollector
 }
 
 type recordHandle func(string)

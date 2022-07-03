@@ -585,3 +585,10 @@ func (w *Watcher) dispatchJob(f func()) {
 func (w *Watcher) Height() uint64 {
 	return w.height
 }
+
+func (w *Watcher) Collect(watchers ...sdk.IWatcher) {
+	for _, watcher := range watchers {
+		batch := watcher.Destruct()
+		w.batch = append(w.batch, batch...)
+	}
+}

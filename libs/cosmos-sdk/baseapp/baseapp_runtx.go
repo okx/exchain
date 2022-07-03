@@ -175,6 +175,10 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		app.UpdateFeeForCollector(fee, true)
 	}
 
+	if app.watcherCollector != nil && mode == runTxModeDeliver {
+		app.watcherCollector(info.runMsgCtx.GetWatcher())
+	}
+
 	isAnteSucceed = true
 	app.pin(trace.RunMsg, true, mode)
 	err = handler.handleRunMsg(info)
@@ -404,13 +408,14 @@ func (app *BaseApp) asyncDeliverTx(txIndex int) {
 	txStatus := app.parallelTxManage.extraTxsInfo[txIndex]
 
 	if txStatus.stdTx == nil {
-		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr, 0, 0, app.trace), nil, uint32(txIndex), nil, blockHeight)
+		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr,
+			0, 0, app.trace), nil, uint32(txIndex), nil, blockHeight, sdk.EmptyWatcher{})
 		pmWorkGroup.Push(asyncExe)
 		return
 	}
 
 	if !txStatus.isEvm {
-		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, uint32(txIndex), nil, blockHeight)
+		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, uint32(txIndex), nil, blockHeight, sdk.EmptyWatcher{})
 		pmWorkGroup.Push(asyncExe)
 		return
 	}
@@ -429,7 +434,7 @@ func (app *BaseApp) asyncDeliverTx(txIndex int) {
 		}
 	}
 
-	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg(), blockHeight)
+	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg(), blockHeight, info.runMsgCtx.GetWatcher())
 	pmWorkGroup.Push(asyncExe)
 	app.parallelTxManage.addMultiCache(info.msCacheAnte, info.msCache)
 }

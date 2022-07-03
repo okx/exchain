@@ -24,6 +24,8 @@ type CustomizeOnStop func(ctx Context) error
 
 type MptCommitHandler func(ctx Context)
 
+type EvmWatcherCollector func(...IWatcher)
+
 // AnteDecorator wraps the next AnteHandler to perform custom pre- and post-processing.
 type AnteDecorator interface {
 	AnteHandle(ctx Context, tx Tx, simulate bool, next AnteHandler) (newCtx Context, err error)

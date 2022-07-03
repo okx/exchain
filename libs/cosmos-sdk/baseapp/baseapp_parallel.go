@@ -323,12 +323,15 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 	logIndex := make([]int, app.parallelTxManage.txSize)
 	errs := make([]error, app.parallelTxManage.txSize)
 	hasEnterEvmTx := make([]bool, app.parallelTxManage.txSize)
+	watchers := make([]sdk.IWatcher, app.parallelTxManage.txSize)
 	for index := 0; index < app.parallelTxManage.txSize; index++ {
 		paraM := app.parallelTxManage.txReps[index].paraMsg
 		logIndex[index] = paraM.LogIndex
 		errs[index] = paraM.AnteErr
 		hasEnterEvmTx[index] = paraM.HasRunEvmTx
+		watchers[index] = app.parallelTxManage.txReps[index].watcher
 	}
+	app.watcherCollector(watchers...)
 	app.parallelTxManage.clear()
 	return app.logFix(logIndex, hasEnterEvmTx, errs)
 }
@@ -340,7 +343,8 @@ func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 	txStatus := app.parallelTxManage.extraTxsInfo[txIndex]
 
 	if txStatus.stdTx == nil {
-		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr, 0, 0, app.trace), nil, uint32(txIndex), nil, 0)
+		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr,
+			0, 0, app.trace), nil, uint32(txIndex), nil, 0, sdk.EmptyWatcher{})
 		return asyncExe
 	}
 	var (
@@ -361,7 +365,7 @@ func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 		}
 	}
 
-	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg(), 0)
+	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg(), 0, info.runMsgCtx.GetWatcher())
 	app.parallelTxManage.addMultiCache(info.msCacheAnte, info.msCache)
 	return asyncExe
 }
@@ -372,15 +376,18 @@ type executeResult struct {
 	counter     uint32
 	paraMsg     *sdk.ParaMsg
 	blockHeight int64
+	watcher     sdk.IWatcher
 }
 
-func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32, paraMsg *sdk.ParaMsg, height int64) *executeResult {
+func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32,
+	paraMsg *sdk.ParaMsg, height int64, watcher sdk.IWatcher) *executeResult {
 	ans := &executeResult{
 		resp:        r,
 		ms:          ms,
 		counter:     counter,
 		paraMsg:     paraMsg,
 		blockHeight: height,
+		watcher:     watcher,
 	}
 
 	if paraMsg == nil {
