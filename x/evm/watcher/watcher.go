@@ -435,6 +435,11 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 			w.store.Delete(key)
 		} else {
 			w.store.Set(key, value)
+			//need update params
+			if typeValue == TypeEvmParams {
+				msgParams := b.(*MsgParams)
+				w.store.SetEvmParams(msgParams.Params)
+			}
 			if typeValue == TypeState {
 				state.SetStateToLru(common.BytesToHash(key), value)
 			}

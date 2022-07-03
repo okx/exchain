@@ -2,6 +2,7 @@ package simapp
 
 import (
 	"fmt"
+	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
 	"github.com/okex/exchain/x/wasm"
 	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
@@ -607,8 +608,8 @@ func NewSimApp(
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccNonceHandler(NewAccHandler(app.AccountKeeper))
-	//app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), evmTxFeeHandler(), fixLogForParallelTxHandler(app.EvmKeeper))
-
+	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), fixLogForParallelTxHandler(app.EvmKeeper))
+	app.SetGetTxFeeHandler(getTxFeeHandler())
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
 		if err != nil {
@@ -624,6 +625,27 @@ func NewSimApp(
 	app.ScopedIBCMockKeeper = scopedIBCMockKeeper
 
 	return app
+}
+
+func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
+	return func(ctx sdk.Context, balance sdk.Coins) error {
+		return bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
+	}
+}
+func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
+	return func(logIndex []int, hasEnterEvmTx []bool, anteErrs []error) (logs [][]byte) {
+		return ek.FixLog(logIndex, hasEnterEvmTx, anteErrs)
+	}
+}
+
+func getTxFeeHandler() sdk.GetTxFeeHandler {
+	return func(tx sdk.Tx) (fee sdk.Coins) {
+		if feeTx, ok := tx.(authante.FeeTx); ok {
+			fee = feeTx.GetFee()
+		}
+
+		return
+	}
 }
 
 func (app *SimApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOption) {
