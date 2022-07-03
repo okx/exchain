@@ -2,12 +2,10 @@ package keeper
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	comm "github.com/okex/exchain/x/common"
 
 	"github.com/okex/exchain/x/distribution/types"
@@ -146,7 +144,7 @@ func queryDelegatorValidators(ctx sdk.Context, _ []string, req abci.RequestQuery
 }
 
 func queryDelegationRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, k Keeper) ([]byte, error) {
-	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) || !k.HasInitAllocateValidator(ctx) {
+	if !k.checkDistributionProposalValid(ctx) {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidVersion, "not support")
 	}
 
@@ -157,14 +155,14 @@ func queryDelegationRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, 
 	}
 
 	// cache-wrap context as to not persist state changes during querying
-	cacheCtx, _ := ctx.CacheContext()
+	ctx, _ = ctx.CacheContext()
 
-	val := k.stakingKeeper.Validator(cacheCtx, params.ValidatorAddress)
+	val := k.stakingKeeper.Validator(ctx, params.ValidatorAddress)
 	if val == nil {
 		return nil, sdkerrors.Wrap(types.ErrCodeEmptyValidatorDistInfo(), params.ValidatorAddress.String())
 	}
 
-	del := k.stakingKeeper.Delegator(cacheCtx, params.DelegatorAddress)
+	del := k.stakingKeeper.Delegator(ctx, params.DelegatorAddress)
 	if del == nil {
 		return nil, types.ErrCodeEmptyDelegationDistInfo()
 	}
@@ -179,20 +177,19 @@ func queryDelegationRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, 
 		return nil, sdkerrors.Wrap(types.ErrCodeEmptyValidatorDistInfo(), params.ValidatorAddress.String())
 	}
 
-	logger := k.Logger(cacheCtx)
-	logger.Info(fmt.Sprintf("queryDelegationRewards start, val:%s, del:%s", val.GetOperator().String(), params.DelegatorAddress.String()))
-	if !k.HasDelegatorStartingInfo(cacheCtx, val.GetOperator(), params.DelegatorAddress) && !del.GetLastAddedShares().IsZero() {
-		k.initExistedDelegationStartInfo(cacheCtx, val, del)
+	logger := k.Logger(ctx)
+	if !k.HasDelegatorStartingInfo(ctx, val.GetOperator(), params.DelegatorAddress) && !del.GetLastAddedShares().IsZero() {
+		k.initExistedDelegationStartInfo(ctx, val, del)
 	}
 
-	endingPeriod := k.incrementValidatorPeriod(cacheCtx, val)
-	rewards := k.calculateDelegationRewards(cacheCtx, val, params.DelegatorAddress, endingPeriod)
+	endingPeriod := k.incrementValidatorPeriod(ctx, val)
+	rewards := k.calculateDelegationRewards(ctx, val, params.DelegatorAddress, endingPeriod)
 	if rewards == nil {
 		rewards = sdk.DecCoins{}
 	}
 
-	logger.Info(fmt.Sprintf("queryDelegationRewards end, val:%s, del:%s, rewards:%s",
-		val.GetOperator().String(), params.DelegatorAddress.String(), rewards.String()))
+	logger.Debug("queryDelegationRewards", "Validator", val.GetOperator(),
+		"Delegator", params.DelegatorAddress, "Reward", rewards)
 
 	bz, err := codec.MarshalJSONIndent(k.cdc, rewards)
 	if err != nil {
@@ -203,7 +200,7 @@ func queryDelegationRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, 
 }
 
 func queryDelegatorTotalRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, k Keeper) ([]byte, error) {
-	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) || !k.HasInitAllocateValidator(ctx) {
+	if !k.checkDistributionProposalValid(ctx) {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidVersion, "not support")
 	}
 
@@ -214,9 +211,9 @@ func queryDelegatorTotalRewards(ctx sdk.Context, _ []string, req abci.RequestQue
 	}
 
 	// cache-wrap context as to not persist state changes during querying
-	cacheCtx, _ := ctx.CacheContext()
+	ctx, _ = ctx.CacheContext()
 
-	del := k.stakingKeeper.Delegator(cacheCtx, params.DelegatorAddress)
+	del := k.stakingKeeper.Delegator(ctx, params.DelegatorAddress)
 	if del == nil {
 		return nil, types.ErrCodeEmptyDelegationDistInfo()
 	}
@@ -225,26 +222,25 @@ func queryDelegatorTotalRewards(ctx sdk.Context, _ []string, req abci.RequestQue
 	var delRewards []types.DelegationDelegatorReward
 
 	for _, valAddr := range del.GetShareAddedValidatorAddresses() {
-		val := k.stakingKeeper.Validator(cacheCtx, valAddr)
+		val := k.stakingKeeper.Validator(ctx, valAddr)
 		if val == nil {
 			continue
 		}
 
-		logger := k.Logger(cacheCtx)
-		logger.Info(fmt.Sprintf("queryDelegatorTotalRewards-total-start, val:%s, del:%s", val.GetOperator().String(), params.DelegatorAddress.String()))
-		if !k.HasDelegatorStartingInfo(cacheCtx, val.GetOperator(), params.DelegatorAddress) && !del.GetLastAddedShares().IsZero() {
-			k.initExistedDelegationStartInfo(cacheCtx, val, del)
+		logger := k.Logger(ctx)
+		if !k.HasDelegatorStartingInfo(ctx, val.GetOperator(), params.DelegatorAddress) && !del.GetLastAddedShares().IsZero() {
+			k.initExistedDelegationStartInfo(ctx, val, del)
 		}
 
-		endingPeriod := k.incrementValidatorPeriod(cacheCtx, val)
-		delReward := k.calculateDelegationRewards(cacheCtx, val, params.DelegatorAddress, endingPeriod)
+		endingPeriod := k.incrementValidatorPeriod(ctx, val)
+		delReward := k.calculateDelegationRewards(ctx, val, params.DelegatorAddress, endingPeriod)
 		if delReward == nil {
 			delReward = sdk.DecCoins{}
 		}
 		delRewards = append(delRewards, types.NewDelegationDelegatorReward(valAddr, delReward))
 		total = total.Add(delReward...)
-		logger.Info(fmt.Sprintf("queryDelegatorTotalRewards-total-end, val:%s, del:%s, delReward:%s",
-			val.GetOperator().String(), params.DelegatorAddress.String(), delReward.String()))
+		logger.Debug("queryDelegatorTotalRewards", "Validator", val.GetOperator(),
+			"Delegator", params.DelegatorAddress, "Reward", delReward)
 	}
 
 	totalRewards := types.NewQueryDelegatorTotalRewardsResponse(delRewards, total)
@@ -258,7 +254,7 @@ func queryDelegatorTotalRewards(ctx sdk.Context, _ []string, req abci.RequestQue
 }
 
 func queryValidatorOutstandingRewards(ctx sdk.Context, path []string, req abci.RequestQuery, k Keeper) ([]byte, error) {
-	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) || !k.HasInitAllocateValidator(ctx) {
+	if !k.checkDistributionProposalValid(ctx) {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidVersion, "not support")
 	}
 

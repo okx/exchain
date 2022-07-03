@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/params"
 )
@@ -24,7 +25,6 @@ type Params struct {
 	CommunityTax        sdk.Dec `json:"community_tax" yaml:"community_tax"`
 	WithdrawAddrEnabled bool    `json:"withdraw_addr_enabled" yaml:"withdraw_addr_enabled"`
 	DistributionType    uint32  `json:"distribution_type" yaml:"distribution_type"`
-	//InitAllocateValidator bool    `json:"init_allocate_validator" yaml:"init_allocate_validator"`
 }
 
 // ParamKeyTable returns the parameter key table.
@@ -50,13 +50,13 @@ func (p Params) String() string {
 
 // ParamSetPairs returns the parameter set pairs.
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
-	exist := true
+	initAllocateValidator := InitAllocateValidatorNone
 	return params.ParamSetPairs{
 		params.NewParamSetPair(ParamStoreKeyCommunityTax, &p.CommunityTax, validateCommunityTax),
 		params.NewParamSetPair(ParamStoreKeyWithdrawAddrEnabled, &p.WithdrawAddrEnabled, validateWithdrawAddrEnabled),
-		//TODO how to set paris
+		//TODO, Check the first block of the older version is not compatible
 		params.NewParamSetPair(ParamStoreKeyDistributionType, &p.DistributionType, validateDistributionType),
-		params.NewParamSetPair(ParamStoreKeyInitAllocateValidator, &exist, validateInitAllocateValidator),
+		params.NewParamSetPair(ParamStoreKeyInitAllocateValidator, &initAllocateValidator, validateInitAllocateValidator),
 	}
 }
 
@@ -112,8 +112,16 @@ func validateDistributionType(i interface{}) error {
 	return nil
 }
 
-//do nothing
 func validateInitAllocateValidator(i interface{}) error {
+	initStatus, ok := i.(uint32)
+	if !ok {
+		return fmt.Errorf("invalid parameter type: %T", i)
+	}
+
+	if initStatus != InitAllocateValidatorNone && initStatus != InitAllocateValidatorSuccess {
+		return fmt.Errorf("invalid distribution type: %d", initStatus)
+	}
+
 	return nil
 }
 
@@ -123,7 +131,6 @@ func NewParams(communityTax sdk.Dec, withdrawAddrEnabled bool, distributionType 
 		CommunityTax:        communityTax,
 		WithdrawAddrEnabled: withdrawAddrEnabled,
 		DistributionType:    distributionType,
-		//InitAllocateValidator: true,
 	}
 }
 

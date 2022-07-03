@@ -2,8 +2,6 @@ package keeper
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-
 	"github.com/okex/exchain/x/distribution/types"
 	stakingtypes "github.com/okex/exchain/x/staking/types"
 )
@@ -26,8 +24,8 @@ func (h Hooks) AfterValidatorCreated(ctx sdk.Context, valAddr sdk.ValAddress) {
 
 // AfterValidatorRemoved cleans up for after validator is removed
 func (h Hooks) AfterValidatorRemoved(ctx sdk.Context, _ sdk.ConsAddress, valAddr sdk.ValAddress) {
-	if tmtypes.HigherThanSaturn1(ctx.BlockHeight()) && h.k.HasInitAllocateValidator(ctx) {
-		h.newAfterValidatorRemoved(ctx, nil, valAddr)
+	if h.k.checkDistributionProposalValid(ctx) {
+		h.afterValidatorRemovedForDistributionProposal(ctx, nil, valAddr)
 		return
 	}
 
@@ -57,7 +55,7 @@ func (h Hooks) AfterValidatorRemoved(ctx sdk.Context, _ sdk.ConsAddress, valAddr
 	h.k.deleteValidatorAccumulatedCommission(ctx, valAddr)
 }
 
-func (h Hooks) newAfterValidatorRemoved(ctx sdk.Context, _ sdk.ConsAddress, valAddr sdk.ValAddress) {
+func (h Hooks) afterValidatorRemovedForDistributionProposal(ctx sdk.Context, _ sdk.ConsAddress, valAddr sdk.ValAddress) {
 	// fetch outstanding
 	outstanding := h.k.GetValidatorOutstandingRewards(ctx, valAddr)
 
@@ -109,7 +107,7 @@ func (h Hooks) newAfterValidatorRemoved(ctx sdk.Context, _ sdk.ConsAddress, valA
 
 // increment period
 func (h Hooks) BeforeDelegationCreated(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
-	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) || !h.k.HasInitAllocateValidator(ctx) {
+	if !h.k.checkDistributionProposalValid(ctx) {
 		return
 	}
 	for _, valAddr := range valAddrs {
@@ -120,7 +118,7 @@ func (h Hooks) BeforeDelegationCreated(ctx sdk.Context, delAddr sdk.AccAddress, 
 
 // withdraw delegation rewards (which also increments period)
 func (h Hooks) BeforeDelegationSharesModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
-	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) || !h.k.HasInitAllocateValidator(ctx) {
+	if !h.k.checkDistributionProposalValid(ctx) {
 		return
 	}
 
@@ -135,7 +133,7 @@ func (h Hooks) BeforeDelegationSharesModified(ctx sdk.Context, delAddr sdk.AccAd
 
 // create new delegation period record
 func (h Hooks) AfterDelegationModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
-	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) || !h.k.HasInitAllocateValidator(ctx) {
+	if !h.k.checkDistributionProposalValid(ctx) {
 		return
 	}
 	for _, valAddr := range valAddrs {

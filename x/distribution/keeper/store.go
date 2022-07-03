@@ -1,8 +1,8 @@
 package keeper
 
 import (
-	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+
 	"github.com/okex/exchain/x/distribution/types"
 )
 
@@ -202,8 +202,6 @@ func (k Keeper) IterateValidatorHistoricalRewards(ctx sdk.Context, handler func(
 
 // delete a historical reward
 func (k Keeper) DeleteValidatorHistoricalReward(ctx sdk.Context, val sdk.ValAddress, period uint64) {
-	logger := k.Logger(ctx)
-	logger.Debug(fmt.Sprintf("HistoricalRewards, del val:%s, period:%d", val.String(), period))
 	store := ctx.KVStore(k.storeKey)
 	store.Delete(types.GetValidatorHistoricalRewardsKey(val, period))
 

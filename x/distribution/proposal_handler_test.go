@@ -1,7 +1,6 @@
 package distribution
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -66,7 +65,6 @@ func TestCommunityPoolSendProposalHandlerFailed(t *testing.T) {
 	tp := makeCommunityPoolSendProposal(recipient, amount)
 	hdlr := NewDistributionProposalHandler(k)
 	err := hdlr(ctx, &tp)
-	fmt.Println(err)
 	require.Error(t, err)
 	require.True(t, accountKeeper.GetAccount(ctx, recipient).GetCoins().IsZero())
 }

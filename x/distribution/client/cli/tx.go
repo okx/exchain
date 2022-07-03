@@ -276,7 +276,7 @@ Where proposal.json contains:
 {
   "title": "Change Distribution Type",
   "description": "Will change the distribution type",
-  "model": 0,
+  "type": 0,
   "deposit": [
     {
       "denom": "%s",

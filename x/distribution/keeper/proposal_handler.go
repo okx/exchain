@@ -49,7 +49,7 @@ func (k Keeper) distributeFromFeePool(ctx sdk.Context, amount sdk.Coins, receive
 	return nil
 }
 
-// ChangeDistributionTypeProposal is a handler for executing a passed change distribution type proposal
+// HandleChangeDistributionTypeProposal is a handler for executing a passed change distribution type proposal
 func HandleChangeDistributionTypeProposal(ctx sdk.Context, k Keeper, p types.ChangeDistributionTypeProposal) error {
 	logger := k.Logger(ctx)
 
@@ -61,15 +61,13 @@ func HandleChangeDistributionTypeProposal(ctx sdk.Context, k Keeper, p types.Cha
 		return nil
 	}
 
-	//2. if onchain, iteration validators and init val which has not outstanding
+	//2. if on chain, iteration validators and init val which has not outstanding
 	if p.Type == types.DistributionTypeOnChain {
 		if !k.HasInitAllocateValidator(ctx) {
 			k.SetInitAllocateValidator(ctx)
-			logger.Debug(fmt.Sprintf("Set init allocate validator. "))
 			k.stakingKeeper.IterateValidators(ctx, func(index int64, validator stakingexported.ValidatorI) (stop bool) {
 				if validator != nil {
-					logger.Debug(fmt.Sprintf("check not exist and initialize validator."))
-					k.checkNotExistAndInitializeValidator(ctx, validator)
+					k.initValidatorWithoutOutstanding(ctx, validator)
 				}
 				return false
 			})

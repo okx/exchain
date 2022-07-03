@@ -54,7 +54,7 @@ func postCommunityPoolSpendProposalHandlerFn(cliCtx context.CLIContext) http.Han
 	}
 }
 
-// ChangeDistributionTypeProposalRESTHandler returns a ChangeDistributionTypeProposal that exposes the community pool spend REST handler with a given sub-route.
+// ChangeDistributionTypeProposalRESTHandler returns a ChangeDistributionTypeProposal that exposes the change distribution type REST handler with a given sub-route.
 func ChangeDistributionTypeProposalRESTHandler(cliCtx context.CLIContext) govrest.ProposalRESTHandler {
 	return govrest.ProposalRESTHandler{
 		SubRoute: "change_distribution_type",

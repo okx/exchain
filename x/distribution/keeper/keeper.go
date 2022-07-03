@@ -90,7 +90,7 @@ func (k Keeper) WithdrawValidatorCommission(ctx sdk.Context, valAddr sdk.ValAddr
 	commission, remainder := accumCommission.TruncateDecimal()
 	k.SetValidatorAccumulatedCommission(ctx, valAddr, remainder) // leave remainder to withdraw later
 
-	if tmtypes.HigherThanSaturn1(ctx.BlockHeight()) && k.HasInitAllocateValidator(ctx) {
+	if k.checkDistributionProposalValid(ctx) {
 		// update outstanding
 		outstanding := k.GetValidatorOutstandingRewards(ctx, valAddr)
 		k.SetValidatorOutstandingRewards(ctx, valAddr, outstanding.Sub(sdk.NewDecCoinsFromCoins(commission...)))
@@ -122,7 +122,6 @@ func (k Keeper) WithdrawDelegationRewards(ctx sdk.Context, delAddr sdk.AccAddres
 		return nil, types.ErrCodeEmptyValidatorDistInfo()
 	}
 	logger := k.Logger(ctx)
-	logger.Debug(fmt.Sprintf("WithdrawDelegationRewards start, val:%s, del:%s", valAddr.String(), delAddr.String()))
 
 	del := k.stakingKeeper.Delegator(ctx, delAddr)
 	if del == nil {
@@ -157,6 +156,10 @@ func (k Keeper) WithdrawDelegationRewards(ctx sdk.Context, delAddr sdk.AccAddres
 
 	// reinitialize the delegation
 	k.initializeDelegation(ctx, valAddr, delAddr)
-	logger.Debug(fmt.Sprintf("WithdrawDelegationRewards end, val:%s, del:%s", valAddr.String(), delAddr.String()))
+	logger.Debug("WithdrawDelegationRewards", "Validator", valAddr, "Delegator", delAddr)
 	return rewards, nil
+}
+
+func (k Keeper) checkDistributionProposalValid(ctx sdk.Context) bool {
+	return tmtypes.HigherThanSaturn1(ctx.BlockHeight()) && k.HasInitAllocateValidator(ctx)
 }

@@ -1,7 +1,6 @@
 package staking
 
 import (
-	"fmt"
 	"time"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -160,9 +159,6 @@ func handleRegProxy(ctx sdk.Context, msg types.MsgRegProxy, k keeper.Keeper) (*s
 }
 
 func handleMsgAddShares(ctx sdk.Context, msg types.MsgAddShares, k keeper.Keeper) (*sdk.Result, error) {
-	logger := k.Logger(ctx)
-	logger.Info(fmt.Sprintf("handleMsgAddShares start"))
-
 	maxValsToAddShares := int(k.ParamsMaxValsToAddShares(ctx))
 	if len(msg.ValAddrs) == 0 {
 		return nil, types.ErrEmptyValidators()
@@ -215,8 +211,6 @@ func handleMsgAddShares(ctx sdk.Context, msg types.MsgAddShares, k keeper.Keeper
 	k.AfterDelegationModified(ctx, msg.DelAddr, delegator.ValidatorAddresses)
 
 	ctx.EventManager().EmitEvent(buildEventForHandlerAddShares(delegator))
-
-	logger.Info(fmt.Sprintf("handleMsgAddShares end"))
 	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 

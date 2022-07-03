@@ -18,7 +18,7 @@ type (
 		Deposit     sdk.SysCoins   `json:"deposit" yaml:"deposit"`
 	}
 
-	// ChangeDistributionTypeProposalReq defines a community pool spend proposal request body.
+	// ChangeDistributionTypeProposalReq defines a change distribution type proposal request body.
 	ChangeDistributionTypeProposalReq struct {
 		BaseReq rest.BaseReq `json:"base_req" yaml:"base_req"`
 

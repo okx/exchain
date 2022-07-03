@@ -4,37 +4,32 @@ import (
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/types"
 	stakingexported "github.com/okex/exchain/x/staking/exported"
 )
 
 // initialize starting info for a new delegation
 func (k Keeper) initializeDelegation(ctx sdk.Context, val sdk.ValAddress, del sdk.AccAddress) {
-	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) || !k.HasInitAllocateValidator(ctx) {
+	if !k.checkDistributionProposalValid(ctx) {
 		return
 	}
 
 	logger := k.Logger(ctx)
-	logger.Debug(fmt.Sprintf("initializeDelegation start, val:%s, del:%s", val.String(), del.String()))
 	// period has already been incremented - we want to store the period ended by this delegation action
 	previousPeriod := k.GetValidatorCurrentRewards(ctx, val).Period - 1
 
 	// increment reference count for the period we're going to track
 	k.incrementReferenceCount(ctx, val, previousPeriod)
-
 	delegation := k.stakingKeeper.Delegator(ctx, del)
 
 	k.SetDelegatorStartingInfo(ctx, val, del, types.NewDelegatorStartingInfo(previousPeriod, delegation.GetLastAddedShares(), uint64(ctx.BlockHeight())))
-	logger.Debug(fmt.Sprintf("initializeDelegation end, val:%s, del:%s, shares:%s", val.String(), del.String(), delegation.GetLastAddedShares().String()))
+	logger.Debug("initializeDelegation", "ValAddress", val, "Delegator", del, "Shares", delegation.GetLastAddedShares())
 }
 
 // calculate the rewards accrued by a delegation between two periods
 func (k Keeper) calculateDelegationRewardsBetween(ctx sdk.Context, val stakingexported.ValidatorI,
 	startingPeriod, endingPeriod uint64, stake sdk.Dec) (rewards sdk.DecCoins) {
 	logger := k.Logger(ctx)
-	logger.Debug(fmt.Sprintf("calculateDelegationRewardsBetween start, val:%s, startingPeriod:%d, endingPeriod:%d, stake:%s, rewards:%s",
-		val.GetOperator().String(), startingPeriod, endingPeriod, stake.String(), rewards.String()))
 	// sanity check
 	if startingPeriod > endingPeriod {
 		panic("startingPeriod cannot be greater than endingPeriod")
@@ -54,17 +49,15 @@ func (k Keeper) calculateDelegationRewardsBetween(ctx sdk.Context, val stakingex
 	}
 	// note: necessary to truncate so we don't allow withdrawing more rewards than owed
 	rewards = difference.MulDecTruncate(stake)
-	logger.Debug(fmt.Sprintf("calculateDelegationRewardsBetween end, ratio:%s, ending:%s, diff:%s, stake:%s, rewards:%s",
-		starting.CumulativeRewardRatio.String(), ending.CumulativeRewardRatio.String(), difference.String(),
-		stake.String(), rewards.String()))
+	logger.Debug("calculateDelegationRewardsBetween", "Validator", val.GetOperator(),
+		"Start", starting.CumulativeRewardRatio, "End", ending.CumulativeRewardRatio, "Stake", stake,
+		"Difference", difference, "Rewards", rewards)
 	return
 }
 
 // calculate the total rewards accrued by a delegation
 func (k Keeper) calculateDelegationRewards(ctx sdk.Context, val stakingexported.ValidatorI, delAddr sdk.AccAddress, endingPeriod uint64) (rewards sdk.DecCoins) {
 	logger := k.Logger(ctx)
-	logger.Debug(fmt.Sprintf("calculateDelegationRewards start, val:%s, del:%s",
-		val.GetOperator().String(), delAddr.String()))
 	del := k.stakingKeeper.Delegator(ctx, delAddr)
 
 	// fetch starting info for delegation
@@ -89,19 +82,19 @@ func (k Keeper) calculateDelegationRewards(ctx sdk.Context, val stakingexported.
 	// calculate rewards for final period
 	rewards = rewards.Add(k.calculateDelegationRewardsBetween(ctx, val, startingPeriod, endingPeriod, stake)...)
 
-	logger.Debug(fmt.Sprintf("calculateDelegationRewards end, val:%s, del:%s, period:[%d,%d], stake:%s,reward:%s",
-		val.GetOperator().String(), delAddr.String(), startingPeriod, endingPeriod, stake.String(), rewards.String()))
+	logger.Debug("calculateDelegationRewards", "Validator", val.GetOperator(),
+		"Delegator", delAddr, "Start", startingPeriod, "End", endingPeriod, "Stake", stake, "Rewards", rewards)
 
 	return rewards
 }
 
 //withdraw rewards according to the specified validator by delegator
 func (k Keeper) withdrawDelegationRewards(ctx sdk.Context, val stakingexported.ValidatorI, delAddress sdk.AccAddress) (sdk.Coins, error) {
-	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) || !k.HasInitAllocateValidator(ctx) {
+	if !k.checkDistributionProposalValid(ctx) {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidVersion, "not support")
 	}
 	logger := k.Logger(ctx)
-	logger.Info(fmt.Sprintf("withdrawDelegationRewards-start, val:%s, del:%s", val.GetOperator().String(), delAddress.String()))
+
 	// check existence of delegator starting info
 	if !k.HasDelegatorStartingInfo(ctx, val.GetOperator(), delAddress) {
 		del := k.stakingKeeper.Delegator(ctx, delAddress)
@@ -132,7 +125,8 @@ func (k Keeper) withdrawDelegationRewards(ctx sdk.Context, val stakingexported.V
 	if !coins.IsZero() {
 		withdrawAddr := k.GetDelegatorWithdrawAddr(ctx, delAddress)
 		err := k.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, withdrawAddr, coins)
-		logger.Debug(fmt.Sprintf("SendCoinsFromModuleToAccount ok, from:%s, to:%s, coins:%s", types.ModuleName, withdrawAddr.String(), coins.String()))
+		logger.Debug("SendCoinsFromModuleToAccount", "From", types.ModuleName,
+			"To", withdrawAddr, "Coins", coins)
 		if err != nil {
 			return nil, err
 		}
@@ -153,32 +147,28 @@ func (k Keeper) withdrawDelegationRewards(ctx sdk.Context, val stakingexported.V
 	// remove delegator starting info
 	k.DeleteDelegatorStartingInfo(ctx, val.GetOperator(), delAddress)
 
-	logger.Debug(fmt.Sprintf("withdrawDelegationRewards-end, val:%s, del:%s, shares:%s, start period:%d, end period:%d, "+
-		"rewardsRaw:%s, rewards:%s, coins:%s, remainder:%s",
-		val.GetOperator().String(), delAddress.String(), startingInfo.Stake.String(), startingPeriod, endingPeriod,
-		rewardsRaw.String(), rewards.String(), coins.String(), remainder.String()))
+	logger.Debug("withdrawDelegationRewards", "Validator", val.GetOperator(), "Delegator", delAddress,
+		"Stake", startingInfo.Stake, "StartingPeriod", startingPeriod, "EndingPeriod", endingPeriod,
+		"RewardsRaw", rewardsRaw, "Rewards", rewards, "Coins", coins, "Remainder", remainder)
 	return coins, nil
 }
 
 //initExistedDelegationStartInfo If the delegator existed but no start info, it add shares before distribution proposal, and need to set a new start info
 func (k Keeper) initExistedDelegationStartInfo(ctx sdk.Context, val stakingexported.ValidatorI, del stakingexported.DelegatorI) {
-	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) || !k.HasInitAllocateValidator(ctx) {
+	if !k.checkDistributionProposalValid(ctx) {
 		return
 	}
 
 	logger := k.Logger(ctx)
-	logger.Debug(fmt.Sprintf("initExistedDelegationStartInfo start,val:%s, del:%s", val.GetOperator().String(), del.GetDelegatorAddress().String()))
-
 	//set previous validator period 0
 	previousPeriod := uint64(0)
-
 	// increment reference count for the period we're going to track
 	k.incrementReferenceCount(ctx, val.GetOperator(), previousPeriod)
 
 	k.SetDelegatorStartingInfo(ctx, val.GetOperator(), del.GetDelegatorAddress(),
 		types.NewDelegatorStartingInfo(previousPeriod, del.GetLastAddedShares(), 0))
 
-	logger.Debug(fmt.Sprintf("initExistedDelegationStartInfo end, val:%s, del:%s, shares:%s",
-		val.GetOperator().String(), del.GetDelegatorAddress().String(), del.GetLastAddedShares().String()))
+	logger.Debug("initExistedDelegationStartInfo", "Validator", val.GetOperator(),
+		"Delegator", del.GetDelegatorAddress(), "Shares", del.GetLastAddedShares())
 	return
 }
