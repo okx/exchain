@@ -170,6 +170,14 @@ func TestRewards(t *testing.T) {
 		return false
 	})
 
+	//try twice, do nothing
+	commissionBefore := keeper.GetValidatorAccumulatedCommission(ctx, valOpAddr1)
+	require.True(t, keeper.HasValidatorOutstandingRewards(ctx, valOpAddr1))
+	validator := keeper.stakingKeeper.Validator(ctx, valOpAddr1)
+	keeper.initValidatorWithoutOutstanding(ctx, validator)
+	commissionAfter := keeper.GetValidatorAccumulatedCommission(ctx, valOpAddr1)
+	require.Equal(t, commissionBefore, commissionAfter)
+
 	//test outstanding rewards query
 	outstandingRewards := sdk.DecCoins{{Denom: "mytoken", Amount: sdk.NewDec(3)}, {Denom: "myothertoken", Amount: sdk.NewDecWithPrec(3, 7)}}
 	keeper.SetValidatorOutstandingRewards(ctx, valOpAddr1, outstandingRewards)

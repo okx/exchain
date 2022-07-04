@@ -39,7 +39,7 @@ var (
 	ValidatorHistoricalRewardsPrefix     = []byte{0x05} // key for historical validators rewards / stake
 	ValidatorCurrentRewardsPrefix        = []byte{0x06} // key for current validator rewards
 	ValidatorAccumulatedCommissionPrefix = []byte{0x07} // key for accumulated validator commission
-	ValidatorSlashEventPrefix            = []byte{0x08} // key for validator slash fraction
+	//ValidatorSlashEventPrefix            = []byte{0x08} // key for validator slash fraction
 )
 
 // GetDelegatorWithdrawInfoAddress returns an address from a delegator's withdraw info key
@@ -156,27 +156,4 @@ func GetValidatorHistoricalRewardsKey(v sdk.ValAddress, k uint64) []byte {
 // gets the key for a validator's current rewards
 func GetValidatorCurrentRewardsKey(v sdk.ValAddress) []byte {
 	return append(ValidatorCurrentRewardsPrefix, v.Bytes()...)
-}
-
-// gets the prefix key for a validator's slash fractions
-func GetValidatorSlashEventPrefix(v sdk.ValAddress) []byte {
-	return append(ValidatorSlashEventPrefix, v.Bytes()...)
-}
-
-// gets the prefix key for a validator's slash fraction (ValidatorSlashEventPrefix + height)
-func GetValidatorSlashEventKeyPrefix(v sdk.ValAddress, height uint64) []byte {
-	heightBz := make([]byte, 8)
-	binary.BigEndian.PutUint64(heightBz, height)
-	return append(
-		ValidatorSlashEventPrefix,
-		append(v.Bytes(), heightBz...)...,
-	)
-}
-
-// gets the key for a validator's slash fraction
-func GetValidatorSlashEventKey(v sdk.ValAddress, height, period uint64) []byte {
-	periodBz := make([]byte, 8)
-	binary.BigEndian.PutUint64(periodBz, period)
-	prefix := GetValidatorSlashEventKeyPrefix(v, height)
-	return append(prefix, periodBz...)
 }

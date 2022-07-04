@@ -518,6 +518,9 @@ func (suite *InitExistedDelegationStartInfoestSuite) TestInitExistedDelegationSt
 			//delegation
 			DoDeposit(suite.T(), ctx, sk, delAddr1, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
 
+			coins, err := dk.WithdrawDelegationRewards(ctx, delAddr1, valOpAddr1)
+			require.Equal(suite.T(), types.ErrCodeCodeEmptyDelegationVoteValidator(), err)
+
 			tc.execute3(&ctx, dk)
 			// historical count
 			require.Equal(suite.T(), tc.beforeAddSharesReferenceCount, dk.GetValidatorHistoricalReferenceCount(ctx))
@@ -529,7 +532,13 @@ func (suite *InitExistedDelegationStartInfoestSuite) TestInitExistedDelegationSt
 			// end block
 			staking.EndBlocker(ctx, sk)
 
-			coins, err := dk.WithdrawDelegationRewards(ctx, delAddr1, valOpAddr1)
+			coins, err = dk.WithdrawDelegationRewards(ctx, delAddr1, valOpAddr3)
+			require.Equal(suite.T(), types.ErrCodeEmptyValidatorDistInfo(), err)
+
+			coins, err = dk.WithdrawDelegationRewards(ctx, delAddr2, valOpAddr1)
+			require.Equal(suite.T(), types.ErrCodeEmptyDelegationDistInfo(), err)
+
+			coins, err = dk.WithdrawDelegationRewards(ctx, delAddr1, valOpAddr1)
 			require.Equal(suite.T(), tc.afterWithdrawReferenceCount, dk.GetValidatorHistoricalReferenceCount(ctx))
 			require.Equal(suite.T(), tc.coins, coins)
 			require.Equal(suite.T(), tc.err, err)
@@ -584,5 +593,23 @@ func TestInvalidDelegation(t *testing.T) {
 		dk.calculateDelegationRewards(ctx, val, delAddr1, 1)
 	}
 	assert.Panics(t, panicFunc)
+}
 
+func TestIncrementValidatorPeriod(t *testing.T) {
+	communityTax := sdk.NewDecWithPrec(2, 2)
+	ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
+	// create validator
+	DoCreateValidator(t, ctx, sk, valOpAddr1, valConsPk1)
+	val := sk.Validator(ctx, valOpAddr1)
+
+	// Panic incrementValidatorPeriod
+	noPanicFunc := func() {
+		dk.incrementValidatorPeriod(ctx, val)
+	}
+	assert.NotPanics(t, noPanicFunc)
+
+	panicFunc := func() {
+		dk.GetValidatorCurrentRewards(ctx, val.GetOperator())
+	}
+	assert.Panics(t, panicFunc)
 }

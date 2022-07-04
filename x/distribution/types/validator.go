@@ -1,9 +1,7 @@
 package types
 
 import (
-	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"strings"
 )
 
 // ValidatorAccumulatedCommission is the accumulated commission for a validator
@@ -42,42 +40,6 @@ func NewValidatorCurrentRewards(rewards sdk.SysCoins, period uint64) ValidatorCu
 		Rewards: rewards,
 		Period:  period,
 	}
-}
-
-// validator slash event
-// height is implicit within the store key
-// needed to calculate appropriate amounts of staking token
-// for delegations which withdraw after a slash has occurred
-type ValidatorSlashEvent struct {
-	ValidatorPeriod uint64  `json:"validator_period" yaml:"validator_period"` // period when the slash occurred
-	Fraction        sdk.Dec `json:"fraction" yaml:"fraction"`                 // slash fraction
-}
-
-// create a new ValidatorSlashEvent
-func NewValidatorSlashEvent(validatorPeriod uint64, fraction sdk.Dec) ValidatorSlashEvent {
-	return ValidatorSlashEvent{
-		ValidatorPeriod: validatorPeriod,
-		Fraction:        fraction,
-	}
-}
-
-func (vs ValidatorSlashEvent) String() string {
-	return fmt.Sprintf(`Period:   %d
-Fraction: %s`, vs.ValidatorPeriod, vs.Fraction)
-}
-
-// ValidatorSlashEvents is a collection of ValidatorSlashEvent
-type ValidatorSlashEvents []ValidatorSlashEvent
-
-func (vs ValidatorSlashEvents) String() string {
-	out := "Validator Slash Events:\n"
-	for i, sl := range vs {
-		out += fmt.Sprintf(`  Slash %d:
-    Period:   %d
-    Fraction: %s
-`, i, sl.ValidatorPeriod, sl.Fraction)
-	}
-	return strings.TrimSpace(out)
 }
 
 // outstanding (un-withdrawn) rewards for a validator
