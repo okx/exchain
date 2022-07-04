@@ -58,9 +58,12 @@ func (q *GasTxQueue) Remove(element *clist.CElement) {
 	q.AddressRecord.DeleteItem(element)
 }
 
-func (q *GasTxQueue) RemoveWithKey(element *clist.CElement, key [32]byte) {
-	q.removeElementWithKey(element, key)
-	q.AddressRecord.DeleteItem(element)
+func (q *GasTxQueue) RemoveByKey(key [32]byte) (ele *clist.CElement) {
+	ele = q.removeElementByKey(key)
+	if ele != nil {
+		q.AddressRecord.DeleteItem(ele)
+	}
+	return
 }
 
 func (q *GasTxQueue) Front() *clist.CElement {
@@ -129,15 +132,18 @@ func (q *GasTxQueue) removeElement(element *clist.CElement) {
 	}
 }
 
-func (q *GasTxQueue) removeElementWithKey(element *clist.CElement, key [32]byte) {
-	q.sortedTxs.Remove(element)
-	element.DetachPrev()
+func (q *GasTxQueue) removeElementByKey(key [32]byte) (ret *clist.CElement) {
+	if v, ok := q.sortedTxsMap.LoadAndDelete(key); ok {
+		ret = v.(*clist.CElement)
+		q.sortedTxs.Remove(ret)
+		ret.DetachPrev()
 
-	q.sortedTxsMap.Delete(key)
-
-	if v, ok := q.bcTxsMap.LoadAndDelete(key); ok {
-		ele := v.(*clist.CElement)
-		q.bcTxs.Remove(ele)
-		ele.DetachPrev()
+		if v, ok := q.bcTxsMap.LoadAndDelete(key); ok {
+			ele := v.(*clist.CElement)
+			q.bcTxs.Remove(ele)
+			ele.DetachPrev()
+		}
 	}
+
+	return
 }

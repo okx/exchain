@@ -9,7 +9,7 @@ import (
 
 type elementManager interface {
 	removeElement(*clist.CElement)
-	removeElementWithKey(*clist.CElement, [32]byte)
+	removeElementByKey(key [32]byte) *clist.CElement
 	reorganizeElements([]*clist.CElement)
 }
 
