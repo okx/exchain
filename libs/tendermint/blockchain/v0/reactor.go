@@ -69,7 +69,6 @@ type BlockchainReactor struct {
 
 	blockExec    *sm.BlockExecutor
 	store        *store.BlockStore
-	dstore       *store.DeltaStore
 	pool         *BlockPool
 	fastSync     bool
 	autoFastSync bool
@@ -81,8 +80,7 @@ type BlockchainReactor struct {
 }
 
 // NewBlockchainReactor returns new reactor instance.
-func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *store.BlockStore, dstore *store.DeltaStore,
-	fastSync bool) *BlockchainReactor {
+func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *store.BlockStore, fastSync bool) *BlockchainReactor {
 	if state.LastBlockHeight != store.Height() {
 		panic(fmt.Sprintf("state (%v) and store (%v) height mismatch", state.LastBlockHeight,
 			store.Height()))
@@ -103,7 +101,6 @@ func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *st
 		curState:   state,
 		blockExec:  blockExec,
 		store:      store,
-		dstore:     dstore,
 		pool:       pool,
 		fastSync:   fastSync,
 		mtx:        sync.RWMutex{},
@@ -323,7 +320,7 @@ FOR_LOOP:
 			// routine.
 
 			// See if there are any blocks to sync.
-			first, second, _, firstExInfo := bcR.pool.PeekTwoBlocks()
+			first, second, firstExInfo := bcR.pool.PeekTwoBlocks()
 			//bcR.Logger.Info("TrySync peeked", "first", first, "second", second)
 			if first == nil || second == nil {
 				// We need both to sync the first block.
@@ -380,14 +377,6 @@ FOR_LOOP:
 					panic(fmt.Sprintf("Failed to process committed block (%d:%X): %v", first.Height, first.Hash(), err))
 				}
 				blocksSynced++
-
-				/*
-					if types.EnableBroadcastP2PDelta() {
-						// persists the given deltas to the underlying db.
-						deltas.Height = first.Height
-						bcR.dstore.SaveDeltas(deltas, first.Height)
-					}
-				*/
 
 				if blocksSynced%100 == 0 {
 					lastRate = 0.9*lastRate + 0.1*(100/time.Since(lastHundred).Seconds())
@@ -519,7 +508,6 @@ func (m *bcNoBlockResponseMessage) String() string {
 
 type bcBlockResponseMessage struct {
 	Block  *types.Block
-	Deltas *types.Deltas
 	ExInfo *types.BlockExInfo
 }
 
