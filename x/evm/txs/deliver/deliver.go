@@ -76,8 +76,7 @@ func (tx *Tx) RefundFeesWatcher(account authexported.Account, ethereumTx *types.
 	coins := account.GetCoins().Add2(fixedFees)
 	account.SetCoins(coins) //ignore err, no err will be returned in SetCoins
 
-	pm := tx.Keeper.GenerateCSDBParams()
-	pm.Watcher.SaveAccount(account, false)
+	tx.Ctx.GetWatcher().SaveAccount(account, false)
 }
 
 func (tx *Tx) Transition(config types.ChainConfig) (result base.Result, err error) {

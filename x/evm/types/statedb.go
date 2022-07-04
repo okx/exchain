@@ -39,7 +39,6 @@ type CommitStateDBParams struct {
 	ParamSpace    Subspace
 	AccountKeeper AccountKeeper
 	SupplyKeeper  SupplyKeeper
-	Watcher       Watcher
 	BankKeeper    BankKeeper
 	Ada           DbAdapter
 	// Amino codec

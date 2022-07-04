@@ -588,6 +588,9 @@ func (w *Watcher) Height() uint64 {
 
 func (w *Watcher) Collect(watchers ...sdk.IWatcher) {
 	for _, watcher := range watchers {
+		if watcher == nil {
+			continue
+		}
 		batch := watcher.Destruct()
 		w.batch = append(w.batch, batch...)
 	}
