@@ -49,7 +49,7 @@ type Context struct {
 	paraMsg            *ParaMsg
 	//	txCount            uint32
 	overridesBytes []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
-	watcher        IWatcher
+	watcher        *TxWatcher
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -191,7 +191,7 @@ func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Lo
 		gasMeter:     stypes.NewInfiniteGasMeter(),
 		minGasPrice:  DecCoins{},
 		eventManager: NewEventManager(),
-		watcher:      EmptyWatcher{},
+		watcher:      &TxWatcher{EmptyWatcher{}},
 	}
 }
 
@@ -371,11 +371,11 @@ func (c *Context) SetOverrideBytes(b []byte) *Context {
 }
 
 func (c *Context) SetWatcher(w IWatcher) {
-	c.watcher = w
+	c.watcher.IWatcher = w
 }
 
 func (c *Context) GetWatcher() IWatcher {
-	return c.watcher
+	return c.watcher.IWatcher
 }
 
 //func (c *Context) SetTxCount(count uint32) *Context {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/okex/exchain/x/evm/watcher"
 
 	"github.com/okex/exchain/app/refund"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -94,6 +95,9 @@ func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *base.Result) {
 	// update block bloom filter
 	if tx.Ctx.ParaMsg() == nil {
 		tx.Keeper.Bloom.Or(tx.Keeper.Bloom, result.ExecResult.Bloom)
+		tx.Keeper.Watcher.SaveTransactionReceipt(watcher.TransactionSuccess,
+			msg, *tx.StateTransition.TxHash,
+			tx.Keeper.Watcher.GetEvmTxIndex(), result.ResultData, tx.Ctx.GasMeter().GasConsumed())
 	} else {
 		// async mod goes immediately
 		index := tx.Keeper.LogsManages.Set(keeper.TxResult{
@@ -102,10 +106,6 @@ func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *base.Result) {
 		tx.Ctx.ParaMsg().LogIndex = index
 	}
 	tx.Keeper.LogSize = tx.StateTransition.Csdb.GetLogSize()
-	// todo
-	//tx.Ctx.GetWatcher().SaveTransactionReceipt(watcher.TransactionSuccess,
-	//	msg, *tx.StateTransition.TxHash,
-	//	tx.Ctx.GetWatcher().GetEvmTxIndex(), result.ResultData, tx.Ctx.GasMeter().GasConsumed())
 	if msg.Data.Recipient == nil {
 		tx.StateTransition.Csdb.IteratorCode(func(addr common.Address, c types.CacheCode) bool {
 			tx.Ctx.GetWatcher().SaveContractCode(addr, c.Code, uint64(tx.Ctx.BlockHeight()))

@@ -72,6 +72,9 @@ func (app *BaseApp) runTx(mode runTxMode,
 
 	info = &runTxInfo{}
 	err = app.runtxWithInfo(info, mode, txBytes, tx, height, from...)
+	if app.watcherCollector != nil && mode == runTxModeDeliver {
+		app.watcherCollector(info.runMsgCtx.GetWatcher())
+	}
 	return
 }
 
@@ -173,10 +176,6 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	if app.getTxFeeHandler != nil && mode == runTxModeDeliver {
 		fee := app.getTxFeeHandler(tx)
 		app.UpdateFeeForCollector(fee, true)
-	}
-
-	if app.watcherCollector != nil && mode == runTxModeDeliver {
-		app.watcherCollector(info.runMsgCtx.GetWatcher())
 	}
 
 	isAnteSucceed = true

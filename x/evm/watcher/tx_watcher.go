@@ -147,11 +147,9 @@ func (w *TxWatcher) DeleteContractBlockedList(addr interface{}) {
 	if !ok {
 		return
 	}
-	wMsg := NewMsgContractBlockedListItem(realAddr)
+	wMsg := NewMsgDelContractBlockedListItem(realAddr)
 	if wMsg != nil {
-		//key := wMsg.GetKey()
-		//w.store.Delete(key)
-		//w.watchData.DirtyList = append(w.watchData.DirtyList, key)
+		w.batch = append(w.batch, wMsg)
 	}
 }
 
@@ -163,11 +161,9 @@ func (w *TxWatcher) DeleteContractDeploymentWhitelist(addr interface{}) {
 	if !ok {
 		return
 	}
-	wMsg := NewMsgContractDeploymentWhitelistItem(realAddr)
+	wMsg := NewMsgDelContractDeploymentWhitelistItem(realAddr)
 	if wMsg != nil {
-		//key := wMsg.GetKey()
-		//w.store.Delete(key)
-		//w.watchData.DirtyList = append(w.watchData.DirtyList, key)
+		w.batch = append(w.batch, wMsg)
 	}
 }
 

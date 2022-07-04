@@ -104,6 +104,9 @@ type ParaMsg struct {
 	HasRunEvmTx         bool
 }
 
+type TxWatcher struct {
+	IWatcher
+}
 type WatchMessage interface {
 	GetKey() []byte
 	GetValue() string

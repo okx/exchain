@@ -838,6 +838,28 @@ func (msgItem *MsgContractBlockedListItem) GetValue() string {
 	return ""
 }
 
+type MsgDelContractBlockedListItem struct {
+	addr sdk.AccAddress
+}
+
+func (msgItem *MsgDelContractBlockedListItem) GetType() uint32 {
+	return TypeDelete
+}
+
+func NewMsgDelContractBlockedListItem(addr sdk.AccAddress) *MsgDelContractBlockedListItem {
+	return &MsgDelContractBlockedListItem{
+		addr: addr,
+	}
+}
+
+func (msgItem *MsgDelContractBlockedListItem) GetKey() []byte {
+	return append(prefixBlackList, msgItem.addr.Bytes()...)
+}
+
+func (msgItem *MsgDelContractBlockedListItem) GetValue() string {
+	return ""
+}
+
 type MsgContractDeploymentWhitelistItem struct {
 	addr sdk.AccAddress
 }
@@ -857,6 +879,28 @@ func (msgItem *MsgContractDeploymentWhitelistItem) GetKey() []byte {
 }
 
 func (msgItem *MsgContractDeploymentWhitelistItem) GetValue() string {
+	return ""
+}
+
+type MsgDelContractDeploymentWhitelistItem struct {
+	addr sdk.AccAddress
+}
+
+func (msgItem *MsgDelContractDeploymentWhitelistItem) GetType() uint32 {
+	return TypeDelete
+}
+
+func NewMsgDelContractDeploymentWhitelistItem(addr sdk.AccAddress) *MsgDelContractDeploymentWhitelistItem {
+	return &MsgDelContractDeploymentWhitelistItem{
+		addr: addr,
+	}
+}
+
+func (msgItem *MsgDelContractDeploymentWhitelistItem) GetKey() []byte {
+	return append(prefixWhiteList, msgItem.addr.Bytes()...)
+}
+
+func (msgItem *MsgDelContractDeploymentWhitelistItem) GetValue() string {
 	return ""
 }
 
