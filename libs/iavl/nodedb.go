@@ -255,17 +255,17 @@ func (ndb *nodeDB) SaveNode(batch dbm.Batch, node *Node) {
 }
 
 // SaveNode saves a FastNode to disk and add to cache.
-func (ndb *nodeDB) SaveFastNode(node *FastNode) error {
+func (ndb *nodeDB) SaveFastNode(node *FastNode, batch dbm.Batch) error {
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
-	return ndb.saveFastNodeUnlocked(node, true)
+	return ndb.saveFastNodeUnlocked(node, true, batch)
 }
 
 // SaveNode saves a FastNode to disk without adding to cache.
-func (ndb *nodeDB) SaveFastNodeNoCache(node *FastNode) error {
+func (ndb *nodeDB) SaveFastNodeNoCache(node *FastNode, batch dbm.Batch) error {
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
-	return ndb.saveFastNodeUnlocked(node, false)
+	return ndb.saveFastNodeUnlocked(node, false, batch)
 }
 
 // setFastStorageVersionToBatch sets storage version to fast where the version is
@@ -318,7 +318,7 @@ func (ndb *nodeDB) shouldForceFastStorageUpgrade() bool {
 }
 
 // SaveNode saves a FastNode to disk.
-func (ndb *nodeDB) saveFastNodeUnlocked(node *FastNode, shouldAddToCache bool) error {
+func (ndb *nodeDB) saveFastNodeUnlocked(node *FastNode, shouldAddToCache bool, batch dbm.Batch) error {
 	if node.key == nil {
 		return fmt.Errorf("cannot have FastNode with a nil value for key")
 	}
@@ -332,9 +332,7 @@ func (ndb *nodeDB) saveFastNodeUnlocked(node *FastNode, shouldAddToCache bool) e
 	}
 
 	// todo giskook check this
-	//	if err := ndb.batch.Set(ndb.fastNodeKey(node.key), buf.Bytes()); err != nil {
-	//		return fmt.Errorf("error while writing key/val to nodedb batch. Err: %w", err)
-	//	}
+	batch.Set(ndb.fastNodeKey(node.key), buf.Bytes())
 	if shouldAddToCache {
 		ndb.cacheFastNode(node)
 	}
@@ -542,13 +540,11 @@ func (ndb *nodeDB) DeleteVersionsRange(batch dbm.Batch, fromVersion, toVersion i
 	return nil
 }
 
-func (ndb *nodeDB) DeleteFastNode(key []byte) error {
+func (ndb *nodeDB) DeleteFastNode(key []byte, batch dbm.Batch) error {
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
 	// todo check batch
-	//err := ndb.batch.Delete(ndb.fastNodeKey(key)); err != nil {
-	//	return err
-	//}
+	batch.Delete(ndb.fastNodeKey(key))
 	ndb.uncacheFastNode(key)
 	return nil
 }
