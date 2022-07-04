@@ -231,6 +231,9 @@ func CreateTestInputAdvanced(t *testing.T, isCheckTx bool, initPower int64, comm
 		auth.FeeCollectorName, blacklistedAddrs)
 
 	keeper.SetWithdrawAddrEnabled(ctx, true)
+	keeper.SetDistributionType(ctx, types.DistributionTypeOffChain)
+	keeper.SetInitAllocateValidator(ctx)
+	keeper.SetInitAllocateValidatorNone(ctx)
 	initCoins := sdk.NewCoins(sdk.NewCoin(sk.BondDenom(ctx), initTokens))
 	totalSupply := sdk.NewCoins(sdk.NewCoin(sk.BondDenom(ctx), initTokens.MulRaw(int64(len(TestAddrs)))))
 	supplyKeeper.SetSupply(ctx, supply.NewSupply(totalSupply))

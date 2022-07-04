@@ -62,6 +62,12 @@ func (k Keeper) SetInitAllocateValidator(ctx sdk.Context) {
 	logger.Debug("SetInitAllocateValidator", "init", init)
 }
 
+//SetInitAllocateValidatorNone Only for UT
+func (k Keeper) SetInitAllocateValidatorNone(ctx sdk.Context) {
+	init := types.InitAllocateValidatorNone
+	k.paramSpace.Set(ctx, types.ParamStoreKeyInitAllocateValidator, &init)
+}
+
 func (k Keeper) HasInitAllocateValidator(ctx sdk.Context) bool {
 	init := types.InitAllocateValidatorNone
 	if k.paramSpace.Has(ctx, types.ParamStoreKeyInitAllocateValidator) {

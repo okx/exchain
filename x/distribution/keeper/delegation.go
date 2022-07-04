@@ -3,7 +3,6 @@ package keeper
 import (
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/x/distribution/types"
 	stakingexported "github.com/okex/exchain/x/staking/exported"
 )
@@ -91,7 +90,7 @@ func (k Keeper) calculateDelegationRewards(ctx sdk.Context, val stakingexported.
 //withdraw rewards according to the specified validator by delegator
 func (k Keeper) withdrawDelegationRewards(ctx sdk.Context, val stakingexported.ValidatorI, delAddress sdk.AccAddress) (sdk.Coins, error) {
 	if !k.checkDistributionProposalValid(ctx) {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidVersion, "not support")
+		return nil, types.ErrCodeNotSupportDistributionMethod()
 	}
 	logger := k.Logger(ctx)
 
@@ -99,7 +98,7 @@ func (k Keeper) withdrawDelegationRewards(ctx sdk.Context, val stakingexported.V
 	if !k.HasDelegatorStartingInfo(ctx, val.GetOperator(), delAddress) {
 		del := k.stakingKeeper.Delegator(ctx, delAddress)
 		if del.GetLastAddedShares().IsZero() {
-			return nil, types.ErrCodeEmptyDelegationDistInfo()
+			return nil, types.ErrCodeZeroDelegationShares()
 		}
 		k.initExistedDelegationStartInfo(ctx, val, del)
 	}
