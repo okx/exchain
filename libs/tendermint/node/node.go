@@ -191,21 +191,13 @@ type Node struct {
 	blockExec *sm.BlockExecutor
 }
 
-func initDBs(config *cfg.Config, dbProvider DBProvider) (blockStore *store.BlockStore,
-	deltaStore *store.DeltaStore, stateDB dbm.DB, err error) {
+func initDBs(config *cfg.Config, dbProvider DBProvider) (blockStore *store.BlockStore, stateDB dbm.DB, err error) {
 	var blockStoreDB dbm.DB
 	blockStoreDB, err = dbProvider(&DBContext{"blockstore", config})
 	if err != nil {
 		return
 	}
 	blockStore = store.NewBlockStore(blockStoreDB)
-
-	var deltaStoreDB dbm.DB
-	deltaStoreDB, err = dbProvider(&DBContext{"deltastore", config})
-	if err != nil {
-		return
-	}
-	deltaStore = store.NewDeltaStore(deltaStoreDB)
 
 	stateDB, err = dbProvider(&DBContext{"state", config})
 	if err != nil {
@@ -267,13 +259,12 @@ func doHandshake(
 	stateDB dbm.DB,
 	state sm.State,
 	blockStore sm.BlockStore,
-	deltaStore sm.DeltaStore,
 	genDoc *types.GenesisDoc,
 	eventBus types.BlockEventPublisher,
 	proxyApp proxy.AppConns,
 	consensusLogger log.Logger) error {
 
-	handshaker := cs.NewHandshaker(stateDB, state, blockStore, deltaStore, genDoc)
+	handshaker := cs.NewHandshaker(stateDB, state, blockStore, genDoc)
 	handshaker.SetLogger(consensusLogger)
 	handshaker.SetEventBus(eventBus)
 	if err := handshaker.Handshake(proxyApp); err != nil {
@@ -355,13 +346,12 @@ func createBlockchainReactor(config *cfg.Config,
 	state sm.State,
 	blockExec *sm.BlockExecutor,
 	blockStore *store.BlockStore,
-	deltaStore *store.DeltaStore,
 	fastSync bool,
 	logger log.Logger) (bcReactor p2p.Reactor, err error) {
 
 	switch config.FastSync.Version {
 	case "v0":
-		bcReactor = bcv0.NewBlockchainReactor(state.Copy(), blockExec, blockStore, deltaStore, fastSync)
+		bcReactor = bcv0.NewBlockchainReactor(state.Copy(), blockExec, blockStore, fastSync)
 	case "v1":
 		bcReactor = bcv1.NewBlockchainReactor(state.Copy(), blockExec, blockStore, fastSync)
 	case "v2":
@@ -378,7 +368,6 @@ func createConsensusReactor(config *cfg.Config,
 	state sm.State,
 	blockExec *sm.BlockExecutor,
 	blockStore sm.BlockStore,
-	deltaStore sm.DeltaStore,
 	mempool *mempl.CListMempool,
 	evidencePool *evidence.Pool,
 	privValidator types.PrivValidator,
@@ -393,7 +382,6 @@ func createConsensusReactor(config *cfg.Config,
 		state.Copy(),
 		blockExec,
 		blockStore,
-		deltaStore,
 		mempool,
 		evidencePool,
 		cs.StateMetrics(csMetrics),
@@ -569,7 +557,7 @@ func NewNode(config *cfg.Config,
 	logger log.Logger,
 	options ...Option) (*Node, error) {
 
-	blockStore, deltasStore, stateDB, err := initDBs(config, dbProvider)
+	blockStore, stateDB, err := initDBs(config, dbProvider)
 	if err != nil {
 		return nil, err
 	}
@@ -605,7 +593,7 @@ func NewNode(config *cfg.Config,
 	// Create the handshaker, which calls RequestInfo, sets the AppVersion on the state,
 	// and replays any blocks as necessary to sync tendermint with the app.
 	consensusLogger := logger.With("module", "consensus")
-	if err := doHandshake(stateDB, state, blockStore, deltasStore, genDoc, eventBus, proxyApp, consensusLogger); err != nil {
+	if err := doHandshake(stateDB, state, blockStore, genDoc, eventBus, proxyApp, consensusLogger); err != nil {
 		return nil, err
 	}
 
@@ -662,14 +650,14 @@ func NewNode(config *cfg.Config,
 	}
 
 	// Make BlockchainReactor
-	bcReactor, err := createBlockchainReactor(config, state, blockExec, blockStore, deltasStore, fastSync, logger)
+	bcReactor, err := createBlockchainReactor(config, state, blockExec, blockStore, fastSync, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create blockchain reactor")
 	}
 
 	// Make ConsensusReactor
 	consensusReactor, consensusState := createConsensusReactor(
-		config, state, blockExec, blockStore, deltasStore, mempool, evidencePool,
+		config, state, blockExec, blockStore, mempool, evidencePool,
 		privValidator, csMetrics, fastSync, autoFastSync, eventBus, consensusLogger,
 	)
 

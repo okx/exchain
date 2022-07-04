@@ -2,6 +2,7 @@ package base
 
 import (
 	"math/big"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethermint "github.com/okex/exchain/app/types"
@@ -10,7 +11,21 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 )
 
-func msg2st(ctx *sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (st types.StateTransition, err error) {
+var commitStateDBPool = &sync.Pool{
+	New: func() interface{} {
+		return &types.CommitStateDB{}
+	},
+}
+
+func getCommitStateDB() *types.CommitStateDB {
+	return commitStateDBPool.Get().(*types.CommitStateDB)
+}
+
+func putCommitStateDB(st *types.CommitStateDB) {
+	commitStateDBPool.Put(st)
+}
+
+func msg2st(ctx *sdk.Context, k *Keeper, msg *types.MsgEthereumTx, st *types.StateTransition) (reuseCsdb bool, err error) {
 	var chainIDEpoch *big.Int
 	chainIDEpoch, err = ethermint.ParseChainID(ctx.ChainID())
 	if err != nil {
@@ -27,25 +42,26 @@ func msg2st(ctx *sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (st types.Sta
 	txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
 	ethHash := common.BytesToHash(txHash)
 
-	st = types.StateTransition{
-		AccountNonce: msg.Data.AccountNonce,
-		Price:        msg.Data.Price,
-		GasLimit:     msg.Data.GasLimit,
-		Recipient:    msg.Data.Recipient,
-		Amount:       msg.Data.Amount,
-		Payload:      msg.Data.Payload,
-		ChainID:      chainIDEpoch,
-		TxHash:       &ethHash,
-		Sender:       sender,
-		Simulate:     ctx.IsCheckTx(),
-		TraceTx:      ctx.IsTraceTx(),
-		TraceTxLog:   ctx.IsTraceTxLog(),
-	}
-	st.Csdb = types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), *ctx)
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		if ctx.IsDeliver() {
-			st.Csdb = k.EvmStateDb.WithContext(*ctx)
-		}
+	st.AccountNonce = msg.Data.AccountNonce
+	st.Price = msg.Data.Price
+	st.GasLimit = msg.Data.GasLimit
+	st.Recipient = msg.Data.Recipient
+	st.Amount = msg.Data.Amount
+	st.Payload = msg.Data.Payload
+	st.ChainID = chainIDEpoch
+	st.TxHash = &ethHash
+	st.Sender = sender
+	st.Simulate = ctx.IsCheckTx()
+	st.TraceTx = ctx.IsTraceTx()
+	st.TraceTxLog = ctx.IsTraceTxLog()
+
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) && ctx.IsDeliver() {
+		st.Csdb = k.EvmStateDb.WithContext(*ctx)
+	} else {
+		csdb := getCommitStateDB()
+		types.ResetCommitStateDB(csdb, k.GenerateCSDBParams(), ctx)
+		st.Csdb = csdb
+		reuseCsdb = true
 	}
 
 	return
