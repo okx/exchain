@@ -952,9 +952,7 @@ func (app *BaseApp) GetRawTxInfo(rawTx tmtypes.Tx) mempool.ExTxInfo {
 	}
 	ctx := app.checkState.ctx
 	if tx.GetType() == sdk.EvmTxType && app.preDeliverTxHandler != nil {
-		ctx.SetBlockHeight(app.checkState.ctx.BlockHeight() + 1)
 		app.preDeliverTxHandler(ctx, tx, true)
-		ctx.SetBlockHeight(app.checkState.ctx.BlockHeight())
 	}
 	ctx.SetTxBytes(rawTx)
 	return app.GetTxInfo(ctx, tx)
