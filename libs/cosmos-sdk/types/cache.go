@@ -111,6 +111,10 @@ func (c *Cache) IsEnabled() bool {
 	return !c.skip()
 }
 
+func (c *Cache) DisableCache() {
+	c.useCache = false
+}
+
 func (c *Cache) UpdateAccount(addr AccAddress, acc Account, lenBytes int, isDirty bool) {
 	if c.skip() {
 		return
