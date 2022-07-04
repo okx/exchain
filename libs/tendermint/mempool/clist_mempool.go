@@ -392,6 +392,15 @@ func (mem *CListMempool) removeTx(elem *clist.CElement) {
 	atomic.AddInt64(&mem.txsBytes, int64(-len(tx)))
 }
 
+func (mem *CListMempool) removeTxByKey(key [32]byte) (elem *clist.CElement) {
+	elem = mem.txs.RemoveByKey(key)
+	if elem != nil {
+		tx := elem.Value.(*mempoolTx).tx
+		atomic.AddInt64(&mem.txsBytes, int64(-len(tx)))
+	}
+	return
+}
+
 func (mem *CListMempool) isFull(txSize int) error {
 	var (
 		memSize  = mem.Size()
@@ -811,11 +820,10 @@ func (mem *CListMempool) Update(
 		// https://github.com/tendermint/tendermint/issues/3322.
 		addr := ""
 		nonce := uint64(0)
-		if ele := mem.txs.RemoveByKey(txkey); ele != nil {
+		if ele := mem.removeTxByKey(txkey); ele != nil {
 			addr = ele.Address
 			nonce = ele.Nonce
 			mem.logUpdate(ele.Address, ele.Nonce)
-			atomic.AddInt64(&mem.txsBytes, int64(-len(ele.Value.(*mempoolTx).tx)))
 		} else {
 			if mem.txInfoparser != nil {
 				txInfo := mem.txInfoparser.GetRawTxInfo(tx)
