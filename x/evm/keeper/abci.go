@@ -39,18 +39,21 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	blockHash := common.BytesToHash(currentHash)
 	k.SetHeightHash(ctx, uint64(height), common.BytesToHash(lastHash))
 	k.SetBlockHash(ctx, lastHash, height)
-	// reset counters that are used on CommitStateDB.Prepare
-	k.Bloom = big.NewInt(0)
-	k.TxCount = 0
-	k.LogSize = 0
-	k.LogsManages = NewLogManager()
-	k.Bhash = blockHash
 
-	//that can make sure latest block has been committed
-	k.UpdatedAccount = k.UpdatedAccount[:0]
-	k.EvmStateDb = types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
-	k.EvmStateDb.StartPrefetcher("evm")
-	k.Watcher.NewHeight(uint64(req.Header.GetHeight()), blockHash, req.Header)
+	// reset counters that are used on CommitStateDB.Prepare
+	if !ctx.IsTraceTx() {
+		k.Bloom = big.NewInt(0)
+		k.TxCount = 0
+		k.LogSize = 0
+		k.LogsManages.Reset()
+		k.Bhash = blockHash
+
+		//that can make sure latest block has been committed
+		k.UpdatedAccount = k.UpdatedAccount[:0]
+		k.EvmStateDb = types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
+		k.EvmStateDb.StartPrefetcher("evm")
+		k.Watcher.NewHeight(uint64(req.Header.GetHeight()), blockHash, req.Header)
+	}
 }
 
 // EndBlock updates the accounts and commits state objects to the KV Store, while
