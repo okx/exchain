@@ -35,7 +35,8 @@ type Store struct {
 	sortedCache   *kv.List // always ascending sorted
 	parent        types.KVStore
 
-	preChangesHandler PreChangesHandler
+	preChangesHandler    PreChangesHandler
+	disableCacheReadList bool // not cache readList for group-paralleled-tx
 }
 
 var _ types.CacheKVStore = (*Store)(nil)
@@ -74,7 +75,9 @@ func (store *Store) Get(key []byte) (value []byte) {
 			value = c
 		} else {
 			value = store.parent.Get(key)
-			store.setCacheValue(key, value, false, false)
+			if !store.disableCacheReadList {
+				store.setCacheValue(key, value, false, false)
+			}
 		}
 	} else {
 		value = cacheValue.value
@@ -234,7 +237,7 @@ func (store *Store) clearCache() {
 	for key := range store.unsortedCache {
 		delete(store.unsortedCache, key)
 	}
-
+	store.disableCacheReadList = false
 	store.sortedCache.Init()
 }
 
@@ -371,4 +374,28 @@ func (store *Store) setCacheValue(key, value []byte, deleted bool, dirty bool) {
 	if dirty {
 		store.unsortedCache[keyStr] = struct{}{}
 	}
+}
+
+// Reset will clear all internal data without writing to the parent and set the new parent.
+func (store *Store) Reset(parent types.KVStore) {
+	store.mtx.Lock()
+
+	store.preChangesHandler = nil
+	store.parent = parent
+	store.clearCache()
+
+	store.mtx.Unlock()
+}
+
+// Clear will clear all internal data without writing to the parent.
+func (store *Store) Clear() {
+	store.mtx.Lock()
+	store.clearCache()
+	store.mtx.Unlock()
+}
+
+func (store *Store) DisableCacheReadList() {
+	store.mtx.Lock()
+	store.disableCacheReadList = true
+	store.mtx.Unlock()
 }

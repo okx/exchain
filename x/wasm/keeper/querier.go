@@ -62,6 +62,7 @@ func (q grpcQuerier) ContractHistory(c context.Context, req *types.QueryContract
 
 	r := make([]types.ContractCodeHistoryEntry, 0)
 	prefixStore := q.PrefixStore(c, types.GetContractCodeHistoryElementPrefix(contractAddr))
+
 	pageRes, err := query.FilteredPaginate(prefixStore, req.Pagination, func(key []byte, value []byte, accumulate bool) (bool, error) {
 		if accumulate {
 			var e types.ContractCodeHistoryEntry
@@ -93,6 +94,7 @@ func (q grpcQuerier) ContractsByCode(c context.Context, req *types.QueryContract
 
 	r := make([]string, 0)
 	prefixStore := q.PrefixStore(c, types.GetContractByCodeIDSecondaryIndexPrefix(req.CodeId))
+
 	pageRes, err := query.FilteredPaginate(prefixStore, req.Pagination, func(key []byte, value []byte, accumulate bool) (bool, error) {
 		if accumulate {
 			var contractAddr sdk.AccAddress = key[types.AbsoluteTxPositionLen:]
@@ -124,6 +126,7 @@ func (q grpcQuerier) AllContractState(c context.Context, req *types.QueryAllCont
 
 	r := make([]types.Model, 0)
 	prefixStore := q.PrefixStore(c, types.GetContractStorePrefix(contractAddr))
+
 	pageRes, err := query.FilteredPaginate(prefixStore, req.Pagination, func(key []byte, value []byte, accumulate bool) (bool, error) {
 		if accumulate {
 			r = append(r, types.Model{
@@ -171,6 +174,7 @@ func (q grpcQuerier) SmartContractState(c context.Context, req *types.QuerySmart
 	if err != nil {
 		return nil, err
 	}
+
 	ctx := q.UnwrapSDKContext(c)
 	ctx.SetGasMeter(sdk.NewGasMeter(q.queryGasLimit))
 
@@ -213,6 +217,7 @@ func (q grpcQuerier) Code(c context.Context, req *types.QueryCodeRequest) (*type
 	if req.CodeId == 0 {
 		return nil, sdkerrors.Wrap(types.ErrInvalid, "code id")
 	}
+
 	rsp, err := queryCode(q.UnwrapSDKContext(c), req.CodeId, q.keeper)
 	switch {
 	case err != nil:
@@ -230,8 +235,10 @@ func (q grpcQuerier) Codes(c context.Context, req *types.QueryCodesRequest) (*ty
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
+
 	r := make([]types.CodeInfoResponse, 0)
 	prefixStore := q.PrefixStore(c, types.CodeKeyPrefix)
+
 	pageRes, err := query.FilteredPaginate(prefixStore, req.Pagination, func(key []byte, value []byte, accumulate bool) (bool, error) {
 		if accumulate {
 			var c types.CodeInfo
@@ -294,8 +301,10 @@ func (q grpcQuerier) PinnedCodes(c context.Context, req *types.QueryPinnedCodesR
 	if req == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty request")
 	}
+
 	r := make([]uint64, 0)
 	prefixStore := q.PrefixStore(c, types.PinnedCodeIndexPrefix)
+
 	pageRes, err := query.FilteredPaginate(prefixStore, req.Pagination, func(key []byte, _ []byte, accumulate bool) (bool, error) {
 		if accumulate {
 			r = append(r, sdk.BigEndianToUint64(key))
@@ -326,3 +335,4 @@ func (q grpcQuerier) PrefixStore(c context.Context, pre []byte) sdk.KVStore {
 	return prefix.NewStore(ctx.KVStore(q.storeKey), pre)
 
 }
+

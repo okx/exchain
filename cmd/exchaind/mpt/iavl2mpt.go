@@ -15,13 +15,11 @@ import (
 	"github.com/okex/exchain/app"
 	apptypes "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	iavlstore "github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/iavl"
-	dbm "github.com/okex/exchain/libs/tm-db"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/cobra"
 )
@@ -41,7 +39,7 @@ func iavl2mptCmd(ctx *server.Context) *cobra.Command {
 				migrateAccFromIavlToMpt(ctx)
 			case evmStoreKey:
 				migrateEvmFromIavlToMpt(ctx)
-			case evmtypes.LegacyStoreKey:
+			case legacyStoreKey:
 				migrateEvmLegacyFromIavlToIavl(ctx)
 			}
 			log.Printf("--------- migrate %s end ---------\n", args[0])
@@ -159,6 +157,7 @@ func migrateEvmFromIavlToMpt(ctx *server.Context) {
 	// 3. Migrates Bloom -> rawdb
 	miragteBloomsToDb(migrationApp, cmCtx, batch)
 
+	/*
 	// 4. save an empty evmlegacy iavl tree in mirgate height
 	upgradedPrefixDb := dbm.NewPrefixDB(migrationApp.GetDB(), []byte(iavlEvmLegacyKey))
 	upgradedTree, err := iavl.NewMutableTreeWithOpts(upgradedPrefixDb, iavlstore.IavlCacheSize, nil)
@@ -166,6 +165,7 @@ func migrateEvmFromIavlToMpt(ctx *server.Context) {
 	_, version, err := upgradedTree.SaveVersionSync(cmCtx.BlockHeight()-1, false)
 	panicError(err)
 	fmt.Printf("Successfully save an empty evmlegacy iavl tree in %d\n", version)
+	 */
 }
 
 // 1. migrateContractToMpt Migrates Accounts、Code、Storage
@@ -246,10 +246,19 @@ func migrateEvmLegacyFromIavlToIavl(ctx *server.Context) {
 	migrationApp := newMigrationApp(ctx)
 	cmCtx := migrationApp.MockContext()
 
-	upgradedTree := getUpgradedTree(migrationApp.GetDB())
+	allParams := readAllParams(migrationApp)
+	upgradedTree := getUpgradedTree(migrationApp.GetDB(), []byte(KeyParams), true)
+
+	// 0. migrate latest params to pre-latest version
+	for key, value := range allParams {
+		upgradedTree.Set([]byte(key), value)
+	}
+	fmt.Printf("Successfully update all module params\n")
+
 	// 1. Migrates ChainConfig -> evmlegacy iavl
 	config, _ := migrationApp.EvmKeeper.GetChainConfig(cmCtx)
-	upgradedTree.Set(evmtypes.KeyPrefixChainConfig, migrationApp.Codec().MustMarshalBinaryBare(config))
+	upgradedTree.Set(generateKeyForCustomParamStore(evmStoreKey, evmtypes.KeyPrefixChainConfig),
+		migrationApp.Codec().MustMarshalBinaryBare(config))
 	fmt.Printf("Successfully migrate chain config\n")
 
 	// 2. Migrates ContractDeploymentWhitelist、ContractBlockedList
@@ -258,13 +267,15 @@ func migrateEvmLegacyFromIavlToIavl(ctx *server.Context) {
 	// 5.1、deploy white list
 	whiteList := csdb.GetContractDeploymentWhitelist()
 	for i := 0; i < len(whiteList); i++ {
-		upgradedTree.Set(evmtypes.GetContractDeploymentWhitelistMemberKey(whiteList[i]), []byte(""))
+		upgradedTree.Set(generateKeyForCustomParamStore(evmStoreKey, evmtypes.GetContractDeploymentWhitelistMemberKey(whiteList[i])),
+			[]byte(""))
 	}
 
 	// 5.2、deploy blocked list
 	blockedList := csdb.GetContractBlockedList()
 	for i := 0; i < len(blockedList); i++ {
-		upgradedTree.Set(evmtypes.GetContractBlockedListMemberKey(blockedList[i]), []byte(""))
+		upgradedTree.Set(generateKeyForCustomParamStore(evmStoreKey, evmtypes.GetContractBlockedListMemberKey(blockedList[i])),
+			[]byte(""))
 	}
 
 	// 5.3、deploy blocked method list
@@ -276,7 +287,8 @@ func migrateEvmLegacyFromIavlToIavl(ctx *server.Context) {
 			evmtypes.SortContractMethods(bcml[i].BlockMethods)
 			value := migrationApp.Codec().MustMarshalJSON(bcml[i].BlockMethods)
 			sortedValue := sdk.MustSortJSON(value)
-			upgradedTree.Set(evmtypes.GetContractBlockedListMemberKey(bcml[i].Address), sortedValue)
+			upgradedTree.Set(generateKeyForCustomParamStore(evmStoreKey, evmtypes.GetContractBlockedListMemberKey(bcml[i].Address)),
+				sortedValue)
 		}
 	}
 
@@ -287,4 +299,22 @@ func migrateEvmLegacyFromIavlToIavl(ctx *server.Context) {
 	hash, version, _, err := upgradedTree.SaveVersion(false)
 	panicError(err)
 	fmt.Printf("Successfully save evmlegacy, version: %d, hash: %s\n", version, ethcmn.BytesToHash(hash))
+
+}
+
+func readAllParams(app *app.OKExChainApp) map[string][]byte{
+	tree := getUpgradedTree(app.GetDB(), []byte(KeyParams), false)
+
+	paramsMap := make(map[string][]byte)
+	tree.IterateRange(nil, nil, true, func(key, value []byte) bool{
+		paramsMap[string(key)] = value
+		return false
+	})
+
+	return paramsMap
+}
+
+func generateKeyForCustomParamStore(storeKey string, key []byte) []byte {
+	prefix := []byte("custom/" + storeKey + "/")
+	return append(prefix, key...)
 }

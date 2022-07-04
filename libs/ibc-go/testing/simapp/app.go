@@ -2,6 +2,8 @@ package simapp
 
 import (
 	"fmt"
+
+	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
 	"github.com/okex/exchain/x/wasm"
 	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
@@ -126,6 +128,7 @@ var (
 			evmclient.ManageContractMethodBlockedListProposalHandler,
 			govclient.ManageTreasuresProposalHandler,
 			erc20client.TokenMappingProposalHandler,
+			erc20client.ProxyContractRedirectHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
@@ -279,7 +282,7 @@ func NewSimApp(
 		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
 		ibchost.StoreKey,
 		erc20.StoreKey,
-		mpt.StoreKey, evm.LegacyStoreKey, wasm.StoreKey,
+		mpt.StoreKey, wasm.StoreKey,
 	)
 
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
@@ -354,7 +357,7 @@ func NewSimApp(
 	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], app.marshal.GetCdc())
 	app.ParamsKeeper.RegisterSignal(evmtypes.SetEvmParamsNeedUpdate)
 	app.EvmKeeper = evm.NewKeeper(
-		app.marshal.GetCdc(), keys[evm.StoreKey], keys[evm.LegacyStoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, logger)
+		app.marshal.GetCdc(), keys[evm.StoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, logger)
 	(&bankKeeper).SetInnerTxKeeper(app.EvmKeeper)
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
@@ -604,8 +607,8 @@ func NewSimApp(
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccNonceHandler(NewAccHandler(app.AccountKeeper))
-	//app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), evmTxFeeHandler(), fixLogForParallelTxHandler(app.EvmKeeper))
-
+	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), fixLogForParallelTxHandler(app.EvmKeeper))
+	app.SetGetTxFeeHandler(getTxFeeHandler())
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
 		if err != nil {
@@ -621,6 +624,27 @@ func NewSimApp(
 	app.ScopedIBCMockKeeper = scopedIBCMockKeeper
 
 	return app
+}
+
+func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
+	return func(ctx sdk.Context, balance sdk.Coins) error {
+		return bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
+	}
+}
+func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
+	return func(logIndex []int, hasEnterEvmTx []bool, anteErrs []error) (logs [][]byte) {
+		return ek.FixLog(logIndex, hasEnterEvmTx, anteErrs)
+	}
+}
+
+func getTxFeeHandler() sdk.GetTxFeeHandler {
+	return func(tx sdk.Tx) (fee sdk.Coins) {
+		if feeTx, ok := tx.(authante.FeeTx); ok {
+			fee = feeTx.GetFee()
+		}
+
+		return
+	}
 }
 
 func (app *SimApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOption) {

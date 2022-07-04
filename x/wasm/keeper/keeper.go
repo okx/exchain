@@ -273,6 +273,7 @@ func (k Keeper) importCode(ctx sdk.Context, codeID uint64, codeInfo types.CodeIn
 	}
 
 	store := k.ada.NewStore(ctx.GasMeter(), ctx.KVStore(k.storeKey), nil)
+
 	key := types.GetCodeKey(codeID)
 	if store.Has(key) {
 		return sdkerrors.Wrapf(types.ErrDuplicate, "duplicate code: %d", codeID)
@@ -308,12 +309,11 @@ func (k Keeper) instantiate(ctx sdk.Context, codeID uint64, creator, admin sdk.A
 
 	// get contact info
 	store := k.ada.NewStore(ctx.GasMeter(), ctx.KVStore(k.storeKey), nil)
-	bz := store.Get(types.GetCodeKey(codeID))
-	if bz == nil {
+	codeInfo := k.GetCodeInfo(ctx, codeID)
+	if codeInfo == nil {
 		return nil, nil, sdkerrors.Wrap(types.ErrNotFound, "code")
 	}
-	var codeInfo types.CodeInfo
-	k.cdc.GetProtocMarshal().MustUnmarshal(bz, &codeInfo)
+
 	if !authZ.CanInstantiateContract(codeInfo.InstantiateConfig, creator) {
 		return nil, nil, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "can not instantiate")
 	}
@@ -463,6 +463,7 @@ func (k Keeper) migrate(ctx sdk.Context, contractAddress sdk.AccAddress, caller 
 	prefixStoreKey := types.GetContractStorePrefix(contractAddress)
 	prefixStore := k.ada.NewStore(ctx.GasMeter(), ctx.KVStore(k.storeKey), prefixStoreKey)
 	prefixAdapater := types.NewStoreAdapter(prefixStore)
+
 	gas := k.runtimeGasForContract(ctx)
 	res, gasUsed, err := k.wasmVM.Migrate(newCodeInfo.CodeHash, env, msg, &prefixAdapater, cosmwasmAPI, &querier, k.gasMeter(ctx), gas, costJSONDeserialization)
 	k.consumeRuntimeGas(ctx, gasUsed)
@@ -748,6 +749,7 @@ func (k Keeper) IterateContractInfo(ctx sdk.Context, cb func(sdk.AccAddress, typ
 func (k Keeper) IterateContractState(ctx sdk.Context, contractAddress sdk.AccAddress, cb func(key, value []byte) bool) {
 	prefixStoreKey := types.GetContractStorePrefix(contractAddress)
 	prefixStore := k.ada.NewStore(ctx.GasMeter(), ctx.KVStore(k.storeKey), prefixStoreKey)
+
 	iter := prefixStore.Iterator(nil, nil)
 	defer iter.Close()
 
@@ -774,6 +776,7 @@ func (k Keeper) importContractState(ctx sdk.Context, contractAddress sdk.AccAddr
 }
 
 func (k Keeper) GetCodeInfo(ctx sdk.Context, codeID uint64) *types.CodeInfo {
+
 	store := k.ada.NewStore(ctx.GasMeter(), ctx.KVStore(k.storeKey), nil)
 	var codeInfo types.CodeInfo
 	codeInfoBz := store.Get(types.GetCodeKey(codeID))
@@ -807,6 +810,7 @@ func (k Keeper) IterateCodeInfos(ctx sdk.Context, cb func(uint64, types.CodeInfo
 
 func (k Keeper) GetByteCode(ctx sdk.Context, codeID uint64) ([]byte, error) {
 	store := k.ada.NewStore(ctx.GasMeter(), ctx.KVStore(k.storeKey), nil)
+
 	var codeInfo types.CodeInfo
 	codeInfoBz := store.Get(types.GetCodeKey(codeID))
 	if codeInfoBz == nil {
@@ -827,6 +831,7 @@ func (k Keeper) pinCode(ctx sdk.Context, codeID uint64) error {
 		return sdkerrors.Wrap(types.ErrPinContractFailed, err.Error())
 	}
 	store := k.ada.NewStore(ctx.GasMeter(), ctx.KVStore(k.storeKey), nil)
+
 	// store 1 byte to not run into `nil` debugging issues
 	store.Set(types.GetPinnedCodeIndexPrefix(codeID), []byte{1})
 
@@ -848,6 +853,7 @@ func (k Keeper) unpinCode(ctx sdk.Context, codeID uint64) error {
 	}
 
 	store := k.ada.NewStore(ctx.GasMeter(), ctx.KVStore(k.storeKey), nil)
+
 	store.Delete(types.GetPinnedCodeIndexPrefix(codeID))
 
 	ctx.EventManager().EmitEvent(sdk.NewEvent(
@@ -866,6 +872,7 @@ func (k Keeper) IsPinnedCode(ctx sdk.Context, codeID uint64) bool {
 // InitializePinnedCodes updates wasmvm to pin to cache all contracts marked as pinned
 func (k Keeper) InitializePinnedCodes(ctx sdk.Context) error {
 	store := k.ada.NewStore(ctx.GasMeter(), ctx.KVStore(k.storeKey), types.PinnedCodeIndexPrefix)
+
 	iter := store.Iterator(nil, nil)
 	defer iter.Close()
 
@@ -971,6 +978,7 @@ func BuildContractAddress(codeID, instanceID uint64) sdk.AccAddress {
 
 func (k Keeper) autoIncrementID(ctx sdk.Context, lastIDKey []byte) uint64 {
 	store := k.ada.NewStore(ctx.GasMeter(), ctx.KVStore(k.storeKey), nil)
+
 	bz := store.Get(lastIDKey)
 	id := uint64(1)
 	if bz != nil {
@@ -994,6 +1002,7 @@ func (k Keeper) PeekAutoIncrementID(ctx sdk.Context, lastIDKey []byte) uint64 {
 
 func (k Keeper) importAutoIncrementID(ctx sdk.Context, lastIDKey []byte, val uint64) error {
 	store := k.ada.NewStore(ctx.GasMeter(), ctx.KVStore(k.storeKey), nil)
+
 	if store.Has(lastIDKey) {
 		return sdkerrors.Wrapf(types.ErrDuplicate, "autoincrement id: %s", string(lastIDKey))
 	}
@@ -1122,13 +1131,4 @@ func (h DefaultWasmVMContractResponseHandler) Handle(ctx sdk.Context, contractAd
 		result = rsp
 	}
 	return result, nil
-}
-
-func getPrefixStore(ctx sdk.Context, contractAddress sdk.AccAddress, storeKey sdk.StoreKey) types.StoreAdapter {
-	// create prefixed data store
-	// 0x03 | BuildContractAddress (sdk.AccAddress)
-	prefixStoreKey := types.GetContractStorePrefix(contractAddress)
-	prefixStore := prefix.NewStore(ctx.KVStore(storeKey), prefixStoreKey)
-	prefixStoreAdapter := types.NewStoreAdapter(prefixStore)
-	return prefixStoreAdapter
 }

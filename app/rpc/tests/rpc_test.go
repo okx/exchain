@@ -31,6 +31,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	cmserver "github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/watcher"
@@ -77,13 +78,19 @@ type RPCTestSuite struct {
 	// testing chains used for convenience and readability
 	chain apptesting.TestChainI
 
-	apiServer *gorpc.Server
-	Mux       *http.ServeMux
-	cliCtx    *cosmos_context.CLIContext
-	addr      string
+	apiServer     *gorpc.Server
+	Mux           *http.ServeMux
+	cliCtx        *cosmos_context.CLIContext
+	rpcListener   net.Listener
+	addr          string
+	tmRpcListener net.Listener
+	tmAddr        string
 }
 
 func (suite *RPCTestSuite) SetupTest() {
+
+	viper.Set(rpc.FlagDebugAPI, true)
+	viper.Set(cmserver.FlagPruning, cosmost.PruningOptionNothing)
 	// set exchaincli path
 	cliDir, err := ioutil.TempDir("", ".exchaincli")
 	if err != nil {
@@ -111,11 +118,18 @@ func (suite *RPCTestSuite) SetupTest() {
 	//Kb = keys.NewInMemory(hd.EthSecp256k1Options()...)
 	//info, err := Kb.CreateAccount("captain", "puzzle glide follow cruel say burst deliver wild tragic galaxy lumber offer", "", "12345678", "m/44'/60'/0'/0/1", "eth_secp256k1")
 
+	mck := NewMockClient(chainId, suite.chain, suite.chain.App())
+	suite.tmRpcListener, suite.tmAddr, err = mck.StartTmRPC()
+	if err != nil {
+		panic(err)
+	}
+	viper.Set("rpc.laddr", suite.tmAddr)
+
 	cliCtx := cosmos_context.NewCLIContext().
 		WithProxy(suite.chain.Codec()).
 		WithTrustNode(true).
 		WithChainID(chainId).
-		WithClient(NewMockClient(chainId, suite.chain, suite.chain.App())).
+		WithClient(mck).
 		WithBroadcastMode(flags.BroadcastSync)
 
 	suite.cliCtx = &cliCtx
@@ -124,10 +138,10 @@ func (suite *RPCTestSuite) SetupTest() {
 	suite.apiServer = gorpc.NewServer()
 
 	viper.Set(rpc.FlagDisableAPI, "")
+
 	viper.Set(backend.FlagApiBackendBlockLruCache, 100)
 	viper.Set(backend.FlagApiBackendTxLruCache, 100)
 	viper.Set(watcher.FlagFastQueryLru, 100)
-	viper.Set("rpc.laddr", "127.0.0.1:0")
 	viper.Set(flags.FlagKeyringBackend, "test")
 
 	viper.Set(rpc.FlagPersonalAPI, true)
@@ -141,18 +155,30 @@ func (suite *RPCTestSuite) SetupTest() {
 			panic(err)
 		}
 	}
+	StartRpc(suite)
+}
+
+func (suite *RPCTestSuite) TearDownTest() {
+	if suite.rpcListener != nil {
+		suite.rpcListener.Close()
+	}
+	if suite.tmRpcListener != nil {
+		suite.rpcListener.Close()
+	}
+}
+func StartRpc(suite *RPCTestSuite) {
 	suite.Mux = http.NewServeMux()
 	suite.Mux.HandleFunc("/", suite.apiServer.ServeHTTP)
 	listener, err := net.Listen("tcp", ":0")
 	if err != nil {
 		panic(err)
 	}
+	suite.rpcListener = listener
 	suite.addr = fmt.Sprintf("http://localhost:%d", listener.Addr().(*net.TCPAddr).Port)
 	go func() {
 		http.Serve(listener, suite.Mux)
 	}()
 }
-
 func TestRPCTestSuite(t *testing.T) {
 	suite.Run(t, new(RPCTestSuite))
 }
@@ -375,6 +401,34 @@ func (suite *RPCTestSuite) TestEth_BlockNumber() {
 	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &blockNumber2))
 
 	suite.Require().True(blockNumber2 > blockNumber1)
+}
+func (suite *RPCTestSuite) TestDebug_traceTransaction_Transfer() {
+
+	value := sdk.NewDec(1)
+	param := make([]map[string]string, 1)
+	param[0] = make(map[string]string)
+	param[0]["from"] = senderAddr.Hex()
+	param[0]["to"] = receiverAddr.Hex()
+	param[0]["value"] = (*hexutil.Big)(value.BigInt()).String()
+	param[0]["gasPrice"] = (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String()
+
+	rpcRes := Call(suite.T(), suite.addr, "eth_sendTransaction", param)
+
+	var hash ethcmn.Hash
+	suite.Require().NoError(json.Unmarshal(rpcRes.Result, &hash))
+
+	commitBlock(suite)
+	commitBlock(suite)
+	receipt := WaitForReceipt(suite.T(), suite.addr, hash)
+	suite.Require().NotNil(receipt)
+	suite.Require().Equal("0x1", receipt["status"].(string))
+
+	debugParam := make([]interface{}, 2)
+	debugParam[0] = hash.Hex()
+	debugParam[1] = map[string]string{}
+
+	rpcRes = Call(suite.T(), suite.addr, "debug_traceTransaction", debugParam)
+	suite.Require().NotNil(rpcRes.Result)
 }
 
 func (suite *RPCTestSuite) TestEth_SendTransaction_Transfer() {
@@ -848,7 +902,7 @@ func (suite *RPCTestSuite) TestEth_EstimateGas_Transfer() {
 	err := json.Unmarshal(rpcRes.Result, &gas)
 	suite.Require().NoError(err, string(rpcRes.Result))
 
-	suite.Require().Equal("0x5208", gas)
+	suite.Require().Equal("0x11558", gas)
 }
 
 func (suite *RPCTestSuite) TestEth_EstimateGas_ContractDeployment() {
@@ -867,7 +921,7 @@ func (suite *RPCTestSuite) TestEth_EstimateGas_ContractDeployment() {
 	err := json.Unmarshal(rpcRes.Result, &gas)
 	suite.Require().NoError(err, string(rpcRes.Result))
 
-	suite.Require().Equal("0x1879c", gas.String())
+	suite.Require().Equal("0x24aec", gas.String())
 }
 
 func (suite *RPCTestSuite) TestEth_GetBlockByHash() {

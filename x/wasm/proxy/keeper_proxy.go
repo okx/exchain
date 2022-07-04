@@ -135,7 +135,7 @@ func NewBankKeeperProxy(akp AccountKeeperProxy) BankKeeperProxy {
 func (b BankKeeperProxy) GetAllBalances(ctx sdk.Context, addr sdk.AccAddress) sdk.Coins {
 	//acc := b.akp.GetAccount(ctx, addr)
 	//return acc.GetCoins()
-	return global.GetSupply()
+	return global.GetSupply().(sdk.Coins)
 }
 
 func (b BankKeeperProxy) GetBalance(ctx sdk.Context, addr sdk.AccAddress, denom string) sdk.Coin {
@@ -144,7 +144,7 @@ func (b BankKeeperProxy) GetBalance(ctx sdk.Context, addr sdk.AccAddress, denom 
 	//	Denom:  denom,
 	//	Amount: acc.GetCoins().AmountOf(denom),
 	//}
-	s := global.GetSupply()
+	s := global.GetSupply().(sdk.Coins)
 	return sdk.Coin{
 		Denom:  denom,
 		Amount: s.AmountOf(denom),
@@ -180,7 +180,7 @@ type SupplyKeeperProxy struct{}
 
 func (s SupplyKeeperProxy) GetSupply(ctx sdk.Context) supplyexported.SupplyI {
 	return supply.Supply{
-		Total: global.GetSupply(),
+		Total: global.GetSupply().(sdk.Coins),
 	}
 }
 

@@ -365,7 +365,7 @@ func newTestOkcChainApp(
 	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], app.marshal.GetCdc())
 	app.ParamsKeeper.RegisterSignal(evmtypes.SetEvmParamsNeedUpdate)
 	app.EvmKeeper = evm.NewKeeper(
-		app.marshal.GetCdc(), keys[evm.StoreKey], keys[evm.LegacyStoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, logger)
+		app.marshal.GetCdc(), keys[evm.StoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, logger)
 	(&bankKeeper).SetInnerTxKeeper(app.EvmKeeper)
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
@@ -446,7 +446,8 @@ func newTestOkcChainApp(
 	app.Erc20Keeper.SetGovKeeper(app.GovKeeper)
 
 	// Set EVM hooks
-	app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper)))
+	app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper),
+		erc20.NewSendNative20ToIbcEventHandler(app.Erc20Keeper)))
 	// Set IBC hooks
 	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
 	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
@@ -741,4 +742,62 @@ func (d *RecordMemDB) Stats() map[string]string {
 
 func (d *RecordMemDB) Set(key []byte, value []byte) error {
 	return d.db.Set(key, value)
+}
+
+func TestErc20InitGenesis(t *testing.T) {
+	db := newRecordMemDB()
+
+	cases := createCases(1, 1)
+	m := make(map[string]int)
+	count := 0
+	maxHeight := int64(0)
+	veneus1H := 10
+	tmtypes.UnittestOnlySetMilestoneVenus1Height(10)
+
+	modules := make([]*simpleAppModule, 0)
+	for _, ca := range cases {
+		c := ca
+		m[c.name] = 0
+		if maxHeight < c.upgradeH {
+			maxHeight = c.upgradeH
+		}
+		modules = append(modules, newSimpleAppModule(t, c.upgradeH, c.name, func() {
+			m[c.name]++
+			count++
+		}))
+	}
+
+	app := setupTestApp(db, cases, modules)
+
+	genesisState := ModuleBasics.DefaultGenesis()
+	stateBytes, err := codec.MarshalJSONIndent(app.Codec(), genesisState)
+	require.NoError(t, err)
+	// Initialize the chain
+	app.InitChain(
+		abci.RequestInitChain{
+			Validators:    []abci.ValidatorUpdate{},
+			AppStateBytes: stateBytes,
+		},
+	)
+	app.Commit(abci.RequestCommit{})
+
+	for i := int64(2); i < int64(veneus1H+5); i++ {
+		header := abci.Header{Height: i}
+		app.BeginBlock(abci.RequestBeginBlock{Header: header})
+		if i <= int64(veneus1H) {
+			_, found := app.Erc20Keeper.GetImplementTemplateContract(app.GetDeliverStateCtx())
+			require.Equal(t, found, false)
+			_, found = app.Erc20Keeper.GetProxyTemplateContract(app.GetDeliverStateCtx())
+			require.Equal(t, found, false)
+		}
+		if i >= int64(veneus1H+2) {
+			_, found := app.Erc20Keeper.GetImplementTemplateContract(app.GetDeliverStateCtx())
+			require.Equal(t, found, true)
+			_, found = app.Erc20Keeper.GetProxyTemplateContract(app.GetDeliverStateCtx())
+			require.Equal(t, found, true)
+		}
+		app.Commit(abci.RequestCommit{})
+
+	}
+
 }

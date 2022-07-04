@@ -7,9 +7,13 @@ export GO111MODULE=on
 
 GithubTop=github.com
 
+GO_VERSION=1.17
+ROCKSDB_VERSION=6.27.3
+IGNORE_CHECK_GO=false
+install_rocksdb_version:=$(ROCKSDB_VERSION)
 
 
-Version=v1.5.2
+Version=v1.6.0
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
@@ -27,6 +31,10 @@ SaturnHeight=0
 LINK_STATICALLY = false
 cgo_flags=
 
+ifeq ($(IGNORE_CHECK_GO),true)
+    GO_VERSION=0
+endif
+
 # process linker flags
 ifeq ($(VERSION),)
     VERSION = $(COMMIT)
@@ -41,6 +49,8 @@ ifeq ($(WITH_ROCKSDB),true)
       cgo_flags += CGO_CFLAGS="-I/usr/include/rocksdb"
       cgo_flags += CGO_LDFLAGS="-L/usr/lib -lrocksdb -lstdc++ -lm  -lsnappy -llz4"
   endif
+else
+  ROCKSDB_VERSION=0
 endif
 
 ifeq ($(LINK_STATICALLY),true)
@@ -103,9 +113,12 @@ all: install
 
 install: exchain
 
-exchain:
+exchain: check_version
 	$(cgo_flags) go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaind
 	$(cgo_flags) go install -v $(BUILD_FLAGS) -tags "$(build_tags)" ./cmd/exchaincli
+
+check_version:
+	@sh $(shell pwd)/dev/check-version.sh $(GO_VERSION) $(ROCKSDB_VERSION)
 
 mainnet: exchain
 
@@ -206,7 +219,7 @@ localnet-stop:
 
 rocksdb:
 	@echo "Installing rocksdb..."
-	@bash ./libs/rocksdb/install.sh
+	@bash ./libs/rocksdb/install.sh --version v$(install_rocksdb_version)
 .PHONY: rocksdb
 
 .PHONY: build

@@ -6,12 +6,13 @@ import (
 	"path/filepath"
 	"sync"
 
+	store "github.com/okex/exchain/libs/cosmos-sdk/store/types"
+
 	"github.com/gorilla/mux"
 	clictx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	cdctypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
-	store "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -69,7 +70,7 @@ func (am AppModule) NewQuerierHandler() sdk.Querier {
 // no validator updates.
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
 	// Note: use RegisterTask instead
-	
+
 	//var genesisState GenesisState
 	//ModuleCdc.MustUnmarshalJSON(data, &genesisState)
 	//validators, err := InitGenesis(ctx, am.keeper, genesisState, am.NewHandler())

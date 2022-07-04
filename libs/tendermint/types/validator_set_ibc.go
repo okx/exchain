@@ -37,3 +37,22 @@ func (vals *ValidatorSet) IBCVerifyCommitLight(chainID string, blockID BlockID,
 
 	return vals.commonVerifyCommitLight(chainID, blockID, height, commit, true)
 }
+
+//-------------------------------------
+
+// ValidatorsByVotingPower implements sort.Interface for []*Validator based on
+// the VotingPower and Address fields.
+type ValidatorsByVotingPower []*Validator
+
+func (valz ValidatorsByVotingPower) Len() int { return len(valz) }
+
+func (valz ValidatorsByVotingPower) Less(i, j int) bool {
+	if valz[i].VotingPower == valz[j].VotingPower {
+		return bytes.Compare(valz[i].Address, valz[j].Address) == -1
+	}
+	return valz[i].VotingPower > valz[j].VotingPower
+}
+
+func (valz ValidatorsByVotingPower) Swap(i, j int) {
+	valz[i], valz[j] = valz[j], valz[i]
+}

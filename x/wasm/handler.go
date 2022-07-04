@@ -35,6 +35,7 @@ func NewHandler(k types.ContractOpsKeeper) sdk.Handler {
 				watcher.Commit(err)
 			}
 		}()
+
 		switch msg := msg.(type) {
 		case *MsgStoreCode: //nolint:typecheck
 			res, err = msgServer.StoreCode(sdk.WrapSDKContext(ctx), msg)

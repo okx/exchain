@@ -1,7 +1,5 @@
 package global
 
-import sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-
 var bankSendEnabled bool
 
 func SetSendEnabled(enable bool) {
@@ -12,12 +10,12 @@ func GetSendEnabled() bool {
 	return bankSendEnabled
 }
 
-var supply sdk.Coins
+var supply interface{} //sdk.Coins
 
-func SetSupply(coins sdk.Coins) {
+func SetSupply(coins interface{}) {
 	supply = coins
 }
 
-func GetSupply() sdk.Coins {
+func GetSupply() interface{} {
 	return supply
 }
