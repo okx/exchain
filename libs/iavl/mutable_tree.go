@@ -180,10 +180,14 @@ func (tree *MutableTree) prepareOrphansSlice() []*Node {
 
 // Set sets a key in the working tree. Nil values are invalid. The given key/value byte slices must
 // not be modified after this call, since they point to slices stored within IAVL.
-func (tree *MutableTree) Set(key, value []byte) bool {
-	// orphaned, updated := tree.set(key, value) // old code
-	orphaned := tree.makeOrphansSliceReady()
-	updated := tree.setWithOrphansSlice(key, value, &orphaned)
+func (tree *MutableTree) Set(key, value []byte) (updated bool) {
+	// todo giskook check with chern wang
+	// 	orphaned := tree.makeOrphansSliceReady()
+	// 	updated := tree.setWithOrphansSlice(key, value, &orphaned)
+	// 	tree.addOrphans(orphaned)
+	// 	return updated
+	var orphaned []*Node
+	orphaned, updated = tree.set(key, value)
 	tree.addOrphans(orphaned)
 	return updated
 }
@@ -315,9 +319,14 @@ func (tree *MutableTree) recursiveSet(node *Node, key []byte, value []byte, orph
 // after this call, since it may point to data stored inside IAVL.
 func (tree *MutableTree) Remove(key []byte) ([]byte, bool) {
 	// val, orphaned, removed := tree.remove(key) // old code
-	orphaned := tree.makeOrphansSliceReady()
-	val, removed := tree.removeWithOrphansSlice(key, &orphaned)
+	// todo giskook check with Chern Wang
+	//	orphaned := tree.makeOrphansSliceReady()
+	//	val, removed := tree.removeWithOrphansSlice(key, &orphaned)
+	//	tree.addOrphans(orphaned)
+	//	return val, removed
+	val, orphaned, removed := tree.remove(key)
 	tree.addOrphans(orphaned)
+
 	return val, removed
 }
 
