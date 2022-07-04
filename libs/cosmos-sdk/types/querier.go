@@ -18,7 +18,8 @@ type QueryTraceBlock struct {
 	ConfigBytes []byte `json:"config"`
 }
 type QueryTraceTxResult struct {
-	TxIndex int    `json:"txindex"`
-	Result  []byte `json:"result"`
-	Error   error  `json:"error"`
+	TxIndex int         `json:"tx_index"`
+	TxHash  common.Hash `json:"tx_hash"`
+	Result  []byte      `json:"result"`
+	Error   error       `json:"error"`
 }

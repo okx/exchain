@@ -143,6 +143,7 @@ type SignTransactionResult struct {
 
 type TraceTxResult struct {
 	TxIndex int         `json:"tx_index"`
+	Txhash  common.Hash `json:"tx_hash"`
 	Result  interface{} `json:"result"`
 	Error   string      `json:"error"`
 }

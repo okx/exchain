@@ -115,8 +115,10 @@ func (api *PublicDebugAPI) traceBlockByNumber(blockNum rpctypes.BlockNumber, con
 	}
 	rpcResults := []types.TraceTxResult{}
 	for _, res := range results {
-		rpcRes := types.TraceTxResult{}
-		rpcRes.TxIndex = res.TxIndex
+		rpcRes := types.TraceTxResult{
+			TxIndex: res.TxIndex,
+			Txhash:  res.TxHash,
+		}
 		if res.Error != nil {
 			rpcRes.Error = res.Error.Error()
 		} else {

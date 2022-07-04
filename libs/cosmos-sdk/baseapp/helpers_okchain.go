@@ -3,6 +3,7 @@ package baseapp
 import (
 	"fmt"
 
+	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -43,8 +44,10 @@ func (app *BaseApp) TraceBlock(queryTraceTx sdk.QueryTraceBlock, block *tmtypes.
 	traceState.ctx.SetTraceTxLogConfig(queryTraceTx.ConfigBytes)
 	//pre deliver prodesessor tx to get the right state
 	for txindex, txBz := range block.Txs {
+
 		result := sdk.QueryTraceTxResult{
 			TxIndex: txindex,
+			TxHash:  common.BytesToHash(txBz.Hash(queryTraceTx.Height)),
 		}
 		tx, err := app.txDecoder(txBz, block.Height)
 		if err != nil {
