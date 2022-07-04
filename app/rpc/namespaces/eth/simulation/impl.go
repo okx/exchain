@@ -7,6 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+
 	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	store "github.com/okex/exchain/libs/cosmos-sdk/store/types"
@@ -33,6 +34,7 @@ type QueryOnChainProxy interface {
 	GetAccount(address common.Address) (*types.EthAccount, error)
 	GetStorageAtInternal(address common.Address, key []byte) (hexutil.Bytes, error)
 	GetCodeByHash(hash common.Hash) (hexutil.Bytes, error)
+	GetCodec() *codec.Codec
 }
 
 // AccountKeeper defines the expected account keeper interface
@@ -106,6 +108,10 @@ func (s SupplyKeeperProxy) SendCoinsFromModuleToAccount(ctx sdk.Context, senderM
 
 type SubspaceProxy struct {
 	q *watcher.Querier
+}
+
+func (p SubspaceProxy) CustomKVStore(ctx sdk.Context) sdk.KVStore {
+	panic("implement me")
 }
 
 func NewSubspaceProxy() SubspaceProxy {

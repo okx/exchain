@@ -2,13 +2,11 @@ package types
 
 import (
 	"context"
-	"time"
-
-	"github.com/okex/exchain/libs/system/trace"
-
 	"github.com/gogo/protobuf/proto"
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/gaskv"
 	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
@@ -48,7 +46,8 @@ type Context struct {
 	trc                *trace.Tracer
 	accountCache       *AccountCache
 	paraMsg            *ParaMsg
-	overridesBytes     []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
+	//	txCount            uint32
+	overridesBytes []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -82,7 +81,7 @@ func (c *Context) IsDeliver() bool {
 }
 
 func (c *Context) UseParamCache() bool {
-	return c.isDeliver || (c.paraMsg != nil && !c.paraMsg.HaveCosmosTxInBlock)
+	return c.isDeliver || (c.paraMsg != nil && !c.paraMsg.HaveCosmosTxInBlock) || c.checkTx
 }
 
 func (c *Context) IsCheckTx() bool             { return c.checkTx }
@@ -170,6 +169,11 @@ func (c *Context) BlockHeader() abci.Header {
 func (c *Context) ConsensusParams() *abci.ConsensusParams {
 	return proto.Clone(c.consParams).(*abci.ConsensusParams)
 }
+
+////TxCount
+//func (c *Context) TxCount() uint32 {
+//	return c.txCount
+//}
 
 // NewContext create a new context
 func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Logger) Context {
@@ -363,6 +367,11 @@ func (c *Context) SetOverrideBytes(b []byte) *Context {
 	return c
 }
 
+//func (c *Context) SetTxCount(count uint32) *Context {
+//	c.txCount = count
+//	return c
+//}
+
 // ----------------------------------------------------------------------------
 // Store / Caching
 // ----------------------------------------------------------------------------
@@ -425,6 +434,25 @@ func (c Context) WithIsTraceTxLog(isTraceTxLog bool) Context {
 	}
 	c.traceTxLog = isTraceTxLog
 	return c
+}
+
+// WithValue is deprecated, provided for backwards compatibility
+// Please use
+//     ctx = ctx.WithContext(context.WithValue(ctx.Context(), key, false))
+// instead of
+//     ctx = ctx.WithValue(key, false)
+func (c Context) WithValue(key, value interface{}) Context {
+	c.ctx = context.WithValue(c.ctx, key, value)
+	return c
+}
+
+// Value is deprecated, provided for backwards compatibility
+// Please use
+//     ctx.Context().Value(key)
+// instead of
+//     ctx.Value(key)
+func (c Context) Value(key interface{}) interface{} {
+	return c.ctx.Value(key)
 }
 
 type AccountCache struct {

@@ -72,7 +72,6 @@ func setupTest() *WatcherTestSt {
 	params.EnableCreate = true
 	params.EnableCall = true
 	w.app.EvmKeeper.SetParams(w.ctx, params)
-
 	return w
 }
 
@@ -351,13 +350,16 @@ func TestDuplicateAddress(t *testing.T) {
 
 func TestDuplicateWatchMessage(t *testing.T) {
 	w := setupTest()
+	w.app.EvmKeeper.Watcher.NewHeight(1, common.Hash{}, abci.Header{Height: 1})
+	// init store
+	store := watcher.InstanceOfWatchStore()
+	flushDB(store)
 	a1 := newMockAccount(1, 1)
 	w.app.EvmKeeper.Watcher.SaveAccount(a1, true)
 	a2 := newMockAccount(1, 2)
 	w.app.EvmKeeper.Watcher.SaveAccount(a2, true)
 	w.app.EvmKeeper.Watcher.Commit()
 	time.Sleep(time.Millisecond)
-	store := watcher.InstanceOfWatchStore()
 	pWd := getDBKV(store)
 	require.Equal(t, 1, len(pWd))
 }
@@ -367,6 +369,10 @@ func TestWriteLatestMsg(t *testing.T) {
 	viper.Set(watcher.FlagDBBackend, "memdb")
 	w := watcher.NewWatcher(log.NewTMLogger(os.Stdout))
 	w.SetWatchDataFunc()
+	w.NewHeight(1, common.Hash{}, abci.Header{Height: 1})
+	// init store
+	store := watcher.InstanceOfWatchStore()
+	flushDB(store)
 
 	a1 := newMockAccount(1, 1)
 	a11 := newMockAccount(1, 2)
@@ -378,7 +384,6 @@ func TestWriteLatestMsg(t *testing.T) {
 	time.Sleep(time.Millisecond)
 	w.Commit()
 	time.Sleep(time.Millisecond)
-	store := watcher.InstanceOfWatchStore()
 	pWd := getDBKV(store)
 	require.Equal(t, 1, len(pWd))
 

@@ -16,7 +16,7 @@ func NewHandler(k *Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (result *sdk.Result, err error) {
 		ctx.SetEventManager(sdk.NewEventManager())
 
-		if ctx.IsDeliver(){
+		if ctx.IsDeliver() {
 			k.EvmStateDb.WithContext(ctx).MarkUpdatedAcc(k.UpdatedAccount)
 			k.UpdatedAccount = k.UpdatedAccount[:0]
 		}
@@ -92,6 +92,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (
 	if err != nil {
 		return nil, err
 	}
+	defer tx.Dispose()
 
 	// core logical to handle ethereum tx
 	rst, err := txs.TransitionEvmTx(tx, msg)

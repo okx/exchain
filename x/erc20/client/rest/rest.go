@@ -93,3 +93,11 @@ func denomByContractHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 func TokenMappingProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
 	return govRest.ProposalRESTHandler{}
 }
+
+// ProxyContractRedirectRESTHandler defines erc20 proxy contract redirect proposal handler
+func ProxyContractRedirectRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
+	return govRest.ProposalRESTHandler{}
+}
+func ContractTemplateProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
+	return govRest.ProposalRESTHandler{}
+}
