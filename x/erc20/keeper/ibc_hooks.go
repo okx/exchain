@@ -23,7 +23,7 @@ func (iths IBCTransferHooks) AfterSendTransfer(
 	token sdk.SysCoin,
 	sender sdk.AccAddress,
 	receiver string,
-	isSource bool) {
+	isSource bool) error {
 	iths.Logger(ctx).Info(
 		"trigger ibc transfer hook",
 		"hook", "AfterSendTransfer",
@@ -33,7 +33,7 @@ func (iths IBCTransferHooks) AfterSendTransfer(
 		"sender", sender.String(),
 		"receiver", receiver,
 		"isSource", isSource)
-	return
+	return nil
 }
 
 func (iths IBCTransferHooks) AfterRecvTransfer(
@@ -41,7 +41,7 @@ func (iths IBCTransferHooks) AfterRecvTransfer(
 	destPort, destChannel string,
 	token sdk.SysCoin,
 	receiver string,
-	isSource bool) {
+	isSource bool) error {
 	iths.Logger(ctx).Info(
 		"trigger ibc transfer hook",
 		"hook", "AfterRecvTransfer",
@@ -54,11 +54,12 @@ func (iths IBCTransferHooks) AfterRecvTransfer(
 	if !isSource {
 		// only after minting vouchers on this chain
 		// the native coin come from other chain with ibc
-		iths.Keeper.OnMintVouchers(ctx, sdk.NewCoins(token), receiver)
+		return iths.Keeper.OnMintVouchers(ctx, sdk.NewCoins(token), receiver)
 	} else if token.Denom != sdk.DefaultBondDenom {
 		// the native coin come from this chain,
-		iths.Keeper.OnUnescrowNatives(ctx, sdk.NewCoins(token), receiver)
+		return iths.Keeper.OnUnescrowNatives(ctx, sdk.NewCoins(token), receiver)
 	}
+	return nil
 }
 
 func (iths IBCTransferHooks) AfterRefundTransfer(
@@ -66,7 +67,7 @@ func (iths IBCTransferHooks) AfterRefundTransfer(
 	sourcePort, sourceChannel string,
 	token sdk.SysCoin,
 	sender string,
-	isSource bool) {
+	isSource bool) error {
 	iths.Logger(ctx).Info(
 		"trigger ibc transfer hook",
 		"hook", "AfterRefundTransfer",
@@ -78,9 +79,10 @@ func (iths IBCTransferHooks) AfterRefundTransfer(
 	// only after minting vouchers on this chain
 	// the native coin come from other chain with ibc
 	if !isSource {
-		iths.Keeper.OnMintVouchers(ctx, sdk.NewCoins(token), sender)
+		return iths.Keeper.OnMintVouchers(ctx, sdk.NewCoins(token), sender)
 	} else if token.Denom != sdk.DefaultBondDenom {
 		// the native coin come from this chain,
-		iths.Keeper.OnUnescrowNatives(ctx, sdk.NewCoins(token), sender)
+		return iths.Keeper.OnUnescrowNatives(ctx, sdk.NewCoins(token), sender)
 	}
+	return nil
 }

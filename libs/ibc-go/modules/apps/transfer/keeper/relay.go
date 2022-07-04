@@ -155,7 +155,9 @@ func (k Keeper) SendTransfer(
 		return err
 	}
 
-	k.CallAfterSendTransferHooks(ctx, sourcePort, sourceChannel, token, sender, receiver, isSource)
+	if err := k.CallAfterSendTransferHooks(ctx, sourcePort, sourceChannel, token, sender, receiver, isSource); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -238,7 +240,9 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 			return sdkerrors.Wrap(err, "unable to unescrow tokens, this may be caused by a malicious counterparty module or a bug: please open an issue on counterparty module")
 		}
 
-		k.CallAfterRecvTransferHooks(ctx, packet.DestinationPort, packet.DestinationChannel, token, data.Receiver, isSource)
+		if err := k.CallAfterRecvTransferHooks(ctx, packet.DestinationPort, packet.DestinationChannel, token, data.Receiver, isSource); err != nil {
+			return err
+		}
 		return nil
 	}
 
@@ -290,7 +294,9 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 		panic(fmt.Sprintf("unable to send coins from module to account despite previously minting coins to module account: %v", err))
 	}
 
-	k.CallAfterRecvTransferHooks(ctx, packet.DestinationPort, packet.DestinationChannel, voucher, data.Receiver, isSource)
+	if err := k.CallAfterRecvTransferHooks(ctx, packet.DestinationPort, packet.DestinationChannel, voucher, data.Receiver, isSource); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -354,7 +360,9 @@ func (k Keeper) refundPacketToken(ctx sdk.Context, packet channeltypes.Packet, d
 			return sdkerrors.Wrap(err, "unable to unescrow tokens, this may be caused by a malicious counterparty module or a bug: please open an issue on counterparty module")
 		}
 
-		k.CallAfterRefundTransferHooks(ctx, packet.SourcePort, packet.SourceChannel, token, data.Sender, isSource)
+		if err := k.CallAfterRefundTransferHooks(ctx, packet.SourcePort, packet.SourceChannel, token, data.Sender, isSource); err != nil {
+			return err
+		}
 		return nil
 	}
 
@@ -369,7 +377,9 @@ func (k Keeper) refundPacketToken(ctx sdk.Context, packet channeltypes.Packet, d
 		panic(fmt.Sprintf("unable to send coins from module to account despite previously minting coins to module account: %v", err))
 	}
 
-	k.CallAfterRefundTransferHooks(ctx, packet.SourcePort, packet.SourceChannel, token, data.Sender, isSource)
+	if err := k.CallAfterRefundTransferHooks(ctx, packet.SourcePort, packet.SourceChannel, token, data.Sender, isSource); err != nil {
+		return err
+	}
 	return nil
 }
 
