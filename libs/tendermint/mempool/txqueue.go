@@ -12,6 +12,7 @@ type ITransactionQueue interface {
 	Len() int
 	Insert(tx *mempoolTx) error
 	Remove(element *clist.CElement)
+	RemoveWithKey(element *clist.CElement, key [sha256.Size]byte)
 	Front() *clist.CElement
 	Back() *clist.CElement
 	BroadcastFront() *clist.CElement
@@ -66,6 +67,11 @@ func (q *BaseTxQueue) Remove(element *clist.CElement) {
 	q.AddressRecord.DeleteItem(element)
 }
 
+func (q *BaseTxQueue) RemoveWithKey(element *clist.CElement, key [32]byte) {
+	q.removeElementWithKey(element, key)
+	q.AddressRecord.DeleteItem(element)
+}
+
 func (q *BaseTxQueue) Front() *clist.CElement {
 	return q.txs.Front()
 }
@@ -101,6 +107,13 @@ func (q *BaseTxQueue) removeElement(element *clist.CElement) {
 	tx := element.Value.(*mempoolTx).tx
 	txHash := txKey(tx)
 	q.txsMap.Delete(txHash)
+}
+
+func (q *BaseTxQueue) removeElementWithKey(element *clist.CElement, key [32]byte) {
+	q.txs.Remove(element)
+	element.DetachPrev()
+
+	q.txsMap.Delete(key)
 }
 
 func (q *BaseTxQueue) CleanItems(address string, nonce uint64) {

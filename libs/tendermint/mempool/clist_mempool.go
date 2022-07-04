@@ -391,6 +391,12 @@ func (mem *CListMempool) removeTx(elem *clist.CElement) {
 	atomic.AddInt64(&mem.txsBytes, int64(-len(tx)))
 }
 
+func (mem *CListMempool) removeTxWithKey(elem *clist.CElement, txKey [32]byte) {
+	mem.txs.RemoveWithKey(elem, txKey)
+	tx := elem.Value.(*mempoolTx).tx
+	atomic.AddInt64(&mem.txsBytes, int64(-len(tx)))
+}
+
 func (mem *CListMempool) isFull(txSize int) error {
 	var (
 		memSize  = mem.Size()
@@ -806,7 +812,7 @@ func (mem *CListMempool) Update(
 		if ele, ok := mem.txs.Load(txkey); ok {
 			addr = ele.Address
 			nonce = ele.Nonce
-			mem.removeTx(ele)
+			mem.removeTxWithKey(ele, txkey)
 			mem.logUpdate(ele.Address, ele.Nonce)
 		} else {
 			if mem.txInfoparser != nil {
