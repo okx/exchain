@@ -125,7 +125,7 @@ func (pb *playback) replayReset(count int, newStepSub types.Subscription) error 
 	pb.cs.Wait()
 
 	newCS := NewState(pb.cs.config, pb.genesisState.Copy(), pb.cs.blockExec,
-		pb.cs.blockStore, pb.cs.deltaStore, pb.cs.txNotifier, pb.cs.evpool)
+		pb.cs.blockStore, pb.cs.txNotifier, pb.cs.evpool)
 	newCS.SetEventBus(pb.cs.eventBus)
 	newCS.startForReplay()
 
@@ -280,10 +280,6 @@ func newConsensusStateForReplay(config cfg.BaseConfig, csConfig *cfg.ConsensusCo
 	blockStoreDB := dbm.NewDB("blockstore", dbType, config.DBDir())
 	blockStore := store.NewBlockStore(blockStoreDB)
 
-	// Get DeltaStore
-	deltaStoreDB := dbm.NewDB("deltastore", dbType, config.DBDir())
-	deltaStore := store.NewDeltaStore(deltaStoreDB)
-
 	// Get State
 	stateDB := dbm.NewDB("state", dbType, config.DBDir())
 	gdoc, err := sm.MakeGenesisDocFromFile(config.GenesisFile())
@@ -308,7 +304,7 @@ func newConsensusStateForReplay(config cfg.BaseConfig, csConfig *cfg.ConsensusCo
 		tmos.Exit(fmt.Sprintf("Failed to start event bus: %v", err))
 	}
 
-	handshaker := NewHandshaker(stateDB, state, blockStore, deltaStore, gdoc)
+	handshaker := NewHandshaker(stateDB, state, blockStore, gdoc)
 	handshaker.SetEventBus(eventBus)
 	err = handshaker.Handshake(proxyApp)
 	if err != nil {
@@ -319,7 +315,7 @@ func newConsensusStateForReplay(config cfg.BaseConfig, csConfig *cfg.ConsensusCo
 	blockExec := sm.NewBlockExecutor(stateDB, log.TestingLogger(), proxyApp.Consensus(), mempool, evpool)
 
 	consensusState := NewState(csConfig, state.Copy(), blockExec,
-		blockStore, deltaStore, mempool, evpool)
+		blockStore, mempool, evpool)
 
 	consensusState.SetEventBus(eventBus)
 	return consensusState
