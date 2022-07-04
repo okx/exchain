@@ -958,6 +958,13 @@ func (app *BaseApp) GetRawTxInfo(rawTx tmtypes.Tx) mempool.ExTxInfo {
 	return app.GetTxInfo(ctx, tx)
 }
 
+func (app *BaseApp) GetRealTxFromRawTx(rawTx tmtypes.Tx) abci.TxEssentials {
+	if tx, ok := app.blockDataCache.GetTx(rawTx); ok {
+		return tx
+	}
+	return nil
+}
+
 func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
 	tx, err := app.txDecoder(rawTx)
 	if err != nil {

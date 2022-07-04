@@ -27,6 +27,7 @@ import (
 type TxInfoParser interface {
 	GetRawTxInfo(tx types.Tx) ExTxInfo
 	GetTxHistoryGasUsed(tx types.Tx) int64
+	GetRealTxFromRawTx(rawTx types.Tx) abci.TxEssentials
 }
 
 //--------------------------------------------------------------------------------
@@ -782,7 +783,14 @@ func (mem *CListMempool) Update(
 		addressNonce = make(map[string]uint64)
 	}
 	for i, tx := range txs {
-		txkey := txKey(tx)
+		var txhash []byte
+		if mem.txInfoparser != nil {
+			if realTx := mem.txInfoparser.GetRealTxFromRawTx(tx); realTx != nil {
+				txhash = realTx.TxHash()
+			}
+		}
+		txkey := txOrTxHashToKey(tx, txhash, height)
+
 		txCode := deliverTxResponses[i].Code
 		// CodeTypeOK means tx was successfully executed.
 		// CodeTypeNonceInc means tx fails but the nonce of the account increases,
@@ -1031,6 +1039,15 @@ func (nopTxCache) Remove(types.Tx)           {}
 func txKey(tx types.Tx) (retHash [sha256.Size]byte) {
 	copy(retHash[:], tx.Hash(types.GetVenusHeight())[:sha256.Size])
 	return
+}
+
+func txOrTxHashToKey(tx types.Tx, txHash []byte, height int64) (retHash [sha256.Size]byte) {
+	if len(txHash) == sha256.Size && types.HigherThanVenus(height) {
+		copy(retHash[:], txHash)
+		return
+	} else {
+		return txKey(tx)
+	}
 }
 
 type txIDStringer struct {
