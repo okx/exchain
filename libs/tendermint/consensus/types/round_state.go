@@ -82,7 +82,6 @@ type RoundState struct {
 	// Last known round with POL for non-nil valid block.
 	ValidRound int          `json:"valid_round"`
 	ValidBlock *types.Block `json:"valid_block"` // Last known block of POL mentioned above.
-	Deltas     *types.Deltas
 
 	// Last known block parts of POL metnioned above.
 	ValidBlockParts           *types.PartSet      `json:"valid_block_parts"`
