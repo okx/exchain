@@ -129,6 +129,8 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 		sentryPartner:    cfg.DynamicConfig.GetSentryPartner(),
 	}
 
+	fmt.Println("debug", "isSentryNode", memR.isSentryNode, "sentryPartner", memR.sentryPartner)
+
 	if memR.sentryPartner != "" && !memR.isSentryNode {
 		mempool.SetSentryMempool(memR)
 	}
@@ -206,6 +208,7 @@ func (memR *Reactor) AddPeer(peer p2p.Peer) {
 	if string(peer.ID()) == memR.sentryPartner {
 		sentryPartnerPeer = peer
 	}
+	fmt.Println("debug", "peer ID", peer.ID())
 	go memR.broadcastTxRoutine(peer)
 }
 
