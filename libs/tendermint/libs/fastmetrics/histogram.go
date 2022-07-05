@@ -11,6 +11,9 @@ import (
 type Histogram struct {
 	hv  *prometheus.HistogramVec
 	lvs LabelValues
+
+	labels prometheus.Labels
+	o      prometheus.Observer
 }
 
 // NewHistogramFrom constructs and registers a Prometheus HistogramVec,
@@ -23,20 +26,30 @@ func NewHistogramFrom(opts prometheus.HistogramOpts, labelNames []string) *Histo
 
 // NewHistogram wraps the HistogramVec and returns a usable Histogram object.
 func NewHistogram(hv *prometheus.HistogramVec) *Histogram {
-	return &Histogram{
+	his := &Histogram{
 		hv: hv,
 	}
+	his.labels = makeLabels(his.lvs...)
+	his.o, _ = his.hv.GetMetricWith(his.labels)
+	return his
 }
 
 // With implements Histogram.
 func (h *Histogram) With(labelValues ...string) metrics.Histogram {
-	return &Histogram{
+	his := &Histogram{
 		hv:  h.hv,
 		lvs: h.lvs.With(labelValues...),
 	}
+	his.labels = makeLabels(his.lvs...)
+	his.o, _ = his.hv.GetMetricWith(his.labels)
+	return his
 }
 
 // Observe implements Histogram.
 func (h *Histogram) Observe(value float64) {
-	h.hv.With(makeLabels(h.lvs...)).Observe(value)
+	if h.o != nil {
+		h.o.Observe(value)
+	} else {
+		h.hv.With(h.labels).Observe(value)
+	}
 }
