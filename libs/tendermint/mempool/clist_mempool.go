@@ -27,6 +27,7 @@ import (
 type TxInfoParser interface {
 	GetRawTxInfo(tx types.Tx) ExTxInfo
 	GetTxHistoryGasUsed(tx types.Tx) int64
+	GetRealTxFromRawTx(rawTx types.Tx) abci.TxEssentials
 }
 
 //--------------------------------------------------------------------------------
@@ -389,6 +390,15 @@ func (mem *CListMempool) removeTx(elem *clist.CElement) {
 	mem.txs.Remove(elem)
 	tx := elem.Value.(*mempoolTx).tx
 	atomic.AddInt64(&mem.txsBytes, int64(-len(tx)))
+}
+
+func (mem *CListMempool) removeTxByKey(key [32]byte) (elem *clist.CElement) {
+	elem = mem.txs.RemoveByKey(key)
+	if elem != nil {
+		tx := elem.Value.(*mempoolTx).tx
+		atomic.AddInt64(&mem.txsBytes, int64(-len(tx)))
+	}
+	return
 }
 
 func (mem *CListMempool) isFull(txSize int) error {
@@ -776,7 +786,14 @@ func (mem *CListMempool) Update(
 		addressNonce = make(map[string]uint64)
 	}
 	for i, tx := range txs {
-		txkey := txKey(tx)
+		var txhash []byte
+		if mem.txInfoparser != nil {
+			if realTx := mem.txInfoparser.GetRealTxFromRawTx(tx); realTx != nil {
+				txhash = realTx.TxHash()
+			}
+		}
+		txkey := txOrTxHashToKey(tx, txhash, height)
+
 		txCode := deliverTxResponses[i].Code
 		// CodeTypeOK means tx was successfully executed.
 		// CodeTypeNonceInc means tx fails but the nonce of the account increases,
@@ -803,10 +820,9 @@ func (mem *CListMempool) Update(
 		// https://github.com/tendermint/tendermint/issues/3322.
 		addr := ""
 		nonce := uint64(0)
-		if ele, ok := mem.txs.Load(txkey); ok {
+		if ele := mem.removeTxByKey(txkey); ele != nil {
 			addr = ele.Address
 			nonce = ele.Nonce
-			mem.removeTx(ele)
 			mem.logUpdate(ele.Address, ele.Nonce)
 		} else {
 			if mem.txInfoparser != nil {
@@ -1025,6 +1041,15 @@ func (nopTxCache) Remove(types.Tx)           {}
 func txKey(tx types.Tx) (retHash [sha256.Size]byte) {
 	copy(retHash[:], tx.Hash(types.GetVenusHeight())[:sha256.Size])
 	return
+}
+
+func txOrTxHashToKey(tx types.Tx, txHash []byte, height int64) (retHash [sha256.Size]byte) {
+	if len(txHash) == sha256.Size && types.HigherThanVenus(height) {
+		copy(retHash[:], txHash)
+		return
+	} else {
+		return txKey(tx)
+	}
 }
 
 type txIDStringer struct {
