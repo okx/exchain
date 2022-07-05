@@ -598,9 +598,10 @@ func (w *Watcher) Collect(watchers ...sdk.IWatcher) {
 	}
 	for _, watcher := range watchers {
 		batch := watcher.Destruct()
+		w.log.Error(fmt.Sprintf("Destruct batch len=%d", len(batch)))
 		for _, b := range batch {
 			if b == nil {
-				panic(fmt.Sprintf("collect check panic, len(batche)=%d", len(batch)))
+				panic(fmt.Sprintf("collect check panic, len(batch)=%d", len(batch)))
 			}
 		}
 		w.batch = append(w.batch, batch...)
