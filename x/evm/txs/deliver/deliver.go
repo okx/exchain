@@ -51,8 +51,8 @@ func (tx *Tx) GetSenderAccount() authexported.Account {
 
 func (tx *Tx) ResetWatcher(account authexported.Account) {
 	// delete account which is already in Watcher.batch
-	if account != nil {
-		tx.Ctx.GetWatcher().DeleteAccount(account, true)
+	if account != nil && tx.Ctx.GetWatcher().Enabled() {
+		tx.Ctx.GetWatcher().DeleteAccount(account)
 	}
 }
 
@@ -76,8 +76,7 @@ func (tx *Tx) RefundFeesWatcher(account authexported.Account, ethereumTx *types.
 	fixedFees := refund.CalculateRefundFees(gasConsumed, ethereumTx.GetFee(), ethereumTx.Data.Price)
 	coins := account.GetCoins().Add2(fixedFees)
 	account.SetCoins(coins) //ignore err, no err will be returned in SetCoins
-
-	tx.Ctx.GetWatcher().SaveAccount(account, false)
+	tx.Ctx.GetWatcher().SaveAccount(account)
 }
 
 func (tx *Tx) Transition(config types.ChainConfig) (result base.Result, err error) {
@@ -107,7 +106,7 @@ func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *base.Result) {
 		tx.Ctx.ParaMsg().LogIndex = index
 	}
 	tx.Keeper.LogSize = tx.StateTransition.Csdb.GetLogSize()
-	if msg.Data.Recipient == nil {
+	if msg.Data.Recipient == nil && tx.Ctx.GetWatcher().Enabled() {
 		tx.StateTransition.Csdb.IteratorCode(func(addr common.Address, c types.CacheCode) bool {
 			tx.Ctx.GetWatcher().SaveContractCode(addr, c.Code, uint64(tx.Ctx.BlockHeight()))
 			tx.Ctx.GetWatcher().SaveContractCodeByHash(c.CodeHash, c.Code)
@@ -117,6 +116,9 @@ func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *base.Result) {
 }
 
 func (tx *Tx) FinalizeWatcher(msg *types.MsgEthereumTx, account authexported.Account, err error) {
+	if !tx.Ctx.GetWatcher().Enabled() {
+		return
+	}
 	// handle error
 	if err != nil {
 		// set failed tx msg to LogsManages for watcher

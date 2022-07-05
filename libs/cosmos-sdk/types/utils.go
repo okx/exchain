@@ -117,8 +117,8 @@ type IWatcher interface {
 	Enabled() bool
 	SaveContractCode(addr common.Address, code []byte, height uint64)
 	SaveContractCodeByHash(hash []byte, code []byte)
-	SaveAccount(account interface{}, isDirectly bool)
-	DeleteAccount(account interface{}, isDirectly bool)
+	SaveAccount(account interface{})
+	DeleteAccount(account interface{})
 	SaveState(addr common.Address, key, value []byte)
 	SaveContractBlockedListItem(addr interface{})
 	SaveContractMethodBlockedListItem(addr interface{}, methods []byte)
@@ -135,8 +135,8 @@ type EmptyWatcher struct {
 func (e EmptyWatcher) Enabled() bool                                                      { return false }
 func (e EmptyWatcher) SaveContractCode(addr common.Address, code []byte, height uint64)   {}
 func (e EmptyWatcher) SaveContractCodeByHash(hash []byte, code []byte)                    {}
-func (e EmptyWatcher) SaveAccount(account interface{}, isDirectly bool)                   {}
-func (e EmptyWatcher) DeleteAccount(account interface{}, isDirectly bool)                 {}
+func (e EmptyWatcher) SaveAccount(account interface{})                                    {}
+func (e EmptyWatcher) DeleteAccount(account interface{})                                  {}
 func (e EmptyWatcher) SaveState(addr common.Address, key, value []byte)                   {}
 func (e EmptyWatcher) SaveContractBlockedListItem(addr interface{})                       {}
 func (e EmptyWatcher) SaveContractMethodBlockedListItem(addr interface{}, methods []byte) {}
