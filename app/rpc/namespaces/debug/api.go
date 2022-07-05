@@ -41,8 +41,9 @@ func NewAPI(clientCtx clientcontext.CLIContext, log log.Logger, backend backend.
 // TraceTransaction returns the structured logs created during the execution of EVM
 // and returns them as a JSON object.
 func (api *PublicDebugAPI) TraceTransaction(txHash common.Hash, config evmtypes.TraceConfig) (interface{}, error) {
-	syslog.Println("TraceTransaction, start", time.Now())
-	defer syslog.Println("TraceTransaction, stop", time.Now())
+	start := time.Now()
+	syslog.Println("TraceTransaction, start", start)
+	defer syslog.Println("TraceTransaction, stop", time.Since(start))
 	monitor := monitor.GetMonitor("debug_traceTransaction", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd()
 	err := evmtypes.TestTracerConfig(&config)
