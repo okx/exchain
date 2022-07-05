@@ -148,7 +148,7 @@ func (tx *Tx) RefundFeesWatcher(account authexported.Account, ethereumTx *types.
 func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *Result) {}
 
 // FinalizeWatcher check Tx do not need this
-func (tx *Tx) FinalizeWatcher(account authexported.Account, err error) {}
+func (tx *Tx) FinalizeWatcher(msg *types.MsgEthereumTx, account authexported.Account, err error) {}
 
 func (tx *Tx) Dispose() {
 	if tx != nil && tx.reuseCsdb {

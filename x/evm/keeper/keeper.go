@@ -151,6 +151,7 @@ func NewSimulateKeeper(
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 		LogSize:       0,
+		Watcher:       watcher.NewWatcher(nil),
 		Ada:           ada,
 
 		db:             mpt.InstanceOfMptStore(),

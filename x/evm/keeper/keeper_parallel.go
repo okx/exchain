@@ -4,10 +4,12 @@ import (
 	"math/big"
 	"sync"
 
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+
 	"github.com/okex/exchain/x/evm/types"
 )
 
-func (k *Keeper) FixLog(logIndex []int, hasEnterEvmTx []bool, anteErrs []error) [][]byte {
+func (k *Keeper) FixLog(logIndex []int, hasEnterEvmTx []bool, anteErrs []error, resp []abci.ResponseDeliverTx) [][]byte {
 	txSize := len(logIndex)
 	res := make([][]byte, txSize, txSize)
 	logSize := uint(0)
@@ -19,25 +21,26 @@ func (k *Keeper) FixLog(logIndex []int, hasEnterEvmTx []bool, anteErrs []error) 
 			txInBlock++
 		}
 		rs, ok := k.LogsManages.Get(logIndex[index])
-		if !ok || anteErrs[index] != nil {
+		if !ok {
 			continue
 		}
-		if rs.ResultData == nil {
-			continue
+		if anteErrs[index] == nil && rs.ResultData != nil {
+			for _, v := range rs.ResultData.Logs {
+				v.Index = logSize
+				v.TxIndex = uint(txInBlock)
+				logSize++
+			}
+
+			k.Bloom = k.Bloom.Or(k.Bloom, rs.ResultData.Bloom.Big())
+			data, err := types.EncodeResultData(rs.ResultData)
+			if err != nil {
+				panic(err)
+			}
+			res[index] = data
 		}
 
-		for _, v := range rs.ResultData.Logs {
-			v.Index = logSize
-			v.TxIndex = uint(txInBlock)
-			logSize++
-		}
-
-		k.Bloom = k.Bloom.Or(k.Bloom, rs.ResultData.Bloom.Big())
-		data, err := types.EncodeResultData(rs.ResultData)
-		if err != nil {
-			panic(err)
-		}
-		res[index] = data
+		// save transaction and transactionReceipt to watcher
+		k.saveParallelTxResult(rs, uint64(txInBlock), resp[index])
 	}
 
 	return res
@@ -90,4 +93,12 @@ func (l *LogsManager) Reset() {
 
 type TxResult struct {
 	ResultData *types.ResultData
+	Tx         *types.MsgEthereumTx
+}
+
+func (k *Keeper) saveParallelTxResult(result TxResult, txIndex uint64, resp abci.ResponseDeliverTx) {
+	if !k.Watcher.Enabled() {
+		return
+	}
+	k.Watcher.SaveParallelTx(result.Tx, result.ResultData, txIndex, resp)
 }

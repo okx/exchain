@@ -102,6 +102,7 @@ func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *base.Result) {
 		// async mod goes immediately
 		index := tx.Keeper.LogsManages.Set(keeper.TxResult{
 			ResultData: result.ResultData,
+			Tx:         msg,
 		})
 		tx.Ctx.ParaMsg().LogIndex = index
 	}
@@ -115,8 +116,17 @@ func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *base.Result) {
 	}
 }
 
-func (tx *Tx) FinalizeWatcher(account authexported.Account, err error) {
+func (tx *Tx) FinalizeWatcher(msg *types.MsgEthereumTx, account authexported.Account, err error) {
+	// handle error
 	if err != nil {
+		// set failed tx msg to LogsManages for watcher
+		if tx.Ctx.ParaMsg() != nil {
+			index := tx.Keeper.LogsManages.Set(keeper.TxResult{
+				Tx: msg,
+			})
+			tx.Ctx.ParaMsg().LogIndex = index
+		}
+		// reset watcher
 		tx.ResetWatcher(account)
 		return
 	}
