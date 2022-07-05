@@ -286,7 +286,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// Events are fired after everything else.
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	if !blockExec.isNullIndexer {
-		fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
+		go fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
 	}
 
 	dc.postApplyBlock(block.Height, deltaInfo, abciResponses, commitResp.DeltaMap, blockExec.isFastSync)
