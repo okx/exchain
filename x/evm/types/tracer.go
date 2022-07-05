@@ -13,6 +13,11 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
+var (
+	tracerConfigBytesCache []byte
+	tracerCache            vm.Tracer
+)
+
 type TraceConfig struct {
 	// custom javascript tracer
 	Tracer string `json:"tracer"`
@@ -144,6 +149,9 @@ func newTracer(ctx sdk.Context, txHash *common.Hash) (tracer vm.Tracer) {
 	if ctx.IsTraceTxLog() {
 		var err error
 		configBytes := ctx.TraceTxLogConfig()
+		if string(configBytes) == string(tracerConfigBytesCache) {
+			return tracerCache
+		}
 		traceConfig := &TraceConfig{}
 		if configBytes == nil {
 			traceConfig = defaultTracerConfig()
@@ -162,7 +170,8 @@ func newTracer(ctx sdk.Context, txHash *common.Hash) (tracer vm.Tracer) {
 				DisableReturnData: traceConfig.DisableReturnData,
 				Debug:             traceConfig.Debug,
 			}
-			return vm.NewStructLogger(&logConfig)
+			tracerCache = vm.NewStructLogger(&logConfig)
+			return tracerCache
 		}
 		// Json-based tracer
 		tCtx := &tracers.Context{
@@ -172,6 +181,7 @@ func newTracer(ctx sdk.Context, txHash *common.Hash) (tracer vm.Tracer) {
 		if err != nil {
 			return NewNoOpTracer()
 		}
+		tracerCache = tracer
 		return tracer
 	} else {
 		//no op tracer
