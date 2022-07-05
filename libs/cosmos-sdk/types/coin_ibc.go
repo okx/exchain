@@ -142,7 +142,7 @@ func (coins CoinAdapters) Validate() error {
 			return fmt.Errorf("coin %s amount is   nil", coins[0])
 		}
 		if !coins[0].IsPositive() {
-			return fmt.Errorf("coin %s amount is not positive or nil", coins[0])
+			return fmt.Errorf("coin %s amount is not positive", coins[0])
 		}
 		return nil
 
