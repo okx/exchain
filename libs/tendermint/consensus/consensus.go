@@ -92,9 +92,6 @@ type State struct {
 	// store blocks and commits
 	blockStore sm.BlockStore
 
-	// store deltas
-	deltaStore sm.DeltaStore
-
 	// create and execute blocks
 	blockExec *sm.BlockExecutor
 
@@ -172,7 +169,6 @@ func NewState(
 	state sm.State,
 	blockExec *sm.BlockExecutor,
 	blockStore sm.BlockStore,
-	deltaStore sm.DeltaStore,
 	txNotifier txNotifier,
 	evpool evidencePool,
 	options ...StateOption,
@@ -181,7 +177,6 @@ func NewState(
 		config:             config,
 		blockExec:          blockExec,
 		blockStore:         blockStore,
-		deltaStore:         deltaStore,
 		txNotifier:         txNotifier,
 		peerMsgQueue:       make(chan msgInfo, msgQueueSize),
 		internalMsgQueue:   make(chan msgInfo, msgQueueSize),
