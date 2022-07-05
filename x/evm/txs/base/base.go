@@ -1,7 +1,9 @@
 package base
 
 import (
+	"log"
 	"math/big"
+	"time"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 
@@ -55,6 +57,8 @@ func (tx *Tx) GetChainConfig() (types.ChainConfig, bool) {
 
 // Transition execute evm tx
 func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
+	log.Println("Transition start:", time.Now())
+	defer log.Println("Transition stop:", time.Now())
 	result.ExecResult, result.ResultData, err, result.InnerTxs, result.Erc20Contracts = tx.StateTransition.TransitionDb(tx.Ctx, config)
 
 	if err != nil {
