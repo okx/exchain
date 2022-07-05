@@ -209,6 +209,26 @@ func (bs *BlockStore) loadBlockPartsBytes(height int64, buf *bytes.Buffer) ([]by
 
 // LoadBlockMeta returns the BlockMeta for the given height.
 // If no block is found for the given height, it returns nil.
+func (bs *BlockStore) LoadBlockMetaByHash(hash []byte) *types.BlockMeta {
+	bz, err := bs.db.Get(calcBlockHashKey(hash))
+	if err != nil {
+		panic(err)
+	}
+	if len(bz) == 0 {
+		return nil
+	}
+
+	s := string(bz)
+	height, err := strconv.ParseInt(s, 10, 64)
+
+	if err != nil {
+		panic(errors.Wrapf(err, "failed to extract height from %s", s))
+	}
+	return bs.LoadBlockMeta(height)
+}
+
+// LoadBlockMeta returns the BlockMeta for the given height.
+// If no block is found for the given height, it returns nil.
 func (bs *BlockStore) LoadBlockMeta(height int64) *types.BlockMeta {
 	var blockMeta = new(types.BlockMeta)
 	bz, err := bs.db.Get(calcBlockMetaKey(height))

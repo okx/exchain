@@ -291,6 +291,21 @@ func (c *Client) Block(height *int64) (*ctypes.ResultBlock, error) {
 	return res, nil
 }
 
+// Block calls rpcclient#Block and then verifies the result.
+func (c *Client) BlockInfo(height *int64) (*ctypes.ResultBlockInfo, error) {
+	res, err := c.next.BlockInfo(height)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate res.
+	if err := res.Header.ValidateBasic(); err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
 func (c *Client) BlockResults(height *int64) (*ctypes.ResultBlockResults, error) {
 	res, err := c.next.BlockResults(height)
 	if err != nil {

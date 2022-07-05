@@ -1892,3 +1892,17 @@ func (api *PublicEthereumAPI) getEvmParams() (*evmtypes.Params, error) {
 
 	return &evmParams, nil
 }
+
+func (api *PublicEthereumAPI) GetBlockHeaderByNumber(blockNum rpctypes.BlockNumber) (*ethtypes.Header, error) {
+	if !viper.GetBool(FlagEnableMultiCall) {
+		return nil, errors.New("the method is not allowed")
+	}
+	return api.backend.HeaderByNumber(blockNum)
+}
+
+func (api *PublicEthereumAPI) GetBlockHeaderByHash(blockHash common.Hash) (*ethtypes.Header, error) {
+	if !viper.GetBool(FlagEnableMultiCall) {
+		return nil, errors.New("the method is not allowed")
+	}
+	return api.backend.HeaderByHash(blockHash)
+}
