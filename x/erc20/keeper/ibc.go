@@ -98,9 +98,8 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 	if !found {
 		// automated deployment contracts
 		if !autoDeploy {
-			k.Logger(ctx).Error("no contract found for the denom", "denom", voucher.Denom)
-			// keep the voucher as 10 token
-			return nil
+			k.Logger(ctx).Error("no contract found and not auto deploy for the denom", "denom", voucher.Denom)
+			return types.ErrNoContractNotAuto
 		}
 		contract, err = k.DeployModuleERC20(ctx, voucher.Denom)
 		if err != nil {

@@ -2,11 +2,12 @@ package keeper
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
+	trensferTypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
+	"github.com/okex/exchain/x/erc20/types"
 )
 
 var (
-	_ types.TransferHooks = IBCTransferHooks{}
+	_ trensferTypes.TransferHooks = IBCTransferHooks{}
 )
 
 type IBCTransferHooks struct {
@@ -54,7 +55,9 @@ func (iths IBCTransferHooks) AfterRecvTransfer(
 	if !isSource {
 		// only after minting vouchers on this chain
 		// the native coin come from other chain with ibc
-		return iths.Keeper.OnMintVouchers(ctx, sdk.NewCoins(token), receiver)
+		if err := iths.Keeper.OnMintVouchers(ctx, sdk.NewCoins(token), receiver); err != types.ErrNoContractNotAuto {
+			return err
+		}
 	} else if token.Denom != sdk.DefaultBondDenom {
 		// the native coin come from this chain,
 		return iths.Keeper.OnUnescrowNatives(ctx, sdk.NewCoins(token), receiver)
