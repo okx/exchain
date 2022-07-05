@@ -46,7 +46,7 @@ var (
 	NewQueryValidatorCommissionParams        = types.NewQueryValidatorCommissionParams
 	NewQueryDelegatorWithdrawAddrParams      = types.NewQueryDelegatorWithdrawAddrParams
 	InitialValidatorAccumulatedCommission    = types.InitialValidatorAccumulatedCommission
-	MsgWithdrawDelegatorReward               = types.NewMsgWithdrawDelegatorReward
+	NewMsgWithdrawDelegatorReward            = types.NewMsgWithdrawDelegatorReward
 
 	// variable aliases
 	FeePoolKey                            = types.FeePoolKey

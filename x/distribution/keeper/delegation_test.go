@@ -5,6 +5,7 @@ import (
 	"github.com/okex/exchain/x/distribution/types"
 	"github.com/okex/exchain/x/staking"
 	stakingexported "github.com/okex/exchain/x/staking/exported"
+	stakingtypes "github.com/okex/exchain/x/staking/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
 	"testing"
@@ -15,7 +16,6 @@ import (
 )
 
 func TestCalculateRewardsBasic(t *testing.T) {
-
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
 	tmtypes.UnittestOnlySetMilestoneSaturn1Height(-1)
@@ -98,42 +98,40 @@ func TestCalculateRewardsMultiDelegator(t *testing.T) {
 	tokens := sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(initial)}}
 	dk.AllocateTokensToValidator(ctx, val, tokens)
 
+	valOpAddrs := []sdk.ValAddress{valOpAddr1}
 	//first delegation
 	DoDeposit(t, ctx, sk, delAddr1, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
 	require.Equal(t, uint64(1), dk.GetValidatorHistoricalReferenceCount(ctx))
-	valOpAddrs := []sdk.ValAddress{valOpAddr1}
 	DoAddShares(t, ctx, sk, delAddr1, valOpAddrs)
 	// historical count should be 2(first is init validator)
 	require.Equal(t, uint64(2), dk.GetValidatorHistoricalReferenceCount(ctx))
+
+	//second delegation
+	DoDeposit(t, ctx, sk, delAddr2, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
+	DoAddShares(t, ctx, sk, delAddr2, valOpAddrs)
+	require.Equal(t, uint64(3), dk.GetValidatorHistoricalReferenceCount(ctx))
 
 	// fetch updated validator
 	val = sk.Validator(ctx, valOpAddr1)
 
 	// end block
 	staking.EndBlocker(ctx, sk)
-
-	// next block
 	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 
 	// allocate some more rewards
 	dk.AllocateTokensToValidator(ctx, val, tokens)
-
 	// end period
 	endingPeriod := dk.incrementValidatorPeriod(ctx, val)
 
 	// calculate delegation rewards for del1
-	rewards := dk.calculateDelegationRewards(ctx, val, delAddr1, endingPeriod)
+	rewards1 := dk.calculateDelegationRewards(ctx, val, delAddr1, endingPeriod)
+	require.True(t, rewards1[0].Amount.LT(sdk.NewDec(initial/4)))
+	require.True(t, rewards1[0].Amount.GT(sdk.NewDec((initial/4)-1)))
 
-	// rewards for del1 should be close to 1/2 initial
-	require.True(t, rewards[0].Amount.LT(sdk.NewDec(initial/2)))
-	require.True(t, rewards[0].Amount.GT(sdk.NewDec((initial/2)-1)))
-
-	// calculate delegation rewards for del1
-	rewards = dk.calculateDelegationRewards(ctx, val, delAddr1, endingPeriod)
-
-	// rewards for del1 should be close to 1/2 initial
-	require.True(t, rewards[0].Amount.LT(sdk.NewDec(initial/2)))
-	require.True(t, rewards[0].Amount.GT(sdk.NewDec((initial/2)-1)))
+	// calculate delegation rewards for del2
+	rewards2 := dk.calculateDelegationRewards(ctx, val, delAddr2, endingPeriod)
+	require.True(t, rewards2[0].Amount.LT(sdk.NewDec(initial/4)))
+	require.True(t, rewards2[0].Amount.GT(sdk.NewDec((initial/4)-1)))
 
 	// commission should be equal to initial (50% twice)
 	require.Equal(t, sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(initial)}}, dk.GetValidatorAccumulatedCommission(ctx, valOpAddr1))
@@ -404,7 +402,7 @@ func (suite *InitExistedDelegationStartInfoestSuite) TestInitExistedDelegationSt
 		err                           error
 	}{
 		{
-			"ErrCodeNotSupportDistributionMethod",
+			"ErrCodeNotSupportWithdrawDelegationRewards",
 			func(ctx *sdk.Context, dk Keeper) {},
 			func(ctx *sdk.Context, dk Keeper) {
 				ctx.SetBlockTime(time.Now())
@@ -415,7 +413,7 @@ func (suite *InitExistedDelegationStartInfoestSuite) TestInitExistedDelegationSt
 			0,
 			0,
 			sdk.Coins(nil),
-			types.ErrCodeNotSupportDistributionMethod(),
+			types.ErrCodeNotSupportWithdrawDelegationRewards(),
 		},
 		{
 			"NO ERROR Before create validator",
@@ -598,18 +596,41 @@ func TestInvalidDelegation(t *testing.T) {
 func TestIncrementValidatorPeriod(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
+
 	// create validator
 	DoCreateValidator(t, ctx, sk, valOpAddr1, valConsPk1)
 	val := sk.Validator(ctx, valOpAddr1)
 
-	// Panic incrementValidatorPeriod
+	// distribution type invalid, No Panic
 	noPanicFunc := func() {
 		dk.incrementValidatorPeriod(ctx, val)
 	}
 	assert.NotPanics(t, noPanicFunc)
+}
 
-	panicFunc := func() {
-		dk.GetValidatorCurrentRewards(ctx, val.GetOperator())
-	}
-	assert.Panics(t, panicFunc)
+func TestRewardToCommunity(t *testing.T) {
+	communityTax := sdk.NewDecWithPrec(2, 2)
+	ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
+	tmtypes.UnittestOnlySetMilestoneSaturn1Height(-1)
+	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
+	dk.SetInitAllocateValidator(ctx)
+
+	// create validator
+	DoCreateValidator(t, ctx, sk, valOpAddr1, valConsPk1)
+	newRate, _ := sdk.NewDecFromStr("0")
+	ctx.SetBlockTime(time.Now().UTC().Add(48 * time.Hour))
+	DoEditValidator(t, ctx, sk, valOpAddr1, newRate)
+	val := sk.Validator(ctx, valOpAddr1)
+
+	// allocate some rewards
+	tokens := sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(int64(20))}}
+	dk.AllocateTokensToValidator(ctx, val, tokens)
+
+	sk.SetValidator(ctx, stakingtypes.Validator{OperatorAddress: val.GetOperator(), DelegatorShares: sdk.NewDec(int64(0))})
+	val = sk.Validator(ctx, valOpAddr1)
+
+	beforeFeePool := dk.GetFeePool(ctx)
+	dk.incrementValidatorPeriod(ctx, val)
+	afterFeePool := dk.GetFeePool(ctx)
+	require.Equal(t, tokens, afterFeePool.CommunityPool.Sub(beforeFeePool.CommunityPool))
 }

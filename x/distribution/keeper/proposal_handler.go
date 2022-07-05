@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	stakingexported "github.com/okex/exchain/x/staking/exported"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -54,6 +55,9 @@ func HandleChangeDistributionTypeProposal(ctx sdk.Context, k Keeper, p types.Cha
 	logger := k.Logger(ctx)
 
 	logger.Debug(fmt.Sprintf("distribution type, %d", p.Type))
+	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) {
+		return types.ErrCodeNotSupportDistributionProposal()
+	}
 
 	//1.check if it's the same
 	if k.GetDistributionType(ctx) == p.Type {

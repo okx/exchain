@@ -118,19 +118,6 @@ func GetValidatorCurrentRewardsAddress(key []byte) (valAddr sdk.ValAddress) {
 	return sdk.ValAddress(addr)
 }
 
-// gets the height from a validator's slash event key
-func GetValidatorSlashEventAddressHeight(key []byte) (valAddr sdk.ValAddress, height uint64) {
-	addr := key[1 : 1+sdk.AddrLen]
-	if len(addr) != sdk.AddrLen {
-		panic("unexpected key length")
-	}
-	valAddr = sdk.ValAddress(addr)
-	startB := 1 + sdk.AddrLen
-	b := key[startB : startB+8] // the next 8 bytes represent the height
-	height = binary.BigEndian.Uint64(b)
-	return
-}
-
 // gets the outstanding rewards key for a validator
 func GetValidatorOutstandingRewardsKey(valAddr sdk.ValAddress) []byte {
 	return append(ValidatorOutstandingRewardsPrefix, valAddr.Bytes()...)

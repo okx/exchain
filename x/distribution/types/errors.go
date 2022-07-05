@@ -33,7 +33,8 @@ const (
 	CodeEmptyValidatorDistInfo                      uint32 = 67821
 	CodeEmptyDelegationVoteValidator                uint32 = 67822
 	CodeZeroDelegationShares                        uint32 = 67823
-	CodeNotSupportDistributionMethod                uint32 = 67824
+	CodeNotSupportWithdrawDelegationRewards         uint32 = 67824
+	CodeNotSupportDistributionProposal              uint32 = 67825
 )
 
 func ErrNilDelegatorAddr() sdk.Error {
@@ -116,6 +117,11 @@ func ErrCodeZeroDelegationShares() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeZeroDelegationShares, "zero delegation shares")
 }
 
-func ErrCodeNotSupportDistributionMethod() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeNotSupportDistributionMethod, "not support distribution method")
+func ErrCodeNotSupportWithdrawDelegationRewards() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeNotSupportWithdrawDelegationRewards, "not support withdraw delegation rewards")
+}
+
+// ErrCodeNotSupportDistributionProposal returns an error when not support
+func ErrCodeNotSupportDistributionProposal() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeNotSupportDistributionProposal, "not support distribution proposal")
 }

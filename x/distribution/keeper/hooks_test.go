@@ -4,7 +4,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/staking"
-	"github.com/stretchr/testify/assert"
 	"testing"
 	"time"
 
@@ -66,12 +65,8 @@ func TestHooksBeforeDelegationSharesModified(t *testing.T) {
 	require.Equal(t, periodBefore.PreviousPeriod, uint64(1))
 	dk.SetInitAllocateValidator(ctx)
 	hook.BeforeDelegationSharesModified(ctx, delAddr1, valOpAddrs)
-	panicFunc := func() {
-		//will delete it
-		dk.GetDelegatorStartingInfo(ctx, valOpAddr1, delAddr1)
-	}
-
-	assert.Panics(t, panicFunc)
+	//will delete it
+	require.False(t, dk.HasDelegatorStartingInfo(ctx, valOpAddr1, delAddr1))
 
 }
 

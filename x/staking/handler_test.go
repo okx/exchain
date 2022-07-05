@@ -2,6 +2,7 @@ package staking
 
 import (
 	"testing"
+	"time"
 
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 	"github.com/stretchr/testify/assert"
@@ -218,4 +219,27 @@ func TestEditValidatorCommission(t *testing.T) {
 	require.NotNil(t, msgEditValidator.ValidateBasic())
 	got, err = handler(ctx, msgEditValidator)
 	require.NotNil(t, err)
+
+	// normal rate
+	newRate, _ = sdk.NewDecFromStr("0.5")
+	msgEditValidator = NewMsgEditValidatorCommissionRate(validatorAddr, newRate)
+	require.Nil(t, msgEditValidator.ValidateBasic())
+	got, err = handler(ctx, msgEditValidator)
+	require.Nil(t, err)
+
+	// normal rate,
+	newRate, _ = sdk.NewDecFromStr("0.7")
+	msgEditValidator = NewMsgEditValidatorCommissionRate(validatorAddr, newRate)
+	require.Nil(t, msgEditValidator.ValidateBasic())
+	got, err = handler(ctx, msgEditValidator)
+	require.NotNil(t, err)
+
+	// normal rate,
+	ctx.SetBlockTime(time.Now())
+	ctx.SetBlockTime(time.Now().UTC().Add(48 * time.Hour))
+	msgEditValidator = NewMsgEditValidatorCommissionRate(validatorAddr, newRate)
+	require.Nil(t, msgEditValidator.ValidateBasic())
+	got, err = handler(ctx, msgEditValidator)
+	require.Nil(t, err)
+
 }

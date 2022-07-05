@@ -90,14 +90,12 @@ func (k Keeper) UpdateValidatorCommission(ctx sdk.Context,
 
 	commission := validator.Commission
 	blockTime := ctx.BlockHeader().Time
-
 	if err := commission.ValidateNewRate(newRate, blockTime); err != nil {
 		return commission, err
 	}
 
 	commission.Rate = newRate
 	commission.UpdateTime = blockTime
-
 	return commission, nil
 }
 
