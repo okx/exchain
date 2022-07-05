@@ -98,7 +98,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		//in trace mode,  info ctx cache was already set to traceBlockCache instead of app.blockCache in app.tracetx()
 		//to prevent modifying the deliver state
 		//traceBlockCache was created with different root(chainCache) with app.blockCache in app.BeginBlockForTrace()
-		if useCache(mode) {
+		if useCache(mode) && tx.GetType() == sdk.EvmTxType {
 			info.ctx.SetCache(sdk.NewCache(app.blockCache, true))
 		} else {
 			info.ctx.SetCache(nil)
@@ -322,8 +322,8 @@ func (app *BaseApp) PreDeliverRealTx(tx []byte) abci.TxEssentials {
 		if err != nil || realTx == nil {
 			return nil
 		}
-		app.blockDataCache.SetTx(tx, realTx)
 	}
+	app.blockDataCache.SetTx(tx, realTx)
 
 	if realTx.GetType() == sdk.EvmTxType && app.preDeliverTxHandler != nil {
 		ctx := app.deliverState.ctx
@@ -347,6 +347,10 @@ func (app *BaseApp) DeliverRealTx(txes abci.TxEssentials) abci.ResponseDeliverTx
 		}
 	}
 	info, err := app.runTx(runTxModeDeliver, realTx.GetRaw(), realTx, LatestSimulateTxHeight)
+	if !info.ctx.Cache().IsEnabled() {
+		app.blockCache = nil
+		app.chainCache = nil
+	}
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}
@@ -445,7 +449,12 @@ func useCache(mode runTxMode) bool {
 }
 
 func (app *BaseApp) newBlockCache() {
-	app.blockCache = sdk.NewCache(app.chainCache, sdk.UseCache && !app.parallelTxManage.isAsyncDeliverTx)
+	useCache := sdk.UseCache && !app.parallelTxManage.isAsyncDeliverTx
+	if app.chainCache == nil {
+		app.chainCache = sdk.NewCache(nil, useCache)
+	}
+
+	app.blockCache = sdk.NewCache(app.chainCache, useCache)
 	app.deliverState.ctx.SetCache(app.blockCache)
 }
 
