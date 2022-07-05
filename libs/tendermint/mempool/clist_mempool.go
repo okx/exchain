@@ -810,7 +810,7 @@ func (mem *CListMempool) Update(
 			_ = mem.cache.PushKey(txkey)
 		} else {
 			// Allow invalid transactions to be resubmitted.
-			mem.cache.Remove(tx)
+			mem.cache.RemoveKey(txkey)
 		}
 
 		// Remove committed tx from the mempool.
@@ -955,8 +955,9 @@ func (memTx *mempoolTx) Height() int64 {
 type txCache interface {
 	Reset()
 	Push(tx types.Tx) bool
-	PushKey(key [32]byte) bool
+	PushKey(key [sha256.Size]byte) bool
 	Remove(tx types.Tx)
+	RemoveKey(key [sha256.Size]byte)
 }
 
 // mapTxCache maintains a LRU cache of transactions. This only stores the hash
@@ -1011,6 +1012,10 @@ func (cache *mapTxCache) Remove(tx types.Tx) {
 	cache.cacheMap.Del(txHash[:])
 }
 
+func (cache *mapTxCache) RemoveKey(key [32]byte) {
+	cache.cacheMap.Del(key[:])
+}
+
 type nopTxCache struct{}
 
 var _ txCache = (*nopTxCache)(nil)
@@ -1019,6 +1024,7 @@ func (nopTxCache) Reset()                    {}
 func (nopTxCache) Push(types.Tx) bool        { return true }
 func (nopTxCache) PushKey(key [32]byte) bool { return true }
 func (nopTxCache) Remove(types.Tx)           {}
+func (nopTxCache) RemoveKey(key [32]byte)    {}
 
 //--------------------------------------------------------------------------------
 // txKey is the fixed length array sha256 hash used as the key in maps.
