@@ -138,7 +138,10 @@ func (coins CoinAdapters) Validate() error {
 		if err := ValidateDenom(coins[0].Denom); err != nil {
 			return err
 		}
-		if coins[0].Amount.IsNil() || !coins[0].IsPositive() {
+		if coins[0].Amount.IsNil() {
+			return fmt.Errorf("coin %s amount is   nil", coins[0])
+		}
+		if !coins[0].IsPositive() {
 			return fmt.Errorf("coin %s amount is not positive or nil", coins[0])
 		}
 		return nil
