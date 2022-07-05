@@ -25,7 +25,10 @@ var watcherPool = sync.Pool{
 }
 
 func NewTxWatcher() *TxWatcher {
-	return watcherPool.Get().(*TxWatcher)
+	return &TxWatcher{
+		enable: IsWatcherEnabled(),
+	}
+	//return watcherPool.Get().(*TxWatcher)
 }
 
 func (w *TxWatcher) Enabled() bool {
@@ -124,6 +127,6 @@ func (w *TxWatcher) Finalize() {
 func (w *TxWatcher) Destruct() []WatchMessage {
 	batch := w.batch
 	w.batch = []WatchMessage{}
-	watcherPool.Put(w)
+	//watcherPool.Put(w)
 	return batch
 }
