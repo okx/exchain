@@ -498,8 +498,9 @@ func (mem *CListMempool) resCbFirstTime(
 			// Check mempool isn't full again to reduce the chance of exceeding the
 			// limits.
 			if err := mem.isFull(len(tx)); err != nil {
+				txkey := txOrTxHashToKey(tx, r.CheckTx.Tx.TxHash(), mem.height)
 				// remove from cache (mempool might have a space later)
-				mem.cache.Remove(tx)
+				mem.cache.RemoveKey(txkey)
 				errStr := err.Error()
 				mem.logger.Info(errStr)
 				r.CheckTx.Code = 1
