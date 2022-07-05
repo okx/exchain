@@ -9,6 +9,9 @@ import (
 type Gauge struct {
 	gv  *prometheus.GaugeVec
 	lvs LabelValues
+
+	labels prometheus.Labels
+	g      prometheus.Gauge
 }
 
 // NewGaugeFrom constructs and registers a Prometheus GaugeVec,
@@ -21,25 +24,40 @@ func NewGaugeFrom(opts prometheus.GaugeOpts, labelNames []string) *Gauge {
 
 // NewGauge wraps the GaugeVec and returns a usable Gauge object.
 func NewGauge(gv *prometheus.GaugeVec) *Gauge {
-	return &Gauge{
+	gauge := &Gauge{
 		gv: gv,
 	}
+
+	gauge.labels = makeLabels(gauge.lvs...)
+	gauge.g, _ = gauge.gv.GetMetricWith(gauge.labels)
+	return gauge
 }
 
 // With implements Gauge.
 func (g *Gauge) With(labelValues ...string) metrics.Gauge {
-	return &Gauge{
+	gauge := &Gauge{
 		gv:  g.gv,
 		lvs: g.lvs.With(labelValues...),
 	}
+	gauge.labels = makeLabels(gauge.lvs...)
+	gauge.g, _ = gauge.gv.GetMetricWith(gauge.labels)
+	return gauge
 }
 
 // Set implements Gauge.
 func (g *Gauge) Set(value float64) {
-	g.gv.With(makeLabels(g.lvs...)).Set(value)
+	if g.g != nil {
+		g.g.Set(value)
+	} else {
+		g.gv.With(g.labels).Set(value)
+	}
 }
 
 // Add is supported by Prometheus GaugeVecs.
 func (g *Gauge) Add(delta float64) {
-	g.gv.With(makeLabels(g.lvs...)).Add(delta)
+	if g.g != nil {
+		g.g.Add(delta)
+	} else {
+		g.gv.With(g.labels).Add(delta)
+	}
 }
