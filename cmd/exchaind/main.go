@@ -85,6 +85,7 @@ func main() {
 		client.TestnetCmd(ctx, codecProxy.GetCdc(), app.ModuleBasics, auth.GenesisAccountIterator{}),
 		replayCmd(ctx, client.RegisterAppFlag),
 		repairStateCmd(ctx),
+		dbCheckCmd(),
 		displayStateCmd(ctx),
 		mpt.MptCmd(ctx),
 		// AddGenesisAccountCmd allows users to add accounts to the genesis file
