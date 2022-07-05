@@ -332,6 +332,12 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 
 func (w *Watcher) commitBatch(batch []WatchMessage) {
 	for _, b := range batch {
+		if w.filterMap == nil {
+			panic("w.filterMap is nil")
+		}
+		if b == nil {
+			panic("batch is nil")
+		}
 		w.filterMap[bytes2Key(b.GetKey())] = b
 	}
 
@@ -592,6 +598,11 @@ func (w *Watcher) Collect(watchers ...sdk.IWatcher) {
 	}
 	for _, watcher := range watchers {
 		batch := watcher.Destruct()
+		for _, b := range batch {
+			if b == nil {
+				panic(fmt.Sprintf("collect check panic, len(batche)=%d", len(batch)))
+			}
+		}
 		w.batch = append(w.batch, batch...)
 	}
 }
