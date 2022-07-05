@@ -58,6 +58,14 @@ func (q *GasTxQueue) Remove(element *clist.CElement) {
 	q.AddressRecord.DeleteItem(element)
 }
 
+func (q *GasTxQueue) RemoveByKey(key [32]byte) (ele *clist.CElement) {
+	ele = q.removeElementByKey(key)
+	if ele != nil {
+		q.AddressRecord.DeleteItem(ele)
+	}
+	return
+}
+
 func (q *GasTxQueue) Front() *clist.CElement {
 	return q.sortedTxs.Front()
 }
@@ -122,4 +130,20 @@ func (q *GasTxQueue) removeElement(element *clist.CElement) {
 		q.bcTxs.Remove(ele)
 		ele.DetachPrev()
 	}
+}
+
+func (q *GasTxQueue) removeElementByKey(key [32]byte) (ret *clist.CElement) {
+	if v, ok := q.sortedTxsMap.LoadAndDelete(key); ok {
+		ret = v.(*clist.CElement)
+		q.sortedTxs.Remove(ret)
+		ret.DetachPrev()
+
+		if v, ok := q.bcTxsMap.LoadAndDelete(key); ok {
+			ele := v.(*clist.CElement)
+			q.bcTxs.Remove(ele)
+			ele.DetachPrev()
+		}
+	}
+
+	return
 }

@@ -34,4 +34,5 @@ func RegisterCodec(cdc *codec.Codec) {
 			return nil, fmt.Errorf("%T is not an EthAccount", v)
 		}
 	})
+	cdc.EnableBufferMarshaler(EthAccount{})
 }

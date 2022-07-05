@@ -322,8 +322,8 @@ func (app *BaseApp) PreDeliverRealTx(tx []byte) abci.TxEssentials {
 		if err != nil || realTx == nil {
 			return nil
 		}
-		app.blockDataCache.SetTx(tx, realTx)
 	}
+	app.blockDataCache.SetTx(tx, realTx)
 
 	if realTx.GetType() == sdk.EvmTxType && app.preDeliverTxHandler != nil {
 		ctx := app.deliverState.ctx
