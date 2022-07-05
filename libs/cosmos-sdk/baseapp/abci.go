@@ -3,6 +3,7 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"sort"
 	"strconv"
@@ -466,6 +467,8 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 			}
 
 		case "traceBlock":
+			start := time.Now()
+			log.Println("traceBlock, start", start)
 			var queryParam sdk.QueryTraceBlock
 			err := json.Unmarshal(req.Data, &queryParam)
 			if err != nil {
@@ -483,6 +486,7 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 			if err != nil {
 				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to trace block"))
 			}
+			log.Println("traceBlock, stop", time.Since(start))
 			return abci.ResponseQuery{
 				Codespace: sdkerrors.RootCodespace,
 				Height:    req.Height,
