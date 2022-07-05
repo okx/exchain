@@ -170,6 +170,7 @@ func newTracer(ctx sdk.Context, txHash *common.Hash) (tracer vm.Tracer) {
 				DisableReturnData: traceConfig.DisableReturnData,
 				Debug:             traceConfig.Debug,
 			}
+			tracerConfigBytesCache = configBytes
 			tracerCache = vm.NewStructLogger(&logConfig)
 			return tracerCache
 		}
@@ -181,6 +182,7 @@ func newTracer(ctx sdk.Context, txHash *common.Hash) (tracer vm.Tracer) {
 		if err != nil {
 			return NewNoOpTracer()
 		}
+		tracerConfigBytesCache = configBytes
 		tracerCache = tracer
 		return tracer
 	} else {
