@@ -494,11 +494,16 @@ func (mem *CListMempool) resCbFirstTime(
 		if mem.postCheck != nil {
 			postCheckErr = mem.postCheck(tx, r.CheckTx)
 		}
+		var txHash []byte
+		if r.CheckTx != nil && r.CheckTx.Tx != nil {
+			txHash = r.CheckTx.Tx.TxHash()
+		}
+		txkey := txOrTxHashToKey(tx, txHash, mem.height)
+
 		if (r.CheckTx.Code == abci.CodeTypeOK) && postCheckErr == nil {
 			// Check mempool isn't full again to reduce the chance of exceeding the
 			// limits.
 			if err := mem.isFull(len(tx)); err != nil {
-				txkey := txOrTxHashToKey(tx, r.CheckTx.Tx.TxHash(), mem.height)
 				// remove from cache (mempool might have a space later)
 				mem.cache.RemoveKey(txkey)
 				errStr := err.Error()
@@ -515,7 +520,7 @@ func (mem *CListMempool) resCbFirstTime(
 			//	return
 			//}
 			if r.CheckTx.Tx.GetGasPrice().Sign() <= 0 {
-				mem.cache.Remove(tx)
+				mem.cache.RemoveKey(txkey)
 				errMsg := "Failed to get extra info for this tx!"
 				mem.logger.Error(errMsg)
 				r.CheckTx.Code = 1
@@ -557,7 +562,7 @@ func (mem *CListMempool) resCbFirstTime(
 					"tx", txIDStringer{tx, mem.height}, "peerID", txInfo.SenderP2PID, "res", r, "err", postCheckErr)
 				mem.metrics.FailedTxs.Add(1)
 				// remove from cache (it might be good later)
-				mem.cache.Remove(tx)
+				mem.cache.RemoveKey(txkey)
 
 				r.CheckTx.Code = 1
 				r.CheckTx.Log = err.Error()
@@ -568,7 +573,7 @@ func (mem *CListMempool) resCbFirstTime(
 				"tx", txIDStringer{tx, mem.height}, "peerID", txInfo.SenderP2PID, "res", r, "err", postCheckErr)
 			mem.metrics.FailedTxs.Add(1)
 			// remove from cache (it might be good later)
-			mem.cache.Remove(tx)
+			mem.cache.RemoveKey(txkey)
 		}
 	default:
 		// ignore other messages
