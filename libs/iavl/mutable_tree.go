@@ -64,9 +64,11 @@ type MutableTree struct {
 
 	readableOrphansSlice []*Node
 
-	unsavedFastNodeAdditions map[string]*FastNode   // FastNodes that have not yet been saved to disk
-	unsavedFastNodeRemovals  map[string]interface{} // FastNodes that have not yet been removed from disk
-	mtx                      sync.Mutex
+	unsavedFastNodeAdditions    map[string]*FastNode // FastNodes that have not yet been saved to disk
+	mtxUnSavedFastNodeAdditions sync.Mutex
+	unsavedFastNodeRemovals     map[string]interface{} // FastNodes that have not yet been removed from disk
+	mtxUnSavedFastNodeRemovals  sync.Mutex
+	mtx                         sync.Mutex
 }
 
 // NewMutableTree returns a new tree with the specified cache size and datastore.
@@ -969,11 +971,15 @@ func (tree *MutableTree) getUnsavedFastNodeRemovals() map[string]interface{} {
 }
 
 func (tree *MutableTree) addUnsavedAddition(key []byte, node *FastNode) {
+	tree.mtxUnSavedFastNodeAdditions.Lock()
+	defer tree.mtxUnSavedFastNodeAdditions.Unlock()
 	delete(tree.unsavedFastNodeRemovals, string(key))
 	tree.unsavedFastNodeAdditions[string(key)] = node
 }
 
 func (tree *MutableTree) saveFastNodeAdditions(batch dbm.Batch) error {
+	tree.mtxUnSavedFastNodeAdditions.Lock()
+	defer tree.mtxUnSavedFastNodeAdditions.Unlock()
 	keysToSort := make([]string, 0, len(tree.unsavedFastNodeAdditions))
 	for key := range tree.unsavedFastNodeAdditions {
 		keysToSort = append(keysToSort, key)
@@ -989,11 +995,15 @@ func (tree *MutableTree) saveFastNodeAdditions(batch dbm.Batch) error {
 }
 
 func (tree *MutableTree) addUnsavedRemoval(key []byte) {
+	tree.mtxUnSavedFastNodeRemovals.Lock()
+	defer tree.mtxUnSavedFastNodeRemovals.Unlock()
 	delete(tree.unsavedFastNodeAdditions, string(key))
 	tree.unsavedFastNodeRemovals[string(key)] = true
 }
 
 func (tree *MutableTree) saveFastNodeRemovals(batch dbm.Batch) error {
+	tree.mtxUnSavedFastNodeRemovals.Lock()
+	defer tree.mtxUnSavedFastNodeRemovals.Unlock()
 	keysToSort := make([]string, 0, len(tree.unsavedFastNodeRemovals))
 	for key := range tree.unsavedFastNodeRemovals {
 		keysToSort = append(keysToSort, key)
