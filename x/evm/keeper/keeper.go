@@ -97,11 +97,11 @@ func NewKeeper(
 	if err != nil {
 		panic(err)
 	}
-
 	if enable := types.GetEnableBloomFilter(); enable {
 		db := types.BloomDb()
 		types.InitIndexer(db)
 	}
+	types.InitDebugCallTracerService()
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
 	k := &Keeper{
 		cdc:           cdc,

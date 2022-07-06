@@ -122,5 +122,6 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().String(rpc.FlagWebsocket, "8546", "websocket port to listen to")
 	cmd.Flags().Int(backend.FlagLogsLimit, 0, "Maximum number of logs returned when calling eth_getLogs")
 	cmd.Flags().Int(backend.FlagLogsTimeout, 60, "Maximum query duration when calling eth_getLogs")
+	cmd.Flags().Int(evmtypes.FlagDebugCallTracerCache, 0, "Maximum of debug call tracer cache count, if 0, disable")
 	wasm.AddModuleInitFlags(cmd)
 }

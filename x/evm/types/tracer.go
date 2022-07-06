@@ -3,15 +3,86 @@ package types
 import (
 	"fmt"
 	"math/big"
+	"sync"
 	"time"
 
+	"github.com/Workiva/go-datastructures/queue"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/eth/tracers"
 	json "github.com/json-iterator/go"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/spf13/viper"
 )
+
+const (
+	FlagDebugCallTracerCache = "debug-call-tracer-cache"
+)
+
+var (
+	DebugCallTracerMaxCount int
+	DebugCallTracerQueue    *queue.Queue
+	notifyChan              chan struct{}
+	onceTracer              sync.Once
+)
+
+func InitDebugCallTracerService() {
+	onceTracer.Do(func() {
+		DebugCallTracerMaxCount = viper.GetInt(FlagDebugCallTracerCache)
+		if DebugCallTracerMaxCount > 0 {
+			notifyChan = make(chan struct{})
+			DebugCallTracerQueue = new(queue.Queue)
+			for i := 0; i < DebugCallTracerMaxCount; i++ {
+				newCallTracer()
+			}
+			startNewCallerTracer()
+		}
+	})
+}
+func newCallTracer() {
+	tCtx := &tracers.Context{}
+	tracer, err := tracers.New("callTracer", tCtx)
+	if err != nil {
+		panic(err)
+	}
+	DebugCallTracerQueue.Put(tracer)
+}
+func startNewCallerTracer() {
+	go func() {
+		for {
+			select {
+			case _, ok := <-notifyChan:
+				if !ok {
+					return
+				}
+				for DebugCallTracerQueue.Len() < int64(DebugCallTracerMaxCount) {
+					newCallTracer()
+				}
+			}
+		}
+	}()
+}
+func GetCallerTracer() vm.Tracer {
+	if DebugCallTracerMaxCount > 0 {
+		item, err := DebugCallTracerQueue.Peek()
+		if err != nil {
+			return nil
+		}
+		if tracer, ok := item.(vm.Tracer); ok {
+			DebugCallTracerQueue.Get(1)
+			notifyChan <- struct{}{}
+			return tracer
+		}
+		return nil
+	}
+	return nil
+}
+func StopNewCallerTracerService() {
+	if DebugCallTracerMaxCount > 0 {
+		close(notifyChan)
+	}
+}
 
 type TraceConfig struct {
 	// custom javascript tracer
@@ -163,6 +234,12 @@ func newTracer(ctx sdk.Context, txHash *common.Hash) (tracer vm.Tracer) {
 				Debug:             traceConfig.Debug,
 			}
 			return vm.NewStructLogger(&logConfig)
+		}
+		if traceConfig.Tracer == "callTracer" {
+			tracer = GetCallerTracer()
+			if tracer != nil {
+				return tracer
+			}
 		}
 		// Json-based tracer
 		tCtx := &tracers.Context{
