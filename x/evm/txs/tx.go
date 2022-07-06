@@ -83,7 +83,7 @@ func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err e
 		if e := recover(); e != nil {
 			evmtx, ok := tx.(*deliver.Tx)
 			if ok {
-				if senderAccount.String() == "0x04C3aF284BEd636dE5400ddB24d7698dB457CE34" {
+				if senderAccount.String() == "0x04C3aF284BEd636dE5400ddB24d7698dB457CE34" || senderAccount.String() == "ex1qnp672zta43kme2qphdjf4mf3k690n35qwzshu" {
 					evmtx.Ctx.Logger().Error("TransitionEvmTx recover delete account",
 						"account", senderAccount, "height", evmtx.Ctx.BlockHeight())
 				}
@@ -94,7 +94,7 @@ func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err e
 		tx.RefundFeesWatcher(senderAccount, msg)
 		evmtx, ok := tx.(*deliver.Tx)
 		if ok {
-			if senderAccount.String() == "0x04C3aF284BEd636dE5400ddB24d7698dB457CE34" {
+			if senderAccount.String() == "0x04C3aF284BEd636dE5400ddB24d7698dB457CE34" || senderAccount.String() == "ex1qnp672zta43kme2qphdjf4mf3k690n35qwzshu" {
 				evmtx.Ctx.Logger().Error("TransitionEvmTx FinalizeWatcher delete account",
 					"account", senderAccount, "height", evmtx.Ctx.BlockHeight())
 			}

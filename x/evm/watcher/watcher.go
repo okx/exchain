@@ -208,7 +208,7 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 	if !w.Enabled() {
 		return
 	}
-	if addr.String() == "0x04C3aF284BEd636dE5400ddB24d7698dB457CE34" {
+	if addr.String() == "0x04C3aF284BEd636dE5400ddB24d7698dB457CE34" || addr.String() == "ex1qnp672zta43kme2qphdjf4mf3k690n35qwzshu" {
 		w.log.Error("DeleteAccount account",
 			"account", addr)
 	}
