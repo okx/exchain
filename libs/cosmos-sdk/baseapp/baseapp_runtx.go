@@ -322,8 +322,8 @@ func (app *BaseApp) PreDeliverRealTx(tx []byte) abci.TxEssentials {
 		if err != nil || realTx == nil {
 			return nil
 		}
-		app.blockDataCache.SetTx(tx, realTx)
 	}
+	app.blockDataCache.SetTx(tx, realTx)
 
 	if realTx.GetType() == sdk.EvmTxType && app.preDeliverTxHandler != nil {
 		ctx := app.deliverState.ctx
@@ -389,7 +389,7 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 				"recovered: %v\n", r,
 			),
 		)
-		app.logger.Info("runTx panic recover : %v\nstack:\n%v", r, string(debug.Stack()))
+		app.logger.Info("runTx panic", "recover", r, "stack", string(debug.Stack()))
 	}
 	return err
 }
