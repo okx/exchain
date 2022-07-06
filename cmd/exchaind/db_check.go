@@ -13,9 +13,10 @@ import (
 )
 
 const (
-	flagCheckDBName = "db"
-	flagCheckPath1  = "path1"
-	flagCheckPath2  = "path2"
+	flagCheckDBName    = "db"
+	flagCheckPath1     = "path1"
+	flagCheckPath2     = "path2"
+	flagCheckDBBackend = "db-backend"
 )
 
 func dbCheckCmd() *cobra.Command {
@@ -27,22 +28,24 @@ func dbCheckCmd() *cobra.Command {
 			dbName := viper.GetString(flagCheckDBName)
 			path1 := viper.GetString(flagCheckPath1)
 			path2 := viper.GetString(flagCheckPath2)
-			err := diffData(dbName, path1, path2)
+			dbBackend := viper.GetString(flagCheckDBBackend)
+			err := diffData(dbName, path1, path2, dbBackend)
 			if err != nil {
 				log.Fatal(err)
 			}
 			log.Println("--------- check db end ---------")
 		},
 	}
-	cmd.Flags().String(flagCheckDBName, "watch.db", "")
+	cmd.Flags().String(flagCheckDBName, "watch", "")
 	cmd.Flags().String(flagCheckPath1, "", "")
 	cmd.Flags().String(flagCheckPath2, "", "")
+	cmd.Flags().String(flagCheckDBBackend, "rocksdb", "")
 	return cmd
 }
 
-func diffData(dbname, path1, path2 string) error {
-	db1 := dbm.NewDB(dbname, dbm.RocksDBBackend, path1)
-	db2 := dbm.NewDB(dbname, dbm.RocksDBBackend, path2)
+func diffData(dbname, path1, path2, dbBackend string) error {
+	db1 := dbm.NewDB(dbname, dbm.BackendType(dbBackend), path1)
+	db2 := dbm.NewDB(dbname, dbm.BackendType(dbBackend), path2)
 	defer func() {
 		db1.Close()
 		db2.Close()
