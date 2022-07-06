@@ -23,28 +23,31 @@ func (k Keeper) CallAfterSendTransferHooks(
 	token sdk.SysCoin,
 	sender sdk.AccAddress,
 	receiver string,
-	isSource bool) {
+	isSource bool) error {
 	if k.hooks != nil {
-		k.hooks.AfterSendTransfer(ctx, sourcePort, sourceChannel, token, sender, receiver, isSource)
+		return k.hooks.AfterSendTransfer(ctx, sourcePort, sourceChannel, token, sender, receiver, isSource)
 	}
+	return nil
 }
 func (k Keeper) CallAfterRecvTransferHooks(
 	ctx sdk.Context,
 	destPort, destChannel string,
 	token sdk.SysCoin,
 	receiver string,
-	isSource bool) {
+	isSource bool) error {
 	if k.hooks != nil {
-		k.hooks.AfterRecvTransfer(ctx, destPort, destChannel, token, receiver, isSource)
+		return k.hooks.AfterRecvTransfer(ctx, destPort, destChannel, token, receiver, isSource)
 	}
+	return nil
 }
 func (k Keeper) CallAfterRefundTransferHooks(
 	ctx sdk.Context,
 	sourcePort, sourceChannel string,
 	token sdk.SysCoin,
 	sender string,
-	isSource bool) {
+	isSource bool) error {
 	if k.hooks != nil {
-		k.hooks.AfterRefundTransfer(ctx, sourcePort, sourceChannel, token, sender, isSource)
+		return k.hooks.AfterRefundTransfer(ctx, sourcePort, sourceChannel, token, sender, isSource)
 	}
+	return nil
 }
