@@ -530,3 +530,28 @@ func BenchmarkReactorLogCheckTxError(b *testing.B) {
 		}
 	})
 }
+
+func TestDecodeMsg(t *testing.T) {
+	memR := NewReactor(cfg.TestMempoolConfig(), nil)
+	var originMsg, decMsg Message
+
+	originMsg = &FetchMessage{
+		MaxBytes: 2 << 20,
+		MaxGas:   -1,
+	}
+	decMsg, _ = memR.decodeMsg(memR.encodeMsg(originMsg))
+	require.Equal(t, originMsg, decMsg)
+
+	originMsg = &StxMessage{
+		Stx: []*SentryTx{{TxHash: []byte("testHash"), From: "testFrom"}},
+	}
+	decMsg, _ = memR.decodeMsg(memR.encodeMsg(originMsg))
+	require.Equal(t, originMsg, decMsg)
+
+	originMsg = &TxsMessage{
+		Txs: []types.Tx{[]byte("testTx")},
+	}
+	decMsg, _ = memR.decodeMsg(memR.encodeMsg(originMsg))
+	require.Equal(t, originMsg, decMsg)
+
+}
