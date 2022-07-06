@@ -2,6 +2,7 @@ package distribution
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/okex/exchain/x/distribution/keeper"
 	"github.com/okex/exchain/x/distribution/types"
@@ -21,7 +22,10 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 			return handleMsgWithdrawValidatorCommission(ctx, msg, k)
 
 		case types.MsgWithdrawDelegatorReward:
-			return handleMsgWithdrawDelegatorReward(ctx, msg, k)
+			if k.CheckDistributionProposalValid(ctx) {
+				return handleMsgWithdrawDelegatorReward(ctx, msg, k)
+			}
+			return nil, types.ErrUnknownDistributionMsgType()
 
 		default:
 			return nil, types.ErrUnknownDistributionMsgType()
@@ -86,7 +90,10 @@ func NewDistributionProposalHandler(k Keeper) govtypes.Handler {
 		case types.CommunityPoolSpendProposal:
 			return keeper.HandleCommunityPoolSpendProposal(ctx, k, c)
 		case types.ChangeDistributionTypeProposal:
-			return keeper.HandleChangeDistributionTypeProposal(ctx, k, c)
+			if tmtypes.HigherThanSaturn1(ctx.BlockHeight()) {
+				return keeper.HandleChangeDistributionTypeProposal(ctx, k, c)
+			}
+			return types.ErrUnknownDistributionCommunityPoolProposaType()
 
 		default:
 			return types.ErrUnknownDistributionCommunityPoolProposaType()

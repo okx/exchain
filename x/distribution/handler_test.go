@@ -26,9 +26,9 @@ func TestWithdrawDelegatorReward(t *testing.T) {
 	msg := NewMsgWithdrawDelegatorReward(delAddr1, valAddr1)
 	msg2 := NewMsgWithdrawDelegatorReward(delAddr2, valAddr2)
 
-	// delegation not exist
+	// not support msg type
 	_, err := handler(ctx, msg)
-	require.Equal(t, types.ErrCodeEmptyDelegationDistInfo(), err)
+	require.Equal(t, types.ErrUnknownDistributionMsgType(), err)
 	ctx.SetBlockTime(time.Now())
 	// deposit and add shares
 	keeper.DoDeposit(t, ctx, sk, delAddr1, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
@@ -39,14 +39,14 @@ func TestWithdrawDelegatorReward(t *testing.T) {
 
 	// delegation not exist
 	_, err = handler(ctx, msg)
-	require.Equal(t, types.ErrCodeNotSupportWithdrawDelegationRewards(), err)
+	require.Equal(t, types.ErrUnknownDistributionMsgType(), err)
 
 	// deposit and add shares ErrCodeNotSupportDistributionMethod
 	keeper.DoDeposit(t, ctx, sk, delAddr1, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
 	keeper.DoAddShares(t, ctx, sk, delAddr1, valOpAddrs)
 	// delegation not exist
 	_, err = handler(ctx, msg)
-	require.Equal(t, types.ErrCodeNotSupportWithdrawDelegationRewards(), err)
+	require.Equal(t, types.ErrUnknownDistributionMsgType(), err)
 
 	tmtypes.UnittestOnlySetMilestoneSaturn1Height(-1)
 	proposal := types.NewChangeDistributionTypeProposal("change distri type", "", types.DistributionTypeOnChain)

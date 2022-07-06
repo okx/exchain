@@ -161,7 +161,7 @@ func TestRewards(t *testing.T) {
 	ctx, _, keeper, sk, _ := CreateTestInputDefault(t, false, 1000)
 	querier := NewQuerier(keeper)
 
-	keeper.SetInitAllocateValidator(ctx)
+	keeper.SetInitAllocateValidator(ctx, true)
 	keeper.SetDistributionType(ctx, types.DistributionTypeOnChain)
 	keeper.stakingKeeper.IterateValidators(ctx, func(index int64, validator stakingexported.ValidatorI) (stop bool) {
 		if validator != nil {

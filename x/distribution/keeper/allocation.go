@@ -142,7 +142,7 @@ func (k Keeper) allocateByShares(ctx sdk.Context, rewards sdk.SysCoins) sdk.SysC
 
 // AllocateTokensToValidator allocate tokens to a particular validator, splitting according to commissions
 func (k Keeper) AllocateTokensToValidator(ctx sdk.Context, val exported.ValidatorI, tokens sdk.SysCoins) {
-	if k.checkDistributionProposalValid(ctx) {
+	if k.CheckDistributionProposalValid(ctx) {
 		k.allocateTokensToValidatorForDistributionProposal(ctx, val, tokens)
 		return
 	}

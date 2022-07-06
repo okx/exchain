@@ -10,7 +10,7 @@ import (
 
 // initialize rewards for a new validator
 func (k Keeper) initializeValidator(ctx sdk.Context, val exported.ValidatorI) {
-	if !k.checkDistributionProposalValid(ctx) {
+	if !k.CheckDistributionProposalValid(ctx) {
 		// set accumulated commissions
 		k.SetValidatorAccumulatedCommission(ctx, val.GetOperator(), types.InitialValidatorAccumulatedCommission())
 		return
@@ -53,7 +53,7 @@ func (k Keeper) initValidatorWithoutOutstanding(ctx sdk.Context, val exported.Va
 
 // increment validator period, returning the period just ended
 func (k Keeper) incrementValidatorPeriod(ctx sdk.Context, val exported.ValidatorI) uint64 {
-	if !k.checkDistributionProposalValid(ctx) {
+	if !k.CheckDistributionProposalValid(ctx) {
 		return 0
 	}
 

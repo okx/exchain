@@ -24,7 +24,7 @@ func (h Hooks) AfterValidatorCreated(ctx sdk.Context, valAddr sdk.ValAddress) {
 
 // AfterValidatorRemoved cleans up for after validator is removed
 func (h Hooks) AfterValidatorRemoved(ctx sdk.Context, _ sdk.ConsAddress, valAddr sdk.ValAddress) {
-	if h.k.checkDistributionProposalValid(ctx) {
+	if h.k.CheckDistributionProposalValid(ctx) {
 		h.afterValidatorRemovedForDistributionProposal(ctx, nil, valAddr)
 		return
 	}
@@ -107,7 +107,7 @@ func (h Hooks) afterValidatorRemovedForDistributionProposal(ctx sdk.Context, _ s
 
 // increment period
 func (h Hooks) BeforeDelegationCreated(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
-	if !h.k.checkDistributionProposalValid(ctx) {
+	if !h.k.CheckDistributionProposalValid(ctx) {
 		return
 	}
 	for _, valAddr := range valAddrs {
@@ -118,7 +118,7 @@ func (h Hooks) BeforeDelegationCreated(ctx sdk.Context, delAddr sdk.AccAddress, 
 
 // withdraw delegation rewards (which also increments period)
 func (h Hooks) BeforeDelegationSharesModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
-	if !h.k.checkDistributionProposalValid(ctx) {
+	if !h.k.CheckDistributionProposalValid(ctx) {
 		return
 	}
 
@@ -133,7 +133,7 @@ func (h Hooks) BeforeDelegationSharesModified(ctx sdk.Context, delAddr sdk.AccAd
 
 // create new delegation period record
 func (h Hooks) AfterDelegationModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
-	if !h.k.checkDistributionProposalValid(ctx) {
+	if !h.k.CheckDistributionProposalValid(ctx) {
 		return
 	}
 	for _, valAddr := range valAddrs {

@@ -144,7 +144,7 @@ func queryDelegatorValidators(ctx sdk.Context, _ []string, req abci.RequestQuery
 }
 
 func queryDelegationRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, k Keeper) ([]byte, error) {
-	if !k.checkDistributionProposalValid(ctx) {
+	if !k.CheckDistributionProposalValid(ctx) {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidVersion, "not support")
 	}
 
@@ -200,7 +200,7 @@ func queryDelegationRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, 
 }
 
 func queryDelegatorTotalRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, k Keeper) ([]byte, error) {
-	if !k.checkDistributionProposalValid(ctx) {
+	if !k.CheckDistributionProposalValid(ctx) {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidVersion, "not support")
 	}
 
@@ -254,7 +254,7 @@ func queryDelegatorTotalRewards(ctx sdk.Context, _ []string, req abci.RequestQue
 }
 
 func queryValidatorOutstandingRewards(ctx sdk.Context, path []string, req abci.RequestQuery, k Keeper) ([]byte, error) {
-	if !k.checkDistributionProposalValid(ctx) {
+	if !k.CheckDistributionProposalValid(ctx) {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidVersion, "not support")
 	}
 

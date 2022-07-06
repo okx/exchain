@@ -54,25 +54,3 @@ func (k Keeper) GetDistributionType(ctx sdk.Context) (distrType uint32) {
 func (k Keeper) SetDistributionType(ctx sdk.Context, distrType uint32) {
 	k.paramSpace.Set(ctx, types.ParamStoreKeyDistributionType, &distrType)
 }
-
-func (k Keeper) SetInitAllocateValidator(ctx sdk.Context) {
-	init := types.InitAllocateValidatorSuccess
-	k.paramSpace.Set(ctx, types.ParamStoreKeyInitAllocateValidator, &init)
-	logger := k.Logger(ctx)
-	logger.Debug("SetInitAllocateValidator", "init", init)
-}
-
-//SetInitAllocateValidatorNone Only for UT
-func (k Keeper) SetInitAllocateValidatorNone(ctx sdk.Context) {
-	init := types.InitAllocateValidatorNone
-	k.paramSpace.Set(ctx, types.ParamStoreKeyInitAllocateValidator, &init)
-}
-
-func (k Keeper) HasInitAllocateValidator(ctx sdk.Context) bool {
-	init := types.InitAllocateValidatorNone
-	if k.paramSpace.Has(ctx, types.ParamStoreKeyInitAllocateValidator) {
-		k.paramSpace.Get(ctx, types.ParamStoreKeyInitAllocateValidator, &init)
-	}
-
-	return init == types.InitAllocateValidatorSuccess
-}

@@ -90,7 +90,7 @@ func (k Keeper) WithdrawValidatorCommission(ctx sdk.Context, valAddr sdk.ValAddr
 	commission, remainder := accumCommission.TruncateDecimal()
 	k.SetValidatorAccumulatedCommission(ctx, valAddr, remainder) // leave remainder to withdraw later
 
-	if k.checkDistributionProposalValid(ctx) {
+	if k.CheckDistributionProposalValid(ctx) {
 		// update outstanding
 		outstanding := k.GetValidatorOutstandingRewards(ctx, valAddr)
 		k.SetValidatorOutstandingRewards(ctx, valAddr, outstanding.Sub(sdk.NewDecCoinsFromCoins(commission...)))
@@ -188,6 +188,6 @@ func (k Keeper) FundCommunityPool(ctx sdk.Context, amount sdk.Coins, sender sdk.
 	return nil
 }
 
-func (k Keeper) checkDistributionProposalValid(ctx sdk.Context) bool {
+func (k Keeper) CheckDistributionProposalValid(ctx sdk.Context) bool {
 	return tmtypes.HigherThanSaturn1(ctx.BlockHeight()) && k.HasInitAllocateValidator(ctx)
 }

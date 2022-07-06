@@ -14,10 +14,9 @@ const (
 
 // Parameter keys
 var (
-	ParamStoreKeyCommunityTax          = []byte("communitytax")
-	ParamStoreKeyWithdrawAddrEnabled   = []byte("withdrawaddrenabled")
-	ParamStoreKeyDistributionType      = []byte("distributiontype")
-	ParamStoreKeyInitAllocateValidator = []byte("initallocatevalidator")
+	ParamStoreKeyCommunityTax        = []byte("communitytax")
+	ParamStoreKeyWithdrawAddrEnabled = []byte("withdrawaddrenabled")
+	ParamStoreKeyDistributionType    = []byte("distributiontype")
 )
 
 // Params defines the set of distribution parameters.
@@ -50,13 +49,11 @@ func (p Params) String() string {
 
 // ParamSetPairs returns the parameter set pairs.
 func (p *Params) ParamSetPairs() params.ParamSetPairs {
-	initAllocateValidator := InitAllocateValidatorNone
 	return params.ParamSetPairs{
 		params.NewParamSetPair(ParamStoreKeyCommunityTax, &p.CommunityTax, validateCommunityTax),
 		params.NewParamSetPair(ParamStoreKeyWithdrawAddrEnabled, &p.WithdrawAddrEnabled, validateWithdrawAddrEnabled),
 		//TODO, Check the first block of the older version is not compatible
 		params.NewParamSetPair(ParamStoreKeyDistributionType, &p.DistributionType, validateDistributionType),
-		params.NewParamSetPair(ParamStoreKeyInitAllocateValidator, &initAllocateValidator, validateInitAllocateValidator),
 	}
 }
 
@@ -107,19 +104,6 @@ func validateDistributionType(i interface{}) error {
 
 	if distributionType != DistributionTypeOnChain && distributionType != DistributionTypeOffChain {
 		return fmt.Errorf("invalid distribution type: %d", distributionType)
-	}
-
-	return nil
-}
-
-func validateInitAllocateValidator(i interface{}) error {
-	initStatus, ok := i.(uint32)
-	if !ok {
-		return fmt.Errorf("invalid parameter type: %T", i)
-	}
-
-	if initStatus != InitAllocateValidatorNone && initStatus != InitAllocateValidatorSuccess {
-		return fmt.Errorf("invalid distribution type: %d", initStatus)
 	}
 
 	return nil

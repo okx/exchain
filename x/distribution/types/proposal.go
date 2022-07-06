@@ -22,11 +22,6 @@ const (
 	DistributionTypeOnChain  uint32 = 1
 )
 
-const (
-	InitAllocateValidatorNone    uint32 = 0
-	InitAllocateValidatorSuccess uint32 = 1
-)
-
 // Assert CommunityPoolSpendProposal implements govtypes.Content at compile-time
 var _ govtypes.Content = CommunityPoolSpendProposal{}
 

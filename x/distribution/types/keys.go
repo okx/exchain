@@ -40,6 +40,7 @@ var (
 	ValidatorCurrentRewardsPrefix        = []byte{0x06} // key for current validator rewards
 	ValidatorAccumulatedCommissionPrefix = []byte{0x07} // key for accumulated validator commission
 	//ValidatorSlashEventPrefix            = []byte{0x08} // key for validator slash fraction
+	InitAllocateValidatorKey = []byte{0x09} // key for check init old allocate validator
 )
 
 // GetDelegatorWithdrawInfoAddress returns an address from a delegator's withdraw info key

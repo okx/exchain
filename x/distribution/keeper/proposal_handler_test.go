@@ -18,18 +18,15 @@ func TestHandleChangeDistributionTypeProposal(t *testing.T) {
 	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 	require.Equal(t, types.DistributionTypeOffChain, dk.GetDistributionType(ctx))
 
-	//no support
+	//distribution type proposal ok
 	proposal := types.NewChangeDistributionTypeProposal("change distri type", "", types.DistributionTypeOnChain)
-	err := HandleChangeDistributionTypeProposal(ctx, dk, proposal)
-	require.Equal(t, types.ErrCodeNotSupportDistributionProposal(), err)
-	require.Equal(t, types.DistributionTypeOffChain, dk.GetDistributionType(ctx))
-
-	//ok
 	tmtypes.UnittestOnlySetMilestoneSaturn1Height(-1)
-	err = HandleChangeDistributionTypeProposal(ctx, dk, proposal)
+	err := HandleChangeDistributionTypeProposal(ctx, dk, proposal)
+	require.Nil(t, err)
 	require.Equal(t, types.DistributionTypeOnChain, dk.GetDistributionType(ctx))
 
 	//same
 	err = HandleChangeDistributionTypeProposal(ctx, dk, proposal)
+	require.Nil(t, err)
 	require.Equal(t, types.DistributionTypeOnChain, dk.GetDistributionType(ctx))
 }

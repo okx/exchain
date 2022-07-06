@@ -55,6 +55,25 @@ func (k Keeper) SetFeePool(ctx sdk.Context, feePool types.FeePool) {
 	store.Set(types.FeePoolKey, b)
 }
 
+// GetFeePool check init allocate validator flag
+func (k Keeper) HasInitAllocateValidator(ctx sdk.Context) bool {
+	store := ctx.KVStore(k.storeKey)
+	b := store.Get(types.InitAllocateValidatorKey)
+	if b == nil {
+		return false
+	}
+	result := true
+	k.cdc.MustUnmarshalBinaryLengthPrefixed(b, &result)
+	return result
+}
+
+// SetInitAllocateValidator set init allocate validator flag
+func (k Keeper) SetInitAllocateValidator(ctx sdk.Context, init bool) {
+	store := ctx.KVStore(k.storeKey)
+	b := k.cdc.MustMarshalBinaryLengthPrefixed(init)
+	store.Set(types.InitAllocateValidatorKey, b)
+}
+
 // GetFeePoolCommunityCoins returns the community coins
 func (k Keeper) GetFeePoolCommunityCoins(ctx sdk.Context) sdk.SysCoins {
 	return k.GetFeePool(ctx).CommunityPool

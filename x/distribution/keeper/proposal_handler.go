@@ -2,7 +2,6 @@ package keeper
 
 import (
 	"fmt"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	stakingexported "github.com/okex/exchain/x/staking/exported"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -54,11 +53,6 @@ func (k Keeper) distributeFromFeePool(ctx sdk.Context, amount sdk.Coins, receive
 func HandleChangeDistributionTypeProposal(ctx sdk.Context, k Keeper, p types.ChangeDistributionTypeProposal) error {
 	logger := k.Logger(ctx)
 
-	logger.Debug(fmt.Sprintf("distribution type, %d", p.Type))
-	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) {
-		return types.ErrCodeNotSupportDistributionProposal()
-	}
-
 	//1.check if it's the same
 	if k.GetDistributionType(ctx) == p.Type {
 		logger.Debug(fmt.Sprintf("do nothing, same distribution type, %d", p.Type))
@@ -68,7 +62,7 @@ func HandleChangeDistributionTypeProposal(ctx sdk.Context, k Keeper, p types.Cha
 	//2. if on chain, iteration validators and init val which has not outstanding
 	if p.Type == types.DistributionTypeOnChain {
 		if !k.HasInitAllocateValidator(ctx) {
-			k.SetInitAllocateValidator(ctx)
+			k.SetInitAllocateValidator(ctx, true)
 			k.stakingKeeper.IterateValidators(ctx, func(index int64, validator stakingexported.ValidatorI) (stop bool) {
 				if validator != nil {
 					k.initValidatorWithoutOutstanding(ctx, validator)

@@ -9,7 +9,7 @@ import (
 
 // initialize starting info for a new delegation
 func (k Keeper) initializeDelegation(ctx sdk.Context, val sdk.ValAddress, del sdk.AccAddress) {
-	if !k.checkDistributionProposalValid(ctx) {
+	if !k.CheckDistributionProposalValid(ctx) {
 		return
 	}
 
@@ -89,7 +89,7 @@ func (k Keeper) calculateDelegationRewards(ctx sdk.Context, val stakingexported.
 
 //withdraw rewards according to the specified validator by delegator
 func (k Keeper) withdrawDelegationRewards(ctx sdk.Context, val stakingexported.ValidatorI, delAddress sdk.AccAddress) (sdk.Coins, error) {
-	if !k.checkDistributionProposalValid(ctx) {
+	if !k.CheckDistributionProposalValid(ctx) {
 		return nil, types.ErrCodeNotSupportWithdrawDelegationRewards()
 	}
 	logger := k.Logger(ctx)
@@ -154,7 +154,7 @@ func (k Keeper) withdrawDelegationRewards(ctx sdk.Context, val stakingexported.V
 
 //initExistedDelegationStartInfo If the delegator existed but no start info, it add shares before distribution proposal, and need to set a new start info
 func (k Keeper) initExistedDelegationStartInfo(ctx sdk.Context, val stakingexported.ValidatorI, del stakingexported.DelegatorI) {
-	if !k.checkDistributionProposalValid(ctx) {
+	if !k.CheckDistributionProposalValid(ctx) {
 		return
 	}
 
