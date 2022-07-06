@@ -329,6 +329,7 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 	hasEnterEvmTx := make([]bool, app.parallelTxManage.txSize)
 	resp := make([]abci.ResponseDeliverTx, app.parallelTxManage.txSize)
 	watchers := make([]sdk.IWatcher, app.parallelTxManage.txSize)
+	msgs := make([][]sdk.Msg, app.parallelTxManage.txSize)
 	for index := 0; index < app.parallelTxManage.txSize; index++ {
 		paraM := app.parallelTxManage.txReps[index].paraMsg
 		logIndex[index] = paraM.LogIndex
@@ -336,10 +337,11 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 		hasEnterEvmTx[index] = paraM.HasRunEvmTx
 		resp[index] = app.parallelTxManage.txReps[index].resp
 		watchers[index] = app.parallelTxManage.txReps[index].watcher
+		msgs[index] = app.parallelTxManage.txReps[index].msgs
 	}
 	app.watcherCollector(watchers...)
 	app.parallelTxManage.clear()
-	return app.logFix(logIndex, hasEnterEvmTx, errs, resp)
+	return app.logFix(logIndex, hasEnterEvmTx, errs, msgs, resp)
 }
 
 //we reuse the nonce that changed by the last async call
@@ -350,7 +352,7 @@ func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 
 	if txStatus.stdTx == nil {
 		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr,
-			0, 0, app.trace), nil, uint32(txIndex), nil, 0, sdk.EmptyWatcher{})
+			0, 0, app.trace), nil, uint32(txIndex), nil, 0, sdk.EmptyWatcher{}, nil)
 		return asyncExe
 	}
 	var (
@@ -371,7 +373,8 @@ func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 		}
 	}
 
-	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg(), 0, info.runMsgCtx.GetWatcher())
+	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg(),
+		0, info.runMsgCtx.GetWatcher(), info.tx.GetMsgs())
 	app.parallelTxManage.addMultiCache(info.msCacheAnte, info.msCache)
 	return asyncExe
 }
@@ -383,10 +386,11 @@ type executeResult struct {
 	paraMsg     *sdk.ParaMsg
 	blockHeight int64
 	watcher     sdk.IWatcher
+	msgs        []sdk.Msg
 }
 
 func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32,
-	paraMsg *sdk.ParaMsg, height int64, watcher sdk.IWatcher) *executeResult {
+	paraMsg *sdk.ParaMsg, height int64, watcher sdk.IWatcher, msgs []sdk.Msg) *executeResult {
 	ans := &executeResult{
 		resp:        r,
 		ms:          ms,
@@ -394,6 +398,7 @@ func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter 
 		paraMsg:     paraMsg,
 		blockHeight: height,
 		watcher:     watcher,
+		msgs:        msgs,
 	}
 
 	if paraMsg == nil {

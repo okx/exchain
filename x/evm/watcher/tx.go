@@ -112,16 +112,26 @@ func (w *Watcher) saveFailedReceipts(watchTx WatchTx, gasUsed uint64) {
 }
 
 // SaveParallelTx saves parallel transactions and transactionReceipts to watcher
-func (w *Watcher) SaveParallelTx(evmTx *types.MsgEthereumTx, resultData *types.ResultData, txIndex uint64, resp tm.ResponseDeliverTx) {
+func (w *Watcher) SaveParallelTx(msgs []sdk.Msg, resultData *types.ResultData, resp tm.ResponseDeliverTx) {
 	if !w.Enabled() {
 		return
 	}
-	watchTx := NewEvmTx(evmTx, common.BytesToHash(evmTx.TxHash()), w.blockHash, w.height, txIndex)
-	w.saveTx(watchTx)
+	if len(msgs) == 0 {
+		return
+	}
+	evmTx, ok := msgs[0].(*types.MsgEthereumTx)
+	if !ok {
+		return
+	}
+	//evmTx *types.MsgEthereumTx
 
+	watchTx := NewEvmTx(evmTx, common.BytesToHash(evmTx.TxHash()), w.blockHash, w.height, w.evmTxIndex)
+	w.evmTxIndex++
+
+	w.saveTx(watchTx)
 	// save transactionReceipts
 	if resp.IsOK() {
-		w.SaveTransactionReceipt(TransactionSuccess, evmTx, watchTx.txHash, txIndex, resultData, uint64(resp.GasUsed))
+		w.SaveTransactionReceipt(TransactionSuccess, evmTx, watchTx.txHash, watchTx.index, resultData, uint64(resp.GasUsed))
 	} else {
 		w.saveFailedReceipts(watchTx, uint64(resp.GasUsed))
 	}

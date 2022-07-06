@@ -17,7 +17,7 @@ type AccNonceHandler func(ctx Context, address AccAddress) (nonce uint64)
 
 type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins) error
 
-type LogFix func(logIndex []int, hasEnterEvmTx []bool, errs []error, resp []abci.ResponseDeliverTx) (logs [][]byte)
+type LogFix func(logIndex []int, hasEnterEvmTx []bool, errs []error, msgs [][]Msg, resp []abci.ResponseDeliverTx) (logs [][]byte)
 
 type GetTxFeeAndFromHandler func(ctx Context, tx Tx) (Coins, bool, string, string, error)
 type GetTxFeeHandler func(tx Tx) Coins
