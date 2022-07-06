@@ -315,7 +315,9 @@ func (w *Watcher) Commit() {
 	//	values = append(values, b.GetValue())
 	//}
 	//w.log.Error(fmt.Sprintf("Watcher commit batch key=%v, value=%v", keys, values))
-	key := []byte{1, 0, 0, 106, 182, 243, 91, 11, 184, 39, 184, 76, 80, 243, 82, 128, 15, 185, 18, 94, 162, 173, 58, 157, 242, 220, 71, 178, 28, 248, 216, 121, 63}
+
+	//key := []byte{1, 0, 0, 106, 182, 243, 91, 11, 184, 39, 184, 76, 80, 243, 82, 128, 15, 185, 18, 94, 162, 173, 58, 157, 242, 220, 71, 178, 28, 248, 216, 121, 63}
+	key := []byte{1, 0, 60, 240, 178, 203, 106, 199, 36, 176, 77, 219, 13, 171, 225, 231, 206, 106, 6, 106, 79, 159, 24, 180, 45, 61, 153, 158, 153, 1, 105, 62, 250}
 	for _, b := range batch {
 		if bytes.Compare(b.GetKey(), key) == 0 {
 			w.log.Error(fmt.Sprintf("Watcher commit message, type=%d, key=%v, value=%v, object=%+v",
