@@ -81,7 +81,7 @@ func (c *Context) IsDeliver() bool {
 }
 
 func (c *Context) UseParamCache() bool {
-	return c.isDeliver || (c.paraMsg != nil && !c.paraMsg.HaveCosmosTxInBlock) || c.checkTx
+	return c.isDeliver || (c.paraMsg != nil && !c.paraMsg.HaveCosmosTxInBlock)
 }
 
 func (c *Context) IsCheckTx() bool             { return c.checkTx }
