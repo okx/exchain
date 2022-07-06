@@ -100,7 +100,7 @@ func (w *Watcher) saveFailedReceipts(watchTx WatchTx, gasUsed uint64) {
 	if w == nil || watchTx == nil {
 		return
 	}
-	w.log.Error("saveFailedReceipts", watchTx.GetTxHash().String(), "start")
+	//w.log.Error("saveFailedReceipts", watchTx.GetTxHash().String(), "start")
 	w.UpdateCumulativeGas(watchTx.GetIndex(), gasUsed)
 	receipt := watchTx.GetFailedReceipts(w.cumulativeGas[watchTx.GetIndex()], gasUsed)
 	if w.InfuraKeeper != nil {
@@ -110,7 +110,7 @@ func (w *Watcher) saveFailedReceipts(watchTx WatchTx, gasUsed uint64) {
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}
-	w.log.Error("saveFailedReceipts", watchTx.GetTxHash().String(), "end")
+	//w.log.Error("saveFailedReceipts", watchTx.GetTxHash().String(), "end")
 }
 
 // SaveParallelTx saves parallel transactions and transactionReceipts to watcher
