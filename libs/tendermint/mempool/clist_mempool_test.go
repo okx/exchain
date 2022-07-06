@@ -965,3 +965,19 @@ func BenchmarkMempoolLogAddTx(b *testing.B) {
 		}
 	})
 }
+
+func TestTxOrTxHashToKey(t *testing.T) {
+	var tx = make([]byte, 256)
+	rand.Read(tx)
+
+	types.UnittestOnlySetMilestoneVenusHeight(1)
+
+	venus := types.GetVenusHeight()
+	txhash := types.Tx(tx).Hash(venus)
+
+	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, nil, venus))
+	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, txhash, venus))
+	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, txhash, venus-1))
+	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, types.Tx(tx).Hash(venus-1), venus-1))
+	require.NotEqual(t, txKey(tx), txOrTxHashToKey(tx, types.Tx(tx).Hash(venus-1), venus))
+}
