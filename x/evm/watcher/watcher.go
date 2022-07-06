@@ -475,7 +475,7 @@ func (w *Watcher) CheckWatchDB(keys [][]byte, mode string) {
 		output[hex.EncodeToString(key)] = string(value)
 	}
 
-	w.log.Info("watchDB delta", "mode", mode, "height", w.height, "hash", hex.EncodeToString(kvHash.Sum(nil)), "kv", output)
+	w.log.Error("watchDB delta", "mode", mode, "height", w.height, "hash", hex.EncodeToString(kvHash.Sum(nil)), "kv", output)
 }
 
 func bytes2Key(keyBytes []byte) string {
