@@ -42,6 +42,7 @@ type Watcher struct {
 	checkWd      bool
 	filterMap    map[string]WatchMessage
 	InfuraKeeper InfuraKeeper
+	batchLens    []int
 }
 
 var (
@@ -121,6 +122,8 @@ func (w *Watcher) clean() {
 	}
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
+	w.log.Error(fmt.Sprintf("batch len=%d, value=%v", len(w.batchLens), w.batchLens))
+	w.batchLens = []int{}
 }
 
 func (w *Watcher) SaveTransactionReceipt(status uint32, msg *evmtypes.MsgEthereumTx, txHash common.Hash, txIndex uint64, data *evmtypes.ResultData, gasUsed uint64) {
@@ -301,6 +304,7 @@ func (w *Watcher) Commit() {
 	}
 	//hold it in temp
 	batch := w.batch
+	w.log.Error(fmt.Sprintf("Watcher commit batch len=%d, value=%v", len(w.batch), w.batch))
 	w.clean()
 	w.dispatchJob(func() {
 		w.commitBatch(batch)
@@ -599,7 +603,8 @@ func (w *Watcher) Collect(watchers ...sdk.IWatcher) {
 	w.log.Error(fmt.Sprintf("Collect watchers len=%d", len(watchers)))
 	for _, watcher := range watchers {
 		batch := watcher.Destruct()
-		w.log.Error(fmt.Sprintf("Destruct batch len=%d", len(batch)))
+		w.batchLens = append(w.batchLens, len(batch))
+
 		for _, b := range batch {
 			if b == nil {
 				panic(fmt.Sprintf("collect check panic, len(batch)=%d", len(batch)))

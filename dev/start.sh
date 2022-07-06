@@ -25,7 +25,7 @@ run() {
 
 #    exchaind start --pruning=nothing --rpc.unsafe \
     exchaind start --rpc.unsafe \
-      --deliver-txs-mode 0 \
+      --deliver-txs-mode 2 \
       --fast-query true \
       --pruning everything \
       --local-rpc-port 26657 \

@@ -378,7 +378,7 @@ func (c *Context) SetWatcher(w IWatcher) {
 		c.watcher = &TxWatcher{EmptyWatcher{}}
 		return
 	}
-	c.Logger().Error("SetWatcher", "IWatcher", w)
+	//c.Logger().Error("SetWatcher", "IWatcher", w)
 	c.watcher.IWatcher = w
 }
 
