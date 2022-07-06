@@ -4,12 +4,14 @@ import (
 	"math/big"
 	"sync"
 
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 
 	"github.com/okex/exchain/x/evm/types"
 )
 
-func (k *Keeper) FixLog(logIndex []int, hasEnterEvmTx []bool, anteErrs []error, resp []abci.ResponseDeliverTx) [][]byte {
+func (k *Keeper) FixLog(logIndex []int, hasEnterEvmTx []bool, anteErrs []error, msgs [][]sdk.Msg, resp []abci.ResponseDeliverTx) [][]byte {
 	txSize := len(logIndex)
 	res := make([][]byte, txSize, txSize)
 	logSize := uint(0)
@@ -21,10 +23,7 @@ func (k *Keeper) FixLog(logIndex []int, hasEnterEvmTx []bool, anteErrs []error, 
 			txInBlock++
 		}
 		rs, ok := k.LogsManages.Get(logIndex[index])
-		if !ok {
-			continue
-		}
-		if anteErrs[index] == nil && rs.ResultData != nil {
+		if ok && anteErrs[index] == nil && rs.ResultData != nil {
 			for _, v := range rs.ResultData.Logs {
 				v.Index = logSize
 				v.TxIndex = uint(txInBlock)
@@ -38,9 +37,12 @@ func (k *Keeper) FixLog(logIndex []int, hasEnterEvmTx []bool, anteErrs []error, 
 			}
 			res[index] = data
 		}
-
+		var resultData *types.ResultData
+		if ok {
+			resultData = rs.ResultData
+		}
 		// save transaction and transactionReceipt to watcher
-		k.saveParallelTxResult(rs, uint64(index), resp[index])
+		k.saveParallelTxResult(msgs[index], resultData, resp[index])
 	}
 
 	return res
@@ -93,12 +95,11 @@ func (l *LogsManager) Reset() {
 
 type TxResult struct {
 	ResultData *types.ResultData
-	Tx         *types.MsgEthereumTx
 }
 
-func (k *Keeper) saveParallelTxResult(result TxResult, txIndex uint64, resp abci.ResponseDeliverTx) {
+func (k *Keeper) saveParallelTxResult(msgs []sdk.Msg, resultData *types.ResultData, resp abci.ResponseDeliverTx) {
 	if !k.Watcher.Enabled() {
 		return
 	}
-	k.Watcher.SaveParallelTx(result.Tx, result.ResultData, txIndex, resp)
+	k.Watcher.SaveParallelTx(msgs, resultData, resp)
 }

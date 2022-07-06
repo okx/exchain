@@ -632,8 +632,8 @@ func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCo
 	}
 }
 func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
-	return func(logIndex []int, hasEnterEvmTx []bool, anteErrs []error, resp []abci.ResponseDeliverTx) (logs [][]byte) {
-		return ek.FixLog(logIndex, hasEnterEvmTx, anteErrs, resp)
+	return func(logIndex []int, hasEnterEvmTx []bool, anteErrs []error, msgs [][]sdk.Msg, resp []abci.ResponseDeliverTx) (logs [][]byte) {
+		return ek.FixLog(logIndex, hasEnterEvmTx, anteErrs, msgs, resp)
 	}
 }
 
