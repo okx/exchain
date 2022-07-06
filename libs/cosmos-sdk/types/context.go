@@ -376,7 +376,7 @@ func (c *Context) SetWatcher(w IWatcher) {
 		c.watcher = &TxWatcher{EmptyWatcher{}}
 		return
 	}
-	c.watcher = &TxWatcher{w}
+	c.watcher.IWatcher = w
 }
 
 func (c *Context) GetWatcher() IWatcher {
