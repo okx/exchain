@@ -130,7 +130,7 @@ func (w *Watcher) SaveTransactionReceipt(status uint32, msg *evmtypes.MsgEthereu
 	if !w.Enabled() {
 		return
 	}
-	w.log.Error("SaveTransactionReceipt", txHash.String(), "start")
+	//w.log.Error("SaveTransactionReceipt", txHash.String(), "start")
 	w.UpdateCumulativeGas(txIndex, gasUsed)
 	tr := newTransactionReceipt(status, msg, txHash, w.blockHash, txIndex, w.height, data, w.cumulativeGas[txIndex], gasUsed)
 	if w.InfuraKeeper != nil {
@@ -140,7 +140,7 @@ func (w *Watcher) SaveTransactionReceipt(status uint32, msg *evmtypes.MsgEthereu
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}
-	w.log.Error("SaveTransactionReceipt", txHash.String(), *wMsg.TransactionReceipt)
+	//w.log.Error("SaveTransactionReceipt", txHash.String(), *wMsg.TransactionReceipt)
 }
 
 func (w *Watcher) UpdateCumulativeGas(txIndex, gasUsed uint64) {
