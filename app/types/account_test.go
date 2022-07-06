@@ -270,6 +270,10 @@ func TestEthAccountAmino(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, data, dataFromMarshaller)
 
+		dataFromSizer, err := cdc.MarshalBinaryWithSizer(&testAccount, false)
+		require.NoError(t, err)
+		require.EqualValues(t, data, dataFromSizer)
+
 		dataFromMarshaller, err = ethAccount.MarshalToAmino(cdc)
 		if dataFromMarshaller == nil {
 			dataFromMarshaller = []byte{}
@@ -307,6 +311,7 @@ func BenchmarkEthAccountAminoUnmarshal(b *testing.B) {
 	b.ReportAllocs()
 
 	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			var account exported.Account
 			_ = cdc.UnmarshalBinaryBare(data, &account)
@@ -314,6 +319,7 @@ func BenchmarkEthAccountAminoUnmarshal(b *testing.B) {
 	})
 
 	b.Run("unmarshaller", func(b *testing.B) {
+		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			var account exported.Account
 			_, _ = cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(data, &account)
@@ -348,6 +354,7 @@ func BenchmarkEthAccountAminoMarshal(b *testing.B) {
 	b.ReportAllocs()
 
 	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			data, _ := cdc.MarshalBinaryBare(&testAccount)
 			_ = data
@@ -355,8 +362,17 @@ func BenchmarkEthAccountAminoMarshal(b *testing.B) {
 	})
 
 	b.Run("marshaller", func(b *testing.B) {
+		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			data, _ := cdc.MarshalBinaryBareWithRegisteredMarshaller(&testAccount)
+			_ = data
+		}
+	})
+
+	b.Run("sizer", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			data, _ := cdc.MarshalBinaryWithSizer(&testAccount, false)
 			_ = data
 		}
 	})
