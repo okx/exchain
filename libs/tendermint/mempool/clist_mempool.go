@@ -476,6 +476,38 @@ func (mem *CListMempool) consumePendingTx(address string, nonce uint64) {
 	}
 }
 
+type logAddTxData struct {
+	Params [8]interface{}
+	TxID   txIDStringer
+	Height int64
+	Total  int
+}
+
+var logAddTxDataPool = sync.Pool{
+	New: func() interface{} {
+		return &logAddTxData{}
+	},
+}
+
+func (mem *CListMempool) logAddTx(memTx *mempoolTx, r *abci.Response_CheckTx) {
+	logAddTxData := logAddTxDataPool.Get().(*logAddTxData)
+	logAddTxData.TxID = txIDStringer{memTx.tx, memTx.height}
+	logAddTxData.Height = memTx.height
+	logAddTxData.Total = mem.Size()
+
+	params := &logAddTxData.Params
+	params[0] = "tx"
+	params[1] = &logAddTxData.TxID
+	params[2] = "res"
+	params[3] = r
+	params[4] = "height"
+	params[5] = &logAddTxData.Height
+	params[6] = "total"
+	params[7] = &logAddTxData.Total
+	mem.logger.Info("Added good transaction", params[:8]...)
+	logAddTxDataPool.Put(logAddTxData)
+}
+
 // callback, which is called after the app checked the tx for the first time.
 //
 // The case where the app checks the tx for the second and subsequent times is
@@ -546,12 +578,7 @@ func (mem *CListMempool) resCbFirstTime(
 			}
 
 			if err == nil {
-				mem.logger.Info("Added good transaction",
-					"tx", txIDStringer{tx, mem.height},
-					"res", r,
-					"height", memTx.height,
-					"total", mem.Size(),
-				)
+				mem.logAddTx(memTx, r)
 				mem.notifyTxsAvailable()
 			} else {
 				// ignore bad transaction

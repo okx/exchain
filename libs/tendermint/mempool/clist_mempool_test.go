@@ -929,3 +929,39 @@ func BenchmarkMempoolLogUpdate(b *testing.B) {
 		}
 	})
 }
+
+func BenchmarkMempoolLogAddTx(b *testing.B) {
+	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "benchmark")
+	var options []log.Option
+	options = append(options, log.AllowErrorWith("module", "benchmark"))
+	logger = log.NewFilter(logger, options...)
+
+	mem := &CListMempool{height: 123456, logger: logger, txs: NewBaseTxQueue()}
+	tx := []byte("tx")
+
+	memTx := &mempoolTx{
+		height: mem.Height(),
+		tx:     tx,
+	}
+
+	r := &abci.Response_CheckTx{}
+
+	b.Run("pool", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			mem.logAddTx(memTx, r)
+		}
+	})
+
+	b.Run("logger", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			mem.logger.Info("Added good transaction",
+				"tx", txIDStringer{tx, mem.height},
+				"res", r,
+				"height", memTx.height,
+				"total", mem.Size(),
+			)
+		}
+	})
+}
