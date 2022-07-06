@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"fmt"
 	"log"
 
 	"github.com/spf13/viper"
@@ -73,7 +72,8 @@ func diffData(dbname, path1, path2, dbBackend string) error {
 			return err
 		}
 		if bytes.Compare(v1, v2) != 0 {
-			return fmt.Errorf("values not match k=%v v1=%v v2=%v", k, v1, v2)
+			log.Printf("values not match k=%v v1=%v v2=%v\n", k, v1, v2)
+			//return fmt.Errorf("values not match k=%v v1=%v v2=%v", k, v1, v2)
 		}
 	}
 
