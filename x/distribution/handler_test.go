@@ -39,14 +39,14 @@ func TestWithdrawDelegatorReward(t *testing.T) {
 
 	// delegation not exist
 	_, err = handler(ctx, msg)
-	require.Equal(t, types.ErrCodeNotSupportDistributionMethod(), err)
+	require.Equal(t, types.ErrCodeNotSupportWithdrawDelegationRewards(), err)
 
 	// deposit and add shares ErrCodeNotSupportDistributionMethod
 	keeper.DoDeposit(t, ctx, sk, delAddr1, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
 	keeper.DoAddShares(t, ctx, sk, delAddr1, valOpAddrs)
 	// delegation not exist
 	_, err = handler(ctx, msg)
-	require.Equal(t, types.ErrCodeNotSupportDistributionMethod(), err)
+	require.Equal(t, types.ErrCodeNotSupportWithdrawDelegationRewards(), err)
 
 	tmtypes.UnittestOnlySetMilestoneSaturn1Height(-1)
 	proposal := types.NewChangeDistributionTypeProposal("change distri type", "", types.DistributionTypeOnChain)
