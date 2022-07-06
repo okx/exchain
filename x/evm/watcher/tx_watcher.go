@@ -123,6 +123,7 @@ func (w *TxWatcher) Finalize() {
 
 func (w *TxWatcher) Destruct() []WatchMessage {
 	batch := w.batch
+	w.staleBatch = []WatchMessage{}
 	w.batch = []WatchMessage{}
 	watcherPool.Put(w)
 	return batch
