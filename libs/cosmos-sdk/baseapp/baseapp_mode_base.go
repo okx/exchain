@@ -160,7 +160,6 @@ func (m *modeHandlerBase) handleRunMsg(info *runTxInfo) (err error) {
 	mode := m.mode
 
 	info.runMsgCtx, info.msCache = app.cacheTxContext(info.ctx, info.txBytes)
-	info.runMsgCtx.ResetWatcher()
 	info.result, err = app.runMsgs(info.runMsgCtx, info.tx.GetMsgs(), mode)
 	info.runMsgFinished = true
 

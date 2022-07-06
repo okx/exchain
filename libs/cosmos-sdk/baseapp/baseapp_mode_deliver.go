@@ -15,7 +15,6 @@ func (m *modeHandlerDeliver) handleRunMsg(info *runTxInfo) (err error) {
 	}
 
 	info.ctx.Cache().Write(false)
-	info.runMsgCtx.ResetWatcher()
 	info.result, err = app.runMsgs(info.runMsgCtx, info.tx.GetMsgs(), mode)
 	if err == nil {
 		info.msCache.Write()
