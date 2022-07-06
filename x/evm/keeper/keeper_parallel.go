@@ -40,7 +40,7 @@ func (k *Keeper) FixLog(logIndex []int, hasEnterEvmTx []bool, anteErrs []error, 
 		}
 
 		// save transaction and transactionReceipt to watcher
-		k.saveParallelTxResult(rs, uint64(txInBlock), resp[index])
+		k.saveParallelTxResult(rs, uint64(index), resp[index])
 	}
 
 	return res
