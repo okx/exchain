@@ -2,7 +2,6 @@ package baseapp
 
 import (
 	"bytes"
-	"fmt"
 	"runtime"
 	"sync"
 
@@ -223,8 +222,6 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 
 	pm := app.parallelTxManage
 	pm.workgroup.isReady = true
-	app.parallelTxManage.workgroup.Start()
-
 	txReps := pm.txReps
 	deliverTxs := make([]*abci.ResponseDeliverTx, pm.txSize)
 
@@ -246,14 +243,12 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 		txReps[receiveTxIndex] = execRes
 
 		if pm.workgroup.isFailed(pm.workgroup.runningStats(receiveTxIndex)) {
-			fmt.Println("111")
 			txReps[receiveTxIndex] = nil
 			// reRun already failed tx
 			pm.workgroup.AddTask(receiveTxIndex)
 		} else {
 			if nextTx, ok := pm.nextTxInGroup[receiveTxIndex]; ok {
 				if !pm.workgroup.isRunning(nextTx) {
-					fmt.Println("222", nextTx)
 					txReps[nextTx] = nil
 					// run next tx in this group
 					pm.workgroup.AddTask(nextTx)
@@ -281,7 +276,6 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 
 				if nextTx, ok := app.parallelTxManage.nextTxInGroup[txIndex]; ok {
 					if !pm.workgroup.isRunning(nextTx) {
-						fmt.Println("333")
 						txReps[nextTx] = nil
 						pm.workgroup.AddTask(nextTx)
 					}
@@ -300,7 +294,6 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 
 			// merge tx
 			pm.SetCurrentIndex(txIndex, res)
-			fmt.Println("Set", txIndex, pm.txReps[txIndex] == nil)
 
 			currentGas += uint64(res.resp.GasUsed)
 			txIndex++
@@ -354,7 +347,6 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 	errs := make([]error, app.parallelTxManage.txSize)
 	hasEnterEvmTx := make([]bool, app.parallelTxManage.txSize)
 	for index := 0; index < app.parallelTxManage.txSize; index++ {
-		fmt.Println("index", index)
 		paraM := app.parallelTxManage.txReps[index].paraMsg
 		logIndex[index] = paraM.LogIndex
 		errs[index] = paraM.AnteErr
@@ -499,7 +491,7 @@ func (a *asyncWorkGroup) AddTask(index int) {
 	a.taskCh <- index
 }
 
-func (a *asyncWorkGroup) Start() {
+func (a *asyncWorkGroup) startChan() {
 	for index := 0; index < maxGoroutineNumberInParaTx; index++ {
 		go func() {
 			for true {
@@ -511,7 +503,6 @@ func (a *asyncWorkGroup) Start() {
 		}()
 
 	}
-
 	go func() {
 		for {
 			select {
@@ -581,7 +572,7 @@ type parallelTxManager struct {
 
 func newParallelTxManager() *parallelTxManager {
 	isAsync := sm.DeliverTxsExecMode(viper.GetInt(sm.FlagDeliverTxsExecMode)) == sm.DeliverTxsExecModeParallel
-	return &parallelTxManager{
+	p := &parallelTxManager{
 		isAsyncDeliverTx: isAsync,
 		workgroup:        newAsyncWorkGroup(),
 
@@ -596,6 +587,9 @@ func newParallelTxManager() *parallelTxManager {
 		blockMultiStores: newCacheMultiStoreList(),
 		chainMultiStores: newCacheMultiStoreList(),
 	}
+	p.workgroup.startChan()
+	return p
+
 }
 
 func (f *parallelTxManager) addMultiCache(msAnte types.CacheMultiStore, msCache types.CacheMultiStore) {
@@ -657,7 +651,6 @@ func (f *parallelTxManager) newIsConflict(e *executeResult) bool {
 
 func (f *parallelTxManager) clear() {
 	f.addBlockCacheToChainCache()
-
 	f.workgroup.indexInAll = 0
 
 	for key := range f.workgroup.markFailedStats {
@@ -744,7 +737,6 @@ func (f *parallelTxManager) getTxResult(index int) sdk.CacheMultiStore {
 			// mark failed if running
 			f.workgroup.markFailed(f.workgroup.runningStats(next))
 		} else {
-			fmt.Println("4444", next)
 			f.txReps[next] = nil
 		}
 	}
