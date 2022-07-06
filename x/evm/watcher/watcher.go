@@ -307,13 +307,13 @@ func (w *Watcher) Commit() {
 	//hold it in temp
 	batch := w.batch
 	w.log.Error(fmt.Sprintf("Watcher commit batch len=%d", len(w.batch)))
-	var keys [][]byte
-	var values []string
-	for _, b := range batch {
-		keys = append(keys, b.GetKey())
-		values = append(values, b.GetValue())
-	}
-	w.log.Error(fmt.Sprintf("Watcher commit batch key=%v, value=%v", keys, values))
+	//var keys [][]byte
+	//var values []string
+	//for _, b := range batch {
+	//	keys = append(keys, b.GetKey())
+	//	values = append(values, b.GetValue())
+	//}
+	//w.log.Error(fmt.Sprintf("Watcher commit batch key=%v, value=%v", keys, values))
 	w.clean()
 	w.dispatchJob(func() {
 		w.commitBatch(batch)
