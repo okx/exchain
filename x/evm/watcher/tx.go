@@ -123,7 +123,6 @@ func (w *Watcher) SaveParallelTx(msgs []sdk.Msg, resultData *types.ResultData, r
 	if !ok {
 		return
 	}
-	//evmTx *types.MsgEthereumTx
 
 	watchTx := NewEvmTx(evmTx, common.BytesToHash(evmTx.TxHash()), w.blockHash, w.height, w.evmTxIndex)
 	w.evmTxIndex++
