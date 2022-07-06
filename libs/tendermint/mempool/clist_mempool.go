@@ -86,7 +86,7 @@ type CListMempool struct {
 }
 
 type SentryMempool interface {
-	ReapTxs(maxBytes, maxGas, maxNum int64) []types.Tx
+	ReapTxs(maxBytes, maxGas int64) []types.Tx
 }
 
 var _ Mempool = &CListMempool{}
@@ -646,7 +646,7 @@ func (mem *CListMempool) ReapEssentialTx(tx types.Tx) abci.TxEssentials {
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 	if mem.sentryMempool != nil {
-		return mem.sentryMempool.ReapTxs(maxBytes, maxGas, cfg.DynamicConfig.GetMaxTxNumPerBlock())
+		return mem.sentryMempool.ReapTxs(maxBytes, maxGas)
 	}
 	mem.updateMtx.RLock()
 	defer mem.updateMtx.RUnlock()

@@ -146,13 +146,13 @@ var (
 	responseChan      = make(chan types.Txs, 10)
 )
 
-func (memR *Reactor) ReapTxs(maxBytes, maxGas, maxNum int64) []types.Tx {
+func (memR *Reactor) ReapTxs(maxBytes, maxGas int64) []types.Tx {
 	msg := &FetchMessage{
-		maxBytes: maxBytes,
-		maxGas:   maxGas,
-		maxNum:   maxNum,
+		MaxBytes: maxBytes,
+		MaxGas:   maxGas,
 	}
 	msgBz := memR.encodeMsg(msg)
+
 	success := sentryPartnerPeer.Send(MempoolChannel, msgBz)
 	if !success {
 		memR.Logger.Error("fetch txs from sentry node failed", "peer id", sentryPartnerPeer.ID())
@@ -162,7 +162,7 @@ func (memR *Reactor) ReapTxs(maxBytes, maxGas, maxNum int64) []types.Tx {
 	select {
 	case txs := <-responseChan:
 		return txs
-	case <-time.After(time.Second * 3):
+	case <-time.After(time.Second):
 		memR.Logger.Error("wait for txs from sentry node timeout", "peer id", sentryPartnerPeer.ID())
 	}
 
@@ -289,6 +289,15 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 
 	//TODO: simplify the code
 	switch msg := msg.(type) {
+	case *FetchMessage:
+		txs := memR.mempool.ReapMaxBytesMaxGas(msg.MaxBytes, msg.MaxGas)
+		txsMsg := &TxsMessage{Txs: txs}
+		success := src.Send(MempoolChannel, memR.encodeMsg(txsMsg))
+		if !success {
+			memR.Logger.Info("response txs to validator failed", "peerID", src.ID())
+		}
+		return
+
 	case *StxMessage:
 		if string(src.ID()) == memR.sentryPartner {
 			for _, stx := range msg.Stx {
@@ -298,7 +307,7 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		}
 		return
 	case *TxsMessage:
-		if string(src.ID()) == memR.sentryPartner {
+		if !memR.isSentryNode && string(src.ID()) == memR.sentryPartner {
 			responseChan <- msg.Txs
 			return
 		}
@@ -626,9 +635,13 @@ func calcMaxMsgSize(maxTxSize int) int {
 
 // FetchMessage is a Message of info to fetch txs from sentry mempool.
 type FetchMessage struct {
-	maxBytes int64
-	maxGas   int64
-	maxNum   int64
+	MaxBytes int64
+	MaxGas   int64
+}
+
+// String returns a string representation of the FetchMessage.
+func (m *FetchMessage) String() string {
+	return fmt.Sprintf("[FetchMessage %d, %d]", m.MaxBytes, m.MaxGas)
 }
 
 // TxsMessage is a Message containing transactions.
