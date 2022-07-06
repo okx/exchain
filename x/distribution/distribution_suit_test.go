@@ -1,8 +1,6 @@
 package distribution
 
 import (
-	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -11,18 +9,12 @@ import (
 	"github.com/okex/exchain/x/distribution/types"
 	"github.com/okex/exchain/x/staking"
 	"github.com/stretchr/testify/require"
-	"strings"
+	"github.com/stretchr/testify/suite"
 	"testing"
 	"time"
 )
 
 var (
-	custom                 = "custom"
-	oneValOpAddrs          []sdk.ValAddress
-	twoValOpAddrs          []sdk.ValAddress
-	threeValOpAddrs        []sdk.ValAddress
-	fourValOpAddrs         []sdk.ValAddress
-	expectReferenceCount   = 0
 	ctx                    sdk.Context
 	ak                     auth.AccountKeeper
 	dk                     Keeper
@@ -30,17 +22,8 @@ var (
 	supplyKeeper           types.SupplyKeeper
 	blockRewardValueTokens = sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(int64(100))}}
 	votes                  []abci.VoteInfo
-	stdCommissionRate      sdk.Dec
-	newCommissionRate      sdk.Dec
+	depositCoin            = sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100))
 )
-
-type delegatorVoteParam struct {
-	delegators                []sdk.AccAddress
-	beforeDelegatorsRewards   []string
-	afterDelegatorsRewards    []string
-	beforeValidatorCommission []string
-	afterValidatorCommission  []string
-}
 
 type testAllocationParam struct {
 	totalPower int64
@@ -49,17 +32,30 @@ type testAllocationParam struct {
 	fee        sdk.SysCoins
 }
 
-func initEnv(t *testing.T) {
-	//keeper.TestValAddrs, valConsPks, valConsAddrs = keeper.GetTestAddrs()
-	ctx, ak, dk, sk, supplyKeeper = keeper.CreateTestInputDefault(t, false, 1000)
-	oneValOpAddrs = []sdk.ValAddress{keeper.TestValAddrs[0]}
-	twoValOpAddrs = []sdk.ValAddress{keeper.TestValAddrs[1], keeper.TestValAddrs[1]}
-	threeValOpAddrs = []sdk.ValAddress{keeper.TestValAddrs[0], keeper.TestValAddrs[1], keeper.TestValAddrs[2]}
-	fourValOpAddrs = []sdk.ValAddress{keeper.TestValAddrs[0], keeper.TestValAddrs[1], keeper.TestValAddrs[2], keeper.TestValAddrs[3]}
-	stdCommissionRate, _ = sdk.NewDecFromStr("1.0")
-	newCommissionRate, _ = sdk.NewDecFromStr("0.5")
-	//expectReferenceCount += len(keeper.TestValAddrs)
-	//require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
+func allocateTokens(t *testing.T) {
+	setTestFees(t, ctx, dk, ak, blockRewardValueTokens)
+	dk.AllocateTokens(ctx, 1, keeper.TestConsAddrs[0], votes)
+	staking.EndBlocker(ctx, sk)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
+}
+
+func initEnv(t *testing.T, validatorCount int64) {
+	communityTax := sdk.NewDecWithPrec(2, 2)
+	ctx, ak, _, dk, sk, _, supplyKeeper = keeper.CreateTestInputAdvanced(t, false, 1000, communityTax)
+	tmtypes.UnittestOnlySetMilestoneSaturn1Height(-1)
+	dk.SetInitAllocateValidator(ctx, true)
+
+	h := staking.NewHandler(sk)
+	valOpAddrs, valConsPks, _ := keeper.GetTestAddrs()
+
+	// create four validators
+	for i := int64(0); i < validatorCount; i++ {
+		msg := staking.NewMsgCreateValidator(valOpAddrs[i], valConsPks[i],
+			staking.Description{}, keeper.NewTestSysCoin(i+1, 0))
+		_, e := h(ctx, msg)
+		require.Nil(t, e)
+		require.True(t, dk.GetValidatorAccumulatedCommission(ctx, valOpAddrs[i]).IsZero())
+	}
 	staking.EndBlocker(ctx, sk)
 	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 
@@ -85,740 +81,878 @@ func createTestVotes(ctx sdk.Context, sk staking.Keeper, test testAllocationPara
 	return votes
 }
 
-func TestDistributionSuit(t *testing.T) {
-	initEnv(t)
-	firstOffChain(t)
-	//firstOnChain(t)
-	//secondOffline(t)
-	//secondOnline(t)
+type DistributionSuite struct {
+	suite.Suite
 }
 
-func firstOffChain(t *testing.T) {
-	newBlockAndAllocateReward(t)
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[0], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[0], oneValOpAddrs)
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-
-	//next block, second delegator vote
-	newBlockAndAllocateReward(t)
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[1], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[1], oneValOpAddrs)
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-
-	//next block, third delegator vote
-	newBlockAndAllocateReward(t)
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[2], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[2], oneValOpAddrs)
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-
-	//next block, fourth delegator vote
-	newBlockAndAllocateReward(t)
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[3], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[3], oneValOpAddrs)
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-
-	//next block, first delegator withdraw
-	newBlockAndAllocateReward(t)
-	_, err := dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[0])
-	require.NotNil(t, err)
-
-	//next block, second delegator withdraw
-	newBlockAndAllocateReward(t)
-	_, err = dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[0])
-	require.NotNil(t, err)
-
-	//next block, third delegator withdraw
-	newBlockAndAllocateReward(t)
-	_, err = dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[0])
-	require.NotNil(t, err)
-
-	//next block, fourth delegator withdraw
-	newBlockAndAllocateReward(t)
-	_, err = dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[0])
-	require.NotNil(t, err)
-	//check offchain type
-	require.Equal(t, dk.GetDistributionType(ctx), types.DistributionTypeOffChain)
-	//change val commission
-	ctx.SetBlockTime(time.Now().UTC().Add(48 * time.Hour))
-	//keeper.DoEditValidator(t, ctx, sk, keeper.TestValAddrs[0], newCommissionRate)
-	//check val commission and distribution type
-	val := sk.Validator(ctx, keeper.TestValAddrs[0])
-	require.Equal(t, stdCommissionRate, val.GetCommission())
-	require.Equal(t, dk.GetDistributionType(ctx), types.DistributionTypeOffChain)
-
-	//next block
-	newBlockAndAllocateReward(t)
-	//change del1 to proxy1
-	keeper.DoRegProxy(t, ctx, sk, keeper.TestDelAddrs[0], true)
-
-	//bind del2 and del3 to proxy1
-	keeper.DoBindProxy(t, ctx, sk, keeper.TestDelAddrs[1], keeper.TestDelAddrs[0])
-	keeper.DoBindProxy(t, ctx, sk, keeper.TestDelAddrs[2], keeper.TestDelAddrs[0])
-
-	//next block
-	newBlockAndAllocateReward(t)
-	//del1 and 4 deposit
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[0], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[3], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-
-	//del1 add shares 1 vals
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[0], oneValOpAddrs)
-
-	//del4 add shares 4 vals
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[3], fourValOpAddrs)
-
-	//del2 unbind
-	keeper.DoUnBindProxy(t, ctx, sk, keeper.TestDelAddrs[1])
-
-	//withdraw error
-	_, err = dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[0])
-	require.NotNil(t, err)
-	_, err = dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[0])
-	require.NotNil(t, err)
-	_, err = dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[0])
-	require.NotNil(t, err)
-	_, err = dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[0])
-	require.NotNil(t, err)
-
-	commission1 := dk.GetValidatorAccumulatedCommission(ctx, keeper.TestValAddrs[0])
-	commission2 := dk.GetValidatorAccumulatedCommission(ctx, keeper.TestValAddrs[1])
-	commission3 := dk.GetValidatorAccumulatedCommission(ctx, keeper.TestValAddrs[2])
-	commission4 := dk.GetValidatorAccumulatedCommission(ctx, keeper.TestValAddrs[3])
-	community := dk.GetFeePoolCommunityCoins(ctx)
-
-	mulCount, _ := sdk.NewDecFromStr(fmt.Sprintf("%d", ctx.BlockHeight()-1))
-	require.Equal(t, blockRewardValueTokens.MulDec(mulCount), commission1.Add(commission2[0]).Add(commission3[0]).Add(commission4[0]).Add(community[0]))
+func TestDistributionOnline(t *testing.T) {
+	suite.Run(t, new(DistributionSuite))
 }
 
-func firstOnChain(t *testing.T) {
-	//set onchain
-	tmtypes.UnittestOnlySetMilestoneSaturn1Height(-1)
-
-	//set diff type, first
-	proposal := makeChangeDistributionTypeProposal(types.DistributionTypeOnChain)
-	hdlr := NewDistributionProposalHandler(dk)
-	require.NoError(t, hdlr(ctx, &proposal))
-	require.Equal(t, dk.GetDistributionType(ctx), types.DistributionTypeOnChain)
-
-	newBlockAndAllocateReward(t)
-
-	//next block, first delegator vote
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[0], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[0], oneValOpAddrs)
-	expectReferenceCount += len(oneValOpAddrs)
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-
-	//next block, second delegator vote
-	newBlockAndAllocateReward(t)
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[1], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[1], oneValOpAddrs)
-	expectReferenceCount += len(oneValOpAddrs)
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-
-	//next block, third delegator vote
-	newBlockAndAllocateReward(t)
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[2], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[2], oneValOpAddrs)
-	expectReferenceCount += len(oneValOpAddrs)
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-
-	//next block, fourth delegator vote
-	newBlockAndAllocateReward(t)
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[3], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[3], oneValOpAddrs)
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-
-	//next block, first delegator withdraw
-	newBlockAndAllocateReward(t)
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[0])
-
-	//querier := NewQuerier(dk)
-	//delRewards := getQueriedDelegatorTotalRewards(t, ctx, dk.cdc, querier, keeper.TestDelAddrs[0])
-	//require.Equal(t, types.QueryDelegatorTotalRewardsResponse{}, delRewards)
-	//fmt.Println(delRewards)
-
-	//next block, second delegator withdraw
-	staking.EndBlocker(ctx, sk)
-	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[0])
-
-	//next block, third delegator withdraw
-	staking.EndBlocker(ctx, sk)
-	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[0])
-
-	//next block, fourth delegator withdraw
-	staking.EndBlocker(ctx, sk)
-	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[0])
-
-	//check offchain type
-	require.Equal(t, dk.GetDistributionType(ctx), types.DistributionTypeOffChain)
-
-	//change val commission
-	newRate, _ := sdk.NewDecFromStr("0.5")
-	ctx.SetBlockTime(time.Now().UTC().Add(48 * time.Hour))
-	keeper.DoEditValidator(t, ctx, sk, keeper.TestValAddrs[0], newRate)
-
-	//check val commission and distribution type
-	val := sk.Validator(ctx, keeper.TestValAddrs[0])
-	require.Equal(t, newRate, val.GetCommission())
-	require.Equal(t, dk.GetDistributionType(ctx), types.DistributionTypeOffChain)
-
-	//change del1 to proxy1
-	keeper.DoRegProxy(t, ctx, sk, keeper.TestDelAddrs[0], true)
-
-	//bind del2 and del3 to proxy1
-	keeper.DoBindProxy(t, ctx, sk, keeper.TestDelAddrs[1], keeper.TestDelAddrs[0])
-	keeper.DoBindProxy(t, ctx, sk, keeper.TestDelAddrs[2], keeper.TestDelAddrs[0])
-
-	//del1 withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[0])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[1])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[2])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[3])
-
-	//del2 withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[0])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[1])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[2])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[3])
-
-	//del3 withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[0])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[1])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[2])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[3])
-
-	//del4 withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[0])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[1])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[2])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[3])
-
-	//del1 deposit
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[0], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-
-	//del2 deposit
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[1], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-
-	//del3 deposit
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[2], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-
-	//del4 deposit
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[3], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-
-	//del1 add shares 1 vals
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[0], oneValOpAddrs)
-
-	//del2 add shares 2 vals
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[1], twoValOpAddrs)
-
-	//del3 add shares 3 vals
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[2], threeValOpAddrs)
-
-	//del4 add shares 4 vals
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[3], fourValOpAddrs)
-
-	//del1 unbind
-	keeper.DoUnBindProxy(t, ctx, sk, keeper.TestDelAddrs[0])
-
-	//proxy unreg
-	keeper.DoRegProxy(t, ctx, sk, keeper.TestDelAddrs[0], false)
-
-	//val1 destroy
-	keeper.DoDestroyValidator(t, ctx, sk, keeper.TestValAccAddrs[0])
-
-	//de1 withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[0])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[1])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[2])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[3])
-
-	//de2 withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[0])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[1])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[2])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[3])
-
-	//de3 withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[0])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[1])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[2])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[3])
-
-	//de4 withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[0])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[1])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[2])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[3])
-}
-
-func secondOnline(t *testing.T) {
-	initEnv(t)
-
-	setTestFees(t, ctx, dk, ak, blockRewardValueTokens)
-
-	dk.AllocateTokens(ctx, 1, keeper.TestConsAddrs[0], votes)
-	decCommission, _ := sdk.NewDecFromStr("24.5")
-	decCommissionRemain, _ := sdk.NewDecFromStr("0.5")
-	decOutstanding, _ := sdk.NewDecFromStr("24.5")
-	decOutstandingRemain, _ := sdk.NewDecFromStr("0.5")
-	decCommunity, _ := sdk.NewDecFromStr("2")
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decCommission}}, dk.GetValidatorAccumulatedCommission(ctx, keeper.TestValAddrs[0]))
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decOutstanding}}, dk.GetValidatorOutstandingRewards(ctx, keeper.TestValAddrs[0]))
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decCommunity}}, dk.GetFeePoolCommunityCoins(ctx))
-
-	dk.WithdrawValidatorCommission(ctx, keeper.TestValAddrs[0])
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decCommissionRemain}}, dk.GetValidatorAccumulatedCommission(ctx, keeper.TestValAddrs[0]))
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decOutstandingRemain}}, dk.GetValidatorOutstandingRewards(ctx, keeper.TestValAddrs[0]))
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decCommunity}}, dk.GetFeePoolCommunityCoins(ctx))
-
-	//next block, first delegator vote
-
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[0], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[0], oneValOpAddrs)
-	expectReferenceCount += len(oneValOpAddrs)
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-	staking.EndBlocker(ctx, sk)
-	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
-
-	//next block, second delegator vote
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[1], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[1], oneValOpAddrs)
-	expectReferenceCount += len(oneValOpAddrs)
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-
-	setTestFees(t, ctx, dk, ak, blockRewardValueTokens)
-	dk.AllocateTokens(ctx, 1, keeper.TestConsAddrs[0], votes)
-	decCommission, _ = sdk.NewDecFromStr("25")
-	decCommissionRemain, _ = sdk.NewDecFromStr("0.5")
-	decOutstanding, _ = sdk.NewDecFromStr("25")
-	decOutstandingRemain, _ = sdk.NewDecFromStr("0.5")
-	decCommunity, _ = sdk.NewDecFromStr("4")
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decCommission}}, dk.GetValidatorAccumulatedCommission(ctx, keeper.TestValAddrs[0]))
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decOutstanding}}, dk.GetValidatorOutstandingRewards(ctx, keeper.TestValAddrs[0]))
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decCommunity}}, dk.GetFeePoolCommunityCoins(ctx))
-
-	dk.WithdrawValidatorCommission(ctx, keeper.TestValAddrs[0])
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decCommunity}}, dk.GetFeePoolCommunityCoins(ctx))
-
-	staking.EndBlocker(ctx, sk)
-	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
-
-	//next block, third delegator vote
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[2], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[2], oneValOpAddrs)
-	expectReferenceCount += len(oneValOpAddrs)
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-
-	setTestFees(t, ctx, dk, ak, blockRewardValueTokens)
-	dk.AllocateTokens(ctx, 1, keeper.TestConsAddrs[0], votes)
-	decCommission, _ = sdk.NewDecFromStr("24.5")
-	decCommissionRemain, _ = sdk.NewDecFromStr("0.5")
-	decOutstanding, _ = sdk.NewDecFromStr("24.5")
-	decOutstandingRemain, _ = sdk.NewDecFromStr("0.5")
-	decCommunity, _ = sdk.NewDecFromStr("6")
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decCommission}}, dk.GetValidatorAccumulatedCommission(ctx, keeper.TestValAddrs[0]))
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decOutstanding}}, dk.GetValidatorOutstandingRewards(ctx, keeper.TestValAddrs[0]))
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decCommunity}}, dk.GetFeePoolCommunityCoins(ctx))
-
-	staking.EndBlocker(ctx, sk)
-	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
-
-	//next block, fourth delegator vote
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[3], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[3], oneValOpAddrs)
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-
-	setTestFees(t, ctx, dk, ak, blockRewardValueTokens)
-	dk.AllocateTokens(ctx, 1, keeper.TestConsAddrs[0], votes)
-	decCommission, _ = sdk.NewDecFromStr("49")
-	decCommissionRemain, _ = sdk.NewDecFromStr("0.5")
-	decOutstanding, _ = sdk.NewDecFromStr("49")
-	decOutstandingRemain, _ = sdk.NewDecFromStr("0.5")
-	decCommunity, _ = sdk.NewDecFromStr("8")
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decCommission}}, dk.GetValidatorAccumulatedCommission(ctx, keeper.TestValAddrs[0]))
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decOutstanding}}, dk.GetValidatorOutstandingRewards(ctx, keeper.TestValAddrs[0]))
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decCommunity}}, dk.GetFeePoolCommunityCoins(ctx))
-
-	staking.EndBlocker(ctx, sk)
-	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
-
-	//next block, first delegator withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[0])
-
-	//querier := NewQuerier(dk)
-	//delRewards := getQueriedDelegatorTotalRewards(t, ctx, dk.cdc, querier, keeper.TestDelAddrs[0])
-	//require.Equal(t, types.QueryDelegatorTotalRewardsResponse{}, delRewards)
-	//fmt.Println(delRewards)
-
-	//next block, second delegator withdraw
-	staking.EndBlocker(ctx, sk)
-	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[0])
-
-	//next block, third delegator withdraw
-	staking.EndBlocker(ctx, sk)
-	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[0])
-
-	//next block, fourth delegator withdraw
-	staking.EndBlocker(ctx, sk)
-	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[0])
-
-	//check offchain type
-	require.Equal(t, dk.GetDistributionType(ctx), types.DistributionTypeOffChain)
-
-	//change val commission
-	newRate, _ := sdk.NewDecFromStr("0.5")
-	ctx.SetBlockTime(time.Now().UTC().Add(48 * time.Hour))
-	keeper.DoEditValidator(t, ctx, sk, keeper.TestValAddrs[0], newRate)
-
-	//check val commission and distribution type
-	val := sk.Validator(ctx, keeper.TestValAddrs[0])
-	require.Equal(t, newRate, val.GetCommission())
-	require.Equal(t, dk.GetDistributionType(ctx), types.DistributionTypeOffChain)
-
-	//change del1 to proxy1
-	keeper.DoRegProxy(t, ctx, sk, keeper.TestDelAddrs[0], true)
-
-	//bind del2 and del3 to proxy1
-	keeper.DoBindProxy(t, ctx, sk, keeper.TestDelAddrs[1], keeper.TestDelAddrs[0])
-	keeper.DoBindProxy(t, ctx, sk, keeper.TestDelAddrs[2], keeper.TestDelAddrs[0])
-
-	//del1 withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[0])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[1])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[2])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[3])
-
-	//del2 withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[0])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[1])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[2])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[3])
-
-	//del3 withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[0])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[1])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[2])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[3])
-
-	//del4 withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[0])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[1])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[2])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[3])
-
-	//del1 deposit
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[0], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-
-	//del2 deposit
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[1], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-
-	//del3 deposit
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[2], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-
-	//del4 deposit
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[3], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-
-	//del1 add shares 1 vals
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[0], oneValOpAddrs)
-
-	//del2 add shares 2 vals
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[1], twoValOpAddrs)
-
-	//del3 add shares 3 vals
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[2], threeValOpAddrs)
-
-	//del4 add shares 4 vals
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[3], fourValOpAddrs)
-
-	//del1 unbind
-	keeper.DoUnBindProxy(t, ctx, sk, keeper.TestDelAddrs[0])
-
-	//proxy unreg
-	keeper.DoRegProxy(t, ctx, sk, keeper.TestDelAddrs[0], false)
-
-	//val1 destroy
-	keeper.DoDestroyValidator(t, ctx, sk, keeper.TestValAccAddrs[0])
-
-	//de1 withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[0])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[1])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[2])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[3])
-
-	//de2 withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[0])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[1])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[2])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[3])
-
-	//de3 withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[0])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[1])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[2])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[3])
-
-	//de4 withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[0])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[1])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[2])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[3])
-}
-
-func secondOffline(t *testing.T) {
-	initEnv(t)
-	newBlockAndAllocateReward(t)
-
-	decCommission, _ := sdk.NewDecFromStr("24.5")
-	decCommissionRemain, _ := sdk.NewDecFromStr("0.5")
-	decOutstanding, _ := sdk.NewDecFromStr("24.5")
-	decOutstandingRemain, _ := sdk.NewDecFromStr("0.5")
-	decCommunity, _ := sdk.NewDecFromStr("2")
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decCommission}}, dk.GetValidatorAccumulatedCommission(ctx, keeper.TestValAddrs[0]))
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decOutstanding}}, dk.GetValidatorOutstandingRewards(ctx, keeper.TestValAddrs[0]))
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decCommunity}}, dk.GetFeePoolCommunityCoins(ctx))
-
-	dk.WithdrawValidatorCommission(ctx, keeper.TestValAddrs[0])
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decCommissionRemain}}, dk.GetValidatorAccumulatedCommission(ctx, keeper.TestValAddrs[0]))
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decOutstandingRemain}}, dk.GetValidatorOutstandingRewards(ctx, keeper.TestValAddrs[0]))
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decCommunity}}, dk.GetFeePoolCommunityCoins(ctx))
-
-	//next block, first delegator vote
-
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[0], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[0], oneValOpAddrs)
-	expectReferenceCount += len(oneValOpAddrs)
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-	staking.EndBlocker(ctx, sk)
-	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
-
-	//next block, second delegator vote
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[1], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[1], oneValOpAddrs)
-	expectReferenceCount += len(oneValOpAddrs)
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-
-	setTestFees(t, ctx, dk, ak, blockRewardValueTokens)
-	dk.AllocateTokens(ctx, 1, keeper.TestConsAddrs[0], votes)
-	decCommission, _ = sdk.NewDecFromStr("25")
-	decCommissionRemain, _ = sdk.NewDecFromStr("0.5")
-	decOutstanding, _ = sdk.NewDecFromStr("25")
-	decOutstandingRemain, _ = sdk.NewDecFromStr("0.5")
-	decCommunity, _ = sdk.NewDecFromStr("4")
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decCommission}}, dk.GetValidatorAccumulatedCommission(ctx, keeper.TestValAddrs[0]))
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decOutstanding}}, dk.GetValidatorOutstandingRewards(ctx, keeper.TestValAddrs[0]))
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decCommunity}}, dk.GetFeePoolCommunityCoins(ctx))
-
-	dk.WithdrawValidatorCommission(ctx, keeper.TestValAddrs[0])
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decCommunity}}, dk.GetFeePoolCommunityCoins(ctx))
-
-	staking.EndBlocker(ctx, sk)
-	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
-
-	//next block, third delegator vote
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[2], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[2], oneValOpAddrs)
-	expectReferenceCount += len(oneValOpAddrs)
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-
-	setTestFees(t, ctx, dk, ak, blockRewardValueTokens)
-	dk.AllocateTokens(ctx, 1, keeper.TestConsAddrs[0], votes)
-	decCommission, _ = sdk.NewDecFromStr("24.5")
-	decCommissionRemain, _ = sdk.NewDecFromStr("0.5")
-	decOutstanding, _ = sdk.NewDecFromStr("24.5")
-	decOutstandingRemain, _ = sdk.NewDecFromStr("0.5")
-	decCommunity, _ = sdk.NewDecFromStr("6")
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decCommission}}, dk.GetValidatorAccumulatedCommission(ctx, keeper.TestValAddrs[0]))
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decOutstanding}}, dk.GetValidatorOutstandingRewards(ctx, keeper.TestValAddrs[0]))
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decCommunity}}, dk.GetFeePoolCommunityCoins(ctx))
-
-	staking.EndBlocker(ctx, sk)
-	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
-
-	//next block, fourth delegator vote
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[3], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[3], oneValOpAddrs)
-	require.Equal(t, uint64(expectReferenceCount), dk.GetValidatorHistoricalReferenceCount(ctx))
-
-	setTestFees(t, ctx, dk, ak, blockRewardValueTokens)
-	dk.AllocateTokens(ctx, 1, keeper.TestConsAddrs[0], votes)
-	decCommission, _ = sdk.NewDecFromStr("49")
-	decCommissionRemain, _ = sdk.NewDecFromStr("0.5")
-	decOutstanding, _ = sdk.NewDecFromStr("49")
-	decOutstandingRemain, _ = sdk.NewDecFromStr("0.5")
-	decCommunity, _ = sdk.NewDecFromStr("8")
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decCommission}}, dk.GetValidatorAccumulatedCommission(ctx, keeper.TestValAddrs[0]))
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decOutstanding}}, dk.GetValidatorOutstandingRewards(ctx, keeper.TestValAddrs[0]))
-	require.Equal(t, sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: decCommunity}}, dk.GetFeePoolCommunityCoins(ctx))
-
-	staking.EndBlocker(ctx, sk)
-	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
-
-	//next block, first delegator withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[0])
-
-	//querier := NewQuerier(dk)
-	//delRewards := getQueriedDelegatorTotalRewards(t, ctx, dk.cdc, querier, keeper.TestDelAddrs[0])
-	//require.Equal(t, types.QueryDelegatorTotalRewardsResponse{}, delRewards)
-	//fmt.Println(delRewards)
-
-	//next block, second delegator withdraw
-	staking.EndBlocker(ctx, sk)
-	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[0])
-
-	//next block, third delegator withdraw
-	staking.EndBlocker(ctx, sk)
-	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[0])
-
-	//next block, fourth delegator withdraw
-	staking.EndBlocker(ctx, sk)
-	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[0])
-
-	//check offchain type
-	require.Equal(t, dk.GetDistributionType(ctx), types.DistributionTypeOffChain)
-
-	//change val commission
-	newRate, _ := sdk.NewDecFromStr("0.5")
-	ctx.SetBlockTime(time.Now().UTC().Add(48 * time.Hour))
-	keeper.DoEditValidator(t, ctx, sk, keeper.TestValAddrs[0], newRate)
-
-	//check val commission and distribution type
-	val := sk.Validator(ctx, keeper.TestValAddrs[0])
-	require.Equal(t, newRate, val.GetCommission())
-	require.Equal(t, dk.GetDistributionType(ctx), types.DistributionTypeOffChain)
-
-	//change del1 to proxy1
-	keeper.DoRegProxy(t, ctx, sk, keeper.TestDelAddrs[0], true)
-
-	//bind del2 and del3 to proxy1
-	keeper.DoBindProxy(t, ctx, sk, keeper.TestDelAddrs[1], keeper.TestDelAddrs[0])
-	keeper.DoBindProxy(t, ctx, sk, keeper.TestDelAddrs[2], keeper.TestDelAddrs[0])
-
-	//del1 withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[0])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[1])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[2])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[3])
-
-	//del2 withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[0])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[1])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[2])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[3])
-
-	//del3 withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[0])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[1])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[2])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[3])
-
-	//del4 withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[0])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[1])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[2])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[3])
-
-	//del1 deposit
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[0], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-
-	//del2 deposit
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[1], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-
-	//del3 deposit
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[2], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-
-	//del4 deposit
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[3], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-
-	//del1 add shares 1 vals
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[0], oneValOpAddrs)
-
-	//del2 add shares 2 vals
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[1], twoValOpAddrs)
-
-	//del3 add shares 3 vals
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[2], threeValOpAddrs)
-
-	//del4 add shares 4 vals
-	keeper.DoAddShares(t, ctx, sk, keeper.TestDelAddrs[3], fourValOpAddrs)
-
-	//del1 unbind
-	keeper.DoUnBindProxy(t, ctx, sk, keeper.TestDelAddrs[0])
-
-	//proxy unreg
-	keeper.DoRegProxy(t, ctx, sk, keeper.TestDelAddrs[0], false)
-
-	//val1 destroy
-	keeper.DoDestroyValidator(t, ctx, sk, keeper.TestValAccAddrs[0])
-
-	//de1 withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[0])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[1])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[2])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[0], keeper.TestValAddrs[3])
-
-	//de2 withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[0])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[1])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[2])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[1], keeper.TestValAddrs[3])
-
-	//de3 withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[0])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[1])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[2])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[2], keeper.TestValAddrs[3])
-
-	//de4 withdraw
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[0])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[1])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[2])
-	dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[3], keeper.TestValAddrs[3])
-}
-
-func getQueriedDelegatorTotalRewards(t *testing.T, ctx sdk.Context, cdc *codec.Codec, querier sdk.Querier, delegatorAddr sdk.AccAddress) (response types.QueryDelegatorTotalRewardsResponse) {
-	query := abci.RequestQuery{
-		Path: strings.Join([]string{custom, types.QuerierRoute, types.QueryDelegatorTotalRewards}, "/"),
-		Data: cdc.MustMarshalJSON(types.NewQueryDelegatorParams(delegatorAddr)),
+func getDecCoins(value string) sdk.SysCoins {
+	if value == "0" {
+		var decCoins sdk.SysCoins
+		return decCoins
 	}
 
-	bz, err := querier(ctx, []string{types.QueryDelegatorTotalRewards}, query)
-	require.Nil(t, err)
-	require.Nil(t, cdc.UnmarshalJSON(bz, &response))
-
-	return
+	dec, _ := sdk.NewDecFromStr(value)
+	return sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: dec}}
 }
 
-func newBlockAndAllocateReward(t *testing.T) {
+func (suite *DistributionSuite) TestNormal() {
+	testCases := []struct {
+		title                string
+		valCount             int64
+		beforeCommissionDec  [4]string
+		beforeOutstandingDec [4]string
+		afterCommissionDec   [4]string
+		afterOutstandingDec  [4]string
+		decCommunity         string
+		chainType            uint32
+	}{
+		{
+			"1 validator onchain",
+			int64(1),
+			[4]string{"98"},
+			[4]string{"98"},
+			[4]string{"0"},
+			[4]string{"0"},
+			"2",
+			1,
+		},
+		{
+			"2 validator onchain",
+			int64(2),
+			[4]string{"49", "49"},
+			[4]string{"49", "49"},
+			[4]string{"0", "0"},
+			[4]string{"0", "0"},
+			"2",
+			1,
+		},
+		{
+			"3 validator onchain",
+			int64(3),
+			[4]string{"32.666666666666666633", "32.666666666666666633", "32.666666666666666633"},
+			[4]string{"32.666666666666666633", "32.666666666666666633", "32.666666666666666633"},
+			[4]string{"0.666666666666666633", "0.666666666666666633", "0.666666666666666633"},
+			[4]string{"0.666666666666666633", "0.666666666666666633", "0.666666666666666633"},
+			"2.000000000000000101",
+			1,
+		},
+		{
+			"4 validator onchain",
+			int64(4),
+			[4]string{"24.5", "24.5", "24.5", "24.5"},
+			[4]string{"24.5", "24.5", "24.5", "24.5"},
+			[4]string{"0.5", "0.5", "0.5", "0.5"},
+			[4]string{"0.5", "0.5", "0.5", "0.5"},
+			"2",
+			1,
+		},
+		{
+			"1 validator offchain",
+			int64(1),
+			[4]string{"98"},
+			[4]string{"98"},
+			[4]string{"0"},
+			[4]string{"0"},
+			"2",
+			0,
+		},
+		{
+			"2 validator offchain",
+			int64(2),
+			[4]string{"49", "49"},
+			[4]string{"49", "49"},
+			[4]string{"0", "0"},
+			[4]string{"0", "0"},
+			"2",
+			0,
+		},
+		{
+			"3 validator offchain",
+			int64(3),
+			[4]string{"32.666666666666666633", "32.666666666666666633", "32.666666666666666633"},
+			[4]string{"32.666666666666666633", "32.666666666666666633", "32.666666666666666633"},
+			[4]string{"0.666666666666666633", "0.666666666666666633", "0.666666666666666633"},
+			[4]string{"0.666666666666666633", "0.666666666666666633", "0.666666666666666633"},
+			"2.000000000000000101",
+			0,
+		},
+		{
+			"4 validator offchain",
+			int64(4),
+			[4]string{"24.5", "24.5", "24.5", "24.5"},
+			[4]string{"24.5", "24.5", "24.5", "24.5"},
+			[4]string{"0.5", "0.5", "0.5", "0.5"},
+			[4]string{"0.5", "0.5", "0.5", "0.5"},
+			"2",
+			0,
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.title, func() {
+			initEnv(suite.T(), tc.valCount)
+			dk.SetDistributionType(ctx, tc.chainType)
+			allocateTokens(suite.T())
+
+			for i := int64(0); i < tc.valCount; i++ {
+				require.Equal(suite.T(), getDecCoins(tc.beforeCommissionDec[i]), dk.GetValidatorAccumulatedCommission(ctx, keeper.TestValAddrs[i]))
+				require.Equal(suite.T(), getDecCoins(tc.beforeOutstandingDec[i]), dk.GetValidatorOutstandingRewards(ctx, keeper.TestValAddrs[i]))
+				require.Equal(suite.T(), getDecCoins(tc.decCommunity), dk.GetFeePoolCommunityCoins(ctx))
+
+				dk.WithdrawValidatorCommission(ctx, keeper.TestValAddrs[i])
+
+				require.Equal(suite.T(), getDecCoins(tc.afterCommissionDec[i]), dk.GetValidatorAccumulatedCommission(ctx, keeper.TestValAddrs[i]))
+				require.Equal(suite.T(), getDecCoins(tc.afterOutstandingDec[i]), dk.GetValidatorOutstandingRewards(ctx, keeper.TestValAddrs[i]))
+				require.Equal(suite.T(), getDecCoins(tc.decCommunity), dk.GetFeePoolCommunityCoins(ctx))
+			}
+		})
+	}
+}
+
+func (suite *DistributionSuite) TestDelegator() {
+	testCases := []struct {
+		title      string
+		valCount   int64
+		delCount   int64
+		decRewards [4][4]string
+		rate       string
+		chainType  uint32
+	}{
+		{
+			"1 delegator，1 validator, onchain",
+			1,
+			1,
+			[4][4]string{{"48"}},
+			"0.5",
+			1,
+		},
+		{
+			"1 delegator，1 validator, offchain",
+			1,
+			1,
+			[4][4]string{{"0"}},
+			"0.5",
+			0,
+		},
+		{
+			"1 delegator，2 validator, onchain",
+			2,
+			1,
+			[4][4]string{{"24", "24"}},
+			"0.5",
+			1,
+		},
+		{
+			"1 delegator，2 validator, offchain",
+			2,
+			1,
+			[4][4]string{{"0", "0"}},
+			"0.5",
+			0,
+		},
+		{
+			"1 delegator，4 validator, onchain",
+			4,
+			1,
+			[4][4]string{{"12", "12", "12", "12"}},
+			"0.5",
+			1,
+		},
+		{
+			"1 delegator，4 validator, offchain",
+			4,
+			1,
+			[4][4]string{{"0", "0", "0", "0"}},
+			"0.5",
+			0,
+		},
+		{
+			"2 delegator，1 validator, onchain",
+			1,
+			2,
+			[4][4]string{{"24"}, {"24"}},
+			"0.5",
+			1,
+		},
+		{
+			"2 delegator，1 validator, offchain",
+			1,
+			2,
+			[4][4]string{{"0"}, {"0"}},
+			"0.5",
+			0,
+		},
+		{
+			"2 delegator，2 validator, onchain",
+			2,
+			2,
+			[4][4]string{{"12", "12"}, {"12", "12"}},
+			"0.5",
+			1,
+		},
+		{
+			"2 delegator，2 validator, offchain",
+			2,
+			2,
+			[4][4]string{{"0", "0"}, {"0", "0"}},
+			"0.5",
+			0,
+		},
+		{
+			"2 delegator，4 validator, onchain",
+			4,
+			2,
+			[4][4]string{{"6", "6", "6", "6"}, {"6", "6", "6", "6"}},
+			"0.5",
+			1,
+		},
+		{
+			"2 delegator，4 validator, offchain",
+			4,
+			2,
+			[4][4]string{{"0", "0", "0", "0"}, {"0", "0", "0", "0"}},
+			"0.5",
+			0,
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.title, func() {
+			initEnv(suite.T(), tc.valCount)
+			dk.SetDistributionType(ctx, tc.chainType)
+
+			newRate, _ := sdk.NewDecFromStr(tc.rate)
+			ctx.SetBlockTime(time.Now().UTC().Add(48 * time.Hour))
+			for i := int64(0); i < tc.valCount; i++ {
+				keeper.DoEditValidator(suite.T(), ctx, sk, keeper.TestValAddrs[i], newRate)
+			}
+
+			for i := int64(0); i < tc.delCount; i++ {
+				keeper.DoDeposit(suite.T(), ctx, sk, keeper.TestDelAddrs[i], depositCoin)
+				keeper.DoAddShares(suite.T(), ctx, sk, keeper.TestDelAddrs[i], keeper.TestValAddrs[0:tc.valCount])
+			}
+
+			allocateTokens(suite.T())
+
+			beforeValCommission := [4]types.ValidatorAccumulatedCommission{}
+			for i := int64(0); i < tc.valCount; i++ {
+				beforeValCommission[i] = dk.GetValidatorAccumulatedCommission(ctx, keeper.TestValAddrs[i])
+			}
+
+			for i := int64(0); i < tc.delCount; i++ {
+				for j := int64(0); j < tc.valCount; j++ {
+					beforeAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
+					dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[i], keeper.TestValAddrs[j])
+					afterAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
+					require.Equal(suite.T(), afterAccount.Sub(beforeAccount), getDecCoins(tc.decRewards[i][j]))
+				}
+			}
+
+			afterValCommission := [4]types.ValidatorAccumulatedCommission{}
+			for i := int64(0); i < tc.valCount; i++ {
+				afterValCommission[i] = dk.GetValidatorAccumulatedCommission(ctx, keeper.TestValAddrs[i])
+			}
+
+			//withdraw again
+			staking.EndBlocker(ctx, sk)
+			ctx.SetBlockHeight(ctx.BlockHeight() + 1)
+			for i := int64(0); i < tc.delCount; i++ {
+				for j := int64(0); j < tc.valCount; j++ {
+					beforeAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
+					dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[i], keeper.TestValAddrs[j])
+					afterAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
+					require.Equal(suite.T(), afterAccount.Sub(beforeAccount), getDecCoins("0"))
+				}
+			}
+			require.Equal(suite.T(), beforeValCommission, afterValCommission)
+
+			//allocate and withdraw agagin
+			allocateTokens(suite.T())
+			for i := int64(0); i < tc.delCount; i++ {
+				for j := int64(0); j < tc.valCount; j++ {
+					beforeAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
+					dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[i], keeper.TestValAddrs[j])
+					afterAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
+					require.Equal(suite.T(), afterAccount.Sub(beforeAccount), getDecCoins(tc.decRewards[i][j]))
+				}
+			}
+		})
+	}
+}
+
+func (suite *DistributionSuite) TestProxy() {
+	testCases := []struct {
+		title        string
+		valCount     int64
+		proxyCount   int64
+		proxyRewards [4][4]string
+		rate         string
+		chainType    uint32
+	}{
+		{
+			"1 delegator，1 validator, onchain",
+			1,
+			1,
+			[4][4]string{{"48"}},
+			"0.5",
+			1,
+		},
+		{
+			"1 delegator，1 validator, offchain",
+			1,
+			1,
+			[4][4]string{{"0"}},
+			"0.5",
+			0,
+		},
+		{
+			"1 delegator，2 validator, onchain",
+			2,
+			1,
+			[4][4]string{{"24", "24"}},
+			"0.5",
+			1,
+		},
+		{
+			"1 delegator，2 validator, offchain",
+			2,
+			1,
+			[4][4]string{{"0", "0"}},
+			"0.5",
+			0,
+		},
+		{
+			"1 delegator，4 validator, onchain",
+			4,
+			1,
+			[4][4]string{{"12", "12", "12", "12"}},
+			"0.5",
+			1,
+		},
+		{
+			"1 delegator，4 validator, offchain",
+			4,
+			1,
+			[4][4]string{{"0", "0", "0", "0"}},
+			"0.5",
+			0,
+		},
+		{
+			"2 delegator，1 validator, onchain",
+			1,
+			2,
+			[4][4]string{{"24"}, {"24"}},
+			"0.5",
+			1,
+		},
+		{
+			"2 delegator，1 validator, offchain",
+			1,
+			2,
+			[4][4]string{{"0"}, {"0"}},
+			"0.5",
+			0,
+		},
+		{
+			"2 delegator，2 validator, onchain",
+			2,
+			2,
+			[4][4]string{{"12", "12"}, {"12", "12"}},
+			"0.5",
+			1,
+		},
+		{
+			"2 delegator，2 validator, offchain",
+			2,
+			2,
+			[4][4]string{{"0", "0"}, {"0", "0"}},
+			"0.5",
+			0,
+		},
+		{
+			"2 delegator，4 validator, onchain",
+			4,
+			2,
+			[4][4]string{{"6", "6", "6", "6"}, {"6", "6", "6", "6"}},
+			"0.5",
+			1,
+		},
+		{
+			"2 delegator，4 validator, offchain",
+			4,
+			2,
+			[4][4]string{{"0", "0", "0", "0"}, {"0", "0", "0", "0"}},
+			"0.5",
+			0,
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.title, func() {
+			initEnv(suite.T(), tc.valCount)
+			dk.SetDistributionType(ctx, tc.chainType)
+
+			newRate, _ := sdk.NewDecFromStr(tc.rate)
+			ctx.SetBlockTime(time.Now().UTC().Add(48 * time.Hour))
+			for i := int64(0); i < tc.valCount; i++ {
+				keeper.DoEditValidator(suite.T(), ctx, sk, keeper.TestValAddrs[i], newRate)
+			}
+
+			staking.EndBlocker(ctx, sk)
+			ctx.SetBlockHeight(ctx.BlockHeight() + 1)
+			for i := int64(0); i < tc.proxyCount; i++ {
+				keeper.DoDeposit(suite.T(), ctx, sk, keeper.TestProxyAddrs[i], depositCoin)
+				keeper.DoRegProxy(suite.T(), ctx, sk, keeper.TestProxyAddrs[i], true)
+
+				keeper.DoDeposit(suite.T(), ctx, sk, keeper.TestDelAddrs[i], depositCoin)
+				keeper.DoBindProxy(suite.T(), ctx, sk, keeper.TestDelAddrs[i], keeper.TestProxyAddrs[i])
+				keeper.DoAddShares(suite.T(), ctx, sk, keeper.TestProxyAddrs[i], keeper.TestValAddrs[0:tc.valCount])
+			}
+
+			//test withdraw
+			testProxyWithdraw(suite, tc.valCount, tc.proxyCount, tc.proxyRewards)
+
+			//proxy withdraw again, delegator withdraw again
+			testProxyWithdrawAgain(suite, tc.valCount, tc.proxyCount)
+
+			// UnBindProxy
+			for i := int64(0); i < tc.proxyCount; i++ {
+				keeper.DoUnBindProxy(suite.T(), ctx, sk, keeper.TestDelAddrs[i])
+			}
+
+			allocateTokens(suite.T())
+
+			for i := int64(0); i < tc.proxyCount; i++ {
+				for j := int64(0); j < tc.valCount; j++ {
+					beforeAccount := ak.GetAccount(ctx, keeper.TestProxyAddrs[i]).GetCoins()
+					dk.WithdrawDelegationRewards(ctx, keeper.TestProxyAddrs[i], keeper.TestValAddrs[j])
+					afterAccount := ak.GetAccount(ctx, keeper.TestProxyAddrs[i]).GetCoins()
+					require.Equal(suite.T(), afterAccount.Sub(beforeAccount), getDecCoins(tc.proxyRewards[i][j]))
+				}
+			}
+
+			//proxy withdraw again, delegator withdraw again
+			testProxyWithdrawAgain(suite, tc.valCount, tc.proxyCount)
+
+			//bind again, will withdraw to proxy
+			testProxyBindAgain(suite, tc.valCount, tc.proxyCount, tc.proxyRewards)
+
+			//del deposit will do withdraw
+			testProxyDelDepositAgain(suite, tc.valCount, tc.proxyCount, tc.proxyRewards)
+
+			//proxy deposit will do withdraw
+			testProxyProxyDepositAgain(suite, tc.valCount, tc.proxyCount, tc.proxyRewards)
+
+			allocateTokens(suite.T())
+		})
+	}
+}
+
+func testProxyWithdraw(suite *DistributionSuite, valCount int64, proxyCount int64, proxyRewards [4][4]string) {
+	//test withdraw
+	allocateTokens(suite.T())
+	beforeValCommission := [4]types.ValidatorAccumulatedCommission{}
+	for i := int64(0); i < valCount; i++ {
+		beforeValCommission[i] = dk.GetValidatorAccumulatedCommission(ctx, keeper.TestValAddrs[i])
+	}
+
+	for i := int64(0); i < proxyCount; i++ {
+		for j := int64(0); j < valCount; j++ {
+			beforeAccount := ak.GetAccount(ctx, keeper.TestProxyAddrs[i]).GetCoins()
+			dk.WithdrawDelegationRewards(ctx, keeper.TestProxyAddrs[i], keeper.TestValAddrs[j])
+			afterAccount := ak.GetAccount(ctx, keeper.TestProxyAddrs[i]).GetCoins()
+			require.Equal(suite.T(), afterAccount.Sub(beforeAccount), getDecCoins(proxyRewards[i][j]))
+		}
+	}
+
+	afterValCommission := [4]types.ValidatorAccumulatedCommission{}
+	for i := int64(0); i < valCount; i++ {
+		afterValCommission[i] = dk.GetValidatorAccumulatedCommission(ctx, keeper.TestValAddrs[i])
+	}
+}
+
+func testProxyWithdrawAgain(suite *DistributionSuite, valCount int64, proxyCount int64) {
 	staking.EndBlocker(ctx, sk)
 	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
-	setTestFees(t, ctx, dk, ak, blockRewardValueTokens)
-	dk.AllocateTokens(ctx, 1, keeper.TestConsAddrs[0], votes)
-	keeper.DoDeposit(t, ctx, sk, keeper.TestDelAddrs[3], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
+	for i := int64(0); i < proxyCount; i++ {
+		for j := int64(0); j < valCount; j++ {
+			beforeAccount := ak.GetAccount(ctx, keeper.TestProxyAddrs[i]).GetCoins()
+			dk.WithdrawDelegationRewards(ctx, keeper.TestProxyAddrs[i], keeper.TestValAddrs[j])
+			afterAccount := ak.GetAccount(ctx, keeper.TestProxyAddrs[i]).GetCoins()
+			require.Equal(suite.T(), afterAccount.Sub(beforeAccount), getDecCoins("0"))
+		}
+	}
+
+	//delegator withdraw
+	staking.EndBlocker(ctx, sk)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
+	for i := int64(0); i < proxyCount; i++ {
+		for j := int64(0); j < valCount; j++ {
+			beforeAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
+			dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[i], keeper.TestValAddrs[j])
+			afterAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
+			require.Equal(suite.T(), afterAccount.Sub(beforeAccount), getDecCoins("0"))
+		}
+	}
+}
+
+func testProxyBindAgain(suite *DistributionSuite, valCount int64, proxyCount int64, proxyRewards [4][4]string) {
+	allocateTokens(suite.T())
+	beforeProxyAccount := [4]types.ValidatorAccumulatedCommission{}
+	for i := int64(0); i < proxyCount; i++ {
+		beforeProxyAccount[i] = ak.GetAccount(ctx, keeper.TestProxyAddrs[i]).GetCoins()
+		for j := int64(0); j < valCount; j++ {
+			beforeProxyAccount[i] = beforeProxyAccount[i].Add2(getDecCoins(proxyRewards[i][j]))
+		}
+	}
+	for i := int64(0); i < proxyCount; i++ {
+		keeper.DoBindProxy(suite.T(), ctx, sk, keeper.TestDelAddrs[i], keeper.TestProxyAddrs[i])
+	}
+	afterProxyAccount := [4]types.ValidatorAccumulatedCommission{}
+	for i := int64(0); i < proxyCount; i++ {
+		afterProxyAccount[i] = ak.GetAccount(ctx, keeper.TestProxyAddrs[i]).GetCoins()
+	}
+	require.Equal(suite.T(), beforeProxyAccount, afterProxyAccount)
+}
+
+func testProxyDelDepositAgain(suite *DistributionSuite, valCount int64, proxyCount int64, proxyRewards [4][4]string) {
+	allocateTokens(suite.T())
+	beforeProxyAccount := [4]types.ValidatorAccumulatedCommission{}
+	for i := int64(0); i < proxyCount; i++ {
+		beforeProxyAccount[i] = ak.GetAccount(ctx, keeper.TestProxyAddrs[i]).GetCoins()
+		for j := int64(0); j < valCount; j++ {
+			beforeProxyAccount[i] = beforeProxyAccount[i].Add2(getDecCoins(proxyRewards[i][j]))
+		}
+	}
+	for i := int64(0); i < proxyCount; i++ {
+		keeper.DoDeposit(suite.T(), ctx, sk, keeper.TestDelAddrs[i], depositCoin)
+	}
+	afterProxyAccount := [4]types.ValidatorAccumulatedCommission{}
+	for i := int64(0); i < proxyCount; i++ {
+		afterProxyAccount[i] = ak.GetAccount(ctx, keeper.TestProxyAddrs[i]).GetCoins()
+	}
+	require.Equal(suite.T(), beforeProxyAccount, afterProxyAccount)
+}
+
+func testProxyProxyDepositAgain(suite *DistributionSuite, valCount int64, proxyCount int64, proxyRewards [4][4]string) {
+	allocateTokens(suite.T())
+	beforeProxyAccount := [4]types.ValidatorAccumulatedCommission{}
+	for i := int64(0); i < proxyCount; i++ {
+		beforeProxyAccount[i] = ak.GetAccount(ctx, keeper.TestProxyAddrs[i]).GetCoins()
+		for j := int64(0); j < valCount; j++ {
+			beforeProxyAccount[i] = beforeProxyAccount[i].Add2(getDecCoins(proxyRewards[i][j]))
+		}
+	}
+	for i := int64(0); i < proxyCount; i++ {
+		beforeProxyAccount[i] = beforeProxyAccount[i].Sub(sdk.NewCoins(depositCoin))
+		keeper.DoDeposit(suite.T(), ctx, sk, keeper.TestProxyAddrs[i], depositCoin)
+	}
+	afterProxyAccount := [4]types.ValidatorAccumulatedCommission{}
+	for i := int64(0); i < proxyCount; i++ {
+		afterProxyAccount[i] = ak.GetAccount(ctx, keeper.TestProxyAddrs[i]).GetCoins()
+	}
+	require.Equal(suite.T(), beforeProxyAccount, afterProxyAccount)
+}
+
+func (suite *DistributionSuite) TestDestroyValidator() {
+	testCases := []struct {
+		title                string
+		valCount             int64
+		beforeCommissionDec  [4]string
+		beforeOutstandingDec [4]string
+		afterCommissionDec   [4]string
+		afterOutstandingDec  [4]string
+		decCommunity         string
+		chainType            uint32
+	}{
+		{},
+	}
+	_ = testCases
+}
+
+func (suite *DistributionSuite) TestWithdraw() {
+	testCases := []struct {
+		title      string
+		valCount   int64
+		delCount   int64
+		decRewards [4][4]string
+		rate       string
+		chainType  uint32
+	}{
+		{
+			"1 delegator，1 validator, onchain",
+			1,
+			1,
+			[4][4]string{{"48"}},
+			"0.5",
+			1,
+		},
+		{
+			"1 delegator，1 validator, offchain",
+			1,
+			1,
+			[4][4]string{{"0"}},
+			"0.5",
+			0,
+		},
+		{
+			"1 delegator，1 validator, onchain",
+			2,
+			1,
+			[4][4]string{{"24", "24"}},
+			"0.5",
+			1,
+		},
+		{
+			"1 delegator，1 validator, offchain",
+			2,
+			1,
+			[4][4]string{{"0", "0"}},
+			"0.5",
+			0,
+		},
+		{
+			"1 delegator，4 validator, onchain",
+			4,
+			1,
+			[4][4]string{{"12", "12", "12", "12"}},
+			"0.5",
+			1,
+		},
+		{
+			"1 delegator，4 validator, offchain",
+			4,
+			1,
+			[4][4]string{{"0", "0", "0", "0"}},
+			"0.5",
+			0,
+		},
+		{
+			"2 delegator，1 validator, onchain",
+			1,
+			2,
+			[4][4]string{{"24"}, {"24"}},
+			"0.5",
+			1,
+		},
+		{
+			"2 delegator，1 validator, offchain",
+			1,
+			2,
+			[4][4]string{{"0"}, {"0"}},
+			"0.5",
+			0,
+		},
+		{
+			"2 delegator，2 validator, onchain",
+			2,
+			2,
+			[4][4]string{{"12", "12"}, {"12", "12"}},
+			"0.5",
+			1,
+		},
+		{
+			"2 delegator，2 validator, offchain",
+			2,
+			2,
+			[4][4]string{{"0", "0"}, {"0", "0"}},
+			"0.5",
+			0,
+		},
+		{
+			"2 delegator，4 validator, onchain",
+			4,
+			2,
+			[4][4]string{{"6", "6", "6", "6"}, {"6", "6", "6", "6"}},
+			"0.5",
+			1,
+		},
+		{
+			"2 delegator，4 validator, offchain",
+			4,
+			2,
+			[4][4]string{{"0", "0", "0", "0"}, {"0", "0", "0", "0"}},
+			"0.5",
+			0,
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.title, func() {
+			initEnv(suite.T(), tc.valCount)
+			dk.SetDistributionType(ctx, tc.chainType)
+
+			newRate, _ := sdk.NewDecFromStr(tc.rate)
+			ctx.SetBlockTime(time.Now().UTC().Add(48 * time.Hour))
+			for i := int64(0); i < tc.valCount; i++ {
+				keeper.DoEditValidator(suite.T(), ctx, sk, keeper.TestValAddrs[i], newRate)
+			}
+
+			for i := int64(0); i < tc.delCount; i++ {
+				keeper.DoDeposit(suite.T(), ctx, sk, keeper.TestDelAddrs[i], depositCoin)
+				keeper.DoAddShares(suite.T(), ctx, sk, keeper.TestDelAddrs[i], keeper.TestValAddrs[0:tc.valCount])
+			}
+
+			allocateTokens(suite.T())
+
+			beforeValCommission := [4]types.ValidatorAccumulatedCommission{}
+			for i := int64(0); i < tc.valCount; i++ {
+				beforeValCommission[i] = dk.GetValidatorAccumulatedCommission(ctx, keeper.TestValAddrs[i])
+			}
+
+			for i := int64(0); i < tc.delCount; i++ {
+				beforeAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
+				keeper.DoWithdraw(suite.T(), ctx, sk, keeper.TestDelAddrs[i], depositCoin)
+				afterAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
+				rewards := sdk.SysCoins{}
+				for j := int64(0); j < tc.valCount; j++ {
+					rewards = rewards.Add2(getDecCoins(tc.decRewards[i][j]))
+
+				}
+				require.Equal(suite.T(), afterAccount.Sub(beforeAccount), rewards)
+			}
+
+			afterValCommission := [4]types.ValidatorAccumulatedCommission{}
+			for i := int64(0); i < tc.valCount; i++ {
+				afterValCommission[i] = dk.GetValidatorAccumulatedCommission(ctx, keeper.TestValAddrs[i])
+			}
+			require.Equal(suite.T(), beforeValCommission, afterValCommission)
+
+			//withdraw again
+			staking.EndBlocker(ctx, sk)
+			ctx.SetBlockHeight(ctx.BlockHeight() + 1)
+			for i := int64(0); i < tc.delCount; i++ {
+				for j := int64(0); j < tc.valCount; j++ {
+					beforeAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
+					dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[i], keeper.TestValAddrs[j])
+					afterAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
+					require.Equal(suite.T(), afterAccount.Sub(beforeAccount), getDecCoins("0"))
+				}
+			}
+
+			//allocate and withdraw again, do nothing
+			allocateTokens(suite.T())
+			for i := int64(0); i < tc.delCount; i++ {
+				for j := int64(0); j < tc.valCount; j++ {
+					beforeAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
+					dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[i], keeper.TestValAddrs[j])
+					afterAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
+					require.Equal(suite.T(), afterAccount.Sub(beforeAccount), getDecCoins("0"))
+				}
+			}
+		})
+	}
+}
+
+func (suite *DistributionSuite) TestWithdrawValidator() {
+	testCases := []struct {
+		title      string
+		valCount   int64
+		delCount   int64
+		decRewards [4][4]string
+		rate       string
+		chainType  uint32
+	}{
+		{
+			"1 delegator，1 validator, onchain",
+			1,
+			1,
+			[4][4]string{{"24"}},
+			"0.5",
+			1,
+		},
+		{
+			"1 delegator，1 validator, offchain",
+			1,
+			1,
+			[4][4]string{{"0"}},
+			"0.5",
+			0,
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.title, func() {
+			initEnv(suite.T(), tc.valCount)
+			dk.SetDistributionType(ctx, tc.chainType)
+
+			newRate, _ := sdk.NewDecFromStr(tc.rate)
+			ctx.SetBlockTime(time.Now().UTC().Add(48 * time.Hour))
+			for i := int64(0); i < tc.valCount; i++ {
+				keeper.DoEditValidator(suite.T(), ctx, sk, keeper.TestValAddrs[i], newRate)
+			}
+
+			for i := int64(0); i < tc.delCount; i++ {
+				keeper.DoDeposit(suite.T(), ctx, sk, keeper.TestDelAddrs[i], depositCoin)
+				keeper.DoAddShares(suite.T(), ctx, sk, keeper.TestDelAddrs[i], keeper.TestValAddrs[0:tc.valCount])
+			}
+
+			for j := int64(0); j < tc.valCount; j++ {
+				keeper.DoDeposit(suite.T(), ctx, sk, keeper.TestValAccAddrs[j], depositCoin)
+				keeper.DoAddShares(suite.T(), ctx, sk, keeper.TestValAccAddrs[j], keeper.TestValAddrs[0:tc.valCount])
+			}
+
+			allocateTokens(suite.T())
+
+			beforeValCommission := [4]types.ValidatorAccumulatedCommission{}
+			for i := int64(0); i < tc.valCount; i++ {
+				beforeValCommission[i] = dk.GetValidatorAccumulatedCommission(ctx, keeper.TestValAddrs[i])
+			}
+
+			//withdraw validator
+			for j := int64(0); j < tc.valCount; j++ {
+				keeper.DoDestroyValidator(suite.T(), ctx, sk, keeper.TestValAccAddrs[j])
+				keeper.DoWithdraw(suite.T(), ctx, sk, keeper.TestValAccAddrs[j], depositCoin)
+			}
+
+			staking.EndBlocker(ctx, sk)
+
+			for i := int64(0); i < tc.delCount; i++ {
+				beforeAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
+				keeper.DoWithdraw(suite.T(), ctx, sk, keeper.TestDelAddrs[i], depositCoin)
+				afterAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
+				rewards := sdk.SysCoins{}
+				for j := int64(0); j < tc.valCount; j++ {
+					rewards = rewards.Add2(getDecCoins(tc.decRewards[i][j]))
+
+				}
+				require.Equal(suite.T(), afterAccount.Sub(beforeAccount), rewards)
+			}
+
+			afterValCommission := [4]types.ValidatorAccumulatedCommission{}
+			for i := int64(0); i < tc.valCount; i++ {
+				afterValCommission[i] = dk.GetValidatorAccumulatedCommission(ctx, keeper.TestValAddrs[i])
+			}
+			require.Equal(suite.T(), beforeValCommission, afterValCommission)
+
+			//withdraw again
+			staking.EndBlocker(ctx, sk)
+			ctx.SetBlockHeight(ctx.BlockHeight() + 1)
+			for i := int64(0); i < tc.delCount; i++ {
+				for j := int64(0); j < tc.valCount; j++ {
+					beforeAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
+					dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[i], keeper.TestValAddrs[j])
+					afterAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
+					require.Equal(suite.T(), afterAccount.Sub(beforeAccount), getDecCoins("0"))
+				}
+			}
+
+			//allocate and withdraw again, do nothing
+			staking.EndBlocker(ctx, sk)
+			for i := int64(0); i < tc.delCount; i++ {
+				for j := int64(0); j < tc.valCount; j++ {
+					beforeAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
+					dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[i], keeper.TestValAddrs[j])
+					afterAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
+					require.Equal(suite.T(), afterAccount.Sub(beforeAccount), getDecCoins("0"))
+				}
+			}
+		})
+	}
 }
 
 func setTestFees(t *testing.T, ctx sdk.Context, k Keeper, ak auth.AccountKeeper, fees sdk.SysCoins) {

@@ -185,10 +185,6 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 }
 
 func handleMsgEditValidatorCommissionRate(ctx sdk.Context, msg types.MsgEditValidatorCommissionRate, k keeper.Keeper) (*sdk.Result, error) {
-	if !tmtypes.HigherThanSaturn1(ctx.BlockHeight()) {
-		return nil, ErrNotSupport()
-	}
-
 	// validator must already be registered
 	validator, found := k.GetValidator(ctx, msg.ValidatorAddress)
 	if !found {

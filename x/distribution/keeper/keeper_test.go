@@ -13,6 +13,7 @@ import (
 
 func TestSetWithdrawAddr(t *testing.T) {
 	ctx, _, keeper, _, _ := CreateTestInputDefault(t, false, 1000)
+	keeper.SetDistributionType(ctx, types.DistributionTypeOffChain)
 
 	params := keeper.GetParams(ctx)
 	params.WithdrawAddrEnabled = false

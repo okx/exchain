@@ -3,6 +3,7 @@ package distribution
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/keeper"
 	"github.com/okex/exchain/x/distribution/types"
@@ -64,6 +65,27 @@ func TestWithdrawDelegatorReward(t *testing.T) {
 	require.Nil(t, err)
 }
 
+type allocationParam struct {
+	totalPower int64
+	isVote     []bool
+	isJailed   []bool
+	fee        sdk.SysCoins
+}
+
+func createVotes(ctx sdk.Context, sk staking.Keeper, test allocationParam) []abci.VoteInfo {
+	var votes []abci.VoteInfo
+	for i := int64(0); i < int64(len(test.isVote)); i++ {
+		if test.isJailed[i] {
+			sk.Jail(ctx, keeper.TestConsAddrs[i])
+		}
+		abciVal := abci.Validator{Address: keeper.TestConsAddrs[i], Power: i + 1}
+		if test.isVote[i] {
+			votes = append(votes, abci.VoteInfo{Validator: abciVal, SignedLastBlock: true})
+		}
+	}
+	return votes
+}
+
 func TestWithdrawValidatorCommission(t *testing.T) {
 	ctx, ak, dk, sk, supplyKeeper := keeper.CreateTestInputDefault(t, false, 10)
 	_ = sk
@@ -83,15 +105,15 @@ func TestWithdrawValidatorCommission(t *testing.T) {
 	staking.EndBlocker(ctx, sk)
 	feeCollector := supplyKeeper.GetModuleAccount(ctx, auth.FeeCollectorName)
 	require.NotNil(t, feeCollector)
-	err = feeCollector.SetCoins(blockRewardValueTokens)
+	err = feeCollector.SetCoins(sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(int64(100))}})
 	require.NoError(t, err)
 	ak.SetAccount(ctx, feeCollector)
-	testAllocationParam := testAllocationParam{
+	allocationParam := allocationParam{
 		10,
 		[]bool{true, true, true, true}, []bool{false, false, false, false},
 		nil,
 	}
-	votes := createTestVotes(ctx, sk, testAllocationParam)
+	votes := createVotes(ctx, sk, allocationParam)
 	dk.AllocateTokens(ctx, 1, keeper.TestConsAddrs[0], votes)
 	require.Nil(t, err)
 
