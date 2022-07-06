@@ -5,6 +5,7 @@ import (
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	bam "github.com/okex/exchain/libs/system/trace"
 	"github.com/okex/exchain/x/evm/txs/base"
+	"github.com/okex/exchain/x/evm/txs/deliver"
 	"github.com/okex/exchain/x/evm/types"
 )
 
@@ -80,10 +81,24 @@ func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err e
 	defer func() {
 		senderAccount := tx.GetSenderAccount()
 		if e := recover(); e != nil {
+			evmtx, ok := tx.(*deliver.Tx)
+			if ok {
+				if senderAccount.String() == "0x04C3aF284BEd636dE5400ddB24d7698dB457CE34" {
+					evmtx.Ctx.Logger().Error("TransitionEvmTx recover delete account",
+						"account", senderAccount, "height", evmtx.Ctx.BlockHeight())
+				}
+			}
 			tx.ResetWatcher(senderAccount)
 			panic(e)
 		}
 		tx.RefundFeesWatcher(senderAccount, msg)
+		evmtx, ok := tx.(*deliver.Tx)
+		if ok {
+			if senderAccount.String() == "0x04C3aF284BEd636dE5400ddB24d7698dB457CE34" {
+				evmtx.Ctx.Logger().Error("TransitionEvmTx FinalizeWatcher delete account",
+					"account", senderAccount, "height", evmtx.Ctx.BlockHeight())
+			}
+		}
 		tx.FinalizeWatcher(senderAccount, err)
 	}()
 

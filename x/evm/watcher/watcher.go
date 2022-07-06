@@ -208,6 +208,10 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 	if !w.Enabled() {
 		return
 	}
+	if addr.String() == "0x04C3aF284BEd636dE5400ddB24d7698dB457CE34" {
+		w.log.Error("DeleteAccount account",
+			"account", addr)
+	}
 	key1 := GetMsgAccountKey(addr.Bytes())
 	key2 := append(prefixRpcDb, key1...)
 	w.delayEraseKey = append(w.delayEraseKey, key1)
