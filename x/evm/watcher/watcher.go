@@ -1,6 +1,7 @@
 package watcher
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -314,6 +315,13 @@ func (w *Watcher) Commit() {
 	//	values = append(values, b.GetValue())
 	//}
 	//w.log.Error(fmt.Sprintf("Watcher commit batch key=%v, value=%v", keys, values))
+	key := []byte{1, 0, 0, 106, 182, 243, 91, 11, 184, 39, 184, 76, 80, 243, 82, 128, 15, 185, 18, 94, 162, 173, 58, 157, 242, 220, 71, 178, 28, 248, 216, 121, 63}
+	for _, b := range batch {
+		if bytes.Compare(b.GetKey(), key) == 0 {
+			w.log.Error(fmt.Sprintf("Watcher commit message, type=%d, key=%v, value=%v, object=%+v",
+				b.GetType(), b.GetKey(), b.GetValue(), b))
+		}
+	}
 	w.clean()
 	w.dispatchJob(func() {
 		w.commitBatch(batch)
