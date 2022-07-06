@@ -980,6 +980,9 @@ func (tree *MutableTree) getUnsavedFastNodeRemovals() map[string]interface{} {
 func (tree *MutableTree) addUnsavedAddition(key []byte, node *FastNode) {
 	tree.mtxUnSavedFastNodeAdditions.Lock()
 	defer tree.mtxUnSavedFastNodeAdditions.Unlock()
+	tree.mtxUnSavedFastNodeRemovals.Lock()
+	defer tree.mtxUnSavedFastNodeRemovals.Unlock()
+
 	delete(tree.unsavedFastNodeRemovals, string(key))
 	tree.unsavedFastNodeAdditions[string(key)] = node
 }
