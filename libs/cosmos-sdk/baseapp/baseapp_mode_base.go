@@ -3,8 +3,10 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+
 	//"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
@@ -158,6 +160,7 @@ func (m *modeHandlerBase) handleRunMsg(info *runTxInfo) (err error) {
 	mode := m.mode
 
 	info.runMsgCtx, info.msCache = app.cacheTxContext(info.ctx, info.txBytes)
+	info.runMsgCtx.ResetWatcher()
 	info.result, err = app.runMsgs(info.runMsgCtx, info.tx.GetMsgs(), mode)
 	info.runMsgFinished = true
 

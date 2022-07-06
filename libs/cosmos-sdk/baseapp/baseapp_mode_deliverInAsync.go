@@ -36,7 +36,7 @@ func (m *modeHandlerDeliverInAsync) handleRunMsg(info *runTxInfo) (err error) {
 	info.msCache = app.parallelTxManage.chainMultiStores.GetStoreWithParent(info.msCacheAnte)
 	info.runMsgCtx = info.ctx
 	info.runMsgCtx.SetMultiStore(info.msCache)
-
+	info.runMsgCtx.ResetWatcher()
 	info.result, err = app.runMsgs(info.runMsgCtx, info.tx.GetMsgs(), mode)
 	info.runMsgFinished = true
 	err = m.checkHigherThanMercury(err, info)
