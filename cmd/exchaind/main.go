@@ -120,6 +120,7 @@ func closeApp(iApp abci.Application) {
 	app := iApp.(*app.OKExChainApp)
 	app.StopBaseApp()
 	evmtypes.CloseIndexer()
+	evmtypes.StopNewCallerTracerService()
 	rpc.CloseEthBackend()
 }
 
