@@ -253,19 +253,18 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	txkey := txKey(tx)
 
 	// CACHE
-	// Record a new sender for a tx we've already seen.
-	// Note it's possible a tx is still in the cache but no longer in the mempool
-	// (eg. after committing a block, txs are removed from mempool but not cache),
-	// so we only record the sender for txs still in the mempool.
-	if ele, ok := mem.txs.Load(txkey); ok {
-		memTx := ele.Value.(*mempoolTx)
-		memTx.senders.LoadOrStore(txInfo.SenderID, true)
-		// TODO: consider punishing peer for dups,
-		// its non-trivial since invalid txs can become valid,
-		// but they can spam the same tx with little cost to them atm.
-		return ErrTxInCache
-	}
 	if !mem.cache.PushKey(txkey) {
+		// Record a new sender for a tx we've already seen.
+		// Note it's possible a tx is still in the cache but no longer in the mempool
+		// (eg. after committing a block, txs are removed from mempool but not cache),
+		// so we only record the sender for txs still in the mempool.
+		if ele, ok := mem.txs.Load(txkey); ok {
+			memTx := ele.Value.(*mempoolTx)
+			memTx.senders.LoadOrStore(txInfo.SenderID, true)
+			// TODO: consider punishing peer for dups,
+			// its non-trivial since invalid txs can become valid,
+			// but they can spam the same tx with little cost to them atm.
+		}
 		return ErrTxInCache
 	}
 	// END CACHE
