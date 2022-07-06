@@ -2,9 +2,10 @@ package ante
 
 import (
 	"bytes"
-	"math/big"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	"math/big"
+	"strconv"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcore "github.com/ethereum/go-ethereum/core"
@@ -90,19 +91,27 @@ func nonceVerificationInCheckTx(seq uint64, msgEthTx *evmtypes.MsgEthereumTx, is
 
 			if baseapp.IsMempoolEnableSort() {
 				if msgEthTx.Data.AccountNonce < seq || msgEthTx.Data.AccountNonce > checkTxModeNonce {
-					return sdkerrors.Wrapf(
-						sdkerrors.ErrInvalidSequence,
-						"invalid nonce; got %d, expected in the range of [%d, %d]",
-						msgEthTx.Data.AccountNonce, seq, checkTxModeNonce,
-					)
+					accNonceStr := strconv.FormatUint(msgEthTx.Data.AccountNonce, 10)
+					seqStr := strconv.FormatUint(seq, 10)
+					checkTxModeNonceStr := strconv.FormatUint(checkTxModeNonce, 10)
+
+					errStr := strings.Join([]string{
+						"invalid nonce; got ", accNonceStr,
+						", expected in the range of [", seqStr, ", ", checkTxModeNonceStr, "]"},
+						"")
+
+					return sdkerrors.WrapNoStack(sdkerrors.ErrInvalidSequence, errStr)
 				}
 			} else {
 				if msgEthTx.Data.AccountNonce != checkTxModeNonce {
-					return sdkerrors.Wrapf(
-						sdkerrors.ErrInvalidSequence,
-						"invalid nonce; got %d, expected %d",
-						msgEthTx.Data.AccountNonce, checkTxModeNonce,
-					)
+					accNonceStr := strconv.FormatUint(msgEthTx.Data.AccountNonce, 10)
+					checkTxModeNonceStr := strconv.FormatUint(checkTxModeNonce, 10)
+
+					errStr := strings.Join([]string{
+						"invalid nonce; got ", accNonceStr, ", expected ", checkTxModeNonceStr},
+						"")
+
+					return sdkerrors.WrapNoStack(sdkerrors.ErrInvalidSequence, errStr)
 				}
 			}
 		}
