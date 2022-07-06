@@ -110,7 +110,7 @@ func (w *Watcher) saveFailedReceipts(watchTx WatchTx, gasUsed uint64) {
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}
-	w.log.Error("saveFailedReceipts", watchTx.GetTxHash().String(), *wMsg.TransactionReceipt)
+	w.log.Error("saveFailedReceipts", watchTx.GetTxHash().String(), "end")
 }
 
 // SaveParallelTx saves parallel transactions and transactionReceipts to watcher
