@@ -600,7 +600,7 @@ func (w *Watcher) Collect(watchers ...sdk.IWatcher) {
 	if !w.enable {
 		return
 	}
-	w.log.Error(fmt.Sprintf("Collect watchers len=%d", len(watchers)))
+	//w.log.Error(fmt.Sprintf("Collect watchers len=%d", len(watchers)))
 	for _, watcher := range watchers {
 		batch := watcher.Destruct()
 		w.batchLens = append(w.batchLens, len(batch))
