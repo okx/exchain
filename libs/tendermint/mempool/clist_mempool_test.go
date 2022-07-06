@@ -970,6 +970,8 @@ func TestTxOrTxHashToKey(t *testing.T) {
 	var tx = make([]byte, 256)
 	rand.Read(tx)
 
+	old := types.GetVenusHeight()
+
 	types.UnittestOnlySetMilestoneVenusHeight(1)
 
 	venus := types.GetVenusHeight()
@@ -980,4 +982,6 @@ func TestTxOrTxHashToKey(t *testing.T) {
 	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, txhash, venus-1))
 	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, types.Tx(tx).Hash(venus-1), venus-1))
 	require.NotEqual(t, txKey(tx), txOrTxHashToKey(tx, types.Tx(tx).Hash(venus-1), venus))
+
+	types.UnittestOnlySetMilestoneVenusHeight(old)
 }
