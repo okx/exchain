@@ -26,6 +26,7 @@ func NewHandler(k *Keeper) sdk.Handler {
 		if ok {
 			if watcher.IsWatcherEnabled() {
 				ctx.SetWatcher(watcher.NewTxWatcher())
+				k.Logger().Error("NewHandler", ctx.GetWatcher())
 			}
 			result, err = handleMsgEthereumTx(ctx, k, evmTx)
 			if err != nil {
