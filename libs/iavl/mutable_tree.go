@@ -65,9 +65,9 @@ type MutableTree struct {
 	readableOrphansSlice []*Node
 
 	unsavedFastNodeAdditions    map[string]*FastNode // FastNodes that have not yet been saved to disk
-	mtxUnSavedFastNodeAdditions sync.Mutex
+	mtxUnSavedFastNodeAdditions sync.RWMutex
 	unsavedFastNodeRemovals     map[string]interface{} // FastNodes that have not yet been removed from disk
-	mtxUnSavedFastNodeRemovals  sync.Mutex
+	mtxUnSavedFastNodeRemovals  sync.RWMutex
 	mtx                         sync.Mutex
 }
 
@@ -201,9 +201,12 @@ func (tree *MutableTree) FastGet(key []byte) []byte {
 		return nil
 	}
 
+	tree.mtxUnSavedFastNodeAdditions.RLock()
 	if fastNode, ok := tree.unsavedFastNodeAdditions[string(key)]; ok {
+		tree.mtxUnSavedFastNodeAdditions.RUnlock()
 		return fastNode.value
 	}
+	tree.mtxUnSavedFastNodeAdditions.RUnlock()
 
 	return tree.ImmutableTree.FastGet(key)
 }
@@ -231,6 +234,10 @@ func (tree *MutableTree) Iterate(fn func(key []byte, value []byte) bool) (stoppe
 		return tree.ImmutableTree.Iterate(fn)
 	}
 
+	tree.mtxUnSavedFastNodeAdditions.RLock()
+	defer tree.mtxUnSavedFastNodeAdditions.RUnlock()
+	tree.mtxUnSavedFastNodeRemovals.RLock()
+	defer tree.mtxUnSavedFastNodeRemovals.RUnlock()
 	itr := NewUnsavedFastIterator(nil, nil, true, tree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
 	defer itr.Close()
 	for ; itr.Valid(); itr.Next() {
@@ -978,8 +985,8 @@ func (tree *MutableTree) addUnsavedAddition(key []byte, node *FastNode) {
 }
 
 func (tree *MutableTree) saveFastNodeAdditions(batch dbm.Batch) error {
-	tree.mtxUnSavedFastNodeAdditions.Lock()
-	defer tree.mtxUnSavedFastNodeAdditions.Unlock()
+	tree.mtxUnSavedFastNodeAdditions.RLock()
+	defer tree.mtxUnSavedFastNodeAdditions.RUnlock()
 	keysToSort := make([]string, 0, len(tree.unsavedFastNodeAdditions))
 	for key := range tree.unsavedFastNodeAdditions {
 		keysToSort = append(keysToSort, key)
@@ -1002,8 +1009,8 @@ func (tree *MutableTree) addUnsavedRemoval(key []byte) {
 }
 
 func (tree *MutableTree) saveFastNodeRemovals(batch dbm.Batch) error {
-	tree.mtxUnSavedFastNodeRemovals.Lock()
-	defer tree.mtxUnSavedFastNodeRemovals.Unlock()
+	tree.mtxUnSavedFastNodeRemovals.RLock()
+	defer tree.mtxUnSavedFastNodeRemovals.RUnlock()
 	keysToSort := make([]string, 0, len(tree.unsavedFastNodeRemovals))
 	for key := range tree.unsavedFastNodeRemovals {
 		keysToSort = append(keysToSort, key)
