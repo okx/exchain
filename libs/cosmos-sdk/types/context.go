@@ -379,12 +379,11 @@ func (c *Context) SetWatcher(w IWatcher) {
 	c.watcher = &TxWatcher{w}
 }
 
-func (c Context) GetWatcher() *TxWatcher {
+func (c *Context) GetWatcher() IWatcher {
 	if c.watcher == nil {
-		panic("GetWatcher nil")
-		return &TxWatcher{EmptyWatcher{}}
+		c.watcher = &TxWatcher{EmptyWatcher{}}
 	}
-	return c.watcher
+	return c.watcher.IWatcher
 }
 
 //func (c *Context) SetTxCount(count uint32) *Context {
