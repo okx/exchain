@@ -2,6 +2,9 @@ package baseapp
 
 import (
 	"bytes"
+	"runtime"
+	"sync"
+
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -9,8 +12,6 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/spf13/viper"
-	"runtime"
-	"sync"
 )
 
 var (
@@ -32,23 +33,32 @@ type extraDataForTx struct {
 // getExtraDataByTxs preprocessing tx : verify tx, get sender, get toAddress, get txFee
 func (app *BaseApp) getExtraDataByTxs(txs [][]byte) {
 	para := app.parallelTxManage
-	para.txReps = make([]*executeResult, para.txSize)
-	para.extraTxsInfo = make([]*extraDataForTx, para.txSize)
-	para.workgroup.runningStatus = make(map[int]int)
-	para.workgroup.isrunning = make(map[int]bool)
 
 	var wg sync.WaitGroup
 	for index, txBytes := range txs {
 		wg.Add(1)
 		go func(index int, txBytes []byte) {
 			defer wg.Done()
-			tx, err := app.txDecoder(txBytes)
-			if err != nil {
-				para.extraTxsInfo[index] = &extraDataForTx{
-					decodeErr: err,
-				}
-				return
+
+			var tx sdk.Tx
+			var err error
+
+			if mem := GetGlobalMempool(); mem != nil {
+				tx, _ = mem.ReapEssentialTx(txBytes).(sdk.Tx)
 			}
+			if tx == nil {
+				tx, err = app.txDecoder(txBytes)
+				if err != nil {
+					para.extraTxsInfo[index] = &extraDataForTx{
+						decodeErr: err,
+					}
+					return
+				}
+			}
+			if tx != nil {
+				app.blockDataCache.SetTx(txBytes, tx)
+			}
+
 			coin, isEvm, s, toAddr, _ := app.getTxFeeAndFromHandler(app.getContextForTx(runTxModeDeliver, txBytes), tx)
 			para.extraTxsInfo[index] = &extraDataForTx{
 				fee:   coin,
@@ -154,6 +164,7 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 	if txSize == 0 {
 		return make([]*abci.ResponseDeliverTx, 0)
 	}
+	pm.init()
 
 	app.getExtraDataByTxs(txs)
 
@@ -633,12 +644,7 @@ func (f *parallelTxManager) clear() {
 	f.workgroup.Close()
 	f.workgroup.isReady = false
 	f.workgroup.indexInAll = 0
-	for key := range f.workgroup.runningStatus {
-		delete(f.workgroup.runningStatus, key)
-	}
-	for key := range f.workgroup.isrunning {
-		delete(f.workgroup.isrunning, key)
-	}
+
 	for key := range f.workgroup.markFailedStats {
 		delete(f.workgroup.markFailedStats, key)
 	}
@@ -659,6 +665,37 @@ func (f *parallelTxManager) clear() {
 	f.cc.clear()
 	f.currIndex = -1
 	f.currTxFee = sdk.Coins{}
+}
+
+func (f *parallelTxManager) init() {
+	txSize := f.txSize
+	txRepsCap := cap(f.txReps)
+	if f.txReps == nil || txRepsCap < txSize {
+		f.txReps = make([]*executeResult, txSize)
+	} else if txRepsCap >= txSize {
+		f.txReps = f.txReps[0:txSize:txRepsCap]
+		// https://github.com/golang/go/issues/5373
+		for i := range f.txReps {
+			f.txReps[i] = nil
+		}
+	}
+
+	txsInfoCap := cap(f.extraTxsInfo)
+	if f.extraTxsInfo == nil || txsInfoCap < txSize {
+		f.extraTxsInfo = make([]*extraDataForTx, txSize)
+	} else if txsInfoCap >= txSize {
+		f.extraTxsInfo = f.extraTxsInfo[0:txSize:txsInfoCap]
+		for i := range f.extraTxsInfo {
+			f.extraTxsInfo[i] = nil
+		}
+	}
+
+	for key := range f.workgroup.runningStatus {
+		delete(f.workgroup.runningStatus, key)
+	}
+	for key := range f.workgroup.isrunning {
+		delete(f.workgroup.isrunning, key)
+	}
 }
 
 func (f *parallelTxManager) getTxResult(index int) sdk.CacheMultiStore {

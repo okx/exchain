@@ -34,6 +34,7 @@ import (
 	stakingrest "github.com/okex/exchain/x/staking/client/rest"
 	"github.com/okex/exchain/x/token"
 	tokensrest "github.com/okex/exchain/x/token/client/rest"
+	wasmrest "github.com/okex/exchain/x/wasm/client/rest"
 	"github.com/spf13/viper"
 )
 
@@ -74,6 +75,7 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 	farmrest.RegisterRoutes(rs.CliCtx, v1Router)
 	evmrest.RegisterRoutes(rs.CliCtx, v1Router)
 	erc20rest.RegisterRoutes(rs.CliCtx, v1Router)
+	wasmrest.RegisterRoutes(rs.CliCtx, v1Router)
 	govrest.RegisterRoutes(rs.CliCtx, v1Router,
 		[]govrest.ProposalRESTHandler{
 			paramsclient.ProposalHandler.RESTHandler(rs.CliCtx),

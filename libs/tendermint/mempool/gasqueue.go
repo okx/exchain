@@ -44,7 +44,8 @@ func (q *GasTxQueue) Insert(memTx *mempoolTx) error {
 		return fmt.Errorf("failed to replace tx for acccount %s with nonce %d, "+
 			"the provided gas price %d is not bigger enough", memTx.from, memTx.realTx.GetNonce(), memTx.realTx.GetGasPrice())
 	}
-	txHash := txKey(memTx.tx)
+	txHash := txOrTxHashToKey(memTx.tx, memTx.realTx.TxHash(), memTx.height)
+
 	q.sortedTxsMap.Store(txHash, ele)
 
 	ele2 := q.bcTxs.PushBack(memTx)
@@ -56,6 +57,14 @@ func (q *GasTxQueue) Insert(memTx *mempoolTx) error {
 func (q *GasTxQueue) Remove(element *clist.CElement) {
 	q.removeElement(element)
 	q.AddressRecord.DeleteItem(element)
+}
+
+func (q *GasTxQueue) RemoveByKey(key [32]byte) (ele *clist.CElement) {
+	ele = q.removeElementByKey(key)
+	if ele != nil {
+		q.AddressRecord.DeleteItem(ele)
+	}
+	return
 }
 
 func (q *GasTxQueue) Front() *clist.CElement {
@@ -122,4 +131,20 @@ func (q *GasTxQueue) removeElement(element *clist.CElement) {
 		q.bcTxs.Remove(ele)
 		ele.DetachPrev()
 	}
+}
+
+func (q *GasTxQueue) removeElementByKey(key [32]byte) (ret *clist.CElement) {
+	if v, ok := q.sortedTxsMap.LoadAndDelete(key); ok {
+		ret = v.(*clist.CElement)
+		q.sortedTxs.Remove(ret)
+		ret.DetachPrev()
+
+		if v, ok := q.bcTxsMap.LoadAndDelete(key); ok {
+			ele := v.(*clist.CElement)
+			q.bcTxs.Remove(ele)
+			ele.DetachPrev()
+		}
+	}
+
+	return
 }

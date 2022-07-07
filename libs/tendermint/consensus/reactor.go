@@ -33,7 +33,7 @@ const (
 	ViewChangeChannel  = byte(0x24)
 
 	maxPartSize = 1048576 // 1MB; NOTE/TODO: keep in sync with types.PartSet sizes.
-	maxMsgSize  = maxPartSize + types.MaxDeltasSizeBytes
+	maxMsgSize  = maxPartSize
 
 	blocksToContributeToBecomeGoodPeer = 10000
 	votesToContributeToBecomeGoodPeer  = 10000
@@ -1494,12 +1494,7 @@ func (ps *PeerState) SetHasVote(vote *types.Vote) {
 }
 
 func (ps *PeerState) setHasVote(height int64, round int, voteType types.SignedMsgType, index int) {
-	logger := ps.logger.With(
-		"peerH/R",
-		fmt.Sprintf("%d/%d", ps.PRS.Height, ps.PRS.Round),
-		"H/R",
-		fmt.Sprintf("%d/%d", height, round))
-	logger.Debug("setHasVote", "type", voteType, "index", index)
+	ps.logger.Debug("setHasVote", "peerH", ps.PRS.Height, "peerR", ps.PRS.Round, "H", height, "R", round, "type", voteType, "index", index)
 
 	// NOTE: some may be nil BitArrays -> no side effects.
 	psVotes := ps.getVoteBitArray(height, round, voteType)
@@ -1819,7 +1814,6 @@ type BlockPartMessage struct {
 	Height int64
 	Round  int
 	Part   *types.Part
-	Deltas *types.Deltas
 }
 
 // ValidateBasic performs basic validation.

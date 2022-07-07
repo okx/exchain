@@ -3,6 +3,7 @@ package errors
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -270,7 +271,7 @@ type wrappedError struct {
 }
 
 func (e *wrappedError) Error() string {
-	return fmt.Sprintf("%s: %s", e.parent.Error(), e.msg)
+	return strings.Join([]string{e.parent.Error(), e.msg}, ": ")
 }
 
 func (e *wrappedError) Cause() error {

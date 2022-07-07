@@ -20,10 +20,12 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/okex/exchain/app/config"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/x/evm"
 	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/app"
+	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/crypto/hd"
 	"github.com/okex/exchain/app/rpc/backend"
@@ -60,6 +62,8 @@ const (
 
 	FlagEnableMultiCall    = "rpc.enable-multi-call"
 	FlagFastQueryThreshold = "fast-query-threshold"
+
+	EvmHookGasEstimate = uint64(50000)
 )
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -79,6 +83,7 @@ type PublicEthereumAPI struct {
 	txPool             *TxPool
 	Metrics            map[string]*monitor.RpcMetrics
 	callCache          *lru.Cache
+	cdc                *codec.Codec
 	fastQueryThreshold uint64
 }
 
@@ -107,7 +112,9 @@ func NewAPI(
 		fastQueryThreshold: viper.GetUint64(FlagFastQueryThreshold),
 	}
 	api.evmFactory = simulation.NewEvmFactory(clientCtx.ChainID, api.wrappedBackend)
-
+	module := evm.AppModuleBasic{}
+	api.cdc = codec.New()
+	module.RegisterCodec(api.cdc)
 	if watcher.IsWatcherEnabled() {
 		callCache, err := lru.New(CacheOfEthCallLru)
 		if err != nil {
@@ -159,6 +166,10 @@ func (api *PublicEthereumAPI) GetKeyringInfo() error {
 // ClientCtx returns the Cosmos SDK client context.
 func (api *PublicEthereumAPI) ClientCtx() clientcontext.CLIContext {
 	return api.clientCtx
+}
+
+func (api *PublicEthereumAPI) GetCodec() *codec.Codec {
+	return api.cdc
 }
 
 // GetKeys returns the Cosmos SDK client context.
@@ -1046,7 +1057,9 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 		return 0, TransformDataError(sdk.ErrOutOfGas(errMsg), "eth_estimateGas")
 	}
 	gasBuffer := estimatedGas / 100 * config.GetOecConfig().GetGasLimitBuffer()
-	gas := estimatedGas + gasBuffer
+	//EvmHookGasEstimate: evm tx with cosmos hook,we cannot estimate hook gas
+	//simple add EvmHookGasEstimate,run tx will refund the extra gas
+	gas := estimatedGas + gasBuffer + EvmHookGasEstimate
 	if gas > maxGasLimitPerTx {
 		gas = maxGasLimitPerTx
 	}
@@ -1856,7 +1869,7 @@ func (api *PublicEthereumAPI) useWatchBackend(blockNum rpctypes.BlockNumber) boo
 	if !api.watcherBackend.Enabled() {
 		return false
 	}
-	return blockNum == rpctypes.LatestBlockNumber || api.fastQueryThreshold <= 0 || api.watcherBackend.Height()-uint64(blockNum) <= api.fastQueryThreshold
+	return blockNum == rpctypes.LatestBlockNumber || api.fastQueryThreshold <= 0 || global.GetGlobalHeight()-blockNum.Int64() <= int64(api.fastQueryThreshold)
 }
 
 func (api *PublicEthereumAPI) getEvmParams() (*evmtypes.Params, error) {

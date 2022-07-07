@@ -16,29 +16,25 @@ import (
 )
 
 // OnMintVouchers after minting vouchers on this chain
-func (k Keeper) OnMintVouchers(ctx sdk.Context, vouchers sdk.SysCoins, receiver string) {
-	cacheCtx, commit := ctx.CacheContext()
-	err := k.ConvertVouchers(cacheCtx, receiver, vouchers)
-	if err != nil {
+func (k Keeper) OnMintVouchers(ctx sdk.Context, vouchers sdk.SysCoins, receiver string) error {
+	if err := k.ConvertVouchers(ctx, receiver, vouchers); err != nil {
 		k.Logger(ctx).Error(
 			fmt.Sprintf("Failed to convert vouchers to evm tokens for receiver %s, coins %s. Receive error %s",
 				receiver, vouchers.String(), err))
+		return err
 	}
-	commit()
-	ctx.EventManager().EmitEvents(cacheCtx.EventManager().Events())
+	return nil
 }
 
 // OnUnescrowNatives after unescrow natives on this chain
-func (k Keeper) OnUnescrowNatives(ctx sdk.Context, natives sdk.SysCoins, receiver string) {
-	cacheCtx, commit := ctx.CacheContext()
-	err := k.ConvertNatives(cacheCtx, receiver, natives)
-	if err != nil {
+func (k Keeper) OnUnescrowNatives(ctx sdk.Context, natives sdk.SysCoins, receiver string) error {
+	if err := k.ConvertNatives(ctx, receiver, natives); err != nil {
 		k.Logger(ctx).Error(
 			fmt.Sprintf("Failed to convert natives to evm tokens for receiver %s, coins %s. Receive error %s",
 				receiver, natives.String(), err))
+		return err
 	}
-	commit()
-	ctx.EventManager().EmitEvents(cacheCtx.EventManager().Events())
+	return nil
 }
 
 // ConvertVouchers convert vouchers into evm tokens.
@@ -102,7 +98,8 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 	if !found {
 		// automated deployment contracts
 		if !autoDeploy {
-			return fmt.Errorf("no contract found for the denom %s", voucher.Denom)
+			k.Logger(ctx).Error("no contract found and not auto deploy for the denom", "denom", voucher.Denom)
+			return types.ErrNoContractNotAuto
 		}
 		contract, err = k.DeployModuleERC20(ctx, voucher.Denom)
 		if err != nil {
@@ -266,6 +263,9 @@ func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.
 	}
 
 	executionResult, resultData, err, _, _ := st.TransitionDb(ctx, config)
+	if err != nil {
+		return nil, nil, err
+	}
 	st.Csdb.Commit(false) // write code to db
 
 	acc.SetSequence(nonce + 1)
