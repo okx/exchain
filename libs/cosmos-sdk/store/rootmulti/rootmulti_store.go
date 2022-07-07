@@ -1520,7 +1520,7 @@ func (rs *Store) CurrentVersion() int64 {
 			version = s.CurrentVersion()
 		case types.StoreTypeTransient:
 		default:
-			panic("unexpected store type")
+			continue
 		}
 		if currVer == -1 {
 			currVer = version
