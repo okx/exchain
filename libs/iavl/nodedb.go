@@ -91,6 +91,7 @@ type nodeDB struct {
 	fastNodeCache      map[string]*list.Element // FastNode cache.
 	fastNodeCacheSize  int                      // FastNode cache size limit in elements.
 	fastNodeCacheQueue *list.List               // LRU queue of cache elements. Used for deletion.
+	fastNodeMutex      sync.RWMutex             // Mutex for fast node cache.
 }
 
 func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
@@ -136,12 +137,15 @@ func (ndb *nodeDB) GetFastNode(key []byte) (*FastNode, error) {
 		return nil, fmt.Errorf("nodeDB.GetFastNode() requires key, len(key) equals 0")
 	}
 
+	ndb.fastNodeMutex.Lock()
 	// Check the cache.
 	if elem, ok := ndb.fastNodeCache[string(key)]; ok {
 		// Already exists. Move to back of fastNodeCacheQueue.
 		ndb.fastNodeCacheQueue.MoveToBack(elem)
+		ndb.fastNodeMutex.Unlock()
 		return elem.Value.(*FastNode), nil
 	}
+	ndb.fastNodeMutex.Unlock()
 
 	// Doesn't exist, load.
 	buf, err := ndb.db.Get(ndb.fastNodeKey(key))

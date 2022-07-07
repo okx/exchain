@@ -748,6 +748,17 @@ func (tree *MutableTree) GetVersioned(key []byte, version int64) (
 	index int64, value []byte,
 ) {
 	if tree.VersionExists(version) {
+		if tree.IsFastCacheEnabled() {
+			fastNode, _ := tree.ndb.GetFastNode(key)
+			// todo giskook index is -1
+			if fastNode == nil && version == tree.ndb.latestVersion {
+				return -1, nil
+			}
+
+			if fastNode != nil && fastNode.versionLastUpdatedAt <= version {
+				return -1, fastNode.value
+			}
+		}
 		t, err := tree.GetImmutable(version)
 		if err != nil {
 			return -1, nil

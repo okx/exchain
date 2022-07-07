@@ -263,6 +263,8 @@ func (ndb *nodeDB) uncacheNode(hash []byte) {
 }
 
 func (ndb *nodeDB) uncacheFastNode(key []byte) {
+	ndb.fastNodeMutex.Lock()
+	defer ndb.fastNodeMutex.Unlock()
 	if elem, ok := ndb.fastNodeCache[string(key)]; ok {
 		ndb.fastNodeCacheQueue.Remove(elem)
 		delete(ndb.fastNodeCache, string(key))
@@ -272,6 +274,9 @@ func (ndb *nodeDB) uncacheFastNode(key []byte) {
 // Add a node to the cache and pop the least recently used node if we've
 // reached the cache size limit.
 func (ndb *nodeDB) cacheFastNode(node *FastNode) {
+	ndb.fastNodeMutex.Lock()
+	defer ndb.fastNodeMutex.Unlock()
+
 	elem := ndb.fastNodeCacheQueue.PushBack(node)
 	ndb.fastNodeCache[string(node.key)] = elem
 
