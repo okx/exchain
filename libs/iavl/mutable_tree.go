@@ -207,6 +207,13 @@ func (tree *MutableTree) FastGet(key []byte) []byte {
 		return fastNode.value
 	}
 	tree.mtxUnSavedFastNodeAdditions.RUnlock()
+	tree.mtxUnSavedFastNodeRemovals.RLock()
+	if _, ok := tree.unsavedFastNodeRemovals[string(key)]; ok {
+		// is deleted
+		tree.mtxUnSavedFastNodeRemovals.RUnlock()
+		return nil
+	}
+	tree.mtxUnSavedFastNodeRemovals.RUnlock()
 
 	return tree.ImmutableTree.FastGet(key)
 }
