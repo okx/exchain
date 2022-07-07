@@ -978,13 +978,14 @@ func (tree *MutableTree) getUnsavedFastNodeRemovals() map[string]interface{} {
 }
 
 func (tree *MutableTree) addUnsavedAddition(key []byte, node *FastNode) {
-	tree.mtxUnSavedFastNodeAdditions.Lock()
-	defer tree.mtxUnSavedFastNodeAdditions.Unlock()
-	tree.mtxUnSavedFastNodeRemovals.Lock()
-	defer tree.mtxUnSavedFastNodeRemovals.Unlock()
 
+	tree.mtxUnSavedFastNodeRemovals.Lock()
 	delete(tree.unsavedFastNodeRemovals, string(key))
+	tree.mtxUnSavedFastNodeRemovals.Unlock()
+
+	tree.mtxUnSavedFastNodeAdditions.Lock()
 	tree.unsavedFastNodeAdditions[string(key)] = node
+	tree.mtxUnSavedFastNodeAdditions.Unlock()
 }
 
 func (tree *MutableTree) saveFastNodeAdditions(batch dbm.Batch) error {
@@ -1006,9 +1007,12 @@ func (tree *MutableTree) saveFastNodeAdditions(batch dbm.Batch) error {
 
 func (tree *MutableTree) addUnsavedRemoval(key []byte) {
 	tree.mtxUnSavedFastNodeRemovals.Lock()
-	defer tree.mtxUnSavedFastNodeRemovals.Unlock()
 	delete(tree.unsavedFastNodeAdditions, string(key))
+	tree.mtxUnSavedFastNodeRemovals.Unlock()
+
+	tree.mtxUnSavedFastNodeRemovals.Lock()
 	tree.unsavedFastNodeRemovals[string(key)] = true
+	tree.mtxUnSavedFastNodeRemovals.Unlock()
 }
 
 func (tree *MutableTree) saveFastNodeRemovals(batch dbm.Batch) error {
