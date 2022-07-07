@@ -1,9 +1,10 @@
 package keeper
 
 import (
+	"testing"
+
 	"github.com/okex/exchain/x/distribution/types"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func TestHooks(t *testing.T) {
