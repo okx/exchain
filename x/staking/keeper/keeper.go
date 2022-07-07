@@ -25,15 +25,6 @@ type Keeper struct {
 	paramstore   params.Subspace
 }
 
-func (k Keeper) Delegation(ctx sdk.Context, delAddr sdk.AccAddress, address2 sdk.ValAddress) exported.DelegatorI {
-	delegator, found := k.GetDelegator(ctx, delAddr)
-	if !found {
-		return nil
-	}
-
-	return delegator
-}
-
 // NewKeeper creates a new staking Keeper instance
 func NewKeeper(cdcMarshl *codec.CodecProxy, key sdk.StoreKey, supplyKeeper types.SupplyKeeper,
 	paramstore params.Subspace) Keeper {

@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 
@@ -160,47 +161,4 @@ func (k Keeper) AllocateTokensToValidator(ctx sdk.Context, val exported.Validato
 			sdk.NewAttribute(types.AttributeKeyValidator, val.GetOperator().String()),
 		),
 	)
-}
-
-func (k Keeper) allocateTokensToValidatorForDistributionProposal(ctx sdk.Context, val exported.ValidatorI, tokens sdk.SysCoins) {
-	commission := tokens
-
-	rate, _ := sdk.NewDecFromStr("1.0")
-	if k.GetDistributionType(ctx) == types.DistributionTypeOnChain {
-		rate = val.GetCommission()
-	}
-
-	commission = tokens.MulDec(rate)
-
-	// split tokens between validator and delegators according to commission
-	shared := tokens.Sub(commission)
-
-	// update current commission
-	ctx.EventManager().EmitEvent(
-		sdk.NewEvent(
-			types.EventTypeCommission,
-			sdk.NewAttribute(sdk.AttributeKeyAmount, commission.String()),
-			sdk.NewAttribute(types.AttributeKeyValidator, val.GetOperator().String()),
-		),
-	)
-	currentCommission := k.GetValidatorAccumulatedCommission(ctx, val.GetOperator())
-	currentCommission = currentCommission.Add(commission...)
-	k.SetValidatorAccumulatedCommission(ctx, val.GetOperator(), currentCommission)
-
-	// update current rewards
-	currentRewards := k.GetValidatorCurrentRewards(ctx, val.GetOperator())
-	currentRewards.Rewards = currentRewards.Rewards.Add(shared...)
-	k.SetValidatorCurrentRewards(ctx, val.GetOperator(), currentRewards)
-
-	// update outstanding rewards
-	ctx.EventManager().EmitEvent(
-		sdk.NewEvent(
-			types.EventTypeRewards,
-			sdk.NewAttribute(sdk.AttributeKeyAmount, tokens.String()),
-			sdk.NewAttribute(types.AttributeKeyValidator, val.GetOperator().String()),
-		),
-	)
-	outstanding := k.GetValidatorOutstandingRewards(ctx, val.GetOperator())
-	outstanding = outstanding.Add(tokens...)
-	k.SetValidatorOutstandingRewards(ctx, val.GetOperator(), outstanding)
 }

@@ -53,35 +53,3 @@ func postCommunityPoolSpendProposalHandlerFn(cliCtx context.CLIContext) http.Han
 		utils.WriteGenerateStdTxResponse(w, cliCtx, req.BaseReq, []sdk.Msg{msg})
 	}
 }
-
-// ChangeDistributionTypeProposalRESTHandler returns a ChangeDistributionTypeProposal that exposes the change distribution type REST handler with a given sub-route.
-func ChangeDistributionTypeProposalRESTHandler(cliCtx context.CLIContext) govrest.ProposalRESTHandler {
-	return govrest.ProposalRESTHandler{
-		SubRoute: "change_distribution_type",
-		Handler:  postChangeDistributionTypeProposalHandlerFn(cliCtx),
-	}
-}
-
-func postChangeDistributionTypeProposalHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var req ChangeDistributionTypeProposalReq
-		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
-			return
-		}
-
-		req.BaseReq = req.BaseReq.Sanitize()
-		if !req.BaseReq.ValidateBasic(w) {
-			return
-		}
-
-		content := types.NewChangeDistributionTypeProposal(req.Title, req.Description, req.Type)
-
-		msg := gov.NewMsgSubmitProposal(content, req.Deposit, req.Proposer)
-		if err := msg.ValidateBasic(); err != nil {
-			comm.HandleErrorMsg(w, cliCtx, comm.CodeInvalidParam, err.Error())
-			return
-		}
-
-		utils.WriteGenerateStdTxResponse(w, cliCtx, req.BaseReq, []sdk.Msg{msg})
-	}
-}

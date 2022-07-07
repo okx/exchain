@@ -22,7 +22,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 		case types.MsgEditValidator:
 			return handleMsgEditValidator(ctx, msg, k)
 		case types.MsgEditValidatorCommissionRate:
-			if tmtypes.HigherThanSaturn1(ctx.BlockHeight()) {
+			if tmtypes.HigherThanVenus3(ctx.BlockHeight()) {
 				return handleMsgEditValidatorCommissionRate(ctx, msg, k)
 			}
 			return sdk.ErrUnknownRequest(errMsg).Result()
@@ -174,38 +174,6 @@ func handleMsgEditValidator(ctx sdk.Context, msg types.MsgEditValidator, k keepe
 	ctx.EventManager().EmitEvents(sdk.Events{
 		sdk.NewEvent(types.EventTypeEditValidator,
 			sdk.NewAttribute(types.AttributeKeyMinSelfDelegation, validator.MinSelfDelegation.String()),
-		),
-		sdk.NewEvent(sdk.EventTypeMessage,
-			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
-			sdk.NewAttribute(sdk.AttributeKeySender, msg.ValidatorAddress.String()),
-		),
-	})
-
-	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
-}
-
-func handleMsgEditValidatorCommissionRate(ctx sdk.Context, msg types.MsgEditValidatorCommissionRate, k keeper.Keeper) (*sdk.Result, error) {
-	// validator must already be registered
-	validator, found := k.GetValidator(ctx, msg.ValidatorAddress)
-	if !found {
-		return nil, ErrNoValidatorFound(msg.ValidatorAddress.String())
-	}
-
-	commission, err := k.UpdateValidatorCommission(ctx, validator, msg.CommissionRate)
-	if err != nil {
-		return nil, err
-	}
-
-	// call the before-modification hook since we're about to update the commission
-	k.BeforeValidatorModified(ctx, msg.ValidatorAddress)
-
-	validator.Commission = commission
-
-	k.SetValidator(ctx, validator)
-
-	ctx.EventManager().EmitEvents(sdk.Events{
-		sdk.NewEvent(types.EventTypeEditValidatorCommissionRate,
-			sdk.NewAttribute(types.AttributeKeyCommissionRate, msg.CommissionRate.String()),
 		),
 		sdk.NewEvent(sdk.EventTypeMessage,
 			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),

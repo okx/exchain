@@ -49,7 +49,7 @@ func TestWithdrawDelegatorReward(t *testing.T) {
 	_, err = handler(ctx, msg)
 	require.Equal(t, types.ErrUnknownDistributionMsgType(), err)
 
-	tmtypes.UnittestOnlySetMilestoneSaturn1Height(-1)
+	tmtypes.UnittestOnlySetMilestoneVenus3Height(-1)
 	proposal := types.NewChangeDistributionTypeProposal("change distri type", "", types.DistributionTypeOnChain)
 	keeper.HandleChangeDistributionTypeProposal(ctx, dk, proposal)
 	require.Equal(t, dk.GetDistributionType(ctx), types.DistributionTypeOnChain)

@@ -7,7 +7,6 @@
 package distribution
 
 import (
-	"github.com/okex/exchain/x/distribution/client"
 	"github.com/okex/exchain/x/distribution/keeper"
 	"github.com/okex/exchain/x/distribution/types"
 )
@@ -46,23 +45,21 @@ var (
 	NewQueryValidatorCommissionParams        = types.NewQueryValidatorCommissionParams
 	NewQueryDelegatorWithdrawAddrParams      = types.NewQueryDelegatorWithdrawAddrParams
 	InitialValidatorAccumulatedCommission    = types.InitialValidatorAccumulatedCommission
-	NewMsgWithdrawDelegatorReward            = types.NewMsgWithdrawDelegatorReward
 
 	// variable aliases
-	FeePoolKey                            = types.FeePoolKey
-	ProposerKey                           = types.ProposerKey
-	DelegatorWithdrawAddrPrefix           = types.DelegatorWithdrawAddrPrefix
-	ValidatorAccumulatedCommissionPrefix  = types.ValidatorAccumulatedCommissionPrefix
-	ModuleCdc                             = types.ModuleCdc
-	EventTypeSetWithdrawAddress           = types.EventTypeSetWithdrawAddress
-	EventTypeCommission                   = types.EventTypeCommission
-	EventTypeWithdrawCommission           = types.EventTypeWithdrawCommission
-	EventTypeProposerReward               = types.EventTypeProposerReward
-	AttributeKeyWithdrawAddress           = types.AttributeKeyWithdrawAddress
-	AttributeKeyValidator                 = types.AttributeKeyValidator
-	AttributeValueCategory                = types.AttributeValueCategory
-	CommunityPoolSpendProposalHandler     = client.CommunityPoolSpendProposalHandler
-	ChangeDistributionTypeProposalHandler = client.ChangeDistributionTypeProposalHandler
+	FeePoolKey                           = types.FeePoolKey
+	ProposerKey                          = types.ProposerKey
+	DelegatorWithdrawAddrPrefix          = types.DelegatorWithdrawAddrPrefix
+	ValidatorAccumulatedCommissionPrefix = types.ValidatorAccumulatedCommissionPrefix
+	ModuleCdc                            = types.ModuleCdc
+	EventTypeSetWithdrawAddress          = types.EventTypeSetWithdrawAddress
+	EventTypeCommission                  = types.EventTypeCommission
+	EventTypeWithdrawCommission          = types.EventTypeWithdrawCommission
+	EventTypeProposerReward              = types.EventTypeProposerReward
+	AttributeKeyWithdrawAddress          = types.AttributeKeyWithdrawAddress
+	AttributeKeyValidator                = types.AttributeKeyValidator
+	AttributeValueCategory               = types.AttributeValueCategory
+	//ProposalHandler                      = client.ProposalHandler
 )
 
 type (

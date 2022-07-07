@@ -51,23 +51,6 @@ func handleMsgModifyWithdrawAddress(ctx sdk.Context, msg types.MsgSetWithdrawAdd
 	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
 }
 
-func handleMsgWithdrawDelegatorReward(ctx sdk.Context, msg types.MsgWithdrawDelegatorReward, k keeper.Keeper) (*sdk.Result, error) {
-	_, err := k.WithdrawDelegationRewards(ctx, msg.DelegatorAddress, msg.ValidatorAddress)
-	if err != nil {
-		return nil, err
-	}
-
-	ctx.EventManager().EmitEvent(
-		sdk.NewEvent(
-			sdk.EventTypeMessage,
-			sdk.NewAttribute(sdk.AttributeKeyModule, types.AttributeValueCategory),
-			sdk.NewAttribute(sdk.AttributeKeySender, msg.DelegatorAddress.String()),
-		),
-	)
-
-	return &sdk.Result{Events: ctx.EventManager().Events()}, nil
-}
-
 func handleMsgWithdrawValidatorCommission(ctx sdk.Context, msg types.MsgWithdrawValidatorCommission, k keeper.Keeper) (*sdk.Result, error) {
 	_, err := k.WithdrawValidatorCommission(ctx, msg.ValidatorAddress)
 	if err != nil {
@@ -90,7 +73,7 @@ func NewDistributionProposalHandler(k Keeper) govtypes.Handler {
 		case types.CommunityPoolSpendProposal:
 			return keeper.HandleCommunityPoolSpendProposal(ctx, k, c)
 		case types.ChangeDistributionTypeProposal:
-			if tmtypes.HigherThanSaturn1(ctx.BlockHeight()) {
+			if tmtypes.HigherThanVenus3(ctx.BlockHeight()) {
 				return keeper.HandleChangeDistributionTypeProposal(ctx, k, c)
 			}
 			return types.ErrUnknownDistributionCommunityPoolProposaType()

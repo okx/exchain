@@ -326,13 +326,3 @@ func (dk mockDistributionKeeper) AfterValidatorBeginUnbonding(ctx sdk.Context, c
 }
 func (dk mockDistributionKeeper) AfterValidatorDestroyed(ctx sdk.Context, consAddr sdk.ConsAddress, valAddr sdk.ValAddress) {
 }
-func (dk mockDistributionKeeper) BeforeDelegationCreated(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
-}
-func (dk mockDistributionKeeper) BeforeDelegationSharesModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
-}
-func (dk mockDistributionKeeper) BeforeDelegationRemoved(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress) {
-}
-func (dk mockDistributionKeeper) AfterDelegationModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
-}
-func (dk mockDistributionKeeper) BeforeValidatorSlashed(ctx sdk.Context, valAddr sdk.ValAddress, fraction sdk.Dec) {
-}

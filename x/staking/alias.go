@@ -30,20 +30,16 @@ var (
 	NewQuerier                         = keeper.NewQuerier
 	RegisterCodec                      = types.RegisterCodec
 	NewCommission                      = types.NewCommission
-	NewCommissionRates                 = types.NewCommissionRates
 	ErrNoValidatorFound                = types.ErrNoValidatorFound
 	ErrValidatorOwnerExists            = types.ErrValidatorOwnerExists
 	ErrValidatorPubKeyExists           = types.ErrValidatorPubKeyExists
 	ErrValidatorPubKeyTypeNotSupported = types.ErrValidatorPubKeyTypeNotSupported
 	ErrBadDenom                        = types.ErrBadDenom
-	ErrNotSupport                      = types.ErrNotSupport
 	DefaultGenesisState                = types.DefaultGenesisState
 	NewMultiStakingHooks               = types.NewMultiStakingHooks
 	GetValidatorsByPowerIndexKey       = types.GetValidatorsByPowerIndexKey
 	NewMsgCreateValidator              = types.NewMsgCreateValidator
 	NewMsgEditValidator                = types.NewMsgEditValidator
-	NewMsgEditValidatorCommissionRate  = types.NewMsgEditValidatorCommissionRate
-	NewMsgDestroyValidator             = types.NewMsgDestroyValidator
 	NewMsgDeposit                      = types.NewMsgDeposit
 	NewMsgWithdraw                     = types.NewMsgWithdraw
 	DefaultParams                      = types.DefaultParams
@@ -52,9 +48,6 @@ var (
 	NewMsgAddShares                    = types.NewMsgAddShares
 	NewGenesisState                    = types.NewGenesisState
 	DelegatorAddSharesInvariant        = keeper.DelegatorAddSharesInvariant
-	NewMsgRegProxy                     = types.NewMsgRegProxy
-	NewMsgBindProxy                    = types.NewMsgBindProxy
-	NewMsgUnbindProxy                  = types.NewMsgUnbindProxy
 
 	// variable aliases
 	ModuleCdc     = types.ModuleCdc

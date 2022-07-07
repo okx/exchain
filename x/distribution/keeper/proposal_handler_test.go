@@ -10,7 +10,7 @@ import (
 
 func TestHandleChangeDistributionTypeProposal(t *testing.T) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
-	tmtypes.UnittestOnlySetMilestoneSaturn1Height(0)
+	tmtypes.UnittestOnlySetMilestoneVenus3Height(0)
 	ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
 	// create validator
 	DoCreateValidator(t, ctx, sk, valOpAddr1, valConsPk1)
@@ -20,7 +20,7 @@ func TestHandleChangeDistributionTypeProposal(t *testing.T) {
 
 	//distribution type proposal ok
 	proposal := types.NewChangeDistributionTypeProposal("change distri type", "", types.DistributionTypeOnChain)
-	tmtypes.UnittestOnlySetMilestoneSaturn1Height(-1)
+	tmtypes.UnittestOnlySetMilestoneVenus3Height(-1)
 	err := HandleChangeDistributionTypeProposal(ctx, dk, proposal)
 	require.Nil(t, err)
 	require.Equal(t, types.DistributionTypeOnChain, dk.GetDistributionType(ctx))

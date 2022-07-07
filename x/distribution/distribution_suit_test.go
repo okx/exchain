@@ -42,7 +42,7 @@ func allocateTokens(t *testing.T) {
 func initEnv(t *testing.T, validatorCount int64) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, ak, _, dk, sk, _, supplyKeeper = keeper.CreateTestInputAdvanced(t, false, 1000, communityTax)
-	tmtypes.UnittestOnlySetMilestoneSaturn1Height(-1)
+	tmtypes.UnittestOnlySetMilestoneVenus3Height(-1)
 	dk.SetInitAllocateValidator(ctx, true)
 
 	h := staking.NewHandler(sk)

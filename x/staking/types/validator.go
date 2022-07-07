@@ -112,14 +112,6 @@ func (v Validators) String() (out string) {
 	return strings.TrimSpace(out)
 }
 
-// ToValAddresses converts []Validators to []sdk.ValAddress
-func (v Validators) ToValAddresses() (valAddrs []sdk.ValAddress) {
-	for _, val := range v {
-		valAddrs = append(valAddrs, val.OperatorAddress)
-	}
-	return valAddrs
-}
-
 // ToSDKValidators converts []Validators to []sdk.Validators
 func (v Validators) ToSDKValidators() (validators []exported.ValidatorI) {
 	for _, val := range v {
@@ -166,6 +158,7 @@ func (v Validators) Swap(i, j int) {
 	v[i] = v[j]
 	v[j] = it
 }
+
 // MustMarshalValidator must return the marshaling bytes of a validator
 func MustMarshalValidator(cdc *codec.Codec, validator Validator) []byte {
 	return cdc.MustMarshalBinaryLengthPrefixed(validator)
