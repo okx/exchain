@@ -1006,9 +1006,9 @@ func (tree *MutableTree) saveFastNodeAdditions(batch dbm.Batch) error {
 }
 
 func (tree *MutableTree) addUnsavedRemoval(key []byte) {
-	tree.mtxUnSavedFastNodeRemovals.Lock()
+	tree.mtxUnSavedFastNodeAdditions.Lock()
 	delete(tree.unsavedFastNodeAdditions, string(key))
-	tree.mtxUnSavedFastNodeRemovals.Unlock()
+	tree.mtxUnSavedFastNodeAdditions.Unlock()
 
 	tree.mtxUnSavedFastNodeRemovals.Lock()
 	tree.unsavedFastNodeRemovals[string(key)] = true
