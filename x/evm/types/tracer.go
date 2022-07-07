@@ -65,13 +65,12 @@ func startNewCallerTracer() {
 }
 func GetCallerTracer() vm.Tracer {
 	if DebugCallTracerMaxCount > 0 {
-		item, err := DebugCallTracerQueue.Peek()
-		if err != nil {
+		item, err := DebugCallTracerQueue.Get(1)
+		if err != nil || len(item) == 0 {
 			return nil
 		}
-		if tracer, ok := item.(vm.Tracer); ok {
-			DebugCallTracerQueue.Get(1)
-			notifyChan <- struct{}{}
+		notifyChan <- struct{}{}
+		if tracer, ok := item[0].(vm.Tracer); ok {
 			return tracer
 		}
 		return nil
