@@ -142,3 +142,23 @@ func queryValidatorOutstandingRewards(ctx sdk.Context, path []string, req abci.R
 
 	return bz, nil
 }
+
+func queryDelegatorValidators(ctx sdk.Context, _ []string, req abci.RequestQuery, k Keeper) ([]byte, error) {
+	var params types.QueryDelegatorParams
+	err := k.cdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
+	}
+
+	// cache-wrap context as to not persist state changes during querying
+	ctx, _ = ctx.CacheContext()
+
+	delegator := k.stakingKeeper.Delegator(ctx, params.DelegatorAddress)
+
+	bz, err := codec.MarshalJSONIndent(k.cdc, delegator.GetShareAddedValidatorAddresses())
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+
+	return bz, nil
+}

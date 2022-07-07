@@ -3,7 +3,6 @@ package keeper
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	comm "github.com/okex/exchain/x/common"
 
@@ -117,26 +116,6 @@ func queryCommunityPool(ctx sdk.Context, _ []string, req abci.RequestQuery, k Ke
 	bz, err := k.cdc.MarshalJSON(pool)
 	if err != nil {
 		return nil, comm.ErrMarshalJSONFailed(err.Error())
-	}
-
-	return bz, nil
-}
-
-func queryDelegatorValidators(ctx sdk.Context, _ []string, req abci.RequestQuery, k Keeper) ([]byte, error) {
-	var params types.QueryDelegatorParams
-	err := k.cdc.UnmarshalJSON(req.Data, &params)
-	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
-	}
-
-	// cache-wrap context as to not persist state changes during querying
-	ctx, _ = ctx.CacheContext()
-
-	delegator := k.stakingKeeper.Delegator(ctx, params.DelegatorAddress)
-
-	bz, err := codec.MarshalJSONIndent(k.cdc, delegator.GetShareAddedValidatorAddresses())
-	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
 
 	return bz, nil

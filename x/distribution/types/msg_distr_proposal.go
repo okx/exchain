@@ -5,6 +5,9 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
+// Verify interface at compile time
+var _ = &MsgWithdrawDelegatorReward{}
+
 // msg struct for delegation withdraw from a single validator
 type MsgWithdrawDelegatorReward struct {
 	DelegatorAddress sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"`

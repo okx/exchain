@@ -1,10 +1,11 @@
 package staking
 
 import (
+	"testing"
+
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"testing"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"

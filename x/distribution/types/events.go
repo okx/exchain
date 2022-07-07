@@ -5,8 +5,7 @@ const (
 	EventTypeSetWithdrawAddress = "set_withdraw_address"
 	EventTypeCommission         = "commission"
 	EventTypeWithdrawCommission = "withdraw_commission"
-
-	EventTypeProposerReward = "proposer_reward"
+	EventTypeProposerReward     = "proposer_reward"
 
 	AttributeKeyWithdrawAddress = "withdraw_address"
 	AttributeKeyValidator       = "validator"

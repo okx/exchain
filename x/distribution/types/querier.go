@@ -8,6 +8,7 @@ const (
 	QueryValidatorCommission = "validator_commission"
 	QueryWithdrawAddr        = "withdraw_addr"
 	QueryCommunityPool       = "community_pool"
+
 	ParamCommunityTax        = "community_tax"
 	ParamWithdrawAddrEnabled = "withdraw_addr_enabled"
 )

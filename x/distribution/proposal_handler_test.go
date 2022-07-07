@@ -20,7 +20,7 @@ var (
 	amount = sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1)))
 )
 
-func makeCommunityPoolSendProposal(recipient sdk.AccAddress, amount sdk.Coins) govtypes.Proposal {
+func testProposal(recipient sdk.AccAddress, amount sdk.Coins) govtypes.Proposal {
 	return govtypes.Proposal{Content: types.NewCommunityPoolSpendProposal(
 		"Test",
 		"description",
@@ -29,7 +29,7 @@ func makeCommunityPoolSendProposal(recipient sdk.AccAddress, amount sdk.Coins) g
 	)}
 }
 
-func TestCommunityPoolSendProposalHandlerPassed(t *testing.T) {
+func TestProposalHandlerPassed(t *testing.T) {
 	ctx, accountKeeper, k, _, supplyKeeper := keeper.CreateTestInputDefault(t, false, 10)
 	recipient := delAddr1
 
@@ -48,13 +48,13 @@ func TestCommunityPoolSendProposalHandlerPassed(t *testing.T) {
 	feePool.CommunityPool = sdk.NewCoins(amount...)
 	k.SetFeePool(ctx, feePool)
 
-	tp := makeCommunityPoolSendProposal(recipient, amount)
+	tp := testProposal(recipient, amount)
 	hdlr := NewDistributionProposalHandler(k)
 	require.NoError(t, hdlr(ctx, &tp))
 	require.Equal(t, accountKeeper.GetAccount(ctx, recipient).GetCoins(), amount)
 }
 
-func TestCommunityPoolSendProposalHandlerFailed(t *testing.T) {
+func TestProposalHandlerFailed(t *testing.T) {
 	ctx, accountKeeper, k, _, _ := keeper.CreateTestInputDefault(t, false, 10)
 	recipient := delAddr1
 
@@ -62,9 +62,8 @@ func TestCommunityPoolSendProposalHandlerFailed(t *testing.T) {
 	require.True(t, account.GetCoins().IsZero())
 	accountKeeper.SetAccount(ctx, account)
 
-	tp := makeCommunityPoolSendProposal(recipient, amount)
+	tp := testProposal(recipient, amount)
 	hdlr := NewDistributionProposalHandler(k)
-	err := hdlr(ctx, &tp)
-	require.Error(t, err)
+	require.Error(t, hdlr(ctx, &tp))
 	require.True(t, accountKeeper.GetAccount(ctx, recipient).GetCoins().IsZero())
 }

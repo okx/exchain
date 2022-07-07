@@ -164,5 +164,6 @@ func (msg MsgEditValidator) ValidateBasic() error {
 	if msg.Description == (Description{}) {
 		return ErrNilValidatorAddr()
 	}
+	
 	return nil
 }

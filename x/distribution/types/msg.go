@@ -6,7 +6,7 @@ import (
 )
 
 // Verify interface at compile time
-var _, _, _ sdk.Msg = &MsgSetWithdrawAddress{}, &MsgWithdrawValidatorCommission{}, &MsgWithdrawDelegatorReward{}
+var _, _ sdk.Msg = &MsgSetWithdrawAddress{}, &MsgWithdrawValidatorCommission{}
 
 // msg struct for changing the withdraw address for a delegator (or validator self-delegation)
 type MsgSetWithdrawAddress struct {
