@@ -88,9 +88,11 @@ type nodeDB struct {
 	state *RuntimeState
 	tpp   *tempPrePersistNodes
 
-	fastNodeCache      map[string]*list.Element // FastNode cache.
-	fastNodeCacheSize  int                      // FastNode cache size limit in elements.
-	fastNodeCacheQueue *list.List               // LRU queue of cache elements. Used for deletion.
+	fastNodeCache          map[string]*list.Element // FastNode cache.
+	fastNodeCacheSize      int                      // FastNode cache size limit in elements.
+	fastNodeCacheQueue     *list.List               // LRU queue of cache elements. Used for deletion.
+	fastNodeMutex          sync.Mutex               // Mutex for fast node cache.
+	latestVersion4FastNode int64
 }
 
 func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
@@ -137,12 +139,15 @@ func (ndb *nodeDB) GetFastNode(key []byte) (*FastNode, error) {
 		return nil, fmt.Errorf("nodeDB.GetFastNode() requires key, len(key) equals 0")
 	}
 
+	ndb.fastNodeMutex.Lock()
 	// Check the cache.
 	if elem, ok := ndb.fastNodeCache[string(key)]; ok {
 		// Already exists. Move to back of fastNodeCacheQueue.
 		ndb.fastNodeCacheQueue.MoveToBack(elem)
+		ndb.fastNodeMutex.Unlock()
 		return elem.Value.(*FastNode), nil
 	}
+	ndb.fastNodeMutex.Unlock()
 
 	// Doesn't exist, load.
 	buf, err := ndb.db.Get(ndb.fastNodeKey(key))
@@ -655,6 +660,12 @@ func (ndb *nodeDB) getLatestVersion() int64 {
 func (ndb *nodeDB) updateLatestVersion(version int64) {
 	if ndb.latestVersion < version {
 		ndb.latestVersion = version
+	}
+}
+
+func (ndb *nodeDB) updateLatestVersion4FastNode(version int64) {
+	if ndb.latestVersion4FastNode < version {
+		ndb.latestVersion4FastNode = version
 	}
 }
 
