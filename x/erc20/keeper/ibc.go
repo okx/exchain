@@ -250,10 +250,15 @@ func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.
 	txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
 	ethTxHash := common.BytesToHash(txHash)
 
+	gasLimit := ctx.GasMeter().Limit()
+	if gasLimit == sdk.NewInfiniteGasMeter().Limit() {
+		gasLimit = k.evmKeeper.GetParams(ctx).MaxGasLimitPerTx
+	}
+
 	st := evmtypes.StateTransition{
 		AccountNonce: nonce,
 		Price:        big.NewInt(0),
-		GasLimit:     k.evmKeeper.GetParams(ctx).MaxGasLimitPerTx,
+		GasLimit:     gasLimit,
 		Recipient:    to,
 		Amount:       value,
 		Payload:      data,
