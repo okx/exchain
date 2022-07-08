@@ -10,21 +10,21 @@ type TransferHooks interface {
 		sender sdk.AccAddress,
 		receiver string,
 		isSource bool,
-	)
+	) error
 	AfterRecvTransfer(
 		ctx sdk.Context,
 		destPort, destChannel string,
 		token sdk.SysCoin,
 		receiver string,
 		isSource bool,
-	)
+	) error
 	AfterRefundTransfer(
 		ctx sdk.Context,
 		sourcePort, sourceChannel string,
 		token sdk.SysCoin,
 		sender string,
 		isSource bool,
-	)
+	) error
 }
 
 var _ TransferHooks = MultiTransferHooks{}
@@ -41,10 +41,13 @@ func (mths MultiTransferHooks) AfterSendTransfer(
 	token sdk.SysCoin,
 	sender sdk.AccAddress,
 	receiver string,
-	isSource bool) {
+	isSource bool) error {
 	for i := range mths {
-		mths[i].AfterSendTransfer(ctx, sourcePort, sourceChannel, token, sender, receiver, isSource)
+		if err := mths[i].AfterSendTransfer(ctx, sourcePort, sourceChannel, token, sender, receiver, isSource); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (mths MultiTransferHooks) AfterRecvTransfer(
@@ -52,10 +55,13 @@ func (mths MultiTransferHooks) AfterRecvTransfer(
 	destPort, destChannel string,
 	token sdk.SysCoin,
 	receiver string,
-	isSource bool) {
+	isSource bool) error {
 	for i := range mths {
-		mths[i].AfterRecvTransfer(ctx, destPort, destChannel, token, receiver, isSource)
+		if err := mths[i].AfterRecvTransfer(ctx, destPort, destChannel, token, receiver, isSource); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (mths MultiTransferHooks) AfterRefundTransfer(
@@ -63,8 +69,11 @@ func (mths MultiTransferHooks) AfterRefundTransfer(
 	sourcePort, sourceChannel string,
 	token sdk.SysCoin,
 	sender string,
-	isSource bool) {
+	isSource bool) error {
 	for i := range mths {
-		mths[i].AfterRefundTransfer(ctx, sourcePort, sourceChannel, token, sender, isSource)
+		if err := mths[i].AfterRefundTransfer(ctx, sourcePort, sourceChannel, token, sender, isSource); err != nil {
+			return err
+		}
 	}
+	return nil
 }

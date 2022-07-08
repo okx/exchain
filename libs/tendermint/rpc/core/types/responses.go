@@ -23,6 +23,11 @@ type ResultGenesis struct {
 	Genesis *types.GenesisDoc `json:"genesis"`
 }
 
+// ResultHeader represents the response for a Header RPC Client query
+type ResultBlockInfo struct {
+	*types.BlockMeta
+}
+
 // Single block (with meta)
 type ResultBlock struct {
 	BlockID types.BlockID `json:"block_id"`
