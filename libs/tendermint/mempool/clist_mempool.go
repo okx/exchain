@@ -802,6 +802,11 @@ func (mem *CListMempool) Update(
 	preCheck PreCheckFunc,
 	postCheck PostCheckFunc,
 ) error {
+	// no need to update when mempool is unavailable
+	if mem.config.Sealed {
+		return nil
+	}
+
 	// Set height
 	atomic.StoreInt64(&mem.height, height)
 	mem.notifiedTxsAvailable = false
