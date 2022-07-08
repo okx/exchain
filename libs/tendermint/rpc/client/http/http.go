@@ -401,6 +401,15 @@ func (c *baseRPCClient) Block(height *int64) (*ctypes.ResultBlock, error) {
 	return result, nil
 }
 
+func (c *baseRPCClient) BlockInfo(height *int64) (*ctypes.ResultBlockInfo, error) {
+	result := new(ctypes.ResultBlockInfo)
+	_, err := c.caller.Call("block_info", map[string]interface{}{"height": height}, result)
+	if err != nil {
+		return nil, errors.Wrap(err, "BlockInfo")
+	}
+	return result, nil
+}
+
 func (c *baseRPCClient) BlockResults(height *int64) (*ctypes.ResultBlockResults, error) {
 	result := new(ctypes.ResultBlockResults)
 	_, err := c.caller.Call("block_results", map[string]interface{}{"height": height}, result)

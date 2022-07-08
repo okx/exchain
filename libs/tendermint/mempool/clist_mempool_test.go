@@ -929,3 +929,59 @@ func BenchmarkMempoolLogUpdate(b *testing.B) {
 		}
 	})
 }
+
+func BenchmarkMempoolLogAddTx(b *testing.B) {
+	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "benchmark")
+	var options []log.Option
+	options = append(options, log.AllowErrorWith("module", "benchmark"))
+	logger = log.NewFilter(logger, options...)
+
+	mem := &CListMempool{height: 123456, logger: logger, txs: NewBaseTxQueue()}
+	tx := []byte("tx")
+
+	memTx := &mempoolTx{
+		height: mem.Height(),
+		tx:     tx,
+	}
+
+	r := &abci.Response_CheckTx{}
+
+	b.Run("pool", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			mem.logAddTx(memTx, r)
+		}
+	})
+
+	b.Run("logger", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			mem.logger.Info("Added good transaction",
+				"tx", txIDStringer{tx, mem.height},
+				"res", r,
+				"height", memTx.height,
+				"total", mem.Size(),
+			)
+		}
+	})
+}
+
+func TestTxOrTxHashToKey(t *testing.T) {
+	var tx = make([]byte, 256)
+	rand.Read(tx)
+
+	old := types.GetVenusHeight()
+
+	types.UnittestOnlySetMilestoneVenusHeight(1)
+
+	venus := types.GetVenusHeight()
+	txhash := types.Tx(tx).Hash(venus)
+
+	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, nil, venus))
+	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, txhash, venus))
+	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, txhash, venus-1))
+	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, types.Tx(tx).Hash(venus-1), venus-1))
+	require.NotEqual(t, txKey(tx), txOrTxHashToKey(tx, types.Tx(tx).Hash(venus-1), venus))
+
+	types.UnittestOnlySetMilestoneVenusHeight(old)
+}

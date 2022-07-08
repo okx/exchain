@@ -75,7 +75,7 @@ func init() {
 			Type:    stringType,
 			Indexed: false,
 		}, abi.Argument{
-			Name:    "string",
+			Name:    "channelID",
 			Type:    stringType,
 			Indexed: false,
 		}},
@@ -111,7 +111,7 @@ func (h SendToIbcEventHandler) Handle(ctx sdk.Context, contract common.Address, 
 	unpacked, err := SendToIbcEvent.Inputs.Unpack(data)
 	if err != nil {
 		// log and ignore
-		h.Keeper.Logger(ctx).Info("log signature matches but failed to decode")
+		h.Keeper.Logger(ctx).Error("log signature matches but failed to decode", "error", err)
 		return nil
 	}
 
@@ -162,7 +162,7 @@ func (h SendNative20ToIbcEventHandler) Handle(ctx sdk.Context, contract common.A
 	unpacked, err := SendNative20ToIbcEvent.Inputs.Unpack(data)
 	if err != nil {
 		// log and ignore
-		h.Keeper.Logger(ctx).Info("log signature matches but failed to decode")
+		h.Keeper.Logger(ctx).Error("log signature matches but failed to decode", "error", err)
 		return nil
 	}
 
