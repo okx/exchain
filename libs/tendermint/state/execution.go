@@ -74,6 +74,13 @@ type BlockExecutor struct {
 
 	// the owner is validator
 	isNullIndexer bool
+	eventsChan    chan event
+}
+
+type event struct {
+	block   *types.Block
+	abciRsp *ABCIResponses
+	vals    []*types.Validator
 }
 
 type BlockExecutorOption func(executor *BlockExecutor)
@@ -104,6 +111,7 @@ func NewBlockExecutor(
 		metrics:      NopMetrics(),
 		prerunCtx:    newPrerunContex(logger),
 		deltaContext: newDeltaContext(logger),
+		eventsChan:   make(chan event, 5),
 	}
 
 	for _, option := range options {
@@ -114,6 +122,12 @@ func NewBlockExecutor(
 
 	res.initAsyncDBContext()
 	return res
+}
+
+func (blockExec *BlockExecutor) fireEventsRountine() {
+	for event := range blockExec.eventsChan {
+		fireEvents(blockExec.logger, blockExec.eventBus, event.block, event.abciRsp, event.vals)
+	}
 }
 
 func (blockExec *BlockExecutor) DB() dbm.DB {
@@ -286,7 +300,11 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// Events are fired after everything else.
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	if !blockExec.isNullIndexer {
-		go fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
+		blockExec.eventsChan <- event{
+			block:   block,
+			abciRsp: abciResponses,
+			vals:    validatorUpdates,
+		}
 	}
 
 	dc.postApplyBlock(block.Height, deltaInfo, abciResponses, commitResp.DeltaMap, blockExec.isFastSync)
