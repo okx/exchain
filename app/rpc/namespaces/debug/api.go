@@ -38,6 +38,10 @@ func NewAPI(clientCtx clientcontext.CLIContext, log log.Logger, backend backend.
 	return api
 }
 
+type CountStruct struct {
+	count int `json:"number"`
+}
+
 // TraceTransaction returns the structured logs created during the execution of EVM
 // and returns them as a JSON object.
 func (api *PublicDebugAPI) TraceTransaction(txHash common.Hash, config evmtypes.TraceConfig) (interface{}, error) {
@@ -134,7 +138,10 @@ func (api *PublicDebugAPI) traceBlockByNumber(blockNum rpctypes.BlockNumber, con
 		}
 		rpcResults = append(rpcResults, rpcRes)
 	}
-	return rpcResults, nil
+	rt := CountStruct{
+		count: len(rpcResults),
+	}
+	return rt, nil
 }
 
 func (api *PublicDebugAPI) TraceBlockByHash(hash common.Hash, config *evmtypes.TraceConfig) (interface{}, error) {
