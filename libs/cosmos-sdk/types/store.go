@@ -76,7 +76,7 @@ const (
 	StoreTypeDB        = types.StoreTypeDB
 	StoreTypeIAVL      = types.StoreTypeIAVL
 	StoreTypeTransient = types.StoreTypeTransient
-	StoreTypeMPT      = types.StoreTypeMPT
+	StoreTypeMPT       = types.StoreTypeMPT
 	StoreTypeMemory    = types.StoreTypeMemory
 )
 
@@ -162,6 +162,8 @@ type (
 	Gas       = types.Gas
 	GasMeter  = types.GasMeter
 	GasConfig = types.GasConfig
+
+	ReusableGasMeter = types.ReusableGasMeter
 )
 
 // nolint - reexport
@@ -178,4 +180,8 @@ type (
 // nolint - reexport
 func NewInfiniteGasMeter() GasMeter {
 	return types.NewInfiniteGasMeter()
+}
+
+func NewReusableInfiniteGasMeter() ReusableGasMeter {
+	return types.NewReusableInfiniteGasMeter()
 }
