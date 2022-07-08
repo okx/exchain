@@ -35,61 +35,54 @@ type txWithIndex struct {
 	index  int
 }
 
+func (app *BaseApp) preHandleTxForParallelTx(txInfo *txWithIndex) {
+	txBytes := txInfo.txByte
+	index := txInfo.index
+	para := app.parallelTxManage
+
+	var tx sdk.Tx
+	var err error
+
+	if mem := GetGlobalMempool(); mem != nil {
+		tx, _ = mem.ReapEssentialTx(txBytes).(sdk.Tx)
+	}
+	if tx == nil {
+		tx, err = app.txDecoder(txBytes)
+		if err != nil {
+			para.extraTxsInfo[index] = &extraDataForTx{
+				decodeErr: err,
+			}
+			return
+		}
+	}
+	if tx != nil {
+		app.blockDataCache.SetTx(txBytes, tx)
+	}
+
+	coin, isEvm, s, toAddr, _ := app.getTxFeeAndFromHandler(app.getContextForTx(runTxModeDeliver, txBytes), tx)
+	para.extraTxsInfo[index] = &extraDataForTx{
+		fee:   coin,
+		isEvm: isEvm,
+		from:  s,
+		to:    toAddr,
+		stdTx: tx,
+	}
+}
+
 // getExtraDataByTxs preprocessing tx : verify tx, get sender, get toAddress, get txFee
 func (app *BaseApp) getExtraDataByTxs(txs [][]byte) {
 	para := app.parallelTxManage
-	txSize := len(txs)
 
-	var wg sync.WaitGroup
-	wg.Add(txSize)
-	jobChan := make(chan txWithIndex, txSize)
-	for goroutineIndex := 0; goroutineIndex < maxGoroutineNumberInParaTx; goroutineIndex++ {
-		go func(ch chan txWithIndex) {
-			for j := range ch {
-				txBytes := j.txByte
-				index := j.index
+	para.workgroup.preHandleRun = app.preHandleTxForParallelTx
 
-				var tx sdk.Tx
-				var err error
-
-				if mem := GetGlobalMempool(); mem != nil {
-					tx, _ = mem.ReapEssentialTx(txBytes).(sdk.Tx)
-				}
-				if tx == nil {
-					tx, err = app.txDecoder(txBytes)
-					if err != nil {
-						para.extraTxsInfo[index] = &extraDataForTx{
-							decodeErr: err,
-						}
-						wg.Done()
-						return
-					}
-				}
-				if tx != nil {
-					app.blockDataCache.SetTx(txBytes, tx)
-				}
-
-				coin, isEvm, s, toAddr, _ := app.getTxFeeAndFromHandler(app.getContextForTx(runTxModeDeliver, txBytes), tx)
-				para.extraTxsInfo[index] = &extraDataForTx{
-					fee:   coin,
-					isEvm: isEvm,
-					from:  s,
-					to:    toAddr,
-					stdTx: tx,
-				}
-				wg.Done()
-			}
-		}(jobChan)
-	}
-
+	para.workgroup.preHandleWg.Add(len(txs))
 	for index, v := range txs {
-		jobChan <- txWithIndex{
-			txByte: v,
+		para.workgroup.AddPreHandleTask(&txWithIndex{
 			index:  index,
-		}
+			txByte: v,
+		})
 	}
-	close(jobChan)
-	wg.Wait()
+	para.workgroup.preHandleWg.Wait()
 }
 
 var (
@@ -426,9 +419,12 @@ type asyncWorkGroup struct {
 
 	resultCh chan *executeResult
 	resultCb func(*executeResult)
+	taskCh   chan int
+	taskRun  func(int)
 
-	taskCh  chan int
-	taskRun func(int)
+	preHandleTask chan *txWithIndex
+	preHandleRun  func(tx *txWithIndex)
+	preHandleWg   sync.WaitGroup
 }
 
 func newAsyncWorkGroup() *asyncWorkGroup {
@@ -439,9 +435,12 @@ func newAsyncWorkGroup() *asyncWorkGroup {
 
 		resultCh: make(chan *executeResult, maxTxNumberInParallelChan),
 		resultCb: nil,
+		taskCh:   make(chan int, maxTxNumberInParallelChan),
+		taskRun:  nil,
 
-		taskCh:  make(chan int, maxTxNumberInParallelChan),
-		taskRun: nil,
+		preHandleTask: make(chan *txWithIndex, maxTxNumberInParallelChan),
+		preHandleRun:  nil,
+		preHandleWg:   sync.WaitGroup{},
 	}
 }
 
@@ -491,6 +490,10 @@ func (a *asyncWorkGroup) AddTask(index int) {
 	a.taskCh <- index
 }
 
+func (a *asyncWorkGroup) AddPreHandleTask(tx *txWithIndex) {
+	a.preHandleTask <- tx
+}
+
 func (a *asyncWorkGroup) startChan() {
 	for index := 0; index < maxGoroutineNumberInParaTx; index++ {
 		go func() {
@@ -498,6 +501,9 @@ func (a *asyncWorkGroup) startChan() {
 				select {
 				case task := <-a.taskCh:
 					a.taskRun(task)
+				case tx := <-a.preHandleTask:
+					a.preHandleRun(tx)
+					a.preHandleWg.Done()
 				}
 			}
 		}()
