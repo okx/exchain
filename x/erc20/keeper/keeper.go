@@ -4,8 +4,10 @@ import (
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/x/erc20/types"
 	"github.com/okex/exchain/x/params"
@@ -195,4 +197,10 @@ func (k Keeper) SetTemplateContract(ctx sdk.Context, typeStr string, str string)
 	store := ctx.KVStore(k.storeKey)
 	store.Set(types.ConstructContractKey(typeStr), []byte(str))
 	return nil
+}
+
+func (k Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.ValidatorUpdate {
+	k.evmKeeper.UpdateInnerBlockData()
+
+	return []abci.ValidatorUpdate{}
 }

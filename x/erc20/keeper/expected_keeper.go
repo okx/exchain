@@ -6,7 +6,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	evmtypes "github.com/okex/exchain/x/evm/types"
 	govtypes "github.com/okex/exchain/x/gov/types"
 )
 
@@ -39,14 +38,6 @@ type Subspace interface {
 type BankKeeper interface {
 	BlacklistedAddr(addr sdk.AccAddress) bool
 	SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error
-}
-
-type EvmKeeper interface {
-	GetChainConfig(ctx sdk.Context) (evmtypes.ChainConfig, bool)
-	GenerateCSDBParams() evmtypes.CommitStateDBParams
-	GetParams(ctx sdk.Context) evmtypes.Params
-	AddInnerTx(...interface{})
-	AddContract(...interface{})
 }
 
 type TransferKeeper interface {
