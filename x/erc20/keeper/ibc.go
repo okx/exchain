@@ -245,6 +245,7 @@ func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.
 		acc = k.accountKeeper.NewAccountWithAddress(ctx, types.IbcEvmModuleBechAddr)
 	}
 	nonce := acc.GetSequence()
+	originTxHash := common.BytesToHash(ctx.TxBytes())
 
 	st := evmtypes.StateTransition{
 		AccountNonce: nonce,
@@ -255,19 +256,25 @@ func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.
 		Payload:      data,
 		Csdb:         evmtypes.CreateEmptyCommitStateDB(k.evmKeeper.GenerateCSDBParams(), ctx),
 		ChainID:      chainIDEpoch,
-		TxHash:       &common.Hash{},
+		TxHash:       &originTxHash,
 		Sender:       types.IbcEvmModuleETHAddr,
 		Simulate:     ctx.IsCheckTx(),
 		TraceTx:      false,
 		TraceTxLog:   false,
 	}
 
-	executionResult, resultData, err, _, _ := st.TransitionDb(ctx, config)
+	executionResult, resultData, err, innertxs, contracts := st.TransitionDb(ctx, config)
+	if innertxs != nil {
+		k.evmKeeper.AddInnerTx(originTxHash.Hex(), innertxs)
+	}
+	if contracts != nil {
+		k.evmKeeper.AddContract(contracts)
+	}
 	if err != nil {
 		return nil, nil, err
 	}
-	st.Csdb.Commit(false) // write code to db
 
+	st.Csdb.Commit(false) // write code to db
 	acc.SetSequence(nonce + 1)
 	k.accountKeeper.SetAccount(ctx, acc)
 
@@ -276,15 +283,12 @@ func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.
 
 // IbcTransferVouchers transfer vouchers to other chain by ibc
 func (k Keeper) IbcTransferVouchers(ctx sdk.Context, from, to string, vouchers sdk.SysCoins) error {
-	if len(strings.TrimSpace(from)) == 0 {
-		return errors.New("empty from address string is not allowed")
-	}
 	fromAddr, err := sdk.AccAddressFromBech32(from)
 	if err != nil {
 		return err
 	}
 
-	if len(to) == 0 {
+	if len(strings.TrimSpace(to)) == 0 {
 		return errors.New("to address cannot be empty")
 	}
 	k.Logger(ctx).Info("transfer vouchers to other chain by ibc", "from", from, "to", to, "vouchers", vouchers)
@@ -304,15 +308,12 @@ func (k Keeper) IbcTransferVouchers(ctx sdk.Context, from, to string, vouchers s
 
 // IbcTransferNative20 transfer native20 to other chain by ibc
 func (k Keeper) IbcTransferNative20(ctx sdk.Context, from, to string, native20s sdk.SysCoins, portID, channelID string) error {
-	if len(strings.TrimSpace(from)) == 0 {
-		return errors.New("empty from address string is not allowed")
-	}
 	fromAddr, err := sdk.AccAddressFromBech32(from)
 	if err != nil {
 		return err
 	}
 
-	if len(to) == 0 {
+	if len(strings.TrimSpace(to)) == 0 {
 		return errors.New("to address cannot be empty")
 	}
 	k.Logger(ctx).Info("transfer native20 to other chain by ibc", "from", from, "to", to, "vouchers", native20s)
@@ -338,8 +339,6 @@ func (k Keeper) ibcSendTransfer(ctx sdk.Context, sender sdk.AccAddress, to strin
 	}
 
 	// Transfer coins to receiver through IBC
-	// We use current time for timeout timestamp and zero height for timeoutHeight
-	// it means it can never fail by timeout
 	params := k.GetParams(ctx)
 	timeoutTimestamp := uint64(ctx.BlockTime().UnixNano()) + params.IbcTimeout
 	timeoutHeight := ibcclienttypes.ZeroHeight()
@@ -358,8 +357,6 @@ func (k Keeper) ibcSendTransfer(ctx sdk.Context, sender sdk.AccAddress, to strin
 
 func (k Keeper) ibcSendTransferWithChannel(ctx sdk.Context, sender sdk.AccAddress, to string, coin sdk.Coin, portID, channelID string) error {
 	// Transfer coins to receiver through IBC
-	// We use current time for timeout timestamp and zero height for timeoutHeight
-	// it means it can never fail by timeout
 	params := k.GetParams(ctx)
 	timeoutTimestamp := uint64(ctx.BlockTime().UnixNano()) + params.IbcTimeout
 	timeoutHeight := ibcclienttypes.ZeroHeight()
