@@ -158,12 +158,13 @@ func ethGasConsume(ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, ms
 	// Charge sender for gas up to limit
 	if gasLimit != 0 {
 		// Cost calculates the fees paid to validators based on gas limit and price
-		cost := new(big.Int).Mul(msgEthTx.Data.Price, new(big.Int).SetUint64(gasLimit))
+		cost := new(big.Int).SetUint64(gasLimit)
+		cost = cost.Mul(msgEthTx.Data.Price, cost)
 
 		evmDenom := sdk.DefaultBondDenom
 
 		feeAmt := sdk.NewCoins(
-			sdk.NewCoin(evmDenom, sdk.NewDecFromBigIntWithPrec(cost, sdk.Precision)), // int2dec
+			sdk.NewCoin(evmDenom, sdk.NewDecWithBigIntAndPrec(cost, sdk.Precision)), // int2dec
 		)
 
 		ctx.UpdateFromAccountCache(acc, accGetGas)
