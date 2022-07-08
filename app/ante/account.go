@@ -210,35 +210,41 @@ func deductFees(ak auth.AccountKeeper, ctx sdk.Context, acc exported.Account, fe
 	return nil
 }
 
-func incrementSeq(ctx sdk.Context, msgEthTx *evmtypes.MsgEthereumTx, ak auth.AccountKeeper, acc exported.Account) {
+func incrementSeq(ctx sdk.Context, msgEthTx *evmtypes.MsgEthereumTx, accAddress sdk.AccAddress, ak auth.AccountKeeper, acc exported.Account) {
 	if ctx.IsCheckTx() && !ctx.IsReCheckTx() && !baseapp.IsMempoolEnableRecheck() && !ctx.IsTraceTx() {
 		return
 	}
 
 	// get and set account must be called with an infinite gas meter in order to prevent
 	// additional gas from being deducted.
-	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
+	infGasMeter := resuableGasMeterPool.Get().(sdk.ReusableGasMeter)
+	defer resuableGasMeterPool.Put(infGasMeter)
+	infGasMeter.Reset()
+	ctx.SetGasMeter(infGasMeter)
 
 	// increment sequence of all signers
-	for _, addr := range msgEthTx.GetSigners() {
-		var sacc exported.Account
-		if acc != nil && bytes.Equal(addr, acc.GetAddress()) {
-			// because we use infinite gas meter, we can don't care about the gas
-			sacc = acc
-		} else {
-			sacc = ak.GetAccount(ctx, addr)
-		}
-		seq := sacc.GetSequence()
-		if !baseapp.IsMempoolEnablePendingPool() {
-			seq++
-		} else if msgEthTx.Data.AccountNonce == seq {
-			seq++
-		}
-		if err := sacc.SetSequence(seq); err != nil {
-			panic(err)
-		}
-		ak.SetAccount(ctx, sacc)
+	// eth tx only has one signer
+	if accAddress.Empty() {
+		accAddress = msgEthTx.AccountAddress()
 	}
+	var sacc exported.Account
+	if acc != nil && bytes.Equal(accAddress, acc.GetAddress()) {
+		// because we use infinite gas meter, we can don't care about the gas
+		sacc = acc
+	} else {
+		sacc = ak.GetAccount(ctx, accAddress)
+	}
+	seq := sacc.GetSequence()
+	if !baseapp.IsMempoolEnablePendingPool() {
+		seq++
+	} else if msgEthTx.Data.AccountNonce == seq {
+		seq++
+	}
+	if err := sacc.SetSequence(seq); err != nil {
+		panic(err)
+	}
+	ak.SetAccount(ctx, sacc)
+
 	return
 }
 
@@ -302,7 +308,7 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 		}
 	}
 
-	incrementSeq(ctx, msgEthTx, avd.ak, acc)
+	incrementSeq(ctx, msgEthTx, address, avd.ak, acc)
 
 	return next(ctx, tx, simulate)
 }
