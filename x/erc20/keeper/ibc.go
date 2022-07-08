@@ -7,10 +7,12 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
+
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	ibctransferType "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	ibcclienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/erc20/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
@@ -245,7 +247,8 @@ func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.
 		acc = k.accountKeeper.NewAccountWithAddress(ctx, types.IbcEvmModuleBechAddr)
 	}
 	nonce := acc.GetSequence()
-	originTxHash := common.BytesToHash(ctx.TxBytes())
+	txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
+	ethTxHash := common.BytesToHash(txHash)
 
 	st := evmtypes.StateTransition{
 		AccountNonce: nonce,
@@ -256,7 +259,7 @@ func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.
 		Payload:      data,
 		Csdb:         evmtypes.CreateEmptyCommitStateDB(k.evmKeeper.GenerateCSDBParams(), ctx),
 		ChainID:      chainIDEpoch,
-		TxHash:       &originTxHash,
+		TxHash:       &ethTxHash,
 		Sender:       types.IbcEvmModuleETHAddr,
 		Simulate:     ctx.IsCheckTx(),
 		TraceTx:      false,
@@ -266,7 +269,7 @@ func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.
 	executionResult, resultData, err, innertxs, contracts := st.TransitionDb(ctx, config)
 	if ctx.IsDeliver() {
 		if innertxs != nil {
-			k.evmKeeper.AddInnerTx(originTxHash.Hex(), innertxs)
+			k.evmKeeper.AddInnerTx(ethTxHash.Hex(), innertxs)
 		}
 		if contracts != nil {
 			k.evmKeeper.AddContract(contracts)
