@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+	"math"
 	"testing"
 	"time"
 
@@ -123,5 +124,64 @@ func TestDeltas_Validate(t *testing.T) {
 				t.Errorf("Validate() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestDeltaPayloadAmino(t *testing.T) {
+	var testCases = []DeltaPayload{
+		{},
+		{
+			ABCIRsp:     []byte("ABCIResp"),
+			DeltasBytes: []byte("DeltasBytes"),
+			WatchBytes:  []byte("WatchBytes"),
+		},
+		{
+			ABCIRsp:     []byte{},
+			DeltasBytes: []byte{},
+			WatchBytes:  []byte{},
+		},
+	}
+	for _, testCase := range testCases {
+		expectBz, err := cdc.MarshalBinaryBare(testCase)
+		require.NoError(t, err)
+
+		actulaBz, err := testCase.MarshalToAmino(cdc)
+		require.NoError(t, err)
+		require.Equal(t, expectBz, actulaBz)
+		require.Equal(t, len(expectBz), testCase.AminoSize(cdc))
+	}
+}
+
+func TestDeltasMessageAmino(t *testing.T) {
+	var testCases = []DeltasMessage{
+		{},
+		{
+			Metadata:     []byte("Metadata"),
+			MetadataHash: []byte("MetadataHash"),
+			Height:       12345,
+			CompressType: 1234,
+			From:         "from",
+		},
+		{
+			Metadata:     []byte{},
+			MetadataHash: []byte{},
+		},
+		{
+			Height:       math.MaxInt64,
+			CompressType: math.MaxInt,
+		},
+		{
+			Height:       math.MinInt64,
+			CompressType: math.MinInt,
+		},
+	}
+	for _, testCase := range testCases {
+		expectBz, err := cdc.MarshalBinaryBare(testCase)
+		require.NoError(t, err)
+
+		actulaBz, err := testCase.MarshalToAmino(cdc)
+		require.NoError(t, err)
+		require.Equal(t, expectBz, actulaBz)
+		require.Equal(t, len(expectBz), testCase.AminoSize(cdc))
 	}
 }
