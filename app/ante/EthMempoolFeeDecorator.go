@@ -2,7 +2,6 @@ package ante
 
 import (
 	"fmt"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	evmtypes "github.com/okex/exchain/x/evm/types"
@@ -41,7 +40,7 @@ func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	evmDenom := sdk.DefaultBondDenom
 
 	// fee = gas price * gas limit
-	fee := sdk.NewDecCoinFromDec(evmDenom, sdk.NewDecFromBigIntWithPrec(msgEthTx.Fee(), sdk.Precision))
+	fee := sdk.NewDecCoinFromDec(evmDenom, sdk.NewDecWithBigIntAndPrec(msgEthTx.Fee(), sdk.Precision))
 
 	minGasPrices := ctx.MinGasPrices()
 	minFees := minGasPrices.AmountOf(evmDenom).MulInt64(int64(msgEthTx.Data.GasLimit))

@@ -109,6 +109,16 @@ func NewDecFromBigIntWithPrec(i *big.Int, prec int64) Dec {
 	}
 }
 
+// NewDecWithBigIntAndPrec create a new Dec from big integer assuming whole numbers
+// CONTRACT: prec <= Precision
+// The new Dec takes ownership of i, and the
+// caller should not use i after this call
+func NewDecWithBigIntAndPrec(i *big.Int, prec int64) Dec {
+	return Dec{
+		i.Mul(i, precisionMultiplier(prec)),
+	}
+}
+
 // create a new Dec from big integer assuming whole numbers
 // CONTRACT: prec <= Precision
 func NewDecFromInt(i Int) Dec {
@@ -274,7 +284,8 @@ func (d Dec) MulInt(i Int) Dec {
 
 // MulInt64 - multiplication with int64
 func (d Dec) MulInt64(i int64) Dec {
-	mul := new(big.Int).Mul(d.Int, big.NewInt(i))
+	mul := big.NewInt(i)
+	mul = mul.Mul(d.Int, mul)
 
 	if mul.BitLen() > 255+DecimalPrecisionBits {
 		panic("Int overflow")
