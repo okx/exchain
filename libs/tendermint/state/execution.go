@@ -83,6 +83,8 @@ type event struct {
 	vals    []*types.Validator
 }
 
+var etTmp = event{}
+
 type BlockExecutorOption func(executor *BlockExecutor)
 
 func BlockExecutorWithMetrics(metrics *Metrics) BlockExecutorOption {
@@ -121,12 +123,16 @@ func NewBlockExecutor(
 	res.deltaContext.init()
 
 	res.initAsyncDBContext()
+	go res.fireEventsRountine()
 	return res
 }
 
 func (blockExec *BlockExecutor) fireEventsRountine() {
-	for event := range blockExec.eventsChan {
-		fireEvents(blockExec.logger, blockExec.eventBus, event.block, event.abciRsp, event.vals)
+	for et := range blockExec.eventsChan {
+		if et.block == nil {
+			break
+		}
+		fireEvents(blockExec.logger, blockExec.eventBus, et.block, et.abciRsp, et.vals)
 	}
 }
 
