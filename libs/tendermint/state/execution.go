@@ -83,8 +83,6 @@ type event struct {
 	vals    []*types.Validator
 }
 
-var etTmp = event{}
-
 type BlockExecutorOption func(executor *BlockExecutor)
 
 func BlockExecutorWithMetrics(metrics *Metrics) BlockExecutorOption {
