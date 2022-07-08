@@ -155,3 +155,20 @@ func BlockResults(ctx *rpctypes.Context, heightPtr *int64) (*ctypes.ResultBlockR
 		ConsensusParamUpdates: results.EndBlock.ConsensusParamUpdates,
 	}, nil
 }
+
+// Header gets block header at a given height.
+// If no height is provided, it will fetch the latest header.
+// More: https://docs.tendermint.com/master/rpc/#/Info/header
+func BlockInfo(ctx *rpctypes.Context, heightPtr *int64) (*ctypes.ResultBlockInfo, error) {
+	height, err := getHeight(env.BlockStore.Height(), heightPtr)
+	if err != nil {
+		return nil, err
+	}
+
+	blockMeta := env.BlockStore.LoadBlockMeta(height)
+	if blockMeta == nil {
+		return nil, nil
+	}
+
+	return &ctypes.ResultBlockInfo{BlockMeta: blockMeta}, nil
+}
