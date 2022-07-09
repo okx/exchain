@@ -154,12 +154,13 @@ func TestTreeDeltaAmino(t *testing.T) { testTreeDeltaAmino(t) }
 func testTreeDeltaAmino(t *testing.T) {
 	testTreeDeltas := []*TreeDelta{
 		{},
-		{nil, nil, nil},
-		{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}},
+		{nil, nil, nil, ""},
+		{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}, ""},
 		{
 			[]*NodeJsonImp{nil, {}, {"0x01", &NodeJson{Version: 1}}},
 			[]*NodeJson{nil, {}, {Version: 2}},
 			[]*CommitOrphansImp{nil, {}, {"0x01", 1}},
+			"",
 		},
 	}
 	for i, td := range testTreeDeltas {
