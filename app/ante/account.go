@@ -2,7 +2,6 @@ package ante
 
 import (
 	"bytes"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"math/big"
 	"strconv"
 	"strings"
@@ -14,6 +13,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
