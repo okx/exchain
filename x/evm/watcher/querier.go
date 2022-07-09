@@ -4,13 +4,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"strconv"
-	"sync"
-
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	lru "github.com/hashicorp/golang-lru"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	"strconv"
+	"sync"
 
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
 	"github.com/okex/exchain/app/types"
@@ -85,6 +86,26 @@ func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, e
 		receipt.Logs = []*ethtypes.Log{}
 	}
 	return &receipt, nil
+}
+
+func (q Querier) GetTransactionResponse(hash common.Hash) (*TransactionResponse, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+	var response TransactionResponse
+	b, e := q.store.Get(append(prefixTxResponse, hash.Bytes()...))
+	if e != nil {
+		return nil, e
+	}
+	if b == nil {
+		return nil, errNotFound
+	}
+	e = json.Unmarshal(b, &response)
+	if e != nil {
+		return nil, e
+	}
+
+	return &response, nil
 }
 
 func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
@@ -466,4 +487,15 @@ func (q Querier) HasContractDeploymentWhitelist(key []byte) bool {
 		return false
 	}
 	return q.store.Has(append(prefixWhiteList, key...))
+}
+
+func parseTx(cdc *codec.Codec, txBytes []byte) (sdk.Tx, error) {
+	var tx authtypes.StdTx
+
+	err := cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &tx, nil
 }

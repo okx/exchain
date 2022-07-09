@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-
+	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	"time"
 
 	"math/big"
@@ -40,6 +40,7 @@ var (
 	prefixWhiteList    = []byte{0x11}
 	prefixBlackList    = []byte{0x12}
 	prefixRpcDb        = []byte{0x13}
+	prefixTxResponse   = []byte{0x14}
 
 	KeyLatestHeight = "LatestHeight"
 
@@ -52,6 +53,9 @@ const (
 	TypeState     = uint32(2)
 	TypeDelete    = uint32(3)
 	TypeEvmParams = uint32(4)
+
+	EthReceipt  = uint64(0)
+	StdResponse = uint64(1)
 )
 
 type WatchMessage interface {
@@ -441,6 +445,12 @@ type MsgTransactionReceipt struct {
 
 func (m MsgTransactionReceipt) GetType() uint32 {
 	return TypeOthers
+}
+
+type TransactionResult struct {
+	TxType   hexutil.Uint64      `json:"type"`
+	Receipt  *TransactionReceipt `json:"receipt"`
+	Response *sdk.TxResponse     `json:"response"`
 }
 
 type TransactionReceipt struct {
@@ -886,4 +896,43 @@ func (msgItem *MsgContractMethodBlockedListItem) GetKey() []byte {
 
 func (msgItem *MsgContractMethodBlockedListItem) GetValue() string {
 	return string(msgItem.methods)
+}
+
+type MsgStdTransactionResponse struct {
+	txResponse string
+	txHash     []byte
+}
+
+func (tr *MsgStdTransactionResponse) GetType() uint32 {
+	return TypeOthers
+}
+
+func (tr *MsgStdTransactionResponse) GetValue() string {
+	return tr.txResponse
+}
+
+func (tr *MsgStdTransactionResponse) GetKey() []byte {
+	return append(prefixTxResponse, tr.txHash...)
+}
+
+type TransactionResponse struct {
+	*ctypes.ResultTx
+	Timestamp time.Time
+}
+
+func NewStdTransactionResponse(tr *ctypes.ResultTx, timestamp time.Time, txHash common.Hash) *MsgStdTransactionResponse {
+	tResponse := TransactionResponse{
+		ResultTx:  tr,
+		Timestamp: timestamp,
+	}
+	jsResponse, err := json.Marshal(tResponse)
+	fmt.Println(jsResponse)
+	var response TransactionResponse
+	e := json.Unmarshal([]byte(jsResponse), &response)
+	fmt.Println(response, e)
+
+	if err != nil {
+		return nil
+	}
+	return &MsgStdTransactionResponse{txResponse: string(jsResponse), txHash: txHash.Bytes()}
 }

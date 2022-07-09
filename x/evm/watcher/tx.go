@@ -2,6 +2,7 @@ package watcher
 
 import (
 	"fmt"
+	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -32,9 +33,21 @@ func (w *Watcher) RecordTxAndFailedReceipt(tx tm.TxEssentials, resp *tm.Response
 	}
 	w.saveTx(watchTx)
 
-	if resp != nil && !resp.IsOK() {
-		w.saveFailedReceipts(watchTx, uint64(resp.GasUsed))
+	switch realTx.GetType() {
+	case sdk.EvmTxType:
+		if resp != nil && !resp.IsOK() {
+			w.saveFailedReceipts(watchTx, uint64(resp.GasUsed))
+		}
+	case sdk.StdTxType:
+		txResult := &ctypes.ResultTx{
+			Hash:     tx.TxHash(),
+			Height:   int64(w.height),
+			TxResult: *resp,
+			Tx:       tx.GetRaw(),
+		}
+		w.saveStdTxResponse(txResult)
 	}
+
 }
 
 func (w *Watcher) getRealTx(tx tm.TxEssentials, txDecoder sdk.TxDecoder) (sdk.Tx, error) {
@@ -60,6 +73,8 @@ func (w *Watcher) createWatchTx(realTx sdk.Tx) WatchTx {
 		}
 		txMsg = NewEvmTx(evmTx, common.BytesToHash(evmTx.TxHash()), w.blockHash, w.height, w.evmTxIndex)
 		w.evmTxIndex++
+	case sdk.StdTxType:
+		txMsg = NewStdWatchTx(realTx, common.BytesToHash(realTx.TxHash()), w.blockHash, w.height)
 	}
 
 	return txMsg
