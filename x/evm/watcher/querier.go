@@ -7,9 +7,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"strconv"
 	"sync"
 
@@ -348,6 +346,37 @@ func (q Querier) GetTransactionsByBlockNumber(number, offset, limit uint64) ([]*
 	return nil, errors.New("no such transaction in target block")
 }
 
+func (q Querier) GetTransactionsWithStdByBlockNumber(number, offset, limit uint64) ([]*Transaction, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+	block, err := q.GetBlockByNumber(number, true)
+	if err != nil {
+		return nil, err
+	}
+	if block.Transactions == nil {
+		return nil, errors.New("no such transaction in target block")
+	}
+
+	rawTxs, ok := block.Transactions.([]*Transaction)
+	if ok {
+		//append std Tx
+		stdTxs, err := q.GetStdTxsByBlockHash(block.Hash)
+		if err != nil {
+			return nil, err
+		}
+		rawTxs = append(rawTxs, stdTxs...)
+
+		var txs []*Transaction
+		for idx := offset; idx < offset+limit && int(idx) < len(rawTxs); idx++ {
+			rawTx := *rawTxs[idx]
+			txs = append(txs, &rawTx)
+		}
+		return txs, nil
+	}
+	return nil, errors.New("no such transaction in target block")
+}
+
 func (q Querier) MustGetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	acc, e := q.GetAccount(addr)
 	//todo delete account from rdb if we get Account from H db successfully
@@ -489,13 +518,30 @@ func (q Querier) HasContractDeploymentWhitelist(key []byte) bool {
 	return q.store.Has(append(prefixWhiteList, key...))
 }
 
-func parseTx(cdc *codec.Codec, txBytes []byte) (sdk.Tx, error) {
-	var tx authtypes.StdTx
-
-	err := cdc.UnmarshalBinaryLengthPrefixed(txBytes, &tx)
-	if err != nil {
-		return nil, err
+func (q Querier) GetStdTxsByBlockHash(hash common.Hash) ([]*Transaction, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+	var stdTxHash []common.Hash
+	b, e := q.store.Get(append(prefixStdTxHash, hash.Bytes()...))
+	if e != nil {
+		return nil, e
+	}
+	if b == nil {
+		return nil, errNotFound
+	}
+	e = json.Unmarshal(b, &stdTxHash)
+	if e != nil {
+		return nil, e
 	}
 
-	return &tx, nil
+	txList := make([]*Transaction, 0, len(stdTxHash))
+	for _, tx := range stdTxHash {
+		transaction, e := q.GetTransactionByHash(tx)
+		if e == nil && transaction != nil {
+			txList = append(txList, transaction)
+		}
+	}
+
+	return txList, nil
 }

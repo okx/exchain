@@ -41,6 +41,7 @@ var (
 	prefixBlackList    = []byte{0x12}
 	prefixRpcDb        = []byte{0x13}
 	prefixTxResponse   = []byte{0x14}
+	prefixStdTxHash    = []byte{0x15}
 
 	KeyLatestHeight = "LatestHeight"
 
@@ -926,13 +927,38 @@ func NewStdTransactionResponse(tr *ctypes.ResultTx, timestamp time.Time, txHash 
 		Timestamp: timestamp,
 	}
 	jsResponse, err := json.Marshal(tResponse)
-	fmt.Println(jsResponse)
-	var response TransactionResponse
-	e := json.Unmarshal([]byte(jsResponse), &response)
-	fmt.Println(response, e)
 
 	if err != nil {
 		return nil
 	}
 	return &MsgStdTransactionResponse{txResponse: string(jsResponse), txHash: txHash.Bytes()}
+}
+
+type MsgBlockStdTxHash struct {
+	blockHash []byte
+	stdTxHash string
+}
+
+func (m *MsgBlockStdTxHash) GetType() uint32 {
+	return TypeOthers
+}
+
+func (m *MsgBlockStdTxHash) GetValue() string {
+	return m.stdTxHash
+}
+
+func (m *MsgBlockStdTxHash) GetKey() []byte {
+	return append(prefixStdTxHash, m.blockHash...)
+}
+
+func NewMsgBlockStdTxHash(stdTxHash []common.Hash, blockHash common.Hash) *MsgBlockStdTxHash {
+	jsonValue, err := json.Marshal(stdTxHash)
+	if err != nil {
+		panic(err)
+	}
+
+	return &MsgBlockStdTxHash{
+		stdTxHash: string(jsonValue),
+		blockHash: blockHash.Bytes(),
+	}
 }

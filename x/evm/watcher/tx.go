@@ -31,7 +31,7 @@ func (w *Watcher) RecordTxAndFailedReceipt(tx tm.TxEssentials, resp *tm.Response
 	if watchTx == nil {
 		return
 	}
-	w.saveTx(watchTx)
+	w.saveTx(watchTx, realTx)
 
 	switch realTx.GetType() {
 	case sdk.EvmTxType:
@@ -95,7 +95,7 @@ func (w *Watcher) extractEvmTx(sdkTx sdk.Tx) (*types.MsgEthereumTx, error) {
 	return evmTx, nil
 }
 
-func (w *Watcher) saveTx(tx WatchTx) {
+func (w *Watcher) saveTx(tx WatchTx, realTx sdk.Tx) {
 	if w == nil || tx == nil {
 		return
 	}
@@ -108,7 +108,13 @@ func (w *Watcher) saveTx(tx WatchTx) {
 	if txWatchMessage := tx.GetTxWatchMessage(); txWatchMessage != nil {
 		w.batch = append(w.batch, txWatchMessage)
 	}
-	w.blockTxs = append(w.blockTxs, tx.GetTxHash())
+
+	switch realTx.GetType() {
+	case sdk.EvmTxType:
+		w.blockTxs = append(w.blockTxs, tx.GetTxHash())
+	case sdk.StdTxType:
+		w.blockStdTxs = append(w.blockStdTxs, tx.GetTxHash())
+	}
 }
 
 func (w *Watcher) saveFailedReceipts(watchTx WatchTx, gasUsed uint64) {

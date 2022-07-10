@@ -32,6 +32,7 @@ type Watcher struct {
 	cumulativeGas map[uint64]uint64
 	gasUsed       uint64
 	blockTxs      []common.Hash
+	blockStdTxs   []common.Hash
 	sw            bool
 	firstUse      bool
 	delayEraseKey [][]byte
@@ -122,6 +123,7 @@ func (w *Watcher) clean() {
 	}
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
+	w.blockStdTxs = []common.Hash{}
 }
 
 func (w *Watcher) SaveContractCode(addr common.Address, code []byte) {
@@ -265,6 +267,16 @@ func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
 		w.batch = append(w.batch, wInfo)
 	}
 	w.SaveLatestHeight(w.height)
+}
+
+func (w *Watcher) SaveBlockStdTxHash() {
+	if !w.Enabled() || (len(w.blockStdTxs) == 0) {
+		return
+	}
+	wMsg := NewMsgBlockStdTxHash(w.blockStdTxs, w.blockHash)
+	if wMsg != nil {
+		w.batch = append(w.batch, wMsg)
+	}
 }
 
 func (w *Watcher) SaveLatestHeight(height uint64) {
