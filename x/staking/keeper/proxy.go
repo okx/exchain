@@ -58,6 +58,7 @@ func (k Keeper) UpdateShares(ctx sdk.Context, delAddr sdk.AccAddress, tokens sdk
 		return nil
 	}
 	delegatorValAddresses := vals.ToValAddresses()
+	// withdraw delegation rewards, increments period, remove delegator starting info
 	k.BeforeDelegationSharesModified(ctx, delAddr, delegatorValAddresses)
 
 	lenVals := len(vals)
@@ -92,6 +93,7 @@ func (k Keeper) UpdateShares(ctx sdk.Context, delAddr sdk.AccAddress, tokens sdk
 	delegator.Shares = shares
 	k.SetDelegator(ctx, delegator)
 
+	// initialize starting info for a new delegation
 	k.AfterDelegationModified(ctx, delegator.DelegatorAddress, delegatorValAddresses)
 
 	return nil
@@ -116,6 +118,7 @@ func (k Keeper) WithdrawLastShares(ctx sdk.Context, delAddr sdk.AccAddress, last
 	lastShares types.Shares) {
 	lenLastVals := len(lastValsAddedSharesTo)
 	if lenLastVals > 0 {
+		// withdraw delegation rewards, remove delegator starting info
 		k.BeforeDelegationSharesModified(ctx, delAddr, lastValsAddedSharesTo.ToValAddresses())
 	}
 

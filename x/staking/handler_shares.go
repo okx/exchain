@@ -194,6 +194,7 @@ func handleMsgAddShares(ctx sdk.Context, msg types.MsgAddShares, k keeper.Keeper
 	// 4. get the total amount of self token and delegated token
 	totalTokens := delegator.Tokens.Add(delegator.TotalDelegatedTokens)
 
+	// 4.1 increment validators period
 	delegatorValAddresses := getValsAddrs(vals)
 	k.BeforeDelegationCreated(ctx, msg.DelAddr, delegatorValAddresses)
 
@@ -208,6 +209,7 @@ func handleMsgAddShares(ctx sdk.Context, msg types.MsgAddShares, k keeper.Keeper
 	delegator.Shares = shares
 	k.SetDelegator(ctx, delegator)
 
+	// 7. create new delegator starting info
 	k.AfterDelegationModified(ctx, msg.DelAddr, delegator.ValidatorAddresses)
 
 	ctx.EventManager().EmitEvent(buildEventForHandlerAddShares(delegator))

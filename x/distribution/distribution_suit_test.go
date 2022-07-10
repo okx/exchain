@@ -43,7 +43,7 @@ func initEnv(t *testing.T, validatorCount int64) {
 	communityTax := sdk.NewDecWithPrec(2, 2)
 	ctx, ak, _, dk, sk, _, supplyKeeper = keeper.CreateTestInputAdvanced(t, false, 1000, communityTax)
 	tmtypes.UnittestOnlySetMilestoneVenus3Height(-1)
-	dk.SetInitAllocateValidator(ctx, true)
+	dk.SetInitExistedValidatorFlag(ctx, true)
 
 	h := staking.NewHandler(sk)
 	valOpAddrs, valConsPks, _ := keeper.GetTestAddrs()

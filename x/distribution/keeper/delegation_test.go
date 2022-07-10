@@ -20,7 +20,7 @@ func TestCalculateRewardsBasic(t *testing.T) {
 	ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
 	tmtypes.UnittestOnlySetMilestoneVenus3Height(-1)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
-	dk.SetInitAllocateValidator(ctx, true)
+	dk.SetInitExistedValidatorFlag(ctx, true)
 
 	// create validator
 	DoCreateValidator(t, ctx, sk, valOpAddr1, valConsPk1)
@@ -70,7 +70,7 @@ func TestCalculateRewardsMultiDelegator(t *testing.T) {
 	ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
 	tmtypes.UnittestOnlySetMilestoneVenus3Height(-1)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
-	dk.SetInitAllocateValidator(ctx, true)
+	dk.SetInitExistedValidatorFlag(ctx, true)
 
 	// create validator
 	DoCreateValidator(t, ctx, sk, valOpAddr1, valConsPk1)
@@ -142,7 +142,7 @@ func TestWithdrawDelegationRewardsBasic(t *testing.T) {
 	ctx, ak, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
 	tmtypes.UnittestOnlySetMilestoneVenus3Height(-1)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
-	dk.SetInitAllocateValidator(ctx, true)
+	dk.SetInitExistedValidatorFlag(ctx, true)
 
 	balanceTokens := sdk.NewCoins(sdk.NewCoin(sk.BondDenom(ctx), sdk.TokensFromConsensusPower(int64(1000))))
 
@@ -205,7 +205,7 @@ func TestCalculateRewardsMultiDelegatorMultWithdraw(t *testing.T) {
 	ctx, ak, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
 	tmtypes.UnittestOnlySetMilestoneVenus3Height(-1)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
-	dk.SetInitAllocateValidator(ctx, true)
+	dk.SetInitExistedValidatorFlag(ctx, true)
 
 	balanceTokens := sdk.NewCoins(sdk.NewCoin(sk.BondDenom(ctx), sdk.TokensFromConsensusPower(int64(1000))))
 
@@ -378,11 +378,11 @@ type InitExistedDelegationStartInfoestSuite struct {
 
 func changeDistribution(ctx sdk.Context, dk Keeper) {
 	//change to distribution onchain
-	dk.SetInitAllocateValidator(ctx, true)
+	dk.SetInitExistedValidatorFlag(ctx, true)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
 	dk.stakingKeeper.IterateValidators(ctx, func(index int64, validator stakingexported.ValidatorI) (stop bool) {
 		if validator != nil {
-			dk.initValidatorWithoutOutstanding(ctx, validator)
+			dk.initExistedValidatorForDistrProposal(ctx, validator)
 		}
 		return false
 	})
@@ -517,7 +517,7 @@ func (suite *InitExistedDelegationStartInfoestSuite) TestInitExistedDelegationSt
 			DoDeposit(suite.T(), ctx, sk, delAddr1, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
 
 			coins, err := dk.WithdrawDelegationRewards(ctx, delAddr1, valOpAddr1)
-			require.Equal(suite.T(), types.ErrCodeCodeEmptyDelegationVoteValidator(), err)
+			require.Equal(suite.T(), types.ErrCodeEmptyDelegationVoteValidator(), err)
 
 			tc.execute3(&ctx, dk)
 			// historical count
@@ -613,7 +613,7 @@ func TestRewardToCommunity(t *testing.T) {
 	ctx, _, _, dk, sk, _, _ := CreateTestInputAdvanced(t, false, 1000, communityTax)
 	tmtypes.UnittestOnlySetMilestoneVenus3Height(-1)
 	dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
-	dk.SetInitAllocateValidator(ctx, true)
+	dk.SetInitExistedValidatorFlag(ctx, true)
 
 	// create validator
 	DoCreateValidator(t, ctx, sk, valOpAddr1, valConsPk1)

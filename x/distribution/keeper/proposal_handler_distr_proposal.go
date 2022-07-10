@@ -20,11 +20,11 @@ func HandleChangeDistributionTypeProposal(ctx sdk.Context, k Keeper, p types.Cha
 
 	//2. if on chain, iteration validators and init val which has not outstanding
 	if p.Type == types.DistributionTypeOnChain {
-		if !k.HasInitAllocateValidator(ctx) {
-			k.SetInitAllocateValidator(ctx, true)
+		if !k.CheckInitExistedValidatorFlag(ctx) {
+			k.SetInitExistedValidatorFlag(ctx, true)
 			k.stakingKeeper.IterateValidators(ctx, func(index int64, validator stakingexported.ValidatorI) (stop bool) {
 				if validator != nil {
-					k.initValidatorWithoutOutstanding(ctx, validator)
+					k.initExistedValidatorForDistrProposal(ctx, validator)
 				}
 				return false
 			})

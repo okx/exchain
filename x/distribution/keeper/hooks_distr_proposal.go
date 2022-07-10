@@ -72,7 +72,6 @@ func (h Hooks) BeforeDelegationSharesModified(ctx sdk.Context, delAddr sdk.AccAd
 		return
 	}
 
-	//del := h.k.stakingKeeper.Delegator(ctx, delAddr)
 	for _, valAddr := range valAddrs {
 		val := h.k.stakingKeeper.Validator(ctx, valAddr)
 		if _, err := h.k.withdrawDelegationRewards(ctx, val, delAddr); err != nil {

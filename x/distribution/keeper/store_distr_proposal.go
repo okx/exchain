@@ -6,10 +6,10 @@ import (
 	"github.com/okex/exchain/x/distribution/types"
 )
 
-// GetFeePool check init allocate validator flag
-func (k Keeper) HasInitAllocateValidator(ctx sdk.Context) bool {
+// CheckInitExistedValidatorFlag check init existed validator for distribution proposal flag
+func (k Keeper) CheckInitExistedValidatorFlag(ctx sdk.Context) bool {
 	store := ctx.KVStore(k.storeKey)
-	b := store.Get(types.InitAllocateValidatorKey)
+	b := store.Get(types.InitExistedValidatorForDistrProposalKey)
 	if b == nil {
 		return false
 	}
@@ -18,11 +18,11 @@ func (k Keeper) HasInitAllocateValidator(ctx sdk.Context) bool {
 	return result
 }
 
-// SetInitAllocateValidator set init allocate validator flag
-func (k Keeper) SetInitAllocateValidator(ctx sdk.Context, init bool) {
+// SetInitExistedValidatorFlag set init existed validator for distribution proposal flag
+func (k Keeper) SetInitExistedValidatorFlag(ctx sdk.Context, init bool) {
 	store := ctx.KVStore(k.storeKey)
 	b := k.cdc.MustMarshalBinaryLengthPrefixed(init)
-	store.Set(types.InitAllocateValidatorKey, b)
+	store.Set(types.InitExistedValidatorForDistrProposalKey, b)
 }
 
 // get the starting info associated with a delegator

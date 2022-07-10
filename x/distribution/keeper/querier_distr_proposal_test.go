@@ -83,11 +83,11 @@ func TestRewards(t *testing.T) {
 	ctx, _, keeper, sk, _ := CreateTestInputDefault(t, false, 1000)
 	querier := NewQuerier(keeper)
 
-	keeper.SetInitAllocateValidator(ctx, true)
+	keeper.SetInitExistedValidatorFlag(ctx, true)
 	keeper.SetDistributionType(ctx, types.DistributionTypeOnChain)
 	keeper.stakingKeeper.IterateValidators(ctx, func(index int64, validator stakingexported.ValidatorI) (stop bool) {
 		if validator != nil {
-			keeper.initValidatorWithoutOutstanding(ctx, validator)
+			keeper.initExistedValidatorForDistrProposal(ctx, validator)
 		}
 		return false
 	})
@@ -96,7 +96,7 @@ func TestRewards(t *testing.T) {
 	commissionBefore := keeper.GetValidatorAccumulatedCommission(ctx, valOpAddr1)
 	require.True(t, keeper.HasValidatorOutstandingRewards(ctx, valOpAddr1))
 	validator := keeper.stakingKeeper.Validator(ctx, valOpAddr1)
-	keeper.initValidatorWithoutOutstanding(ctx, validator)
+	keeper.initExistedValidatorForDistrProposal(ctx, validator)
 	commissionAfter := keeper.GetValidatorAccumulatedCommission(ctx, valOpAddr1)
 	require.Equal(t, commissionBefore, commissionAfter)
 

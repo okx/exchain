@@ -22,7 +22,7 @@ func (k Keeper) initializeValidatorDistrProposal(ctx sdk.Context, val exported.V
 	k.SetValidatorOutstandingRewards(ctx, val.GetOperator(), sdk.SysCoins{})
 }
 
-func (k Keeper) initValidatorWithoutOutstanding(ctx sdk.Context, val exported.ValidatorI) {
+func (k Keeper) initExistedValidatorForDistrProposal(ctx sdk.Context, val exported.ValidatorI) {
 	logger := k.Logger(ctx)
 	if k.HasValidatorOutstandingRewards(ctx, val.GetOperator()) {
 		logger.Debug(fmt.Sprintf("has validator, %s", val.GetOperator().String()))
@@ -41,7 +41,7 @@ func (k Keeper) initValidatorWithoutOutstanding(ctx sdk.Context, val exported.Va
 	// set outstanding rewards with commission
 	k.SetValidatorOutstandingRewards(ctx, val.GetOperator(), commission)
 
-	logger.Debug("initValidatorWithoutOutstanding", "Validator", val.GetOperator(), "Commission", commission)
+	logger.Debug("initExistedValidatorForDistrProposal", "Validator", val.GetOperator(), "Commission", commission)
 }
 
 // increment validator period, returning the period just ended

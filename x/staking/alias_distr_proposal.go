@@ -13,7 +13,6 @@ import (
 var (
 	// functions aliases
 	NewCommissionRates                = types.NewCommissionRates
-	ErrNotSupport                     = types.ErrNotSupport
 	NewMsgEditValidatorCommissionRate = types.NewMsgEditValidatorCommissionRate
 	NewMsgDestroyValidator            = types.NewMsgDestroyValidator
 	NewMsgRegProxy                    = types.NewMsgRegProxy

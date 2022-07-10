@@ -28,8 +28,8 @@ func ErrCodeEmptyValidatorDistInfo() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeEmptyValidatorDistInfo, "no validator distribution info")
 }
 
-func ErrCodeCodeEmptyDelegationVoteValidator() sdk.Error {
-	return sdkerrors.New(DefaultCodespace, CodeEmptyDelegationVoteValidator, "delegation not vote validator")
+func ErrCodeEmptyDelegationVoteValidator() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeEmptyDelegationVoteValidator, "delegation not vote the validator")
 }
 
 func ErrCodeZeroDelegationShares() sdk.Error {

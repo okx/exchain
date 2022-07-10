@@ -44,7 +44,10 @@ func queryDelegationRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, 
 	}
 
 	logger := k.Logger(ctx)
-	if !k.HasDelegatorStartingInfo(ctx, val.GetOperator(), params.DelegatorAddress) && !del.GetLastAddedShares().IsZero() {
+	if !k.HasDelegatorStartingInfo(ctx, val.GetOperator(), params.DelegatorAddress) {
+		if del.GetLastAddedShares().IsZero() {
+			return nil, sdkerrors.Wrap(types.ErrCodeZeroDelegationShares(), params.DelegatorAddress.String())
+		}
 		k.initExistedDelegationStartInfo(ctx, val, del)
 	}
 
@@ -94,7 +97,10 @@ func queryDelegatorTotalRewards(ctx sdk.Context, _ []string, req abci.RequestQue
 		}
 
 		logger := k.Logger(ctx)
-		if !k.HasDelegatorStartingInfo(ctx, val.GetOperator(), params.DelegatorAddress) && !del.GetLastAddedShares().IsZero() {
+		if !k.HasDelegatorStartingInfo(ctx, val.GetOperator(), params.DelegatorAddress) {
+			if del.GetLastAddedShares().IsZero() {
+				return nil, sdkerrors.Wrap(types.ErrCodeZeroDelegationShares(), params.DelegatorAddress.String())
+			}
 			k.initExistedDelegationStartInfo(ctx, val, del)
 		}
 
