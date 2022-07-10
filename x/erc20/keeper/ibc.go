@@ -293,6 +293,9 @@ func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.
 
 // IbcTransferVouchers transfer vouchers to other chain by ibc
 func (k Keeper) IbcTransferVouchers(ctx sdk.Context, from, to string, vouchers sdk.SysCoins) error {
+	if len(strings.TrimSpace(from)) == 0 {
+		return errors.New("empty from address string is not allowed")
+	}
 	fromAddr, err := sdk.AccAddressFromBech32(from)
 	if err != nil {
 		return err
@@ -318,6 +321,9 @@ func (k Keeper) IbcTransferVouchers(ctx sdk.Context, from, to string, vouchers s
 
 // IbcTransferNative20 transfer native20 to other chain by ibc
 func (k Keeper) IbcTransferNative20(ctx sdk.Context, from, to string, native20s sdk.SysCoins, portID, channelID string) error {
+	if len(strings.TrimSpace(from)) == 0 {
+		return errors.New("empty from address string is not allowed")
+	}
 	fromAddr, err := sdk.AccAddressFromBech32(from)
 	if err != nil {
 		return err
