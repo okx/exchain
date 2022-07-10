@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"runtime"
 	"sort"
 	"sync"
@@ -1230,7 +1231,14 @@ func (tree *MutableTree) SetDelta(delta *TreeDelta) {
 	}
 }
 
+var oncePrintf sync.Once
+
 func (tree *MutableTree) GetDelta() {
+	oncePrintf.Do(
+		func() {
+			log.Println("okgiskook-----------fly on!!!")
+		},
+	)
 	nodes := make([]*NodeJsonImp, len(tree.savedNodes))
 	index := 0
 	for k, v := range tree.savedNodes {
@@ -1239,11 +1247,59 @@ func (tree *MutableTree) GetDelta() {
 	}
 	tree.deltas.NodesDelta = nodes
 
+	// check the dds additions
+	var ddsAddNodesLeaf []*Node
+	for _, v := range tree.savedNodes {
+		if v.isLeaf() {
+			ddsAddNodesLeaf = append(ddsAddNodesLeaf, v)
+		}
+	}
+	if len(ddsAddNodesLeaf) != len(tree.unsavedFastNodeAdditions) {
+		panic("giskook ddsAddNodesLeaf not equal to unsavedFastNodeAdditions")
+	} else {
+		for _, v := range ddsAddNodesLeaf {
+			var check bool
+			for _, vv := range tree.unsavedFastNodeAdditions {
+				if bytes.Equal(vv.key, v.key) {
+					check = true
+				}
+			}
+			if !check {
+				panic(fmt.Sprintf("giskook ddsAddNodesLeaf unsavedFastNodeAdditions key unmatch %v", v.key))
+			}
+		}
+	}
+	// check the dds additions
+
 	orphans := make([]*NodeJson, len(tree.orphans))
 	for i, orphan := range tree.orphans {
 		orphans[i] = NodeToNodeJson(orphan)
 	}
 	tree.deltas.OrphansDelta = orphans
+
+	// check removals
+	var ddsRemoveLeaf []*Node
+	for _, v := range tree.orphans {
+		if v.isLeaf() {
+			ddsRemoveLeaf = append(ddsRemoveLeaf, v)
+		}
+	}
+	if len(ddsRemoveLeaf) != len(tree.unsavedFastNodeRemovals) {
+		panic("giskook ddsRemoveLeaf not equal to unsavedFastNodeRemovals")
+	} else {
+		for _, v := range ddsRemoveLeaf {
+			var check bool
+			for k, _ := range tree.unsavedFastNodeRemovals {
+				if k == string(v.key) {
+					check = true
+				}
+			}
+			if !check {
+				panic(fmt.Sprintf("giskook ddsRemoveLeaf unsavedFastNodeRemovals key unmatch %v", v.key))
+			}
+		}
+	}
+	// check removals
 
 	tree.deltas.FastNodeVersion, _ = tree.ndb.getFastStorageVersion()
 }
