@@ -126,6 +126,15 @@ func (h SendToIbcEventHandler) Handle(ctx sdk.Context, contract common.Address, 
 	if err = h.bankKeeper.SendCoins(ctx, contractAddr, sender, vouchers); err != nil {
 		return err
 	}
+	ctx.EventManager().EmitEvents(sdk.Events{
+		sdk.NewEvent(
+			types.EventTypUnlock,
+			sdk.NewAttribute(types.AttributeKeyFrom, contractAddr.String()),
+			sdk.NewAttribute(types.AttributeKeyTo, sender.String()),
+			sdk.NewAttribute(sdk.AttributeKeyAmount, vouchers.String()),
+		),
+	})
+
 	// 2. Initiate IBC transfer from sender account
 	if err = h.Keeper.IbcTransferVouchers(ctx, sender.String(), recipient, vouchers); err != nil {
 		return err
@@ -183,6 +192,13 @@ func (h SendNative20ToIbcEventHandler) Handle(ctx sdk.Context, contract common.A
 	if err = h.supplyKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, sender, native20s); err != nil {
 		return err
 	}
+	ctx.EventManager().EmitEvents(sdk.Events{
+		sdk.NewEvent(
+			types.EventTypMint,
+			sdk.NewAttribute(types.AttributeKeyTo, sender.String()),
+			sdk.NewAttribute(sdk.AttributeKeyAmount, native20s.String()),
+		),
+	})
 
 	// 2. Initiate IBC transfer from sender account
 	if err = h.Keeper.IbcTransferNative20(ctx, sender.String(), recipient, native20s, portID, channelID); err != nil {

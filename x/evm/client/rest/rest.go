@@ -132,9 +132,18 @@ func getEthTxResponse(node client.Client, resTx *ctypes.ResultTx, ethTx *evmtype
 	}
 	blockHash := ethcommon.BytesToHash(block.Block.Hash())
 	height := uint64(resTx.Height)
-	res, err := watcher.NewTransaction(ethTx, ethcommon.BytesToHash(resTx.Tx.Hash(resTx.Height)), blockHash, height, uint64(resTx.Index))
+	transaction, err := watcher.NewTransaction(ethTx, ethcommon.BytesToHash(resTx.Tx.Hash(resTx.Height)), blockHash, height, uint64(resTx.Index))
 	if err != nil {
 		return nil, err
+	}
+
+	parsedLogs, _ := sdk.ParseABCILogs(resTx.TxResult.Log)
+	res := struct {
+		*watcher.Transaction
+		Logs sdk.ABCIMessageLogs
+	}{
+		transaction,
+		parsedLogs,
 	}
 	return json.Marshal(res)
 }

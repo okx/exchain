@@ -10,7 +10,7 @@ import (
 
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	ibctransferType "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
+	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	ibcclienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/erc20/types"
@@ -109,6 +109,14 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 		}
 		k.SetContractForDenom(ctx, voucher.Denom, contract)
 		k.Logger(ctx).Info("contract created for coin", "contract", contract.String(), "denom", voucher.Denom)
+
+		ctx.EventManager().EmitEvents(sdk.Events{
+			sdk.NewEvent(
+				types.EventTypDeployModuleERC20,
+				sdk.NewAttribute(types.AttributeKeyContractAddr, contract.String()),
+				sdk.NewAttribute(ibctransfertypes.AttributeKeyDenom, voucher.Denom),
+			),
+		})
 	}
 
 	// 1. transfer voucher from user address to contact address in bank
@@ -124,6 +132,22 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 		voucher.Amount.BigInt()); err != nil {
 		return err
 	}
+
+	ctx.EventManager().EmitEvents(sdk.Events{
+		sdk.NewEvent(
+			types.EventTypLock,
+			sdk.NewAttribute(types.AttributeKeyFrom, from.String()),
+			sdk.NewAttribute(types.AttributeKeyTo, contract.String()),
+			sdk.NewAttribute(sdk.AttributeKeyAmount, voucher.String()),
+		),
+		sdk.NewEvent(
+			types.EventTypCallModuleERC20,
+			sdk.NewAttribute(types.AttributeKeyContractAddr, contract.String()),
+			sdk.NewAttribute(types.AttributeKeyContractMethod, types.ContractMintMethod),
+			sdk.NewAttribute(ibctransfertypes.AttributeKeyReceiver, from.String()),
+			sdk.NewAttribute(ibctransfertypes.AttributeKeyAmount, voucher.Amount.BigInt().String()),
+		),
+	})
 	return nil
 }
 
@@ -152,6 +176,21 @@ func (k Keeper) ConvertNativeToERC20(ctx sdk.Context, from sdk.AccAddress, nativ
 		native.Amount.BigInt()); err != nil {
 		return err
 	}
+
+	ctx.EventManager().EmitEvents(sdk.Events{
+		sdk.NewEvent(
+			types.EventTypBurn,
+			sdk.NewAttribute(types.AttributeKeyFrom, from.String()),
+			sdk.NewAttribute(sdk.AttributeKeyAmount, native.String()),
+		),
+		sdk.NewEvent(
+			types.EventTypCallModuleERC20,
+			sdk.NewAttribute(types.AttributeKeyContractAddr, contract.String()),
+			sdk.NewAttribute(types.AttributeKeyContractMethod, types.ContractMintMethod),
+			sdk.NewAttribute(ibctransfertypes.AttributeKeyReceiver, from.String()),
+			sdk.NewAttribute(ibctransfertypes.AttributeKeyAmount, native.Amount.BigInt().String()),
+		),
+	})
 	return nil
 }
 
@@ -361,7 +400,7 @@ func (k Keeper) ibcSendTransfer(ctx sdk.Context, sender sdk.AccAddress, to strin
 
 	return k.transferKeeper.SendTransfer(
 		ctx,
-		ibctransferType.PortID,
+		ibctransfertypes.PortID,
 		channelID,
 		sdk.NewCoinAdapter(coin.Denom, sdk.NewIntFromBigInt(coin.Amount.BigInt())),
 		sender,
