@@ -1,6 +1,9 @@
 package distribution
 
 import (
+	"fmt"
+	"testing"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -9,60 +12,74 @@ import (
 	"github.com/okex/exchain/x/distribution/types"
 	"github.com/okex/exchain/x/staking"
 	"github.com/stretchr/testify/require"
-	"testing"
-	"time"
+	"github.com/stretchr/testify/suite"
 )
 
-func TestWithdrawDelegatorReward(t *testing.T) {
-	ctx, _, dk, sk, _ := keeper.CreateTestInputDefault(t, false, 10)
-	handler := NewHandler(dk)
-	delAddr1 := keeper.TestDelAddrs[0]
-	valAddr1 := keeper.TestValAddrs[0]
-	valOpAddrs := []sdk.ValAddress{valAddr1}
+type HandlerSuite struct {
+	suite.Suite
+}
 
-	delAddr2 := keeper.TestDelAddrs[1]
-	valAddr2 := keeper.TestValAddrs[1]
-	valOpAddrs2 := []sdk.ValAddress{valAddr1, valAddr2}
+func TestHandlerSuite(t *testing.T) {
+	suite.Run(t, new(HandlerSuite))
+}
 
-	msg := NewMsgWithdrawDelegatorReward(delAddr1, valAddr1)
-	msg2 := NewMsgWithdrawDelegatorReward(delAddr2, valAddr2)
+func (suite *HandlerSuite) TestHandlerWithdrawDelegatorReward() {
+	testCases := []struct {
+		title    string
+		dochange func(ctx sdk.Context, dk Keeper)
+		errors   [3]sdk.Error
+	}{
+		{
+			"change distribution type",
+			func(ctx sdk.Context, dk Keeper) {
+				tmtypes.UnittestOnlySetMilestoneVenus3Height(-1)
+				proposal := types.NewChangeDistributionTypeProposal("change distri type", "", types.DistributionTypeOnChain)
+				keeper.HandleChangeDistributionTypeProposal(ctx, dk, proposal)
+				require.Equal(suite.T(), dk.GetDistributionType(ctx), types.DistributionTypeOnChain)
+			},
+			[3]sdk.Error{types.ErrUnknownDistributionMsgType(), types.ErrCodeEmptyDelegationDistInfo(), nil},
+		},
+		{
+			"no change distribution type",
+			func(ctx sdk.Context, dk Keeper) {
 
-	// not support msg type
-	_, err := handler(ctx, msg)
-	require.Equal(t, types.ErrUnknownDistributionMsgType(), err)
-	ctx.SetBlockTime(time.Now())
-	// deposit and add shares
-	keeper.DoDeposit(t, ctx, sk, delAddr1, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-	keeper.DoAddShares(t, ctx, sk, delAddr1, valOpAddrs)
+			},
+			[3]sdk.Error{types.ErrUnknownDistributionMsgType(), types.ErrUnknownDistributionMsgType(), types.ErrUnknownDistributionMsgType()},
+		},
+	}
+	_ = testCases
 
-	keeper.DoDeposit(t, ctx, sk, delAddr2, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-	keeper.DoAddShares(t, ctx, sk, delAddr2, valOpAddrs2)
+	for _, tc := range testCases {
+		suite.Run(tc.title, func() {
+			ctx, _, dk, sk, _ := keeper.CreateTestInputDefault(suite.T(), false, 10)
+			_, _, _ = ctx, dk, sk
+			handler := NewHandler(dk)
+			delAddr1 := keeper.TestDelAddrs[0]
+			valAddr1 := keeper.TestValAddrs[0]
 
-	// delegation not exist
-	_, err = handler(ctx, msg)
-	require.Equal(t, types.ErrUnknownDistributionMsgType(), err)
+			valOpAddrs := []sdk.ValAddress{valAddr1}
 
-	// deposit and add shares ErrCodeNotSupportDistributionMethod
-	keeper.DoDeposit(t, ctx, sk, delAddr1, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-	keeper.DoAddShares(t, ctx, sk, delAddr1, valOpAddrs)
-	// delegation not exist
-	_, err = handler(ctx, msg)
-	require.Equal(t, types.ErrUnknownDistributionMsgType(), err)
+			msg := NewMsgWithdrawDelegatorReward(delAddr1, valAddr1)
+			_, err := handler(ctx, msg)
+			require.Equal(suite.T(), tc.errors[0], err)
 
-	tmtypes.UnittestOnlySetMilestoneVenus3Height(-1)
-	proposal := types.NewChangeDistributionTypeProposal("change distri type", "", types.DistributionTypeOnChain)
-	keeper.HandleChangeDistributionTypeProposal(ctx, dk, proposal)
-	require.Equal(t, dk.GetDistributionType(ctx), types.DistributionTypeOnChain)
+			tc.dochange(ctx, dk)
 
-	// withdraw del1 ok
-	keeper.DoDeposit(t, ctx, sk, delAddr1, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-	keeper.DoAddShares(t, ctx, sk, delAddr1, valOpAddrs2)
-	_, err = handler(ctx, msg)
-	require.Nil(t, err)
+			// no deposit and add shares
+			_, err = handler(ctx, msg)
+			fmt.Printf("%s\n", tc.errors[1])
+			require.Equal(suite.T(), tc.errors[1], err)
 
-	// withdraw del2 ok
-	_, err = handler(ctx, msg2)
-	require.Nil(t, err)
+			// deposit and add shares
+			keeper.DoDeposit(suite.T(), ctx, sk, delAddr1, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
+			keeper.DoAddShares(suite.T(), ctx, sk, delAddr1, valOpAddrs)
+
+			_, err = handler(ctx, msg)
+			fmt.Printf("%s\n", tc.errors[2])
+			require.Equal(suite.T(), tc.errors[2], err)
+		})
+	}
+
 }
 
 type allocationParam struct {
@@ -86,37 +103,96 @@ func createVotes(ctx sdk.Context, sk staking.Keeper, test allocationParam) []abc
 	return votes
 }
 
-func TestWithdrawValidatorCommission(t *testing.T) {
-	ctx, ak, dk, sk, supplyKeeper := keeper.CreateTestInputDefault(t, false, 10)
-	_ = sk
-	handler := NewHandler(dk)
-	//delAddr1 := keeper.TestDelAddrs[0]
-	valAddr1 := keeper.TestValAddrs[0]
-	//valOpAddrs := []sdk.ValAddress{valAddr1}
+func (suite *HandlerSuite) TestHandlerWithdrawValidatorCommission() {
+	testCases := []struct {
+		title            string
+		doAllocateTokens func(ctx sdk.Context, ak auth.AccountKeeper, dk Keeper, sk staking.Keeper, supplyKeeper types.SupplyKeeper)
+		dochange         func(ctx sdk.Context, dk Keeper)
+		errors           [2]sdk.Error
+	}{
+		{
+			"normal, no change distribution type",
+			func(ctx sdk.Context, ak auth.AccountKeeper, dk Keeper, sk staking.Keeper, supplyKeeper types.SupplyKeeper) {
+				feeCollector := supplyKeeper.GetModuleAccount(ctx, auth.FeeCollectorName)
+				require.NotNil(suite.T(), feeCollector)
+				err := feeCollector.SetCoins(sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(int64(100))}})
+				require.NoError(suite.T(), err)
+				ak.SetAccount(ctx, feeCollector)
+				allocationParam := allocationParam{
+					10,
+					[]bool{true, true, true, true}, []bool{false, false, false, false},
+					nil,
+				}
+				votes := createVotes(ctx, sk, allocationParam)
+				dk.AllocateTokens(ctx, 1, keeper.TestConsAddrs[0], votes)
+				require.Nil(suite.T(), err)
+			},
+			func(ctx sdk.Context, dk Keeper) {},
+			[2]sdk.Error{types.ErrNoValidatorCommission(), nil},
+		},
+		{
+			"no allocate tokens, no change distribution type",
+			func(ctx sdk.Context, ak auth.AccountKeeper, dk Keeper, sk staking.Keeper, supplyKeeper types.SupplyKeeper) {
 
-	msg := NewMsgWithdrawValidatorCommission(valAddr1)
-
-	// ErrNoValidatorCommission
-	_, err := handler(ctx, msg)
-	require.Equal(t, types.ErrNoValidatorCommission(), err)
-
-	//ok
-	//newBlockAndAllocateReward(t)
-	staking.EndBlocker(ctx, sk)
-	feeCollector := supplyKeeper.GetModuleAccount(ctx, auth.FeeCollectorName)
-	require.NotNil(t, feeCollector)
-	err = feeCollector.SetCoins(sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(int64(100))}})
-	require.NoError(t, err)
-	ak.SetAccount(ctx, feeCollector)
-	allocationParam := allocationParam{
-		10,
-		[]bool{true, true, true, true}, []bool{false, false, false, false},
-		nil,
+			},
+			func(ctx sdk.Context, dk Keeper) {},
+			[2]sdk.Error{types.ErrNoValidatorCommission(), types.ErrNoValidatorCommission()},
+		},
+		{
+			"normal, change distribution type",
+			func(ctx sdk.Context, ak auth.AccountKeeper, dk Keeper, sk staking.Keeper, supplyKeeper types.SupplyKeeper) {
+				feeCollector := supplyKeeper.GetModuleAccount(ctx, auth.FeeCollectorName)
+				require.NotNil(suite.T(), feeCollector)
+				err := feeCollector.SetCoins(sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(int64(100))}})
+				require.NoError(suite.T(), err)
+				ak.SetAccount(ctx, feeCollector)
+				allocationParam := allocationParam{
+					10,
+					[]bool{true, true, true, true}, []bool{false, false, false, false},
+					nil,
+				}
+				votes := createVotes(ctx, sk, allocationParam)
+				dk.AllocateTokens(ctx, 1, keeper.TestConsAddrs[0], votes)
+				require.Nil(suite.T(), err)
+			},
+			func(ctx sdk.Context, dk Keeper) {
+				tmtypes.UnittestOnlySetMilestoneVenus3Height(-1)
+				proposal := types.NewChangeDistributionTypeProposal("change distri type", "", types.DistributionTypeOnChain)
+				keeper.HandleChangeDistributionTypeProposal(ctx, dk, proposal)
+				require.Equal(suite.T(), dk.GetDistributionType(ctx), types.DistributionTypeOnChain)
+			},
+			[2]sdk.Error{types.ErrNoValidatorCommission(), nil},
+		},
+		{
+			"no allocate tokens, change distribution type",
+			func(ctx sdk.Context, ak auth.AccountKeeper, dk Keeper, sk staking.Keeper, supplyKeeper types.SupplyKeeper) {
+				tmtypes.UnittestOnlySetMilestoneVenus3Height(-1)
+				proposal := types.NewChangeDistributionTypeProposal("change distri type", "", types.DistributionTypeOnChain)
+				keeper.HandleChangeDistributionTypeProposal(ctx, dk, proposal)
+				require.Equal(suite.T(), dk.GetDistributionType(ctx), types.DistributionTypeOnChain)
+			},
+			func(ctx sdk.Context, dk Keeper) {},
+			[2]sdk.Error{types.ErrNoValidatorCommission(), types.ErrNoValidatorCommission()},
+		},
 	}
-	votes := createVotes(ctx, sk, allocationParam)
-	dk.AllocateTokens(ctx, 1, keeper.TestConsAddrs[0], votes)
-	require.Nil(t, err)
 
-	_, err = handler(ctx, msg)
-	require.Nil(t, err)
+	for _, tc := range testCases {
+		suite.Run(tc.title, func() {
+			ctx, ak, dk, sk, supplyKeeper := keeper.CreateTestInputDefault(suite.T(), false, 10)
+			_ = sk
+			handler := NewHandler(dk)
+			valAddr1 := keeper.TestValAddrs[0]
+
+			msg := NewMsgWithdrawValidatorCommission(valAddr1)
+
+			_, err := handler(ctx, msg)
+			require.Equal(suite.T(), tc.errors[0], err)
+
+			staking.EndBlocker(ctx, sk)
+			tc.dochange(ctx, dk)
+			tc.doAllocateTokens(ctx, ak, dk, sk, supplyKeeper)
+			_, err = handler(ctx, msg)
+			require.Equal(suite.T(), tc.errors[1], err)
+		})
+	}
 }

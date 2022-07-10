@@ -2,7 +2,6 @@ package types
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
 
 // ensure Msg interface compliance at compile time
@@ -44,7 +43,7 @@ func (msg MsgEditValidatorCommissionRate) ValidateBasic() error {
 	}
 
 	if msg.CommissionRate.GT(sdk.OneDec()) || msg.CommissionRate.IsNegative() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "commission rate must be between 0 and 1 (inclusive)")
+		return ErrInvalidCommissionRate()
 	}
 	return nil
 }

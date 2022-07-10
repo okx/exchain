@@ -1,13 +1,23 @@
 package types
 
 import (
-	"github.com/okex/exchain/x/gov/types"
 	"math/rand"
 	"testing"
 	"time"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
+	exgovtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
+
+type ProposalSuite struct {
+	suite.Suite
+}
+
+func TestProposalSuite(t *testing.T) {
+	suite.Run(t, new(ProposalSuite))
+}
 
 func RandStr(length int) string {
 	str := "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -20,48 +30,81 @@ func RandStr(length int) string {
 	return string(result)
 }
 
-func TestNewChangeDistributionTypeProposal(t *testing.T) {
-	title := RandStr(types.MaxTitleLength)
-	description := RandStr(types.MaxDescriptionLength)
-	distrType := DistributionTypeOffChain
-	proposal := NewChangeDistributionTypeProposal(title, description, distrType)
+func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
+	testCases := []struct {
+		title               string
+		proposalTitle       string
+		proposalDescription string
+		distrType           uint32
+		err                 error
+	}{
+		{
+			"no proposal title",
+			"",
+			"description",
+			0,
+			exgovtypes.ErrInvalidProposalContent("title is required"),
+		},
+		{
+			"gt max proposal title length",
+			RandStr(types.MaxTitleLength + 1),
+			"description",
+			0,
+			exgovtypes.ErrInvalidProposalContent("title length is bigger than max title length"),
+		},
+		{
+			"gt max proposal title length",
+			RandStr(types.MaxTitleLength),
+			"",
+			0,
+			exgovtypes.ErrInvalidProposalContent("description is required"),
+		},
+		{
+			"gt max proposal description length",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength + 1),
+			0,
+			exgovtypes.ErrInvalidProposalContent("description length is bigger than max description length"),
+		},
+		{
+			"error type",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			2,
+			ErrInvalidDistributionType(),
+		},
+		{
+			"normal, type 0",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			0,
+			nil,
+		},
+		{
+			"normal, type 1",
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			1,
+			nil,
+		},
+	}
 
-	//expect success
-	require.Equal(t, title, proposal.GetTitle())
-	require.Equal(t, description, proposal.GetDescription())
-	require.Equal(t, RouterKey, proposal.ProposalRoute())
-	require.Equal(t, ProposalTypeChangeDistributionType, proposal.ProposalType())
-	require.Nil(t, proposal.ValidateBasic())
-	require.NotPanics(t, func() {
-		_ = proposal.String()
-	})
+	for _, tc := range testCases {
+		suite.Run(tc.title, func() {
+			title := tc.proposalTitle
+			description := tc.proposalDescription
+			proposal := NewChangeDistributionTypeProposal(title, description, tc.distrType)
 
-	//expect failed,Title is nill
-	proposal.Title = ""
-	require.Error(t, proposal.ValidateBasic())
+			require.Equal(suite.T(), title, proposal.GetTitle())
+			require.Equal(suite.T(), description, proposal.GetDescription())
+			require.Equal(suite.T(), RouterKey, proposal.ProposalRoute())
+			require.Equal(suite.T(), ProposalTypeChangeDistributionType, proposal.ProposalType())
+			require.NotPanics(suite.T(), func() {
+				_ = proposal.String()
+			})
 
-	//expect failed,Title is nill
-	proposal.Title = RandStr(types.MaxTitleLength + 1)
-	require.Error(t, proposal.ValidateBasic())
-
-	//expect failed,Title len lg MaxTitleLength
-	proposal.Title = RandStr(types.MaxTitleLength + 1)
-	require.Error(t, proposal.ValidateBasic())
-
-	//expect failed,Description is nill
-	proposal.Title = RandStr(types.MaxTitleLength)
-	proposal.Description = ""
-	require.Error(t, proposal.ValidateBasic())
-
-	//expect failed,Description lg MaxDescriptionLength
-	proposal.Title = RandStr(types.MaxTitleLength)
-	proposal.Description = RandStr(types.MaxDescriptionLength + 1)
-	require.Error(t, proposal.ValidateBasic())
-
-	//expect failed, type is 2
-	proposal.Title = RandStr(types.MaxTitleLength)
-	proposal.Description = RandStr(types.MaxDescriptionLength)
-	proposal.Type = 2
-	require.Error(t, proposal.ValidateBasic())
-
+			err := proposal.ValidateBasic()
+			require.Equal(suite.T(), tc.err, err)
+		})
+	}
 }
