@@ -1248,7 +1248,8 @@ func (tree *MutableTree) GetDelta() {
 	tree.deltas.NodesDelta = nodes
 
 	// check the dds additions
-	var ddsAddNodesLeaf []*Node
+	//var ddsAddNodesLeaf []*Node
+	ddsAddNodesLeaf := make([]*Node, 0, len(tree.savedNodes))
 	for _, v := range tree.savedNodes {
 		if v.isLeaf() {
 			ddsAddNodesLeaf = append(ddsAddNodesLeaf, v)
@@ -1256,19 +1257,20 @@ func (tree *MutableTree) GetDelta() {
 	}
 	if len(ddsAddNodesLeaf) != len(tree.unsavedFastNodeAdditions) {
 		panic("giskook ddsAddNodesLeaf not equal to unsavedFastNodeAdditions")
-	} else {
-		for _, v := range ddsAddNodesLeaf {
-			var check bool
-			for _, vv := range tree.unsavedFastNodeAdditions {
-				if bytes.Equal(vv.key, v.key) {
-					check = true
-				}
-			}
-			if !check {
-				panic(fmt.Sprintf("giskook ddsAddNodesLeaf unsavedFastNodeAdditions key unmatch %v", v.key))
-			}
-		}
 	}
+	//	 else {
+	//		for _, v := range ddsAddNodesLeaf {
+	//			var check bool
+	//			for _, vv := range tree.unsavedFastNodeAdditions {
+	//				if bytes.Equal(vv.key, v.key) {
+	//					check = true
+	//				}
+	//			}
+	//			if !check {
+	//				panic(fmt.Sprintf("giskook ddsAddNodesLeaf unsavedFastNodeAdditions key unmatch %v", v.key))
+	//			}
+	//		}
+	//	}
 	// check the dds additions
 
 	orphans := make([]*NodeJson, len(tree.orphans))
@@ -1278,7 +1280,7 @@ func (tree *MutableTree) GetDelta() {
 	tree.deltas.OrphansDelta = orphans
 
 	// check removals
-	var ddsRemoveLeaf []*Node
+	ddsRemoveLeaf := make([]*Node, 0, len(tree.orphans))
 	for _, v := range tree.orphans {
 		if v.isLeaf() {
 			ddsRemoveLeaf = append(ddsRemoveLeaf, v)
@@ -1286,19 +1288,20 @@ func (tree *MutableTree) GetDelta() {
 	}
 	if len(ddsRemoveLeaf) != len(tree.unsavedFastNodeRemovals) {
 		panic("giskook ddsRemoveLeaf not equal to unsavedFastNodeRemovals")
-	} else {
-		for _, v := range ddsRemoveLeaf {
-			var check bool
-			for k, _ := range tree.unsavedFastNodeRemovals {
-				if k == string(v.key) {
-					check = true
-				}
-			}
-			if !check {
-				panic(fmt.Sprintf("giskook ddsRemoveLeaf unsavedFastNodeRemovals key unmatch %v", v.key))
-			}
-		}
 	}
+	//	else {
+	//		for _, v := range ddsRemoveLeaf {
+	//			var check bool
+	//			for k, _ := range tree.unsavedFastNodeRemovals {
+	//				if k == string(v.key) {
+	//					check = true
+	//				}
+	//			}
+	//			if !check {
+	//				panic(fmt.Sprintf("giskook ddsRemoveLeaf unsavedFastNodeRemovals key unmatch %v", v.key))
+	//			}
+	//		}
+	//	}
 	// check removals
 
 	tree.deltas.FastNodeVersion, _ = tree.ndb.getFastStorageVersion()
