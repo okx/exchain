@@ -5,7 +5,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -251,4 +255,101 @@ func EthHeaderWithBlockHashFromTendermint(tmHeader *tmtypes.Header) (header *Eth
 	}
 
 	return
+}
+
+func RawTxToWatcherTx(clientCtx clientcontext.CLIContext, bz []byte,
+	blockHash common.Hash, blockNumber, index uint64) (*watcher.Transaction, error) {
+	realTx, err := evmtypes.TxDecoder(clientCtx.Codec)(bz, evmtypes.IGNORE_HEIGHT_CHECKING)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
+	}
+
+	var watcherTx *watcher.Transaction
+	switch realTx.GetType() {
+	case sdk.EvmTxType:
+		ethTx, ok := realTx.(*evmtypes.MsgEthereumTx)
+		if !ok {
+			return nil, fmt.Errorf("invalid transaction type %T, expected %T", realTx, evmtypes.MsgEthereumTx{})
+		}
+		watcherTx, err = watcher.NewTransaction(ethTx, common.BytesToHash(realTx.TxHash()), blockHash, blockNumber, index)
+		if err != nil {
+			return nil, err
+		}
+	case sdk.StdTxType:
+		watcherTx = &watcher.Transaction{
+			BlockHash:   &blockHash,
+			BlockNumber: (*hexutil.Big)(new(big.Int).SetUint64(blockNumber)),
+			Hash:        common.BytesToHash(realTx.TxHash()),
+		}
+	}
+
+	return watcherTx, nil
+}
+
+func RawTxResultToStdResponse(clientCtx clientcontext.CLIContext,
+	tr *ctypes.ResultTx, timestamp time.Time) (*watcher.TransactionResult, error) {
+	var realTx authtypes.StdTx
+	err := clientCtx.Codec.UnmarshalBinaryLengthPrefixed(tr.Tx, &realTx)
+	if err != nil {
+		return nil, err
+	}
+
+	response := sdk.NewResponseResultTx(tr, &realTx, timestamp.Format(time.RFC3339))
+	return &watcher.TransactionResult{TxType: hexutil.Uint64(watcher.StdResponse), Response: &response}, nil
+}
+
+func RawTxResultToEthReceipt(clientCtx clientcontext.CLIContext,
+	tr *ctypes.ResultTx, blockHash common.Hash) (*watcher.TransactionResult, error) {
+	// Convert tx bytes to eth transaction
+	ethTx, err := RawTxToEthTx(clientCtx, tr.Tx)
+	if err != nil {
+		return nil, err
+	}
+
+	err = ethTx.VerifySig(ethTx.ChainID(), tr.Height)
+	if err != nil {
+		return nil, err
+	}
+
+	// Set status codes based on tx result
+	var status = hexutil.Uint64(0)
+	if tr.TxResult.IsOK() {
+		status = hexutil.Uint64(1)
+	}
+
+	txData := tr.TxResult.GetData()
+	data, err := evmtypes.DecodeResultData(txData)
+	if err != nil {
+		status = 0 // transaction failed
+	}
+
+	if len(data.Logs) == 0 {
+		data.Logs = []*ethtypes.Log{}
+	}
+	contractAddr := &data.ContractAddress
+	if data.ContractAddress == common.HexToAddress("0x00000000000000000000") {
+		contractAddr = nil
+	}
+
+	// fix gasUsed when deliverTx ante handler check sequence invalid
+	gasUsed := tr.TxResult.GasUsed
+	if tr.TxResult.Code == sdkerrors.ErrInvalidSequence.ABCICode() {
+		gasUsed = 0
+	}
+
+	receipt := watcher.TransactionReceipt{
+		Status: status,
+		//CumulativeGasUsed: hexutil.Uint64(cumulativeGasUsed),
+		LogsBloom:        data.Bloom,
+		Logs:             data.Logs,
+		TransactionHash:  common.BytesToHash(tr.Hash.Bytes()).String(),
+		ContractAddress:  contractAddr,
+		GasUsed:          hexutil.Uint64(gasUsed),
+		BlockHash:        blockHash.String(),
+		BlockNumber:      hexutil.Uint64(tr.Height),
+		TransactionIndex: hexutil.Uint64(tr.Index),
+		From:             ethTx.GetFrom(),
+		To:               ethTx.To(),
+	}
+	return &watcher.TransactionResult{TxType: hexutil.Uint64(watcher.EthReceipt), Receipt: &receipt}, nil
 }

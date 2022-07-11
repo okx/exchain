@@ -2,6 +2,8 @@ package eth
 
 import (
 	"errors"
+	"github.com/ethereum/go-ethereum/common"
+	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -37,7 +39,7 @@ func (api *PublicEthereumAPI) GetAllTransactionsByBlock(blockNrOrHash rpctypes.B
 	switch blockNum {
 	case rpctypes.PendingBlockNumber:
 		// get all the EVM pending txs
-		pendingTxs, err := api.backend.PendingTransactions()
+		pendingTxs, err := api.backend.PendingTransactionsWithStd()
 		if err != nil {
 			return nil, err
 		}
@@ -61,7 +63,7 @@ func (api *PublicEthereumAPI) GetAllTransactionsByBlock(blockNrOrHash rpctypes.B
 		return nil, err
 	}
 	for idx := offset; idx < offset+limit && int(idx) < len(resBlock.Block.Txs); idx++ {
-		tx, _ := api.getTransactionByBlockAndIndex(resBlock.Block, idx)
+		tx, _ := api.getTransactionWithStdByBlockAndIndex(resBlock.Block, idx)
 		if tx != nil {
 			txs = append(txs, tx)
 		}
@@ -84,12 +86,15 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 	}
 
 	var results []*watcher.TransactionResult
-	//var block *ctypes.ResultBlock
-	//var blockHash common.Hash
+	var block *ctypes.ResultBlock
+	var blockHash common.Hash
+
 	for _, tx := range txs {
 		var res *watcher.TransactionResult
+		var isEthTx bool
 		// std tx
 		if tx.R == nil && tx.S == nil && tx.V == nil {
+			isEthTx = false
 			stdResponse, _ := api.wrappedBackend.GetTransactionResponse(tx.Hash)
 			if stdResponse != nil {
 				var realTx authtypes.StdTx
@@ -102,6 +107,7 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 				res = &watcher.TransactionResult{TxType: hexutil.Uint64(watcher.StdResponse), Response: &response}
 			}
 		} else {
+			isEthTx = true
 			receipt, _ := api.wrappedBackend.GetTransactionReceipt(tx.Hash)
 			if receipt != nil {
 				res = &watcher.TransactionResult{TxType: hexutil.Uint64(watcher.EthReceipt), Receipt: receipt}
@@ -113,73 +119,35 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 			continue
 		}
 
-		//tx, err := api.clientCtx.Client.Tx(tx.Hash.Bytes(), false)
-		//if err != nil {
-		//	// Return nil for transaction when not found
-		//	return nil, nil
-		//}
-		//
-		//if block == nil {
-		//	// Query block for consensus hash
-		//	block, err = api.clientCtx.Client.Block(&tx.Height)
-		//	if err != nil {
-		//		return nil, err
-		//	}
-		//	blockHash = common.BytesToHash(block.Block.Hash())
-		//}
-		//
-		//// Convert tx bytes to eth transaction
-		//ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, tx.Tx)
-		//if err != nil {
-		//	return nil, err
-		//}
-		//
-		//err = ethTx.VerifySig(ethTx.ChainID(), tx.Height)
-		//if err != nil {
-		//	return nil, err
-		//}
-		//
-		//// Set status codes based on tx result
-		//var status = hexutil.Uint64(0)
-		//if tx.TxResult.IsOK() {
-		//	status = hexutil.Uint64(1)
-		//}
-		//
-		//txData := tx.TxResult.GetData()
-		//data, err := evmtypes.DecodeResultData(txData)
-		//if err != nil {
-		//	status = 0 // transaction failed
-		//}
-		//
-		//if len(data.Logs) == 0 {
-		//	data.Logs = []*ethtypes.Log{}
-		//}
-		//contractAddr := &data.ContractAddress
-		//if data.ContractAddress == common.HexToAddress("0x00000000000000000000") {
-		//	contractAddr = nil
-		//}
-		//
-		//// fix gasUsed when deliverTx ante handler check sequence invalid
-		//gasUsed := tx.TxResult.GasUsed
-		//if tx.TxResult.Code == sdkerrors.ErrInvalidSequence.ABCICode() {
-		//	gasUsed = 0
-		//}
-		//
-		//receipt := &watcher.TransactionReceipt{
-		//	Status: status,
-		//	//CumulativeGasUsed: hexutil.Uint64(cumulativeGasUsed),
-		//	LogsBloom:        data.Bloom,
-		//	Logs:             data.Logs,
-		//	TransactionHash:  common.BytesToHash(tx.Hash.Bytes()).String(),
-		//	ContractAddress:  contractAddr,
-		//	GasUsed:          hexutil.Uint64(gasUsed),
-		//	BlockHash:        blockHash.String(),
-		//	BlockNumber:      hexutil.Uint64(tx.Height),
-		//	TransactionIndex: hexutil.Uint64(tx.Index),
-		//	From:             ethTx.GetFrom(),
-		//	To:               ethTx.To(),
-		//}
-		//receipts = append(receipts, receipt)
+		tx, err := api.clientCtx.Client.Tx(tx.Hash.Bytes(), false)
+		if err != nil {
+			// Return nil for transaction when not found
+			return nil, nil
+		}
+
+		if block == nil {
+			// Query block for consensus hash
+			block, err = api.clientCtx.Client.Block(&tx.Height)
+			if err != nil {
+				return nil, err
+			}
+			blockHash = common.BytesToHash(block.Block.Hash())
+		}
+
+		if isEthTx {
+			res, err = rpctypes.RawTxResultToEthReceipt(api.clientCtx, tx, blockHash)
+		} else {
+			res, err = rpctypes.RawTxResultToStdResponse(api.clientCtx, tx, block.Block.Time)
+		}
+
+		if err != nil {
+			return nil, nil
+		}
+
+		if res != nil {
+			results = append(results, res)
+		}
+
 	}
 
 	return results, nil

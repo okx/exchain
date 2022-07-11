@@ -1237,6 +1237,20 @@ func (api *PublicEthereumAPI) getTransactionByBlockAndIndex(block *tmtypes.Block
 	return watcher.NewTransaction(ethTx, txHash, blockHash, height, uint64(idx))
 }
 
+func (api *PublicEthereumAPI) getTransactionWithStdByBlockAndIndex(block *tmtypes.Block, idx hexutil.Uint) (*watcher.Transaction, error) {
+	// return if index out of bounds
+	if uint64(idx) >= uint64(len(block.Txs)) {
+		return nil, nil
+	}
+
+	rpcTx, err := rpctypes.RawTxToWatcherTx(api.clientCtx, block.Txs[idx], common.BytesToHash(block.Hash()), uint64(block.Height), uint64(idx))
+	if err != nil {
+		return nil, err
+	}
+
+	return rpcTx, nil
+}
+
 // GetTransactionsByBlock returns some transactions identified by number or hash.
 func (api *PublicEthereumAPI) GetTransactionsByBlock(blockNrOrHash rpctypes.BlockNumberOrHash, offset, limit hexutil.Uint) ([]*watcher.Transaction, error) {
 	if !viper.GetBool(FlagEnableMultiCall) {
