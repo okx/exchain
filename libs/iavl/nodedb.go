@@ -145,6 +145,7 @@ func (ndb *nodeDB) GetFastNode(key []byte) (*FastNode, error) {
 		ndb.fastNodeMutex.Unlock()
 		return elem.Value.(*FastNode), nil
 	}
+	ndb.fastNodeMutex.Unlock()
 
 	// Doesn't exist, load.
 	buf, err := ndb.db.Get(ndb.fastNodeKey(key))
