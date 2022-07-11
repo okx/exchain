@@ -136,7 +136,6 @@ func getEthTxResponse(node client.Client, resTx *ctypes.ResultTx, ethTx *evmtype
 	if err != nil {
 		return nil, err
 	}
-
 	return json.Marshal(res)
 }
 
