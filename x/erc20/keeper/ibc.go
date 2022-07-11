@@ -312,12 +312,7 @@ func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.
 
 	executionResult, resultData, err, innertxs, contracts := st.TransitionDb(ctx, config)
 	if ctx.IsDeliver() {
-		if innertxs != nil {
-			k.evmKeeper.AddInnerTx(ethTxHash.Hex(), innertxs)
-		}
-		if contracts != nil {
-			k.evmKeeper.AddContract(contracts)
-		}
+		k.addEVMInnerTx(ethTxHash.Hex(), innertxs, contracts)
 	}
 	if err != nil {
 		return nil, nil, err
