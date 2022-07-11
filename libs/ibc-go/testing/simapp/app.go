@@ -2,17 +2,18 @@ package simapp
 
 import (
 	"fmt"
-	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
-	"github.com/okex/exchain/libs/tendermint/libs/cli"
-	"github.com/okex/exchain/x/wasm"
-	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
-	"github.com/spf13/viper"
 	"io"
 	"math/big"
 	"os"
 	"path/filepath"
 	"sort"
 	"sync"
+
+	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
+	"github.com/okex/exchain/libs/tendermint/libs/cli"
+	"github.com/okex/exchain/x/wasm"
+	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
+	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/libs/system/trace"
 
@@ -631,8 +632,8 @@ func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCo
 	}
 }
 func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
-	return func(logIndex []int, hasEnterEvmTx []bool, anteErrs []error) (logs [][]byte) {
-		return ek.FixLog(logIndex, hasEnterEvmTx, anteErrs)
+	return func(logIndex []int, hasEnterEvmTx []bool, anteErrs []error, msgs [][]sdk.Msg, resp []abci.ResponseDeliverTx) (logs [][]byte) {
+		return ek.FixLog(logIndex, hasEnterEvmTx, anteErrs, msgs, resp)
 	}
 }
 
