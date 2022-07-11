@@ -8,6 +8,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/tendermint/go-amino"
+	"sync"
 )
 
 // NewAccountWithAddress implements sdk.AccountKeeper.
@@ -28,6 +29,12 @@ func (ak AccountKeeper) NewAccount(ctx sdk.Context, acc exported.Account) export
 	return acc
 }
 
+var addrStoreKeyPool = &sync.Pool{
+	New: func() interface{} {
+		return &[33]byte{}
+	},
+}
+
 // GetAccount implements sdk.AccountKeeper.
 func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exported.Account {
 	if data, gas, ok := ctx.Cache().GetAccount(ethcmn.BytesToAddress(addr)); ok {
@@ -46,7 +53,10 @@ func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exporte
 		store = ctx.KVStore(ak.key)
 	}
 
-	bz := store.Get(types.AddressStoreKey(addr))
+	keyTarget := addrStoreKeyPool.Get().(*[33]byte)
+	defer addrStoreKeyPool.Put(keyTarget)
+
+	bz := store.Get(types.MakeAddressStoreKey(addr, keyTarget[:0]))
 	if bz == nil {
 		ctx.Cache().UpdateAccount(addr, nil, len(bz), false)
 		return nil
