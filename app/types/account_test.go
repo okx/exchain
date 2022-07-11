@@ -255,7 +255,7 @@ func TestEthAccountAmino(t *testing.T) {
 		}
 
 		var accountFromUnmarshaller exported.Account
-		v, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(data, &accountFromUnmarshaller)
+		v, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(data, (*exported.Account)(nil))
 		require.NoError(t, err)
 		accountFromUnmarshaller, ok := v.(exported.Account)
 		require.True(t, ok)
@@ -322,8 +322,8 @@ func BenchmarkEthAccountAminoUnmarshal(b *testing.B) {
 	b.Run("unmarshaller", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			var account exported.Account
-			_, _ = cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(data, &account)
+			// var account exported.Account
+			_, _ = cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(data, (*exported.Account)(nil))
 		}
 	})
 }
