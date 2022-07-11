@@ -11,5 +11,4 @@ type EvmKeeper interface {
 	GetParams(ctx sdk.Context) evmtypes.Params
 	AddInnerTx(...interface{})
 	AddContract(...interface{})
-	UpdateInnerBlockData(...interface{})
 }
