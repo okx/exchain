@@ -113,10 +113,7 @@ func (w *Watcher) saveFailedReceipts(watchTx WatchTx, gasUsed uint64) {
 
 // SaveParallelTx saves parallel transactions and transactionReceipts to watcher
 func (w *Watcher) SaveParallelTx(msgs []sdk.Msg, resultData *types.ResultData, resp tm.ResponseDeliverTx) {
-	if !w.Enabled() {
-		return
-	}
-	if len(msgs) == 0 {
+	if !w.Enabled() || len(msgs) == 0 {
 		return
 	}
 	evmTx, ok := msgs[0].(*types.MsgEthereumTx)

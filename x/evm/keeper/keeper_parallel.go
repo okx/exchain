@@ -37,12 +37,8 @@ func (k *Keeper) FixLog(logIndex []int, hasEnterEvmTx []bool, anteErrs []error, 
 			}
 			res[index] = data
 		}
-		var resultData *types.ResultData
-		if ok {
-			resultData = rs.ResultData
-		}
 		// save transaction and transactionReceipt to watcher
-		k.saveParallelTxResult(msgs[index], resultData, resp[index])
+		k.saveParallelTxResult(msgs[index], rs.ResultData, resp[index])
 	}
 
 	return res
