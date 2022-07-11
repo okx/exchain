@@ -1257,27 +1257,26 @@ func (tree *MutableTree) GetDelta() {
 	}
 	if len(ddsAddNodesLeaf) == 1 && len(tree.unsavedFastNodeAdditions) == 0 {
 		log.Printf("dds %v\n", ddsAddNodesLeaf[0])
-		log.Printf("dds key %v\n", string(ddsAddNodesLeaf[0].key))
-		log.Printf("dds string %v\n", ddsAddNodesLeaf[0].String())
+		log.Printf("dds key string %v\n", string(ddsAddNodesLeaf[0].key))
+		log.Printf("dds key %v\n", ddsAddNodesLeaf[0].key)
 	}
 
 	log.Printf("giskook dds %v savenodes %v cacheadditions %v\n", len(ddsAddNodesLeaf), len(tree.savedNodes), len(tree.unsavedFastNodeAdditions))
-	//	if len(ddsAddNodesLeaf) != len(tree.unsavedFastNodeAdditions) {
-	//		panic(fmt.Sprintf("giskook ddsAddNodesLeaf not equal to unsavedFastNodeAdditions %v %v", len(ddsAddNodesLeaf), len(tree.unsavedFastNodeAdditions)))
-	//	}
-	//	 else {
-	//		for _, v := range ddsAddNodesLeaf {
-	//			var check bool
-	//			for _, vv := range tree.unsavedFastNodeAdditions {
-	//				if bytes.Equal(vv.key, v.key) {
-	//					check = true
-	//				}
-	//			}
-	//			if !check {
-	//				panic(fmt.Sprintf("giskook ddsAddNodesLeaf unsavedFastNodeAdditions key unmatch %v", v.key))
-	//			}
-	//		}
-	//	}
+	//if len(ddsAddNodesLeaf) != len(tree.unsavedFastNodeAdditions) {
+	//	panic(fmt.Sprintf("giskook ddsAddNodesLeaf not equal to unsavedFastNodeAdditions %v %v", len(ddsAddNodesLeaf), len(tree.unsavedFastNodeAdditions)))
+	//} else {
+	for _, v := range ddsAddNodesLeaf {
+		var check bool
+		for _, vv := range tree.unsavedFastNodeAdditions {
+			if bytes.Equal(vv.key, v.key) && bytes.Equal(vv.value, v.value) {
+				check = true
+			}
+		}
+		if !check {
+			panic(fmt.Sprintf("giskook ddsAddNodesLeaf unsavedFastNodeAdditions key unmatch %v", v.key))
+		}
+	}
+	//}
 	// check the dds additions
 
 	orphans := make([]*NodeJson, len(tree.orphans))
