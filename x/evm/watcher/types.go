@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	"time"
 
 	"math/big"
@@ -22,6 +21,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	"github.com/pkg/errors"
 	"github.com/status-im/keycard-go/hexutils"
 )

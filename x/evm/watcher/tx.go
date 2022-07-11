@@ -2,11 +2,11 @@ package watcher
 
 import (
 	"fmt"
-	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 
 	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tm "github.com/okex/exchain/libs/tendermint/abci/types"
+	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	"github.com/okex/exchain/x/evm/types"
 )
 

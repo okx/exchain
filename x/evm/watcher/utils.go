@@ -1,10 +1,11 @@
 package watcher
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-	"math/big"
 )
 
 // NewTransaction returns a transaction that will serialize to the RPC

@@ -5,9 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	"math/big"
 	"time"
 
@@ -17,11 +14,14 @@ import (
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
+	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-	watcher "github.com/okex/exchain/x/evm/watcher"
+	"github.com/okex/exchain/x/evm/watcher"
 )
 
 var (

@@ -2,11 +2,12 @@ package watcher
 
 import (
 	"encoding/json"
+	"math/big"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-	"math/big"
 )
 
 type stdWatchTx struct {
