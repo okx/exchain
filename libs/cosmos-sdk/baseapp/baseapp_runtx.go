@@ -392,7 +392,7 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 				"recovered: %v\n", r,
 			),
 		)
-		app.logger.Info("runTx panic recover : %v\nstack:\n%v", r, string(debug.Stack()))
+		app.logger.Info("runTx panic", "recover", r, "stack", string(debug.Stack()))
 	}
 	return err
 }

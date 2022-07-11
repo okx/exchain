@@ -2,7 +2,6 @@ package mempool
 
 import (
 	"bytes"
-	"container/list"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
@@ -11,6 +10,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/VictoriaMetrics/fastcache"
 
 	"github.com/tendermint/go-amino"
 
@@ -248,11 +249,25 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	if txSize > mem.config.MaxTxBytes {
 		return ErrTxTooLarge{mem.config.MaxTxBytes, txSize}
 	}
-	// CACHE
+
 	txkey := txKey(tx)
+
+	// CACHE
 	if !mem.cache.PushKey(txkey) {
+		// Record a new sender for a tx we've already seen.
+		// Note it's possible a tx is still in the cache but no longer in the mempool
+		// (eg. after committing a block, txs are removed from mempool but not cache),
+		// so we only record the sender for txs still in the mempool.
+		if ele, ok := mem.txs.Load(txkey); ok {
+			memTx := ele.Value.(*mempoolTx)
+			memTx.senders.LoadOrStore(txInfo.SenderID, true)
+			// TODO: consider punishing peer for dups,
+			// its non-trivial since invalid txs can become valid,
+			// but they can spam the same tx with little cost to them atm.
+		}
 		return ErrTxInCache
 	}
+	// END CACHE
 
 	var err error
 	var gasUsed int64
@@ -276,20 +291,6 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 			return ErrPreCheck{err}
 		}
 	}
-
-	// CACHE
-	// Record a new sender for a tx we've already seen.
-	// Note it's possible a tx is still in the cache but no longer in the mempool
-	// (eg. after committing a block, txs are removed from mempool but not cache),
-	// so we only record the sender for txs still in the mempool.
-	if ele, ok := mem.txs.Load(txkey); ok {
-		memTx := ele.Value.(*mempoolTx)
-		memTx.senders.LoadOrStore(txInfo.SenderID, true)
-		// TODO: consider punishing peer for dups,
-		// its non-trivial since invalid txs can become valid,
-		// but they can spam the same tx with little cost to them atm.
-	}
-	// END CACHE
 
 	// NOTE: proxyAppConn may error if tx buffer is full
 	if err = mem.proxyAppConn.Error(); err != nil {
@@ -474,6 +475,38 @@ func (mem *CListMempool) consumePendingTx(address string, nonce uint64) {
 	}
 }
 
+type logAddTxData struct {
+	Params [8]interface{}
+	TxID   txIDStringer
+	Height int64
+	Total  int
+}
+
+var logAddTxDataPool = sync.Pool{
+	New: func() interface{} {
+		return &logAddTxData{}
+	},
+}
+
+func (mem *CListMempool) logAddTx(memTx *mempoolTx, r *abci.Response_CheckTx) {
+	logAddTxData := logAddTxDataPool.Get().(*logAddTxData)
+	logAddTxData.TxID = txIDStringer{memTx.tx, memTx.height}
+	logAddTxData.Height = memTx.height
+	logAddTxData.Total = mem.Size()
+
+	params := &logAddTxData.Params
+	params[0] = "tx"
+	params[1] = &logAddTxData.TxID
+	params[2] = "res"
+	params[3] = r
+	params[4] = "height"
+	params[5] = &logAddTxData.Height
+	params[6] = "total"
+	params[7] = &logAddTxData.Total
+	mem.logger.Info("Added good transaction", params[:8]...)
+	logAddTxDataPool.Put(logAddTxData)
+}
+
 // callback, which is called after the app checked the tx for the first time.
 //
 // The case where the app checks the tx for the second and subsequent times is
@@ -489,12 +522,18 @@ func (mem *CListMempool) resCbFirstTime(
 		if mem.postCheck != nil {
 			postCheckErr = mem.postCheck(tx, r.CheckTx)
 		}
+		var txHash []byte
+		if r.CheckTx != nil && r.CheckTx.Tx != nil {
+			txHash = r.CheckTx.Tx.TxHash()
+		}
+		txkey := txOrTxHashToKey(tx, txHash, mem.height)
+
 		if (r.CheckTx.Code == abci.CodeTypeOK) && postCheckErr == nil {
 			// Check mempool isn't full again to reduce the chance of exceeding the
 			// limits.
 			if err := mem.isFull(len(tx)); err != nil {
 				// remove from cache (mempool might have a space later)
-				mem.cache.Remove(tx)
+				mem.cache.RemoveKey(txkey)
 				errStr := err.Error()
 				mem.logger.Info(errStr)
 				r.CheckTx.Code = 1
@@ -509,7 +548,7 @@ func (mem *CListMempool) resCbFirstTime(
 			//	return
 			//}
 			if r.CheckTx.Tx.GetGasPrice().Sign() <= 0 {
-				mem.cache.Remove(tx)
+				mem.cache.RemoveKey(txkey)
 				errMsg := "Failed to get extra info for this tx!"
 				mem.logger.Error(errMsg)
 				r.CheckTx.Code = 1
@@ -538,12 +577,7 @@ func (mem *CListMempool) resCbFirstTime(
 			}
 
 			if err == nil {
-				mem.logger.Info("Added good transaction",
-					"tx", txIDStringer{tx, mem.height},
-					"res", r,
-					"height", memTx.height,
-					"total", mem.Size(),
-				)
+				mem.logAddTx(memTx, r)
 				mem.notifyTxsAvailable()
 			} else {
 				// ignore bad transaction
@@ -551,7 +585,7 @@ func (mem *CListMempool) resCbFirstTime(
 					"tx", txIDStringer{tx, mem.height}, "peerID", txInfo.SenderP2PID, "res", r, "err", postCheckErr)
 				mem.metrics.FailedTxs.Add(1)
 				// remove from cache (it might be good later)
-				mem.cache.Remove(tx)
+				mem.cache.RemoveKey(txkey)
 
 				r.CheckTx.Code = 1
 				r.CheckTx.Log = err.Error()
@@ -562,7 +596,7 @@ func (mem *CListMempool) resCbFirstTime(
 				"tx", txIDStringer{tx, mem.height}, "peerID", txInfo.SenderP2PID, "res", r, "err", postCheckErr)
 			mem.metrics.FailedTxs.Add(1)
 			// remove from cache (it might be good later)
-			mem.cache.Remove(tx)
+			mem.cache.RemoveKey(txkey)
 		}
 	default:
 		// ignore other messages
@@ -805,7 +839,7 @@ func (mem *CListMempool) Update(
 			_ = mem.cache.PushKey(txkey)
 		} else {
 			// Allow invalid transactions to be resubmitted.
-			mem.cache.Remove(tx)
+			mem.cache.RemoveKey(txkey)
 		}
 
 		// Remove committed tx from the mempool.
@@ -950,8 +984,9 @@ func (memTx *mempoolTx) Height() int64 {
 type txCache interface {
 	Reset()
 	Push(tx types.Tx) bool
-	PushKey(key [32]byte) bool
+	PushKey(key [sha256.Size]byte) bool
 	Remove(tx types.Tx)
+	RemoveKey(key [sha256.Size]byte)
 }
 
 // mapTxCache maintains a LRU cache of transactions. This only stores the hash
@@ -959,8 +994,7 @@ type txCache interface {
 type mapTxCache struct {
 	mtx      sync.Mutex
 	size     int
-	cacheMap map[[sha256.Size]byte]*list.Element
-	list     *list.List
+	cacheMap *fastcache.Cache
 }
 
 var _ txCache = (*mapTxCache)(nil)
@@ -969,16 +1003,14 @@ var _ txCache = (*mapTxCache)(nil)
 func newMapTxCache(cacheSize int) *mapTxCache {
 	return &mapTxCache{
 		size:     cacheSize,
-		cacheMap: make(map[[sha256.Size]byte]*list.Element, cacheSize),
-		list:     list.New(),
+		cacheMap: fastcache.New(cacheSize * 32),
 	}
 }
 
 // Reset resets the cache to an empty state.
 func (cache *mapTxCache) Reset() {
 	cache.mtx.Lock()
-	cache.cacheMap = make(map[[sha256.Size]byte]*list.Element, cache.size)
-	cache.list.Init()
+	cache.cacheMap = fastcache.New(cache.size * 32)
 	cache.mtx.Unlock()
 }
 
@@ -995,36 +1027,22 @@ func (cache *mapTxCache) PushKey(txHash [32]byte) bool {
 	cache.mtx.Lock()
 	defer cache.mtx.Unlock()
 
-	if moved, exists := cache.cacheMap[txHash]; exists {
-		cache.list.MoveToBack(moved)
+	if exists := cache.cacheMap.Has(txHash[:]); exists {
 		return false
 	}
 
-	if cache.list.Len() >= cache.size {
-		popped := cache.list.Front()
-		poppedTxHash := popped.Value.([sha256.Size]byte)
-		delete(cache.cacheMap, poppedTxHash)
-		if popped != nil {
-			cache.list.Remove(popped)
-		}
-	}
-	e := cache.list.PushBack(txHash)
-	cache.cacheMap[txHash] = e
+	cache.cacheMap.Set(txHash[:], nil)
 	return true
 }
 
 // Remove removes the given tx from the cache.
 func (cache *mapTxCache) Remove(tx types.Tx) {
 	txHash := txKey(tx)
+	cache.cacheMap.Del(txHash[:])
+}
 
-	cache.mtx.Lock()
-	popped := cache.cacheMap[txHash]
-	delete(cache.cacheMap, txHash)
-	if popped != nil {
-		cache.list.Remove(popped)
-	}
-
-	cache.mtx.Unlock()
+func (cache *mapTxCache) RemoveKey(key [32]byte) {
+	cache.cacheMap.Del(key[:])
 }
 
 type nopTxCache struct{}
@@ -1035,6 +1053,7 @@ func (nopTxCache) Reset()                    {}
 func (nopTxCache) Push(types.Tx) bool        { return true }
 func (nopTxCache) PushKey(key [32]byte) bool { return true }
 func (nopTxCache) Remove(types.Tx)           {}
+func (nopTxCache) RemoveKey(key [32]byte)    {}
 
 //--------------------------------------------------------------------------------
 // txKey is the fixed length array sha256 hash used as the key in maps.
