@@ -238,6 +238,10 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 //
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo TxInfo) error {
+	// no need to update when mempool is unavailable
+	if mem.config.Sealed {
+		return nil
+	}
 
 	txSize := len(tx)
 	if err := mem.isFull(txSize); err != nil {
