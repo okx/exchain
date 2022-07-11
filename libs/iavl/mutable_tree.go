@@ -1287,7 +1287,8 @@ func (tree *MutableTree) GetDelta() {
 	// check removals
 	ddsRemoveLeaf := make([]*Node, 0, len(tree.orphans))
 	for _, v := range tree.orphans {
-		if v.isLeaf() {
+		_, ok := tree.unsavedFastNodeAdditions[string(v.key)]
+		if v.isLeaf() && !ok {
 			ddsRemoveLeaf = append(ddsRemoveLeaf, v)
 		}
 	}
