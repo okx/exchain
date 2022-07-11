@@ -6,6 +6,7 @@ import (
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"sync"
 	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/gaskv"
@@ -379,6 +380,24 @@ func (c *Context) SetOverrideBytes(b []byte) *Context {
 // KVStore fetches a KVStore from the MultiStore.
 func (c *Context) KVStore(key StoreKey) KVStore {
 	return gaskv.NewStore(c.MultiStore().GetKVStore(key), c.GasMeter(), stypes.KVGasConfig())
+}
+
+var gasKvPool = &sync.Pool{
+	New: func() interface{} {
+		return &gaskv.Store{}
+	},
+}
+
+// GetReusableKVStore fetches a KVStore from the MultiStore than can be reused.
+// you must call ReturnKVStore() after you are done with the KVStore.
+func (c *Context) GetReusableKVStore(key StoreKey) KVStore {
+	gaskvs := gasKvPool.Get().(*gaskv.Store)
+	return gaskv.ResetStore(gaskvs, c.MultiStore().GetKVStore(key), c.GasMeter(), stypes.KVGasConfig())
+}
+
+// ReturnKVStore returns a KVStore than from GetReusableKVStore.
+func (_ *Context) ReturnKVStore(store KVStore) {
+	gasKvPool.Put(store)
 }
 
 // TransientStore fetches a TransientStore from the MultiStore.
