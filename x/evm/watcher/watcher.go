@@ -40,7 +40,6 @@ type Watcher struct {
 	jobChan      chan func()
 	evmTxIndex   uint64
 	checkWd      bool
-	filterMap    map[string]WatchMessage
 	InfuraKeeper InfuraKeeper
 }
 
@@ -74,7 +73,7 @@ func NewWatcher(logger log.Logger) *Watcher {
 		watchData:     &WatchData{},
 		log:           logger,
 		checkWd:       viper.GetBool(FlagCheckWd),
-		filterMap:     make(map[string]WatchMessage)}
+	}
 }
 
 func (w *Watcher) IsFirstUse() bool {
@@ -331,18 +330,16 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 }
 
 func (w *Watcher) commitBatch(batch []WatchMessage) {
+	dbBatch := w.store.db.NewBatch()
+	defer dbBatch.Close()
 	for _, b := range batch {
-		w.filterMap[bytes2Key(b.GetKey())] = b
-	}
-
-	for _, b := range w.filterMap {
 		key := b.GetKey()
 		value := []byte(b.GetValue())
 		typeValue := b.GetType()
 		if typeValue == TypeDelete {
-			w.store.Delete(key)
+			dbBatch.Delete(key)
 		} else {
-			w.store.Set(key, value)
+			dbBatch.Set(key, value)
 			//need update params
 			if typeValue == TypeEvmParams {
 				msgParams := b.(*MsgParams)
@@ -353,11 +350,7 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 			}
 		}
 	}
-
-	for k := range w.filterMap {
-		delete(w.filterMap, k)
-	}
-
+	dbBatch.Write()
 	if w.checkWd {
 		keys := make([][]byte, len(batch))
 		for i, _ := range batch {
@@ -368,16 +361,19 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 }
 
 func (w *Watcher) commitCenterBatch(batch []*Batch) {
+	dbBatch := w.store.db.NewBatch()
+	defer dbBatch.Close()
 	for _, b := range batch {
 		if b.TypeValue == TypeDelete {
-			w.store.Delete(b.Key)
+			dbBatch.Delete(b.Key)
 		} else {
-			w.store.Set(b.Key, b.Value)
+			dbBatch.Set(b.Key, b.Value)
 			if b.TypeValue == TypeState {
 				state.SetStateToLru(common.BytesToHash(b.Key), b.Value)
 			}
 		}
 	}
+	dbBatch.Write()
 }
 
 func (w *Watcher) delDirtyList(list [][]byte) {
@@ -388,9 +384,12 @@ func (w *Watcher) delDirtyList(list [][]byte) {
 
 func (w *Watcher) commitBloomData(bloomData []*evmtypes.KV) {
 	db := evmtypes.GetIndexer().GetDB()
+	batch := db.NewBatch()
+	defer batch.Close()
 	for _, bd := range bloomData {
-		db.Set(bd.Key, bd.Value)
+		batch.Set(bd.Key, bd.Value)
 	}
+	batch.Write()
 }
 
 func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
