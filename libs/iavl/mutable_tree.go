@@ -1251,11 +1251,11 @@ func (tree *MutableTree) GetDelta() {
 	//var ddsAddNodesLeaf []*Node
 	ddsAddNodesLeaf := make([]*Node, 0, len(tree.savedNodes))
 	for _, v := range tree.savedNodes {
-		if v.isLeaf() {
+		if v.isLeaf() && !v.persisted {
 			ddsAddNodesLeaf = append(ddsAddNodesLeaf, v)
 		}
 	}
-	if len(ddsAddNodesLeaf) != 1+len(tree.unsavedFastNodeAdditions) {
+	if len(ddsAddNodesLeaf) != len(tree.unsavedFastNodeAdditions) {
 		panic(fmt.Sprintf("giskook ddsAddNodesLeaf not equal to unsavedFastNodeAdditions %v %v", len(ddsAddNodesLeaf), len(tree.unsavedFastNodeAdditions)))
 	}
 	//	 else {
