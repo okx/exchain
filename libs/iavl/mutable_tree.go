@@ -1255,7 +1255,7 @@ func (tree *MutableTree) GetDelta() {
 			ddsAddNodesLeaf = append(ddsAddNodesLeaf, v)
 		}
 	}
-	if len(ddsAddNodesLeaf) != len(tree.unsavedFastNodeAdditions) {
+	if len(ddsAddNodesLeaf) != 1+len(tree.unsavedFastNodeAdditions) {
 		panic(fmt.Sprintf("giskook ddsAddNodesLeaf not equal to unsavedFastNodeAdditions %v %v", len(ddsAddNodesLeaf), len(tree.unsavedFastNodeAdditions)))
 	}
 	//	 else {
