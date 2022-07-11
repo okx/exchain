@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"strings"
 
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -24,8 +26,8 @@ func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCo
 
 // fixLogForParallelTxHandler fix log for parallel tx
 func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
-	return func(logIndex []int, hasEnterEvmTx []bool, anteErrs []error) (logs [][]byte) {
-		return ek.FixLog(logIndex, hasEnterEvmTx, anteErrs)
+	return func(logIndex []int, hasEnterEvmTx []bool, anteErrs []error, msgs [][]sdk.Msg, resp []abci.ResponseDeliverTx) (logs [][]byte) {
+		return ek.FixLog(logIndex, hasEnterEvmTx, anteErrs, msgs, resp)
 	}
 }
 
@@ -44,7 +46,7 @@ func preDeliverTxHandler(ak auth.AccountKeeper) sdk.PreDeliverTxHandler {
 			if types.HigherThanMars(ctx.BlockHeight()) {
 				return
 			}
-			
+
 			if onlyVerifySig {
 				return
 			}
