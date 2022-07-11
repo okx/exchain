@@ -240,7 +240,7 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo TxInfo) error {
 	// no need to update when mempool is unavailable
 	if mem.config.Sealed {
-		return nil
+		return fmt.Errorf("mempool is unavailable")
 	}
 
 	txSize := len(tx)
