@@ -2,11 +2,12 @@ package types
 
 import (
 	"context"
+	"time"
+
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/gaskv"
 	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
@@ -48,6 +49,7 @@ type Context struct {
 	paraMsg            *ParaMsg
 	//	txCount            uint32
 	overridesBytes []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
+	watcher        *TxWatcher
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -189,6 +191,7 @@ func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Lo
 		gasMeter:     stypes.NewInfiniteGasMeter(),
 		minGasPrice:  DecCoins{},
 		eventManager: NewEventManager(),
+		watcher:      &TxWatcher{EmptyWatcher{}},
 	}
 }
 
@@ -365,6 +368,25 @@ func (c *Context) SetVoteInfos(voteInfo []abci.VoteInfo) *Context {
 func (c *Context) SetOverrideBytes(b []byte) *Context {
 	c.overridesBytes = b
 	return c
+}
+
+func (c *Context) ResetWatcher() {
+	c.watcher = &TxWatcher{EmptyWatcher{}}
+}
+
+func (c *Context) SetWatcher(w IWatcher) {
+	if c.watcher == nil {
+		c.watcher = &TxWatcher{EmptyWatcher{}}
+		return
+	}
+	c.watcher.IWatcher = w
+}
+
+func (c *Context) GetWatcher() IWatcher {
+	if c.watcher == nil {
+		return EmptyWatcher{}
+	}
+	return c.watcher.IWatcher
 }
 
 //func (c *Context) SetTxCount(count uint32) *Context {

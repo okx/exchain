@@ -51,6 +51,7 @@ func (blockExec *BlockExecutor) stopAsyncDBContext() {
 
 	blockExec.abciResponseQueue <- abciResponse{height: QUIT_SIG}
 	blockExec.stateQueue <- State{LastBlockHeight: QUIT_SIG}
+	blockExec.eventsChan <- event{}
 
 	blockExec.wg.Wait()
 
