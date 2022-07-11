@@ -4,6 +4,7 @@ import (
 	"errors"
 	"github.com/ethereum/go-ethereum/common"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -15,6 +16,20 @@ import (
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/x/evm/watcher"
 )
+
+func (api *PublicEthereumAPI) getTransactionWithStdByBlockAndIndex(block *tmtypes.Block, idx hexutil.Uint) (*watcher.Transaction, error) {
+	// return if index out of bounds
+	if uint64(idx) >= uint64(len(block.Txs)) {
+		return nil, nil
+	}
+
+	rpcTx, err := rpctypes.RawTxToWatcherTx(api.clientCtx, block.Txs[idx], common.BytesToHash(block.Hash()), uint64(block.Height), uint64(idx))
+	if err != nil {
+		return nil, err
+	}
+
+	return rpcTx, nil
+}
 
 // GetTransactionsByBlock returns some transactions identified by number or hash.
 func (api *PublicEthereumAPI) GetAllTransactionsByBlock(blockNrOrHash rpctypes.BlockNumberOrHash, offset, limit hexutil.Uint) ([]*watcher.Transaction, error) {
