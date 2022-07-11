@@ -1,6 +1,9 @@
 package keeper
 
 import (
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/x/distribution/types"
+	"github.com/tendermint/go-amino"
 	"testing"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -71,4 +74,21 @@ func DoUnBindProxy(t *testing.T, ctx sdk.Context, sk staking.Keeper, delAddr sdk
 	msg := staking.NewMsgUnbindProxy(delAddr)
 	_, e := h(ctx, msg)
 	require.Nil(t, e)
+}
+
+func GetQueriedDelegationRewards(t *testing.T, ctx sdk.Context, querier sdk.Querier,
+	delegatorAddr sdk.AccAddress, validatorAddr sdk.ValAddress) (rewards sdk.DecCoins) {
+	bz, err := amino.MarshalJSON(types.NewQueryDelegationRewardsParams(delegatorAddr, validatorAddr))
+	require.NoError(t, err)
+
+	ctx, _ = ctx.CacheContext()
+	result, err := querier(ctx, []string{types.QueryDelegationRewards}, abci.RequestQuery{Data: bz})
+	require.NoError(t, err)
+
+	err = amino.UnmarshalJSON(result, &rewards)
+	require.NoError(t, err)
+
+	coins, _ := rewards.TruncateDecimal()
+
+	return coins
 }
