@@ -1265,9 +1265,9 @@ func (tree *MutableTree) GetDelta() {
 	//if len(ddsAddNodesLeaf) != len(tree.unsavedFastNodeAdditions) {
 	//	panic(fmt.Sprintf("giskook ddsAddNodesLeaf not equal to unsavedFastNodeAdditions %v %v", len(ddsAddNodesLeaf), len(tree.unsavedFastNodeAdditions)))
 	//} else {
-	for _, v := range ddsAddNodesLeaf {
+	for _, v := range tree.unsavedFastNodeAdditions {
 		var check bool
-		for _, vv := range tree.unsavedFastNodeAdditions {
+		for _, vv := range ddsAddNodesLeaf {
 			if bytes.Equal(vv.key, v.key) && bytes.Equal(vv.value, v.value) {
 				check = true
 			}
@@ -1276,7 +1276,6 @@ func (tree *MutableTree) GetDelta() {
 			panic(fmt.Sprintf("giskook ddsAddNodesLeaf unsavedFastNodeAdditions key unmatch %v", v.key))
 		}
 	}
-	//}
 	// check the dds additions
 
 	orphans := make([]*NodeJson, len(tree.orphans))
@@ -1292,21 +1291,18 @@ func (tree *MutableTree) GetDelta() {
 			ddsRemoveLeaf = append(ddsRemoveLeaf, v)
 		}
 	}
-	//	if len(ddsRemoveLeaf) != len(tree.unsavedFastNodeRemovals) {
-	//		panic("giskook ddsRemoveLeaf not equal to unsavedFastNodeRemovals")
-	//	} //	else {
-	//		for _, v := range ddsRemoveLeaf {
-	//			var check bool
-	//			for k, _ := range tree.unsavedFastNodeRemovals {
-	//				if k == string(v.key) {
-	//					check = true
-	//				}
-	//			}
-	//			if !check {
-	//				panic(fmt.Sprintf("giskook ddsRemoveLeaf unsavedFastNodeRemovals key unmatch %v", v.key))
-	//			}
-	//		}
-	//	}
+	log.Printf("giskookrmc dds %v savenodes %v cacheadditions %v\n", len(ddsRemoveLeaf), len(tree.orphans), len(tree.unsavedFastNodeRemovals))
+	for k, _ := range tree.unsavedFastNodeRemovals {
+		var check bool
+		for _, v := range ddsRemoveLeaf {
+			if k == string(v.key) {
+				check = true
+			}
+		}
+		if !check {
+			panic(fmt.Sprintf("giskook ddsRemoveLeaf unsavedFastNodeRemovals key unmatch %v", k))
+		}
+	}
 	// check removals
 
 	tree.deltas.FastNodeVersion, _ = tree.ndb.getFastStorageVersion()
