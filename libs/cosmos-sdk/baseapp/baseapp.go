@@ -222,6 +222,8 @@ type BaseApp struct { // nolint: maligned
 
 	reusableCacheMultiStore sdk.CacheMultiStore
 	checkTxCacheMultiStores *cacheMultiStoreList
+
+	watcherCollector sdk.EvmWatcherCollector
 }
 
 type recordHandle func(string)
@@ -691,6 +693,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 			HaveCosmosTxInBlock: app.parallelTxManage.haveCosmosTxInBlock,
 		})
 		ctx.SetTxBytes(txBytes)
+		ctx.ResetWatcher()
 	}
 
 	if mode == runTxModeDeliver || mode == runTxModeDeliverPartConcurrent {
@@ -889,7 +892,6 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		data = append(data, msgResult.Data...)
 		msgLogs = append(msgLogs, sdk.NewABCIMessageLog(uint16(i), msgResult.Log, msgEvents))
 		//app.pin("AppendEvents", false, mode)
-
 	}
 
 	return &sdk.Result{
