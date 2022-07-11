@@ -364,6 +364,9 @@ func (mem *CListMempool) reqResCb(
 //  - resCbFirstTime (lock not held) if tx is valid
 func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 	if err := mem.txs.Insert(memTx); err != nil {
+		nonce, _ := mem.txs.GetAddressNonce(memTx.from)
+		fmt.Println("debug mempool", "addr list", mem.txs.GetAddressList())
+		fmt.Println("debug mempool", "size", mem.Size(), "from", memTx.from, "addr txs len", mem.txs.GetAddressTxsCnt(memTx.from), "mem nonce", nonce)
 		return err
 	}
 	atomic.AddInt64(&mem.txsBytes, int64(len(memTx.tx)))
