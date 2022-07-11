@@ -1,15 +1,15 @@
 package keeper
 
 import (
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/x/distribution/types"
-	"github.com/tendermint/go-amino"
 	"testing"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/x/distribution/types"
 	"github.com/okex/exchain/x/staking"
 	"github.com/stretchr/testify/require"
+	"github.com/tendermint/go-amino"
 )
 
 func DoCreateValidator(t *testing.T, ctx sdk.Context, sk staking.Keeper, valAddr sdk.ValAddress, valConsPk crypto.PubKey) {

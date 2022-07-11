@@ -1,12 +1,11 @@
 package keeper
 
 import (
-	"github.com/okex/exchain/x/distribution/types"
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/x/distribution/types"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSetWithdrawAddr(t *testing.T) {

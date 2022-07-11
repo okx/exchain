@@ -3,12 +3,10 @@ package distribution
 import (
 	"testing"
 
-	"github.com/stretchr/testify/require"
-
-	govtypes "github.com/okex/exchain/x/gov/types"
-
 	"github.com/okex/exchain/x/distribution/keeper"
 	"github.com/okex/exchain/x/distribution/types"
+	govtypes "github.com/okex/exchain/x/gov/types"
+	"github.com/stretchr/testify/require"
 )
 
 func makeChangeDistributionTypeProposal(distrType uint32) govtypes.Proposal {

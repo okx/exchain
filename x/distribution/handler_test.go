@@ -47,12 +47,10 @@ func (suite *HandlerSuite) TestHandlerWithdrawDelegatorReward() {
 			[3]sdk.Error{types.ErrUnknownDistributionMsgType(), types.ErrUnknownDistributionMsgType(), types.ErrUnknownDistributionMsgType()},
 		},
 	}
-	_ = testCases
 
 	for _, tc := range testCases {
 		suite.Run(tc.title, func() {
 			ctx, _, dk, sk, _ := keeper.CreateTestInputDefault(suite.T(), false, 10)
-			_, _, _ = ctx, dk, sk
 			handler := NewHandler(dk)
 			delAddr1 := keeper.TestDelAddrs[0]
 			valAddr1 := keeper.TestValAddrs[0]
@@ -179,7 +177,6 @@ func (suite *HandlerSuite) TestHandlerWithdrawValidatorCommission() {
 	for _, tc := range testCases {
 		suite.Run(tc.title, func() {
 			ctx, ak, dk, sk, supplyKeeper := keeper.CreateTestInputDefault(suite.T(), false, 10)
-			_ = sk
 			handler := NewHandler(dk)
 			valAddr1 := keeper.TestValAddrs[0]
 

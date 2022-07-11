@@ -5,20 +5,11 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
-// Keys for distribution store
-// Items are stored with the following key: values
-//
-// - 0x01: sdk.ConsAddress
-//
-// - 0x03<accAddr_Bytes>: sdk.AccAddress
-//
-// - 0x07<valAddr_Bytes>: ValidatorCurrentRewards
 var (
-	ValidatorOutstandingRewardsPrefix = []byte{0x02} // key for outstanding rewards
-	DelegatorStartingInfoPrefix       = []byte{0x04} // key for delegator starting info
-	ValidatorHistoricalRewardsPrefix  = []byte{0x05} // key for historical validators rewards / stake
-	ValidatorCurrentRewardsPrefix     = []byte{0x06} // key for current validator rewards
-	//ValidatorSlashEventPrefix            = []byte{0x08} // key for validator slash fraction
+	ValidatorOutstandingRewardsPrefix       = []byte{0x02} // key for outstanding rewards
+	DelegatorStartingInfoPrefix             = []byte{0x04} // key for delegator starting info
+	ValidatorHistoricalRewardsPrefix        = []byte{0x05} // key for historical validators rewards / stake
+	ValidatorCurrentRewardsPrefix           = []byte{0x06} // key for current validator rewards
 	InitExistedValidatorForDistrProposalKey = []byte{0x09} // key for check init old validator distribution proposal
 )
 

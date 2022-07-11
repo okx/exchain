@@ -73,7 +73,7 @@ func GetCmdWithdrawAllRewards(cdc *codec.Codec, queryRoute string) *cobra.Comman
 			fmt.Sprintf(`Withdraw all rewards for a single delegator.
 
 Example:
-$ %s tx distribution withdraw-all-rewards --from mykey
+$ %s tx distr withdraw-all-rewards --from mykey
 `,
 				version.ClientName,
 			),

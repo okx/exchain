@@ -2,6 +2,9 @@ package keeper
 
 import (
 	"fmt"
+	"testing"
+	"time"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
@@ -10,8 +13,6 @@ import (
 	stakingexported "github.com/okex/exchain/x/staking/exported"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/go-amino"
-	"testing"
-	"time"
 )
 
 func getQueriedValidatorOutstandingRewards(t *testing.T, ctx sdk.Context, querier sdk.Querier,

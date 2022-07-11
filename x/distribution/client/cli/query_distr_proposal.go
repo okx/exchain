@@ -25,8 +25,8 @@ func GetCmdQueryDelegatorRewards(queryRoute string, cdc *codec.Codec) *cobra.Com
 			fmt.Sprintf(`Query all rewards earned by a delegator, optionally restrict to rewards from a single validator.
 
 Example:
-$ %s query distribution rewards ex1j5mr2jhr9pf20e7yhln5zkcsgqtdt7cydr8x3y
-$ %s query distribution rewards ex1j5mr2jhr9pf20e7yhln5zkcsgqtdt7cydr8x3y exvaloper1pt7xrmxul7sx54ml44lvv403r06clrdkehd8z7
+$ %s query distr rewards ex1j5mr2jhr9pf20e7yhln5zkcsgqtdt7cydr8x3y
+$ %s query distr rewards ex1j5mr2jhr9pf20e7yhln5zkcsgqtdt7cydr8x3y exvaloper1pt7xrmxul7sx54ml44lvv403r06clrdkehd8z7
 `,
 				version.ClientName, version.ClientName,
 			),
@@ -88,7 +88,7 @@ func GetCmdQueryValidatorOutstandingRewards(queryRoute string, cdc *codec.Codec)
 for a validator and all their delegations.
 
 Example:
-$ %s query distribution validator-outstanding-rewards exvaloper1pt7xrmxul7sx54ml44lvv403r06clrdkehd8z7
+$ %s query distr outstanding-rewards exvaloper1pt7xrmxul7sx54ml44lvv403r06clrdkehd8z7
 `,
 				version.ClientName,
 			),

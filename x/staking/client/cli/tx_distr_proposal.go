@@ -3,6 +3,7 @@ package cli
 import (
 	"bufio"
 	"fmt"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -17,7 +18,7 @@ func GetCmdEditValidatorCommissionRate(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "edit-validator-commission-rate [commission-rate]",
 		Args:  cobra.ExactArgs(1),
-		Short: "edit an existing validator account",
+		Short: "edit an existing validator commission rate",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(auth.DefaultTxEncoder(cdc))

@@ -33,26 +33,26 @@ func NewChangeDistributionTypeProposal(title, description string, distrType uint
 }
 
 // GetTitle returns the title of a change distribution type proposal.
-func (cdmp ChangeDistributionTypeProposal) GetTitle() string { return cdmp.Title }
+func (cdtp ChangeDistributionTypeProposal) GetTitle() string { return cdtp.Title }
 
 // GetDescription returns the description of a change distribution type proposal.
-func (cdmp ChangeDistributionTypeProposal) GetDescription() string { return cdmp.Description }
+func (cdtp ChangeDistributionTypeProposal) GetDescription() string { return cdtp.Description }
 
 // GetDescription returns the routing key of a change distribution type proposal.
-func (cdmp ChangeDistributionTypeProposal) ProposalRoute() string { return RouterKey }
+func (cdtp ChangeDistributionTypeProposal) ProposalRoute() string { return RouterKey }
 
 // ProposalType returns the type of a change distribution type proposal.
-func (cdmp ChangeDistributionTypeProposal) ProposalType() string {
+func (cdtp ChangeDistributionTypeProposal) ProposalType() string {
 	return ProposalTypeChangeDistributionType
 }
 
 // ValidateBasic runs basic stateless validity checks
-func (cdmp ChangeDistributionTypeProposal) ValidateBasic() error {
-	err := govtypes.ValidateAbstract(ModuleName, cdmp)
+func (cdtp ChangeDistributionTypeProposal) ValidateBasic() error {
+	err := govtypes.ValidateAbstract(ModuleName, cdtp)
 	if err != nil {
 		return err
 	}
-	if cdmp.Type != DistributionTypeOffChain && cdmp.Type != DistributionTypeOnChain {
+	if cdtp.Type != DistributionTypeOffChain && cdtp.Type != DistributionTypeOnChain {
 		return ErrInvalidDistributionType()
 	}
 
@@ -60,12 +60,12 @@ func (cdmp ChangeDistributionTypeProposal) ValidateBasic() error {
 }
 
 // String implements the Stringer interface.
-func (cdmp ChangeDistributionTypeProposal) String() string {
+func (cdtp ChangeDistributionTypeProposal) String() string {
 	var b strings.Builder
 	b.WriteString(fmt.Sprintf(`Community Pool Spend Proposal:
   Title:       %s
   Description: %s
   Type:   %d
-`, cdmp.Title, cdmp.Description, cdmp.Type))
+`, cdtp.Title, cdtp.Description, cdtp.Type))
 	return b.String()
 }

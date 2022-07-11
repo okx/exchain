@@ -59,7 +59,6 @@ var (
 	AttributeKeyWithdrawAddress          = types.AttributeKeyWithdrawAddress
 	AttributeKeyValidator                = types.AttributeKeyValidator
 	AttributeValueCategory               = types.AttributeValueCategory
-	//ProposalHandler                      = client.ProposalHandler
 )
 
 type (

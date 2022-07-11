@@ -4,7 +4,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
-// GetLastAddedShares gets the last shares added to validators of a delegator for other module
+// GetDelegatorAddress gets delegator address
 func (d Delegator) GetDelegatorAddress() sdk.AccAddress {
 	return d.DelegatorAddress
 }

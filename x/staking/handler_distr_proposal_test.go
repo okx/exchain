@@ -1,16 +1,15 @@
 package staking
 
 import (
-	"github.com/okex/exchain/x/staking/types"
-	"github.com/stretchr/testify/suite"
 	"testing"
 	"time"
-
-	"github.com/stretchr/testify/require"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	keep "github.com/okex/exchain/x/staking/keeper"
+	"github.com/okex/exchain/x/staking/types"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 )
 
 type HandlerSuite struct {
