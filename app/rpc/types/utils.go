@@ -350,6 +350,7 @@ func RawTxResultToEthReceipt(clientCtx clientcontext.CLIContext,
 		TransactionIndex: hexutil.Uint64(tr.Index),
 		From:             ethTx.GetFrom(),
 		To:               ethTx.To(),
+		Tx:               ethTx,
 	}
 	return &watcher.TransactionResult{TxType: hexutil.Uint64(watcher.EthReceipt), Receipt: &receipt}, nil
 }

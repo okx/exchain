@@ -460,19 +460,19 @@ type TransactionReceipt struct {
 	ContractAddress       *common.Address `json:"contractAddress"`
 	GasUsed               hexutil.Uint64  `json:"gasUsed"`
 	originBlockHash       common.Hash
-	BlockHash             string         `json:"blockHash"`
-	BlockNumber           hexutil.Uint64 `json:"blockNumber"`
-	TransactionIndex      hexutil.Uint64 `json:"transactionIndex"`
-	tx                    *types.MsgEthereumTx
-	From                  string          `json:"from"`
-	To                    *common.Address `json:"to"`
+	BlockHash             string               `json:"blockHash"`
+	BlockNumber           hexutil.Uint64       `json:"blockNumber"`
+	TransactionIndex      hexutil.Uint64       `json:"transactionIndex"`
+	Tx                    *types.MsgEthereumTx `json:"tx"`
+	From                  string               `json:"from"`
+	To                    *common.Address      `json:"to"`
 }
 
 func (tr *TransactionReceipt) GetValue() string {
 	tr.TransactionHash = types.EthHashStringer(tr.originTransactionHash).String()
 	tr.BlockHash = types.EthHashStringer(tr.originBlockHash).String()
-	tr.From = types.EthAddressStringer(common.BytesToAddress(tr.tx.AccountAddress().Bytes())).String()
-	tr.To = tr.tx.To()
+	tr.From = types.EthAddressStringer(common.BytesToAddress(tr.Tx.AccountAddress().Bytes())).String()
+	tr.To = tr.Tx.To()
 	//contract address will be set to 0x0000000000000000000000000000000000000000 if contract deploy failed
 	if tr.ContractAddress != nil && types.EthAddressStringer(*tr.ContractAddress).String() == "0x0000000000000000000000000000000000000000" {
 		//set to nil to keep sync with ethereum rpc
@@ -498,7 +498,7 @@ func newTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, block
 		originBlockHash:       blockHash,
 		BlockNumber:           hexutil.Uint64(height),
 		TransactionIndex:      hexutil.Uint64(txIndex),
-		tx:                    tx,
+		Tx:                    tx,
 	}
 	return tr
 }
