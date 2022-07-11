@@ -327,16 +327,16 @@ func (so *stateObject) commitState(db ethstate.Database) {
 			store.Delete(prefixKey.Bytes())
 			so.stateDB.ctx.Cache().UpdateStorage(so.address, prefixKey, value.Bytes(), true)
 			if !so.stateDB.ctx.IsCheckTx() {
-				if so.stateDB.Watcher.Enabled() {
-					so.stateDB.Watcher.SaveState(so.Address(), prefixKey.Bytes(), ethcmn.Hash{}.Bytes())
+				if so.stateDB.ctx.GetWatcher().Enabled() {
+					so.stateDB.ctx.GetWatcher().SaveState(so.Address(), prefixKey.Bytes(), ethcmn.Hash{}.Bytes())
 				}
 			}
 		} else {
 			store.Set(prefixKey.Bytes(), value.Bytes())
 			so.stateDB.ctx.Cache().UpdateStorage(so.address, prefixKey, value.Bytes(), true)
 			if !so.stateDB.ctx.IsCheckTx() {
-				if so.stateDB.Watcher.Enabled() {
-					so.stateDB.Watcher.SaveState(so.Address(), prefixKey.Bytes(), value.Bytes())
+				if so.stateDB.ctx.GetWatcher().Enabled() {
+					so.stateDB.ctx.GetWatcher().SaveState(so.Address(), prefixKey.Bytes(), value.Bytes())
 				}
 			}
 		}

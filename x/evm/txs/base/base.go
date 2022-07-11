@@ -75,7 +75,7 @@ func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 		}
 		err = tx.Keeper.CallEvmHooks(tx.Ctx, tx.StateTransition.Sender, tx.StateTransition.Recipient, receipt)
 		if err != nil {
-			tx.Keeper.Logger(tx.Ctx).Error("tx call evm hooks failed", "error", err)
+			tx.Keeper.Logger().Error("tx call evm hooks failed", "error", err)
 		}
 	}
 
@@ -148,7 +148,7 @@ func (tx *Tx) RefundFeesWatcher(account authexported.Account, ethereumTx *types.
 func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *Result) {}
 
 // FinalizeWatcher check Tx do not need this
-func (tx *Tx) FinalizeWatcher(account authexported.Account, err error) {}
+func (tx *Tx) FinalizeWatcher(msg *types.MsgEthereumTx, account authexported.Account, err error) {}
 
 func (tx *Tx) Dispose() {
 	if tx != nil && tx.reuseCsdb {
