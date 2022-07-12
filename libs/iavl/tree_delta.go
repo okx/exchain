@@ -203,11 +203,10 @@ type TreeDelta struct {
 	NodesDelta         []*NodeJsonImp      `json:"nodes_delta"`
 	OrphansDelta       []*NodeJson         `json:"orphans_delta"`
 	CommitOrphansDelta []*CommitOrphansImp `json:"commit_orphans_delta"`
-	FastNodeVersion    string              `json:"fast_node_version"`
 }
 
 func newTreeDelta() *TreeDelta {
-	return &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}, ""}
+	return &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
 }
 
 func (td *TreeDelta) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {

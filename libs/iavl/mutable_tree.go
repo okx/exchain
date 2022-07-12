@@ -5,7 +5,6 @@ import (
 	"container/list"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"runtime"
 	"sort"
 	"sync"
@@ -1228,17 +1227,24 @@ func (tree *MutableTree) SetDelta(delta *TreeDelta) {
 		for _, v := range delta.CommitOrphansDelta {
 			tree.commitOrphans = append(tree.commitOrphans, commitOrphan{Version: v.CommitValue, NodeHash: amino.StrToBytes(v.Key)})
 		}
+
+		// fast node related
+		for _, v := range tree.savedNodes {
+			if v.isLeaf() {
+				tree.unsavedFastNodeAdditions[string(v.key)] = NewFastNode(v.key, v.value, v.version)
+			}
+		}
+
+		for _, v := range tree.orphans {
+			_, ok := tree.unsavedFastNodeAdditions[string(v.key)]
+			if v.isLeaf() && !ok {
+				tree.unsavedFastNodeRemovals[string(v.key)] = NewFastNode(v.key, v.value, v.version)
+			}
+		}
 	}
 }
 
-var oncePrintf sync.Once
-
 func (tree *MutableTree) GetDelta() {
-	oncePrintf.Do(
-		func() {
-			log.Println("okgiskook-----------fly on!!!")
-		},
-	)
 	nodes := make([]*NodeJsonImp, len(tree.savedNodes))
 	index := 0
 	for k, v := range tree.savedNodes {
@@ -1247,65 +1253,11 @@ func (tree *MutableTree) GetDelta() {
 	}
 	tree.deltas.NodesDelta = nodes
 
-	// check the dds additions
-	//var ddsAddNodesLeaf []*Node
-	ddsAddNodesLeaf := make([]*Node, 0, len(tree.savedNodes))
-	for _, v := range tree.savedNodes {
-		if v.isLeaf() {
-			ddsAddNodesLeaf = append(ddsAddNodesLeaf, v)
-		}
-	}
-	if len(ddsAddNodesLeaf) == 1 && len(tree.unsavedFastNodeAdditions) == 0 {
-		log.Printf("dds %v\n", ddsAddNodesLeaf[0])
-		log.Printf("dds key string %v key %v version %v \n", string(ddsAddNodesLeaf[0].key), ddsAddNodesLeaf[0].key, ddsAddNodesLeaf[0].version)
-	}
-
-	log.Printf("giskook dds %v savenodes %v cacheadditions %v\n", len(ddsAddNodesLeaf), len(tree.savedNodes), len(tree.unsavedFastNodeAdditions))
-	//if len(ddsAddNodesLeaf) != len(tree.unsavedFastNodeAdditions) {
-	//	panic(fmt.Sprintf("giskook ddsAddNodesLeaf not equal to unsavedFastNodeAdditions %v %v", len(ddsAddNodesLeaf), len(tree.unsavedFastNodeAdditions)))
-	//} else {
-	for _, v := range tree.unsavedFastNodeAdditions {
-		var check bool
-		for _, vv := range ddsAddNodesLeaf {
-			if bytes.Equal(vv.key, v.key) && bytes.Equal(vv.value, v.value) {
-				check = true
-			}
-		}
-		if !check {
-			panic(fmt.Sprintf("giskook ddsAddNodesLeaf unsavedFastNodeAdditions key unmatch %v", v.key))
-		}
-	}
-	// check the dds additions
-
 	orphans := make([]*NodeJson, len(tree.orphans))
 	for i, orphan := range tree.orphans {
 		orphans[i] = NodeToNodeJson(orphan)
 	}
 	tree.deltas.OrphansDelta = orphans
-
-	// check removals
-	ddsRemoveLeaf := make([]*Node, 0, len(tree.orphans))
-	for _, v := range tree.orphans {
-		_, ok := tree.unsavedFastNodeAdditions[string(v.key)]
-		if v.isLeaf() && !ok {
-			ddsRemoveLeaf = append(ddsRemoveLeaf, v)
-		}
-	}
-	log.Printf("giskookrmc dds %v savenodes %v cacheadditions %v\n", len(ddsRemoveLeaf), len(tree.orphans), len(tree.unsavedFastNodeRemovals))
-	for k, _ := range tree.unsavedFastNodeRemovals {
-		var check bool
-		for _, v := range ddsRemoveLeaf {
-			if k == string(v.key) {
-				check = true
-			}
-		}
-		if !check {
-			panic(fmt.Sprintf("giskook ddsRemoveLeaf unsavedFastNodeRemovals key unmatch %v", k))
-		}
-	}
-	// check removals
-
-	tree.deltas.FastNodeVersion, _ = tree.ndb.getFastStorageVersion()
 }
 
 func (tree *MutableTree) SetUpgradeVersion(version int64) {
