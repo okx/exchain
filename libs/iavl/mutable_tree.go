@@ -1257,8 +1257,7 @@ func (tree *MutableTree) GetDelta() {
 	}
 	if len(ddsAddNodesLeaf) == 1 && len(tree.unsavedFastNodeAdditions) == 0 {
 		log.Printf("dds %v\n", ddsAddNodesLeaf[0])
-		log.Printf("dds key string %v\n", string(ddsAddNodesLeaf[0].key))
-		log.Printf("dds key %v\n", ddsAddNodesLeaf[0].key)
+		log.Printf("dds key string %v key %v version %v \n", string(ddsAddNodesLeaf[0].key), ddsAddNodesLeaf[0].key, ddsAddNodesLeaf[0].version)
 	}
 
 	log.Printf("giskook dds %v savenodes %v cacheadditions %v\n", len(ddsAddNodesLeaf), len(tree.savedNodes), len(tree.unsavedFastNodeAdditions))
