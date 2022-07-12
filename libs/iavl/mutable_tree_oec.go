@@ -371,6 +371,14 @@ func (tree *MutableTree) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	if err := tree.saveFastNodeVersion(batch); err != nil {
 		panic(err)
 	}
+	tree.mtxUnSavedFastNodeAdditions.Lock()
+	tree.unsavedFastNodeAdditions = make(map[string]*FastNode)
+	tree.mtxUnSavedFastNodeAdditions.Unlock()
+
+	tree.mtxUnSavedFastNodeRemovals.Lock()
+	tree.unsavedFastNodeRemovals = make(map[string]interface{})
+	tree.mtxUnSavedFastNodeRemovals.Unlock()
+
 	trc.Pin("batchCommit")
 	if err := ndb.Commit(batch); err != nil {
 		panic(err)
