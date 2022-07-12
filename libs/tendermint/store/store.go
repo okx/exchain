@@ -208,22 +208,31 @@ func (bs *BlockStore) loadBlockPartsBytes(height int64, buf *bytes.Buffer) ([]by
 			BlockPartSize:     len(parts[0].Bytes)}
 }
 
+func decodeBlockMeta(bz []byte) (*types.BlockMeta, error) {
+	if len(bz) == 0 {
+		return nil, nil
+	}
+	var blockMeta = new(types.BlockMeta)
+	err := blockMeta.UnmarshalFromAmino(cdc, bz)
+	if err != nil {
+		err = cdc.UnmarshalBinaryBare(bz, blockMeta)
+		if err != nil {
+			return nil, errors.Wrap(err, "Error reading block meta")
+		}
+	}
+	return blockMeta, nil
+}
+
 // LoadBlockMeta returns the BlockMeta for the given height.
 // If no block is found for the given height, it returns nil.
 func (bs *BlockStore) LoadBlockMeta(height int64) *types.BlockMeta {
-	var blockMeta = new(types.BlockMeta)
-	bz, err := bs.db.Get(calcBlockMetaKey(height))
+	v, err := bs.db.GetUnsafeValue(calcBlockMetaKey(height), func(bz []byte) (interface{}, error) {
+		return decodeBlockMeta(bz)
+	})
 	if err != nil {
 		panic(err)
 	}
-	if len(bz) == 0 {
-		return nil
-	}
-	err = cdc.UnmarshalBinaryBare(bz, blockMeta)
-	if err != nil {
-		panic(errors.Wrap(err, "Error reading block meta"))
-	}
-	return blockMeta
+	return v.(*types.BlockMeta)
 }
 
 // LoadBlockCommit returns the Commit for the given height.
