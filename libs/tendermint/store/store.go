@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/tendermint/go-amino"
@@ -438,23 +439,23 @@ func (bs *BlockStore) saveState() {
 //-----------------------------------------------------------------------------
 
 func calcBlockMetaKey(height int64) []byte {
-	return []byte(fmt.Sprintf("H:%v", height))
+	return amino.StrToBytes(strings.Join([]string{"H", strconv.FormatInt(height, 10)}, ":"))
 }
 
 func calcBlockPartKey(height int64, partIndex int) []byte {
-	return []byte(fmt.Sprintf("P:%v:%v", height, partIndex))
+	return amino.StrToBytes(strings.Join([]string{"P", strconv.FormatInt(height, 10), strconv.Itoa(partIndex)}, ":"))
 }
 
 func calcBlockCommitKey(height int64) []byte {
-	return []byte(fmt.Sprintf("C:%v", height))
+	return amino.StrToBytes(strings.Join([]string{"C", strconv.FormatInt(height, 10)}, ":"))
 }
 
 func calcSeenCommitKey(height int64) []byte {
-	return []byte(fmt.Sprintf("SC:%v", height))
+	return amino.StrToBytes(strings.Join([]string{"SC", strconv.FormatInt(height, 10)}, ":"))
 }
 
 func calcBlockHashKey(hash []byte) []byte {
-	return []byte(fmt.Sprintf("BH:%x", hash))
+	return amino.StrToBytes(strings.Join([]string{"BH", amino.HexEncodeToString(hash)}, ":"))
 }
 
 //-----------------------------------------------------------------------------
