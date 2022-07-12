@@ -2,22 +2,24 @@ package keeper
 
 import (
 	"encoding/json"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	comm "github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/distribution/types"
 )
 
 func queryDelegationRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, k Keeper) ([]byte, error) {
 	if !k.CheckDistributionProposalValid(ctx) {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidVersion, "not support")
+		return nil, types.ErrCodeNotSupportDistributionProposal()
 	}
 
 	var params types.QueryDelegationRewardsParams
 	err := k.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
+		return nil, comm.ErrUnMarshalJSONFailed(err.Error())
 	}
 
 	// cache-wrap context as to not persist state changes during querying
@@ -62,7 +64,7 @@ func queryDelegationRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, 
 
 	bz, err := codec.MarshalJSONIndent(k.cdc, rewards)
 	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+		return nil, comm.ErrMarshalJSONFailed(err.Error())
 	}
 
 	return bz, nil
@@ -70,13 +72,13 @@ func queryDelegationRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, 
 
 func queryDelegatorTotalRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, k Keeper) ([]byte, error) {
 	if !k.CheckDistributionProposalValid(ctx) {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidVersion, "not support")
+		return nil, types.ErrCodeNotSupportDistributionProposal()
 	}
 
 	var params types.QueryDelegatorParams
 	err := k.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
+		return nil, comm.ErrUnMarshalJSONFailed(err.Error())
 	}
 
 	// cache-wrap context as to not persist state changes during querying
@@ -119,7 +121,7 @@ func queryDelegatorTotalRewards(ctx sdk.Context, _ []string, req abci.RequestQue
 
 	bz, err := json.Marshal(totalRewards)
 	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+		return nil, comm.ErrMarshalJSONFailed(err.Error())
 	}
 
 	return bz, nil
@@ -127,13 +129,13 @@ func queryDelegatorTotalRewards(ctx sdk.Context, _ []string, req abci.RequestQue
 
 func queryValidatorOutstandingRewards(ctx sdk.Context, path []string, req abci.RequestQuery, k Keeper) ([]byte, error) {
 	if !k.CheckDistributionProposalValid(ctx) {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidVersion, "not support")
+		return nil, types.ErrCodeNotSupportDistributionProposal()
 	}
 
 	var params types.QueryValidatorOutstandingRewardsParams
 	err := k.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
+		return nil, comm.ErrUnMarshalJSONFailed(err.Error())
 	}
 
 	rewards := k.GetValidatorOutstandingRewards(ctx, params.ValidatorAddress)
@@ -143,7 +145,7 @@ func queryValidatorOutstandingRewards(ctx sdk.Context, path []string, req abci.R
 
 	bz, err := codec.MarshalJSONIndent(k.cdc, rewards)
 	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+		return nil, comm.ErrMarshalJSONFailed(err.Error())
 	}
 
 	return bz, nil
@@ -153,7 +155,7 @@ func queryDelegatorValidators(ctx sdk.Context, _ []string, req abci.RequestQuery
 	var params types.QueryDelegatorParams
 	err := k.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
+		return nil, comm.ErrUnMarshalJSONFailed(err.Error())
 	}
 
 	// cache-wrap context as to not persist state changes during querying
@@ -163,7 +165,7 @@ func queryDelegatorValidators(ctx sdk.Context, _ []string, req abci.RequestQuery
 
 	bz, err := codec.MarshalJSONIndent(k.cdc, delegator.GetShareAddedValidatorAddresses())
 	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+		return nil, comm.ErrMarshalJSONFailed(err.Error())
 	}
 
 	return bz, nil

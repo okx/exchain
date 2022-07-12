@@ -34,8 +34,11 @@ type testAllocationParam struct {
 }
 
 func allocateTokens(t *testing.T) {
+	feePoolBefore, _ := dk.GetFeePool(ctx).CommunityPool.TruncateDecimal()
 	setTestFees(t, ctx, ak, blockRewardValueTokens)
 	dk.AllocateTokens(ctx, 1, keeper.TestConsAddrs[0], votes)
+	feePoolAfter, _ := dk.GetFeePool(ctx).CommunityPool.TruncateDecimal()
+	require.Equal(t, feePoolBefore.Add2(getDecCoins("2")), feePoolAfter)
 	staking.EndBlocker(ctx, sk)
 	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 }
