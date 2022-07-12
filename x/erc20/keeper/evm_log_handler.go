@@ -200,7 +200,7 @@ func (h SendNative20ToIbcEventHandler) Handle(ctx sdk.Context, contract common.A
 	if ctx.IsDeliver() {
 		txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
 		ethTxHash := common.BytesToHash(txHash)
-		h.Logger(ctx).Info("addSendNative20ToIbcInnerTx", "txhash", ethTxHash.Hex())
+
 		h.Keeper.addSendNative20ToIbcInnerTx(ethTxHash.Hex(), types.ModuleName, sender.String(), recipient, native20s.String())
 	}
 	return nil
