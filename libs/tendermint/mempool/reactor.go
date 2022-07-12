@@ -45,7 +45,6 @@ type Reactor struct {
 	nodeKeyWhitelist map[string]struct{}
 	enableWtx        bool
 	enableStx        bool
-	enableBatchTx    bool
 }
 
 func (memR *Reactor) SetNodeKey(key *p2p.NodeKey) {
@@ -124,7 +123,6 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 		nodeKeyWhitelist: make(map[string]struct{}),
 		enableWtx:        cfg.DynamicConfig.GetEnableWtx(),
 		enableStx:        cfg.DynamicConfig.GetEnableStx(),
-		enableBatchTx:    cfg.DynamicConfig.GetEnableBatchTx(),
 	}
 	for _, nodeKey := range config.GetNodeKeyWhitelist() {
 		memR.nodeKeyWhitelist[nodeKey] = struct{}{}
@@ -338,7 +336,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			continue
 		}
 
-		if memR.enableBatchTx {
+		if cfg.DynamicConfig.GetEnableBatchTx() {
 			var txs []types.Tx
 			txs, next = memR.txs(next, peerID)
 			msg := TxsMessage{

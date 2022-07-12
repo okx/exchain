@@ -811,6 +811,8 @@ func (mem *CListMempool) Update(
 		return nil
 	}
 
+	fmt.Println("enable batch tx", cfg.DynamicConfig.GetEnableBatchTx())
+
 	// Set height
 	atomic.StoreInt64(&mem.height, height)
 	mem.notifiedTxsAvailable = false
