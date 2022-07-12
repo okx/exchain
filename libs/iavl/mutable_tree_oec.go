@@ -36,12 +36,13 @@ var (
 )
 
 type commitEvent struct {
-	version    int64
-	versions   map[int64]bool
-	batch      dbm.Batch
-	tpp        map[string]*Node
-	wg         *sync.WaitGroup
-	iavlHeight int
+	version         int64
+	versions        map[int64]bool
+	batch           dbm.Batch
+	tpp             map[string]*Node
+	wg              *sync.WaitGroup
+	iavlHeight      int
+	fastNodeChanges *FastNodeChanges
 }
 
 type commitOrphan struct {
@@ -75,6 +76,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		} else {
 			tree.ndb.updateBranchMoreConcurrency(tree.root)
 		}
+		tree.updateBranchFastNode()
 
 		// generate state delta
 		if produceDelta {
@@ -87,6 +89,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 	shouldPersist := ((version%CommitGapHeight == 0) && (version-tree.lastPersistHeight >= CommitGapHeight)) ||
 		(treeMap.totalPpncSize >= MinCommitItemCount)
 
+	tree.ndb.updateLatestVersion4FastNode(version)
 	if shouldPersist {
 		tree.ndb.saveNewOrphans(version, tree.orphans, true)
 		tree.persist(version)
@@ -94,6 +97,10 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 	tree.ndb.enqueueOrphanTask(version, tree.orphans, tree.ImmutableTree.Hash(), shouldPersist)
 
 	return tree.setNewWorkingTree(version, shouldPersist)
+}
+
+func (tree *MutableTree) updateBranchFastNode() {
+	tree.ndb.updateBranchForFastNode(tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
 }
 
 func (tree *MutableTree) setNewWorkingTree(version int64, persisted bool) ([]byte, int64, error) {
@@ -131,8 +138,9 @@ func (tree *MutableTree) removeVersion(version int64) {
 func (tree *MutableTree) persist(version int64) {
 	var err error
 	batch := tree.NewBatch()
-	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0}
+	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0, nil}
 	var tpp map[string]*Node = nil
+	var fastNodeChanges *FastNodeChanges
 	if EnablePruningHistoryState {
 		tree.ndb.saveCommitOrphans(batch, version, tree.commitOrphans)
 	}
@@ -141,7 +149,7 @@ func (tree *MutableTree) persist(version int64) {
 		err = tree.ndb.SaveEmptyRoot(batch, version)
 	} else {
 		err = tree.ndb.SaveRoot(batch, tree.root, version)
-		tpp = tree.ndb.asyncPersistTppStart(version)
+		tpp, fastNodeChanges = tree.ndb.asyncPersistTppStart(version)
 	}
 
 	if err != nil {
@@ -154,7 +162,7 @@ func (tree *MutableTree) persist(version int64) {
 	}
 	versions := tree.deepCopyVersions()
 	tree.commitCh <- commitEvent{version, versions, batch,
-		tpp, nil, int(tree.Height())}
+		tpp, nil, int(tree.Height()), fastNodeChanges}
 	tree.lastPersistHeight = version
 }
 
@@ -186,8 +194,7 @@ func (tree *MutableTree) commitSchedule() {
 		trc.Pin("Pruning")
 		tree.updateCommittedStateHeightPool(event.batch, event.version, event.versions)
 
-		tree.ndb.persistTpp(&event, trc)
-
+		tree.persistTpp(&event, trc)
 		if event.wg != nil {
 			event.wg.Done()
 			break
@@ -245,13 +252,13 @@ func (tree *MutableTree) StopTree() {
 			panic(err)
 		}
 	}
-	tpp := tree.ndb.asyncPersistTppStart(tree.version)
+	tpp, fastNodeChanges := tree.ndb.asyncPersistTppStart(tree.version)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 	versions := tree.deepCopyVersions()
 
-	tree.commitCh <- commitEvent{tree.version, versions, batch, tpp, &wg, 0}
+	tree.commitCh <- commitEvent{tree.version, versions, batch, tpp, &wg, 0, fastNodeChanges}
 	wg.Wait()
 }
 
@@ -365,4 +372,42 @@ func (tree *MutableTree) updateBranchWithDelta(node *Node) []byte {
 }
 func (t *ImmutableTree) GetPersistedRoots() map[int64][]byte {
 	return t.ndb.roots()
+}
+
+func (tree *MutableTree) persistTppFastNodeChanges() {
+	for k := range tree.unsavedFastNodeAdditions {
+		delete(tree.unsavedFastNodeAdditions, k)
+	}
+
+	for k := range tree.unsavedFastNodeRemovals {
+		delete(tree.unsavedFastNodeRemovals, k)
+	}
+}
+
+func (tree *MutableTree) persistTpp(event *commitEvent, trc *trace.Tracer) {
+	ndb := tree.ndb
+	batch := event.batch
+	tpp := event.tpp
+
+	trc.Pin("batchSet")
+	for _, node := range tpp {
+		ndb.batchSet(node, batch)
+	}
+	ndb.state.increasePersistedCount(len(tpp))
+	ndb.addDBWriteCount(int64(len(tpp)))
+
+	tree.mtxFastNodeChanges.Lock()
+	defer tree.mtxFastNodeChanges.Unlock()
+
+	if err := tree.saveFastNodeVersion(batch, event.fastNodeChanges); err != nil {
+		panic(err)
+	}
+
+	trc.Pin("batchCommit")
+	if err := ndb.Commit(batch); err != nil {
+		panic(err)
+	}
+
+	tree.persistTppFastNodeChanges()
+	ndb.asyncPersistTppFinised(event, trc)
 }

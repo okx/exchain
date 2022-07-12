@@ -183,6 +183,10 @@ func (t *ImmutableTree) Get(key []byte) []byte {
 			return nil
 		}
 
+		if EnableAsyncCommit && t.version == t.ndb.latestVersion4FastNode {
+			return nil
+		}
+
 		_, result := t.root.get(t, key)
 		return result
 	}
