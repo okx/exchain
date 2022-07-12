@@ -329,7 +329,6 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 	hasEnterEvmTx := make([]bool, app.parallelTxManage.txSize)
 	resp := make([]abci.ResponseDeliverTx, app.parallelTxManage.txSize)
 	watchers := make([]sdk.IWatcher, app.parallelTxManage.txSize)
-	msgs := make([][]sdk.Msg, app.parallelTxManage.txSize)
 	txs := make([]sdk.Tx, app.parallelTxManage.txSize)
 	for index := 0; index < app.parallelTxManage.txSize; index++ {
 		paraM := app.parallelTxManage.txReps[index].paraMsg
@@ -338,12 +337,11 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 		hasEnterEvmTx[index] = paraM.HasRunEvmTx
 		resp[index] = app.parallelTxManage.txReps[index].resp
 		watchers[index] = app.parallelTxManage.txReps[index].watcher
-		msgs[index] = app.parallelTxManage.txReps[index].msgs
 		txs[index] = app.parallelTxManage.extraTxsInfo[index].stdTx
 	}
 	app.watcherCollector(watchers...)
 	app.parallelTxManage.clear()
-	return app.logFix(txs, logIndex, hasEnterEvmTx, errs, msgs, resp)
+	return app.logFix(txs, logIndex, hasEnterEvmTx, errs, resp)
 }
 
 //we reuse the nonce that changed by the last async call
