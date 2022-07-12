@@ -49,7 +49,6 @@ type Keeper struct {
 	Bloom   *big.Int
 	Bhash   ethcmn.Hash
 	LogSize uint
-	Watcher *watcher.Watcher
 	Ada     types.DbAdapter
 
 	LogsManages *LogsManager
@@ -71,7 +70,9 @@ type Keeper struct {
 	// cache chain config
 	cci *chainConfigInfo
 
-	hooks types.EvmHooks
+	hooks   types.EvmHooks
+	logger  log.Logger
+	Watcher *watcher.Watcher
 }
 
 type chainConfigInfo struct {
@@ -102,6 +103,7 @@ func NewKeeper(
 		db := types.BloomDb()
 		types.InitIndexer(db)
 	}
+	logger = logger.With("module", types.ModuleName)
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
 	k := &Keeper{
 		cdc:           cdc,
@@ -113,7 +115,6 @@ func NewKeeper(
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 		LogSize:       0,
-		Watcher:       watcher.NewWatcher(logger),
 		Ada:           types.DefaultPrefixDb{},
 
 		innerBlockData: defaultBlockInnerData(),
@@ -122,6 +123,9 @@ func NewKeeper(
 		triegc:         prque.New(nil),
 		UpdatedAccount: make([]ethcmn.Address, 0),
 		cci:            &chainConfigInfo{},
+		LogsManages:    NewLogManager(),
+		logger:         logger,
+		Watcher:        watcher.NewWatcher(logger),
 	}
 	k.Watcher.SetWatchDataFunc()
 	ak.SetObserverKeeper(k)
@@ -178,13 +182,11 @@ func (k *Keeper) GenerateCSDBParams() types.CommitStateDBParams {
 		AccountKeeper: k.accountKeeper,
 		SupplyKeeper:  k.supplyKeeper,
 		BankKeeper:    k.bankKeeper,
-		Watcher:       k.Watcher,
 		Ada:           k.Ada,
 		Cdc:           k.cdc,
-
-		DB:         k.db,
-		Trie:       k.rootTrie,
-		RootHash:   k.rootHash,
+		DB:            k.db,
+		Trie:          k.rootTrie,
+		RootHash:      k.rootHash,
 	}
 }
 
@@ -193,19 +195,18 @@ func (k Keeper) GeneratePureCSDBParams() types.CommitStateDBParams {
 	return types.CommitStateDBParams{
 		StoreKey:   k.storeKey,
 		ParamSpace: k.paramSpace,
-		Watcher:    k.Watcher,
 		Ada:        k.Ada,
 		Cdc:        k.cdc,
 
-		DB:         k.db,
-		Trie:       k.rootTrie,
-		RootHash:   k.rootHash,
+		DB:       k.db,
+		Trie:     k.rootTrie,
+		RootHash: k.rootHash,
 	}
 }
 
 // Logger returns a module-specific logger.
-func (k Keeper) Logger(ctx sdk.Context) log.Logger {
-	return ctx.Logger().With("module", types.ModuleName)
+func (k Keeper) Logger() log.Logger {
+	return k.logger
 }
 
 func (k Keeper) GetStoreKey() store.StoreKey {
@@ -417,9 +418,19 @@ func (k *Keeper) SetGovKeeper(gk GovKeeper) {
 	k.govKeeper = gk
 }
 
+var commitStateDBPool = &sync.Pool{
+	New: func() interface{} {
+		return &types.CommitStateDB{}
+	},
+}
+
 // checks whether the address is blocked
 func (k *Keeper) IsAddressBlocked(ctx sdk.Context, addr sdk.AccAddress) bool {
-	csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
+	csdb := commitStateDBPool.Get().(*types.CommitStateDB)
+	defer commitStateDBPool.Put(csdb)
+	types.ResetCommitStateDB(csdb, k.GenerateCSDBParams(), &ctx)
+
+	// csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 	return csdb.GetParams().EnableContractBlockedList && csdb.IsContractInBlockedList(addr.Bytes())
 }
 

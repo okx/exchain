@@ -72,6 +72,9 @@ func (app *BaseApp) runTx(mode runTxMode,
 
 	info = &runTxInfo{}
 	err = app.runtxWithInfo(info, mode, txBytes, tx, height, from...)
+	if app.watcherCollector != nil && mode == runTxModeDeliver {
+		app.watcherCollector(info.runMsgCtx.GetWatcher())
+	}
 	return
 }
 
@@ -98,7 +101,11 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		//in trace mode,  info ctx cache was already set to traceBlockCache instead of app.blockCache in app.tracetx()
 		//to prevent modifying the deliver state
 		//traceBlockCache was created with different root(chainCache) with app.blockCache in app.BeginBlockForTrace()
-		info.ctx.SetCache(sdk.NewCache(app.blockCache, useCache(mode)))
+		if useCache(mode) && tx.GetType() == sdk.EvmTxType {
+			info.ctx.SetCache(sdk.NewCache(app.blockCache, true))
+		} else {
+			info.ctx.SetCache(nil)
+		}
 	}
 	for _, addr := range from {
 		// cache from if exist
@@ -318,8 +325,8 @@ func (app *BaseApp) PreDeliverRealTx(tx []byte) abci.TxEssentials {
 		if err != nil || realTx == nil {
 			return nil
 		}
-		app.blockDataCache.SetTx(tx, realTx)
 	}
+	app.blockDataCache.SetTx(tx, realTx)
 
 	if realTx.GetType() == sdk.EvmTxType && app.preDeliverTxHandler != nil {
 		ctx := app.deliverState.ctx
@@ -343,6 +350,10 @@ func (app *BaseApp) DeliverRealTx(txes abci.TxEssentials) abci.ResponseDeliverTx
 		}
 	}
 	info, err := app.runTx(runTxModeDeliver, realTx.GetRaw(), realTx, LatestSimulateTxHeight)
+	if !info.ctx.Cache().IsEnabled() {
+		app.blockCache = nil
+		app.chainCache = nil
+	}
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	}
@@ -381,7 +392,7 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 				"recovered: %v\n", r,
 			),
 		)
-		app.logger.Info("runTx panic recover : %v\nstack:\n%v", r, string(debug.Stack()))
+		app.logger.Info("runTx panic", "recover", r, "stack", string(debug.Stack()))
 	}
 	return err
 }
@@ -400,13 +411,15 @@ func (app *BaseApp) asyncDeliverTx(txIndex int) {
 	txStatus := app.parallelTxManage.extraTxsInfo[txIndex]
 
 	if txStatus.stdTx == nil {
-		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr, 0, 0, app.trace), nil, uint32(txIndex), nil, blockHeight)
+		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr,
+			0, 0, app.trace), nil, uint32(txIndex), nil, blockHeight, sdk.EmptyWatcher{}, nil)
 		pmWorkGroup.Push(asyncExe)
 		return
 	}
 
 	if !txStatus.isEvm {
-		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, uint32(txIndex), nil, blockHeight)
+		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, uint32(txIndex), nil,
+			blockHeight, sdk.EmptyWatcher{}, nil)
 		pmWorkGroup.Push(asyncExe)
 		return
 	}
@@ -425,7 +438,8 @@ func (app *BaseApp) asyncDeliverTx(txIndex int) {
 		}
 	}
 
-	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg(), blockHeight)
+	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg(),
+		blockHeight, info.runMsgCtx.GetWatcher(), info.tx.GetMsgs())
 	pmWorkGroup.Push(asyncExe)
 	app.parallelTxManage.addMultiCache(info.msCacheAnte, info.msCache)
 }
@@ -441,7 +455,12 @@ func useCache(mode runTxMode) bool {
 }
 
 func (app *BaseApp) newBlockCache() {
-	app.blockCache = sdk.NewCache(app.chainCache, sdk.UseCache && !app.parallelTxManage.isAsyncDeliverTx)
+	useCache := sdk.UseCache && !app.parallelTxManage.isAsyncDeliverTx
+	if app.chainCache == nil {
+		app.chainCache = sdk.NewCache(nil, useCache)
+	}
+
+	app.blockCache = sdk.NewCache(app.chainCache, useCache)
 	app.deliverState.ctx.SetCache(app.blockCache)
 }
 

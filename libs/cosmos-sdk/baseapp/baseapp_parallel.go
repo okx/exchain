@@ -2,6 +2,9 @@ package baseapp
 
 import (
 	"bytes"
+	"runtime"
+	"sync"
+
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -9,8 +12,6 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/spf13/viper"
-	"runtime"
-	"sync"
 )
 
 var (
@@ -32,23 +33,32 @@ type extraDataForTx struct {
 // getExtraDataByTxs preprocessing tx : verify tx, get sender, get toAddress, get txFee
 func (app *BaseApp) getExtraDataByTxs(txs [][]byte) {
 	para := app.parallelTxManage
-	para.txReps = make([]*executeResult, para.txSize)
-	para.extraTxsInfo = make([]*extraDataForTx, para.txSize)
-	para.workgroup.runningStatus = make(map[int]int)
-	para.workgroup.isrunning = make(map[int]bool)
 
 	var wg sync.WaitGroup
 	for index, txBytes := range txs {
 		wg.Add(1)
 		go func(index int, txBytes []byte) {
 			defer wg.Done()
-			tx, err := app.txDecoder(txBytes)
-			if err != nil {
-				para.extraTxsInfo[index] = &extraDataForTx{
-					decodeErr: err,
-				}
-				return
+
+			var tx sdk.Tx
+			var err error
+
+			if mem := GetGlobalMempool(); mem != nil {
+				tx, _ = mem.ReapEssentialTx(txBytes).(sdk.Tx)
 			}
+			if tx == nil {
+				tx, err = app.txDecoder(txBytes)
+				if err != nil {
+					para.extraTxsInfo[index] = &extraDataForTx{
+						decodeErr: err,
+					}
+					return
+				}
+			}
+			if tx != nil {
+				app.blockDataCache.SetTx(txBytes, tx)
+			}
+
 			coin, isEvm, s, toAddr, _ := app.getTxFeeAndFromHandler(app.getContextForTx(runTxModeDeliver, txBytes), tx)
 			para.extraTxsInfo[index] = &extraDataForTx{
 				fee:   coin,
@@ -154,6 +164,7 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 	if txSize == 0 {
 		return make([]*abci.ResponseDeliverTx, 0)
 	}
+	pm.init()
 
 	app.getExtraDataByTxs(txs)
 
@@ -316,14 +327,21 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 	logIndex := make([]int, app.parallelTxManage.txSize)
 	errs := make([]error, app.parallelTxManage.txSize)
 	hasEnterEvmTx := make([]bool, app.parallelTxManage.txSize)
+	resp := make([]abci.ResponseDeliverTx, app.parallelTxManage.txSize)
+	watchers := make([]sdk.IWatcher, app.parallelTxManage.txSize)
+	msgs := make([][]sdk.Msg, app.parallelTxManage.txSize)
 	for index := 0; index < app.parallelTxManage.txSize; index++ {
 		paraM := app.parallelTxManage.txReps[index].paraMsg
 		logIndex[index] = paraM.LogIndex
 		errs[index] = paraM.AnteErr
 		hasEnterEvmTx[index] = paraM.HasRunEvmTx
+		resp[index] = app.parallelTxManage.txReps[index].resp
+		watchers[index] = app.parallelTxManage.txReps[index].watcher
+		msgs[index] = app.parallelTxManage.txReps[index].msgs
 	}
+	app.watcherCollector(watchers...)
 	app.parallelTxManage.clear()
-	return app.logFix(logIndex, hasEnterEvmTx, errs)
+	return app.logFix(logIndex, hasEnterEvmTx, errs, msgs, resp)
 }
 
 //we reuse the nonce that changed by the last async call
@@ -333,7 +351,8 @@ func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 	txStatus := app.parallelTxManage.extraTxsInfo[txIndex]
 
 	if txStatus.stdTx == nil {
-		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr, 0, 0, app.trace), nil, uint32(txIndex), nil, 0)
+		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr,
+			0, 0, app.trace), nil, uint32(txIndex), nil, 0, sdk.EmptyWatcher{}, nil)
 		return asyncExe
 	}
 	var (
@@ -354,7 +373,8 @@ func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 		}
 	}
 
-	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg(), 0)
+	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg(),
+		0, info.runMsgCtx.GetWatcher(), info.tx.GetMsgs())
 	app.parallelTxManage.addMultiCache(info.msCacheAnte, info.msCache)
 	return asyncExe
 }
@@ -365,15 +385,20 @@ type executeResult struct {
 	counter     uint32
 	paraMsg     *sdk.ParaMsg
 	blockHeight int64
+	watcher     sdk.IWatcher
+	msgs        []sdk.Msg
 }
 
-func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32, paraMsg *sdk.ParaMsg, height int64) *executeResult {
+func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32,
+	paraMsg *sdk.ParaMsg, height int64, watcher sdk.IWatcher, msgs []sdk.Msg) *executeResult {
 	ans := &executeResult{
 		resp:        r,
 		ms:          ms,
 		counter:     counter,
 		paraMsg:     paraMsg,
 		blockHeight: height,
+		watcher:     watcher,
+		msgs:        msgs,
 	}
 
 	if paraMsg == nil {
@@ -633,12 +658,7 @@ func (f *parallelTxManager) clear() {
 	f.workgroup.Close()
 	f.workgroup.isReady = false
 	f.workgroup.indexInAll = 0
-	for key := range f.workgroup.runningStatus {
-		delete(f.workgroup.runningStatus, key)
-	}
-	for key := range f.workgroup.isrunning {
-		delete(f.workgroup.isrunning, key)
-	}
+
 	for key := range f.workgroup.markFailedStats {
 		delete(f.workgroup.markFailedStats, key)
 	}
@@ -659,6 +679,37 @@ func (f *parallelTxManager) clear() {
 	f.cc.clear()
 	f.currIndex = -1
 	f.currTxFee = sdk.Coins{}
+}
+
+func (f *parallelTxManager) init() {
+	txSize := f.txSize
+	txRepsCap := cap(f.txReps)
+	if f.txReps == nil || txRepsCap < txSize {
+		f.txReps = make([]*executeResult, txSize)
+	} else if txRepsCap >= txSize {
+		f.txReps = f.txReps[0:txSize:txRepsCap]
+		// https://github.com/golang/go/issues/5373
+		for i := range f.txReps {
+			f.txReps[i] = nil
+		}
+	}
+
+	txsInfoCap := cap(f.extraTxsInfo)
+	if f.extraTxsInfo == nil || txsInfoCap < txSize {
+		f.extraTxsInfo = make([]*extraDataForTx, txSize)
+	} else if txsInfoCap >= txSize {
+		f.extraTxsInfo = f.extraTxsInfo[0:txSize:txsInfoCap]
+		for i := range f.extraTxsInfo {
+			f.extraTxsInfo[i] = nil
+		}
+	}
+
+	for key := range f.workgroup.runningStatus {
+		delete(f.workgroup.runningStatus, key)
+	}
+	for key := range f.workgroup.isrunning {
+		delete(f.workgroup.isrunning, key)
+	}
 }
 
 func (f *parallelTxManager) getTxResult(index int) sdk.CacheMultiStore {

@@ -4,10 +4,14 @@ import (
 	"math/big"
 	"sync"
 
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+
 	"github.com/okex/exchain/x/evm/types"
 )
 
-func (k *Keeper) FixLog(logIndex []int, hasEnterEvmTx []bool, anteErrs []error) [][]byte {
+func (k *Keeper) FixLog(logIndex []int, hasEnterEvmTx []bool, anteErrs []error, msgs [][]sdk.Msg, resp []abci.ResponseDeliverTx) [][]byte {
 	txSize := len(logIndex)
 	res := make([][]byte, txSize, txSize)
 	logSize := uint(0)
@@ -19,27 +23,24 @@ func (k *Keeper) FixLog(logIndex []int, hasEnterEvmTx []bool, anteErrs []error) 
 			txInBlock++
 		}
 		rs, ok := k.LogsManages.Get(logIndex[index])
-		if !ok || anteErrs[index] != nil {
-			continue
-		}
-		if rs.ResultData == nil {
-			continue
-		}
+		if ok && anteErrs[index] == nil && rs.ResultData != nil {
+			for _, v := range rs.ResultData.Logs {
+				v.Index = logSize
+				v.TxIndex = uint(txInBlock)
+				logSize++
+			}
 
-		for _, v := range rs.ResultData.Logs {
-			v.Index = logSize
-			v.TxIndex = uint(txInBlock)
-			logSize++
+			k.Bloom = k.Bloom.Or(k.Bloom, rs.ResultData.Bloom.Big())
+			data, err := types.EncodeResultData(rs.ResultData)
+			if err != nil {
+				panic(err)
+			}
+			res[index] = data
 		}
-
-		k.Bloom = k.Bloom.Or(k.Bloom, rs.ResultData.Bloom.Big())
-		data, err := types.EncodeResultData(rs.ResultData)
-		if err != nil {
-			panic(err)
-		}
-		res[index] = data
+		// save transaction and transactionReceipt to watcher
+		k.saveParallelTxResult(msgs[index], rs.ResultData, resp[index])
 	}
-	k.LogsManages.Reset()
+
 	return res
 }
 
@@ -79,10 +80,22 @@ func (l *LogsManager) Len() int {
 }
 
 func (l *LogsManager) Reset() {
-	l.Results = make(map[int]TxResult)
+	if l == nil {
+		return
+	}
+	for k := range l.Results {
+		delete(l.Results, k)
+	}
 	l.cnt = 0
 }
 
 type TxResult struct {
 	ResultData *types.ResultData
+}
+
+func (k *Keeper) saveParallelTxResult(msgs []sdk.Msg, resultData *types.ResultData, resp abci.ResponseDeliverTx) {
+	if !k.Watcher.Enabled() {
+		return
+	}
+	k.Watcher.SaveParallelTx(msgs, resultData, resp)
 }
