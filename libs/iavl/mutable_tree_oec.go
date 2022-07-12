@@ -77,6 +77,22 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 
 	tree.ndb.updateLatestVersion4FastNode(version)
 	if shouldPersist {
+		tree.unsavedFastNodeAdditionsDelKey = tree.unsavedFastNodeAdditionsDelKey[:0]
+
+		tree.mtxUnSavedFastNodeAdditions.Lock()
+		for _, v := range tree.unsavedFastNodeAdditions {
+			tree.unsavedFastNodeAdditionsDelKey = append(tree.unsavedFastNodeAdditionsDelKey, &FastNode{key: v.key, versionLastUpdatedAt: v.versionLastUpdatedAt})
+		}
+		tree.mtxUnSavedFastNodeAdditions.Unlock()
+
+		tree.unsavedFastNodeRemovalsDelKey = tree.unsavedFastNodeRemovalsDelKey[:0]
+
+		tree.mtxUnsavedFastNodeRemovalsDelKey.Lock()
+		for k, _ := range tree.unsavedFastNodeRemovals {
+			tree.unsavedFastNodeRemovalsDelKey = append(tree.unsavedFastNodeRemovalsDelKey, k)
+		}
+		tree.mtxUnsavedFastNodeRemovalsDelKey.Unlock()
+
 		tree.ndb.saveNewOrphans(version, tree.orphans, true)
 		tree.persist(version)
 	}
@@ -372,11 +388,23 @@ func (tree *MutableTree) persistTpp(event *commitEvent, trc *trace.Tracer) {
 		panic(err)
 	}
 	tree.mtxUnSavedFastNodeAdditions.Lock()
-	tree.unsavedFastNodeAdditions = make(map[string]*FastNode)
+	tree.mtxUnsavedFastNodeAdditionsDelKey.Lock()
+	for _, v := range tree.unsavedFastNodeAdditionsDelKey {
+		if fastNode, ok := tree.unsavedFastNodeAdditions[string(v.key)]; ok {
+			if fastNode.versionLastUpdatedAt == v.versionLastUpdatedAt {
+				delete(tree.unsavedFastNodeAdditions, string(v.key))
+			}
+		}
+	}
+	tree.mtxUnsavedFastNodeAdditionsDelKey.Unlock()
 	tree.mtxUnSavedFastNodeAdditions.Unlock()
 
 	tree.mtxUnSavedFastNodeRemovals.Lock()
-	tree.unsavedFastNodeRemovals = make(map[string]interface{})
+	tree.mtxUnsavedFastNodeRemovalsDelKey.Lock()
+	for _, v := range tree.unsavedFastNodeRemovalsDelKey {
+		delete(tree.unsavedFastNodeRemovals, v)
+	}
+	tree.mtxUnsavedFastNodeRemovalsDelKey.Unlock()
 	tree.mtxUnSavedFastNodeRemovals.Unlock()
 
 	trc.Pin("batchCommit")
