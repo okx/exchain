@@ -28,17 +28,17 @@ func (w *Watcher) RecordTxAndFailedReceipt(tx tm.TxEssentials, resp *tm.Response
 		return
 	}
 	watchTx := w.createWatchTx(realTx)
-	if watchTx == nil {
-		return
-	}
-	w.saveTx(watchTx, realTx)
-
 	switch realTx.GetType() {
 	case sdk.EvmTxType:
+		if watchTx == nil {
+			return
+		}
+		w.saveTx(watchTx)
 		if resp != nil && !resp.IsOK() {
 			w.saveFailedReceipts(watchTx, uint64(resp.GasUsed))
 		}
 	case sdk.StdTxType:
+		w.blockStdTxs = append(w.blockStdTxs, common.BytesToHash(realTx.TxHash()))
 		txResult := &ctypes.ResultTx{
 			Hash:     tx.TxHash(),
 			Height:   int64(w.height),
@@ -47,7 +47,6 @@ func (w *Watcher) RecordTxAndFailedReceipt(tx tm.TxEssentials, resp *tm.Response
 		}
 		w.saveStdTxResponse(txResult)
 	}
-
 }
 
 func (w *Watcher) getRealTx(tx tm.TxEssentials, txDecoder sdk.TxDecoder) (sdk.Tx, error) {
@@ -73,8 +72,6 @@ func (w *Watcher) createWatchTx(realTx sdk.Tx) WatchTx {
 		}
 		txMsg = NewEvmTx(evmTx, common.BytesToHash(evmTx.TxHash()), w.blockHash, w.height, w.evmTxIndex)
 		w.evmTxIndex++
-	case sdk.StdTxType:
-		txMsg = NewStdWatchTx(realTx, common.BytesToHash(realTx.TxHash()), w.blockHash, w.height)
 	}
 
 	return txMsg
@@ -95,7 +92,7 @@ func (w *Watcher) extractEvmTx(sdkTx sdk.Tx) (*types.MsgEthereumTx, error) {
 	return evmTx, nil
 }
 
-func (w *Watcher) saveTx(tx WatchTx, realTx sdk.Tx) {
+func (w *Watcher) saveTx(tx WatchTx) {
 	if w == nil || tx == nil {
 		return
 	}
@@ -108,13 +105,7 @@ func (w *Watcher) saveTx(tx WatchTx, realTx sdk.Tx) {
 	if txWatchMessage := tx.GetTxWatchMessage(); txWatchMessage != nil {
 		w.batch = append(w.batch, txWatchMessage)
 	}
-
-	switch realTx.GetType() {
-	case sdk.EvmTxType:
-		w.blockTxs = append(w.blockTxs, tx.GetTxHash())
-	case sdk.StdTxType:
-		w.blockStdTxs = append(w.blockStdTxs, tx.GetTxHash())
-	}
+	w.blockTxs = append(w.blockTxs, tx.GetTxHash())
 }
 
 func (w *Watcher) saveFailedReceipts(watchTx WatchTx, gasUsed uint64) {
@@ -139,26 +130,25 @@ func (w *Watcher) SaveParallelTx(realTx sdk.Tx, resultData *types.ResultData, re
 		return
 	}
 
-	watchTx := w.createWatchTx(realTx)
-	if watchTx == nil {
-		return
-	}
-	w.saveTx(watchTx, realTx)
+	switch realTx.GetType() {
+	case sdk.EvmTxType:
+		msgs := realTx.GetMsgs()
+		evmTx, ok := msgs[0].(*types.MsgEthereumTx)
+		if !ok {
+			return
+		}
+		watchTx := NewEvmTx(evmTx, common.BytesToHash(evmTx.TxHash()), w.blockHash, w.height, w.evmTxIndex)
+		w.evmTxIndex++
+		w.saveTx(watchTx)
 
-	msgs := realTx.GetMsgs()
-	if msgs == nil || len(msgs) == 0 {
-		return
-	}
-
-	evmTx, ok := msgs[0].(*types.MsgEthereumTx)
-	if ok {
 		// save transactionReceipts
 		if resp.IsOK() && resultData != nil {
 			w.SaveTransactionReceipt(TransactionSuccess, evmTx, watchTx.GetTxHash(), watchTx.GetIndex(), resultData, uint64(resp.GasUsed))
 		} else {
 			w.saveFailedReceipts(watchTx, uint64(resp.GasUsed))
 		}
-	} else {
+	case sdk.StdTxType:
+		w.blockStdTxs = append(w.blockStdTxs, common.BytesToHash(realTx.TxHash()))
 		txResult := &ctypes.ResultTx{
 			Hash:     realTx.TxHash(),
 			Height:   int64(w.height),
@@ -167,5 +157,4 @@ func (w *Watcher) SaveParallelTx(realTx sdk.Tx, resultData *types.ResultData, re
 		}
 		w.saveStdTxResponse(txResult)
 	}
-
 }

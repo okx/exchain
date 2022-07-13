@@ -32,7 +32,8 @@ func (api *PublicEthereumAPI) getTransactionWithStdByBlockAndIndex(block *tmtype
 }
 
 // GetTransactionsByBlock returns some transactions identified by number or hash.
-func (api *PublicEthereumAPI) GetAllTransactionsByBlock(blockNrOrHash rpctypes.BlockNumberOrHash, offset, limit hexutil.Uint) ([]*watcher.Transaction, error) {
+func (api *PublicEthereumAPI) getTransactionsWithStdByBlock(blockNrOrHash rpctypes.BlockNumberOrHash,
+	offset, limit hexutil.Uint) ([]*watcher.Transaction, error) {
 	if !viper.GetBool(FlagEnableMultiCall) {
 		return nil, errors.New("the method is not allowed")
 	}
@@ -95,7 +96,7 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 	monitor := monitor.GetMonitor("eth_getTransactionReceiptsByBlock", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("block number", blockNrOrHash, "offset", offset, "limit", limit)
 
-	txs, err := api.GetAllTransactionsByBlock(blockNrOrHash, offset, limit)
+	txs, err := api.getTransactionsWithStdByBlock(blockNrOrHash, offset, limit)
 	if err != nil || len(txs) == 0 {
 		return nil, err
 	}
@@ -125,7 +126,7 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 			isEthTx = true
 			receipt, _ := api.wrappedBackend.GetTransactionReceipt(tx.Hash)
 			if receipt != nil {
-				res = &watcher.TransactionResult{TxType: hexutil.Uint64(watcher.EthReceipt), Receipt: receipt}
+				res = &watcher.TransactionResult{TxType: hexutil.Uint64(watcher.EthReceipt), EthTx: tx, Receipt: receipt}
 			}
 		}
 
@@ -134,7 +135,7 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 			continue
 		}
 
-		tx, err := api.clientCtx.Client.Tx(tx.Hash.Bytes(), false)
+		queryTx, err := api.clientCtx.Client.Tx(tx.Hash.Bytes(), false)
 		if err != nil {
 			// Return nil for transaction when not found
 			return nil, nil
@@ -142,7 +143,7 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 
 		if block == nil {
 			// Query block for consensus hash
-			block, err = api.clientCtx.Client.Block(&tx.Height)
+			block, err = api.clientCtx.Client.Block(&queryTx.Height)
 			if err != nil {
 				return nil, err
 			}
@@ -150,9 +151,9 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 		}
 
 		if isEthTx {
-			res, err = rpctypes.RawTxResultToEthReceipt(api.clientCtx, tx, blockHash)
+			res, err = rpctypes.RawTxResultToEthReceipt(api.clientCtx, queryTx, blockHash)
 		} else {
-			res, err = rpctypes.RawTxResultToStdResponse(api.clientCtx, tx, block.Block.Time)
+			res, err = rpctypes.RawTxResultToStdResponse(api.clientCtx, queryTx, block.Block.Time)
 		}
 
 		if err != nil {

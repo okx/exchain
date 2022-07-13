@@ -355,27 +355,30 @@ func (q Querier) GetTransactionsWithStdByBlockNumber(number, offset, limit uint6
 	if err != nil {
 		return nil, err
 	}
-	if block.Transactions == nil {
-		return nil, errors.New("no such transaction in target block")
+
+	var rawTxs []*Transaction
+	// get eth Txs
+	if block.Transactions != nil {
+		txs, ok := block.Transactions.([]*Transaction)
+		if ok {
+			rawTxs = txs
+		}
 	}
 
-	rawTxs, ok := block.Transactions.([]*Transaction)
-	if ok {
-		//append std Tx
-		stdTxs, err := q.GetStdTxsByBlockHash(block.Hash)
-		if err != nil {
-			return nil, err
-		}
-		rawTxs = append(rawTxs, stdTxs...)
-
-		var txs []*Transaction
-		for idx := offset; idx < offset+limit && int(idx) < len(rawTxs); idx++ {
-			rawTx := *rawTxs[idx]
-			txs = append(txs, &rawTx)
-		}
-		return txs, nil
+	// get Std Tx Hash
+	stdTxs, err := q.GetStdTxHashByBlockHash(block.Hash)
+	if err != nil {
+		return nil, err
 	}
-	return nil, errors.New("no such transaction in target block")
+	rawTxs = append(rawTxs, stdTxs...)
+
+	var rangeTxs []*Transaction
+	for idx := offset; idx < offset+limit && int(idx) < len(rawTxs); idx++ {
+		rawTx := *rawTxs[idx]
+		rangeTxs = append(rangeTxs, &rawTx)
+	}
+
+	return rangeTxs, nil
 }
 
 func (q Querier) MustGetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
@@ -519,7 +522,7 @@ func (q Querier) HasContractDeploymentWhitelist(key []byte) bool {
 	return q.store.Has(append(prefixWhiteList, key...))
 }
 
-func (q Querier) GetStdTxsByBlockHash(hash common.Hash) ([]*Transaction, error) {
+func (q Querier) GetStdTxHashByBlockHash(hash common.Hash) ([]*Transaction, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
@@ -538,7 +541,7 @@ func (q Querier) GetStdTxsByBlockHash(hash common.Hash) ([]*Transaction, error) 
 
 	txList := make([]*Transaction, 0, len(stdTxHash))
 	for _, tx := range stdTxHash {
-		transaction, e := q.GetTransactionByHash(tx)
+		transaction := &Transaction{Hash: tx}
 		if e == nil && transaction != nil {
 			txList = append(txList, transaction)
 		}
