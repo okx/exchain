@@ -183,6 +183,9 @@ func (t *ImmutableTree) FastGet(key []byte) []byte {
 			if t.version == t.ndb.latestVersion {
 				return nil
 			}
+			if EnableAsyncCommit && t.version == t.ndb.latestVersion4FastNode {
+				return nil
+			}
 
 			_, result := t.root.get(t, key)
 			return result
