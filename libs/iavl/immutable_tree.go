@@ -175,15 +175,15 @@ func (t *ImmutableTree) FastGet(key []byte) []byte {
 			_, result := t.root.get(t, key)
 			return result
 		}
-		if EnableAsyncCommit && t.version == t.ndb.latestVersion4FastNode {
-			return nil
-		}
 
 		if fastNode == nil {
 			// If the tree is of the latest version and fast node is not in the tree
 			// then the regular node is not in the tree either because fast node
 			// represents live state.
 			if t.version == t.ndb.latestVersion {
+				return nil
+			}
+			if EnableAsyncCommit && t.version == t.ndb.latestVersion4FastNode {
 				return nil
 			}
 
