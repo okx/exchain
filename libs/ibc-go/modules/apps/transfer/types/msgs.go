@@ -66,8 +66,8 @@ func (MsgTransfer) Route() string {
 }
 
 // Type implements sdk.Msg
-func (MsgTransfer) Type() string {
-	return TypeMsgTransfer
+func (msg MsgTransfer) Type() string {
+	return sdk.MsgTypeURL(&msg)
 }
 
 // ValidateBasic performs a basic check of the MsgTransfer fields.
