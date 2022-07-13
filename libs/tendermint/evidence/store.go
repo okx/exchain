@@ -4,7 +4,6 @@ import (
 	"fmt"
 	dbm "github.com/okex/exchain/libs/tm-db"
 
-	"github.com/okex/exchain/libs/tendermint/consensus"
 	"github.com/okex/exchain/libs/tendermint/types"
 )
 
@@ -116,9 +115,9 @@ func (store *Store) listEvidence(prefixKey string, maxNum int64) (evidence []typ
 		if err != nil {
 			panic(err)
 		}
-		if consensus.GetActiveVC() {
-			if ev, ok := ei.Evidence.(*types.DuplicateVoteEvidence); ok {
-				if ev.VoteA.Round == 0 && ev.VoteB.Round == 0 {
+		if ev, ok := ei.Evidence.(*types.DuplicateVoteEvidence); ok {
+			if ev.VoteA.Round == 0 && ev.VoteB.Round == 0 {
+				if ev.VoteA.HasVC || ev.VoteB.HasVC {
 					continue
 				}
 			}
