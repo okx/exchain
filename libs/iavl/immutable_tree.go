@@ -190,6 +190,9 @@ func (t *ImmutableTree) FastGet(key []byte) []byte {
 				log.Println("giskook fast node not exist")
 				return nil
 			}
+			if EnableAsyncCommit && t.version == t.ndb.latestVersion4FastNode {
+				return nil
+			}
 
 			_, result := t.root.get(t, key)
 			return result
