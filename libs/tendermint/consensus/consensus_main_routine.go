@@ -265,7 +265,7 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 	if GetActiveVC() {
 		// itself is proposer, no need to request
 		isBlockProducer, _ := cs.isBlockProducer()
-		if isBlockProducer != "y" {
+		if isBlockProducer != "y" && cs.Validators.HasAddress(cs.privValidatorPubKey.Address()) {
 			// request for proposer of new height
 			prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address()}
 			// todo only put all request into one channel
