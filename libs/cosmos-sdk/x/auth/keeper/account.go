@@ -79,14 +79,20 @@ func (ak AccountKeeper) LoadAccount(ctx sdk.Context, addr sdk.AccAddress) {
 		return
 	}
 
-	var store sdk.KVStore
+	var key sdk.StoreKey
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		store = ctx.KVStore(ak.mptKey)
+		key = ak.mptKey
 	} else {
-		store = ctx.KVStore(ak.key)
+		key = ak.key
 	}
+	store := ctx.GetReusableKVStore(key)
+	keyTarget := addrStoreKeyPool.Get().(*[33]byte)
+	defer func() {
+		addrStoreKeyPool.Put(keyTarget)
+		ctx.ReturnKVStore(store)
+	}()
 
-	bz := store.Get(types.AddressStoreKey(addr))
+	bz := store.Get(types.MakeAddressStoreKey(addr, keyTarget[:0]))
 	var acc exported.Account
 	if bz != nil {
 		acc = ak.decodeAccount(bz)
