@@ -64,10 +64,8 @@ type MutableTree struct {
 
 	readableOrphansSlice []*Node
 
-	unsavedFastNodeAdditionsDelKey    []*FastNode // ac mod delete key
-	mtxUnsavedFastNodeAdditionsDelKey sync.Mutex
-	unsavedFastNodeRemovalsDelKey     []string // ac mod delete key
-	mtxUnsavedFastNodeRemovalsDelKey  sync.Mutex
+	unsavedFastNodeAdditionsDelKey []*FastNode // ac mod delete key
+	unsavedFastNodeRemovalsDelKey  []string    // ac mod delete key
 
 	mtxFastNodeChanges       sync.RWMutex
 	unsavedFastNodeAdditions map[string]*FastNode   // FastNodes that have not yet been saved to disk
