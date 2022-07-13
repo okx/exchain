@@ -277,13 +277,25 @@ func (ndb *nodeDB) SaveFastNodeNoCache(node *FastNode, batch dbm.Batch) error {
 // 1.1.0-<version of the current live state>. Returns error if storage version is incorrect or on
 // db error, nil otherwise. Requires changes to be committed after to be persisted.
 func (ndb *nodeDB) setFastStorageVersionToBatch(batch dbm.Batch) error {
+	newVersion, err := ndb.getFastStorageVersion()
+	if err != nil {
+		return err
+	}
+
+	batch.Set(metadataKeyFormat.Key([]byte(storageVersionKey)), []byte(newVersion))
+	ndb.storageVersion = newVersion
+
+	return nil
+}
+
+func (ndb *nodeDB) getFastStorageVersion() (string, error) {
 	var newVersion string
 	if ndb.storageVersion >= fastStorageVersionValue {
 		// Storage version should be at index 0 and latest fast cache version at index 1
 		versions := strings.Split(ndb.storageVersion, fastStorageVersionDelimiter)
 
 		if len(versions) > 2 {
-			return errors.New(errInvalidFastStorageVersion)
+			return "", errors.New(errInvalidFastStorageVersion)
 		}
 
 		newVersion = versions[0]
@@ -292,10 +304,8 @@ func (ndb *nodeDB) setFastStorageVersionToBatch(batch dbm.Batch) error {
 	}
 
 	newVersion += fastStorageVersionDelimiter + strconv.Itoa(int(ndb.getLatestVersion()))
-	batch.Set(metadataKeyFormat.Key([]byte(storageVersionKey)), []byte(newVersion))
-	ndb.storageVersion = newVersion
 
-	return nil
+	return newVersion, nil
 }
 
 func (ndb *nodeDB) getStorageVersion() string {

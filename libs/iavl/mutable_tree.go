@@ -64,10 +64,16 @@ type MutableTree struct {
 
 	readableOrphansSlice []*Node
 
-	unsavedFastNodeAdditions map[string]*FastNode // FastNodes that have not yet been saved to disk
-	mtxFastNodeChanges       *sync.RWMutex
+	unsavedFastNodeAdditionsDelKey    []*FastNode // ac mod delete key
+	mtxUnsavedFastNodeAdditionsDelKey sync.Mutex
+	unsavedFastNodeRemovalsDelKey     []string // ac mod delete key
+	mtxUnsavedFastNodeRemovalsDelKey  sync.Mutex
+
+	mtxFastNodeChanges       sync.RWMutex
+	unsavedFastNodeAdditions map[string]*FastNode   // FastNodes that have not yet been saved to disk
 	unsavedFastNodeRemovals  map[string]interface{} // FastNodes that have not yet been removed from disk
-	mtx                      sync.Mutex
+
+	mtx sync.Mutex
 }
 
 // NewMutableTree returns a new tree with the specified cache size and datastore.
@@ -93,7 +99,7 @@ func NewMutableTreeWithOpts(db dbm.DB, cacheSize int, opts *Options) (*MutableTr
 			ImmutableTree: head,
 			lastSaved:     head.clone(),
 			savedNodes:    map[string]*Node{},
-			deltas:        &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}},
+			deltas:        newTreeDelta(),
 			orphans:       []*Node{},
 			versions:      NewSyncMap(),
 			ndb:           ndb,
@@ -108,7 +114,6 @@ func NewMutableTreeWithOpts(db dbm.DB, cacheSize int, opts *Options) (*MutableTr
 
 			unsavedFastNodeAdditions: make(map[string]*FastNode),
 			unsavedFastNodeRemovals:  make(map[string]interface{}),
-			mtxFastNodeChanges:       new(sync.RWMutex),
 		}
 	}
 
@@ -184,10 +189,10 @@ func (tree *MutableTree) prepareOrphansSlice() []*Node {
 // not be modified after this call, since they point to slices stored within IAVL.
 func (tree *MutableTree) Set(key, value []byte) (updated bool) {
 	// todo giskook check with chern wang
-	// 	orphaned := tree.makeOrphansSliceReady()
-	// 	updated := tree.setWithOrphansSlice(key, value, &orphaned)
-	// 	tree.addOrphans(orphaned)
-	// 	return updated
+	// orphaned := tree.makeOrphansSliceReady()
+	// updated := tree.setWithOrphansSlice(key, value, &orphaned)
+	// tree.addOrphans(orphaned)
+	// return updated
 	var orphaned []*Node
 	orphaned, updated = tree.set(key, value)
 	tree.addOrphans(orphaned)
@@ -484,7 +489,7 @@ func (tree *MutableTree) LazyLoadVersion(targetVersion int64) (int64, error) {
 	}
 
 	tree.savedNodes = map[string]*Node{}
-	tree.deltas = &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
+	tree.deltas = newTreeDelta()
 	tree.orphans = []*Node{}
 	tree.commitOrphans = nil
 	tree.ImmutableTree = iTree
@@ -564,7 +569,7 @@ func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
 	}
 
 	tree.savedNodes = map[string]*Node{}
-	tree.deltas = &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
+	tree.deltas = newTreeDelta()
 	tree.orphans = []*Node{}
 	tree.commitOrphans = nil
 	tree.ImmutableTree = t
@@ -756,7 +761,7 @@ func (tree *MutableTree) Rollback() {
 		tree.ImmutableTree = &ImmutableTree{ndb: tree.ndb, version: 0}
 	}
 	tree.savedNodes = map[string]*Node{}
-	tree.deltas = &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
+	tree.deltas = newTreeDelta()
 	tree.orphans = []*Node{}
 	tree.commitOrphans = nil
 	tree.unsavedFastNodeAdditions = map[string]*FastNode{}
@@ -806,7 +811,7 @@ func (tree *MutableTree) SaveVersion(useDeltas bool) ([]byte, int64, TreeDelta, 
 		version = int64(tree.ndb.opts.InitialVersion) + 1
 	}
 
-	tree.deltas = &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
+	tree.deltas = newTreeDelta()
 
 	if !ignoreVersionCheck && tree.versions.Get(version) {
 		// If the version already exists, return an error as we're attempting to overwrite.
@@ -828,7 +833,7 @@ func (tree *MutableTree) SaveVersion(useDeltas bool) ([]byte, int64, TreeDelta, 
 			tree.ImmutableTree = tree.ImmutableTree.clone()
 			tree.lastSaved = tree.ImmutableTree.clone()
 			tree.savedNodes = map[string]*Node{}
-			tree.deltas = &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
+			tree.deltas = newTreeDelta()
 			tree.orphans = []*Node{}
 			tree.commitOrphans = nil
 			return existingHash, version, *tree.deltas, nil
@@ -1257,6 +1262,22 @@ func (tree *MutableTree) SetDelta(delta *TreeDelta) {
 		for _, v := range delta.CommitOrphansDelta {
 			tree.commitOrphans = append(tree.commitOrphans, commitOrphan{Version: v.CommitValue, NodeHash: amino.StrToBytes(v.Key)})
 		}
+
+		// fast node related
+		if EnableFastStorage {
+			for _, v := range tree.savedNodes {
+				if v.isLeaf() {
+					tree.unsavedFastNodeAdditions[string(v.key)] = NewFastNode(v.key, v.value, v.version)
+				}
+			}
+
+			for _, v := range tree.orphans {
+				_, ok := tree.unsavedFastNodeAdditions[string(v.key)]
+				if v.isLeaf() && !ok {
+					tree.unsavedFastNodeRemovals[string(v.key)] = NewFastNode(v.key, v.value, v.version)
+				}
+			}
+		}
 	}
 }
 
@@ -1275,6 +1296,7 @@ func (tree *MutableTree) GetDelta() {
 	}
 	tree.deltas.OrphansDelta = orphans
 }
+
 func (tree *MutableTree) SetUpgradeVersion(version int64) {
 	tree.upgradeVersion = version
 }

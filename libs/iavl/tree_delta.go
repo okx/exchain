@@ -11,30 +11,6 @@ import (
 
 type TreeDeltaMap map[string]*TreeDelta
 
-func (tdm TreeDeltaMap) MarshalAmino() ([]*TreeDeltaMapImp, error) {
-	keys := make([]string, len(tdm))
-	index := 0
-	for k := range tdm {
-		keys[index] = k
-		index++
-	}
-	sort.Strings(keys)
-
-	treeDeltaList := make([]*TreeDeltaMapImp, len(tdm))
-	index = 0
-	for _, k := range keys {
-		treeDeltaList[index] = &TreeDeltaMapImp{Key: k, TreeValue: tdm[k]}
-		index++
-	}
-	return treeDeltaList, nil
-}
-func (tdm TreeDeltaMap) UnmarshalAmino(treeDeltaList []*TreeDeltaMapImp) error {
-	for _, v := range treeDeltaList {
-		tdm[v.Key] = v.TreeValue
-	}
-	return nil
-}
-
 // MarshalToAmino marshal to amino bytes
 func (tdm TreeDeltaMap) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
@@ -227,6 +203,10 @@ type TreeDelta struct {
 	NodesDelta         []*NodeJsonImp      `json:"nodes_delta"`
 	OrphansDelta       []*NodeJson         `json:"orphans_delta"`
 	CommitOrphansDelta []*CommitOrphansImp `json:"commit_orphans_delta"`
+}
+
+func newTreeDelta() *TreeDelta {
+	return &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
 }
 
 func (td *TreeDelta) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {

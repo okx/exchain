@@ -166,6 +166,10 @@ func (c *Local) Block(height *int64) (*ctypes.ResultBlock, error) {
 	return core.Block(c.ctx, height)
 }
 
+func (c *Local) BlockInfo(height *int64) (*ctypes.ResultBlockInfo, error) {
+	return core.BlockInfo(c.ctx, height)
+}
+
 func (c *Local) BlockResults(height *int64) (*ctypes.ResultBlockResults, error) {
 	return core.BlockResults(c.ctx, height)
 }

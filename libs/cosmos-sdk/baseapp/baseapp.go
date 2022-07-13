@@ -222,6 +222,8 @@ type BaseApp struct { // nolint: maligned
 
 	reusableCacheMultiStore sdk.CacheMultiStore
 	checkTxCacheMultiStores *cacheMultiStoreList
+
+	watcherCollector sdk.EvmWatcherCollector
 }
 
 type recordHandle func(string)
@@ -691,6 +693,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 			HaveCosmosTxInBlock: app.parallelTxManage.haveCosmosTxInBlock,
 		})
 		ctx.SetTxBytes(txBytes)
+		ctx.ResetWatcher()
 	}
 
 	if mode == runTxModeDeliver || mode == runTxModeDeliverPartConcurrent {
@@ -889,7 +892,6 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		data = append(data, msgResult.Data...)
 		msgLogs = append(msgLogs, sdk.NewABCIMessageLog(uint16(i), msgResult.Log, msgEvents))
 		//app.pin("AppendEvents", false, mode)
-
 	}
 
 	return &sdk.Result{
@@ -952,12 +954,17 @@ func (app *BaseApp) GetRawTxInfo(rawTx tmtypes.Tx) mempool.ExTxInfo {
 	}
 	ctx := app.checkState.ctx
 	if tx.GetType() == sdk.EvmTxType && app.preDeliverTxHandler != nil {
-		ctx.SetBlockHeight(app.checkState.ctx.BlockHeight() + 1)
 		app.preDeliverTxHandler(ctx, tx, true)
-		ctx.SetBlockHeight(app.checkState.ctx.BlockHeight())
 	}
 	ctx.SetTxBytes(rawTx)
 	return app.GetTxInfo(ctx, tx)
+}
+
+func (app *BaseApp) GetRealTxFromRawTx(rawTx tmtypes.Tx) abci.TxEssentials {
+	if tx, ok := app.blockDataCache.GetTx(rawTx); ok {
+		return tx
+	}
+	return nil
 }
 
 func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {
