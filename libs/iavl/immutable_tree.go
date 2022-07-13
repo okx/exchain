@@ -2,6 +2,7 @@ package iavl
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	dbm "github.com/okex/exchain/libs/tm-db"
@@ -167,31 +168,37 @@ func (t *ImmutableTree) FastGet(key []byte) []byte {
 		return nil
 	}
 
-	// attempt to get a FastNode directly from db/cache.
-	// if call fails, fall back to the original IAVL logic in place.
-	fastNode, err := t.ndb.GetFastNode(key)
-	if err != nil {
-		_, result := t.root.get(t, key)
-		return result
-	}
-
-	if fastNode == nil {
-		// If the tree is of the latest version and fast node is not in the tree
-		// then the regular node is not in the tree either because fast node
-		// represents live state.
-		if t.version == t.ndb.latestVersion {
-			return nil
-		}
-		if EnableAsyncCommit && t.version == t.ndb.latestVersion4FastNode {
-			return nil
+	if EnableFastStorage {
+		// attempt to get a FastNode directly from db/cache.
+		// if call fails, fall back to the original IAVL logic in place.
+		fastNode, err := t.ndb.GetFastNode(key)
+		if err != nil {
+			_, result := t.root.get(t, key)
+			return result
 		}
 
-		_, result := t.root.get(t, key)
-		return result
-	}
+		if fastNode == nil {
+			// If the tree is of the latest version and fast node is not in the tree
+			// then the regular node is not in the tree either because fast node
+			// represents live state.
+			if t.version == t.ndb.latestVersion {
+				log.Println("giskook fast node not exist")
+				return nil
+			}
 
-	if fastNode.versionLastUpdatedAt <= t.version {
-		return fastNode.value
+			if EnableAsyncCommit && t.version == t.ndb.latestVersion4FastNode {
+				log.Println("giskook fast node not exist")
+				return nil
+			}
+
+			_, result := t.root.get(t, key)
+			return result
+		}
+
+		if fastNode.versionLastUpdatedAt <= t.version {
+			log.Println("giskook--- get from fast node")
+			return fastNode.value
+		}
 	}
 
 	// Otherwise the cached node was updated later than the current tree. In this case,
@@ -226,7 +233,7 @@ func (t *ImmutableTree) Iterate(fn func(key []byte, value []byte) bool) (stopped
 
 // Iterator returns an iterator over the immutable tree.
 func (t *ImmutableTree) Iterator(start, end []byte, ascending bool) dbm.Iterator {
-	if t.IsFastCacheEnabled() {
+	if EnableFastStorage && t.IsFastCacheEnabled() {
 		return NewFastIterator(start, end, ascending, t.ndb)
 	}
 	return NewIterator(start, end, ascending, t)
