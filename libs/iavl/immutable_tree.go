@@ -2,7 +2,6 @@ package iavl
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
 	dbm "github.com/okex/exchain/libs/tm-db"
@@ -182,14 +181,9 @@ func (t *ImmutableTree) FastGet(key []byte) []byte {
 			// then the regular node is not in the tree either because fast node
 			// represents live state.
 			if t.version == t.ndb.latestVersion {
-				log.Println("giskook fast node not exist")
 				return nil
 			}
 
-			if EnableAsyncCommit && t.version == t.ndb.latestVersion4FastNode {
-				log.Println("giskook fast node not exist")
-				return nil
-			}
 			if EnableAsyncCommit && t.version == t.ndb.latestVersion4FastNode {
 				return nil
 			}
@@ -199,7 +193,6 @@ func (t *ImmutableTree) FastGet(key []byte) []byte {
 		}
 
 		if fastNode.versionLastUpdatedAt <= t.version {
-			log.Println("giskook--- get from fast node")
 			return fastNode.value
 		}
 	}
