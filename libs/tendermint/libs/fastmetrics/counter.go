@@ -1,4 +1,4 @@
-package p2p
+package fastmetrics
 
 import (
 	"github.com/go-kit/kit/metrics"
