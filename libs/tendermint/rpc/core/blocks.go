@@ -39,10 +39,6 @@ func BlockchainInfo(ctx *rpctypes.Context, minHeight, maxHeight int64) (*ctypes.
 		BlockMetas: blockMetas}, nil
 }
 
-func LatestBlockNumber() (int64, error) {
-	return env.BlockStore.Height(), nil
-}
-
 // error if either min or max are negative or min > max
 // if 0, use blockstore base for min, latest block height for max
 // enforce limit.
