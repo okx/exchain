@@ -109,12 +109,14 @@ func (ak AccountKeeper) GetAllAccounts(ctx sdk.Context) (accounts []exported.Acc
 func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account, updateState ...bool) {
 	addr := acc.GetAddress()
 
-	var store sdk.KVStore
+	var key sdk.StoreKey
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		store = ctx.KVStore(ak.mptKey)
+		key = ak.mptKey
 	} else {
-		store = ctx.KVStore(ak.key)
+		key = ak.key
 	}
+	store := ctx.GetReusableKVStore(key)
+	defer ctx.ReturnKVStore(store)
 
 	bz := ak.encodeAccount(acc)
 
