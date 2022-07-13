@@ -1261,16 +1261,18 @@ func (tree *MutableTree) SetDelta(delta *TreeDelta) {
 		}
 
 		// fast node related
-		for _, v := range tree.savedNodes {
-			if v.isLeaf() {
-				tree.unsavedFastNodeAdditions[string(v.key)] = NewFastNode(v.key, v.value, v.version)
+		if EnableFastStorage {
+			for _, v := range tree.savedNodes {
+				if v.isLeaf() {
+					tree.unsavedFastNodeAdditions[string(v.key)] = NewFastNode(v.key, v.value, v.version)
+				}
 			}
-		}
 
-		for _, v := range tree.orphans {
-			_, ok := tree.unsavedFastNodeAdditions[string(v.key)]
-			if v.isLeaf() && !ok {
-				tree.unsavedFastNodeRemovals[string(v.key)] = NewFastNode(v.key, v.value, v.version)
+			for _, v := range tree.orphans {
+				_, ok := tree.unsavedFastNodeAdditions[string(v.key)]
+				if v.isLeaf() && !ok {
+					tree.unsavedFastNodeRemovals[string(v.key)] = NewFastNode(v.key, v.value, v.version)
+				}
 			}
 		}
 	}
