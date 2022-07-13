@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/gogo/protobuf/proto"
+
 	"time"
 
 	"math/big"
@@ -467,7 +469,8 @@ func (tr *TransactionReceipt) GetValue() string {
 		//set to nil to keep sync with ethereum rpc
 		tr.ContractAddress = nil
 	}
-	buf, err := json.Marshal(tr)
+	protoReceipt := receiptToProto(tr)
+	buf, err := proto.Marshal(protoReceipt)
 	if err != nil {
 		panic("cant happen")
 	}
@@ -605,7 +608,8 @@ func (tr *Transaction) GetValue() string {
 		tr.BlockNumber = (*hexutil.Big)(new(big.Int).SetUint64(tr.originBlockNumber))
 		tr.TransactionIndex = (*hexutil.Uint64)(&tr.originIndex)
 	}
-	buf, err := json.Marshal(tr)
+	protoTransaction := transactionToProto(tr)
+	buf, err := proto.Marshal(protoTransaction)
 	if err != nil {
 		panic("cant happen")
 	}
