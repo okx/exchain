@@ -381,12 +381,8 @@ func (t *ImmutableTree) GetPersistedRoots() map[int64][]byte {
 
 func (tree *MutableTree) persistTppFastNodeChanges() {
 
-	for i := range tree.unsavedFastNodeAdditions {
-		tree.unsavedFastNodeAdditions[i] = nil
-	}
-	for i := range tree.unsavedFastNodeRemovals {
-		tree.unsavedFastNodeRemovals[i] = nil
-	}
+	tree.unsavedFastNodeAdditions = make(map[string]*FastNode)
+	tree.unsavedFastNodeRemovals = make(map[string]interface{})
 
 	//	for _, v := range tree.unsavedFastNodeAdditionsDelKey {
 	//		if fastNode, ok := tree.unsavedFastNodeAdditions[string(v.key)]; ok {
