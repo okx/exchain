@@ -200,8 +200,8 @@ func (tree *MutableTree) Set(key, value []byte) (updated bool) {
 func (tree *MutableTree) fastGetFromChanges(key []byte) ([]byte, bool) {
 
 	// TODO this section can remove to the inside of 'ImmutableTree.FastGet()'
-	tree.mtxFastNodeChanges.RLock()
-	defer tree.mtxFastNodeChanges.RUnlock()
+	tree.mtxFastNodeChanges.Lock()
+	defer tree.mtxFastNodeChanges.Unlock()
 	if fastNode, ok := tree.unsavedFastNodeAdditions[string(key)]; ok {
 		return fastNode.value, ok
 	}
@@ -249,8 +249,8 @@ func (tree *MutableTree) Iterate(fn func(key []byte, value []byte) bool) (stoppe
 	}
 
 	if EnableFastStorage && tree.IsFastCacheEnabled() {
-		tree.mtxFastNodeChanges.RLock()
-		defer tree.mtxFastNodeChanges.RUnlock()
+		tree.mtxFastNodeChanges.Lock()
+		defer tree.mtxFastNodeChanges.Unlock()
 
 		itr := NewUnsavedFastIterator(nil, nil, true, tree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
 		defer itr.Close()
