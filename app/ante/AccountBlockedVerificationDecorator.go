@@ -3,6 +3,7 @@ package ante
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 	"sync"
 )
 
@@ -32,7 +33,12 @@ func (abvd AccountBlockedVerificationDecorator) AnteHandle(ctx sdk.Context, tx s
 	}
 	pinAnte(ctx.AnteTracer(), "AccountBlockedVerificationDecorator")
 
-	signers := tx.GetSigners()
+	var signers []sdk.AccAddress
+	if ethTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
+		signers = []sdk.AccAddress{ethTx.AccountAddress()}
+	} else {
+		signers = tx.GetSigners()
+	}
 
 	currentGasMeter := ctx.GasMeter()
 	infGasMeter := resuableGasMeterPool.Get().(sdk.ReusableGasMeter)
