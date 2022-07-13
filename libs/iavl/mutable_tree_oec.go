@@ -96,9 +96,9 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 
 	tree.ndb.updateLatestVersion4FastNode(version)
 	if shouldPersist {
-		if EnableFastStorage {
-			tree.saveVersionFastNodeChanges()
-		}
+		// if EnableFastStorage {
+		// 	tree.saveVersionFastNodeChanges()
+		// }
 
 		tree.ndb.saveNewOrphans(version, tree.orphans, true)
 		tree.persist(version)
@@ -380,19 +380,24 @@ func (t *ImmutableTree) GetPersistedRoots() map[int64][]byte {
 }
 
 func (tree *MutableTree) persistTppFastNodeChanges() {
-	tree.mtxFastNodeChanges.Lock()
-	defer tree.mtxFastNodeChanges.Unlock()
 
-	for _, v := range tree.unsavedFastNodeAdditionsDelKey {
-		if fastNode, ok := tree.unsavedFastNodeAdditions[string(v.key)]; ok {
-			if fastNode.versionLastUpdatedAt == v.versionLastUpdatedAt {
-				delete(tree.unsavedFastNodeAdditions, string(v.key))
-			}
-		}
+	for i := range tree.unsavedFastNodeAdditions {
+		tree.unsavedFastNodeAdditions[i] = nil
 	}
-	for _, v := range tree.unsavedFastNodeRemovalsDelKey {
-		delete(tree.unsavedFastNodeRemovals, v)
+	for i := range tree.unsavedFastNodeRemovals {
+		tree.unsavedFastNodeRemovals[i] = nil
 	}
+
+	//	for _, v := range tree.unsavedFastNodeAdditionsDelKey {
+	//		if fastNode, ok := tree.unsavedFastNodeAdditions[string(v.key)]; ok {
+	//			if fastNode.versionLastUpdatedAt == v.versionLastUpdatedAt {
+	//				delete(tree.unsavedFastNodeAdditions, string(v.key))
+	//			}
+	//		}
+	//	}
+	//	for _, v := range tree.unsavedFastNodeRemovalsDelKey {
+	//		delete(tree.unsavedFastNodeRemovals, v)
+	//	}
 }
 
 func (tree *MutableTree) persistTpp(event *commitEvent, trc *trace.Tracer) {
@@ -406,6 +411,9 @@ func (tree *MutableTree) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	}
 	ndb.state.increasePersistedCount(len(tpp))
 	ndb.addDBWriteCount(int64(len(tpp)))
+
+	tree.mtxFastNodeChanges.Lock()
+	defer tree.mtxFastNodeChanges.Unlock()
 
 	if err := tree.saveFastNodeVersion(batch); err != nil {
 		panic(err)

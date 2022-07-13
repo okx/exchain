@@ -887,6 +887,9 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 		}
 	}
 
+	tree.mtxFastNodeChanges.Lock()
+	defer tree.mtxFastNodeChanges.Unlock()
+
 	if err := tree.saveFastNodeVersion(batch); err != nil {
 		return nil, version, err
 	}
@@ -1036,8 +1039,8 @@ func (tree *MutableTree) saveFastNodeAdditions(batch dbm.Batch) error {
 	if !EnableFastStorage {
 		return nil
 	}
-	tree.mtxFastNodeChanges.RLock()
-	defer tree.mtxFastNodeChanges.RUnlock()
+	//	tree.mtxFastNodeChanges.RLock()
+	//	defer tree.mtxFastNodeChanges.RUnlock()
 	keysToSort := make([]string, 0, len(tree.unsavedFastNodeAdditions))
 	for key := range tree.unsavedFastNodeAdditions {
 		keysToSort = append(keysToSort, key)
@@ -1067,8 +1070,8 @@ func (tree *MutableTree) saveFastNodeRemovals(batch dbm.Batch) error {
 	if !EnableFastStorage {
 		return nil
 	}
-	tree.mtxFastNodeChanges.RLock()
-	defer tree.mtxFastNodeChanges.RUnlock()
+	//	tree.mtxFastNodeChanges.RLock()
+	//	defer tree.mtxFastNodeChanges.RUnlock()
 	keysToSort := make([]string, 0, len(tree.unsavedFastNodeRemovals))
 	for key := range tree.unsavedFastNodeRemovals {
 		keysToSort = append(keysToSort, key)
