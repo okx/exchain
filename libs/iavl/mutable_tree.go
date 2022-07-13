@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"runtime"
 	"sort"
 	"sync"
@@ -204,6 +205,7 @@ func (tree *MutableTree) FastGet(key []byte) []byte {
 	tree.mtxUnSavedFastNodeAdditions.RLock()
 	if fastNode, ok := tree.unsavedFastNodeAdditions[string(key)]; ok {
 		tree.mtxUnSavedFastNodeAdditions.RUnlock()
+		log.Printf("giskook get from unsaved fast node")
 		return fastNode.value
 	}
 	tree.mtxUnSavedFastNodeAdditions.RUnlock()
@@ -1229,6 +1231,7 @@ func (tree *MutableTree) SetDelta(delta *TreeDelta) {
 		}
 
 		// fast node related
+		log.Printf("giskook dds fill unsaved additions and removals\n")
 		for _, v := range tree.savedNodes {
 			if v.isLeaf() {
 				tree.unsavedFastNodeAdditions[string(v.key)] = NewFastNode(v.key, v.value, v.version)
