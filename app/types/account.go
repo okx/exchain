@@ -87,25 +87,11 @@ func (acc *EthAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	return nil
 }
 
-type compontAccount struct {
-	ethAccount  EthAccount
-	baseAccount authtypes.BaseAccount
-}
-
 func (acc EthAccount) Copy() sdk.Account {
-	// we need only allocate one object on the heap with compontAccount
-	var cacc compontAccount
-
-	cacc.baseAccount.Address = acc.Address
-	cacc.baseAccount.Coins = acc.Coins
-	cacc.baseAccount.PubKey = acc.PubKey
-	cacc.baseAccount.AccountNumber = acc.AccountNumber
-	cacc.baseAccount.Sequence = acc.Sequence
-
-	cacc.ethAccount.BaseAccount = &cacc.baseAccount
-	cacc.ethAccount.CodeHash = acc.CodeHash
-
-	return &cacc.ethAccount
+	return &EthAccount{
+		authtypes.NewBaseAccount(acc.Address, acc.Coins, acc.PubKey, acc.AccountNumber, acc.Sequence),
+		acc.CodeHash,
+	}
 }
 
 func (acc EthAccount) AminoSize(cdc *amino.Codec) int {
