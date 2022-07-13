@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/global"
 	"time"
 
 	"github.com/spf13/viper"
@@ -125,6 +124,11 @@ func (b *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
 	blockNumber, err := b.LatestBlockNumber()
 	if err != nil {
 		return hexutil.Uint64(0), err
+	}
+
+	if blockNumber > 0 {
+		//decrease blockNumber to make sure every block has been executed in local
+		blockNumber--
 	}
 	return hexutil.Uint64(blockNumber), nil
 }
@@ -493,7 +497,13 @@ func (b *EthermintBackend) BloomStatus() (uint64, uint64) {
 
 // LatestBlockNumber gets the latest block height in int64 format.
 func (b *EthermintBackend) LatestBlockNumber() (int64, error) {
-	return global.GetGlobalHeight(), nil
+	// NOTE: using 0 as min and max height returns the blockchain info up to the latest block.
+	info, err := b.clientCtx.Client.BlockchainInfo(0, 0)
+	if err != nil {
+		return 0, err
+	}
+
+	return info.LastHeight, nil
 }
 
 func (b *EthermintBackend) ServiceFilter(ctx context.Context, session *bloombits.MatcherSession) {
