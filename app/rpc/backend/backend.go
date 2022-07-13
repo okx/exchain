@@ -498,13 +498,6 @@ func (b *EthermintBackend) BloomStatus() (uint64, uint64) {
 // LatestBlockNumber gets the latest block height in int64 format.
 func (b *EthermintBackend) LatestBlockNumber() (int64, error) {
 	return b.clientCtx.Client.LatestBlockNumber()
-	// NOTE: using 0 as min and max height returns the blockchain info up to the latest block.
-	//info, err := b.clientCtx.Client.BlockchainInfo(0, 0)
-	//if err != nil {
-	//	return 0, err
-	//}
-	//
-	//return info.LastHeight, nil
 }
 
 func (b *EthermintBackend) ServiceFilter(ctx context.Context, session *bloombits.MatcherSession) {
