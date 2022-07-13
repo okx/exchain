@@ -206,10 +206,10 @@ func (tree *MutableTree) fastGetFromChanges(key []byte) ([]byte, bool) {
 		return fastNode.value, ok
 	}
 
-	//	if _, ok := tree.unsavedFastNodeRemovals[string(key)]; ok {
-	//		// is deleted
-	//		return nil, ok
-	//	}
+	if _, ok := tree.unsavedFastNodeRemovals[string(key)]; ok {
+		// is deleted
+		return nil, ok
+	}
 	return nil, false
 }
 
