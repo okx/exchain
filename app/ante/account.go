@@ -218,8 +218,8 @@ func incrementSeq(ctx sdk.Context, msgEthTx *evmtypes.MsgEthereumTx, accAddress 
 
 	// get and set account must be called with an infinite gas meter in order to prevent
 	// additional gas from being deducted.
-	infGasMeter := resuableGasMeterPool.Get().(sdk.ReusableGasMeter)
-	defer resuableGasMeterPool.Put(infGasMeter)
+	infGasMeter := sdk.GetReusableInfiniteGasMeter()
+	defer sdk.ReturnInfiniteGasMeter(infGasMeter)
 	infGasMeter.Reset()
 	ctx.SetGasMeter(infGasMeter)
 

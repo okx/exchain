@@ -2,6 +2,7 @@ package types
 
 import (
 	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
+	"sync"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
@@ -184,4 +185,20 @@ func NewInfiniteGasMeter() GasMeter {
 
 func NewReusableInfiniteGasMeter() ReusableGasMeter {
 	return types.NewReusableInfiniteGasMeter()
+}
+
+var resuableGasMeterPool = &sync.Pool{
+	New: func() interface{} {
+		return NewReusableInfiniteGasMeter()
+	},
+}
+
+// GetReusableInfiniteGasMeter returns a ReusableGasMeter from the pool.
+// you must call ReturnInfiniteGasMeter after you are done with the meter.
+func GetReusableInfiniteGasMeter() ReusableGasMeter {
+	return resuableGasMeterPool.Get().(ReusableGasMeter)
+}
+
+func ReturnInfiniteGasMeter(gm ReusableGasMeter) {
+	resuableGasMeterPool.Put(gm)
 }

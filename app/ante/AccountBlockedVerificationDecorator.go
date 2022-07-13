@@ -4,7 +4,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-	"sync"
 )
 
 // AccountBlockedVerificationDecorator check whether signer is blocked.
@@ -17,12 +16,6 @@ func NewAccountBlockedVerificationDecorator(evmKeeper EVMKeeper) AccountBlockedV
 	return AccountBlockedVerificationDecorator{
 		evmKeeper: evmKeeper,
 	}
-}
-
-var resuableGasMeterPool = &sync.Pool{
-	New: func() interface{} {
-		return sdk.NewReusableInfiniteGasMeter()
-	},
 }
 
 // AnteHandle check wether signer of tx(contains cosmos-tx and eth-tx) is blocked.
@@ -41,7 +34,7 @@ func (abvd AccountBlockedVerificationDecorator) AnteHandle(ctx sdk.Context, tx s
 	}
 
 	currentGasMeter := ctx.GasMeter()
-	infGasMeter := resuableGasMeterPool.Get().(sdk.ReusableGasMeter)
+	infGasMeter := sdk.GetReusableInfiniteGasMeter()
 	infGasMeter.Reset()
 	ctx.SetGasMeter(infGasMeter)
 
@@ -49,11 +42,11 @@ func (abvd AccountBlockedVerificationDecorator) AnteHandle(ctx sdk.Context, tx s
 		//TODO it may be optimizate by cache blockedAddressList
 		if ok := abvd.evmKeeper.IsAddressBlocked(ctx, signer); ok {
 			ctx.SetGasMeter(currentGasMeter)
-			resuableGasMeterPool.Put(infGasMeter)
+			sdk.ReturnInfiniteGasMeter(infGasMeter)
 			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "address: %s has been blocked", signer.String())
 		}
 	}
 	ctx.SetGasMeter(currentGasMeter)
-	resuableGasMeterPool.Put(infGasMeter)
+	sdk.ReturnInfiniteGasMeter(infGasMeter)
 	return next(ctx, tx, simulate)
 }
