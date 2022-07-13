@@ -410,13 +410,13 @@ func (tree *MutableTree) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	if err := tree.saveFastNodeVersion(batch); err != nil {
 		panic(err)
 	}
-	if EnableFastStorage {
-		tree.persistTppFastNodeChanges()
-	}
 
 	trc.Pin("batchCommit")
 	if err := ndb.Commit(batch); err != nil {
 		panic(err)
+	}
+	if EnableFastStorage {
+		tree.persistTppFastNodeChanges()
 	}
 	ndb.asyncPersistTppFinised(event, trc)
 }
