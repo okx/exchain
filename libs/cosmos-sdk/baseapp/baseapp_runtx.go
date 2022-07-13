@@ -72,6 +72,9 @@ func (app *BaseApp) runTx(mode runTxMode,
 
 	info = &runTxInfo{}
 	err = app.runtxWithInfo(info, mode, txBytes, tx, height, from...)
+	if app.watcherCollector != nil && mode == runTxModeDeliver {
+		app.watcherCollector(info.runMsgCtx.GetWatcher())
+	}
 	return
 }
 
@@ -322,8 +325,8 @@ func (app *BaseApp) PreDeliverRealTx(tx []byte) abci.TxEssentials {
 		if err != nil || realTx == nil {
 			return nil
 		}
-		app.blockDataCache.SetTx(tx, realTx)
 	}
+	app.blockDataCache.SetTx(tx, realTx)
 
 	if realTx.GetType() == sdk.EvmTxType && app.preDeliverTxHandler != nil {
 		ctx := app.deliverState.ctx
@@ -389,7 +392,7 @@ func (app *BaseApp) runTx_defer_recover(r interface{}, info *runTxInfo) error {
 				"recovered: %v\n", r,
 			),
 		)
-		app.logger.Info("runTx panic recover : %v\nstack:\n%v", r, string(debug.Stack()))
+		app.logger.Info("runTx panic", "recover", r, "stack", string(debug.Stack()))
 	}
 	return err
 }
@@ -408,13 +411,15 @@ func (app *BaseApp) asyncDeliverTx(txIndex int) {
 	txStatus := app.parallelTxManage.extraTxsInfo[txIndex]
 
 	if txStatus.stdTx == nil {
-		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr, 0, 0, app.trace), nil, uint32(txIndex), nil, blockHeight)
+		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr,
+			0, 0, app.trace), nil, uint32(txIndex), nil, blockHeight, sdk.EmptyWatcher{}, nil)
 		pmWorkGroup.Push(asyncExe)
 		return
 	}
 
 	if !txStatus.isEvm {
-		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, uint32(txIndex), nil, blockHeight)
+		asyncExe := newExecuteResult(abci.ResponseDeliverTx{}, nil, uint32(txIndex), nil,
+			blockHeight, sdk.EmptyWatcher{}, nil)
 		pmWorkGroup.Push(asyncExe)
 		return
 	}
@@ -433,7 +438,8 @@ func (app *BaseApp) asyncDeliverTx(txIndex int) {
 		}
 	}
 
-	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg(), blockHeight)
+	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg(),
+		blockHeight, info.runMsgCtx.GetWatcher(), info.tx.GetMsgs())
 	pmWorkGroup.Push(asyncExe)
 	app.parallelTxManage.addMultiCache(info.msCacheAnte, info.msCache)
 }
