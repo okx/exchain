@@ -163,9 +163,7 @@ func ethGasConsume(ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, ms
 
 		evmDenom := sdk.DefaultBondDenom
 
-		feeAmt := sdk.NewCoins(
-			sdk.NewCoin(evmDenom, sdk.NewDecWithBigIntAndPrec(cost, sdk.Precision)), // int2dec
-		)
+		feeAmt := sdk.NewDecCoinsFromDec(evmDenom, sdk.NewDecWithBigIntAndPrec(cost, sdk.Precision))
 
 		ctx.UpdateFromAccountCache(acc, accGetGas)
 
