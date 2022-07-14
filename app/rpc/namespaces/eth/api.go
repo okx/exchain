@@ -1286,6 +1286,7 @@ func (api *PublicEthereumAPI) GetTransactionsByBlock(blockNrOrHash rpctypes.Bloc
 	for idx := offset; idx < offset+limit && int(idx) < len(resBlock.Block.Txs); idx++ {
 		tx, _ := api.getTransactionByBlockAndIndex(resBlock.Block, idx)
 		if tx != nil {
+			fmt.Println("Get Tx from node, hash:", tx.Hash)
 			txs = append(txs, tx)
 		}
 	}
@@ -1402,6 +1403,7 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 			continue
 		}
 
+		fmt.Println("Try to get Tx from node", tx.Hash)
 		tx, err := api.clientCtx.Client.Tx(tx.Hash.Bytes(), false)
 		if err != nil {
 			// Return nil for transaction when not found
