@@ -459,7 +459,7 @@ func (b *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 	}
 	// return empty directly when block was produced during stress testing.
 	var blockLogs = [][]*ethtypes.Log{}
-	if len(block.Block.Txs) > b.logsLimit {
+	if b.logsLimit > 0 && len(block.Block.Txs) > b.logsLimit {
 		return blockLogs, nil
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(b.logsTimeout)*time.Second)
