@@ -49,23 +49,6 @@ type commitOrphan struct {
 	NodeHash []byte
 }
 
-func (tree *MutableTree) saveVersionFastNodeChanges() {
-	tree.mtxFastNodeChanges.Lock()
-	defer tree.mtxFastNodeChanges.Unlock()
-
-	tree.unsavedFastNodeAdditionsDelKey = tree.unsavedFastNodeAdditionsDelKey[:0]
-
-	for _, v := range tree.unsavedFastNodeAdditions {
-		tree.unsavedFastNodeAdditionsDelKey = append(tree.unsavedFastNodeAdditionsDelKey, &FastNode{key: v.key, versionLastUpdatedAt: v.versionLastUpdatedAt})
-	}
-
-	tree.unsavedFastNodeRemovalsDelKey = tree.unsavedFastNodeRemovalsDelKey[:0]
-
-	for k, _ := range tree.unsavedFastNodeRemovals {
-		tree.unsavedFastNodeRemovalsDelKey = append(tree.unsavedFastNodeRemovalsDelKey, k)
-	}
-}
-
 func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte, int64, error) {
 	tree.ndb.sanityCheckHandleOrphansResult(version)
 
@@ -96,10 +79,6 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 
 	tree.ndb.updateLatestVersion4FastNode(version)
 	if shouldPersist {
-		if EnableFastStorage {
-			tree.saveVersionFastNodeChanges()
-		}
-
 		tree.ndb.saveNewOrphans(version, tree.orphans, true)
 		tree.persist(version)
 	}
@@ -380,18 +359,11 @@ func (t *ImmutableTree) GetPersistedRoots() map[int64][]byte {
 }
 
 func (tree *MutableTree) persistTppFastNodeChanges() {
-	tree.mtxFastNodeChanges.Lock()
-	defer tree.mtxFastNodeChanges.Unlock()
-
-	for _, v := range tree.unsavedFastNodeAdditionsDelKey {
-		if fastNode, ok := tree.unsavedFastNodeAdditions[string(v.key)]; ok {
-			if fastNode.versionLastUpdatedAt == v.versionLastUpdatedAt {
-				delete(tree.unsavedFastNodeAdditions, string(v.key))
-			}
-		}
+	for k := range tree.unsavedFastNodeAdditions {
+		delete(tree.unsavedFastNodeAdditions, k)
 	}
-	for _, v := range tree.unsavedFastNodeRemovalsDelKey {
-		delete(tree.unsavedFastNodeRemovals, v)
+	for k := range tree.unsavedFastNodeRemovals {
+		delete(tree.unsavedFastNodeRemovals, k)
 	}
 }
 
@@ -407,16 +379,19 @@ func (tree *MutableTree) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	ndb.state.increasePersistedCount(len(tpp))
 	ndb.addDBWriteCount(int64(len(tpp)))
 
+	tree.mtxFastNodeChanges.Lock()
+	defer tree.mtxFastNodeChanges.Unlock()
+
 	if err := tree.saveFastNodeVersion(batch); err != nil {
 		panic(err)
-	}
-	if EnableFastStorage {
-		tree.persistTppFastNodeChanges()
 	}
 
 	trc.Pin("batchCommit")
 	if err := ndb.Commit(batch); err != nil {
 		panic(err)
+	}
+	if EnableFastStorage {
+		tree.persistTppFastNodeChanges()
 	}
 	ndb.asyncPersistTppFinised(event, trc)
 }
