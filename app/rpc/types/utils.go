@@ -280,7 +280,7 @@ func RawTxToWatcherTx(clientCtx clientcontext.CLIContext, bz tmtypes.Tx,
 		watcherTx = &watcher.Transaction{
 			BlockHash:   &blockHash,
 			BlockNumber: (*hexutil.Big)(new(big.Int).SetUint64(blockNumber)),
-			Hash:        common.BytesToHash(realTx.TxHash()),
+			Hash:        common.BytesToHash(bz.Hash(int64(blockNumber))),
 		}
 	}
 
