@@ -32,13 +32,13 @@ func (api *PublicEthereumAPI) getTransactionWithStdByBlockAndIndex(block *tmtype
 }
 
 // GetTransactionsByBlock returns some transactions identified by number or hash.
-func (api *PublicEthereumAPI) getTransactionsWithStdByBlock(blockNrOrHash rpctypes.BlockNumberOrHash,
+func (api *PublicEthereumAPI) GetTransactionsWithStdByBlock(blockNrOrHash rpctypes.BlockNumberOrHash,
 	offset, limit hexutil.Uint) ([]*watcher.Transaction, error) {
 	if !viper.GetBool(FlagEnableMultiCall) {
 		return nil, errors.New("the method is not allowed")
 	}
 
-	monitor := monitor.GetMonitor("eth_getTransactionsByBlock", api.logger, api.Metrics).OnBegin()
+	monitor := monitor.GetMonitor("eth_getTransactionsWithStdByBlock", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("block number", blockNrOrHash, "offset", offset, "limit", limit)
 
 	blockNum, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
@@ -96,7 +96,7 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 	monitor := monitor.GetMonitor("eth_getTransactionReceiptsByBlock", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("block number", blockNrOrHash, "offset", offset, "limit", limit)
 
-	txs, err := api.getTransactionsWithStdByBlock(blockNrOrHash, offset, limit)
+	txs, err := api.GetTransactionsWithStdByBlock(blockNrOrHash, offset, limit)
 	if err != nil || len(txs) == 0 {
 		return nil, err
 	}
@@ -157,7 +157,7 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 		}
 
 		if err != nil {
-			return nil, nil
+			return nil, err
 		}
 
 		if res != nil {
