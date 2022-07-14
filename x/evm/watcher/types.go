@@ -13,7 +13,6 @@ import (
 	"math/big"
 	"strconv"
 
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/tendermint/go-amino"
 
@@ -784,7 +783,7 @@ func GetMsgStateKey(addr common.Address, key []byte) []byte {
 	copy(compositeKey, prefix)
 	copy(compositeKey[len(prefix):], key)
 
-	return append(PrefixState, ethcrypto.Keccak256Hash(compositeKey).Bytes()...)
+	return append(PrefixState, compositeKey...)
 }
 
 func (msgState *MsgState) GetKey() []byte {
