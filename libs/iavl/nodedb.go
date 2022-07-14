@@ -119,6 +119,7 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		fastNodeCache:       make(map[string]*list.Element),
 		fastNodeCacheSize:   100000,
 		fastNodeCacheQueue:  list.New(),
+		storageVersion:      string(storeVersion),
 	}
 
 	ndb.oi = newOrphanInfo(ndb)
@@ -323,7 +324,6 @@ func (ndb *nodeDB) hasUpgradedToFastStorage() bool {
 // latest storage was updated on disk the last time.
 func (ndb *nodeDB) shouldForceFastStorageUpgrade() bool {
 	versions := strings.Split(ndb.storageVersion, fastStorageVersionDelimiter)
-
 	if len(versions) == 2 {
 		if versions[1] != strconv.Itoa(int(ndb.getLatestVersion())) {
 			return true

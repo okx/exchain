@@ -102,6 +102,7 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 	panicError(err)
 	indexDuration := time.Since(indexTs)
 	log.Println("--------- create fast index success ---------", "Time Cost", indexDuration)
+	os.Exit(1)
 
 	runBlockTs := time.Now()
 

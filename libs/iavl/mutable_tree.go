@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"runtime"
 	"sort"
 	"sync"
@@ -649,16 +650,18 @@ func (tree *MutableTree) enableFastStorageAndCommitIfNotEnabled() (bool, error) 
 		if err := tree.ndb.Commit(batch); err != nil {
 			return false, err
 		}
-	}
 
-	// Force garbage collection before we proceed to enabling fast storage.
-	runtime.GC()
+		// Force garbage collection before we proceed to enabling fast storage.
+		runtime.GC()
 
-	// todo giskook make batch
-	batch := tree.NewBatch()
-	if err := tree.enableFastStorageAndCommit(batch); err != nil {
-		tree.ndb.storageVersion = defaultStorageVersionValue
-		return false, err
+		// todo giskook make batch
+
+		batch = tree.NewBatch()
+		if err := tree.enableFastStorageAndCommit(batch); err != nil {
+			tree.ndb.storageVersion = defaultStorageVersionValue
+			return false, err
+		}
+
 	}
 	return true, nil
 }
@@ -689,7 +692,7 @@ func (tree *MutableTree) enableFastStorageAndCommit(batch dbm.Batch) error {
 			// Sample the current memory usage
 			runtime.ReadMemStats(&m)
 			//todo construct fast index,can use 16G
-			if m.Alloc > 32*1024*1024*1024 {
+			if m.Alloc > 4*1024*1024*1024 {
 				// If we are using more than 4GB of memory, we should trigger garbage collection
 				// to free up some memory.
 				runtime.GC()
@@ -708,9 +711,12 @@ func (tree *MutableTree) enableFastStorageAndCommit(batch dbm.Batch) error {
 	}()
 
 	if EnableFastStorage {
+		start := time.Now()
 		itr := NewIterator(nil, nil, true, tree.ImmutableTree)
 		defer itr.Close()
+		i := 0
 		for ; itr.Valid(); itr.Next() {
+			i++
 			if err = tree.ndb.SaveFastNodeNoCache(NewFastNode(itr.Key(), itr.Value(), tree.version), batch); err != nil {
 				return err
 			}
@@ -723,9 +729,14 @@ func (tree *MutableTree) enableFastStorageAndCommit(batch dbm.Batch) error {
 		if err = tree.ndb.setFastStorageVersionToBatch(batch); err != nil {
 			return err
 		}
+		indexDuration := time.Since(start)
+		log.Println("--------- SaveFastNodeNoCache ---------", "Time Cost", indexDuration, "index number:", i)
 	}
-
-	return tree.ndb.Commit(batch)
+	start := time.Now()
+	e := tree.ndb.Commit(batch)
+	indexDuration := time.Since(start)
+	log.Println("--------- SaveFastNodeNoCache Commit---------", "Time Cost", indexDuration)
+	return e
 }
 
 // GetImmutable loads an ImmutableTree at a given version for querying. The returned tree is
