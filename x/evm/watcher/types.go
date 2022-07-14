@@ -758,10 +758,9 @@ func (delAcc *DelAccMsg) GetValue() string {
 }
 
 type MsgState struct {
-	addr     common.Address
-	key      []byte
-	value    []byte
-	cacheKey []byte
+	addr  common.Address
+	key   []byte
+	value []byte
 }
 
 func (msgState *MsgState) GetType() uint32 {
@@ -787,10 +786,7 @@ func GetMsgStateKey(addr common.Address, key []byte) []byte {
 }
 
 func (msgState *MsgState) GetKey() []byte {
-	if msgState.cacheKey == nil {
-		msgState.cacheKey = GetMsgStateKey(msgState.addr, msgState.key)
-	}
-	return msgState.cacheKey
+	return GetMsgStateKey(msgState.addr, msgState.key)
 }
 
 func (msgState *MsgState) GetValue() string {
