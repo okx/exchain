@@ -40,6 +40,7 @@ type Watcher struct {
 	jobChan      chan func()
 	evmTxIndex   uint64
 	checkWd      bool
+	filterMap    map[string]WatchMessage
 	InfuraKeeper InfuraKeeper
 }
 
@@ -73,6 +74,7 @@ func NewWatcher(logger log.Logger) *Watcher {
 		watchData:     &WatchData{},
 		log:           logger,
 		checkWd:       viper.GetBool(FlagCheckWd),
+		filterMap:     make(map[string]WatchMessage),
 	}
 }
 
@@ -330,9 +332,13 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 }
 
 func (w *Watcher) commitBatch(batch []WatchMessage) {
+	for _, b := range batch {
+		w.filterMap[bytes2Key(b.GetKey())] = b
+	}
+
 	dbBatch := w.store.db.NewBatch()
 	defer dbBatch.Close()
-	for _, b := range batch {
+	for _, b := range w.filterMap {
 		key := b.GetKey()
 		value := []byte(b.GetValue())
 		typeValue := b.GetType()
@@ -351,6 +357,10 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 		}
 	}
 	dbBatch.Write()
+
+	for k := range w.filterMap {
+		delete(w.filterMap, k)
+	}
 	if w.checkWd {
 		keys := make([][]byte, len(batch))
 		for i, _ := range batch {
