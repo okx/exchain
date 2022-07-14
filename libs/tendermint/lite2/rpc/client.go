@@ -212,6 +212,14 @@ func (c *Client) Health() (*ctypes.ResultHealth, error) {
 	return c.next.Health()
 }
 
+func (c *Client) LatestBlockNumber() (int64, error) {
+	info, err := c.BlockchainInfo(0, 0)
+	if err != nil {
+		return 0, err
+	}
+	return info.LastHeight, nil
+}
+
 // BlockchainInfo calls rpcclient#BlockchainInfo and then verifies every header
 // returned.
 func (c *Client) BlockchainInfo(minHeight, maxHeight int64) (*ctypes.ResultBlockchainInfo, error) {

@@ -142,6 +142,10 @@ func (c Client) BlockchainInfo(minHeight, maxHeight int64) (*ctypes.ResultBlockc
 	return core.BlockchainInfo(&rpctypes.Context{}, minHeight, maxHeight)
 }
 
+func (c Client) LatestBlockNumber() (int64, error) {
+	return core.LatestBlockNumber()
+}
+
 func (c Client) Genesis() (*ctypes.ResultGenesis, error) {
 	return core.Genesis(&rpctypes.Context{})
 }
