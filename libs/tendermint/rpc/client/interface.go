@@ -78,6 +78,7 @@ type SignClient interface {
 type HistoryClient interface {
 	Genesis() (*ctypes.ResultGenesis, error)
 	BlockchainInfo(minHeight, maxHeight int64) (*ctypes.ResultBlockchainInfo, error)
+	LatestBlockNumber() (int64, error)
 }
 
 // StatusClient provides access to general chain info.
