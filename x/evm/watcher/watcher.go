@@ -190,9 +190,12 @@ func (w *Watcher) ExecuteDelayEraseKey(delayEraseKey [][]byte) {
 	if len(delayEraseKey) <= 0 {
 		return
 	}
+	batch := w.store.db.NewBatch()
+	defer batch.Close()
 	for _, k := range delayEraseKey {
-		w.store.Delete(k)
+		batch.Delete(k)
 	}
+	batch.Write()
 }
 
 func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
