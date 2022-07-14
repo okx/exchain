@@ -46,8 +46,8 @@ func (ctx CLIContext) CheckTendermintError(err error, txBytes []byte) *sdk.TxRes
 		return nil
 	}
 	var height int64
-	lastHeight, err := ctx.Client.LatestBlockNumber()
-	if err == nil {
+	lastHeight, err2 := ctx.Client.LatestBlockNumber()
+	if err2 == nil {
 		height = lastHeight
 	} else {
 		// default new tx hash
