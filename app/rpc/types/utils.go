@@ -272,6 +272,7 @@ func RawTxToWatcherTx(clientCtx clientcontext.CLIContext, bz tmtypes.Tx,
 			return nil, fmt.Errorf("invalid transaction type %T, expected %T", realTx, evmtypes.MsgEthereumTx{})
 		}
 		watcherTx, err = watcher.NewTransaction(ethTx, common.BytesToHash(bz.Hash(int64(blockNumber))),
+			//watcherTx, err = watcher.NewTransaction(ethTx, common.BytesToHash(realTx.TxHash()),
 			blockHash, blockNumber, index)
 		if err != nil {
 			return nil, err
@@ -280,7 +281,8 @@ func RawTxToWatcherTx(clientCtx clientcontext.CLIContext, bz tmtypes.Tx,
 		watcherTx = &watcher.Transaction{
 			BlockHash:   &blockHash,
 			BlockNumber: (*hexutil.Big)(new(big.Int).SetUint64(blockNumber)),
-			Hash:        common.BytesToHash(realTx.TxHash()),
+			//Hash:        common.BytesToHash(realTx.TxHash()),
+			Hash: common.BytesToHash(bz.Hash(int64(blockNumber))),
 		}
 	}
 
