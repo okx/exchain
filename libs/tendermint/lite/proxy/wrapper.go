@@ -92,6 +92,14 @@ func (w Wrapper) BlockchainInfo(minHeight, maxHeight int64) (*ctypes.ResultBlock
 	return r, nil
 }
 
+func (w Wrapper) LatestBlockNumber() (int64, error) {
+	info, err := w.BlockchainInfo(0, 0)
+	if err != nil {
+		return 0, err
+	}
+	return info.LastHeight, nil
+}
+
 // Block returns an entire block and verifies all signatures
 func (w Wrapper) Block(height *int64) (*ctypes.ResultBlock, error) {
 	resBlock, err := w.Client.Block(height)
