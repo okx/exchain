@@ -127,7 +127,6 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 		nodeKeyWhitelist: make(map[string]struct{}),
 		enableWtx:        cfg.DynamicConfig.GetEnableWtx(),
 		isSentryNode:     cfg.DynamicConfig.IsSentryNode(),
-		enableBatchTx:    cfg.DynamicConfig.GetEnableBatchTx(),
 		sentryPartner:    cfg.DynamicConfig.GetSentryPartner(),
 		responseChan:     make(chan types.Txs, 10),
 	}
@@ -395,7 +394,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			continue
 		}
 
-		if memR.enableBatchTx {
+		if cfg.DynamicConfig.GetEnableBatchTx() {
 			var msg Message
 			if memR.isSentryNode && string(peer.ID()) == memR.sentryPartner {
 				var sentryTxs []*SentryTx

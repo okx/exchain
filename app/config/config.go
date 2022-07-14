@@ -340,29 +340,21 @@ func (c *OecConfig) update(key, value interface{}) {
 		}
 		c.SetMaxTxNumPerBlock(r)
 	case FlagNodeKeyWhitelist:
-		r, ok := value.(string)
-		if !ok {
-			return
-		}
-		c.SetNodeKeyWhitelist(r)
+		c.SetNodeKeyWhitelist(v)
 	case FlagEnableBatchTx:
-		r, ok := value.(bool)
-		if !ok {
+		r, err := strconv.ParseBool(v)
+		if err != nil {
 			return
 		}
 		c.SetEnableBatchTx(r)
 	case FLagSentryNode:
-		r, ok := value.(bool)
-		if !ok {
+		r, err := strconv.ParseBool(v)
+		if err != nil {
 			return
 		}
 		c.SetSentryNode(r)
 	case FlagSentryAddrs:
-		r, ok := value.(string)
-		if !ok {
-			return
-		}
-		c.SetSentryAddrs(r)
+		c.SetSentryAddrs(v)
 	case FlagMaxGasUsedPerBlock:
 		r, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
