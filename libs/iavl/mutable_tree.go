@@ -5,7 +5,6 @@ import (
 	"container/list"
 	"encoding/hex"
 	"fmt"
-	"log"
 	"runtime"
 	"sort"
 	"sync"
@@ -688,7 +687,6 @@ func (tree *MutableTree) enableFastStorageAndCommit(batch dbm.Batch) error {
 		for {
 			// Sample the current memory usage
 			runtime.ReadMemStats(&m)
-			//todo construct fast index,can use 16G
 			if m.Alloc > 4*1024*1024*1024 {
 				// If we are using more than 4GB of memory, we should trigger garbage collection
 				// to free up some memory.
@@ -708,7 +706,6 @@ func (tree *MutableTree) enableFastStorageAndCommit(batch dbm.Batch) error {
 	}()
 
 	if EnableFastStorage {
-		start := time.Now()
 		itr := NewIterator(nil, nil, true, tree.ImmutableTree)
 		defer itr.Close()
 		i := 0
@@ -726,14 +723,8 @@ func (tree *MutableTree) enableFastStorageAndCommit(batch dbm.Batch) error {
 		if err = tree.ndb.setFastStorageVersionToBatch(batch); err != nil {
 			return err
 		}
-		indexDuration := time.Since(start)
-		log.Println("--------- SaveFastNodeNoCache ---------", "Time Cost", indexDuration, "index number:", i)
 	}
-	start := time.Now()
-	e := tree.ndb.Commit(batch)
-	indexDuration := time.Since(start)
-	log.Println("--------- SaveFastNodeNoCache Commit---------", "Time Cost", indexDuration)
-	return e
+	return tree.ndb.Commit(batch)
 }
 
 // GetImmutable loads an ImmutableTree at a given version for querying. The returned tree is
