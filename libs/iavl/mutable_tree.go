@@ -64,7 +64,7 @@ type MutableTree struct {
 
 	readableOrphansSlice []*Node
 
-	mtxFastNodeChanges       sync.Mutex
+	mtxFastNodeChanges       sync.RWMutex
 	unsavedFastNodeAdditions map[string]*FastNode   // FastNodes that have not yet been saved to disk
 	unsavedFastNodeRemovals  map[string]interface{} // FastNodes that have not yet been removed from disk
 
@@ -197,8 +197,8 @@ func (tree *MutableTree) Set(key, value []byte) (updated bool) {
 func (tree *MutableTree) fastGetFromChanges(key []byte) ([]byte, bool) {
 
 	// TODO this section can remove to the inside of 'ImmutableTree.FastGet()'
-	tree.mtxFastNodeChanges.Lock()
-	defer tree.mtxFastNodeChanges.Unlock()
+	tree.mtxFastNodeChanges.RLock()
+	defer tree.mtxFastNodeChanges.RUnlock()
 	if fastNode, ok := tree.unsavedFastNodeAdditions[string(key)]; ok {
 		return fastNode.value, ok
 	}
@@ -246,8 +246,8 @@ func (tree *MutableTree) Iterate(fn func(key []byte, value []byte) bool) (stoppe
 	}
 
 	if EnableFastStorage && tree.IsFastCacheEnabled() {
-		tree.mtxFastNodeChanges.Lock()
-		defer tree.mtxFastNodeChanges.Unlock()
+		tree.mtxFastNodeChanges.RLock()
+		defer tree.mtxFastNodeChanges.RUnlock()
 
 		itr := NewUnsavedFastIterator(nil, nil, true, tree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
 		defer itr.Close()
