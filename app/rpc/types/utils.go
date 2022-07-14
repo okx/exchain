@@ -78,7 +78,7 @@ func RpcBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.B
 		bloom = bloomRes.Bloom
 	}
 
-	return FormatBlock(block.Header, block.Size(), block.Hash(), gasLimit, gasUsed, ethTxs, bloom, fullTx), nil
+	return FormatBlock(block.Header, block.FastSize(), block.Hash(), gasLimit, gasUsed, ethTxs, bloom, fullTx), nil
 }
 
 // EthHeaderFromTendermint is an util function that returns an Ethereum Header
@@ -107,6 +107,8 @@ func EthTransactionsFromTendermint(clientCtx clientcontext.CLIContext, txs []tmt
 	gasUsed := big.NewInt(0)
 	index := uint64(0)
 
+	txGas := big.NewInt(0)
+
 	for _, tx := range txs {
 		ethTx, err := RawTxToEthTx(clientCtx, tx)
 		if err != nil {
@@ -114,7 +116,7 @@ func EthTransactionsFromTendermint(clientCtx clientcontext.CLIContext, txs []tmt
 			continue
 		}
 		// TODO: Remove gas usage calculation if saving gasUsed per block
-		gasUsed.Add(gasUsed, big.NewInt(int64(ethTx.GetGas())))
+		gasUsed.Add(gasUsed, txGas.SetInt64(int64(ethTx.GetGas())))
 		txHash := tx.Hash(int64(blockNumber))
 		tx, err := watcher.NewTransaction(ethTx, common.BytesToHash(txHash), blockHash, blockNumber, index)
 		if err == nil {
