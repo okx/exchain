@@ -1283,10 +1283,12 @@ func (api *PublicEthereumAPI) GetTransactionsByBlock(blockNrOrHash rpctypes.Bloc
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("Block:", height, len(resBlock.Block.Txs), resBlock.BlockID.Hash)
 	for idx := offset; idx < offset+limit && int(idx) < len(resBlock.Block.Txs); idx++ {
+		fmt.Println("Try to Get Tx from node, index:", idx)
 		tx, _ := api.getTransactionByBlockAndIndex(resBlock.Block, idx)
 		if tx != nil {
-			fmt.Println("Get Tx from node, hash:", tx.Hash)
+			fmt.Println("Get Tx from node, hash:", tx.Hash, idx)
 			txs = append(txs, tx)
 		}
 	}
