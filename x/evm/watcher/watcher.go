@@ -23,18 +23,19 @@ import (
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type Watcher struct {
-	store         *WatchStore
-	height        uint64
-	blockHash     common.Hash
-	header        types.Header
-	batch         []WatchMessage
-	cumulativeGas map[uint64]uint64
-	gasUsed       uint64
-	blockTxs      []common.Hash
-	enable        bool
-	firstUse      bool
-	delayEraseKey [][]byte
-	log           log.Logger
+	store          *WatchStore
+	height         uint64
+	blockHash      common.Hash
+	header         types.Header
+	batch          []WatchMessage
+	cumulativeGas  map[uint64]uint64
+	gasUsed        uint64
+	blockTxs       []common.Hash
+	enable         bool
+	firstUse       bool
+	delayEraseKey  [][]byte
+	eraseKeyFilter map[string][]byte
+	log            log.Logger
 	// for state delta transfering in network
 	watchData    *WatchData
 	jobChan      chan func()
@@ -67,14 +68,15 @@ func GetWatchLruSize() int {
 
 func NewWatcher(logger log.Logger) *Watcher {
 	return &Watcher{store: InstanceOfWatchStore(),
-		cumulativeGas: make(map[uint64]uint64),
-		enable:        IsWatcherEnabled(),
-		firstUse:      true,
-		delayEraseKey: make([][]byte, 0),
-		watchData:     &WatchData{},
-		log:           logger,
-		checkWd:       viper.GetBool(FlagCheckWd),
-		filterMap:     make(map[string]WatchMessage),
+		cumulativeGas:  make(map[uint64]uint64),
+		enable:         IsWatcherEnabled(),
+		firstUse:       true,
+		delayEraseKey:  make([][]byte, 0),
+		watchData:      &WatchData{},
+		log:            logger,
+		checkWd:        viper.GetBool(FlagCheckWd),
+		filterMap:      make(map[string]WatchMessage),
+		eraseKeyFilter: make(map[string][]byte),
 	}
 }
 
@@ -184,18 +186,21 @@ func (w *Watcher) DelayEraseKey() {
 }
 
 func (w *Watcher) ExecuteDelayEraseKey(delayEraseKey [][]byte) {
-	if !w.Enabled() {
+	if !w.Enabled() || len(delayEraseKey) <= 0 {
 		return
 	}
-	if len(delayEraseKey) <= 0 {
-		return
+	for _, k := range delayEraseKey {
+		w.eraseKeyFilter[bytes2Key(k)] = k
 	}
 	batch := w.store.db.NewBatch()
 	defer batch.Close()
-	for _, k := range delayEraseKey {
+	for _, k := range w.eraseKeyFilter {
 		batch.Delete(k)
 	}
 	batch.Write()
+	for k := range w.eraseKeyFilter {
+		delete(w.eraseKeyFilter, k)
+	}
 }
 
 func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
