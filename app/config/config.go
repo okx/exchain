@@ -342,14 +342,14 @@ func (c *OecConfig) update(key, value interface{}) {
 		}
 		c.SetNodeKeyWhitelist(r)
 	case FlagEnableBatchTx:
-		r, ok := value.(bool)
-		if !ok {
+		r, err := strconv.ParseBool(v)
+		if err != nil {
 			return
 		}
 		c.SetEnableBatchTx(r)
 	case FLagEnableSentryTx:
-		r, ok := value.(bool)
-		if !ok {
+		r, err := strconv.ParseBool(v)
+		if err != nil {
 			return
 		}
 		c.SetEnableStx(r)
