@@ -2,6 +2,7 @@ package eth
 
 import (
 	"errors"
+	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
@@ -25,6 +26,7 @@ func (api *PublicEthereumAPI) getTransactionWithStdByBlockAndIndex(block *tmtype
 
 	rpcTx, err := rpctypes.RawTxToWatcherTx(api.clientCtx, block.Txs[idx], common.BytesToHash(block.Hash()), uint64(block.Height), uint64(idx))
 	if err != nil {
+		fmt.Println("error in RawTxToWatcherTx", err)
 		return nil, err
 	}
 
@@ -50,12 +52,14 @@ func (api *PublicEthereumAPI) getTransactionsWithStdByBlock(blockNrOrHash rpctyp
 	if e == nil && txs != nil {
 		return txs, nil
 	}
+	fmt.Println("No txs by watchDB")
 
 	height := blockNum.Int64()
 	switch blockNum {
 	case rpctypes.PendingBlockNumber:
 		// get all the EVM pending txs
 		pendingTxs, err := api.backend.PendingTransactionsWithStd()
+		fmt.Println("pendingTxs from pool, len:", len(pendingTxs))
 		if err != nil {
 			return nil, err
 		}
@@ -98,6 +102,7 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 
 	txs, err := api.getTransactionsWithStdByBlock(blockNrOrHash, offset, limit)
 	if err != nil || len(txs) == 0 {
+		fmt.Println("no getTransactionsWithStdByBlock", err, len(txs))
 		return nil, err
 	}
 
@@ -110,6 +115,7 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 		var isEthTx bool
 		// std tx
 		if tx.R == nil && tx.S == nil && tx.V == nil {
+			fmt.Println("Try to get Response from watchdb")
 			isEthTx = false
 			stdResponse, _ := api.wrappedBackend.GetTransactionResponse(tx.Hash)
 			if stdResponse != nil {
@@ -123,8 +129,10 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 				res = &watcher.TransactionResult{TxType: hexutil.Uint64(watcher.StdResponse), Response: &response}
 			}
 		} else {
+			fmt.Println("Try to get Receipt from watchdb")
 			isEthTx = true
 			receipt, _ := api.wrappedBackend.GetTransactionReceipt(tx.Hash)
+
 			if receipt != nil {
 				res = &watcher.TransactionResult{TxType: hexutil.Uint64(watcher.EthReceipt), EthTx: tx, Receipt: receipt}
 			}
@@ -135,10 +143,11 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 			continue
 		}
 
+		fmt.Println("Try to get Tx from node")
 		queryTx, err := api.clientCtx.Client.Tx(tx.Hash.Bytes(), false)
 		if err != nil {
 			// Return nil for transaction when not found
-			return nil, nil
+			return nil, err
 		}
 
 		if block == nil {
@@ -151,13 +160,16 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 		}
 
 		if isEthTx {
+			fmt.Println("Try RawTxResultToEthReceipt")
 			res, err = rpctypes.RawTxResultToEthReceipt(api.clientCtx, queryTx, blockHash)
 		} else {
+			fmt.Println("Try RawTxResultToStdResponse")
 			res, err = rpctypes.RawTxResultToStdResponse(api.clientCtx, queryTx, block.Block.Time)
 		}
 
 		if err != nil {
-			return nil, nil
+			fmt.Println("RawTx transfer error", err)
+			return nil, err
 		}
 
 		if res != nil {
