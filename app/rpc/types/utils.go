@@ -257,7 +257,7 @@ func EthHeaderWithBlockHashFromTendermint(tmHeader *tmtypes.Header) (header *Eth
 	return
 }
 
-func RawTxToWatcherTx(clientCtx clientcontext.CLIContext, bz []byte,
+func RawTxToWatcherTx(clientCtx clientcontext.CLIContext, bz tmtypes.Tx,
 	blockHash common.Hash, blockNumber, index uint64) (*watcher.Transaction, error) {
 	realTx, err := evmtypes.TxDecoder(clientCtx.Codec)(bz, evmtypes.IGNORE_HEIGHT_CHECKING)
 	if err != nil {
@@ -271,7 +271,8 @@ func RawTxToWatcherTx(clientCtx clientcontext.CLIContext, bz []byte,
 		if !ok {
 			return nil, fmt.Errorf("invalid transaction type %T, expected %T", realTx, evmtypes.MsgEthereumTx{})
 		}
-		watcherTx, err = watcher.NewTransaction(ethTx, common.BytesToHash(realTx.TxHash()), blockHash, blockNumber, index)
+		watcherTx, err = watcher.NewTransaction(ethTx, common.BytesToHash(bz.Hash(int64(blockNumber))),
+			blockHash, blockNumber, index)
 		if err != nil {
 			return nil, err
 		}
