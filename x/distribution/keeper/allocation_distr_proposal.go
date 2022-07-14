@@ -6,15 +6,17 @@ import (
 	"github.com/okex/exchain/x/staking/exported"
 )
 
-func (k Keeper) allocateTokensToValidatorForDistributionProposal(ctx sdk.Context, val exported.ValidatorI, tokens sdk.SysCoins) {
-	commission := tokens
+const (
+	defaultRate = 1
+)
 
-	rate, _ := sdk.NewDecFromStr("1.0")
+func (k Keeper) allocateTokensToValidatorForDistributionProposal(ctx sdk.Context, val exported.ValidatorI, tokens sdk.SysCoins) {
+	rate := sdk.NewDecFromInt(sdk.NewInt(defaultRate))
 	if k.GetDistributionType(ctx) == types.DistributionTypeOnChain {
 		rate = val.GetCommission()
 	}
 
-	commission = tokens.MulDec(rate)
+	commission := tokens.MulDec(rate)
 
 	// split tokens between validator and delegators according to commission
 	shared := tokens.Sub(commission)
