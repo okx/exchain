@@ -324,11 +324,13 @@ func (ndb *nodeDB) hasUpgradedToFastStorage() bool {
 // latest storage was updated on disk the last time.
 func (ndb *nodeDB) shouldForceFastStorageUpgrade() bool {
 	versions := strings.Split(ndb.storageVersion, fastStorageVersionDelimiter)
+
 	if len(versions) == 2 {
 		if versions[1] != strconv.Itoa(int(ndb.getLatestVersion())) {
 			return true
 		}
 	}
+
 	return false
 }
 

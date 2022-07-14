@@ -651,7 +651,6 @@ func (tree *MutableTree) enableFastStorageAndCommitIfNotEnabled() (bool, error) 
 		runtime.GC()
 
 		// todo giskook make batch
-
 		batch = tree.NewBatch()
 		if err := tree.enableFastStorageAndCommit(batch); err != nil {
 			tree.ndb.storageVersion = defaultStorageVersionValue
@@ -708,9 +707,7 @@ func (tree *MutableTree) enableFastStorageAndCommit(batch dbm.Batch) error {
 	if EnableFastStorage {
 		itr := NewIterator(nil, nil, true, tree.ImmutableTree)
 		defer itr.Close()
-		i := 0
 		for ; itr.Valid(); itr.Next() {
-			i++
 			if err = tree.ndb.SaveFastNodeNoCache(NewFastNode(itr.Key(), itr.Value(), tree.version), batch); err != nil {
 				return err
 			}
@@ -724,6 +721,7 @@ func (tree *MutableTree) enableFastStorageAndCommit(batch dbm.Batch) error {
 			return err
 		}
 	}
+
 	return tree.ndb.Commit(batch)
 }
 
