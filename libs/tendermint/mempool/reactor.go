@@ -48,7 +48,7 @@ type Reactor struct {
 	isSentryNode      bool
 	sentryPartner     string
 	sentryPartnerPeer p2p.Peer
-	responseChan      chan types.Txs
+	responseChan      chan *TxsMessage
 }
 
 func (memR *Reactor) SetNodeKey(key *p2p.NodeKey) {
@@ -128,7 +128,7 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 		enableWtx:        cfg.DynamicConfig.GetEnableWtx(),
 		isSentryNode:     cfg.DynamicConfig.IsSentryNode(),
 		sentryPartner:    cfg.DynamicConfig.GetSentryPartner(),
-		responseChan:     make(chan types.Txs, 10),
+		responseChan:     make(chan *TxsMessage, 100),
 	}
 
 	if memR.sentryPartner != "" && !memR.isSentryNode {
@@ -150,20 +150,33 @@ func (memR *Reactor) ReapTxs(maxBytes, maxGas int64) []types.Tx {
 	}
 	msgBz := memR.encodeMsg(msg)
 
+	for len(memR.responseChan) != 0 {
+		<-memR.responseChan
+		memR.Logger.Error("error: responseChan not empty")
+	}
+
 	success := memR.sentryPartnerPeer.Send(MempoolChannel, msgBz)
 	if !success {
 		memR.Logger.Error("fetch txs from sentry node failed", "peer id", memR.sentryPartnerPeer.ID())
 		return nil
 	}
 
-	select {
-	case txs := <-memR.responseChan:
-		return txs
-	case <-time.After(time.Second):
-		memR.Logger.Error("wait for txs from sentry node timeout", "peer id", memR.sentryPartnerPeer.ID())
-	}
+	var txs []types.Tx
+	ticker := time.After(time.Second)
+	for {
+		select {
+		case txsMsg := <-memR.responseChan:
+			txs = append(txs, txsMsg.Txs...)
+			if txsMsg.IsEnd {
+				return txs
+			}
 
-	return nil
+		case <-ticker:
+			memR.Logger.Error("wait for txs from sentry node timeout", "peer id", memR.sentryPartnerPeer.ID())
+			fmt.Println("wait for txs from sentry node timeout", "peer id", memR.sentryPartnerPeer.ID())
+			return txs
+		}
+	}
 }
 
 // InitPeer implements Reactor by creating a state for the peer.
@@ -200,6 +213,7 @@ func (memR *Reactor) GetChannels() []*p2p.ChannelDescriptor {
 // AddPeer implements Reactor.
 // It starts a broadcast routine ensuring all txs are forwarded to the given peer.
 func (memR *Reactor) AddPeer(peer p2p.Peer) {
+	fmt.Println("debug add peer", peer.ID())
 	if string(peer.ID()) == memR.sentryPartner {
 		memR.sentryPartnerPeer = peer
 	}
@@ -288,12 +302,22 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	switch msg := msg.(type) {
 	case *FetchMessage:
 		txs := memR.mempool.ReapMaxBytesMaxGas(msg.MaxBytes, msg.MaxGas)
-		txsMsg := &TxsMessage{Txs: txs}
-		success := src.Send(MempoolChannel, memR.encodeMsg(txsMsg))
-		if !success {
-			memR.Logger.Info("response txs to validator failed", "peerID", src.ID())
+		var start, end int
+		for {
+			end = start + maxBatchTx
+			if end > len(txs) {
+				end = len(txs)
+			}
+			txsMsg := &TxsMessage{Txs: txs[start:end], IsEnd: end == len(txs)}
+			success := src.Send(MempoolChannel, memR.encodeMsg(txsMsg))
+			if !success {
+				memR.Logger.Error("response txs to validator failed", "peerID", src.ID())
+			}
+			if txsMsg.IsEnd {
+				return
+			}
+			start = end
 		}
-		return
 
 	case *StxMessage:
 		if string(src.ID()) == memR.sentryPartner {
@@ -305,7 +329,11 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		return
 	case *TxsMessage:
 		if !memR.isSentryNode && string(src.ID()) == memR.sentryPartner {
-			memR.responseChan <- msg.Txs
+			select {
+			case memR.responseChan <- msg:
+			default:
+				memR.Logger.Error("debug responseChan full")
+			}
 			return
 		}
 		for _, tx := range msg.Txs {
@@ -643,7 +671,8 @@ func (m *FetchMessage) String() string {
 
 // TxsMessage is a Message containing transactions.
 type TxsMessage struct {
-	Txs []types.Tx
+	Txs   []types.Tx
+	IsEnd bool
 }
 
 // String returns a string representation of the TxsMessage.
