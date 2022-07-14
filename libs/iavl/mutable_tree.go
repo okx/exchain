@@ -688,8 +688,8 @@ func (tree *MutableTree) enableFastStorageAndCommit(batch dbm.Batch) error {
 		for {
 			// Sample the current memory usage
 			runtime.ReadMemStats(&m)
-
-			if m.Alloc > 4*1024*1024*1024 {
+			//todo construct fast index,can use 16G
+			if m.Alloc > 32*1024*1024*1024 {
 				// If we are using more than 4GB of memory, we should trigger garbage collection
 				// to free up some memory.
 				runtime.GC()
