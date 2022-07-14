@@ -646,16 +646,17 @@ func (tree *MutableTree) enableFastStorageAndCommitIfNotEnabled() (bool, error) 
 		if err := tree.ndb.Commit(batch); err != nil {
 			return false, err
 		}
-	}
 
-	// Force garbage collection before we proceed to enabling fast storage.
-	runtime.GC()
+		// Force garbage collection before we proceed to enabling fast storage.
+		runtime.GC()
 
-	// todo giskook make batch
-	batch := tree.NewBatch()
-	if err := tree.enableFastStorageAndCommit(batch); err != nil {
-		tree.ndb.storageVersion = defaultStorageVersionValue
-		return false, err
+		// todo giskook make batch
+		batch = tree.NewBatch()
+		if err := tree.enableFastStorageAndCommit(batch); err != nil {
+			tree.ndb.storageVersion = defaultStorageVersionValue
+			return false, err
+		}
+
 	}
 	return true, nil
 }
@@ -685,7 +686,6 @@ func (tree *MutableTree) enableFastStorageAndCommit(batch dbm.Batch) error {
 		for {
 			// Sample the current memory usage
 			runtime.ReadMemStats(&m)
-
 			if m.Alloc > 4*1024*1024*1024 {
 				// If we are using more than 4GB of memory, we should trigger garbage collection
 				// to free up some memory.

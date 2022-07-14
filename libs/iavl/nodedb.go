@@ -119,6 +119,7 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		fastNodeCache:       make(map[string]*list.Element),
 		fastNodeCacheSize:   100000,
 		fastNodeCacheQueue:  list.New(),
+		storageVersion:      string(storeVersion),
 	}
 
 	ndb.oi = newOrphanInfo(ndb)
@@ -329,6 +330,7 @@ func (ndb *nodeDB) shouldForceFastStorageUpgrade() bool {
 			return true
 		}
 	}
+
 	return false
 }
 
