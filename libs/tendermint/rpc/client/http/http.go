@@ -383,6 +383,14 @@ func (c *baseRPCClient) BlockchainInfo(minHeight, maxHeight int64) (*ctypes.Resu
 	return result, nil
 }
 
+func (c *baseRPCClient) LatestBlockNumber() (int64, error) {
+	info, err := c.BlockchainInfo(0, 0)
+	if err != nil {
+		return 0, err
+	}
+	return info.LastHeight, nil
+}
+
 func (c *baseRPCClient) Genesis() (*ctypes.ResultGenesis, error) {
 	result := new(ctypes.ResultGenesis)
 	_, err := c.caller.Call("genesis", map[string]interface{}{}, result)

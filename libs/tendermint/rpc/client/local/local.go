@@ -158,6 +158,10 @@ func (c *Local) BlockchainInfo(minHeight, maxHeight int64) (*ctypes.ResultBlockc
 	return core.BlockchainInfo(c.ctx, minHeight, maxHeight)
 }
 
+func (c *Local) LatestBlockNumber() (int64, error) {
+	return core.LatestBlockNumber()
+}
+
 func (c *Local) Genesis() (*ctypes.ResultGenesis, error) {
 	return core.Genesis(c.ctx)
 }
