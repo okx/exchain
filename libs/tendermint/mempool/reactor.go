@@ -153,6 +153,7 @@ func (memR *Reactor) ReapTxs(maxBytes, maxGas int64) []types.Tx {
 	for len(memR.responseChan) != 0 {
 		<-memR.responseChan
 		memR.Logger.Error("error: responseChan not empty")
+		fmt.Println("error: responseChan not empty")
 	}
 
 	success := memR.sentryPartnerPeer.Send(MempoolChannel, msgBz)
@@ -162,12 +163,14 @@ func (memR *Reactor) ReapTxs(maxBytes, maxGas int64) []types.Tx {
 	}
 
 	var txs []types.Tx
-	ticker := time.After(time.Second)
+	ticker := time.After(time.Second * 3)
+	start := time.Now()
 	for {
 		select {
 		case txsMsg := <-memR.responseChan:
 			txs = append(txs, txsMsg.Txs...)
 			if txsMsg.IsEnd {
+				fmt.Println("fetch txs time cost", time.Since(start))
 				return txs
 			}
 
