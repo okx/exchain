@@ -32,7 +32,6 @@ const (
 )
 
 var ErrTimeout = errors.New("query timeout exceeded")
-var ErrPressureTest = errors.New("the block was produced during pressure test")
 
 // Backend implements the functionality needed to filter changes.
 // Implemented by EthermintBackend.
@@ -458,10 +457,7 @@ func (b *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 	if err != nil {
 		return nil, err
 	}
-	// return timeout error directly when block was produced during stress testing.
-	if len(block.Block.Txs) > b.logsLimit {
-		return nil, ErrPressureTest
-	}
+
 	var blockLogs = [][]*ethtypes.Log{}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(b.logsTimeout)*time.Second)
 	defer cancel()
