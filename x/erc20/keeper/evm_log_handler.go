@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 
@@ -136,8 +137,9 @@ func (h SendToIbcEventHandler) Handle(ctx sdk.Context, contract common.Address, 
 	if !ctx.IsCheckTx() {
 		txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
 		ethTxHash := common.BytesToHash(txHash)
+		ibcEvents := eventStr(ctx.EventManager().Events())
 
-		h.Keeper.addSendToIbcInnerTx(ethTxHash.Hex(), contract.String(), sender.String(), recipient, vouchers.String())
+		h.Keeper.addSendToIbcInnerTx(ethTxHash.Hex(), contract.String(), sender.String(), recipient, vouchers.String(), ibcEvents)
 	}
 	return nil
 }
@@ -200,8 +202,21 @@ func (h SendNative20ToIbcEventHandler) Handle(ctx sdk.Context, contract common.A
 	if !ctx.IsCheckTx() {
 		txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
 		ethTxHash := common.BytesToHash(txHash)
+		ibcEvents := eventStr(ctx.EventManager().Events())
 
-		h.Keeper.addSendNative20ToIbcInnerTx(ethTxHash.Hex(), types.ModuleName, sender.String(), recipient, native20s.String())
+		h.Keeper.addSendNative20ToIbcInnerTx(ethTxHash.Hex(), types.ModuleName, sender.String(), recipient, native20s.String(), ibcEvents)
 	}
 	return nil
+}
+
+func eventStr(events sdk.Events) string {
+	if len(events) == 0 {
+		return ""
+	}
+	var buf bytes.Buffer
+	buf.WriteString(`{"events":`)
+	sdk.StringifyEvents(events).MarshalJsonToBuffer(&buf)
+	buf.WriteString("}")
+
+	return buf.String()
 }
