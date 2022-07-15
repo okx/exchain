@@ -212,6 +212,14 @@ func (c *Client) Health() (*ctypes.ResultHealth, error) {
 	return c.next.Health()
 }
 
+func (c *Client) LatestBlockNumber() (int64, error) {
+	info, err := c.BlockchainInfo(0, 0)
+	if err != nil {
+		return 0, err
+	}
+	return info.LastHeight, nil
+}
+
 // BlockchainInfo calls rpcclient#BlockchainInfo and then verifies every header
 // returned.
 func (c *Client) BlockchainInfo(minHeight, maxHeight int64) (*ctypes.ResultBlockchainInfo, error) {
@@ -286,6 +294,21 @@ func (c *Client) Block(height *int64) (*ctypes.ResultBlock, error) {
 	if bH, tH := res.Block.Hash(), h.Hash(); !bytes.Equal(bH, tH) {
 		return nil, fmt.Errorf("block header %X does not match with trusted header %X",
 			bH, tH)
+	}
+
+	return res, nil
+}
+
+// Block calls rpcclient#Block and then verifies the result.
+func (c *Client) BlockInfo(height *int64) (*ctypes.ResultBlockInfo, error) {
+	res, err := c.next.BlockInfo(height)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate res.
+	if err := res.Header.ValidateBasic(); err != nil {
+		return nil, err
 	}
 
 	return res, nil

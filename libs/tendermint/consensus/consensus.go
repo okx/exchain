@@ -92,9 +92,6 @@ type State struct {
 	// store blocks and commits
 	blockStore sm.BlockStore
 
-	// store deltas
-	deltaStore sm.DeltaStore
-
 	// create and execute blocks
 	blockExec *sm.BlockExecutor
 
@@ -172,7 +169,6 @@ func NewState(
 	state sm.State,
 	blockExec *sm.BlockExecutor,
 	blockStore sm.BlockStore,
-	deltaStore sm.DeltaStore,
 	txNotifier txNotifier,
 	evpool evidencePool,
 	options ...StateOption,
@@ -181,7 +177,6 @@ func NewState(
 		config:             config,
 		blockExec:          blockExec,
 		blockStore:         blockStore,
-		deltaStore:         deltaStore,
 		txNotifier:         txNotifier,
 		peerMsgQueue:       make(chan msgInfo, msgQueueSize),
 		internalMsgQueue:   make(chan msgInfo, msgQueueSize),
@@ -553,7 +548,7 @@ func (cs *State) recordMetrics(height int64, block *types.Block) {
 
 	cs.metrics.NumTxs.Set(float64(len(block.Data.Txs)))
 	cs.metrics.TotalTxs.Add(float64(len(block.Data.Txs)))
-	cs.metrics.BlockSizeBytes.Set(float64(block.Size()))
+	cs.metrics.BlockSizeBytes.Set(float64(block.FastSize()))
 	cs.metrics.CommittedHeight.Set(float64(block.Height))
 }
 

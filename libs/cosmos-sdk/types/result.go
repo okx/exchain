@@ -5,9 +5,10 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/gogo/protobuf/proto"
 	"math"
 	"strings"
+
+	"github.com/gogo/protobuf/proto"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/tendermint/go-amino"

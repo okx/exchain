@@ -59,11 +59,6 @@ var (
 			configA: boolItem{name: watcher.FlagFastQuery, value: true},
 			configB: intItem{name: state.FlagDeliverTxsExecMode, value: 1},
 		},
-		// --fast-query      conflict with --deliver-txs-mode=2
-		{
-			configA: boolItem{name: watcher.FlagFastQuery, value: true},
-			configB: intItem{name: state.FlagDeliverTxsExecMode, value: 2},
-		},
 		// --fast-query      conflict with --pruning=nothing
 		{
 			configA: boolItem{name: watcher.FlagFastQuery, value: true},
@@ -79,20 +74,10 @@ var (
 			configA: boolItem{name: types.FlagUploadDDS, value: true},
 			configB: intItem{name: state.FlagDeliverTxsExecMode, value: 1},
 		},
-		// --upload-delta    conflict with --deliver-txs-mode=2
-		{
-			configA: boolItem{name: types.FlagUploadDDS, value: true},
-			configB: intItem{name: state.FlagDeliverTxsExecMode, value: 2},
-		},
 		// --node-mode=rpc(--fast-query) conflicts with --deliver-txs-mode=1
 		{
 			configA: stringItem{name: apptype.FlagNodeMode, value: string(apptype.RpcNode)},
 			configB: intItem{name: state.FlagDeliverTxsExecMode, value: 1},
-		},
-		// --node-mode=rpc(--fast-query) conflicts with --deliver-txs-mode=2 and --pruning=nothing
-		{
-			configA: stringItem{name: apptype.FlagNodeMode, value: string(apptype.RpcNode)},
-			configB: intItem{name: state.FlagDeliverTxsExecMode, value: 2},
 		},
 		{
 			configA: stringItem{name: apptype.FlagNodeMode, value: string(apptype.RpcNode)},
