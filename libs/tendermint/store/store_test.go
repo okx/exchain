@@ -3,6 +3,8 @@ package store
 import (
 	"bytes"
 	"fmt"
+	"math"
+	"math/rand"
 	"os"
 	"runtime/debug"
 	"strings"
@@ -673,4 +675,82 @@ func newBlock(hdr types.Header, lastCommit *types.Commit) *types.Block {
 		Header:     hdr,
 		LastCommit: lastCommit,
 	}
+}
+
+func calcBlockMetaKeyOld(height int64) []byte {
+	return []byte(fmt.Sprintf("H:%v", height))
+}
+
+func calcBlockPartKeyOld(height int64, partIndex int) []byte {
+	return []byte(fmt.Sprintf("P:%v:%v", height, partIndex))
+}
+
+func calcBlockCommitKeyOld(height int64) []byte {
+	return []byte(fmt.Sprintf("C:%v", height))
+}
+
+func calcSeenCommitKeyOld(height int64) []byte {
+	return []byte(fmt.Sprintf("SC:%v", height))
+}
+
+func calcBlockHashKeyOld(hash []byte) []byte {
+	return []byte(fmt.Sprintf("BH:%x", hash))
+}
+
+func TestCalcKey(t *testing.T) {
+	for _, tc := range []int64{
+		0, 1, -2, math.MaxInt64, math.MinInt64, 12345, -12345,
+	} {
+		require.Equal(t, calcBlockMetaKey(tc), calcBlockMetaKeyOld(tc))
+		require.Equal(t, calcBlockCommitKey(tc), calcBlockCommitKeyOld(tc))
+		require.Equal(t, calcSeenCommitKey(tc), calcSeenCommitKeyOld(tc))
+	}
+
+	for _, tc := range []struct {
+		height    int64
+		partIndex int
+	}{
+		{},
+		{-1, -1},
+		{
+			height:    12345,
+			partIndex: 23456,
+		},
+		{
+			height:    math.MaxInt64,
+			partIndex: math.MaxInt,
+		},
+		{
+			height:    math.MinInt64,
+			partIndex: math.MinInt,
+		},
+	} {
+		require.Equal(t, calcBlockPartKey(tc.height, tc.partIndex), calcBlockPartKeyOld(tc.height, tc.partIndex))
+	}
+
+	for _, tc := range [][]byte{
+		nil,
+		[]byte{},
+		make([]byte, 100),
+		make([]byte, 1024),
+	} {
+		_, err := rand.Read(tc)
+		require.NoError(t, err)
+		require.Equal(t, calcBlockHashKey(tc), calcBlockHashKeyOld(tc))
+	}
+}
+
+func BenchmarkCalcKey(b *testing.B) {
+	b.Run("calcBlockMetaKey", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			calcBlockMetaKey(int64(i))
+		}
+	})
+	b.Run("calcBlockMetaKeyOld", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			calcBlockMetaKeyOld(int64(i))
+		}
+	})
 }
