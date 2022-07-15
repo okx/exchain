@@ -238,6 +238,10 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 //
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo TxInfo) error {
+	// no need to update when mempool is unavailable
+	if mem.config.Sealed {
+		return fmt.Errorf("mempool is unavailable")
+	}
 
 	txSize := len(tx)
 	if err := mem.isFull(txSize); err != nil {
@@ -802,6 +806,11 @@ func (mem *CListMempool) Update(
 	preCheck PreCheckFunc,
 	postCheck PostCheckFunc,
 ) error {
+	// no need to update when mempool is unavailable
+	if mem.config.Sealed {
+		return nil
+	}
+
 	// Set height
 	atomic.StoreInt64(&mem.height, height)
 	mem.notifiedTxsAvailable = false
