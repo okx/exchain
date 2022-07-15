@@ -1,5 +1,7 @@
 package types
 
+import abci "github.com/okex/exchain/libs/tendermint/abci/types"
+
 // Handler defines the core of the state transition function of an application.
 type Handler func(ctx Context, msg Msg) (*Result, error)
 
@@ -15,7 +17,7 @@ type AccNonceHandler func(ctx Context, address AccAddress) (nonce uint64)
 
 type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins) error
 
-type LogFix func(logIndex []int, hasEnterEvmTx []bool, errs []error) (logs [][]byte)
+type LogFix func(logIndex []int, hasEnterEvmTx []bool, errs []error, msgs [][]Msg, resp []abci.ResponseDeliverTx) (logs [][]byte)
 
 type GetTxFeeAndFromHandler func(ctx Context, tx Tx) (Coins, bool, string, string, error)
 type GetTxFeeHandler func(tx Tx) Coins
@@ -23,6 +25,8 @@ type GetTxFeeHandler func(tx Tx) Coins
 type CustomizeOnStop func(ctx Context) error
 
 type MptCommitHandler func(ctx Context)
+
+type EvmWatcherCollector func(...IWatcher)
 
 // AnteDecorator wraps the next AnteHandler to perform custom pre- and post-processing.
 type AnteDecorator interface {
