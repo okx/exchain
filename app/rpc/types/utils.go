@@ -289,13 +289,28 @@ func RawTxToWatcherTx(clientCtx clientcontext.CLIContext, bz tmtypes.Tx,
 
 func RawTxResultToStdResponse(clientCtx clientcontext.CLIContext,
 	tr *ctypes.ResultTx, timestamp time.Time) (*watcher.TransactionResult, error) {
-	var realTx authtypes.StdTx
-	err := clientCtx.Codec.UnmarshalBinaryLengthPrefixed(tr.Tx, &realTx)
+
+	tx, err := evmtypes.TxDecoder(clientCtx.CodecProy)(tr.Tx, evmtypes.IGNORE_HEIGHT_CHECKING)
 	if err != nil {
-		return nil, err
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
-	response := sdk.NewResponseResultTx(tr, &realTx, timestamp.Format(time.RFC3339))
+	var realTx *authtypes.StdTx
+	switch tx.(type) {
+	case *authtypes.IbcTx:
+		realTx, err = authtypes.FromProtobufTx(clientCtx.CodecProy, tx.(*authtypes.IbcTx))
+		if nil != err {
+			return nil, err
+		}
+	default:
+		err = clientCtx.Codec.UnmarshalBinaryLengthPrefixed(tr.Tx, &realTx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	response := sdk.NewResponseResultTx(tr, realTx, timestamp.Format(time.RFC3339))
+
 	return &watcher.TransactionResult{TxType: hexutil.Uint64(watcher.StdResponse), Response: &response}, nil
 }
 

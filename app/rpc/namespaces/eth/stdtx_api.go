@@ -3,17 +3,13 @@ package eth
 import (
 	"errors"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"time"
-
-	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/app/rpc/monitor"
 	rpctypes "github.com/okex/exchain/app/rpc/types"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/x/evm/watcher"
 )
 
@@ -113,14 +109,10 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 			isEthTx = false
 			stdResponse, _ := api.wrappedBackend.GetTransactionResponse(tx.Hash)
 			if stdResponse != nil {
-				var realTx authtypes.StdTx
-				err := api.clientCtx.Codec.UnmarshalBinaryLengthPrefixed(stdResponse.Tx, &realTx)
+				res, err = rpctypes.RawTxResultToStdResponse(api.clientCtx, stdResponse.ResultTx, stdResponse.Timestamp)
 				if err != nil {
 					return nil, err
 				}
-
-				response := sdk.NewResponseResultTx(stdResponse.ResultTx, &realTx, stdResponse.Timestamp.Format(time.RFC3339))
-				res = &watcher.TransactionResult{TxType: hexutil.Uint64(watcher.StdResponse), Response: &response}
 			}
 		} else {
 			isEthTx = true
