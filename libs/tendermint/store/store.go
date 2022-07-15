@@ -79,18 +79,32 @@ func (bs *BlockStore) Size() int64 {
 
 var blockBufferPool = amino.NewBufferPool()
 
+var blockLoadBufPool = &sync.Pool{
+	New: func() interface{} {
+		return &[2]bytes.Buffer{}
+	},
+}
+
 // LoadBlock returns the block with the given height.
 // If no block is found for that height, it returns nil.
 func (bs *BlockStore) LoadBlock(height int64) *types.Block {
-	buf := blockBufferPool.Get()
-	defer blockBufferPool.Put(buf)
-	buf.Reset()
-	partBytes, _ := bs.loadBlockPartsBytes(height, buf)
-	if partBytes == nil {
+	bufs := blockLoadBufPool.Get().(*[2]bytes.Buffer)
+	defer blockLoadBufPool.Put(bufs)
+
+	loadBuf, uncompressedBuf := &bufs[0], &bufs[1]
+
+	loadBuf.Reset()
+	uncompressedBuf.Reset()
+
+	info := bs.loadBlockPartsBytesTo(height, loadBuf, uncompressedBuf)
+	if loadBuf.Len() == 0 {
 		return nil
 	}
-
-	return bs.unmarshalBlockByBytes(partBytes)
+	if !info.IsCompressed() {
+		return bs.unmarshalBlockByBytes(loadBuf.Bytes())
+	} else {
+		return bs.unmarshalBlockByBytes(uncompressedBuf.Bytes())
+	}
 }
 
 // LoadBlockWithExInfo returns the block with the given height.
@@ -206,6 +220,36 @@ func (bs *BlockStore) loadBlockPartsBytes(height int64, buf *bytes.Buffer) ([]by
 			BlockCompressType: compressSign / types.CompressDividing,
 			BlockCompressFlag: compressSign % types.CompressDividing,
 			BlockPartSize:     len(parts[0].Bytes)}
+}
+
+func (bs *BlockStore) loadBlockPartsBytesTo(height int64, buf *bytes.Buffer, uncompressed *bytes.Buffer) types.BlockExInfo {
+	var blockMeta = bs.LoadBlockMeta(height)
+	if blockMeta == nil {
+		return types.BlockExInfo{}
+	}
+
+	var bufLen int
+	parts := make([]*types.Part, 0, blockMeta.BlockID.PartsHeader.Total)
+	for i := 0; i < blockMeta.BlockID.PartsHeader.Total; i++ {
+		part := bs.LoadBlockPart(height, i)
+		bufLen += len(part.Bytes)
+		parts = append(parts, part)
+	}
+	buf.Grow(bufLen)
+	for _, part := range parts {
+		buf.Write(part.Bytes)
+	}
+
+	// uncompress if the block part bytes was created by compress block
+	compressSign, err := types.UncompressBlockFromBytesTo(buf.Bytes(), uncompressed)
+	if err != nil {
+		panic(errors.Wrap(err, "failed to uncompress block"))
+	}
+
+	return types.BlockExInfo{
+		BlockCompressType: compressSign / types.CompressDividing,
+		BlockCompressFlag: compressSign % types.CompressDividing,
+		BlockPartSize:     len(parts[0].Bytes)}
 }
 
 func decodeBlockMeta(bz []byte) (*types.BlockMeta, error) {
