@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -428,9 +429,43 @@ func iaviewerReadNodeData(ctx *iaviewerContext) error {
 	if node == nil {
 		return fmt.Errorf("node not found: %s", nodeHash)
 	}
-	fmt.Println(node.String())
+
+	jstr, err := json.Marshal(newNodeStringFromNodeJson(iavl.NodeToNodeJson(node)))
+	if err != nil {
+		fmt.Println(node.String())
+	} else {
+		fmt.Println(string(jstr))
+	}
 
 	return nil
+}
+
+type nodeString struct {
+	Key          string `json:"key"`
+	Value        string `json:"value"`
+	Hash         string `json:"hash"`
+	LeftHash     string `json:"left_hash"`
+	RightHash    string `json:"right_hash"`
+	Version      int64  `json:"version"`
+	Size         int64  `json:"size"`
+	Height       int8   `json:"height"`
+	Persisted    bool   `json:"persisted"`
+	PrePersisted bool   `json:"pre_persisted"`
+}
+
+func newNodeStringFromNodeJson(nodeJson *iavl.NodeJson) *nodeString {
+	return &nodeString{
+		Key:          hex.EncodeToString(nodeJson.Key),
+		Value:        hex.EncodeToString(nodeJson.Value),
+		Hash:         hex.EncodeToString(nodeJson.Hash),
+		LeftHash:     hex.EncodeToString(nodeJson.LeftHash),
+		RightHash:    hex.EncodeToString(nodeJson.RightHash),
+		Version:      nodeJson.Version,
+		Size:         nodeJson.Size,
+		Height:       nodeJson.Height,
+		Persisted:    nodeJson.Persisted,
+		PrePersisted: nodeJson.PrePersisted,
+	}
 }
 
 func iaviewerStatus(ctx *iaviewerContext) error {
