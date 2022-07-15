@@ -240,7 +240,8 @@ func (t *ImmutableTree) GetUpgradeVersion() int64 {
 	return t.upgradeVersion
 }
 
-func (t *ImmutableTree) Debug(nodeHash []byte) *Node {
+// Only used for debug!
+func (t *ImmutableTree) DebugGetNode(nodeHash []byte) *Node {
 	if string(t.Hash()) == string(nodeHash) {
 		return t.root
 	}

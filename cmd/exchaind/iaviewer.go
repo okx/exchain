@@ -424,7 +424,7 @@ func iaviewerReadNodeData(ctx *iaviewerContext) error {
 		nodeHash = tree.Hash()
 	}
 
-	node := tree.Debug(nodeHash)
+	node := tree.DebugGetNode(nodeHash)
 	if node == nil {
 		return fmt.Errorf("node not found: %s", nodeHash)
 	}
