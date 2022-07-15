@@ -323,6 +323,9 @@ func (se StringEvents) Flatten() StringEvents {
 // StringifyEvent converts an Event object to a StringEvent object.
 func StringifyEvent(e Event) StringEvent {
 	res := StringEvent{Type: e.Type}
+	if len(e.Attributes) > 0 {
+		res.Attributes = make([]Attribute, 0, len(e.Attributes))
+	}
 
 	for _, attr := range e.Attributes {
 		res.Attributes = append(
