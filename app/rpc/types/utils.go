@@ -128,6 +128,33 @@ func EthTransactionsFromTendermint(clientCtx clientcontext.CLIContext, txs []tmt
 	return gasUsed, transactions, nil
 }
 
+func EthTransactionsHashFromTendermint(clientCtx clientcontext.CLIContext, txs []tmtypes.Tx, blockNumber uint64) (*big.Int, []common.Hash, error) {
+	var txHashes []common.Hash
+	gasUsed := big.NewInt(0)
+	txGas := big.NewInt(0)
+	if len(txs) > 0 {
+		txHashes = make([]common.Hash, 0, len(txs))
+	}
+
+	for _, tx := range txs {
+		ethTx, err := RawTxToEthTx(clientCtx, tx)
+		if err != nil {
+			// continue to next transaction in case it's not a MsgEthereumTx
+			continue
+		}
+		// TODO: Remove gas usage calculation if saving gasUsed per block
+		gasUsed.Add(gasUsed, txGas.SetInt64(int64(ethTx.GetGas())))
+		txHash := tx.Hash(int64(blockNumber))
+		if len(txHash) == common.HashLength {
+			txHashes = append(txHashes, *(*[common.HashLength]byte)(txHash))
+		} else {
+			txHashes = append(txHashes, common.BytesToHash(txHash))
+		}
+	}
+
+	return gasUsed, txHashes, nil
+}
+
 // BlockMaxGasFromConsensusParams returns the gas limit for the latest block from the chain consensus params.
 func BlockMaxGasFromConsensusParams(_ context.Context, clientCtx clientcontext.CLIContext) (int64, error) {
 	//resConsParams, err := clientCtx.Client.ConsensusParams(nil)
