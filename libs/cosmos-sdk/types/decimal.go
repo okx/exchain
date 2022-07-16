@@ -293,6 +293,21 @@ func (d Dec) MulInt64(i int64) Dec {
 	return Dec{mul}
 }
 
+func (d Dec) MulInt64To(i int64, d2 *Dec) {
+	if d2.Int == nil {
+		d2.Int = big.NewInt(i)
+	} else {
+		d2.Int.SetInt64(i)
+	}
+
+	d2.Int.Mul(d.Int, d2.Int)
+
+	if d2.Int.BitLen() > 255+DecimalPrecisionBits {
+		panic("Int overflow")
+	}
+	return
+}
+
 // quotient
 func (d Dec) Quo(d2 Dec) Dec {
 	// multiply precision twice

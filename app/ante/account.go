@@ -41,11 +41,14 @@ func accountVerification(ctx *sdk.Context, acc exported.Account, tx *evmtypes.Ms
 		)
 	}
 
-	evmDenom := sdk.DefaultBondDenom
+	const evmDenom = sdk.DefaultBondDenom
+
+	feeInts := feeIntsPool.Get().(*[2]big.Int)
+	defer feeIntsPool.Put(feeInts)
 
 	// validate sender has enough funds to pay for gas cost
 	balance := acc.GetCoins().AmountOf(evmDenom)
-	if balance.BigInt().Cmp(tx.Cost()) < 0 {
+	if balance.Int.Cmp(tx.CalcCostTo(&feeInts[0])) < 0 {
 		return sdkerrors.Wrapf(
 			sdkerrors.ErrInsufficientFunds,
 			"sender balance < tx gas cost (%s%s < %s%s)", balance.String(), evmDenom, sdk.NewDecFromBigIntWithPrec(tx.Cost(), sdk.Precision).String(), evmDenom,
@@ -157,11 +160,13 @@ func ethGasConsume(ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, ms
 
 	// Charge sender for gas up to limit
 	if gasLimit != 0 {
+		feeInts := feeIntsPool.Get().(*[2]big.Int)
+		defer feeIntsPool.Put(feeInts)
 		// Cost calculates the fees paid to validators based on gas limit and price
-		cost := new(big.Int).SetUint64(gasLimit)
+		cost := (&feeInts[0]).SetUint64(gasLimit)
 		cost = cost.Mul(msgEthTx.Data.Price, cost)
 
-		evmDenom := sdk.DefaultBondDenom
+		const evmDenom = sdk.DefaultBondDenom
 
 		feeAmt := sdk.NewDecCoinsFromDec(evmDenom, sdk.NewDecWithBigIntAndPrec(cost, sdk.Precision))
 

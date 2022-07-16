@@ -380,9 +380,10 @@ func (msg *MsgEthereumTx) Fee() *big.Int {
 }
 
 // CalcFee set fee to gasprice * gaslimit.
-func (msg *MsgEthereumTx) CalcFee(fee *big.Int) {
+func (msg *MsgEthereumTx) CalcFee(fee *big.Int) *big.Int {
 	fee.SetUint64(msg.Data.GasLimit)
 	fee.Mul(fee, msg.Data.Price)
+	return fee
 }
 
 // ChainID returns which chain id this transaction was signed for (if at all)
@@ -393,6 +394,12 @@ func (msg *MsgEthereumTx) ChainID() *big.Int {
 // Cost returns amount + gasprice * gaslimit.
 func (msg *MsgEthereumTx) Cost() *big.Int {
 	total := msg.Fee()
+	total.Add(total, msg.Data.Amount)
+	return total
+}
+
+func (msg *MsgEthereumTx) CalcCostTo(total *big.Int) *big.Int {
+	total = msg.CalcFee(total)
 	total.Add(total, msg.Data.Amount)
 	return total
 }
