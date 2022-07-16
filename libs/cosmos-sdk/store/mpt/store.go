@@ -270,6 +270,10 @@ func (ms *MptStore) LastCommitID() types.CommitID {
 	}
 }
 
+func (ms *MptStore) LastCommitVersion() int64 {
+	return ms.version
+}
+
 func (ms *MptStore) SetPruning(options types.PruningOptions) {
 	panic("cannot set pruning options on an initialized MPT store")
 }
