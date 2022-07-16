@@ -380,9 +380,10 @@ func (msg *MsgEthereumTx) Fee() *big.Int {
 }
 
 // CalcFee set fee to gasprice * gaslimit.
-func (msg *MsgEthereumTx) CalcFee(fee *big.Int) {
+func (msg *MsgEthereumTx) CalcFee(fee *big.Int) *big.Int {
 	fee.SetUint64(msg.Data.GasLimit)
 	fee.Mul(fee, msg.Data.Price)
+	return fee
 }
 
 // ChainID returns which chain id this transaction was signed for (if at all)
