@@ -37,7 +37,7 @@ func (c *cacheMultiStoreList) Range(cb func(c types.CacheMultiStore)) {
 	}
 }
 
-func (c *cacheMultiStoreList) GetStoreWithParent(parent types.CacheMultiStore) types.CacheMultiStore {
+func (c *cacheMultiStoreList) GetStoreWithParent(parent types.MultiStore) types.CacheMultiStore {
 	c.mtx.Lock()
 	if c.stores.Len() > 0 {
 		front := c.stores.Remove(c.stores.Front()).(types.CacheMultiStore)
@@ -65,4 +65,21 @@ func (c *cacheMultiStoreList) Clear() {
 	c.mtx.Lock()
 	c.stores.Init()
 	c.mtx.Unlock()
+}
+
+func (c *cacheMultiStoreList) RemoveStore(needRemove int) (removed int) {
+	c.mtx.Lock()
+	if c.stores.Len() <= needRemove {
+		removed = c.stores.Len()
+		c.stores.Init()
+		c.mtx.Unlock()
+		return
+	} else {
+		for i := 0; i < needRemove; i++ {
+			c.stores.Remove(c.stores.Front())
+		}
+		c.mtx.Unlock()
+		removed = needRemove
+		return
+	}
 }
