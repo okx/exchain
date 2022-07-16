@@ -413,7 +413,7 @@ func (ndb *nodeDB) deleteOrphans(batch dbm.Batch, version int64) {
 		if predecessor < fromVersion || fromVersion == toVersion {
 			ndb.log(IavlDebug, "DELETE", "predecessor", predecessor, "fromVersion", fromVersion, "toVersion", toVersion, "hash", hash)
 			batch.Delete(ndb.nodeKey(hash))
-			ndb.syncUnCacheNode(hash)
+			ndb.uncacheNode(hash)
 			ndb.state.increaseDeletedCount()
 		} else {
 			ndb.log(IavlDebug, "MOVE", "predecessor", predecessor, "fromVersion", fromVersion, "toVersion", toVersion, "hash", hash)
