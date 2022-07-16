@@ -398,6 +398,12 @@ func (msg *MsgEthereumTx) Cost() *big.Int {
 	return total
 }
 
+func (msg *MsgEthereumTx) CalcCostTo(total *big.Int) *big.Int {
+	total = msg.CalcFee(total)
+	total.Add(total, msg.Data.Amount)
+	return total
+}
+
 // RawSignatureValues returns the V, R, S signature values of the transaction.
 // The return values should not be modified by the caller.
 func (msg *MsgEthereumTx) RawSignatureValues() (v, r, s *big.Int) {
