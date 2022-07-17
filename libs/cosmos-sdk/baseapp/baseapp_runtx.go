@@ -264,6 +264,11 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	}
 
 	if err != nil {
+		if mode == runTxModeCheck || mode == runTxModeReCheck {
+			info.msCacheAnte.Clear()
+			app.checkTxCacheMultiStores.PushStore(info.msCacheAnte)
+			info.msCacheAnte = nil
+		}
 		return err
 	}
 	app.pin(trace.AnteOther, false, mode)
