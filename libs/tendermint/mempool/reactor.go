@@ -131,9 +131,9 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 		responseChan:     make(chan *TxsMessage, 100),
 	}
 
-	if memR.sentryPartner != "" && !memR.isSentryNode {
-		mempool.SetSentryMempool(memR)
-	}
+	//if memR.sentryPartner != "" && !memR.isSentryNode {
+	//	mempool.SetSentryMempool(memR)
+	//}
 
 	for _, nodeKey := range config.GetNodeKeyWhitelist() {
 		memR.nodeKeyWhitelist[nodeKey] = struct{}{}
@@ -325,7 +325,16 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	case *StxMessage:
 		if string(src.ID()) == memR.sentryPartner {
 			for _, stx := range msg.Stx {
-				types.SignatureCache().Add(stx.TxHash, stx.From)
+				types.SignatureCache().Add(types.Tx(stx.TxHash).Hash(memR.mempool.Height()), stx.From)
+				txInfo.checkType = abci.CheckTxType_WrappedCheck
+				txInfo.wtx = &WrappedTx{
+					From: stx.From,
+				}
+				tx = stx.TxHash
+				err = memR.mempool.CheckTx(tx, nil, txInfo)
+				if err != nil {
+					memR.Logger.Info("Could not check stx", "tx", txID(tx, memR.mempool.Height()), "err", err)
+				}
 			}
 			memR.mempool.notifyTxsAvailable()
 		}

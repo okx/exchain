@@ -1007,7 +1007,7 @@ func (mem *CListMempool) sentryTxs(start *clist.CElement) (batch []*SentryTx, en
 	for {
 		memTx := end.Value.(*mempoolTx)
 		batch = append(batch, &SentryTx{
-			TxHash: memTx.realTx.TxHash(),
+			TxHash: memTx.tx,
 			From:   memTx.from,
 		})
 		if len(batch) >= maxBatchTx || end.Next() == nil {
