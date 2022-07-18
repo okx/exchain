@@ -46,7 +46,7 @@ func (msg MsgConnectionOpenInit) Route() string {
 
 // Type implements sdk.Msg
 func (msg MsgConnectionOpenInit) Type() string {
-	return "connection_open_init"
+	return sdk.MsgTypeURL(&msg)
 }
 
 // ValidateBasic implements sdk.Msg.
@@ -121,7 +121,7 @@ func (msg MsgConnectionOpenTry) Route() string {
 
 // Type implements sdk.Msg
 func (msg MsgConnectionOpenTry) Type() string {
-	return "connection_open_try"
+	return sdk.MsgTypeURL(&msg)
 }
 
 // ValidateBasic implements sdk.Msg
@@ -235,7 +235,7 @@ func (msg MsgConnectionOpenAck) Route() string {
 
 // Type implements sdk.Msg
 func (msg MsgConnectionOpenAck) Type() string {
-	return "connection_open_ack"
+	return sdk.MsgTypeURL(&msg)
 }
 
 // ValidateBasic implements sdk.Msg
@@ -317,7 +317,7 @@ func (msg MsgConnectionOpenConfirm) Route() string {
 
 // Type implements sdk.Msg
 func (msg MsgConnectionOpenConfirm) Type() string {
-	return "connection_open_confirm"
+	return sdk.MsgTypeURL(&msg)
 }
 
 // ValidateBasic implements sdk.Msg
