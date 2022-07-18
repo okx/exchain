@@ -327,9 +327,7 @@ func testRandomOperations(t *testing.T, randSeed int64) {
 	t.Logf("Final version %v deleted, no stray database entries", prevVersion)
 }
 
-// Checks that the database is empty, only containing a single root entry
-// at the given version.
-func assertEmptyDatabase(t *testing.T, tree *MutableTree) {
+func assertEmptyDatabaseWithFastStorage(t *testing.T, tree *MutableTree) {
 	version := tree.Version()
 	iter, err := tree.ndb.db.Iterator(nil, nil)
 	require.NoError(t, err)
@@ -359,27 +357,39 @@ func assertEmptyDatabase(t *testing.T, tree *MutableTree) {
 	var foundVersion int64
 	rootKeyFormat.Scan([]byte(secondKey), &foundVersion)
 	require.Equal(t, version, foundVersion, "Unexpected root version")
+}
 
-	//	version := tree.Version()
-	//	iter, err := tree.ndb.db.Iterator(nil, nil)
-	//	require.NoError(t, err)
-	//
-	//	var (
-	//		firstKey []byte
-	//		count    int
-	//	)
-	//	for ; iter.Valid(); iter.Next() {
-	//		count++
-	//		if firstKey == nil {
-	//			firstKey = iter.Key()
-	//		}
-	//	}
-	//	require.NoError(t, iter.Error())
-	//	require.EqualValues(t, 1, count, "Found %v database entries, expected 1", count)
-	//
-	//	var foundVersion int64
-	//	rootKeyFormat.Scan(firstKey, &foundVersion)
-	//	require.Equal(t, version, foundVersion, "Unexpected root version")
+func assertEmptyDatabaseWithoutFastStorage(t *testing.T, tree *MutableTree) {
+	version := tree.Version()
+	iter, err := tree.ndb.db.Iterator(nil, nil)
+	require.NoError(t, err)
+
+	var (
+		firstKey []byte
+		count    int
+	)
+	for ; iter.Valid(); iter.Next() {
+		count++
+		if firstKey == nil {
+			firstKey = iter.Key()
+		}
+	}
+	require.NoError(t, iter.Error())
+	require.EqualValues(t, 1, count, "Found %v database entries, expected 1", count)
+
+	var foundVersion int64
+	rootKeyFormat.Scan(firstKey, &foundVersion)
+	require.Equal(t, version, foundVersion, "Unexpected root version")
+}
+
+// Checks that the database is empty, only containing a single root entry
+// at the given version.
+func assertEmptyDatabase(t *testing.T, tree *MutableTree) {
+	if EnableFastStorage {
+		assertEmptyDatabaseWithFastStorage(t, tree)
+	} else {
+		assertEmptyDatabaseWithoutFastStorage(t, tree)
+	}
 }
 
 // Checks that the tree has the given number of orphan nodes.
