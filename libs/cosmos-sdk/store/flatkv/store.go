@@ -44,9 +44,6 @@ func (st *Store) Get(key []byte) []byte {
 	if !st.enable {
 		return nil
 	}
-	if cacheVal, ok := st.cache.get(key); ok {
-		return cacheVal
-	}
 	ts := time.Now()
 	value, err := st.db.Get(key)
 	st.addDBReadTime(time.Now().Sub(ts).Nanoseconds())
@@ -95,7 +92,7 @@ func (st *Store) Commit(version int64) {
 	for key, value := range cache {
 		batch.Set([]byte(key), value)
 	}
-	st.setLatestVersion(batch, version)
+	//st.setLatestVersion(batch, version)
 	batch.Write()
 	st.addDBWriteTime(time.Now().Sub(ts).Nanoseconds())
 	st.addDBWriteCount()
