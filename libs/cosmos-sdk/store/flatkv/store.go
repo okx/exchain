@@ -64,18 +64,12 @@ func (st *Store) Set(key, value []byte) {
 	st.cache.add(key, value)
 }
 
-func (st *Store) Has(key []byte) bool {
-	if !st.enable {
-		return false
-	}
-	if _, ok := st.cache.get(key); ok {
-		return true
-	}
-	st.addDBReadCount()
-	if ok, err := st.db.Has(key); err == nil && ok {
-		return true
-	}
-	return false
+func (st *Store) Has(key []byte) (bool, error) {
+	return st.db.Has(key)
+}
+
+func (st *Store) SetSync(key, value []byte) error {
+	return st.db.SetSync(key, value)
 }
 
 func (st *Store) Delete(key []byte) {

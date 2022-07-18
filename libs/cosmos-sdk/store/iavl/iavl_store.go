@@ -216,15 +216,14 @@ func (st *Store) Set(key, value []byte) {
 
 // Implements types.KVStore.
 func (st *Store) Get(key []byte) []byte {
-	value := st.getFlatKV(key)
-	if value != nil {
+	_, value := st.tree.Get(key)
+	if ok, _ := st.flatKVStore.Has(key); ok {
 		return value
 	}
-	_, value = st.tree.Get(key)
-	if value != nil {
-		st.setFlatKV(key, value)
+	err := st.flatKVStore.SetSync(key, value)
+	if err != nil {
+		panic(err)
 	}
-
 	return value
 }
 

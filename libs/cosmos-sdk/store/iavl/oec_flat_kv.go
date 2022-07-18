@@ -3,6 +3,7 @@ package iavl
 import "fmt"
 
 func (st *Store) getFlatKV(key []byte) []byte {
+	return nil
 	if st.flatKVStore == nil {
 		return nil
 	}
@@ -10,6 +11,7 @@ func (st *Store) getFlatKV(key []byte) []byte {
 }
 
 func (st *Store) setFlatKV(key, value []byte) {
+	return
 	if st.flatKVStore == nil {
 		return
 	}
@@ -17,6 +19,7 @@ func (st *Store) setFlatKV(key, value []byte) {
 }
 
 func (st *Store) commitFlatKV(version int64) {
+	return
 	if st.flatKVStore == nil {
 		return
 	}
@@ -24,13 +27,11 @@ func (st *Store) commitFlatKV(version int64) {
 }
 
 func (st *Store) hasFlatKV(key []byte) bool {
-	if st.flatKVStore == nil {
-		return false
-	}
-	return st.flatKVStore.Has(key)
+	return false
 }
 
 func (st *Store) deleteFlatKV(key []byte) {
+	return
 	if st.flatKVStore == nil {
 		return
 	}
