@@ -88,11 +88,10 @@ type nodeDB struct {
 	state *RuntimeState
 	tpp   *tempPrePersistNodes
 
-	fastNodeCache          map[string]*list.Element // FastNode cache.
-	fastNodeCacheSize      int                      // FastNode cache size limit in elements.
-	fastNodeCacheQueue     *list.List               // LRU queue of cache elements. Used for deletion.
-	fastNodeMutex          sync.RWMutex             // Mutex for fast node cache.
-	latestVersion4FastNode int64
+	fastNodeCache      map[string]*list.Element // FastNode cache.
+	fastNodeCacheSize  int                      // FastNode cache size limit in elements.
+	fastNodeCacheQueue *list.List               // LRU queue of cache elements. Used for deletion.
+	fastNodeMutex      sync.RWMutex             // Mutex for fast node cache.
 }
 
 func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
@@ -483,22 +482,20 @@ func (ndb *nodeDB) DeleteVersionsFrom(batch dbm.Batch, version int64) error {
 		batch.Delete(k)
 	})
 
-	if EnableFastStorage {
-		// Delete fast node entries
-		ndb.traverseFastNodes(func(keyWithPrefix, v []byte) {
-			key := keyWithPrefix[1:]
-			fastNode, err := DeserializeFastNode(key, v)
+	// Delete fast node entries
+	ndb.traverseFastNodes(func(keyWithPrefix, v []byte) {
+		key := keyWithPrefix[1:]
+		fastNode, err := DeserializeFastNode(key, v)
 
-			if err != nil {
-				return
-			}
+		if err != nil {
+			return
+		}
 
-			if version <= fastNode.versionLastUpdatedAt {
-				batch.Delete(keyWithPrefix)
-				ndb.uncacheFastNode(key)
-			}
-		})
-	}
+		if version <= fastNode.versionLastUpdatedAt {
+			batch.Delete(keyWithPrefix)
+			ndb.uncacheFastNode(key)
+		}
+	})
 
 	return nil
 }
@@ -671,12 +668,6 @@ func (ndb *nodeDB) getLatestVersion() int64 {
 func (ndb *nodeDB) updateLatestVersion(version int64) {
 	if ndb.latestVersion < version {
 		ndb.latestVersion = version
-	}
-}
-
-func (ndb *nodeDB) updateLatestVersion4FastNode(version int64) {
-	if ndb.latestVersion4FastNode < version {
-		ndb.latestVersion4FastNode = version
 	}
 }
 

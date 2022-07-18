@@ -7,8 +7,6 @@ import (
 	"math/rand"
 	"os"
 	"sort"
-	"strconv"
-	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -327,39 +325,9 @@ func testRandomOperations(t *testing.T, randSeed int64) {
 	t.Logf("Final version %v deleted, no stray database entries", prevVersion)
 }
 
-func assertEmptyDatabaseWithFastStorage(t *testing.T, tree *MutableTree) {
-	version := tree.Version()
-	iter, err := tree.ndb.db.Iterator(nil, nil)
-	require.NoError(t, err)
-
-	var (
-		foundKeys []string
-	)
-	for ; iter.Valid(); iter.Next() {
-		foundKeys = append(foundKeys, string(iter.Key()))
-	}
-	require.NoError(t, iter.Error())
-	require.EqualValues(t, 2, len(foundKeys), "Found %v database entries, expected 1", len(foundKeys)) // 1 for storage version and 1 for root
-
-	firstKey := foundKeys[0]
-	secondKey := foundKeys[1]
-
-	require.True(t, strings.HasPrefix(firstKey, metadataKeyFormat.Prefix()))
-	require.True(t, strings.HasPrefix(secondKey, rootKeyFormat.Prefix()))
-
-	require.Equal(t, string(metadataKeyFormat.KeyBytes([]byte(storageVersionKey))), firstKey, "Unexpected storage version key")
-
-	storageVersionValue, err := tree.ndb.db.Get([]byte(firstKey))
-	require.NoError(t, err)
-	latestVersion := tree.ndb.getLatestVersion()
-	require.Equal(t, fastStorageVersionValue+fastStorageVersionDelimiter+strconv.Itoa(int(latestVersion)), string(storageVersionValue))
-
-	var foundVersion int64
-	rootKeyFormat.Scan([]byte(secondKey), &foundVersion)
-	require.Equal(t, version, foundVersion, "Unexpected root version")
-}
-
-func assertEmptyDatabaseWithoutFastStorage(t *testing.T, tree *MutableTree) {
+// Checks that the database is empty, only containing a single root entry
+// at the given version.
+func assertEmptyDatabase(t *testing.T, tree *MutableTree) {
 	version := tree.Version()
 	iter, err := tree.ndb.db.Iterator(nil, nil)
 	require.NoError(t, err)
@@ -380,16 +348,6 @@ func assertEmptyDatabaseWithoutFastStorage(t *testing.T, tree *MutableTree) {
 	var foundVersion int64
 	rootKeyFormat.Scan(firstKey, &foundVersion)
 	require.Equal(t, version, foundVersion, "Unexpected root version")
-}
-
-// Checks that the database is empty, only containing a single root entry
-// at the given version.
-func assertEmptyDatabase(t *testing.T, tree *MutableTree) {
-	if EnableFastStorage {
-		assertEmptyDatabaseWithFastStorage(t, tree)
-	} else {
-		assertEmptyDatabaseWithoutFastStorage(t, tree)
-	}
 }
 
 // Checks that the tree has the given number of orphan nodes.

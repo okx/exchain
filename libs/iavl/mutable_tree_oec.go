@@ -17,7 +17,6 @@ const (
 	FlagIavlHeightOrphansCacheSize = "iavl-height-orphans-cache-size"
 	FlagIavlMaxCommittedHeightNum  = "iavl-max-committed-height-num"
 	FlagIavlEnableAsyncCommit      = "iavl-enable-async-commit"
-	FlagIavlEnableFastStorage      = "iavl-enable-fast-storage"
 )
 
 var (
@@ -32,7 +31,6 @@ var (
 	EnableAsyncCommit               = false
 	EnablePruningHistoryState       = true
 	CommitGapHeight           int64 = 100
-	EnableFastStorage               = false
 )
 
 type commitEvent struct {
@@ -77,7 +75,6 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 	shouldPersist := ((version%CommitGapHeight == 0) && (version-tree.lastPersistHeight >= CommitGapHeight)) ||
 		(treeMap.totalPpncSize >= MinCommitItemCount)
 
-	tree.ndb.updateLatestVersion4FastNode(version)
 	if shouldPersist {
 		tree.ndb.saveNewOrphans(version, tree.orphans, true)
 		tree.persist(version)
@@ -382,16 +379,10 @@ func (tree *MutableTree) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	tree.mtxFastNodeChanges.Lock()
 	defer tree.mtxFastNodeChanges.Unlock()
 
-	if err := tree.saveFastNodeVersion(batch); err != nil {
-		panic(err)
-	}
-
 	trc.Pin("batchCommit")
 	if err := ndb.Commit(batch); err != nil {
 		panic(err)
 	}
-	if EnableFastStorage {
-		tree.persistTppFastNodeChanges()
-	}
+
 	ndb.asyncPersistTppFinised(event, trc)
 }

@@ -254,8 +254,6 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	tmiavl.MaxCommittedHeightNum = viper.GetInt(tmiavl.FlagIavlMaxCommittedHeightNum)
 	tmiavl.EnableAsyncCommit = viper.GetBool(tmiavl.FlagIavlEnableAsyncCommit)
 	//TODO before merge dev,we alwayer set default true
-	viper.SetDefault(tmiavl.FlagIavlEnableFastStorage, true)
-	tmiavl.EnableFastStorage = viper.GetBool(tmiavl.FlagIavlEnableFastStorage)
 	system.EnableGid = viper.GetBool(system.FlagEnableGid)
 
 	state.ApplyBlockPprofTime = viper.GetInt(state.FlagApplyBlockPprofTime)
