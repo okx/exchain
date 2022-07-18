@@ -42,7 +42,7 @@ func queryDelegationRewards(ctx sdk.Context, _ []string, req abci.RequestQuery, 
 		}
 	}
 	if !found {
-		return nil, sdkerrors.Wrap(types.ErrCodeEmptyValidatorDistInfo(), params.ValidatorAddress.String())
+		return nil, sdkerrors.Wrap(types.ErrCodeEmptyDelegationVoteValidator(), params.ValidatorAddress.String())
 	}
 
 	logger := k.Logger(ctx)
