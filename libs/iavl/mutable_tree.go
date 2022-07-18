@@ -1259,6 +1259,22 @@ func (tree *MutableTree) SetDelta(delta *TreeDelta) {
 		for _, v := range delta.CommitOrphansDelta {
 			tree.commitOrphans = append(tree.commitOrphans, commitOrphan{Version: v.CommitValue, NodeHash: amino.StrToBytes(v.Key)})
 		}
+
+		// fast node related
+		if EnableFastStorage {
+			for _, v := range tree.savedNodes {
+				if v.isLeaf() {
+					tree.unsavedFastNodeAdditions[string(v.key)] = NewFastNode(v.key, v.value, v.version)
+				}
+			}
+
+			for _, v := range tree.orphans {
+				_, ok := tree.unsavedFastNodeAdditions[string(v.key)]
+				if v.isLeaf() && !ok {
+					tree.unsavedFastNodeRemovals[string(v.key)] = NewFastNode(v.key, v.value, v.version)
+				}
+			}
+		}
 	}
 }
 
