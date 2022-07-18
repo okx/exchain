@@ -127,7 +127,7 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 		ids:              newMempoolIDs(),
 		nodeKeyWhitelist: make(map[string]struct{}),
 		enableWtx:        cfg.DynamicConfig.GetEnableWtx(),
-		txCh:             make(chan txJob, 40000),
+		txCh:             make(chan txJob, 100000),
 	}
 	for _, nodeKey := range config.GetNodeKeyWhitelist() {
 		memR.nodeKeyWhitelist[nodeKey] = struct{}{}
