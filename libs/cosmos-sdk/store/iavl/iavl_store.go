@@ -218,23 +218,26 @@ func (st *Store) Set(key, value []byte) {
 // Implements types.KVStore.
 func (st *Store) Get(key []byte) []byte {
 	value := st.getFlatKV(key)
-	if value != nil {
-		return value
-	}
-	_, value = st.tree.Get(key)
-	if value != nil {
-		st.setFlatKV(key, value)
-	}
+	// todo: just for lrp
+	//if value != nil {
+	//	return value
+	//}
+	//_, value = st.tree.Get(key)
+	//if value != nil {
+	//	st.setFlatKV(key, value)
+	//}
 
 	return value
 }
 
 // Implements types.KVStore.
 func (st *Store) Has(key []byte) (exists bool) {
-	if st.hasFlatKV(key) {
-		return true
-	}
-	return st.tree.Has(key)
+	return st.hasFlatKV(key)
+	// todo: just for lrp
+	//if st.hasFlatKV(key) {
+	//	return true
+	//}
+	//return st.tree.Has(key)
 }
 
 // Implements types.KVStore.
