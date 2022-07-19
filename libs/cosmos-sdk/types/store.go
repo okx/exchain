@@ -196,7 +196,9 @@ var resuableGasMeterPool = &sync.Pool{
 // GetReusableInfiniteGasMeter returns a ReusableGasMeter from the pool.
 // you must call ReturnInfiniteGasMeter after you are done with the meter.
 func GetReusableInfiniteGasMeter() ReusableGasMeter {
-	return resuableGasMeterPool.Get().(ReusableGasMeter)
+	gm := resuableGasMeterPool.Get().(ReusableGasMeter)
+	gm.Reset()
+	return gm
 }
 
 func ReturnInfiniteGasMeter(gm ReusableGasMeter) {

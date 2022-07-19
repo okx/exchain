@@ -35,7 +35,6 @@ func (abvd AccountBlockedVerificationDecorator) AnteHandle(ctx sdk.Context, tx s
 
 	currentGasMeter := ctx.GasMeter()
 	infGasMeter := sdk.GetReusableInfiniteGasMeter()
-	infGasMeter.Reset()
 	ctx.SetGasMeter(infGasMeter)
 
 	for _, signer := range signers {

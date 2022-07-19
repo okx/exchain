@@ -223,7 +223,6 @@ func incrementSeq(ctx sdk.Context, msgEthTx *evmtypes.MsgEthereumTx, accAddress 
 	// additional gas from being deducted.
 	infGasMeter := sdk.GetReusableInfiniteGasMeter()
 	defer sdk.ReturnInfiniteGasMeter(infGasMeter)
-	infGasMeter.Reset()
 	ctx.SetGasMeter(infGasMeter)
 
 	// increment sequence of all signers
