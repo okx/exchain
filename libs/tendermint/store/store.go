@@ -194,7 +194,11 @@ func (bs *BlockStore) LoadBlockPart(height int64, index int) *types.Part {
 func (bs *BlockStore) loadBlockPartsBytes(height int64, buf *bytes.Buffer) ([]byte, *types.BlockExInfo) {
 	var uncompressBuf bytes.Buffer
 	exInfo := bs.loadBlockPartsBytesTo(height, buf, &uncompressBuf)
-	return buf.Bytes(), &exInfo
+	if exInfo.IsCompressed() {
+		return uncompressBuf.Bytes(), &exInfo
+	} else {
+		return buf.Bytes(), &exInfo
+	}
 }
 
 func (bs *BlockStore) loadBlockPartsBytesTo(height int64, buf *bytes.Buffer, uncompressed *bytes.Buffer) types.BlockExInfo {
