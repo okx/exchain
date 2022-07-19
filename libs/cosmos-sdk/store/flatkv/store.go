@@ -5,7 +5,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/VictoriaMetrics/fastcache"
+	lru "github.com/hashicorp/golang-lru"
+
 	"github.com/okex/exchain/libs/iavl"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/spf13/viper"
@@ -29,10 +30,14 @@ type Store struct {
 	asyncCommit bool
 	tree        Tree
 	preloadCh   chan []byte
-	cacheMap    *fastcache.Cache
+	lruCache    *lru.Cache
 }
 
 func NewStore(db dbm.DB, tree Tree) *Store {
+	lruCache, err := lru.New(100000)
+	if err != nil {
+		panic(err)
+	}
 	st := &Store{
 		db:          db,
 		cache:       newCache(),
@@ -44,7 +49,7 @@ func NewStore(db dbm.DB, tree Tree) *Store {
 		asyncCommit: iavl.EnableAsyncCommit,
 		tree:        tree,
 		preloadCh:   make(chan []byte, 0),
-		cacheMap:    fastcache.New(100 * 1024 * 1024),
+		lruCache:    lruCache,
 	}
 	if st.enable {
 		st.loadTreeCacheSchedule()
@@ -70,8 +75,11 @@ func (st *Store) Get(key []byte) []byte {
 	if !st.enable {
 		return nil
 	}
-	if cacheVal, ok := st.cacheMap.HasGet(nil, key); ok {
-		return cacheVal
+	if cacheVal, ok := st.lruCache.Get(key); ok {
+		if cacheVal == nil {
+			return nil
+		}
+		return cacheVal.([]byte)
 	}
 	ts := time.Now()
 	value, err := st.db.Get(key)
@@ -90,7 +98,7 @@ func (st *Store) Set(key, value []byte) {
 		return
 	}
 	st.cache.add(key, value, false, true)
-	st.cacheMap.Set(key, value)
+	st.lruCache.Add(key, value)
 }
 
 func (st *Store) Has(key []byte) bool {
@@ -106,7 +114,7 @@ func (st *Store) Delete(key []byte) {
 		return
 	}
 	st.cache.add(key, nil, true, true)
-	st.cacheMap.Del(key)
+	st.lruCache.Add(key, nil)
 }
 
 func (st *Store) Commit(version int64) {
