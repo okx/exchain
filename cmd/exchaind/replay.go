@@ -72,19 +72,20 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 					fmt.Println(err)
 				}
 			}()
+			dataDir := viper.GetString(replayedBlockDir)
 
 			var node *node.Node
 			if viper.GetBool(FlagEnableRest) {
 				var err error
 				log.Println("--------- StartRestWithNode ---------")
-				node, err = server.StartRestWithNode(ctx, cdc, registry, appCreator, registerRoutesFn)
+				node, err = server.StartRestWithNode(ctx, cdc, dataDir, registry, appCreator, registerRoutesFn)
 				if err != nil {
 					fmt.Println(err)
 					return
 				}
 
 			}
-			dataDir := viper.GetString(replayedBlockDir)
+
 			ts := time.Now()
 			replayBlock(ctx, dataDir, node)
 			log.Println("--------- replay success ---------", "Time Cost", time.Now().Sub(ts).Seconds())
@@ -157,12 +158,12 @@ func replayBlock(ctx *server.Context, originDataDir string, tmNode *node.Node) {
 		panicError(err)
 	}
 
+	var blockStore *store.BlockStore
 	if tmNode != nil {
-		alreadyInit = true
-		stateStoreDb = tmNode.BlockStore()
+		blockStore = tmNode.BlockStore()
 	}
 	// replay
-	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, currentAppHash, currentBlockHeight)
+	doReplay(ctx, state, stateStoreDB, blockStore, proxyApp, originDataDir, currentAppHash, currentBlockHeight)
 }
 
 func registerReplayFlags(cmd *cobra.Command) *cobra.Command {
@@ -275,7 +276,7 @@ func SaveBlock(ctx *server.Context, originDB *store.BlockStore, height int64) {
 	stateStoreDb.SaveBlock(block, ps, seenCommit)
 }
 
-func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
+func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB, blockStore *store.BlockStore,
 	proxyApp proxy.AppConns, originDataDir string, lastAppHash []byte, lastBlockHeight int64) {
 
 	trace.GetTraceSummary().Init(
@@ -292,9 +293,16 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	)
 
 	defer trace.GetTraceSummary().Dump("Replay")
-	originBlockStoreDB, err := openDB(blockStoreDB, originDataDir)
-	panicError(err)
-	originBlockStore := store.NewBlockStore(originBlockStoreDB)
+
+	var originBlockStore *store.BlockStore
+	var err error
+	if blockStore == nil {
+		originBlockStoreDB, err := openDB(blockStoreDB, originDataDir)
+		panicError(err)
+		originBlockStore = store.NewBlockStore(originBlockStoreDB)
+	} else {
+		originBlockStore = blockStore
+	}
 	originLatestBlockHeight := originBlockStore.Height()
 	log.Println("origin latest block height", "height", originLatestBlockHeight)
 

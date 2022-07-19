@@ -243,7 +243,8 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyReso
 	select {}
 }
 
-func StartRestWithNode(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyResolver, appCreator AppCreator,
+func StartRestWithNode(ctx *Context, cdc *codec.CodecProxy, blockStoreDir string,
+	registry jsonpb.AnyResolver, appCreator AppCreator,
 	registerRoutesFn func(restServer *lcd.RestServer)) (*node.Node, error) {
 
 	cfg := ctx.Config
@@ -277,7 +278,7 @@ func StartRestWithNode(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyR
 		proxy.NewLocalClientCreator(app),
 		node.DefaultGenesisDocProviderFunc(cfg),
 		node.DefaultDBProvider,
-		node.DefaultMetricsProvider(cfg.Instrumentation),
+		blockStoreDir,
 		ctx.Logger.With("module", "node"),
 	)
 	if err != nil {

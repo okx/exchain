@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"net"
 	"net/http"
 	_ "net/http/pprof" // nolint: gosec // securely exposed on separate, optional port
@@ -199,6 +200,26 @@ func initDBs(config *cfg.Config, dbProvider DBProvider) (blockStore *store.Block
 	}
 	blockStore = store.NewBlockStore(blockStoreDB)
 
+	stateDB, err = dbProvider(&DBContext{"state", config})
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func initBlockStore(dataDir string) (blockStore *store.BlockStore, err error) {
+	var blockStoreDB dbm.DB
+	blockStoreDB, err = sdk.NewLevelDB("blockstore", dataDir)
+	if err != nil {
+		return
+	}
+	blockStore = store.NewBlockStore(blockStoreDB)
+
+	return
+}
+
+func initStateDB(config *cfg.Config, dbProvider DBProvider) (stateDB dbm.DB, err error) {
 	stateDB, err = dbProvider(&DBContext{"state", config})
 	if err != nil {
 		return
@@ -758,11 +779,16 @@ func NewLRPNode(config *cfg.Config,
 	clientCreator proxy.ClientCreator,
 	genesisDocProvider GenesisDocProvider,
 	dbProvider DBProvider,
-	metricsProvider MetricsProvider,
+	blockStoreDir string,
 	logger log.Logger,
 	options ...Option) (*Node, error) {
 
-	blockStore, stateDB, err := initDBs(config, dbProvider)
+	blockStore, err := initBlockStore(blockStoreDir)
+	if err != nil {
+		return nil, err
+	}
+
+	stateDB, err := initStateDB(config, dbProvider)
 	if err != nil {
 		return nil, err
 	}
