@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
+	"math"
 	"reflect"
 	"sync"
 	"time"
@@ -247,7 +248,7 @@ func (conR *Reactor) GetChannels() []*p2p.ChannelDescriptor {
 		{
 			ID: DataChannel, // maybe split between gossiping current block and catchup stuff
 			// once we gossip the whole block there's nothing left to send until next height or round
-			Priority:            10,
+			Priority:            math.MaxInt,
 			SendQueueCapacity:   100,
 			RecvBufferCapacity:  50 * 4096,
 			RecvMessageCapacity: maxMsgSize,
