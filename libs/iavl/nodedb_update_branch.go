@@ -129,6 +129,11 @@ func updateBranchAndSaveNodeToChan(node *Node, saveNodesCh chan<- *Node) []byte 
 	return node.hash
 }
 
+func (ndb *nodeDB) updateBranchForFastNode(additions map[string]*FastNode, removals map[string]interface{}) {
+	ndb.fastNodePreCommitAddtions = additions
+	ndb.fastNodePreCommitRemovals = removals
+}
+
 func (ndb *nodeDB) updateBranchMoreConcurrency(node *Node) []byte {
 	if node.persisted || node.prePersisted {
 		return node.hash

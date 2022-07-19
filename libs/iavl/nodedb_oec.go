@@ -24,6 +24,18 @@ var (
 	IavlCacheInitRatio float64 = 0
 )
 
+type FastNodeChanges struct {
+	additions map[string]*FastNode
+	removals  map[string]interface{}
+}
+
+func NewFastNodeChanges(additions map[string]*FastNode, removals map[string]interface{}) *FastNodeChanges {
+	return &FastNodeChanges{
+		additions: additions,
+		removals:  removals,
+	}
+}
+
 type tppItem struct {
 	nodeMap  map[string]*Node
 	listItem *list.Element
@@ -108,13 +120,14 @@ func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	ndb.asyncPersistTppFinised(event, trc)
 }
 
-func (ndb *nodeDB) asyncPersistTppStart(version int64) map[string]*Node {
+func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *FastNodeChanges) {
 	ndb.log(IavlDebug, "moving prePersistCache to tempPrePersistCache", "size", len(ndb.prePersistNodeCache))
 
 	ndb.mtx.Lock()
 
 	tpp := ndb.prePersistNodeCache
 	ndb.prePersistNodeCache = make(map[string]*Node, len(tpp))
+
 	ndb.tpp.pushToTpp(version, tpp)
 
 	ndb.mtx.Unlock()
@@ -125,8 +138,12 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) map[string]*Node {
 		}
 		node.persisted = true
 	}
+	tempFastNodePreCommitAddtions := ndb.fastNodePreCommitAddtions
+	tempFastNodePreCommitRemovals := ndb.fastNodePreCommitRemovals
+	ndb.fastNodePreCommitAddtions = make(map[string]*FastNode, len(tempFastNodePreCommitAddtions))
+	ndb.fastNodePreCommitRemovals = make(map[string]interface{}, len(tempFastNodePreCommitRemovals))
 
-	return tpp
+	return tpp, NewFastNodeChanges(tempFastNodePreCommitAddtions, tempFastNodePreCommitRemovals)
 }
 
 func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer) {

@@ -3,11 +3,10 @@ package iavl
 import (
 	"errors"
 	"fmt"
-	"sort"
-	"sync"
-
 	"github.com/okex/exchain/libs/system/trace"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"sort"
+	"sync"
 )
 
 const (
@@ -36,12 +35,13 @@ var (
 )
 
 type commitEvent struct {
-	version    int64
-	versions   map[int64]bool
-	batch      dbm.Batch
-	tpp        map[string]*Node
-	wg         *sync.WaitGroup
-	iavlHeight int
+	version         int64
+	versions        map[int64]bool
+	batch           dbm.Batch
+	tpp             map[string]*Node
+	wg              *sync.WaitGroup
+	iavlHeight      int
+	fastNodeChanges *FastNodeChanges
 }
 
 type commitOrphan struct {
@@ -64,6 +64,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 			tree.ndb.updateBranchConcurrency(tree.root, tree.savedNodes)
 		} else {
 			tree.ndb.updateBranchMoreConcurrency(tree.root)
+			tree.updateBranchFastNode()
 		}
 
 		// generate state delta
@@ -85,6 +86,10 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 	tree.ndb.enqueueOrphanTask(version, tree.orphans, tree.ImmutableTree.Hash(), shouldPersist)
 
 	return tree.setNewWorkingTree(version, shouldPersist)
+}
+
+func (tree *MutableTree) updateBranchFastNode() {
+	tree.ndb.updateBranchForFastNode(tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
 }
 
 func (tree *MutableTree) setNewWorkingTree(version int64, persisted bool) ([]byte, int64, error) {
@@ -122,8 +127,9 @@ func (tree *MutableTree) removeVersion(version int64) {
 func (tree *MutableTree) persist(version int64) {
 	var err error
 	batch := tree.NewBatch()
-	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0}
+	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0, nil}
 	var tpp map[string]*Node = nil
+	var fastNodeChanges *FastNodeChanges
 	if EnablePruningHistoryState {
 		tree.ndb.saveCommitOrphans(batch, version, tree.commitOrphans)
 	}
@@ -132,7 +138,7 @@ func (tree *MutableTree) persist(version int64) {
 		err = tree.ndb.SaveEmptyRoot(batch, version)
 	} else {
 		err = tree.ndb.SaveRoot(batch, tree.root, version)
-		tpp = tree.ndb.asyncPersistTppStart(version)
+		tpp, fastNodeChanges = tree.ndb.asyncPersistTppStart(version)
 	}
 
 	if err != nil {
@@ -145,7 +151,7 @@ func (tree *MutableTree) persist(version int64) {
 	}
 	versions := tree.deepCopyVersions()
 	tree.commitCh <- commitEvent{version, versions, batch,
-		tpp, nil, int(tree.Height())}
+		tpp, nil, int(tree.Height()), fastNodeChanges}
 	tree.lastPersistHeight = version
 }
 
@@ -178,7 +184,6 @@ func (tree *MutableTree) commitSchedule() {
 		tree.updateCommittedStateHeightPool(event.batch, event.version, event.versions)
 
 		tree.persistTpp(&event, trc)
-
 		if event.wg != nil {
 			event.wg.Done()
 			break
@@ -236,13 +241,13 @@ func (tree *MutableTree) StopTree() {
 			panic(err)
 		}
 	}
-	tpp := tree.ndb.asyncPersistTppStart(tree.version)
+	tpp, fastNodeChanges := tree.ndb.asyncPersistTppStart(tree.version)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 	versions := tree.deepCopyVersions()
 
-	tree.commitCh <- commitEvent{tree.version, versions, batch, tpp, &wg, 0}
+	tree.commitCh <- commitEvent{tree.version, versions, batch, tpp, &wg, 0, fastNodeChanges}
 	wg.Wait()
 }
 
