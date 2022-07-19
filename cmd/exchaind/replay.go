@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -11,6 +13,7 @@ import (
 	"runtime/pprof"
 	"time"
 
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/okex/exchain/app/config"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
@@ -40,6 +43,7 @@ const (
 	pprofAddrFlag       = "pprof_addr"
 	runWithPprofFlag    = "gen_pprof"
 	runWithPprofMemFlag = "gen_pprof_mem"
+	FlagEnableRest      = "rest"
 
 	saveBlock = "save_block"
 
@@ -47,7 +51,9 @@ const (
 	defaultPprofFilePerm = 0644
 )
 
-func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command)) *cobra.Command {
+func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
+	cdc *codec.CodecProxy, appCreator server.AppCreator, registry jsonpb.AnyResolver,
+	registerRoutesFn func(restServer *lcd.RestServer)) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "replay",
 		Short: "Replay blocks from local db",
@@ -58,7 +64,6 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command)) 
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			ts := time.Now()
 			log.Println("--------- replay start ---------")
 			pprofAddress := viper.GetString(pprofAddrFlag)
 			go func() {
@@ -68,8 +73,20 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command)) 
 				}
 			}()
 
+			var node *node.Node
+			if viper.GetBool(FlagEnableRest) {
+				var err error
+				log.Println("--------- StartRestWithNode ---------")
+				node, err = server.StartRestWithNode(ctx, cdc, registry, appCreator, registerRoutesFn)
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+
+			}
 			dataDir := viper.GetString(replayedBlockDir)
-			replayBlock(ctx, dataDir)
+			ts := time.Now()
+			replayBlock(ctx, dataDir, node)
 			log.Println("--------- replay success ---------", "Time Cost", time.Now().Sub(ts).Seconds())
 		},
 		PostRun: func(cmd *cobra.Command, args []string) {
@@ -94,10 +111,17 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command)) 
 }
 
 // replayBlock replays blocks from db, if something goes wrong, it will panic with error message.
-func replayBlock(ctx *server.Context, originDataDir string) {
+func replayBlock(ctx *server.Context, originDataDir string, tmNode *node.Node) {
 	config.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
-	proxyApp, err := createProxyApp(ctx)
-	panicError(err)
+
+	var proxyApp proxy.AppConns
+	if tmNode != nil {
+		proxyApp = tmNode.ProxyApp()
+	} else {
+		var err error
+		proxyApp, err = createProxyApp(ctx)
+		panicError(err)
+	}
 
 	res, err := proxyApp.Query().InfoSync(proxy.RequestInfo)
 	panicError(err)
@@ -108,7 +132,12 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 
 	rootDir := ctx.Config.RootDir
 	dataDir := filepath.Join(rootDir, "data")
-	stateStoreDB, err := openDB(stateDB, dataDir)
+	var stateStoreDB dbm.DB
+	if tmNode != nil {
+		stateStoreDB = tmNode.StateDB()
+	} else {
+		stateStoreDB, err = openDB(stateDB, dataDir)
+	}
 	panicError(err)
 
 	genesisDocProvider := node.DefaultGenesisDocProviderFunc(ctx.Config)
@@ -116,7 +145,8 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 	panicError(err)
 
 	// If startBlockHeight == 0 it means that we are at genesis and hence should initChain.
-	if currentBlockHeight == types.GetStartBlockHeight() {
+	// only initChain when no tmNode provided
+	if (tmNode == nil) && (currentBlockHeight == types.GetStartBlockHeight()) {
 		err := initChain(state, stateStoreDB, genDoc, proxyApp)
 		panicError(err)
 		state = sm.LoadState(stateStoreDB)
@@ -125,6 +155,11 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 	err = okexchain.SetChainId(genDoc.ChainID)
 	if err != nil {
 		panicError(err)
+	}
+
+	if tmNode != nil {
+		alreadyInit = true
+		stateStoreDb = tmNode.BlockStore()
 	}
 	// replay
 	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, currentAppHash, currentBlockHeight)
@@ -137,6 +172,7 @@ func registerReplayFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Bool(runWithPprofFlag, false, "Dump the pprof of the entire replay process")
 	cmd.Flags().Bool(runWithPprofMemFlag, false, "Dump the mem profile of the entire replay process")
 	cmd.Flags().Bool(saveBlock, false, "save block when replay")
+	cmd.Flags().Bool(FlagEnableRest, false, "start rest service when replay")
 
 	return cmd
 }
@@ -300,6 +336,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	for height := lastBlockHeight + 1; height <= haltheight; height++ {
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
+		//time.Sleep(10 * time.Second)
 		state, _, err = blockExec.ApplyBlockWithTrace(state, meta.BlockID, block)
 		panicError(err)
 		if needSaveBlock {

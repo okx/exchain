@@ -1084,6 +1084,10 @@ func (n *Node) NodeInfo() p2p.NodeInfo {
 	return n.nodeInfo
 }
 
+func (n *Node) StateDB() dbm.DB {
+	return n.stateDB
+}
+
 func makeNodeInfo(
 	config *cfg.Config,
 	nodeKey *p2p.NodeKey,
