@@ -2,8 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
@@ -17,6 +15,8 @@ import (
 	"github.com/okex/exchain/app/config"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/system/trace"
@@ -146,7 +146,6 @@ func replayBlock(ctx *server.Context, originDataDir string, tmNode *node.Node) {
 	panicError(err)
 
 	// If startBlockHeight == 0 it means that we are at genesis and hence should initChain.
-	// only initChain when no tmNode provided
 	if currentBlockHeight == types.GetStartBlockHeight() {
 		err := initChain(state, stateStoreDB, genDoc, proxyApp)
 		panicError(err)
@@ -344,8 +343,6 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB, blockSto
 	for height := lastBlockHeight + 1; height <= haltheight; height++ {
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
-		//
-		//time.Sleep(10 * time.Second)
 		state, _, err = blockExec.ApplyBlockWithTrace(state, meta.BlockID, block)
 		panicError(err)
 		if needSaveBlock {

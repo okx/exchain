@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"net"
 	"net/http"
 	_ "net/http/pprof" // nolint: gosec // securely exposed on separate, optional port
@@ -22,6 +21,7 @@ import (
 
 	dbm "github.com/okex/exchain/libs/tm-db"
 
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	bcv0 "github.com/okex/exchain/libs/tendermint/blockchain/v0"
 	bcv1 "github.com/okex/exchain/libs/tendermint/blockchain/v1"
