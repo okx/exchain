@@ -5,8 +5,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/VictoriaMetrics/fastcache"
 	"github.com/okex/exchain/libs/iavl"
-
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/spf13/viper"
 )
@@ -29,6 +29,7 @@ type Store struct {
 	asyncCommit bool
 	tree        Tree
 	preloadCh   chan []byte
+	cacheMap    *fastcache.Cache
 }
 
 func NewStore(db dbm.DB, tree Tree) *Store {
@@ -43,6 +44,7 @@ func NewStore(db dbm.DB, tree Tree) *Store {
 		asyncCommit: iavl.EnableAsyncCommit,
 		tree:        tree,
 		preloadCh:   make(chan []byte, 0),
+		cacheMap:    fastcache.New(100 * 1024 * 1024),
 	}
 	if st.enable {
 		st.loadTreeCacheSchedule()
@@ -68,7 +70,7 @@ func (st *Store) Get(key []byte) []byte {
 	if !st.enable {
 		return nil
 	}
-	if cacheVal, ok := st.cache.get(key); ok {
+	if cacheVal, ok := st.cacheMap.HasGet(nil, key); ok {
 		return cacheVal
 	}
 	ts := time.Now()
@@ -88,6 +90,7 @@ func (st *Store) Set(key, value []byte) {
 		return
 	}
 	st.cache.add(key, value, false, true)
+	st.cacheMap.Set(key, value)
 }
 
 func (st *Store) Has(key []byte) bool {
@@ -103,6 +106,7 @@ func (st *Store) Delete(key []byte) {
 		return
 	}
 	st.cache.add(key, nil, true, true)
+	st.cacheMap.Del(key)
 }
 
 func (st *Store) Commit(version int64) {
