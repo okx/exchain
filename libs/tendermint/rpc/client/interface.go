@@ -66,6 +66,7 @@ type ABCIClient interface {
 // and prove anything about the chain.
 type SignClient interface {
 	Block(height *int64) (*ctypes.ResultBlock, error)
+	BlockInfo(height *int64) (*ctypes.ResultBlockInfo, error)
 	BlockResults(height *int64) (*ctypes.ResultBlockResults, error)
 	Commit(height *int64) (*ctypes.ResultCommit, error)
 	Validators(height *int64, page, perPage int) (*ctypes.ResultValidators, error)
@@ -77,6 +78,7 @@ type SignClient interface {
 type HistoryClient interface {
 	Genesis() (*ctypes.ResultGenesis, error)
 	BlockchainInfo(minHeight, maxHeight int64) (*ctypes.ResultBlockchainInfo, error)
+	LatestBlockNumber() (int64, error)
 }
 
 // StatusClient provides access to general chain info.
@@ -119,7 +121,7 @@ type MempoolClient interface {
 	UserNumUnconfirmedTxs(address string) (*ctypes.ResultUserUnconfirmedTxs, error)
 	GetUnconfirmedTxByHash(hash [sha256.Size]byte) (types.Tx, error)
 	GetAddressList() (*ctypes.ResultUnconfirmedAddresses, error)
-	GetPendingNonce(address string) (*ctypes.ResultPendingNonce, error)
+	GetPendingNonce(address string) (*ctypes.ResultPendingNonce, bool)
 }
 
 // EvidenceClient is used for submitting an evidence of the malicious

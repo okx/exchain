@@ -4,64 +4,72 @@ import (
 	"math/big"
 	"sync"
 
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+
 	"github.com/okex/exchain/x/evm/types"
 )
 
-func (k *Keeper) FixLog(execResults [][]string) [][]byte {
-	res := make([][]byte, len(execResults), len(execResults))
+func (k *Keeper) FixLog(logIndex []int, hasEnterEvmTx []bool, anteErrs []error, msgs [][]sdk.Msg, resp []abci.ResponseDeliverTx) [][]byte {
+	txSize := len(logIndex)
+	res := make([][]byte, txSize, txSize)
 	logSize := uint(0)
-	txInBlock := int(-1)
+	txInBlock := -1
 	k.Bloom = new(big.Int)
 
-	for index := 0; index < len(execResults); index++ {
-		rs, ok := k.LogsManages.Get(execResults[index][0])
-		if !ok || execResults[index][1] != "" {
-			continue
+	for index := 0; index < txSize; index++ {
+		if hasEnterEvmTx[index] {
+			txInBlock++
 		}
-		txInBlock++
-		if rs.ResultData == nil {
-			continue
-		}
+		rs, ok := k.LogsManages.Get(logIndex[index])
+		if ok && anteErrs[index] == nil && rs.ResultData != nil {
+			for _, v := range rs.ResultData.Logs {
+				v.Index = logSize
+				v.TxIndex = uint(txInBlock)
+				logSize++
+			}
 
-		for _, v := range rs.ResultData.Logs {
-			v.Index = logSize
-			v.TxIndex = uint(txInBlock)
-			logSize++
+			k.Bloom = k.Bloom.Or(k.Bloom, rs.ResultData.Bloom.Big())
+			data, err := types.EncodeResultData(rs.ResultData)
+			if err != nil {
+				panic(err)
+			}
+			res[index] = data
 		}
-
-		k.Bloom = k.Bloom.Or(k.Bloom, rs.ResultData.Bloom.Big())
-		data, err := types.EncodeResultData(rs.ResultData)
-		if err != nil {
-			panic(err)
-		}
-		res[index] = data
+		// save transaction and transactionReceipt to watcher
+		k.saveParallelTxResult(msgs[index], rs.ResultData, resp[index])
 	}
-	k.LogsManages.Reset()
+
 	return res
 }
 
 type LogsManager struct {
+	cnt     int
 	mu      sync.RWMutex
-	Results map[string]TxResult
+	Results map[int]TxResult
 }
 
 func NewLogManager() *LogsManager {
 	return &LogsManager{
 		mu:      sync.RWMutex{},
-		Results: make(map[string]TxResult),
+		Results: make(map[int]TxResult),
 	}
 }
 
-func (l *LogsManager) Set(txBytes string, value TxResult) {
+func (l *LogsManager) Set(value TxResult) int {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.Results[txBytes] = value
+
+	l.cnt++
+	l.Results[l.cnt] = value
+	return l.cnt
 }
 
-func (l *LogsManager) Get(txBytes string) (TxResult, bool) {
+func (l *LogsManager) Get(index int) (TxResult, bool) {
 	l.mu.RLock()
 	defer l.mu.RUnlock()
-	data, ok := l.Results[txBytes]
+	data, ok := l.Results[index]
 	return data, ok
 }
 
@@ -72,10 +80,22 @@ func (l *LogsManager) Len() int {
 }
 
 func (l *LogsManager) Reset() {
-	l.Results = make(map[string]TxResult)
+	if l == nil {
+		return
+	}
+	for k := range l.Results {
+		delete(l.Results, k)
+	}
+	l.cnt = 0
 }
 
 type TxResult struct {
 	ResultData *types.ResultData
-	Err        error
+}
+
+func (k *Keeper) saveParallelTxResult(msgs []sdk.Msg, resultData *types.ResultData, resp abci.ResponseDeliverTx) {
+	if !k.Watcher.Enabled() {
+		return
+	}
+	k.Watcher.SaveParallelTx(msgs, resultData, resp)
 }

@@ -328,9 +328,10 @@ func TestLoadVersionInvalid(t *testing.T) {
 func TestLoadVersionPruning(t *testing.T) {
 	logger := log.NewNopLogger()
 	pruningOptions := store.PruningOptions{
-		KeepRecent: 2,
-		KeepEvery:  3,
-		Interval:   1,
+		KeepRecent:   2,
+		KeepEvery:    3,
+		Interval:     1,
+		MaxRetainNum: 10,
 	}
 	pruningOpt := SetPruning(pruningOptions)
 	db := dbm.NewMemDB()
@@ -364,7 +365,7 @@ func TestLoadVersionPruning(t *testing.T) {
 
 	for _, v := range []int64{1, 2, 4} {
 		_, err = app.cms.CacheMultiStoreWithVersion(v)
-		require.NoError(t, err)
+		require.Error(t, err)
 	}
 
 	for _, v := range []int64{3, 5, 6, 7} {
@@ -414,7 +415,7 @@ func TestTxDecoder(t *testing.T) {
 	dTx, err := app.txDecoder(txBytes)
 	require.NoError(t, err)
 
-	cTx := dTx.(txTest)
+	cTx := dTx.(*txTest)
 	require.Equal(t, tx.Counter, cTx.Counter)
 }
 
@@ -575,33 +576,34 @@ func (tx *txTest) setFailOnHandler(fail bool) {
 }
 
 // Implements Tx
-func (tx txTest) GetMsgs() []sdk.Msg   { return tx.Msgs }
-func (tx txTest) ValidateBasic() error { return nil }
+func (tx *txTest) GetMsgs() []sdk.Msg   { return tx.Msgs }
+func (tx *txTest) ValidateBasic() error { return nil }
 
-func (tx txTest) GetFrom() string {
+func (tx *txTest) GetFrom() string {
 	return ""
 }
 
-func (tx txTest) GetNonce() uint64 {
+func (tx *txTest) GetNonce() uint64 {
 	return 0
 }
 
-func (tx txTest) GetGasPrice() *big.Int {
+func (tx *txTest) GetGasPrice() *big.Int {
 	return big.NewInt(0)
 }
 
-func (tx txTest) GetTxFnSignatureInfo() ([]byte, int) {
+func (tx *txTest) GetTxFnSignatureInfo() ([]byte, int) {
 	return nil, 0
 }
 
-func (tx txTest) GetGas() uint64 {
+func (tx *txTest) GetGas() uint64 {
 	return 0
 }
-func (tx txTest) GetType() sdk.TransactionType {
+
+func (tx *txTest) GetType() sdk.TransactionType {
 	return sdk.UnknownType
 }
 
-func (tx txTest) GetSigners() []sdk.AccAddress {
+func (tx *txTest) GetSigners() []sdk.AccAddress {
 	return nil
 }
 
@@ -682,14 +684,14 @@ func testTxDecoder(cdc *codec.Codec) sdk.TxDecoder {
 			return nil, sdkerrors.ErrTxDecode
 		}
 
-		return tx, nil
+		return &tx, nil
 	}
 }
 
 func anteHandlerTxTest(t *testing.T, capKey sdk.StoreKey, storeKey []byte) sdk.AnteHandler {
 	return func(ctx sdk.Context, tx sdk.Tx, simulate bool) (sdk.Context, error) {
 		store := ctx.KVStore(capKey)
-		txTest := tx.(txTest)
+		txTest := tx.(*txTest)
 
 		if txTest.FailOnAnte {
 			return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "ante handler failure")
@@ -950,7 +952,8 @@ func TestSimulateTx(t *testing.T) {
 
 	anteOpt := func(bapp *BaseApp) {
 		bapp.SetAnteHandler(func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error) {
-			newCtx = ctx.WithGasMeter(sdk.NewGasMeter(gasConsumed))
+			newCtx = ctx
+			newCtx.SetGasMeter(sdk.NewGasMeter(gasConsumed))
 			return
 		})
 	}
@@ -981,13 +984,13 @@ func TestSimulateTx(t *testing.T) {
 		require.Nil(t, err)
 
 		// simulate a message, check gas reported
-		gInfo, result, err := app.Simulate(txBytes, tx, 0)
+		gInfo, result, err := app.Simulate(txBytes, tx, 0, nil)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.Equal(t, gasConsumed, gInfo.GasUsed)
 
 		// simulate again, same result
-		gInfo, result, err = app.Simulate(txBytes, tx, 0)
+		gInfo, result, err = app.Simulate(txBytes, tx, 0, nil)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.Equal(t, gasConsumed, gInfo.GasUsed)
@@ -1076,7 +1079,7 @@ func TestRunInvalidTransaction(t *testing.T) {
 
 	// transaction with no known route
 	{
-		unknownRouteTx := txTest{Msgs: []sdk.Msg{msgNoRoute{}}, Counter: 0, FailOnAnte: false}
+		unknownRouteTx := &txTest{Msgs: []sdk.Msg{msgNoRoute{}}, Counter: 0, FailOnAnte: false}
 		_, result, err := app.Deliver(unknownRouteTx)
 		require.Error(t, err)
 		require.Nil(t, result)
@@ -1085,7 +1088,7 @@ func TestRunInvalidTransaction(t *testing.T) {
 		require.EqualValues(t, sdkerrors.ErrUnknownRequest.Codespace(), space, err)
 		require.EqualValues(t, sdkerrors.ErrUnknownRequest.ABCICode(), code, err)
 
-		unknownRouteTx = txTest{Msgs: []sdk.Msg{msgCounter{}, msgNoRoute{}}, Counter: 0, FailOnAnte: false}
+		unknownRouteTx = &txTest{Msgs: []sdk.Msg{msgCounter{}, msgNoRoute{}}, Counter: 0, FailOnAnte: false}
 		_, result, err = app.Deliver(unknownRouteTx)
 		require.Error(t, err)
 		require.Nil(t, result)
@@ -1119,7 +1122,8 @@ func TestTxGasLimits(t *testing.T) {
 	gasGranted := uint64(10)
 	anteOpt := func(bapp *BaseApp) {
 		bapp.SetAnteHandler(func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error) {
-			newCtx = ctx.WithGasMeter(sdk.NewGasMeter(gasGranted))
+			newCtx = ctx
+			newCtx.SetGasMeter(sdk.NewGasMeter(gasGranted))
 
 			// AnteHandlers must have their own defer/recover in order for the BaseApp
 			// to know how much gas was used! This is because the GasMeter is created in
@@ -1187,7 +1191,9 @@ func TestTxGasLimits(t *testing.T) {
 		gInfo, result, err := app.Deliver(tx)
 
 		// check gas used and wanted
-		require.Equal(t, tc.gasUsed, gInfo.GasUsed, fmt.Sprintf("tc #%d; gas: %v, result: %v, err: %s", i, gInfo, result, err))
+		if err == nil {
+			require.Equal(t, tc.gasUsed, gInfo.GasUsed, fmt.Sprintf("tc #%d; gas: %v, result: %v, err: %s", i, gInfo, result, err))
+		}
 
 		// check for out of gas
 		if !tc.fail {
@@ -1208,7 +1214,8 @@ func TestMaxBlockGasLimits(t *testing.T) {
 	gasGranted := uint64(10)
 	anteOpt := func(bapp *BaseApp) {
 		bapp.SetAnteHandler(func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error) {
-			newCtx = ctx.WithGasMeter(sdk.NewGasMeter(gasGranted))
+			newCtx = ctx
+			newCtx.SetGasMeter(sdk.NewGasMeter(gasGranted))
 
 			defer func() {
 				if r := recover(); r != nil {
@@ -1381,7 +1388,8 @@ func TestGasConsumptionBadTx(t *testing.T) {
 	gasWanted := uint64(5)
 	anteOpt := func(bapp *BaseApp) {
 		bapp.SetAnteHandler(func(ctx sdk.Context, tx sdk.Tx, simulate bool) (newCtx sdk.Context, err error) {
-			newCtx = ctx.WithGasMeter(sdk.NewGasMeter(gasWanted))
+			newCtx = ctx
+			newCtx.SetGasMeter(sdk.NewGasMeter(gasWanted))
 
 			defer func() {
 				if r := recover(); r != nil {
@@ -1395,7 +1403,7 @@ func TestGasConsumptionBadTx(t *testing.T) {
 				}
 			}()
 
-			txTest := tx.(txTest)
+			txTest := tx.(*txTest)
 			newCtx.GasMeter().ConsumeGas(uint64(txTest.Counter), "counter-ante")
 			if txTest.FailOnAnte {
 				return newCtx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "ante handler failure")

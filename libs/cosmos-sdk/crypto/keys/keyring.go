@@ -25,11 +25,13 @@ import (
 )
 
 const (
-	BackendFile    = "file"
-	BackendOS      = "os"
-	BackendKWallet = "kwallet"
-	BackendPass    = "pass"
-	BackendTest    = "test"
+	BackendFile       = "file"
+	BackendFileForRPC = "file4rpc"
+	BackendOS         = "os"
+	BackendKWallet    = "kwallet"
+	BackendPass       = "pass"
+	BackendTest       = "test"
+	BackendMemory     = "memory"
 )
 
 const (
@@ -73,12 +75,16 @@ func NewKeyring(
 		config = lkbToKeyringConfig(appName, rootDir, nil, true)
 	case BackendFile:
 		config = newFileBackendKeyringConfig(appName, rootDir, userInput)
+	case BackendFileForRPC:
+		config = newFileBackendKeyringConfigForRPC(appName, rootDir, userInput)
 	case BackendOS:
 		config = lkbToKeyringConfig(appName, rootDir, userInput, false)
 	case BackendKWallet:
 		config = newKWalletBackendKeyringConfig(appName, rootDir, userInput)
 	case BackendPass:
 		config = newPassBackendKeyringConfig(appName, rootDir, userInput)
+	case BackendMemory:
+		return NewInMemory(opts...), err
 	default:
 		return nil, fmt.Errorf("unknown keyring backend %v", backend)
 	}
@@ -540,6 +546,18 @@ func newFileBackendKeyringConfig(name, dir string, buf io.Reader) keyring.Config
 		ServiceName:      name,
 		FileDir:          fileDir,
 		FilePasswordFunc: newRealPrompt(fileDir, buf),
+	}
+}
+
+func newFileBackendKeyringConfigForRPC(name, dir string, buf io.Reader) keyring.Config {
+	fileDir := filepath.Join(dir, fmt.Sprintf(keyringDirNameFmt, name))
+	return keyring.Config{
+		AllowedBackends: []keyring.BackendType{keyring.FileBackend},
+		ServiceName:     name,
+		FileDir:         fileDir,
+		FilePasswordFunc: func(_ string) (string, error) {
+			return "test", nil
+		},
 	}
 }
 

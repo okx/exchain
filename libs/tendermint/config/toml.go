@@ -303,7 +303,6 @@ dial_timeout = "{{ .P2P.DialTimeout }}"
 recheck = {{ .Mempool.Recheck }}
 force_recheck_gap = {{ .Mempool.ForceRecheckGap }}
 broadcast = {{ .Mempool.Broadcast }}
-wal_dir = "{{ js .Mempool.WalPath }}"
 
 # Maximum number of transactions in the mempool
 size = {{ .Mempool.Size }}
@@ -472,6 +471,24 @@ func ResetTestRootWithChainID(testName string, chainID string) *Config {
 var testGenesisFmt = `{
   "genesis_time": "2018-10-10T08:20:13.695936996Z",
   "chain_id": "%s",
+  "consensus_params": {
+	"block": {
+		"max_bytes": "22020096",
+		"max_gas": "-1",
+		"time_iota_ms": "10"
+	},
+	"evidence": {
+		"max_age_num_blocks": "100000",
+		"max_age_duration": "172800000000000",
+		"max_num": 50
+	},
+	"validator": {
+		"pub_key_types": [
+			"ed25519"
+		]
+	},
+	"version": {}
+  },
   "validators": [
     {
       "pub_key": {

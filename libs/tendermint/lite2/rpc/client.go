@@ -163,7 +163,7 @@ func (c *Client) GetAddressList() (*ctypes.ResultUnconfirmedAddresses, error) {
 	return c.next.GetAddressList()
 }
 
-func (c *Client) GetPendingNonce(address string) (*ctypes.ResultPendingNonce, error) {
+func (c *Client) GetPendingNonce(address string) (*ctypes.ResultPendingNonce, bool) {
 	return c.next.GetPendingNonce(address)
 }
 
@@ -210,6 +210,14 @@ func (c *Client) ConsensusParams(height *int64) (*ctypes.ResultConsensusParams, 
 
 func (c *Client) Health() (*ctypes.ResultHealth, error) {
 	return c.next.Health()
+}
+
+func (c *Client) LatestBlockNumber() (int64, error) {
+	info, err := c.BlockchainInfo(0, 0)
+	if err != nil {
+		return 0, err
+	}
+	return info.LastHeight, nil
 }
 
 // BlockchainInfo calls rpcclient#BlockchainInfo and then verifies every header
@@ -286,6 +294,21 @@ func (c *Client) Block(height *int64) (*ctypes.ResultBlock, error) {
 	if bH, tH := res.Block.Hash(), h.Hash(); !bytes.Equal(bH, tH) {
 		return nil, fmt.Errorf("block header %X does not match with trusted header %X",
 			bH, tH)
+	}
+
+	return res, nil
+}
+
+// Block calls rpcclient#Block and then verifies the result.
+func (c *Client) BlockInfo(height *int64) (*ctypes.ResultBlockInfo, error) {
+	res, err := c.next.BlockInfo(height)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate res.
+	if err := res.Header.ValidateBasic(); err != nil {
+		return nil, err
 	}
 
 	return res, nil
@@ -398,7 +421,7 @@ func (c *Client) Validators(height *int64, page, perPage int) (*ctypes.ResultVal
 
 	// Verify validators.
 	if res.Count <= res.Total {
-		if rH, tH := types.NewValidatorSet(res.Validators).Hash(), h.ValidatorsHash; !bytes.Equal(rH, tH) {
+		if rH, tH := types.NewValidatorSet(res.Validators).Hash(*height), h.ValidatorsHash; !bytes.Equal(rH, tH) {
 			return nil, fmt.Errorf("validators %X does not match with trusted validators %X",
 				rH, tH)
 		}

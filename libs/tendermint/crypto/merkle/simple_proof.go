@@ -3,7 +3,6 @@ package merkle
 import (
 	"bytes"
 	"fmt"
-
 	"github.com/tendermint/go-amino"
 
 	"github.com/pkg/errors"

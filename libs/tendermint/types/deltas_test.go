@@ -107,8 +107,6 @@ func TestDeltas_Validate(t *testing.T) {
 		{"no deltaBytes", fields{Height: 1, Version: DeltaVersion, Payload: noDeltaBytes}, args{1}, false},
 		{"no watchData", fields{Height: 1, Version: DeltaVersion, Payload: noWD}, args{1}, false},
 		{"wrong height", fields{Height: 1, Version: DeltaVersion, Payload: payload}, args{2}, false},
-		{"low version", fields{Height: 1, Version: DeltaVersion - 1, Payload: payload}, args{1}, false},
-		{"high version", fields{Height: 1, Version: DeltaVersion + 1, Payload: payload}, args{1}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

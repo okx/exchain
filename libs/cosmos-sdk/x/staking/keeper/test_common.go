@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+
 	"github.com/stretchr/testify/require"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -82,6 +84,7 @@ func MakeTestCodec() *codec.Codec {
 func CreateTestInput(t *testing.T, isCheckTx bool, initPower int64) (sdk.Context, auth.AccountKeeper, Keeper, types.SupplyKeeper) {
 	keyStaking := sdk.NewKVStoreKey(types.StoreKey)
 	keyAcc := sdk.NewKVStoreKey(auth.StoreKey)
+	keyMpt := sdk.NewKVStoreKey(mpt.StoreKey)
 	keyParams := sdk.NewKVStoreKey(params.StoreKey)
 	tkeyParams := sdk.NewTransientStoreKey(params.TStoreKey)
 	keySupply := sdk.NewKVStoreKey(supply.StoreKey)
@@ -90,6 +93,7 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initPower int64) (sdk.Context
 	ms := store.NewCommitMultiStore(db)
 	ms.MountStoreWithDB(keyStaking, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(keyAcc, sdk.StoreTypeIAVL, db)
+	ms.MountStoreWithDB(keyMpt, sdk.StoreTypeMPT, db)
 	ms.MountStoreWithDB(keyParams, sdk.StoreTypeIAVL, db)
 	ms.MountStoreWithDB(tkeyParams, sdk.StoreTypeTransient, db)
 	ms.MountStoreWithDB(keySupply, sdk.StoreTypeIAVL, db)
@@ -97,7 +101,7 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initPower int64) (sdk.Context
 	require.Nil(t, err)
 
 	ctx := sdk.NewContext(ms, abci.Header{ChainID: "foochainid"}, isCheckTx, log.NewNopLogger())
-	ctx = ctx.WithConsensusParams(
+	ctx.SetConsensusParams(
 		&abci.ConsensusParams{
 			Validator: &abci.ValidatorParams{
 				PubKeyTypes: []string{tmtypes.ABCIPubKeyTypeEd25519},
@@ -120,6 +124,7 @@ func CreateTestInput(t *testing.T, isCheckTx bool, initPower int64) (sdk.Context
 	accountKeeper := auth.NewAccountKeeper(
 		cdc,    // amino codec
 		keyAcc, // target store
+		keyMpt,
 		pk.Subspace(auth.DefaultParamspace),
 		auth.ProtoBaseAccount, // prototype
 	)

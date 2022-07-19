@@ -1,6 +1,11 @@
 package gov
 
 import (
+	okexchaincodec "github.com/okex/exchain/app/codec"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
+	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
 	"testing"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -19,7 +24,7 @@ func TestAppModule_BeginBlock(t *testing.T) {
 
 }
 
-func getCmdSubmitProposal(cdc *codec.Codec) *cobra.Command {
+func getCmdSubmitProposal(proxy *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	return &cobra.Command{}
 }
 
@@ -38,6 +43,15 @@ func TestNewAppModuleBasic(t *testing.T) {
 	require.Equal(t, types.ModuleName, moduleBasic.Name())
 
 	cdc := codec.New()
+	ModuleBasics := module.NewBasicManager(
+		ibc.AppModuleBasic{},
+		ibctransfer.AppModuleBasic{},
+	)
+	//cdc := okexchaincodec.MakeCodec(ModuleBasics)
+	interfaceReg := okexchaincodec.MakeIBC(ModuleBasics)
+	protoCodec := codec.NewProtoCodec(interfaceReg)
+	codecProxy := codec.NewCodecProxy(protoCodec, cdc)
+
 	moduleBasic.RegisterCodec(cdc)
 	bz, err := cdc.MarshalBinaryBare(types.MsgSubmitProposal{})
 	require.NotNil(t, bz)
@@ -49,7 +63,7 @@ func TestNewAppModuleBasic(t *testing.T) {
 	err = moduleBasic.ValidateGenesis(jsonMsg[:len(jsonMsg)-1])
 	require.NotNil(t, err)
 
-	rs := cliLcd.NewRestServer(cdc, nil)
+	rs := cliLcd.NewRestServer(codecProxy, interfaceReg, nil)
 	moduleBasic.RegisterRESTRoutes(rs.CliCtx, rs.Mux)
 
 	// todo: check diff after GetTxCmd

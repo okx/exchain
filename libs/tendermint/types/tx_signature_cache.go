@@ -1,15 +1,20 @@
 package types
 
 import (
+	"github.com/VictoriaMetrics/fastcache"
 	"sync/atomic"
 
 	"github.com/spf13/viper"
-
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/tendermint/go-amino"
 )
 
 var (
 	signatureCache *Cache
+)
+
+const (
+	TxHashLen        = 32
+	AddressStringLen = 2 + 20*2
 )
 
 const FlagSigCacheSize = "signature-cache-size"
@@ -25,12 +30,9 @@ func init() {
 }
 
 func InitSignatureCache() {
-	lruCache, err := lru.New(viper.GetInt(FlagSigCacheSize))
-	if err != nil {
-		panic(err)
-	}
+	fastCache := fastcache.New((TxHashLen + AddressStringLen) * viper.GetInt(FlagSigCacheSize))
 	signatureCache = &Cache{
-		data: lruCache,
+		data: fastCache,
 	}
 }
 
@@ -39,44 +41,41 @@ func SignatureCache() *Cache {
 }
 
 type Cache struct {
-	data      *lru.Cache
+	data      *fastcache.Cache
 	readCount int64
 	hitCount  int64
 }
 
-func (c *Cache) Get(key string) (string, bool) {
+func (c *Cache) Get(key []byte) (string, bool) {
 	// validate
 	if !c.validate(key) {
 		return "", false
 	}
 	atomic.AddInt64(&c.readCount, 1)
 	// get cache
-	value, ok := c.data.Get(key)
+	value, ok := c.data.HasGet(nil, key)
 	if ok {
-		sigCache, ok := value.(string)
-		if ok {
-			atomic.AddInt64(&c.hitCount, 1)
-			return sigCache, true
-		}
+		atomic.AddInt64(&c.hitCount, 1)
+		return amino.BytesToStr(value), true
 	}
 	return "", false
 }
 
-func (c *Cache) Add(key string, value string) {
+func (c *Cache) Add(key []byte, value string) {
 	// validate
 	if !c.validate(key) {
 		return
 	}
 	// add cache
-	c.data.Add(key, value)
+	c.data.Set(key, amino.StrToBytes(value))
 }
 
-func (c *Cache) Remove(key string) {
+func (c *Cache) Remove(key []byte) {
 	// validate
 	if !c.validate(key) {
 		return
 	}
-	c.data.Remove(key)
+	c.data.Del(key)
 }
 
 func (c *Cache) ReadCount() int64 {
@@ -87,9 +86,9 @@ func (c *Cache) HitCount() int64 {
 	return atomic.LoadInt64(&c.hitCount)
 }
 
-func (c *Cache) validate(key string) bool {
+func (c *Cache) validate(key []byte) bool {
 	// validate key
-	if key == "" {
+	if len(key) == 0 {
 		return false
 	}
 	// validate lru cache

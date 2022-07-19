@@ -2,16 +2,22 @@ package config
 
 import (
 	"fmt"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
 	iavlconfig "github.com/okex/exchain/libs/iavl/config"
+	"github.com/okex/exchain/libs/system"
+	"github.com/okex/exchain/libs/system/trace"
 	tmconfig "github.com/okex/exchain/libs/tendermint/config"
+	"github.com/okex/exchain/libs/tendermint/consensus"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	"github.com/okex/exchain/x/common/analyzer"
+	"github.com/okex/exchain/libs/tendermint/state"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/spf13/viper"
 )
@@ -34,6 +40,8 @@ type OecConfig struct {
 	maxGasUsedPerBlock int64
 	// mempool.node_key_whitelist
 	nodeKeyWhitelist []string
+	// p2p.sentry_addrs
+	sentryAddrs []string
 
 	// gas-limit-buffer
 	gasLimitBuffer uint64
@@ -54,6 +62,8 @@ type OecConfig struct {
 	csTimeoutPrecommit time.Duration
 	// consensus.timeout_precommit_delta
 	csTimeoutPrecommitDelta time.Duration
+	// consensus.timeout_commit
+	csTimeoutCommit time.Duration
 
 	// iavl-cache-size
 	iavlCacheSize int
@@ -63,6 +73,19 @@ type OecConfig struct {
 
 	// enable-analyzer
 	enableAnalyzer bool
+
+	deliverTxsMode int
+
+	// active view change
+	activeVC bool
+
+	blockPartSizeBytes int
+	blockCompressType  int
+	blockCompressFlag  int
+
+	// enable broadcast hasBlockPartMsg
+	enableHasBlockPartMsg bool
+	gcInterval            int
 }
 
 const (
@@ -79,6 +102,7 @@ const (
 	FlagEnableDynamicGp        = "enable-dynamic-gp"
 	FlagDynamicGpWeight        = "dynamic-gp-weight"
 	FlagEnableWrappedTx        = "enable-wtx"
+	FlagSentryAddrs            = "p2p.sentry_addrs"
 
 	FlagCsTimeoutPropose        = "consensus.timeout_propose"
 	FlagCsTimeoutProposeDelta   = "consensus.timeout_propose_delta"
@@ -86,6 +110,9 @@ const (
 	FlagCsTimeoutPrevoteDelta   = "consensus.timeout_prevote_delta"
 	FlagCsTimeoutPrecommit      = "consensus.timeout_precommit"
 	FlagCsTimeoutPrecommitDelta = "consensus.timeout_precommit_delta"
+	FlagCsTimeoutCommit         = "consensus.timeout_commit"
+	FlagEnableHasBlockPartMsg   = "enable-blockpart-ack"
+	FlagDebugGcInterval         = "debug.gc-interval"
 )
 
 var (
@@ -169,7 +196,7 @@ func RegisterDynamicConfig(logger log.Logger) {
 	oecConfig := GetOecConfig()
 	tmconfig.SetDynamicConfig(oecConfig)
 	iavlconfig.SetDynamicConfig(oecConfig)
-	analyzer.SetDynamicConfig(oecConfig)
+	trace.SetDynamicConfig(oecConfig)
 }
 
 func (c *OecConfig) loadFromConfig() {
@@ -188,13 +215,26 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetCsTimeoutPrevoteDelta(viper.GetDuration(FlagCsTimeoutPrevoteDelta))
 	c.SetCsTimeoutPrecommit(viper.GetDuration(FlagCsTimeoutPrecommit))
 	c.SetCsTimeoutPrecommitDelta(viper.GetDuration(FlagCsTimeoutPrecommitDelta))
+	c.SetCsTimeoutCommit(viper.GetDuration(FlagCsTimeoutCommit))
 	c.SetIavlCacheSize(viper.GetInt(iavl.FlagIavlCacheSize))
+	c.SetSentryAddrs(viper.GetString(FlagSentryAddrs))
 	c.SetNodeKeyWhitelist(viper.GetString(FlagNodeKeyWhitelist))
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
-	c.SetEnableAnalyzer(viper.GetBool(analyzer.FlagEnableAnalyzer))
+	c.SetEnableAnalyzer(viper.GetBool(trace.FlagEnableAnalyzer))
+	c.SetDeliverTxsExecuteMode(viper.GetInt(state.FlagDeliverTxsExecMode))
+	c.SetBlockPartSize(viper.GetInt(server.FlagBlockPartSizeBytes))
+	c.SetEnableHasBlockPartMsg(viper.GetBool(FlagEnableHasBlockPartMsg))
+	c.SetGcInterval(viper.GetInt(FlagDebugGcInterval))
 }
 
 func resolveNodeKeyWhitelist(plain string) []string {
+	if len(plain) == 0 {
+		return []string{}
+	}
+	return strings.Split(plain, ",")
+}
+
+func resolveSentryAddrs(plain string) []string {
 	if len(plain) == 0 {
 		return []string{}
 	}
@@ -207,7 +247,7 @@ func (c *OecConfig) loadFromApollo() bool {
 }
 
 func (c *OecConfig) format() string {
-	return fmt.Sprintf(`OEC config:
+	return fmt.Sprintf(`%s config:
 	mempool.recheck: %v
 	mempool.force_recheck_gap: %d
 	mempool.size: %d
@@ -225,9 +265,11 @@ func (c *OecConfig) format() string {
 	consensus.timeout_prevote_delta: %s
 	consensus.timeout_precommit: %s
 	consensus.timeout_precommit_delta: %s
+	consensus.timeout_commit: %s
 	
 	iavl-cache-size: %d
-	enable-analyzer: %v`,
+	enable-analyzer: %v
+	active-view-change: %v`, system.ChainName,
 		c.GetMempoolRecheck(),
 		c.GetMempoolForceRecheckGap(),
 		c.GetMempoolSize(),
@@ -243,8 +285,10 @@ func (c *OecConfig) format() string {
 		c.GetCsTimeoutPrevoteDelta(),
 		c.GetCsTimeoutPrecommit(),
 		c.GetCsTimeoutPrecommitDelta(),
+		c.GetCsTimeoutCommit(),
 		c.GetIavlCacheSize(),
 		c.GetEnableAnalyzer(),
+		c.GetActiveVC(),
 	)
 }
 
@@ -287,6 +331,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetNodeKeyWhitelist(r)
+	case FlagSentryAddrs:
+		r, ok := value.(string)
+		if !ok {
+			return
+		}
+		c.SetSentryAddrs(r)
 	case FlagMaxGasUsedPerBlock:
 		r, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
@@ -347,18 +397,66 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetCsTimeoutPrecommitDelta(r)
+	case FlagCsTimeoutCommit:
+		r, err := time.ParseDuration(v)
+		if err != nil {
+			return
+		}
+		c.SetCsTimeoutCommit(r)
 	case iavl.FlagIavlCacheSize:
 		r, err := strconv.Atoi(v)
 		if err != nil {
 			return
 		}
 		c.SetIavlCacheSize(r)
-	case analyzer.FlagEnableAnalyzer:
+	case trace.FlagEnableAnalyzer:
 		r, err := strconv.ParseBool(v)
 		if err != nil {
 			return
 		}
 		c.SetEnableAnalyzer(r)
+	case state.FlagDeliverTxsExecMode:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetDeliverTxsExecuteMode(r)
+	case server.FlagActiveViewChange:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetActiveVC(r)
+	case server.FlagBlockPartSizeBytes:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetBlockPartSize(r)
+	case tmtypes.FlagBlockCompressType:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetBlockCompressType(r)
+	case tmtypes.FlagBlockCompressFlag:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetBlockCompressFlag(r)
+	case FlagEnableHasBlockPartMsg:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetEnableHasBlockPartMsg(r)
+	case FlagDebugGcInterval:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetGcInterval(r)
 	}
 }
 
@@ -407,6 +505,14 @@ func (c *OecConfig) GetEnableWtx() bool {
 	return c.enableWtx
 }
 
+func (c *OecConfig) SetDeliverTxsExecuteMode(mode int) {
+	c.deliverTxsMode = mode
+}
+
+func (c *OecConfig) GetDeliverTxsExecuteMode() int {
+	return c.deliverTxsMode
+}
+
 func (c *OecConfig) SetEnableWtx(value bool) {
 	c.enableWtx = value
 }
@@ -426,6 +532,17 @@ func (c *OecConfig) SetNodeKeyWhitelist(value string) {
 		} else {
 			c.nodeKeyWhitelist = append(c.nodeKeyWhitelist, id)
 		}
+	}
+}
+
+func (c *OecConfig) GetSentryAddrs() []string {
+	return c.sentryAddrs
+}
+
+func (c *OecConfig) SetSentryAddrs(value string) {
+	addrs := resolveSentryAddrs(value)
+	for _, addr := range addrs {
+		c.sentryAddrs = append(c.sentryAddrs, strings.TrimSpace(addr))
 	}
 }
 
@@ -535,10 +652,73 @@ func (c *OecConfig) SetCsTimeoutPrecommitDelta(value time.Duration) {
 	c.csTimeoutPrecommitDelta = value
 }
 
+func (c *OecConfig) GetCsTimeoutCommit() time.Duration {
+	return c.csTimeoutCommit
+}
+func (c *OecConfig) SetCsTimeoutCommit(value time.Duration) {
+	if value < 0 {
+		return
+	}
+	c.csTimeoutCommit = value
+}
+
 func (c *OecConfig) GetIavlCacheSize() int {
 	return c.iavlCacheSize
 }
 func (c *OecConfig) SetIavlCacheSize(value int) {
 	c.iavlCacheSize = value
-	iavl.IavlCacheSize = value
+}
+
+func (c *OecConfig) GetActiveVC() bool {
+	return c.activeVC
+}
+func (c *OecConfig) SetActiveVC(value bool) {
+	c.activeVC = value
+	consensus.SetActiveVC(value)
+}
+
+func (c *OecConfig) GetBlockPartSize() int {
+	return c.blockPartSizeBytes
+}
+func (c *OecConfig) SetBlockPartSize(value int) {
+	c.blockPartSizeBytes = value
+	tmtypes.UpdateBlockPartSizeBytes(value)
+}
+
+func (c *OecConfig) GetBlockCompressType() int {
+	return c.blockCompressType
+}
+func (c *OecConfig) SetBlockCompressType(value int) {
+	c.blockCompressType = value
+	tmtypes.BlockCompressType = value
+}
+
+func (c *OecConfig) GetBlockCompressFlag() int {
+	return c.blockCompressFlag
+}
+func (c *OecConfig) SetBlockCompressFlag(value int) {
+	c.blockCompressFlag = value
+	tmtypes.BlockCompressFlag = value
+}
+
+func (c *OecConfig) GetGcInterval() int {
+	return c.gcInterval
+}
+
+func (c *OecConfig) SetGcInterval(value int) {
+	// close gc for debug
+	if value > 0 {
+		debug.SetGCPercent(-1)
+	} else {
+		debug.SetGCPercent(100)
+	}
+	c.gcInterval = value
+
+}
+func (c *OecConfig) GetEnableHasBlockPartMsg() bool {
+	return c.enableHasBlockPartMsg
+}
+
+func (c *OecConfig) SetEnableHasBlockPartMsg(value bool) {
+	c.enableHasBlockPartMsg = value
 }

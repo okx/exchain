@@ -32,6 +32,7 @@ type Subspace struct {
 	key   sdk.StoreKey // []byte -> []byte, stores parameter
 	tkey  sdk.StoreKey // []byte -> bool, stores parameter change
 	name  []byte
+	cName []byte
 	table KeyTable
 }
 
@@ -42,6 +43,7 @@ func NewSubspace(cdc *codec.Codec, key sdk.StoreKey, tkey sdk.StoreKey, name str
 		key:   key,
 		tkey:  tkey,
 		name:  []byte(name),
+		cName: []byte("custom/" + name + "/"),
 		table: NewKeyTable(),
 	}
 }
@@ -58,6 +60,30 @@ func (s Subspace) WithKeyTable(table KeyTable) Subspace {
 	}
 	if len(s.table.m) != 0 {
 		panic("SetKeyTable() called on already initialized Subspace")
+	}
+	if s.table.m == nil {
+		s.table.m = make(map[string]attribute)
+	}
+
+	for k, v := range table.m {
+		s.table.m[k] = v
+	}
+
+	// Allocate additional capacity for Subspace.name
+	// So we don't have to allocate extra space each time appending to the key
+	name := s.name
+	s.name = make([]byte, len(name), len(name)+table.maxKeyLength())
+	copy(s.name, name)
+
+	return s
+}
+
+func (s Subspace) LazyWithKeyTable(table KeyTable) Subspace {
+	if table.m == nil {
+		panic("SetKeyTable() called with nil KeyTable")
+	}
+	if len(s.table.m) == 0 {
+		panic("SetKeyTable() should call on already initialized Subspace")
 	}
 
 	for k, v := range table.m {
@@ -78,6 +104,13 @@ func (s Subspace) kvStore(ctx sdk.Context) sdk.KVStore {
 	// append here is safe, appends within a function won't cause
 	// weird side effects when its singlethreaded
 	return prefix.NewStore(ctx.KVStore(s.key), append(s.name, '/'))
+}
+
+// Returns a KVStore identical with ctx.KVStore(s.key).Prefix()
+func (s Subspace) CustomKVStore(ctx sdk.Context) sdk.KVStore {
+	// append here is safe, appends within a function won't cause
+	// weird side effects when its singlethreaded
+	return prefix.NewStore(ctx.KVStore(s.key), s.cName)
 }
 
 // Returns a transient store for modification

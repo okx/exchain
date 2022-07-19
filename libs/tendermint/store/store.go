@@ -1,6 +1,7 @@
 package store
 
 import (
+	"bytes"
 	"fmt"
 	"strconv"
 	"sync"
@@ -80,37 +81,45 @@ var blockBufferPool = amino.NewBufferPool()
 // LoadBlock returns the block with the given height.
 // If no block is found for that height, it returns nil.
 func (bs *BlockStore) LoadBlock(height int64) *types.Block {
-	var blockMeta = bs.LoadBlockMeta(height)
-	if blockMeta == nil {
+	buf := blockBufferPool.Get()
+	defer blockBufferPool.Put(buf)
+	buf.Reset()
+	partBytes, _ := bs.loadBlockPartsBytes(height, buf)
+	if partBytes == nil {
 		return nil
 	}
 
-	var bufLen int
-	var block = new(types.Block)
-	parts := make([]*types.Part, 0, blockMeta.BlockID.PartsHeader.Total)
-	for i := 0; i < blockMeta.BlockID.PartsHeader.Total; i++ {
-		part := bs.LoadBlockPart(height, i)
-		bufLen += len(part.Bytes)
-		parts = append(parts, part)
-	}
+	return bs.unmarshalBlockByBytes(partBytes)
+}
+
+// LoadBlockWithExInfo returns the block with the given height.
+// and the BlockPartInfo is used to make block parts
+func (bs *BlockStore) LoadBlockWithExInfo(height int64) (*types.Block, *types.BlockExInfo) {
 	buf := blockBufferPool.Get()
 	defer blockBufferPool.Put(buf)
-	buf.Grow(bufLen)
-	for _, part := range parts {
-		buf.Write(part.Bytes)
+	buf.Reset()
+	partBytes, exInfo := bs.loadBlockPartsBytes(height, buf)
+	if partBytes == nil {
+		return nil, nil
 	}
 
-	bz, err := amino.GetBinaryBareFromBinaryLengthPrefixed(buf.Bytes())
+	return bs.unmarshalBlockByBytes(partBytes), exInfo
+}
+
+// unmarshalBlockByBytes returns the block with the given block parts bytes
+func (bs *BlockStore) unmarshalBlockByBytes(blockBytes []byte) *types.Block {
+	var block = new(types.Block)
+	bz, err := amino.GetBinaryBareFromBinaryLengthPrefixed(blockBytes)
 	if err == nil {
 		err = block.UnmarshalFromAmino(cdc, bz)
 	}
 	if err != nil {
 		block = new(types.Block)
-		err = cdc.UnmarshalBinaryLengthPrefixed(buf.Bytes(), block)
+		err = cdc.UnmarshalBinaryLengthPrefixed(blockBytes, block)
 		if err != nil {
 			// NOTE: The existence of meta should imply the existence of the
 			// block. So, make sure meta is only saved after blocks are saved.
-			panic(errors.Wrap(err, "Error reading block"))
+			panic(errors.Wrap(err, fmt.Sprintf("Error reading block, height:%d", block.Height)))
 		}
 	}
 	return block
@@ -164,6 +173,38 @@ func (bs *BlockStore) LoadBlockPart(height int64, index int) *types.Part {
 		panic(err)
 	}
 	return v.(*types.Part)
+}
+
+// loadBlockPartsBytes return the combined parts bytes and the number of block parts
+func (bs *BlockStore) loadBlockPartsBytes(height int64, buf *bytes.Buffer) ([]byte, *types.BlockExInfo) {
+	var blockMeta = bs.LoadBlockMeta(height)
+	if blockMeta == nil {
+		return nil, nil
+	}
+
+	var bufLen int
+	parts := make([]*types.Part, 0, blockMeta.BlockID.PartsHeader.Total)
+	for i := 0; i < blockMeta.BlockID.PartsHeader.Total; i++ {
+		part := bs.LoadBlockPart(height, i)
+		bufLen += len(part.Bytes)
+		parts = append(parts, part)
+	}
+	buf.Grow(bufLen)
+	for _, part := range parts {
+		buf.Write(part.Bytes)
+	}
+
+	// uncompress if the block part bytes was created by compress block
+	partBytes, compressSign, err := types.UncompressBlockFromBytes(buf.Bytes())
+	if err != nil {
+		panic(errors.Wrap(err, "failed to uncompress block"))
+	}
+
+	return partBytes,
+		&types.BlockExInfo{
+			BlockCompressType: compressSign / types.CompressDividing,
+			BlockCompressFlag: compressSign % types.CompressDividing,
+			BlockPartSize:     len(parts[0].Bytes)}
 }
 
 // LoadBlockMeta returns the BlockMeta for the given height.
@@ -395,64 +436,6 @@ func (bs *BlockStore) saveState() {
 }
 
 //-----------------------------------------------------------------------------
-/*
-DeltaStore is a simple low level store for deltas.
-Now base and height is invalid
-*/
-type DeltaStore struct {
-	db dbm.DB
-
-	mtx    sync.RWMutex
-	base   int64
-	height int64
-}
-
-// NewBlockStore returns a new BlockStore with the given DB,
-// initialized to the last height that was committed to the DB.
-func NewDeltaStore(db dbm.DB) *DeltaStore {
-	return &DeltaStore{
-		db: db,
-	}
-}
-
-// SaveDeltas persists the given deltas to the underlying db.
-func (ds *DeltaStore) SaveDeltas(deltas *types.Deltas, height int64) {
-	if deltas == nil || deltas.Size() == 0 {
-		return
-	}
-	keyHeight := deltas.Height
-	if keyHeight == 0 {
-		keyHeight = height
-		deltas.Height = height
-	}
-	ds.db.Set(calcDeltasKey(keyHeight), cdc.MustMarshalBinaryBare(deltas))
-}
-
-func (ds *DeltaStore) LoadDeltas(height int64) *types.Deltas {
-	var deltas = new(types.Deltas)
-	bz, err := ds.db.Get(calcDeltasKey(height))
-	if err != nil {
-		panic(err)
-	}
-	if len(bz) == 0 {
-		return nil
-	}
-	err = cdc.UnmarshalBinaryBare(bz, deltas)
-	if err != nil {
-		panic(errors.Wrap(err, "Error reading deltas"))
-	}
-	return deltas
-}
-
-//-----------------------------------------------------------------------------
-
-func calcWatchKey(height int64) []byte {
-	return []byte(fmt.Sprintf("WH:%v", height))
-}
-
-func calcDeltasKey(height int64) []byte {
-	return []byte(fmt.Sprintf("DH:%v", height))
-}
 
 func calcBlockMetaKey(height int64) []byte {
 	return []byte(fmt.Sprintf("H:%v", height))

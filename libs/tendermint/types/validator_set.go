@@ -3,6 +3,7 @@ package types
 import (
 	"bytes"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"math"
 	"math/big"
 	"sort"
@@ -227,20 +228,21 @@ func (vals *ValidatorSet) Copy() *ValidatorSet {
 // HasAddress returns true if address given is in the validator set, false -
 // otherwise.
 func (vals *ValidatorSet) HasAddress(address []byte) bool {
-	idx := sort.Search(len(vals.Validators), func(i int) bool {
-		return bytes.Compare(address, vals.Validators[i].Address) <= 0
-	})
-	return idx < len(vals.Validators) && bytes.Equal(vals.Validators[idx].Address, address)
+	for _, val := range vals.Validators {
+		if bytes.Equal(val.Address, address) {
+			return true
+		}
+	}
+	return false
 }
 
 // GetByAddress returns an index of the validator with address and validator
 // itself if found. Otherwise, -1 and nil are returned.
 func (vals *ValidatorSet) GetByAddress(address []byte) (index int, val *Validator) {
-	idx := sort.Search(len(vals.Validators), func(i int) bool {
-		return bytes.Compare(address, vals.Validators[i].Address) <= 0
-	})
-	if idx < len(vals.Validators) && bytes.Equal(vals.Validators[idx].Address, address) {
-		return idx, vals.Validators[idx].Copy()
+	for idx, val := range vals.Validators {
+		if bytes.Equal(val.Address, address) {
+			return idx, val.Copy()
+		}
 	}
 	return -1, nil
 }
@@ -313,13 +315,13 @@ func (vals *ValidatorSet) findProposer() *Validator {
 
 // Hash returns the Merkle root hash build using validators (as leaves) in the
 // set.
-func (vals *ValidatorSet) Hash() []byte {
+func (vals *ValidatorSet) Hash(h int64) []byte {
 	if len(vals.Validators) == 0 {
 		return nil
 	}
 	bzs := make([][]byte, len(vals.Validators))
 	for i, val := range vals.Validators {
-		bzs[i] = val.Bytes()
+		bzs[i] = val.HeightBytes(h)
 	}
 	return merkle.SimpleHashFromByteSlices(bzs)
 }
@@ -474,6 +476,10 @@ func computeNewPriorities(updates []*Validator, vals *ValidatorSet, updatedTotal
 func (vals *ValidatorSet) applyUpdates(updates []*Validator) {
 
 	existing := vals.Validators
+	if HigherThanVenus1(global.GetGlobalHeight()) {
+		sort.Sort(ValidatorsByAddress(existing))
+	}
+
 	merged := make([]*Validator, len(existing)+len(updates))
 	i := 0
 
@@ -607,6 +613,10 @@ func (vals *ValidatorSet) updateWithChangeSet(changes []*Validator, allowDeletes
 	vals.RescalePriorities(PriorityWindowSizeFactor * vals.TotalVotingPower())
 	vals.shiftByAvgProposerPriority()
 
+	if HigherThanVenus1(global.GetGlobalHeight()) {
+		sort.Sort(ValidatorsByVotingPower(vals.Validators))
+	}
+
 	return nil
 }
 
@@ -687,6 +697,12 @@ func (vals *ValidatorSet) VerifyCommit(chainID string, blockID BlockID,
 func (vals *ValidatorSet) VerifyCommitLight(chainID string, blockID BlockID,
 	height int64, commit *Commit) error {
 
+	return vals.commonVerifyCommitLight(chainID, blockID, height, commit, false)
+}
+
+func (vals *ValidatorSet) commonVerifyCommitLight(chainID string, blockID BlockID,
+	height int64, commit *Commit, isIbc bool) error {
+
 	if vals.Size() != len(commit.Signatures) {
 		return NewErrInvalidCommitSignatures(vals.Size(), len(commit.Signatures))
 	}
@@ -713,7 +729,12 @@ func (vals *ValidatorSet) VerifyCommitLight(chainID string, blockID BlockID,
 		val := vals.Validators[idx]
 
 		// Validate signature.
-		voteSignBytes := commit.VoteSignBytes(chainID, idx)
+		var voteSignBytes []byte
+		if isIbc {
+			voteSignBytes = commit.IBCVoteSignBytes(chainID, idx)
+		} else {
+			voteSignBytes = commit.VoteSignBytes(chainID, idx)
+		}
 		if !val.PubKey.VerifyBytes(voteSignBytes, commitSig.Signature) {
 			return fmt.Errorf("wrong signature (#%d): %X", idx, commitSig.Signature)
 		}
@@ -818,6 +839,12 @@ func (vals *ValidatorSet) VerifyFutureCommit(newSet *ValidatorSet, chainID strin
 func (vals *ValidatorSet) VerifyCommitLightTrusting(chainID string, blockID BlockID,
 	height int64, commit *Commit, trustLevel tmmath.Fraction) error {
 
+	return vals.commonVerifyCommitLightTrusting(chainID, blockID, height, commit, trustLevel, false)
+}
+
+func (vals *ValidatorSet) commonVerifyCommitLightTrusting(chainID string, blockID BlockID,
+	height int64, commit *Commit, trustLevel tmmath.Fraction, isIbc bool) error {
+
 	// sanity check
 	if trustLevel.Numerator*3 < trustLevel.Denominator || // < 1/3
 		trustLevel.Numerator > trustLevel.Denominator { // > 1
@@ -848,7 +875,13 @@ func (vals *ValidatorSet) VerifyCommitLightTrusting(chainID string, blockID Bloc
 
 		// We don't know the validators that committed this block, so we have to
 		// check for each vote if its validator is already known.
-		valIdx, val := vals.GetByAddress(commitSig.ValidatorAddress)
+		var valIdx int
+		var val *Validator
+		if isIbc {
+			valIdx, val = vals.IBCGetByAddress(commitSig.ValidatorAddress)
+		} else {
+			valIdx, val = vals.GetByAddress(commitSig.ValidatorAddress)
+		}
 
 		if val != nil {
 			// check for double vote of validator on the same commit
@@ -859,7 +892,12 @@ func (vals *ValidatorSet) VerifyCommitLightTrusting(chainID string, blockID Bloc
 			seenVals[valIdx] = idx
 
 			// Validate signature.
-			voteSignBytes := commit.VoteSignBytes(chainID, idx)
+			var voteSignBytes []byte
+			if isIbc {
+				voteSignBytes = commit.IBCVoteSignBytes(chainID, idx)
+			} else {
+				voteSignBytes = commit.VoteSignBytes(chainID, idx)
+			}
 			if !val.PubKey.VerifyBytes(voteSignBytes, commitSig.Signature) {
 				return errors.Errorf("wrong signature (#%d): %X", idx, commitSig.Signature)
 			}

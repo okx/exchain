@@ -6,13 +6,14 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/ethereum/go-ethereum/core/vm"
+
 	"github.com/okex/exchain/x/params"
 )
 
 const (
 	// DefaultParamspace for params keeper
 	DefaultParamspace       = ModuleName
-	DefaultMaxGasLimitPerTx = 30000000
+	defaultMaxGasLimitPerTx = 30000000
 )
 
 // Parameter keys
@@ -67,7 +68,7 @@ func DefaultParams() Params {
 		ExtraEIPs:                         []int(nil), // TODO: define default values
 		EnableContractDeploymentWhitelist: false,
 		EnableContractBlockedList:         false,
-		MaxGasLimitPerTx:                  DefaultMaxGasLimitPerTx,
+		MaxGasLimitPerTx:                  defaultMaxGasLimitPerTx,
 	}
 }
 

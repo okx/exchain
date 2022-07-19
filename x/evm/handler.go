@@ -9,57 +9,25 @@ import (
 	"github.com/okex/exchain/x/evm/txs"
 	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/watcher"
 )
 
 // NewHandler returns a handler for Ethermint type messages.
 func NewHandler(k *Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (result *sdk.Result, err error) {
-		ctx = ctx.WithEventManager(sdk.NewEventManager())
+		ctx.SetEventManager(sdk.NewEventManager())
 
-		defer func() {
-			if cfg.DynamicConfig.GetMaxGasUsedPerBlock() < 0 {
-				return
-			}
+		if ctx.IsDeliver() {
+			k.EvmStateDb.WithContext(ctx).MarkUpdatedAcc(k.UpdatedAccount)
+			k.UpdatedAccount = k.UpdatedAccount[:0]
+		}
 
-			if err != nil {
-				return
-			}
-
-			db := bam.InstanceOfHistoryGasUsedRecordDB()
-			msgFnSignature, toDeployContractSize := getMsgCallFnSignature(msg)
-
-			if msgFnSignature == nil {
-				return
-			}
-
-			hisGu, err := db.Get(msgFnSignature)
-			if err != nil {
-				return
-			}
-
-			gc := int64(ctx.GasMeter().GasConsumed())
-			if toDeployContractSize > 0 {
-				// calculate average gas consume for deploy contract case
-				gc = gc / int64(toDeployContractSize)
-			}
-
-			var avgGas int64
-			if hisGu != nil {
-				hgu := common2.BytesToInt64(hisGu)
-				avgGas = int64(bam.GasUsedFactor*float64(gc) + (1.0-bam.GasUsedFactor)*float64(hgu))
-			} else {
-				avgGas = gc
-			}
-
-			err = db.Set(msgFnSignature, common2.Int64ToBytes(avgGas))
-			if err != nil {
-				return
-			}
-		}()
-
-		evmtx, ok := msg.(*types.MsgEthereumTx)
+		evmTx, ok := msg.(*types.MsgEthereumTx)
 		if ok {
-			result, err = handleMsgEthereumTx(ctx, k, evmtx)
+			if watcher.IsWatcherEnabled() {
+				ctx.SetWatcher(watcher.NewTxWatcher())
+			}
+			result, err = handleMsgEthereumTx(ctx, k, evmTx)
 			if err != nil {
 				err = sdkerrors.New(types.ModuleName, types.CodeSpaceEvmCallFailed, err.Error())
 			}
@@ -68,6 +36,43 @@ func NewHandler(k *Keeper) sdk.Handler {
 		}
 
 		return result, err
+	}
+}
+
+func updateHGU(ctx sdk.Context, msg sdk.Msg) {
+	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() <= 0 {
+		return
+	}
+
+	db := bam.InstanceOfHistoryGasUsedRecordDB()
+	msgFnSignature, toDeployContractSize := getMsgCallFnSignature(msg)
+
+	if msgFnSignature == nil {
+		return
+	}
+
+	hisGu, err := db.Get(msgFnSignature)
+	if err != nil {
+		return
+	}
+
+	gc := int64(ctx.GasMeter().GasConsumed())
+	if toDeployContractSize > 0 {
+		// calculate average gas consume for deploy contract case
+		gc = gc / int64(toDeployContractSize)
+	}
+
+	var avgGas int64
+	if hisGu != nil {
+		hgu := common2.BytesToInt64(hisGu)
+		avgGas = int64(bam.GasUsedFactor*float64(gc) + (1.0-bam.GasUsedFactor)*float64(hgu))
+	} else {
+		avgGas = gc
+	}
+
+	err = db.Set(msgFnSignature, common2.Int64ToBytes(avgGas))
+	if err != nil {
+		return
 	}
 }
 
@@ -91,9 +96,13 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (
 	if err != nil {
 		return nil, err
 	}
+	defer tx.Dispose()
 
 	// core logical to handle ethereum tx
-	return txs.TransitionEvmTx(tx, msg)
+	rst, err := txs.TransitionEvmTx(tx, msg)
+	if err == nil && !ctx.IsCheckTx() {
+		updateHGU(ctx, msg)
+	}
+
+	return rst, err
 }
-
-

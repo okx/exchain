@@ -63,7 +63,7 @@ Example:
 */
 type HTTP struct {
 	remote string
-	rpc    *jsonrpcclient.Client
+	rpc    *jsonrpcclient.Cm39HttpJSONClientAdapter
 
 	*baseRPCClient
 	*WSEvents
@@ -140,7 +140,7 @@ func NewWithClient(remote, wsEndpoint string, client *http.Client) (*HTTP, error
 		panic("nil http.Client provided")
 	}
 
-	rc, err := jsonrpcclient.NewWithHTTPClient(remote, client)
+	rc, err := jsonrpcclient.NewCm39HttpJSONClient(remote, client)
 	if err != nil {
 		return nil, err
 	}
@@ -318,13 +318,13 @@ func (c *baseRPCClient) GetAddressList() (*ctypes.ResultUnconfirmedAddresses, er
 	return result, nil
 }
 
-func (c *baseRPCClient) GetPendingNonce(address string) (*ctypes.ResultPendingNonce, error) {
+func (c *baseRPCClient) GetPendingNonce(address string) (*ctypes.ResultPendingNonce, bool) {
 	result := new(ctypes.ResultPendingNonce)
 	_, err := c.caller.Call("get_pending_nonce", map[string]interface{}{"address": address}, result)
 	if err != nil {
-		return nil, errors.Wrap(err, "get_pending_nonce")
+		return nil, false
 	}
-	return result, nil
+	return result, true
 }
 
 func (c *baseRPCClient) NetInfo() (*ctypes.ResultNetInfo, error) {
@@ -383,6 +383,14 @@ func (c *baseRPCClient) BlockchainInfo(minHeight, maxHeight int64) (*ctypes.Resu
 	return result, nil
 }
 
+func (c *baseRPCClient) LatestBlockNumber() (int64, error) {
+	info, err := c.BlockchainInfo(0, 0)
+	if err != nil {
+		return 0, err
+	}
+	return info.LastHeight, nil
+}
+
 func (c *baseRPCClient) Genesis() (*ctypes.ResultGenesis, error) {
 	result := new(ctypes.ResultGenesis)
 	_, err := c.caller.Call("genesis", map[string]interface{}{}, result)
@@ -401,6 +409,15 @@ func (c *baseRPCClient) Block(height *int64) (*ctypes.ResultBlock, error) {
 	return result, nil
 }
 
+func (c *baseRPCClient) BlockInfo(height *int64) (*ctypes.ResultBlockInfo, error) {
+	result := new(ctypes.ResultBlockInfo)
+	_, err := c.caller.Call("block_info", map[string]interface{}{"height": height}, result)
+	if err != nil {
+		return nil, errors.Wrap(err, "BlockInfo")
+	}
+	return result, nil
+}
+
 func (c *baseRPCClient) BlockResults(height *int64) (*ctypes.ResultBlockResults, error) {
 	result := new(ctypes.ResultBlockResults)
 	_, err := c.caller.Call("block_results", map[string]interface{}{"height": height}, result)
@@ -411,12 +428,12 @@ func (c *baseRPCClient) BlockResults(height *int64) (*ctypes.ResultBlockResults,
 }
 
 func (c *baseRPCClient) Commit(height *int64) (*ctypes.ResultCommit, error) {
-	result := new(ctypes.ResultCommit)
+	result := new(ctypes.IBCResultCommit)
 	_, err := c.caller.Call("commit", map[string]interface{}{"height": height}, result)
 	if err != nil {
 		return nil, errors.Wrap(err, "Commit")
 	}
-	return result, nil
+	return result.ToCommit(), nil
 }
 
 func (c *baseRPCClient) Tx(hash []byte, prove bool) (*ctypes.ResultTx, error) {

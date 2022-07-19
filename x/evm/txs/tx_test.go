@@ -20,7 +20,7 @@ var sdkResult sdk.Result
 
 type EmptyAccount struct{}
 
-func (e EmptyAccount) Copy() interface{}                            { return nil }
+func (e EmptyAccount) Copy() sdk.Account                            { return nil }
 func (e EmptyAccount) GetAddress() sdk.AccAddress                   { return sdk.AccAddress{} }
 func (e EmptyAccount) SetAddress(address sdk.AccAddress) error      { return nil }
 func (e EmptyAccount) GetPubKey() crypto.PubKey                     { return nil }
@@ -41,6 +41,8 @@ type EmptyTx struct {
 	DecorateResultFail bool
 }
 
+func (e EmptyTx) Dispose() {}
+
 func (e EmptyTx) Prepare(msg *types.MsgEthereumTx) (err error) {
 	if e.PrepareFail {
 		return fmt.Errorf("prepare error")
@@ -54,9 +56,9 @@ func (e EmptyTx) GetChainConfig() (types.ChainConfig, bool) {
 	}
 	return types.ChainConfig{}, true
 }
-func (e EmptyTx) GetSenderAccount() authexported.Account                                          { return EmptyAccount{} }
-func (e EmptyTx) ResetWatcher(account authexported.Account)                                       {}
-func (e EmptyTx) RefundFeesWatcher(account authexported.Account, coins sdk.Coins, price *big.Int) {}
+func (e EmptyTx) GetSenderAccount() authexported.Account                                  { return EmptyAccount{} }
+func (e EmptyTx) ResetWatcher(account authexported.Account)                               {}
+func (e EmptyTx) RefundFeesWatcher(account authexported.Account, tx *types.MsgEthereumTx) {}
 func (e EmptyTx) Transition(config types.ChainConfig) (result base.Result, err error) {
 	if e.TransitionFail {
 		err = fmt.Errorf("transition error")
@@ -79,12 +81,11 @@ func (e EmptyTx) DecorateResult(inResult *base.Result, inErr error) (result *sdk
 	return &sdkResult, nil
 }
 
-func (e EmptyTx) RestoreWatcherTransactionReceipt(msg *types.MsgEthereumTx) {}
-func (e EmptyTx) Commit(msg *types.MsgEthereumTx, result *base.Result)      {}
-func (e EmptyTx) EmitEvent(msg *types.MsgEthereumTx, result *base.Result)   {}
-func (e EmptyTx) FinalizeWatcher(account authexported.Account, err error)   {}
-func (e EmptyTx) AnalyzeStart(tag string)                                   {}
-func (e EmptyTx) AnalyzeStop(tag string)                                    {}
+func (e EmptyTx) Commit(msg *types.MsgEthereumTx, result *base.Result)                              {}
+func (e EmptyTx) EmitEvent(msg *types.MsgEthereumTx, result *base.Result)                           {}
+func (e EmptyTx) FinalizeWatcher(msg *types.MsgEthereumTx, account authexported.Account, err error) {}
+func (e EmptyTx) AnalyzeStart(tag string)                                                           {}
+func (e EmptyTx) AnalyzeStop(tag string)                                                            {}
 
 func TestTransitionEvmTx(t *testing.T) {
 	privateKey, _ := ethsecp256k1.GenerateKey()

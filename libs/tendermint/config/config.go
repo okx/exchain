@@ -668,7 +668,6 @@ type MempoolConfig struct {
 	Sealed                     bool     `mapstructure:"sealed"`
 	Recheck                    bool     `mapstructure:"recheck"`
 	Broadcast                  bool     `mapstructure:"broadcast"`
-	WalPath                    string   `mapstructure:"wal_dir"`
 	Size                       int      `mapstructure:"size"`
 	MaxTxsBytes                int64    `mapstructure:"max_txs_bytes"`
 	CacheSize                  int      `mapstructure:"cache_size"`
@@ -691,7 +690,6 @@ func DefaultMempoolConfig() *MempoolConfig {
 	return &MempoolConfig{
 		Recheck:   false,
 		Broadcast: true,
-		WalPath:   "",
 		// Each signature verification takes .5ms, Size reduced until we implement
 		// ABCI Recheck
 		Size:                       10000,              // exchain memory pool size(max tx num)
@@ -716,16 +714,6 @@ func TestMempoolConfig() *MempoolConfig {
 	cfg := DefaultMempoolConfig()
 	cfg.CacheSize = 1000
 	return cfg
-}
-
-// WalDir returns the full path to the mempool's write-ahead log
-func (cfg *MempoolConfig) WalDir() string {
-	return rootify(cfg.WalPath, cfg.RootDir)
-}
-
-// WalEnabled returns true if the WAL is enabled.
-func (cfg *MempoolConfig) WalEnabled() bool {
-	return cfg.WalPath != ""
 }
 
 // GetNodeKeyWhitelist first use the DynamicConfig to get secondly backup to
@@ -838,7 +826,7 @@ func DefaultConsensusConfig() *ConsensusConfig {
 		TimeoutPrevoteDelta:         500 * time.Millisecond,
 		TimeoutPrecommit:            1000 * time.Millisecond,
 		TimeoutPrecommitDelta:       500 * time.Millisecond,
-		TimeoutCommit:               3000 * time.Millisecond,
+		TimeoutCommit:               3800 * time.Millisecond,
 		TimeoutConsensus:            1000 * time.Millisecond,
 		SkipTimeoutCommit:           false,
 		CreateEmptyBlocks:           true,
@@ -896,7 +884,7 @@ func (cfg *ConsensusConfig) Precommit(round int) time.Duration {
 // Commit returns the amount of time to wait for straggler votes after receiving +2/3 precommits
 // for a single block (ie. a commit).
 func (cfg *ConsensusConfig) Commit(t time.Time) time.Time {
-	return t.Add(cfg.TimeoutCommit)
+	return t.Add(DynamicConfig.GetCsTimeoutCommit())
 }
 
 // WalFile returns the full path to the write-ahead log file

@@ -173,7 +173,7 @@ func TestQueries(t *testing.T) {
 	rewards := getQueriedDelegationRewards(t, ctx, cdc, querier, sdk.AccAddress(valOpAddr1), valOpAddr1)
 	require.True(t, rewards.IsZero())
 	initial := int64(10)
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 	tokens := sdk.DecCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDec(initial)}}
 	keeper.AllocateTokensToValidator(ctx, val, tokens)
 	rewards = getQueriedDelegationRewards(t, ctx, cdc, querier, sdk.AccAddress(valOpAddr1), valOpAddr1)

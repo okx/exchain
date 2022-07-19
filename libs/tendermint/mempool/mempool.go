@@ -38,7 +38,7 @@ type Mempool interface {
 	GetUserPendingTxsCnt(address string) int
 
 	ReapUserTxs(address string, max int) types.Txs
-	GetPendingNonce(address string) uint64
+	GetPendingNonce(address string) (uint64, bool)
 
 	// Lock locks the mempool. The consensus must be able to hold lock to safely update.
 	Lock()
@@ -79,14 +79,6 @@ type Mempool interface {
 
 	// TxsBytes returns the total size of all txs in the mempool.
 	TxsBytes() int64
-
-	// InitWAL creates a directory for the WAL file and opens a file itself. If
-	// there is an error, it will be of type *PathError.
-	InitWAL() error
-
-	// CloseWAL closes and discards the underlying WAL file.
-	// Any further writes will not be relayed to disk.
-	CloseWAL()
 
 	SetEventBus(eventBus types.TxEventPublisher)
 

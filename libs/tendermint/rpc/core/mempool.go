@@ -43,6 +43,8 @@ func BroadcastTxSync(ctx *rpctypes.Context, tx types.Tx) (*ctypes.ResultBroadcas
 	}
 	res := <-resCh
 	r := res.GetCheckTx()
+	// reset r.Data for compatibility with cosmwasmJS
+	r.Data = nil
 	return &ctypes.ResultBroadcastTx{
 		Code:      r.Code,
 		Data:      r.Data,
@@ -175,9 +177,12 @@ func GetAddressList() (*ctypes.ResultUnconfirmedAddresses, error) {
 	}, nil
 }
 
-func GetPendingNonce(address string) (*ctypes.ResultPendingNonce, error) {
-	nonce := env.Mempool.GetPendingNonce(address)
+func GetPendingNonce(address string) (*ctypes.ResultPendingNonce, bool) {
+	nonce, ok := env.Mempool.GetPendingNonce(address)
+	if !ok {
+		return nil, false
+	}
 	return &ctypes.ResultPendingNonce{
 		Nonce: nonce,
-	}, nil
+	}, true
 }

@@ -8,8 +8,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/refund"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -61,13 +59,15 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 
 	gas := feeTx.GetGas()
 	fees := feeTx.GetFee()
-	gasFees := caculateRefundFees(gasUsed, gas, fees)
+	gasFees := calculateRefundFees(gasUsed, gas, fees)
 	ctx.EnableAccountCache()
 	ctx.UpdateToAccountCache(feePayerAcc, getAccountGasUsed)
-	err = refund.RefundFees(handler.supplyKeeper, ctx, feePayerAcc.GetAddress(), gasFees)
-	if err != nil {
+
+	newCoins := feePayerAcc.GetCoins().Add(gasFees...)
+	if err = feePayerAcc.SetCoins(newCoins); err != nil {
 		return nil, err
 	}
+	handler.ak.SetAccount(ctx, feePayerAcc)
 
 	return gasFees, nil
 }
@@ -83,7 +83,7 @@ func NewGasRefundDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.Gas
 	}
 }
 
-func caculateRefundFees(gasUsed uint64, gas uint64, fees sdk.DecCoins) sdk.Coins {
+func calculateRefundFees(gasUsed uint64, gas uint64, fees sdk.DecCoins) sdk.Coins {
 
 	refundFees := make(sdk.Coins, len(fees))
 	for i, fee := range fees {
@@ -97,9 +97,9 @@ func caculateRefundFees(gasUsed uint64, gas uint64, fees sdk.DecCoins) sdk.Coins
 	return refundFees
 }
 
-// CaculateRefundFees provides the way to calculate the refunded gas with gasUsed, fees and gasPrice,
+// CalculateRefundFees provides the way to calculate the refunded gas with gasUsed, fees and gasPrice,
 // as refunded gas = fees - gasPrice * gasUsed
-func CaculateRefundFees(gasUsed uint64, fees sdk.DecCoins, gasPrice *big.Int) sdk.Coins {
+func CalculateRefundFees(gasUsed uint64, fees sdk.DecCoins, gasPrice *big.Int) sdk.Coins {
 	gas := new(big.Int).Div(fees[0].Amount.BigInt(), gasPrice).Uint64()
-	return caculateRefundFees(gasUsed, gas, fees)
+	return calculateRefundFees(gasUsed, gas, fees)
 }

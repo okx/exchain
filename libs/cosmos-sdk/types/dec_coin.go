@@ -1,6 +1,7 @@
 package types
 
 import (
+	"bytes"
 	"fmt"
 	"sort"
 	"strings"
@@ -203,35 +204,38 @@ func (coin DecCoin) IsValid() bool {
 	return !coin.IsNegative()
 }
 
-var decCoinBufferPool = amino.NewBufferPool()
-
 func (coin DecCoin) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
-	var buf = decCoinBufferPool.Get()
-	defer decCoinBufferPool.Put(buf)
-	for pos := 1; pos < 3; pos++ {
-		switch pos {
-		case 1:
-			if coin.Denom == "" {
-				break
-			}
-			err := amino.EncodeStringWithKeyToBuffer(buf, coin.Denom, 1<<3|2)
-			if err != nil {
-				return nil, err
-			}
-		case 2:
-			data, err := coin.Amount.MarshalToAmino(cdc)
-			if err != nil {
-				return nil, err
-			}
-			err = amino.EncodeByteSliceWithKeyToBuffer(buf, data, 2<<3|2)
-			if err != nil {
-				return nil, err
-			}
-		default:
-			panic("unreachable")
+	buf := bytes.NewBuffer(make([]byte, 0, coin.AminoSize(cdc)))
+	err := coin.MarshalAminoTo(cdc, buf)
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func (coin DecCoin) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
+	// field 1
+	if coin.Denom != "" {
+		const pbKey = 1<<3 | 2
+		err := amino.EncodeStringWithKeyToBuffer(buf, coin.Denom, pbKey)
+		if err != nil {
+			return err
 		}
 	}
-	return amino.GetBytesBufferCopy(buf), nil
+	// field 2
+	{
+		const pbKey = 2<<3 | 2
+		data, err := coin.Amount.MarshalToAmino(cdc)
+		if err != nil {
+			return err
+		}
+		err = amino.EncodeByteSliceWithKeyToBuffer(buf, data, pbKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (coin DecCoin) AminoSize(cdc *amino.Codec) int {
@@ -659,18 +663,24 @@ func (coins DecCoins) IsAllPositive() bool {
 }
 
 func removeZeroDecCoins(coins DecCoins) DecCoins {
-	i, l := 0, len(coins)
-	for i < l {
+	for i := 0; i < len(coins); i++ {
 		if coins[i].IsZero() {
-			// remove coin
-			coins = append(coins[:i], coins[i+1:]...)
-			l--
-		} else {
-			i++
+			break
+		} else if i == len(coins)-1 {
+			return coins
 		}
 	}
+	var result []DecCoin
+	if len(coins) > 0 {
+		result = make([]DecCoin, 0, len(coins)-1)
+	}
 
-	return coins[:i]
+	for _, coin := range coins {
+		if !coin.IsZero() {
+			result = append(result, coin)
+		}
+	}
+	return result
 }
 
 //-----------------------------------------------------------------------------
@@ -699,6 +709,9 @@ func ParseDecCoin(coinStr string) (coin DecCoin, err error) {
 
 	matches := reDecCoin.FindStringSubmatch(coinStr)
 	if matches == nil {
+		if strings.Contains(coinStr, "ibc/") {
+			return IBCParseDecCoin(coinStr)
+		}
 		return DecCoin{}, fmt.Errorf("invalid decimal coin expression: %s", coinStr)
 	}
 

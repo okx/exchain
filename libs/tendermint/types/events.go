@@ -37,6 +37,9 @@ const (
 	EventUnlock           = "Unlock"
 	EventValidBlock       = "ValidBlock"
 	EventVote             = "Vote"
+	EventSignVote         = "SignVote"
+	EventBlockPart        = "BlockPart"
+	EventProposeRequest   = "ProposeRequest"
 )
 
 ///////////////////////////////////////////////////////////////////////////////

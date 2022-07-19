@@ -93,6 +93,21 @@ func (app *localClient) DeliverTxAsync(params types.RequestDeliverTx) *ReqRes {
 	)
 }
 
+func (app *localClient) PreDeliverRealTxAsync(params []byte) types.TxEssentials {
+	return app.Application.PreDeliverRealTx(params)
+}
+
+func (app *localClient) DeliverRealTxAsync(params types.TxEssentials) *ReqRes {
+	app.mtx.Lock()
+	defer app.mtx.Unlock()
+
+	res := app.Application.DeliverRealTx(params)
+	return app.callback(
+		types.ToRequestDeliverTx(types.RequestDeliverTx{Tx: params.GetRaw()}),
+		types.ToResponseDeliverTx(res),
+	)
+}
+
 func (app *localClient) CheckTxAsync(req types.RequestCheckTx) *ReqRes {
 	if !types.GetDisableABCIQueryMutex() {
 		app.mtx.Lock()
@@ -166,6 +181,12 @@ func (app *localClient) ParallelTxs(txs [][]byte, onlyCalSender bool) []*types.R
 	app.mtx.Lock()
 	defer app.mtx.Unlock()
 	return app.Application.ParallelTxs(txs, onlyCalSender)
+}
+
+func (app *localClient) DeliverTxsConcurrent(txs [][]byte) []*types.ResponseDeliverTx {
+	app.mtx.Lock()
+	defer app.mtx.Unlock()
+	return app.Application.DeliverTxsConcurrent(txs)
 }
 
 //-------------------------------------------------------

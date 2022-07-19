@@ -1,21 +1,23 @@
 package baseapp
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
-	"sync/atomic"
 	"syscall"
 	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	"github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/iavl"
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/trace"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/tendermint/go-amino"
 )
@@ -40,7 +42,7 @@ func (app *BaseApp) InitChain(req abci.RequestInitChain) (res abci.ResponseInitC
 	}
 
 	// add block gas meter for any genesis transactions (allow infinite gas)
-	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(sdk.NewInfiniteGasMeter())
+	app.deliverState.ctx.SetBlockGasMeter(sdk.NewInfiniteGasMeter())
 
 	res = app.initChainer(app.deliverState.ctx, req)
 
@@ -87,7 +89,7 @@ func (app *BaseApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOp
 	switch req.Key {
 	case "ResetCheckState":
 		// reset check state
-		app.checkState.ms = app.cms.CacheMultiStore()
+		app.setCheckState(app.checkState.ctx.BlockHeader())
 	default:
 		// do nothing
 	}
@@ -112,6 +114,8 @@ func (app *BaseApp) FilterPeerByID(info string) abci.ResponseQuery {
 
 // BeginBlock implements the ABCI application interface.
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
+	app.blockDataCache.Clear()
+	app.PutCacheMultiStore(nil)
 	if app.cms.TracingEnabled() {
 		app.cms.SetTracingContext(sdk.TraceContext(
 			map[string]interface{}{"blockHeight": req.Header.Height},
@@ -135,9 +139,9 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	} else {
 		// In the first block, app.deliverState.ctx will already be initialized
 		// by InitChain. Context is now updated with Header information.
-		app.deliverState.ctx = app.deliverState.ctx.
-			WithBlockHeader(req.Header).
-			WithBlockHeight(req.Header.Height)
+		app.deliverState.ctx.
+			SetBlockHeader(req.Header).
+			SetBlockHeight(req.Header.Height)
 	}
 
 	app.newBlockCache()
@@ -149,7 +153,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 		gasMeter = sdk.NewInfiniteGasMeter()
 	}
 
-	app.deliverState.ctx = app.deliverState.ctx.WithBlockGasMeter(gasMeter)
+	app.deliverState.ctx.SetBlockGasMeter(gasMeter)
 
 	if app.beginBlocker != nil {
 		res = app.beginBlocker(app.deliverState.ctx, req)
@@ -160,11 +164,47 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 
 	app.anteTracer = trace.NewTracer(trace.AnteChainDetail)
 
+	app.feeForCollector = sdk.Coins{}
+	app.feeChanged = false
+
 	return res
+}
+
+func (app *BaseApp) UpdateFeeForCollector(fee sdk.Coins, add bool) {
+	if fee.IsZero() {
+		return
+	}
+	app.feeChanged = true
+	if add {
+		app.feeForCollector = app.feeForCollector.Add(fee...)
+	} else {
+		app.feeForCollector = app.feeForCollector.Sub(fee)
+	}
+}
+
+func (app *BaseApp) updateFeeCollectorAccount() {
+	if app.updateFeeCollectorAccHandler == nil || !app.feeChanged {
+		return
+	}
+
+	defer func() {
+		if r := recover(); r != nil {
+			err := fmt.Errorf("panic: %v", r)
+			app.logger.Error("update fee collector account failed", "err", err)
+		}
+	}()
+
+	ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
+	if err := app.updateFeeCollectorAccHandler(ctx, app.feeForCollector); err != nil {
+		panic(err)
+	}
+	cache.Write()
 }
 
 // EndBlock implements the ABCI interface.
 func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
+	app.updateFeeCollectorAccount()
+
 	if app.deliverState.ms.TracingEnabled() {
 		app.deliverState.ms = app.deliverState.ms.SetTracingContext(nil).(sdk.CacheMultiStore)
 	}
@@ -176,7 +216,6 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	return
 }
 
-
 func (app *BaseApp) addCommitTraceInfo() {
 	nodeReadCountStr := strconv.Itoa(app.cms.GetNodeReadCount())
 	dbReadCountStr := strconv.Itoa(app.cms.GetDBReadCount())
@@ -186,7 +225,7 @@ func (app *BaseApp) addCommitTraceInfo() {
 	iavlInfo := strings.Join([]string{"getnode<", nodeReadCountStr, ">, rdb<", dbReadCountStr, ">, rdbTs<", dbReadTimeStr, "ms>, savenode<", dbWriteCountStr, ">"}, "")
 
 	elapsedInfo := trace.GetElapsedInfo()
-	elapsedInfo.AddInfo("Iavl", iavlInfo)
+	elapsedInfo.AddInfo(trace.Iavl, iavlInfo)
 
 	flatKvReadCountStr := strconv.Itoa(app.cms.GetFlatKVReadCount())
 	flatKvReadTimeStr := strconv.FormatInt(time.Duration(app.cms.GetFlatKVReadTime()).Milliseconds(), 10)
@@ -195,14 +234,14 @@ func (app *BaseApp) addCommitTraceInfo() {
 
 	flatInfo := strings.Join([]string{"rflat<", flatKvReadCountStr, ">, rflatTs<", flatKvReadTimeStr, "ms>, wflat<", flatKvWriteCountStr, ">, wflatTs<", flatKvWriteTimeStr, "ms>"}, "")
 
-	elapsedInfo.AddInfo("FlatKV", flatInfo)
+	elapsedInfo.AddInfo(trace.FlatKV, flatInfo)
 
-	rtx := float64(atomic.LoadInt64(&app.checkTxNum))
-	wtx := float64(atomic.LoadInt64(&app.wrappedCheckTxNum))
+	//rtx := float64(atomic.LoadInt64(&app.checkTxNum))
+	//wtx := float64(atomic.LoadInt64(&app.wrappedCheckTxNum))
 
-	elapsedInfo.AddInfo(trace.WtxRatio,
-		amino.BytesToStr(strconv.AppendFloat(make([]byte, 0, 4), wtx/(wtx+rtx), 'f', 2, 32)),
-	)
+	//elapsedInfo.AddInfo(trace.WtxRatio,
+	//	amino.BytesToStr(strconv.AppendFloat(make([]byte, 0, 4), wtx/(wtx+rtx), 'f', 2, 32)),
+	//)
 
 	readCache := float64(tmtypes.SignatureCache().ReadCount())
 	hitCache := float64(tmtypes.SignatureCache().HitCount())
@@ -222,7 +261,17 @@ func (app *BaseApp) addCommitTraceInfo() {
 // against that height and gracefully halt if it matches the latest committed
 // height.
 func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
+
 	header := app.deliverState.ctx.BlockHeader()
+
+	if app.mptCommitHandler != nil {
+		app.mptCommitHandler(app.deliverState.ctx)
+	}
+	if mptStore := app.cms.GetCommitKVStore(sdk.NewKVStoreKey(mpt.StoreKey)); mptStore != nil {
+		// notify mptStore to tryUpdateTrie, must call before app.deliverState.ms.Write()
+		mpt.GAccTryUpdateTrieChannel <- struct{}{}
+		<-mpt.GAccTrieUpdatedChannel
+	}
 
 	// Write the DeliverTx state which is cache-wrapped and commit the MultiStore.
 	// The write to the DeliverTx state writes all state transitions to the root
@@ -305,9 +354,21 @@ func (app *BaseApp) halt() {
 // Query implements the ABCI interface. It delegates to CommitMultiStore if it
 // implements Queryable.
 func (app *BaseApp) Query(req abci.RequestQuery) abci.ResponseQuery {
+	ceptor := app.interceptors[req.Path]
+	if nil != ceptor {
+		// interceptor is like `aop`,it may record the request or rewrite the data in the request
+		// it should have funcs like `Begin` `End`,
+		// but for now, we will just redirect the path router,so once the request was intercepted(see #makeInterceptors),
+		// grpcQueryRouter#Route will return nil
+		ceptor.Intercept(&req)
+	}
 	path := splitPath(req.Path)
 	if len(path) == 0 {
-		sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no query path provided"))
+		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "no query path provided"))
+	}
+
+	if grpcHandler := app.grpcQueryRouter.Route(req.Path); grpcHandler != nil {
+		return app.handleQueryGRPC(grpcHandler, req)
 	}
 
 	switch path[0] {
@@ -323,54 +384,66 @@ func (app *BaseApp) Query(req abci.RequestQuery) abci.ResponseQuery {
 
 	case "custom":
 		return handleQueryCustom(app, path, req)
+	default:
+		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query path"))
+	}
+}
+func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, overrideBytes []byte) abci.ResponseQuery {
+	// if path contains address, it means 'eth_estimateGas' the sender
+	hasExtraPaths := len(path) > 2
+	var from string
+	if hasExtraPaths {
+		if addr, err := sdk.AccAddressFromBech32(path[2]); err == nil {
+			if err = sdk.VerifyAddressFormat(addr); err == nil {
+				from = path[2]
+			}
+		}
+	}
+	tx, err := app.txDecoder(txBytes)
+	if err != nil {
+		return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))
+	}
+	gInfo, res, err := app.Simulate(txBytes, tx, height, overrideBytes, from)
+
+	// if path contains mempool, it means to enable MaxGasUsedPerBlock
+	// return the actual gasUsed even though simulate tx failed
+	isMempoolSim := hasExtraPaths && path[2] == "mempool"
+	if err != nil && !isMempoolSim {
+		return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to simulate tx"))
 	}
 
-	return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query path"))
-}
+	simRes := sdk.SimulationResponse{
+		GasInfo: gInfo,
+		Result:  res,
+	}
 
+	return abci.ResponseQuery{
+		Codespace: sdkerrors.RootCodespace,
+		Height:    height,
+		Value:     codec.Cdc.MustMarshalBinaryBare(simRes),
+	}
+}
 func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.ResponseQuery {
 	if len(path) >= 2 {
 		switch path[1] {
 		case "simulate":
-			txBytes := req.Data
+			return handleSimulate(app, path, req.Height, req.Data, nil)
 
-			tx, err := app.txDecoder(txBytes)
-			if err != nil {
-				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))
+		case "simulateWithOverrides":
+			queryBytes := req.Data
+			var queryData types.SimulateData
+			if err := json.Unmarshal(queryBytes, &queryData); err != nil {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode simulateOverrideData"))
 			}
+			return handleSimulate(app, path, req.Height, queryData.TxBytes, queryData.OverridesBytes)
 
-			// if path contains address, it means 'eth_estimateGas' the sender
-			hasExtraPaths := len(path) > 2
-			var from string
-			if hasExtraPaths {
-				if addr, err := sdk.AccAddressFromBech32(path[2]); err == nil {
-					if err = sdk.VerifyAddressFormat(addr); err == nil {
-						from = path[2]
-					}
-				}
-			}
-
-			gInfo, res, err := app.Simulate(txBytes, tx, req.Height, from)
-
-			// if path contains mempool, it means to enable MaxGasUsedPerBlock
-			// return the actual gasUsed even though simulate tx failed
-			isMempoolSim := hasExtraPaths && path[2] == "mempool"
-			if err != nil && !isMempoolSim {
-				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to simulate tx"))
-			}
-
-			simRes := sdk.SimulationResponse{
-				GasInfo: gInfo,
-				Result:  res,
-			}
-
-			return abci.ResponseQuery{
-				Codespace: sdkerrors.RootCodespace,
-				Height:    req.Height,
-				Value:     codec.Cdc.MustMarshalBinaryBare(simRes),
-			}
 		case "trace":
-			tmtx, err := GetABCITx(req.Data)
+			var queryParam sdk.QueryTraceTx
+			err := json.Unmarshal(req.Data, &queryParam)
+			if err != nil {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "invalid trace tx params"))
+			}
+			tmtx, err := GetABCITx(queryParam.TxHash.Bytes())
 			if err != nil {
 				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "invalid trace tx bytes"))
 			}
@@ -382,7 +455,7 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 			if err != nil {
 				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "invalid trace tx block header"))
 			}
-			res, err := app.TraceTx(req.Data, tx, tmtx.Index, block.Block)
+			res, err := app.TraceTx(queryParam, tx, tmtx.Index, block.Block)
 			if err != nil {
 				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to trace tx"))
 			}
@@ -509,7 +582,9 @@ func handleQueryCustom(app *BaseApp, path []string, req abci.RequestQuery) abci.
 	// cache wrap the commit-multistore for safety
 	ctx := sdk.NewContext(
 		cacheMS, app.checkState.ctx.BlockHeader(), true, app.logger,
-	).WithMinGasPrices(app.minGasPrices)
+	)
+	ctx.SetMinGasPrices(app.minGasPrices)
+	ctx.SetBlockHeight(req.Height)
 
 	// Passes the rest of the path as an argument to the querier.
 	//

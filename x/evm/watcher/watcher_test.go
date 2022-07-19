@@ -72,7 +72,6 @@ func setupTest() *WatcherTestSt {
 	params.EnableCreate = true
 	params.EnableCall = true
 	w.app.EvmKeeper.SetParams(w.ctx, params)
-
 	return w
 }
 
@@ -109,7 +108,7 @@ func checkWD(wdBytes []byte, w *WatcherTestSt) {
 func testWatchData(t *testing.T, w *WatcherTestSt) {
 	// produce WatchData
 	w.app.EvmKeeper.Watcher.Commit()
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Millisecond)
 
 	// get WatchData
 	wdFunc := w.app.EvmKeeper.Watcher.GetWatchDataFunc()
@@ -126,7 +125,7 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	wData, err := w.app.EvmKeeper.Watcher.UnmarshalWatchData(wd)
 	require.Nil(t, err)
 	w.app.EvmKeeper.Watcher.UseWatchData(wData)
-	time.Sleep(time.Second * 1)
+	time.Sleep(time.Millisecond)
 
 	cWd := getDBKV(store)
 
@@ -177,7 +176,7 @@ func TestHandleMsgEthereumTx(t *testing.T) {
 			w = setupTest() // reset
 			//nolint
 			tc.malleate()
-			w.ctx = w.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
+			w.ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 			res, err := w.handler(w.ctx, tx)
 
 			//nolint
@@ -223,9 +222,9 @@ func TestMsgEthereumTxByWatcher(t *testing.T) {
 			w = setupTest() // reset
 			//nolint
 			tc.malleate()
-			w.ctx = w.ctx.WithIsCheckTx(true)
-			w.ctx = w.ctx.WithGasMeter(sdk.NewInfiniteGasMeter())
-			w.ctx = w.ctx.WithFrom(from.String())
+			w.ctx.SetIsCheckTx(true)
+			w.ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
+			w.ctx.SetFrom(from.String())
 			res, err := w.handler(w.ctx, tx)
 
 			//nolint
@@ -351,13 +350,16 @@ func TestDuplicateAddress(t *testing.T) {
 
 func TestDuplicateWatchMessage(t *testing.T) {
 	w := setupTest()
-	a1 := newMockAccount(1, 1)
-	w.app.EvmKeeper.Watcher.SaveAccount(a1, true)
-	a2 := newMockAccount(1, 2)
-	w.app.EvmKeeper.Watcher.SaveAccount(a2, true)
-	w.app.EvmKeeper.Watcher.Commit()
-	time.Sleep(time.Second)
+	w.app.EvmKeeper.Watcher.NewHeight(1, common.Hash{}, abci.Header{Height: 1})
+	// init store
 	store := watcher.InstanceOfWatchStore()
+	flushDB(store)
+	a1 := newMockAccount(1, 1)
+	w.app.EvmKeeper.Watcher.SaveAccount(a1)
+	a2 := newMockAccount(1, 2)
+	w.app.EvmKeeper.Watcher.SaveAccount(a2)
+	w.app.EvmKeeper.Watcher.Commit()
+	time.Sleep(time.Millisecond)
 	pWd := getDBKV(store)
 	require.Equal(t, 1, len(pWd))
 }
@@ -367,18 +369,21 @@ func TestWriteLatestMsg(t *testing.T) {
 	viper.Set(watcher.FlagDBBackend, "memdb")
 	w := watcher.NewWatcher(log.NewTMLogger(os.Stdout))
 	w.SetWatchDataFunc()
+	w.NewHeight(1, common.Hash{}, abci.Header{Height: 1})
+	// init store
+	store := watcher.InstanceOfWatchStore()
+	flushDB(store)
 
 	a1 := newMockAccount(1, 1)
 	a11 := newMockAccount(1, 2)
 	a111 := newMockAccount(1, 3)
-	w.SaveAccount(a1, true)
-	w.SaveAccount(a11, true)
-	w.SaveAccount(a111, true)
+	w.SaveAccount(a1)
+	w.SaveAccount(a11)
+	w.SaveAccount(a111)
 	// waiting 1 second for initializing jobChan
-	time.Sleep(time.Second)
+	time.Sleep(time.Millisecond)
 	w.Commit()
-	time.Sleep(time.Second)
-	store := watcher.InstanceOfWatchStore()
+	time.Sleep(time.Millisecond)
 	pWd := getDBKV(store)
 	require.Equal(t, 1, len(pWd))
 

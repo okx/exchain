@@ -10,13 +10,17 @@ type IDynamicConfig interface {
 	GetMaxGasUsedPerBlock() int64
 	GetMempoolFlush() bool
 	GetNodeKeyWhitelist() []string
+	GetSentryAddrs() []string
 	GetCsTimeoutPropose() time.Duration
 	GetCsTimeoutProposeDelta() time.Duration
 	GetCsTimeoutPrevote() time.Duration
 	GetCsTimeoutPrevoteDelta() time.Duration
 	GetCsTimeoutPrecommit() time.Duration
 	GetCsTimeoutPrecommitDelta() time.Duration
+	GetCsTimeoutCommit() time.Duration
 	GetEnableWtx() bool
+	GetDeliverTxsExecuteMode() int
+	GetEnableHasBlockPartMsg() bool
 }
 
 var DynamicConfig IDynamicConfig = MockDynamicConfig{}
@@ -56,6 +60,10 @@ func (d MockDynamicConfig) GetNodeKeyWhitelist() []string {
 	return []string{}
 }
 
+func (d MockDynamicConfig) GetSentryAddrs() []string {
+	return []string{}
+}
+
 func (d MockDynamicConfig) GetCsTimeoutPropose() time.Duration {
 	return DefaultConsensusConfig().TimeoutPropose
 }
@@ -74,7 +82,17 @@ func (d MockDynamicConfig) GetCsTimeoutPrecommit() time.Duration {
 func (d MockDynamicConfig) GetCsTimeoutPrecommitDelta() time.Duration {
 	return DefaultConsensusConfig().TimeoutPrecommitDelta
 }
+func (d MockDynamicConfig) GetCsTimeoutCommit() time.Duration {
+	return DefaultConsensusConfig().TimeoutCommit
+}
 
 func (d MockDynamicConfig) GetEnableWtx() bool {
+	return false
+}
+func (d MockDynamicConfig) GetDeliverTxsExecuteMode() int {
+	return 0
+}
+
+func (d MockDynamicConfig) GetEnableHasBlockPartMsg() bool {
 	return false
 }

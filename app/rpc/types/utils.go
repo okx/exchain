@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"reflect"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -59,7 +58,7 @@ func ToTransaction(tx *evmtypes.MsgEthereumTx, from *common.Address) *watcher.Tr
 }
 
 // RpcBlockFromTendermint returns a JSON-RPC compatible Ethereum blockfrom a given Tendermint block.
-func RpcBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.Block) (*watcher.Block, error) {
+func RpcBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.Block, fullTx bool) (*watcher.Block, error) {
 	gasLimit, err := BlockMaxGasFromConsensusParams(context.Background(), clientCtx)
 	if err != nil {
 		return nil, err
@@ -70,17 +69,16 @@ func RpcBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.B
 		return nil, err
 	}
 
+	var bloom ethtypes.Bloom
+	clientCtx = clientCtx.WithHeight(block.Height)
 	res, _, err := clientCtx.Query(fmt.Sprintf("custom/%s/%s/%d", evmtypes.ModuleName, evmtypes.QueryBloom, block.Height))
-	if err != nil {
-		return nil, err
+	if err == nil {
+		var bloomRes evmtypes.QueryBloomFilter
+		clientCtx.Codec.MustUnmarshalJSON(res, &bloomRes)
+		bloom = bloomRes.Bloom
 	}
 
-	var bloomRes evmtypes.QueryBloomFilter
-	clientCtx.Codec.MustUnmarshalJSON(res, &bloomRes)
-
-	bloom := bloomRes.Bloom
-
-	return FormatBlock(block.Header, block.Size(), block.Hash(), gasLimit, gasUsed, ethTxs, bloom), nil
+	return FormatBlock(block.Header, block.Size(), block.Hash(), gasLimit, gasUsed, ethTxs, bloom, fullTx), nil
 }
 
 // EthHeaderFromTendermint is an util function that returns an Ethereum Header
@@ -152,11 +150,13 @@ func BlockMaxGasFromConsensusParams(_ context.Context, clientCtx clientcontext.C
 // transactions.
 func FormatBlock(
 	header tmtypes.Header, size int, curBlockHash tmbytes.HexBytes, gasLimit int64,
-	gasUsed *big.Int, transactions interface{}, bloom ethtypes.Bloom,
+	gasUsed *big.Int, transactions []*watcher.Transaction, bloom ethtypes.Bloom, fullTx bool,
 ) *watcher.Block {
-	if len(header.DataHash) == 0 {
-		header.DataHash = tmbytes.HexBytes(common.Hash{}.Bytes())
+	transactionsRoot := ethtypes.EmptyRootHash
+	if len(header.DataHash) > 0 {
+		transactionsRoot = common.BytesToHash(header.DataHash)
 	}
+
 	parentHash := header.LastBlockID.Hash
 	if parentHash == nil {
 		parentHash = ethtypes.EmptyRootHash.Bytes()
@@ -168,7 +168,7 @@ func FormatBlock(
 		Nonce:            watcher.BlockNonce{},    // PoW specific
 		UncleHash:        ethtypes.EmptyUncleHash, // No uncles in Tendermint
 		LogsBloom:        bloom,
-		TransactionsRoot: common.BytesToHash(header.DataHash),
+		TransactionsRoot: transactionsRoot,
 		StateRoot:        common.BytesToHash(header.AppHash),
 		Miner:            common.BytesToAddress(header.ProposerAddress),
 		MixHash:          common.Hash{},
@@ -182,10 +182,20 @@ func FormatBlock(
 		Uncles:           []common.Hash{},
 		ReceiptsRoot:     ethtypes.EmptyRootHash,
 	}
-	if !reflect.ValueOf(transactions).IsNil() {
-		ret.Transactions = transactions
+
+	if fullTx {
+		// return empty slice instead of nil for compatibility with Ethereum
+		if len(transactions) == 0 {
+			ret.Transactions = []*watcher.Transaction{}
+		} else {
+			ret.Transactions = transactions
+		}
 	} else {
-		ret.Transactions = []*watcher.Transaction{}
+		txHashes := make([]common.Hash, len(transactions))
+		for i, tx := range transactions {
+			txHashes[i] = tx.Hash
+		}
+		ret.Transactions = txHashes
 	}
 	return ret
 }

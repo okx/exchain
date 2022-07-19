@@ -25,12 +25,14 @@ import (
 	"golang.org/x/time/rate"
 )
 
-var ErrServerBusy = errors.New("server is too busy")
-var ErrMethodNotAllowed = errors.New("the method is not allowed")
+var (
+	ErrServerBusy       = errors.New("server is too busy")
+	ErrMethodNotAllowed = errors.New("the method is not allowed")
+)
 
 // Backend defines the methods requided by the PublicFilterAPI backend
 type Backend interface {
-	GetBlockByNumber(blockNum rpctypes.BlockNumber) (*watcher.Block, error)
+	GetBlockByNumber(blockNum rpctypes.BlockNumber, fullTx bool) (*watcher.Block, error)
 	HeaderByNumber(blockNr rpctypes.BlockNumber) (*ethtypes.Header, error)
 	HeaderByHash(blockHash common.Hash) (*ethtypes.Header, error)
 	GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error)
@@ -41,6 +43,9 @@ type Backend interface {
 	GetBlockHashByHeight(height rpctypes.BlockNumber) (common.Hash, error)
 	GetRateLimiter(apiName string) *rate.Limiter
 	IsDisabled(apiName string) bool
+	// logs limitations
+	LogsLimit() int
+	LogsTimeout() time.Duration
 }
 
 // consider a filter inactive if it has not been polled for within deadline

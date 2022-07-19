@@ -2,9 +2,11 @@ package codec
 
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	cosmoscryptocodec "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/vesting"
 
 	cryptocodec "github.com/okex/exchain/app/crypto/ethsecp256k1"
@@ -28,4 +30,18 @@ func MakeCodec(bm module.BasicManager) *codec.Codec {
 	keys.RegisterCodec(cdc) // temporary. Used to register keyring.Info
 
 	return cdc
+}
+
+func MakeIBC(bm module.BasicManager) types.InterfaceRegistry {
+	interfaceReg := types.NewInterfaceRegistry()
+	bm.RegisterInterfaces(interfaceReg)
+	cosmoscryptocodec.PubKeyRegisterInterfaces(interfaceReg)
+	return interfaceReg
+}
+
+func MakeCodecSuit(bm module.BasicManager) (*codec.CodecProxy, types.InterfaceRegistry) {
+	aminoCodec := MakeCodec(bm)
+	interfaceReg := MakeIBC(bm)
+	protoCdc := codec.NewProtoCodec(interfaceReg)
+	return codec.NewCodecProxy(protoCdc, aminoCodec), interfaceReg
 }

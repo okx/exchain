@@ -5,7 +5,15 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"os"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/client"
+	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
+	ibctx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
+	signingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibcsigning"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -46,6 +54,7 @@ func GenerateOrBroadcastMsgs(cliCtx context.CLIContext, txBldr authtypes.TxBuild
 // sequence set. In addition, it builds and signs a transaction with the
 // supplied messages. Finally, it broadcasts the signed transaction to a node.
 func CompleteAndBroadcastTxCLI(txBldr authtypes.TxBuilder, cliCtx context.CLIContext, msgs []sdk.Msg) error {
+	txConfig := NewPbTxConfig(cliCtx.InterfaceRegistry)
 	txBldr, err := PrepareTxBuilder(txBldr, cliCtx)
 	if err != nil {
 		return err
@@ -66,21 +75,35 @@ func CompleteAndBroadcastTxCLI(txBldr authtypes.TxBuilder, cliCtx context.CLICon
 	if cliCtx.Simulate {
 		return nil
 	}
-
+	txBytes := []byte{}
+	pbtxMsgs, isPbTxMsg := convertIfPbTx(msgs)
 	if !cliCtx.SkipConfirm {
-		stdSignMsg, err := txBldr.BuildSignMsg(msgs)
-		if err != nil {
-			return err
-		}
-
+		var signData interface{}
 		var json []byte
-		if viper.GetBool(flags.FlagIndentResponse) {
-			json, err = cliCtx.Codec.MarshalJSONIndent(stdSignMsg, "", "  ")
+		if isPbTxMsg {
+
+			tx, err := buildUnsignedPbTx(txBldr, txConfig, pbtxMsgs...)
+			if err != nil {
+				return err
+			}
+			json, err = txConfig.TxJSONEncoder()(tx.GetTx())
 			if err != nil {
 				panic(err)
 			}
 		} else {
-			json = cliCtx.Codec.MustMarshalJSON(stdSignMsg)
+			signData, err = txBldr.BuildSignMsg(msgs)
+			if err != nil {
+				return err
+			}
+
+			if viper.GetBool(flags.FlagIndentResponse) {
+				json, err = cliCtx.Codec.MarshalJSONIndent(signData, "", "  ")
+				if err != nil {
+					panic(err)
+				}
+			} else {
+				json = cliCtx.Codec.MustMarshalJSON(signData)
+			}
 		}
 
 		_, _ = fmt.Fprintf(os.Stderr, "%s\n\n", json)
@@ -91,14 +114,21 @@ func CompleteAndBroadcastTxCLI(txBldr authtypes.TxBuilder, cliCtx context.CLICon
 			_, _ = fmt.Fprintf(os.Stderr, "%s\n", "cancelled transaction")
 			return err
 		}
+
 	}
 
-	// build and sign the transaction
-	txBytes, err := txBldr.BuildAndSign(fromName, keys.DefaultKeyPass, msgs)
-	if err != nil {
-		return err
+	if isPbTxMsg {
+		txBytes, err = PbTxBuildAndSign(cliCtx, txConfig, txBldr, keys.DefaultKeyPass, pbtxMsgs)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		// build and sign the transaction
+		txBytes, err = txBldr.BuildAndSign(fromName, keys.DefaultKeyPass, msgs)
+		if err != nil {
+			return err
+		}
 	}
-
 	// broadcast to a Tendermint node
 	res, err := cliCtx.BroadcastTx(txBytes)
 	if err != nil {
@@ -106,6 +136,181 @@ func CompleteAndBroadcastTxCLI(txBldr authtypes.TxBuilder, cliCtx context.CLICon
 	}
 
 	return cliCtx.PrintOutput(res)
+}
+
+func buildUnsignedPbTx(txf authtypes.TxBuilder, txConfig client.TxConfig, msgs ...txmsg.Msg) (client.TxBuilder, error) {
+	if txf.ChainID() == "" {
+		return nil, fmt.Errorf("chain ID required but not specified")
+	}
+
+	fees := txf.Fees()
+
+	if !txf.GasPrices().IsZero() {
+		if !fees.IsZero() {
+			return nil, errors.New("cannot provide both fees and gas prices")
+		}
+
+		glDec := sdk.NewDec(int64(txf.Gas()))
+
+		// Derive the fees based on the provided gas prices, where
+		// fee = ceil(gasPrice * gasLimit).
+		fees = make(sdk.Coins, len(txf.GasPrices()))
+
+		for i, gp := range txf.GasPrices() {
+			fee := gp.Amount.Mul(glDec)
+			fees[i] = sdk.NewCoin(gp.Denom, fee.Ceil().RoundInt())
+		}
+	}
+
+	tx := txConfig.NewTxBuilder()
+
+	if err := tx.SetMsgs(msgs...); err != nil {
+		return nil, err
+	}
+	tx.SetMemo(txf.Memo())
+	coins := []sdk.CoinAdapter{}
+	for _, fee := range txf.Fees() {
+		prec := newCoinFromDec()
+
+		am := sdk.NewIntFromBigInt(fee.Amount.BigInt().Div(fee.Amount.BigInt(), prec))
+
+		coins = append(coins, sdk.NewCoinAdapter(fee.Denom, am))
+	}
+	tx.SetFeeAmount(coins)
+
+	tx.SetGasLimit(txf.Gas())
+	//tx.SetTimeoutHeight(txf.TimeoutHeight())
+
+	return tx, nil
+}
+
+func newCoinFromDec() *big.Int {
+	n := big.Int{}
+	prec, ok := n.SetString(sdk.DefaultDecStr, 10)
+	if !ok {
+		panic(errors.New("newCoinFromDec setstring error"))
+	}
+	return prec
+}
+
+func PbTxBuildAndSign(clientCtx context.CLIContext, txConfig client.TxConfig, txbld authtypes.TxBuilder, passphrase string, msgs []txmsg.Msg) ([]byte, error) {
+	//txb := txConfig.NewTxBuilder()
+	txb, err := buildUnsignedPbTx(txbld, txConfig, msgs...)
+	if err != nil {
+		return nil, err
+	}
+	if !clientCtx.SkipConfirm {
+		out, err := txConfig.TxJSONEncoder()(txb.GetTx())
+		if err != nil {
+			return nil, err
+		}
+
+		_, _ = fmt.Fprintf(os.Stderr, "%s\n\n", out)
+
+		buf := bufio.NewReader(os.Stdin)
+		ok, err := input.GetConfirmation("confirm transaction before signing and broadcasting", buf)
+
+		if err != nil || !ok {
+			_, _ = fmt.Fprintf(os.Stderr, "%s\n", "cancelled transaction")
+			return nil, err
+		}
+	}
+
+	err = signPbTx(txConfig, txbld, clientCtx.GetFromName(), passphrase, &txb, true)
+	if err != nil {
+		return nil, err
+	}
+
+	return txConfig.TxEncoder()(txb.GetTx())
+}
+
+func signPbTx(txConfig client.TxConfig, txf authtypes.TxBuilder, name string, passwd string, pbTxBld *client.TxBuilder, overwriteSig bool) error {
+	if txf.Keybase() == nil {
+		return errors.New("keybase must be set prior to signing a transaction")
+	}
+	signMode := txConfig.SignModeHandler().DefaultMode()
+	privKey, err := txf.Keybase().ExportPrivateKeyObject(name, passwd)
+	if err != nil {
+		return err
+	}
+
+	pubKeyPB := ibctx.LagacyKey2PbKey(privKey.PubKey())
+
+	signerData := signingtypes.SignerData{
+		ChainID:       txf.ChainID(),
+		AccountNumber: txf.AccountNumber(),
+		Sequence:      txf.Sequence(),
+	}
+
+	// For SIGN_MODE_DIRECT, calling SetSignatures calls setSignerInfos on
+	// TxBuilder under the hood, and SignerInfos is needed to generated the
+	// sign bytes. This is the reason for setting SetSignatures here, with a
+	// nil signature.
+	//
+	// Note: this line is not needed for SIGN_MODE_LEGACY_AMINO, but putting it
+	// also doesn't affect its generated sign bytes, so for code's simplicity
+	// sake, we put it here.
+	sigData := signing.SingleSignatureData{
+		SignMode:  signMode,
+		Signature: nil,
+	}
+
+	sig := signing.SignatureV2{
+		PubKey:   pubKeyPB,
+		Data:     &sigData,
+		Sequence: txf.Sequence(),
+	}
+	var prevSignatures []signing.SignatureV2
+	if !overwriteSig {
+		prevSignatures, err = (*pbTxBld).GetTx().GetSignaturesV2()
+		if err != nil {
+			return err
+		}
+	}
+	if err := (*pbTxBld).SetSignatures(sig); err != nil {
+		return err
+	}
+
+	// Generate the bytes to be signed.
+	bytesToSign, err := txConfig.SignModeHandler().GetSignBytes(signMode, signerData, (*pbTxBld).GetTx())
+	if err != nil {
+		return err
+	}
+
+	sigBytes, err := privKey.Sign(bytesToSign)
+	if err != nil {
+		panic(err)
+	}
+	sigData = signing.SingleSignatureData{
+		SignMode:  signMode,
+		Signature: sigBytes,
+	}
+	sig = signing.SignatureV2{
+		PubKey:   pubKeyPB,
+		Data:     &sigData,
+		Sequence: txf.Sequence(),
+	}
+
+	if overwriteSig {
+		return (*pbTxBld).SetSignatures(sig)
+	}
+	prevSignatures = append(prevSignatures, sig)
+
+	return (*pbTxBld).SetSignatures(prevSignatures...)
+}
+
+func convertIfPbTx(msgs []sdk.Msg) ([]txmsg.Msg, bool) {
+	retmsg := []txmsg.Msg{}
+	for _, msg := range msgs {
+		if m, ok := msg.(txmsg.Msg); ok {
+			retmsg = append(retmsg, m)
+		}
+	}
+
+	if len(retmsg) > 0 {
+		return retmsg, true
+	}
+	return nil, false
 }
 
 // EnrichWithGas calculates the gas estimate that would be consumed by the
@@ -141,6 +346,10 @@ func CalculateGas(
 	adjusted := adjustGasEstimate(simRes.GasUsed, adjustment)
 	return simRes, adjusted, nil
 }
+func NewPbTxConfig(reg types2.InterfaceRegistry) client.TxConfig {
+	marshaler := codec.NewProtoCodec(reg)
+	return ibctx.NewTxConfig(marshaler, ibctx.DefaultSignModes)
+}
 
 // PrintUnsignedStdTx builds an unsigned StdTx and prints it to os.Stdout.
 func PrintUnsignedStdTx(txBldr authtypes.TxBuilder, cliCtx context.CLIContext, msgs []sdk.Msg) error {
@@ -150,13 +359,28 @@ func PrintUnsignedStdTx(txBldr authtypes.TxBuilder, cliCtx context.CLIContext, m
 	}
 
 	var json []byte
-	if viper.GetBool(flags.FlagIndentResponse) {
-		json, err = cliCtx.Codec.MarshalJSONIndent(stdTx, "", "  ")
-	} else {
-		json, err = cliCtx.Codec.MarshalJSON(stdTx)
-	}
-	if err != nil {
-		return err
+	pbTxMsgs, isPbTxMsg := convertIfPbTx(msgs)
+	if !cliCtx.SkipConfirm {
+		if isPbTxMsg {
+			txConfig := NewPbTxConfig(cliCtx.InterfaceRegistry)
+			tx, err := buildUnsignedPbTx(txBldr, txConfig, pbTxMsgs...)
+			if err != nil {
+				return err
+			}
+			json, err = txConfig.TxJSONEncoder()(tx.GetTx())
+			if err != nil {
+				return err
+			}
+		} else {
+			if viper.GetBool(flags.FlagIndentResponse) {
+				json, err = cliCtx.Codec.MarshalJSONIndent(stdTx, "", "  ")
+			} else {
+				json, err = cliCtx.Codec.MarshalJSON(stdTx)
+			}
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	_, _ = fmt.Fprintf(cliCtx.Output, "%s\n", json)
@@ -168,27 +392,25 @@ func PrintUnsignedStdTx(txBldr authtypes.TxBuilder, cliCtx context.CLIContext, m
 // Don't perform online validation or lookups if offline is true.
 func SignStdTx(
 	txBldr authtypes.TxBuilder, cliCtx context.CLIContext, name string,
-	stdTx authtypes.StdTx, appendSig bool, offline bool,
-) (authtypes.StdTx, error) {
-
-	var signedStdTx authtypes.StdTx
+	stdTx *authtypes.StdTx, appendSig bool, offline bool,
+) (*authtypes.StdTx, error) {
 
 	info, err := txBldr.Keybase().Get(name)
 	if err != nil {
-		return signedStdTx, err
+		return nil, err
 	}
 
 	addr := info.GetPubKey().Address()
 
 	// check whether the address is a signer
 	if !isTxSigner(sdk.AccAddress(addr), stdTx.GetSigners()) {
-		return signedStdTx, fmt.Errorf("%s: %s", errInvalidSigner, name)
+		return nil, fmt.Errorf("%s: %s", errInvalidSigner, name)
 	}
 
 	if !offline {
 		txBldr, err = populateAccountFromState(txBldr, cliCtx, sdk.AccAddress(addr))
 		if err != nil {
-			return signedStdTx, err
+			return nil, err
 		}
 	}
 
@@ -199,8 +421,8 @@ func SignStdTx(
 // Don't perform online validation or lookups if offline is true, else
 // populate account and sequence numbers from a foreign account.
 func SignStdTxWithSignerAddress(txBldr authtypes.TxBuilder, cliCtx context.CLIContext,
-	addr sdk.AccAddress, name string, stdTx authtypes.StdTx,
-	offline bool) (signedStdTx authtypes.StdTx, err error) {
+	addr sdk.AccAddress, name string, stdTx *authtypes.StdTx,
+	offline bool) (signedStdTx *authtypes.StdTx, err error) {
 
 	// check whether the address is a signer
 	if !isTxSigner(addr, stdTx.GetSigners()) {
@@ -218,8 +440,10 @@ func SignStdTxWithSignerAddress(txBldr authtypes.TxBuilder, cliCtx context.CLICo
 }
 
 // Read and decode a StdTx from the given filename.  Can pass "-" to read from stdin.
-func ReadStdTxFromFile(cdc *codec.Codec, filename string) (stdTx authtypes.StdTx, err error) {
+func ReadStdTxFromFile(cdc *codec.Codec, filename string) (*authtypes.StdTx, error) {
 	var bytes []byte
+	var tx authtypes.StdTx
+	var err error
 
 	if filename == "-" {
 		bytes, err = ioutil.ReadAll(os.Stdin)
@@ -228,14 +452,14 @@ func ReadStdTxFromFile(cdc *codec.Codec, filename string) (stdTx authtypes.StdTx
 	}
 
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	if err = cdc.UnmarshalJSON(bytes, &stdTx); err != nil {
-		return
+	if err = cdc.UnmarshalJSON(bytes, &tx); err != nil {
+		return nil, err
 	}
 
-	return
+	return &tx, nil
 }
 
 func populateAccountFromState(
@@ -334,7 +558,7 @@ func PrepareTxBuilder(txBldr authtypes.TxBuilder, cliCtx context.CLIContext) (au
 	return txBldr, nil
 }
 
-func buildUnsignedStdTxOffline(txBldr authtypes.TxBuilder, cliCtx context.CLIContext, msgs []sdk.Msg) (stdTx authtypes.StdTx, err error) {
+func buildUnsignedStdTxOffline(txBldr authtypes.TxBuilder, cliCtx context.CLIContext, msgs []sdk.Msg) (stdTx *authtypes.StdTx, err error) {
 	if txBldr.SimulateAndExecute() {
 		if cliCtx.GenerateOnly {
 			return stdTx, errors.New("cannot estimate gas with generate-only")

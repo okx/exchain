@@ -3,6 +3,8 @@ package types_test
 import (
 	"math/big"
 
+	types2 "github.com/okex/exchain/libs/tendermint/types"
+
 	"github.com/ethereum/go-ethereum/common"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -13,6 +15,8 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/evm/types"
 )
+
+const maxGasLimitPerTx = 30000000
 
 var (
 	callAddr                  = "0x2B2641734D81a6B93C9aE1Ee6290258FB6666921"
@@ -122,6 +126,7 @@ var (
 //  },
 //]
 func (suite *StateDBTestSuite) TestGetHashFn() {
+	types2.UnittestOnlySetMilestoneMarsHeight(0)
 	testCase := []struct {
 		name         string
 		height       uint64
@@ -132,7 +137,7 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 			"valid hash, case 1",
 			1,
 			func() {
-				suite.ctx = suite.ctx.WithBlockHeader(
+				suite.ctx.SetBlockHeader(
 					abci.Header{
 						ChainID:        "ethermint-1",
 						Height:         1,
@@ -154,7 +159,7 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 			"valid hash, case 2",
 			1,
 			func() {
-				suite.ctx = suite.ctx.WithBlockHeader(
+				suite.ctx.SetBlockHeader(
 					abci.Header{
 						ChainID:        "ethermint-1",
 						Height:         100,
@@ -170,7 +175,7 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 			"height not found, case 2",
 			1,
 			func() {
-				suite.ctx = suite.ctx.WithBlockHeader(
+				suite.ctx.SetBlockHeader(
 					abci.Header{
 						ChainID:        "ethermint-1",
 						Height:         100,
@@ -184,7 +189,7 @@ func (suite *StateDBTestSuite) TestGetHashFn() {
 			"empty hash, case 3",
 			1000,
 			func() {
-				suite.ctx = suite.ctx.WithBlockHeader(
+				suite.ctx.SetBlockHeader(
 					abci.Header{
 						ChainID:        "ethermint-1",
 						Height:         100,
@@ -290,7 +295,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 		{
 			"call disabled",
 			func() {
-				params := types.NewParams(true, false, false, false, types.DefaultMaxGasLimitPerTx)
+				params := types.NewParams(true, false, false, false, maxGasLimitPerTx)
 				suite.stateDB.SetParams(params)
 			},
 			types.StateTransition{
@@ -311,7 +316,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 		{
 			"create disabled",
 			func() {
-				params := types.NewParams(false, true, false, false, types.DefaultMaxGasLimitPerTx)
+				params := types.NewParams(false, true, false, false, maxGasLimitPerTx)
 				suite.stateDB.SetParams(params)
 			},
 			types.StateTransition{
@@ -336,7 +341,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 				invalidGas := sdk.DecCoins{
 					{Denom: ethermint.NativeToken},
 				}
-				suite.ctx = suite.ctx.WithMinGasPrices(invalidGas)
+				suite.ctx.SetMinGasPrices(invalidGas)
 			},
 			types.StateTransition{
 				AccountNonce: 123,
@@ -356,7 +361,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 		{
 			"state transition simulation",
 			func() {
-				params := types.NewParams(false, true, false, false, types.DefaultMaxGasLimitPerTx)
+				params := types.NewParams(false, true, false, false, maxGasLimitPerTx)
 				suite.stateDB.SetParams(params)
 			},
 			types.StateTransition{
@@ -377,7 +382,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 		{
 			"contract failed call addr is blocked",
 			func() {
-				params := types.NewParams(false, true, false, true, types.DefaultMaxGasLimitPerTx)
+				params := types.NewParams(false, true, false, true, maxGasLimitPerTx)
 				suite.stateDB.SetParams(params)
 
 				suite.stateDB.SetCode(common.BytesToAddress(callAcc.Bytes()), callBuffer)
@@ -403,7 +408,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 		{
 			"contract failed call contract method blocked",
 			func() {
-				params := types.NewParams(false, true, false, true, types.DefaultMaxGasLimitPerTx)
+				params := types.NewParams(false, true, false, true, maxGasLimitPerTx)
 				suite.stateDB.SetParams(params)
 				suite.stateDB.SetCode(common.BytesToAddress(callAcc.Bytes()), callBuffer)
 				suite.stateDB.SetCode(common.BytesToAddress(blockedAcc.Bytes()), blockedBuffer)
@@ -427,7 +432,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 		{
 			"contract failed callcode contract method blocked",
 			func() {
-				params := types.NewParams(false, true, false, true, types.DefaultMaxGasLimitPerTx)
+				params := types.NewParams(false, true, false, true, maxGasLimitPerTx)
 				suite.stateDB.SetParams(params)
 				suite.stateDB.SetCode(common.BytesToAddress(callAcc.Bytes()), callBuffer)
 				suite.stateDB.SetCode(common.BytesToAddress(blockedAcc.Bytes()), blockedBuffer)
@@ -451,7 +456,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 		{
 			"contract failed delegate call contract method blocked",
 			func() {
-				params := types.NewParams(false, true, false, true, types.DefaultMaxGasLimitPerTx)
+				params := types.NewParams(false, true, false, true, maxGasLimitPerTx)
 				suite.stateDB.SetParams(params)
 				suite.stateDB.SetCode(common.BytesToAddress(callAcc.Bytes()), callBuffer)
 				suite.stateDB.SetCode(common.BytesToAddress(blockedAcc.Bytes()), blockedBuffer)
@@ -475,7 +480,7 @@ func (suite *StateDBTestSuite) TestTransitionDb() {
 		{
 			"contract failed selfdestruct contract method blocked",
 			func() {
-				params := types.NewParams(false, true, false, true, types.DefaultMaxGasLimitPerTx)
+				params := types.NewParams(false, true, false, true, maxGasLimitPerTx)
 				suite.stateDB.SetParams(params)
 
 				suite.stateDB.CreateAccount(callEthAcc)

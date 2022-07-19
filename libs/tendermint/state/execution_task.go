@@ -3,11 +3,12 @@ package state
 import (
 	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/libs/system/trace"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/proxy"
-	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
@@ -28,7 +29,6 @@ type executionTask struct {
 	db             dbm.DB
 	logger         log.Logger
 	blockHash      string
-	isParalleledTx bool
 }
 
 func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64) *executionTask {
@@ -40,7 +40,6 @@ func newExecutionTask(blockExec *BlockExecutor, block *types.Block, index int64)
 		logger:         blockExec.logger,
 		taskResultChan: blockExec.prerunCtx.taskResultChan,
 		index:          index,
-		isParalleledTx: blockExec.isAsync,
 	}
 	ret.blockHash = hex.EncodeToString(block.Hash())
 
@@ -68,14 +67,20 @@ func (t *executionTask) stop() {
 
 func (t *executionTask) run() {
 	t.dump("Start prerun")
-	trc := trace.NewTracer(fmt.Sprintf("num<%d>, lastRun", t.index))
+	trc := trace.NewTracer("lastRun")
 
 	var abciResponses *ABCIResponses
 	var err error
 
-	if t.isParalleledTx {
+	mode := DeliverTxsExecMode(cfg.DynamicConfig.GetDeliverTxsExecuteMode())
+	switch mode {
+	case DeliverTxsExecModeSerial:
+		abciResponses, err = execBlockOnProxyApp(t)
+	case DeliverTxsExecModePartConcurrent:
+		abciResponses, err = execBlockOnProxyAppPartConcurrent(t.logger, t.proxyApp, t.block, t.db)
+	case DeliverTxsExecModeParallel:
 		abciResponses, err = execBlockOnProxyAppAsync(t.logger, t.proxyApp, t.block, t.db)
-	} else {
+	default:
 		abciResponses, err = execBlockOnProxyApp(t)
 	}
 
@@ -83,7 +88,7 @@ func (t *executionTask) run() {
 		t.result = &executionResult{
 			abciResponses, err,
 		}
-		trace.GetElapsedInfo().AddInfo(trace.Prerun, trc.Format())
+		trace.GetElapsedInfo().AddInfo(trace.Prerun, fmt.Sprintf("num<%d>, lastRun<%s>", t.index, trc.Format()))
 	}
 	automation.PrerunTimeOut(t.block.Height, int(t.index)-1)
 	t.dump("Prerun completed")

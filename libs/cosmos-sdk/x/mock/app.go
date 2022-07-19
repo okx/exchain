@@ -7,6 +7,9 @@ import (
 	"os"
 	"sort"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
@@ -29,9 +32,10 @@ const chainID = ""
 // capabilities aren't needed for testing.
 type App struct {
 	*bam.BaseApp
-	Cdc        *codec.Codec // Cdc is public since the codec is passed into the module anyways
+	Cdc        *codec.CodecProxy // Cdc is public since the codec is passed into the module anyways
 	KeyMain    *sdk.KVStoreKey
 	KeyAccount *sdk.KVStoreKey
+	KeyAccMpt  *sdk.KVStoreKey
 	KeyParams  *sdk.KVStoreKey
 	TKeyParams *sdk.TransientStoreKey
 
@@ -50,25 +54,28 @@ func NewApp() *App {
 	db := dbm.NewMemDB()
 
 	// Create the cdc with some standard codecs
-	cdc := createCodec()
+	cdcP := createCodec()
+	cdc := cdcP.GetCdc()
 
 	// Create your application object
 	app := &App{
 		BaseApp:          bam.NewBaseApp("mock", logger, db, auth.DefaultTxDecoder(cdc)),
-		Cdc:              cdc,
+		Cdc:              cdcP,
 		KeyMain:          sdk.NewKVStoreKey(bam.MainStoreKey),
 		KeyAccount:       sdk.NewKVStoreKey(auth.StoreKey),
+		KeyAccMpt:        sdk.NewKVStoreKey(mpt.StoreKey),
 		KeyParams:        sdk.NewKVStoreKey("params"),
 		TKeyParams:       sdk.NewTransientStoreKey("transient_params"),
 		TotalCoinsSupply: sdk.NewCoins(),
 	}
 
 	// define keepers
-	app.ParamsKeeper = params.NewKeeper(app.Cdc, app.KeyParams, app.TKeyParams)
+	app.ParamsKeeper = params.NewKeeper(app.Cdc.GetCdc(), app.KeyParams, app.TKeyParams)
 
 	app.AccountKeeper = auth.NewAccountKeeper(
-		app.Cdc,
+		app.Cdc.GetCdc(),
 		app.KeyAccount,
+		app.KeyAccMpt,
 		app.ParamsKeeper.Subspace(auth.DefaultParamspace),
 		auth.ProtoBaseAccount,
 	)
@@ -96,7 +103,11 @@ func (app *App) CompleteSetup(newKeys ...sdk.StoreKey) error {
 	for _, key := range newKeys {
 		switch key.(type) {
 		case *sdk.KVStoreKey:
-			app.MountStore(key, sdk.StoreTypeIAVL)
+			if key.Name() == mpt.StoreKey {
+				app.MountStore(key, sdk.StoreTypeMPT)
+			} else {
+				app.MountStore(key, sdk.StoreTypeIAVL)
+			}
 		case *sdk.TransientStoreKey:
 			app.MountStore(key, sdk.StoreTypeTransient)
 		default:
@@ -206,7 +217,7 @@ func SetGenesis(app *App, accs []authexported.Account) {
 }
 
 // GenTx generates a signed mock transaction.
-func GenTx(msgs []sdk.Msg, accnums []uint64, seq []uint64, priv ...crypto.PrivKey) auth.StdTx {
+func GenTx(msgs []sdk.Msg, accnums []uint64, seq []uint64, priv ...crypto.PrivKey) *auth.StdTx {
 	// Make the transaction free
 	fee := auth.StdFee{
 		Amount: sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 1)),
@@ -308,10 +319,12 @@ func RandomSetGenesis(r *rand.Rand, app *App, addrs []sdk.AccAddress, denoms []s
 	app.GenesisAccounts = accts
 }
 
-func createCodec() *codec.Codec {
+func createCodec() *codec.CodecProxy {
 	cdc := codec.New()
 	sdk.RegisterCodec(cdc)
 	codec.RegisterCrypto(cdc)
 	auth.RegisterCodec(cdc)
-	return cdc
+	reg := types.NewInterfaceRegistry()
+	proc := codec.NewProtoCodec(reg)
+	return codec.NewCodecProxy(proc, cdc)
 }

@@ -8,6 +8,8 @@ import (
 	"math"
 	"strings"
 
+	"github.com/gogo/protobuf/proto"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/tendermint/go-amino"
 
@@ -106,7 +108,7 @@ func NewABCIMessageLog(i uint16, log string, events Events) ABCIMessageLog {
 	return ABCIMessageLog{
 		MsgIndex: i,
 		Log:      log,
-		Events:   StringifyEvents(events.ToABCIEvents()),
+		Events:   StringifyEvents(events),
 	}
 }
 
@@ -359,4 +361,31 @@ func NewSearchTxsResult(totalCount, count, page, limit int, txs []TxResponse) Se
 func ParseABCILogs(logs string) (res ABCIMessageLogs, err error) {
 	err = json.Unmarshal([]byte(logs), &res)
 	return res, err
+}
+
+// WrapServiceResult wraps a result from a protobuf RPC service method call in
+// a Result object or error. This method takes care of marshaling the res param to
+// protobuf and attaching any events on the ctx.EventManager() to the Result.
+func WrapServiceResult(ctx Context, res proto.Message, err error) (*Result, error) {
+	if err != nil {
+		return nil, err
+	}
+
+	var data []byte
+	if res != nil {
+		data, err = proto.Marshal(res)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var events []Event
+	if evtMgr := ctx.EventManager(); evtMgr != nil {
+		events = evtMgr.Events()
+	}
+
+	return &Result{
+		Data:   data,
+		Events: events,
+	}, nil
 }

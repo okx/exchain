@@ -5,6 +5,9 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"strings"
+	"testing"
+
 	"github.com/ethereum/go-ethereum/accounts"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -12,13 +15,11 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/crypto/hd"
-	"github.com/okex/exchain/app/rpc/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmamino "github.com/okex/exchain/libs/tendermint/crypto/encoding/amino"
+	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/stretchr/testify/require"
-	"strings"
-	"testing"
 )
 
 const (
@@ -80,6 +81,8 @@ var (
 	hexAddr1, hexAddr2 ethcmn.Address
 	addrCounter        = 2
 	defaultGasPrice    sdk.SysCoin
+	genesisAcc         sdk.AccAddress
+	senderAddr         ethcmn.Address
 )
 
 func init() {
@@ -94,12 +97,6 @@ func init() {
 	defaultGasPrice, _ = sdk.ParseDecCoin(defaultMinGasPrice)
 }
 
-func TestGetAddress(t *testing.T) {
-	addr, err := GetAddress()
-	require.NoError(t, err)
-	require.True(t, bytes.Equal(addr, hexAddr1[:]))
-}
-
 func createAccountWithMnemo(mnemonic, name, passWd string) (info keys.Info, err error) {
 	hdPath := keys.CreateHDPath(0, 0).String()
 	info, err = Kb.CreateAccount(name, mnemonic, "", passWd, hdPath, hd.EthSecp256k1)
@@ -111,7 +108,7 @@ func createAccountWithMnemo(mnemonic, name, passWd string) (info keys.Info, err 
 }
 
 // sendTestTransaction sends a dummy transaction
-func sendTestTransaction(t *testing.T, senderAddr, receiverAddr ethcmn.Address, value uint) ethcmn.Hash {
+func sendTestTransaction(t *testing.T, netAddr string, senderAddr, receiverAddr ethcmn.Address, value uint) ethcmn.Hash {
 	fromAddrStr, toAddrStr := senderAddr.Hex(), receiverAddr.Hex()
 	param := make([]map[string]string, 1)
 	param[0] = make(map[string]string)
@@ -119,7 +116,7 @@ func sendTestTransaction(t *testing.T, senderAddr, receiverAddr ethcmn.Address, 
 	param[0]["to"] = toAddrStr
 	param[0]["value"] = hexutil.Uint(value).String()
 	param[0]["gasPrice"] = (*hexutil.Big)(defaultGasPrice.Amount.BigInt()).String()
-	rpcRes := Call(t, "eth_sendTransaction", param)
+	rpcRes := Call(t, netAddr, "eth_sendTransaction", param)
 
 	var hash ethcmn.Hash
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &hash))
@@ -128,7 +125,7 @@ func sendTestTransaction(t *testing.T, senderAddr, receiverAddr ethcmn.Address, 
 }
 
 // deployTestContract deploys a contract that emits an event in the constructor
-func deployTestContract(t *testing.T, senderAddr ethcmn.Address, kind int) (ethcmn.Hash, map[string]interface{}) {
+func deployTestContract(suite *RPCTestSuite, netAddr string, senderAddr ethcmn.Address, kind int) (ethcmn.Hash, map[string]interface{}) {
 	fromAddrStr := senderAddr.Hex()
 	param := make([]map[string]string, 1)
 	param[0] = make(map[string]string)
@@ -143,21 +140,24 @@ func deployTestContract(t *testing.T, senderAddr ethcmn.Address, kind int) (ethc
 		panic("unsupported contract kind")
 	}
 
-	rpcRes := Call(t, "eth_sendTransaction", param)
+	rpcRes := Call(suite.T(), netAddr, "eth_sendTransaction", param)
 
 	var hash ethcmn.Hash
-	require.NoError(t, json.Unmarshal(rpcRes.Result, &hash))
+	require.NoError(suite.T(), json.Unmarshal(rpcRes.Result, &hash))
 
-	receipt := WaitForReceipt(t, hash)
-	require.NotNil(t, receipt, "transaction failed")
-	require.Equal(t, "0x1", receipt["status"].(string))
-	t.Logf("%s has deployed a contract %s with tx hash %s successfully\n", fromAddrStr, receipt["contractAddress"], hash.Hex())
+	commitBlock(suite)
+	commitBlock(suite)
+
+	receipt := WaitForReceipt(suite.T(), suite.addr, hash)
+	require.NotNil(suite.T(), receipt, "transaction failed")
+	require.Equal(suite.T(), "0x1", receipt["status"].(string))
+	//t.Logf("%s has deployed a contract %s with tx hash %s successfully\n", fromAddrStr, receipt["contractAddress"], hash.Hex())
 	return hash, receipt
 }
 
-func getBlockHeightFromTxHash(t *testing.T, hash ethcmn.Hash) hexutil.Uint64 {
-	rpcRes := Call(t, "eth_getTransactionByHash", []interface{}{hash})
-	var transaction types.Transaction
+func getBlockHeightFromTxHash(t *testing.T, netAddr string, hash ethcmn.Hash) hexutil.Uint64 {
+	rpcRes := Call(t, netAddr, "eth_getTransactionByHash", []interface{}{hash})
+	var transaction watcher.Transaction
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &transaction))
 
 	if transaction.BlockNumber == nil {
@@ -167,9 +167,9 @@ func getBlockHeightFromTxHash(t *testing.T, hash ethcmn.Hash) hexutil.Uint64 {
 	return hexutil.Uint64(transaction.BlockNumber.ToInt().Uint64())
 }
 
-func getBlockHashFromTxHash(t *testing.T, hash ethcmn.Hash) *ethcmn.Hash {
-	rpcRes := Call(t, "eth_getTransactionByHash", []interface{}{hash})
-	var transaction types.Transaction
+func getBlockHashFromTxHash(t *testing.T, netAddr string, hash ethcmn.Hash) *ethcmn.Hash {
+	rpcRes := Call(t, netAddr, "eth_getTransactionByHash", []interface{}{hash})
+	var transaction watcher.Transaction
 	require.NoError(t, json.Unmarshal(rpcRes.Result, &transaction))
 
 	return transaction.BlockHash

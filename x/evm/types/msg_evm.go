@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"sync"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -24,6 +25,7 @@ var (
 	_ ante.FeeTx = (*MsgEthereumTx)(nil)
 )
 
+var big2 = big.NewInt(2)
 var big8 = big.NewInt(8)
 var DefaultDeployContractFnSignature = ethcmn.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001")
 var DefaultSendCoinFnSignature = ethcmn.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000010")
@@ -53,9 +55,13 @@ func (tx *MsgEthereumTx) SetFrom(addr string) {
 func (tx *MsgEthereumTx) GetFrom() string {
 	from := tx.BaseTx.GetFrom()
 	if from == "" {
-		from, _ = tmtypes.SignatureCache().Get(string(tx.TxHash()))
+		from, _ = tmtypes.SignatureCache().Get(tx.TxHash())
 		if from == "" {
-			from, _ = tx.firstVerifySig(tx.ChainID())
+			from, err := tx.firstVerifySig(tx.ChainID())
+			if err != nil {
+				tmtypes.SignatureCache().Add(tx.TxHash(), from)
+				tx.BaseTx.From = from
+			}
 		}
 	}
 
@@ -72,8 +78,7 @@ func (msg *MsgEthereumTx) GetFee() sdk.Coins {
 	return fee
 }
 
-func (msg *MsgEthereumTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
-
+func (msg MsgEthereumTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
 	err := msg.VerifySig(msg.ChainID(), ctx.BlockHeight())
 	if err != nil {
 		return nil
@@ -180,18 +185,45 @@ func (msg *MsgEthereumTx) GetSignBytes() []byte {
 	panic("must use 'RLPSignBytes' with a chain ID to get the valid bytes to sign")
 }
 
+type rlpHashData struct {
+	Params [9]interface{}
+	Hash   ethcmn.Hash
+
+	GasLimit uint64
+	Payload  []byte
+
+	ParamsSlice interface{}
+}
+
+var rlpHashDataPool = &sync.Pool{
+	New: func() interface{} {
+		data := &rlpHashData{}
+		data.ParamsSlice = data.Params[:]
+		return data
+	},
+}
+
 // RLPSignBytes returns the RLP hash of an Ethereum transaction message with a
 // given chainID used for signing.
-func (msg *MsgEthereumTx) RLPSignBytes(chainID *big.Int) ethcmn.Hash {
-	return rlpHash([]interface{}{
-		msg.Data.AccountNonce,
-		msg.Data.Price,
-		msg.Data.GasLimit,
-		msg.Data.Recipient,
-		msg.Data.Amount,
-		msg.Data.Payload,
-		chainID, uint(0), uint(0),
-	})
+func (msg *MsgEthereumTx) RLPSignBytes(chainID *big.Int) (h ethcmn.Hash) {
+	rlpData := rlpHashDataPool.Get().(*rlpHashData)
+	rlpData.GasLimit = msg.Data.GasLimit
+	rlpData.Payload = msg.Data.Payload
+
+	rlpParams := &rlpData.Params
+	rlpParams[0] = msg.Data.AccountNonce
+	rlpParams[1] = msg.Data.Price
+	rlpParams[2] = &rlpData.GasLimit
+	rlpParams[3] = msg.Data.Recipient
+	rlpParams[4] = msg.Data.Amount
+	rlpParams[5] = &rlpData.Payload
+	rlpParams[6] = chainID
+	rlpParams[7] = uint(0)
+	rlpParams[8] = uint(0)
+	rlpHashTo(rlpData.ParamsSlice, &rlpData.Hash)
+	h = rlpData.Hash
+	rlpHashDataPool.Put(rlpData)
+	return
 }
 
 // Hash returns the hash to be signed by the sender.
@@ -263,6 +295,12 @@ func (msg *MsgEthereumTx) Sign(chainID *big.Int, priv *ecdsa.PrivateKey) error {
 	return nil
 }
 
+var sigBigNumPool = &sync.Pool{
+	New: func() interface{} {
+		return new(big.Int)
+	},
+}
+
 func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (string, error) {
 	var V *big.Int
 	var sigHash ethcmn.Hash
@@ -272,8 +310,13 @@ func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (string, error) {
 			return "", errors.New("chainID cannot be zero")
 		}
 
-		chainIDMul := new(big.Int).Mul(chainID, big.NewInt(2))
-		V = new(big.Int).Sub(msg.Data.V, chainIDMul)
+		bigNum := sigBigNumPool.Get().(*big.Int)
+		defer sigBigNumPool.Put(bigNum)
+		chainIDMul := bigNum.Mul(chainID, big2)
+		V = chainIDMul.Sub(msg.Data.V, chainIDMul)
+
+		// chainIDMul := new(big.Int).Mul(chainID, big2)
+		// V = new(big.Int).Sub(msg.Data.V, chainIDMul)
 		V.Sub(V, big8)
 
 		sigHash = msg.RLPSignBytes(chainID)
@@ -283,11 +326,11 @@ func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (string, error) {
 		sigHash = msg.HomesteadSignHash()
 	}
 
-	sender, err := recoverEthSig(msg.Data.R, msg.Data.S, V, sigHash)
+	sender, err := recoverEthSig(msg.Data.R, msg.Data.S, V, &sigHash)
 	if err != nil {
 		return "", err
 	}
-	return sender.String(), nil
+	return EthAddressToString(&sender), nil
 }
 
 // VerifySig attempts to verify a Transaction's signature for a given chainID.
@@ -299,7 +342,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) error {
 	if msg.BaseTx.GetFrom() != "" {
 		return nil
 	}
-	from, ok := tmtypes.SignatureCache().Get(string(msg.TxHash()))
+	from, ok := tmtypes.SignatureCache().Get(msg.TxHash())
 	if ok {
 		msg.BaseTx.From = from
 		return nil
@@ -308,7 +351,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) error {
 	if err != nil {
 		return err
 	}
-	tmtypes.SignatureCache().Add(string(msg.TxHash()), from)
+	tmtypes.SignatureCache().Add(msg.TxHash(), from)
 	msg.BaseTx.From = from
 	return nil
 }

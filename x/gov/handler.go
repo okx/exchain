@@ -13,7 +13,7 @@ import (
 // NewHandler handle all "gov" type messages.
 func NewHandler(keeper Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
-		ctx = ctx.WithEventManager(sdk.NewEventManager())
+		ctx.SetEventManager(sdk.NewEventManager())
 
 		switch msg := msg.(type) {
 		case MsgDeposit:
@@ -24,7 +24,6 @@ func NewHandler(keeper Keeper) sdk.Handler {
 
 		case MsgVote:
 			return handleMsgVote(ctx, keeper, msg)
-
 		default:
 			errMsg := fmt.Sprintf("unrecognized gov message type: %T", msg)
 			return sdk.ErrUnknownRequest(errMsg).Result()

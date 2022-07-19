@@ -1,6 +1,7 @@
 package types_test
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -84,7 +85,7 @@ func TestLogContext(t *testing.T) {
 	key := types.NewKVStoreKey(t.Name())
 	ctx := defaultContext(key)
 	logger := NewMockLogger()
-	ctx = ctx.WithLogger(logger)
+	ctx.SetLogger(logger)
 	ctx.Logger().Debug("debug")
 	ctx.Logger().Info("info")
 	ctx.Logger().Error("error")
@@ -115,13 +116,14 @@ func TestContextWithCustom(t *testing.T) {
 	ctx = types.NewContext(nil, header, ischeck, logger)
 	require.Equal(t, header, ctx.BlockHeader())
 
-	ctx = ctx.
-		WithBlockHeight(height).
-		WithChainID(chainid).
-		WithTxBytes(txbytes).
-		WithVoteInfos(voteinfos).
-		WithGasMeter(meter).
-		WithMinGasPrices(minGasPrices)
+	ctx.
+		SetBlockHeight(height).
+		SetChainID(chainid).
+		SetTxBytes(txbytes).
+		SetVoteInfos(voteinfos).
+		SetGasMeter(meter).
+		SetMinGasPrices(minGasPrices)
+
 	require.Equal(t, height, ctx.BlockHeight())
 	require.Equal(t, chainid, ctx.ChainID())
 	require.Equal(t, ischeck, ctx.IsCheckTx())
@@ -143,10 +145,11 @@ func TestContextHeader(t *testing.T) {
 
 	ctx = types.NewContext(nil, abci.Header{}, false, nil)
 
-	ctx = ctx.
-		WithBlockHeight(height).
-		WithBlockTime(time).
-		WithProposer(proposer)
+	ctx.
+		SetBlockHeight(height).
+		SetBlockTime(time).
+		SetProposer(proposer)
+
 	require.Equal(t, height, ctx.BlockHeight())
 	require.Equal(t, height, ctx.BlockHeader().Height)
 	require.Equal(t, time.UTC(), ctx.BlockHeader().Time)
@@ -202,9 +205,116 @@ func TestContextHeaderClone(t *testing.T) {
 
 			// update only changes one field
 			var newHeight int64 = 17
-			ctx = ctx.WithBlockHeight(newHeight)
+			ctx.SetBlockHeight(newHeight)
 			require.Equal(t, newHeight, ctx.BlockHeight())
 			require.Equal(t, tc.h.Time.UTC(), ctx.BlockTime())
 		})
 	}
+}
+
+//go:noinline
+func testFoo(ctx types.Context) int {
+	return len(ctx.From())
+}
+
+func BenchmarkContextDuffCopy(b *testing.B) {
+	ctx := types.NewContext(nil, abci.Header{}, false, nil)
+	b.Run("1", func(b *testing.B) {
+		b.Run("with", func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				ctx = ctx.WithIsCheckTx(true)
+				testFoo(ctx)
+			}
+		})
+		b.Run("set", func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				ctx.SetIsCheckTx(true)
+				testFoo(ctx)
+			}
+		})
+	})
+
+	b.Run("2", func(b *testing.B) {
+		b.Run("with", func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				newCtx := ctx.WithIsCheckTx(true)
+				testFoo(newCtx)
+			}
+		})
+		b.Run("set", func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				newCtx := ctx
+				newCtx.SetIsCheckTx(true)
+				testFoo(newCtx)
+			}
+		})
+	})
+
+	b.Run("3", func(b *testing.B) {
+		b.Run("with", func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				testFoo(ctx.WithIsCheckTx(true))
+			}
+		})
+		b.Run("set", func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				newCtx := ctx
+				newCtx.SetIsCheckTx(true)
+				testFoo(newCtx)
+			}
+		})
+	})
+
+	b.Run("4", func(b *testing.B) {
+		b.Run("with", func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				testFoo(ctx.WithIsCheckTx(true).WithIsReCheckTx(false))
+			}
+		})
+		b.Run("set", func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				newCtx := ctx
+				newCtx.SetIsCheckTx(true).SetIsReCheckTx(false)
+				testFoo(newCtx)
+			}
+		})
+	})
+}
+
+func BenchmarkContextWrapAndUnwrap(b *testing.B) {
+	key := types.NewKVStoreKey(b.Name())
+
+	ctx := defaultContext(key)
+	logger := NewMockLogger()
+	ctx.SetLogger(logger)
+
+	height := int64(1)
+	chainid := "chainid"
+	txbytes := []byte("txbytes")
+	voteinfos := []abci.VoteInfo{{}}
+	meter := types.NewGasMeter(10000)
+	minGasPrices := types.DecCoins{types.NewInt64DecCoin("feetoken", 1)}
+	ctx.
+		SetBlockHeight(height).
+		SetChainID(chainid).
+		SetTxBytes(txbytes).
+		SetVoteInfos(voteinfos).
+		SetGasMeter(meter).
+		SetMinGasPrices(minGasPrices).SetContext(context.Background())
+	ctxC := types.WrapSDKContext(ctx)
+	b.Run("UnwrapSDKContext", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			types.UnwrapSDKContext(ctxC)
+		}
+	})
+
+	b.Run("WrapSDKContext", func(b *testing.B) {
+		b.ResetTimer()
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			types.WrapSDKContext(ctx)
+		}
+	})
 }

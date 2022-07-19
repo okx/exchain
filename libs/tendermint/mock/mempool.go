@@ -3,12 +3,12 @@ package mock
 import (
 	"crypto/sha256"
 	"fmt"
+	"github.com/okex/exchain/libs/system/trace"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
 	mempl "github.com/okex/exchain/libs/tendermint/mempool"
-	"github.com/okex/exchain/libs/tendermint/trace"
 	"github.com/okex/exchain/libs/tendermint/types"
 )
 
@@ -37,7 +37,7 @@ func (Mempool) ReapMaxTxs(n int) types.Txs                    { return types.Txs
 func (Mempool) ReapUserTxsCnt(address string) int             { return 0 }
 func (Mempool) GetUserPendingTxsCnt(address string) int       { return 0 }
 func (Mempool) ReapUserTxs(address string, max int) types.Txs { return types.Txs{} }
-func (Mempool) GetPendingNonce(address string) uint64         { return 0 }
+func (Mempool) GetPendingNonce(address string) (uint64, bool) { return 0, true }
 func (Mempool) Update(
 	_ int64,
 	txs types.Txs,

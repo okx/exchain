@@ -13,17 +13,20 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
-	"github.com/okex/exchain/libs/system"
-	"github.com/okex/exchain/libs/tendermint/state"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
+	sdkstoretypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmiavl "github.com/okex/exchain/libs/iavl"
+	"github.com/okex/exchain/libs/system"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cmn "github.com/okex/exchain/libs/tendermint/libs/os"
+	"github.com/okex/exchain/libs/tendermint/state"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // exchain full-node start flags
@@ -35,7 +38,6 @@ const (
 	FlagCORS               = "cors"
 	FlagMaxOpenConnections = "max-open"
 	FlagHookstartInProcess = "startInProcess"
-	FlagWebsocket          = "wsport"
 	FlagWsMaxConnections   = "ws.max_connections"
 	FlagWsSubChannelLength = "ws.sub_channel_length"
 )
@@ -187,28 +189,33 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Int(tmtypes.FlagBufferSize, 10, "delta buffer size")
 	cmd.Flags().String(FlagLogServerUrl, "", "log server url")
 	cmd.Flags().Int(tmtypes.FlagDeltaVersion, tmtypes.DeltaVersion, "Specify delta version")
+	cmd.Flags().Int(tmtypes.FlagBlockCompressType, 0, "block compress type. 0|1|2|3")
+	cmd.Flags().Int(tmtypes.FlagBlockCompressFlag, 0, "block compress flag. 0|1|2")
+	cmd.Flags().Int(tmtypes.FlagBlockCompressThreshold, 1024000, "Compress only if block size exceeds the threshold.")
+	cmd.Flags().Bool(FlagActiveViewChange, false, "Enable active view change")
 
 	cmd.Flags().Int(iavl.FlagIavlCacheSize, 1000000, "Max size of iavl cache")
-	cmd.Flags().Float64(tmiavl.FlagIavlCacheInitRatio, 0, "iavl cache init ratio, 0.0~1.0, default is 0, iavl cache map would be init with (cache size * init ratio)")
+	cmd.Flags().Float64(tmiavl.FlagIavlCacheInitRatio, 1, "iavl cache init ratio, 0.0~1.0, default is 0, iavl cache map would be init with (cache size * init ratio)")
 	cmd.Flags().StringToInt(tmiavl.FlagOutputModules, map[string]int{"evm": 1, "acc": 1}, "decide which module in iavl to be printed")
 	cmd.Flags().Int64(tmiavl.FlagIavlCommitIntervalHeight, 100, "Max interval to commit node cache into leveldb")
-	cmd.Flags().Int64(tmiavl.FlagIavlMinCommitItemCount, 500000, "Min nodes num to triggle node cache commit")
+	cmd.Flags().Int64(tmiavl.FlagIavlMinCommitItemCount, 1000000, "Min nodes num to triggle node cache commit")
 	cmd.Flags().Int(tmiavl.FlagIavlHeightOrphansCacheSize, 8, "Max orphan version to cache in memory")
 	cmd.Flags().Int(tmiavl.FlagIavlMaxCommittedHeightNum, 30, "Max committed version to cache in memory")
 	cmd.Flags().Bool(tmiavl.FlagIavlEnableAsyncCommit, false, "Enable async commit")
 	cmd.Flags().Bool(abci.FlagDisableABCIQueryMutex, false, "Disable local client query mutex for better concurrency")
 	cmd.Flags().Bool(abci.FlagDisableCheckTx, false, "Disable checkTx for test")
+	cmd.Flags().Bool(sdkstoretypes.FlagLoadVersionAsync, false, "Enable async for each kvstore to load version")
 	cmd.Flags().MarkHidden(abci.FlagDisableCheckTx)
 	cmd.Flags().Bool(abci.FlagCloseMutex, false, fmt.Sprintf("Deprecated in v0.19.13 version, use --%s instead.", abci.FlagDisableABCIQueryMutex))
 	cmd.Flags().MarkHidden(abci.FlagCloseMutex)
 	cmd.Flags().Bool(FlagExportKeystore, false, "export keystore file when call newaccount ")
 	cmd.Flags().Bool(system.FlagEnableGid, false, "Display goroutine id in log")
-
+	cmd.Flags().Int(FlagBlockPartSizeBytes, 65536, "Size of one block part by byte")
 	cmd.Flags().Int(state.FlagApplyBlockPprofTime, -1, "time(ms) of executing ApplyBlock, if it is higher than this value, save pprof")
 
 	cmd.Flags().Float64Var(&baseapp.GasUsedFactor, baseapp.FlagGasUsedFactor, 0.4, "factor to calculate history gas used")
 
-	cmd.Flags().Bool(sdk.FlagMultiCache, false, "Enable multi cache")
+	cmd.Flags().Bool(sdk.FlagMultiCache, true, "Enable multi cache")
 	cmd.Flags().Int(sdk.MaxAccInMultiCache, 0, "max acc in multi cache")
 	cmd.Flags().Int(sdk.MaxStorageInMultiCache, 0, "max storage in multi cache")
 	cmd.Flags().Bool(flatkv.FlagEnable, false, "Enable flat kv storage for read performance")
@@ -227,7 +234,8 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	viper.BindPFlag(FlagEvmImportPath, cmd.Flags().Lookup(FlagEvmImportPath))
 	viper.BindPFlag(FlagGoroutineNum, cmd.Flags().Lookup(FlagGoroutineNum))
 
-	cmd.Flags().Bool(state.FlagParalleledTx, false, "Enable Parallel Tx")
+	cmd.Flags().Int(state.FlagDeliverTxsExecMode, 0, "Execution mode for deliver txs")
+	cmd.Flags().Int(state.FlagDeliverTxsConcurrentNum, 0, "concurrent number for deliver txs when using partial-concurrent mode")
 
 	cmd.Flags().String(FlagListenAddr, "tcp://0.0.0.0:26659", "EVM RPC and cosmos-sdk REST API listen address.")
 	cmd.Flags().String(FlagUlockKey, "", "Select the keys to unlock on the RPC server")
@@ -236,11 +244,21 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().String(flags.FlagKeyringBackend, flags.DefaultKeyringBackend, "Select keyring's backend (os|file|test)")
 	cmd.Flags().String(FlagCORS, "", "Set the rest-server domains that can make CORS requests (* for all)")
 	cmd.Flags().Int(FlagMaxOpenConnections, 1000, "The number of maximum open connections of rest-server")
-	cmd.Flags().String(FlagWebsocket, "8546", "websocket port to listen to")
 	cmd.Flags().Int(FlagWsMaxConnections, 20000, "the max capacity number of websocket client connections")
 	cmd.Flags().Int(FlagWsSubChannelLength, 100, "the length of subscription channel")
 	cmd.Flags().String(flags.FlagChainID, "", "Chain ID of tendermint node for web3")
 	cmd.Flags().StringP(flags.FlagBroadcastMode, "b", flags.BroadcastSync, "Transaction broadcasting mode (sync|async|block) for web3")
+
+	cmd.Flags().UintVar(&mpttypes.TrieRocksdbBatchSize, mpttypes.FlagTrieRocksdbBatchSize, 10, "Concurrent rocksdb batch size for mpt")
+	cmd.Flags().BoolVar(&mpt.TrieWriteAhead, mpt.FlagTrieWriteAhead, false, "Enable double write data (acc & evm) to the MPT tree when using the IAVL tree")
+	cmd.Flags().BoolVar(&mpt.TrieDirtyDisabled, mpt.FlagTrieDirtyDisabled, false, "Disable cache dirty trie nodes")
+	cmd.Flags().UintVar(&mpt.TrieCacheSize, mpt.FlagTrieCacheSize, 2048, "Size (MB) to cache trie nodes")
+	cmd.Flags().UintVar(&mpt.TrieNodesLimit, mpt.FlagTrieNodesLimit, 256, "Max node size (MB) cached in triedb")
+	cmd.Flags().UintVar(&mpt.TrieImgsLimit, mpt.FlagTrieImgsLimit, 4, "Max img size (MB) cached in triedb")
+	cmd.Flags().UintVar(&mpt.TrieAccStoreCache, mpt.FlagTrieAccStoreCache, 32, "Size (MB) to cache account")
+	cmd.Flags().BoolVar(&evmtypes.TrieUseCompositeKey, evmtypes.FlagTrieUseCompositeKey, false, "Use composite key to store contract state in mpt")
+	cmd.Flags().Int64(FlagCommitGapHeight, 100, "Block interval to commit cached data into db, affects iavl & mpt")
+
 	return cmd
 }
 

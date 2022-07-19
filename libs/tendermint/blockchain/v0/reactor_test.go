@@ -68,10 +68,8 @@ func newBlockchainReactor(
 	}
 
 	blockDB := dbm.NewMemDB()
-	deltaDB := dbm.NewMemDB()
 	stateDB := dbm.NewMemDB()
 	blockStore := store.NewBlockStore(blockDB)
-	deltaStore := store.NewDeltaStore(deltaDB)
 
 	state, err := sm.LoadStateFromDBOrGenesisDoc(stateDB, genDoc)
 	if err != nil {
@@ -122,7 +120,7 @@ func newBlockchainReactor(
 		blockStore.SaveBlock(thisBlock, thisParts, lastCommit)
 	}
 
-	bcReactor := NewBlockchainReactor(state.Copy(), blockExec, blockStore, deltaStore, fastSync)
+	bcReactor := NewBlockchainReactor(state.Copy(), blockExec, blockStore, fastSync)
 	bcReactor.SetLogger(logger.With("module", "blockchain"))
 
 	return BlockchainReactorPair{bcReactor, proxyApp}
@@ -181,82 +179,6 @@ func TestNoBlockResponse(t *testing.T) {
 			assert.True(t, block == nil)
 		}
 	}
-}
-
-// NOTE: This is too hard to test without
-// an easy way to add test peer to switch
-// or without significant refactoring of the module.
-// Alternatively we could actually dial a TCP conn but
-// that seems extreme.
-func TestBadBlockStopsPeer(t *testing.T) {
-	config = cfg.ResetTestRoot("blockchain_reactor_test")
-	defer os.RemoveAll(config.RootDir)
-	genDoc, privVals := randGenesisDoc(1, false, 30)
-
-	maxBlockHeight := int64(148)
-
-	otherChain := newBlockchainReactor(log.TestingLogger(), genDoc, privVals, maxBlockHeight)
-	defer func() {
-		otherChain.reactor.Stop()
-		otherChain.app.Stop()
-	}()
-
-	reactorPairs := make([]BlockchainReactorPair, 4)
-
-	reactorPairs[0] = newBlockchainReactor(log.TestingLogger(), genDoc, privVals, maxBlockHeight)
-	reactorPairs[1] = newBlockchainReactor(log.TestingLogger(), genDoc, privVals, 0)
-	reactorPairs[2] = newBlockchainReactor(log.TestingLogger(), genDoc, privVals, 0)
-	reactorPairs[3] = newBlockchainReactor(log.TestingLogger(), genDoc, privVals, 0)
-
-	switches := p2p.MakeConnectedSwitches(config.P2P, 4, func(i int, s *p2p.Switch) *p2p.Switch {
-		s.AddReactor("BLOCKCHAIN", reactorPairs[i].reactor)
-		return s
-
-	}, p2p.Connect2Switches)
-
-	defer func() {
-		for _, r := range reactorPairs {
-			r.reactor.Stop()
-			r.app.Stop()
-		}
-	}()
-
-	for {
-		if reactorPairs[3].reactor.pool.IsCaughtUp() {
-			break
-		}
-
-		time.Sleep(1 * time.Second)
-	}
-
-	//at this time, reactors[0-3] is the newest
-	assert.Equal(t, 3, reactorPairs[1].reactor.Switch.Peers().Size())
-
-	//mark reactorPairs[3] is an invalid peer
-	reactorPairs[3].reactor.store = otherChain.reactor.store
-
-	lastReactorPair := newBlockchainReactor(log.TestingLogger(), genDoc, privVals, 0)
-	reactorPairs = append(reactorPairs, lastReactorPair)
-
-	switches = append(switches, p2p.MakeConnectedSwitches(config.P2P, 1, func(i int, s *p2p.Switch) *p2p.Switch {
-		s.AddReactor("BLOCKCHAIN", reactorPairs[len(reactorPairs)-1].reactor)
-		return s
-
-	}, p2p.Connect2Switches)...)
-
-	for i := 0; i < len(reactorPairs)-1; i++ {
-		p2p.Connect2Switches(switches, i, len(reactorPairs)-1)
-	}
-
-	for {
-		if lastReactorPair.reactor.pool.IsCaughtUp() || lastReactorPair.reactor.Switch.Peers().Size() == 0 {
-			break
-		}
-
-		time.Sleep(1 * time.Second)
-	}
-
-	assert.True(t, lastReactorPair.reactor.Switch.Peers().Size() < len(reactorPairs)-1)
 }
 
 func TestBcBlockRequestMessageValidateBasic(t *testing.T) {

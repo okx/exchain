@@ -2,7 +2,12 @@ package main
 
 import (
 	"fmt"
+	"github.com/okex/exchain/app"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/tx"
+
 	mintclient "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client"
+	erc20client "github.com/okex/exchain/x/erc20/client"
+	erc20rest "github.com/okex/exchain/x/erc20/client/rest"
 	evmclient "github.com/okex/exchain/x/evm/client"
 
 	"github.com/okex/exchain/app/rpc"
@@ -29,6 +34,7 @@ import (
 	stakingrest "github.com/okex/exchain/x/staking/client/rest"
 	"github.com/okex/exchain/x/token"
 	tokensrest "github.com/okex/exchain/x/token/client/rest"
+	wasmrest "github.com/okex/exchain/x/wasm/client/rest"
 	"github.com/spf13/viper"
 )
 
@@ -36,6 +42,7 @@ import (
 // NOTE: details on the routes added for each module are in the module documentation
 // NOTE: If making updates here you also need to update the test helper in client/lcd/test_helper.go
 func registerRoutes(rs *lcd.RestServer) {
+	registerGrpc(rs)
 	rpc.RegisterRoutes(rs)
 	pathPrefix := viper.GetString(server.FlagRestPathPrefix)
 	if pathPrefix == "" {
@@ -43,6 +50,13 @@ func registerRoutes(rs *lcd.RestServer) {
 	}
 	registerRoutesV1(rs, pathPrefix)
 	registerRoutesV2(rs, pathPrefix)
+
+}
+
+func registerGrpc(rs *lcd.RestServer) {
+	app.ModuleBasics.RegisterGRPCGatewayRoutes(rs.CliCtx, rs.GRPCGatewayRouter)
+	app.ModuleBasics.RegisterRPCRouterForGRPC(rs.CliCtx, rs.Mux)
+	tx.RegisterGRPCGatewayRoutes(rs.CliCtx, rs.GRPCGatewayRouter)
 }
 
 func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
@@ -60,6 +74,8 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 	supplyrest.RegisterRoutes(rs.CliCtx, v1Router)
 	farmrest.RegisterRoutes(rs.CliCtx, v1Router)
 	evmrest.RegisterRoutes(rs.CliCtx, v1Router)
+	erc20rest.RegisterRoutes(rs.CliCtx, v1Router)
+	wasmrest.RegisterRoutes(rs.CliCtx, v1Router)
 	govrest.RegisterRoutes(rs.CliCtx, v1Router,
 		[]govrest.ProposalRESTHandler{
 			paramsclient.ProposalHandler.RESTHandler(rs.CliCtx),
@@ -68,8 +84,10 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 			farmclient.ManageWhiteListProposalHandler.RESTHandler(rs.CliCtx),
 			evmclient.ManageContractDeploymentWhitelistProposalHandler.RESTHandler(rs.CliCtx),
 			mintclient.ManageTreasuresProposalHandler.RESTHandler(rs.CliCtx),
+			erc20client.TokenMappingProposalHandler.RESTHandler(rs.CliCtx),
 		},
 	)
+
 }
 
 func registerRoutesV2(rs *lcd.RestServer, pathPrefix string) {

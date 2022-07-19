@@ -40,6 +40,22 @@ func VerifyNonAdjacent(
 	maxClockDrift time.Duration,
 	trustLevel tmmath.Fraction) error {
 
+	return commonVerifyNonAdjacent(
+		chainID, trustedHeader, trustedVals, untrustedHeader,
+		untrustedVals, trustingPeriod, now, maxClockDrift, trustLevel, false)
+}
+
+func commonVerifyNonAdjacent(
+	chainID string,
+	trustedHeader *types.SignedHeader, // height=X
+	trustedVals *types.ValidatorSet, // height=X or height=X+1
+	untrustedHeader *types.SignedHeader, // height=Y
+	untrustedVals *types.ValidatorSet, // height=Y
+	trustingPeriod time.Duration,
+	now time.Time,
+	maxClockDrift time.Duration,
+	trustLevel tmmath.Fraction, isIbc bool) error {
+
 	if untrustedHeader.Height == trustedHeader.Height+1 {
 		return errors.New("headers must be non adjacent in height")
 	}
@@ -48,17 +64,23 @@ func VerifyNonAdjacent(
 		return ErrOldHeaderExpired{trustedHeader.Time.Add(trustingPeriod), now}
 	}
 
-	if err := verifyNewHeaderAndVals(
+	var err error
+	if err = verifyNewHeaderAndVals(
 		chainID,
 		untrustedHeader, untrustedVals,
 		trustedHeader,
-		now, maxClockDrift); err != nil {
+		now, maxClockDrift, isIbc); err != nil {
 		return ErrInvalidHeader{err}
 	}
 
 	// Ensure that +`trustLevel` (default 1/3) or more of last trusted validators signed correctly.
-	err := trustedVals.VerifyCommitLightTrusting(chainID, untrustedHeader.Commit.BlockID, untrustedHeader.Height,
-		untrustedHeader.Commit, trustLevel)
+	if isIbc {
+		err = trustedVals.IBCVerifyCommitLightTrusting(chainID, untrustedHeader.Commit.BlockID, untrustedHeader.Height,
+			untrustedHeader.Commit, trustLevel)
+	} else {
+		err = trustedVals.VerifyCommitLightTrusting(chainID, untrustedHeader.Commit.BlockID, untrustedHeader.Height,
+			untrustedHeader.Commit, trustLevel)
+	}
 	if err != nil {
 		switch e := err.(type) {
 		case types.ErrNotEnoughVotingPowerSigned:
@@ -73,8 +95,14 @@ func VerifyNonAdjacent(
 	// NOTE: this should always be the last check because untrustedVals can be
 	// intentionally made very large to DOS the light client. not the case for
 	// VerifyAdjacent, where validator set is known in advance.
-	if err := untrustedVals.VerifyCommitLight(chainID, untrustedHeader.Commit.BlockID, untrustedHeader.Height,
-		untrustedHeader.Commit); err != nil {
+	if isIbc {
+		err = untrustedVals.IBCVerifyCommitLight(chainID, untrustedHeader.Commit.BlockID, untrustedHeader.Height,
+			untrustedHeader.Commit)
+	} else {
+		err = untrustedVals.VerifyCommitLight(chainID, untrustedHeader.Commit.BlockID, untrustedHeader.Height,
+			untrustedHeader.Commit)
+	}
+	if err != nil {
 		return ErrInvalidHeader{err}
 	}
 
@@ -102,6 +130,25 @@ func VerifyAdjacent(
 	now time.Time,
 	maxClockDrift time.Duration) error {
 
+	return commonVerifyAdjacent(
+		chainID,
+		trustedHeader,   // height=X
+		untrustedHeader, // height=X+1
+		untrustedVals,   // height=X+1
+		trustingPeriod,
+		now,
+		maxClockDrift, false)
+}
+
+func commonVerifyAdjacent(
+	chainID string,
+	trustedHeader *types.SignedHeader, // height=X
+	untrustedHeader *types.SignedHeader, // height=X+1
+	untrustedVals *types.ValidatorSet, // height=X+1
+	trustingPeriod time.Duration,
+	now time.Time,
+	maxClockDrift time.Duration, isIbc bool) error {
+
 	if untrustedHeader.Height != trustedHeader.Height+1 {
 		return errors.New("headers must be adjacent in height")
 	}
@@ -114,7 +161,7 @@ func VerifyAdjacent(
 		chainID,
 		untrustedHeader, untrustedVals,
 		trustedHeader,
-		now, maxClockDrift); err != nil {
+		now, maxClockDrift, isIbc); err != nil {
 		return ErrInvalidHeader{err}
 	}
 
@@ -128,8 +175,15 @@ func VerifyAdjacent(
 	}
 
 	// Ensure that +2/3 of new validators signed correctly.
-	if err := untrustedVals.VerifyCommitLight(chainID, untrustedHeader.Commit.BlockID, untrustedHeader.Height,
-		untrustedHeader.Commit); err != nil {
+	var err error
+	if isIbc {
+		err = untrustedVals.IBCVerifyCommitLight(chainID, untrustedHeader.Commit.BlockID, untrustedHeader.Height,
+			untrustedHeader.Commit)
+	} else {
+		err = untrustedVals.VerifyCommitLight(chainID, untrustedHeader.Commit.BlockID, untrustedHeader.Height,
+			untrustedHeader.Commit)
+	}
+	if err != nil {
 		return ErrInvalidHeader{err}
 	}
 
@@ -162,9 +216,15 @@ func verifyNewHeaderAndVals(
 	untrustedVals *types.ValidatorSet,
 	trustedHeader *types.SignedHeader,
 	now time.Time,
-	maxClockDrift time.Duration) error {
+	maxClockDrift time.Duration, isIbc bool) error {
 
-	if err := untrustedHeader.ValidateBasic(chainID); err != nil {
+	var err error
+	if isIbc {
+		err = untrustedHeader.ValidateBasicForIBC(chainID)
+	} else {
+		err = untrustedHeader.ValidateBasic(chainID)
+	}
+	if err != nil {
 		return errors.Wrap(err, "untrustedHeader.ValidateBasic failed")
 	}
 
@@ -187,10 +247,16 @@ func verifyNewHeaderAndVals(
 			maxClockDrift)
 	}
 
-	if !bytes.Equal(untrustedHeader.ValidatorsHash, untrustedVals.Hash()) {
+	var hash []byte
+	if isIbc {
+		hash = untrustedVals.IBCHash()
+	} else {
+		hash = untrustedVals.Hash(untrustedHeader.Height)
+	}
+	if !bytes.Equal(untrustedHeader.ValidatorsHash, hash) {
 		return errors.Errorf("expected new header validators (%X) to match those that were supplied (%X) at height %d",
 			untrustedHeader.ValidatorsHash,
-			untrustedVals.Hash(),
+			untrustedVals.Hash(untrustedHeader.Height),
 			untrustedHeader.Height,
 		)
 	}

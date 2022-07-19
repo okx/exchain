@@ -31,9 +31,9 @@ var (
 func getMockApp(t *testing.T) (*mock.App, staking.Keeper, Keeper) {
 	mapp := mock.NewApp()
 
-	RegisterCodec(mapp.Cdc)
-	staking.RegisterCodec(mapp.Cdc)
-	supply.RegisterCodec(mapp.Cdc)
+	RegisterCodec(mapp.Cdc.GetCdc())
+	staking.RegisterCodec(mapp.Cdc.GetCdc())
+	supply.RegisterCodec(mapp.Cdc.GetCdc())
 
 	keyStaking := sdk.NewKVStoreKey(staking.StoreKey)
 	keySlashing := sdk.NewKVStoreKey(StoreKey)
@@ -54,9 +54,9 @@ func getMockApp(t *testing.T) (*mock.App, staking.Keeper, Keeper) {
 		staking.NotBondedPoolName: {supply.Burner, supply.Staking},
 		staking.BondedPoolName:    {supply.Burner, supply.Staking},
 	}
-	supplyKeeper := supply.NewKeeper(mapp.Cdc, keySupply, mapp.AccountKeeper, bankKeeper, maccPerms)
-	stakingKeeper := staking.NewKeeper(mapp.Cdc, keyStaking, supplyKeeper, mapp.ParamsKeeper.Subspace(staking.DefaultParamspace))
-	keeper := NewKeeper(mapp.Cdc, keySlashing, stakingKeeper, mapp.ParamsKeeper.Subspace(DefaultParamspace))
+	supplyKeeper := supply.NewKeeper(mapp.Cdc.GetCdc(), keySupply, mapp.AccountKeeper, bankKeeper, maccPerms)
+	stakingKeeper := staking.NewKeeper(mapp.Cdc.GetCdc(), keyStaking, supplyKeeper, mapp.ParamsKeeper.Subspace(staking.DefaultParamspace))
+	keeper := NewKeeper(mapp.Cdc.GetCdc(), keySlashing, stakingKeeper, mapp.ParamsKeeper.Subspace(DefaultParamspace))
 	mapp.Router().AddRoute(staking.RouterKey, staking.NewHandler(stakingKeeper))
 	mapp.Router().AddRoute(RouterKey, NewHandler(keeper))
 
@@ -136,7 +136,7 @@ func TestSlashingMsgs(t *testing.T) {
 	)
 
 	header := abci.Header{Height: mapp.LastBlockHeight() + 1}
-	mock.SignCheckDeliver(t, mapp.Cdc, mapp.BaseApp, header, []sdk.Msg{createValidatorMsg}, []uint64{0}, []uint64{0}, true, true, priv1)
+	mock.SignCheckDeliver(t, mapp.Cdc.GetCdc(), mapp.BaseApp, header, []sdk.Msg{createValidatorMsg}, []uint64{0}, []uint64{0}, true, true, priv1)
 	mock.CheckBalance(t, mapp, addr1, sdk.Coins{genCoin.Sub(bondCoin).Sub(sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.OneInt()))})
 
 	header = abci.Header{Height: mapp.LastBlockHeight() + 1}
@@ -153,7 +153,7 @@ func TestSlashingMsgs(t *testing.T) {
 
 	// unjail should fail with unknown validator
 	header = abci.Header{Height: mapp.LastBlockHeight() + 1}
-	_, res, err := mock.SignCheckDeliver(t, mapp.Cdc, mapp.BaseApp, header, []sdk.Msg{unjailMsg}, []uint64{0}, []uint64{1}, false, false, priv1)
+	_, res, err := mock.SignCheckDeliver(t, mapp.Cdc.GetCdc(), mapp.BaseApp, header, []sdk.Msg{unjailMsg}, []uint64{0}, []uint64{1}, false, false, priv1)
 	require.Error(t, err)
 	require.Nil(t, res)
 	require.True(t, errors.Is(ErrValidatorNotJailed, err))

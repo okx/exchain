@@ -9,19 +9,22 @@ import (
 	"github.com/okex/exchain/app/rpc/namespaces/eth/filters"
 	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils/sanity"
+	"github.com/okex/exchain/libs/system/trace"
 	"github.com/okex/exchain/libs/tendermint/consensus"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	tmdb "github.com/okex/exchain/libs/tm-db"
-	"github.com/okex/exchain/x/common/analyzer"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
+	"github.com/okex/exchain/x/infura"
 	"github.com/okex/exchain/x/token"
+	"github.com/okex/exchain/x/wasm"
 	"github.com/spf13/cobra"
 )
 
 func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(watcher.FlagFastQuery, false, "Enable the fast query mode for rpc queries")
+	cmd.Flags().Uint64(eth.FlagFastQueryThreshold, 10, "Set the threshold of fast query")
 	cmd.Flags().Int(watcher.FlagFastQueryLru, 1000, "Set the size of LRU cache under fast-query mode")
 	cmd.Flags().Int(backend.FlagApiBackendBlockLruCache, 30000, "Set the size of block LRU cache for backend mem cache")
 	cmd.Flags().Int(backend.FlagApiBackendTxLruCache, 100000, "Set the size of tx LRU cache for backend mem cache")
@@ -54,6 +57,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().String(rpc.FlagDisableAPI, "", "Set the RPC API to be disabled, such as \"eth_getLogs,eth_newFilter,eth_newBlockFilter,eth_newPendingTransactionFilter,eth_getFilterChanges\"")
 	cmd.Flags().Int(config.FlagDynamicGpWeight, 80, "The recommended weight of dynamic gas price [1,100])")
 	cmd.Flags().Bool(config.FlagEnableDynamicGp, true, "Enable node to dynamic support gas price suggest")
+	cmd.Flags().Bool(config.FlagEnableHasBlockPartMsg, false, "Enable peer to broadcast HasBlockPartMessage")
 	cmd.Flags().Bool(eth.FlagEnableMultiCall, false, "Enable node to support the eth_multiCall RPC API")
 
 	cmd.Flags().Bool(token.FlagOSSEnable, false, "Enable the function of exporting account data and uploading to oss")
@@ -74,17 +78,6 @@ func RegisterAppFlag(cmd *cobra.Command) {
 
 	cmd.Flags().Bool(config.FlagEnableDynamic, false, "Enable dynamic configuration for nodes")
 	cmd.Flags().String(config.FlagApollo, "", "Apollo connection config(IP|AppID|NamespaceName) for dynamic configuration")
-
-	// flags for evm trace
-	cmd.Flags().Bool(evmtypes.FlagEnableTraces, false, "Enable traces db to save evm transaction trace")
-	cmd.Flags().String(evmtypes.FlagTraceSegment, "1-1-0", "Parameters for segmented execution of evm trace, such as \"step-total-num\"")
-	cmd.Flags().String(evmtypes.FlagTraceFromAddrs, "", "Generate traces for transactions at specified from addresses (comma separated)")
-	cmd.Flags().String(evmtypes.FlagTraceToAddrs, "", "Generate traces for transactions at specified to addresses (comma separated)")
-	cmd.Flags().Bool(evmtypes.FlagTraceDisableMemory, false, "Disable memory output for evm trace")
-	cmd.Flags().Bool(evmtypes.FlagTraceDisableStack, false, "Disable stack output for evm trace")
-	cmd.Flags().Bool(evmtypes.FlagTraceDisableStorage, false, "Disable storage output for evm trace")
-	cmd.Flags().Bool(evmtypes.FlagTraceDisableReturnData, false, "Disable return data output for evm trace")
-	cmd.Flags().Bool(evmtypes.FlagTraceDebug, false, "Output full trace logs for evm")
 
 	cmd.Flags().Bool(config.FlagPprofAutoDump, false, "Enable auto dump pprof")
 	cmd.Flags().String(config.FlagPprofCollectInterval, "5s", "Interval for pprof dump loop")
@@ -111,7 +104,23 @@ func RegisterAppFlag(cmd *cobra.Command) {
 
 	cmd.Flags().Bool(app.FlagEnableRepairState, false, "Enable auto repair state on start")
 
-	cmd.Flags().Bool(analyzer.FlagEnableAnalyzer, false, "Enable auto open log analyzer")
+	cmd.Flags().Bool(trace.FlagEnableAnalyzer, false, "Enable auto open log analyzer")
 	cmd.Flags().Bool(sanity.FlagDisableSanity, false, "Disable sanity check")
 	cmd.Flags().Int(tmtypes.FlagSigCacheSize, 200000, "Maximum number of signatures in the cache")
+
+	// flags for infura rpc
+	cmd.Flags().Bool(infura.FlagEnable, false, "Enable infura rpc service")
+	cmd.Flags().String(infura.FlagRedisUrl, "", "Redis url(host:port) of infura rpc service")
+	cmd.Flags().String(infura.FlagRedisAuth, "", "Redis auth of infura rpc service")
+	cmd.Flags().Int(infura.FlagRedisDB, 0, "Redis db of infura rpc service")
+	cmd.Flags().String(infura.FlagMysqlUrl, "", "Mysql url(host:port) of infura rpc service")
+	cmd.Flags().String(infura.FlagMysqlUser, "", "Mysql user of infura rpc service")
+	cmd.Flags().String(infura.FlagMysqlPass, "", "Mysql password of infura rpc service")
+	cmd.Flags().String(infura.FlagMysqlDB, "infura", "Mysql db name of infura rpc service")
+	cmd.Flags().Int(infura.FlagCacheQueueSize, 0, "Cache queue size of infura rpc service")
+	cmd.Flags().Int(config.FlagDebugGcInterval, 0, "Force gc every n heights for debug")
+	cmd.Flags().String(rpc.FlagWebsocket, "8546", "websocket port to listen to")
+	cmd.Flags().Int(backend.FlagLogsLimit, 0, "Maximum number of logs returned when calling eth_getLogs")
+	cmd.Flags().Int(backend.FlagLogsTimeout, 60, "Maximum query duration when calling eth_getLogs")
+	wasm.AddModuleInitFlags(cmd)
 }

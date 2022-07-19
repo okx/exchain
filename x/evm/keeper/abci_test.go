@@ -67,6 +67,7 @@ func (suite *KeeperTestSuite) TestEndBlock() {
 func (suite *KeeperTestSuite) TestEndBlockWatcher() {
 	// update the counters
 	suite.app.EvmKeeper.Bloom.SetInt64(10)
+	suite.app.EvmKeeper.Watcher.SetFirstUse(true)
 
 	store := suite.ctx.KVStore(suite.app.EvmKeeper.GetStoreKey())
 	store.Set(types.GetContractDeploymentWhitelistMemberKey(suite.address.Bytes()), []byte(""))
@@ -74,7 +75,7 @@ func (suite *KeeperTestSuite) TestEndBlockWatcher() {
 	viper.Set(watcher.FlagFastQueryLru, 100)
 	_ = suite.app.EvmKeeper.EndBlock(suite.ctx, abci.RequestEndBlock{Height: 10})
 	suite.app.Commit(abci.RequestCommit{})
-	time.Sleep(time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	querier := watcher.NewQuerier()
 	res1 := querier.HasContractDeploymentWhitelist(suite.address.Bytes())
 	res2 := querier.HasContractBlockedList(suite.address.Bytes())

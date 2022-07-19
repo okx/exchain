@@ -7,8 +7,11 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	channelkeeper "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/keeper"
+	ibcante "github.com/okex/exchain/libs/ibc-go/modules/core/ante"
+	"github.com/okex/exchain/libs/system/trace"
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/trace"
+	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
 )
 
 func init() {
@@ -26,7 +29,7 @@ const (
 // Ethereum or SDK transaction to an internal ante handler for performing
 // transaction-level processing (e.g. fee payment, signature verification) before
 // being passed onto it's respective handler.
-func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper, validateMsgHandler ValidateMsgHandler) sdk.AnteHandler {
+func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper, validateMsgHandler ValidateMsgHandler, option wasmkeeper.HandlerOption, ibcChannelKeepr channelkeeper.Keeper) sdk.AnteHandler {
 	return func(
 		ctx sdk.Context, tx sdk.Tx, sim bool,
 	) (newCtx sdk.Context, err error) {
@@ -34,7 +37,9 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 		switch tx.GetType() {
 		case sdk.StdTxType:
 			anteHandler = sdk.ChainAnteDecorators(
-				authante.NewSetUpContextDecorator(),               // outermost AnteDecorator. SetUpContext must be called first
+				authante.NewSetUpContextDecorator(),                                             // outermost AnteDecorator. SetUpContext must be called first
+				wasmkeeper.NewLimitSimulationGasDecorator(option.WasmConfig.SimulationGasLimit), // after setup context to enforce limits early
+				wasmkeeper.NewCountTXDecorator(option.TXCounterStoreKey),
 				NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
 				authante.NewMempoolFeeDecorator(),
 				authante.NewValidateBasicDecorator(),
@@ -47,6 +52,7 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 				authante.NewSigVerificationDecorator(ak),
 				authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
 				NewValidateMsgHandlerDecorator(validateMsgHandler),
+				ibcante.NewAnteDecorator(ibcChannelKeepr),
 			)
 
 		case sdk.EvmTxType:
