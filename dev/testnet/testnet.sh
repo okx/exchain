@@ -160,9 +160,6 @@ run() {
     --enable-gid \
     --consensus.timeout_commit 6000ms \
     --enable-blockpart-ack=false \
-    --block-part-size 16 \
-    --block-compress-type 0 \
-    --block-compress-flag 0 \
     --block-compress-threshold 512 \
     --append-pid=true \
     ${LOG_SERVER} \
