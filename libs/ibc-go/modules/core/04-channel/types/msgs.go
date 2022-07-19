@@ -35,7 +35,7 @@ func (msg MsgChannelOpenInit) Route() string {
 
 // Type implements sdk.Msg
 func (msg MsgChannelOpenInit) Type() string {
-	return "channel_open_init"
+	return sdk.MsgTypeURL(&msg)
 }
 
 // ValidateBasic implements sdk.Msg
@@ -103,7 +103,7 @@ func (msg MsgChannelOpenTry) Route() string {
 
 // Type implements sdk.Msg
 func (msg MsgChannelOpenTry) Type() string {
-	return "channel_open_try"
+	return sdk.MsgTypeURL(&msg)
 }
 
 // ValidateBasic implements sdk.Msg
@@ -181,7 +181,7 @@ func (msg MsgChannelOpenAck) Route() string {
 
 // Type implements sdk.Msg
 func (msg MsgChannelOpenAck) Type() string {
-	return "channel_open_ack"
+	return sdk.MsgTypeURL(&msg)
 }
 
 // ValidateBasic implements sdk.Msg
@@ -247,7 +247,7 @@ func (msg MsgChannelOpenConfirm) Route() string {
 
 // Type implements sdk.Msg
 func (msg MsgChannelOpenConfirm) Type() string {
-	return "channel_open_confirm"
+	return sdk.MsgTypeURL(&msg)
 }
 
 // ValidateBasic implements sdk.Msg
@@ -307,7 +307,7 @@ func (msg MsgChannelCloseInit) Route() string {
 
 // Type implements sdk.Msg
 func (msg MsgChannelCloseInit) Type() string {
-	return "channel_close_init"
+	return sdk.MsgTypeURL(&msg)
 }
 
 // ValidateBasic implements sdk.Msg
@@ -364,7 +364,7 @@ func (msg MsgChannelCloseConfirm) Route() string {
 
 // Type implements sdk.Msg
 func (msg MsgChannelCloseConfirm) Type() string {
-	return "channel_close_confirm"
+	return sdk.MsgTypeURL(&msg)
 }
 
 // ValidateBasic implements sdk.Msg
@@ -463,7 +463,7 @@ func (msg MsgRecvPacket) GetSigners() []sdk.AccAddress {
 
 // Type implements sdk.Msg
 func (msg MsgRecvPacket) Type() string {
-	return "recv_packet"
+	return sdk.MsgTypeURL(&msg)
 }
 
 var _ sdk.Msg = &MsgTimeout{}
@@ -523,7 +523,7 @@ func (msg MsgTimeout) GetSigners() []sdk.AccAddress {
 
 // Type implements sdk.Msg
 func (msg MsgTimeout) Type() string {
-	return "timeout_packet"
+	return sdk.MsgTypeURL(&msg)
 }
 
 // NewMsgTimeoutOnClose constructs new MsgTimeoutOnClose
@@ -586,7 +586,7 @@ func (msg MsgTimeoutOnClose) GetSigners() []sdk.AccAddress {
 
 // Type implements sdk.Msg
 func (msg MsgTimeoutOnClose) Type() string {
-	return "timeout_on_close_packet"
+	return sdk.MsgTypeURL(&msg)
 }
 
 var _ sdk.Msg = &MsgAcknowledgement{}
@@ -648,5 +648,5 @@ func (msg MsgAcknowledgement) GetSigners() []sdk.AccAddress {
 
 // Type implements sdk.Msg
 func (msg MsgAcknowledgement) Type() string {
-	return "acknowledge_packet"
+	return sdk.MsgTypeURL(&msg)
 }
