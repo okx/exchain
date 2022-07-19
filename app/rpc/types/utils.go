@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -130,20 +131,30 @@ func EthTransactionsFromTendermint(clientCtx clientcontext.CLIContext, txs []tmt
 
 func EthTransactionsHashFromTendermint(clientCtx clientcontext.CLIContext, txs []tmtypes.Tx, blockNumber uint64) (*big.Int, []common.Hash, error) {
 	var txHashes []common.Hash
-	gasUsed := big.NewInt(0)
-	txGas := big.NewInt(0)
+	var gasUsed, txGas *big.Int
 	if len(txs) > 0 {
 		txHashes = make([]common.Hash, 0, len(txs))
 	}
 
+	gasCached := global.GetBlockEvmTxGasLimit(int64(blockNumber))
+	if gasCached != nil {
+		gasUsed = gasCached
+	} else {
+		gasUsed = big.NewInt(0)
+		txGas = big.NewInt(0)
+	}
+
 	for _, tx := range txs {
-		ethTx, err := RawTxToEthTx(clientCtx, tx)
-		if err != nil {
-			// continue to next transaction in case it's not a MsgEthereumTx
-			continue
+		if gasCached == nil {
+			ethTx, err := RawTxToEthTx(clientCtx, tx)
+			if err != nil {
+				// continue to next transaction in case it's not a MsgEthereumTx
+				continue
+			}
+			// TODO: Remove gas usage calculation if saving gasUsed per block
+			gasUsed.Add(gasUsed, txGas.SetInt64(int64(ethTx.GetGas())))
 		}
-		// TODO: Remove gas usage calculation if saving gasUsed per block
-		gasUsed.Add(gasUsed, txGas.SetInt64(int64(ethTx.GetGas())))
+
 		txHash := tx.Hash(int64(blockNumber))
 		if len(txHash) == common.HashLength {
 			txHashes = append(txHashes, *(*[common.HashLength]byte)(txHash))

@@ -2,7 +2,9 @@ package baseapp
 
 import (
 	"fmt"
+	"math/big"
 	"runtime/debug"
+	"sync"
 
 	"github.com/okex/exchain/libs/system/trace"
 	"github.com/pkg/errors"
@@ -349,6 +351,9 @@ func (app *BaseApp) DeliverRealTx(txes abci.TxEssentials) abci.ResponseDeliverTx
 			return sdkerrors.ResponseDeliverTx(err, 0, 0, app.trace)
 		}
 	}
+
+	app.updateEvmTxGasLimit(realTx)
+
 	info, err := app.runTx(runTxModeDeliver, realTx.GetRaw(), realTx, LatestSimulateTxHeight)
 	if !info.ctx.Cache().IsEnabled() {
 		app.blockCache = nil
@@ -467,4 +472,21 @@ func (app *BaseApp) newBlockCache() {
 func (app *BaseApp) commitBlockCache() {
 	app.blockCache.Write(true)
 	app.chainCache.TryDelete(app.logger, app.deliverState.ctx.BlockHeight())
+}
+
+func (app *BaseApp) updateEvmTxGasLimit(tx sdk.Tx) {
+	if tx != nil && tx.GetType() == sdk.EvmTxType {
+		gas := gasBigIntPool.Get().(*big.Int)
+		gas.SetUint64(tx.GetGas())
+		app.blockAllEvmTxGasLimitedMtx.Lock()
+		app.blockAllEvmTxGasLimited.Add(&app.blockAllEvmTxGasLimited, gas)
+		app.blockAllEvmTxGasLimitedMtx.Unlock()
+		gasBigIntPool.Put(gas)
+	}
+}
+
+var gasBigIntPool = &sync.Pool{
+	New: func() interface{} {
+		return new(big.Int)
+	},
 }

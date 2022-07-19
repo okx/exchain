@@ -6,9 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"math/big"
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
@@ -223,7 +225,9 @@ type BaseApp struct { // nolint: maligned
 	reusableCacheMultiStore sdk.CacheMultiStore
 	checkTxCacheMultiStores *cacheMultiStoreList
 
-	watcherCollector sdk.EvmWatcherCollector
+	watcherCollector           sdk.EvmWatcherCollector
+	blockAllEvmTxGasLimited    big.Int
+	blockAllEvmTxGasLimitedMtx sync.Mutex
 }
 
 type recordHandle func(string)

@@ -57,6 +57,7 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) {
 			}
 			if tx != nil {
 				app.blockDataCache.SetTx(txBytes, tx)
+				app.updateEvmTxGasLimit(tx)
 			}
 
 			coin, isEvm, s, toAddr, _ := app.getTxFeeAndFromHandler(app.getContextForTx(runTxModeDeliver, txBytes), tx)
