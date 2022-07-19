@@ -146,7 +146,7 @@ func replayBlock(ctx *server.Context, originDataDir string, tmNode *node.Node) {
 
 	// If startBlockHeight == 0 it means that we are at genesis and hence should initChain.
 	// only initChain when no tmNode provided
-	if (tmNode == nil) && (currentBlockHeight == types.GetStartBlockHeight()) {
+	if currentBlockHeight == types.GetStartBlockHeight() {
 		err := initChain(state, stateStoreDB, genDoc, proxyApp)
 		panicError(err)
 		state = sm.LoadState(stateStoreDB)
@@ -336,6 +336,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	for height := lastBlockHeight + 1; height <= haltheight; height++ {
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
+		//
 		//time.Sleep(10 * time.Second)
 		state, _, err = blockExec.ApplyBlockWithTrace(state, meta.BlockID, block)
 		panicError(err)

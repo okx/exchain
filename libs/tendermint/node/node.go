@@ -394,7 +394,9 @@ func createConsensusReactor(config *cfg.Config,
 	consensusReactor.SetLogger(consensusLogger)
 	// services which will be publishing and/or subscribing for messages (events)
 	// consensusReactor will set it on consensusState and blockExecutor
-	consensusReactor.SetEventBus(eventBus)
+	if eventBus != nil {
+		consensusReactor.SetEventBus(eventBus)
+	}
 	return consensusReactor, consensusState
 }
 
@@ -746,6 +748,68 @@ func NewNode(config *cfg.Config,
 	for _, option := range options {
 		option(node)
 	}
+
+	return node, nil
+}
+
+func NewLRPNode(config *cfg.Config,
+	privValidator types.PrivValidator,
+	nodeKey *p2p.NodeKey,
+	clientCreator proxy.ClientCreator,
+	genesisDocProvider GenesisDocProvider,
+	dbProvider DBProvider,
+	metricsProvider MetricsProvider,
+	logger log.Logger,
+	options ...Option) (*Node, error) {
+
+	blockStore, stateDB, err := initDBs(config, dbProvider)
+	if err != nil {
+		return nil, err
+	}
+
+	state, genDoc, err := LoadStateFromDBOrGenesisDocProvider(stateDB, genesisDocProvider)
+	if err != nil {
+		return nil, err
+	}
+
+	global.SetGlobalHeight(state.LastBlockHeight)
+
+	// Create the proxyApp and establish connections to the ABCI app (consensus, mempool, query).
+	proxyApp, err := createAndStartProxyAppConns(clientCreator, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	consensusLogger := logger.With("module", "consensus")
+
+	state = sm.LoadState(stateDB)
+
+	// Make ConsensusReactor
+	consensusReactor, consensusState := createConsensusReactor(
+		config, state, nil, blockStore, nil, nil,
+		nil, nil, false, false, nil, consensusLogger,
+	)
+
+	nodeInfo, err := makeNodeInfo(config, nodeKey, nil, genDoc, state)
+	if err != nil {
+		return nil, err
+	}
+
+	node := &Node{
+		config:        config,
+		genesisDoc:    genDoc,
+		privValidator: privValidator,
+
+		nodeInfo: nodeInfo,
+		nodeKey:  nodeKey,
+
+		stateDB:          stateDB,
+		blockStore:       blockStore,
+		consensusState:   consensusState,
+		consensusReactor: consensusReactor,
+		proxyApp:         proxyApp,
+	}
+	node.BaseService = *service.NewBaseService(logger, "Node", node)
 
 	return node, nil
 }

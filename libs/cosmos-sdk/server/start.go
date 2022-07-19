@@ -270,7 +270,7 @@ func StartRestWithNode(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyR
 	}
 
 	// create & start tendermint node
-	tmNode, err := node.NewNode(
+	tmNode, err := node.NewLRPNode(
 		cfg,
 		pvm.LoadFilePVEmptyState(cfg.PrivValidatorKeyFile(), cfg.PrivValidatorStateFile()),
 		nodeKey,
