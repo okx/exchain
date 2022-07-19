@@ -158,7 +158,6 @@ run() {
     --chain-id ${CHAIN_ID} \
     --upload-delta=false \
     --enable-gid \
-    --consensus.timeout_commit 6000ms \
     --enable-blockpart-ack=false \
     --block-compress-threshold 512 \
     --append-pid=true \
