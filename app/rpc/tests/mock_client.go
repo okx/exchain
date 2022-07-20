@@ -405,6 +405,11 @@ func (c *MockClient) BlockchainInfo(minHeight, maxHeight int64) (*ctypes.ResultB
 		LastHeight: c.env.BlockStore.Height(),
 		BlockMetas: blockMetas}, nil
 }
+
+func (c *MockClient) LatestBlockNumber() (int64, error) {
+	return c.env.BlockStore.Height(), nil
+}
+
 func (c *MockClient) NumUnconfirmedTxs() (*ctypes.ResultUnconfirmedTxs, error) {
 	return &ctypes.ResultUnconfirmedTxs{
 		Count:      c.env.Mempool.Size(),

@@ -381,8 +381,8 @@ func TestMsgIBCTxValidate(t *testing.T) {
 		txBytes1, txBytes2,
 	}
 	expectedMsgType := []string{
-		"create_client",
-		"update_client",
+		"/ibc.core.client.v1.MsgCreateClient",
+		"/ibc.core.client.v1.MsgUpdateClient",
 	}
 	for i, txbytes := range txBytesArray {
 		require.NoError(t, err)
