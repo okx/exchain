@@ -57,7 +57,6 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) {
 			}
 			if tx != nil {
 				app.blockDataCache.SetTx(txBytes, tx)
-				app.updateEvmTxGasLimit(tx)
 			}
 
 			coin, isEvm, s, toAddr, _ := app.getTxFeeAndFromHandler(app.getContextForTx(runTxModeDeliver, txBytes), tx)
@@ -317,6 +316,13 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 			deliverTxs[index].Data = v
 		}
 	}
+
+	for i, info := range pm.extraTxsInfo {
+		if info.isEvm {
+			app.updateEvmTxGasUsed(uint64(deliverTxs[i].GasUsed))
+		}
+	}
+	pm.extraTxsInfo[txIndex].isEvm = false
 
 	pm.cms.Write()
 	return deliverTxs

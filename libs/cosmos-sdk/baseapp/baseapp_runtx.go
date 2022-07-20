@@ -352,12 +352,13 @@ func (app *BaseApp) DeliverRealTx(txes abci.TxEssentials) abci.ResponseDeliverTx
 		}
 	}
 
-	app.updateEvmTxGasLimit(realTx)
-
 	info, err := app.runTx(runTxModeDeliver, realTx.GetRaw(), realTx, LatestSimulateTxHeight)
 	if !info.ctx.Cache().IsEnabled() {
 		app.blockCache = nil
 		app.chainCache = nil
+	}
+	if realTx.GetType() == sdk.EvmTxType {
+		app.updateEvmTxGasUsed(info.gInfo.GasUsed)
 	}
 	if err != nil {
 		return sdkerrors.ResponseDeliverTx(err, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
@@ -474,15 +475,13 @@ func (app *BaseApp) commitBlockCache() {
 	app.chainCache.TryDelete(app.logger, app.deliverState.ctx.BlockHeight())
 }
 
-func (app *BaseApp) updateEvmTxGasLimit(tx sdk.Tx) {
-	if tx != nil && tx.GetType() == sdk.EvmTxType {
-		gas := gasBigIntPool.Get().(*big.Int)
-		gas.SetUint64(tx.GetGas())
-		app.blockAllEvmTxGasLimitedMtx.Lock()
-		app.blockAllEvmTxGasLimited.Add(&app.blockAllEvmTxGasLimited, gas)
-		app.blockAllEvmTxGasLimitedMtx.Unlock()
-		gasBigIntPool.Put(gas)
-	}
+func (app *BaseApp) updateEvmTxGasUsed(gasUsed uint64) {
+	gas := gasBigIntPool.Get().(*big.Int)
+	gas.SetUint64(gasUsed)
+	app.blockAllEvmTxGasUsedMtx.Lock()
+	app.blockAllEvmTxGasUsed.Add(&app.blockAllEvmTxGasUsed, gas)
+	app.blockAllEvmTxGasUsedMtx.Unlock()
+	gasBigIntPool.Put(gas)
 }
 
 var gasBigIntPool = &sync.Pool{

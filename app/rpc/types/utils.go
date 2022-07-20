@@ -143,7 +143,7 @@ func EthTransactionsHashFromTendermint(clientCtx clientcontext.CLIContext, txs [
 		txHashes = make([]common.Hash, 0, len(txs))
 	}
 
-	gasCached := global.GetBlockEvmTxGasLimit(int64(blockNumber))
+	gasCached := global.GetBlockEvmTxGasUsed(int64(blockNumber))
 	if gasCached != nil {
 		gasUsed = gasCached
 	} else {
@@ -168,6 +168,9 @@ func EthTransactionsHashFromTendermint(clientCtx clientcontext.CLIContext, txs [
 		} else {
 			txHashes = append(txHashes, common.BytesToHash(txHash))
 		}
+	}
+	if gasCached == nil {
+		global.SetBlockEvmTxGasUsed(int64(blockNumber), gasUsed)
 	}
 
 	return gasUsed, txHashes, nil
