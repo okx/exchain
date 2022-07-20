@@ -34,18 +34,19 @@ func convertTransactionReceipts(trs []evm.TransactionReceipt) []*TransactionRece
 		receipt := &TransactionReceipt{
 			Status:            uint64(t.Status),
 			CumulativeGasUsed: uint64(t.CumulativeGasUsed),
-			TransactionHash:   t.TransactionHash,
+			TransactionHash:   t.GetHash(),
 			GasUsed:           uint64(t.GasUsed),
-			BlockHash:         t.BlockHash,
+			BlockHash:         t.GetBlockHash(),
 			BlockNumber:       int64(t.BlockNumber),
 			TransactionIndex:  uint64(t.TransactionIndex),
-			From:              t.From,
+			From:              t.GetFrom(),
 		}
 		if t.ContractAddress != nil {
 			receipt.ContractAddress = t.ContractAddress.String()
 		}
-		if t.To != nil {
-			receipt.To = t.To.String()
+		to := t.GetTo()
+		if to != nil {
+			receipt.To = to.String()
 		}
 
 		// convert  TransactionLog
