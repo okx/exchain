@@ -35,6 +35,10 @@ type StdTx struct {
 	sdk.BaseTx `json:"-" yaml:"-"`
 }
 
+func (tx *StdTx) VerifySequence(index int, acc exported.Account) bool {
+	return true
+}
+
 func (tx *StdTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
