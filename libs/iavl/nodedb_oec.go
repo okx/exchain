@@ -27,12 +27,14 @@ var (
 type FastNodeChanges struct {
 	additions map[string]*FastNode
 	removals  map[string]interface{}
+	version   int64
 }
 
-func NewFastNodeChanges(additions map[string]*FastNode, removals map[string]interface{}) *FastNodeChanges {
+func NewFastNodeChanges(additions map[string]*FastNode, removals map[string]interface{}, version int64) *FastNodeChanges {
 	return &FastNodeChanges{
 		additions: additions,
 		removals:  removals,
+		version:   version,
 	}
 }
 
@@ -143,7 +145,7 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *FastN
 	ndb.fastNodePreCommitAddtions = make(map[string]*FastNode, len(tempFastNodePreCommitAddtions))
 	ndb.fastNodePreCommitRemovals = make(map[string]interface{}, len(tempFastNodePreCommitRemovals))
 
-	return tpp, NewFastNodeChanges(tempFastNodePreCommitAddtions, tempFastNodePreCommitRemovals)
+	return tpp, NewFastNodeChanges(tempFastNodePreCommitAddtions, tempFastNodePreCommitRemovals, ndb.latestVersion)
 }
 
 func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer) {

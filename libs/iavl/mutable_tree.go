@@ -716,7 +716,7 @@ func (tree *MutableTree) enableFastStorageAndCommit(batch dbm.Batch) error {
 			return err
 		}
 
-		if err = tree.ndb.setFastStorageVersionToBatch(batch); err != nil {
+		if err = tree.ndb.setFastStorageVersionToBatch(batch, tree.ndb.getLatestVersion()); err != nil {
 			return err
 		}
 	}
@@ -886,7 +886,7 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 	tree.mtxFastNodeChanges.Lock()
 	defer tree.mtxFastNodeChanges.Unlock()
 
-	if err := tree.saveFastNodeVersion(batch, NewFastNodeChanges(tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)); err != nil {
+	if err := tree.saveFastNodeVersion(batch, NewFastNodeChanges(tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals, tree.ndb.getLatestVersion())); err != nil {
 		return nil, version, err
 	}
 
@@ -1003,7 +1003,7 @@ func (tree *MutableTree) saveFastNodeVersion(batch dbm.Batch, changes *FastNodeC
 	if err := tree.saveFastNodeRemovals(batch, changes.removals); err != nil {
 		return err
 	}
-	return tree.ndb.setFastStorageVersionToBatch(batch)
+	return tree.ndb.setFastStorageVersionToBatch(batch, changes.version)
 }
 
 // nolint: unused
