@@ -106,7 +106,7 @@ func TestMutableTree_DeleteVersions(t *testing.T) {
 		require.NoError(t, err)
 
 		for _, e := range versionEntries[v] {
-			val := tree.FastGet(e.key)
+			val := tree.Get(e.key)
 			require.Equal(t, e.value, val)
 		}
 	}
@@ -149,12 +149,12 @@ func TestMutableTree_DeleteVersionsRange(t *testing.T) {
 		require.NoError(err, version)
 		require.Equal(v, version)
 
-		value := tree.FastGet([]byte("aaa"))
+		value := tree.Get([]byte("aaa"))
 		require.Equal(string(value), "bbb")
 
 		for _, count := range versions[:version] {
 			countStr := strconv.Itoa(int(count))
-			value := tree.FastGet([]byte("key" + countStr))
+			value := tree.Get([]byte("key" + countStr))
 			require.Equal(string(value), "value"+countStr)
 		}
 	}
@@ -173,17 +173,17 @@ func TestMutableTree_DeleteVersionsRange(t *testing.T) {
 		require.NoError(err)
 		require.Equal(v, version)
 
-		value := tree.FastGet([]byte("aaa"))
+		value := tree.Get([]byte("aaa"))
 		require.Equal(string(value), "bbb")
 
 		for _, count := range versions[:fromLength] {
 			countStr := strconv.Itoa(int(count))
-			value := tree.FastGet([]byte("key" + countStr))
+			value := tree.Get([]byte("key" + countStr))
 			require.Equal(string(value), "value"+countStr)
 		}
 		for _, count := range versions[int64(maxLength/2)-1 : version] {
 			countStr := strconv.Itoa(int(count))
-			value := tree.FastGet([]byte("key" + countStr))
+			value := tree.Get([]byte("key" + countStr))
 			require.Equal(string(value), "value"+countStr)
 		}
 	}
@@ -376,8 +376,8 @@ func TestMutableTree_SetSimple(t *testing.T) {
 	isUpdated := tree.Set([]byte(testKey1), []byte(testVal1))
 	require.False(t, isUpdated)
 
-	fastValue := tree.FastGet([]byte(testKey1))
-	_, regularValue := tree.Get([]byte(testKey1))
+	fastValue := tree.Get([]byte(testKey1))
+	_, regularValue := tree.GetWithIndex([]byte(testKey1))
 
 	require.Equal(t, []byte(testVal1), fastValue)
 	require.Equal(t, []byte(testVal1), regularValue)
@@ -408,13 +408,13 @@ func TestMutableTree_SetTwoKeys(t *testing.T) {
 	isUpdated = tree.Set([]byte(testKey2), []byte(testVal2))
 	require.False(t, isUpdated)
 
-	fastValue := tree.FastGet([]byte(testKey1))
-	_, regularValue := tree.Get([]byte(testKey1))
+	fastValue := tree.Get([]byte(testKey1))
+	_, regularValue := tree.GetWithIndex([]byte(testKey1))
 	require.Equal(t, []byte(testVal1), fastValue)
 	require.Equal(t, []byte(testVal1), regularValue)
 
-	fastValue2 := tree.FastGet([]byte(testKey2))
-	_, regularValue2 := tree.Get([]byte(testKey2))
+	fastValue2 := tree.Get([]byte(testKey2))
+	_, regularValue2 := tree.GetWithIndex([]byte(testKey2))
 	require.Equal(t, []byte(testVal2), fastValue2)
 	require.Equal(t, []byte(testVal2), regularValue2)
 
@@ -447,8 +447,8 @@ func TestMutableTree_SetOverwrite(t *testing.T) {
 	isUpdated = tree.Set([]byte(testKey1), []byte(testVal2))
 	require.True(t, isUpdated)
 
-	fastValue := tree.FastGet([]byte(testKey1))
-	_, regularValue := tree.Get([]byte(testKey1))
+	fastValue := tree.Get([]byte(testKey1))
+	_, regularValue := tree.GetWithIndex([]byte(testKey1))
 	require.Equal(t, []byte(testVal2), fastValue)
 	require.Equal(t, []byte(testVal2), regularValue)
 
@@ -473,8 +473,8 @@ func TestMutableTree_SetRemoveSet(t *testing.T) {
 	isUpdated := tree.Set([]byte(testKey1), []byte(testVal1))
 	require.False(t, isUpdated)
 
-	fastValue := tree.FastGet([]byte(testKey1))
-	_, regularValue := tree.Get([]byte(testKey1))
+	fastValue := tree.Get([]byte(testKey1))
+	_, regularValue := tree.GetWithIndex([]byte(testKey1))
 	require.Equal(t, []byte(testVal1), fastValue)
 	require.Equal(t, []byte(testVal1), regularValue)
 
@@ -497,8 +497,8 @@ func TestMutableTree_SetRemoveSet(t *testing.T) {
 	fastNodeRemovals := tree.getUnsavedFastNodeRemovals()
 	require.Equal(t, 1, len(fastNodeRemovals))
 
-	fastValue = tree.FastGet([]byte(testKey1))
-	_, regularValue = tree.Get([]byte(testKey1))
+	fastValue = tree.Get([]byte(testKey1))
+	_, regularValue = tree.GetWithIndex([]byte(testKey1))
 	require.Nil(t, fastValue)
 	require.Nil(t, regularValue)
 
@@ -506,8 +506,8 @@ func TestMutableTree_SetRemoveSet(t *testing.T) {
 	isUpdated = tree.Set([]byte(testKey1), []byte(testVal1))
 	require.False(t, isUpdated)
 
-	fastValue = tree.FastGet([]byte(testKey1))
-	_, regularValue = tree.Get([]byte(testKey1))
+	fastValue = tree.Get([]byte(testKey1))
+	_, regularValue = tree.GetWithIndex([]byte(testKey1))
 	require.Equal(t, []byte(testVal1), fastValue)
 	require.Equal(t, []byte(testVal1), regularValue)
 
@@ -592,18 +592,18 @@ func TestMutableTree_FastNodeIntegration(t *testing.T) {
 	require.NoError(t, err)
 
 	// Get and GetFast
-	fastValue := t2.FastGet([]byte(key1))
-	_, regularValue := tree.Get([]byte(key1))
+	fastValue := t2.Get([]byte(key1))
+	_, regularValue := tree.GetWithIndex([]byte(key1))
 	require.Equal(t, []byte(testVal1), fastValue)
 	require.Equal(t, []byte(testVal1), regularValue)
 
-	fastValue = t2.FastGet([]byte(key2))
-	_, regularValue = t2.Get([]byte(key2))
+	fastValue = t2.Get([]byte(key2))
+	_, regularValue = t2.GetWithIndex([]byte(key2))
 	require.Nil(t, fastValue)
 	require.Nil(t, regularValue)
 
-	fastValue = t2.FastGet([]byte(key3))
-	_, regularValue = tree.Get([]byte(key3))
+	fastValue = t2.Get([]byte(key3))
+	_, regularValue = tree.GetWithIndex([]byte(key3))
 	require.Equal(t, []byte(testVal2), fastValue)
 	require.Equal(t, []byte(testVal2), regularValue)
 }
@@ -965,7 +965,7 @@ func TestUpgradeStorageToFast_Integration_Upgraded_GetFast_Success(t *testing.T)
 
 	t.Run("Mutable tree", func(t *testing.T) {
 		for _, kv := range mirror {
-			v := sut.FastGet([]byte(kv[0]))
+			v := sut.Get([]byte(kv[0]))
 			require.Equal(t, []byte(kv[1]), v)
 		}
 	})
@@ -975,7 +975,7 @@ func TestUpgradeStorageToFast_Integration_Upgraded_GetFast_Success(t *testing.T)
 		require.NoError(t, err)
 
 		for _, kv := range mirror {
-			v := immutableTree.FastGet([]byte(kv[0]))
+			v := immutableTree.Get([]byte(kv[0]))
 			require.Equal(t, []byte(kv[1]), v)
 		}
 	})

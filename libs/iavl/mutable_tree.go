@@ -193,9 +193,9 @@ func (tree *MutableTree) Set(key, value []byte) (updated bool) {
 	return updated
 }
 
-// FastGet returns the value of the specified key if it exists, or nil otherwise.
+// Get returns the value of the specified key if it exists, or nil otherwise.
 // The returned value must not be modified, since it may point to data stored within IAVL.
-func (tree *MutableTree) FastGet(key []byte) []byte {
+func (tree *MutableTree) Get(key []byte) []byte {
 	if tree.root == nil {
 		return nil
 	}
@@ -204,7 +204,7 @@ func (tree *MutableTree) FastGet(key []byte) []byte {
 		return fastNode.value
 	}
 
-	return tree.ImmutableTree.FastGet(key)
+	return tree.ImmutableTree.Get(key)
 }
 
 // Import returns an importer for tree nodes previously exported by ImmutableTree.Export(),
@@ -756,7 +756,7 @@ func (tree *MutableTree) GetVersioned(key []byte, version int64) (
 		if err != nil {
 			return -1, nil
 		}
-		return t.Get(key)
+		return t.GetWithIndex(key)
 	}
 	return -1, nil
 }

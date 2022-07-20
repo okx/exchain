@@ -61,7 +61,7 @@ func runQueriesFast(b *testing.B, t *iavl.MutableTree, keyLen int) {
 	require.True(b, t.IsFastCacheEnabled())
 	for i := 0; i < b.N; i++ {
 		q := randBytes(keyLen)
-		t.FastGet(q)
+		t.Get(q)
 	}
 }
 
@@ -70,7 +70,7 @@ func runKnownQueriesFast(b *testing.B, t *iavl.MutableTree, keys [][]byte) {
 	l := int32(len(keys))
 	for i := 0; i < b.N; i++ {
 		q := keys[rand.Int31n(l)]
-		t.FastGet(q)
+		t.Get(q)
 	}
 }
 
@@ -88,7 +88,7 @@ func runQueriesSlow(b *testing.B, t *iavl.MutableTree, keyLen int) {
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
 		q := randBytes(keyLen)
-		itree.Get(q)
+		itree.GetWithIndex(q)
 	}
 }
 
@@ -106,7 +106,7 @@ func runKnownQueriesSlow(b *testing.B, t *iavl.MutableTree, keys [][]byte) {
 	l := int32(len(keys))
 	for i := 0; i < b.N; i++ {
 		q := keys[rand.Int31n(l)]
-		index, value := itree.Get(q)
+		index, value := itree.GetWithIndex(q)
 		require.True(b, index >= 0, "the index must not be negative")
 		require.NotNil(b, value, "the value should exist")
 	}
@@ -206,7 +206,7 @@ func runBlock(b *testing.B, t *iavl.MutableTree, keyLen, dataLen, blockSize int,
 			// perform query and write on check and then real
 			// check.Get(key)
 			// check.Set(key, data)
-			real.Get(key)
+			real.GetWithIndex(key)
 			real.Set(key, data)
 		}
 

@@ -400,9 +400,9 @@ func assertMirror(t *testing.T, tree *MutableTree, mirror map[string]string, ver
 	require.EqualValues(t, len(mirror), itree.Size())
 	require.EqualValues(t, len(mirror), iterated)
 	for key, value := range mirror {
-		actualFast := itree.FastGet([]byte(key))
+		actualFast := itree.Get([]byte(key))
 		require.Equal(t, value, string(actualFast))
-		_, actual := itree.Get([]byte(key))
+		_, actual := itree.GetWithIndex([]byte(key))
 		require.Equal(t, value, string(actual))
 	}
 	assertFastNodeCacheIsLive(t, tree, mirror, version)
