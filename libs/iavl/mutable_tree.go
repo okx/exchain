@@ -994,6 +994,9 @@ func (tree *MutableTree) saveFastNodeVersion(batch dbm.Batch, changes *FastNodeC
 	if !EnableFastStorage {
 		return nil
 	}
+	if changes == nil {
+		return nil
+	}
 	if err := tree.saveFastNodeAdditions(batch, changes.additions); err != nil {
 		return err
 	}
