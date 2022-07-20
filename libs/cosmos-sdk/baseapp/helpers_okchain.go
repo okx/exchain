@@ -51,11 +51,11 @@ func (app *BaseApp) TraceBlock(queryTraceTx sdk.QueryTraceBlock, block *tmtypes.
 		}
 		tx, err := app.txDecoder(txBz, block.Height)
 		if err != nil {
-			result.Error = fmt.Errorf("failed to decode tx[%d] in block, err: %s", txindex, err.Error())
+			result.Error = fmt.Sprintf("failed to decode tx[%d] in block, err: %s", txindex, err.Error())
 		} else {
 			info, err := app.tracetx(txBz, tx, block.Height, traceState)
 			if err != nil {
-				result.Error = fmt.Errorf("failed to trace tx[%d] in block, err: %s", txindex, err.Error())
+				result.Error = fmt.Sprintf("failed to trace tx[%d] in block, err: %s", txindex, err.Error())
 			} else {
 				result.Result = info.result.Data
 			}

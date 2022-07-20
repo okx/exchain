@@ -21,5 +21,5 @@ type QueryTraceTxResult struct {
 	TxIndex int         `json:"tx_index"`
 	TxHash  common.Hash `json:"tx_hash"`
 	Result  []byte      `json:"result"`
-	Error   error       `json:"error"`
+	Error   string      `json:"error"`
 }

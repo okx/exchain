@@ -119,10 +119,12 @@ func (api *PublicDebugAPI) traceBlockByNumber(blockNum rpctypes.BlockNumber, con
 			TxIndex: res.TxIndex,
 			Txhash:  res.TxHash,
 		}
-		if res.Error != nil {
-			rpcRes.Error = res.Error.Error()
+		if res.Error != "" {
+			rpcRes.Error = res.Error
 		} else {
-			if err := json.Unmarshal(res.Result, &rpcRes.Result); err != nil {
+			if res.Result == nil || len(res.Result) == 0 {
+				rpcRes.Result = []byte{}
+			} else if err := json.Unmarshal(res.Result, &rpcRes.Result); err != nil {
 				rpcRes.Error = err.Error()
 			}
 		}
