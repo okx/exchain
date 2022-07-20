@@ -1120,7 +1120,7 @@ func (api *PublicEthereumAPI) getBlockByNumber(blockNum rpctypes.BlockNumber, fu
 		latestBlock.Block.Hash(),
 		0,
 		gasUsed,
-		ethTxs,
+		ethTxs, nil,
 		ethtypes.Bloom{},
 		fullTx,
 	), nil

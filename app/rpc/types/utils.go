@@ -64,8 +64,15 @@ func RpcBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.B
 	if err != nil {
 		return nil, err
 	}
+	var gasUsed *big.Int
+	var ethTxs []*watcher.Transaction
+	var ethTxHashes []common.Hash
 
-	gasUsed, ethTxs, err := EthTransactionsFromTendermint(clientCtx, block.Txs, common.BytesToHash(block.Hash()), uint64(block.Height))
+	if fullTx {
+		gasUsed, ethTxs, err = EthTransactionsFromTendermint(clientCtx, block.Txs, common.BytesToHash(block.Hash()), uint64(block.Height))
+	} else {
+		gasUsed, ethTxHashes, err = EthTransactionsHashFromTendermint(clientCtx, block.Txs, uint64(block.Height))
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +86,7 @@ func RpcBlockFromTendermint(clientCtx clientcontext.CLIContext, block *tmtypes.B
 		bloom = bloomRes.Bloom
 	}
 
-	return FormatBlock(block.Header, block.FastSize(), block.Hash(), gasLimit, gasUsed, ethTxs, bloom, fullTx), nil
+	return FormatBlock(block.Header, block.FastSize(), block.Hash(), gasLimit, gasUsed, ethTxs, ethTxHashes, bloom, fullTx), nil
 }
 
 // EthHeaderFromTendermint is an util function that returns an Ethereum Header
@@ -190,7 +197,7 @@ func BlockMaxGasFromConsensusParams(_ context.Context, clientCtx clientcontext.C
 // transactions.
 func FormatBlock(
 	header tmtypes.Header, size int, curBlockHash tmbytes.HexBytes, gasLimit int64,
-	gasUsed *big.Int, transactions []*watcher.Transaction, bloom ethtypes.Bloom, fullTx bool,
+	gasUsed *big.Int, transactions []*watcher.Transaction, txHashes []common.Hash, bloom ethtypes.Bloom, fullTx bool,
 ) *watcher.Block {
 	transactionsRoot := ethtypes.EmptyRootHash
 	if len(header.DataHash) > 0 {
@@ -231,11 +238,19 @@ func FormatBlock(
 			ret.Transactions = transactions
 		}
 	} else {
-		txHashes := make([]common.Hash, len(transactions))
-		for i, tx := range transactions {
-			txHashes[i] = tx.Hash
+		if len(transactions) == 0 {
+			ret.Transactions = []common.Hash{}
+		} else {
+			if len(txHashes) == len(transactions) {
+				ret.Transactions = txHashes
+			} else {
+				txHashes = make([]common.Hash, len(transactions))
+				for i, tx := range transactions {
+					txHashes[i] = tx.Hash
+				}
+				ret.Transactions = txHashes
+			}
 		}
-		ret.Transactions = txHashes
 	}
 	return ret
 }
