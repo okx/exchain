@@ -88,11 +88,13 @@ type nodeDB struct {
 	state *RuntimeState
 	tpp   *tempPrePersistNodes
 
-	fastNodeCache          map[string]*list.Element // FastNode cache.
-	fastNodeCacheSize      int                      // FastNode cache size limit in elements.
-	fastNodeCacheQueue     *list.List               // LRU queue of cache elements. Used for deletion.
-	fastNodeMutex          sync.Mutex               // Mutex for fast node cache.
-	latestVersion4FastNode int64
+	fastNodePreCommitAddtions map[string]*FastNode
+	fastNodePreCommitRemovals map[string]interface{}
+	fastNodeCache             map[string]*list.Element // FastNode cache.
+	fastNodeCacheSize         int                      // FastNode cache size limit in elements.
+	fastNodeCacheQueue        *list.List               // LRU queue of cache elements. Used for deletion.
+	fastNodeMutex             sync.Mutex               // Mutex for fast node cache.
+	latestVersion4FastNode    int64
 }
 
 func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
@@ -108,18 +110,20 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 	}
 
 	ndb := &nodeDB{
-		db:                  db,
-		opts:                *opts,
-		versionReaders:      make(map[int64]uint32, 8),
-		prePersistNodeCache: make(map[string]*Node),
-		name:                ParseDBName(db),
-		preWriteNodeCache:   cmap.New(),
-		state:               newRuntimeState(),
-		tpp:                 newTempPrePersistNodes(),
-		fastNodeCache:       make(map[string]*list.Element),
-		fastNodeCacheSize:   100000,
-		fastNodeCacheQueue:  list.New(),
-		storageVersion:      string(storeVersion),
+		db:                        db,
+		opts:                      *opts,
+		versionReaders:            make(map[int64]uint32, 8),
+		prePersistNodeCache:       make(map[string]*Node),
+		name:                      ParseDBName(db),
+		preWriteNodeCache:         cmap.New(),
+		state:                     newRuntimeState(),
+		tpp:                       newTempPrePersistNodes(),
+		fastNodeCache:             make(map[string]*list.Element),
+		fastNodeCacheSize:         100000,
+		fastNodeCacheQueue:        list.New(),
+		storageVersion:            string(storeVersion),
+		fastNodePreCommitAddtions: make(map[string]*FastNode),
+		fastNodePreCommitRemovals: make(map[string]interface{}),
 	}
 
 	ndb.oi = newOrphanInfo(ndb)
@@ -139,6 +143,13 @@ func (ndb *nodeDB) GetFastNode(key []byte) (*FastNode, error) {
 		return nil, fmt.Errorf("nodeDB.GetFastNode() requires key, len(key) equals 0")
 	}
 
+	// Check Addtions Removals
+	if node, ok := ndb.fastNodePreCommitAddtions[string(key)]; ok {
+		return node, nil
+	}
+	if _, ok := ndb.fastNodePreCommitRemovals[string(key)]; ok {
+		return nil, nil
+	}
 	ndb.fastNodeMutex.Lock()
 	// Check the cache.
 	if elem, ok := ndb.fastNodeCache[string(key)]; ok {
@@ -277,7 +288,7 @@ func (ndb *nodeDB) SaveFastNodeNoCache(node *FastNode, batch dbm.Batch) error {
 // setFastStorageVersionToBatch sets storage version to fast where the version is
 // 1.1.0-<version of the current live state>. Returns error if storage version is incorrect or on
 // db error, nil otherwise. Requires changes to be committed after to be persisted.
-func (ndb *nodeDB) setFastStorageVersionToBatch(batch dbm.Batch) error {
+func (ndb *nodeDB) setFastStorageVersionToBatch(batch dbm.Batch, version int64) error {
 	var newVersion string
 	if ndb.storageVersion >= fastStorageVersionValue {
 		// Storage version should be at index 0 and latest fast cache version at index 1
@@ -292,7 +303,7 @@ func (ndb *nodeDB) setFastStorageVersionToBatch(batch dbm.Batch) error {
 		newVersion = fastStorageVersionValue
 	}
 
-	newVersion += fastStorageVersionDelimiter + strconv.Itoa(int(ndb.getLatestVersion()))
+	newVersion += fastStorageVersionDelimiter + strconv.Itoa(int(version))
 	batch.Set(metadataKeyFormat.Key([]byte(storageVersionKey)), []byte(newVersion))
 	ndb.storageVersion = newVersion
 
