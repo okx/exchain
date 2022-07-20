@@ -174,5 +174,5 @@ func BlockInfo(ctx *rpctypes.Context, heightPtr *int64) (*ctypes.ResultBlockInfo
 		return nil, nil
 	}
 
-	return &ctypes.ResultBlockInfo{BlockMeta: blockMeta}, nil
+	return (*ctypes.ResultBlockInfo)(blockMeta), nil
 }

@@ -24,9 +24,7 @@ type ResultGenesis struct {
 }
 
 // ResultHeader represents the response for a Header RPC Client query
-type ResultBlockInfo struct {
-	*types.BlockMeta
-}
+type ResultBlockInfo types.BlockMeta
 
 // Single block (with meta)
 type ResultBlock struct {
