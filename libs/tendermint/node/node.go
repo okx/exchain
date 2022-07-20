@@ -219,6 +219,15 @@ func initBlockStore(dataDir string) (blockStore *store.BlockStore, err error) {
 	return
 }
 
+func initTxDB(dataDir string) (txDB dbm.DB, err error) {
+	txDB, err = sdk.NewLevelDB("tx_index", dataDir)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
 func initStateDB(config *cfg.Config) (stateDB dbm.DB, err error) {
 	stateDB, err = sdk.NewLevelDB("state", config.DBDir())
 	if err != nil {
@@ -779,11 +788,11 @@ func NewLRPNode(config *cfg.Config,
 	clientCreator proxy.ClientCreator,
 	genesisDocProvider GenesisDocProvider,
 	dbProvider DBProvider,
-	blockStoreDir string,
+	originDir string,
 	logger log.Logger,
 	options ...Option) (*Node, error) {
 
-	blockStore, err := initBlockStore(blockStoreDir)
+	blockStore, err := initBlockStore(originDir)
 	if err != nil {
 		return nil, err
 	}
@@ -800,6 +809,25 @@ func NewLRPNode(config *cfg.Config,
 
 	global.SetGlobalHeight(state.LastBlockHeight)
 
+	eventBus, err := createAndStartEventBus(logger)
+	if err != nil {
+		return nil, err
+	}
+
+	var txIndexer txindex.TxIndexer
+	txDB, err := initTxDB(originDir)
+	if err != nil {
+		return nil, err
+	}
+
+	txIndexer = kv.NewTxIndex(txDB, kv.IndexAllEvents())
+
+	indexerService := txindex.NewIndexerService(txIndexer, eventBus)
+	indexerService.SetLogger(logger.With("module", "txindex"))
+	if err := indexerService.Start(); err != nil {
+		return nil, err
+	}
+
 	// Create the proxyApp and establish connections to the ABCI app (consensus, mempool, query).
 	proxyApp, err := createAndStartProxyAppConns(clientCreator, logger)
 	if err != nil {
@@ -809,6 +837,8 @@ func NewLRPNode(config *cfg.Config,
 	consensusLogger := logger.With("module", "consensus")
 
 	state = sm.LoadState(stateDB)
+	mempoolReactor, mempool := createMempoolAndMempoolReactor(config, proxyApp, state, nil, logger)
+	mempoolReactor.SetNodeKey(nodeKey)
 
 	// Make ConsensusReactor
 	consensusReactor, consensusState := createConsensusReactor(
@@ -833,7 +863,12 @@ func NewLRPNode(config *cfg.Config,
 		blockStore:       blockStore,
 		consensusState:   consensusState,
 		consensusReactor: consensusReactor,
+		txIndexer:        txIndexer,
+		indexerService:   indexerService,
+		eventBus:         eventBus,
 		proxyApp:         proxyApp,
+		mempoolReactor:   mempoolReactor,
+		mempool:          mempool,
 	}
 	node.BaseService = *service.NewBaseService(logger, "Node", node)
 
