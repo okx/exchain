@@ -219,8 +219,8 @@ func initBlockStore(dataDir string) (blockStore *store.BlockStore, err error) {
 	return
 }
 
-func initStateDB(config *cfg.Config, dbProvider DBProvider) (stateDB dbm.DB, err error) {
-	stateDB, err = dbProvider(&DBContext{"state", config})
+func initStateDB(config *cfg.Config) (stateDB dbm.DB, err error) {
+	stateDB, err = sdk.NewLevelDB("state", config.DBDir())
 	if err != nil {
 		return
 	}
@@ -788,7 +788,7 @@ func NewLRPNode(config *cfg.Config,
 		return nil, err
 	}
 
-	stateDB, err := initStateDB(config, dbProvider)
+	stateDB, err := initStateDB(config)
 	if err != nil {
 		return nil, err
 	}
