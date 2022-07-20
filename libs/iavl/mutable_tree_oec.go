@@ -388,7 +388,7 @@ func (tree *MutableTree) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	tree.mtxFastNodeChanges.Lock()
 	defer tree.mtxFastNodeChanges.Unlock()
 
-	if err := tree.saveFastNodeVersion(batch); err != nil {
+	if err := tree.saveFastNodeVersion(batch, event.fastNodeChanges); err != nil {
 		panic(err)
 	}
 
