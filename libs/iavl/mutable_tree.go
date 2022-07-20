@@ -748,7 +748,7 @@ func (tree *MutableTree) GetVersioned(key []byte, version int64) (
 			}
 
 			if fastNode != nil && fastNode.versionLastUpdatedAt <= version {
-				return -1, fastNode.value
+				return fastNode.versionLastUpdatedAt, fastNode.value
 			}
 		}
 
