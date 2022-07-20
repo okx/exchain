@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -35,7 +36,7 @@ func execBlockOnProxyAppAsync(
 		return nil, err
 	}
 
-	abciResponses.DeliverTxs = proxyAppConn.ParallelTxs(transTxsToBytes(block.Txs), false)
+	abciResponses.DeliverTxs = proxyAppConn.DeliverTxs(abci.RequestDeliverTxs{Txs: transTxsToBytes(block.Txs)})
 	for _, v := range abciResponses.DeliverTxs {
 		if v.Code == abci.CodeTypeOK {
 			validTxs++

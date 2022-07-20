@@ -16,3 +16,10 @@ type ResponseCommit struct {
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
 }
+
+type RequestDeliverTxs struct {
+	Txs                  [][]byte `protobuf:"bytes,1,opt,name=txs,proto3" json:"txs,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}

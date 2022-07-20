@@ -2,7 +2,7 @@ package baseapp
 
 import sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
-func (m *modeHandlerDeliverInAsync) handleDeferRefund(info *runTxInfo) {
+func (m *modeHandlerDeliverInParallel) handleDeferRefund(info *runTxInfo) {
 	app := m.app
 
 	if app.GasRefundHandler == nil {
@@ -27,9 +27,9 @@ func (m *modeHandlerDeliverInAsync) handleDeferRefund(info *runTxInfo) {
 	info.ctx.ParaMsg().RefundFee = refundGas
 }
 
-func (m *modeHandlerDeliverInAsync) handleDeferGasConsumed(info *runTxInfo) {
+func (m *modeHandlerDeliverInParallel) handleDeferGasConsumed(info *runTxInfo) {
 }
-func (m *modeHandlerDeliverInAsync) handleRunMsg(info *runTxInfo) (err error) {
+func (m *modeHandlerDeliverInParallel) handleRunMsg(info *runTxInfo) (err error) {
 	app := m.app
 	mode := m.mode
 

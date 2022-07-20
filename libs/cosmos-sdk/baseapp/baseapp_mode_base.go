@@ -3,9 +3,9 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	//"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
@@ -35,8 +35,8 @@ func (app *BaseApp) getModeHandler(mode runTxMode) modeHandler {
 		h = &modeHandlerDeliver{&modeHandlerBase{mode: mode, app: app}}
 	case runTxModeSimulate:
 		h = &modeHandlerSimulate{&modeHandlerBase{mode: mode, app: app}}
-	case runTxModeDeliverInAsync:
-		h = &modeHandlerDeliverInAsync{&modeHandlerBase{mode: mode, app: app}}
+	case runTxModeDeliverInParallel:
+		h = &modeHandlerDeliverInParallel{&modeHandlerBase{mode: mode, app: app}}
 	default:
 		h = &modeHandlerBase{mode: mode, app: app}
 	}
@@ -49,7 +49,7 @@ type modeHandlerBase struct {
 	app  *BaseApp
 }
 
-type modeHandlerDeliverInAsync struct {
+type modeHandlerDeliverInParallel struct {
 	*modeHandlerBase
 }
 

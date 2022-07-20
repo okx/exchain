@@ -2,10 +2,10 @@ package state
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/system/trace"
 	"strconv"
 	"time"
 
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/global"
@@ -480,7 +480,6 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 	}
 	proxyAppConn.SetResponseCallback(proxyCb)
 
-	// proxyAppConn.ParallelTxs(transTxsToBytes(block.Txs), true)
 	commitInfo, byzVals := getBeginBlockValidatorInfo(block, stateDB)
 
 	// Begin block

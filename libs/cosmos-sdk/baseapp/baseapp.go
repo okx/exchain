@@ -38,7 +38,7 @@ const (
 	runTxModeReCheck                                // Recheck a (pending) transaction after a commit
 	runTxModeSimulate                               // Simulate a transaction
 	runTxModeDeliver                                // Deliver a transaction
-	runTxModeDeliverInAsync                         // Deliver a transaction in Aysnc
+	runTxModeDeliverInParallel                      // Deliver a transaction in parallel
 	runTxModeDeliverPartConcurrent                  // Deliver a transaction partial concurrent
 	runTxModeTrace                                  // Trace a transaction
 	runTxModeWrappedCheck
@@ -109,8 +109,8 @@ func (m runTxMode) String() (res string) {
 		res = "ModeDeliver"
 	case runTxModeDeliverPartConcurrent:
 		res = "ModeDeliverPartConcurrent"
-	case runTxModeDeliverInAsync:
-		res = "ModeDeliverInAsync"
+	case runTxModeDeliverInParallel:
+		res = "ModeDeliverInParallel"
 	case runTxModeWrappedCheck:
 		res = "ModeWrappedCheck"
 	default:
@@ -662,7 +662,7 @@ func validateBasicTxMsgs(msgs []sdk.Msg) error {
 // Returns the applications's deliverState if app is in runTxModeDeliver,
 // otherwise it returns the application's checkstate.
 func (app *BaseApp) getState(mode runTxMode) *state {
-	if mode == runTxModeDeliver || mode == runTxModeDeliverInAsync || mode == runTxModeDeliverPartConcurrent {
+	if mode == runTxModeDeliver || mode == runTxModeDeliverInParallel || mode == runTxModeDeliverPartConcurrent {
 		return app.deliverState
 	}
 
@@ -688,7 +688,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 		ctx, _ = ctx.CacheContext()
 		ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 	}
-	if app.parallelTxManage.isAsyncDeliverTx && mode == runTxModeDeliverInAsync {
+	if app.parallelTxManage.isParallel && mode == runTxModeDeliverInParallel {
 		ctx.SetParaMsg(&sdk.ParaMsg{
 			HaveCosmosTxInBlock: app.parallelTxManage.haveCosmosTxInBlock,
 		})

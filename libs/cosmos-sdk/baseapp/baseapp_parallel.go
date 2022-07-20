@@ -10,8 +10,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	sm "github.com/okex/exchain/libs/tendermint/state"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -147,15 +145,15 @@ func (app *BaseApp) calGroup() {
 	}
 }
 
-// ParallelTxs run txs
-func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.ResponseDeliverTx {
+// DeliverTxs run txs
+func (app *BaseApp) DeliverTxs(req abci.RequestDeliverTxs) []*abci.ResponseDeliverTx {
 	pm := app.parallelTxManage
 
-	txSize := len(txs)
+	txSize := len(req.Txs)
 	pm.txSize = txSize
 	pm.haveCosmosTxInBlock = false
-	pm.workgroup.txs = txs
-	pm.isAsyncDeliverTx = true
+	pm.workgroup.txs = req.Txs
+	pm.isParallel = true
 	pm.cms = app.deliverState.ms.CacheMultiStore()
 	pm.cms.DisableCacheReadList()
 	app.deliverState.ms.DisableCacheReadList()
@@ -166,7 +164,7 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 	}
 	pm.init()
 
-	app.getExtraDataByTxs(txs)
+	app.getExtraDataByTxs(req.Txs)
 
 	app.calGroup()
 
@@ -359,7 +357,7 @@ func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 		resp abci.ResponseDeliverTx
 		mode runTxMode
 	)
-	mode = runTxModeDeliverInAsync
+	mode = runTxModeDeliverInParallel
 	info, errM := app.runTxWithIndex(txIndex, mode, app.parallelTxManage.workgroup.txs[txIndex], txStatus.stdTx, LatestSimulateTxHeight)
 	if errM != nil {
 		resp = sdkerrors.ResponseDeliverTx(errM, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
@@ -554,7 +552,7 @@ func (c *conflictCheck) clear() {
 
 type parallelTxManager struct {
 	haveCosmosTxInBlock bool
-	isAsyncDeliverTx    bool
+	isParallel          bool // default false, true when abci.DeliverTxs
 	workgroup           *asyncWorkGroup
 
 	extraTxsInfo []*extraDataForTx
@@ -578,10 +576,9 @@ type parallelTxManager struct {
 }
 
 func newParallelTxManager() *parallelTxManager {
-	isAsync := sm.DeliverTxsExecMode(viper.GetInt(sm.FlagDeliverTxsExecMode)) == sm.DeliverTxsExecModeParallel
 	return &parallelTxManager{
-		isAsyncDeliverTx: isAsync,
-		workgroup:        newAsyncWorkGroup(),
+		isParallel: false,
+		workgroup:  newAsyncWorkGroup(),
 
 		groupList:     make(map[int][]int),
 		nextTxInGroup: make(map[int]int),

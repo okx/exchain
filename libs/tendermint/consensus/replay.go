@@ -543,7 +543,7 @@ func (mock *mockProxyApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeli
 	return *r
 }
 
-func (mock *mockProxyApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.ResponseDeliverTx {
+func (mock *mockProxyApp) DeliverTxs(req abci.RequestDeliverTxs) []*abci.ResponseDeliverTx {
 	return mock.abciResponses.DeliverTxs
 }
 

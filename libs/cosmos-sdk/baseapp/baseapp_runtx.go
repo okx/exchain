@@ -215,7 +215,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 		} else {
 			anteCtx, info.msCacheAnte = app.cacheTxContext(info.ctx, info.txBytes)
 		}
-	} else if mode == runTxModeDeliverInAsync {
+	} else if mode == runTxModeDeliverInParallel {
 		anteCtx = info.ctx
 		info.msCacheAnte = nil
 		msCacheAnte := app.parallelTxManage.getTxResult(info.txIndex)
@@ -259,7 +259,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	// GasMeter expected to be set in AnteHandler
 	info.gasWanted = info.ctx.GasMeter().Limit()
 
-	if mode == runTxModeDeliverInAsync {
+	if mode == runTxModeDeliverInParallel {
 		info.ctx.ParaMsg().AnteErr = err
 	}
 
@@ -269,7 +269,7 @@ func (app *BaseApp) runAnte(info *runTxInfo, mode runTxMode) error {
 	app.pin(trace.AnteOther, false, mode)
 
 	// 4. CacheStoreWrite
-	if mode != runTxModeDeliverInAsync {
+	if mode != runTxModeDeliverInParallel {
 		app.pin(trace.CacheStoreWrite, true, mode)
 		info.msCacheAnte.Write()
 		if mode == runTxModeDeliver {
@@ -425,7 +425,7 @@ func (app *BaseApp) asyncDeliverTx(txIndex int) {
 	}
 
 	var resp abci.ResponseDeliverTx
-	info, errM := app.runTxWithIndex(txIndex, runTxModeDeliverInAsync, pmWorkGroup.txs[txIndex], txStatus.stdTx, LatestSimulateTxHeight)
+	info, errM := app.runTxWithIndex(txIndex, runTxModeDeliverInParallel, pmWorkGroup.txs[txIndex], txStatus.stdTx, LatestSimulateTxHeight)
 	if errM != nil {
 		resp = sdkerrors.ResponseDeliverTx(errM, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
 	} else {
@@ -455,7 +455,7 @@ func useCache(mode runTxMode) bool {
 }
 
 func (app *BaseApp) newBlockCache() {
-	useCache := sdk.UseCache && !app.parallelTxManage.isAsyncDeliverTx
+	useCache := sdk.UseCache && !app.parallelTxManage.isParallel
 	if app.chainCache == nil {
 		app.chainCache = sdk.NewCache(nil, useCache)
 	}

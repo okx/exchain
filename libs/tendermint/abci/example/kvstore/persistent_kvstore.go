@@ -152,7 +152,7 @@ func (app *PersistentKVStoreApplication) EndBlock(req types.RequestEndBlock) typ
 	return types.ResponseEndBlock{ValidatorUpdates: app.ValUpdates}
 }
 
-func (app *PersistentKVStoreApplication) ParallelTxs(_ [][]byte, _ bool) []*types.ResponseDeliverTx {
+func (app *PersistentKVStoreApplication) DeliverTxs(_ types.RequestDeliverTxs) []*types.ResponseDeliverTx {
 	return nil
 }
 
