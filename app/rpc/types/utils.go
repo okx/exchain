@@ -241,11 +241,11 @@ func FormatBlock(
 			ret.Transactions = transactions
 		}
 	} else {
-		if len(transactions) == 0 {
-			ret.Transactions = []common.Hash{}
+		if txHashes != nil {
+			ret.Transactions = txHashes
 		} else {
-			if len(txHashes) == len(transactions) {
-				ret.Transactions = txHashes
+			if len(transactions) == 0 {
+				ret.Transactions = []common.Hash{}
 			} else {
 				txHashes = make([]common.Hash, len(transactions))
 				for i, tx := range transactions {
