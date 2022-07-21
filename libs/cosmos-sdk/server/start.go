@@ -253,6 +253,7 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	tmiavl.HeightOrphansCacheSize = viper.GetInt(tmiavl.FlagIavlHeightOrphansCacheSize)
 	tmiavl.MaxCommittedHeightNum = viper.GetInt(tmiavl.FlagIavlMaxCommittedHeightNum)
 	tmiavl.EnableAsyncCommit = viper.GetBool(tmiavl.FlagIavlEnableAsyncCommit)
+	tmiavl.SetFastNodeCacheSize(viper.GetInt(tmiavl.FlagIavlFastStorageCacheSize))
 	system.EnableGid = viper.GetBool(system.FlagEnableGid)
 
 	state.ApplyBlockPprofTime = viper.GetInt(state.FlagApplyBlockPprofTime)
