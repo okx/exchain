@@ -67,6 +67,8 @@ type Backend interface {
 
 	// Used by eip-1898
 	ConvertToBlockNumber(rpctypes.BlockNumberOrHash) (rpctypes.BlockNumber, error)
+	// Block returns the block at the given block number, block data is readonly
+	Block(height *int64) (*coretypes.ResultBlock, error)
 }
 
 var _ Backend = (*EthermintBackend)(nil)
@@ -104,7 +106,7 @@ func New(clientCtx clientcontext.CLIContext, log log.Logger, rateLimiters map[st
 		logsLimit:         viper.GetInt(FlagLogsLimit),
 		logsTimeout:       viper.GetInt(FlagLogsTimeout),
 	}
-	b.blockCache, _ = lru.New(512)
+	b.blockCache, _ = lru.New(viper.GetInt(FlagApiBackendBlockLruCache))
 	return b
 }
 
@@ -162,7 +164,7 @@ func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullT
 		height = int64(num)
 	}
 
-	resBlock, err := b.clientCtx.Client.Block(&height)
+	resBlock, err := b.Block(&height)
 	if err != nil {
 		return nil, nil
 	}
@@ -199,7 +201,7 @@ func (b *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (*watch
 		return nil, err
 	}
 
-	resBlock, err := b.clientCtx.Client.Block(&out.Number)
+	resBlock, err := b.Block(&out.Number)
 	if err != nil {
 		return nil, nil
 	}
@@ -225,7 +227,7 @@ func (b *EthermintBackend) HeaderByNumber(blockNum rpctypes.BlockNumber) (*ethty
 		height = int64(num)
 	}
 
-	resBlock, err := b.block(&height)
+	resBlock, err := b.Block(&height)
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +257,7 @@ func (b *EthermintBackend) HeaderByHash(blockHash common.Hash) (*ethtypes.Header
 		return nil, err
 	}
 
-	resBlock, err := b.block(&out.Number)
+	resBlock, err := b.Block(&out.Number)
 	if err != nil {
 		return nil, err
 	}
@@ -425,7 +427,7 @@ func (b *EthermintBackend) GetTransactionByHash(hash common.Hash) (tx *watcher.T
 	}
 
 	// Can either cache or just leave this out if not necessary
-	block, err := b.block(&txRes.Height)
+	block, err := b.Block(&txRes.Height)
 	if err != nil {
 		return nil, err
 	}
@@ -458,7 +460,7 @@ func (b *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 		return nil, err
 	}
 
-	block, err := b.block(&out.Number)
+	block, err := b.Block(&out.Number)
 	if err != nil {
 		return nil, err
 	}
@@ -617,7 +619,7 @@ func (b *EthermintBackend) getBlockFromCache(height int64) *coretypes.ResultBloc
 	return nil
 }
 
-func (b *EthermintBackend) block(height *int64) (block *coretypes.ResultBlock, err error) {
+func (b *EthermintBackend) Block(height *int64) (block *coretypes.ResultBlock, err error) {
 	if height != nil {
 		block = b.getBlockFromCache(*height)
 	}
