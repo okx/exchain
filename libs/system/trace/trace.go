@@ -33,8 +33,8 @@ type Tracer struct {
 	intervals        []time.Duration
 	elapsedTime      time.Duration
 
-	pinMap map[string]time.Duration
-	enableSummary    bool
+	pinMap        map[string]time.Duration
+	enableSummary bool
 }
 
 func NewTracer(name string) *Tracer {
@@ -98,6 +98,8 @@ func (t *Tracer) Format() string {
 	for i := range t.pins {
 		info += fmt.Sprintf(", %s<%dms>", t.pins[i], t.intervals[i].Milliseconds())
 	}
+	//fmt.Println("debug 1")
+	//fmt.Println("info:", info)
 	return info
 }
 

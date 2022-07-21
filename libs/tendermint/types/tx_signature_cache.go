@@ -42,6 +42,7 @@ func SignatureCache() *Cache {
 
 type Cache struct {
 	data      *fastcache.Cache
+	addCount  int64
 	readCount int64
 	hitCount  int64
 }
@@ -66,6 +67,7 @@ func (c *Cache) Add(key []byte, value string) {
 	if !c.validate(key) {
 		return
 	}
+	atomic.AddInt64(&c.addCount, 1)
 	// add cache
 	c.data.Set(key, amino.StrToBytes(value))
 }
@@ -76,6 +78,10 @@ func (c *Cache) Remove(key []byte) {
 		return
 	}
 	c.data.Del(key)
+}
+
+func (c *Cache) AddCount() int64 {
+	return atomic.LoadInt64(&c.addCount)
 }
 
 func (c *Cache) ReadCount() int64 {

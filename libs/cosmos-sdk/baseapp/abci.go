@@ -243,12 +243,23 @@ func (app *BaseApp) addCommitTraceInfo() {
 	//	amino.BytesToStr(strconv.AppendFloat(make([]byte, 0, 4), wtx/(wtx+rtx), 'f', 2, 32)),
 	//)
 
-	readCache := float64(tmtypes.SignatureCache().ReadCount())
-	hitCache := float64(tmtypes.SignatureCache().HitCount())
+	addCache := tmtypes.SignatureCache().AddCount()
+	readCache := tmtypes.SignatureCache().ReadCount()
+	hitCache := tmtypes.SignatureCache().HitCount()
 
 	elapsedInfo.AddInfo(trace.SigCacheRatio,
-		amino.BytesToStr(strconv.AppendFloat(make([]byte, 0, 4), hitCache/readCache, 'f', 2, 32)),
+		amino.BytesToStr(strconv.AppendFloat(make([]byte, 0, 4), float64(hitCache)/float64(readCache), 'f', 2, 32)),
 	)
+
+	elapsedInfo.AddInfo(trace.SigCacheAddCount,
+		strconv.FormatInt(addCache, 10),
+	)
+
+	elapsedInfo.AddInfo(trace.SigCacheGetCount,
+		strconv.FormatInt(readCache, 10))
+
+	elapsedInfo.AddInfo(trace.SigCacheHitCount,
+		strconv.FormatInt(hitCache, 10))
 
 	elapsedInfo.AddInfo(trace.AnteChainDetail, app.anteTracer.FormatRepeatingPins(sdk.AnteTerminatorTag))
 }
