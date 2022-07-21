@@ -49,17 +49,25 @@ func (app *BaseApp) TraceBlock(queryTraceTx sdk.QueryTraceBlock, block *tmtypes.
 			TxIndex: txindex,
 			TxHash:  common.BytesToHash(txBz.Hash(queryTraceTx.Height)),
 		}
-		tx, err := app.txDecoder(txBz, block.Height)
+		tmtx, err := GetABCITx(result.TxHash.Bytes())
 		if err != nil {
-			result.Error = fmt.Sprintf("failed to decode tx[%d] in block, err: %s", txindex, err.Error())
+			result.Error = "invalid tx bytes"
+		} else if tmtx.TxResult.IsOK() {
+			result.Error = "tx reverted, status = 0x0"
 		} else {
-			info, err := app.tracetx(txBz, tx, block.Height, traceState)
+			tx, err := app.txDecoder(txBz, block.Height)
 			if err != nil {
-				result.Error = fmt.Sprintf("failed to trace tx[%d] in block, err: %s", txindex, err.Error())
+				result.Error = fmt.Sprintf("failed to decode tx[%d] in block, err: %s", txindex, err.Error())
 			} else {
-				result.Result = info.result.Data
+				info, err := app.tracetx(txBz, tx, block.Height, traceState)
+				if err != nil {
+					result.Error = fmt.Sprintf("failed to trace tx[%d] in block, err: %s", txindex, err.Error())
+				} else {
+					result.Result = info.result.Data
+				}
 			}
 		}
+
 		results = append(results, result)
 	}
 	return results, nil

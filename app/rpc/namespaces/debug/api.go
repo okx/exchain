@@ -70,6 +70,9 @@ func (api *PublicDebugAPI) TraceTransaction(txHash common.Hash, config evmtypes.
 	if err := api.clientCtx.Codec.UnmarshalBinaryBare(resTrace, &res); err != nil {
 		return nil, err
 	}
+	if res.Data == nil {
+		return nil, fmt.Errorf("failed to trace tx")
+	}
 	var decodedResult interface{}
 	if err := json.Unmarshal(res.Data, &decodedResult); err != nil {
 		return nil, err

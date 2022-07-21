@@ -447,6 +447,9 @@ func handleQueryApp(app *BaseApp, path []string, req abci.RequestQuery) abci.Res
 			if err != nil {
 				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "invalid trace tx bytes"))
 			}
+			if !tmtx.TxResult.IsOK() {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "reverted tx"))
+			}
 			tx, err := app.txDecoder(tmtx.Tx, tmtx.Height)
 			if err != nil {
 				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))

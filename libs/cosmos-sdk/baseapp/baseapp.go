@@ -62,6 +62,8 @@ var (
 	mempoolEnableSort        = false
 	mempoolEnableRecheck     = true
 	mempoolEnablePendingPool = false
+
+	rpcCli *tmhttp.HTTP
 )
 
 func GetGlobalMempool() mempool.Mempool {
@@ -731,18 +733,27 @@ func (app *BaseApp) getContextForSimTx(txBytes []byte, height int64) (sdk.Contex
 
 	return ctx, nil
 }
+func GetRpcCli() *tmhttp.HTTP {
+	if rpcCli == nil {
+		laddr := viper.GetString("rpc.laddr")
+		splits := strings.Split(laddr, ":")
+		if len(splits) < 2 {
+			return nil
+		}
+		var err error
+		rpcCli, err = tmhttp.New(fmt.Sprintf("tcp://127.0.0.1:%s", splits[len(splits)-1]), "/websocket")
+		if err != nil {
+			return nil
+		}
+	}
+	return rpcCli
+}
 func GetABCITx(hash []byte) (*ctypes.ResultTx, error) {
-	laddr := viper.GetString("rpc.laddr")
-	splits := strings.Split(laddr, ":")
-	if len(splits) < 2 {
+
+	rpcCli = GetRpcCli()
+	if rpcCli == nil {
 		return nil, fmt.Errorf("get tx failed!")
 	}
-
-	rpcCli, err := tmhttp.New(fmt.Sprintf("tcp://127.0.0.1:%s", splits[len(splits)-1]), "/websocket")
-	if err != nil {
-		return nil, fmt.Errorf("get tx failed!")
-	}
-
 	tx, err := rpcCli.Tx(hash, false)
 	if err != nil {
 		return nil, fmt.Errorf("get ABCI tx failed!")
@@ -751,17 +762,10 @@ func GetABCITx(hash []byte) (*ctypes.ResultTx, error) {
 	return tx, nil
 }
 func GetABCIBlock(height int64) (*ctypes.ResultBlock, error) {
-	laddr := viper.GetString("rpc.laddr")
-	splits := strings.Split(laddr, ":")
-	if len(splits) < 2 {
-		return nil, fmt.Errorf("get tendermint Block failed!")
+	rpcCli = GetRpcCli()
+	if rpcCli == nil {
+		return nil, fmt.Errorf("get Block failed!")
 	}
-
-	rpcCli, err := tmhttp.New(fmt.Sprintf("tcp://127.0.0.1:%s", splits[len(splits)-1]), "/websocket")
-	if err != nil {
-		return nil, fmt.Errorf("get tendermint Block failed!")
-	}
-
 	block, err := rpcCli.Block(&height)
 	if err != nil {
 		return nil, fmt.Errorf("get tendermint Block failed!")
