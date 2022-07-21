@@ -262,24 +262,19 @@ func (ndb *nodeDB) uncacheNode(hash []byte) {
 	ndb.nc.uncache(hash)
 }
 
+func (ndb *nodeDB) getFastNodeFromCache(key []byte) (*FastNode, bool) {
+	node := ndb.fastNodeCache.get(key, true)
+	return node, node != nil
+}
+
 func (ndb *nodeDB) uncacheFastNode(key []byte) {
-	if elem, ok := ndb.fastNodeCache[string(key)]; ok {
-		ndb.fastNodeCacheQueue.Remove(elem)
-		delete(ndb.fastNodeCache, string(key))
-	}
+	ndb.fastNodeCache.uncache(key)
 }
 
 // Add a node to the cache and pop the least recently used node if we've
 // reached the cache size limit.
 func (ndb *nodeDB) cacheFastNode(node *FastNode) {
-	elem := ndb.fastNodeCacheQueue.PushBack(node)
-	ndb.fastNodeCache[string(node.key)] = elem
-
-	if ndb.fastNodeCacheQueue.Len() > ndb.fastNodeCacheSize {
-		oldest := ndb.fastNodeCacheQueue.Front()
-		key := ndb.fastNodeCacheQueue.Remove(oldest).(*FastNode).key
-		delete(ndb.fastNodeCache, string(key))
-	}
+	ndb.fastNodeCache.cache(node)
 }
 
 func (ndb *nodeDB) getNodeFromCache(hash []byte, promoteRecentNode bool) (n *Node) {
