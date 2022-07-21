@@ -2,6 +2,8 @@ package types
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -54,17 +56,17 @@ func (tx *IbcTx) GetSignBytes(ctx sdk.Context, acc exported.Account) []byte {
 	)
 }
 
-func (tx *IbcTx) VerifySequence(index int, acc exported.Account) bool {
+func (tx *IbcTx) VerifySequence(index int, acc exported.Account) error {
 	//check
 	if index > len(tx.Sequences) {
-		return false
+		return errors.New("verify sequence error index not fit")
 	}
 	seq := tx.Sequences[index]
 	if seq != acc.GetSequence() {
-		return false
+		return fmt.Errorf("verify sequence error expected:%d,got:%d", acc.GetSequence(), seq)
 	}
 
-	return true
+	return nil
 }
 
 func IbcAminoSignBytes(chainID string, accNum uint64,
