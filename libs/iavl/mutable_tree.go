@@ -135,6 +135,7 @@ func (tree *MutableTree) VersionExists(version int64) bool {
 	}
 	return tree.versions.Get(version)
 }
+
 func (tree *MutableTree) VersionExistsInDb(version int64) bool {
 	treeVer := tree.ndb.getPreviousVersion(version + 1)
 	return treeVer == version
@@ -189,9 +190,9 @@ func (tree *MutableTree) Set(key, value []byte) bool {
 	return updated
 }
 
-// FastGet returns the value of the specified key if it exists, or nil otherwise.
+// Get returns the value of the specified key if it exists, or nil otherwise.
 // The returned value must not be modified, since it may point to data stored within IAVL.
-func (tree *MutableTree) FastGet(key []byte) []byte {
+func (tree *MutableTree) Get(key []byte) []byte {
 	if tree.root == nil {
 		return nil
 	}
@@ -200,7 +201,7 @@ func (tree *MutableTree) FastGet(key []byte) []byte {
 		return fastNode.value
 	}
 
-	return tree.ImmutableTree.FastGet(key)
+	return tree.ImmutableTree.Get(key)
 }
 
 // Import returns an importer for tree nodes previously exported by ImmutableTree.Export(),
@@ -668,9 +669,15 @@ func (tree *MutableTree) enableFastStorageAndCommit(batch dbm.Batch) error {
 
 	itr := NewIterator(nil, nil, true, tree.ImmutableTree)
 	defer itr.Close()
+	var upgradedNodes uint64
+	const verboseGap = 50000
 	for ; itr.Valid(); itr.Next() {
 		if err = tree.ndb.SaveFastNodeNoCache(NewFastNode(itr.Key(), itr.Value(), tree.version), batch); err != nil {
 			return err
+		}
+		upgradedNodes++
+		if upgradedNodes%verboseGap == 0 {
+			tree.log(IavlInfo, "Upgrading to fast IAVL...", "finished", upgradedNodes)
 		}
 	}
 
@@ -729,11 +736,23 @@ func (tree *MutableTree) GetVersioned(key []byte, version int64) (
 	index int64, value []byte,
 ) {
 	if tree.VersionExists(version) {
+		isFastCacheEnabled := tree.IsFastCacheEnabled()
+		if isFastCacheEnabled {
+			fastNode, _ := tree.ndb.GetFastNode(key)
+			if fastNode == nil && version == tree.ndb.latestVersion {
+				return -1, nil
+			}
+
+			if fastNode != nil && fastNode.versionLastUpdatedAt <= version {
+				return fastNode.versionLastUpdatedAt, fastNode.value
+			}
+		}
+
 		t, err := tree.GetImmutable(version)
 		if err != nil {
 			return -1, nil
 		}
-		return t.Get(key)
+		return t.GetWithIndex(key)
 	}
 	return -1, nil
 }

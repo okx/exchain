@@ -149,20 +149,20 @@ func (t *ImmutableTree) Export() *Exporter {
 	return newExporter(t)
 }
 
-// Get returns the index and value of the specified key if it exists, or nil and the next index
+// GetWithIndex returns the index and value of the specified key if it exists, or nil and the next index
 // otherwise. The returned value must not be modified, since it may point to data stored within
 // IAVL.
-func (t *ImmutableTree) Get(key []byte) (index int64, value []byte) {
+func (t *ImmutableTree) GetWithIndex(key []byte) (index int64, value []byte) {
 	if t.root == nil {
 		return 0, nil
 	}
 	return t.root.get(t, key)
 }
 
-// FastGet returns the value of the specified key if it exists, or nil.
+// Get returns the value of the specified key if it exists, or nil.
 // The returned value must not be modified, since it may point to data stored within IAVL.
-// FastGet potentially employs a more performant strategy than GetWithIndex for retrieving the value.
-func (t *ImmutableTree) FastGet(key []byte) []byte {
+// Get potentially employs a more performant strategy than GetWithIndex for retrieving the value.
+func (t *ImmutableTree) Get(key []byte) []byte {
 	if t.root == nil {
 		return nil
 	}
