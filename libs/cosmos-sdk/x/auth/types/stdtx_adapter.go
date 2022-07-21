@@ -2,6 +2,8 @@ package types
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -16,6 +18,7 @@ type IbcTx struct {
 	SignMode      signing.SignMode
 	SigFee        IbcFee
 	SigMsgs       []sdk.Msg
+	Sequences     []uint64
 }
 
 type StdIBCSignDoc struct {
@@ -42,6 +45,7 @@ func (tx *IbcTx) GetSignBytes(ctx sdk.Context, acc exported.Account) []byte {
 	}
 
 	if tx.SignMode == signing.SignMode_SIGN_MODE_DIRECT {
+
 		return IbcDirectSignBytes(
 			chainID, accNum, acc.GetSequence(), tx.Fee, tx.Msgs, tx.Memo, tx.AuthInfoBytes, tx.BodyBytes,
 		)
@@ -50,6 +54,19 @@ func (tx *IbcTx) GetSignBytes(ctx sdk.Context, acc exported.Account) []byte {
 	return IbcAminoSignBytes(
 		chainID, accNum, acc.GetSequence(), tx.SigFee, tx.SigMsgs, tx.Memo, tx.TimeoutHeight,
 	)
+}
+
+func (tx *IbcTx) VerifySequence(index int, acc exported.Account) error {
+	//check
+	if index > len(tx.Sequences) {
+		return errors.New("verify sequence error index not fit")
+	}
+	seq := tx.Sequences[index]
+	if seq != acc.GetSequence() {
+		return fmt.Errorf("verify sequence error expected:%d,got:%d", acc.GetSequence(), seq)
+	}
+
+	return nil
 }
 
 func IbcAminoSignBytes(chainID string, accNum uint64,
