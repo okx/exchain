@@ -2,7 +2,6 @@ package iavl
 
 import (
 	"bytes"
-	"container/list"
 	"fmt"
 	"math"
 	"sort"
@@ -88,10 +87,7 @@ type nodeDB struct {
 	state *RuntimeState
 	tpp   *tempPrePersistNodes
 
-	fastNodeCache          map[string]*list.Element // FastNode cache.
-	fastNodeCacheSize      int                      // FastNode cache size limit in elements.
-	fastNodeCacheQueue     *list.List               // LRU queue of cache elements. Used for deletion.
-	fastNodeMutex          sync.Mutex               // Mutex for fast node cache.
+	fastNodeCache          *FastNodeCache
 	latestVersion4FastNode int64
 }
 
@@ -116,12 +112,10 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		preWriteNodeCache:   cmap.New(),
 		state:               newRuntimeState(),
 		tpp:                 newTempPrePersistNodes(),
-		fastNodeCache:       make(map[string]*list.Element),
-		fastNodeCacheSize:   100000,
-		fastNodeCacheQueue:  list.New(),
 		storageVersion:      string(storeVersion),
 	}
 
+	ndb.fastNodeCache = newFastNodeCache(ndb.name, GetFastNodeCacheSize())
 	ndb.oi = newOrphanInfo(ndb)
 	ndb.nc = newNodeCache(ndb.name, cacheSize)
 	return ndb
@@ -139,15 +133,10 @@ func (ndb *nodeDB) GetFastNode(key []byte) (*FastNode, error) {
 		return nil, fmt.Errorf("nodeDB.GetFastNode() requires key, len(key) equals 0")
 	}
 
-	ndb.fastNodeMutex.Lock()
 	// Check the cache.
-	if elem, ok := ndb.fastNodeCache[string(key)]; ok {
-		// Already exists. Move to back of fastNodeCacheQueue.
-		ndb.fastNodeCacheQueue.MoveToBack(elem)
-		ndb.fastNodeMutex.Unlock()
-		return elem.Value.(*FastNode), nil
+	if v, ok := ndb.getFastNodeFromCache(key); ok {
+		return v, nil
 	}
-	ndb.fastNodeMutex.Unlock()
 
 	// Doesn't exist, load.
 	buf, err := ndb.db.Get(ndb.fastNodeKey(key))

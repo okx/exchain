@@ -18,6 +18,7 @@ const (
 	FlagIavlMaxCommittedHeightNum  = "iavl-max-committed-height-num"
 	FlagIavlEnableAsyncCommit      = "iavl-enable-async-commit"
 	FlagIavlEnableFastStorage      = "iavl-enable-fast-storage"
+	FlagIavlFastStorageCacheSize   = "iavl-fast-storage-cache-size"
 )
 
 var (
@@ -33,6 +34,7 @@ var (
 	EnablePruningHistoryState       = true
 	CommitGapHeight           int64 = 100
 	EnableFastStorage               = false
+	fastNodeCacheSize               = 100000
 )
 
 type commitEvent struct {
@@ -47,6 +49,16 @@ type commitEvent struct {
 type commitOrphan struct {
 	Version  int64
 	NodeHash []byte
+}
+
+// SetFastNodeCacheSize set fast node cache size
+func SetFastNodeCacheSize(size int) {
+	fastNodeCacheSize = size
+}
+
+// GetFastNodeCacheSize get fast node cache size
+func GetFastNodeCacheSize() int {
+	return fastNodeCacheSize
 }
 
 func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte, int64, error) {
