@@ -88,6 +88,13 @@ var blockLoadBufPool = &sync.Pool{
 // LoadBlock returns the block with the given height.
 // If no block is found for that height, it returns nil.
 func (bs *BlockStore) LoadBlock(height int64) *types.Block {
+	b, _ := bs.LoadBlockWithExInfo(height)
+	return b
+}
+
+// LoadBlockWithExInfo returns the block with the given height.
+// and the BlockPartInfo is used to make block parts
+func (bs *BlockStore) LoadBlockWithExInfo(height int64) (*types.Block, *types.BlockExInfo) {
 	bufs := blockLoadBufPool.Get().(*[2]bytes.Buffer)
 	defer blockLoadBufPool.Put(bufs)
 
@@ -98,27 +105,13 @@ func (bs *BlockStore) LoadBlock(height int64) *types.Block {
 
 	info := bs.loadBlockPartsBytesTo(height, loadBuf, uncompressedBuf)
 	if loadBuf.Len() == 0 {
-		return nil
-	}
-	if !info.IsCompressed() {
-		return bs.unmarshalBlockByBytes(loadBuf.Bytes())
-	} else {
-		return bs.unmarshalBlockByBytes(uncompressedBuf.Bytes())
-	}
-}
-
-// LoadBlockWithExInfo returns the block with the given height.
-// and the BlockPartInfo is used to make block parts
-func (bs *BlockStore) LoadBlockWithExInfo(height int64) (*types.Block, *types.BlockExInfo) {
-	buf := blockBufferPool.Get()
-	defer blockBufferPool.Put(buf)
-	buf.Reset()
-	partBytes, exInfo := bs.loadBlockPartsBytes(height, buf)
-	if partBytes == nil {
 		return nil, nil
 	}
-
-	return bs.unmarshalBlockByBytes(partBytes), exInfo
+	if !info.IsCompressed() {
+		return bs.unmarshalBlockByBytes(loadBuf.Bytes()), &info
+	} else {
+		return bs.unmarshalBlockByBytes(uncompressedBuf.Bytes()), &info
+	}
 }
 
 // unmarshalBlockByBytes returns the block with the given block parts bytes
