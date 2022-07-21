@@ -49,11 +49,8 @@ func (app *BaseApp) TraceBlock(queryTraceTx sdk.QueryTraceBlock, block *tmtypes.
 			TxIndex: txindex,
 			TxHash:  common.BytesToHash(txBz.Hash(queryTraceTx.Height)),
 		}
-		tmtx, err := GetABCITx(result.TxHash.Bytes())
 		if err != nil {
 			result.Error = "invalid tx bytes"
-		} else if !tmtx.TxResult.IsOK() {
-			result.Error = "tx reverted, status = 0x0"
 		} else {
 			tx, err := app.txDecoder(txBz, block.Height)
 			if err != nil {
