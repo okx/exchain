@@ -117,6 +117,7 @@ var (
 			paramsclient.ProposalHandler,
 			distr.CommunityPoolSpendProposalHandler,
 			distr.ChangeDistributionTypeProposalHandler,
+			distr.WithdrawRewardEnabledProposalHandler,
 			dexclient.DelistProposalHandler, farmclient.ManageWhiteListProposalHandler,
 			evmclient.ManageContractDeploymentWhitelistProposalHandler,
 			evmclient.ManageContractBlockedListProposalHandler,
