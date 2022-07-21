@@ -256,7 +256,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	}
 
 	txSize := len(tx)
-	if err := mem.isFull(txSize); err != nil {
+	if err := mem.isFull(txSize, len(txInfo.SenderP2PID) == 0); err != nil {
 		return err
 	}
 	// The size of the corresponding amino-encoded TxMessage
@@ -418,12 +418,18 @@ func (mem *CListMempool) removeTxByKey(key [32]byte) (elem *clist.CElement) {
 	return
 }
 
-func (mem *CListMempool) isFull(txSize int) error {
+func (mem *CListMempool) isFull(txSize int, fromRPC bool) error {
 	var (
 		memSize  = mem.Size()
 		txsBytes = mem.TxsBytes()
 	)
-	if memSize >= cfg.DynamicConfig.GetMempoolSize() || int64(txSize)+txsBytes > mem.config.MaxTxsBytes {
+
+	upperSize := cfg.DynamicConfig.GetMempoolSize()
+	if fromRPC {
+		upperSize /= 2
+	}
+
+	if memSize >= upperSize || int64(txSize)+txsBytes > mem.config.MaxTxsBytes {
 		return ErrMempoolIsFull{
 			memSize, cfg.DynamicConfig.GetMempoolSize(),
 			txsBytes, mem.config.MaxTxsBytes,
@@ -467,7 +473,7 @@ func (mem *CListMempool) consumePendingTx(address string, nonce uint64) {
 		if pendingTx == nil {
 			return
 		}
-		if err := mem.isFull(len(pendingTx.tx)); err != nil {
+		if err := mem.isFull(len(pendingTx.tx), false); err != nil {
 			time.Sleep(time.Duration(mem.pendingPool.period) * time.Second)
 			continue
 		}
@@ -547,7 +553,7 @@ func (mem *CListMempool) resCbFirstTime(
 		if (r.CheckTx.Code == abci.CodeTypeOK) && postCheckErr == nil {
 			// Check mempool isn't full again to reduce the chance of exceeding the
 			// limits.
-			if err := mem.isFull(len(tx)); err != nil {
+			if err := mem.isFull(len(tx), false); err != nil {
 				// remove from cache (mempool might have a space later)
 				mem.cache.RemoveKey(txkey)
 				errStr := err.Error()
