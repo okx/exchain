@@ -13,12 +13,14 @@ import (
 
 type IbcTx struct {
 	*StdTx
-	AuthInfoBytes []byte
-	BodyBytes     []byte
-	SignMode      signing.SignMode
-	SigFee        IbcFee
-	SigMsgs       []sdk.Msg
-	Sequences     []uint64
+
+	AuthInfoBytes                []byte
+	BodyBytes                    []byte
+	SignMode                     []signing.SignMode
+	SigFee                       IbcFee
+	SigMsgs                      []sdk.Msg
+	Sequences                    []uint64
+	TxBodyHasUnknownNonCriticals bool
 }
 
 type StdIBCSignDoc struct {
@@ -36,24 +38,32 @@ type IbcFee struct {
 	Gas    uint64           `json:"gas" yaml:"gas"`
 }
 
-func (tx *IbcTx) GetSignBytes(ctx sdk.Context, acc exported.Account) []byte {
+func (tx *IbcTx) GetSignBytes(ctx sdk.Context, index int, acc exported.Account) []byte {
 	genesis := ctx.BlockHeight() == 0
 	chainID := ctx.ChainID()
 	var accNum uint64
 	if !genesis {
 		accNum = acc.GetAccountNumber()
 	}
-
-	if tx.SignMode == signing.SignMode_SIGN_MODE_DIRECT {
-
+	if index > len(tx.SignMode) {
+		return nil
+	}
+	switch tx.SignMode[index] {
+	case signing.SignMode_SIGN_MODE_DIRECT:
 		return IbcDirectSignBytes(
 			chainID, accNum, acc.GetSequence(), tx.Fee, tx.Msgs, tx.Memo, tx.AuthInfoBytes, tx.BodyBytes,
 		)
+	case signing.SignMode_SIGN_MODE_LEGACY_AMINO_JSON:
+		if tx.TxBodyHasUnknownNonCriticals {
+			return nil
+		}
+		return IbcAminoSignBytes(
+			chainID, accNum, acc.GetSequence(), tx.SigFee, tx.SigMsgs, tx.Memo, tx.TimeoutHeight,
+		)
+	default:
+		//does not support SignMode_SIGN_MODE_UNSPECIFIED SignMode_SIGN_MODE_TEXTUAL
+		return nil
 	}
-
-	return IbcAminoSignBytes(
-		chainID, accNum, acc.GetSequence(), tx.SigFee, tx.SigMsgs, tx.Memo, tx.TimeoutHeight,
-	)
 }
 
 func (tx *IbcTx) VerifySequence(index int, acc exported.Account) error {

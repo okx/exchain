@@ -41,12 +41,11 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 		}
 
 		var body tx.TxBody
-		// allow non-critical unknown fields in TxBody
-		// txBodyHasUnknownNonCriticals, err := unknownproto.RejectUnknownFields(raw.BodyBytes, &body, true, cdc.InterfaceRegistry())
-		// if err != nil {
-		// 	//Ywmet todo couldnot decode
-		// 	//return authtypes.StdTx{}, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
-		// }
+		//allow non-critical unknown fields in TxBody
+		txBodyHasUnknownNonCriticals, err := unknownproto.RejectUnknownFields(raw.BodyBytes, &body, true, cdc.InterfaceRegistry())
+		if err != nil {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+		}
 
 		err = cdc.UnmarshalBinaryBare(raw.BodyBytes, &body)
 		if err != nil {
@@ -84,17 +83,15 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			return nil, err
 		}
 
-		var modeInfo *tx.ModeInfo_Single_
-		var ok bool
-		if len(authInfo.SignerInfos) > 0 {
-			modeInfo, ok = authInfo.SignerInfos[0].ModeInfo.Sum.(*tx.ModeInfo_Single_)
-			if !ok {
-				return nil, sdkerrors.Wrap(sdkerrors.ErrInternal, "only support ModeInfo_Single")
+		var signMode []signing.SignMode
+		if authInfo.SignerInfos != nil {
+			for _, signInfo := range authInfo.SignerInfos {
+				modeInfo, ok := signInfo.ModeInfo.Sum.(*tx.ModeInfo_Single_)
+				if !ok {
+					return nil, sdkerrors.Wrap(sdkerrors.ErrInternal, "only support ModeInfo_Single")
+				}
+				signMode = append(signMode, modeInfo.Single.Mode)
 			}
-		}
-		var signMode signing.SignMode
-		if modeInfo != nil && modeInfo.Single != nil {
-			signMode = modeInfo.Single.Mode
 		}
 
 		sequences := []uint64{}
@@ -114,6 +111,8 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			signFee,
 			signMsgs,
 			sequences,
+
+			txBodyHasUnknownNonCriticals,
 		}
 
 		return &stx, nil
