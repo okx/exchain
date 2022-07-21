@@ -207,23 +207,9 @@ func (bs *BlockStore) loadBlockPartBytesTo(height int64, index int, buf *bytes.B
 	}
 }
 
-// loadBlockPartsBytes return the combined parts bytes and the number of block parts
-func (bs *BlockStore) loadBlockPartsBytes(height int64, buf *bytes.Buffer) ([]byte, *types.BlockExInfo) {
-	var uncompressBuf bytes.Buffer
-	exInfo := bs.loadBlockPartsBytesTo(height, buf, &uncompressBuf)
-	if buf.Len() == 0 {
-		return nil, nil
-	}
-	if exInfo.IsCompressed() {
-		return uncompressBuf.Bytes(), &exInfo
-	} else {
-		return buf.Bytes(), &exInfo
-	}
-}
-
 // loadBlockPartsBytesTo load all block parts bytes to the given buffer,
-// buf stores thr original block parts bytes,
-// uncompressBuf stores the uncompressed block parts bytes if block is compressed
+// buf *Buffer stores the original block parts bytes,
+// uncompressed *Buffer stores the uncompressed block parts bytes if block is compressed
 func (bs *BlockStore) loadBlockPartsBytesTo(height int64, buf *bytes.Buffer, uncompressed *bytes.Buffer) types.BlockExInfo {
 	var blockMeta = bs.LoadBlockMeta(height)
 	if blockMeta == nil {
