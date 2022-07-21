@@ -6,7 +6,9 @@ import (
 	"unsafe"
 )
 
-var blockEvmTxGasCache = fastcache.New(1024 * 1024 * 32)
+const cacheBlockSize = 2000
+
+var blockEvmTxGasCache = fastcache.New(cacheBlockSize * (8 + 8))
 
 func GetBlockEvmTxGasUsed(height int64) *big.Int {
 	k := (*[8]byte)(unsafe.Pointer(&height))
