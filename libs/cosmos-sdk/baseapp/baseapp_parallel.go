@@ -322,7 +322,6 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 			app.updateEvmTxGasUsed(uint64(deliverTxs[i].GasUsed))
 		}
 	}
-	pm.extraTxsInfo[txIndex].isEvm = false
 
 	pm.cms.Write()
 	return deliverTxs
