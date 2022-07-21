@@ -9,8 +9,6 @@ import (
 	"encoding/json"
 	"strings"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-
 	"github.com/gorilla/mux"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
@@ -52,10 +50,6 @@ func tokenHandler(cliCtx context.CLIContext, storeName string) http.HandlerFunc 
 func tokensHandler(cliCtx context.CLIContext, storeName string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ownerAddress := r.URL.Query().Get("address")
-		if _, err := sdk.AccAddressFromBech32(ownerAddress); err != nil {
-			common.HandleErrorResponseV2(w, http.StatusBadRequest, common.ErrorInvalidParam)
-			return
-		}
 		res, _, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/tokens/%s", storeName, ownerAddress), nil)
 		if err != nil {
 			sdkErr := common.ParseSDKError(err.Error())
