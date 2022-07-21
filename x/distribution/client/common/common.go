@@ -35,7 +35,15 @@ func QueryParams(cliCtx context.CLIContext, queryRoute string) (params types.Par
 	}
 	cliCtx.Codec.MustUnmarshalJSON(bytes, &distributionType)
 
-	return types.NewParams(communityTax, withdrawAddrEnabled, distributionType), err
+	var withdrawRewardEnabled bool
+	route = fmt.Sprintf("custom/%s/params/%s", queryRoute, types.ParamWithdrawRewardEnabled)
+	bytes, _, err = cliCtx.QueryWithData(route, []byte{})
+	if err != nil {
+		return
+	}
+	cliCtx.Codec.MustUnmarshalJSON(bytes, &withdrawRewardEnabled)
+
+	return types.NewParams(communityTax, withdrawAddrEnabled, distributionType, withdrawRewardEnabled), err
 }
 
 // QueryValidatorCommission returns a validator's commission.

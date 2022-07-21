@@ -34,6 +34,12 @@ func TestQueryParams(t *testing.T) {
 	require.NoError(t, err2)
 	require.Equal(t, types.DistributionTypeOffChain, distrTypeData)
 
+	enabled, err = querior(ctx, []string{types.QueryParams, types.ParamWithdrawRewardEnabled}, abci.RequestQuery{})
+	require.True(t, err == nil)
+	err = amino.UnmarshalJSON(enabled, &enableData)
+	require.NoError(t, err)
+	require.Equal(t, true, enableData)
+
 	_, err = querior(ctx, []string{"unknown"}, abci.RequestQuery{})
 	require.Error(t, err)
 	_, err = querior(ctx, []string{types.QueryParams, "unknown"}, abci.RequestQuery{})

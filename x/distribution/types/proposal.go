@@ -22,6 +22,7 @@ func init() {
 	govtypes.RegisterProposalType(ProposalTypeChangeDistributionType)
 	govtypes.RegisterProposalTypeCodec(CommunityPoolSpendProposal{}, "okexchain/distribution/CommunityPoolSpendProposal")
 	govtypes.RegisterProposalTypeCodec(ChangeDistributionTypeProposal{}, "okexchain/distribution/ChangeDistributionTypeProposal")
+	govtypes.RegisterProposalTypeCodec(WithdrawRewardEnabledProposal{}, "okexchain/distribution/WithdrawRewardEnabledProposal")
 }
 
 // CommunityPoolSpendProposal spends from the community pool

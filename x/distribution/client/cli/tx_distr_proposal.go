@@ -158,3 +158,58 @@ Where proposal.json contains:
 
 	return cmd
 }
+
+// GetWithdrawRewardEnabledProposal implements the command to submit a withdraw-reward-enabled proposal
+func GetWithdrawRewardEnabledProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "withdraw-reward-enabled [proposal-file]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Submit a withdraw reward enabled or disabled proposal",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Submit a withdraw reward enabled or disabled proposal with the specified value, true: enabled, false: disabled
+
+Example:
+$ %s tx gov submit-proposal withdraw-reward-enabled <path/to/proposal.json> --from=<key_or_address>
+
+Where proposal.json contains:
+
+{
+  "title": "Withdraw Reward Enabled | Disabled",
+  "description": "Will set withdraw reward enabled | disabled",
+  "enabled": false,
+  "deposit": [
+    {
+      "denom": "%s",
+      "amount": "100.000000000000000000"
+    }
+  ]
+}
+`,
+				version.ClientName, sdk.DefaultBondDenom,
+			),
+		),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cdc := cdcP.GetCdc()
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			proposal, err := ParseWithdrawRewardEnabledProposalJSON(cdc, args[0])
+			if err != nil {
+				return err
+			}
+
+			from := cliCtx.GetFromAddress()
+			content := types.NewWithdrawRewardEnabledProposal(proposal.Title, proposal.Description, proposal.Enabled)
+
+			msg := gov.NewMsgSubmitProposal(content, proposal.Deposit, from)
+			if err := msg.ValidateBasic(); err != nil {
+				return err
+			}
+
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+
+	return cmd
+}

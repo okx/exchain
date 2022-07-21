@@ -45,3 +45,35 @@ func postChangeDistributionTypeProposalHandlerFn(cliCtx context.CLIContext) http
 		utils.WriteGenerateStdTxResponse(w, cliCtx, req.BaseReq, []sdk.Msg{msg})
 	}
 }
+
+// WithdrawRewardEnabledProposalRESTHandler returns a WithdrawRewardEnabledProposal that exposes the set withdraw reward enabled proposal REST handler with a given sub-route.
+func WithdrawRewardEnabledProposalRESTHandler(cliCtx context.CLIContext) govrest.ProposalRESTHandler {
+	return govrest.ProposalRESTHandler{
+		SubRoute: "withdraw_reward_enabled",
+		Handler:  postWithdrawRewardEnabledProposalHandlerFn(cliCtx),
+	}
+}
+
+func postWithdrawRewardEnabledProposalHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req WithdrawRewardEnabledProposalReq
+		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
+			return
+		}
+
+		req.BaseReq = req.BaseReq.Sanitize()
+		if !req.BaseReq.ValidateBasic(w) {
+			return
+		}
+
+		content := types.NewWithdrawRewardEnabledProposal(req.Title, req.Description, req.Enabled)
+
+		msg := gov.NewMsgSubmitProposal(content, req.Deposit, req.Proposer)
+		if err := msg.ValidateBasic(); err != nil {
+			comm.HandleErrorMsg(w, cliCtx, comm.CodeInvalidParam, err.Error())
+			return
+		}
+
+		utils.WriteGenerateStdTxResponse(w, cliCtx, req.BaseReq, []sdk.Msg{msg})
+	}
+}
