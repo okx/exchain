@@ -4,14 +4,12 @@ import (
 	"fmt"
 	"math/big"
 	"runtime/debug"
-	"sync"
-
-	"github.com/okex/exchain/libs/system/trace"
-	"github.com/pkg/errors"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/pkg/errors"
 )
 
 type runTxInfo struct {
@@ -475,17 +473,10 @@ func (app *BaseApp) commitBlockCache() {
 	app.chainCache.TryDelete(app.logger, app.deliverState.ctx.BlockHeight())
 }
 
+// this function is not thread safe
 func (app *BaseApp) updateEvmTxGasUsed(gasUsed uint64) {
-	gas := gasBigIntPool.Get().(*big.Int)
-	gas.SetUint64(gasUsed)
-	app.blockAllEvmTxGasUsedMtx.Lock()
+	gas := gasBigInt.SetUint64(gasUsed)
 	app.blockAllEvmTxGasUsed.Add(&app.blockAllEvmTxGasUsed, gas)
-	app.blockAllEvmTxGasUsedMtx.Unlock()
-	gasBigIntPool.Put(gas)
 }
 
-var gasBigIntPool = &sync.Pool{
-	New: func() interface{} {
-		return new(big.Int)
-	},
-}
+var gasBigInt = new(big.Int)
