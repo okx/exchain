@@ -118,7 +118,6 @@ func (iter *FastIterator) Next() {
 }
 
 // Close implements dbm.Iterator
-// todo giskook swallow error
 func (iter *FastIterator) Close() {
 	if iter.fastIterator != nil {
 		iter.fastIterator.Close()

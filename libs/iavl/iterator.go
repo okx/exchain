@@ -71,7 +71,6 @@ func (iter *Iterator) Next() {
 	}
 
 	node := iter.t.next()
-	// todo giskook swallow error
 	// TODO: double-check if this error is correctly handled.
 	if node == nil {
 		iter.t = nil
