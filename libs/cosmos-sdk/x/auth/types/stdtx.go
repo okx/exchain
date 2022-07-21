@@ -35,6 +35,13 @@ type StdTx struct {
 	sdk.BaseTx `json:"-" yaml:"-"`
 }
 
+func (tx *StdTx) VerifySequence(index int, acc exported.Account) error {
+	//this function no use in stdtx, never add anythin in this
+	//only new cosmos44 tx will call this to verify sequence
+
+	return nil
+}
+
 func (tx *StdTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
 	var subData []byte
