@@ -638,16 +638,12 @@ func TestRewardToCommunity(t *testing.T) {
 
 func (suite *InitExistedDelegationStartInfoestSuite) TestWithdrawDisabled() {
 	testCases := []struct {
-		title    string
-		execute1 func(ctx *sdk.Context, dk Keeper)
-		execute2 func(ctx *sdk.Context, dk Keeper, sk staking.Keeper, valOpAddrs []sdk.ValAddress)
-		err      error
+		title   string
+		execute func(ctx *sdk.Context, dk Keeper, sk staking.Keeper, valOpAddrs []sdk.ValAddress)
+		err     error
 	}{
 		{
-			"enabled withdraw",
-			func(ctx *sdk.Context, dk Keeper) {
-				dk.SetWithdrawRewardEnabled(*ctx, true)
-			},
+			"enabled withdraw default",
 			func(ctx *sdk.Context, dk Keeper, sk staking.Keeper, valOpAddrs []sdk.ValAddress) {
 				DoAddShares(suite.T(), *ctx, sk, delAddr1, valOpAddrs)
 				staking.EndBlocker(*ctx, sk)
@@ -655,11 +651,18 @@ func (suite *InitExistedDelegationStartInfoestSuite) TestWithdrawDisabled() {
 			nil,
 		},
 		{
-			"disable withdraw DoAddShares",
-			func(ctx *sdk.Context, dk Keeper) {
-				dk.SetWithdrawRewardEnabled(*ctx, false)
-			},
+			"enabled withdraw",
 			func(ctx *sdk.Context, dk Keeper, sk staking.Keeper, valOpAddrs []sdk.ValAddress) {
+				dk.SetWithdrawRewardEnabled(*ctx, true)
+				DoAddShares(suite.T(), *ctx, sk, delAddr1, valOpAddrs)
+				staking.EndBlocker(*ctx, sk)
+			},
+			nil,
+		},
+		{
+			"disable withdraw DoAddShares",
+			func(ctx *sdk.Context, dk Keeper, sk staking.Keeper, valOpAddrs []sdk.ValAddress) {
+				dk.SetWithdrawRewardEnabled(*ctx, false)
 				require.Panics(suite.T(), func() {
 					DoAddShares(suite.T(), *ctx, sk, delAddr1, valOpAddrs)
 					staking.EndBlocker(*ctx, sk)
@@ -669,12 +672,9 @@ func (suite *InitExistedDelegationStartInfoestSuite) TestWithdrawDisabled() {
 		},
 		{
 			"disable withdraw DoRegProxy",
-			func(ctx *sdk.Context, dk Keeper) {
-				dk.SetWithdrawRewardEnabled(*ctx, false)
-			},
 			func(ctx *sdk.Context, dk Keeper, sk staking.Keeper, valOpAddrs []sdk.ValAddress) {
+				dk.SetWithdrawRewardEnabled(*ctx, false)
 				require.Panics(suite.T(), func() {
-					//DoAddShares(suite.T(), *ctx, sk, delAddr1, valOpAddrs)
 					DoRegProxy(suite.T(), *ctx, sk, delAddr1, true)
 					staking.EndBlocker(*ctx, sk)
 				})
@@ -683,12 +683,9 @@ func (suite *InitExistedDelegationStartInfoestSuite) TestWithdrawDisabled() {
 		},
 		{
 			"disable withdraw DoWithdraw",
-			func(ctx *sdk.Context, dk Keeper) {
-				dk.SetWithdrawRewardEnabled(*ctx, false)
-			},
 			func(ctx *sdk.Context, dk Keeper, sk staking.Keeper, valOpAddrs []sdk.ValAddress) {
+				dk.SetWithdrawRewardEnabled(*ctx, false)
 				require.Panics(suite.T(), func() {
-					//DoAddShares(suite.T(), *ctx, sk, delAddr1, valOpAddrs)
 					DoWithdraw(suite.T(), *ctx, sk, delAddr1, sdk.NewCoin(sk.BondDenom(*ctx), sdk.NewInt(100)))
 					staking.EndBlocker(*ctx, sk)
 				})
@@ -697,7 +694,6 @@ func (suite *InitExistedDelegationStartInfoestSuite) TestWithdrawDisabled() {
 		},
 		{
 			"disable withdraw DoBindProxy",
-			func(ctx *sdk.Context, dk Keeper) {},
 			func(ctx *sdk.Context, dk Keeper, sk staking.Keeper, valOpAddrs []sdk.ValAddress) {
 				DoRegProxy(suite.T(), *ctx, sk, delAddr1, true)
 				DoDeposit(suite.T(), *ctx, sk, delAddr2, sdk.NewCoin(sk.BondDenom(*ctx), sdk.NewInt(100)))
@@ -711,7 +707,6 @@ func (suite *InitExistedDelegationStartInfoestSuite) TestWithdrawDisabled() {
 		},
 		{
 			"disable withdraw DoUnBindProxy",
-			func(ctx *sdk.Context, dk Keeper) {},
 			func(ctx *sdk.Context, dk Keeper, sk staking.Keeper, valOpAddrs []sdk.ValAddress) {
 				DoRegProxy(suite.T(), *ctx, sk, delAddr1, true)
 				DoDeposit(suite.T(), *ctx, sk, delAddr2, sdk.NewCoin(sk.BondDenom(*ctx), sdk.NewInt(100)))
@@ -737,7 +732,6 @@ func (suite *InitExistedDelegationStartInfoestSuite) TestWithdrawDisabled() {
 			distrAcc.SetCoins(balanceTokens)
 			dk.supplyKeeper.SetModuleAccount(ctx, distrAcc)
 			changeDistribution(ctx, dk)
-			tc.execute1(&ctx, dk)
 			// create validator
 			DoCreateValidator(suite.T(), ctx, sk, valOpAddr1, valConsPk1)
 			// end block to bond validator
@@ -749,7 +743,7 @@ func (suite *InitExistedDelegationStartInfoestSuite) TestWithdrawDisabled() {
 			DoDeposit(suite.T(), ctx, sk, delAddr1, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
 			valOpAddrs := []sdk.ValAddress{valOpAddr1}
 			DoAddShares(suite.T(), ctx, sk, delAddr1, valOpAddrs)
-			tc.execute2(&ctx, dk, sk, valOpAddrs)
+			tc.execute(&ctx, dk, sk, valOpAddrs)
 			staking.EndBlocker(ctx, sk)
 
 			_, err := dk.WithdrawDelegationRewards(ctx, delAddr1, valOpAddr1)
