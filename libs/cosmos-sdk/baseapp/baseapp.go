@@ -10,7 +10,6 @@ import (
 	"os"
 	"reflect"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
@@ -225,9 +224,8 @@ type BaseApp struct { // nolint: maligned
 	reusableCacheMultiStore sdk.CacheMultiStore
 	checkTxCacheMultiStores *cacheMultiStoreList
 
-	watcherCollector        sdk.EvmWatcherCollector
-	blockAllEvmTxGasUsed    big.Int
-	blockAllEvmTxGasUsedMtx sync.Mutex
+	watcherCollector     sdk.EvmWatcherCollector
+	blockAllEvmTxGasUsed big.Int
 }
 
 type recordHandle func(string)
