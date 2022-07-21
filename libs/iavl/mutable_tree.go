@@ -460,6 +460,8 @@ func (tree *MutableTree) LazyLoadVersion(targetVersion int64) (int64, error) {
 	tree.ImmutableTree = iTree
 	tree.lastSaved = iTree.clone()
 
+	tree.mtx.Lock()
+	defer tree.mtx.Unlock()
 	// Attempt to upgrade
 	if _, err := tree.enableFastStorageAndCommitIfNotEnabled(); err != nil {
 		return 0, err
@@ -538,6 +540,8 @@ func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
 	tree.lastSaved = t.clone()
 	tree.lastPersistHeight = latestVersion
 
+	tree.mtx.Lock()
+	defer tree.mtx.Unlock()
 	// Attempt to upgrade
 	if _, err := tree.enableFastStorageAndCommitIfNotEnabled(); err != nil {
 		return 0, err
