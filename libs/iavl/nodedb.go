@@ -332,7 +332,6 @@ func (ndb *nodeDB) saveFastNodeUnlocked(node *FastNode, shouldAddToCache bool, b
 		return fmt.Errorf("error while writing fastnode bytes. Err: %w", err)
 	}
 
-	// todo giskook check this
 	batch.Set(ndb.fastNodeKey(node.key), buf.Bytes())
 	if shouldAddToCache {
 		ndb.cacheFastNode(node)
