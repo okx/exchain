@@ -19,14 +19,14 @@ var (
 	optionalSchemas = []SchemaConfig{
 		{trace.MempoolCheckTxCnt, 0},
 		{trace.MempoolTxsCnt, 0},
-		{trace.SigCacheRatio, 0},
+		{trace.SigCacheRatio, 1},
 		{trace.Evm, 1},
 		{trace.Delta, 1},
 		{trace.Iavl, 1},
 		{trace.DeliverTxs, 1},
 		{trace.EvmHandlerDetail, 0},
 
-    	{trace.IavlRuntime, 0},
+		{trace.IavlRuntime, 0},
 		{trace.RunAnteDetail, 0},
 		{trace.RunAnteDetail, 0},
 		{trace.AnteChainDetail, 0},
@@ -41,7 +41,7 @@ var (
 		{trace.UncompressBlock, 0},
 	}
 
-	mandatorySchemas = []string {
+	mandatorySchemas = []string{
 		trace.Height,
 		trace.Tx,
 		trace.BlockSize,
@@ -140,7 +140,7 @@ func (e *ElapsedTimeInfos) Dump(input interface{}) {
 		}
 	}
 
-	logger.Info(mandatoryInfo+optionalInfo)
+	logger.Info(mandatoryInfo + optionalInfo)
 	e.infoMap = make(map[string]string)
 }
 
