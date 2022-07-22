@@ -14,13 +14,12 @@ import (
 type IbcTx struct {
 	*StdTx
 
-	AuthInfoBytes                []byte
-	BodyBytes                    []byte
-	SignMode                     []signing.SignMode
-	SigFee                       IbcFee
-	SigMsgs                      []sdk.Msg
-	Sequences                    []uint64
-	TxBodyHasUnknownNonCriticals bool
+	AuthInfoBytes []byte
+	BodyBytes     []byte
+	SignMode      []signing.SignMode
+	SigFee        IbcFee
+	SigMsgs       []sdk.Msg
+	Sequences     []uint64
 }
 
 type StdIBCSignDoc struct {
@@ -54,9 +53,6 @@ func (tx *IbcTx) GetSignBytes(ctx sdk.Context, index int, acc exported.Account) 
 			chainID, accNum, acc.GetSequence(), tx.Fee, tx.Msgs, tx.Memo, tx.AuthInfoBytes, tx.BodyBytes,
 		)
 	case signing.SignMode_SIGN_MODE_LEGACY_AMINO_JSON:
-		if tx.TxBodyHasUnknownNonCriticals {
-			return nil
-		}
 		return IbcAminoSignBytes(
 			chainID, accNum, acc.GetSequence(), tx.SigFee, tx.SigMsgs, tx.Memo, tx.TimeoutHeight,
 		)

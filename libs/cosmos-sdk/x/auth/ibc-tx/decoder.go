@@ -41,11 +41,12 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 		}
 
 		var body tx.TxBody
-		//allow non-critical unknown fields in TxBody
-		//txBodyHasUnknownNonCriticals, err := unknownproto.RejectUnknownFields(raw.BodyBytes, &body, true, cdc.InterfaceRegistry())
-		//if err != nil {
-		//	return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
-		//}
+		// allow non-critical unknown fields in TxBody
+		// txBodyHasUnknownNonCriticals, err := unknownproto.RejectUnknownFields(raw.BodyBytes, &body, true, cdc.InterfaceRegistry())
+		// if err != nil {
+		// 	//Ywmet todo couldnot decode
+		// 	//return authtypes.StdTx{}, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+		// }
 
 		err = cdc.UnmarshalBinaryBare(raw.BodyBytes, &body)
 		if err != nil {
@@ -111,8 +112,6 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			signFee,
 			signMsgs,
 			sequences,
-
-			txBodyHasUnknownNonCriticals,
 		}
 
 		return &stx, nil
