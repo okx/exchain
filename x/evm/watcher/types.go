@@ -460,9 +460,9 @@ type TransactionReceipt struct {
 }
 
 func (tr *TransactionReceipt) GetValue() string {
-	tr.TransactionHash = types.EthHashStringer(tr.originTransactionHash).String()
-	tr.BlockHash = types.EthHashStringer(tr.originBlockHash).String()
-	tr.From = types.EthAddressStringer(common.BytesToAddress(tr.tx.AccountAddress().Bytes())).String()
+	tr.TransactionHash = tr.GetHash()
+	tr.BlockHash = tr.GetBlockHash()
+	tr.From = tr.GetFrom()
 	tr.To = tr.tx.To()
 	//contract address will be set to 0x0000000000000000000000000000000000000000 if contract deploy failed
 	if tr.ContractAddress != nil && types.EthAddressStringer(*tr.ContractAddress).String() == "0x0000000000000000000000000000000000000000" {
@@ -475,6 +475,22 @@ func (tr *TransactionReceipt) GetValue() string {
 	}
 
 	return string(buf)
+}
+
+func (tr *TransactionReceipt) GetHash() string {
+	return types.EthHashStringer(tr.originTransactionHash).String()
+}
+
+func (tr *TransactionReceipt) GetBlockHash() string {
+	return types.EthHashStringer(tr.originBlockHash).String()
+}
+
+func (tr *TransactionReceipt) GetFrom() string {
+	return types.EthAddressStringer(common.BytesToAddress(tr.tx.AccountAddress().Bytes())).String()
+}
+
+func (tr *TransactionReceipt) GetTo() *common.Address {
+	return tr.tx.To()
 }
 
 func newTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, blockHash common.Hash, txIndex, height uint64, data *types.ResultData, cumulativeGas, GasUsed uint64) TransactionReceipt {
