@@ -467,7 +467,7 @@ func (api *PublicFilterAPI) GetLogs(ctx context.Context, criteria filters.Filter
 	var filter *Filter
 	if criteria.BlockHash != nil {
 		// Block filter requested, construct a single-shot filter
-		filter = NewBlockFilter(api.backend, criteria)
+		filter = NewBlockFilter(api.backend, criteria, *criteria.BlockHash)
 	} else {
 		// Convert the RPC block numbers into internal representations
 		begin := rpc.LatestBlockNumber.Int64()
@@ -531,7 +531,7 @@ func (api *PublicFilterAPI) GetFilterLogs(ctx context.Context, id rpc.ID) ([]*et
 	var filter *Filter
 	if f.crit.BlockHash != nil {
 		// Block filter requested, construct a single-shot filter
-		filter = NewBlockFilter(api.backend, f.crit)
+		filter = NewBlockFilter(api.backend, f.crit, *f.crit.BlockHash)
 	} else {
 		// Convert the RPC block numbers into internal representations
 		begin := rpc.LatestBlockNumber.Int64()

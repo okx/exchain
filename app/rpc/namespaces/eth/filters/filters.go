@@ -23,13 +23,17 @@ type Filter struct {
 	backend  Backend
 	criteria filters.FilterCriteria
 	matcher  *bloombits.Matcher
+
+	block common.Hash // Block hash if filtering a single block
 }
 
 // NewBlockFilter creates a new filter which directly inspects the contents of
 // a block to figure out whether it is interesting or not.
-func NewBlockFilter(backend Backend, criteria filters.FilterCriteria) *Filter {
+func NewBlockFilter(backend Backend, criteria filters.FilterCriteria, block common.Hash) *Filter {
 	// Create a generic filter and convert it into a block filter
-	return newFilter(backend, criteria, nil)
+	filter := newFilter(backend, criteria, nil)
+	filter.block = block
+	return filter
 }
 
 // NewRangeFilter creates a new filter which uses a bloom filter on blocks to
@@ -84,7 +88,7 @@ func (f *Filter) Logs(ctx context.Context) ([]*ethtypes.Log, error) {
 	var err error
 
 	// If we're doing singleton block filtering, execute and return
-	if f.criteria.BlockHash != nil && f.criteria.BlockHash != (&common.Hash{}) {
+	if f.block != (common.Hash{}) {
 		header, err := f.backend.HeaderByHash(*f.criteria.BlockHash)
 		if err != nil {
 			return nil, err
