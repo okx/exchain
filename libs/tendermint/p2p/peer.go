@@ -430,9 +430,13 @@ func createMConnection(
 	onReceive := func(chID byte, msgBytes []byte) {
 		reactor := reactorsByCh[chID]
 		if reactor == nil {
+			p.Logger.Error("No reactor found for channel", "channel", chID)
+			return
+
+			// old logic
 			// Note that its ok to panic here as it's caught in the conn._recover,
 			// which does onPeerError.
-			panic(fmt.Sprintf("Unknown channel %X", chID))
+			// panic(fmt.Sprintf("Unknown channel %X", chID))
 		}
 		p.updateReceiveBytesTotalMetrics(chID, len(msgBytes))
 		reactor.Receive(chID, p, msgBytes)
