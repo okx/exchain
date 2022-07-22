@@ -1,0 +1,18 @@
+
+syntax = "proto3";
+
+option go_package = "libs/tendermint/proto/mempool";
+
+import "google/protobuf/empty.proto";
+
+package mempool;
+
+service MempoolTxReceiver {
+  // Sends a greeting
+  rpc Receive (TxRequest) returns(google.protobuf.Empty) {}
+}
+
+message TxRequest {
+  bytes tx = 1;
+  uint32 peer_id = 2;
+}

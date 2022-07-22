@@ -3,7 +3,9 @@ package mempool
 import (
 	"bytes"
 	"fmt"
+	"google.golang.org/grpc"
 	"math"
+	"net"
 	"reflect"
 	"sync"
 	"time"
@@ -15,6 +17,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/p2p"
+	pb "github.com/okex/exchain/libs/tendermint/proto/mempool"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/tendermint/go-amino"
 )
@@ -45,6 +48,7 @@ type Reactor struct {
 	nodeKeyWhitelist map[string]struct{}
 	txCh             chan txJob
 	enableWtx        bool
+	receiver         pb.MempoolTxReceiverServer
 }
 
 func (memR *Reactor) SetNodeKey(key *p2p.NodeKey) {
@@ -134,6 +138,7 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 	}
 	memR.BaseReactor = *p2p.NewBaseReactor("Mempool", memR)
 	memR.press()
+	memR.receiver = NewTxReceiverServer(memR)
 	return memR
 }
 
@@ -154,6 +159,18 @@ func (memR *Reactor) OnStart() error {
 	if !memR.config.Broadcast {
 		memR.Logger.Info("Tx broadcasting is disabled")
 	}
+
+	lis, err := net.Listen("tcp", ":0")
+	if err != nil {
+		memR.Logger.Error("Failed to start tx receiver:Listen", "err", err)
+	} else {
+		s := grpc.NewServer()
+		pb.RegisterMempoolTxReceiverServer(s, memR.receiver)
+		if err = s.Serve(lis); err != nil {
+			memR.Logger.Error("Failed to start tx receiver:Serve", "err", err)
+		}
+	}
+
 	go func() {
 		for {
 			select {
@@ -165,10 +182,12 @@ func (memR *Reactor) OnStart() error {
 					memR.logCheckTxError(tx, memR.mempool.height, err)
 				}
 			case <-memR.Quit():
+				s.Stop()
 				return
 			}
 		}
 	}()
+
 	return nil
 }
 
