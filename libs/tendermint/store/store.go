@@ -88,6 +88,13 @@ var blockLoadBufPool = &sync.Pool{
 // LoadBlock returns the block with the given height.
 // If no block is found for that height, it returns nil.
 func (bs *BlockStore) LoadBlock(height int64) *types.Block {
+	b, _ := bs.LoadBlockWithExInfo(height)
+	return b
+}
+
+// LoadBlockWithExInfo returns the block with the given height.
+// and the BlockPartInfo is used to make block parts
+func (bs *BlockStore) LoadBlockWithExInfo(height int64) (*types.Block, *types.BlockExInfo) {
 	bufs := blockLoadBufPool.Get().(*[2]bytes.Buffer)
 	defer blockLoadBufPool.Put(bufs)
 
@@ -98,27 +105,13 @@ func (bs *BlockStore) LoadBlock(height int64) *types.Block {
 
 	info := bs.loadBlockPartsBytesTo(height, loadBuf, uncompressedBuf)
 	if loadBuf.Len() == 0 {
-		return nil
-	}
-	if !info.IsCompressed() {
-		return bs.unmarshalBlockByBytes(loadBuf.Bytes())
-	} else {
-		return bs.unmarshalBlockByBytes(uncompressedBuf.Bytes())
-	}
-}
-
-// LoadBlockWithExInfo returns the block with the given height.
-// and the BlockPartInfo is used to make block parts
-func (bs *BlockStore) LoadBlockWithExInfo(height int64) (*types.Block, *types.BlockExInfo) {
-	buf := blockBufferPool.Get()
-	defer blockBufferPool.Put(buf)
-	buf.Reset()
-	partBytes, exInfo := bs.loadBlockPartsBytes(height, buf)
-	if partBytes == nil {
 		return nil, nil
 	}
-
-	return bs.unmarshalBlockByBytes(partBytes), exInfo
+	if !info.IsCompressed() {
+		return bs.unmarshalBlockByBytes(loadBuf.Bytes()), &info
+	} else {
+		return bs.unmarshalBlockByBytes(uncompressedBuf.Bytes()), &info
+	}
 }
 
 // unmarshalBlockByBytes returns the block with the given block parts bytes
@@ -190,54 +183,44 @@ func (bs *BlockStore) LoadBlockPart(height int64, index int) *types.Part {
 	return v.(*types.Part)
 }
 
-// loadBlockPartsBytes return the combined parts bytes and the number of block parts
-func (bs *BlockStore) loadBlockPartsBytes(height int64, buf *bytes.Buffer) ([]byte, *types.BlockExInfo) {
-	var blockMeta = bs.LoadBlockMeta(height)
-	if blockMeta == nil {
-		return nil, nil
+func loadBlockPartBytesFromBytesTo(bz []byte, buf *bytes.Buffer) {
+	if len(bz) == 0 {
+		return
 	}
-
-	var bufLen int
-	parts := make([]*types.Part, 0, blockMeta.BlockID.PartsHeader.Total)
-	for i := 0; i < blockMeta.BlockID.PartsHeader.Total; i++ {
-		part := bs.LoadBlockPart(height, i)
-		bufLen += len(part.Bytes)
-		parts = append(parts, part)
+	lenBefore := buf.Len()
+	err := unmarshalBlockPartBytesTo(bz, buf)
+	if err == nil {
+		return
 	}
-	buf.Grow(bufLen)
-	for _, part := range parts {
-		buf.Write(part.Bytes)
-	}
-
-	// uncompress if the block part bytes was created by compress block
-	partBytes, compressSign, err := types.UncompressBlockFromBytes(buf.Bytes())
-	if err != nil {
-		panic(errors.Wrap(err, "failed to uncompress block"))
-	}
-
-	return partBytes,
-		&types.BlockExInfo{
-			BlockCompressType: compressSign / types.CompressDividing,
-			BlockCompressFlag: compressSign % types.CompressDividing,
-			BlockPartSize:     len(parts[0].Bytes)}
+	part := loadBlockPartFromBytes(bz)
+	buf.Truncate(lenBefore)
+	buf.Write(part.Bytes)
 }
 
+func (bs *BlockStore) loadBlockPartBytesTo(height int64, index int, buf *bytes.Buffer) {
+	_, err := bs.db.GetUnsafeValue(calcBlockPartKey(height, index), func(bz []byte) (interface{}, error) {
+		loadBlockPartBytesFromBytesTo(bz, buf)
+		return nil, nil
+	})
+	if err != nil {
+		panic(err)
+	}
+}
+
+// loadBlockPartsBytesTo load all block parts bytes to the given buffer,
+// buf *Buffer stores the original block parts bytes,
+// uncompressed *Buffer stores the uncompressed block parts bytes if block is compressed
 func (bs *BlockStore) loadBlockPartsBytesTo(height int64, buf *bytes.Buffer, uncompressed *bytes.Buffer) types.BlockExInfo {
 	var blockMeta = bs.LoadBlockMeta(height)
 	if blockMeta == nil {
 		return types.BlockExInfo{}
 	}
-
-	var bufLen int
-	parts := make([]*types.Part, 0, blockMeta.BlockID.PartsHeader.Total)
+	blockPartSize, bufBeforeLen := 0, buf.Len()
 	for i := 0; i < blockMeta.BlockID.PartsHeader.Total; i++ {
-		part := bs.LoadBlockPart(height, i)
-		bufLen += len(part.Bytes)
-		parts = append(parts, part)
-	}
-	buf.Grow(bufLen)
-	for _, part := range parts {
-		buf.Write(part.Bytes)
+		bs.loadBlockPartBytesTo(height, i, buf)
+		if i == 0 {
+			blockPartSize = buf.Len() - bufBeforeLen
+		}
 	}
 
 	// uncompress if the block part bytes was created by compress block
@@ -249,7 +232,8 @@ func (bs *BlockStore) loadBlockPartsBytesTo(height int64, buf *bytes.Buffer, unc
 	return types.BlockExInfo{
 		BlockCompressType: compressSign / types.CompressDividing,
 		BlockCompressFlag: compressSign % types.CompressDividing,
-		BlockPartSize:     len(parts[0].Bytes)}
+		BlockPartSize:     blockPartSize,
+	}
 }
 
 func decodeBlockMeta(bz []byte) (*types.BlockMeta, error) {

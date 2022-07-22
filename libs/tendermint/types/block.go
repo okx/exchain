@@ -340,25 +340,10 @@ func UncompressBlockFromReader(pbpReader io.Reader) (io.Reader, error) {
 // compressSign contains compressType and compressFlag
 // the compressSign: XY means, compressType: X, compressFlag: Y
 func UncompressBlockFromBytes(payload []byte) (res []byte, compressSign int, err error) {
-	// try parse Uvarint to check if it is compressed
-	compressBytesLen, n := binary.Uvarint(payload)
-	if compressBytesLen == uint64(len(payload)-n) {
-		// the block has not compressed
-		res = payload
-	} else {
-		// the block has compressed and the last byte is compressSign
-		compressSign = int(payload[len(payload)-1])
-		res, err = compress.UnCompress(compressSign/CompressDividing, payload[:len(payload)-1])
-	}
+	var buf bytes.Buffer
+	compressSign, err = UncompressBlockFromBytesTo(payload, &buf)
+	res = buf.Bytes()
 	return
-}
-
-func IsBlockCompressed(payload []byte) bool {
-	compressBytesLen, n := binary.Uvarint(payload)
-	if compressBytesLen == uint64(len(payload)-n) {
-		return false
-	}
-	return true
 }
 
 func UncompressBlockFromBytesTo(payload []byte, buf *bytes.Buffer) (compressSign int, err error) {

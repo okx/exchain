@@ -564,7 +564,7 @@ func (api *PublicEthereumAPI) GetBlockTransactionCountByHash(hash common.Hash) *
 		return nil
 	}
 
-	resBlock, err := api.clientCtx.Client.Block(&out.Number)
+	resBlock, err := api.backend.Block(&out.Number)
 	if err != nil {
 		return nil
 	}
@@ -590,7 +590,7 @@ func (api *PublicEthereumAPI) GetBlockTransactionCountByNumber(blockNum rpctypes
 		if err != nil {
 			return nil
 		}
-		resBlock, err := api.clientCtx.Client.Block(&height)
+		resBlock, err := api.backend.Block(&height)
 		if err != nil {
 			return nil
 		}
@@ -605,14 +605,14 @@ func (api *PublicEthereumAPI) GetBlockTransactionCountByNumber(blockNum rpctypes
 		if err != nil {
 			return nil
 		}
-		resBlock, err := api.clientCtx.Client.Block(&height)
+		resBlock, err := api.backend.Block(&height)
 		if err != nil {
 			return nil
 		}
 		txs = len(resBlock.Block.Txs)
 	default:
 		height = blockNum.Int64()
-		resBlock, err := api.clientCtx.Client.Block(&height)
+		resBlock, err := api.backend.Block(&height)
 		if err != nil {
 			return nil
 		}
@@ -1090,7 +1090,7 @@ func (api *PublicEthereumAPI) getBlockByNumber(blockNum rpctypes.BlockNumber, fu
 	}
 
 	// latest block info
-	latestBlock, err := api.clientCtx.Client.Block(&height)
+	latestBlock, err := api.backend.Block(&height)
 	if err != nil {
 		return nil, err
 	}
@@ -1164,7 +1164,7 @@ func (api *PublicEthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash
 	var out evmtypes.QueryResBlockNumber
 	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
 
-	resBlock, err := api.clientCtx.Client.Block(&out.Number)
+	resBlock, err := api.backend.Block(&out.Number)
 	if err != nil {
 		return nil, nil
 	}
@@ -1211,7 +1211,7 @@ func (api *PublicEthereumAPI) GetTransactionByBlockNumberAndIndex(blockNum rpcty
 		height = blockNum.Int64()
 	}
 
-	resBlock, err := api.clientCtx.Client.Block(&height)
+	resBlock, err := api.backend.Block(&height)
 	if err != nil {
 		return nil, err
 	}
@@ -1279,7 +1279,7 @@ func (api *PublicEthereumAPI) GetTransactionsByBlock(blockNrOrHash rpctypes.Bloc
 		}
 	}
 
-	resBlock, err := api.clientCtx.Client.Block(&height)
+	resBlock, err := api.backend.Block(&height)
 	if err != nil {
 		return nil, err
 	}
@@ -1308,7 +1308,7 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 	}
 
 	// Query block for consensus hash
-	block, err := api.clientCtx.Client.Block(&tx.Height)
+	block, err := api.backend.Block(&tx.Height)
 	if err != nil {
 		return nil, err
 	}
@@ -1410,7 +1410,7 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 
 		if block == nil {
 			// Query block for consensus hash
-			block, err = api.clientCtx.Client.Block(&tx.Height)
+			block, err = api.backend.Block(&tx.Height)
 			if err != nil {
 				return nil, err
 			}
