@@ -310,8 +310,9 @@ func RawTxResultToStdResponse(clientCtx clientcontext.CLIContext,
 	}
 
 	response := sdk.NewResponseResultTx(tr, realTx, timestamp.Format(time.RFC3339))
+	wrappedR := &watcher.WrappedResponseWithCodec{Response: response, Codec: clientCtx.Codec}
 
-	return &watcher.TransactionResult{TxType: hexutil.Uint64(watcher.StdResponse), Response: &response}, nil
+	return &watcher.TransactionResult{TxType: hexutil.Uint64(watcher.StdResponse), Response: wrappedR}, nil
 }
 
 func RawTxResultToEthReceipt(clientCtx clientcontext.CLIContext,

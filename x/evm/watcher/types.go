@@ -21,6 +21,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	"github.com/pkg/errors"
 	"github.com/status-im/keycard-go/hexutils"
@@ -444,11 +445,25 @@ func (m MsgTransactionReceipt) GetType() uint32 {
 	return TypeOthers
 }
 
+//type WrappedResponse sdk.TxResponse
+type WrappedResponseWithCodec struct {
+	Response sdk.TxResponse
+	Codec    *codec.Codec `json:"-"`
+}
+
 type TransactionResult struct {
-	TxType   hexutil.Uint64      `json:"type"`
-	EthTx    *Transaction        `json:"ethTx"`
-	Receipt  *TransactionReceipt `json:"receipt"`
-	Response *sdk.TxResponse     `json:"response"`
+	TxType   hexutil.Uint64            `json:"type"`
+	EthTx    *Transaction              `json:"ethTx"`
+	Receipt  *TransactionReceipt       `json:"receipt"`
+	Response *WrappedResponseWithCodec `json:"response"`
+}
+
+func (wr *WrappedResponseWithCodec) MarshalJSON() ([]byte, error) {
+	if wr.Codec != nil {
+		return wr.Codec.MarshalJSON(wr.Response)
+	}
+
+	return json.Marshal(wr.Response)
 }
 
 type TransactionReceipt struct {
