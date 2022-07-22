@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/tendermint/go-amino"
 	"strconv"
 	"sync"
 
@@ -166,7 +167,7 @@ func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*Block, error) {
 			return nil, err
 		}
 	}
-	hash, e := q.store.Get(append(prefixBlockInfo, []byte(strconv.Itoa(int(height)))...))
+	hash, e := q.store.Get(append(prefixBlockInfo, amino.StrToBytes(strconv.Itoa(int(height)))...))
 	if e != nil {
 		return nil, e
 	}
