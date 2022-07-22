@@ -52,6 +52,7 @@ var (
 		trace.RunTx,
 		trace.Prerun,
 		trace.MempoolTxsCnt,
+		trace.MempoolCheckTxCnt,
 	}
 
 	DefaultElapsedSchemas string
