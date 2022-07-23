@@ -54,7 +54,7 @@ func (tx *IbcTx) GetSignBytes(ctx sdk.Context, index int, acc exported.Account) 
 		)
 	case signing.SignMode_SIGN_MODE_LEGACY_AMINO_JSON:
 		return IbcAminoSignBytes(
-			chainID, accNum, acc.GetSequence(), tx.SigFee, tx.SigMsgs, tx.Memo, tx.TimeoutHeight,
+			chainID, accNum, acc.GetSequence(), tx.SigFee, tx.SigMsgs, tx.Memo, 0,
 		)
 	default:
 		//does not support SignMode_SIGN_MODE_UNSPECIFIED SignMode_SIGN_MODE_TEXTUAL
