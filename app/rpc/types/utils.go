@@ -259,7 +259,7 @@ func EthHeaderWithBlockHashFromTendermint(tmHeader *tmtypes.Header) (header *Eth
 
 func RawTxToWatcherTx(clientCtx clientcontext.CLIContext, bz tmtypes.Tx,
 	blockHash common.Hash, blockNumber, index uint64) (*watcher.Transaction, error) {
-	realTx, err := evmtypes.TxDecoder(clientCtx.Codec)(bz, evmtypes.IGNORE_HEIGHT_CHECKING)
+	realTx, err := evmtypes.TxDecoder(clientCtx.CodecProy)(bz, evmtypes.IGNORE_HEIGHT_CHECKING)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
