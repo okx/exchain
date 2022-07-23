@@ -220,7 +220,7 @@ func (st *Store) Get(key []byte) []byte {
 	if value != nil {
 		return value
 	}
-	_, value = st.tree.Get(key)
+	value = st.tree.Get(key)
 	if value != nil {
 		st.setFlatKV(key, value)
 	}
