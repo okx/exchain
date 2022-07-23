@@ -58,7 +58,7 @@ func (tx *IbcTx) GetSignBytes(ctx sdk.Context, index int, acc exported.Account) 
 		)
 	default:
 		//does not support SignMode_SIGN_MODE_UNSPECIFIED SignMode_SIGN_MODE_TEXTUAL
-		return nil
+		panic("ibctx not support SignMode_SIGN_MODE_UNSPECIFIED or SignMode_SIGN_MODE_TEXTUAL")
 	}
 }
 

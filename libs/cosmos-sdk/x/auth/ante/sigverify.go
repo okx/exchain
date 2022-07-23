@@ -202,9 +202,6 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 
 		// retrieve signBytes of tx
 		signBytes := sigTx.GetSignBytes(ctx, i, signerAccs[i])
-		if signBytes == nil {
-			return ctx, sdkerrors.Wrap(sdkerrors.ErrInvalidSignBytes, "signBytes is nil")
-		}
 		err = sigTx.VerifySequence(i, signerAccs[i])
 		if err != nil {
 			return ctx, sdkerrors.Wrap(sdkerrors.ErrInvalidSequence, "signature verification sequence failed:"+err.Error())
