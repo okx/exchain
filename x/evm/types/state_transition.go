@@ -336,7 +336,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	if !st.Simulate {
 		if types.HigherThanMars(ctx.BlockHeight()) {
-			if ctx.IsDeliver() {
+			if ctx.IsDeliverTx() {
 				csdb.IntermediateRoot(true)
 			}
 		} else {

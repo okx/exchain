@@ -21,7 +21,6 @@ func (app *BaseApp) GetDeliverStateCtx() sdk.Context {
 //The runtx procedure for TraceTx is nearly same with that for DeliverTx,  but the
 //state was saved in different Cache in app.
 func (app *BaseApp) TraceTx(queryTraceTx sdk.QueryTraceTx, targetTx sdk.Tx, txIndex uint32, block *tmtypes.Block) (*sdk.Result, error) {
-
 	//get first tx
 	targetTxData := queryTraceTx.TxHash.Bytes()
 	var initialTxBytes []byte
@@ -38,42 +37,34 @@ func (app *BaseApp) TraceTx(queryTraceTx sdk.QueryTraceTx, targetTx sdk.Tx, txIn
 		return nil, sdkerrors.Wrap(err, "failed to beginblock for tracing")
 	}
 
-	traceState.ctx.SetIsTraceTxLog(false)
+	traceState.ctx.SetNeedTraceTxLog(false)
 	//pre deliver prodesessor tx to get the right state
 	for _, predesessor := range block.Txs[:txIndex] {
 		tx, err := app.txDecoder(predesessor, block.Height)
 		if err != nil {
 			return nil, sdkerrors.Wrap(err, "invalid prodesessor")
 		}
-		app.tracetx(predesessor, tx, block.Height, traceState)
+		app.tracetx(predesessor, tx, block.Height)
 		//ignore the err when run prodesessor
 	}
 
 	//trace tx
-	traceState.ctx.SetIsTraceTxLog(true)
+	traceState.ctx.SetNeedTraceTxLog(true)
 	traceState.ctx.SetTraceTxLogConfig(queryTraceTx.ConfigBytes)
-	info, err := app.tracetx(targetTxData, targetTx, block.Height, traceState)
+	info, err := app.tracetx(targetTxData, targetTx, block.Height)
 	if info == nil {
 		return nil, err
 	}
 	return info.result, err
 }
-func (app *BaseApp) tracetx(txBytes []byte, tx sdk.Tx, height int64, traceState *state) (info *runTxInfo, err error) {
 
-	mode := runTxModeTrace
-	//prepare runTxInfo to runtx
+func (app *BaseApp) tracetx(txBytes []byte, tx sdk.Tx, height int64) (info *runTxInfo, err error) {
 	info = &runTxInfo{}
-	//init info.ctx
-	info.ctx = traceState.ctx
-	info.ctx.SetTxBytes(txBytes).
-		SetVoteInfos(app.voteInfos).
-		SetConsensusParams(app.consensusParams)
-
-	err = app.runtxWithInfo(info, mode, txBytes, tx, height)
+	err = app.runtxWithInfo(info, sdk.RunTxModeTrace, txBytes, tx, height)
 	return info, err
 }
-func (app *BaseApp) beginBlockForTracing(firstTx []byte, block *tmtypes.Block) (*state, error) {
 
+func (app *BaseApp) beginBlockForTracing(firstTx []byte, block *tmtypes.Block) (*state, error) {
 	req := abci.RequestBeginBlock{
 		Hash:   block.Hash(),
 		Header: tmtypes.TM2PB.Header(&block.Header),
@@ -95,10 +86,6 @@ func (app *BaseApp) beginBlockForTracing(firstTx []byte, block *tmtypes.Block) (
 	}
 
 	traceState.ctx.SetBlockGasMeter(gasMeter)
-
-	//set the trace mode to prevent the ante handler to check the nounce
-	traceState.ctx.SetIsTraceTx(true)
-	traceState.ctx.SetIsCheckTx(true)
 
 	//app begin block
 	if app.beginBlocker != nil {

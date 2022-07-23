@@ -202,7 +202,7 @@ func deductFees(ak auth.AccountKeeper, ctx sdk.Context, acc exported.Account, fe
 }
 
 func incrementSeq(ctx sdk.Context, msgEthTx *evmtypes.MsgEthereumTx, ak auth.AccountKeeper, acc exported.Account) {
-	if ctx.IsCheckTx() && !ctx.IsReCheckTx() && !baseapp.IsMempoolEnableRecheck() && !ctx.IsTraceTx() {
+	if ctx.IsOnlyCheckTx() {
 		return
 	}
 

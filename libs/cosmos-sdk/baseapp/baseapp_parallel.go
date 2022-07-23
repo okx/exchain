@@ -57,7 +57,7 @@ func (app *BaseApp) getExtraDataByTxs(txs [][]byte) {
 				app.blockDataCache.SetTx(txBytes, tx)
 			}
 
-			coin, isEvm, s, toAddr, _ := app.getTxFeeAndFromHandler(app.getContextForTx(runTxModeDeliver, txBytes), tx)
+			coin, isEvm, s, toAddr, _ := app.getTxFeeAndFromHandler(app.getContextForTx(sdk.RunTxModeDeliver, txBytes), tx)
 			para.extraTxsInfo[index] = &extraDataForTx{
 				fee:   coin,
 				isEvm: isEvm,
@@ -153,7 +153,6 @@ func (app *BaseApp) DeliverTxs(req abci.RequestDeliverTxs) []*abci.ResponseDeliv
 	pm.txSize = txSize
 	pm.haveCosmosTxInBlock = false
 	pm.workgroup.txs = req.Txs
-	pm.isParallel = true
 	pm.cms = app.deliverState.ms.CacheMultiStore()
 	pm.cms.DisableCacheReadList()
 	app.deliverState.ms.DisableCacheReadList()
@@ -172,7 +171,7 @@ func (app *BaseApp) DeliverTxs(req abci.RequestDeliverTxs) []*abci.ResponseDeliv
 }
 
 func (app *BaseApp) fixFeeCollector() {
-	ctx, _ := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
+	ctx, _ := app.cacheTxContext(app.getContextForTx(sdk.RunTxModeDeliver, []byte{}), []byte{})
 
 	ctx.SetMultiStore(app.parallelTxManage.cms)
 	if err := app.updateFeeCollectorAccHandler(ctx, app.parallelTxManage.currTxFee); err != nil {
@@ -355,9 +354,9 @@ func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 	}
 	var (
 		resp abci.ResponseDeliverTx
-		mode runTxMode
+		mode sdk.RunTxMode
 	)
-	mode = runTxModeDeliverInParallel
+	mode = sdk.RunTxModeDeliverInParallel
 	info, errM := app.runTxWithIndex(txIndex, mode, app.parallelTxManage.workgroup.txs[txIndex], txStatus.stdTx, LatestSimulateTxHeight)
 	if errM != nil {
 		resp = sdkerrors.ResponseDeliverTx(errM, info.gInfo.GasWanted, info.gInfo.GasUsed, app.trace)
@@ -552,7 +551,6 @@ func (c *conflictCheck) clear() {
 
 type parallelTxManager struct {
 	haveCosmosTxInBlock bool
-	isParallel          bool // default false, true when abci.DeliverTxs
 	workgroup           *asyncWorkGroup
 
 	extraTxsInfo []*extraDataForTx
@@ -577,8 +575,7 @@ type parallelTxManager struct {
 
 func newParallelTxManager() *parallelTxManager {
 	return &parallelTxManager{
-		isParallel: false,
-		workgroup:  newAsyncWorkGroup(),
+		workgroup: newAsyncWorkGroup(),
 
 		groupList:     make(map[int][]int),
 		nextTxInGroup: make(map[int]int),

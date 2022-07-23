@@ -141,7 +141,7 @@ func TestTracerConfig(traceConfig *TraceConfig) error {
 	return nil
 }
 func newTracer(ctx sdk.Context, txHash *common.Hash) (tracer vm.Tracer) {
-	if ctx.IsTraceTxLog() {
+	if ctx.NeedTraceTxLog() {
 		var err error
 		configBytes := ctx.TraceTxLogConfig()
 		traceConfig := &TraceConfig{}

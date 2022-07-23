@@ -53,9 +53,9 @@ func msg2st(ctx *sdk.Context, k *Keeper, msg *types.MsgEthereumTx, st *types.Sta
 	st.Sender = sender
 	st.Simulate = ctx.IsCheckTx()
 	st.TraceTx = ctx.IsTraceTx()
-	st.TraceTxLog = ctx.IsTraceTxLog()
+	st.TraceTxLog = ctx.NeedTraceTxLog()
 
-	if tmtypes.HigherThanMars(ctx.BlockHeight()) && ctx.IsDeliver() {
+	if tmtypes.HigherThanMars(ctx.BlockHeight()) && ctx.IsDeliverTx() {
 		st.Csdb = k.EvmStateDb.WithContext(*ctx)
 	} else {
 		csdb := getCommitStateDB()

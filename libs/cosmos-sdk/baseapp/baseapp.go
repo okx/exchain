@@ -12,16 +12,13 @@ import (
 	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	"github.com/okex/exchain/libs/system/trace"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
-
-	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -30,18 +27,12 @@ import (
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
+
+	"github.com/gogo/protobuf/proto"
 	"github.com/spf13/viper"
 )
 
 const (
-	runTxModeCheck                 runTxMode = iota // Check a transaction
-	runTxModeReCheck                                // Recheck a (pending) transaction after a commit
-	runTxModeSimulate                               // Simulate a transaction
-	runTxModeDeliver                                // Deliver a transaction
-	runTxModeDeliverInParallel                      // Deliver a transaction in parallel
-	runTxModeDeliverPartConcurrent                  // Deliver a transaction partial concurrent
-	runTxModeTrace                                  // Trace a transaction
-	runTxModeWrappedCheck
 
 	// MainStoreKey is the string representation of the main store
 	MainStoreKey = "main"
@@ -87,38 +78,12 @@ func SetGlobalMempool(mempool mempool.Mempool, enableSort bool, enablePendingPoo
 }
 
 type (
-	// Enum mode for app.runTx
-	runTxMode uint8
-
 	// StoreLoader defines a customizable function to control how we load the CommitMultiStore
 	// from disk. This is useful for state migration, when loading a datastore written with
 	// an older version of the software. In particular, if a module changed the substore key name
 	// (or removed a substore) between two versions of the software.
 	StoreLoader func(ms sdk.CommitMultiStore) error
 )
-
-func (m runTxMode) String() (res string) {
-	switch m {
-	case runTxModeCheck:
-		res = "ModeCheck"
-	case runTxModeReCheck:
-		res = "ModeReCheck"
-	case runTxModeSimulate:
-		res = "ModeSimulate"
-	case runTxModeDeliver:
-		res = "ModeDeliver"
-	case runTxModeDeliverPartConcurrent:
-		res = "ModeDeliverPartConcurrent"
-	case runTxModeDeliverInParallel:
-		res = "ModeDeliverInParallel"
-	case runTxModeWrappedCheck:
-		res = "ModeWrappedCheck"
-	default:
-		res = "Unknown"
-	}
-
-	return res
-}
 
 // BaseApp reflects the ABCI application implementation.
 type BaseApp struct { // nolint: maligned
@@ -588,9 +553,13 @@ func (app *BaseApp) newTraceState(header abci.Header, height int64) (*state, err
 	if err != nil {
 		return nil, err
 	}
+
+	ctx := sdk.NewContext(ms, header, false, app.logger)
+	ctx.SetRunTxMode(sdk.RunTxModeTrace)
+
 	return &state{
 		ms:  ms,
-		ctx: sdk.NewContext(ms, header, false, app.logger),
+		ctx: ctx,
 	}, nil
 }
 
@@ -661,8 +630,8 @@ func validateBasicTxMsgs(msgs []sdk.Msg) error {
 
 // Returns the applications's deliverState if app is in runTxModeDeliver,
 // otherwise it returns the application's checkstate.
-func (app *BaseApp) getState(mode runTxMode) *state {
-	if mode == runTxModeDeliver || mode == runTxModeDeliverInParallel || mode == runTxModeDeliverPartConcurrent {
+func (app *BaseApp) getState(mode sdk.RunTxMode) *state {
+	if mode == sdk.RunTxModeDeliver || mode == sdk.RunTxModeDeliverInParallel || mode == sdk.RunTxModeDeliverPartConcurrent {
 		return app.deliverState
 	}
 
@@ -670,34 +639,22 @@ func (app *BaseApp) getState(mode runTxMode) *state {
 }
 
 // retrieve the context for the tx w/ txBytes and other memoized values.
-func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context {
+func (app *BaseApp) getContextForTx(mode sdk.RunTxMode, txBytes []byte) sdk.Context {
 	ctx := app.getState(mode).ctx
 	ctx.SetTxBytes(txBytes).
 		SetVoteInfos(app.voteInfos).
 		SetConsensusParams(app.consensusParams)
 
-	if mode == runTxModeReCheck {
-		ctx.SetIsReCheckTx(true)
-	}
+	ctx.SetRunTxMode(mode)
 
-	if mode == runTxModeWrappedCheck {
-		ctx.SetIsWrappedCheckTx(true)
-	}
-
-	if mode == runTxModeSimulate {
+	if mode == sdk.RunTxModeSimulate {
 		ctx, _ = ctx.CacheContext()
 		ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 	}
-	if app.parallelTxManage.isParallel && mode == runTxModeDeliverInParallel {
-		ctx.SetParaMsg(&sdk.ParaMsg{
-			HaveCosmosTxInBlock: app.parallelTxManage.haveCosmosTxInBlock,
-		})
+	if mode == sdk.RunTxModeDeliverInParallel {
+		ctx.SetParaMsg(&sdk.ParaMsg{HaveCosmosTxInBlock: app.parallelTxManage.haveCosmosTxInBlock})
 		ctx.SetTxBytes(txBytes)
 		ctx.ResetWatcher()
-	}
-
-	if mode == runTxModeDeliver || mode == runTxModeDeliverPartConcurrent {
-		ctx.SetDeliver()
 	}
 
 	return ctx
@@ -835,9 +792,9 @@ func updateCacheMultiStore(msCache sdk.CacheMultiStore, txBytes []byte, height i
 	return msCache
 }
 
-func (app *BaseApp) pin(tag string, start bool, mode runTxMode) {
+func (app *BaseApp) pin(tag string, start bool, mode sdk.RunTxMode) {
 
-	if mode != runTxModeDeliver {
+	if mode != sdk.RunTxModeDeliver {
 		return
 	}
 
@@ -855,7 +812,7 @@ func (app *BaseApp) pin(tag string, start bool, mode runTxMode) {
 // and DeliverTx. An error is returned if any single message fails or if a
 // Handler does not exist for a given message route. Otherwise, a reference to a
 // Result is returned. The caller must not commit state if an error is returned.
-func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*sdk.Result, error) {
+func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode sdk.RunTxMode) (*sdk.Result, error) {
 	msgLogs := make(sdk.ABCIMessageLogs, 0, len(msgs))
 	data := make([]byte, 0, len(msgs))
 	events := sdk.EmptyEvents()
@@ -863,7 +820,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 	// NOTE: GasWanted is determined by the AnteHandler and GasUsed by the GasMeter.
 	for i, msg := range msgs {
 		// skip actual execution for (Re)CheckTx mode
-		if mode == runTxModeCheck || mode == runTxModeReCheck || mode == runTxModeWrappedCheck {
+		if ctx.IsCheckTx() {
 			break
 		}
 		msgRoute := msg.Route()

@@ -25,7 +25,7 @@ func (ad AnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, ne
 		return next(ctx, tx, simulate)
 	}
 	// do not run redundancy check on DeliverTx or simulate
-	if (ctx.IsCheckTx() || ctx.IsReCheckTx()) && !simulate {
+	if ctx.IsCheckTx() && !simulate {
 		// keep track of total packet messages and number of redundancies across `RecvPacket`, `AcknowledgePacket`, and `TimeoutPacket/OnClose`
 		redundancies := 0
 		packetMsgs := 0

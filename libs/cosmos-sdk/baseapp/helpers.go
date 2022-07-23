@@ -11,7 +11,7 @@ import (
 var isAlphaNumeric = regexp.MustCompile(`^[a-zA-Z0-9]+$`).MatchString
 
 func (app *BaseApp) Check(tx sdk.Tx) (sdk.GasInfo, *sdk.Result, error) {
-	info, e := app.runTx(runTxModeCheck, nil, tx, LatestSimulateTxHeight)
+	info, e := app.runTx(sdk.RunTxModeCheck, nil, tx, LatestSimulateTxHeight)
 	return info.gInfo, info.result, e
 }
 
@@ -19,12 +19,12 @@ func (app *BaseApp) Simulate(txBytes []byte, tx sdk.Tx, height int64, overridesB
 	info := &runTxInfo{
 		overridesBytes: overridesBytes,
 	}
-	e := app.runtxWithInfo(info, runTxModeSimulate, txBytes, tx, height, from...)
+	e := app.runtxWithInfo(info, sdk.RunTxModeSimulate, txBytes, tx, height, from...)
 	return info.gInfo, info.result, e
 }
 
 func (app *BaseApp) Deliver(tx sdk.Tx) (sdk.GasInfo, *sdk.Result, error) {
-	info, e := app.runTx(runTxModeDeliver, nil, tx, LatestSimulateTxHeight)
+	info, e := app.runTx(sdk.RunTxModeDeliver, nil, tx, LatestSimulateTxHeight)
 	return info.gInfo, info.result, e
 }
 
