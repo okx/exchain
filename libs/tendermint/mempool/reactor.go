@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"strconv"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -176,18 +177,22 @@ func (memR *Reactor) OnStart() error {
 	}
 
 	var s *grpc.Server
-	lis, err := net.Listen("tcp", ":0")
-	if err != nil {
-		memR.Logger.Error("Failed to start tx receiver:Listen", "err", err)
-	} else {
-		s = grpc.NewServer()
-		pb.RegisterMempoolTxReceiverServer(s, memR.receiver)
-		memR.receiver.Port = lis.Addr().(*net.TCPAddr).Port
-		go func() {
-			if err = s.Serve(lis); err != nil {
-				memR.Logger.Error("Failed to start tx receiver:Serve", "err", err)
-			}
-		}()
+	if port, err := strconv.Atoi(memR.config.TxReceiverPort); err == nil {
+		lis, err := net.Listen("tcp", ":"+strconv.Itoa(port))
+		if err != nil {
+			memR.Logger.Error("Failed to start tx receiver:Listen", "err", err)
+		} else {
+			s = grpc.NewServer()
+			pb.RegisterMempoolTxReceiverServer(s, memR.receiver)
+			memR.receiver.Port = lis.Addr().(*net.TCPAddr).Port
+			atomic.StoreInt64(&memR.receiver.Started, 1)
+			go func() {
+				if err = s.Serve(lis); err != nil {
+					atomic.StoreInt64(&memR.receiver.Started, 0)
+					memR.Logger.Error("Failed to start tx receiver:Serve", "err", err)
+				}
+			}()
+		}
 	}
 
 	go func() {
@@ -202,6 +207,7 @@ func (memR *Reactor) OnStart() error {
 				}
 			case <-memR.Quit():
 				if s != nil {
+					atomic.StoreInt64(&memR.receiver.Started, 0)
 					s.Stop()
 				}
 				return
@@ -474,8 +480,15 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 }
 
 func (memR *Reactor) sendTxReceiverInfo(peer p2p.Peer) {
+	if memR.receiver == nil || memR.receiver.Port == 0 || atomic.LoadInt64(&memR.receiver.Started) == 0 {
+		return
+	}
+	port := int64(memR.receiver.Port)
+	if memR.config.TxReceiverExternalPort != 0 {
+		port = int64(memR.config.TxReceiverExternalPort)
+	}
 	var info pb.ReceiverInfo
-	info.Port = int64(memR.receiver.Port)
+	info.Port = port
 	info.YourId = uint32(memR.ids.GetForPeer(peer))
 	bz, err := info.Marshal()
 	if err != nil {

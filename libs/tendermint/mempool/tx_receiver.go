@@ -8,8 +8,9 @@ import (
 
 type txReceiverServer struct {
 	pb.UnimplementedMempoolTxReceiverServer
-	memR *Reactor
-	Port int
+	memR    *Reactor
+	Port    int
+	Started int64
 }
 
 func newTxReceiverServer(memR *Reactor) *txReceiverServer {
