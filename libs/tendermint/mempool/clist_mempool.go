@@ -82,13 +82,15 @@ type CListMempool struct {
 	txInfoparser TxInfoParser
 	checkCnt     int64
 
-	txs ITransactionQueue
+	txs     ITransactionQueue
+	txIndex uint32
 
 	sentryMempool SentryMempool
 }
 
 type SentryMempool interface {
 	ReapTxs(maxBytes, maxGas int64) []types.Tx
+	Update(height int64, txs types.Txs)
 }
 
 var _ Mempool = &CListMempool{}
@@ -385,6 +387,7 @@ func (mem *CListMempool) reqResCb(
 // Called from:
 //  - resCbFirstTime (lock not held) if tx is valid
 func (mem *CListMempool) addTx(memTx *mempoolTx) error {
+	memTx.index = atomic.AddUint32(&mem.txIndex, 1)
 	if err := mem.txs.Insert(memTx); err != nil {
 		return err
 	}
@@ -680,6 +683,10 @@ func (mem *CListMempool) notifyTxsAvailable() {
 	if mem.Size() == 0 {
 		return
 	}
+	mem.mustNotifyTxsAvailable()
+}
+
+func (mem *CListMempool) mustNotifyTxsAvailable() {
 	if mem.txsAvailable != nil && !mem.notifiedTxsAvailable {
 		// channel cap is 1, so this will send once
 		mem.notifiedTxsAvailable = true
@@ -695,6 +702,50 @@ func (mem *CListMempool) ReapEssentialTx(tx types.Tx) abci.TxEssentials {
 		return ele.Value.(*mempoolTx).realTx
 	}
 	return nil
+}
+
+// Safe for concurrent use by multiple goroutines.
+func (mem *CListMempool) ReapTxIndicesMaxBytesMaxGas(maxBytes, maxGas int64) []uint32 {
+	mem.updateMtx.RLock()
+	defer mem.updateMtx.RUnlock()
+
+	var (
+		totalBytes int64
+		totalGas   int64
+		totalTxNum int64
+	)
+
+	indices := make([]uint32, 0, tmmath.MinInt(mem.txs.Len(), int(cfg.DynamicConfig.GetMaxTxNumPerBlock())))
+	defer func() {
+		mem.logger.Info("ReapTxIndicesMaxBytesMaxGas", "ProposingHeight", mem.Height()+1,
+			"MempoolTxs", mem.txs.Len(), "ReapTxs", len(indices))
+	}()
+	for e := mem.txs.Front(); e != nil; e = e.Next() {
+		memTx := e.Value.(*mempoolTx)
+		// Check total size requirement
+		aminoOverhead := types.ComputeAminoOverhead(memTx.tx, 1)
+		if maxBytes > -1 && totalBytes+int64(len(memTx.tx))+aminoOverhead > maxBytes {
+			return indices
+		}
+		totalBytes += int64(len(memTx.tx)) + aminoOverhead
+		// Check total gas requirement.
+		// If maxGas is negative, skip this check.
+		// Since newTotalGas < masGas, which
+		// must be non-negative, it follows that this won't overflow.
+		newTotalGas := totalGas + memTx.gasWanted
+		if maxGas > -1 && newTotalGas > maxGas {
+			return indices
+		}
+		if totalTxNum >= cfg.DynamicConfig.GetMaxTxNumPerBlock() {
+			return indices
+		}
+
+		totalTxNum++
+		totalGas = newTotalGas
+		indices = append(indices, memTx.index)
+	}
+
+	return indices
 }
 
 // Safe for concurrent use by multiple goroutines.
@@ -836,9 +887,7 @@ func (mem *CListMempool) Update(
 	atomic.StoreInt64(&mem.height, height)
 	mem.notifiedTxsAvailable = false
 	if mem.sentryMempool != nil {
-		for _, tx := range txs {
-			types.SignatureCache().Remove(tx.Hash(height))
-		}
+		mem.sentryMempool.Update(height, txs)
 		return nil
 	}
 
@@ -1013,8 +1062,9 @@ func (mem *CListMempool) sentryTxs(start *clist.CElement) (batch []*SentryTx, en
 	for {
 		memTx := end.Value.(*mempoolTx)
 		batch = append(batch, &SentryTx{
-			TxHash: memTx.realTx.TxHash(),
-			From:   memTx.from,
+			Tx:    memTx.tx,
+			From:  memTx.from,
+			Index: memTx.index,
 		})
 		if len(batch) >= maxBatchTx || end.Next() == nil {
 			return batch, end
@@ -1046,6 +1096,8 @@ type mempoolTx struct {
 	signature   []byte
 	from        string
 	senderNonce uint64
+
+	index uint32
 
 	// ids of peers who've sent us this tx (as a map for quick lookups).
 	// senders: PeerID -> bool

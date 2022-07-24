@@ -543,13 +543,23 @@ func TestDecodeMsg(t *testing.T) {
 	require.Equal(t, originMsg, decMsg)
 
 	originMsg = &StxMessage{
-		Stx: []*SentryTx{{TxHash: []byte("testHash"), From: "testFrom"}},
+		Stx: []*SentryTx{{Tx: []byte("test"), From: "testFrom"}},
 	}
 	decMsg, _ = memR.decodeMsg(memR.encodeMsg(originMsg))
 	require.Equal(t, originMsg, decMsg)
 
 	originMsg = &TxsMessage{
 		Txs: []types.Tx{[]byte("testTx")},
+	}
+	decMsg, _ = memR.decodeMsg(memR.encodeMsg(originMsg))
+	require.Equal(t, originMsg, decMsg)
+
+	originMsg = &TxIndicesMessage{}
+	decMsg, _ = memR.decodeMsg(memR.encodeMsg(originMsg))
+	require.Equal(t, originMsg, decMsg)
+
+	originMsg = &TxIndicesMessage{
+		Indices: []uint32{666, 888},
 	}
 	decMsg, _ = memR.decodeMsg(memR.encodeMsg(originMsg))
 	require.Equal(t, originMsg, decMsg)

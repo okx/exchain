@@ -10,6 +10,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 
+	lru "github.com/hashicorp/golang-lru"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
@@ -48,7 +49,8 @@ type Reactor struct {
 	isSentryNode      bool
 	sentryPartner     string
 	sentryPartnerPeer p2p.Peer
-	responseChan      chan *TxsMessage
+	responseChan      chan *TxIndicesMessage
+	txMap             *lru.Cache // txIndex -> tx
 }
 
 func (memR *Reactor) SetNodeKey(key *p2p.NodeKey) {
@@ -120,6 +122,10 @@ func newMempoolIDs() *mempoolIDs {
 
 // NewReactor returns a new Reactor with the given config and mempool.
 func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
+	cache, err := lru.New(cfg.DynamicConfig.GetMempoolSize())
+	if err != nil {
+		panic(err)
+	}
 	memR := &Reactor{
 		config:           config,
 		mempool:          mempool,
@@ -128,7 +134,8 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 		enableWtx:        cfg.DynamicConfig.GetEnableWtx(),
 		isSentryNode:     cfg.DynamicConfig.IsSentryNode(),
 		sentryPartner:    cfg.DynamicConfig.GetSentryPartner(),
-		responseChan:     make(chan *TxsMessage, 100),
+		responseChan:     make(chan *TxIndicesMessage, 10),
+		txMap:            cache,
 	}
 
 	if memR.sentryPartner != "" && !memR.isSentryNode {
@@ -141,6 +148,12 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 	memR.BaseReactor = *p2p.NewBaseReactor("Mempool", memR)
 	memR.press()
 	return memR
+}
+
+func (memR *Reactor) Update(height int64, txs types.Txs) {
+	for _, tx := range txs {
+		types.SignatureCache().Remove(tx.Hash(height))
+	}
 }
 
 func (memR *Reactor) ReapTxs(maxBytes, maxGas int64) []types.Tx {
@@ -163,16 +176,18 @@ func (memR *Reactor) ReapTxs(maxBytes, maxGas int64) []types.Tx {
 	}
 
 	var txs []types.Tx
-	ticker := time.After(time.Second * 3)
-	start := time.Now()
+	ticker := time.After(time.Second)
 	for {
 		select {
-		case txsMsg := <-memR.responseChan:
-			txs = append(txs, txsMsg.Txs...)
-			if txsMsg.IsEnd {
-				fmt.Println("fetch txs time cost", time.Since(start))
-				return txs
+		case msg := <-memR.responseChan:
+			txs = make([]types.Tx, 0, len(msg.Indices))
+			for _, index := range msg.Indices {
+				v, ok := memR.txMap.Get(index)
+				if ok {
+					txs = append(txs, v.([]byte))
+				}
 			}
+			return txs
 
 		case <-ticker:
 			memR.Logger.Error("wait for txs from sentry node timeout", "peer id", memR.sentryPartnerPeer.ID())
@@ -304,39 +319,35 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	//TODO: simplify the code
 	switch msg := msg.(type) {
 	case *FetchMessage:
-		txs := memR.mempool.ReapMaxBytesMaxGas(msg.MaxBytes, msg.MaxGas)
-		var start, end int
-		for {
-			end = start + maxBatchTx
-			if end > len(txs) {
-				end = len(txs)
-			}
-			txsMsg := &TxsMessage{Txs: txs[start:end], IsEnd: end == len(txs)}
-			success := src.Send(MempoolChannel, memR.encodeMsg(txsMsg))
-			if !success {
-				memR.Logger.Error("response txs to validator failed", "peerID", src.ID())
-			}
-			if txsMsg.IsEnd {
-				return
-			}
-			start = end
+		indices := memR.mempool.ReapTxIndicesMaxBytesMaxGas(msg.MaxBytes, msg.MaxGas)
+		success := src.Send(MempoolChannel, memR.encodeMsg(&TxIndicesMessage{
+			Indices: indices,
+		}))
+		if !success {
+			memR.Logger.Error("response txs to validator failed", "peerID", src.ID())
 		}
 
 	case *StxMessage:
 		if string(src.ID()) == memR.sentryPartner {
 			for _, stx := range msg.Stx {
-				types.SignatureCache().Add(stx.TxHash, stx.From)
+				types.SignatureCache().Add(types.Tx(stx.Tx).Hash(memR.mempool.Height()), stx.From)
+				memR.txMap.Add(stx.Index, stx.Tx)
 			}
-			memR.mempool.notifyTxsAvailable()
+			memR.mempool.mustNotifyTxsAvailable()
 		}
 		return
-	case *TxsMessage:
+
+	case *TxIndicesMessage:
 		if !memR.isSentryNode && string(src.ID()) == memR.sentryPartner {
 			select {
 			case memR.responseChan <- msg:
 			default:
 				memR.Logger.Error("debug responseChan full")
 			}
+		}
+		return
+	case *TxsMessage:
+		if memR.sentryPartner != "" {
 			return
 		}
 		for _, tx := range msg.Txs {
@@ -516,6 +527,7 @@ func RegisterMessages(cdc *amino.Codec) {
 	cdc.RegisterConcrete(&StxMessage{}, "tendermint/mempool/StxMessage", nil)
 	cdc.RegisterConcrete(&TxsMessage{}, "tendermint/mempool/TxsMessage", nil)
 	cdc.RegisterConcrete(&FetchMessage{}, "tendermint/mempool/FetchMessage", nil)
+	cdc.RegisterConcrete(&TxIndicesMessage{}, "tendermint/mempool/TxIndicesMessage", nil)
 
 	cdc.RegisterConcreteMarshaller("tendermint/mempool/TxMessage", func(codec *amino.Codec, i interface{}) ([]byte, error) {
 		txmp, ok := i.(*TxMessage)
@@ -672,10 +684,20 @@ func (m *FetchMessage) String() string {
 	return fmt.Sprintf("[FetchMessage %d, %d]", m.MaxBytes, m.MaxGas)
 }
 
+// TxIndicesMessage is a Message containing transaction indices.
+type TxIndicesMessage struct {
+	Indices []uint32
+}
+
+// String returns a string representation of the TxIndicesMessage.
+func (m *TxIndicesMessage) String() string {
+	return fmt.Sprintf("[TxIndicesMessage %v]", m.Indices)
+}
+
 // TxsMessage is a Message containing transactions.
 type TxsMessage struct {
-	Txs   []types.Tx
-	IsEnd bool
+	Txs     []types.Tx
+	Indices []uint32
 }
 
 // String returns a string representation of the TxsMessage.
@@ -695,8 +717,9 @@ func (m *StxMessage) String() string {
 
 // SentryTx is a result of verify signature from sentry node.
 type SentryTx struct {
-	TxHash []byte
-	From   string
+	Tx    []byte
+	From  string
+	Index uint32
 }
 
 // WtxMessage is a Message containing a transaction.
