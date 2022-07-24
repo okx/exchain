@@ -349,7 +349,7 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		}
 		return
 	case *TxsMessage:
-		if memR.sentryPartner != "" {
+		if !memR.isSentryNode && memR.sentryPartner != "" {
 			return
 		}
 		for _, tx := range msg.Txs {
