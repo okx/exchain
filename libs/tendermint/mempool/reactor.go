@@ -153,6 +153,7 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 	memR.BaseReactor = *p2p.NewBaseReactor("Mempool", memR)
 	memR.press()
 	memR.receiver = newTxReceiverServer(memR)
+	memR.receiverClients = make(map[uint16]txReceiverClient)
 	return memR
 }
 
@@ -181,11 +182,12 @@ func (memR *Reactor) OnStart() error {
 	} else {
 		s = grpc.NewServer()
 		pb.RegisterMempoolTxReceiverServer(s, memR.receiver)
-		if err = s.Serve(lis); err != nil {
-			memR.Logger.Error("Failed to start tx receiver:Serve", "err", err)
-		} else {
-			memR.receiver.Port = lis.Addr().(*net.TCPAddr).Port
-		}
+		memR.receiver.Port = lis.Addr().(*net.TCPAddr).Port
+		go func() {
+			if err = s.Serve(lis); err != nil {
+				memR.Logger.Error("Failed to start tx receiver:Serve", "err", err)
+			}
+		}()
 	}
 
 	go func() {
@@ -406,15 +408,16 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 		}
 
 		// ensure peer hasn't already sent us this tx
-		if _, ok := memTx.senders.Load(peerID); !ok {
+		if _, ok = memTx.senders.Load(peerID); !ok {
 			memR.receiverClientsMtx.RLock()
 			client, ok := memR.receiverClients[peerID]
 			memR.receiverClientsMtx.RUnlock()
 			if ok {
-				req := pb.TxRequest{Tx: memTx.tx, PeerId: uint32(client.ID)}
-				_, err := client.Client.Receive(context.Background(), &req)
+				_, err := client.Client.Receive(context.Background(), &pb.TxRequest{Tx: memTx.tx, PeerId: uint32(client.ID)})
 				if err == nil {
 					goto SUCCESS
+				} else {
+					memR.Logger.Error("Error sending tx with receiver", "err", err)
 				}
 			}
 
@@ -479,7 +482,10 @@ func (memR *Reactor) sendTxReceiverInfo(peer p2p.Peer) {
 		memR.Logger.Error("sendTxReceiverInfo:marshal", "error", err)
 		return
 	}
-	peer.Send(TxReceiverChannel, bz)
+	ok := peer.Send(TxReceiverChannel, bz)
+	if !ok {
+		memR.Logger.Error("sendTxReceiverInfo:send not ok")
+	}
 }
 
 func (memR *Reactor) receiveTxReceiverInfo(src p2p.Peer, bz []byte) {

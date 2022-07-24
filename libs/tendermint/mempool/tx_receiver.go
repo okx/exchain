@@ -29,5 +29,7 @@ func (s *txReceiverServer) Receive(ctx context.Context, req *pb.TxRequest) (*emp
 		}
 	}
 
-	return nil, nil
+	return empty, nil
 }
+
+var empty = &emptypb.Empty{}
