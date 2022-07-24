@@ -16,3 +16,8 @@ message TxRequest {
   bytes tx = 1;
   uint32 peer_id = 2;
 }
+
+message ReceiverInfo {
+  uint32 your_id = 1;
+  int64 port = 2;
+}
