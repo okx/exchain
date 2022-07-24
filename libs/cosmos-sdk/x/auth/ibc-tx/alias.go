@@ -7,5 +7,5 @@ import (
 
 var (
 	PubKeyRegisterInterfaces = ibccodec.RegisterInterfaces
-	LagacyKey2PbKey          = adapter.LagacyPubkey2ProtoBuffPubkey
+	LagacyKey2PbKey          = adapter.LegacyPubkey2ProtoBuffPubkey
 )

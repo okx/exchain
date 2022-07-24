@@ -9,6 +9,7 @@ import (
 	ibctx "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx/internal/adapter"
+	"github.com/tendermint/go-amino"
 	"google.golang.org/protobuf/encoding/protowire"
 	//"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -148,6 +149,8 @@ func constructMsgs(ibcTx *tx.Tx) ([]sdk.Msg, []sdk.Msg, error) {
 func convertSignature(ibcTx *tx.Tx) []authtypes.StdSignature {
 	signatures := []authtypes.StdSignature{}
 	for i, s := range ibcTx.Signatures {
+		sig := []byte{}
+		copy(sig[:], s)
 		var pkData types.PubKey
 		if ibcTx.AuthInfo.SignerInfos != nil {
 			var ok bool
@@ -155,20 +158,46 @@ func convertSignature(ibcTx *tx.Tx) []authtypes.StdSignature {
 			if !ok {
 				return nil
 			}
+			switch ibcTx.AuthInfo.SignerInfos[i].ModeInfo.Sum.(type) {
+			case *tx.ModeInfo_Multi_:
+				sigs, err := decodeMultisignatures(sig)
+				if err != nil {
+					return signatures
+				}
+				//marshal to amimo
+				sig, err = amino.MarshalBinaryBare(sigs)
+				if err != nil {
+					return signatures
+				}
+			}
 		}
-		pubKey, err := adapter.ProtoBufPubkey2LagacyPubkey(pkData)
+		pubKey, err := adapter.ProtoBufPubkey2LegacyPubkey(pkData)
 		if err != nil {
 			return []authtypes.StdSignature{}
 		}
 
 		signatures = append(signatures,
 			authtypes.StdSignature{
-				Signature: s,
+				Signature: sig,
 				PubKey:    pubKey,
 			},
 		)
 	}
 	return signatures
+}
+func decodeMultisignatures(bz []byte) ([][]byte, error) {
+	multisig := types.MultiSignature{}
+	err := multisig.Unmarshal(bz)
+	if err != nil {
+		return nil, err
+	}
+	// NOTE: it is import to reject multi-signatures that contain unrecognized fields because this is an exploitable
+	// malleability in the protobuf message. Basically an attacker could bloat a MultiSignature message with unknown
+	// fields, thus bloating the transaction and causing it to fail.
+	if len(multisig.XXX_unrecognized) > 0 {
+		return nil, fmt.Errorf("rejecting unrecognized fields found in MultiSignature")
+	}
+	return multisig.Signatures, nil
 }
 
 func convertFee(authInfo tx.AuthInfo) (authtypes.StdFee, authtypes.IbcFee, error) {
