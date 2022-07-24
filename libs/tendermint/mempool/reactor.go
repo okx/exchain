@@ -169,6 +169,7 @@ func (memR *Reactor) ReapTxs(maxBytes, maxGas int64) []types.Tx {
 		fmt.Println("error: responseChan not empty")
 	}
 
+	start := time.Now()
 	success := memR.sentryPartnerPeer.Send(MempoolChannel, msgBz)
 	if !success {
 		memR.Logger.Error("fetch txs from sentry node failed", "peer id", memR.sentryPartnerPeer.ID())
@@ -187,6 +188,7 @@ func (memR *Reactor) ReapTxs(maxBytes, maxGas int64) []types.Tx {
 					txs = append(txs, v.([]byte))
 				}
 			}
+			fmt.Println("fetch tx indices time cost", time.Since(start))
 			return txs
 
 		case <-ticker:
