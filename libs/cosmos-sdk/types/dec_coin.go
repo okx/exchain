@@ -164,13 +164,6 @@ func (coin DecCoin) Sub(coinB DecCoin) DecCoin {
 	return res
 }
 
-func (coin DecCoin) negative() DecCoin {
-	return DecCoin{
-		Denom:  coin.Denom,
-		Amount: coin.Amount.Neg(),
-	}
-}
-
 // TruncateDecimal returns a Coin with a truncated decimal and a DecCoin for the
 // change. Note, the change may be zero.
 func (coin DecCoin) TruncateDecimal() (Coin, DecCoin) {
