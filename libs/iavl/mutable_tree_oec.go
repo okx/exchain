@@ -100,13 +100,9 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 }
 
 func (tree *MutableTree) updateBranchFastNode() {
-	tree.mtxFastNodeChanges.Lock()
-	defer tree.mtxFastNodeChanges.Unlock()
 	tree.mtx.Lock()
 	defer tree.mtx.Unlock()
-	tree.ndb.mtx.Lock()
 	tree.ndb.updateBranchForFastNode(tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
-	tree.ndb.mtx.Unlock()
 	tree.unsavedFastNodeAdditions = make(map[string]*FastNode)
 	tree.unsavedFastNodeRemovals = make(map[string]interface{})
 }
@@ -394,8 +390,9 @@ func (tree *MutableTree) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	ndb.state.increasePersistedCount(len(tpp))
 	ndb.addDBWriteCount(int64(len(tpp)))
 
-	tree.mtx.Lock()
-	defer tree.mtx.Unlock()
+	ndb.mtx.Lock()
+	defer ndb.mtx.Unlock()
+
 	if err := tree.saveFastNodeVersion(batch, event.fastNodeChanges); err != nil {
 		panic(err)
 	}
@@ -405,5 +402,6 @@ func (tree *MutableTree) persistTpp(event *commitEvent, trc *trace.Tracer) {
 		panic(err)
 	}
 
+	ndb.asyncPersistFastNodeFinished(event)
 	ndb.asyncPersistTppFinised(event, trc)
 }
