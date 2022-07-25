@@ -117,9 +117,11 @@ func queryBonds(ctx context.CLIContext, endpoint string) http.HandlerFunc {
 			err           error
 		)
 
-		delegatorAddr, err = sdk.AccAddressFromBech32(bech32delegator)
-		if rest.CheckBadRequestError(w, err) {
-			return
+		if len(bech32delegator) != 0 {
+			delegatorAddr, err = sdk.AccAddressFromBech32(bech32delegator)
+			if rest.CheckBadRequestError(w, err) {
+				return
+			}
 		}
 
 		if len(bech32validator) != 0 {
