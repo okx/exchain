@@ -10,4 +10,5 @@ import (
 var (
 	CommunityPoolSpendProposalHandler     = govclient.NewProposalHandler(cli.GetCmdCommunityPoolSpendProposal, rest.CommunityPoolSpendProposalRESTHandler)
 	ChangeDistributionTypeProposalHandler = govclient.NewProposalHandler(cli.GetChangeDistributionTypeProposal, rest.ChangeDistributionTypeProposalRESTHandler)
+	WithdrawRewardEnabledProposalHandler  = govclient.NewProposalHandler(cli.GetWithdrawRewardEnabledProposal, rest.WithdrawRewardEnabledProposalRESTHandler)
 )

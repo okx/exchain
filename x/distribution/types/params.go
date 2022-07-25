@@ -14,16 +14,18 @@ const (
 
 // Parameter keys
 var (
-	ParamStoreKeyCommunityTax        = []byte("communitytax")
-	ParamStoreKeyWithdrawAddrEnabled = []byte("withdrawaddrenabled")
-	ParamStoreKeyDistributionType    = []byte("distributiontype")
+	ParamStoreKeyCommunityTax          = []byte("communitytax")
+	ParamStoreKeyWithdrawAddrEnabled   = []byte("withdrawaddrenabled")
+	ParamStoreKeyDistributionType      = []byte("distributiontype")
+	ParamStoreKeyWithdrawRewardEnabled = []byte("withdrawrewardenabled")
 )
 
 // Params defines the set of distribution parameters.
 type Params struct {
-	CommunityTax        sdk.Dec `json:"community_tax" yaml:"community_tax"`
-	WithdrawAddrEnabled bool    `json:"withdraw_addr_enabled" yaml:"withdraw_addr_enabled"`
-	DistributionType    uint32  `json:"distribution_type" yaml:"distribution_type"`
+	CommunityTax          sdk.Dec `json:"community_tax" yaml:"community_tax"`
+	WithdrawAddrEnabled   bool    `json:"withdraw_addr_enabled" yaml:"withdraw_addr_enabled"`
+	DistributionType      uint32  `json:"distribution_type" yaml:"distribution_type"`
+	WithdrawRewardEnabled bool    `json:"withdraw_reward_enabled" yaml:"withdraw_reward_enabled"`
 }
 
 // ParamKeyTable returns the parameter key table.
@@ -34,8 +36,9 @@ func ParamKeyTable() params.KeyTable {
 // DefaultParams returns default distribution parameters
 func DefaultParams() Params {
 	return Params{
-		CommunityTax:        sdk.NewDecWithPrec(2, 2), // 2%
-		WithdrawAddrEnabled: true,
+		CommunityTax:          sdk.NewDecWithPrec(2, 2), // 2%
+		WithdrawAddrEnabled:   true,
+		WithdrawRewardEnabled: true,
 	}
 }
 
@@ -54,6 +57,7 @@ func (p *Params) ParamSetPairs() params.ParamSetPairs {
 		params.NewParamSetPair(ParamStoreKeyWithdrawAddrEnabled, &p.WithdrawAddrEnabled, validateWithdrawAddrEnabled),
 		//TODO, Check the first block of the older version is not compatible
 		params.NewParamSetPair(ParamStoreKeyDistributionType, &p.DistributionType, validateDistributionType),
+		params.NewParamSetPair(ParamStoreKeyWithdrawRewardEnabled, &p.WithdrawRewardEnabled, validateWithdrawRewardEnabled),
 	}
 }
 
@@ -109,12 +113,22 @@ func validateDistributionType(i interface{}) error {
 	return nil
 }
 
+func validateWithdrawRewardEnabled(i interface{}) error {
+	_, ok := i.(bool)
+	if !ok {
+		return fmt.Errorf("invalid parameter type: %T", i)
+	}
+
+	return nil
+}
+
 // NewParams creates a new instance of Params
-func NewParams(communityTax sdk.Dec, withdrawAddrEnabled bool, distributionType uint32) Params {
+func NewParams(communityTax sdk.Dec, withdrawAddrEnabled bool, distributionType uint32, withdrawRewardEnabled bool) Params {
 	return Params{
-		CommunityTax:        communityTax,
-		WithdrawAddrEnabled: withdrawAddrEnabled,
-		DistributionType:    distributionType,
+		CommunityTax:          communityTax,
+		WithdrawAddrEnabled:   withdrawAddrEnabled,
+		DistributionType:      distributionType,
+		WithdrawRewardEnabled: withdrawRewardEnabled,
 	}
 }
 

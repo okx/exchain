@@ -6,9 +6,11 @@ import sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 const (
 	QueryValidatorOutstandingRewards = "validator_outstanding_rewards"
 	QueryDelegatorTotalRewards       = "delegator_total_rewards"
-	ParamDistributionType            = "distribution_type"
 	QueryDelegatorValidators         = "delegator_validators"
 	QueryDelegationRewards           = "delegation_rewards"
+
+	ParamDistributionType      = "distribution_type"
+	ParamWithdrawRewardEnabled = "withdraw_reward_enabled"
 )
 
 // params for query 'custom/distr/delegator_total_rewards' and 'custom/distr/delegator_validators'

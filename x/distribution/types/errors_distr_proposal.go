@@ -14,6 +14,7 @@ const (
 	CodeZeroDelegationShares                uint32 = 67823
 	CodeNotSupportWithdrawDelegationRewards uint32 = 67824
 	CodeNotSupportDistributionProposal      uint32 = 67825
+	CodeDisabledWithdrawRewards             uint32 = 67826
 )
 
 func ErrInvalidDistributionType() sdk.Error {
@@ -42,4 +43,8 @@ func ErrCodeNotSupportWithdrawDelegationRewards() sdk.Error {
 
 func ErrCodeNotSupportDistributionProposal() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeNotSupportDistributionProposal, "do not support, distribution proposal invalid")
+}
+
+func ErrCodeDisabledWithdrawRewards() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeDisabledWithdrawRewards, "withdraw rewards disabled")
 }

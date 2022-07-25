@@ -13,4 +13,5 @@ var (
 	NewMsgWithdrawDelegatorReward         = types.NewMsgWithdrawDelegatorReward
 	CommunityPoolSpendProposalHandler     = client.CommunityPoolSpendProposalHandler
 	ChangeDistributionTypeProposalHandler = client.ChangeDistributionTypeProposalHandler
+	WithdrawRewardEnabledProposalHandler  = client.WithdrawRewardEnabledProposalHandler
 )

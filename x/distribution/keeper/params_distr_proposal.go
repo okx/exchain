@@ -17,3 +17,16 @@ func (k Keeper) GetDistributionType(ctx sdk.Context) (distrType uint32) {
 func (k Keeper) SetDistributionType(ctx sdk.Context, distrType uint32) {
 	k.paramSpace.Set(ctx, types.ParamStoreKeyDistributionType, &distrType)
 }
+
+func (k Keeper) GetWithdrawRewardEnabled(ctx sdk.Context) (enabled bool) {
+	enabled = true
+	if k.paramSpace.Has(ctx, types.ParamStoreKeyWithdrawRewardEnabled) {
+		k.paramSpace.Get(ctx, types.ParamStoreKeyWithdrawRewardEnabled, &enabled)
+	}
+
+	return enabled
+}
+
+func (k Keeper) SetWithdrawRewardEnabled(ctx sdk.Context, enabled bool) {
+	k.paramSpace.Set(ctx, types.ParamStoreKeyWithdrawRewardEnabled, &enabled)
+}

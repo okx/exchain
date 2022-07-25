@@ -11,6 +11,7 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgSetWithdrawAddress{}, "okexchain/distribution/MsgModifyWithdrawAddress", nil)
 	cdc.RegisterConcrete(CommunityPoolSpendProposal{}, "okexchain/distribution/CommunityPoolSpendProposal", nil)
 	cdc.RegisterConcrete(ChangeDistributionTypeProposal{}, "okexchain/distribution/ChangeDistributionTypeProposal", nil)
+	cdc.RegisterConcrete(WithdrawRewardEnabledProposal{}, "okexchain/distribution/WithdrawRewardEnabledProposal", nil)
 }
 
 // ModuleCdc generic sealed codec to be used throughout module

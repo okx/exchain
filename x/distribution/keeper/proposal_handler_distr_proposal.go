@@ -34,3 +34,11 @@ func HandleChangeDistributionTypeProposal(ctx sdk.Context, k Keeper, p types.Cha
 
 	return nil
 }
+
+// HandleWithdrawRewardEnabledProposal is a handler for executing a passed set withdraw reward enabled proposal
+func HandleWithdrawRewardEnabledProposal(ctx sdk.Context, k Keeper, p types.WithdrawRewardEnabledProposal) error {
+	logger := k.Logger(ctx)
+	logger.Debug(fmt.Sprintf("set withdraw reward enabled:%t", p.Enabled))
+	k.SetWithdrawRewardEnabled(ctx, p.Enabled)
+	return nil
+}

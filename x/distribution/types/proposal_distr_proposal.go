@@ -10,6 +10,9 @@ import (
 const (
 	// ProposalTypeChangeDistributionType defines the type for a ChangeDistributionTypeProposal
 	ProposalTypeChangeDistributionType = "ChangeDistributionType"
+
+	// ProposalTypeWithdrawRewardEnabled defines the type for a WithdrawRewardEnabledProposal
+	ProposalTypeWithdrawRewardEnabled = "WithdrawRewardEnabled"
 )
 
 const (
@@ -62,10 +65,60 @@ func (cdtp ChangeDistributionTypeProposal) ValidateBasic() error {
 // String implements the Stringer interface.
 func (cdtp ChangeDistributionTypeProposal) String() string {
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf(`Community Pool Spend Proposal:
+	b.WriteString(fmt.Sprintf(`Change Distribution Type Proposal:
   Title:       %s
   Description: %s
   Type:   %d
 `, cdtp.Title, cdtp.Description, cdtp.Type))
+	return b.String()
+}
+
+// Assert WithdrawRewardEnabledProposal implements govtypes.Content at compile-time
+var _ govtypes.Content = WithdrawRewardEnabledProposal{}
+
+// WithdrawRewardEnabledProposal
+type WithdrawRewardEnabledProposal struct {
+	Title       string `json:"title" yaml:"title"`
+	Description string `json:"description" yaml:"description"`
+	Enabled     bool   `json:"enabled" yaml:"enabled"`
+}
+
+// NewWithdrawRewardEnabledProposal creates a set withdraw reward enabled proposal.
+func NewWithdrawRewardEnabledProposal(title, description string, enable bool) WithdrawRewardEnabledProposal {
+	return WithdrawRewardEnabledProposal{title, description, enable}
+}
+
+// GetTitle returns the title of a set withdraw reward enabled proposal.
+func (proposal WithdrawRewardEnabledProposal) GetTitle() string { return proposal.Title }
+
+// GetDescription returns the description of a set withdraw reward enabled proposal.
+func (proposal WithdrawRewardEnabledProposal) GetDescription() string { return proposal.Description }
+
+// GetDescription returns the routing key of a set withdraw reward enabled proposal.
+func (proposal WithdrawRewardEnabledProposal) ProposalRoute() string { return RouterKey }
+
+// ProposalType returns the type of a set withdraw reward enabled proposal.
+func (proposal WithdrawRewardEnabledProposal) ProposalType() string {
+	return ProposalTypeWithdrawRewardEnabled
+}
+
+// ValidateBasic runs basic stateless validity checks
+func (proposal WithdrawRewardEnabledProposal) ValidateBasic() error {
+	err := govtypes.ValidateAbstract(ModuleName, proposal)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// String implements the Stringer interface.
+func (proposal WithdrawRewardEnabledProposal) String() string {
+	var b strings.Builder
+	b.WriteString(fmt.Sprintf(`Withdraw Reward Enabled Proposal:
+  Title:       %s
+  Description: %s
+  Enabled:   %t
+`, proposal.Title, proposal.Description, proposal.Enabled))
 	return b.String()
 }
