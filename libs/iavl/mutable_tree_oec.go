@@ -396,9 +396,6 @@ func (tree *MutableTree) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	ndb.state.increasePersistedCount(len(tpp))
 	ndb.addDBWriteCount(int64(len(tpp)))
 
-	tree.mtxFastNodeChanges.Lock()
-	defer tree.mtxFastNodeChanges.Unlock()
-
 	if err := tree.saveFastNodeVersion(batch, event.fastNodeChanges); err != nil {
 		panic(err)
 	}
@@ -408,6 +405,5 @@ func (tree *MutableTree) persistTpp(event *commitEvent, trc *trace.Tracer) {
 		panic(err)
 	}
 
-	tree.persistTppFastNodeChanges()
 	ndb.asyncPersistTppFinised(event, trc)
 }
