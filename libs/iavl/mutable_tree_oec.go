@@ -104,7 +104,9 @@ func (tree *MutableTree) updateBranchFastNode() {
 	defer tree.mtxFastNodeChanges.Unlock()
 	tree.mtx.Lock()
 	defer tree.mtx.Unlock()
+	tree.ndb.mtx.Lock()
 	tree.ndb.updateBranchForFastNode(tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
+	tree.ndb.mtx.Unlock()
 	tree.unsavedFastNodeAdditions = make(map[string]*FastNode)
 	tree.unsavedFastNodeRemovals = make(map[string]interface{})
 }

@@ -132,6 +132,11 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *FastN
 
 	ndb.tpp.pushToTpp(version, tpp)
 
+	tempFastNodePreCommitAddtions := ndb.fastNodePreCommitAddtions
+	tempFastNodePreCommitRemovals := ndb.fastNodePreCommitRemovals
+	ndb.fastNodePreCommitAddtions = make(map[string]*FastNode, len(tempFastNodePreCommitAddtions))
+	ndb.fastNodePreCommitRemovals = make(map[string]interface{}, len(tempFastNodePreCommitRemovals))
+
 	ndb.mtx.Unlock()
 
 	for _, node := range tpp {
@@ -140,10 +145,6 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *FastN
 		}
 		node.persisted = true
 	}
-	tempFastNodePreCommitAddtions := ndb.fastNodePreCommitAddtions
-	tempFastNodePreCommitRemovals := ndb.fastNodePreCommitRemovals
-	ndb.fastNodePreCommitAddtions = make(map[string]*FastNode, len(tempFastNodePreCommitAddtions))
-	ndb.fastNodePreCommitRemovals = make(map[string]interface{}, len(tempFastNodePreCommitRemovals))
 
 	return tpp, NewFastNodeChanges(tempFastNodePreCommitAddtions, tempFastNodePreCommitRemovals, ndb.latestVersion)
 }
