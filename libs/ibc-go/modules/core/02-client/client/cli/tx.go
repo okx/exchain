@@ -3,6 +3,9 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
+	"strings"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -18,8 +21,6 @@ import (
 	govtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"io/ioutil"
-	"strings"
 )
 
 // NewCreateClientCmd defines the command to create a new IBC light client.
@@ -171,6 +172,7 @@ func NewSubmitMisbehaviourCmd(m *codec.CodecProxy, reg interfacetypes.InterfaceR
 	return cmd
 }
 
+// convert cm40+ to cm39
 func replaceMisbehaviourStr(contents string) string {
 	str := strings.ReplaceAll(string(contents), "part_set_header", "parts_header")
 	for k, v := range tmtypes.BlockIDFlag_value {
