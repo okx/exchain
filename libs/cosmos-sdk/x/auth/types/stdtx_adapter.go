@@ -52,7 +52,7 @@ func (tx *IbcTx) GetSignBytes(ctx sdk.Context, acc exported.Account) []byte {
 	}
 
 	return IbcAminoSignBytes(
-		chainID, accNum, acc.GetSequence(), tx.SigFee, tx.SigMsgs, tx.Memo, tx.TimeoutHeight,
+		chainID, accNum, acc.GetSequence(), tx.SigFee, tx.SigMsgs, tx.Memo, 0,
 	)
 }
 
