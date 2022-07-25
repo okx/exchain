@@ -527,6 +527,21 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			continue
 		}
 
+		if memR.isSentryNode && string(peer.ID()) == memR.sentryPartner {
+			var sentryTxs []*SentryTx
+			sentryTxs, next = memR.mempool.sentryTxs(next)
+			msg := StxMessage{
+				Stx: sentryTxs,
+			}
+			msgBz := memR.encodeMsg(msg)
+			success := peer.Send(MempoolChannel, msgBz)
+			if !success {
+				time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
+				continue
+			}
+			goto SUCCESS
+		}
+
 		// ensure peer hasn't already sent us this tx
 		if _, ok = memTx.senders.Load(peerID); !ok {
 			memR.receiverClientsMtx.RLock()
@@ -538,6 +553,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 					goto SUCCESS
 				} else {
 					memR.Logger.Error("Error sending tx with receiver", "err", err)
+					fmt.Println("pb bc error", err)
 				}
 			}
 		}
