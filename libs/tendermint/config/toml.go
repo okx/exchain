@@ -335,6 +335,11 @@ tx_price_bump = {{ .Mempool.TxPriceBump }}
 # Node key whitelist used in mempool to reduce CPU and Memory tradeoff 
 node_key_whitelist = [{{ range .Mempool.NodeKeyWhitelist }}{{ printf "%q, " . }}{{end}}]
 
+# Tx Receiver Port used to enable a tx receive grpc service to instead of p2p
+tx_receiver_port = "{{ .Mempool.TxReceiverPort }}"
+
+tx_receiver_external_port = {{ .Mempool.TxReceiverExternalPort }}
+
 ##### fast sync configuration options #####
 [fastsync]
 

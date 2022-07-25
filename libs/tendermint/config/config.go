@@ -684,6 +684,8 @@ type MempoolConfig struct {
 	PendingPoolReserveBlocks   int      `mapstructure:"pending_pool_reserve_blocks"`
 	PendingPoolMaxTxPerAddress int      `mapstructure:"pending_pool_max_tx_per_address"`
 	NodeKeyWhitelist           []string `mapstructure:"node_key_whitelist"`
+	TxReceiverPort             string   `mapstructure:"tx_receiver_port"`
+	TxReceiverExternalPort     int      `mapstructure:"tx_receiver_external_port"`
 }
 
 // DefaultMempoolConfig returns a default configuration for the Tendermint mempool
@@ -708,6 +710,8 @@ func DefaultMempoolConfig() *MempoolConfig {
 		PendingPoolReserveBlocks:   100,
 		PendingPoolMaxTxPerAddress: 100,
 		NodeKeyWhitelist:           []string{},
+		TxReceiverPort:             "",
+		TxReceiverExternalPort:     0,
 	}
 }
 
