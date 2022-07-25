@@ -102,9 +102,11 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 func (tree *MutableTree) updateBranchFastNode() {
 	tree.mtxFastNodeChanges.Lock()
 	defer tree.mtxFastNodeChanges.Unlock()
+	tree.mtx.Lock()
+	defer tree.mtx.Unlock()
 	tree.ndb.updateBranchForFastNode(tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
-	tree.unsavedFastNodeAdditions = map[string]*FastNode{}
-	tree.unsavedFastNodeRemovals = map[string]interface{}{}
+	tree.unsavedFastNodeAdditions = make(map[string]*FastNode)
+	tree.unsavedFastNodeRemovals = make(map[string]interface{})
 }
 
 func (tree *MutableTree) setNewWorkingTree(version int64, persisted bool) ([]byte, int64, error) {
