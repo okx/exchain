@@ -14,12 +14,13 @@ import (
 type IbcTx struct {
 	*StdTx
 
-	AuthInfoBytes []byte
-	BodyBytes     []byte
-	SignMode      []signing.SignMode
-	SigFee        IbcFee
-	SigMsgs       []sdk.Msg
-	Sequences     []uint64
+	AuthInfoBytes                []byte
+	BodyBytes                    []byte
+	SignMode                     []signing.SignMode
+	SigFee                       IbcFee
+	SigMsgs                      []sdk.Msg
+	Sequences                    []uint64
+	TxBodyHasUnknownNonCriticals bool
 }
 
 type StdIBCSignDoc struct {
@@ -37,6 +38,8 @@ type IbcFee struct {
 	Gas    uint64           `json:"gas" yaml:"gas"`
 }
 
+const aminoNonCriticalFieldsError = "protobuf transaction contains unknown non-critical fields. This is a transaction malleability issue and SIGN_MODE_LEGACY_AMINO_JSON cannot be used."
+
 func (tx *IbcTx) GetSignBytes(ctx sdk.Context, index int, acc exported.Account) []byte {
 	genesis := ctx.BlockHeight() == 0
 	chainID := ctx.ChainID()
@@ -53,6 +56,9 @@ func (tx *IbcTx) GetSignBytes(ctx sdk.Context, index int, acc exported.Account) 
 			chainID, accNum, acc.GetSequence(), tx.Fee, tx.Msgs, tx.Memo, tx.AuthInfoBytes, tx.BodyBytes,
 		)
 	case signing.SignMode_SIGN_MODE_LEGACY_AMINO_JSON:
+		if tx.TxBodyHasUnknownNonCriticals {
+			panic(aminoNonCriticalFieldsError)
+		}
 		return IbcAminoSignBytes(
 			chainID, accNum, acc.GetSequence(), tx.SigFee, tx.SigMsgs, tx.Memo, 0,
 		)
