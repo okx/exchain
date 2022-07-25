@@ -183,13 +183,9 @@ func NewInfiniteGasMeter() GasMeter {
 	return types.NewInfiniteGasMeter()
 }
 
-func NewReusableInfiniteGasMeter() ReusableGasMeter {
-	return types.NewReusableInfiniteGasMeter()
-}
-
 var resuableGasMeterPool = &sync.Pool{
 	New: func() interface{} {
-		return NewReusableInfiniteGasMeter()
+		return types.NewReusableInfiniteGasMeter()
 	},
 }
 

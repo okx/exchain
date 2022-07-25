@@ -379,7 +379,7 @@ func (msg *MsgEthereumTx) Fee() *big.Int {
 	return fee
 }
 
-// CalcFee set fee to gasprice * gaslimit.
+// CalcFee set fee to gasprice * gaslimit and return fee
 func (msg *MsgEthereumTx) CalcFee(fee *big.Int) *big.Int {
 	fee.SetUint64(msg.Data.GasLimit)
 	fee.Mul(fee, msg.Data.Price)
@@ -398,6 +398,7 @@ func (msg *MsgEthereumTx) Cost() *big.Int {
 	return total
 }
 
+// CalcCostTo set total to amount + gasprice * gaslimit and return it
 func (msg *MsgEthereumTx) CalcCostTo(total *big.Int) *big.Int {
 	total = msg.CalcFee(total)
 	total.Add(total, msg.Data.Amount)

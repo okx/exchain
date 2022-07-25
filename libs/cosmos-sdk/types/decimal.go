@@ -293,6 +293,7 @@ func (d Dec) MulInt64(i int64) Dec {
 	return Dec{mul}
 }
 
+// MulInt64To - multiplication with int64 and store result in d2
 func (d Dec) MulInt64To(i int64, d2 *Dec) {
 	if d2.Int == nil {
 		d2.Int = big.NewInt(i)
