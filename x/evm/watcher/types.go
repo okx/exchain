@@ -5,12 +5,14 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+
+	"github.com/gogo/protobuf/proto"
+
 	"time"
 
 	"math/big"
 	"strconv"
 
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/tendermint/go-amino"
 
@@ -494,7 +496,8 @@ func (tr *TransactionReceipt) GetValue() string {
 		//set to nil to keep sync with ethereum rpc
 		tr.ContractAddress = nil
 	}
-	buf, err := json.Marshal(tr)
+	protoReceipt := receiptToProto(tr)
+	buf, err := proto.Marshal(protoReceipt)
 	if err != nil {
 		panic("cant happen")
 	}
@@ -648,7 +651,8 @@ func (tr *Transaction) GetValue() string {
 		tr.BlockNumber = (*hexutil.Big)(new(big.Int).SetUint64(tr.originBlockNumber))
 		tr.TransactionIndex = (*hexutil.Uint64)(&tr.originIndex)
 	}
-	buf, err := json.Marshal(tr)
+	protoTransaction := transactionToProto(tr)
+	buf, err := proto.Marshal(protoTransaction)
 	if err != nil {
 		panic("cant happen")
 	}
@@ -822,7 +826,7 @@ func GetMsgStateKey(addr common.Address, key []byte) []byte {
 	copy(compositeKey, prefix)
 	copy(compositeKey[len(prefix):], key)
 
-	return append(PrefixState, ethcrypto.Keccak256Hash(compositeKey).Bytes()...)
+	return append(PrefixState, compositeKey...)
 }
 
 func (msgState *MsgState) GetKey() []byte {
