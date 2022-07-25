@@ -374,16 +374,6 @@ func (t *ImmutableTree) GetPersistedRoots() map[int64][]byte {
 	return t.ndb.roots()
 }
 
-func (tree *MutableTree) persistTppFastNodeChanges() {
-	for k := range tree.unsavedFastNodeAdditions {
-		delete(tree.unsavedFastNodeAdditions, k)
-	}
-
-	for k := range tree.unsavedFastNodeRemovals {
-		delete(tree.unsavedFastNodeRemovals, k)
-	}
-}
-
 func (tree *MutableTree) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	ndb := tree.ndb
 	batch := event.batch
@@ -395,6 +385,9 @@ func (tree *MutableTree) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	}
 	ndb.state.increasePersistedCount(len(tpp))
 	ndb.addDBWriteCount(int64(len(tpp)))
+
+	tree.mtxFastNodeChanges.Lock()
+	defer tree.mtxFastNodeChanges.Unlock()
 
 	if err := tree.saveFastNodeVersion(batch, event.fastNodeChanges); err != nil {
 		panic(err)
