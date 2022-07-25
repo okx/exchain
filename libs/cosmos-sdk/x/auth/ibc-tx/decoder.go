@@ -97,6 +97,10 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			signMode = modeInfo.Single.Mode
 		}
 
+		sequences := []uint64{}
+		for _, seq := range authInfo.SignerInfos {
+			sequences = append(sequences, seq.Sequence)
+		}
 		stx := authtypes.IbcTx{
 			&authtypes.StdTx{
 				Msgs:       stdMsgs,
@@ -109,6 +113,7 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			signMode,
 			signFee,
 			signMsgs,
+			sequences,
 		}
 
 		return &stx, nil

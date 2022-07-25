@@ -23,6 +23,7 @@ var (
 	simSecp256k1Sig    [64]byte
 
 	_ SigVerifiableTx = (*types.StdTx)(nil) // assert StdTx implements SigVerifiableTx
+	_ SigVerifiableTx = (*types.IbcTx)(nil)
 )
 
 func init() {
@@ -43,6 +44,8 @@ type SigVerifiableTx interface {
 	GetSigners() []sdk.AccAddress
 	GetPubKeys() []crypto.PubKey // If signer already has pubkey in context, this list will have nil in its place
 	GetSignBytes(ctx sdk.Context, acc exported.Account) []byte
+	//for ibc tx sign direct
+	VerifySequence(index int, acc exported.Account) error
 }
 
 // SetPubKeyDecorator sets PubKeys in context for any signer which does not already have pubkey set
@@ -200,6 +203,10 @@ func (svd SigVerificationDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simul
 
 		// retrieve signBytes of tx
 		signBytes := sigTx.GetSignBytes(ctx, signerAccs[i])
+		err = sigTx.VerifySequence(i, signerAccs[i])
+		if err != nil {
+			return ctx, sdkerrors.Wrap(sdkerrors.ErrUnauthorized, "signature verification sequence failed:"+err.Error())
+		}
 
 		// retrieve pubkey
 		pubKey := signerAccs[i].GetPubKey()
