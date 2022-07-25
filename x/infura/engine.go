@@ -28,7 +28,8 @@ func newMySQLEngine(url, user, pass, dbName string, l log.Logger) (types.IStream
 		user, pass, url, dbName)
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info),
+		SkipDefaultTransaction: true,
+		Logger:                 logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
 		return nil, err
@@ -54,9 +55,17 @@ func (e *MySQLEngine) Write(streamData types.IStreamData) bool {
 	}
 
 	// write Block
-	ret := trx.Create(data.Block)
+	ret := trx.Omit("Transactions").Create(data.Block)
 	if ret.Error != nil {
 		return e.rollbackWithError(trx, ret.Error)
+	}
+
+	// write Transactions
+	for _, transaction := range data.Block.Transactions {
+		ret := trx.Create(transaction)
+		if ret.Error != nil {
+			return e.rollbackWithError(trx, ret.Error)
+		}
 	}
 
 	// write contract code

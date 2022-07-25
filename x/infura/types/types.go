@@ -1,6 +1,8 @@
 package types
 
 import (
+	"time"
+
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	evm "github.com/okex/exchain/x/evm/watcher"
 	"gorm.io/gorm"
@@ -94,9 +96,9 @@ func convertBlocks(evmBlock evm.Block, evmTransactions []evm.Transaction) *Block
 		Timestamp:        uint64(evmBlock.Timestamp),
 	}
 
-	transactions := make([]Transaction, len(evmTransactions))
+	transactions := make([]*Transaction, len(evmTransactions))
 	for i, t := range evmTransactions {
-		tx := Transaction{
+		tx := &Transaction{
 			BlockHash:   t.BlockHash.String(),
 			BlockNumber: t.BlockNumber.ToInt().Int64(),
 			From:        t.From.String(),
@@ -167,9 +169,8 @@ type LogTopic struct {
 }
 
 type Block struct {
-	gorm.Model
-	Number           int64  `gorm:"index;not null"`
-	Hash             string `gorm:"type:varchar(66);index:unique_hash,unique;not null"`
+	Number           int64  `gorm:"primaryKey"`
+	Hash             string `gorm:"type:varchar(66);index;not null"`
 	ParentHash       string `gorm:"type:varchar(66)"`
 	TransactionsRoot string `gorm:"type:varchar(66)"`
 	StateRoot        string `gorm:"type:varchar(66)"`
@@ -178,7 +179,10 @@ type Block struct {
 	GasLimit         uint64
 	GasUsed          uint64
 	Timestamp        uint64 `gorm:"type:int(11)"`
-	Transactions     []Transaction
+	Transactions     []*Transaction
+	CreatedAt        time.Time
+	UpdatedAt        time.Time
+	DeletedAt        gorm.DeletedAt `gorm:"index"`
 }
 
 type Transaction struct {
@@ -197,7 +201,6 @@ type Transaction struct {
 	V           string `gorm:"type:varchar(255)"`
 	R           string `gorm:"type:varchar(255)"`
 	S           string `gorm:"type:varchar(255)"`
-	BlockID     uint
 }
 
 type ContractCode struct {
