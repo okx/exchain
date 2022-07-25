@@ -98,6 +98,10 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 		for _, seq := range authInfo.SignerInfos {
 			sequences = append(sequences, seq.Sequence)
 		}
+		hasExtensionOpt := false
+		if len(body.ExtensionOptions) != 0 || len(body.NonCriticalExtensionOptions) != 0 {
+			hasExtensionOpt = true
+		}
 		stx := authtypes.IbcTx{
 			&authtypes.StdTx{
 				Msgs:       stdMsgs,
@@ -112,6 +116,7 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			signMsgs,
 			sequences,
 			txBodyHasUnknownNonCriticals,
+			hasExtensionOpt,
 		}
 
 		return &stx, nil
