@@ -7,6 +7,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 )
@@ -22,6 +23,7 @@ type IbcTx struct {
 	Sequences                    []uint64
 	TxBodyHasUnknownNonCriticals bool
 	HasExtensionOpt              bool
+	Payer                        string
 }
 
 type StdIBCSignDoc struct {
@@ -73,6 +75,17 @@ func (tx *IbcTx) GetSignBytes(ctx sdk.Context, index int, acc exported.Account) 
 		//does not support SignMode_SIGN_MODE_UNSPECIFIED SignMode_SIGN_MODE_TEXTUAL
 		panic("ibctx not support SignMode_SIGN_MODE_UNSPECIFIED or SignMode_SIGN_MODE_TEXTUAL")
 	}
+}
+
+func (tx *IbcTx) ValidateBasic() error {
+	err := tx.StdTx.ValidateBasic()
+	if err != nil {
+		return err
+	}
+	if tx.Payer != "" {
+		return sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "not support fee payer address")
+	}
+	return nil
 }
 
 func (tx *IbcTx) VerifySequence(index int, acc exported.Account) error {
