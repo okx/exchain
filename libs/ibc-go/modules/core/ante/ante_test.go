@@ -496,7 +496,16 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 			antehandler(deliverCtx, ibcTx, false)
 			//_, err = decorator.AnteHandle(deliverCtx, ibcTx, false, next)
 			suite.Require().NoError(err, "antedecorator should not error on DeliverTx")
-
+			ibcTx, err = helpers2.GenTx(
+				suite.chainB.TxConfig(),
+				msgs,
+				sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultIbcWei, sdk.NewIntFromBigInt(big.NewInt(0)))},
+				helpers.DefaultGenTxGas,
+				suite.chainB.ChainID(),
+				[]uint64{suite.chainB.SenderAccount().GetAccountNumber()},
+				[]uint64{suite.chainB.SenderAccount().GetSequence() + uint64(1)},
+				suite.chainB.SenderAccountPV(),
+			)
 			//_, err = decorator.AnteHandle(checkCtx, ibcTx, false, next)
 			_, err = antehandler(checkCtx, ibcTx, false)
 			if tc.expPass {
