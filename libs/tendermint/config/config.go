@@ -708,7 +708,7 @@ func DefaultMempoolConfig() *MempoolConfig {
 		PendingPoolReserveBlocks:   100,
 		PendingPoolMaxTxPerAddress: 100,
 		NodeKeyWhitelist:           []string{},
-		TxReceiverPort:             "",
+		TxReceiverPort:             "26655",
 		TxReceiverExternalPort:     0,
 	}
 }

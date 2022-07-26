@@ -182,6 +182,7 @@ func (memR *Reactor) OnStart() error {
 		if err != nil {
 			memR.Logger.Error("Failed to start tx receiver:Listen", "err", err)
 		} else {
+			memR.Logger.Error("Success to start tx receiver:Listen", "port", port)
 			s = grpc.NewServer()
 			pb.RegisterMempoolTxReceiverServer(s, memR.receiver)
 			memR.receiver.Port = lis.Addr().(*net.TCPAddr).Port
@@ -373,6 +374,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 	}
 
 	peerID := memR.ids.GetForPeer(peer)
+	var printed bool
 	var next *clist.CElement
 	for {
 		// In case of both next.NextWaitChan() and peer.Quit() are variable at the same time
@@ -424,6 +426,11 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 					goto SUCCESS
 				} else {
 					memR.Logger.Error("Error sending tx with receiver", "err", err)
+				}
+			} else {
+				if !printed {
+					memR.Logger.Error("No receiver client for peer", "peer", peerID)
+					printed = true
 				}
 			}
 
