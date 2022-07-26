@@ -66,16 +66,17 @@ func NewCLIContextWithInputAndFrom(input io.Reader, from string) CLIContext {
 		os.Exit(1)
 	}
 
-	if !genOnly {
-		nodeURI = viper.GetString(flags.FlagNode)
-		if nodeURI != "" {
-			rpc, err = rpchttp.New(nodeURI, "/websocket")
-			if err != nil {
-				fmt.Printf("failted to get client: %v\n", err)
-				os.Exit(1)
-			}
+	//if !genOnly {
+	//ibc tx generate only need to use query
+	nodeURI = viper.GetString(flags.FlagNode)
+	if nodeURI != "" {
+		rpc, err = rpchttp.New(nodeURI, "/websocket")
+		if err != nil {
+			fmt.Printf("failted to get client: %v\n", err)
+			os.Exit(1)
 		}
 	}
+	//}
 
 	ctx := CLIContext{
 		Client:        rpc,
