@@ -41,6 +41,14 @@ type Store struct {
 	upgradeVersion int64
 }
 
+func (st *Store) CurrentVersion() int64 {
+	tr := st.tree.(*iavl.MutableTree)
+	return tr.Version()
+}
+func (st *Store) StopStoreWithVersion(version int64) {
+	tr := st.tree.(*iavl.MutableTree)
+	tr.StopTree()
+}
 func (st *Store) StopStore() {
 	tr := st.tree.(*iavl.MutableTree)
 	tr.StopTree()
