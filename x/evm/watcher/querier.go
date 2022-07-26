@@ -8,13 +8,15 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/gogo/protobuf/proto"
+	prototypes "github.com/okex/exchain/x/evm/watcher/proto"
+
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	lru "github.com/hashicorp/golang-lru"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
 	"github.com/okex/exchain/app/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
@@ -71,7 +73,7 @@ func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, e
 	if !q.enabled() {
 		return nil, errDisable
 	}
-	var receipt TransactionReceipt
+	var protoReceipt prototypes.TransactionReceipt
 	b, e := q.store.Get(append(prefixReceipt, hash.Bytes()...))
 	if e != nil {
 		return nil, e
@@ -79,14 +81,12 @@ func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, e
 	if b == nil {
 		return nil, errNotFound
 	}
-	e = json.Unmarshal(b, &receipt)
+	e = proto.Unmarshal(b, &protoReceipt)
 	if e != nil {
 		return nil, e
 	}
-	if receipt.Logs == nil {
-		receipt.Logs = []*ethtypes.Log{}
-	}
-	return &receipt, nil
+	receipt := protoToReceipt(&protoReceipt)
+	return receipt, nil
 }
 
 func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
@@ -242,7 +242,7 @@ func (q Querier) GetTransactionByHash(hash common.Hash) (*Transaction, error) {
 	if !q.enabled() {
 		return nil, errDisable
 	}
-	var tx Transaction
+	var protoTx prototypes.Transaction
 	var txHashKey []byte
 	var err error
 	if txHashKey, err = getHashPrefixKey(prefixTx, hash.Bytes()); err != nil {
@@ -255,7 +255,7 @@ func (q Querier) GetTransactionByHash(hash common.Hash) (*Transaction, error) {
 		if value == nil {
 			return nil, errNotFound
 		}
-		e := json.Unmarshal(value, &tx)
+		e := proto.Unmarshal(value, &protoTx)
 		if e != nil {
 			return nil, e
 		}
@@ -264,7 +264,8 @@ func (q Querier) GetTransactionByHash(hash common.Hash) (*Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &tx, nil
+	tx := protoToTransaction(&protoTx)
+	return tx, nil
 }
 
 func (q Querier) GetTransactionByBlockNumberAndIndex(number uint64, idx uint) (*Transaction, error) {

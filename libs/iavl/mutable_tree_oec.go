@@ -213,8 +213,7 @@ func (tree *MutableTree) loadVersionToCommittedHeightMap() {
 		tree.log(IavlInfo, "", "Tree", tree.GetModuleName(), "committed height queue", versionSlice)
 	}
 }
-
-func (tree *MutableTree) StopTree() {
+func (tree *MutableTree) StopTreeWithVersion(version int64) {
 	tree.log(IavlInfo, "stopping iavl", "commit height", tree.version)
 	defer tree.log(IavlInfo, "stopping iavl completed", "commit height", tree.version)
 
@@ -224,15 +223,15 @@ func (tree *MutableTree) StopTree() {
 
 	batch := tree.NewBatch()
 	if tree.root == nil {
-		if err := tree.ndb.SaveEmptyRoot(batch, tree.version); err != nil {
+		if err := tree.ndb.SaveEmptyRoot(batch, version); err != nil {
 			panic(err)
 		}
 	} else {
-		if err := tree.ndb.SaveRoot(batch, tree.root, tree.version); err != nil {
+		if err := tree.ndb.SaveRoot(batch, tree.root, version); err != nil {
 			panic(err)
 		}
 	}
-	tpp := tree.ndb.asyncPersistTppStart(tree.version)
+	tpp := tree.ndb.asyncPersistTppStart(version)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
@@ -240,6 +239,9 @@ func (tree *MutableTree) StopTree() {
 
 	tree.commitCh <- commitEvent{tree.version, versions, batch, tpp, &wg, 0}
 	wg.Wait()
+}
+func (tree *MutableTree) StopTree() {
+	tree.StopTreeWithVersion(tree.version)
 }
 
 func (tree *MutableTree) log(level int, msg string, kvs ...interface{}) {
