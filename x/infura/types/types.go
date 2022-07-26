@@ -57,11 +57,11 @@ func convertTransactionReceipts(trs []evm.TransactionReceipt) []*TransactionRece
 			log := TransactionLog{
 				Address:          l.Address.String(),
 				Data:             hexutil.Encode(l.Data),
-				TransactionHash:  t.TransactionHash,
+				TransactionHash:  receipt.TransactionHash,
 				TransactionIndex: receipt.TransactionIndex,
 				LogIndex:         uint64(l.Index),
 				BlockNumber:      receipt.BlockNumber,
-				BlockHash:        t.BlockHash,
+				BlockHash:        receipt.BlockHash,
 			}
 
 			// convert  LogTopic
