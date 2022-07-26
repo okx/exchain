@@ -47,6 +47,7 @@ func TestIbcTxDecoderSignMode(t *testing.T) {
 	marshaler := codec.NewProtoCodec(interfaceRegistry)
 	txConfig := ibc_tx.NewTxConfig(marshaler, ibc_tx.DefaultSignModes)
 
+	// multi mode should no error
 	require.Panics(t, func() {
 		helpers2.GenTx(
 			txConfig,
@@ -60,6 +61,19 @@ func TestIbcTxDecoderSignMode(t *testing.T) {
 			priv,
 		)
 	})
+	// single mode should no error
+	_, err := helpers2.GenTx(
+		txConfig,
+		msgs,
+		sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultIbcWei, sdk.NewIntFromBigInt(big.NewInt(0)))},
+		helpers.DefaultGenTxGas,
+		"exchain-101",
+		[]uint64{0}, //[]uint64{acc.GetAccountNumber()},
+		[]uint64{0}, //[]uint64{acc.GetSequence()},
+		1,
+		priv,
+	)
+	require.NoError(t, err)
 }
 
 // TestTxDecode decode ibc tx with unkown field
