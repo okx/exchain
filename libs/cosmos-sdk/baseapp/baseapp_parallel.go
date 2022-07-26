@@ -724,13 +724,15 @@ func (f *parallelTxManager) getTxResult(index int) sdk.CacheMultiStore {
 	preIndexInGroup, ok := f.preTxInGroup[index]
 	if ok && preIndexInGroup > f.currIndex {
 		// get parent tx ms
-		if f.txReps[preIndexInGroup] != nil && f.txReps[preIndexInGroup].paraMsg.AnteErr == nil {
-			if f.txReps[preIndexInGroup].ms == nil {
+		preResp := f.txReps[preIndexInGroup]
+
+		if preResp != nil && preResp.paraMsg.AnteErr == nil {
+			if preResp.ms == nil {
 				return nil
 			}
 
-			f.txReps[preIndexInGroup].ms.DisableCacheReadList()
-			ms = f.chainMultiStores.GetStoreWithParent(f.txReps[preIndexInGroup].ms)
+			preResp.ms.DisableCacheReadList()
+			ms = f.chainMultiStores.GetStoreWithParent(preResp.ms)
 		}
 	}
 
