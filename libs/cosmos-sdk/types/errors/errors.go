@@ -99,8 +99,7 @@ var (
 	ErrInvalidVersion = Register(RootCodespace, 27, "invalid version")
 
 	// ErrInvalidChainID defines an error when the chain-id is invalid.
-	ErrInvalidChainID   = Register(RootCodespace, 28, "invalid chain-id")
-	ErrInvalidSignBytes = Register(RootCodespace, 30, "invalid signBytes")
+	ErrInvalidChainID = Register(RootCodespace, 28, "invalid chain-id")
 )
 
 // Register returns an error instance that should be used as the base for
