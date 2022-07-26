@@ -60,7 +60,7 @@ func (iths IBCTransferHooks) AfterRecvTransfer(
 	var err error
 	if !isSource {
 		// the native coin come from other chain with ibc
-		if err = iths.Keeper.OnMintVouchers(ctx, sdk.NewCoins(token), receiver); err != types.ErrNoContractNotAuto {
+		if err = iths.Keeper.OnMintVouchers(ctx, sdk.NewCoins(token), receiver); err == types.ErrNoContractNotAuto {
 			err = nil
 		}
 	} else if token.Denom != sdk.DefaultBondDenom {
@@ -96,7 +96,7 @@ func (iths IBCTransferHooks) AfterRefundTransfer(
 	var err error
 	if !isSource {
 		// the native coin come from other chain with ibc
-		if err = iths.Keeper.OnMintVouchers(ctx, sdk.NewCoins(token), sender); err != types.ErrNoContractNotAuto {
+		if err = iths.Keeper.OnMintVouchers(ctx, sdk.NewCoins(token), sender); err == types.ErrNoContractNotAuto {
 			err = nil
 		}
 	} else if token.Denom != sdk.DefaultBondDenom {
