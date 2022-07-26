@@ -43,6 +43,7 @@ type Reactor struct {
 	ids              *mempoolIDs
 	nodeKey          *p2p.NodeKey
 	nodeKeyWhitelist map[string]struct{}
+	txCh             chan txJob
 	enableWtx        bool
 }
 
@@ -113,6 +114,11 @@ func newMempoolIDs() *mempoolIDs {
 	}
 }
 
+type txJob struct {
+	tx   types.Tx
+	info TxInfo
+}
+
 // NewReactor returns a new Reactor with the given config and mempool.
 func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 	memR := &Reactor{
@@ -121,6 +127,7 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 		ids:              newMempoolIDs(),
 		nodeKeyWhitelist: make(map[string]struct{}),
 		enableWtx:        cfg.DynamicConfig.GetEnableWtx(),
+		txCh:             make(chan txJob, 100000),
 	}
 	for _, nodeKey := range config.GetNodeKeyWhitelist() {
 		memR.nodeKeyWhitelist[nodeKey] = struct{}{}
@@ -147,6 +154,21 @@ func (memR *Reactor) OnStart() error {
 	if !memR.config.Broadcast {
 		memR.Logger.Info("Tx broadcasting is disabled")
 	}
+	go func() {
+		for {
+			select {
+			case txJob := <-memR.txCh:
+				tx := txJob.tx
+				txInfo := txJob.info
+				err := memR.mempool.CheckTx(tx, nil, txInfo)
+				if err != nil {
+					memR.logCheckTxError(tx, memR.mempool.height, err)
+				}
+			case <-memR.Quit():
+				return
+			}
+		}
+	}()
 	return nil
 }
 
@@ -267,9 +289,9 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		return
 	}
 
-	err = memR.mempool.CheckTx(tx, nil, txInfo)
-	if err != nil {
-		memR.logCheckTxError(tx, memR.mempool.height, err)
+	memR.txCh <- txJob{
+		tx:   tx,
+		info: txInfo,
 	}
 }
 
