@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"runtime"
 	"sort"
 	"sync"
@@ -623,10 +624,16 @@ func (tree *MutableTree) enableFastStorageAndCommitIfNotEnabled() (bool, error) 
 		batch := tree.NewBatch()
 		fastItr := NewFastIterator(nil, nil, true, tree.ndb)
 		defer fastItr.Close()
+		var deletedNodes uint64
+		const verboseGap = 100000
 		for ; fastItr.Valid(); fastItr.Next() {
 			if err := tree.ndb.DeleteFastNode(fastItr.Key(), batch); err != nil {
 				return false, err
 			}
+			if deletedNodes%verboseGap == 0 {
+				log.Printf("delete iavl fast nodes... finished %v\n", deletedNodes)
+			}
+			deletedNodes++
 		}
 
 		if err := tree.ndb.Commit(batch); err != nil {
@@ -671,7 +678,7 @@ func (tree *MutableTree) enableFastStorageAndCommit(batch dbm.Batch) error {
 			// Sample the current memory usage
 			runtime.ReadMemStats(&m)
 
-			if m.Alloc > 4*1024*1024*1024 {
+			if m.Alloc > 1*1024*1024*1024 {
 				// If we are using more than 4GB of memory, we should trigger garbage collection
 				// to free up some memory.
 				runtime.GC()
@@ -692,15 +699,16 @@ func (tree *MutableTree) enableFastStorageAndCommit(batch dbm.Batch) error {
 	itr := NewIterator(nil, nil, true, tree.ImmutableTree)
 	defer itr.Close()
 	var upgradedNodes uint64
-	const verboseGap = 50000
+	const verboseGap = 100000
 	for ; itr.Valid(); itr.Next() {
 		if err = tree.ndb.SaveFastNodeNoCache(NewFastNode(itr.Key(), itr.Value(), tree.version), batch); err != nil {
 			return err
 		}
-		upgradedNodes++
 		if upgradedNodes%verboseGap == 0 {
 			tree.log(IavlInfo, "Upgrading to fast IAVL...", "finished", upgradedNodes)
+			log.Printf("Upgrading to fast IAVL... finished %v\n", upgradedNodes)
 		}
+		upgradedNodes++
 	}
 
 	if err = itr.Error(); err != nil {
