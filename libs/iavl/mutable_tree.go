@@ -237,21 +237,21 @@ func (tree *MutableTree) Iterate(fn func(key []byte, value []byte) bool) (stoppe
 		return false
 	}
 
-	if tree.IsFastCacheEnabled() {
-		tree.mtx.RLock()
-		itr := NewUnsavedFastIterator(nil, nil, true, tree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
-		tree.mtx.RUnlock()
-
-		defer itr.Close()
-		for ; itr.Valid(); itr.Next() {
-			if fn(itr.Key(), itr.Value()) {
-				return true
-			}
-		}
-		return false
+	if !tree.IsFastCacheEnabled() {
+		return tree.ImmutableTree.Iterate(fn)
 	}
+	tree.mtx.RLock()
+	defer tree.mtx.RUnlock()
 
-	return tree.ImmutableTree.Iterate(fn)
+	itr := NewUnsavedFastIterator(nil, nil, true, tree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
+
+	defer itr.Close()
+	for ; itr.Valid(); itr.Next() {
+		if fn(itr.Key(), itr.Value()) {
+			return true
+		}
+	}
+	return false
 }
 
 // Iterator returns an iterator over the mutable tree.
@@ -581,8 +581,6 @@ func (tree *MutableTree) LoadVersionForOverwriting(targetVersion int64) (int64, 
 		return latestVersion, err
 	}
 
-	// if err = tree.ndb.Commit(batch); err != nil {
-	// TODO suggest this 'enableFastStorageAndCommitLocked' function split two, one is related to FastStorage; the other is put 'tree.ndb.commit' outside
 	if err = tree.enableFastStorageAndCommitLocked(batch); err != nil {
 		return latestVersion, err
 	}
@@ -1228,6 +1226,8 @@ func (tree *MutableTree) SetDelta(delta *TreeDelta) {
 			tree.commitOrphans = append(tree.commitOrphans, commitOrphan{Version: v.CommitValue, NodeHash: amino.StrToBytes(v.Key)})
 		}
 
+		tree.mtx.Lock()
+		defer tree.mtx.Unlock()
 		// fast node related
 		for _, v := range tree.savedNodes {
 			if v.isLeaf() {
