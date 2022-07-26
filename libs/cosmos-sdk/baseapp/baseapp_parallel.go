@@ -262,16 +262,8 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 						pm.workgroup.AddTask(nextTx)
 					}
 				}
+
 			}
-
-			pm.mu.Lock()
-			pm.currIndex = txIndex
-			pm.mu.Unlock()
-
-			if txIndex == pm.txSize-1 {
-				pm.workgroup.isReady = false
-			}
-
 			if txReps[txIndex].paraMsg.AnteErr != nil {
 				res.ms = nil
 			}
@@ -662,10 +654,9 @@ func (f *parallelTxManager) newIsConflict(e *executeResult) bool {
 }
 
 func (f *parallelTxManager) clear() {
-	f.mu.Lock()
-	defer f.mu.Unlock()
 	f.addBlockCacheToChainCache()
 	f.workgroup.Close()
+	f.workgroup.isReady = false
 	f.workgroup.indexInAll = 0
 
 	for key := range f.workgroup.markFailedStats {
@@ -764,6 +755,7 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 		return
 	}
 
+	f.mu.Lock()
 	res.ms.IteratorCache(true, func(key string, value []byte, isDirty bool, isdelete bool, storeKey sdk.StoreKey) bool {
 		f.cc.update(key, value, txIndex)
 		if isdelete {
@@ -774,8 +766,10 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 
 		return true
 	}, nil)
-
+	f.currIndex = txIndex
+	f.mu.Unlock()
 	f.cc.deleteFeeAccount()
+
 	if res.paraMsg.AnteErr != nil {
 		return
 	}
