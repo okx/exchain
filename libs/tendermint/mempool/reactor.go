@@ -237,7 +237,7 @@ func (memR *Reactor) GetChannels() []*p2p.ChannelDescriptor {
 // It starts a broadcast routine ensuring all txs are forwarded to the given peer.
 func (memR *Reactor) AddPeer(peer p2p.Peer) {
 	go memR.broadcastTxRoutine(peer)
-	memR.sendTxReceiverInfo(peer)
+	go memR.sendTxReceiverInfo(peer)
 }
 
 // RemovePeer implements Reactor.
@@ -495,9 +495,35 @@ func (memR *Reactor) sendTxReceiverInfo(peer p2p.Peer) {
 		memR.Logger.Error("sendTxReceiverInfo:marshal", "error", err)
 		return
 	}
-	ok := peer.Send(TxReceiverChannel, bz)
-	if !ok {
-		memR.Logger.Error("sendTxReceiverInfo:send not ok")
+
+	var retry = 0
+
+	for {
+		if !memR.IsRunning() || !peer.IsRunning() {
+			memR.Logger.Error("sendTxReceiverInfo:peer is not running", "peer", peer)
+			return
+		}
+		if retry == 7 {
+			memR.Logger.Error("sendTxReceiverInfo:try", "times", retry, "peer", peer)
+			return
+		}
+		// make sure the peer is up to date
+		_, ok := peer.Get(types.PeerStateKey).(PeerState)
+		if !ok {
+			// Peer does not have a state yet. We set it in the consensus reactor, but
+			// when we add peer in Switch, the order we call reactors#AddPeer is
+			// different every time due to us using a map. Sometimes other reactors
+			// will be initialized before the consensus reactor. We should wait a few
+			// milliseconds and retry.
+			time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
+			continue
+		}
+		ok = peer.Send(TxReceiverChannel, bz)
+		if !ok {
+			retry++
+			continue
+		}
+		return
 	}
 }
 
