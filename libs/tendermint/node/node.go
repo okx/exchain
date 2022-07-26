@@ -1120,7 +1120,8 @@ func makeNodeInfo(
 		Channels: []byte{
 			bcChannel,
 			cs.StateChannel, cs.DataChannel, cs.VoteChannel, cs.VoteSetBitsChannel, cs.ViewChangeChannel,
-			mempl.MempoolChannel, mempl.TxReceiverChannel,
+			mempl.MempoolChannel, mempl.MempoolChannel2, mempl.TxReceiverChannel,
+			mempl.MempoolChannel,
 			evidence.EvidenceChannel,
 		},
 		Moniker: config.Moniker,

@@ -28,7 +28,8 @@ import (
 )
 
 const (
-	MempoolChannel = byte(0x30)
+	MempoolChannel  = byte(0x30)
+	MempoolChannel2 = byte(0x31)
 
 	TxReceiverChannel = byte(0x39)
 
@@ -65,6 +66,7 @@ type Reactor struct {
 	isSentryNode      bool
 	sentryPartner     string
 	sentryPartnerPeer p2p.Peer
+	sentryPartnerLock sync.Mutex
 	responseChan      chan *TxIndicesMessage
 	txMap             *lru.Cache // txIndex -> tx
 
@@ -199,7 +201,7 @@ func (memR *Reactor) ReapTxs(maxBytes, maxGas int64) []types.Tx {
 	}
 
 	start := time.Now()
-	success := memR.sentryPartnerPeer.Send(MempoolChannel, msgBz)
+	success := memR.sentryPartnerPeer.Send(MempoolChannel2, msgBz)
 	if !success {
 		memR.Logger.Error("fetch txs from sentry node failed", "peer id", memR.sentryPartnerPeer.ID())
 		return nil
@@ -297,6 +299,10 @@ func (memR *Reactor) GetChannels() []*p2p.ChannelDescriptor {
 			Priority: 5,
 		},
 		{
+			ID:       MempoolChannel2,
+			Priority: 1e4,
+		},
+		{
 			ID:       TxReceiverChannel,
 			Priority: 5,
 		},
@@ -308,7 +314,9 @@ func (memR *Reactor) GetChannels() []*p2p.ChannelDescriptor {
 func (memR *Reactor) AddPeer(peer p2p.Peer) {
 	fmt.Println("debug add peer", peer.ID())
 	if string(peer.ID()) == memR.sentryPartner {
+		memR.sentryPartnerLock.Lock()
 		memR.sentryPartnerPeer = peer
+		memR.sentryPartnerLock.Unlock()
 	}
 	go memR.broadcastTxRoutine(peer)
 	memR.sendTxReceiverInfo(peer)
@@ -326,6 +334,11 @@ func (memR *Reactor) RemovePeer(peer p2p.Peer, reason interface{}) {
 		memR.receiverClientsMtx.Unlock()
 	}
 
+	if string(peer.ID()) == memR.sentryPartner {
+		memR.sentryPartnerLock.Lock()
+		memR.sentryPartnerPeer = nil
+		memR.sentryPartnerLock.Unlock()
+	}
 	memR.ids.Reclaim(peer)
 	// broadcast routine checks if peer is gone and returns
 }
@@ -411,7 +424,7 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	switch msg := msg.(type) {
 	case *FetchMessage:
 		indices := memR.mempool.ReapTxIndicesMaxBytesMaxGas(msg.MaxBytes, msg.MaxGas)
-		success := src.Send(MempoolChannel, memR.encodeMsg(&TxIndicesMessage{
+		success := src.Send(MempoolChannel2, memR.encodeMsg(&TxIndicesMessage{
 			Indices: indices,
 		}))
 		if !success {
@@ -566,6 +579,12 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 				msg = StxMessage{
 					Stx: sentryTxs,
 				}
+				msgBz := memR.encodeMsg(msg)
+				success := peer.Send(MempoolChannel2, msgBz)
+				if !success {
+					time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
+					continue
+				}
 
 			} else {
 				var txs []types.Tx
@@ -573,13 +592,12 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 				msg = TxsMessage{
 					Txs: txs,
 				}
-			}
-
-			msgBz := memR.encodeMsg(msg)
-			success := peer.Send(MempoolChannel, msgBz)
-			if !success {
-				time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
-				continue
+				msgBz := memR.encodeMsg(msg)
+				success := peer.Send(MempoolChannel, msgBz)
+				if !success {
+					time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
+					continue
+				}
 			}
 
 		} else {
