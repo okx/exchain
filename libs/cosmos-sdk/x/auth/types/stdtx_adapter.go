@@ -24,6 +24,7 @@ type IbcTx struct {
 	TxBodyHasUnknownNonCriticals bool
 	HasExtensionOpt              bool
 	Payer                        string
+	ValidateParams               func() error
 }
 
 type StdIBCSignDoc struct {
@@ -79,6 +80,10 @@ func (tx *IbcTx) GetSignBytes(ctx sdk.Context, index int, acc exported.Account) 
 
 func (tx *IbcTx) ValidateBasic() error {
 	err := tx.StdTx.ValidateBasic()
+	if err != nil {
+		return err
+	}
+	err = tx.ValidateParams()
 	if err != nil {
 		return err
 	}

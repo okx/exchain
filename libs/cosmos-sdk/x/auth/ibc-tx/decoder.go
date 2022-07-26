@@ -119,9 +119,22 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			txBodyHasUnknownNonCriticals,
 			hasExtensionOpt,
 			payer,
+			ValidateParams(ibcTx),
 		}
 
 		return &stx, nil
+	}
+}
+
+func ValidateParams(ibcTx *tx.Tx) func() error {
+	return func() error {
+		if ibcTx.AuthInfo == nil {
+			return sdkerrors.Wrap(sdkerrors.ErrTxDecode, "missing AuthInfo")
+		}
+		if ibcTx.AuthInfo.Fee == nil {
+			return sdkerrors.Wrap(sdkerrors.ErrTxDecode, "missing AuthInfo Fee")
+		}
+		return nil
 	}
 }
 
