@@ -7,7 +7,6 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 )
@@ -55,7 +54,7 @@ func (tx *IbcTx) GetSignBytes(ctx sdk.Context, index int, acc exported.Account) 
 		accNum = acc.GetAccountNumber()
 	}
 	if index > len(tx.SignMode) {
-		return nil
+		panic(fmt.Sprintf("GetSignBytes index %d is upper than tx.SignMode Length %d", index, len(tx.SignMode)))
 	}
 	switch tx.SignMode[index] {
 	case signing.SignMode_SIGN_MODE_DIRECT:
@@ -87,9 +86,7 @@ func (tx *IbcTx) ValidateBasic() error {
 	if err != nil {
 		return err
 	}
-	if tx.Payer != "" {
-		return sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "not support fee payer address")
-	}
+
 	return nil
 }
 
