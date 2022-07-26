@@ -24,7 +24,7 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	).Methods("GET")
 
 	r.HandleFunc(
-		"/slashing/parameters",
+		"/slashing/v1beta1/params",
 		queryParamsHandlerFn(cliCtx),
 	).Methods("GET")
 }
@@ -111,8 +111,10 @@ func queryParamsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-
+		var params types.Params
+		cliCtx.Codec.MustUnmarshalJSON(res, &params)
+		wrappedParams := types.NewWrappedParams(params)
 		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, res)
+		rest.PostProcessResponse(w, cliCtx, wrappedParams)
 	}
 }

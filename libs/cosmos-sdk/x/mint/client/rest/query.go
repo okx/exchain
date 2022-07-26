@@ -13,12 +13,12 @@ import (
 
 func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc(
-		"/minting/parameters",
+		"/mint/v1beta1/params",
 		queryParamsHandlerFn(cliCtx),
 	).Methods("GET")
 
 	r.HandleFunc(
-		"/minting/inflation",
+		"/mint/v1beta1/inflation",
 		queryInflationHandlerFn(cliCtx),
 	).Methods("GET")
 
@@ -42,9 +42,11 @@ func queryParamsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-
+		var params types.Params
+		cliCtx.Codec.MustUnmarshalJSON(res, &params)
+		wrappedParams := types.NewWrappedParams(params)
 		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, res)
+		rest.PostProcessResponse(w, cliCtx, wrappedParams)
 	}
 }
 

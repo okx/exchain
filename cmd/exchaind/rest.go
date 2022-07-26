@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 
@@ -9,6 +10,8 @@ import (
 	erc20client "github.com/okex/exchain/x/erc20/client"
 	erc20rest "github.com/okex/exchain/x/erc20/client/rest"
 	evmclient "github.com/okex/exchain/x/evm/client"
+
+	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/app/rpc"
 	"github.com/okex/exchain/app/types"
@@ -18,6 +21,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authrest "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/rest"
 	bankrest "github.com/okex/exchain/libs/cosmos-sdk/x/bank/client/rest"
+	mintreset "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client/rest"
 	supplyrest "github.com/okex/exchain/libs/cosmos-sdk/x/supply/client/rest"
 	ammswaprest "github.com/okex/exchain/x/ammswap/client/rest"
 	dexclient "github.com/okex/exchain/x/dex/client"
@@ -31,11 +35,11 @@ import (
 	govrest "github.com/okex/exchain/x/gov/client/rest"
 	orderrest "github.com/okex/exchain/x/order/client/rest"
 	paramsclient "github.com/okex/exchain/x/params/client"
+	slashingrest "github.com/okex/exchain/x/slashing/client/rest"
 	stakingrest "github.com/okex/exchain/x/staking/client/rest"
 	"github.com/okex/exchain/x/token"
 	tokensrest "github.com/okex/exchain/x/token/client/rest"
 	wasmrest "github.com/okex/exchain/x/wasm/client/rest"
-	"github.com/spf13/viper"
 )
 
 // registerRoutes registers the routes from the different modules for the LCD.
@@ -65,6 +69,7 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 	authrest.RegisterRoutes(rs.CliCtx, v1Router, auth.StoreKey)
 	bankrest.RegisterRoutes(rs.CliCtx, v1Router)
 	stakingrest.RegisterRoutes(rs.CliCtx, v1Router)
+	slashingrest.RegisterRoutes(rs.CliCtx, v1Router)
 	distrest.RegisterRoutes(rs.CliCtx, v1Router, dist.StoreKey)
 
 	orderrest.RegisterRoutes(rs.CliCtx, v1Router)
@@ -72,6 +77,7 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 	dexrest.RegisterRoutes(rs.CliCtx, v1Router)
 	ammswaprest.RegisterRoutes(rs.CliCtx, v1Router)
 	supplyrest.RegisterRoutes(rs.CliCtx, v1Router)
+	mintreset.RegisterRoutes(rs.CliCtx, v1Router)
 	farmrest.RegisterRoutes(rs.CliCtx, v1Router)
 	evmrest.RegisterRoutes(rs.CliCtx, v1Router)
 	erc20rest.RegisterRoutes(rs.CliCtx, v1Router)

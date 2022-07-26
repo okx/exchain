@@ -57,6 +57,18 @@ var (
 
 var _ params.ParamSet = (*Params)(nil)
 
+// WrappedParams is used to wrap the Params, thus making the rest API response compatible with cosmos-sdk
+type WrappedParams struct {
+	Params Params `json:"params" yaml:"params"`
+}
+
+// NewWrappedParams creates a new instance of WrappedParams
+func NewWrappedParams(params Params) WrappedParams {
+	return WrappedParams{
+		Params: params,
+	}
+}
+
 // Params defines the high level settings for staking
 type Params struct {
 	// time duration of unbonding

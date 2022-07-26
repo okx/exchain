@@ -58,7 +58,7 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 
 	// get the current staking parameter values
 	r.HandleFunc(
-		"/staking/parameters",
+		"/staking/v1beta1/params",
 		paramsHandlerFn(cliCtx),
 	).Methods("GET")
 
@@ -181,9 +181,11 @@ func paramsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
 			return
 		}
-
+		var params types.Params
+		cliCtx.Codec.MustUnmarshalJSON(res, &params)
+		wrappedParams := types.NewWrappedParams(params)
 		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, res)
+		rest.PostProcessResponse(w, cliCtx, wrappedParams)
 	}
 }
 

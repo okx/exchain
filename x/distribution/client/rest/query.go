@@ -30,7 +30,7 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router, queryRoute st
 
 	// Get the current distribution parameter values
 	r.HandleFunc(
-		"/distribution/parameters",
+		"/distribution/v1beta1/params",
 		paramsHandlerFn(cliCtx, queryRoute),
 	).Methods("GET")
 
@@ -80,8 +80,8 @@ func paramsHandlerFn(cliCtx context.CLIContext, queryRoute string) http.HandlerF
 			comm.HandleErrorMsg(w, cliCtx, types.CodeInvalidRoute, err.Error())
 			return
 		}
-
-		rest.PostProcessResponse(w, cliCtx, params)
+		wrappedParams := types.NewWrappedParams(params)
+		rest.PostProcessResponse(w, cliCtx, wrappedParams)
 	}
 }
 

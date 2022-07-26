@@ -37,6 +37,18 @@ func ParamKeyTable() params.KeyTable {
 	return params.NewKeyTable().RegisterParamSet(&Params{})
 }
 
+// WrappedParams is used to wrap the Params, thus making the rest API response compatible with cosmos-sdk
+type WrappedParams struct {
+	Params Params `json:"params" yaml:"params"`
+}
+
+// NewWrappedParams creates a new instance of WrappedParams
+func NewWrappedParams(params Params) WrappedParams {
+	return WrappedParams{
+		Params: params,
+	}
+}
+
 // Params - used for initializing default parameter for slashing at genesis
 type Params struct {
 	SignedBlocksWindow      int64         `json:"signed_blocks_window" yaml:"signed_blocks_window"`

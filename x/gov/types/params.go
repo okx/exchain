@@ -40,6 +40,10 @@ func NewDepositParams(minDeposit sdk.SysCoins, maxDepositPeriod time.Duration) D
 	}
 }
 
+func DefaultDepositParams() DepositParams {
+	return NewDepositParams(sdk.NewDecCoins(sdk.NewDecCoin("okt", sdk.NewInt(0))), 0)
+}
+
 func (dp DepositParams) String() string {
 	return fmt.Sprintf(`Deposit Params:
   Min Deposit:        %s
@@ -82,6 +86,10 @@ func NewTallyParams(quorum, threshold, veto sdk.Dec) TallyParams {
 		Threshold: threshold,
 		Veto:      veto,
 	}
+}
+
+func DefaultTallyParams() TallyParams {
+	return NewTallyParams(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec())
 }
 
 func (tp TallyParams) String() string {
@@ -130,6 +138,10 @@ func NewVotingParams(votingPeriod time.Duration) VotingParams {
 	return VotingParams{
 		VotingPeriod: votingPeriod,
 	}
+}
+
+func DefaultVotingParams() VotingParams {
+	return NewVotingParams(0)
 }
 
 func (vp VotingParams) String() string {

@@ -17,6 +17,8 @@ func NewQuerier(k Keeper) sdk.Querier {
 			return queryParams(ctx, k)
 		case types.QueryTreasures:
 			return queryTreasures(ctx, k)
+		case types.QueryInflation:
+			return queryInflation(ctx, k)
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unknown query path: %s", path[0])
 		}
@@ -44,9 +46,9 @@ func queryParams(ctx sdk.Context, k Keeper) ([]byte, error) {
 }
 
 func queryInflation(ctx sdk.Context, k Keeper) ([]byte, error) {
-	minter := k.GetMinter(ctx)
-
-	res, err := codec.MarshalJSONIndent(k.cdc, minter.Inflation)
+	//minter := k.GetMinter(ctx)
+	inflation := sdk.ZeroDec()
+	res, err := codec.MarshalJSONIndent(k.cdc, inflation)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}
