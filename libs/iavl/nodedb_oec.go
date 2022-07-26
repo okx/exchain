@@ -132,6 +132,15 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *FastN
 
 	ndb.tpp.pushToTpp(version, tpp)
 
+	tempFastNodePreCommitAdditions := make(map[string]*FastNode, len(ndb.fastNodePreCommitAdditions))
+	tempFastNodePreCommitRemovals := make(map[string]interface{}, len(ndb.fastNodePreCommitRemovals))
+	for k, v := range ndb.fastNodePreCommitAdditions {
+		tempFastNodePreCommitAdditions[k] = v
+	}
+	for k, v := range ndb.fastNodePreCommitRemovals {
+		tempFastNodePreCommitRemovals[k] = v
+	}
+
 	ndb.mtx.Unlock()
 
 	for _, node := range tpp {
@@ -140,12 +149,8 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *FastN
 		}
 		node.persisted = true
 	}
-	tempFastNodePreCommitAddtions := ndb.fastNodePreCommitAddtions
-	tempFastNodePreCommitRemovals := ndb.fastNodePreCommitRemovals
-	ndb.fastNodePreCommitAddtions = make(map[string]*FastNode, len(tempFastNodePreCommitAddtions))
-	ndb.fastNodePreCommitRemovals = make(map[string]interface{}, len(tempFastNodePreCommitRemovals))
 
-	return tpp, NewFastNodeChanges(tempFastNodePreCommitAddtions, tempFastNodePreCommitRemovals, ndb.latestVersion)
+	return tpp, NewFastNodeChanges(tempFastNodePreCommitAdditions, tempFastNodePreCommitRemovals, version)
 }
 
 func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer) {
@@ -161,6 +166,48 @@ func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer)
 		"IavlHeight", iavlHeight,
 		"NodeNum", nodeNum,
 		"trc", trc.Format())
+}
+
+func (ndb *nodeDB) asyncPersistFastNodeFinished(event *commitEvent) {
+	if event.fastNodeChanges == nil {
+		return
+	}
+
+	savedAdditions := event.fastNodeChanges.additions
+	savedRemovals := event.fastNodeChanges.removals
+
+	curAdditions := ndb.fastNodePreCommitAdditions
+
+	newOnes := make(map[string]struct{})
+	delOnes := make(map[string]struct{})
+
+	for k, v := range curAdditions {
+		if vv, ok := savedAdditions[k]; !ok || vv.versionLastUpdatedAt != v.versionLastUpdatedAt {
+			newOnes[k] = struct{}{}
+		}
+	}
+
+	for k, v := range savedAdditions {
+		if vv, ok := curAdditions[k]; ok && vv.versionLastUpdatedAt == v.versionLastUpdatedAt {
+			continue
+		}
+		if _, ok := newOnes[k]; ok {
+			continue
+		}
+		delOnes[k] = struct{}{}
+	}
+
+	for k, _ := range savedAdditions {
+		if _, ok := newOnes[k]; !ok {
+			delete(ndb.fastNodePreCommitAdditions, k)
+		}
+	}
+
+	for k, _ := range savedRemovals {
+		if _, ok := delOnes[k]; !ok {
+			delete(ndb.fastNodePreCommitRemovals, k)
+		}
+	}
 }
 
 // SaveNode saves a node to disk.
