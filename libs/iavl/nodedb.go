@@ -87,9 +87,9 @@ type nodeDB struct {
 	state *RuntimeState
 	tpp   *tempPrePersistNodes
 
-	fastNodeCache             *FastNodeCache
-	fastNodePreCommitAddtions map[string]*FastNode
-	fastNodePreCommitRemovals map[string]interface{}
+	fastNodeCache              *FastNodeCache
+	fastNodePreCommitAdditions map[string]*FastNode
+	fastNodePreCommitRemovals  map[string]interface{}
 	latestVersion4FastNode    int64
 }
 
@@ -106,17 +106,17 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 	}
 
 	ndb := &nodeDB{
-		db:                        db,
-		opts:                      *opts,
-		versionReaders:            make(map[int64]uint32, 8),
-		prePersistNodeCache:       make(map[string]*Node),
-		name:                      ParseDBName(db),
-		preWriteNodeCache:         cmap.New(),
-		state:                     newRuntimeState(),
-		tpp:                       newTempPrePersistNodes(),
-		storageVersion:            string(storeVersion),
-		fastNodePreCommitAddtions: make(map[string]*FastNode),
-		fastNodePreCommitRemovals: make(map[string]interface{}),
+		db:                         db,
+		opts:                       *opts,
+		versionReaders:             make(map[int64]uint32, 8),
+		prePersistNodeCache:        make(map[string]*Node),
+		name:                       ParseDBName(db),
+		preWriteNodeCache:          cmap.New(),
+		state:                      newRuntimeState(),
+		tpp:                        newTempPrePersistNodes(),
+		storageVersion:             string(storeVersion),
+		fastNodePreCommitAdditions: make(map[string]*FastNode),
+		fastNodePreCommitRemovals:  make(map[string]interface{}),
 	}
 
 	ndb.fastNodeCache = newFastNodeCache(ndb.name, GetFastNodeCacheSize())
@@ -138,7 +138,7 @@ func (ndb *nodeDB) GetFastNode(key []byte) (*FastNode, error) {
 	}
 
 	// Check Addtions Removals
-	if node, ok := ndb.fastNodePreCommitAddtions[string(key)]; ok {
+	if node, ok := ndb.fastNodePreCommitAdditions[string(key)]; ok {
 		return node, nil
 	}
 	if _, ok := ndb.fastNodePreCommitRemovals[string(key)]; ok {

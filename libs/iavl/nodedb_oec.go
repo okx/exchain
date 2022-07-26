@@ -132,10 +132,10 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *FastN
 
 	ndb.tpp.pushToTpp(version, tpp)
 
-	tempFastNodePreCommitAddtions := make(map[string]*FastNode, len(ndb.fastNodePreCommitAddtions))
+	tempFastNodePreCommitAdditions := make(map[string]*FastNode, len(ndb.fastNodePreCommitAdditions))
 	tempFastNodePreCommitRemovals := make(map[string]interface{}, len(ndb.fastNodePreCommitRemovals))
-	for k, v := range ndb.fastNodePreCommitAddtions {
-		tempFastNodePreCommitAddtions[k] = v
+	for k, v := range ndb.fastNodePreCommitAdditions {
+		tempFastNodePreCommitAdditions[k] = v
 	}
 	for k, v := range ndb.fastNodePreCommitRemovals {
 		tempFastNodePreCommitRemovals[k] = v
@@ -150,7 +150,7 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *FastN
 		node.persisted = true
 	}
 
-	return tpp, NewFastNodeChanges(tempFastNodePreCommitAddtions, tempFastNodePreCommitRemovals, version)
+	return tpp, NewFastNodeChanges(tempFastNodePreCommitAdditions, tempFastNodePreCommitRemovals, version)
 }
 
 func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer) {
@@ -176,7 +176,7 @@ func (ndb *nodeDB) asyncPersistFastNodeFinished(event *commitEvent) {
 	savedAdditions := event.fastNodeChanges.additions
 	savedRemovals := event.fastNodeChanges.removals
 
-	curAdditions := ndb.fastNodePreCommitAddtions
+	curAdditions := ndb.fastNodePreCommitAdditions
 
 	newOnes := make(map[string]struct{})
 	delOnes := make(map[string]struct{})
@@ -199,7 +199,7 @@ func (ndb *nodeDB) asyncPersistFastNodeFinished(event *commitEvent) {
 
 	for k, _ := range savedAdditions {
 		if _, ok := newOnes[k]; !ok {
-			delete(ndb.fastNodePreCommitAddtions, k)
+			delete(ndb.fastNodePreCommitAdditions, k)
 		}
 	}
 
