@@ -11,6 +11,8 @@ import (
 	"gorm.io/gorm/logger"
 )
 
+const batchSize = 1000
+
 func newStreamEngine(cfg *types.Config, logger log.Logger) (types.IStreamEngine, error) {
 	if cfg.MysqlUrl == "" {
 		return nil, errors.New("infura.mysql-url is empty")
@@ -47,8 +49,12 @@ func (e *MySQLEngine) Write(streamData types.IStreamData) bool {
 	data := streamData.ConvertEngineData()
 	trx := e.db.Begin()
 	// write TransactionReceipts
-	for _, receipt := range data.TransactionReceipts {
-		ret := trx.Create(receipt)
+	for i := 0; i < len(data.TransactionReceipts); i += batchSize {
+		end := i + batchSize
+		if end > len(data.TransactionReceipts) {
+			end = len(data.TransactionReceipts)
+		}
+		ret := trx.CreateInBatches(data.TransactionReceipts[i:end], len(data.TransactionReceipts[i:end]))
 		if ret.Error != nil {
 			return e.rollbackWithError(trx, ret.Error)
 		}
@@ -61,8 +67,12 @@ func (e *MySQLEngine) Write(streamData types.IStreamData) bool {
 	}
 
 	// write Transactions
-	for _, transaction := range data.Block.Transactions {
-		ret := trx.Create(transaction)
+	for i := 0; i < len(data.Block.Transactions); i += batchSize {
+		end := i + batchSize
+		if end > len(data.Block.Transactions) {
+			end = len(data.Block.Transactions)
+		}
+		ret := trx.CreateInBatches(data.Block.Transactions[i:end], len(data.Block.Transactions[i:end]))
 		if ret.Error != nil {
 			return e.rollbackWithError(trx, ret.Error)
 		}

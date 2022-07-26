@@ -138,7 +138,7 @@ type TransactionReceipt struct {
 	gorm.Model
 	Status            uint64 `gorm:"type:tinyint(4)"`
 	CumulativeGasUsed uint64 `gorm:"type:int(11)"`
-	TransactionHash   string `gorm:"type:varchar(66);index:unique_hash,unique;not null"`
+	TransactionHash   string `gorm:"type:varchar(66);index;not null"`
 	ContractAddress   string `gorm:"type:varchar(42)"`
 	GasUsed           uint64 `gorm:"type:int(11)"`
 	BlockHash         string `gorm:"type:varchar(66)"`
