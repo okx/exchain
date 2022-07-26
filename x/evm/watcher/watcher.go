@@ -23,18 +23,19 @@ import (
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type Watcher struct {
-	store         *WatchStore
-	height        uint64
-	blockHash     common.Hash
-	header        types.Header
-	batch         []WatchMessage
-	cumulativeGas map[uint64]uint64
-	gasUsed       uint64
-	blockTxs      []common.Hash
-	enable        bool
-	firstUse      bool
-	delayEraseKey [][]byte
-	log           log.Logger
+	store          *WatchStore
+	height         uint64
+	blockHash      common.Hash
+	header         types.Header
+	batch          []WatchMessage
+	cumulativeGas  map[uint64]uint64
+	gasUsed        uint64
+	blockTxs       []common.Hash
+	enable         bool
+	firstUse       bool
+	delayEraseKey  [][]byte
+	eraseKeyFilter map[string][]byte
+	log            log.Logger
 	// for state delta transfering in network
 	watchData    *WatchData
 	jobChan      chan func()
@@ -67,14 +68,16 @@ func GetWatchLruSize() int {
 
 func NewWatcher(logger log.Logger) *Watcher {
 	return &Watcher{store: InstanceOfWatchStore(),
-		cumulativeGas: make(map[uint64]uint64),
-		enable:        IsWatcherEnabled(),
-		firstUse:      true,
-		delayEraseKey: make([][]byte, 0),
-		watchData:     &WatchData{},
-		log:           logger,
-		checkWd:       viper.GetBool(FlagCheckWd),
-		filterMap:     make(map[string]WatchMessage)}
+		cumulativeGas:  make(map[uint64]uint64),
+		enable:         IsWatcherEnabled(),
+		firstUse:       true,
+		delayEraseKey:  make([][]byte, 0),
+		watchData:      &WatchData{},
+		log:            logger,
+		checkWd:        viper.GetBool(FlagCheckWd),
+		filterMap:      make(map[string]WatchMessage),
+		eraseKeyFilter: make(map[string][]byte),
+	}
 }
 
 func (w *Watcher) IsFirstUse() bool {
@@ -183,14 +186,20 @@ func (w *Watcher) DelayEraseKey() {
 }
 
 func (w *Watcher) ExecuteDelayEraseKey(delayEraseKey [][]byte) {
-	if !w.Enabled() {
-		return
-	}
-	if len(delayEraseKey) <= 0 {
+	if !w.Enabled() || len(delayEraseKey) <= 0 {
 		return
 	}
 	for _, k := range delayEraseKey {
-		w.store.Delete(k)
+		w.eraseKeyFilter[bytes2Key(k)] = k
+	}
+	batch := w.store.db.NewBatch()
+	defer batch.Close()
+	for _, k := range w.eraseKeyFilter {
+		batch.Delete(k)
+	}
+	batch.Write()
+	for k := range w.eraseKeyFilter {
+		delete(w.eraseKeyFilter, k)
 	}
 }
 
@@ -335,14 +344,16 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 		w.filterMap[bytes2Key(b.GetKey())] = b
 	}
 
+	dbBatch := w.store.db.NewBatch()
+	defer dbBatch.Close()
 	for _, b := range w.filterMap {
 		key := b.GetKey()
 		value := []byte(b.GetValue())
 		typeValue := b.GetType()
 		if typeValue == TypeDelete {
-			w.store.Delete(key)
+			dbBatch.Delete(key)
 		} else {
-			w.store.Set(key, value)
+			dbBatch.Set(key, value)
 			//need update params
 			if typeValue == TypeEvmParams {
 				msgParams := b.(*MsgParams)
@@ -353,11 +364,11 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 			}
 		}
 	}
+	dbBatch.Write()
 
 	for k := range w.filterMap {
 		delete(w.filterMap, k)
 	}
-
 	if w.checkWd {
 		keys := make([][]byte, len(batch))
 		for i, _ := range batch {
@@ -368,16 +379,19 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 }
 
 func (w *Watcher) commitCenterBatch(batch []*Batch) {
+	dbBatch := w.store.db.NewBatch()
+	defer dbBatch.Close()
 	for _, b := range batch {
 		if b.TypeValue == TypeDelete {
-			w.store.Delete(b.Key)
+			dbBatch.Delete(b.Key)
 		} else {
-			w.store.Set(b.Key, b.Value)
+			dbBatch.Set(b.Key, b.Value)
 			if b.TypeValue == TypeState {
 				state.SetStateToLru(common.BytesToHash(b.Key), b.Value)
 			}
 		}
 	}
+	dbBatch.Write()
 }
 
 func (w *Watcher) delDirtyList(list [][]byte) {
@@ -388,9 +402,12 @@ func (w *Watcher) delDirtyList(list [][]byte) {
 
 func (w *Watcher) commitBloomData(bloomData []*evmtypes.KV) {
 	db := evmtypes.GetIndexer().GetDB()
+	batch := db.NewBatch()
+	defer batch.Close()
 	for _, bd := range bloomData {
-		db.Set(bd.Key, bd.Value)
+		batch.Set(bd.Key, bd.Value)
 	}
+	batch.Write()
 }
 
 func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
