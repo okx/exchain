@@ -68,7 +68,7 @@ func (iths IBCTransferHooks) AfterRecvTransfer(
 		err = iths.Keeper.OnUnescrowNatives(ctx, sdk.NewCoins(token), receiver)
 	}
 
-	if watcher.IsWatcherEnabled() && (err == nil || err == types.ErrNoContractNotAuto) {
+	if watcher.IsWatcherEnabled() && err == nil {
 		ctx.GetWatcher().Finalize()
 	}
 	return err
