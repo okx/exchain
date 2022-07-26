@@ -42,11 +42,10 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 
 		var body tx.TxBody
 		// allow non-critical unknown fields in TxBody
-		// txBodyHasUnknownNonCriticals, err := unknownproto.RejectUnknownFields(raw.BodyBytes, &body, true, cdc.InterfaceRegistry())
-		// if err != nil {
-		// 	//Ywmet todo couldnot decode
-		// 	//return authtypes.StdTx{}, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
-		// }
+		txBodyHasUnknownNonCriticals, err := unknownproto.RejectUnknownFields(raw.BodyBytes, &body, true, cdc.InterfaceRegistry())
+		if err != nil {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+		}
 
 		err = cdc.UnmarshalBinaryBare(raw.BodyBytes, &body)
 		if err != nil {
@@ -71,7 +70,7 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			AuthInfo:   &authInfo,
 			Signatures: raw.Signatures,
 		}
-		fee, signFee, err := convertFee(authInfo)
+		fee, signFee, payer, err := convertFee(authInfo)
 		if err != nil {
 			return nil, err
 		}
@@ -99,6 +98,11 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 		for _, seq := range authInfo.SignerInfos {
 			sequences = append(sequences, seq.Sequence)
 		}
+		hasExtensionOpt := false
+		if len(body.ExtensionOptions) != 0 || len(body.NonCriticalExtensionOptions) != 0 {
+			hasExtensionOpt = true
+		}
+
 		stx := authtypes.IbcTx{
 			&authtypes.StdTx{
 				Msgs:       stdMsgs,
@@ -112,6 +116,9 @@ func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibctx.IbcTxDecoder {
 			signFee,
 			signMsgs,
 			sequences,
+			txBodyHasUnknownNonCriticals,
+			hasExtensionOpt,
+			payer,
 		}
 
 		return &stx, nil
@@ -153,7 +160,7 @@ func convertSignature(ibcTx *tx.Tx) []authtypes.StdSignature {
 			var ok bool
 			pkData, ok = ibcTx.AuthInfo.SignerInfos[i].PublicKey.GetCachedValue().(types.PubKey)
 			if !ok {
-				return nil
+				return []authtypes.StdSignature{}
 			}
 		}
 		pubKey, err := adapter.ProtoBufPubkey2LagacyPubkey(pkData)
@@ -171,29 +178,31 @@ func convertSignature(ibcTx *tx.Tx) []authtypes.StdSignature {
 	return signatures
 }
 
-func convertFee(authInfo tx.AuthInfo) (authtypes.StdFee, authtypes.IbcFee, error) {
+func convertFee(authInfo tx.AuthInfo) (authtypes.StdFee, authtypes.IbcFee, string, error) {
 
 	gaslimit := uint64(0)
 	var decCoins sdk.DecCoins
 	var err error
+	payer := ""
 	// for verify signature
 	var signFee authtypes.IbcFee
 	if authInfo.Fee != nil {
 		decCoins, err = feeDenomFilter(authInfo.Fee.Amount)
 		if err != nil {
-			return authtypes.StdFee{}, authtypes.IbcFee{}, err
+			return authtypes.StdFee{}, authtypes.IbcFee{}, payer, err
 		}
 		gaslimit = authInfo.Fee.GasLimit
 		signFee = authtypes.IbcFee{
 			authInfo.Fee.Amount,
 			authInfo.Fee.GasLimit,
 		}
+		payer = authInfo.Fee.Payer
 	}
 
 	return authtypes.StdFee{
 		Amount: decCoins,
 		Gas:    gaslimit,
-	}, signFee, nil
+	}, signFee, payer, nil
 }
 
 func feeDenomFilter(coins sdk.CoinAdapters) (sdk.DecCoins, error) {

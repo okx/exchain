@@ -7,6 +7,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 )
@@ -14,12 +15,15 @@ import (
 type IbcTx struct {
 	*StdTx
 
-	AuthInfoBytes []byte
-	BodyBytes     []byte
-	SignMode      []signing.SignMode
-	SigFee        IbcFee
-	SigMsgs       []sdk.Msg
-	Sequences     []uint64
+	AuthInfoBytes                []byte
+	BodyBytes                    []byte
+	SignMode                     []signing.SignMode
+	SigFee                       IbcFee
+	SigMsgs                      []sdk.Msg
+	Sequences                    []uint64
+	TxBodyHasUnknownNonCriticals bool
+	HasExtensionOpt              bool
+	Payer                        string
 }
 
 type StdIBCSignDoc struct {
@@ -37,6 +41,11 @@ type IbcFee struct {
 	Gas    uint64           `json:"gas" yaml:"gas"`
 }
 
+const (
+	aminoNonCriticalFieldsError = "protobuf transaction contains unknown non-critical fields. This is a transaction malleability issue and SIGN_MODE_LEGACY_AMINO_JSON cannot be used."
+	aminoExtentionError         = "SIGN_MODE_LEGACY_AMINO_JSON does not support protobuf extension options."
+)
+
 func (tx *IbcTx) GetSignBytes(ctx sdk.Context, index int, acc exported.Account) []byte {
 	genesis := ctx.BlockHeight() == 0
 	chainID := ctx.ChainID()
@@ -53,6 +62,12 @@ func (tx *IbcTx) GetSignBytes(ctx sdk.Context, index int, acc exported.Account) 
 			chainID, accNum, acc.GetSequence(), tx.Fee, tx.Msgs, tx.Memo, tx.AuthInfoBytes, tx.BodyBytes,
 		)
 	case signing.SignMode_SIGN_MODE_LEGACY_AMINO_JSON:
+		if tx.TxBodyHasUnknownNonCriticals {
+			panic(aminoNonCriticalFieldsError)
+		}
+		if tx.HasExtensionOpt {
+			panic(aminoExtentionError)
+		}
 		return IbcAminoSignBytes(
 			chainID, accNum, acc.GetSequence(), tx.SigFee, tx.SigMsgs, tx.Memo, 0,
 		)
@@ -60,6 +75,17 @@ func (tx *IbcTx) GetSignBytes(ctx sdk.Context, index int, acc exported.Account) 
 		//does not support SignMode_SIGN_MODE_UNSPECIFIED SignMode_SIGN_MODE_TEXTUAL
 		panic("ibctx not support SignMode_SIGN_MODE_UNSPECIFIED or SignMode_SIGN_MODE_TEXTUAL")
 	}
+}
+
+func (tx *IbcTx) ValidateBasic() error {
+	err := tx.StdTx.ValidateBasic()
+	if err != nil {
+		return err
+	}
+	if tx.Payer != "" {
+		return sdkerrors.Wrapf(sdkerrors.ErrInvalidRequest, "not support fee payer address")
+	}
+	return nil
 }
 
 func (tx *IbcTx) VerifySequence(index int, acc exported.Account) error {
