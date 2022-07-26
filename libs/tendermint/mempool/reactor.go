@@ -243,11 +243,15 @@ func (memR *Reactor) AddPeer(peer p2p.Peer) {
 // RemovePeer implements Reactor.
 func (memR *Reactor) RemovePeer(peer p2p.Peer, reason interface{}) {
 	peerID := memR.ids.GetForPeer(peer)
+	memR.Logger.Info("Removing peer from mempool", "peer", peer, "peerID", peerID)
 	memR.receiverClientsMtx.Lock()
 	if c, ok := memR.receiverClients[peerID]; ok {
 		delete(memR.receiverClients, peerID)
 		memR.receiverClientsMtx.Unlock()
-		_ = c.Conn.Close()
+		memR.Logger.Info("Removing peer from tx receiver", "peer", peer, "peerID", peerID)
+		if err := c.Conn.Close(); err != nil {
+			memR.Logger.Error("Failed to close tx receiver connection", "peer", peer, "peerID", peerID, "err", err)
+		}
 	} else {
 		memR.receiverClientsMtx.Unlock()
 	}
@@ -523,6 +527,7 @@ func (memR *Reactor) sendTxReceiverInfo(peer p2p.Peer) {
 			retry++
 			continue
 		}
+		memR.Logger.Info("sendTxReceiverInfo:success", "peer", peer, "data", info)
 		return
 	}
 }
@@ -545,6 +550,7 @@ func (memR *Reactor) receiveTxReceiverInfo(src p2p.Peer, bz []byte) {
 		memR.receiverClientsMtx.Lock()
 		memR.receiverClients[memR.ids.GetForPeer(src)] = txReceiverClient{client, conn, uint16(info.YourId)}
 		memR.receiverClientsMtx.Unlock()
+		memR.Logger.Info("receiveTxReceiverInfo:success", "peer", src, "data", info)
 	}
 }
 
