@@ -185,6 +185,7 @@ func (memR *Reactor) OnStart() error {
 			s = grpc.NewServer()
 			pb.RegisterMempoolTxReceiverServer(s, memR.receiver)
 			memR.receiver.Port = lis.Addr().(*net.TCPAddr).Port
+			memR.Logger.Info("Tx receiver listening on port", "port", memR.receiver.Port)
 			atomic.StoreInt64(&memR.receiver.Started, 1)
 			go func() {
 				if err = s.Serve(lis); err != nil {
@@ -246,9 +247,11 @@ func (memR *Reactor) RemovePeer(peer p2p.Peer, reason interface{}) {
 	memR.Logger.Info("Removing peer from mempool", "peer", peer, "peerID", peerID)
 	memR.receiverClientsMtx.Lock()
 	if c, ok := memR.receiverClients[peerID]; ok {
+		var recevierCount int
 		delete(memR.receiverClients, peerID)
+		recevierCount = len(memR.receiverClients)
 		memR.receiverClientsMtx.Unlock()
-		memR.Logger.Info("Removing peer from tx receiver", "peer", peer, "peerID", peerID)
+		memR.Logger.Info("Removing peer from tx receiver", "peer", peer, "peerID", peerID, "recevierCount", recevierCount)
 		if err := c.Conn.Close(); err != nil {
 			memR.Logger.Error("Failed to close tx receiver connection", "peer", peer, "peerID", peerID, "err", err)
 		}
@@ -547,10 +550,12 @@ func (memR *Reactor) receiveTxReceiverInfo(src p2p.Peer, bz []byte) {
 		return
 	} else {
 		client := pb.NewMempoolTxReceiverClient(conn)
+		var receiverCount int
 		memR.receiverClientsMtx.Lock()
 		memR.receiverClients[memR.ids.GetForPeer(src)] = txReceiverClient{client, conn, uint16(info.YourId)}
+		receiverCount = len(memR.receiverClients)
 		memR.receiverClientsMtx.Unlock()
-		memR.Logger.Info("receiveTxReceiverInfo:success", "peer", src, "data", info)
+		memR.Logger.Info("receiveTxReceiverInfo:success", "peer", src, "data", info, "receiverCount", receiverCount)
 	}
 }
 
