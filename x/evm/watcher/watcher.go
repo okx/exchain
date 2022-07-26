@@ -15,6 +15,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmstate "github.com/okex/exchain/libs/tendermint/state"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
@@ -31,6 +32,7 @@ type Watcher struct {
 	cumulativeGas  map[uint64]uint64
 	gasUsed        uint64
 	blockTxs       []common.Hash
+	blockStdTxs   []common.Hash
 	enable         bool
 	firstUse       bool
 	delayEraseKey  [][]byte
@@ -124,6 +126,7 @@ func (w *Watcher) clean() {
 	}
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
+	w.blockStdTxs = []common.Hash{}
 }
 
 func (w *Watcher) SaveTransactionReceipt(status uint32, msg *evmtypes.MsgEthereumTx, txHash common.Hash, txIndex uint64, data *evmtypes.ResultData, gasUsed uint64) {
@@ -221,6 +224,16 @@ func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
 		w.batch = append(w.batch, wInfo)
 	}
 	w.SaveLatestHeight(w.height)
+}
+
+func (w *Watcher) SaveBlockStdTxHash() {
+	if !w.Enabled() || (len(w.blockStdTxs) == 0) {
+		return
+	}
+	wMsg := NewMsgBlockStdTxHash(w.blockStdTxs, w.blockHash)
+	if wMsg != nil {
+		w.batch = append(w.batch, wMsg)
+	}
 }
 
 func (w *Watcher) SaveLatestHeight(height uint64) {
@@ -610,5 +623,12 @@ func (w *Watcher) Collect(watchers ...sdk.IWatcher) {
 	for _, watcher := range watchers {
 		batch := watcher.Destruct()
 		w.batch = append(w.batch, batch...)
+	}
+}
+
+func (w *Watcher) saveStdTxResponse(result *ctypes.ResultTx) {
+	wMsg := NewStdTransactionResponse(result, w.header.Time, common.BytesToHash(result.Hash))
+	if wMsg != nil {
+		w.batch = append(w.batch, wMsg)
 	}
 }
