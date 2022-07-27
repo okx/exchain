@@ -160,15 +160,6 @@ func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer)
 		"trc", trc.Format())
 }
 
-func (ndb *nodeDB) asyncPersistFastNodeFinished(event *commitEvent) {
-	if event.fncv == nil {
-		return
-	}
-	ndb.mtx.Lock()
-	defer ndb.mtx.Unlock()
-	ndb.tpf.reset()
-}
-
 // SaveNode saves a node to disk.
 func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
 	if node.hash == nil {

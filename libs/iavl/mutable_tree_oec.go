@@ -397,6 +397,5 @@ func (tree *MutableTree) persistTpp(event *commitEvent, trc *trace.Tracer) {
 		panic(err)
 	}
 
-	ndb.asyncPersistFastNodeFinished(event)
 	ndb.asyncPersistTppFinised(event, trc)
 }
