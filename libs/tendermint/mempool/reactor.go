@@ -433,7 +433,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			if ok {
 				_, err := client.Client.Receive(context.Background(), &pb.TxRequest{Tx: memTx.tx, PeerId: uint32(client.ID)})
 				if err == nil {
-					memR.Logger.Info("send with recevier to", peer.ID(), "tx", txHash)
+					memR.Logger.Info("send with receiver to", "peer", peer.ID(), "tx", txHash)
 					goto SUCCESS
 				} else {
 					memR.Logger.Error("Error sending tx with receiver", "err", err)
@@ -445,7 +445,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 				}
 			}
 
-			memR.Logger.Info("fallback to broadcast", peer.ID(), "tx", txHash)
+			memR.Logger.Info("fallback to broadcast", "peer", peer.ID(), "tx", txHash)
 
 			var getFromPool bool
 			// send memTx
