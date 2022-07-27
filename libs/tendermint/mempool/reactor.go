@@ -463,8 +463,9 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 						time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 						continue
 					}
+					num++
 				}
-				num++
+
 				if num%1000 == 0 {
 					fmt.Println("broadcast working...", "addr", peer.RemoteAddr())
 				}

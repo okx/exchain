@@ -2,6 +2,7 @@ package mempool
 
 import (
 	"context"
+	"fmt"
 	pb "github.com/okex/exchain/libs/tendermint/proto/mempool"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -19,6 +20,7 @@ func newTxReceiverServer(memR *Reactor) *txReceiverServer {
 }
 
 func (s *txReceiverServer) Receive(ctx context.Context, req *pb.TxsRequest) (*emptypb.Empty, error) {
+	fmt.Println("call receive")
 	for _, tx := range req.Txs {
 		txInfo := TxInfo{
 			SenderID: uint16(req.PeerId),
