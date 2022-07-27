@@ -20,7 +20,9 @@ func newTxReceiverServer(memR *Reactor) *txReceiverServer {
 }
 
 func (s *txReceiverServer) Receive(ctx context.Context, req *pb.TxsRequest) (*emptypb.Empty, error) {
+	fmt.Println("call receive", "txs len", len(req.Txs))
 	for _, tx := range req.Txs {
+		fmt.Println("tx len", len(tx), "size", s.memR.mempool.Size())
 		txInfo := TxInfo{
 			SenderID: uint16(req.PeerId),
 		}
