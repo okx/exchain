@@ -191,8 +191,6 @@ func (tree *MutableTree) Set(key, value []byte) bool {
 }
 
 func (tree *MutableTree) fastGetFromChanges(key []byte) ([]byte, bool) {
-	tree.mtx.RLock()
-	defer tree.mtx.RUnlock()
 	if fastNode, ok := tree.unsavedFastNodeAdditions[string(key)]; ok {
 		return fastNode.value, ok
 	}
@@ -240,8 +238,6 @@ func (tree *MutableTree) Iterate(fn func(key []byte, value []byte) bool) (stoppe
 	if !tree.IsFastCacheEnabled() {
 		return tree.ImmutableTree.Iterate(fn)
 	}
-	tree.mtx.RLock()
-	defer tree.mtx.RUnlock()
 
 	itr := NewUnsavedFastIterator(nil, nil, true, tree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
 
@@ -258,8 +254,6 @@ func (tree *MutableTree) Iterate(fn func(key []byte, value []byte) bool) (stoppe
 // CONTRACT: no updates are made to the tree while an iterator is active.
 func (tree *MutableTree) Iterator(start, end []byte, ascending bool) dbm.Iterator {
 	if tree.IsFastCacheEnabled() {
-		tree.mtx.RLock()
-		defer tree.mtx.RUnlock()
 		return NewUnsavedFastIterator(start, end, ascending, tree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
 	}
 	return tree.ImmutableTree.Iterator(start, end, ascending)
@@ -1219,8 +1213,6 @@ func (tree *MutableTree) SetDelta(delta *TreeDelta) {
 			tree.commitOrphans = append(tree.commitOrphans, commitOrphan{Version: v.CommitValue, NodeHash: amino.StrToBytes(v.Key)})
 		}
 
-		tree.mtx.Lock()
-		defer tree.mtx.Unlock()
 		// fast node related
 		for _, v := range tree.savedNodes {
 			if v.isLeaf() {
