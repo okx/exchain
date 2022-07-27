@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"math"
@@ -181,6 +182,13 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 	return memR
 }
 
+func (memR *Reactor) getReceiverClient(peerID uint16) (txReceiverClient, bool) {
+	memR.receiverClientsMtx.Lock()
+	client, ok := memR.receiverClients[peerID]
+	memR.receiverClientsMtx.Unlock()
+	return client, ok
+}
+
 func (memR *Reactor) Update(height int64, txs types.Txs) {
 	for _, tx := range txs {
 		types.SignatureCache().Remove(tx.Hash(height))
@@ -188,46 +196,38 @@ func (memR *Reactor) Update(height int64, txs types.Txs) {
 }
 
 func (memR *Reactor) ReapTxs(maxBytes, maxGas int64) []types.Tx {
-	msg := &FetchMessage{
-		MaxBytes: maxBytes,
-		MaxGas:   maxGas,
+	memR.sentryPartnerLock.Lock()
+	sentryPartnerPeer := memR.sentryPartnerPeer
+	memR.sentryPartnerLock.Unlock()
+	if sentryPartnerPeer == nil {
+		return nil
 	}
-	msgBz := memR.encodeMsg(msg)
-
-	for len(memR.responseChan) != 0 {
-		<-memR.responseChan
-		memR.Logger.Error("error: responseChan not empty")
-		fmt.Println("error: responseChan not empty")
-	}
-
-	start := time.Now()
-	success := memR.sentryPartnerPeer.Send(SentryChannel, msgBz)
-	if !success {
-		memR.Logger.Error("fetch txs from sentry node failed", "peer id", memR.sentryPartnerPeer.ID())
+	client, ok := memR.getReceiverClient(memR.ids.GetForPeer(sentryPartnerPeer))
+	if !ok {
 		return nil
 	}
 
-	var txs []types.Tx
-	ticker := time.After(time.Second)
-	for {
-		select {
-		case msg := <-memR.responseChan:
-			txs = make([]types.Tx, 0, len(msg.Indices))
-			for _, index := range msg.Indices {
-				v, ok := memR.txMap.Get(index)
-				if ok {
-					txs = append(txs, v.([]byte))
-				}
-			}
-			fmt.Println("fetch tx indices time cost", time.Since(start))
-			return txs
+	req := &pb.IndicesRequest{
+		MaxBytes: maxBytes,
+		MaxGas:   maxGas,
+	}
 
-		case <-ticker:
-			memR.Logger.Error("wait for txs from sentry node timeout", "peer id", memR.sentryPartnerPeer.ID())
-			fmt.Println("wait for txs from sentry node timeout", "peer id", memR.sentryPartnerPeer.ID())
-			return txs
+	start := time.Now()
+	res, err := client.Client.TxIndices(context.Background(), req)
+	if err != nil {
+		return nil
+	}
+
+	fmt.Println("fetch tx indices time cost", time.Since(start))
+
+	txs := make([]types.Tx, 0, len(res.Indices))
+	for _, index := range res.Indices {
+		v, ok := memR.txMap.Get(index)
+		if ok {
+			txs = append(txs, v.([]byte))
 		}
 	}
+	return txs
 }
 
 // InitPeer implements Reactor by creating a state for the peer.
@@ -318,8 +318,11 @@ func (memR *Reactor) AddPeer(peer p2p.Peer) {
 		memR.sentryPartnerPeer = peer
 		memR.sentryPartnerLock.Unlock()
 	}
-	go memR.broadcastTxRoutine(peer)
-	memR.sendTxReceiverInfo(peer)
+	if memR.sentryPartner == "" || memR.isSentryNode || string(peer.ID()) == memR.sentryPartner {
+		memR.sendTxReceiverInfo(peer)
+		go memR.broadcastTxRoutine(peer)
+	}
+
 }
 
 // RemovePeer implements Reactor.
@@ -540,63 +543,31 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			continue
 		}
 
-		if memR.isSentryNode && string(peer.ID()) == memR.sentryPartner {
-			var sentryTxs []*SentryTx
-			sentryTxs, next = memR.mempool.sentryTxs(next)
-			msg := StxMessage{
-				Stx: sentryTxs,
-			}
-			msgBz := memR.encodeMsg(msg)
-			success := peer.Send(MempoolChannel, msgBz)
-			if !success {
-				time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
-				continue
-			}
-			goto SUCCESS
-		}
-
-		// ensure peer hasn't already sent us this tx
-		if _, ok = memTx.senders.Load(peerID); !ok {
-			memR.receiverClientsMtx.RLock()
-			client, ok := memR.receiverClients[peerID]
-			memR.receiverClientsMtx.RUnlock()
-			if ok {
-				_, err := client.Client.Receive(context.Background(), &pb.TxRequest{Tx: memTx.tx, PeerId: uint32(client.ID)})
-				if err == nil {
-					goto SUCCESS
-				} else {
-					memR.Logger.Error("Error sending tx with receiver", "err", err)
-					fmt.Println("pb bc error", err)
-				}
-			}
-		}
-
 		if cfg.DynamicConfig.GetEnableBatchTx() {
-			var msg Message
 			if memR.isSentryNode && string(peer.ID()) == memR.sentryPartner {
-				var sentryTxs []*SentryTx
+				var sentryTxs []*pb.SentryTx
 				sentryTxs, next = memR.mempool.sentryTxs(next)
-				msg = StxMessage{
-					Stx: sentryTxs,
-				}
-				msgBz := memR.encodeMsg(msg)
-				success := peer.Send(SentryChannel, msgBz)
-				if !success {
-					time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
-					continue
+				client, ok := memR.getReceiverClient(peerID)
+				if len(sentryTxs) != 0 && ok {
+					_, err := client.Client.ReceiveSentry(context.Background(), &pb.SentryTxs{Txs: sentryTxs})
+					if err != nil {
+						memR.Logger.Error("Error sending tx with receiver", "err", err)
+						time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
+						continue
+					}
 				}
 
 			} else {
-				var txs []types.Tx
+				var txs [][]byte
 				txs, next = memR.mempool.getTxs(next, peerID)
-				msg = TxsMessage{
-					Txs: txs,
-				}
-				msgBz := memR.encodeMsg(msg)
-				success := peer.Send(MempoolChannel, msgBz)
-				if !success {
-					time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
-					continue
+				client, ok := memR.getReceiverClient(peerID)
+				if len(txs) != 0 && ok {
+					_, err := client.Client.Receive(context.Background(), &pb.TxsRequest{Txs: txs, PeerId: uint32(client.ID)})
+					if err != nil {
+						memR.Logger.Error("Error sending tx with receiver", "err", err)
+						time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
+						continue
+					}
 				}
 			}
 
@@ -642,8 +613,6 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			}
 		}
 
-	SUCCESS:
-
 		select {
 		case <-next.NextWaitChan():
 			// see the start of the for loop for nil check
@@ -667,7 +636,7 @@ func (memR *Reactor) sendTxReceiverInfo(peer p2p.Peer) {
 	var info pb.ReceiverInfo
 	info.Port = port
 	info.YourId = uint32(memR.ids.GetForPeer(peer))
-	bz, err := info.Marshal()
+	bz, err := proto.Marshal(&info)
 	if err != nil {
 		memR.Logger.Error("sendTxReceiverInfo:marshal", "error", err)
 		return
@@ -680,7 +649,7 @@ func (memR *Reactor) sendTxReceiverInfo(peer p2p.Peer) {
 
 func (memR *Reactor) receiveTxReceiverInfo(src p2p.Peer, bz []byte) {
 	var info pb.ReceiverInfo
-	err := info.Unmarshal(bz)
+	err := proto.Unmarshal(bz, &info)
 	if err != nil {
 		memR.Logger.Error("receiveTxReceiverInfo:unmarshal", "error", err)
 		return

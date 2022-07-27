@@ -12,17 +12,16 @@ import (
 	"time"
 
 	"github.com/VictoriaMetrics/fastcache"
-
-	"github.com/tendermint/go-amino"
-
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
+	pb "github.com/okex/exchain/libs/tendermint/proto/mempool"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/tendermint/go-amino"
 )
 
 type TxInfoParser interface {
@@ -258,7 +257,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	}
 
 	txSize := len(tx)
-	if err := mem.isFull(txSize, len(txInfo.SenderP2PID) == 0); err != nil {
+	if err := mem.isFull(txSize, txInfo.SenderID == 0); err != nil {
 		return err
 	}
 	// The size of the corresponding amino-encoded TxMessage
@@ -1034,7 +1033,7 @@ func (mem *CListMempool) recheckTxs() {
 
 const maxBatchTx = 100
 
-func (mem *CListMempool) getTxs(start *clist.CElement, peerID uint16) (batch []types.Tx, end *clist.CElement) {
+func (mem *CListMempool) getTxs(start *clist.CElement, peerID uint16) (batch [][]byte, end *clist.CElement) {
 	var size, count int
 	end = start
 
@@ -1058,15 +1057,15 @@ func (mem *CListMempool) getTxs(start *clist.CElement, peerID uint16) (batch []t
 	}
 }
 
-func (mem *CListMempool) sentryTxs(start *clist.CElement) (batch []*SentryTx, end *clist.CElement) {
+func (mem *CListMempool) sentryTxs(start *clist.CElement) (batch []*pb.SentryTx, end *clist.CElement) {
 	end = start
 
 	for {
 		memTx := end.Value.(*mempoolTx)
-		batch = append(batch, &SentryTx{
-			Tx:    memTx.tx,
-			From:  memTx.from,
-			Index: memTx.index,
+		batch = append(batch, &pb.SentryTx{
+			Tx:      memTx.tx,
+			From:    memTx.from,
+			TxIndex: memTx.index,
 		})
 		if len(batch) >= maxBatchTx || end.Next() == nil {
 			return batch, end
