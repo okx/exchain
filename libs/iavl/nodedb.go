@@ -90,7 +90,7 @@ type nodeDB struct {
 	fastNodeCache              *FastNodeCache
 	fastNodePreCommitAdditions map[string]*FastNode
 	fastNodePreCommitRemovals  map[string]interface{}
-	latestVersion4FastNode    int64
+	latestVersion4FastNode     int64
 }
 
 func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
@@ -262,6 +262,8 @@ func (ndb *nodeDB) SaveNode(batch dbm.Batch, node *Node) {
 
 // SaveNode saves a FastNode to disk and add to cache.
 func (ndb *nodeDB) SaveFastNode(node *FastNode, batch dbm.Batch) error {
+	ndb.mtx.Lock()
+	defer ndb.mtx.Unlock()
 	return ndb.saveFastNodeUnlocked(node, true, batch)
 }
 
@@ -544,6 +546,8 @@ func (ndb *nodeDB) DeleteVersionsRange(batch dbm.Batch, fromVersion, toVersion i
 }
 
 func (ndb *nodeDB) DeleteFastNode(key []byte, batch dbm.Batch) error {
+	ndb.mtx.Lock()
+	defer ndb.mtx.Unlock()
 	batch.Delete(ndb.fastNodeKey(key))
 	ndb.uncacheFastNode(key)
 	return nil
