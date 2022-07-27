@@ -93,7 +93,7 @@ func TestSetStorageVersion_Success(t *testing.T) {
 	require.Equal(t, defaultStorageVersionValue, ndb.getStorageVersion())
 
 	batch := db.NewBatch()
-	err := ndb.setFastStorageVersionToBatch(batch)
+	err := ndb.setFastStorageVersionToBatch(batch, ndb.getLatestVersion())
 	require.NoError(t, err)
 	require.Equal(t, expectedVersion+fastStorageVersionDelimiter+strconv.Itoa(int(ndb.getLatestVersion())), ndb.getStorageVersion())
 	require.NoError(t, batch.Write())
@@ -126,7 +126,7 @@ func TestSetStorageVersion_DBFailure_OldKept(t *testing.T) {
 	require.Equal(t, defaultStorageVersionValue, ndb.getStorageVersion())
 
 	batch := ndb.NewBatch()
-	ndb.setFastStorageVersionToBatch(batch)
+	ndb.setFastStorageVersionToBatch(batch, ndb.getLatestVersion())
 	//	err := ndb.setFastStorageVersionToBatch(batch)
 	//	require.Error(t, err)
 	///	require.Equal(t, expectedErrorMsg, err.Error())
@@ -149,7 +149,7 @@ func TestSetStorageVersion_InvalidVersionFailure_OldKept(t *testing.T) {
 	require.Equal(t, invalidStorageVersion, ndb.getStorageVersion())
 
 	batch := ndb.NewBatch()
-	err := ndb.setFastStorageVersionToBatch(batch)
+	err := ndb.setFastStorageVersionToBatch(batch, ndb.getLatestVersion())
 	require.Error(t, err)
 	require.Equal(t, expectedErrorMsg, err.Error())
 	require.Equal(t, invalidStorageVersion, ndb.getStorageVersion())
@@ -162,7 +162,7 @@ func TestSetStorageVersion_FastVersionFirst_VersionAppended(t *testing.T) {
 	ndb.latestVersion = 100
 
 	batch := ndb.NewBatch()
-	err := ndb.setFastStorageVersionToBatch(batch)
+	err := ndb.setFastStorageVersionToBatch(batch, ndb.getLatestVersion())
 	require.NoError(t, err)
 	require.Equal(t, fastStorageVersionValue+fastStorageVersionDelimiter+strconv.Itoa(int(ndb.latestVersion)), ndb.storageVersion)
 }
@@ -177,7 +177,7 @@ func TestSetStorageVersion_FastVersionSecond_VersionAppended(t *testing.T) {
 	ndb.storageVersion = string(storageVersionBytes)
 
 	batch := ndb.NewBatch()
-	err := ndb.setFastStorageVersionToBatch(batch)
+	err := ndb.setFastStorageVersionToBatch(batch, ndb.getLatestVersion())
 	require.NoError(t, err)
 	require.Equal(t, string(storageVersionBytes)+fastStorageVersionDelimiter+strconv.Itoa(int(ndb.latestVersion)), ndb.storageVersion)
 }
@@ -192,12 +192,12 @@ func TestSetStorageVersion_SameVersionTwice(t *testing.T) {
 	ndb.storageVersion = string(storageVersionBytes)
 
 	batch := db.NewBatch()
-	err := ndb.setFastStorageVersionToBatch(batch)
+	err := ndb.setFastStorageVersionToBatch(batch, ndb.getLatestVersion())
 	require.NoError(t, err)
 	newStorageVersion := string(storageVersionBytes) + fastStorageVersionDelimiter + strconv.Itoa(int(ndb.latestVersion))
 	require.Equal(t, newStorageVersion, ndb.storageVersion)
 
-	err = ndb.setFastStorageVersionToBatch(batch)
+	err = ndb.setFastStorageVersionToBatch(batch, ndb.getLatestVersion())
 	require.NoError(t, err)
 	require.Equal(t, newStorageVersion, ndb.storageVersion)
 }
