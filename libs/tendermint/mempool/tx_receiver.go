@@ -141,11 +141,11 @@ func (r *txReceiver) ReceiveTxReceiverInfo(src p2p.Peer, bz []byte) {
 	conn, err := grpc.Dial(addr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithBlock(),
-		grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:                30 * time.Second,
-			Timeout:             10 * time.Second,
-			PermitWithoutStream: true,
-		}),
+		//grpc.WithKeepaliveParams(keepalive.ClientParameters{
+		//	Time:                30 * time.Second,
+		//	Timeout:             10 * time.Second,
+		//	PermitWithoutStream: true,
+		//}),
 	)
 	if err != nil {
 		r.Logger.Error("receiveTxReceiverInfo:dial", "error", err)
@@ -239,10 +239,10 @@ func (r *txReceiver) Start(configPort string) {
 			r.Logger.Error("Failed to start tx receiver:Listen", "err", err)
 		} else {
 			var options []grpc.ServerOption
-			options = append(options, grpc.KeepaliveParams(keepalive.ServerParameters{
-				Time:    30 * time.Second,
-				Timeout: 10 * time.Second,
-			}))
+			//options = append(options, grpc.KeepaliveParams(keepalive.ServerParameters{
+			//	Time:    30 * time.Second,
+			//	Timeout: 10 * time.Second,
+			//}))
 			r.s = grpc.NewServer(options...)
 			pb.RegisterMempoolTxReceiverServer(r.s, r.Server)
 			r.Server.Port = lis.Addr().(*net.TCPAddr).Port
