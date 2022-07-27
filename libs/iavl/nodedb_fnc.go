@@ -12,7 +12,7 @@ func newFastNodeChanges() *fastNodeChanges {
 	}
 }
 
-func (fnc *fastNodeChanges) Get(key []byte) (*FastNode, bool) {
+func (fnc *fastNodeChanges) get(key []byte) (*FastNode, bool) {
 	if node, ok := fnc.additions[string(key)]; ok {
 		return node, true
 	}
@@ -23,17 +23,17 @@ func (fnc *fastNodeChanges) Get(key []byte) (*FastNode, bool) {
 	return nil, false
 }
 
-func (fnc *fastNodeChanges) Add(key string, fastNode *FastNode) {
+func (fnc *fastNodeChanges) add(key string, fastNode *FastNode) {
 	fnc.additions[key] = fastNode
 	delete(fnc.removals, key)
 }
 
-func (fnc *fastNodeChanges) Remove(key string, value interface{}) {
+func (fnc *fastNodeChanges) remove(key string, value interface{}) {
 	fnc.removals[key] = value
 	delete(fnc.additions, key)
 }
 
-func (fnc *fastNodeChanges) Reset() {
+func (fnc *fastNodeChanges) reset() {
 	for k := range fnc.additions {
 		delete(fnc.additions, k)
 	}

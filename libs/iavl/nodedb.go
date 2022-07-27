@@ -138,11 +138,11 @@ func (ndb *nodeDB) GetFastNode(key []byte) (*FastNode, error) {
 	}
 
 	// Check pre commit FastNode
-	if node, ok := ndb.ppf.Get(key); ok {
+	if node, ok := ndb.ppf.get(key); ok {
 		return node, nil
 	}
 	// Check temp pre commit FastNode
-	if node, ok := ndb.tpf.Get(key); ok {
+	if node, ok := ndb.tpf.get(key); ok {
 		return node, nil
 	}
 	// Check the cache.

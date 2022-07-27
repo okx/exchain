@@ -166,7 +166,7 @@ func (ndb *nodeDB) asyncPersistFastNodeFinished(event *commitEvent) {
 	}
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
-	ndb.tpf.Reset()
+	ndb.tpf.reset()
 }
 
 // SaveNode saves a node to disk.
