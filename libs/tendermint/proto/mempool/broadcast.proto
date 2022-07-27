@@ -8,13 +8,33 @@ import "google/protobuf/empty.proto";
 package mempool;
 
 service MempoolTxReceiver {
-  // Sends a greeting
-  rpc Receive (TxRequest) returns(google.protobuf.Empty) {}
+  rpc Receive (TxsRequest) returns(google.protobuf.Empty) {}
+  rpc ReceiveSentry(SentryTxs) returns(google.protobuf.Empty) {}
+  rpc TxIndices(IndicesRequest) returns(IndicesResponse) {}
 }
 
-message TxRequest {
-  bytes tx = 1;
+message TxsRequest {
+  repeated bytes txs = 1;
   uint32 peer_id = 2;
+}
+
+message SentryTxs {
+  repeated SentryTx txs = 1;
+}
+
+message SentryTx {
+  bytes tx = 1;
+  string from = 2;
+  uint32 txIndex = 3;
+}
+
+message IndicesRequest {
+  int64 MaxBytes = 1;
+  int64 MaxGas = 2;
+}
+
+message IndicesResponse {
+  repeated uint32 indices = 1;
 }
 
 message ReceiverInfo {
