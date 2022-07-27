@@ -386,6 +386,16 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 		return
 	}
 
+	var stream pb.MempoolTxReceiver_CheckTxsClient
+	defer func() {
+		if stream != nil {
+			_, err := stream.CloseAndRecv()
+			if err != nil {
+				memR.Logger.Error("receiver Error closing checktxs stream", "peer", peer, "err", err)
+			}
+		}
+	}()
+
 	peerID := memR.ids.GetForPeer(peer)
 	var next *clist.CElement
 	for {
@@ -435,16 +445,31 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			client, ok := memR.receiverClients[peerID]
 			memR.receiverClientsMtx.RUnlock()
 			if ok {
-				_, err := client.Client.Receive(context.Background(), &pb.TxRequest{Tx: memTx.tx, PeerId: uint32(client.ID)})
-				if err == nil {
-					memR.Logger.Info("send with receiver to", "peer", peer.ID(), "tx", txHash)
-					goto SUCCESS
+				var err error
+				if stream == nil {
+					stream, err = client.Client.CheckTxs(context.Background())
+					if err != nil {
+						memR.Logger.Error("receiver Error CheckTxs", "err", err)
+						goto P2P
+					}
+				}
+				err = stream.Send(&pb.TxPeersRequest{Tx: memTx.tx, PeerId: uint32(client.ID)})
+				if err != nil {
+					memR.Logger.Error("receiver Error Send", "err", err)
+					_, err = stream.CloseAndRecv()
+					if err != nil {
+						memR.Logger.Error("receiver Error closing checktxs stream", "peer", peer, "err", err)
+					}
+					stream = nil
+					goto P2P
 				} else {
-					memR.Logger.Error("Error sending tx with receiver", "err", err)
+					goto SUCCESS
 				}
 			}
 
 			memR.Logger.Info("fallback to broadcast", "peer", peer.ID(), "tx", txHash)
+
+		P2P:
 
 			var getFromPool bool
 			// send memTx
@@ -501,7 +526,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 }
 
 func (memR *Reactor) sendTxReceiverInfo(peer p2p.Peer) {
-	if memR.receiver == nil || memR.receiver.Port == 0 || atomic.LoadInt64(&memR.receiver.Started) == 0 {
+	if !memR.receiver.Enabled() {
 		return
 	}
 	port := int64(memR.receiver.Port)

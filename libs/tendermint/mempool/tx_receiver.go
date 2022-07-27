@@ -18,6 +18,13 @@ func newTxReceiverServer(memR *Reactor) *txReceiverServer {
 	return &txReceiverServer{memR: memR}
 }
 
+func (s *txReceiverServer) Enabled() bool {
+	if s == nil || s.Port == 0 || atomic.LoadInt64(&s.Started) == 0 {
+		return false
+	}
+	return true
+}
+
 func (s *txReceiverServer) Receive(ctx context.Context, req *pb.TxRequest) (*emptypb.Empty, error) {
 	if len(req.Tx) > 0 {
 		var txjob txJob
