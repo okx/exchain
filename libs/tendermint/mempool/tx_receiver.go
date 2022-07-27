@@ -2,6 +2,7 @@ package mempool
 
 import (
 	"context"
+	"fmt"
 	pb "github.com/okex/exchain/libs/tendermint/proto/mempool"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
@@ -23,14 +24,22 @@ func (s *txReceiverServer) Receive(ctx context.Context, req *pb.TxRequest) (*emp
 		txjob.tx = req.Tx
 		if req.PeerId != 0 {
 			txjob.info.SenderID = uint16(req.PeerId)
+		} else {
+			return nil, errZeroId
 		}
 		select {
 		case s.memR.txCh <- txjob:
 		case <-ctx.Done():
 		}
+	} else {
+		s.memR.Logger.Error("txReceiverServer.Receive empty tx")
+		return nil, errEmpty
 	}
 
 	return empty, nil
 }
 
 var empty = &emptypb.Empty{}
+
+var errEmpty = fmt.Errorf("empty tx")
+var errZeroId = fmt.Errorf("peerId is 0")
