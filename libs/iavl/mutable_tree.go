@@ -66,7 +66,7 @@ type MutableTree struct {
 
 	unsavedFastNodeAdditions map[string]*FastNode   // FastNodes that have not yet been saved to disk
 	unsavedFastNodeRemovals  map[string]interface{} // FastNodes that have not yet been removed from disk
-	mtx                      sync.RWMutex           // For unsavedFastNodeAdditions and unsavedFastNodeRemovals
+	mtx                      sync.Mutex             // For unsavedFastNodeAdditions and unsavedFastNodeRemovals
 }
 
 // NewMutableTree returns a new tree with the specified cache size and datastore.
@@ -191,8 +191,6 @@ func (tree *MutableTree) Set(key, value []byte) bool {
 }
 
 func (tree *MutableTree) fastGetFromChanges(key []byte) ([]byte, bool) {
-	tree.mtx.RLock()
-	defer tree.mtx.RUnlock()
 	if fastNode, ok := tree.unsavedFastNodeAdditions[string(key)]; ok {
 		return fastNode.value, ok
 	}
@@ -240,8 +238,6 @@ func (tree *MutableTree) Iterate(fn func(key []byte, value []byte) bool) (stoppe
 	if !tree.IsFastCacheEnabled() {
 		return tree.ImmutableTree.Iterate(fn)
 	}
-	tree.mtx.RLock()
-	defer tree.mtx.RUnlock()
 
 	itr := NewUnsavedFastIterator(nil, nil, true, tree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
 
@@ -258,8 +254,6 @@ func (tree *MutableTree) Iterate(fn func(key []byte, value []byte) bool) (stoppe
 // CONTRACT: no updates are made to the tree while an iterator is active.
 func (tree *MutableTree) Iterator(start, end []byte, ascending bool) dbm.Iterator {
 	if tree.IsFastCacheEnabled() {
-		tree.mtx.RLock()
-		defer tree.mtx.RUnlock()
 		return NewUnsavedFastIterator(start, end, ascending, tree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
 	}
 	return tree.ImmutableTree.Iterator(start, end, ascending)
@@ -873,9 +867,6 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 		}
 	}
 
-	tree.mtx.Lock()
-	defer tree.mtx.Unlock()
-
 	if err := tree.saveFastNodeVersion(batch, NewFastNodeChanges(tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals, tree.ndb.getLatestVersion())); err != nil {
 		return nil, version, err
 	}
@@ -1005,8 +996,6 @@ func (tree *MutableTree) getUnsavedFastNodeRemovals() map[string]interface{} {
 }
 
 func (tree *MutableTree) addUnsavedAddition(key []byte, node *FastNode) {
-	tree.mtx.Lock()
-	defer tree.mtx.Unlock()
 	delete(tree.unsavedFastNodeRemovals, string(key))
 	tree.unsavedFastNodeAdditions[string(key)] = node
 }
@@ -1027,8 +1016,6 @@ func (tree *MutableTree) saveFastNodeAdditions(batch dbm.Batch, additions map[st
 }
 
 func (tree *MutableTree) addUnsavedRemoval(key []byte) {
-	tree.mtx.Lock()
-	defer tree.mtx.Unlock()
 	delete(tree.unsavedFastNodeAdditions, string(key))
 	tree.unsavedFastNodeRemovals[string(key)] = true
 }
@@ -1226,8 +1213,6 @@ func (tree *MutableTree) SetDelta(delta *TreeDelta) {
 			tree.commitOrphans = append(tree.commitOrphans, commitOrphan{Version: v.CommitValue, NodeHash: amino.StrToBytes(v.Key)})
 		}
 
-		tree.mtx.Lock()
-		defer tree.mtx.Unlock()
 		// fast node related
 		for _, v := range tree.savedNodes {
 			if v.isLeaf() {
