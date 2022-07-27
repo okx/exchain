@@ -24,17 +24,15 @@ var (
 	IavlCacheInitRatio float64 = 0
 )
 
-type FastNodeChanges struct {
-	additions map[string]*FastNode
-	removals  map[string]interface{}
-	version   int64
+type fastNodeChangesVersion struct {
+	*fastNodeChanges
+	version int64
 }
 
-func NewFastNodeChanges(additions map[string]*FastNode, removals map[string]interface{}, version int64) *FastNodeChanges {
-	return &FastNodeChanges{
-		additions: additions,
-		removals:  removals,
-		version:   version,
+func newFastNodeChangesVersion(fnc *fastNodeChanges, version int64) *fastNodeChangesVersion {
+	return &fastNodeChangesVersion{
+		fastNodeChanges: fnc,
+		version:         version,
 	}
 }
 
@@ -122,7 +120,7 @@ func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	ndb.asyncPersistTppFinised(event, trc)
 }
 
-func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *FastNodeChanges) {
+func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *fastNodeChangesVersion) {
 	ndb.log(IavlDebug, "moving prePersistCache to tempPrePersistCache", "size", len(ndb.prePersistNodeCache))
 
 	ndb.mtx.Lock()
@@ -132,14 +130,8 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *FastN
 
 	ndb.tpp.pushToTpp(version, tpp)
 
-	tempFastNodePreCommitAdditions := make(map[string]*FastNode, len(ndb.fastNodePreCommitAdditions))
-	tempFastNodePreCommitRemovals := make(map[string]interface{}, len(ndb.fastNodePreCommitRemovals))
-	for k, v := range ndb.fastNodePreCommitAdditions {
-		tempFastNodePreCommitAdditions[k] = v
-	}
-	for k, v := range ndb.fastNodePreCommitRemovals {
-		tempFastNodePreCommitRemovals[k] = v
-	}
+	ndb.tpf = ndb.ppf
+	ndb.ppf = newFastNodeChanges()
 
 	ndb.mtx.Unlock()
 
@@ -150,7 +142,7 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *FastN
 		node.persisted = true
 	}
 
-	return tpp, NewFastNodeChanges(tempFastNodePreCommitAdditions, tempFastNodePreCommitRemovals, version)
+	return tpp, newFastNodeChangesVersion(ndb.tpf, version)
 }
 
 func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer) {
@@ -169,47 +161,12 @@ func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer)
 }
 
 func (ndb *nodeDB) asyncPersistFastNodeFinished(event *commitEvent) {
-	if event.fastNodeChanges == nil {
+	if event.fncv == nil {
 		return
 	}
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
-
-	savedAdditions := event.fastNodeChanges.additions
-	savedRemovals := event.fastNodeChanges.removals
-
-	curAdditions := ndb.fastNodePreCommitAdditions
-
-	newOnes := make(map[string]struct{})
-	delOnes := make(map[string]struct{})
-
-	for k, v := range curAdditions {
-		if vv, ok := savedAdditions[k]; !ok || vv.versionLastUpdatedAt != v.versionLastUpdatedAt {
-			newOnes[k] = struct{}{}
-		}
-	}
-
-	for k, v := range savedAdditions {
-		if vv, ok := curAdditions[k]; ok && vv.versionLastUpdatedAt == v.versionLastUpdatedAt {
-			continue
-		}
-		if _, ok := newOnes[k]; ok {
-			continue
-		}
-		delOnes[k] = struct{}{}
-	}
-
-	for k, _ := range savedAdditions {
-		if _, ok := newOnes[k]; !ok {
-			delete(ndb.fastNodePreCommitAdditions, k)
-		}
-	}
-
-	for k, _ := range savedRemovals {
-		if _, ok := delOnes[k]; !ok {
-			delete(ndb.fastNodePreCommitRemovals, k)
-		}
-	}
+	ndb.tpf.Reset()
 }
 
 // SaveNode saves a node to disk.

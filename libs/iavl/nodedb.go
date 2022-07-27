@@ -87,10 +87,10 @@ type nodeDB struct {
 	state *RuntimeState
 	tpp   *tempPrePersistNodes
 
-	fastNodeCache              *FastNodeCache
-	fastNodePreCommitAdditions map[string]*FastNode
-	fastNodePreCommitRemovals  map[string]interface{}
-	latestVersion4FastNode     int64
+	fastNodeCache          *FastNodeCache
+	tpf                    *fastNodeChanges
+	ppf                    *fastNodeChanges
+	latestVersion4FastNode int64
 }
 
 func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
@@ -106,17 +106,17 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 	}
 
 	ndb := &nodeDB{
-		db:                         db,
-		opts:                       *opts,
-		versionReaders:             make(map[int64]uint32, 8),
-		prePersistNodeCache:        make(map[string]*Node),
-		name:                       ParseDBName(db),
-		preWriteNodeCache:          cmap.New(),
-		state:                      newRuntimeState(),
-		tpp:                        newTempPrePersistNodes(),
-		storageVersion:             string(storeVersion),
-		fastNodePreCommitAdditions: make(map[string]*FastNode),
-		fastNodePreCommitRemovals:  make(map[string]interface{}),
+		db:                  db,
+		opts:                *opts,
+		versionReaders:      make(map[int64]uint32, 8),
+		prePersistNodeCache: make(map[string]*Node),
+		name:                ParseDBName(db),
+		preWriteNodeCache:   cmap.New(),
+		state:               newRuntimeState(),
+		tpp:                 newTempPrePersistNodes(),
+		storageVersion:      string(storeVersion),
+		tpf:                 newFastNodeChanges(),
+		ppf:                 newFastNodeChanges(),
 	}
 
 	ndb.fastNodeCache = newFastNodeCache(ndb.name, GetFastNodeCacheSize())
@@ -137,12 +137,13 @@ func (ndb *nodeDB) GetFastNode(key []byte) (*FastNode, error) {
 		return nil, fmt.Errorf("nodeDB.GetFastNode() requires key, len(key) equals 0")
 	}
 
-	// Check Addtions Removals
-	if node, ok := ndb.fastNodePreCommitAdditions[string(key)]; ok {
+	// Check pre commit FastNode
+	if node, ok := ndb.ppf.Get(key); ok {
 		return node, nil
 	}
-	if _, ok := ndb.fastNodePreCommitRemovals[string(key)]; ok {
-		return nil, nil
+	// Check temp pre commit FastNode
+	if node, ok := ndb.tpf.Get(key); ok {
+		return node, nil
 	}
 	// Check the cache.
 	if v, ok := ndb.getFastNodeFromCache(key); ok {

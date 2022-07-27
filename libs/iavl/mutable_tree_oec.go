@@ -36,13 +36,13 @@ var (
 )
 
 type commitEvent struct {
-	version         int64
-	versions        map[int64]bool
-	batch           dbm.Batch
-	tpp             map[string]*Node
-	wg              *sync.WaitGroup
-	iavlHeight      int
-	fastNodeChanges *FastNodeChanges
+	version    int64
+	versions   map[int64]bool
+	batch      dbm.Batch
+	tpp        map[string]*Node
+	wg         *sync.WaitGroup
+	iavlHeight int
+	fncv       *fastNodeChangesVersion
 }
 
 type commitOrphan struct {
@@ -142,7 +142,7 @@ func (tree *MutableTree) persist(version int64) {
 	batch := tree.NewBatch()
 	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0, nil}
 	var tpp map[string]*Node = nil
-	var fastNodeChanges *FastNodeChanges
+	var fncv *fastNodeChangesVersion
 	if EnablePruningHistoryState {
 		tree.ndb.saveCommitOrphans(batch, version, tree.commitOrphans)
 	}
@@ -151,7 +151,7 @@ func (tree *MutableTree) persist(version int64) {
 		err = tree.ndb.SaveEmptyRoot(batch, version)
 	} else {
 		err = tree.ndb.SaveRoot(batch, tree.root, version)
-		tpp, fastNodeChanges = tree.ndb.asyncPersistTppStart(version)
+		tpp, fncv = tree.ndb.asyncPersistTppStart(version)
 	}
 
 	if err != nil {
@@ -164,7 +164,7 @@ func (tree *MutableTree) persist(version int64) {
 	}
 	versions := tree.deepCopyVersions()
 	tree.commitCh <- commitEvent{version, versions, batch,
-		tpp, nil, int(tree.Height()), fastNodeChanges}
+		tpp, nil, int(tree.Height()), fncv}
 	tree.lastPersistHeight = version
 }
 
@@ -388,7 +388,7 @@ func (tree *MutableTree) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	ndb.state.increasePersistedCount(len(tpp))
 	ndb.addDBWriteCount(int64(len(tpp)))
 
-	if err := tree.saveFastNodeVersion(batch, event.fastNodeChanges); err != nil {
+	if err := tree.saveFastNodeVersion(batch, event.fncv); err != nil {
 		panic(err)
 	}
 
