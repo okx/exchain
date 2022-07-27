@@ -25,6 +25,7 @@ const _ = grpc.SupportPackageIsVersion7
 type MempoolTxReceiverClient interface {
 	// Sends a greeting
 	Receive(ctx context.Context, in *TxRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
+	CheckTxs(ctx context.Context, opts ...grpc.CallOption) (MempoolTxReceiver_CheckTxsClient, error)
 }
 
 type mempoolTxReceiverClient struct {
@@ -44,12 +45,47 @@ func (c *mempoolTxReceiverClient) Receive(ctx context.Context, in *TxRequest, op
 	return out, nil
 }
 
+func (c *mempoolTxReceiverClient) CheckTxs(ctx context.Context, opts ...grpc.CallOption) (MempoolTxReceiver_CheckTxsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &MempoolTxReceiver_ServiceDesc.Streams[0], "/mempool.MempoolTxReceiver/CheckTxs", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &mempoolTxReceiverCheckTxsClient{stream}
+	return x, nil
+}
+
+type MempoolTxReceiver_CheckTxsClient interface {
+	Send(*TxPeersRequest) error
+	CloseAndRecv() (*emptypb.Empty, error)
+	grpc.ClientStream
+}
+
+type mempoolTxReceiverCheckTxsClient struct {
+	grpc.ClientStream
+}
+
+func (x *mempoolTxReceiverCheckTxsClient) Send(m *TxPeersRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *mempoolTxReceiverCheckTxsClient) CloseAndRecv() (*emptypb.Empty, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(emptypb.Empty)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // MempoolTxReceiverServer is the server API for MempoolTxReceiver service.
 // All implementations must embed UnimplementedMempoolTxReceiverServer
 // for forward compatibility
 type MempoolTxReceiverServer interface {
 	// Sends a greeting
 	Receive(context.Context, *TxRequest) (*emptypb.Empty, error)
+	CheckTxs(MempoolTxReceiver_CheckTxsServer) error
 	mustEmbedUnimplementedMempoolTxReceiverServer()
 }
 
@@ -59,6 +95,9 @@ type UnimplementedMempoolTxReceiverServer struct {
 
 func (UnimplementedMempoolTxReceiverServer) Receive(context.Context, *TxRequest) (*emptypb.Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Receive not implemented")
+}
+func (UnimplementedMempoolTxReceiverServer) CheckTxs(MempoolTxReceiver_CheckTxsServer) error {
+	return status.Errorf(codes.Unimplemented, "method CheckTxs not implemented")
 }
 func (UnimplementedMempoolTxReceiverServer) mustEmbedUnimplementedMempoolTxReceiverServer() {}
 
@@ -91,6 +130,32 @@ func _MempoolTxReceiver_Receive_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MempoolTxReceiver_CheckTxs_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(MempoolTxReceiverServer).CheckTxs(&mempoolTxReceiverCheckTxsServer{stream})
+}
+
+type MempoolTxReceiver_CheckTxsServer interface {
+	SendAndClose(*emptypb.Empty) error
+	Recv() (*TxPeersRequest, error)
+	grpc.ServerStream
+}
+
+type mempoolTxReceiverCheckTxsServer struct {
+	grpc.ServerStream
+}
+
+func (x *mempoolTxReceiverCheckTxsServer) SendAndClose(m *emptypb.Empty) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *mempoolTxReceiverCheckTxsServer) Recv() (*TxPeersRequest, error) {
+	m := new(TxPeersRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // MempoolTxReceiver_ServiceDesc is the grpc.ServiceDesc for MempoolTxReceiver service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -103,6 +168,12 @@ var MempoolTxReceiver_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _MempoolTxReceiver_Receive_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "CheckTxs",
+			Handler:       _MempoolTxReceiver_CheckTxs_Handler,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "libs/tendermint/proto/mempool/broadcast.proto",
 }

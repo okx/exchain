@@ -10,6 +10,7 @@ package mempool;
 service MempoolTxReceiver {
   // Sends a greeting
   rpc Receive (TxRequest) returns(google.protobuf.Empty) {}
+  rpc CheckTxs (stream TxPeersRequest) returns(google.protobuf.Empty) {}
 }
 
 message TxRequest {
@@ -20,4 +21,10 @@ message TxRequest {
 message ReceiverInfo {
   uint32 your_id = 1;
   int64 port = 2;
+}
+
+message TxPeersRequest {
+  bytes tx = 1;
+  uint32 peer_id = 2;
+  repeated string peer_ids = 3;
 }
