@@ -18,7 +18,6 @@ type SchemaConfig struct {
 var (
 	optionalSchemas = []SchemaConfig{
 		{trace.MempoolCheckTxCnt, 0},
-		{trace.MempoolTxsCnt, 0},
 		{trace.SigCacheRatio, 1},
 		{trace.SigCacheAddCount, 1},
 		{trace.SigCacheGetCount, 1},
