@@ -873,9 +873,6 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 		}
 	}
 
-	tree.mtx.Lock()
-	defer tree.mtx.Unlock()
-
 	if err := tree.saveFastNodeVersion(batch, NewFastNodeChanges(tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals, tree.ndb.getLatestVersion())); err != nil {
 		return nil, version, err
 	}
@@ -1005,8 +1002,6 @@ func (tree *MutableTree) getUnsavedFastNodeRemovals() map[string]interface{} {
 }
 
 func (tree *MutableTree) addUnsavedAddition(key []byte, node *FastNode) {
-	tree.mtx.Lock()
-	defer tree.mtx.Unlock()
 	delete(tree.unsavedFastNodeRemovals, string(key))
 	tree.unsavedFastNodeAdditions[string(key)] = node
 }
@@ -1027,8 +1022,6 @@ func (tree *MutableTree) saveFastNodeAdditions(batch dbm.Batch, additions map[st
 }
 
 func (tree *MutableTree) addUnsavedRemoval(key []byte) {
-	tree.mtx.Lock()
-	defer tree.mtx.Unlock()
 	delete(tree.unsavedFastNodeAdditions, string(key))
 	tree.unsavedFastNodeRemovals[string(key)] = true
 }
