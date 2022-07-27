@@ -20,7 +20,7 @@ func newTxReceiverServer(memR *Reactor) *txReceiverServer {
 	return &txReceiverServer{memR: memR}
 }
 
-var num1, num2 uint64
+var num1, num2, num3 uint64
 
 func (s *txReceiverServer) Receive(ctx context.Context, req *pb.TxsRequest) (*emptypb.Empty, error) {
 	for _, tx := range req.Txs {
@@ -29,13 +29,15 @@ func (s *txReceiverServer) Receive(ctx context.Context, req *pb.TxsRequest) (*em
 		}
 
 		if atomic.AddUint64(&num1, 1)%1000 == 0 {
-			fmt.Println("continue receiving...", "size", s.memR.mempool.Size())
+			fmt.Println("mempool size", s.memR.mempool.Size(), "batch size", len(req.Txs), atomic.LoadUint64(&num1), atomic.LoadUint64(&num2), atomic.LoadUint64(&num3))
 		}
 		if err := s.memR.mempool.CheckTx(tx, nil, txInfo); err != nil && err != ErrTxInCache {
 			fmt.Println("checkTx error", err)
 			return nil, err
 		} else if err == nil {
 			atomic.AddUint64(&num2, 1)
+		} else if err == ErrTxInCache {
+			atomic.AddUint64(&num3, 1)
 		}
 	}
 	return empty, nil
