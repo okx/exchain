@@ -20,17 +20,14 @@ func newTxReceiverServer(memR *Reactor) *txReceiverServer {
 
 func (s *txReceiverServer) Receive(ctx context.Context, req *pb.TxsRequest) (*emptypb.Empty, error) {
 	for _, tx := range req.Txs {
-		var txjob txJob
-		txjob.tx = tx
-		if req.PeerId != 0 {
-			txjob.info.SenderID = uint16(req.PeerId)
+		txInfo := TxInfo{
+			SenderID: uint16(req.PeerId),
 		}
-		select {
-		case s.memR.txCh <- txjob:
-		case <-ctx.Done():
+
+		if err := s.memR.mempool.CheckTx(tx, nil, txInfo); err != nil && err != ErrTxInCache {
+			return nil, err
 		}
 	}
-
 	return empty, nil
 }
 
