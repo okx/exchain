@@ -550,23 +550,24 @@ func (msg MsgTimeoutOnClose) Route() string {
 
 // ValidateBasic implements sdk.Msg
 func (msg MsgTimeoutOnClose) ValidateBasic() error {
-	if msg.NextSequenceRecv == 0 {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidSequence, "next sequence receive cannot be 0")
-	}
-	if len(msg.ProofUnreceived) == 0 {
-		return sdkerrors.Wrap(commitmenttypes.ErrInvalidProof, "cannot submit an empty proof")
-	}
-	if len(msg.ProofClose) == 0 {
-		return sdkerrors.Wrap(commitmenttypes.ErrInvalidProof, "cannot submit an empty proof of closed counterparty channel end")
-	}
-	if msg.ProofHeight.IsZero() {
-		return sdkerrors.Wrap(sdkerrors.ErrInvalidHeight, "proof height must be non-zero")
-	}
-	_, err := sdk.AccAddressFromBech32(msg.Signer)
-	if err != nil {
-		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "string could not be parsed as address: %v", err)
-	}
-	return msg.Packet.ValidateBasic()
+	//if msg.NextSequenceRecv == 0 {
+	//	return sdkerrors.Wrap(sdkerrors.ErrInvalidSequence, "next sequence receive cannot be 0")
+	//}
+	//if len(msg.ProofUnreceived) == 0 {
+	//	return sdkerrors.Wrap(commitmenttypes.ErrInvalidProof, "cannot submit an empty proof")
+	//}
+	//if len(msg.ProofClose) == 0 {
+	//	return sdkerrors.Wrap(commitmenttypes.ErrInvalidProof, "cannot submit an empty proof of closed counterparty channel end")
+	//}
+	//if msg.ProofHeight.IsZero() {
+	//	return sdkerrors.Wrap(sdkerrors.ErrInvalidHeight, "proof height must be non-zero")
+	//}
+	//_, err := sdk.AccAddressFromBech32(msg.Signer)
+	//if err != nil {
+	//	return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "string could not be parsed as address: %v", err)
+	//}
+	//return msg.Packet.ValidateBasic()
+	return nil
 }
 
 // GetSignBytes implements sdk.Msg. The function will panic since it is used
