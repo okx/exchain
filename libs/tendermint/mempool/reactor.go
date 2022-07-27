@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/keepalive"
 	"math"
 	"net"
 	"reflect"
@@ -183,13 +184,18 @@ func (memR *Reactor) OnStart() error {
 		if err != nil {
 			memR.Logger.Error("Failed to start tx receiver:Listen", "err", err)
 		} else {
-			s = grpc.NewServer()
+			var options []grpc.ServerOption
+			options = append(options, grpc.KeepaliveParams(keepalive.ServerParameters{
+				Time:    30 * time.Second,
+				Timeout: 10 * time.Second,
+			}))
+			s = grpc.NewServer(options...)
 			pb.RegisterMempoolTxReceiverServer(s, memR.receiver)
 			memR.receiver.Port = lis.Addr().(*net.TCPAddr).Port
 			memR.Logger.Info("Tx receiver listening on port", "port", memR.receiver.Port)
 			atomic.StoreInt64(&memR.receiver.Started, 1)
 			go func() {
-				if err = s.Serve(lis); err != nil {
+				if err := s.Serve(lis); err != nil {
 					atomic.StoreInt64(&memR.receiver.Started, 0)
 					memR.Logger.Error("Failed to start tx receiver:Serve", "err", err)
 				}
@@ -552,7 +558,15 @@ func (memR *Reactor) receiveTxReceiverInfo(src p2p.Peer, bz []byte) {
 	}
 
 	addr := src.SocketAddr().IP.String() + ":" + strconv.FormatInt(info.Port, 10)
-	conn, err := grpc.Dial(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.Dial(addr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithBlock(),
+		grpc.WithKeepaliveParams(keepalive.ClientParameters{
+			Time:                30 * time.Second,
+			Timeout:             10 * time.Second,
+			PermitWithoutStream: true,
+		}),
+	)
 	if err != nil {
 		memR.Logger.Error("receiveTxReceiverInfo:dial", "error", err)
 		return
