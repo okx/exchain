@@ -6,14 +6,9 @@ import (
 	"encoding/hex"
 	"fmt"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/keepalive"
 	"math"
-	"net"
 	"reflect"
-	"strconv"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -63,9 +58,7 @@ type Reactor struct {
 	txCh             chan txJob
 	enableWtx        bool
 
-	receiver           *txReceiverServer
-	receiverClients    map[uint16]txReceiverClient
-	receiverClientsMtx sync.RWMutex
+	receiver *txReceiver
 }
 
 func (memR *Reactor) SetNodeKey(key *p2p.NodeKey) {
@@ -148,15 +141,14 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 		ids:              newMempoolIDs(),
 		nodeKeyWhitelist: make(map[string]struct{}),
 		enableWtx:        cfg.DynamicConfig.GetEnableWtx(),
-		txCh:             make(chan txJob, 100000),
+		txCh:             make(chan txJob, 2*100_000),
 	}
 	for _, nodeKey := range config.GetNodeKeyWhitelist() {
 		memR.nodeKeyWhitelist[nodeKey] = struct{}{}
 	}
 	memR.BaseReactor = *p2p.NewBaseReactor("Mempool", memR)
 	memR.press()
-	memR.receiver = newTxReceiverServer(memR)
-	memR.receiverClients = make(map[uint16]txReceiverClient)
+	memR.receiver = newTxReceiver(memR)
 	return memR
 }
 
@@ -170,6 +162,7 @@ func (memR *Reactor) InitPeer(peer p2p.Peer) p2p.Peer {
 func (memR *Reactor) SetLogger(l log.Logger) {
 	memR.Logger = l
 	memR.mempool.SetLogger(l)
+	memR.receiver.SetLogger(l.With("module", "tx-receiver"))
 }
 
 // OnStart implements p2p.BaseReactor.
@@ -178,30 +171,7 @@ func (memR *Reactor) OnStart() error {
 		memR.Logger.Info("Tx broadcasting is disabled")
 	}
 
-	var s *grpc.Server
-	if port, err := strconv.Atoi(memR.config.TxReceiverPort); err == nil {
-		lis, err := net.Listen("tcp", ":"+strconv.Itoa(port))
-		if err != nil {
-			memR.Logger.Error("Failed to start tx receiver:Listen", "err", err)
-		} else {
-			var options []grpc.ServerOption
-			options = append(options, grpc.KeepaliveParams(keepalive.ServerParameters{
-				Time:    30 * time.Second,
-				Timeout: 10 * time.Second,
-			}))
-			s = grpc.NewServer(options...)
-			pb.RegisterMempoolTxReceiverServer(s, memR.receiver)
-			memR.receiver.Port = lis.Addr().(*net.TCPAddr).Port
-			memR.Logger.Info("Tx receiver listening on port", "port", memR.receiver.Port)
-			atomic.StoreInt64(&memR.receiver.Started, 1)
-			go func() {
-				if err := s.Serve(lis); err != nil {
-					atomic.StoreInt64(&memR.receiver.Started, 0)
-					memR.Logger.Error("Failed to start tx receiver:Serve", "err", err)
-				}
-			}()
-		}
-	}
+	memR.receiver.Start(memR.config.TxReceiverPort)
 
 	go func() {
 		for {
@@ -214,10 +184,7 @@ func (memR *Reactor) OnStart() error {
 					memR.logCheckTxError(tx, memR.mempool.height, err)
 				}
 			case <-memR.Quit():
-				if s != nil {
-					atomic.StoreInt64(&memR.receiver.Started, 0)
-					s.Stop()
-				}
+				memR.receiver.Stop()
 				return
 			}
 		}
@@ -245,26 +212,12 @@ func (memR *Reactor) GetChannels() []*p2p.ChannelDescriptor {
 // It starts a broadcast routine ensuring all txs are forwarded to the given peer.
 func (memR *Reactor) AddPeer(peer p2p.Peer) {
 	go memR.broadcastTxRoutine(peer)
-	go memR.sendTxReceiverInfo(peer)
+	go memR.receiver.SendTxReceiverInfo(peer)
 }
 
 // RemovePeer implements Reactor.
 func (memR *Reactor) RemovePeer(peer p2p.Peer, reason interface{}) {
-	peerID := memR.ids.GetForPeer(peer)
-	memR.Logger.Info("Removing peer from mempool", "peer", peer, "peerID", peerID)
-	memR.receiverClientsMtx.Lock()
-	if c, ok := memR.receiverClients[peerID]; ok {
-		var recevierCount int
-		delete(memR.receiverClients, peerID)
-		recevierCount = len(memR.receiverClients)
-		memR.receiverClientsMtx.Unlock()
-		memR.Logger.Info("Removing peer from tx receiver", "peer", peer, "peerID", peerID, "recevierCount", recevierCount)
-		if err := c.Conn.Close(); err != nil {
-			memR.Logger.Error("Failed to close tx receiver connection", "peer", peer, "peerID", peerID, "err", err)
-		}
-	} else {
-		memR.receiverClientsMtx.Unlock()
-	}
+	memR.receiver.RemovePeer(peer)
 
 	memR.ids.Reclaim(peer)
 	// broadcast routine checks if peer is gone and returns
@@ -329,7 +282,7 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		return
 	}
 	if chID == TxReceiverChannel {
-		memR.receiveTxReceiverInfo(src, msgBytes)
+		memR.receiver.ReceiveTxReceiverInfo(src, msgBytes)
 		return
 	}
 
@@ -389,9 +342,10 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 	var stream pb.MempoolTxReceiver_CheckTxsClient
 	defer func() {
 		if stream != nil {
+			memR.receiver.Logger.Info("Closing broadcast stream", "peer", peer)
 			_, err := stream.CloseAndRecv()
 			if err != nil {
-				memR.Logger.Error("receiver Error closing checktxs stream", "peer", peer, "err", err)
+				memR.receiver.Logger.Error("Error closing broadcast stream", "peer", peer.ID(), "err", err)
 			}
 		}
 	}()
@@ -441,24 +395,22 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 
 		// ensure peer hasn't already sent us this tx
 		if _, ok = memTx.senders.Load(peerID); !ok {
-			memR.receiverClientsMtx.RLock()
-			client, ok := memR.receiverClients[peerID]
-			memR.receiverClientsMtx.RUnlock()
+			client, ok := memR.receiver.GetClient(peerID)
 			if ok {
 				var err error
 				if stream == nil {
 					stream, err = client.Client.CheckTxs(context.Background())
 					if err != nil {
-						memR.Logger.Error("receiver Error CheckTxs", "err", err)
+						memR.receiver.Logger.Error("Error CheckTxs", "err", err)
 						goto P2P
 					}
 				}
 				err = stream.Send(&pb.TxPeersRequest{Tx: memTx.tx, PeerId: uint32(client.ID)})
 				if err != nil {
-					memR.Logger.Error("receiver Error Send", "err", err)
+					memR.receiver.Logger.Error("Error Send", "err", err)
 					_, err = stream.CloseAndRecv()
 					if err != nil {
-						memR.Logger.Error("receiver Error closing checktxs stream", "peer", peer, "err", err)
+						memR.receiver.Logger.Error("Error closing checktxs stream", "peer", peer, "err", err)
 					}
 					stream = nil
 					goto P2P
@@ -522,87 +474,6 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 		case <-memR.Quit():
 			return
 		}
-	}
-}
-
-func (memR *Reactor) sendTxReceiverInfo(peer p2p.Peer) {
-	if !memR.receiver.Enabled() {
-		return
-	}
-	port := int64(memR.receiver.Port)
-	if memR.config.TxReceiverExternalPort != 0 {
-		port = int64(memR.config.TxReceiverExternalPort)
-	}
-	var info pb.ReceiverInfo
-	info.Port = port
-	info.YourId = uint32(memR.ids.GetForPeer(peer))
-	bz, err := info.Marshal()
-	if err != nil {
-		memR.Logger.Error("sendTxReceiverInfo:marshal", "error", err)
-		return
-	}
-
-	var retry = 0
-
-	for {
-		if !memR.IsRunning() || !peer.IsRunning() {
-			memR.Logger.Error("sendTxReceiverInfo:peer is not running", "peer", peer)
-			return
-		}
-		if retry == 7 {
-			memR.Logger.Error("sendTxReceiverInfo:try", "times", retry, "peer", peer)
-			return
-		}
-		// make sure the peer is up to date
-		_, ok := peer.Get(types.PeerStateKey).(PeerState)
-		if !ok {
-			// Peer does not have a state yet. We set it in the consensus reactor, but
-			// when we add peer in Switch, the order we call reactors#AddPeer is
-			// different every time due to us using a map. Sometimes other reactors
-			// will be initialized before the consensus reactor. We should wait a few
-			// milliseconds and retry.
-			time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
-			continue
-		}
-		ok = peer.Send(TxReceiverChannel, bz)
-		if !ok {
-			retry++
-			continue
-		}
-		memR.Logger.Info("sendTxReceiverInfo:success", "peer", peer, "data", info)
-		return
-	}
-}
-
-func (memR *Reactor) receiveTxReceiverInfo(src p2p.Peer, bz []byte) {
-	var info pb.ReceiverInfo
-	err := info.Unmarshal(bz)
-	if err != nil {
-		memR.Logger.Error("receiveTxReceiverInfo:unmarshal", "error", err)
-		return
-	}
-
-	addr := src.SocketAddr().IP.String() + ":" + strconv.FormatInt(info.Port, 10)
-	conn, err := grpc.Dial(addr,
-		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
-		grpc.WithKeepaliveParams(keepalive.ClientParameters{
-			Time:                30 * time.Second,
-			Timeout:             10 * time.Second,
-			PermitWithoutStream: true,
-		}),
-	)
-	if err != nil {
-		memR.Logger.Error("receiveTxReceiverInfo:dial", "error", err)
-		return
-	} else {
-		client := pb.NewMempoolTxReceiverClient(conn)
-		var receiverCount int
-		memR.receiverClientsMtx.Lock()
-		memR.receiverClients[memR.ids.GetForPeer(src)] = txReceiverClient{client, conn, uint16(info.YourId)}
-		receiverCount = len(memR.receiverClients)
-		memR.receiverClientsMtx.Unlock()
-		memR.Logger.Info("receiveTxReceiverInfo:success", "peer", src, "data", info, "receiverCount", receiverCount)
 	}
 }
 
