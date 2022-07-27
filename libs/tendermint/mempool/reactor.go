@@ -395,6 +395,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 		return
 	}
 
+	var num int
 	peerID := memR.ids.GetForPeer(peer)
 	var next *clist.CElement
 	for {
@@ -462,6 +463,10 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 						time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 						continue
 					}
+				}
+				num++
+				if num%1000 == 0 {
+					fmt.Println("broadcast working...", "addr", peer.RemoteAddr())
 				}
 			}
 
