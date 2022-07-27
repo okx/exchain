@@ -3,6 +3,7 @@ package mempool
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"fmt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -420,6 +421,8 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			continue
 		}
 
+		txHash := hex.EncodeToString(memTx.realTx.TxHash())
+
 		// ensure peer hasn't already sent us this tx
 		if _, ok = memTx.senders.Load(peerID); !ok {
 			memR.receiverClientsMtx.RLock()
@@ -428,11 +431,14 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			if ok {
 				_, err := client.Client.Receive(context.Background(), &pb.TxRequest{Tx: memTx.tx, PeerId: uint32(client.ID)})
 				if err == nil {
+					memR.Logger.Info("send with recevier to", peer.ID(), "tx", txHash)
 					goto SUCCESS
 				} else {
 					memR.Logger.Error("Error sending tx with receiver", "err", err)
 				}
 			}
+
+			memR.Logger.Info("fallback to broadcast", peer.ID(), "tx", txHash)
 
 			var getFromPool bool
 			// send memTx
@@ -470,6 +476,8 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 				time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 				continue
 			}
+		} else {
+			memR.Logger.Info("Peer has already sent us this tx", "peer", peer.ID(), "tx", txHash)
 		}
 
 	SUCCESS:
