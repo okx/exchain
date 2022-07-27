@@ -2,10 +2,12 @@ package mempool
 
 import (
 	"context"
+	"encoding/hex"
 	"fmt"
 	pb "github.com/okex/exchain/libs/tendermint/proto/mempool"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"google.golang.org/protobuf/types/known/emptypb"
+	"sync"
 	"sync/atomic"
 )
 
@@ -21,6 +23,8 @@ func newTxReceiverServer(memR *Reactor) *txReceiverServer {
 }
 
 var num1, num2, num3 uint64
+var dupTx = make(map[string]int64)
+var dupMtx sync.Mutex
 
 func (s *txReceiverServer) Receive(ctx context.Context, req *pb.TxsRequest) (*emptypb.Empty, error) {
 	for _, tx := range req.Txs {
@@ -29,14 +33,20 @@ func (s *txReceiverServer) Receive(ctx context.Context, req *pb.TxsRequest) (*em
 		}
 
 		if atomic.AddUint64(&num1, 1)%1000 == 0 {
-			fmt.Println("mempool size", s.memR.mempool.Size(), "batch size", len(req.Txs), atomic.LoadUint64(&num1), atomic.LoadUint64(&num2), atomic.LoadUint64(&num3))
+			dupMtx.Lock()
+			fmt.Println("mempool size", s.memR.mempool.Size(), "batch size", len(req.Txs), atomic.LoadUint64(&num1), atomic.LoadUint64(&num2), atomic.LoadUint64(&num3), "dup len", len(dupTx))
+			dupMtx.Unlock()
 		}
+
 		if err := s.memR.mempool.CheckTx(tx, nil, txInfo); err != nil && err != ErrTxInCache {
 			fmt.Println("checkTx error", err)
 			return nil, err
 		} else if err == nil {
 			atomic.AddUint64(&num2, 1)
 		} else if err == ErrTxInCache {
+			dupMtx.Lock()
+			dupTx[hex.EncodeToString(tx)]++
+			dupMtx.Unlock()
 			atomic.AddUint64(&num3, 1)
 		}
 	}
