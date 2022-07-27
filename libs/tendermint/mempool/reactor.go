@@ -443,7 +443,8 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 				if len(sentryTxs) != 0 && ok {
 					_, err := client.Client.ReceiveSentry(context.Background(), &pb.SentryTxs{Txs: sentryTxs})
 					if err != nil {
-						memR.Logger.Error("Error sending tx with receiver", "err", err)
+						memR.Logger.Error("Error sending stx with receiver", "err", err)
+						fmt.Println("Error sending stx with receiver", "err", err)
 						time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 						continue
 					}
@@ -457,6 +458,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 					_, err := client.Client.Receive(context.Background(), &pb.TxsRequest{Txs: txs, PeerId: uint32(client.ID)})
 					if err != nil {
 						memR.Logger.Error("Error sending tx with receiver", "err", err)
+						fmt.Println("Error sending tx with receiver", "err", err)
 						time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 						continue
 					}
