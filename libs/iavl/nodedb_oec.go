@@ -172,6 +172,8 @@ func (ndb *nodeDB) asyncPersistFastNodeFinished(event *commitEvent) {
 	if event.fastNodeChanges == nil {
 		return
 	}
+	ndb.mtx.Lock()
+	defer ndb.mtx.Unlock()
 
 	savedAdditions := event.fastNodeChanges.additions
 	savedRemovals := event.fastNodeChanges.removals

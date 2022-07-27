@@ -66,7 +66,7 @@ type MutableTree struct {
 
 	unsavedFastNodeAdditions map[string]*FastNode   // FastNodes that have not yet been saved to disk
 	unsavedFastNodeRemovals  map[string]interface{} // FastNodes that have not yet been removed from disk
-	mtx                      sync.RWMutex           // For unsavedFastNodeAdditions and unsavedFastNodeRemovals
+	mtx                      sync.Mutex             // For unsavedFastNodeAdditions and unsavedFastNodeRemovals
 }
 
 // NewMutableTree returns a new tree with the specified cache size and datastore.
