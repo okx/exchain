@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint/internal/types"
 )
@@ -64,9 +65,11 @@ func queryInflationHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-
+		var inflation sdk.Dec
+		cliCtx.Codec.MustUnmarshalJSON(res, &inflation)
+		wrappedInflation := types.NewWrappedInflation(inflation)
 		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, res)
+		rest.PostProcessResponse(w, cliCtx, wrappedInflation)
 	}
 }
 

@@ -46,8 +46,10 @@ func queryParams(ctx sdk.Context, k Keeper) ([]byte, error) {
 }
 
 func queryInflation(ctx sdk.Context, k Keeper) ([]byte, error) {
-	//minter := k.GetMinter(ctx)
-	inflation := sdk.ZeroDec()
+	minter := k.GetMinter(ctx)
+	params := k.GetParams(ctx)
+	inflation := k.GetInflation(ctx, &minter, params)
+
 	res, err := codec.MarshalJSONIndent(k.cdc, inflation)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
@@ -56,13 +58,13 @@ func queryInflation(ctx sdk.Context, k Keeper) ([]byte, error) {
 	return res, nil
 }
 
-func queryAnnualProvisions(ctx sdk.Context, k Keeper) ([]byte, error) {
-	minter := k.GetMinter(ctx)
-
-	res, err := codec.MarshalJSONIndent(k.cdc, minter.AnnualProvisions)
-	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
-	}
-
-	return res, nil
-}
+//func queryAnnualProvisions(ctx sdk.Context, k Keeper) ([]byte, error) {
+//	minter := k.GetMinter(ctx)
+//
+//	res, err := codec.MarshalJSONIndent(k.cdc, minter.AnnualProvisions)
+//	if err != nil {
+//		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+//	}
+//
+//	return res, nil
+//}
