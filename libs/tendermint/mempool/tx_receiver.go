@@ -48,25 +48,23 @@ func (s *txReceiverServer) Enabled() bool {
 	return true
 }
 
-func (s *txReceiverServer) Receive(ctx context.Context, req *pb.TxRequest) (*emptypb.Empty, error) {
+func (s *txReceiverServer) Receive(_ context.Context, req *pb.TxRequest) (*emptypb.Empty, error) {
 	if len(req.Tx) > 0 {
-		var txjob txJob
-		txjob.tx = req.Tx
-		if req.PeerId != 0 {
-			txjob.info.SenderID = uint16(req.PeerId)
-		} else {
+		if req.PeerId == 0 {
 			return nil, errZeroId
 		}
-		select {
-		case s.memR.txCh <- txjob:
-		case <-ctx.Done():
+
+		var info TxInfo
+		info.SenderID = uint16(req.PeerId)
+		err := s.memR.mempool.CheckTx(req.Tx, nil, info)
+		if err != nil {
+			s.memR.logCheckTxError(req.Tx, s.memR.mempool.Height(), err)
 		}
+		return nil, nil
 	} else {
 		s.memR.Logger.Error("txReceiverServer.Receive empty tx")
 		return nil, errEmpty
 	}
-
-	return empty, nil
 }
 
 func (s *txReceiverServer) CheckTxs(stream pb.MempoolTxReceiver_CheckTxsServer) error {
