@@ -428,7 +428,7 @@ func (mem *CListMempool) isFull(txSize int, fromRPC bool) error {
 
 	upperSize := cfg.DynamicConfig.GetMempoolSize()
 	if fromRPC {
-		upperSize /= 2
+		upperSize = upperSize * 3 / 4
 	}
 
 	if memSize >= upperSize || int64(txSize)+txsBytes > mem.config.MaxTxsBytes {
