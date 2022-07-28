@@ -8,9 +8,9 @@ import "google/protobuf/empty.proto";
 package mempool;
 
 service MempoolTxReceiver {
-  rpc Receive (TxsRequest) returns(google.protobuf.Empty) {}
-  rpc ReceiveSentry(SentryTxs) returns(google.protobuf.Empty) {}
   rpc TxIndices(IndicesRequest) returns(IndicesResponse) {}
+  rpc CheckTxs (stream TxsRequest) returns(google.protobuf.Empty) {}
+  rpc CacheSentryTxs (stream SentryTxs) returns(google.protobuf.Empty) {}
 }
 
 message TxsRequest {

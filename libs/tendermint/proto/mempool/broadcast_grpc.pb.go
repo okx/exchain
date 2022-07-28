@@ -23,9 +23,9 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type MempoolTxReceiverClient interface {
-	Receive(ctx context.Context, in *TxsRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
-	ReceiveSentry(ctx context.Context, in *SentryTxs, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	TxIndices(ctx context.Context, in *IndicesRequest, opts ...grpc.CallOption) (*IndicesResponse, error)
+	CheckTxs(ctx context.Context, opts ...grpc.CallOption) (MempoolTxReceiver_CheckTxsClient, error)
+	CacheSentryTxs(ctx context.Context, opts ...grpc.CallOption) (MempoolTxReceiver_CacheSentryTxsClient, error)
 }
 
 type mempoolTxReceiverClient struct {
@@ -34,24 +34,6 @@ type mempoolTxReceiverClient struct {
 
 func NewMempoolTxReceiverClient(cc grpc.ClientConnInterface) MempoolTxReceiverClient {
 	return &mempoolTxReceiverClient{cc}
-}
-
-func (c *mempoolTxReceiverClient) Receive(ctx context.Context, in *TxsRequest, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, "/mempool.MempoolTxReceiver/Receive", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *mempoolTxReceiverClient) ReceiveSentry(ctx context.Context, in *SentryTxs, opts ...grpc.CallOption) (*emptypb.Empty, error) {
-	out := new(emptypb.Empty)
-	err := c.cc.Invoke(ctx, "/mempool.MempoolTxReceiver/ReceiveSentry", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
 }
 
 func (c *mempoolTxReceiverClient) TxIndices(ctx context.Context, in *IndicesRequest, opts ...grpc.CallOption) (*IndicesResponse, error) {
@@ -63,13 +45,81 @@ func (c *mempoolTxReceiverClient) TxIndices(ctx context.Context, in *IndicesRequ
 	return out, nil
 }
 
+func (c *mempoolTxReceiverClient) CheckTxs(ctx context.Context, opts ...grpc.CallOption) (MempoolTxReceiver_CheckTxsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &MempoolTxReceiver_ServiceDesc.Streams[0], "/mempool.MempoolTxReceiver/CheckTxs", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &mempoolTxReceiverCheckTxsClient{stream}
+	return x, nil
+}
+
+type MempoolTxReceiver_CheckTxsClient interface {
+	Send(*TxsRequest) error
+	CloseAndRecv() (*emptypb.Empty, error)
+	grpc.ClientStream
+}
+
+type mempoolTxReceiverCheckTxsClient struct {
+	grpc.ClientStream
+}
+
+func (x *mempoolTxReceiverCheckTxsClient) Send(m *TxsRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *mempoolTxReceiverCheckTxsClient) CloseAndRecv() (*emptypb.Empty, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(emptypb.Empty)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func (c *mempoolTxReceiverClient) CacheSentryTxs(ctx context.Context, opts ...grpc.CallOption) (MempoolTxReceiver_CacheSentryTxsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &MempoolTxReceiver_ServiceDesc.Streams[1], "/mempool.MempoolTxReceiver/CacheSentryTxs", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &mempoolTxReceiverCacheSentryTxsClient{stream}
+	return x, nil
+}
+
+type MempoolTxReceiver_CacheSentryTxsClient interface {
+	Send(*SentryTxs) error
+	CloseAndRecv() (*emptypb.Empty, error)
+	grpc.ClientStream
+}
+
+type mempoolTxReceiverCacheSentryTxsClient struct {
+	grpc.ClientStream
+}
+
+func (x *mempoolTxReceiverCacheSentryTxsClient) Send(m *SentryTxs) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *mempoolTxReceiverCacheSentryTxsClient) CloseAndRecv() (*emptypb.Empty, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(emptypb.Empty)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // MempoolTxReceiverServer is the server API for MempoolTxReceiver service.
 // All implementations must embed UnimplementedMempoolTxReceiverServer
 // for forward compatibility
 type MempoolTxReceiverServer interface {
-	Receive(context.Context, *TxsRequest) (*emptypb.Empty, error)
-	ReceiveSentry(context.Context, *SentryTxs) (*emptypb.Empty, error)
 	TxIndices(context.Context, *IndicesRequest) (*IndicesResponse, error)
+	CheckTxs(MempoolTxReceiver_CheckTxsServer) error
+	CacheSentryTxs(MempoolTxReceiver_CacheSentryTxsServer) error
 	mustEmbedUnimplementedMempoolTxReceiverServer()
 }
 
@@ -77,14 +127,14 @@ type MempoolTxReceiverServer interface {
 type UnimplementedMempoolTxReceiverServer struct {
 }
 
-func (UnimplementedMempoolTxReceiverServer) Receive(context.Context, *TxsRequest) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Receive not implemented")
-}
-func (UnimplementedMempoolTxReceiverServer) ReceiveSentry(context.Context, *SentryTxs) (*emptypb.Empty, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ReceiveSentry not implemented")
-}
 func (UnimplementedMempoolTxReceiverServer) TxIndices(context.Context, *IndicesRequest) (*IndicesResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method TxIndices not implemented")
+}
+func (UnimplementedMempoolTxReceiverServer) CheckTxs(MempoolTxReceiver_CheckTxsServer) error {
+	return status.Errorf(codes.Unimplemented, "method CheckTxs not implemented")
+}
+func (UnimplementedMempoolTxReceiverServer) CacheSentryTxs(MempoolTxReceiver_CacheSentryTxsServer) error {
+	return status.Errorf(codes.Unimplemented, "method CacheSentryTxs not implemented")
 }
 func (UnimplementedMempoolTxReceiverServer) mustEmbedUnimplementedMempoolTxReceiverServer() {}
 
@@ -97,42 +147,6 @@ type UnsafeMempoolTxReceiverServer interface {
 
 func RegisterMempoolTxReceiverServer(s grpc.ServiceRegistrar, srv MempoolTxReceiverServer) {
 	s.RegisterService(&MempoolTxReceiver_ServiceDesc, srv)
-}
-
-func _MempoolTxReceiver_Receive_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(TxsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MempoolTxReceiverServer).Receive(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/mempool.MempoolTxReceiver/Receive",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MempoolTxReceiverServer).Receive(ctx, req.(*TxsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _MempoolTxReceiver_ReceiveSentry_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(SentryTxs)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MempoolTxReceiverServer).ReceiveSentry(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/mempool.MempoolTxReceiver/ReceiveSentry",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MempoolTxReceiverServer).ReceiveSentry(ctx, req.(*SentryTxs))
-	}
-	return interceptor(ctx, in, info, handler)
 }
 
 func _MempoolTxReceiver_TxIndices_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -153,6 +167,58 @@ func _MempoolTxReceiver_TxIndices_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MempoolTxReceiver_CheckTxs_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(MempoolTxReceiverServer).CheckTxs(&mempoolTxReceiverCheckTxsServer{stream})
+}
+
+type MempoolTxReceiver_CheckTxsServer interface {
+	SendAndClose(*emptypb.Empty) error
+	Recv() (*TxsRequest, error)
+	grpc.ServerStream
+}
+
+type mempoolTxReceiverCheckTxsServer struct {
+	grpc.ServerStream
+}
+
+func (x *mempoolTxReceiverCheckTxsServer) SendAndClose(m *emptypb.Empty) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *mempoolTxReceiverCheckTxsServer) Recv() (*TxsRequest, error) {
+	m := new(TxsRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func _MempoolTxReceiver_CacheSentryTxs_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(MempoolTxReceiverServer).CacheSentryTxs(&mempoolTxReceiverCacheSentryTxsServer{stream})
+}
+
+type MempoolTxReceiver_CacheSentryTxsServer interface {
+	SendAndClose(*emptypb.Empty) error
+	Recv() (*SentryTxs, error)
+	grpc.ServerStream
+}
+
+type mempoolTxReceiverCacheSentryTxsServer struct {
+	grpc.ServerStream
+}
+
+func (x *mempoolTxReceiverCacheSentryTxsServer) SendAndClose(m *emptypb.Empty) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *mempoolTxReceiverCacheSentryTxsServer) Recv() (*SentryTxs, error) {
+	m := new(SentryTxs)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // MempoolTxReceiver_ServiceDesc is the grpc.ServiceDesc for MempoolTxReceiver service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -161,18 +227,21 @@ var MempoolTxReceiver_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*MempoolTxReceiverServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "Receive",
-			Handler:    _MempoolTxReceiver_Receive_Handler,
-		},
-		{
-			MethodName: "ReceiveSentry",
-			Handler:    _MempoolTxReceiver_ReceiveSentry_Handler,
-		},
-		{
 			MethodName: "TxIndices",
 			Handler:    _MempoolTxReceiver_TxIndices_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "CheckTxs",
+			Handler:       _MempoolTxReceiver_CheckTxs_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "CacheSentryTxs",
+			Handler:       _MempoolTxReceiver_CacheSentryTxs_Handler,
+			ClientStreams: true,
+		},
+	},
 	Metadata: "libs/tendermint/proto/mempool/broadcast.proto",
 }
