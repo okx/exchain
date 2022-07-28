@@ -78,7 +78,7 @@ func (fncv *fastNodeChangesWithVersion) del(version int64) {
 func (fncv *fastNodeChangesWithVersion) get(key []byte) (*FastNode, bool) {
 	fncv.mtx.RLock()
 	defer fncv.mtx.RUnlock()
-	for i := len(fncv.versions) - 1; i > 0; i-- {
+	for i := len(fncv.versions) - 1; i >= 0; i-- {
 		if fn, ok := fncv.fncMap[fncv.versions[i]].get(key); ok {
 			return fn, ok
 		}
