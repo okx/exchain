@@ -34,7 +34,13 @@ func (s *txReceiverServer) Receive(ctx context.Context, req *pb.TxsRequest) (*em
 
 		if atomic.AddUint64(&num1, 1)%1000 == 0 {
 			dupMtx.Lock()
-			fmt.Println("mempool size", s.memR.mempool.Size(), "batch size", len(req.Txs), atomic.LoadUint64(&num1), atomic.LoadUint64(&num2), atomic.LoadUint64(&num3), "dup len", len(dupTx))
+			var maxDup int64
+			for _, v := range dupTx {
+				if v > maxDup {
+					maxDup = v
+				}
+			}
+			fmt.Println("mempool size", s.memR.mempool.Size(), "batch size", len(req.Txs), atomic.LoadUint64(&num1), atomic.LoadUint64(&num2), atomic.LoadUint64(&num3), "dup len", len(dupTx), "max Dup", maxDup)
 			dupMtx.Unlock()
 		}
 

@@ -616,7 +616,7 @@ func (mem *CListMempool) resCbFirstTime(
 			}
 		} else {
 			// ignore bad transaction
-			mem.logger.Info("Rejected bad transaction",
+			mem.logger.Error("Rejected bad transaction",
 				"tx", txIDStringer{tx, mem.height}, "peerID", txInfo.SenderP2PID, "res", r, "err", postCheckErr)
 			mem.metrics.FailedTxs.Add(1)
 			// remove from cache (it might be good later)
