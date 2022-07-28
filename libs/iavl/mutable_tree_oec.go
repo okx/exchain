@@ -196,7 +196,7 @@ func (tree *MutableTree) commitSchedule() {
 		trc.Pin("Pruning")
 		tree.updateCommittedStateHeightPool(event.batch, event.version, event.versions)
 
-		tree.persistTpp(&event, trc)
+		tree.ndb.persistTpp(&event, trc)
 		if event.wg != nil {
 			event.wg.Done()
 			break
@@ -376,27 +376,3 @@ func (t *ImmutableTree) GetPersistedRoots() map[int64][]byte {
 	return t.ndb.roots()
 }
 
-func (tree *MutableTree) persistTpp(event *commitEvent, trc *trace.Tracer) {
-	ndb := tree.ndb
-	batch := event.batch
-	tpp := event.tpp
-
-	trc.Pin("batchSet")
-	for _, node := range tpp {
-		ndb.batchSet(node, batch)
-	}
-	ndb.state.increasePersistedCount(len(tpp))
-	ndb.addDBWriteCount(int64(len(tpp)))
-
-	if err := tree.ndb.saveFastNodeVersion(batch, event.fncv); err != nil {
-		panic(err)
-	}
-
-	trc.Pin("batchCommit")
-	if err := ndb.Commit(batch); err != nil {
-		panic(err)
-	}
-
-	ndb.asyncPersistTppFinised(event, trc)
-	ndb.tpfv.remove(event.version)
-}

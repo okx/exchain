@@ -867,9 +867,11 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 		}
 	}
 
-	if err := tree.ndb.saveFastNodeVersion(batch,
-		newFastNodeChangesVersion(&fastNodeChanges{additions: tree.unsavedFastNodeAdditions, removals: tree.unsavedFastNodeRemovals},
-			tree.ndb.getLatestVersion())); err != nil {
+	fnc := newFastNodeChangesVersion(&fastNodeChanges{additions: tree.unsavedFastNodeAdditions,
+		removals: tree.unsavedFastNodeRemovals},
+			tree.ndb.getLatestVersion())
+
+	if err := tree.ndb.saveFastNodeVersion(batch, fnc, tree.ndb.getLatestVersion()); err != nil {
 		return nil, version, err
 	}
 
@@ -973,7 +975,7 @@ func (tree *MutableTree) DeleteVersionsRange(fromVersion, toVersion int64, enfor
 	return nil
 }
 
-func (ndb *nodeDB) saveFastNodeVersion(batch dbm.Batch, fncv *fastNodeChangesVersion) error {
+func (ndb *nodeDB) saveFastNodeVersion(batch dbm.Batch, fncv *fastNodeChangesVersion, version int64) error {
 	if fncv == nil {
 		return nil
 	}
