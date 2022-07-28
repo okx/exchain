@@ -719,7 +719,7 @@ func (mem *CListMempool) ReapTxIndicesMaxBytesMaxGas(maxBytes, maxGas int64) []u
 		mem.logger.Info("ReapTxIndicesMaxBytesMaxGas", "ProposingHeight", mem.Height()+1,
 			"MempoolTxs", mem.txs.Len(), "ReapTxs", len(indices))
 	}()
-	start := time.Now()
+
 	for e := mem.txs.Front(); e != nil; e = e.Next() {
 		memTx := e.Value.(*mempoolTx)
 		// Check total size requirement
@@ -744,7 +744,6 @@ func (mem *CListMempool) ReapTxIndicesMaxBytesMaxGas(maxBytes, maxGas int64) []u
 		totalGas = newTotalGas
 		indices = append(indices, memTx.index)
 	}
-	fmt.Println("get indices from clist", time.Since(start))
 
 	return indices
 }

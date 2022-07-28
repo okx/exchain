@@ -59,7 +59,6 @@ type Reactor struct {
 	responseChan      chan *TxIndicesMessage
 	txMap             *lru.Cache // txIndex -> tx
 
-	txCh               chan txJob
 	receiverClients    map[uint16]txReceiverClient
 	receiverClientsMtx sync.RWMutex
 	receiver           *txReceiver
@@ -152,8 +151,6 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 		isSentryNode:     cfg.DynamicConfig.IsSentryNode(),
 		sentryPartner:    cfg.DynamicConfig.GetSentryPartner(),
 		txMap:            cache,
-
-		txCh: make(chan txJob, 2*100_000),
 	}
 
 	if memR.sentryPartner != "" && !memR.isSentryNode {
@@ -169,13 +166,6 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 	return memR
 }
 
-func (memR *Reactor) getReceiverClient(peerID uint16) (txReceiverClient, bool) {
-	memR.receiverClientsMtx.Lock()
-	client, ok := memR.receiverClients[peerID]
-	memR.receiverClientsMtx.Unlock()
-	return client, ok
-}
-
 func (memR *Reactor) Update(height int64, txs types.Txs) {
 	for _, tx := range txs {
 		types.SignatureCache().Remove(tx.Hash(height))
@@ -189,7 +179,8 @@ func (memR *Reactor) ReapTxs(maxBytes, maxGas int64) []types.Tx {
 	if sentryPartnerPeer == nil {
 		return nil
 	}
-	client, ok := memR.getReceiverClient(memR.ids.GetForPeer(sentryPartnerPeer))
+
+	client, ok := memR.receiver.GetClient(memR.ids.GetForPeer(sentryPartnerPeer))
 	if !ok {
 		return nil
 	}
@@ -205,8 +196,6 @@ func (memR *Reactor) ReapTxs(maxBytes, maxGas int64) []types.Tx {
 		return nil
 	}
 
-	fmt.Println("fetch tx indices time cost", time.Since(start))
-
 	txs := make([]types.Tx, 0, len(res.Indices))
 	for _, index := range res.Indices {
 		v, ok := memR.txMap.Get(index)
@@ -214,6 +203,7 @@ func (memR *Reactor) ReapTxs(maxBytes, maxGas int64) []types.Tx {
 			txs = append(txs, v.([]byte))
 		}
 	}
+	fmt.Println("fetch tx indices time cost", time.Since(start), "indices len", len(res.Indices), "txs len", len(txs))
 	return txs
 }
 
@@ -237,23 +227,6 @@ func (memR *Reactor) OnStart() error {
 	}
 
 	memR.receiver.Start(memR.config.TxReceiverPort)
-
-	go func() {
-		for {
-			select {
-			case txJob := <-memR.txCh:
-				tx := txJob.tx
-				txInfo := txJob.info
-				err := memR.mempool.CheckTx(tx, nil, txInfo)
-				if err != nil {
-					memR.logCheckTxError(tx, memR.mempool.height, err)
-				}
-			case <-memR.Quit():
-				memR.receiver.Stop()
-				return
-			}
-		}
-	}()
 
 	return nil
 }
@@ -286,10 +259,23 @@ func (memR *Reactor) AddPeer(peer p2p.Peer) {
 		memR.sentryPartnerPeer = peer
 		memR.sentryPartnerLock.Unlock()
 	}
-	if memR.sentryPartner == "" || memR.isSentryNode || string(peer.ID()) == memR.sentryPartner {
+	if memR.isGRPCPartner(string(peer.ID())) {
 		go memR.receiver.SendTxReceiverInfo(peer)
+	}
+
+	if memR.sentryPartner == "" || memR.isSentryNode {
 		go memR.broadcastTxRoutine(peer)
 	}
+}
+
+func (memR *Reactor) isGRPCPartner(id string) bool {
+	if memR.sentryPartner == "" {
+		return true
+	}
+	if memR.isSentryNode || id == memR.sentryPartner {
+		return true
+	}
+	return false
 }
 
 // RemovePeer implements Reactor.
@@ -364,7 +350,9 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		return
 	}
 	if chID == TxReceiverChannel {
-		memR.receiver.ReceiveTxReceiverInfo(src, msgBytes)
+		if memR.isGRPCPartner(string(src.ID())) {
+			go memR.receiver.ReceiveTxReceiverInfo(src, msgBytes)
+		}
 		return
 	}
 
@@ -382,36 +370,7 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	}
 	var tx types.Tx
 
-	//TODO: simplify the code
 	switch msg := msg.(type) {
-	case *FetchMessage:
-		indices := memR.mempool.ReapTxIndicesMaxBytesMaxGas(msg.MaxBytes, msg.MaxGas)
-		success := src.Send(SentryChannel, memR.encodeMsg(&TxIndicesMessage{
-			Indices: indices,
-		}))
-		if !success {
-			memR.Logger.Error("response txs to validator failed", "peerID", src.ID())
-		}
-
-	case *StxMessage:
-		if string(src.ID()) == memR.sentryPartner {
-			for _, stx := range msg.Stx {
-				types.SignatureCache().Add(types.Tx(stx.Tx).Hash(memR.mempool.Height()), stx.From)
-				memR.txMap.Add(stx.Index, stx.Tx)
-			}
-			memR.mempool.mustNotifyTxsAvailable()
-		}
-		return
-
-	case *TxIndicesMessage:
-		if !memR.isSentryNode && string(src.ID()) == memR.sentryPartner {
-			select {
-			case memR.responseChan <- msg:
-			default:
-				memR.Logger.Error("debug responseChan full")
-			}
-		}
-		return
 	case *TxsMessage:
 		if !memR.isSentryNode && memR.sentryPartner != "" {
 			return
@@ -445,9 +404,9 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		return
 	}
 
-	memR.txCh <- txJob{
-		tx:   tx,
-		info: txInfo,
+	err = memR.mempool.CheckTx(tx, nil, txInfo)
+	if err != nil {
+		memR.Logger.Info("Could not check tx", "tx", txID(tx, memR.mempool.Height()), "err", err)
 	}
 }
 
@@ -463,7 +422,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 	}
 
 	var stream pb.MempoolTxReceiver_CheckTxsClient
-	var stream2 pb.MempoolTxReceiver_CacheSentryTxsClient
+	var sentryStream pb.MempoolTxReceiver_CacheSentryTxsClient
 
 	defer func() {
 		if stream != nil {
@@ -473,11 +432,11 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 				memR.receiver.Logger.Error("Error closing broadcast stream", "peer", peer.ID(), "err", err)
 			}
 		}
-		if stream2 != nil {
-			memR.receiver.Logger.Info("Closing broadcast stream2", "peer", peer)
-			_, err := stream2.CloseAndRecv()
+		if sentryStream != nil {
+			memR.receiver.Logger.Info("Closing broadcast sentryStream", "peer", peer)
+			_, err := sentryStream.CloseAndRecv()
 			if err != nil {
-				memR.receiver.Logger.Error("Error closing broadcast stream2", "peer", peer.ID(), "err", err)
+				memR.receiver.Logger.Error("Error closing broadcast sentryStream", "peer", peer.ID(), "err", err)
 			}
 		}
 	}()
@@ -537,22 +496,22 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 					continue
 				}
 
-				if stream2 == nil {
-					stream2, err = client.Client.CacheSentryTxs(context.Background())
+				if sentryStream == nil {
+					sentryStream, err = client.Client.CacheSentryTxs(context.Background())
 					if err != nil {
 						memR.receiver.Logger.Error("Error CacheSentryTxs", "err", err)
 						time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 						continue
 					}
 				}
-				err = stream2.Send(&pb.SentryTxs{Txs: sentryTxs})
+				err = sentryStream.Send(&pb.SentryTxs{Txs: sentryTxs})
 				if err != nil {
 					memR.receiver.Logger.Error("Error Send", "err", err)
-					_, err = stream2.CloseAndRecv()
+					_, err = sentryStream.CloseAndRecv()
 					if err != nil {
 						memR.receiver.Logger.Error("Error closing checktxs stream", "peer", peer, "err", err)
 					}
-					stream2 = nil
+					sentryStream = nil
 					time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 					continue
 				}
