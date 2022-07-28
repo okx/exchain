@@ -65,7 +65,7 @@ func (fncv *fastNodeChangesWithVersion) add(version int64, fnc *fastNodeChanges)
 	fncv.fncMap[version] = fnc
 }
 
-func (fncv *fastNodeChangesWithVersion) del(version int64) {
+func (fncv *fastNodeChangesWithVersion) remove(version int64) {
 	if len(fncv.versions) < 1 {
 		return
 	}
