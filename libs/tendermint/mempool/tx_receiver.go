@@ -67,20 +67,53 @@ func (s *txReceiverServer) Receive(_ context.Context, req *pb.TxRequest) (*empty
 	}
 }
 
+func (s *txReceiverServer) receive(req *pb.TxRequest, ch chan txJob) (*emptypb.Empty, error) {
+	if len(req.Tx) > 0 {
+		if req.PeerId == 0 {
+			return nil, errZeroId
+		}
+
+		ch <- txJob{
+			tx: req.Tx,
+			info: TxInfo{
+				SenderID: uint16(req.PeerId),
+			},
+		}
+		return nil, nil
+	} else {
+		s.memR.Logger.Error("txReceiverServer.Receive empty tx")
+		return nil, errEmpty
+	}
+}
+
 func (s *txReceiverServer) CheckTxs(stream pb.MempoolTxReceiver_CheckTxsServer) error {
 	var txReq = &pb.TxRequest{}
+	txCh := make(chan txJob)
+
+	go func(s *txReceiverServer, ch chan txJob) {
+		for job := range ch {
+			err := s.memR.mempool.CheckTx(job.tx, nil, job.info)
+			if err != nil {
+				s.memR.logCheckTxError(job.tx, s.memR.mempool.Height(), err)
+			}
+		}
+	}(s, txCh)
+
 	for {
 		req, err := stream.Recv()
 		if err == io.EOF {
+			close(txCh)
 			return stream.SendAndClose(empty)
 		}
 		if err != nil {
+			close(txCh)
 			return err
 		}
 		txReq.Tx = req.Tx
 		txReq.PeerId = req.PeerId
-		_, err = s.Receive(stream.Context(), txReq)
+		_, err = s.receive(txReq, txCh)
 		if err != nil {
+			close(txCh)
 			return err
 		}
 	}
