@@ -102,6 +102,30 @@ func (ndb *nodeDB) saveNodeToPrePersistCache(node *Node) {
 	ndb.mtx.Unlock()
 }
 
+func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
+	batch := event.batch
+	tpp := event.tpp
+
+	trc.Pin("batchSet")
+	for _, node := range tpp {
+		ndb.batchSet(node, batch)
+	}
+	ndb.state.increasePersistedCount(len(tpp))
+	ndb.addDBWriteCount(int64(len(tpp)))
+
+	if err := ndb.saveFastNodeVersion(batch, event.fncv); err != nil {
+		panic(err)
+	}
+
+	trc.Pin("batchCommit")
+	if err := ndb.Commit(batch); err != nil {
+		panic(err)
+	}
+
+	ndb.asyncPersistTppFinised(event, trc)
+	ndb.tpfv.remove(event.version)
+}
+
 func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *fastNodeChangesVersion) {
 	ndb.log(IavlDebug, "moving prePersistCache to tempPrePersistCache", "size", len(ndb.prePersistNodeCache))
 

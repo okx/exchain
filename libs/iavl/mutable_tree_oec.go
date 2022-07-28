@@ -388,7 +388,7 @@ func (tree *MutableTree) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	ndb.state.increasePersistedCount(len(tpp))
 	ndb.addDBWriteCount(int64(len(tpp)))
 
-	if err := tree.saveFastNodeVersion(batch, event.fncv); err != nil {
+	if err := tree.ndb.saveFastNodeVersion(batch, event.fncv); err != nil {
 		panic(err)
 	}
 
