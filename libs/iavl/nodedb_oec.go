@@ -125,7 +125,7 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *fastN
 		node.persisted = true
 	}
 
-	return tpp, newFastNodeChangesVersion(tempPersistFastNode, version)
+	return tpp, newFastNodeChangesVersion(tempPersistFastNode, ndb.getLatestVersion())
 }
 
 func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer) {
