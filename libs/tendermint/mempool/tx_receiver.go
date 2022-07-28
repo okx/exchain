@@ -9,7 +9,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/grpc/keepalive"
 	"google.golang.org/protobuf/types/known/emptypb"
 	"io"
 	"net"
@@ -19,6 +18,12 @@ import (
 	"sync/atomic"
 	"time"
 )
+
+type txReceiverClient struct {
+	Client pb.MempoolTxReceiverClient
+	Conn   *grpc.ClientConn
+	ID     uint16
+}
 
 type txReceiverServer struct {
 	pb.UnimplementedMempoolTxReceiverServer

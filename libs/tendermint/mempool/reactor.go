@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"google.golang.org/grpc"
 	"math"
 	"reflect"
 	"sync"
@@ -38,12 +37,6 @@ const (
 
 	maxActiveIDs = math.MaxUint16
 )
-
-type txReceiverClient struct {
-	Client pb.MempoolTxReceiverClient
-	Conn   *grpc.ClientConn
-	ID     uint16
-}
 
 // Reactor handles mempool tx broadcasting amongst peers.
 // It maintains a map from peer ID to counter, to prevent gossiping txs to the
