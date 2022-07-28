@@ -136,9 +136,9 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *fastN
 
 	ndb.tpp.pushToTpp(version, tpp)
 
-	tempPersistFastNode := ndb.ppf
+	tempPersistFastNode := ndb.prePersistFastNode
 	ndb.tpfv.add(version, tempPersistFastNode)
-	ndb.ppf = newFastNodeChanges()
+	ndb.prePersistFastNode = newFastNodeChanges()
 
 	ndb.mtx.Unlock()
 
