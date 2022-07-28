@@ -31,16 +31,25 @@ func (fnc *fastNodeChanges) get(key []byte) (*FastNode, bool) {
 }
 
 func (fnc *fastNodeChanges) add(key string, fastNode *FastNode) {
+	if !EnableAsyncCommit {
+		return
+	}
 	fnc.additions[key] = fastNode
 	delete(fnc.removals, key)
 }
 
 func (fnc *fastNodeChanges) remove(key string, value interface{}) {
+	if !EnableAsyncCommit {
+		return
+	}
 	fnc.removals[key] = value
 	delete(fnc.additions, key)
 }
 
 func (fnc *fastNodeChanges) reset() {
+	if !EnableAsyncCommit {
+		return
+	}
 	for k := range fnc.additions {
 		delete(fnc.additions, k)
 	}
@@ -62,6 +71,9 @@ func newFastNodeChangesWithVersion() *fastNodeChangesWithVersion {
 }
 
 func (fncv *fastNodeChangesWithVersion) add(version int64, fnc *fastNodeChanges) {
+	if !EnableAsyncCommit {
+		return
+	}
 	fncv.mtx.Lock()
 	defer fncv.mtx.Unlock()
 	fncv.versions = append(fncv.versions, version)
@@ -69,6 +81,9 @@ func (fncv *fastNodeChangesWithVersion) add(version int64, fnc *fastNodeChanges)
 }
 
 func (fncv *fastNodeChangesWithVersion) remove(version int64) {
+	if !EnableAsyncCommit {
+		return
+	}
 	if len(fncv.versions) < 1 {
 		return
 	}
