@@ -67,6 +67,8 @@ func NewRestServer(cdc *codec.CodecProxy, interfaceReg jsonpb.AnyResolver, tmNod
 		cliCtx = cliCtx.WithChainID(tmNode.ConsensusState().GetState().ChainID)
 		cliCtx.Client = local.New(tmNode)
 		logger = tmNode.Logger.With("module", "rest-server")
+	} else {
+		cliCtx = cliCtx.WithChainID(viper.GetString(flags.FlagChainID))
 	}
 
 	cliCtx.TrustNode = true
