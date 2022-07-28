@@ -481,13 +481,13 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 			continue
 		}
-		client, ok := memR.receiver.GetClient(peerID)
-		if !ok {
-			time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
-			continue
-		}
 
 		if cfg.DynamicConfig.GetEnableBatchTx() {
+			client, ok := memR.receiver.GetClient(peerID)
+			if !ok {
+				time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
+				continue
+			}
 			if memR.isSentryNode && string(peer.ID()) == memR.sentryPartner {
 				var sentryTxs []*pb.SentryTx
 				sentryTxs, next = memR.mempool.sentryTxs(next)
@@ -540,6 +540,46 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 						memR.receiver.Logger.Error("Error closing checktxs stream", "peer", peer, "err", err)
 					}
 					stream = nil
+					time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
+					continue
+				}
+			}
+		} else {
+			// ensure peer hasn't already sent us this tx
+			if _, ok := memTx.senders.Load(peerID); !ok {
+				var getFromPool bool
+				// send memTx
+				var msg Message
+				if memTx.nodeKey != nil && memTx.signature != nil {
+					msg = &WtxMessage{
+						Wtx: &WrappedTx{
+							Payload:   memTx.tx,
+							From:      memTx.from,
+							Signature: memTx.signature,
+							NodeKey:   memTx.nodeKey,
+						},
+					}
+				} else if memR.enableWtx {
+					if wtx, err := memR.wrapTx(memTx.tx, memTx.from); err == nil {
+						msg = &WtxMessage{
+							Wtx: wtx,
+						}
+					}
+				} else {
+					txMsg := txMessageDeocdePool.Get().(*TxMessage)
+					txMsg.Tx = memTx.tx
+					msg = txMsg
+					getFromPool = true
+				}
+
+				msgBz := memR.encodeMsg(msg)
+				if getFromPool {
+					getFromPool = false
+					txMessageDeocdePool.Put(msg)
+				}
+
+				success := peer.Send(MempoolChannel, msgBz)
+				if !success {
 					time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 					continue
 				}
