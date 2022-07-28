@@ -130,7 +130,8 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *fastN
 
 	ndb.tpp.pushToTpp(version, tpp)
 
-	ndb.tpf = ndb.ppf
+	tempPersistFastNode := ndb.ppf
+	ndb.tpfv.add(version, tempPersistFastNode)
 	ndb.ppf = newFastNodeChanges()
 
 	ndb.mtx.Unlock()
@@ -142,7 +143,7 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *fastN
 		node.persisted = true
 	}
 
-	return tpp, newFastNodeChangesVersion(ndb.tpf, version)
+	return tpp, newFastNodeChangesVersion(tempPersistFastNode, version)
 }
 
 func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer) {

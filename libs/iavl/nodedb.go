@@ -88,7 +88,7 @@ type nodeDB struct {
 	tpp   *tempPrePersistNodes
 
 	fastNodeCache          *FastNodeCache
-	tpf                    *fastNodeChanges
+	tpfv                   *fastNodeChangesWithVersion
 	ppf                    *fastNodeChanges
 	latestVersion4FastNode int64
 }
@@ -115,8 +115,8 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		state:               newRuntimeState(),
 		tpp:                 newTempPrePersistNodes(),
 		storageVersion:      string(storeVersion),
-		tpf:                 newFastNodeChanges(),
 		ppf:                 newFastNodeChanges(),
+		tpfv:                newFastNodeChangesWithVersion(),
 	}
 
 	ndb.fastNodeCache = newFastNodeCache(ndb.name, GetFastNodeCacheSize())
@@ -142,7 +142,7 @@ func (ndb *nodeDB) GetFastNode(key []byte) (*FastNode, error) {
 		return node, nil
 	}
 	// Check temp pre commit FastNode
-	if node, ok := ndb.tpf.get(key); ok {
+	if node, ok := ndb.tpfv.get(key); ok {
 		return node, nil
 	}
 	// Check the cache.

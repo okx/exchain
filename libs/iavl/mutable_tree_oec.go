@@ -398,4 +398,5 @@ func (tree *MutableTree) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	}
 
 	ndb.asyncPersistTppFinised(event, trc)
+	ndb.tpfv.del(event.version)
 }
