@@ -867,7 +867,9 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 		}
 	}
 
-	if err := tree.saveFastNodeVersion(batch, newFastNodeChangesVersion(tree.ndb.ppf, tree.ndb.getLatestVersion())); err != nil {
+	if err := tree.saveFastNodeVersion(batch,
+		newFastNodeChangesVersion(&fastNodeChanges{additions: tree.unsavedFastNodeAdditions, removals: tree.unsavedFastNodeRemovals},
+			tree.ndb.getLatestVersion())); err != nil {
 		return nil, version, err
 	}
 
