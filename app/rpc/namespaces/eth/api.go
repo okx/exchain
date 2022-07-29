@@ -63,7 +63,7 @@ const (
 	FlagEnableMultiCall    = "rpc.enable-multi-call"
 	FlagFastQueryThreshold = "fast-query-threshold"
 
-	EvmHookGasEstimate = uint64(55000)
+	EvmHookGasEstimate = uint64(60000)
 )
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
