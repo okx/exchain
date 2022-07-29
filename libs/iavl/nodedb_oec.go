@@ -113,7 +113,7 @@ func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	ndb.state.increasePersistedCount(len(tpp))
 	ndb.addDBWriteCount(int64(len(tpp)))
 
-	if err := ndb.saveFastNodeVersion(batch, event.fncv, event.version); err != nil {
+	if err := ndb.saveFastNodeVersion(batch, event.fncv); err != nil {
 		panic(err)
 	}
 
@@ -137,7 +137,7 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *fastN
 	ndb.tpp.pushToTpp(version, tpp)
 
 	tempPersistFastNode := ndb.prePersistFastNode
-	ndb.tpfv.add(version, tempPersistFastNode)
+	ndb.tpfv.add(ndb.getLatestVersion(), tempPersistFastNode)
 	ndb.prePersistFastNode = newFastNodeChanges()
 
 	ndb.mtx.Unlock()

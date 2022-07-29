@@ -192,12 +192,12 @@ func (tree *MutableTree) Set(key, value []byte) bool {
 
 func (tree *MutableTree) fastGetFromChanges(key []byte) ([]byte, bool) {
 	if fastNode, ok := tree.unsavedFastNodeAdditions[string(key)]; ok {
-		return fastNode.value, ok
+		return fastNode.value, true
 	}
 
 	if _, ok := tree.unsavedFastNodeRemovals[string(key)]; ok {
 		// is deleted
-		return nil, ok
+		return nil, true
 	}
 	return nil, false
 }
@@ -869,9 +869,9 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 
 	fnc := newFastNodeChangesVersion(&fastNodeChanges{additions: tree.unsavedFastNodeAdditions,
 		removals: tree.unsavedFastNodeRemovals},
-			tree.ndb.getLatestVersion())
+		tree.ndb.getLatestVersion())
 
-	if err := tree.ndb.saveFastNodeVersion(batch, fnc, tree.ndb.getLatestVersion()); err != nil {
+	if err := tree.ndb.saveFastNodeVersion(batch, fnc); err != nil {
 		return nil, version, err
 	}
 
@@ -975,7 +975,7 @@ func (tree *MutableTree) DeleteVersionsRange(fromVersion, toVersion int64, enfor
 	return nil
 }
 
-func (ndb *nodeDB) saveFastNodeVersion(batch dbm.Batch, fncv *fastNodeChangesVersion, version int64) error {
+func (ndb *nodeDB) saveFastNodeVersion(batch dbm.Batch, fncv *fastNodeChangesVersion) error {
 	if fncv == nil {
 		return nil
 	}

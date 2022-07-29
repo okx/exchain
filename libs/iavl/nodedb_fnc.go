@@ -66,7 +66,7 @@ func (fncv *fastNodeChangesWithVersion) add(version int64, fnc *fastNodeChanges)
 }
 
 func (fncv *fastNodeChangesWithVersion) remove(version int64) {
-	if len(fncv.versions) < 1 {
+	if len(fncv.versions) < 1 || version != fncv.versions[0] {
 		return
 	}
 	fncv.mtx.Lock()
