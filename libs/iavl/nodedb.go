@@ -381,7 +381,6 @@ func (ndb *nodeDB) SaveBranch(batch dbm.Batch, node *Node, savedNodes map[string
 	if err != nil {
 		return nil, err
 	}
-
 	if node.rightNode != nil {
 		node.rightHash, err = ndb.SaveBranch(batch, node.rightNode, savedNodes)
 	}
