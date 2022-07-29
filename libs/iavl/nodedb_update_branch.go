@@ -132,10 +132,10 @@ func updateBranchAndSaveNodeToChan(node *Node, saveNodesCh chan<- *Node) []byte 
 func (ndb *nodeDB) updateBranchForFastNode(additions map[string]*FastNode, removals map[string]interface{}) {
 	ndb.mtx.Lock()
 	for k, v := range additions {
-		ndb.ppf.add(k, v)
+		ndb.prePersistFastNode.add(k, v)
 	}
 	for k, v := range removals {
-		ndb.ppf.remove(k, v)
+		ndb.prePersistFastNode.remove(k, v)
 	}
 	ndb.mtx.Unlock()
 }
