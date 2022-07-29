@@ -97,9 +97,9 @@ func (ndb *nodeDB) getNodeFromMemory(hash []byte, promoteRecentNode bool) (*Node
 		return elem, fromNodeCache
 	}
 
-	if elem := ndb.oi.getNodeFromOrphanCache(hash); elem != nil {
-		return elem, fromOrphanCache
-	}
+	//if elem := ndb.oi.getNodeFromOrphanCache(hash); elem != nil {
+	//	return elem, fromOrphanCache
+	//}
 
 	return nil, unknown
 }
