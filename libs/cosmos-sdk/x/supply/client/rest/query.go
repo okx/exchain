@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/mux"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/internal/types"
 )
@@ -19,13 +20,13 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	// Query the total supply of coins
 	r.HandleFunc(
-		"/supply/total",
+		"/cosmos/bank/v1beta1/supply",
 		totalSupplyHandlerFn(cliCtx),
 	).Methods("GET")
 
 	// Query the supply of a single denom
 	r.HandleFunc(
-		"/supply/total/{denom}",
+		"/cosmos/bank/v1beta1/supply/{denom}",
 		supplyOfHandlerFn(cliCtx),
 	).Methods("GET")
 }
@@ -56,9 +57,11 @@ func totalSupplyHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-
+		var coins sdk.Coins
+		cliCtx.Codec.MustUnmarshalJSON(res, &coins)
+		supply := types.NewWrappedSupply(coins)
 		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, res)
+		rest.PostProcessResponse(w, cliCtx, supply)
 	}
 }
 
@@ -83,8 +86,11 @@ func supplyOfHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-
+		var amount sdk.Dec
+		cliCtx.Codec.MustUnmarshalJSON(res, &amount)
+		coin := sdk.NewDecCoinFromDec(params.Denom, amount)
+		wrappedAmount := types.NewWrappedAmount(coin)
 		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, res)
+		rest.PostProcessResponse(w, cliCtx, wrappedAmount)
 	}
 }

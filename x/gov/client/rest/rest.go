@@ -44,7 +44,7 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router, phs []ProposalREST
 	r.HandleFunc(fmt.Sprintf("/gov/proposals/{%s}/votes", RestProposalID), voteHandlerFn(cliCtx)).Methods("POST")
 
 	r.HandleFunc(
-		fmt.Sprintf("/gov/v1beta1/params/{%s}", RestParamsType),
+		fmt.Sprintf("/cosmos/gov/v1beta1/params/{%s}", RestParamsType),
 		queryParamsHandlerFn(cliCtx),
 	).Methods("GET")
 

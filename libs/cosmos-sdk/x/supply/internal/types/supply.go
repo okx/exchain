@@ -12,6 +12,26 @@ import (
 // Implements Delegation interface
 var _ exported.SupplyI = Supply{}
 
+type WrappedSupply struct {
+	Coins sdk.Coins `json:"supply" yaml:"supply"`
+}
+
+func NewWrappedSupply(coins sdk.Coins) WrappedSupply {
+	return WrappedSupply{
+		Coins: coins,
+	}
+}
+
+type WrappedAmount struct {
+	Amount sdk.DecCoin `json:"amount" yaml:"amount"`
+}
+
+func NewWrappedAmount(amount sdk.DecCoin) WrappedAmount {
+	return WrappedAmount{
+		Amount: amount,
+	}
+}
+
 // Supply represents a struct that passively keeps track of the total supply amounts in the network
 type Supply struct {
 	Total sdk.Coins `json:"total" yaml:"total"` // total supply of tokens registered on the chain

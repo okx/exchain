@@ -47,6 +47,9 @@ func (k Keeper) UpdateMinterCustom(ctx sdk.Context, minter *types.MinterCustom, 
 	k.SetMinterCustom(ctx, *minter)
 }
 
+// GetInflation returns the inflation of the current state of OKC,
+// and the calculation of inflation can be found at https://github.com/okex/oec/issues/1628.
+//todo: set inflation to cache
 func (k Keeper) GetInflation(ctx sdk.Context, minter *types.MinterCustom, params types.Params) sdk.Dec {
 	height := uint64(ctx.BlockHeight())
 	deflationNum := height / (params.DeflationEpoch * params.BlocksPerYear)

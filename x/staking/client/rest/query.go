@@ -58,7 +58,7 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 
 	// get the current staking parameter values
 	r.HandleFunc(
-		"/staking/v1beta1/params",
+		"/cosmos/staking/v1beta1/params",
 		paramsHandlerFn(cliCtx),
 	).Methods("GET")
 

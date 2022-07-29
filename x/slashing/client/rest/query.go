@@ -24,7 +24,7 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	).Methods("GET")
 
 	r.HandleFunc(
-		"/slashing/v1beta1/params",
+		"/cosmos/slashing/v1beta1/params",
 		queryParamsHandlerFn(cliCtx),
 	).Methods("GET")
 }

@@ -14,12 +14,12 @@ import (
 
 func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc(
-		"/mint/v1beta1/params",
+		"/cosmos/mint/v1beta1/params",
 		queryParamsHandlerFn(cliCtx),
 	).Methods("GET")
 
 	r.HandleFunc(
-		"/mint/v1beta1/inflation",
+		"/cosmos/mint/v1beta1/inflation",
 		queryInflationHandlerFn(cliCtx),
 	).Methods("GET")
 
