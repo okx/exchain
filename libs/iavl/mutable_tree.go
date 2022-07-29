@@ -192,12 +192,12 @@ func (tree *MutableTree) Set(key, value []byte) bool {
 
 func (tree *MutableTree) fastGetFromChanges(key []byte) ([]byte, bool) {
 	if fastNode, ok := tree.unsavedFastNodeAdditions[string(key)]; ok {
-		return fastNode.value, ok
+		return fastNode.value, true
 	}
 
 	if _, ok := tree.unsavedFastNodeRemovals[string(key)]; ok {
 		// is deleted
-		return nil, ok
+		return nil, true
 	}
 	return nil, false
 }
