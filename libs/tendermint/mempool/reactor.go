@@ -56,7 +56,6 @@ type Reactor struct {
 	sentryPartner     string
 	sentryPartnerPeer p2p.Peer
 	sentryPartnerLock sync.Mutex
-	responseChan      chan *TxIndicesMessage
 	txMap             *lru.Cache // txIndex -> tx
 
 	receiverClients    map[uint16]txReceiverClient
@@ -129,11 +128,6 @@ func newMempoolIDs() *mempoolIDs {
 		activeIDs: map[uint16]struct{}{0: {}},
 		nextID:    1, // reserve unknownPeerID(0) for mempoolReactor.BroadcastTx
 	}
-}
-
-type txJob struct {
-	tx   types.Tx
-	info TxInfo
 }
 
 // NewReactor returns a new Reactor with the given config and mempool.
