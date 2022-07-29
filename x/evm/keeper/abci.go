@@ -113,6 +113,8 @@ func (k *Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Vali
 		k.Watcher.SaveParams(params)
 
 		k.Watcher.SaveBlock(bloom)
+
+		k.Watcher.SaveBlockStdTxHash()
 	}
 
 	k.UpdateInnerBlockData()

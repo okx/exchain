@@ -1504,8 +1504,40 @@ func (src Store) Copy() *Store {
 
 	return dst
 }
-
+func (rs *Store) CurrentVersion() int64 {
+	var currVer int64 = -1
+	for key, store := range rs.stores {
+		var version int64
+		switch store.GetStoreType() {
+		case types.StoreTypeIAVL:
+			sName := key.Name()
+			if evmAccStoreFilter(sName, rs.GetLatestVersion()) {
+				continue
+			}
+			if filter(key.Name(), rs.lastCommitInfo.Version, nil, rs.commitFilters) {
+				continue
+			}
+			s := store.(*iavl.Store)
+			version = s.CurrentVersion()
+		case types.StoreTypeMPT:
+			s := store.(*mpt.MptStore)
+			version = s.CurrentVersion()
+		case types.StoreTypeTransient:
+		default:
+			continue
+		}
+		if currVer == -1 {
+			currVer = version
+			continue
+		}
+		if version < currVer {
+			currVer = version
+		}
+	}
+	return currVer
+}
 func (rs *Store) StopStore() {
+	latestVersion := rs.CurrentVersion()
 	for key, store := range rs.stores {
 		switch store.GetStoreType() {
 		case types.StoreTypeIAVL:
@@ -1513,20 +1545,18 @@ func (rs *Store) StopStore() {
 			if evmAccStoreFilter(sName, rs.GetLatestVersion()) {
 				continue
 			}
-
 			if filter(key.Name(), rs.lastCommitInfo.Version, nil, rs.commitFilters) {
 				continue
 			}
-
 			s := store.(*iavl.Store)
-			s.StopStore()
+			s.StopStoreWithVersion(latestVersion)
 		case types.StoreTypeDB:
 			panic("unexpected db store")
 		case types.StoreTypeMulti:
 			panic("unexpected multi store")
 		case types.StoreTypeMPT:
 			s := store.(*mpt.MptStore)
-			s.OnStop()
+			s.StopWithVersion(latestVersion)
 		case types.StoreTypeTransient:
 		default:
 		}
