@@ -42,7 +42,7 @@ type commitEvent struct {
 	tpp        map[string]*Node
 	wg         *sync.WaitGroup
 	iavlHeight int
-	fncv       *fastNodeChangesVersion
+	fncv       *fastNodeChanges
 }
 
 type commitOrphan struct {
@@ -142,7 +142,7 @@ func (tree *MutableTree) persist(version int64) {
 	batch := tree.NewBatch()
 	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0, nil}
 	var tpp map[string]*Node = nil
-	var fncv *fastNodeChangesVersion
+	var fnc *fastNodeChanges
 	if EnablePruningHistoryState {
 		tree.ndb.saveCommitOrphans(batch, version, tree.commitOrphans)
 	}
@@ -151,7 +151,7 @@ func (tree *MutableTree) persist(version int64) {
 		err = tree.ndb.SaveEmptyRoot(batch, version)
 	} else {
 		err = tree.ndb.SaveRoot(batch, tree.root, version)
-		tpp, fncv = tree.ndb.asyncPersistTppStart(version)
+		tpp, fnc = tree.ndb.asyncPersistTppStart(version)
 	}
 
 	if err != nil {
@@ -164,7 +164,7 @@ func (tree *MutableTree) persist(version int64) {
 	}
 	versions := tree.deepCopyVersions()
 	tree.commitCh <- commitEvent{version, versions, batch,
-		tpp, nil, int(tree.Height()), fncv}
+		tpp, nil, int(tree.Height()), fnc}
 	tree.lastPersistHeight = version
 }
 
@@ -375,4 +375,3 @@ func (tree *MutableTree) updateBranchWithDelta(node *Node) []byte {
 func (t *ImmutableTree) GetPersistedRoots() map[int64][]byte {
 	return t.ndb.roots()
 }
-
