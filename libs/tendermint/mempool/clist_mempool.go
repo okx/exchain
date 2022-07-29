@@ -844,6 +844,7 @@ func (mem *CListMempool) Update(
 
 		if txCode == abci.CodeTypeOK || txCode > abci.CodeTypeNonceInc {
 			toCleanAccMap[addr] = nonce
+			gasUsed += uint64(deliverTxResponses[i].GasUsed)
 		}
 		if mem.pendingPool != nil {
 			addressNonce[addr] = nonce
