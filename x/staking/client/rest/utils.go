@@ -111,14 +111,24 @@ func queryBonds(ctx context.CLIContext, endpoint string) http.HandlerFunc {
 		bech32delegator := vars["delegatorAddr"]
 		bech32validator := vars["validatorAddr"]
 
-		delegatorAddr, err := sdk.AccAddressFromBech32(bech32delegator)
-		if rest.CheckBadRequestError(w, err) {
-			return
+		var (
+			validatorAddr sdk.ValAddress
+			delegatorAddr sdk.AccAddress
+			err           error
+		)
+
+		if len(bech32delegator) != 0 {
+			delegatorAddr, err = sdk.AccAddressFromBech32(bech32delegator)
+			if rest.CheckBadRequestError(w, err) {
+				return
+			}
 		}
 
-		validatorAddr, err := sdk.ValAddressFromBech32(bech32validator)
-		if rest.CheckBadRequestError(w, err) {
-			return
+		if len(bech32validator) != 0 {
+			validatorAddr, err = sdk.ValAddressFromBech32(bech32validator)
+			if rest.CheckBadRequestError(w, err) {
+				return
+			}
 		}
 
 		clientCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, ctx, r)
