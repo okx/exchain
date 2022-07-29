@@ -419,6 +419,85 @@ func TestOrphanKeyFast(t *testing.T) {
 	}
 }
 
+func TestFastNodeCache(t *testing.T) {
+	cases := []struct {
+		ndb     *nodeDB
+		nodes   []*FastNode
+		initFn  func(ndb *nodeDB, fast []*FastNode)
+		checkFn func(ndb *nodeDB, fast []*FastNode)
+	}{
+		{ // getFastNodeFromCache
+			ndb: mockNodeDB(),
+			nodes: []*FastNode{
+				{key: randBytes(32), value: randBytes(10)},
+				{key: randBytes(32), value: randBytes(10)},
+				{key: randBytes(2), value: randBytes(10)},
+				{key: randBytes(8), value: randBytes(10)},
+				{key: randBytes(64), value: randBytes(10)},
+			},
+			initFn: func(ndb *nodeDB, nodes []*FastNode) {
+				for _, n := range nodes {
+					ndb.cacheFastNode(n)
+				}
+			},
+			checkFn: func(ndb *nodeDB, nodes []*FastNode) {
+				for _, n := range nodes {
+					f, ok := ndb.getFastNodeFromCache(n.key)
+					require.NotNil(t, f)
+					require.Equal(t, *f, *n)
+					require.True(t, ok)
+				}
+				// add not exist check
+				f, ok := ndb.getFastNodeFromCache([]byte("testkey"))
+				require.Nil(t, f)
+				require.False(t, ok)
+			},
+		},
+		{ // uncacheFastNode
+			ndb: mockNodeDB(),
+			nodes: []*FastNode{
+				{key: randBytes(32), value: randBytes(10)},
+				{key: randBytes(32), value: randBytes(10)},
+				{key: randBytes(2), value: randBytes(10)},
+				{key: randBytes(8), value: randBytes(10)},
+				{key: randBytes(64), value: randBytes(10)},
+			},
+			initFn: func(ndb *nodeDB, nodes []*FastNode) {
+				for _, n := range nodes {
+					ndb.cacheFastNode(n)
+				}
+				for _, n := range nodes {
+					f, ok := ndb.getFastNodeFromCache(n.key)
+					require.NotNil(t, f)
+					require.Equal(t, *f, *n)
+					require.True(t, ok)
+				}
+			},
+			checkFn: func(ndb *nodeDB, nodes []*FastNode) {
+				// handle uncache
+				for _, n := range nodes[:len(nodes)/2] {
+					ndb.uncacheFastNode(n.key)
+					f, ok := ndb.getFastNodeFromCache(n.key)
+					require.Nil(t, f)
+					require.False(t, ok)
+				}
+				// after check
+				for _, n := range nodes[len(nodes)/2:] {
+					f, ok := ndb.getFastNodeFromCache(n.key)
+					require.NotNil(t, f)
+					require.Equal(t, *f, *n)
+					require.True(t, ok)
+				}
+			},
+		},
+	}
+
+	for _, tc := range cases {
+		tc.initFn(tc.ndb, tc.nodes)
+		tc.checkFn(tc.ndb, tc.nodes)
+	}
+}
+
 func BenchmarkOrphanKeyFast(b *testing.B) {
 	hash := genHash(32)
 	var to int64 = math.MaxInt64

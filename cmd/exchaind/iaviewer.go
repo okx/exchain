@@ -331,7 +331,7 @@ func iaviewerPrintDiff(ctx *iaviewerContext, version2 int) error {
 
 	go func(wg *sync.WaitGroup) {
 		tree.IterateRange(startKey, endKey, true, func(key, value []byte) bool {
-			_, v2 := compareTree.Get(key)
+			_, v2 := compareTree.GetWithIndex(key)
 			if v2 == nil {
 				fmt.Printf("---only in ver1 %d, %s\n", ctx.Version, formatKV(ctx.Codec, ctx.Prefix, key, value))
 			} else {
@@ -347,7 +347,7 @@ func iaviewerPrintDiff(ctx *iaviewerContext, version2 int) error {
 
 	go func(wg *sync.WaitGroup) {
 		compareTree.IterateRange(startKey, endKey, true, func(key, value []byte) bool {
-			_, v1 := tree.Get(key)
+			_, v1 := tree.GetWithIndex(key)
 			if v1 == nil {
 				fmt.Printf("+++only in ver2 %d, %s\n", version2, formatKV(ctx.Codec, ctx.Prefix, key, value))
 			}
@@ -380,7 +380,7 @@ func iaviewerReadData(ctx *iaviewerContext) error {
 		if err != nil {
 			return fmt.Errorf("error decoding key: %w", err)
 		}
-		i, value := tree.Get(keyByte)
+		i, value := tree.GetWithIndex(keyByte)
 
 		if impl, exit := printKeysDict[ctx.Prefix]; exit && !viper.GetBool(flagHex) {
 			kvFormat := impl(ctx.Codec, keyByte, value)
@@ -591,10 +591,10 @@ func printTree(ctx *iaviewerContext, tree *iavl.MutableTree) {
 			fmt.Printf("keyprefix must be in hex format: %s\n", err)
 			os.Exit(1)
 		}
-		index, _ := tree.Get(keyPrefix)
+		index, _ := tree.GetWithIndex(keyPrefix)
 		ctx.Start += int(index)
 		endKey = calcEndKey(keyPrefix)
-		index2, _ := tree.Get(endKey)
+		index2, _ := tree.GetWithIndex(endKey)
 		total = index2 - index
 		limit := int(total)
 		if ctx.Limit == 0 || limit < ctx.Limit {
@@ -635,7 +635,7 @@ func printTree(ctx *iaviewerContext, tree *iavl.MutableTree) {
 }
 
 func printByKey(cdc *codec.Codec, tree *iavl.MutableTree, module string, key []byte) {
-	_, value := tree.Get(key)
+	_, value := tree.GetWithIndex(key)
 	printKV(cdc, module, key, value)
 }
 
