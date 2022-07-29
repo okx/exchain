@@ -57,11 +57,13 @@ func (k Keeper) GetInflation(ctx sdk.Context, minter *types.MinterCustom, params
 	gmpb := uint64(k.originalMintedPerBlock.TruncateInt64())
 	genesisSupply := uint64(10000000)
 
-	subNum := params.DeflationEpoch * params.BlocksPerYear * gmpb
-	for i := 0; i < (int(deflationNum) - 1); i++ {
+	subNum := 2 * params.DeflationEpoch * params.BlocksPerYear * gmpb
+	for i := 0; i < int(deflationNum); i++ {
 		subNum /= 2
 	}
-	prevSupply := genesisSupply + 2*params.DeflationEpoch*params.BlocksPerYear*gmpb - subNum + (height%(params.DeflationEpoch*params.BlocksPerYear))*mpb
+	addNum := 2 * params.DeflationEpoch * params.BlocksPerYear * gmpb
+	num3 := (height % (params.DeflationEpoch * params.BlocksPerYear)) * mpb
+	prevSupply := genesisSupply + addNum - subNum + num3
 
 	prevSupplyDec := sdk.NewDec(int64(prevSupply))
 	inflation := minter.MintedPerBlock.AmountOf(params.MintDenom).MulInt64(int64(params.BlocksPerYear)).Quo(prevSupplyDec)
