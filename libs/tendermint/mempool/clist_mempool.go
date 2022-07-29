@@ -238,11 +238,6 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 //
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo TxInfo) error {
-	// no need to update when mempool is unavailable
-	if mem.config.Sealed {
-		return fmt.Errorf("mempool is unavailable")
-	}
-
 	txSize := len(tx)
 	if err := mem.isFull(txSize); err != nil {
 		return err
@@ -798,6 +793,41 @@ func (mem *CListMempool) logUpdate(address string, nonce uint64) {
 	logDataPool.Put(logData)
 }
 
+func (mem *CListMempool) updateSealed(height int64, txs types.Txs, deliverTxResponses []*abci.ResponseDeliverTx) error {
+	// Set height
+	atomic.StoreInt64(&mem.height, height)
+	mem.notifiedTxsAvailable = false
+	// no need to update mempool
+	if mem.Size() <= 0 {
+		return nil
+	}
+	// update mempool
+	for i, tx := range txs {
+		var txHash []byte
+		if mem.txInfoparser != nil {
+			if realTx := mem.txInfoparser.GetRealTxFromRawTx(tx); realTx != nil {
+				txHash = realTx.TxHash()
+			}
+		}
+		txKey := txOrTxHashToKey(tx, txHash, height)
+		txCode := deliverTxResponses[i].Code
+		if txCode == abci.CodeTypeOK || txCode > abci.CodeTypeNonceInc {
+			// Add valid committed tx to the cache (if missing).
+			_ = mem.cache.PushKey(txKey)
+		} else {
+			// Allow invalid transactions to be resubmitted.
+			mem.cache.RemoveKey(txKey)
+		}
+		// remove tx from mempool
+		mem.removeTxByKey(txKey)
+	}
+	// mempool logs
+	trace.GetElapsedInfo().AddInfo(trace.MempoolCheckTxCnt, strconv.FormatInt(atomic.LoadInt64(&mem.checkCnt), 10))
+	trace.GetElapsedInfo().AddInfo(trace.MempoolTxsCnt, strconv.Itoa(mem.txs.Len()))
+	atomic.StoreInt64(&mem.checkCnt, 0)
+	return nil
+}
+
 // Lock() must be help by the caller during execution.
 func (mem *CListMempool) Update(
 	height int64,
@@ -808,7 +838,7 @@ func (mem *CListMempool) Update(
 ) error {
 	// no need to update when mempool is unavailable
 	if mem.config.Sealed {
-		return nil
+		return mem.updateSealed(height, txs, deliverTxResponses)
 	}
 
 	// Set height
@@ -829,13 +859,13 @@ func (mem *CListMempool) Update(
 		addressNonce = make(map[string]uint64)
 	}
 	for i, tx := range txs {
-		var txhash []byte
+		var txHash []byte
 		if mem.txInfoparser != nil {
 			if realTx := mem.txInfoparser.GetRealTxFromRawTx(tx); realTx != nil {
-				txhash = realTx.TxHash()
+				txHash = realTx.TxHash()
 			}
 		}
-		txkey := txOrTxHashToKey(tx, txhash, height)
+		txKey := txOrTxHashToKey(tx, txHash, height)
 
 		txCode := deliverTxResponses[i].Code
 		// CodeTypeOK means tx was successfully executed.
@@ -845,10 +875,10 @@ func (mem *CListMempool) Update(
 			// add gas used with valid committed tx
 			gasUsed += uint64(deliverTxResponses[i].GasUsed)
 			// Add valid committed tx to the cache (if missing).
-			_ = mem.cache.PushKey(txkey)
+			_ = mem.cache.PushKey(txKey)
 		} else {
 			// Allow invalid transactions to be resubmitted.
-			mem.cache.RemoveKey(txkey)
+			mem.cache.RemoveKey(txKey)
 		}
 
 		// Remove committed tx from the mempool.
@@ -863,7 +893,7 @@ func (mem *CListMempool) Update(
 		// https://github.com/tendermint/tendermint/issues/3322.
 		addr := ""
 		nonce := uint64(0)
-		if ele := mem.removeTxByKey(txkey); ele != nil {
+		if ele := mem.removeTxByKey(txKey); ele != nil {
 			addr = ele.Address
 			nonce = ele.Nonce
 			mem.logUpdate(ele.Address, ele.Nonce)
