@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"os"
 	"sort"
@@ -70,6 +71,7 @@ const (
 	flagHex       = "hex"
 	flagPrefix    = "prefix"
 	flagKey       = "key"
+	flagNodeHash  = "nodehash"
 	flagKeyPrefix = "keyprefix"
 )
 
@@ -117,6 +119,7 @@ func iaviewerCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 
 	cmd.AddCommand(
 		iaviewerReadCmd(iavlCtx),
+		iaviewerReadNodeCmd(iavlCtx),
 		iaviewerStatusCmd(iavlCtx),
 		iaviewerDiffCmd(iavlCtx),
 		iaviewerVersionsCmd(iavlCtx),
@@ -204,6 +207,23 @@ func iaviewerReadCmd(ctx *iaviewerContext) *cobra.Command {
 	cmd.PersistentFlags().String(flagKey, "", "print only the value for this key, key must be in hex format.\n"+
 		"if specified, keyprefix, start and limit flags would be ignored")
 	cmd.PersistentFlags().String(flagKeyPrefix, "", "print values for keys with specified prefix, prefix must be in hex format.")
+	return cmd
+}
+
+func iaviewerReadNodeCmd(ctx *iaviewerContext) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "read-node <data_dir> <module> [version]",
+		Short: "Read iavl tree node from db",
+		Long:  "Read iavl tree node from db, you must specify data_dir and module, if version is 0 or not specified, read data from the latest version.\n",
+		PreRunE: func(cmd *cobra.Command, args []string) (err error) {
+			iaviewerCmdParseFlags(ctx)
+			return iaviewerCmdParseArgs(ctx, args)
+		},
+		RunE: func(cmd *cobra.Command, args []string) (err error) {
+			return iaviewerReadNodeData(ctx)
+		},
+	}
+	cmd.PersistentFlags().String(flagNodeHash, "", "print only the value for this hash, key must be in hex format.")
 	return cmd
 }
 
@@ -376,6 +396,76 @@ func iaviewerReadData(ctx *iaviewerContext) error {
 
 	printTree(ctx, tree)
 	return nil
+}
+
+func iaviewerReadNodeData(ctx *iaviewerContext) error {
+	db, err := OpenDB(ctx.DataDir, ctx.DbBackend)
+	if err != nil {
+		return fmt.Errorf("error opening DB: %w", err)
+	}
+	defer db.Close()
+
+	tree, err := ReadTree(db, ctx.Version, []byte(ctx.Prefix), DefaultCacheSize)
+	if err != nil {
+		return fmt.Errorf("error reading data: %w", err)
+	}
+	fmt.Printf("module: %s, prefix key: %s\n\n", ctx.Module, ctx.Prefix)
+
+	var nodeHash []byte
+	if key := viper.GetString(flagNodeHash); key != "" {
+		nodeHash, err = hex.DecodeString(key)
+		if err != nil {
+			return fmt.Errorf("error decoding key: %w", err)
+		}
+		if len(nodeHash) != 32 {
+			return fmt.Errorf("invalid node hash: %s", key)
+		}
+
+	} else {
+		nodeHash = tree.Hash()
+	}
+
+	node := tree.DebugGetNode(nodeHash)
+	if node == nil {
+		return fmt.Errorf("node not found: %s", nodeHash)
+	}
+
+	jstr, err := json.Marshal(newNodeStringFromNodeJson(iavl.NodeToNodeJson(node)))
+	if err != nil {
+		fmt.Println(node.String())
+	} else {
+		fmt.Println(string(jstr))
+	}
+
+	return nil
+}
+
+type nodeString struct {
+	Key          string `json:"key"`
+	Value        string `json:"value"`
+	Hash         string `json:"hash"`
+	LeftHash     string `json:"left_hash"`
+	RightHash    string `json:"right_hash"`
+	Version      int64  `json:"version"`
+	Size         int64  `json:"size"`
+	Height       int8   `json:"height"`
+	Persisted    bool   `json:"persisted"`
+	PrePersisted bool   `json:"pre_persisted"`
+}
+
+func newNodeStringFromNodeJson(nodeJson *iavl.NodeJson) *nodeString {
+	return &nodeString{
+		Key:          hex.EncodeToString(nodeJson.Key),
+		Value:        hex.EncodeToString(nodeJson.Value),
+		Hash:         hex.EncodeToString(nodeJson.Hash),
+		LeftHash:     hex.EncodeToString(nodeJson.LeftHash),
+		RightHash:    hex.EncodeToString(nodeJson.RightHash),
+		Version:      nodeJson.Version,
+		Size:         nodeJson.Size,
+		Height:       nodeJson.Height,
+		Persisted:    nodeJson.Persisted,
+		PrePersisted: nodeJson.PrePersisted,
+	}
 }
 
 func iaviewerStatus(ctx *iaviewerContext) error {
