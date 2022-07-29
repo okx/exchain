@@ -24,18 +24,6 @@ var (
 	IavlCacheInitRatio float64 = 0
 )
 
-type fastNodeChangesVersion struct {
-	*fastNodeChanges
-	version int64
-}
-
-func newFastNodeChangesVersion(fnc *fastNodeChanges, version int64) *fastNodeChangesVersion {
-	return &fastNodeChangesVersion{
-		fastNodeChanges: fnc,
-		version:         version,
-	}
-}
-
 type tppItem struct {
 	nodeMap  map[string]*Node
 	listItem *list.Element
@@ -126,7 +114,7 @@ func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	ndb.tpfv.remove(event.version)
 }
 
-func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *fastNodeChangesVersion) {
+func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *fastNodeChanges) {
 	ndb.log(IavlDebug, "moving prePersistCache to tempPrePersistCache", "size", len(ndb.prePersistNodeCache))
 
 	ndb.mtx.Lock()
@@ -149,7 +137,7 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *fastN
 		node.persisted = true
 	}
 
-	return tpp, newFastNodeChangesVersion(tempPersistFastNode, ndb.getLatestVersion())
+	return tpp, tempPersistFastNode
 }
 
 func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer) {

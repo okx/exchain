@@ -867,9 +867,8 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 		}
 	}
 
-	fnc := newFastNodeChangesVersion(&fastNodeChanges{additions: tree.unsavedFastNodeAdditions,
-		removals: tree.unsavedFastNodeRemovals},
-			tree.ndb.getLatestVersion())
+	fnc := &fastNodeChanges{additions: tree.unsavedFastNodeAdditions,
+		removals: tree.unsavedFastNodeRemovals}
 
 	if err := tree.ndb.saveFastNodeVersion(batch, fnc, tree.ndb.getLatestVersion()); err != nil {
 		return nil, version, err
@@ -975,17 +974,17 @@ func (tree *MutableTree) DeleteVersionsRange(fromVersion, toVersion int64, enfor
 	return nil
 }
 
-func (ndb *nodeDB) saveFastNodeVersion(batch dbm.Batch, fncv *fastNodeChangesVersion, version int64) error {
-	if fncv == nil {
+func (ndb *nodeDB) saveFastNodeVersion(batch dbm.Batch, fnc *fastNodeChanges, version int64) error {
+	if fnc == nil {
 		return nil
 	}
-	if err := ndb.saveFastNodeAdditions(batch, fncv.additions); err != nil {
+	if err := ndb.saveFastNodeAdditions(batch, fnc.additions); err != nil {
 		return err
 	}
-	if err := ndb.saveFastNodeRemovals(batch, fncv.removals); err != nil {
+	if err := ndb.saveFastNodeRemovals(batch, fnc.removals); err != nil {
 		return err
 	}
-	return ndb.setFastStorageVersionToBatch(batch, fncv.version)
+	return ndb.setFastStorageVersionToBatch(batch, version)
 }
 
 // nolint: unused
