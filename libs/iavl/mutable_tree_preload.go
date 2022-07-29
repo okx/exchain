@@ -87,13 +87,15 @@ func (tree *MutableTree) preChangeWithOutCache(node *Node, key []byte, setOrDel 
 	} else {
 		var isSet = setOrDel == PreChangeOpSet
 		if bytes.Compare(key, node.key) < 0 {
-			node.setLeftNodeSync(tree.preGetLeftNode(node))
-			if find = tree.preChangeWithOutCache(node.leftNode, key, setOrDel); (!find && isSet) || (find && !isSet) {
+			leftNode := tree.preGetLeftNode(node)
+			node.setLeftNodeSync(leftNode)
+			if find = tree.preChangeWithOutCache(leftNode, key, setOrDel); (!find && isSet) || (find && !isSet) {
 				tree.preGetRightNode(node)
 			}
 		} else {
-			node.setRightNodeSync(tree.preGetRightNode(node))
-			if find = tree.preChangeWithOutCache(node.rightNode, key, setOrDel); (!find && isSet) || (find && !isSet) {
+			rightNode := tree.preGetRightNode(node)
+			node.setRightNodeSync(rightNode)
+			if find = tree.preChangeWithOutCache(rightNode, key, setOrDel); (!find && isSet) || (find && !isSet) {
 				tree.preGetLeftNode(node)
 			}
 		}
