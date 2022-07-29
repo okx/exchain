@@ -101,7 +101,7 @@ func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	ndb.state.increasePersistedCount(len(tpp))
 	ndb.addDBWriteCount(int64(len(tpp)))
 
-	if err := ndb.saveFastNodeVersion(batch, event.fncv, event.version); err != nil {
+	if err := ndb.saveFastNodeVersion(batch, event.fnc, event.version); err != nil {
 		panic(err)
 	}
 

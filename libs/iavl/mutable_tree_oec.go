@@ -42,7 +42,7 @@ type commitEvent struct {
 	tpp        map[string]*Node
 	wg         *sync.WaitGroup
 	iavlHeight int
-	fncv       *fastNodeChanges
+	fnc        *fastNodeChanges
 }
 
 type commitOrphan struct {

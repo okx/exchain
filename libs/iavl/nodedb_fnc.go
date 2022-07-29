@@ -37,15 +37,6 @@ func (fnc *fastNodeChanges) remove(key string, value interface{}) {
 	delete(fnc.additions, key)
 }
 
-func (fnc *fastNodeChanges) reset() {
-	for k := range fnc.additions {
-		delete(fnc.additions, k)
-	}
-	for k := range fnc.removals {
-		delete(fnc.removals, k)
-	}
-}
-
 type fastNodeChangesWithVersion struct {
 	mtx      sync.RWMutex
 	versions []int64
