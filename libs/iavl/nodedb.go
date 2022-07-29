@@ -90,7 +90,7 @@ type nodeDB struct {
 	fastNodeCache              *FastNodeCache
 	fastNodePreCommitAdditions map[string]*FastNode
 	fastNodePreCommitRemovals  map[string]interface{}
-	latestVersion4FastNode    int64
+	latestVersion4FastNode     int64
 }
 
 func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
@@ -469,6 +469,11 @@ func (ndb *nodeDB) DeleteVersionsFrom(batch dbm.Batch, version int64) error {
 		batch.Delete(k)
 	})
 
+	return nil
+}
+
+// DeleteFastNodesFrom permanently deletes all fast node entries.
+func (ndb *nodeDB) DeleteFastNodesFrom(batch dbm.Batch, version int64) error {
 	// Delete fast node entries
 	ndb.traverseFastNodes(func(keyWithPrefix, v []byte) {
 		key := keyWithPrefix[1:]

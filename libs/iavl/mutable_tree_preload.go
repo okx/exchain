@@ -125,7 +125,7 @@ func (tree *MutableTree) setWithOrphansSlice(key []byte, value []byte, orphans *
 	}
 
 	if tree.ImmutableTree.root == nil {
-		tree.addUnsavedAddition(key, NewFastNode(key, value, tree.version+1))
+		tree.fss.AddUnsavedAddition(key, NewFastNode(key, value, tree.version+1))
 		tree.ImmutableTree.root = NewNode(key, value, tree.version+1)
 		return updated
 	}
@@ -142,7 +142,7 @@ func (tree *MutableTree) removeWithOrphansSlice(key []byte, orphaned *[]*Node) (
 	if len(*orphaned) == 0 {
 		return nil, false
 	}
-	tree.addUnsavedRemoval(key)
+	tree.fss.AddUnsavedRemoval(key)
 
 	if newRoot == nil && newRootHash != nil {
 		tree.root = tree.ndb.GetNode(newRootHash)

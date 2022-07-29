@@ -122,7 +122,7 @@ func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	ndb.asyncPersistTppFinised(event, trc)
 }
 
-func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *FastNodeChanges) {
+func (ndb *nodeDB) asyncPersistTppStart(version int64) map[string]*Node {
 	ndb.log(IavlDebug, "moving prePersistCache to tempPrePersistCache", "size", len(ndb.prePersistNodeCache))
 
 	ndb.mtx.Lock()
@@ -131,6 +131,21 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *FastN
 	ndb.prePersistNodeCache = make(map[string]*Node, len(tpp))
 
 	ndb.tpp.pushToTpp(version, tpp)
+
+	ndb.mtx.Unlock()
+
+	for _, node := range tpp {
+		if node.persisted || !node.prePersisted {
+			panic("unexpected node state")
+		}
+		node.persisted = true
+	}
+
+	return tpp
+}
+
+func (ndb *nodeDB) asyncPersistFastNodeStart(version int64) *FastNodeChanges {
+	ndb.mtx.Lock()
 
 	tempFastNodePreCommitAdditions := make(map[string]*FastNode, len(ndb.fastNodePreCommitAdditions))
 	tempFastNodePreCommitRemovals := make(map[string]interface{}, len(ndb.fastNodePreCommitRemovals))
@@ -143,14 +158,7 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *FastN
 
 	ndb.mtx.Unlock()
 
-	for _, node := range tpp {
-		if node.persisted || !node.prePersisted {
-			panic("unexpected node state")
-		}
-		node.persisted = true
-	}
-
-	return tpp, NewFastNodeChanges(tempFastNodePreCommitAdditions, tempFastNodePreCommitRemovals, version)
+	return NewFastNodeChanges(tempFastNodePreCommitAdditions, tempFastNodePreCommitRemovals, version)
 }
 
 func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer) {

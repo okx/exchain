@@ -57,7 +57,7 @@ func TestUnsavedFastIterator_NewIterator_NilAdditions_Failure(t *testing.T) {
 	t.Run("Nil additions given", func(t *testing.T) {
 		tree, err := NewMutableTree(dbm.NewMemDB(), 0)
 		require.NoError(t, err)
-		itr := NewUnsavedFastIterator(start, end, ascending, tree.ndb, nil, tree.unsavedFastNodeRemovals)
+		itr := NewUnsavedFastIterator(start, end, ascending, tree.ndb, nil, tree.fss.GetUnsavedFastNodeRemovals())
 		performTest(t, itr)
 		require.ErrorIs(t, errUnsavedFastIteratorNilAdditionsGiven, itr.Error())
 	})
@@ -65,7 +65,7 @@ func TestUnsavedFastIterator_NewIterator_NilAdditions_Failure(t *testing.T) {
 	t.Run("Nil removals given", func(t *testing.T) {
 		tree, err := NewMutableTree(dbm.NewMemDB(), 0)
 		require.NoError(t, err)
-		itr := NewUnsavedFastIterator(start, end, ascending, tree.ndb, tree.unsavedFastNodeAdditions, nil)
+		itr := NewUnsavedFastIterator(start, end, ascending, tree.ndb, tree.fss.GetUnsavedFastNodeAdditions(), nil)
 		performTest(t, itr)
 		require.ErrorIs(t, errUnsavedFastIteratorNilRemovalsGiven, itr.Error())
 	})
@@ -208,7 +208,7 @@ func TestIterator_WithDelete_Full_Ascending_Success(t *testing.T) {
 	})
 
 	t.Run("Unsaved Fast Iterator", func(t *testing.T) {
-		itr := NewUnsavedFastIterator(config.startIterate, config.endIterate, config.ascending, immutableTree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
+		itr := NewUnsavedFastIterator(config.startIterate, config.endIterate, config.ascending, immutableTree.ndb, tree.fss.GetUnsavedFastNodeAdditions(), tree.fss.GetUnsavedFastNodeRemovals())
 		require.True(t, itr.Valid())
 		assertIterator(t, itr, sortedMirror, config.ascending)
 	})
@@ -292,14 +292,14 @@ func setupUnsavedFastIterator(t *testing.T, config *iteratorTestConfig) (dbm.Ite
 	require.NoError(t, err)
 
 	// No unsaved additions or removals should be present after saving
-	require.Equal(t, 0, len(tree.unsavedFastNodeAdditions))
-	require.Equal(t, 0, len(tree.unsavedFastNodeRemovals))
+	require.Equal(t, 0, len(tree.fss.GetUnsavedFastNodeAdditions()))
+	require.Equal(t, 0, len(tree.fss.GetUnsavedFastNodeRemovals()))
 
 	// Ensure that there are unsaved additions and removals present
 	secondHalfMirror := setupMirrorForIterator(t, &secondHalfConfig, tree)
 
-	require.True(t, len(tree.unsavedFastNodeAdditions) >= len(secondHalfMirror))
-	require.Equal(t, 0, len(tree.unsavedFastNodeRemovals))
+	require.True(t, len(tree.fss.GetUnsavedFastNodeAdditions()) >= len(secondHalfMirror))
+	require.Equal(t, 0, len(tree.fss.GetUnsavedFastNodeRemovals()))
 
 	// Merge the two halves
 	if config.ascending {
@@ -321,6 +321,6 @@ func setupUnsavedFastIterator(t *testing.T, config *iteratorTestConfig) (dbm.Ite
 		}
 	}
 
-	itr := NewUnsavedFastIterator(config.startIterate, config.endIterate, config.ascending, tree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
+	itr := NewUnsavedFastIterator(config.startIterate, config.endIterate, config.ascending, tree.ndb, tree.fss.GetUnsavedFastNodeAdditions(), tree.fss.GetUnsavedFastNodeRemovals())
 	return itr, mirror
 }

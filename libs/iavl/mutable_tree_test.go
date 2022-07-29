@@ -18,6 +18,10 @@ import (
 	"github.com/tendermint/go-amino"
 )
 
+func init() {
+	SetEnableFastStorage(true)
+}
+
 func TestDelete(t *testing.T) {
 	memDB := db.NewMemDB()
 	tree, err := NewMutableTree(memDB, 0)
@@ -382,7 +386,7 @@ func TestMutableTree_SetSimple(t *testing.T) {
 	require.Equal(t, []byte(testVal1), fastValue)
 	require.Equal(t, []byte(testVal1), regularValue)
 
-	fastNodeAdditions := tree.getUnsavedFastNodeAdditions()
+	fastNodeAdditions := tree.fss.GetUnsavedFastNodeAdditions()
 	require.Equal(t, 1, len(fastNodeAdditions))
 
 	fastNodeAddition := fastNodeAdditions[testKey1]
@@ -418,7 +422,7 @@ func TestMutableTree_SetTwoKeys(t *testing.T) {
 	require.Equal(t, []byte(testVal2), fastValue2)
 	require.Equal(t, []byte(testVal2), regularValue2)
 
-	fastNodeAdditions := tree.getUnsavedFastNodeAdditions()
+	fastNodeAdditions := tree.fss.GetUnsavedFastNodeAdditions()
 	require.Equal(t, 2, len(fastNodeAdditions))
 
 	fastNodeAddition := fastNodeAdditions[testKey1]
@@ -452,7 +456,7 @@ func TestMutableTree_SetOverwrite(t *testing.T) {
 	require.Equal(t, []byte(testVal2), fastValue)
 	require.Equal(t, []byte(testVal2), regularValue)
 
-	fastNodeAdditions := tree.getUnsavedFastNodeAdditions()
+	fastNodeAdditions := tree.fss.GetUnsavedFastNodeAdditions()
 	require.Equal(t, 1, len(fastNodeAdditions))
 
 	fastNodeAddition := fastNodeAdditions[testKey1]
@@ -478,7 +482,7 @@ func TestMutableTree_SetRemoveSet(t *testing.T) {
 	require.Equal(t, []byte(testVal1), fastValue)
 	require.Equal(t, []byte(testVal1), regularValue)
 
-	fastNodeAdditions := tree.getUnsavedFastNodeAdditions()
+	fastNodeAdditions := tree.fss.GetUnsavedFastNodeAdditions()
 	require.Equal(t, 1, len(fastNodeAdditions))
 
 	fastNodeAddition := fastNodeAdditions[testKey1]
@@ -491,10 +495,10 @@ func TestMutableTree_SetRemoveSet(t *testing.T) {
 	require.NotNil(t, removedVal)
 	require.True(t, isRemoved)
 
-	fastNodeAdditions = tree.getUnsavedFastNodeAdditions()
+	fastNodeAdditions = tree.fss.GetUnsavedFastNodeAdditions()
 	require.Equal(t, 0, len(fastNodeAdditions))
 
-	fastNodeRemovals := tree.getUnsavedFastNodeRemovals()
+	fastNodeRemovals := tree.fss.GetUnsavedFastNodeRemovals()
 	require.Equal(t, 1, len(fastNodeRemovals))
 
 	fastValue = tree.Get([]byte(testKey1))
@@ -511,7 +515,7 @@ func TestMutableTree_SetRemoveSet(t *testing.T) {
 	require.Equal(t, []byte(testVal1), fastValue)
 	require.Equal(t, []byte(testVal1), regularValue)
 
-	fastNodeAdditions = tree.getUnsavedFastNodeAdditions()
+	fastNodeAdditions = tree.fss.GetUnsavedFastNodeAdditions()
 	require.Equal(t, 1, len(fastNodeAdditions))
 
 	fastNodeAddition = fastNodeAdditions[testKey1]
@@ -519,7 +523,7 @@ func TestMutableTree_SetRemoveSet(t *testing.T) {
 	require.Equal(t, []byte(testVal1), fastNodeAddition.value)
 	require.Equal(t, int64(1), fastNodeAddition.versionLastUpdatedAt)
 
-	fastNodeRemovals = tree.getUnsavedFastNodeRemovals()
+	fastNodeRemovals = tree.fss.GetUnsavedFastNodeRemovals()
 	require.Equal(t, 0, len(fastNodeRemovals))
 }
 
@@ -539,28 +543,28 @@ func TestMutableTree_FastNodeIntegration(t *testing.T) {
 	res := tree.Set([]byte(key1), []byte(testVal1))
 	require.False(t, res)
 
-	unsavedNodeAdditions := tree.getUnsavedFastNodeAdditions()
+	unsavedNodeAdditions := tree.fss.GetUnsavedFastNodeAdditions()
 	require.Equal(t, len(unsavedNodeAdditions), 1)
 
 	// Set key2
 	res = tree.Set([]byte(key2), []byte(testVal1))
 	require.False(t, res)
 
-	unsavedNodeAdditions = tree.getUnsavedFastNodeAdditions()
+	unsavedNodeAdditions = tree.fss.GetUnsavedFastNodeAdditions()
 	require.Equal(t, len(unsavedNodeAdditions), 2)
 
 	// Set key3
 	res = tree.Set([]byte(key3), []byte(testVal1))
 	require.False(t, res)
 
-	unsavedNodeAdditions = tree.getUnsavedFastNodeAdditions()
+	unsavedNodeAdditions = tree.fss.GetUnsavedFastNodeAdditions()
 	require.Equal(t, len(unsavedNodeAdditions), 3)
 
 	// Set key3 with new value
 	res = tree.Set([]byte(key3), []byte(testVal2))
 	require.True(t, res)
 
-	unsavedNodeAdditions = tree.getUnsavedFastNodeAdditions()
+	unsavedNodeAdditions = tree.fss.GetUnsavedFastNodeAdditions()
 	require.Equal(t, len(unsavedNodeAdditions), 3)
 
 	// Remove key2
@@ -568,20 +572,20 @@ func TestMutableTree_FastNodeIntegration(t *testing.T) {
 	require.True(t, isRemoved)
 	require.Equal(t, []byte(testVal1), removedVal)
 
-	unsavedNodeAdditions = tree.getUnsavedFastNodeAdditions()
+	unsavedNodeAdditions = tree.fss.GetUnsavedFastNodeAdditions()
 	require.Equal(t, len(unsavedNodeAdditions), 2)
 
-	unsavedNodeRemovals := tree.getUnsavedFastNodeRemovals()
+	unsavedNodeRemovals := tree.fss.GetUnsavedFastNodeRemovals()
 	require.Equal(t, len(unsavedNodeRemovals), 1)
 
 	// Save
 	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 
-	unsavedNodeAdditions = tree.getUnsavedFastNodeAdditions()
+	unsavedNodeAdditions = tree.fss.GetUnsavedFastNodeAdditions()
 	require.Equal(t, len(unsavedNodeAdditions), 0)
 
-	unsavedNodeRemovals = tree.getUnsavedFastNodeRemovals()
+	unsavedNodeRemovals = tree.fss.GetUnsavedFastNodeRemovals()
 	require.Equal(t, len(unsavedNodeRemovals), 0)
 
 	// Load
@@ -660,7 +664,7 @@ func TestUpgradeStorageToFast_LatestVersion_Success(t *testing.T) {
 
 	// Enable fast storage
 	require.True(t, tree.IsUpgradeable())
-	enabled, err := tree.enableFastStorageAndCommitIfNotEnabled()
+	enabled, err := tree.fss.EnableFastStorageAndCommitIfNotEnabled(tree)
 	require.NoError(t, err)
 	require.True(t, enabled)
 	require.False(t, tree.IsUpgradeable())
@@ -683,14 +687,14 @@ func TestUpgradeStorageToFast_AlreadyUpgraded_Success(t *testing.T) {
 
 	// Enable fast storage
 	require.True(t, tree.IsUpgradeable())
-	enabled, err := tree.enableFastStorageAndCommitIfNotEnabled()
+	enabled, err := tree.fss.EnableFastStorageAndCommitIfNotEnabled(tree)
 	require.NoError(t, err)
 	require.True(t, enabled)
 	require.True(t, tree.IsFastCacheEnabled())
 	require.False(t, tree.IsUpgradeable())
 
 	// Test enabling fast storage when already enabled
-	enabled, err = tree.enableFastStorageAndCommitIfNotEnabled()
+	enabled, err = tree.fss.EnableFastStorageAndCommitIfNotEnabled(tree)
 	require.NoError(t, err)
 	require.False(t, enabled)
 	require.True(t, tree.IsFastCacheEnabled())
@@ -745,7 +749,7 @@ func TestUpgradeStorageToFast_DbErrorEnableFastStorage_Failure(t *testing.T) {
 	require.False(t, tree.IsFastCacheEnabled())
 
 	batchMock.EXPECT().Write().Return(expectedError).Times(1)
-	enabled, err := tree.enableFastStorageAndCommitIfNotEnabled()
+	enabled, err := tree.fss.EnableFastStorageAndCommitIfNotEnabled(tree)
 	require.ErrorIs(t, err, expectedError)
 	require.False(t, enabled)
 	require.False(t, tree.IsFastCacheEnabled())
@@ -787,7 +791,7 @@ func TestFastStorageReUpgradeProtection_NoForceUpgrade_Success(t *testing.T) {
 	require.True(t, tree.IsFastCacheEnabled())
 	require.False(t, tree.ndb.shouldForceFastStorageUpgrade())
 
-	enabled, err := tree.enableFastStorageAndCommitIfNotEnabled()
+	enabled, err := tree.fss.EnableFastStorageAndCommitIfNotEnabled(tree)
 	require.NoError(t, err)
 	require.False(t, enabled)
 }
@@ -875,12 +879,12 @@ func TestFastStorageReUpgradeProtection_ForceUpgradeFirstTime_NoForceSecondTime_
 	require.True(t, tree.ndb.shouldForceFastStorageUpgrade())
 
 	// Actual method under test
-	enabled, err := tree.enableFastStorageAndCommitIfNotEnabled()
+	enabled, err := tree.fss.EnableFastStorageAndCommitIfNotEnabled(tree)
 	require.NoError(t, err)
 	require.True(t, enabled)
 
 	// Test that second time we call this, force upgrade does not happen
-	enabled, err = tree.enableFastStorageAndCommitIfNotEnabled()
+	enabled, err = tree.fss.EnableFastStorageAndCommitIfNotEnabled(tree)
 	require.NoError(t, err)
 	require.False(t, enabled)
 }
