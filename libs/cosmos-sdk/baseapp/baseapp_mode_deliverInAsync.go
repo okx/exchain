@@ -39,11 +39,10 @@ func (m *modeHandlerDeliverInAsync) handleRunMsg(info *runTxInfo) (err error) {
 
 	info.result, err = app.runMsgs(info.runMsgCtx, info.tx.GetMsgs(), mode)
 	info.runMsgFinished = true
-	err = m.checkHigherThanMercury(err, info)
-
-	if info.msCache != nil {
+	if err == nil {
 		info.msCache.Write()
 	}
+	err = m.checkHigherThanMercury(err, info)
 
 	return
 }

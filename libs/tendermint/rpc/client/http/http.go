@@ -409,8 +409,8 @@ func (c *baseRPCClient) Block(height *int64) (*ctypes.ResultBlock, error) {
 	return result, nil
 }
 
-func (c *baseRPCClient) BlockInfo(height *int64) (*ctypes.ResultBlockInfo, error) {
-	result := new(ctypes.ResultBlockInfo)
+func (c *baseRPCClient) BlockInfo(height *int64) (*types.BlockMeta, error) {
+	result := new(types.BlockMeta)
 	_, err := c.caller.Call("block_info", map[string]interface{}{"height": height}, result)
 	if err != nil {
 		return nil, errors.Wrap(err, "BlockInfo")
