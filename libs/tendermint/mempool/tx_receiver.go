@@ -166,6 +166,7 @@ func (r *txReceiver) ReceiveTxReceiverInfo(src p2p.Peer, bz []byte) {
 		client := pb.NewMempoolTxReceiverClient(conn)
 		var receiverCount = r.AddClient(r.memR.ids.GetForPeer(src), txReceiverClient{client, conn, uint16(info.YourId)})
 		r.Logger.Info("receiveTxReceiverInfo:success", "peer", src, "yourID", info.YourId, "port", info.Port, "clientCount", receiverCount)
+		fmt.Println("add clients, count", receiverCount)
 	}
 }
 
@@ -229,6 +230,7 @@ func (r *txReceiver) RemovePeer(peer p2p.Peer) {
 		count = len(r.Clients)
 		r.ClientsMtx.Unlock()
 		r.Logger.Info("Removing peer from tx receiver", "peer", peer.ID(), "peerID", peerID, "clientCountAfterRemove", count)
+		fmt.Println("remove clients, count", count)
 		if err := c.Conn.Close(); err != nil {
 			r.Logger.Error("Failed to close tx receiver connection", "peer", peer.ID(), "peerID", peerID, "err", err)
 		}
