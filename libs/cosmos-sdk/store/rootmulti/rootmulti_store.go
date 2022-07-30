@@ -850,7 +850,7 @@ func (rs *Store) Query(req abci.RequestQuery) abci.ResponseQuery {
 		}
 	}
 
-	if tmtypes.HigherThanVenus1(req.Height) {
+	if tmtypes.HigherThanVenus1(req.Height) && isQueryProofV2(storeName) {
 		queryIbcProof(&res, &commitInfo, storeName)
 	} else {
 		// Restore origin path and append proof op.
@@ -863,6 +863,10 @@ func (rs *Store) Query(req abci.RequestQuery) abci.ResponseQuery {
 	// TODO: handle in another TM v0.26 update PR
 	// res.Proof = buildMultiStoreProof(res.Proof, storeName, commitInfo.StoreInfos)
 	return res
+}
+
+func isQueryProofV2(storeName string) bool {
+	return storeName == "ibc"
 }
 
 // parsePath expects a format like /<storeName>[/<subpath>]
