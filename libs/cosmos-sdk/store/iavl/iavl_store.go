@@ -330,7 +330,6 @@ func (st *Store) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 
 		if req.Prove {
 			value, proof, err := tree.GetWithProof(key)
-			//value, proof, err := tree.GetVersionedWithProof(key, res.Height)
 			if err != nil {
 				res.Log = err.Error()
 				break
