@@ -12,7 +12,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 )
 
-func (st *Store) queryKeyForIBC(req abci.RequestQuery) (res abci.ResponseQuery) {
+func (st *Store) queryWithCM40(req abci.RequestQuery) (res abci.ResponseQuery) {
 
 	if len(req.Data) == 0 {
 		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrTxDecode, "query cannot be zero length"))
