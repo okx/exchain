@@ -36,11 +36,13 @@ var (
 func init() {
 	once.Do(func() {
 		genesisHeight = string2number(MILESTONE_GENESIS_HEIGHT)
+		genesisHeight = 2012155
 		milestoneMercuryHeight = string2number(MILESTONE_MERCURY_HEIGHT)
 		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
 		milestoneMarsHeight = string2number(MILESTONE_MARS_HEIGHT)
 		milestoneVenus1Height = string2number(MILESTONE_VENUS1_HEIGHT)
 		milestoneVenus2Height = string2number(MILESTONE_VENUS2_HEIGHT)
+		milestoneVenus1Height = 1
 	})
 }
 
