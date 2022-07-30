@@ -315,14 +315,13 @@ func (st *Store) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrTxDecode, "query cannot be zero length"))
 	}
 
+	// store the height we chose in the response, with 0 being changed to the
+	// latest height
 	res.Height = getHeight(st.tree, req)
 	tree, err := st.tree.GetImmutable(req.Height)
 	if err != nil {
 		return sdkerrors.QueryResult(sdkerrors.Wrapf(iavl.ErrVersionDoesNotExist, "request height %d", req.Height))
 	}
-	// store the height we chose in the response, with 0 being changed to the
-	// latest height
-	res.Height = tree.Version()
 
 	switch req.Path {
 	case "/key": // get by key
