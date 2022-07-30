@@ -34,7 +34,7 @@ var (
 	// DeltaVersion do not apply delta if version does not match
 	// if user specify the flag 'FlagDeltaVersion'(--delta-version) use user's setting,
 	// otherwise use the default value
-	DeltaVersion = 9
+	DeltaVersion = 10
 )
 
 var (
@@ -185,10 +185,14 @@ func (d *Deltas) String() string {
 
 func (dds *Deltas) Validate(height int64) bool {
 	if dds.Height != height ||
-		len(dds.WatchBytes()) == 0 ||
 		len(dds.ABCIRsp()) == 0 ||
 		len(dds.DeltasBytes()) == 0 {
 		return false
+	}
+	if FastQuery {
+		if len(dds.WatchBytes()) == 0 {
+			return false
+		}
 	}
 	return true
 }
