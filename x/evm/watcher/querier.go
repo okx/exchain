@@ -87,6 +87,26 @@ func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, e
 	return receipt, nil
 }
 
+func (q Querier) GetTransactionResponse(hash common.Hash) (*TransactionResponse, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+	var response TransactionResponse
+	b, e := q.store.Get(append(prefixTxResponse, hash.Bytes()...))
+	if e != nil {
+		return nil, e
+	}
+	if b == nil {
+		return nil, errNotFound
+	}
+	e = json.Unmarshal(b, &response)
+	if e != nil {
+		return nil, e
+	}
+
+	return &response, nil
+}
+
 func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
@@ -328,6 +348,40 @@ func (q Querier) GetTransactionsByBlockNumber(number, offset, limit uint64) ([]*
 	return nil, errors.New("no such transaction in target block")
 }
 
+func (q Querier) GetTransactionsWithStdByBlockNumber(number, offset, limit uint64) ([]*Transaction, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+	block, err := q.GetBlockByNumber(number, true)
+	if err != nil {
+		return nil, err
+	}
+
+	var rawTxs []*Transaction
+	// get eth Txs
+	if block.Transactions != nil {
+		txs, ok := block.Transactions.([]*Transaction)
+		if ok {
+			rawTxs = txs
+		}
+	}
+
+	// get Std Tx Hash
+	stdTxs, err := q.GetStdTxHashByBlockHash(block.Hash)
+	if err != nil {
+		return nil, err
+	}
+	rawTxs = append(rawTxs, stdTxs...)
+
+	var rangeTxs []*Transaction
+	for idx := offset; idx < offset+limit && int(idx) < len(rawTxs); idx++ {
+		rawTx := *rawTxs[idx]
+		rangeTxs = append(rangeTxs, &rawTx)
+	}
+
+	return rangeTxs, nil
+}
+
 func (q Querier) MustGetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	acc, e := q.GetAccount(addr)
 	//todo delete account from rdb if we get Account from H db successfully
@@ -467,4 +521,32 @@ func (q Querier) HasContractDeploymentWhitelist(key []byte) bool {
 		return false
 	}
 	return q.store.Has(append(prefixWhiteList, key...))
+}
+
+func (q Querier) GetStdTxHashByBlockHash(hash common.Hash) ([]*Transaction, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+	var stdTxHash []common.Hash
+	b, e := q.store.Get(append(prefixStdTxHash, hash.Bytes()...))
+	if e != nil {
+		return nil, e
+	}
+	if b == nil {
+		return nil, errNotFound
+	}
+	e = json.Unmarshal(b, &stdTxHash)
+	if e != nil {
+		return nil, e
+	}
+
+	txList := make([]*Transaction, 0, len(stdTxHash))
+	for _, tx := range stdTxHash {
+		transaction := &Transaction{Hash: tx}
+		if e == nil && transaction != nil {
+			txList = append(txList, transaction)
+		}
+	}
+
+	return txList, nil
 }
