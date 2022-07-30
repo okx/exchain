@@ -308,7 +308,7 @@ func getHeight(tree Tree, req abci.RequestQuery) int64 {
 // if you care to have the latest data to see a tx results, you must
 // explicitly set the height you want to see
 func (st *Store) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
-	if tmtypes.HigherThanVenus1(req.Height) {
+	if tmtypes.HigherThanVenus1(req.Height) && st.isQueryProofV2() {
 		return st.queryKeyForIBC(req)
 	}
 	if len(req.Data) == 0 {
@@ -374,6 +374,10 @@ func (st *Store) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 	}
 
 	return res
+}
+
+func (st *Store) isQueryProofV2() bool {
+	return st.tree.GetModuleName() == "ibc"
 }
 
 func (st *Store) GetDBReadTime() int {
