@@ -58,10 +58,11 @@ func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyK
 		case sdk.EvmTxType:
 
 			if ctx.IsWrappedCheckTx() {
-				anteHandler = sdk.ChainAnteDecorators(
-					NewNonceVerificationDecorator(ak),
-					NewIncrementSenderSequenceDecorator(ak),
-				)
+				return ctx, nil
+				//anteHandler = sdk.ChainAnteDecorators(
+				//	NewNonceVerificationDecorator(ak),
+				//	NewIncrementSenderSequenceDecorator(ak),
+				//)
 			} else {
 				anteHandler = sdk.ChainAnteDecorators(
 					NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first

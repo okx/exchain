@@ -197,7 +197,7 @@ func (memR *Reactor) ReapTxs(maxBytes, maxGas int64) []types.Tx {
 			txs = append(txs, v.([]byte))
 		}
 	}
-	fmt.Println("fetch tx indices time cost", time.Since(start), "indices len", len(res.Indices), "txs len", len(txs))
+	fmt.Println("fetch tx indices time cost", time.Since(start), "indices len", len(res.Indices), "txs len", len(txs), "mempool size", memR.mempool.Size())
 	return txs
 }
 
@@ -257,7 +257,8 @@ func (memR *Reactor) AddPeer(peer p2p.Peer) {
 		go memR.receiver.SendTxReceiverInfo(peer)
 	}
 
-	if memR.sentryPartner == "" || memR.isSentryNode {
+	if string(peer.ID()) != memR.sentryPartner || memR.isSentryNode {
+		// validator need not broadcast tx to sentry partner
 		go memR.broadcastTxRoutine(peer)
 	}
 }
@@ -344,9 +345,7 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		return
 	}
 	if chID == TxReceiverChannel {
-		if memR.isGRPCPartner(string(src.ID())) {
-			go memR.receiver.ReceiveTxReceiverInfo(src, msgBytes)
-		}
+		go memR.receiver.ReceiveTxReceiverInfo(src, msgBytes)
 		return
 	}
 

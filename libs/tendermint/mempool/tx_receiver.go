@@ -3,6 +3,7 @@ package mempool
 import (
 	"context"
 	"fmt"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"io"
 	"net"
 	"strconv"
@@ -84,6 +85,12 @@ func (s *txReceiverServer) CacheSentryTxs(stream pb.MempoolTxReceiver_CacheSentr
 		for _, stx := range req.Txs {
 			types.SignatureCache().Add(types.Tx(stx.Tx).Hash(s.memR.mempool.Height()), stx.From)
 			s.memR.txMap.Add(stx.TxIndex, stx.Tx)
+			if err := s.memR.mempool.CheckTx(stx.Tx, nil, TxInfo{
+				SenderID:  10000,
+				checkType: abci.CheckTxType_WrappedCheck,
+			}); err != nil {
+				s.Logger.Error("CacheSentryTxs", "CheckTx error", err)
+			}
 		}
 		s.memR.mempool.mustNotifyTxsAvailable()
 

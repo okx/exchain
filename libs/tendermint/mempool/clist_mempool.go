@@ -105,7 +105,10 @@ func NewCListMempool(
 	options ...CListMempoolOption,
 ) *CListMempool {
 	var txQueue ITransactionQueue
-	if config.SortTxByGp {
+	if cfg.DynamicConfig.GetSentryPartner() != "" && !cfg.DynamicConfig.IsSentryNode() {
+		// only for validator nodes in sentry mode
+		txQueue = NewBaseTxQueue()
+	} else if config.SortTxByGp {
 		txQueue = NewOptimizedTxQueue(int64(config.TxPriceBump))
 	} else {
 		txQueue = NewBaseTxQueue()
@@ -888,7 +891,6 @@ func (mem *CListMempool) Update(
 	mem.notifiedTxsAvailable = false
 	if mem.sentryMempool != nil {
 		mem.sentryMempool.Update(height, txs)
-		return nil
 	}
 
 	if preCheck != nil {
