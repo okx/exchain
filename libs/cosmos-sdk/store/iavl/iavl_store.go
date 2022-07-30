@@ -318,7 +318,7 @@ func (st *Store) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 	// store the height we chose in the response, with 0 being changed to the
 	// latest height
 	res.Height = getHeight(st.tree, req)
-	tree, err := st.tree.GetImmutable(req.Height)
+	tree, err := st.tree.GetImmutable(res.Height)
 	if err != nil {
 		return sdkerrors.QueryResult(sdkerrors.Wrapf(iavl.ErrVersionDoesNotExist, "request height %d", req.Height))
 	}
