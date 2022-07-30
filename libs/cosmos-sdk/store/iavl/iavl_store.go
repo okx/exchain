@@ -290,7 +290,7 @@ func getHeight(tree Tree, req abci.RequestQuery) int64 {
 	height := req.Height
 	if height == 0 {
 		latest := tree.Version()
-		_, err := tree.GetImmutable(latest)
+		_, err := tree.GetImmutable(latest - 1)
 		if err != nil {
 			height = latest - 1
 		} else {
