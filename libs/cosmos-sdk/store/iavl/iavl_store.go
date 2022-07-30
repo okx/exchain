@@ -290,8 +290,8 @@ func getHeight(tree Tree, req abci.RequestQuery) int64 {
 	height := req.Height
 	if height == 0 {
 		latest := tree.Version()
-		_, err := tree.GetImmutable(latest)
-		if err != nil {
+		_, err := tree.GetImmutable(latest - 1)
+		if err == nil {
 			height = latest - 1
 		} else {
 			height = latest
@@ -318,15 +318,16 @@ func (st *Store) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 	// store the height we chose in the response, with 0 being changed to the
 	// latest height
 	res.Height = getHeight(st.tree, req)
-	tree, err := st.tree.GetImmutable(res.Height)
-	if err != nil {
-		return sdkerrors.QueryResult(sdkerrors.Wrapf(iavl.ErrVersionDoesNotExist, "request height %d", req.Height))
-	}
 
 	switch req.Path {
 	case "/key": // get by key
 		key := req.Data // data holds the key bytes
 		res.Key = key
+
+		tree, err := st.tree.GetImmutable(res.Height)
+		if err != nil {
+			return sdkerrors.QueryResult(sdkerrors.Wrapf(iavl.ErrVersionDoesNotExist, "request height %d", req.Height))
+		}
 
 		if req.Prove {
 			value, proof, err := tree.GetWithProof(key)
