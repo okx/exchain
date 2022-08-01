@@ -1565,7 +1565,10 @@ func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) 
 }
 
 // GetContractMethodBlockedByAddress gets contract methods blocked by address
-func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.AccAddress) *BlockedContract {
+func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.AccAddress) (bc *BlockedContract) {
+	defer func() {
+		fmt.Println("UseParamCache", csdb.ctx.UseParamCache(), "isdeliver", csdb.ctx.IsDeliver(), "ischecktx", csdb.ctx.IsCheckTx(), "paramsg", csdb.ctx.ParaMsg(), "BlockedContract", bc.String())
+	}()
 	if csdb.ctx.UseParamCache() {
 		if GetEvmParamsCache().IsNeedBlockedUpdate() {
 			bcl := csdb.GetContractMethodBlockedList()
