@@ -754,6 +754,9 @@ func (tree *MutableTree) GetVersioned(key []byte, version int64) (
 		isFastCacheEnabled := tree.IsFastCacheEnabled()
 		if isFastCacheEnabled {
 			fastNode, _ := tree.ndb.GetFastNode(key)
+			if fastNode == nil && version == tree.ndb.latestMemoryVersion {
+				return -1, nil
+			}
 
 			if fastNode != nil && fastNode.versionLastUpdatedAt <= version {
 				return fastNode.versionLastUpdatedAt, fastNode.value
@@ -862,6 +865,7 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 			return nil, 0, err
 		}
 	}
+	tree.ndb.updateLatestMemoryVersion(version)
 
 	fnc := &fastNodeChanges{additions: tree.unsavedFastNodeAdditions,
 		removals: tree.unsavedFastNodeRemovals}
