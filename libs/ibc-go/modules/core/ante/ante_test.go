@@ -490,6 +490,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 				suite.chainB.ChainID(),
 				[]uint64{suite.chainB.SenderAccount().GetAccountNumber()},
 				[]uint64{suite.chainB.SenderAccount().GetSequence()},
+				1,
 				suite.chainB.SenderAccountPV(),
 			)
 			antehandler := appante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), app.WasmHandler, k)
@@ -504,6 +505,7 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 				suite.chainB.ChainID(),
 				[]uint64{suite.chainB.SenderAccount().GetAccountNumber()},
 				[]uint64{suite.chainB.SenderAccount().GetSequence() + uint64(1)},
+				1,
 				suite.chainB.SenderAccountPV(),
 			)
 			//_, err = decorator.AnteHandle(checkCtx, ibcTx, false, next)
