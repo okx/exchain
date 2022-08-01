@@ -183,7 +183,8 @@ func (t *ImmutableTree) Get(key []byte) []byte {
 			return nil
 		}
 
-		return nil
+		_, result := t.root.get(t, key)
+		return result
 	}
 
 	if fastNode.versionLastUpdatedAt <= t.version {
