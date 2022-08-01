@@ -75,7 +75,7 @@ type nodeDB struct {
 	versionReaders map[int64]uint32 // Number of active version readers
 	storageVersion string           // Storage version
 
-	latestVersion int64
+	latestPersistedVersion int64
 
 	prePersistNodeCache map[string]*Node
 
@@ -87,10 +87,10 @@ type nodeDB struct {
 	state *RuntimeState
 	tpp   *tempPrePersistNodes
 
-	fastNodeCache          *FastNodeCache
-	tpfv                   *fastNodeChangesWithVersion
-	prePersistFastNode     *fastNodeChanges
-	latestVersion4FastNode int64
+	fastNodeCache       *FastNodeCache
+	tpfv                *fastNodeChangesWithVersion
+	prePersistFastNode  *fastNodeChanges
+	latestMemoryVersion int64
 }
 
 func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
@@ -647,26 +647,33 @@ func (ndb *nodeDB) rootKey(version int64) []byte {
 }
 
 func (ndb *nodeDB) getLatestVersion() int64 {
-	if ndb.latestVersion == 0 {
-		ndb.latestVersion = ndb.getPreviousVersion(1<<63 - 1)
+	if ndb.latestPersistedVersion == 0 {
+		ndb.latestPersistedVersion = ndb.getPreviousVersion(1<<63 - 1)
 	}
-	return ndb.latestVersion
+	return ndb.latestPersistedVersion
 }
 
 func (ndb *nodeDB) updateLatestVersion(version int64) {
-	if ndb.latestVersion < version {
-		ndb.latestVersion = version
+	if ndb.latestPersistedVersion < version {
+		ndb.latestPersistedVersion = version
 	}
 }
 
-func (ndb *nodeDB) updateLatestVersion4FastNode(version int64) {
-	if ndb.latestVersion4FastNode < version {
-		ndb.latestVersion4FastNode = version
+func (ndb *nodeDB) getLatestMemoryVersion() int64 {
+	if ndb.latestMemoryVersion == 0 {
+		ndb.latestMemoryVersion = ndb.getPreviousVersion(1<<63 - 1)
+	}
+	return ndb.latestMemoryVersion
+}
+
+func (ndb *nodeDB) updateLatestMemoryVersion(version int64) {
+	if ndb.latestMemoryVersion < version {
+		ndb.latestMemoryVersion = version
 	}
 }
 
 func (ndb *nodeDB) resetLatestVersion(version int64) {
-	ndb.latestVersion = version
+	ndb.latestPersistedVersion = version
 }
 
 func (ndb *nodeDB) getPreviousVersion(version int64) int64 {

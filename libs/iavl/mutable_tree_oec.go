@@ -88,8 +88,8 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 
 	shouldPersist := ((version%CommitGapHeight == 0) && (version-tree.lastPersistHeight >= CommitGapHeight)) ||
 		(treeMap.totalPpncSize >= MinCommitItemCount)
+	tree.ndb.updateLatestMemoryVersion(version)
 
-	tree.ndb.updateLatestVersion4FastNode(version)
 	if shouldPersist {
 		tree.ndb.saveNewOrphans(version, tree.orphans, true)
 		tree.persist(version)
