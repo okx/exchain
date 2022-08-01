@@ -75,7 +75,7 @@ type nodeDB struct {
 	versionReaders map[int64]uint32 // Number of active version readers
 	storageVersion string           // Storage version
 
-	latestVersion int64
+	latestPersistedVersion int64
 
 	prePersistNodeCache map[string]*Node
 
@@ -646,20 +646,20 @@ func (ndb *nodeDB) rootKey(version int64) []byte {
 }
 
 func (ndb *nodeDB) getLatestVersion() int64 {
-	if ndb.latestVersion == 0 {
-		ndb.latestVersion = ndb.getPreviousVersion(1<<63 - 1)
+	if ndb.latestPersistedVersion == 0 {
+		ndb.latestPersistedVersion = ndb.getPreviousVersion(1<<63 - 1)
 	}
-	return ndb.latestVersion
+	return ndb.latestPersistedVersion
 }
 
 func (ndb *nodeDB) updateLatestVersion(version int64) {
-	if ndb.latestVersion < version {
-		ndb.latestVersion = version
+	if ndb.latestPersistedVersion < version {
+		ndb.latestPersistedVersion = version
 	}
 }
 
 func (ndb *nodeDB) resetLatestVersion(version int64) {
-	ndb.latestVersion = version
+	ndb.latestPersistedVersion = version
 }
 
 func (ndb *nodeDB) getPreviousVersion(version int64) int64 {
