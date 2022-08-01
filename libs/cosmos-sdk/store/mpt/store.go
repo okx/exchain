@@ -381,10 +381,18 @@ func (ms *MptStore) otherNodePersist(curMptRoot ethcmn.Hash, curHeight int64) {
 		}
 	}
 }
+func (ms *MptStore) CurrentVersion() int64 {
+	return ms.version
+}
+
+func (ms *MptStore) OnStop() error {
+	return ms.StopWithVersion(ms.version)
+}
 
 // Stop stops the blockchain service. If any imports are currently in progress
 // it will abort them using the procInterrupt.
-func (ms *MptStore) OnStop() error {
+func (ms *MptStore) StopWithVersion(targetVersion int64) error {
+	curVersion := uint64(targetVersion)
 	ms.exitSignal <- struct{}{}
 	ms.StopPrefetcher()
 
@@ -401,7 +409,7 @@ func (ms *MptStore) OnStop() error {
 		oecStartHeight := uint64(tmtypes.GetStartBlockHeight()) // start height of oec
 
 		latestStoreVersion := ms.GetLatestStoredBlockHeight()
-		curVersion := uint64(ms.version)
+
 		for version := latestStoreVersion; version <= curVersion; version++ {
 			if version <= oecStartHeight || version <= uint64(ms.startVersion) {
 				continue

@@ -84,7 +84,7 @@ func (f *Filter) Logs(ctx context.Context) ([]*ethtypes.Log, error) {
 	var err error
 
 	// If we're doing singleton block filtering, execute and return
-	if f.criteria.BlockHash != nil && f.criteria.BlockHash != (&common.Hash{}) {
+	if f.criteria.BlockHash != nil && *f.criteria.BlockHash != (common.Hash{}) {
 		header, err := f.backend.HeaderByHash(*f.criteria.BlockHash)
 		if err != nil {
 			return nil, err
