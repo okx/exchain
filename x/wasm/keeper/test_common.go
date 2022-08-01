@@ -39,6 +39,7 @@ import (
 	upgradekeeper "github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	upgradetypes "github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"github.com/okex/exchain/x/ammswap"
+	"github.com/okex/exchain/x/common/monitor"
 	dex "github.com/okex/exchain/x/dex/types"
 	distr "github.com/okex/exchain/x/distribution"
 	"github.com/okex/exchain/x/erc20"
@@ -321,7 +322,7 @@ func createTestInput(
 		&appCodec,
 		keys[stakingtypes.StoreKey],
 		supplyKeeper,
-		subspace(stakingtypes.ModuleName),
+		subspace(stakingtypes.ModuleName), monitor.NopStakingMetric(),
 	)
 	stakingKeeper.SetParams(ctx, TestingStakeParams)
 
@@ -332,7 +333,7 @@ func createTestInput(
 		stakingKeeper,
 		supplyKeeper,
 		authtypes.FeeCollectorName,
-		blockedAddrs,
+		blockedAddrs, monitor.NopDistrMetric(),
 	)
 	distKeeper.SetParams(ctx, distributiontypes.DefaultParams())
 	stakingKeeper.SetHooks(distKeeper.Hooks())
