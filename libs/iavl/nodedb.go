@@ -87,10 +87,9 @@ type nodeDB struct {
 	state *RuntimeState
 	tpp   *tempPrePersistNodes
 
-	fastNodeCache          *FastNodeCache
-	tpfv                   *fastNodeChangesWithVersion
-	prePersistFastNode     *fastNodeChanges
-	latestVersion4FastNode int64
+	fastNodeCache      *FastNodeCache
+	tpfv               *fastNodeChangesWithVersion
+	prePersistFastNode *fastNodeChanges
 }
 
 func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
@@ -656,12 +655,6 @@ func (ndb *nodeDB) getLatestVersion() int64 {
 func (ndb *nodeDB) updateLatestVersion(version int64) {
 	if ndb.latestVersion < version {
 		ndb.latestVersion = version
-	}
-}
-
-func (ndb *nodeDB) updateLatestVersion4FastNode(version int64) {
-	if ndb.latestVersion4FastNode < version {
-		ndb.latestVersion4FastNode = version
 	}
 }
 
