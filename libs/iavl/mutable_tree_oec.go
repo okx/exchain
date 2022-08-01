@@ -29,7 +29,7 @@ var (
 	MinCommitItemCount        int64 = 500000
 	HeightOrphansCacheSize          = 8
 	MaxCommittedHeightNum           = minHistoryStateNum
-	EnableAsyncCommit               = true
+	EnableAsyncCommit               = false
 	EnablePruningHistoryState       = true
 	CommitGapHeight           int64 = 100
 	fastNodeCacheSize               = 100000

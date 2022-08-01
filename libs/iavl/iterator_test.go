@@ -194,7 +194,7 @@ func TestIterator_WithDelete_Full_Ascending_Success(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	immutableTree, err := tree.GetImmutable(tree.ndb.latestVersion4FastNode)
+	immutableTree, err := tree.GetImmutable(tree.ndb.getLatestMemoryVersion())
 	require.NoError(t, err)
 
 	// sort mirror for assertion
@@ -265,7 +265,7 @@ func setupIteratorAndMirror(t *testing.T, config *iteratorTestConfig) (dbm.Itera
 	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 
-	immutableTree, err := tree.GetImmutable(tree.ndb.latestVersion4FastNode)
+	immutableTree, err := tree.GetImmutable(tree.ndb.getLatestMemoryVersion())
 	require.NoError(t, err)
 
 	itr := NewIterator(config.startIterate, config.endIterate, config.ascending, immutableTree)
