@@ -179,6 +179,8 @@ func (t *ImmutableTree) Get(key []byte) []byte {
 		// If the tree is of the latest version and fast node is not in the tree
 		// then the regular node is not in the tree either because fast node
 		// represents live state.
+		// As the Get is called only by MutableTree.Get. So the ImmutableTree's
+		// version is always the latest version
 
 		return nil
 	}
