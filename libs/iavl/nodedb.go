@@ -471,20 +471,22 @@ func (ndb *nodeDB) DeleteVersionsFrom(batch dbm.Batch, version int64) error {
 		batch.Delete(k)
 	})
 
-	// Delete fast node entries
-	ndb.traverseFastNodes(func(keyWithPrefix, v []byte) {
-		key := keyWithPrefix[1:]
-		fastNode, err := DeserializeFastNode(key, v)
+	if GetEnableFastStorage() {
+		// Delete fast node entries
+		ndb.traverseFastNodes(func(keyWithPrefix, v []byte) {
+			key := keyWithPrefix[1:]
+			fastNode, err := DeserializeFastNode(key, v)
 
-		if err != nil {
-			return
-		}
+			if err != nil {
+				return
+			}
 
-		if version <= fastNode.versionLastUpdatedAt {
-			batch.Delete(keyWithPrefix)
-			ndb.uncacheFastNode(key)
-		}
-	})
+			if version <= fastNode.versionLastUpdatedAt {
+				batch.Delete(keyWithPrefix)
+				ndb.uncacheFastNode(key)
+			}
+		})
+	}
 
 	return nil
 }

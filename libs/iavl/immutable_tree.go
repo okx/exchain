@@ -167,34 +167,35 @@ func (t *ImmutableTree) Get(key []byte) []byte {
 		return nil
 	}
 
-	// attempt to get a FastNode directly from db/cache.
-	// if call fails, fall back to the original IAVL logic in place.
-	fastNode, err := t.ndb.GetFastNode(key)
-	if err != nil {
-		_, result := t.root.get(t, key)
-		return result
-	}
-
-	if fastNode == nil {
-		// If the tree is of the latest version and fast node is not in the tree
-		// then the regular node is not in the tree either because fast node
-		// represents live state.
-		if t.version == t.ndb.latestVersion {
-			return nil
+	if GetEnableFastStorage() {
+		// attempt to get a FastNode directly from db/cache.
+		// if call fails, fall back to the original IAVL logic in place.
+		fastNode, err := t.ndb.GetFastNode(key)
+		if err != nil {
+			_, result := t.root.get(t, key)
+			return result
 		}
 
-		if EnableAsyncCommit && t.version == t.ndb.latestVersion4FastNode {
-			return nil
+		if fastNode == nil {
+			// If the tree is of the latest version and fast node is not in the tree
+			// then the regular node is not in the tree either because fast node
+			// represents live state.
+			if t.version == t.ndb.latestVersion {
+				return nil
+			}
+
+			if EnableAsyncCommit && t.version == t.ndb.latestVersion4FastNode {
+				return nil
+			}
+
+			_, result := t.root.get(t, key)
+			return result
 		}
 
-		_, result := t.root.get(t, key)
-		return result
+		if fastNode.versionLastUpdatedAt <= t.version {
+			return fastNode.value
+		}
 	}
-
-	if fastNode.versionLastUpdatedAt <= t.version {
-		return fastNode.value
-	}
-
 	// Otherwise the cached node was updated later than the current tree. In this case,
 	// we need to use the regular stategy for reading from the current tree to avoid staleness.
 	_, result := t.root.get(t, key)
@@ -268,7 +269,7 @@ func (t *ImmutableTree) IterateRangeInclusive(start, end []byte, ascending bool,
 // 1. The tree is of the latest version.
 // 2. The underlying storage has been upgraded to fast cache
 func (t *ImmutableTree) IsFastCacheEnabled() bool {
-	return t.isLatestTreeVersion() && t.ndb.hasUpgradedToFastStorage()
+	return GetEnableFastStorage() && t.isLatestTreeVersion() && t.ndb.hasUpgradedToFastStorage()
 }
 
 func (t *ImmutableTree) isLatestTreeVersion() bool {
