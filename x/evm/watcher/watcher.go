@@ -17,6 +17,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmstate "github.com/okex/exchain/libs/tendermint/state"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
 )
@@ -32,7 +33,7 @@ type Watcher struct {
 	cumulativeGas  map[uint64]uint64
 	gasUsed        uint64
 	blockTxs       []common.Hash
-	blockStdTxs   []common.Hash
+	blockStdTxs    []common.Hash
 	enable         bool
 	firstUse       bool
 	delayEraseKey  [][]byte
@@ -324,6 +325,10 @@ func (w *Watcher) Commit() {
 	//hold it in temp
 	batch := w.batch
 	w.clean()
+	// No need to write db when upload delta is enabled.
+	if tmtypes.UploadDelta {
+		return
+	}
 	w.dispatchJob(func() {
 		w.commitBatch(batch)
 	})

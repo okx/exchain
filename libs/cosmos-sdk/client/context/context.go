@@ -2,9 +2,10 @@ package context
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"io"
 	"os"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
 	tmlite "github.com/okex/exchain/libs/tendermint/lite"
@@ -137,6 +138,9 @@ func (ctx CLIContext) WithInput(r io.Reader) CLIContext {
 // WithCodec returns a copy of the context with an updated codec.
 func (ctx CLIContext) WithCodec(cdc *codec.Codec) CLIContext {
 	ctx.Codec = cdc
+	if ctx.CodecProy == nil {
+		ctx.CodecProy = codec.NewCodecProxy(codec.NewProtoCodec(nil), cdc)
+	}
 	return ctx
 }
 
