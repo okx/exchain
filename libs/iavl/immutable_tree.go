@@ -227,7 +227,7 @@ func (t *ImmutableTree) Iterate(fn func(key []byte, value []byte) bool) (stopped
 
 // Iterator returns an iterator over the immutable tree.
 func (t *ImmutableTree) Iterator(start, end []byte, ascending bool) dbm.Iterator {
-	if t.IsFastCacheEnabled() {
+	if t.IsFastCacheEnabled() && t.version == t.ndb.latestVersion4FastNode {
 		return NewFastIterator(start, end, ascending, t.ndb)
 	}
 	return NewIterator(start, end, ascending, t)

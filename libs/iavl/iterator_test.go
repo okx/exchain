@@ -2,12 +2,19 @@ package iavl
 
 import (
 	"math/rand"
+	"os"
 	"sort"
 	"testing"
 
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/stretchr/testify/require"
 )
+
+func TestMain(m *testing.M) {
+	cleanTree()
+	code := m.Run()
+	os.Exit(code)
+}
 
 func TestIterator_NewIterator_NilTree_Failure(t *testing.T) {
 	var start, end = []byte{'a'}, []byte{'c'}
@@ -55,6 +62,7 @@ func TestUnsavedFastIterator_NewIterator_NilAdditions_Failure(t *testing.T) {
 	}
 
 	t.Run("Nil additions given", func(t *testing.T) {
+		cleanTree()
 		tree, err := NewMutableTree(dbm.NewMemDB(), 0)
 		require.NoError(t, err)
 		itr := NewUnsavedFastIterator(start, end, ascending, tree.ndb, nil, tree.unsavedFastNodeRemovals)
@@ -63,6 +71,7 @@ func TestUnsavedFastIterator_NewIterator_NilAdditions_Failure(t *testing.T) {
 	})
 
 	t.Run("Nil removals given", func(t *testing.T) {
+		t.Cleanup(cleanTree)
 		tree, err := NewMutableTree(dbm.NewMemDB(), 0)
 		require.NoError(t, err)
 		itr := NewUnsavedFastIterator(start, end, ascending, tree.ndb, tree.unsavedFastNodeAdditions, nil)
@@ -77,6 +86,7 @@ func TestUnsavedFastIterator_NewIterator_NilAdditions_Failure(t *testing.T) {
 	})
 
 	t.Run("Additions and removals are nil", func(t *testing.T) {
+		t.Cleanup(cleanTree)
 		tree, err := NewMutableTree(dbm.NewMemDB(), 0)
 		require.NoError(t, err)
 		itr := NewUnsavedFastIterator(start, end, ascending, tree.ndb, nil, nil)
@@ -179,10 +189,12 @@ func TestIterator_WithDelete_Full_Ascending_Success(t *testing.T) {
 	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 
-	err = tree.DeleteVersion(1)
-	require.NoError(t, err)
+	if !EnableAsyncCommit {
+		err = tree.DeleteVersion(1)
+		require.NoError(t, err)
+	}
 
-	immutableTree, err := tree.GetImmutable(tree.ndb.getLatestVersion())
+	immutableTree, err := tree.GetImmutable(tree.ndb.latestVersion4FastNode)
 	require.NoError(t, err)
 
 	// sort mirror for assertion
@@ -245,6 +257,7 @@ func iteratorSuccessTest(t *testing.T, config *iteratorTestConfig) {
 }
 
 func setupIteratorAndMirror(t *testing.T, config *iteratorTestConfig) (dbm.Iterator, [][]string) {
+	t.Cleanup(cleanTree)
 	tree, err := NewMutableTree(dbm.NewMemDB(), 0)
 	require.NoError(t, err)
 
@@ -252,7 +265,7 @@ func setupIteratorAndMirror(t *testing.T, config *iteratorTestConfig) (dbm.Itera
 	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 
-	immutableTree, err := tree.GetImmutable(tree.ndb.getLatestVersion())
+	immutableTree, err := tree.GetImmutable(tree.ndb.latestVersion4FastNode)
 	require.NoError(t, err)
 
 	itr := NewIterator(config.startIterate, config.endIterate, config.ascending, immutableTree)
@@ -260,6 +273,7 @@ func setupIteratorAndMirror(t *testing.T, config *iteratorTestConfig) (dbm.Itera
 }
 
 func setupFastIteratorAndMirror(t *testing.T, config *iteratorTestConfig) (dbm.Iterator, [][]string) {
+	t.Cleanup(cleanTree)
 	tree, err := NewMutableTree(dbm.NewMemDB(), 0)
 	require.NoError(t, err)
 
@@ -272,6 +286,7 @@ func setupFastIteratorAndMirror(t *testing.T, config *iteratorTestConfig) (dbm.I
 }
 
 func setupUnsavedFastIterator(t *testing.T, config *iteratorTestConfig) (dbm.Iterator, [][]string) {
+	t.Cleanup(cleanTree)
 	tree, err := NewMutableTree(dbm.NewMemDB(), 0)
 	require.NoError(t, err)
 
@@ -323,4 +338,8 @@ func setupUnsavedFastIterator(t *testing.T, config *iteratorTestConfig) (dbm.Ite
 
 	itr := NewUnsavedFastIterator(config.startIterate, config.endIterate, config.ascending, tree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
 	return itr, mirror
+}
+
+func cleanTree() {
+	treeMap.resetMap()
 }

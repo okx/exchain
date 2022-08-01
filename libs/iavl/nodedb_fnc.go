@@ -37,6 +37,21 @@ func (fnc *fastNodeChanges) remove(key string, value interface{}) {
 	delete(fnc.additions, key)
 }
 
+func (fnc *fastNodeChanges) checkRemovals(key string) bool {
+	if _, ok := fnc.removals[key]; ok {
+		return true
+	}
+	return false
+}
+
+func (fnc *fastNodeChanges) checkAdditions(key string) bool {
+	if _, ok := fnc.additions[key]; ok {
+		return true
+	}
+
+	return false
+}
+
 type fastNodeChangesWithVersion struct {
 	mtx      sync.RWMutex
 	versions []int64
@@ -75,4 +90,38 @@ func (fncv *fastNodeChangesWithVersion) get(key []byte) (*FastNode, bool) {
 		}
 	}
 	return nil, false
+}
+
+func (fncv *fastNodeChangesWithVersion) checkRemovals(key string) bool {
+	fncv.mtx.RLock()
+	defer fncv.mtx.RUnlock()
+	for i := len(fncv.versions) - 1; i >= 0; i-- {
+		if fncv.fncMap[fncv.versions[i]].checkRemovals(key) {
+			for j := len(fncv.versions) - 1; j >= i; j-- {
+				if fncv.fncMap[fncv.versions[j]].checkAdditions(key) {
+					return false
+				}
+			}
+			return true
+		}
+	}
+
+	return false
+}
+
+func (fncv *fastNodeChangesWithVersion) checkAdditions(key string) bool {
+	fncv.mtx.RLock()
+	defer fncv.mtx.RUnlock()
+	for i := len(fncv.versions) - 1; i >= 0; i-- {
+		if fncv.fncMap[fncv.versions[i]].checkAdditions(key) {
+			for j := len(fncv.versions) - 1; j >= i; j-- {
+				if fncv.fncMap[fncv.versions[j]].checkRemovals(key) {
+					return false
+				}
+			}
+			return true
+		}
+	}
+
+	return false
 }
