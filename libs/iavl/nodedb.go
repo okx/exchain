@@ -659,6 +659,13 @@ func (ndb *nodeDB) updateLatestVersion(version int64) {
 	}
 }
 
+func (ndb *nodeDB) getLatestMemoryVersion() int64 {
+	if ndb.latestMemoryVersion == 0 {
+		ndb.latestMemoryVersion = ndb.getPreviousVersion(1<<63 - 1)
+	}
+	return ndb.latestMemoryVersion
+}
+
 func (ndb *nodeDB) updateLatestMemoryVersion(version int64) {
 	if ndb.latestMemoryVersion < version {
 		ndb.latestMemoryVersion = version
