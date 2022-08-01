@@ -109,6 +109,13 @@ func main() {
 		0, "Assert registered invariants every N blocks")
 	rootCmd.PersistentFlags().Bool(server.FlagGops, false, "Enable gops metrics collection")
 
+	rootCmd.PersistentFlags().StringSlice("test.monitored_validators", []string{}, "the list of validators, used for monitoring to test")
+	rootCmd.PersistentFlags().Float64("test.init_totoal_fee", 0, "")
+	rootCmd.PersistentFlags().Float64("test.init_control_fee", 0, "")
+	rootCmd.PersistentFlags().Float64("test.init_other_fee", 0, "")
+	rootCmd.PersistentFlags().Float64("test.init_community_fee", 0, "")
+	rootCmd.PersistentFlags().Float64("test.init_treasury", 0, "")
+
 	err := executor.Execute()
 	if err != nil {
 		panic(err)
