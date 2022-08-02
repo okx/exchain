@@ -2,14 +2,14 @@ package iavl
 
 import dbm "github.com/okex/exchain/libs/tm-db"
 
-type FastIteratorOKC struct {
+type FastIteratorWithCache struct {
 	*UnsavedFastIterator
 }
 
-var _ dbm.Iterator = (*FastIterator)(nil)
+var _ dbm.Iterator = (*FastIteratorWithCache)(nil)
 
-func NewFastIteratorOKC(start, end []byte, ascending bool, ndb *nodeDB) *FastIteratorOKC {
-	iter := &FastIteratorOKC{
+func NewFastIteratorWithCache(start, end []byte, ascending bool, ndb *nodeDB) *FastIteratorWithCache {
+	iter := &FastIteratorWithCache{
 		UnsavedFastIterator: &UnsavedFastIterator{},
 	}
 

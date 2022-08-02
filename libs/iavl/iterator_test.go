@@ -29,13 +29,13 @@ func TestIterator_NewIterator_NilTree_Failure(t *testing.T) {
 	})
 
 	t.Run("Fast Iterator", func(t *testing.T) {
-		itr := NewFastIteratorOKC(start, end, ascending, nil)
+		itr := NewFastIteratorWithCache(start, end, ascending, nil)
 		performTest(t, itr)
 		require.ErrorIs(t, errFastIteratorNilNdbGiven, itr.Error())
 	})
 
 	t.Run("Unsaved Fast Iterator", func(t *testing.T) {
-		itr := NewUnsavedFastIteratorOKC(start, end, ascending, nil, map[string]*FastNode{}, map[string]interface{}{})
+		itr := NewUnsavedFastIteratorWithCache(start, end, ascending, nil, map[string]*FastNode{}, map[string]interface{}{})
 		performTest(t, itr)
 		require.ErrorIs(t, errFastIteratorNilNdbGiven, itr.Error())
 	})
@@ -57,7 +57,7 @@ func TestUnsavedFastIterator_NewIterator_NilAdditions_Failure(t *testing.T) {
 	t.Run("Nil additions given", func(t *testing.T) {
 		tree, err := getRandDBNameTestTree(0)
 		require.NoError(t, err)
-		itr := NewUnsavedFastIteratorOKC(start, end, ascending, tree.ndb, nil, tree.unsavedFastNodeRemovals)
+		itr := NewUnsavedFastIteratorWithCache(start, end, ascending, tree.ndb, nil, tree.unsavedFastNodeRemovals)
 		performTest(t, itr)
 		require.ErrorIs(t, errUnsavedFastIteratorNilAdditionsGiven, itr.Error())
 	})
@@ -65,13 +65,13 @@ func TestUnsavedFastIterator_NewIterator_NilAdditions_Failure(t *testing.T) {
 	t.Run("Nil removals given", func(t *testing.T) {
 		tree, err := getRandDBNameTestTree(0)
 		require.NoError(t, err)
-		itr := NewUnsavedFastIteratorOKC(start, end, ascending, tree.ndb, tree.unsavedFastNodeAdditions, nil)
+		itr := NewUnsavedFastIteratorWithCache(start, end, ascending, tree.ndb, tree.unsavedFastNodeAdditions, nil)
 		performTest(t, itr)
 		require.ErrorIs(t, errUnsavedFastIteratorNilRemovalsGiven, itr.Error())
 	})
 
 	t.Run("All nil", func(t *testing.T) {
-		itr := NewUnsavedFastIteratorOKC(start, end, ascending, nil, nil, nil)
+		itr := NewUnsavedFastIteratorWithCache(start, end, ascending, nil, nil, nil)
 		performTest(t, itr)
 		require.ErrorIs(t, errFastIteratorNilNdbGiven, itr.Error())
 	})
@@ -79,7 +79,7 @@ func TestUnsavedFastIterator_NewIterator_NilAdditions_Failure(t *testing.T) {
 	t.Run("Additions and removals are nil", func(t *testing.T) {
 		tree, err := getRandDBNameTestTree(0)
 		require.NoError(t, err)
-		itr := NewUnsavedFastIteratorOKC(start, end, ascending, tree.ndb, nil, nil)
+		itr := NewUnsavedFastIteratorWithCache(start, end, ascending, tree.ndb, nil, nil)
 		performTest(t, itr)
 		require.ErrorIs(t, errUnsavedFastIteratorNilAdditionsGiven, itr.Error())
 	})
@@ -204,13 +204,13 @@ func TestIterator_WithDelete_Full_Ascending_Success(t *testing.T) {
 	})
 
 	t.Run("Fast Iterator", func(t *testing.T) {
-		itr := NewFastIteratorOKC(config.startIterate, config.endIterate, config.ascending, immutableTree.ndb)
+		itr := NewFastIteratorWithCache(config.startIterate, config.endIterate, config.ascending, immutableTree.ndb)
 		require.True(t, itr.Valid())
 		assertIterator(t, itr, sortedMirror, config.ascending)
 	})
 
 	t.Run("Unsaved Fast Iterator", func(t *testing.T) {
-		itr := NewUnsavedFastIteratorOKC(config.startIterate, config.endIterate, config.ascending, immutableTree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
+		itr := NewUnsavedFastIteratorWithCache(config.startIterate, config.endIterate, config.ascending, immutableTree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
 		require.True(t, itr.Valid())
 		assertIterator(t, itr, sortedMirror, config.ascending)
 	})
@@ -269,7 +269,7 @@ func setupFastIteratorAndMirror(t *testing.T, config *iteratorTestConfig) (dbm.I
 	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 
-	itr := NewFastIteratorOKC(config.startIterate, config.endIterate, config.ascending, tree.ndb)
+	itr := NewFastIteratorWithCache(config.startIterate, config.endIterate, config.ascending, tree.ndb)
 	return itr, mirror
 }
 
@@ -323,7 +323,7 @@ func setupUnsavedFastIterator(t *testing.T, config *iteratorTestConfig) (dbm.Ite
 		}
 	}
 
-	itr := NewUnsavedFastIteratorOKC(config.startIterate, config.endIterate, config.ascending, tree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
+	itr := NewUnsavedFastIteratorWithCache(config.startIterate, config.endIterate, config.ascending, tree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
 	return itr, mirror
 }
 
