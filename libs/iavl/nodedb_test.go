@@ -93,7 +93,7 @@ func TestSetStorageVersion_Success(t *testing.T) {
 	require.Equal(t, defaultStorageVersionValue, ndb.getStorageVersion())
 
 	batch := db.NewBatch()
-	err := ndb.setFastStorageVersionToBatch(batch)
+	err := ndb.setFastStorageVersionToBatch(batch, ndb.getLatestVersion())
 	require.NoError(t, err)
 	require.Equal(t, expectedVersion+fastStorageVersionDelimiter+strconv.Itoa(int(ndb.getLatestVersion())), ndb.getStorageVersion())
 	require.NoError(t, batch.Write())
@@ -126,7 +126,7 @@ func TestSetStorageVersion_DBFailure_OldKept(t *testing.T) {
 	require.Equal(t, defaultStorageVersionValue, ndb.getStorageVersion())
 
 	batch := ndb.NewBatch()
-	ndb.setFastStorageVersionToBatch(batch)
+	ndb.setFastStorageVersionToBatch(batch, ndb.getLatestVersion())
 	//	err := ndb.setFastStorageVersionToBatch(batch)
 	//	require.Error(t, err)
 	///	require.Equal(t, expectedErrorMsg, err.Error())
@@ -149,7 +149,8 @@ func TestSetStorageVersion_InvalidVersionFailure_OldKept(t *testing.T) {
 	require.Equal(t, invalidStorageVersion, ndb.getStorageVersion())
 
 	batch := ndb.NewBatch()
-	err := ndb.setFastStorageVersionToBatch(batch)
+	invalidVersion := int64(0)
+	err := ndb.setFastStorageVersionToBatch(batch, invalidVersion)
 	require.Error(t, err)
 	require.Equal(t, expectedErrorMsg, err.Error())
 	require.Equal(t, invalidStorageVersion, ndb.getStorageVersion())
@@ -159,45 +160,45 @@ func TestSetStorageVersion_FastVersionFirst_VersionAppended(t *testing.T) {
 	db := db.NewMemDB()
 	ndb := newNodeDB(db, 0, nil)
 	ndb.storageVersion = fastStorageVersionValue
-	ndb.latestVersion = 100
+	ndb.latestPersistedVersion = 100
 
 	batch := ndb.NewBatch()
-	err := ndb.setFastStorageVersionToBatch(batch)
+	err := ndb.setFastStorageVersionToBatch(batch, ndb.getLatestVersion())
 	require.NoError(t, err)
-	require.Equal(t, fastStorageVersionValue+fastStorageVersionDelimiter+strconv.Itoa(int(ndb.latestVersion)), ndb.storageVersion)
+	require.Equal(t, fastStorageVersionValue+fastStorageVersionDelimiter+strconv.Itoa(int(ndb.latestPersistedVersion)), ndb.storageVersion)
 }
 
 func TestSetStorageVersion_FastVersionSecond_VersionAppended(t *testing.T) {
 	db := db.NewMemDB()
 	ndb := newNodeDB(db, 0, nil)
-	ndb.latestVersion = 100
+	ndb.latestPersistedVersion = 100
 
 	storageVersionBytes := []byte(fastStorageVersionValue)
 	storageVersionBytes[len(fastStorageVersionValue)-1]++ // increment last byte
 	ndb.storageVersion = string(storageVersionBytes)
 
 	batch := ndb.NewBatch()
-	err := ndb.setFastStorageVersionToBatch(batch)
+	err := ndb.setFastStorageVersionToBatch(batch, ndb.getLatestVersion())
 	require.NoError(t, err)
-	require.Equal(t, string(storageVersionBytes)+fastStorageVersionDelimiter+strconv.Itoa(int(ndb.latestVersion)), ndb.storageVersion)
+	require.Equal(t, string(storageVersionBytes)+fastStorageVersionDelimiter+strconv.Itoa(int(ndb.latestPersistedVersion)), ndb.storageVersion)
 }
 
 func TestSetStorageVersion_SameVersionTwice(t *testing.T) {
 	db := db.NewMemDB()
 	ndb := newNodeDB(db, 0, nil)
-	ndb.latestVersion = 100
+	ndb.latestPersistedVersion = 100
 
 	storageVersionBytes := []byte(fastStorageVersionValue)
 	storageVersionBytes[len(fastStorageVersionValue)-1]++ // increment last byte
 	ndb.storageVersion = string(storageVersionBytes)
 
 	batch := db.NewBatch()
-	err := ndb.setFastStorageVersionToBatch(batch)
+	err := ndb.setFastStorageVersionToBatch(batch, ndb.getLatestVersion())
 	require.NoError(t, err)
-	newStorageVersion := string(storageVersionBytes) + fastStorageVersionDelimiter + strconv.Itoa(int(ndb.latestVersion))
+	newStorageVersion := string(storageVersionBytes) + fastStorageVersionDelimiter + strconv.Itoa(int(ndb.latestPersistedVersion))
 	require.Equal(t, newStorageVersion, ndb.storageVersion)
 
-	err = ndb.setFastStorageVersionToBatch(batch)
+	err = ndb.setFastStorageVersionToBatch(batch, ndb.getLatestVersion())
 	require.NoError(t, err)
 	require.Equal(t, newStorageVersion, ndb.storageVersion)
 }
@@ -207,7 +208,7 @@ func TestShouldForceFastStorageUpdate_DefaultVersion_True(t *testing.T) {
 	db := db.NewMemDB()
 	ndb := newNodeDB(db, 0, nil)
 	ndb.storageVersion = defaultStorageVersionValue
-	ndb.latestVersion = 100
+	ndb.latestPersistedVersion = 100
 
 	require.False(t, ndb.shouldForceFastStorageUpgrade())
 }
@@ -215,8 +216,8 @@ func TestShouldForceFastStorageUpdate_DefaultVersion_True(t *testing.T) {
 func TestShouldForceFastStorageUpdate_FastVersion_Greater_True(t *testing.T) {
 	db := db.NewMemDB()
 	ndb := newNodeDB(db, 0, nil)
-	ndb.latestVersion = 100
-	ndb.storageVersion = fastStorageVersionValue + fastStorageVersionDelimiter + strconv.Itoa(int(ndb.latestVersion+1))
+	ndb.latestPersistedVersion = 100
+	ndb.storageVersion = fastStorageVersionValue + fastStorageVersionDelimiter + strconv.Itoa(int(ndb.latestPersistedVersion+1))
 
 	require.True(t, ndb.shouldForceFastStorageUpgrade())
 }
@@ -224,8 +225,8 @@ func TestShouldForceFastStorageUpdate_FastVersion_Greater_True(t *testing.T) {
 func TestShouldForceFastStorageUpdate_FastVersion_Smaller_True(t *testing.T) {
 	db := db.NewMemDB()
 	ndb := newNodeDB(db, 0, nil)
-	ndb.latestVersion = 100
-	ndb.storageVersion = fastStorageVersionValue + fastStorageVersionDelimiter + strconv.Itoa(int(ndb.latestVersion-1))
+	ndb.latestPersistedVersion = 100
+	ndb.storageVersion = fastStorageVersionValue + fastStorageVersionDelimiter + strconv.Itoa(int(ndb.latestPersistedVersion-1))
 
 	require.True(t, ndb.shouldForceFastStorageUpgrade())
 }
@@ -233,8 +234,8 @@ func TestShouldForceFastStorageUpdate_FastVersion_Smaller_True(t *testing.T) {
 func TestShouldForceFastStorageUpdate_FastVersion_Match_False(t *testing.T) {
 	db := db.NewMemDB()
 	ndb := newNodeDB(db, 0, nil)
-	ndb.latestVersion = 100
-	ndb.storageVersion = fastStorageVersionValue + fastStorageVersionDelimiter + strconv.Itoa(int(ndb.latestVersion))
+	ndb.latestPersistedVersion = 100
+	ndb.storageVersion = fastStorageVersionValue + fastStorageVersionDelimiter + strconv.Itoa(int(ndb.latestPersistedVersion))
 
 	require.False(t, ndb.shouldForceFastStorageUpgrade())
 }
@@ -242,8 +243,8 @@ func TestShouldForceFastStorageUpdate_FastVersion_Match_False(t *testing.T) {
 func TestIsFastStorageEnabled_True(t *testing.T) {
 	db := db.NewMemDB()
 	ndb := newNodeDB(db, 0, nil)
-	ndb.latestVersion = 100
-	ndb.storageVersion = fastStorageVersionValue + fastStorageVersionDelimiter + strconv.Itoa(int(ndb.latestVersion))
+	ndb.latestPersistedVersion = 100
+	ndb.storageVersion = fastStorageVersionValue + fastStorageVersionDelimiter + strconv.Itoa(int(ndb.latestPersistedVersion))
 
 	require.True(t, ndb.hasUpgradedToFastStorage())
 }
@@ -251,7 +252,7 @@ func TestIsFastStorageEnabled_True(t *testing.T) {
 func TestIsFastStorageEnabled_False(t *testing.T) {
 	db := db.NewMemDB()
 	ndb := newNodeDB(db, 0, nil)
-	ndb.latestVersion = 100
+	ndb.latestPersistedVersion = 100
 	ndb.storageVersion = defaultStorageVersionValue
 
 	require.False(t, ndb.shouldForceFastStorageUpgrade())
