@@ -2,6 +2,7 @@ package benchmarks
 
 import (
 	"fmt"
+	cmn "github.com/okex/exchain/libs/iavl/common"
 	"math/rand"
 	"os"
 	"runtime"
@@ -15,6 +16,10 @@ import (
 
 const historySize = 20
 
+func init() {
+	iavl.CommitGapHeight = 1
+}
+
 func randBytes(length int) []byte {
 	key := make([]byte, length)
 	// math.rand.Read always returns err=nil
@@ -22,6 +27,10 @@ func randBytes(length int) []byte {
 	//nolint:gosec
 	rand.Read(key)
 	return key
+}
+
+func randstr(length int) string {
+	return cmn.RandStr(length)
 }
 
 func prepareTree(b *testing.B, db db.DB, size, keyLen, dataLen int) (*iavl.MutableTree, [][]byte) {

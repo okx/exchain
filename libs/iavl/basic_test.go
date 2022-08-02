@@ -221,7 +221,7 @@ func TestIntegration(t *testing.T) {
 	}
 
 	records := make([]*record, 400)
-	tree, err := getTestTree(0)
+	tree, err := getRanddbNameTestTree(0)
 	require.NoError(t, err)
 
 	randomRecord := func() *record {
@@ -304,7 +304,7 @@ func TestIterateRange(t *testing.T) {
 	}
 	sort.Strings(keys)
 
-	tree, err := getTestTree(0)
+	tree, err := getRanddbNameTestTree(0)
 	require.NoError(t, err)
 
 	// insert all the data
@@ -397,7 +397,7 @@ func TestPersistence(t *testing.T) {
 func TestProof(t *testing.T) {
 
 	// Construct some random tree
-	tree, err := getTestTree(100)
+	tree, err := getRanddbNameTestTree(100)
 	require.NoError(t, err)
 	for i := 0; i < 10; i++ {
 		key, value := randstr(20), randstr(20)
@@ -426,8 +426,7 @@ func TestProof(t *testing.T) {
 }
 
 func TestTreeProof(t *testing.T) {
-	db := db.NewMemDB()
-	tree, err := NewMutableTree(db, 100)
+	tree, err := getRanddbNameTestTree(100)
 	require.NoError(t, err)
 	assert.Equal(t, tree.Hash(), []byte(nil))
 

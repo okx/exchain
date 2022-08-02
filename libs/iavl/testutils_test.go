@@ -35,6 +35,12 @@ func getTestTree(cacheSize int) (*MutableTree, error) {
 	return NewMutableTreeWithOpts(db.NewMemDB(), cacheSize, nil)
 }
 
+// Construct a rand db name MutableTree
+func getRanddbNameTestTree(cacheSize int) (*MutableTree, error) {
+	prefixDB := db.NewPrefixDB(db.NewMemDB(), []byte(randstr(32)))
+	return NewMutableTree(prefixDB, 0)
+}
+
 // Convenience for a new node
 func N(l, r interface{}) *Node {
 	var left, right *Node
