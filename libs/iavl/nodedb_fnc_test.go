@@ -138,7 +138,7 @@ func Test_fastNodeChangesWithVersion_checkRemovals(t *testing.T) {
 					removals:  map[string]interface{}{"key2": true},
 				}}},
 			args{key: "key1"},
-			true},
+			false},
 		{"one version no related", fields{
 			versions: []int64{1},
 			fncMap: map[int64]*fastNodeChanges{
