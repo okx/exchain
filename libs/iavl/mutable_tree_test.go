@@ -725,9 +725,9 @@ func TestUpgradeStorageToFast_DbErrorEnableFastStorage_Failure(t *testing.T) {
 	rIterMock := mock.NewMockIterator(ctrl)
 
 	// rIterMock is used to get the latest version from disk. We are mocking that rIterMock returns latestTreeVersion from disk
-	rIterMock.EXPECT().Valid().Return(true).Times(1)
-	rIterMock.EXPECT().Key().Return(rootKeyFormat.Key([]byte(defaultStorageVersionValue)))
-	rIterMock.EXPECT().Close().Return().Times(1)
+	rIterMock.EXPECT().Valid().Return(true).Times(2)
+	rIterMock.EXPECT().Key().Return(rootKeyFormat.Key([]byte(defaultStorageVersionValue))).Times(2)
+	rIterMock.EXPECT().Close().Return().Times(2)
 
 	expectedError := errors.New("some db error")
 
@@ -735,7 +735,7 @@ func TestUpgradeStorageToFast_DbErrorEnableFastStorage_Failure(t *testing.T) {
 
 	dbMock.EXPECT().Get(gomock.Any()).Return(nil, nil).Times(1)
 	dbMock.EXPECT().NewBatch().Return(batchMock).Times(1)
-	dbMock.EXPECT().ReverseIterator(gomock.Any(), gomock.Any()).Return(rIterMock, nil).Times(1)
+	dbMock.EXPECT().ReverseIterator(gomock.Any(), gomock.Any()).Return(rIterMock, nil).Times(2)
 
 	batchMock.EXPECT().Set(gomock.Any(), gomock.Any()).Return().Times(1)
 
