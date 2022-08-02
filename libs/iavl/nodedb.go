@@ -669,6 +669,9 @@ func (ndb *nodeDB) getLatestMemoryVersion() int64 {
 }
 
 func (ndb *nodeDB) updateLatestMemoryVersion(version int64) {
+	if !GetEnableFastStorage() {
+		return
+	}
 	if ndb.latestMemoryVersion < version {
 		ndb.latestMemoryVersion = version
 	}
