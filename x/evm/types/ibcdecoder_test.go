@@ -1,12 +1,24 @@
 package types
 
 import (
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	types3 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/simapp/helpers"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx"
+	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
+	"github.com/okex/exchain/libs/ibc-go/testing/mock"
+	helpers2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/helpers"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/types/testdata"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/protobuf/encoding/protowire"
+	"math/big"
 	"testing"
 )
 
@@ -18,6 +30,51 @@ const (
 var (
 	priv = ed25519.GenPrivKey()
 )
+
+func TestIbcTxDecoderSignMode(t *testing.T) {
+
+	// keys and addresses
+	priv, _, addr := types.KeyTestPubAddr()
+
+	//addrs := []sdk.AccAddress{addr}
+	packet := channeltypes.NewPacket([]byte(mock.MockPacketData), 1,
+		"transfer", "channel-0",
+		"transfer", "channel-1",
+		clienttypes.NewHeight(1, 0), 0)
+	msgs := []ibcmsg.Msg{channeltypes.NewMsgRecvPacket(packet, []byte("proof"), clienttypes.NewHeight(0, 1), addr.String())}
+
+	interfaceRegistry := types3.NewInterfaceRegistry()
+	marshaler := codec.NewProtoCodec(interfaceRegistry)
+	txConfig := ibc_tx.NewTxConfig(marshaler, ibc_tx.DefaultSignModes)
+
+	// multi mode should no error
+	require.Panics(t, func() {
+		helpers2.GenTx(
+			txConfig,
+			msgs,
+			sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultIbcWei, sdk.NewIntFromBigInt(big.NewInt(0)))},
+			helpers.DefaultGenTxGas,
+			"exchain-101",
+			[]uint64{0}, //[]uint64{acc.GetAccountNumber()},
+			[]uint64{0}, //[]uint64{acc.GetSequence()},
+			2,
+			priv,
+		)
+	})
+	// single mode should no error
+	_, err := helpers2.GenTx(
+		txConfig,
+		msgs,
+		sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultIbcWei, sdk.NewIntFromBigInt(big.NewInt(0)))},
+		helpers.DefaultGenTxGas,
+		"exchain-101",
+		[]uint64{0}, //[]uint64{acc.GetAccountNumber()},
+		[]uint64{0}, //[]uint64{acc.GetSequence()},
+		1,
+		priv,
+	)
+	require.NoError(t, err)
+}
 
 // TestTxDecode decode ibc tx with unkown field
 func TestIbcDecodeUnknownFields(t *testing.T) {
