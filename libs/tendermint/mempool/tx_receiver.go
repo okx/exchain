@@ -48,37 +48,37 @@ func (s *txReceiverServer) Enabled() bool {
 	return true
 }
 
-func (s *txReceiverServer) Receive(_ context.Context, req *pb.TxRequest) (*emptypb.Empty, error) {
-	if len(req.Tx) > 0 {
-		if req.PeerId == 0 {
-			return nil, errZeroId
-		}
-
-		var info TxInfo
-		info.SenderID = uint16(req.PeerId)
-		err := s.memR.mempool.CheckTx(req.Tx, nil, info)
-		if err != nil {
-			s.memR.logCheckTxError(req.Tx, s.memR.mempool.Height(), err)
-		}
-		return nil, nil
-	} else {
-		s.memR.Logger.Error("txReceiverServer.Receive empty tx")
-		return nil, errEmpty
-	}
+func (s *txReceiverServer) CheckTx(_ context.Context, req *pb.TxRequest) (*emptypb.Empty, error) {
+	return s.checkTx(req, nil)
 }
 
-func (s *txReceiverServer) receive(req *pb.TxRequest, ch chan txJob) (*emptypb.Empty, error) {
+func (s *txReceiverServer) CheckTxAsync(_ context.Context, req *pb.TxRequest) (*emptypb.Empty, error) {
+	return s.checkTx(req, s.memR.txCh)
+}
+
+func (s *txReceiverServer) checkTx(req *pb.TxRequest, ch chan txJob) (*emptypb.Empty, error) {
 	if len(req.Tx) > 0 {
 		if req.PeerId == 0 {
 			return nil, errZeroId
 		}
 
-		ch <- txJob{
-			tx: req.Tx,
-			info: TxInfo{
-				SenderID: uint16(req.PeerId),
-			},
+		var info = TxInfo{
+			SenderID: uint16(req.PeerId),
 		}
+
+		if ch == nil {
+			err := s.memR.mempool.CheckTx(req.Tx, nil, info)
+			if err != nil {
+				s.memR.logCheckTxError(req.Tx, s.memR.mempool.Height(), err)
+			}
+		} else {
+			ch <- txJob{
+				tx:   req.Tx,
+				info: info,
+				from: req.From,
+			}
+		}
+
 		return nil, nil
 	} else {
 		s.memR.Logger.Error("txReceiverServer.Receive empty tx")
@@ -111,7 +111,7 @@ func (s *txReceiverServer) CheckTxs(stream pb.MempoolTxReceiver_CheckTxsServer) 
 		}
 		txReq.Tx = req.Tx
 		txReq.PeerId = req.PeerId
-		_, err = s.receive(txReq, txCh)
+		_, err = s.checkTx(txReq, txCh)
 		if err != nil {
 			close(txCh)
 			return err
@@ -292,6 +292,19 @@ func (r *txReceiver) Start(configPort string) {
 			}()
 		}
 	}
+}
+
+func (r *txReceiver) CheckTx(peerID uint16, memTx *mempoolTx) bool {
+	client, ok := r.GetClient(peerID)
+	if ok {
+		_, err := client.Client.CheckTx(context.Background(), &pb.TxRequest{Tx: memTx.tx, PeerId: uint32(client.ID)})
+		if err != nil {
+			r.Logger.Error("CheckTx:Receive", "err", err)
+			return false
+		}
+		return true
+	}
+	return false
 }
 
 func (r *txReceiver) Stop() {

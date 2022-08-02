@@ -124,6 +124,7 @@ func newMempoolIDs() *mempoolIDs {
 type txJob struct {
 	tx   types.Tx
 	info TxInfo
+	from string
 }
 
 // NewReactor returns a new Reactor with the given config and mempool.
@@ -398,7 +399,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 						goto P2P
 					}
 				}
-				err = stream.Send(&pb.TxPeersRequest{Tx: memTx.tx, PeerId: uint32(client.ID)})
+				err = stream.Send(&pb.TxRequest{Tx: memTx.tx, PeerId: uint32(client.ID)})
 				if err != nil {
 					memR.receiver.Logger.Error("Error Send", "err", err)
 					_, err = stream.CloseAndRecv()
