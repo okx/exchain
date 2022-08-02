@@ -131,6 +131,9 @@ func (m *modeHandlerBase) handleStartHeight(info *runTxInfo, height int64) error
 // 2. handleGasConsumed
 func (m *modeHandlerBase) handleGasConsumed(info *runTxInfo) (err error) {
 
+	m.app.parallelTxManage.blockGasMeterMu.Lock()
+	defer m.app.parallelTxManage.blockGasMeterMu.Unlock()
+
 	if info.ctx.BlockGasMeter().IsOutOfGas() {
 		info.gInfo = sdk.GasInfo{GasUsed: info.ctx.BlockGasMeter().GasConsumed()}
 		err = sdkerrors.Wrap(sdkerrors.ErrOutOfGas, "no block gas left to run tx")
@@ -177,6 +180,8 @@ func (m *modeHandlerBase) handleDeferRefund(*runTxInfo) {}
 //===========================================================================================
 // other members
 func (m *modeHandlerBase) setGasConsumed(info *runTxInfo) {
+	m.app.parallelTxManage.blockGasMeterMu.Lock()
+	defer m.app.parallelTxManage.blockGasMeterMu.Unlock()
 	info.ctx.BlockGasMeter().ConsumeGas(info.ctx.GasMeter().GasConsumedToLimit(), "block gas meter")
 	if info.ctx.BlockGasMeter().GasConsumed() < info.startingGas {
 		panic(sdk.ErrorGasOverflow{Descriptor: "tx gas summation"})
