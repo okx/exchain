@@ -729,9 +729,9 @@ func TestUpgradeStorageToFast_DbErrorEnableFastStorage_Failure(t *testing.T) {
 	rIterMock := mock.NewMockIterator(ctrl)
 
 	// rIterMock is used to get the latest version from disk. We are mocking that rIterMock returns latestTreeVersion from disk
-	rIterMock.EXPECT().Valid().Return(true).Times(1)
-	rIterMock.EXPECT().Key().Return(rootKeyFormat.Key([]byte(defaultStorageVersionValue)))
-	rIterMock.EXPECT().Close().Return().Times(1)
+	rIterMock.EXPECT().Valid().Return(true).Times(2)
+	rIterMock.EXPECT().Key().Return(rootKeyFormat.Key([]byte(defaultStorageVersionValue))).Times(2)
+	rIterMock.EXPECT().Close().Return().Times(2)
 
 	expectedError := errors.New("some db error")
 
@@ -739,7 +739,7 @@ func TestUpgradeStorageToFast_DbErrorEnableFastStorage_Failure(t *testing.T) {
 
 	dbMock.EXPECT().Get(gomock.Any()).Return(nil, nil).Times(1)
 	dbMock.EXPECT().NewBatch().Return(batchMock).Times(1)
-	dbMock.EXPECT().ReverseIterator(gomock.Any(), gomock.Any()).Return(rIterMock, nil).Times(1)
+	dbMock.EXPECT().ReverseIterator(gomock.Any(), gomock.Any()).Return(rIterMock, nil).Times(2)
 
 	batchMock.EXPECT().Set(gomock.Any(), gomock.Any()).Return().Times(1)
 
@@ -769,15 +769,15 @@ func TestFastStorageReUpgradeProtection_NoForceUpgrade_Success(t *testing.T) {
 	expectedStorageVersion := []byte(fastStorageVersionValue + fastStorageVersionDelimiter + strconv.Itoa(latestFastStorageVersionOnDisk))
 
 	// rIterMock is used to get the latest version from disk. We are mocking that rIterMock returns latestTreeVersion from disk
-	rIterMock.EXPECT().Valid().Return(true).Times(1)
-	rIterMock.EXPECT().Key().Return(rootKeyFormat.Key(latestTreeVersion))
-	rIterMock.EXPECT().Close().Return().Times(1)
+	rIterMock.EXPECT().Valid().Return(true).Times(2)
+	rIterMock.EXPECT().Key().Return(rootKeyFormat.Key(latestTreeVersion)).Times(2)
+	rIterMock.EXPECT().Close().Return().Times(2)
 
 	batchMock := mock.NewMockBatch(ctrl)
 
 	dbMock.EXPECT().Get(gomock.Any()).Return(expectedStorageVersion, nil).Times(1)
 	dbMock.EXPECT().NewBatch().Return(batchMock).Times(1)
-	dbMock.EXPECT().ReverseIterator(gomock.Any(), gomock.Any()).Return(rIterMock, nil).Times(1) // called to get latest version
+	dbMock.EXPECT().ReverseIterator(gomock.Any(), gomock.Any()).Return(rIterMock, nil).Times(2) // called to get latest version
 
 	tree, err := NewMutableTree(dbMock, 0)
 	require.Nil(t, err)
@@ -819,16 +819,16 @@ func TestFastStorageReUpgradeProtection_ForceUpgradeFirstTime_NoForceSecondTime_
 	// dbMock represents the underlying database under the hood of nodeDB
 	dbMock.EXPECT().Get(gomock.Any()).Return(expectedStorageVersion, nil).Times(1)
 	dbMock.EXPECT().NewBatch().Return(batchMock).Times(2)
-	dbMock.EXPECT().ReverseIterator(gomock.Any(), gomock.Any()).Return(rIterMock, nil).Times(1) // called to get latest version
+	dbMock.EXPECT().ReverseIterator(gomock.Any(), gomock.Any()).Return(rIterMock, nil).Times(2) // called to get latest version
 	startFormat := fastKeyFormat.Key()
 	endFormat := fastKeyFormat.Key()
 	endFormat[0]++
 	dbMock.EXPECT().Iterator(startFormat, endFormat).Return(iterMock, nil).Times(1)
 
 	// rIterMock is used to get the latest version from disk. We are mocking that rIterMock returns latestTreeVersion from disk
-	rIterMock.EXPECT().Valid().Return(true).Times(1)
-	rIterMock.EXPECT().Key().Return(rootKeyFormat.Key(latestTreeVersion))
-	rIterMock.EXPECT().Close().Return().Times(1)
+	rIterMock.EXPECT().Valid().Return(true).Times(2)
+	rIterMock.EXPECT().Key().Return(rootKeyFormat.Key(latestTreeVersion)).Times(2)
+	rIterMock.EXPECT().Close().Return().Times(2)
 
 	fastNodeKeyToDelete := []byte("some_key")
 
