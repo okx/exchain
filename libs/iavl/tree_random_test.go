@@ -415,7 +415,7 @@ func assertFastNodeCacheIsLive(t *testing.T, tree *MutableTree, mirror map[strin
 		return
 	}
 
-	for key, cacheElem := range tree.ndb.fastNodeCache {
+	for key, cacheElem := range tree.ndb.fastNodeCache.items {
 		liveFastNode, ok := mirror[key]
 
 		require.True(t, ok, "cached fast node must be in the live tree")
@@ -425,7 +425,10 @@ func assertFastNodeCacheIsLive(t *testing.T, tree *MutableTree, mirror map[strin
 
 // Checks that fast nodes on disk match live state.
 func assertFastNodeDiskIsLive(t *testing.T, tree *MutableTree, mirror map[string]string, version int64) {
-	if tree.ndb.getLatestVersion() != version {
+	if EnableAsyncCommit { // AC would not persist
+		return
+	}
+	if tree.ndb.getLatestMemoryVersion() != version {
 		// The fast node disk check should only be done to the latest version
 		return
 	}

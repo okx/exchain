@@ -29,13 +29,13 @@ func TestIterator_NewIterator_NilTree_Failure(t *testing.T) {
 	})
 
 	t.Run("Fast Iterator", func(t *testing.T) {
-		itr := NewFastIterator(start, end, ascending, nil)
+		itr := NewFastIteratorWithCache(start, end, ascending, nil)
 		performTest(t, itr)
 		require.ErrorIs(t, errFastIteratorNilNdbGiven, itr.Error())
 	})
 
 	t.Run("Unsaved Fast Iterator", func(t *testing.T) {
-		itr := NewUnsavedFastIterator(start, end, ascending, nil, map[string]*FastNode{}, map[string]interface{}{})
+		itr := NewUnsavedFastIteratorWithCache(start, end, ascending, nil, map[string]*FastNode{}, map[string]interface{}{})
 		performTest(t, itr)
 		require.ErrorIs(t, errFastIteratorNilNdbGiven, itr.Error())
 	})
@@ -55,31 +55,31 @@ func TestUnsavedFastIterator_NewIterator_NilAdditions_Failure(t *testing.T) {
 	}
 
 	t.Run("Nil additions given", func(t *testing.T) {
-		tree, err := NewMutableTree(dbm.NewMemDB(), 0)
+		tree, err := getRandDBNameTestTree(0)
 		require.NoError(t, err)
-		itr := NewUnsavedFastIterator(start, end, ascending, tree.ndb, nil, tree.unsavedFastNodeRemovals)
+		itr := NewUnsavedFastIteratorWithCache(start, end, ascending, tree.ndb, nil, tree.unsavedFastNodeRemovals)
 		performTest(t, itr)
 		require.ErrorIs(t, errUnsavedFastIteratorNilAdditionsGiven, itr.Error())
 	})
 
 	t.Run("Nil removals given", func(t *testing.T) {
-		tree, err := NewMutableTree(dbm.NewMemDB(), 0)
+		tree, err := getRandDBNameTestTree(0)
 		require.NoError(t, err)
-		itr := NewUnsavedFastIterator(start, end, ascending, tree.ndb, tree.unsavedFastNodeAdditions, nil)
+		itr := NewUnsavedFastIteratorWithCache(start, end, ascending, tree.ndb, tree.unsavedFastNodeAdditions, nil)
 		performTest(t, itr)
 		require.ErrorIs(t, errUnsavedFastIteratorNilRemovalsGiven, itr.Error())
 	})
 
 	t.Run("All nil", func(t *testing.T) {
-		itr := NewUnsavedFastIterator(start, end, ascending, nil, nil, nil)
+		itr := NewUnsavedFastIteratorWithCache(start, end, ascending, nil, nil, nil)
 		performTest(t, itr)
 		require.ErrorIs(t, errFastIteratorNilNdbGiven, itr.Error())
 	})
 
 	t.Run("Additions and removals are nil", func(t *testing.T) {
-		tree, err := NewMutableTree(dbm.NewMemDB(), 0)
+		tree, err := getRandDBNameTestTree(0)
 		require.NoError(t, err)
-		itr := NewUnsavedFastIterator(start, end, ascending, tree.ndb, nil, nil)
+		itr := NewUnsavedFastIteratorWithCache(start, end, ascending, tree.ndb, nil, nil)
 		performTest(t, itr)
 		require.ErrorIs(t, errUnsavedFastIteratorNilAdditionsGiven, itr.Error())
 	})
@@ -179,10 +179,12 @@ func TestIterator_WithDelete_Full_Ascending_Success(t *testing.T) {
 	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 
-	err = tree.DeleteVersion(1)
-	require.NoError(t, err)
+	if !EnableAsyncCommit {
+		err = tree.DeleteVersion(1)
+		require.NoError(t, err)
+	}
 
-	immutableTree, err := tree.GetImmutable(tree.ndb.getLatestVersion())
+	immutableTree, err := tree.GetImmutable(tree.ndb.getLatestMemoryVersion())
 	require.NoError(t, err)
 
 	// sort mirror for assertion
@@ -202,13 +204,13 @@ func TestIterator_WithDelete_Full_Ascending_Success(t *testing.T) {
 	})
 
 	t.Run("Fast Iterator", func(t *testing.T) {
-		itr := NewFastIterator(config.startIterate, config.endIterate, config.ascending, immutableTree.ndb)
+		itr := NewFastIteratorWithCache(config.startIterate, config.endIterate, config.ascending, immutableTree.ndb)
 		require.True(t, itr.Valid())
 		assertIterator(t, itr, sortedMirror, config.ascending)
 	})
 
 	t.Run("Unsaved Fast Iterator", func(t *testing.T) {
-		itr := NewUnsavedFastIterator(config.startIterate, config.endIterate, config.ascending, immutableTree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
+		itr := NewUnsavedFastIteratorWithCache(config.startIterate, config.endIterate, config.ascending, immutableTree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
 		require.True(t, itr.Valid())
 		assertIterator(t, itr, sortedMirror, config.ascending)
 	})
@@ -245,14 +247,14 @@ func iteratorSuccessTest(t *testing.T, config *iteratorTestConfig) {
 }
 
 func setupIteratorAndMirror(t *testing.T, config *iteratorTestConfig) (dbm.Iterator, [][]string) {
-	tree, err := NewMutableTree(dbm.NewMemDB(), 0)
+	tree, err := getRandDBNameTestTree(0)
 	require.NoError(t, err)
 
 	mirror := setupMirrorForIterator(t, config, tree)
 	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 
-	immutableTree, err := tree.GetImmutable(tree.ndb.getLatestVersion())
+	immutableTree, err := tree.GetImmutable(tree.ndb.getLatestMemoryVersion())
 	require.NoError(t, err)
 
 	itr := NewIterator(config.startIterate, config.endIterate, config.ascending, immutableTree)
@@ -260,19 +262,19 @@ func setupIteratorAndMirror(t *testing.T, config *iteratorTestConfig) (dbm.Itera
 }
 
 func setupFastIteratorAndMirror(t *testing.T, config *iteratorTestConfig) (dbm.Iterator, [][]string) {
-	tree, err := NewMutableTree(dbm.NewMemDB(), 0)
+	tree, err := getRandDBNameTestTree(0)
 	require.NoError(t, err)
 
 	mirror := setupMirrorForIterator(t, config, tree)
 	_, _, _, err = tree.SaveVersion(false)
 	require.NoError(t, err)
 
-	itr := NewFastIterator(config.startIterate, config.endIterate, config.ascending, tree.ndb)
+	itr := NewFastIteratorWithCache(config.startIterate, config.endIterate, config.ascending, tree.ndb)
 	return itr, mirror
 }
 
 func setupUnsavedFastIterator(t *testing.T, config *iteratorTestConfig) (dbm.Iterator, [][]string) {
-	tree, err := NewMutableTree(dbm.NewMemDB(), 0)
+	tree, err := getRandDBNameTestTree(0)
 	require.NoError(t, err)
 
 	// For unsaved fast iterator, we would like to test the state where
@@ -321,6 +323,12 @@ func setupUnsavedFastIterator(t *testing.T, config *iteratorTestConfig) (dbm.Ite
 		}
 	}
 
-	itr := NewUnsavedFastIterator(config.startIterate, config.endIterate, config.ascending, tree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
+	itr := NewUnsavedFastIteratorWithCache(config.startIterate, config.endIterate, config.ascending, tree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
 	return itr, mirror
+}
+
+// Construct a rand db name MutableTree
+func getRandDBNameTestTree(cacheSize int) (*MutableTree, error) {
+	prefixDB := dbm.NewPrefixDB(dbm.NewMemDB(), []byte(randstr(32)))
+	return NewMutableTree(prefixDB, cacheSize)
 }
