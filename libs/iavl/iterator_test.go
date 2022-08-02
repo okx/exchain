@@ -2,19 +2,12 @@ package iavl
 
 import (
 	"math/rand"
-	"os"
 	"sort"
 	"testing"
 
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/stretchr/testify/require"
 )
-
-func TestMain(m *testing.M) {
-	cleanTree()
-	code := m.Run()
-	os.Exit(code)
-}
 
 func TestIterator_NewIterator_NilTree_Failure(t *testing.T) {
 	var start, end = []byte{'a'}, []byte{'c'}
@@ -62,8 +55,7 @@ func TestUnsavedFastIterator_NewIterator_NilAdditions_Failure(t *testing.T) {
 	}
 
 	t.Run("Nil additions given", func(t *testing.T) {
-		cleanTree()
-		tree, err := NewMutableTree(dbm.NewMemDB(), 0)
+		tree, err := getRandDBNameTestTree(0)
 		require.NoError(t, err)
 		itr := NewUnsavedFastIteratorOKC(start, end, ascending, tree.ndb, nil, tree.unsavedFastNodeRemovals)
 		performTest(t, itr)
@@ -71,8 +63,7 @@ func TestUnsavedFastIterator_NewIterator_NilAdditions_Failure(t *testing.T) {
 	})
 
 	t.Run("Nil removals given", func(t *testing.T) {
-		t.Cleanup(cleanTree)
-		tree, err := NewMutableTree(dbm.NewMemDB(), 0)
+		tree, err := getRandDBNameTestTree(0)
 		require.NoError(t, err)
 		itr := NewUnsavedFastIteratorOKC(start, end, ascending, tree.ndb, tree.unsavedFastNodeAdditions, nil)
 		performTest(t, itr)
@@ -86,8 +77,7 @@ func TestUnsavedFastIterator_NewIterator_NilAdditions_Failure(t *testing.T) {
 	})
 
 	t.Run("Additions and removals are nil", func(t *testing.T) {
-		t.Cleanup(cleanTree)
-		tree, err := NewMutableTree(dbm.NewMemDB(), 0)
+		tree, err := getRandDBNameTestTree(0)
 		require.NoError(t, err)
 		itr := NewUnsavedFastIteratorOKC(start, end, ascending, tree.ndb, nil, nil)
 		performTest(t, itr)
@@ -257,8 +247,7 @@ func iteratorSuccessTest(t *testing.T, config *iteratorTestConfig) {
 }
 
 func setupIteratorAndMirror(t *testing.T, config *iteratorTestConfig) (dbm.Iterator, [][]string) {
-	t.Cleanup(cleanTree)
-	tree, err := NewMutableTree(dbm.NewMemDB(), 0)
+	tree, err := getRandDBNameTestTree(0)
 	require.NoError(t, err)
 
 	mirror := setupMirrorForIterator(t, config, tree)
@@ -273,8 +262,7 @@ func setupIteratorAndMirror(t *testing.T, config *iteratorTestConfig) (dbm.Itera
 }
 
 func setupFastIteratorAndMirror(t *testing.T, config *iteratorTestConfig) (dbm.Iterator, [][]string) {
-	t.Cleanup(cleanTree)
-	tree, err := NewMutableTree(dbm.NewMemDB(), 0)
+	tree, err := getRandDBNameTestTree(0)
 	require.NoError(t, err)
 
 	mirror := setupMirrorForIterator(t, config, tree)
@@ -286,8 +274,7 @@ func setupFastIteratorAndMirror(t *testing.T, config *iteratorTestConfig) (dbm.I
 }
 
 func setupUnsavedFastIterator(t *testing.T, config *iteratorTestConfig) (dbm.Iterator, [][]string) {
-	t.Cleanup(cleanTree)
-	tree, err := NewMutableTree(dbm.NewMemDB(), 0)
+	tree, err := getRandDBNameTestTree(0)
 	require.NoError(t, err)
 
 	// For unsaved fast iterator, we would like to test the state where
@@ -340,6 +327,8 @@ func setupUnsavedFastIterator(t *testing.T, config *iteratorTestConfig) (dbm.Ite
 	return itr, mirror
 }
 
-func cleanTree() {
-	treeMap.resetMap()
+// Construct a rand db name MutableTree
+func getRandDBNameTestTree(cacheSize int) (*MutableTree, error) {
+	prefixDB := dbm.NewPrefixDB(dbm.NewMemDB(), []byte(randstr(32)))
+	return NewMutableTree(prefixDB, cacheSize)
 }
