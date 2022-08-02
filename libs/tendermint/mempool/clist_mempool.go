@@ -238,11 +238,6 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 //
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo TxInfo) error {
-	// no need to update when mempool is unavailable
-	if mem.config.Sealed {
-		return fmt.Errorf("mempool is unavailable")
-	}
-
 	txSize := len(tx)
 	if err := mem.isFull(txSize); err != nil {
 		return err
@@ -808,7 +803,7 @@ func (mem *CListMempool) Update(
 ) error {
 	// no need to update when mempool is unavailable
 	if mem.config.Sealed {
-		return nil
+		return mem.updateSealed(height, txs, deliverTxResponses)
 	}
 
 	// Set height
@@ -829,41 +824,10 @@ func (mem *CListMempool) Update(
 		addressNonce = make(map[string]uint64)
 	}
 	for i, tx := range txs {
-		var txhash []byte
-		if mem.txInfoparser != nil {
-			if realTx := mem.txInfoparser.GetRealTxFromRawTx(tx); realTx != nil {
-				txhash = realTx.TxHash()
-			}
-		}
-		txkey := txOrTxHashToKey(tx, txhash, height)
-
 		txCode := deliverTxResponses[i].Code
-		// CodeTypeOK means tx was successfully executed.
-		// CodeTypeNonceInc means tx fails but the nonce of the account increases,
-		// e.g., the transaction gas has been consumed.
-		if txCode == abci.CodeTypeOK || txCode > abci.CodeTypeNonceInc {
-			// add gas used with valid committed tx
-			gasUsed += uint64(deliverTxResponses[i].GasUsed)
-			// Add valid committed tx to the cache (if missing).
-			_ = mem.cache.PushKey(txkey)
-		} else {
-			// Allow invalid transactions to be resubmitted.
-			mem.cache.RemoveKey(txkey)
-		}
-
-		// Remove committed tx from the mempool.
-		//
-		// Note an evil proposer can drop valid txs!
-		// Mempool before:
-		//   100 -> 101 -> 102
-		// Block, proposed by an evil proposer:
-		//   101 -> 102
-		// Mempool after:
-		//   100
-		// https://github.com/tendermint/tendermint/issues/3322.
 		addr := ""
 		nonce := uint64(0)
-		if ele := mem.removeTxByKey(txkey); ele != nil {
+		if ele := mem.cleanTx(height, tx, txCode); ele != nil {
 			addr = ele.Address
 			nonce = ele.Nonce
 			mem.logUpdate(ele.Address, ele.Nonce)
@@ -880,6 +844,7 @@ func (mem *CListMempool) Update(
 
 		if txCode == abci.CodeTypeOK || txCode > abci.CodeTypeNonceInc {
 			toCleanAccMap[addr] = nonce
+			gasUsed += uint64(deliverTxResponses[i].GasUsed)
 		}
 		if mem.pendingPool != nil {
 			addressNonce[addr] = nonce
@@ -930,6 +895,67 @@ func (mem *CListMempool) Update(
 	// in unsorted state. We need to resort them again for the the purpose of absolute order, or just let it go for they are
 	// already sorted int the last round (will only affect the account that send these txs).
 
+	return nil
+}
+
+func (mem *CListMempool) cleanTx(height int64, tx types.Tx, txCode uint32) *clist.CElement {
+	var txHash []byte
+	if mem.txInfoparser != nil {
+		if realTx := mem.txInfoparser.GetRealTxFromRawTx(tx); realTx != nil {
+			txHash = realTx.TxHash()
+		}
+	}
+	txKey := txOrTxHashToKey(tx, txHash, height)
+	// CodeTypeOK means tx was successfully executed.
+	// CodeTypeNonceInc means tx fails but the nonce of the account increases,
+	// e.g., the transaction gas has been consumed.
+	if txCode == abci.CodeTypeOK || txCode > abci.CodeTypeNonceInc {
+		// Add valid committed tx to the cache (if missing).
+		_ = mem.cache.PushKey(txKey)
+	} else {
+		// Allow invalid transactions to be resubmitted.
+		mem.cache.RemoveKey(txKey)
+	}
+	// Remove committed tx from the mempool.
+	//
+	// Note an evil proposer can drop valid txs!
+	// Mempool before:
+	//   100 -> 101 -> 102
+	// Block, proposed by an evil proposer:
+	//   101 -> 102
+	// Mempool after:
+	//   100
+	// https://github.com/tendermint/tendermint/issues/3322.
+	return mem.removeTxByKey(txKey)
+}
+
+func (mem *CListMempool) updateSealed(height int64, txs types.Txs, deliverTxResponses []*abci.ResponseDeliverTx) error {
+	// Set height
+	atomic.StoreInt64(&mem.height, height)
+	mem.notifiedTxsAvailable = false
+	// no need to update mempool
+	if mem.Size() <= 0 {
+		return nil
+	}
+	toCleanAccMap := make(map[string]uint64)
+	// update mempool
+	for i, tx := range txs {
+		txCode := deliverTxResponses[i].Code
+		// remove tx from mempool
+		if ele := mem.cleanTx(height, tx, txCode); ele != nil {
+			if txCode == abci.CodeTypeOK || txCode > abci.CodeTypeNonceInc {
+				toCleanAccMap[ele.Address] = ele.Nonce
+			}
+			mem.logUpdate(ele.Address, ele.Nonce)
+		}
+	}
+	for accAddr, accMaxNonce := range toCleanAccMap {
+		mem.txs.CleanItems(accAddr, accMaxNonce)
+	}
+	// mempool logs
+	trace.GetElapsedInfo().AddInfo(trace.MempoolCheckTxCnt, strconv.FormatInt(atomic.LoadInt64(&mem.checkCnt), 10))
+	trace.GetElapsedInfo().AddInfo(trace.MempoolTxsCnt, strconv.Itoa(mem.txs.Len()))
+	atomic.StoreInt64(&mem.checkCnt, 0)
 	return nil
 }
 
