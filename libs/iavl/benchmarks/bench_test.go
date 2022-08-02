@@ -50,15 +50,19 @@ func commitTree(b *testing.B, t *iavl.MutableTree) {
 	}
 
 	if version > historySize {
-		err = t.DeleteVersion(version - historySize)
-		if err != nil {
-			b.Errorf("Can't delete: %v", err)
+		if !iavl.EnableAsyncCommit {
+			err = t.DeleteVersion(version - historySize)
+			if err != nil {
+				b.Errorf("Can't delete: %v", err)
+			}
 		}
 	}
 }
 
 func runQueriesFast(b *testing.B, t *iavl.MutableTree, keyLen int) {
-	require.True(b, t.IsFastCacheEnabled())
+	if !iavl.EnableAsyncCommit {
+		require.True(b, t.IsFastCacheEnabled())
+	}
 	for i := 0; i < b.N; i++ {
 		q := randBytes(keyLen)
 		t.Get(q)
@@ -66,7 +70,9 @@ func runQueriesFast(b *testing.B, t *iavl.MutableTree, keyLen int) {
 }
 
 func runKnownQueriesFast(b *testing.B, t *iavl.MutableTree, keys [][]byte) {
-	require.True(b, t.IsFastCacheEnabled())
+	if !iavl.EnableAsyncCommit {
+		require.True(b, t.IsFastCacheEnabled())
+	}
 	l := int32(len(keys))
 	for i := 0; i < b.N; i++ {
 		q := keys[rand.Int31n(l)]
@@ -113,7 +119,9 @@ func runKnownQueriesSlow(b *testing.B, t *iavl.MutableTree, keys [][]byte) {
 }
 
 func runIterationFast(b *testing.B, t *iavl.MutableTree, expectedSize int) {
-	require.True(b, t.IsFastCacheEnabled()) // to ensure fast storage is enabled
+	if !iavl.EnableAsyncCommit {
+		require.True(b, t.IsFastCacheEnabled()) // to ensure fast storage is enabled
+	}
 	for i := 0; i < b.N; i++ {
 		itr := t.ImmutableTree.Iterator(nil, nil, false)
 		iterate(b, itr, expectedSize)
