@@ -875,6 +875,7 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 		}
 	}
 	tree.ndb.updateLatestMemoryVersion(version)
+
 	fnc := &fastNodeChanges{additions: tree.unsavedFastNodeAdditions,
 		removals: tree.unsavedFastNodeRemovals}
 
