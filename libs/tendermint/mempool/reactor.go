@@ -124,8 +124,9 @@ func newMempoolIDs() *mempoolIDs {
 
 type txJob struct {
 	tx   types.Tx
-	info TxInfo
 	from string
+	info TxInfo
+	txs  [][]byte
 }
 
 // NewReactor returns a new Reactor with the given config and mempool.
@@ -173,6 +174,20 @@ func (memR *Reactor) OnStart() error {
 	return nil
 }
 
+func (memR *Reactor) checkTx(tx types.Tx, txInfo TxInfo) {
+	err := memR.mempool.CheckTx(tx, nil, txInfo)
+	if err != nil {
+		memR.logCheckTxError(tx, memR.mempool.height, err)
+	}
+}
+
+func (memR *Reactor) checkTxs(tx types.Tx, txs [][]byte, txInfo TxInfo) {
+	memR.checkTx(tx, txInfo)
+	for _, tx := range txs {
+		memR.checkTx(tx, txInfo)
+	}
+}
+
 func (memR *Reactor) checkTxRoutine() {
 	chLen := len(memR.txCh)
 	memR.tx1Ch = make(chan txJob, chLen/2)
@@ -180,12 +195,7 @@ func (memR *Reactor) checkTxRoutine() {
 
 	checkFunc := func(memR *Reactor, ch chan txJob) {
 		for txJob := range ch {
-			tx := txJob.tx
-			txInfo := txJob.info
-			err := memR.mempool.CheckTx(tx, nil, txInfo)
-			if err != nil {
-				memR.logCheckTxError(tx, memR.mempool.height, err)
-			}
+			memR.checkTxs(txJob.tx, txJob.txs, txJob.info)
 		}
 	}
 

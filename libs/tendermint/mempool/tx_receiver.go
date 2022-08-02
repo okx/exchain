@@ -65,6 +65,9 @@ func (s *txReceiverServer) CheckTxAsync(_ context.Context, req *pb.TxRequest) (*
 }
 
 func (s *txReceiverServer) checkTx(req *pb.TxRequest, ch chan txJob) (*emptypb.Empty, error) {
+	if req == nil {
+		return nil, errEmpty
+	}
 	if len(req.Tx) > 0 {
 		if req.PeerId == 0 {
 			return nil, errZeroId
@@ -75,15 +78,13 @@ func (s *txReceiverServer) checkTx(req *pb.TxRequest, ch chan txJob) (*emptypb.E
 		}
 
 		if ch == nil {
-			err := s.memR.mempool.CheckTx(req.Tx, nil, info)
-			if err != nil {
-				s.memR.logCheckTxError(req.Tx, s.memR.mempool.Height(), err)
-			}
+			s.memR.checkTxs(req.Tx, req.Txs, info)
 		} else {
 			ch <- txJob{
 				tx:   req.Tx,
 				info: info,
 				from: req.From,
+				txs:  req.Txs,
 			}
 		}
 
@@ -95,15 +96,11 @@ func (s *txReceiverServer) checkTx(req *pb.TxRequest, ch chan txJob) (*emptypb.E
 }
 
 func (s *txReceiverServer) CheckTxs(stream pb.MempoolTxReceiver_CheckTxsServer) error {
-	var txReq = &pb.TxRequest{}
 	txCh := make(chan txJob)
 
 	go func(s *txReceiverServer, ch chan txJob) {
 		for job := range ch {
-			err := s.memR.mempool.CheckTx(job.tx, nil, job.info)
-			if err != nil {
-				s.memR.logCheckTxError(job.tx, s.memR.mempool.Height(), err)
-			}
+			s.memR.checkTxs(job.tx, job.txs, job.info)
 		}
 	}(s, txCh)
 
@@ -117,9 +114,7 @@ func (s *txReceiverServer) CheckTxs(stream pb.MempoolTxReceiver_CheckTxsServer) 
 			close(txCh)
 			return err
 		}
-		txReq.Tx = req.Tx
-		txReq.PeerId = req.PeerId
-		_, err = s.checkTx(txReq, txCh)
+		_, err = s.checkTx(req, txCh)
 		if err != nil {
 			close(txCh)
 			return err
@@ -313,6 +308,44 @@ func (r *txReceiver) CheckTx(peerID uint16, memTx *mempoolTx) bool {
 		return true
 	}
 	return false
+}
+
+func (r *txReceiver) CheckTxByStream(memTx *mempoolTx, peerID uint16, peer p2p.Peer, client *txReceiverClient, streamp *pb.MempoolTxReceiver_CheckTxsClient) bool {
+	if streamp == nil || client == nil {
+		return false
+	}
+
+	var err error
+	var stream = *streamp
+
+	if stream == nil {
+		if client.Client == nil {
+			clientV, ok := r.GetClient(peerID)
+			if !ok {
+				return false
+			}
+			*client = clientV
+		}
+		stream, err = client.Client.CheckTxs(context.Background())
+		if err != nil {
+			r.Logger.Error("Error CheckTxs", "err", err)
+			return false
+		}
+		*streamp = stream
+	}
+
+	err = stream.Send(&pb.TxRequest{Tx: memTx.tx, PeerId: uint32(client.ID)})
+	if err != nil {
+		r.Logger.Error("Error Send", "err", err)
+		_, err = stream.CloseAndRecv()
+		if err != nil {
+			r.Logger.Error("Error closing checktxs stream", "peer", peer, "err", err)
+		}
+		*streamp = nil
+		return false
+	} else {
+		return true
+	}
 }
 
 func (r *txReceiver) Stop() {
