@@ -6,12 +6,13 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/gogo/protobuf/proto"
+
 	"time"
 
 	"math/big"
 	"strconv"
 
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/tendermint/go-amino"
 
@@ -22,6 +23,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	"github.com/pkg/errors"
 	"github.com/status-im/keycard-go/hexutils"
 )
@@ -40,6 +43,8 @@ var (
 	prefixWhiteList    = []byte{0x11}
 	prefixBlackList    = []byte{0x12}
 	prefixRpcDb        = []byte{0x13}
+	prefixTxResponse   = []byte{0x14}
+	prefixStdTxHash    = []byte{0x15}
 
 	KeyLatestHeight = "LatestHeight"
 
@@ -52,6 +57,9 @@ const (
 	TypeState     = uint32(2)
 	TypeDelete    = uint32(3)
 	TypeEvmParams = uint32(4)
+
+	EthReceipt  = uint64(0)
+	StdResponse = uint64(1)
 )
 
 type WatchMessage = sdk.WatchMessage
@@ -439,6 +447,27 @@ func (m MsgTransactionReceipt) GetType() uint32 {
 	return TypeOthers
 }
 
+//type WrappedResponse sdk.TxResponse
+type WrappedResponseWithCodec struct {
+	Response sdk.TxResponse
+	Codec    *codec.Codec `json:"-"`
+}
+
+type TransactionResult struct {
+	TxType   hexutil.Uint64            `json:"type"`
+	EthTx    *Transaction              `json:"ethTx"`
+	Receipt  *TransactionReceipt       `json:"receipt"`
+	Response *WrappedResponseWithCodec `json:"response"`
+}
+
+func (wr *WrappedResponseWithCodec) MarshalJSON() ([]byte, error) {
+	if wr.Codec != nil {
+		return wr.Codec.MarshalJSON(wr.Response)
+	}
+
+	return json.Marshal(wr.Response)
+}
+
 type TransactionReceipt struct {
 	Status                hexutil.Uint64  `json:"status"`
 	CumulativeGasUsed     hexutil.Uint64  `json:"cumulativeGasUsed"`
@@ -467,7 +496,8 @@ func (tr *TransactionReceipt) GetValue() string {
 		//set to nil to keep sync with ethereum rpc
 		tr.ContractAddress = nil
 	}
-	buf, err := json.Marshal(tr)
+	protoReceipt := receiptToProto(tr)
+	buf, err := proto.Marshal(protoReceipt)
 	if err != nil {
 		panic("cant happen")
 	}
@@ -621,7 +651,8 @@ func (tr *Transaction) GetValue() string {
 		tr.BlockNumber = (*hexutil.Big)(new(big.Int).SetUint64(tr.originBlockNumber))
 		tr.TransactionIndex = (*hexutil.Uint64)(&tr.originIndex)
 	}
-	buf, err := json.Marshal(tr)
+	protoTransaction := transactionToProto(tr)
+	buf, err := proto.Marshal(protoTransaction)
 	if err != nil {
 		panic("cant happen")
 	}
@@ -795,7 +826,7 @@ func GetMsgStateKey(addr common.Address, key []byte) []byte {
 	copy(compositeKey, prefix)
 	copy(compositeKey[len(prefix):], key)
 
-	return append(PrefixState, ethcrypto.Keccak256Hash(compositeKey).Bytes()...)
+	return append(PrefixState, compositeKey...)
 }
 
 func (msgState *MsgState) GetKey() []byte {
@@ -942,4 +973,68 @@ func (msgItem *MsgContractMethodBlockedListItem) GetKey() []byte {
 
 func (msgItem *MsgContractMethodBlockedListItem) GetValue() string {
 	return string(msgItem.methods)
+}
+
+type MsgStdTransactionResponse struct {
+	txResponse string
+	txHash     []byte
+}
+
+func (tr *MsgStdTransactionResponse) GetType() uint32 {
+	return TypeOthers
+}
+
+func (tr *MsgStdTransactionResponse) GetValue() string {
+	return tr.txResponse
+}
+
+func (tr *MsgStdTransactionResponse) GetKey() []byte {
+	return append(prefixTxResponse, tr.txHash...)
+}
+
+type TransactionResponse struct {
+	*ctypes.ResultTx
+	Timestamp time.Time
+}
+
+func NewStdTransactionResponse(tr *ctypes.ResultTx, timestamp time.Time, txHash common.Hash) *MsgStdTransactionResponse {
+	tResponse := TransactionResponse{
+		ResultTx:  tr,
+		Timestamp: timestamp,
+	}
+	jsResponse, err := json.Marshal(tResponse)
+
+	if err != nil {
+		return nil
+	}
+	return &MsgStdTransactionResponse{txResponse: string(jsResponse), txHash: txHash.Bytes()}
+}
+
+type MsgBlockStdTxHash struct {
+	blockHash []byte
+	stdTxHash string
+}
+
+func (m *MsgBlockStdTxHash) GetType() uint32 {
+	return TypeOthers
+}
+
+func (m *MsgBlockStdTxHash) GetValue() string {
+	return m.stdTxHash
+}
+
+func (m *MsgBlockStdTxHash) GetKey() []byte {
+	return append(prefixStdTxHash, m.blockHash...)
+}
+
+func NewMsgBlockStdTxHash(stdTxHash []common.Hash, blockHash common.Hash) *MsgBlockStdTxHash {
+	jsonValue, err := json.Marshal(stdTxHash)
+	if err != nil {
+		panic(err)
+	}
+
+	return &MsgBlockStdTxHash{
+		stdTxHash: string(jsonValue),
+		blockHash: blockHash.Bytes(),
+	}
 }
