@@ -7,6 +7,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	pb "github.com/okex/exchain/libs/tendermint/proto/mempool"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/tendermint/go-amino"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -53,7 +54,14 @@ func (s *txReceiverServer) CheckTx(_ context.Context, req *pb.TxRequest) (*empty
 }
 
 func (s *txReceiverServer) CheckTxAsync(_ context.Context, req *pb.TxRequest) (*emptypb.Empty, error) {
-	return s.checkTx(req, s.memR.txCh)
+	var targetCh chan txJob
+	if req.From == "" || amino.StrToBytes(req.From)[len(req.From)-1]%2 == 0 {
+		targetCh = s.memR.tx1Ch
+	} else {
+		targetCh = s.memR.tx2Ch
+	}
+
+	return s.checkTx(req, targetCh)
 }
 
 func (s *txReceiverServer) checkTx(req *pb.TxRequest, ch chan txJob) (*emptypb.Empty, error) {

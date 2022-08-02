@@ -49,6 +49,8 @@ type Reactor struct {
 	nodeKey          *p2p.NodeKey
 	nodeKeyWhitelist map[string]struct{}
 	txCh             chan txJob
+	tx1Ch            chan txJob
+	tx2Ch            chan txJob
 	enableWtx        bool
 
 	receiver *txReceiver
@@ -165,26 +167,53 @@ func (memR *Reactor) OnStart() error {
 		memR.Logger.Info("Tx broadcasting is disabled")
 	}
 
+	go memR.checkTxRoutine()
+
 	memR.receiver.Start(memR.config.TxReceiverPort)
 
-	go func() {
-		for {
-			select {
-			case txJob := <-memR.txCh:
-				tx := txJob.tx
-				txInfo := txJob.info
-				err := memR.mempool.CheckTx(tx, nil, txInfo)
-				if err != nil {
-					memR.logCheckTxError(tx, memR.mempool.height, err)
-				}
-			case <-memR.Quit():
-				memR.receiver.Stop()
-				return
+	return nil
+}
+
+func (memR *Reactor) checkTxRoutine() {
+	chLen := len(memR.txCh)
+	memR.tx1Ch = make(chan txJob, chLen/2)
+	memR.tx2Ch = make(chan txJob, chLen/2)
+
+	checkFunc := func(memR *Reactor, ch chan txJob) {
+		for txJob := range ch {
+			tx := txJob.tx
+			txInfo := txJob.info
+			err := memR.mempool.CheckTx(tx, nil, txInfo)
+			if err != nil {
+				memR.logCheckTxError(tx, memR.mempool.height, err)
 			}
 		}
-	}()
+	}
 
-	return nil
+	go checkFunc(memR, memR.tx1Ch)
+	go checkFunc(memR, memR.tx2Ch)
+
+	for {
+		select {
+		case txJob := <-memR.txCh:
+			//tx := txJob.tx
+			//txInfo := txJob.info
+			//err := memR.mempool.CheckTx(tx, nil, txInfo)
+			//if err != nil {
+			//	memR.logCheckTxError(tx, memR.mempool.height, err)
+			//}
+			if txJob.from == "" || amino.StrToBytes(txJob.from)[len(txJob.from)-1]%2 == 0 {
+				memR.tx1Ch <- txJob
+			} else {
+				memR.tx2Ch <- txJob
+			}
+		case <-memR.Quit():
+			close(memR.tx1Ch)
+			close(memR.tx1Ch)
+			memR.receiver.Stop()
+			return
+		}
+	}
 }
 
 // GetChannels implements Reactor.
