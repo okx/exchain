@@ -124,10 +124,12 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *fastN
 
 	ndb.tpp.pushToTpp(version, tpp)
 
-	tempPersistFastNode := ndb.prePersistFastNode
-	ndb.tpfv.add(version, tempPersistFastNode)
-	ndb.prePersistFastNode = newFastNodeChanges()
-
+	var tempPersistFastNode *fastNodeChanges
+	if GetEnableFastStorage() {
+		tempPersistFastNode = ndb.prePersistFastNode
+		ndb.tpfv.add(version, tempPersistFastNode)
+		ndb.prePersistFastNode = newFastNodeChanges()
+	}
 	ndb.mtx.Unlock()
 
 	for _, node := range tpp {
