@@ -75,7 +75,7 @@ type nodeDB struct {
 	versionReaders map[int64]uint32 // Number of active version readers
 	storageVersion string           // Storage version
 
-	latestVersion int64
+	latestPersistedVersion int64
 
 	prePersistNodeCache map[string]*Node
 
@@ -87,7 +87,10 @@ type nodeDB struct {
 	state *RuntimeState
 	tpp   *tempPrePersistNodes
 
-	fastNodeCache *FastNodeCache
+	fastNodeCache       *FastNodeCache
+	tpfv                *fastNodeChangesWithVersion
+	prePersistFastNode  *fastNodeChanges
+	latestMemoryVersion int64
 }
 
 func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
@@ -112,6 +115,8 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		state:               newRuntimeState(),
 		tpp:                 newTempPrePersistNodes(),
 		storageVersion:      string(storeVersion),
+		prePersistFastNode:  newFastNodeChanges(),
+		tpfv:                newFastNodeChangesWithVersion(),
 	}
 
 	ndb.fastNodeCache = newFastNodeCache(ndb.name, GetFastNodeCacheSize())
@@ -132,6 +137,14 @@ func (ndb *nodeDB) GetFastNode(key []byte) (*FastNode, error) {
 		return nil, fmt.Errorf("nodeDB.GetFastNode() requires key, len(key) equals 0")
 	}
 
+	// Check pre commit FastNode
+	if node, ok := ndb.prePersistFastNode.get(key); ok {
+		return node, nil
+	}
+	// Check temp pre commit FastNode
+	if node, ok := ndb.tpfv.get(key); ok {
+		return node, nil
+	}
 	// Check the cache.
 	if v, ok := ndb.getFastNodeFromCache(key); ok {
 		return v, nil
@@ -265,7 +278,7 @@ func (ndb *nodeDB) SaveFastNodeNoCache(node *FastNode, batch dbm.Batch) error {
 // setFastStorageVersionToBatch sets storage version to fast where the version is
 // 1.1.0-<version of the current live state>. Returns error if storage version is incorrect or on
 // db error, nil otherwise. Requires changes to be committed after to be persisted.
-func (ndb *nodeDB) setFastStorageVersionToBatch(batch dbm.Batch) error {
+func (ndb *nodeDB) setFastStorageVersionToBatch(batch dbm.Batch, version int64) error {
 	var newVersion string
 	if ndb.storageVersion >= fastStorageVersionValue {
 		// Storage version should be at index 0 and latest fast cache version at index 1
@@ -280,7 +293,7 @@ func (ndb *nodeDB) setFastStorageVersionToBatch(batch dbm.Batch) error {
 		newVersion = fastStorageVersionValue
 	}
 
-	newVersion += fastStorageVersionDelimiter + strconv.Itoa(int(ndb.getLatestVersion()))
+	newVersion += fastStorageVersionDelimiter + strconv.Itoa(int(version))
 	batch.Set(metadataKeyFormat.Key([]byte(storageVersionKey)), []byte(newVersion))
 	ndb.storageVersion = newVersion
 
@@ -368,7 +381,6 @@ func (ndb *nodeDB) SaveBranch(batch dbm.Batch, node *Node, savedNodes map[string
 	if err != nil {
 		return nil, err
 	}
-
 	if node.rightNode != nil {
 		node.rightHash, err = ndb.SaveBranch(batch, node.rightNode, savedNodes)
 	}
@@ -536,7 +548,6 @@ func (ndb *nodeDB) DeleteVersionsRange(batch dbm.Batch, fromVersion, toVersion i
 func (ndb *nodeDB) DeleteFastNode(key []byte, batch dbm.Batch) error {
 	ndb.mtx.Lock()
 	defer ndb.mtx.Unlock()
-	// todo check batch
 	batch.Delete(ndb.fastNodeKey(key))
 	ndb.uncacheFastNode(key)
 	return nil
@@ -636,20 +647,33 @@ func (ndb *nodeDB) rootKey(version int64) []byte {
 }
 
 func (ndb *nodeDB) getLatestVersion() int64 {
-	if ndb.latestVersion == 0 {
-		ndb.latestVersion = ndb.getPreviousVersion(1<<63 - 1)
+	if ndb.latestPersistedVersion == 0 {
+		ndb.latestPersistedVersion = ndb.getPreviousVersion(1<<63 - 1)
 	}
-	return ndb.latestVersion
+	return ndb.latestPersistedVersion
 }
 
 func (ndb *nodeDB) updateLatestVersion(version int64) {
-	if ndb.latestVersion < version {
-		ndb.latestVersion = version
+	if ndb.latestPersistedVersion < version {
+		ndb.latestPersistedVersion = version
+	}
+}
+
+func (ndb *nodeDB) getLatestMemoryVersion() int64 {
+	if ndb.latestMemoryVersion == 0 {
+		ndb.latestMemoryVersion = ndb.getPreviousVersion(1<<63 - 1)
+	}
+	return ndb.latestMemoryVersion
+}
+
+func (ndb *nodeDB) updateLatestMemoryVersion(version int64) {
+	if ndb.latestMemoryVersion < version {
+		ndb.latestMemoryVersion = version
 	}
 }
 
 func (ndb *nodeDB) resetLatestVersion(version int64) {
-	ndb.latestVersion = version
+	ndb.latestPersistedVersion = version
 }
 
 func (ndb *nodeDB) getPreviousVersion(version int64) int64 {

@@ -101,21 +101,32 @@ func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	ndb.state.increasePersistedCount(len(tpp))
 	ndb.addDBWriteCount(int64(len(tpp)))
 
+	if err := ndb.saveFastNodeVersion(batch, event.fnc, event.version); err != nil {
+		panic(err)
+	}
+
 	trc.Pin("batchCommit")
 	if err := ndb.Commit(batch); err != nil {
 		panic(err)
 	}
+
 	ndb.asyncPersistTppFinised(event, trc)
+	ndb.tpfv.remove(event.version)
 }
 
-func (ndb *nodeDB) asyncPersistTppStart(version int64) map[string]*Node {
+func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *fastNodeChanges) {
 	ndb.log(IavlDebug, "moving prePersistCache to tempPrePersistCache", "size", len(ndb.prePersistNodeCache))
 
 	ndb.mtx.Lock()
 
 	tpp := ndb.prePersistNodeCache
 	ndb.prePersistNodeCache = make(map[string]*Node, len(tpp))
+
 	ndb.tpp.pushToTpp(version, tpp)
+
+	tempPersistFastNode := ndb.prePersistFastNode
+	ndb.tpfv.add(version, tempPersistFastNode)
+	ndb.prePersistFastNode = newFastNodeChanges()
 
 	ndb.mtx.Unlock()
 
@@ -126,7 +137,7 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) map[string]*Node {
 		node.persisted = true
 	}
 
-	return tpp
+	return tpp, tempPersistFastNode
 }
 
 func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer) {

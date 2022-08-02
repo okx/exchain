@@ -29,7 +29,7 @@ type FastIterator struct {
 
 var _ dbm.Iterator = (*FastIterator)(nil)
 
-func NewFastIterator(start, end []byte, ascending bool, ndb *nodeDB) *FastIterator {
+func newFastIterator(start, end []byte, ascending bool, ndb *nodeDB) *FastIterator {
 	iter := &FastIterator{
 		start:        start,
 		end:          end,
