@@ -45,7 +45,7 @@ type UnsavedFastIterator struct {
 
 var _ dbm.Iterator = (*UnsavedFastIterator)(nil)
 
-func NewUnsavedFastIterator(start, end []byte, ascending bool, ndb *nodeDB, unsavedFastNodeAdditions map[string]*FastNode, unsavedFastNodeRemovals map[string]interface{}) *UnsavedFastIterator {
+func newUnsavedFastIterator(start, end []byte, ascending bool, ndb *nodeDB, unsavedFastNodeAdditions map[string]*FastNode, unsavedFastNodeRemovals map[string]interface{}) *UnsavedFastIterator {
 	iter := &UnsavedFastIterator{
 		start:                    start,
 		end:                      end,
@@ -56,7 +56,7 @@ func NewUnsavedFastIterator(start, end []byte, ascending bool, ndb *nodeDB, unsa
 		nextKey:                  nil,
 		nextVal:                  nil,
 		nextUnsavedNodeIdx:       0,
-		fastIterator:             NewFastIterator(start, end, ascending, ndb),
+		fastIterator:             newFastIterator(start, end, ascending, ndb),
 	}
 
 	// We need to ensure that we iterate over saved and unsaved state in order.

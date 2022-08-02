@@ -239,7 +239,7 @@ func (tree *MutableTree) Iterate(fn func(key []byte, value []byte) bool) (stoppe
 		return tree.ImmutableTree.Iterate(fn)
 	}
 
-	itr := NewUnsavedFastIterator(nil, nil, true, tree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
+	itr := NewUnsavedFastIteratorWithCache(nil, nil, true, tree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
 	defer itr.Close()
 	for ; itr.Valid(); itr.Next() {
 		if fn(itr.Key(), itr.Value()) {
@@ -253,7 +253,7 @@ func (tree *MutableTree) Iterate(fn func(key []byte, value []byte) bool) (stoppe
 // CONTRACT: no updates are made to the tree while an iterator is active.
 func (tree *MutableTree) Iterator(start, end []byte, ascending bool) dbm.Iterator {
 	if tree.IsFastCacheEnabled() {
-		return NewUnsavedFastIterator(start, end, ascending, tree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
+		return NewUnsavedFastIteratorWithCache(start, end, ascending, tree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
 	}
 	return tree.ImmutableTree.Iterator(start, end, ascending)
 }
@@ -614,7 +614,7 @@ func (tree *MutableTree) enableFastStorageAndCommitIfNotEnabled() (bool, error) 
 		// Therefore, there might exist stale fast nodes on disk. As a result, to avoid persisting the stale state, it might
 		// be worth to delete the fast nodes from disk.
 		batch := tree.NewBatch()
-		fastItr := NewFastIterator(nil, nil, true, tree.ndb)
+		fastItr := newFastIterator(nil, nil, true, tree.ndb)
 		defer fastItr.Close()
 		for ; fastItr.Valid(); fastItr.Next() {
 			if err := tree.ndb.DeleteFastNode(fastItr.Key(), batch); err != nil {
