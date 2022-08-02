@@ -3,7 +3,6 @@ package mempool
 import (
 	"bytes"
 	"context"
-	"encoding/hex"
 	"fmt"
 	"math"
 	"reflect"
@@ -414,7 +413,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			continue
 		}
 
-		txHash := hex.EncodeToString(memTx.realTx.TxHash())
+		// txHash := hex.EncodeToString(memTx.realTx.TxHash())
 
 		// ensure peer hasn't already sent us this tx
 		if _, ok = memTx.senders.Load(peerID); !ok {
@@ -442,7 +441,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 				}
 			}
 
-			memR.Logger.Info("fallback to broadcast", "peer", peer.ID(), "tx", txHash)
+			// memR.Logger.Info("fallback to broadcast", "peer", peer.ID(), "tx", txHash)
 
 		P2P:
 
@@ -483,7 +482,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 				continue
 			}
 		} else {
-			memR.Logger.Info("Peer has already sent us this tx", "peer", peer.ID(), "tx", txHash)
+			// memR.Logger.Info("Peer has already sent us this tx", "peer", peer.ID(), "tx", txHash)
 		}
 
 	SUCCESS:
