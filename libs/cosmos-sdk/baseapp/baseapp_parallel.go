@@ -213,8 +213,6 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 
 	pm := app.parallelTxManage
 	pm.workgroup.isReady = true
-	app.parallelTxManage.workgroup.Start()
-
 	deliverTxs := make([]*abci.ResponseDeliverTx, pm.txSize)
 
 	asyncCb := func(execRes *executeResult) {
