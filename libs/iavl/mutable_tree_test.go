@@ -18,6 +18,10 @@ import (
 	"github.com/tendermint/go-amino"
 )
 
+func init() {
+	SetEnableFastStorage(true)
+}
+
 func TestDelete(t *testing.T) {
 	memDB := db.NewMemDB()
 	tree, err := NewMutableTree(memDB, 0)
