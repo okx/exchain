@@ -10,8 +10,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	sm "github.com/okex/exchain/libs/tendermint/state"
-	"github.com/spf13/viper"
 )
 
 var (
@@ -126,7 +124,7 @@ func (app *BaseApp) calGroup() {
 			Union(tx.from, tx.to)
 		} else {
 			para.haveCosmosTxInBlock = true
-			app.parallelTxManage.txReps[index] = &executeResult{paraMsg: &sdk.ParaMsg{}}
+			app.parallelTxManage.txResultCollector.putResult(index, &executeResult{paraMsg: &sdk.ParaMsg{}})
 		}
 	}
 
@@ -215,7 +213,8 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 
 	pm := app.parallelTxManage
 	pm.workgroup.isReady = true
-	txReps := pm.txReps
+	app.parallelTxManage.workgroup.Start()
+
 	deliverTxs := make([]*abci.ResponseDeliverTx, pm.txSize)
 
 	asyncCb := func(execRes *executeResult) {
@@ -233,16 +232,16 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 		if receiveTxIndex < txIndex {
 			return
 		}
-		txReps[receiveTxIndex] = execRes
+		pm.txResultCollector.putResult(receiveTxIndex, execRes)
 
 		if pm.workgroup.isFailed(pm.workgroup.runningStats(receiveTxIndex)) {
-			txReps[receiveTxIndex] = nil
+			pm.txResultCollector.putResult(receiveTxIndex, nil)
 			// reRun already failed tx
 			pm.workgroup.AddTask(receiveTxIndex)
 		} else {
 			if nextTx, ok := pm.nextTxInGroup[receiveTxIndex]; ok {
 				if !pm.workgroup.isRunning(nextTx) {
-					txReps[nextTx] = nil
+					pm.txResultCollector.putResult(nextTx, nil)
 					// run next tx in this group
 					pm.workgroup.AddTask(nextTx)
 				}
@@ -254,9 +253,11 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 			return
 		}
 
-		for txReps[txIndex] != nil {
-			res := txReps[txIndex]
-
+		for true {
+			res := pm.txResultCollector.getTxResult(txIndex)
+			if res == nil {
+				break
+			}
 			if pm.newIsConflict(res) || overFlow(currentGas, res.resp.GasUsed, maxGas) {
 				rerunIdx++
 
@@ -265,26 +266,27 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 					app.fixFeeCollector()
 				}
 				res = app.deliverTxWithCache(txIndex)
-				txReps[txIndex] = res
+				pm.txResultCollector.putResult(txIndex, res)
 
 				if nextTx, ok := app.parallelTxManage.nextTxInGroup[txIndex]; ok {
 					if !pm.workgroup.isRunning(nextTx) {
-						txReps[nextTx] = nil
+						pm.txResultCollector.putResult(nextTx, nil)
 						pm.workgroup.AddTask(nextTx)
 					}
 				}
 
 			}
-			if txReps[txIndex].paraMsg.AnteErr != nil {
+			if pm.txResultCollector.getTxResult(txIndex).paraMsg.AnteErr != nil {
 				res.ms = nil
 			}
 
 			txRs := res.resp
 			deliverTxs[txIndex] = &txRs
 
+			pm.blockGasMeterMu.Lock()
 			// Note : don't take care of the case of ErrorGasOverflow
 			app.deliverState.ctx.BlockGasMeter().ConsumeGas(sdk.Gas(res.resp.GasUsed), "unexpected error")
-
+			pm.blockGasMeterMu.Unlock()
 			// merge tx
 			pm.SetCurrentIndex(txIndex, res)
 
@@ -297,7 +299,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 				signal <- 0
 				return
 			}
-			if txReps[txIndex] == nil && !pm.workgroup.isRunning(txIndex) {
+			if pm.txResultCollector.getTxResult(txIndex) == nil && !pm.workgroup.isRunning(txIndex) {
 				pm.workgroup.AddTask(txIndex)
 			}
 		}
@@ -343,12 +345,12 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 	watchers := make([]sdk.IWatcher, app.parallelTxManage.txSize)
 	txs := make([]sdk.Tx, app.parallelTxManage.txSize)
 	for index := 0; index < app.parallelTxManage.txSize; index++ {
-		paraM := app.parallelTxManage.txReps[index].paraMsg
-		logIndex[index] = paraM.LogIndex
-		errs[index] = paraM.AnteErr
-		hasEnterEvmTx[index] = paraM.HasRunEvmTx
-		resp[index] = app.parallelTxManage.txReps[index].resp
-		watchers[index] = app.parallelTxManage.txReps[index].watcher
+		txRes := app.parallelTxManage.txResultCollector.getTxResult(index)
+		logIndex[index] = txRes.paraMsg.LogIndex
+		errs[index] = txRes.paraMsg.AnteErr
+		hasEnterEvmTx[index] = txRes.paraMsg.HasRunEvmTx
+		resp[index] = txRes.resp
+		watchers[index] = txRes.watcher
 		txs[index] = app.parallelTxManage.extraTxsInfo[index].stdTx
 	}
 	app.watcherCollector(watchers...)
@@ -565,13 +567,57 @@ func (c *conflictCheck) clear() {
 	}
 }
 
+type txResultCollector struct {
+	mu     sync.RWMutex
+	txReps []*executeResult
+}
+
+func newExecResult() *txResultCollector {
+	return &txResultCollector{
+		mu:     sync.RWMutex{},
+		txReps: make([]*executeResult, 0),
+	}
+}
+
+func (e *txResultCollector) clear() {
+	e.mu.Lock()
+	e.txReps = nil
+	e.mu.Unlock()
+}
+
+func (e *txResultCollector) init(txSize int) {
+	txRepsCap := cap(e.txReps)
+	if e.txReps == nil || txRepsCap < txSize {
+		e.txReps = make([]*executeResult, txSize)
+	} else if txRepsCap >= txSize {
+		e.txReps = e.txReps[0:txSize:txRepsCap]
+		// https://github.com/golang/go/issues/5373
+		for i := range e.txReps {
+			e.txReps[i] = nil
+		}
+	}
+}
+
+func (e *txResultCollector) putResult(index int, txResult *executeResult) {
+	e.mu.Lock()
+	e.txReps[index] = txResult
+	e.mu.Unlock()
+}
+
+func (e *txResultCollector) getTxResult(index int) *executeResult {
+	e.mu.RLock()
+	defer e.mu.RUnlock()
+	return e.txReps[index]
+}
+
 type parallelTxManager struct {
+	blockGasMeterMu     sync.Mutex
 	haveCosmosTxInBlock bool
 	isAsyncDeliverTx    bool
 	workgroup           *asyncWorkGroup
 
-	extraTxsInfo []*extraDataForTx
-	txReps       []*executeResult
+	extraTxsInfo      []*extraDataForTx
+	txResultCollector *txResultCollector
 
 	groupList     map[int][]int
 	nextTxInGroup map[int]int
@@ -591,18 +637,19 @@ type parallelTxManager struct {
 }
 
 func newParallelTxManager() *parallelTxManager {
-	isAsync := sm.DeliverTxsExecMode(viper.GetInt(sm.FlagDeliverTxsExecMode)) == sm.DeliverTxsExecModeParallel
 	p := &parallelTxManager{
-		isAsyncDeliverTx: isAsync,
+		blockGasMeterMu:  sync.Mutex{},
+		isAsyncDeliverTx: true,
 		workgroup:        newAsyncWorkGroup(),
 
 		groupList:     make(map[int][]int),
 		nextTxInGroup: make(map[int]int),
 		preTxInGroup:  make(map[int]int),
 
-		cc:        newConflictCheck(),
-		currIndex: -1,
-		currTxFee: sdk.Coins{},
+		txResultCollector: newExecResult(),
+		cc:                newConflictCheck(),
+		currIndex:         -1,
+		currTxFee:         sdk.Coins{},
 
 		blockMultiStores: newCacheMultiStoreList(),
 		chainMultiStores: newCacheMultiStoreList(),
@@ -631,7 +678,7 @@ func (f *parallelTxManager) addBlockCacheToChainCache() {
 	if shouldCleanChainCache(f.blockHeight) {
 		f.chainMultiStores.Clear()
 	} else {
-		jobChan := make(chan types.CacheMultiStore, f.blockMultiStores.stores.Len())
+		jobChan := make(chan types.CacheMultiStore, f.blockMultiStores.Len())
 		for index := 0; index < maxGoroutineNumberInParaTx; index++ {
 			go func(ch chan types.CacheMultiStore) {
 				for j := range ch {
@@ -678,7 +725,7 @@ func (f *parallelTxManager) clear() {
 	}
 
 	f.extraTxsInfo = nil
-	f.txReps = nil
+	f.txResultCollector.clear()
 
 	for key := range f.groupList {
 		delete(f.groupList, key)
@@ -697,16 +744,8 @@ func (f *parallelTxManager) clear() {
 
 func (f *parallelTxManager) init() {
 	txSize := f.txSize
-	txRepsCap := cap(f.txReps)
-	if f.txReps == nil || txRepsCap < txSize {
-		f.txReps = make([]*executeResult, txSize)
-	} else if txRepsCap >= txSize {
-		f.txReps = f.txReps[0:txSize:txRepsCap]
-		// https://github.com/golang/go/issues/5373
-		for i := range f.txReps {
-			f.txReps[i] = nil
-		}
-	}
+
+	f.txResultCollector.init(txSize)
 
 	txsInfoCap := cap(f.extraTxsInfo)
 	if f.extraTxsInfo == nil || txsInfoCap < txSize {
@@ -738,7 +777,7 @@ func (f *parallelTxManager) getTxResult(index int) sdk.CacheMultiStore {
 	preIndexInGroup, ok := f.preTxInGroup[index]
 	if ok && preIndexInGroup > f.currIndex {
 		// get parent tx ms
-		preResp := f.txReps[preIndexInGroup]
+		preResp := f.txResultCollector.getTxResult(preIndexInGroup)
 
 		if preResp != nil && preResp.paraMsg.AnteErr == nil {
 			if preResp.ms == nil {
@@ -759,7 +798,7 @@ func (f *parallelTxManager) getTxResult(index int) sdk.CacheMultiStore {
 			// mark failed if running
 			f.workgroup.markFailed(f.workgroup.runningStats(next))
 		} else {
-			f.txReps[next] = nil
+			f.txResultCollector.putResult(next, nil)
 		}
 	}
 
@@ -789,5 +828,5 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 	if res.paraMsg.AnteErr != nil {
 		return
 	}
-	f.currTxFee = f.currTxFee.Add(f.extraTxsInfo[txIndex].fee.Sub(f.txReps[txIndex].paraMsg.RefundFee)...)
+	f.currTxFee = f.currTxFee.Add(f.extraTxsInfo[txIndex].fee.Sub(f.txResultCollector.getTxResult(txIndex).paraMsg.RefundFee)...)
 }

@@ -17,6 +17,14 @@ func newCacheMultiStoreList() *cacheMultiStoreList {
 	}
 }
 
+func (c *cacheMultiStoreList) Len() int {
+	c.mtx.Lock()
+
+	defer c.mtx.Unlock()
+	return c.stores.Len()
+
+}
+
 func (c *cacheMultiStoreList) PushStores(stores map[int]types.CacheMultiStore) {
 	c.mtx.Lock()
 	for _, v := range stores {
@@ -32,9 +40,11 @@ func (c *cacheMultiStoreList) PushStore(store types.CacheMultiStore) {
 }
 
 func (c *cacheMultiStoreList) Range(cb func(c types.CacheMultiStore)) {
+	c.mtx.Lock()
 	for i := c.stores.Front(); i != nil; i = i.Next() {
 		cb(i.Value.(types.CacheMultiStore))
 	}
+	c.mtx.Unlock()
 }
 
 func (c *cacheMultiStoreList) GetStoreWithParent(parent types.CacheMultiStore) types.CacheMultiStore {
