@@ -6,6 +6,27 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 )
 
+func ConvBlock2CM40Block(r *types.Block) *types.CM40Block {
+	ret := &types.CM40Block{
+		IBCHeader:  *ConvHeadersToIbcHeader(&r.Header),
+		Data:       r.Data,
+		Evidence:   r.Evidence,
+		LastCommit: ConvCommitToIBCCommit(&r.Header, r.LastCommit),
+	}
+
+	return ret
+}
+
+func ConvBlockID2CM40BlockID(r types.BlockID) types.IBCBlockID {
+	return types.IBCBlockID{
+		Hash: r.Hash,
+		PartSetHeader: types.IBCPartSetHeader{
+			Total: uint32(r.PartsHeader.Total),
+			Hash:  r.PartsHeader.Hash,
+		},
+	}
+}
+
 func ConvResultCommitTOIBC(r *coretypes.ResultCommit) *coretypes.IBCResultCommit {
 	v := ConvSignheaderToIBCSignHeader(&r.SignedHeader)
 	ret := &coretypes.IBCResultCommit{

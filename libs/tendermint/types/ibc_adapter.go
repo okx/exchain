@@ -1,13 +1,24 @@
 package types
 
 import (
+	"sync"
+	"time"
+
 	ce "github.com/okex/exchain/libs/tendermint/crypto/encoding"
 	"github.com/okex/exchain/libs/tendermint/libs/bits"
 	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
 	tmproto "github.com/okex/exchain/libs/tendermint/proto/types"
 	tmversion "github.com/okex/exchain/libs/tendermint/proto/version"
-	"time"
 )
+
+type CM40Block struct {
+	mtx sync.Mutex
+
+	IBCHeader  `json:"header"`
+	Data       `json:"data"`
+	Evidence   EvidenceData `json:"evidence"`
+	LastCommit *IBCCommit   `json:"last_commit"`
+}
 
 // SignedHeader is a header along with the commits that prove it.
 type IBCSignedHeader struct {

@@ -5,6 +5,11 @@ import (
 	"github.com/okex/exchain/libs/tendermint/version"
 )
 
+type CM40ResultBlock struct {
+	BlockID types.IBCBlockID `json:"block_id"`
+	Block   *types.CM40Block `json:"block"`
+}
+
 // Commit and Header
 type IBCResultCommit struct {
 	types.IBCSignedHeader `json:"signed_header"`
