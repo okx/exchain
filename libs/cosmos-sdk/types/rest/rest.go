@@ -17,6 +17,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
 )
 
 const (
@@ -24,6 +25,11 @@ const (
 	DefaultLimit   = 30             // should be consistent with tendermint/tendermint/rpc/core/pipe.go:19
 	TxMinHeightKey = "tx.minheight" // Inclusive minimum height filter
 	TxMaxHeightKey = "tx.maxheight" // Inclusive maximum height filter
+
+	DefaultPaginationLimit      = 30
+	DefaultPaginationCountTotal = false
+	DefaultPaginationReverse    = false
+	DefaultPaginationOffset     = 0
 )
 
 // ResponseWithHeight defines a response object type that wraps an original
@@ -376,6 +382,62 @@ func ParseHTTPArgsWithLimit(r *http.Request, defaultLimit int) (tags []string, p
 	}
 
 	return tags, page, limit, nil
+}
+
+func ParsePageRequest(r *http.Request) (pr query.PageRequest, err error) {
+	var limit uint64
+	limitStr := r.FormValue("pagination.limit")
+	if limitStr == "" {
+		limit = DefaultPaginationLimit
+	} else {
+		limit, err = strconv.ParseUint(limitStr, 10, 0)
+		if err != nil {
+			return pr, err
+		} else if limit <= 0 {
+			return pr, errors.New("limit must greater than 0")
+		}
+	}
+
+	var offset uint64
+	offsetStr := r.FormValue("pagination.offset")
+	if offsetStr == "" {
+		offset = DefaultPaginationOffset
+	} else {
+		offset, err = strconv.ParseUint(offsetStr, 10, 0)
+		if err != nil {
+			return pr, err
+		} else if offset <= 0 {
+			return pr, errors.New("offset must greater than 0")
+		}
+	}
+	var key []byte
+	keyStr := r.FormValue("pagination.key")
+	if keyStr == "" {
+		key = nil
+	} else {
+		if offsetStr != "" {
+			return pr, errors.New("only one of offset or key should be set")
+		}
+		key = []byte(keyStr)
+	}
+
+	var countTotal bool
+	countTotalStr := r.FormValue("pagination.count_total")
+	if countTotalStr == "" {
+		countTotal = DefaultPaginationCountTotal
+	} else {
+		countTotal, err = strconv.ParseBool(countTotalStr)
+		if err != nil {
+			return pr, err
+		}
+	}
+	pr = query.PageRequest{
+		Key:        key,
+		Offset:     offset,
+		Limit:      limit,
+		CountTotal: countTotal,
+	}
+	return pr, nil
 }
 
 // ParseHTTPArgs parses the request's URL and returns a slice containing all

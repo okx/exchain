@@ -4,14 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
 	"math"
 	"math/rand"
 
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
+	"github.com/spf13/cobra"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/client/rest"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
+
 	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
@@ -29,7 +33,6 @@ import (
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	ibcexported "github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -98,7 +101,9 @@ func (AppModuleBasic) GetQueryCmdV2(cdc *codec.CodecProxy, reg codectypes.Interf
 	return cli.GetQueryCmd(cdc, reg)
 }
 
-func (am AppModuleBasic) RegisterRouterForGRPC(cliCtx clientCtx.CLIContext, r *mux.Router) {}
+func (am AppModuleBasic) RegisterRouterForGRPC(cliCtx clientCtx.CLIContext, r *mux.Router) {
+	rest.RegisterOriginRPCRoutersForGRPC(cliCtx, r)
+}
 
 // AppModule represents the AppModule for this module
 type AppModule struct {
@@ -137,8 +142,8 @@ func (a AppModule) NewHandler() sdk.Handler {
 }
 
 // TODO
-func (a AppModule) NewQuerierHandler() sdk.Querier {
-	return nil
+func (am AppModule) NewQuerierHandler() sdk.Querier {
+	return NewQuerier(am.keeper)
 }
 
 // LegacyQuerierHandler implements the AppModule interface
