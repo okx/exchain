@@ -7,14 +7,15 @@ import (
 )
 
 const (
-	CodeInvalidDistributionType             uint32 = 67819
-	CodeEmptyDelegationDistInfo             uint32 = 67820
-	CodeEmptyValidatorDistInfo              uint32 = 67821
-	CodeEmptyDelegationVoteValidator        uint32 = 67822
-	CodeZeroDelegationShares                uint32 = 67823
-	CodeNotSupportWithdrawDelegationRewards uint32 = 67824
-	CodeNotSupportDistributionProposal      uint32 = 67825
-	CodeDisabledWithdrawRewards             uint32 = 67826
+	CodeInvalidDistributionType                 uint32 = 67819
+	CodeEmptyDelegationDistInfo                 uint32 = 67820
+	CodeEmptyValidatorDistInfo                  uint32 = 67821
+	CodeEmptyDelegationVoteValidator            uint32 = 67822
+	CodeZeroDelegationShares                    uint32 = 67823
+	CodeNotSupportWithdrawDelegationRewards     uint32 = 67824
+	CodeNotSupportDistributionProposal          uint32 = 67825
+	CodeDisabledWithdrawRewards                 uint32 = 67826
+	CodeNotSupportWithdrawRewardEnabledProposal uint32 = 67827
 )
 
 func ErrInvalidDistributionType() sdk.Error {
@@ -47,4 +48,8 @@ func ErrCodeNotSupportDistributionProposal() sdk.Error {
 
 func ErrCodeDisabledWithdrawRewards() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeDisabledWithdrawRewards, "withdraw rewards disabled")
+}
+
+func ErrCodeNotSupportWithdrawRewardEnabledProposal() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeNotSupportWithdrawRewardEnabledProposal, "do not support, withdraw reward enabled proposal invalid")
 }

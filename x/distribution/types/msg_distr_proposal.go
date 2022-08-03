@@ -3,6 +3,8 @@ package types
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/tendermint/global"
+	"github.com/okex/exchain/libs/tendermint/types"
 )
 
 // Verify interface at compile time
@@ -43,5 +45,11 @@ func (msg MsgWithdrawDelegatorReward) ValidateBasic() error {
 	if msg.ValidatorAddress.Empty() {
 		return ErrNilValidatorAddr()
 	}
+
+	//will delete it after upgrade venus3
+	if !types.HigherThanVenus3(global.GetGlobalHeight()) {
+		return ErrCodeNotSupportWithdrawDelegationRewards()
+	}
+
 	return nil
 }
