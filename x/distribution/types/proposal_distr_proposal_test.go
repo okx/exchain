@@ -1,6 +1,8 @@
 package types
 
 import (
+	"github.com/okex/exchain/libs/tendermint/global"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math/rand"
 	"testing"
 	"time"
@@ -32,14 +34,16 @@ func RandStr(length int) string {
 
 func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 	testCases := []struct {
-		title               string
-		proposalTitle       string
-		proposalDescription string
-		distrType           uint32
-		err                 error
+		title                    string
+		setMilestoneVenus3Height func()
+		proposalTitle            string
+		proposalDescription      string
+		distrType                uint32
+		err                      error
 	}{
 		{
 			"no proposal title",
+			func() {},
 			"",
 			"description",
 			0,
@@ -47,6 +51,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 		},
 		{
 			"gt max proposal title length",
+			func() {},
 			RandStr(types.MaxTitleLength + 1),
 			"description",
 			0,
@@ -54,6 +59,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 		},
 		{
 			"gt max proposal title length",
+			func() {},
 			RandStr(types.MaxTitleLength),
 			"",
 			0,
@@ -61,6 +67,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 		},
 		{
 			"gt max proposal description length",
+			func() {},
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength + 1),
 			0,
@@ -68,6 +75,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 		},
 		{
 			"error type",
+			func() {},
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength),
 			2,
@@ -75,22 +83,56 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 		},
 		{
 			"normal, type 0",
+			func() {
+				global.SetGlobalHeight(11)
+				tmtypes.UnittestOnlySetMilestoneVenus3Height(10)
+			},
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength),
 			0,
 			nil,
 		},
 		{
+			"normal, type 0, not support",
+			func() {
+				global.SetGlobalHeight(10)
+				tmtypes.UnittestOnlySetMilestoneVenus3Height(11)
+			},
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			0,
+			ErrCodeNotSupportDistributionProposal(),
+		},
+		{
 			"normal, type 1",
+			func() {
+				global.SetGlobalHeight(11)
+				tmtypes.UnittestOnlySetMilestoneVenus3Height(10)
+			},
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength),
 			1,
 			nil,
 		},
+		{
+			"normal, type 1, not support",
+			func() {
+				global.SetGlobalHeight(10)
+				tmtypes.UnittestOnlySetMilestoneVenus3Height(11)
+			},
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			1,
+			ErrCodeNotSupportDistributionProposal(),
+		},
 	}
 
 	for _, tc := range testCases {
+		global.SetGlobalHeight(0)
+		tmtypes.UnittestOnlySetMilestoneVenus3Height(0)
+
 		suite.Run(tc.title, func() {
+			tc.setMilestoneVenus3Height()
 			title := tc.proposalTitle
 			description := tc.proposalDescription
 			proposal := NewChangeDistributionTypeProposal(title, description, tc.distrType)
@@ -111,14 +153,16 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 
 func (suite *ProposalSuite) TestNewWithdrawRewardEnabledProposal() {
 	testCases := []struct {
-		title               string
-		proposalTitle       string
-		proposalDescription string
-		enabled             bool
-		err                 error
+		title                    string
+		setMilestoneVenus3Height func()
+		proposalTitle            string
+		proposalDescription      string
+		enabled                  bool
+		err                      error
 	}{
 		{
 			"no proposal title",
+			func() {},
 			"",
 			"description",
 			true,
@@ -126,6 +170,7 @@ func (suite *ProposalSuite) TestNewWithdrawRewardEnabledProposal() {
 		},
 		{
 			"gt max proposal title length",
+			func() {},
 			RandStr(types.MaxTitleLength + 1),
 			"description",
 			true,
@@ -133,6 +178,7 @@ func (suite *ProposalSuite) TestNewWithdrawRewardEnabledProposal() {
 		},
 		{
 			"gt max proposal title length",
+			func() {},
 			RandStr(types.MaxTitleLength),
 			"",
 			true,
@@ -140,6 +186,7 @@ func (suite *ProposalSuite) TestNewWithdrawRewardEnabledProposal() {
 		},
 		{
 			"gt max proposal description length",
+			func() {},
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength + 1),
 			true,
@@ -147,22 +194,55 @@ func (suite *ProposalSuite) TestNewWithdrawRewardEnabledProposal() {
 		},
 		{
 			"normal, enabled true",
+			func() {
+				global.SetGlobalHeight(11)
+				tmtypes.UnittestOnlySetMilestoneVenus3Height(10)
+			},
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength),
 			true,
 			nil,
 		},
 		{
+			"normal, enabled true, not support",
+			func() {
+				global.SetGlobalHeight(10)
+				tmtypes.UnittestOnlySetMilestoneVenus3Height(11)
+			},
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			true,
+			ErrCodeNotSupportWithdrawRewardEnabledProposal(),
+		},
+		{
 			"normal, enabled false",
+			func() {
+				global.SetGlobalHeight(11)
+				tmtypes.UnittestOnlySetMilestoneVenus3Height(10)
+			},
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength),
 			false,
 			nil,
 		},
+		{
+			"normal, enabled false, not support",
+			func() {
+				global.SetGlobalHeight(10)
+				tmtypes.UnittestOnlySetMilestoneVenus3Height(11)
+			},
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			false,
+			ErrCodeNotSupportWithdrawRewardEnabledProposal(),
+		},
 	}
 
 	for _, tc := range testCases {
+		global.SetGlobalHeight(0)
+		tmtypes.UnittestOnlySetMilestoneVenus3Height(0)
 		suite.Run(tc.title, func() {
+			tc.setMilestoneVenus3Height()
 			title := tc.proposalTitle
 			description := tc.proposalDescription
 			proposal := NewWithdrawRewardEnabledProposal(title, description, tc.enabled)

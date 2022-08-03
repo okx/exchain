@@ -148,9 +148,6 @@ Where proposal.json contains:
 			content := types.NewChangeDistributionTypeProposal(proposal.Title, proposal.Description, proposal.Type)
 
 			msg := gov.NewMsgSubmitProposal(content, proposal.Deposit, from)
-			if err := msg.ValidateBasic(); err != nil {
-				return err
-			}
 
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
@@ -203,9 +200,6 @@ Where proposal.json contains:
 			content := types.NewWithdrawRewardEnabledProposal(proposal.Title, proposal.Description, proposal.Enabled)
 
 			msg := gov.NewMsgSubmitProposal(content, proposal.Deposit, from)
-			if err := msg.ValidateBasic(); err != nil {
-				return err
-			}
 
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},

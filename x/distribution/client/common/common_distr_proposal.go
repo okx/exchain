@@ -42,9 +42,9 @@ func WithdrawAllDelegatorRewards(cliCtx context.CLIContext, queryRoute string, d
 	msgs := make([]sdk.Msg, 0, len(validators))
 	for _, valAddr := range validators {
 		msg := types.NewMsgWithdrawDelegatorReward(delegatorAddr, valAddr)
-		if err := msg.ValidateBasic(); err != nil {
-			return nil, err
-		}
+		//if err := msg.ValidateBasic(); err != nil {
+		//	return nil, err
+		//}
 		msgs = append(msgs, msg)
 	}
 
