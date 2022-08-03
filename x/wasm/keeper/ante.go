@@ -29,7 +29,7 @@ func NewCountTXDecorator(storeKey sdk.StoreKey) *CountTXDecorator {
 // The ante handler passes the counter value via sdk.Context upstream. See `types.TXCounter(ctx)` to read the value.
 // Simulations don't get a tx counter value assigned.
 func (a CountTXDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
-	if simulate || !types2.HigherThanSaturn(ctx.BlockHeight()) {
+	if simulate || !types2.HigherThanVenus2(ctx.BlockHeight()) {
 		return next(ctx, tx, simulate)
 	}
 	currentGasmeter := ctx.GasMeter()
