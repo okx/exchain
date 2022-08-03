@@ -351,7 +351,7 @@ func (st *Store) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 				res.Proof = &merkle.Proof{Ops: []merkle.ProofOp{iavl.NewAbsenceOp(key, proof).ProofOp()}}
 			}
 		} else {
-			_, res.Value = tree.Get(key)
+			_, res.Value = tree.GetWithIndex(key)
 		}
 
 	case "/subspace":

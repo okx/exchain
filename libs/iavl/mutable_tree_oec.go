@@ -17,6 +17,7 @@ const (
 	FlagIavlHeightOrphansCacheSize = "iavl-height-orphans-cache-size"
 	FlagIavlMaxCommittedHeightNum  = "iavl-max-committed-height-num"
 	FlagIavlEnableAsyncCommit      = "iavl-enable-async-commit"
+	FlagIavlEnableFastStorage      = "iavl-enable-fast-storage"
 	FlagIavlFastStorageCacheSize   = "iavl-fast-storage-cache-size"
 )
 
@@ -32,6 +33,7 @@ var (
 	EnableAsyncCommit               = false
 	EnablePruningHistoryState       = true
 	CommitGapHeight           int64 = 100
+	enableFastStorage               = false
 	fastNodeCacheSize               = 100000
 )
 
@@ -48,6 +50,16 @@ type commitEvent struct {
 type commitOrphan struct {
 	Version  int64
 	NodeHash []byte
+}
+
+// SetEnableFastStorage set enable fast storage
+func SetEnableFastStorage(enable bool) {
+	enableFastStorage = enable
+}
+
+// GetEnableFastStorage get fast storage enable value
+func GetEnableFastStorage() bool {
+	return enableFastStorage
 }
 
 // SetFastNodeCacheSize set fast node cache size
@@ -88,6 +100,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 
 	shouldPersist := ((version%CommitGapHeight == 0) && (version-tree.lastPersistHeight >= CommitGapHeight)) ||
 		(treeMap.totalPpncSize >= MinCommitItemCount)
+
 	tree.ndb.updateLatestMemoryVersion(version)
 
 	if shouldPersist {
@@ -100,6 +113,9 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 }
 
 func (tree *MutableTree) updateBranchFastNode() {
+	if !GetEnableFastStorage() {
+		return
+	}
 	tree.ndb.updateBranchForFastNode(tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
 	tree.unsavedFastNodeAdditions = make(map[string]*FastNode)
 	tree.unsavedFastNodeRemovals = make(map[string]interface{})
