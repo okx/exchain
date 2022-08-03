@@ -129,6 +129,17 @@ func updateBranchAndSaveNodeToChan(node *Node, saveNodesCh chan<- *Node) []byte 
 	return node.hash
 }
 
+func (ndb *nodeDB) updateBranchForFastNode(additions map[string]*FastNode, removals map[string]interface{}) {
+	ndb.mtx.Lock()
+	for k, v := range additions {
+		ndb.prePersistFastNode.add(k, v)
+	}
+	for k, v := range removals {
+		ndb.prePersistFastNode.remove(k, v)
+	}
+	ndb.mtx.Unlock()
+}
+
 func (ndb *nodeDB) updateBranchMoreConcurrency(node *Node) []byte {
 	if node.persisted || node.prePersisted {
 		return node.hash
