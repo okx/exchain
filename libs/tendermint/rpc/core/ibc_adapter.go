@@ -42,6 +42,6 @@ func CM40Block(ctx *rpctypes.Context, heightPtr *int64) (*ctypes.CM40ResultBlock
 	if blockMeta == nil {
 		return &ctypes.CM40ResultBlock{BlockID: ConvBlockID2CM40BlockID(types.BlockID{}), Block: ConvBlock2CM40Block(block)}, nil
 	}
-
-	return &ctypes.CM40ResultBlock{BlockID: ConvBlockID2CM40BlockID(blockMeta.BlockID), Block: ConvBlock2CM40Block(block)}, nil
+	ret := &ctypes.CM40ResultBlock{BlockID: ConvBlockID2CM40BlockID(blockMeta.BlockID), Block: ConvBlock2CM40Block(block)}
+	return ret, nil
 }

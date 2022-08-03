@@ -13,7 +13,6 @@ func ConvBlock2CM40Block(r *types.Block) *types.CM40Block {
 		Evidence:   r.Evidence,
 		LastCommit: ConvCommitToIBCCommit(&r.Header, r.LastCommit),
 	}
-
 	return ret
 }
 
@@ -80,7 +79,7 @@ func ConvCommitToIBCCommit(hh *types.Header, h *types.Commit) *types.IBCCommit {
 		Height: h.Height,
 		Round:  int32(h.Round),
 		BlockID: types.IBCBlockID{
-			Hash: hh.Hash(),
+			Hash: h.BlockID.Hash,
 			PartSetHeader: types.IBCPartSetHeader{
 				Total: uint32(h.BlockID.PartsHeader.Total),
 				Hash:  h.BlockID.PartsHeader.Hash,

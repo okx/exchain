@@ -401,12 +401,12 @@ func (c *baseRPCClient) Genesis() (*ctypes.ResultGenesis, error) {
 }
 
 func (c *baseRPCClient) Block(height *int64) (*ctypes.ResultBlock, error) {
-	result := new(ctypes.CM40ResultBlock)
-	_, err := c.caller.Call("block", map[string]interface{}{"height": height}, result)
+	result := new(ctypes.ResultBlock)
+	_, err := c.caller.Call("cm39_block", map[string]interface{}{"height": height}, result)
 	if err != nil {
 		return nil, errors.Wrap(err, "Block")
 	}
-	return result.ToCM39ResultBlock(), nil
+	return result, nil
 }
 
 func (c *baseRPCClient) BlockInfo(height *int64) (*types.BlockMeta, error) {
