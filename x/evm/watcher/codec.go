@@ -7,12 +7,12 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 )
 
-var watchCdc *codec.Codec
+var WatchCdc *codec.Codec
 
 func init() {
-	watchCdc = codec.New()
-	cryptocodec.RegisterCodec(watchCdc)
-	codec.RegisterCrypto(watchCdc)
-	watchCdc.RegisterInterface((*exported.Account)(nil), nil)
-	app.RegisterCodec(watchCdc)
+	WatchCdc = codec.New()
+	cryptocodec.RegisterCodec(WatchCdc)
+	codec.RegisterCrypto(WatchCdc)
+	WatchCdc.RegisterInterface((*exported.Account)(nil), nil)
+	app.RegisterCodec(WatchCdc)
 }

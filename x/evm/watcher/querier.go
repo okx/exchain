@@ -405,7 +405,7 @@ func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if b == nil {
 		return nil, errNotFound
 	}
-	e = watchCdc.UnmarshalBinaryBare(b, &acc)
+	e = WatchCdc.UnmarshalBinaryBare(b, &acc)
 	if e != nil {
 		return nil, e
 	}
@@ -426,7 +426,7 @@ func (q Querier) GetAccountFromRdb(addr sdk.AccAddress) (*types.EthAccount, erro
 	if b == nil {
 		return nil, errNotFound
 	}
-	e = watchCdc.UnmarshalBinaryBare(b, &acc)
+	e = WatchCdc.UnmarshalBinaryBare(b, &acc)
 	if e != nil {
 		return nil, e
 	}

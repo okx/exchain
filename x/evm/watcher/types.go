@@ -781,7 +781,7 @@ func (msgAccount *MsgAccount) GetKey() []byte {
 }
 
 func (msgAccount *MsgAccount) GetValue() string {
-	data, err := watchCdc.MarshalBinaryBare(msgAccount.account)
+	data, err := WatchCdc.MarshalBinaryBare(msgAccount.account)
 	if err != nil {
 		panic(err)
 	}
