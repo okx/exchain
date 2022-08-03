@@ -6,7 +6,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"reflect"
-	"runtime/debug"
 	"sync"
 	"time"
 
@@ -157,7 +156,7 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 		return false
 	}
 
-	conR.Logger.Error("SwitchToConsensus")
+	conR.Logger.Info("SwitchToConsensus")
 	conR.conS.reconstructLastCommit(state)
 	// NOTE: The line below causes broadcastNewRoundStepRoutine() to
 	// broadcast a NewRoundStepMessage.
@@ -188,7 +187,7 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 }
 
 func (conR *Reactor) SwitchToFastSync() (sm.State, error) {
-	conR.Logger.Error("SwitchToFastSync")
+	conR.Logger.Info("SwitchToFastSync")
 
 	conR.mtx.Lock()
 	conR.fastSync = true
@@ -543,12 +542,6 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		func(data tmevents.EventData) {
 			conR.broadcastNewRoundStepMessage(data.(*cstypes.RoundState))
 
-			//height := data.(*cstypes.RoundState).Height
-			//if height != conR.conHeight {
-			//	conR.Logger.Info("Update conHeight.", "new", height, "old", conR.conHeight)
-			//	conR.conHeight = height
-			//	conR.resetSwitchToFastSyncTimer()
-			//}
 		})
 
 	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventValidBlock,
@@ -1075,12 +1068,11 @@ OUTER_LOOP:
 }
 
 func (conR *Reactor) peerStatsRoutine() {
-	conR.Logger.Error("Start peerStatsRoutine")
+	conR.Logger.Info("Start peerStatsRoutine")
 	conR.resetSwitchToFastSyncTimer()
 
 	defer func() {
-		conR.Logger.Error("Quit peerStatsRoutine")
-		debug.PrintStack()
+		conR.Logger.Info("Quit peerStatsRoutine")
 		conR.stopSwitchToFastSyncTimer()
 	}()
 	for {
@@ -1115,7 +1107,6 @@ func (conR *Reactor) peerStatsRoutine() {
 			}
 		case <-conR.switchToFastSyncTimer.C:
 			bcR, ok := conR.Switch.Reactor("BLOCKCHAIN").(blockchainReactor)
-			conR.Logger.Error("conR.switchToFastSyncTimer.C", conR.conS.config.TimeoutToFastSync)
 			if ok {
 				bcR.CheckFastSyncCondition()
 				conR.resetSwitchToFastSyncTimer()

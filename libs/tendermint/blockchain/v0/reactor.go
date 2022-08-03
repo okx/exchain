@@ -212,11 +212,10 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 		}))
 	case *bcStatusResponseMessage:
 		// Got a peer status. Unverified. TODO: should verify before SetPeerRange
-		bcR.Logger.Error("bcStatusResponseMessage.", "Status peer", msg.Height, "self", bcR.store.Height())
 		shouldSync := bcR.pool.SetPeerRange(src.ID(), msg.Base, msg.Height, bcR.store.Height())
 		// should switch to fast-sync when more than XX peers' height is greater than store.Height
 		if shouldSync {
-			bcR.Logger.Error("ShouldSync.", "Status peer", msg.Height, "now", bcR.store.Height())
+			bcR.Logger.Info("ShouldSync.", "Status peer", msg.Height, "now", bcR.store.Height())
 			go bcR.poolRoutine()
 		}
 	case *bcNoBlockResponseMessage:
@@ -396,7 +395,6 @@ FOR_LOOP:
 func (bcR *BlockchainReactor) CheckFastSyncCondition() {
 	// ask for status updates
 	bcR.Logger.Info("CheckFastSyncCondition.")
-	bcR.Logger.Error("CheckFastSyncCondition.")
 	go bcR.BroadcastStatusRequest()
 }
 
@@ -429,7 +427,6 @@ func (bcR *BlockchainReactor) BroadcastStatusRequest() error {
 		Base:   bcR.store.Base(),
 		Height: bcR.store.Height(),
 	})
-	bcR.Logger.Error("--Broadcast bcStatusRequestMessage")
 	bcR.Switch.Broadcast(BlockchainChannel, msgBytes)
 	return nil
 }
