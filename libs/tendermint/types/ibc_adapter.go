@@ -4,6 +4,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/okex/exchain/libs/tendermint/version"
+
 	ce "github.com/okex/exchain/libs/tendermint/crypto/encoding"
 	"github.com/okex/exchain/libs/tendermint/libs/bits"
 	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
@@ -73,6 +75,28 @@ type IBCHeader struct {
 	// consensus info
 	EvidenceHash    tmbytes.HexBytes `json:"evidence_hash"`    // evidence included in the block
 	ProposerAddress Address          `json:"proposer_address"` // original proposer of the block
+}
+
+func (h IBCHeader) ToCM39Header() Header {
+	return Header{
+		Version: version.Consensus{
+			Block: version.Protocol(h.Version.Block),
+			App:   version.Protocol(h.Version.App),
+		},
+		ChainID:            h.ChainID,
+		Height:             h.Height,
+		Time:               h.Time,
+		LastBlockID:        h.LastBlockID.ToBlockID(),
+		LastCommitHash:     h.LastCommitHash,
+		DataHash:           h.DataHash,
+		ValidatorsHash:     h.ValidatorsHash,
+		NextValidatorsHash: h.NextValidatorsHash,
+		ConsensusHash:      h.ConsensusHash,
+		AppHash:            h.AppHash,
+		LastResultsHash:    h.LastResultsHash,
+		EvidenceHash:       h.EvidenceHash,
+		ProposerAddress:    h.ProposerAddress,
+	}
 }
 
 type IBCCommit struct {
