@@ -125,9 +125,10 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 			[5]error{nil, nil, nil, types.ErrCommissionUpdateTime()},
 		},
 		{
-			"venus3, no support",
+			"venus3, not support",
 			func() {
-				tmtypes.UnittestOnlySetMilestoneVenus3Height(0)
+				global.SetGlobalHeight(10)
+				tmtypes.UnittestOnlySetMilestoneVenus3Height(11)
 			},
 			"0.5",
 			func(ctx *sdk.Context) {
