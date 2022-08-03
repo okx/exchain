@@ -10,6 +10,8 @@ import (
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+	"math/rand"
+	"time"
 )
 
 func (cs *State) dumpElapsed(trc *trace.Tracer, schema string) {
@@ -227,7 +229,7 @@ func (cs *State) finalizeCommit(height int64) {
 
 	var err error
 	var retainHeight int64
-
+	time.Sleep(time.Duration(rand.Intn(10)) * time.Second)
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
 		stateCopy,
