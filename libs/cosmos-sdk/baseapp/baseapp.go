@@ -699,7 +699,6 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 	if mode == runTxModeDeliver || mode == runTxModeDeliverPartConcurrent {
 		ctx.SetDeliver()
 	}
-	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 
 	return ctx
 }
