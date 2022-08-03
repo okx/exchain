@@ -228,7 +228,7 @@ func (st *Store) Get(key []byte) []byte {
 	if value != nil {
 		return value
 	}
-	_, value = st.tree.Get(key)
+	value = st.tree.Get(key)
 	if value != nil {
 		st.setFlatKV(key, value)
 	}
@@ -351,7 +351,7 @@ func (st *Store) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 				res.Proof = &merkle.Proof{Ops: []merkle.ProofOp{iavl.NewAbsenceOp(key, proof).ProofOp()}}
 			}
 		} else {
-			_, res.Value = tree.Get(key)
+			_, res.Value = tree.GetWithIndex(key)
 		}
 
 	case "/subspace":
