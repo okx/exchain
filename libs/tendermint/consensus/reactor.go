@@ -1068,13 +1068,12 @@ OUTER_LOOP:
 }
 
 func (conR *Reactor) peerStatsRoutine() {
-	conR.Logger.Info("Start peerStatsRoutine")
 	conR.resetSwitchToFastSyncTimer()
 
 	defer func() {
-		conR.Logger.Info("Quit peerStatsRoutine")
 		conR.stopSwitchToFastSyncTimer()
 	}()
+
 	for {
 		if !conR.IsRunning() {
 			conR.Logger.Info("Stopping peerStatsRoutine")
