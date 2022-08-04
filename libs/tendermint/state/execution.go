@@ -275,7 +275,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	startTime = time.Now().UnixNano()
 
 	// Lock mempool, commit app state, update mempoool.
-	commitResp, retainHeight, err := blockExec.commit(state, block, deltaInfo, abciResponses.DeliverTxs)
+	commitResp, retainHeight, err := blockExec.commit(state, block, deltaInfo, abciResponses.DeliverTxs, trc)
 	endTime = time.Now().UnixNano()
 	blockExec.metrics.CommitTime.Set(float64(endTime-startTime) / 1e6)
 	if err != nil {
@@ -367,6 +367,7 @@ func (blockExec *BlockExecutor) commit(
 	block *types.Block,
 	deltaInfo *DeltaInfo,
 	deliverTxResponses []*abci.ResponseDeliverTx,
+	trc *trace.Tracer,
 ) (*abci.ResponseCommit, int64, error) {
 	blockExec.mempool.Lock()
 	defer func() {
@@ -408,6 +409,7 @@ func (blockExec *BlockExecutor) commit(
 		"blockLen", amino.FuncStringer(func() string { return strconv.Itoa(block.FastSize()) }),
 	)
 
+	trc.Pin(trace.MempoolUpdate)
 	// Update mempool.
 	err = blockExec.mempool.Update(
 		block.Height,
