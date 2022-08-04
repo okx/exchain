@@ -13,10 +13,8 @@ import (
 
 // CheckStart check start command's flags. if user set conflict flags return error.
 // the conflicts flags are:
-// --fast-query      conflict with --deliver-txs-mode=<mode>
 // --fast-query      conflict with --pruning=nothing
 // --enable-preruntx conflict with --download-delta
-// --upload-delta    conflict with --deliver-txs-mode=<mode>
 //
 // based the conflicts above and node-mode below
 // --node-mode=rpc manage the following flags:
@@ -48,7 +46,6 @@ import (
 //    --cors=*
 //
 // then
-// --node-mode=rpc(--fast-query) conflicts with --deliver-txs-mode=<mode> and --pruning=nothing
 // --node-mode=archive(--pruning=nothing) conflicts with --fast-query
 
 var (
