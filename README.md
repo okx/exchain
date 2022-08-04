@@ -1,7 +1,7 @@
 # OKC
 The Infrastructure of Decentralized Exchange
 
-![banner](docs/images/okc.jpg)
+![banner](docs/images/okc.png)
 
 [![version](https://img.shields.io/github/tag/okex/exchain.svg)](https://github.com/okex/exchain/releases/latest)
 [![CircleCI](https://circleci.com/gh/okex/exchain/tree/dev.svg?style=shield)](https://circleci.com/gh/okex/exchain/tree/dev)

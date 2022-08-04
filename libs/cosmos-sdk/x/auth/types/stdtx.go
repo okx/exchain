@@ -26,13 +26,19 @@ var (
 // StdTx is a standard way to wrap a Msg with Fee and Signatures.
 // NOTE: the first signature is the fee payer (Signatures must not be nil).
 type StdTx struct {
-	Msgs          []sdk.Msg      `json:"msg" yaml:"msg"`
-	Fee           StdFee         `json:"fee" yaml:"fee"`
-	Signatures    []StdSignature `json:"signatures" yaml:"signatures"`
-	Memo          string         `json:"memo" yaml:"memo"`
-	TimeoutHeight uint64         `json:"timeout_height" yaml:"timeout_height"`
+	Msgs       []sdk.Msg      `json:"msg" yaml:"msg"`
+	Fee        StdFee         `json:"fee" yaml:"fee"`
+	Signatures []StdSignature `json:"signatures" yaml:"signatures"`
+	Memo       string         `json:"memo" yaml:"memo"`
 
 	sdk.BaseTx `json:"-" yaml:"-"`
+}
+
+func (tx *StdTx) VerifySequence(index int, acc exported.Account) error {
+	//this function no use in stdtx, never add anythin in this
+	//only new cosmos44 tx will call this to verify sequence
+
+	return nil
 }
 
 func (tx *StdTx) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
@@ -209,7 +215,7 @@ func (tx *StdTx) GetPubKeys() []crypto.PubKey {
 }
 
 // GetSignBytes returns the signBytes of the tx for a given signer
-func (tx *StdTx) GetSignBytes(ctx sdk.Context, acc exported.Account) []byte {
+func (tx *StdTx) GetSignBytes(ctx sdk.Context, index int, acc exported.Account) []byte {
 	genesis := ctx.BlockHeight() == 0
 	chainID := ctx.ChainID()
 	var accNum uint64
