@@ -418,7 +418,7 @@ func TestWriteLatestMsg(t *testing.T) {
 	m := watcher.NewMsgAccount(a1)
 	v, err := store.Get(m.GetKey())
 	require.NoError(t, err)
-	var ethAccount ethermint.EthAccount
-	watcher.WatchCdc.UnmarshalBinaryBare(v, &ethAccount)
+	ethAccount, err := watcher.DecodeAccount(v)
+	require.NoError(t, err)
 	require.Equal(t, uint64(3), ethAccount.GetSequence())
 }

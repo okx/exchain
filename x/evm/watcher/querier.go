@@ -397,7 +397,6 @@ func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	var acc types.EthAccount
 	b, e := q.store.Get([]byte(GetMsgAccountKey(addr.Bytes())))
 	if e != nil {
 		return nil, e
@@ -405,18 +404,17 @@ func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if b == nil {
 		return nil, errNotFound
 	}
-	e = WatchCdc.UnmarshalBinaryBare(b, &acc)
-	if e != nil {
+	acc, err := DecodeAccount(b)
+	if err != nil {
 		return nil, e
 	}
-	return &acc, nil
+	return acc, nil
 }
 
 func (q Querier) GetAccountFromRdb(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	var acc types.EthAccount
 	key := append(prefixRpcDb, GetMsgAccountKey(addr.Bytes())...)
 
 	b, e := q.store.Get(key)
@@ -426,11 +424,11 @@ func (q Querier) GetAccountFromRdb(addr sdk.AccAddress) (*types.EthAccount, erro
 	if b == nil {
 		return nil, errNotFound
 	}
-	e = WatchCdc.UnmarshalBinaryBare(b, &acc)
-	if e != nil {
+	acc, err := DecodeAccount(b)
+	if err != nil {
 		return nil, e
 	}
-	return &acc, nil
+	return acc, nil
 }
 
 func (q Querier) DeleteAccountFromRdb(addr sdk.AccAddress) {
