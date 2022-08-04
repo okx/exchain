@@ -1,16 +1,14 @@
 package main
 
 import (
-	"github.com/okex/exchain/libs/system/trace"
 	"log"
-
-	types2 "github.com/okex/exchain/x/evm/types"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
 
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
+	"github.com/okex/exchain/libs/system/trace"
 	sm "github.com/okex/exchain/libs/tendermint/state"
+	types2 "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/cobra"
 )
 
@@ -30,6 +28,6 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().String(app.Elapsed, app.DefaultElapsedSchemas, "schemaName=1|0,,,")
 	cmd.Flags().Bool(trace.FlagEnableAnalyzer, false, "Enable auto open log analyzer")
 	cmd.Flags().BoolVar(&types2.TrieUseCompositeKey, types2.FlagTrieUseCompositeKey, true, "Use composite key to store contract state")
-	cmd.Flags().Int(sm.FlagDeliverTxsExecMode, 0, "execution mode for deliver txs")
+	cmd.Flags().Int(sm.FlagDeliverTxsExecMode, 0, "execution mode for deliver txs, (0:serial[default], 1:parallel)")
 	return cmd
 }
