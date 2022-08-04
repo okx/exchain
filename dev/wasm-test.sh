@@ -30,6 +30,8 @@ run() {
       --enable-dynamic-gp=false \
       --consensus.timeout_commit 2000ms \
       --enable-preruntx=false \
+      --fast-query=true \
+      --deliver-txs-mode=2 \
       --iavl-enable-async-commit \
       --enable-gid \
       --append-pid=true \
@@ -68,7 +70,7 @@ set -x # activate debugging
 rm -rf ~/.exchain*
 rm -rf $HOME_SERVER
 
-(cd .. && make install Venus1Height=1 SaturnHeight=1)
+(cd .. && make install Venus1Height=1 Venus2Height=1)
 
 # Set up config for CLI
 exchaincli config chain-id $CHAINID
