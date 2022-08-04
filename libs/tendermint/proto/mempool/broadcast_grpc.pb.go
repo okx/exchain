@@ -26,6 +26,7 @@ type MempoolTxReceiverClient interface {
 	CheckTx(ctx context.Context, in *TxRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	CheckTxAsync(ctx context.Context, in *TxRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
 	CheckTxs(ctx context.Context, opts ...grpc.CallOption) (MempoolTxReceiver_CheckTxsClient, error)
+	CheckTxsAsync(ctx context.Context, opts ...grpc.CallOption) (MempoolTxReceiver_CheckTxsAsyncClient, error)
 }
 
 type mempoolTxReceiverClient struct {
@@ -88,6 +89,40 @@ func (x *mempoolTxReceiverCheckTxsClient) CloseAndRecv() (*emptypb.Empty, error)
 	return m, nil
 }
 
+func (c *mempoolTxReceiverClient) CheckTxsAsync(ctx context.Context, opts ...grpc.CallOption) (MempoolTxReceiver_CheckTxsAsyncClient, error) {
+	stream, err := c.cc.NewStream(ctx, &MempoolTxReceiver_ServiceDesc.Streams[1], "/mempool.MempoolTxReceiver/CheckTxsAsync", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &mempoolTxReceiverCheckTxsAsyncClient{stream}
+	return x, nil
+}
+
+type MempoolTxReceiver_CheckTxsAsyncClient interface {
+	Send(*TxRequest) error
+	CloseAndRecv() (*emptypb.Empty, error)
+	grpc.ClientStream
+}
+
+type mempoolTxReceiverCheckTxsAsyncClient struct {
+	grpc.ClientStream
+}
+
+func (x *mempoolTxReceiverCheckTxsAsyncClient) Send(m *TxRequest) error {
+	return x.ClientStream.SendMsg(m)
+}
+
+func (x *mempoolTxReceiverCheckTxsAsyncClient) CloseAndRecv() (*emptypb.Empty, error) {
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	m := new(emptypb.Empty)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // MempoolTxReceiverServer is the server API for MempoolTxReceiver service.
 // All implementations must embed UnimplementedMempoolTxReceiverServer
 // for forward compatibility
@@ -95,6 +130,7 @@ type MempoolTxReceiverServer interface {
 	CheckTx(context.Context, *TxRequest) (*emptypb.Empty, error)
 	CheckTxAsync(context.Context, *TxRequest) (*emptypb.Empty, error)
 	CheckTxs(MempoolTxReceiver_CheckTxsServer) error
+	CheckTxsAsync(MempoolTxReceiver_CheckTxsAsyncServer) error
 	mustEmbedUnimplementedMempoolTxReceiverServer()
 }
 
@@ -110,6 +146,9 @@ func (UnimplementedMempoolTxReceiverServer) CheckTxAsync(context.Context, *TxReq
 }
 func (UnimplementedMempoolTxReceiverServer) CheckTxs(MempoolTxReceiver_CheckTxsServer) error {
 	return status.Errorf(codes.Unimplemented, "method CheckTxs not implemented")
+}
+func (UnimplementedMempoolTxReceiverServer) CheckTxsAsync(MempoolTxReceiver_CheckTxsAsyncServer) error {
+	return status.Errorf(codes.Unimplemented, "method CheckTxsAsync not implemented")
 }
 func (UnimplementedMempoolTxReceiverServer) mustEmbedUnimplementedMempoolTxReceiverServer() {}
 
@@ -186,6 +225,32 @@ func (x *mempoolTxReceiverCheckTxsServer) Recv() (*TxRequest, error) {
 	return m, nil
 }
 
+func _MempoolTxReceiver_CheckTxsAsync_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(MempoolTxReceiverServer).CheckTxsAsync(&mempoolTxReceiverCheckTxsAsyncServer{stream})
+}
+
+type MempoolTxReceiver_CheckTxsAsyncServer interface {
+	SendAndClose(*emptypb.Empty) error
+	Recv() (*TxRequest, error)
+	grpc.ServerStream
+}
+
+type mempoolTxReceiverCheckTxsAsyncServer struct {
+	grpc.ServerStream
+}
+
+func (x *mempoolTxReceiverCheckTxsAsyncServer) SendAndClose(m *emptypb.Empty) error {
+	return x.ServerStream.SendMsg(m)
+}
+
+func (x *mempoolTxReceiverCheckTxsAsyncServer) Recv() (*TxRequest, error) {
+	m := new(TxRequest)
+	if err := x.ServerStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // MempoolTxReceiver_ServiceDesc is the grpc.ServiceDesc for MempoolTxReceiver service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -206,6 +271,11 @@ var MempoolTxReceiver_ServiceDesc = grpc.ServiceDesc{
 		{
 			StreamName:    "CheckTxs",
 			Handler:       _MempoolTxReceiver_CheckTxs_Handler,
+			ClientStreams: true,
+		},
+		{
+			StreamName:    "CheckTxsAsync",
+			Handler:       _MempoolTxReceiver_CheckTxsAsync_Handler,
 			ClientStreams: true,
 		},
 	},

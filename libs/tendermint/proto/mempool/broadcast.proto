@@ -12,6 +12,7 @@ service MempoolTxReceiver {
   rpc CheckTx (TxRequest) returns(google.protobuf.Empty) {}
   rpc CheckTxAsync (TxRequest) returns(google.protobuf.Empty) {}
   rpc CheckTxs (stream TxRequest) returns(google.protobuf.Empty) {}
+  rpc CheckTxsAsync (stream TxRequest) returns(google.protobuf.Empty) {}
 }
 
 message TxRequest {

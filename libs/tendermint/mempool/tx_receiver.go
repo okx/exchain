@@ -7,7 +7,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	pb "github.com/okex/exchain/libs/tendermint/proto/mempool"
 	"github.com/okex/exchain/libs/tendermint/types"
-	"github.com/tendermint/go-amino"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -54,17 +53,10 @@ func (s *txReceiverServer) CheckTx(_ context.Context, req *pb.TxRequest) (*empty
 }
 
 func (s *txReceiverServer) CheckTxAsync(_ context.Context, req *pb.TxRequest) (*emptypb.Empty, error) {
-	var targetCh chan txJob
-	if req.From == "" || amino.StrToBytes(req.From)[len(req.From)-1]%2 == 0 {
-		targetCh = s.memR.tx1Ch
-	} else {
-		targetCh = s.memR.tx2Ch
-	}
-
-	return s.checkTx(req, targetCh)
+	return s.checkTx(req, s.memR.getTxJobChannel(req.From))
 }
 
-func (s *txReceiverServer) checkTx(req *pb.TxRequest, ch chan txJob) (*emptypb.Empty, error) {
+func (s *txReceiverServer) checkTx(req *pb.TxRequest, ch chan<- txJob) (*emptypb.Empty, error) {
 	if req == nil {
 		return nil, errEmpty
 	}
@@ -83,7 +75,6 @@ func (s *txReceiverServer) checkTx(req *pb.TxRequest, ch chan txJob) (*emptypb.E
 			ch <- txJob{
 				tx:   req.Tx,
 				info: info,
-				from: req.From,
 				txs:  req.Txs,
 			}
 		}
@@ -117,6 +108,22 @@ func (s *txReceiverServer) CheckTxs(stream pb.MempoolTxReceiver_CheckTxsServer) 
 		_, err = s.checkTx(req, txCh)
 		if err != nil {
 			close(txCh)
+			return err
+		}
+	}
+}
+
+func (s *txReceiverServer) CheckTxsAsync(stream pb.MempoolTxReceiver_CheckTxsAsyncServer) error {
+	for {
+		req, err := stream.Recv()
+		if err == io.EOF {
+			return stream.SendAndClose(empty)
+		}
+		if err != nil {
+			return err
+		}
+		_, err = s.checkTx(req, s.memR.getTxJobChannel(req.From))
+		if err != nil {
 			return err
 		}
 	}
@@ -300,7 +307,7 @@ func (r *txReceiver) Start(configPort string) {
 func (r *txReceiver) CheckTx(peerID uint16, memTx *mempoolTx) bool {
 	client, ok := r.GetClient(peerID)
 	if ok {
-		_, err := client.Client.CheckTx(context.Background(), &pb.TxRequest{Tx: memTx.tx, PeerId: uint32(client.ID)})
+		_, err := client.Client.CheckTx(context.Background(), &pb.TxRequest{Tx: memTx.tx, PeerId: uint32(client.ID), From: memTx.from})
 		if err != nil {
 			r.Logger.Error("CheckTx:Receive", "err", err)
 			return false
@@ -334,7 +341,45 @@ func (r *txReceiver) CheckTxByStream(memTx *mempoolTx, peerID uint16, peer p2p.P
 		*streamp = stream
 	}
 
-	err = stream.Send(&pb.TxRequest{Tx: memTx.tx, PeerId: uint32(client.ID)})
+	err = stream.Send(&pb.TxRequest{Tx: memTx.tx, PeerId: uint32(client.ID), From: memTx.from})
+	if err != nil {
+		r.Logger.Error("Error Send", "err", err)
+		_, err = stream.CloseAndRecv()
+		if err != nil {
+			r.Logger.Error("Error closing checktxs stream", "peer", peer, "err", err)
+		}
+		*streamp = nil
+		return false
+	} else {
+		return true
+	}
+}
+
+func (r *txReceiver) CheckTxAsyncByStream(memTx *mempoolTx, peerID uint16, peer p2p.Peer, client *txReceiverClient, streamp *pb.MempoolTxReceiver_CheckTxsAsyncClient) bool {
+	if streamp == nil || client == nil {
+		return false
+	}
+
+	var err error
+	var stream = *streamp
+
+	if stream == nil {
+		if client.Client == nil {
+			clientV, ok := r.GetClient(peerID)
+			if !ok {
+				return false
+			}
+			*client = clientV
+		}
+		stream, err = client.Client.CheckTxsAsync(context.Background())
+		if err != nil {
+			r.Logger.Error("Error CheckTxs", "err", err)
+			return false
+		}
+		*streamp = stream
+	}
+
+	err = stream.Send(&pb.TxRequest{Tx: memTx.tx, PeerId: uint32(client.ID), From: memTx.from})
 	if err != nil {
 		r.Logger.Error("Error Send", "err", err)
 		_, err = stream.CloseAndRecv()

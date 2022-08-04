@@ -2,7 +2,6 @@ package mempool
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"math"
 	"reflect"
@@ -35,6 +34,8 @@ const (
 	UnknownPeerID uint16 = 0
 
 	maxActiveIDs = math.MaxUint16
+
+	GrpcBroadcastMaxTxSize = 3 * 1024 * 1024
 )
 
 // Reactor handles mempool tx broadcasting amongst peers.
@@ -47,7 +48,6 @@ type Reactor struct {
 	ids              *mempoolIDs
 	nodeKey          *p2p.NodeKey
 	nodeKeyWhitelist map[string]struct{}
-	txCh             chan txJob
 	tx1Ch            chan txJob
 	tx2Ch            chan txJob
 	enableWtx        bool
@@ -124,7 +124,6 @@ func newMempoolIDs() *mempoolIDs {
 
 type txJob struct {
 	tx   types.Tx
-	from string
 	info TxInfo
 	txs  [][]byte
 }
@@ -137,7 +136,6 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 		ids:              newMempoolIDs(),
 		nodeKeyWhitelist: make(map[string]struct{}),
 		enableWtx:        cfg.DynamicConfig.GetEnableWtx(),
-		txCh:             make(chan txJob, 2*100_000),
 	}
 	for _, nodeKey := range config.GetNodeKeyWhitelist() {
 		memR.nodeKeyWhitelist[nodeKey] = struct{}{}
@@ -189,9 +187,8 @@ func (memR *Reactor) checkTxs(tx types.Tx, txs [][]byte, txInfo TxInfo) {
 }
 
 func (memR *Reactor) checkTxRoutine() {
-	chLen := len(memR.txCh)
-	memR.tx1Ch = make(chan txJob, chLen/2)
-	memR.tx2Ch = make(chan txJob, chLen/2)
+	memR.tx1Ch = make(chan txJob, 100_000)
+	memR.tx2Ch = make(chan txJob, 100_000)
 
 	checkFunc := func(memR *Reactor, ch chan txJob) {
 		for txJob := range ch {
@@ -204,24 +201,20 @@ func (memR *Reactor) checkTxRoutine() {
 
 	for {
 		select {
-		case txJob := <-memR.txCh:
-			//tx := txJob.tx
-			//txInfo := txJob.info
-			//err := memR.mempool.CheckTx(tx, nil, txInfo)
-			//if err != nil {
-			//	memR.logCheckTxError(tx, memR.mempool.height, err)
-			//}
-			if txJob.from == "" || amino.StrToBytes(txJob.from)[len(txJob.from)-1]%2 == 0 {
-				memR.tx1Ch <- txJob
-			} else {
-				memR.tx2Ch <- txJob
-			}
 		case <-memR.Quit():
 			close(memR.tx1Ch)
-			close(memR.tx1Ch)
+			close(memR.tx2Ch)
 			memR.receiver.Stop()
 			return
 		}
+	}
+}
+
+func (memR *Reactor) getTxJobChannel(from string) chan<- txJob {
+	if from == "" || amino.StrToBytes(from)[len(from)-1]%2 == 0 {
+		return memR.tx1Ch
+	} else {
+		return memR.tx2Ch
 	}
 }
 
@@ -354,7 +347,7 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		return
 	}
 
-	memR.txCh <- txJob{
+	memR.tx1Ch <- txJob{
 		tx:   tx,
 		info: txInfo,
 	}
@@ -371,7 +364,8 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 		return
 	}
 
-	var stream pb.MempoolTxReceiver_CheckTxsClient
+	var stream pb.MempoolTxReceiver_CheckTxsAsyncClient
+	var client txReceiverClient
 	defer func() {
 		if stream != nil {
 			memR.receiver.Logger.Info("Closing broadcast stream", "peer", peer)
@@ -427,75 +421,49 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 
 		// ensure peer hasn't already sent us this tx
 		if _, ok = memTx.senders.Load(peerID); !ok {
-			client, ok := memR.receiver.GetClient(peerID)
-			if ok {
-				var err error
-				if stream == nil {
-					stream, err = client.Client.CheckTxs(context.Background())
-					if err != nil {
-						memR.receiver.Logger.Error("Error CheckTxs", "err", err)
-						goto P2P
-					}
-				}
-				err = stream.Send(&pb.TxRequest{Tx: memTx.tx, PeerId: uint32(client.ID)})
-				if err != nil {
-					memR.receiver.Logger.Error("Error Send", "err", err)
-					_, err = stream.CloseAndRecv()
-					if err != nil {
-						memR.receiver.Logger.Error("Error closing checktxs stream", "peer", peer, "err", err)
-					}
-					stream = nil
-					goto P2P
-				} else {
-					goto SUCCESS
-				}
-			}
+			if !memR.receiver.CheckTxAsyncByStream(memTx, peerID, peer, &client, &stream) {
+				// memR.Logger.Info("fallback to broadcast", "peer", peer.ID(), "tx", txHash)
 
-			// memR.Logger.Info("fallback to broadcast", "peer", peer.ID(), "tx", txHash)
-
-		P2P:
-
-			var getFromPool bool
-			// send memTx
-			var msg Message
-			if memTx.nodeKey != nil && memTx.signature != nil {
-				msg = &WtxMessage{
-					Wtx: &WrappedTx{
-						Payload:   memTx.tx,
-						From:      memTx.from,
-						Signature: memTx.signature,
-						NodeKey:   memTx.nodeKey,
-					},
-				}
-			} else if memR.enableWtx {
-				if wtx, err := memR.wrapTx(memTx.tx, memTx.from); err == nil {
+				var getFromPool bool
+				// send memTx
+				var msg Message
+				if memTx.nodeKey != nil && memTx.signature != nil {
 					msg = &WtxMessage{
-						Wtx: wtx,
+						Wtx: &WrappedTx{
+							Payload:   memTx.tx,
+							From:      memTx.from,
+							Signature: memTx.signature,
+							NodeKey:   memTx.nodeKey,
+						},
 					}
+				} else if memR.enableWtx {
+					if wtx, err := memR.wrapTx(memTx.tx, memTx.from); err == nil {
+						msg = &WtxMessage{
+							Wtx: wtx,
+						}
+					}
+				} else {
+					txMsg := txMessageDeocdePool.Get().(*TxMessage)
+					txMsg.Tx = memTx.tx
+					msg = txMsg
+					getFromPool = true
 				}
-			} else {
-				txMsg := txMessageDeocdePool.Get().(*TxMessage)
-				txMsg.Tx = memTx.tx
-				msg = txMsg
-				getFromPool = true
-			}
 
-			msgBz := memR.encodeMsg(msg)
-			if getFromPool {
-				getFromPool = false
-				txMessageDeocdePool.Put(msg)
-			}
+				msgBz := memR.encodeMsg(msg)
+				if getFromPool {
+					getFromPool = false
+					txMessageDeocdePool.Put(msg)
+				}
 
-			success := peer.Send(MempoolChannel, msgBz)
-			if !success {
-				time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
-				continue
+				success := peer.Send(MempoolChannel, msgBz)
+				if !success {
+					time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
+					continue
+				}
 			}
 		} else {
 			// memR.Logger.Info("Peer has already sent us this tx", "peer", peer.ID(), "tx", txHash)
 		}
-
-	SUCCESS:
 
 		select {
 		case <-next.NextWaitChan():
@@ -506,6 +474,30 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 		case <-memR.Quit():
 			return
 		}
+	}
+}
+
+func (memR *Reactor) txs4Grpc(next *clist.CElement, peerID uint16) ([][]byte, *clist.CElement) {
+	var batch [][]byte
+	var size int
+
+	for {
+		memTx := next.Value.(*mempoolTx)
+
+		if _, ok := memTx.senders.Load(peerID); !ok {
+			// If size of {current batch + this tx} is greater than MaxBatchBytes => return.
+			size += len(memTx.tx)
+			if size > GrpcBroadcastMaxTxSize {
+				return batch, next
+			}
+
+			batch = append(batch, memTx.tx)
+		}
+
+		if next.Next() == nil {
+			return batch, next
+		}
+		next = next.Next()
 	}
 }
 
