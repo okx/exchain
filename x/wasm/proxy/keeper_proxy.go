@@ -94,8 +94,9 @@ type SubspaceProxy struct{}
 func (s SubspaceProxy) GetParamSet(ctx sdk.Context, ps params.ParamSet) {
 	ctx.GasMeter().ConsumeGas(2111, "SubspaceProxy GetParamSet")
 	if wasmParams, ok := ps.(*types.Params); ok {
-		wasmParams.CodeUploadAccess = watcher.Params.CodeUploadAccess
-		wasmParams.InstantiateDefaultPermission = watcher.Params.InstantiateDefaultPermission
+		wps := watcher.GetParams()
+		wasmParams.CodeUploadAccess = wps.CodeUploadAccess
+		wasmParams.InstantiateDefaultPermission = wps.InstantiateDefaultPermission
 	}
 }
 func (s SubspaceProxy) SetParamSet(ctx sdk.Context, ps params.ParamSet) {}

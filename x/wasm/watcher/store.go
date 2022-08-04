@@ -1,9 +1,6 @@
 package watcher
 
 import (
-	"path/filepath"
-	"sync"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/dbadapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/gaskv"
@@ -13,6 +10,8 @@ import (
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/spf13/viper"
+	"path/filepath"
+	"sync"
 )
 
 const (
@@ -20,9 +19,11 @@ const (
 )
 
 var (
-	enableWatcher   bool
-	db              dbm.DB
-	once            sync.Once
+	checked       bool
+	enableWatcher bool
+	db            dbm.DB
+	// used for parallel deliver txs mode
+	txCacheMtx      sync.Mutex
 	txStateCache    []*watcherMessage
 	blockStateCache = make(map[string]*watcherMessage)
 )
@@ -33,13 +34,23 @@ type watcherMessage struct {
 	isDelete bool
 }
 
+func CheckEnable() bool {
+	if !viper.GetBool(watcher.FlagFastQuery) {
+		return false
+	}
+	checked = true
+	enableWatcher = true
+	return enableWatcher
+}
+
 func Enable() bool {
-	once.Do(initDB)
+	if !checked {
+		panic("fast query should be checked at init")
+	}
 	return enableWatcher
 }
 
 func NewReadStore(pre []byte) sdk.KVStore {
-	once.Do(initDB)
 	rs := &readStore{
 		Store: dbadapter.Store{DB: db},
 	}
@@ -63,12 +74,10 @@ type readStore struct {
 func (r *readStore) Set(key, value []byte) {}
 func (r *readStore) Delete(key []byte)     {}
 
-func initDB() {
-	v := viper.Get(watcher.FlagFastQuery)
-	if enable, ok := v.(bool); !ok || !enable {
+func InitDB() {
+	if !Enable() {
 		return
 	}
-	enableWatcher = true
 	homeDir := viper.GetString(flags.FlagHome)
 	dbPath := filepath.Join(homeDir, watcher.WatchDbDir)
 	backend := viper.GetString(watcher.FlagDBBackend)
@@ -79,7 +88,7 @@ func initDB() {
 	go taskRoutine()
 }
 
-var tasks = make(chan func(), 10)
+var tasks = make(chan func(), 5*3)
 
 func taskRoutine() {
 	for task := range tasks {

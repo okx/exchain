@@ -47,6 +47,7 @@ type AppModuleBasic struct{}
 
 func (b AppModuleBasic) RegisterGRPCGatewayRoutes(clientCtx clictx.CLIContext, serveMux *runtime.ServeMux) {
 	simulator.NewWasmSimulator = NewWasmSimulator
+	watcher.InitDB()
 	err := types.RegisterQueryHandlerClient(context.Background(), serveMux, types.NewQueryClient(clientCtx))
 	if err != nil {
 		panic(err)
@@ -120,6 +121,7 @@ func NewAppModule(cdc codec.CodecProxy, keeper *Keeper) AppModule {
 		keeper:         keeper,
 	}
 	m.BaseIBCUpgradeModule = base.NewBaseIBCUpgradeModule(m)
+	watcher.CheckEnable()
 	return m
 }
 
