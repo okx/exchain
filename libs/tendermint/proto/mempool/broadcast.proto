@@ -21,7 +21,7 @@ message TxRequest {
   repeated bytes txs = 3;
   repeated string from_addrs = 4;
   uint32 peer_id = 5;
-  // repeated string peer_ids = 3;
+  repeated string peer_ids = 6;
 }
 
 message ReceiverInfo {
