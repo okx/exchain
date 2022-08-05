@@ -62,8 +62,8 @@ func (memR *Reactor) SetNodeKey(key *p2p.NodeKey) {
 type mempoolIDs struct {
 	mtx       sync.RWMutex
 	peerMap   map[p2p.ID]uint16
-	nextID    uint16              // assumes that a node will never have over 65536 active peers
-	activeIDs map[uint16]struct{} // used to check if a given peerID key is used, the value doesn't matter
+	nextID    uint16            // assumes that a node will never have over 65536 active peers
+	activeIDs map[uint16]p2p.ID // used to check if a given peerID key is used, the value doesn't matter
 }
 
 // Reserve searches for the next unused ID and assigns it to the
@@ -74,7 +74,7 @@ func (ids *mempoolIDs) ReserveForPeer(peer p2p.Peer) {
 
 	curID := ids.nextPeerID()
 	ids.peerMap[peer.ID()] = curID
-	ids.activeIDs[curID] = struct{}{}
+	ids.activeIDs[curID] = peer.ID()
 }
 
 // nextPeerID returns the next unused peer ID to use.
@@ -114,10 +114,17 @@ func (ids *mempoolIDs) GetForPeer(peer p2p.Peer) uint16 {
 	return ids.peerMap[peer.ID()]
 }
 
+func (ids *mempoolIDs) GetPeerID(id uint16) p2p.ID {
+	ids.mtx.RLock()
+	pid := ids.activeIDs[id]
+	ids.mtx.RUnlock()
+	return pid
+}
+
 func newMempoolIDs() *mempoolIDs {
 	return &mempoolIDs{
 		peerMap:   make(map[p2p.ID]uint16),
-		activeIDs: map[uint16]struct{}{0: {}},
+		activeIDs: map[uint16]p2p.ID{0: ""},
 		nextID:    1, // reserve unknownPeerID(0) for mempoolReactor.BroadcastTx
 	}
 }
