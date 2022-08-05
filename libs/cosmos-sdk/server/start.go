@@ -155,6 +155,9 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyReso
 
 	app := appCreator(ctx.Logger, db, traceWriter)
 
+	if tmiavl.GetEnableFastStorage() {
+		//	os.Exit(0)
+	}
 	nodeKey, err := p2p.LoadOrGenNodeKey(cfg.NodeKeyFile())
 	if err != nil {
 		return nil, err

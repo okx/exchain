@@ -694,15 +694,15 @@ func (tree *MutableTree) enableFastStorageAndCommit(batch dbm.Batch) error {
 	itr := NewIterator(nil, nil, true, tree.ImmutableTree)
 	defer itr.Close()
 	var upgradedNodes uint64
-	const verboseGap = 50000
+	const verboseGap = 5
 	for ; itr.Valid(); itr.Next() {
 		if err = tree.ndb.SaveFastNodeNoCache(NewFastNode(itr.Key(), itr.Value(), tree.version), batch); err != nil {
 			return err
 		}
-		upgradedNodes++
 		if upgradedNodes%verboseGap == 0 {
 			tree.log(IavlInfo, "Upgrading to fast IAVL...", "finished", upgradedNodes)
 		}
+		upgradedNodes++
 	}
 
 	if err = itr.Error(); err != nil {
