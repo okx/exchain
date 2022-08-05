@@ -34,12 +34,15 @@ type watcherMessage struct {
 	isDelete bool
 }
 
+var checkOnce sync.Once
+
 func CheckEnable() bool {
-	if !viper.GetBool(watcher.FlagFastQuery) {
-		return false
-	}
-	checked = true
-	enableWatcher = true
+	checkOnce.Do(func() {
+		checked = true
+		if viper.GetBool(watcher.FlagFastQuery) {
+			enableWatcher = true
+		}
+	})
 	return enableWatcher
 }
 
