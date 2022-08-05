@@ -204,6 +204,7 @@ func (blockExec *BlockExecutor) ValidateBlock(state State, block *types.Block) e
 // It takes a blockID to avoid recomputing the parts hash.
 func (blockExec *BlockExecutor) ApplyBlock(
 	state State, blockID types.BlockID, block *types.Block) (State, int64, error) {
+	go fireBlockTimeEvents(blockExec.eventBus, block.Height, block.Time.Unix())
 	if ApplyBlockPprofTime >= 0 {
 		f, t := PprofStart()
 		defer PprofEnd(int(block.Height), f, t)
@@ -738,4 +739,9 @@ func fireEvents(
 		eventBus.PublishEventValidatorSetUpdates(
 			types.EventDataValidatorSetUpdates{ValidatorUpdates: validatorUpdates})
 	}
+}
+
+func fireBlockTimeEvents(eventBus types.BlockEventPublisher, height, blockTime int64) {
+	eventBus.PublishEventLatestBlockTime(
+		types.EventDataBlockTime{Height: height, BlockTime: blockTime})
 }
