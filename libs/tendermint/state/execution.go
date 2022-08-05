@@ -27,11 +27,12 @@ type (
 
 const (
 	DeliverTxsExecModeSerial   DeliverTxsExecMode = iota // execute [deliverTx,...] sequentially
-	DeliverTxsExecModeParallel                           // execute [deliverTx,...] parallel
+	DeliverTxsExecModeParallel                    = 2    // execute [deliverTx,...] parallel
 
 	// There are two modes.
 	// 0: execute [deliverTx,...] sequentially (default)
-	// 1: execute [deliverTx,...] parallel
+	// 1: execute [deliverTx,...] deprecated
+	// 2: execute [deliverTx,...] parallel
 	FlagDeliverTxsExecMode = "deliver-txs-mode"
 )
 
