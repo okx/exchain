@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 
@@ -354,9 +356,20 @@ func TestDuplicateWatchMessage(t *testing.T) {
 	// init store
 	store := watcher.InstanceOfWatchStore()
 	flushDB(store)
-	a1 := newMockAccount(1, 1)
+	privKey := secp256k1.GenPrivKey()
+	pubKey := privKey.PubKey()
+	addr := sdk.AccAddress(pubKey.Address())
+
+	balance := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1)))
+	a1 := &ethermint.EthAccount{
+		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 1),
+		CodeHash:    ethcrypto.Keccak256(nil),
+	}
 	w.app.EvmKeeper.Watcher.SaveAccount(a1)
-	a2 := newMockAccount(1, 2)
+	a2 := &ethermint.EthAccount{
+		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 2),
+		CodeHash:    ethcrypto.Keccak256(nil),
+	}
 	w.app.EvmKeeper.Watcher.SaveAccount(a2)
 	w.app.EvmKeeper.Watcher.Commit()
 	time.Sleep(time.Millisecond)
@@ -374,9 +387,24 @@ func TestWriteLatestMsg(t *testing.T) {
 	store := watcher.InstanceOfWatchStore()
 	flushDB(store)
 
-	a1 := newMockAccount(1, 1)
-	a11 := newMockAccount(1, 2)
-	a111 := newMockAccount(1, 3)
+	privKey := secp256k1.GenPrivKey()
+	pubKey := privKey.PubKey()
+	addr := sdk.AccAddress(pubKey.Address())
+
+	balance := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1)))
+	a1 := &ethermint.EthAccount{
+		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 1),
+		CodeHash:    ethcrypto.Keccak256(nil),
+	}
+	a11 := &ethermint.EthAccount{
+		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 2),
+		CodeHash:    ethcrypto.Keccak256(nil),
+	}
+	a111 := &ethermint.EthAccount{
+		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 3),
+		CodeHash:    ethcrypto.Keccak256(nil),
+	}
+
 	w.SaveAccount(a1)
 	w.SaveAccount(a11)
 	w.SaveAccount(a111)
@@ -390,7 +418,7 @@ func TestWriteLatestMsg(t *testing.T) {
 	m := watcher.NewMsgAccount(a1)
 	v, err := store.Get(m.GetKey())
 	require.NoError(t, err)
-	mm := make(map[string]interface{})
-	json.Unmarshal(v, &mm)
-	require.Equal(t, 3, int(mm["Seq"].(float64)))
+	ethAccount, err := watcher.DecodeAccount(v)
+	require.NoError(t, err)
+	require.Equal(t, uint64(3), ethAccount.GetSequence())
 }
