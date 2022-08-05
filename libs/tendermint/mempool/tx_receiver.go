@@ -70,12 +70,11 @@ func (s *txReceiverServer) checkTx(req *pb.TxRequest, ch chan<- txJob) (*emptypb
 		}
 
 		if ch == nil {
-			s.memR.checkTxs(req.Tx, req.Txs, info)
+			s.memR.checkTx(req.Tx, info)
 		} else {
 			ch <- txJob{
 				tx:   req.Tx,
 				info: info,
-				txs:  req.Txs,
 			}
 		}
 
@@ -91,7 +90,7 @@ func (s *txReceiverServer) CheckTxs(stream pb.MempoolTxReceiver_CheckTxsServer) 
 
 	go func(s *txReceiverServer, ch chan txJob) {
 		for job := range ch {
-			s.memR.checkTxs(job.tx, job.txs, job.info)
+			s.memR.checkTx(job.tx, job.info)
 		}
 	}(s, txCh)
 

@@ -132,7 +132,6 @@ func newMempoolIDs() *mempoolIDs {
 type txJob struct {
 	tx   types.Tx
 	info TxInfo
-	txs  [][]byte
 }
 
 // NewReactor returns a new Reactor with the given config and mempool.
@@ -186,20 +185,13 @@ func (memR *Reactor) checkTx(tx types.Tx, txInfo TxInfo) {
 	}
 }
 
-func (memR *Reactor) checkTxs(tx types.Tx, txs [][]byte, txInfo TxInfo) {
-	memR.checkTx(tx, txInfo)
-	for _, tx := range txs {
-		memR.checkTx(tx, txInfo)
-	}
-}
-
 func (memR *Reactor) checkTxRoutine() {
 	memR.tx1Ch = make(chan txJob, 100_000)
 	memR.tx2Ch = make(chan txJob, 100_000)
 
 	checkFunc := func(memR *Reactor, ch chan txJob) {
 		for txJob := range ch {
-			memR.checkTxs(txJob.tx, txJob.txs, txJob.info)
+			memR.checkTx(txJob.tx, txJob.info)
 		}
 	}
 
