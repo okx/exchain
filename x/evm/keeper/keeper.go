@@ -167,7 +167,7 @@ func NewSimulateKeeper(
 }
 
 // Warning, you need to use pointer object here, for you need to update UpdatedAccount var
-func (k *Keeper) OnAccountUpdated(acc auth.Account, updateState bool) {
+func (k *Keeper) OnAccountUpdated(acc auth.Account) {
 	account := acc.GetAddress()
 	k.Watcher.DeleteAccount(account)
 

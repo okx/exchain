@@ -1093,8 +1093,7 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject, fromCommit bool) e
 		return err
 	}
 
-	updateState := fromCommit && csdb.ctx.IsDeliver()
-	csdb.accountKeeper.SetAccount(csdb.ctx, so.account, updateState)
+	csdb.accountKeeper.SetAccount(csdb.ctx, so.account)
 	if !csdb.ctx.IsCheckTx() {
 		if csdb.ctx.GetWatcher().Enabled() {
 			csdb.ctx.GetWatcher().SaveAccount(so.account)
