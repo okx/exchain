@@ -2,6 +2,8 @@ package types
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/global"
+	"github.com/okex/exchain/libs/tendermint/types"
 	"strings"
 
 	govtypes "github.com/okex/exchain/x/gov/types"
@@ -59,6 +61,11 @@ func (cdtp ChangeDistributionTypeProposal) ValidateBasic() error {
 		return ErrInvalidDistributionType()
 	}
 
+	//will delete it after upgrade venus3
+	if !types.HigherThanVenus3(global.GetGlobalHeight()) {
+		return ErrCodeNotSupportDistributionProposal()
+	}
+
 	return nil
 }
 
@@ -107,6 +114,11 @@ func (proposal WithdrawRewardEnabledProposal) ValidateBasic() error {
 	err := govtypes.ValidateAbstract(ModuleName, proposal)
 	if err != nil {
 		return err
+	}
+
+	//will delete it after upgrade venus3
+	if !types.HigherThanVenus3(global.GetGlobalHeight()) {
+		return ErrCodeNotSupportWithdrawRewardEnabledProposal()
 	}
 
 	return nil

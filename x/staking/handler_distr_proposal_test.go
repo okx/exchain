@@ -1,6 +1,7 @@
 package staking
 
 import (
+	"github.com/okex/exchain/libs/tendermint/global"
 	"testing"
 	"time"
 
@@ -71,7 +72,8 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 		{
 			"venus3, default ok",
 			func() {
-				tmtypes.UnittestOnlySetMilestoneVenus3Height(0)
+				global.SetGlobalHeight(11)
+				tmtypes.UnittestOnlySetMilestoneVenus3Height(10)
 			},
 			"0.5",
 			func(ctx *sdk.Context) {
@@ -80,6 +82,20 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 			},
 			1,
 			[5]error{nil, nil, nil, nil},
+		},
+		{
+			"venus3, not support",
+			func() {
+				global.SetGlobalHeight(10)
+				tmtypes.UnittestOnlySetMilestoneVenus3Height(11)
+			},
+			"0.5",
+			func(ctx *sdk.Context) {
+				ctx.SetBlockTime(time.Now())
+				ctx.SetBlockTime(time.Now().UTC().Add(48 * time.Hour))
+			},
+			1,
+			[5]error{types.ErrCodeNotSupportEditValidatorCommissionRate(), types.ErrCodeNotSupportEditValidatorCommissionRate(), nil, nil},
 		},
 		{
 			"venus3, -0.5",
@@ -98,7 +114,8 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 		{
 			"venus3, do not set block time",
 			func() {
-				tmtypes.UnittestOnlySetMilestoneVenus3Height(0)
+				global.SetGlobalHeight(11)
+				tmtypes.UnittestOnlySetMilestoneVenus3Height(10)
 			},
 			"0.5",
 			func(ctx *sdk.Context) {
@@ -107,9 +124,24 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 			1,
 			[5]error{nil, nil, nil, types.ErrCommissionUpdateTime()},
 		},
+		{
+			"venus3, not support",
+			func() {
+				global.SetGlobalHeight(10)
+				tmtypes.UnittestOnlySetMilestoneVenus3Height(11)
+			},
+			"0.5",
+			func(ctx *sdk.Context) {
+
+			},
+			1,
+			[5]error{types.ErrCodeNotSupportEditValidatorCommissionRate(), types.ErrCodeNotSupportEditValidatorCommissionRate(), nil, types.ErrCommissionUpdateTime()},
+		},
 	}
 
 	for _, tc := range testCases {
+		global.SetGlobalHeight(0)
+		tmtypes.UnittestOnlySetMilestoneVenus3Height(0)
 		suite.Run(tc.title, func() {
 			ctx, _, mKeeper := CreateTestInput(suite.T(), false, SufficientInitPower)
 			tc.setMilestoneVenus3Height()
