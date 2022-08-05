@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"runtime"
 	"sort"
 	"sync"
@@ -694,13 +695,14 @@ func (tree *MutableTree) enableFastStorageAndCommit(batch dbm.Batch) error {
 	itr := NewIterator(nil, nil, true, tree.ImmutableTree)
 	defer itr.Close()
 	var upgradedNodes uint64
-	const verboseGap = 5
+	const verboseGap = 50000
 	for ; itr.Valid(); itr.Next() {
 		if err = tree.ndb.SaveFastNodeNoCache(NewFastNode(itr.Key(), itr.Value(), tree.version), batch); err != nil {
 			return err
 		}
 		if upgradedNodes%verboseGap == 0 {
 			tree.log(IavlInfo, "Upgrading to fast IAVL...", "finished", upgradedNodes)
+			log.Printf("Upgrading to fast IVAL...%v\n", upgradedNodes)
 		}
 		upgradedNodes++
 	}
