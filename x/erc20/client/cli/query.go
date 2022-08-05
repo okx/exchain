@@ -74,7 +74,7 @@ $ exchaincli query erc20 token-mapping
 				return err
 			}
 
-			var mapping []types.TokenMapping
+			var mapping []types.QueryTokenMappingResponse
 			cdc.MustUnmarshalJSON(bz, &mapping)
 			return cliCtx.PrintOutput(mapping)
 		},
