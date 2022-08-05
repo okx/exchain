@@ -665,7 +665,7 @@ func (csdb *CommitStateDB) GetHeightHash(height uint64) ethcmn.Hash {
 func (csdb *CommitStateDB) GetParams() Params {
 	if csdb.params == nil {
 		var params Params
-		if csdb.ctx.UseParamCache() {
+		if !csdb.ctx.IsTraceTx() {
 			if GetEvmParamsCache().IsNeedParamsUpdate() {
 				csdb.paramSpace.GetParamSet(csdb.ctx, &params)
 				GetEvmParamsCache().UpdateParams(params, csdb.ctx.IsCheckTx())
@@ -1566,7 +1566,7 @@ func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) 
 
 // GetContractMethodBlockedByAddress gets contract methods blocked by address
 func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.AccAddress) *BlockedContract {
-	if csdb.ctx.UseParamCache() {
+	if !csdb.ctx.IsTraceTx() {
 		if GetEvmParamsCache().IsNeedBlockedUpdate() {
 			bcl := csdb.GetContractMethodBlockedList()
 			GetEvmParamsCache().UpdateBlockedContractMethod(bcl, csdb.ctx.IsCheckTx())

@@ -82,14 +82,7 @@ func (c *Context) IsDeliverTx() bool {
 	// c.txMode == RunTxModeDeliver || c.txMode == RunTxModeDeliverInParallel
 	return !c.IsCheckTx() && !c.IsTraceTx()
 }
-func (c *Context) UseParamCache() bool {
-	// return c.IsDeliverTx() || (c.paraMsg != nil && !c.paraMsg.HaveCosmosTxInBlock) || c.checkTx
-	return !c.IsTraceTx()
-}
-
-func (c *Context) IsOnlyCheckTx() bool {
-	return c.runTxMode == RunTxModeCheck
-}
+func (c *Context) IsOnlyCheckTx() bool { return c.runTxMode == RunTxModeCheck }
 func (c *Context) IsCheckTx() bool {
 	// if recheckTx == true, then checkTx must also be true
 	// if wrappedCheckTx == true, then checkTx must also be true
@@ -97,8 +90,8 @@ func (c *Context) IsCheckTx() bool {
 }
 func (c *Context) IsReCheckTx() bool      { return c.runTxMode == RunTxModeReCheck }
 func (c *Context) IsWrappedCheckTx() bool { return c.runTxMode == RunTxModeWrappedCheck }
+func (c *Context) IsTraceTx() bool        { return c.runTxMode == RunTxModeTrace }
 
-func (c *Context) IsTraceTx() bool             { return c.runTxMode == RunTxModeTrace }
 func (c *Context) NeedTraceTxLog() bool        { return c.needTraceTxLog }
 func (c *Context) TraceTxLogConfig() []byte    { return c.traceTxConfigBytes }
 func (c *Context) MinGasPrices() DecCoins      { return c.minGasPrice }
@@ -106,7 +99,7 @@ func (c *Context) EventManager() *EventManager { return c.eventManager }
 func (c *Context) AccountNonce() uint64        { return c.accountNonce }
 func (c *Context) AnteTracer() *trace.Tracer   { return c.trc }
 func (c *Context) Cache() *Cache               { return c.cache }
-func (c Context) ParaMsg() *ParaMsg            { return c.paraMsg }
+func (c *Context) ParaMsg() *ParaMsg           { return c.paraMsg }
 func (c *Context) RunTxMode() RunTxMode        { return c.runTxMode }
 func (c *Context) EnableAccountCache()         { c.accountCache = &AccountCache{} }
 func (c *Context) DisableAccountCache()        { c.accountCache = nil }

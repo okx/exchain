@@ -7,7 +7,7 @@ import (
 
 // GetParams returns the total set of evm parameters.
 func (k *Keeper) GetParams(ctx sdk.Context) (params types.Params) {
-	if ctx.UseParamCache() {
+	if !ctx.IsTraceTx() {
 		if types.GetEvmParamsCache().IsNeedParamsUpdate() {
 			k.paramSpace.GetParamSet(ctx, &params)
 			types.GetEvmParamsCache().UpdateParams(params, ctx.IsCheckTx())
