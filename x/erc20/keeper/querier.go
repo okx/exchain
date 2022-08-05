@@ -4,12 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	transfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
-
 	ethcmm "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	transfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/erc20/types"
