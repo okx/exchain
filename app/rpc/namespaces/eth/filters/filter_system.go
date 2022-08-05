@@ -243,7 +243,7 @@ func (es EventSystem) SubscribePendingTxs() (*Subscription, context.CancelFunc, 
 func (es EventSystem) SubscribeBlockTime() (*Subscription, context.CancelFunc, error) {
 	sub := &Subscription{
 		id:        rpc.NewID(),
-		typ:       filters.UnknownSubscription,
+		typ:       filters.BlocksSubscription,
 		event:     blockTimeEvents,
 		created:   time.Now().UTC(),
 		installed: make(chan struct{}, 1),
