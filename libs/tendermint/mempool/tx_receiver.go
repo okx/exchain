@@ -378,7 +378,15 @@ func (r *txReceiver) CheckTxAsyncByStream(memTx *mempoolTx, peerID uint16, peer 
 		*streamp = stream
 	}
 
-	err = stream.Send(&pb.TxRequest{Tx: memTx.tx, PeerId: uint32(client.ID), From: memTx.from})
+	var peerIDs []string
+	memTx.senders.Range(func(key, _ interface{}) bool {
+		if id := r.memR.ids.GetPeerID(key.(uint16)); id != "" {
+			peerIDs = append(peerIDs, string(id))
+		}
+		return true
+	})
+
+	err = stream.Send(&pb.TxRequest{Tx: memTx.tx, PeerId: uint32(client.ID), From: memTx.from, PeerIds: peerIDs})
 	if err != nil {
 		r.Logger.Error("Error Send", "err", err)
 		_, err = stream.CloseAndRecv()
