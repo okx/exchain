@@ -6,7 +6,7 @@ package main
 import (
 	"log"
 
-	"github.com/cosmos/gorocksdb"
+	gorocksdb "github.com/cosmos/gorocksdb"
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
 

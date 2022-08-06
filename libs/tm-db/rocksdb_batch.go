@@ -3,7 +3,7 @@
 
 package db
 
-import "github.com/cosmos/gorocksdb"
+import gorocksdb "github.com/cosmos/gorocksdb"
 
 type RocksDBBatch struct {
 	db    *RocksDB
@@ -79,7 +79,7 @@ func (b *RocksDBBatch) Reset() {
 	b.batch.Clear()
 }
 
-func (b *RocksDBBatch) NewIterator() *gorocksdb.WriteBatchIterator{
+func (b *RocksDBBatch) NewIterator() *gorocksdb.WriteBatchIterator {
 	b.assertOpen()
 	return b.batch.NewIterator()
 }

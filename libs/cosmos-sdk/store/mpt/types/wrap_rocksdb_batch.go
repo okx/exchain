@@ -8,7 +8,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/cosmos/gorocksdb"
+	gorocksdb "github.com/cosmos/gorocksdb"
 	"github.com/ethereum/go-ethereum/ethdb"
 	tmdb "github.com/okex/exchain/libs/tm-db"
 )

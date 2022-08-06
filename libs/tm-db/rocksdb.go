@@ -9,8 +9,8 @@ import (
 	"runtime"
 	"strconv"
 
+	gorocksdb "github.com/cosmos/gorocksdb"
 	"github.com/spf13/viper"
-	"github.com/cosmos/gorocksdb"
 )
 
 func init() {

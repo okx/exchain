@@ -6,7 +6,7 @@ package db
 import (
 	"bytes"
 
-	"github.com/cosmos/gorocksdb"
+	gorocksdb "github.com/cosmos/gorocksdb"
 )
 
 type RocksDBIterator struct {
