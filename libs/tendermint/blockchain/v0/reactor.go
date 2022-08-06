@@ -38,8 +38,7 @@ const (
 		bcBlockResponseMessagePrefixSize +
 		bcBlockResponseMessageFieldKeySize
 
-	maxIntervalForFastSync        = 3
-	maxPeersProportionForFastSync = 0.4
+	maxIntervalForFastSync = 10
 )
 
 type consensusReactor interface {
