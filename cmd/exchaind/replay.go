@@ -99,6 +99,8 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 	proxyApp, err := createProxyApp(ctx)
 	panicError(err)
 
+	log.Println("------create index")
+	os.Exit(0)
 	res, err := proxyApp.Query().InfoSync(proxy.RequestInfo)
 	panicError(err)
 	currentBlockHeight := res.LastBlockHeight
