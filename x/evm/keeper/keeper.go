@@ -5,6 +5,8 @@ import (
 	"math/big"
 	"sync"
 
+	app "github.com/okex/exchain/app/types"
+
 	"github.com/VictoriaMetrics/fastcache"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/prque"
@@ -168,8 +170,9 @@ func NewSimulateKeeper(
 
 // Warning, you need to use pointer object here, for you need to update UpdatedAccount var
 func (k *Keeper) OnAccountUpdated(acc auth.Account) {
-	account := acc.GetAddress()
-	k.Watcher.DeleteAccount(account)
+	if _, ok := acc.(*app.EthAccount); ok {
+		k.Watcher.DeleteAccount(acc.GetAddress())
+	}
 
 	k.UpdatedAccount = append(k.UpdatedAccount, ethcmn.BytesToAddress(acc.GetAddress().Bytes()))
 }
