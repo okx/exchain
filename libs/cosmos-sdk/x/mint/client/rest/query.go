@@ -14,7 +14,7 @@ import (
 
 func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc(
-		"/cosmos/mint/v1beta1/params",
+		"minting/parameters",
 		queryParamsHandlerFn(cliCtx),
 	).Methods("GET")
 

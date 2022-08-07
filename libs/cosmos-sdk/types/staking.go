@@ -44,9 +44,9 @@ const (
 	Unbonding BondStatus = 0x01
 	Bonded    BondStatus = 0x02
 
-	BondStatusUnbonded  = "Unbonded"
-	BondStatusUnbonding = "Unbonding"
-	BondStatusBonded    = "Bonded"
+	BondStatusUnbonded  = "BOND_STATUS_UNBONDED"
+	BondStatusUnbonding = "BOND_STATUS_BONDING"
+	BondStatusBonded    = "BOND_STATUS_BONDED"
 )
 
 // Equal compares two BondStatus instances
