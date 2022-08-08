@@ -2,6 +2,8 @@ package baseapp
 
 import (
 	"bytes"
+	"encoding/hex"
+	"fmt"
 	"runtime"
 	"sync"
 
@@ -185,6 +187,7 @@ func (app *BaseApp) fixFeeCollector() {
 // fixFeeCollector update fee account
 
 func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
+	sdk.SmbLOG.Clean()
 	maxGas := app.getMaximumBlockGas()
 	currentGas := uint64(0)
 	overFlow := func(sumGas uint64, currGas int64, maxGas uint64) bool {
@@ -688,16 +691,23 @@ func (f *parallelTxManager) newIsConflict(e *executeResult) bool {
 	}
 	conflict := false
 
+	readSet := make([]string, 0)
+	conflictSet := ""
+
 	e.ms.IteratorCache(false, func(key string, value []byte, isDirty bool, isDelete bool, storeKey types.StoreKey) bool {
+		readSet = append(readSet, fmt.Sprintf("read:%s %s", hex.EncodeToString([]byte(key)), hex.EncodeToString(value)))
 		if data, ok := f.cc.items[key]; ok {
 			if !bytes.Equal(data.value, value) {
 				conflict = true
+				conflictSet = fmt.Sprintf("conflict:%s %s %s", hex.EncodeToString([]byte(key)), hex.EncodeToString(value), hex.EncodeToString(data.value))
 				return false
 			}
 		}
 		return true
 	}, nil)
 
+	sdk.SmbLOG.AddReadSet(readSet)
+	sdk.SmbLOG.AddConflict(conflictSet)
 	return conflict
 }
 
@@ -797,8 +807,10 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 		return
 	}
 
+	writeSet := make([]string, 0)
 	f.mu.Lock()
 	res.ms.IteratorCache(true, func(key string, value []byte, isDirty bool, isdelete bool, storeKey sdk.StoreKey) bool {
+		writeSet = append(writeSet, fmt.Sprintf("write:%s %s", hex.EncodeToString([]byte(key)), hex.EncodeToString(value)))
 		f.cc.update(key, value, txIndex)
 		if isdelete {
 			f.cms.GetKVStore(storeKey).Delete([]byte(key))
@@ -811,6 +823,7 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 	f.currIndex = txIndex
 	f.mu.Unlock()
 	f.cc.deleteFeeAccount()
+	sdk.SmbLOG.AddWriteSet(writeSet)
 
 	if res.paraMsg.AnteErr != nil {
 		return

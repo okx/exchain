@@ -344,3 +344,51 @@ func (c *Cache) lenOfAccMap() (l int) {
 	c.accMutex.RUnlock()
 	return
 }
+
+var (
+	SmbLOG = NewScfLog()
+)
+
+func NewScfLog() *ScfLog {
+	return &ScfLog{
+		ReadSet:     make([][]string, 0),
+		WriteSet:    make([][]string, 0),
+		ConflictSet: make([]string, 0),
+	}
+}
+
+type ScfLog struct {
+	ReadSet     [][]string
+	WriteSet    [][]string
+	ConflictSet []string
+}
+
+func (s *ScfLog) Clean() {
+	s.ReadSet = make([][]string, 0)
+	s.WriteSet = make([][]string, 0)
+	s.ConflictSet = make([]string, 0)
+}
+
+func (s *ScfLog) AddReadSet(data []string) {
+	s.ReadSet = append(s.ReadSet, data)
+}
+
+func (s *ScfLog) AddWriteSet(data []string) {
+	s.WriteSet = append(s.WriteSet, data)
+}
+
+func (s *ScfLog) AddConflict(data string) {
+	s.ConflictSet = append(s.ConflictSet, data)
+}
+
+func (s *ScfLog) PrintLog() {
+	for index, v := range s.ReadSet {
+		fmt.Println(index, v)
+	}
+	for index, v := range s.WriteSet {
+		fmt.Println(index, v)
+	}
+	for index, v := range s.ConflictSet {
+		fmt.Println(index, v)
+	}
+}
