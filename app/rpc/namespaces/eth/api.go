@@ -289,7 +289,7 @@ func (api *PublicEthereumAPI) accounts() ([]common.Address, error) {
 func (api *PublicEthereumAPI) BlockNumber() (hexutil.Uint64, error) {
 	monitor := monitor.GetMonitor("eth_blockNumber", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd()
-	return api.backend.BlockNumber()
+	return hexutil.Uint64(uint64(global.GetGlobalHeight())), nil
 }
 
 // GetBalance returns the provided account's balance up to the provided block number.
