@@ -96,8 +96,11 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command)) 
 // replayBlock replays blocks from db, if something goes wrong, it will panic with error message.
 func replayBlock(ctx *server.Context, originDataDir string) {
 	config.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
+	ts := time.Now()
 	proxyApp, err := createProxyApp(ctx)
 	panicError(err)
+	log.Printf("--------create index success %v \n", time.Since(ts))
+	os.Exit(0)
 
 	res, err := proxyApp.Query().InfoSync(proxy.RequestInfo)
 	panicError(err)
