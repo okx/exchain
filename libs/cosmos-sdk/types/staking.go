@@ -45,7 +45,7 @@ const (
 	Bonded    BondStatus = 0x02
 
 	BondStatusUnbonded  = "BOND_STATUS_UNBONDED"
-	BondStatusUnbonding = "BOND_STATUS_BONDING"
+	BondStatusUnbonding = "BOND_STATUS_UNBONDING"
 	BondStatusBonded    = "BOND_STATUS_BONDED"
 )
 
