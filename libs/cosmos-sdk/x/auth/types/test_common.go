@@ -14,14 +14,14 @@ func NewTestMsg(addrs ...sdk.AccAddress) *sdk.TestMsg {
 
 func NewTestStdFee() StdFee {
 	return NewStdFee(100000,
-		sdk.NewCoins(sdk.NewInt64Coin("atom", 150)),
+		sdk.NewCoins(sdk.NewInt64Coin(sdk.DefaultBondDenom, 150)),
 	)
 }
 
 // coins to more than cover the fee
 func NewTestCoins() sdk.Coins {
 	return sdk.Coins{
-		sdk.NewInt64Coin("atom", 10000000),
+		sdk.NewInt64Coin(sdk.DefaultBondDenom, 10000000),
 	}
 }
 
