@@ -7,13 +7,15 @@ import (
 	"strconv"
 	"sync"
 
+	"github.com/gogo/protobuf/proto"
+	prototypes "github.com/okex/exchain/x/evm/watcher/proto"
+
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	lru "github.com/hashicorp/golang-lru"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
 	"github.com/okex/exchain/app/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
@@ -69,7 +71,7 @@ func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, e
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	var receipt TransactionReceipt
+	var protoReceipt prototypes.TransactionReceipt
 	b, e := q.store.Get(append(prefixReceipt, hash.Bytes()...))
 	if e != nil {
 		return nil, e
@@ -77,14 +79,32 @@ func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, e
 	if b == nil {
 		return nil, errNotFound
 	}
-	e = json.Unmarshal(b, &receipt)
+	e = proto.Unmarshal(b, &protoReceipt)
 	if e != nil {
 		return nil, e
 	}
-	if receipt.Logs == nil {
-		receipt.Logs = []*ethtypes.Log{}
+	receipt := protoToReceipt(&protoReceipt)
+	return receipt, nil
+}
+
+func (q Querier) GetTransactionResponse(hash common.Hash) (*TransactionResponse, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
 	}
-	return &receipt, nil
+	var response TransactionResponse
+	b, e := q.store.Get(append(prefixTxResponse, hash.Bytes()...))
+	if e != nil {
+		return nil, e
+	}
+	if b == nil {
+		return nil, errNotFound
+	}
+	e = json.Unmarshal(b, &response)
+	if e != nil {
+		return nil, e
+	}
+
+	return &response, nil
 }
 
 func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
@@ -240,7 +260,7 @@ func (q Querier) GetTransactionByHash(hash common.Hash) (*Transaction, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	var tx Transaction
+	var protoTx prototypes.Transaction
 	var txHashKey []byte
 	var err error
 	if txHashKey, err = getHashPrefixKey(prefixTx, hash.Bytes()); err != nil {
@@ -253,7 +273,7 @@ func (q Querier) GetTransactionByHash(hash common.Hash) (*Transaction, error) {
 		if value == nil {
 			return nil, errNotFound
 		}
-		e := json.Unmarshal(value, &tx)
+		e := proto.Unmarshal(value, &protoTx)
 		if e != nil {
 			return nil, e
 		}
@@ -262,7 +282,8 @@ func (q Querier) GetTransactionByHash(hash common.Hash) (*Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &tx, nil
+	tx := protoToTransaction(&protoTx)
+	return tx, nil
 }
 
 func (q Querier) GetTransactionByBlockNumberAndIndex(number uint64, idx uint) (*Transaction, error) {
@@ -327,6 +348,40 @@ func (q Querier) GetTransactionsByBlockNumber(number, offset, limit uint64) ([]*
 	return nil, errors.New("no such transaction in target block")
 }
 
+func (q Querier) GetTransactionsWithStdByBlockNumber(number, offset, limit uint64) ([]*Transaction, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+	block, err := q.GetBlockByNumber(number, true)
+	if err != nil {
+		return nil, err
+	}
+
+	var rawTxs []*Transaction
+	// get eth Txs
+	if block.Transactions != nil {
+		txs, ok := block.Transactions.([]*Transaction)
+		if ok {
+			rawTxs = txs
+		}
+	}
+
+	// get Std Tx Hash
+	stdTxs, err := q.GetStdTxHashByBlockHash(block.Hash)
+	if err != nil {
+		return nil, err
+	}
+	rawTxs = append(rawTxs, stdTxs...)
+
+	var rangeTxs []*Transaction
+	for idx := offset; idx < offset+limit && int(idx) < len(rawTxs); idx++ {
+		rawTx := *rawTxs[idx]
+		rangeTxs = append(rangeTxs, &rawTx)
+	}
+
+	return rangeTxs, nil
+}
+
 func (q Querier) MustGetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	acc, e := q.GetAccount(addr)
 	//todo delete account from rdb if we get Account from H db successfully
@@ -342,7 +397,6 @@ func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	var acc types.EthAccount
 	b, e := q.store.Get([]byte(GetMsgAccountKey(addr.Bytes())))
 	if e != nil {
 		return nil, e
@@ -350,18 +404,17 @@ func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if b == nil {
 		return nil, errNotFound
 	}
-	e = json.Unmarshal(b, &acc)
-	if e != nil {
+	acc, err := DecodeAccount(b)
+	if err != nil {
 		return nil, e
 	}
-	return &acc, nil
+	return acc, nil
 }
 
 func (q Querier) GetAccountFromRdb(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	var acc types.EthAccount
 	key := append(prefixRpcDb, GetMsgAccountKey(addr.Bytes())...)
 
 	b, e := q.store.Get(key)
@@ -371,11 +424,11 @@ func (q Querier) GetAccountFromRdb(addr sdk.AccAddress) (*types.EthAccount, erro
 	if b == nil {
 		return nil, errNotFound
 	}
-	e = json.Unmarshal(b, &acc)
-	if e != nil {
+	acc, err := DecodeAccount(b)
+	if err != nil {
 		return nil, e
 	}
-	return &acc, nil
+	return acc, nil
 }
 
 func (q Querier) DeleteAccountFromRdb(addr sdk.AccAddress) {
@@ -466,4 +519,32 @@ func (q Querier) HasContractDeploymentWhitelist(key []byte) bool {
 		return false
 	}
 	return q.store.Has(append(prefixWhiteList, key...))
+}
+
+func (q Querier) GetStdTxHashByBlockHash(hash common.Hash) ([]*Transaction, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+	var stdTxHash []common.Hash
+	b, e := q.store.Get(append(prefixStdTxHash, hash.Bytes()...))
+	if e != nil {
+		return nil, e
+	}
+	if b == nil {
+		return nil, errNotFound
+	}
+	e = json.Unmarshal(b, &stdTxHash)
+	if e != nil {
+		return nil, e
+	}
+
+	txList := make([]*Transaction, 0, len(stdTxHash))
+	for _, tx := range stdTxHash {
+		transaction := &Transaction{Hash: tx}
+		if e == nil && transaction != nil {
+			txList = append(txList, transaction)
+		}
+	}
+
+	return txList, nil
 }

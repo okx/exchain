@@ -514,7 +514,7 @@ func NewOKExChainApp(
 	// CanWithdrawInvariant invariant.
 	app.mm.SetOrderBeginBlockers(
 		infura.ModuleName,
-		bank.ModuleName,
+		bank.ModuleName, // we must sure bank.beginblocker must be first beginblocker for innerTx. infura can not gengerate tx, so infura can be first in the list.
 		capabilitytypes.ModuleName,
 		order.ModuleName,
 		token.ModuleName,
@@ -536,9 +536,9 @@ func NewOKExChainApp(
 		dex.ModuleName,
 		order.ModuleName,
 		staking.ModuleName,
-		evm.ModuleName,
-		infura.ModuleName,
 		wasm.ModuleName,
+		evm.ModuleName, // we must sure evm.endblocker must be last endblocker for innerTx.infura can not gengerate tx, so infura can be last in the list.
+		infura.ModuleName,
 	)
 
 	// NOTE: The genutils module must occur after staking so that pools are
@@ -603,6 +603,7 @@ func NewOKExChainApp(
 	app.SetPreDeliverTxHandler(preDeliverTxHandler(app.AccountKeeper))
 	app.SetPartialConcurrentHandlers(getTxFeeAndFromHandler(app.AccountKeeper))
 	app.SetGetTxFeeHandler(getTxFeeHandler())
+	app.SetEvmWatcherCollector(app.EvmKeeper.Watcher.Collect)
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])

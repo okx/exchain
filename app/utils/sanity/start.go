@@ -4,6 +4,7 @@ import (
 	apptype "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/consensus"
 	"github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
@@ -59,11 +60,6 @@ var (
 			configA: boolItem{name: watcher.FlagFastQuery, value: true},
 			configB: intItem{name: state.FlagDeliverTxsExecMode, value: 1},
 		},
-		// --fast-query      conflict with --deliver-txs-mode=2
-		{
-			configA: boolItem{name: watcher.FlagFastQuery, value: true},
-			configB: intItem{name: state.FlagDeliverTxsExecMode, value: 2},
-		},
 		// --fast-query      conflict with --pruning=nothing
 		{
 			configA: boolItem{name: watcher.FlagFastQuery, value: true},
@@ -74,25 +70,20 @@ var (
 			configA: boolItem{name: consensus.EnablePrerunTx, value: true},
 			configB: boolItem{name: types.FlagDownloadDDS, value: true},
 		},
+		// --multi-cache conflict with --download-delta
+		{
+			configA: boolItem{name: sdk.FlagMultiCache, value: true},
+			configB: boolItem{name: types.FlagDownloadDDS, value: true},
+		},
 		// --upload-delta    conflict with --deliver-txs-mode=1
 		{
 			configA: boolItem{name: types.FlagUploadDDS, value: true},
 			configB: intItem{name: state.FlagDeliverTxsExecMode, value: 1},
 		},
-		// --upload-delta    conflict with --deliver-txs-mode=2
-		{
-			configA: boolItem{name: types.FlagUploadDDS, value: true},
-			configB: intItem{name: state.FlagDeliverTxsExecMode, value: 2},
-		},
 		// --node-mode=rpc(--fast-query) conflicts with --deliver-txs-mode=1
 		{
 			configA: stringItem{name: apptype.FlagNodeMode, value: string(apptype.RpcNode)},
 			configB: intItem{name: state.FlagDeliverTxsExecMode, value: 1},
-		},
-		// --node-mode=rpc(--fast-query) conflicts with --deliver-txs-mode=2 and --pruning=nothing
-		{
-			configA: stringItem{name: apptype.FlagNodeMode, value: string(apptype.RpcNode)},
-			configB: intItem{name: state.FlagDeliverTxsExecMode, value: 2},
 		},
 		{
 			configA: stringItem{name: apptype.FlagNodeMode, value: string(apptype.RpcNode)},
