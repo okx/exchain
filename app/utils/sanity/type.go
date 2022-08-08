@@ -2,6 +2,7 @@ package sanity
 
 import (
 	"fmt"
+	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/spf13/viper"
 	"strings"
 )
@@ -86,4 +87,30 @@ func (cp *conflictPair) checkConflict() error {
 	}
 
 	return nil
+}
+
+type rangeItem struct {
+	enumRange []int
+	value     int
+	name      string
+}
+
+func (i rangeItem) label() string {
+	return i.name
+}
+
+func (i rangeItem) checkRange() error {
+	i.value = viper.GetInt(sm.FlagDeliverTxsExecMode)
+
+	for _, v := range i.enumRange {
+		if v == i.value {
+			return nil
+		}
+	}
+
+	return fmt.Errorf(" %v", i.verbose())
+}
+
+func (b rangeItem) verbose() string {
+	return fmt.Sprintf("--%v=%v not in %v", b.name, b.value, b.enumRange)
 }

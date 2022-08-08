@@ -6,6 +6,7 @@ import (
 	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/consensus"
+	"github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/spf13/viper"
@@ -76,6 +77,12 @@ var (
 			configB: boolItem{name: watcher.FlagFastQuery, value: true},
 		},
 	}
+
+	checkRangeItems = []rangeItem{{
+		enumRange: []int{int(state.DeliverTxsExecModeSerial), state.DeliverTxsExecModeParallel},
+		name:      state.FlagDeliverTxsExecMode,
+	},
+	}
 )
 
 // CheckStart check start command.If it has conflict pair above. then return the conflict error
@@ -86,6 +93,12 @@ func CheckStart() error {
 
 	for _, v := range startConflictElems {
 		if err := v.checkConflict(); err != nil {
+			return err
+		}
+	}
+
+	for _, v := range checkRangeItems {
+		if err := v.checkRange(); err != nil {
 			return err
 		}
 	}
