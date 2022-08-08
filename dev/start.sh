@@ -116,7 +116,7 @@ exchaind add-genesis-account $(exchaincli keys show admin17 -a) 900000000okt --h
 exchaind add-genesis-account $(exchaincli keys show admin18 -a) 900000000okt --home $HOME_SERVER
 
 # Sign genesis transaction
-exchaind gentx --name $KEY --keyring-backend test --home $HOME_SERVER
+exchaind gentx --name $KEY --keyring-backend test --home $HOME_SERVER --fees 0.001okt
 
 # Collect genesis tx
 exchaind collect-gentxs --home $HOME_SERVER
