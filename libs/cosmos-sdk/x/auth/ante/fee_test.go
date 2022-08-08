@@ -78,7 +78,7 @@ func TestDeductFees(t *testing.T) {
 
 	// Set account with insufficient funds
 	acc := app.AccountKeeper.NewAccountWithAddress(ctx, addr1)
-	acc.SetCoins([]sdk.Coin{sdk.NewCoin("atom", sdk.NewInt(10))})
+	acc.SetCoins([]sdk.Coin{sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(10))})
 	app.AccountKeeper.SetAccount(ctx, acc)
 
 	dfd := ante.NewDeductFeeDecorator(app.AccountKeeper, app.SupplyKeeper)
@@ -89,7 +89,7 @@ func TestDeductFees(t *testing.T) {
 	require.NotNil(t, err, "Tx did not error when fee payer had insufficient funds")
 
 	// Set account with sufficient funds
-	acc.SetCoins([]sdk.Coin{sdk.NewCoin("atom", sdk.NewInt(200))})
+	acc.SetCoins([]sdk.Coin{sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(200))})
 	app.AccountKeeper.SetAccount(ctx, acc)
 
 	_, err = antehandler(ctx, tx, false)
