@@ -1,8 +1,8 @@
 package watcher
 
 import (
-	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 func Commit(err error) {
@@ -19,7 +19,7 @@ func Commit(err error) {
 	txCacheMtx.Unlock()
 }
 
-func Flush() {
+func Flush(l log.Logger) {
 	if !Enable() {
 		return
 	}
@@ -35,7 +35,7 @@ func Flush() {
 			}
 		}
 		if err := batch.Write(); err != nil {
-			fmt.Println("batch write error", err)
+			l.Error("wasm watchDB", "batch write error", err)
 		}
 	}
 	tasks <- task
