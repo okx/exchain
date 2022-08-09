@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"strconv"
@@ -402,6 +403,7 @@ func (q Querier) GetTxResultByBlock(clientCtx clientcontext.CLIContext,
 	results := make([]*TransactionResult, 0, limit)
 	var ethStart, ethEnd, ethTxLen uint64
 
+	fmt.Println("--Try to get eth tx from db")
 	// get result from eth tx
 	if block.Transactions != nil {
 		txsHash := block.Transactions.([]interface{})
@@ -413,6 +415,8 @@ func (q Querier) GetTxResultByBlock(clientCtx clientcontext.CLIContext,
 				ethEnd = ethTxLen
 			}
 		}
+
+		fmt.Println("ethStart:", ethStart, "--ethEnd:", ethEnd)
 
 		for i := ethStart; i < ethEnd; i++ {
 			txHash := common.HexToHash(txsHash[i].(string))
@@ -435,11 +439,12 @@ func (q Querier) GetTxResultByBlock(clientCtx clientcontext.CLIContext,
 	// enough Tx by Eth
 	ethTxNums := ethEnd - ethStart
 	if ethTxNums == limit {
+		fmt.Println("--Enough Tx")
 		return results, nil
 	}
 	// calc remain std txs
 	remainTxs := limit - ethTxNums
-
+	fmt.Println("--remainTxs Tx:", remainTxs)
 	// get result from Std tx
 	var stdTxsHash []common.Hash
 	b, err := q.store.Get(append(prefixStdTxHash, blockHash.Bytes()...))
@@ -463,6 +468,8 @@ func (q Querier) GetTxResultByBlock(clientCtx clientcontext.CLIContext,
 		if stdEnd = stdStart + remainTxs; stdEnd > stdTxsLen {
 			stdEnd = stdTxsLen
 		}
+
+		fmt.Println("stdStart:", stdStart, "--stdEnd:", stdEnd)
 
 		for i := stdStart; i < stdEnd; i++ {
 			stdResponse, err := q.GetTransactionResponse(stdTxsHash[i])
