@@ -5,9 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math/big"
-	"time"
-
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -16,12 +13,12 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
+	"math/big"
 )
 
 var (
@@ -287,33 +284,33 @@ func RawTxToWatcherTx(clientCtx clientcontext.CLIContext, bz tmtypes.Tx,
 	return watcherTx, nil
 }
 
-func RawTxResultToStdResponse(clientCtx clientcontext.CLIContext,
-	tr *ctypes.ResultTx, timestamp time.Time) (*watcher.TransactionResult, error) {
-
-	tx, err := evmtypes.TxDecoder(clientCtx.CodecProy)(tr.Tx, evmtypes.IGNORE_HEIGHT_CHECKING)
-	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
-	}
-
-	var realTx *authtypes.StdTx
-	switch tx.(type) {
-	case *authtypes.IbcTx:
-		realTx, err = authtypes.FromProtobufTx(clientCtx.CodecProy, tx.(*authtypes.IbcTx))
-		if nil != err {
-			return nil, err
-		}
-	default:
-		err = clientCtx.Codec.UnmarshalBinaryLengthPrefixed(tr.Tx, &realTx)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	response := sdk.NewResponseResultTx(tr, realTx, timestamp.Format(time.RFC3339))
-	wrappedR := &watcher.WrappedResponseWithCodec{Response: response, Codec: clientCtx.Codec}
-
-	return &watcher.TransactionResult{TxType: hexutil.Uint64(watcher.StdResponse), Response: wrappedR}, nil
-}
+//func RawTxResultToStdResponse(clientCtx clientcontext.CLIContext,
+//	tr *ctypes.ResultTx, timestamp time.Time) (*watcher.TransactionResult, error) {
+//
+//	tx, err := evmtypes.TxDecoder(clientCtx.CodecProy)(tr.Tx, evmtypes.IGNORE_HEIGHT_CHECKING)
+//	if err != nil {
+//		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
+//	}
+//
+//	var realTx *authtypes.StdTx
+//	switch tx.(type) {
+//	case *authtypes.IbcTx:
+//		realTx, err = authtypes.FromProtobufTx(clientCtx.CodecProy, tx.(*authtypes.IbcTx))
+//		if nil != err {
+//			return nil, err
+//		}
+//	default:
+//		err = clientCtx.Codec.UnmarshalBinaryLengthPrefixed(tr.Tx, &realTx)
+//		if err != nil {
+//			return nil, err
+//		}
+//	}
+//
+//	response := sdk.NewResponseResultTx(tr, realTx, timestamp.Format(time.RFC3339))
+//	wrappedR := &watcher.WrappedResponseWithCodec{Response: response, Codec: clientCtx.Codec}
+//
+//	return &watcher.TransactionResult{TxType: hexutil.Uint64(watcher.StdResponse), Response: wrappedR}, nil
+//}
 
 func RawTxResultToEthReceipt(clientCtx clientcontext.CLIContext,
 	tr *ctypes.ResultTx, blockHash common.Hash) (*watcher.TransactionResult, error) {
