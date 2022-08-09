@@ -13,10 +13,11 @@ import (
 
 	"github.com/tendermint/go-amino"
 
+	"gopkg.in/yaml.v2"
+
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"gopkg.in/yaml.v2"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -34,6 +35,16 @@ const (
 
 // Implements Validator interface
 var _ exported.ValidatorI = Validator{}
+
+type WrappedValidators struct {
+	Vs []Validator `json:"validators" yaml:"validators"`
+}
+
+func NewWrappedValidators(vs []Validator) WrappedValidators {
+	return WrappedValidators{
+		Vs: vs,
+	}
+}
 
 // Validator defines the total amount of bond shares and their exchange rate to
 // coins. Slashing results in a decrease in the exchange rate, allowing correct
@@ -158,6 +169,7 @@ func (v Validators) Swap(i, j int) {
 	v[i] = v[j]
 	v[j] = it
 }
+
 // MustMarshalValidator must return the marshaling bytes of a validator
 func MustMarshalValidator(cdc *codec.Codec, validator Validator) []byte {
 	return cdc.MustMarshalBinaryLengthPrefixed(validator)

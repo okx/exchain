@@ -62,3 +62,8 @@ func (pcp ParameterChangeProposal) ValidateBasic() sdk.Error {
 
 	return sdkparams.ValidateChanges(pcp.Changes)
 }
+
+// GetParameterChangeProposal is for compatibility with the standard cosmos REST API
+func (pcp ParameterChangeProposal) GetParameterChangeProposal() sdkparams.ParameterChangeProposal {
+	return pcp.ParameterChangeProposal
+}

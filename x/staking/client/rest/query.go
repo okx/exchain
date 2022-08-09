@@ -139,8 +139,11 @@ func validatorsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
+		var vs []types.Validator
+		cliCtx.Codec.MustUnmarshalJSON(res, &vs)
+		wrappedValidators := types.NewWrappedValidators(vs)
 		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, res)
+		rest.PostProcessResponse(w, cliCtx, wrappedValidators)
 	}
 }
 

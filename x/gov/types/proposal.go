@@ -38,6 +38,21 @@ func NewProposal(ctx sdk.Context, totalVoting sdk.Dec, content Content, id uint6
 	}
 }
 
+// WrapProposalForCosmosAPI is for compatibility with the standard cosmos REST API
+func WrapProposalForCosmosAPI(proposal Proposal, content Content) Proposal {
+	return Proposal{
+		Content:          content,
+		ProposalID:       proposal.ProposalID,
+		Status:           proposal.Status,
+		FinalTallyResult: proposal.FinalTallyResult,
+		SubmitTime:       proposal.SubmitTime,
+		DepositEndTime:   proposal.DepositEndTime,
+		TotalDeposit:     proposal.TotalDeposit,
+		VotingStartTime:  proposal.VotingStartTime,
+		VotingEndTime:    proposal.VotingEndTime,
+	}
+}
+
 // nolint
 func (p Proposal) String() string {
 	return fmt.Sprintf(`Proposal %d:
