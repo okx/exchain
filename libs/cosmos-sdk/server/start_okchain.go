@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/mempool"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -260,6 +261,8 @@ func RegisterServerFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().UintVar(&mpt.TrieAccStoreCache, mpt.FlagTrieAccStoreCache, 32, "Size (MB) to cache account")
 	cmd.Flags().BoolVar(&evmtypes.TrieUseCompositeKey, evmtypes.FlagTrieUseCompositeKey, false, "Use composite key to store contract state in mpt")
 	cmd.Flags().Int64(FlagCommitGapHeight, 100, "Block interval to commit cached data into db, affects iavl & mpt")
+
+	cmd.Flags().Int(mempool.FlagGrpcCheckTxConcurrency, 4, "checktx concurrency when using grpc")
 
 	return cmd
 }

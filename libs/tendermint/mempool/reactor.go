@@ -3,6 +3,7 @@ package mempool
 import (
 	"bytes"
 	"fmt"
+	"github.com/spf13/viper"
 	"math"
 	"reflect"
 	"sync"
@@ -36,6 +37,8 @@ const (
 	maxActiveIDs = math.MaxUint16
 
 	GrpcBroadcastMaxTxSize = 3 * 1024 * 1024
+
+	FlagGrpcCheckTxConcurrency = "grpc-checktx-ch-num"
 )
 
 // Reactor handles mempool tx broadcasting amongst peers.
@@ -48,10 +51,7 @@ type Reactor struct {
 	ids              *mempoolIDs
 	nodeKey          *p2p.NodeKey
 	nodeKeyWhitelist map[string]struct{}
-	tx1Ch            chan txJob
-	tx2Ch            chan txJob
-	tx3Ch            chan txJob
-	tx4Ch            chan txJob
+	txChs            []chan txJob
 	enableWtx        bool
 
 	receiver *txReceiver
@@ -158,6 +158,7 @@ func NewReactor(config *cfg.MempoolConfig, mempool *CListMempool) *Reactor {
 	memR.BaseReactor = *p2p.NewBaseReactor("Mempool", memR)
 	memR.press()
 	memR.receiver = newTxReceiver(memR)
+	memR.txChs = []chan txJob{make(chan txJob, 10000)}
 	return memR
 }
 
@@ -195,10 +196,10 @@ func (memR *Reactor) checkTx(tx types.Tx, txInfo TxInfo) {
 }
 
 func (memR *Reactor) checkTxRoutine() {
-	memR.tx1Ch = make(chan txJob, 50_000)
-	memR.tx2Ch = make(chan txJob, 50_000)
-	memR.tx3Ch = make(chan txJob, 50_000)
-	memR.tx4Ch = make(chan txJob, 50_000)
+	var concurrency = viper.GetInt(FlagGrpcCheckTxConcurrency)
+	memR.Logger.Error("grpc checkTxRoutine", "concurrency", concurrency)
+	memR.txChs = make([]chan txJob, concurrency)
+	chCapacity := 200_000 / concurrency
 
 	checkFunc := func(memR *Reactor, ch chan txJob) {
 		for txJob := range ch {
@@ -206,18 +207,17 @@ func (memR *Reactor) checkTxRoutine() {
 		}
 	}
 
-	go checkFunc(memR, memR.tx1Ch)
-	go checkFunc(memR, memR.tx2Ch)
-	go checkFunc(memR, memR.tx3Ch)
-	go checkFunc(memR, memR.tx4Ch)
+	for i := 0; i < concurrency; i++ {
+		memR.txChs[i] = make(chan txJob, chCapacity)
+		go checkFunc(memR, memR.txChs[i])
+	}
 
 	for {
 		select {
 		case <-memR.Quit():
-			close(memR.tx1Ch)
-			close(memR.tx2Ch)
-			close(memR.tx3Ch)
-			close(memR.tx4Ch)
+			for _, ch := range memR.txChs {
+				close(ch)
+			}
 			memR.receiver.Stop()
 			return
 		}
@@ -226,21 +226,10 @@ func (memR *Reactor) checkTxRoutine() {
 
 func (memR *Reactor) getTxJobChannel(from string) chan<- txJob {
 	if from == "" {
-		return memR.tx1Ch
+		return memR.txChs[0]
 	}
-	selected := amino.StrToBytes(from)[len(from)-1] & 0x03
-	switch selected {
-	case 0:
-		return memR.tx1Ch
-	case 1:
-		return memR.tx2Ch
-	case 2:
-		return memR.tx3Ch
-	case 3:
-		return memR.tx4Ch
-	default:
-		return memR.tx1Ch
-	}
+	selected := amino.StrToBytes(from)[len(from)-1] & byte(len(memR.txChs)-1)
+	return memR.txChs[selected]
 }
 
 // GetChannels implements Reactor.
@@ -372,7 +361,7 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		return
 	}
 
-	memR.tx1Ch <- txJob{
+	memR.txChs[0] <- txJob{
 		tx:   tx,
 		info: txInfo,
 	}
