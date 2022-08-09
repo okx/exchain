@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"strconv"
@@ -351,40 +350,6 @@ func (q Querier) GetTransactionsByBlockNumber(number, offset, limit uint64) ([]*
 	return nil, errors.New("no such transaction in target block")
 }
 
-//func (q Querier) GetTransactionsWithStdByBlockNumber(number, offset, limit uint64) ([]*Transaction, error) {
-//	if !q.enabled() {
-//		return nil, errors.New(MsgFunctionDisable)
-//	}
-//	block, err := q.GetBlockByNumber(number, true)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	var rawTxs []*Transaction
-//	// get eth Txs
-//	if block.Transactions != nil {
-//		txs, ok := block.Transactions.([]*Transaction)
-//		if ok {
-//			rawTxs = txs
-//		}
-//	}
-//
-//	// get Std Tx Hash
-//	stdTxs, err := q.GetStdTxHashByBlockHash(block.Hash)
-//	if err != nil {
-//		return nil, err
-//	}
-//	rawTxs = append(rawTxs, stdTxs...)
-//
-//	var rangeTxs []*Transaction
-//	for idx := offset; idx < offset+limit && int(idx) < len(rawTxs); idx++ {
-//		rawTx := *rawTxs[idx]
-//		rangeTxs = append(rangeTxs, &rawTx)
-//	}
-//
-//	return rangeTxs, nil
-//}
-
 func (q Querier) GetTxResultByBlock(clientCtx clientcontext.CLIContext,
 	number, offset, limit uint64) ([]*TransactionResult, error) {
 	if !q.enabled() {
@@ -470,7 +435,6 @@ func (q Querier) GetTxResultByBlock(clientCtx clientcontext.CLIContext,
 	// enough Tx by Eth
 	ethTxNums := ethEnd - ethStart
 	if ethTxNums == limit {
-		fmt.Println("Get all from Eth:", ethTxNums)
 		return results, nil
 	}
 	// calc remain std txs
@@ -513,8 +477,6 @@ func (q Querier) GetTxResultByBlock(clientCtx clientcontext.CLIContext,
 			results = append(results, res)
 		}
 	}
-
-	fmt.Println("Get from Eth:", ethTxNums, "from std:", remainTxs)
 
 	return results, nil
 }
