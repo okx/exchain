@@ -289,7 +289,6 @@ func (dc *DeltaContext) prepareStateDelta(height int64) *DeltaInfo {
 	atomic.StoreInt64(&dc.lastFetchedHeight, height)
 	deltaInfo, mrh := dc.dataMap.fetch(height)
 
-	var succeed bool
 	if deltaInfo != nil {
 		if deltaInfo.deltaHeight != height {
 			dc.logger.Error("Prepared an invalid delta!!!",
@@ -298,17 +297,20 @@ func (dc *DeltaContext) prepareStateDelta(height int64) *DeltaInfo {
 				"delta-height", deltaInfo.deltaHeight)
 			return nil
 		}
-		succeed = true
-	} else {
-		time.Sleep(time.Second)
-		_, deltaInfo, mrh = dc.download(height)
-		if deltaInfo != nil {
-			succeed = true
+		return deltaInfo
+	}
+
+	// get delta from redis
+	if mrh <= height {
+		for i := 0; i < 3; i++ {
+			time.Sleep(time.Millisecond * 100)
+			_, deltaInfo, mrh = dc.download(height)
+			if deltaInfo != nil {
+				return deltaInfo
+			}
 		}
 	}
 
-	dc.logger.Info("Prepare delta", "expected-height", height,
-		"mrh", mrh, "succeed", succeed)
 	return deltaInfo
 }
 
