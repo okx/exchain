@@ -196,7 +196,6 @@ func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*Block, error) {
 		return nil, errNotFound
 	}
 
-	fmt.Println("--GetBlockByNumber, load hash:", string(hash))
 	return q.GetBlockByHash(common.HexToHash(string(hash)), fullTx)
 }
 
@@ -357,7 +356,6 @@ func (q Querier) GetTxResultByBlock(clientCtx clientcontext.CLIContext,
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	fmt.Println("--GetTxResultByBlock")
 
 	//try to get block height or latest block height
 	var height = number
@@ -368,8 +366,6 @@ func (q Querier) GetTxResultByBlock(clientCtx clientcontext.CLIContext,
 			return nil, err
 		}
 	}
-	fmt.Println("--GetTxResultByBlock, number:", height)
-
 	// get block hash
 	rawBlockHash, e := q.store.Get(append(prefixBlockInfo, []byte(strconv.Itoa(int(height)))...))
 	if e != nil {
@@ -380,7 +376,6 @@ func (q Querier) GetTxResultByBlock(clientCtx clientcontext.CLIContext,
 	}
 
 	blockHash := common.HexToHash(string(rawBlockHash))
-	fmt.Println("--GetTxResultByBlock, rawBlockHash:", string(rawBlockHash))
 
 	// get block by hash
 	var block Block
@@ -393,12 +388,10 @@ func (q Querier) GetTxResultByBlock(clientCtx clientcontext.CLIContext,
 
 	_, err = q.store.GetUnsafe(blockHashKey, func(value []byte) (interface{}, error) {
 		if value == nil {
-			fmt.Println("--getblock, errNotFound")
 			return nil, errNotFound
 		}
 		e := json.Unmarshal(value, &block)
 		if e != nil {
-			fmt.Println("--getblock, unmarshal failed")
 			return nil, e
 		}
 		return nil, nil

@@ -36,7 +36,6 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 		return results, nil
 	}
 
-	fmt.Println("Try to get from db failed", err)
 	// try to get from node
 	height := blockNum.Int64()
 	fmt.Println("Try to get from node")
