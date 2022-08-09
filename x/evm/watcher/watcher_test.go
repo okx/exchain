@@ -111,7 +111,7 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	time.Sleep(time.Millisecond)
 
 	// get WatchData
-	wdFunc := w.app.EvmKeeper.Watcher.GetWatchDataFunc()
+	wdFunc := w.app.EvmKeeper.Watcher.CreateWatchDataGenerator()
 	wd, err := wdFunc()
 	require.Nil(t, err)
 	require.NotEmpty(t, wd)
@@ -124,7 +124,7 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	// use WatchData
 	wData, err := w.app.EvmKeeper.Watcher.UnmarshalWatchData(wd)
 	require.Nil(t, err)
-	w.app.EvmKeeper.Watcher.UseWatchData(wData)
+	w.app.EvmKeeper.Watcher.ApplyWatchData(wData)
 	time.Sleep(time.Millisecond)
 
 	cWd := getDBKV(store)

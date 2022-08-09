@@ -34,16 +34,43 @@ func (m identityMapType) increase(from string, num int64) {
 	}
 }
 
+var EmptyGenerateWatchDataF = func() ([]byte, error) { return nil, nil }
+
+type WatchDataManager interface {
+	CreateWatchDataGenerator() func() ([]byte, error)
+	UnmarshalWatchData([]byte) (interface{}, error)
+	ApplyWatchData(interface{})
+}
+
+type EmptyWatchDataManager struct{}
+
+func (e EmptyWatchDataManager) CreateWatchDataGenerator() func() ([]byte, error) {
+	return EmptyGenerateWatchDataF
+}
+func (e EmptyWatchDataManager) UnmarshalWatchData([]byte) (interface{}, error) { return nil, nil }
+func (e EmptyWatchDataManager) ApplyWatchData(interface{})                     {}
+
 var (
 	getWatchDataFunc   func() func() ([]byte, error)
 	unmarshalWatchData func([]byte) (interface{}, error)
 	applyWatchDataFunc func(interface{})
+
+	evmWatchDataManager  WatchDataManager = EmptyWatchDataManager{}
+	wasmWatchDataManager WatchDataManager = EmptyWatchDataManager{}
 )
 
 func SetWatchDataFunc(g func() func() ([]byte, error), un func([]byte) (interface{}, error), u func(interface{})) {
 	getWatchDataFunc = g
 	unmarshalWatchData = un
 	applyWatchDataFunc = u
+}
+
+func SetEvmWatchDataManager(manager WatchDataManager) {
+	evmWatchDataManager = manager
+}
+
+func SetWasmWatchDataManager(manager WatchDataManager) {
+	wasmWatchDataManager = manager
 }
 
 type DeltaContext struct {
