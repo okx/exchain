@@ -37,7 +37,7 @@ const (
 var _ exported.ValidatorI = Validator{}
 
 type WrappedValidators struct {
-	Vs []Validator `json:"validators" yaml:"validators"`
+	Vs []Validator `json:"result" yaml:"result"`
 }
 
 func NewWrappedValidators(vs []Validator) WrappedValidators {
