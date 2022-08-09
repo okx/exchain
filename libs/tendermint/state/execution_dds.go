@@ -302,7 +302,7 @@ func (dc *DeltaContext) prepareStateDelta(height int64) *DeltaInfo {
 
 	// get delta from redis
 	if mrh <= height {
-		for i := 0; i < 3; i++ {
+		for i := 0; i < types.DeltaRetryTimes; i++ {
 			time.Sleep(time.Millisecond * 100)
 			_, deltaInfo, mrh = dc.download(height)
 			if deltaInfo != nil {

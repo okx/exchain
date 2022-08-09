@@ -28,6 +28,8 @@ const (
 
 	// FlagDeltaVersion specify the DeltaVersion
 	FlagDeltaVersion = "delta-version"
+
+	DeltaRetryTimes = 3
 )
 
 var (
