@@ -76,6 +76,7 @@ import (
 	"github.com/okex/exchain/x/token"
 	"github.com/okex/exchain/x/wasm"
 	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
+	"github.com/okex/exchain/x/wasm/watcher"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/encoding"
@@ -617,6 +618,7 @@ func NewOKExChainApp(
 
 	enableAnalyzer := sm.DeliverTxsExecMode(viper.GetInt(sm.FlagDeliverTxsExecMode)) == sm.DeliverTxsExecModeSerial
 	trace.EnableAnalyzer(enableAnalyzer)
+	watcher.SetLogger(logger)
 	return app
 }
 

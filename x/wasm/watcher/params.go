@@ -1,23 +1,33 @@
 package watcher
 
 import (
-	"sync"
-
+	"github.com/golang/protobuf/proto"
 	"github.com/okex/exchain/x/wasm/types"
 )
 
-var params types.Params
-var psMtx sync.RWMutex
+var (
+	paramsKey = []byte("wasm-parameters")
+)
 
 func SetParams(para types.Params) {
-	psMtx.Lock()
-	params = para
-	psMtx.Unlock()
-
+	b, err := proto.Marshal(&para)
+	if err != nil {
+		panic("wasm watchDB SetParams marshal error:" + err.Error())
+	}
+	if err = db.Set(paramsKey, b); err != nil {
+		panic("wasm watchDB SetParams set error:" + err.Error())
+	}
 }
 
 func GetParams() types.Params {
-	psMtx.RLock()
-	defer psMtx.RUnlock()
-	return params
+	b, err := db.Get(paramsKey)
+	if err != nil {
+		panic("wasm watchDB GetParams get error:" + err.Error())
+	}
+	var p types.Params
+	if err = proto.Unmarshal(b, &p); err != nil {
+		panic("wasm watchDB GetParams unmarshal error:" + err.Error())
+	}
+	return p
+
 }

@@ -33,7 +33,7 @@ func NewHandler(k types.ContractOpsKeeper) sdk.Handler {
 		defer func() {
 			// update watchDB when delivering tx
 			if ctx.IsDeliver() || ctx.ParaMsg() != nil {
-				watcher.Commit(err)
+				watcher.Save(err)
 			}
 		}()
 

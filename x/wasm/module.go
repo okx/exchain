@@ -2,11 +2,11 @@ package wasm
 
 import (
 	"context"
+	"github.com/okex/exchain/app/rpc/simulator"
 	"math/rand"
 
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	"github.com/okex/exchain/app/rpc/simulator"
 	clictx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	cdctypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
@@ -46,8 +46,6 @@ type AppModuleBasic struct{}
 //}
 
 func (b AppModuleBasic) RegisterGRPCGatewayRoutes(clientCtx clictx.CLIContext, serveMux *runtime.ServeMux) {
-	simulator.NewWasmSimulator = NewWasmSimulator
-	watcher.InitDB()
 	err := types.RegisterQueryHandlerClient(context.Background(), serveMux, types.NewQueryClient(clientCtx))
 	if err != nil {
 		panic(err)
@@ -121,11 +119,13 @@ func NewAppModule(cdc codec.CodecProxy, keeper *Keeper) AppModule {
 		keeper:         keeper,
 	}
 	m.BaseIBCUpgradeModule = base.NewBaseIBCUpgradeModule(m)
-	watcher.CheckEnable()
 	return m
 }
 
 func (am AppModule) RegisterServices(cfg module.Configurator) {
+	watcher.CheckEnable()
+	watcher.InitDB()
+	simulator.NewWasmSimulator = NewWasmSimulator
 	types.RegisterMsgServer(cfg.MsgServer(), keeper.NewMsgServerImpl(keeper.NewDefaultPermissionKeeper(am.keeper)))
 	if watcher.Enable() {
 		k := NewProxyKeeper()

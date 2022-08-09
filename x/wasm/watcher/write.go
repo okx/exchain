@@ -2,44 +2,50 @@ package watcher
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
-func Commit(err error) {
+func Save(err error) {
 	if !Enable() {
 		return
 	}
 	txCacheMtx.Lock()
 	if err == nil {
 		for _, msg := range txStateCache {
-			blockStateCache[string(msg.key)] = msg
+			blockStateCache[string(msg.Key)] = msg
 		}
 	}
 	txStateCache = txStateCache[:0]
 	txCacheMtx.Unlock()
 }
 
-func Flush(l log.Logger) {
+func Commit() {
 	if !Enable() {
 		return
 	}
 	blockStateCacheCopy := blockStateCache
-	blockStateCache = make(map[string]*watcherMessage)
+	blockStateCache = make(map[string]*WatchMessage)
 	task := func() {
 		batch := db.NewBatch()
 		for _, msg := range blockStateCacheCopy {
-			if msg.isDelete {
-				batch.Delete(msg.key)
+			if msg.IsDelete {
+				batch.Delete(msg.Key)
 			} else {
-				batch.Set(msg.key, msg.value)
+				batch.Set(msg.Key, msg.Value)
 			}
 		}
 		if err := batch.Write(); err != nil {
-			l.Error("wasm watchDB", "batch write error", err)
+			logger.Error("wasm watchDB", "batch write error", err)
 		}
 	}
 	tasks <- task
+}
 
+var tasks = make(chan func(), 5*3)
+
+func taskRoutine() {
+	for task := range tasks {
+		task()
+	}
 }
 
 type writeKVStore struct {
@@ -58,10 +64,10 @@ func WrapWriteKVStore(store sdk.KVStore) sdk.KVStore {
 
 func (w *writeKVStore) Set(key, value []byte) {
 	w.KVStore.Set(key, value)
-	txStateCache = append(txStateCache, &watcherMessage{key: key, value: value})
+	txStateCache = append(txStateCache, &WatchMessage{Key: key, Value: value})
 }
 
 func (w *writeKVStore) Delete(key []byte) {
 	w.KVStore.Delete(key)
-	txStateCache = append(txStateCache, &watcherMessage{key: key, isDelete: true})
+	txStateCache = append(txStateCache, &WatchMessage{Key: key, IsDelete: true})
 }

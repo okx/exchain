@@ -95,7 +95,7 @@ func (app *OKExChainApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 	// 2. before commit the block,State#updateToState hasent not called yet,so the proposalBlockPart is not nil which means we wont
 	// 	  call the prerun during commit step(edge case)
 	app.EvmKeeper.Watcher.Commit()
-	watcher.Flush(app.Logger())
+	watcher.Commit()
 
 	return res
 }
