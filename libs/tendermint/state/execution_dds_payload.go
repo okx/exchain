@@ -73,7 +73,7 @@ func (info *DeltaInfo) bytes2DeltaInfo(pl *types.DeltaPayload) error {
 	if err != nil {
 		return err
 	}
-	info.watchData, err = unmarshalWatchData(pl.WatchBytes)
+	info.watchData, err = evmWatchDataManager.UnmarshalWatchData(pl.WatchBytes)
 	if err != nil {
 		return err
 	}

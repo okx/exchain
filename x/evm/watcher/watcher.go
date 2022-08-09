@@ -469,9 +469,9 @@ func (w *Watcher) ApplyWatchData(watchData interface{}) {
 	w.dispatchJob(func() { w.CommitWatchData(wd) })
 }
 
-func (w *Watcher) SetWatchDataFunc() {
+func (w *Watcher) SetWatchDataManager() {
 	go w.jobRoutine()
-	tmstate.SetWatchDataFunc(w.CreateWatchDataGenerator, w.UnmarshalWatchData, w.ApplyWatchData)
+	tmstate.SetEvmWatchDataManager(w)
 }
 
 func (w *Watcher) GetBloomDataPoint() *[]*evmtypes.KV {

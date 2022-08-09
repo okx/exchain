@@ -368,7 +368,7 @@ func TestWriteLatestMsg(t *testing.T) {
 	viper.Set(watcher.FlagFastQuery, true)
 	viper.Set(watcher.FlagDBBackend, "memdb")
 	w := watcher.NewWatcher(log.NewTMLogger(os.Stdout))
-	w.SetWatchDataFunc()
+	w.SetWatchDataManager()
 	w.NewHeight(1, common.Hash{}, abci.Header{Height: 1})
 	// init store
 	store := watcher.InstanceOfWatchStore()

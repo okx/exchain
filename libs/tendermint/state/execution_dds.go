@@ -51,19 +51,9 @@ func (e EmptyWatchDataManager) UnmarshalWatchData([]byte) (interface{}, error) {
 func (e EmptyWatchDataManager) ApplyWatchData(interface{})                     {}
 
 var (
-	getWatchDataFunc   func() func() ([]byte, error)
-	unmarshalWatchData func([]byte) (interface{}, error)
-	applyWatchDataFunc func(interface{})
-
 	evmWatchDataManager  WatchDataManager = EmptyWatchDataManager{}
 	wasmWatchDataManager WatchDataManager = EmptyWatchDataManager{}
 )
-
-func SetWatchDataFunc(g func() func() ([]byte, error), un func([]byte) (interface{}, error), u func(interface{})) {
-	getWatchDataFunc = g
-	unmarshalWatchData = un
-	applyWatchDataFunc = u
-}
 
 func SetEvmWatchDataManager(manager WatchDataManager) {
 	evmWatchDataManager = manager
@@ -195,7 +185,7 @@ func (dc *DeltaContext) postApplyBlock(height int64, deltaInfo *DeltaInfo,
 			"applied-ratio", dc.hitRatio(), "delta-length", deltaLen)
 
 		if applied && types.FastQuery {
-			applyWatchDataFunc(deltaInfo.watchData)
+			evmWatchDataManager.ApplyWatchData(deltaInfo.watchData)
 		}
 	}
 
@@ -203,7 +193,7 @@ func (dc *DeltaContext) postApplyBlock(height int64, deltaInfo *DeltaInfo,
 	if dc.uploadDelta {
 		trace.GetElapsedInfo().AddInfo(trace.Delta, fmt.Sprintf("ratio<%.2f>", dc.hitRatio()))
 		if !isFastSync {
-			wdFunc := getWatchDataFunc()
+			wdFunc := evmWatchDataManager.CreateWatchDataGenerator()
 			go dc.uploadData(height, abciResponses, deltaMap, wdFunc)
 		} else {
 			dc.logger.Info("Do not upload delta in case of fast sync:", "target-height", height)

@@ -369,7 +369,7 @@ func execCommitBlockDelta(
 			return nil, nil, err
 		}
 		deltas.Payload.DeltasBytes = deltaBytes
-		wdFunc := getWatchDataFunc()
+		wdFunc := evmWatchDataManager.CreateWatchDataGenerator()
 		if wd, err := wdFunc(); err == nil {
 			deltas.Payload.WatchBytes = wd
 		}
