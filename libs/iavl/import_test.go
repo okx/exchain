@@ -70,7 +70,7 @@ func TestImporter_NegativeVersion(t *testing.T) {
 }
 
 func TestImporter_NotEmpty(t *testing.T) {
-	tree, err := NewMutableTree(db.NewMemDB(), 0)
+	tree, err := getTestTree(0)
 	require.NoError(t, err)
 	tree.Set([]byte("a"), []byte{1})
 	_, _, _, err = tree.SaveVersion(false)
@@ -81,8 +81,7 @@ func TestImporter_NotEmpty(t *testing.T) {
 }
 
 func TestImporter_NotEmptyDatabase(t *testing.T) {
-	db := db.NewMemDB()
-
+	db := db.NewPrefixDB(db.NewMemDB(), []byte(randstr(32)))
 	tree, err := NewMutableTree(db, 0)
 	require.NoError(t, err)
 	tree.Set([]byte("a"), []byte{1})
@@ -126,7 +125,7 @@ func TestImporter_Add(t *testing.T) {
 	for desc, tc := range testcases {
 		tc := tc // appease scopelint
 		t.Run(desc, func(t *testing.T) {
-			tree, err := NewMutableTree(db.NewMemDB(), 0)
+			tree, err := getTestTree(0)
 			require.NoError(t, err)
 			importer, err := tree.Import(1)
 			require.NoError(t, err)
@@ -143,7 +142,7 @@ func TestImporter_Add(t *testing.T) {
 }
 
 func TestImporter_Add_Closed(t *testing.T) {
-	tree, err := NewMutableTree(db.NewMemDB(), 0)
+	tree, err := getTestTree(0)
 	require.NoError(t, err)
 	importer, err := tree.Import(1)
 	require.NoError(t, err)
@@ -155,7 +154,7 @@ func TestImporter_Add_Closed(t *testing.T) {
 }
 
 func TestImporter_Close(t *testing.T) {
-	tree, err := NewMutableTree(db.NewMemDB(), 0)
+	tree, err := getTestTree(0)
 	require.NoError(t, err)
 	importer, err := tree.Import(1)
 	require.NoError(t, err)
@@ -171,7 +170,7 @@ func TestImporter_Close(t *testing.T) {
 }
 
 func TestImporter_Commit(t *testing.T) {
-	tree, err := NewMutableTree(db.NewMemDB(), 0)
+	tree, err := getTestTree(0)
 	require.NoError(t, err)
 	importer, err := tree.Import(1)
 	require.NoError(t, err)
@@ -186,7 +185,7 @@ func TestImporter_Commit(t *testing.T) {
 }
 
 func TestImporter_Commit_Closed(t *testing.T) {
-	tree, err := NewMutableTree(db.NewMemDB(), 0)
+	tree, err := getTestTree(0)
 	require.NoError(t, err)
 	importer, err := tree.Import(1)
 	require.NoError(t, err)
@@ -201,7 +200,7 @@ func TestImporter_Commit_Closed(t *testing.T) {
 }
 
 func TestImporter_Commit_Empty(t *testing.T) {
-	tree, err := NewMutableTree(db.NewMemDB(), 0)
+	tree, err := getTestTree(0)
 	require.NoError(t, err)
 	importer, err := tree.Import(3)
 	require.NoError(t, err)
@@ -230,7 +229,7 @@ func BenchmarkImport(b *testing.B) {
 	b.StartTimer()
 
 	for n := 0; n < b.N; n++ {
-		newTree, err := NewMutableTree(db.NewMemDB(), 0)
+		newTree, err := getTestTree(0)
 		require.NoError(b, err)
 		importer, err := newTree.Import(tree.Version())
 		require.NoError(b, err)

@@ -327,16 +327,7 @@ func (pool *BlockPool) SetPeerRange(peerID p2p.ID, base int64, height int64, sto
 
 	// compute how many peers' height is greater than height
 	if !pool.IsRunning() && storeHeight+maxIntervalForFastSync <= height {
-		count := 0
-		totalNum := len(pool.peers)
-		for _, peer := range pool.peers {
-			if peer.height >= height {
-				count++
-			}
-		}
-		if count > int(float32(totalNum)*maxPeersProportionForFastSync) {
-			return true
-		}
+		return true
 	}
 
 	return false
