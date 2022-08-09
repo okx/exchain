@@ -50,6 +50,8 @@ type Reactor struct {
 	nodeKeyWhitelist map[string]struct{}
 	tx1Ch            chan txJob
 	tx2Ch            chan txJob
+	tx3Ch            chan txJob
+	tx4Ch            chan txJob
 	enableWtx        bool
 
 	receiver *txReceiver
@@ -193,8 +195,10 @@ func (memR *Reactor) checkTx(tx types.Tx, txInfo TxInfo) {
 }
 
 func (memR *Reactor) checkTxRoutine() {
-	memR.tx1Ch = make(chan txJob, 100_000)
-	memR.tx2Ch = make(chan txJob, 100_000)
+	memR.tx1Ch = make(chan txJob, 50_000)
+	memR.tx2Ch = make(chan txJob, 50_000)
+	memR.tx3Ch = make(chan txJob, 50_000)
+	memR.tx4Ch = make(chan txJob, 50_000)
 
 	checkFunc := func(memR *Reactor, ch chan txJob) {
 		for txJob := range ch {
@@ -204,12 +208,16 @@ func (memR *Reactor) checkTxRoutine() {
 
 	go checkFunc(memR, memR.tx1Ch)
 	go checkFunc(memR, memR.tx2Ch)
+	go checkFunc(memR, memR.tx3Ch)
+	go checkFunc(memR, memR.tx4Ch)
 
 	for {
 		select {
 		case <-memR.Quit():
 			close(memR.tx1Ch)
 			close(memR.tx2Ch)
+			close(memR.tx3Ch)
+			close(memR.tx4Ch)
 			memR.receiver.Stop()
 			return
 		}
@@ -217,10 +225,21 @@ func (memR *Reactor) checkTxRoutine() {
 }
 
 func (memR *Reactor) getTxJobChannel(from string) chan<- txJob {
-	if from == "" || amino.StrToBytes(from)[len(from)-1]%2 == 0 {
+	if from == "" {
 		return memR.tx1Ch
-	} else {
+	}
+	selected := amino.StrToBytes(from)[len(from)-1] & 0x03
+	switch selected {
+	case 0:
+		return memR.tx1Ch
+	case 1:
 		return memR.tx2Ch
+	case 2:
+		return memR.tx3Ch
+	case 3:
+		return memR.tx4Ch
+	default:
+		return memR.tx1Ch
 	}
 }
 
