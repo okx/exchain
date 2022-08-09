@@ -28,7 +28,7 @@ func (abvd AccountBlockedVerificationDecorator) AnteHandle(ctx sdk.Context, tx s
 
 	var signers []sdk.AccAddress
 	if ethTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
-		signers = []sdk.AccAddress{ethTx.AccountAddress()}
+		signers = ethTx.GetSigners()
 	} else {
 		signers = tx.GetSigners()
 	}
