@@ -2,7 +2,6 @@ package sanity
 
 import (
 	"fmt"
-	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/spf13/viper"
 	"strings"
 )
@@ -100,7 +99,7 @@ func (i rangeItem) label() string {
 }
 
 func (i rangeItem) checkRange() error {
-	i.value = viper.GetInt(sm.FlagDeliverTxsExecMode)
+	i.value = viper.GetInt(i.label())
 
 	for _, v := range i.enumRange {
 		if v == i.value {
