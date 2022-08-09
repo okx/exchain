@@ -1251,6 +1251,7 @@ func (api *PublicEthereumAPI) GetTransactionsByBlock(blockNrOrHash rpctypes.Bloc
 		return nil, err
 	}
 
+	fmt.Println("--GetTransactionReceiptsByBlock, Get Tx from db")
 	txs, e := api.wrappedBackend.GetTransactionsByBlockNumber(uint64(blockNum), uint64(offset), uint64(limit))
 	if e == nil && txs != nil {
 		return txs, nil
@@ -1279,6 +1280,7 @@ func (api *PublicEthereumAPI) GetTransactionsByBlock(blockNrOrHash rpctypes.Bloc
 		}
 	}
 
+	fmt.Println("--GetTransactionReceiptsByBlock, Get Tx from node")
 	resBlock, err := api.clientCtx.Client.Block(&height)
 	if err != nil {
 		return nil, err
@@ -1387,11 +1389,13 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 	monitor := monitor.GetMonitor("eth_getTransactionReceiptsByBlock", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("block number", blockNrOrHash, "offset", offset, "limit", limit)
 
+	fmt.Println("GetTransactionReceiptsByBlock, Get Tx from backend")
 	txs, err := api.GetTransactionsByBlock(blockNrOrHash, offset, limit)
 	if err != nil || len(txs) == 0 {
 		return nil, err
 	}
 
+	fmt.Println("GetTransactionReceiptsByBlock, Get Tx from node")
 	var receipts []*watcher.TransactionReceipt
 	var block *ctypes.ResultBlock
 	var blockHash common.Hash

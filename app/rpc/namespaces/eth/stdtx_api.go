@@ -32,12 +32,11 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 	// try to get from watch db
 	fmt.Println("Try to get from db", offset, limit)
 	results, err = api.wrappedBackend.GetTxResultByBlock(api.clientCtx, uint64(blockNum), uint64(offset), uint64(limit))
-
 	if err == nil && results != nil && len(results) != 0 {
-		fmt.Println("Try to get from failed", err)
 		return results, nil
 	}
 
+	fmt.Println("Try to get from db failed", err)
 	// try to get from node
 	height := blockNum.Int64()
 	fmt.Println("Try to get from node")
