@@ -6,8 +6,6 @@ import (
 
 	"github.com/spf13/viper"
 
-	"github.com/ethereum/go-ethereum/common"
-
 	lru "github.com/hashicorp/golang-lru"
 )
 
@@ -38,7 +36,7 @@ func InstanceOfStateLru() *lru.Cache {
 	return gStateLru
 }
 
-func GetStateFromLru(key common.Hash) []byte {
+func GetStateFromLru(key string) []byte {
 	cache := InstanceOfStateLru()
 	if cache == nil {
 		return nil
@@ -53,7 +51,7 @@ func GetStateFromLru(key common.Hash) []byte {
 	return nil
 }
 
-func SetStateToLru(key common.Hash, value []byte) {
+func SetStateToLru(key string, value []byte) {
 	cache := InstanceOfStateLru()
 	if cache == nil {
 		return
