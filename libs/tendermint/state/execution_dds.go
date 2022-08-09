@@ -286,9 +286,8 @@ func (dc *DeltaContext) prepareStateDelta(height int64) *DeltaInfo {
 		return nil
 	}
 
-	deltaInfo, mrh := dc.dataMap.fetch(height)
-
 	atomic.StoreInt64(&dc.lastFetchedHeight, height)
+	deltaInfo, mrh := dc.dataMap.fetch(height)
 
 	var succeed bool
 	if deltaInfo != nil {
@@ -300,6 +299,12 @@ func (dc *DeltaContext) prepareStateDelta(height int64) *DeltaInfo {
 			return nil
 		}
 		succeed = true
+	} else {
+		time.Sleep(time.Second)
+		_, deltaInfo, mrh = dc.download(height)
+		if deltaInfo != nil {
+			succeed = true
+		}
 	}
 
 	dc.logger.Info("Prepare delta", "expected-height", height,
@@ -364,19 +369,12 @@ func (dc *DeltaContext) downloadRoutine() {
 			continue
 		}
 
-		err, delta, mrh := dc.download(targetHeight)
+		err, deltaInfo, mrh := dc.download(targetHeight)
 		info.statistics(targetHeight, err, mrh)
 		if err != nil {
 			continue
 		}
 
-		// unmarshal delta bytes to delta info
-		deltaInfo := &DeltaInfo{
-			from:        delta.From,
-			deltaLen:    delta.Size(),
-			deltaHeight: delta.Height,
-		}
-		err = deltaInfo.bytes2DeltaInfo(&delta.Payload)
 		if err == nil {
 			dc.dataMap.insert(targetHeight, deltaInfo, mrh)
 			targetHeight++
@@ -426,7 +424,7 @@ func (info *downloadInfo) statistics(height int64, err error, mrh int64) {
 	}
 }
 
-func (dc *DeltaContext) download(height int64) (error, *types.Deltas, int64) {
+func (dc *DeltaContext) download(height int64) (error, *DeltaInfo, int64) {
 	dc.logger.Debug("Download delta started:", "target-height", height)
 
 	t0 := time.Now()
@@ -438,7 +436,6 @@ func (dc *DeltaContext) download(height int64) (error, *types.Deltas, int64) {
 
 	// unmarshal
 	delta := &types.Deltas{}
-
 	err = delta.Unmarshal(deltaBytes)
 	if err != nil {
 		dc.logger.Error("Downloaded an invalid delta:", "target-height", height, "err", err)
@@ -456,5 +453,13 @@ func (dc *DeltaContext) download(height int64) (error, *types.Deltas, int64) {
 		"unmarshal", delta.MarshalOrUnmarshalElapsed(),
 		"delta", delta)
 
-	return nil, delta, latestHeight
+	// unmarshal delta bytes to delta info
+	deltaInfo := &DeltaInfo{
+		from:        delta.From,
+		deltaLen:    delta.Size(),
+		deltaHeight: delta.Height,
+	}
+	err = deltaInfo.bytes2DeltaInfo(&delta.Payload)
+
+	return err, deltaInfo, latestHeight
 }

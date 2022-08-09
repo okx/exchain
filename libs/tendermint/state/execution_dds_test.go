@@ -92,6 +92,24 @@ func TestDeltaContext_prepareStateDelta(t *testing.T) {
 	}
 }
 
+func getDeltaInfo(dc *DeltaContext, height int64) (*DeltaInfo, int64, error) {
+	deltaBytes, err, mrh := dc.deltaBroker.GetDeltas(height)
+	if err != nil {
+		return nil, mrh, err
+	}
+	delta := &types.Deltas{}
+	err = delta.Unmarshal(deltaBytes)
+	if err != nil {
+		return nil, mrh, err
+	}
+	deltaInfo := &DeltaInfo{
+		from:        delta.From,
+		deltaLen:    delta.Size(),
+		deltaHeight: delta.Height,
+	}
+	err = deltaInfo.bytes2DeltaInfo(&delta.Payload)
+	return deltaInfo, mrh, err
+}
 func TestDeltaContext_download(t *testing.T) {
 	dc := setupTest(t)
 	deltas := &types.Deltas{Height: 10, Payload: types.DeltaPayload{ABCIRsp: []byte("ABCIRsp"), DeltasBytes: []byte("DeltasBytes"), WatchBytes: []byte("WatchBytes")}}
@@ -100,21 +118,21 @@ func TestDeltaContext_download(t *testing.T) {
 	tests := []struct {
 		name   string
 		height int64
-		wants  *types.Deltas
+		wants  *DeltaInfo
 	}{
-		{"normal case", 10, deltas},
+		{"normal case", 10, nil},
 		{"higher height", 11, nil},
 		{"lower height", 9, nil},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err, mrh := dc.deltaBroker.GetDeltas(tt.height)
+			deltaInfo, mrh, err := getDeltaInfo(dc, tt.height)
 			got, got1, got2 := dc.download(tt.height)
 			if !reflect.DeepEqual(got, err) {
 				t.Errorf("download() got = %v, want %v", got, err)
 			}
-			if !deltaEqual(got1, tt.wants) {
-				t.Errorf("download() got = %v, want %v", got, deltas)
+			if !reflect.DeepEqual(got1, deltaInfo) {
+				t.Errorf("download() got = %v, want %v", got1, deltaInfo)
 			}
 			if got2 != mrh {
 				t.Errorf("download() got2 = %v, want %v", got2, mrh)

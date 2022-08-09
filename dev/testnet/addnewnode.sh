@@ -155,6 +155,8 @@ start() {
     ${DOWNLOAD_DELTA} \
     --p2p.addr_book_strict=false \
     --enable-preruntx=${PRERUN} \
+    --multi-cache=false \
+    --fast-query \
     --rpc.laddr tcp://${IP}:${rpcport} > ${OKCHAIN_NET_CACHE}/rpc${INPUT_INDEX}.log 2>&1 &
 
 #     echo "start new node done"
