@@ -349,24 +349,27 @@ var (
 	SmbLOG = NewScfLog()
 )
 
+type ScfLog struct {
+	ReadSet     [][]string
+	WriteSet    [][]string
+	ConflictSet []string
+	DirtyIAVL   []string
+}
+
 func NewScfLog() *ScfLog {
 	return &ScfLog{
 		ReadSet:     make([][]string, 0),
 		WriteSet:    make([][]string, 0),
 		ConflictSet: make([]string, 0),
+		DirtyIAVL:   make([]string, 0),
 	}
-}
-
-type ScfLog struct {
-	ReadSet     [][]string
-	WriteSet    [][]string
-	ConflictSet []string
 }
 
 func (s *ScfLog) Clean() {
 	s.ReadSet = make([][]string, 0)
 	s.WriteSet = make([][]string, 0)
 	s.ConflictSet = make([]string, 0)
+	s.DirtyIAVL = make([]string, 0)
 }
 
 func (s *ScfLog) AddReadSet(data []string) {
@@ -381,6 +384,10 @@ func (s *ScfLog) AddConflict(data string) {
 	s.ConflictSet = append(s.ConflictSet, data)
 }
 
+func (s *ScfLog) AddDirtyMs(data []string) {
+	s.DirtyIAVL = data
+
+}
 func (s *ScfLog) PrintLog() {
 	for index, v := range s.ReadSet {
 		fmt.Println(index, v)
@@ -391,4 +398,8 @@ func (s *ScfLog) PrintLog() {
 	for index, v := range s.ConflictSet {
 		fmt.Println(index, v)
 	}
+	for _, v := range s.DirtyIAVL {
+		fmt.Println(v)
+	}
+	fmt.Println("Len(DirtyIAVL)", len(s.DirtyIAVL))
 }

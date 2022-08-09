@@ -1,8 +1,10 @@
 package baseapp
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	"os"
 	"sort"
 	"strconv"
@@ -211,6 +213,15 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 
 	if app.endBlocker != nil {
 		res = app.endBlocker(app.deliverState.ctx, req)
+	}
+
+	if app.deliverState.ms != nil {
+		ss := make([]string, 0)
+		app.deliverState.ms.IteratorCache(true, func(key string, value []byte, isDirty bool, isDelete bool, storeKey cosmost.StoreKey) bool {
+			ss = append(ss, fmt.Sprintf("dirty %s %s %d %d", hex.EncodeToString([]byte(key)), hex.EncodeToString(value), isDirty, isDelete))
+			return true
+		}, nil)
+		sdk.SmbLOG.AddDirtyMs(ss)
 	}
 
 	return
