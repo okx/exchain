@@ -123,7 +123,7 @@ func (pool *TxPool) initDB(api *PublicEthereumAPI) error {
 
 func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txBytes []byte) (common.Hash, error) {
 	//TODO: to delete after venus height
-	info, err := api.clientCtx.Client.BlockchainInfo(0, 0)
+	lastHeight, err := api.clientCtx.Client.LatestBlockNumber()
 	if err != nil {
 		return common.Hash{}, err
 	}
@@ -137,7 +137,7 @@ func broadcastTxByTxPool(api *PublicEthereumAPI, tx *evmtypes.MsgEthereumTx, txB
 		return common.Hash{}, err
 	}
 
-	txHash := common.BytesToHash(types.Tx(txBytes).Hash(info.LastHeight))
+	txHash := common.BytesToHash(types.Tx(txBytes).Hash(lastHeight))
 	tx.Data.Hash = &txHash
 	from := common.HexToAddress(tx.GetFrom())
 	api.txPool.mu.Lock()
@@ -271,12 +271,12 @@ func (pool *TxPool) dropTxs(index int, address common.Address) {
 
 func (pool *TxPool) broadcast(tx *evmtypes.MsgEthereumTx) error {
 	// TODO: to delete after venus height
-	info, err := pool.clientCtx.Client.BlockchainInfo(0, 0)
+	lastHeight, err := pool.clientCtx.Client.LatestBlockNumber()
 	if err != nil {
 		return err
 	}
 	var txEncoder sdk.TxEncoder
-	if types.HigherThanVenus(info.LastHeight) {
+	if types.HigherThanVenus(lastHeight) {
 		txEncoder = authclient.GetTxEncoder(nil, authclient.WithEthereumTx())
 	} else {
 		txEncoder = authclient.GetTxEncoder(pool.clientCtx.Codec)
