@@ -61,7 +61,8 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 		}
 
 		if realTx != nil {
-			queryTx, err := api.clientCtx.Client.Tx(realTx.TxHash(), false)
+			txHash := resBlock.Block.Txs[idx].Hash(resBlock.Block.Height)
+			queryTx, err := api.clientCtx.Client.Tx(txHash, false)
 			if err != nil {
 				fmt.Println("failed to get from tx")
 				// Return nil for transaction when not found
