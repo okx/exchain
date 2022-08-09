@@ -567,6 +567,12 @@ func (mem *CListMempool) resCbFirstTime(
 			}
 
 			memTx.senders.Store(txInfo.SenderID, true)
+			if len(txInfo.SendersP2PID) > 0 {
+				memTx.sendersP2PID = make(map[string]struct{}, len(txInfo.SendersP2PID))
+				for _, id := range txInfo.SendersP2PID {
+					memTx.sendersP2PID[id] = struct{}{}
+				}
+			}
 
 			var err error
 			if mem.pendingPool != nil {
@@ -1007,11 +1013,28 @@ type mempoolTx struct {
 	// ids of peers who've sent us this tx (as a map for quick lookups).
 	// senders: PeerID -> bool
 	senders sync.Map
+
+	sendersP2PID map[string]struct{}
 }
 
 // Height returns the height for this transaction
 func (memTx *mempoolTx) Height() int64 {
 	return atomic.LoadInt64(&memTx.height)
+}
+
+func (memTx *mempoolTx) findSender(peerID uint16, peerP2PID string) bool {
+	if _, ok := memTx.senders.Load(peerID); ok {
+		return true
+	}
+
+	if memTx.sendersP2PID == nil {
+		return false
+	}
+	_, ok := memTx.sendersP2PID[peerP2PID]
+	if ok {
+		fmt.Println("findSender", peerP2PID)
+	}
+	return ok
 }
 
 //--------------------------------------------------------------------------------

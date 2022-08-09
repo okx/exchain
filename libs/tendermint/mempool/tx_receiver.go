@@ -66,7 +66,8 @@ func (s *txReceiverServer) checkTx(req *pb.TxRequest, ch chan<- txJob) (*emptypb
 		}
 
 		var info = TxInfo{
-			SenderID: uint16(req.PeerId),
+			SenderID:     uint16(req.PeerId),
+			SendersP2PID: req.PeerIds,
 		}
 
 		if ch == nil {
@@ -379,9 +380,18 @@ func (r *txReceiver) CheckTxAsyncByStream(memTx *mempoolTx, peerID uint16, peer 
 	}
 
 	var peerIDs []string
+	for pid := range memTx.sendersP2PID {
+		peerIDs = append(peerIDs, pid)
+	}
 	memTx.senders.Range(func(key, _ interface{}) bool {
 		if id := r.memR.ids.GetPeerID(key.(uint16)); id != "" {
-			peerIDs = append(peerIDs, string(id))
+			if memTx.sendersP2PID != nil {
+				if _, ok := memTx.sendersP2PID[string(id)]; !ok {
+					peerIDs = append(peerIDs, string(id))
+				}
+			} else {
+				peerIDs = append(peerIDs, string(id))
+			}
 		}
 		return true
 	})

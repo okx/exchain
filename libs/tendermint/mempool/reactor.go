@@ -114,6 +114,13 @@ func (ids *mempoolIDs) GetForPeer(peer p2p.Peer) uint16 {
 	return ids.peerMap[peer.ID()]
 }
 
+func (ids *mempoolIDs) GetForPeerID(peer p2p.ID) uint16 {
+	ids.mtx.RLock()
+	defer ids.mtx.RUnlock()
+
+	return ids.peerMap[peer]
+}
+
 func (ids *mempoolIDs) GetPeerID(id uint16) p2p.ID {
 	ids.mtx.RLock()
 	pid := ids.activeIDs[id]
@@ -376,6 +383,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 	}()
 
 	peerID := memR.ids.GetForPeer(peer)
+	peerP2PID := peer.ID()
 	var next *clist.CElement
 	for {
 		// In case of both next.NextWaitChan() and peer.Quit() are variable at the same time
@@ -419,7 +427,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 		// txHash := hex.EncodeToString(memTx.realTx.TxHash())
 
 		// ensure peer hasn't already sent us this tx
-		if _, ok = memTx.senders.Load(peerID); !ok {
+		if !memTx.findSender(peerID, string(peerP2PID)) {
 			if !memR.receiver.CheckTxAsyncByStream(memTx, peerID, peer, &client, &stream) {
 				// memR.Logger.Info("fallback to broadcast", "peer", peer.ID(), "tx", txHash)
 

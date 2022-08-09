@@ -114,6 +114,8 @@ type TxInfo struct {
 
 	wtx       *WrappedTx
 	checkType abci.CheckTxType
+
+	SendersP2PID []string
 }
 
 //--------------------------------------------------------------------------------
