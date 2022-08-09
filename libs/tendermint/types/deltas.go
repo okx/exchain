@@ -52,9 +52,10 @@ type DeltasMessage struct {
 }
 
 type DeltaPayload struct {
-	ABCIRsp     []byte
-	DeltasBytes []byte
-	WatchBytes  []byte
+	ABCIRsp        []byte
+	DeltasBytes    []byte
+	WatchBytes     []byte
+	WasmWatchBytes []byte
 }
 
 // Deltas defines the ABCIResponse and state delta

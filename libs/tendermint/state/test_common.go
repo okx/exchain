@@ -373,6 +373,10 @@ func execCommitBlockDelta(
 		if wd, err := wdFunc(); err == nil {
 			deltas.Payload.WatchBytes = wd
 		}
+		wasmWdFunc := wasmWatchDataManager.CreateWatchDataGenerator()
+		if wd, err := wasmWdFunc(); err == nil {
+			deltas.Payload.WasmWatchBytes = wd
+		}
 	}
 
 	// ResponseCommit has no error or log, just data

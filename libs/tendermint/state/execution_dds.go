@@ -186,6 +186,7 @@ func (dc *DeltaContext) postApplyBlock(height int64, deltaInfo *DeltaInfo,
 
 		if applied && types.FastQuery {
 			evmWatchDataManager.ApplyWatchData(deltaInfo.watchData)
+			wasmWatchDataManager.ApplyWatchData(deltaInfo.wasmWatchData)
 		}
 	}
 
@@ -194,14 +195,15 @@ func (dc *DeltaContext) postApplyBlock(height int64, deltaInfo *DeltaInfo,
 		trace.GetElapsedInfo().AddInfo(trace.Delta, fmt.Sprintf("ratio<%.2f>", dc.hitRatio()))
 		if !isFastSync {
 			wdFunc := evmWatchDataManager.CreateWatchDataGenerator()
-			go dc.uploadData(height, abciResponses, deltaMap, wdFunc)
+			wasmWdFunc := wasmWatchDataManager.CreateWatchDataGenerator()
+			go dc.uploadData(height, abciResponses, deltaMap, wdFunc, wasmWdFunc)
 		} else {
 			dc.logger.Info("Do not upload delta in case of fast sync:", "target-height", height)
 		}
 	}
 }
 
-func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, deltaMap interface{}, wdFunc func() ([]byte, error)) {
+func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, deltaMap interface{}, wdFunc, wasmWdFunc func() ([]byte, error)) {
 	if abciResponses == nil || deltaMap == nil {
 		dc.logger.Error("Failed to upload", "height", height, "error", fmt.Errorf("empty data"))
 		return
@@ -215,7 +217,7 @@ func (dc *DeltaContext) uploadData(height int64, abciResponses *ABCIResponses, d
 	}
 
 	var err error
-	info := DeltaInfo{abciResponses: abciResponses, treeDeltaMap: deltaMap, marshalWatchData: wdFunc}
+	info := DeltaInfo{abciResponses: abciResponses, treeDeltaMap: deltaMap, marshalWatchData: wdFunc, wasmMarshalWatchData: wasmWdFunc}
 	delta4Upload.Payload, err = info.dataInfo2Bytes()
 	if err != nil {
 		dc.logger.Error("Failed convert dataInfo2Bytes", "target-height", height, "error", err)
