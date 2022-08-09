@@ -982,7 +982,7 @@ func (api *PublicEthereumAPI) doCall(
 	}
 	sim := api.evmFactory.BuildSimulator(api)
 	//only worked when fast-query has been enabled
-	if sim != nil && blockNum == rpctypes.LatestBlockNumber {
+	if sim != nil && api.useWatchBackend(blockNum) {
 		return sim.DoCall(msg, addr.String(), overridesBytes, api.evmFactory.PutBackStorePool)
 	}
 
