@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
+	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -18,6 +19,12 @@ import (
 const (
 	simulationGasLimit = 3000000
 )
+
+var clientCtx clientcontext.CLIContext
+
+func SetCliContext(ctx clientcontext.CLIContext) {
+	clientCtx = ctx
+}
 
 func MakeContext(storeKey sdk.StoreKey) sdk.Context {
 	db := dbm.NewMemDB()

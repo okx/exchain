@@ -15,6 +15,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	paramtypes "github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/wasm/ioutils"
@@ -108,7 +109,10 @@ func NewKeeper(
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
 	}
 	watcher.SetWatchDataManager()
-	return newKeeper(cdc, storeKey, paramSpace, accountKeeper, bankKeeper, channelKeeper, portKeeper, capabilityKeeper, portSource, router, queryRouter, homeDir, wasmConfig, supportedFeatures, defaultAdapter{}, opts...)
+	k := newKeeper(cdc, storeKey, paramSpace, accountKeeper, bankKeeper, channelKeeper, portKeeper, capabilityKeeper, portSource, router, queryRouter, homeDir, wasmConfig, supportedFeatures, defaultAdapter{}, opts...)
+	accountKeeper.SetObserverKeeper(k)
+
+	return k
 }
 
 func NewSimulateKeeper(
@@ -204,6 +208,10 @@ func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 func (k Keeper) SetParams(ctx sdk.Context, ps types.Params) {
 	watcher.SetParams(ps)
 	k.paramSpace.SetParamSet(ctx, &ps)
+}
+
+func (k Keeper) OnAccountUpdated(acc exported.Account, updateState bool) {
+	watcher.DeleteAccount(acc.GetAddress())
 }
 
 func (k Keeper) create(ctx sdk.Context, creator sdk.AccAddress, wasmCode []byte, instantiateAccess *types.AccessConfig, authZ AuthorizationPolicy) (codeID uint64, err error) {

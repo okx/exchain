@@ -393,7 +393,7 @@ func createTestInput(
 		&appCodec,
 		keys[types.StoreKey],
 		subspace(types.ModuleName),
-		accountKeeper,
+		&accountKeeper,
 		bank.NewBankKeeperAdapter(bankKeeper),
 		ibcKeeper.ChannelKeeper,
 		&ibcKeeper.PortKeeper,

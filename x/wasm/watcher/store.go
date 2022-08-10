@@ -1,19 +1,21 @@
 package watcher
 
 import (
-	"fmt"
+	"encoding/json"
+	"log"
+	"path/filepath"
+	"sync"
+
+	"github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/dbadapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/gaskv"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	stypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/spf13/viper"
-	"path/filepath"
-	"sync"
 )
 
 const (
@@ -21,7 +23,7 @@ const (
 )
 
 var (
-	logger        log.Logger
+	checkOnce     sync.Once
 	checked       bool
 	enableWatcher bool
 	db            dbm.DB
@@ -29,13 +31,9 @@ var (
 	txCacheMtx      sync.Mutex
 	txStateCache    []*WatchMessage
 	blockStateCache = make(map[string]*WatchMessage)
+
+	accountKeyPrefix = []byte("wasm-account-")
 )
-
-var checkOnce sync.Once
-
-func SetLogger(l log.Logger) {
-	logger = l.With("module", "wasm watcher")
-}
 
 func CheckEnable() bool {
 	checkOnce.Do(func() {
@@ -64,9 +62,40 @@ func InitDB() {
 	if backend == "" {
 		backend = string(dbm.GoLevelDBBackend)
 	}
-	fmt.Println("daPath", dbPath, "backend", backend)
 	db = dbm.NewDB(watchDBName, dbm.BackendType(backend), dbPath)
 	go taskRoutine()
+}
+
+func AccountKey(addr []byte) []byte {
+	return append(accountKeyPrefix, addr...)
+}
+func GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
+	b, err := db.Get(AccountKey(addr.Bytes()))
+	if err != nil {
+		return nil, err
+	}
+
+	var acc types.EthAccount
+	err = json.Unmarshal(b, &acc)
+	if err != nil {
+		return nil, err
+	}
+	return &acc, nil
+
+}
+
+func SetAccount(acc *types.EthAccount) error {
+	b, err := json.Marshal(acc)
+	if err != nil {
+		return err
+	}
+	return db.Set(AccountKey(acc.Address.Bytes()), b)
+}
+
+func DeleteAccount(addr sdk.AccAddress) {
+	if err := db.Delete(AccountKey(addr.Bytes())); err != nil {
+		log.Println("wasm watchDB delete account error", addr.String())
+	}
 }
 
 func NewReadStore(pre []byte) sdk.KVStore {

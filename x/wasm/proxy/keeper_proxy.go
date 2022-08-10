@@ -1,6 +1,8 @@
 package proxy
 
 import (
+	"fmt"
+
 	apptypes "github.com/okex/exchain/app/types"
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -23,6 +25,7 @@ import (
 	token "github.com/okex/exchain/x/token/types"
 	"github.com/okex/exchain/x/wasm/types"
 	"github.com/okex/exchain/x/wasm/watcher"
+	"log"
 )
 
 const (
@@ -134,21 +137,40 @@ func NewBankKeeperProxy(akp AccountKeeperProxy) BankKeeperProxy {
 }
 
 func (b BankKeeperProxy) GetAllBalances(ctx sdk.Context, addr sdk.AccAddress) sdk.Coins {
-	//acc := b.akp.GetAccount(ctx, addr)
-	//return acc.GetCoins()
-	return global.GetSupply().(sdk.Coins)
+	acc, err := watcher.GetAccount(addr)
+	if err == nil {
+		return acc.GetCoins()
+	}
+
+	bs, err := clientCtx.Codec.MarshalJSON(auth.NewQueryAccountParams(addr.Bytes()))
+	if err != nil {
+		log.Println("GetAllBalances marshal json error", err)
+		return sdk.NewCoins()
+	}
+	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", auth.QuerierRoute, auth.QueryAccount), bs)
+	if err != nil {
+		log.Println("GetAllBalances query with data error", err)
+		return sdk.NewCoins()
+	}
+	var account apptypes.EthAccount
+	err = clientCtx.Codec.UnmarshalJSON(res, &account)
+	if err != nil {
+		log.Println("GetAllBalances unmarshal json error", err)
+		return sdk.NewCoins()
+	}
+
+	if err = watcher.SetAccount(&account); err != nil {
+		log.Println("GetAllBalances save account error", err)
+	}
+
+	return account.GetCoins()
 }
 
 func (b BankKeeperProxy) GetBalance(ctx sdk.Context, addr sdk.AccAddress, denom string) sdk.Coin {
-	//acc := b.akp.GetAccount(ctx, addr)
-	//return sdk.Coin{
-	//	Denom:  denom,
-	//	Amount: acc.GetCoins().AmountOf(denom),
-	//}
-	s := global.GetSupply().(sdk.Coins)
+	coins := b.GetAllBalances(ctx, addr)
 	return sdk.Coin{
+		Amount: coins.AmountOf(denom),
 		Denom:  denom,
-		Amount: s.AmountOf(denom),
 	}
 }
 

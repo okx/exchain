@@ -3,6 +3,7 @@ package watcher
 import (
 	"bytes"
 	"errors"
+	"log"
 	"sort"
 
 	"github.com/golang/protobuf/proto"
@@ -55,7 +56,7 @@ func (w WatchDataManager) ApplyWatchData(v interface{}) {
 			}
 		}
 		if err := batch.Write(); err != nil {
-			logger.Error("ApplyWatchData", "batch write error", err)
+			log.Println("ApplyWatchData batch write error:" + err.Error())
 		}
 	}
 

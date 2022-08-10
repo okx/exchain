@@ -1,6 +1,8 @@
 package watcher
 
 import (
+	"log"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
@@ -34,7 +36,7 @@ func Commit() {
 			}
 		}
 		if err := batch.Write(); err != nil {
-			logger.Error("wasm watchDB", "batch write error", err)
+			log.Println("wasm watchDB batch write error:", err.Error())
 		}
 	}
 	tasks <- task

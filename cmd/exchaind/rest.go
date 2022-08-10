@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx"
+	"github.com/okex/exchain/x/wasm/proxy"
 
 	mintclient "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client"
 	erc20client "github.com/okex/exchain/x/erc20/client"
@@ -50,7 +51,7 @@ func registerRoutes(rs *lcd.RestServer) {
 	}
 	registerRoutesV1(rs, pathPrefix)
 	registerRoutesV2(rs, pathPrefix)
-
+	proxy.SetCliContext(rs.CliCtx)
 }
 
 func registerGrpc(rs *lcd.RestServer) {
