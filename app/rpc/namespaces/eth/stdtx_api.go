@@ -28,13 +28,6 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 		return nil, err
 	}
 
-	// try to get from watch db
-	results, err = api.wrappedBackend.GetTxResultByBlock(api.clientCtx, uint64(blockNum), uint64(offset), uint64(limit))
-	if err == nil && results != nil && len(results) != 0 {
-		return results, nil
-	}
-
-	// try to get from node
 	height := blockNum.Int64()
 	if blockNum == rpctypes.LatestBlockNumber {
 		height, err = api.backend.LatestBlockNumber()
@@ -43,6 +36,13 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 		}
 	}
 
+	// try to get from watch db
+	results, err = api.wrappedBackend.GetTxResultByBlock(api.clientCtx, uint64(height), uint64(offset), uint64(limit))
+	if err == nil {
+		return results, nil
+	}
+
+	// try to get from node
 	resBlock, err := api.clientCtx.Client.Block(&height)
 	if err != nil {
 		return nil, err

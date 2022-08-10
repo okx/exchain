@@ -351,24 +351,15 @@ func (q Querier) GetTransactionsByBlockNumber(number, offset, limit uint64) ([]*
 }
 
 func (q Querier) GetTxResultByBlock(clientCtx clientcontext.CLIContext,
-	number, offset, limit uint64) ([]*TransactionResult, error) {
+	height, offset, limit uint64) ([]*TransactionResult, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
 
-	//try to get block height or latest block height
-	var height = number
-	var err error
-	if height == 0 {
-		height, err = q.GetLatestBlockNumber()
-		if err != nil {
-			return nil, err
-		}
-	}
 	// get block hash
-	rawBlockHash, e := q.store.Get(append(prefixBlockInfo, []byte(strconv.Itoa(int(height)))...))
-	if e != nil {
-		return nil, e
+	rawBlockHash, err := q.store.Get(append(prefixBlockInfo, []byte(strconv.Itoa(int(height)))...))
+	if err != nil {
+		return nil, err
 	}
 	if rawBlockHash == nil {
 		return nil, errNotFound
