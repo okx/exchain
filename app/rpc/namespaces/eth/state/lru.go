@@ -57,5 +57,5 @@ func SetStateToLru(key []byte, value []byte) {
 	if cache == nil {
 		return
 	}
-	cache.Add(key, value)
+	cache.Add(amino.BytesToStr(key), value)
 }
