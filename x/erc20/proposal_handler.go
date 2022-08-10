@@ -25,8 +25,8 @@ func NewProposalHandler(k *Keeper) govTypes.Handler {
 }
 
 func handleTokenMappingProposal(ctx sdk.Context, k *Keeper, p types.TokenMappingProposal) sdk.Error {
-	if p.Denom == sdk.DefaultBondDenom {
-		return govTypes.ErrInvalidProposalContent("invalid denom, not support okt denom")
+	if p.Denom == sdk.DefaultBondDenom || p.Denom == sdk.DefaultIbcWei {
+		return govTypes.ErrInvalidProposalContent("invalid denom, not support okt or wei denom")
 	}
 
 	if len(p.Contract) == 0 {
