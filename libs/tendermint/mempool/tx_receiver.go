@@ -9,7 +9,6 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	"google.golang.org/protobuf/types/known/emptypb"
 	"io"
 	"net"
 	"strconv"
@@ -48,15 +47,15 @@ func (s *txReceiverServer) Enabled() bool {
 	return true
 }
 
-func (s *txReceiverServer) CheckTx(_ context.Context, req *pb.TxRequest) (*emptypb.Empty, error) {
+func (s *txReceiverServer) CheckTx(_ context.Context, req *pb.TxRequest) (*pb.Empty, error) {
 	return s.checkTx(req, nil)
 }
 
-func (s *txReceiverServer) CheckTxAsync(_ context.Context, req *pb.TxRequest) (*emptypb.Empty, error) {
+func (s *txReceiverServer) CheckTxAsync(_ context.Context, req *pb.TxRequest) (*pb.Empty, error) {
 	return s.checkTx(req, s.memR.getTxJobChannel(req.From))
 }
 
-func (s *txReceiverServer) checkTx(req *pb.TxRequest, ch chan<- txJob) (*emptypb.Empty, error) {
+func (s *txReceiverServer) checkTx(req *pb.TxRequest, ch chan<- txJob) (*pb.Empty, error) {
 	if req == nil {
 		return nil, errEmpty
 	}
@@ -128,7 +127,7 @@ func (s *txReceiverServer) CheckTxsAsync(stream pb.MempoolTxReceiver_CheckTxsAsy
 	}
 }
 
-var empty = &emptypb.Empty{}
+var empty = &pb.Empty{}
 
 var errEmpty = fmt.Errorf("empty tx")
 var errZeroId = fmt.Errorf("peerId is 0")

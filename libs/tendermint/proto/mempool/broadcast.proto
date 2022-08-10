@@ -4,15 +4,13 @@ syntax = "proto3";
 
 option go_package = "libs/tendermint/proto/mempool";
 
-import "google/protobuf/empty.proto";
-
 package mempool;
 
 service MempoolTxReceiver {
-  rpc CheckTx (TxRequest) returns(google.protobuf.Empty) {}
-  rpc CheckTxAsync (TxRequest) returns(google.protobuf.Empty) {}
-  rpc CheckTxs (stream TxRequest) returns(google.protobuf.Empty) {}
-  rpc CheckTxsAsync (stream TxRequest) returns(google.protobuf.Empty) {}
+  rpc CheckTx (TxRequest) returns(Empty) {}
+  rpc CheckTxAsync (TxRequest) returns(Empty) {}
+  rpc CheckTxs (stream TxRequest) returns(Empty) {}
+  rpc CheckTxsAsync (stream TxRequest) returns(Empty) {}
 }
 
 message TxRequest {
@@ -28,3 +26,5 @@ message ReceiverInfo {
   uint32 your_id = 1;
   int64 port = 2;
 }
+
+message Empty {}
