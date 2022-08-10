@@ -3,11 +3,11 @@ package cli
 import (
 	"bufio"
 	"fmt"
-	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"strings"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -166,12 +166,12 @@ Where proposal.json contains:
             "address":"ex1k0wwsg7xf9tjt3rvxdewz42e74sp286agrf9qc",
             "block_methods": [
                 {
-                    "Name": "0x371303c0",
-                    "Extra": "inc()"
+                    "sign": "0x371303c0",
+                    "extra": "inc()"
                 },
                 {
-                    "Name": "0x579be378",
-                    "Extra": "onc()"
+                    "sign": "0x579be378",
+                    "extra": "onc()"
                 }
             ]
         },
@@ -179,12 +179,12 @@ Where proposal.json contains:
             "address":"ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9",
             "block_methods": [
                 {
-                    "Name": "0x371303c0",
-                    "Extra": "inc()"
+                    "sign": "0x371303c0",
+                    "extra": "inc()"
                 },
                 {
-                    "Name": "0x579be378",
-                    "Extra": "onc()"
+                    "sign": "0x579be378",
+                    "extra": "onc()"
                 }
             ]
         }

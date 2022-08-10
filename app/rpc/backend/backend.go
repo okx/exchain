@@ -51,7 +51,6 @@ type Backend interface {
 
 	// Used by pending transaction filter
 	PendingTransactions() ([]*watcher.Transaction, error)
-	PendingTransactionsWithStd() ([]*watcher.Transaction, error)
 	PendingTransactionCnt() (int, error)
 	PendingTransactionsByHash(target common.Hash) (*watcher.Transaction, error)
 	UserPendingTransactionsCnt(address string) (int, error)
@@ -289,7 +288,7 @@ func (b *EthermintBackend) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.L
 // PendingTransactions returns the transactions that are in the transaction pool
 // and have a from address that is one of the accounts this node manages.
 func (b *EthermintBackend) PendingTransactions() ([]*watcher.Transaction, error) {
-	info, err := b.clientCtx.Client.BlockchainInfo(0, 0)
+	lastHeight, err := b.clientCtx.Client.LatestBlockNumber()
 	if err != nil {
 		return nil, err
 	}
@@ -307,31 +306,11 @@ func (b *EthermintBackend) PendingTransactions() ([]*watcher.Transaction, error)
 		}
 
 		// TODO: check signer and reference against accounts the node manages
-		rpcTx, err := watcher.NewTransaction(ethTx, common.BytesToHash(tx.Hash(info.LastHeight)), common.Hash{}, 0, 0)
+		rpcTx, err := watcher.NewTransaction(ethTx, common.BytesToHash(tx.Hash(lastHeight)), common.Hash{}, 0, 0)
 		if err != nil {
 			return nil, err
 		}
 
-		transactions = append(transactions, rpcTx)
-	}
-
-	return transactions, nil
-}
-
-// PendingTransactionsWithStd returns the transactions including both the eth and std Txs
-// that are in the transaction pool and have a from address that is one of the accounts this node manages.
-func (b *EthermintBackend) PendingTransactionsWithStd() ([]*watcher.Transaction, error) {
-	pendingTxs, err := b.clientCtx.Client.UnconfirmedTxs(-1)
-	if err != nil {
-		return nil, err
-	}
-
-	transactions := make([]*watcher.Transaction, 0, len(pendingTxs.Txs))
-	for _, tx := range pendingTxs.Txs {
-		rpcTx, err := rpctypes.RawTxToWatcherTx(b.clientCtx, tx, common.Hash{}, 0, 0)
-		if err != nil {
-			return nil, err
-		}
 		transactions = append(transactions, rpcTx)
 	}
 
@@ -363,7 +342,7 @@ func (b *EthermintBackend) GetPendingNonce(address string) (uint64, bool) {
 }
 
 func (b *EthermintBackend) UserPendingTransactions(address string, limit int) ([]*watcher.Transaction, error) {
-	info, err := b.clientCtx.Client.BlockchainInfo(0, 0)
+	lastHeight, err := b.clientCtx.Client.LatestBlockNumber()
 	if err != nil {
 		return nil, err
 	}
@@ -380,7 +359,7 @@ func (b *EthermintBackend) UserPendingTransactions(address string, limit int) ([
 		}
 
 		// TODO: check signer and reference against accounts the node manages
-		rpcTx, err := watcher.NewTransaction(ethTx, common.BytesToHash(tx.Hash(info.LastHeight)), common.Hash{}, 0, 0)
+		rpcTx, err := watcher.NewTransaction(ethTx, common.BytesToHash(tx.Hash(lastHeight)), common.Hash{}, 0, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -402,7 +381,7 @@ func (b *EthermintBackend) PendingAddressList() ([]string, error) {
 // PendingTransactions returns the transaction that is in the transaction pool
 // and have a from address that is one of the accounts this node manages.
 func (b *EthermintBackend) PendingTransactionsByHash(target common.Hash) (*watcher.Transaction, error) {
-	info, err := b.clientCtx.Client.BlockchainInfo(0, 0)
+	lastHeight, err := b.clientCtx.Client.LatestBlockNumber()
 	if err != nil {
 		return nil, err
 	}
@@ -415,7 +394,7 @@ func (b *EthermintBackend) PendingTransactionsByHash(target common.Hash) (*watch
 		// ignore non Ethermint EVM transactions
 		return nil, err
 	}
-	rpcTx, err := watcher.NewTransaction(ethTx, common.BytesToHash(pendingTx.Hash(info.LastHeight)), common.Hash{}, 0, 0)
+	rpcTx, err := watcher.NewTransaction(ethTx, common.BytesToHash(pendingTx.Hash(lastHeight)), common.Hash{}, 0, 0)
 	if err != nil {
 		return nil, err
 	}
