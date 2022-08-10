@@ -2,7 +2,6 @@ package eth
 
 import (
 	"errors"
-	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -30,7 +29,6 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 	}
 
 	// try to get from watch db
-	fmt.Println("Try to get from db", offset, limit)
 	results, err = api.wrappedBackend.GetTxResultByBlock(api.clientCtx, uint64(blockNum), uint64(offset), uint64(limit))
 	if err == nil && results != nil && len(results) != 0 {
 		return results, nil
@@ -38,7 +36,6 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 
 	// try to get from node
 	height := blockNum.Int64()
-	fmt.Println("Try to get from node")
 	if blockNum == rpctypes.LatestBlockNumber {
 		height, err = api.backend.LatestBlockNumber()
 		if err != nil {
@@ -50,7 +47,6 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println("Try to get Block:", height)
 	blockHash := common.BytesToHash(resBlock.Block.Hash())
 	for idx := offset; idx < offset+limit && int(idx) < len(resBlock.Block.Txs); idx++ {
 		realTx, err := rpctypes.RawTxToRealTx(api.clientCtx, resBlock.Block.Txs[idx],
@@ -63,7 +59,6 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 			txHash := resBlock.Block.Txs[idx].Hash(resBlock.Block.Height)
 			queryTx, err := api.clientCtx.Client.Tx(txHash, false)
 			if err != nil {
-				fmt.Println("failed to get from tx")
 				// Return nil for transaction when not found
 				return nil, err
 			}
