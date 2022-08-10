@@ -3,12 +3,15 @@ package mempool
 import (
 	"context"
 	"fmt"
+	gogocodec "github.com/gogo/protobuf/codec"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	pb "github.com/okex/exchain/libs/tendermint/proto/mempool"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/encoding"
+	"google.golang.org/grpc/encoding/proto"
 	"io"
 	"net"
 	"strconv"
@@ -17,6 +20,10 @@ import (
 	"sync/atomic"
 	"time"
 )
+
+func init() {
+	encoding.RegisterCodec(newGogoCodec())
+}
 
 type txReceiverClient struct {
 	Client pb.MempoolTxReceiverClient
@@ -282,11 +289,13 @@ func (r *txReceiver) Start(configPort string) {
 		if err != nil {
 			r.Logger.Error("Failed to start tx receiver:Listen", "err", err)
 		} else {
-			var options []grpc.ServerOption
-			//options = append(options, grpc.KeepaliveParams(keepalive.ServerParameters{
-			//	Time:    30 * time.Second,
-			//	Timeout: 10 * time.Second,
-			//}))
+			var options = []grpc.ServerOption{
+				//grpc.KeepaliveParams(keepalive.ServerParameters{
+				//	Time:    30 * time.Second,
+				//	Timeout: 10 * time.Second,
+				//}),
+				//grpc.ForceServerCodec(newGogoCodec()),
+			}
 			r.s = grpc.NewServer(options...)
 			pb.RegisterMempoolTxReceiverServer(r.s, r.Server)
 			r.Server.Port = lis.Addr().(*net.TCPAddr).Port
@@ -395,5 +404,24 @@ func (r *txReceiver) Stop() {
 	if r.s != nil {
 		atomic.StoreInt64(&r.Server.Started, 0)
 		r.s.Stop()
+	}
+}
+
+type gogoCodec struct {
+	gogocodec.Codec
+}
+
+func (_ *gogoCodec) Name() string {
+	return proto.Name
+}
+
+//func (c *gogoCodec) Marshal(v interface{}) ([]byte, error) {
+//	fmt.Println("Marshal")
+//	return c.Codec.Marshal(v)
+//}
+
+func newGogoCodec() encoding.Codec {
+	return &gogoCodec{
+		Codec: gogocodec.New(4096),
 	}
 }
