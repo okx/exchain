@@ -254,6 +254,17 @@ func Wrap(err error, description string) error {
 	}
 }
 
+func WrapNoStack(err error, description string) error {
+	if err == nil {
+		return nil
+	}
+
+	return &wrappedError{
+		parent: err,
+		msg:    description,
+	}
+}
+
 // Wrapf extends given error with an additional information.
 //
 // This function works like Wrap function with additional functionality of
