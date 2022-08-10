@@ -70,6 +70,10 @@ const (
 	FlagLimit              = "limit"
 	FlagUnsafeCORS         = "unsafe-cors"
 	FlagNodeIndex          = "node-index"
+
+
+	TrustNodeUsage = `Using true doesn't verify results, quickly(300~400ms). True is recommended to connect familiar or self-built nodes. 
+Using false verifies the proof of results, safely but slowly(2~3s). False is recommended to connect to unfamiliar nodes.`
 )
 
 const (
@@ -90,7 +94,7 @@ var (
 func GetCommands(cmds ...*cobra.Command) []*cobra.Command {
 	for _, c := range cmds {
 		c.Flags().Bool(FlagIndentResponse, false, "Add indent to JSON response")
-		c.Flags().Bool(FlagTrustNode, false, "Trust connected full node (don't verify proofs for responses)")
+		c.Flags().Bool(FlagTrustNode, false, TrustNodeUsage)
 		c.Flags().Bool(FlagUseLedger, false, "Use a connected Ledger device")
 		c.Flags().String(FlagNode, "tcp://localhost:26657", "<host>:<port> to Tendermint RPC interface for this chain")
 		c.Flags().Int64(FlagHeight, 0, "Use a specific height to query state at (this can error if the node is pruning state)")
@@ -120,7 +124,7 @@ func PostCommands(cmds ...*cobra.Command) []*cobra.Command {
 		c.Flags().Bool(FlagUseLedger, false, "Use a connected Ledger device")
 		c.Flags().Float64(FlagGasAdjustment, DefaultGasAdjustment, "adjustment factor to be multiplied against the estimate returned by the tx simulation; if the gas limit is set manually this flag is ignored ")
 		c.Flags().StringP(FlagBroadcastMode, "b", BroadcastSync, "Transaction broadcasting mode (sync|async|block)")
-		c.Flags().Bool(FlagTrustNode, true, "Trust connected full node (don't verify proofs for responses)")
+		c.Flags().Bool(FlagTrustNode, true, TrustNodeUsage)
 		c.Flags().Bool(FlagDryRun, false, "ignore the --gas flag and perform a simulation of a transaction, but don't broadcast it")
 		c.Flags().Bool(FlagGenerateOnly, false, "Build an unsigned transaction and write it to STDOUT (when enabled, the local Keybase is not accessible and the node operates offline)")
 		c.Flags().BoolP(FlagSkipConfirmation, "y", false, "Skip tx broadcasting prompt confirmation")
