@@ -84,6 +84,10 @@ func (tp TokenMappingProposal) ValidateBasic() sdk.Error {
 		return govtypes.ErrInvalidProposalContent("invalid denom")
 	}
 
+	if tp.Denom == sdk.DefaultBondDenom {
+		return govtypes.ErrInvalidProposalContent("invalid denom, not support okt denom")
+	}
+
 	if len(strings.TrimSpace(tp.Contract)) > 0 && !common.IsHexAddress(tp.Contract) {
 		return govtypes.ErrInvalidProposalContent("invalid contract")
 	}
