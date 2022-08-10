@@ -151,9 +151,11 @@ func queryProposalHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-
+		var proposal types.Proposal
+		cliCtx.Codec.MustUnmarshalJSON(res, &proposal)
+		wrappedProposal := types.NewWrappedProposal(proposal)
 		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, res)
+		rest.PostProcessResponse(w, cliCtx, wrappedProposal)
 	}
 }
 
@@ -205,8 +207,10 @@ func queryDepositsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-
-		rest.PostProcessResponse(w, cliCtx, res)
+		var deposits types.Deposits
+		cliCtx.Codec.MustUnmarshalJSON(res, &deposits)
+		wrappedDeposits := types.NewWrappedDeposits(deposits)
+		rest.PostProcessResponse(w, cliCtx, wrappedDeposits)
 	}
 }
 
@@ -519,9 +523,11 @@ func queryProposalsWithParameterFn(cliCtx context.CLIContext) http.HandlerFunc {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-
+		var proposals []types.Proposal
+		cliCtx.Codec.MustUnmarshalJSON(res, &proposals)
+		wrappedProposals := types.NewWrappedProposals(proposals)
 		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, res)
+		rest.PostProcessResponse(w, cliCtx, wrappedProposals)
 	}
 }
 

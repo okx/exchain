@@ -9,6 +9,26 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
+type WrappedProposal struct {
+	P Proposal `json:"result" yaml:"result"`
+}
+
+func NewWrappedProposal(p Proposal) WrappedProposal {
+	return WrappedProposal{
+		P: p,
+	}
+}
+
+type WrappedProposals struct {
+	Ps []Proposal `json:"result" yaml:"result"`
+}
+
+func NewWrappedProposals(ps []Proposal) WrappedProposals {
+	return WrappedProposals{
+		Ps: ps,
+	}
+}
+
 // Proposal defines a struct used by the governance module to allow for voting
 // on network changes.
 type Proposal struct {
