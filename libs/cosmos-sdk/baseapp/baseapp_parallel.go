@@ -187,7 +187,6 @@ func (app *BaseApp) fixFeeCollector() {
 // fixFeeCollector update fee account
 
 func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
-	sdk.SmbLOG.Clean()
 	maxGas := app.getMaximumBlockGas()
 	currentGas := uint64(0)
 	overFlow := func(sumGas uint64, currGas int64, maxGas uint64) bool {
