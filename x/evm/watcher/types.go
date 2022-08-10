@@ -13,6 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/gogo/protobuf/proto"
+	app "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -442,7 +443,7 @@ func (m MsgTransactionReceipt) GetType() uint32 {
 	return TypeOthers
 }
 
-//type WrappedResponse sdk.TxResponse
+//type WrappedResponseWithCodec
 type WrappedResponseWithCodec struct {
 	Response sdk.TxResponse
 	Codec    *codec.Codec `json:"-"`
@@ -751,8 +752,7 @@ func (b MsgLatestHeight) GetValue() string {
 }
 
 type MsgAccount struct {
-	*baseLazyMarshal
-	addr []byte
+	account *app.EthAccount
 }
 
 func (msgAccount *MsgAccount) GetType() uint32 {
@@ -760,10 +760,16 @@ func (msgAccount *MsgAccount) GetType() uint32 {
 }
 
 func NewMsgAccount(acc auth.Account) *MsgAccount {
-	return &MsgAccount{
-		addr:            acc.GetAddress().Bytes(),
-		baseLazyMarshal: newBaseLazyMarshal(acc),
+	var msg *MsgAccount
+	switch v := acc.(type) {
+	case app.EthAccount:
+		msg = &MsgAccount{account: &v}
+	case *app.EthAccount:
+		msg = &MsgAccount{account: v}
+	default:
+		msg = nil
 	}
+	return msg
 }
 
 func GetMsgAccountKey(addr []byte) []byte {
@@ -771,7 +777,15 @@ func GetMsgAccountKey(addr []byte) []byte {
 }
 
 func (msgAccount *MsgAccount) GetKey() []byte {
-	return GetMsgAccountKey(msgAccount.addr)
+	return GetMsgAccountKey(msgAccount.account.Address.Bytes())
+}
+
+func (msgAccount *MsgAccount) GetValue() string {
+	data, err := EncodeAccount(msgAccount.account)
+	if err != nil {
+		panic(err)
+	}
+	return string(data)
 }
 
 type DelAccMsg struct {

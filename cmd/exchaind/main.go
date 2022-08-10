@@ -83,7 +83,7 @@ func main() {
 		),
 		genutilcli.ValidateGenesisCmd(ctx, codecProxy.GetCdc(), app.ModuleBasics),
 		client.TestnetCmd(ctx, codecProxy.GetCdc(), app.ModuleBasics, auth.GenesisAccountIterator{}),
-		replayCmd(ctx, client.RegisterAppFlag),
+		replayCmd(ctx, client.RegisterAppFlag, codecProxy, newApp, registry, registerRoutes),
 		repairStateCmd(ctx),
 		displayStateCmd(ctx),
 		mpt.MptCmd(ctx),
