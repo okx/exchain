@@ -57,8 +57,10 @@ func ChainAnteDecorators(chain ...AnteDecorator) AnteHandler {
 		chain = append(chain, Terminator{})
 	}
 
+	next := ChainAnteDecorators(chain[1:]...)
+
 	return func(ctx Context, tx Tx, simulate bool) (Context, error) {
-		return chain[0].AnteHandle(ctx, tx, simulate, ChainAnteDecorators(chain[1:]...))
+		return chain[0].AnteHandle(ctx, tx, simulate, next)
 	}
 }
 

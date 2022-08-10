@@ -56,7 +56,7 @@ func ValidatorCommand(cdc *codec.Codec) *cobra.Command {
 
 	cmd.Flags().StringP(flags.FlagNode, "n", "tcp://localhost:26657", "Node to connect to")
 	viper.BindPFlag(flags.FlagNode, cmd.Flags().Lookup(flags.FlagNode))
-	cmd.Flags().Bool(flags.FlagTrustNode, false, "Trust connected full node (don't verify proofs for responses)")
+	cmd.Flags().Bool(flags.FlagTrustNode, false, flags.TrustNodeUsage)
 	viper.BindPFlag(flags.FlagTrustNode, cmd.Flags().Lookup(flags.FlagTrustNode))
 	cmd.Flags().Bool(flags.FlagIndentResponse, false, "indent JSON response")
 	viper.BindPFlag(flags.FlagIndentResponse, cmd.Flags().Lookup(flags.FlagIndentResponse))

@@ -176,9 +176,13 @@ func (s *Server) readLoop(wsConn *wsConn) {
 
 		// check if method == eth_subscribe or eth_unsubscribe
 		method := msg["method"]
-		if method.(string) == "eth_subscribe" {
-			params := msg["params"].([]interface{})
-			if len(params) == 0 {
+		methodStr, ok := method.(string)
+		if !ok {
+			s.sendErrResponse(wsConn, "invalid request")
+		}
+		if methodStr == "eth_subscribe" {
+			params, ok := msg["params"].([]interface{})
+			if !ok || len(params) == 0 {
 				s.sendErrResponse(wsConn, "invalid parameters")
 				continue
 			}
@@ -209,7 +213,7 @@ func (s *Server) readLoop(wsConn *wsConn) {
 			s.logger.Debug("successfully subscribe", "ID", id)
 			subIds[id] = struct{}{}
 			continue
-		} else if method.(string) == "eth_unsubscribe" {
+		} else if methodStr == "eth_unsubscribe" {
 			ids, ok := msg["params"].([]interface{})
 			if len(ids) == 0 {
 				s.sendErrResponse(wsConn, "invalid parameters")
