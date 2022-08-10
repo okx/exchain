@@ -360,7 +360,7 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 				w.store.SetEvmParams(msgParams.Params)
 			}
 			if typeValue == TypeState {
-				state.SetStateToLru(string(key), value)
+				state.SetStateToLru(key, value)
 			}
 		}
 	}
@@ -387,7 +387,7 @@ func (w *Watcher) commitCenterBatch(batch []*Batch) {
 		} else {
 			dbBatch.Set(b.Key, b.Value)
 			if b.TypeValue == TypeState {
-				state.SetStateToLru(string(b.Key), b.Value)
+				state.SetStateToLru(b.Key, b.Value)
 			}
 		}
 	}

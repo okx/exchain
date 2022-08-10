@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/spf13/viper"
+	"github.com/tendermint/go-amino"
 
 	lru "github.com/hashicorp/golang-lru"
 )
@@ -36,12 +37,12 @@ func InstanceOfStateLru() *lru.Cache {
 	return gStateLru
 }
 
-func GetStateFromLru(key string) []byte {
+func GetStateFromLru(key []byte) []byte {
 	cache := InstanceOfStateLru()
 	if cache == nil {
 		return nil
 	}
-	value, ok := cache.Get(key)
+	value, ok := cache.Get(amino.BytesToStr(key))
 	if ok {
 		ret, ok := value.([]byte)
 		if ok {
@@ -51,7 +52,7 @@ func GetStateFromLru(key string) []byte {
 	return nil
 }
 
-func SetStateToLru(key string, value []byte) {
+func SetStateToLru(key []byte, value []byte) {
 	cache := InstanceOfStateLru()
 	if cache == nil {
 		return

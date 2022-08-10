@@ -388,8 +388,7 @@ func (q Querier) DeleteAccountFromRdb(addr sdk.AccAddress) {
 
 func (q Querier) MustGetState(addr common.Address, key []byte) ([]byte, error) {
 	orgKey := GetMsgStateKey(addr, key)
-	realKey := string(orgKey)
-	data := state.GetStateFromLru(realKey)
+	data := state.GetStateFromLru(orgKey)
 	if data != nil {
 		return data, nil
 	}
@@ -400,7 +399,7 @@ func (q Querier) MustGetState(addr common.Address, key []byte) ([]byte, error) {
 		q.DeleteStateFromRdb(addr, key)
 	}
 	if e == nil {
-		state.SetStateToLru(realKey, b)
+		state.SetStateToLru(orgKey, b)
 	}
 	return b, e
 }
