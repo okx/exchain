@@ -24,8 +24,8 @@ const _ = grpc.SupportPackageIsVersion7
 type MempoolTxReceiverClient interface {
 	CheckTx(ctx context.Context, in *TxRequest, opts ...grpc.CallOption) (*Empty, error)
 	CheckTxAsync(ctx context.Context, in *TxRequest, opts ...grpc.CallOption) (*Empty, error)
-	CheckTxs(ctx context.Context, opts ...grpc.CallOption) (MempoolTxReceiver_CheckTxsClient, error)
-	CheckTxsAsync(ctx context.Context, opts ...grpc.CallOption) (MempoolTxReceiver_CheckTxsAsyncClient, error)
+	CheckTxStream(ctx context.Context, opts ...grpc.CallOption) (MempoolTxReceiver_CheckTxStreamClient, error)
+	CheckTxStreamAsync(ctx context.Context, opts ...grpc.CallOption) (MempoolTxReceiver_CheckTxStreamAsyncClient, error)
 }
 
 type mempoolTxReceiverClient struct {
@@ -54,30 +54,30 @@ func (c *mempoolTxReceiverClient) CheckTxAsync(ctx context.Context, in *TxReques
 	return out, nil
 }
 
-func (c *mempoolTxReceiverClient) CheckTxs(ctx context.Context, opts ...grpc.CallOption) (MempoolTxReceiver_CheckTxsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &MempoolTxReceiver_ServiceDesc.Streams[0], "/mempool.MempoolTxReceiver/CheckTxs", opts...)
+func (c *mempoolTxReceiverClient) CheckTxStream(ctx context.Context, opts ...grpc.CallOption) (MempoolTxReceiver_CheckTxStreamClient, error) {
+	stream, err := c.cc.NewStream(ctx, &MempoolTxReceiver_ServiceDesc.Streams[0], "/mempool.MempoolTxReceiver/CheckTxStream", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &mempoolTxReceiverCheckTxsClient{stream}
+	x := &mempoolTxReceiverCheckTxStreamClient{stream}
 	return x, nil
 }
 
-type MempoolTxReceiver_CheckTxsClient interface {
+type MempoolTxReceiver_CheckTxStreamClient interface {
 	Send(*TxRequest) error
 	CloseAndRecv() (*Empty, error)
 	grpc.ClientStream
 }
 
-type mempoolTxReceiverCheckTxsClient struct {
+type mempoolTxReceiverCheckTxStreamClient struct {
 	grpc.ClientStream
 }
 
-func (x *mempoolTxReceiverCheckTxsClient) Send(m *TxRequest) error {
+func (x *mempoolTxReceiverCheckTxStreamClient) Send(m *TxRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *mempoolTxReceiverCheckTxsClient) CloseAndRecv() (*Empty, error) {
+func (x *mempoolTxReceiverCheckTxStreamClient) CloseAndRecv() (*Empty, error) {
 	if err := x.ClientStream.CloseSend(); err != nil {
 		return nil, err
 	}
@@ -88,30 +88,30 @@ func (x *mempoolTxReceiverCheckTxsClient) CloseAndRecv() (*Empty, error) {
 	return m, nil
 }
 
-func (c *mempoolTxReceiverClient) CheckTxsAsync(ctx context.Context, opts ...grpc.CallOption) (MempoolTxReceiver_CheckTxsAsyncClient, error) {
-	stream, err := c.cc.NewStream(ctx, &MempoolTxReceiver_ServiceDesc.Streams[1], "/mempool.MempoolTxReceiver/CheckTxsAsync", opts...)
+func (c *mempoolTxReceiverClient) CheckTxStreamAsync(ctx context.Context, opts ...grpc.CallOption) (MempoolTxReceiver_CheckTxStreamAsyncClient, error) {
+	stream, err := c.cc.NewStream(ctx, &MempoolTxReceiver_ServiceDesc.Streams[1], "/mempool.MempoolTxReceiver/CheckTxStreamAsync", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &mempoolTxReceiverCheckTxsAsyncClient{stream}
+	x := &mempoolTxReceiverCheckTxStreamAsyncClient{stream}
 	return x, nil
 }
 
-type MempoolTxReceiver_CheckTxsAsyncClient interface {
+type MempoolTxReceiver_CheckTxStreamAsyncClient interface {
 	Send(*TxRequest) error
 	CloseAndRecv() (*Empty, error)
 	grpc.ClientStream
 }
 
-type mempoolTxReceiverCheckTxsAsyncClient struct {
+type mempoolTxReceiverCheckTxStreamAsyncClient struct {
 	grpc.ClientStream
 }
 
-func (x *mempoolTxReceiverCheckTxsAsyncClient) Send(m *TxRequest) error {
+func (x *mempoolTxReceiverCheckTxStreamAsyncClient) Send(m *TxRequest) error {
 	return x.ClientStream.SendMsg(m)
 }
 
-func (x *mempoolTxReceiverCheckTxsAsyncClient) CloseAndRecv() (*Empty, error) {
+func (x *mempoolTxReceiverCheckTxStreamAsyncClient) CloseAndRecv() (*Empty, error) {
 	if err := x.ClientStream.CloseSend(); err != nil {
 		return nil, err
 	}
@@ -128,8 +128,8 @@ func (x *mempoolTxReceiverCheckTxsAsyncClient) CloseAndRecv() (*Empty, error) {
 type MempoolTxReceiverServer interface {
 	CheckTx(context.Context, *TxRequest) (*Empty, error)
 	CheckTxAsync(context.Context, *TxRequest) (*Empty, error)
-	CheckTxs(MempoolTxReceiver_CheckTxsServer) error
-	CheckTxsAsync(MempoolTxReceiver_CheckTxsAsyncServer) error
+	CheckTxStream(MempoolTxReceiver_CheckTxStreamServer) error
+	CheckTxStreamAsync(MempoolTxReceiver_CheckTxStreamAsyncServer) error
 	mustEmbedUnimplementedMempoolTxReceiverServer()
 }
 
@@ -143,11 +143,11 @@ func (UnimplementedMempoolTxReceiverServer) CheckTx(context.Context, *TxRequest)
 func (UnimplementedMempoolTxReceiverServer) CheckTxAsync(context.Context, *TxRequest) (*Empty, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CheckTxAsync not implemented")
 }
-func (UnimplementedMempoolTxReceiverServer) CheckTxs(MempoolTxReceiver_CheckTxsServer) error {
-	return status.Errorf(codes.Unimplemented, "method CheckTxs not implemented")
+func (UnimplementedMempoolTxReceiverServer) CheckTxStream(MempoolTxReceiver_CheckTxStreamServer) error {
+	return status.Errorf(codes.Unimplemented, "method CheckTxStream not implemented")
 }
-func (UnimplementedMempoolTxReceiverServer) CheckTxsAsync(MempoolTxReceiver_CheckTxsAsyncServer) error {
-	return status.Errorf(codes.Unimplemented, "method CheckTxsAsync not implemented")
+func (UnimplementedMempoolTxReceiverServer) CheckTxStreamAsync(MempoolTxReceiver_CheckTxStreamAsyncServer) error {
+	return status.Errorf(codes.Unimplemented, "method CheckTxStreamAsync not implemented")
 }
 func (UnimplementedMempoolTxReceiverServer) mustEmbedUnimplementedMempoolTxReceiverServer() {}
 
@@ -198,25 +198,25 @@ func _MempoolTxReceiver_CheckTxAsync_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
-func _MempoolTxReceiver_CheckTxs_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(MempoolTxReceiverServer).CheckTxs(&mempoolTxReceiverCheckTxsServer{stream})
+func _MempoolTxReceiver_CheckTxStream_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(MempoolTxReceiverServer).CheckTxStream(&mempoolTxReceiverCheckTxStreamServer{stream})
 }
 
-type MempoolTxReceiver_CheckTxsServer interface {
+type MempoolTxReceiver_CheckTxStreamServer interface {
 	SendAndClose(*Empty) error
 	Recv() (*TxRequest, error)
 	grpc.ServerStream
 }
 
-type mempoolTxReceiverCheckTxsServer struct {
+type mempoolTxReceiverCheckTxStreamServer struct {
 	grpc.ServerStream
 }
 
-func (x *mempoolTxReceiverCheckTxsServer) SendAndClose(m *Empty) error {
+func (x *mempoolTxReceiverCheckTxStreamServer) SendAndClose(m *Empty) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *mempoolTxReceiverCheckTxsServer) Recv() (*TxRequest, error) {
+func (x *mempoolTxReceiverCheckTxStreamServer) Recv() (*TxRequest, error) {
 	m := new(TxRequest)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -224,25 +224,25 @@ func (x *mempoolTxReceiverCheckTxsServer) Recv() (*TxRequest, error) {
 	return m, nil
 }
 
-func _MempoolTxReceiver_CheckTxsAsync_Handler(srv interface{}, stream grpc.ServerStream) error {
-	return srv.(MempoolTxReceiverServer).CheckTxsAsync(&mempoolTxReceiverCheckTxsAsyncServer{stream})
+func _MempoolTxReceiver_CheckTxStreamAsync_Handler(srv interface{}, stream grpc.ServerStream) error {
+	return srv.(MempoolTxReceiverServer).CheckTxStreamAsync(&mempoolTxReceiverCheckTxStreamAsyncServer{stream})
 }
 
-type MempoolTxReceiver_CheckTxsAsyncServer interface {
+type MempoolTxReceiver_CheckTxStreamAsyncServer interface {
 	SendAndClose(*Empty) error
 	Recv() (*TxRequest, error)
 	grpc.ServerStream
 }
 
-type mempoolTxReceiverCheckTxsAsyncServer struct {
+type mempoolTxReceiverCheckTxStreamAsyncServer struct {
 	grpc.ServerStream
 }
 
-func (x *mempoolTxReceiverCheckTxsAsyncServer) SendAndClose(m *Empty) error {
+func (x *mempoolTxReceiverCheckTxStreamAsyncServer) SendAndClose(m *Empty) error {
 	return x.ServerStream.SendMsg(m)
 }
 
-func (x *mempoolTxReceiverCheckTxsAsyncServer) Recv() (*TxRequest, error) {
+func (x *mempoolTxReceiverCheckTxStreamAsyncServer) Recv() (*TxRequest, error) {
 	m := new(TxRequest)
 	if err := x.ServerStream.RecvMsg(m); err != nil {
 		return nil, err
@@ -268,13 +268,13 @@ var MempoolTxReceiver_ServiceDesc = grpc.ServiceDesc{
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "CheckTxs",
-			Handler:       _MempoolTxReceiver_CheckTxs_Handler,
+			StreamName:    "CheckTxStream",
+			Handler:       _MempoolTxReceiver_CheckTxStream_Handler,
 			ClientStreams: true,
 		},
 		{
-			StreamName:    "CheckTxsAsync",
-			Handler:       _MempoolTxReceiver_CheckTxsAsync_Handler,
+			StreamName:    "CheckTxStreamAsync",
+			Handler:       _MempoolTxReceiver_CheckTxStreamAsync_Handler,
 			ClientStreams: true,
 		},
 	},

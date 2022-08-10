@@ -9,17 +9,20 @@ package mempool;
 service MempoolTxReceiver {
   rpc CheckTx (TxRequest) returns(Empty) {}
   rpc CheckTxAsync (TxRequest) returns(Empty) {}
-  rpc CheckTxs (stream TxRequest) returns(Empty) {}
-  rpc CheckTxsAsync (stream TxRequest) returns(Empty) {}
+  rpc CheckTxStream (stream TxRequest) returns(Empty) {}
+  rpc CheckTxStreamAsync (stream TxRequest) returns(Empty) {}
 }
 
 message TxRequest {
   bytes tx = 1;
   string from = 2;
-  repeated bytes txs = 3;
-  repeated string from_addrs = 4;
-  uint32 peer_id = 5;
-  repeated string peer_ids = 6;
+  uint32 peer_id = 3;
+}
+
+message TxsRequest {
+  repeated bytes txs = 1;
+  repeated string from_addrs = 2;
+  uint32 peer_id = 3;
 }
 
 message ReceiverInfo {

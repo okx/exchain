@@ -378,7 +378,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 		return
 	}
 
-	var stream pb.MempoolTxReceiver_CheckTxsAsyncClient
+	var stream pb.MempoolTxReceiver_CheckTxStreamAsyncClient
 	var client txReceiverClient
 	defer func() {
 		if stream != nil {

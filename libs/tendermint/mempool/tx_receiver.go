@@ -84,7 +84,7 @@ func (s *txReceiverServer) checkTx(req *pb.TxRequest, ch chan<- txJob) (*pb.Empt
 	}
 }
 
-func (s *txReceiverServer) CheckTxs(stream pb.MempoolTxReceiver_CheckTxsServer) error {
+func (s *txReceiverServer) CheckTxStream(stream pb.MempoolTxReceiver_CheckTxStreamServer) error {
 	txCh := make(chan txJob)
 
 	go func(s *txReceiverServer, ch chan txJob) {
@@ -111,7 +111,7 @@ func (s *txReceiverServer) CheckTxs(stream pb.MempoolTxReceiver_CheckTxsServer) 
 	}
 }
 
-func (s *txReceiverServer) CheckTxsAsync(stream pb.MempoolTxReceiver_CheckTxsAsyncServer) error {
+func (s *txReceiverServer) CheckTxStreamAsync(stream pb.MempoolTxReceiver_CheckTxStreamAsyncServer) error {
 	for {
 		req, err := stream.Recv()
 		if err == io.EOF {
@@ -315,7 +315,7 @@ func (r *txReceiver) CheckTx(peerID uint16, memTx *mempoolTx) bool {
 	return false
 }
 
-func (r *txReceiver) CheckTxByStream(memTx *mempoolTx, peerID uint16, peer p2p.Peer, client *txReceiverClient, streamp *pb.MempoolTxReceiver_CheckTxsClient) bool {
+func (r *txReceiver) CheckTxByStream(memTx *mempoolTx, peerID uint16, peer p2p.Peer, client *txReceiverClient, streamp *pb.MempoolTxReceiver_CheckTxStreamClient) bool {
 	if streamp == nil || client == nil {
 		return false
 	}
@@ -331,7 +331,7 @@ func (r *txReceiver) CheckTxByStream(memTx *mempoolTx, peerID uint16, peer p2p.P
 			}
 			*client = clientV
 		}
-		stream, err = client.Client.CheckTxs(context.Background())
+		stream, err = client.Client.CheckTxStream(context.Background())
 		if err != nil {
 			r.Logger.Error("Error CheckTxs", "err", err)
 			return false
@@ -353,7 +353,7 @@ func (r *txReceiver) CheckTxByStream(memTx *mempoolTx, peerID uint16, peer p2p.P
 	}
 }
 
-func (r *txReceiver) CheckTxAsyncByStream(memTx *mempoolTx, peerID uint16, peer p2p.Peer, client *txReceiverClient, streamp *pb.MempoolTxReceiver_CheckTxsAsyncClient) bool {
+func (r *txReceiver) CheckTxAsyncByStream(memTx *mempoolTx, peerID uint16, peer p2p.Peer, client *txReceiverClient, streamp *pb.MempoolTxReceiver_CheckTxStreamAsyncClient) bool {
 	if streamp == nil || client == nil {
 		return false
 	}
@@ -369,7 +369,7 @@ func (r *txReceiver) CheckTxAsyncByStream(memTx *mempoolTx, peerID uint16, peer 
 			}
 			*client = clientV
 		}
-		stream, err = client.Client.CheckTxsAsync(context.Background())
+		stream, err = client.Client.CheckTxStreamAsync(context.Background())
 		if err != nil {
 			r.Logger.Error("Error CheckTxs", "err", err)
 			return false

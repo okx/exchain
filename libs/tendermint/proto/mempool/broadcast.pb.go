@@ -23,12 +23,9 @@ var _ = math.Inf
 const _ = proto.GoGoProtoPackageIsVersion3 // please upgrade the proto package
 
 type TxRequest struct {
-	Tx        []byte   `protobuf:"bytes,1,opt,name=tx,proto3" json:"tx,omitempty"`
-	From      string   `protobuf:"bytes,2,opt,name=from,proto3" json:"from,omitempty"`
-	Txs       [][]byte `protobuf:"bytes,3,rep,name=txs,proto3" json:"txs,omitempty"`
-	FromAddrs []string `protobuf:"bytes,4,rep,name=from_addrs,json=fromAddrs,proto3" json:"from_addrs,omitempty"`
-	PeerId    uint32   `protobuf:"varint,5,opt,name=peer_id,json=peerId,proto3" json:"peer_id,omitempty"`
-	PeerIds   []string `protobuf:"bytes,6,rep,name=peer_ids,json=peerIds,proto3" json:"peer_ids,omitempty"`
+	Tx     []byte `protobuf:"bytes,1,opt,name=tx,proto3" json:"tx,omitempty"`
+	From   string `protobuf:"bytes,2,opt,name=from,proto3" json:"from,omitempty"`
+	PeerId uint32 `protobuf:"varint,3,opt,name=peer_id,json=peerId,proto3" json:"peer_id,omitempty"`
 }
 
 func (m *TxRequest) Reset()         { *m = TxRequest{} }
@@ -78,20 +75,6 @@ func (m *TxRequest) GetFrom() string {
 	return ""
 }
 
-func (m *TxRequest) GetTxs() [][]byte {
-	if m != nil {
-		return m.Txs
-	}
-	return nil
-}
-
-func (m *TxRequest) GetFromAddrs() []string {
-	if m != nil {
-		return m.FromAddrs
-	}
-	return nil
-}
-
 func (m *TxRequest) GetPeerId() uint32 {
 	if m != nil {
 		return m.PeerId
@@ -99,11 +82,64 @@ func (m *TxRequest) GetPeerId() uint32 {
 	return 0
 }
 
-func (m *TxRequest) GetPeerIds() []string {
+type TxsRequest struct {
+	Txs       [][]byte `protobuf:"bytes,1,rep,name=txs,proto3" json:"txs,omitempty"`
+	FromAddrs []string `protobuf:"bytes,2,rep,name=from_addrs,json=fromAddrs,proto3" json:"from_addrs,omitempty"`
+	PeerId    uint32   `protobuf:"varint,3,opt,name=peer_id,json=peerId,proto3" json:"peer_id,omitempty"`
+}
+
+func (m *TxsRequest) Reset()         { *m = TxsRequest{} }
+func (m *TxsRequest) String() string { return proto.CompactTextString(m) }
+func (*TxsRequest) ProtoMessage()    {}
+func (*TxsRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_1597b6564598034d, []int{1}
+}
+func (m *TxsRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *TxsRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_TxsRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *TxsRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_TxsRequest.Merge(m, src)
+}
+func (m *TxsRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *TxsRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_TxsRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_TxsRequest proto.InternalMessageInfo
+
+func (m *TxsRequest) GetTxs() [][]byte {
 	if m != nil {
-		return m.PeerIds
+		return m.Txs
 	}
 	return nil
+}
+
+func (m *TxsRequest) GetFromAddrs() []string {
+	if m != nil {
+		return m.FromAddrs
+	}
+	return nil
+}
+
+func (m *TxsRequest) GetPeerId() uint32 {
+	if m != nil {
+		return m.PeerId
+	}
+	return 0
 }
 
 type ReceiverInfo struct {
@@ -115,7 +151,7 @@ func (m *ReceiverInfo) Reset()         { *m = ReceiverInfo{} }
 func (m *ReceiverInfo) String() string { return proto.CompactTextString(m) }
 func (*ReceiverInfo) ProtoMessage()    {}
 func (*ReceiverInfo) Descriptor() ([]byte, []int) {
-	return fileDescriptor_1597b6564598034d, []int{1}
+	return fileDescriptor_1597b6564598034d, []int{2}
 }
 func (m *ReceiverInfo) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -165,7 +201,7 @@ func (m *Empty) Reset()         { *m = Empty{} }
 func (m *Empty) String() string { return proto.CompactTextString(m) }
 func (*Empty) ProtoMessage()    {}
 func (*Empty) Descriptor() ([]byte, []int) {
-	return fileDescriptor_1597b6564598034d, []int{2}
+	return fileDescriptor_1597b6564598034d, []int{3}
 }
 func (m *Empty) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -196,6 +232,7 @@ var xxx_messageInfo_Empty proto.InternalMessageInfo
 
 func init() {
 	proto.RegisterType((*TxRequest)(nil), "mempool.TxRequest")
+	proto.RegisterType((*TxsRequest)(nil), "mempool.TxsRequest")
 	proto.RegisterType((*ReceiverInfo)(nil), "mempool.ReceiverInfo")
 	proto.RegisterType((*Empty)(nil), "mempool.Empty")
 }
@@ -205,29 +242,29 @@ func init() {
 }
 
 var fileDescriptor_1597b6564598034d = []byte{
-	// 346 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x92, 0x31, 0x4f, 0xc2, 0x40,
-	0x14, 0xc7, 0x7b, 0x14, 0x28, 0x7d, 0x29, 0x44, 0x6f, 0xb1, 0x9a, 0xd0, 0x34, 0x9d, 0xba, 0x48,
-	0x13, 0x34, 0x61, 0x70, 0x42, 0xe3, 0xc0, 0xe0, 0x72, 0x61, 0x72, 0x21, 0xd0, 0x1e, 0xb1, 0x91,
-	0xf6, 0xea, 0xdd, 0x61, 0xca, 0xb7, 0x70, 0xf0, 0x43, 0x39, 0x32, 0x3a, 0x1a, 0x18, 0xfc, 0x1a,
-	0xe6, 0xae, 0x95, 0xd1, 0xe0, 0xf6, 0xde, 0xff, 0x9f, 0xdf, 0xff, 0xde, 0x7b, 0x39, 0xb8, 0x5c,
-	0xa5, 0x0b, 0x11, 0x49, 0x9a, 0x27, 0x94, 0x67, 0x69, 0x2e, 0xa3, 0x82, 0x33, 0xc9, 0xa2, 0x8c,
-	0x66, 0x05, 0x63, 0xab, 0x68, 0xc1, 0xd9, 0x3c, 0x89, 0xe7, 0x42, 0x0e, 0xb4, 0x8e, 0xad, 0xda,
-	0x08, 0xde, 0x11, 0xd8, 0xd3, 0x92, 0xd0, 0x97, 0x35, 0x15, 0x12, 0xf7, 0xa0, 0x21, 0x4b, 0x17,
-	0xf9, 0x28, 0x74, 0x48, 0x43, 0x96, 0x18, 0x43, 0x73, 0xc9, 0x59, 0xe6, 0x36, 0x7c, 0x14, 0xda,
-	0x44, 0xd7, 0xf8, 0x04, 0x4c, 0x59, 0x0a, 0xd7, 0xf4, 0xcd, 0xd0, 0x21, 0xaa, 0xc4, 0x7d, 0x00,
-	0xe5, 0xcc, 0xe6, 0x49, 0xc2, 0x85, 0xdb, 0xf4, 0xcd, 0xd0, 0x26, 0xb6, 0x52, 0xc6, 0x4a, 0xc0,
-	0x67, 0x60, 0x15, 0x94, 0xf2, 0x59, 0x9a, 0xb8, 0x2d, 0x1f, 0x85, 0x5d, 0xd2, 0x56, 0xed, 0x24,
-	0xc1, 0xe7, 0xd0, 0xa9, 0x0d, 0xe1, 0xb6, 0x35, 0x65, 0x55, 0x8e, 0x08, 0x6e, 0xc0, 0x21, 0x34,
-	0xa6, 0xe9, 0x2b, 0xe5, 0x93, 0x7c, 0xc9, 0x54, 0xc6, 0x86, 0xad, 0x75, 0x06, 0xaa, 0x32, 0x54,
-	0x3b, 0x49, 0xd4, 0x84, 0x05, 0xe3, 0x52, 0x4f, 0x68, 0x12, 0x5d, 0x07, 0x16, 0xb4, 0xee, 0xb3,
-	0x42, 0x6e, 0x86, 0xdf, 0x08, 0x4e, 0x1f, 0xaa, 0x45, 0xd5, 0x8e, 0x55, 0x1e, 0x8e, 0xc0, 0xba,
-	0x7b, 0xa2, 0xf1, 0xf3, 0xb4, 0xc4, 0x78, 0x50, 0xdf, 0x61, 0x70, 0xb8, 0xc1, 0x45, 0xef, 0xa0,
-	0xe9, 0x90, 0xc0, 0xc0, 0xd7, 0xe0, 0xd4, 0xc0, 0x58, 0x6c, 0xf2, 0xf8, 0x48, 0x6a, 0x08, 0x9d,
-	0x9a, 0x12, 0xc7, 0x11, 0x21, 0xc2, 0x23, 0xe8, 0xfe, 0x32, 0xff, 0x78, 0x2a, 0x44, 0xb7, 0xa3,
-	0x8f, 0x9d, 0x87, 0xb6, 0x3b, 0x0f, 0x7d, 0xed, 0x3c, 0xf4, 0xb6, 0xf7, 0x8c, 0xed, 0xde, 0x33,
-	0x3e, 0xf7, 0x9e, 0xf1, 0xd8, 0xff, 0xf3, 0x63, 0x2c, 0xda, 0xba, 0xbd, 0xfa, 0x09, 0x00, 0x00,
-	0xff, 0xff, 0xd1, 0x28, 0xc3, 0x16, 0x40, 0x02, 0x00, 0x00,
+	// 348 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x52, 0xc1, 0x4a, 0xf3, 0x40,
+	0x18, 0xcc, 0x26, 0xff, 0xdf, 0x90, 0x8f, 0xb4, 0xe8, 0x5e, 0x0c, 0x42, 0x43, 0xc8, 0x29, 0x17,
+	0x1b, 0x50, 0xa1, 0x07, 0xbd, 0x54, 0x11, 0xec, 0xc1, 0xcb, 0x5a, 0x3c, 0x78, 0x29, 0x69, 0xb2,
+	0xc5, 0x60, 0x93, 0x8d, 0xbb, 0x5b, 0x49, 0xdf, 0xc2, 0xc7, 0xf2, 0xd8, 0xa3, 0x47, 0x69, 0x9f,
+	0xc0, 0x37, 0x90, 0xdd, 0xc6, 0x82, 0x07, 0xa5, 0xde, 0x66, 0x26, 0x33, 0x93, 0xef, 0xfb, 0x58,
+	0x38, 0x9a, 0xe5, 0x13, 0x11, 0x4b, 0x5a, 0x66, 0x94, 0x17, 0x79, 0x29, 0xe3, 0x8a, 0x33, 0xc9,
+	0xe2, 0x82, 0x16, 0x15, 0x63, 0xb3, 0x78, 0xc2, 0x59, 0x92, 0xa5, 0x89, 0x90, 0x3d, 0xad, 0x63,
+	0xbb, 0xf9, 0x10, 0x5e, 0x83, 0x33, 0xaa, 0x09, 0x7d, 0x9a, 0x53, 0x21, 0x71, 0x07, 0x4c, 0x59,
+	0x7b, 0x28, 0x40, 0x91, 0x4b, 0x4c, 0x59, 0x63, 0x0c, 0xff, 0xa6, 0x9c, 0x15, 0x9e, 0x19, 0xa0,
+	0xc8, 0x21, 0x1a, 0xe3, 0x03, 0xb0, 0x2b, 0x4a, 0xf9, 0x38, 0xcf, 0x3c, 0x2b, 0x40, 0x51, 0x9b,
+	0xb4, 0x14, 0x1d, 0x66, 0xe1, 0x1d, 0xc0, 0xa8, 0x16, 0x5f, 0x55, 0x7b, 0x60, 0xc9, 0x5a, 0x78,
+	0x28, 0xb0, 0x22, 0x97, 0x28, 0x88, 0xbb, 0x00, 0xaa, 0x60, 0x9c, 0x64, 0x19, 0x17, 0x9e, 0x19,
+	0x58, 0x91, 0x43, 0x1c, 0xa5, 0x0c, 0x94, 0xf0, 0x73, 0xef, 0x19, 0xb8, 0x84, 0xa6, 0x34, 0x7f,
+	0xa6, 0x7c, 0x58, 0x4e, 0x99, 0x32, 0x2e, 0xd8, 0x5c, 0x1b, 0xd1, 0xc6, 0xa8, 0xe8, 0x30, 0x53,
+	0xd3, 0x56, 0x8c, 0x4b, 0x3d, 0xad, 0x45, 0x34, 0x0e, 0x6d, 0xf8, 0x7f, 0x55, 0x54, 0x72, 0x71,
+	0xfc, 0x81, 0x60, 0xff, 0x66, 0xb3, 0xb3, 0xda, 0x77, 0xd3, 0x87, 0x63, 0xb0, 0x2f, 0x1f, 0x68,
+	0xfa, 0x38, 0xaa, 0x31, 0xee, 0x35, 0x27, 0xe9, 0x6d, 0xef, 0x71, 0xd8, 0xd9, 0x6a, 0xba, 0x24,
+	0x34, 0xf0, 0x29, 0xb8, 0x4d, 0x60, 0x20, 0x16, 0x65, 0xba, 0x63, 0xaa, 0x0f, 0xed, 0x26, 0x75,
+	0x2b, 0x39, 0x4d, 0x8a, 0xdd, 0x62, 0x11, 0xc2, 0xe7, 0x80, 0xbf, 0x05, 0xff, 0xf0, 0xd3, 0x08,
+	0x5d, 0xf4, 0x5f, 0x57, 0x3e, 0x5a, 0xae, 0x7c, 0xf4, 0xbe, 0xf2, 0xd1, 0xcb, 0xda, 0x37, 0x96,
+	0x6b, 0xdf, 0x78, 0x5b, 0xfb, 0xc6, 0x7d, 0xf7, 0xd7, 0xd7, 0x32, 0x69, 0x69, 0x7a, 0xf2, 0x19,
+	0x00, 0x00, 0xff, 0xff, 0x84, 0x75, 0x16, 0xcc, 0x55, 0x02, 0x00, 0x00,
 }
 
 func (m *TxRequest) Marshal() (dAtA []byte, err error) {
@@ -250,37 +287,10 @@ func (m *TxRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.PeerIds) > 0 {
-		for iNdEx := len(m.PeerIds) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.PeerIds[iNdEx])
-			copy(dAtA[i:], m.PeerIds[iNdEx])
-			i = encodeVarintBroadcast(dAtA, i, uint64(len(m.PeerIds[iNdEx])))
-			i--
-			dAtA[i] = 0x32
-		}
-	}
 	if m.PeerId != 0 {
 		i = encodeVarintBroadcast(dAtA, i, uint64(m.PeerId))
 		i--
-		dAtA[i] = 0x28
-	}
-	if len(m.FromAddrs) > 0 {
-		for iNdEx := len(m.FromAddrs) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.FromAddrs[iNdEx])
-			copy(dAtA[i:], m.FromAddrs[iNdEx])
-			i = encodeVarintBroadcast(dAtA, i, uint64(len(m.FromAddrs[iNdEx])))
-			i--
-			dAtA[i] = 0x22
-		}
-	}
-	if len(m.Txs) > 0 {
-		for iNdEx := len(m.Txs) - 1; iNdEx >= 0; iNdEx-- {
-			i -= len(m.Txs[iNdEx])
-			copy(dAtA[i:], m.Txs[iNdEx])
-			i = encodeVarintBroadcast(dAtA, i, uint64(len(m.Txs[iNdEx])))
-			i--
-			dAtA[i] = 0x1a
-		}
+		dAtA[i] = 0x18
 	}
 	if len(m.From) > 0 {
 		i -= len(m.From)
@@ -295,6 +305,52 @@ func (m *TxRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i = encodeVarintBroadcast(dAtA, i, uint64(len(m.Tx)))
 		i--
 		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *TxsRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *TxsRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *TxsRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.PeerId != 0 {
+		i = encodeVarintBroadcast(dAtA, i, uint64(m.PeerId))
+		i--
+		dAtA[i] = 0x18
+	}
+	if len(m.FromAddrs) > 0 {
+		for iNdEx := len(m.FromAddrs) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.FromAddrs[iNdEx])
+			copy(dAtA[i:], m.FromAddrs[iNdEx])
+			i = encodeVarintBroadcast(dAtA, i, uint64(len(m.FromAddrs[iNdEx])))
+			i--
+			dAtA[i] = 0x12
+		}
+	}
+	if len(m.Txs) > 0 {
+		for iNdEx := len(m.Txs) - 1; iNdEx >= 0; iNdEx-- {
+			i -= len(m.Txs[iNdEx])
+			copy(dAtA[i:], m.Txs[iNdEx])
+			i = encodeVarintBroadcast(dAtA, i, uint64(len(m.Txs[iNdEx])))
+			i--
+			dAtA[i] = 0xa
+		}
 	}
 	return len(dAtA) - i, nil
 }
@@ -380,6 +436,18 @@ func (m *TxRequest) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovBroadcast(uint64(l))
 	}
+	if m.PeerId != 0 {
+		n += 1 + sovBroadcast(uint64(m.PeerId))
+	}
+	return n
+}
+
+func (m *TxsRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
 	if len(m.Txs) > 0 {
 		for _, b := range m.Txs {
 			l = len(b)
@@ -394,12 +462,6 @@ func (m *TxRequest) Size() (n int) {
 	}
 	if m.PeerId != 0 {
 		n += 1 + sovBroadcast(uint64(m.PeerId))
-	}
-	if len(m.PeerIds) > 0 {
-		for _, s := range m.PeerIds {
-			l = len(s)
-			n += 1 + l + sovBroadcast(uint64(l))
-		}
 	}
 	return n
 }
@@ -530,6 +592,75 @@ func (m *TxRequest) Unmarshal(dAtA []byte) error {
 			m.From = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 3:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
+			}
+			m.PeerId = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowBroadcast
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.PeerId |= uint32(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipBroadcast(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthBroadcast
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *TxsRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowBroadcast
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: TxsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: TxsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Txs", wireType)
 			}
@@ -561,7 +692,7 @@ func (m *TxRequest) Unmarshal(dAtA []byte) error {
 			m.Txs = append(m.Txs, make([]byte, postIndex-iNdEx))
 			copy(m.Txs[len(m.Txs)-1], dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 4:
+		case 2:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field FromAddrs", wireType)
 			}
@@ -593,7 +724,7 @@ func (m *TxRequest) Unmarshal(dAtA []byte) error {
 			}
 			m.FromAddrs = append(m.FromAddrs, string(dAtA[iNdEx:postIndex]))
 			iNdEx = postIndex
-		case 5:
+		case 3:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field PeerId", wireType)
 			}
@@ -612,38 +743,6 @@ func (m *TxRequest) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 6:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field PeerIds", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowBroadcast
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthBroadcast
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthBroadcast
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.PeerIds = append(m.PeerIds, string(dAtA[iNdEx:postIndex]))
-			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipBroadcast(dAtA[iNdEx:])
