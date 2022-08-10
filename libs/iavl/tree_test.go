@@ -103,7 +103,7 @@ func TestVersionedRandomTreeSmallKeys(t *testing.T) {
 	d, closeDB := getTestDB()
 	defer closeDB()
 
-	tree, err := NewMutableTree(d, 100)
+	tree, err := NewMutableTree(db.NewPrefixDB(d, []byte(randstr(32))), 100)
 	require.NoError(err)
 	singleVersionTree, err := getTestTree(0)
 	require.NoError(err)
@@ -146,7 +146,7 @@ func TestVersionedRandomTreeSmallKeysRandomDeletes(t *testing.T) {
 	d, closeDB := getTestDB()
 	defer closeDB()
 
-	tree, err := NewMutableTree(d, 100)
+	tree, err := NewMutableTree(db.NewPrefixDB(d, []byte(randstr(32))), 100)
 	require.NoError(err)
 	singleVersionTree, err := getTestTree(0)
 	require.NoError(err)
@@ -561,7 +561,7 @@ func TestVersionedTreeSpecialCase(t *testing.T) {
 	d, closeDB := getTestDB()
 	defer closeDB()
 
-	tree, err := NewMutableTree(d, 0)
+	tree, err := NewMutableTree(db.NewPrefixDB(d, []byte(randstr(32))), 0)
 	require.NoError(err)
 
 	tree.Set([]byte("key1"), []byte("val0"))
@@ -968,6 +968,7 @@ func TestVersionedCheckpointsSpecialCase7(t *testing.T) {
 
 func TestVersionedTreeEfficiency(t *testing.T) {
 	require := require.New(t)
+
 	tree, err := NewMutableTree(db.NewMemDB(), 0)
 	require.NoError(err)
 	versions := 20
@@ -1006,6 +1007,7 @@ func TestVersionedTreeEfficiency(t *testing.T) {
 
 func TestVersionedTreeProofs(t *testing.T) {
 	require := require.New(t)
+
 	tree, err := getTestTree(0)
 	require.NoError(err)
 
