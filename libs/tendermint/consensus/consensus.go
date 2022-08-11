@@ -452,7 +452,7 @@ func (cs *State) newStep() {
 	cs.nSteps++
 	// newStep is called by updateToState in NewState before the eventBus is set!
 	if cs.eventBus != nil {
-		//cs.eventBus.PublishEventNewRoundStep(rs)
+		cs.eventBus.PublishEventNewRoundStep(rs)
 		cs.evsw.FireEvent(types.EventNewRoundStep, &cs.RoundState)
 	}
 }
