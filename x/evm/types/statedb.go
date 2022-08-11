@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/tendermint/go-amino"
 	"math/big"
 	"sort"
 	"sync"
@@ -1571,7 +1572,7 @@ func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.Ac
 			bcl := csdb.GetContractMethodBlockedList()
 			GetEvmParamsCache().UpdateBlockedContractMethod(bcl, csdb.ctx.IsCheckTx())
 		}
-		return GetEvmParamsCache().GetBlockedContractMethod(contractAddr.String())
+		return GetEvmParamsCache().GetBlockedContractMethod(amino.BytesToStr(contractAddr))
 	}
 
 	//use dbAdapter for watchdb or prefixdb
