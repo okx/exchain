@@ -105,15 +105,7 @@ func queryValidators(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, 
 		}
 	}
 
-	//format validators to be compatible with cosmos
-	filteredCosmosValidators := make([]types.CosmosValidator, 0, len(filteredVals))
-	for _, val := range filteredVals {
-		cosmosAny := types.WrapCosmosAny(val.ConsPubKey.Bytes())
-		cosmosVal := types.WrapCosmosValidator(val, &cosmosAny)
-		filteredCosmosValidators = append(filteredCosmosValidators, cosmosVal)
-	}
-
-	res, err := codec.MarshalJSONIndent(types.ModuleCdc, filteredCosmosValidators)
+	res, err := codec.MarshalJSONIndent(types.ModuleCdc, filteredVals)
 	if err != nil {
 		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
@@ -133,10 +125,8 @@ func queryValidator(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, e
 	if !found {
 		return nil, types.ErrNoValidatorFound(params.ValidatorAddr.String())
 	}
-	//format validators to be compatible with cosmos
-	cosmosAny := types.WrapCosmosAny(validator.ConsPubKey.Bytes())
-	cosmosVal := types.WrapCosmosValidator(validator, &cosmosAny)
-	res, err := codec.MarshalJSONIndent(types.ModuleCdc, cosmosVal)
+
+	res, err := codec.MarshalJSONIndent(types.ModuleCdc, validator)
 	if err != nil {
 		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}

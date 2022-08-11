@@ -139,10 +139,16 @@ func validatorsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		//todo
-		var vs []types.CosmosValidator
+		//format validators to be compatible with cosmos
+		var vs []types.Validator
 		cliCtx.Codec.MustUnmarshalJSON(res, &vs)
-		wrappedValidators := types.NewWrappedValidators(vs)
+		filteredCosmosValidators := make([]types.CosmosValidator, 0, len(vs))
+		for _, val := range vs {
+			cosmosAny := types.WrapCosmosAny(val.ConsPubKey.Bytes())
+			cosmosVal := types.WrapCosmosValidator(val, &cosmosAny)
+			filteredCosmosValidators = append(filteredCosmosValidators, cosmosVal)
+		}
+		wrappedValidators := types.NewWrappedValidators(filteredCosmosValidators)
 		cliCtx = cliCtx.WithHeight(height)
 		rest.PostProcessResponse(w, cliCtx, wrappedValidators)
 	}
