@@ -3,12 +3,13 @@ package client
 import (
 	"bytes"
 	"encoding/json"
+	"io/ioutil"
+	"net/http"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	"github.com/okex/exchain/libs/tendermint/rpc/jsonrpc/types"
-	"io/ioutil"
-	"net/http"
 )
 
 type decoder interface {
@@ -82,6 +83,15 @@ func (c *Cm39HttpJSONClientAdapter) seal() {
 		cm39 := s.(*CM39ResultBroadcastTxCommit)
 		cm4 := f.(*coretypes.ResultBroadcastTxCommit)
 		ConvTCM39BroadcastCommitTx2CM4(cm39, cm4)
+	})
+	c.decoders["block"] = newDefaultFuncDecoder(func() interface{} {
+		return new(coretypes.CM40ResultBlock)
+	}, func(s interface{}, f interface{}) {
+		cm4 := s.(*coretypes.CM40ResultBlock)
+		cm39 := f.(*coretypes.ResultBlock)
+		ret := cm4.ToCM39ResultBlock()
+		cm39.BlockID = ret.BlockID
+		cm39.Block = ret.Block
 	})
 }
 
