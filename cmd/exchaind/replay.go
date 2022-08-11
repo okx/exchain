@@ -88,6 +88,7 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 
 			ts := time.Now()
 			replayBlock(ctx, dataDir, node)
+			time.Sleep(time.Minute * 15)
 			log.Println("--------- replay success ---------", "Time Cost", time.Now().Sub(ts).Seconds())
 		},
 		PostRun: func(cmd *cobra.Command, args []string) {
