@@ -190,6 +190,7 @@ func (cs *State) finalizeCommit(height int64) {
 		// but may differ from the LastCommit included in the next block
 		precommits := cs.Votes.Precommits(cs.CommitRound)
 		seenCommit := precommits.MakeCommit()
+		cs.Logger.Error("CS Save Block", "height", block.Height)
 		cs.blockStore.SaveBlock(block, blockParts, seenCommit)
 	} else {
 		// Happens during replay if we already saved the block but didn't commit
@@ -229,6 +230,7 @@ func (cs *State) finalizeCommit(height int64) {
 	var retainHeight int64
 
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
+	cs.Logger.Error("CS Apply Block", "height", block.Height)
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
 		stateCopy,
 		types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()},
@@ -241,7 +243,7 @@ func (cs *State) finalizeCommit(height int64) {
 		}
 		return
 	}
-
+	cs.Logger.Error("End Apply Block", "height", block.Height)
 	fail.Fail() // XXX
 
 	// Prune old heights, if requested by ABCI app.
@@ -261,7 +263,7 @@ func (cs *State) finalizeCommit(height int64) {
 	cs.stateMtx.Lock()
 	cs.updateToState(stateCopy)
 	cs.stateMtx.Unlock()
-
+	cs.Logger.Error("End updateToState", "height", block.Height)
 	fail.Fail() // XXX
 
 	// Private validator might have changed it's key pair => refetch pubkey.
