@@ -146,9 +146,11 @@ func (cms Store) reset(ms Store) {
 		}
 	}
 
-	for k := range cms.stores {
-		if _, ok := keysMap[k]; !ok {
-			delete(cms.stores, k)
+	if len(cms.stores) != len(ms.stores) {
+		for k := range cms.stores {
+			if _, ok := keysMap[k]; !ok {
+				delete(cms.stores, k)
+			}
 		}
 	}
 }

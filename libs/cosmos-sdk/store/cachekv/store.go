@@ -227,16 +227,24 @@ func (store *Store) writeToCacheKv(parent *Store) {
 
 func (store *Store) clearCache() {
 	// https://github.com/golang/go/issues/20138
-	for key := range store.dirty {
-		delete(store.dirty, key)
+	if len(store.dirty) > 0 {
+		for key := range store.dirty {
+			delete(store.dirty, key)
+		}
 	}
 
-	for Key := range store.readList {
-		delete(store.readList, Key)
+	if len(store.readList) > 0 {
+		for key := range store.readList {
+			delete(store.readList, key)
+		}
 	}
-	for key := range store.unsortedCache {
-		delete(store.unsortedCache, key)
+
+	if len(store.unsortedCache) > 0 {
+		for key := range store.unsortedCache {
+			delete(store.unsortedCache, key)
+		}
 	}
+
 	store.disableCacheReadList = false
 	store.sortedCache.Init()
 }
