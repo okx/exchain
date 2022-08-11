@@ -1,4 +1,4 @@
-// protoc --gofast_out=. --go-grpc_out=.   ./libs/tendermint/proto/mempool/broadcast.proto
+// protoc --gogofaster_out=. --go-grpc_out=.   ./libs/tendermint/proto/mempool/broadcast.proto
 
 syntax = "proto3";
 
