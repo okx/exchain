@@ -27,6 +27,15 @@ func NewStore(parent types.KVStore, gasMeter types.GasMeter, gasConfig types.Gas
 	return kvs
 }
 
+func ResetStore(kvs *Store, parent types.KVStore, gasMeter types.GasMeter, gasConfig types.GasConfig) *Store {
+	*kvs = Store{
+		gasMeter:  gasMeter,
+		gasConfig: gasConfig,
+		parent:    parent,
+	}
+	return kvs
+}
+
 // Implements Store.
 func (gs *Store) GetStoreType() types.StoreType {
 	return gs.parent.GetStoreType()
