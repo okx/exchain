@@ -26,7 +26,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const SupportedFeatures = "iterator,stargate"
+const SupportedFeatures = keeper.SupportedFeatures
 
 func (b AppModuleBasic) RegisterCodec(amino *codec.Codec) {
 	RegisterCodec(amino)

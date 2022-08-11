@@ -26,6 +26,7 @@ import (
 // contractMemoryLimit is the memory limit of each contract execution (in MiB)
 // constant value so all nodes run with the same limit.
 const contractMemoryLimit = 32
+const SupportedFeatures = "iterator,staking,stargate"
 
 // Option is an extension point to instantiate keeper with non default values
 type Option interface {
