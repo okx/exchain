@@ -62,7 +62,7 @@ func (k Keeper) GetSupply(ctx sdk.Context) (supply exported.SupplyI) {
 // SetSupply sets the Supply to store
 func (k Keeper) SetSupply(ctx sdk.Context, supply exported.SupplyI) {
 	tokensSupply := supply.GetTotal()
-	global.SetSupply(tokensSupply)
+	global.Manager.SetSupply(tokensSupply)
 	for i := 0; i < len(tokensSupply); i++ {
 		k.setTokenSupplyAmount(ctx, tokensSupply[i].Denom, tokensSupply[i].Amount)
 	}

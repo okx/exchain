@@ -3,6 +3,7 @@ package wasm
 import (
 	"context"
 	"github.com/okex/exchain/app/rpc/simulator"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"math/rand"
 
 	"github.com/gorilla/mux"
@@ -123,8 +124,9 @@ func NewAppModule(cdc codec.CodecProxy, keeper *Keeper) AppModule {
 }
 
 func (am AppModule) RegisterServices(cfg module.Configurator) {
-	watcher.CheckEnable()
+	watcher.Init()
 	watcher.InitDB()
+	global.Manager = watcher.ParamsManager{}
 	simulator.NewWasmSimulator = NewWasmSimulator
 	types.RegisterMsgServer(cfg.MsgServer(), keeper.NewMsgServerImpl(keeper.NewDefaultPermissionKeeper(am.keeper)))
 	if watcher.Enable() {

@@ -444,7 +444,7 @@ func (keeper BaseSendKeeper) GetSendEnabled(ctx sdk.Context) bool {
 
 // SetSendEnabled sets the send enabled
 func (keeper BaseSendKeeper) SetSendEnabled(ctx sdk.Context, enabled bool) {
-	global.SetSendEnabled(enabled)
+	global.Manager.SetSendEnabled(enabled)
 	keeper.paramSpace.Set(ctx, types.ParamStoreKeySendEnabled, &enabled)
 }
 

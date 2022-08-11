@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"fmt"
+	"log"
 
 	apptypes "github.com/okex/exchain/app/types"
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/store/types"
@@ -25,7 +26,6 @@ import (
 	token "github.com/okex/exchain/x/token/types"
 	"github.com/okex/exchain/x/wasm/types"
 	"github.com/okex/exchain/x/wasm/watcher"
-	"log"
 )
 
 const (
@@ -183,7 +183,7 @@ func (b BankKeeperProxy) IsSendEnabledCoins(ctx sdk.Context, coins ...sdk.Coin) 
 
 func (b BankKeeperProxy) GetSendEnabled(ctx sdk.Context) bool {
 	ctx.GasMeter().ConsumeGas(1012, "BankKeeperProxy GetSendEnabled")
-	return global.GetSendEnabled()
+	return global.Manager.GetSendEnabled()
 }
 
 func (b BankKeeperProxy) BlockedAddr(addr sdk.AccAddress) bool {
@@ -203,7 +203,7 @@ type SupplyKeeperProxy struct{}
 
 func (s SupplyKeeperProxy) GetSupply(ctx sdk.Context) supplyexported.SupplyI {
 	return supply.Supply{
-		Total: global.GetSupply().(sdk.Coins),
+		Total: global.Manager.GetSupply().(sdk.Coins),
 	}
 }
 

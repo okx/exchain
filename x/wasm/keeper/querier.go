@@ -24,7 +24,6 @@ type grpcQuerier struct {
 	storeKey      sdk.StoreKey
 	keeper        types.ViewKeeper
 	queryGasLimit sdk.Gas
-	queryType     string
 }
 
 // NewGrpcQuerier constructor
@@ -335,4 +334,3 @@ func (q grpcQuerier) PrefixStore(c context.Context, pre []byte) sdk.KVStore {
 	return prefix.NewStore(ctx.KVStore(q.storeKey), pre)
 
 }
-

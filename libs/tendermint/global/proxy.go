@@ -1,21 +1,11 @@
 package global
 
-var bankSendEnabled bool
-
-func SetSendEnabled(enable bool) {
-	bankSendEnabled = enable
+type ModuleParamsManager interface {
+	SetSendEnabled(enable bool)
+	GetSendEnabled() bool
+	SetSupply(coins interface{}) //coins is sdk.Coins
+	GetSupply() interface{}      //sdk.Coins
 }
 
-func GetSendEnabled() bool {
-	return bankSendEnabled
-}
-
-var supply interface{} //sdk.Coins
-
-func SetSupply(coins interface{}) {
-	supply = coins
-}
-
-func GetSupply() interface{} {
-	return supply
-}
+// Manager sets module params to watchDB and avoids golang import cycle
+var Manager ModuleParamsManager

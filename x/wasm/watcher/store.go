@@ -35,7 +35,7 @@ var (
 	accountKeyPrefix = []byte("wasm-account-")
 )
 
-func CheckEnable() bool {
+func Init() bool {
 	checkOnce.Do(func() {
 		checked = true
 		if viper.GetBool(watcher.FlagFastQuery) {
@@ -46,10 +46,14 @@ func CheckEnable() bool {
 }
 
 func Enable() bool {
+	ensureChecked()
+	return enableWatcher
+}
+
+func ensureChecked() {
 	if !checked {
 		panic("fast query should be checked at init")
 	}
-	return enableWatcher
 }
 
 func InitDB() {
