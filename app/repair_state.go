@@ -8,8 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/okex/exchain/app/config"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
 	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
@@ -169,8 +167,6 @@ func newRepairApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer) *repairA
 
 func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	proxyApp proxy.AppConns, startHeight, latestHeight int64, dataDir string) {
-	config.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
-
 	stateCopy := state.Copy()
 	ctx.Logger.Debug("stateCopy", "state", fmt.Sprintf("%+v", stateCopy))
 	// construct state for repair
@@ -181,11 +177,11 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	txStore, txindexServer, err := startEventBusAndIndexerService(ctx.Config, eventBus, ctx.Logger)
 	panicError(err)
 	defer func() {
-		if txindexServer != nil {
+		if txindexServer != nil && txindexServer.IsRunning() {
 			txindexServer.Stop()
 			txindexServer.Wait()
 		}
-		if eventBus != nil {
+		if eventBus != nil && eventBus.IsRunning() {
 			eventBus.Stop()
 			eventBus.Wait()
 		}
@@ -196,6 +192,8 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	}()
 	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
 	blockExec.SetEventBus(eventBus)
+	// Save state synchronously during repair state
+	blockExec.SetIsAsyncSaveDB(false)
 	global.SetGlobalHeight(startHeight + 1)
 	for height := startHeight + 1; height <= latestHeight; height++ {
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)

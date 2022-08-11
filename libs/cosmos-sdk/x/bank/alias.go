@@ -4,6 +4,7 @@ package bank
 
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/keeper"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/keeperadapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/typesadapter"
 )
@@ -47,6 +48,10 @@ var (
 	NewQueryBalanceParams       = types.NewQueryBalanceParams
 	ModuleCdc                   = types.ModuleCdc
 	ParamStoreKeySendEnabled    = types.ParamStoreKeySendEnabled
+	RegisterBankMsgServer       = typesadapter.RegisterMsgServer
+	NewMsgServerImpl            = keeperadapter.NewMsgServerImpl
+	RegisterQueryServer         = typesadapter.RegisterQueryServer
+	NewBankKeeperAdapter        = keeperadapter.NewBankKeeperAdapter
 )
 
 type (
@@ -63,4 +68,32 @@ type (
 	Input              = types.Input
 	Output             = types.Output
 	QueryBalanceParams = types.QueryBalanceParams
+	BankKeeperAdapter  = keeperadapter.BankKeeperAdapter
+	SupplyKeeper       = keeperadapter.SupplyKeeper
+)
+
+//adapter
+type (
+	MsgMultiSendAdapter                = typesadapter.MsgMultiSend
+	MsgSendAdapter                     = typesadapter.MsgSend
+	MsgSendResponseAdapter             = typesadapter.MsgSendResponse
+	QueryServerAdapter                 = typesadapter.QueryServer
+	MsgMultiSendResponseAdapter        = typesadapter.MsgMultiSendResponse
+	QueryBalanceRequestAdapter         = typesadapter.QueryBalanceRequest
+	QueryBalanceResponseAdapter        = typesadapter.QueryBalanceResponse
+	QueryAllBalancesRequestAdapter     = typesadapter.QueryAllBalancesRequest
+	QueryAllBalancesResponseAdapter    = typesadapter.QueryAllBalancesResponse
+	QueryTotalSupplyRequestAdapter     = typesadapter.QueryTotalSupplyRequest
+	QueryTotalSupplyResponseAdapter    = typesadapter.QueryTotalSupplyResponse
+	QuerySupplyOfRequestAdapter        = typesadapter.QuerySupplyOfRequest
+	QuerySupplyOfResponseAdapter       = typesadapter.QuerySupplyOfResponse
+	QueryParamsRequestAdapter          = typesadapter.QueryParamsRequest
+	QueryParamsResponseAdapter         = typesadapter.QueryParamsResponse
+	QueryDenomsMetadataRequestAdapter  = typesadapter.QueryDenomsMetadataRequest
+	QueryDenomsMetadataResponseAdapter = typesadapter.QueryDenomsMetadataResponse
+	QueryDenomMetadataRequestAdapter   = typesadapter.QueryDenomMetadataRequest
+	QueryDenomMetadataResponseAdapter  = typesadapter.QueryDenomMetadataResponse
+	ParamsAdapter                      = typesadapter.Params
+
+	MetadataAdapter = typesadapter.Metadata
 )

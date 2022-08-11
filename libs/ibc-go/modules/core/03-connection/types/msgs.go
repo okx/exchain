@@ -46,7 +46,7 @@ func (msg MsgConnectionOpenInit) Route() string {
 
 // Type implements sdk.Msg
 func (msg MsgConnectionOpenInit) Type() string {
-	return "connection_open_init"
+	return sdk.MsgTypeURL(&msg)
 }
 
 // ValidateBasic implements sdk.Msg.
@@ -64,7 +64,7 @@ func (msg MsgConnectionOpenInit) ValidateBasic() error {
 			return sdkerrors.Wrap(err, "basic validation of the provided version failed")
 		}
 	}
-	_, err := sdk.IBCAccAddressFromBech32(msg.Signer)
+	_, err := sdk.AccAddressFromBech32(msg.Signer)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "string could not be parsed as address: %v", err)
 	}
@@ -121,7 +121,7 @@ func (msg MsgConnectionOpenTry) Route() string {
 
 // Type implements sdk.Msg
 func (msg MsgConnectionOpenTry) Type() string {
-	return "connection_open_try"
+	return sdk.MsgTypeURL(&msg)
 }
 
 // ValidateBasic implements sdk.Msg
@@ -172,7 +172,7 @@ func (msg MsgConnectionOpenTry) ValidateBasic() error {
 	if msg.ConsensusHeight.IsZero() {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidHeight, "consensus height must be non-zero")
 	}
-	_, err = sdk.IBCAccAddressFromBech32(msg.Signer)
+	_, err = sdk.AccAddressFromBech32(msg.Signer)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "string could not be parsed as address: %v", err)
 	}
@@ -235,7 +235,7 @@ func (msg MsgConnectionOpenAck) Route() string {
 
 // Type implements sdk.Msg
 func (msg MsgConnectionOpenAck) Type() string {
-	return "connection_open_ack"
+	return sdk.MsgTypeURL(&msg)
 }
 
 // ValidateBasic implements sdk.Msg
@@ -274,7 +274,7 @@ func (msg MsgConnectionOpenAck) ValidateBasic() error {
 	if msg.ConsensusHeight.IsZero() {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidHeight, "consensus height must be non-zero")
 	}
-	_, err = sdk.IBCAccAddressFromBech32(msg.Signer)
+	_, err = sdk.AccAddressFromBech32(msg.Signer)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "string could not be parsed as address: %v", err)
 	}
@@ -317,7 +317,7 @@ func (msg MsgConnectionOpenConfirm) Route() string {
 
 // Type implements sdk.Msg
 func (msg MsgConnectionOpenConfirm) Type() string {
-	return "connection_open_confirm"
+	return sdk.MsgTypeURL(&msg)
 }
 
 // ValidateBasic implements sdk.Msg
@@ -331,7 +331,7 @@ func (msg MsgConnectionOpenConfirm) ValidateBasic() error {
 	if msg.ProofHeight.IsZero() {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidHeight, "proof height must be non-zero")
 	}
-	_, err := sdk.IBCAccAddressFromBech32(msg.Signer)
+	_, err := sdk.AccAddressFromBech32(msg.Signer)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "string could not be parsed as address: %v", err)
 	}

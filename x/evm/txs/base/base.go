@@ -36,6 +36,7 @@ type Tx struct {
 	Keeper *Keeper
 
 	StateTransition types.StateTransition
+	reuseCsdb       bool
 }
 
 // Prepare convert msg to state transition
@@ -43,7 +44,7 @@ func (tx *Tx) Prepare(msg *types.MsgEthereumTx) (err error) {
 	tx.AnalyzeStart(bam.Txhash)
 	defer tx.AnalyzeStop(bam.Txhash)
 
-	tx.StateTransition, err = msg2st(&tx.Ctx, tx.Keeper, msg)
+	tx.reuseCsdb, err = msg2st(&tx.Ctx, tx.Keeper, msg, &tx.StateTransition)
 	return
 }
 
@@ -74,7 +75,7 @@ func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 		}
 		err = tx.Keeper.CallEvmHooks(tx.Ctx, tx.StateTransition.Sender, tx.StateTransition.Recipient, receipt)
 		if err != nil {
-			tx.Keeper.Logger(tx.Ctx).Error("tx call evm hooks failed", "error", err)
+			tx.Keeper.Logger().Error("tx call evm hooks failed", "error", err)
 		}
 	}
 
@@ -141,10 +142,20 @@ func (tx *Tx) GetSenderAccount() authexported.Account { return nil }
 func (tx *Tx) ResetWatcher(account authexported.Account) {}
 
 // RefundFeesWatcher refund the watcher, check Tx do not save state so. skip
-func (tx *Tx) RefundFeesWatcher(account authexported.Account, coins sdk.Coins, price *big.Int) {}
+func (tx *Tx) RefundFeesWatcher(account authexported.Account, ethereumTx *types.MsgEthereumTx) {}
 
 // Commit check Tx do not need
 func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *Result) {}
 
 // FinalizeWatcher check Tx do not need this
-func (tx *Tx) FinalizeWatcher(account authexported.Account, err error) {}
+func (tx *Tx) FinalizeWatcher(msg *types.MsgEthereumTx, account authexported.Account, err error) {}
+
+func (tx *Tx) Dispose() {
+	if tx != nil && tx.reuseCsdb {
+		tx.reuseCsdb = false
+		if tx.StateTransition.Csdb != nil {
+			putCommitStateDB(tx.StateTransition.Csdb)
+			tx.StateTransition.Csdb = nil
+		}
+	}
+}

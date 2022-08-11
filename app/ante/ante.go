@@ -11,6 +11,7 @@ import (
 	ibcante "github.com/okex/exchain/libs/ibc-go/modules/core/ante"
 	"github.com/okex/exchain/libs/system/trace"
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
+	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
 )
 
 func init() {
@@ -28,47 +29,54 @@ const (
 // Ethereum or SDK transaction to an internal ante handler for performing
 // transaction-level processing (e.g. fee payment, signature verification) before
 // being passed onto it's respective handler.
-func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper, validateMsgHandler ValidateMsgHandler, ibcChannelKeepr channelkeeper.Keeper) sdk.AnteHandler {
+func NewAnteHandler(ak auth.AccountKeeper, evmKeeper EVMKeeper, sk types.SupplyKeeper, validateMsgHandler ValidateMsgHandler, option wasmkeeper.HandlerOption, ibcChannelKeepr channelkeeper.Keeper) sdk.AnteHandler {
+	var stdTxAnteHandler, evmTxAnteHandler sdk.AnteHandler
+
+	stdTxAnteHandler = sdk.ChainAnteDecorators(
+		authante.NewSetUpContextDecorator(),                                             // outermost AnteDecorator. SetUpContext must be called first
+		wasmkeeper.NewLimitSimulationGasDecorator(option.WasmConfig.SimulationGasLimit), // after setup context to enforce limits early
+		wasmkeeper.NewCountTXDecorator(option.TXCounterStoreKey),
+		NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
+		authante.NewMempoolFeeDecorator(),
+		authante.NewValidateBasicDecorator(),
+		authante.NewValidateMemoDecorator(ak),
+		authante.NewConsumeGasForTxSizeDecorator(ak),
+		authante.NewSetPubKeyDecorator(ak), // SetPubKeyDecorator must be called before all signature verification decorators
+		authante.NewValidateSigCountDecorator(ak),
+		authante.NewDeductFeeDecorator(ak, sk),
+		authante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
+		authante.NewSigVerificationDecorator(ak),
+		authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
+		NewValidateMsgHandlerDecorator(validateMsgHandler),
+		ibcante.NewAnteDecorator(ibcChannelKeepr),
+	)
+
+	evmTxAnteHandler = sdk.ChainAnteDecorators(
+		NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first
+		NewGasLimitDecorator(evmKeeper),
+		NewEthMempoolFeeDecorator(evmKeeper),
+		authante.NewValidateBasicDecorator(),
+		NewEthSigVerificationDecorator(),
+		NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
+		NewAccountAnteDecorator(ak, evmKeeper, sk),
+	)
+
 	return func(
 		ctx sdk.Context, tx sdk.Tx, sim bool,
 	) (newCtx sdk.Context, err error) {
 		var anteHandler sdk.AnteHandler
 		switch tx.GetType() {
 		case sdk.StdTxType:
-			anteHandler = sdk.ChainAnteDecorators(
-				authante.NewSetUpContextDecorator(),               // outermost AnteDecorator. SetUpContext must be called first
-				NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
-				authante.NewMempoolFeeDecorator(),
-				authante.NewValidateBasicDecorator(),
-				authante.NewValidateMemoDecorator(ak),
-				authante.NewConsumeGasForTxSizeDecorator(ak),
-				authante.NewSetPubKeyDecorator(ak), // SetPubKeyDecorator must be called before all signature verification decorators
-				authante.NewValidateSigCountDecorator(ak),
-				authante.NewDeductFeeDecorator(ak, sk),
-				authante.NewSigGasConsumeDecorator(ak, sigGasConsumer),
-				authante.NewSigVerificationDecorator(ak),
-				authante.NewIncrementSequenceDecorator(ak), // innermost AnteDecorator
-				NewValidateMsgHandlerDecorator(validateMsgHandler),
-				ibcante.NewAnteDecorator(ibcChannelKeepr),
-			)
+			anteHandler = stdTxAnteHandler
 
 		case sdk.EvmTxType:
-
 			if ctx.IsWrappedCheckTx() {
 				anteHandler = sdk.ChainAnteDecorators(
 					NewNonceVerificationDecorator(ak),
 					NewIncrementSenderSequenceDecorator(ak),
 				)
 			} else {
-				anteHandler = sdk.ChainAnteDecorators(
-					NewEthSetupContextDecorator(), // outermost AnteDecorator. EthSetUpContext must be called first
-					NewGasLimitDecorator(evmKeeper),
-					NewEthMempoolFeeDecorator(evmKeeper),
-					authante.NewValidateBasicDecorator(),
-					NewEthSigVerificationDecorator(),
-					NewAccountBlockedVerificationDecorator(evmKeeper), //account blocked check AnteDecorator
-					NewAccountAnteDecorator(ak, evmKeeper, sk),
-				)
+				anteHandler = evmTxAnteHandler
 			}
 
 		default:

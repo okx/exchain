@@ -66,7 +66,7 @@ set -x # activate debugging
 rm -rf ~/.exchain*
 rm -rf $HOME_SERVER
 
-(cd .. && make install Venus1Height=1)
+(cd .. && make install Venus1Height=1 Venus2Height=1)
 
 # Set up config for CLI
 exchaincli config chain-id $CHAINID

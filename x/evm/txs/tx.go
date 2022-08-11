@@ -1,8 +1,6 @@
 package txs
 
 import (
-	"math/big"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	bam "github.com/okex/exchain/libs/system/trace"
@@ -29,7 +27,7 @@ type Tx interface {
 	ResetWatcher(account authexported.Account)
 
 	// RefundFeesWatcher fix account balance in watcher with refund fees
-	RefundFeesWatcher(account authexported.Account, coins sdk.Coins, price *big.Int)
+	RefundFeesWatcher(account authexported.Account, ethereumTx *types.MsgEthereumTx)
 
 	// Transition execute evm tx
 	Transition(config types.ChainConfig) (result base.Result, err error)
@@ -44,13 +42,16 @@ type Tx interface {
 	EmitEvent(msg *types.MsgEthereumTx, result *base.Result)
 
 	// FinalizeWatcher after execute evm tx run here
-	FinalizeWatcher(account authexported.Account, err error)
+	FinalizeWatcher(msg *types.MsgEthereumTx, account authexported.Account, err error)
 
 	// AnalyzeStart start record tag
 	AnalyzeStart(tag string)
 
 	// AnalyzeStop stop record tag
 	AnalyzeStop(tag string)
+
+	// Dispose release the resources of the tx, should be called after the tx is unused
+	Dispose()
 }
 
 // TransitionEvmTx execute evm transition template
@@ -82,8 +83,8 @@ func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err e
 			tx.ResetWatcher(senderAccount)
 			panic(e)
 		}
-		tx.RefundFeesWatcher(senderAccount, msg.GetFee(), msg.Data.Price)
-		tx.FinalizeWatcher(senderAccount, err)
+		tx.RefundFeesWatcher(senderAccount, msg)
+		tx.FinalizeWatcher(msg, senderAccount, err)
 	}()
 
 	// execute evm tx

@@ -35,7 +35,7 @@ func (msg MsgChannelOpenInit) Route() string {
 
 // Type implements sdk.Msg
 func (msg MsgChannelOpenInit) Type() string {
-	return "channel_open_init"
+	return sdk.MsgTypeURL(&msg)
 }
 
 // ValidateBasic implements sdk.Msg
@@ -52,7 +52,7 @@ func (msg MsgChannelOpenInit) ValidateBasic() error {
 	if msg.Channel.Counterparty.ChannelId != "" {
 		return sdkerrors.Wrap(ErrInvalidCounterparty, "counterparty channel identifier must be empty")
 	}
-	_, err := sdk.IBCAccAddressFromBech32(msg.Signer)
+	_, err := sdk.AccAddressFromBech32(msg.Signer)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "string could not be parsed as address: %v", err)
 	}
@@ -67,7 +67,7 @@ func (msg MsgChannelOpenInit) GetSignBytes() []byte {
 
 // GetSigners implements sdk.Msg
 func (msg MsgChannelOpenInit) GetSigners() []sdk.AccAddress {
-	signer, err := sdk.IBCAccAddressFromBech32(msg.Signer)
+	signer, err := sdk.AccAddressFromBech32(msg.Signer)
 	if err != nil {
 		panic(err)
 	}
@@ -103,7 +103,7 @@ func (msg MsgChannelOpenTry) Route() string {
 
 // Type implements sdk.Msg
 func (msg MsgChannelOpenTry) Type() string {
-	return "channel_open_try"
+	return sdk.MsgTypeURL(&msg)
 }
 
 // ValidateBasic implements sdk.Msg
@@ -133,7 +133,7 @@ func (msg MsgChannelOpenTry) ValidateBasic() error {
 		return sdkerrors.Wrap(err, "invalid counterparty channel ID")
 	}
 
-	_, err := sdk.IBCAccAddressFromBech32(msg.Signer)
+	_, err := sdk.AccAddressFromBech32(msg.Signer)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "string could not be parsed as address: %v", err)
 	}
@@ -181,7 +181,7 @@ func (msg MsgChannelOpenAck) Route() string {
 
 // Type implements sdk.Msg
 func (msg MsgChannelOpenAck) Type() string {
-	return "channel_open_ack"
+	return sdk.MsgTypeURL(&msg)
 }
 
 // ValidateBasic implements sdk.Msg
@@ -201,7 +201,7 @@ func (msg MsgChannelOpenAck) ValidateBasic() error {
 	if msg.ProofHeight.IsZero() {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidHeight, "proof height must be non-zero")
 	}
-	_, err := sdk.IBCAccAddressFromBech32(msg.Signer)
+	_, err := sdk.AccAddressFromBech32(msg.Signer)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "string could not be parsed as address: %v", err)
 	}
@@ -247,7 +247,7 @@ func (msg MsgChannelOpenConfirm) Route() string {
 
 // Type implements sdk.Msg
 func (msg MsgChannelOpenConfirm) Type() string {
-	return "channel_open_confirm"
+	return sdk.MsgTypeURL(&msg)
 }
 
 // ValidateBasic implements sdk.Msg
@@ -264,7 +264,7 @@ func (msg MsgChannelOpenConfirm) ValidateBasic() error {
 	if msg.ProofHeight.IsZero() {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidHeight, "proof height must be non-zero")
 	}
-	_, err := sdk.IBCAccAddressFromBech32(msg.Signer)
+	_, err := sdk.AccAddressFromBech32(msg.Signer)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "string could not be parsed as address: %v", err)
 	}
@@ -307,7 +307,7 @@ func (msg MsgChannelCloseInit) Route() string {
 
 // Type implements sdk.Msg
 func (msg MsgChannelCloseInit) Type() string {
-	return "channel_close_init"
+	return sdk.MsgTypeURL(&msg)
 }
 
 // ValidateBasic implements sdk.Msg
@@ -318,7 +318,7 @@ func (msg MsgChannelCloseInit) ValidateBasic() error {
 	if !IsValidChannelID(msg.ChannelId) {
 		return ErrInvalidChannelIdentifier
 	}
-	_, err := sdk.IBCAccAddressFromBech32(msg.Signer)
+	_, err := sdk.AccAddressFromBech32(msg.Signer)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "string could not be parsed as address: %v", err)
 	}
@@ -364,7 +364,7 @@ func (msg MsgChannelCloseConfirm) Route() string {
 
 // Type implements sdk.Msg
 func (msg MsgChannelCloseConfirm) Type() string {
-	return "channel_close_confirm"
+	return sdk.MsgTypeURL(&msg)
 }
 
 // ValidateBasic implements sdk.Msg
@@ -381,7 +381,7 @@ func (msg MsgChannelCloseConfirm) ValidateBasic() error {
 	if msg.ProofHeight.IsZero() {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidHeight, "proof height must be non-zero")
 	}
-	_, err := sdk.IBCAccAddressFromBech32(msg.Signer)
+	_, err := sdk.AccAddressFromBech32(msg.Signer)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "string could not be parsed as address: %v", err)
 	}
@@ -432,7 +432,7 @@ func (msg MsgRecvPacket) ValidateBasic() error {
 	if msg.ProofHeight.IsZero() {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidHeight, "proof height must be non-zero")
 	}
-	_, err := sdk.IBCAccAddressFromBech32(msg.Signer)
+	_, err := sdk.AccAddressFromBech32(msg.Signer)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "string could not be parsed as address: %v", err)
 	}
@@ -463,7 +463,7 @@ func (msg MsgRecvPacket) GetSigners() []sdk.AccAddress {
 
 // Type implements sdk.Msg
 func (msg MsgRecvPacket) Type() string {
-	return "recv_packet"
+	return sdk.MsgTypeURL(&msg)
 }
 
 var _ sdk.Msg = &MsgTimeout{}
@@ -523,7 +523,7 @@ func (msg MsgTimeout) GetSigners() []sdk.AccAddress {
 
 // Type implements sdk.Msg
 func (msg MsgTimeout) Type() string {
-	return "timeout_packet"
+	return sdk.MsgTypeURL(&msg)
 }
 
 // NewMsgTimeoutOnClose constructs new MsgTimeoutOnClose
@@ -562,7 +562,7 @@ func (msg MsgTimeoutOnClose) ValidateBasic() error {
 	if msg.ProofHeight.IsZero() {
 		return sdkerrors.Wrap(sdkerrors.ErrInvalidHeight, "proof height must be non-zero")
 	}
-	_, err := sdk.IBCAccAddressFromBech32(msg.Signer)
+	_, err := sdk.AccAddressFromBech32(msg.Signer)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "string could not be parsed as address: %v", err)
 	}
@@ -586,7 +586,7 @@ func (msg MsgTimeoutOnClose) GetSigners() []sdk.AccAddress {
 
 // Type implements sdk.Msg
 func (msg MsgTimeoutOnClose) Type() string {
-	return "timeout_on_close_packet"
+	return sdk.MsgTypeURL(&msg)
 }
 
 var _ sdk.Msg = &MsgAcknowledgement{}
@@ -624,7 +624,7 @@ func (msg MsgAcknowledgement) ValidateBasic() error {
 	if len(msg.Acknowledgement) == 0 {
 		return sdkerrors.Wrap(ErrInvalidAcknowledgement, "ack bytes cannot be empty")
 	}
-	_, err := sdk.IBCAccAddressFromBech32(msg.Signer)
+	_, err := sdk.AccAddressFromBech32(msg.Signer)
 	if err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidAddress, "string could not be parsed as address: %v", err)
 	}
@@ -648,5 +648,5 @@ func (msg MsgAcknowledgement) GetSigners() []sdk.AccAddress {
 
 // Type implements sdk.Msg
 func (msg MsgAcknowledgement) Type() string {
-	return "acknowledge_packet"
+	return sdk.MsgTypeURL(&msg)
 }

@@ -33,7 +33,7 @@ const (
 	ViewChangeChannel  = byte(0x24)
 
 	maxPartSize = 1048576 // 1MB; NOTE/TODO: keep in sync with types.PartSet sizes.
-	maxMsgSize  = maxPartSize + types.MaxDeltasSizeBytes
+	maxMsgSize  = maxPartSize
 
 	blocksToContributeToBecomeGoodPeer = 10000
 	votesToContributeToBecomeGoodPeer  = 10000
@@ -385,6 +385,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 
 			// verify the signature of prMsg
 			_, val := conR.conS.Validators.GetByAddress(msg.NewProposer)
+			if val == nil {
+				return
+			}
 			if err := msg.Verify(val.PubKey); err != nil {
 				conR.Logger.Error("reactor Verify Signature of ProposeRequestMessage", "err", err)
 				return
@@ -539,12 +542,6 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		func(data tmevents.EventData) {
 			conR.broadcastNewRoundStepMessage(data.(*cstypes.RoundState))
 
-			height := data.(*cstypes.RoundState).Height
-			if height != conR.conHeight {
-				conR.Logger.Info("Update conHeight.", "new", height, "old", conR.conHeight)
-				conR.conHeight = height
-				conR.resetSwitchToFastSyncTimer()
-			}
 		})
 
 	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventValidBlock,
@@ -1071,6 +1068,12 @@ OUTER_LOOP:
 }
 
 func (conR *Reactor) peerStatsRoutine() {
+	conR.resetSwitchToFastSyncTimer()
+
+	defer func() {
+		conR.stopSwitchToFastSyncTimer()
+	}()
+
 	for {
 		if !conR.IsRunning() {
 			conR.Logger.Info("Stopping peerStatsRoutine")
@@ -1105,6 +1108,7 @@ func (conR *Reactor) peerStatsRoutine() {
 			bcR, ok := conR.Switch.Reactor("BLOCKCHAIN").(blockchainReactor)
 			if ok {
 				bcR.CheckFastSyncCondition()
+				conR.resetSwitchToFastSyncTimer()
 			}
 
 		case <-conR.conS.Quit():
@@ -1494,12 +1498,7 @@ func (ps *PeerState) SetHasVote(vote *types.Vote) {
 }
 
 func (ps *PeerState) setHasVote(height int64, round int, voteType types.SignedMsgType, index int) {
-	logger := ps.logger.With(
-		"peerH/R",
-		fmt.Sprintf("%d/%d", ps.PRS.Height, ps.PRS.Round),
-		"H/R",
-		fmt.Sprintf("%d/%d", height, round))
-	logger.Debug("setHasVote", "type", voteType, "index", index)
+	ps.logger.Debug("setHasVote", "peerH", ps.PRS.Height, "peerR", ps.PRS.Round, "H", height, "R", round, "type", voteType, "index", index)
 
 	// NOTE: some may be nil BitArrays -> no side effects.
 	psVotes := ps.getVoteBitArray(height, round, voteType)
@@ -1819,7 +1818,6 @@ type BlockPartMessage struct {
 	Height int64
 	Round  int
 	Part   *types.Part
-	Deltas *types.Deltas
 }
 
 // ValidateBasic performs basic validation.

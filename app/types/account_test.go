@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"math/big"
 	"testing"
 
@@ -254,7 +255,7 @@ func TestEthAccountAmino(t *testing.T) {
 		}
 
 		var accountFromUnmarshaller exported.Account
-		v, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(data, &accountFromUnmarshaller)
+		v, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(data, (*exported.Account)(nil))
 		require.NoError(t, err)
 		accountFromUnmarshaller, ok := v.(exported.Account)
 		require.True(t, ok)
@@ -269,6 +270,10 @@ func TestEthAccountAmino(t *testing.T) {
 		dataFromMarshaller, err := cdc.MarshalBinaryBareWithRegisteredMarshaller(&testAccount)
 		require.NoError(t, err)
 		require.EqualValues(t, data, dataFromMarshaller)
+
+		dataFromSizer, err := cdc.MarshalBinaryWithSizer(&testAccount, false)
+		require.NoError(t, err)
+		require.EqualValues(t, data, dataFromSizer)
 
 		dataFromMarshaller, err = ethAccount.MarshalToAmino(cdc)
 		if dataFromMarshaller == nil {
@@ -307,6 +312,7 @@ func BenchmarkEthAccountAminoUnmarshal(b *testing.B) {
 	b.ReportAllocs()
 
 	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			var account exported.Account
 			_ = cdc.UnmarshalBinaryBare(data, &account)
@@ -314,9 +320,10 @@ func BenchmarkEthAccountAminoUnmarshal(b *testing.B) {
 	})
 
 	b.Run("unmarshaller", func(b *testing.B) {
+		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			var account exported.Account
-			_, _ = cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(data, &account)
+			// var account exported.Account
+			_, _ = cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(data, (*exported.Account)(nil))
 		}
 	})
 }
@@ -348,6 +355,7 @@ func BenchmarkEthAccountAminoMarshal(b *testing.B) {
 	b.ReportAllocs()
 
 	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			data, _ := cdc.MarshalBinaryBare(&testAccount)
 			_ = data
@@ -355,9 +363,53 @@ func BenchmarkEthAccountAminoMarshal(b *testing.B) {
 	})
 
 	b.Run("marshaller", func(b *testing.B) {
+		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
 			data, _ := cdc.MarshalBinaryBareWithRegisteredMarshaller(&testAccount)
 			_ = data
 		}
 	})
+
+	b.Run("sizer", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			data, _ := cdc.MarshalBinaryWithSizer(&testAccount, false)
+			_ = data
+		}
+	})
+}
+
+func (acc EthAccount) utOldCopy() sdk.Account {
+	return &EthAccount{
+		authtypes.NewBaseAccount(acc.Address, acc.Coins, acc.PubKey, acc.AccountNumber, acc.Sequence),
+		acc.CodeHash,
+	}
+}
+
+func BenchmarkEthAccountCopy(b *testing.B) {
+	privKey := secp256k1.GenPrivKey()
+	pubKey := privKey.PubKey()
+	addr := sdk.AccAddress(pubKey.Address())
+
+	balance := sdk.NewCoins(NewPhotonCoin(sdk.OneInt()))
+	testAccount := EthAccount{
+		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 1),
+		CodeHash:    ethcrypto.Keccak256(nil),
+	}
+
+	var copied sdk.Account
+
+	b.Run("copy", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			copied = testAccount.Copy()
+		}
+	})
+	b.Run("old", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			copied = testAccount.utOldCopy()
+		}
+	})
+	_ = copied
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/okex/exchain/x/evm/txs"
 	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/watcher"
 )
 
 // NewHandler returns a handler for Ethermint type messages.
@@ -16,14 +17,17 @@ func NewHandler(k *Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (result *sdk.Result, err error) {
 		ctx.SetEventManager(sdk.NewEventManager())
 
-		if ctx.IsDeliver(){
+		if ctx.IsDeliver() {
 			k.EvmStateDb.WithContext(ctx).MarkUpdatedAcc(k.UpdatedAccount)
 			k.UpdatedAccount = k.UpdatedAccount[:0]
 		}
 
-		evmtx, ok := msg.(*types.MsgEthereumTx)
+		evmTx, ok := msg.(*types.MsgEthereumTx)
 		if ok {
-			result, err = handleMsgEthereumTx(ctx, k, evmtx)
+			if watcher.IsWatcherEnabled() {
+				ctx.SetWatcher(watcher.NewTxWatcher())
+			}
+			result, err = handleMsgEthereumTx(ctx, k, evmTx)
 			if err != nil {
 				err = sdkerrors.New(types.ModuleName, types.CodeSpaceEvmCallFailed, err.Error())
 			}
@@ -92,6 +96,7 @@ func handleMsgEthereumTx(ctx sdk.Context, k *Keeper, msg *types.MsgEthereumTx) (
 	if err != nil {
 		return nil, err
 	}
+	defer tx.Dispose()
 
 	// core logical to handle ethereum tx
 	rst, err := txs.TransitionEvmTx(tx, msg)

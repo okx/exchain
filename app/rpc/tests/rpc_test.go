@@ -902,7 +902,7 @@ func (suite *RPCTestSuite) TestEth_EstimateGas_Transfer() {
 	err := json.Unmarshal(rpcRes.Result, &gas)
 	suite.Require().NoError(err, string(rpcRes.Result))
 
-	suite.Require().Equal("0x5208", gas)
+	suite.Require().Equal("0x13c68", gas)
 }
 
 func (suite *RPCTestSuite) TestEth_EstimateGas_ContractDeployment() {
@@ -921,7 +921,7 @@ func (suite *RPCTestSuite) TestEth_EstimateGas_ContractDeployment() {
 	err := json.Unmarshal(rpcRes.Result, &gas)
 	suite.Require().NoError(err, string(rpcRes.Result))
 
-	suite.Require().Equal("0x1879c", gas.String())
+	suite.Require().Equal("0x271fc", gas.String())
 }
 
 func (suite *RPCTestSuite) TestEth_GetBlockByHash() {

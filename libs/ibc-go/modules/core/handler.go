@@ -1,6 +1,8 @@
 package ibc
 
 import (
+	"fmt"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
@@ -8,11 +10,17 @@ import (
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/keeper"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 // NewHandler defines the IBC handler
 func NewHandler(k keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
+		if !tmtypes.HigherThanVenus1(ctx.BlockHeight()) {
+			errMsg := fmt.Sprintf("ibc handler is not supported at height %d", ctx.BlockHeight())
+			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
+		}
+
 		ctx.SetEventManager(sdk.NewEventManager())
 
 		if !k.GetIbcEnabled(ctx) {

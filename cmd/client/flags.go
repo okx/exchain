@@ -18,12 +18,13 @@ import (
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/infura"
 	"github.com/okex/exchain/x/token"
+	"github.com/okex/exchain/x/wasm"
 	"github.com/spf13/cobra"
 )
 
 func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Bool(watcher.FlagFastQuery, false, "Enable the fast query mode for rpc queries")
-	cmd.Flags().Uint64(eth.FlagFastQueryThreshold, 0, "Set the threshold of fast query")
+	cmd.Flags().Uint64(eth.FlagFastQueryThreshold, 10, "Set the threshold of fast query")
 	cmd.Flags().Int(watcher.FlagFastQueryLru, 1000, "Set the size of LRU cache under fast-query mode")
 	cmd.Flags().Int(backend.FlagApiBackendBlockLruCache, 30000, "Set the size of block LRU cache for backend mem cache")
 	cmd.Flags().Int(backend.FlagApiBackendTxLruCache, 100000, "Set the size of tx LRU cache for backend mem cache")
@@ -119,4 +120,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Int(infura.FlagCacheQueueSize, 0, "Cache queue size of infura rpc service")
 	cmd.Flags().Int(config.FlagDebugGcInterval, 0, "Force gc every n heights for debug")
 	cmd.Flags().String(rpc.FlagWebsocket, "8546", "websocket port to listen to")
+	cmd.Flags().Int(backend.FlagLogsLimit, 0, "Maximum number of logs returned when calling eth_getLogs")
+	cmd.Flags().Int(backend.FlagLogsTimeout, 60, "Maximum query duration when calling eth_getLogs")
+	wasm.AddModuleInitFlags(cmd)
 }

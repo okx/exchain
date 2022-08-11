@@ -18,12 +18,14 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(&EthAccount{}, EthAccountName, nil)
 
 	cdc.RegisterConcreteUnmarshaller(EthAccountName, func(cdc *amino.Codec, data []byte) (interface{}, int, error) {
-		var acc EthAccount
+		var cacc componentAccount
+		var acc = &cacc.ethAccount
+		acc.BaseAccount = &cacc.baseAccount
 		err := acc.UnmarshalFromAmino(cdc, data)
 		if err != nil {
 			return nil, 0, err
 		}
-		return &acc, len(data), nil
+		return acc, len(data), nil
 	})
 	cdc.RegisterConcreteMarshaller(EthAccountName, func(cdc *amino.Codec, v interface{}) ([]byte, error) {
 		if acc, ok := v.(*EthAccount); ok {
@@ -34,4 +36,5 @@ func RegisterCodec(cdc *codec.Codec) {
 			return nil, fmt.Errorf("%T is not an EthAccount", v)
 		}
 	})
+	cdc.EnableBufferMarshaler(EthAccount{})
 }
