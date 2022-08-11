@@ -235,6 +235,9 @@ func (memR *Reactor) getTxJobChannel(from string) chan<- txJob {
 		selected = selected & byte(len(memR.txChs))
 		if selected == byte(len(memR.txChs)) {
 			selected--
+			if amino.StrToBytes(from)[len(from)-2]&0x01 == 0 {
+				selected--
+			}
 		}
 	}
 	return memR.txChs[selected]
