@@ -66,8 +66,9 @@ const (
 	LastBlockTime   = "LastBlockTime"
 	TimeoutInterval = "TimeoutInterval"
 
-	MempoolCheckTxCnt = "CheckTx"
-	MempoolTxsCnt     = "MempoolTxs"
+	MempoolCheckTxCnt  = "CheckTx"
+	MempoolTxsCnt      = "MempoolTxs"
+	MempoolCheckTxTime = "CheckTxTime"
 
 	CompressBlock   = "Compress"
 	UncompressBlock = "Uncompress"

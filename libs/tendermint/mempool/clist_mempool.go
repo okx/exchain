@@ -80,9 +80,14 @@ type CListMempool struct {
 	pendingPoolNotify chan map[string]uint64
 
 	txInfoparser TxInfoParser
-	checkCnt     int64
-	checkP2PCnt  int64
-	checkRPCCnt  int64
+
+	checkCnt    int64
+	checkRPCCnt int64
+	checkP2PCnt int64
+
+	checkTotalTime    int64
+	checkRpcTotalTime int64
+	checkP2pTotalTime int64
 
 	txs ITransactionQueue
 }
@@ -240,6 +245,7 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 //
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo TxInfo) error {
+	timeStart := time.Now()
 	txSize := len(tx)
 	if err := mem.isFull(txSize); err != nil {
 		return err
@@ -307,11 +313,16 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		}
 	}
 	reqRes.SetCallback(mem.reqResCb(tx, txInfo, cb))
+
+	pastTime := time.Now().Sub(timeStart).Microseconds()
 	if txInfo.SenderID != 0 {
 		atomic.AddInt64(&mem.checkP2PCnt, 1)
+		atomic.AddInt64(&mem.checkP2pTotalTime, pastTime)
 	} else {
 		atomic.AddInt64(&mem.checkRPCCnt, 1)
+		atomic.AddInt64(&mem.checkRpcTotalTime, pastTime)
 	}
+	atomic.AddInt64(&mem.checkTotalTime, pastTime)
 	atomic.AddInt64(&mem.checkCnt, 1)
 	return nil
 }
@@ -893,21 +904,33 @@ func (mem *CListMempool) Update(
 		mem.metrics.PendingPoolSize.Set(float64(mem.pendingPool.Size()))
 	}
 
-	trace.GetElapsedInfo().AddInfo(trace.MempoolCheckTxCnt,
-		strconv.FormatInt(atomic.LoadInt64(&mem.checkCnt), 10)+","+
-			strconv.FormatInt(atomic.LoadInt64(&mem.checkRPCCnt), 10)+","+
-			strconv.FormatInt(atomic.LoadInt64(&mem.checkP2PCnt), 10))
 	trace.GetElapsedInfo().AddInfo(trace.MempoolTxsCnt, strconv.Itoa(mem.txs.Len()))
-	atomic.StoreInt64(&mem.checkCnt, 0)
-	atomic.StoreInt64(&mem.checkP2PCnt, 0)
-	atomic.StoreInt64(&mem.checkRPCCnt, 0)
 
+	mem.statsCheckTx()
 	// WARNING: The txs inserted between [ReapMaxBytesMaxGas, Update) is insert-sorted in the mempool.txs,
 	// but they are not included in the latest block, after remove the latest block txs, these txs may
 	// in unsorted state. We need to resort them again for the the purpose of absolute order, or just let it go for they are
 	// already sorted int the last round (will only affect the account that send these txs).
 
 	return nil
+}
+
+func (mem *CListMempool) statsCheckTx() {
+	trace.GetElapsedInfo().AddInfo(trace.MempoolCheckTxCnt,
+		strconv.FormatInt(atomic.LoadInt64(&mem.checkCnt), 10)+","+
+			strconv.FormatInt(atomic.LoadInt64(&mem.checkRPCCnt), 10)+","+
+			strconv.FormatInt(atomic.LoadInt64(&mem.checkP2PCnt), 10))
+	atomic.StoreInt64(&mem.checkCnt, 0)
+	atomic.StoreInt64(&mem.checkRPCCnt, 0)
+	atomic.StoreInt64(&mem.checkP2PCnt, 0)
+
+	trace.GetElapsedInfo().AddInfo(trace.MempoolCheckTxTime,
+		strconv.FormatInt(atomic.LoadInt64(&mem.checkTotalTime)/1000, 10)+"ms,"+
+			strconv.FormatInt(atomic.LoadInt64(&mem.checkRpcTotalTime)/1000, 10)+"ms,"+
+			strconv.FormatInt(atomic.LoadInt64(&mem.checkP2pTotalTime)/1000, 10)+"ms")
+	atomic.StoreInt64(&mem.checkTotalTime, 0)
+	atomic.StoreInt64(&mem.checkRpcTotalTime, 0)
+	atomic.StoreInt64(&mem.checkP2pTotalTime, 0)
 }
 
 func (mem *CListMempool) cleanTx(height int64, tx types.Tx, txCode uint32) *clist.CElement {
