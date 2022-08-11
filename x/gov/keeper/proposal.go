@@ -6,7 +6,6 @@ import (
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/gov/types"
-	paramstypes "github.com/okex/exchain/x/params/types"
 )
 
 // SubmitProposal creates new proposal given a content
@@ -132,14 +131,6 @@ func (keeper Keeper) GetProposalsFiltered(
 
 		if types.ValidProposalStatus(status) && proposal.Status != status {
 			continue
-		}
-
-		// Here is for compatibility with the standard cosmos REST API.
-		// Note: The Height field in OKC's ParameterChangeProposal will be discarded.
-		if pcp, ok := proposal.Content.(paramstypes.ParameterChangeProposal); ok {
-			innerContent := pcp.GetParameterChangeProposal()
-			newProposal := types.WrapProposalForCosmosAPI(proposal, innerContent)
-			proposal = newProposal
 		}
 		matchingProposals = append(matchingProposals, proposal)
 	}

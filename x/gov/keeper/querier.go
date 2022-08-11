@@ -199,7 +199,19 @@ func queryProposals(ctx sdk.Context, path []string, req abci.RequestQuery, keepe
 
 	proposals := keeper.GetProposalsFiltered(ctx, params.Voter, params.Depositor, params.ProposalStatus, params.Limit)
 
-	bz, err := codec.MarshalJSONIndent(keeper.cdc, proposals)
+	cosmosProposals := make([]types.Proposal, 0, len(proposals))
+	for _, proposal := range proposals {
+		// Here is for compatibility with the standard cosmos REST API.
+		// Note: The Height field in OKC's ParameterChangeProposal will be discarded.
+		if pcp, ok := proposal.Content.(paramstypes.ParameterChangeProposal); ok {
+			innerContent := pcp.GetParameterChangeProposal()
+			newProposal := types.WrapProposalForCosmosAPI(proposal, innerContent)
+			cosmosProposals = append(cosmosProposals, newProposal)
+		} else {
+			cosmosProposals = append(cosmosProposals, proposal)
+		}
+	}
+	bz, err := codec.MarshalJSONIndent(keeper.cdc, cosmosProposals)
 	if err != nil {
 		return nil, common.ErrMarshalJSONFailed(sdk.AppendMsgToErr("could not marshal result to JSON", err.Error()))
 	}
