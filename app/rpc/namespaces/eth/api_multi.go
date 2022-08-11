@@ -3,22 +3,23 @@ package eth
 import (
 	"errors"
 	"fmt"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"math/big"
+
+	"github.com/okex/exchain/app/rpc/monitor"
+	rpctypes "github.com/okex/exchain/app/rpc/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-	"github.com/okex/exchain/x/token"
-	"github.com/spf13/viper"
-	"math/big"
-
-	"github.com/okex/exchain/app/rpc/monitor"
-	rpctypes "github.com/okex/exchain/app/rpc/types"
 	"github.com/okex/exchain/x/evm/watcher"
+	"github.com/okex/exchain/x/token"
+
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/spf13/viper"
 )
 
 const (
