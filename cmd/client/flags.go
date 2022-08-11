@@ -8,6 +8,7 @@ import (
 	"github.com/okex/exchain/app/rpc/namespaces/eth"
 	"github.com/okex/exchain/app/rpc/namespaces/eth/filters"
 	"github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/app/utils"
 	"github.com/okex/exchain/app/utils/sanity"
 	"github.com/okex/exchain/libs/system/trace"
 	"github.com/okex/exchain/libs/tendermint/consensus"
@@ -123,4 +124,5 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Int(backend.FlagLogsLimit, 0, "Maximum number of logs returned when calling eth_getLogs")
 	cmd.Flags().Int(backend.FlagLogsTimeout, 60, "Maximum query duration when calling eth_getLogs")
 	wasm.AddModuleInitFlags(cmd)
+	cmd.Flags().Bool(utils.FlagEnableInnertx, false, "Enable innertx")
 }

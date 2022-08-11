@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"math/big"
@@ -13,6 +14,7 @@ import (
 	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/refund"
 	okexchain "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/app/utils"
 	"github.com/okex/exchain/app/utils/sanity"
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -786,6 +788,12 @@ func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 	err := sanity.CheckStart()
 	if err != nil {
 		return err
+	}
+
+	// check innertx code
+	// if the FlagEnableInnertx is true, you must set EnableInnertx=true using innertx patch or some way
+	if viper.GetBool(utils.FlagEnableInnertx) && !utils.EnableInnertx {
+		return errors.New("no innertx patch is used to start the node")
 	}
 
 	// set config by node mode
