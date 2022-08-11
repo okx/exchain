@@ -89,6 +89,7 @@ func newDeltaContext(l log.Logger) *DeltaContext {
 func (dc *DeltaContext) init() {
 
 	if dc.uploadDelta || dc.downloadDelta {
+		types.FastQuery = viper.GetBool(types.FlagFastQuery)
 		dc.bufferSize = viper.GetInt(types.FlagBufferSize)
 		if dc.bufferSize < 5 {
 			dc.bufferSize = 5
