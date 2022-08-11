@@ -3,6 +3,8 @@ package main
 import (
 	"log"
 
+	"github.com/spf13/viper"
+
 	tmiavl "github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/system/trace"
 
@@ -20,6 +22,9 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "repair-state",
 		Short: "Repair the SMB(state machine broken) data of node",
+		PreRun: func(_ *cobra.Command, _ []string) {
+			setExternalPackageValue()
+		},
 		Run: func(cmd *cobra.Command, args []string) {
 			log.Println("--------- repair data start ---------")
 
@@ -38,4 +43,9 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().Int(tmiavl.FlagIavlFastStorageCacheSize, 100000, "Max size of iavl fast storage cache")
 
 	return cmd
+}
+
+func setExternalPackageValue() {
+	tmiavl.SetEnableFastStorage(viper.GetBool(tmiavl.FlagIavlEnableFastStorage))
+	tmiavl.SetFastNodeCacheSize(viper.GetInt(tmiavl.FlagIavlFastStorageCacheSize))
 }
