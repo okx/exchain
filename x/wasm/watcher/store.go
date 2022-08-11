@@ -40,6 +40,7 @@ func Init() bool {
 		checked = true
 		if viper.GetBool(watcher.FlagFastQuery) {
 			enableWatcher = true
+			InitDB()
 		}
 	})
 	return enableWatcher
@@ -57,9 +58,6 @@ func ensureChecked() {
 }
 
 func InitDB() {
-	if !Enable() {
-		return
-	}
 	homeDir := viper.GetString(flags.FlagHome)
 	dbPath := filepath.Join(homeDir, watcher.WatchDbDir)
 	backend := viper.GetString(watcher.FlagDBBackend)
@@ -74,6 +72,9 @@ func AccountKey(addr []byte) []byte {
 	return append(accountKeyPrefix, addr...)
 }
 func GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
+	if !Enable() {
+		return nil, nil
+	}
 	b, err := db.Get(AccountKey(addr.Bytes()))
 	if err != nil {
 		return nil, err
@@ -89,6 +90,9 @@ func GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 }
 
 func SetAccount(acc *types.EthAccount) error {
+	if !Enable() {
+		return nil
+	}
 	b, err := json.Marshal(acc)
 	if err != nil {
 		return err
@@ -97,6 +101,9 @@ func SetAccount(acc *types.EthAccount) error {
 }
 
 func DeleteAccount(addr sdk.AccAddress) {
+	if !Enable() {
+		return
+	}
 	if err := db.Delete(AccountKey(addr.Bytes())); err != nil {
 		log.Println("wasm watchDB delete account error", addr.String())
 	}

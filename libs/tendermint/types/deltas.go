@@ -87,6 +87,10 @@ func (d *Deltas) WatchBytes() []byte {
 	return d.Payload.WatchBytes
 }
 
+func (d *Deltas) WasmWatchBytes() []byte {
+	return d.Payload.WasmWatchBytes
+}
+
 func (d *Deltas) MarshalOrUnmarshalElapsed() time.Duration {
 	return d.marshalElapsed
 }

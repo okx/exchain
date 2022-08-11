@@ -22,6 +22,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	paramtypes "github.com/okex/exchain/x/params"
+	"github.com/okex/exchain/x/wasm/watcher"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -656,8 +657,8 @@ func setupKeeper(t *testing.T) (*Keeper, sdk.Context, []sdk.StoreKey) {
 
 	wasmConfig := wasmTypes.DefaultWasmConfig()
 	pk := paramskeeper.NewKeeper(encodingConfig.Amino, keyParams, tkeyParams)
-
-	srcKeeper := NewKeeper(&encodingConfig.Marshaler, keyWasm, pk.Subspace(wasmTypes.ModuleName), authkeeper.AccountKeeper{}, nil, nil, nil, nil, nil, nil, nil, tempDir, wasmConfig, SupportedFeatures)
+	watcher.Init()
+	srcKeeper := NewKeeper(&encodingConfig.Marshaler, keyWasm, pk.Subspace(wasmTypes.ModuleName), &authkeeper.AccountKeeper{}, nil, nil, nil, nil, nil, nil, nil, tempDir, wasmConfig, SupportedFeatures)
 	return &srcKeeper, ctx, []sdk.StoreKey{keyWasm, keyParams}
 }
 

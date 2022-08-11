@@ -7,5 +7,12 @@ type ModuleParamsManager interface {
 	GetSupply() interface{}      //sdk.Coins
 }
 
+type EmptyManager struct{}
+
+func (e EmptyManager) SetSendEnabled(enable bool)  {}
+func (e EmptyManager) GetSendEnabled() bool        { return false }
+func (e EmptyManager) SetSupply(coins interface{}) {}
+func (e EmptyManager) GetSupply() interface{}      { return nil }
+
 // Manager sets module params to watchDB and avoids golang import cycle
-var Manager ModuleParamsManager
+var Manager ModuleParamsManager = EmptyManager{}
