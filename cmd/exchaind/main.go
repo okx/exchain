@@ -121,6 +121,7 @@ func closeApp(iApp abci.Application) {
 	app.StopBaseApp()
 	evmtypes.CloseIndexer()
 	rpc.CloseEthBackend()
+	app.EvmKeeper.Watcher.Stop()
 }
 
 func newApp(logger log.Logger, db dbm.DB, traceStore io.Writer) abci.Application {
