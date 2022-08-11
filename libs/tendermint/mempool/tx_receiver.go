@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	gogocodec "github.com/gogo/protobuf/codec"
+	gogoproto "github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	pb "github.com/okex/exchain/libs/tendermint/proto/mempool"
@@ -413,6 +414,40 @@ type gogoCodec struct {
 
 func (_ *gogoCodec) Name() string {
 	return proto.Name
+}
+
+type marshaler interface {
+	MarshalTo(data []byte) (n int, err error)
+}
+
+func (c *gogoCodec) Marshal(v interface{}) ([]byte, error) {
+	if m, ok := v.(marshaler); ok {
+		n, ok := getSize(v)
+		if !ok {
+			return gogoproto.Marshal(v.(gogoproto.Message))
+		}
+		buf := make([]byte, n)
+		_, err := m.MarshalTo(buf)
+		if err != nil {
+			return nil, err
+		}
+		return buf, nil
+	}
+	return gogoproto.Marshal(v.(gogoproto.Message))
+}
+
+func getSize(v interface{}) (int, bool) {
+	if sz, ok := v.(interface {
+		Size() (n int)
+	}); ok {
+		return sz.Size(), true
+	} else if sz, ok := v.(interface {
+		ProtoSize() (n int)
+	}); ok {
+		return sz.ProtoSize(), true
+	} else {
+		return 0, false
+	}
 }
 
 //func (c *gogoCodec) Marshal(v interface{}) ([]byte, error) {
