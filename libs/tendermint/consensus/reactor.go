@@ -194,12 +194,11 @@ func (conR *Reactor) SwitchToFastSync() (sm.State, error) {
 	conR.mtx.Unlock()
 	conR.metrics.FastSyncing.Set(1)
 
-	conR.conS.blockExec.SetIsFastSyncing(true)
-
 	if !conR.conS.IsRunning() {
 		return conR.conS.GetState(), errors.New("state is not running")
 	}
 	err := conR.conS.Stop()
+	conR.conS.blockExec.SetIsFastSyncing(true)
 	if err != nil {
 		panic(fmt.Sprintf(`Failed to stop consensus state: %v
 

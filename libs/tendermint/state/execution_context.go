@@ -120,6 +120,7 @@ func (pc *prerunContext) getPrerunResult(height int64, fastSync bool) (res *ABCI
 
 	if fastSync {
 		pc.stopPrerun(height)
+		pc.logger.Info("getPrerunResult", "height", height, "fastSync", fastSync)
 		return
 	}
 	// blockExec.prerunContext == nil means:
