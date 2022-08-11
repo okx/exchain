@@ -99,7 +99,7 @@ func queryValidator(cliCtx context.CLIContext, endpoint string) http.HandlerFunc
 			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
 			return
 		}
-		var validator types.Validator
+		var validator types.CosmosValidator
 		cliCtx.Codec.MustUnmarshalJSON(res, &validator)
 		wrappedValidator := types.NewWrappedValidator(validator)
 		cliCtx = cliCtx.WithHeight(height)

@@ -139,7 +139,8 @@ func validatorsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		var vs []types.Validator
+		//todo
+		var vs []types.CosmosValidator
 		cliCtx.Codec.MustUnmarshalJSON(res, &vs)
 		wrappedValidators := types.NewWrappedValidators(vs)
 		cliCtx = cliCtx.WithHeight(height)
