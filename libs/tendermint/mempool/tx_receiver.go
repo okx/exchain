@@ -420,7 +420,25 @@ type marshaler interface {
 	MarshalTo(data []byte) (n int, err error)
 }
 
+func (c *gogoCodec) Unmarshal(data []byte, v interface{}) error {
+	if req, ok := v.(*pb.TxRequest); ok {
+		req.Reset()
+		return req.Unmarshal(data)
+	}
+	return c.Codec.Unmarshal(data, v)
+}
+
 func (c *gogoCodec) Marshal(v interface{}) ([]byte, error) {
+	if req, ok := v.(*pb.TxRequest); ok {
+		n := req.Size()
+		buf := make([]byte, n)
+		_, err := req.MarshalTo(buf)
+		if err != nil {
+			return nil, err
+		}
+		return buf, nil
+	}
+
 	if m, ok := v.(marshaler); ok {
 		n, ok := getSize(v)
 		if !ok {
