@@ -57,13 +57,6 @@ func (keeper Keeper) GetProposal(ctx sdk.Context, proposalID uint64) (proposal t
 	if bz == nil {
 		return
 	}
-	// Here is for compatibility with the standard cosmos REST API.
-	// Note: The Height field in OKC's ParameterChangeProposal will be discarded.
-	if pcp, ok := proposal.Content.(paramstypes.ParameterChangeProposal); ok {
-		innerContent := pcp.GetParameterChangeProposal()
-		newProposal := types.WrapProposalForCosmosAPI(proposal, innerContent)
-		proposal = newProposal
-	}
 	keeper.cdc.MustUnmarshalBinaryLengthPrefixed(bz, &proposal)
 	return proposal, true
 }

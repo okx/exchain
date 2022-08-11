@@ -7,6 +7,7 @@ import (
 	"github.com/okex/exchain/x/common"
 
 	"github.com/okex/exchain/x/gov/types"
+	paramstypes "github.com/okex/exchain/x/params/types"
 )
 
 // NewQuerier returns all query handlers
@@ -73,6 +74,13 @@ func queryProposal(ctx sdk.Context, path []string, req abci.RequestQuery, keeper
 		return nil, types.ErrUnknownProposal(params.ProposalID)
 	}
 
+	// Here is for compatibility with the standard cosmos REST API.
+	// Note: The Height field in OKC's ParameterChangeProposal will be discarded.
+	if pcp, ok := proposal.Content.(paramstypes.ParameterChangeProposal); ok {
+		innerContent := pcp.GetParameterChangeProposal()
+		newProposal := types.WrapProposalForCosmosAPI(proposal, innerContent)
+		proposal = newProposal
+	}
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, proposal)
 	if err != nil {
 		return nil, common.ErrMarshalJSONFailed(err.Error())
