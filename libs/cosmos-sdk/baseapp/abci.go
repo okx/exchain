@@ -217,13 +217,13 @@ func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBloc
 	}
 
 	if app.deliverState.ctx.BlockHeight() == 21261 || app.deliverState.ctx.BlockHeight() == 19702 {
-		cnt := 0
-		app.deliverState.ms.IteratorCache(true, func(key string, value []byte, isDirty bool, isDelete bool, storeKey cosmost.StoreKey) bool {
-			fmt.Println("dirty", hex.EncodeToString([]byte(key)), hex.EncodeToString(value), isDirty, isDelete)
-			cnt++
-			return true
-		}, nil)
-		fmt.Println("all", cnt)
+		//cnt := 0
+		//app.deliverState.ms.IteratorCache(true, func(key string, value []byte, isDirty bool, isDelete bool, storeKey cosmost.StoreKey) bool {
+		//	fmt.Println("dirty", hex.EncodeToString([]byte(key)), hex.EncodeToString(value), isDirty, isDelete)
+		//	cnt++
+		//	return true
+		//}, nil)
+		//fmt.Println("all", cnt)
 	}
 
 	if app.deliverState.ms != nil {
