@@ -2,6 +2,8 @@ package eth
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/vm"
 	"github.com/ethereum/go-ethereum/rlp"
@@ -19,13 +21,21 @@ func (api *PublicEthereumAPI) TokenInitInfo(contractAddr common.Address) vm.Toke
 
 // GetInternalTransactions ...
 func (api *PublicEthereumAPI) GetInternalTransactions(txHash string) []vm.InnerTx {
-	return vm.GetFromDB(txHash)
+	if !strings.HasPrefix(txHash, "0x") {
+		txHash = "0x" + txHash
+	}
+
+	return vm.GetFromDB(strings.ToLower(txHash))
 }
 
 // GetBlockInternalTransactions ...
 func (api *PublicEthereumAPI) GetBlockInternalTransactions(blockHash string) (map[string][]vm.InnerTx, error) {
+	if !strings.HasPrefix(blockHash, "0x") {
+		blockHash = "0x" + blockHash
+	}
+
 	var rtn = make(map[string][]vm.InnerTx)
-	txHashes := vm.GetBlockDB(blockHash)
+	txHashes := vm.GetBlockDB(strings.ToLower(blockHash))
 	if len(txHashes) > 0 {
 		for _, txHash := range txHashes {
 			inners := vm.GetFromDB(txHash)
