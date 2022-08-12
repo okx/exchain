@@ -10,7 +10,6 @@ import (
 	"github.com/okex/exchain/libs/ibc-go/modules/core/types"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 type CoreModule struct {
@@ -43,9 +42,6 @@ func (CoreModule) DefaultGenesis() json.RawMessage {
 // no validator updates.
 //func (am CoreModule) InitGenesis(ctx sdk.Context, cdc Corec.JSONMarshaler, bz json.RawMessage) []abci.ValidatorUpdate {
 func (am CoreModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	if !tmtypes.HigherThanVenus1(ctx.BlockHeight()) {
-		return nil
-	}
 	return am.initGenesis(ctx, data)
 }
 
@@ -63,9 +59,6 @@ func (am CoreModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.V
 // ExportGenesis returns the exported genesis state as raw bytes for the ibc
 // module.
 func (am CoreModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
-	if !tmtypes.HigherThanVenus1(ctx.BlockHeight()) {
-		return nil
-	}
 	return am.exportGenesis(ctx)
 }
 

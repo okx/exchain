@@ -9,7 +9,6 @@ import (
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/types"
 )
 
 type CapabilityModuleAdapter struct {
@@ -29,9 +28,6 @@ func (a CapabilityModuleAdapter) DefaultGenesis() json.RawMessage {
 	return adapter.ModuleCdc.MustMarshalJSON(types2.DefaultGenesis())
 }
 func (am CapabilityModuleAdapter) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	if !types.HigherThanVenus1(ctx.BlockHeight()) {
-		return nil
-	}
 	return am.initGenesis(ctx, data)
 }
 

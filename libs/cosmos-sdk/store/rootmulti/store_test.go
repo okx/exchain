@@ -183,34 +183,6 @@ func TestMultistoreCommitLoad(t *testing.T) {
 }
 
 func TestMultistoreLoadWithUpgrade(t *testing.T) {
-	if os.Getenv("SUB_PROCESS") == "1" {
-		//height 2 is upgrade version so set ibc upgrade version logic
-		testMultistoreLoadWithUpgrade(t)
-		return
-	}
-
-	var outb, errb bytes.Buffer
-	cmd := exec.Command(os.Args[0], "-test.run=TestMultistoreLoadWithUpgrade")
-	cmd.Env = append(os.Environ(), "SUB_PROCESS=1")
-	cmd.Stdout = &outb
-	cmd.Stderr = &errb
-	err := cmd.Run()
-	if e, ok := err.(*exec.ExitError); ok && !e.Success() {
-		isFailed := false
-		if strings.Contains(outb.String(), "FAIL:") ||
-			strings.Contains(errb.String(), "FAIL:") {
-			fmt.Print(cmd.Stderr)
-			fmt.Print(cmd.Stdout)
-			isFailed = true
-		}
-		assert.Equal(t, isFailed, false)
-
-		return
-	}
-
-}
-
-func testMultistoreLoadWithUpgrade(t *testing.T) {
 	var db dbm.DB = dbm.NewMemDB()
 	store := newMultiStoreWithMounts(db, types.PruneNothing)
 	err := store.LoadLatestVersion()
@@ -710,7 +682,7 @@ func hashStores(stores map[types.StoreKey]types.CommitKVStore) []byte {
 				CommitID: store.LastCommitID(),
 				// StoreType: store.GetStoreType(),
 			},
-		}.Hash()
+		}.GetHash()
 	}
 	return merkle.SimpleHashFromMap(m)
 }
