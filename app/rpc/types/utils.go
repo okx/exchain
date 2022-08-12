@@ -265,7 +265,7 @@ func RawTxToRealTx(clientCtx clientcontext.CLIContext, bz tmtypes.Tx,
 	return realTx, nil
 }
 
-func RawTxResultToEthReceipt(clientCtx clientcontext.CLIContext,
+func RawTxResultToEthReceipt(clientCtx clientcontext.CLIContext, chainID *big.Int,
 	tr *ctypes.ResultTx, blockHash common.Hash) (*watcher.TransactionResult, error) {
 	// Convert tx bytes to eth transaction
 	ethTx, err := RawTxToEthTx(clientCtx, tr.Tx)
@@ -273,7 +273,7 @@ func RawTxResultToEthReceipt(clientCtx clientcontext.CLIContext,
 		return nil, err
 	}
 
-	err = ethTx.VerifySig(ethTx.ChainID(), tr.Height)
+	err = ethTx.VerifySig(chainID, tr.Height)
 	if err != nil {
 		return nil, err
 	}
