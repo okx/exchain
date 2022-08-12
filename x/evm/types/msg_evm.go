@@ -60,9 +60,9 @@ func (tx *MsgEthereumTx) GetFrom() string {
 		if from == "" {
 			from, err := tx.firstVerifySig(tx.ChainID())
 			if err != nil {
-				tmtypes.SignatureCache().Add(tx.TxHash(), from)
-				tx.BaseTx.From = from
+				return ""
 			}
+			return from
 		}
 	}
 
