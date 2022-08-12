@@ -62,6 +62,7 @@ const (
 	Abci            = "abci"
 	SaveResp        = "saveResp"
 	Persist         = "persist"
+	MempoolUpdate   = "mpUpdate"
 	SaveState       = "saveState"
 	ApplyBlock      = "ApplyBlock"
 	Consensus       = "Consensus"
