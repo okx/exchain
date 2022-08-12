@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	"github.com/okex/exchain/x/common"
 
 	"github.com/gorilla/mux"
@@ -102,7 +103,12 @@ func queryValidator(cliCtx context.CLIContext, endpoint string) http.HandlerFunc
 		//format validator to be compatible with cosmos
 		var val types.Validator
 		cliCtx.Codec.MustUnmarshalJSON(res, &val)
-		cosmosAny := types.WrapCosmosAny(val.ConsPubKey.Bytes())
+		pubkey, ok := val.ConsPubKey.(ed25519.PubKeyEd25519)
+		if !ok {
+			common.HandleErrorMsg(w, cliCtx, common.CodeInternalError, "invalid consensus_pubkey type ")
+			return
+		}
+		cosmosAny := types.WrapCosmosAny(pubkey[:])
 		cosmosVal := types.WrapCosmosValidator(val, &cosmosAny)
 		wrappedValidator := types.NewWrappedValidator(cosmosVal)
 		cliCtx = cliCtx.WithHeight(height)

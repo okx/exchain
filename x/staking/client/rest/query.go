@@ -9,6 +9,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
+	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/staking/types"
 )
@@ -144,7 +145,12 @@ func validatorsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 		cliCtx.Codec.MustUnmarshalJSON(res, &vs)
 		filteredCosmosValidators := make([]types.CosmosValidator, 0, len(vs))
 		for _, val := range vs {
-			cosmosAny := types.WrapCosmosAny(val.ConsPubKey.Bytes())
+			pubkey, ok := val.ConsPubKey.(ed25519.PubKeyEd25519)
+			if !ok {
+				common.HandleErrorMsg(w, cliCtx, common.CodeInternalError, "invalid consensus_pubkey type ")
+				return
+			}
+			cosmosAny := types.WrapCosmosAny(pubkey[:])
 			cosmosVal := types.WrapCosmosValidator(val, &cosmosAny)
 			filteredCosmosValidators = append(filteredCosmosValidators, cosmosVal)
 		}
