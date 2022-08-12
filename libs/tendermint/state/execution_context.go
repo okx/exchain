@@ -80,7 +80,7 @@ func (pc *prerunContext) dequeueResult() (*ABCIResponses, error) {
 }
 
 func (pc *prerunContext) stopPrerun(height int64) (index int64) {
-	pc.logger.Info("stop preRun", "stack", string(debug.Stack()))
+	pc.logger.Error("stop preRun", "stack", string(debug.Stack()))
 	task := pc.prerunTask
 	// stop the existing prerun if any
 	if task != nil {
@@ -122,7 +122,7 @@ func (pc *prerunContext) getPrerunResult(height int64, fastSync bool) (res *ABCI
 
 	if fastSync {
 		pc.stopPrerun(height)
-		pc.logger.Info("getPrerunResult", "height", height, "fastSync", fastSync)
+		pc.logger.Error("getPrerunResult", "height", height, "fastSync", fastSync)
 		return
 	}
 	// blockExec.prerunContext == nil means:
