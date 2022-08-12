@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"runtime/debug"
 )
 
 type prerunContext struct {
@@ -79,6 +80,7 @@ func (pc *prerunContext) dequeueResult() (*ABCIResponses, error) {
 }
 
 func (pc *prerunContext) stopPrerun(height int64) (index int64) {
+	pc.logger.Info("stop preRun", "stack", string(debug.Stack()))
 	task := pc.prerunTask
 	// stop the existing prerun if any
 	if task != nil {
