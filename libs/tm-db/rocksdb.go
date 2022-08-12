@@ -9,8 +9,8 @@ import (
 	"runtime"
 	"strconv"
 
-	"github.com/spf13/viper"
 	"github.com/cosmos/gorocksdb"
+	"github.com/spf13/viper"
 )
 
 func init() {
@@ -105,7 +105,7 @@ func NewRocksDB(name string, dir string) (*RocksDB, error) {
 			opts.SetAllowMmapWrites(enable)
 		}
 	}
-
+	opts.SetStatsDumpPeriodSec(60)
 	// 1.5GB maximum memory use for writebuffer.
 	opts.OptimizeLevelStyleCompaction(512 * 1024 * 1024)
 	return NewRocksDBWithOptions(name, dir, opts)
