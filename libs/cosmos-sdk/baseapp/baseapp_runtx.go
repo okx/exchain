@@ -3,6 +3,7 @@ package baseapp
 import (
 	"fmt"
 	"runtime/debug"
+	"sync"
 
 	"github.com/okex/exchain/libs/system/trace"
 	"github.com/pkg/errors"
@@ -78,6 +79,12 @@ func (app *BaseApp) runTx(mode runTxMode,
 	return
 }
 
+var cachePool = &sync.Pool{
+	New: func() interface{} {
+		return sdk.NewCache(nil, true)
+	},
+}
+
 func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byte, tx sdk.Tx, height int64, from ...string) (err error) {
 	info.handler = app.getModeHandler(mode)
 	info.tx = tx
@@ -103,6 +110,13 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 		//traceBlockCache was created with different root(chainCache) with app.blockCache in app.BeginBlockForTrace()
 		if useCache(mode) && tx.GetType() == sdk.EvmTxType {
 			info.ctx.SetCache(sdk.NewCache(app.blockCache, true))
+		} else if sdk.UseCache && tx.GetType() == sdk.EvmTxType && mode == runTxModeDeliverInAsync {
+			info.ctx.SetCache(cachePool.Get().(*sdk.Cache))
+			defer func() {
+				info.ctx.Cache().Clear()
+				cachePool.Put(info.ctx.Cache())
+				info.ctx.SetCache(nil)
+			}()
 		} else {
 			info.ctx.SetCache(nil)
 		}

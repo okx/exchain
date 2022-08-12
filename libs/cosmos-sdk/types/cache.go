@@ -100,6 +100,18 @@ func NewCache(parent *Cache, useCache bool) *Cache {
 
 }
 
+func (c *Cache) Clear() {
+	for k := range c.storageMap {
+		delete(c.storageMap, k)
+	}
+	for k := range c.accMap {
+		delete(c.accMap, k)
+	}
+	for k := range c.codeMap {
+		delete(c.codeMap, k)
+	}
+}
+
 func (c *Cache) skip() bool {
 	if c == nil || !c.useCache {
 		return true
