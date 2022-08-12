@@ -12,6 +12,7 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/app/types"
+	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
@@ -79,7 +80,11 @@ func (msg *MsgEthereumTx) GetFee() sdk.Coins {
 }
 
 func (msg MsgEthereumTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
-	err := msg.VerifySig(msg.ChainID(), ctx.BlockHeight())
+	chainID, err := ethermint.ParseChainID(ctx.ChainID())
+	if err != nil {
+		return nil
+	}
+	err = msg.VerifySig(chainID, ctx.BlockHeight())
 	if err != nil {
 		return nil
 	}
