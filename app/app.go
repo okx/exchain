@@ -788,7 +788,10 @@ func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 	}
 
 	// set config by node mode
-	setNodeConfig(ctx)
+	err = setNodeConfig(ctx)
+	if err != nil {
+		return err
+	}
 
 	//download pprof
 	appconfig.PprofDownload(ctx)
