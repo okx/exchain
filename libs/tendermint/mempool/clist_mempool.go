@@ -87,7 +87,7 @@ type CListMempool struct {
 
 	checkTotalTime    int64
 	checkRpcTotalTime int64
-	checkP2pTotalTime int64
+	checkP2PTotalTime int64
 
 	txs ITransactionQueue
 }
@@ -317,7 +317,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	pastTime := time.Now().Sub(timeStart).Microseconds()
 	if txInfo.SenderID != 0 {
 		atomic.AddInt64(&mem.checkP2PCnt, 1)
-		atomic.AddInt64(&mem.checkP2pTotalTime, pastTime)
+		atomic.AddInt64(&mem.checkP2PTotalTime, pastTime)
 	} else {
 		atomic.AddInt64(&mem.checkRPCCnt, 1)
 		atomic.AddInt64(&mem.checkRpcTotalTime, pastTime)
@@ -927,10 +927,10 @@ func (mem *CListMempool) statsCheckTx() {
 	trace.GetElapsedInfo().AddInfo(trace.MempoolCheckTxTime,
 		strconv.FormatInt(atomic.LoadInt64(&mem.checkTotalTime)/1000, 10)+"ms,"+
 			strconv.FormatInt(atomic.LoadInt64(&mem.checkRpcTotalTime)/1000, 10)+"ms,"+
-			strconv.FormatInt(atomic.LoadInt64(&mem.checkP2pTotalTime)/1000, 10)+"ms")
+			strconv.FormatInt(atomic.LoadInt64(&mem.checkP2PTotalTime)/1000, 10)+"ms")
 	atomic.StoreInt64(&mem.checkTotalTime, 0)
 	atomic.StoreInt64(&mem.checkRpcTotalTime, 0)
-	atomic.StoreInt64(&mem.checkP2pTotalTime, 0)
+	atomic.StoreInt64(&mem.checkP2PTotalTime, 0)
 }
 
 func (mem *CListMempool) cleanTx(height int64, tx types.Tx, txCode uint32) *clist.CElement {
