@@ -9,6 +9,6 @@ type EvmKeeper interface {
 	GetChainConfig(ctx sdk.Context) (evmtypes.ChainConfig, bool)
 	GenerateCSDBParams() evmtypes.CommitStateDBParams
 	GetParams(ctx sdk.Context) evmtypes.Params
-	AddInnerTx(...interface{})
-	AddContract(...interface{})
+	AddInnerTx(hash string, txs interface{})
+	AddContract(contracts interface{})
 }
