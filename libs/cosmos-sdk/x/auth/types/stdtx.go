@@ -265,6 +265,10 @@ func (tx *StdTx) GetFrom() string {
 	return signers[0].String()
 }
 
+func (tx *StdTx) GetSender(_ sdk.Context) string {
+	return tx.GetFrom()
+}
+
 func (tx *StdTx) GetNonce() uint64 {
 	return 0
 }

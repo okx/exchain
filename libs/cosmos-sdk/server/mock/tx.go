@@ -1,4 +1,4 @@
-//nolint
+// nolint
 package mock
 
 import (
@@ -64,6 +64,10 @@ func (tx *kvstoreTx) GetType() sdk.TransactionType {
 }
 
 func (tx *kvstoreTx) GetFrom() string {
+	return ""
+}
+
+func (tx *kvstoreTx) GetSender(_ sdk.Context) string {
 	return ""
 }
 

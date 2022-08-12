@@ -69,6 +69,19 @@ func (tx *MsgEthereumTx) GetFrom() string {
 	return from
 }
 
+func (msg MsgEthereumTx) GetSender(ctx sdk.Context) string {
+	chainID, err := ethermint.ParseChainID(ctx.ChainID())
+	if err != nil {
+		return ""
+	}
+	err = msg.VerifySig(chainID, ctx.BlockHeight())
+	if err != nil {
+		return ""
+	}
+
+	return msg.BaseTx.GetFrom()
+}
+
 func (msg *MsgEthereumTx) GetNonce() uint64 {
 	return msg.Data.AccountNonce
 }
