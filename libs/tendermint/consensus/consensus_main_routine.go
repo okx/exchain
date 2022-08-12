@@ -62,6 +62,13 @@ func (cs *State) receiveRoutine(maxSteps int) {
 		var mi msgInfo
 
 		select {
+		case <-cs.Quit():
+			onExit(cs)
+			return
+		default:
+		}
+
+		select {
 		case <-cs.txNotifier.TxsAvailable():
 			cs.handleTxsAvailable()
 		case mi = <-cs.peerMsgQueue:
