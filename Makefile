@@ -24,7 +24,7 @@ ClientName=exchaincli
 GenesisHeight=0
 MercuryHeight=1
 VenusHeight=1
-Venus1Height=0
+Venus1Height=1
 MarsHeight=0
 Venus2Height=0
 
