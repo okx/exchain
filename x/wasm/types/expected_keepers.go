@@ -37,7 +37,7 @@ type AccountKeeper interface {
 	// Retrieve an account from the store.
 	GetAccount(ctx sdk.Context, addr sdk.AccAddress) auth.Account
 	// Set an account in the store.
-	SetAccount(ctx sdk.Context, acc auth.Account, updateState ...bool)
+	SetAccount(ctx sdk.Context, acc auth.Account)
 	// SetObserverKeeper sets an observer for listening changes of any accounts.
 	SetObserverKeeper(observer auth.ObserverI)
 }

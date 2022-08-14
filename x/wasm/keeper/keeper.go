@@ -211,7 +211,7 @@ func (k Keeper) SetParams(ctx sdk.Context, ps types.Params) {
 	k.paramSpace.SetParamSet(ctx, &ps)
 }
 
-func (k Keeper) OnAccountUpdated(acc exported.Account, updateState bool) {
+func (k Keeper) OnAccountUpdated(acc exported.Account) {
 	watcher.DeleteAccount(acc.GetAddress())
 }
 

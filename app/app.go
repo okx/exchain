@@ -316,7 +316,6 @@ func NewOKExChainApp(
 	app.AccountKeeper = auth.NewAccountKeeper(
 		codecProxy.GetCdc(), keys[auth.StoreKey], keys[mpt.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
 	)
-	app.AccountKeeper.SetObserverKeeper(app)
 
 	bankKeeper := bank.NewBaseKeeperWithMarshal(
 		&app.AccountKeeper, codecProxy, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
@@ -785,7 +784,10 @@ func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 	}
 
 	// set config by node mode
-	setNodeConfig(ctx)
+	err = setNodeConfig(ctx)
+	if err != nil {
+		return err
+	}
 
 	//download pprof
 	appconfig.PprofDownload(ctx)

@@ -112,7 +112,7 @@ func (ak AccountKeeper) GetAllAccounts(ctx sdk.Context) (accounts []exported.Acc
 }
 
 // SetAccount implements sdk.AccountKeeper.
-func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account, updateState ...bool) {
+func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 	addr := acc.GetAddress()
 
 	var key sdk.StoreKey
@@ -141,8 +141,7 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account, update
 		if ak.observers != nil {
 			for _, observer := range ak.observers {
 				if observer != nil {
-					updated := len(updateState) > 0 && updateState[0]
-					observer.OnAccountUpdated(acc, updated)
+					observer.OnAccountUpdated(acc)
 				}
 			}
 		}
