@@ -68,7 +68,7 @@ const (
 
 	MempoolCheckTxCnt  = "CheckTx"
 	MempoolTxsCnt      = "MempoolTxs"
-	MempoolCheckTxCost = "CheckTxCost"
+	MempoolCheckTxTime = "CheckTxTime"
 
 	CompressBlock   = "Compress"
 	UncompressBlock = "Uncompress"

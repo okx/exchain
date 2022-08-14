@@ -317,7 +317,6 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		}
 	}
 	reqRes.SetCallback(mem.reqResCb(tx, txInfo, cb))
-
 	atomic.AddInt64(&mem.checkCnt, 1)
 
 	if cfg.DynamicConfig.GetMempoolCheckTxCost() {
@@ -937,7 +936,7 @@ func (mem *CListMempool) checkTxCost() {
 	atomic.StoreInt64(&mem.checkRPCCnt, 0)
 	atomic.StoreInt64(&mem.checkP2PCnt, 0)
 
-	trace.GetElapsedInfo().AddInfo(trace.MempoolCheckTxCost,
+	trace.GetElapsedInfo().AddInfo(trace.MempoolCheckTxTime,
 		strconv.FormatInt(atomic.LoadInt64(&mem.checkTotalTime)/1000, 10)+"ms,"+
 			strconv.FormatInt(atomic.LoadInt64(&mem.checkRpcTotalTime)/1000, 10)+"ms,"+
 			strconv.FormatInt(atomic.LoadInt64(&mem.checkP2PTotalTime)/1000, 10)+"ms")
