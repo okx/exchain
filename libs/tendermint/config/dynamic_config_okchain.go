@@ -10,7 +10,7 @@ type IDynamicConfig interface {
 	GetMaxGasUsedPerBlock() int64
 	GetMempoolFlush() bool
 	GetNodeKeyWhitelist() []string
-	GetMempoolCheckTxTime() bool
+	GetMempoolCheckTxCost() bool
 	GetSentryAddrs() []string
 	GetCsTimeoutPropose() time.Duration
 	GetCsTimeoutProposeDelta() time.Duration
@@ -61,7 +61,7 @@ func (d MockDynamicConfig) GetNodeKeyWhitelist() []string {
 	return []string{}
 }
 
-func (d MockDynamicConfig) GetMempoolCheckTxTime() bool {
+func (d MockDynamicConfig) GetMempoolCheckTxCost() bool {
 	return false
 }
 

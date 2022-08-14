@@ -246,7 +246,7 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo TxInfo) error {
 	timeStart := int64(0)
-	if cfg.DynamicConfig.GetMempoolCheckTxTime() {
+	if cfg.DynamicConfig.GetMempoolCheckTxCost() {
 		timeStart = time.Now().UnixMicro()
 	}
 
@@ -320,7 +320,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 
 	atomic.AddInt64(&mem.checkCnt, 1)
 
-	if cfg.DynamicConfig.GetMempoolCheckTxTime() {
+	if cfg.DynamicConfig.GetMempoolCheckTxCost() {
 		pastTime := time.Now().UnixMicro() - timeStart
 		if txInfo.SenderID != 0 {
 			atomic.AddInt64(&mem.checkP2PCnt, 1)
@@ -912,8 +912,8 @@ func (mem *CListMempool) Update(
 		mem.metrics.PendingPoolSize.Set(float64(mem.pendingPool.Size()))
 	}
 
-	if cfg.DynamicConfig.GetMempoolCheckTxTime() {
-		mem.statsCheckTxTime()
+	if cfg.DynamicConfig.GetMempoolCheckTxCost() {
+		mem.checkTxCost()
 	} else {
 		trace.GetElapsedInfo().AddInfo(trace.MempoolCheckTxCnt, strconv.FormatInt(atomic.LoadInt64(&mem.checkCnt), 10))
 		trace.GetElapsedInfo().AddInfo(trace.MempoolTxsCnt, strconv.Itoa(mem.txs.Len()))
@@ -928,7 +928,7 @@ func (mem *CListMempool) Update(
 	return nil
 }
 
-func (mem *CListMempool) statsCheckTxTime() {
+func (mem *CListMempool) checkTxCost() {
 	trace.GetElapsedInfo().AddInfo(trace.MempoolCheckTxCnt,
 		strconv.FormatInt(atomic.LoadInt64(&mem.checkCnt), 10)+","+
 			strconv.FormatInt(atomic.LoadInt64(&mem.checkRPCCnt), 10)+","+
@@ -937,7 +937,7 @@ func (mem *CListMempool) statsCheckTxTime() {
 	atomic.StoreInt64(&mem.checkRPCCnt, 0)
 	atomic.StoreInt64(&mem.checkP2PCnt, 0)
 
-	trace.GetElapsedInfo().AddInfo(trace.MempoolCheckTxTime,
+	trace.GetElapsedInfo().AddInfo(trace.MempoolCheckTxCost,
 		strconv.FormatInt(atomic.LoadInt64(&mem.checkTotalTime)/1000, 10)+"ms,"+
 			strconv.FormatInt(atomic.LoadInt64(&mem.checkRpcTotalTime)/1000, 10)+"ms,"+
 			strconv.FormatInt(atomic.LoadInt64(&mem.checkP2PTotalTime)/1000, 10)+"ms")

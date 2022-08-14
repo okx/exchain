@@ -40,8 +40,8 @@ type OecConfig struct {
 	maxGasUsedPerBlock int64
 	// mempool.node_key_whitelist
 	nodeKeyWhitelist []string
-	//mempool.check_tx_time
-	mempoolCheckTxTime bool
+	//mempool.check_tx_cost
+	mempoolCheckTxCost bool
 	// p2p.sentry_addrs
 	sentryAddrs []string
 
@@ -100,7 +100,7 @@ const (
 	FlagMaxTxNumPerBlock       = "mempool.max_tx_num_per_block"
 	FlagMaxGasUsedPerBlock     = "mempool.max_gas_used_per_block"
 	FlagNodeKeyWhitelist       = "mempool.node_key_whitelist"
-	FlagMempoolCheckTxTime     = "mempool.check_tx_time"
+	FlagMempoolCheckTxCost     = "mempool.check_tx_cost"
 	FlagGasLimitBuffer         = "gas-limit-buffer"
 	FlagEnableDynamicGp        = "enable-dynamic-gp"
 	FlagDynamicGpWeight        = "dynamic-gp-weight"
@@ -207,7 +207,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetMempoolForceRecheckGap(viper.GetInt64(FlagMempoolForceRecheckGap))
 	c.SetMempoolSize(viper.GetInt(FlagMempoolSize))
 	c.SetMempoolFlush(viper.GetBool(FlagMempoolFlush))
-	c.SetMempoolCheckTxTime(viper.GetBool(FlagMempoolCheckTxTime))
+	c.SetMempoolCheckTxCost(viper.GetBool(FlagMempoolCheckTxCost))
 	c.SetMaxTxNumPerBlock(viper.GetInt64(FlagMaxTxNumPerBlock))
 	c.SetMaxGasUsedPerBlock(viper.GetInt64(FlagMaxGasUsedPerBlock))
 	c.SetGasLimitBuffer(viper.GetUint64(FlagGasLimitBuffer))
@@ -258,7 +258,7 @@ func (c *OecConfig) format() string {
 	mempool.flush: %v
 	mempool.max_tx_num_per_block: %d
 	mempool.max_gas_used_per_block: %d
-	mempool.check_tx_time: %v
+	mempool.check_tx_cost: %v
 
 	gas-limit-buffer: %d
 	enable-dynamic-gp: %v
@@ -281,7 +281,7 @@ func (c *OecConfig) format() string {
 		c.GetMempoolFlush(),
 		c.GetMaxTxNumPerBlock(),
 		c.GetMaxGasUsedPerBlock(),
-		c.GetMempoolCheckTxTime(),
+		c.GetMempoolCheckTxCost(),
 		c.GetGasLimitBuffer(),
 		c.GetEnableDynamicGp(),
 		c.GetDynamicGpWeight(),
@@ -337,12 +337,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetNodeKeyWhitelist(r)
-	case FlagMempoolCheckTxTime:
+	case FlagMempoolCheckTxCost:
 		r, err := strconv.ParseBool(v)
 		if err != nil {
 			return
 		}
-		c.SetMempoolCheckTxTime(r)
+		c.SetMempoolCheckTxCost(r)
 	case FlagSentryAddrs:
 		r, ok := value.(string)
 		if !ok {
@@ -533,11 +533,11 @@ func (c *OecConfig) GetNodeKeyWhitelist() []string {
 	return c.nodeKeyWhitelist
 }
 
-func (c *OecConfig) GetMempoolCheckTxTime() bool {
-	return c.mempoolCheckTxTime
+func (c *OecConfig) GetMempoolCheckTxCost() bool {
+	return c.mempoolCheckTxCost
 }
-func (c *OecConfig) SetMempoolCheckTxTime(value bool) {
-	c.mempoolCheckTxTime = value
+func (c *OecConfig) SetMempoolCheckTxCost(value bool) {
+	c.mempoolCheckTxCost = value
 }
 
 func (c *OecConfig) SetNodeKeyWhitelist(value string) {
