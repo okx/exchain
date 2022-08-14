@@ -6,6 +6,12 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
+func NewHeight() {
+	if Enable() && len(blockStateCache) != 0 {
+		blockStateCache = make(map[string]*WatchMessage)
+	}
+}
+
 func Save(err error) {
 	if !Enable() {
 		return
@@ -25,7 +31,6 @@ func Commit() {
 		return
 	}
 	blockStateCacheCopy := blockStateCache
-	blockStateCache = make(map[string]*WatchMessage)
 	task := func() {
 		batch := db.NewBatch()
 		for _, msg := range blockStateCacheCopy {
