@@ -188,7 +188,7 @@ func (msg *MsgEthereumTx) To() *ethcmn.Address {
 // NOTE: This method panics if 'VerifySig' hasn't been called first.
 func (msg *MsgEthereumTx) GetSigners() []sdk.AccAddress {
 	addr := msg.AccountAddress()
-	if addr.Empty() {
+	if msg.BaseTx.From == "" || addr.Empty() {
 		panic("must use 'VerifySig' with a chain ID to get the from addr")
 	}
 	return []sdk.AccAddress{addr}
