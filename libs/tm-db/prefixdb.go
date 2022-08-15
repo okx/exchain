@@ -2,15 +2,12 @@ package db
 
 import (
 	"fmt"
-
-	"github.com/okex/exchain/libs/tm-db/common"
 )
 
 // PrefixDB wraps a namespace of another database as a logical database.
 type PrefixDB struct {
 	prefix []byte
 	db     DB
-	common.PlaceHolder
 }
 
 var _ DB = (*PrefixDB)(nil)
@@ -147,4 +144,8 @@ func (pdb *PrefixDB) Stats() map[string]string {
 
 func (pdb *PrefixDB) prefixed(key []byte) []byte {
 	return concat(pdb.prefix, key)
+}
+
+func (pdb *PrefixDB) Compact() error {
+	return pdb.db.Compact()
 }
