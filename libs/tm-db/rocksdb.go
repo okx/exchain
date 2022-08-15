@@ -5,6 +5,7 @@ package db
 
 import (
 	"fmt"
+	"log"
 	"path/filepath"
 	"runtime"
 	"strconv"
@@ -260,6 +261,7 @@ func (db *RocksDB) ReverseIterator(start, end []byte) (Iterator, error) {
 }
 
 func (db *RocksDB) Compact() error {
+	log.Printf("%v compact..... \n", db.DB().Name())
 	db.DB().CompactRange(gorocksdb.Range{})
 	return nil
 }
