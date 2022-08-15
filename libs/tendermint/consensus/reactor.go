@@ -211,9 +211,9 @@ conR:
 
 	conR.stopSwitchToFastSyncTimer()
 
-	cState := conR.conS.GetState()
-
 	conR.conS.Wait()
+
+	cState := conR.conS.GetState()
 	conR.conS.blockExec.SetIsFastSyncing(true)
 
 	return cState, nil
