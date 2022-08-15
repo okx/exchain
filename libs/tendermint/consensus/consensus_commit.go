@@ -242,6 +242,7 @@ func (cs *State) finalizeCommit(height int64) {
 		return
 	}
 
+	cs.trc.Pin(trace.PruneBlock)
 	fail.Fail() // XXX
 
 	// Prune old heights, if requested by ABCI app.

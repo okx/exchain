@@ -311,6 +311,8 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		}
 	}
 
+	trc.Pin(trace.DDS)
+
 	dc.postApplyBlock(block.Height, deltaInfo, abciResponses, commitResp.DeltaMap, blockExec.isFastSync)
 
 	return state, retainHeight, nil
