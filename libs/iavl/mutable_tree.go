@@ -658,6 +658,13 @@ func (tree *MutableTree) enableFastStorageAndCommitIfNotEnabled() (bool, error) 
 		tree.ndb.storageVersion = defaultStorageVersionValue
 		return false, err
 	}
+
+	tree.log(IavlInfo, "Compacting IAVL...")
+	if err := tree.ndb.db.Compact(); err != nil {
+		tree.log(IavlErr, "Compacted IAVL...", "error", err.Error())
+	}
+	tree.log(IavlInfo, "Compacting IAVL done")
+
 	return true, nil
 }
 

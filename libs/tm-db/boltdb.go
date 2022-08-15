@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/okex/exchain/libs/tm-db/common"
 	"github.com/pkg/errors"
 	"go.etcd.io/bbolt"
 )
@@ -32,6 +33,7 @@ func init() {
 // lead to performance issues when/if there will be lots of keys.
 type BoltDB struct {
 	db *bbolt.DB
+	common.PlaceHolder
 }
 
 var _ DB = (*BoltDB)(nil)
