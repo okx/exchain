@@ -14,6 +14,8 @@ const (
 	UndelegateCallName = "undelegate"
 	EvmCallName        = "call"
 	EvmCreateName      = "create"
+
+	IsAvailable = false
 )
 
 var BIG0 = big.NewInt(0)
