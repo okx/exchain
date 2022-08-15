@@ -151,6 +151,7 @@ func (dc *DeltaContext) postApplyBlock(height int64, deltaInfo *DeltaInfo,
 	// delta consumer
 	if dc.downloadDelta {
 
+		t0 := time.Now()
 		applied := false
 		deltaLen := 0
 		if deltaInfo != nil {
@@ -167,9 +168,13 @@ func (dc *DeltaContext) postApplyBlock(height int64, deltaInfo *DeltaInfo,
 		dc.logger.Info("Post apply block", "height", height, "delta-applied", applied,
 			"applied-ratio", dc.hitRatio(), "delta-length", deltaLen)
 
+		t1 := time.Now()
 		if applied && types.FastQuery {
 			applyWatchDataFunc(deltaInfo.watchData)
 		}
+		t2 := time.Now()
+
+		dc.logger.Info("dds-time", "dds-log", t1.Sub(t0), "wd", t2.Sub(t1))
 	}
 
 	// delta producer

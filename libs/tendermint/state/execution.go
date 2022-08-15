@@ -300,6 +300,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	blockExec.logger.Debug("SaveState", "state", &state)
 	fail.Fail() // XXX
 
+	trc.Pin("txIndex")
 	// Events are fired after everything else.
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	if !blockExec.isNullIndexer {
