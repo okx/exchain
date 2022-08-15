@@ -62,7 +62,7 @@ const (
 	MempoolUpdate   = "mpUpdate"
 	SaveState       = "saveState"
 	DDS             = "DDS"
-	PruneBlock      = "pruneBlock"
+	FinishAB        = "FinishAB"
 	ApplyBlock      = "ApplyBlock"
 	Consensus       = "Consensus"
 	LastBlockTime   = "LastBlockTime"
