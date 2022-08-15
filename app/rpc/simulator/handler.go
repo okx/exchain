@@ -5,7 +5,7 @@ import (
 )
 
 type Simulator interface {
-	Simulate(msg sdk.Msg) (*sdk.Result, error)
+	Simulate([]sdk.Msg) (*sdk.Result, error)
 	Context() *sdk.Context
 }
 

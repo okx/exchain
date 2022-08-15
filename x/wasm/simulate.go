@@ -29,8 +29,23 @@ func NewWasmSimulator() simulator.Simulator {
 	}
 }
 
-func (w *Simulator) Simulate(msg sdk.Msg) (*sdk.Result, error) {
-	return w.handler(w.ctx, msg)
+func (w *Simulator) Simulate(msgs []sdk.Msg) (*sdk.Result, error) {
+	//wasm Result has no Logs
+	data := make([]byte, 0, len(msgs))
+	events := sdk.EmptyEvents()
+
+	for _, msg := range msgs {
+		res, err := w.handler(w.ctx, msg)
+		if err != nil {
+			return nil, err
+		}
+		data = append(data, res.Data...)
+		events = events.AppendEvents(res.Events)
+	}
+	return &sdk.Result{
+		Data:   data,
+		Events: events,
+	}, nil
 }
 
 func (w *Simulator) Context() *sdk.Context {
