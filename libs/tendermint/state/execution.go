@@ -227,12 +227,14 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	deltaInfo := dc.prepareStateDelta(block.Height)
 
-	trc.Pin(trace.Abci)
+	trc.Pin("waitSave")
 
 	startTime := time.Now().UnixNano()
 
 	//wait till the last block async write be saved
 	blockExec.tryWaitLastBlockSave(block.Height - 1)
+
+	trc.Pin(trace.Abci)
 
 	abciResponses, err := blockExec.runAbci(block, deltaInfo)
 
