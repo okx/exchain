@@ -30,8 +30,6 @@ func (app *BaseApp) getModeHandler(mode runTxMode) modeHandler {
 	case runTxModeTrace:
 		h = &modeHandlerTrace{&modeHandlerDeliver{&modeHandlerBase{mode: mode, app: app}}}
 	case runTxModeDeliver:
-		fallthrough
-	case runTxModeDeliverPartConcurrent:
 		h = &modeHandlerDeliver{&modeHandlerBase{mode: mode, app: app}}
 	case runTxModeSimulate:
 		h = &modeHandlerSimulate{&modeHandlerBase{mode: mode, app: app}}

@@ -14,10 +14,8 @@ import (
 
 // CheckStart check start command's flags. if user set conflict flags return error.
 // the conflicts flags are:
-// --fast-query      conflict with --paralleled-tx=true
 // --fast-query      conflict with --pruning=nothing
 // --enable-preruntx conflict with --download-delta
-// --upload-delta    conflict with --paralleled-tx=true
 //
 // based the conflicts above and node-mode below
 // --node-mode=rpc manage the following flags:
@@ -49,17 +47,11 @@ import (
 //    --cors=*
 //
 // then
-// --node-mode=rpc(--fast-query) conflicts with --paralleled-tx=true and --pruning=nothing
 // --node-mode=archive(--pruning=nothing) conflicts with --fast-query
 
 var (
 	// conflicts flags
 	startConflictElems = []conflictPair{
-		// --fast-query      conflict with --deliver-txs-mode=1
-		{
-			configA: boolItem{name: watcher.FlagFastQuery, value: true},
-			configB: intItem{name: state.FlagDeliverTxsExecMode, value: 1},
-		},
 		// --fast-query      conflict with --pruning=nothing
 		{
 			configA: boolItem{name: watcher.FlagFastQuery, value: true},
@@ -75,16 +67,6 @@ var (
 			configA: boolItem{name: sdk.FlagMultiCache, value: true},
 			configB: boolItem{name: types.FlagDownloadDDS, value: true},
 		},
-		// --upload-delta    conflict with --deliver-txs-mode=1
-		{
-			configA: boolItem{name: types.FlagUploadDDS, value: true},
-			configB: intItem{name: state.FlagDeliverTxsExecMode, value: 1},
-		},
-		// --node-mode=rpc(--fast-query) conflicts with --deliver-txs-mode=1
-		{
-			configA: stringItem{name: apptype.FlagNodeMode, value: string(apptype.RpcNode)},
-			configB: intItem{name: state.FlagDeliverTxsExecMode, value: 1},
-		},
 		{
 			configA: stringItem{name: apptype.FlagNodeMode, value: string(apptype.RpcNode)},
 			configB: stringItem{name: server.FlagPruning, value: cosmost.PruningOptionNothing},
@@ -94,6 +76,12 @@ var (
 			configA: stringItem{name: apptype.FlagNodeMode, value: string(apptype.ArchiveNode)},
 			configB: boolItem{name: watcher.FlagFastQuery, value: true},
 		},
+	}
+
+	checkRangeItems = []rangeItem{{
+		enumRange: []int{int(state.DeliverTxsExecModeSerial), state.DeliverTxsExecModeParallel},
+		name:      state.FlagDeliverTxsExecMode,
+	},
 	}
 )
 
@@ -105,6 +93,12 @@ func CheckStart() error {
 
 	for _, v := range startConflictElems {
 		if err := v.checkConflict(); err != nil {
+			return err
+		}
+	}
+
+	for _, v := range checkRangeItems {
+		if err := v.checkRange(); err != nil {
 			return err
 		}
 	}
