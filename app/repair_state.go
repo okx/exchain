@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"github.com/okex/exchain/app/config"
 	"io"
 	"log"
 	"path/filepath"
