@@ -1,13 +1,13 @@
 package types
 
 const (
-	RunTxModeCheck                 RunTxMode = iota // Check a transaction
-	RunTxModeReCheck                                // Recheck a (pending) transaction after a commit
-	RunTxModeSimulate                               // Simulate a transaction
-	RunTxModeDeliver                                // Deliver a transaction
-	RunTxModeDeliverInParallel                      // Deliver a transaction in parallel
-	RunTxModeDeliverPartConcurrent                  // Deliver a transaction partial concurrent
-	RunTxModeTrace                                  // Trace a transaction
+	RunTxModeCheck             RunTxMode = iota // Check a transaction
+	RunTxModeReCheck                            // Recheck a (pending) transaction after a commit
+	RunTxModeSimulate                           // Simulate a transaction
+	RunTxModeDeliver                            // Deliver a transaction
+	RunTxModeDeliverInParallel                  // Deliver a transaction in parallel
+	_                                           // Deliver a transaction partial concurrent
+	RunTxModeTrace                              // Trace a transaction
 	RunTxModeWrappedCheck
 )
 
@@ -23,8 +23,6 @@ func (m RunTxMode) String() (res string) {
 		res = "ModeSimulate"
 	case RunTxModeDeliver:
 		res = "ModeDeliver"
-	case RunTxModeDeliverPartConcurrent:
-		res = "ModeDeliverPartConcurrent"
 	case RunTxModeDeliverInParallel:
 		res = "ModeDeliverInParallel"
 	case RunTxModeWrappedCheck:
