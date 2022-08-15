@@ -57,7 +57,7 @@ func accountVerification(ctx *sdk.Context, acc exported.Account, tx *evmtypes.Ms
 	return nil
 }
 
-func nonceVerificationInCheckTx(seq uint64, msgEthTx *evmtypes.MsgEthereumTx, isReCheckTx bool) error {
+func nonceVerificationInCheckTx(ctx sdk.Context, seq uint64, msgEthTx *evmtypes.MsgEthereumTx, isReCheckTx bool) error {
 	if isReCheckTx {
 		// recheckTx mode
 		// sequence must strictly increasing
@@ -85,7 +85,7 @@ func nonceVerificationInCheckTx(seq uint64, msgEthTx *evmtypes.MsgEthereumTx, is
 				// will also reset checkState), so we will need to add pending txs len to get the right nonce
 				gPool := baseapp.GetGlobalMempool()
 				if gPool != nil {
-					addr := msgEthTx.GetFrom()
+					addr := msgEthTx.GetSender(ctx)
 					if pendingNonce, ok := gPool.GetPendingNonce(addr); ok {
 						checkTxModeNonce = pendingNonce + 1
 					}
@@ -130,7 +130,7 @@ func nonceVerification(ctx sdk.Context, acc exported.Account, msgEthTx *evmtypes
 	if ctx.IsCheckTx() {
 		ctx.SetAccountNonce(seq)
 		// will be checkTx and RecheckTx mode
-		err := nonceVerificationInCheckTx(seq, msgEthTx, ctx.IsReCheckTx())
+		err := nonceVerificationInCheckTx(ctx, seq, msgEthTx, ctx.IsReCheckTx())
 		if err != nil {
 			return ctx, err
 		}
