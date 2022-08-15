@@ -8,6 +8,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/tendermint/go-amino"
+	"sync"
 )
 
 // NewAccountWithAddress implements sdk.AccountKeeper.
@@ -28,6 +29,12 @@ func (ak AccountKeeper) NewAccount(ctx sdk.Context, acc exported.Account) export
 	return acc
 }
 
+var addrStoreKeyPool = &sync.Pool{
+	New: func() interface{} {
+		return &[33]byte{}
+	},
+}
+
 // GetAccount implements sdk.AccountKeeper.
 func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exported.Account {
 	if data, gas, ok := ctx.Cache().GetAccount(ethcmn.BytesToAddress(addr)); ok {
@@ -39,14 +46,21 @@ func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exporte
 		return data.Copy()
 	}
 
-	var store sdk.KVStore
+	var key sdk.StoreKey
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		store = ctx.KVStore(ak.mptKey)
+		key = ak.mptKey
 	} else {
-		store = ctx.KVStore(ak.key)
+		key = ak.key
 	}
 
-	bz := store.Get(types.AddressStoreKey(addr))
+	store := ctx.GetReusableKVStore(key)
+	keyTarget := addrStoreKeyPool.Get().(*[33]byte)
+	defer func() {
+		addrStoreKeyPool.Put(keyTarget)
+		ctx.ReturnKVStore(store)
+	}()
+
+	bz := store.Get(types.MakeAddressStoreKey(addr, keyTarget[:0]))
 	if bz == nil {
 		ctx.Cache().UpdateAccount(addr, nil, len(bz), false)
 		return nil
@@ -65,14 +79,20 @@ func (ak AccountKeeper) LoadAccount(ctx sdk.Context, addr sdk.AccAddress) {
 		return
 	}
 
-	var store sdk.KVStore
+	var key sdk.StoreKey
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		store = ctx.KVStore(ak.mptKey)
+		key = ak.mptKey
 	} else {
-		store = ctx.KVStore(ak.key)
+		key = ak.key
 	}
+	store := ctx.GetReusableKVStore(key)
+	keyTarget := addrStoreKeyPool.Get().(*[33]byte)
+	defer func() {
+		addrStoreKeyPool.Put(keyTarget)
+		ctx.ReturnKVStore(store)
+	}()
 
-	bz := store.Get(types.AddressStoreKey(addr))
+	bz := store.Get(types.MakeAddressStoreKey(addr, keyTarget[:0]))
 	var acc exported.Account
 	if bz != nil {
 		acc = ak.decodeAccount(bz)
@@ -92,15 +112,17 @@ func (ak AccountKeeper) GetAllAccounts(ctx sdk.Context) (accounts []exported.Acc
 }
 
 // SetAccount implements sdk.AccountKeeper.
-func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account, updateState ...bool) {
+func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 	addr := acc.GetAddress()
 
-	var store sdk.KVStore
+	var key sdk.StoreKey
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		store = ctx.KVStore(ak.mptKey)
+		key = ak.mptKey
 	} else {
-		store = ctx.KVStore(ak.key)
+		key = ak.key
 	}
+	store := ctx.GetReusableKVStore(key)
+	defer ctx.ReturnKVStore(store)
 
 	bz := ak.encodeAccount(acc)
 
@@ -119,8 +141,7 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account, update
 		if ak.observers != nil {
 			for _, observer := range ak.observers {
 				if observer != nil {
-					updated := len(updateState) > 0 && updateState[0]
-					observer.OnAccountUpdated(acc, updated)
+					observer.OnAccountUpdated(acc)
 				}
 			}
 		}

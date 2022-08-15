@@ -156,10 +156,6 @@ func (app *PersistentKVStoreApplication) DeliverTxs(_ types.RequestDeliverTxs) [
 	return nil
 }
 
-func (app *PersistentKVStoreApplication) DeliverTxsConcurrent(_ [][]byte) []*types.ResponseDeliverTx {
-	return nil
-}
-
 //---------------------------------------------
 // update validators
 

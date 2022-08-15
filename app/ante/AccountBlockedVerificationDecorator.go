@@ -3,6 +3,7 @@ package ante
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
 // AccountBlockedVerificationDecorator check whether signer is blocked.
@@ -25,18 +26,26 @@ func (abvd AccountBlockedVerificationDecorator) AnteHandle(ctx sdk.Context, tx s
 	}
 	pinAnte(ctx.AnteTracer(), "AccountBlockedVerificationDecorator")
 
-	signers := tx.GetSigners()
+	var signers []sdk.AccAddress
+	if ethTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
+		signers = ethTx.GetSigners()
+	} else {
+		signers = tx.GetSigners()
+	}
 
 	currentGasMeter := ctx.GasMeter()
-	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
+	infGasMeter := sdk.GetReusableInfiniteGasMeter()
+	ctx.SetGasMeter(infGasMeter)
 
 	for _, signer := range signers {
 		//TODO it may be optimizate by cache blockedAddressList
 		if ok := abvd.evmKeeper.IsAddressBlocked(ctx, signer); ok {
 			ctx.SetGasMeter(currentGasMeter)
+			sdk.ReturnInfiniteGasMeter(infGasMeter)
 			return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "address: %s has been blocked", signer.String())
 		}
 	}
 	ctx.SetGasMeter(currentGasMeter)
+	sdk.ReturnInfiniteGasMeter(infGasMeter)
 	return next(ctx, tx, simulate)
 }

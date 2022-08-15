@@ -30,8 +30,6 @@ func (app *BaseApp) getModeHandler(mode sdk.RunTxMode) modeHandler {
 	case sdk.RunTxModeTrace:
 		h = &modeHandlerTrace{&modeHandlerDeliver{&modeHandlerBase{mode: mode, app: app}}}
 	case sdk.RunTxModeDeliver:
-		fallthrough
-	case sdk.RunTxModeDeliverPartConcurrent:
 		h = &modeHandlerDeliver{&modeHandlerBase{mode: mode, app: app}}
 	case sdk.RunTxModeSimulate:
 		h = &modeHandlerSimulate{&modeHandlerBase{mode: mode, app: app}}

@@ -402,7 +402,7 @@ func (c *baseRPCClient) Genesis() (*ctypes.ResultGenesis, error) {
 
 func (c *baseRPCClient) Block(height *int64) (*ctypes.ResultBlock, error) {
 	result := new(ctypes.ResultBlock)
-	_, err := c.caller.Call("cm39_block", map[string]interface{}{"height": height}, result)
+	_, err := c.caller.Call("block", map[string]interface{}{"height": height}, result)
 	if err != nil {
 		return nil, errors.Wrap(err, "Block")
 	}

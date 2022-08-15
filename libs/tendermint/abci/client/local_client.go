@@ -183,12 +183,6 @@ func (app *localClient) DeliverTxs(req types.RequestDeliverTxs) []*types.Respons
 	return app.Application.DeliverTxs(req)
 }
 
-func (app *localClient) DeliverTxsConcurrent(txs [][]byte) []*types.ResponseDeliverTx {
-	app.mtx.Lock()
-	defer app.mtx.Unlock()
-	return app.Application.DeliverTxsConcurrent(txs)
-}
-
 //-------------------------------------------------------
 
 func (app *localClient) FlushSync() error {

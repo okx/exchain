@@ -33,7 +33,6 @@ import (
 )
 
 const (
-
 	// MainStoreKey is the string representation of the main store
 	MainStoreKey = "main"
 
@@ -165,7 +164,6 @@ type BaseApp struct { // nolint: maligned
 
 	customizeModuleOnStop []sdk.CustomizeOnStop
 	mptCommitHandler      sdk.MptCommitHandler // handler for mpt trie commit
-	deliverTxsMgr         *DTTManager
 	feeForCollector       sdk.Coins
 	feeChanged            bool // used to judge whether should update the fee-collector account
 
@@ -631,7 +629,7 @@ func validateBasicTxMsgs(msgs []sdk.Msg) error {
 // Returns the applications's deliverState if app is in runTxModeDeliver,
 // otherwise it returns the application's checkstate.
 func (app *BaseApp) getState(mode sdk.RunTxMode) *state {
-	if mode == sdk.RunTxModeDeliver || mode == sdk.RunTxModeDeliverInParallel || mode == sdk.RunTxModeDeliverPartConcurrent {
+	if mode == sdk.RunTxModeDeliver || mode == sdk.RunTxModeDeliverInParallel {
 		return app.deliverState
 	}
 
