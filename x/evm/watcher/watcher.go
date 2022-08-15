@@ -3,6 +3,7 @@ package watcher
 import (
 	"encoding/hex"
 	"fmt"
+	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
 	"math/big"
 	"sync"
 
@@ -335,6 +336,7 @@ func (w *Watcher) Commit() {
 }
 
 func (w *Watcher) CommitWatchData(data WatchData) {
+	t0 := tmtime.Now()
 	if data.Size() == 0 {
 		return
 	}
@@ -347,6 +349,7 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 	if data.BloomData != nil {
 		w.commitBloomData(data.BloomData)
 	}
+	w.log.Error("CommitWD:", tmtime.Now().Sub(t0))
 
 	if w.checkWd {
 		keys := make([][]byte, len(data.Batches))
