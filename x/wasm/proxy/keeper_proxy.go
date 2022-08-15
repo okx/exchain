@@ -202,8 +202,26 @@ func (b BankKeeperProxy) SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toA
 type SupplyKeeperProxy struct{}
 
 func (s SupplyKeeperProxy) GetSupply(ctx sdk.Context) supplyexported.SupplyI {
+	//TODO: cache total supply in watchDB
+	//rarely used, so just query from chain db
+	tsParams := supply.NewQueryTotalSupplyParams(1, 0) // no pagination
+	bz, err := clientCtx.Codec.MarshalJSON(tsParams)
+	if err != nil {
+		return supply.DefaultSupply()
+	}
+
+	res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", supply.QuerierRoute, supply.QueryTotalSupply), bz)
+	if err != nil {
+		return supply.DefaultSupply()
+	}
+
+	var totalSupply sdk.Coins
+	err = clientCtx.Codec.UnmarshalJSON(res, &totalSupply)
+	if err != nil {
+		return supply.DefaultSupply()
+	}
 	return supply.Supply{
-		Total: global.Manager.GetSupply().(sdk.Coins),
+		Total: totalSupply,
 	}
 }
 

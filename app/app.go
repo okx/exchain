@@ -76,7 +76,6 @@ import (
 	"github.com/okex/exchain/x/token"
 	"github.com/okex/exchain/x/wasm"
 	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
-	"github.com/okex/exchain/x/wasm/watcher"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc/encoding"
@@ -325,7 +324,6 @@ func NewOKExChainApp(
 	app.SupplyKeeper = supply.NewKeeper(
 		codecProxy.GetCdc(), keys[supply.StoreKey], &app.AccountKeeper, app.BankKeeper, maccPerms,
 	)
-	watcher.Codec = codecProxy.GetCdc()
 
 	stakingKeeper := staking.NewKeeper(
 		codecProxy, keys[staking.StoreKey], app.SupplyKeeper, app.subspaces[staking.ModuleName],
