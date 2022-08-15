@@ -2,10 +2,11 @@ package ante
 
 import (
 	"fmt"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	evmtypes "github.com/okex/exchain/x/evm/types"
+	"math/big"
+	"sync"
 )
 
 // EthMempoolFeeDecorator validates that sufficient fees have been provided that
@@ -19,6 +20,12 @@ func NewEthMempoolFeeDecorator(ek EVMKeeper) EthMempoolFeeDecorator {
 	return EthMempoolFeeDecorator{
 		evmKeeper: ek,
 	}
+}
+
+var feeIntsPool = &sync.Pool{
+	New: func() interface{} {
+		return &[2]big.Int{}
+	},
 }
 
 // AnteHandle verifies that enough fees have been provided by the
@@ -38,13 +45,17 @@ func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "invalid transaction type: %T", tx)
 	}
 
-	evmDenom := sdk.DefaultBondDenom
+	const evmDenom = sdk.DefaultBondDenom
+
+	feeInts := feeIntsPool.Get().(*[2]big.Int)
 
 	// fee = gas price * gas limit
-	fee := sdk.NewDecCoinFromDec(evmDenom, sdk.NewDecFromBigIntWithPrec(msgEthTx.Fee(), sdk.Precision))
+	fee := sdk.NewDecCoinFromDec(evmDenom, sdk.NewDecWithBigIntAndPrec(msgEthTx.CalcFee(&feeInts[0]), sdk.Precision))
 
 	minGasPrices := ctx.MinGasPrices()
-	minFees := minGasPrices.AmountOf(evmDenom).MulInt64(int64(msgEthTx.Data.GasLimit))
+	// minFees := minGasPrices.AmountOf(evmDenom).MulInt64(int64(msgEthTx.Data.GasLimit))
+	var minFees = sdk.Dec{&feeInts[1]}
+	minGasPrices.AmountOf(evmDenom).MulInt64To(int64(msgEthTx.Data.GasLimit), &minFees)
 
 	// check that fee provided is greater than the minimum defined by the validator node
 	// NOTE: we only check if the evm denom tokens are present in min gas prices. It is up to the
@@ -57,11 +68,14 @@ func (emfd EthMempoolFeeDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simula
 	// reject transaction if minimum gas price is not zero and the transaction does not
 	// meet the minimum fee
 	if !ctx.MinGasPrices().IsZero() && !hasEnoughFees {
-		return ctx, sdkerrors.Wrap(
+		err = sdkerrors.Wrap(
 			sdkerrors.ErrInsufficientFee,
 			fmt.Sprintf("insufficient fee, got: %q required: %q", fee, sdk.NewDecCoinFromDec(evmDenom, minFees)),
 		)
+		feeIntsPool.Put(feeInts)
+		return ctx, err
 	}
+	feeIntsPool.Put(feeInts)
 
 	return next(ctx, tx, simulate)
 }

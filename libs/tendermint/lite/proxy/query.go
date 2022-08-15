@@ -2,11 +2,13 @@ package proxy
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/pkg/errors"
 
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/bytes"
 	"github.com/okex/exchain/libs/tendermint/lite"
 	lerr "github.com/okex/exchain/libs/tendermint/lite/errors"
@@ -140,9 +142,28 @@ func GetCertifiedCommit(h int64, client rpcclient.Client, cert lite.Verifier) (t
 			h, sh.Height)
 	}
 
-	if err = cert.Verify(sh); err != nil {
+	if err = VerifyEx(cert, sh); nil != err {
 		return types.SignedHeader{}, err
 	}
 
 	return sh, nil
+}
+
+// note: validators will sort by power when the globalHeight is gt the veneus1Height
+// when that happens ,Verifier#verify will be failed because of `globalHeight` is always '0'
+// case1: height is lt veneus1Height: L56: cert#Verify will success
+// case2: height is gt veneus1Height: L56 shoudle be failed ,L168 wil success
+func VerifyEx(cert lite.Verifier, sh types.SignedHeader) error {
+	err := cert.Verify(sh)
+	if err == nil {
+		return nil
+	}
+
+	// if we run here ,which means milestone'height is not working correctly
+	// as for cm40 , validatorSet will sort the validators by global height
+	// so we will try twice
+	origin := global.GetGlobalHeight()
+	global.SetGlobalHeight(math.MaxInt32 - 1)
+	defer global.SetGlobalHeight(origin)
+	return cert.Verify(sh)
 }
