@@ -123,6 +123,7 @@ func replayBlock(ctx *server.Context, originDataDir string, tmNode *node.Node) {
 		proxyApp, err = createProxyApp(ctx)
 		panicError(err)
 	}
+	os.Exit(0)
 
 	res, err := proxyApp.Query().InfoSync(proxy.RequestInfo)
 	panicError(err)
