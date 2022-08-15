@@ -9,8 +9,8 @@ import (
 	"runtime"
 	"strconv"
 
-	"github.com/spf13/viper"
 	"github.com/cosmos/gorocksdb"
+	"github.com/spf13/viper"
 )
 
 func init() {
@@ -257,4 +257,9 @@ func (db *RocksDB) Iterator(start, end []byte) (Iterator, error) {
 func (db *RocksDB) ReverseIterator(start, end []byte) (Iterator, error) {
 	itr := db.db.NewIterator(db.ro)
 	return NewRocksDBIterator(itr, start, end, true), nil
+}
+
+func (db *RocksDB) Compact() error {
+	db.DB().CompactRange(gorocksdb.Range{})
+	return nil
 }

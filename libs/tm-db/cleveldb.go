@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/jmhodges/levigo"
+	"github.com/okex/exchain/libs/tm-db/common"
 )
 
 func init() {
@@ -23,6 +24,7 @@ type CLevelDB struct {
 	ro     *levigo.ReadOptions
 	wo     *levigo.WriteOptions
 	woSync *levigo.WriteOptions
+	common.PlaceHolder
 }
 
 var _ DB = (*CLevelDB)(nil)

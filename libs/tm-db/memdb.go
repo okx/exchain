@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/google/btree"
+	"github.com/okex/exchain/libs/tm-db/common"
 )
 
 const (
@@ -51,6 +52,7 @@ func newPair(key, value []byte) *item {
 type MemDB struct {
 	mtx   sync.RWMutex
 	btree *btree.BTree
+	common.PlaceHolder
 }
 
 var _ DB = (*MemDB)(nil)

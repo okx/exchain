@@ -48,6 +48,20 @@ func (mr *MockDBMockRecorder) Close() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Close", reflect.TypeOf((*MockDB)(nil).Close))
 }
 
+// Compact mocks base method.
+func (m *MockDB) Compact() error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Compact")
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Compact indicates an expected call of Compact.
+func (mr *MockDBMockRecorder) Compact() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Compact", reflect.TypeOf((*MockDB)(nil).Compact))
+}
+
 // Delete mocks base method.
 func (m *MockDB) Delete(arg0 []byte) error {
 	m.ctrl.T.Helper()
