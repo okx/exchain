@@ -579,18 +579,19 @@ func TestMultipleMsgCreateValidator(t *testing.T) {
 		EndBlocker(ctx, keeper)
 
 		// removes validator from queue and set
-		ctx.SetBlockTime(blockTime.Add(params.UnbondingTime))
-		EndBlocker(ctx, keeper)
+		newCtx := ctx
+		newCtx.SetBlockTime(blockTime.Add(params.UnbondingTime))
+		EndBlocker(newCtx, keeper)
 
 		// Check that the validator is deleted from state
-		validators := keeper.GetValidators(ctx, 100)
+		validators := keeper.GetValidators(newCtx, 100)
 		require.Equal(t, len(validatorAddrs)-(i+1), len(validators),
 			"expected %d validators got %d", len(validatorAddrs)-(i+1), len(validators))
 
-		_, found = keeper.GetValidator(ctx, validatorAddr)
+		_, found = keeper.GetValidator(newCtx, validatorAddr)
 		require.False(t, found)
 
-		gotBalance := accMapper.GetAccount(ctx, delegatorAddrs[i]).GetCoins().AmountOf(params.BondDenom)
+		gotBalance := accMapper.GetAccount(newCtx, delegatorAddrs[i]).GetCoins().AmountOf(params.BondDenom)
 		require.Equal(t, initTokens.ToDec().Int, gotBalance.Int, "expected account to have %d, got %d", initTokens, gotBalance)
 	}
 }
