@@ -447,12 +447,12 @@ func (cs *State) reconstructLastCommit(state sm.State) {
 }
 
 func (cs *State) newStep() {
-	rs := cs.RoundStateEvent()
-	cs.wal.Write(rs)
+	//rs := cs.RoundStateEvent()
+	//cs.wal.Write(rs)
 	cs.nSteps++
 	// newStep is called by updateToState in NewState before the eventBus is set!
 	if cs.eventBus != nil {
-		cs.eventBus.PublishEventNewRoundStep(rs)
+		//cs.eventBus.PublishEventNewRoundStep(rs)
 		cs.evsw.FireEvent(types.EventNewRoundStep, &cs.RoundState)
 	}
 }
