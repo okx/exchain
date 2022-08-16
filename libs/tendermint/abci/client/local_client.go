@@ -183,12 +183,6 @@ func (app *localClient) ParallelTxs(txs [][]byte, onlyCalSender bool) []*types.R
 	return app.Application.ParallelTxs(txs, onlyCalSender)
 }
 
-func (app *localClient) DeliverTxsConcurrent(txs [][]byte) []*types.ResponseDeliverTx {
-	app.mtx.Lock()
-	defer app.mtx.Unlock()
-	return app.Application.DeliverTxsConcurrent(txs)
-}
-
 //-------------------------------------------------------
 
 func (app *localClient) FlushSync() error {
