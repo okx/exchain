@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/system"
 	"io/ioutil"
 	"log"
 	"os"
@@ -11,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/okex/exchain/libs/system"
 
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
@@ -150,6 +151,7 @@ func pruneAppCmd(ctx *server.Context) *cobra.Command {
 			appDB := initDB(config, appDBName)
 
 			if viper.GetBool(flagPruning) {
+				log.Printf("--------- giskook prune %v---------\n", viper.GetBool(flagPruning))
 				retainHeight := getPruneAppParams(appDB)
 
 				wg.Add(1)
@@ -244,7 +246,7 @@ func pruneBlockCmd(ctx *server.Context) *cobra.Command {
 func dbConvertCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "convert",
-		Short: "Convert "+system.ChainName+" data from goleveldb to rocksdb",
+		Short: "Convert " + system.ChainName + " data from goleveldb to rocksdb",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(flags.FlagHome))
