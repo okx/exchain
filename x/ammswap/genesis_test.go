@@ -51,7 +51,8 @@ func TestInitAndExportGenesis(t *testing.T) {
 	mapp, _ := getMockApp(t, 1)
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(10)
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 
 	defaultGenesisState := DefaultGenesisState()
@@ -70,7 +71,8 @@ func TestExportSupplyGenesisWithZeroLiquidity(t *testing.T) {
 	mapp, addrKeysSlice := getMockApp(t, 1)
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(10)
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 	// set test tokens
 	err := types.SetTestTokens(ctx, mapp.tokenKeeper, mapp.supplyKeeper, addrKeysSlice[0].Address, mapp.TotalCoinsSupply)

@@ -29,7 +29,8 @@ func TestHandleMsgCreateExchange(t *testing.T) {
 	mapp, addrKeysSlice := getMockApp(t, 1)
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(10)
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 	handler := NewHandler(keeper)
 
@@ -93,7 +94,8 @@ func TestHandleMsgAddLiquidity(t *testing.T) {
 	mapp, addrKeysSlice := getMockAppWithBalance(t, 1, 100000)
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10).WithBlockTime(time.Now())
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(10).SetBlockTime(time.Now())
 	testToken := token.InitTestToken(types.TestBasePooledToken)
 	testQuoteToken := token.InitTestToken(types.TestQuotePooledToken)
 
@@ -175,7 +177,8 @@ func TestHandleMsgRemoveLiquidity(t *testing.T) {
 	mapp, addrKeysSlice := getMockAppWithBalance(t, 1, 100000)
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10).WithBlockTime(time.Now())
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(10).SetBlockTime(time.Now())
 	testToken := token.InitTestToken(types.TestBasePooledToken)
 	testQuoteToken := token.InitTestToken(types.TestQuotePooledToken)
 
@@ -270,7 +273,8 @@ func TestHandleMsgTokenToTokenExchange(t *testing.T) {
 	mapp, addrKeysSlice := getMockAppWithBalance(t, 1, 100000)
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10).WithBlockTime(time.Now())
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(10).SetBlockTime(time.Now())
 	testToken := token.InitTestToken(types.TestBasePooledToken)
 	secondTestTokenName := types.TestBasePooledToken2
 	secondTestToken := token.InitTestToken(secondTestTokenName)
@@ -377,7 +381,8 @@ func TestHandleMsgTokenToTokenDirectly(t *testing.T) {
 	mapp, addrKeysSlice := getMockAppWithBalance(t, 1, 100000)
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10).WithBlockTime(time.Now())
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(10).SetBlockTime(time.Now())
 	testToken := token.InitTestToken(types.TestBasePooledToken)
 	secondTestToken := token.InitTestToken(types.TestBasePooledToken2)
 	mapp.swapKeeper.SetParams(ctx, types.DefaultParams())
@@ -493,7 +498,8 @@ func TestRandomData(t *testing.T) {
 	mapp, addrKeysSlice := getMockAppWithBalance(t, 1, 100000000)
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10).WithBlockTime(time.Now())
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(10).SetBlockTime(time.Now())
 	mapp.swapKeeper.SetParams(ctx, types.DefaultParams())
 	testToken := token.InitTestToken(types.TestBasePooledToken)
 	testQuoteToken := token.InitTestToken(types.TestQuotePooledToken)

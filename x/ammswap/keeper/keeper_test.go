@@ -18,7 +18,8 @@ func TestKeeper_GetPoolTokenInfo(t *testing.T) {
 	mapp, _ := GetTestInput(t, 1)
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(10)
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 
 	// init a pool token
@@ -47,7 +48,8 @@ func TestKeeper_GetSwapTokenPairs(t *testing.T) {
 	mapp, _ := GetTestInput(t, 1)
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(10)
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 
 	swapTokenPair := types.GetTestSwapTokenPair()
@@ -62,7 +64,8 @@ func TestKeeper_GetRedeemableAssets(t *testing.T) {
 	mapp, _ := GetTestInput(t, 1)
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(10)
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 
 	swapTokenPair := types.GetTestSwapTokenPair()

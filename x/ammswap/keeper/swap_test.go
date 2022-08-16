@@ -18,7 +18,8 @@ func TestKeeper_IsTokenExistTable(t *testing.T) {
 	mapp, _ := GetTestInput(t, 1)
 	keeper := mapp.swapKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(10)
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 
 	tests := []struct {

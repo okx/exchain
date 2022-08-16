@@ -20,7 +20,8 @@ import (
 func initQurierTest(t *testing.T) (*TestInput, mock.AddrKeysSlice, sdk.Context, Keeper, sdk.Querier) {
 	mapp, addrSlice := GetTestInput(t, 1)
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(10)
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 	keeper := mapp.swapKeeper
 	keeper.SetParams(ctx, types.DefaultParams())
