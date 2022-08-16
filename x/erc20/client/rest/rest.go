@@ -34,7 +34,7 @@ func tokenMappingHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		var result []types.TokenMapping
+		var result []types.QueryTokenMappingResponse
 		if err := cliCtx.Codec.UnmarshalJSON(res, &result); err != nil {
 			comm.HandleErrorMsg(w, cliCtx, comm.CodeUnMarshalJSONFailed, err.Error())
 			return

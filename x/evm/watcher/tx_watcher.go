@@ -50,7 +50,9 @@ func (w *TxWatcher) SaveAccount(account interface{}) {
 		return
 	}
 	wMsg := NewMsgAccount(acc)
-	w.staleBatch = append(w.staleBatch, wMsg)
+	if wMsg != nil {
+		w.staleBatch = append(w.staleBatch, wMsg)
+	}
 }
 
 func (w *TxWatcher) DeleteAccount(account interface{}) {

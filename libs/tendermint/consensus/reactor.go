@@ -194,12 +194,11 @@ func (conR *Reactor) SwitchToFastSync() (sm.State, error) {
 	conR.mtx.Unlock()
 	conR.metrics.FastSyncing.Set(1)
 
-	conR.conS.blockExec.SetIsFastSyncing(true)
-
 	if !conR.conS.IsRunning() {
 		return conR.conS.GetState(), errors.New("state is not running")
 	}
 	err := conR.conS.Stop()
+
 	if err != nil {
 		panic(fmt.Sprintf(`Failed to stop consensus state: %v
 
@@ -212,7 +211,12 @@ conR:
 
 	conR.stopSwitchToFastSyncTimer()
 
-	return conR.conS.GetState(), nil
+	conR.conS.Wait()
+
+	cState := conR.conS.GetState()
+	conR.conS.blockExec.SetIsFastSyncing(true)
+
+	return cState, nil
 }
 
 // Attempt to schedule a timer for checking whether consensus machine is hanged.
@@ -542,12 +546,6 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		func(data tmevents.EventData) {
 			conR.broadcastNewRoundStepMessage(data.(*cstypes.RoundState))
 
-			height := data.(*cstypes.RoundState).Height
-			if height != conR.conHeight {
-				conR.Logger.Info("Update conHeight.", "new", height, "old", conR.conHeight)
-				conR.conHeight = height
-				conR.resetSwitchToFastSyncTimer()
-			}
 		})
 
 	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventValidBlock,
@@ -1074,6 +1072,12 @@ OUTER_LOOP:
 }
 
 func (conR *Reactor) peerStatsRoutine() {
+	conR.resetSwitchToFastSyncTimer()
+
+	defer func() {
+		conR.stopSwitchToFastSyncTimer()
+	}()
+
 	for {
 		if !conR.IsRunning() {
 			conR.Logger.Info("Stopping peerStatsRoutine")
@@ -1108,6 +1112,7 @@ func (conR *Reactor) peerStatsRoutine() {
 			bcR, ok := conR.Switch.Reactor("BLOCKCHAIN").(blockchainReactor)
 			if ok {
 				bcR.CheckFastSyncCondition()
+				conR.resetSwitchToFastSyncTimer()
 			}
 
 		case <-conR.conS.Quit():
