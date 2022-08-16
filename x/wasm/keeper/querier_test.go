@@ -5,10 +5,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 	"io/ioutil"
 	"testing"
+
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	wasmvm "github.com/CosmWasm/wasmvm"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
@@ -280,7 +281,7 @@ func TestQueryContractListByCodeOrdering(t *testing.T) {
 	// manage some realistic block settings
 	var h int64 = 10
 	setBlock := func(ctx sdk.Context, height int64) sdk.Context {
-		ctx = ctx.WithBlockHeight(height)
+		ctx.SetBlockHeight(height)
 		meter := sdk.NewGasMeter(1000000)
 		ctx.SetGasMeter(meter)
 		ctx.SetBlockGasMeter(meter)

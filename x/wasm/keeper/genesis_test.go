@@ -498,7 +498,7 @@ func TestImportContractWithCodeHistoryReset(t *testing.T) {
 	require.NoError(t, err)
 	require.NoError(t, importState.ValidateBasic(), genesisStr)
 
-	ctx = ctx.WithBlockHeight(0)
+	ctx.SetBlockHeight(0)
 	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 
 	// when
@@ -600,7 +600,7 @@ func TestSupportedGenMsgTypes(t *testing.T) {
 	require.NoError(t, importState.ValidateBasic())
 	ctx, keepers := CreateDefaultTestInput(t)
 	keeper := keepers.WasmKeeper
-	ctx = ctx.WithBlockHeight(0)
+	ctx.SetBlockHeight(0)
 	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 	keepers.Faucet.Fund(ctx, myAddress, sdk.NewCoin(denom, sdk.NewInt(100)))
 

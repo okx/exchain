@@ -295,7 +295,7 @@ func TestNewEnv(t *testing.T) {
 		exp    wasmvmtypes.Env
 	}{
 		"all good with tx counter": {
-			srcCtx: WithTXCounter((*ctx).WithBlockHeight(1).WithBlockTime(myTime), 0),
+			srcCtx: WithTXCounter(*(ctx.SetBlockHeight(1).SetBlockTime(myTime)), 0),
 			exp: wasmvmtypes.Env{
 				Block: wasmvmtypes.BlockInfo{
 					Height:  1,

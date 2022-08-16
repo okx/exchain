@@ -179,7 +179,7 @@ func TestLegacyQueryContractListByCodeOrdering(t *testing.T) {
 	// manage some realistic block settings
 	var h int64 = 10
 	setBlock := func(ctx sdk.Context, height int64) sdk.Context {
-		ctx = ctx.WithBlockHeight(height)
+		ctx.SetBlockHeight(height)
 		meter := sdk.NewGasMeter(1000000)
 		ctx.SetGasMeter(meter)
 		ctx.SetBlockGasMeter(meter)

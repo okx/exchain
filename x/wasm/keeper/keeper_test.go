@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"io/ioutil"
 	"math"
 	"testing"
 	"time"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 
 	wasmvm "github.com/CosmWasm/wasmvm"
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
@@ -1005,7 +1006,7 @@ func TestMigrate(t *testing.T) {
 	for msg, spec := range specs {
 		t.Run(msg, func(t *testing.T) {
 			// given a contract instance
-			ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
+			ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 			contractAddr, _, err := keepers.ContractKeeper.Instantiate(ctx, spec.fromCodeID, creator, spec.admin, spec.initMsg, "demo contract", nil)
 			require.NoError(t, err)
 			if spec.overrideContractAddr != nil {
@@ -1062,7 +1063,7 @@ func TestMigrateReplacesTheSecondIndex(t *testing.T) {
 	exists := store.Has(types.GetContractByCreatedSecondaryIndexKey(example.Contract, createHistoryEntry))
 	require.True(t, exists)
 
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1) // increment for different block
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1) // increment for different block
 	// when do migrate
 	newCodeExample := StoreBurnerExampleContract(t, ctx, keepers)
 	migMsgBz := BurnerExampleInitMsg{Payout: example.CreatorAddr}.GetBytes(t)
@@ -1105,7 +1106,7 @@ func TestMigrateWithDispatchedMessage(t *testing.T) {
 	}
 	initMsgBz := initMsg.GetBytes(t)
 
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 	contractAddr, _, err := keepers.ContractKeeper.Instantiate(ctx, originalContractID, creator, fred, initMsgBz, "demo contract", deposit)
 	require.NoError(t, err)
 
@@ -1157,9 +1158,9 @@ func TestIterateContractsByCode(t *testing.T) {
 	ctx, keepers := CreateTestInput(t, false, SupportedFeatures)
 	k, c := keepers.WasmKeeper, keepers.ContractKeeper
 	example1 := InstantiateHackatomExampleContract(t, ctx, keepers)
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 	example2 := InstantiateIBCReflectContract(t, ctx, keepers)
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 	initMsg := HackatomExampleInitMsg{
 		Verifier:    RandomAccountAddress(t),
 		Beneficiary: RandomAccountAddress(t),
@@ -1203,9 +1204,9 @@ func TestIterateContractsByCodeWithMigration(t *testing.T) {
 	ctx, keepers := CreateTestInput(t, false, SupportedFeatures, WithWasmEngine(&mockWasmVM))
 	k, c := keepers.WasmKeeper, keepers.ContractKeeper
 	example1 := InstantiateHackatomExampleContract(t, ctx, keepers)
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 	example2 := InstantiateIBCReflectContract(t, ctx, keepers)
-	ctx = ctx.WithBlockHeight(ctx.BlockHeight() + 1)
+	ctx.SetBlockHeight(ctx.BlockHeight() + 1)
 	_, err := c.Migrate(ctx, example1.Contract, example1.CreatorAddr, example2.CodeID, []byte("{}"))
 	require.NoError(t, err)
 
