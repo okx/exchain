@@ -143,7 +143,9 @@ func (suite *KeeperTestSuite) populateValidators(ctx sdk.Context) {
 }
 
 func (suite *KeeperTestSuite) TestSubmitValidEvidence() {
-	ctx := suite.ctx.WithIsCheckTx(false)
+	ctx := suite.ctx
+	ctx.SetRunTxMode(sdk.RunTxModeDeliver)
+
 	pk := ed25519.GenPrivKey()
 	sv := types.TestVote{
 		ValidatorAddress: pk.PubKey().Address(),
@@ -171,7 +173,8 @@ func (suite *KeeperTestSuite) TestSubmitValidEvidence() {
 }
 
 func (suite *KeeperTestSuite) TestSubmitValidEvidence_Duplicate() {
-	ctx := suite.ctx.WithIsCheckTx(false)
+	ctx := suite.ctx
+	ctx.SetRunTxMode(sdk.RunTxModeDeliver)
 	pk := ed25519.GenPrivKey()
 	sv := types.TestVote{
 		ValidatorAddress: pk.PubKey().Address(),
@@ -200,7 +203,8 @@ func (suite *KeeperTestSuite) TestSubmitValidEvidence_Duplicate() {
 }
 
 func (suite *KeeperTestSuite) TestSubmitInvalidEvidence() {
-	ctx := suite.ctx.WithIsCheckTx(false)
+	ctx := suite.ctx
+	ctx.SetRunTxMode(sdk.RunTxModeDeliver)
 	pk := ed25519.GenPrivKey()
 	e := types.TestEquivocationEvidence{
 		Power:      100,
@@ -226,7 +230,8 @@ func (suite *KeeperTestSuite) TestSubmitInvalidEvidence() {
 }
 
 func (suite *KeeperTestSuite) TestIterateEvidence() {
-	ctx := suite.ctx.WithIsCheckTx(false)
+	ctx := suite.ctx
+	ctx.SetRunTxMode(sdk.RunTxModeDeliver)
 	numEvidence := 100
 	suite.populateEvidence(ctx, numEvidence)
 

@@ -61,7 +61,8 @@ func (suite *HandlerTestSuite) TestMsgSubmitEvidence_Valid() {
 		VoteB:      sv,
 	}
 
-	ctx := suite.ctx.WithIsCheckTx(false)
+	ctx := suite.ctx
+	ctx.SetRunTxMode(sdk.RunTxModeDeliver)
 	msg := evidence.NewMsgSubmitEvidence(e, s)
 	res, err := suite.handler(ctx, msg)
 	suite.NoError(err)
@@ -90,7 +91,8 @@ func (suite *HandlerTestSuite) TestMsgSubmitEvidence_Invalid() {
 		VoteB:      types.TestVote{Height: 10, Round: 1},
 	}
 
-	ctx := suite.ctx.WithIsCheckTx(false)
+	ctx := suite.ctx
+	ctx.SetRunTxMode(sdk.RunTxModeDeliver)
 	msg := evidence.NewMsgSubmitEvidence(e, s)
 	res, err := suite.handler(ctx, msg)
 	suite.Error(err)
