@@ -1052,8 +1052,10 @@ func TestHandleTransferOwnership(t *testing.T) {
 	common.InitConfig()
 	app, keeper, testAccounts := getMockDexApp(t, 2)
 	app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
-	ctx := app.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(3)
-	ctxPassedOwnershipConfirmWindow := app.BaseApp.NewContext(false, abci.Header{}).WithBlockTime(ctx.BlockTime().Add(types.DefaultOwnershipConfirmWindow * 2))
+	ctx := app.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(3)
+	ctxPassedOwnershipConfirmWindow := app.BaseApp.NewContext(false, abci.Header{})
+	ctxPassedOwnershipConfirmWindow.SetBlockTime(ctx.BlockTime().Add(types.DefaultOwnershipConfirmWindow * 2))
 	handler := NewTokenHandler(keeper, version.ProtocolVersionV0)
 
 	param := types.DefaultParams()
