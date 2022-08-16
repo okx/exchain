@@ -46,7 +46,7 @@ type Watcher struct {
 	jobDone      *sync.WaitGroup
 	evmTxIndex   uint64
 	checkWd      bool
-	filterMap    map[string]bool
+	filterMap    map[string]struct{}
 	InfuraKeeper InfuraKeeper
 }
 
@@ -80,7 +80,7 @@ func NewWatcher(logger log.Logger) *Watcher {
 		watchData:      &WatchData{},
 		log:            logger,
 		checkWd:        viper.GetBool(FlagCheckWd),
-		filterMap:      make(map[string]bool),
+		filterMap:      make(map[string]struct{}),
 		eraseKeyFilter: make(map[string][]byte),
 	}
 }
@@ -358,12 +358,12 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 		w.CheckWatchDB(keys, "consumer")
 	}
 }
-func isDuplicated(key []byte, filterMap map[string]bool) bool {
+func isDuplicated(key []byte, filterMap map[string]struct{}) bool {
 	filterKey := bytes2Key(key)
 	if _, exist := filterMap[filterKey]; exist {
 		return true
 	} else {
-		filterMap[filterKey] = true
+		filterMap[filterKey] = struct{}{}
 		return false
 	}
 }
