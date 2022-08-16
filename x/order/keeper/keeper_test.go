@@ -249,7 +249,8 @@ func TestBlockMatchResult(t *testing.T) {
 func TestDropOrder(t *testing.T) {
 	testInput := CreateTestInput(t)
 	keeper := testInput.OrderKeeper
-	ctx := testInput.Ctx.WithBlockHeight(10)
+	ctx := testInput.Ctx
+	ctx.SetBlockHeight(10)
 
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)
@@ -271,7 +272,8 @@ func TestKeeper_UpdateOrder(t *testing.T) {
 	common.InitConfig()
 	testInput := CreateTestInput(t)
 	keeper := testInput.OrderKeeper
-	ctx := testInput.Ctx.WithBlockHeight(10)
+	ctx := testInput.Ctx
+	ctx.SetBlockHeight(10)
 
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)
@@ -363,7 +365,8 @@ func TestKeeper_InsertOrderIntoDepthBook(t *testing.T) {
 func TestFilterDelistedProducts(t *testing.T) {
 	testInput := CreateTestInput(t)
 	keeper := testInput.OrderKeeper
-	ctx := testInput.Ctx.WithBlockHeight(10)
+	ctx := testInput.Ctx
+	ctx.SetBlockHeight(10)
 
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := keeper.dexKeeper.SaveTokenPair(ctx, tokenPair)

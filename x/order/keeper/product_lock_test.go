@@ -13,7 +13,8 @@ import (
 func TestKeeper_AnyProductLocked(t *testing.T) {
 	testInput := CreateTestInput(t)
 	keeper := testInput.OrderKeeper
-	ctx := testInput.Ctx.WithBlockHeight(10)
+	ctx := testInput.Ctx
+	ctx.SetBlockHeight(10)
 
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)

@@ -17,7 +17,8 @@ import (
 func TestModuleAccountInvariant(t *testing.T) {
 	testInput := CreateTestInput(t)
 	keeper := testInput.OrderKeeper
-	ctx := testInput.Ctx.WithBlockHeight(10)
+	ctx := testInput.Ctx
+	ctx.SetBlockHeight(10)
 	invariant := ModuleAccountInvariant(keeper)
 
 	tokenPair := dex.GetBuiltInTokenPair()

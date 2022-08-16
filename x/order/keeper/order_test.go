@@ -51,7 +51,8 @@ func TestTryPlaceOrder(t *testing.T) {
 func TestPlaceOrderAndCancelOrder(t *testing.T) {
 	testInput := CreateTestInput(t)
 	keeper := testInput.OrderKeeper
-	ctx := testInput.Ctx.WithBlockHeight(10)
+	ctx := testInput.Ctx
+	ctx.SetBlockHeight(10)
 
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)
@@ -132,7 +133,8 @@ func TestPlaceOrderAndCancelOrder(t *testing.T) {
 func TestPlaceOrderAndExpireOrder(t *testing.T) {
 	testInput := CreateTestInput(t)
 	keeper := testInput.OrderKeeper
-	ctx := testInput.Ctx.WithBlockHeight(10)
+	ctx := testInput.Ctx
+	ctx.SetBlockHeight(10)
 
 	tokenPair := dex.GetBuiltInTokenPair()
 	err := testInput.DexKeeper.SaveTokenPair(ctx, tokenPair)

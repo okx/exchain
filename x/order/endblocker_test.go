@@ -28,7 +28,8 @@ func TestEndBlockerPeriodicMatch(t *testing.T) {
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 
 	var startHeight int64 = 10
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight)
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(startHeight)
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 
 	feeParams := types.DefaultTestParams()
@@ -133,7 +134,8 @@ func TestEndBlockerPeriodicMatchBusyProduct(t *testing.T) {
 	mapp, addrKeysSlice := getMockApp(t, 2)
 	k := mapp.orderKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(10)
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 	feeParams := types.DefaultTestParams()
 	feeParams.MaxDealsPerBlock = 2
@@ -223,7 +225,8 @@ func TestEndBlockerPeriodicMatchBusyProduct(t *testing.T) {
 	require.EqualValues(t, expectCoins1.String(), acc1.GetCoins().String())
 
 	// ------- call EndBlock at height 11, continue filling ------- //
-	ctx = mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(11)
+	ctx = mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(11)
 	BeginBlocker(ctx, k)
 	EndBlocker(ctx, k)
 
@@ -267,7 +270,8 @@ func TestEndBlockerDropExpireData(t *testing.T) {
 	mapp, addrKeysSlice := getMockApp(t, 2)
 	k := mapp.orderKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(10)
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 	feeParams := types.DefaultTestParams()
 	mapp.orderKeeper.SetParams(ctx, &feeParams)
@@ -300,10 +304,12 @@ func TestEndBlockerDropExpireData(t *testing.T) {
 	updatedOrderIDs := k.GetUpdatedOrderIDs()
 	require.EqualValues(t, []string{orders[2].OrderID, orders[1].OrderID}, updatedOrderIDs)
 
-	ctx = mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(11)
+	ctx = mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(11)
 	EndBlocker(ctx, k)
 	// call EndBlocker to expire orders
-	ctx = mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10 + feeParams.OrderExpireBlocks)
+	ctx = mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(10 + feeParams.OrderExpireBlocks)
 	param := types.DefaultTestParams()
 	mapp.orderKeeper.SetParams(ctx, &param)
 	EndBlocker(ctx, k)
@@ -317,7 +323,8 @@ func TestEndBlockerDropExpireData(t *testing.T) {
 	require.Nil(t, order2)
 
 	// call EndBlocker to drop expire orders
-	ctx = mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(11 + feeParams.OrderExpireBlocks)
+	ctx = mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(11 + feeParams.OrderExpireBlocks)
 	EndBlocker(ctx, k)
 
 	// check after expire: order, blockOrderNum, blockMatchResult, updatedOrderIDs
@@ -331,7 +338,8 @@ func TestEndBlockerExpireOrdersBusyProduct(t *testing.T) {
 	mapp, addrKeysSlice := getMockApp(t, 1)
 	k := mapp.orderKeeper
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(10)
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(10)
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 	feeParams := types.DefaultTestParams()
 
@@ -349,13 +357,13 @@ func TestEndBlockerExpireOrdersBusyProduct(t *testing.T) {
 	require.NoError(t, err)
 	EndBlocker(ctx, k)
 	// call EndBlocker at 86400 + 9
-	ctx = mapp.BaseApp.NewContext(false, abci.Header{}).
-		WithBlockHeight(9 + feeParams.OrderExpireBlocks)
+	ctx = mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(9 + feeParams.OrderExpireBlocks)
 	EndBlocker(ctx, k)
 
 	// call EndBlocker at 86400 + 10, lock product
-	ctx = mapp.BaseApp.NewContext(false, abci.Header{}).
-		WithBlockHeight(10 + feeParams.OrderExpireBlocks)
+	ctx = mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(10 + feeParams.OrderExpireBlocks)
 	lock := &types.ProductLock{
 		Price:        sdk.MustNewDecFromStr("10.0"),
 		Quantity:     sdk.MustNewDecFromStr("1.0"),
@@ -371,8 +379,8 @@ func TestEndBlockerExpireOrdersBusyProduct(t *testing.T) {
 	require.EqualValues(t, 9+feeParams.OrderExpireBlocks, k.GetLastExpiredBlockHeight(ctx))
 
 	// call EndBlocker at 86400 + 11, unlock product
-	ctx = mapp.BaseApp.NewContext(false, abci.Header{}).
-		WithBlockHeight(11 + feeParams.OrderExpireBlocks)
+	ctx = mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(11 + feeParams.OrderExpireBlocks)
 	k.UnlockProduct(ctx, types.TestTokenPair)
 	EndBlocker(ctx, k)
 
@@ -500,7 +508,8 @@ func TestEndBlockerCleanupOrdersWhoseTokenPairHaveBeenDelisted(t *testing.T) {
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 
 	var startHeight int64 = 10
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight)
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(startHeight)
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
 
 	feeParams := types.DefaultTestParams()
@@ -572,7 +581,8 @@ func TestFillPrecision(t *testing.T) {
 	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: 2}})
 
 	var startHeight int64 = 10
-	ctx := mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight)
+	ctx := mapp.BaseApp.NewContext(false, abci.Header{})
+	ctx.SetBlockHeight(startHeight)
 	BeginBlocker(ctx, k)
 
 	mapp.supplyKeeper.SetSupply(ctx, supply.NewSupply(mapp.TotalCoinsSupply))
@@ -631,7 +641,8 @@ func TestFillPrecision(t *testing.T) {
 
 	N := len(orders) / 1000
 	for i := 0; i < N; i++ {
-		ctx = mapp.BaseApp.NewContext(false, abci.Header{}).WithBlockHeight(startHeight + int64(1+i))
+		ctx = mapp.BaseApp.NewContext(false, abci.Header{})
+		ctx.SetBlockHeight(startHeight + int64(1+i))
 		BeginBlocker(ctx, k)
 		EndBlocker(ctx, k)
 	}
