@@ -33,6 +33,25 @@ var (
 	once sync.Once
 )
 
+const (
+	MainNet = "exchain-66"
+	TestNet = "exchain-65"
+)
+
+const (
+	MainNetVeneus1Height = 12988000
+	TestNetVeneus1Height = 12067000
+
+	MainNetVeneusHeight = 8200000
+	TestNetVeneusHeight = 8510000
+
+	MainNetMercuyHeight  = 5150000
+	TestNetMercuryHeight = 5300000
+
+	MainNetGenesisHeight = 2322600
+	TestNetGenesisHeight = 1121818
+)
+
 func init() {
 	once.Do(func() {
 		genesisHeight = string2number(MILESTONE_GENESIS_HEIGHT)
@@ -53,6 +72,20 @@ func string2number(input string) int64 {
 		panic(err)
 	}
 	return res
+}
+
+func SetupMainNetEnvironment() {
+	milestoneVenusHeight = MainNetVeneusHeight
+	milestoneMercuryHeight = MainNetMercuyHeight
+	genesisHeight = MainNetGenesisHeight
+	milestoneVenus1Height = MainNetVeneus1Height
+}
+
+func SetupTestNetEnvironment() {
+	milestoneVenusHeight = TestNetVeneusHeight
+	milestoneMercuryHeight = TestNetMercuryHeight
+	genesisHeight = TestNetGenesisHeight
+	milestoneVenus1Height = TestNetVeneus1Height
 }
 
 //depracate homstead signer support
