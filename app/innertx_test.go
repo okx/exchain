@@ -60,7 +60,7 @@ func (suite *InnerTxTestSuite) SetupTest() {
 
 	suite.app = Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: chain_id, Time: time.Now().UTC()})
-	suite.ctx.SetDeliver()
+	suite.ctx.SetRunTxMode(sdk.RunTxModeDeliver)
 	suite.stateDB = evm_types.CreateEmptyCommitStateDB(suite.app.EvmKeeper.GenerateCSDBParams(), suite.ctx)
 	suite.codec = codec.New()
 
@@ -240,7 +240,8 @@ func (suite *InnerTxTestSuite) TestMsgSend() {
 				fromBalance := suite.app.AccountKeeper.GetAccount(suite.ctx, valcmaddress).GetCoins()
 				suite.Require().True(fromBalance.IsEqual(sdk.NewDecCoins(sdk.NewDecCoinFromCoin(sdk.NewInt64Coin(sdk.DefaultBondDenom, 10000)))))
 
-				suite.app.EndBlocker(suite.ctx.WithBlockTime(time.Now().Add(staking_types.DefaultUnbondingTime)), abci.RequestEndBlock{Height: 2})
+				suite.ctx.SetBlockTime(time.Now().Add(staking_types.DefaultUnbondingTime))
+				suite.app.EndBlocker(suite.ctx, abci.RequestEndBlock{Height: 2})
 				_, ok := suite.app.StakingKeeper.GetValidator(suite.ctx, valopaddress)
 				suite.Require().False(ok)
 				fromBalance = suite.app.AccountKeeper.GetAccount(suite.ctx, valcmaddress).GetCoins()
@@ -289,7 +290,8 @@ func (suite *InnerTxTestSuite) TestMsgSend() {
 			func() {
 				fromBalance := suite.app.AccountKeeper.GetAccount(suite.ctx, cmFrom).GetCoins()
 				suite.Require().True(fromBalance.IsEqual(sdk.NewDecCoins(sdk.NewDecCoinFromCoin(sdk.NewInt64Coin(sdk.DefaultBondDenom, 0)))))
-				suite.app.EndBlocker(suite.ctx.WithBlockTime(time.Now().Add(staking_types.DefaultUnbondingTime)), abci.RequestEndBlock{Height: 2})
+				suite.ctx.SetBlockTime(time.Now().Add(staking_types.DefaultUnbondingTime))
+				suite.app.EndBlocker(suite.ctx, abci.RequestEndBlock{Height: 2})
 				fromBalance = suite.app.AccountKeeper.GetAccount(suite.ctx, cmFrom).GetCoins()
 				suite.Require().True(fromBalance.IsEqual(sdk.NewDecCoins(sdk.NewDecCoinFromCoin(sdk.NewInt64Coin(sdk.DefaultBondDenom, 10000)))))
 			},
