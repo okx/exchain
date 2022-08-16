@@ -68,7 +68,7 @@ func msg2st(ctx *sdk.Context, k *Keeper, msg *types.MsgEthereumTx, st *types.Sta
 }
 
 func getSender(ctx *sdk.Context, chainIDEpoch *big.Int, msg *types.MsgEthereumTx) (sender common.Address, err error) {
-	if ctx.IsCheckTx() {
+	if ctx.IsCheckTx() || ctx.IsTraceTx() {
 		if from := ctx.From(); len(from) > 0 {
 			return common.HexToAddress(from), nil
 		}
