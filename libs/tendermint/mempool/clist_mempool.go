@@ -980,6 +980,30 @@ func (mem *CListMempool) recheckTxs() {
 	mem.proxyAppConn.FlushAsync()
 }
 
+const maxBatchTx = 100
+
+func (mem *CListMempool) getTxs(start *clist.CElement, peerID uint16) (batch []types.Tx, end *clist.CElement) {
+	var count int
+	end = start
+
+	for {
+		memTx := end.Value.(*mempoolTx)
+
+		if _, ok := memTx.senders.Load(peerID); !ok {
+			batch = append(batch, memTx.tx)
+			count++
+			if count >= maxBatchTx {
+				return batch, end
+			}
+		}
+
+		if end.Next() == nil {
+			return batch, end
+		}
+		end = end.Next()
+	}
+}
+
 func (mem *CListMempool) GetConfig() *cfg.MempoolConfig {
 	return mem.config
 }

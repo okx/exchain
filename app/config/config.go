@@ -71,6 +71,9 @@ type OecConfig struct {
 	// enable-wtx
 	enableWtx bool
 
+	// enable-batch-tx
+	enableBatchTx bool
+
 	// enable-analyzer
 	enableAnalyzer bool
 
@@ -102,6 +105,7 @@ const (
 	FlagEnableDynamicGp        = "enable-dynamic-gp"
 	FlagDynamicGpWeight        = "dynamic-gp-weight"
 	FlagEnableWrappedTx        = "enable-wtx"
+	FlagEnableBatchTx          = "enable-batch-tx"
 	FlagSentryAddrs            = "p2p.sentry_addrs"
 
 	FlagCsTimeoutPropose        = "consensus.timeout_propose"
@@ -227,6 +231,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetSentryAddrs(viper.GetString(FlagSentryAddrs))
 	c.SetNodeKeyWhitelist(viper.GetString(FlagNodeKeyWhitelist))
 	c.SetEnableWtx(viper.GetBool(FlagEnableWrappedTx))
+	c.SetEnableBatchTx(viper.GetBool(FlagEnableBatchTx))
 	c.SetEnableAnalyzer(viper.GetBool(trace.FlagEnableAnalyzer))
 	c.SetDeliverTxsExecuteMode(viper.GetInt(state.FlagDeliverTxsExecMode))
 	c.SetBlockPartSize(viper.GetInt(server.FlagBlockPartSizeBytes))
@@ -344,6 +349,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetSentryAddrs(r)
+	case FlagEnableBatchTx:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetEnableBatchTx(r)
 	case FlagMaxGasUsedPerBlock:
 		r, err := strconv.ParseInt(v, 10, 64)
 		if err != nil {
@@ -540,6 +551,14 @@ func (c *OecConfig) SetNodeKeyWhitelist(value string) {
 			c.nodeKeyWhitelist = append(c.nodeKeyWhitelist, id)
 		}
 	}
+}
+
+func (c *OecConfig) GetEnableBatchTx() bool {
+	return c.enableBatchTx
+}
+
+func (c *OecConfig) SetEnableBatchTx(value bool) {
+	c.enableBatchTx = value
 }
 
 func (c *OecConfig) GetSentryAddrs() []string {

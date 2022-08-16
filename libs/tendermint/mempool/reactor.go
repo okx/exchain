@@ -250,6 +250,14 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		tx = msg.Tx
 		msg.Tx = nil
 		txMessageDeocdePool.Put(msg)
+	case *TxsMessage:
+		for _, tx := range msg.Txs {
+			err = memR.mempool.CheckTx(tx, nil, txInfo)
+			if err != nil {
+				memR.logCheckTxError(tx, memR.mempool.height, err)
+			}
+		}
+		return
 
 	case *WtxMessage:
 		tx = msg.Wtx.Payload
@@ -325,8 +333,23 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			continue
 		}
 
-		// ensure peer hasn't already sent us this tx
-		if _, ok := memTx.senders.Load(peerID); !ok {
+		if cfg.DynamicConfig.GetEnableBatchTx() {
+			var msg Message
+
+			var txs []types.Tx
+			txs, next = memR.mempool.getTxs(next, peerID)
+			msg = &TxsMessage{
+				Txs: txs,
+			}
+
+			msgBz := memR.encodeMsg(msg)
+			success := peer.Send(MempoolChannel, msgBz)
+			if !success {
+				time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
+				continue
+			}
+
+		} else if _, ok := memTx.senders.Load(peerID); !ok { // ensure peer hasn't already sent us this tx
 			var getFromPool bool
 			// send memTx
 			var msg Message
@@ -386,6 +409,7 @@ type Message interface{}
 func RegisterMessages(cdc *amino.Codec) {
 	cdc.RegisterInterface((*Message)(nil), nil)
 	cdc.RegisterConcrete(&TxMessage{}, "tendermint/mempool/TxMessage", nil)
+	cdc.RegisterConcrete(&TxsMessage{}, "tendermint/mempool/TxsMessage", nil)
 	cdc.RegisterConcrete(&WtxMessage{}, "tendermint/mempool/WtxMessage", nil)
 
 	cdc.RegisterConcreteMarshaller("tendermint/mempool/TxMessage", func(codec *amino.Codec, i interface{}) ([]byte, error) {
@@ -530,6 +554,16 @@ func (m *TxMessage) String() string {
 // account for amino overhead of TxMessage
 func calcMaxMsgSize(maxTxSize int) int {
 	return maxTxSize + aminoOverheadForTxMessage
+}
+
+// TxsMessage is a Message containing transactions.
+type TxsMessage struct {
+	Txs []types.Tx
+}
+
+// String returns a string representation of the TxsMessage.
+func (m *TxsMessage) String() string {
+	return fmt.Sprintf("[TxsMessage %v]", m.Txs)
 }
 
 // WtxMessage is a Message containing a transaction.

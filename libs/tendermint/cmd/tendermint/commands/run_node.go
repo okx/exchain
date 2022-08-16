@@ -163,6 +163,12 @@ func AddNodeFlags(cmd *cobra.Command) {
 	)
 
 	cmd.Flags().Bool(
+		"enable-batch-tx",
+		false,
+		"enable batch tx",
+	)
+
+	cmd.Flags().Bool(
 		"enable-wtx",
 		false,
 		"enable wrapped tx",
