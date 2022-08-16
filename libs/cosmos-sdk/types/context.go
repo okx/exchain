@@ -403,21 +403,6 @@ func (c *Context) CacheContext() (cc Context, writeCache func()) {
 	return
 }
 
-func (c Context) WithBlockTime(newTime time.Time) Context {
-	newHeader := c.BlockHeader()
-	// https://github.com/gogo/protobuf/issues/519
-	newHeader.Time = newTime.UTC()
-	c.SetBlockHeader(newHeader)
-	return c
-}
-
-func (c Context) WithBlockHeight(height int64) Context {
-	newHeader := c.BlockHeader()
-	newHeader.Height = height
-	c.SetBlockHeader(newHeader)
-	return c
-}
-
 // WithValue is deprecated, provided for backwards compatibility
 // Please use
 //     ctx = ctx.WithContext(context.WithValue(ctx.Context(), key, false))

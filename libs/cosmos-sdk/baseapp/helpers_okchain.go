@@ -44,22 +44,27 @@ func (app *BaseApp) TraceTx(queryTraceTx sdk.QueryTraceTx, targetTx sdk.Tx, txIn
 		if err != nil {
 			return nil, sdkerrors.Wrap(err, "invalid prodesessor")
 		}
-		app.tracetx(predesessor, tx, block.Height)
+		app.tracetx(predesessor, tx, block.Height, traceState.ctx)
 		//ignore the err when run prodesessor
 	}
 
 	//trace tx
 	traceState.ctx.SetNeedTraceTxLog(true)
 	traceState.ctx.SetTraceTxLogConfig(queryTraceTx.ConfigBytes)
-	info, err := app.tracetx(targetTxData, targetTx, block.Height)
+	info, err := app.tracetx(targetTxData, targetTx, block.Height, traceState.ctx)
 	if info == nil {
 		return nil, err
 	}
 	return info.result, err
 }
 
-func (app *BaseApp) tracetx(txBytes []byte, tx sdk.Tx, height int64) (info *runTxInfo, err error) {
+func (app *BaseApp) tracetx(txBytes []byte, tx sdk.Tx, height int64, ctx sdk.Context) (info *runTxInfo, err error) {
 	info = &runTxInfo{}
+	//init info.ctx
+	info.ctx = ctx
+	info.ctx.SetTxBytes(txBytes).
+		SetVoteInfos(app.voteInfos).
+		SetConsensusParams(app.consensusParams)
 	err = app.runtxWithInfo(info, sdk.RunTxModeTrace, txBytes, tx, height)
 	return info, err
 }
