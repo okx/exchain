@@ -50,7 +50,7 @@ func (suite *EvmTestSuite) SetupTest() {
 
 	suite.app = app.Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: chain_id, Time: time.Now().UTC()})
-	suite.ctx.SetDeliver()
+	suite.ctx.SetRunTxMode(sdk.RunTxModeDeliver)
 	suite.stateDB = types.CreateEmptyCommitStateDB(suite.app.EvmKeeper.GenerateCSDBParams(), suite.ctx)
 	suite.handler = evm.NewHandler(suite.app.EvmKeeper)
 	suite.querier = keeper.NewQuerier(*suite.app.EvmKeeper)
@@ -138,7 +138,7 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 			"simulate tx",
 			func() {
 				suite.ctx.SetFrom(sender.String())
-				suite.ctx.SetIsCheckTx(true)
+				suite.ctx.SetRunTxMode(sdk.RunTxModeCheck)
 				suite.app.EvmKeeper.SetBalance(suite.ctx, sender, big.NewInt(100))
 				tx = types.NewMsgEthereumTx(0, &sender, big.NewInt(100), 3000000, big.NewInt(1), nil)
 			},
@@ -148,7 +148,7 @@ func (suite *EvmTestSuite) TestHandleMsgEthereumTx() {
 			"trace log tx",
 			func() {
 				suite.ctx.SetFrom(sender.String())
-				suite.ctx.SetIsTraceTxLog(true)
+				suite.ctx.SetRunTxMode(sdk.RunTxModeTrace).SetNeedTraceTxLog(true)
 				suite.app.EvmKeeper.SetBalance(suite.ctx, sender, big.NewInt(100))
 				tx = types.NewMsgEthereumTx(0, &sender, big.NewInt(100), 3000000, big.NewInt(1), nil)
 			},
@@ -613,12 +613,12 @@ func (suite *EvmTestSuite) TestSimulateConflict() {
 	suite.Require().NoError(err)
 
 	suite.ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
-	suite.ctx.SetIsCheckTx(true).SetIsDeliverTx(false)
+	suite.ctx.SetRunTxMode(sdk.RunTxModeCheck)
 	result, err := suite.handler(suite.ctx, tx)
 	suite.Require().NotNil(result)
 	suite.Require().Nil(err)
 
-	suite.ctx.SetIsCheckTx(false).SetIsDeliverTx(true)
+	suite.ctx.SetRunTxMode(sdk.RunTxModeDeliver)
 	result, err = suite.handler(suite.ctx, tx)
 	suite.Require().NotNil(result)
 	suite.Require().Nil(err)
@@ -798,7 +798,7 @@ func (suite *EvmContractBlockedListTestSuite) SetupTest() {
 
 	suite.app = app.Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
-	suite.ctx.SetDeliver()
+	suite.ctx.SetRunTxMode(sdk.RunTxModeDeliver)
 	suite.stateDB = types.CreateEmptyCommitStateDB(suite.app.EvmKeeper.GenerateCSDBParams(), suite.ctx)
 	suite.handler = evm.NewHandler(suite.app.EvmKeeper)
 
@@ -1037,7 +1037,7 @@ func (suite *EvmContractBlockedListTestSuite) TestEvmParamsAndContractMethodBloc
 
 	for _, tc := range testCases {
 		suite.Run(tc.msg, func() {
-			suite.ctx.SetIsDeliverTx(true).SetIsCheckTx(false)
+			suite.ctx.SetRunTxMode(sdk.RunTxModeDeliver)
 
 			// set contract code
 			suite.stateDB.CreateAccount(callEthAcc)

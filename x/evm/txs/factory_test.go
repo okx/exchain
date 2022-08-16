@@ -1,22 +1,23 @@
 package txs
 
 import (
+	"reflect"
+	"testing"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/evm/txs/base"
 	"github.com/okex/exchain/x/evm/txs/check"
 	"github.com/okex/exchain/x/evm/txs/deliver"
 	"github.com/okex/exchain/x/evm/txs/tracetxlog"
-	"reflect"
-	"testing"
 )
 
 func Test_factory_CreateTx(t *testing.T) {
 	type fields struct {
 		Config base.Config
 	}
-	traceTxConfig := base.Config{Keeper: &base.Keeper{}, Ctx: sdk.Context{}.WithIsTraceTxLog(true)}
-	checkTxConfig := base.Config{Keeper: &base.Keeper{}, Ctx: sdk.Context{}.WithIsCheckTx(true)}
-	deliverTxConfig := base.Config{Keeper: &base.Keeper{}, Ctx: sdk.Context{}}
+	traceTxConfig := base.Config{Keeper: &base.Keeper{}, Ctx: *(&sdk.Context{}).SetRunTxMode(sdk.RunTxModeTrace).SetNeedTraceTxLog(true)}
+	checkTxConfig := base.Config{Keeper: &base.Keeper{}, Ctx: *(&sdk.Context{}).SetRunTxMode(sdk.RunTxModeCheck)}
+	deliverTxConfig := base.Config{Keeper: &base.Keeper{}, Ctx: *(&sdk.Context{}).SetRunTxMode(sdk.RunTxModeDeliver)}
 	tests := []struct {
 		name    string
 		fields  fields

@@ -65,7 +65,7 @@ func setupTest() *WatcherTestSt {
 
 	w.app = app.Setup(checkTx)
 	w.ctx = w.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: chain_id, Time: time.Now().UTC()})
-	w.ctx.SetDeliver()
+	w.ctx.SetRunTxMode(sdk.RunTxModeDeliver)
 	w.handler = evm.NewHandler(w.app.EvmKeeper)
 
 	ethermint.SetChainId(chain_id)
@@ -224,7 +224,7 @@ func TestMsgEthereumTxByWatcher(t *testing.T) {
 			w = setupTest() // reset
 			//nolint
 			tc.malleate()
-			w.ctx.SetIsCheckTx(true)
+			w.ctx.SetRunTxMode(sdk.RunTxModeCheck)
 			w.ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 			w.ctx.SetFrom(from.String())
 			res, err := w.handler(w.ctx, tx)
