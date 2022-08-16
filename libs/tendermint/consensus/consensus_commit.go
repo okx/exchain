@@ -246,6 +246,7 @@ func (cs *State) finalizeCommit(height int64) {
 
 	// Prune old heights, if requested by ABCI app.
 	if retainHeight > 0 {
+		cs.trc.Pin("pruneBlocks")
 		pruned, err := cs.pruneBlocks(retainHeight)
 		if err != nil {
 			cs.Logger.Error("Failed to prune blocks", "retainHeight", retainHeight, "err", err)

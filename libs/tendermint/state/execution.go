@@ -255,6 +255,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	blockExec.metrics.AbciTime.Set(float64(endTime-startTime) / 1e6)
 
 	// validate the validator updates and convert to tendermint types
+	trc.Pin("validateValidatorUpdates")
 	abciValUpdates := abciResponses.EndBlock.ValidatorUpdates
 	err = validateValidatorUpdates(abciValUpdates, state.ConsensusParams.Validator)
 	if err != nil {
@@ -268,6 +269,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		blockExec.logger.Info("Updates to validators", "updates", types.ValidatorListString(validatorUpdates))
 	}
 
+	trc.Pin("updateState")
 	// Update the state with the block and responses.
 	state, err = updateState(state, blockID, &block.Header, abciResponses, validatorUpdates)
 	if err != nil {
