@@ -338,15 +338,16 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 
 			var txs []types.Tx
 			txs, next = memR.mempool.getTxs(next, peerID)
-			msg = &TxsMessage{
-				Txs: txs,
-			}
-
-			msgBz := memR.encodeMsg(msg)
-			success := peer.Send(MempoolChannel, msgBz)
-			if !success {
-				time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
-				continue
+			if len(txs) != 0 {
+				msg = &TxsMessage{
+					Txs: txs,
+				}
+				msgBz := memR.encodeMsg(msg)
+				success := peer.Send(MempoolChannel, msgBz)
+				if !success {
+					time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
+					continue
+				}
 			}
 
 		} else if _, ok := memTx.senders.Load(peerID); !ok { // ensure peer hasn't already sent us this tx
