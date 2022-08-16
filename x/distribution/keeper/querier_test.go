@@ -3,11 +3,12 @@ package keeper
 import (
 	"testing"
 
+	"github.com/stretchr/testify/require"
+	"github.com/tendermint/go-amino"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/distribution/types"
-	"github.com/stretchr/testify/require"
-	"github.com/tendermint/go-amino"
 )
 
 func TestQueryParams(t *testing.T) {
@@ -37,16 +38,16 @@ func TestQueryValidatorCommission(t *testing.T) {
 	ctx, _, k, _, _ := CreateTestInputDefault(t, false, 1000)
 	querior := NewQuerier(k)
 	k.SetValidatorAccumulatedCommission(ctx, valOpAddr1, NewTestSysCoins(15, 1))
-
-	bz, err := amino.MarshalJSON(types.NewQueryValidatorCommissionParams(valOpAddr1))
+	params := types.NewQueryValidatorCommissionRequest(valOpAddr1.String())
+	bz, err := amino.MarshalJSON(params)
 	require.NoError(t, err)
 	commission, err := querior(ctx, []string{types.QueryValidatorCommission}, abci.RequestQuery{Data: bz})
 	require.NoError(t, err)
 
-	var data sdk.SysCoins
+	var data types.QueryValidatorCommissionResponse
 	err = amino.UnmarshalJSON(commission, &data)
 	require.NoError(t, err)
-	require.Equal(t, NewTestSysCoins(15, 1), data)
+	require.Equal(t, NewTestSysCoins(15, 1), data.Commission)
 }
 
 func TestQueryDelegatorWithdrawAddress(t *testing.T) {
