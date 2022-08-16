@@ -188,7 +188,7 @@ func GetOecConfig() *OecConfig {
 }
 
 func NewOecConfig() *OecConfig {
-	c := &OecConfig{}
+	c := defaultOecConfig()
 	c.loadFromConfig()
 
 	if viper.GetBool(FlagEnableDynamic) {
@@ -199,6 +199,13 @@ func NewOecConfig() *OecConfig {
 	}
 
 	return c
+}
+
+func defaultOecConfig() *OecConfig {
+	return &OecConfig{
+		mempoolRecheck:         false,
+		mempoolForceRecheckGap: 2000,
+	}
 }
 
 func RegisterDynamicConfig(logger log.Logger) {
