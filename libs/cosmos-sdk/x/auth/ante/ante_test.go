@@ -737,7 +737,7 @@ func TestAnteHandlerReCheck(t *testing.T) {
 	app, ctx := createTestApp(true)
 	// set blockheight and recheck=true
 	ctx.SetBlockHeight(1)
-	ctx.SetIsReCheckTx(true)
+	ctx.SetRunTxMode(sdk.RunTxModeReCheck)
 
 	// keys and addresses
 	priv1, _, addr1 := types.KeyTestPubAddr()

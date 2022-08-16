@@ -42,7 +42,7 @@ func TestValidateBasic(t *testing.T) {
 	require.Nil(t, err, "ValidateBasicDecorator returned error on valid tx. err: %v", err)
 
 	// test decorator skips on recheck
-	ctx.SetIsReCheckTx(true)
+	ctx.SetRunTxMode(sdk.RunTxModeReCheck)
 
 	// decorator should skip processing invalidTx on recheck and thus return nil-error
 	_, err = antehandler(ctx, invalidTx, false)

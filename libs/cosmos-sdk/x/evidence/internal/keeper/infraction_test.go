@@ -19,7 +19,8 @@ func newTestMsgCreateValidator(address sdk.ValAddress, pubKey crypto.PubKey, amt
 }
 
 func (suite *KeeperTestSuite) TestHandleDoubleSign() {
-	ctx := suite.ctx.WithIsCheckTx(false).WithBlockHeight(1)
+	ctx := suite.ctx
+	ctx.SetRunTxMode(sdk.RunTxModeDeliver).SetBlockHeight(1)
 	suite.populateValidators(ctx)
 
 	power := int64(100)
@@ -85,7 +86,8 @@ func (suite *KeeperTestSuite) TestHandleDoubleSign() {
 }
 
 func (suite *KeeperTestSuite) TestHandleDoubleSign_TooOld() {
-	ctx := suite.ctx.WithIsCheckTx(false).WithBlockHeight(1).WithBlockTime(time.Now())
+	ctx := suite.ctx
+	ctx.SetRunTxMode(sdk.RunTxModeDeliver).SetBlockHeight(1).SetBlockTime(time.Now())
 	suite.populateValidators(ctx)
 
 	power := int64(100)

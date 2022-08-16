@@ -3,9 +3,9 @@ package keeper_test
 import (
 	"strings"
 
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/evidence/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/evidence/internal/types"
-
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
@@ -14,7 +14,8 @@ const (
 )
 
 func (suite *KeeperTestSuite) TestQueryEvidence_Existing() {
-	ctx := suite.ctx.WithIsCheckTx(false)
+	ctx := suite.ctx
+	ctx.SetRunTxMode(sdk.RunTxModeDeliver)
 	numEvidence := 100
 
 	evidence := suite.populateEvidence(ctx, numEvidence)
@@ -33,7 +34,8 @@ func (suite *KeeperTestSuite) TestQueryEvidence_Existing() {
 }
 
 func (suite *KeeperTestSuite) TestQueryEvidence_NonExisting() {
-	ctx := suite.ctx.WithIsCheckTx(false)
+	ctx := suite.ctx
+	ctx.SetRunTxMode(sdk.RunTxModeDeliver)
 	numEvidence := 100
 
 	suite.populateEvidence(ctx, numEvidence)
@@ -48,7 +50,8 @@ func (suite *KeeperTestSuite) TestQueryEvidence_NonExisting() {
 }
 
 func (suite *KeeperTestSuite) TestQueryAllEvidence() {
-	ctx := suite.ctx.WithIsCheckTx(false)
+	ctx := suite.ctx
+	ctx.SetRunTxMode(sdk.RunTxModeDeliver)
 	numEvidence := 100
 
 	suite.populateEvidence(ctx, numEvidence)
@@ -67,7 +70,8 @@ func (suite *KeeperTestSuite) TestQueryAllEvidence() {
 }
 
 func (suite *KeeperTestSuite) TestQueryAllEvidence_InvalidPagination() {
-	ctx := suite.ctx.WithIsCheckTx(false)
+	ctx := suite.ctx
+	ctx.SetRunTxMode(sdk.RunTxModeDeliver)
 	numEvidence := 100
 
 	suite.populateEvidence(ctx, numEvidence)
@@ -86,7 +90,8 @@ func (suite *KeeperTestSuite) TestQueryAllEvidence_InvalidPagination() {
 }
 
 func (suite *KeeperTestSuite) TestQueryParams() {
-	ctx := suite.ctx.WithIsCheckTx(false)
+	ctx := suite.ctx
+	ctx.SetRunTxMode(sdk.RunTxModeDeliver)
 
 	bz, err := suite.querier(ctx, []string{types.QueryParameters}, abci.RequestQuery{})
 	suite.Nil(err)

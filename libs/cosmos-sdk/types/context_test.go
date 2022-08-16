@@ -7,15 +7,13 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-	dbm "github.com/okex/exchain/libs/tm-db"
-
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
 type MockLogger struct {
@@ -222,13 +220,13 @@ func BenchmarkContextDuffCopy(b *testing.B) {
 	b.Run("1", func(b *testing.B) {
 		b.Run("with", func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				ctx = ctx.WithIsCheckTx(true)
+				ctx.SetRunTxMode(sdk.RunTxModeCheck)
 				testFoo(ctx)
 			}
 		})
 		b.Run("set", func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				ctx.SetIsCheckTx(true)
+				ctx.SetRunTxMode(sdk.RunTxModeCheck)
 				testFoo(ctx)
 			}
 		})
@@ -237,14 +235,15 @@ func BenchmarkContextDuffCopy(b *testing.B) {
 	b.Run("2", func(b *testing.B) {
 		b.Run("with", func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				newCtx := ctx.WithIsCheckTx(true)
+				newCtx := ctx
+				newCtx.SetRunTxMode(sdk.RunTxModeCheck)
 				testFoo(newCtx)
 			}
 		})
 		b.Run("set", func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				newCtx := ctx
-				newCtx.SetIsCheckTx(true)
+				newCtx.SetRunTxMode(sdk.RunTxModeCheck)
 				testFoo(newCtx)
 			}
 		})
@@ -253,13 +252,13 @@ func BenchmarkContextDuffCopy(b *testing.B) {
 	b.Run("3", func(b *testing.B) {
 		b.Run("with", func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				testFoo(ctx.WithIsCheckTx(true))
+				testFoo(*ctx.SetRunTxMode(sdk.RunTxModeCheck))
 			}
 		})
 		b.Run("set", func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				newCtx := ctx
-				newCtx.SetIsCheckTx(true)
+				newCtx.SetRunTxMode(sdk.RunTxModeCheck)
 				testFoo(newCtx)
 			}
 		})
@@ -268,13 +267,13 @@ func BenchmarkContextDuffCopy(b *testing.B) {
 	b.Run("4", func(b *testing.B) {
 		b.Run("with", func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				testFoo(ctx.WithIsCheckTx(true).WithIsReCheckTx(false))
+				testFoo(*ctx.SetRunTxMode(sdk.RunTxModeCheck))
 			}
 		})
 		b.Run("set", func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
 				newCtx := ctx
-				newCtx.SetIsCheckTx(true).SetIsReCheckTx(false)
+				newCtx.SetRunTxMode(sdk.RunTxModeCheck)
 				testFoo(newCtx)
 			}
 		})

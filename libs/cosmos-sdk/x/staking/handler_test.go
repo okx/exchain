@@ -579,7 +579,8 @@ func TestMultipleMsgCreateValidator(t *testing.T) {
 		EndBlocker(ctx, keeper)
 
 		// removes validator from queue and set
-		EndBlocker(ctx.WithBlockTime(blockTime.Add(params.UnbondingTime)), keeper)
+		ctx.SetBlockTime(blockTime.Add(params.UnbondingTime))
+		EndBlocker(ctx, keeper)
 
 		// Check that the validator is deleted from state
 		validators := keeper.GetValidators(ctx, 100)

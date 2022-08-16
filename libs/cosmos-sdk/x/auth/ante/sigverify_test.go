@@ -145,7 +145,9 @@ func TestSigVerification(t *testing.T) {
 		{"no err on recheck", []crypto.PrivKey{}, []uint64{}, []uint64{}, true, false},
 	}
 	for i, tc := range testCases {
-		ctx.SetIsReCheckTx(tc.recheck)
+		if tc.recheck {
+			ctx.SetRunTxMode(sdk.RunTxModeReCheck)
+		}
 
 		tx := types.NewTestTx(ctx, msgs, tc.privs, tc.accNums, tc.seqs, fee)
 
@@ -235,11 +237,11 @@ func TestIncrementSequenceDecorator(t *testing.T) {
 		simulate    bool
 		expectedSeq uint64
 	}{
-		{ctx.WithIsReCheckTx(true), false, 1},
-		{ctx.WithIsCheckTx(true).WithIsReCheckTx(false), false, 2},
-		{ctx.WithIsReCheckTx(true), false, 3},
-		{ctx.WithIsReCheckTx(true), false, 4},
-		{ctx.WithIsReCheckTx(true), true, 5},
+		{*ctx.SetRunTxMode(sdk.RunTxModeReCheck), false, 1},
+		{*ctx.SetRunTxMode(sdk.RunTxModeCheck), false, 2},
+		{*ctx.SetRunTxMode(sdk.RunTxModeReCheck), false, 3},
+		{*ctx.SetRunTxMode(sdk.RunTxModeReCheck), false, 4},
+		{*ctx.SetRunTxMode(sdk.RunTxModeReCheck), true, 5},
 	}
 
 	for i, tc := range testCases {

@@ -113,7 +113,8 @@ func TestCanOverwriteScheduleUpgrade(t *testing.T) {
 
 func VerifyDoUpgrade(t *testing.T) {
 	t.Log("Verify that a panic happens at the upgrade time/height")
-	newCtx := s.ctx.WithBlockHeight(s.ctx.BlockHeight() + 1).WithBlockTime(time.Now())
+	newCtx := s.ctx
+	newCtx.SetBlockHeight(s.ctx.BlockHeight() + 1).SetBlockTime(time.Now())
 
 	req := abci.RequestBeginBlock{Header: newCtx.BlockHeader()}
 	require.Panics(t, func() {
@@ -151,7 +152,8 @@ func TestHaltIfTooNew(t *testing.T) {
 	var called int
 	s.keeper.SetUpgradeHandler("future", func(ctx sdk.Context, plan upgrade.Plan) { called++ })
 
-	newCtx := s.ctx.WithBlockHeight(s.ctx.BlockHeight() + 1).WithBlockTime(time.Now())
+	newCtx := s.ctx
+	newCtx.SetBlockHeight(s.ctx.BlockHeight() + 1).SetBlockTime(time.Now())
 	req := abci.RequestBeginBlock{Header: newCtx.BlockHeader()}
 	require.NotPanics(t, func() {
 		s.module.BeginBlock(newCtx, req)
@@ -168,7 +170,8 @@ func TestHaltIfTooNew(t *testing.T) {
 
 	t.Log("Verify we no longer panic if the plan is on time")
 
-	futCtx := s.ctx.WithBlockHeight(s.ctx.BlockHeight() + 3).WithBlockTime(time.Now())
+	futCtx := s.ctx
+	futCtx.SetBlockHeight(s.ctx.BlockHeight() + 3).SetBlockTime(time.Now())
 	req = abci.RequestBeginBlock{Header: futCtx.BlockHeader()}
 	require.NotPanics(t, func() {
 		s.module.BeginBlock(futCtx, req)
@@ -381,7 +384,8 @@ func TestUpgradeSkippingOnlyTwo(t *testing.T) {
 
 func TestUpgradeWithoutSkip(t *testing.T) {
 	s := setupTest(10, map[int64]bool{})
-	newCtx := s.ctx.WithBlockHeight(s.ctx.BlockHeight() + 1).WithBlockTime(time.Now())
+	newCtx := s.ctx
+	newCtx.SetBlockHeight(s.ctx.BlockHeight() + 1).SetBlockTime(time.Now())
 	req := abci.RequestBeginBlock{Header: newCtx.BlockHeader()}
 	err := s.handler(s.ctx, upgrade.SoftwareUpgradeProposal{Title: "prop", Plan: upgrade.Plan{Name: "test", Height: s.ctx.BlockHeight() + 1}})
 	require.Nil(t, err)

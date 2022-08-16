@@ -36,21 +36,21 @@ func TestEnsureMempoolFees(t *testing.T) {
 	ctx.SetMinGasPrices(highGasPrice)
 
 	// Set IsCheckTx to true
-	ctx.SetIsCheckTx(true)
+	ctx.SetRunTxMode(sdk.RunTxModeCheck)
 
 	// antehandler errors with insufficient fees
 	_, err := antehandler(ctx, tx, false)
 	require.NotNil(t, err, "Decorator should have errored on too low fee for local gasPrice")
 
 	// Set IsCheckTx to false
-	ctx.SetIsCheckTx(false)
+	ctx.SetRunTxMode(sdk.RunTxModeDeliver)
 
 	// antehandler should not error since we do not check minGasPrice in DeliverTx
 	_, err = antehandler(ctx, tx, false)
 	require.Nil(t, err, "MempoolFeeDecorator returned error in DeliverTx")
 
 	// Set IsCheckTx back to true for testing sufficient mempool fee
-	ctx.SetIsCheckTx(true)
+	ctx.SetRunTxMode(sdk.RunTxModeCheck)
 
 	atomPrice = sdk.NewDecCoinFromDec("atom", sdk.NewDec(0).Quo(sdk.NewDec(100000)))
 	lowGasPrice := []sdk.DecCoin{atomPrice}
