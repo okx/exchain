@@ -1,19 +1,11 @@
 package keeper_test
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	tmproto "github.com/okex/exchain/libs/tendermint/abci/types"
-	stakingtypes "github.com/okex/exchain/x/staking/types"
 	"math/rand"
 	"testing"
 	"time"
 
-	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
-	// tmproto "github.com/okex/exchain/libs/tendermint/proto/tendermint/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/stretchr/testify/suite"
-
-	// stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/keeper"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
@@ -24,6 +16,12 @@ import (
 	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
 	ibctestingmock "github.com/okex/exchain/libs/ibc-go/testing/mock"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp"
+	tmproto "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	stakingtypes "github.com/okex/exchain/x/staking/types"
+
+	"github.com/stretchr/testify/suite"
 )
 
 const (
@@ -304,7 +302,7 @@ func (suite KeeperTestSuite) TestGetAllGenesisMetadata() {
 }
 
 func (suite KeeperTestSuite) TestGetConsensusState() {
-	suite.ctx = suite.ctx.WithBlockHeight(10)
+	suite.ctx.SetBlockHeight(10)
 	cases := []struct {
 		name    string
 		height  types.Height

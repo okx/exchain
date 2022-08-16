@@ -1,6 +1,9 @@
 package ante_test
 
 import (
+	"math/big"
+	"testing"
+
 	appante "github.com/okex/exchain/app/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/simapp/helpers"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -13,8 +16,6 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/order"
 	"github.com/stretchr/testify/suite"
-	"math/big"
-	"testing"
 )
 
 type AnteTestSuite struct {
@@ -476,8 +477,10 @@ func (suite *AnteTestSuite) TestAnteDecorator() {
 			app := suite.chainB.GetSimApp()
 			msgs := tc.malleate(suite)
 
-			deliverCtx := suite.chainB.GetContext().WithIsCheckTx(false)
-			checkCtx := suite.chainB.GetContext().WithIsCheckTx(true)
+			deliverCtx := suite.chainB.GetContext()
+			deliverCtx.SetRunTxMode(sdk.RunTxModeDeliver)
+			checkCtx := suite.chainB.GetContext()
+			checkCtx.SetRunTxMode(sdk.RunTxModeCheck)
 
 			// create multimsg tx
 			txBuilder := suite.chainB.TxConfig().NewTxBuilder()

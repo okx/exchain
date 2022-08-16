@@ -144,13 +144,13 @@ func (suite *TypesTestSuite) TestSelfHeight() {
 
 	// Test default revision
 	ctx = *(ctxP.SetChainID("gaiamainnet"))
-	ctx = ctx.WithBlockHeight(10)
+	ctx.SetBlockHeight(10)
 	height := types.GetSelfHeight(ctx)
 	suite.Require().Equal(types.NewHeight(0, 10), height, "default self height failed")
 
 	// Test successful revision format
 	ctx = *(ctx.SetChainID("gaiamainnet-3"))
-	ctx = ctx.WithBlockHeight(18)
+	ctx.SetBlockHeight(18)
 	height = types.GetSelfHeight(ctx)
 	suite.Require().Equal(types.NewHeight(3, 18), height, "valid self height failed")
 }

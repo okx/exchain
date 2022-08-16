@@ -211,7 +211,8 @@ func (suite *KeeperTestSuite) TestUpdateClientLocalhost() {
 	chainACtx := suite.chainA.GetContext()
 	var localhostClient exported.ClientState = localhosttypes.NewClientState(suite.chainA.ChainID(), types.NewHeight(revision, uint64(chainACtx.BlockHeight())))
 
-	ctx := suite.chainA.GetContext().WithBlockHeight(chainACtx.BlockHeight() + 1)
+	ctx := suite.chainA.GetContext()
+	ctx.SetBlockHeight(chainACtx.BlockHeight() + 1)
 	err := suite.chainA.App().GetIBCKeeper().ClientKeeper.UpdateClient(ctx, exported.Localhost, nil)
 	suite.Require().NoError(err)
 
