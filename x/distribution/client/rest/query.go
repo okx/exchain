@@ -24,7 +24,7 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router, queryRoute st
 
 	// accumulated commission of a single validator
 	r.HandleFunc(
-		"/distribution/validators/{validatorAddr}/validator_commission",
+		"/cosmos/distribution/v1beta1/validators/{validatorAddr}/commission",
 		accumulatedCommissionHandlerFn(cliCtx, queryRoute),
 	).Methods("GET")
 
@@ -114,25 +114,24 @@ func communityPoolHandler(cliCtx context.CLIContext, queryRoute string) http.Han
 // HTTP request handler to query the accumulated commission of one single validator
 func accumulatedCommissionHandlerFn(cliCtx context.CLIContext, queryRoute string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		validatorAddr, ok := checkValidatorAddressVar(w, r)
+		validatorAddr := mux.Vars(r)["validatorAddr"]
+
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
 
-		cliCtx, ok = rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
-		if !ok {
-			return
-		}
-
-		bin := cliCtx.Codec.MustMarshalJSON(types.NewQueryValidatorCommissionParams(validatorAddr))
+		bin := cliCtx.Codec.MustMarshalJSON(types.NewQueryValidatorCommissionRequest(validatorAddr))
 		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/validator_commission", queryRoute), bin)
 		if err != nil {
 			sdkErr := comm.ParseSDKError(err.Error())
 			comm.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
 			return
 		}
-
+		var commission types.QueryValidatorCommissionResponse
+		cliCtx.Codec.MustUnmarshalJSON(res, &commission)
+		wrappedCommission := types.NewWrappedCommission(commission)
 		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, res)
+		rest.PostProcessResponse(w, cliCtx, wrappedCommission)
 	}
 }

@@ -52,18 +52,17 @@ func queryParams(ctx sdk.Context, path []string, req abci.RequestQuery, k Keeper
 }
 
 func queryValidatorCommission(ctx sdk.Context, _ []string, req abci.RequestQuery, k Keeper) ([]byte, error) {
-	var params types.QueryValidatorCommissionParams
+	var params types.QueryValidatorCommissionRequest
 	err := k.cdc.UnmarshalJSON(req.Data, &params)
 	if err != nil {
 		return nil, comm.ErrUnMarshalJSONFailed(err.Error())
 	}
 
-	commission := k.GetValidatorAccumulatedCommission(ctx, params.ValidatorAddress)
-	if commission == nil { //TODO
-		commission = types.ValidatorAccumulatedCommission{}
+	res, err := k.ValidatorCommission(sdk.WrapSDKContext(ctx), &params)
+	if err != nil {
+		return nil, err
 	}
-
-	bz, err := codec.MarshalJSONIndent(k.cdc, commission)
+	bz, err := codec.MarshalJSONIndent(k.cdc, res)
 	if err != nil {
 		return nil, comm.ErrMarshalJSONFailed(err.Error())
 	}
