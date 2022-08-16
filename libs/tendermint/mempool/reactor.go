@@ -181,6 +181,12 @@ var txMessageDeocdePool = &sync.Pool{
 	},
 }
 
+var txsMessageDeocdePool = &sync.Pool{
+	New: func() interface{} {
+		return &TxsMessage{}
+	},
+}
+
 var logParamsPool = &sync.Pool{
 	New: func() interface{} {
 		return &[6]interface{}{}
@@ -257,6 +263,8 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 				memR.logCheckTxError(tx, memR.mempool.height, err)
 			}
 		}
+		msg.Txs = nil
+		txsMessageDeocdePool.Put(msg)
 		return
 
 	case *WtxMessage:
@@ -334,15 +342,14 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 		}
 
 		if cfg.DynamicConfig.GetEnableBatchTx() {
-			var msg Message
-
 			var txs []types.Tx
 			txs, next = memR.mempool.getTxs(next, peerID)
 			if len(txs) != 0 {
-				msg = &TxsMessage{
-					Txs: txs,
-				}
+				msg := txsMessageDeocdePool.Get().(*TxsMessage)
+				msg.Txs = txs
 				msgBz := memR.encodeMsg(msg)
+				msg.Txs = nil
+				txsMessageDeocdePool.Put(msg)
 				success := peer.Send(MempoolChannel, msgBz)
 				if !success {
 					time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
