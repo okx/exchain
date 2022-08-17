@@ -28,11 +28,11 @@ func TestDelta(t *testing.T) {
 	err = unmarshaled.Unmarshal(marshaled)
 	require.NoError(t, err)
 
-	assert.True(t, bytes.Compare(unmarshaled.ABCIRsp(), d.ABCIRsp()) == 0)
-	assert.True(t, bytes.Compare(unmarshaled.DeltasBytes(), d.DeltasBytes()) == 0)
-	assert.True(t, bytes.Compare(unmarshaled.WatchBytes(), d.WatchBytes()) == 0)
-	assert.True(t, unmarshaled.Height == d.Height)
-	assert.True(t, unmarshaled.CompressType == d.CompressType)
+	assert.True(t, bytes.Equal(unmarshaled.ABCIRsp(), d.ABCIRsp()), "ABCIRsp not equal")
+	assert.True(t, bytes.Equal(unmarshaled.DeltasBytes(), d.DeltasBytes()), "DeltasBytes not equal")
+	assert.True(t, bytes.Equal(unmarshaled.WatchBytes(), d.WatchBytes()), "WatchBytes not equal")
+	assert.True(t, unmarshaled.Height == d.Height, "Height not equal")
+	assert.True(t, unmarshaled.CompressType == d.CompressType, "CompressType not equal")
 }
 
 func TestDeltas_MarshalUnMarshal(t *testing.T) {
