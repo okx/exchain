@@ -7,16 +7,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/okex/exchain/libs/tendermint/crypto"
-	"github.com/okex/exchain/libs/tendermint/libs/automation"
-
-	"github.com/okex/exchain/libs/tendermint/libs/automation"
-
 	"github.com/pkg/errors"
 
 	amino "github.com/tendermint/go-amino"
 
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
+	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/okex/exchain/libs/tendermint/libs/bits"
 	tmevents "github.com/okex/exchain/libs/tendermint/libs/events"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -2116,10 +2113,6 @@ func (m BlockPartMessage) AminoSize(cdc *amino.Codec) int {
 		partSize := m.Part.AminoSize(cdc)
 		size += 1 + amino.UvarintSize(uint64(partSize)) + partSize
 	}
-	if m.Deltas != nil {
-		deltaSize := m.Deltas.AminoSize(cdc)
-		size += 1 + amino.UvarintSize(uint64(deltaSize)) + deltaSize
-	}
 	return size
 }
 
@@ -2159,24 +2152,6 @@ func (m BlockPartMessage) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) er
 		}
 		if buf.Len()-lenBeforeData != partSize {
 			return amino.NewSizerError(partSize, buf.Len()-lenBeforeData, partSize)
-		}
-	}
-	// field 4
-	if m.Deltas != nil {
-		const pbKey = byte(4<<3 | amino.Typ3_ByteLength)
-		buf.WriteByte(pbKey)
-		deltaSize := m.Deltas.AminoSize(cdc)
-		err = amino.EncodeUvarintToBuffer(buf, uint64(deltaSize))
-		if err != nil {
-			return err
-		}
-		lenBeforeData := buf.Len()
-		err = m.Deltas.MarshalAminoTo(cdc, buf)
-		if err != nil {
-			return err
-		}
-		if buf.Len()-lenBeforeData != deltaSize {
-			return amino.NewSizerError(deltaSize, buf.Len()-lenBeforeData, deltaSize)
 		}
 	}
 	return nil
