@@ -15,7 +15,9 @@ import (
 	"github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmstate "github.com/okex/exchain/libs/tendermint/state"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
 )
@@ -23,19 +25,20 @@ import (
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type Watcher struct {
-	store         *WatchStore
-	height        uint64
-	blockHash     common.Hash
-	header        types.Header
-	batch         []WatchMessage
-	staleBatch    []WatchMessage
-	cumulativeGas map[uint64]uint64
-	gasUsed       uint64
-	blockTxs      []common.Hash
-	sw            bool
-	firstUse      bool
-	delayEraseKey [][]byte
-	log           log.Logger
+	store          *WatchStore
+	height         uint64
+	blockHash      common.Hash
+	header         types.Header
+	batch          []WatchMessage
+	cumulativeGas  map[uint64]uint64
+	gasUsed        uint64
+	blockTxs       []common.Hash
+	blockStdTxs    []common.Hash
+	enable         bool
+	firstUse       bool
+	delayEraseKey  [][]byte
+	eraseKeyFilter map[string][]byte
+	log            log.Logger
 	// for state delta transfering in network
 	watchData    *WatchData
 	jobChan      chan func()
@@ -68,14 +71,16 @@ func GetWatchLruSize() int {
 
 func NewWatcher(logger log.Logger) *Watcher {
 	return &Watcher{store: InstanceOfWatchStore(),
-		cumulativeGas: make(map[uint64]uint64),
-		sw:            IsWatcherEnabled(),
-		firstUse:      true,
-		delayEraseKey: make([][]byte, 0),
-		watchData:     &WatchData{},
-		log:           logger,
-		checkWd:       viper.GetBool(FlagCheckWd),
-		filterMap:     make(map[string]WatchMessage)}
+		cumulativeGas:  make(map[uint64]uint64),
+		enable:         IsWatcherEnabled(),
+		firstUse:       true,
+		delayEraseKey:  make([][]byte, 0),
+		watchData:      &WatchData{},
+		log:            logger,
+		checkWd:        viper.GetBool(FlagCheckWd),
+		filterMap:      make(map[string]WatchMessage),
+		eraseKeyFilter: make(map[string][]byte),
+	}
 }
 
 func (w *Watcher) IsFirstUse() bool {
@@ -92,11 +97,11 @@ func (w *Watcher) Used() {
 }
 
 func (w *Watcher) Enabled() bool {
-	return w.sw || w.InfuraKeeper != nil
+	return w.enable || w.InfuraKeeper != nil
 }
 
-func (w *Watcher) Enable(sw bool) {
-	w.sw = sw
+func (w *Watcher) Enable(enable bool) {
+	w.enable = enable
 }
 
 func (w *Watcher) GetEvmTxIndex() uint64 {
@@ -122,29 +127,7 @@ func (w *Watcher) clean() {
 	}
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
-}
-
-func (w *Watcher) SaveContractCode(addr common.Address, code []byte) {
-	if !w.Enabled() {
-		return
-	}
-	if w.InfuraKeeper != nil {
-		w.InfuraKeeper.OnSaveContractCode(addr.String(), code)
-	}
-	wMsg := NewMsgCode(addr, code, w.height)
-	if wMsg != nil {
-		w.staleBatch = append(w.staleBatch, wMsg)
-	}
-}
-
-func (w *Watcher) SaveContractCodeByHash(hash []byte, code []byte) {
-	if !w.Enabled() {
-		return
-	}
-	wMsg := NewMsgCodeByHash(hash, code)
-	if wMsg != nil {
-		w.staleBatch = append(w.staleBatch, wMsg)
-	}
+	w.blockStdTxs = []common.Hash{}
 }
 
 func (w *Watcher) SaveTransactionReceipt(status uint32, msg *evmtypes.MsgEthereumTx, txHash common.Hash, txIndex uint64, data *evmtypes.ResultData, gasUsed uint64) {
@@ -174,32 +157,13 @@ func (w *Watcher) UpdateCumulativeGas(txIndex, gasUsed uint64) {
 	w.gasUsed += gasUsed
 }
 
-func (w *Watcher) SaveAccount(account auth.Account, isDirectly bool) {
+func (w *Watcher) SaveAccount(account auth.Account) {
 	if !w.Enabled() {
 		return
 	}
 	wMsg := NewMsgAccount(account)
 	if wMsg != nil {
-		if isDirectly {
-			w.batch = append(w.batch, wMsg)
-		} else {
-			w.staleBatch = append(w.staleBatch, wMsg)
-		}
-
-	}
-}
-
-func (w *Watcher) AddDelAccMsg(account auth.Account, isDirectly bool) {
-	if !w.Enabled() {
-		return
-	}
-	wMsg := NewDelAccMsg(account)
-	if wMsg != nil {
-		if isDirectly {
-			w.batch = append(w.batch, wMsg)
-		} else {
-			w.staleBatch = append(w.staleBatch, wMsg)
-		}
+		w.batch = append(w.batch, wMsg)
 	}
 }
 
@@ -226,24 +190,20 @@ func (w *Watcher) DelayEraseKey() {
 }
 
 func (w *Watcher) ExecuteDelayEraseKey(delayEraseKey [][]byte) {
-	if !w.Enabled() {
-		return
-	}
-	if len(delayEraseKey) <= 0 {
+	if !w.Enabled() || len(delayEraseKey) <= 0 {
 		return
 	}
 	for _, k := range delayEraseKey {
-		w.store.Delete(k)
+		w.eraseKeyFilter[bytes2Key(k)] = k
 	}
-}
-
-func (w *Watcher) SaveState(addr common.Address, key, value []byte) {
-	if !w.Enabled() {
-		return
+	batch := w.store.db.NewBatch()
+	defer batch.Close()
+	for _, k := range w.eraseKeyFilter {
+		batch.Delete(k)
 	}
-	wMsg := NewMsgState(addr, key, value)
-	if wMsg != nil {
-		w.staleBatch = append(w.staleBatch, wMsg)
+	batch.Write()
+	for k := range w.eraseKeyFilter {
+		delete(w.eraseKeyFilter, k)
 	}
 }
 
@@ -265,6 +225,16 @@ func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
 		w.batch = append(w.batch, wInfo)
 	}
 	w.SaveLatestHeight(w.height)
+}
+
+func (w *Watcher) SaveBlockStdTxHash() {
+	if !w.Enabled() || (len(w.blockStdTxs) == 0) {
+		return
+	}
+	wMsg := NewMsgBlockStdTxHash(w.blockStdTxs, w.blockHash)
+	if wMsg != nil {
+		w.batch = append(w.batch, wMsg)
+	}
 }
 
 func (w *Watcher) SaveLatestHeight(height uint64) {
@@ -317,38 +287,6 @@ func (w *Watcher) SaveContractDeploymentWhitelistItem(addr sdk.AccAddress) {
 	}
 }
 
-func (w *Watcher) DeleteContractBlockedList(addr sdk.AccAddress) {
-	if !w.Enabled() {
-		return
-	}
-	wMsg := NewMsgContractBlockedListItem(addr)
-	if wMsg != nil {
-		key := wMsg.GetKey()
-		w.store.Delete(key)
-		w.watchData.DirtyList = append(w.watchData.DirtyList, key)
-	}
-}
-
-func (w *Watcher) DeleteContractDeploymentWhitelist(addr sdk.AccAddress) {
-	if !w.Enabled() {
-		return
-	}
-	wMsg := NewMsgContractDeploymentWhitelistItem(addr)
-	if wMsg != nil {
-		key := wMsg.GetKey()
-		w.store.Delete(key)
-		w.watchData.DirtyList = append(w.watchData.DirtyList, key)
-	}
-}
-
-func (w *Watcher) Finalize() {
-	if !w.Enabled() {
-		return
-	}
-	w.batch = append(w.batch, w.staleBatch...)
-	w.Reset()
-}
-
 func (w *Watcher) CommitStateToRpcDb(addr common.Address, key, value []byte) {
 	if !w.Enabled() {
 		return
@@ -380,13 +318,6 @@ func (w *Watcher) CommitCodeHashToDb(hash []byte, code []byte) {
 	}
 }
 
-func (w *Watcher) Reset() {
-	if !w.Enabled() {
-		return
-	}
-	w.staleBatch = []WatchMessage{}
-}
-
 func (w *Watcher) Commit() {
 	if !w.Enabled() {
 		return
@@ -394,6 +325,10 @@ func (w *Watcher) Commit() {
 	//hold it in temp
 	batch := w.batch
 	w.clean()
+	// No need to write db when upload delta is enabled.
+	if tmtypes.UploadDelta {
+		return
+	}
 	w.dispatchJob(func() {
 		w.commitBatch(batch)
 	})
@@ -427,29 +362,31 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 		w.filterMap[bytes2Key(b.GetKey())] = b
 	}
 
+	dbBatch := w.store.db.NewBatch()
+	defer dbBatch.Close()
 	for _, b := range w.filterMap {
 		key := b.GetKey()
 		value := []byte(b.GetValue())
 		typeValue := b.GetType()
 		if typeValue == TypeDelete {
-			w.store.Delete(key)
+			dbBatch.Delete(key)
 		} else {
-			w.store.Set(key, value)
+			dbBatch.Set(key, value)
 			//need update params
 			if typeValue == TypeEvmParams {
 				msgParams := b.(*MsgParams)
 				w.store.SetEvmParams(msgParams.Params)
 			}
 			if typeValue == TypeState {
-				state.SetStateToLru(common.BytesToHash(key), value)
+				state.SetStateToLru(key, value)
 			}
 		}
 	}
+	dbBatch.Write()
 
 	for k := range w.filterMap {
 		delete(w.filterMap, k)
 	}
-
 	if w.checkWd {
 		keys := make([][]byte, len(batch))
 		for i, _ := range batch {
@@ -460,22 +397,19 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 }
 
 func (w *Watcher) commitCenterBatch(batch []*Batch) {
+	dbBatch := w.store.db.NewBatch()
+	defer dbBatch.Close()
 	for _, b := range batch {
 		if b.TypeValue == TypeDelete {
-			w.store.Delete(b.Key)
+			dbBatch.Delete(b.Key)
 		} else {
-			w.store.Set(b.Key, b.Value)
+			dbBatch.Set(b.Key, b.Value)
 			if b.TypeValue == TypeState {
-				state.SetStateToLru(common.BytesToHash(b.Key), b.Value)
+				state.SetStateToLru(b.Key, b.Value)
 			}
 		}
 	}
-}
-
-func (w *Watcher) delDirtyAccount(accounts []*sdk.AccAddress) {
-	for _, account := range accounts {
-		w.store.Delete(GetMsgAccountKey(account.Bytes()))
-	}
+	dbBatch.Write()
 }
 
 func (w *Watcher) delDirtyList(list [][]byte) {
@@ -486,9 +420,12 @@ func (w *Watcher) delDirtyList(list [][]byte) {
 
 func (w *Watcher) commitBloomData(bloomData []*evmtypes.KV) {
 	db := evmtypes.GetIndexer().GetDB()
+	batch := db.NewBatch()
+	defer batch.Close()
 	for _, bd := range bloomData {
-		db.Set(bd.Key, bd.Value)
+		batch.Set(bd.Key, bd.Value)
 	}
+	batch.Write()
 }
 
 func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
@@ -682,4 +619,21 @@ func (w *Watcher) dispatchJob(f func()) {
 
 func (w *Watcher) Height() uint64 {
 	return w.height
+}
+
+func (w *Watcher) Collect(watchers ...sdk.IWatcher) {
+	if !w.enable {
+		return
+	}
+	for _, watcher := range watchers {
+		batch := watcher.Destruct()
+		w.batch = append(w.batch, batch...)
+	}
+}
+
+func (w *Watcher) saveStdTxResponse(result *ctypes.ResultTx) {
+	wMsg := NewStdTransactionResponse(result, w.header.Time, common.BytesToHash(result.Hash))
+	if wMsg != nil {
+		w.batch = append(w.batch, wMsg)
+	}
 }

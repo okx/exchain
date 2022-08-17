@@ -9,17 +9,18 @@ import (
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/stretchr/testify/suite"
 
 	"github.com/okex/exchain/app"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	minttypes "github.com/okex/exchain/libs/cosmos-sdk/x/mint"
+	transfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
 	"github.com/okex/exchain/x/erc20/keeper"
 	"github.com/okex/exchain/x/erc20/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-
-	"github.com/stretchr/testify/suite"
 )
 
 var (
@@ -84,6 +85,10 @@ func (i IbcKeeperMock) DenomPathFromHash(ctx sdk.Context, denom string) (string,
 		return "transfer/channel-0", nil
 	}
 	return "", errors.New("not fount")
+}
+
+func (i IbcKeeperMock) GetDenomTrace(ctx sdk.Context, denomTraceHash tmbytes.HexBytes) (transfertypes.DenomTrace, bool) {
+	return transfertypes.DenomTrace{}, false
 }
 
 func (suite *KeeperTestSuite) TestDenomContractMap() {

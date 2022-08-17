@@ -3,9 +3,9 @@ package state
 import (
 	"encoding/hex"
 	"fmt"
+	
 	"github.com/okex/exchain/libs/system/trace"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
-
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/proxy"
@@ -76,8 +76,6 @@ func (t *executionTask) run() {
 	switch mode {
 	case DeliverTxsExecModeSerial:
 		abciResponses, err = execBlockOnProxyApp(t)
-	case DeliverTxsExecModePartConcurrent:
-		abciResponses, err = execBlockOnProxyAppPartConcurrent(t.logger, t.proxyApp, t.block, t.db)
 	case DeliverTxsExecModeParallel:
 		abciResponses, err = execBlockOnProxyAppAsync(t.logger, t.proxyApp, t.block, t.db)
 	default:

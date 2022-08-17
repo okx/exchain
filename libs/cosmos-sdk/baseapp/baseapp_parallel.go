@@ -327,14 +327,21 @@ func (app *BaseApp) endParallelTxs() [][]byte {
 	logIndex := make([]int, app.parallelTxManage.txSize)
 	errs := make([]error, app.parallelTxManage.txSize)
 	hasEnterEvmTx := make([]bool, app.parallelTxManage.txSize)
+	resp := make([]abci.ResponseDeliverTx, app.parallelTxManage.txSize)
+	watchers := make([]sdk.IWatcher, app.parallelTxManage.txSize)
+	txs := make([]sdk.Tx, app.parallelTxManage.txSize)
 	for index := 0; index < app.parallelTxManage.txSize; index++ {
 		paraM := app.parallelTxManage.txReps[index].paraMsg
 		logIndex[index] = paraM.LogIndex
 		errs[index] = paraM.AnteErr
 		hasEnterEvmTx[index] = paraM.HasRunEvmTx
+		resp[index] = app.parallelTxManage.txReps[index].resp
+		watchers[index] = app.parallelTxManage.txReps[index].watcher
+		txs[index] = app.parallelTxManage.extraTxsInfo[index].stdTx
 	}
+	app.watcherCollector(watchers...)
 	app.parallelTxManage.clear()
-	return app.logFix(logIndex, hasEnterEvmTx, errs)
+	return app.logFix(txs, logIndex, hasEnterEvmTx, errs, resp)
 }
 
 //we reuse the nonce that changed by the last async call
@@ -344,7 +351,8 @@ func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 	txStatus := app.parallelTxManage.extraTxsInfo[txIndex]
 
 	if txStatus.stdTx == nil {
-		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr, 0, 0, app.trace), nil, uint32(txIndex), nil, 0)
+		asyncExe := newExecuteResult(sdkerrors.ResponseDeliverTx(txStatus.decodeErr,
+			0, 0, app.trace), nil, uint32(txIndex), nil, 0, sdk.EmptyWatcher{}, nil)
 		return asyncExe
 	}
 	var (
@@ -365,7 +373,8 @@ func (app *BaseApp) deliverTxWithCache(txIndex int) *executeResult {
 		}
 	}
 
-	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg(), 0)
+	asyncExe := newExecuteResult(resp, info.msCacheAnte, uint32(txIndex), info.ctx.ParaMsg(),
+		0, info.runMsgCtx.GetWatcher(), info.tx.GetMsgs())
 	app.parallelTxManage.addMultiCache(info.msCacheAnte, info.msCache)
 	return asyncExe
 }
@@ -376,15 +385,20 @@ type executeResult struct {
 	counter     uint32
 	paraMsg     *sdk.ParaMsg
 	blockHeight int64
+	watcher     sdk.IWatcher
+	msgs        []sdk.Msg
 }
 
-func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32, paraMsg *sdk.ParaMsg, height int64) *executeResult {
+func newExecuteResult(r abci.ResponseDeliverTx, ms sdk.CacheMultiStore, counter uint32,
+	paraMsg *sdk.ParaMsg, height int64, watcher sdk.IWatcher, msgs []sdk.Msg) *executeResult {
 	ans := &executeResult{
 		resp:        r,
 		ms:          ms,
 		counter:     counter,
 		paraMsg:     paraMsg,
 		blockHeight: height,
+		watcher:     watcher,
+		msgs:        msgs,
 	}
 
 	if paraMsg == nil {
@@ -710,13 +724,15 @@ func (f *parallelTxManager) getTxResult(index int) sdk.CacheMultiStore {
 	preIndexInGroup, ok := f.preTxInGroup[index]
 	if ok && preIndexInGroup > f.currIndex {
 		// get parent tx ms
-		if f.txReps[preIndexInGroup] != nil && f.txReps[preIndexInGroup].paraMsg.AnteErr == nil {
-			if f.txReps[preIndexInGroup].ms == nil {
+		preResp := f.txReps[preIndexInGroup]
+
+		if preResp != nil && preResp.paraMsg.AnteErr == nil {
+			if preResp.ms == nil {
 				return nil
 			}
 
-			f.txReps[preIndexInGroup].ms.DisableCacheReadList()
-			ms = f.chainMultiStores.GetStoreWithParent(f.txReps[preIndexInGroup].ms)
+			preResp.ms.DisableCacheReadList()
+			ms = f.chainMultiStores.GetStoreWithParent(preResp.ms)
 		}
 	}
 
