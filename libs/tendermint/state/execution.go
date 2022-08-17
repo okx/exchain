@@ -2,10 +2,10 @@ package state
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/system/trace"
 	"strconv"
 	"time"
 
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/global"
@@ -26,17 +26,14 @@ type (
 )
 
 const (
-	DeliverTxsExecModeSerial         DeliverTxsExecMode = iota // execute [deliverTx,...] sequentially
-	DeliverTxsExecModePartConcurrent                           // execute [deliverTx,...] partially-concurrent
-	DeliverTxsExecModeParallel                                 // execute [deliverTx,...] parallel
+	DeliverTxsExecModeSerial   DeliverTxsExecMode = iota // execute [deliverTx,...] sequentially
+	DeliverTxsExecModeParallel                    = 2    // execute [deliverTx,...] parallel
 
-	// There are three modes.
+	// There are two modes.
 	// 0: execute [deliverTx,...] sequentially (default)
-	// 1: execute [deliverTx,...] partially-concurrent
+	// 1: execute [deliverTx,...] deprecated
 	// 2: execute [deliverTx,...] parallel
 	FlagDeliverTxsExecMode = "deliver-txs-mode"
-
-	FlagDeliverTxsConcurrentNum = "deliver-txs-concurrent-num"
 )
 
 // BlockExecutor handles block execution and state updates.
@@ -349,8 +346,6 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 			switch mode {
 			case DeliverTxsExecModeSerial:
 				abciResponses, err = execBlockOnProxyApp(ctx)
-			case DeliverTxsExecModePartConcurrent:
-				abciResponses, err = execBlockOnProxyAppPartConcurrent(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			case DeliverTxsExecModeParallel:
 				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			default:

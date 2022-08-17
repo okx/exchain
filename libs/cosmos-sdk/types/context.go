@@ -2,6 +2,7 @@ package types
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -401,6 +402,24 @@ func (c *Context) GetWatcher() IWatcher {
 // KVStore fetches a KVStore from the MultiStore.
 func (c *Context) KVStore(key StoreKey) KVStore {
 	return gaskv.NewStore(c.MultiStore().GetKVStore(key), c.GasMeter(), stypes.KVGasConfig())
+}
+
+var gasKvPool = &sync.Pool{
+	New: func() interface{} {
+		return &gaskv.Store{}
+	},
+}
+
+// GetReusableKVStore fetches a KVStore from the MultiStore than can be reused.
+// you must call ReturnKVStore() after you are done with the KVStore.
+func (c *Context) GetReusableKVStore(key StoreKey) KVStore {
+	gaskvs := gasKvPool.Get().(*gaskv.Store)
+	return gaskv.ResetStore(gaskvs, c.MultiStore().GetKVStore(key), c.GasMeter(), stypes.KVGasConfig())
+}
+
+// ReturnKVStore returns a KVStore than from GetReusableKVStore.
+func (_ *Context) ReturnKVStore(store KVStore) {
+	gasKvPool.Put(store)
 }
 
 // TransientStore fetches a TransientStore from the MultiStore.
