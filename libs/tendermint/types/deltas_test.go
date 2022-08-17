@@ -13,9 +13,10 @@ import (
 func TestDelta(t *testing.T) {
 	d := &Deltas{
 		Payload: DeltaPayload{
-			[]byte("abci"),
-			[]byte("detal"),
-			[]byte("watch"),
+			ABCIRsp:        []byte("abci"),
+			DeltasBytes:    []byte("detal"),
+			WatchBytes:     []byte("watch"),
+			WasmWatchBytes: []byte("wasm watch"),
 		},
 		Height:       1,
 		CompressType: 2,
@@ -31,6 +32,7 @@ func TestDelta(t *testing.T) {
 	assert.True(t, bytes.Equal(unmarshaled.ABCIRsp(), d.ABCIRsp()), "ABCIRsp not equal")
 	assert.True(t, bytes.Equal(unmarshaled.DeltasBytes(), d.DeltasBytes()), "DeltasBytes not equal")
 	assert.True(t, bytes.Equal(unmarshaled.WatchBytes(), d.WatchBytes()), "WatchBytes not equal")
+	assert.True(t, bytes.Equal(unmarshaled.WasmWatchBytes(), d.WasmWatchBytes()), "WasmWatchBytes not equal")
 	assert.True(t, unmarshaled.Height == d.Height, "Height not equal")
 	assert.True(t, unmarshaled.CompressType == d.CompressType, "CompressType not equal")
 }

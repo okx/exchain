@@ -4,9 +4,10 @@ import (
 	"context"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	auth "github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/distribution/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
 	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
@@ -37,6 +38,8 @@ type AccountKeeper interface {
 	GetAccount(ctx sdk.Context, addr sdk.AccAddress) auth.Account
 	// Set an account in the store.
 	SetAccount(ctx sdk.Context, acc auth.Account)
+	// SetObserverKeeper sets an observer for listening changes of any accounts.
+	SetObserverKeeper(observer auth.ObserverI)
 }
 
 // DistributionKeeper defines a subset of methods implemented by the cosmos-sdk distribution keeper
@@ -97,4 +100,13 @@ type CapabilityKeeper interface {
 // ICS20TransferPortSource is a subset of the ibc transfer keeper.
 type ICS20TransferPortSource interface {
 	GetPort(ctx sdk.Context) string
+}
+
+type Subspace interface {
+	GetParamSet(ctx sdk.Context, ps params.ParamSet)
+	SetParamSet(ctx sdk.Context, ps params.ParamSet)
+}
+
+type DBAdapter interface {
+	NewStore(gasMeter sdk.GasMeter, parent sdk.KVStore, prefix []byte) sdk.KVStore
 }

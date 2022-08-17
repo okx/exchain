@@ -129,7 +129,7 @@ func NewKeeper(
 		logger:         logger,
 		Watcher:        watcher.NewWatcher(logger),
 	}
-	k.Watcher.SetWatchDataFunc()
+	k.Watcher.SetWatchDataManager()
 	ak.SetObserverKeeper(k)
 
 	k.OpenTrie()
