@@ -147,6 +147,10 @@ func (payload *DeltaPayload) AminoSize(_ *amino.Codec) int {
 	if len(payload.WatchBytes) != 0 {
 		size += 1 + amino.ByteSliceSize(payload.WatchBytes)
 	}
+	// field 4
+	if len(payload.WasmWatchBytes) != 0 {
+		size += 1 + amino.ByteSliceSize(payload.WasmWatchBytes)
+	}
 	return size
 }
 
