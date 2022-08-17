@@ -58,9 +58,14 @@ func (api *PubSubAPI) subscribe(conn *wsConn, params []interface{}) (rpc.ID, err
 
 		return api.subscribeLogs(conn, nil)
 	case "newPendingTransactions":
-		return api.subscribePendingTransactions(conn)
-	case "newPendingTxDetail":
-		return api.subscribePendingTxDetail(conn)
+		var isDetail, ok bool
+		if len(params) > 1 {
+			isDetail, ok = params[1].(bool)
+			if !ok {
+				return "0", fmt.Errorf("invalid parameters")
+			}
+		}
+		return api.subscribePendingTransactions(conn, isDetail)
 	case "syncing":
 		return api.subscribeSyncing(conn)
 	default:
@@ -357,7 +362,7 @@ func isHex(str string) bool {
 	return true
 }
 
-func (api *PubSubAPI) subscribePendingTransactions(conn *wsConn) (rpc.ID, error) {
+func (api *PubSubAPI) subscribePendingTransactions(conn *wsConn, isDetail bool) (rpc.ID, error) {
 	sub, _, err := api.events.SubscribePendingTxs()
 	if err != nil {
 		return "", fmt.Errorf("error creating block filter: %s", err.Error())
@@ -382,7 +387,21 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *wsConn) (rpc.ID, error)
 					continue
 				}
 				txHash := common.BytesToHash(data.Tx.Hash(data.Height))
+				var res interface{} = txHash
+				if isDetail {
+					ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, data.Tx)
+					if err != nil {
+						api.logger.Error("failed to decode raw tx to eth tx", "hash", txHash.String(), "error", err)
+						continue
+					}
 
+					tx, err := watcher.NewTransaction(ethTx, txHash, common.Hash{}, uint64(data.Height), uint64(data.Index))
+					if err != nil {
+						api.logger.Error("failed to new transaction", "hash", txHash.String(), "error", err)
+						continue
+					}
+					res = tx
+				}
 				api.filtersMu.RLock()
 				if f, found := api.filters[sub.ID()]; found {
 					// write to ws conn
@@ -391,7 +410,7 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *wsConn) (rpc.ID, error)
 						Method:  "eth_subscription",
 						Params: &SubscriptionResult{
 							Subscription: sub.ID(),
-							Result:       txHash,
+							Result:       res,
 						},
 					}
 
@@ -400,83 +419,6 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *wsConn) (rpc.ID, error)
 						api.logger.Error("failed to write pending tx", "ID", sub.ID(), "error", err)
 					} else {
 						api.logger.Debug("successfully write pending tx", "ID", sub.ID(), "txhash", txHash)
-					}
-				}
-				api.filtersMu.RUnlock()
-
-				if err != nil {
-					api.unsubscribe(sub.ID())
-				}
-			case err := <-errCh:
-				if err != nil {
-					api.unsubscribe(sub.ID())
-					api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
-				}
-				return
-			case <-unsubscribed:
-				api.logger.Debug("PendingTransactions channel is closed", "ID", sub.ID())
-				return
-			}
-		}
-	}(sub.Event(), sub.Err())
-
-	return sub.ID(), nil
-}
-
-func (api *PubSubAPI) subscribePendingTxDetail(conn *wsConn) (rpc.ID, error) {
-	sub, _, err := api.events.SubscribePendingTxs()
-	if err != nil {
-		return "", fmt.Errorf("error creating block filter: %s", err.Error())
-	}
-
-	unsubscribed := make(chan struct{})
-	api.filtersMu.Lock()
-	api.filters[sub.ID()] = &wsSubscription{
-		sub:          sub,
-		conn:         conn,
-		unsubscribed: unsubscribed,
-	}
-	api.filtersMu.Unlock()
-
-	go func(txsCh <-chan coretypes.ResultEvent, errCh <-chan error) {
-		for {
-			select {
-			case ev := <-txsCh:
-				data, ok := ev.Data.(tmtypes.EventDataTx)
-				if !ok {
-					api.logger.Error(fmt.Sprintf("invalid data type %T, expected EventDataTx", ev.Data), "ID", sub.ID())
-					continue
-				}
-				txHash := common.BytesToHash(data.Tx.Hash(data.Height))
-				ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, data.Tx)
-				if err != nil {
-					api.logger.Error("failed to decode raw tx to eth tx", "hash", txHash.String(), "error", err)
-					continue
-				}
-
-				tx, err := watcher.NewTransaction(ethTx, txHash, common.Hash{}, uint64(data.Height), uint64(data.Index))
-				if err != nil {
-					api.logger.Error("failed to new transaction", "hash", txHash.String(), "error", err)
-					continue
-				}
-
-				api.filtersMu.RLock()
-				if f, found := api.filters[sub.ID()]; found {
-					// write to ws conn
-					res := &SubscriptionNotification{
-						Jsonrpc: "2.0",
-						Method:  "eth_subscription",
-						Params: &SubscriptionResult{
-							Subscription: sub.ID(),
-							Result:       tx,
-						},
-					}
-
-					err = f.conn.WriteJSON(res)
-					if err != nil {
-						api.logger.Error("failed to write pending tx detail", "ID", sub.ID(), "error", err)
-					} else {
-						api.logger.Debug("successfully write pending tx detail", "ID", sub.ID(), "txhash", txHash)
 					}
 				}
 				api.filtersMu.RUnlock()
