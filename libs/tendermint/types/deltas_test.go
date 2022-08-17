@@ -133,14 +133,16 @@ func TestDeltaPayloadAmino(t *testing.T) {
 	var testCases = []DeltaPayload{
 		{},
 		{
-			ABCIRsp:     []byte("ABCIResp"),
-			DeltasBytes: []byte("DeltasBytes"),
-			WatchBytes:  []byte("WatchBytes"),
+			ABCIRsp:        []byte("ABCIResp"),
+			DeltasBytes:    []byte("DeltasBytes"),
+			WatchBytes:     []byte("WatchBytes"),
+			WasmWatchBytes: []byte("WasmWatchBytes"),
 		},
 		{
-			ABCIRsp:     []byte{},
-			DeltasBytes: []byte{},
-			WatchBytes:  []byte{},
+			ABCIRsp:        []byte{},
+			DeltasBytes:    []byte{},
+			WatchBytes:     []byte{},
+			WasmWatchBytes: []byte{},
 		},
 	}
 	for _, testCase := range testCases {
