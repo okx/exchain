@@ -274,8 +274,6 @@ func (cs *State) finalizeCommit(height int64) {
 	// Schedule Round0 to start soon.
 	cs.scheduleRound0(&cs.RoundState)
 
-	panic("123")
-
 	// By here,
 	// * cs.Height has been increment to height+1
 	// * cs.Step is now cstypes.RoundStepNewHeight
