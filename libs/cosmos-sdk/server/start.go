@@ -29,6 +29,7 @@ import (
 
 	tmiavl "github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	bcv0 "github.com/okex/exchain/libs/tendermint/blockchain/v0"
 	tcmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	pvm "github.com/okex/exchain/libs/tendermint/privval"
@@ -65,6 +66,8 @@ const (
 	FlagCommitGapHeight  = "commit-gap-height"
 
 	FlagBlockPartSizeBytes = "block-part-size"
+
+	FlagFastSyncGap = "fastsync-gap"
 )
 
 // StartCmd runs the service passed in, either stand-alone or in-process with
@@ -329,4 +332,6 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 
 	tmiavl.CommitGapHeight = viper.GetInt64(FlagCommitGapHeight)
 	mpt.TrieCommitGap = viper.GetInt64(FlagCommitGapHeight)
+
+	bcv0.MaxIntervalForFastSync = viper.GetInt64(FlagFastSyncGap)
 }
