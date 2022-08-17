@@ -199,6 +199,11 @@ func NewState(
 	cs.doPrevote = cs.defaultDoPrevote
 	cs.setProposal = cs.defaultSetProposal
 
+	// We have no votes, so reconstruct LastCommit from SeenCommit.
+	if state.LastBlockHeight > types.GetStartBlockHeight() {
+		cs.reconstructLastCommit(state)
+	}
+
 	cs.updateToState(state)
 	if cs.prerunTx {
 		cs.blockExec.InitPrerun()
@@ -206,9 +211,6 @@ func NewState(
 
 	// Don't call scheduleRound0 yet.
 	// We do that upon Start().
-	if state.LastBlockHeight > types.GetStartBlockHeight() {
-		cs.reconstructLastCommit(state)
-	}
 	cs.BaseService = *service.NewBaseService(nil, "State", cs)
 	for _, option := range options {
 		option(cs)
