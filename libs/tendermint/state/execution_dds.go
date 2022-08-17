@@ -303,8 +303,10 @@ func (dc *DeltaContext) prepareStateDelta(height int64) *DeltaInfo {
 	// get delta from redis
 	if mrh <= height {
 		for i := 0; i < types.DeltaRetryTimes; i++ {
+			t0 := time.Now()
 			time.Sleep(time.Millisecond * 100)
 			_, deltaInfo, mrh = dc.download(height)
+			dc.logger.Error("reTry delta", "index", i, "time", time.Now().Sub(t0))
 			if deltaInfo != nil {
 				return deltaInfo
 			}
