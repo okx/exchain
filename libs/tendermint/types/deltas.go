@@ -260,7 +260,7 @@ func (payload *DeltaPayload) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) e
 }
 
 func (payload *DeltaPayload) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
-	const fieldCount = 4
+	const fieldCount = 3
 	var currentField int
 	var currentType amino.Typ3
 	var err error
