@@ -291,7 +291,6 @@ func (suite *AnteTestSuite) TestEthInvalidMempoolFees() {
 // TestCase represents a test case used in test tables.
 type TestCase struct {
 	desc     string
-	malleate func()
 	simulate bool
 	expPass  bool
 }
@@ -309,53 +308,38 @@ func (suite *AnteTestSuite) TestAnteHandlerSequences() {
 	_ = acc.SetCoins(newTestCoins())
 	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 
-	// Variable data per test case
-	var (
-		accNums []uint64
-		accSeqs []uint64
-	)
-
 	testCases := []TestCase{
 		{
 			"good ibctx with right sequence",
-			func() {
-				accNums, accSeqs = []uint64{acc.GetAccountNumber()}, []uint64{acc.GetSequence()}
-			},
 			false,
 			true,
 		},
 		{
 			"bad ibctx with wrong sequence (replay protected)",
-			func() {
-				accNums, accSeqs = []uint64{acc.GetAccountNumber()}, []uint64{acc.GetSequence() - 1}
-			},
 			false,
 			false,
 		},
 	}
-
+	txConfig := NewTxConfig()
+	packet := channeltypes.NewPacket([]byte(mock.MockPacketData), 1,
+		"transfer", "channel-0",
+		"transfer", "channel-1",
+		clienttypes.NewHeight(1, 0), 0)
+	msgs := []ibcmsg.Msg{channeltypes.NewMsgRecvPacket(packet, []byte("proof"), clienttypes.NewHeight(0, 1), addr.String())}
+	ibcTx, err := helpers2.GenTx(
+		txConfig,
+		msgs,
+		sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultIbcWei, sdk.NewIntFromBigInt(big.NewInt(0)))},
+		helpers.DefaultGenTxGas,
+		suite.ctx.ChainID(),
+		[]uint64{acc.GetAccountNumber()},
+		[]uint64{acc.GetSequence()},
+		1,
+		priv,
+	)
+	suite.Require().NoError(err)
 	for _, tc := range testCases {
-
 		suite.Run(fmt.Sprintf("Case %s", tc.desc), func() {
-			tc.malleate()
-			txConfig := NewTxConfig()
-			packet := channeltypes.NewPacket([]byte(mock.MockPacketData), 1,
-				"transfer", "channel-0",
-				"transfer", "channel-1",
-				clienttypes.NewHeight(1, 0), 0)
-			msgs := []ibcmsg.Msg{channeltypes.NewMsgRecvPacket(packet, []byte("proof"), clienttypes.NewHeight(0, 1), addr.String())}
-			ibcTx, err := helpers2.GenTx(
-				txConfig,
-				msgs,
-				sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultIbcWei, sdk.NewIntFromBigInt(big.NewInt(0)))},
-				helpers.DefaultGenTxGas,
-				suite.ctx.ChainID(),
-				accNums,
-				accSeqs,
-				1,
-				priv,
-			)
-			suite.Require().NoError(err)
 			if tc.expPass {
 				requireValidTx(suite.T(), suite.anteHandler, suite.ctx, ibcTx, false)
 			} else {
