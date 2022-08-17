@@ -182,6 +182,13 @@ func (payload *DeltaPayload) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) e
 			return err
 		}
 	}
+	// field 4
+	if len(payload.WasmWatchBytes) != 0 {
+		const pbKey = 4<<3 | 2
+		if err := amino.EncodeByteSliceWithKeyToBuffer(buf, payload.WasmWatchBytes, pbKey); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
