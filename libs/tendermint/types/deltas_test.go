@@ -202,6 +202,14 @@ func TestDeltasMessageAmino(t *testing.T) {
 			CompressType: math.MinInt,
 		},
 	}
+	utInitValue := DeltasMessage{
+		Metadata:     []byte("Metadata"),
+		MetadataHash: []byte("MetadataHash"),
+		Height:       12345,
+		CompressType: 1234,
+		From:         "from",
+	}
+
 	for _, testCase := range testCases {
 		expectBz, err := cdc.MarshalBinaryBare(testCase)
 		require.NoError(t, err)
@@ -210,5 +218,28 @@ func TestDeltasMessageAmino(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, expectBz, actulaBz)
 		require.Equal(t, len(expectBz), testCase.AminoSize(cdc))
+
+		var expectValue = utInitValue
+		err = cdc.UnmarshalBinaryBare(expectBz, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue = utInitValue
+		err = actualValue.UnmarshalFromAmino(cdc, expectBz)
+		require.NoError(t, err)
+
+		require.Equal(t, expectValue, actualValue)
+	}
+
+	{
+		bz := []byte{1<<3 | 2, 0, 2<<3 | 2, 0, 3 << 3, 0, 4 << 3, 0, 5<<3 | 2, 0}
+		var expectValue = utInitValue
+		err := cdc.UnmarshalBinaryBare(bz, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue = utInitValue
+		err = actualValue.UnmarshalFromAmino(cdc, bz)
+		require.NoError(t, err)
+
+		require.Equal(t, expectValue, actualValue)
 	}
 }

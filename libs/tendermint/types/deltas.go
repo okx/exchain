@@ -126,6 +126,79 @@ func (m *DeltasMessage) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) error 
 	return nil
 }
 
+func (m *DeltasMessage) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
+	const fieldCount = 5
+	var currentField int
+	var currentType amino.Typ3
+	var err error
+
+	for cur := 1; cur <= fieldCount; cur++ {
+		if len(data) != 0 && (currentField == 0 || currentField < cur) {
+			var nextField int
+			if nextField, currentType, err = amino.ParseProtoPosAndTypeMustOneByte(data[0]); err != nil {
+				return err
+			}
+			if nextField < currentField {
+				return fmt.Errorf("next field should greater than %d, got %d", currentField, nextField)
+			} else {
+				currentField = nextField
+			}
+		}
+
+		if len(data) == 0 || currentField != cur {
+			switch cur {
+			case 1:
+				m.Metadata = nil
+			case 2:
+				m.MetadataHash = nil
+			case 3:
+				m.Height = 0
+			case 4:
+				m.CompressType = 0
+			case 5:
+				m.From = ""
+			default:
+				return fmt.Errorf("unexpect feild num %d", cur)
+			}
+		} else {
+			pbk := data[0]
+			data = data[1:]
+			var subData []byte
+			if currentType == amino.Typ3_ByteLength {
+				if subData, err = amino.DecodeByteSliceWithoutCopy(&data); err != nil {
+					return err
+				}
+			}
+			switch pbk {
+			case 1<<3 | byte(amino.Typ3_ByteLength):
+				amino.UpdateByteSlice(&m.Metadata, subData)
+			case 2<<3 | byte(amino.Typ3_ByteLength):
+				amino.UpdateByteSlice(&m.MetadataHash, subData)
+			case 3<<3 | byte(amino.Typ3_Varint):
+				if uvint, err := amino.DecodeUvarintUpdateBytes(&data); err != nil {
+					return err
+				} else {
+					m.Height = int64(uvint)
+				}
+			case 4<<3 | byte(amino.Typ3_Varint):
+				if m.CompressType, err = amino.DecodeIntUpdateBytes(&data); err != nil {
+					return err
+				}
+			case 5<<3 | byte(amino.Typ3_ByteLength):
+				m.From = string(subData)
+			default:
+				return fmt.Errorf("unexpect pb key %d", pbk)
+			}
+		}
+	}
+
+	if len(data) != 0 {
+		return fmt.Errorf("unexpect data remain %X", data)
+	}
+
+	return nil
+}
+
 type DeltaPayload struct {
 	ABCIRsp        []byte
 	DeltasBytes    []byte
@@ -196,7 +269,7 @@ func (payload *DeltaPayload) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) e
 	return nil
 }
 
-func (payload *DeltaPayload) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
+func (payload *DeltaPayload) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 	const fieldCount = 4
 	var currentField int
 	var currentType amino.Typ3
