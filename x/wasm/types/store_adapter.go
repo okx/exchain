@@ -2,16 +2,16 @@ package types
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
 	dbm "github.com/tendermint/tm-db"
 )
 
 type StoreAdapter struct {
-	parent prefix.Store
+	parent types.KVStore
 }
 
-func NewStoreAdapter(parent prefix.Store) StoreAdapter {
+func NewStoreAdapter(parent types.KVStore) StoreAdapter {
 	return StoreAdapter{parent: parent}
 }
 

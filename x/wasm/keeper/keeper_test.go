@@ -36,8 +36,6 @@ func init() {
 
 var hackatomWasm []byte
 
-const SupportedFeatures = "iterator,staking,stargate"
-
 func TestNewKeeper(t *testing.T) {
 	_, keepers := CreateTestInput(t, false, SupportedFeatures)
 	require.NotNil(t, keepers.ContractKeeper)

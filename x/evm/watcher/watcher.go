@@ -428,7 +428,7 @@ func (w *Watcher) commitBloomData(bloomData []*evmtypes.KV) {
 	batch.Write()
 }
 
-func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
+func (w *Watcher) CreateWatchDataGenerator() func() ([]byte, error) {
 	value := w.watchData
 	value.DelayEraseKey = w.delayEraseKey
 
@@ -461,7 +461,7 @@ func (w *Watcher) UnmarshalWatchData(wdByte []byte) (interface{}, error) {
 	return wd, nil
 }
 
-func (w *Watcher) UseWatchData(watchData interface{}) {
+func (w *Watcher) ApplyWatchData(watchData interface{}) {
 	wd, ok := watchData.(WatchData)
 	if !ok {
 		panic("use watch data failed")
@@ -469,9 +469,9 @@ func (w *Watcher) UseWatchData(watchData interface{}) {
 	w.dispatchJob(func() { w.CommitWatchData(wd) })
 }
 
-func (w *Watcher) SetWatchDataFunc() {
+func (w *Watcher) SetWatchDataManager() {
 	go w.jobRoutine()
-	tmstate.SetWatchDataFunc(w.GetWatchDataFunc, w.UnmarshalWatchData, w.UseWatchData)
+	tmstate.SetEvmWatchDataManager(w)
 }
 
 func (w *Watcher) GetBloomDataPoint() *[]*evmtypes.KV {
@@ -613,7 +613,7 @@ func (w *Watcher) dispatchJob(f func()) {
 	// if jobRoutine were too slow to write data  to disk
 	// we have to wait
 	// why: something wrong happened: such as db panic(disk maybe is full)(it should be the only reason)
-	//								  UseWatchData were executed every 4 seoncds(block schedual)
+	//								  ApplyWatchData were executed every 4 seoncds(block schedual)
 	w.jobChan <- f
 }
 

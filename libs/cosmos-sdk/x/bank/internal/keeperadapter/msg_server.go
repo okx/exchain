@@ -5,19 +5,18 @@ import (
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/keeper"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/types"
-	typesadapter "github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/typesadapter"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/typesadapter"
 )
 
 type msgServer struct {
-	keeper.Keeper
+	MsgServerBankKeeper
 }
 
 // NewMsgServerImpl returns an implementation of the bank MsgServer interface
 // for the provided Keeper.
-func NewMsgServerImpl(keeper keeper.Keeper) typesadapter.MsgServer {
-	return &msgServer{Keeper: keeper}
+func NewMsgServerImpl(keeper MsgServerBankKeeper) typesadapter.MsgServer {
+	return &msgServer{MsgServerBankKeeper: keeper}
 }
 
 var _ typesadapter.MsgServer = msgServer{}

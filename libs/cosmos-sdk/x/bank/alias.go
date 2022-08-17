@@ -52,6 +52,8 @@ var (
 	NewMsgServerImpl            = keeperadapter.NewMsgServerImpl
 	RegisterQueryServer         = typesadapter.RegisterQueryServer
 	NewBankKeeperAdapter        = keeperadapter.NewBankKeeperAdapter
+	NewBankQueryServer          = keeperadapter.NewBankQueryServer
+	RegisterInterface           = typesadapter.RegisterInterface
 )
 
 type (
