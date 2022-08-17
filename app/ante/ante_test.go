@@ -2,16 +2,6 @@ package ante_test
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/client"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/simapp/helpers"
-	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
-	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
-	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
-	"github.com/okex/exchain/libs/ibc-go/testing/mock"
-	helpers2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/helpers"
 	"math/big"
 	"testing"
 	"time"
@@ -295,14 +285,7 @@ type TestCase struct {
 	expPass  bool
 }
 
-func NewTxConfig() client.TxConfig {
-	interfaceRegistry := types2.NewInterfaceRegistry()
-	marshaler := codec.NewProtoCodec(interfaceRegistry)
-	return ibc_tx.NewTxConfig(marshaler, ibc_tx.DefaultSignModes)
-}
-
 func (suite *AnteTestSuite) TestAnteHandlerSequences() {
-
 	addr, priv := newTestAddrKey()
 	acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr)
 	_ = acc.SetCoins(newTestCoins())
@@ -320,30 +303,14 @@ func (suite *AnteTestSuite) TestAnteHandlerSequences() {
 			false,
 		},
 	}
-	txConfig := NewTxConfig()
-	packet := channeltypes.NewPacket([]byte(mock.MockPacketData), 1,
-		"transfer", "channel-0",
-		"transfer", "channel-1",
-		clienttypes.NewHeight(1, 0), 0)
-	msgs := []ibcmsg.Msg{channeltypes.NewMsgRecvPacket(packet, []byte("proof"), clienttypes.NewHeight(0, 1), addr.String())}
-	ibcTx, err := helpers2.GenTx(
-		txConfig,
-		msgs,
-		sdk.CoinAdapters{sdk.NewCoinAdapter(sdk.DefaultIbcWei, sdk.NewIntFromBigInt(big.NewInt(0)))},
-		helpers.DefaultGenTxGas,
-		suite.ctx.ChainID(),
-		[]uint64{acc.GetAccountNumber()},
-		[]uint64{acc.GetSequence()},
-		1,
-		priv,
-	)
-	suite.Require().NoError(err)
+	ibcTx := mockIbcTx([]uint64{acc.GetAccountNumber()}, []uint64{acc.GetSequence()}, priv, suite.ctx.ChainID(), addr)
+	suite.Require().NotNil(ibcTx)
 	for _, tc := range testCases {
 		suite.Run(fmt.Sprintf("Case %s", tc.desc), func() {
 			if tc.expPass {
-				requireValidTx(suite.T(), suite.anteHandler, suite.ctx, ibcTx, false)
+				requireValidTx(suite.T(), suite.anteHandler, suite.ctx, *ibcTx, false)
 			} else {
-				requireInvalidTx(suite.T(), suite.anteHandler, suite.ctx, ibcTx, false)
+				requireInvalidTx(suite.T(), suite.anteHandler, suite.ctx, *ibcTx, false)
 			}
 		})
 	}
