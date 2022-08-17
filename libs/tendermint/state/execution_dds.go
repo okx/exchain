@@ -180,12 +180,14 @@ func (dc *DeltaContext) postApplyBlock(height int64, deltaInfo *DeltaInfo,
 	// delta producer
 	if dc.uploadDelta {
 		trace.GetElapsedInfo().AddInfo(trace.Delta, fmt.Sprintf("ratio<%.2f>", dc.hitRatio()))
-		if !isFastSync {
-			wdFunc := getWatchDataFunc()
-			go dc.uploadData(height, abciResponses, deltaMap, wdFunc)
-		} else {
-			dc.logger.Info("Do not upload delta in case of fast sync:", "target-height", height)
-		}
+		wdFunc := getWatchDataFunc()
+		go dc.uploadData(height, abciResponses, deltaMap, wdFunc)
+		//if !isFastSync {
+		//	wdFunc := getWatchDataFunc()
+		//	go dc.uploadData(height, abciResponses, deltaMap, wdFunc)
+		//} else {
+		//	dc.logger.Info("Do not upload delta in case of fast sync:", "target-height", height)
+		//}
 	}
 }
 
