@@ -19,12 +19,14 @@ type IndexerService struct {
 
 	idr      TxIndexer
 	eventBus *types.EventBus
+	quit     chan struct{}
 }
 
 // NewIndexerService returns a new service instance.
 func NewIndexerService(idr TxIndexer, eventBus *types.EventBus) *IndexerService {
 	is := &IndexerService{idr: idr, eventBus: eventBus}
 	is.BaseService = *service.NewBaseService(nil, "IndexerService", is)
+	is.quit = make(chan struct{})
 	return is
 }
 
@@ -50,25 +52,31 @@ func (is *IndexerService) OnStart() error {
 
 	go func() {
 		for {
-			msg := <-blockHeadersSub.Out()
-			eventDataHeader := msg.Data().(types.EventDataNewBlockHeader)
-			height := eventDataHeader.Header.Height
-			batch := NewBatch(eventDataHeader.NumTxs)
-			for i := int64(0); i < eventDataHeader.NumTxs; i++ {
-				msg2 := <-txsSub.Out()
-				txResult := msg2.Data().(types.EventDataTx).TxResult
-				if err = batch.Add(&txResult); err != nil {
-					is.Logger.Error("Can't add tx to batch",
-						"height", height,
-						"index", txResult.Index,
-						"err", err)
+			select {
+			case msg := <-blockHeadersSub.Out():
+				eventDataHeader := msg.Data().(types.EventDataNewBlockHeader)
+				height := eventDataHeader.Header.Height
+				batch := NewBatch(eventDataHeader.NumTxs)
+				for i := int64(0); i < eventDataHeader.NumTxs; i++ {
+					msg2 := <-txsSub.Out()
+					txResult := msg2.Data().(types.EventDataTx).TxResult
+					if err = batch.Add(&txResult); err != nil {
+						is.Logger.Error("Can't add tx to batch",
+							"height", height,
+							"index", txResult.Index,
+							"err", err)
+					}
 				}
+				if err = is.idr.AddBatch(batch); err != nil {
+					is.Logger.Error("Failed to index block", "height", height, "err", err)
+				} else {
+					is.Logger.Info("Indexed block", "height", height)
+				}
+			case <-blockHeadersSub.Cancelled():
+				close(is.quit)
+				return
 			}
-			if err = is.idr.AddBatch(batch); err != nil {
-				is.Logger.Error("Failed to index block", "height", height, "err", err)
-			} else {
-				is.Logger.Info("Indexed block", "height", height)
-			}
+
 		}
 	}()
 	return nil
@@ -79,4 +87,8 @@ func (is *IndexerService) OnStop() {
 	if is.eventBus.IsRunning() {
 		_ = is.eventBus.UnsubscribeAll(context.Background(), subscriber)
 	}
+}
+
+func (is *IndexerService) Wait() {
+	<-is.quit
 }

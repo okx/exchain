@@ -7,6 +7,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/libs/tendermint/libs/automation"
+
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 
 	"github.com/pkg/errors"
@@ -30,9 +33,10 @@ const (
 	DataChannel        = byte(0x21)
 	VoteChannel        = byte(0x22)
 	VoteSetBitsChannel = byte(0x23)
+	ViewChangeChannel  = byte(0x24)
 
 	maxPartSize = 1048576 // 1MB; NOTE/TODO: keep in sync with types.PartSet sizes.
-	maxMsgSize  = maxPartSize + types.MaxDeltasSizeBytes
+	maxMsgSize  = maxPartSize
 
 	blocksToContributeToBecomeGoodPeer = 10000
 	votesToContributeToBecomeGoodPeer  = 10000
@@ -66,6 +70,8 @@ type Reactor struct {
 	metrics *Metrics
 
 	rs *cstypes.RoundState
+
+	hasViewChanged int64
 }
 
 type ReactorOption func(*Reactor)
@@ -191,12 +197,11 @@ func (conR *Reactor) SwitchToFastSync() (sm.State, error) {
 	conR.mtx.Unlock()
 	conR.metrics.FastSyncing.Set(1)
 
-	conR.conS.blockExec.SetIsFastSyncing(true)
-
 	if !conR.conS.IsRunning() {
 		return conR.conS.GetState(), errors.New("state is not running")
 	}
 	err := conR.conS.Stop()
+
 	if err != nil {
 		panic(fmt.Sprintf(`Failed to stop consensus state: %v
 
@@ -209,7 +214,12 @@ conR:
 
 	conR.stopSwitchToFastSyncTimer()
 
-	return conR.conS.GetState(), nil
+	conR.conS.Wait()
+
+	cState := conR.conS.GetState()
+	conR.conS.blockExec.SetIsFastSyncing(true)
+
+	return cState, nil
 }
 
 // Attempt to schedule a timer for checking whether consensus machine is hanged.
@@ -263,6 +273,12 @@ func (conR *Reactor) GetChannels() []*p2p.ChannelDescriptor {
 			RecvBufferCapacity:  1024,
 			RecvMessageCapacity: maxMsgSize,
 		},
+		{
+			ID:                  ViewChangeChannel,
+			Priority:            5,
+			SendQueueCapacity:   100,
+			RecvMessageCapacity: maxMsgSize,
+		},
 	}
 }
 
@@ -287,6 +303,7 @@ func (conR *Reactor) AddPeer(peer p2p.Peer) {
 	// Begin routines for this peer.
 	go conR.gossipDataRoutine(peer, peerState)
 	go conR.gossipVotesRoutine(peer, peerState)
+	go conR.gossipVCRoutine(peer, peerState)
 	go conR.queryMaj23Routine(peer, peerState)
 
 	// Send our state to peer.
@@ -347,6 +364,44 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	}
 
 	switch chID {
+	case ViewChangeChannel:
+		if !GetActiveVC() {
+			return
+		}
+		switch msg := msg.(type) {
+		case *ViewChangeMessage:
+			// verify the signature of vcMsg
+			_, val := conR.conS.Validators.GetByAddress(msg.CurrentProposer)
+			if err := msg.Verify(val.PubKey); err != nil {
+				conR.Logger.Error("reactor Verify Signature of ViewChangeMessage", "err", err)
+				return
+			}
+			conR.conS.peerMsgQueue <- msgInfo{msg, ""}
+		case *ProposeRequestMessage:
+			conR.conS.stateMtx.Lock()
+			defer conR.conS.stateMtx.Unlock()
+			height := conR.conS.Height
+			// this peer has received a prMsg before
+			// or this peer is not proposer
+			// or only then proposer ApplyBlock(height) has finished, do not handle prMsg
+			if msg.Height <= conR.hasViewChanged ||
+				!bytes.Equal(conR.conS.privValidatorPubKey.Address(), msg.CurrentProposer) ||
+				msg.Height <= height {
+				return
+			}
+
+			// verify the signature of prMsg
+			_, val := conR.conS.Validators.GetByAddress(msg.NewProposer)
+			if val == nil {
+				return
+			}
+			if err := msg.Verify(val.PubKey); err != nil {
+				conR.Logger.Error("reactor Verify Signature of ProposeRequestMessage", "err", err)
+				return
+			}
+			conR.hasViewChanged = msg.Height
+			conR.conS.vcMsg = conR.broadcastViewChangeMessage(msg)
+		}
 	case StateChannel:
 		switch msg := msg.(type) {
 		case *NewRoundStepMessage:
@@ -359,9 +414,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			ps.ApplyHasVoteMessage(msg)
 		case *VoteSetMaj23Message:
 			cs := conR.conS
-			cs.mtx.RLock()
+			cs.stateMtx.RLock()
 			height, votes := cs.Height, cs.Votes
-			cs.mtx.RUnlock()
+			cs.stateMtx.RUnlock()
 			if height != msg.Height {
 				return
 			}
@@ -420,9 +475,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		switch msg := msg.(type) {
 		case *VoteMessage:
 			cs := conR.conS
-			cs.mtx.RLock()
+			cs.stateMtx.RLock()
 			height, valSize, lastCommitSize := cs.Height, cs.Validators.Size(), cs.LastCommit.Size()
-			cs.mtx.RUnlock()
+			cs.stateMtx.RUnlock()
 			ps.EnsureVoteBitArrays(height, valSize)
 			ps.EnsureVoteBitArrays(height-1, lastCommitSize)
 			ps.SetHasVote(msg.Vote)
@@ -442,9 +497,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		switch msg := msg.(type) {
 		case *VoteSetBitsMessage:
 			cs := conR.conS
-			cs.mtx.RLock()
+			cs.stateMtx.RLock()
 			height, votes := cs.Height, cs.Votes
-			cs.mtx.RUnlock()
+			cs.stateMtx.RUnlock()
 
 			if height == msg.Height {
 				var ourVotes *bits.BitArray
@@ -494,12 +549,6 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		func(data tmevents.EventData) {
 			conR.broadcastNewRoundStepMessage(data.(*cstypes.RoundState))
 
-			height := data.(*cstypes.RoundState).Height
-			if height != conR.conHeight {
-				conR.Logger.Info("Update conHeight.", "new", height, "old", conR.conHeight)
-				conR.conHeight = height
-				conR.resetSwitchToFastSyncTimer()
-			}
 		})
 
 	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventValidBlock,
@@ -521,11 +570,31 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		func(data tmevents.EventData) {
 			conR.broadcastHasBlockPartMessage(data.(*HasBlockPartMessage))
 		})
+	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventProposeRequest,
+		func(data tmevents.EventData) {
+			conR.broadcastProposeRequestMessage(data.(*ProposeRequestMessage))
+		})
 }
 
 func (conR *Reactor) unsubscribeFromBroadcastEvents() {
 	const subscriber = "consensus-reactor"
 	conR.conS.evsw.RemoveListener(subscriber)
+}
+
+func (conR *Reactor) broadcastProposeRequestMessage(prMsg *ProposeRequestMessage) {
+	conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(prMsg))
+}
+
+func (conR *Reactor) broadcastViewChangeMessage(prMsg *ProposeRequestMessage) *ViewChangeMessage {
+	vcMsg := ViewChangeMessage{Height: prMsg.Height, CurrentProposer: prMsg.CurrentProposer, NewProposer: prMsg.NewProposer}
+	signature, err := conR.conS.privValidator.SignBytes(vcMsg.SignBytes())
+	if err != nil {
+		conR.Logger.Error("broadcastViewChangeMessage", "err", err)
+		return nil
+	}
+	vcMsg.Signature = signature
+	conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
+	return &vcMsg
 }
 
 func (conR *Reactor) broadcastNewRoundStepMessage(rs *cstypes.RoundState) {
@@ -868,6 +937,53 @@ func (conR *Reactor) gossipVotesForHeight(
 	return false
 }
 
+func (conR *Reactor) gossipVCRoutine(peer p2p.Peer, ps *PeerState) {
+	logger := conR.Logger.With("peer", peer)
+
+OUTER_LOOP:
+	for {
+		time.Sleep(conR.conS.config.PeerGossipSleepDuration * 2)
+
+		// Manage disconnects from self or peer.
+		if !peer.IsRunning() || !conR.IsRunning() {
+			logger.Info("Stopping gossipDataRoutine for peer")
+			return
+		}
+
+		if !GetActiveVC() {
+			time.Sleep(time.Second)
+			continue OUTER_LOOP
+		}
+
+		rs := conR.getRoundState()
+		prs := ps.GetRoundState()
+		vcMsg := conR.conS.vcMsg
+
+		if vcMsg == nil || rs.Height > vcMsg.Height {
+			continue OUTER_LOOP
+		}
+		// only in round0 send vcMsg
+		if rs.Round != 0 || prs.Round != 0 {
+			continue OUTER_LOOP
+		}
+		// send vcMsg
+		if rs.Height == prs.Height || rs.Height == prs.Height+1 {
+			peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
+			//conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
+		}
+
+		if rs.Height == vcMsg.Height {
+			// send proposal
+			if rs.Proposal != nil {
+				msg := &ProposalMessage{Proposal: rs.Proposal}
+				peer.Send(DataChannel, cdc.MustMarshalBinaryBare(msg))
+			}
+		}
+
+		continue OUTER_LOOP
+	}
+}
+
 // NOTE: `queryMaj23Routine` has a simple crude design since it only comes
 // into play for liveness when there's a signature DDoS attack happening.
 func (conR *Reactor) queryMaj23Routine(peer p2p.Peer, ps *PeerState) {
@@ -959,6 +1075,12 @@ OUTER_LOOP:
 }
 
 func (conR *Reactor) peerStatsRoutine() {
+	conR.resetSwitchToFastSyncTimer()
+
+	defer func() {
+		conR.stopSwitchToFastSyncTimer()
+	}()
+
 	for {
 		if !conR.IsRunning() {
 			conR.Logger.Info("Stopping peerStatsRoutine")
@@ -993,6 +1115,7 @@ func (conR *Reactor) peerStatsRoutine() {
 			bcR, ok := conR.Switch.Reactor("BLOCKCHAIN").(blockchainReactor)
 			if ok {
 				bcR.CheckFastSyncCondition()
+				conR.resetSwitchToFastSyncTimer()
 			}
 
 		case <-conR.conS.Quit():
@@ -1382,12 +1505,7 @@ func (ps *PeerState) SetHasVote(vote *types.Vote) {
 }
 
 func (ps *PeerState) setHasVote(height int64, round int, voteType types.SignedMsgType, index int) {
-	logger := ps.logger.With(
-		"peerH/R",
-		fmt.Sprintf("%d/%d", ps.PRS.Height, ps.PRS.Round),
-		"H/R",
-		fmt.Sprintf("%d/%d", height, round))
-	logger.Debug("setHasVote", "type", voteType, "index", index)
+	ps.logger.Debug("setHasVote", "peerH", ps.PRS.Height, "peerR", ps.PRS.Round, "H", height, "R", round, "type", voteType, "index", index)
 
 	// NOTE: some may be nil BitArrays -> no side effects.
 	psVotes := ps.getVoteBitArray(height, round, voteType)
@@ -1556,6 +1674,8 @@ func RegisterMessages(cdc *amino.Codec) {
 	cdc.RegisterConcrete(&VoteSetMaj23Message{}, "tendermint/VoteSetMaj23", nil)
 	cdc.RegisterConcrete(&VoteSetBitsMessage{}, "tendermint/VoteSetBits", nil)
 	cdc.RegisterConcrete(&HasBlockPartMessage{}, "tendermint/HasBlockPart", nil)
+	cdc.RegisterConcrete(&ProposeRequestMessage{}, "tendermint/ProposeRequestMessage", nil)
+	cdc.RegisterConcrete(&ViewChangeMessage{}, "tendermint/ChangeValidator", nil)
 	cdc.EnableBufferMarshaler(NewRoundStepMessage{})
 	cdc.EnableBufferMarshaler(&NewValidBlockMessage{})
 	cdc.EnableBufferMarshaler(ProposalMessage{})
@@ -1688,7 +1808,7 @@ func (m NewRoundStepMessage) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) e
 //-------------------------------------
 
 // NewValidBlockMessage is sent when a validator observes a valid block B in some round r,
-//i.e., there is a Proposal for block B and 2/3+ prevotes for the block B in the round r.
+// i.e., there is a Proposal for block B and 2/3+ prevotes for the block B in the round r.
 // In case the block is also committed, then IsCommit flag is set to true.
 type NewValidBlockMessage struct {
 	Height           int64
@@ -1963,7 +2083,6 @@ type BlockPartMessage struct {
 	Height int64
 	Round  int
 	Part   *types.Part
-	Deltas *types.Deltas
 }
 
 // ValidateBasic performs basic validation.
@@ -2356,6 +2475,74 @@ func (m *VoteSetBitsMessage) ValidateBasic() error {
 // String returns a string representation.
 func (m *VoteSetBitsMessage) String() string {
 	return fmt.Sprintf("[VSB %v/%02d/%v %v %v]", m.Height, m.Round, m.Type, m.BlockID, m.Votes)
+}
+
+// ProposeRequestMessage from other peer for request the latest height of consensus block
+type ProposeRequestMessage struct {
+	Height          int64
+	CurrentProposer types.Address
+	NewProposer     types.Address
+	Signature       []byte
+}
+
+func (m *ProposeRequestMessage) ValidateBasic() error {
+	if m.Height < 0 {
+		return errors.New("negative Height")
+	}
+	return nil
+}
+
+func (m *ProposeRequestMessage) SignBytes() []byte {
+	return cdc.MustMarshalBinaryBare(ProposeRequestMessage{Height: m.Height, CurrentProposer: m.CurrentProposer, NewProposer: m.NewProposer})
+}
+
+func (m *ProposeRequestMessage) Verify(pubKey crypto.PubKey) error {
+	if !bytes.Equal(pubKey.Address(), m.NewProposer) {
+		return errors.New("invalid validator address")
+	}
+
+	if !pubKey.VerifyBytes(m.SignBytes(), m.Signature) {
+		return errors.New("invalid signature")
+	}
+	return nil
+}
+
+// ViewChangeMessage is sent for remind peer to do vc
+type ViewChangeMessage struct {
+	Height          int64
+	CurrentProposer types.Address
+	NewProposer     types.Address
+	Signature       []byte
+}
+
+func (m *ViewChangeMessage) ValidateBasic() error {
+	return nil
+}
+
+func (m *ViewChangeMessage) Validate(height int64, proposer types.Address) bool {
+	if m.Height != height {
+		return false
+	}
+	if !bytes.Equal(proposer, m.CurrentProposer) {
+		return false
+	}
+
+	return true
+}
+
+func (m *ViewChangeMessage) SignBytes() []byte {
+	return cdc.MustMarshalBinaryBare(ViewChangeMessage{Height: m.Height, CurrentProposer: m.CurrentProposer, NewProposer: m.NewProposer})
+}
+
+func (m *ViewChangeMessage) Verify(pubKey crypto.PubKey) error {
+	if !bytes.Equal(pubKey.Address(), m.CurrentProposer) {
+		return errors.New("invalid validator address")
+	}
+
+	if !pubKey.VerifyBytes(m.SignBytes(), m.Signature) {
+		return errors.New("invalid signature")
+	}
+	return nil
 }
 
 func (m *VoteSetBitsMessage) AminoSize(cdc *amino.Codec) int {

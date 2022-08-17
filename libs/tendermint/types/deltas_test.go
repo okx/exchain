@@ -13,9 +13,10 @@ import (
 func TestDelta(t *testing.T) {
 	d := &Deltas{
 		Payload: DeltaPayload{
-			[]byte("abci"),
-			[]byte("detal"),
-			[]byte("watch"),
+			ABCIRsp:        []byte("abci"),
+			DeltasBytes:    []byte("detal"),
+			WatchBytes:     []byte("watch"),
+			WasmWatchBytes: []byte("wasm watch"),
 		},
 		Height:       1,
 		CompressType: 2,
@@ -28,9 +29,10 @@ func TestDelta(t *testing.T) {
 	err = unmarshaled.Unmarshal(marshaled)
 	require.NoError(t, err)
 
-	assert.True(t, bytes.Compare(unmarshaled.ABCIRsp(), d.ABCIRsp()) == 0)
-	assert.True(t, bytes.Compare(unmarshaled.DeltasBytes(), d.DeltasBytes()) == 0)
-	assert.True(t, bytes.Compare(unmarshaled.WatchBytes(), d.WatchBytes()) == 0)
+	assert.True(t, bytes.Equal(unmarshaled.ABCIRsp(), d.ABCIRsp()))
+	assert.True(t, bytes.Equal(unmarshaled.DeltasBytes(), d.DeltasBytes()))
+	assert.True(t, bytes.Equal(unmarshaled.WatchBytes(), d.WatchBytes()))
+	assert.True(t, bytes.Equal(unmarshaled.WasmWatchBytes(), d.WasmWatchBytes()))
 	assert.True(t, unmarshaled.Height == d.Height)
 	assert.True(t, unmarshaled.CompressType == d.CompressType)
 }

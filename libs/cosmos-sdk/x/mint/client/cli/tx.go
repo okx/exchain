@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -17,7 +18,7 @@ import (
 )
 
 // GetCmdManageTreasuresProposal implements a command handler for submitting a manage treasures proposal transaction
-func GetCmdManageTreasuresProposal(cdc *codec.Codec) *cobra.Command {
+func GetCmdManageTreasuresProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	return &cobra.Command{
 		Use:   "treasures [proposal-file]",
 		Args:  cobra.ExactArgs(1),
@@ -57,6 +58,7 @@ Where proposal.json contains:
 `, version.ClientName, sdk.DefaultBondDenom,
 			)),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cdc := cdcP.GetCdc()
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)

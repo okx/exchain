@@ -9,15 +9,20 @@ import (
 func (k *Keeper) GetParams(ctx sdk.Context) (params types.Params) {
 	if ctx.UseParamCache() {
 		if types.GetEvmParamsCache().IsNeedParamsUpdate() {
-			k.paramSpace.GetParamSet(ctx, &params)
-			types.GetEvmParamsCache().UpdateParams(params)
+			params = k.getParams(ctx)
+			types.GetEvmParamsCache().UpdateParams(params, ctx.IsCheckTx())
 		} else {
 			params = types.GetEvmParamsCache().GetParams()
 		}
 	} else {
-		k.paramSpace.GetParamSet(ctx, &params)
+		params = k.getParams(ctx)
 	}
 
+	return
+}
+
+func (k *Keeper) getParams(ctx sdk.Context) (params types.Params) {
+	k.paramSpace.GetParamSet(ctx, &params)
 	return
 }
 

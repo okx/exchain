@@ -403,6 +403,18 @@ func (p *peer) updateSendBytesTotalMetrics(chID byte, msgBytesLen int) {
 	}
 }
 
+func (p *peer) updateReceiveBytesTotalMetrics(chID byte, msgBytesLen int) {
+	if counter, ok := p.chMetrics.PeerReceiveBytesTotal[chID]; ok {
+		counter.Add(float64(msgBytesLen))
+	} else {
+		labels := []string{
+			"peer_id", string(p.ID()),
+			"chID", getChIdStr(chID),
+		}
+		p.metrics.PeerReceiveBytesTotal.With(labels...).Add(float64(msgBytesLen))
+	}
+}
+
 //------------------------------------------------------------------
 // helper funcs
 
@@ -422,11 +434,7 @@ func createMConnection(
 			// which does onPeerError.
 			panic(fmt.Sprintf("Unknown channel %X", chID))
 		}
-		labels := []string{
-			"peer_id", string(p.ID()),
-			"chID", getChIdStr(chID),
-		}
-		p.metrics.PeerReceiveBytesTotal.With(labels...).Add(float64(len(msgBytes)))
+		p.updateReceiveBytesTotalMetrics(chID, len(msgBytes))
 		reactor.Receive(chID, p, msgBytes)
 	}
 

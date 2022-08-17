@@ -3,6 +3,7 @@ package errors
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -73,7 +74,6 @@ var (
 	// invalid data.
 	ErrInvalidRequest = Register(RootCodespace, 18, "invalid request")
 
-
 	// ErrTxInMempoolCache defines an ABCI typed error where a tx already exists
 	// in the mempool.
 	ErrTxInMempoolCache = Register(RootCodespace, 19, "tx already in mempool")
@@ -87,21 +87,19 @@ var (
 	// ErrPanic is only set when we recover from a panic, so we know to
 	// redact potentially sensitive system info
 	ErrPanic = Register(UndefinedCodespace, 111222, "panic")
-	
-	
+
 	ErrKeyNotFound = Register(RootCodespace, 3000, "key not found")
-	ErrLogic = Register(RootCodespace, 35, "internal logic error")
+	ErrLogic       = Register(RootCodespace, 35, "internal logic error")
 	// ErrInvalidHeight defines an error for an invalid height
 	ErrInvalidHeight = Register(RootCodespace, 26, "invalid height")
-	ErrPackAny = Register(RootCodespace, 33, "failed packing protobuf message to Any")
-	ErrUnpackAny = Register(RootCodespace, 34, "failed unpacking protobuf message from Any")
-	ErrInvalidType = Register(RootCodespace, 29, "invalid type")
+	ErrPackAny       = Register(RootCodespace, 33, "failed packing protobuf message to Any")
+	ErrUnpackAny     = Register(RootCodespace, 34, "failed unpacking protobuf message from Any")
+	ErrInvalidType   = Register(RootCodespace, 29, "invalid type")
 	// ErrInvalidVersion defines a general error for an invalid version
 	ErrInvalidVersion = Register(RootCodespace, 27, "invalid version")
 
 	// ErrInvalidChainID defines an error when the chain-id is invalid.
 	ErrInvalidChainID = Register(RootCodespace, 28, "invalid chain-id")
-
 )
 
 // Register returns an error instance that should be used as the base for
@@ -256,6 +254,17 @@ func Wrap(err error, description string) error {
 	}
 }
 
+func WrapNoStack(err error, description string) error {
+	if err == nil {
+		return nil
+	}
+
+	return &wrappedError{
+		parent: err,
+		msg:    description,
+	}
+}
+
 // Wrapf extends given error with an additional information.
 //
 // This function works like Wrap function with additional functionality of
@@ -273,7 +282,7 @@ type wrappedError struct {
 }
 
 func (e *wrappedError) Error() string {
-	return fmt.Sprintf("%s: %s", e.parent.Error(), e.msg)
+	return strings.Join([]string{e.parent.Error(), e.msg}, ": ")
 }
 
 func (e *wrappedError) Cause() error {
@@ -331,3 +340,5 @@ type causer interface {
 type unpacker interface {
 	Unpack() []error
 }
+
+func (e Error) Wrap(desc string) error { return Wrap(e, desc) }

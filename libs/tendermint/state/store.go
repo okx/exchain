@@ -147,49 +147,72 @@ func (arz ABCIResponses) AminoSize(cdc *amino.Codec) int {
 
 func (arz ABCIResponses) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
-	fieldKeysType := [3]byte{1<<3 | 2, 2<<3 | 2, 3<<3 | 2}
-	for pos := 1; pos <= 3; pos++ {
-		switch pos {
-		case 1:
-			for i := 0; i < len(arz.DeliverTxs); i++ {
-				data, err := arz.DeliverTxs[i].MarshalToAmino(cdc)
-				if err != nil {
-					return nil, err
-				}
-				err = amino.EncodeByteSliceWithKeyToBuffer(&buf, data, fieldKeysType[pos-1])
-				if err != nil {
-					return nil, err
-				}
-			}
-		case 2:
-			if arz.EndBlock == nil {
-				break
-			}
-			data, err := arz.EndBlock.MarshalToAmino(cdc)
-			if err != nil {
-				return nil, err
-			}
-			err = amino.EncodeByteSliceWithKeyToBuffer(&buf, data, fieldKeysType[pos-1])
-			if err != nil {
-				return nil, err
-			}
-		case 3:
-			if arz.BeginBlock == nil {
-				break
-			}
-			data, err := arz.BeginBlock.MarshalToAmino(cdc)
-			if err != nil {
-				return nil, err
-			}
-			err = amino.EncodeByteSliceWithKeyToBuffer(&buf, data, fieldKeysType[pos-1])
-			if err != nil {
-				return nil, err
-			}
-		default:
-			panic("unreachable")
-		}
+	buf.Grow(arz.AminoSize(cdc))
+	err := arz.MarshalAminoTo(cdc, &buf)
+	if err != nil {
+		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+func (arz ABCIResponses) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
+	var err error
+	// field 1
+	for i := 0; i < len(arz.DeliverTxs); i++ {
+		const pbKey = 1<<3 | 2
+		buf.WriteByte(pbKey)
+		txSize := arz.DeliverTxs[i].AminoSize(cdc)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(txSize))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = arz.DeliverTxs[i].MarshalAminoTo(cdc, buf)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != txSize {
+			return amino.NewSizerError(arz.DeliverTxs[i], buf.Len()-lenBeforeData, txSize)
+		}
+	}
+	// field 2
+	if arz.EndBlock != nil {
+		const pbKey = 2<<3 | 2
+		buf.WriteByte(pbKey)
+		endBlockSize := arz.EndBlock.AminoSize(cdc)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(endBlockSize))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = arz.EndBlock.MarshalAminoTo(cdc, buf)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != endBlockSize {
+			return amino.NewSizerError(arz.EndBlock, buf.Len()-lenBeforeData, endBlockSize)
+		}
+	}
+	// field 3
+	if arz.BeginBlock != nil {
+		const pbKey = 3<<3 | 2
+		buf.WriteByte(pbKey)
+		beginBlockSize := arz.BeginBlock.AminoSize(cdc)
+		err = amino.EncodeUvarintToBuffer(buf, uint64(beginBlockSize))
+		if err != nil {
+			return err
+		}
+		lenBeforeData := buf.Len()
+		err = arz.BeginBlock.MarshalAminoTo(cdc, buf)
+		if err != nil {
+			return err
+		}
+		if buf.Len()-lenBeforeData != beginBlockSize {
+			return amino.NewSizerError(arz.BeginBlock, buf.Len()-lenBeforeData, beginBlockSize)
+		}
+	}
+
+	return nil
 }
 
 // UnmarshalFromAmino unmarshal data from amino bytes.

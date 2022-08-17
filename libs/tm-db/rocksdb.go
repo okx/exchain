@@ -10,7 +10,7 @@ import (
 	"strconv"
 
 	"github.com/spf13/viper"
-	"github.com/tecbot/gorocksdb"
+	"github.com/cosmos/gorocksdb"
 )
 
 func init() {

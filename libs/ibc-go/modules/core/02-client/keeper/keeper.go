@@ -394,3 +394,8 @@ func (k Keeper) GetUpgradedClient(ctx sdk.Context, planHeight int64) ([]byte, bo
 func (k Keeper) GetUpgradedConsensusState(ctx sdk.Context, planHeight int64) ([]byte, bool) {
 	return k.upgradeKeeper.GetUpgradedConsensusState(ctx, planHeight)
 }
+
+// SetUpgradedConsensusState executes the upgrade keeper SetUpgradedConsensusState function.
+func (k Keeper) SetUpgradedConsensusState(ctx sdk.Context, planHeight int64, bz []byte) error {
+	return k.upgradeKeeper.SetUpgradedConsensusState(ctx, planHeight, bz)
+}

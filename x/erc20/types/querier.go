@@ -7,3 +7,15 @@ type ContractByDenomRequest struct {
 type DenomByContractRequest struct {
 	Contract string `json:"contract,omitempty"`
 }
+
+type ContractTemplate struct {
+	Proxy     string `json:"proxy"`
+	Implement string `json:"implement"`
+}
+
+type QueryTokenMappingResponse struct {
+	Denom     string `json:"denom"`
+	Contract  string `json:"contract"`
+	Path      string `json:"path,omitempty"`
+	BaseDenom string `json:"base_denom,omitempty"`
+}

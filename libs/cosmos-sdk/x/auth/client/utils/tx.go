@@ -360,26 +360,25 @@ func PrintUnsignedStdTx(txBldr authtypes.TxBuilder, cliCtx context.CLIContext, m
 
 	var json []byte
 	pbTxMsgs, isPbTxMsg := convertIfPbTx(msgs)
-	if !cliCtx.SkipConfirm {
-		if isPbTxMsg {
-			txConfig := NewPbTxConfig(cliCtx.InterfaceRegistry)
-			tx, err := buildUnsignedPbTx(txBldr, txConfig, pbTxMsgs...)
-			if err != nil {
-				return err
-			}
-			json, err = txConfig.TxJSONEncoder()(tx.GetTx())
-			if err != nil {
-				return err
-			}
+
+	if isPbTxMsg {
+		txConfig := NewPbTxConfig(cliCtx.InterfaceRegistry)
+		tx, err := buildUnsignedPbTx(txBldr, txConfig, pbTxMsgs...)
+		if err != nil {
+			return err
+		}
+		json, err = txConfig.TxJSONEncoder()(tx.GetTx())
+		if err != nil {
+			return err
+		}
+	} else {
+		if viper.GetBool(flags.FlagIndentResponse) {
+			json, err = cliCtx.Codec.MarshalJSONIndent(stdTx, "", "  ")
 		} else {
-			if viper.GetBool(flags.FlagIndentResponse) {
-				json, err = cliCtx.Codec.MarshalJSONIndent(stdTx, "", "  ")
-			} else {
-				json, err = cliCtx.Codec.MarshalJSON(stdTx)
-			}
-			if err != nil {
-				return err
-			}
+			json, err = cliCtx.Codec.MarshalJSON(stdTx)
+		}
+		if err != nil {
+			return err
 		}
 	}
 

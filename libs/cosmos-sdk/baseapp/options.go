@@ -171,6 +171,13 @@ func (app *BaseApp) SetParallelTxHandlers(feeCollectt sdk.UpdateFeeCollectorAccH
 	app.logFix = fixLog
 }
 
+func (app *BaseApp) SetEvmWatcherCollector(collector sdk.EvmWatcherCollector) {
+	if app.sealed {
+		panic("SetEvmWatcherCollector() on sealed BaseApp")
+	}
+	app.watcherCollector = collector
+}
+
 func (app *BaseApp) AddCustomizeModuleOnStopLogic(cs sdk.CustomizeOnStop) {
 	if app.sealed {
 		panic("AddCustomizeModuleOnStopLogic() on sealed BaseApp")
@@ -192,14 +199,14 @@ func (app *BaseApp) SetPreDeliverTxHandler(handler sdk.PreDeliverTxHandler) {
 	app.preDeliverTxHandler = handler
 }
 
-func (app *BaseApp) SetPartialConcurrentHandlers(etf sdk.GetTxFeeAndFromHandler){
+func (app *BaseApp) SetPartialConcurrentHandlers(etf sdk.GetTxFeeAndFromHandler) {
 	if app.sealed {
 		panic("SetPartialConcurrentHandlers() on sealed BaseApp")
 	}
 	app.getTxFeeAndFromHandler = etf
 }
 
-func (app *BaseApp) SetGetTxFeeHandler(handler sdk.GetTxFeeHandler){
+func (app *BaseApp) SetGetTxFeeHandler(handler sdk.GetTxFeeHandler) {
 	if app.sealed {
 		panic("SetGetTxFeeHandler() on sealed BaseApp")
 	}

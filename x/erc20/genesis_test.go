@@ -19,10 +19,10 @@ func (suite *Erc20TestSuite) TestInitGenesis() {
 			false,
 		},
 		{
-			"Wrong denom in external token mapping",
+			"Wrong denom in token mapping",
 			func() {},
 			types.GenesisState{
-				ExternalContracts: []types.TokenMapping{
+				TokenMappings: []types.TokenMapping{
 					{
 						Denom:    "aaa/6B5A664BF0AF4F71B2F0BAA33141E2F1321242FBD5D19762F541EC971ACB0865",
 						Contract: "0x0000000000000000000000000000000000000000",
@@ -32,10 +32,10 @@ func (suite *Erc20TestSuite) TestInitGenesis() {
 			true,
 		},
 		{
-			"Wrong denom in auto token mapping",
+			"Wrong denom in token mapping",
 			func() {},
 			types.GenesisState{
-				AutoContracts: []types.TokenMapping{
+				TokenMappings: []types.TokenMapping{
 					{
 						Denom:    "aaa/6B5A664BF0AF4F71B2F0BAA33141E2F1321242FBD5D19762F541EC971ACB0865",
 						Contract: "0x0000000000000000000000000000000000000000",
@@ -45,10 +45,10 @@ func (suite *Erc20TestSuite) TestInitGenesis() {
 			true,
 		},
 		{
-			"Wrong contract in external token mapping",
+			"Wrong contract in token mapping",
 			func() {},
 			types.GenesisState{
-				ExternalContracts: []types.TokenMapping{
+				TokenMappings: []types.TokenMapping{
 					{
 						Denom:    "ibc/6B5A664BF0AF4F71B2F0BAA33141E2F1321242FBD5D19762F541EC971ACB0865",
 						Contract: "0x00000000000000000000000000000000000000",
@@ -58,10 +58,10 @@ func (suite *Erc20TestSuite) TestInitGenesis() {
 			true,
 		},
 		{
-			"Wrong contract in auto token mapping",
+			"Wrong contract in token mapping",
 			func() {},
 			types.GenesisState{
-				AutoContracts: []types.TokenMapping{
+				TokenMappings: []types.TokenMapping{
 					{
 						Denom:    "ibc/6B5A664BF0AF4F71B2F0BAA33141E2F1321242FBD5D19762F541EC971ACB0865",
 						Contract: "0x00000000000000000000000000000000000000",
@@ -75,7 +75,7 @@ func (suite *Erc20TestSuite) TestInitGenesis() {
 			func() {},
 			types.GenesisState{
 				Params: types.DefaultParams(),
-				ExternalContracts: []types.TokenMapping{
+				TokenMappings: []types.TokenMapping{
 					{
 						Denom:    "ibc/6B5A664BF0AF4F71B2F0BAA33141E2F1321242FBD5D19762F541EC971ACB0865",
 						Contract: "0x0000000000000000000000000000000000000000",

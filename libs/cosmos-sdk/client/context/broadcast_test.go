@@ -37,6 +37,10 @@ func (c MockClient) BlockchainInfo(minHeight, maxHeight int64) (*ctypes.ResultBl
 	}, nil
 }
 
+func (c MockClient) LatestBlockNumber() (int64, error) {
+	return 0, nil
+}
+
 func CreateContextWithErrorAndMode(err error, mode string) CLIContext {
 	return CLIContext{
 		Client:        MockClient{err: err},

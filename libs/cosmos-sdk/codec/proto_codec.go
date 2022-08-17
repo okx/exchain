@@ -9,7 +9,6 @@ import (
 
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/gogo/protobuf/proto"
-
 )
 
 // ProtoCodecMarshaler defines an interface for codecs that utilize Protobuf for both
@@ -31,6 +30,49 @@ var _ ProtoCodecMarshaler = &ProtoCodec{}
 // NewProtoCodec returns a reference to a new ProtoCodec
 func NewProtoCodec(interfaceRegistry types.InterfaceRegistry) *ProtoCodec {
 	return &ProtoCodec{interfaceRegistry: interfaceRegistry}
+}
+
+// Marshal implements BinaryMarshaler.Marshal method.
+// NOTE: this function must be used with a concrete type which
+// implements proto.Message. For interface please use the codec.MarshalInterface
+func (pc *ProtoCodec) Marshal(o ProtoMarshaler) ([]byte, error) {
+	return o.Marshal()
+}
+
+// MustMarshal implements BinaryMarshaler.MustMarshal method.
+// NOTE: this function must be used with a concrete type which
+// implements proto.Message. For interface please use the codec.MarshalInterface
+func (pc *ProtoCodec) MustMarshal(o ProtoMarshaler) []byte {
+	bz, err := pc.Marshal(o)
+	if err != nil {
+		panic(err)
+	}
+
+	return bz
+}
+
+// Unmarshal implements BinaryMarshaler.Unmarshal method.
+// NOTE: this function must be used with a concrete type which
+// implements proto.Message. For interface please use the codec.UnmarshalInterface
+func (pc *ProtoCodec) Unmarshal(bz []byte, ptr ProtoMarshaler) error {
+	err := ptr.Unmarshal(bz)
+	if err != nil {
+		return err
+	}
+	err = types.UnpackInterfaces(ptr, pc.interfaceRegistry)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// MustUnmarshal implements BinaryMarshaler.MustUnmarshal method.
+// NOTE: this function must be used with a concrete type which
+// implements proto.Message. For interface please use the codec.UnmarshalInterface
+func (pc *ProtoCodec) MustUnmarshal(bz []byte, ptr ProtoMarshaler) {
+	if err := pc.Unmarshal(bz, ptr); err != nil {
+		panic(err)
+	}
 }
 
 // MarshalBinaryBare implements BinaryMarshaler.MarshalBinaryBare method.

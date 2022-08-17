@@ -130,16 +130,15 @@ func (suite *JournalTestSuite) setup() {
 	sk := supply.NewKeeper(cdc, supplyKey, ak, bk, make(map[string][]string))
 	suite.ctx = sdk.NewContext(cms, abci.Header{ChainID: "ethermint-8"}, false, tmlog.NewNopLogger())
 	csdbParams := CommitStateDBParams{
-		StoreKey:       storeKey,
-		ParamSpace:     evmSubspace,
-		AccountKeeper:  &ak,
-		SupplyKeeper:   sk,
-		Watcher:        nil,
-		BankKeeper:     bk,
-		Ada:            nil,
-		Cdc:            cdc,
-		DB:             nil,
-		Trie:           nil,
+		StoreKey:      storeKey,
+		ParamSpace:    evmSubspace,
+		AccountKeeper: &ak,
+		SupplyKeeper:  sk,
+		BankKeeper:    bk,
+		Ada:           nil,
+		Cdc:           cdc,
+		DB:            nil,
+		Trie:          nil,
 	}
 	suite.stateDB = NewCommitStateDB(csdbParams).WithContext(suite.ctx)
 	suite.stateDB.SetParams(DefaultParams())

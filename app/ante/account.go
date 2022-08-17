@@ -3,8 +3,8 @@ package ante
 import (
 	"bytes"
 	"math/big"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	"strconv"
+	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcore "github.com/ethereum/go-ethereum/core"
@@ -13,6 +13,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
@@ -40,11 +41,14 @@ func accountVerification(ctx *sdk.Context, acc exported.Account, tx *evmtypes.Ms
 		)
 	}
 
-	evmDenom := sdk.DefaultBondDenom
+	const evmDenom = sdk.DefaultBondDenom
+
+	feeInts := feeIntsPool.Get().(*[2]big.Int)
+	defer feeIntsPool.Put(feeInts)
 
 	// validate sender has enough funds to pay for gas cost
 	balance := acc.GetCoins().AmountOf(evmDenom)
-	if balance.BigInt().Cmp(tx.Cost()) < 0 {
+	if balance.Int.Cmp(tx.CalcCostTo(&feeInts[0])) < 0 {
 		return sdkerrors.Wrapf(
 			sdkerrors.ErrInsufficientFunds,
 			"sender balance < tx gas cost (%s%s < %s%s)", balance.String(), evmDenom, sdk.NewDecFromBigIntWithPrec(tx.Cost(), sdk.Precision).String(), evmDenom,
@@ -81,7 +85,7 @@ func nonceVerificationInCheckTx(seq uint64, msgEthTx *evmtypes.MsgEthereumTx, is
 				// will also reset checkState), so we will need to add pending txs len to get the right nonce
 				gPool := baseapp.GetGlobalMempool()
 				if gPool != nil {
-					addr := evmtypes.EthAddressStringer(common.BytesToAddress(msgEthTx.AccountAddress().Bytes())).String()
+					addr := msgEthTx.GetFrom()
 					if pendingNonce, ok := gPool.GetPendingNonce(addr); ok {
 						checkTxModeNonce = pendingNonce + 1
 					}
@@ -90,19 +94,27 @@ func nonceVerificationInCheckTx(seq uint64, msgEthTx *evmtypes.MsgEthereumTx, is
 
 			if baseapp.IsMempoolEnableSort() {
 				if msgEthTx.Data.AccountNonce < seq || msgEthTx.Data.AccountNonce > checkTxModeNonce {
-					return sdkerrors.Wrapf(
-						sdkerrors.ErrInvalidSequence,
-						"invalid nonce; got %d, expected in the range of [%d, %d]",
-						msgEthTx.Data.AccountNonce, seq, checkTxModeNonce,
-					)
+					accNonceStr := strconv.FormatUint(msgEthTx.Data.AccountNonce, 10)
+					seqStr := strconv.FormatUint(seq, 10)
+					checkTxModeNonceStr := strconv.FormatUint(checkTxModeNonce, 10)
+
+					errStr := strings.Join([]string{
+						"invalid nonce; got ", accNonceStr,
+						", expected in the range of [", seqStr, ", ", checkTxModeNonceStr, "]"},
+						"")
+
+					return sdkerrors.WrapNoStack(sdkerrors.ErrInvalidSequence, errStr)
 				}
 			} else {
 				if msgEthTx.Data.AccountNonce != checkTxModeNonce {
-					return sdkerrors.Wrapf(
-						sdkerrors.ErrInvalidSequence,
-						"invalid nonce; got %d, expected %d",
-						msgEthTx.Data.AccountNonce, checkTxModeNonce,
-					)
+					accNonceStr := strconv.FormatUint(msgEthTx.Data.AccountNonce, 10)
+					checkTxModeNonceStr := strconv.FormatUint(checkTxModeNonce, 10)
+
+					errStr := strings.Join([]string{
+						"invalid nonce; got ", accNonceStr, ", expected ", checkTxModeNonceStr},
+						"")
+
+					return sdkerrors.WrapNoStack(sdkerrors.ErrInvalidSequence, errStr)
 				}
 			}
 		}
@@ -148,14 +160,15 @@ func ethGasConsume(ctx *sdk.Context, acc exported.Account, accGetGas sdk.Gas, ms
 
 	// Charge sender for gas up to limit
 	if gasLimit != 0 {
+		feeInts := feeIntsPool.Get().(*[2]big.Int)
+		defer feeIntsPool.Put(feeInts)
 		// Cost calculates the fees paid to validators based on gas limit and price
-		cost := new(big.Int).Mul(msgEthTx.Data.Price, new(big.Int).SetUint64(gasLimit))
+		cost := (&feeInts[0]).SetUint64(gasLimit)
+		cost = cost.Mul(msgEthTx.Data.Price, cost)
 
-		evmDenom := sdk.DefaultBondDenom
+		const evmDenom = sdk.DefaultBondDenom
 
-		feeAmt := sdk.NewCoins(
-			sdk.NewCoin(evmDenom, sdk.NewDecFromBigIntWithPrec(cost, sdk.Precision)), // int2dec
-		)
+		feeAmt := sdk.NewDecCoinsFromDec(evmDenom, sdk.NewDecWithBigIntAndPrec(cost, sdk.Precision))
 
 		ctx.UpdateFromAccountCache(acc, accGetGas)
 
@@ -201,35 +214,40 @@ func deductFees(ak auth.AccountKeeper, ctx sdk.Context, acc exported.Account, fe
 	return nil
 }
 
-func incrementSeq(ctx sdk.Context, msgEthTx *evmtypes.MsgEthereumTx, ak auth.AccountKeeper, acc exported.Account) {
+func incrementSeq(ctx sdk.Context, msgEthTx *evmtypes.MsgEthereumTx, accAddress sdk.AccAddress, ak auth.AccountKeeper, acc exported.Account) {
 	if ctx.IsCheckTx() && !ctx.IsReCheckTx() && !baseapp.IsMempoolEnableRecheck() && !ctx.IsTraceTx() {
 		return
 	}
 
 	// get and set account must be called with an infinite gas meter in order to prevent
 	// additional gas from being deducted.
-	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
+	infGasMeter := sdk.GetReusableInfiniteGasMeter()
+	defer sdk.ReturnInfiniteGasMeter(infGasMeter)
+	ctx.SetGasMeter(infGasMeter)
 
 	// increment sequence of all signers
-	for _, addr := range msgEthTx.GetSigners() {
-		var sacc exported.Account
-		if acc != nil && bytes.Equal(addr, acc.GetAddress()) {
-			// because we use infinite gas meter, we can don't care about the gas
-			sacc = acc
-		} else {
-			sacc = ak.GetAccount(ctx, addr)
-		}
-		seq := sacc.GetSequence()
-		if !baseapp.IsMempoolEnablePendingPool() {
-			seq++
-		} else if msgEthTx.Data.AccountNonce == seq {
-			seq++
-		}
-		if err := sacc.SetSequence(seq); err != nil {
-			panic(err)
-		}
-		ak.SetAccount(ctx, sacc)
+	// eth tx only has one signer
+	if accAddress.Empty() {
+		accAddress = msgEthTx.AccountAddress()
 	}
+	var sacc exported.Account
+	if acc != nil && bytes.Equal(accAddress, acc.GetAddress()) {
+		// because we use infinite gas meter, we can don't care about the gas
+		sacc = acc
+	} else {
+		sacc = ak.GetAccount(ctx, accAddress)
+	}
+	seq := sacc.GetSequence()
+	if !baseapp.IsMempoolEnablePendingPool() {
+		seq++
+	} else if msgEthTx.Data.AccountNonce == seq {
+		seq++
+	}
+	if err := sacc.SetSequence(seq); err != nil {
+		panic(err)
+	}
+	ak.SetAccount(ctx, sacc)
+
 	return
 }
 
@@ -293,7 +311,7 @@ func (avd AccountAnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate 
 		}
 	}
 
-	incrementSeq(ctx, msgEthTx, avd.ak, acc)
+	incrementSeq(ctx, msgEthTx, address, avd.ak, acc)
 
 	return next(ctx, tx, simulate)
 }

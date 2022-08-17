@@ -12,8 +12,6 @@ import (
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
 )
 
-
-
 func (cs *State) dumpElapsed(trc *trace.Tracer, schema string) {
 	trace.GetElapsedInfo().AddInfo(schema, trc.Format())
 	trc.Reset()
@@ -260,7 +258,9 @@ func (cs *State) finalizeCommit(height int64) {
 	cs.recordMetrics(height, block)
 
 	// NewHeightStep!
+	cs.stateMtx.Lock()
 	cs.updateToState(stateCopy)
+	cs.stateMtx.Unlock()
 
 	fail.Fail() // XXX
 
@@ -295,6 +295,11 @@ func (cs *State) updateToState(state sm.State) {
 	//	panic(fmt.Sprintf("Inconsistent cs.state.LastBlockHeight+1 %v vs cs.Height %v",
 	//		cs.state.LastBlockHeight+1, cs.Height))
 	//}
+
+	cs.hasVC = false
+	if cs.vcMsg != nil && cs.vcMsg.Height <= cs.Height {
+		cs.vcMsg = nil
+	}
 
 	// If state isn't further out than cs.state, just ignore.
 	// This happens when SwitchToConsensus() is called in the reactor.
@@ -352,12 +357,10 @@ func (cs *State) updateToState(state sm.State) {
 	cs.newStep()
 }
 
-
 func (cs *State) updateHeight(height int64) {
 	cs.metrics.Height.Set(float64(height))
 	cs.Height = height
 }
-
 
 func (cs *State) pruneBlocks(retainHeight int64) (uint64, error) {
 	base := cs.blockStore.Base()

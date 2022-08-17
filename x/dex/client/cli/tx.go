@@ -3,6 +3,7 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"strings"
 
 	client "github.com/okex/exchain/libs/cosmos-sdk/client/flags"
@@ -244,7 +245,7 @@ func getCmdConfirmOwnership(cdc *codec.Codec) *cobra.Command {
 }
 
 // GetCmdSubmitDelistProposal implememts a command handler for submitting a dex delist proposal transaction
-func GetCmdSubmitDelistProposal(cdc *codec.Codec) *cobra.Command {
+func GetCmdSubmitDelistProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	return &cobra.Command{
 		Use:   "delist-proposal [proposal-file]",
 		Args:  cobra.ExactArgs(1),
@@ -273,6 +274,7 @@ Where proposal.json contains:
 `, version.ClientName, sdk.DefaultBondDenom, sdk.DefaultBondDenom, sdk.DefaultBondDenom,
 			)),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cdc := cdcP.GetCdc()
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)

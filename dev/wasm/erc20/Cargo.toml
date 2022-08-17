@@ -1,0 +1,39 @@
+[package]
+name = "cw-erc20"
+description = "An implementation of the ERC20 token interface"
+version = "0.10.0"
+authors = ["Simon Warta <webmaster128@users.noreply.github.com>"]
+edition = "2018"
+license = "Apache-2.0"
+repository = "https://github.com/CosmWasm/cosmwasm-examples"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[profile.release]
+opt-level = 3
+debug = false
+rpath = false
+lto = true
+debug-assertions = false
+codegen-units = 1
+panic = 'abort'
+incremental = false
+overflow-checks = true
+
+[features]
+backtraces = ["cosmwasm-std/backtraces"]
+
+[dependencies]
+cosmwasm-std = "1.0.0-beta"
+cosmwasm-storage = "1.0.0-beta"
+schemars = "0.8.1"
+serde = { version = "1.0.125", default-features = false, features = ["derive"] }
+hex = "0.4"
+thiserror = "1.0.23"
+
+[dev-dependencies]
+cosmwasm-vm = "1.0.0-beta"
+cosmwasm-schema = "1.0.0-beta"

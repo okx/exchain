@@ -236,12 +236,10 @@ func TestNewTokenMultiSend(t *testing.T) {
 	}
 
 	// empty toAddr
-	toAddr1, err := sdk.AccAddressFromBech32("")
-	require.NoError(t, err)
 	decCoin1 := sdk.NewDecCoinFromDec("obk", sdk.NewDec(100))
 	transfers1 := []TransferUnit{
 		{
-			To:    toAddr1,
+			To:    sdk.AccAddress{},
 			Coins: sdk.SysCoins{decCoin1},
 		},
 	}

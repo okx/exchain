@@ -2,11 +2,11 @@ package types
 
 import (
 	"context"
+	"sync"
 	"time"
 
-	"github.com/okex/exchain/libs/system/trace"
-
 	"github.com/gogo/protobuf/proto"
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 
@@ -48,7 +48,9 @@ type Context struct {
 	trc                *trace.Tracer
 	accountCache       *AccountCache
 	paraMsg            *ParaMsg
-	overridesBytes     []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
+	//	txCount            uint32
+	overridesBytes []byte // overridesBytes is used to save overrides info, passed from ethCall to x/evm
+	watcher        *TxWatcher
 }
 
 // Proposed rename, not done to avoid API breakage
@@ -82,7 +84,7 @@ func (c *Context) IsDeliver() bool {
 }
 
 func (c *Context) UseParamCache() bool {
-	return c.isDeliver || (c.paraMsg != nil && !c.paraMsg.HaveCosmosTxInBlock)
+	return c.isDeliver || (c.paraMsg != nil && !c.paraMsg.HaveCosmosTxInBlock) || c.checkTx
 }
 
 func (c *Context) IsCheckTx() bool             { return c.checkTx }
@@ -171,6 +173,11 @@ func (c *Context) ConsensusParams() *abci.ConsensusParams {
 	return proto.Clone(c.consParams).(*abci.ConsensusParams)
 }
 
+////TxCount
+//func (c *Context) TxCount() uint32 {
+//	return c.txCount
+//}
+
 // NewContext create a new context
 func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Logger) Context {
 	// https://github.com/gogo/protobuf/issues/519
@@ -185,6 +192,7 @@ func NewContext(ms MultiStore, header abci.Header, isCheckTx bool, logger log.Lo
 		gasMeter:     stypes.NewInfiniteGasMeter(),
 		minGasPrice:  DecCoins{},
 		eventManager: NewEventManager(),
+		watcher:      &TxWatcher{EmptyWatcher{}},
 	}
 }
 
@@ -363,6 +371,30 @@ func (c *Context) SetOverrideBytes(b []byte) *Context {
 	return c
 }
 
+func (c *Context) ResetWatcher() {
+	c.watcher = &TxWatcher{EmptyWatcher{}}
+}
+
+func (c *Context) SetWatcher(w IWatcher) {
+	if c.watcher == nil {
+		c.watcher = &TxWatcher{EmptyWatcher{}}
+		return
+	}
+	c.watcher.IWatcher = w
+}
+
+func (c *Context) GetWatcher() IWatcher {
+	if c.watcher == nil {
+		return EmptyWatcher{}
+	}
+	return c.watcher.IWatcher
+}
+
+//func (c *Context) SetTxCount(count uint32) *Context {
+//	c.txCount = count
+//	return c
+//}
+
 // ----------------------------------------------------------------------------
 // Store / Caching
 // ----------------------------------------------------------------------------
@@ -370,6 +402,24 @@ func (c *Context) SetOverrideBytes(b []byte) *Context {
 // KVStore fetches a KVStore from the MultiStore.
 func (c *Context) KVStore(key StoreKey) KVStore {
 	return gaskv.NewStore(c.MultiStore().GetKVStore(key), c.GasMeter(), stypes.KVGasConfig())
+}
+
+var gasKvPool = &sync.Pool{
+	New: func() interface{} {
+		return &gaskv.Store{}
+	},
+}
+
+// GetReusableKVStore fetches a KVStore from the MultiStore than can be reused.
+// you must call ReturnKVStore() after you are done with the KVStore.
+func (c *Context) GetReusableKVStore(key StoreKey) KVStore {
+	gaskvs := gasKvPool.Get().(*gaskv.Store)
+	return gaskv.ResetStore(gaskvs, c.MultiStore().GetKVStore(key), c.GasMeter(), stypes.KVGasConfig())
+}
+
+// ReturnKVStore returns a KVStore than from GetReusableKVStore.
+func (_ *Context) ReturnKVStore(store KVStore) {
+	gasKvPool.Put(store)
 }
 
 // TransientStore fetches a TransientStore from the MultiStore.
@@ -425,6 +475,25 @@ func (c Context) WithIsTraceTxLog(isTraceTxLog bool) Context {
 	}
 	c.traceTxLog = isTraceTxLog
 	return c
+}
+
+// WithValue is deprecated, provided for backwards compatibility
+// Please use
+//     ctx = ctx.WithContext(context.WithValue(ctx.Context(), key, false))
+// instead of
+//     ctx = ctx.WithValue(key, false)
+func (c Context) WithValue(key, value interface{}) Context {
+	c.ctx = context.WithValue(c.ctx, key, value)
+	return c
+}
+
+// Value is deprecated, provided for backwards compatibility
+// Please use
+//     ctx.Context().Value(key)
+// instead of
+//     ctx.Value(key)
+func (c Context) Value(key interface{}) interface{} {
+	return c.ctx.Value(key)
 }
 
 type AccountCache struct {

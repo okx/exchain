@@ -41,41 +41,35 @@ func (kvs Pairs) Less(i, j int) bool {
 func (kvs Pairs) Swap(i, j int) { kvs[i], kvs[j] = kvs[j], kvs[i] }
 func (kvs Pairs) Sort()         { sort.Sort(kvs) }
 
-func (pair *Pair) MarshalToAmino(_ *amino.Codec) ([]byte, error) {
+func (pair *Pair) MarshalToAmino(cdc *amino.Codec) ([]byte, error) {
 	var buf bytes.Buffer
-	fieldKeysType := [2]byte{1<<3 | 2, 2<<3 | 2}
-	var err error
-	for pos := 1; pos <= 2; pos++ {
-		switch pos {
-		case 1:
-			if len(pair.Key) == 0 {
-				break
-			}
-			err = buf.WriteByte(fieldKeysType[pos-1])
-			if err != nil {
-				return nil, err
-			}
-			err = amino.EncodeByteSliceToBuffer(&buf, pair.Key)
-			if err != nil {
-				return nil, err
-			}
-		case 2:
-			if len(pair.Value) == 0 {
-				break
-			}
-			err = buf.WriteByte(fieldKeysType[pos-1])
-			if err != nil {
-				return nil, err
-			}
-			err = amino.EncodeByteSliceToBuffer(&buf, pair.Value)
-			if err != nil {
-				return nil, err
-			}
-		default:
-			panic("unreachable")
-		}
+	buf.Grow(pair.AminoSize(cdc))
+	err := pair.MarshalAminoTo(cdc, &buf)
+	if err != nil {
+		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+func (pair *Pair) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) error {
+	// field 1
+	if len(pair.Key) != 0 {
+		const pbKey = 1<<3 | 2
+		err := amino.EncodeByteSliceWithKeyToBuffer(buf, pair.Key, pbKey)
+		if err != nil {
+			return err
+		}
+	}
+
+	// field 2
+	if len(pair.Value) != 0 {
+		const pbKey = 2<<3 | 2
+		err := amino.EncodeByteSliceWithKeyToBuffer(buf, pair.Value, pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (pair *Pair) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {

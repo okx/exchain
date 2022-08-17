@@ -2,14 +2,11 @@ package mempool
 
 import (
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/binary"
 	"fmt"
-	"io/ioutil"
 	"math/big"
 	mrand "math/rand"
 	"os"
-	"path/filepath"
 	"strconv"
 	"sync"
 	"testing"
@@ -377,52 +374,6 @@ func TestSerialReap(t *testing.T) {
 	reapCheck(BlockMaxTxNum)
 }
 
-func TestMempoolCloseWAL(t *testing.T) {
-	// 1. Create the temporary directory for mempool and WAL testing.
-	rootDir, err := ioutil.TempDir("", "mempool-test")
-	require.Nil(t, err, "expecting successful tmpdir creation")
-
-	// 2. Ensure that it doesn't contain any elements -- Sanity check
-	m1, err := filepath.Glob(filepath.Join(rootDir, "*"))
-	require.Nil(t, err, "successful globbing expected")
-	require.Equal(t, 0, len(m1), "no matches yet")
-
-	// 3. Create the mempool
-	wcfg := cfg.DefaultConfig()
-	wcfg.Mempool.RootDir = rootDir
-	app := kvstore.NewApplication()
-	cc := proxy.NewLocalClientCreator(app)
-	mempool, cleanup := newMempoolWithAppAndConfig(cc, wcfg)
-	defer cleanup()
-	mempool.height = 10
-	mempool.InitWAL()
-
-	// 4. Ensure that the directory contains the WAL file
-	m2, err := filepath.Glob(filepath.Join(rootDir, "*"))
-	require.Nil(t, err, "successful globbing expected")
-	require.Equal(t, 1, len(m2), "expecting the wal match in")
-
-	// 5. Write some contents to the WAL
-	mempool.CheckTx(types.Tx([]byte("foo")), nil, TxInfo{})
-	walFilepath := mempool.wal.Path
-	sum1 := checksumFile(walFilepath, t)
-
-	// 6. Sanity check to ensure that the written TX matches the expectation.
-	require.Equal(t, sum1, checksumIt([]byte("foo\n")), "foo with a newline should be written")
-
-	// 7. Invoke CloseWAL() and ensure it discards the
-	// WAL thus any other write won't go through.
-	mempool.CloseWAL()
-	mempool.CheckTx(types.Tx([]byte("bar")), nil, TxInfo{})
-	sum2 := checksumFile(walFilepath, t)
-	require.Equal(t, sum1, sum2, "expected no change to the WAL after invoking CloseWAL() since it was discarded")
-
-	// 8. Sanity check to ensure that the WAL file still exists
-	m3, err := filepath.Glob(filepath.Join(rootDir, "*"))
-	require.Nil(t, err, "successful globbing expected")
-	require.Equal(t, 1, len(m3), "expecting the wal match in")
-}
-
 // Size of the amino encoded TxMessage is the length of the
 // encoded byte array, plus 1 for the struct field, plus 4
 // for the amino prefix.
@@ -553,18 +504,6 @@ func TestMempoolTxsBytes(t *testing.T) {
 	}
 }
 
-func checksumIt(data []byte) string {
-	h := sha256.New()
-	h.Write(data)
-	return fmt.Sprintf("%x", h.Sum(nil))
-}
-
-func checksumFile(p string, t *testing.T) string {
-	data, err := ioutil.ReadFile(p)
-	require.Nil(t, err, "expecting successful read of %q", p)
-	return checksumIt(data)
-}
-
 func abciResponses(n int, code uint32) []*abci.ResponseDeliverTx {
 	responses := make([]*abci.ResponseDeliverTx, 0, n)
 	for i := 0; i < n; i++ {
@@ -609,7 +548,7 @@ func TestAddAndSortTx(t *testing.T) {
 	}
 
 	for _, exInfo := range testCases {
-		mempool.addAndSortTx(exInfo.Tx)
+		mempool.addTx(exInfo.Tx)
 	}
 	require.Equal(t, 18, mempool.txs.Len(), fmt.Sprintf("Expected to txs length %v but got %v", 18, mempool.txs.Len()))
 
@@ -634,9 +573,9 @@ func TestAddAndSortTx(t *testing.T) {
 	//Address:  18  , GasPrice:  2698  , Nonce:  1
 	//Address:  19  , GasPrice:  2484  , Nonce:  0
 
-	require.Equal(t, 3, mempool.addressRecord.GetAddressTxsCnt("1"))
-	require.Equal(t, 1, mempool.addressRecord.GetAddressTxsCnt("15"))
-	require.Equal(t, 2, mempool.addressRecord.GetAddressTxsCnt("18"))
+	require.Equal(t, 3, mempool.GetUserPendingTxsCnt("1"))
+	require.Equal(t, 1, mempool.GetUserPendingTxsCnt("15"))
+	require.Equal(t, 2, mempool.GetUserPendingTxsCnt("18"))
 
 	require.Equal(t, "18", mempool.txs.Front().Address)
 	require.Equal(t, big.NewInt(9740), mempool.txs.Front().GasPrice)
@@ -658,8 +597,8 @@ func TestAddAndSortTx(t *testing.T) {
 
 	mempool.Flush()
 	require.Equal(t, 0, mempool.txs.Len())
-	require.Equal(t, 0, mempool.bcTxsList.Len())
-	require.Equal(t, 0, len(mempool.addressRecord.GetAddressList()))
+	require.Equal(t, 0, mempool.txs.BroadcastLen())
+	require.Equal(t, 0, len(mempool.GetAddressList()))
 
 }
 
@@ -683,7 +622,7 @@ func TestReplaceTx(t *testing.T) {
 	}
 
 	for _, exInfo := range testCases {
-		mempool.addAndSortTx(exInfo.Tx)
+		mempool.addTx(exInfo.Tx)
 	}
 	require.Equal(t, 5, mempool.txs.Len(), fmt.Sprintf("Expected to txs length %v but got %v", 5, mempool.txs.Len()))
 
@@ -707,11 +646,11 @@ func TestAddAndSortTxByRandom(t *testing.T) {
 
 	AddrNonce := make(map[string]int)
 	for i := 0; i < 1000; i++ {
-		mempool.addAndSortTx(generateNode(AddrNonce, i))
+		mempool.addTx(generateNode(AddrNonce, i))
 	}
 
 	require.Equal(t, true, checkTx(mempool.txs.Front()))
-	addressList := mempool.addressRecord.GetAddressList()
+	addressList := mempool.GetAddressList()
 	for _, addr := range addressList {
 		require.Equal(t, true, checkAccNonce(addr, mempool.txs.Front()))
 	}
@@ -751,7 +690,7 @@ func TestReapUserTxs(t *testing.T) {
 	}
 
 	for _, exInfo := range testCases {
-		mempool.addAndSortTx(exInfo.Tx)
+		mempool.addTx(exInfo.Tx)
 	}
 	require.Equal(t, 18, mempool.txs.Len(), fmt.Sprintf("Expected to txs length %v but got %v", 18,
 		mempool.txs.Len()))
@@ -903,12 +842,40 @@ func TestAddAndSortTxConcurrency(t *testing.T) {
 	for _, exInfo := range testCases {
 		wait.Add(1)
 		go func(p Case) {
-			mempool.addAndSortTx(p.Tx)
+			mempool.addTx(p.Tx)
 			wait.Done()
 		}(exInfo)
 	}
 
 	wait.Wait()
+}
+
+func TestTxID(t *testing.T) {
+	var bytes = make([]byte, 256)
+	for i := 0; i < 10; i++ {
+		_, err := rand.Read(bytes)
+		require.NoError(t, err)
+		require.Equal(t, amino.HexEncodeToStringUpper(bytes), fmt.Sprintf("%X", bytes))
+	}
+}
+
+func BenchmarkTxID(b *testing.B) {
+	var bytes = make([]byte, 256)
+	_, _ = rand.Read(bytes)
+	var res string
+	b.Run("fmt", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			res = fmt.Sprintf("%X", bytes)
+		}
+	})
+	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			res = amino.HexEncodeToStringUpper(bytes)
+		}
+	})
+	_ = res
 }
 
 func TestReplaceTxWithMultiAddrs(t *testing.T) {
@@ -919,15 +886,15 @@ func TestReplaceTxWithMultiAddrs(t *testing.T) {
 	defer cleanup()
 
 	tx1 := &mempoolTx{height: 1, gasWanted: 1, tx: []byte("10002"), from: "1", realTx: abci.MockTx{GasPrice: big.NewInt(9740), Nonce: 1}}
-	mempool.addAndSortTx(tx1)
+	mempool.addTx(tx1)
 	tx2 := &mempoolTx{height: 1, gasWanted: 1, tx: []byte("90000"), from: "2", realTx: abci.MockTx{GasPrice: big.NewInt(10717), Nonce: 1}}
-	mempool.addAndSortTx(tx2)
+	mempool.addTx(tx2)
 	tx3 := &mempoolTx{height: 1, gasWanted: 1, tx: []byte("90000"), from: "3", realTx: abci.MockTx{GasPrice: big.NewInt(10715), Nonce: 1}}
-	mempool.addAndSortTx(tx3)
+	mempool.addTx(tx3)
 	tx4 := &mempoolTx{height: 1, gasWanted: 1, tx: []byte("10001"), from: "1", realTx: abci.MockTx{GasPrice: big.NewInt(10716), Nonce: 2}}
-	mempool.addAndSortTx(tx4)
+	mempool.addTx(tx4)
 	tx5 := &mempoolTx{height: 1, gasWanted: 1, tx: []byte("10001"), from: "1", realTx: abci.MockTx{GasPrice: big.NewInt(10712), Nonce: 1}}
-	mempool.addAndSortTx(tx5)
+	mempool.addTx(tx5)
 
 	var nonces []uint64
 	for e := mempool.txs.Front(); e != nil; e = e.Next() {
@@ -936,4 +903,85 @@ func TestReplaceTxWithMultiAddrs(t *testing.T) {
 		}
 	}
 	require.Equal(t, []uint64{1, 2}, nonces)
+}
+
+func BenchmarkMempoolLogUpdate(b *testing.B) {
+	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "benchmark")
+	var options []log.Option
+	options = append(options, log.AllowErrorWith("module", "benchmark"))
+	logger = log.NewFilter(logger, options...)
+
+	mem := &CListMempool{height: 123456, logger: logger}
+	addr := "address"
+	nonce := uint64(123456)
+
+	b.Run("pool", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			mem.logUpdate(addr, nonce)
+		}
+	})
+
+	b.Run("logger", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			mem.logger.Debug("mempool update", "address", addr, "nonce", nonce)
+		}
+	})
+}
+
+func BenchmarkMempoolLogAddTx(b *testing.B) {
+	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "benchmark")
+	var options []log.Option
+	options = append(options, log.AllowErrorWith("module", "benchmark"))
+	logger = log.NewFilter(logger, options...)
+
+	mem := &CListMempool{height: 123456, logger: logger, txs: NewBaseTxQueue()}
+	tx := []byte("tx")
+
+	memTx := &mempoolTx{
+		height: mem.Height(),
+		tx:     tx,
+	}
+
+	r := &abci.Response_CheckTx{}
+
+	b.Run("pool", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			mem.logAddTx(memTx, r)
+		}
+	})
+
+	b.Run("logger", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			mem.logger.Info("Added good transaction",
+				"tx", txIDStringer{tx, mem.height},
+				"res", r,
+				"height", memTx.height,
+				"total", mem.Size(),
+			)
+		}
+	})
+}
+
+func TestTxOrTxHashToKey(t *testing.T) {
+	var tx = make([]byte, 256)
+	rand.Read(tx)
+
+	old := types.GetVenusHeight()
+
+	types.UnittestOnlySetMilestoneVenusHeight(1)
+
+	venus := types.GetVenusHeight()
+	txhash := types.Tx(tx).Hash(venus)
+
+	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, nil, venus))
+	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, txhash, venus))
+	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, txhash, venus-1))
+	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, types.Tx(tx).Hash(venus-1), venus-1))
+	require.NotEqual(t, txKey(tx), txOrTxHashToKey(tx, types.Tx(tx).Hash(venus-1), venus))
+
+	types.UnittestOnlySetMilestoneVenusHeight(old)
 }

@@ -6,8 +6,8 @@ package main
 import (
 	"log"
 
+	"github.com/cosmos/gorocksdb"
 	dbm "github.com/okex/exchain/libs/tm-db"
-	"github.com/tecbot/gorocksdb"
 )
 
 func init() {

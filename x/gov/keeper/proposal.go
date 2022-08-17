@@ -28,7 +28,6 @@ func (keeper Keeper) SubmitProposal(ctx sdk.Context, content types.Content) (typ
 		proposalParams := keeper.proposalHandlerRouter.GetRoute(content.ProposalRoute())
 		depositPeriod = proposalParams.GetMaxDepositPeriod(ctx, content)
 	}
-
 	proposal := types.NewProposal(ctx, keeper.totalPower(ctx), content, proposalID, submitTime,
 		submitTime.Add(depositPeriod))
 

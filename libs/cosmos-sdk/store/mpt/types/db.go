@@ -29,7 +29,7 @@ const (
 	//   - stable
 	GoLevelDBBackend BackendType = "goleveldb"
 
-	// RocksDBBackend represents rocksdb (uses github.com/tecbot/gorocksdb)
+	// RocksDBBackend represents rocksdb (uses github.com/cosmos/gorocksdb)
 	//   - EXPERIMENTAL
 	//   - requires gcc
 	//   - use rocksdb build tag (go build -tags rocksdb)

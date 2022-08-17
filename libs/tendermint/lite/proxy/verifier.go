@@ -41,7 +41,7 @@ func NewVerifier(
 	_, err = trust.LatestFullCommit(chainID, types.GetStartBlockHeight()+1, 1<<63-1)
 	if err != nil {
 		logger.Info("lite/proxy/NewVerifier found no trusted full commit, initializing from source from height 1...")
-		fc, err := source.LatestFullCommit(chainID, types.GetStartBlockHeight()+1, types.GetStartBlockHeight()+1)
+		fc, err := source.LatestFullCommit(chainID, types.GetStartBlockHeight()+1, 1<<63-1)
 		if err != nil {
 			return nil, errors.Wrap(err, "fetching source full commit @ height 1")
 		}

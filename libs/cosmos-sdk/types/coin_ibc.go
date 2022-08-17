@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"regexp"
@@ -73,9 +74,9 @@ func NewCoinAdapter(denom string, amount Int) CoinAdapter {
 	return coin
 }
 
-func (cas CoinAdapters) IsAnyNil() bool {
+func (cas CoinAdapters) IsAnyNegative() bool {
 	for _, coin := range cas {
-		if coin.Amount.IsNil() {
+		if coin.Amount.IsNegative() {
 			return true
 		}
 	}
@@ -83,9 +84,9 @@ func (cas CoinAdapters) IsAnyNil() bool {
 	return false
 }
 
-func (cas CoinAdapters) IsAnyNegative() bool {
+func (cas CoinAdapters) IsAnyNil() bool {
 	for _, coin := range cas {
-		if coin.Amount.IsNegative() {
+		if coin.Amount.IsNil() {
 			return true
 		}
 	}
@@ -136,6 +137,9 @@ func (coins CoinAdapters) Validate() error {
 	case 1:
 		if err := ValidateDenom(coins[0].Denom); err != nil {
 			return err
+		}
+		if coins[0].Amount.IsNil() {
+			return fmt.Errorf("coin %s amount is nil", coins[0])
 		}
 		if !coins[0].IsPositive() {
 			return fmt.Errorf("coin %s amount is not positive", coins[0])
@@ -210,6 +214,18 @@ func (coins CoinAdapters) IsAllPositive() bool {
 	}
 
 	return true
+}
+
+type coinAdaptersJSON CoinAdapters
+
+// MarshalJSON implements a custom JSON marshaller for the Coins type to allow
+// nil Coins to be encoded as an empty array.
+func (coins CoinAdapters) MarshalJSON() ([]byte, error) {
+	if coins == nil {
+		return json.Marshal(coinAdaptersJSON(CoinAdapters{}))
+	}
+
+	return json.Marshal(coinAdaptersJSON(coins))
 }
 
 func (coins CoinAdapters) Copy() CoinAdapters {

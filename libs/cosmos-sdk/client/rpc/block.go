@@ -27,7 +27,7 @@ func BlockCommand() *cobra.Command {
 	}
 	cmd.Flags().StringP(flags.FlagNode, "n", "tcp://localhost:26657", "Node to connect to")
 	viper.BindPFlag(flags.FlagNode, cmd.Flags().Lookup(flags.FlagNode))
-	cmd.Flags().Bool(flags.FlagTrustNode, false, "Trust connected full node (don't verify proofs for responses)")
+	cmd.Flags().Bool(flags.FlagTrustNode, false, flags.TrustNodeUsage)
 	viper.BindPFlag(flags.FlagTrustNode, cmd.Flags().Lookup(flags.FlagTrustNode))
 	return cmd
 }
@@ -58,6 +58,39 @@ func getBlock(cliCtx context.CLIContext, height *int64) ([]byte, error) {
 		}
 
 		if err = tmliteProxy.ValidateBlock(res.Block, check); err != nil {
+			return nil, err
+		}
+	}
+
+	if cliCtx.Indent {
+		return codec.Cdc.MarshalJSONIndent(res, "", "  ")
+	}
+
+	return codec.Cdc.MarshalJSON(res)
+}
+
+func getBlockInfo(cliCtx context.CLIContext, height *int64) ([]byte, error) {
+	// get the node
+	node, err := cliCtx.GetNode()
+	if err != nil {
+		return nil, err
+	}
+
+	// header -> BlockchainInfo
+	// header, tx -> Block
+	// results -> BlockResults
+	res, err := node.BlockInfo(height)
+	if err != nil {
+		return nil, err
+	}
+
+	if !cliCtx.TrustNode {
+		check, err := cliCtx.Verify(res.Header.Height)
+		if err != nil {
+			return nil, err
+		}
+
+		if err := tmliteProxy.ValidateHeader(&res.Header, check); err != nil {
 			return nil, err
 		}
 	}
@@ -111,6 +144,38 @@ func printBlock(cmd *cobra.Command, args []string) error {
 }
 
 // REST
+// REST handler to get a block info
+func BlockInfoRequestHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+
+		height, err := strconv.ParseInt(vars["height"], 10, 64)
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusBadRequest,
+				"couldn't parse block height. Assumed format is '/block/{height}'.")
+			return
+		}
+
+		chainHeight, err := GetChainHeight(cliCtx)
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, "failed to parse chain height")
+			return
+		}
+
+		if height > chainHeight {
+			rest.WriteErrorResponse(w, http.StatusNotFound, "requested block height is bigger then the chain length")
+			return
+		}
+
+		output, err := getBlockInfo(cliCtx, &height)
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		rest.PostProcessResponseBare(w, cliCtx, output)
+	}
+}
 
 // REST handler to get a block
 func BlockRequestHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {

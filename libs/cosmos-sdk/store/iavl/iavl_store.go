@@ -41,6 +41,14 @@ type Store struct {
 	upgradeVersion int64
 }
 
+func (st *Store) CurrentVersion() int64 {
+	tr := st.tree.(*iavl.MutableTree)
+	return tr.Version()
+}
+func (st *Store) StopStoreWithVersion(version int64) {
+	tr := st.tree.(*iavl.MutableTree)
+	tr.StopTree()
+}
 func (st *Store) StopStore() {
 	tr := st.tree.(*iavl.MutableTree)
 	tr.StopTree()
@@ -65,7 +73,6 @@ func LoadStoreWithInitialVersion(db dbm.DB, flatKVDB dbm.DB, id types.CommitID, 
 	if err != nil {
 		return nil, err
 	}
-
 	if lazyLoading {
 		_, err = tree.LazyLoadVersion(id.Version)
 	} else {
@@ -88,13 +95,19 @@ func LoadStoreWithInitialVersion(db dbm.DB, flatKVDB dbm.DB, id types.CommitID, 
 
 	return st, nil
 }
-
-func GetCommitVersion(db dbm.DB) (int64, error) {
+func HasVersion(db dbm.DB, version int64) (bool, error) {
 	tree, err := iavl.NewMutableTreeWithOpts(db, iavlconfig.DynamicConfig.GetIavlCacheSize(), &iavl.Options{InitialVersion: 0})
 	if err != nil {
-		return 0, err
+		return false, err
 	}
-	return tree.GetCommitVersion(), nil
+	return tree.VersionExistsInDb(version), nil
+}
+func GetCommitVersions(db dbm.DB) ([]int64, error) {
+	tree, err := iavl.NewMutableTreeWithOpts(db, iavlconfig.DynamicConfig.GetIavlCacheSize(), &iavl.Options{InitialVersion: 0})
+	if err != nil {
+		return nil, err
+	}
+	return tree.GetVersions()
 }
 
 // UnsafeNewStore returns a reference to a new IAVL Store with a given mutable
@@ -120,7 +133,7 @@ func (st *Store) GetImmutable(version int64) (*Store, error) {
 	var err error
 	if !abci.GetDisableABCIQueryMutex() {
 		if !st.VersionExists(version) {
-			return &Store{tree: &immutableTree{&iavl.ImmutableTree{}}}, nil
+			return nil, iavl.ErrVersionDoesNotExist
 		}
 
 		iTree, err = st.tree.GetImmutable(version)
@@ -130,12 +143,17 @@ func (st *Store) GetImmutable(version int64) (*Store, error) {
 	} else {
 		iTree, err = st.tree.GetImmutable(version)
 		if err != nil {
-			return &Store{tree: &immutableTree{&iavl.ImmutableTree{}}}, nil
+			return nil, iavl.ErrVersionDoesNotExist
 		}
 	}
 	return &Store{
 		tree: &immutableTree{iTree},
 	}, nil
+}
+
+// GetEmptyImmutable returns an empty immutable IAVL tree
+func (st *Store) GetEmptyImmutable() *Store {
+	return &Store{tree: &immutableTree{&iavl.ImmutableTree{}}}
 }
 
 func (st *Store) CommitterCommit(inputDelta *iavl.TreeDelta) (types.CommitID, *iavl.TreeDelta) { // CommitterCommit
@@ -210,7 +228,7 @@ func (st *Store) Get(key []byte) []byte {
 	if value != nil {
 		return value
 	}
-	_, value = st.tree.Get(key)
+	value = st.tree.Get(key)
 	if value != nil {
 		st.setFlatKV(key, value)
 	}
@@ -272,7 +290,8 @@ func getHeight(tree Tree, req abci.RequestQuery) int64 {
 	height := req.Height
 	if height == 0 {
 		latest := tree.Version()
-		if tree.VersionExists(latest - 1) {
+		_, err := tree.GetImmutable(latest - 1)
+		if err == nil {
 			height = latest - 1
 		} else {
 			height = latest
@@ -290,30 +309,28 @@ func getHeight(tree Tree, req abci.RequestQuery) int64 {
 // explicitly set the height you want to see
 func (st *Store) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 	if tmtypes.HigherThanVenus1(req.Height) {
-		return st.queryKeyForIBC(req)
+		return st.queryWithCM40(req)
 	}
 	if len(req.Data) == 0 {
 		return sdkerrors.QueryResult(sdkerrors.Wrap(sdkerrors.ErrTxDecode, "query cannot be zero length"))
 	}
 
-	tree := st.tree
-
 	// store the height we chose in the response, with 0 being changed to the
 	// latest height
-	res.Height = getHeight(tree, req)
+	res.Height = getHeight(st.tree, req)
 
 	switch req.Path {
 	case "/key": // get by key
 		key := req.Data // data holds the key bytes
-
 		res.Key = key
-		if !st.VersionExists(res.Height) {
-			res.Log = iavl.ErrVersionDoesNotExist.Error()
-			break
+
+		tree, err := st.tree.GetImmutable(res.Height)
+		if err != nil {
+			return sdkerrors.QueryResult(sdkerrors.Wrapf(iavl.ErrVersionDoesNotExist, "request height %d", req.Height))
 		}
 
 		if req.Prove {
-			value, proof, err := tree.GetVersionedWithProof(key, res.Height)
+			value, proof, err := tree.GetWithProof(key)
 			if err != nil {
 				res.Log = err.Error()
 				break
@@ -334,7 +351,7 @@ func (st *Store) Query(req abci.RequestQuery) (res abci.ResponseQuery) {
 				res.Proof = &merkle.Proof{Ops: []merkle.ProofOp{iavl.NewAbsenceOp(key, proof).ProofOp()}}
 			}
 		} else {
-			_, res.Value = tree.GetVersioned(key, res.Height)
+			_, res.Value = tree.GetWithIndex(key)
 		}
 
 	case "/subspace":

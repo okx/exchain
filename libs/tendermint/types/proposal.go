@@ -31,6 +31,7 @@ type Proposal struct {
 	BlockID   BlockID   `json:"block_id"`
 	Timestamp time.Time `json:"timestamp"`
 	Signature []byte    `json:"signature"`
+	HasVC     bool      `json:"has_vc"` // enterNewRoundAVC at this Height
 }
 
 // NewProposal returns a new Proposal.

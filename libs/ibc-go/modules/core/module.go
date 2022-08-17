@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	ibcclient "github.com/okex/exchain/libs/ibc-go/modules/core/02-client"
@@ -62,7 +63,9 @@ func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
 // RegisterRESTRoutes does nothing. IBC does not support legacy REST routes.
 func (AppModuleBasic) RegisterRESTRoutes(ctx clientCtx.CLIContext, rtr *mux.Router) {}
 
-func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {}
+func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
+	types.RegisterCodec(cdc)
+}
 
 // TODO
 // RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the ibc module.

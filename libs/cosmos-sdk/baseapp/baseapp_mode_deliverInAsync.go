@@ -8,10 +8,13 @@ func (m *modeHandlerDeliverInAsync) handleDeferRefund(info *runTxInfo) {
 	if app.GasRefundHandler == nil {
 		return
 	}
+	if info.msCacheAnte == nil {
+		return
+	}
 	var gasRefundCtx sdk.Context
 	gasRefundCtx = info.runMsgCtx
 	if info.msCache == nil || !info.runMsgFinished { // case: panic when runMsg
-		info.msCache = info.msCacheAnte.CacheMultiStore()
+		info.msCache = app.parallelTxManage.chainMultiStores.GetStoreWithParent(info.msCacheAnte)
 		gasRefundCtx = info.ctx
 		gasRefundCtx.SetMultiStore(info.msCache)
 	}
@@ -29,19 +32,17 @@ func (m *modeHandlerDeliverInAsync) handleDeferGasConsumed(info *runTxInfo) {
 func (m *modeHandlerDeliverInAsync) handleRunMsg(info *runTxInfo) (err error) {
 	app := m.app
 	mode := m.mode
-	msCacheAnte := info.msCacheAnte
 
-	info.msCache = msCacheAnte.CacheMultiStore()
+	info.msCache = app.parallelTxManage.chainMultiStores.GetStoreWithParent(info.msCacheAnte)
 	info.runMsgCtx = info.ctx
 	info.runMsgCtx.SetMultiStore(info.msCache)
 
 	info.result, err = app.runMsgs(info.runMsgCtx, info.tx.GetMsgs(), mode)
 	info.runMsgFinished = true
-	err = m.checkHigherThanMercury(err, info)
-
-	if info.msCache != nil {
+	if err == nil {
 		info.msCache.Write()
 	}
+	err = m.checkHigherThanMercury(err, info)
 
 	return
 }

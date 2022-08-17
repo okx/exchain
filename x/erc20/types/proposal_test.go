@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/hex"
 	"fmt"
 	"testing"
 
@@ -34,6 +35,32 @@ func TestTokenMappingProposal_ValidateBasic(t *testing.T) {
 			"right delist proposal", "eth", contractAddrStr}, false},
 		{"long-description", TokenMappingProposal{"proposal",
 			getLongString(501), "eth", contractAddrStr}, false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+
+			if tt.result {
+				require.Nil(t, tt.drp.ValidateBasic(), "test: %v", tt.name)
+			} else {
+				require.NotNil(t, tt.drp.ValidateBasic(), "test: %v", tt.name)
+			}
+		})
+	}
+}
+
+func TestContractTemplateProposal_ValidateBasic(t *testing.T) {
+	f := func(bin string) string {
+		json := `[{	"inputs": [{"internalType": "uint256","name": "a","type": "uint256"	},{	"internalType": "uint256","name": "b","type": "uint256"}],"stateMutability": "nonpayable","type": "constructor"}]`
+		str := fmt.Sprintf(`{"abi":%s,"bin":"%s"}`, json, bin)
+		return str
+	}
+	tests := []struct {
+		name   string
+		drp    ContractTemplateProposal
+		result bool
+	}{
+		{"invalid hex", ContractTemplateProposal{"title", "desc", ProposalTypeContextTemplateProxy, f("invalid hex")}, false},
+		{"invalid type", ContractTemplateProposal{"title", "desc", "mis", f(hex.EncodeToString([]byte("valid hex")))}, false},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

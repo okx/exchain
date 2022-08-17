@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"sync"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
@@ -184,18 +185,45 @@ func (msg *MsgEthereumTx) GetSignBytes() []byte {
 	panic("must use 'RLPSignBytes' with a chain ID to get the valid bytes to sign")
 }
 
+type rlpHashData struct {
+	Params [9]interface{}
+	Hash   ethcmn.Hash
+
+	GasLimit uint64
+	Payload  []byte
+
+	ParamsSlice interface{}
+}
+
+var rlpHashDataPool = &sync.Pool{
+	New: func() interface{} {
+		data := &rlpHashData{}
+		data.ParamsSlice = data.Params[:]
+		return data
+	},
+}
+
 // RLPSignBytes returns the RLP hash of an Ethereum transaction message with a
 // given chainID used for signing.
-func (msg *MsgEthereumTx) RLPSignBytes(chainID *big.Int) ethcmn.Hash {
-	return rlpHash([]interface{}{
-		msg.Data.AccountNonce,
-		msg.Data.Price,
-		msg.Data.GasLimit,
-		msg.Data.Recipient,
-		msg.Data.Amount,
-		msg.Data.Payload,
-		chainID, uint(0), uint(0),
-	})
+func (msg *MsgEthereumTx) RLPSignBytes(chainID *big.Int) (h ethcmn.Hash) {
+	rlpData := rlpHashDataPool.Get().(*rlpHashData)
+	rlpData.GasLimit = msg.Data.GasLimit
+	rlpData.Payload = msg.Data.Payload
+
+	rlpParams := &rlpData.Params
+	rlpParams[0] = msg.Data.AccountNonce
+	rlpParams[1] = msg.Data.Price
+	rlpParams[2] = &rlpData.GasLimit
+	rlpParams[3] = msg.Data.Recipient
+	rlpParams[4] = msg.Data.Amount
+	rlpParams[5] = &rlpData.Payload
+	rlpParams[6] = chainID
+	rlpParams[7] = uint(0)
+	rlpParams[8] = uint(0)
+	rlpHashTo(rlpData.ParamsSlice, &rlpData.Hash)
+	h = rlpData.Hash
+	rlpHashDataPool.Put(rlpData)
+	return
 }
 
 // Hash returns the hash to be signed by the sender.
@@ -267,6 +295,12 @@ func (msg *MsgEthereumTx) Sign(chainID *big.Int, priv *ecdsa.PrivateKey) error {
 	return nil
 }
 
+var sigBigNumPool = &sync.Pool{
+	New: func() interface{} {
+		return new(big.Int)
+	},
+}
+
 func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (string, error) {
 	var V *big.Int
 	var sigHash ethcmn.Hash
@@ -276,8 +310,13 @@ func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (string, error) {
 			return "", errors.New("chainID cannot be zero")
 		}
 
-		chainIDMul := new(big.Int).Mul(chainID, big2)
-		V = new(big.Int).Sub(msg.Data.V, chainIDMul)
+		bigNum := sigBigNumPool.Get().(*big.Int)
+		defer sigBigNumPool.Put(bigNum)
+		chainIDMul := bigNum.Mul(chainID, big2)
+		V = chainIDMul.Sub(msg.Data.V, chainIDMul)
+
+		// chainIDMul := new(big.Int).Mul(chainID, big2)
+		// V = new(big.Int).Sub(msg.Data.V, chainIDMul)
 		V.Sub(V, big8)
 
 		sigHash = msg.RLPSignBytes(chainID)
@@ -287,7 +326,7 @@ func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (string, error) {
 		sigHash = msg.HomesteadSignHash()
 	}
 
-	sender, err := recoverEthSig(msg.Data.R, msg.Data.S, V, sigHash)
+	sender, err := recoverEthSig(msg.Data.R, msg.Data.S, V, &sigHash)
 	if err != nil {
 		return "", err
 	}
@@ -334,7 +373,17 @@ func (msg *MsgEthereumTx) GetGas() uint64 {
 
 // Fee returns gasprice * gaslimit.
 func (msg *MsgEthereumTx) Fee() *big.Int {
-	return new(big.Int).Mul(msg.Data.Price, new(big.Int).SetUint64(msg.Data.GasLimit))
+	fee := new(big.Int)
+	fee.SetUint64(msg.Data.GasLimit)
+	fee.Mul(fee, msg.Data.Price)
+	return fee
+}
+
+// CalcFee set fee to gasprice * gaslimit and return fee
+func (msg *MsgEthereumTx) CalcFee(fee *big.Int) *big.Int {
+	fee.SetUint64(msg.Data.GasLimit)
+	fee.Mul(fee, msg.Data.Price)
+	return fee
 }
 
 // ChainID returns which chain id this transaction was signed for (if at all)
@@ -345,6 +394,13 @@ func (msg *MsgEthereumTx) ChainID() *big.Int {
 // Cost returns amount + gasprice * gaslimit.
 func (msg *MsgEthereumTx) Cost() *big.Int {
 	total := msg.Fee()
+	total.Add(total, msg.Data.Amount)
+	return total
+}
+
+// CalcCostTo set total to amount + gasprice * gaslimit and return it
+func (msg *MsgEthereumTx) CalcCostTo(total *big.Int) *big.Int {
+	total = msg.CalcFee(total)
 	total.Add(total, msg.Data.Amount)
 	return total
 }

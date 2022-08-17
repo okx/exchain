@@ -7,6 +7,7 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -19,7 +20,7 @@ import (
 
 // GetCmdManageContractDeploymentWhitelistProposal implements a command handler for submitting a manage contract deployment
 // whitelist proposal transaction
-func GetCmdManageContractDeploymentWhitelistProposal(cdc *codec.Codec) *cobra.Command {
+func GetCmdManageContractDeploymentWhitelistProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	return &cobra.Command{
 		Use:   "update-contract-deployment-whitelist [proposal-file]",
 		Args:  cobra.ExactArgs(1),
@@ -51,6 +52,7 @@ Where proposal.json contains:
 `, version.ClientName, sdk.DefaultBondDenom,
 			)),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cdc := cdcP.GetCdc()
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
@@ -80,7 +82,7 @@ Where proposal.json contains:
 
 // GetCmdManageContractBlockedListProposal implements a command handler for submitting a manage contract blocked list
 // proposal transaction
-func GetCmdManageContractBlockedListProposal(cdc *codec.Codec) *cobra.Command {
+func GetCmdManageContractBlockedListProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	return &cobra.Command{
 		Use:   "update-contract-blocked-list [proposal-file]",
 		Args:  cobra.ExactArgs(1),
@@ -112,6 +114,7 @@ Where proposal.json contains:
 `, version.ClientName, sdk.DefaultBondDenom,
 			)),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cdc := cdcP.GetCdc()
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
@@ -141,7 +144,7 @@ Where proposal.json contains:
 
 // GetCmdManageContractMethodBlockedListProposal implements a command handler for submitting a manage contract blocked list
 // proposal transaction
-func GetCmdManageContractMethodBlockedListProposal(cdc *codec.Codec) *cobra.Command {
+func GetCmdManageContractMethodBlockedListProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	return &cobra.Command{
 		Use:   "update-contract-method-blocked-list [proposal-file]",
 		Args:  cobra.ExactArgs(1),
@@ -163,12 +166,12 @@ Where proposal.json contains:
             "address":"ex1k0wwsg7xf9tjt3rvxdewz42e74sp286agrf9qc",
             "block_methods": [
                 {
-                    "Name": "0x371303c0",
-                    "Extra": "inc()"
+                    "sign": "0x371303c0",
+                    "extra": "inc()"
                 },
                 {
-                    "Name": "0x579be378",
-                    "Extra": "onc()"
+                    "sign": "0x579be378",
+                    "extra": "onc()"
                 }
             ]
         },
@@ -176,12 +179,12 @@ Where proposal.json contains:
             "address":"ex1s0vrf96rrsknl64jj65lhf89ltwj7lksr7m3r9",
             "block_methods": [
                 {
-                    "Name": "0x371303c0",
-                    "Extra": "inc()"
+                    "sign": "0x371303c0",
+                    "extra": "inc()"
                 },
                 {
-                    "Name": "0x579be378",
-                    "Extra": "onc()"
+                    "sign": "0x579be378",
+                    "extra": "onc()"
                 }
             ]
         }
@@ -197,6 +200,7 @@ Where proposal.json contains:
 `, version.ClientName, sdk.DefaultBondDenom,
 			)),
 		RunE: func(cmd *cobra.Command, args []string) error {
+			cdc := cdcP.GetCdc()
 			inBuf := bufio.NewReader(cmd.InOrStdin())
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)

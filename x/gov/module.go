@@ -15,7 +15,6 @@ import (
 
 	"github.com/okex/exchain/x/gov/client"
 	"github.com/okex/exchain/x/gov/client/cli"
-	GovCli "github.com/okex/exchain/x/gov/client/cli"
 	"github.com/okex/exchain/x/gov/client/rest"
 	"github.com/okex/exchain/x/gov/keeper"
 	"github.com/okex/exchain/x/gov/types"
@@ -77,12 +76,7 @@ func (a AppModuleBasic) RegisterRESTRoutes(ctx context.CLIContext, rtr *mux.Rout
 
 // GetTxCmd gets the root tx command of this module
 func (a AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
-	proposalCLIHandlers := make([]*cobra.Command, len(a.proposalHandlers))
-	for i, proposalHandler := range a.proposalHandlers {
-		proposalCLIHandlers[i] = proposalHandler.CLIHandler(cdc)
-	}
-
-	return GovCli.GetTxCmd(types.StoreKey, cdc, proposalCLIHandlers)
+	return nil
 }
 
 // GetQueryCmd gets the root query command of this module

@@ -31,7 +31,17 @@ var (
 	ErrVoteHeightMismatch       = errors.New("error vote height mismatch")
 
 	errPubKeyIsNotSet = errors.New("pubkey is not set. Look for \"Can't get private validator pubkey\" errors")
+
+	activeViewChange = false
 )
+
+func SetActiveVC(value bool) {
+	activeViewChange = value
+}
+
+func GetActiveVC() bool {
+	return activeViewChange
+}
 
 //-----------------------------------------------------------------------------
 
@@ -125,10 +135,11 @@ func (info msgInfo) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
 
 // internally generated messages which may update the state
 type timeoutInfo struct {
-	Duration time.Duration         `json:"duration"`
-	Height   int64                 `json:"height"`
-	Round    int                   `json:"round"`
-	Step     cstypes.RoundStepType `json:"step"`
+	Duration         time.Duration         `json:"duration"`
+	Height           int64                 `json:"height"`
+	Round            int                   `json:"round"`
+	Step             cstypes.RoundStepType `json:"step"`
+	ActiveViewChange bool                  `json:"active-view-change"`
 }
 
 func (ti *timeoutInfo) String() string {
@@ -218,9 +229,6 @@ type State struct {
 	// store blocks and commits
 	blockStore sm.BlockStore
 
-	// store deltas
-	deltaStore sm.DeltaStore
-
 	// create and execute blocks
 	blockExec *sm.BlockExecutor
 
@@ -232,7 +240,8 @@ type State struct {
 	evpool evidencePool
 
 	// internal state
-	mtx sync.RWMutex
+	mtx      sync.RWMutex
+	stateMtx sync.RWMutex
 	cstypes.RoundState
 	state sm.State // State until height-1.
 	// privValidator pubkey, memoized for the duration of one block
@@ -277,12 +286,15 @@ type State struct {
 	// for reporting metrics
 	metrics *Metrics
 
-	trc *trace.Tracer
+	trc                *trace.Tracer
 	blockTimeTrc       *trace.Tracer
 	timeoutIntervalTrc *trace.Tracer
 
 	prerunTx bool
 	bt       *BlockTransport
+
+	vcMsg *ViewChangeMessage
+	hasVC bool // active-view-change(enterNewRoundAVC) at this Height
 }
 
 // StateOption sets an optional parameter on the State.
@@ -294,32 +306,30 @@ func NewState(
 	state sm.State,
 	blockExec *sm.BlockExecutor,
 	blockStore sm.BlockStore,
-	deltaStore sm.DeltaStore,
 	txNotifier txNotifier,
 	evpool evidencePool,
 	options ...StateOption,
 ) *State {
 	cs := &State{
-		config:           config,
-		blockExec:        blockExec,
-		blockStore:       blockStore,
-		deltaStore:       deltaStore,
-		txNotifier:       txNotifier,
-		peerMsgQueue:     make(chan msgInfo, msgQueueSize),
-		internalMsgQueue: make(chan msgInfo, msgQueueSize),
-		timeoutTicker:    NewTimeoutTicker(),
-		statsMsgQueue:    make(chan msgInfo, msgQueueSize),
-		done:             make(chan struct{}),
-		doWALCatchup:     true,
-		wal:              nilWAL{},
-		evpool:           evpool,
-		evsw:             tmevents.NewEventSwitch(),
-		metrics:          NopMetrics(),
-		trc:              trace.NewTracer(trace.Consensus),
-		prerunTx:         viper.GetBool(EnablePrerunTx),
-		bt:               &BlockTransport{},
-		blockTimeTrc:           trace.NewTracer(trace.LastBlockTime),
-		timeoutIntervalTrc:     trace.NewTracer(trace.TimeoutInterval),
+		config:             config,
+		blockExec:          blockExec,
+		blockStore:         blockStore,
+		txNotifier:         txNotifier,
+		peerMsgQueue:       make(chan msgInfo, msgQueueSize),
+		internalMsgQueue:   make(chan msgInfo, msgQueueSize),
+		timeoutTicker:      NewTimeoutTicker(),
+		statsMsgQueue:      make(chan msgInfo, msgQueueSize),
+		done:               make(chan struct{}),
+		doWALCatchup:       true,
+		wal:                nilWAL{},
+		evpool:             evpool,
+		evsw:               tmevents.NewEventSwitch(),
+		metrics:            NopMetrics(),
+		trc:                trace.NewTracer(trace.Consensus),
+		prerunTx:           viper.GetBool(EnablePrerunTx),
+		bt:                 &BlockTransport{},
+		blockTimeTrc:       trace.NewTracer(trace.LastBlockTime),
+		timeoutIntervalTrc: trace.NewTracer(trace.TimeoutInterval),
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal

@@ -668,7 +668,6 @@ type MempoolConfig struct {
 	Sealed                     bool     `mapstructure:"sealed"`
 	Recheck                    bool     `mapstructure:"recheck"`
 	Broadcast                  bool     `mapstructure:"broadcast"`
-	WalPath                    string   `mapstructure:"wal_dir"`
 	Size                       int      `mapstructure:"size"`
 	MaxTxsBytes                int64    `mapstructure:"max_txs_bytes"`
 	CacheSize                  int      `mapstructure:"cache_size"`
@@ -691,7 +690,6 @@ func DefaultMempoolConfig() *MempoolConfig {
 	return &MempoolConfig{
 		Recheck:   false,
 		Broadcast: true,
-		WalPath:   "",
 		// Each signature verification takes .5ms, Size reduced until we implement
 		// ABCI Recheck
 		Size:                       10000,              // exchain memory pool size(max tx num)
@@ -716,16 +714,6 @@ func TestMempoolConfig() *MempoolConfig {
 	cfg := DefaultMempoolConfig()
 	cfg.CacheSize = 1000
 	return cfg
-}
-
-// WalDir returns the full path to the mempool's write-ahead log
-func (cfg *MempoolConfig) WalDir() string {
-	return rootify(cfg.WalPath, cfg.RootDir)
-}
-
-// WalEnabled returns true if the WAL is enabled.
-func (cfg *MempoolConfig) WalEnabled() bool {
-	return cfg.WalPath != ""
 }
 
 // GetNodeKeyWhitelist first use the DynamicConfig to get secondly backup to
@@ -814,6 +802,7 @@ type ConsensusConfig struct {
 	TimeoutPrecommitDelta time.Duration `mapstructure:"timeout_precommit_delta"`
 	TimeoutCommit         time.Duration `mapstructure:"timeout_commit"`
 	TimeoutConsensus      time.Duration `mapstructure:"timeout_consensus"`
+	Waiting               bool          `mapstructure:"waiting"`
 
 	// Make progress as soon as we have all the precommits (as if TimeoutCommit = 0)
 	SkipTimeoutCommit bool `mapstructure:"skip_timeout_commit"`
@@ -846,6 +835,7 @@ func DefaultConsensusConfig() *ConsensusConfig {
 		TimeoutToFastSync:           30 * time.Second,
 		PeerGossipSleepDuration:     100 * time.Millisecond,
 		PeerQueryMaj23SleepDuration: 2000 * time.Millisecond,
+		Waiting:                     true,
 	}
 }
 

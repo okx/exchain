@@ -1,12 +1,14 @@
 package keeper
 
 import (
+	"encoding/json"
 	"fmt"
 
 	ethcmm "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	transfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/erc20/types"
@@ -29,6 +31,8 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryDenomByContract(ctx, req, keeper)
 		case types.QueryContractByDenom:
 			return queryContractByDenom(ctx, req, keeper)
+		case types.QueryContractTem:
+			return queryContractTemplate(ctx, req, keeper)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query endpoint")
 		}
@@ -45,13 +49,29 @@ func queryParams(ctx sdk.Context, keeper Keeper) (res []byte, err sdk.Error) {
 }
 
 func queryTokenMapping(ctx sdk.Context, keeper Keeper) ([]byte, error) {
-	var mapping []types.TokenMapping
+	var mappings []types.QueryTokenMappingResponse
 	keeper.IterateMapping(ctx, func(denom, contract string) bool {
-		mapping = append(mapping, types.TokenMapping{denom, contract})
+		mapping := types.QueryTokenMappingResponse{
+			Denom:    denom,
+			Contract: contract,
+		}
+
+		if types.IsValidIBCDenom(denom) {
+			hexHash := denom[len(transfertypes.DenomPrefix+"/"):]
+			hash, err := transfertypes.ParseHexHash(hexHash)
+			if err == nil {
+				denomTrace, found := keeper.transferKeeper.GetDenomTrace(ctx, hash)
+				if found {
+					mapping.Path = denomTrace.Path
+					mapping.BaseDenom = denomTrace.BaseDenom
+				}
+			}
+		}
+		mappings = append(mappings, mapping)
 		return false
 	})
 
-	res, errUnmarshal := codec.MarshalJSONIndent(types.ModuleCdc, mapping)
+	res, errUnmarshal := codec.MarshalJSONIndent(types.ModuleCdc, mappings)
 	if errUnmarshal != nil {
 		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", errUnmarshal.Error()))
 	}
@@ -86,4 +106,18 @@ func queryContractByDenom(ctx sdk.Context, req abci.RequestQuery, keeper Keeper)
 	}
 
 	return []byte(contract.String()), nil
+}
+
+func queryContractTemplate(ctx sdk.Context, req abci.RequestQuery, keeper Keeper) ([]byte, error) {
+	ret := types.ContractTemplate{}
+	proxy, found := keeper.GetProxyTemplateContract(ctx)
+	if found {
+		ret.Proxy = string(types.MustMarshalCompileContract(proxy))
+	}
+	imple, found := keeper.GetImplementTemplateContract(ctx)
+	if found {
+		ret.Implement = string(types.MustMarshalCompileContract(imple))
+	}
+	data, _ := json.Marshal(ret)
+	return data, nil
 }

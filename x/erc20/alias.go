@@ -18,6 +18,8 @@ var (
 	NewKeeper                = keeper.NewKeeper
 	NewIBCTransferHooks      = keeper.NewIBCTransferHooks
 	NewSendToIbcEventHandler = keeper.NewSendToIbcEventHandler
+
+	NewSendNative20ToIbcEventHandler = keeper.NewSendNative20ToIbcEventHandler
 )
 
 //nolint

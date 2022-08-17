@@ -6,6 +6,7 @@ import (
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
 	"github.com/okex/exchain/libs/tendermint/libs/fail"
+	"github.com/okex/exchain/libs/tendermint/types"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
 	"reflect"
 	"runtime/debug"
@@ -64,10 +65,11 @@ func (cs *State) receiveRoutine(maxSteps int) {
 		case <-cs.txNotifier.TxsAvailable():
 			cs.handleTxsAvailable()
 		case mi = <-cs.peerMsgQueue:
-			cs.wal.Write(mi)
 			// handles proposals, block parts, votes
 			// may generate internal events (votes, complete proposals, 2/3 majorities)
-			cs.handleMsg(mi)
+			if cs.handleMsg(mi) {
+				cs.wal.Write(mi)
+			}
 		case mi = <-cs.internalMsgQueue:
 			err := cs.wal.WriteSync(mi) // NOTE: fsync
 			if err != nil {
@@ -97,20 +99,45 @@ func (cs *State) receiveRoutine(maxSteps int) {
 }
 
 // state transitions on complete-proposal, 2/3-any, 2/3-one
-func (cs *State) handleMsg(mi msgInfo) {
+func (cs *State) handleMsg(mi msgInfo) (added bool) {
 	cs.mtx.Lock()
 	defer cs.mtx.Unlock()
 
 	var (
-		added bool
-		err   error
+		err error
 	)
 	msg, peerID := mi.Msg, mi.PeerID
 	switch msg := msg.(type) {
+	case *ViewChangeMessage:
+		if !GetActiveVC() {
+			return
+		}
+
+		// no need to handle duplicate vcMsg
+		if cs.vcMsg != nil && cs.vcMsg.Height >= msg.Height {
+			return
+		}
+
+		// enterNewHeight use cs.vcMsg
+		if msg.Height == cs.Height+1 {
+			cs.vcMsg = msg
+		} else if msg.Height == cs.Height {
+			// ApplyBlock of height-1 has finished
+			// at this height, it has enterNewHeight
+			// vc immediately
+			cs.vcMsg = msg
+			if cs.Step != cstypes.RoundStepNewHeight && cs.Round == 0 {
+				_, val := cs.Validators.GetByAddress(msg.NewProposer)
+				cs.enterNewRoundAVC(cs.Height, 0, val)
+			}
+		}
+
 	case *ProposalMessage:
 		// will not cause transition.
 		// once proposal is set, we can receive block parts
-		err = cs.setProposal(msg.Proposal)
+		if err = cs.setProposal(msg.Proposal); err == nil {
+			added = true
+		}
 	case *BlockPartMessage:
 		// if the proposal is complete, we'll enterPrevote or tryFinalizeCommit
 		added, err = cs.addProposalBlockPart(msg, peerID)
@@ -181,6 +208,7 @@ func (cs *State) handleMsg(mi msgInfo) {
 		// cs.Logger.Error("Error with msg", "height", cs.Height, "round", cs.Round,
 		// 	"peer", peerID, "err", err, "msg", msg)
 	}
+	return
 }
 
 func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
@@ -204,7 +232,7 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 	case cstypes.RoundStepNewHeight:
 		// NewRound event fired from enterNewRound.
 		// XXX: should we fire timeout here (for timeout commit)?
-		cs.enterNewRound(ti.Height, 0)
+		cs.enterNewHeight(ti.Height)
 	case cstypes.RoundStepNewRound:
 		cs.enterPropose(ti.Height, 0)
 	case cstypes.RoundStepPropose:
@@ -234,12 +262,37 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 		sleepDuration = 0
 	}
 
+	if !cs.config.Waiting {
+		sleepDuration = 0
+	}
+
+	if GetActiveVC() {
+		// itself is proposer, no need to request
+		isBlockProducer, _ := cs.isBlockProducer()
+		if isBlockProducer != "y" && cs.Validators.HasAddress(cs.privValidatorPubKey.Address()) {
+			// request for proposer of new height
+			prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address()}
+			// todo only put all request into one channel
+			go cs.requestForProposer(prMsg)
+		}
+	}
+
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
+}
+
+// requestForProposer FireEvent to broadcast ProposeRequestMessage
+func (cs *State) requestForProposer(prMsg ProposeRequestMessage) {
+	if signature, err := cs.privValidator.SignBytes(prMsg.SignBytes()); err == nil {
+		prMsg.Signature = signature
+		cs.evsw.FireEvent(types.EventProposeRequest, &prMsg)
+	} else {
+		cs.Logger.Error("requestForProposer", "err", err)
+	}
 }
 
 // Attempt to schedule a timeout (by sending timeoutInfo on the tickChan)
 func (cs *State) scheduleTimeout(duration time.Duration, height int64, round int, step cstypes.RoundStepType) {
-	cs.timeoutTicker.ScheduleTimeout(timeoutInfo{duration, height, round, step})
+	cs.timeoutTicker.ScheduleTimeout(timeoutInfo{Duration: duration, Height: height, Round: round, Step: step})
 }
 
 // send a msg into the receiveRoutine regarding our own proposal, block part, or vote

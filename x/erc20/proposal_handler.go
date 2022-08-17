@@ -14,6 +14,10 @@ func NewProposalHandler(k *Keeper) govTypes.Handler {
 		switch content := proposal.Content.(type) {
 		case types.TokenMappingProposal:
 			return handleTokenMappingProposal(ctx, k, content)
+		case types.ProxyContractRedirectProposal:
+			return handleProxyContractRedirectProposal(ctx, k, content)
+		case types.ContractTemplateProposal:
+			return handleContractTemplateProposal(ctx, k, content)
 		default:
 			return common.ErrUnknownProposalType(types.DefaultCodespace, content.ProposalType())
 		}
@@ -21,15 +25,29 @@ func NewProposalHandler(k *Keeper) govTypes.Handler {
 }
 
 func handleTokenMappingProposal(ctx sdk.Context, k *Keeper, p types.TokenMappingProposal) sdk.Error {
+	if p.Denom == sdk.DefaultBondDenom || p.Denom == sdk.DefaultIbcWei {
+		return govTypes.ErrInvalidProposalContent("invalid denom, not support okt or wei denom")
+	}
+
 	if len(p.Contract) == 0 {
 		// delete existing mapping
-		k.DeleteExternalContractForDenom(ctx, p.Denom)
+		k.DeleteContractForDenom(ctx, p.Denom)
 	} else {
 		// update the mapping
 		contract := ethcmm.HexToAddress(p.Contract)
-		if err := k.SetExternalContractForDenom(ctx, p.Denom, contract); err != nil {
+		if err := k.SetContractForDenom(ctx, p.Denom, contract); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func handleProxyContractRedirectProposal(ctx sdk.Context, k *Keeper, p types.ProxyContractRedirectProposal) sdk.Error {
+	address := ethcmm.HexToAddress(p.Addr)
+
+	return k.ProxyContractRedirect(ctx, p.Denom, p.Tp, address)
+}
+
+func handleContractTemplateProposal(ctx sdk.Context, k *Keeper, p types.ContractTemplateProposal) sdk.Error {
+	return k.SetTemplateContract(ctx, p.ContractType, p.Contract)
 }

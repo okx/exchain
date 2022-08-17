@@ -991,7 +991,7 @@ var blockAminoTestCases = []Block{
 					time.Now(),
 					[]byte("ValidatorAddress"),
 					23,
-					[]byte("Signature"),
+					[]byte("Signature"), false,
 				}},
 			},
 		},

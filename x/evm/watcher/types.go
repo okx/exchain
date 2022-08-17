@@ -5,18 +5,20 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-
-	ethcrypto "github.com/ethereum/go-ethereum/crypto"
-
 	"math/big"
 	"strconv"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/gogo/protobuf/proto"
+	app "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/pkg/errors"
 	"github.com/status-im/keycard-go/hexutils"
@@ -37,6 +39,8 @@ var (
 	prefixWhiteList    = []byte{0x11}
 	prefixBlackList    = []byte{0x12}
 	prefixRpcDb        = []byte{0x13}
+	prefixTxResponse   = []byte{0x14}
+	prefixStdTxHash    = []byte{0x15}
 
 	KeyLatestHeight = "LatestHeight"
 
@@ -45,16 +49,16 @@ var (
 )
 
 const (
-	TypeOthers = uint32(1)
-	TypeState  = uint32(2)
-	TypeDelete = uint32(3)
+	TypeOthers    = uint32(1)
+	TypeState     = uint32(2)
+	TypeDelete    = uint32(3)
+	TypeEvmParams = uint32(4)
+
+	EthReceipt  = uint64(0)
+	StdResponse = uint64(1)
 )
 
-type WatchMessage interface {
-	GetKey() []byte
-	GetValue() string
-	GetType() uint32
-}
+type WatchMessage = sdk.WatchMessage
 
 type Batch struct {
 	Key       []byte `json:"key"`
@@ -431,7 +435,7 @@ func (m MsgCodeByHash) GetValue() string {
 }
 
 type MsgTransactionReceipt struct {
-	*baseLazyMarshal
+	*TransactionReceipt
 	txHash []byte
 }
 
@@ -439,43 +443,99 @@ func (m MsgTransactionReceipt) GetType() uint32 {
 	return TypeOthers
 }
 
-type TransactionReceipt struct {
-	Status            hexutil.Uint64  `json:"status"`
-	CumulativeGasUsed hexutil.Uint64  `json:"cumulativeGasUsed"`
-	LogsBloom         ethtypes.Bloom  `json:"logsBloom"`
-	Logs              []*ethtypes.Log `json:"logs"`
-	TransactionHash   string          `json:"transactionHash"`
-	ContractAddress   *common.Address `json:"contractAddress"`
-	GasUsed           hexutil.Uint64  `json:"gasUsed"`
-	BlockHash         string          `json:"blockHash"`
-	BlockNumber       hexutil.Uint64  `json:"blockNumber"`
-	TransactionIndex  hexutil.Uint64  `json:"transactionIndex"`
-	From              string          `json:"from"`
-	To                *common.Address `json:"to"`
+//type WrappedResponseWithCodec
+type WrappedResponseWithCodec struct {
+	Response sdk.TxResponse
+	Codec    *codec.Codec `json:"-"`
 }
 
-func NewEvmTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, blockHash common.Hash, txIndex, height uint64, data *types.ResultData, cumulativeGas, GasUsed uint64) *MsgTransactionReceipt {
-	tr := TransactionReceipt{
-		Status:            hexutil.Uint64(status),
-		CumulativeGasUsed: hexutil.Uint64(cumulativeGas),
-		LogsBloom:         data.Bloom,
-		Logs:              data.Logs,
-		TransactionHash:   types.EthHashStringer(txHash).String(),
-		ContractAddress:   &data.ContractAddress,
-		GasUsed:           hexutil.Uint64(GasUsed),
-		BlockHash:         types.EthHashStringer(blockHash).String(),
-		BlockNumber:       hexutil.Uint64(height),
-		TransactionIndex:  hexutil.Uint64(txIndex),
-		From:              types.EthAddressStringer(common.BytesToAddress(tx.AccountAddress().Bytes())).String(),
-		To:                tx.To(),
+type TransactionResult struct {
+	TxType   hexutil.Uint64            `json:"type"`
+	EthTx    *Transaction              `json:"ethTx"`
+	Receipt  *TransactionReceipt       `json:"receipt"`
+	Response *WrappedResponseWithCodec `json:"response"`
+}
+
+func (wr *WrappedResponseWithCodec) MarshalJSON() ([]byte, error) {
+	if wr.Codec != nil {
+		return wr.Codec.MarshalJSON(wr.Response)
 	}
 
+	return json.Marshal(wr.Response)
+}
+
+type TransactionReceipt struct {
+	Status                hexutil.Uint64  `json:"status"`
+	CumulativeGasUsed     hexutil.Uint64  `json:"cumulativeGasUsed"`
+	LogsBloom             ethtypes.Bloom  `json:"logsBloom"`
+	Logs                  []*ethtypes.Log `json:"logs"`
+	originTransactionHash common.Hash
+	TransactionHash       string          `json:"transactionHash"`
+	ContractAddress       *common.Address `json:"contractAddress"`
+	GasUsed               hexutil.Uint64  `json:"gasUsed"`
+	originBlockHash       common.Hash
+	BlockHash             string         `json:"blockHash"`
+	BlockNumber           hexutil.Uint64 `json:"blockNumber"`
+	TransactionIndex      hexutil.Uint64 `json:"transactionIndex"`
+	tx                    *types.MsgEthereumTx
+	From                  string          `json:"from"`
+	To                    *common.Address `json:"to"`
+}
+
+func (tr *TransactionReceipt) GetValue() string {
+	tr.TransactionHash = tr.GetHash()
+	tr.BlockHash = tr.GetBlockHash()
+	tr.From = tr.GetFrom()
+	tr.To = tr.tx.To()
 	//contract address will be set to 0x0000000000000000000000000000000000000000 if contract deploy failed
 	if tr.ContractAddress != nil && types.EthAddressStringer(*tr.ContractAddress).String() == "0x0000000000000000000000000000000000000000" {
 		//set to nil to keep sync with ethereum rpc
 		tr.ContractAddress = nil
 	}
-	return &MsgTransactionReceipt{txHash: txHash.Bytes(), baseLazyMarshal: newBaseLazyMarshal(tr)}
+	protoReceipt := receiptToProto(tr)
+	buf, err := proto.Marshal(protoReceipt)
+	if err != nil {
+		panic("cant happen")
+	}
+
+	return string(buf)
+}
+
+func (tr *TransactionReceipt) GetHash() string {
+	return types.EthHashStringer(tr.originTransactionHash).String()
+}
+
+func (tr *TransactionReceipt) GetBlockHash() string {
+	return types.EthHashStringer(tr.originBlockHash).String()
+}
+
+func (tr *TransactionReceipt) GetFrom() string {
+	return types.EthAddressStringer(common.BytesToAddress(tr.tx.AccountAddress().Bytes())).String()
+}
+
+func (tr *TransactionReceipt) GetTo() *common.Address {
+	return tr.tx.To()
+}
+
+func newTransactionReceipt(status uint32, tx *types.MsgEthereumTx, txHash, blockHash common.Hash, txIndex, height uint64, data *types.ResultData, cumulativeGas, GasUsed uint64) TransactionReceipt {
+	tr := TransactionReceipt{
+		Status:                hexutil.Uint64(status),
+		CumulativeGasUsed:     hexutil.Uint64(cumulativeGas),
+		LogsBloom:             data.Bloom,
+		Logs:                  data.Logs,
+		originTransactionHash: txHash,
+		ContractAddress:       &data.ContractAddress,
+		GasUsed:               hexutil.Uint64(GasUsed),
+		originBlockHash:       blockHash,
+		BlockNumber:           hexutil.Uint64(height),
+		TransactionIndex:      hexutil.Uint64(txIndex),
+		tx:                    tx,
+	}
+	return tr
+}
+
+func NewMsgTransactionReceipt(tr TransactionReceipt, txHash common.Hash) *MsgTransactionReceipt {
+	return &MsgTransactionReceipt{txHash: txHash.Bytes(), TransactionReceipt: &tr}
 }
 
 func (m MsgTransactionReceipt) GetKey() []byte {
@@ -544,31 +604,75 @@ type Block struct {
 
 // Transaction represents a transaction returned to RPC clients.
 type Transaction struct {
-	BlockHash        *common.Hash    `json:"blockHash"`
-	BlockNumber      *hexutil.Big    `json:"blockNumber"`
-	From             common.Address  `json:"from"`
-	Gas              hexutil.Uint64  `json:"gas"`
-	GasPrice         *hexutil.Big    `json:"gasPrice"`
-	Hash             common.Hash     `json:"hash"`
-	Input            hexutil.Bytes   `json:"input"`
-	Nonce            hexutil.Uint64  `json:"nonce"`
-	To               *common.Address `json:"to"`
-	TransactionIndex *hexutil.Uint64 `json:"transactionIndex"`
-	Value            *hexutil.Big    `json:"value"`
-	V                *hexutil.Big    `json:"v"`
-	R                *hexutil.Big    `json:"r"`
-	S                *hexutil.Big    `json:"s"`
+	BlockHash         *common.Hash    `json:"blockHash"`
+	BlockNumber       *hexutil.Big    `json:"blockNumber"`
+	From              common.Address  `json:"from"`
+	Gas               hexutil.Uint64  `json:"gas"`
+	GasPrice          *hexutil.Big    `json:"gasPrice"`
+	Hash              common.Hash     `json:"hash"`
+	Input             hexutil.Bytes   `json:"input"`
+	Nonce             hexutil.Uint64  `json:"nonce"`
+	To                *common.Address `json:"to"`
+	TransactionIndex  *hexutil.Uint64 `json:"transactionIndex"`
+	Value             *hexutil.Big    `json:"value"`
+	V                 *hexutil.Big    `json:"v"`
+	R                 *hexutil.Big    `json:"r"`
+	S                 *hexutil.Big    `json:"s"`
+	tx                *types.MsgEthereumTx
+	originBlockHash   *common.Hash
+	originBlockNumber uint64
+	originIndex       uint64
 }
 
-func NewMsgBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash, header abci.Header, gasLimit uint64, gasUsed *big.Int, txs interface{}) *MsgBlock {
-	b := Block{
+func (tr *Transaction) GetValue() string {
+	// Verify signature and retrieve sender address
+	err := tr.tx.VerifySig(tr.tx.ChainID(), int64(tr.originBlockNumber))
+	if err != nil {
+		return ""
+	}
+
+	tr.From = common.HexToAddress(tr.tx.GetFrom())
+	tr.Gas = hexutil.Uint64(tr.tx.Data.GasLimit)
+	tr.GasPrice = (*hexutil.Big)(tr.tx.Data.Price)
+	tr.Input = tr.tx.Data.Payload
+	tr.Nonce = hexutil.Uint64(tr.tx.Data.AccountNonce)
+	tr.To = tr.tx.To()
+	tr.Value = (*hexutil.Big)(tr.tx.Data.Amount)
+	tr.V = (*hexutil.Big)(tr.tx.Data.V)
+	tr.R = (*hexutil.Big)(tr.tx.Data.R)
+	tr.S = (*hexutil.Big)(tr.tx.Data.S)
+
+	if *tr.originBlockHash != (common.Hash{}) {
+		tr.BlockHash = tr.originBlockHash
+		tr.BlockNumber = (*hexutil.Big)(new(big.Int).SetUint64(tr.originBlockNumber))
+		tr.TransactionIndex = (*hexutil.Uint64)(&tr.originIndex)
+	}
+	protoTransaction := transactionToProto(tr)
+	buf, err := proto.Marshal(protoTransaction)
+	if err != nil {
+		panic("cant happen")
+	}
+
+	return string(buf)
+}
+
+func newBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash, header abci.Header, gasLimit uint64, gasUsed *big.Int, txs interface{}) Block {
+	timestamp := header.Time.Unix()
+	if timestamp < 0 {
+		timestamp = time.Now().Unix()
+	}
+	transactionsRoot := ethtypes.EmptyRootHash
+	if len(header.DataHash) > 0 {
+		transactionsRoot = common.BytesToHash(header.DataHash)
+	}
+	return Block{
 		Number:           hexutil.Uint64(height),
 		Hash:             blockHash,
 		ParentHash:       common.BytesToHash(header.LastBlockId.Hash),
 		Nonce:            BlockNonce{},
 		UncleHash:        common.Hash{},
 		LogsBloom:        blockBloom,
-		TransactionsRoot: common.BytesToHash(header.DataHash),
+		TransactionsRoot: transactionsRoot,
 		StateRoot:        common.BytesToHash(header.AppHash),
 		Miner:            common.BytesToAddress(header.ProposerAddress),
 		MixHash:          common.Hash{},
@@ -578,16 +682,19 @@ func NewMsgBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash
 		Size:             hexutil.Uint64(header.Size()),
 		GasLimit:         hexutil.Uint64(gasLimit),
 		GasUsed:          (*hexutil.Big)(gasUsed),
-		Timestamp:        hexutil.Uint64(header.Time.Unix()),
+		Timestamp:        hexutil.Uint64(timestamp),
 		Uncles:           []common.Hash{},
 		ReceiptsRoot:     common.Hash{},
 		Transactions:     txs,
 	}
+}
+
+func NewMsgBlock(b Block) *MsgBlock {
 	jsBlock, e := json.Marshal(b)
 	if e != nil {
 		return nil
 	}
-	return &MsgBlock{blockHash: blockHash.Bytes(), block: string(jsBlock)}
+	return &MsgBlock{blockHash: b.Hash.Bytes(), block: string(jsBlock)}
 }
 
 func (m MsgBlock) GetKey() []byte {
@@ -645,8 +752,7 @@ func (b MsgLatestHeight) GetValue() string {
 }
 
 type MsgAccount struct {
-	*baseLazyMarshal
-	addr []byte
+	account *app.EthAccount
 }
 
 func (msgAccount *MsgAccount) GetType() uint32 {
@@ -654,10 +760,16 @@ func (msgAccount *MsgAccount) GetType() uint32 {
 }
 
 func NewMsgAccount(acc auth.Account) *MsgAccount {
-	return &MsgAccount{
-		addr:            acc.GetAddress().Bytes(),
-		baseLazyMarshal: newBaseLazyMarshal(acc),
+	var msg *MsgAccount
+	switch v := acc.(type) {
+	case app.EthAccount:
+		msg = &MsgAccount{account: &v}
+	case *app.EthAccount:
+		msg = &MsgAccount{account: v}
+	default:
+		msg = nil
 	}
+	return msg
 }
 
 func GetMsgAccountKey(addr []byte) []byte {
@@ -665,7 +777,15 @@ func GetMsgAccountKey(addr []byte) []byte {
 }
 
 func (msgAccount *MsgAccount) GetKey() []byte {
-	return GetMsgAccountKey(msgAccount.addr)
+	return GetMsgAccountKey(msgAccount.account.Address.Bytes())
+}
+
+func (msgAccount *MsgAccount) GetValue() string {
+	data, err := EncodeAccount(msgAccount.account)
+	if err != nil {
+		panic(err)
+	}
+	return string(data)
 }
 
 type DelAccMsg struct {
@@ -715,7 +835,7 @@ func GetMsgStateKey(addr common.Address, key []byte) []byte {
 	copy(compositeKey, prefix)
 	copy(compositeKey[len(prefix):], key)
 
-	return append(PrefixState, ethcrypto.Keccak256Hash(compositeKey).Bytes()...)
+	return append(PrefixState, compositeKey...)
 }
 
 func (msgState *MsgState) GetKey() []byte {
@@ -731,7 +851,7 @@ type MsgParams struct {
 }
 
 func (msgParams *MsgParams) GetType() uint32 {
-	return TypeOthers
+	return TypeEvmParams
 }
 
 func NewMsgParams(params types.Params) *MsgParams {
@@ -774,6 +894,28 @@ func (msgItem *MsgContractBlockedListItem) GetValue() string {
 	return ""
 }
 
+type MsgDelContractBlockedListItem struct {
+	addr sdk.AccAddress
+}
+
+func (msgItem *MsgDelContractBlockedListItem) GetType() uint32 {
+	return TypeDelete
+}
+
+func NewMsgDelContractBlockedListItem(addr sdk.AccAddress) *MsgDelContractBlockedListItem {
+	return &MsgDelContractBlockedListItem{
+		addr: addr,
+	}
+}
+
+func (msgItem *MsgDelContractBlockedListItem) GetKey() []byte {
+	return append(prefixBlackList, msgItem.addr.Bytes()...)
+}
+
+func (msgItem *MsgDelContractBlockedListItem) GetValue() string {
+	return ""
+}
+
 type MsgContractDeploymentWhitelistItem struct {
 	addr sdk.AccAddress
 }
@@ -793,6 +935,28 @@ func (msgItem *MsgContractDeploymentWhitelistItem) GetKey() []byte {
 }
 
 func (msgItem *MsgContractDeploymentWhitelistItem) GetValue() string {
+	return ""
+}
+
+type MsgDelContractDeploymentWhitelistItem struct {
+	addr sdk.AccAddress
+}
+
+func (msgItem *MsgDelContractDeploymentWhitelistItem) GetType() uint32 {
+	return TypeDelete
+}
+
+func NewMsgDelContractDeploymentWhitelistItem(addr sdk.AccAddress) *MsgDelContractDeploymentWhitelistItem {
+	return &MsgDelContractDeploymentWhitelistItem{
+		addr: addr,
+	}
+}
+
+func (msgItem *MsgDelContractDeploymentWhitelistItem) GetKey() []byte {
+	return append(prefixWhiteList, msgItem.addr.Bytes()...)
+}
+
+func (msgItem *MsgDelContractDeploymentWhitelistItem) GetValue() string {
 	return ""
 }
 
@@ -818,4 +982,68 @@ func (msgItem *MsgContractMethodBlockedListItem) GetKey() []byte {
 
 func (msgItem *MsgContractMethodBlockedListItem) GetValue() string {
 	return string(msgItem.methods)
+}
+
+type MsgStdTransactionResponse struct {
+	txResponse string
+	txHash     []byte
+}
+
+func (tr *MsgStdTransactionResponse) GetType() uint32 {
+	return TypeOthers
+}
+
+func (tr *MsgStdTransactionResponse) GetValue() string {
+	return tr.txResponse
+}
+
+func (tr *MsgStdTransactionResponse) GetKey() []byte {
+	return append(prefixTxResponse, tr.txHash...)
+}
+
+type TransactionResponse struct {
+	*ctypes.ResultTx
+	Timestamp time.Time
+}
+
+func NewStdTransactionResponse(tr *ctypes.ResultTx, timestamp time.Time, txHash common.Hash) *MsgStdTransactionResponse {
+	tResponse := TransactionResponse{
+		ResultTx:  tr,
+		Timestamp: timestamp,
+	}
+	jsResponse, err := json.Marshal(tResponse)
+
+	if err != nil {
+		return nil
+	}
+	return &MsgStdTransactionResponse{txResponse: string(jsResponse), txHash: txHash.Bytes()}
+}
+
+type MsgBlockStdTxHash struct {
+	blockHash []byte
+	stdTxHash string
+}
+
+func (m *MsgBlockStdTxHash) GetType() uint32 {
+	return TypeOthers
+}
+
+func (m *MsgBlockStdTxHash) GetValue() string {
+	return m.stdTxHash
+}
+
+func (m *MsgBlockStdTxHash) GetKey() []byte {
+	return append(prefixStdTxHash, m.blockHash...)
+}
+
+func NewMsgBlockStdTxHash(stdTxHash []common.Hash, blockHash common.Hash) *MsgBlockStdTxHash {
+	jsonValue, err := json.Marshal(stdTxHash)
+	if err != nil {
+		panic(err)
+	}
+
+	return &MsgBlockStdTxHash{
+		stdTxHash: string(jsonValue),
+		blockHash: blockHash.Bytes(),
+	}
 }

@@ -67,6 +67,7 @@ func (suite *KeeperTestSuite) TestEndBlock() {
 func (suite *KeeperTestSuite) TestEndBlockWatcher() {
 	// update the counters
 	suite.app.EvmKeeper.Bloom.SetInt64(10)
+	suite.app.EvmKeeper.Watcher.SetFirstUse(true)
 
 	store := suite.ctx.KVStore(suite.app.EvmKeeper.GetStoreKey())
 	store.Set(types.GetContractDeploymentWhitelistMemberKey(suite.address.Bytes()), []byte(""))

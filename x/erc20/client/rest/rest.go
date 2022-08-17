@@ -34,7 +34,7 @@ func tokenMappingHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		var result []types.TokenMapping
+		var result []types.QueryTokenMappingResponse
 		if err := cliCtx.Codec.UnmarshalJSON(res, &result); err != nil {
 			comm.HandleErrorMsg(w, cliCtx, comm.CodeUnMarshalJSONFailed, err.Error())
 			return
@@ -91,5 +91,13 @@ func denomByContractHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 
 // TokenMappingProposalRESTHandler defines erc20 proposal handler
 func TokenMappingProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
+	return govRest.ProposalRESTHandler{}
+}
+
+// ProxyContractRedirectRESTHandler defines erc20 proxy contract redirect proposal handler
+func ProxyContractRedirectRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
+	return govRest.ProposalRESTHandler{}
+}
+func ContractTemplateProposalRESTHandler(context.CLIContext) govRest.ProposalRESTHandler {
 	return govRest.ProposalRESTHandler{}
 }

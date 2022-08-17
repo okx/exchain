@@ -2,13 +2,20 @@ package types
 
 import (
 	"github.com/gogo/protobuf/proto"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/msgservice"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	"github.com/okex/exchain/x/gov/types"
 )
+
+func init() {
+	types.RegisterProposalTypeCodec(&ClientUpdateProposal{}, "ibc.core.client.v1.ClientUpdateProposal")
+	types.RegisterProposalTypeCodec(&MsgUpgradeClient{}, "ibc.core.client.v1.MsgUpgradeClient")
+}
 
 // RegisterInterfaces registers the client interfaces to protobuf Any.
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
@@ -50,6 +57,11 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	)
 
 	msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)
+}
+
+func RegisterCodec(cdc *codec.Codec) {
+	cdc.RegisterConcrete(&ClientUpdateProposal{}, "ibc.core.client.v1.ClientUpdateProposal", nil)
+	cdc.RegisterConcrete(&MsgUpgradeClient{}, "ibc.core.client.v1.MsgUpgradeClient", nil)
 }
 
 // UnpackClientState unpacks an Any into a ClientState. It returns an error if the

@@ -34,13 +34,13 @@ import (
 )
 
 const (
-	runTxModeCheck                 runTxMode = iota // Check a transaction
-	runTxModeReCheck                                // Recheck a (pending) transaction after a commit
-	runTxModeSimulate                               // Simulate a transaction
-	runTxModeDeliver                                // Deliver a transaction
-	runTxModeDeliverInAsync                         // Deliver a transaction in Aysnc
-	runTxModeDeliverPartConcurrent                  // Deliver a transaction partial concurrent
-	runTxModeTrace                                  // Trace a transaction
+	runTxModeCheck          runTxMode = iota // Check a transaction
+	runTxModeReCheck                         // Recheck a (pending) transaction after a commit
+	runTxModeSimulate                        // Simulate a transaction
+	runTxModeDeliver                         // Deliver a transaction
+	runTxModeDeliverInAsync                  // Deliver a transaction in Aysnc
+	_                                        // Deliver a transaction partial concurrent [deprecated]
+	runTxModeTrace                           // Trace a transaction
 	runTxModeWrappedCheck
 
 	// MainStoreKey is the string representation of the main store
@@ -107,8 +107,6 @@ func (m runTxMode) String() (res string) {
 		res = "ModeSimulate"
 	case runTxModeDeliver:
 		res = "ModeDeliver"
-	case runTxModeDeliverPartConcurrent:
-		res = "ModeDeliverPartConcurrent"
 	case runTxModeDeliverInAsync:
 		res = "ModeDeliverInAsync"
 	case runTxModeWrappedCheck:
@@ -200,7 +198,6 @@ type BaseApp struct { // nolint: maligned
 
 	customizeModuleOnStop []sdk.CustomizeOnStop
 	mptCommitHandler      sdk.MptCommitHandler // handler for mpt trie commit
-	deliverTxsMgr         *DTTManager
 	feeForCollector       sdk.Coins
 	feeChanged            bool // used to judge whether should update the fee-collector account
 
@@ -222,6 +219,8 @@ type BaseApp struct { // nolint: maligned
 
 	reusableCacheMultiStore sdk.CacheMultiStore
 	checkTxCacheMultiStores *cacheMultiStoreList
+
+	watcherCollector sdk.EvmWatcherCollector
 }
 
 type recordHandle func(string)
@@ -660,7 +659,7 @@ func validateBasicTxMsgs(msgs []sdk.Msg) error {
 // Returns the applications's deliverState if app is in runTxModeDeliver,
 // otherwise it returns the application's checkstate.
 func (app *BaseApp) getState(mode runTxMode) *state {
-	if mode == runTxModeDeliver || mode == runTxModeDeliverInAsync || mode == runTxModeDeliverPartConcurrent {
+	if mode == runTxModeDeliver || mode == runTxModeDeliverInAsync {
 		return app.deliverState
 	}
 
@@ -691,9 +690,10 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 			HaveCosmosTxInBlock: app.parallelTxManage.haveCosmosTxInBlock,
 		})
 		ctx.SetTxBytes(txBytes)
+		ctx.ResetWatcher()
 	}
 
-	if mode == runTxModeDeliver || mode == runTxModeDeliverPartConcurrent {
+	if mode == runTxModeDeliver {
 		ctx.SetDeliver()
 	}
 
@@ -889,7 +889,6 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		data = append(data, msgResult.Data...)
 		msgLogs = append(msgLogs, sdk.NewABCIMessageLog(uint16(i), msgResult.Log, msgEvents))
 		//app.pin("AppendEvents", false, mode)
-
 	}
 
 	return &sdk.Result{
@@ -952,12 +951,17 @@ func (app *BaseApp) GetRawTxInfo(rawTx tmtypes.Tx) mempool.ExTxInfo {
 	}
 	ctx := app.checkState.ctx
 	if tx.GetType() == sdk.EvmTxType && app.preDeliverTxHandler != nil {
-		ctx.SetBlockHeight(app.checkState.ctx.BlockHeight() + 1)
 		app.preDeliverTxHandler(ctx, tx, true)
-		ctx.SetBlockHeight(app.checkState.ctx.BlockHeight())
 	}
 	ctx.SetTxBytes(rawTx)
 	return app.GetTxInfo(ctx, tx)
+}
+
+func (app *BaseApp) GetRealTxFromRawTx(rawTx tmtypes.Tx) abci.TxEssentials {
+	if tx, ok := app.blockDataCache.GetTx(rawTx); ok {
+		return tx
+	}
+	return nil
 }
 
 func (app *BaseApp) GetTxHistoryGasUsed(rawTx tmtypes.Tx) int64 {

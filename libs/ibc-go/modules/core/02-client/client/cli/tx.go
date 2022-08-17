@@ -3,6 +3,9 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
+	"strings"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -14,9 +17,8 @@ import (
 	govcli "github.com/okex/exchain/libs/cosmos-sdk/x/gov/client/cli"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	tmtypes "github.com/okex/exchain/libs/tendermint/proto/types"
 	govtypes "github.com/okex/exchain/x/gov/types"
-	"io/ioutil"
-
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 )
@@ -143,7 +145,7 @@ func NewSubmitMisbehaviourCmd(m *codec.CodecProxy, reg interfacetypes.InterfaceR
 
 			var misbehaviour exported.Misbehaviour
 			misbehaviourContentOrFileName := args[0]
-			if err := cdc.UnmarshalInterfaceJSON([]byte(misbehaviourContentOrFileName), &misbehaviour); err != nil {
+			if err := cdc.UnmarshalInterfaceJSON([]byte(replaceMisbehaviourStr(misbehaviourContentOrFileName)), &misbehaviour); err != nil {
 
 				// check for file path if JSON input is not provided
 				contents, err := ioutil.ReadFile(misbehaviourContentOrFileName)
@@ -151,6 +153,7 @@ func NewSubmitMisbehaviourCmd(m *codec.CodecProxy, reg interfacetypes.InterfaceR
 					return errors.Wrap(err, "neither JSON input nor path to .json file for misbehaviour were provided")
 				}
 
+				contents = []byte(replaceMisbehaviourStr(string(contents)))
 				if err := cdc.UnmarshalInterfaceJSON(contents, &misbehaviour); err != nil {
 					return errors.Wrap(err, "error unmarshalling misbehaviour file")
 				}
@@ -167,6 +170,17 @@ func NewSubmitMisbehaviourCmd(m *codec.CodecProxy, reg interfacetypes.InterfaceR
 	flags.AddTxFlagsToCmd(cmd)
 
 	return cmd
+}
+
+// convert cm40+ to cm39
+func replaceMisbehaviourStr(contents string) string {
+	str := strings.ReplaceAll(string(contents), "part_set_header", "parts_header")
+	for k, v := range tmtypes.BlockIDFlag_value {
+		before := fmt.Sprintf(`"block_id_flag": "%s"`, k)
+		after := fmt.Sprintf(`"block_id_flag": %d`, v)
+		str = strings.ReplaceAll(str, before, after)
+	}
+	return str
 }
 
 // NewUpgradeClientCmd defines the command to upgrade an IBC light client.
@@ -292,101 +306,3 @@ func NewCmdSubmitUpdateClientProposal(m *codec.CodecProxy, reg interfacetypes.In
 
 	return cmd
 }
-
-// NewCmdSubmitUpgradeProposal implements a command handler for submitting an upgrade IBC client proposal transaction.
-//func NewCmdSubmitUpgradeProposal(m *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
-//	cmd := &cobra.Command{
-//		Use:   "ibc-upgrade [name] [height] [path/to/upgraded_client_state.json] [flags]",
-//		Args:  cobra.ExactArgs(3),
-//		Short: "Submit an IBC upgrade proposal",
-//		Long: "Submit an IBC client breaking upgrade proposal along with an initial deposit.\n" +
-//			"The client state specified is the upgraded client state representing the upgraded chain\n" +
-//			`Example Upgraded Client State JSON:
-//{
-//	"@type":"/ibc.lightclients.tendermint.v1.ClientState",
-// 	"chain_id":"testchain1",
-//	"unbonding_period":"1814400s",
-//	"latest_height":{"revision_number":"0","revision_height":"2"},
-//	"proof_specs":[{"leaf_spec":{"hash":"SHA256","prehash_key":"NO_HASH","prehash_value":"SHA256","length":"VAR_PROTO","prefix":"AA=="},"inner_spec":{"child_order":[0,1],"child_size":33,"min_prefix_length":4,"max_prefix_length":12,"empty_child":null,"hash":"SHA256"},"max_depth":0,"min_depth":0},{"leaf_spec":{"hash":"SHA256","prehash_key":"NO_HASH","prehash_value":"SHA256","length":"VAR_PROTO","prefix":"AA=="},"inner_spec":{"child_order":[0,1],"child_size":32,"min_prefix_length":1,"max_prefix_length":1,"empty_child":null,"hash":"SHA256"},"max_depth":0,"min_depth":0}],
-//	"upgrade_path":["upgrade","upgradedIBCState"],
-//}
-//			`,
-//		RunE: func(cmd *cobra.Command, args []string) error {
-//			cdc := m.GetProtocMarshal()
-//			inBuf := bufio.NewReader(cmd.InOrStdin())
-//			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(m.GetCdc()))
-//			clientCtx := context.NewCLIContext().WithCodec(m.GetCdc())
-//
-//			title, err := cmd.Flags().GetString(govcli.FlagTitle)
-//			if err != nil {
-//				return err
-//			}
-//
-//			description, err := cmd.Flags().GetString(govcli.FlagDescription)
-//			if err != nil {
-//				return err
-//			}
-//
-//			name := args[0]
-//
-//			height, err := strconv.ParseInt(args[1], 10, 64)
-//			if err != nil {
-//				return err
-//			}
-//
-//			plan := upgradetypes.Plan{
-//				Name:   name,
-//				Height: height,
-//			}
-//
-//			// attempt to unmarshal client state argument
-//			var clientState exported.ClientState
-//			clientContentOrFileName := args[2]
-//			if err := cdc.UnmarshalInterfaceJSON([]byte(clientContentOrFileName), &clientState); err != nil {
-//
-//				// check for file path if JSON input is not provided
-//				contents, err := ioutil.ReadFile(clientContentOrFileName)
-//				if err != nil {
-//					return errors.Wrap(err, "neither JSON input nor path to .json file for client state were provided")
-//				}
-//
-//				if err := cdc.UnmarshalInterfaceJSON(contents, &clientState); err != nil {
-//					return errors.Wrap(err, "error unmarshalling client state file")
-//				}
-//			}
-//
-//			content, err := types.NewUpgradeProposal(title, description, plan, clientState)
-//			if err != nil {
-//				return err
-//			}
-//
-//			from := clientCtx.GetFromAddress()
-//
-//			depositStr, err := cmd.Flags().GetString(govcli.FlagDeposit)
-//			if err != nil {
-//				return err
-//			}
-//			deposit, err := sdk.ParseCoinsNormalized(depositStr)
-//			if err != nil {
-//				return err
-//			}
-//
-//			msg, err := govtypes.NewMsgSubmitProposal(content, deposit, from)
-//			if err != nil {
-//				return err
-//			}
-//
-//			if err = msg.ValidateBasic(); err != nil {
-//				return err
-//			}
-//
-//			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
-//		},
-//	}
-//
-//	cmd.Flags().String(govcli.FlagTitle, "", "title of proposal")
-//	cmd.Flags().String(govcli.FlagDescription, "", "description of proposal")
-//	cmd.Flags().String(govcli.FlagDeposit, "", "deposit of proposal")
-//
-//	return cmd
-//}

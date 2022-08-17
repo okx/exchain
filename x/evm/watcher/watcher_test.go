@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 
@@ -72,7 +74,6 @@ func setupTest() *WatcherTestSt {
 	params.EnableCreate = true
 	params.EnableCall = true
 	w.app.EvmKeeper.SetParams(w.ctx, params)
-
 	return w
 }
 
@@ -112,7 +113,7 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	time.Sleep(time.Millisecond)
 
 	// get WatchData
-	wdFunc := w.app.EvmKeeper.Watcher.GetWatchDataFunc()
+	wdFunc := w.app.EvmKeeper.Watcher.CreateWatchDataGenerator()
 	wd, err := wdFunc()
 	require.Nil(t, err)
 	require.NotEmpty(t, wd)
@@ -125,7 +126,7 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	// use WatchData
 	wData, err := w.app.EvmKeeper.Watcher.UnmarshalWatchData(wd)
 	require.Nil(t, err)
-	w.app.EvmKeeper.Watcher.UseWatchData(wData)
+	w.app.EvmKeeper.Watcher.ApplyWatchData(wData)
 	time.Sleep(time.Millisecond)
 
 	cWd := getDBKV(store)
@@ -351,13 +352,27 @@ func TestDuplicateAddress(t *testing.T) {
 
 func TestDuplicateWatchMessage(t *testing.T) {
 	w := setupTest()
-	a1 := newMockAccount(1, 1)
-	w.app.EvmKeeper.Watcher.SaveAccount(a1, true)
-	a2 := newMockAccount(1, 2)
-	w.app.EvmKeeper.Watcher.SaveAccount(a2, true)
+	w.app.EvmKeeper.Watcher.NewHeight(1, common.Hash{}, abci.Header{Height: 1})
+	// init store
+	store := watcher.InstanceOfWatchStore()
+	flushDB(store)
+	privKey := secp256k1.GenPrivKey()
+	pubKey := privKey.PubKey()
+	addr := sdk.AccAddress(pubKey.Address())
+
+	balance := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1)))
+	a1 := &ethermint.EthAccount{
+		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 1),
+		CodeHash:    ethcrypto.Keccak256(nil),
+	}
+	w.app.EvmKeeper.Watcher.SaveAccount(a1)
+	a2 := &ethermint.EthAccount{
+		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 2),
+		CodeHash:    ethcrypto.Keccak256(nil),
+	}
+	w.app.EvmKeeper.Watcher.SaveAccount(a2)
 	w.app.EvmKeeper.Watcher.Commit()
 	time.Sleep(time.Millisecond)
-	store := watcher.InstanceOfWatchStore()
 	pWd := getDBKV(store)
 	require.Equal(t, 1, len(pWd))
 }
@@ -366,26 +381,44 @@ func TestWriteLatestMsg(t *testing.T) {
 	viper.Set(watcher.FlagFastQuery, true)
 	viper.Set(watcher.FlagDBBackend, "memdb")
 	w := watcher.NewWatcher(log.NewTMLogger(os.Stdout))
-	w.SetWatchDataFunc()
+	w.SetWatchDataManager()
+	w.NewHeight(1, common.Hash{}, abci.Header{Height: 1})
+	// init store
+	store := watcher.InstanceOfWatchStore()
+	flushDB(store)
 
-	a1 := newMockAccount(1, 1)
-	a11 := newMockAccount(1, 2)
-	a111 := newMockAccount(1, 3)
-	w.SaveAccount(a1, true)
-	w.SaveAccount(a11, true)
-	w.SaveAccount(a111, true)
+	privKey := secp256k1.GenPrivKey()
+	pubKey := privKey.PubKey()
+	addr := sdk.AccAddress(pubKey.Address())
+
+	balance := sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(1)))
+	a1 := &ethermint.EthAccount{
+		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 1),
+		CodeHash:    ethcrypto.Keccak256(nil),
+	}
+	a11 := &ethermint.EthAccount{
+		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 2),
+		CodeHash:    ethcrypto.Keccak256(nil),
+	}
+	a111 := &ethermint.EthAccount{
+		BaseAccount: auth.NewBaseAccount(addr, balance, pubKey, 1, 3),
+		CodeHash:    ethcrypto.Keccak256(nil),
+	}
+
+	w.SaveAccount(a1)
+	w.SaveAccount(a11)
+	w.SaveAccount(a111)
 	// waiting 1 second for initializing jobChan
 	time.Sleep(time.Millisecond)
 	w.Commit()
 	time.Sleep(time.Millisecond)
-	store := watcher.InstanceOfWatchStore()
 	pWd := getDBKV(store)
 	require.Equal(t, 1, len(pWd))
 
 	m := watcher.NewMsgAccount(a1)
 	v, err := store.Get(m.GetKey())
 	require.NoError(t, err)
-	mm := make(map[string]interface{})
-	json.Unmarshal(v, &mm)
-	require.Equal(t, 3, int(mm["Seq"].(float64)))
+	ethAccount, err := watcher.DecodeAccount(v)
+	require.NoError(t, err)
+	require.Equal(t, uint64(3), ethAccount.GetSequence())
 }

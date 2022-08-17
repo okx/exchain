@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -57,10 +58,10 @@ func (k *Keeper) SetGovKeeper(gk GovKeeper) {
 	k.govKeeper = gk
 }
 
-// SetExternalContractForDenom set the external contract for native denom,
+// SetContractForDenom set the contract for native denom,
 // 1. if any existing for denom, replace the old one.
 // 2. if any existing for contract, return error.
-func (k Keeper) SetExternalContractForDenom(ctx sdk.Context, denom string, contract common.Address) error {
+func (k Keeper) SetContractForDenom(ctx sdk.Context, denom string, contract common.Address) error {
 	// check the contract is not registered already
 	_, found := k.GetDenomByContract(ctx, contract)
 	if found {
@@ -68,20 +69,20 @@ func (k Keeper) SetExternalContractForDenom(ctx sdk.Context, denom string, contr
 	}
 
 	store := ctx.KVStore(k.storeKey)
-	existingContract, found := k.getExternalContractByDenom(ctx, denom)
+	existingContract, found := k.GetContractByDenom(ctx, denom)
 	if found {
 		// delete existing mapping
 		store.Delete(types.ContractToDenomKey(existingContract.Bytes()))
 	}
-	store.Set(types.DenomToExternalContractKey(denom), contract.Bytes())
+	store.Set(types.DenomToContractKey(denom), contract.Bytes())
 	store.Set(types.ContractToDenomKey(contract.Bytes()), []byte(denom))
 	return nil
 }
 
-// GetExternalContracts returns all external contract mappings
-func (k Keeper) GetExternalContracts(ctx sdk.Context) (out []types.TokenMapping) {
+// GetContracts returns all contract mappings
+func (k Keeper) GetContracts(ctx sdk.Context) (out []types.TokenMapping) {
 	store := ctx.KVStore(k.storeKey)
-	iter := sdk.KVStorePrefixIterator(store, types.KeyPrefixDenomToExternalContract)
+	iter := sdk.KVStorePrefixIterator(store, types.KeyPrefixDenomToContract)
 
 	for ; iter.Valid(); iter.Next() {
 		out = append(out, types.TokenMapping{
@@ -92,57 +93,27 @@ func (k Keeper) GetExternalContracts(ctx sdk.Context) (out []types.TokenMapping)
 	return
 }
 
-// getExternalContractByDenom find the corresponding external contract for the denom
-func (k Keeper) getExternalContractByDenom(ctx sdk.Context, denom string) (contract common.Address, found bool) {
+// GetContractByDenom find the corresponding contract for the denom
+func (k Keeper) GetContractByDenom(ctx sdk.Context, denom string) (contract common.Address, found bool) {
 	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(types.DenomToExternalContractKey(denom))
+	bz := store.Get(types.DenomToContractKey(denom))
 	if len(bz) == 0 {
 		return common.Address{}, false
 	}
 	return common.BytesToAddress(bz), true
 }
 
-// DeleteExternalContractForDenom delete the external contract mapping for native denom,
+// DeleteContractForDenom delete the  contract mapping for native denom,
 // returns false if mapping not exists.
-func (k Keeper) DeleteExternalContractForDenom(ctx sdk.Context, denom string) bool {
+func (k Keeper) DeleteContractForDenom(ctx sdk.Context, denom string) bool {
 	store := ctx.KVStore(k.storeKey)
-	existingContract, found := k.getExternalContractByDenom(ctx, denom)
+	existingContract, found := k.GetContractByDenom(ctx, denom)
 	if !found {
 		return false
 	}
 	store.Delete(types.ContractToDenomKey(existingContract.Bytes()))
-	store.Delete(types.DenomToExternalContractKey(denom))
+	store.Delete(types.DenomToContractKey(denom))
 	return true
-}
-
-// SetAutoContractForDenom set the auto deployed contract for native denom
-func (k Keeper) SetAutoContractForDenom(ctx sdk.Context, denom string, contract common.Address) {
-	store := ctx.KVStore(k.storeKey)
-	store.Set(types.DenomToAutoContractKey(denom), contract.Bytes())
-	store.Set(types.ContractToDenomKey(contract.Bytes()), []byte(denom))
-}
-
-// GetAutoContracts returns all auto-deployed contract mappings
-func (k Keeper) GetAutoContracts(ctx sdk.Context) (out []types.TokenMapping) {
-	store := ctx.KVStore(k.storeKey)
-	iter := sdk.KVStorePrefixIterator(store, types.KeyPrefixDenoToAutoContract)
-	for ; iter.Valid(); iter.Next() {
-		out = append(out, types.TokenMapping{
-			Denom:    string(iter.Key()),
-			Contract: common.BytesToAddress(iter.Value()).Hex(),
-		})
-	}
-	return
-}
-
-// getAutoContractByDenom find the corresponding auto-deployed contract for the denom
-func (k Keeper) getAutoContractByDenom(ctx sdk.Context, denom string) (contract common.Address, found bool) {
-	store := ctx.KVStore(k.storeKey)
-	bz := store.Get(types.DenomToAutoContractKey(denom))
-	if len(bz) == 0 {
-		return common.Address{}, false
-	}
-	return common.BytesToAddress(bz), true
 }
 
 // GetDenomByContract find native denom by contract address
@@ -153,16 +124,6 @@ func (k Keeper) GetDenomByContract(ctx sdk.Context, contract common.Address) (de
 		return "", false
 	}
 	return string(bz), true
-}
-
-// GetContractByDenom find the corresponding contract for the denom,
-// external contract is taken in preference to auto-deployed one
-func (k Keeper) GetContractByDenom(ctx sdk.Context, denom string) (contract common.Address, found bool) {
-	contract, found = k.getExternalContractByDenom(ctx, denom)
-	if !found {
-		contract, found = k.getAutoContractByDenom(ctx, denom)
-	}
-	return
 }
 
 // IterateMapping iterates over all the stored mapping and performs a callback function
@@ -179,4 +140,60 @@ func (k Keeper) IterateMapping(ctx sdk.Context, cb func(denom, contract string) 
 			break
 		}
 	}
+}
+
+func (k Keeper) ProxyContractRedirect(ctx sdk.Context, denom string, tp types.RedirectType, addr common.Address) error {
+	err := k.redirectProxyContractInfoByTp(ctx, denom, addr, tp)
+	if err != nil {
+		return types.ErrProxyContractRedirect(denom, int(tp), addr.String())
+	}
+	return nil
+}
+
+func (k Keeper) redirectProxyContractInfoByTp(ctx sdk.Context, denom string, contract common.Address, tp types.RedirectType) error {
+	method := ""
+	switch tp {
+	case types.RedirectImplementation:
+		method = types.ProxyContractUpgradeTo
+	case types.RedirectOwner:
+		method = types.ProxyContractChangeAdmin
+	default:
+		return fmt.Errorf("no such tp %d", tp)
+	}
+	contractProxy, found := k.GetContractByDenom(ctx, denom)
+	if !found {
+		return fmt.Errorf("GetContractByDenom contract not found,denom: %s", denom)
+	}
+	_, err := k.CallModuleERC20Proxy(ctx, contractProxy, method, contract)
+
+	return err
+}
+
+func (k Keeper) GetProxyTemplateContract(ctx sdk.Context) (types.CompiledContract, bool) {
+	return k.getTemplateContract(ctx, types.ProposalTypeContextTemplateProxy)
+}
+
+func (k Keeper) GetImplementTemplateContract(ctx sdk.Context) (types.CompiledContract, bool) {
+	return k.getTemplateContract(ctx, types.ProposalTypeContextTemplateImpl)
+}
+
+func (k Keeper) getTemplateContract(ctx sdk.Context, typeStr string) (types.CompiledContract, bool) {
+	store := ctx.KVStore(k.storeKey)
+	data := store.Get(types.ConstructContractKey(typeStr))
+	if nil == data {
+		return types.CompiledContract{}, false
+	}
+
+	return types.MustUnmarshalCompileContract(data), true
+}
+
+func (k Keeper) InitInternalTemplateContract(ctx sdk.Context) {
+	k.SetTemplateContract(ctx, types.ProposalTypeContextTemplateImpl, string(types.GetInternalImplementationBytes()))
+	k.SetTemplateContract(ctx, types.ProposalTypeContextTemplateProxy, string(types.GetInternalProxyBytes()))
+}
+
+func (k Keeper) SetTemplateContract(ctx sdk.Context, typeStr string, str string) error {
+	store := ctx.KVStore(k.storeKey)
+	store.Set(types.ConstructContractKey(typeStr), []byte(str))
+	return nil
 }

@@ -1,0 +1,41 @@
+[package]
+name = "cw4-stake"
+version = "0.13.2"
+authors = ["Ethan Frey <ethanfrey@users.noreply.github.com>"]
+edition = "2018"
+description = "CW4 implementation of group based on staked tokens"
+license = "Apache-2.0"
+repository = "https://github.com/CosmWasm/cw-plus"
+homepage = "https://cosmwasm.com"
+documentation = "https://docs.cosmwasm.com"
+
+exclude = [
+  # Those files are rust-optimizer artifacts. You might want to commit them for convenience but they should not be part of the source code publication.
+  "artifacts/*",
+]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+# for more explicit tests, cargo test --features=backtraces
+backtraces = ["cosmwasm-std/backtraces"]
+# use library feature to disable all instantiate/execute/query exports
+library = []
+
+[dependencies]
+cw-utils = { path = "../../packages/utils", version = "0.13.2" }
+cw2 = { path = "../../packages/cw2", version = "0.13.2" }
+cw4 = { path = "../../packages/cw4", version = "0.13.2" }
+cw20 = { path = "../../packages/cw20", version = "0.13.2" }
+cw-controllers = { path = "../../packages/controllers", version = "0.13.2" }
+cw-storage-plus = { path = "../../packages/storage-plus", version = "0.13.2" }
+cosmwasm-std = { version = "1.0.0-beta8" }
+schemars = "0.8.1"
+serde = { version = "1.0.103", default-features = false, features = ["derive"] }
+thiserror = { version = "1.0.23" }
+
+[dev-dependencies]
+cosmwasm-schema = { version = "1.0.0-beta8" }

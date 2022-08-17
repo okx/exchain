@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	store "github.com/okex/exchain/libs/cosmos-sdk/store/iavl"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/innertx"
 	"github.com/okex/exchain/libs/iavl"
 	abcitypes "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -20,7 +22,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-func setNodeConfig(ctx *server.Context) {
+func setNodeConfig(ctx *server.Context) error {
 	nodeMode := viper.GetString(types.FlagNodeMode)
 
 	ctx.Logger.Info("Starting node", "mode", nodeMode)
@@ -32,6 +34,11 @@ func setNodeConfig(ctx *server.Context) {
 		setValidatorConfig(ctx)
 	case types.ArchiveNode:
 		setArchiveConfig(ctx)
+	case types.InnertxNode:
+		if !innertx.IsAvailable {
+			return errors.New("innertx is not available for innertx node")
+		}
+		setRpcConfig(ctx)
 	default:
 		if len(nodeMode) > 0 {
 			ctx.Logger.Error(
@@ -39,6 +46,7 @@ func setNodeConfig(ctx *server.Context) {
 					nodeMode, types.FlagNodeMode, types.RpcNode, types.ValidatorNode, types.ArchiveNode))
 		}
 	}
+	return nil
 }
 
 func setRpcConfig(ctx *server.Context) {
@@ -92,11 +100,7 @@ func logStartingFlags(logger log.Logger) {
 	kvMap := make(map[string]interface{})
 	var keys []string
 	for _, key := range viper.AllKeys() {
-
-		if strings.Index(key, "stream.") == 0 {
-			continue
-		}
-		if strings.Index(key, "backend.") == 0 {
+		if strings.Index(key, "infura.") == 0 {
 			continue
 		}
 

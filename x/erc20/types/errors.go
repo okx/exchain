@@ -1,6 +1,7 @@
 package types
 
 import (
+	"errors"
 	"fmt"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -21,6 +22,8 @@ var (
 	// ErrEmptyAddressList returns an error if the address list is empty
 	ErrEmptyAddressList = sdkerrors.Register(ModuleName, 4, "Empty account address list")
 	ErrIbcDenomInvalid  = sdkerrors.Register(ModuleName, 5, "ibc denom is invalid")
+
+	ErrNoContractNotAuto = errors.New("no contract found and not auto deploy for the denom ")
 )
 
 func ErrRegisteredContract(contract string) sdk.EnvelopedErr {
@@ -29,6 +32,16 @@ func ErrRegisteredContract(contract string) sdk.EnvelopedErr {
 			ModuleName,
 			21,
 			fmt.Sprintf("the contract is already registered: %s", contract),
+		),
+	}
+}
+
+func ErrProxyContractRedirect(denom string, tp int, addr string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{
+		Err: sdkerrors.New(
+			ModuleName,
+			22,
+			fmt.Sprintf("proxy contract redirect error: denom:%s,tp:%d,addr:%s", denom, tp, addr),
 		),
 	}
 }

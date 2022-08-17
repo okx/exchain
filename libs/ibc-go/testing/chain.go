@@ -66,6 +66,7 @@ type TestChainI interface {
 	SenderAccountPV() crypto.PrivKey
 	SenderAccountPVBZ() []byte
 	CurrentTMClientHeader() *ibctmtypes.Header
+	ExpireClient(amount time.Duration)
 	CurrentHeader() tmproto.Header
 	CurrentHeaderTime(time.Time)
 	NextBlock()

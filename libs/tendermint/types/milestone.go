@@ -27,7 +27,29 @@ var (
 	MILESTONE_VENUS1_HEIGHT string
 	milestoneVenus1Height   int64
 
+	MILESTONE_VENUS2_HEIGHT string
+	milestoneVenus2Height   int64
+
 	once sync.Once
+)
+
+const (
+	MainNet = "exchain-66"
+	TestNet = "exchain-65"
+)
+
+const (
+	MainNetVeneus1Height = 12988000
+	TestNetVeneus1Height = 12067000
+
+	MainNetVeneusHeight = 8200000
+	TestNetVeneusHeight = 8510000
+
+	MainNetMercuyHeight  = 5150000
+	TestNetMercuryHeight = 5300000
+
+	MainNetGenesisHeight = 2322600
+	TestNetGenesisHeight = 1121818
 )
 
 func init() {
@@ -37,6 +59,7 @@ func init() {
 		milestoneVenusHeight = string2number(MILESTONE_VENUS_HEIGHT)
 		milestoneMarsHeight = string2number(MILESTONE_MARS_HEIGHT)
 		milestoneVenus1Height = string2number(MILESTONE_VENUS1_HEIGHT)
+		milestoneVenus2Height = string2number(MILESTONE_VENUS2_HEIGHT)
 	})
 }
 
@@ -49,6 +72,20 @@ func string2number(input string) int64 {
 		panic(err)
 	}
 	return res
+}
+
+func SetupMainNetEnvironment() {
+	milestoneVenusHeight = MainNetVeneusHeight
+	milestoneMercuryHeight = MainNetMercuyHeight
+	genesisHeight = MainNetGenesisHeight
+	milestoneVenus1Height = MainNetVeneus1Height
+}
+
+func SetupTestNetEnvironment() {
+	milestoneVenusHeight = TestNetVeneusHeight
+	milestoneMercuryHeight = TestNetMercuryHeight
+	genesisHeight = TestNetGenesisHeight
+	milestoneVenus1Height = TestNetVeneus1Height
 }
 
 //depracate homstead signer support
@@ -134,4 +171,24 @@ func GetVenus1Height() int64 {
 }
 
 // =========== Venus1 ===============
+// ==================================
+
+// ==================================
+// =========== Venus2 ===============
+func HigherThanVenus2(h int64) bool {
+	if milestoneVenus2Height == 0 {
+		return false
+	}
+	return h >= milestoneVenus2Height
+}
+
+func GetVenus2Height() int64 {
+	return milestoneVenus2Height
+}
+
+func UnittestOnlySetMilestoneVenus2Height(h int64) {
+	milestoneVenus2Height = h
+}
+
+// =========== Venus2 ===============
 // ==================================

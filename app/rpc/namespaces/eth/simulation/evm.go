@@ -1,10 +1,10 @@
 package simulation
 
 import (
+	"sync"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -20,15 +20,43 @@ import (
 type EvmFactory struct {
 	ChainId        string
 	WrappedQuerier *watcher.Querier
+	storeKey       *sdk.KVStoreKey
+	cms            sdk.CommitMultiStore
+	storePool      sync.Pool
 }
 
 func NewEvmFactory(chainId string, q *watcher.Querier) EvmFactory {
-	return EvmFactory{ChainId: chainId, WrappedQuerier: q}
+	ef := EvmFactory{ChainId: chainId, WrappedQuerier: q, storeKey: sdk.NewKVStoreKey(evm.StoreKey)}
+	ef.cms = initCommitMultiStore(ef.storeKey)
+	ef.storePool = sync.Pool{
+		New: func() interface{} {
+			return ef.cms.CacheMultiStore()
+		},
+	}
+	return ef
+}
+
+func initCommitMultiStore(storeKey *sdk.KVStoreKey) sdk.CommitMultiStore {
+	db := dbm.NewMemDB()
+	cms := store.NewCommitMultiStore(db)
+	authKey := sdk.NewKVStoreKey(auth.StoreKey)
+	paramsKey := sdk.NewKVStoreKey(params.StoreKey)
+	paramsTKey := sdk.NewTransientStoreKey(params.TStoreKey)
+	cms.MountStoreWithDB(authKey, sdk.StoreTypeIAVL, db)
+	cms.MountStoreWithDB(paramsKey, sdk.StoreTypeIAVL, db)
+	cms.MountStoreWithDB(storeKey, sdk.StoreTypeIAVL, db)
+	cms.MountStoreWithDB(paramsTKey, sdk.StoreTypeTransient, db)
+	cms.LoadLatestVersion()
+	return cms
+}
+
+func (ef *EvmFactory) PutBackStorePool(multiStore sdk.CacheMultiStore) {
+	multiStore.Clear()
+	ef.storePool.Put(multiStore)
 }
 
 func (ef EvmFactory) BuildSimulator(qoc QueryOnChainProxy) *EvmSimulator {
 	keeper := ef.makeEvmKeeper(qoc)
-
 	if !watcher.IsWatcherEnabled() {
 		return nil
 	}
@@ -57,7 +85,8 @@ func (ef EvmFactory) BuildSimulator(qoc QueryOnChainProxy) *EvmSimulator {
 		Hash: hash.Bytes(),
 	}
 
-	ctx := ef.makeContext(keeper, req.Header)
+	multiStore := ef.storePool.Get().(sdk.CacheMultiStore)
+	ctx := ef.makeContext(multiStore, req.Header)
 
 	keeper.BeginBlock(ctx, req)
 
@@ -73,14 +102,15 @@ type EvmSimulator struct {
 }
 
 // DoCall call simulate tx. we pass the sender by args to reduce address convert
-func (es *EvmSimulator) DoCall(msg *evmtypes.MsgEthereumTx, sender string, overridesBytes []byte) (*sdk.SimulationResponse, error) {
+func (es *EvmSimulator) DoCall(msg *evmtypes.MsgEthereumTx, sender string, overridesBytes []byte, callBack func(sdk.CacheMultiStore)) (*sdk.SimulationResponse, error) {
+	defer callBack(es.ctx.MultiStore().(sdk.CacheMultiStore))
 	es.ctx.SetFrom(sender)
 	if overridesBytes != nil {
 		es.ctx.SetOverrideBytes(overridesBytes)
 	}
-	r, e := es.handler(es.ctx, msg)
-	if e != nil {
-		return nil, e
+	r, err := es.handler(es.ctx, msg)
+	if err != nil {
+		return nil, err
 	}
 	return &sdk.SimulationResponse{
 		GasInfo: sdk.GasInfo{
@@ -92,26 +122,11 @@ func (es *EvmSimulator) DoCall(msg *evmtypes.MsgEthereumTx, sender string, overr
 }
 
 func (ef EvmFactory) makeEvmKeeper(qoc QueryOnChainProxy) *evm.Keeper {
-	module := evm.AppModuleBasic{}
-	cdc := codec.New()
-	module.RegisterCodec(cdc)
-	return evm.NewSimulateKeeper(cdc, sdk.NewKVStoreKey(evm.StoreKey), NewSubspaceProxy(), NewAccountKeeperProxy(qoc), SupplyKeeperProxy{}, NewBankKeeperProxy(), NewInternalDba(qoc), tmlog.NewNopLogger())
+	return evm.NewSimulateKeeper(qoc.GetCodec(), ef.storeKey, NewSubspaceProxy(), NewAccountKeeperProxy(qoc), SupplyKeeperProxy{}, NewBankKeeperProxy(), NewInternalDba(qoc), tmlog.NewNopLogger())
 }
 
-func (ef EvmFactory) makeContext(k *evm.Keeper, header abci.Header) sdk.Context {
-	db := dbm.NewMemDB()
-	cms := store.NewCommitMultiStore(db)
-	authKey := sdk.NewKVStoreKey(auth.StoreKey)
-	paramsKey := sdk.NewKVStoreKey(params.StoreKey)
-	paramsTKey := sdk.NewTransientStoreKey(params.TStoreKey)
-	cms.MountStoreWithDB(authKey, sdk.StoreTypeIAVL, db)
-	cms.MountStoreWithDB(paramsKey, sdk.StoreTypeIAVL, db)
-	cms.MountStoreWithDB(k.GetStoreKey(), sdk.StoreTypeIAVL, db)
-	cms.MountStoreWithDB(paramsTKey, sdk.StoreTypeTransient, db)
-
-	cms.LoadLatestVersion()
-
-	ctx := sdk.NewContext(cms, header, true, tmlog.NewNopLogger())
+func (ef EvmFactory) makeContext(multiStore sdk.CacheMultiStore, header abci.Header) sdk.Context {
+	ctx := sdk.NewContext(multiStore, header, true, tmlog.NewNopLogger())
 	ctx.SetGasMeter(sdk.NewInfiniteGasMeter())
 	return ctx
 }

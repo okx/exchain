@@ -116,12 +116,12 @@ func (k *Keeper) OnStop(ctx sdk.Context) error {
 				recentMptRoot = ethcmn.Hash{}
 			} else {
 				if err := triedb.Commit(recentMptRoot, true, nil); err != nil {
-					k.Logger(ctx).Error("Failed to commit recent state trie", "err", err)
+					k.Logger().Error("Failed to commit recent state trie", "err", err)
 					break
 				}
 			}
 			k.SetLatestStoredBlockHeight(version)
-			k.Logger(ctx).Info("Writing evm cached state to disk", "block", version, "trieHash", recentMptRoot)
+			k.Logger().Info("Writing evm cached state to disk", "block", version, "trieHash", recentMptRoot)
 		}
 
 		for !k.triegc.Empty() {
