@@ -964,9 +964,10 @@ OUTER_LOOP:
 			continue OUTER_LOOP
 		}
 		// send vcMsg
-		if rs.Height == prs.Height || rs.Height == prs.Height+1 {
+		if vcMsg.Height == prs.Height && !prs.HasVC {
 			peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
 			//conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
+			prs.HasVC = true
 		}
 
 		if rs.Height == vcMsg.Height {
