@@ -5,10 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	"github.com/okex/exchain/app/rpc/simulator"
+	"github.com/spf13/viper"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -426,6 +429,40 @@ func handleSimulate(app *BaseApp, path []string, height int64, txBytes []byte, o
 	if err != nil {
 		return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to decode tx"))
 	}
+	msgs := tx.GetMsgs()
+
+	if enableFastQuery() {
+		isPureWasm := true
+		for _, msg := range msgs {
+			if msg.Route() != "wasm" {
+				isPureWasm = false
+				break
+			}
+		}
+		if isPureWasm {
+			wasmSimulator := simulator.NewWasmSimulator()
+			wasmSimulator.Context().GasMeter().ConsumeGas(73000, "general ante check cost")
+			wasmSimulator.Context().GasMeter().ConsumeGas(uint64(10*len(txBytes)), "tx size cost")
+			res, err := wasmSimulator.Simulate(msgs)
+			if err != nil {
+				return sdkerrors.QueryResult(sdkerrors.Wrap(err, "failed to simulate wasm tx"))
+			}
+
+			gasMeter := wasmSimulator.Context().GasMeter()
+			simRes := sdk.SimulationResponse{
+				GasInfo: sdk.GasInfo{
+					GasUsed: gasMeter.GasConsumed(),
+				},
+				Result: res,
+			}
+			return abci.ResponseQuery{
+				Codespace: sdkerrors.RootCodespace,
+				Height:    height,
+				Value:     codec.Cdc.MustMarshalBinaryBare(simRes),
+			}
+		}
+
+	}
 	gInfo, res, err := app.Simulate(txBytes, tx, height, overrideBytes, from)
 
 	// if path contains mempool, it means to enable MaxGasUsedPerBlock
@@ -642,4 +679,16 @@ func splitPath(requestPath string) (path []string) {
 	}
 
 	return path
+}
+
+var (
+	fastQuery bool
+	fqOnce    sync.Once
+)
+
+func enableFastQuery() bool {
+	fqOnce.Do(func() {
+		fastQuery = viper.GetBool("fast-query")
+	})
+	return fastQuery
 }
