@@ -153,6 +153,16 @@ func TestDeltaPayloadAmino(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, expectBz, actulaBz)
 		require.Equal(t, len(expectBz), testCase.AminoSize(cdc))
+
+		var expectValue DeltaPayload
+		err = cdc.UnmarshalBinaryBare(expectBz, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue DeltaPayload
+		err = actualValue.UnmarshalFromAmino(cdc, expectBz)
+		require.NoError(t, err)
+
+		require.Equal(t, expectValue, actualValue)
 	}
 }
 

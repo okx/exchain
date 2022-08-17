@@ -3,11 +3,11 @@ package types
 import (
 	"bytes"
 	"fmt"
-	"github.com/tendermint/go-amino"
 	"time"
 
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/compress"
+	"github.com/tendermint/go-amino"
 )
 
 const (
@@ -193,6 +193,73 @@ func (payload *DeltaPayload) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) e
 			return err
 		}
 	}
+	return nil
+}
+
+func (payload *DeltaPayload) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
+	const fieldCount = 4
+	var currentField int
+	var currentType amino.Typ3
+	var err error
+
+	for cur := 1; cur <= fieldCount; cur++ {
+		if len(data) != 0 && (currentField == 0 || currentField < cur) {
+			var nextField int
+			if nextField, currentType, err = amino.ParseProtoPosAndTypeMustOneByte(data[0]); err != nil {
+				return err
+			}
+			if nextField < currentField {
+				return fmt.Errorf("next field should greater than %d, got %d", currentField, nextField)
+			} else {
+				currentField = nextField
+			}
+		}
+
+		if len(data) == 0 || currentField != cur {
+			switch cur {
+			case 1:
+				payload.ABCIRsp = nil
+			case 2:
+				payload.DeltasBytes = nil
+			case 3:
+				payload.WatchBytes = nil
+			case 4:
+				payload.WasmWatchBytes = nil
+			default:
+				return fmt.Errorf("unexpect feild num %d", cur)
+			}
+		} else {
+			pbk := data[0]
+			data = data[1:]
+			var subData []byte
+			if currentType == amino.Typ3_ByteLength {
+				if subData, err = amino.DecodeByteSliceWithoutCopy(&data); err != nil {
+					return err
+				}
+			}
+			switch pbk {
+			case 1<<3 | byte(amino.Typ3_ByteLength):
+				payload.ABCIRsp = make([]byte, len(subData))
+				copy(payload.ABCIRsp, subData)
+			case 2<<3 | byte(amino.Typ3_ByteLength):
+				payload.DeltasBytes = make([]byte, len(subData))
+				copy(payload.DeltasBytes, subData)
+			case 3<<3 | byte(amino.Typ3_ByteLength):
+				payload.WatchBytes = make([]byte, len(subData))
+				copy(payload.WatchBytes, subData)
+			case 4<<3 | byte(amino.Typ3_ByteLength):
+				payload.WasmWatchBytes = make([]byte, len(subData))
+				copy(payload.WasmWatchBytes, subData)
+			default:
+				return fmt.Errorf("unexpect pb key %d", pbk)
+			}
+		}
+	}
+
+	if len(data) != 0 {
+		return fmt.Errorf("unexpect data remain %X", data)
+	}
+
 	return nil
 }
 
