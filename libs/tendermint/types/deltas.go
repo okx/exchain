@@ -441,7 +441,7 @@ func (d *Deltas) Unmarshal(bs []byte) error {
 	t0 := time.Now()
 	// unmarshal to DeltasMessage
 	msg := &DeltasMessage{}
-	err := cdc.UnmarshalBinaryBare(bs, msg)
+	err := msg.UnmarshalFromAmino(cdc, bs)
 	if err != nil {
 		return err
 	}
@@ -462,7 +462,7 @@ func (d *Deltas) Unmarshal(bs []byte) error {
 	}
 	t3 := time.Now()
 
-	err = cdc.UnmarshalBinaryBare(msg.Metadata, &d.Payload)
+	err = d.Payload.UnmarshalFromAmino(cdc, msg.Metadata)
 	t4 := time.Now()
 
 	d.Height = msg.Height
