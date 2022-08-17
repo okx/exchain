@@ -228,17 +228,18 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		blockExec.metrics.lastBlockTime = now
 	}()
 
+	trc.Pin("ffChan")
 	select {
-	case _, ok := <-blockExec.ffInChan:
-		if ok {
-			blockExec.ffOutChan <- struct{}{}
-		}
+	case <-blockExec.ffInChan:
+		blockExec.ffOutChan <- struct{}{}
 	default:
 	}
 
 	if err := blockExec.ValidateBlock(state, block); err != nil {
 		return state, 0, ErrInvalidBlock(err)
 	}
+
+	trc.Pin("prepareDelta")
 
 	deltaInfo := dc.prepareStateDelta(block.Height)
 
