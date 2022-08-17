@@ -239,17 +239,33 @@ func (payload *DeltaPayload) UnmarshalFromAmino(cdc *amino.Codec, data []byte) e
 			}
 			switch pbk {
 			case 1<<3 | byte(amino.Typ3_ByteLength):
-				payload.ABCIRsp = make([]byte, len(subData))
-				copy(payload.ABCIRsp, subData)
+				if len(subData) != 0 {
+					payload.ABCIRsp = make([]byte, len(subData))
+					copy(payload.ABCIRsp, subData)
+				} else {
+					payload.ABCIRsp = nil
+				}
 			case 2<<3 | byte(amino.Typ3_ByteLength):
-				payload.DeltasBytes = make([]byte, len(subData))
-				copy(payload.DeltasBytes, subData)
+				if len(subData) != 0 {
+					payload.DeltasBytes = make([]byte, len(subData))
+					copy(payload.DeltasBytes, subData)
+				} else {
+					payload.DeltasBytes = nil
+				}
 			case 3<<3 | byte(amino.Typ3_ByteLength):
-				payload.WatchBytes = make([]byte, len(subData))
-				copy(payload.WatchBytes, subData)
+				if len(subData) != 0 {
+					payload.WatchBytes = make([]byte, len(subData))
+					copy(payload.WatchBytes, subData)
+				} else {
+					payload.WatchBytes = nil
+				}
 			case 4<<3 | byte(amino.Typ3_ByteLength):
-				payload.WasmWatchBytes = make([]byte, len(subData))
-				copy(payload.WasmWatchBytes, subData)
+				if len(subData) != 0 {
+					payload.WasmWatchBytes = make([]byte, len(subData))
+					copy(payload.WasmWatchBytes, subData)
+				} else {
+					payload.WasmWatchBytes = nil
+				}
 			default:
 				return fmt.Errorf("unexpect pb key %d", pbk)
 			}

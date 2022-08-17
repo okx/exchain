@@ -164,6 +164,19 @@ func TestDeltaPayloadAmino(t *testing.T) {
 
 		require.Equal(t, expectValue, actualValue)
 	}
+
+	{
+		bz := []byte{1<<3 | 2, 0, 2<<3 | 2, 0, 3<<3 | 2, 0, 4<<3 | 2, 0}
+		var expectValue DeltaPayload
+		err := cdc.UnmarshalBinaryBare(bz, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue DeltaPayload
+		err = actualValue.UnmarshalFromAmino(cdc, bz)
+		require.NoError(t, err)
+
+		require.Equal(t, expectValue, actualValue)
+	}
 }
 
 func TestDeltasMessageAmino(t *testing.T) {
