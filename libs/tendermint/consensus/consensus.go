@@ -206,7 +206,9 @@ func NewState(
 
 	// Don't call scheduleRound0 yet.
 	// We do that upon Start().
-	cs.reconstructLastCommit(state)
+	if state.LastBlockHeight > types.GetStartBlockHeight() {
+		cs.reconstructLastCommit(state)
+	}
 	cs.BaseService = *service.NewBaseService(nil, "State", cs)
 	for _, option := range options {
 		option(cs)
