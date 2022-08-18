@@ -259,7 +259,7 @@ func (bcR *BlockchainReactor) poolRoutine() {
 	lastHundred := time.Now()
 	lastRate := 0.0
 
-	switchToConsensusTicker := time.NewTicker(switchToConsensusIntervalSeconds * time.Second)
+	//	switchToConsensusTicker := time.NewTicker(switchToConsensusIntervalSeconds * time.Second)
 	trySyncTicker := time.NewTicker(trySyncIntervalMS * time.Millisecond)
 	statusUpdateTicker := time.NewTicker(statusUpdateIntervalSeconds * time.Second)
 
@@ -298,10 +298,10 @@ func (bcR *BlockchainReactor) poolRoutine() {
 FOR_LOOP:
 	for {
 		select {
-		case <-switchToConsensusTicker.C:
-			if bcR.SwitchToConsensus(bcR.curState) {
-				break FOR_LOOP
-			}
+		//case <-switchToConsensusTicker.C:
+		//	if bcR.SwitchToConsensus(bcR.curState) {
+		//		break FOR_LOOP
+		//	}
 
 		case <-trySyncTicker.C: // chan time
 			select {
