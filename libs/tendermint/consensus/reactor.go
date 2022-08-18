@@ -156,7 +156,7 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 		return false
 	}
 
-	conR.Logger.Info("SwitchToConsensus")
+	conR.Logger.Error("SwitchToConsensus")
 	if state.LastBlockHeight > types.GetStartBlockHeight() {
 		conR.conS.reconstructLastCommit(state)
 	}
@@ -184,12 +184,12 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 
 	go conR.peerStatsRoutine()
 	conR.subscribeToBroadcastEvents()
-
+	conR.Logger.Error("Finish SwitchToConsensus")
 	return true
 }
 
 func (conR *Reactor) SwitchToFastSync() (sm.State, error) {
-	conR.Logger.Info("SwitchToFastSync")
+	conR.Logger.Error("SwitchToFastSync")
 
 	conR.mtx.Lock()
 	conR.fastSync = true
@@ -203,6 +203,7 @@ func (conR *Reactor) SwitchToFastSync() (sm.State, error) {
 	// wait until the consensus enter ApplyBlock
 	conR.conS.blockExec.Notify2FastSync()
 
+	conR.Logger.Error("Wait cons enter ApplyBlock or Done")
 FOR_LOOP:
 	for {
 		select {
@@ -214,6 +215,8 @@ FOR_LOOP:
 			break FOR_LOOP
 		}
 	}
+
+	conR.Logger.Error("End wait cons enter ApplyBlock or Done")
 
 	err := conR.conS.Stop()
 
@@ -234,6 +237,7 @@ conR:
 	cState := conR.conS.GetState()
 	conR.conS.blockExec.SetIsFastSyncing(true)
 
+	conR.Logger.Error("Get State", "cState.LastBlockHeight", cState.LastBlockHeight)
 	return cState, nil
 }
 
