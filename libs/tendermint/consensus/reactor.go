@@ -198,21 +198,6 @@ func (conR *Reactor) SwitchToFastSync() (sm.State, error) {
 		return conR.conS.GetState(), errors.New("state is not running")
 	}
 
-	// wait until the consensus enter ApplyBlock
-	conR.conS.blockExec.Notify2FastSync()
-
-FOR_LOOP:
-	for {
-		select {
-		// case: get signal from blockExecutor
-		case <-conR.conS.blockExec.WaitFastSync():
-			break FOR_LOOP
-		// case: conS routine has quit
-		case <-conR.conS.Done():
-			break FOR_LOOP
-		}
-	}
-
 	err := conR.conS.Stop()
 
 	if err != nil {
