@@ -319,7 +319,9 @@ FOR_LOOP:
 			// routine.
 
 			// See if there are any blocks to sync.
+			t0 := time.Now()
 			first, second, firstExInfo := bcR.pool.PeekTwoBlocks()
+			t1 := time.Now()
 			//bcR.Logger.Info("TrySync peeked", "first", first, "second", second)
 			if first == nil || second == nil {
 				// We need both to sync the first block.
@@ -333,6 +335,7 @@ FOR_LOOP:
 			firstParts := first.MakePartSetByExInfo(firstExInfo)
 			firstPartsHeader := firstParts.Header()
 			firstID := types.BlockID{Hash: first.Hash(), PartsHeader: firstPartsHeader}
+			t2 := time.Now()
 			// Finally, verify the first block using the second's commit
 			// NOTE: we can probably make this more efficient, but note that calling
 			// first.Hash() doesn't verify the tx contents, so MakePartSet() is
@@ -357,11 +360,12 @@ FOR_LOOP:
 				}
 				continue FOR_LOOP
 			} else {
-				bcR.pool.PopRequest()
 
+				bcR.pool.PopRequest()
+				t3 := time.Now()
 				// TODO: batch saves so we dont persist to disk every block
 				bcR.store.SaveBlock(first, firstParts, second.LastCommit)
-
+				bcR.Logger.Error("bcR time", "peek", t1.Sub(t0), "makePart", t2.Sub(t1), "verify", t3.Sub(t2), "saveBlock", time.Now().Sub(t3))
 				// TODO: same thing for app - but we would need a way to
 				// get the hash without persisting the state
 				var err error
