@@ -37,6 +37,9 @@ var (
 	NewSupply             = types.NewSupply
 	DefaultSupply         = types.DefaultSupply
 
+	NewQueryTotalSupplyParams = types.NewQueryTotalSupplyParams
+	QueryTotalSupply          = types.QueryTotalSupply
+
 	// variable aliases
 	ModuleCdc = types.ModuleCdc
 )
