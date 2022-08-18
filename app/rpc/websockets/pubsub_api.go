@@ -7,6 +7,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okex/exchain/x/evm/watcher"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -56,7 +57,14 @@ func (api *PubSubAPI) subscribe(conn *wsConn, params []interface{}) (rpc.ID, err
 
 		return api.subscribeLogs(conn, nil)
 	case "newPendingTransactions":
-		return api.subscribePendingTransactions(conn)
+		var isDetail, ok bool
+		if len(params) > 1 {
+			isDetail, ok = params[1].(bool)
+			if !ok {
+				return "0", fmt.Errorf("invalid parameters")
+			}
+		}
+		return api.subscribePendingTransactions(conn, isDetail)
 	case "syncing":
 		return api.subscribeSyncing(conn)
 	default:
@@ -353,7 +361,7 @@ func isHex(str string) bool {
 	return true
 }
 
-func (api *PubSubAPI) subscribePendingTransactions(conn *wsConn) (rpc.ID, error) {
+func (api *PubSubAPI) subscribePendingTransactions(conn *wsConn, isDetail bool) (rpc.ID, error) {
 	sub, _, err := api.events.SubscribePendingTxs()
 	if err != nil {
 		return "", fmt.Errorf("error creating block filter: %s", err.Error())
@@ -378,7 +386,21 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *wsConn) (rpc.ID, error)
 					continue
 				}
 				txHash := common.BytesToHash(data.Tx.Hash(data.Height))
+				var res interface{} = txHash
+				if isDetail {
+					ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, data.Tx)
+					if err != nil {
+						api.logger.Error("failed to decode raw tx to eth tx", "hash", txHash.String(), "error", err)
+						continue
+					}
 
+					tx, err := watcher.NewTransaction(ethTx, txHash, common.Hash{}, uint64(data.Height), uint64(data.Index))
+					if err != nil {
+						api.logger.Error("failed to new transaction", "hash", txHash.String(), "error", err)
+						continue
+					}
+					res = tx
+				}
 				api.filtersMu.RLock()
 				if f, found := api.filters[sub.ID()]; found {
 					// write to ws conn
@@ -387,7 +409,7 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *wsConn) (rpc.ID, error)
 						Method:  "eth_subscription",
 						Params: &SubscriptionResult{
 							Subscription: sub.ID(),
-							Result:       txHash,
+							Result:       res,
 						},
 					}
 
