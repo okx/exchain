@@ -583,6 +583,10 @@ func (tx *txTest) GetFrom() string {
 	return ""
 }
 
+func (tx *txTest) GetSender(_ sdk.Context) string {
+	return ""
+}
+
 func (tx *txTest) GetNonce() uint64 {
 	return 0
 }
