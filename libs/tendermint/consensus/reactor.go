@@ -156,18 +156,20 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 		return false
 	}
 
+	defer func() {
+		conR.setFastSyncFlag(false, 0)
+	}()
+
 	conR.Logger.Error("SwitchToConsensus")
 	if state.LastBlockHeight > types.GetStartBlockHeight() {
 		conR.conS.reconstructLastCommit(state)
 	}
+
+	conR.Logger.Info("SwitchToConsensus")
+	conR.conS.reconstructLastCommit(state)
 	// NOTE: The line below causes broadcastNewRoundStepRoutine() to
 	// broadcast a NewRoundStepMessage.
 	conR.conS.updateToState(state)
-
-	conR.mtx.Lock()
-	conR.fastSync = false
-	conR.mtx.Unlock()
-	conR.metrics.FastSyncing.Set(0)
 
 	if blocksSynced > 0 {
 		// dont bother with the WAL if we fast synced
@@ -180,8 +182,6 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 	conR.conS.Reset()
 	conR.conS.Start()
 
-	conR.conS.blockExec.SetIsFastSyncing(false)
-
 	go conR.peerStatsRoutine()
 	conR.subscribeToBroadcastEvents()
 	conR.Logger.Error("Finish SwitchToConsensus")
@@ -191,10 +191,9 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 func (conR *Reactor) SwitchToFastSync() (sm.State, error) {
 	conR.Logger.Error("SwitchToFastSync")
 
-	conR.mtx.Lock()
-	conR.fastSync = true
-	conR.mtx.Unlock()
-	conR.metrics.FastSyncing.Set(1)
+	defer func() {
+		conR.setFastSyncFlag(true, 1)
+	}()
 
 	if !conR.conS.IsRunning() {
 		return conR.conS.GetState(), errors.New("state is not running")
@@ -219,7 +218,6 @@ FOR_LOOP:
 	conR.Logger.Error("End wait cons enter ApplyBlock or Done")
 
 	err := conR.conS.Stop()
-
 	if err != nil {
 		panic(fmt.Sprintf(`Failed to stop consensus state: %v
 
@@ -231,14 +229,21 @@ conR:
 	}
 
 	conR.stopSwitchToFastSyncTimer()
-
 	conR.conS.Wait()
 
 	cState := conR.conS.GetState()
-	conR.conS.blockExec.SetIsFastSyncing(true)
 
 	conR.Logger.Error("Get State", "cState.LastBlockHeight", cState.LastBlockHeight)
 	return cState, nil
+}
+
+func (conR *Reactor) setFastSyncFlag(f bool, v float64) {
+	conR.mtx.Lock()
+	defer conR.mtx.Unlock()
+
+	conR.fastSync = f
+	conR.metrics.FastSyncing.Set(v)
+	conR.conS.blockExec.SetIsFastSyncing(f)
 }
 
 // Attempt to schedule a timer for checking whether consensus machine is hanged.
