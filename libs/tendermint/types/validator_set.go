@@ -3,11 +3,12 @@ package types
 import (
 	"bytes"
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/global"
 	"math"
 	"math/big"
 	"sort"
 	"strings"
+
+	"github.com/okex/exchain/libs/tendermint/global"
 
 	"github.com/pkg/errors"
 
@@ -29,6 +30,10 @@ const (
 	// PriorityWindowSizeFactor - is a constant that when multiplied with the total voting power gives
 	// the maximum allowed distance between validator priorities.
 	PriorityWindowSizeFactor = 2
+)
+
+var (
+	enableSortValidators = true
 )
 
 // ValidatorSet represent a set of *Validator at a given height.
@@ -476,7 +481,7 @@ func computeNewPriorities(updates []*Validator, vals *ValidatorSet, updatedTotal
 func (vals *ValidatorSet) applyUpdates(updates []*Validator) {
 
 	existing := vals.Validators
-	if HigherThanVenus1(global.GetGlobalHeight()) {
+	if enableSortValidators && HigherThanVenus1(global.GetGlobalHeight()) {
 		sort.Sort(ValidatorsByAddress(existing))
 	}
 
@@ -1143,4 +1148,8 @@ func safeMul(a, b int64) (int64, bool) {
 	}
 
 	return c, false
+}
+
+func SetSortValidators(flag bool) {
+	enableSortValidators = flag
 }
