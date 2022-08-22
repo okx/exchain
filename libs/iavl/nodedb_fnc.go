@@ -1,6 +1,7 @@
 package iavl
 
 import (
+	"log"
 	"sync"
 )
 
@@ -119,6 +120,9 @@ func (fncv *fastNodeChangesWithVersion) add(version int64, fnc *fastNodeChanges)
 
 func (fncv *fastNodeChangesWithVersion) remove(version int64) {
 	if len(fncv.versions) < 1 || version != fncv.versions[0] {
+		if len(fncv.versions) > 0 && version != fncv.versions[0] {
+			log.Printf("----giskook---- %v \n", fncv.versions)
+		}
 		return
 	}
 	fncv.mtx.Lock()
