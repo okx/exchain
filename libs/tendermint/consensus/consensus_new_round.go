@@ -40,7 +40,7 @@ func (cs *State) doNewRound(height int64, round int, avc bool, val *types.Valida
 		if now := tmtime.Now(); cs.StartTime.After(now) {
 			logger.Info("Need to set a buffer and log message here for sanity.", "startTime", cs.StartTime, "now", now)
 		}
-		logger.Info(fmt.Sprintf("enterNewRound(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
+		logger.Error(fmt.Sprintf("enterNewRound(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
 		// Increment validators if necessary
 		validators := cs.Validators
@@ -52,7 +52,7 @@ func (cs *State) doNewRound(height int64, round int, avc bool, val *types.Valida
 		cs.Votes.SetRound(round + 1) // also track next round (round+1) to allow round-skipping
 	} else {
 		cs.trc.Pin("NewRoundVC-%d", round)
-		logger.Info(fmt.Sprintf("enterNewRoundAVC(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
+		logger.Error(fmt.Sprintf("enterNewRoundAVC(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
 		cs.Validators.Proposer = val
 		if cs.Votes.Round() == 0 {
@@ -70,7 +70,7 @@ func (cs *State) doNewRound(height int64, round int, avc bool, val *types.Valida
 		// and meanwhile we might have received a proposal
 		// for round 0.
 	} else {
-		logger.Info("Resetting Proposal info")
+		logger.Error("Resetting Proposal info", "round", round, "avc", avc)
 		cs.Proposal = nil
 		cs.ProposalBlock = nil
 		cs.ProposalBlockParts = nil

@@ -115,6 +115,11 @@ func (cs *State) enterPrecommit(height int64, round int) {
 	cs.LockedBlock = nil
 	cs.LockedBlockParts = nil
 	if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {
+		cs.Logger.Error("Reset ProposalBlockParts on enterPrecommit",
+			"ProposalBlockParts hash",
+			cs.ProposalBlockParts.Header().Hash,
+			"blockID hash",
+			blockID.PartsHeader.Hash)
 		cs.ProposalBlock = nil
 		cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 	}

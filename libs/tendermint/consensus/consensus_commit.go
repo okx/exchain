@@ -84,12 +84,18 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 	if !ok {
 		panic("RunActionCommit() expects +2/3 precommits")
 	}
-
+	logger.Error("commit",
+		"locked",
+		cs.LockedBlock.Hash(),
+		"proposal",
+		cs.ProposalBlock.Hash(),
+		"commit",
+		blockID.Hash)
 	// The Locked* fields no longer matter.
 	// Move them over to ProposalBlock if they match the commit hash,
 	// otherwise they'll be cleared in updateToState.
 	if cs.LockedBlock.HashesTo(blockID.Hash) {
-		logger.Info("Commit is for locked block. Set ProposalBlock=LockedBlock", "blockHash", blockID.Hash)
+		logger.Error("Commit is for locked block. Set ProposalBlock=LockedBlock", "blockHash", blockID.Hash)
 		cs.ProposalBlock = cs.LockedBlock
 		cs.ProposalBlockParts = cs.LockedBlockParts
 	}
@@ -106,14 +112,14 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 			// We're getting the wrong block.
 			// Set up ProposalBlockParts and keep waiting.
 			cs.ProposalBlock = nil
-			cs.Logger.Info("enterCommit proposalBlockPart reset ,because of mismatch hash,",
+			cs.Logger.Error("enterCommit proposalBlockPart reset ,because of mismatch hash,",
 				"origin", hex.EncodeToString(cs.ProposalBlockParts.Hash()), "after", blockID.Hash)
 			cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 			cs.eventBus.PublishEventValidBlock(cs.RoundStateEvent())
 			cs.evsw.FireEvent(types.EventValidBlock, &cs.RoundState)
 		} else {
 			logger.Error(
-				"Commit is for a block we don't know, but not get all part. just waiting",
+				"Commit is for a block we know, but not get all part. just waiting",
 				"proposal",
 				cs.ProposalBlock.Hash(),
 				"commit",

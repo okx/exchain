@@ -156,14 +156,14 @@ func (cs *State) addVote(
 					cs.ValidBlock = cs.ProposalBlock
 					cs.ValidBlockParts = cs.ProposalBlockParts
 				} else {
-					cs.Logger.Info(
+					cs.Logger.Error(
 						"Valid block we don't know about. Set ProposalBlock=nil",
 						"proposal", cs.ProposalBlock.Hash(), "blockID", blockID.Hash)
 					// We're getting the wrong block.
 					cs.ProposalBlock = nil
 				}
 				if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {
-					cs.Logger.Info("addVote proposalBlockPart reset ,because of mismatch hash,",
+					cs.Logger.Error("addVote proposalBlockPart reset ,because of mismatch hash,",
 						"origin", hex.EncodeToString(cs.ProposalBlockParts.Hash()), "after", blockID.Hash)
 					cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 				}

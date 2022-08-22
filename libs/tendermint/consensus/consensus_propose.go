@@ -251,13 +251,15 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	}
 
 	cs.Proposal = proposal
+	cs.Logger.Error("Received proposal", "proposal", proposal)
 	// We don't update cs.ProposalBlockParts if it is already set.
 	// This happens if we're already in cstypes.RoundStepCommit or if there is a valid block in the current round.
 	// TODO: We can check if Proposal is for a different block as this is a sign of misbehavior!
 	if cs.ProposalBlockParts == nil {
+		cs.Logger.Error("defaultSetProposal create NewPartSetFromHeader")
 		cs.ProposalBlockParts = types.NewPartSetFromHeader(proposal.BlockID.PartsHeader)
 	}
-	cs.Logger.Info("Received proposal", "proposal", proposal)
+
 	cs.bt.onProposal(proposal.Height)
 	cs.trc.Pin("recvProposal")
 	return nil
