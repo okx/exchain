@@ -272,7 +272,9 @@ func SaveBlock(ctx *server.Context, originDB *store.BlockStore, height int64) {
 		ps.AddPart(originDB.LoadBlockPart(height, index))
 	}
 
+	t0 := time.Now()
 	stateStoreDb.SaveBlock(block, ps, seenCommit)
+	log.Println("SaveBlockCore", "height", block.Height, "time", time.Now().Sub(t0))
 }
 
 func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB, blockStore *store.BlockStore,
