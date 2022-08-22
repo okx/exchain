@@ -161,6 +161,7 @@ func (api *PubSubAPI) subscribeNewHeads(conn *wsConn) (rpc.ID, error) {
 
 func (api *PubSubAPI) subscribeLogs(conn *wsConn, extra interface{}) (rpc.ID, error) {
 	crit := filters.FilterCriteria{}
+	bytx := false // batch logs push by tx
 
 	if extra != nil {
 		params, ok := extra.(map[string]interface{})
@@ -204,6 +205,14 @@ func (api *PubSubAPI) subscribeLogs(conn *wsConn, extra interface{}) (rpc.ID, er
 				return "", fmt.Errorf("invalid topics")
 			}
 			crit.Topics = topicFilterLists
+		}
+
+		if params["bytx"] != nil {
+			b, ok := params["bytx"].(bool)
+			if !ok {
+				return "", fmt.Errorf("invalid batch; must be true or false")
+			}
+			bytx = b
 		}
 	}
 
@@ -255,14 +264,23 @@ func (api *PubSubAPI) subscribeLogs(conn *wsConn, extra interface{}) (rpc.ID, er
 								Subscription: sub.ID(),
 							},
 						}
-						for _, singleLog := range logs {
-							res.Params.Result = singleLog
+						if bytx {
+							res.Params.Result = logs
 							err = f.conn.WriteJSON(res)
 							if err != nil {
-								api.logger.Error("failed to write log", "ID", sub.ID(), "height", singleLog.BlockNumber, "txhash", singleLog.TxHash, "error", err)
-								break
+								api.logger.Error("failed to batch write logs", "ID", sub.ID(), "height", logs[0].BlockNumber, "txhash", logs[0].TxHash, "error", err)
 							}
-							api.logger.Debug("successfully write log", "ID", sub.ID(), "height", singleLog.BlockNumber, "txhash", singleLog.TxHash)
+							api.logger.Debug("successfully batch write logs ", "ID", sub.ID(), "height", logs[0].BlockNumber, "txhash", logs[0].TxHash)
+						} else {
+							for _, singleLog := range logs {
+								res.Params.Result = singleLog
+								err = f.conn.WriteJSON(res)
+								if err != nil {
+									api.logger.Error("failed to write log", "ID", sub.ID(), "height", singleLog.BlockNumber, "txhash", singleLog.TxHash, "error", err)
+									break
+								}
+								api.logger.Debug("successfully write log", "ID", sub.ID(), "height", singleLog.BlockNumber, "txhash", singleLog.TxHash)
+							}
 						}
 					}
 					api.filtersMu.RUnlock()
