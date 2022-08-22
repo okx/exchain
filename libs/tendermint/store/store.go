@@ -3,7 +3,7 @@ package store
 import (
 	"bytes"
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"log"
 	"strconv"
 	"sync"
 	"time"
@@ -432,13 +432,13 @@ func (bs *BlockStore) SaveBlock(block *types.Block, blockParts *types.PartSet, s
 	bs.db.SetSync(nil, nil)
 	t10 := time.Now()
 
-	log.Logger.Error("saveBlock Detail",
-		"marshal", t1.Sub(t0)+t4.Sub(t3)+t6.Sub(t5),
-		"dbset", t2.Sub(t1)+t5.Sub(t4)+t7.Sub(t6),
-		"savePart", t3.Sub(t2),
-		"lock", t8.Sub(t7),
-		"saveState", t9.Sub(t8),
-		"dbsetSync", t10.Sub(t9),
+	log.Println("saveBlock Detail",
+		" marshal:", t1.Sub(t0)+t4.Sub(t3)+t6.Sub(t5),
+		" dbset:", t2.Sub(t1)+t5.Sub(t4)+t7.Sub(t6),
+		" savePart:", t3.Sub(t2),
+		" lock:", t8.Sub(t7),
+		" saveState:", t9.Sub(t8),
+		" dbsetSync:", t10.Sub(t9),
 	)
 }
 
