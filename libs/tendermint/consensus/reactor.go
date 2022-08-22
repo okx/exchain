@@ -203,6 +203,8 @@ func (conR *Reactor) SwitchToFastSync() (sm.State, error) {
 	conR.conS.blockExec.Notify2FastSync()
 
 	conR.Logger.Error("Wait cons enter ApplyBlock or Done")
+
+	timeoutCh := time.After(300 * time.Second)
 FOR_LOOP:
 	for {
 		select {
@@ -212,11 +214,16 @@ FOR_LOOP:
 		// case: conS routine has quit
 		case <-conR.conS.Done():
 			break FOR_LOOP
+		case <-timeoutCh:
+			// It shouldn't be timeout. something must be wrong here
+			conR.Logger.Error("300s, HollyST hang--")
+			//break FOR_LOOP
 		}
 	}
 
 	conR.Logger.Error("End wait cons enter ApplyBlock or Done")
 
+	conR.Logger.Error("conR.conS.Stop")
 	err := conR.conS.Stop()
 	if err != nil {
 		panic(fmt.Sprintf(`Failed to stop consensus state: %v
@@ -229,7 +236,10 @@ conR:
 	}
 
 	conR.stopSwitchToFastSyncTimer()
+
+	conR.Logger.Error("Before conR.conS.Wait")
 	conR.conS.Wait()
+	conR.Logger.Error("End conR.conS.Wait")
 
 	cState := conR.conS.GetState()
 
@@ -379,7 +389,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		return
 	}
 
-	conR.Logger.Debug("Receive", "src", src, "chId", chID, "msg", msg)
+	conR.Logger.Error("Receive", "src", src, "chId", chID, "msg", msg, "peer queue len:", len(conR.conS.peerMsgQueue))
 
 	// Get peer states
 	ps, ok := src.Get(types.PeerStateKey).(*PeerState)
@@ -474,7 +484,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 
 	case DataChannel:
 		if conR.FastSync() {
-			conR.Logger.Info("Ignoring message received during fastSync", "msg", msg)
+			conR.Logger.Error("Ignoring message received during fastSync", "msg", msg)
 			return
 		}
 		switch msg := msg.(type) {
@@ -493,7 +503,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 
 	case VoteChannel:
 		if conR.FastSync() {
-			conR.Logger.Info("Ignoring message received during fastSync", "msg", msg)
+			conR.Logger.Error("Ignoring message received during fastSync", "msg", msg)
 			return
 		}
 		switch msg := msg.(type) {
@@ -515,7 +525,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 
 	case VoteSetBitsChannel:
 		if conR.FastSync() {
-			conR.Logger.Info("Ignoring message received during fastSync", "msg", msg)
+			conR.Logger.Error("Ignoring message received during fastSync", "msg", msg)
 			return
 		}
 		switch msg := msg.(type) {

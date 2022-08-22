@@ -27,12 +27,14 @@ func (cs *State) receiveRoutine(maxSteps int) {
 		// priv_val that haven't hit the WAL, but its ok because
 		// priv_val tracks LastSig
 
+		cs.Logger.Error("receiveRoutine onExit", "stack", debug.Stack())
 		// close wal now that we're done writing to it
 		cs.wal.Stop()
 		cs.wal.Wait()
 
 		close(cs.done)
 		cs.done = nil
+		cs.Logger.Error("Done receiveRoutine onExit")
 	}
 
 	defer func() {
@@ -70,14 +72,19 @@ func (cs *State) receiveRoutine(maxSteps int) {
 
 		select {
 		case <-cs.txNotifier.TxsAvailable():
+			cs.Logger.Error("receiveRoutine handleTxsAvailable")
 			cs.handleTxsAvailable()
+			cs.Logger.Error("End receiveRoutine handleTxsAvailable")
 		case mi = <-cs.peerMsgQueue:
 			// handles proposals, block parts, votes
 			// may generate internal events (votes, complete proposals, 2/3 majorities)
+			cs.Logger.Error("receiveRoutine cs.peerMsgQueue", "message", mi)
 			if cs.handleMsg(mi) {
 				cs.wal.Write(mi)
 			}
+			cs.Logger.Error("End receiveRoutine cs.peerMsgQueue", "message", mi)
 		case mi = <-cs.internalMsgQueue:
+			cs.Logger.Error("receiveRoutine cs.internalMsgQueue", "message", mi)
 			err := cs.wal.WriteSync(mi) // NOTE: fsync
 			if err != nil {
 				panic(fmt.Sprintf("Failed to write %v msg to consensus wal due to %v. Check your FS and restart the node", mi, err))
@@ -93,11 +100,14 @@ func (cs *State) receiveRoutine(maxSteps int) {
 
 			// handles proposals, block parts, votes
 			cs.handleMsg(mi)
+			cs.Logger.Error("End receiveRoutine cs.internalMsgQueue", "message", mi)
 		case ti := <-cs.timeoutTicker.Chan(): // tockChan:
+			cs.Logger.Error("receiveRoutine timeoutTicker")
 			cs.wal.Write(ti)
 			// if the timeout is relevant to the rs
 			// go to the next step
 			cs.handleTimeout(ti, rs)
+			cs.Logger.Error("End receiveRoutine timeoutTicker")
 		case <-cs.Quit():
 			onExit(cs)
 			return
