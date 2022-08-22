@@ -3,8 +3,10 @@ package store
 import (
 	"bytes"
 	"fmt"
+	"github.com/ethereum/go-ethereum/log"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/tendermint/go-amino"
 
@@ -386,24 +388,32 @@ func (bs *BlockStore) SaveBlock(block *types.Block, blockParts *types.PartSet, s
 
 	// Save block meta
 	blockMeta := types.NewBlockMeta(block, blockParts)
+	t0 := time.Now()
 	metaBytes := cdc.MustMarshalBinaryBare(blockMeta)
+	t1 := time.Now()
 	bs.db.Set(calcBlockMetaKey(height), metaBytes)
 	bs.db.Set(calcBlockHashKey(hash), []byte(fmt.Sprintf("%d", height)))
+	t2 := time.Now()
 
 	// Save block parts
 	for i := 0; i < blockParts.Total(); i++ {
 		part := blockParts.GetPart(i)
 		bs.saveBlockPart(height, i, part)
 	}
+	t3 := time.Now()
 
 	// Save block commit (duplicate and separate from the Block)
 	blockCommitBytes := cdc.MustMarshalBinaryBare(block.LastCommit)
+	t4 := time.Now()
 	bs.db.Set(calcBlockCommitKey(height-1), blockCommitBytes)
 
 	// Save seen commit (seen +2/3 precommits for block)
 	// NOTE: we can delete this at a later height
+	t5 := time.Now()
 	seenCommitBytes := cdc.MustMarshalBinaryBare(seenCommit)
+	t6 := time.Now()
 	bs.db.Set(calcSeenCommitKey(height), seenCommitBytes)
+	t7 := time.Now()
 
 	// Done!
 	bs.mtx.Lock()
@@ -412,12 +422,24 @@ func (bs *BlockStore) SaveBlock(block *types.Block, blockParts *types.PartSet, s
 		bs.base = height
 	}
 	bs.mtx.Unlock()
+	t8 := time.Now()
 
 	// Save new BlockStoreStateJSON descriptor
 	bs.saveState()
+	t9 := time.Now()
 
 	// Flush
 	bs.db.SetSync(nil, nil)
+	t10 := time.Now()
+
+	log.Error("saveBlock Detail",
+		"marshal:", t1.Sub(t0)+t4.Sub(t3)+t6.Sub(t5),
+		"dbset", t2.Sub(t1)+t5.Sub(t4)+t7.Sub(t6),
+		"savePart", t3.Sub(t2),
+		"lock", t8.Sub(t7),
+		"saveState", t9.Sub(t8),
+		"dbsetSync", t10.Sub(t9),
+	)
 }
 
 func (bs *BlockStore) saveBlockPart(height int64, index int, part *types.Part) {
