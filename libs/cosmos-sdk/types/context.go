@@ -87,7 +87,7 @@ func (c *Context) IsOnlyCheckTx() bool { return c.runTxMode == RunTxModeCheck }
 func (c *Context) IsCheckTx() bool {
 	// if recheckTx == true, then checkTx must also be true
 	// if wrappedCheckTx == true, then checkTx must also be true
-	return c.runTxMode == RunTxModeCheck || c.IsReCheckTx() || c.IsWrappedCheckTx()
+	return c.runTxMode == RunTxModeCheck || c.runTxMode == RunTxModeSimulate || c.IsReCheckTx() || c.IsWrappedCheckTx()
 }
 func (c *Context) IsReCheckTx() bool      { return c.runTxMode == RunTxModeReCheck }
 func (c *Context) IsWrappedCheckTx() bool { return c.runTxMode == RunTxModeWrappedCheck }
