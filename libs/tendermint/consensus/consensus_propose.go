@@ -95,7 +95,7 @@ func (cs *State) enterPropose(height int64, round int) {
 	isBlockProducer, bpAddr := cs.isBlockProducer()
 	cs.trc.Pin("enterPropose-%d-%s-%s", round, isBlockProducer, bpAddr)
 
-	logger.Info(fmt.Sprintf("enterPropose(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
+	logger.Error(fmt.Sprintf("enterPropose(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
 	defer func() {
 		// Done enterPropose:

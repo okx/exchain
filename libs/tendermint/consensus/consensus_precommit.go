@@ -30,7 +30,7 @@ func (cs *State) enterPrecommit(height int64, round int) {
 	cs.initNewHeight()
 	cs.trc.Pin("Precommit-%d", round)
 
-	logger.Info(fmt.Sprintf("enterPrecommit(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
+	logger.Error(fmt.Sprintf("enterPrecommit(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
 	defer func() {
 		// Done enterPrecommit:
