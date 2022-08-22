@@ -97,7 +97,7 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 	// If we don't have the block being committed, set up to get it.
 	if !cs.ProposalBlock.HashesTo(blockID.Hash) {
 		if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {
-			logger.Info(
+			logger.Error(
 				"Commit is for a block we don't know about. Set ProposalBlock=nil",
 				"proposal",
 				cs.ProposalBlock.Hash(),
@@ -111,6 +111,14 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 			cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 			cs.eventBus.PublishEventValidBlock(cs.RoundStateEvent())
 			cs.evsw.FireEvent(types.EventValidBlock, &cs.RoundState)
+		} else {
+			logger.Error(
+				"Commit is for a block we don't know, but not get all part. just waiting",
+				"proposal",
+				cs.ProposalBlock.Hash(),
+				"commit",
+				blockID.Hash,
+				"cs.ProposalBlockParts.IsComplete", cs.ProposalBlockParts.IsComplete())
 		}
 		// else {
 		// We just need to keep waiting.
@@ -134,7 +142,7 @@ func (cs *State) tryFinalizeCommit(height int64) {
 	if !cs.ProposalBlock.HashesTo(blockID.Hash) {
 		// TODO: this happens every time if we're not a validator (ugly logs)
 		// TODO: ^^ wait, why does it matter that we're a validator?
-		logger.Info(
+		logger.Error(
 			"Attempt to finalize failed. We don't have the commit block.",
 			"proposal-block",
 			cs.ProposalBlock.Hash(),

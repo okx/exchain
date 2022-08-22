@@ -389,7 +389,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		return
 	}
 
-	conR.Logger.Error("Receive", "src", src, "chId", chID, "msg", msg, "peer queue len:", len(conR.conS.peerMsgQueue))
+	conR.Logger.Debug("Receive", "src", src, "chId", chID, "msg", msg)
 
 	// Get peer states
 	ps, ok := src.Get(types.PeerStateKey).(*PeerState)
