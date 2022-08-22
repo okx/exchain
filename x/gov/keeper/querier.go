@@ -218,10 +218,16 @@ func queryProposals(ctx sdk.Context, path []string, req abci.RequestQuery, keepe
 
 	cosmosProposals := make([]types.Proposal, 0, len(proposals))
 	for _, proposal := range proposals {
-		// Here is to fix the short address problem in the OKC test-net.
-		// The normal len(BlockedContract.Address) should be 20,
-		// but there are some BlockedContract.Address in OKC test-net that have a length of 4.
-		if p, ok := proposal.Content.(types3.ManageContractMethodBlockedListProposal); ok {
+		if pcp, ok := proposal.Content.(paramstypes.ParameterChangeProposal); ok {
+			// Here is for compatibility with the standard cosmos REST API.
+			// Note: The Height field in OKC's ParameterChangeProposal will be discarded.
+			innerContent := pcp.GetParameterChangeProposal()
+			newProposal := types.WrapProposalForCosmosAPI(proposal, innerContent)
+			cosmosProposals = append(cosmosProposals, newProposal)
+		} else if p, ok := proposal.Content.(types3.ManageContractMethodBlockedListProposal); ok {
+			// Here is to fix the short address problem in the OKC test-net.
+			// The normal len(BlockedContract.Address) should be 20,
+			// but there are some BlockedContract.Address in OKC test-net that have a length of 4.
 			for i := 0; i < len(p.ContractList); i++ {
 				if len(p.ContractList[i].Address) != 20 {
 					validAddress := make([]byte, 20)
@@ -232,16 +238,6 @@ func queryProposals(ctx sdk.Context, path []string, req abci.RequestQuery, keepe
 				}
 			}
 			newProposal := types.WrapProposalForCosmosAPI(proposal, p)
-			cosmosProposals = append(cosmosProposals, newProposal)
-		} else {
-			cosmosProposals = append(cosmosProposals, proposal)
-		}
-
-		// Here is for compatibility with the standard cosmos REST API.
-		// Note: The Height field in OKC's ParameterChangeProposal will be discarded.
-		if pcp, ok := proposal.Content.(paramstypes.ParameterChangeProposal); ok {
-			innerContent := pcp.GetParameterChangeProposal()
-			newProposal := types.WrapProposalForCosmosAPI(proposal, innerContent)
 			cosmosProposals = append(cosmosProposals, newProposal)
 		} else {
 			cosmosProposals = append(cosmosProposals, proposal)
