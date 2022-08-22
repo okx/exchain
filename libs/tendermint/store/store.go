@@ -433,6 +433,7 @@ func (bs *BlockStore) SaveBlock(block *types.Block, blockParts *types.PartSet, s
 	t10 := time.Now()
 
 	log.Println("saveBlock Detail",
+		" height", block.Height,
 		" marshal:", t1.Sub(t0)+t4.Sub(t3)+t6.Sub(t5),
 		" dbset:", t2.Sub(t1)+t5.Sub(t4)+t7.Sub(t6),
 		" savePart:", t3.Sub(t2),
