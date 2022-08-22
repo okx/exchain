@@ -800,6 +800,7 @@ func (ndb *nodeDB) getFastIterator(start, end []byte, ascending bool) (dbm.Itera
 // Write to disk.
 func (ndb *nodeDB) Commit(batch dbm.Batch) error {
 	ndb.log(IavlDebug, "committing data to disk")
+	defer batch.Close()
 	var err error
 	if ndb.opts.Sync {
 		err = batch.WriteSync()
@@ -807,10 +808,9 @@ func (ndb *nodeDB) Commit(batch dbm.Batch) error {
 		err = batch.Write()
 	}
 	if err != nil {
+		ndb.log(IavlErr, fmt.Sprintf("%v error write data to disk", err))
 		return errors.Wrap(err, "failed to write batch")
 	}
-
-	batch.Close()
 
 	return nil
 }
