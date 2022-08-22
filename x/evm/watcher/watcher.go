@@ -469,7 +469,6 @@ func (w *Watcher) UseWatchData(watchData interface{}) {
 	if !ok {
 		panic("use watch data failed")
 	}
-	w.log.Error("UseWatchData", "jobChan", len(w.jobChan))
 	w.dispatchJob(func() { w.CommitWatchData(wd) })
 }
 

@@ -219,12 +219,12 @@ func (dc *DeltaContext) uploadRoutine(deltas *types.Deltas, txnum float64) {
 		return
 	}
 	dc.missed += txnum
-	locked := dc.deltaBroker.GetLocker()
-	dc.logger.Info("Try to upload delta:", "target-height", deltas.Height, "locked", locked, "delta", deltas)
-
-	if !locked {
-		return
-	}
+	//locked := dc.deltaBroker.GetLocker()
+	//dc.logger.Info("Try to upload delta:", "target-height", deltas.Height, "locked", locked, "delta", deltas)
+	//
+	//if !locked {
+	//	return
+	//}
 
 	defer dc.deltaBroker.ReleaseLocker()
 
