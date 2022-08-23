@@ -406,7 +406,7 @@ func ParsePageRequest(r *http.Request) (pr query.PageRequest, err error) {
 		offset, err = strconv.ParseUint(offsetStr, 10, 0)
 		if err != nil {
 			return pr, err
-		} else if offset <= 0 {
+		} else if offset < 0 {
 			return pr, errors.New("offset must greater than 0")
 		}
 	}
