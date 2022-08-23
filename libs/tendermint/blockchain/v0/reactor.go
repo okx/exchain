@@ -320,7 +320,7 @@ FOR_LOOP:
 
 			// See if there are any blocks to sync.
 			t0 := time.Now()
-			first, second, firstExInfo := bcR.pool.PeekTwoBlocks()
+			first, second, firstParts := bcR.pool.PeekTwoBlocks()
 			t1 := time.Now()
 			//bcR.Logger.Info("TrySync peeked", "first", first, "second", second)
 			if first == nil || second == nil {
@@ -332,7 +332,6 @@ FOR_LOOP:
 			}
 			bcR.Logger.Info("PeekTwoBlocks.", "First", first.Height, "Second", second.Height)
 
-			firstParts := first.MakePartSetByExInfo(firstExInfo)
 			firstPartsHeader := firstParts.Header()
 			firstID := types.BlockID{Hash: first.Hash(), PartsHeader: firstPartsHeader}
 			t2 := time.Now()

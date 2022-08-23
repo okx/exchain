@@ -211,12 +211,12 @@ func (pool *BlockPool) IsCaughtUp() bool {
 // We need to see the second block's Commit to validate the first block.
 // So we peek two blocks at a time.
 // The caller will verify the commit.
-func (pool *BlockPool) PeekTwoBlocks() (first, second *types.Block, firstExInfo *types.BlockExInfo) {
+func (pool *BlockPool) PeekTwoBlocks() (first, second *types.Block, firstParts *types.PartSet) {
 	pool.mtx.Lock()
 	defer pool.mtx.Unlock()
 
 	if r := pool.requesters[pool.height]; r != nil {
-		first, firstExInfo = r.getBlock()
+		first, firstParts = r.getBlock()
 	}
 	if r := pool.requesters[pool.height+1]; r != nil {
 		second, _ = r.getBlock()
@@ -539,10 +539,10 @@ type bpRequester struct {
 	gotBlockCh chan struct{}
 	redoCh     chan p2p.ID //redo may send multitime, add peerId to identify repeat
 
-	mtx    sync.Mutex
-	peerID p2p.ID
-	block  *types.Block
-	exInfo *types.BlockExInfo
+	mtx        sync.Mutex
+	peerID     p2p.ID
+	block      *types.Block
+	blockParts *types.PartSet
 }
 
 func newBPRequester(pool *BlockPool, height int64) *bpRequester {
@@ -572,7 +572,7 @@ func (bpr *bpRequester) setBlock(block *types.Block, exInfo *types.BlockExInfo, 
 		return false
 	}
 	bpr.block = block
-	bpr.exInfo = exInfo
+	bpr.blockParts = block.MakePartSetByExInfo(exInfo)
 
 	bpr.mtx.Unlock()
 
@@ -583,10 +583,10 @@ func (bpr *bpRequester) setBlock(block *types.Block, exInfo *types.BlockExInfo, 
 	return true
 }
 
-func (bpr *bpRequester) getBlock() (*types.Block, *types.BlockExInfo) {
+func (bpr *bpRequester) getBlock() (*types.Block, *types.PartSet) {
 	bpr.mtx.Lock()
 	defer bpr.mtx.Unlock()
-	return bpr.block, bpr.exInfo
+	return bpr.block, bpr.blockParts
 }
 
 func (bpr *bpRequester) getPeerID() p2p.ID {
