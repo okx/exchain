@@ -425,7 +425,7 @@ func (bs *BlockStore) SaveBlock(block *types.Block, blockParts *types.PartSet, s
 	t8 := time.Now()
 
 	// Save new BlockStoreStateJSON descriptor
-	bs.saveState()
+	//bs.saveState()
 	t9 := time.Now()
 
 	// Flush
