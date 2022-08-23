@@ -408,10 +408,6 @@ func (cs *State) Wait() {
 	}
 }
 
-func (cs *State) Done() <-chan struct{} {
-	return cs.done
-}
-
 // OpenWAL opens a file to log all consensus messages and timeouts for deterministic accountability
 func (cs *State) OpenWAL(walFile string) (WAL, error) {
 	wal, err := NewWAL(walFile)
