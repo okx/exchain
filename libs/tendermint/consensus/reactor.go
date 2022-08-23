@@ -217,7 +217,8 @@ FOR_LOOP:
 		case <-timeoutCh:
 			// It shouldn't be timeout. something must be wrong here
 			conR.Logger.Error("300s, HollyST hang--")
-			//break FOR_LOOP
+			break FOR_LOOP
+			//clear WaitFastSync
 		}
 	}
 

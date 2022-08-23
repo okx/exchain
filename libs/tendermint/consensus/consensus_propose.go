@@ -380,4 +380,7 @@ func (cs *State) handleCompleteProposal(height int64) {
 		// If we're waiting on the proposal block...
 		cs.tryFinalizeCommit(height)
 	}
+
+	//handle AVC
+	//avc && 2/3+precommit && id==
 }

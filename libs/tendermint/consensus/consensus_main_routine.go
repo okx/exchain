@@ -148,6 +148,9 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 			added = true
 		}
 	case *BlockPartMessage:
+		//handle AVC
+		// bp=nil&& 2/3 precommit
+
 		// if the proposal is complete, we'll enterPrevote or tryFinalizeCommit
 		added, err = cs.addProposalBlockPart(msg, peerID)
 
