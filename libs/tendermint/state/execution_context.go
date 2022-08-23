@@ -134,14 +134,13 @@ func (pc *prerunContext) getPrerunResult(block *types.Block, fastSync bool) (res
 
 		//compare block hash equal prerun block hash
 		if !bytes.Equal(prerunHash, block.Hash()) {
-			pc.stopPrerun(block.Height)
 			res = nil
 			pc.logger.Error("unequal block hash between prerun and block",
 				"prerun hash", prerunHash,
 				"block hash", block.Hash())
 		}
 
-		pc.logger.Error("getPrerunResult success", "height", block.Height)
+		pc.logger.Error("getPrerunResult success", "height", block.Height, "hash", prerunHash)
 	}
 	return
 }
