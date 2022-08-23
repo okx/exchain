@@ -35,7 +35,7 @@ func (issd IncrementSenderSequenceDecorator) AnteHandle(ctx sdk.Context, tx sdk.
 
 	// when IsCheckTx() is true, it will means checkTx and recheckTx mode, but IsReCheckTx() is true it must be recheckTx mode
 	// if IsTraceMode is true,  sequence must be set.
-	if ctx.IsOnlyCheckTx() {
+	if ctx.IsOnlyCheckTx() && !baseapp.IsMempoolEnableRecheck() {
 		return next(ctx, tx, simulate)
 	}
 
