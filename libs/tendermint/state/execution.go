@@ -753,6 +753,17 @@ func fireEvents(
 func (blockExec *BlockExecutor) Notify2FastSync() {
 	blockExec.ffInChan <- struct{}{}
 }
+
+func (blockExec *BlockExecutor) ClearNotify2FastSync() {
+	for {
+		select {
+		case <-blockExec.ffInChan:
+		default:
+			return
+		}
+	}
+}
+
 func (blockExec *BlockExecutor) WaitFastSync() <-chan struct{} {
 	return blockExec.ffOutChan
 }

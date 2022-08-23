@@ -42,6 +42,8 @@ const (
 	BP_RECV
 	BP_ACK
 	BP_CATCHUP
+
+	switchTimeOut = 300 * time.Second
 )
 
 //-----------------------------------------------------------------------------
@@ -159,7 +161,7 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 	defer func() {
 		conR.setFastSyncFlag(false, 0)
 	}()
-	
+
 	conR.Logger.Info("SwitchToConsensus")
 	conR.conS.reconstructLastCommit(state)
 	// NOTE: The line below causes broadcastNewRoundStepRoutine() to
@@ -197,6 +199,7 @@ func (conR *Reactor) SwitchToFastSync() (sm.State, error) {
 	// wait until the consensus enter ApplyBlock
 	conR.conS.blockExec.Notify2FastSync()
 
+	to := time.After(switchTimeOut)
 FOR_LOOP:
 	for {
 		select {
@@ -205,6 +208,11 @@ FOR_LOOP:
 			break FOR_LOOP
 		// case: conS routine has quit
 		case <-conR.conS.Done():
+			break FOR_LOOP
+		// case: timeout
+		case <-to:
+			conR.Logger.Error("SwitchToFastSync timeout", "duration", switchTimeOut)
+			conR.conS.blockExec.ClearNotify2FastSync()
 			break FOR_LOOP
 		}
 	}
