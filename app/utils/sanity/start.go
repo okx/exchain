@@ -1,10 +1,14 @@
 package sanity
 
 import (
+	"fmt"
+
 	apptype "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/app/utils/appstatus"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/consensus"
 	"github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
@@ -54,34 +58,47 @@ var (
 	startConflictElems = []conflictPair{
 		// --fast-query      conflict with --pruning=nothing
 		{
-			configA: boolItem{name: watcher.FlagFastQuery, value: true},
-			configB: stringItem{name: server.FlagPruning, value: cosmost.PruningOptionNothing},
+			configA: boolItem{name: watcher.FlagFastQuery, expect: true},
+			configB: stringItem{name: server.FlagPruning, expect: cosmost.PruningOptionNothing},
 		},
 		// --enable-preruntx conflict with --download-delta
 		{
-			configA: boolItem{name: consensus.EnablePrerunTx, value: true},
-			configB: boolItem{name: types.FlagDownloadDDS, value: true},
+			configA: boolItem{name: consensus.EnablePrerunTx, expect: true},
+			configB: boolItem{name: types.FlagDownloadDDS, expect: true},
 		},
 		// --multi-cache conflict with --download-delta
 		{
-			configA: boolItem{name: sdk.FlagMultiCache, value: true},
-			configB: boolItem{name: types.FlagDownloadDDS, value: true},
+			configA: boolItem{name: sdk.FlagMultiCache, expect: true},
+			configB: boolItem{name: types.FlagDownloadDDS, expect: true},
 		},
 		{
-			configA: stringItem{name: apptype.FlagNodeMode, value: string(apptype.RpcNode)},
-			configB: stringItem{name: server.FlagPruning, value: cosmost.PruningOptionNothing},
+			configA: stringItem{name: apptype.FlagNodeMode, expect: string(apptype.RpcNode)},
+			configB: stringItem{name: server.FlagPruning, expect: cosmost.PruningOptionNothing},
 		},
 		// --node-mode=archive(--pruning=nothing) conflicts with --fast-query
 		{
-			configA: stringItem{name: apptype.FlagNodeMode, value: string(apptype.ArchiveNode)},
-			configB: boolItem{name: watcher.FlagFastQuery, value: true},
+			configA: stringItem{name: apptype.FlagNodeMode, expect: string(apptype.ArchiveNode)},
+			configB: boolItem{name: watcher.FlagFastQuery, expect: true},
 		},
 	}
 
-	checkRangeItems = []rangeItem{{
-		enumRange: []int{int(state.DeliverTxsExecModeSerial), state.DeliverTxsExecModeParallel},
-		name:      state.FlagDeliverTxsExecMode,
-	},
+	checkRangeItems = []rangeItem{
+		{
+			enumRange: []int{int(state.DeliverTxsExecModeSerial), state.DeliverTxsExecModeParallel},
+			name:      state.FlagDeliverTxsExecMode,
+		},
+	}
+
+	conflictPairOpts = []conflictPairWithOption{
+		{
+			checkOption: boolItem{name: iavl.FlagIavlEnableAutoUpgradeFSS, expect: false},
+			conflictPair: conflictPair{
+				configA: boolItem{name: iavl.FlagIavlEnableFastStorage, expect: true},
+				configB: funcItem{name: "Upgraded to fast IAVL", expect: false, f: appstatus.IsFastStorageStrategy},
+			},
+			tips: fmt.Sprintf("Upgrade to IAVL fast storage may take several hours, if sure set --%s, otherwise unset --%s",
+				iavl.FlagIavlEnableAutoUpgradeFSS, iavl.FlagIavlEnableFastStorage),
+		},
 	}
 )
 
@@ -99,6 +116,12 @@ func CheckStart() error {
 
 	for _, v := range checkRangeItems {
 		if err := v.checkRange(); err != nil {
+			return err
+		}
+	}
+
+	for _, v := range conflictPairOpts {
+		if err := v.checkConflict(); err != nil {
 			return err
 		}
 	}

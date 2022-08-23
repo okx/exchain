@@ -2,9 +2,10 @@ package sanity
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"testing"
 )
 
 // universeFlag used to build command
@@ -162,13 +163,13 @@ func Test_conflictPair_checkConflict(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "1. bool item and bool item both true",
-			fields: fields{configA: boolItem{name: "b1", value: true}, configB: boolItem{name: "b2", value: true}},
+			fields: fields{configA: boolItem{name: "b1", expect: true}, configB: boolItem{name: "b2", expect: true}},
 			args:   args{cmd: getCommandBool()}, wantErr: true},
 		{name: "2. bool item and bool item true vs false",
-			fields: fields{configA: boolItem{name: "b1", value: true}, configB: boolItem{name: "b3", value: false}},
+			fields: fields{configA: boolItem{name: "b1", expect: true}, configB: boolItem{name: "b3", expect: false}},
 			args:   args{cmd: getCommandBoolDiff()}, wantErr: true},
 		{name: "3. bool item and string item",
-			fields: fields{configA: boolItem{name: "b1", value: true}, configB: stringItem{name: "s1", value: "conflict"}},
+			fields: fields{configA: boolItem{name: "b1", expect: true}, configB: stringItem{name: "s1", expect: "conflict"}},
 			args:   args{cmd: getCommandBoolString()}, wantErr: true},
 	}
 	for _, tt := range tests {

@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"github.com/okex/exchain/app"
+	"github.com/okex/exchain/app/utils/appstatus"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/flatkv"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -46,4 +47,7 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 func setExternalPackageValue() {
 	tmiavl.SetEnableFastStorage(viper.GetBool(tmiavl.FlagIavlEnableFastStorage))
 	tmiavl.SetFastNodeCacheSize(viper.GetInt(tmiavl.FlagIavlFastStorageCacheSize))
+	if appstatus.IsFastStorageStrategy() {
+		tmiavl.SetEnableFastStorage(true)
+	}
 }
