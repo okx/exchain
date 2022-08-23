@@ -446,6 +446,24 @@ func ParseHTTPArgs(r *http.Request) (tags []string, page, limit int, err error) 
 	return ParseHTTPArgsWithLimit(r, DefaultLimit)
 }
 
+// ParseEvents parses the request's URL and returns a slice containing all events.
+func ParseEvents(r *http.Request) (events []string, err error) {
+	events = make([]string, 0)
+	for key, values := range r.Form {
+		if key == "events" {
+			for i := 0; i < len(values); i++ {
+				var event string
+				event, err = url.QueryUnescape(values[i])
+				if err != nil {
+					return events, err
+				}
+				events = append(events, event)
+			}
+		}
+	}
+	return events, nil
+}
+
 func CheckBadRequestError(w http.ResponseWriter, err error) bool {
 	return CheckError(w, http.StatusBadRequest, err)
 }

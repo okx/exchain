@@ -16,6 +16,7 @@ import (
 
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/gorilla/mux"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/rpc"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -33,10 +34,10 @@ import (
 
 // RegisterRoutes - Central function to define routes that get registered by the main application
 func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
-	r.HandleFunc("/txs/{hash}", QueryTxRequestHandlerFn(cliCtx)).Methods("GET")
-	r.HandleFunc("/txs", authrest.QueryTxsRequestHandlerFn(cliCtx)).Methods("GET")         // default from auth
-	r.HandleFunc("/txs", authrest.BroadcastTxRequest(cliCtx)).Methods("POST")              // default from auth
-	r.HandleFunc("/txs/encode", authrest.EncodeTxRequestHandlerFn(cliCtx)).Methods("POST") // default from auth
+	r.HandleFunc("/cosmos/tx/v1beta1/txs/{hash}", QueryTxRequestHandlerFn(cliCtx)).Methods("GET")
+	r.HandleFunc("/cosmos/tx/v1beta1/txs", authrest.QueryTxsRequestHandlerFn(cliCtx)).Methods("GET") // default from auth
+	r.HandleFunc("/txs", authrest.BroadcastTxRequest(cliCtx)).Methods("POST")                        // default from auth
+	r.HandleFunc("/txs/encode", authrest.EncodeTxRequestHandlerFn(cliCtx)).Methods("POST")           // default from auth
 	r.HandleFunc("/txs/decode", authrest.DecodeTxRequestHandlerFn(cliCtx)).Methods("POST")
 	r.HandleFunc("/section", QuerySectionFn(cliCtx)).Methods("GET")
 	r.HandleFunc("/contract/blocked_list", QueryContractBlockedListHandlerFn(cliCtx)).Methods("GET")
