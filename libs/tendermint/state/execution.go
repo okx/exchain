@@ -758,6 +758,7 @@ func (blockExec *BlockExecutor) ClearNotify2FastSync() {
 	for {
 		select {
 		case <-blockExec.ffInChan:
+		case <-blockExec.ffOutChan:
 		default:
 			return
 		}

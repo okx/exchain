@@ -43,7 +43,7 @@ const (
 	BP_ACK
 	BP_CATCHUP
 
-	switchTimeOut = 300 * time.Second
+	switchTimeOut = 60 * time.Second
 )
 
 //-----------------------------------------------------------------------------
@@ -186,7 +186,7 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 }
 
 func (conR *Reactor) SwitchToFastSync() (sm.State, error) {
-	conR.Logger.Info("SwitchToFastSync")
+	conR.Logger.Error("SwitchToFastSync")
 
 	defer func() {
 		conR.setFastSyncFlag(true, 1)
@@ -203,13 +203,13 @@ func (conR *Reactor) SwitchToFastSync() (sm.State, error) {
 FOR_LOOP:
 	for {
 		select {
-		// case: get signal from blockExecutor
+		//case: get signal from blockExecutor
 		case <-conR.conS.blockExec.WaitFastSync():
 			break FOR_LOOP
 		// case: conS routine has quit
 		case <-conR.conS.Done():
 			break FOR_LOOP
-		// case: timeout
+		//case: timeout
 		case <-to:
 			conR.Logger.Error("SwitchToFastSync timeout", "duration", switchTimeOut)
 			conR.conS.blockExec.ClearNotify2FastSync()
@@ -232,6 +232,7 @@ conR:
 	conR.conS.Wait()
 
 	cState := conR.conS.GetState()
+	conR.Logger.Error("Switch Success")
 
 	return cState, nil
 }

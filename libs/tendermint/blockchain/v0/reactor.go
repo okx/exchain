@@ -40,7 +40,7 @@ const (
 )
 
 var (
-	MaxIntervalForFastSync int64 = 20
+	MaxIntervalForFastSync int64 = 10
 )
 
 type consensusReactor interface {
