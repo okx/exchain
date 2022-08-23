@@ -42,8 +42,6 @@ const (
 	BP_RECV
 	BP_ACK
 	BP_CATCHUP
-
-	switchTimeOut = 60 * time.Second
 )
 
 //-----------------------------------------------------------------------------
@@ -211,8 +209,7 @@ conR:
 	conR.conS.Wait()
 
 	cState := conR.conS.GetState()
-	conR.Logger.Error("Switch Success")
-
+	conR.Logger.Error("SwitchToFastSync End")
 	return cState, nil
 }
 

@@ -72,10 +72,6 @@ type BlockExecutor struct {
 	// the owner is validator
 	isNullIndexer bool
 	eventsChan    chan event
-
-	// fastsync lock on
-	ffInChan  chan struct{}
-	ffOutChan chan struct{}
 }
 
 type event struct {
@@ -114,9 +110,6 @@ func NewBlockExecutor(
 		deltaContext: newDeltaContext(logger),
 		eventsChan:   make(chan event, 5),
 	}
-
-	res.ffInChan = make(chan struct{}, 1)
-	res.ffOutChan = make(chan struct{})
 
 	for _, option := range options {
 		option(res)
@@ -227,14 +220,6 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		blockExec.metrics.IntervalTime.Set(float64(now-blockExec.metrics.lastBlockTime) / 1e6)
 		blockExec.metrics.lastBlockTime = now
 	}()
-
-	select {
-	case _, ok := <-blockExec.ffInChan:
-		if ok {
-			blockExec.ffOutChan <- struct{}{}
-		}
-	default:
-	}
 
 	if err := blockExec.ValidateBlock(state, block); err != nil {
 		return state, 0, ErrInvalidBlock(err)
@@ -748,23 +733,4 @@ func fireEvents(
 		eventBus.PublishEventValidatorSetUpdates(
 			types.EventDataValidatorSetUpdates{ValidatorUpdates: validatorUpdates})
 	}
-}
-
-func (blockExec *BlockExecutor) Notify2FastSync() {
-	blockExec.ffInChan <- struct{}{}
-}
-
-func (blockExec *BlockExecutor) ClearNotify2FastSync() {
-	for {
-		select {
-		case <-blockExec.ffInChan:
-		case <-blockExec.ffOutChan:
-		default:
-			return
-		}
-	}
-}
-
-func (blockExec *BlockExecutor) WaitFastSync() <-chan struct{} {
-	return blockExec.ffOutChan
 }

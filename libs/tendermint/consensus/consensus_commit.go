@@ -10,7 +10,6 @@ import (
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
-	"time"
 )
 
 func (cs *State) dumpElapsed(trc *trace.Tracer, schema string) {
@@ -244,7 +243,6 @@ func (cs *State) finalizeCommit(height int64) {
 	}
 
 	fail.Fail() // XXX
-	time.Sleep(10 * time.Second)
 
 	// Prune old heights, if requested by ABCI app.
 	if retainHeight > 0 {
