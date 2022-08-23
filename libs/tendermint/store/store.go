@@ -425,7 +425,7 @@ func (bs *BlockStore) SaveBlock(block *types.Block, blockParts *types.PartSet, s
 	t8 := time.Now()
 
 	// Save new BlockStoreStateJSON descriptor
-	//bs.saveState()
+	go bs.saveState()
 	t9 := time.Now()
 
 	// Flush
@@ -492,6 +492,10 @@ type BlockStoreStateJSON struct {
 
 // Save persists the blockStore state to the database as JSON.
 func (bsj BlockStoreStateJSON) Save(db dbm.DB) {
+	bsStore := LoadBlockStoreStateJSON(db)
+	if bsStore.Height >= bsj.Height {
+		return
+	}
 	bytes, err := cdc.MarshalJSON(bsj)
 	if err != nil {
 		panic(fmt.Sprintf("Could not marshal state bytes: %v", err))
