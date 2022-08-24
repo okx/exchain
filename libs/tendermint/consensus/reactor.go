@@ -184,7 +184,7 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 }
 
 func (conR *Reactor) SwitchToFastSync() (sm.State, error) {
-	conR.Logger.Error("SwitchToFastSync")
+	conR.Logger.Info("SwitchToFastSync")
 
 	defer func() {
 		conR.setFastSyncFlag(true, 1)
@@ -209,7 +209,6 @@ conR:
 	conR.conS.Wait()
 
 	cState := conR.conS.GetState()
-	conR.Logger.Error("SwitchToFastSync End")
 	return cState, nil
 }
 

@@ -110,7 +110,6 @@ func (pc *prerunContext) notifyPrerun(blockExec *BlockExecutor, block *types.Blo
 
 	pc.prerunTask.dump("Notify prerun")
 
-	pc.logger.Error("notifyPrerun: new Prerun task", "height", block.Height)
 	// start a new one
 	pc.taskChan <- pc.prerunTask
 }
@@ -140,7 +139,6 @@ func (pc *prerunContext) getPrerunResult(block *types.Block, fastSync bool) (res
 				"block hash", block.Hash())
 		}
 
-		pc.logger.Error("getPrerunResult success", "height", block.Height, "hash", prerunHash)
 	}
 	return
 }
