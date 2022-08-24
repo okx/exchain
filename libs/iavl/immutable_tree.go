@@ -344,6 +344,15 @@ func (t *ImmutableTree) DebugSetNode(node *Node) error {
 	nodeKey := t.ndb.nodeKey(node.hash)
 	nodeValue := buf.Bytes()
 	fmt.Println("nodeKey:", hex.EncodeToString(nodeKey))
-	fmt.Println("nodeValue:", hex.EncodeToString(nodeValue))
-	return t.ndb.db.SetSync(nodeKey, nodeValue)
+	fmt.Println("preWrite nodeValue:", hex.EncodeToString(nodeValue))
+	err = t.ndb.db.SetSync(nodeKey, nodeValue)
+
+	bz, err := t.ndb.db.Get(nodeKey)
+	if err != nil {
+		fmt.Println("after Write nodeValue:", hex.EncodeToString(bz))
+	} else {
+		fmt.Println("read err:", err)
+	}
+
+	return err
 }

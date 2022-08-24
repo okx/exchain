@@ -290,6 +290,15 @@ func iaviewerWriteNodeCmd(ctx *iaviewerContext) *cobra.Command {
 					} else {
 						fmt.Println(string(jstr))
 					}
+
+					node = tree.DebugGetNode(nodeJson.Hash)
+					fmt.Println("read from db")
+					jstr, err = json.Marshal(newNodeStringFromNodeJson(iavl.NodeToNodeJson(node)))
+					if err != nil {
+						fmt.Println(node.String())
+					} else {
+						fmt.Println(string(jstr))
+					}
 				}
 				return err
 			} else {
