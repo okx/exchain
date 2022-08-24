@@ -112,7 +112,7 @@ func NewBlockExecutor(
 		metrics:      NopMetrics(),
 		prerunCtx:    newPrerunContex(logger),
 		deltaContext: newDeltaContext(logger),
-		eventsChan:   make(chan event, 5),
+		eventsChan:   make(chan event, 100),
 	}
 
 	res.ffInChan = make(chan struct{}, 1)
