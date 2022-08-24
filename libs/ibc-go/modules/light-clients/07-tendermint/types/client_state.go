@@ -1,9 +1,10 @@
 package types
 
 import (
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"strings"
 	"time"
+
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	ics23 "github.com/confio/ics23/go"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -302,11 +303,10 @@ func (cs ClientState) VerifyConnectionState(
 		return sdkerrors.Wrapf(sdkerrors.ErrInvalidType, "invalid connection type %T", connectionEnd)
 	}
 
-	bz := common2.MustMarshalConnection(cdc, &connection)
-	//bz, err := cdc.GetProtocMarshal().MarshalInterface(&connection)
-	//if err != nil {
-	//	return err
-	//}
+	bz, err := cdc.GetProtocMarshal().MarshalBinaryBare(&connection)
+	if nil != err {
+		return err
+	}
 
 	if err := merkleProof.VerifyMembership(cs.ProofSpecs, consensusState.GetRoot(), path, bz); err != nil {
 		return err
@@ -584,7 +584,7 @@ func produceVerificationArgs(
 
 	consensusState, err = GetConsensusState(store, cdc, height)
 	if err != nil {
-		return commitmenttypes.MerkleProof{}, nil, err
+		return commitmenttypes.MerkleProof{}, nil, sdkerrors.Wrap(err, "please ensure the proof was constructed against a height that exists on the client")
 	}
 
 	return merkleProof, consensusState, nil

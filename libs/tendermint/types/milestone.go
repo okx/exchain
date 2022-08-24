@@ -208,11 +208,11 @@ func HigherThanVenus3(h int64) bool {
 }
 
 func GetVenus3Height() int64 {
-	return milestoneVenus2Height
+	return milestoneVenus3Height
 }
 
 func UnittestOnlySetMilestoneVenus3Height(h int64) {
-	milestoneVenus2Height = h
+	milestoneVenus3Height = h
 }
 
 // =========== Venus3 ===============
