@@ -152,10 +152,8 @@ func GetCertifiedCommit(h int64, client rpcclient.Client, cert lite.Verifier) (t
 // note: validators will sort by power when the globalHeight is gt the veneus1Height
 // when that happens ,Verifier#verify will be failed because of `globalHeight` is always '0'
 // case1: height is lt veneus1Height: L56: cert#Verify will success
-// case2: height is gt veneus1Height+Epoch: L168 shoudle be failed ,L175 will success
-// case3: height is gt veneus1Height,but lt veneus1Height+Epoch : L157 shoudle be failed ,L168 wil success
+// case2: height is gt veneus1Height: L56 shoudle be failed ,L168 wil success
 func VerifyEx(cert lite.Verifier, sh types.SignedHeader) error {
-	// case1: header is in [...,veneus1Height)
 	err := cert.Verify(sh)
 	if err == nil {
 		return nil
@@ -163,19 +161,9 @@ func VerifyEx(cert lite.Verifier, sh types.SignedHeader) error {
 
 	// if we run here ,which means milestone'height is not working correctly
 	// as for cm40 , validatorSet will sort the validators by global height
-	// but it wont sort immedaitely until it meet the  Epoch block counts(see x/staking/types/params.go#DefaultBlocksPerEpoch)
-	// so we will try three times
+	// so we will try twice
 	origin := global.GetGlobalHeight()
 	global.SetGlobalHeight(math.MaxInt32 - 1)
 	defer global.SetGlobalHeight(origin)
-
-	// case2: the header is in [veneus1Height+Epoch,...)
-	if err = cert.Verify(sh); err == nil {
-		return err
-	}
-
-	// case3:the header may in [veneus1Height,veneus1Height+Epoch)
-	types.SetSortValidators(false)
-	defer types.SetSortValidators(true)
 	return cert.Verify(sh)
 }

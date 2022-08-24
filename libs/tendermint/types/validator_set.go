@@ -32,10 +32,6 @@ const (
 	PriorityWindowSizeFactor = 2
 )
 
-var (
-	enableSortValidators = true
-)
-
 // ValidatorSet represent a set of *Validator at a given height.
 // The validators can be fetched by address or index.
 // The index is in order of .Address, so the indices are fixed
@@ -481,7 +477,7 @@ func computeNewPriorities(updates []*Validator, vals *ValidatorSet, updatedTotal
 func (vals *ValidatorSet) applyUpdates(updates []*Validator) {
 
 	existing := vals.Validators
-	if enableSortValidators && HigherThanVenus1(global.GetGlobalHeight()) {
+	if HigherThanVenus1(global.GetGlobalHeight()) {
 		sort.Sort(ValidatorsByAddress(existing))
 	}
 
@@ -1148,8 +1144,4 @@ func safeMul(a, b int64) (int64, bool) {
 	}
 
 	return c, false
-}
-
-func SetSortValidators(flag bool) {
-	enableSortValidators = flag
 }
