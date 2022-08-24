@@ -6,7 +6,6 @@ import (
 	"github.com/tendermint/go-amino"
 	"time"
 
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/compress"
 )
 
@@ -384,7 +383,7 @@ func (d *Deltas) Marshal() ([]byte, error) {
 
 	t1 := time.Now()
 	// calc payload hash
-	payloadHash := tmhash.Sum(payload)
+	//payloadHash := tmhash.Sum(payload)
 
 	// compress
 	t2 := time.Now()
@@ -398,8 +397,8 @@ func (d *Deltas) Marshal() ([]byte, error) {
 		Metadata:     payload,
 		Height:       d.Height,
 		CompressType: d.CompressType,
-		MetadataHash: payloadHash,
-		From:         d.From,
+		//MetadataHash: payloadHash,
+		From: d.From,
 	}
 
 	// marshal to upload bytes
@@ -433,10 +432,10 @@ func (d *Deltas) Unmarshal(bs []byte) error {
 
 	t2 := time.Now()
 	// calc payload hash
-	payloadHash := tmhash.Sum(msg.Metadata)
-	if bytes.Compare(payloadHash, msg.MetadataHash) != 0 {
-		return fmt.Errorf("metadata hash is different")
-	}
+	//payloadHash := tmhash.Sum(msg.Metadata)
+	//if bytes.Compare(payloadHash, msg.MetadataHash) != 0 {
+	//	return fmt.Errorf("metadata hash is different")
+	//}
 	t3 := time.Now()
 
 	err = d.Payload.UnmarshalFromAmino(cdc, msg.Metadata)
