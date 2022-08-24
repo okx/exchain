@@ -185,21 +185,21 @@ func (status *ProposalStatus) Unmarshal(data []byte) error {
 
 // Marshals to JSON using string
 func (status ProposalStatus) MarshalJSON() ([]byte, error) {
-	return json.Marshal(status)
+	return json.Marshal(status.String())
 }
 
 // Unmarshals from JSON assuming Bech32 encoding
 func (status *ProposalStatus) UnmarshalJSON(data []byte) error {
-	var s ProposalStatus
+	var s string
 	err := json.Unmarshal(data, &s)
 	if err != nil {
 		return err
 	}
-	//bz2, err := ProposalStatusFromString(s)
-	//if err != nil {
-	//	return err
-	//}
-	*status = s
+	bz2, err := ProposalStatusFromString(s)
+	if err != nil {
+		return err
+	}
+	*status = bz2
 	return nil
 }
 
