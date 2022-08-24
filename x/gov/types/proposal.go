@@ -35,7 +35,7 @@ type Proposal struct {
 	Content `json:"content" yaml:"content"` // Proposal content interface
 
 	ProposalID       uint64         `json:"id" yaml:"id"`                                 //  ID of the proposal
-	Status           ProposalStatus `json:"proposal_status" yaml:"proposal_status"`       // Status of the Proposal {Pending, Active, Passed, Rejected}
+	Status           ProposalStatus `json:"status" yaml:"proposal_status"`                // Status of the Proposal {Pending, Active, Passed, Rejected}
 	FinalTallyResult TallyResult    `json:"final_tally_result" yaml:"final_tally_result"` // Result of Tallys
 
 	SubmitTime     time.Time    `json:"submit_time" yaml:"submit_time"`           // Time of the block where TxGovSubmitProposal was included
@@ -185,23 +185,21 @@ func (status *ProposalStatus) Unmarshal(data []byte) error {
 
 // Marshals to JSON using string
 func (status ProposalStatus) MarshalJSON() ([]byte, error) {
-	return json.Marshal(status.String())
+	return json.Marshal(status)
 }
 
 // Unmarshals from JSON assuming Bech32 encoding
 func (status *ProposalStatus) UnmarshalJSON(data []byte) error {
-	var s string
+	var s ProposalStatus
 	err := json.Unmarshal(data, &s)
 	if err != nil {
 		return err
 	}
-
-	bz2, err := ProposalStatusFromString(s)
-	if err != nil {
-		return err
-	}
-
-	*status = bz2
+	//bz2, err := ProposalStatusFromString(s)
+	//if err != nil {
+	//	return err
+	//}
+	*status = s
 	return nil
 }
 
