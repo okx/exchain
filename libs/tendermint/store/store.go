@@ -3,12 +3,9 @@ package store
 import (
 	"bytes"
 	"fmt"
-	"log"
+	"github.com/tendermint/go-amino"
 	"strconv"
 	"sync"
-	"time"
-
-	"github.com/tendermint/go-amino"
 
 	"github.com/pkg/errors"
 
@@ -440,7 +437,7 @@ func (bs *BlockStore) SaveBlock(block *types.Block, blockParts *types.PartSet, s
 	//	" lock:", t8.Sub(t7),
 	//	" saveState:", t9.Sub(t8),
 	//	" dbsetSync:", t10.Sub(t9),
-	)
+	//)
 }
 
 func (bs *BlockStore) saveBlockPart(height int64, index int, part *types.Part) {
