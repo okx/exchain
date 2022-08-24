@@ -14,27 +14,10 @@ import (
 	"sync"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	"github.com/okex/exchain/libs/tendermint/crypto"
-
-	"github.com/gogo/protobuf/proto"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-
-	"github.com/okex/exchain/x/gov"
-
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-
-	"github.com/spf13/viper"
-
+	"github.com/gogo/protobuf/proto"
+	
 	"github.com/okex/exchain/app"
-	minttypes "github.com/okex/exchain/libs/cosmos-sdk/x/mint"
-	supplytypes "github.com/okex/exchain/libs/cosmos-sdk/x/supply"
-	"github.com/okex/exchain/libs/iavl"
-	dbm "github.com/okex/exchain/libs/tm-db"
-	evmtypes "github.com/okex/exchain/x/evm/types"
-	slashingtypes "github.com/okex/exchain/x/slashing"
-	tokentypes "github.com/okex/exchain/x/token/types"
-	"github.com/spf13/cobra"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -42,8 +25,22 @@ import (
 	acctypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	distypes "github.com/okex/exchain/libs/cosmos-sdk/x/distribution/types"
 	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
+	minttypes "github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
+	supplytypes "github.com/okex/exchain/libs/cosmos-sdk/x/supply"
+	"github.com/okex/exchain/libs/iavl"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/distribution/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/gov"
+	slashingtypes "github.com/okex/exchain/x/slashing"
+	tokentypes "github.com/okex/exchain/x/token/types"
+
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 type (
@@ -125,7 +122,7 @@ func iaviewerCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 		iaviewerVersionsCmd(iavlCtx),
 		iaviewerListModulesCmd(),
 	)
-	iavlCtx.flags.DbBackend = cmd.PersistentFlags().String(flagDBBackend, "", "Database backend: goleveldb | rocksdb")
+	iavlCtx.flags.DbBackend = cmd.PersistentFlags().String(sdk.FlagDBBackend, tmtypes.DBBackend, "Database backend: goleveldb | rocksdb")
 	iavlCtx.flags.Start = cmd.PersistentFlags().Int(flagStart, 0, "index of result set start from")
 	iavlCtx.flags.Limit = cmd.PersistentFlags().Int(flagLimit, 0, "limit of result set, 0 means no limit")
 	iavlCtx.flags.Prefix = cmd.PersistentFlags().String(flagPrefix, "", "the prefix of iavl tree, module value must be \"\" if prefix is set")

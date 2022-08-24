@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"sync"
 
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	evmtypes "github.com/okex/exchain/x/evm/types"
@@ -14,7 +16,6 @@ import (
 const (
 	FlagFastQuery    = "fast-query"
 	FlagFastQueryLru = "fast-lru"
-	FlagDBBackend    = "db_backend"
 	FlagCheckWd      = "check_watchdb"
 
 	WatchDbDir  = "data"
@@ -42,12 +43,12 @@ func InstanceOfWatchStore() *WatchStore {
 func initDb() dbm.DB {
 	homeDir := viper.GetString(flags.FlagHome)
 	dbPath := filepath.Join(homeDir, WatchDbDir)
-	backend := viper.GetString(FlagDBBackend)
-	if backend == "" {
-		backend = string(dbm.GoLevelDBBackend)
-	}
 
-	return dbm.NewDB(WatchDBName, dbm.BackendType(backend), dbPath)
+	db, err := sdk.NewDB(WatchDBName, dbPath)
+	if err != nil {
+		panic(err)
+	}
+	return db
 }
 
 func (w WatchStore) Set(key []byte, value []byte) {

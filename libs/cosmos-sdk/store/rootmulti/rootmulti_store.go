@@ -109,7 +109,7 @@ func newFlatKVDB() dbm.DB {
 	rootDir := viper.GetString("home")
 	dataDir := filepath.Join(rootDir, "data")
 	var err error
-	flatKVDB, err := sdk.NewLevelDB("flat", dataDir)
+	flatKVDB, err := sdk.NewDB("flat", dataDir)
 	if err != nil {
 		panic(err)
 	}
