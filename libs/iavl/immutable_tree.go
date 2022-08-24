@@ -1,6 +1,7 @@
 package iavl
 
 import (
+	"bytes"
 	"fmt"
 	"strings"
 
@@ -307,4 +308,18 @@ func (t *ImmutableTree) DebugGetNode(nodeHash []byte) *Node {
 		return t.root
 	}
 	return t.ndb.GetNode(nodeHash)
+}
+
+// Only used for debug!
+func (t *ImmutableTree) DebugSetNode(node *Node) error {
+	// Save node bytes to db.
+	var buf bytes.Buffer
+	buf.Grow(node.aminoSize())
+
+	if err := node.writeBytesToBuffer(&buf); err != nil {
+		panic(err)
+	}
+	nodeKey := t.ndb.nodeKey(node.hash)
+	nodeValue := buf.Bytes()
+	return t.ndb.db.Set(nodeKey, nodeValue)
 }

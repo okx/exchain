@@ -72,6 +72,7 @@ const (
 	flagPrefix    = "prefix"
 	flagKey       = "key"
 	flagNodeHash  = "nodehash"
+	flagNodeJson  = "nodejson"
 	flagKeyPrefix = "keyprefix"
 )
 
@@ -120,6 +121,7 @@ func iaviewerCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 	cmd.AddCommand(
 		iaviewerReadCmd(iavlCtx),
 		iaviewerReadNodeCmd(iavlCtx),
+		iaviewerWriteNodeCmd(iavlCtx),
 		iaviewerStatusCmd(iavlCtx),
 		iaviewerDiffCmd(iavlCtx),
 		iaviewerVersionsCmd(iavlCtx),
@@ -225,6 +227,105 @@ func iaviewerReadNodeCmd(ctx *iaviewerContext) *cobra.Command {
 	}
 	cmd.PersistentFlags().String(flagNodeHash, "", "print only the value for this hash, key must be in hex format.")
 	return cmd
+}
+
+func iaviewerWriteNodeCmd(ctx *iaviewerContext) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "write-node <data_dir> <module> [version]",
+		Short: "Write iavl tree node to db",
+		PreRunE: func(cmd *cobra.Command, args []string) (err error) {
+			iaviewerCmdParseFlags(ctx)
+			return iaviewerCmdParseArgs(ctx, args)
+		},
+		RunE: func(cmd *cobra.Command, args []string) (err error) {
+			if nj := viper.GetString(flagNodeJson); nj != "" {
+				var nodeJson iavl.NodeJson
+				err = json.Unmarshal([]byte(nj), &nodeJson)
+				if err != nil {
+					return err
+				}
+				err = validNodeJsonToWrite(&nodeJson)
+				if err != nil {
+					return err
+				}
+
+				db, err := OpenDB(ctx.DataDir, ctx.DbBackend)
+				if err != nil {
+					return fmt.Errorf("error opening DB: %w", err)
+				}
+				defer db.Close()
+
+				tree, err := ReadTree(db, ctx.Version, []byte(ctx.Prefix), DefaultCacheSize)
+				if err != nil {
+					return fmt.Errorf("error reading data: %w", err)
+				}
+				fmt.Printf("module: %s, prefix key: %s\n\n", ctx.Module, ctx.Prefix)
+
+				if nodeJson.Height != 0 {
+					leftNode := tree.DebugGetNode(nodeJson.LeftHash)
+					if leftNode == nil {
+						return fmt.Errorf("left node not found")
+					}
+					rightNode := tree.DebugGetNode(nodeJson.RightHash)
+					if rightNode == nil {
+						return fmt.Errorf("right node not found")
+					}
+
+					height := maxInt8(iavl.NodeToNodeJson(leftNode).Height, iavl.NodeToNodeJson(rightNode).Height) + 1
+					size := iavl.NodeToNodeJson(leftNode).Size + iavl.NodeToNodeJson(rightNode).Size
+					if height != nodeJson.Height || size != nodeJson.Size {
+						return fmt.Errorf("height or size not match")
+					}
+				}
+
+				node := iavl.NodeJsonToNode(&nodeJson)
+				err = tree.DebugSetNode(node)
+				return err
+			} else {
+				return fmt.Errorf("must specify node json")
+			}
+		},
+	}
+	cmd.PersistentFlags().String(flagNodeJson, "", "json of node, bytes fields must be in hex format")
+	return cmd
+}
+
+func maxInt8(a, b int8) int8 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func validNodeJsonToWrite(node *iavl.NodeJson) error {
+	if len(node.Key) == 0 {
+		return fmt.Errorf("key is empty")
+	}
+	if len(node.Hash) == 0 {
+		return fmt.Errorf("hash is empty")
+	}
+	if node.Height != 0 {
+		if len(node.LeftHash) != 32 {
+			return fmt.Errorf("left hash is error")
+		}
+		if len(node.RightHash) != 32 {
+			return fmt.Errorf("right hash is error")
+		}
+		if node.Size < 1 {
+			return fmt.Errorf("size is error")
+		}
+	} else {
+		if node.Size != 1 {
+			return fmt.Errorf("size is error")
+		}
+	}
+	if !node.Persisted {
+		return fmt.Errorf("node is not set persisted")
+	}
+	if node.PrePersisted {
+		return fmt.Errorf("node is set pre persisted")
+	}
+	return nil
 }
 
 func iaviewerStatusCmd(ctx *iaviewerContext) *cobra.Command {
