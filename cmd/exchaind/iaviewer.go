@@ -239,12 +239,13 @@ func iaviewerWriteNodeCmd(ctx *iaviewerContext) *cobra.Command {
 		},
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
 			if nj := viper.GetString(flagNodeJson); nj != "" {
-				var nodeJson iavl.NodeJson
-				err = json.Unmarshal([]byte(nj), &nodeJson)
+				var nodeStr nodeString
+				err = json.Unmarshal([]byte(nj), &nodeStr)
 				if err != nil {
 					return err
 				}
-				err = validNodeJsonToWrite(&nodeJson)
+				var nodeJson = newNodeJsonFromNodeString(&nodeStr)
+				err = validNodeJsonToWrite(nodeJson)
 				if err != nil {
 					return err
 				}
@@ -278,7 +279,7 @@ func iaviewerWriteNodeCmd(ctx *iaviewerContext) *cobra.Command {
 					}
 				}
 
-				node := iavl.NodeJsonToNode(&nodeJson)
+				node := iavl.NodeJsonToNode(nodeJson)
 				err = tree.DebugSetNode(node)
 				return err
 			} else {
@@ -566,6 +567,29 @@ func newNodeStringFromNodeJson(nodeJson *iavl.NodeJson) *nodeString {
 		Height:       nodeJson.Height,
 		Persisted:    nodeJson.Persisted,
 		PrePersisted: nodeJson.PrePersisted,
+	}
+}
+
+func decodeHexString(str string) []byte {
+	bz, err := hex.DecodeString(str)
+	if err != nil {
+		panic(err)
+	}
+	return bz
+}
+
+func newNodeJsonFromNodeString(nodeStr *nodeString) *iavl.NodeJson {
+	return &iavl.NodeJson{
+		Key:          decodeHexString(nodeStr.Key),
+		Value:        decodeHexString(nodeStr.Value),
+		Hash:         decodeHexString(nodeStr.Hash),
+		LeftHash:     decodeHexString(nodeStr.LeftHash),
+		RightHash:    decodeHexString(nodeStr.RightHash),
+		Version:      nodeStr.Version,
+		Size:         nodeStr.Size,
+		Height:       nodeStr.Height,
+		Persisted:    nodeStr.Persisted,
+		PrePersisted: nodeStr.PrePersisted,
 	}
 }
 
