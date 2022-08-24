@@ -94,6 +94,7 @@ func main() {
 		exportAppCmd(ctx),
 		iaviewerCmd(ctx, codecProxy.GetCdc()),
 		subscribeCmd(codecProxy.GetCdc()),
+		dbCmd(ctx),
 	)
 
 	subFunc := func(logger log.Logger) log.Subscriber {
