@@ -38,7 +38,7 @@ type testData struct {
 }
 
 func setupTest(t *testing.T) testData {
-	ctx, keepers := CreateTestInput(t, false, "iterator,staking,stargate")
+	ctx, keepers := CreateTestInput(t, false, SupportedFeatures)
 	cdc := keeper.MakeTestCodec(t)
 	data := testData{
 		module:        NewAppModule(cdc, keepers.WasmKeeper),
@@ -406,6 +406,7 @@ func TestReadWasmConfig(t *testing.T) {
 				"wasm.query_gas_limit": 1,
 			},
 			exp: types.WasmConfig{
+				SimulationGasLimit: defaults.SimulationGasLimit,
 				SmartQueryGasLimit: 1,
 				MemoryCacheSize:    defaults.MemoryCacheSize,
 			},
@@ -415,6 +416,7 @@ func TestReadWasmConfig(t *testing.T) {
 				"wasm.memory_cache_size": 2,
 			},
 			exp: types.WasmConfig{
+				SimulationGasLimit: defaults.SimulationGasLimit,
 				MemoryCacheSize:    2,
 				SmartQueryGasLimit: defaults.SmartQueryGasLimit,
 			},
@@ -424,6 +426,7 @@ func TestReadWasmConfig(t *testing.T) {
 				"trace": true,
 			},
 			exp: types.WasmConfig{
+				SimulationGasLimit: defaults.SimulationGasLimit,
 				SmartQueryGasLimit: defaults.SmartQueryGasLimit,
 				MemoryCacheSize:    defaults.MemoryCacheSize,
 				ContractDebugMode:  true,

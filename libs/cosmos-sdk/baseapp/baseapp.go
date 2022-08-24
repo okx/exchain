@@ -923,7 +923,7 @@ func (app *BaseApp) StopBaseApp() {
 
 func (app *BaseApp) GetTxInfo(ctx sdk.Context, tx sdk.Tx) mempool.ExTxInfo {
 	exTxInfo := mempool.ExTxInfo{
-		Sender:   tx.GetFrom(),
+		Sender:   tx.GetSender(ctx),
 		GasPrice: tx.GetGasPrice(),
 		Nonce:    tx.GetNonce(),
 	}
