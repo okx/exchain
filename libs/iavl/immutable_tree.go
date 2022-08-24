@@ -3,6 +3,7 @@ package iavl
 import (
 	"bytes"
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"strings"
 
@@ -313,6 +314,7 @@ func (t *ImmutableTree) DebugGetNode(nodeHash []byte) *Node {
 
 // Only used for debug!
 func (t *ImmutableTree) DebugSetNode(node *Node) error {
+	fmt.Printf("node %+v\n", node)
 	h := sha256.New()
 	var buf bytes.Buffer
 	buf.Grow(node.aminoHashSize())
@@ -341,5 +343,7 @@ func (t *ImmutableTree) DebugSetNode(node *Node) error {
 	}
 	nodeKey := t.ndb.nodeKey(node.hash)
 	nodeValue := buf.Bytes()
+	fmt.Println("nodeKey:", hex.EncodeToString(nodeKey))
+	fmt.Println("nodeValue:", hex.EncodeToString(nodeValue))
 	return t.ndb.db.SetSync(nodeKey, nodeValue)
 }

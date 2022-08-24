@@ -280,7 +280,17 @@ func iaviewerWriteNodeCmd(ctx *iaviewerContext) *cobra.Command {
 				}
 
 				node := iavl.NodeJsonToNode(nodeJson)
+				fmt.Printf("nodeJson %+v\n", nodeJson)
 				err = tree.DebugSetNode(node)
+				if err == nil {
+					fmt.Println("write node to db success")
+					jstr, err := json.Marshal(newNodeStringFromNodeJson(iavl.NodeToNodeJson(node)))
+					if err != nil {
+						fmt.Println(node.String())
+					} else {
+						fmt.Println(string(jstr))
+					}
+				}
 				return err
 			} else {
 				return fmt.Errorf("must specify node json")
