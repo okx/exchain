@@ -125,16 +125,23 @@ func QueryTxsRequestHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+		txsList := make([]sdk.Tx, len(searchResult.Txs))
+		for i, tx := range searchResult.Txs {
+			ourTx := tx.Tx
+			if !ok {
+				return
+			}
 
-		//for i, tx := range searchResult.Txs {
-		//	protoTx, ok := tx.Tx.GetCachedValue().(*txtypes.Tx)
-		//	if !ok {
-		//		return
-		//	}
-		//
-		//	txsList[i] = protoTx
-		//}
-		rest.PostProcessResponseBare(w, cliCtx, searchResult)
+			txsList[i] = ourTx
+		}
+		res := types.CustomGetTxsEventResponse{
+			Txs:         txsList,
+			TxResponses: searchResult.Txs,
+			Pagination: &query.PageResponse{
+				Total: uint64(searchResult.TotalCount),
+			},
+		}
+		rest.PostProcessResponseBare(w, cliCtx, res)
 	}
 }
 
