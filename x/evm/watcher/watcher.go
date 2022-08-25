@@ -46,6 +46,7 @@ type Watcher struct {
 	checkWd      bool
 	filterMap    map[string]WatchMessage
 	InfuraKeeper InfuraKeeper
+	acProcessor  *ACProcessor
 }
 
 var (
@@ -80,6 +81,7 @@ func NewWatcher(logger log.Logger) *Watcher {
 		checkWd:        viper.GetBool(FlagCheckWd),
 		filterMap:      make(map[string]WatchMessage),
 		eraseKeyFilter: make(map[string][]byte),
+		acProcessor:    gACProcessor,
 	}
 }
 
@@ -184,9 +186,21 @@ func (w *Watcher) DelayEraseKey() {
 	//hold it in temp
 	delayEraseKey := w.delayEraseKey
 	w.delayEraseKey = make([][]byte, 0)
+
 	w.dispatchJob(func() {
+		if GetEnableAsyncCommit() {
+			w.AsyncDelayEraseKey(delayEraseKey)
+			return
+		}
 		w.ExecuteDelayEraseKey(delayEraseKey)
 	})
+}
+
+func (w *Watcher) AsyncDelayEraseKey(delayEraseKey [][]byte) {
+	if !w.Enabled() || len(delayEraseKey) <= 0 {
+		return
+	}
+	w.acProcessor.BatchDel(delayEraseKey)
 }
 
 func (w *Watcher) ExecuteDelayEraseKey(delayEraseKey [][]byte) {
@@ -329,9 +343,20 @@ func (w *Watcher) Commit() {
 	if tmtypes.UploadDelta {
 		return
 	}
-	w.dispatchJob(func() {
-		w.commitBatch(batch)
-	})
+
+	if GetEnableAsyncCommit() {
+		w.acProcessor.BatchSet(batch)
+		if w.IsShouldPersist() {
+			w.acProcessor.MoveToCommitList(int64(w.height)) // move curMsgCache to commitlist
+			w.dispatchJob(func() { w.AsyncCommitBatch(batch) })
+		}
+	} else {
+		w.dispatchJob(func() { w.commitBatch(batch) })
+	}
+}
+
+func (w *Watcher) IsShouldPersist() bool {
+	return int64(w.height)%GetCommitGapHeight() == 0
 }
 
 func (w *Watcher) CommitWatchData(data WatchData) {
@@ -354,6 +379,36 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 			keys[i] = data.Batches[i].Key
 		}
 		w.CheckWatchDB(keys, "consumer")
+	}
+}
+
+func (w *Watcher) CommitWatchDataToCache(data WatchData) {
+	if data.Size() == 0 {
+		return
+	}
+	if data.Batches != nil {
+		w.acProcessor.BatchSetEx(data.Batches)
+	}
+	if data.DirtyList != nil {
+		w.acProcessor.BatchDel(data.DirtyList)
+	}
+	w.delayEraseKey = data.DelayEraseKey
+}
+
+func (w *Watcher) AsyncCommitWatchData(data WatchData, shouldPersist bool) {
+	if data.BloomData != nil {
+		w.commitBloomData(data.BloomData)
+	}
+
+	if shouldPersist {
+		w.acProcessor.PersistHander(w.shouldCommitBatch)
+		if w.checkWd {
+			keys := make([][]byte, len(data.Batches))
+			for i, _ := range data.Batches {
+				keys[i] = data.Batches[i].Key
+			}
+			w.CheckWatchDB(keys, "consumer")
+		}
 	}
 }
 
@@ -394,6 +449,41 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 		}
 		w.CheckWatchDB(keys, "producer")
 	}
+}
+
+func (w *Watcher) AsyncCommitBatch(batch []WatchMessage) {
+	w.acProcessor.PersistHander(w.shouldCommitBatch)
+	if w.checkWd {
+		keys := make([][]byte, len(batch))
+		for i, _ := range batch {
+			keys[i] = batch[i].GetKey()
+		}
+		w.CheckWatchDB(keys, "producer")
+	}
+}
+
+func (w *Watcher) shouldCommitBatch(epochCache *MessageCache) {
+	dbBatch := w.store.db.NewBatch()
+	defer dbBatch.Close()
+	for _, b := range epochCache.mp {
+		key := b.GetKey()
+		value := []byte(b.GetValue())
+		typeValue := b.GetType()
+		if typeValue == TypeDelete {
+			dbBatch.Delete(key)
+		} else {
+			dbBatch.Set(key, value)
+			//need update params
+			if typeValue == TypeEvmParams {
+				msgParams := b.(*MsgParams)
+				w.store.SetEvmParams(msgParams.Params)
+			}
+			if typeValue == TypeState {
+				state.SetStateToLru(key, value)
+			}
+		}
+	}
+	dbBatch.Write()
 }
 
 func (w *Watcher) commitCenterBatch(batch []*Batch) {
@@ -466,7 +556,22 @@ func (w *Watcher) ApplyWatchData(watchData interface{}) {
 	if !ok {
 		panic("use watch data failed")
 	}
-	w.dispatchJob(func() { w.CommitWatchData(wd) })
+
+	if GetEnableAsyncCommit() {
+		w.CommitWatchDataToCache(wd)
+		shouldPersist := w.IsShouldPersist()
+		if shouldPersist {
+			w.acProcessor.MoveToCommitList(int64(w.height)) // move curMsgCache to commitlist
+		}
+		w.dispatchJob(func() {
+			w.AsyncCommitWatchData(wd, shouldPersist)
+		})
+	} else {
+		w.dispatchJob(func() {
+			w.CommitWatchData(wd)
+		})
+	}
+
 }
 
 func (w *Watcher) SetWatchDataManager() {
@@ -636,4 +741,10 @@ func (w *Watcher) saveStdTxResponse(result *ctypes.ResultTx) {
 	if wMsg != nil {
 		w.batch = append(w.batch, wMsg)
 	}
+}
+
+func (w *Watcher) GetWatchDBVersion() (int64, error) {
+	q := NewQuerier()
+	h, err := q.GetLatestBlockNumber()
+	return int64(h), err
 }

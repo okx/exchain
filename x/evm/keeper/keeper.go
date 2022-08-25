@@ -476,3 +476,8 @@ func (k *Keeper) CallEvmHooks(ctx sdk.Context, from ethcmn.Address, to *ethcmn.A
 	}
 	return k.hooks.PostTxProcessing(ctx, from, to, receipt)
 }
+
+// GetWatchDBVersion get the watchDBVersion
+func (k *Keeper) GetWatchDBVersion() (int64, error) {
+	return k.Watcher.GetWatchDBVersion()
+}

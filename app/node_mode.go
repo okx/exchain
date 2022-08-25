@@ -54,6 +54,9 @@ func setRpcConfig(ctx *server.Context) {
 	viper.SetDefault(evmtypes.FlagEnableBloomFilter, true)
 	viper.SetDefault(watcher.FlagFastQueryLru, 10000)
 	viper.SetDefault(watcher.FlagFastQuery, true)
+	// TODO putdown commitment after stable
+	//viper.SetDefault(watcher.FlagWatchdbEnableAsyncCommit, true)
+	//viper.SetDefault(watcher.FlagWatchdbCommitGapHeight, 100)
 	viper.SetDefault(backend.FlagApiBackendBlockLruCache, 30000)
 	viper.SetDefault(backend.FlagApiBackendTxLruCache, 100000)
 	viper.SetDefault(iavl.FlagIavlEnableAsyncCommit, true)
@@ -64,6 +67,7 @@ func setRpcConfig(ctx *server.Context) {
 		"Set --%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v\n--%s=%v by rpc node mode",
 		abcitypes.FlagDisableABCIQueryMutex, true, evmtypes.FlagEnableBloomFilter, true, watcher.FlagFastQueryLru, 10000,
 		watcher.FlagFastQuery, true, iavl.FlagIavlEnableAsyncCommit, true,
+		//watcher.FlagWatchdbEnableAsyncCommit, true, watcher.FlagWatchdbCommitGapHeight, 100,
 		flags.FlagMaxOpenConnections, 20000, mempool.FlagEnablePendingPool, true,
 		server.FlagCORS, "*"))
 }

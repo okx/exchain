@@ -62,6 +62,7 @@ import (
 	"github.com/okex/exchain/x/evm"
 	evmclient "github.com/okex/exchain/x/evm/client"
 	evmtypes "github.com/okex/exchain/x/evm/types"
+	evmwatcher "github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/farm"
 	farmclient "github.com/okex/exchain/x/farm/client"
 	"github.com/okex/exchain/x/genutil"
@@ -596,6 +597,16 @@ func NewOKExChainApp(
 	app.SetEvmWatcherCollector(app.EvmKeeper.Watcher.Collect)
 
 	if loadLatest {
+		// watchdb check
+		if evmwatcher.IsWatcherEnabled() {
+			commitVersion, _ := app.GetCommitVersion()
+			watchDBVersion, err := app.EvmKeeper.GetWatchDBVersion()
+			if watchDBVersion > 0 && err == nil && // to ensure its not first time enable watchdb
+				watchDBVersion < commitVersion { // watchDBVersion should greater than or equal to commitVersion
+				tmos.Exit(fmt.Sprintf("watchdb version %d is fail behind the commit version %d, sugest delete watchdb ", watchDBVersion, commitVersion))
+			}
+		}
+
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
 		if err != nil {
 			tmos.Exit(err.Error())

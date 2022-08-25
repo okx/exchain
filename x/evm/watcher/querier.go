@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"strconv"
@@ -48,9 +49,10 @@ func putHashPrefixKey(key []byte) {
 }
 
 type Querier struct {
-	store *WatchStore
-	sw    bool
-	lru   *lru.Cache
+	store     *WatchStore
+	sw        bool
+	lru       *lru.Cache
+	acQuerier *ACProcessorQuerier
 }
 
 func (q Querier) enabled() bool {
@@ -66,7 +68,7 @@ func NewQuerier() *Querier {
 	if e != nil {
 		panic(errors.New("Failed to init LRU Cause " + e.Error()))
 	}
-	return &Querier{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), lru: lru}
+	return &Querier{store: InstanceOfWatchStore(), sw: IsWatcherEnabled(), lru: lru, acQuerier: newACProcessorQuerier(gACProcessor)}
 }
 
 func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, error) {
@@ -74,7 +76,15 @@ func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, e
 		return nil, errors.New(MsgFunctionDisable)
 	}
 	var protoReceipt prototypes.TransactionReceipt
-	b, e := q.store.Get(append(prefixReceipt, hash.Bytes()...))
+	key := append(prefixReceipt, hash.Bytes()...)
+	recpt, err := q.acQuerier.GetTransactionReceipt(key)
+	if err == nil {
+		if recpt == nil {
+			return nil, errACNotFound
+		}
+		return recpt, nil
+	}
+	b, e := q.store.Get(key)
 	if e != nil {
 		return nil, e
 	}
@@ -94,9 +104,13 @@ func (q Querier) GetTransactionResponse(hash common.Hash) (*TransactionResponse,
 		return nil, errors.New(MsgFunctionDisable)
 	}
 	var response TransactionResponse
-	b, e := q.store.Get(append(prefixTxResponse, hash.Bytes()...))
+	key := append(prefixTxResponse, hash.Bytes()...)
+	b, e := q.acQuerier.GetTransactionResponse(key)
 	if e != nil {
-		return nil, e
+		b, e = q.store.Get(key)
+		if e != nil {
+			return nil, e
+		}
 	}
 	if b == nil {
 		return nil, errNotFound
@@ -113,7 +127,7 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	var block Block
+	block := &Block{}
 	var err error
 	var blockHashKey []byte
 	if blockHashKey, err = getHashPrefixKey(prefixBlock, hash.Bytes()); err != nil {
@@ -122,18 +136,23 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
 		defer putHashPrefixKey(blockHashKey)
 	}
 
-	_, err = q.store.GetUnsafe(blockHashKey, func(value []byte) (interface{}, error) {
-		if value == nil {
-			return nil, errNotFound
+	blk, err := q.acQuerier.GetBlockByHash(blockHashKey)
+	if err == nil {
+		block = blk
+	} else {
+		_, err = q.store.GetUnsafe(blockHashKey, func(value []byte) (interface{}, error) {
+			if value == nil {
+				return nil, errNotFound
+			}
+			e := json.Unmarshal(value, block)
+			if e != nil {
+				return nil, e
+			}
+			return nil, nil
+		})
+		if err != nil {
+			return nil, err
 		}
-		e := json.Unmarshal(value, &block)
-		if e != nil {
-			return nil, e
-		}
-		return nil, nil
-	})
-	if err != nil {
-		return nil, err
 	}
 
 	if fullTx && block.Transactions != nil {
@@ -150,7 +169,7 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
 	block.UncleHash = ethtypes.EmptyUncleHash
 	block.ReceiptsRoot = ethtypes.EmptyRootHash
 
-	return &block, nil
+	return block, nil
 }
 
 func (q Querier) GetBlockHashByNumber(number uint64) (common.Hash, error) {
@@ -165,7 +184,11 @@ func (q Querier) GetBlockHashByNumber(number uint64) (common.Hash, error) {
 			return common.Hash{}, err
 		}
 	}
-	hash, e := q.store.Get(append(prefixBlockInfo, []byte(strconv.Itoa(int(height)))...))
+	key := append(prefixBlockInfo, []byte(strconv.Itoa(int(height)))...)
+	if hash, err := q.acQuerier.GetBlockHash(key); err == nil {
+		return hash, err
+	}
+	hash, e := q.store.Get(key)
 	if e != nil {
 		return common.Hash{}, e
 	}
@@ -187,7 +210,13 @@ func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*Block, error) {
 			return nil, err
 		}
 	}
-	hash, e := q.store.Get(append(prefixBlockInfo, []byte(strconv.Itoa(int(height)))...))
+	key := append(prefixBlockInfo, []byte(strconv.Itoa(int(height)))...)
+	hashv, e := q.acQuerier.GetBlockHash(key)
+	if e == nil {
+		return q.GetBlockByHash(hashv, fullTx)
+	}
+
+	hash, e := q.store.Get(key)
 	if e != nil {
 		return nil, e
 	}
@@ -203,9 +232,13 @@ func (q Querier) GetCode(contractAddr common.Address, height uint64) ([]byte, er
 		return nil, errors.New(MsgFunctionDisable)
 	}
 	var codeInfo CodeInfo
-	info, e := q.store.Get(append(prefixCode, contractAddr.Bytes()...))
+	key := append(prefixCode, contractAddr.Bytes()...)
+	info, e := q.acQuerier.GetCode(key)
 	if e != nil {
-		return nil, e
+		info, e = q.store.Get(key)
+		if e != nil {
+			return nil, e
+		}
 	}
 	if info == nil {
 		return nil, errNotFound
@@ -232,9 +265,13 @@ func (q Querier) GetCodeByHash(codeHash []byte) ([]byte, error) {
 			return data, nil
 		}
 	}
-	code, e := q.store.Get(append(prefixCodeHash, codeHash...))
+	key := append(prefixCodeHash, codeHash...)
+	code, e := q.acQuerier.GetCodeByHash(key)
 	if e != nil {
-		return nil, e
+		code, e = q.store.Get(key)
+		if e != nil {
+			return nil, e
+		}
 	}
 	if code == nil {
 		return nil, errNotFound
@@ -247,13 +284,20 @@ func (q Querier) GetLatestBlockNumber() (uint64, error) {
 	if !q.enabled() {
 		return 0, errors.New(MsgFunctionDisable)
 	}
-	height, e := q.store.Get(append(prefixLatestHeight, KeyLatestHeight...))
+	key := append(prefixLatestHeight, KeyLatestHeight...)
+	hi, err := q.acQuerier.GetLatestBlockNumber(key)
+	if err == nil {
+		return hi, nil
+	}
+
+	height, e := q.store.Get(key)
 	if e != nil {
 		return 0, e
 	}
 	if height == nil {
 		return 0, errNotFound
 	}
+
 	h, e := strconv.Atoi(string(height))
 	return uint64(h), e
 }
@@ -271,6 +315,11 @@ func (q Querier) GetTransactionByHash(hash common.Hash) (*Transaction, error) {
 		defer putHashPrefixKey(txHashKey)
 	}
 
+	tx, err := q.acQuerier.GetTransactionByHash(txHashKey)
+	if err == nil {
+		return tx, nil
+	}
+
 	_, err = q.store.GetUnsafe(txHashKey, func(value []byte) (interface{}, error) {
 		if value == nil {
 			return nil, errNotFound
@@ -284,7 +333,7 @@ func (q Querier) GetTransactionByHash(hash common.Hash) (*Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
-	tx := protoToTransaction(&protoTx)
+	tx = protoToTransaction(&protoTx)
 	return tx, nil
 }
 
@@ -356,19 +405,22 @@ func (q Querier) GetTxResultByBlock(clientCtx clientcontext.CLIContext,
 		return nil, errors.New(MsgFunctionDisable)
 	}
 
-	// get block hash
-	rawBlockHash, err := q.store.Get(append(prefixBlockInfo, []byte(strconv.Itoa(int(height)))...))
+	key := append(prefixBlockInfo, []byte(strconv.Itoa(int(height)))...)
+	blockHash, err := q.acQuerier.GetBlockHash(key)
 	if err != nil {
-		return nil, err
+		// get block hash
+		rawBlockHash, err := q.store.Get(key)
+		if err != nil {
+			return nil, err
+		}
+		if rawBlockHash == nil {
+			return nil, errNotFound
+		}
+		blockHash = common.HexToHash(string(rawBlockHash))
 	}
-	if rawBlockHash == nil {
-		return nil, errNotFound
-	}
-
-	blockHash := common.HexToHash(string(rawBlockHash))
 
 	// get block by hash
-	var block Block
+	block := &Block{}
 	var blockHashKey []byte
 	if blockHashKey, err = getHashPrefixKey(prefixBlock, blockHash.Bytes()); err != nil {
 		blockHashKey = append(prefixBlock, blockHash.Bytes()...)
@@ -376,18 +428,23 @@ func (q Querier) GetTxResultByBlock(clientCtx clientcontext.CLIContext,
 		defer putHashPrefixKey(blockHashKey)
 	}
 
-	_, err = q.store.GetUnsafe(blockHashKey, func(value []byte) (interface{}, error) {
-		if value == nil {
-			return nil, errNotFound
+	blk, err := q.acQuerier.GetBlockByHash(blockHashKey)
+	if err == nil {
+		block = blk
+	} else {
+		_, err = q.store.GetUnsafe(blockHashKey, func(value []byte) (interface{}, error) {
+			if value == nil {
+				return nil, errNotFound
+			}
+			e := json.Unmarshal(value, block)
+			if e != nil {
+				return nil, e
+			}
+			return nil, nil
+		})
+		if err != nil {
+			return nil, err
 		}
-		e := json.Unmarshal(value, &block)
-		if e != nil {
-			return nil, e
-		}
-		return nil, nil
-	})
-	if err != nil {
-		return nil, err
 	}
 
 	results := make([]*TransactionResult, 0, limit)
@@ -432,14 +489,17 @@ func (q Querier) GetTxResultByBlock(clientCtx clientcontext.CLIContext,
 	remainTxs := limit - ethTxNums
 	// get result from Std tx
 	var stdTxsHash []common.Hash
-	b, err := q.store.Get(append(prefixStdTxHash, blockHash.Bytes()...))
+	stdTxHashKey := append(prefixStdTxHash, blockHash.Bytes()...)
+	b, err := q.acQuerier.GetStdTxHash(stdTxHashKey)
 	if err != nil {
-		return nil, err
+		b, err = q.store.Get(stdTxHashKey)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if b == nil {
 		return results, nil
-
 	}
 	err = json.Unmarshal(b, &stdTxsHash)
 	if err != nil {
@@ -486,14 +546,24 @@ func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	b, e := q.store.Get([]byte(GetMsgAccountKey(addr.Bytes())))
+	addrs := addr.String()
+	fmt.Println("addr", addrs)
+	key := GetMsgAccountKey(addr.Bytes())
+	acc, err := q.acQuerier.GetAccount(key)
+	if err == nil {
+		if acc == nil {
+			return nil, errACNotFound
+		}
+		return acc, err
+	}
+	b, e := q.store.Get(key)
 	if e != nil {
 		return nil, e
 	}
 	if b == nil {
 		return nil, errNotFound
 	}
-	acc, err := DecodeAccount(b)
+	acc, err = DecodeAccount(b)
 	if err != nil {
 		return nil, e
 	}
@@ -549,7 +619,14 @@ func (q Querier) GetState(key []byte) ([]byte, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	b, e := q.store.Get(key)
+	b, e := q.acQuerier.GetState(key)
+	if e == nil {
+		if b == nil {
+			return nil, errACNotFound
+		}
+		return b, nil
+	}
+	b, e = q.store.Get(key)
 	if e != nil {
 		return nil, e
 	}

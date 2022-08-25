@@ -171,6 +171,18 @@ func (b *Batch) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	return nil
 }
 
+func (b *Batch) GetKey() []byte {
+	return b.Key
+}
+
+func (b *Batch) GetValue() string {
+	return string(b.Value)
+}
+
+func (b *Batch) GetType() uint32 {
+	return b.TypeValue
+}
+
 type WatchData struct {
 	DirtyAccount  []*sdk.AccAddress `json:"dirty_account"`
 	Batches       []*Batch          `json:"batches"`
