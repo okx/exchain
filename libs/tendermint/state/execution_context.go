@@ -114,7 +114,7 @@ func (pc *prerunContext) notifyPrerun(blockExec *BlockExecutor, block *types.Blo
 	pc.taskChan <- pc.prerunTask
 }
 
-func (pc *prerunContext) getPrerunResult(block *types.Block, fastSync bool) (res *ABCIResponses, err error) {
+func (pc *prerunContext) getPrerunResult(block *types.Block) (res *ABCIResponses, err error) {
 	pc.checkIndex(block.Height)
 
 	// blockExec.prerunContext == nil means:
@@ -124,12 +124,6 @@ func (pc *prerunContext) getPrerunResult(block *types.Block, fastSync bool) (res
 		prerunHash := pc.prerunTask.block.Hash()
 		res, err = pc.dequeueResult()
 		pc.prerunTask = nil
-
-		if fastSync {
-			//pc.stopPrerun(height)
-			//return
-			pc.logger.Error("getPrerunResult under fastsync", "height", block.Height)
-		}
 
 		//compare block hash equal prerun block hash
 		if !bytes.Equal(prerunHash, block.Hash()) {

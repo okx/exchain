@@ -332,7 +332,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 	} else {
 		pc := blockExec.prerunCtx
 		if pc.prerunTx {
-			abciResponses, err = pc.getPrerunResult(block, blockExec.isFastSync)
+			abciResponses, err = pc.getPrerunResult(block)
 		}
 
 		if abciResponses == nil {
