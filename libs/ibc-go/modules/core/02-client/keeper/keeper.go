@@ -3,9 +3,10 @@ package keeper
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"reflect"
 	"strings"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
@@ -271,7 +272,6 @@ func (k Keeper) ValidateSelfClient(ctx sdk.Context, clientState exported.ClientS
 	}
 
 	// old version
-	// if clientState.IsFrozen() {
 	if !tmClient.FrozenHeight.IsZero() {
 		return types.ErrClientFrozen
 	}
