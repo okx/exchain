@@ -20,9 +20,8 @@ type dbContext struct {
 func dbCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "db",
-		Short: "Read db",
 	}
-	dbCtx := &dbContext{DbBackend: dbm.BackendType(ctx.Config.DBBackend)}
+	dbCtx := &dbContext{}
 
 	cmd.AddCommand(
 		dbReadCmd(dbCtx),
@@ -37,7 +36,7 @@ func dbReadCmd(ctx *dbContext) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "read --home app.db --key key",
 		RunE: func(cmd *cobra.Command, args []string) (err error) {
-			return dbReadData(ctx)
+			return dbReadData()
 		},
 	}
 	cmd.PersistentFlags().String("key", "", "")
@@ -45,8 +44,10 @@ func dbReadCmd(ctx *dbContext) *cobra.Command {
 }
 
 // dbReadData reads key-value from leveldb
-func dbReadData(ctx *dbContext) error {
-	db, err := OpenDB(ctx.DataDir, ctx.DbBackend)
+func dbReadData() error {
+	dataDir := viper.GetString(flags.FlagHome)
+	dbBackend := dbm.BackendType(viper.GetString(flagDBBackend))
+	db, err := OpenDB(dataDir, dbBackend)
 	if err != nil {
 		return fmt.Errorf("error opening DB: %w", err)
 	}
@@ -76,7 +77,9 @@ func dbWriteCmd(ctx *dbContext) *cobra.Command {
 
 // dbWriteData reads key-value from leveldb
 func dbWriteData(ctx *dbContext) error {
-	db, err := OpenDB(ctx.DataDir, ctx.DbBackend)
+	dataDir := viper.GetString(flags.FlagHome)
+	dbBackend := dbm.BackendType(viper.GetString(flagDBBackend))
+	db, err := OpenDB(dataDir, dbBackend)
 	if err != nil {
 		return fmt.Errorf("error opening DB: %w", err)
 	}
