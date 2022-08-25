@@ -54,7 +54,7 @@ func WrapCosmosValidator(v Validator, ca *CosmosAny) CosmosValidator {
 		OperatorAddress:         v.OperatorAddress,
 		ConsPubKey:              ca,
 		Jailed:                  v.Jailed,
-		Status:                  v.Status,
+		Status:                  v.Status + 1,
 		Tokens:                  v.Tokens,
 		DelegatorShares:         v.DelegatorShares,
 		Description:             v.Description,

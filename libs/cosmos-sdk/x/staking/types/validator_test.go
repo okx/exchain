@@ -287,7 +287,7 @@ func TestValidatorMarshalYAML(t *testing.T) {
   operatoraddress: %s
   conspubkey: %s
   jailed: false
-  status: 1
+  status: 0
   tokens: "0"
   delegatorshares: "0.000000000000000000"
   description:
