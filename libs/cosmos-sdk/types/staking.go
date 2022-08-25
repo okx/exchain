@@ -58,11 +58,11 @@ func (b BondStatus) Equal(b2 BondStatus) bool {
 // String implements the Stringer interface for BondStatus.
 func (b BondStatus) String() string {
 	switch b {
-	case 0x00:
-		return BondStatusUnbonded
 	case 0x01:
-		return BondStatusUnbonding
+		return BondStatusUnbonded
 	case 0x02:
+		return BondStatusUnbonding
+	case 0x03:
 		return BondStatusBonded
 	default:
 		panic("invalid bond status")
