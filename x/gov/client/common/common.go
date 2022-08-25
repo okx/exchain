@@ -9,7 +9,7 @@ import (
 )
 
 // QueryParams actually queries gov params
-func QueryParams(cliCtx context.CLIContext, paramType string) (types.Params, int64, error) {
+func QueryParams(cliCtx context.CLIContext, paramType string) (types.CM45Params, int64, error) {
 	route := fmt.Sprintf("custom/gov/%s/%s", types.QueryParams, paramType)
 	var height int64
 	vp := types.DefaultVotingParams()
@@ -20,7 +20,7 @@ func QueryParams(cliCtx context.CLIContext, paramType string) (types.Params, int
 		var voting types.VotingParams
 		bytes, h, err := cliCtx.Query(route)
 		if err != nil {
-			return types.NewParams(vp, tp, dp), 0, err
+			return types.NewCM45Params(vp.ToCM45VotingParams(), tp, dp.ToCM45DepositParams()), 0, err
 		}
 		cliCtx.Codec.MustUnmarshalJSON(bytes, &voting)
 		vp = voting
@@ -29,7 +29,7 @@ func QueryParams(cliCtx context.CLIContext, paramType string) (types.Params, int
 		var tallying types.TallyParams
 		bytes, h, err := cliCtx.Query(route)
 		if err != nil {
-			return types.NewParams(vp, tp, dp), 0, err
+			return types.NewCM45Params(vp.ToCM45VotingParams(), tp, dp.ToCM45DepositParams()), 0, err
 		}
 		cliCtx.Codec.MustUnmarshalJSON(bytes, &tallying)
 		tp = tallying
@@ -38,13 +38,14 @@ func QueryParams(cliCtx context.CLIContext, paramType string) (types.Params, int
 		var deposit types.DepositParams
 		bytes, h, err := cliCtx.Query(route)
 		if err != nil {
-			return types.NewParams(vp, tp, dp), 0, err
+			return types.NewCM45Params(vp.ToCM45VotingParams(), tp, dp.ToCM45DepositParams()), 0, err
 		}
 		cliCtx.Codec.MustUnmarshalJSON(bytes, &deposit)
 		dp = deposit
 		height = h
 	default:
-		return types.NewParams(vp, tp, dp), 0, sdkerrors.Wrapf(sdkerrors.ErrInvalidType, "%s is not a valid param type", paramType)
+		return types.NewCM45Params(vp.ToCM45VotingParams(), tp, dp.ToCM45DepositParams()), 0,
+			sdkerrors.Wrapf(sdkerrors.ErrInvalidType, "%s is not a valid param type", paramType)
 	}
-	return types.NewParams(vp, tp, dp), height, nil
+	return types.NewCM45Params(vp.ToCM45VotingParams(), tp, dp.ToCM45DepositParams()), height, nil
 }
