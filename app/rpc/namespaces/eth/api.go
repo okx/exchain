@@ -874,7 +874,7 @@ func (api *PublicEthereumAPI) doCall(
 	}
 	sim := api.evmFactory.BuildSimulator(api)
 	//only worked when fast-query has been enabled
-	if sim != nil {
+	if sim != nil && api.useWatchBackend(blockNum) {
 		return sim.DoCall(msg, addr.String(), overridesBytes, api.evmFactory.PutBackStorePool)
 	}
 
@@ -1158,7 +1158,7 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 		return nil, err
 	}
 
-	err = ethTx.VerifySig(ethTx.ChainID(), tx.Height)
+	err = ethTx.VerifySig(api.chainIDEpoch, tx.Height)
 	if err != nil {
 		return nil, err
 	}
