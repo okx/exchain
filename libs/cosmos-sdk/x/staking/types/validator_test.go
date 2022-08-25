@@ -7,11 +7,12 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	yaml "gopkg.in/yaml.v2"
+
+	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -286,7 +287,7 @@ func TestValidatorMarshalYAML(t *testing.T) {
   operatoraddress: %s
   conspubkey: %s
   jailed: false
-  status: 0
+  status: 1
   tokens: "0"
   delegatorshares: "0.000000000000000000"
   description:

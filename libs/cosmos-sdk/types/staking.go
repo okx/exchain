@@ -40,10 +40,9 @@ type BondStatus byte
 
 // staking constants
 const (
-	Unspecified BondStatus = 0x00
-	Unbonded    BondStatus = 0x01
-	Unbonding   BondStatus = 0x02
-	Bonded      BondStatus = 0x03
+	Unbonded  BondStatus = 0x00
+	Unbonding BondStatus = 0x01
+	Bonded    BondStatus = 0x02
 
 	BondStatusUnbonded  = "BOND_STATUS_UNBONDED"
 	BondStatusUnbonding = "BOND_STATUS_UNBONDING"
@@ -58,11 +57,11 @@ func (b BondStatus) Equal(b2 BondStatus) bool {
 // String implements the Stringer interface for BondStatus.
 func (b BondStatus) String() string {
 	switch b {
-	case 0x01:
+	case 0x00:
 		return BondStatusUnbonded
-	case 0x02:
+	case 0x01:
 		return BondStatusUnbonding
-	case 0x03:
+	case 0x02:
 		return BondStatusBonded
 	default:
 		panic("invalid bond status")
