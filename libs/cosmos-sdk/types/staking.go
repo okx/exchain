@@ -40,9 +40,10 @@ type BondStatus byte
 
 // staking constants
 const (
-	Unbonded  BondStatus = 0x00
-	Unbonding BondStatus = 0x01
-	Bonded    BondStatus = 0x02
+	Unspecified BondStatus = 0x00
+	Unbonded    BondStatus = 0x01
+	Unbonding   BondStatus = 0x02
+	Bonded      BondStatus = 0x03
 
 	BondStatusUnbonded  = "BOND_STATUS_UNBONDED"
 	BondStatusUnbonding = "BOND_STATUS_UNBONDING"
