@@ -78,6 +78,8 @@ type BlockchainReactor struct {
 
 	requestsCh <-chan BlockRequest
 	errorsCh   <-chan peerError
+
+	finishCh chan struct{}
 }
 
 // NewBlockchainReactor returns new reactor instance.
@@ -120,6 +122,7 @@ func (bcR *BlockchainReactor) SetLogger(l log.Logger) {
 
 // OnStart implements service.Service.
 func (bcR *BlockchainReactor) OnStart() error {
+	bcR.finishCh = make(chan struct{}, 1)
 	if bcR.fastSync {
 		err := bcR.pool.Start()
 		if err != nil {
@@ -133,6 +136,17 @@ func (bcR *BlockchainReactor) OnStart() error {
 // OnStop implements service.Service.
 func (bcR *BlockchainReactor) OnStop() {
 	bcR.pool.Stop()
+	bcR.stopPoolRoutine()
+}
+
+func (bcR *BlockchainReactor) stopPoolRoutine() {
+	bcR.finishCh <- struct{}{}
+	for {
+		if !bcR.getIsSyncing() {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 }
 
 // GetChannels implements Reactor
@@ -387,7 +401,8 @@ FOR_LOOP:
 				}
 			}
 			continue FOR_LOOP
-
+		case <-bcR.finishCh:
+			break FOR_LOOP
 		case <-bcR.Quit():
 			break FOR_LOOP
 		}
