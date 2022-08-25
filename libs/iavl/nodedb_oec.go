@@ -120,7 +120,7 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *fastN
 	ndb.mtx.Lock()
 
 	tpp := ndb.prePersistNodeCache
-	ndb.prePersistNodeCache = make(map[string]*Node, len(tpp))
+	ndb.prePersistNodeCache = getReusableNodeCache()
 
 	ndb.tpp.pushToTpp(version, tpp)
 
@@ -128,7 +128,7 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *fastN
 	if GetEnableFastStorage() {
 		tempPersistFastNode = ndb.prePersistFastNode
 		ndb.tpfv.add(version, tempPersistFastNode)
-		ndb.prePersistFastNode = newFastNodeChanges()
+		ndb.prePersistFastNode = getReusableFastNodeChanges()
 	}
 	ndb.mtx.Unlock()
 

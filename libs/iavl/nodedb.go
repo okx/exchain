@@ -68,6 +68,25 @@ var (
 	errInvalidFastStorageVersion = fmt.Sprintf("Fast storage version must be in the format <storage version>%s<latest fast cache version>", fastStorageVersionDelimiter)
 )
 
+var prePersistNodeCachePool = &sync.Pool{
+	New: func() interface{} {
+		return make(map[string]*Node)
+	},
+}
+
+func getReusableNodeCache() map[string]*Node {
+	ppnc := prePersistNodeCachePool.Get().(map[string]*Node)
+	for k := range ppnc {
+		delete(ppnc, k)
+	}
+
+	return ppnc
+}
+
+func putReusableNodeCache(ppnc map[string]*Node) {
+	prePersistNodeCachePool.Put(ppnc)
+}
+
 type nodeDB struct {
 	mtx            sync.RWMutex     // Read/write lock.
 	db             dbm.DB           // Persistent node storage.
@@ -109,13 +128,13 @@ func newNodeDB(db dbm.DB, cacheSize int, opts *Options) *nodeDB {
 		db:                  db,
 		opts:                *opts,
 		versionReaders:      make(map[int64]uint32, 8),
-		prePersistNodeCache: make(map[string]*Node),
+		prePersistNodeCache: getReusableNodeCache(),
 		name:                ParseDBName(db),
 		preWriteNodeCache:   cmap.New(),
 		state:               newRuntimeState(),
 		tpp:                 newTempPrePersistNodes(),
 		storageVersion:      string(storeVersion),
-		prePersistFastNode:  newFastNodeChanges(),
+		prePersistFastNode:  getReusableFastNodeChanges(),
 		tpfv:                newFastNodeChangesWithVersion(),
 	}
 

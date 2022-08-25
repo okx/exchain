@@ -13,8 +13,8 @@ type tempPrePersistNodes struct {
 
 func newTempPrePersistNodes() *tempPrePersistNodes {
 	tpp := &tempPrePersistNodes{
-		tppMap:              make(map[int64]*tppItem),
-		tppVersionList:      list.New(),
+		tppMap:         make(map[int64]*tppItem),
+		tppVersionList: list.New(),
 	}
 	return tpp
 }
@@ -48,6 +48,7 @@ func (tpp *tempPrePersistNodes) removeFromTpp(version int64) {
 	tItem := tpp.tppMap[version]
 	if tItem != nil {
 		tpp.tppVersionList.Remove(tItem.listItem)
+		putReusableNodeCache(tItem.nodeMap)
 	}
 	delete(tpp.tppMap, version)
 	tpp.mtx.Unlock()
@@ -62,4 +63,3 @@ func (tpp *tempPrePersistNodes) getTppNodesNum() int {
 	tpp.mtx.RUnlock()
 	return size
 }
-
