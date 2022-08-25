@@ -20,7 +20,7 @@ type GovKeeper interface {
 // AccountKeeper defines the expected account keeper interface
 type AccountKeeper interface {
 	GetAccount(ctx sdk.Context, addr sdk.AccAddress) authexported.Account
-	SetAccount(ctx sdk.Context, acc authexported.Account, updateState ...bool)
+	SetAccount(ctx sdk.Context, acc authexported.Account)
 	NewAccountWithAddress(ctx sdk.Context, addr sdk.AccAddress) authexported.Account
 }
 
