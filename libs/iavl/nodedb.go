@@ -808,7 +808,7 @@ func (ndb *nodeDB) Commit(batch dbm.Batch) error {
 		err = batch.Write()
 	}
 	if err != nil {
-		ndb.log(IavlErr, fmt.Sprintf("%v error write data to disk", err))
+		ndb.log(IavlErr, fmt.Sprintf("%v giskook error write data to disk", err))
 		return errors.Wrap(err, "failed to write batch")
 	}
 
