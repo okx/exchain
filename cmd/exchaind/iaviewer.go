@@ -122,6 +122,7 @@ func iaviewerCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 		iaviewerReadCmd(iavlCtx),
 		iaviewerReadNodeCmd(iavlCtx),
 		iaviewerWriteNodeCmd(iavlCtx),
+		iaviewerDeleteNodeCmd(iavlCtx),
 		iaviewerStatusCmd(iavlCtx),
 		iaviewerDiffCmd(iavlCtx),
 		iaviewerVersionsCmd(iavlCtx),
@@ -281,6 +282,68 @@ func iaviewerWriteNodeCmd(ctx *iaviewerContext) *cobra.Command {
 
 				node := iavl.NodeJsonToNode(nodeJson)
 				err = tree.DebugSetNode(node)
+				return err
+			} else {
+				return fmt.Errorf("must specify node json")
+			}
+		},
+	}
+	cmd.PersistentFlags().String(flagNodeJson, "", "json of node, bytes fields must be in hex format")
+	return cmd
+}
+
+func iaviewerDeleteNodeCmd(ctx *iaviewerContext) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "delete-node <data_dir> <module> [version]",
+		Short: "Delete iavl tree node to db",
+		PreRunE: func(cmd *cobra.Command, args []string) (err error) {
+			iaviewerCmdParseFlags(ctx)
+			return iaviewerCmdParseArgs(ctx, args)
+		},
+		RunE: func(cmd *cobra.Command, args []string) (err error) {
+			if nj := viper.GetString(flagNodeJson); nj != "" {
+				var nodeStr nodeString
+				err = json.Unmarshal([]byte(nj), &nodeStr)
+				if err != nil {
+					return err
+				}
+				var nodeJson = newNodeJsonFromNodeString(&nodeStr)
+				err = validNodeJsonToWrite(nodeJson)
+				if err != nil {
+					return err
+				}
+
+				db, err := OpenDB(ctx.DataDir, ctx.DbBackend)
+				if err != nil {
+					return fmt.Errorf("error opening DB: %w", err)
+				}
+				defer db.Close()
+
+				tree, err := ReadTree(db, ctx.Version, []byte(ctx.Prefix), DefaultCacheSize)
+				if err != nil {
+					return fmt.Errorf("error reading data: %w", err)
+				}
+				fmt.Printf("module: %s, prefix key: %s\n\n", ctx.Module, ctx.Prefix)
+
+				if nodeJson.Height != 0 {
+					leftNode := tree.DebugGetNode(nodeJson.LeftHash)
+					if leftNode == nil {
+						return fmt.Errorf("left node not found")
+					}
+					rightNode := tree.DebugGetNode(nodeJson.RightHash)
+					if rightNode == nil {
+						return fmt.Errorf("right node not found")
+					}
+
+					height := maxInt8(iavl.NodeToNodeJson(leftNode).Height, iavl.NodeToNodeJson(rightNode).Height) + 1
+					size := iavl.NodeToNodeJson(leftNode).Size + iavl.NodeToNodeJson(rightNode).Size
+					if height != nodeJson.Height || size != nodeJson.Size {
+						return fmt.Errorf("height or size not match")
+					}
+				}
+
+				node := iavl.NodeJsonToNode(nodeJson)
+				err = tree.DebugDeleteNode(node)
 				return err
 			} else {
 				return fmt.Errorf("must specify node json")

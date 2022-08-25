@@ -343,3 +343,9 @@ func (t *ImmutableTree) DebugSetNode(node *Node) error {
 	nodeValue := buf.Bytes()
 	return t.ndb.db.SetSync(nodeKey, nodeValue)
 }
+
+// Only used for debug!
+func (t *ImmutableTree) DebugDeleteNode(node *Node) error {
+	nodeKey := t.ndb.nodeKey(node.hash)
+	return t.ndb.db.DeleteSync(nodeKey)
+}
