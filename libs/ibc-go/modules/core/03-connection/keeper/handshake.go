@@ -3,6 +3,8 @@ package keeper
 import (
 	"bytes"
 
+	types2 "github.com/okex/exchain/libs/tendermint/types"
+
 	//"github.com/cosmos/cosmos-sdk/telemetry"
 	"github.com/gogo/protobuf/proto"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -74,37 +76,42 @@ func (k Keeper) ConnOpenTry(
 		found              bool
 	)
 
-	// empty connection identifier indicates continuing a previous connection handshake
-	if previousConnectionID != "" {
-		// ensure that the previous connection exists
-		previousConnection, found = k.GetConnection(ctx, previousConnectionID)
-		if !found {
-			return "", sdkerrors.Wrapf(types.ErrConnectionNotFound, "previous connection does not exist for supplied previous connectionID %s", previousConnectionID)
-		}
-
-		// ensure that the existing connection's
-		// counterparty is chainA and connection is on INIT stage.
-		// Check that existing connection versions for initialized connection is equal to compatible
-		// versions for this chain.
-		// ensure that existing connection's delay period is the same as desired delay period.
-		if !(previousConnection.Counterparty.ConnectionId == "" &&
-			bytes.Equal(previousConnection.Counterparty.Prefix.Bytes(), counterparty.Prefix.Bytes()) &&
-			previousConnection.ClientId == clientID &&
-			previousConnection.Counterparty.ClientId == counterparty.ClientId &&
-			previousConnection.DelayPeriod == delayPeriod) {
-			return "", sdkerrors.Wrap(types.ErrInvalidConnection, "connection fields mismatch previous connection fields")
-		}
-
-		if !(previousConnection.State == types.INIT) {
-			return "", sdkerrors.Wrapf(types.ErrInvalidConnectionState, "previous connection state is in state %s, expected INIT", previousConnection.State)
-		}
-
-		// continue with previous connection
-		connectionID = previousConnectionID
-
-	} else {
+	if !types2.HigherThanVenus3(ctx.BlockHeight()) {
 		// generate a new connection
 		connectionID = k.GenerateConnectionIdentifier(ctx)
+	} else {
+		// empty connection identifier indicates continuing a previous connection handshake
+		if previousConnectionID != "" {
+			// ensure that the previous connection exists
+			previousConnection, found = k.GetConnection(ctx, previousConnectionID)
+			if !found {
+				return "", sdkerrors.Wrapf(types.ErrConnectionNotFound, "previous connection does not exist for supplied previous connectionID %s", previousConnectionID)
+			}
+
+			// ensure that the existing connection's
+			// counterparty is chainA and connection is on INIT stage.
+			// Check that existing connection versions for initialized connection is equal to compatible
+			// versions for this chain.
+			// ensure that existing connection's delay period is the same as desired delay period.
+			if !(previousConnection.Counterparty.ConnectionId == "" &&
+				bytes.Equal(previousConnection.Counterparty.Prefix.Bytes(), counterparty.Prefix.Bytes()) &&
+				previousConnection.ClientId == clientID &&
+				previousConnection.Counterparty.ClientId == counterparty.ClientId &&
+				previousConnection.DelayPeriod == delayPeriod) {
+				return "", sdkerrors.Wrap(types.ErrInvalidConnection, "connection fields mismatch previous connection fields")
+			}
+
+			if !(previousConnection.State == types.INIT) {
+				return "", sdkerrors.Wrapf(types.ErrInvalidConnectionState, "previous connection state is in state %s, expected INIT", previousConnection.State)
+			}
+
+			// continue with previous connection
+			connectionID = previousConnectionID
+
+		} else {
+			// generate a new connection
+			connectionID = k.GenerateConnectionIdentifier(ctx)
+		}
 	}
 
 	selfHeight := clienttypes.GetSelfHeight(ctx)
@@ -133,8 +140,11 @@ func (k Keeper) ConnOpenTry(
 	expectedConnection := types.NewConnectionEnd(types.INIT, counterparty.ClientId, expectedCounterparty, types.ExportedVersionsToProto(counterpartyVersions), delayPeriod)
 
 	supportedVersions := types.GetCompatibleVersions()
-	if len(previousConnection.Versions) != 0 {
-		supportedVersions = previousConnection.GetVersions()
+
+	if !types2.HigherThanVenus3(ctx.BlockHeight()) {
+		if len(previousConnection.Versions) != 0 {
+			supportedVersions = previousConnection.GetVersions()
+		}
 	}
 
 	// chain B picks a version from Chain A's available versions that is compatible
@@ -210,29 +220,48 @@ func (k Keeper) ConnOpenAck(
 		return sdkerrors.Wrap(types.ErrConnectionNotFound, connectionID)
 	}
 
-	// Verify the provided version against the previously set connection state
-	switch {
-	// connection on ChainA must be in INIT or TRYOPEN
-	case connection.State != types.INIT && connection.State != types.TRYOPEN:
-		return sdkerrors.Wrapf(
-			types.ErrInvalidConnectionState,
-			"connection state is not INIT or TRYOPEN (got %s)", connection.State.String(),
-		)
+	if types2.HigherThanVenus3(ctx.BlockHeight()) {
+		// verify the previously set connection state
+		if connection.State != types.INIT {
+			return sdkerrors.Wrapf(
+				types.ErrInvalidConnectionState,
+				"connection state is not INIT (got %s)", connection.State.String(),
+			)
+		}
 
-	// if the connection is INIT then the provided version must be supproted
-	case connection.State == types.INIT && !types.IsSupportedVersion(version):
-		return sdkerrors.Wrapf(
-			types.ErrInvalidConnectionState,
-			"connection state is in INIT but the provided version is not supported %s", version,
-		)
+		// ensure selected version is supported
+		if !types.IsSupportedVersionV2(types.ProtoVersionsToExported(connection.Versions), version) {
+			return sdkerrors.Wrapf(
+				types.ErrInvalidConnectionState,
+				"the counterparty selected version %s is not supported by versions selected on INIT", version,
+			)
+		}
+	} else {
+		// Verify the provided version against the previously set connection state
+		switch {
+		// connection on ChainA must be in INIT or TRYOPEN
+		case connection.State != types.INIT && connection.State != types.TRYOPEN:
+			return sdkerrors.Wrapf(
+				types.ErrInvalidConnectionState,
+				"connection state is not INIT or TRYOPEN (got %s)", connection.State.String(),
+			)
 
-	// if the connection is in TRYOPEN then the version must be the only set version in the
-	// retreived connection state.
-	case connection.State == types.TRYOPEN && (len(connection.Versions) != 1 || !proto.Equal(connection.Versions[0], version)):
-		return sdkerrors.Wrapf(
-			types.ErrInvalidConnectionState,
-			"connection state is in TRYOPEN but the provided version (%s) is not set in the previous connection versions %s", version, connection.Versions,
-		)
+		// if the connection is INIT then the provided version must be supproted
+		case connection.State == types.INIT && !types.IsSupportedVersion(version):
+			return sdkerrors.Wrapf(
+				types.ErrInvalidConnectionState,
+				"connection state is in INIT but the provided version is not supported %s", version,
+			)
+
+		// if the connection is in TRYOPEN then the version must be the only set version in the
+		// retreived connection state.
+		case connection.State == types.TRYOPEN && (len(connection.Versions) != 1 || !proto.Equal(connection.Versions[0], version)):
+			return sdkerrors.Wrapf(
+				types.ErrInvalidConnectionState,
+				"connection state is in TRYOPEN but the provided version (%s) is not set in the previous connection versions %s", version, connection.Versions,
+			)
+		}
+
 	}
 
 	// validate client parameters of a chainA client stored on chainB
