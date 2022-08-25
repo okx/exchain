@@ -42,14 +42,11 @@ func QueryBalancesRequestHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
+		var coins sdk.Coins
+		cliCtx.Codec.MustUnmarshalJSON(res, &coins)
+		wrappedCoins := types.NewWrappedBalances(coins)
 		cliCtx = cliCtx.WithHeight(height)
 
-		// the query will return empty if there is no data for this account
-		if len(res) == 0 {
-			rest.PostProcessResponse(w, cliCtx, sdk.Coins{})
-			return
-		}
-
-		rest.PostProcessResponse(w, cliCtx, res)
+		rest.PostProcessResponse(w, cliCtx, wrappedCoins)
 	}
 }

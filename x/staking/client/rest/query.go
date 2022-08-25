@@ -199,7 +199,8 @@ func paramsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 		}
 		var params types.Params
 		cliCtx.Codec.MustUnmarshalJSON(res, &params)
-		wrappedParams := types.NewWrappedParams(params)
+		cm45p := params.ToCM45Params()
+		wrappedParams := types.NewWrappedParams(cm45p)
 		cliCtx = cliCtx.WithHeight(height)
 		rest.PostProcessResponse(w, cliCtx, wrappedParams)
 	}
