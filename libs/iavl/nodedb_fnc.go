@@ -4,25 +4,33 @@ import (
 	"sync"
 )
 
-var fastNodeChangesPool = &sync.Pool{
-	New: func() interface{} {
-		return &fastNodeChanges{
-			additions: make(map[string]*FastNode),
-			removals:  make(map[string]interface{}),
-		}
-	},
-}
-
 type fastNodeChanges struct {
 	additions map[string]*FastNode
 	removals  map[string]interface{}
 }
 
-func newFastNodeChanges() *fastNodeChanges {
+var fastNodeChangesPool = &sync.Pool{
+	New: func() interface{} {
+		return newFastNodeChanges()
+	},
+}
+
+func getReusableFastNodeChanges() *fastNodeChanges {
 	fnc := fastNodeChangesPool.Get().(*fastNodeChanges)
 	fnc.reset()
 
 	return fnc
+}
+
+func putReusableFastNodeChanges(fnc *fastNodeChanges) {
+	fastNodeChangesPool.Put(fnc)
+}
+
+func newFastNodeChanges() *fastNodeChanges {
+	return &fastNodeChanges{
+		additions: make(map[string]*FastNode),
+		removals:  make(map[string]interface{}),
+	}
 }
 
 func (fnc *fastNodeChanges) get(key []byte) (*FastNode, bool) {
@@ -135,7 +143,7 @@ func (fncv *fastNodeChangesWithVersion) remove(version int64) {
 	defer fncv.mtx.Unlock()
 	fncv.versions = fncv.versions[1:]
 
-	fastNodeChangesPool.Put(fncv.fncMap[version])
+	putReusableFastNodeChanges(fncv.fncMap[version])
 	delete(fncv.fncMap, version)
 }
 
