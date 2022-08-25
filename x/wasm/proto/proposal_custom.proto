@@ -1,0 +1,11 @@
+syntax = "proto3";
+package types;
+
+option go_package = "x/wasm/types";
+
+message UpdateDeploymentWhitelistProposal {
+  string title = 1;
+  string description = 2;
+  repeated string distributorAddrs = 3;
+  bool isAdded = 4;
+}

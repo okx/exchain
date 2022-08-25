@@ -5,7 +5,7 @@ import (
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
+	govtypes "github.com/okex/exchain/x/gov/types"
 
 	"github.com/okex/exchain/x/wasm/types"
 )
@@ -21,7 +21,8 @@ func NewWasmProposalHandlerX(k types.ContractOpsKeeper, enabledProposalTypes []t
 	for i := range enabledProposalTypes {
 		enabledTypes[string(enabledProposalTypes[i])] = struct{}{}
 	}
-	return func(ctx sdk.Context, content govtypes.Content) error {
+	return func(ctx sdk.Context, proposal *govtypes.Proposal) sdk.Error {
+		content := proposal.Content
 		if content == nil {
 			return sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "content must not be empty")
 		}
@@ -49,6 +50,8 @@ func NewWasmProposalHandlerX(k types.ContractOpsKeeper, enabledProposalTypes []t
 			return handleUnpinCodesProposal(ctx, k, *c)
 		case *types.UpdateInstantiateConfigProposal:
 			return handleUpdateInstantiateConfigProposal(ctx, k, *c)
+		case *types.UpdateDeploymentWhitelistProposal:
+			return handleUpdateDeploymentWhitelistProposal(ctx, k, *c)
 		default:
 			return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized wasm proposal content type: %T", c)
 		}
@@ -234,5 +237,15 @@ func handleUpdateInstantiateConfigProposal(ctx sdk.Context, k types.ContractOpsK
 			return sdkerrors.Wrapf(err, "code id: %d", accessConfigUpdate.CodeID)
 		}
 	}
+	return nil
+}
+
+func handleUpdateDeploymentWhitelistProposal(ctx sdk.Context, k types.ContractOpsKeeper, p types.UpdateDeploymentWhitelistProposal) error {
+	if err := p.ValidateBasic(); err != nil {
+		return err
+	}
+
+	//TODO
+
 	return nil
 }

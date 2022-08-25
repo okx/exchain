@@ -2,6 +2,7 @@ package simapp
 
 import (
 	"fmt"
+	wasmclient "github.com/okex/exchain/x/wasm/client"
 	"io"
 	"math/big"
 	"os"
@@ -129,6 +130,8 @@ var (
 			govclient.ManageTreasuresProposalHandler,
 			erc20client.TokenMappingProposalHandler,
 			erc20client.ProxyContractRedirectHandler,
+			wasmclient.UpdateDeploymentWhitelistProposalHandler,
+			wasmclient.MigrateContractProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},

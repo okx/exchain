@@ -1,7 +1,9 @@
 package client
 
 import (
-	govclient "github.com/okex/exchain/libs/cosmos-sdk/x/gov/client"
+	govclient "github.com/okex/exchain/x/gov/client"
+	"github.com/okex/exchain/x/wasm/client/cli"
+	"github.com/okex/exchain/x/wasm/client/rest"
 )
 
 // ProposalHandlers define the wasm cli proposal types and rest handler.
@@ -17,3 +19,9 @@ var ProposalHandlers = []govclient.ProposalHandler{
 	//govclient.NewProposalHandler(cli.ProposalUnpinCodesCmd, rest.UnpinCodeProposalHandler),
 	//govclient.NewProposalHandler(cli.ProposalUpdateInstantiateConfigCmd, rest.UpdateInstantiateConfigProposalHandler),
 }
+
+// MigrateContractProposalHandler is a proposal handler which can migrate contract to disable some methods of the contract.
+var MigrateContractProposalHandler = govclient.NewProposalHandler(cli.ProposalMigrateContractCmd, rest.MigrateProposalHandler)
+
+// UpdateDeploymentWhitelistProposalHandler is a custom proposal handler which defines whitelist to deploy contracts.
+var UpdateDeploymentWhitelistProposalHandler = govclient.NewProposalHandler(cli.ProposalUpdateDeploymentWhitelistCmd, rest.EmptyProposalRestHandler)

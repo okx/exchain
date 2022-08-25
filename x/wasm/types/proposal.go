@@ -7,22 +7,23 @@ import (
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
+	govtypes "github.com/okex/exchain/x/gov/types"
 )
 
 type ProposalType string
 
 const (
-	ProposalTypeStoreCode               ProposalType = "StoreCode"
-	ProposalTypeInstantiateContract     ProposalType = "InstantiateContract"
-	ProposalTypeMigrateContract         ProposalType = "MigrateContract"
-	ProposalTypeSudoContract            ProposalType = "SudoContract"
-	ProposalTypeExecuteContract         ProposalType = "ExecuteContract"
-	ProposalTypeUpdateAdmin             ProposalType = "UpdateAdmin"
-	ProposalTypeClearAdmin              ProposalType = "ClearAdmin"
-	ProposalTypePinCodes                ProposalType = "PinCodes"
-	ProposalTypeUnpinCodes              ProposalType = "UnpinCodes"
-	ProposalTypeUpdateInstantiateConfig ProposalType = "UpdateInstantiateConfig"
+	ProposalTypeStoreCode                 ProposalType = "StoreCode"
+	ProposalTypeInstantiateContract       ProposalType = "InstantiateContract"
+	ProposalTypeMigrateContract           ProposalType = "MigrateContract"
+	ProposalTypeSudoContract              ProposalType = "SudoContract"
+	ProposalTypeExecuteContract           ProposalType = "ExecuteContract"
+	ProposalTypeUpdateAdmin               ProposalType = "UpdateAdmin"
+	ProposalTypeClearAdmin                ProposalType = "ClearAdmin"
+	ProposalTypePinCodes                  ProposalType = "PinCodes"
+	ProposalTypeUnpinCodes                ProposalType = "UnpinCodes"
+	ProposalTypeUpdateInstantiateConfig   ProposalType = "UpdateInstantiateConfig"
+	ProposalTypeUpdateDeploymentWhitelist ProposalType = "UpdateDeploymentWhitelist"
 )
 
 // DisableAllProposals contains no wasm gov types.
@@ -40,6 +41,13 @@ var EnableAllProposals = []ProposalType{
 	ProposalTypePinCodes,
 	ProposalTypeUnpinCodes,
 	ProposalTypeUpdateInstantiateConfig,
+	ProposalTypeUpdateDeploymentWhitelist,
+}
+
+// NecessaryProposals contains necessary wasm gov types as keys.
+var NecessaryProposals = []ProposalType{
+	ProposalTypeMigrateContract,
+	ProposalTypeUpdateDeploymentWhitelist,
 }
 
 // ConvertToProposals maps each key to a ProposalType and returns a typed list.
@@ -71,6 +79,7 @@ func init() { // register new content types with the sdk
 	govtypes.RegisterProposalType(string(ProposalTypePinCodes))
 	govtypes.RegisterProposalType(string(ProposalTypeUnpinCodes))
 	govtypes.RegisterProposalType(string(ProposalTypeUpdateInstantiateConfig))
+	govtypes.RegisterProposalType(string(ProposalTypeUpdateDeploymentWhitelist))
 	govtypes.RegisterProposalTypeCodec(&StoreCodeProposal{}, "wasm/StoreCodeProposal")
 	govtypes.RegisterProposalTypeCodec(&InstantiateContractProposal{}, "wasm/InstantiateContractProposal")
 	govtypes.RegisterProposalTypeCodec(&MigrateContractProposal{}, "wasm/MigrateContractProposal")
@@ -81,6 +90,7 @@ func init() { // register new content types with the sdk
 	govtypes.RegisterProposalTypeCodec(&PinCodesProposal{}, "wasm/PinCodesProposal")
 	govtypes.RegisterProposalTypeCodec(&UnpinCodesProposal{}, "wasm/UnpinCodesProposal")
 	govtypes.RegisterProposalTypeCodec(&UpdateInstantiateConfigProposal{}, "wasm/UpdateInstantiateConfigProposal")
+	govtypes.RegisterProposalTypeCodec(&UpdateDeploymentWhitelistProposal{}, "wasm/UpdateDeploymentWhitelistProposal")
 }
 
 // ProposalRoute returns the routing key of a parameter change proposal.
@@ -531,22 +541,22 @@ func (p UnpinCodesProposal) String() string {
 
 func validateProposalCommons(title, description string) error {
 	if strings.TrimSpace(title) != title {
-		return sdkerrors.Wrap(govtypes.ErrInvalidProposalContent, "proposal title must not start/end with white spaces")
+		return govtypes.ErrInvalidProposalContent("proposal title must not start/end with white spaces")
 	}
 	if len(title) == 0 {
-		return sdkerrors.Wrap(govtypes.ErrInvalidProposalContent, "proposal title cannot be blank")
+		return govtypes.ErrInvalidProposalContent("proposal title cannot be blank")
 	}
 	if len(title) > govtypes.MaxTitleLength {
-		return sdkerrors.Wrapf(govtypes.ErrInvalidProposalContent, "proposal title is longer than max length of %d", govtypes.MaxTitleLength)
+		return govtypes.ErrInvalidProposalContent(fmt.Sprintf("proposal title is longer than max length of %d", govtypes.MaxTitleLength))
 	}
 	if strings.TrimSpace(description) != description {
-		return sdkerrors.Wrap(govtypes.ErrInvalidProposalContent, "proposal description must not start/end with white spaces")
+		return govtypes.ErrInvalidProposalContent("proposal description must not start/end with white spaces")
 	}
 	if len(description) == 0 {
-		return sdkerrors.Wrap(govtypes.ErrInvalidProposalContent, "proposal description cannot be blank")
+		return govtypes.ErrInvalidProposalContent("proposal description cannot be blank")
 	}
 	if len(description) > govtypes.MaxDescriptionLength {
-		return sdkerrors.Wrapf(govtypes.ErrInvalidProposalContent, "proposal description is longer than max length of %d", govtypes.MaxDescriptionLength)
+		return govtypes.ErrInvalidProposalContent(fmt.Sprintf("proposal description is longer than max length of %d", govtypes.MaxDescriptionLength))
 	}
 	return nil
 }
