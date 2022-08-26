@@ -4,10 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
-
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
+	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 	pc "github.com/okex/exchain/libs/tendermint/proto/crypto/keys"
 )
 
@@ -51,7 +50,6 @@ func PubKeyFromProto(k *pc.PublicKey) (crypto.PubKey, error) {
 		copy(pk[:], k.Ed25519)
 		return pk, nil
 	case *pc.PublicKey_Secp256K1:
-
 		if len(k.Secp256K1) != secp256k1.PubKeySecp256k1Size {
 			return nil, fmt.Errorf("invalid size for PubKeySecp256k1. Got %d, expected %d",
 				len(k.Secp256K1), secp256k1.PubKeySecp256k1Size)
