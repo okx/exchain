@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
+
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	pc "github.com/okex/exchain/libs/tendermint/proto/crypto/keys"
@@ -20,6 +22,12 @@ func PubKeyToProto(k crypto.PubKey) (pc.PublicKey, error) {
 		kp = pc.PublicKey{
 			Sum: &pc.PublicKey_Ed25519{
 				Ed25519: k[:],
+			},
+		}
+	case secp256k1.PubKeySecp256k1:
+		kp = pc.PublicKey{
+			Sum: &pc.PublicKey_Secp256K1{
+				Secp256K1: k[:],
 			},
 		}
 	default:
@@ -41,6 +49,15 @@ func PubKeyFromProto(k *pc.PublicKey) (crypto.PubKey, error) {
 		}
 		var pk ed25519.PubKeyEd25519
 		copy(pk[:], k.Ed25519)
+		return pk, nil
+	case *pc.PublicKey_Secp256K1:
+
+		if len(k.Secp256K1) != 33 {
+			return nil, fmt.Errorf("invalid size for PubKeySecp256k1. Got %d, expected %d",
+				len(k.Secp256K1), 33)
+		}
+		var pk secp256k1.PubKeySecp256k1
+		copy(pk[:], k.Secp256K1)
 		return pk, nil
 	default:
 		return nil, fmt.Errorf("fromproto: key type %v is not supported", k)
