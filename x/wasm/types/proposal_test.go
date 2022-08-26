@@ -627,6 +627,14 @@ func TestProposalStrings(t *testing.T) {
   Codes:       [3 2 1]
 `,
 		},
+		"update deployment whitelist": {
+			src: &UpdateDeploymentWhitelistProposal{
+				Title:            "Foo",
+				Description:      "Bar",
+				DistributorAddrs: []string{"ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02", "ex10q0rk5qnyag7wfvvt7rtphlw589m7frs3hvqmf"},
+			},
+			exp: `title:"Foo" description:"Bar" distributorAddrs:"ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02" distributorAddrs:"ex10q0rk5qnyag7wfvvt7rtphlw589m7frs3hvqmf" `,
+		},
 	}
 	for msg, spec := range specs {
 		t.Run(msg, func(t *testing.T) {
@@ -729,6 +737,19 @@ code_ids:
 - 1
 - 2
 - 3
+`,
+		},
+		"update deployment whitelist": {
+			src: &UpdateDeploymentWhitelistProposal{
+				Title:            "Foo",
+				Description:      "Bar",
+				DistributorAddrs: []string{"ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02", "ex10q0rk5qnyag7wfvvt7rtphlw589m7frs3hvqmf"},
+			},
+			exp: `title: Foo
+description: Bar
+distributor_addresses:
+- ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02
+- ex10q0rk5qnyag7wfvvt7rtphlw589m7frs3hvqmf
 `,
 		},
 	}
