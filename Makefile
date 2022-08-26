@@ -13,7 +13,7 @@ IGNORE_CHECK_GO=false
 install_rocksdb_version:=$(ROCKSDB_VERSION)
 
 
-Version=v1.6.0
+Version=v1.6.2
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
@@ -24,7 +24,7 @@ ClientName=exchaincli
 GenesisHeight=0
 MercuryHeight=1
 VenusHeight=1
-Venus1Height=0
+Venus1Height=1
 MarsHeight=0
 Venus2Height=0
 
@@ -38,6 +38,22 @@ endif
 # process linker flags
 ifeq ($(VERSION),)
     VERSION = $(COMMIT)
+endif
+
+ifeq ($(MAKECMDGOALS),mainnet)
+   GenesisHeight=2322600
+   MercuryHeight=5150000
+   VenusHeight=8200000
+   Venus1Height=12988000
+
+   WITH_ROCKSDB=true
+else ifeq ($(MAKECMDGOALS),testnet)
+   GenesisHeight=1121818
+   MercuryHeight=5300000
+   VenusHeight=8510000
+   Venus1Height=12067000
+
+   WITH_ROCKSDB=true
 endif
 
 build_tags = netgo
@@ -59,18 +75,6 @@ endif
 
 build_tags += $(BUILD_TAGS)
 build_tags := $(strip $(build_tags))
-
-
-ifeq ($(MAKECMDGOALS),mainnet)
-   GenesisHeight=2322600
-   MercuryHeight=5150000
-   VenusHeight=8200000
-else ifeq ($(MAKECMDGOALS),testnet)
-   GenesisHeight=1121818
-   MercuryHeight=5300000
-   VenusHeight=8510000
-   Venus1Height=12067000
-endif
 
 ldflags = -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Version=$(Version) \
 	-X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Name=$(Name) \

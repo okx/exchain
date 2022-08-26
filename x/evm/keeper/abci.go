@@ -54,6 +54,11 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 		k.EvmStateDb.StartPrefetcher("evm")
 		k.Watcher.NewHeight(uint64(req.Header.GetHeight()), blockHash, req.Header)
 	}
+
+	if tmtypes.DownloadDelta {
+		types.GetEvmParamsCache().SetNeedParamsUpdate()
+		types.GetEvmParamsCache().SetNeedBlockedUpdate()
+	}
 }
 
 // EndBlock updates the accounts and commits state objects to the KV Store, while
@@ -113,6 +118,8 @@ func (k *Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Vali
 		k.Watcher.SaveParams(params)
 
 		k.Watcher.SaveBlock(bloom)
+
+		k.Watcher.SaveBlockStdTxHash()
 	}
 
 	k.UpdateInnerBlockData()

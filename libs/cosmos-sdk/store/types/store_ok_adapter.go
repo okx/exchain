@@ -2,10 +2,10 @@ package types
 
 import (
 	"fmt"
+
 	ics23 "github.com/confio/ics23/go"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
-	"github.com/okex/exchain/libs/tendermint/proto/crypto"
 )
 
 const (
@@ -59,7 +59,7 @@ func NewSimpleMerkleCommitmentOp(key []byte, proof *ics23.CommitmentProof) Commi
 // CommitmentOpDecoder takes a merkle.ProofOp and attempts to decode it into a CommitmentOp ProofOperator
 // The proofOp.Data is just a marshalled CommitmentProof. The Key of the CommitmentOp is extracted
 // from the unmarshalled proof.
-func CommitmentOpDecoder(pop crypto.ProofOp) (merkle.ProofOperator, error) {
+func CommitmentOpDecoder(pop merkle.ProofOp) (merkle.ProofOperator, error) {
 	var spec *ics23.ProofSpec
 	switch pop.Type {
 	case ProofOpIAVLCommitment:

@@ -262,6 +262,10 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 		sleepDuration = 0
 	}
 
+	if !cs.config.Waiting {
+		sleepDuration = 0
+	}
+
 	if GetActiveVC() {
 		// itself is proposer, no need to request
 		isBlockProducer, _ := cs.isBlockProducer()

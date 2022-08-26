@@ -13,12 +13,17 @@ import (
 
 type IbcTx struct {
 	*StdTx
-	AuthInfoBytes []byte
-	BodyBytes     []byte
-	SignMode      signing.SignMode
-	SigFee        IbcFee
-	SigMsgs       []sdk.Msg
-	Sequences     []uint64
+
+	AuthInfoBytes                []byte
+	BodyBytes                    []byte
+	SignMode                     []signing.SignMode
+	SigFee                       IbcFee
+	SigMsgs                      []sdk.Msg
+	Sequences                    []uint64
+	TxBodyHasUnknownNonCriticals bool
+	HasExtensionOpt              bool
+	Payer                        string
+	ValidateParams               func() error
 }
 
 type StdIBCSignDoc struct {
@@ -36,24 +41,53 @@ type IbcFee struct {
 	Gas    uint64           `json:"gas" yaml:"gas"`
 }
 
-func (tx *IbcTx) GetSignBytes(ctx sdk.Context, acc exported.Account) []byte {
+const (
+	aminoNonCriticalFieldsError = "protobuf transaction contains unknown non-critical fields. This is a transaction malleability issue and SIGN_MODE_LEGACY_AMINO_JSON cannot be used."
+	aminoExtentionError         = "SIGN_MODE_LEGACY_AMINO_JSON does not support protobuf extension options."
+)
+
+func (tx *IbcTx) GetSignBytes(ctx sdk.Context, index int, acc exported.Account) []byte {
 	genesis := ctx.BlockHeight() == 0
 	chainID := ctx.ChainID()
 	var accNum uint64
 	if !genesis {
 		accNum = acc.GetAccountNumber()
 	}
-
-	if tx.SignMode == signing.SignMode_SIGN_MODE_DIRECT {
-
+	if index > len(tx.SignMode) {
+		panic(fmt.Sprintf("GetSignBytes index %d is upper than tx.SignMode Length %d", index, len(tx.SignMode)))
+	}
+	switch tx.SignMode[index] {
+	case signing.SignMode_SIGN_MODE_DIRECT:
 		return IbcDirectSignBytes(
 			chainID, accNum, acc.GetSequence(), tx.Fee, tx.Msgs, tx.Memo, tx.AuthInfoBytes, tx.BodyBytes,
 		)
+	case signing.SignMode_SIGN_MODE_LEGACY_AMINO_JSON:
+		if tx.TxBodyHasUnknownNonCriticals {
+			panic(aminoNonCriticalFieldsError)
+		}
+		if tx.HasExtensionOpt {
+			panic(aminoExtentionError)
+		}
+		return IbcAminoSignBytes(
+			chainID, accNum, acc.GetSequence(), tx.SigFee, tx.SigMsgs, tx.Memo, 0,
+		)
+	default:
+		//does not support SignMode_SIGN_MODE_UNSPECIFIED SignMode_SIGN_MODE_TEXTUAL
+		panic("ibctx not support SignMode_SIGN_MODE_UNSPECIFIED or SignMode_SIGN_MODE_TEXTUAL")
+	}
+}
+
+func (tx *IbcTx) ValidateBasic() error {
+	err := tx.StdTx.ValidateBasic()
+	if err != nil {
+		return err
+	}
+	err = tx.ValidateParams()
+	if err != nil {
+		return err
 	}
 
-	return IbcAminoSignBytes(
-		chainID, accNum, acc.GetSequence(), tx.SigFee, tx.SigMsgs, tx.Memo, tx.TimeoutHeight,
-	)
+	return nil
 }
 
 func (tx *IbcTx) VerifySequence(index int, acc exported.Account) error {

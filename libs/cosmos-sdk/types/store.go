@@ -2,6 +2,7 @@ package types
 
 import (
 	tmkv "github.com/okex/exchain/libs/tendermint/libs/kv"
+	"sync"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
@@ -76,7 +77,7 @@ const (
 	StoreTypeDB        = types.StoreTypeDB
 	StoreTypeIAVL      = types.StoreTypeIAVL
 	StoreTypeTransient = types.StoreTypeTransient
-	StoreTypeMPT      = types.StoreTypeMPT
+	StoreTypeMPT       = types.StoreTypeMPT
 	StoreTypeMemory    = types.StoreTypeMemory
 )
 
@@ -162,6 +163,8 @@ type (
 	Gas       = types.Gas
 	GasMeter  = types.GasMeter
 	GasConfig = types.GasConfig
+
+	ReusableGasMeter = types.ReusableGasMeter
 )
 
 // nolint - reexport
@@ -178,4 +181,22 @@ type (
 // nolint - reexport
 func NewInfiniteGasMeter() GasMeter {
 	return types.NewInfiniteGasMeter()
+}
+
+var resuableGasMeterPool = &sync.Pool{
+	New: func() interface{} {
+		return types.NewReusableInfiniteGasMeter()
+	},
+}
+
+// GetReusableInfiniteGasMeter returns a ReusableGasMeter from the pool.
+// you must call ReturnInfiniteGasMeter after you are done with the meter.
+func GetReusableInfiniteGasMeter() ReusableGasMeter {
+	gm := resuableGasMeterPool.Get().(ReusableGasMeter)
+	gm.Reset()
+	return gm
+}
+
+func ReturnInfiniteGasMeter(gm ReusableGasMeter) {
+	resuableGasMeterPool.Put(gm)
 }

@@ -5,7 +5,6 @@ import (
 	"io"
 	"math/big"
 	"os"
-	"path/filepath"
 	"sync"
 
 	"github.com/okex/exchain/app/ante"
@@ -47,7 +46,6 @@ import (
 	"github.com/okex/exchain/libs/system"
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/okex/exchain/libs/tendermint/libs/cli"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	sm "github.com/okex/exchain/libs/tendermint/state"
@@ -317,7 +315,6 @@ func NewOKExChainApp(
 	app.AccountKeeper = auth.NewAccountKeeper(
 		codecProxy.GetCdc(), keys[auth.StoreKey], keys[mpt.StoreKey], app.subspaces[auth.ModuleName], okexchain.ProtoAccount,
 	)
-	app.AccountKeeper.SetObserverKeeper(app)
 
 	bankKeeper := bank.NewBaseKeeperWithMarshal(
 		&app.AccountKeeper, codecProxy, app.subspaces[bank.ModuleName], app.ModuleAccountAddrs(),
@@ -449,21 +446,17 @@ func NewOKExChainApp(
 	)
 
 	//wasm keeper
-	homeDir := viper.GetString(cli.HomeFlag)
-	wasmDir := filepath.Join(homeDir, "wasm")
-	wasmConfig, err := wasm.ReadWasmConfig()
-	if err != nil {
-		panic(fmt.Sprintf("error while reading wasm config: %s", err))
-	}
+	wasmDir := wasm.WasmDir()
+	wasmConfig := wasm.WasmConfig()
 
 	// The last arguments can contain custom message handlers, and custom query handlers,
 	// if we want to allow any custom callbacks
-	supportedFeatures := "iterator,stargate"
+	supportedFeatures := wasm.SupportedFeatures
 	app.wasmKeeper = wasm.NewKeeper(
 		app.marshal,
 		keys[wasm.StoreKey],
 		app.subspaces[wasm.ModuleName],
-		app.AccountKeeper,
+		&app.AccountKeeper,
 		bank.NewBankKeeperAdapter(app.BankKeeper),
 		app.IBCKeeper.ChannelKeeper,
 		&app.IBCKeeper.PortKeeper,
@@ -789,7 +782,10 @@ func PreRun(ctx *server.Context, cmd *cobra.Command) error {
 	}
 
 	// set config by node mode
-	setNodeConfig(ctx)
+	err = setNodeConfig(ctx)
+	if err != nil {
+		return err
+	}
 
 	//download pprof
 	appconfig.PprofDownload(ctx)

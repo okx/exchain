@@ -468,12 +468,12 @@ func NewSimApp(
 
 	// The last arguments can contain custom message handlers, and custom query handlers,
 	// if we want to allow any custom callbacks
-	supportedFeatures := "iterator,stargate"
+	supportedFeatures := wasm.SupportedFeatures
 	app.wasmKeeper = wasm.NewKeeper(
 		app.marshal,
 		keys[wasm.StoreKey],
 		app.subspaces[wasm.ModuleName],
-		app.AccountKeeper,
+		&app.AccountKeeper,
 		bank.NewBankKeeperAdapter(app.BankKeeper),
 		app.IBCKeeper.ChannelKeeper,
 		&app.IBCKeeper.PortKeeper,
@@ -632,8 +632,8 @@ func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCo
 	}
 }
 func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
-	return func(logIndex []int, hasEnterEvmTx []bool, anteErrs []error, msgs [][]sdk.Msg, resp []abci.ResponseDeliverTx) (logs [][]byte) {
-		return ek.FixLog(logIndex, hasEnterEvmTx, anteErrs, msgs, resp)
+	return func(tx []sdk.Tx, logIndex []int, hasEnterEvmTx []bool, anteErrs []error, resp []abci.ResponseDeliverTx) (logs [][]byte) {
+		return ek.FixLog(tx, logIndex, hasEnterEvmTx, anteErrs, resp)
 	}
 }
 

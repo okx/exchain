@@ -40,6 +40,11 @@ type GasMeter interface {
 	IsOutOfGas() bool
 }
 
+type ReusableGasMeter interface {
+	GasMeter
+	Reset()
+}
+
 type basicGasMeter struct {
 	limit    Gas
 	consumed Gas
@@ -106,6 +111,18 @@ type infiniteGasMeter struct {
 // NewInfiniteGasMeter returns a reference to a new infiniteGasMeter.
 func NewInfiniteGasMeter() GasMeter {
 	return &infiniteGasMeter{
+		consumed: 0,
+	}
+}
+
+func NewReusableInfiniteGasMeter() ReusableGasMeter {
+	return &infiniteGasMeter{
+		consumed: 0,
+	}
+}
+
+func (g *infiniteGasMeter) Reset() {
+	*g = infiniteGasMeter{
 		consumed: 0,
 	}
 }

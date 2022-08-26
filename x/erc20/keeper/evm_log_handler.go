@@ -134,7 +134,7 @@ func (h SendToIbcEventHandler) Handle(ctx sdk.Context, contract common.Address, 
 		return err
 	}
 
-	if !ctx.IsCheckTx() {
+	if !ctx.IsCheckTx() && !ctx.IsTraceTx() {
 		txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
 		ethTxHash := common.BytesToHash(txHash)
 		ibcEvents := eventStr(ctx.EventManager().Events())
@@ -199,7 +199,7 @@ func (h SendNative20ToIbcEventHandler) Handle(ctx sdk.Context, contract common.A
 		return err
 	}
 
-	if !ctx.IsCheckTx() {
+	if !ctx.IsCheckTx() && !ctx.IsTraceTx() {
 		txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
 		ethTxHash := common.BytesToHash(txHash)
 		ibcEvents := eventStr(ctx.EventManager().Events())

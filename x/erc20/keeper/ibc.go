@@ -311,7 +311,7 @@ func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.
 	}
 
 	executionResult, resultData, err, innertxs, contracts := st.TransitionDb(ctx, config)
-	if !ctx.IsCheckTx() {
+	if !ctx.IsCheckTx() && !ctx.IsTraceTx() {
 		k.addEVMInnerTx(ethTxHash.Hex(), innertxs, contracts)
 	}
 	if err != nil {

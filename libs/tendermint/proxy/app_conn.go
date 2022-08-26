@@ -22,7 +22,6 @@ type AppConnConsensus interface {
 	CommitSync(types.RequestCommit) (*types.ResponseCommit, error)
 	SetOptionAsync(req types.RequestSetOption) *abcicli.ReqRes
 	ParallelTxs([][]byte, bool) []*types.ResponseDeliverTx
-	DeliverTxsConcurrent([][]byte) []*types.ResponseDeliverTx
 	SetOptionSync(req types.RequestSetOption) (*types.ResponseSetOption, error)
 }
 
@@ -150,10 +149,6 @@ func (app *appConnMempool) QuerySync(req types.RequestQuery) (*types.ResponseQue
 
 func (app *appConnConsensus) ParallelTxs(txs [][]byte, onlyCalSender bool) []*types.ResponseDeliverTx {
 	return app.appConn.ParallelTxs(txs, onlyCalSender)
-}
-
-func (app *appConnConsensus) DeliverTxsConcurrent(txs [][]byte) []*types.ResponseDeliverTx {
-	return app.appConn.DeliverTxsConcurrent(txs)
 }
 
 //------------------------------------------------

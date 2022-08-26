@@ -5,6 +5,8 @@ import (
 	"math/big"
 	"sync"
 
+	app "github.com/okex/exchain/app/types"
+
 	"github.com/VictoriaMetrics/fastcache"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/prque"
@@ -127,7 +129,7 @@ func NewKeeper(
 		logger:         logger,
 		Watcher:        watcher.NewWatcher(logger),
 	}
-	k.Watcher.SetWatchDataFunc()
+	k.Watcher.SetWatchDataManager()
 	ak.SetObserverKeeper(k)
 
 	k.OpenTrie()
@@ -167,9 +169,10 @@ func NewSimulateKeeper(
 }
 
 // Warning, you need to use pointer object here, for you need to update UpdatedAccount var
-func (k *Keeper) OnAccountUpdated(acc auth.Account, updateState bool) {
-	account := acc.GetAddress()
-	k.Watcher.DeleteAccount(account)
+func (k *Keeper) OnAccountUpdated(acc auth.Account) {
+	if _, ok := acc.(*app.EthAccount); ok {
+		k.Watcher.DeleteAccount(acc.GetAddress())
+	}
 
 	k.UpdatedAccount = append(k.UpdatedAccount, ethcmn.BytesToAddress(acc.GetAddress().Bytes()))
 }
@@ -431,7 +434,7 @@ func (k *Keeper) IsAddressBlocked(ctx sdk.Context, addr sdk.AccAddress) bool {
 	types.ResetCommitStateDB(csdb, k.GenerateCSDBParams(), &ctx)
 
 	// csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
-	return csdb.GetParams().EnableContractBlockedList && csdb.IsContractInBlockedList(addr.Bytes())
+	return k.GetParams(ctx).EnableContractBlockedList && csdb.IsContractInBlockedList(addr.Bytes())
 }
 
 func (k *Keeper) IsContractInBlockedList(ctx sdk.Context, addr sdk.AccAddress) bool {

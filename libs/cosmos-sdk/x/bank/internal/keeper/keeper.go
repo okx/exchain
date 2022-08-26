@@ -16,6 +16,7 @@ import (
 	vestexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/vesting/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank/internal/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	"github.com/okex/exchain/libs/tendermint/global"
 )
 
 var _ Keeper = (*BaseKeeper)(nil)
@@ -443,6 +444,7 @@ func (keeper BaseSendKeeper) GetSendEnabled(ctx sdk.Context) bool {
 
 // SetSendEnabled sets the send enabled
 func (keeper BaseSendKeeper) SetSendEnabled(ctx sdk.Context, enabled bool) {
+	global.Manager.SetSendEnabled(enabled)
 	keeper.paramSpace.Set(ctx, types.ParamStoreKeySendEnabled, &enabled)
 }
 
