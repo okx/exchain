@@ -172,7 +172,7 @@ func (api *PublicEthereumAPI) GetTransactionsByBlock(blockNrOrHash rpctypes.Bloc
 		}
 	}
 
-	resBlock, err := api.clientCtx.Client.Block(&height)
+	resBlock, err := api.backend.Block(&height)
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +217,7 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 
 		if block == nil {
 			// Query block for consensus hash
-			block, err = api.clientCtx.Client.Block(&tx.Height)
+			block, err = api.backend.Block(&tx.Height)
 			if err != nil {
 				return nil, err
 			}
