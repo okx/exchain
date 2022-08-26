@@ -299,7 +299,7 @@ func (k Keeper) ChannelOpenTry(goCtx context.Context, msg *channeltypes.MsgChann
 		return nil, sdkerrors.Wrap(err, "could not retrieve module from port-id")
 	}
 
-	channelID, cap, err := k.ChannelKeeper.ChanOpenTry(ctx, msg.Channel.Ordering, msg.Channel.ConnectionHops, msg.PortId, msg.PreviousChannelId,
+	channelID, cap, err := k.ChannelKeeper.ChanOpenTryV2(ctx, msg.Channel.Ordering, msg.Channel.ConnectionHops, msg.PortId, msg.PreviousChannelId,
 		portCap, msg.Channel.Counterparty, msg.Channel.Version, msg.CounterpartyVersion, msg.ProofInit, msg.ProofHeight,
 	)
 	if err != nil {
@@ -524,7 +524,7 @@ func (k Keeper) RecvPacket(goCtx context.Context, msg *channeltypes.MsgRecvPacke
 	// NOTE: IBC applications modules may call the WriteAcknowledgement asynchronously if the
 	// acknowledgement is nil.
 	if ack != nil {
-		if err := k.ChannelKeeper.WriteAcknowledgement(ctx, cap, msg.Packet, ack.Acknowledgement()); err != nil {
+		if err := k.ChannelKeeper.WriteAcknowledgement(ctx, cap, msg.Packet, ack); err != nil {
 			return nil, err
 		}
 	}
