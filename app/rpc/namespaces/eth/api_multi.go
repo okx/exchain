@@ -312,7 +312,7 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 	}
 
 	// try to get from node
-	resBlock, err := api.clientCtx.Client.Block(&height)
+	resBlock, err := api.backend.Block(&height)
 	if err != nil {
 		return nil, err
 	}
