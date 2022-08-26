@@ -2,13 +2,14 @@ package keeper
 
 import (
 	"encoding/hex"
+	"fmt"
 	"sort"
 	"strings"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 	govtypes "github.com/okex/exchain/x/gov/types"
-
 	"github.com/okex/exchain/x/wasm/types"
 )
 
@@ -24,6 +25,10 @@ func NewWasmProposalHandlerX(k types.ContractOpsKeeper, enabledProposalTypes []t
 		enabledTypes[string(enabledProposalTypes[i])] = struct{}{}
 	}
 	return func(ctx sdk.Context, proposal *govtypes.Proposal) sdk.Error {
+		if !types2.HigherThanVenus2(ctx.BlockHeight()) {
+			errMsg := fmt.Sprintf("wasm not supprt at height %d", ctx.BlockHeight())
+			return sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
+		}
 		content := proposal.Content
 		if content == nil {
 			return sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "content must not be empty")
