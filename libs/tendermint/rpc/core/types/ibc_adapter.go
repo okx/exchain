@@ -5,6 +5,24 @@ import (
 	"github.com/okex/exchain/libs/tendermint/version"
 )
 
+type CM40ResultBlock struct {
+	BlockID types.IBCBlockID `json:"block_id"`
+	Block   *types.CM40Block `json:"block"`
+}
+
+func (c CM40ResultBlock) ToCM39ResultBlock() *ResultBlock {
+	ret := ResultBlock{
+		BlockID: c.BlockID.ToBlockID(),
+		Block: &types.Block{
+			Header:     c.Block.IBCHeader.ToCM39Header(),
+			Data:       c.Block.Data,
+			Evidence:   c.Block.Evidence,
+			LastCommit: c.Block.LastCommit.ToCommit(),
+		},
+	}
+	return &ret
+}
+
 // Commit and Header
 type IBCResultCommit struct {
 	types.IBCSignedHeader `json:"signed_header"`

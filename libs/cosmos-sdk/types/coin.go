@@ -156,7 +156,9 @@ func NewCoins(coins ...Coin) Coins {
 		return Coins{}
 	}
 
-	newCoins.Sort()
+	if len(newCoins) > 1 {
+		newCoins.Sort()
+	}
 
 	// detect duplicate Denoms
 	if dupIndex := findDup(newCoins); dupIndex != -1 {

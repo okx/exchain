@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"strconv"
 	"sync"
 
@@ -348,38 +350,125 @@ func (q Querier) GetTransactionsByBlockNumber(number, offset, limit uint64) ([]*
 	return nil, errors.New("no such transaction in target block")
 }
 
-func (q Querier) GetTransactionsWithStdByBlockNumber(number, offset, limit uint64) ([]*Transaction, error) {
+func (q Querier) GetTxResultByBlock(clientCtx clientcontext.CLIContext,
+	height, offset, limit uint64) ([]*TransactionResult, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	block, err := q.GetBlockByNumber(number, true)
+
+	// get block hash
+	rawBlockHash, err := q.store.Get(append(prefixBlockInfo, []byte(strconv.Itoa(int(height)))...))
+	if err != nil {
+		return nil, err
+	}
+	if rawBlockHash == nil {
+		return nil, errNotFound
+	}
+
+	blockHash := common.HexToHash(string(rawBlockHash))
+
+	// get block by hash
+	var block Block
+	var blockHashKey []byte
+	if blockHashKey, err = getHashPrefixKey(prefixBlock, blockHash.Bytes()); err != nil {
+		blockHashKey = append(prefixBlock, blockHash.Bytes()...)
+	} else {
+		defer putHashPrefixKey(blockHashKey)
+	}
+
+	_, err = q.store.GetUnsafe(blockHashKey, func(value []byte) (interface{}, error) {
+		if value == nil {
+			return nil, errNotFound
+		}
+		e := json.Unmarshal(value, &block)
+		if e != nil {
+			return nil, e
+		}
+		return nil, nil
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	var rawTxs []*Transaction
-	// get eth Txs
+	results := make([]*TransactionResult, 0, limit)
+	var ethStart, ethEnd, ethTxLen uint64
+
+	// get result from eth tx
 	if block.Transactions != nil {
-		txs, ok := block.Transactions.([]*Transaction)
-		if ok {
-			rawTxs = txs
+		txsHash := block.Transactions.([]interface{})
+		ethTxLen = uint64(len(txsHash))
+
+		if offset < ethTxLen {
+			ethStart = offset
+			if ethEnd = ethStart + limit; ethEnd > ethTxLen {
+				ethEnd = ethTxLen
+			}
+		}
+
+		for i := ethStart; i < ethEnd; i++ {
+			txHash := common.HexToHash(txsHash[i].(string))
+			//Get Eth Tx
+			tx, err := q.GetTransactionByHash(txHash)
+			if err != nil {
+				return nil, err
+			}
+			//Get Eth Receipt
+			receipt, err := q.GetTransactionReceipt(txHash)
+			if err != nil {
+				return nil, err
+			}
+
+			r := &TransactionResult{TxType: hexutil.Uint64(EthReceipt), EthTx: tx, Receipt: receipt}
+			results = append(results, r)
 		}
 	}
 
-	// get Std Tx Hash
-	stdTxs, err := q.GetStdTxHashByBlockHash(block.Hash)
+	// enough Tx by Eth
+	ethTxNums := ethEnd - ethStart
+	if ethTxNums == limit {
+		return results, nil
+	}
+	// calc remain std txs
+	remainTxs := limit - ethTxNums
+	// get result from Std tx
+	var stdTxsHash []common.Hash
+	b, err := q.store.Get(append(prefixStdTxHash, blockHash.Bytes()...))
 	if err != nil {
 		return nil, err
 	}
-	rawTxs = append(rawTxs, stdTxs...)
 
-	var rangeTxs []*Transaction
-	for idx := offset; idx < offset+limit && int(idx) < len(rawTxs); idx++ {
-		rawTx := *rawTxs[idx]
-		rangeTxs = append(rangeTxs, &rawTx)
+	if b == nil {
+		return results, nil
+
+	}
+	err = json.Unmarshal(b, &stdTxsHash)
+	if err != nil {
+		return nil, err
 	}
 
-	return rangeTxs, nil
+	if stdTxsHash != nil && len(stdTxsHash) != 0 {
+		stdTxsLen := uint64(len(stdTxsHash))
+		var stdStart, stdEnd uint64
+		stdStart = offset + ethTxNums - ethTxLen
+		if stdEnd = stdStart + remainTxs; stdEnd > stdTxsLen {
+			stdEnd = stdTxsLen
+		}
+
+		for i := stdStart; i < stdEnd; i++ {
+			stdResponse, err := q.GetTransactionResponse(stdTxsHash[i])
+			if err != nil {
+				return nil, err
+			}
+
+			res, err := RawTxResultToStdResponse(clientCtx, stdResponse.ResultTx, stdResponse.Timestamp)
+			if err != nil {
+				return nil, err
+			}
+			results = append(results, res)
+		}
+	}
+
+	return results, nil
 }
 
 func (q Querier) MustGetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
@@ -397,7 +486,6 @@ func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	var acc types.EthAccount
 	b, e := q.store.Get([]byte(GetMsgAccountKey(addr.Bytes())))
 	if e != nil {
 		return nil, e
@@ -405,18 +493,17 @@ func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if b == nil {
 		return nil, errNotFound
 	}
-	e = json.Unmarshal(b, &acc)
-	if e != nil {
+	acc, err := DecodeAccount(b)
+	if err != nil {
 		return nil, e
 	}
-	return &acc, nil
+	return acc, nil
 }
 
 func (q Querier) GetAccountFromRdb(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	var acc types.EthAccount
 	key := append(prefixRpcDb, GetMsgAccountKey(addr.Bytes())...)
 
 	b, e := q.store.Get(key)
@@ -426,11 +513,11 @@ func (q Querier) GetAccountFromRdb(addr sdk.AccAddress) (*types.EthAccount, erro
 	if b == nil {
 		return nil, errNotFound
 	}
-	e = json.Unmarshal(b, &acc)
-	if e != nil {
+	acc, err := DecodeAccount(b)
+	if err != nil {
 		return nil, e
 	}
-	return &acc, nil
+	return acc, nil
 }
 
 func (q Querier) DeleteAccountFromRdb(addr sdk.AccAddress) {
@@ -442,8 +529,7 @@ func (q Querier) DeleteAccountFromRdb(addr sdk.AccAddress) {
 
 func (q Querier) MustGetState(addr common.Address, key []byte) ([]byte, error) {
 	orgKey := GetMsgStateKey(addr, key)
-	realKey := common.BytesToHash(orgKey)
-	data := state.GetStateFromLru(realKey)
+	data := state.GetStateFromLru(orgKey)
 	if data != nil {
 		return data, nil
 	}
@@ -454,7 +540,7 @@ func (q Querier) MustGetState(addr common.Address, key []byte) ([]byte, error) {
 		q.DeleteStateFromRdb(addr, key)
 	}
 	if e == nil {
-		state.SetStateToLru(realKey, b)
+		state.SetStateToLru(orgKey, b)
 	}
 	return b, e
 }
@@ -523,7 +609,7 @@ func (q Querier) HasContractDeploymentWhitelist(key []byte) bool {
 	return q.store.Has(append(prefixWhiteList, key...))
 }
 
-func (q Querier) GetStdTxHashByBlockHash(hash common.Hash) ([]*Transaction, error) {
+func (q Querier) GetStdTxHashByBlockHash(hash common.Hash) ([]common.Hash, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
@@ -540,13 +626,5 @@ func (q Querier) GetStdTxHashByBlockHash(hash common.Hash) ([]*Transaction, erro
 		return nil, e
 	}
 
-	txList := make([]*Transaction, 0, len(stdTxHash))
-	for _, tx := range stdTxHash {
-		transaction := &Transaction{Hash: tx}
-		if e == nil && transaction != nil {
-			txList = append(txList, transaction)
-		}
-	}
-
-	return txList, nil
+	return stdTxHash, nil
 }

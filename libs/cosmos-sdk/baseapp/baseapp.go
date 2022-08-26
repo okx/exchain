@@ -34,13 +34,13 @@ import (
 )
 
 const (
-	runTxModeCheck                 runTxMode = iota // Check a transaction
-	runTxModeReCheck                                // Recheck a (pending) transaction after a commit
-	runTxModeSimulate                               // Simulate a transaction
-	runTxModeDeliver                                // Deliver a transaction
-	runTxModeDeliverInAsync                         // Deliver a transaction in Aysnc
-	runTxModeDeliverPartConcurrent                  // Deliver a transaction partial concurrent
-	runTxModeTrace                                  // Trace a transaction
+	runTxModeCheck          runTxMode = iota // Check a transaction
+	runTxModeReCheck                         // Recheck a (pending) transaction after a commit
+	runTxModeSimulate                        // Simulate a transaction
+	runTxModeDeliver                         // Deliver a transaction
+	runTxModeDeliverInAsync                  // Deliver a transaction in Aysnc
+	_                                        // Deliver a transaction partial concurrent [deprecated]
+	runTxModeTrace                           // Trace a transaction
 	runTxModeWrappedCheck
 
 	// MainStoreKey is the string representation of the main store
@@ -107,8 +107,6 @@ func (m runTxMode) String() (res string) {
 		res = "ModeSimulate"
 	case runTxModeDeliver:
 		res = "ModeDeliver"
-	case runTxModeDeliverPartConcurrent:
-		res = "ModeDeliverPartConcurrent"
 	case runTxModeDeliverInAsync:
 		res = "ModeDeliverInAsync"
 	case runTxModeWrappedCheck:
@@ -200,7 +198,6 @@ type BaseApp struct { // nolint: maligned
 
 	customizeModuleOnStop []sdk.CustomizeOnStop
 	mptCommitHandler      sdk.MptCommitHandler // handler for mpt trie commit
-	deliverTxsMgr         *DTTManager
 	feeForCollector       sdk.Coins
 	feeChanged            bool // used to judge whether should update the fee-collector account
 
@@ -662,7 +659,7 @@ func validateBasicTxMsgs(msgs []sdk.Msg) error {
 // Returns the applications's deliverState if app is in runTxModeDeliver,
 // otherwise it returns the application's checkstate.
 func (app *BaseApp) getState(mode runTxMode) *state {
-	if mode == runTxModeDeliver || mode == runTxModeDeliverInAsync || mode == runTxModeDeliverPartConcurrent {
+	if mode == runTxModeDeliver || mode == runTxModeDeliverInAsync {
 		return app.deliverState
 	}
 
@@ -696,7 +693,7 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 		ctx.ResetWatcher()
 	}
 
-	if mode == runTxModeDeliver || mode == runTxModeDeliverPartConcurrent {
+	if mode == runTxModeDeliver {
 		ctx.SetDeliver()
 	}
 
@@ -926,7 +923,7 @@ func (app *BaseApp) StopBaseApp() {
 
 func (app *BaseApp) GetTxInfo(ctx sdk.Context, tx sdk.Tx) mempool.ExTxInfo {
 	exTxInfo := mempool.ExTxInfo{
-		Sender:   tx.GetFrom(),
+		Sender:   tx.GetSender(ctx),
 		GasPrice: tx.GetGasPrice(),
 		Nonce:    tx.GetNonce(),
 	}

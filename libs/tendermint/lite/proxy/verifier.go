@@ -40,8 +40,9 @@ func NewVerifier(
 	// TODO: Make this more secure, e.g. make it interactive in the console?
 	_, err = trust.LatestFullCommit(chainID, types.GetStartBlockHeight()+1, 1<<63-1)
 	if err != nil {
-		logger.Info("lite/proxy/NewVerifier found no trusted full commit, initializing from source from height 1...")
-		fc, err := source.LatestFullCommit(chainID, types.GetStartBlockHeight()+1, types.GetStartBlockHeight()+1)
+		logger.Info("lite/proxy/NewVerifier found no trusted full commit, initializing from source from height prune height")
+		// note: use the prune height to catchup the validators,see:dynamic_verifier.goL149:Verify#updateToHeight
+		fc, err := source.LatestFullCommit(chainID, types.GetNodePruneHeight()+1, types.GetNodePruneHeight()+1)
 		if err != nil {
 			return nil, errors.Wrap(err, "fetching source full commit @ height 1")
 		}

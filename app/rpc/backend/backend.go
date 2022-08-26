@@ -51,7 +51,6 @@ type Backend interface {
 
 	// Used by pending transaction filter
 	PendingTransactions() ([]*watcher.Transaction, error)
-	PendingTransactionsWithStd() ([]*watcher.Transaction, error)
 	PendingTransactionCnt() (int, error)
 	PendingTransactionsByHash(target common.Hash) (*watcher.Transaction, error)
 	UserPendingTransactionsCnt(address string) (int, error)
@@ -312,26 +311,6 @@ func (b *EthermintBackend) PendingTransactions() ([]*watcher.Transaction, error)
 			return nil, err
 		}
 
-		transactions = append(transactions, rpcTx)
-	}
-
-	return transactions, nil
-}
-
-// PendingTransactionsWithStd returns the transactions including both the eth and std Txs
-// that are in the transaction pool and have a from address that is one of the accounts this node manages.
-func (b *EthermintBackend) PendingTransactionsWithStd() ([]*watcher.Transaction, error) {
-	pendingTxs, err := b.clientCtx.Client.UnconfirmedTxs(-1)
-	if err != nil {
-		return nil, err
-	}
-
-	transactions := make([]*watcher.Transaction, 0, len(pendingTxs.Txs))
-	for _, tx := range pendingTxs.Txs {
-		rpcTx, err := rpctypes.RawTxToWatcherTx(b.clientCtx, tx, common.Hash{}, 0, 0)
-		if err != nil {
-			return nil, err
-		}
 		transactions = append(transactions, rpcTx)
 	}
 
