@@ -139,6 +139,14 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 			added = true
 		}
 	case *BlockPartMessage:
+		// if avc and has 2/3 votes, it can use the blockPartsHeader from votes
+		if cs.hasVC && cs.ProposalBlockParts == nil && cs.Round == 0 {
+			prevotes := cs.Votes.Prevotes(cs.Round)
+			blockID, hasTwoThirds := prevotes.TwoThirdsMajority()
+			if hasTwoThirds && !blockID.IsZero() {
+				cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
+			}
+		}
 		// if the proposal is complete, we'll enterPrevote or tryFinalizeCommit
 		added, err = cs.addProposalBlockPart(msg, peerID)
 

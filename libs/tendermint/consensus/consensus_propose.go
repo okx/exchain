@@ -353,15 +353,15 @@ func (cs *State) handleCompleteProposal(height int64) {
 	// Update Valid* if we can.
 	prevotes := cs.Votes.Prevotes(cs.Round)
 	blockID, hasTwoThirds := prevotes.TwoThirdsMajority()
-	if hasTwoThirds && !blockID.IsZero() && (cs.ValidRound < cs.Round) {
-		if cs.ProposalBlock.HashesTo(blockID.Hash) {
-			cs.Logger.Debug("Updating valid block to new proposal block",
-				"valid_round", cs.Round, "valid_block_hash", cs.ProposalBlock.Hash())
-			cs.ValidRound = cs.Round
-			cs.ValidBlock = cs.ProposalBlock
-			cs.ValidBlockParts = cs.ProposalBlockParts
-		}
+	isBlockValid := hasTwoThirds && !blockID.IsZero() && (cs.ValidRound < cs.Round) && cs.ProposalBlock.HashesTo(blockID.Hash)
+	if isBlockValid {
+		cs.Logger.Debug("Updating valid block to new proposal block",
+			"valid_round", cs.Round, "valid_block_hash", cs.ProposalBlock.Hash())
+		cs.ValidRound = cs.Round
+		cs.ValidBlock = cs.ProposalBlock
+		cs.ValidBlockParts = cs.ProposalBlockParts
 		// TODO: In case there is +2/3 majority in Prevotes set for some
+		// if !cs.ProposalBlock.HashesTo(blockID.Hash) {}
 		// block and cs.ProposalBlock contains different block, either
 		// proposer is faulty or voting power of faulty processes is more
 		// than 1/3. We should trigger in the future accountability
@@ -376,6 +376,8 @@ func (cs *State) handleCompleteProposal(height int64) {
 		}
 	} else if cs.Step == cstypes.RoundStepCommit {
 		// If we're waiting on the proposal block...
+		cs.tryFinalizeCommit(height)
+	} else if cs.hasVC && isBlockValid && cs.isProposalComplete() {
 		cs.tryFinalizeCommit(height)
 	}
 }
