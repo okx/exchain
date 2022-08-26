@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
+
 	lru "github.com/hashicorp/golang-lru"
 	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
-	"time"
 
 	"github.com/spf13/viper"
 
@@ -31,6 +32,7 @@ import (
 const (
 	FlagLogsLimit   = "rpc.logs-limit"
 	FlagLogsTimeout = "rpc.logs-timeout"
+	blockCacheSize  = 1024
 )
 
 var ErrTimeout = errors.New("query timeout exceeded")
@@ -106,7 +108,7 @@ func New(clientCtx clientcontext.CLIContext, log log.Logger, rateLimiters map[st
 		logsLimit:         viper.GetInt(FlagLogsLimit),
 		logsTimeout:       viper.GetInt(FlagLogsTimeout),
 	}
-	b.blockCache, _ = lru.New(viper.GetInt(FlagApiBackendBlockLruCache))
+	b.blockCache, _ = lru.New(blockCacheSize)
 	return b
 }
 
