@@ -3,6 +3,7 @@ package types
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/gogo/protobuf/jsonpb"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -157,8 +158,12 @@ func (a AccessConfig) ValidateBasic() error {
 		}
 		return nil
 	case AccessTypeOnlyAddress:
-		_, err := sdk.AccAddressFromBech32(a.Address)
-		return err
+		for _, addr := range strings.Split(a.Address, ",") {
+			if _, err := sdk.AccAddressFromBech32(addr); err != nil {
+				return err
+			}
+		}
+		return nil
 	}
 	return sdkerrors.Wrapf(ErrInvalid, "unknown type: %q", a.Permission)
 }
@@ -170,7 +175,13 @@ func (a AccessConfig) Allowed(actor sdk.AccAddress) bool {
 	case AccessTypeEverybody:
 		return true
 	case AccessTypeOnlyAddress:
-		return a.Address == actor.String()
+		addrs := strings.Split(a.Address, ",")
+		for _, addr := range addrs {
+			if addr == actor.String() {
+				return true
+			}
+		}
+		return false
 	default:
 		panic("unknown type")
 	}

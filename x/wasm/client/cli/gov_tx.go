@@ -9,8 +9,8 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
-	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
 	govcli "github.com/okex/exchain/x/gov/client/cli"
+	govtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/okex/exchain/x/wasm/types"
 	"github.com/spf13/cobra"
 )

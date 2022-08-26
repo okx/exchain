@@ -39,7 +39,7 @@ const (
 	AccessTypeUnspecified AccessType = 0
 	// AccessTypeNobody forbidden
 	AccessTypeNobody AccessType = 1
-	// AccessTypeOnlyAddress restricted to an address
+	// AccessTypeOnlyAddress restricted to some addresses
 	AccessTypeOnlyAddress AccessType = 2
 	// AccessTypeEverybody unrestricted
 	AccessTypeEverybody AccessType = 3

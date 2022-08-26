@@ -185,6 +185,12 @@ func (k Keeper) GetStoreKey() sdk.StoreKey {
 	return k.storeKey
 }
 
+func (k Keeper) updateUploadAccessConfig(ctx sdk.Context, config types.AccessConfig) {
+	params := k.GetParams(ctx)
+	params.CodeUploadAccess = config
+	k.SetParams(ctx, params)
+}
+
 func (k Keeper) getUploadAccessConfig(ctx sdk.Context) types.AccessConfig {
 	//var a types.AccessConfig
 	//k.paramSpace.Get(ctx, types.ParamStoreKeyUploadAccess, &a)

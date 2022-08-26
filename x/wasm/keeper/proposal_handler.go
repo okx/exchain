@@ -2,6 +2,8 @@ package keeper
 
 import (
 	"encoding/hex"
+	"sort"
+	"strings"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -245,7 +247,17 @@ func handleUpdateDeploymentWhitelistProposal(ctx sdk.Context, k types.ContractOp
 		return err
 	}
 
-	//TODO
+	var config types.AccessConfig
+	if len(p.DistributorAddrs) == 0 {
+		config.Permission = types.AccessTypeNobody
+	} else if types.IsAllAddress(p.DistributorAddrs) {
+		config.Permission = types.AccessTypeEverybody
+	} else {
+		sort.Strings(p.DistributorAddrs)
+		config.Permission = types.AccessTypeOnlyAddress
+		config.Address = strings.Join(p.DistributorAddrs, ",")
+	}
 
+	k.UpdateUploadAccessConfig(ctx, config)
 	return nil
 }
