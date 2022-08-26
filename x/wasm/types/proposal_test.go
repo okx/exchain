@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
+	govtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v2"
@@ -752,8 +752,8 @@ func TestConvertToProposals(t *testing.T) {
 			proposals: []ProposalType{ProposalTypeUpdateAdmin},
 		},
 		"multiple proper items": {
-			input:     "StoreCode,InstantiateContract,MigrateContract",
-			proposals: []ProposalType{ProposalTypeStoreCode, ProposalTypeInstantiateContract, ProposalTypeMigrateContract},
+			input:     "StoreCode,InstantiateContract,MigrateContract,UpdateDeploymentWhitelist",
+			proposals: []ProposalType{ProposalTypeStoreCode, ProposalTypeInstantiateContract, ProposalTypeMigrateContract, ProposalTypeUpdateDeploymentWhitelist},
 		},
 		"empty trailing item": {
 			input:   "StoreCode,",
@@ -828,6 +828,20 @@ func TestUnmarshalContentFromJson(t *testing.T) {
 				Msg:         []byte("{}"),
 			},
 		},
+		"update deployment whitelit": {
+			src: `
+{
+	"title": "foo",
+	"description": "bar",
+	"distributorAddrs": ["ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02", "ex10q0rk5qnyag7wfvvt7rtphlw589m7frs3hvqmf"]
+}`,
+			got: &UpdateDeploymentWhitelistProposal{},
+			exp: &UpdateDeploymentWhitelistProposal{
+				Title:            "foo",
+				Description:      "bar",
+				DistributorAddrs: []string{"ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02", "ex10q0rk5qnyag7wfvvt7rtphlw589m7frs3hvqmf"},
+			},
+		},
 	}
 	for name, spec := range specs {
 		t.Run(name, func(t *testing.T) {
@@ -847,7 +861,7 @@ func TestProposalJsonSignBytes(t *testing.T) {
 			src: &InstantiateContractProposal{Msg: RawContractMessage(myInnerMsg)},
 			exp: `
 {
-	"type":"cosmos-sdk/MsgSubmitProposal",
+	"type":"okexchain/gov/MsgSubmitProposal",
 	"value":{"content":{"type":"wasm/InstantiateContractProposal","value":{"funds":[],"msg":{"foo":"bar"}}},"initial_deposit":[],"proposer":""}
 }`,
 		},
@@ -855,8 +869,16 @@ func TestProposalJsonSignBytes(t *testing.T) {
 			src: &MigrateContractProposal{Msg: RawContractMessage(myInnerMsg)},
 			exp: `
 {
-	"type":"cosmos-sdk/MsgSubmitProposal",
+	"type":"okexchain/gov/MsgSubmitProposal",
 	"value":{"content":{"type":"wasm/MigrateContractProposal","value":{"msg":{"foo":"bar"}}},"initial_deposit":[],"proposer":""}
+}`,
+		},
+		"update wasm deployment whitelist": {
+			src: &UpdateDeploymentWhitelistProposal{DistributorAddrs: []string{"ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02", "ex10q0rk5qnyag7wfvvt7rtphlw589m7frs3hvqmf"}},
+			exp: `
+{	
+	"type":"okexchain/gov/MsgSubmitProposal",
+	"value":{"content":{"type":"wasm/UpdateDeploymentWhitelistProposal","value":{"distributorAddrs":["ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02","ex10q0rk5qnyag7wfvvt7rtphlw589m7frs3hvqmf"]}},"initial_deposit":[],"proposer":""}
 }`,
 		},
 	}
