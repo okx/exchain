@@ -656,6 +656,7 @@ func makeRoundStepMessage(rs *cstypes.RoundState) (nrsMsg *NewRoundStepMessage) 
 		Step:                  rs.Step,
 		SecondsSinceStartTime: int(time.Since(rs.StartTime).Seconds()),
 		LastCommitRound:       rs.LastCommit.GetRound(),
+		HasVC:                 rs.HasVC,
 	}
 	return
 }
@@ -1519,7 +1520,9 @@ func (ps *PeerState) ApplyNewRoundStepMessage(msg *NewRoundStepMessage) {
 	defer ps.mtx.Unlock()
 
 	// Ignore duplicates or decreases
-	if CompareHRS(msg.Height, msg.Round, msg.Step, ps.PRS.Height, ps.PRS.Round, ps.PRS.Step) <= 0 {
+	if CompareHRS(msg.Height, msg.Round, msg.Step,
+		ps.PRS.Height, ps.PRS.Round, ps.PRS.Step,
+		msg.HasVC && msg.Step == cstypes.RoundStepPropose) <= 0 {
 		return
 	}
 
@@ -1695,6 +1698,7 @@ type NewRoundStepMessage struct {
 	Step                  cstypes.RoundStepType
 	SecondsSinceStartTime int
 	LastCommitRound       int
+	HasVC                 bool
 }
 
 // ValidateBasic performs basic validation.

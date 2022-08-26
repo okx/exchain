@@ -64,7 +64,7 @@ func (cs *State) doNewRound(height int64, round int, avc bool, val *types.Valida
 	// we don't fire newStep for this step,
 	// but we fire an event, so update the round step first
 	cs.updateRoundStep(round, cstypes.RoundStepNewRound)
-	cs.hasVC = avc
+	cs.HasVC = avc
 	if round == 0 && !avc {
 		// We've already reset these upon new height,
 		// and meanwhile we might have received a proposal

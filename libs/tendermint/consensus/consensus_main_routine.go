@@ -140,7 +140,7 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 		}
 	case *BlockPartMessage:
 		// if avc and has 2/3 votes, it can use the blockPartsHeader from votes
-		if cs.hasVC && cs.ProposalBlockParts == nil && cs.Round == 0 {
+		if cs.HasVC && cs.ProposalBlockParts == nil && cs.Round == 0 {
 			prevotes := cs.Votes.Prevotes(cs.Round)
 			blockID, hasTwoThirds := prevotes.TwoThirdsMajority()
 			if hasTwoThirds && !blockID.IsZero() {
