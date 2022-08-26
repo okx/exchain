@@ -603,7 +603,7 @@ func NewOKExChainApp(
 			watchDBVersion, err := app.EvmKeeper.GetWatchDBVersion()
 			if watchDBVersion > 0 && err == nil && // to ensure its not first time enable watchdb
 				watchDBVersion < commitVersion { // watchDBVersion should greater than or equal to commitVersion
-				tmos.Exit(fmt.Sprintf("watchdb version %d is fail behind the commit version %d, sugest delete watchdb ", watchDBVersion, commitVersion))
+				tmos.Exit(fmt.Sprintf("watchdb version %d is fall behind the commit version %d, should delete the watchdb ", watchDBVersion, commitVersion))
 			}
 		}
 
