@@ -62,6 +62,7 @@ func setupTest() *WatcherTestSt {
 	viper.Set(watcher.FlagFastQuery, true)
 	viper.Set(watcher.FlagDBBackend, "memdb")
 	viper.Set(watcher.FlagCheckWd, true)
+	viper.Set(watcher.FlagFastQueryLru, 100)
 
 	w.app = app.Setup(checkTx)
 	w.ctx = w.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: chain_id, Time: time.Now().UTC()})
