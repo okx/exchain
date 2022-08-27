@@ -31,6 +31,7 @@ const (
 	requestIntervalMS         = 2
 	maxTotalRequesters        = 600
 	maxPendingRequests        = maxTotalRequesters
+	maxTotalSaveBlocks        = 100
 	maxPendingRequestsPerPeer = 20
 
 	// Minimum recv rate to ensure we're receiving blocks from a peer fast

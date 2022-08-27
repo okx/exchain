@@ -78,6 +78,8 @@ type BlockchainReactor struct {
 
 	requestsCh <-chan BlockRequest
 	errorsCh   <-chan peerError
+
+	saveBlockCh chan SaveBlock
 }
 
 // NewBlockchainReactor returns new reactor instance.
@@ -120,6 +122,7 @@ func (bcR *BlockchainReactor) SetLogger(l log.Logger) {
 
 // OnStart implements service.Service.
 func (bcR *BlockchainReactor) OnStart() error {
+	bcR.saveBlockCh = make(chan SaveBlock, maxTotalSaveBlocks)
 	if bcR.fastSync {
 		err := bcR.pool.Start()
 		if err != nil {
@@ -230,6 +233,8 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 // Handle messages from the poolReactor telling the reactor what to do.
 // NOTE: Don't sleep in the FOR_LOOP or otherwise slow it down!
 func (bcR *BlockchainReactor) poolRoutine() {
+	log := bcR.Logger.With("module", "main")
+	log.Info("poolRoutine start")
 	bcR.mtx.Lock()
 	if bcR.isSyncing {
 		bcR.mtx.Unlock()
@@ -293,10 +298,14 @@ func (bcR *BlockchainReactor) poolRoutine() {
 			case <-statusUpdateTicker.C:
 				// ask for status updates
 				go bcR.BroadcastStatusRequest() // nolint: errcheck
+			case block := <-bcR.saveBlockCh:
+				//TODO, save all when exist
+				bcR.store.SaveBlock(block.block, block.blockParts, block.seenCommit)
 			}
 		}
 	}()
 
+	startTime := time.Now().UnixMilli()
 FOR_LOOP:
 	for {
 		select {
@@ -362,8 +371,8 @@ FOR_LOOP:
 				bcR.pool.PopRequest()
 
 				// TODO: batch saves so we dont persist to disk every block
-				bcR.store.SaveBlock(first, firstParts, second.LastCommit)
-
+				//bcR.store.SaveBlock(first, firstParts, second.LastCommit)
+				bcR.saveBlockCh <- SaveBlock{first, firstParts, second.LastCommit}
 				// TODO: same thing for app - but we would need a way to
 				// get the hash without persisting the state
 				var err error
@@ -392,6 +401,9 @@ FOR_LOOP:
 			break FOR_LOOP
 		}
 	}
+
+	endTime := time.Now().UnixMilli()
+	fmt.Println("Use time:", (endTime-startTime)/1000)
 }
 
 func (bcR *BlockchainReactor) CheckFastSyncCondition() {
@@ -443,6 +455,13 @@ func (bcR *BlockchainReactor) getIsSyncing() bool {
 	bcR.mtx.Lock()
 	defer bcR.mtx.Unlock()
 	return bcR.isSyncing
+}
+
+//
+type SaveBlock struct {
+	block      *types.Block
+	blockParts *types.PartSet
+	seenCommit *types.Commit
 }
 
 //-----------------------------------------------------------------------------
