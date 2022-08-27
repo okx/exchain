@@ -495,6 +495,17 @@ type TransactionReceipt struct {
 }
 
 func (tr *TransactionReceipt) GetValue() string {
+	tr.ObjectParse()
+	protoReceipt := receiptToProto(tr)
+	buf, err := proto.Marshal(protoReceipt)
+	if err != nil {
+		panic("cant happen")
+	}
+
+	return string(buf)
+}
+
+func (tr *TransactionReceipt) ObjectParse() {
 	tr.TransactionHash = tr.GetHash()
 	tr.BlockHash = tr.GetBlockHash()
 	tr.From = tr.GetFrom()
@@ -504,13 +515,6 @@ func (tr *TransactionReceipt) GetValue() string {
 		//set to nil to keep sync with ethereum rpc
 		tr.ContractAddress = nil
 	}
-	protoReceipt := receiptToProto(tr)
-	buf, err := proto.Marshal(protoReceipt)
-	if err != nil {
-		panic("cant happen")
-	}
-
-	return string(buf)
 }
 
 func (tr *TransactionReceipt) GetHash() string {
@@ -637,10 +641,24 @@ type Transaction struct {
 }
 
 func (tr *Transaction) GetValue() string {
+	err := tr.ObjectParse()
+	if err != nil {
+		return ""
+	}
+	protoTransaction := transactionToProto(tr)
+	buf, err := proto.Marshal(protoTransaction)
+	if err != nil {
+		panic("cant happen")
+	}
+
+	return string(buf)
+}
+
+func (tr *Transaction) ObjectParse() error {
 	// Verify signature and retrieve sender address
 	err := tr.tx.VerifySig(tr.tx.ChainID(), int64(tr.originBlockNumber))
 	if err != nil {
-		return ""
+		return err
 	}
 
 	tr.From = common.HexToAddress(tr.tx.GetFrom())
@@ -659,13 +677,7 @@ func (tr *Transaction) GetValue() string {
 		tr.BlockNumber = (*hexutil.Big)(new(big.Int).SetUint64(tr.originBlockNumber))
 		tr.TransactionIndex = (*hexutil.Uint64)(&tr.originIndex)
 	}
-	protoTransaction := transactionToProto(tr)
-	buf, err := proto.Marshal(protoTransaction)
-	if err != nil {
-		panic("cant happen")
-	}
-
-	return string(buf)
+	return nil
 }
 
 func newBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash, header abci.Header, gasLimit uint64, gasUsed *big.Int, txs interface{}) Block {
