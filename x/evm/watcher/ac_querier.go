@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/app/types"
 	prototypes "github.com/okex/exchain/x/evm/watcher/proto"
@@ -34,6 +35,9 @@ func (aq *ACProcessorQuerier) GetTransactionReceipt(key []byte) (*TransactionRec
 		}
 		if value, ok := v.(*MsgTransactionReceipt); ok {
 			value.ObjectParse()
+			if value.TransactionReceipt.Logs == nil { // for adaptive eth client judge
+				value.TransactionReceipt.Logs = make([]*ethtypes.Log, 0)
+			}
 			return value.TransactionReceipt, nil
 		} else if value, ok := v.(*Batch); ok { // maybe v is from the dds
 			var protoReceipt prototypes.TransactionReceipt
