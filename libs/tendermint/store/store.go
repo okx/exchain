@@ -223,14 +223,10 @@ func (bs *BlockStore) loadBlockPartsBytesTo(height int64, buf *bytes.Buffer, unc
 		}
 	}
 
-	var compressSign = 0
-	var err error
-	if types.IsBlockCompressed(buf.Bytes()) {
-		// uncompress if the block part bytes was created by compress block
-		compressSign, err = types.UncompressBlockFromBytesTo(buf.Bytes(), uncompressed)
-		if err != nil {
-			panic(errors.Wrap(err, "failed to uncompress block"))
-		}
+	// uncompress if the block part bytes was created by compress block
+	compressSign, err := types.UncompressBlockFromBytesTo(buf.Bytes(), uncompressed)
+	if err != nil {
+		panic(errors.Wrap(err, "failed to uncompress block"))
 	}
 
 	return types.BlockExInfo{
