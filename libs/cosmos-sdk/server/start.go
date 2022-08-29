@@ -3,6 +3,7 @@ package server
 // DONTCOVER
 
 import (
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"os"
 	"runtime/pprof"
 
@@ -246,17 +247,18 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyReso
 	select {}
 }
 
-func StartRestWithNode(ctx *Context, cdc *codec.CodecProxy, fromDir string, isOriginStateDB bool,
+func StartRestWithNode(ctx *Context, cdc *codec.CodecProxy, fromDir string,
 	registry jsonpb.AnyResolver, appCreator AppCreator,
 	registerRoutesFn func(restServer *lcd.RestServer)) (*node.Node, error) {
 
 	cfg := ctx.Config
-	home := cfg.RootDir
+	//home := cfg.RootDir
 	////startInProcess hooker
 	//callHooker(FlagHookstartInProcess, ctx)
 
 	traceWriterFile := viper.GetString(flagTraceStore)
-	db, err := openDB(home)
+	//open application db
+	db, err := sdk.NewLevelDB("application", fromDir)
 	if err != nil {
 		return nil, err
 	}
@@ -273,11 +275,6 @@ func StartRestWithNode(ctx *Context, cdc *codec.CodecProxy, fromDir string, isOr
 		return nil, err
 	}
 
-	stateDBDir := cfg.DBDir()
-	if isOriginStateDB {
-		stateDBDir = fromDir
-	}
-
 	// create & start tendermint node
 	tmNode, err := node.NewLRPNode(
 		cfg,
@@ -285,7 +282,6 @@ func StartRestWithNode(ctx *Context, cdc *codec.CodecProxy, fromDir string, isOr
 		nodeKey,
 		proxy.NewLocalClientCreator(app),
 		node.DefaultGenesisDocProviderFunc(cfg),
-		stateDBDir,
 		fromDir,
 		ctx.Logger.With("module", "node"),
 	)

@@ -44,7 +44,7 @@ const (
 	runWithPprofFlag    = "gen_pprof"
 	runWithPprofMemFlag = "gen_pprof_mem"
 	FlagEnableRest      = "rest"
-	FlagRestOriginState = "rest-origin-state"
+	FlagFromAppDB       = "rest-from-appdb"
 
 	saveBlock = "save_block"
 
@@ -76,13 +76,10 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 			fromDir := viper.GetString(replayedBlockDir)
 
 			var node *node.Node
-			isOriginStateDB := false
 			if viper.GetBool(FlagEnableRest) {
 				var err error
 				log.Println("--------- StartRestWithNode ---------")
-				isOriginStateDB = viper.GetBool(FlagRestOriginState)
-				node, err = server.StartRestWithNode(ctx, cdc, fromDir,
-					isOriginStateDB, registry, appCreator, registerRoutesFn)
+				node, err = server.StartRestWithNode(ctx, cdc, fromDir, registry, appCreator, registerRoutesFn)
 				if err != nil {
 					fmt.Println(err)
 					return
@@ -91,7 +88,7 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 			}
 
 			ts := time.Now()
-			replayBlock(ctx, fromDir, node, isOriginStateDB)
+			replayBlock(ctx, fromDir, node)
 			log.Println("--------- replay success ---------", "Time Cost", time.Now().Sub(ts).Seconds())
 		},
 		PostRun: func(cmd *cobra.Command, args []string) {
@@ -116,17 +113,11 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 }
 
 // replayBlock replays blocks from db, if something goes wrong, it will panic with error message.
-func replayBlock(ctx *server.Context, originDataDir string, tmNode *node.Node, isNodeOriginStateDB bool) {
+func replayBlock(ctx *server.Context, originDataDir string, tmNode *node.Node) {
 	config.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 
-	var proxyApp proxy.AppConns
-	if tmNode != nil {
-		proxyApp = tmNode.ProxyApp()
-	} else {
-		var err error
-		proxyApp, err = createProxyApp(ctx)
-		panicError(err)
-	}
+	proxyApp, err := createProxyApp(ctx)
+	panicError(err)
 
 	res, err := proxyApp.Query().InfoSync(proxy.RequestInfo)
 	panicError(err)
@@ -137,13 +128,7 @@ func replayBlock(ctx *server.Context, originDataDir string, tmNode *node.Node, i
 
 	rootDir := ctx.Config.RootDir
 	dataDir := filepath.Join(rootDir, "data")
-	var stateStoreDB dbm.DB
-	// node has opended the db
-	if tmNode != nil && !isNodeOriginStateDB {
-		stateStoreDB = tmNode.StateDB()
-	} else {
-		stateStoreDB, err = openDB(stateDB, dataDir)
-	}
+	stateStoreDB, err := openDB(stateDB, dataDir)
 	panicError(err)
 
 	genesisDocProvider := node.DefaultGenesisDocProviderFunc(ctx.Config)
@@ -162,12 +147,12 @@ func replayBlock(ctx *server.Context, originDataDir string, tmNode *node.Node, i
 		panicError(err)
 	}
 
-	var blockStore *store.BlockStore
+	var originBlockStore *store.BlockStore
 	if tmNode != nil {
-		blockStore = tmNode.BlockStore()
+		originBlockStore = tmNode.BlockStore()
 	}
 	// replay
-	doReplay(ctx, state, stateStoreDB, blockStore, proxyApp, originDataDir, currentAppHash, currentBlockHeight)
+	doReplay(ctx, state, stateStoreDB, originBlockStore, proxyApp, originDataDir, currentAppHash, currentBlockHeight)
 }
 
 func registerReplayFlags(cmd *cobra.Command) *cobra.Command {
@@ -178,7 +163,6 @@ func registerReplayFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Bool(runWithPprofMemFlag, false, "Dump the mem profile of the entire replay process")
 	cmd.Flags().Bool(saveBlock, false, "save block when replay")
 	cmd.Flags().Bool(FlagEnableRest, false, "start rest service when replay")
-	cmd.Flags().Bool(FlagRestOriginState, false, "use state db from data dir")
 	return cmd
 }
 
@@ -349,6 +333,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB, blockSto
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
 		state, _, err = blockExec.ApplyBlockWithTrace(state, meta.BlockID, block)
+		time.Sleep(5 * time.Second)
 		panicError(err)
 		if needSaveBlock {
 			SaveBlock(ctx, originBlockStore, height)

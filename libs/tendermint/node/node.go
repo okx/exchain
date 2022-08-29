@@ -787,7 +787,6 @@ func NewLRPNode(config *cfg.Config,
 	nodeKey *p2p.NodeKey,
 	clientCreator proxy.ClientCreator,
 	genesisDocProvider GenesisDocProvider,
-	stateDBDir string,
 	fromDir string,
 	logger log.Logger,
 	options ...Option) (*Node, error) {
@@ -797,7 +796,7 @@ func NewLRPNode(config *cfg.Config,
 		return nil, err
 	}
 
-	stateDB, err := initStateDB(stateDBDir)
+	stateDB, err := initStateDB(fromDir)
 	if err != nil {
 		return nil, err
 	}
