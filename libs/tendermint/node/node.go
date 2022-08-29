@@ -228,8 +228,8 @@ func initTxDB(dataDir string) (txDB dbm.DB, err error) {
 	return
 }
 
-func initStateDB(config *cfg.Config) (stateDB dbm.DB, err error) {
-	stateDB, err = sdk.NewLevelDB("state", config.DBDir())
+func initStateDB(dataDir string) (stateDB dbm.DB, err error) {
+	stateDB, err = sdk.NewLevelDB("state", dataDir)
 	if err != nil {
 		return
 	}
@@ -787,17 +787,17 @@ func NewLRPNode(config *cfg.Config,
 	nodeKey *p2p.NodeKey,
 	clientCreator proxy.ClientCreator,
 	genesisDocProvider GenesisDocProvider,
-	dbProvider DBProvider,
-	originDir string,
+	stateDBDir string,
+	fromDir string,
 	logger log.Logger,
 	options ...Option) (*Node, error) {
 
-	blockStore, err := initBlockStore(originDir)
+	blockStore, err := initBlockStore(fromDir)
 	if err != nil {
 		return nil, err
 	}
 
-	stateDB, err := initStateDB(config)
+	stateDB, err := initStateDB(stateDBDir)
 	if err != nil {
 		return nil, err
 	}
@@ -815,7 +815,7 @@ func NewLRPNode(config *cfg.Config,
 	}
 
 	var txIndexer txindex.TxIndexer
-	txDB, err := initTxDB(originDir)
+	txDB, err := initTxDB(fromDir)
 	if err != nil {
 		return nil, err
 	}

@@ -246,7 +246,7 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyReso
 	select {}
 }
 
-func StartRestWithNode(ctx *Context, cdc *codec.CodecProxy, blockStoreDir string,
+func StartRestWithNode(ctx *Context, cdc *codec.CodecProxy, fromDir string, isFromState bool,
 	registry jsonpb.AnyResolver, appCreator AppCreator,
 	registerRoutesFn func(restServer *lcd.RestServer)) (*node.Node, error) {
 
@@ -273,6 +273,11 @@ func StartRestWithNode(ctx *Context, cdc *codec.CodecProxy, blockStoreDir string
 		return nil, err
 	}
 
+	stateDBDir := cfg.DBDir()
+	if isFromState {
+		stateDBDir = fromDir
+	}
+
 	// create & start tendermint node
 	tmNode, err := node.NewLRPNode(
 		cfg,
@@ -280,8 +285,8 @@ func StartRestWithNode(ctx *Context, cdc *codec.CodecProxy, blockStoreDir string
 		nodeKey,
 		proxy.NewLocalClientCreator(app),
 		node.DefaultGenesisDocProviderFunc(cfg),
-		node.DefaultDBProvider,
-		blockStoreDir,
+		stateDBDir,
+		fromDir,
 		ctx.Logger.With("module", "node"),
 	)
 	if err != nil {

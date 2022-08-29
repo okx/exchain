@@ -44,6 +44,7 @@ const (
 	runWithPprofFlag    = "gen_pprof"
 	runWithPprofMemFlag = "gen_pprof_mem"
 	FlagEnableRest      = "rest"
+	FlagRestOriginState = "rest-origin-state"
 
 	saveBlock = "save_block"
 
@@ -72,13 +73,14 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 					fmt.Println(err)
 				}
 			}()
-			dataDir := viper.GetString(replayedBlockDir)
+			fromDir := viper.GetString(replayedBlockDir)
 
 			var node *node.Node
 			if viper.GetBool(FlagEnableRest) {
 				var err error
 				log.Println("--------- StartRestWithNode ---------")
-				node, err = server.StartRestWithNode(ctx, cdc, dataDir, registry, appCreator, registerRoutesFn)
+				node, err = server.StartRestWithNode(ctx, cdc, fromDir,
+					viper.GetBool(FlagRestOriginState), registry, appCreator, registerRoutesFn)
 				if err != nil {
 					fmt.Println(err)
 					return
@@ -87,7 +89,7 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 			}
 
 			ts := time.Now()
-			replayBlock(ctx, dataDir, node)
+			replayBlock(ctx, fromDir, node)
 			log.Println("--------- replay success ---------", "Time Cost", time.Now().Sub(ts).Seconds())
 		},
 		PostRun: func(cmd *cobra.Command, args []string) {
@@ -173,7 +175,7 @@ func registerReplayFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Bool(runWithPprofMemFlag, false, "Dump the mem profile of the entire replay process")
 	cmd.Flags().Bool(saveBlock, false, "save block when replay")
 	cmd.Flags().Bool(FlagEnableRest, false, "start rest service when replay")
-
+	cmd.Flags().Bool(FlagRestOriginState, false, "use state db from data dir")
 	return cmd
 }
 
