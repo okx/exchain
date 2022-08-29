@@ -77,8 +77,6 @@ func (bs *BlockStore) Size() int64 {
 	return bs.height - bs.base + 1
 }
 
-var blockBufferPool = amino.NewBufferPool()
-
 var blockLoadBufPool = &sync.Pool{
 	New: func() interface{} {
 		return &[2]bytes.Buffer{}
