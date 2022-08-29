@@ -1087,9 +1087,6 @@ func (ci commitInfo) originHash() []byte {
 
 // Hash returns the simple merkle root hash of the stores sorted by name.
 func (ci commitInfo) ibcHash() []byte {
-	if len(ci.StoreInfos) == 0 {
-		return nil
-	}
 	m := ci.toMap()
 	rootHash, _, _ := sdkmaps.ProofsFromMap(m)
 	return rootHash
