@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/app/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 	prototypes "github.com/okex/exchain/x/evm/watcher/proto"
 	"strconv"
 )
@@ -219,6 +220,40 @@ func (aq *ACProcessorQuerier) GetState(key []byte) ([]byte, error) {
 		}
 		if rsp, ok := v.(*MsgState); ok {
 			return rsp.value, nil
+		} else if value, ok := v.(*Batch); ok { // maybe v is from the dds
+			return value.Value, nil
+		}
+	}
+	return nil, errACNotFound
+}
+
+func (aq *ACProcessorQuerier) GetParams() (evmtypes.Params, error) {
+	if v, ok := aq.p.Get(prefixParams); ok {
+		if v == nil || v.GetType() == TypeDelete { // for del key
+			return evmtypes.Params{}, nil
+		}
+		if rsp, ok := v.(*MsgParams); ok {
+			return rsp.Params, nil
+		}
+	}
+	return evmtypes.Params{}, errACNotFound
+}
+
+// for prefixWhiteList and prefixBlackList
+func (aq *ACProcessorQuerier) Has(key []byte) (bool, error) {
+	if _, ok := aq.p.Get(key); ok {
+		return true, nil
+	}
+	return false, errACNotFound
+}
+
+func (aq *ACProcessorQuerier) GetBlackList(key []byte) ([]byte, error) {
+	if v, ok := aq.p.Get(key); ok {
+		if v == nil || v.GetType() == TypeDelete { // for del key
+			return nil, nil
+		}
+		if rsp, ok := v.(*MsgContractBlockedListItem); ok {
+			return []byte(rsp.GetValue()), nil
 		} else if value, ok := v.(*Batch); ok { // maybe v is from the dds
 			return value.Value, nil
 		}

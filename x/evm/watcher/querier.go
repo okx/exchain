@@ -258,16 +258,17 @@ func (q Querier) GetCodeByHash(codeHash []byte) ([]byte, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	cacheCode, ok := q.lru.Get(common.BytesToHash(codeHash))
-	if ok {
-		data, ok := cacheCode.([]byte)
-		if ok {
-			return data, nil
-		}
-	}
+
 	key := append(prefixCodeHash, codeHash...)
 	code, e := q.acQuerier.GetCodeByHash(key)
 	if e != nil {
+		cacheCode, ok := q.lru.Get(common.BytesToHash(codeHash))
+		if ok {
+			data, ok := cacheCode.([]byte)
+			if ok {
+				return data, nil
+			}
+		}
 		code, e = q.store.Get(key)
 		if e != nil {
 			return nil, e
@@ -599,11 +600,18 @@ func (q Querier) DeleteAccountFromRdb(addr sdk.AccAddress) {
 
 func (q Querier) MustGetState(addr common.Address, key []byte) ([]byte, error) {
 	orgKey := GetMsgStateKey(addr, key)
+	b, e := q.acQuerier.GetState(orgKey)
+	if e == nil {
+		if b == nil {
+			return nil, errACNotFound
+		}
+		return b, nil
+	}
 	data := state.GetStateFromLru(orgKey)
 	if data != nil {
 		return data, nil
 	}
-	b, e := q.GetState(orgKey)
+	b, e = q.GetState(orgKey)
 	if e != nil {
 		b, e = q.GetStateFromRdb(orgKey)
 	} else {
@@ -619,14 +627,7 @@ func (q Querier) GetState(key []byte) ([]byte, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	b, e := q.acQuerier.GetState(key)
-	if e == nil {
-		if b == nil {
-			return nil, errACNotFound
-		}
-		return b, nil
-	}
-	b, e = q.store.Get(key)
+	b, e := q.store.Get(key)
 	if e != nil {
 		return nil, e
 	}
@@ -662,7 +663,11 @@ func (q Querier) GetParams() (*evmtypes.Params, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	params := q.store.GetEvmParams()
+	params, err := q.acQuerier.GetParams()
+	if err == nil {
+		return &params, nil
+	}
+	params = q.store.GetEvmParams()
 	return &params, nil
 }
 
@@ -670,20 +675,32 @@ func (q Querier) HasContractBlockedList(key []byte) bool {
 	if !q.enabled() {
 		return false
 	}
-	return q.store.Has(append(prefixBlackList, key...))
+	qk := append(prefixBlackList, key...)
+	if ok, err := q.acQuerier.Has(qk); err == nil {
+		return ok
+	}
+	return q.store.Has(qk)
 }
 func (q Querier) GetContractMethodBlockedList(key []byte) ([]byte, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	return q.store.Get(append(prefixBlackList, key...))
+	qk := append(prefixBlackList, key...)
+	if v, err := q.acQuerier.GetBlackList(qk); err == nil {
+		return v, err
+	}
+	return q.store.Get(qk)
 }
 
 func (q Querier) HasContractDeploymentWhitelist(key []byte) bool {
 	if !q.enabled() {
 		return false
 	}
-	return q.store.Has(append(prefixWhiteList, key...))
+	qk := append(prefixWhiteList, key...)
+	if ok, err := q.acQuerier.Has(qk); err == nil {
+		return ok
+	}
+	return q.store.Has(qk)
 }
 
 func (q Querier) GetStdTxHashByBlockHash(hash common.Hash) ([]common.Hash, error) {
@@ -691,10 +708,15 @@ func (q Querier) GetStdTxHashByBlockHash(hash common.Hash) ([]common.Hash, error
 		return nil, errors.New(MsgFunctionDisable)
 	}
 	var stdTxHash []common.Hash
-	b, e := q.store.Get(append(prefixStdTxHash, hash.Bytes()...))
+	key := append(prefixStdTxHash, hash.Bytes()...)
+	b, e := q.acQuerier.GetStdTxHash(key)
 	if e != nil {
-		return nil, e
+		b, e = q.store.Get(key)
+		if e != nil {
+			return nil, e
+		}
 	}
+
 	if b == nil {
 		return nil, errNotFound
 	}
