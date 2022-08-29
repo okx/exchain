@@ -37,6 +37,8 @@ const (
 	maxMsgSize                         = types.MaxBlockSizeBytes +
 		bcBlockResponseMessagePrefixSize +
 		bcBlockResponseMessageFieldKeySize
+
+	checkSyncingIntervalMS = 10
 )
 
 var (
@@ -94,6 +96,8 @@ func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *st
 	const capacity = 1000                      // must be bigger than peers count
 	errorsCh := make(chan peerError, capacity) // so we don't block in #Receive#pool.AddBlock
 
+	finishCh := make(chan struct{}, 1)
+
 	pool := NewBlockPool(
 		store.Height()+1,
 		requestsCh,
@@ -109,6 +113,7 @@ func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *st
 		mtx:        sync.RWMutex{},
 		requestsCh: requestsCh,
 		errorsCh:   errorsCh,
+		finishCh:   finishCh,
 	}
 	bcR.BaseReactor = *p2p.NewBaseReactor("BlockchainReactor", bcR)
 	return bcR
@@ -122,7 +127,6 @@ func (bcR *BlockchainReactor) SetLogger(l log.Logger) {
 
 // OnStart implements service.Service.
 func (bcR *BlockchainReactor) OnStart() error {
-	bcR.finishCh = make(chan struct{}, 1)
 	if bcR.fastSync {
 		err := bcR.pool.Start()
 		if err != nil {
@@ -141,12 +145,15 @@ func (bcR *BlockchainReactor) OnStop() {
 }
 
 func (bcR *BlockchainReactor) stopPoolRoutine() {
+	checkSyncingTicker := time.NewTicker(checkSyncingIntervalMS * time.Millisecond)
+	defer checkSyncingTicker.Stop()
 	bcR.finishCh <- struct{}{}
 	for {
 		if !bcR.getIsSyncing() {
-			return
+			break
 		}
-		time.Sleep(10 * time.Millisecond)
+		checkSyncingTicker.Reset(checkSyncingIntervalMS * time.Millisecond)
+		<-checkSyncingTicker.C
 	}
 }
 
