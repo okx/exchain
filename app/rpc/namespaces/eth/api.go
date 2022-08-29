@@ -714,9 +714,11 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 			return common.Hash{}, err
 		}
 
-		txBytes, err = authclient.GetTxEncoder(api.clientCtx.Codec)(tx)
-		if err != nil {
-			return common.Hash{}, err
+		if !tmtypes.HigherThanVenus(int64(height)) {
+			txBytes, err = authclient.GetTxEncoder(api.clientCtx.Codec)(tx)
+			if err != nil {
+				return common.Hash{}, err
+			}
 		}
 	}
 
