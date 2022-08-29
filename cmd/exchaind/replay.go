@@ -333,7 +333,6 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB, blockSto
 		block := originBlockStore.LoadBlock(height)
 		meta := originBlockStore.LoadBlockMeta(height)
 		state, _, err = blockExec.ApplyBlockWithTrace(state, meta.BlockID, block)
-		time.Sleep(5 * time.Second)
 		panicError(err)
 		if needSaveBlock {
 			SaveBlock(ctx, originBlockStore, height)
