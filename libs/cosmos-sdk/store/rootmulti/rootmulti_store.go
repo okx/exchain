@@ -3,17 +3,16 @@ package rootmulti
 import (
 	"encoding/binary"
 	"fmt"
+	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	"io"
 	"log"
 	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
-
-	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mem"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
-	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/cachemulti"
@@ -39,7 +38,9 @@ import (
 
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
 
+const FLagEnableMetaDataSeparate = "enable-metadata-separate"
 const (
+	isMetaDataMigrated    = "s/ismetadatamigrated"
 	latestVersionKey      = "s/latest"
 	pruneHeightsKey       = "s/pruneheights"
 	versionsKey           = "s/versions"
@@ -53,6 +54,7 @@ const (
 type Store struct {
 	db             dbm.DB
 	flatKVDB       dbm.DB
+	metadataDB     dbm.DB
 	lastCommitInfo commitInfo
 	pruningOpts    types.PruningOptions
 	storesParams   map[types.StoreKey]storeParams
@@ -87,12 +89,19 @@ var (
 // LoadVersion must be called.
 func NewStore(db dbm.DB) *Store {
 	var flatKVDB dbm.DB
+
 	if viper.GetBool(flatkv.FlagEnable) {
 		flatKVDB = newFlatKVDB()
 	}
+	//metadataDB := db
+	//if viper.GetBool(FLagEnableMetaDataSeparate) {
+	metadataDB := newMetadataDB()
+	//}
+
 	ret := &Store{
 		db:             db,
 		flatKVDB:       flatKVDB,
+		metadataDB:     metadataDB,
 		pruningOpts:    types.PruneNothing,
 		storesParams:   make(map[types.StoreKey]storeParams),
 		stores:         make(map[types.StoreKey]types.CommitKVStore),
@@ -114,6 +123,23 @@ func newFlatKVDB() dbm.DB {
 		panic(err)
 	}
 	return flatKVDB
+}
+
+var (
+	metadataDB dbm.DB = nil
+)
+
+func newMetadataDB() dbm.DB {
+	if metadataDB == nil {
+		rootDir := viper.GetString("home")
+		dataDir := filepath.Join(rootDir, "data")
+		var err error
+		metadataDB, err = sdk.NewLevelDB("metadata", dataDir)
+		if err != nil {
+			panic(err)
+		}
+	}
+	return metadataDB
 }
 
 // SetPruning sets the pruning strategy on the root store and all the sub-stores.
@@ -187,7 +213,7 @@ func (rs *Store) GetCommitKVStore(key types.StoreKey) types.CommitKVStore {
 
 // LoadLatestVersionAndUpgrade implements CommitMultiStore
 func (rs *Store) LoadLatestVersionAndUpgrade(upgrades *types.StoreUpgrades) error {
-	ver := getLatestVersion(rs.db)
+	ver := getLatestVersion(rs.metadataDB)
 	return rs.loadVersion(ver, upgrades)
 }
 
@@ -198,12 +224,35 @@ func (rs *Store) LoadVersionAndUpgrade(ver int64, upgrades *types.StoreUpgrades)
 
 // LoadLatestVersion implements CommitMultiStore.
 func (rs *Store) LoadLatestVersion() error {
-	ver := getLatestVersion(rs.db)
+	changed := getIsMigratedToMetaDataDB(rs.metadataDB)
+	if !changed {
+		MigrateMetadata(rs.db, rs.metadataDB)
+	}
+	ver := getLatestVersion(rs.metadataDB)
+
 	return rs.loadVersion(ver, nil)
 }
 
+func MigrateMetadata(fromDB, toDB dbm.DB) {
+	batch := toDB.NewBatch()
+	defer batch.Close()
+	//migrate latest version
+	ver := getLatestVersion(fromDB)
+	setLatestVersion(batch, ver)
+	cInfo, err := getCommitInfo(fromDB, ver)
+	if err != nil {
+		panic(fmt.Sprintf("migrateMetaData getCommitInfo error %v", err))
+	}
+	setCommitInfo(batch, ver, cInfo)
+	setIsMetaDataMigrated(batch)
+	if err := batch.Write(); err != nil {
+		panic(fmt.Errorf("error on batch write %w", err))
+	}
+
+}
+
 func (rs *Store) GetLatestVersion() int64 {
-	return getLatestVersion(rs.db)
+	return getLatestVersion(rs.metadataDB)
 }
 
 // LoadVersion implements CommitMultiStore.
@@ -378,9 +427,12 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	// load old data if we are not version 0
 	if ver != 0 {
 		var err error
-		cInfo, err = getCommitInfo(rs.db, ver)
+		cInfo, err = getCommitInfo(rs.metadataDB, ver)
 		if err != nil {
+			//cInfo, err = getCommitInfo(rs.db, ver)
+			//if err != nil {
 			return err
+			//}
 		}
 
 		// convert StoreInfos slice to map
@@ -446,9 +498,16 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	if err != nil {
 		return err
 	}
-	vs, err := getVersions(rs.db)
+	vs, err := getVersions(rs.metadataDB)
 	if err != nil {
 		return err
+	}
+	//load old data
+	if vs == nil {
+		vs, err = getVersions(rs.db)
+		if err != nil {
+			return err
+		}
 	}
 	if len(vs) > 0 {
 		rs.versions = vs
@@ -467,7 +526,7 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 
 func (rs *Store) checkAndResetPruningHeights(roots map[int64][]byte) error {
 
-	ph, err := getPruningHeights(rs.db, false)
+	ph, err := getPruningHeights(rs.metadataDB, false)
 	if err != nil {
 		return err
 	}
@@ -493,7 +552,7 @@ func (rs *Store) checkAndResetPruningHeights(roots map[int64][]byte) error {
 				len(ph), len(rs.pruneHeights))
 			rs.logger.Info(msg)
 		}
-		batch := rs.db.NewBatch()
+		batch := rs.metadataDB.NewBatch()
 		setPruningHeights(batch, newPh)
 		batch.Write()
 		batch.Close()
@@ -627,7 +686,7 @@ func (rs *Store) CommitterCommitMap(inputDeltaMap iavltree.TreeDeltaMap) (types.
 
 		rs.versions = append(rs.versions, version)
 	}
-	flushMetadata(rs.db, version, rs.lastCommitInfo, rs.pruneHeights, rs.versions)
+	flushMetadata(rs.metadataDB, version, rs.lastCommitInfo, rs.pruneHeights, rs.versions)
 
 	return types.CommitID{
 		Version: version,
@@ -677,7 +736,7 @@ func (rs *Store) pruneStores() {
 }
 
 func (rs *Store) FlushPruneHeights(pruneHeights []int64, versions []int64) {
-	flushMetadata(rs.db, rs.lastCommitInfo.Version, rs.lastCommitInfo, pruneHeights, versions)
+	flushMetadata(rs.metadataDB, rs.lastCommitInfo.Version, rs.lastCommitInfo, pruneHeights, versions)
 }
 
 // Implements CacheWrapper/Store/CommitStore.
@@ -844,7 +903,7 @@ func (rs *Store) Query(req abci.RequestQuery) abci.ResponseQuery {
 	if res.Height == rs.lastCommitInfo.Version {
 		commitInfo = rs.lastCommitInfo
 	} else {
-		commitInfo, err = getCommitInfo(rs.db, res.Height)
+		commitInfo, err = getCommitInfo(rs.metadataDB, res.Height)
 		if err != nil {
 			return sdkerrors.QueryResult(err)
 		}
@@ -1152,6 +1211,30 @@ func getLatestVersion(db dbm.DB) int64 {
 	return latest
 }
 
+func getIsMigratedToMetaDataDB(db dbm.DB) bool {
+	var isMigrated int64
+	isMigratedBytes, err := db.Get([]byte(isMetaDataMigrated))
+	if err != nil {
+		panic(err)
+	}
+	if isMigratedBytes == nil {
+		return false
+	}
+	err = cdc.UnmarshalBinaryLengthPrefixed(isMigratedBytes, &isMigrated)
+	if err != nil {
+		panic(err)
+	}
+	if isMigrated != 1 {
+		return false
+	}
+	return true
+}
+
+func setIsMetaDataMigrated(batch dbm.Batch) {
+	migratedBytes := cdc.MustMarshalBinaryLengthPrefixed(int64(1))
+	batch.Set([]byte(isMetaDataMigrated), migratedBytes)
+}
+
 type StoreSorts []StoreSort
 
 func (s StoreSorts) Len() int {
@@ -1307,8 +1390,8 @@ func getPruningHeights(db dbm.DB, reportZeroLengthErr bool) ([]int64, error) {
 	return prunedHeights, nil
 }
 
-func flushMetadata(db dbm.DB, version int64, cInfo commitInfo, pruneHeights []int64, versions []int64) {
-	batch := db.NewBatch()
+func flushMetadata(metadb dbm.DB, version int64, cInfo commitInfo, pruneHeights []int64, versions []int64) {
+	batch := metadb.NewBatch()
 	defer batch.Close()
 
 	setCommitInfo(batch, version, cInfo)
@@ -1428,7 +1511,7 @@ func (rs *Store) Export(to *Store, initVersion int64) error {
 		log.Println("--------- export ", store.name, " end ---------")
 	}
 
-	flushMetadata(to.db, initVersion, rs.buildCommitInfo(initVersion), []int64{}, []int64{})
+	flushMetadata(to.metadataDB, initVersion, rs.buildCommitInfo(initVersion), []int64{}, []int64{})
 
 	return nil
 }
