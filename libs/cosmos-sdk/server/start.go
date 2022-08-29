@@ -3,6 +3,7 @@ package server
 // DONTCOVER
 
 import (
+	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	"os"
 	"runtime/pprof"
 
@@ -310,6 +311,7 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	tmiavl.MaxCommittedHeightNum = viper.GetInt(tmiavl.FlagIavlMaxCommittedHeightNum)
 	tmiavl.EnableAsyncCommit = viper.GetBool(tmiavl.FlagIavlEnableAsyncCommit)
 	tmiavl.SetEnableFastStorage(viper.GetBool(tmiavl.FlagIavlEnableFastStorage))
+	rootmulti.SetEnableMetaDataSeparate(viper.GetBool(rootmulti.FLagEnableMetaDataSeparate))
 	tmiavl.SetFastNodeCacheSize(viper.GetInt(tmiavl.FlagIavlFastStorageCacheSize))
 	system.EnableGid = viper.GetBool(system.FlagEnableGid)
 

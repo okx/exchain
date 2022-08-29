@@ -48,6 +48,18 @@ const (
 	maxPruneHeightsLength = 100
 )
 
+var enableMigrate bool
+
+// SetEnableMetaDataSeparate get metadata migrate enable value
+func SetEnableMetaDataSeparate(enable bool) {
+	enableMigrate = enable
+}
+
+// GetEnableMetaDataSeparate get metadata migrate enable value
+func GetEnableMetaDataSeparate() bool {
+	return enableMigrate
+}
+
 // Store is composed of many CommitStores. Name contrasts with
 // cacheMultiStore which is for cache-wrapping other MultiStores. It implements
 // the CommitMultiStore interface.
