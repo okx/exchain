@@ -353,8 +353,8 @@ func (cs *State) handleCompleteProposal(height int64) {
 	// Update Valid* if we can.
 	prevotes := cs.Votes.Prevotes(cs.Round)
 	blockID, hasTwoThirds := prevotes.TwoThirdsMajority()
-	isBlockValid := hasTwoThirds && !blockID.IsZero() && (cs.ValidRound < cs.Round) && cs.ProposalBlock.HashesTo(blockID.Hash)
-	if isBlockValid {
+	prevoteBlockValid := hasTwoThirds && !blockID.IsZero() && (cs.ValidRound < cs.Round) && cs.ProposalBlock.HashesTo(blockID.Hash)
+	if prevoteBlockValid {
 		cs.Logger.Debug("Updating valid block to new proposal block",
 			"valid_round", cs.Round, "valid_block_hash", cs.ProposalBlock.Hash())
 		cs.ValidRound = cs.Round
@@ -377,7 +377,11 @@ func (cs *State) handleCompleteProposal(height int64) {
 	} else if cs.Step == cstypes.RoundStepCommit {
 		// If we're waiting on the proposal block...
 		cs.tryFinalizeCommit(height)
-	} else if cs.HasVC && isBlockValid && cs.isProposalComplete() {
-		cs.tryFinalizeCommit(height)
+	} else if cs.HasVC && cs.Round == 0 && cs.isProposalComplete() {
+		blockID, hasTwoThirds := cs.Votes.Precommits(cs.Round).TwoThirdsMajority()
+		if hasTwoThirds && !blockID.IsZero() && (cs.ValidRound < cs.Round) && cs.ProposalBlock.HashesTo(blockID.Hash) {
+			cs.finalizeCommit(height)
+		}
+
 	}
 }
