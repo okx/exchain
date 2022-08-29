@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
 	tmlite "github.com/okex/exchain/libs/tendermint/lite"
@@ -74,6 +75,16 @@ func NewCLIContextWithInputAndFrom(input io.Reader, from string) CLIContext {
 			if err != nil {
 				fmt.Printf("failted to get client: %v\n", err)
 				os.Exit(1)
+			}
+			st, err := rpc.Status()
+			if err != nil {
+				fmt.Printf("failted to call status: %v\n", err)
+			} else {
+				if st.NodeInfo.Network == tmtypes.MainNet {
+					tmtypes.SetupMainNetEnvironment(st.SyncInfo.EarliestBlockHeight)
+				} else if st.NodeInfo.Network == tmtypes.TestNet {
+					tmtypes.SetupTestNetEnvironment(st.SyncInfo.EarliestBlockHeight)
+				}
 			}
 		}
 	}

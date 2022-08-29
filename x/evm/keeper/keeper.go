@@ -129,7 +129,7 @@ func NewKeeper(
 		logger:         logger,
 		Watcher:        watcher.NewWatcher(logger),
 	}
-	k.Watcher.SetWatchDataFunc()
+	k.Watcher.SetWatchDataManager()
 	ak.SetObserverKeeper(k)
 
 	k.OpenTrie()
@@ -169,7 +169,7 @@ func NewSimulateKeeper(
 }
 
 // Warning, you need to use pointer object here, for you need to update UpdatedAccount var
-func (k *Keeper) OnAccountUpdated(acc auth.Account, updateState bool) {
+func (k *Keeper) OnAccountUpdated(acc auth.Account) {
 	if _, ok := acc.(*app.EthAccount); ok {
 		k.Watcher.DeleteAccount(acc.GetAddress())
 	}
@@ -434,7 +434,7 @@ func (k *Keeper) IsAddressBlocked(ctx sdk.Context, addr sdk.AccAddress) bool {
 	types.ResetCommitStateDB(csdb, k.GenerateCSDBParams(), &ctx)
 
 	// csdb := types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
-	return csdb.GetParams().EnableContractBlockedList && csdb.IsContractInBlockedList(addr.Bytes())
+	return k.GetParams(ctx).EnableContractBlockedList && csdb.IsContractInBlockedList(addr.Bytes())
 }
 
 func (k *Keeper) IsContractInBlockedList(ctx sdk.Context, addr sdk.AccAddress) bool {
