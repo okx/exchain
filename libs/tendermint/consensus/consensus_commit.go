@@ -180,7 +180,7 @@ func (cs *State) finalizeCommit(height int64) {
 		"hash", block.Hash(),
 		"root", block.AppHash,
 		"N", len(block.Txs))
-	//cs.Logger.Info(fmt.Sprintf("%v", block))
+	cs.Logger.Info(fmt.Sprintf("%v", block))
 
 	fail.Fail() // XXX
 
