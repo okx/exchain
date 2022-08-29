@@ -151,8 +151,9 @@ func UnmarshalPubKeyFromAmino(cdc *amino.Codec, data []byte) (crypto.PubKey, err
 	var err error
 	pubkey, err = unmarshalPubKeyFromAminoFast(data)
 	if err != nil {
-		pubkey = nil
-		err = cdc.UnmarshalBinaryBare(data, &pubkey)
+		var pubkeyTmp crypto.PubKey
+		err = cdc.UnmarshalBinaryBare(data, &pubkeyTmp)
+		pubkey = pubkeyTmp
 	}
 	return pubkey, err
 }

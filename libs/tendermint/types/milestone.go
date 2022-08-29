@@ -30,7 +30,32 @@ var (
 	MILESTONE_VENUS2_HEIGHT string
 	milestoneVenus2Height   int64
 
+	// note: it stores the earlies height of the node,and it is used by cli
+	nodePruneHeight int64
+
 	once sync.Once
+)
+
+const (
+	MainNet = "exchain-66"
+	TestNet = "exchain-65"
+)
+
+const (
+	MainNetVeneus1Height = 12988000
+	TestNetVeneus1Height = 12067000
+
+	MainNetVeneusHeight = 8200000
+	TestNetVeneusHeight = 8510000
+
+	MainNetMercuyHeight  = 5150000
+	TestNetMercuryHeight = 5300000
+
+	MainNetGenesisHeight = 2322600
+	TestNetGenesisHeight = 1121818
+
+	TestNetChangeChainId = 2270901
+	TestNetChainName1    = "okexchain-65"
 )
 
 func init() {
@@ -53,6 +78,22 @@ func string2number(input string) int64 {
 		panic(err)
 	}
 	return res
+}
+
+func SetupMainNetEnvironment(pruneH int64) {
+	milestoneVenusHeight = MainNetVeneusHeight
+	milestoneMercuryHeight = MainNetMercuyHeight
+	genesisHeight = MainNetGenesisHeight
+	nodePruneHeight = pruneH
+	milestoneVenus1Height = MainNetVeneus1Height
+}
+
+func SetupTestNetEnvironment(pruneH int64) {
+	milestoneVenusHeight = TestNetVeneusHeight
+	milestoneMercuryHeight = TestNetMercuryHeight
+	genesisHeight = TestNetGenesisHeight
+	nodePruneHeight = pruneH
+	milestoneVenus1Height = TestNetVeneus1Height
 }
 
 //depracate homstead signer support
@@ -96,6 +137,10 @@ func IsTestNet() bool {
 
 func GetStartBlockHeight() int64 {
 	return genesisHeight
+}
+
+func GetNodePruneHeight() int64 {
+	return nodePruneHeight
 }
 
 func GetVenusHeight() int64 {

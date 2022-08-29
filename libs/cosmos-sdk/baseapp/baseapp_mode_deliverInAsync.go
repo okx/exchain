@@ -1,6 +1,8 @@
 package baseapp
 
-import sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+import (
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+)
 
 func (m *modeHandlerDeliverInAsync) handleDeferRefund(info *runTxInfo) {
 	app := m.app
@@ -45,4 +47,12 @@ func (m *modeHandlerDeliverInAsync) handleRunMsg(info *runTxInfo) (err error) {
 	err = m.checkHigherThanMercury(err, info)
 
 	return
+}
+
+// ====================================================
+// 2. handleGasConsumed
+func (m *modeHandlerDeliverInAsync) handleGasConsumed(info *runTxInfo) (err error) {
+	m.app.parallelTxManage.blockGasMeterMu.Lock()
+	defer m.app.parallelTxManage.blockGasMeterMu.Unlock()
+	return m.modeHandlerBase.handleGasConsumed(info)
 }
