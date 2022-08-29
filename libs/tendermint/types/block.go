@@ -347,10 +347,18 @@ func UncompressBlockFromBytes(payload []byte) (res []byte, compressSign int, err
 	return
 }
 
-func UncompressBlockFromBytesTo(payload []byte, buf *bytes.Buffer) (compressSign int, err error) {
+func IsBlockDataCompressed(payload []byte) bool {
 	// try parse Uvarint to check if it is compressed
 	compressBytesLen, n := binary.Uvarint(payload)
 	if compressBytesLen == uint64(len(payload)-n) {
+		return false
+	} else {
+		return true
+	}
+}
+
+func UncompressBlockFromBytesTo(payload []byte, buf *bytes.Buffer) (compressSign int, err error) {
+	if !IsBlockDataCompressed(payload) {
 		// the block has not compressed
 		buf.Write(payload)
 	} else {
