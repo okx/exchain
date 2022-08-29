@@ -76,11 +76,13 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 			fromDir := viper.GetString(replayedBlockDir)
 
 			var node *node.Node
+			isOriginStateDB := false
 			if viper.GetBool(FlagEnableRest) {
 				var err error
 				log.Println("--------- StartRestWithNode ---------")
+				isOriginStateDB = viper.GetBool(FlagRestOriginState)
 				node, err = server.StartRestWithNode(ctx, cdc, fromDir,
-					viper.GetBool(FlagRestOriginState), registry, appCreator, registerRoutesFn)
+					isOriginStateDB, registry, appCreator, registerRoutesFn)
 				if err != nil {
 					fmt.Println(err)
 					return
@@ -89,7 +91,7 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 			}
 
 			ts := time.Now()
-			replayBlock(ctx, fromDir, node)
+			replayBlock(ctx, fromDir, node, isOriginStateDB)
 			log.Println("--------- replay success ---------", "Time Cost", time.Now().Sub(ts).Seconds())
 		},
 		PostRun: func(cmd *cobra.Command, args []string) {
@@ -114,7 +116,7 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 }
 
 // replayBlock replays blocks from db, if something goes wrong, it will panic with error message.
-func replayBlock(ctx *server.Context, originDataDir string, tmNode *node.Node) {
+func replayBlock(ctx *server.Context, originDataDir string, tmNode *node.Node, isNodeOriginStateDB bool) {
 	config.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 
 	var proxyApp proxy.AppConns
@@ -136,7 +138,8 @@ func replayBlock(ctx *server.Context, originDataDir string, tmNode *node.Node) {
 	rootDir := ctx.Config.RootDir
 	dataDir := filepath.Join(rootDir, "data")
 	var stateStoreDB dbm.DB
-	if tmNode != nil {
+	// node has opended the db
+	if tmNode != nil && !isNodeOriginStateDB {
 		stateStoreDB = tmNode.StateDB()
 	} else {
 		stateStoreDB, err = openDB(stateDB, dataDir)

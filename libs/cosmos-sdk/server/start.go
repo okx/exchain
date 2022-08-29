@@ -246,7 +246,7 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyReso
 	select {}
 }
 
-func StartRestWithNode(ctx *Context, cdc *codec.CodecProxy, fromDir string, isFromState bool,
+func StartRestWithNode(ctx *Context, cdc *codec.CodecProxy, fromDir string, isOriginStateDB bool,
 	registry jsonpb.AnyResolver, appCreator AppCreator,
 	registerRoutesFn func(restServer *lcd.RestServer)) (*node.Node, error) {
 
@@ -274,7 +274,7 @@ func StartRestWithNode(ctx *Context, cdc *codec.CodecProxy, fromDir string, isFr
 	}
 
 	stateDBDir := cfg.DBDir()
-	if isFromState {
+	if isOriginStateDB {
 		stateDBDir = fromDir
 	}
 
