@@ -68,10 +68,6 @@ func TestCacheMultiStoreWithVersion(t *testing.T) {
 	err := ms.LoadLatestVersion()
 	require.Nil(t, err)
 
-	//commitID := types.CommitID{}
-	// commitid nil could not check store,will panic
-	//checkStore(t, ms, commitID, commitID)
-
 	k, v := []byte("wind"), []byte("blows")
 
 	store1 := ms.getStoreByName("store1").(types.KVStore)
@@ -106,10 +102,6 @@ func TestHashStableWithEmptyCommit(t *testing.T) {
 	err := ms.LoadLatestVersion()
 	require.Nil(t, err)
 
-	//commitid nil could not check store,will panic
-	//commitID := types.CommitID{}
-	//checkStore(t, ms, commitID, commitID)
-
 	k, v := []byte("wind"), []byte("blows")
 
 	store1 := ms.getStoreByName("store1").(types.KVStore)
@@ -133,7 +125,6 @@ func TestMultistoreCommitLoad(t *testing.T) {
 
 	// New store has empty last commit.
 	commitID := types.CommitID{}
-	//checkStore(t, store, commitID, commitID)
 
 	// Make sure we can get stores by name.
 	s1 := store.getStoreByName("store1")
