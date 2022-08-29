@@ -702,16 +702,18 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 	if err != nil {
 		return common.Hash{}, err
 	}
-	tx := new(evmtypes.MsgEthereumTx)
-
-	// RLP decode raw transaction bytes
-	if err := authtypes.EthereumTxDecode(data, tx); err != nil {
-		// Return nil is for when gasLimit overflows uint64
-		return common.Hash{}, err
-	}
-
 	txBytes := data
-	if !tmtypes.HigherThanVenus(int64(height)) {
+	var tx *evmtypes.MsgEthereumTx
+
+	if !tmtypes.HigherThanVenus(int64(height)) || api.txPool != nil {
+		tx = new(evmtypes.MsgEthereumTx)
+
+		// RLP decode raw transaction bytes
+		if err := authtypes.EthereumTxDecode(data, tx); err != nil {
+			// Return nil is for when gasLimit overflows uint64
+			return common.Hash{}, err
+		}
+
 		txBytes, err = authclient.GetTxEncoder(api.clientCtx.Codec)(tx)
 		if err != nil {
 			return common.Hash{}, err
