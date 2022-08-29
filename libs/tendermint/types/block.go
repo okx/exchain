@@ -343,6 +343,9 @@ func UncompressBlockFromReader(pbpReader io.Reader) (io.Reader, error) {
 func UncompressBlockFromBytes(payload []byte) (res []byte, compressSign int, err error) {
 	var buf bytes.Buffer
 	compressSign, err = UncompressBlockFromBytesTo(payload, &buf)
+	if err == nil && compressSign == 0 {
+		return payload, 0, nil
+	}
 	res = buf.Bytes()
 	return
 }
@@ -357,11 +360,10 @@ func IsBlockDataCompressed(payload []byte) bool {
 	}
 }
 
+// UncompressBlockFromBytesTo uncompress payload to buf, and returns the compressSign,
+// if payload is not compressed, compressSign will be 0, and buf will not be changed.
 func UncompressBlockFromBytesTo(payload []byte, buf *bytes.Buffer) (compressSign int, err error) {
-	if !IsBlockDataCompressed(payload) {
-		// the block has not compressed
-		buf.Write(payload)
-	} else {
+	if IsBlockDataCompressed(payload) {
 		// the block has compressed and the last byte is compressSign
 		compressSign = int(payload[len(payload)-1])
 		err = compress.UnCompressTo(compressSign/CompressDividing, payload[:len(payload)-1], buf)
