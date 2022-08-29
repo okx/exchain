@@ -332,10 +332,9 @@ func UncompressBlockFromReader(pbpReader io.Reader) (io.Reader, error) {
 		compressRatio := float64(len(compressed)) / float64(len(original))
 		trace.GetElapsedInfo().AddInfo(trace.UncompressBlock, fmt.Sprintf("%.2f/%dms",
 			compressRatio, t1.Sub(t0).Milliseconds()))
-		return bytes.NewBuffer(original), nil
-	} else {
-		return bytes.NewBuffer(compressed), nil
 	}
+
+	return bytes.NewBuffer(original), nil
 }
 
 // UncompressBlockFromBytes uncompress from compressBytes to blockPart bytes, and returns the compressSign
@@ -357,10 +356,11 @@ func IsBlockCompressed(payload []byte) bool {
 	return true
 }
 
-// UncompressBlockFromBytesTo uncompress payload to buf, and returns the compressSign,
-// if payload is not compressed, it will not write to buf, and compressSign should be zero
 func UncompressBlockFromBytesTo(payload []byte, buf *bytes.Buffer) (compressSign int, err error) {
-	if IsBlockCompressed(payload) {
+	if !IsBlockCompressed(payload) {
+		// the block has not compressed
+		buf.Write(payload)
+	} else {
 		// the block has compressed and the last byte is compressSign
 		compressSign = int(payload[len(payload)-1])
 		err = compress.UnCompressTo(compressSign/CompressDividing, payload[:len(payload)-1], buf)
