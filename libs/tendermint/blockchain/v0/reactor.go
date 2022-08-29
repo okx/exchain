@@ -37,8 +37,6 @@ const (
 	maxMsgSize                         = types.MaxBlockSizeBytes +
 		bcBlockResponseMessagePrefixSize +
 		bcBlockResponseMessageFieldKeySize
-
-	checkSyncingIntervalMS = 10
 )
 
 var (
@@ -141,19 +139,16 @@ func (bcR *BlockchainReactor) OnStart() error {
 func (bcR *BlockchainReactor) OnStop() {
 	bcR.pool.Stop()
 	bcR.pool.Reset()
-	bcR.stopPoolRoutine()
+	bcR.syncStopPoolRoutine()
 }
 
-func (bcR *BlockchainReactor) stopPoolRoutine() {
-	checkSyncingTicker := time.NewTicker(checkSyncingIntervalMS * time.Millisecond)
-	defer checkSyncingTicker.Stop()
+func (bcR *BlockchainReactor) syncStopPoolRoutine() {
 	bcR.finishCh <- struct{}{}
 	for {
 		if !bcR.getIsSyncing() {
 			break
 		}
-		checkSyncingTicker.Reset(checkSyncingIntervalMS * time.Millisecond)
-		<-checkSyncingTicker.C
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 
