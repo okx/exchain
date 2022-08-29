@@ -4,6 +4,8 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/gogo/protobuf/proto"
+	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -11,6 +13,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 	"github.com/okex/exchain/libs/tendermint/libs/rand"
 	"github.com/okex/exchain/x/evm/types"
+	prototypes "github.com/okex/exchain/x/evm/watcher/proto"
 	"github.com/stretchr/testify/require"
 	"math/big"
 	"strconv"
@@ -85,7 +88,12 @@ func TestGetTransactionReceipt(t *testing.T) {
 			fnCheck: func(d *data) {
 				recp, err := acq.GetTransactionReceipt(d.wsg.GetKey())
 				require.Nil(t, err)
-				require.Equal(t, d.wsg.GetValue(), recp.GetValue())
+
+				var protoReceipt prototypes.TransactionReceipt
+				e := proto.Unmarshal([]byte(d.wsg.GetValue()), &protoReceipt)
+				require.NoError(t, e)
+				receipt := protoToReceipt(&protoReceipt)
+				require.Equal(t, recp, receipt)
 
 				recp, err = acq.GetTransactionReceipt(d.batch.GetKey())
 				require.Nil(t, err)
@@ -103,7 +111,9 @@ func TestGetTransactionReceipt(t *testing.T) {
 
 	for _, ts := range testcases {
 		ts.fnInit(ts.d)
-		ts.fnCheck(ts.d)
+		for i := 0; i < 3; i++ {
+			ts.fnCheck(ts.d)
+		}
 	}
 }
 
@@ -173,7 +183,94 @@ func TestGetBlockByHash(t *testing.T) {
 
 	for _, ts := range testcases {
 		ts.fnInit(ts.d)
-		ts.fnCheck(ts.d)
+		for i := 0; i < 3; i++ {
+			ts.fnCheck(ts.d)
+		}
+	}
+}
+
+func newTestMsgEthTx(txHash common.Hash) *MsgEthTx {
+	addr := common.BytesToAddress([]byte("test_address"))
+	ethTx := types.NewMsgEthereumTx(0, &addr, big.NewInt(1), 100000, big.NewInt(1), []byte("test"))
+	privkey, err := ethsecp256k1.GenerateKey()
+	if err != nil {
+		panic(err)
+	}
+	ethTx.Sign(big.NewInt(1), privkey.ToECDSA())
+	if err != nil {
+		panic(err)
+	}
+	return newMsgEthTx(
+		ethTx,
+		txHash,
+		common.Hash{0x02},
+		0,
+		0)
+}
+
+func TestGetTransactionByHash(t *testing.T) {
+	acq := newACProcessorQuerier(nil)
+	acProcessor := acq.p
+
+	testcases := []struct {
+		d       *data
+		fnInit  func(d *data)
+		fnCheck func(d *data)
+	}{
+		{
+			d: &data{},
+			fnInit: func(d *data) {
+				d.wsg = newTestMsgEthTx(wsgHash)
+
+				btx := newTestMsgEthTx(batchHash)
+				d.batch = &Batch{
+					Key:       btx.GetKey(),
+					Value:     []byte(btx.GetValue()),
+					TypeValue: btx.GetType(),
+				}
+
+				dtx1 := newTestMsgEthTx(delHash1)
+				d.del1 = &Batch{
+					Key:       dtx1.GetKey(),
+					TypeValue: TypeDelete,
+				}
+
+				dtx2 := newTestMsgEthTx(delHash2)
+				d.del2 = dtx2.GetKey()
+
+				acProcessor.BatchSet([]WatchMessage{d.wsg})
+				acProcessor.BatchSetEx([]*Batch{d.batch, d.del1})
+				acProcessor.BatchDel([][]byte{d.del2})
+			},
+			fnCheck: func(d *data) {
+				recp, err := acq.GetTransactionByHash(d.wsg.GetKey())
+				require.Nil(t, err)
+
+				var prototx prototypes.Transaction
+				e := proto.Unmarshal([]byte(d.wsg.GetValue()), &prototx)
+				require.NoError(t, e)
+				tx := protoToTransaction(&prototx)
+				require.Equal(t, recp, tx)
+
+				recp, err = acq.GetTransactionByHash(d.batch.GetKey())
+				require.Nil(t, err)
+
+				recp, err = acq.GetTransactionByHash(d.del1.GetKey())
+				require.Nil(t, err)
+				require.Nil(t, recp)
+
+				recp, err = acq.GetTransactionByHash(d.del2)
+				require.Nil(t, err)
+				require.Nil(t, recp)
+			},
+		},
+	}
+
+	for _, ts := range testcases {
+		ts.fnInit(ts.d)
+		for i := 0; i < 3; i++ {
+			ts.fnCheck(ts.d)
+		}
 	}
 }
 
@@ -301,7 +398,9 @@ func TestGetAccount(t *testing.T) {
 
 	for _, ts := range testcases {
 		ts.fnInit(ts.d)
-		ts.fnCheck(ts.d)
+		for i := 0; i < 3; i++ {
+			ts.fnCheck(ts.d)
+		}
 	}
 }
 
@@ -369,6 +468,8 @@ func TestGetState(t *testing.T) {
 
 	for _, ts := range testcases {
 		ts.fnInit(ts.d)
-		ts.fnCheck(ts.d)
+		for i := 0; i < 3; i++ {
+			ts.fnCheck(ts.d)
+		}
 	}
 }

@@ -508,13 +508,20 @@ func (tr *TransactionReceipt) GetValue() string {
 func (tr *TransactionReceipt) ObjectParse() {
 	tr.TransactionHash = tr.GetHash()
 	tr.BlockHash = tr.GetBlockHash()
-	tr.From = tr.GetFrom()
-	tr.To = tr.tx.To()
+	if tr.tx != nil {
+		tr.From = tr.GetFrom()
+		tr.To = tr.GetTo()
+	}
 	//contract address will be set to 0x0000000000000000000000000000000000000000 if contract deploy failed
 	if tr.ContractAddress != nil && types.EthAddressStringer(*tr.ContractAddress).String() == "0x0000000000000000000000000000000000000000" {
 		//set to nil to keep sync with ethereum rpc
 		tr.ContractAddress = nil
 	}
+}
+
+func (tr *TransactionReceipt) Formatting() *TransactionReceipt {
+	tr.ObjectParse()
+	return protoToReceipt(receiptToProto(tr))
 }
 
 func (tr *TransactionReceipt) GetHash() string {
@@ -678,6 +685,14 @@ func (tr *Transaction) ObjectParse() error {
 		tr.TransactionIndex = (*hexutil.Uint64)(&tr.originIndex)
 	}
 	return nil
+}
+
+func (tr *Transaction) Formatting() (*Transaction, error) {
+	err := tr.ObjectParse()
+	if err != nil {
+		return nil, err
+	}
+	return protoToTransaction(transactionToProto(tr)), nil
 }
 
 func newBlock(height uint64, blockBloom ethtypes.Bloom, blockHash common.Hash, header abci.Header, gasLimit uint64, gasUsed *big.Int, txs interface{}) Block {

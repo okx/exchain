@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/ethereum/go-ethereum/common"
-	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/gogo/protobuf/proto"
 	"github.com/okex/exchain/app/types"
 	prototypes "github.com/okex/exchain/x/evm/watcher/proto"
@@ -34,11 +33,7 @@ func (aq *ACProcessorQuerier) GetTransactionReceipt(key []byte) (*TransactionRec
 			return nil, nil
 		}
 		if value, ok := v.(*MsgTransactionReceipt); ok {
-			value.ObjectParse()
-			if value.TransactionReceipt.Logs == nil { // for adaptive eth client judge
-				value.TransactionReceipt.Logs = make([]*ethtypes.Log, 0)
-			}
-			return value.TransactionReceipt, nil
+			return value.Formatting(), nil
 		} else if value, ok := v.(*Batch); ok { // maybe v is from the dds
 			var protoReceipt prototypes.TransactionReceipt
 			e := proto.Unmarshal(value.Value, &protoReceipt)
@@ -58,7 +53,7 @@ func (aq *ACProcessorQuerier) GetTransactionResponse(key []byte) ([]byte, error)
 			return nil, nil
 		}
 		if value, ok := v.(*MsgStdTransactionResponse); ok {
-			return []byte(value.txResponse), nil
+			return []byte(value.GetValue()), nil
 		} else if value, ok := v.(*Batch); ok { // maybe v is from the dds
 			return value.Value, nil
 		}
@@ -73,7 +68,7 @@ func (aq *ACProcessorQuerier) GetBlockByHash(key []byte) (*Block, error) {
 			return nil, nil
 		}
 		if rsp, ok := v.(*MsgBlock); ok {
-			b = []byte(rsp.block)
+			b = []byte(rsp.GetValue())
 		} else if value, ok := v.(*Batch); ok { // maybe v is from the dds
 			b = value.Value
 		} else {
@@ -95,11 +90,11 @@ func (aq *ACProcessorQuerier) GetTransactionByHash(key []byte) (*Transaction, er
 			return nil, nil
 		}
 		if rsp, ok := v.(*MsgEthTx); ok {
-			err := rsp.ObjectParse()
+			tx, err := rsp.Formatting()
 			if err != nil {
 				return nil, err
 			}
-			return rsp.Transaction, nil
+			return tx, nil
 		} else if value, ok := v.(*Batch); ok { // maybe v is from the dds
 			var protoTx prototypes.Transaction
 			e := proto.Unmarshal(value.Value, &protoTx)
