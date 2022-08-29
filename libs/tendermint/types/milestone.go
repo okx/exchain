@@ -32,6 +32,9 @@ var (
 
 	MILESTONE_VENUS3_HEIGHT string
 	milestoneVenus3Height   int64
+  
+	// note: it stores the earlies height of the node,and it is used by cli
+	nodePruneHeight int64
 
 	once sync.Once
 )
@@ -53,6 +56,9 @@ const (
 
 	MainNetGenesisHeight = 2322600
 	TestNetGenesisHeight = 1121818
+
+	TestNetChangeChainId = 2270901
+	TestNetChainName1    = "okexchain-65"
 )
 
 func init() {
@@ -78,17 +84,19 @@ func string2number(input string) int64 {
 	return res
 }
 
-func SetupMainNetEnvironment() {
+func SetupMainNetEnvironment(pruneH int64) {
 	milestoneVenusHeight = MainNetVeneusHeight
 	milestoneMercuryHeight = MainNetMercuyHeight
 	genesisHeight = MainNetGenesisHeight
+	nodePruneHeight = pruneH
 	milestoneVenus1Height = MainNetVeneus1Height
 }
 
-func SetupTestNetEnvironment() {
+func SetupTestNetEnvironment(pruneH int64) {
 	milestoneVenusHeight = TestNetVeneusHeight
 	milestoneMercuryHeight = TestNetMercuryHeight
 	genesisHeight = TestNetGenesisHeight
+	nodePruneHeight = pruneH
 	milestoneVenus1Height = TestNetVeneus1Height
 }
 
@@ -133,6 +141,10 @@ func IsTestNet() bool {
 
 func GetStartBlockHeight() int64 {
 	return genesisHeight
+}
+
+func GetNodePruneHeight() int64 {
+	return nodePruneHeight
 }
 
 func GetVenusHeight() int64 {
