@@ -93,10 +93,10 @@ func NewStore(db dbm.DB) *Store {
 	if viper.GetBool(flatkv.FlagEnable) {
 		flatKVDB = newFlatKVDB()
 	}
-	//metadataDB := db
-	//if viper.GetBool(FLagEnableMetaDataSeparate) {
-	metadataDB := newMetadataDB()
-	//}
+	metadataDB := db
+	if viper.GetBool(FLagEnableMetaDataSeparate) {
+		metadataDB = newMetadataDB()
+	}
 
 	ret := &Store{
 		db:             db,
@@ -238,17 +238,31 @@ func MigrateMetadata(fromDB, toDB dbm.DB) {
 	defer batch.Close()
 	//migrate latest version
 	ver := getLatestVersion(fromDB)
+	if ver == 0 {
+		return
+	}
 	setLatestVersion(batch, ver)
 	cInfo, err := getCommitInfo(fromDB, ver)
 	if err != nil {
 		panic(fmt.Sprintf("migrateMetaData getCommitInfo error %v", err))
 	}
 	setCommitInfo(batch, ver, cInfo)
+
+	pruneHeights, err := getPruningHeights(fromDB, false)
+	if err != nil {
+		panic(fmt.Sprintf("migrateMetaData getPruningHeights error %v", err))
+	}
+	setPruningHeights(batch, pruneHeights)
+	versions, err := getVersions(fromDB)
+	if err != nil {
+		panic(fmt.Sprintf("migrateMetaData getVersions error %v", err))
+	}
+	setVersions(batch, versions)
+
 	setIsMetaDataMigrated(batch)
 	if err := batch.Write(); err != nil {
 		panic(fmt.Errorf("error on batch write %w", err))
 	}
-
 }
 
 func (rs *Store) GetLatestVersion() int64 {
