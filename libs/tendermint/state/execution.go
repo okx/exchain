@@ -740,7 +740,7 @@ func fireEvents(
 	}
 }
 
-func (blockExec *BlockExecutor) FireBlockTimeEvents(height, blockTime int64) {
+func (blockExec *BlockExecutor) FireBlockTimeEvents(height, blockTime int64, address types.Address) {
 	blockExec.eventBus.PublishEventLatestBlockTime(
-		types.EventDataBlockTime{Height: height, BlockTime: blockTime})
+		types.EventDataBlockTime{Height: height, BlockTime: blockTime, NextProposer: address})
 }

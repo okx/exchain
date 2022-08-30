@@ -89,8 +89,9 @@ type EventDataTx struct {
 
 // latest blockTime
 type EventDataBlockTime struct {
-	Height    int64
-	BlockTime int64
+	Height       int64
+	BlockTime    int64
+	NextProposer Address
 }
 
 // NOTE: This goes into the replay WAL
