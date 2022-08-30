@@ -1,11 +1,9 @@
 package types
 
 import (
-	"bytes"
 	"fmt"
 	"time"
 
-	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/libs/tendermint/libs/compress"
 )
 
@@ -48,6 +46,7 @@ var (
 type DeltasMessage struct {
 	Metadata     []byte `json:"metadata"`
 	MetadataHash []byte `json:"metadata_hash"`
+	MetadataLen  int    `json:"metadata_len"`
 	Height       int64  `json:"height"`
 	CompressType int    `json:"compress_type"`
 	From         string `json:"from"`
@@ -115,7 +114,7 @@ func (d *Deltas) Marshal() ([]byte, error) {
 
 	t1 := time.Now()
 	// calc payload hash
-	payloadHash := tmhash.Sum(payload)
+	//payloadHash := tmhash.Sum(payload)
 
 	// compress
 	t2 := time.Now()
@@ -129,7 +128,7 @@ func (d *Deltas) Marshal() ([]byte, error) {
 		Metadata:     payload,
 		Height:       d.Height,
 		CompressType: d.CompressType,
-		MetadataHash: payloadHash,
+		MetadataLen:  len(payload),
 		From:         d.From,
 	}
 
@@ -164,9 +163,12 @@ func (d *Deltas) Unmarshal(bs []byte) error {
 
 	t2 := time.Now()
 	// calc payload hash
-	payloadHash := tmhash.Sum(msg.Metadata)
-	if bytes.Compare(payloadHash, msg.MetadataHash) != 0 {
-		return fmt.Errorf("metadata hash is different")
+	//payloadHash := tmhash.Sum(msg.Metadata)
+	//if bytes.Compare(payloadHash, msg.MetadataHash) != 0 {
+	//	return fmt.Errorf("metadata hash is different")
+	//}
+	if len(msg.Metadata) != msg.MetadataLen {
+		return fmt.Errorf("metadata len is different")
 	}
 	t3 := time.Now()
 
