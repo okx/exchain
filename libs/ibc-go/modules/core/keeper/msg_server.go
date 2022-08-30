@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"strings"
 
 	//"github.com/armon/go-metrics"
 	//"github.com/cosmos/cosmos-sdk/telemetry"
@@ -287,7 +288,10 @@ func (k Keeper) ChannelOpenInit(goCtx context.Context, msg *channeltypes.MsgChan
 		),
 	})
 
-	return &channeltypes.MsgChannelOpenInitResponse{}, nil
+	return &channeltypes.MsgChannelOpenInitResponse{
+		ChannelId: channelID,
+		Version:   strings.TrimSpace(msg.Channel.Version),
+	}, nil
 }
 
 // ChannelOpenTry defines a rpc handler method for MsgChannelOpenTry.
@@ -349,7 +353,7 @@ func (k Keeper) ChannelOpenAck(goCtx context.Context, msg *channeltypes.MsgChann
 		return nil, sdkerrors.Wrap(err, "channel handshake open ack failed")
 	}
 
-	if err = cbs.OnChanOpenAck(ctx, msg.PortId, msg.ChannelId, msg.CounterpartyVersion); err != nil {
+	if err = cbs.OnChanOpenAck(ctx, msg.PortId, msg.ChannelId, msg.CounterpartyChannelId, msg.CounterpartyVersion); err != nil {
 		return nil, sdkerrors.Wrap(err, "channel open ack callback failed")
 	}
 
@@ -691,3 +695,5 @@ func (k Keeper) Acknowledgement(goCtx context.Context, msg *channeltypes.MsgAckn
 
 	return &channeltypes.MsgAcknowledgementResponse{}, nil
 }
+
+////
