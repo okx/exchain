@@ -232,8 +232,10 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	startTime := time.Now().UnixNano()
 
 	//wait till the last block async write be saved
+	fmt.Println("--tryWaitLastBlockSave")
 	blockExec.tryWaitLastBlockSave(block.Height - 1)
 
+	fmt.Println("--runAbci")
 	abciResponses, err := blockExec.runAbci(block, deltaInfo)
 
 	if err != nil {
@@ -245,6 +247,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	trc.Pin(trace.SaveResp)
 
 	// Save the results before we commit.
+	fmt.Println("--trySaveABCIResponsesAsync")
 	blockExec.trySaveABCIResponsesAsync(block.Height, abciResponses)
 
 	fail.Fail() // XXX
@@ -266,6 +269,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		blockExec.logger.Info("Updates to validators", "updates", types.ValidatorListString(validatorUpdates))
 	}
 
+	fmt.Println("--updateState")
 	// Update the state with the block and responses.
 	state, err = updateState(state, blockID, &block.Header, abciResponses, validatorUpdates)
 	if err != nil {
@@ -276,6 +280,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	startTime = time.Now().UnixNano()
 
 	// Lock mempool, commit app state, update mempoool.
+	fmt.Println("--blockExec.commit")
 	commitResp, retainHeight, err := blockExec.commit(state, block, deltaInfo, abciResponses.DeliverTxs, trc)
 	endTime = time.Now().UnixNano()
 	blockExec.metrics.CommitTime.Set(float64(endTime-startTime) / 1e6)
@@ -293,6 +298,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data
+	fmt.Println("--trySaveStateAsync")
 	blockExec.trySaveStateAsync(state)
 
 	blockExec.logger.Debug("SaveState", "state", &state)
@@ -309,7 +315,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	}
 
 	dc.postApplyBlock(block.Height, deltaInfo, abciResponses, commitResp.DeltaMap, blockExec.isFastSync)
-
+	fmt.Println("--end postApplyBlock")
 	return state, retainHeight, nil
 }
 
