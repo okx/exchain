@@ -116,8 +116,14 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 func replayBlock(ctx *server.Context, originDataDir string, tmNode *node.Node) {
 	config.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 
-	proxyApp, err := createProxyApp(ctx)
-	panicError(err)
+	var proxyApp proxy.AppConns
+	if tmNode != nil {
+		proxyApp = tmNode.ProxyApp()
+	} else {
+		var err error
+		proxyApp, err = createProxyApp(ctx)
+		panicError(err)
+	}
 
 	res, err := proxyApp.Query().InfoSync(proxy.RequestInfo)
 	panicError(err)
@@ -341,6 +347,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB, blockSto
 		state, _, err = blockExec.ApplyBlockWithTrace(state, meta.BlockID, block)
 		fmt.Println("End ApplyBlockWithTrace", block.Height)
 		panicError(err)
+		//time.Sleep(5 * time.Second)
 		if needSaveBlock {
 			SaveBlock(ctx, originBlockStore, height)
 		}
