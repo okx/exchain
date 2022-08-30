@@ -13,17 +13,18 @@ import (
 type ProposalType string
 
 const (
-	ProposalTypeStoreCode                 ProposalType = "StoreCode"
-	ProposalTypeInstantiateContract       ProposalType = "InstantiateContract"
-	ProposalTypeMigrateContract           ProposalType = "MigrateContract"
-	ProposalTypeSudoContract              ProposalType = "SudoContract"
-	ProposalTypeExecuteContract           ProposalType = "ExecuteContract"
-	ProposalTypeUpdateAdmin               ProposalType = "UpdateAdmin"
-	ProposalTypeClearAdmin                ProposalType = "ClearAdmin"
-	ProposalTypePinCodes                  ProposalType = "PinCodes"
-	ProposalTypeUnpinCodes                ProposalType = "UnpinCodes"
-	ProposalTypeUpdateInstantiateConfig   ProposalType = "UpdateInstantiateConfig"
-	ProposalTypeUpdateDeploymentWhitelist ProposalType = "UpdateDeploymentWhitelist"
+	ProposalTypeStoreCode                           ProposalType = "StoreCode"
+	ProposalTypeInstantiateContract                 ProposalType = "InstantiateContract"
+	ProposalTypeMigrateContract                     ProposalType = "MigrateContract"
+	ProposalTypeSudoContract                        ProposalType = "SudoContract"
+	ProposalTypeExecuteContract                     ProposalType = "ExecuteContract"
+	ProposalTypeUpdateAdmin                         ProposalType = "UpdateAdmin"
+	ProposalTypeClearAdmin                          ProposalType = "ClearAdmin"
+	ProposalTypePinCodes                            ProposalType = "PinCodes"
+	ProposalTypeUnpinCodes                          ProposalType = "UnpinCodes"
+	ProposalTypeUpdateInstantiateConfig             ProposalType = "UpdateInstantiateConfig"
+	ProposalTypeUpdateDeploymentWhitelist           ProposalType = "UpdateDeploymentWhitelist"
+	ProposalTypeUpdateWasmContractMethodBlockedList ProposalType = "UpdateWasmContractMethodBlockedList"
 )
 
 // DisableAllProposals contains no wasm gov types.
@@ -42,12 +43,14 @@ var EnableAllProposals = []ProposalType{
 	ProposalTypeUnpinCodes,
 	ProposalTypeUpdateInstantiateConfig,
 	ProposalTypeUpdateDeploymentWhitelist,
+	ProposalTypeUpdateWasmContractMethodBlockedList,
 }
 
 // NecessaryProposals contains necessary wasm gov types as keys.
 var NecessaryProposals = []ProposalType{
 	ProposalTypeMigrateContract,
 	ProposalTypeUpdateDeploymentWhitelist,
+	ProposalTypeUpdateWasmContractMethodBlockedList,
 }
 
 // ConvertToProposals maps each key to a ProposalType and returns a typed list.
@@ -80,6 +83,7 @@ func init() { // register new content types with the sdk
 	govtypes.RegisterProposalType(string(ProposalTypeUnpinCodes))
 	govtypes.RegisterProposalType(string(ProposalTypeUpdateInstantiateConfig))
 	govtypes.RegisterProposalType(string(ProposalTypeUpdateDeploymentWhitelist))
+	govtypes.RegisterProposalType(string(ProposalTypeUpdateWasmContractMethodBlockedList))
 	govtypes.RegisterProposalTypeCodec(&StoreCodeProposal{}, "wasm/StoreCodeProposal")
 	govtypes.RegisterProposalTypeCodec(&InstantiateContractProposal{}, "wasm/InstantiateContractProposal")
 	govtypes.RegisterProposalTypeCodec(&MigrateContractProposal{}, "wasm/MigrateContractProposal")
@@ -91,6 +95,7 @@ func init() { // register new content types with the sdk
 	govtypes.RegisterProposalTypeCodec(&UnpinCodesProposal{}, "wasm/UnpinCodesProposal")
 	govtypes.RegisterProposalTypeCodec(&UpdateInstantiateConfigProposal{}, "wasm/UpdateInstantiateConfigProposal")
 	govtypes.RegisterProposalTypeCodec(&UpdateDeploymentWhitelistProposal{}, "wasm/UpdateDeploymentWhitelistProposal")
+	govtypes.RegisterProposalTypeCodec(&UpdateWASMContractMethodBlockedListProposal{}, "wasm/UpdateWASMContractMethodBlockedListProposal")
 }
 
 // ProposalRoute returns the routing key of a parameter change proposal.

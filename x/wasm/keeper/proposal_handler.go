@@ -59,6 +59,8 @@ func NewWasmProposalHandlerX(k types.ContractOpsKeeper, enabledProposalTypes []t
 			return handleUpdateInstantiateConfigProposal(ctx, k, *c)
 		case *types.UpdateDeploymentWhitelistProposal:
 			return handleUpdateDeploymentWhitelistProposal(ctx, k, *c)
+		case *types.UpdateWASMContractMethodBlockedListProposal:
+			return handleUpdateWASMContractMethodBlockedListProposal(ctx, k, *c)
 		default:
 			return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized wasm proposal content type: %T", c)
 		}
@@ -265,4 +267,11 @@ func handleUpdateDeploymentWhitelistProposal(ctx sdk.Context, k types.ContractOp
 
 	k.UpdateUploadAccessConfig(ctx, config)
 	return nil
+}
+
+func handleUpdateWASMContractMethodBlockedListProposal(ctx sdk.Context, k types.ContractOpsKeeper, p types.UpdateWASMContractMethodBlockedListProposal) error {
+	if err := p.ValidateBasic(); err != nil {
+		return err
+	}
+	return k.UpdateContractMethodBlockedList(ctx, p.BlockedMethods, p.IsDelete)
 }

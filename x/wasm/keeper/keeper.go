@@ -3,7 +3,9 @@ package keeper
 import (
 	"bytes"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
+	"github.com/gogo/protobuf/proto"
 	"math"
 	"path/filepath"
 	"strconv"
@@ -183,6 +185,40 @@ func newKeeper(cdc *codec.CodecProxy,
 
 func (k Keeper) GetStoreKey() sdk.StoreKey {
 	return k.storeKey
+}
+
+func (k Keeper) isContractMethodBlocked(ctx sdk.Context, contractAddr, method string) bool {
+	blockedMethods := k.getContractMethodBlockedList(ctx, contractAddr)
+	return blockedMethods.IsMethodBlocked(method)
+}
+
+func (k Keeper) getContractMethodBlockedList(ctx sdk.Context, contractAddr string) *types.ContractMethods {
+	store := k.ada.NewStore(ctx.GasMeter(), ctx.KVStore(k.storeKey), nil)
+	key := types.GetContractMethodBlockedListPrefix(contractAddr)
+	data := store.Get(key)
+	var blockedMethods types.ContractMethods
+	err := proto.Unmarshal(data, &blockedMethods)
+	if err != nil {
+		k.Logger(ctx).Error("getContractMethodBlockedList", "unmarshal error", err)
+	}
+	return &blockedMethods
+}
+
+func (k Keeper) updateContractMethodBlockedList(ctx sdk.Context, blockedMethods *types.ContractMethods, isDelete bool) error {
+	oldBlockedMethods := k.getContractMethodBlockedList(ctx, blockedMethods.GetContractAddr())
+	if isDelete {
+		oldBlockedMethods.DeleteMethods(blockedMethods.Methods)
+	} else {
+		oldBlockedMethods.AddMethods(blockedMethods.Methods)
+	}
+	data, err := proto.Marshal(oldBlockedMethods)
+	if err != nil {
+		return err
+	}
+	store := k.ada.NewStore(ctx.GasMeter(), ctx.KVStore(k.storeKey), nil)
+	key := types.GetContractMethodBlockedListPrefix(blockedMethods.ContractAddr)
+	store.Set(key, data)
+	return nil
 }
 
 func (k Keeper) updateUploadAccessConfig(ctx sdk.Context, config types.AccessConfig) {
@@ -418,6 +454,16 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.AccAddress, caller 
 	// prepare querier
 	querier := k.newQueryHandler(ctx, contractAddress)
 	gas := k.runtimeGasForContract(ctx)
+	var methodsMap map[string]interface{}
+	err = json.Unmarshal(msg, &methodsMap)
+	if err != nil {
+		return nil, err
+	}
+	for method := range methodsMap {
+		if k.isContractMethodBlocked(ctx, contractAddress.String(), method) {
+			return nil, sdkerrors.Wrap(types.ErrExecuteFailed, fmt.Sprintf("%s method of contract %s is not allowed", contractAddress.String(), method))
+		}
+	}
 	res, gasUsed, execErr := k.wasmVM.Execute(codeInfo.CodeHash, env, info, msg, prefixStore, cosmwasmAPI, querier, k.gasMeter(ctx), gas, costJSONDeserialization)
 	k.consumeRuntimeGas(ctx, gasUsed)
 	if execErr != nil {

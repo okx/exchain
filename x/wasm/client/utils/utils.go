@@ -3,11 +3,6 @@ package utils
 import (
 	"bytes"
 	"compress/gzip"
-	"fmt"
-	"io/ioutil"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	"github.com/okex/exchain/x/wasm/types"
 )
 
 var (
@@ -40,16 +35,4 @@ func GzipIt(input []byte) ([]byte, error) {
 	}
 
 	return b.Bytes(), nil
-}
-
-// ParseUpdateDeploymentWhitelistProposalJSON parses json from proposal file to UpdateDeploymentWhitelistProposal
-func ParseUpdateDeploymentWhitelistProposalJSON(cdc *codec.Codec, proposalFilePath string) (*types.UpdateDeploymentWhitelistProposal, error) {
-	var proposal types.UpdateDeploymentWhitelistProposal
-	contents, err := ioutil.ReadFile(proposalFilePath)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println("contents:", string(contents))
-	cdc.MustUnmarshalJSON(contents, &proposal)
-	return &proposal, nil
 }

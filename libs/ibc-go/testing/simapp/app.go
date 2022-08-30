@@ -132,6 +132,7 @@ var (
 			erc20client.ProxyContractRedirectHandler,
 			wasmclient.UpdateDeploymentWhitelistProposalHandler,
 			wasmclient.MigrateContractProposalHandler,
+			wasmclient.UpdateWASMContractMethodBlockedListProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},

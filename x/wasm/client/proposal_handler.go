@@ -25,3 +25,6 @@ var MigrateContractProposalHandler = govclient.NewProposalHandler(cli.ProposalMi
 
 // UpdateDeploymentWhitelistProposalHandler is a custom proposal handler which defines whitelist to deploy contracts.
 var UpdateDeploymentWhitelistProposalHandler = govclient.NewProposalHandler(cli.ProposalUpdateDeploymentWhitelistCmd, rest.EmptyProposalRestHandler)
+
+// UpdateWASMContractMethodBlockedListProposalHandler is a custom proposal handler which defines
+var UpdateWASMContractMethodBlockedListProposalHandler = govclient.NewProposalHandler(cli.ProposalUpdateWASMContractMethodBlockedListCmd, rest.EmptyProposalRestHandler)

@@ -125,6 +125,7 @@ var (
 			client.UpdateClientProposalHandler,
 			wasmclient.UpdateDeploymentWhitelistProposalHandler,
 			wasmclient.MigrateContractProposalHandler,
+			wasmclient.UpdateWASMContractMethodBlockedListProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
