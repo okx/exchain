@@ -2,7 +2,6 @@ package iavl
 
 import (
 	"container/list"
-	"sync"
 
 	"github.com/tendermint/go-amino"
 )
@@ -11,7 +10,6 @@ type FastNodeCache struct {
 	items      map[string]*list.Element // items.
 	cacheSize  int                      // cache size limit in elements.
 	cacheQueue *syncList                // LRU queue of cache elements. Used for deletion.
-	cacheMutex sync.RWMutex             // Mutex for node cache.
 }
 
 func newFastNodeCache(dbName string, cacheSize int) *FastNodeCache {
@@ -46,18 +44,15 @@ func makeFastNodeCacheMap(cacheSize int, initRatio float64) map[string]*list.Ele
 // ===================================================
 
 func (fnc *FastNodeCache) uncache(key []byte) {
-	fnc.cacheMutex.Lock()
 	if elem, ok := fnc.items[string(key)]; ok {
 		fnc.cacheQueue.Remove(elem)
 		delete(fnc.items, string(key))
 	}
-	fnc.cacheMutex.Unlock()
 }
 
 // Add a node to the cache and pop the least recently used node if we've
 // reached the cache size limit.
 func (fnc *FastNodeCache) cache(node *FastNode) {
-	fnc.cacheMutex.Lock()
 	elem := fnc.cacheQueue.PushBack(node)
 	fnc.items[string(node.key)] = elem
 
@@ -66,11 +61,9 @@ func (fnc *FastNodeCache) cache(node *FastNode) {
 		key := fnc.cacheQueue.Remove(oldest).(*FastNode).key
 		delete(fnc.items, amino.BytesToStr(key))
 	}
-	fnc.cacheMutex.Unlock()
 }
 
 func (fnc *FastNodeCache) cacheWithKey(key string, node *FastNode) {
-	fnc.cacheMutex.Lock()
 	elem := fnc.cacheQueue.PushBack(node)
 	fnc.items[key] = elem
 
@@ -79,13 +72,10 @@ func (fnc *FastNodeCache) cacheWithKey(key string, node *FastNode) {
 		key := fnc.cacheQueue.Remove(oldest).(*FastNode).key
 		delete(fnc.items, amino.BytesToStr(key))
 	}
-	fnc.cacheMutex.Unlock()
 }
 
 func (fnc *FastNodeCache) cacheByCheck(node *FastNode) {
-	fnc.cacheMutex.RLock()
 	_, ok := fnc.items[string(node.key)]
-	fnc.cacheMutex.RUnlock()
 	if !ok {
 		fnc.cache(node)
 	}
@@ -93,7 +83,6 @@ func (fnc *FastNodeCache) cacheByCheck(node *FastNode) {
 
 func (fnc *FastNodeCache) get(key []byte, promoteRecentNode bool) (n *FastNode) {
 	// Check the cache.
-	fnc.cacheMutex.RLock()
 	elem, ok := fnc.items[string(key)]
 	if ok {
 		if promoteRecentNode {
@@ -102,7 +91,6 @@ func (fnc *FastNodeCache) get(key []byte, promoteRecentNode bool) (n *FastNode) 
 		}
 		n = elem.Value.(*FastNode)
 	}
-	fnc.cacheMutex.RUnlock()
 	return
 }
 
