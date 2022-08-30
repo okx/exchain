@@ -300,12 +300,21 @@ func (coins DecCoins) String() string {
 		return coins[0].String()
 	}
 
-	out := ""
-	for _, coin := range coins {
-		out += fmt.Sprintf("%v,", coin.String())
+	// Build the string with a string builder
+	var out strings.Builder
+	for _, coin := range coins[:len(coins)-1] {
+		out.WriteString(coin.String())
+		out.WriteByte(',')
 	}
+	out.WriteString(coins[len(coins)-1].String())
 
-	return out[:len(out)-1]
+	return out.String()
+	//	out := ""
+	//	for _, coin := range coins {
+	//		out += fmt.Sprintf("%v,", coin.String())
+	//	}
+	//
+	//	return out[:len(out)-1]
 }
 
 // TruncateDecimal returns the coins with truncated decimals and returns the
