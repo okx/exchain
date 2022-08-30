@@ -61,10 +61,6 @@ func (p *provider) StatusClient() rpcclient.StatusClient {
 
 // LatestFullCommit implements Provider.
 func (p *provider) LatestFullCommit(chainID string, minHeight, maxHeight int64) (fc lite.FullCommit, err error) {
-	if chainID != p.chainID {
-		err = fmt.Errorf("expected chainID %s, got %s", p.chainID, chainID)
-		return
-	}
 	if maxHeight != 0 && maxHeight < minHeight {
 		err = fmt.Errorf("need maxHeight == 0 or minHeight <= maxHeight, got min %v and max %v",
 			minHeight, maxHeight)
@@ -72,6 +68,10 @@ func (p *provider) LatestFullCommit(chainID string, minHeight, maxHeight int64) 
 	}
 	commit, err := p.fetchLatestCommit(minHeight, maxHeight)
 	if err != nil {
+		return
+	}
+	if !verifyEqualChainId(commit.ChainID, p.chainID, commit.Height) {
+		err = fmt.Errorf("expected chainID %s, got %s", p.chainID, commit.ChainID)
 		return
 	}
 	fc, err = p.fillFullCommit(commit.SignedHeader)
@@ -103,7 +103,7 @@ func (p *provider) ValidatorSet(chainID string, height int64) (valset *types.Val
 }
 
 func (p *provider) getValidatorSet(chainID string, height int64) (valset *types.ValidatorSet, err error) {
-	if chainID != p.chainID {
+	if !verifyEqualChainId(chainID, p.chainID, height) {
 		err = fmt.Errorf("expected chainID %s, got %s", p.chainID, chainID)
 		return
 	}
@@ -122,7 +122,6 @@ func (p *provider) getValidatorSet(chainID string, height int64) (valset *types.
 
 // This does no validation.
 func (p *provider) fillFullCommit(signedHeader types.SignedHeader) (fc lite.FullCommit, err error) {
-
 	// Get the validators.
 	valset, err := p.getValidatorSet(signedHeader.ChainID, signedHeader.Height)
 	if err != nil {
@@ -136,4 +135,13 @@ func (p *provider) fillFullCommit(signedHeader types.SignedHeader) (fc lite.Full
 	}
 
 	return lite.NewFullCommit(signedHeader, valset, nextValset), nil
+}
+
+func verifyEqualChainId(chain1 string, flagChainId string, h int64) bool {
+	if flagChainId == types.TestNet {
+		if h < types.TestNetChangeChainId && chain1 == types.TestNetChainName1 {
+			return true
+		}
+	}
+	return chain1 == flagChainId
 }

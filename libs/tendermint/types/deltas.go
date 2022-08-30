@@ -54,9 +54,10 @@ type DeltasMessage struct {
 }
 
 type DeltaPayload struct {
-	ABCIRsp     []byte
-	DeltasBytes []byte
-	WatchBytes  []byte
+	ABCIRsp        []byte
+	DeltasBytes    []byte
+	WatchBytes     []byte
+	WasmWatchBytes []byte
 }
 
 // Deltas defines the ABCIResponse and state delta
@@ -86,6 +87,10 @@ func (d *Deltas) DeltasBytes() []byte {
 
 func (d *Deltas) WatchBytes() []byte {
 	return d.Payload.WatchBytes
+}
+
+func (d *Deltas) WasmWatchBytes() []byte {
+	return d.Payload.WasmWatchBytes
 }
 
 func (d *Deltas) MarshalOrUnmarshalElapsed() time.Duration {

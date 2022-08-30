@@ -13,11 +13,11 @@ import (
 )
 
 type BankQueryServer struct {
-	bankKeeper   BankKeeperAdapter
+	bankKeeper   ViewBankKeeper
 	supplyKeeper SupplyKeeper
 }
 
-func NewBankQueryServer(bankKeeper BankKeeperAdapter, supplyKeeper SupplyKeeper) *BankQueryServer {
+func NewBankQueryServer(bankKeeper ViewBankKeeper, supplyKeeper SupplyKeeper) *BankQueryServer {
 	return &BankQueryServer{bankKeeper: bankKeeper, supplyKeeper: supplyKeeper}
 }
 
