@@ -48,7 +48,7 @@ func (msg MsgEditValidatorCommissionRate) ValidateBasic() error {
 		return ErrInvalidCommissionRate()
 	}
 
-	//will delete it after upgrade venus3
+	//will delete it after upgrade venus2
 	if !types.HigherThanVenus2(global.GetGlobalHeight()) {
 		return ErrCodeNotSupportEditValidatorCommissionRate()
 	}

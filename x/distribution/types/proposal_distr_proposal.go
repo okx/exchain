@@ -61,7 +61,7 @@ func (cdtp ChangeDistributionTypeProposal) ValidateBasic() error {
 		return ErrInvalidDistributionType()
 	}
 
-	//will delete it after upgrade venus3
+	//will delete it after upgrade venus2
 	if !types.HigherThanVenus2(global.GetGlobalHeight()) {
 		return ErrCodeNotSupportDistributionProposal()
 	}
@@ -116,7 +116,7 @@ func (proposal WithdrawRewardEnabledProposal) ValidateBasic() error {
 		return err
 	}
 
-	//will delete it after upgrade venus3
+	//will delete it after upgrade venus2
 	if !types.HigherThanVenus2(global.GetGlobalHeight()) {
 		return ErrCodeNotSupportWithdrawRewardEnabledProposal()
 	}
