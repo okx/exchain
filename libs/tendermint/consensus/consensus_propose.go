@@ -350,12 +350,13 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 }
 
 func (cs *State) handleCompleteProposal(height int64) {
+	cs.Logger.Info("handleCompleteProposal", "height", cs.Height, "round", cs.Round, "step", cs.Step)
 	// Update Valid* if we can.
 	prevotes := cs.Votes.Prevotes(cs.Round)
 	blockID, hasTwoThirds := prevotes.TwoThirdsMajority()
 	prevoteBlockValid := hasTwoThirds && !blockID.IsZero() && (cs.ValidRound < cs.Round) && cs.ProposalBlock.HashesTo(blockID.Hash)
 	if prevoteBlockValid {
-		cs.Logger.Debug("Updating valid block to new proposal block",
+		cs.Logger.Info("Updating valid block to new proposal block",
 			"valid_round", cs.Round, "valid_block_hash", cs.ProposalBlock.Hash())
 		cs.ValidRound = cs.Round
 		cs.ValidBlock = cs.ProposalBlock
@@ -379,9 +380,9 @@ func (cs *State) handleCompleteProposal(height int64) {
 		cs.tryFinalizeCommit(height)
 	} else if cs.HasVC && cs.Round == 0 && cs.isProposalComplete() {
 		blockID, hasTwoThirds := cs.Votes.Precommits(cs.Round).TwoThirdsMajority()
-		if hasTwoThirds && !blockID.IsZero() && (cs.ValidRound < cs.Round) && cs.ProposalBlock.HashesTo(blockID.Hash) {
+		cs.Logger.Info("avc and handleCompleteProposal", "2/3Precommit", hasTwoThirds, "proposal", cs.ProposalBlock.Hash(), "block", blockID.Hash)
+		if hasTwoThirds && !blockID.IsZero() && cs.ProposalBlock.HashesTo(blockID.Hash) {
 			cs.finalizeCommit(height)
 		}
-
 	}
 }
