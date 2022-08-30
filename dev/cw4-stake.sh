@@ -1,4 +1,5 @@
 captain=$(exchaincli keys show captain -a)
+admin18=$(exchaincli keys show admin18 -a)
 echo "captain addr: $captain"
 # cw20
 # ex14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s6fqu27
@@ -15,6 +16,9 @@ echo "instantiate cw20 succeed"
 cw20contractAddr=$(echo "$res" | jq '.logs[0].events[0].attributes[0].value' | sed 's/\"//g')
 echo "cw20 contract address: $cw20contractAddr"
 exchaincli query wasm contract-state smart "$cw20contractAddr" '{"balance":{"address":"'$captain'"}}'
+res=$(exchaincli tx wasm execute "$cw20contractAddr" '{"transfer":{"amount":"100","recipient":"'$admin18'"}}'  --fees 0.001okt --gas 2000000 --from captain -b block -y)
+exchaincli query wasm contract-state smart "$cw20contractAddr" '{"balance":{"address":"'$captain'"}}'
+exchaincli query wasm contract-state smart "$cw20contractAddr" '{"balance":{"address":"'$admin18'"}}'
 
 echo "## store cw4-stake contract..."
 res=$(exchaincli tx wasm store ./wasm/cw4-stake/artifacts/cw4_stake.wasm --fees 0.01okt --from admin18 --gas=2000000 -b block -y)
@@ -37,18 +41,50 @@ exchaincli query wasm contract-state smart "$cw20contractAddr" '{"balance":{"add
 exchaincli query wasm contract-state smart "$contractAddr" '{"staked":{"address":"'$captain'"}}'
 exchaincli query wasm contract-state smart "$contractAddr" '{"member":{"addr":"'$captain'"}}'
 
+echo "## block cw20 contract methods <transfer> and <send>"
+res=$(exchaincli tx gov submit-proposal update-wasm-contract-method-blocked-list ex14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s6fqu27 "transfer,send" --deposit 10.1okt --title "test title" --description "test description"  --fees 0.001okt --gas 3000000 --from captain -b block -y)
+proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
+echo "block <transfer> and <send> proposal_id: $proposal_id"
+res=$(exchaincli tx gov deposit "$proposal_id" 90000000okt --fees 0.001okt --gas 3000000 --from captain -b block -y)
+res=$(exchaincli tx gov vote "$proposal_id" yes --fees 0.001okt --gas 3000000 --from captain -b block -y)
+res=$(exchaincli tx wasm execute "$cw20contractAddr" '{"transfer":{"amount":"100","recipient":"'$admin18'"}}'  --fees 0.001okt --gas 2000000 --from captain -b block -y)
+tx_hash=$(echo "$res" | jq '.txhash' | sed 's/\"//g')
+echo "txhash: $tx_hash"
+raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
+echo "expected to fail, raw_log: $raw_log"
+res=$(exchaincli tx wasm execute "$cw20contractAddr" '{"send":{"amount":"100","contract":"'$contractAddr'","msg":"eyJib25kIjp7fX0="}}'  --fees 0.001okt --gas 2000000 --from captain -b block -y)
+tx_hash=$(echo "$res" | jq '.txhash' | sed 's/\"//g')
+echo "txhash: $tx_hash"
+raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
+echo "expected to fail, raw_log: $raw_log"
+
+res=$(exchaincli tx gov submit-proposal update-wasm-contract-method-blocked-list ex14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s6fqu27 "transfer" --delete=true --deposit 10.1okt --title "test title" --description "test description"  --fees 0.001okt --gas 3000000 --from captain -b block -y)
+proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
+echo "unblock <transfer> proposal_id: $proposal_id"
+res=$(exchaincli tx gov deposit "$proposal_id" 90000000okt --fees 0.001okt --gas 3000000 --from captain -b block -y)
+res=$(exchaincli tx gov vote "$proposal_id" yes --fees 0.001okt --gas 3000000 --from captain -b block -y)
+res=$(exchaincli tx wasm execute "$cw20contractAddr" '{"transfer":{"amount":"100","recipient":"'$admin18'"}}'  --fees 0.001okt --gas 2000000 --from captain -b block -y)
+tx_hash=$(echo "$res" | jq '.txhash' | sed 's/\"//g')
+echo "txhash: $tx_hash"
+event=$(echo "$res" | jq '.logs[0].events[0].type' | sed 's/\"//g')
+echo "expected to succeed: $event"
+res=$(exchaincli tx wasm execute "$cw20contractAddr" '{"send":{"amount":"100","contract":"'$contractAddr'","msg":"eyJib25kIjp7fX0="}}'  --fees 0.001okt --gas 2000000 --from captain -b block -y)
+tx_hash=$(echo "$res" | jq '.txhash' | sed 's/\"//g')
+echo "txhash: $tx_hash"
+raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
+echo "expected to fail, raw_log: $raw_log"
+
 res=$(exchaincli tx wasm store wasm/test/burner.wasm --from captain --fees 0.001okt --gas 1000000 -b block -y)
 burner_code_id=$(echo "$res" | jq '.logs[0].events[1].attributes[0].value' | sed 's/\"//g')
 echo "burner_code_id: $burner_code_id"
 
 # block contract to execute
-echo "migrate cw20 contract to a new wasm code"
+echo "## migrate cw20 contract to a new wasm code"
 res=$(exchaincli tx gov submit-proposal migrate-contract "$cw20contractAddr" "$burner_code_id" '{"payout": "'$captain'"}' --deposit 10.1okt --title "test title" --description "test description" --fees 0.01okt --from captain --gas=3000000 -b block -y)
 proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
 echo "proposal_id: $proposal_id"
-
-res=$(exchaincli tx gov deposit "$proposal_id" 90000000okt --fees 0.001okt --from captain -b block -y)
-res=$(exchaincli tx gov vote "$proposal_id" yes --fees 0.001okt --from captain -b block -y)
+res=$(exchaincli tx gov deposit "$proposal_id" 90000000okt --fees 0.001okt --gas 3000000 --from captain -b block -y)
+res=$(exchaincli tx gov vote "$proposal_id" yes --fees 0.001okt --gas 3000000 --from captain -b block -y)
 
 echo "## call send method of cw20 contract after migrating which is expected to fail"
 res=$(exchaincli tx wasm execute "$cw20contractAddr" '{"send":{"amount":"100","contract":"'$contractAddr'","msg":"eyJib25kIjp7fX0="}}'  --fees 0.001okt --gas 2000000 --from captain -b block -y)
@@ -56,6 +92,8 @@ tx_hash=$(echo "$res" | jq '.txhash' | sed 's/\"//g')
 echo "txhash: $tx_hash"
 raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
 echo "expected to fail, raw_log: $raw_log"
+exchaincli query wasm contract-state smart "$cw20contractAddr" '{"balance":{"address":"'$captain'"}}'
+exchaincli query wasm contract-state smart "$cw20contractAddr" '{"balance":{"address":"'$contractAddr'"}}'
 
 # update whitelist
 echo "## update deployment whitelist and store wasm code"
