@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"runtime"
+	"runtime/debug"
 	"sort"
 	"sync"
 	"time"
@@ -432,6 +433,7 @@ func (tree *MutableTree) Load() (int64, error) {
 func (tree *MutableTree) LazyLoadVersion(targetVersion int64) (int64, error) {
 	latestVersion := tree.ndb.getLatestVersion()
 	if latestVersion < targetVersion {
+		debug.PrintStack()
 		return latestVersion, fmt.Errorf("wanted to load target %d but only found up to %d", targetVersion, latestVersion)
 	}
 
@@ -526,6 +528,7 @@ func (tree *MutableTree) LoadVersion(targetVersion int64) (int64, error) {
 		}
 
 		if !(targetVersion == 0 || latestVersion == targetVersion) {
+			debug.PrintStack()
 			return latestVersion, fmt.Errorf("wanted to load target %v but only found up to %v",
 				targetVersion, latestVersion)
 		}

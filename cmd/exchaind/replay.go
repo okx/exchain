@@ -128,6 +128,7 @@ func replayBlock(ctx *server.Context, originDataDir string, tmNode *node.Node) {
 
 	rootDir := ctx.Config.RootDir
 	dataDir := filepath.Join(rootDir, "data")
+	fmt.Println("lrp open statedb", dataDir)
 	stateStoreDB, err := openDB(stateDB, dataDir)
 	panicError(err)
 
@@ -180,6 +181,7 @@ func openDB(dbName string, dataDir string) (db dbm.DB, err error) {
 func createProxyApp(ctx *server.Context) (proxy.AppConns, error) {
 	rootDir := ctx.Config.RootDir
 	dataDir := filepath.Join(rootDir, "data")
+	fmt.Println("lrp open applicationDB", dataDir)
 	db, err := openDB(applicationDB, dataDir)
 	panicError(err)
 	app := newApp(ctx.Logger, db, nil)
@@ -285,14 +287,17 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB, blockSto
 	var originBlockStore *store.BlockStore
 	var err error
 	if blockStore == nil {
+		fmt.Println("lrp open blockStoreDB", originDataDir)
 		originBlockStoreDB, err := openDB(blockStoreDB, originDataDir)
 		panicError(err)
 		originBlockStore = store.NewBlockStore(originBlockStoreDB)
 	} else {
+		fmt.Println("lrp use node blockStoreDB")
 		originBlockStore = blockStore
 	}
+
 	originLatestBlockHeight := originBlockStore.Height()
-	log.Println("origin latest block height", "height", originLatestBlockHeight)
+	fmt.Println("origin latest block height", "height", originLatestBlockHeight)
 
 	haltheight := viper.GetInt64(server.FlagHaltHeight)
 	if haltheight == 0 {
@@ -302,7 +307,7 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB, blockSto
 		panic("haltheight <= startBlockHeight please check data or height")
 	}
 
-	log.Println("replay stop block height", "height", haltheight)
+	fmt.Println("replay stop block height", "height", haltheight)
 
 	// Replay blocks up to the latest in the blockstore.
 	if lastBlockHeight == state.LastBlockHeight+1 {

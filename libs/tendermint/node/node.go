@@ -791,11 +791,13 @@ func NewLRPNode(config *cfg.Config,
 	logger log.Logger,
 	options ...Option) (*Node, error) {
 
+	fmt.Println("LRPNode open blockStore:", fromDir)
 	blockStore, err := initBlockStore(fromDir)
 	if err != nil {
 		return nil, err
 	}
 
+	fmt.Println("LRPNode open stateDB:", fromDir)
 	stateDB, err := initStateDB(fromDir)
 	if err != nil {
 		return nil, err
@@ -814,6 +816,7 @@ func NewLRPNode(config *cfg.Config,
 	}
 
 	var txIndexer txindex.TxIndexer
+	fmt.Println("LRPNode open txDB:", fromDir)
 	txDB, err := initTxDB(fromDir)
 	if err != nil {
 		return nil, err

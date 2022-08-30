@@ -3,6 +3,7 @@ package server
 // DONTCOVER
 
 import (
+	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"os"
 	"runtime/pprof"
@@ -258,6 +259,7 @@ func StartRestWithNode(ctx *Context, cdc *codec.CodecProxy, fromDir string,
 
 	traceWriterFile := viper.GetString(flagTraceStore)
 	//open application db
+	fmt.Println("LRPNode open applicationDB:", fromDir)
 	db, err := sdk.NewLevelDB("application", fromDir)
 	if err != nil {
 		return nil, err
