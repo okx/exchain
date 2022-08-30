@@ -143,6 +143,9 @@ func (c *ContractMethods) AddMethods(methods []*Method) {
 }
 
 func (c *ContractMethods) IsMethodBlocked(method string) bool {
+	if c == nil {
+		return false
+	}
 	for _, m := range c.Methods {
 		if m.FullName() == method {
 			return true
