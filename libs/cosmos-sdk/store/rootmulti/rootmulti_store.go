@@ -528,13 +528,6 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	if err != nil {
 		return err
 	}
-	//load old data
-	if vs == nil {
-		vs, err = getVersions(rs.db)
-		if err != nil {
-			return err
-		}
-	}
 	if len(vs) > 0 {
 		rs.versions = vs
 	}
