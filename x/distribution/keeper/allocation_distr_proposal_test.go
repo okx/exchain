@@ -28,7 +28,7 @@ func CreateTestInputDefaultForBenchmark(b *testing.B, isCheckTx bool, initPower 
 	valOpAddrs, valConsPks, _ := GetTestAddrs()
 
 	if newVersion {
-		tmtypes.UnittestOnlySetMilestoneVenus3Height(-1)
+		tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 		dk.SetInitExistedValidatorFlag(ctx, true)
 		dk.SetDistributionType(ctx, types.DistributionTypeOnChain)
 	}

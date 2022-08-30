@@ -47,7 +47,7 @@ func (msg MsgWithdrawDelegatorReward) ValidateBasic() error {
 	}
 
 	//will delete it after upgrade venus3
-	if !types.HigherThanVenus3(global.GetGlobalHeight()) {
+	if !types.HigherThanVenus2(global.GetGlobalHeight()) {
 		return ErrCodeNotSupportWithdrawDelegationRewards()
 	}
 

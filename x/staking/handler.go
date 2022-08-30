@@ -22,7 +22,7 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 		case types.MsgEditValidator:
 			return handleMsgEditValidator(ctx, msg, k)
 		case types.MsgEditValidatorCommissionRate:
-			if tmtypes.HigherThanVenus3(ctx.BlockHeight()) {
+			if tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
 				return handleMsgEditValidatorCommissionRate(ctx, msg, k)
 			}
 			return sdk.ErrUnknownRequest(errMsg).Result()

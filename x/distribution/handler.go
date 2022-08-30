@@ -73,12 +73,12 @@ func NewDistributionProposalHandler(k Keeper) govtypes.Handler {
 		case types.CommunityPoolSpendProposal:
 			return keeper.HandleCommunityPoolSpendProposal(ctx, k, c)
 		case types.ChangeDistributionTypeProposal:
-			if tmtypes.HigherThanVenus3(ctx.BlockHeight()) {
+			if tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
 				return keeper.HandleChangeDistributionTypeProposal(ctx, k, c)
 			}
 			return types.ErrUnknownDistributionCommunityPoolProposaType()
 		case types.WithdrawRewardEnabledProposal:
-			if tmtypes.HigherThanVenus3(ctx.BlockHeight()) {
+			if tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
 				return keeper.HandleWithdrawRewardEnabledProposal(ctx, k, c)
 			}
 			return types.ErrUnknownDistributionCommunityPoolProposaType()

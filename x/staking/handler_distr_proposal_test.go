@@ -33,7 +33,7 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 		{
 			"not venus3, default ok",
 			func() {
-				tmtypes.UnittestOnlySetMilestoneVenus3Height(-1)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 			},
 			"0.5",
 			func(ctx *sdk.Context) {
@@ -46,7 +46,7 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 		{
 			"not venus3, -0.5",
 			func() {
-				tmtypes.UnittestOnlySetMilestoneVenus3Height(-1)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 			},
 			"-0.5",
 			func(ctx *sdk.Context) {
@@ -60,7 +60,7 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 		{
 			"not venus3, do not set block time",
 			func() {
-				tmtypes.UnittestOnlySetMilestoneVenus3Height(-1)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 			},
 			"0.5",
 			func(ctx *sdk.Context) {
@@ -73,7 +73,7 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 			"venus3, default ok",
 			func() {
 				global.SetGlobalHeight(11)
-				tmtypes.UnittestOnlySetMilestoneVenus3Height(10)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(10)
 			},
 			"0.5",
 			func(ctx *sdk.Context) {
@@ -87,7 +87,7 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 			"venus3, not support",
 			func() {
 				global.SetGlobalHeight(10)
-				tmtypes.UnittestOnlySetMilestoneVenus3Height(11)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(11)
 			},
 			"0.5",
 			func(ctx *sdk.Context) {
@@ -100,7 +100,7 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 		{
 			"venus3, -0.5",
 			func() {
-				tmtypes.UnittestOnlySetMilestoneVenus3Height(0)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(0)
 			},
 			"-0.5",
 			func(ctx *sdk.Context) {
@@ -115,7 +115,7 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 			"venus3, do not set block time",
 			func() {
 				global.SetGlobalHeight(11)
-				tmtypes.UnittestOnlySetMilestoneVenus3Height(10)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(10)
 			},
 			"0.5",
 			func(ctx *sdk.Context) {
@@ -128,7 +128,7 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 			"venus3, not support",
 			func() {
 				global.SetGlobalHeight(10)
-				tmtypes.UnittestOnlySetMilestoneVenus3Height(11)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(11)
 			},
 			"0.5",
 			func(ctx *sdk.Context) {
@@ -141,7 +141,7 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 
 	for _, tc := range testCases {
 		global.SetGlobalHeight(0)
-		tmtypes.UnittestOnlySetMilestoneVenus3Height(0)
+		tmtypes.UnittestOnlySetMilestoneVenus2Height(0)
 		suite.Run(tc.title, func() {
 			ctx, _, mKeeper := CreateTestInput(suite.T(), false, SufficientInitPower)
 			tc.setMilestoneVenus3Height()

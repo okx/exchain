@@ -80,7 +80,7 @@ func getQueriedCommunityPool(t *testing.T, ctx sdk.Context, querier sdk.Querier)
 }
 
 func TestRewards(t *testing.T) {
-	tmtypes.UnittestOnlySetMilestoneVenus3Height(-1)
+	tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 	ctx, _, keeper, sk, _ := CreateTestInputDefault(t, false, 1000)
 	querier := NewQuerier(keeper)
 

@@ -85,7 +85,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			"normal, type 0",
 			func() {
 				global.SetGlobalHeight(11)
-				tmtypes.UnittestOnlySetMilestoneVenus3Height(10)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(10)
 			},
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength),
@@ -96,7 +96,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			"normal, type 0, not support",
 			func() {
 				global.SetGlobalHeight(10)
-				tmtypes.UnittestOnlySetMilestoneVenus3Height(11)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(11)
 			},
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength),
@@ -107,7 +107,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			"normal, type 1",
 			func() {
 				global.SetGlobalHeight(11)
-				tmtypes.UnittestOnlySetMilestoneVenus3Height(10)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(10)
 			},
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength),
@@ -118,7 +118,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			"normal, type 1, not support",
 			func() {
 				global.SetGlobalHeight(10)
-				tmtypes.UnittestOnlySetMilestoneVenus3Height(11)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(11)
 			},
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength),
@@ -129,7 +129,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 
 	for _, tc := range testCases {
 		global.SetGlobalHeight(0)
-		tmtypes.UnittestOnlySetMilestoneVenus3Height(0)
+		tmtypes.UnittestOnlySetMilestoneVenus2Height(0)
 
 		suite.Run(tc.title, func() {
 			tc.setMilestoneVenus3Height()
@@ -196,7 +196,7 @@ func (suite *ProposalSuite) TestNewWithdrawRewardEnabledProposal() {
 			"normal, enabled true",
 			func() {
 				global.SetGlobalHeight(11)
-				tmtypes.UnittestOnlySetMilestoneVenus3Height(10)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(10)
 			},
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength),
@@ -207,7 +207,7 @@ func (suite *ProposalSuite) TestNewWithdrawRewardEnabledProposal() {
 			"normal, enabled true, not support",
 			func() {
 				global.SetGlobalHeight(10)
-				tmtypes.UnittestOnlySetMilestoneVenus3Height(11)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(11)
 			},
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength),
@@ -218,7 +218,7 @@ func (suite *ProposalSuite) TestNewWithdrawRewardEnabledProposal() {
 			"normal, enabled false",
 			func() {
 				global.SetGlobalHeight(11)
-				tmtypes.UnittestOnlySetMilestoneVenus3Height(10)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(10)
 			},
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength),
@@ -229,7 +229,7 @@ func (suite *ProposalSuite) TestNewWithdrawRewardEnabledProposal() {
 			"normal, enabled false, not support",
 			func() {
 				global.SetGlobalHeight(10)
-				tmtypes.UnittestOnlySetMilestoneVenus3Height(11)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(11)
 			},
 			RandStr(types.MaxTitleLength),
 			RandStr(types.MaxDescriptionLength),
@@ -240,7 +240,7 @@ func (suite *ProposalSuite) TestNewWithdrawRewardEnabledProposal() {
 
 	for _, tc := range testCases {
 		global.SetGlobalHeight(0)
-		tmtypes.UnittestOnlySetMilestoneVenus3Height(0)
+		tmtypes.UnittestOnlySetMilestoneVenus2Height(0)
 		suite.Run(tc.title, func() {
 			tc.setMilestoneVenus3Height()
 			title := tc.proposalTitle

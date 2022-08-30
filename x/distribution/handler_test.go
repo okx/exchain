@@ -31,7 +31,7 @@ func (suite *HandlerSuite) TestHandlerWithdrawDelegatorReward() {
 		{
 			"change distribution type",
 			func(ctx sdk.Context, dk Keeper) {
-				tmtypes.UnittestOnlySetMilestoneVenus3Height(-1)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 				proposal := types.NewChangeDistributionTypeProposal("change distri type", "", types.DistributionTypeOnChain)
 				keeper.HandleChangeDistributionTypeProposal(ctx, dk, proposal)
 				require.Equal(suite.T(), dk.GetDistributionType(ctx), types.DistributionTypeOnChain)
@@ -41,7 +41,7 @@ func (suite *HandlerSuite) TestHandlerWithdrawDelegatorReward() {
 		{
 			"set withdraw reward disable",
 			func(ctx sdk.Context, dk Keeper) {
-				tmtypes.UnittestOnlySetMilestoneVenus3Height(-1)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 				proposal := types.NewChangeDistributionTypeProposal("change distri type", "", types.DistributionTypeOnChain)
 				keeper.HandleChangeDistributionTypeProposal(ctx, dk, proposal)
 				require.Equal(suite.T(), dk.GetDistributionType(ctx), types.DistributionTypeOnChain)
@@ -165,7 +165,7 @@ func (suite *HandlerSuite) TestHandlerWithdrawValidatorCommission() {
 				require.Nil(suite.T(), err)
 			},
 			func(ctx sdk.Context, dk Keeper) {
-				tmtypes.UnittestOnlySetMilestoneVenus3Height(-1)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 				proposal := types.NewChangeDistributionTypeProposal("change distri type", "", types.DistributionTypeOnChain)
 				keeper.HandleChangeDistributionTypeProposal(ctx, dk, proposal)
 				require.Equal(suite.T(), dk.GetDistributionType(ctx), types.DistributionTypeOnChain)
@@ -175,7 +175,7 @@ func (suite *HandlerSuite) TestHandlerWithdrawValidatorCommission() {
 		{
 			"no allocate tokens, change distribution type",
 			func(ctx sdk.Context, ak auth.AccountKeeper, dk Keeper, sk staking.Keeper, supplyKeeper types.SupplyKeeper) {
-				tmtypes.UnittestOnlySetMilestoneVenus3Height(-1)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 				proposal := types.NewChangeDistributionTypeProposal("change distri type", "", types.DistributionTypeOnChain)
 				keeper.HandleChangeDistributionTypeProposal(ctx, dk, proposal)
 				require.Equal(suite.T(), dk.GetDistributionType(ctx), types.DistributionTypeOnChain)
@@ -201,7 +201,7 @@ func (suite *HandlerSuite) TestHandlerWithdrawValidatorCommission() {
 				require.Nil(suite.T(), err)
 			},
 			func(ctx sdk.Context, dk Keeper) {
-				tmtypes.UnittestOnlySetMilestoneVenus3Height(-1)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 				proposal := types.NewChangeDistributionTypeProposal("change distri type", "", types.DistributionTypeOnChain)
 				keeper.HandleChangeDistributionTypeProposal(ctx, dk, proposal)
 				require.Equal(suite.T(), dk.GetDistributionType(ctx), types.DistributionTypeOnChain)

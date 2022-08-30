@@ -198,10 +198,6 @@ func HigherThanVenus2(h int64) bool {
 	return h >= milestoneVenus2Height
 }
 
-func GetVenus2Height() int64 {
-	return milestoneVenus2Height
-}
-
 func UnittestOnlySetMilestoneVenus2Height(h int64) {
 	milestoneVenus2Height = h
 }
@@ -220,6 +216,10 @@ func HigherThanVenus3(h int64) bool {
 		return false
 	}
 	return h >= milestoneVenus3Height
+}
+
+func GetVenus3Height() int64 {
+	return milestoneVenus3Height
 }
 
 // =========== Venus3 ===============

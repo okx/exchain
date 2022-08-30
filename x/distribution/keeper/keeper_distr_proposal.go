@@ -65,5 +65,5 @@ func (k Keeper) GetTotalRewards(ctx sdk.Context) (totalRewards sdk.DecCoins) {
 }
 
 func (k Keeper) CheckDistributionProposalValid(ctx sdk.Context) bool {
-	return tmtypes.HigherThanVenus3(ctx.BlockHeight()) && k.CheckInitExistedValidatorFlag(ctx)
+	return tmtypes.HigherThanVenus2(ctx.BlockHeight()) && k.CheckInitExistedValidatorFlag(ctx)
 }
