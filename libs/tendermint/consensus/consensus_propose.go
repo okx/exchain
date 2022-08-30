@@ -375,14 +375,16 @@ func (cs *State) handleCompleteProposal(height int64) {
 		if hasTwoThirds { // this is optimisation as this will be triggered when prevote is added
 			cs.enterPrecommit(height, cs.Round)
 		}
-	} else if cs.Step == cstypes.RoundStepCommit {
-		// If we're waiting on the proposal block...
-		cs.tryFinalizeCommit(height)
-	} else if cs.HasVC && cs.Round == 0 && cs.isProposalComplete() {
+	}
+	if cs.HasVC && cs.Round == 0 && cs.isProposalComplete() {
 		blockID, hasTwoThirds := cs.Votes.Precommits(cs.Round).TwoThirdsMajority()
 		cs.Logger.Info("avc and handleCompleteProposal", "2/3Precommit", hasTwoThirds, "proposal", cs.ProposalBlock.Hash(), "block", blockID.Hash)
 		if hasTwoThirds && !blockID.IsZero() && cs.ProposalBlock.HashesTo(blockID.Hash) {
-			cs.finalizeCommit(height)
+			cs.updateRoundStep(cs.Round, cstypes.RoundStepCommit)
 		}
+	}
+	if cs.Step == cstypes.RoundStepCommit {
+		// If we're waiting on the proposal block...
+		cs.tryFinalizeCommit(height)
 	}
 }
