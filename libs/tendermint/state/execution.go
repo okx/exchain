@@ -108,7 +108,7 @@ func NewBlockExecutor(
 		metrics:      NopMetrics(),
 		prerunCtx:    newPrerunContex(logger),
 		deltaContext: newDeltaContext(logger),
-		eventsChan:   make(chan event, 5),
+		eventsChan:   make(chan event, 100),
 	}
 
 	for _, option := range options {
