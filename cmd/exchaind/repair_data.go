@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	"log"
 
 	"github.com/okex/exchain/app"
@@ -35,6 +36,7 @@ func repairStateCmd(ctx *server.Context) *cobra.Command {
 	cmd.Flags().BoolVar(&types2.TrieUseCompositeKey, types2.FlagTrieUseCompositeKey, true, "Use composite key to store contract state")
 	cmd.Flags().Int(sm.FlagDeliverTxsExecMode, 0, "execution mode for deliver txs, (0:serial[default], 1:deprecated, 2:parallel)")
 	cmd.Flags().Bool(tmiavl.FlagIavlEnableFastStorage, false, "Enable fast storage")
+	cmd.Flags().Bool(rootmulti.FLagEnableMetaDataSeparate, false, "Enable metadata separate")
 	cmd.Flags().Int(tmiavl.FlagIavlFastStorageCacheSize, 100000, "Max size of iavl fast storage cache")
 
 	return cmd
