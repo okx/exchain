@@ -5,7 +5,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/common"
-
+	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/gov/types"
 )
 
@@ -71,6 +71,12 @@ func queryProposal(ctx sdk.Context, path []string, req abci.RequestQuery, keeper
 	proposal, ok := keeper.GetProposal(ctx, params.ProposalID)
 	if !ok {
 		return nil, types.ErrUnknownProposal(params.ProposalID)
+	}
+
+	if p, ok := proposal.Content.(evmtypes.ManageContractMethodBlockedListProposal); ok {
+		p.FixShortAddr()
+		newProposal := types.WrapProposalForCosmosAPI(proposal, p)
+		proposal = newProposal
 	}
 
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, proposal)
@@ -191,7 +197,18 @@ func queryProposals(ctx sdk.Context, path []string, req abci.RequestQuery, keepe
 
 	proposals := keeper.GetProposalsFiltered(ctx, params.Voter, params.Depositor, params.ProposalStatus, params.Limit)
 
-	bz, err := codec.MarshalJSONIndent(keeper.cdc, proposals)
+	newProposals := make([]types.Proposal, len(proposals))
+	for _, proposal := range proposals {
+		if p, ok := proposal.Content.(evmtypes.ManageContractMethodBlockedListProposal); ok {
+			p.FixShortAddr()
+			newProposal := types.WrapProposalForCosmosAPI(proposal, p)
+			newProposals = append(newProposals, newProposal)
+		} else {
+			newProposals = append(newProposals, proposal)
+		}
+	}
+
+	bz, err := codec.MarshalJSONIndent(keeper.cdc, newProposals)
 	if err != nil {
 		return nil, common.ErrMarshalJSONFailed(sdk.AppendMsgToErr("could not marshal result to JSON", err.Error()))
 	}
