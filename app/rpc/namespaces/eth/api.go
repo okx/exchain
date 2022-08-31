@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"runtime"
 	"strconv"
 	"sync"
 	"time"
@@ -774,7 +775,16 @@ func (api *PublicEthereumAPI) addCallCache(key common.Hash, data []byte) {
 func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNrOrHash rpctypes.BlockNumberOrHash, overrides *evmtypes.StateOverrides) (hexutil.Bytes, error) {
 	monitor := monitor.GetMonitor("eth_call", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("args", args, "block number", blockNrOrHash)
-
+	defer func() {
+		if err := recover(); err != nil {
+			const size = 64 << 10
+			buf := make([]byte, size)
+			buf = buf[:runtime.Stack(buf, false)]
+			api.logger.Error("RPC method eth_call crashed: " + fmt.Sprintf("%v\n%s", err, buf))
+			panic(err)
+		}
+	}()
+	panic("eth_call panic for test")
 	if overrides != nil {
 		if err := overrides.Check(); err != nil {
 			return nil, err
