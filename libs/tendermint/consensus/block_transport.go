@@ -33,6 +33,7 @@ type BlockTransport struct {
 
 	prevoteStep  int
 	firstPrevote time.Time
+	enterPrevote time.Time
 }
 
 func (bt *BlockTransport) onProposal(height int64) {
@@ -92,7 +93,14 @@ func (bt *BlockTransport) onBPDataHit() {
 	bt.bpStatMtx.Unlock()
 }
 
-//prevote time
+//enterprevote time
+func (bt *BlockTransport) OnEnterPrevote(height int64) {
+	if bt.height == height || bt.height == 0 {
+		bt.enterPrevote = time.Now()
+	}
+}
+
+//prevote vote time
 func (bt *BlockTransport) On1stPrevote(height int64) {
 	if (bt.height == height || bt.height == 0) && (bt.prevoteStep == PREVOTE_STEP_NIL) {
 		bt.prevoteStep = PREVOTE_STEP_1ST
@@ -104,8 +112,10 @@ func (bt *BlockTransport) on23AnyPrevote(height int64) {
 	if (bt.height == height) && (bt.prevoteStep == PREVOTE_STEP_1ST) {
 		bt.prevoteStep = PREVOTE_STEP_ANY
 		first2AnyElapsed := time.Now().Sub(bt.firstPrevote)
-		trace.GetElapsedInfo().AddInfo(trace.FirstTo23AnyPrevote, fmt.Sprintf("%dms", first2AnyElapsed.Milliseconds()))
-
+		prevote2AnyElapsed := time.Now().Sub(bt.enterPrevote)
+		trace.GetElapsedInfo().AddInfo(trace.Any23Prevote, fmt.Sprintf("%d|%dms",
+			prevote2AnyElapsed.Milliseconds(),
+			first2AnyElapsed.Milliseconds()))
 	}
 }
 
@@ -113,6 +123,10 @@ func (bt *BlockTransport) on23MajPrevote(height int64) {
 	if (bt.height == height) && (bt.prevoteStep == PREVOTE_STEP_ANY) {
 		bt.prevoteStep = PREVOTE_STEP_MAJ
 		first2MajElapsed := time.Now().Sub(bt.firstPrevote)
-		trace.GetElapsedInfo().AddInfo(trace.FirstTo23MajPrevote, fmt.Sprintf("%dms", first2MajElapsed.Milliseconds()))
+		prevote2MajElapsed := time.Now().Sub(bt.enterPrevote)
+
+		trace.GetElapsedInfo().AddInfo(trace.Maj23Prevote, fmt.Sprintf("%d|%dms",
+			prevote2MajElapsed.Milliseconds(),
+			first2MajElapsed.Milliseconds()))
 	}
 }

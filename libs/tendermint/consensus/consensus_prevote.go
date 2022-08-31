@@ -25,6 +25,7 @@ func (cs *State) enterPrevote(height int64, round int) {
 
 	cs.initNewHeight()
 	cs.trc.Pin("Prevote-%d", round)
+	cs.bt.OnEnterPrevote(height)
 
 	defer func() {
 		// Done enterPrevote:
