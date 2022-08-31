@@ -418,10 +418,6 @@ func (voteSet *VoteSet) HasTwoThirdsAny() bool {
 	return voteSet.sum > voteSet.valSet.TotalVotingPower()*2/3
 }
 
-func (voteSet *VoteSet) Num() int {
-	return len(voteSet.votes)
-}
-
 func (voteSet *VoteSet) HasAll() bool {
 	voteSet.mtx.Lock()
 	defer voteSet.mtx.Unlock()
