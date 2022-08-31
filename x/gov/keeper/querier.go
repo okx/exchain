@@ -197,7 +197,7 @@ func queryProposals(ctx sdk.Context, path []string, req abci.RequestQuery, keepe
 
 	proposals := keeper.GetProposalsFiltered(ctx, params.Voter, params.Depositor, params.ProposalStatus, params.Limit)
 
-	newProposals := make([]types.Proposal, len(proposals))
+	newProposals := make([]types.Proposal, 0)
 	for _, proposal := range proposals {
 		if p, ok := proposal.Content.(evmtypes.ManageContractMethodBlockedListProposal); ok {
 			p.FixShortAddr()
