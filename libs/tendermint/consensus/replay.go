@@ -201,7 +201,6 @@ type Handshaker struct {
 	stateDB      dbm.DB
 	initialState sm.State
 	store        sm.BlockStore
-	dstore       sm.DeltaStore
 	eventBus     types.BlockEventPublisher
 	genDoc       *types.GenesisDoc
 	logger       log.Logger
@@ -210,13 +209,12 @@ type Handshaker struct {
 }
 
 func NewHandshaker(stateDB dbm.DB, state sm.State,
-	store sm.BlockStore, dstore sm.DeltaStore, genDoc *types.GenesisDoc) *Handshaker {
+	store sm.BlockStore, genDoc *types.GenesisDoc) *Handshaker {
 
 	return &Handshaker{
 		stateDB:      stateDB,
 		initialState: state,
 		store:        store,
-		dstore:       dstore,
 		eventBus:     types.NopEventBus{},
 		genDoc:       genDoc,
 		logger:       log.NewNopLogger(),
@@ -543,6 +541,10 @@ func (mock *mockProxyApp) DeliverTx(req abci.RequestDeliverTx) abci.ResponseDeli
 		return abci.ResponseDeliverTx{}
 	}
 	return *r
+}
+
+func (mock *mockProxyApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.ResponseDeliverTx {
+	return mock.abciResponses.DeliverTxs
 }
 
 func (mock *mockProxyApp) EndBlock(req abci.RequestEndBlock) abci.ResponseEndBlock {

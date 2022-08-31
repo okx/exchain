@@ -1242,3 +1242,11 @@ func (suite *StateDBTestSuite) TestCommitStateDB_IsContractInBlockedList() {
 	ok = suite.stateDB.IsContractInBlockedList(addr1)
 	suite.Require().True(ok)
 }
+
+func (suite *StateDBTestSuite) TestResetCommitStateDB() {
+	params := suite.app.EvmKeeper.GenerateCSDBParams()
+	csdb := types.CreateEmptyCommitStateDB(params, suite.ctx)
+	types.ResetCommitStateDB(csdb, params, &suite.ctx)
+	expect := types.CreateEmptyCommitStateDB(params, suite.ctx)
+	suite.Require().Equal(expect, csdb)
+}

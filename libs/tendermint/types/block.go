@@ -4,14 +4,15 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	gogotypes "github.com/gogo/protobuf/types"
-	"github.com/okex/exchain/libs/system/trace"
-	"github.com/okex/exchain/libs/tendermint/libs/compress"
-	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
 	"io"
 	"strings"
 	"sync"
 	"time"
+
+	gogotypes "github.com/gogo/protobuf/types"
+	"github.com/okex/exchain/libs/system/trace"
+	"github.com/okex/exchain/libs/tendermint/libs/compress"
+	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
 
 	"github.com/tendermint/go-amino"
 

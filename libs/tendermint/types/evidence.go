@@ -310,9 +310,6 @@ var _ Evidence = &DuplicateVoteEvidence{}
 // NewDuplicateVoteEvidence creates DuplicateVoteEvidence with right ordering given
 // two conflicting votes. If one of the votes is nil, evidence returned is nil as well
 func NewDuplicateVoteEvidence(pubkey crypto.PubKey, vote1 *Vote, vote2 *Vote) *DuplicateVoteEvidence {
-	if vote1.HasVC || vote2.HasVC {
-		return nil
-	}
 	var voteA, voteB *Vote
 	if vote1 == nil || vote2 == nil {
 		return nil

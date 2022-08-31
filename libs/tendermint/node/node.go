@@ -21,6 +21,7 @@ import (
 
 	dbm "github.com/okex/exchain/libs/tm-db"
 
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	bcv0 "github.com/okex/exchain/libs/tendermint/blockchain/v0"
 	bcv1 "github.com/okex/exchain/libs/tendermint/blockchain/v1"
@@ -191,8 +192,7 @@ type Node struct {
 	blockExec *sm.BlockExecutor
 }
 
-func initDBs(config *cfg.Config, dbProvider DBProvider) (blockStore *store.BlockStore,
-	deltaStore *store.DeltaStore, stateDB dbm.DB, err error) {
+func initDBs(config *cfg.Config, dbProvider DBProvider) (blockStore *store.BlockStore, stateDB dbm.DB, err error) {
 	var blockStoreDB dbm.DB
 	blockStoreDB, err = dbProvider(&DBContext{"blockstore", config})
 	if err != nil {
@@ -200,14 +200,36 @@ func initDBs(config *cfg.Config, dbProvider DBProvider) (blockStore *store.Block
 	}
 	blockStore = store.NewBlockStore(blockStoreDB)
 
-	var deltaStoreDB dbm.DB
-	deltaStoreDB, err = dbProvider(&DBContext{"deltastore", config})
+	stateDB, err = dbProvider(&DBContext{"state", config})
 	if err != nil {
 		return
 	}
-	deltaStore = store.NewDeltaStore(deltaStoreDB)
 
-	stateDB, err = dbProvider(&DBContext{"state", config})
+	return
+}
+
+func initBlockStore(dataDir string) (blockStore *store.BlockStore, err error) {
+	var blockStoreDB dbm.DB
+	blockStoreDB, err = sdk.NewLevelDB("blockstore", dataDir)
+	if err != nil {
+		return
+	}
+	blockStore = store.NewBlockStore(blockStoreDB)
+
+	return
+}
+
+func initTxDB(dataDir string) (txDB dbm.DB, err error) {
+	txDB, err = sdk.NewLevelDB("tx_index", dataDir)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func initStateDB(config *cfg.Config) (stateDB dbm.DB, err error) {
+	stateDB, err = sdk.NewLevelDB("state", config.DBDir())
 	if err != nil {
 		return
 	}
@@ -267,13 +289,12 @@ func doHandshake(
 	stateDB dbm.DB,
 	state sm.State,
 	blockStore sm.BlockStore,
-	deltaStore sm.DeltaStore,
 	genDoc *types.GenesisDoc,
 	eventBus types.BlockEventPublisher,
 	proxyApp proxy.AppConns,
 	consensusLogger log.Logger) error {
 
-	handshaker := cs.NewHandshaker(stateDB, state, blockStore, deltaStore, genDoc)
+	handshaker := cs.NewHandshaker(stateDB, state, blockStore, genDoc)
 	handshaker.SetLogger(consensusLogger)
 	handshaker.SetEventBus(eventBus)
 	if err := handshaker.Handshake(proxyApp); err != nil {
@@ -355,13 +376,12 @@ func createBlockchainReactor(config *cfg.Config,
 	state sm.State,
 	blockExec *sm.BlockExecutor,
 	blockStore *store.BlockStore,
-	deltaStore *store.DeltaStore,
 	fastSync bool,
 	logger log.Logger) (bcReactor p2p.Reactor, err error) {
 
 	switch config.FastSync.Version {
 	case "v0":
-		bcReactor = bcv0.NewBlockchainReactor(state.Copy(), blockExec, blockStore, deltaStore, fastSync)
+		bcReactor = bcv0.NewBlockchainReactor(state.Copy(), blockExec, blockStore, fastSync)
 	case "v1":
 		bcReactor = bcv1.NewBlockchainReactor(state.Copy(), blockExec, blockStore, fastSync)
 	case "v2":
@@ -378,7 +398,6 @@ func createConsensusReactor(config *cfg.Config,
 	state sm.State,
 	blockExec *sm.BlockExecutor,
 	blockStore sm.BlockStore,
-	deltaStore sm.DeltaStore,
 	mempool *mempl.CListMempool,
 	evidencePool *evidence.Pool,
 	privValidator types.PrivValidator,
@@ -393,7 +412,6 @@ func createConsensusReactor(config *cfg.Config,
 		state.Copy(),
 		blockExec,
 		blockStore,
-		deltaStore,
 		mempool,
 		evidencePool,
 		cs.StateMetrics(csMetrics),
@@ -406,7 +424,9 @@ func createConsensusReactor(config *cfg.Config,
 	consensusReactor.SetLogger(consensusLogger)
 	// services which will be publishing and/or subscribing for messages (events)
 	// consensusReactor will set it on consensusState and blockExecutor
-	consensusReactor.SetEventBus(eventBus)
+	if eventBus != nil {
+		consensusReactor.SetEventBus(eventBus)
+	}
 	return consensusReactor, consensusState
 }
 
@@ -569,7 +589,7 @@ func NewNode(config *cfg.Config,
 	logger log.Logger,
 	options ...Option) (*Node, error) {
 
-	blockStore, deltasStore, stateDB, err := initDBs(config, dbProvider)
+	blockStore, stateDB, err := initDBs(config, dbProvider)
 	if err != nil {
 		return nil, err
 	}
@@ -605,7 +625,7 @@ func NewNode(config *cfg.Config,
 	// Create the handshaker, which calls RequestInfo, sets the AppVersion on the state,
 	// and replays any blocks as necessary to sync tendermint with the app.
 	consensusLogger := logger.With("module", "consensus")
-	if err := doHandshake(stateDB, state, blockStore, deltasStore, genDoc, eventBus, proxyApp, consensusLogger); err != nil {
+	if err := doHandshake(stateDB, state, blockStore, genDoc, eventBus, proxyApp, consensusLogger); err != nil {
 		return nil, err
 	}
 
@@ -662,14 +682,14 @@ func NewNode(config *cfg.Config,
 	}
 
 	// Make BlockchainReactor
-	bcReactor, err := createBlockchainReactor(config, state, blockExec, blockStore, deltasStore, fastSync, logger)
+	bcReactor, err := createBlockchainReactor(config, state, blockExec, blockStore, fastSync, logger)
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create blockchain reactor")
 	}
 
 	// Make ConsensusReactor
 	consensusReactor, consensusState := createConsensusReactor(
-		config, state, blockExec, blockStore, deltasStore, mempool, evidencePool,
+		config, state, blockExec, blockStore, mempool, evidencePool,
 		privValidator, csMetrics, fastSync, autoFastSync, eventBus, consensusLogger,
 	)
 
@@ -758,6 +778,99 @@ func NewNode(config *cfg.Config,
 	for _, option := range options {
 		option(node)
 	}
+
+	return node, nil
+}
+
+func NewLRPNode(config *cfg.Config,
+	privValidator types.PrivValidator,
+	nodeKey *p2p.NodeKey,
+	clientCreator proxy.ClientCreator,
+	genesisDocProvider GenesisDocProvider,
+	dbProvider DBProvider,
+	originDir string,
+	logger log.Logger,
+	options ...Option) (*Node, error) {
+
+	blockStore, err := initBlockStore(originDir)
+	if err != nil {
+		return nil, err
+	}
+
+	stateDB, err := initStateDB(config)
+	if err != nil {
+		return nil, err
+	}
+
+	state, genDoc, err := LoadStateFromDBOrGenesisDocProvider(stateDB, genesisDocProvider)
+	if err != nil {
+		return nil, err
+	}
+
+	global.SetGlobalHeight(state.LastBlockHeight)
+
+	eventBus, err := createAndStartEventBus(logger)
+	if err != nil {
+		return nil, err
+	}
+
+	var txIndexer txindex.TxIndexer
+	txDB, err := initTxDB(originDir)
+	if err != nil {
+		return nil, err
+	}
+
+	txIndexer = kv.NewTxIndex(txDB, kv.IndexAllEvents())
+
+	indexerService := txindex.NewIndexerService(txIndexer, eventBus)
+	indexerService.SetLogger(logger.With("module", "txindex"))
+	if err := indexerService.Start(); err != nil {
+		return nil, err
+	}
+
+	// Create the proxyApp and establish connections to the ABCI app (consensus, mempool, query).
+	proxyApp, err := createAndStartProxyAppConns(clientCreator, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	consensusLogger := logger.With("module", "consensus")
+
+	state = sm.LoadState(stateDB)
+	mempoolReactor, mempool := createMempoolAndMempoolReactor(config, proxyApp, state, nil, logger)
+	mempoolReactor.SetNodeKey(nodeKey)
+
+	// Make ConsensusReactor
+	consensusReactor, consensusState := createConsensusReactor(
+		config, state, nil, blockStore, nil, nil,
+		nil, nil, false, false, nil, consensusLogger,
+	)
+
+	nodeInfo, err := makeNodeInfo(config, nodeKey, nil, genDoc, state)
+	if err != nil {
+		return nil, err
+	}
+
+	node := &Node{
+		config:        config,
+		genesisDoc:    genDoc,
+		privValidator: privValidator,
+
+		nodeInfo: nodeInfo,
+		nodeKey:  nodeKey,
+
+		stateDB:          stateDB,
+		blockStore:       blockStore,
+		consensusState:   consensusState,
+		consensusReactor: consensusReactor,
+		txIndexer:        txIndexer,
+		indexerService:   indexerService,
+		eventBus:         eventBus,
+		proxyApp:         proxyApp,
+		mempoolReactor:   mempoolReactor,
+		mempool:          mempool,
+	}
+	node.BaseService = *service.NewBaseService(logger, "Node", node)
 
 	return node, nil
 }
@@ -1094,6 +1207,10 @@ func (n *Node) IsListening() bool {
 // NodeInfo returns the Node's Info from the Switch.
 func (n *Node) NodeInfo() p2p.NodeInfo {
 	return n.nodeInfo
+}
+
+func (n *Node) StateDB() dbm.DB {
+	return n.stateDB
 }
 
 func makeNodeInfo(

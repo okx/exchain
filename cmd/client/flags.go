@@ -120,6 +120,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Int(infura.FlagCacheQueueSize, 0, "Cache queue size of infura rpc service")
 	cmd.Flags().Int(config.FlagDebugGcInterval, 0, "Force gc every n heights for debug")
 	cmd.Flags().String(rpc.FlagWebsocket, "8546", "websocket port to listen to")
-
+	cmd.Flags().Int(backend.FlagLogsLimit, 0, "Maximum number of logs returned when calling eth_getLogs")
+	cmd.Flags().Int(backend.FlagLogsTimeout, 60, "Maximum query duration when calling eth_getLogs")
 	wasm.AddModuleInitFlags(cmd)
 }

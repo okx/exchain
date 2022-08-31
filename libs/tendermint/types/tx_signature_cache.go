@@ -1,16 +1,20 @@
 package types
 
 import (
+	"github.com/VictoriaMetrics/fastcache"
 	"sync/atomic"
 
 	"github.com/spf13/viper"
 	"github.com/tendermint/go-amino"
-
-	lru "github.com/hashicorp/golang-lru"
 )
 
 var (
 	signatureCache *Cache
+)
+
+const (
+	TxHashLen        = 32
+	AddressStringLen = 2 + 20*2
 )
 
 const FlagSigCacheSize = "signature-cache-size"
@@ -26,12 +30,9 @@ func init() {
 }
 
 func InitSignatureCache() {
-	lruCache, err := lru.New(viper.GetInt(FlagSigCacheSize))
-	if err != nil {
-		panic(err)
-	}
+	fastCache := fastcache.New((TxHashLen + AddressStringLen) * viper.GetInt(FlagSigCacheSize))
 	signatureCache = &Cache{
-		data: lruCache,
+		data: fastCache,
 	}
 }
 
@@ -40,7 +41,7 @@ func SignatureCache() *Cache {
 }
 
 type Cache struct {
-	data      *lru.Cache
+	data      *fastcache.Cache
 	readCount int64
 	hitCount  int64
 }
@@ -52,13 +53,10 @@ func (c *Cache) Get(key []byte) (string, bool) {
 	}
 	atomic.AddInt64(&c.readCount, 1)
 	// get cache
-	value, ok := c.data.Get(amino.BytesToStr(key))
+	value, ok := c.data.HasGet(nil, key)
 	if ok {
-		sigCache, ok := value.(string)
-		if ok {
-			atomic.AddInt64(&c.hitCount, 1)
-			return sigCache, true
-		}
+		atomic.AddInt64(&c.hitCount, 1)
+		return amino.BytesToStr(value), true
 	}
 	return "", false
 }
@@ -69,7 +67,7 @@ func (c *Cache) Add(key []byte, value string) {
 		return
 	}
 	// add cache
-	c.data.Add(string(key), value)
+	c.data.Set(key, amino.StrToBytes(value))
 }
 
 func (c *Cache) Remove(key []byte) {
@@ -77,7 +75,7 @@ func (c *Cache) Remove(key []byte) {
 	if !c.validate(key) {
 		return
 	}
-	c.data.Remove(amino.BytesToStr(key))
+	c.data.Del(key)
 }
 
 func (c *Cache) ReadCount() int64 {

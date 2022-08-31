@@ -2,6 +2,7 @@ package tx
 
 import (
 	"errors"
+
 	"github.com/golang/protobuf/ptypes/wrappers"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -11,10 +12,10 @@ import (
 )
 
 var (
-	_           context.TxRequest      = (*BroadcastTxRequest)(nil)
-	_           context.TxResponse     = (*BroadcastTxResponse)(nil)
-	_           context.CodecSensitive = (*BroadcastTxResponse)(nil)
-	nextMarshal                        = errors.New("next")
+	_                   context.TxRequest      = (*BroadcastTxRequest)(nil)
+	_                   context.TxResponse     = (*BroadcastTxResponse)(nil)
+	_                   context.CodecSensitive = (*BroadcastTxResponse)(nil)
+	errMarshalSensitive                        = errors.New("error for Marshal  Sensitive")
 )
 
 func (t *BroadcastTxRequest) GetModeDetail() int32 {
@@ -85,15 +86,15 @@ type AminoBroadCastTxResponse struct {
 
 func (t *BroadcastTxResponse) MarshalSensitive(proxy *codec.CodecProxy) ([]byte, error) {
 	if t.TxResponse == nil {
-		return nil, nextMarshal
+		return nil, errMarshalSensitive
 	}
 	internalV := t.TxResponse.Tx.GetCachedValue()
 	if nil == internalV {
-		return nil, nextMarshal
+		return nil, errMarshalSensitive
 	}
 	resp, ok := internalV.(*wrappers.BytesValue)
 	if !ok {
-		return nil, nextMarshal
+		return nil, errMarshalSensitive
 	}
 	return resp.Value, nil
 }

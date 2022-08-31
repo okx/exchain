@@ -20,10 +20,10 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rpc"
 	lru "github.com/hashicorp/golang-lru"
-	"github.com/okex/exchain/app/config"
 	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/app"
+	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/crypto/hd"
 	"github.com/okex/exchain/app/rpc/backend"
@@ -34,6 +34,7 @@ import (
 	"github.com/okex/exchain/app/utils"
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys"
 	cmserver "github.com/okex/exchain/libs/cosmos-sdk/server"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
@@ -42,24 +43,23 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authclient "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
-	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
-	"github.com/okex/exchain/x/token"
 )
 
 const (
 	CacheOfEthCallLru = 40960
 
-	FlagEnableMultiCall    = "rpc.enable-multi-call"
 	FlagFastQueryThreshold = "fast-query-threshold"
+
+	EvmHookGasEstimate = uint64(60000)
 )
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -79,6 +79,7 @@ type PublicEthereumAPI struct {
 	txPool             *TxPool
 	Metrics            map[string]*monitor.RpcMetrics
 	callCache          *lru.Cache
+	cdc                *codec.Codec
 	fastQueryThreshold uint64
 }
 
@@ -107,7 +108,9 @@ func NewAPI(
 		fastQueryThreshold: viper.GetUint64(FlagFastQueryThreshold),
 	}
 	api.evmFactory = simulation.NewEvmFactory(clientCtx.ChainID, api.wrappedBackend)
-
+	module := evm.AppModuleBasic{}
+	api.cdc = codec.New()
+	module.RegisterCodec(api.cdc)
 	if watcher.IsWatcherEnabled() {
 		callCache, err := lru.New(CacheOfEthCallLru)
 		if err != nil {
@@ -159,6 +162,10 @@ func (api *PublicEthereumAPI) GetKeyringInfo() error {
 // ClientCtx returns the Cosmos SDK client context.
 func (api *PublicEthereumAPI) ClientCtx() clientcontext.CLIContext {
 	return api.clientCtx
+}
+
+func (api *PublicEthereumAPI) GetCodec() *codec.Codec {
+	return api.cdc
 }
 
 // GetKeys returns the Cosmos SDK client context.
@@ -356,89 +363,6 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNrOrHash r
 	}
 
 	return (*hexutil.Big)(val), nil
-}
-
-// GetBalanceBatch returns the provided account's balance up to the provided block number.
-func (api *PublicEthereumAPI) GetBalanceBatch(addresses []common.Address, blockNrOrHash rpctypes.BlockNumberOrHash) (interface{}, error) {
-	if !viper.GetBool(FlagEnableMultiCall) {
-		return nil, errors.New("the method is not allowed")
-	}
-
-	monitor := monitor.GetMonitor("eth_getBalanceBatch", api.logger, api.Metrics).OnBegin()
-	defer monitor.OnEnd("addresses", addresses, "block number", blockNrOrHash)
-
-	blockNum, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
-	if err != nil {
-		return nil, err
-	}
-	clientCtx := api.clientCtx
-
-	useWatchBackend := api.useWatchBackend(blockNum)
-	if !(blockNum == rpctypes.PendingBlockNumber || blockNum == rpctypes.LatestBlockNumber) && !useWatchBackend {
-		clientCtx = api.clientCtx.WithHeight(blockNum.Int64())
-	}
-
-	type accBalance struct {
-		Type    token.AccType `json:"type"`
-		Balance *hexutil.Big  `json:"balance"`
-	}
-	balances := make(map[string]accBalance)
-	for _, address := range addresses {
-		if acc, err := api.wrappedBackend.MustGetAccount(address.Bytes()); err == nil {
-			balance := acc.GetCoins().AmountOf(sdk.DefaultBondDenom).BigInt()
-			if balance == nil {
-				balances[address.String()] = accBalance{accountType(acc), (*hexutil.Big)(sdk.ZeroInt().BigInt())}
-			} else {
-				balances[address.String()] = accBalance{accountType(acc), (*hexutil.Big)(balance)}
-			}
-			continue
-		}
-
-		bs, err := api.clientCtx.Codec.MarshalJSON(auth.NewQueryAccountParams(address.Bytes()))
-		if err != nil {
-			return nil, err
-		}
-		res, _, err := clientCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", auth.QuerierRoute, auth.QueryAccount), bs)
-		if err != nil {
-			continue
-		}
-
-		var account authexported.Account
-		if err := api.clientCtx.Codec.UnmarshalJSON(res, &account); err != nil {
-			return nil, err
-		}
-
-		val := account.GetCoins().AmountOf(sdk.DefaultBondDenom).BigInt()
-		accType := accountType(account)
-		if accType == token.UserAccount || accType == token.ContractAccount {
-			api.watcherBackend.CommitAccountToRpcDb(account)
-			if blockNum != rpctypes.PendingBlockNumber {
-				balances[address.String()] = accBalance{accType, (*hexutil.Big)(val)}
-				continue
-			}
-
-			// update the address balance with the pending transactions value (if applicable)
-			pendingTxs, err := api.backend.UserPendingTransactions(address.String(), -1)
-			if err != nil {
-				return nil, err
-			}
-
-			for _, tx := range pendingTxs {
-				if tx == nil {
-					continue
-				}
-
-				if tx.From == address {
-					val = new(big.Int).Sub(val, tx.Value.ToInt())
-				}
-				if *tx.To == address {
-					val = new(big.Int).Add(val, tx.Value.ToInt())
-				}
-			}
-		}
-		balances[address.String()] = accBalance{accType, (*hexutil.Big)(val)}
-	}
-	return balances, nil
 }
 
 // GetAccount returns the provided account's balance up to the provided block number.
@@ -883,27 +807,6 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNrOrHash rpctype
 	return data.Ret, nil
 }
 
-// MultiCall performs multiple raw contract call.
-func (api *PublicEthereumAPI) MultiCall(args []rpctypes.CallArgs, blockNr rpctypes.BlockNumber, _ *[]evmtypes.StateOverrides) ([]hexutil.Bytes, error) {
-	if !viper.GetBool(FlagEnableMultiCall) {
-		return nil, errors.New("the method is not allowed")
-	}
-
-	monitor := monitor.GetMonitor("eth_multiCall", api.logger, api.Metrics).OnBegin()
-	defer monitor.OnEnd("args", args, "block number", blockNr)
-
-	blockNrOrHash := rpctypes.BlockNumberOrHashWithNumber(blockNr)
-	rets := make([]hexutil.Bytes, 0, len(args))
-	for _, arg := range args {
-		ret, err := api.Call(arg, blockNrOrHash, nil)
-		if err != nil {
-			return rets, err
-		}
-		rets = append(rets, ret)
-	}
-	return rets, nil
-}
-
 // DoCall performs a simulated call operation through the evmtypes. It returns the
 // estimated gas used on the operation or an error if fails.
 func (api *PublicEthereumAPI) doCall(
@@ -971,7 +874,7 @@ func (api *PublicEthereumAPI) doCall(
 	}
 	sim := api.evmFactory.BuildSimulator(api)
 	//only worked when fast-query has been enabled
-	if sim != nil {
+	if sim != nil && api.useWatchBackend(blockNum) {
 		return sim.DoCall(msg, addr.String(), overridesBytes, api.evmFactory.PutBackStorePool)
 	}
 
@@ -1046,7 +949,9 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 		return 0, TransformDataError(sdk.ErrOutOfGas(errMsg), "eth_estimateGas")
 	}
 	gasBuffer := estimatedGas / 100 * config.GetOecConfig().GetGasLimitBuffer()
-	gas := estimatedGas + gasBuffer
+	//EvmHookGasEstimate: evm tx with cosmos hook,we cannot estimate hook gas
+	//simple add EvmHookGasEstimate,run tx will refund the extra gas
+	gas := estimatedGas + gasBuffer + EvmHookGasEstimate
 	if gas > maxGasLimitPerTx {
 		gas = maxGasLimitPerTx
 	}
@@ -1224,61 +1129,6 @@ func (api *PublicEthereumAPI) getTransactionByBlockAndIndex(block *tmtypes.Block
 	return watcher.NewTransaction(ethTx, txHash, blockHash, height, uint64(idx))
 }
 
-// GetTransactionsByBlock returns some transactions identified by number or hash.
-func (api *PublicEthereumAPI) GetTransactionsByBlock(blockNrOrHash rpctypes.BlockNumberOrHash, offset, limit hexutil.Uint) ([]*watcher.Transaction, error) {
-	if !viper.GetBool(FlagEnableMultiCall) {
-		return nil, errors.New("the method is not allowed")
-	}
-
-	monitor := monitor.GetMonitor("eth_getTransactionsByBlock", api.logger, api.Metrics).OnBegin()
-	defer monitor.OnEnd("block number", blockNrOrHash, "offset", offset, "limit", limit)
-
-	blockNum, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
-	if err != nil {
-		return nil, err
-	}
-
-	txs, e := api.wrappedBackend.GetTransactionsByBlockNumber(uint64(blockNum), uint64(offset), uint64(limit))
-	if e == nil && txs != nil {
-		return txs, nil
-	}
-
-	height := blockNum.Int64()
-	switch blockNum {
-	case rpctypes.PendingBlockNumber:
-		// get all the EVM pending txs
-		pendingTxs, err := api.backend.PendingTransactions()
-		if err != nil {
-			return nil, err
-		}
-		switch {
-		case len(pendingTxs) <= int(offset):
-			return nil, nil
-		case len(pendingTxs) < int(offset+limit):
-			return pendingTxs[offset:], nil
-		default:
-			return pendingTxs[offset : offset+limit], nil
-		}
-	case rpctypes.LatestBlockNumber:
-		height, err = api.backend.LatestBlockNumber()
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	resBlock, err := api.clientCtx.Client.Block(&height)
-	if err != nil {
-		return nil, err
-	}
-	for idx := offset; idx < offset+limit && int(idx) < len(resBlock.Block.Txs); idx++ {
-		tx, _ := api.getTransactionByBlockAndIndex(resBlock.Block, idx)
-		if tx != nil {
-			txs = append(txs, tx)
-		}
-	}
-	return txs, nil
-}
-
 // GetTransactionReceipt returns the transaction receipt identified by hash.
 func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.TransactionReceipt, error) {
 	monitor := monitor.GetMonitor("eth_getTransactionReceipt", api.logger, api.Metrics).OnBegin()
@@ -1308,7 +1158,7 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 		return nil, err
 	}
 
-	err = ethTx.VerifySig(ethTx.ChainID(), tx.Height)
+	err = ethTx.VerifySig(api.chainIDEpoch, tx.Height)
 	if err != nil {
 		return nil, err
 	}
@@ -1363,102 +1213,6 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 	}
 
 	return receipt, nil
-}
-
-// GetTransactionReceiptsByBlock returns the transaction receipt identified by block hash or number.
-func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctypes.BlockNumberOrHash, offset, limit hexutil.Uint) ([]*watcher.TransactionReceipt, error) {
-	if !viper.GetBool(FlagEnableMultiCall) {
-		return nil, errors.New("the method is not allowed")
-	}
-
-	monitor := monitor.GetMonitor("eth_getTransactionReceiptsByBlock", api.logger, api.Metrics).OnBegin()
-	defer monitor.OnEnd("block number", blockNrOrHash, "offset", offset, "limit", limit)
-
-	txs, err := api.GetTransactionsByBlock(blockNrOrHash, offset, limit)
-	if err != nil || len(txs) == 0 {
-		return nil, err
-	}
-
-	var receipts []*watcher.TransactionReceipt
-	var block *ctypes.ResultBlock
-	var blockHash common.Hash
-	for _, tx := range txs {
-		res, _ := api.wrappedBackend.GetTransactionReceipt(tx.Hash)
-		if res != nil {
-			receipts = append(receipts, res)
-			continue
-		}
-
-		tx, err := api.clientCtx.Client.Tx(tx.Hash.Bytes(), false)
-		if err != nil {
-			// Return nil for transaction when not found
-			return nil, nil
-		}
-
-		if block == nil {
-			// Query block for consensus hash
-			block, err = api.clientCtx.Client.Block(&tx.Height)
-			if err != nil {
-				return nil, err
-			}
-			blockHash = common.BytesToHash(block.Block.Hash())
-		}
-
-		// Convert tx bytes to eth transaction
-		ethTx, err := rpctypes.RawTxToEthTx(api.clientCtx, tx.Tx)
-		if err != nil {
-			return nil, err
-		}
-
-		err = ethTx.VerifySig(ethTx.ChainID(), tx.Height)
-		if err != nil {
-			return nil, err
-		}
-
-		// Set status codes based on tx result
-		var status = hexutil.Uint64(0)
-		if tx.TxResult.IsOK() {
-			status = hexutil.Uint64(1)
-		}
-
-		txData := tx.TxResult.GetData()
-		data, err := evmtypes.DecodeResultData(txData)
-		if err != nil {
-			status = 0 // transaction failed
-		}
-
-		if len(data.Logs) == 0 {
-			data.Logs = []*ethtypes.Log{}
-		}
-		contractAddr := &data.ContractAddress
-		if data.ContractAddress == common.HexToAddress("0x00000000000000000000") {
-			contractAddr = nil
-		}
-
-		// fix gasUsed when deliverTx ante handler check sequence invalid
-		gasUsed := tx.TxResult.GasUsed
-		if tx.TxResult.Code == sdkerrors.ErrInvalidSequence.ABCICode() {
-			gasUsed = 0
-		}
-
-		receipt := &watcher.TransactionReceipt{
-			Status: status,
-			//CumulativeGasUsed: hexutil.Uint64(cumulativeGasUsed),
-			LogsBloom:        data.Bloom,
-			Logs:             data.Logs,
-			TransactionHash:  common.BytesToHash(tx.Hash.Bytes()).String(),
-			ContractAddress:  contractAddr,
-			GasUsed:          hexutil.Uint64(gasUsed),
-			BlockHash:        blockHash.String(),
-			BlockNumber:      hexutil.Uint64(tx.Height),
-			TransactionIndex: hexutil.Uint64(tx.Index),
-			From:             ethTx.GetFrom(),
-			To:               ethTx.To(),
-		}
-		receipts = append(receipts, receipt)
-	}
-
-	return receipts, nil
 }
 
 // PendingTransactions returns the transactions that are in the transaction pool

@@ -1,6 +1,8 @@
 package filters
 
 import (
+	"errors"
+	"fmt"
 	"math/big"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -100,4 +102,8 @@ func returnLogs(logs []*ethtypes.Log) []*ethtypes.Log {
 		return []*ethtypes.Log{}
 	}
 	return logs
+}
+
+func LimitError(n int) error {
+	return errors.New(fmt.Sprintf("query returned more than %d results", n))
 }

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -58,7 +57,6 @@ func (ef *EvmFactory) PutBackStorePool(multiStore sdk.CacheMultiStore) {
 
 func (ef EvmFactory) BuildSimulator(qoc QueryOnChainProxy) *EvmSimulator {
 	keeper := ef.makeEvmKeeper(qoc)
-
 	if !watcher.IsWatcherEnabled() {
 		return nil
 	}
@@ -124,10 +122,7 @@ func (es *EvmSimulator) DoCall(msg *evmtypes.MsgEthereumTx, sender string, overr
 }
 
 func (ef EvmFactory) makeEvmKeeper(qoc QueryOnChainProxy) *evm.Keeper {
-	module := evm.AppModuleBasic{}
-	cdc := codec.New()
-	module.RegisterCodec(cdc)
-	return evm.NewSimulateKeeper(cdc, ef.storeKey, NewSubspaceProxy(), NewAccountKeeperProxy(qoc), SupplyKeeperProxy{}, NewBankKeeperProxy(), NewInternalDba(qoc), tmlog.NewNopLogger())
+	return evm.NewSimulateKeeper(qoc.GetCodec(), ef.storeKey, NewSubspaceProxy(), NewAccountKeeperProxy(qoc), SupplyKeeperProxy{}, NewBankKeeperProxy(), NewInternalDba(qoc), tmlog.NewNopLogger())
 }
 
 func (ef EvmFactory) makeContext(multiStore sdk.CacheMultiStore, header abci.Header) sdk.Context {

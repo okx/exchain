@@ -14,7 +14,7 @@ import (
 const (
 	latestTaskKey         = "infura_latest_task"
 	distributeLock        = "infura_lock"
-	distributeLockTimeout = 30000
+	distributeLockTimeout = 300000
 	taskTimeout           = distributeLockTimeout * 0.98
 
 	FlagEnable         = "infura.enable"

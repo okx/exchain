@@ -169,9 +169,8 @@ func newRepairApp(logger tmlog.Logger, db dbm.DB, traceStore io.Writer) *repairA
 
 func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	proxyApp proxy.AppConns, startHeight, latestHeight int64, dataDir string) {
-	config.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
-
 	stateCopy := state.Copy()
+	config.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
 	ctx.Logger.Debug("stateCopy", "state", fmt.Sprintf("%+v", stateCopy))
 	// construct state for repair
 	state = constructStartState(state, stateStoreDB, startHeight)
@@ -196,6 +195,8 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	}()
 	blockExec := sm.NewBlockExecutor(stateStoreDB, ctx.Logger, proxyApp.Consensus(), mock.Mempool{}, sm.MockEvidencePool{})
 	blockExec.SetEventBus(eventBus)
+	// Save state synchronously during repair state
+	blockExec.SetIsAsyncSaveDB(false)
 	global.SetGlobalHeight(startHeight + 1)
 	for height := startHeight + 1; height <= latestHeight; height++ {
 		repairBlock, repairBlockMeta := loadBlock(height, dataDir)

@@ -5,8 +5,9 @@ import (
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
-	evmtypes "github.com/okex/exchain/x/evm/types"
+	tmbytes "github.com/okex/exchain/libs/tendermint/libs/bytes"
 	govtypes "github.com/okex/exchain/x/gov/types"
 )
 
@@ -19,7 +20,7 @@ type GovKeeper interface {
 // AccountKeeper defines the expected account keeper interface
 type AccountKeeper interface {
 	GetAccount(ctx sdk.Context, addr sdk.AccAddress) authexported.Account
-	SetAccount(ctx sdk.Context, acc authexported.Account, updateState ...bool)
+	SetAccount(ctx sdk.Context, acc authexported.Account)
 	NewAccountWithAddress(ctx sdk.Context, addr sdk.AccAddress) authexported.Account
 }
 
@@ -41,12 +42,6 @@ type BankKeeper interface {
 	SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error
 }
 
-type EvmKeeper interface {
-	GetChainConfig(ctx sdk.Context) (evmtypes.ChainConfig, bool)
-	GenerateCSDBParams() evmtypes.CommitStateDBParams
-	GetParams(ctx sdk.Context) evmtypes.Params
-}
-
 type TransferKeeper interface {
 	SendTransfer(
 		ctx sdk.Context,
@@ -59,4 +54,5 @@ type TransferKeeper interface {
 		timeoutTimestamp uint64,
 	) error
 	DenomPathFromHash(ctx sdk.Context, denom string) (string, error)
+	GetDenomTrace(ctx sdk.Context, denomTraceHash tmbytes.HexBytes) (types.DenomTrace, bool)
 }

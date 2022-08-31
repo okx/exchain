@@ -27,6 +27,7 @@ require (
 	github.com/go-kit/kit v0.10.0
 	github.com/go-logfmt/logfmt v0.5.0
 	github.com/go-redis/redis/v8 v8.11.4
+	github.com/goccy/go-json v0.9.7
 	github.com/gogo/gateway v1.1.0
 	github.com/gogo/protobuf v1.3.2
 	github.com/golang/mock v1.3.1
@@ -54,6 +55,7 @@ require (
 	github.com/orcaman/concurrent-map v1.0.0
 	github.com/pelletier/go-toml v1.6.0
 	github.com/pkg/errors v0.9.1
+	github.com/pquerna/ffjson v0.0.0-20190930134022-aa0246cd15f7
 	github.com/prometheus/client_golang v1.5.1
 	github.com/rakyll/statik v0.1.6
 	github.com/rcrowley/go-metrics v0.0.0-20200313005456-10cdbea86bc0
@@ -166,8 +168,8 @@ require (
 
 replace (
 	github.com/buger/jsonparser => github.com/buger/jsonparser v1.0.0 // imported by nacos-go-sdk, upgraded to v1.0.0 in case of a known vulnerable bug
-	github.com/ethereum/go-ethereum => github.com/okex/go-ethereum v1.10.8-oec4
+	github.com/ethereum/go-ethereum => github.com/okex/go-ethereum v1.10.8-okc1
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.3-alpha.regen.1
 	github.com/keybase/go-keychain => github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4
-	github.com/tendermint/go-amino => github.com/okex/go-amino v0.15.1-exchain7
+	github.com/tendermint/go-amino => github.com/okex/go-amino v0.15.1-okc2
 )

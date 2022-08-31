@@ -10,6 +10,7 @@ import (
 	types2 "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/wasm/keeper"
 	"github.com/okex/exchain/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/watcher"
 )
 
 // NewHandler returns a handler for "wasm" type messages.
@@ -19,7 +20,7 @@ func NewHandler(k types.ContractOpsKeeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		ctx.SetEventManager(sdk.NewEventManager())
 
-		if !types2.HigherThanSaturn(ctx.BlockHeight()) {
+		if !types2.HigherThanVenus2(ctx.BlockHeight()) {
 			errMsg := fmt.Sprintf("wasm not supprt at height %d", ctx.BlockHeight())
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
 		}
@@ -28,6 +29,14 @@ func NewHandler(k types.ContractOpsKeeper) sdk.Handler {
 			res proto.Message
 			err error
 		)
+		// update watcher
+		defer func() {
+			// update watchDB when delivering tx
+			if ctx.IsDeliver() || ctx.ParaMsg() != nil {
+				watcher.Save(err)
+			}
+		}()
+
 		switch msg := msg.(type) {
 		case *MsgStoreCode: //nolint:typecheck
 			res, err = msgServer.StoreCode(sdk.WrapSDKContext(ctx), msg)

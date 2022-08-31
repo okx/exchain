@@ -2,10 +2,10 @@ package state
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/system/trace"
 	"strconv"
 	"time"
 
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/global"
@@ -26,17 +26,14 @@ type (
 )
 
 const (
-	DeliverTxsExecModeSerial         DeliverTxsExecMode = iota // execute [deliverTx,...] sequentially
-	DeliverTxsExecModePartConcurrent                           // execute [deliverTx,...] partially-concurrent
-	DeliverTxsExecModeParallel                                 // execute [deliverTx,...] parallel
+	DeliverTxsExecModeSerial   DeliverTxsExecMode = iota // execute [deliverTx,...] sequentially
+	DeliverTxsExecModeParallel                    = 2    // execute [deliverTx,...] parallel
 
-	// There are three modes.
+	// There are two modes.
 	// 0: execute [deliverTx,...] sequentially (default)
-	// 1: execute [deliverTx,...] partially-concurrent
+	// 1: execute [deliverTx,...] deprecated
 	// 2: execute [deliverTx,...] parallel
 	FlagDeliverTxsExecMode = "deliver-txs-mode"
-
-	FlagDeliverTxsConcurrentNum = "deliver-txs-concurrent-num"
 )
 
 // BlockExecutor handles block execution and state updates.
@@ -74,6 +71,13 @@ type BlockExecutor struct {
 
 	// the owner is validator
 	isNullIndexer bool
+	eventsChan    chan event
+}
+
+type event struct {
+	block   *types.Block
+	abciRsp *ABCIResponses
+	vals    []*types.Validator
 }
 
 type BlockExecutorOption func(executor *BlockExecutor)
@@ -104,6 +108,7 @@ func NewBlockExecutor(
 		metrics:      NopMetrics(),
 		prerunCtx:    newPrerunContex(logger),
 		deltaContext: newDeltaContext(logger),
+		eventsChan:   make(chan event, 5),
 	}
 
 	for _, option := range options {
@@ -113,7 +118,17 @@ func NewBlockExecutor(
 	res.deltaContext.init()
 
 	res.initAsyncDBContext()
+	go res.fireEventsRountine()
 	return res
+}
+
+func (blockExec *BlockExecutor) fireEventsRountine() {
+	for et := range blockExec.eventsChan {
+		if et.block == nil {
+			break
+		}
+		fireEvents(blockExec.logger, blockExec.eventBus, et.block, et.abciRsp, et.vals)
+	}
 }
 
 func (blockExec *BlockExecutor) DB() dbm.DB {
@@ -261,7 +276,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	startTime = time.Now().UnixNano()
 
 	// Lock mempool, commit app state, update mempoool.
-	commitResp, retainHeight, err := blockExec.commit(state, block, deltaInfo, abciResponses.DeliverTxs)
+	commitResp, retainHeight, err := blockExec.commit(state, block, deltaInfo, abciResponses.DeliverTxs, trc)
 	endTime = time.Now().UnixNano()
 	blockExec.metrics.CommitTime.Set(float64(endTime-startTime) / 1e6)
 	if err != nil {
@@ -286,7 +301,11 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	// Events are fired after everything else.
 	// NOTE: if we crash between Commit and Save, events wont be fired during replay
 	if !blockExec.isNullIndexer {
-		fireEvents(blockExec.logger, blockExec.eventBus, block, abciResponses, validatorUpdates)
+		blockExec.eventsChan <- event{
+			block:   block,
+			abciRsp: abciResponses,
+			vals:    validatorUpdates,
+		}
 	}
 
 	dc.postApplyBlock(block.Height, deltaInfo, abciResponses, commitResp.DeltaMap, blockExec.isFastSync)
@@ -313,7 +332,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 	} else {
 		pc := blockExec.prerunCtx
 		if pc.prerunTx {
-			abciResponses, err = pc.getPrerunResult(block.Height, blockExec.isFastSync)
+			abciResponses, err = pc.getPrerunResult(block)
 		}
 
 		if abciResponses == nil {
@@ -327,8 +346,6 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 			switch mode {
 			case DeliverTxsExecModeSerial:
 				abciResponses, err = execBlockOnProxyApp(ctx)
-			case DeliverTxsExecModePartConcurrent:
-				abciResponses, err = execBlockOnProxyAppPartConcurrent(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			case DeliverTxsExecModeParallel:
 				abciResponses, err = execBlockOnProxyAppAsync(blockExec.logger, blockExec.proxyApp, block, blockExec.db)
 			default:
@@ -351,6 +368,7 @@ func (blockExec *BlockExecutor) commit(
 	block *types.Block,
 	deltaInfo *DeltaInfo,
 	deliverTxResponses []*abci.ResponseDeliverTx,
+	trc *trace.Tracer,
 ) (*abci.ResponseCommit, int64, error) {
 	blockExec.mempool.Lock()
 	defer func() {
@@ -392,6 +410,7 @@ func (blockExec *BlockExecutor) commit(
 		"blockLen", amino.FuncStringer(func() string { return strconv.Itoa(block.FastSize()) }),
 	)
 
+	trc.Pin(trace.MempoolUpdate)
 	// Update mempool.
 	err = blockExec.mempool.Update(
 		block.Height,

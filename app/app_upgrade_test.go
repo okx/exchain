@@ -3,15 +3,16 @@ package app
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/libs/cli"
-	"github.com/okex/exchain/x/wasm"
-	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
-	"github.com/spf13/viper"
 	"io"
 	"os"
 	"path/filepath"
 	"strconv"
 	"testing"
+
+	"github.com/okex/exchain/libs/tendermint/libs/cli"
+	"github.com/okex/exchain/x/wasm"
+	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
+	"github.com/spf13/viper"
 
 	"github.com/gorilla/mux"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -473,12 +474,12 @@ func newTestOkcChainApp(
 
 	// The last arguments can contain custom message handlers, and custom query handlers,
 	// if we want to allow any custom callbacks
-	supportedFeatures := "iterator,stargate"
+	supportedFeatures := wasm.SupportedFeatures
 	app.wasmKeeper = wasm.NewKeeper(
 		app.marshal,
 		keys[wasm.StoreKey],
 		app.subspaces[wasm.ModuleName],
-		app.AccountKeeper,
+		&app.AccountKeeper,
 		bank.NewBankKeeperAdapter(app.BankKeeper),
 		app.IBCKeeper.ChannelKeeper,
 		&app.IBCKeeper.PortKeeper,
@@ -558,6 +559,7 @@ func newTestOkcChainApp(
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
 	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), fixLogForParallelTxHandler(app.EvmKeeper))
+	app.SetEvmWatcherCollector(app.EvmKeeper.Watcher.Collect)
 
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])

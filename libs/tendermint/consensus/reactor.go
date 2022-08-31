@@ -33,7 +33,7 @@ const (
 	ViewChangeChannel  = byte(0x24)
 
 	maxPartSize = 1048576 // 1MB; NOTE/TODO: keep in sync with types.PartSet sizes.
-	maxMsgSize  = maxPartSize + types.MaxDeltasSizeBytes
+	maxMsgSize  = maxPartSize
 
 	blocksToContributeToBecomeGoodPeer = 10000
 	votesToContributeToBecomeGoodPeer  = 10000
@@ -156,16 +156,15 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 		return false
 	}
 
+	defer func() {
+		conR.setFastSyncFlag(false, 0)
+	}()
+
 	conR.Logger.Info("SwitchToConsensus")
 	conR.conS.reconstructLastCommit(state)
 	// NOTE: The line below causes broadcastNewRoundStepRoutine() to
 	// broadcast a NewRoundStepMessage.
 	conR.conS.updateToState(state)
-
-	conR.mtx.Lock()
-	conR.fastSync = false
-	conR.mtx.Unlock()
-	conR.metrics.FastSyncing.Set(0)
 
 	if blocksSynced > 0 {
 		// dont bother with the WAL if we fast synced
@@ -178,8 +177,6 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 	conR.conS.Reset()
 	conR.conS.Start()
 
-	conR.conS.blockExec.SetIsFastSyncing(false)
-
 	go conR.peerStatsRoutine()
 	conR.subscribeToBroadcastEvents()
 
@@ -189,16 +186,14 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 func (conR *Reactor) SwitchToFastSync() (sm.State, error) {
 	conR.Logger.Info("SwitchToFastSync")
 
-	conR.mtx.Lock()
-	conR.fastSync = true
-	conR.mtx.Unlock()
-	conR.metrics.FastSyncing.Set(1)
-
-	conR.conS.blockExec.SetIsFastSyncing(true)
+	defer func() {
+		conR.setFastSyncFlag(true, 1)
+	}()
 
 	if !conR.conS.IsRunning() {
 		return conR.conS.GetState(), errors.New("state is not running")
 	}
+
 	err := conR.conS.Stop()
 	if err != nil {
 		panic(fmt.Sprintf(`Failed to stop consensus state: %v
@@ -211,8 +206,19 @@ conR:
 	}
 
 	conR.stopSwitchToFastSyncTimer()
+	conR.conS.Wait()
 
-	return conR.conS.GetState(), nil
+	cState := conR.conS.GetState()
+	return cState, nil
+}
+
+func (conR *Reactor) setFastSyncFlag(f bool, v float64) {
+	conR.mtx.Lock()
+	defer conR.mtx.Unlock()
+
+	conR.fastSync = f
+	conR.metrics.FastSyncing.Set(v)
+	conR.conS.blockExec.SetIsFastSyncing(f)
 }
 
 // Attempt to schedule a timer for checking whether consensus machine is hanged.
@@ -385,6 +391,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 
 			// verify the signature of prMsg
 			_, val := conR.conS.Validators.GetByAddress(msg.NewProposer)
+			if val == nil {
+				return
+			}
 			if err := msg.Verify(val.PubKey); err != nil {
 				conR.Logger.Error("reactor Verify Signature of ProposeRequestMessage", "err", err)
 				return
@@ -539,12 +548,6 @@ func (conR *Reactor) subscribeToBroadcastEvents() {
 		func(data tmevents.EventData) {
 			conR.broadcastNewRoundStepMessage(data.(*cstypes.RoundState))
 
-			height := data.(*cstypes.RoundState).Height
-			if height != conR.conHeight {
-				conR.Logger.Info("Update conHeight.", "new", height, "old", conR.conHeight)
-				conR.conHeight = height
-				conR.resetSwitchToFastSyncTimer()
-			}
 		})
 
 	conR.conS.evsw.AddListenerForEvent(subscriber, types.EventValidBlock,
@@ -1071,6 +1074,12 @@ OUTER_LOOP:
 }
 
 func (conR *Reactor) peerStatsRoutine() {
+	conR.resetSwitchToFastSyncTimer()
+
+	defer func() {
+		conR.stopSwitchToFastSyncTimer()
+	}()
+
 	for {
 		if !conR.IsRunning() {
 			conR.Logger.Info("Stopping peerStatsRoutine")
@@ -1105,6 +1114,7 @@ func (conR *Reactor) peerStatsRoutine() {
 			bcR, ok := conR.Switch.Reactor("BLOCKCHAIN").(blockchainReactor)
 			if ok {
 				bcR.CheckFastSyncCondition()
+				conR.resetSwitchToFastSyncTimer()
 			}
 
 		case <-conR.conS.Quit():
@@ -1494,12 +1504,7 @@ func (ps *PeerState) SetHasVote(vote *types.Vote) {
 }
 
 func (ps *PeerState) setHasVote(height int64, round int, voteType types.SignedMsgType, index int) {
-	logger := ps.logger.With(
-		"peerH/R",
-		fmt.Sprintf("%d/%d", ps.PRS.Height, ps.PRS.Round),
-		"H/R",
-		fmt.Sprintf("%d/%d", height, round))
-	logger.Debug("setHasVote", "type", voteType, "index", index)
+	ps.logger.Debug("setHasVote", "peerH", ps.PRS.Height, "peerR", ps.PRS.Round, "H", height, "R", round, "type", voteType, "index", index)
 
 	// NOTE: some may be nil BitArrays -> no side effects.
 	psVotes := ps.getVoteBitArray(height, round, voteType)
@@ -1819,7 +1824,6 @@ type BlockPartMessage struct {
 	Height int64
 	Round  int
 	Part   *types.Part
-	Deltas *types.Deltas
 }
 
 // ValidateBasic performs basic validation.

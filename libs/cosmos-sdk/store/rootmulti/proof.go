@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
+
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 )
@@ -132,5 +134,8 @@ func DefaultProofRuntime() (prt *merkle.ProofRuntime) {
 	prt.RegisterOpDecoder(iavl.ProofOpIAVLValue, iavl.ValueOpDecoder)
 	prt.RegisterOpDecoder(iavl.ProofOpIAVLAbsence, iavl.AbsenceOpDecoder)
 	prt.RegisterOpDecoder(ProofOpMultiStore, MultiStoreProofOpDecoder)
+
+	prt.RegisterOpDecoder(storetypes.ProofOpIAVLCommitment, storetypes.CommitmentOpDecoder)
+	prt.RegisterOpDecoder(storetypes.ProofOpSimpleMerkleCommitment, storetypes.CommitmentOpDecoder)
 	return
 }

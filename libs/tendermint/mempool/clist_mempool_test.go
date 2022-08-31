@@ -850,6 +850,34 @@ func TestAddAndSortTxConcurrency(t *testing.T) {
 	wait.Wait()
 }
 
+func TestTxID(t *testing.T) {
+	var bytes = make([]byte, 256)
+	for i := 0; i < 10; i++ {
+		_, err := rand.Read(bytes)
+		require.NoError(t, err)
+		require.Equal(t, amino.HexEncodeToStringUpper(bytes), fmt.Sprintf("%X", bytes))
+	}
+}
+
+func BenchmarkTxID(b *testing.B) {
+	var bytes = make([]byte, 256)
+	_, _ = rand.Read(bytes)
+	var res string
+	b.Run("fmt", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			res = fmt.Sprintf("%X", bytes)
+		}
+	})
+	b.Run("amino", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			res = amino.HexEncodeToStringUpper(bytes)
+		}
+	})
+	_ = res
+}
+
 func TestReplaceTxWithMultiAddrs(t *testing.T) {
 	app := kvstore.NewApplication()
 	cc := proxy.NewLocalClientCreator(app)
@@ -875,4 +903,85 @@ func TestReplaceTxWithMultiAddrs(t *testing.T) {
 		}
 	}
 	require.Equal(t, []uint64{1, 2}, nonces)
+}
+
+func BenchmarkMempoolLogUpdate(b *testing.B) {
+	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "benchmark")
+	var options []log.Option
+	options = append(options, log.AllowErrorWith("module", "benchmark"))
+	logger = log.NewFilter(logger, options...)
+
+	mem := &CListMempool{height: 123456, logger: logger}
+	addr := "address"
+	nonce := uint64(123456)
+
+	b.Run("pool", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			mem.logUpdate(addr, nonce)
+		}
+	})
+
+	b.Run("logger", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			mem.logger.Debug("mempool update", "address", addr, "nonce", nonce)
+		}
+	})
+}
+
+func BenchmarkMempoolLogAddTx(b *testing.B) {
+	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "benchmark")
+	var options []log.Option
+	options = append(options, log.AllowErrorWith("module", "benchmark"))
+	logger = log.NewFilter(logger, options...)
+
+	mem := &CListMempool{height: 123456, logger: logger, txs: NewBaseTxQueue()}
+	tx := []byte("tx")
+
+	memTx := &mempoolTx{
+		height: mem.Height(),
+		tx:     tx,
+	}
+
+	r := &abci.Response_CheckTx{}
+
+	b.Run("pool", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			mem.logAddTx(memTx, r)
+		}
+	})
+
+	b.Run("logger", func(b *testing.B) {
+		b.ReportAllocs()
+		for i := 0; i < b.N; i++ {
+			mem.logger.Info("Added good transaction",
+				"tx", txIDStringer{tx, mem.height},
+				"res", r,
+				"height", memTx.height,
+				"total", mem.Size(),
+			)
+		}
+	})
+}
+
+func TestTxOrTxHashToKey(t *testing.T) {
+	var tx = make([]byte, 256)
+	rand.Read(tx)
+
+	old := types.GetVenusHeight()
+
+	types.UnittestOnlySetMilestoneVenusHeight(1)
+
+	venus := types.GetVenusHeight()
+	txhash := types.Tx(tx).Hash(venus)
+
+	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, nil, venus))
+	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, txhash, venus))
+	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, txhash, venus-1))
+	require.Equal(t, txKey(tx), txOrTxHashToKey(tx, types.Tx(tx).Hash(venus-1), venus-1))
+	require.NotEqual(t, txKey(tx), txOrTxHashToKey(tx, types.Tx(tx).Hash(venus-1), venus))
+
+	types.UnittestOnlySetMilestoneVenusHeight(old)
 }

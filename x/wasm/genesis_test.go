@@ -10,7 +10,7 @@ import (
 )
 
 func TestInitGenesis(t *testing.T) {
-	types.UnittestOnlySetMilestoneSaturnHeight(1)
+	types.UnittestOnlySetMilestoneVenus2Height(1)
 	data := setupTest(t)
 
 	deposit := sdk.NewCoins(sdk.NewInt64Coin("denom", 100000))

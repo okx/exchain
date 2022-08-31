@@ -59,6 +59,7 @@ const (
 	Abci            = "abci"
 	SaveResp        = "saveResp"
 	Persist         = "persist"
+	MempoolUpdate   = "mpUpdate"
 	SaveState       = "saveState"
 	ApplyBlock      = "ApplyBlock"
 	Consensus       = "Consensus"
@@ -73,8 +74,7 @@ const (
 	Prerun          = "Prerun"
 	IavlRuntime     = "IavlRuntime"
 
-	BlockPartsP2P   = "BlockPartsP2P"
-	BlockPartsCache = "BlockPartsCache"
+	BlockPartsP2P = "BlockPartsP2P"
 )
 
 const (

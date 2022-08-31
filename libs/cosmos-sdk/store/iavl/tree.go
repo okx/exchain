@@ -18,7 +18,7 @@ type (
 	// must be made.
 	Tree interface {
 		Has(key []byte) bool
-		Get(key []byte) (index int64, value []byte)
+		Get(key []byte) (value []byte)
 		Set(key, value []byte) bool
 		Remove(key []byte) ([]byte, bool)
 		PreChanges(keys []string, setOrDel []byte)
@@ -82,7 +82,7 @@ func (it *immutableTree) GetVersioned(key []byte, version int64) (int64, []byte)
 		return -1, nil
 	}
 
-	return it.Get(key)
+	return it.GetWithIndex(key)
 }
 
 func (it *immutableTree) GetVersionedWithProof(key []byte, version int64) ([]byte, *iavl.RangeProof, error) {

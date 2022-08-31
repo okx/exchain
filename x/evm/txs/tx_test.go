@@ -41,6 +41,8 @@ type EmptyTx struct {
 	DecorateResultFail bool
 }
 
+func (e EmptyTx) Dispose() {}
+
 func (e EmptyTx) Prepare(msg *types.MsgEthereumTx) (err error) {
 	if e.PrepareFail {
 		return fmt.Errorf("prepare error")
@@ -79,11 +81,11 @@ func (e EmptyTx) DecorateResult(inResult *base.Result, inErr error) (result *sdk
 	return &sdkResult, nil
 }
 
-func (e EmptyTx) Commit(msg *types.MsgEthereumTx, result *base.Result)    {}
-func (e EmptyTx) EmitEvent(msg *types.MsgEthereumTx, result *base.Result) {}
-func (e EmptyTx) FinalizeWatcher(account authexported.Account, err error) {}
-func (e EmptyTx) AnalyzeStart(tag string)                                 {}
-func (e EmptyTx) AnalyzeStop(tag string)                                  {}
+func (e EmptyTx) Commit(msg *types.MsgEthereumTx, result *base.Result)                              {}
+func (e EmptyTx) EmitEvent(msg *types.MsgEthereumTx, result *base.Result)                           {}
+func (e EmptyTx) FinalizeWatcher(msg *types.MsgEthereumTx, account authexported.Account, err error) {}
+func (e EmptyTx) AnalyzeStart(tag string)                                                           {}
+func (e EmptyTx) AnalyzeStop(tag string)                                                            {}
 
 func TestTransitionEvmTx(t *testing.T) {
 	privateKey, _ := ethsecp256k1.GenerateKey()

@@ -2,16 +2,18 @@ package simapp
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/libs/cli"
-	"github.com/okex/exchain/x/wasm"
-	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
-	"github.com/spf13/viper"
 	"io"
 	"math/big"
 	"os"
 	"path/filepath"
 	"sort"
 	"sync"
+
+	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
+	"github.com/okex/exchain/libs/tendermint/libs/cli"
+	"github.com/okex/exchain/x/wasm"
+	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
+	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/libs/system/trace"
 
@@ -466,12 +468,12 @@ func NewSimApp(
 
 	// The last arguments can contain custom message handlers, and custom query handlers,
 	// if we want to allow any custom callbacks
-	supportedFeatures := "iterator,stargate"
+	supportedFeatures := wasm.SupportedFeatures
 	app.wasmKeeper = wasm.NewKeeper(
 		app.marshal,
 		keys[wasm.StoreKey],
 		app.subspaces[wasm.ModuleName],
-		app.AccountKeeper,
+		&app.AccountKeeper,
 		bank.NewBankKeeperAdapter(app.BankKeeper),
 		app.IBCKeeper.ChannelKeeper,
 		&app.IBCKeeper.PortKeeper,
@@ -605,8 +607,8 @@ func NewSimApp(
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccNonceHandler(NewAccHandler(app.AccountKeeper))
-	//app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), evmTxFeeHandler(), fixLogForParallelTxHandler(app.EvmKeeper))
-
+	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), fixLogForParallelTxHandler(app.EvmKeeper))
+	app.SetGetTxFeeHandler(getTxFeeHandler())
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
 		if err != nil {
@@ -622,6 +624,27 @@ func NewSimApp(
 	app.ScopedIBCMockKeeper = scopedIBCMockKeeper
 
 	return app
+}
+
+func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
+	return func(ctx sdk.Context, balance sdk.Coins) error {
+		return bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
+	}
+}
+func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
+	return func(tx []sdk.Tx, logIndex []int, hasEnterEvmTx []bool, anteErrs []error, resp []abci.ResponseDeliverTx) (logs [][]byte) {
+		return ek.FixLog(tx, logIndex, hasEnterEvmTx, anteErrs, resp)
+	}
+}
+
+func getTxFeeHandler() sdk.GetTxFeeHandler {
+	return func(tx sdk.Tx) (fee sdk.Coins) {
+		if feeTx, ok := tx.(authante.FeeTx); ok {
+			fee = feeTx.GetFee()
+		}
+
+		return
+	}
 }
 
 func (app *SimApp) SetOption(req abci.RequestSetOption) (res abci.ResponseSetOption) {

@@ -4,19 +4,6 @@
 VERSION_NUM=2.9.1
 VERSION=gperftools-$VERSION_NUM
 
-while [ $# -gt 0 ]; do
-	case "$1" in
-		--version)
-			VERSION="$2"
-			shift
-			;;
-		--*)
-			echo "Illegal option $1"
-			;;
-	esac
-	shift $(( $# > 0 ? 1 : 0 ))
-done
-
 command_exists() {
 	command -v "$@" > /dev/null 2>&1
 }
@@ -92,7 +79,7 @@ do_install() {
 	# Run setup for each distro accordingly
 	case "$lsb_dist" in
 		ubuntu)
-			pre_reqs="git make autoconf automake libtool gcc-c++"
+			pre_reqs="git make dh-autoreconf autoconf automake libtool g++ gcc"
 			$sh_c 'apt-get update -qq >/dev/null'
 			$sh_c "apt-get install -y -qq $pre_reqs >/dev/null"
 			install_linux

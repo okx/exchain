@@ -30,3 +30,14 @@ var (
 func AddressStoreKey(addr sdk.AccAddress) []byte {
 	return append(AddressStoreKeyPrefix, addr.Bytes()...)
 }
+
+// MakeAddressStoreKey return an address store key for the given address,
+// it will try copy the key to target slice if its capacity is enough.
+func MakeAddressStoreKey(addr sdk.AccAddress, target []byte) []byte {
+	target = target[:0]
+	if cap(target) >= len(AddressStoreKeyPrefix)+len(addr) {
+		target = append(target, AddressStoreKeyPrefix...)
+		return append(target, addr.Bytes()...)
+	}
+	return AddressStoreKey(addr)
+}
