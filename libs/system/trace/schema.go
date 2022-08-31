@@ -76,7 +76,7 @@ const (
 
 	BlockPartsP2P = "BlockPartsP2P"
 
-	FirstTo23AnyPreVote = "FirstTo23AnyPreVote"
+	FirstTo23AnyPrevote = "FirstTo23AnyPrevote"
 
 	FirstTo23MajPrevote = "FirstTo23MajPrevote"
 )

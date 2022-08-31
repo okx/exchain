@@ -24,6 +24,7 @@ type BlockTransport struct {
 	bpNOTransByData int
 	bpNOTransByACK  int
 
+	recvPrevote  bool
 	firstPrevote time.Time
 }
 
@@ -44,6 +45,7 @@ func (bt *BlockTransport) reset(height int64) {
 	bt.bpNOTransByData = 0
 	bt.bpNOTransByACK = 0
 	bt.bpSend = 0
+	bt.recvPrevote = false
 }
 
 func (bt *BlockTransport) on1stPart(height int64) {
@@ -85,7 +87,8 @@ func (bt *BlockTransport) onBPDataHit() {
 
 //prevote time
 func (bt *BlockTransport) On1stPrevote(height int64) {
-	if bt.height == height || bt.height == 0 {
+	if (bt.height == height || bt.height == 0) && !bt.recvPrevote {
+		bt.recvPrevote = true
 		bt.firstPrevote = time.Now()
 	}
 }
@@ -93,7 +96,7 @@ func (bt *BlockTransport) On1stPrevote(height int64) {
 func (bt *BlockTransport) on23AnyPrevote(height int64) {
 	if bt.height == height {
 		first2AnyElapsed := time.Now().Sub(bt.firstPrevote)
-		trace.GetElapsedInfo().AddInfo(trace.FirstTo23AnyPreVote, fmt.Sprintf("%dms", first2AnyElapsed.Milliseconds()))
+		trace.GetElapsedInfo().AddInfo(trace.FirstTo23AnyPrevote, fmt.Sprintf("%dms", first2AnyElapsed.Milliseconds()))
 	}
 }
 

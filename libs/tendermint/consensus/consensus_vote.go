@@ -123,9 +123,8 @@ func (cs *State) addVote(
 	case types.PrevoteType:
 		prevotes := cs.Votes.Prevotes(vote.Round)
 		cs.Logger.Info("Added to prevote", "vote", vote, "prevotes", prevotes.StringShort())
-		if prevotes.Num() == 1 {
-			cs.bt.On1stPrevote(height)
-		}
+
+		cs.bt.On1stPrevote(height)
 
 		if prevotes.HasTwoThirdsAny() {
 			// 2/3 any
