@@ -153,3 +153,12 @@ func (c *ContractMethods) IsMethodBlocked(method string) bool {
 	}
 	return false
 }
+
+func FindContractMethods(cms []*ContractMethods, contractAddr string) *ContractMethods {
+	for _, cm := range cms {
+		if cm.ContractAddr == contractAddr {
+			return cm
+		}
+	}
+	return nil
+}

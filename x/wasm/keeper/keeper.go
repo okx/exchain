@@ -194,9 +194,12 @@ func (k Keeper) IsContractMethodBlocked(ctx sdk.Context, contractAddr, method st
 
 func (k Keeper) GetContractMethodBlockedList(ctx sdk.Context, contractAddr string) *types.ContractMethods {
 	if ctx.UseParamCache() {
-		if !ctx.IsCheckTx() && GetWasmParamsCache().IsNeedBlockedUpdate() {
+		if GetWasmParamsCache().IsNeedBlockedUpdate() {
 			cms := k.getAllBlockedList(ctx)
-			GetWasmParamsCache().UpdateBlockedContractMethod(cms)
+			if !ctx.IsCheckTx() {
+				GetWasmParamsCache().UpdateBlockedContractMethod(cms)
+			}
+			return types.FindContractMethods(cms, contractAddr)
 		}
 		return GetWasmParamsCache().GetBlockedContractMethod(contractAddr)
 	}
@@ -276,9 +279,12 @@ func (k Keeper) getInstantiateAccessConfig(ctx sdk.Context) types.AccessType {
 func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 	var params types.Params
 	if ctx.UseParamCache() {
-		if !ctx.IsCheckTx() && GetWasmParamsCache().IsNeedParamsUpdate() {
+		if GetWasmParamsCache().IsNeedParamsUpdate() {
 			k.paramSpace.GetParamSet(ctx, &params)
-			GetWasmParamsCache().UpdateParams(params)
+			if !ctx.IsCheckTx() {
+				GetWasmParamsCache().UpdateParams(params)
+			}
+			return params
 		}
 		return GetWasmParamsCache().GetParams()
 	}
