@@ -73,7 +73,7 @@ func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 			BlockNumber:      big.NewInt(tx.Ctx.BlockHeight()),
 			TransactionIndex: uint(tx.Keeper.TxCount),
 		}
-		err = tx.Keeper.CallEvmHooks(tx.Ctx, tx.StateTransition.Sender, tx.StateTransition.Recipient, receipt)
+		err = tx.Keeper.CallEvmHooks(tx.Ctx, &tx.StateTransition, receipt)
 		if err != nil {
 			tx.Keeper.Logger().Error("tx call evm hooks failed", "error", err)
 		}
