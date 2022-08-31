@@ -2,8 +2,9 @@ package iavl
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/system/trace"
 	"sync/atomic"
+
+	"github.com/okex/exchain/libs/system/trace"
 )
 
 type RuntimeState struct {
@@ -11,20 +12,22 @@ type RuntimeState struct {
 	dbReadCount   int64
 	nodeReadCount int64
 	dbWriteCount  int64
+	dbFssReadTime int64
 
 	totalPersistedCount int64
 	totalPersistedSize  int64
 	totalDeletedCount   int64
 	totalOrphanCount    int64
 
-	fromPpnc         int64
-	fromTpp          int64
-	fromNodeCache    int64
-	fromOrphanCache  int64
-	fromDisk         int64
+	fromPpnc        int64
+	fromTpp         int64
+	fromNodeCache   int64
+	fromOrphanCache int64
+	fromDisk        int64
 }
 
 type retrieveType int
+
 const (
 	unknown retrieveType = iota
 	fromPpnc
@@ -59,6 +62,10 @@ func (s *RuntimeState) addDBReadTime(ts int64) {
 	atomic.AddInt64(&s.dbReadTime, ts)
 }
 
+func (s *RuntimeState) addDBFssReadTime(ts int64) {
+	atomic.AddInt64(&s.dbFssReadTime, ts)
+}
+
 func (s *RuntimeState) addDBReadCount() {
 	atomic.AddInt64(&s.dbReadCount, 1)
 }
@@ -73,6 +80,10 @@ func (s *RuntimeState) addNodeReadCount() {
 
 func (s *RuntimeState) resetDBReadTime() {
 	atomic.StoreInt64(&s.dbReadTime, 0)
+}
+
+func (s *RuntimeState) resetDBFssReadTime() {
+	atomic.StoreInt64(&s.dbFssReadTime, 0)
 }
 
 func (s *RuntimeState) resetDBReadCount() {
@@ -91,6 +102,10 @@ func (s *RuntimeState) getDBReadTime() int {
 	return int(atomic.LoadInt64(&s.dbReadTime))
 }
 
+func (s *RuntimeState) getDBFssReadTime() int {
+	return int(atomic.LoadInt64(&s.dbFssReadTime))
+}
+
 func (s *RuntimeState) getDBReadCount() int {
 	return int(atomic.LoadInt64(&s.dbReadCount))
 }
@@ -105,6 +120,7 @@ func (s *RuntimeState) getNodeReadCount() int {
 
 func (s *RuntimeState) resetCount() {
 	s.resetDBReadTime()
+	s.resetDBFssReadTime()
 	s.resetDBReadCount()
 	s.resetDBWriteCount()
 	s.resetNodeReadCount()
@@ -172,12 +188,15 @@ func (ndb *nodeDB) sprintCacheLog(version int64) (printLog string) {
 		trace.GetElapsedInfo().AddInfo(trace.IavlRuntime, printLog)
 	}
 
-	return header+printLog
+	return header + printLog
 }
-
 
 func (ndb *nodeDB) getDBReadTime() int {
 	return ndb.state.getDBReadTime()
+}
+
+func (ndb *nodeDB) getDBFssReadTime() int {
+	return ndb.state.getDBFssReadTime()
 }
 
 func (ndb *nodeDB) getDBReadCount() int {
@@ -198,6 +217,10 @@ func (ndb *nodeDB) resetCount() {
 
 func (ndb *nodeDB) addDBReadTime(ts int64) {
 	ndb.state.addDBReadTime(ts)
+}
+
+func (ndb *nodeDB) addDBFssReadTime(ts int64) {
+	ndb.state.addDBFssReadTime(ts)
 }
 
 func (ndb *nodeDB) addDBReadCount() {

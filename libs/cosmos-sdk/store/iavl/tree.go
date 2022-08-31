@@ -27,6 +27,7 @@ type (
 		GetDBWriteCount() int
 		GetDBReadCount() int
 		GetDBReadTime() int
+		GetDBFssReadTime() int
 		GetNodeReadCount() int
 		ResetCount()
 		DeleteVersion(version int64) error
@@ -122,6 +123,10 @@ func (it *immutableTree) GetDBReadCount() int {
 }
 
 func (it *immutableTree) GetDBReadTime() int {
+	return 0
+}
+
+func (it *immutableTree) GetDBFssReadTime() int {
 	return 0
 }
 

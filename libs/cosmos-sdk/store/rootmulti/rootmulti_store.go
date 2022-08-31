@@ -957,6 +957,15 @@ func (rs *Store) GetDBReadTime() int {
 	}
 	return count
 }
+
+func (rs *Store) GetDBFssReadTime() int {
+	count := 0
+	for _, store := range rs.stores {
+		count += store.GetDBFssReadTime()
+	}
+	return count
+}
+
 func findVersionInSubStores(rs *Store, params storeParams, version int64) (bool, error) {
 	var db dbm.DB
 

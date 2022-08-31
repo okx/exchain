@@ -311,6 +311,10 @@ func (tree *MutableTree) GetDBReadTime() int {
 	return tree.ndb.getDBReadTime()
 }
 
+func (tree *MutableTree) GetDBFssReadTime() int {
+	return tree.ndb.getDBFssReadTime()
+}
+
 func (tree *MutableTree) GetDBReadCount() int {
 	return tree.ndb.getDBReadCount()
 }

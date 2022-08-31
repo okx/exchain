@@ -379,6 +379,10 @@ func (st *Store) GetDBReadTime() int {
 	return st.tree.GetDBReadTime()
 }
 
+func (st *Store) GetDBFssReadTime() int {
+	return st.tree.GetDBFssReadTime()
+}
+
 func (st *Store) GetDBWriteCount() int {
 	return st.tree.GetDBWriteCount()
 }

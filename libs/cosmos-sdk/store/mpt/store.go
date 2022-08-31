@@ -294,6 +294,10 @@ func (ms *MptStore) GetDBReadTime() int {
 	return 0
 }
 
+func (ms *MptStore) GetDBFssReadTime() int {
+	return 0
+}
+
 // PushData2Database writes all associated state in cache to the database
 func (ms *MptStore) PushData2Database(curHeight int64) {
 	ms.cmLock.Lock()

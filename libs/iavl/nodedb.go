@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	dbm "github.com/okex/exchain/libs/tm-db"
@@ -151,7 +152,9 @@ func (ndb *nodeDB) GetFastNode(key []byte) (*FastNode, error) {
 	}
 
 	// Doesn't exist, load.
+	ts := time.Now()
 	buf, err := ndb.db.Get(ndb.fastNodeKey(key))
+	ndb.addDBFssReadTime(time.Since(ts).Nanoseconds())
 	if err != nil {
 		return nil, fmt.Errorf("can't get FastNode %X: %w", key, err)
 	}

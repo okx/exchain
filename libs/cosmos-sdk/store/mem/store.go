@@ -32,6 +32,10 @@ func (s *Store) GetDBReadTime() int {
 	return 0
 }
 
+func (s *Store) GetDBFssReadTime() int {
+	return 0
+}
+
 func (s *Store) GetDBWriteCount() int {
 	return 0
 }

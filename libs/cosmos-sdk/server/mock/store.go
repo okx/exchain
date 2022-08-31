@@ -116,6 +116,10 @@ func (ms multiStore) GetDBReadTime() int {
 	return 0
 }
 
+func (ms multiStore) GetDBFssReadTime() int {
+	return 0
+}
+
 func (ms multiStore) GetDBWriteCount() int {
 	return 0
 }
