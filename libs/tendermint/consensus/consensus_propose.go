@@ -393,7 +393,7 @@ func (cs *State) newPartSetFromHeadeWithCache(header types.PartSetHeader, height
 	partSet := types.NewPartSetFromHeader(header)
 	if height == cs.hbc.Height() {
 		for _, part := range cs.hbc.Cache() {
-			cs.sendInternalMessage(msgInfo{&BlockPartMessage{cs.Height, cs.Round, part, cs.Deltas}, BPCachePeerID})
+			cs.sendInternalMessage(msgInfo{&BlockPartMessage{cs.Height, cs.Round, part}, BPCachePeerID})
 		}
 	}
 	return partSet
