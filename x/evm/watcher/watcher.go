@@ -40,12 +40,13 @@ type Watcher struct {
 	eraseKeyFilter map[string][]byte
 	log            log.Logger
 	// for state delta transfering in network
-	watchData    *WatchData
-	jobChan      chan func()
-	evmTxIndex   uint64
-	checkWd      bool
-	filterMap    map[string]WatchMessage
-	InfuraKeeper InfuraKeeper
+	watchData     *WatchData
+	jobChan       chan func()
+	evmTxIndex    uint64
+	checkWd       bool
+	filterMap     map[string]WatchMessage
+	InfuraKeeper  InfuraKeeper
+	delAccountMtx sync.Mutex
 }
 
 var (
@@ -173,8 +174,10 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 	}
 	key1 := GetMsgAccountKey(addr.Bytes())
 	key2 := append(prefixRpcDb, key1...)
+	w.delAccountMtx.Lock()
 	w.delayEraseKey = append(w.delayEraseKey, key1)
 	w.delayEraseKey = append(w.delayEraseKey, key2)
+	w.delAccountMtx.Unlock()
 }
 
 func (w *Watcher) DelayEraseKey() {
