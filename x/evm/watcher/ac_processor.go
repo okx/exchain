@@ -92,7 +92,9 @@ func (ap *ACProcessor) Get(key []byte) (WatchMessage, bool) {
 
 func (ap *ACProcessor) MoveToCommitList(version int64) {
 	cur := ap.curMsgCache
-	ap.commitList.pushBack(version, &MessageCacheEvent{cur, version})
+	if cur != nil {
+		ap.commitList.pushBack(version, &MessageCacheEvent{cur, version})
+	}
 
 	ap.mtx.Lock()
 	ap.curMsgCache = newMessageCache()

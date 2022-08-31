@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"strconv"
@@ -547,8 +546,6 @@ func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if !q.enabled() {
 		return nil, errors.New(MsgFunctionDisable)
 	}
-	addrs := addr.String()
-	fmt.Println("addr", addrs)
 	key := GetMsgAccountKey(addr.Bytes())
 	acc, err := q.acQuerier.GetAccount(key)
 	if err == nil {

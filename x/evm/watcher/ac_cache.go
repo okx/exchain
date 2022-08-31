@@ -117,8 +117,8 @@ func (cc *commitCache) remove(version int64) *MessageCacheEvent {
 }
 
 func (cc *commitCache) getTop() (*MessageCacheEvent, bool) {
-	cc.mtx.Lock()
-	defer cc.mtx.Unlock()
+	cc.mtx.RLock()
+	defer cc.mtx.RUnlock()
 	elm := cc.l.Front()
 	if elm == nil {
 		return nil, false
@@ -138,5 +138,7 @@ func (cc *commitCache) getElementFromCache(key []byte) (WatchMessage, bool) {
 }
 
 func (cc *commitCache) size() int {
+	cc.mtx.RLock()
+	defer cc.mtx.RUnlock()
 	return len(cc.m)
 }
