@@ -3,11 +3,12 @@ package types
 import (
 	"bytes"
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/global"
 	"math"
 	"math/big"
 	"sort"
 	"strings"
+
+	"github.com/okex/exchain/libs/tendermint/global"
 
 	"github.com/pkg/errors"
 
