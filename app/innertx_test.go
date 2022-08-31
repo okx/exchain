@@ -10,6 +10,7 @@ import (
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
@@ -57,7 +58,7 @@ type InnerTxTestSuite struct {
 func (suite *InnerTxTestSuite) SetupTest() {
 	checkTx := false
 	chain_id := "ethermint-3"
-
+	sdk.DBBackend = string(mpttypes.MemDBBackend)
 	suite.app = Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: chain_id, Time: time.Now().UTC()})
 	suite.ctx.SetDeliver()

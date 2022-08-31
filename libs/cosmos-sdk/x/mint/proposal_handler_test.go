@@ -1,16 +1,18 @@
 package mint_test
 
 import (
+	"testing"
+	"time"
+
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint/internal/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	govtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/stretchr/testify/suite"
-	"testing"
-	"time"
 )
 
 var (
@@ -34,7 +36,7 @@ type MintTestSuite struct {
 
 func (suite *MintTestSuite) SetupTest() {
 	checkTx := false
-
+	sdk.DBBackend = string(mpttypes.MemDBBackend)
 	suite.app = app.Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
 

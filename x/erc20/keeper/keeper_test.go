@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	"github.com/okex/exchain/app"
+	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	minttypes "github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	transfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
@@ -42,7 +43,7 @@ type KeeperTestSuite struct {
 
 func (suite *KeeperTestSuite) SetupTest() {
 	checkTx := false
-
+	sdk.DBBackend = string(mpttypes.MemDBBackend)
 	suite.app = app.Setup(checkTx)
 	suite.ctx = suite.app.NewContext(checkTx, abci.Header{
 		Height:  1,

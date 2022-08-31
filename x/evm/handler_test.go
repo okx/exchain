@@ -16,6 +16,7 @@ import (
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	auth "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
@@ -47,6 +48,7 @@ type EvmTestSuite struct {
 func (suite *EvmTestSuite) SetupTest() {
 	checkTx := false
 	chain_id := "ethermint-3"
+	sdk.DBBackend = string(mpttypes.MemDBBackend)
 
 	suite.app = app.Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: chain_id, Time: time.Now().UTC()})
@@ -795,7 +797,7 @@ func TestEvmContractBlockedListTestSuite(t *testing.T) {
 func (suite *EvmContractBlockedListTestSuite) SetupTest() {
 	var err error
 	checkTx := false
-
+	sdk.DBBackend = string(mpttypes.MemDBBackend)
 	suite.app = app.Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
 	suite.ctx.SetDeliver()

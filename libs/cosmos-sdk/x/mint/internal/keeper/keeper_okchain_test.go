@@ -6,6 +6,7 @@ import (
 
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint/internal/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -26,7 +27,7 @@ type TreasuresTestSuite struct {
 
 func (suite *TreasuresTestSuite) SetupTest() {
 	checkTx := false
-
+	sdk.DBBackend = string(mpttypes.MemDBBackend)
 	suite.app = app.Setup(checkTx)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
 	suite.codec = codec.New()

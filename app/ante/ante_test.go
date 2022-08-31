@@ -18,6 +18,7 @@ import (
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/ante"
 	"github.com/okex/exchain/app/types"
+	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
@@ -254,6 +255,7 @@ func (suite *AnteTestSuite) TestEthInvalidIntrinsicGas() {
 
 func (suite *AnteTestSuite) TestEthInvalidMempoolFees() {
 	// setup app with checkTx = true
+	sdk.DBBackend = string(mpttypes.MemDBBackend)
 	suite.app = app.Setup(true)
 	suite.ctx = suite.app.BaseApp.NewContext(true, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
 	suite.app.EvmKeeper.SetParams(suite.ctx, evmtypes.DefaultParams())

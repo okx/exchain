@@ -1,19 +1,21 @@
 package app
 
 import (
+	"math/big"
+	"os"
+	"testing"
+
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	cosmossdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authclient "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
 	"github.com/okex/exchain/libs/tendermint/global"
 	tendertypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/keeper"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/stretchr/testify/suite"
-	"math/big"
-	"os"
-	"testing"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"github.com/okex/exchain/x/dex"
@@ -29,6 +31,7 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 
+	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	abcitypes "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -133,6 +136,7 @@ type FakeBlockTxTestSuite struct {
 }
 
 func (suite *FakeBlockTxTestSuite) SetupTest() {
+	sdk.DBBackend = string(mpttypes.MemDBBackend)
 	suite.app = Setup(checkTx, WithChainId(cosmosChainId))
 	suite.codec = suite.app.Codec()
 	params := evmtypes.DefaultParams()

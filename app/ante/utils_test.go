@@ -2,6 +2,10 @@ package ante_test
 
 import (
 	"fmt"
+	"math/big"
+	"testing"
+	"time"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	types2 "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
@@ -12,9 +16,6 @@ import (
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	"github.com/okex/exchain/libs/ibc-go/testing/mock"
 	helpers2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/helpers"
-	"math/big"
-	"testing"
-	"time"
 
 	"github.com/stretchr/testify/suite"
 
@@ -30,6 +31,7 @@ import (
 
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 
+	mpttypes "github.com/okex/exchain/libs/cosmos-sdk/store/mpt/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmcrypto "github.com/okex/exchain/libs/tendermint/crypto"
 )
@@ -45,7 +47,7 @@ type AnteTestSuite struct {
 func (suite *AnteTestSuite) SetupTest() {
 	checkTx := false
 	chainId := "okexchain-3"
-
+	sdk.DBBackend = string(mpttypes.MemDBBackend)
 	suite.app = app.Setup(checkTx)
 	suite.app.Codec().RegisterConcrete(&sdk.TestMsg{}, "test/TestMsg", nil)
 
