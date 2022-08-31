@@ -8,6 +8,13 @@ import (
 	"time"
 )
 
+const (
+	PREVOTE_STEP_NIL = iota
+	PREVOTE_STEP_1ST
+	PREVOTE_STEP_ANY
+	PREVOTE_STEP_MAJ
+)
+
 type BlockTransport struct {
 	height                 int64
 	recvProposal           time.Time
@@ -24,7 +31,7 @@ type BlockTransport struct {
 	bpNOTransByData int
 	bpNOTransByACK  int
 
-	recvPrevote  bool
+	prevoteStep  int
 	firstPrevote time.Time
 }
 
@@ -45,7 +52,7 @@ func (bt *BlockTransport) reset(height int64) {
 	bt.bpNOTransByData = 0
 	bt.bpNOTransByACK = 0
 	bt.bpSend = 0
-	bt.recvPrevote = false
+	bt.prevoteStep = PREVOTE_STEP_NIL
 }
 
 func (bt *BlockTransport) on1stPart(height int64) {
@@ -87,21 +94,24 @@ func (bt *BlockTransport) onBPDataHit() {
 
 //prevote time
 func (bt *BlockTransport) On1stPrevote(height int64) {
-	if (bt.height == height || bt.height == 0) && !bt.recvPrevote {
-		bt.recvPrevote = true
+	if (bt.height == height || bt.height == 0) && (bt.prevoteStep == PREVOTE_STEP_NIL) {
+		bt.prevoteStep = PREVOTE_STEP_1ST
 		bt.firstPrevote = time.Now()
 	}
 }
 
 func (bt *BlockTransport) on23AnyPrevote(height int64) {
-	if bt.height == height {
+	if (bt.height == height) && (bt.prevoteStep == PREVOTE_STEP_1ST) {
+		bt.prevoteStep = PREVOTE_STEP_ANY
 		first2AnyElapsed := time.Now().Sub(bt.firstPrevote)
 		trace.GetElapsedInfo().AddInfo(trace.FirstTo23AnyPrevote, fmt.Sprintf("%dms", first2AnyElapsed.Milliseconds()))
+
 	}
 }
 
 func (bt *BlockTransport) on23MajPrevote(height int64) {
-	if bt.height == height {
+	if (bt.height == height) && (bt.prevoteStep == PREVOTE_STEP_ANY) {
+		bt.prevoteStep = PREVOTE_STEP_MAJ
 		first2MajElapsed := time.Now().Sub(bt.firstPrevote)
 		trace.GetElapsedInfo().AddInfo(trace.FirstTo23MajPrevote, fmt.Sprintf("%dms", first2MajElapsed.Milliseconds()))
 	}
