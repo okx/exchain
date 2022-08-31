@@ -31,9 +31,11 @@ type BlockTransport struct {
 	bpNOTransByData int
 	bpNOTransByACK  int
 
-	prevoteStep  int
-	firstPrevote time.Time
-	enterPrevote time.Time
+	//trace for prevote
+	prevoteStep    int
+	isEnterPrevote bool
+	firstPrevote   time.Time
+	enterPrevote   time.Time
 }
 
 func (bt *BlockTransport) onProposal(height int64) {
@@ -54,6 +56,7 @@ func (bt *BlockTransport) reset(height int64) {
 	bt.bpNOTransByACK = 0
 	bt.bpSend = 0
 	bt.prevoteStep = PREVOTE_STEP_NIL
+	bt.isEnterPrevote = false
 }
 
 func (bt *BlockTransport) on1stPart(height int64) {
@@ -97,6 +100,7 @@ func (bt *BlockTransport) onBPDataHit() {
 func (bt *BlockTransport) OnEnterPrevote(height int64) {
 	if bt.height == height || bt.height == 0 {
 		bt.enterPrevote = time.Now()
+		bt.isEnterPrevote = true
 	}
 }
 
@@ -111,22 +115,28 @@ func (bt *BlockTransport) On1stPrevote(height int64) {
 func (bt *BlockTransport) on23AnyPrevote(height int64) {
 	if (bt.height == height) && (bt.prevoteStep == PREVOTE_STEP_1ST) {
 		bt.prevoteStep = PREVOTE_STEP_ANY
-		first2AnyElapsed := time.Now().Sub(bt.firstPrevote)
-		prevote2AnyElapsed := time.Now().Sub(bt.enterPrevote)
+		first2AnyElapsed := time.Now().Sub(bt.firstPrevote).Milliseconds()
+		prevote2AnyElapsed := time.Now().Sub(bt.enterPrevote).Milliseconds()
+		if !bt.isEnterPrevote {
+			prevote2AnyElapsed = 0
+		}
 		trace.GetElapsedInfo().AddInfo(trace.Any23Prevote, fmt.Sprintf("%d|%dms",
-			prevote2AnyElapsed.Milliseconds(),
-			first2AnyElapsed.Milliseconds()))
+			prevote2AnyElapsed,
+			first2AnyElapsed))
 	}
 }
 
 func (bt *BlockTransport) on23MajPrevote(height int64) {
 	if (bt.height == height) && (bt.prevoteStep == PREVOTE_STEP_ANY) {
 		bt.prevoteStep = PREVOTE_STEP_MAJ
-		first2MajElapsed := time.Now().Sub(bt.firstPrevote)
-		prevote2MajElapsed := time.Now().Sub(bt.enterPrevote)
+		first2MajElapsed := time.Now().Sub(bt.firstPrevote).Milliseconds()
+		prevote2MajElapsed := time.Now().Sub(bt.enterPrevote).Milliseconds()
 
+		if !bt.isEnterPrevote {
+			prevote2MajElapsed = 0
+		}
 		trace.GetElapsedInfo().AddInfo(trace.Maj23Prevote, fmt.Sprintf("%d|%dms",
-			prevote2MajElapsed.Milliseconds(),
-			first2MajElapsed.Milliseconds()))
+			prevote2MajElapsed,
+			first2MajElapsed))
 	}
 }
