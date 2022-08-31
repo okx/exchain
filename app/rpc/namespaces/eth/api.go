@@ -784,7 +784,6 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNrOrHash rpctype
 			panic(err)
 		}
 	}()
-	panic("eth_call panic for test")
 	if overrides != nil {
 		if err := overrides.Check(); err != nil {
 			return nil, err
