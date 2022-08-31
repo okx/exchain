@@ -232,7 +232,7 @@ func (cs *State) finalizeCommit(height int64) {
 	blockTime := sm.MedianTime(cs.Votes.Precommits(cs.Round).MakeCommit(), cs.Validators)
 	validators := cs.Validators.Copy()
 	validators.IncrementProposerPriority(1)
-	cs.blockExec.FireBlockTimeEvents(height, blockTime.UnixMicro(), validators.Proposer.Address)
+	cs.blockExec.FireBlockTimeEvents(height, blockTime.UnixMilli(), validators.Proposer.Address)
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
 		stateCopy,
 		types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()},
