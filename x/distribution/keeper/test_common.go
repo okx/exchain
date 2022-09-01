@@ -156,7 +156,7 @@ func MakeTestCodec() *codec.Codec {
 	supply.RegisterCodec(cdc)
 	sdk.RegisterCodec(cdc)
 	codec.RegisterCrypto(cdc)
-	gov.RegisterCodec(cdc)
+	//gov.RegisterCodec(cdc)
 
 	types.RegisterCodec(cdc) // distr
 	return cdc
