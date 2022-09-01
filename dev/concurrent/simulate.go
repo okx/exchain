@@ -7,9 +7,6 @@ import (
 	"fmt"
 	"log"
 	"math/big"
-	"math/rand"
-	"sync"
-	"time"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
@@ -20,57 +17,64 @@ import (
 
 func main() {
 	//rpcUrl = "https://exchaintestrpc.okex.org"
-	chainID := big.NewInt(67)
-	addr := "3DF95c73357f988F732c4c7a8Fa2f9beD7952861"
-	fromPrivkey := "8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17"
 
-	captionPk, err := crypto.HexToECDSA(fromPrivkey)
-	CheckErr(err)
-	transferOKT(chainID, big.NewInt(1000000000000000000), captionPk, addr)
-
-	mStore := make([]*ecdsa.PrivateKey, 0)
-	var mutex sync.Mutex
-	for i := 0; i < 100000; i++ {
-		privateKey, _ := crypto.GenerateKey()
-		randAddr, _ := PrivateKeyToAddress(privateKey)
-		transferOKT(chainID, big.NewInt(1000000000000000000), captionPk, randAddr.String())
-		mStore = append(mStore, privateKey)
+	for {
+		Eg()
 	}
-
-	time.Sleep(3 * time.Second)
-	var wg sync.WaitGroup
-	const concurrent = 1000
-	wg.Add(concurrent * 2)
-	for i := 0; i < 1000; i++ {
-		go func() {
-			defer wg.Done()
-			for j := 0; j < 100; j++ {
-				privateKey, _ := crypto.GenerateKey()
-				randAddr, _ := PrivateKeyToAddress(privateKey)
-				mutex.Lock()
-				pk := mStore[0]
-				mStore = mStore[1:]
-				mutex.Unlock()
-				transferOKT(chainID, big.NewInt(1000000000000000000), pk, randAddr.String())
-				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
-			}
-		}()
-	}
-	for i := 0; i < 1000; i++ {
-		go func() {
-			defer wg.Done()
-			for j := 0; j < 100; j++ {
-				estimateGas(addr)
-				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
-			}
-		}()
-	}
-	wg.Wait()
+	//	chainID := big.NewInt(67)
+	//	addr := "3DF95c73357f988F732c4c7a8Fa2f9beD7952861"
+	//	fromPrivkey := "8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17"
+	//	// fromPrivkey := "824c346a2b5fa81768c75408202493a9cb0a7f5879ff4988d23da2c6b1afb9cf"
+	//
+	//	captionPk, err := crypto.HexToECDSA(fromPrivkey)
+	//	CheckErr(err)
+	//	addr1, _ := PrivateKeyToAddress(captionPk)
+	//	log.Println(addr1.String())
+	//	transferOKT(chainID, big.NewInt(1000000000000000000), captionPk, addr)
+	//
+	//	mStore := make([]*ecdsa.PrivateKey, 0)
+	//	var mutex sync.Mutex
+	//	for i := 0; i < 100000; i++ {
+	//		privateKey, _ := crypto.GenerateKey()
+	//		randAddr, _ := PrivateKeyToAddress(privateKey)
+	//		transferOKT(chainID, big.NewInt(1000000000000000000), captionPk, randAddr.String())
+	//		mStore = append(mStore, privateKey)
+	//	}
+	//
+	//	time.Sleep(3 * time.Second)
+	//	var wg sync.WaitGroup
+	//	const concurrent = 1000
+	//	wg.Add(concurrent * 2)
+	//	for i := 0; i < 1000; i++ {
+	//		go func() {
+	//			defer wg.Done()
+	//			for j := 0; j < 100; j++ {
+	//				privateKey, _ := crypto.GenerateKey()
+	//				randAddr, _ := PrivateKeyToAddress(privateKey)
+	//				mutex.Lock()
+	//				pk := mStore[0]
+	//				mStore = mStore[1:]
+	//				mutex.Unlock()
+	//				transferOKT(chainID, big.NewInt(1000000000000000000), pk, randAddr.String())
+	//				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
+	//			}
+	//		}()
+	//	}
+	//	for i := 0; i < 1000; i++ {
+	//		go func() {
+	//			defer wg.Done()
+	//			for j := 0; j < 100; j++ {
+	//				estimateGas(addr)
+	//				time.Sleep(time.Duration(rand.Intn(500)) * time.Millisecond)
+	//			}
+	//		}()
+	//	}
+	//	wg.Wait()
 }
 
 func estimateGas(from string) {
 loop:
-	rpcUrl := "http://127.0.0.1:8545"
+	rpcUrl := "http://127.0.0.1:26659"
 	client, err := ethclient.Dial(rpcUrl)
 	if err != nil {
 		log.Println("estimate dial error ", err)
@@ -137,4 +141,14 @@ func PrivateKeyToAddress(privateKey *ecdsa.PrivateKey) (common.Address, error) {
 	}
 	address := crypto.PubkeyToAddress(*publicKeyECDSA)
 	return address, nil
+}
+
+func Eg() {
+	fromPrivkey := "824c346a2b5fa81768c75408202493a9cb0a7f5879ff4988d23da2c6b1afb9cf"
+	//fromPrivkey := "8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17"
+	captionPk, err := crypto.HexToECDSA(fromPrivkey)
+	CheckErr(err)
+	addr1, err := PrivateKeyToAddress(captionPk)
+	CheckErr(err)
+	estimateGas(addr1.String())
 }
