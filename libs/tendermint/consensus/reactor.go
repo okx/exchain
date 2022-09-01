@@ -156,6 +156,10 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 		return false
 	}
 
+	defer func() {
+		conR.setFastSyncFlag(false, 0)
+	}()
+
 	conR.Logger.Info("SwitchToConsensus")
 	if state.LastBlockHeight > types.GetStartBlockHeight() {
 		conR.conS.reconstructLastCommit(state)
@@ -163,11 +167,6 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 	// NOTE: The line below causes broadcastNewRoundStepRoutine() to
 	// broadcast a NewRoundStepMessage.
 	conR.conS.updateToState(state)
-
-	conR.mtx.Lock()
-	conR.fastSync = false
-	conR.mtx.Unlock()
-	conR.metrics.FastSyncing.Set(0)
 
 	if blocksSynced > 0 {
 		// dont bother with the WAL if we fast synced
@@ -180,8 +179,6 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 	conR.conS.Reset()
 	conR.conS.Start()
 
-	conR.conS.blockExec.SetIsFastSyncing(false)
-
 	go conR.peerStatsRoutine()
 	conR.subscribeToBroadcastEvents()
 
@@ -191,16 +188,15 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 func (conR *Reactor) SwitchToFastSync() (sm.State, error) {
 	conR.Logger.Info("SwitchToFastSync")
 
-	conR.mtx.Lock()
-	conR.fastSync = true
-	conR.mtx.Unlock()
-	conR.metrics.FastSyncing.Set(1)
+	defer func() {
+		conR.setFastSyncFlag(true, 1)
+	}()
 
 	if !conR.conS.IsRunning() {
 		return conR.conS.GetState(), errors.New("state is not running")
 	}
-	err := conR.conS.Stop()
 
+	err := conR.conS.Stop()
 	if err != nil {
 		panic(fmt.Sprintf(`Failed to stop consensus state: %v
 
@@ -212,13 +208,19 @@ conR:
 	}
 
 	conR.stopSwitchToFastSyncTimer()
-
 	conR.conS.Wait()
 
 	cState := conR.conS.GetState()
-	conR.conS.blockExec.SetIsFastSyncing(true)
-
 	return cState, nil
+}
+
+func (conR *Reactor) setFastSyncFlag(f bool, v float64) {
+	conR.mtx.Lock()
+	defer conR.mtx.Unlock()
+
+	conR.fastSync = f
+	conR.metrics.FastSyncing.Set(v)
+	conR.conS.blockExec.SetIsFastSyncing(f)
 }
 
 // Attempt to schedule a timer for checking whether consensus machine is hanged.
