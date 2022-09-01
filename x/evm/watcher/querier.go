@@ -4,10 +4,12 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"github.com/ethereum/go-ethereum/common/hexutil"
-	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"fmt"
 	"strconv"
 	"sync"
+
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 
 	"github.com/gogo/protobuf/proto"
 	prototypes "github.com/okex/exchain/x/evm/watcher/proto"
@@ -493,6 +495,7 @@ func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if b == nil {
 		return nil, errNotFound
 	}
+	fmt.Printf("Querier GetAccount: addr:%s value:%v, valueStr:%s\n", addr.String(), b, string(b))
 	acc, err := DecodeAccount(b)
 	if err != nil {
 		return nil, e
@@ -513,6 +516,7 @@ func (q Querier) GetAccountFromRdb(addr sdk.AccAddress) (*types.EthAccount, erro
 	if b == nil {
 		return nil, errNotFound
 	}
+	fmt.Printf("Querier GetAccountFromRdb: addr:%s value:%v, valueStr:%s\n", addr.String(), b, string(b))
 	acc, err := DecodeAccount(b)
 	if err != nil {
 		return nil, e
