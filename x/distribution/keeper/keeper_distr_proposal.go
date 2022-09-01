@@ -1,12 +1,13 @@
 package keeper
 
 import (
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	govTypes "github.com/okex/exchain/x/gov/types"
+	"fmt"
 	"time"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/types"
+	govTypes "github.com/okex/exchain/x/gov/types"
 )
 
 // withdraw rewards from a delegation
@@ -83,12 +84,15 @@ func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitPr
 	}
 
 	if tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
-		switch msg.Content.(type) {
-		case types.ChangeDistributionTypeProposal:
-		case types.WithdrawRewardEnabledProposal:
+		log := ctx.Logger()
+		switch content := msg.Content.(type) {
+		case types.WithdrawRewardEnabledProposal, types.ChangeDistributionTypeProposal:
+			log.Debug(fmt.Sprintf("proposal content type: %T", content))
 			if !k.stakingKeeper.IsValidator(ctx, msg.Proposer) {
 				return types.ErrCodeErrProposerMustBeValidator()
 			}
+		default:
+			log.Debug(fmt.Sprintf("proposal content type: %T", content))
 		}
 	}
 	return nil
