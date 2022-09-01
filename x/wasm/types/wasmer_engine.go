@@ -5,6 +5,9 @@ import (
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 )
 
+// DefaultMaxQueryStackSize maximum size of the stack of contract instances doing queries
+const DefaultMaxQueryStackSize uint32 = 10
+
 // WasmerEngine defines the WASM contract runtime engine.
 type WasmerEngine interface {
 	// Create will compile the wasm code, and store the resulting pre-compile
