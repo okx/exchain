@@ -276,13 +276,11 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	var gasUsed int64
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
 		gasUsed = mem.txInfoparser.GetTxHistoryGasUsed(tx)
-		if gasUsed < 0 {
-			simuRes, err := mem.simulateTx(tx)
-			if err != nil {
-				return err
-			}
-			gasUsed = int64(simuRes.GasUsed)
+		simuRes, err := mem.simulateTx(tx)
+		if err != nil {
+			return err
 		}
+		gasUsed = int64(simuRes.GasUsed)
 	}
 
 	if mem.preCheck != nil {
