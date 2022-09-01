@@ -370,6 +370,7 @@ func (api *PublicEthereumAPI) GetBalance(address common.Address, blockNrOrHash r
 func (api *PublicEthereumAPI) GetAccount(address common.Address) (*ethermint.EthAccount, error) {
 	acc, err := api.wrappedBackend.MustGetAccount(address.Bytes())
 	if err == nil {
+		api.logger.Error("api GetAccount from watchdb", "addr", address.String(), "value", acc)
 		return acc, nil
 	}
 	clientCtx := api.clientCtx
@@ -383,7 +384,7 @@ func (api *PublicEthereumAPI) GetAccount(address common.Address) (*ethermint.Eth
 	if err != nil {
 		return nil, err
 	}
-
+	api.logger.Error("api GetAccount from abci", "addr", address.String(), "value", acc)
 	var account ethermint.EthAccount
 	if err := api.clientCtx.Codec.UnmarshalJSON(res, &account); err != nil {
 		return nil, err

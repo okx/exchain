@@ -213,6 +213,7 @@ func (st StateTransition) TransitionDb(ctx sdk.Context, config ChainConfig) (exe
 
 	// Get nonce of account outside of the EVM
 	currentNonce := csdb.GetNonce(st.Sender)
+
 	// Set nonce of sender account before evm state transition for usage in generating Create address
 	csdb.SetNonce(st.Sender, st.AccountNonce)
 

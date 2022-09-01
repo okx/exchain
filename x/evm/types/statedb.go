@@ -2,10 +2,11 @@ package types
 
 import (
 	"fmt"
-	"github.com/tendermint/go-amino"
 	"math/big"
 	"sort"
 	"sync"
+
+	"github.com/tendermint/go-amino"
 
 	"github.com/okex/exchain/libs/system/trace"
 
@@ -705,7 +706,7 @@ func (csdb *CommitStateDB) GetNonce(addr ethcmn.Address) uint64 {
 		trace.StartTxLog(funcName)
 		defer trace.StopTxLog(funcName)
 	}
-
+	csdb.Logger().Error("CommitStateDB GetNonce", "sender", addr.String())
 	so := csdb.getStateObject(addr)
 	if so != nil {
 		return so.Nonce()

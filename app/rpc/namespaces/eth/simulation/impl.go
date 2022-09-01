@@ -2,6 +2,7 @@ package simulation
 
 import (
 	"encoding/binary"
+	"fmt"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -76,6 +77,7 @@ func (a AccountKeeperProxy) IterateAccounts(ctx sdk.Context, cb func(account aut
 func (a AccountKeeperProxy) GetAccount(ctx sdk.Context, addr sdk.AccAddress) authexported.Account {
 	acc, ok := a.cachedAcc[addr.String()]
 	if ok {
+		fmt.Printf("AccountKeeperProxy GetAccount cached: addr:%s value:%v\n", addr.String(), acc)
 		return acc
 	}
 	account, e := a.queryOnChainProxy.GetAccount(common.BytesToAddress(addr.Bytes()))
@@ -83,6 +85,7 @@ func (a AccountKeeperProxy) GetAccount(ctx sdk.Context, addr sdk.AccAddress) aut
 		//query account from chain
 		return nil
 	}
+	fmt.Printf("AccountKeeperProxy GetAccount queried: addr:%s value:%v\n", addr.String(), acc)
 	return account
 }
 
