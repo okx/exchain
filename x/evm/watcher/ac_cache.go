@@ -7,8 +7,9 @@ import (
 )
 
 type MessageCache struct {
-	mtx sync.RWMutex
-	mp  map[string]WatchMessage // if the key of value WatchMessage is nil, this key should del on db batch write
+	mtx   sync.RWMutex
+	count int
+	mp    map[string]WatchMessage // if the key of value WatchMessage is nil, this key should del on db batch write
 }
 
 func newMessageCache() *MessageCache {
@@ -23,12 +24,14 @@ func (c *MessageCache) Set(wsg WatchMessage) {
 	}
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
+	c.count++
 	c.mp[hex.EncodeToString(wsg.GetKey())] = wsg
 }
 
 func (c *MessageCache) BatchDel(keys [][]byte) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
+	c.count += len(keys)
 	for _, k := range keys {
 		c.mp[hex.EncodeToString(k)] = &Batch{Key: k, TypeValue: TypeDelete}
 	}
@@ -37,6 +40,7 @@ func (c *MessageCache) BatchDel(keys [][]byte) {
 func (c *MessageCache) BatchSet(wsgs []WatchMessage) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
+	c.count += len(wsgs)
 	for _, wsg := range wsgs {
 		if wsg == nil {
 			continue
@@ -48,6 +52,7 @@ func (c *MessageCache) BatchSet(wsgs []WatchMessage) {
 func (c *MessageCache) BatchSetEx(batchs []*Batch) {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
+	c.count += len(batchs)
 	for _, b := range batchs {
 		if b == nil {
 			continue
