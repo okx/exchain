@@ -184,7 +184,7 @@ func (tdb *testdb) commit(epochCache *MessageCache) {
 	defer dbBatch.Close()
 	for key, b := range epochCache.mp {
 		if b == nil {
-			dbBatch.Delete(key2Bytes(key))
+			dbBatch.Delete([]byte(key))
 			continue
 		}
 		key := b.GetKey()
