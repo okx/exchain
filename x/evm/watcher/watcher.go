@@ -349,16 +349,29 @@ func (w *Watcher) Commit() {
 		return
 	}
 
+	shouldPersist := w.IsShouldPersist()
+	height := w.height
 	if GetEnableAsyncCommit() {
-		st := time.Now()
-		w.acProcessor.BatchSet(batch)
-		fmt.Printf("******* lyh BatchSet cost time %v \n", time.Now().Sub(st))
-		if w.IsShouldPersist() {
+		w.dispatchJob(func() {
 			st := time.Now()
-			w.acProcessor.MoveToCommitList(int64(w.height)) // move curMsgCache to commitlist
-			fmt.Printf("******* lyh MoveToCommitList cost time %v \n", time.Now().Sub(st))
-			w.dispatchJob(func() { w.AsyncCommitBatch(batch) })
-		}
+			w.acProcessor.BatchSet(batch)
+			fmt.Printf("******* lyh BatchSet cost time %v \n", time.Now().Sub(st))
+			if shouldPersist {
+				st := time.Now()
+				w.acProcessor.MoveToCommitList(int64(height)) // move curMsgCache to commitlist
+				fmt.Printf("******* lyh MoveToCommitList cost time %v \n", time.Now().Sub(st))
+				w.AsyncCommitBatch(batch)
+			}
+		})
+		//st := time.Now()
+		//w.acProcessor.BatchSet(batch)
+		//fmt.Printf("******* lyh BatchSet cost time %v \n", time.Now().Sub(st))
+		//if w.IsShouldPersist() {
+		//	st := time.Now()
+		//	w.acProcessor.MoveToCommitList(int64(w.height)) // move curMsgCache to commitlist
+		//	fmt.Printf("******* lyh MoveToCommitList cost time %v \n", time.Now().Sub(st))
+		//	w.dispatchJob(func() { w.AsyncCommitBatch(batch) })
+		//}
 	} else {
 		w.dispatchJob(func() { w.commitBatch(batch) })
 	}
