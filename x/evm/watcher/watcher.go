@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"sync"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -349,9 +350,13 @@ func (w *Watcher) Commit() {
 	}
 
 	if GetEnableAsyncCommit() {
+		st := time.Now()
 		w.acProcessor.BatchSet(batch)
+		fmt.Printf("******* lyh BatchSet cost time %v \n", time.Now().Sub(st))
 		if w.IsShouldPersist() {
+			st := time.Now()
 			w.acProcessor.MoveToCommitList(int64(w.height)) // move curMsgCache to commitlist
+			fmt.Printf("******* lyh MoveToCommitList cost time %v \n", time.Now().Sub(st))
 			w.dispatchJob(func() { w.AsyncCommitBatch(batch) })
 		}
 	} else {

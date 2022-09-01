@@ -110,7 +110,7 @@ func (ap *ACProcessor) PersistHander(commitFn func(epochCache *MessageCache)) {
 			break
 		}
 		s := len(cmmiter.MessageCache.mp)
-		fmt.Printf("****** ACProcessor cur commiter size %d, repeat count %d, commitlist len %d \n", s, cmmiter.count-s, ap.commitList.size())
+		fmt.Printf("****** lyh ACProcessor cur commiter size %d, repeat count %d, commitlist len %d \n", s, cmmiter.count-s, ap.commitList.size())
 		commitFn(cmmiter.MessageCache)
 		ap.commitList.remove(cmmiter.version)
 		cmmiter.Clear()
