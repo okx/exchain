@@ -280,7 +280,7 @@ func testNodeJsonAmino(t *testing.T) {
 // benchmark encode performance
 func BenchmarkAminoEncodeDelta(b *testing.B) { benchmarkEncodeDelta(b, newEncoder("amino")) }
 
-//func BenchmarkJsonEncodeDelta(b *testing.B)  { benchmarkEncodeDelta(b, newEncoder("json")) }
+func BenchmarkJsonEncodeDelta(b *testing.B) { benchmarkEncodeDelta(b, newEncoder("json")) }
 func benchmarkEncodeDelta(b *testing.B, enc encoder) {
 	data := newTestTreeDeltaMap()
 
@@ -295,7 +295,7 @@ func benchmarkEncodeDelta(b *testing.B, enc encoder) {
 // benchmark decode performance
 func BenchmarkAminoDecodeDelta(b *testing.B) { benchmarkDecodeDelta(b, newEncoder("amino")) }
 
-// func BenchmarkJsonDecodeDelta(b *testing.B)  { benchmarkDecodeDelta(b, newEncoder("json")) }
+func BenchmarkJsonDecodeDelta(b *testing.B) { benchmarkDecodeDelta(b, newEncoder("json")) }
 func benchmarkDecodeDelta(b *testing.B, enc encoder) {
 	deltaList1 := newTestTreeDeltaMap()
 	data, _ := enc.encodeFunc(deltaList1)
