@@ -15,13 +15,15 @@ import (
 )
 
 func NewGasRefundHandler(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.GasRefundHandler {
+	evmGasRefundHandler := NewGasRefundDecorator(ak, sk)
+
 	return func(
 		ctx sdk.Context, tx sdk.Tx,
 	) (refundFee sdk.Coins, err error) {
 		var gasRefundHandler sdk.GasRefundHandler
 
 		if tx.GetType() == sdk.EvmTxType {
-			gasRefundHandler = NewGasRefundDecorator(ak, sk)
+			gasRefundHandler = evmGasRefundHandler
 		} else {
 			return nil, nil
 		}
@@ -77,10 +79,7 @@ func NewGasRefundDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.Gas
 		ak:           ak,
 		supplyKeeper: sk,
 	}
-
-	return func(ctx sdk.Context, tx sdk.Tx) (refund sdk.Coins, err error) {
-		return chandler.GasRefund(ctx, tx)
-	}
+	return chandler.GasRefund
 }
 
 func calculateRefundFees(gasUsed uint64, gas uint64, fees sdk.DecCoins) sdk.Coins {
