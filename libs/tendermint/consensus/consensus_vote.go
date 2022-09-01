@@ -124,8 +124,18 @@ func (cs *State) addVote(
 		prevotes := cs.Votes.Prevotes(vote.Round)
 		cs.Logger.Info("Added to prevote", "vote", vote, "prevotes", prevotes.StringShort())
 
+		cs.bt.On1stPrevote(height)
+
+		if prevotes.HasTwoThirdsAny() {
+			// 2/3 any
+			cs.bt.on23AnyPrevote(height)
+		}
+
 		// If +2/3 prevotes for a block or nil for *any* round:
 		if blockID, ok := prevotes.TwoThirdsMajority(); ok {
+
+			// 2/3 maj
+			cs.bt.on23MajPrevote(height)
 
 			// There was a polka!
 			// If we're locked but this is a recent polka, unlock.

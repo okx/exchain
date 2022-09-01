@@ -75,6 +75,9 @@ const (
 	IavlRuntime     = "IavlRuntime"
 
 	BlockPartsP2P = "BlockPartsP2P"
+
+	Any23Prevote = "Any23Prevote"
+	Maj23Prevote = "Maj23Prevote"
 )
 
 const (

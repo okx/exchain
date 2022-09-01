@@ -8,24 +8,37 @@ import (
 	"time"
 )
 
-type BlockTransport struct {
-	height int64
-	recvProposal time.Time
-	firstPart time.Time
-	droppedDue2NotExpected int
-	droppedDue2NotAdded int
-	droppedDue2Error int
-	droppedDue2WrongHeight int
-	totalParts int
-	Logger  log.Logger
+const (
+	PREVOTE_STEP_NIL = iota
+	PREVOTE_STEP_1ST
+	PREVOTE_STEP_ANY
+	PREVOTE_STEP_MAJ
+)
 
-	bpStatMtx sync.RWMutex
+type BlockTransport struct {
+	height                 int64
+	recvProposal           time.Time
+	firstPart              time.Time
+	droppedDue2NotExpected int
+	droppedDue2NotAdded    int
+	droppedDue2Error       int
+	droppedDue2WrongHeight int
+	totalParts             int
+	Logger                 log.Logger
+
+	bpStatMtx       sync.RWMutex
 	bpSend          int
 	bpNOTransByData int
 	bpNOTransByACK  int
+
+	//trace for prevote
+	prevoteStep    int
+	isEnterPrevote bool
+	firstPrevote   time.Time
+	enterPrevote   time.Time
 }
 
-func (bt *BlockTransport) onProposal(height int64)  {
+func (bt *BlockTransport) onProposal(height int64) {
 	if bt.height == height || bt.height == 0 {
 		bt.recvProposal = time.Now()
 		bt.height = height
@@ -42,16 +55,18 @@ func (bt *BlockTransport) reset(height int64) {
 	bt.bpNOTransByData = 0
 	bt.bpNOTransByACK = 0
 	bt.bpSend = 0
+	bt.prevoteStep = PREVOTE_STEP_NIL
+	bt.isEnterPrevote = false
 }
 
-func (bt *BlockTransport) on1stPart(height int64)  {
+func (bt *BlockTransport) on1stPart(height int64) {
 	if bt.height == height || bt.height == 0 {
 		bt.firstPart = time.Now()
 		bt.height = height
 	}
 }
 
-func (bt *BlockTransport) onRecvBlock(height int64)  {
+func (bt *BlockTransport) onRecvBlock(height int64) {
 	if bt.height == height {
 		//totalElapsed := time.Now().Sub(bt.recvProposal)
 		//trace.GetElapsedInfo().AddInfo(trace.RecvBlock, fmt.Sprintf("<%dms>", totalElapsed.Milliseconds()))
@@ -79,4 +94,49 @@ func (bt *BlockTransport) onBPDataHit() {
 	bt.bpStatMtx.Lock()
 	bt.bpNOTransByData++
 	bt.bpStatMtx.Unlock()
+}
+
+//enterprevote time
+func (bt *BlockTransport) OnEnterPrevote(height int64) {
+	if bt.height == height || bt.height == 0 {
+		bt.enterPrevote = time.Now()
+		bt.isEnterPrevote = true
+	}
+}
+
+//prevote vote time
+func (bt *BlockTransport) On1stPrevote(height int64) {
+	if (bt.height == height || bt.height == 0) && (bt.prevoteStep == PREVOTE_STEP_NIL) {
+		bt.prevoteStep = PREVOTE_STEP_1ST
+		bt.firstPrevote = time.Now()
+	}
+}
+
+func (bt *BlockTransport) on23AnyPrevote(height int64) {
+	if (bt.height == height) && (bt.prevoteStep == PREVOTE_STEP_1ST) {
+		bt.prevoteStep = PREVOTE_STEP_ANY
+		first2AnyElapsed := time.Now().Sub(bt.firstPrevote).Milliseconds()
+		prevote2AnyElapsed := time.Now().Sub(bt.enterPrevote).Milliseconds()
+		if !bt.isEnterPrevote {
+			prevote2AnyElapsed = 0
+		}
+		trace.GetElapsedInfo().AddInfo(trace.Any23Prevote, fmt.Sprintf("%d|%dms",
+			prevote2AnyElapsed,
+			first2AnyElapsed))
+	}
+}
+
+func (bt *BlockTransport) on23MajPrevote(height int64) {
+	if (bt.height == height) && (bt.prevoteStep == PREVOTE_STEP_ANY) {
+		bt.prevoteStep = PREVOTE_STEP_MAJ
+		first2MajElapsed := time.Now().Sub(bt.firstPrevote).Milliseconds()
+		prevote2MajElapsed := time.Now().Sub(bt.enterPrevote).Milliseconds()
+
+		if !bt.isEnterPrevote {
+			prevote2MajElapsed = 0
+		}
+		trace.GetElapsedInfo().AddInfo(trace.Maj23Prevote, fmt.Sprintf("%d|%dms",
+			prevote2MajElapsed,
+			first2MajElapsed))
+	}
 }
