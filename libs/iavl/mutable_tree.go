@@ -64,9 +64,8 @@ type MutableTree struct {
 
 	readableOrphansSlice []*Node
 
-	unsavedFastNodeAdditions map[string]*FastNode   // FastNodes that have not yet been saved to disk
-	unsavedFastNodeRemovals  map[string]interface{} // FastNodes that have not yet been removed from disk
-	mtx                      sync.Mutex             // For unsavedFastNodeAdditions and unsavedFastNodeRemovals
+	unsavedFastNodes *fastNodeChanges
+	mtx              sync.RWMutex // For enableFastStorageAndCommit
 }
 
 // NewMutableTree returns a new tree with the specified cache size and datastore.
@@ -105,8 +104,7 @@ func NewMutableTreeWithOpts(db dbm.DB, cacheSize int, opts *Options) (*MutableTr
 			lastPersistHeight: initVersion,
 			upgradeVersion:    -1,
 
-			unsavedFastNodeAdditions: make(map[string]*FastNode),
-			unsavedFastNodeRemovals:  make(map[string]interface{}),
+			unsavedFastNodes: newFastNodeChanges(),
 		}
 	}
 
@@ -194,14 +192,14 @@ func (tree *MutableTree) fastGetFromChanges(key []byte) ([]byte, bool) {
 	if !GetEnableFastStorage() {
 		return nil, false
 	}
-	if fastNode, ok := tree.unsavedFastNodeAdditions[string(key)]; ok {
-		return fastNode.value, true
+	if fastNode, ok := tree.unsavedFastNodes.get(key); ok {
+		if fastNode == nil {
+			return nil, true
+		} else {
+			return fastNode.value, true
+		}
 	}
 
-	if _, ok := tree.unsavedFastNodeRemovals[string(key)]; ok {
-		// is deleted
-		return nil, true
-	}
 	return nil, false
 }
 
@@ -242,7 +240,7 @@ func (tree *MutableTree) Iterate(fn func(key []byte, value []byte) bool) (stoppe
 		return tree.ImmutableTree.Iterate(fn)
 	}
 
-	itr := NewUnsavedFastIteratorWithCache(nil, nil, true, tree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
+	itr := NewUnsavedFastIteratorWithCache(nil, nil, true, tree.ndb, tree.unsavedFastNodes)
 	defer itr.Close()
 	for ; itr.Valid(); itr.Next() {
 		if fn(itr.Key(), itr.Value()) {
@@ -256,7 +254,7 @@ func (tree *MutableTree) Iterate(fn func(key []byte, value []byte) bool) (stoppe
 // CONTRACT: no updates are made to the tree while an iterator is active.
 func (tree *MutableTree) Iterator(start, end []byte, ascending bool) dbm.Iterator {
 	if tree.IsFastCacheEnabled() {
-		return NewUnsavedFastIteratorWithCache(start, end, ascending, tree.ndb, tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
+		return NewUnsavedFastIteratorWithCache(start, end, ascending, tree.ndb, tree.unsavedFastNodes)
 	}
 	return tree.ImmutableTree.Iterator(start, end, ascending)
 }
@@ -750,8 +748,7 @@ func (tree *MutableTree) Rollback() {
 	tree.deltas = &TreeDelta{[]*NodeJsonImp{}, []*NodeJson{}, []*CommitOrphansImp{}}
 	tree.orphans = []*Node{}
 	tree.commitOrphans = nil
-	tree.unsavedFastNodeAdditions = map[string]*FastNode{}
-	tree.unsavedFastNodeRemovals = map[string]interface{}{}
+	tree.unsavedFastNodes = newFastNodeChanges()
 }
 
 // GetVersioned gets the value at the specified key and version. The returned value must not be
@@ -877,10 +874,7 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 
 	tree.ndb.updateLatestMemoryVersion(version)
 
-	fnc := &fastNodeChanges{additions: tree.unsavedFastNodeAdditions,
-		removals: tree.unsavedFastNodeRemovals}
-
-	if err := tree.ndb.saveFastNodeVersion(batch, fnc, tree.ndb.getLatestVersion()); err != nil {
+	if err := tree.ndb.saveFastNodeVersion(batch, tree.unsavedFastNodes, tree.ndb.getLatestVersion()); err != nil {
 		return nil, version, err
 	}
 
@@ -896,8 +890,7 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 	tree.lastSaved = tree.ImmutableTree.clone()
 	tree.savedNodes = map[string]*Node{}
 	tree.orphans = []*Node{}
-	tree.unsavedFastNodeAdditions = make(map[string]*FastNode)
-	tree.unsavedFastNodeRemovals = make(map[string]interface{})
+	tree.unsavedFastNodes = newFastNodeChanges()
 
 	tree.ndb.log(IavlDebug, tree.ndb.sprintCacheLog(version))
 	return tree.Hash(), version, nil
@@ -988,10 +981,10 @@ func (ndb *nodeDB) saveFastNodeVersion(batch dbm.Batch, fnc *fastNodeChanges, ve
 	if !GetEnableFastStorage() || fnc == nil {
 		return nil
 	}
-	if err := ndb.saveFastNodeAdditions(batch, fnc.additions); err != nil {
+	if err := ndb.saveFastNodeAdditions(batch, fnc.getAdditions()); err != nil {
 		return err
 	}
-	if err := ndb.saveFastNodeRemovals(batch, fnc.removals); err != nil {
+	if err := ndb.saveFastNodeRemovals(batch, fnc.getRemovals()); err != nil {
 		return err
 	}
 	return ndb.setFastStorageVersionToBatch(batch, version)
@@ -999,21 +992,21 @@ func (ndb *nodeDB) saveFastNodeVersion(batch dbm.Batch, fnc *fastNodeChanges, ve
 
 // nolint: unused
 func (tree *MutableTree) getUnsavedFastNodeAdditions() map[string]*FastNode {
-	return tree.unsavedFastNodeAdditions
+	return tree.unsavedFastNodes.getAdditions()
 }
 
 // getUnsavedFastNodeRemovals returns unsaved FastNodes to remove
 // nolint: unused
 func (tree *MutableTree) getUnsavedFastNodeRemovals() map[string]interface{} {
-	return tree.unsavedFastNodeRemovals
+	return tree.unsavedFastNodes.getRemovals()
 }
 
 func (tree *MutableTree) addUnsavedAddition(key []byte, node *FastNode) {
 	if !GetEnableFastStorage() {
 		return
 	}
-	delete(tree.unsavedFastNodeRemovals, string(key))
-	tree.unsavedFastNodeAdditions[string(key)] = node
+
+	tree.unsavedFastNodes.add(key, node)
 }
 
 func (ndb *nodeDB) saveFastNodeAdditions(batch dbm.Batch, additions map[string]*FastNode) error {
@@ -1035,8 +1028,7 @@ func (tree *MutableTree) addUnsavedRemoval(key []byte) {
 	if !GetEnableFastStorage() {
 		return
 	}
-	delete(tree.unsavedFastNodeAdditions, string(key))
-	tree.unsavedFastNodeRemovals[string(key)] = true
+	tree.unsavedFastNodes.remove(key, true)
 }
 
 func (ndb *nodeDB) saveFastNodeRemovals(batch dbm.Batch, removals map[string]interface{}) error {
@@ -1236,14 +1228,14 @@ func (tree *MutableTree) SetDelta(delta *TreeDelta) {
 			// fast node related
 			for _, v := range tree.savedNodes {
 				if v.isLeaf() {
-					tree.unsavedFastNodeAdditions[string(v.key)] = NewFastNode(v.key, v.value, v.version)
+					tree.unsavedFastNodes.addAdditions(v.key, NewFastNode(v.key, v.value, v.version))
 				}
 			}
 
 			for _, v := range tree.orphans {
-				_, ok := tree.unsavedFastNodeAdditions[string(v.key)]
+				ok := tree.unsavedFastNodes.checkAdditions(v.key)
 				if v.isLeaf() && !ok {
-					tree.unsavedFastNodeRemovals[string(v.key)] = NewFastNode(v.key, v.value, v.version)
+					tree.unsavedFastNodes.addRemovals(v.key)
 				}
 			}
 		}
