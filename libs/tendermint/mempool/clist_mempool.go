@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	stdlog "log"
 	"math/big"
 	"strconv"
 	"sync"
@@ -273,6 +274,7 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
 		gasUsed = mem.txInfoparser.GetTxHistoryGasUsed(tx)
 		if gasUsed < 0 {
+			stdlog.Println("----giskook---", gasUsed, cfg.DynamicConfig.GetMaxGasUsedPerBlock())
 			simuRes, err := mem.simulateTx(tx)
 			if err != nil {
 				return err
