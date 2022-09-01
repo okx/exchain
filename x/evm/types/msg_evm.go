@@ -30,6 +30,7 @@ var big2 = big.NewInt(2)
 var big8 = big.NewInt(8)
 var DefaultDeployContractFnSignature = ethcmn.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000001")
 var DefaultSendCoinFnSignature = ethcmn.Hex2Bytes("0000000000000000000000000000000000000000000000000000000000000010")
+var emptyEthAddr = ethcmn.Address{}
 
 // message type and route constants
 const (
@@ -42,6 +43,8 @@ type MsgEthereumTx struct {
 	Data TxData
 
 	sdk.BaseTx `json:"-" rlp:"-"`
+
+	addr ethcmn.Address
 }
 
 func (tx *MsgEthereumTx) GetType() sdk.TransactionType {
@@ -58,11 +61,11 @@ func (tx *MsgEthereumTx) GetFrom() string {
 	if from == "" {
 		from, _ = tmtypes.SignatureCache().Get(tx.TxHash())
 		if from == "" {
-			from, err := tx.firstVerifySig(tx.ChainID())
+			addr, err := tx.firstVerifySig(tx.ChainID())
 			if err != nil {
 				return ""
 			}
-			return from
+			return EthAddressToString(&addr)
 		}
 	}
 
@@ -321,13 +324,13 @@ var sigBigNumPool = &sync.Pool{
 	},
 }
 
-func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (string, error) {
+func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (ethcmn.Address, error) {
 	var V *big.Int
 	var sigHash ethcmn.Hash
 	if isProtectedV(msg.Data.V) {
 		// do not allow recovery for transactions with an unprotected chainID
 		if chainID.Sign() == 0 {
-			return "", errors.New("chainID cannot be zero")
+			return emptyEthAddr, errors.New("chainID cannot be zero")
 		}
 
 		bigNum := sigBigNumPool.Get().(*big.Int)
@@ -348,9 +351,9 @@ func (msg *MsgEthereumTx) firstVerifySig(chainID *big.Int) (string, error) {
 
 	sender, err := recoverEthSig(msg.Data.R, msg.Data.S, V, &sigHash)
 	if err != nil {
-		return "", err
+		return emptyEthAddr, err
 	}
-	return EthAddressToString(&sender), nil
+	return sender, nil
 }
 
 // VerifySig attempts to verify a Transaction's signature for a given chainID.
@@ -367,12 +370,14 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) error {
 		msg.BaseTx.From = from
 		return nil
 	}
-	from, err := msg.firstVerifySig(chainID)
+	addr, err := msg.firstVerifySig(chainID)
 	if err != nil {
 		return err
 	}
+	from = EthAddressToString(&addr)
 	tmtypes.SignatureCache().Add(msg.TxHash(), from)
 	msg.BaseTx.From = from
+	msg.addr = addr
 	return nil
 }
 
@@ -434,7 +439,11 @@ func (msg *MsgEthereumTx) RawSignatureValues() (v, r, s *big.Int) {
 // From loads the ethereum sender address from the sigcache and returns an
 // sdk.AccAddress from its bytes
 func (msg *MsgEthereumTx) AccountAddress() sdk.AccAddress {
-	return ethcmn.FromHex(msg.GetFrom())
+	if msg.addr == emptyEthAddr {
+		return ethcmn.FromHex(msg.GetFrom())
+	} else {
+		return msg.addr[:]
+	}
 }
 
 func (msg *MsgEthereumTx) EthereumAddress() ethcmn.Address {
