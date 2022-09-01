@@ -312,10 +312,19 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 	}
 
 	// try to get from node
-	resBlock, err := api.clientCtx.Client.Block(&height)
-	if err != nil {
-		return nil, err
+	var resBlock *ctypes.ResultBlock
+	if resBlock = getNodeBlockCache(height); resBlock == nil {
+		api.logger.Error("Get from db", "height", height, "offset", offset)
+		resBlock, err = api.clientCtx.Client.Block(&height)
+		if err != nil {
+			return nil, err
+		}
+
+		setNodeBlockCache(resBlock)
+	} else {
+		api.logger.Error("Get from Cache", "height", height, "offset", offset)
 	}
+
 	blockHash := common.BytesToHash(resBlock.Block.Hash())
 	for idx := offset; idx < offset+limit && int(idx) < len(resBlock.Block.Txs); idx++ {
 		realTx, err := rpctypes.RawTxToRealTx(api.clientCtx, resBlock.Block.Txs[idx],

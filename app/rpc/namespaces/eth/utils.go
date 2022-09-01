@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	"math/big"
 	"strings"
 
@@ -34,6 +35,10 @@ const (
 
 	RPCUnknowErr = "unknow"
 	RPCNullData  = "null"
+)
+
+var (
+	cacheBlock *ctypes.ResultBlock
 )
 
 //gasPrice: to get "minimum-gas-prices" config or to get ethermint.DefaultGasPrice
@@ -262,4 +267,17 @@ func isAccountNotExistErr(err error) bool {
 		return false
 	}
 	return cosmosErr.Code == AccountNotExistsCode
+}
+
+// get the block cache
+func getNodeBlockCache(h int64) *ctypes.ResultBlock {
+	if cacheBlock != nil && cacheBlock.Block.Height == h {
+		return cacheBlock
+	}
+	return nil
+}
+
+// set block cache
+func setNodeBlockCache(b *ctypes.ResultBlock) {
+	cacheBlock = b
 }
