@@ -78,6 +78,8 @@ type BlockchainReactor struct {
 
 	requestsCh <-chan BlockRequest
 	errorsCh   <-chan peerError
+
+	finishCh chan struct{}
 }
 
 // NewBlockchainReactor returns new reactor instance.
@@ -91,6 +93,8 @@ func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *st
 
 	const capacity = 1000                      // must be bigger than peers count
 	errorsCh := make(chan peerError, capacity) // so we don't block in #Receive#pool.AddBlock
+
+	finishCh := make(chan struct{}, 1)
 
 	pool := NewBlockPool(
 		store.Height()+1,
@@ -107,6 +111,7 @@ func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *st
 		mtx:        sync.RWMutex{},
 		requestsCh: requestsCh,
 		errorsCh:   errorsCh,
+		finishCh:   finishCh,
 	}
 	bcR.BaseReactor = *p2p.NewBaseReactor("BlockchainReactor", bcR)
 	return bcR
@@ -133,6 +138,18 @@ func (bcR *BlockchainReactor) OnStart() error {
 // OnStop implements service.Service.
 func (bcR *BlockchainReactor) OnStop() {
 	bcR.pool.Stop()
+	bcR.pool.Reset()
+	bcR.syncStopPoolRoutine()
+}
+
+func (bcR *BlockchainReactor) syncStopPoolRoutine() {
+	bcR.finishCh <- struct{}{}
+	for {
+		if !bcR.getIsSyncing() {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 }
 
 // GetChannels implements Reactor
@@ -387,7 +404,8 @@ FOR_LOOP:
 				}
 			}
 			continue FOR_LOOP
-
+		case <-bcR.finishCh:
+			break FOR_LOOP
 		case <-bcR.Quit():
 			break FOR_LOOP
 		}
