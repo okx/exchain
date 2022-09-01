@@ -88,7 +88,6 @@ func (cs *State) addVote(
 		}
 
 		cs.Logger.Info(fmt.Sprintf("Added to lastPrecommits: %v", cs.LastCommit.StringShort()))
-		cs.eventBus.PublishEventVote(types.EventDataVote{Vote: vote})
 		cs.evsw.FireEvent(types.EventVote, vote)
 
 		// if we can skip timeoutCommit and have all the votes now,
@@ -116,7 +115,6 @@ func (cs *State) addVote(
 		return
 	}
 
-	cs.eventBus.PublishEventVote(types.EventDataVote{Vote: vote})
 	cs.evsw.FireEvent(types.EventVote, vote)
 
 	switch vote.Type {
@@ -142,7 +140,6 @@ func (cs *State) addVote(
 				cs.LockedRound = -1
 				cs.LockedBlock = nil
 				cs.LockedBlockParts = nil
-				cs.eventBus.PublishEventUnlock(cs.RoundStateEvent())
 			}
 
 			// Update Valid* if we can.
@@ -168,7 +165,6 @@ func (cs *State) addVote(
 					cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
 				}
 				cs.evsw.FireEvent(types.EventValidBlock, &cs.RoundState)
-				cs.eventBus.PublishEventValidBlock(cs.RoundStateEvent())
 			}
 		}
 

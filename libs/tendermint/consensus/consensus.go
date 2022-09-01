@@ -451,11 +451,7 @@ func (cs *State) newStep() {
 	rs := cs.RoundStateEvent()
 	cs.wal.Write(rs)
 	cs.nSteps++
-	// newStep is called by updateToState in NewState before the eventBus is set!
-	if cs.eventBus != nil {
-		cs.eventBus.PublishEventNewRoundStep(rs)
-		cs.evsw.FireEvent(types.EventNewRoundStep, &cs.RoundState)
-	}
+	cs.evsw.FireEvent(types.EventNewRoundStep, &cs.RoundState)
 }
 
 // needProofBlock returns true on the first height (so the genesis app hash is signed right away)

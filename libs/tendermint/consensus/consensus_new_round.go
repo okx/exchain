@@ -77,7 +77,6 @@ func (cs *State) doNewRound(height int64, round int, avc bool, val *types.Valida
 	}
 
 	cs.TriggeredTimeoutPrecommit = false
-	cs.eventBus.PublishEventNewRound(cs.NewRoundEvent())
 	cs.metrics.Rounds.Set(float64(round))
 
 	// Wait for txs to be available in the mempool

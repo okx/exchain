@@ -109,7 +109,6 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 			cs.Logger.Info("enterCommit proposalBlockPart reset ,because of mismatch hash,",
 				"origin", hex.EncodeToString(cs.ProposalBlockParts.Hash()), "after", blockID.Hash)
 			cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
-			cs.eventBus.PublishEventValidBlock(cs.RoundStateEvent())
 			cs.evsw.FireEvent(types.EventValidBlock, &cs.RoundState)
 		}
 		// else {
