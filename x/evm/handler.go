@@ -4,7 +4,6 @@ import (
 	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	cfg "github.com/okex/exchain/libs/tendermint/config"
 	common2 "github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/evm/txs"
 	"github.com/okex/exchain/x/evm/txs/base"
@@ -40,9 +39,7 @@ func NewHandler(k *Keeper) sdk.Handler {
 }
 
 func updateHGU(ctx sdk.Context, msg sdk.Msg) {
-	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() <= 0 {
-		return
-	}
+	return
 
 	db := bam.InstanceOfHistoryGasUsedRecordDB()
 	msgFnSignature, toDeployContractSize := getMsgCallFnSignature(msg)
