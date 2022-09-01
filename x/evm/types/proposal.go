@@ -351,10 +351,8 @@ func (mp ManageContractMethodBlockedListProposal) String() string {
 func (mp *ManageContractMethodBlockedListProposal) FixShortAddr() {
 	for i := 0; i < len(mp.ContractList); i++ {
 		if len(mp.ContractList[i].Address) != 20 {
-			validAddress := make([]byte, 20)
-			for j, k := len(mp.ContractList[i].Address)-1, 19; j >= 0; j, k = j-1, k-1 {
-				validAddress[k] = mp.ContractList[i].Address[j]
-			}
+			validAddress := make([]byte, 20-len(mp.ContractList[i].Address), 20)
+			validAddress = append(validAddress, mp.ContractList[i].Address...)
 			mp.ContractList[i].Address = validAddress
 		}
 	}
