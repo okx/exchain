@@ -88,7 +88,9 @@ func (msg *MsgEthereumTx) GetNonce() uint64 {
 
 func (msg *MsgEthereumTx) GetFee() sdk.Coins {
 	fee := make(sdk.Coins, 1)
-	fee[0] = sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewDecFromBigIntWithPrec(msg.Fee(), sdk.Precision))
+	feeInt := new(big.Int)
+	feeInt = msg.CalcFee(feeInt)
+	fee[0] = sdk.NewDecCoinFromDec(sdk.DefaultBondDenom, sdk.NewDecWithBigIntAndPrec(feeInt, sdk.Precision))
 	return fee
 }
 
