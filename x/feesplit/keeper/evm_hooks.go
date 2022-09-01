@@ -5,7 +5,6 @@ import (
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/feesplit/types"
 )
@@ -64,19 +63,7 @@ func (k Keeper) PostTxProcessing(
 	fees := sdk.Coins{{Denom: sdk.DefaultBondDenom, Amount: developerFee}}
 
 	// distribute the fees to the contract deployer / withdraw address
-	err := k.supplyKeeper.SendCoinsFromModuleToAccount(
-		ctx,
-		k.feeCollectorName,
-		withdrawer,
-		fees,
-	)
-	if err != nil {
-		return sdkerrors.Wrapf(
-			err,
-			"fee collector account failed to distribute developer fees (%s) to withdraw address %s. contract %s",
-			fees, withdrawer, contract,
-		)
-	}
+	k.updateFeeSplitHandler(withdrawer, fees)
 
 	ctx.EventManager().EmitEvents(
 		sdk.Events{

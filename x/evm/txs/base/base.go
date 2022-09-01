@@ -69,7 +69,7 @@ func (tx *Tx) Transition(config types.ChainConfig) (result Result, err error) {
 			Logs:             result.ResultData.Logs,
 			TxHash:           result.ResultData.TxHash,
 			ContractAddress:  result.ResultData.ContractAddress,
-			GasUsed:          result.ExecResult.GasInfo.GasConsumed,
+			GasUsed:          tx.Ctx.GasMeter().GasConsumed(),
 			BlockNumber:      big.NewInt(tx.Ctx.BlockHeight()),
 			TransactionIndex: uint(tx.Keeper.TxCount),
 		}

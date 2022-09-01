@@ -18,9 +18,24 @@ import (
 )
 
 // feeCollectorHandler set or get the value of feeCollectorAcc
-func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
+func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper, feesplits map[string]sdk.Coins) sdk.UpdateFeeCollectorAccHandler {
 	return func(ctx sdk.Context, balance sdk.Coins) error {
-		return bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
+		err := bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
+		if err != nil {
+			return err
+		}
+
+		// split fee
+		// come from feesplit module
+		for addr, fees := range feesplits {
+			acc := sdk.MustAccAddressFromBech32(addr)
+			err = sk.SendCoinsFromModuleToAccount(ctx, auth.FeeCollectorName, acc, fees)
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
 	}
 }
 
@@ -108,5 +123,12 @@ func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
 		}
 
 		return
+	}
+}
+
+func updateFeeSplitHandler(feesplits map[string]sdk.Coins) sdk.UpdateFeeSplitHandler {
+	return func(addr sdk.AccAddress, fee sdk.Coins) {
+		key := addr.String()
+		feesplits[key] = feesplits[key].Add2(fee)
 	}
 }

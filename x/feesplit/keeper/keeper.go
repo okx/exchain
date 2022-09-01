@@ -20,9 +20,9 @@ type Keeper struct {
 	cdc        *codec.Codec
 	paramSpace types.Subspace
 
-	supplyKeeper     types.SupplyKeeper
-	accountKeeper    types.AccountKeeper
-	feeCollectorName string
+	supplyKeeper          types.SupplyKeeper
+	accountKeeper         types.AccountKeeper
+	updateFeeSplitHandler sdk.UpdateFeeSplitHandler
 }
 
 // NewKeeper creates new instances of the fees Keeper
@@ -32,7 +32,7 @@ func NewKeeper(
 	ps params.Subspace,
 	sk types.SupplyKeeper,
 	ak types.AccountKeeper,
-	feeCollector string,
+	handler sdk.UpdateFeeSplitHandler,
 ) Keeper {
 	// set KeyTable if it has not already been set
 	if !ps.HasKeyTable() {
@@ -40,12 +40,12 @@ func NewKeeper(
 	}
 
 	return Keeper{
-		storeKey:         storeKey,
-		cdc:              cdc,
-		paramSpace:       ps,
-		supplyKeeper:     sk,
-		accountKeeper:    ak,
-		feeCollectorName: feeCollector,
+		storeKey:              storeKey,
+		cdc:                   cdc,
+		paramSpace:            ps,
+		supplyKeeper:          sk,
+		accountKeeper:         ak,
+		updateFeeSplitHandler: handler,
 	}
 }
 
