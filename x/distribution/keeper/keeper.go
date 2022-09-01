@@ -18,6 +18,7 @@ type Keeper struct {
 	paramSpace    params.Subspace
 	stakingKeeper types.StakingKeeper
 	supplyKeeper  types.SupplyKeeper
+	govKeeper     types.GovKeeper
 
 	blacklistedAddrs map[string]bool
 

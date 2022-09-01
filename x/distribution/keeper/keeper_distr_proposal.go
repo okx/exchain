@@ -2,6 +2,8 @@ package keeper
 
 import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	govTypes "github.com/okex/exchain/x/gov/types"
+	"time"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/distribution/types"
@@ -64,6 +66,53 @@ func (k Keeper) GetTotalRewards(ctx sdk.Context) (totalRewards sdk.DecCoins) {
 	return totalRewards
 }
 
+// SetGovKeeper sets keeper of gov
+func (k *Keeper) SetGovKeeper(gk types.GovKeeper) {
+	k.govKeeper = gk
+}
+
 func (k Keeper) CheckDistributionProposalValid(ctx sdk.Context) bool {
 	return tmtypes.HigherThanVenus2(ctx.BlockHeight()) && k.CheckInitExistedValidatorFlag(ctx)
+}
+
+// CheckMsgSubmitProposal validates MsgSubmitProposal
+func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitProposal) sdk.Error {
+	err := k.govKeeper.CheckMsgSubmitProposal(ctx, msg)
+	if err != nil {
+		return err
+	}
+
+	if tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+		switch msg.Content.(type) {
+		case types.ChangeDistributionTypeProposal:
+		case types.WithdrawRewardEnabledProposal:
+			if !k.stakingKeeper.IsValidator(ctx, msg.Proposer) {
+				return types.ErrCodeErrProposerMustBeValidator()
+			}
+		}
+	}
+	return nil
+}
+
+// nolint
+func (keeper Keeper) GetMinDeposit(ctx sdk.Context, content govTypes.Content) (minDeposit sdk.SysCoins) {
+	return keeper.govKeeper.GetDepositParams(ctx).MinDeposit
+}
+
+// nolint
+func (keeper Keeper) GetMaxDepositPeriod(ctx sdk.Context, content govTypes.Content) time.Duration {
+	return keeper.govKeeper.GetDepositParams(ctx).MaxDepositPeriod
+}
+
+// nolint
+func (keeper Keeper) GetVotingPeriod(ctx sdk.Context, content govTypes.Content) time.Duration {
+	return keeper.govKeeper.GetVotingParams(ctx).VotingPeriod
+}
+
+// nolint
+func (k Keeper) AfterSubmitProposalHandler(_ sdk.Context, _ govTypes.Proposal) {}
+func (k Keeper) AfterDepositPeriodPassed(_ sdk.Context, _ govTypes.Proposal)   {}
+func (k Keeper) RejectedHandler(_ sdk.Context, _ govTypes.Content)             {}
+func (k Keeper) VoteHandler(_ sdk.Context, _ govTypes.Proposal, _ govTypes.Vote) (string, sdk.Error) {
+	return "", nil
 }
