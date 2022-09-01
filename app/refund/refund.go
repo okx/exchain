@@ -2,6 +2,7 @@ package refund
 
 import (
 	"math/big"
+	"sync"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 
@@ -82,13 +83,25 @@ func NewGasRefundDecorator(ak auth.AccountKeeper, sk types.SupplyKeeper) sdk.Gas
 	return chandler.GasRefund
 }
 
+var bigIntsPool = &sync.Pool{
+	New: func() interface{} {
+		return &[2]big.Int{}
+	},
+}
+
 func calculateRefundFees(gasUsed uint64, gas uint64, fees sdk.DecCoins) sdk.Coins {
+	bitInts := bigIntsPool.Get().(*[2]big.Int)
+	defer bigIntsPool.Put(bitInts)
 
 	refundFees := make(sdk.Coins, len(fees))
 	for i, fee := range fees {
-		gasPrice := new(big.Int).Div(fee.Amount.BigInt(), new(big.Int).SetUint64(gas))
-		gasConsumed := new(big.Int).Mul(gasPrice, new(big.Int).SetUint64(gasUsed))
-		gasCost := sdk.NewCoin(fee.Denom, sdk.NewDecFromBigIntWithPrec(gasConsumed, sdk.Precision))
+		gasPrice := bitInts[0].SetUint64(gas)
+		gasPrice = gasPrice.Div(fee.Amount.Int, gasPrice)
+
+		gasConsumed := bitInts[1].SetUint64(gasUsed)
+		gasConsumed = gasConsumed.Mul(gasPrice, gasConsumed)
+
+		gasCost := sdk.NewDecCoinFromDec(fee.Denom, sdk.NewDecWithBigIntAndPrec(gasConsumed, sdk.Precision))
 		gasRefund := fee.Sub(gasCost)
 
 		refundFees[i] = gasRefund
