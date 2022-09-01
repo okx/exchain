@@ -26,9 +26,16 @@ type GasLimitDecorator struct {
 func (g GasLimitDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
 	pinAnte(ctx.AnteTracer(), "GasLimitDecorator")
 
+	currentGasMeter := ctx.GasMeter() // avoid race
+	infGasMeter := sdk.GetReusableInfiniteGasMeter()
+	ctx.SetGasMeter(infGasMeter)
 	if tx.GetGas() > g.evm.GetParams(ctx).MaxGasLimitPerTx {
+		ctx.SetGasMeter(currentGasMeter)
+		sdk.ReturnInfiniteGasMeter(infGasMeter)
 		return ctx, sdkerrors.Wrapf(sdkerrors.ErrTxTooLarge, "too large gas limit, it must be less than %d", g.evm.GetParams(ctx).MaxGasLimitPerTx)
 	}
 
+	ctx.SetGasMeter(currentGasMeter)
+	sdk.ReturnInfiniteGasMeter(infGasMeter)
 	return next(ctx, tx, simulate)
 }

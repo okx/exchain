@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/okex/exchain/libs/tendermint/global"
+
 	apptesting "github.com/okex/exchain/libs/ibc-go/testing"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmcfg "github.com/okex/exchain/libs/tendermint/config"
@@ -213,6 +215,7 @@ func (c *MockClient) CommitBlock() {
 			AppHash:                          nil,
 		}
 	}
+	global.SetGlobalHeight(blockHeight)
 }
 func (c *MockClient) CommitTx(height int64, txs types.Txs, resDeliverTxs []*abci.ResponseDeliverTx) {
 	batch := txindex.NewBatch(int64(len(txs)))

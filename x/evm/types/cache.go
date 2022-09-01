@@ -89,8 +89,8 @@ func (c *Cache) UpdateBlockedContractMethod(bcl BlockedContractList, isCheckTx b
 	for i, _ := range bcl {
 		c.blockedContractMethodsCache[string(bcl[i].Address)] = bcl[i]
 	}
-	c.blockedMutex.Unlock()
 	c.needBlockedUpdate = false
+	c.blockedMutex.Unlock()
 }
 
 func SetEvmParamsNeedUpdate() {
