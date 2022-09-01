@@ -1,8 +1,10 @@
 package keeper
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/okex/exchain/libs/tendermint/libs/kv"
+	"sort"
 
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -107,6 +109,16 @@ func (d MessageDispatcher) DispatchSubmessages(ctx sdk.Context, contractAddr sdk
 			commit()
 			filteredEvents = filterEvents(append(em.Events(), events...))
 			ctx.EventManager().EmitEvents(filteredEvents)
+			if msg.Msg.Wasm == nil {
+				filteredEvents = []sdk.Event{}
+			} else {
+				for _, e := range filteredEvents {
+					attributes := e.Attributes
+					sort.SliceStable(attributes, func(i, j int) bool {
+						return bytes.Compare(attributes[i].Key, attributes[j].Key) < 0
+					})
+				}
+			}
 		} // on failure, revert state from sandbox, and ignore events (just skip doing the above)
 
 		// we only callback if requested. Short-circuit here the cases we don't want to
