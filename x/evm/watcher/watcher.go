@@ -49,7 +49,7 @@ type Watcher struct {
 	filterMap     map[string]struct{}
 	InfuraKeeper  InfuraKeeper
 	delAccountMtx sync.Mutex
-	acProcessor  *ACProcessor
+	acProcessor   *ACProcessor
 }
 
 var (
@@ -734,6 +734,14 @@ func (w *Watcher) Stop() {
 	}
 	close(w.jobChan)
 	w.jobDone.Wait()
+	w.ACProcessorStop()
+}
+
+func (w *Watcher) ACProcessorStop() {
+	if GetEnableAsyncCommit() {
+		driveHeight := int64(w.height + 100) // use a greater height trigger last commit
+		w.acProcessor.Close(driveHeight, w.shouldCommitBatch)
+	}
 }
 
 func (w *Watcher) dispatchJob(f func()) {
