@@ -157,7 +157,6 @@ type State struct {
 	bt       *BlockTransport
 
 	vcMsg *ViewChangeMessage
-	hasVC bool // active-view-change(enterNewRoundAVC) at this Height
 }
 
 // StateOption sets an optional parameter on the State.
@@ -456,11 +455,7 @@ func (cs *State) newStep() {
 	rs := cs.RoundStateEvent()
 	cs.wal.Write(rs)
 	cs.nSteps++
-	// newStep is called by updateToState in NewState before the eventBus is set!
-	if cs.eventBus != nil {
-		cs.eventBus.PublishEventNewRoundStep(rs)
-		cs.evsw.FireEvent(types.EventNewRoundStep, &cs.RoundState)
-	}
+	cs.evsw.FireEvent(types.EventNewRoundStep, &cs.RoundState)
 }
 
 // needProofBlock returns true on the first height (so the genesis app hash is signed right away)
@@ -580,7 +575,7 @@ func (cs *State) BlockExec() *sm.BlockExecutor {
 
 //---------------------------------------------------------
 
-func CompareHRS(h1 int64, r1 int, s1 cstypes.RoundStepType, h2 int64, r2 int, s2 cstypes.RoundStepType) int {
+func CompareHRS(h1 int64, r1 int, s1 cstypes.RoundStepType, h2 int64, r2 int, s2 cstypes.RoundStepType, hasVC bool) int {
 	if h1 < h2 {
 		return -1
 	} else if h1 > h2 {
@@ -589,6 +584,9 @@ func CompareHRS(h1 int64, r1 int, s1 cstypes.RoundStepType, h2 int64, r2 int, s2
 	if r1 < r2 {
 		return -1
 	} else if r1 > r2 {
+		return 1
+	}
+	if hasVC {
 		return 1
 	}
 	if s1 < s2 {

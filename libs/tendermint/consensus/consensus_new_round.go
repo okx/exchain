@@ -64,8 +64,8 @@ func (cs *State) doNewRound(height int64, round int, avc bool, val *types.Valida
 	// we don't fire newStep for this step,
 	// but we fire an event, so update the round step first
 	cs.updateRoundStep(round, cstypes.RoundStepNewRound)
-	cs.hasVC = avc
-	if round == 0 && !avc {
+	cs.HasVC = avc
+	if round == 0 {
 		// We've already reset these upon new height,
 		// and meanwhile we might have received a proposal
 		// for round 0.
@@ -77,7 +77,6 @@ func (cs *State) doNewRound(height int64, round int, avc bool, val *types.Valida
 	}
 
 	cs.TriggeredTimeoutPrecommit = false
-	cs.eventBus.PublishEventNewRound(cs.NewRoundEvent())
 	cs.metrics.Rounds.Set(float64(round))
 
 	// Wait for txs to be available in the mempool

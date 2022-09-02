@@ -139,6 +139,14 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 			added = true
 		}
 	case *BlockPartMessage:
+		// if avc and has 2/3 votes, it can use the blockPartsHeader from votes
+		if cs.HasVC && cs.ProposalBlockParts == nil && cs.Round == 0 {
+			prevotes := cs.Votes.Prevotes(cs.Round)
+			blockID, hasTwoThirds := prevotes.TwoThirdsMajority()
+			if hasTwoThirds && !blockID.IsZero() {
+				cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
+			}
+		}
 		// if the proposal is complete, we'll enterPrevote or tryFinalizeCommit
 		added, err = cs.addProposalBlockPart(msg, peerID)
 
@@ -236,13 +244,10 @@ func (cs *State) handleTimeout(ti timeoutInfo, rs cstypes.RoundState) {
 	case cstypes.RoundStepNewRound:
 		cs.enterPropose(ti.Height, 0)
 	case cstypes.RoundStepPropose:
-		cs.eventBus.PublishEventTimeoutPropose(cs.RoundStateEvent())
 		cs.enterPrevote(ti.Height, ti.Round)
 	case cstypes.RoundStepPrevoteWait:
-		cs.eventBus.PublishEventTimeoutWait(cs.RoundStateEvent())
 		cs.enterPrecommit(ti.Height, ti.Round)
 	case cstypes.RoundStepPrecommitWait:
-		cs.eventBus.PublishEventTimeoutWait(cs.RoundStateEvent())
 		cs.enterPrecommit(ti.Height, ti.Round)
 		cs.enterNewRound(ti.Height, ti.Round+1)
 	default:
