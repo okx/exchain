@@ -59,6 +59,9 @@ type ACProcessor struct {
 	mtx         sync.RWMutex
 	curMsgCache *MessageCache
 	commitList  *commitCache
+	totalCommit int
+	totalRepeat int
+	total       int
 }
 
 func (ap *ACProcessor) BatchDel(keys [][]byte) {
@@ -118,8 +121,14 @@ func (ap *ACProcessor) PersistHander(commitFn func(epochCache *MessageCache)) {
 		ed1 := time.Now()
 		cmmiter.Clear()
 		ed2 := time.Now()
-		fmt.Printf("****** lyh ACProcessor cur commiter size %d, repeat count %d, commitlist len %d;;; cost time commit %v, remove %v, clear %v \n",
-			s, cmmiter.count-s, ap.commitList.size(), ed.Sub(st), ed1.Sub(ed), ed2.Sub(ed1))
+		curComit := ap.commitList.size()
+		ap.totalCommit += curComit
+		ap.totalRepeat += cmmiter.count - s
+		ap.total += cmmiter.count
+		fmt.Printf("****** lyh ACProcessor cur commiter size %d, repeat count %d;;; total commit %d, repeat %d, total %d;;; cost time commit %v, remove %v, clear %v \n",
+			s, cmmiter.count-s,
+			ap.totalCommit, ap.totalRepeat, ap.total,
+			ed.Sub(st), ed1.Sub(ed), ed2.Sub(ed1))
 	}
 }
 
