@@ -195,7 +195,7 @@ func PrivateKeyToAddress(privateKey *ecdsa.PrivateKey) (common.Address, error) {
 }
 
 func Eg() {
-	// time.Sleep(10 * time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 	fromPrivkey := "824c346a2b5fa81768c75408202493a9cb0a7f5879ff4988d23da2c6b1afb9cf"
 	rpcUrl := "http://127.0.0.1:26659"
 	// fromPrivkey := "8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17"
