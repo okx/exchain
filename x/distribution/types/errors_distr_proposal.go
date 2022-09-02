@@ -16,6 +16,7 @@ const (
 	CodeNotSupportDistributionProposal          uint32 = 67825
 	CodeDisabledWithdrawRewards                 uint32 = 67826
 	CodeNotSupportWithdrawRewardEnabledProposal uint32 = 67827
+	CodeProposerMustBeValidator                 uint32 = 67828
 )
 
 func ErrInvalidDistributionType() sdk.Error {
@@ -52,4 +53,8 @@ func ErrCodeDisabledWithdrawRewards() sdk.Error {
 
 func ErrCodeNotSupportWithdrawRewardEnabledProposal() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeNotSupportWithdrawRewardEnabledProposal, "do not support, withdraw reward enabled proposal invalid")
+}
+
+func ErrCodeProposerMustBeValidator() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeProposerMustBeValidator, "the proposal of proposer must be validator")
 }

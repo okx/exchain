@@ -3,6 +3,7 @@ package distribution
 import (
 	"testing"
 
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/keeper"
 	"github.com/okex/exchain/x/distribution/types"
 	govtypes "github.com/okex/exchain/x/gov/types"
@@ -19,7 +20,7 @@ func makeChangeDistributionTypeProposal(distrType uint32) govtypes.Proposal {
 
 func TestChangeDistributionTypeProposalHandlerPassed(t *testing.T) {
 	ctx, _, k, _, _ := keeper.CreateTestInputDefault(t, false, 10)
-
+	tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 	//init status, distribution off chain
 	queryDistrType := k.GetDistributionType(ctx)
 	require.Equal(t, queryDistrType, types.DistributionTypeOffChain)

@@ -38,3 +38,12 @@ func (k Keeper) AfterDelegationModified(ctx sdk.Context, delAddr sdk.AccAddress,
 //		k.hooks.BeforeValidatorSlashed(ctx, valAddr, fraction)
 //	}
 //}
+
+// CheckEnabled - check modules enabled
+func (k Keeper) CheckEnabled(ctx sdk.Context) bool {
+	if k.hooks == nil {
+		return true
+	}
+
+	return k.hooks.CheckEnabled(ctx)
+}

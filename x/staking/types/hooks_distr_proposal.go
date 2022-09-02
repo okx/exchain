@@ -33,3 +33,13 @@ func (h MultiStakingHooks) AfterDelegationModified(ctx sdk.Context, delAddr sdk.
 //		h[i].BeforeValidatorSlashed(ctx, valAddr, fraction)
 //	}
 //}
+
+func (h MultiStakingHooks) CheckEnabled(ctx sdk.Context) bool {
+	for i := range h {
+		if !h[i].CheckEnabled(ctx) {
+			return false
+		}
+	}
+
+	return true
+}

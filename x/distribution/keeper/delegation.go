@@ -94,10 +94,6 @@ func (k Keeper) withdrawDelegationRewards(ctx sdk.Context, val stakingexported.V
 		return nil, types.ErrCodeNotSupportWithdrawDelegationRewards()
 	}
 
-	if !k.GetWithdrawRewardEnabled(ctx) {
-		return nil, types.ErrCodeDisabledWithdrawRewards()
-	}
-
 	logger := k.Logger(ctx)
 
 	// check existence of delegator starting info

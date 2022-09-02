@@ -96,4 +96,6 @@ type StakingHooks interface {
 	// Must be called when a delegation is modified
 	AfterDelegationModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress)
 	//BeforeValidatorSlashed(ctx sdk.Context, valAddr sdk.ValAddress, fraction sdk.Dec)
+	// Check modules enabled
+	CheckEnabled(ctx sdk.Context) bool
 }

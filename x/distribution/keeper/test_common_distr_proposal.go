@@ -48,11 +48,25 @@ func DoDeposit(t *testing.T, ctx sdk.Context, sk staking.Keeper, delAddr sdk.Acc
 	require.Nil(t, e)
 }
 
+func DoDepositWithError(t *testing.T, ctx sdk.Context, sk staking.Keeper, delAddr sdk.AccAddress, amount sdk.SysCoin, err error) {
+	h := staking.NewHandler(sk)
+	msg := staking.NewMsgDeposit(delAddr, amount)
+	_, e := h(ctx, msg)
+	require.Equal(t, err, e)
+}
+
 func DoAddShares(t *testing.T, ctx sdk.Context, sk staking.Keeper, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress) {
 	h := staking.NewHandler(sk)
 	msg := staking.NewMsgAddShares(delAddr, valAddrs)
 	_, e := h(ctx, msg)
 	require.Nil(t, e)
+}
+
+func DoAddSharesWithError(t *testing.T, ctx sdk.Context, sk staking.Keeper, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress, err error) {
+	h := staking.NewHandler(sk)
+	msg := staking.NewMsgAddShares(delAddr, valAddrs)
+	_, e := h(ctx, msg)
+	require.Equal(t, err, e)
 }
 
 func DoRegProxy(t *testing.T, ctx sdk.Context, sk staking.Keeper, delAddr sdk.AccAddress, reg bool) {

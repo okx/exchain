@@ -3,7 +3,7 @@ package types
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	supplyexported "github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
-
+	govtypes "github.com/okex/exchain/x/gov/types"
 	stakingexported "github.com/okex/exchain/x/staking/exported"
 )
 
@@ -37,6 +37,8 @@ type StakingKeeper interface {
 	GetLastValidatorPower(ctx sdk.Context, valAddr sdk.ValAddress) int64
 
 	Delegator(ctx sdk.Context, delAddr sdk.AccAddress) stakingexported.DelegatorI
+
+	IsValidator(ctx sdk.Context, addr sdk.AccAddress) bool
 }
 
 // StakingHooks event hooks for staking validator object (noalias)
@@ -64,4 +66,11 @@ type SupplyKeeper interface {
 	SendCoinsFromModuleToModule(ctx sdk.Context, senderModule string, recipientModule string, amt sdk.Coins) error
 	SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) error
 	SendCoinsFromAccountToModule(ctx sdk.Context, senderAddr sdk.AccAddress, recipientModule string, amt sdk.Coins) error
+}
+
+// GovKeeper defines the expected gov Keeper
+type GovKeeper interface {
+	GetDepositParams(ctx sdk.Context) govtypes.DepositParams
+	GetVotingParams(ctx sdk.Context) govtypes.VotingParams
+	CheckMsgSubmitProposal(ctx sdk.Context, msg govtypes.MsgSubmitProposal) sdk.Error
 }

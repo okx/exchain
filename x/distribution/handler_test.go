@@ -6,10 +6,12 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/keeper"
 	"github.com/okex/exchain/x/distribution/types"
 	"github.com/okex/exchain/x/staking"
+	stakingtypes "github.com/okex/exchain/x/staking/types"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
@@ -26,7 +28,7 @@ func (suite *HandlerSuite) TestHandlerWithdrawDelegatorReward() {
 	testCases := []struct {
 		title    string
 		dochange func(ctx sdk.Context, dk Keeper)
-		errors   [3]sdk.Error
+		errors   [4]sdk.Error
 	}{
 		{
 			"change distribution type",
@@ -36,7 +38,7 @@ func (suite *HandlerSuite) TestHandlerWithdrawDelegatorReward() {
 				keeper.HandleChangeDistributionTypeProposal(ctx, dk, proposal)
 				require.Equal(suite.T(), dk.GetDistributionType(ctx), types.DistributionTypeOnChain)
 			},
-			[3]sdk.Error{types.ErrUnknownDistributionMsgType(), types.ErrCodeEmptyDelegationDistInfo(), nil},
+			[4]sdk.Error{types.ErrUnknownDistributionMsgType(), types.ErrCodeEmptyDelegationDistInfo(), nil, nil},
 		},
 		{
 			"set withdraw reward disable",
@@ -50,14 +52,15 @@ func (suite *HandlerSuite) TestHandlerWithdrawDelegatorReward() {
 				keeper.HandleWithdrawRewardEnabledProposal(ctx, dk, proposalWithdrawReward)
 				require.Equal(suite.T(), false, dk.GetWithdrawRewardEnabled(ctx))
 			},
-			[3]sdk.Error{types.ErrUnknownDistributionMsgType(), types.ErrCodeEmptyDelegationDistInfo(), types.ErrCodeDisabledWithdrawRewards()},
+			[4]sdk.Error{types.ErrUnknownDistributionMsgType(), types.ErrCodeDisabledWithdrawRewards(),
+				stakingtypes.ErrCodeDisabledOperate(), types.ErrCodeDisabledWithdrawRewards()},
 		},
 		{
 			"no change distribution type",
 			func(ctx sdk.Context, dk Keeper) {
 
 			},
-			[3]sdk.Error{types.ErrUnknownDistributionMsgType(), types.ErrUnknownDistributionMsgType(), types.ErrUnknownDistributionMsgType()},
+			[4]sdk.Error{types.ErrUnknownDistributionMsgType(), types.ErrUnknownDistributionMsgType(), nil, types.ErrUnknownDistributionMsgType()},
 		},
 	}
 
@@ -81,11 +84,11 @@ func (suite *HandlerSuite) TestHandlerWithdrawDelegatorReward() {
 			require.Equal(suite.T(), tc.errors[1], err)
 
 			// deposit and add shares
-			keeper.DoDeposit(suite.T(), ctx, sk, delAddr1, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
-			keeper.DoAddShares(suite.T(), ctx, sk, delAddr1, valOpAddrs)
+			keeper.DoDepositWithError(suite.T(), ctx, sk, delAddr1, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)), tc.errors[2])
+			keeper.DoAddSharesWithError(suite.T(), ctx, sk, delAddr1, valOpAddrs, tc.errors[2])
 
 			_, err = handler(ctx, msg)
-			require.Equal(suite.T(), tc.errors[2], err)
+			require.Equal(suite.T(), tc.errors[3], err)
 		})
 	}
 
@@ -210,7 +213,7 @@ func (suite *HandlerSuite) TestHandlerWithdrawValidatorCommission() {
 				keeper.HandleWithdrawRewardEnabledProposal(ctx, dk, proposalWithdrawReward)
 				require.Equal(suite.T(), false, dk.GetWithdrawRewardEnabled(ctx))
 			},
-			[2]sdk.Error{types.ErrNoValidatorCommission(), nil},
+			[2]sdk.Error{types.ErrNoValidatorCommission(), types.ErrCodeDisabledWithdrawRewards()},
 		},
 	}
 
@@ -232,4 +235,302 @@ func (suite *HandlerSuite) TestHandlerWithdrawValidatorCommission() {
 			require.Equal(suite.T(), tc.errors[1], err)
 		})
 	}
+}
+
+func (suite *HandlerSuite) TestWithdrawDisabled() {
+	type param struct {
+		blockVersion int64
+		enable       bool
+		expectError  error
+	}
+
+	testCases := []struct {
+		title   string
+		execute func(ctx *sdk.Context, dk Keeper, sk staking.Keeper, valOpAddrs []sdk.ValAddress, p param, i int)
+		params  []param
+	}{
+		{
+			"create val",
+			func(ctx *sdk.Context, dk Keeper, sk staking.Keeper, valOpAddrs []sdk.ValAddress, p param, i int) {
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(p.blockVersion)
+				dk.SetWithdrawRewardEnabled(*ctx, p.enable)
+				DoCreateValidatorWithError(suite.T(), *ctx, sk, keeper.TestValAddrs[0], nil, p.expectError)
+			},
+			[]param{
+				{-1, false, stakingtypes.ErrCodeDisabledOperate()},
+				{-1, true, stakingtypes.ErrValidatorOwnerExists()},
+				{0, false, stakingtypes.ErrValidatorOwnerExists()},
+				{0, true, stakingtypes.ErrValidatorOwnerExists()},
+			},
+		},
+		{
+			"disable edit val",
+			func(ctx *sdk.Context, dk Keeper, sk staking.Keeper, valOpAddrs []sdk.ValAddress, p param, i int) {
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(p.blockVersion)
+				dk.SetWithdrawRewardEnabled(*ctx, p.enable)
+				DoEditValidatorWithError(suite.T(), *ctx, sk, keeper.TestValAddrs[0], sdk.NewDec(0), p.expectError)
+			},
+			[]param{
+				{-1, false, stakingtypes.ErrCodeDisabledOperate()},
+				{-1, true, stakingtypes.ErrCommissionUpdateTime()},
+			},
+		},
+		{
+			"disable destroy val",
+			func(ctx *sdk.Context, dk Keeper, sk staking.Keeper, valOpAddrs []sdk.ValAddress, p param, i int) {
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(p.blockVersion)
+				dk.SetWithdrawRewardEnabled(*ctx, p.enable)
+				DoDestroyValidatorWithError(suite.T(), *ctx, sk, keeper.TestValAccAddrs[i], p.expectError)
+			},
+			[]param{
+				{-1, false, stakingtypes.ErrCodeDisabledOperate()},
+				{-1, true, nil},
+				{0, false, nil},
+				{0, true, nil},
+			},
+		},
+		{
+			"disable withdraw DoAddShares",
+			func(ctx *sdk.Context, dk Keeper, sk staking.Keeper, valOpAddrs []sdk.ValAddress, p param, i int) {
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(p.blockVersion)
+				dk.SetWithdrawRewardEnabled(*ctx, p.enable)
+				DoAddSharesWithError(suite.T(), *ctx, sk, keeper.TestDelAddrs[0], valOpAddrs, p.expectError)
+			},
+			[]param{
+				{-1, false, stakingtypes.ErrCodeDisabledOperate()},
+				{-1, true, nil},
+				{0, false, nil},
+				{0, true, nil},
+			},
+		},
+		{
+			"disable withdraw DoRegProxy",
+			func(ctx *sdk.Context, dk Keeper, sk staking.Keeper, valOpAddrs []sdk.ValAddress, p param, i int) {
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(p.blockVersion)
+				dk.SetWithdrawRewardEnabled(*ctx, p.enable)
+				DoRegProxyWithError(suite.T(), *ctx, sk, keeper.TestDelAddrs[i], true, p.expectError)
+			},
+			[]param{
+				{-1, false, stakingtypes.ErrCodeDisabledOperate()},
+				{-1, true, nil},
+				{0, false, nil},
+				{0, true, nil},
+			},
+		},
+		{
+			"disable withdraw DoWithdraw",
+			func(ctx *sdk.Context, dk Keeper, sk staking.Keeper, valOpAddrs []sdk.ValAddress, p param, i int) {
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(p.blockVersion)
+				dk.SetWithdrawRewardEnabled(*ctx, p.enable)
+				DoWithdrawWithError(suite.T(), *ctx, sk, keeper.TestDelAddrs[i], sdk.NewCoin(sk.BondDenom(*ctx),
+					sdk.NewInt(100)), p.expectError)
+			},
+			[]param{
+				{-1, false, stakingtypes.ErrCodeDisabledOperate()},
+				{-1, true, nil},
+				{0, false, nil},
+				{0, true, nil},
+			},
+		},
+		{
+			"disable withdraw DoBindProxy",
+			func(ctx *sdk.Context, dk Keeper, sk staking.Keeper, valOpAddrs []sdk.ValAddress, p param, i int) {
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(p.blockVersion)
+				dk.SetWithdrawRewardEnabled(*ctx, p.enable)
+				DoBindProxyWithError(suite.T(), *ctx, sk, keeper.TestDelAddrs[i+1], keeper.TestDelAddrs[0], p.expectError)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
+				dk.SetWithdrawRewardEnabled(*ctx, true)
+			},
+			[]param{
+				{-1, false, stakingtypes.ErrCodeDisabledOperate()},
+				{-1, true, nil},
+				{0, false, nil},
+			},
+		},
+		{
+			"disable withdraw DoUnBindProxy",
+			func(ctx *sdk.Context, dk Keeper, sk staking.Keeper, valOpAddrs []sdk.ValAddress, p param, i int) {
+				DoBindProxyWithError(suite.T(), *ctx, sk, keeper.TestDelAddrs[i+1], keeper.TestDelAddrs[0], nil)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(p.blockVersion)
+				dk.SetWithdrawRewardEnabled(*ctx, p.enable)
+				DoUnBindProxyWithError(suite.T(), *ctx, sk, keeper.TestDelAddrs[i+1], p.expectError)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
+				dk.SetWithdrawRewardEnabled(*ctx, true)
+			},
+			[]param{
+				{-1, false, stakingtypes.ErrCodeDisabledOperate()},
+				{-1, true, nil},
+				{0, false, nil},
+			},
+		},
+		{
+			"disable withdraw address",
+			func(ctx *sdk.Context, dk Keeper, sk staking.Keeper, valOpAddrs []sdk.ValAddress, p param, i int) {
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(p.blockVersion)
+				dk.SetWithdrawRewardEnabled(*ctx, p.enable)
+				DoSetWithdrawAddressWithError(suite.T(), *ctx, dk, keeper.TestDelAddrs[i], p.expectError)
+			},
+			[]param{
+				{-1, false, types.ErrCodeDisabledWithdrawRewards()},
+				{-1, true, nil},
+				{0, false, nil},
+				{0, true, nil},
+			},
+		},
+		{
+			"disable withdraw validator",
+			func(ctx *sdk.Context, dk Keeper, sk staking.Keeper, valOpAddrs []sdk.ValAddress, p param, i int) {
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(p.blockVersion)
+				dk.SetWithdrawRewardEnabled(*ctx, p.enable)
+				DoWithdrawValidatorCommissionWithError(suite.T(), *ctx, dk, keeper.TestValAddrs[0], p.expectError)
+			},
+			[]param{
+				{-1, false, types.ErrCodeDisabledWithdrawRewards()},
+				{-1, true, types.ErrNoValidatorCommission()},
+				{0, false, types.ErrNoValidatorCommission()},
+				{0, true, types.ErrNoValidatorCommission()},
+			},
+		},
+		{
+			"disable set withdraw address",
+			func(ctx *sdk.Context, dk Keeper, sk staking.Keeper, valOpAddrs []sdk.ValAddress, p param, i int) {
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(p.blockVersion)
+				dk.SetWithdrawRewardEnabled(*ctx, p.enable)
+				DoSetWithdrawAddressWithError(suite.T(), *ctx, dk, keeper.TestDelAddrs[i], p.expectError)
+			},
+			[]param{
+				{-1, false, types.ErrCodeDisabledWithdrawRewards()},
+				{-1, true, nil},
+				{0, false, nil},
+				{0, true, nil},
+			},
+		},
+		{
+			"disable set withdraw address",
+			func(ctx *sdk.Context, dk Keeper, sk staking.Keeper, valOpAddrs []sdk.ValAddress, p param, i int) {
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(p.blockVersion)
+				dk.SetWithdrawRewardEnabled(*ctx, p.enable)
+				DoWithdrawDelegatorRewardWithError(suite.T(), *ctx, dk, keeper.TestDelAddrs[0], keeper.TestValAddrs[0], p.expectError)
+			},
+			[]param{
+				{-1, false, types.ErrCodeDisabledWithdrawRewards()},
+				{-1, true, types.ErrUnknownDistributionMsgType()},
+				{0, false, types.ErrUnknownDistributionMsgType()},
+				{0, true, types.ErrUnknownDistributionMsgType()},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.title, func() {
+			communityTax := sdk.NewDecWithPrec(2, 2)
+			ctx, _, _, dk, sk, _, _ := keeper.CreateTestInputAdvanced(suite.T(), false, 1000, communityTax)
+			valOpAddrs, valConsPks, _ := keeper.GetTestAddrs()
+			for i, _ := range valOpAddrs {
+				keeper.DoCreateValidator(suite.T(), ctx, sk, valOpAddrs[i], valConsPks[i])
+			}
+			// end block to bond validator
+			staking.EndBlocker(ctx, sk)
+			//delegation
+			for _, v := range keeper.TestDelAddrs {
+				keeper.DoDeposit(suite.T(), ctx, sk, v, sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)))
+				keeper.DoAddShares(suite.T(), ctx, sk, v, valOpAddrs)
+			}
+
+			DoRegProxyWithError(suite.T(), ctx, sk, keeper.TestDelAddrs[0], true, nil)
+			DoDepositWithError(suite.T(), ctx, sk, keeper.TestDelAddrs[0], sdk.NewCoin(sk.BondDenom(ctx), sdk.NewInt(100)), nil)
+
+			for i, p := range tc.params {
+				tc.execute(&ctx, dk, sk, valOpAddrs, p, i)
+			}
+
+			proposal := types.NewChangeDistributionTypeProposal("change distri type", "", types.DistributionTypeOnChain)
+			keeper.HandleChangeDistributionTypeProposal(ctx, dk, proposal)
+		})
+	}
+}
+
+func DoCreateValidatorWithError(t *testing.T, ctx sdk.Context, sk staking.Keeper, valAddr sdk.ValAddress, valConsPk crypto.PubKey, expectError error) {
+	s := staking.NewHandler(sk)
+	msg := staking.NewMsgCreateValidator(valAddr, valConsPk, staking.Description{}, keeper.NewTestSysCoin(1, 0))
+	_, e := s(ctx, msg)
+	require.Equal(t, expectError, e)
+}
+
+func DoEditValidatorWithError(t *testing.T, ctx sdk.Context, sk staking.Keeper, valAddr sdk.ValAddress, newRate sdk.Dec, expectError error) {
+	h := staking.NewHandler(sk)
+	msg := staking.NewMsgEditValidatorCommissionRate(valAddr, newRate)
+	_, e := h(ctx, msg)
+	require.Equal(t, expectError, e)
+}
+
+func DoWithdrawWithError(t *testing.T, ctx sdk.Context, sk staking.Keeper, delAddr sdk.AccAddress, amount sdk.SysCoin, expectError error) {
+	h := staking.NewHandler(sk)
+	msg := staking.NewMsgWithdraw(delAddr, amount)
+	_, e := h(ctx, msg)
+	require.Equal(t, expectError, e)
+}
+
+func DoDestroyValidatorWithError(t *testing.T, ctx sdk.Context, sk staking.Keeper, delAddr sdk.AccAddress, expectError error) {
+	h := staking.NewHandler(sk)
+	msg := staking.NewMsgDestroyValidator(delAddr)
+	_, e := h(ctx, msg)
+	require.Equal(t, expectError, e)
+}
+
+func DoDepositWithError(t *testing.T, ctx sdk.Context, sk staking.Keeper, delAddr sdk.AccAddress, amount sdk.SysCoin, expectError error) {
+	h := staking.NewHandler(sk)
+	msg := staking.NewMsgDeposit(delAddr, amount)
+	_, e := h(ctx, msg)
+	require.Equal(t, expectError, e)
+}
+
+func DoAddSharesWithError(t *testing.T, ctx sdk.Context, sk staking.Keeper, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress, expectError error) {
+	h := staking.NewHandler(sk)
+	msg := staking.NewMsgAddShares(delAddr, valAddrs)
+	_, e := h(ctx, msg)
+	require.Equal(t, expectError, e)
+}
+
+func DoRegProxyWithError(t *testing.T, ctx sdk.Context, sk staking.Keeper, delAddr sdk.AccAddress, reg bool, expectError error) {
+	h := staking.NewHandler(sk)
+	msg := staking.NewMsgRegProxy(delAddr, reg)
+	_, e := h(ctx, msg)
+	require.Equal(t, expectError, e)
+}
+
+func DoBindProxyWithError(t *testing.T, ctx sdk.Context, sk staking.Keeper, delAddr sdk.AccAddress, proxyAddr sdk.AccAddress, expectError error) {
+	h := staking.NewHandler(sk)
+	msg := staking.NewMsgBindProxy(delAddr, proxyAddr)
+	_, e := h(ctx, msg)
+	require.Equal(t, expectError, e)
+}
+
+func DoUnBindProxyWithError(t *testing.T, ctx sdk.Context, sk staking.Keeper, delAddr sdk.AccAddress, expectError error) {
+	h := staking.NewHandler(sk)
+	msg := staking.NewMsgUnbindProxy(delAddr)
+	_, e := h(ctx, msg)
+	require.Equal(t, expectError, e)
+}
+
+func DoSetWithdrawAddressWithError(t *testing.T, ctx sdk.Context, dk Keeper, delAddr sdk.AccAddress, expectError error) {
+	h := NewHandler(dk)
+	msg := NewMsgSetWithdrawAddress(delAddr, delAddr)
+	_, e := h(ctx, msg)
+	require.Equal(t, expectError, e)
+}
+
+func DoWithdrawValidatorCommissionWithError(t *testing.T, ctx sdk.Context, dk Keeper, valAddr sdk.ValAddress, expectError error) {
+	h := NewHandler(dk)
+	msg := NewMsgWithdrawValidatorCommission(valAddr)
+	_, e := h(ctx, msg)
+	require.Equal(t, expectError, e)
+}
+
+func DoWithdrawDelegatorRewardWithError(t *testing.T, ctx sdk.Context, dk Keeper, delAddr sdk.AccAddress,
+	valAddr sdk.ValAddress, expectError error) {
+	h := NewHandler(dk)
+	msg := NewMsgWithdrawDelegatorReward(delAddr, valAddr)
+	_, e := h(ctx, msg)
+	require.Equal(t, expectError, e)
 }

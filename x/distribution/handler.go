@@ -14,6 +14,10 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		ctx.SetEventManager(sdk.NewEventManager())
 
+		if tmtypes.HigherThanVenus2(ctx.BlockHeight()) && !k.GetWithdrawRewardEnabled(ctx) {
+			return nil, types.ErrCodeDisabledWithdrawRewards()
+		}
+
 		switch msg := msg.(type) {
 		case types.MsgSetWithdrawAddress:
 			return handleMsgModifyWithdrawAddress(ctx, msg, k)
