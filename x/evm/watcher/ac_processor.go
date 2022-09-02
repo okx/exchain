@@ -121,8 +121,8 @@ func (ap *ACProcessor) PersistHander(commitFn func(epochCache *MessageCache)) {
 		ed1 := time.Now()
 		cmmiter.Clear()
 		ed2 := time.Now()
-		curComit := ap.commitList.size()
-		ap.totalCommit += curComit
+
+		ap.totalCommit += s
 		ap.totalRepeat += cmmiter.count - s
 		ap.total += cmmiter.count
 		fmt.Printf("****** lyh ACProcessor cur commiter size %d, repeat count %d;;; total commit %d, repeat %d, total %d;;; cost time commit %v, remove %v, clear %v \n",
