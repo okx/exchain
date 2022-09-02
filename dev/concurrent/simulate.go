@@ -72,9 +72,8 @@ func main() {
 	//	wg.Wait()
 }
 
-func estimateGas(from string) {
+func estimateGas(from, rpcUrl string) {
 loop:
-	rpcUrl := "http://127.0.0.1:26659"
 	client, err := ethclient.Dial(rpcUrl)
 	if err != nil {
 		log.Println("estimate dial error ", err)
@@ -144,11 +143,14 @@ func PrivateKeyToAddress(privateKey *ecdsa.PrivateKey) (common.Address, error) {
 }
 
 func Eg() {
-	fromPrivkey := "824c346a2b5fa81768c75408202493a9cb0a7f5879ff4988d23da2c6b1afb9cf"
-	//fromPrivkey := "8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17"
+	// time.Sleep(10 * time.Millisecond)
+	// fromPrivkey := "824c346a2b5fa81768c75408202493a9cb0a7f5879ff4988d23da2c6b1afb9cf"
+	// rpcUrl := "http://127.0.0.1:26659"
+	fromPrivkey := "8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17"
+	rpcUrl := "http://127.0.0.1:8545"
 	captionPk, err := crypto.HexToECDSA(fromPrivkey)
 	CheckErr(err)
 	addr1, err := PrivateKeyToAddress(captionPk)
 	CheckErr(err)
-	estimateGas(addr1.String())
+	estimateGas(addr1.String(), rpcUrl)
 }
