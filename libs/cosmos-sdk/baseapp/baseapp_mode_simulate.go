@@ -15,7 +15,7 @@ func (m *modeHandlerSimulate) handleStartHeight(info *runTxInfo, height int64) e
 	lastHeight := app.LastBlockHeight()
 	if height > startHeight && height <= lastHeight {
 		info.ctx, err = app.getContextForSimTx(info.txBytes, height)
-	} else if height < startHeight && height != 0 {
+	} else if height <= startHeight && height != 0 {
 		err = sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
 			fmt.Sprintf("height(%d) should be greater than start block height(%d)", height, startHeight))
 	} else if height > lastHeight {
