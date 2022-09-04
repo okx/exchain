@@ -8,7 +8,6 @@ import (
 	"runtime"
 	"sort"
 	"sync"
-	"time"
 
 	"github.com/tendermint/go-amino"
 
@@ -659,37 +658,6 @@ func (tree *MutableTree) enableFastStorageAndCommit(batch dbm.Batch) error {
 	// We start a new thread to keep on checking if we are above 4GB, and if so garbage collect.
 	// This thread only lasts during the fast node migration.
 	// This is done to keep RAM usage down.
-	done := make(chan struct{})
-	defer func() {
-		done <- struct{}{}
-		close(done)
-	}()
-
-	go func() {
-		timer := time.NewTimer(time.Second)
-		var m runtime.MemStats
-
-		for {
-			// Sample the current memory usage
-			runtime.ReadMemStats(&m)
-
-			if m.Alloc > 4*1024*1024*1024 {
-				// If we are using more than 4GB of memory, we should trigger garbage collection
-				// to free up some memory.
-				runtime.GC()
-			}
-
-			select {
-			case <-timer.C:
-				timer.Reset(time.Second)
-			case <-done:
-				if !timer.Stop() {
-					<-timer.C
-				}
-				return
-			}
-		}
-	}()
 
 	itr := NewIterator(nil, nil, true, tree.ImmutableTree)
 	defer itr.Close()
