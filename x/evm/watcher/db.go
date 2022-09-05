@@ -60,19 +60,11 @@ func initDb() dbm.DB {
 }
 
 func checkVersion(versionPath string) bool {
-	_, err := os.Stat(versionPath)
-	if os.IsNotExist(err) {
-		writeVersion(versionPath)
-		return true
-	}
 	content, err := ioutil.ReadFile(versionPath)
-	if err != nil {
-		panic(err)
+	if err != nil || string(content) != version {
+		return false
 	}
-	if string(content) == version {
-		return true
-	}
-	return false
+	return true
 }
 
 func writeVersion(versionPath string) {
