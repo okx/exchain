@@ -380,6 +380,7 @@ FOR_LOOP:
 
 				// TODO: batch saves so we dont persist to disk every block
 				bcR.store.SaveBlock(first, firstParts, second.LastCommit)
+
 				// TODO: same thing for app - but we would need a way to
 				// get the hash without persisting the state
 				var err error
@@ -411,8 +412,7 @@ FOR_LOOP:
 	}
 
 	endTime := time.Now().UnixMilli()
-	//bcR.Logger.Info("Pool routine:", "used time", (endTime-startTime)/1000)
-	fmt.Println("Use time:", (endTime-startTime)/1000)
+	bcR.Logger.Info("Pool routine:", "used time", (endTime-startTime)/1000)
 }
 
 func (bcR *BlockchainReactor) CheckFastSyncCondition() {
