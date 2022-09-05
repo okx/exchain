@@ -53,7 +53,6 @@ func initDb() dbm.DB {
 	if !checkVersion(versionPath) {
 		os.RemoveAll(filepath.Join(dbPath, WatchDBName+".db"))
 	}
-
 	db := dbm.NewDB(WatchDBName, dbm.BackendType(backend), dbPath)
 	writeVersion(versionPath)
 	return db
