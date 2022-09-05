@@ -22,6 +22,8 @@ import (
 	"github.com/spf13/viper"
 )
 
+const version = "v1"
+
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type Watcher struct {
