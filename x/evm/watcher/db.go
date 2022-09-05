@@ -1,7 +1,9 @@
 package watcher
 
 import (
+	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 	"sync"
 
@@ -47,7 +49,34 @@ func initDb() dbm.DB {
 		backend = string(dbm.GoLevelDBBackend)
 	}
 
-	return dbm.NewDB(WatchDBName, dbm.BackendType(backend), dbPath)
+	versionPath := filepath.Join(dbPath, WatchDBName+".db", "VERSION")
+	if !checkVersion(versionPath) {
+		os.RemoveAll(filepath.Join(dbPath, WatchDBName+".db"))
+	}
+
+	db := dbm.NewDB(WatchDBName, dbm.BackendType(backend), dbPath)
+	writeVersion(versionPath)
+	return db
+}
+
+func checkVersion(versionPath string) bool {
+	_, err := os.Stat(versionPath)
+	if os.IsNotExist(err) {
+		writeVersion(versionPath)
+		return true
+	}
+	content, err := ioutil.ReadFile(versionPath)
+	if err != nil {
+		panic(err)
+	}
+	if string(content) == version {
+		return true
+	}
+	return false
+}
+
+func writeVersion(versionPath string) {
+	ioutil.WriteFile(versionPath, []byte(version), 0666)
 }
 
 func (w WatchStore) Set(key []byte, value []byte) {
