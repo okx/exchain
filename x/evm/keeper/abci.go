@@ -39,6 +39,8 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	blockHash := common.BytesToHash(currentHash)
 	k.SetHeightHash(ctx, uint64(height), common.BytesToHash(lastHash))
 	k.SetBlockHash(ctx, lastHash, height)
+	// Add latest block height and hash to cache
+	k.AddHeightHashToCache(req.Header.GetHeight(), blockHash.Hex())
 
 	// reset counters that are used on CommitStateDB.Prepare
 	if !ctx.IsTraceTx() {
