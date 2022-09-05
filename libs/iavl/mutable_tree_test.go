@@ -7,6 +7,7 @@ import (
 	"runtime"
 	"sort"
 	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/golang/mock/gomock"
@@ -1011,4 +1012,29 @@ func setupTreeAndMirrorForUpgrade(t *testing.T) (*MutableTree, [][]string) {
 		return mirror[i][0] < mirror[j][0]
 	})
 	return tree, mirror
+}
+
+func TestMutableTree_Concurrent_GetSet(t *testing.T) {
+	db := db.NewMemDB()
+
+	tree, _ := NewMutableTree(db, 0)
+
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 1000000; i++ {
+			tree.Set([]byte{byte(1)}, []byte{byte(1)})
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		for i := 0; i < 1000000; i++ {
+			tree.Get([]byte{byte(1)})
+		}
+	}()
+
+	wg.Wait()
 }
