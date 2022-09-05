@@ -55,7 +55,7 @@ func queryFeeSplits(
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
 	}
 
-	var feeSplits []types.FeeSplit
+	var feeSplits []types.FeeSplitWithShare
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixFeeSplit)
 
 	pageRes, err := query.Paginate(store, params.Pagination, func(_, value []byte) error {
@@ -63,7 +63,16 @@ func queryFeeSplits(
 		if err := k.cdc.UnmarshalBinaryBare(value, &fee); err != nil {
 			return err
 		}
-		feeSplits = append(feeSplits, fee)
+		share, found := k.GetContractShare(ctx, fee.GetContractAddr())
+		if !found {
+			share = k.GetParams(ctx).DeveloperShares
+		}
+		feeSplits = append(feeSplits, types.FeeSplitWithShare{
+			ContractAddress:   fee.ContractAddress,
+			DeployerAddress:   fee.DeployerAddress,
+			WithdrawerAddress: fee.WithdrawerAddress,
+			Share:             share,
+		})
 		return nil
 	})
 	if err != nil {
@@ -117,8 +126,17 @@ func queryFeeSplit(
 			params.ContractAddress,
 		)
 	}
+	share, found := k.GetContractShare(ctx, feeSplit.GetContractAddr())
+	if !found {
+		share = k.GetParams(ctx).DeveloperShares
+	}
 
-	resp := &types.QueryFeeSplitResponse{FeeSplit: feeSplit}
+	resp := &types.QueryFeeSplitResponse{FeeSplit: types.FeeSplitWithShare{
+		ContractAddress:   feeSplit.ContractAddress,
+		DeployerAddress:   feeSplit.DeployerAddress,
+		WithdrawerAddress: feeSplit.WithdrawerAddress,
+		Share:             share,
+	}}
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, resp)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())

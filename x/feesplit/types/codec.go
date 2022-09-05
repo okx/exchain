@@ -12,6 +12,7 @@ const (
 	registerFeeSplitName = "okexchain/MsgRegisterFeeSplit"
 	updateFeeSplitName   = "okexchain/MsgUpdateFeeSplit"
 	cancelFeeSplitName   = "okexchain/MsgCancelFeeSplit"
+	sharesProposalName   = "okexchain/feesplit/SharesProposal"
 )
 
 // NOTE: This is required for the GetSignBytes function
@@ -27,4 +28,5 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(MsgRegisterFeeSplit{}, registerFeeSplitName, nil)
 	cdc.RegisterConcrete(MsgUpdateFeeSplit{}, updateFeeSplitName, nil)
 	cdc.RegisterConcrete(MsgCancelFeeSplit{}, cancelFeeSplitName, nil)
+	cdc.RegisterConcrete(FeeSplitSharesProposal{}, sharesProposalName, nil)
 }

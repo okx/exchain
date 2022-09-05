@@ -1,6 +1,8 @@
 package keeper
 
 import (
+	"math/big"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -153,4 +155,28 @@ func (k Keeper) IsWithdrawerMapSet(
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixWithdrawer)
 	key := append(withdrawer.Bytes(), contract.Bytes()...)
 	return store.Has(key)
+}
+
+// SetContractShare stores the share for a registered contract.
+func (k Keeper) SetContractShare(
+	ctx sdk.Context,
+	contract common.Address,
+	share sdk.Dec,
+) {
+	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixContractShare)
+	store.Set(contract.Bytes(), share.Bytes())
+}
+
+// GetContractShare returns the share for a registered contract
+func (k Keeper) GetContractShare(
+	ctx sdk.Context,
+	contract common.Address,
+) (sdk.Dec, bool) {
+	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixContractShare)
+	bz := store.Get(contract.Bytes())
+	if len(bz) == 0 {
+		return sdk.ZeroDec(), false
+	}
+
+	return sdk.NewDecFromBigIntWithPrec(new(big.Int).SetBytes(bz), sdk.Precision), true
 }

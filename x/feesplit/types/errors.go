@@ -4,6 +4,8 @@ import (
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
 
+const DefaultCodespace string = ModuleName
+
 // errors
 var (
 	ErrInternalFeeSplit              = sdkerrors.Register(ModuleName, 2, "internal feesplit error")

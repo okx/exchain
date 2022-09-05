@@ -23,13 +23,15 @@ const (
 	prefixFeeSplit = iota + 1
 	prefixDeployer
 	prefixWithdrawer
+	prefixContractShare
 )
 
 // KVStore key prefixes
 var (
-	KeyPrefixFeeSplit   = []byte{prefixFeeSplit}
-	KeyPrefixDeployer   = []byte{prefixDeployer}
-	KeyPrefixWithdrawer = []byte{prefixWithdrawer}
+	KeyPrefixFeeSplit      = []byte{prefixFeeSplit}
+	KeyPrefixDeployer      = []byte{prefixDeployer}
+	KeyPrefixWithdrawer    = []byte{prefixWithdrawer}
+	KeyPrefixContractShare = []byte{prefixContractShare}
 )
 
 // GetKeyPrefixDeployer returns the KVStore key prefix for storing

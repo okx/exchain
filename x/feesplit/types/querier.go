@@ -2,9 +2,17 @@ package types
 
 import (
 	_ "github.com/gogo/protobuf/gogoproto"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	query "github.com/okex/exchain/libs/cosmos-sdk/types/query"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 )
+
+type FeeSplitWithShare struct {
+	ContractAddress   string  `json:"contract_address,omitempty"`
+	DeployerAddress   string  `json:"deployer_address,omitempty"`
+	WithdrawerAddress string  `json:"withdrawer_address,omitempty"`
+	Share             sdk.Dec `json:"share,omitempty"`
+}
 
 // QueryFeeSplitsRequest is the request type for the Query/FeeSplits.
 type QueryFeeSplitsRequest struct {
@@ -14,7 +22,7 @@ type QueryFeeSplitsRequest struct {
 
 // QueryFeeSplitsResponse is the response type for the Query/FeeSplits.
 type QueryFeeSplitsResponse struct {
-	FeeSplits []FeeSplit `json:"fee_splits"`
+	FeeSplits []FeeSplitWithShare `json:"fee_splits"`
 	// pagination defines the pagination in the response.
 	Pagination *query.PageResponse `json:"pagination,omitempty"`
 }
@@ -27,7 +35,7 @@ type QueryFeeSplitRequest struct {
 
 // QueryFeeSplitResponse is the response type for the Query/FeeSplit.
 type QueryFeeSplitResponse struct {
-	FeeSplit FeeSplit `json:"fee_split"`
+	FeeSplit FeeSplitWithShare `json:"fee_split"`
 }
 
 // QueryParamsRequest is the request type for the Query/Params.

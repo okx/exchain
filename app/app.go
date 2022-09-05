@@ -65,6 +65,7 @@ import (
 	"github.com/okex/exchain/x/farm"
 	farmclient "github.com/okex/exchain/x/farm/client"
 	"github.com/okex/exchain/x/feesplit"
+	fsclient "github.com/okex/exchain/x/feesplit/client"
 	"github.com/okex/exchain/x/genutil"
 	"github.com/okex/exchain/x/gov"
 	"github.com/okex/exchain/x/gov/keeper"
@@ -123,6 +124,7 @@ var (
 			erc20client.ProxyContractRedirectHandler,
 			erc20client.ContractTemplateProposalHandler,
 			client.UpdateClientProposalHandler,
+			fsclient.FeeSplitSharesProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
@@ -208,7 +210,7 @@ type OKExChainApp struct {
 	FarmKeeper     farm.Keeper
 	wasmKeeper     wasm.Keeper
 	InfuraKeeper   infura.Keeper
-	FeesplitKeeper feesplit.Keeper
+	FeeSplitKeeper feesplit.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -405,7 +407,7 @@ func NewOKExChainApp(
 	app.Erc20Keeper = erc20.NewKeeper(app.marshal.GetCdc(), app.keys[erc20.ModuleName], app.subspaces[erc20.ModuleName],
 		app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, app.EvmKeeper, app.TransferKeeper)
 
-	app.FeesplitKeeper = feesplit.NewKeeper(
+	app.FeeSplitKeeper = feesplit.NewKeeper(
 		app.keys[feesplit.StoreKey], app.marshal.GetCdc(), app.subspaces[feesplit.ModuleName],
 		app.SupplyKeeper, app.AccountKeeper, updateFeeSplitHandler(app.feeSplitCollector))
 
@@ -420,14 +422,16 @@ func NewOKExChainApp(
 		AddRoute(evm.RouterKey, evm.NewManageContractDeploymentWhitelistProposalHandler(app.EvmKeeper)).
 		AddRoute(mint.RouterKey, mint.NewManageTreasuresProposalHandler(&app.MintKeeper)).
 		AddRoute(ibcclienttypes.RouterKey, ibcclient.NewClientUpdateProposalHandler(app.IBCKeeper.ClientKeeper)).
-		AddRoute(erc20.RouterKey, erc20.NewProposalHandler(&app.Erc20Keeper))
+		AddRoute(erc20.RouterKey, erc20.NewProposalHandler(&app.Erc20Keeper)).
+		AddRoute(feesplit.RouterKey, feesplit.NewProposalHandler(&app.FeeSplitKeeper))
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &app.ParamsKeeper).
 		AddRoute(dex.RouterKey, &app.DexKeeper).
 		AddRoute(farm.RouterKey, &app.FarmKeeper).
 		AddRoute(evm.RouterKey, app.EvmKeeper).
 		AddRoute(mint.RouterKey, &app.MintKeeper).
-		AddRoute(erc20.RouterKey, &app.Erc20Keeper)
+		AddRoute(erc20.RouterKey, &app.Erc20Keeper).
+		AddRoute(feesplit.RouterKey, &app.FeeSplitKeeper)
 	app.GovKeeper = gov.NewKeeper(
 		app.marshal.GetCdc(), app.keys[gov.StoreKey], app.ParamsKeeper, app.subspaces[gov.DefaultParamspace],
 		app.SupplyKeeper, &stakingKeeper, gov.DefaultParamspace, govRouter,
@@ -439,13 +443,14 @@ func NewOKExChainApp(
 	app.EvmKeeper.SetGovKeeper(app.GovKeeper)
 	app.MintKeeper.SetGovKeeper(app.GovKeeper)
 	app.Erc20Keeper.SetGovKeeper(app.GovKeeper)
+	app.FeeSplitKeeper.SetGovKeeper(app.GovKeeper)
 
 	// Set EVM hooks
 	app.EvmKeeper.SetHooks(
 		evm.NewMultiEvmHooks(
 			evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper),
 				erc20.NewSendNative20ToIbcEventHandler(app.Erc20Keeper)),
-			app.FeesplitKeeper.Hooks(),
+			app.FeeSplitKeeper.Hooks(),
 		),
 	)
 	// Set IBC hooks
@@ -516,7 +521,7 @@ func NewOKExChainApp(
 		transferModule,
 		erc20.NewAppModule(app.Erc20Keeper),
 		wasm.NewAppModule(*app.marshal, &app.wasmKeeper),
-		feesplit.NewAppModule(app.FeesplitKeeper),
+		feesplit.NewAppModule(app.FeeSplitKeeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that

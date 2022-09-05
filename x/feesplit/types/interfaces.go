@@ -4,6 +4,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	govtypes "github.com/okex/exchain/x/gov/types"
 )
 
 // AccountKeeper defines the expected interface needed to retrieve account info.
@@ -19,4 +20,10 @@ type SupplyKeeper interface {
 type Subspace interface {
 	GetParamSet(ctx sdk.Context, ps params.ParamSet)
 	SetParamSet(ctx sdk.Context, ps params.ParamSet)
+}
+
+// GovKeeper defines the expected gov Keeper
+type GovKeeper interface {
+	GetDepositParams(ctx sdk.Context) govtypes.DepositParams
+	GetVotingParams(ctx sdk.Context) govtypes.VotingParams
 }

@@ -58,8 +58,15 @@ func (k Keeper) PostTxProcessing(
 		withdrawer = feeSplit.GetDeployerAddr()
 	}
 
+	developerShares := params.DeveloperShares
+	// if the contract shares is set by proposal
+	shares, found := k.GetContractShare(ctx, *contract)
+	if found {
+		developerShares = shares
+	}
+
 	txFee := new(big.Int).Mul(st.Price, new(big.Int).SetUint64(receipt.GasUsed))
-	developerFee := sdk.NewDecFromBigIntWithPrec(txFee, sdk.Precision).Mul(params.DeveloperShares)
+	developerFee := sdk.NewDecFromBigIntWithPrec(txFee, sdk.Precision).Mul(developerShares)
 	fees := sdk.Coins{{Denom: sdk.DefaultBondDenom, Amount: developerFee}}
 
 	// distribute the fees to the contract deployer / withdraw address

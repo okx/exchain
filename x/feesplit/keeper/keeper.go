@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/ethereum/go-ethereum/common"
-	ethermint "github.com/okex/exchain/app/types"
 
+	ethermint "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -20,6 +20,7 @@ type Keeper struct {
 	cdc        *codec.Codec
 	paramSpace types.Subspace
 
+	govKeeper             types.GovKeeper
 	supplyKeeper          types.SupplyKeeper
 	accountKeeper         types.AccountKeeper
 	updateFeeSplitHandler sdk.UpdateFeeSplitHandler
@@ -65,4 +66,9 @@ func (k Keeper) GetAccountWithoutBalance(ctx sdk.Context, addr common.Address) *
 
 	ethAcct, _ := acct.(*ethermint.EthAccount)
 	return ethAcct
+}
+
+// SetGovKeeper sets keeper of gov
+func (k *Keeper) SetGovKeeper(gk types.GovKeeper) {
+	k.govKeeper = gk
 }

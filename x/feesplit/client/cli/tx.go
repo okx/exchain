@@ -4,17 +4,22 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-
-	"github.com/spf13/cobra"
+	"strings"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
+	fsutils "github.com/okex/exchain/x/feesplit/client/utils"
 	"github.com/okex/exchain/x/feesplit/types"
+	govTypes "github.com/okex/exchain/x/gov/types"
+
+	"github.com/spf13/cobra"
 )
 
 // GetTxCmd returns a root CLI command handler for certain modules/feesplit
@@ -166,6 +171,71 @@ func GetUpdateFeeSplit(cdc *codec.Codec) *cobra.Command {
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
-	
+
+	return cmd
+}
+
+// GetCmdFeeSplitSharesProposal implements a command handler for submitting a fee split change proposal transaction
+func GetCmdFeeSplitSharesProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "fee-split-shares [proposal-file]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Submit a fee split shares proposal",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Submit a fee split shares proposal along with an initial deposit.
+The proposal details must be supplied via a JSON file.
+
+Example:
+$ %s tx gov submit-proposal fee-split-shares <path/to/proposal.json> --from=<key_or_address>
+
+Where proposal.json contains:
+
+{
+  "title": "Update the fee split shares for contract",
+  "description": "Update the fee split shares",
+  "shares": [
+    {
+      "contract_addr": "0x0d021d10ab9E155Fc1e8705d12b73f9bd3de0a36",
+      "share": "0.5"
+    }
+  ],
+  "deposit": [
+    {
+      "denom": "%s",
+      "amount": "10000"
+    }
+  ]
+}
+`,
+				version.ClientName, sdk.DefaultBondDenom,
+			),
+		),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cdc := cdcP.GetCdc()
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			proposal, err := fsutils.ParseFeeSplitSharesProposalJSON(cdc, args[0])
+			if err != nil {
+				return err
+			}
+
+			from := cliCtx.GetFromAddress()
+			content := types.NewFeeSplitSharesProposal(
+				proposal.Title,
+				proposal.Description,
+				proposal.Shares,
+			)
+
+			msg := govTypes.NewMsgSubmitProposal(content, proposal.Deposit, from)
+			if err := msg.ValidateBasic(); err != nil {
+				return err
+			}
+
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+
 	return cmd
 }
