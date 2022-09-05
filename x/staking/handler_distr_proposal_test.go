@@ -23,12 +23,12 @@ func TestHandlerSuite(t *testing.T) {
 
 func (suite *HandlerSuite) TestEditValidatorCommission() {
 	testCases := []struct {
-		title                    string
-		setMilestoneVenus3Height func()
-		newRate                  string
-		setBlockTime             func(ctx *sdk.Context)
-		handlerErrType           int
-		err                      [5]error
+		title              string
+		setMilestoneHeight func()
+		newRate            string
+		setBlockTime       func(ctx *sdk.Context)
+		handlerErrType     int
+		err                [5]error
 	}{
 		{
 			"not venus3, default ok",
@@ -144,7 +144,7 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 		tmtypes.UnittestOnlySetMilestoneVenus2Height(0)
 		suite.Run(tc.title, func() {
 			ctx, _, mKeeper := CreateTestInput(suite.T(), false, SufficientInitPower)
-			tc.setMilestoneVenus3Height()
+			tc.setMilestoneHeight()
 			keeper := mKeeper.Keeper
 			_ = setInstantUnbondPeriod(keeper, ctx)
 			handler := NewHandler(keeper)

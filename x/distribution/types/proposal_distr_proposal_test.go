@@ -34,12 +34,12 @@ func RandStr(length int) string {
 
 func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 	testCases := []struct {
-		title                    string
-		setMilestoneVenus3Height func()
-		proposalTitle            string
-		proposalDescription      string
-		distrType                uint32
-		err                      error
+		title               string
+		setMilestoneHeight  func()
+		proposalTitle       string
+		proposalDescription string
+		distrType           uint32
+		err                 error
 	}{
 		{
 			"no proposal title",
@@ -132,7 +132,7 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 		tmtypes.UnittestOnlySetMilestoneVenus2Height(0)
 
 		suite.Run(tc.title, func() {
-			tc.setMilestoneVenus3Height()
+			tc.setMilestoneHeight()
 			title := tc.proposalTitle
 			description := tc.proposalDescription
 			proposal := NewChangeDistributionTypeProposal(title, description, tc.distrType)
@@ -153,12 +153,12 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 
 func (suite *ProposalSuite) TestNewWithdrawRewardEnabledProposal() {
 	testCases := []struct {
-		title                    string
-		setMilestoneVenus3Height func()
-		proposalTitle            string
-		proposalDescription      string
-		enabled                  bool
-		err                      error
+		title               string
+		setMilestoneHeight  func()
+		proposalTitle       string
+		proposalDescription string
+		enabled             bool
+		err                 error
 	}{
 		{
 			"no proposal title",
@@ -242,7 +242,7 @@ func (suite *ProposalSuite) TestNewWithdrawRewardEnabledProposal() {
 		global.SetGlobalHeight(0)
 		tmtypes.UnittestOnlySetMilestoneVenus2Height(0)
 		suite.Run(tc.title, func() {
-			tc.setMilestoneVenus3Height()
+			tc.setMilestoneHeight()
 			title := tc.proposalTitle
 			description := tc.proposalDescription
 			proposal := NewWithdrawRewardEnabledProposal(title, description, tc.enabled)
