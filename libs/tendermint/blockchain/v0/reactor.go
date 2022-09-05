@@ -247,8 +247,6 @@ func (bcR *BlockchainReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 // Handle messages from the poolReactor telling the reactor what to do.
 // NOTE: Don't sleep in the FOR_LOOP or otherwise slow it down!
 func (bcR *BlockchainReactor) poolRoutine() {
-	log := bcR.Logger.With("module", "main")
-	log.Info("poolRoutine start")
 	bcR.mtx.Lock()
 	if bcR.isSyncing {
 		bcR.mtx.Unlock()
@@ -413,6 +411,7 @@ FOR_LOOP:
 	}
 
 	endTime := time.Now().UnixMilli()
+	//bcR.Logger.Info("Pool routine:", "used time", (endTime-startTime)/1000)
 	fmt.Println("Use time:", (endTime-startTime)/1000)
 }
 
@@ -465,13 +464,6 @@ func (bcR *BlockchainReactor) getIsSyncing() bool {
 	bcR.mtx.Lock()
 	defer bcR.mtx.Unlock()
 	return bcR.isSyncing
-}
-
-//
-type SaveBlock struct {
-	block      *types.Block
-	blockParts *types.PartSet
-	seenCommit *types.Commit
 }
 
 //-----------------------------------------------------------------------------
