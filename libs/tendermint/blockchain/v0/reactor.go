@@ -79,7 +79,6 @@ type BlockchainReactor struct {
 	requestsCh <-chan BlockRequest
 	errorsCh   <-chan peerError
 
-	saveBlockCh chan SaveBlock
 	finishCh chan struct{}
 }
 
@@ -126,7 +125,6 @@ func (bcR *BlockchainReactor) SetLogger(l log.Logger) {
 
 // OnStart implements service.Service.
 func (bcR *BlockchainReactor) OnStart() error {
-	bcR.saveBlockCh = make(chan SaveBlock, maxTotalSaveBlocks)
 	if bcR.fastSync {
 		err := bcR.pool.Start()
 		if err != nil {
@@ -314,9 +312,6 @@ func (bcR *BlockchainReactor) poolRoutine() {
 			case <-statusUpdateTicker.C:
 				// ask for status updates
 				go bcR.BroadcastStatusRequest() // nolint: errcheck
-			case block := <-bcR.saveBlockCh:
-				//TODO, save all when exist
-				bcR.store.SaveBlock(block.block, block.blockParts, block.seenCommit)
 			}
 		}
 	}()
@@ -386,8 +381,7 @@ FOR_LOOP:
 				bcR.pool.PopRequest()
 
 				// TODO: batch saves so we dont persist to disk every block
-				//bcR.store.SaveBlock(first, firstParts, second.LastCommit)
-				bcR.saveBlockCh <- SaveBlock{first, firstParts, second.LastCommit}
+				bcR.store.SaveBlock(first, firstParts, second.LastCommit)
 				// TODO: same thing for app - but we would need a way to
 				// get the hash without persisting the state
 				var err error
