@@ -115,9 +115,9 @@ func (tree *MutableTree) updateBranchFastNode() {
 	if !GetEnableFastStorage() {
 		return
 	}
-	tree.ndb.updateBranchForFastNode(tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
-	tree.unsavedFastNodeAdditions = make(map[string]*FastNode)
-	tree.unsavedFastNodeRemovals = make(map[string]interface{})
+
+	tree.ndb.updateBranchForFastNode(tree.unsavedFastNodes)
+	tree.unsavedFastNodes.reset()
 }
 
 func (tree *MutableTree) setNewWorkingTree(version int64, persisted bool) ([]byte, int64, error) {
