@@ -3,6 +3,7 @@ package wasm
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/x/wasm/keeper/testdata"
 	"io/ioutil"
 	"testing"
 
@@ -71,7 +72,7 @@ var (
 	_, _, addrAcc1 = keyPubAddr()
 	addr1          = addrAcc1.String()
 	testContract   = mustLoad("./keeper/testdata/hackatom.wasm")
-	maskContract   = mustLoad("./keeper/testdata/reflect.wasm")
+	maskContract   = testdata.ReflectContractWasm()
 	oldContract    = mustLoad("./testdata/escrow_0.7.wasm")
 )
 
