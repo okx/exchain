@@ -376,7 +376,9 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 	if data.BloomData != nil {
 		w.commitBloomData(data.BloomData)
 	}
-	w.delayEraseKey = data.DelayEraseKey
+	if data.DelayEraseKey != nil {
+		w.ExecuteDelayEraseKey(data.DelayEraseKey)
+	}
 
 	if w.checkWd {
 		keys := make([][]byte, len(data.Batches))
@@ -397,7 +399,9 @@ func (w *Watcher) CommitWatchDataToCache(data WatchData) {
 	if data.DirtyList != nil {
 		w.acProcessor.BatchDel(data.DirtyList)
 	}
-	w.delayEraseKey = data.DelayEraseKey
+	if data.DelayEraseKey != nil {
+		w.acProcessor.BatchDel(data.DelayEraseKey)
+	}
 }
 
 func (w *Watcher) AsyncCommitWatchData(data WatchData, shouldPersist bool) {
