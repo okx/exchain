@@ -1,6 +1,8 @@
 package watcher
 
 import (
+	"encoding/hex"
+	"fmt"
 	"github.com/stretchr/testify/require"
 	"sync"
 	"testing"
@@ -203,5 +205,26 @@ func TestCommitCacheGetElementFromCache(t *testing.T) {
 	for _, ts := range testcases {
 		ts.fnInit(ts.cc, ts.td)
 		ts.fncheck(ts.cc)
+	}
+}
+
+func TestStatistic(t *testing.T) {
+	mp := map[string]struct{}{
+		hex.EncodeToString(append(prefixTx, []byte("hell1")...)):    {},
+		hex.EncodeToString(append(prefixTx, []byte("hell2")...)):    {},
+		hex.EncodeToString(append(prefixTx, []byte("hell3")...)):    {},
+		hex.EncodeToString(append(prefixBlock, []byte("hell3")...)): {},
+		hex.EncodeToString(append(prefixBlock, []byte("hell4")...)): {},
+	}
+	static := make(map[string]int)
+	for k := range mp {
+		b, err := hex.DecodeString(k)
+		if err != nil {
+			continue
+		}
+		Statistic(b, static)
+	}
+	for k, v := range static {
+		fmt.Println("**** lyh ****** static", k, v)
 	}
 }

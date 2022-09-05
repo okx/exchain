@@ -3,6 +3,7 @@ package watcher
 import (
 	"container/list"
 	"encoding/hex"
+	"fmt"
 	"sync"
 )
 
@@ -76,8 +77,58 @@ func (c *MessageCache) Get(key []byte) (WatchMessage, bool) {
 func (c *MessageCache) Clear() {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
+
+	static := make(map[string]int)
 	for k := range c.mp {
 		delete(c.mp, k)
+		// just for test
+		b, err := hex.DecodeString(k)
+		if err != nil {
+			continue
+		}
+		Statistic(b, static)
+	}
+	for k, v := range static {
+		fmt.Println("**** lyh ****** static", k, v)
+	}
+}
+
+func Statistic(b []byte, stat map[string]int) {
+	if len(b) < 1 {
+		return
+	}
+	switch string(b[0:1]) {
+	case string(prefixTx):
+		stat["prefixTx"] += 1
+	case string(prefixBlock):
+		stat["prefixBlock"] += 1
+	case string(prefixReceipt):
+		stat["prefixReceipt"] += 1
+	case string(prefixCode):
+		stat["prefixCode"] += 1
+	case string(prefixBlockInfo):
+		stat["prefixBlockInfo"] += 1
+	case string(prefixLatestHeight):
+		stat["prefixLatestHeight"] += 1
+	case string(prefixAccount):
+		stat["prefixAccount"] += 1
+	case string(PrefixState):
+		stat["PrefixState"] += 1
+	case string(prefixCodeHash):
+		stat["prefixCodeHash"] += 1
+	case string(prefixParams):
+		stat["prefixParams"] += 1
+	case string(prefixWhiteList):
+		stat["prefixWhiteList"] += 1
+	case string(prefixBlackList):
+		stat["prefixBlackList"] += 1
+	case string(prefixRpcDb):
+		stat["prefixRpcDb"] += 1
+	case string(prefixTxResponse):
+		stat["prefixTxResponse"] += 1
+	case string(prefixStdTxHash):
+		stat["prefixStdTxHash"] += 1
+	default:
 	}
 }
 
