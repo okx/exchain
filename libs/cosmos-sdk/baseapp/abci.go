@@ -342,6 +342,7 @@ func (app *BaseApp) halt() {
 		// attempt cascading signals in case SIGINT fails (os dependent)
 		sigIntErr := p.Signal(syscall.SIGINT)
 		sigTermErr := p.Signal(syscall.SIGTERM)
+		//Make sure the TrapSignal execute first
 		time.Sleep(50 * time.Millisecond)
 		if sigIntErr == nil || sigTermErr == nil {
 			return
