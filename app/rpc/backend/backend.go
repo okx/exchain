@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/okex/exchain/libs/tendermint/global"
+
 	lru "github.com/hashicorp/golang-lru"
 	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 
@@ -51,7 +53,7 @@ type Backend interface {
 	GetTransactionByHash(hash common.Hash) (*watcher.Transaction, error)
 
 	// returns the logs of a given block
-	GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error)
+	GetLogs(height int64) ([][]*ethtypes.Log, error)
 
 	// Used by pending transaction filter
 	PendingTransactions() ([]*watcher.Transaction, error)
@@ -122,24 +124,8 @@ func (b *EthermintBackend) LogsTimeout() time.Duration {
 
 // BlockNumber returns the current block number.
 func (b *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
-	ublockNumber, err := b.wrappedBackend.GetLatestBlockNumber()
-	if err == nil {
-		if ublockNumber > 0 {
-			//decrease blockNumber to make sure every block has been executed in local
-			ublockNumber--
-		}
-		return hexutil.Uint64(ublockNumber), err
-	}
-	blockNumber, err := b.LatestBlockNumber()
-	if err != nil {
-		return hexutil.Uint64(0), err
-	}
-
-	if blockNumber > 0 {
-		//decrease blockNumber to make sure every block has been executed in local
-		blockNumber--
-	}
-	return hexutil.Uint64(blockNumber), nil
+	committedHeight := global.GetGlobalHeight()
+	return hexutil.Uint64(committedHeight), nil
 }
 
 // GetBlockByNumber returns the block identified by number.
@@ -451,18 +437,8 @@ func (b *EthermintBackend) GetTransactionByHash(hash common.Hash) (tx *watcher.T
 }
 
 // GetLogs returns all the logs from all the ethereum transactions in a block.
-func (b *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error) {
-	res, _, err := b.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, blockHash.Hex()))
-	if err != nil {
-		return nil, err
-	}
-
-	var out evmtypes.QueryResBlockNumber
-	if err := b.clientCtx.Codec.UnmarshalJSON(res, &out); err != nil {
-		return nil, err
-	}
-
-	block, err := b.Block(&out.Number)
+func (b *EthermintBackend) GetLogs(height int64) ([][]*ethtypes.Log, error) {
+	block, err := b.Block(&height)
 	if err != nil {
 		return nil, err
 	}
