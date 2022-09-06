@@ -3,12 +3,13 @@ package consensus
 import (
 	"bytes"
 	"fmt"
+	"strings"
+
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	"github.com/okex/exchain/libs/tendermint/types"
-	"strings"
 )
 
 // SetProposal inputs a proposal.
