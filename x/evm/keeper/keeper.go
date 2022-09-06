@@ -233,8 +233,8 @@ func (k Keeper) GetStoreKey() store.StoreKey {
 //  TODO: remove once tendermint support block queries by hash.
 // ----------------------------------------------------------------------------
 
-// GetBlockHash gets block height from block consensus hash
-func (k Keeper) GetBlockHash(ctx sdk.Context, hash ethcmn.Hash) (int64, bool) {
+// GetBlockHeight gets block height from block consensus hash
+func (k Keeper) GetBlockHeight(ctx sdk.Context, hash ethcmn.Hash) (int64, bool) {
 	if cached, ok := k.heightCache.Get(hash.Hex()); ok {
 		height := cached.(int64)
 		return height, true
@@ -253,8 +253,8 @@ func (k Keeper) GetBlockHash(ctx sdk.Context, hash ethcmn.Hash) (int64, bool) {
 	return int64(height), true
 }
 
-// SetBlockHash sets the mapping from block consensus hash to block height
-func (k Keeper) SetBlockHash(ctx sdk.Context, hash []byte, height int64) {
+// SetBlockHeight sets the mapping from block consensus hash to block height
+func (k Keeper) SetBlockHeight(ctx sdk.Context, hash []byte, height int64) {
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
 		k.setBlockHashInDiskDB(hash, height)
 		return
