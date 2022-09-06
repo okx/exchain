@@ -332,8 +332,6 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 				return nil, err
 			}
 
-			api.logger.Error("TxResult Events len:", len(queryTx.TxResult.Events))
-
 			var res *watcher.TransactionResult
 			switch realTx.GetType() {
 			case sdk.EvmTxType:
