@@ -1,4 +1,4 @@
-//This is a test utility for Ethermint's Web3 JSON-RPC services.
+// This is a test utility for Ethermint's Web3 JSON-RPC services.
 //
 // To run these tests please first ensure you have the ethermintd running
 // and have started the RPC service with `ethermintcli rest-server`.
@@ -134,7 +134,6 @@ func (suite *RPCPendingTestSuite) SetupTest() {
 		WithBroadcastMode(flags.BroadcastSync)
 
 	suite.cliCtx = &cliCtx
-
 	suite.chain.App().GetBaseApp().SetTmClient(suite.cliCtx.Client)
 
 	commitBlock(suite)
