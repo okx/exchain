@@ -3,7 +3,7 @@ package types
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	supplyexported "github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
-
+	govtypes "github.com/okex/exchain/x/gov/types"
 	stakingexported "github.com/okex/exchain/x/staking/exported"
 )
 
@@ -35,6 +35,10 @@ type StakingKeeper interface {
 
 	GetLastTotalPower(ctx sdk.Context) sdk.Int
 	GetLastValidatorPower(ctx sdk.Context, valAddr sdk.ValAddress) int64
+
+	Delegator(ctx sdk.Context, delAddr sdk.AccAddress) stakingexported.DelegatorI
+
+	IsValidator(ctx sdk.Context, addr sdk.AccAddress) bool
 }
 
 // StakingHooks event hooks for staking validator object (noalias)
@@ -44,7 +48,7 @@ type StakingHooks interface {
 	// Must be called when a validator is deleted
 	AfterValidatorRemoved(ctx sdk.Context, consAddr sdk.ConsAddress, valAddr sdk.ValAddress)
 	// Must be called when a delegation is created
-	BeforeDelegationCreated(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress)
+	BeforeDelegationCreated(ctx sdk.Context, delAddr sdk.AccAddress, valAddrs []sdk.ValAddress)
 	// Must be called when a delegation's shares are modified
 	BeforeDelegationSharesModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress)
 	AfterDelegationModified(ctx sdk.Context, delAddr sdk.AccAddress, valAddr sdk.ValAddress)
@@ -62,4 +66,11 @@ type SupplyKeeper interface {
 	SendCoinsFromModuleToModule(ctx sdk.Context, senderModule string, recipientModule string, amt sdk.Coins) error
 	SendCoinsFromModuleToAccount(ctx sdk.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) error
 	SendCoinsFromAccountToModule(ctx sdk.Context, senderAddr sdk.AccAddress, recipientModule string, amt sdk.Coins) error
+}
+
+// GovKeeper defines the expected gov Keeper
+type GovKeeper interface {
+	GetDepositParams(ctx sdk.Context) govtypes.DepositParams
+	GetVotingParams(ctx sdk.Context) govtypes.VotingParams
+	CheckMsgSubmitProposal(ctx sdk.Context, msg govtypes.MsgSubmitProposal) sdk.Error
 }
