@@ -49,10 +49,6 @@ func SetTrace(trace bool) func(*BaseApp) {
 	return func(app *BaseApp) { app.setTrace(trace) }
 }
 
-func SetTmClient(client client.Client) func(*BaseApp) {
-	return func(app *BaseApp) { app.tmClient = client }
-}
-
 func (app *BaseApp) SetName(name string) {
 	if app.sealed {
 		panic("SetName() on sealed BaseApp")
