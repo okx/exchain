@@ -3,7 +3,6 @@ package watcher
 import (
 	"container/list"
 	"encoding/hex"
-	"fmt"
 	"sync"
 )
 
@@ -78,19 +77,19 @@ func (c *MessageCache) Clear() {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
-	static := make(map[string]int)
+	//static := make(map[string]int)
 	for k := range c.mp {
 		delete(c.mp, k)
 		// just for test
-		b, err := hex.DecodeString(k)
-		if err != nil {
-			continue
-		}
-		Statistic(b, static)
+		//b, err := hex.DecodeString(k)
+		//if err != nil {
+		//	continue
+		//}
+		//Statistic(b, static)
 	}
-	for k, v := range static {
-		fmt.Println("**** lyh ****** static", k, v)
-	}
+	//for k, v := range static {
+	//	fmt.Println("**** lyh ****** static", k, v)
+	//}
 }
 
 func Statistic(b []byte, stat map[string]int) {

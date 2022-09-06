@@ -452,9 +452,10 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 		//and to skip the duplicated batch msgs by key
 		b := batch[i]
 		key := b.GetKey()
-		if isDuplicated(key, w.filterMap) {
-			continue
-		}
+		// lyh just for test
+		//if isDuplicated(key, w.filterMap) {
+		//	continue
+		//}
 		value := []byte(b.GetValue())
 		typeValue := b.GetType()
 		if typeValue == TypeDelete {
