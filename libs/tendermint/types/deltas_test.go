@@ -108,7 +108,7 @@ func TestDeltas_Validate(t *testing.T) {
 		{"normal case", fields{Height: 1, Version: DeltaVersion, Payload: payload}, args{1}, true},
 		{"no ABCIRsp", fields{Height: 1, Version: DeltaVersion, Payload: noABCIRsp}, args{1}, false},
 		{"no deltaBytes", fields{Height: 1, Version: DeltaVersion, Payload: noDeltaBytes}, args{1}, false},
-		{"no watchData", fields{Height: 1, Version: DeltaVersion, Payload: noWD}, args{1}, false},
+		{"no watchData", fields{Height: 1, Version: DeltaVersion, Payload: noWD}, args{1}, !FastQuery},
 		{"wrong height", fields{Height: 1, Version: DeltaVersion, Payload: payload}, args{2}, false},
 	}
 	for _, tt := range tests {
