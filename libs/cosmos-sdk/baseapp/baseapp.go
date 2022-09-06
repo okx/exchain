@@ -11,21 +11,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	"github.com/okex/exchain/libs/system/trace"
-
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
-
 	"github.com/gogo/protobuf/proto"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/rootmulti"
 	storetypes "github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/mempool"
+	"github.com/okex/exchain/libs/tendermint/rpc/client"
 	tmhttp "github.com/okex/exchain/libs/tendermint/rpc/client/http"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
@@ -221,6 +220,8 @@ type BaseApp struct { // nolint: maligned
 	checkTxCacheMultiStores *cacheMultiStoreList
 
 	watcherCollector sdk.EvmWatcherCollector
+
+	tmClient client.Client
 }
 
 type recordHandle func(string)

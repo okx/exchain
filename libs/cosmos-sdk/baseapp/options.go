@@ -6,6 +6,7 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/tendermint/rpc/client"
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
@@ -46,6 +47,10 @@ func SetInterBlockCache(cache sdk.MultiStorePersistentCache) func(*BaseApp) {
 // SetTrace will turn on or off trace flag
 func SetTrace(trace bool) func(*BaseApp) {
 	return func(app *BaseApp) { app.setTrace(trace) }
+}
+
+func SetTmClient(client client.Client) func(*BaseApp) {
+	return func(app *BaseApp) { app.tmClient = client }
 }
 
 func (app *BaseApp) SetName(name string) {
@@ -211,4 +216,11 @@ func (app *BaseApp) SetGetTxFeeHandler(handler sdk.GetTxFeeHandler) {
 		panic("SetGetTxFeeHandler() on sealed BaseApp")
 	}
 	app.getTxFeeHandler = handler
+}
+
+func (app *BaseApp) SetTmClient(client client.Client) {
+	if app.sealed {
+		panic("SetTmClient() on sealed BaseApp")
+	}
+	app.tmClient = client
 }
