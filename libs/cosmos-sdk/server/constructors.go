@@ -28,7 +28,7 @@ type (
 
 func openDB(rootDir string) (dbm.DB, error) {
 	dataDir := filepath.Join(rootDir, "data")
-	db, err := sdk.NewLevelDB("application", dataDir)
+	db, err := sdk.NewDB("application", dataDir)
 	return db, err
 }
 
