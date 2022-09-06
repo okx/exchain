@@ -112,7 +112,10 @@ var (
 		mint.AppModuleBasic{},
 		distr.AppModuleBasic{},
 		gov.NewAppModuleBasic(
-			paramsclient.ProposalHandler, distr.ProposalHandler,
+			paramsclient.ProposalHandler,
+			distr.CommunityPoolSpendProposalHandler,
+			distr.ChangeDistributionTypeProposalHandler,
+			distr.WithdrawRewardEnabledProposalHandler,
 			dexclient.DelistProposalHandler, farmclient.ManageWhiteListProposalHandler,
 			evmclient.ManageContractDeploymentWhitelistProposalHandler,
 			evmclient.ManageContractBlockedListProposalHandler,
@@ -400,7 +403,7 @@ func NewOKExChainApp(
 	govRouter := gov.NewRouter()
 	govRouter.AddRoute(gov.RouterKey, gov.ProposalHandler).
 		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(&app.ParamsKeeper)).
-		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(app.DistrKeeper)).
+		AddRoute(distr.RouterKey, distr.NewDistributionProposalHandler(app.DistrKeeper)).
 		AddRoute(dex.RouterKey, dex.NewProposalHandler(&app.DexKeeper)).
 		AddRoute(farm.RouterKey, farm.NewManageWhiteListProposalHandler(&app.FarmKeeper)).
 		AddRoute(evm.RouterKey, evm.NewManageContractDeploymentWhitelistProposalHandler(app.EvmKeeper)).
@@ -413,7 +416,8 @@ func NewOKExChainApp(
 		AddRoute(farm.RouterKey, &app.FarmKeeper).
 		AddRoute(evm.RouterKey, app.EvmKeeper).
 		AddRoute(mint.RouterKey, &app.MintKeeper).
-		AddRoute(erc20.RouterKey, &app.Erc20Keeper)
+		AddRoute(erc20.RouterKey, &app.Erc20Keeper).
+		AddRoute(distr.RouterKey, &app.DistrKeeper)
 	app.GovKeeper = gov.NewKeeper(
 		app.marshal.GetCdc(), app.keys[gov.StoreKey], app.ParamsKeeper, app.subspaces[gov.DefaultParamspace],
 		app.SupplyKeeper, &stakingKeeper, gov.DefaultParamspace, govRouter,
@@ -425,6 +429,7 @@ func NewOKExChainApp(
 	app.EvmKeeper.SetGovKeeper(app.GovKeeper)
 	app.MintKeeper.SetGovKeeper(app.GovKeeper)
 	app.Erc20Keeper.SetGovKeeper(app.GovKeeper)
+	app.DistrKeeper.SetGovKeeper(app.GovKeeper)
 
 	// Set EVM hooks
 	app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper),
