@@ -713,9 +713,20 @@ func (app *BaseApp) getContextForSimTx(txBytes []byte, height int64) (sdk.Contex
 		return sdk.Context{}, err
 	}
 
-	abciHeader, err := GetABCIHeader(height)
-	if err != nil {
-		return sdk.Context{}, err
+	var abciHeader abci.Header
+	if app.tmClient != nil {
+		var heightForQuery = height
+		var blockMeta *tmtypes.BlockMeta
+		blockMeta, err = app.tmClient.BlockInfo(&heightForQuery)
+		if err == nil {
+			abciHeader = blockHeaderToABCIHeader(blockMeta.Header)
+		}
+	}
+	if app.tmClient == nil || err != nil {
+		abciHeader, err = GetABCIHeader(height)
+		if err != nil {
+			return sdk.Context{}, err
+		}
 	}
 
 	simState := &state{
