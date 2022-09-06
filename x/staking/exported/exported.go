@@ -9,6 +9,7 @@ import (
 type DelegatorI interface {
 	GetShareAddedValidatorAddresses() []sdk.ValAddress
 	GetLastAddedShares() sdk.Dec
+	GetDelegatorAddress() sdk.AccAddress
 }
 
 // ValidatorI expected validator functions
