@@ -229,3 +229,7 @@ func (db *GoLevelDB) ReverseIterator(start, end []byte) (Iterator, error) {
 	itr := db.db.NewIterator(&util.Range{Start: start, Limit: end}, nil)
 	return newGoLevelDBIterator(itr, start, end, true), nil
 }
+
+func (db *GoLevelDB) Compact() error {
+	return db.DB().CompactRange(util.Range{})
+}
