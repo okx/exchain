@@ -582,6 +582,10 @@ func (rs *Store) LastCommitID() types.CommitID {
 	return rs.lastCommitInfo.CommitID()
 }
 
+func (rs *Store) LastCommitVersion() int64 {
+	return rs.lastCommitInfo.Version
+}
+
 func (rs *Store) CommitterCommit(*iavltree.TreeDelta) (_ types.CommitID, _ *iavltree.TreeDelta) {
 	return
 }

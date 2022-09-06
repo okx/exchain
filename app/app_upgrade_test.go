@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
+	"github.com/okex/exchain/libs/tm-db/common"
 	"github.com/okex/exchain/x/wasm"
 	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
 	"github.com/spf13/viper"
@@ -692,6 +693,7 @@ func createKeysByCases(caseas []UpgradeCase) map[string]*sdk.KVStoreKey {
 ///
 type RecordMemDB struct {
 	db *dbm.MemDB
+	common.PlaceHolder
 }
 
 func (d *RecordMemDB) Get(bytes []byte) ([]byte, error) {
