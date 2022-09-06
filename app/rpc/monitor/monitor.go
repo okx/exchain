@@ -1,7 +1,6 @@
 package monitor
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/go-kit/kit/metrics"
@@ -45,7 +44,7 @@ func (m *Monitor) OnBegin() *Monitor {
 
 func (m *Monitor) OnEnd(args ...interface{}) {
 	elapsed := time.Since(m.lastTime).Seconds()
-	m.logger.Debug(fmt.Sprintf("RPC: Method<%s>, Elapsed<%fms>, Params<%v>", m.method, elapsed*1e3, args))
+	m.logger.Debug("RPC", "Method", m.method, "Elapsed", elapsed*1e3, "Params", args)
 
 	if m.metrics == nil {
 		return
