@@ -21,6 +21,10 @@ const (
 	WatchDBName = "watch"
 )
 
+const (
+	FlagFastMuitSave = "fast-muit-save"
+)
+
 type WatchStore struct {
 	db          dbm.DB
 	params      evmtypes.Params

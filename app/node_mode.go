@@ -54,6 +54,7 @@ func setRpcConfig(ctx *server.Context) {
 	viper.SetDefault(evmtypes.FlagEnableBloomFilter, true)
 	viper.SetDefault(watcher.FlagFastQueryLru, 10000)
 	viper.SetDefault(watcher.FlagFastQuery, true)
+	//viper.SetDefault(watcher.FlagFastMuitSave, 1)
 	// TODO putdown commitment after stable
 	//viper.SetDefault(watcher.FlagWatchdbEnableAsyncCommit, true)
 	//viper.SetDefault(watcher.FlagWatchdbCommitGapHeight, 100)

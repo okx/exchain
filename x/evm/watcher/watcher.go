@@ -51,6 +51,7 @@ type Watcher struct {
 	InfuraKeeper  InfuraKeeper
 	delAccountMtx sync.Mutex
 	acProcessor   *ACProcessor
+	count         int
 }
 
 var (
@@ -58,11 +59,14 @@ var (
 	watcherLruSize = 1000
 	onceEnable     sync.Once
 	onceLru        sync.Once
+
+	watcherMut = 1
 )
 
 func IsWatcherEnabled() bool {
 	onceEnable.Do(func() {
 		watcherEnable = viper.GetBool(FlagFastQuery)
+		watcherMut = viper.GetInt(FlagFastMuitSave)
 	})
 	return watcherEnable
 }
@@ -448,31 +452,39 @@ func isDuplicated(key []byte, filterMap map[string]struct{}) bool {
 func (w *Watcher) commitBatch(batch []WatchMessage) {
 	dbBatch := w.store.db.NewBatch()
 	defer dbBatch.Close()
-	for i := len(batch) - 1; i >= 0; i-- { //iterate batch from the end to start, to save the latest batch msgs
-		//and to skip the duplicated batch msgs by key
-		b := batch[i]
-		key := b.GetKey()
-		// lyh just for test
-		//if isDuplicated(key, w.filterMap) {
-		//	continue
-		//}
-		value := []byte(b.GetValue())
-		typeValue := b.GetType()
-		if typeValue == TypeDelete {
-			dbBatch.Delete(key)
-		} else {
-			dbBatch.Set(key, value)
-			//need update params
-			if typeValue == TypeEvmParams {
-				msgParams := b.(*MsgParams)
-				w.store.SetEvmParams(msgParams.Params)
-			}
-			if typeValue == TypeState {
-				state.SetStateToLru(key, value)
+	st := time.Now()
+	for i := 0; i < watcherMut; i++ {
+		for i := len(batch) - 1; i >= 0; i-- { //iterate batch from the end to start, to save the latest batch msgs
+			//and to skip the duplicated batch msgs by key
+			b := batch[i]
+			key := b.GetKey()
+			// lyh just for test
+			//if isDuplicated(key, w.filterMap) {
+			//	continue
+			//}
+			value := []byte(b.GetValue())
+			typeValue := b.GetType()
+			if typeValue == TypeDelete {
+				dbBatch.Delete(key)
+			} else {
+				dbBatch.Set(key, value)
+				//need update params
+				if typeValue == TypeEvmParams {
+					msgParams := b.(*MsgParams)
+					w.store.SetEvmParams(msgParams.Params)
+				}
+				if typeValue == TypeState {
+					state.SetStateToLru(key, value)
+				}
 			}
 		}
 	}
+
 	dbBatch.Write()
+	w.count += len(batch)
+	fmt.Printf("****** lyh commitBatch cur commiter size %d;;; total commit %d;;; cost time commit %v \n",
+		len(batch), w.count,
+		time.Now().Sub(st))
 	for k := range w.filterMap {
 		delete(w.filterMap, k)
 	}

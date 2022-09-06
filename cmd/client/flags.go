@@ -28,6 +28,7 @@ func RegisterAppFlag(cmd *cobra.Command) {
 	cmd.Flags().Int(watcher.FlagFastQueryLru, 1000, "Set the size of LRU cache under fast-query mode")
 	cmd.Flags().Bool(watcher.FlagWatchdbEnableAsyncCommit, false, "Enable the watch db async commit")
 	cmd.Flags().Int64(watcher.FlagWatchdbCommitGapHeight, 100, "watchdb interval to commit cached data into db")
+	cmd.Flags().Int64(watcher.FlagFastMuitSave, 1, "watchdb fast muit save")
 	cmd.Flags().Int(backend.FlagApiBackendBlockLruCache, 30000, "Set the size of block LRU cache for backend mem cache")
 	cmd.Flags().Int(backend.FlagApiBackendTxLruCache, 100000, "Set the size of tx LRU cache for backend mem cache")
 	cmd.Flags().Bool(watcher.FlagCheckWd, false, "Enable check watchDB in log")
