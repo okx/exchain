@@ -16,8 +16,9 @@ import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/gogo/protobuf/proto"
-	
+
 	"github.com/okex/exchain/app"
+	"github.com/okex/exchain/cmd/exchaind/base"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -293,7 +294,7 @@ func iaviewerDiffCmd(ctx *iaviewerContext) *cobra.Command {
 
 // iaviewerPrintDiff reads different key-value from leveldb according two paths
 func iaviewerPrintDiff(ctx *iaviewerContext, version2 int) error {
-	db, err := OpenDB(ctx.DataDir, ctx.DbBackend)
+	db, err := base.OpenDB(ctx.DataDir, ctx.DbBackend)
 	if err != nil {
 		return fmt.Errorf("error opening DB: %w", err)
 	}
@@ -360,7 +361,7 @@ func iaviewerPrintDiff(ctx *iaviewerContext, version2 int) error {
 
 // iaviewerReadData reads key-value from leveldb
 func iaviewerReadData(ctx *iaviewerContext) error {
-	db, err := OpenDB(ctx.DataDir, ctx.DbBackend)
+	db, err := base.OpenDB(ctx.DataDir, ctx.DbBackend)
 	if err != nil {
 		return fmt.Errorf("error opening DB: %w", err)
 	}
@@ -396,7 +397,7 @@ func iaviewerReadData(ctx *iaviewerContext) error {
 }
 
 func iaviewerReadNodeData(ctx *iaviewerContext) error {
-	db, err := OpenDB(ctx.DataDir, ctx.DbBackend)
+	db, err := base.OpenDB(ctx.DataDir, ctx.DbBackend)
 	if err != nil {
 		return fmt.Errorf("error opening DB: %w", err)
 	}
@@ -466,7 +467,7 @@ func newNodeStringFromNodeJson(nodeJson *iavl.NodeJson) *nodeString {
 }
 
 func iaviewerStatus(ctx *iaviewerContext) error {
-	db, err := OpenDB(ctx.DataDir, ctx.DbBackend)
+	db, err := base.OpenDB(ctx.DataDir, ctx.DbBackend)
 	if err != nil {
 		return fmt.Errorf("error opening DB: %w", err)
 	}
@@ -490,7 +491,7 @@ func printIaviewerStatus(tree *iavl.MutableTree) {
 }
 
 func iaviewerVersions(ctx *iaviewerContext) error {
-	db, err := OpenDB(ctx.DataDir, ctx.DbBackend)
+	db, err := base.OpenDB(ctx.DataDir, ctx.DbBackend)
 	if err != nil {
 		return fmt.Errorf("error opening DB: %w", err)
 	}
@@ -862,30 +863,6 @@ func ReadTree(db dbm.DB, version int, prefix []byte, cacheSize int) (*iavl.Mutab
 	}
 	_, err = tree.LoadVersion(int64(version))
 	return tree, err
-}
-
-func OpenDB(dir string, backend dbm.BackendType) (db dbm.DB, err error) {
-	switch {
-	case strings.HasSuffix(dir, ".db"):
-		dir = dir[:len(dir)-3]
-	case strings.HasSuffix(dir, ".db/"):
-		dir = dir[:len(dir)-4]
-	default:
-		return nil, fmt.Errorf("database directory must end with .db")
-	}
-	//doesn't work on windows!
-	cut := strings.LastIndex(dir, "/")
-	if cut == -1 {
-		return nil, fmt.Errorf("cannot cut paths on %s", dir)
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("couldn't create db: %v", r)
-		}
-	}()
-	name := dir[cut+1:]
-	db = dbm.NewDB(name, backend, dir[:cut])
-	return db, nil
 }
 
 // parseWeaveKey assumes a separating : where all in front should be ascii,

@@ -1,7 +1,9 @@
 package watcher
 
 import (
+	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 	"sync"
 
@@ -44,11 +46,29 @@ func initDb() dbm.DB {
 	homeDir := viper.GetString(flags.FlagHome)
 	dbPath := filepath.Join(homeDir, WatchDbDir)
 
+	versionPath := filepath.Join(dbPath, WatchDBName+".db", "VERSION")
+	if !checkVersion(versionPath) {
+		os.RemoveAll(filepath.Join(dbPath, WatchDBName+".db"))
+	}
+
 	db, err := sdk.NewDB(WatchDBName, dbPath)
 	if err != nil {
 		panic(err)
 	}
+	writeVersion(versionPath)
 	return db
+}
+
+func checkVersion(versionPath string) bool {
+	content, err := ioutil.ReadFile(versionPath)
+	if err != nil || string(content) != version {
+		return false
+	}
+	return true
+}
+
+func writeVersion(versionPath string) {
+	ioutil.WriteFile(versionPath, []byte(version), 0666)
 }
 
 func (w WatchStore) Set(key []byte, value []byte) {
