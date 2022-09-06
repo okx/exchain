@@ -213,9 +213,6 @@ func SetGenesis(app *App, accs []authexported.Account) {
 	app.GenesisAccounts = accs
 
 	app.InitChain(abci.RequestInitChain{})
-
-	app.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: app.LastBlockHeight() + 1}})
-	app.EndBlock(abci.RequestEndBlock{})
 	app.Commit(abci.RequestCommit{})
 }
 
