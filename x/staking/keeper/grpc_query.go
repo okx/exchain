@@ -3,6 +3,8 @@ package keeper
 import (
 	"context"
 
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -73,6 +75,12 @@ func (q *Querier) Pool(ctx context.Context, request *typesadapter.QueryPoolReque
 	return nil, status.Errorf(codes.Unimplemented, "method Validators not implemented")
 }
 
-func (q *Querier) Params(ctx context.Context, request *typesadapter.QueryParamsRequest) (*typesadapter.QueryParamsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Validators not implemented")
+func (q *Querier) Params(goCtx context.Context, request *typesadapter.QueryParamsRequest) (*typesadapter.QueryParamsResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	params := q.k.GetParams(ctx)
+
+	ret := typesadapter.Params{}
+	ret.From(params)
+	return &typesadapter.QueryParamsResponse{Params: ret}, nil
+
 }

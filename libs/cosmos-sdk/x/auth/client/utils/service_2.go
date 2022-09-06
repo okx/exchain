@@ -1,5 +1,21 @@
 package utils
 
+import (
+	"context"
+
+	gogogrpc "github.com/gogo/protobuf/grpc"
+
+	"github.com/gogo/protobuf/proto"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
+	cliContext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/types"
+	typeadapter "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/tx"
+)
+
 //
 //import (
 //	"context"
@@ -20,29 +36,83 @@ package utils
 //)
 //
 //// baseAppSimulateFn is the signature of the Baseapp#Simulate function.
-//type baseAppSimulateFn func(txBytes []byte) (types.GasInfo, *types.Result, error)
+type baseAppSimulateFn func(txBytes []byte) (types.GasInfo, *types.Result, error)
+
 //
 //// txServer is the server for the protobuf Tx service.
-//type txServer struct {
-//	clientCtx         cliContext.CLIContext
-//	simulate          baseAppSimulateFn
-//	interfaceRegistry codectypes.InterfaceRegistry
-//}
+type txServer struct {
+	clientCtx         cliContext.CLIContext
+	simulate          baseAppSimulateFn
+	interfaceRegistry codectypes.InterfaceRegistry
+}
+
+// NewTxServer creates a new Tx service server.
+func NewTxServer(clientCtx cliContext.CLIContext, simulate baseAppSimulateFn, interfaceRegistry codectypes.InterfaceRegistry) tx.ServiceServer {
+	return txServer{
+		clientCtx:         clientCtx,
+		simulate:          simulate,
+		interfaceRegistry: interfaceRegistry,
+	}
+}
+
 //
-//// NewTxServer creates a new Tx service server.
-//func NewTxServer(clientCtx cliContext.CLIContext, simulate baseAppSimulateFn, interfaceRegistry codectypes.InterfaceRegistry) tx.ServiceServer {
-//	return txServer{
-//		clientCtx:         clientCtx,
-//		simulate:          simulate,
-//		interfaceRegistry: interfaceRegistry,
-//	}
-//}
-//
-//var _ tx.ServiceServer = txServer{}
-//
-//const (
-//	eventFormat = "{eventType}.{eventAttribute}={value}"
-//)
+var _ tx.ServiceServer = txServer{}
+
+const (
+	eventFormat = "{eventType}.{eventAttribute}={value}"
+)
+
+func (t txServer) Simulate(ctx context.Context, req *tx.SimulateRequest) (*tx.SimulateResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "invalid empty tx")
+	}
+
+	txBytes := req.TxBytes
+	if txBytes == nil && req.Tx != nil {
+		// This block is for backwards-compatibility.
+		// We used to support passing a `Tx` in req. But if we do that, sig
+		// verification might not pass, because the .Marshal() below might not
+		// be the same marshaling done by the client.
+		var err error
+		txBytes, err = proto.Marshal(req.Tx)
+		if err != nil {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid tx; %v", err)
+		}
+	}
+
+	if txBytes == nil {
+		return nil, status.Errorf(codes.InvalidArgument, "empty txBytes is not allowed")
+	}
+
+	gasInfo, res, err := t.simulate(txBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return &tx.SimulateResponse{
+		GasInfo: &typeadapter.GasInfo{
+			GasWanted: gasInfo.GasWanted,
+			GasUsed:   gasInfo.GasUsed,
+		},
+		Result: ConvCM39SimulateResultTCM40(res),
+	}, nil
+}
+
+func (t txServer) GetTx(ctx context.Context, request *tx.GetTxRequest) (*tx.GetTxResponse, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (t txServer) BroadcastTx(ctx context.Context, request *tx.BroadcastTxRequest) (*tx.BroadcastTxResponse, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (t txServer) GetTxsEvent(ctx context.Context, request *tx.GetTxsEventRequest) (*tx.GetTxsEventResponse, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 //
 //// TxsByEvents implements the ServiceServer.TxsByEvents RPC method.
 //func (s txServer) GetTxsEvent(ctx context.Context, req *tx.GetTxsEventRequest) (*tx.GetTxsEventResponse, error) {
@@ -159,18 +229,20 @@ package utils
 //	return nil, nil
 //}
 //
-//// RegisterTxService registers the tx service on the gRPC router.
-//func RegisterTxService(
-//	qrt gogogrpc.Server,
-//	clientCtx cliContext.CLIContext,
-//	simulateFn baseAppSimulateFn,
-//	interfaceRegistry codectypes.InterfaceRegistry,
-//) {
-//	tx.RegisterServiceServer(
-//		qrt,
-//		NewTxServer(clientCtx, simulateFn, interfaceRegistry),
-//	)
-//}
+
+// RegisterTxService registers the tx service on the gRPC router.
+func RegisterTxService(
+	qrt gogogrpc.Server,
+	clientCtx cliContext.CLIContext,
+	simulateFn baseAppSimulateFn,
+	interfaceRegistry codectypes.InterfaceRegistry,
+) {
+	tx.RegisterServiceServer(
+		qrt,
+		NewTxServer(clientCtx, simulateFn, interfaceRegistry),
+	)
+}
+
 //
 //func parseOrderBy(orderBy tx.OrderBy) string {
 //	switch orderBy {

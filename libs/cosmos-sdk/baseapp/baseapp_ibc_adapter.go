@@ -120,7 +120,15 @@ func gRPCErrorToSDKError(err error) error {
 }
 
 func (app *BaseApp) RegisterTxService(clientCtx cliContext.CLIContext) {
-	//authtx.RegisterTxService(app.BaseApp.GRPCQueryRouter(), clientCtx, app.BaseApp.Simulate, app.interfaceRegistry)
+}
+
+func (app *BaseApp) GrpcSimulate(txBytes []byte) (sdk.GasInfo, *sdk.Result, error) {
+	tx, err := app.txDecoder(txBytes)
+	if err != nil {
+		return sdk.GasInfo{}, nil, sdkerrors.Wrap(err, "failed to decode tx")
+	}
+	//msgs := tx.GetMsgs()
+	return app.Simulate(txBytes, tx, 0, nil)
 }
 
 func (app *BaseApp) RegisterGRPCServer(server gogogrpc.Server) {

@@ -5,6 +5,8 @@ import (
 	"net"
 	"time"
 
+	app2 "github.com/okex/exchain/libs/cosmos-sdk/server/types"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
@@ -21,7 +23,6 @@ import (
 
 	"google.golang.org/grpc"
 
-	"github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/config"
 )
 
@@ -30,7 +31,7 @@ import (
 const ServerStartTime = 5 * time.Second
 
 // StartGRPCServer starts a gRPC server on the given address.
-func StartGRPCServer(cdc *codec.CodecProxy, interfaceReg jsonpb.AnyResolver, app types.ApplicationAdapter, cfg config.GRPCConfig) (*grpc.Server, error) {
+func StartGRPCServer(cdc *codec.CodecProxy, interfaceReg jsonpb.AnyResolver, app app2.ApplicationAdapter, cfg config.GRPCConfig) (*grpc.Server, error) {
 	txCfg := utils.NewPbTxConfig(interfaceReg.(interfacetypes.InterfaceRegistry))
 
 	cliCtx := context.NewCLIContext().WithProxy(cdc).WithInterfaceRegistry(interfaceReg.(interfacetypes.InterfaceRegistry))
@@ -52,6 +53,7 @@ func StartGRPCServer(cdc *codec.CodecProxy, interfaceReg jsonpb.AnyResolver, app
 	)
 
 	app.RegisterGRPCServer(grpcSrv)
+	app.RegisterTxService(cliCtx)
 
 	// Reflection allows consumers to build dynamic clients that can write to any
 	// Cosmos SDK application without relying on application packages at compile
