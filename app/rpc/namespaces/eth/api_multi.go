@@ -335,9 +335,9 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 			var res *watcher.TransactionResult
 			switch realTx.GetType() {
 			case sdk.EvmTxType:
-				res, err = rpctypes.RawTxResultToEthReceipt(api.clientCtx, api.chainIDEpoch, queryTx, blockHash)
+				res, err = rpctypes.RawTxResultToEthReceipt(api.chainIDEpoch, queryTx, realTx, blockHash)
 			case sdk.StdTxType:
-				res, err = watcher.RawTxResultToStdResponse(api.clientCtx, queryTx, resBlock.Block.Time)
+				res, err = watcher.RawTxResultToStdResponse(api.clientCtx, queryTx, realTx, resBlock.Block.Time)
 			}
 
 			results = append(results, res)
