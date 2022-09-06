@@ -83,18 +83,19 @@ func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitPr
 		return err
 	}
 
-	if tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
-		log := ctx.Logger()
-		switch content := msg.Content.(type) {
-		case types.WithdrawRewardEnabledProposal, types.ChangeDistributionTypeProposal:
-			log.Debug(fmt.Sprintf("proposal content type: %T", content))
-			if !k.stakingKeeper.IsValidator(ctx, msg.Proposer) {
-				return types.ErrCodeProposerMustBeValidator()
-			}
-		default:
-			log.Debug(fmt.Sprintf("proposal content type: %T", content))
+	log := ctx.Logger()
+	switch content := msg.Content.(type) {
+	case types.WithdrawRewardEnabledProposal, types.ChangeDistributionTypeProposal:
+		log.Debug(fmt.Sprintf("proposal content type: %T", content))
+		if !k.stakingKeeper.IsValidator(ctx, msg.Proposer) {
+			return types.ErrCodeProposerMustBeValidator()
 		}
+	case types.CommunityPoolSpendProposal:
+		return nil
+	default:
+		return sdk.ErrUnknownRequest(fmt.Sprintf("unrecognized %s proposal content type: %T", types.DefaultCodespace, content))
 	}
+
 	return nil
 }
 
