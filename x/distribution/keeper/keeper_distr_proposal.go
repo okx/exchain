@@ -90,8 +90,10 @@ func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitPr
 		if !k.stakingKeeper.IsValidator(ctx, msg.Proposer) {
 			return types.ErrCodeProposerMustBeValidator()
 		}
+	case types.CommunityPoolSpendProposal:
+		return nil
 	default:
-		log.Debug(fmt.Sprintf("proposal content type: %T", content))
+		return sdk.ErrUnknownRequest(fmt.Sprintf("unrecognized %s proposal content type: %T", types.DefaultCodespace, content))
 	}
 
 	return nil
