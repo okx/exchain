@@ -23,6 +23,8 @@ import (
 	"github.com/tendermint/go-amino"
 )
 
+const version = "v1"
+
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
 
 type Watcher struct {
