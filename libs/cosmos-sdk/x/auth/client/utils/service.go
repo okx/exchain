@@ -19,30 +19,15 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 )
 
-//
-//import (
-//	"context"
-//	"fmt"
-//	"strings"
-//
-//	"github.com/okex/exchain/libs/cosmos-sdk/types/tx"
-//
-//	cliContext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
-//	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
-//
-//	gogogrpc "github.com/gogo/protobuf/grpc"
-//	proto "github.com/gogo/protobuf/proto"
-//	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-//	types "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
-//	"google.golang.org/grpc/codes"
-//	"google.golang.org/grpc/status"
-//)
-//
-//// baseAppSimulateFn is the signature of the Baseapp#Simulate function.
+var _ tx.ServiceServer = txServer{}
+
+const (
+	eventFormat = "{eventType}.{eventAttribute}={value}"
+)
+
 type baseAppSimulateFn func(txBytes []byte) (types.GasInfo, *types.Result, error)
 
-//
-//// txServer is the server for the protobuf Tx service.
+// txServer is the server for the protobuf Tx service.
 type txServer struct {
 	clientCtx         cliContext.CLIContext
 	simulate          baseAppSimulateFn
@@ -57,13 +42,6 @@ func NewTxServer(clientCtx cliContext.CLIContext, simulate baseAppSimulateFn, in
 		interfaceRegistry: interfaceRegistry,
 	}
 }
-
-//
-var _ tx.ServiceServer = txServer{}
-
-const (
-	eventFormat = "{eventType}.{eventAttribute}={value}"
-)
 
 func (t txServer) Simulate(ctx context.Context, req *tx.SimulateRequest) (*tx.SimulateResponse, error) {
 	if req == nil {
@@ -179,31 +157,6 @@ func (t txServer) GetTxsEvent(ctx context.Context, req *tx.GetTxsEventRequest) (
 	}, nil
 }
 
-//
-//// GetTx implements the ServiceServer.GetTx RPC method.
-//func (s txServer) GetTx(ctx context.Context, req *tx.GetTxRequest) (*tx.GetTxResponse, error) {
-//	if req == nil {
-//		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
-//	}
-//
-//	// TODO We should also check the proof flag in gRPC header.
-//	// https://github.com/cosmos/cosmos-sdk/issues/7036.
-//	result, err := QueryTx(s.clientCtx, req.Hash)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	protoTx, ok := result.Tx.GetCachedValue().(*Tx)
-//	if !ok {
-//		return nil, status.Errorf(codes.Internal, "expected %T, got %T", tx.Tx{}, result.Tx.GetCachedValue())
-//	}
-//
-//	return &tx.GetTxResponse{
-//		Tx:         protoTx,
-//		TxResponse: result,
-//	}, nil
-//}
-
 // RegisterTxService registers the tx service on the gRPC router.
 func RegisterTxService(
 	qrt gogogrpc.Server,
@@ -216,15 +169,3 @@ func RegisterTxService(
 		NewTxServer(clientCtx, simulateFn, interfaceRegistry),
 	)
 }
-
-//
-//func parseOrderBy(orderBy tx.OrderBy) string {
-//	switch orderBy {
-//	case tx.OrderBy_ORDER_BY_ASC:
-//		return "asc"
-//	case tx.OrderBy_ORDER_BY_DESC:
-//		return "desc"
-//	default:
-//		return "" // Defaults to Tendermint's default, which is `asc` now.
-//	}
-//}
