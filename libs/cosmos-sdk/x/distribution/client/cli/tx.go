@@ -122,7 +122,7 @@ $ %s tx distribution withdraw-rewards cosmosvaloper1gghjut3ccd8ay0zduzj64hwre2fx
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, msgs)
 		},
 	}
-	cmd.Flags().Bool(flagCommission, false, "also withdraw validator's commission")
+	cmd.Flags().Bool(flagCommission, false, "withdraw validator's commission")
 	return cmd
 }
 
