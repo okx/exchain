@@ -719,11 +719,11 @@ func (app *BaseApp) getContextForSimTx(txBytes []byte, height int64) (sdk.Contex
 			var heightForQuery = height
 			var blockMeta *tmtypes.BlockMeta
 			blockMeta, err = app.tmClient.BlockInfo(&heightForQuery)
-			if err == nil {
-				abciHeader = blockHeaderToABCIHeader(blockMeta.Header)
+			if err != nil {
+				return sdk.Context{}, err
 			}
-		}
-		if app.tmClient == nil || err != nil {
+			abciHeader = blockHeaderToABCIHeader(blockMeta.Header)
+		} else {
 			abciHeader, err = GetABCIHeader(height)
 			if err != nil {
 				return sdk.Context{}, err
