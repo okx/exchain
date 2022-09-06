@@ -4,6 +4,8 @@ import (
 	"context"
 	"strconv"
 
+	cliContext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+
 	gogogrpc "github.com/gogo/protobuf/grpc"
 	grpcmiddleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	grpcrecovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
@@ -115,6 +117,10 @@ func gRPCErrorToSDKError(err error) error {
 	default:
 		return sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, err.Error())
 	}
+}
+
+func (app *BaseApp) RegisterTxService(clientCtx cliContext.CLIContext) {
+	//authtx.RegisterTxService(app.BaseApp.GRPCQueryRouter(), clientCtx, app.BaseApp.Simulate, app.interfaceRegistry)
 }
 
 func (app *BaseApp) RegisterGRPCServer(server gogogrpc.Server) {
