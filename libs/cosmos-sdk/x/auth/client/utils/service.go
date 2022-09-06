@@ -98,14 +98,39 @@ func (t txServer) Simulate(ctx context.Context, req *tx.SimulateRequest) (*tx.Si
 	}, nil
 }
 
-func (t txServer) GetTx(ctx context.Context, request *tx.GetTxRequest) (*tx.GetTxResponse, error) {
-	//TODO implement me
-	panic("implement me")
+func (t txServer) GetTx(ctx context.Context, req *tx.GetTxRequest) (*tx.GetTxResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	if len(req.Hash) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "tx hash cannot be empty")
+	}
+
+	result, err := Query40Tx(t.clientCtx, req.Hash)
+	if nil != err {
+		return nil, err
+	}
+
+	protoTx, ok := result.Tx.GetCachedValue().(*tx.Tx)
+	if !ok {
+		return nil, status.Errorf(codes.Internal, "expected %T, got %T", tx.Tx{}, result.Tx.GetCachedValue())
+	}
+
+	return &tx.GetTxResponse{
+		Tx:         protoTx,
+		TxResponse: result,
+	}, nil
 }
 
 func (t txServer) BroadcastTx(ctx context.Context, request *tx.BroadcastTxRequest) (*tx.BroadcastTxResponse, error) {
-	//TODO implement me
-	panic("implement me")
+	resp, err := cliContext.TxServiceBroadcast(ctx, t.clientCtx, request)
+	if nil != err {
+		return nil, err
+	}
+	ret := new(tx.BroadcastTxResponse)
+	ret.HandleResponse(t.clientCtx.CodecProy, resp)
+	return ret, nil
 }
 
 func (t txServer) GetTxsEvent(ctx context.Context, request *tx.GetTxsEventRequest) (*tx.GetTxsEventResponse, error) {
@@ -163,39 +188,6 @@ func (t txServer) GetTxsEvent(ctx context.Context, request *tx.GetTxsEventReques
 //	}, nil
 //}
 //
-//// Simulate implements the ServiceServer.Simulate RPC method.
-//func (s txServer) Simulate(ctx context.Context, req *tx.SimulateRequest) (*tx.SimulateResponse, error) {
-//	if req == nil {
-//		return nil, status.Error(codes.InvalidArgument, "invalid empty tx")
-//	}
-//
-//	txBytes := req.TxBytes
-//	if txBytes == nil && req.Tx != nil {
-//		// This block is for backwards-compatibility.
-//		// We used to support passing a `Tx` in req. But if we do that, sig
-//		// verification might not pass, because the .Marshal() below might not
-//		// be the same marshaling done by the client.
-//		var err error
-//		txBytes, err = proto.Marshal(req.Tx)
-//		if err != nil {
-//			return nil, status.Errorf(codes.InvalidArgument, "invalid tx; %v", err)
-//		}
-//	}
-//
-//	if txBytes == nil {
-//		return nil, status.Errorf(codes.InvalidArgument, "empty txBytes is not allowed")
-//	}
-//
-//	gasInfo, result, err := s.simulate(txBytes)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	return &tx.SimulateResponse{
-//		GasInfo: &gasInfo,
-//		Result:  result,
-//	}, nil
-//}
 //
 //// GetTx implements the ServiceServer.GetTx RPC method.
 //func (s txServer) GetTx(ctx context.Context, req *tx.GetTxRequest) (*tx.GetTxResponse, error) {
@@ -220,15 +212,6 @@ func (t txServer) GetTxsEvent(ctx context.Context, request *tx.GetTxsEventReques
 //		TxResponse: result,
 //	}, nil
 //}
-//
-//func (s txServer) BroadcastTx(ctx context.Context, req *tx.BroadcastTxRequest) (*tx.BroadcastTxResponse, error) {
-//	_, err := cliContext.TxServiceBroadcast(ctx, s.clientCtx, req)
-//	if nil != err {
-//		return nil, err
-//	}
-//	return nil, nil
-//}
-//
 
 // RegisterTxService registers the tx service on the gRPC router.
 func RegisterTxService(
