@@ -219,8 +219,5 @@ func (app *BaseApp) SetGetTxFeeHandler(handler sdk.GetTxFeeHandler) {
 }
 
 func (app *BaseApp) SetTmClient(client client.Client) {
-	if app.sealed {
-		panic("SetTmClient() on sealed BaseApp")
-	}
 	app.tmClient = client
 }

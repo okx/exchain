@@ -135,6 +135,8 @@ func (suite *RPCPendingTestSuite) SetupTest() {
 
 	suite.cliCtx = &cliCtx
 
+	suite.chain.App().GetBaseApp().SetTmClient(suite.cliCtx.Client)
+
 	commitBlock(suite)
 
 	suite.apiServer = gorpc.NewServer()
