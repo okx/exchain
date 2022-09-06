@@ -15,6 +15,7 @@ import (
 	"github.com/okex/exchain/x/params"
 	"github.com/okex/exchain/x/staking/client/rest"
 	"github.com/okex/exchain/x/staking/types"
+	_ "github.com/okex/exchain/x/staking/typesadapter"
 	"github.com/spf13/cobra"
 )
 
