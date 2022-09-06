@@ -22,6 +22,8 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/spf13/viper"
 
+	appconfig "github.com/okex/exchain/app/config"
+
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
@@ -248,7 +250,7 @@ func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 	monitor := monitor.GetMonitor("eth_gasPrice", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd()
 
-	if app.GlobalGp != nil {
+	if appconfig.GetOecConfig().GetEnableDynamicGp() {
 		return (*hexutil.Big)(app.GlobalGp)
 	}
 
