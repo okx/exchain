@@ -1,11 +1,16 @@
 package staking
 
 import (
+	"context"
+
+	"github.com/okex/exchain/x/staking/keeper"
+
 	cosmost "github.com/okex/exchain/libs/cosmos-sdk/store/types"
+	"github.com/okex/exchain/x/staking/typesadapter"
 
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	clictx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	anytypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
@@ -26,13 +31,14 @@ var (
 )
 
 // appmoduleBasic
-func (am AppModuleBasic) RegisterRouterForGRPC(cliCtx context.CLIContext, r *mux.Router) {
+func (am AppModuleBasic) RegisterRouterForGRPC(cliCtx clictx.CLIContext, r *mux.Router) {
 	rest.RegisterOriginRPCRoutersForGRPC(cliCtx, r)
 }
 
 func (am AppModuleBasic) RegisterInterfaces(registry anytypes.InterfaceRegistry) {}
 
-func (am AppModuleBasic) RegisterGRPCGatewayRoutes(cliContext context.CLIContext, serveMux *runtime.ServeMux) {
+func (am AppModuleBasic) RegisterGRPCGatewayRoutes(cliContext clictx.CLIContext, serveMux *runtime.ServeMux) {
+	typesadapter.RegisterQueryHandlerClient(context.Background(), serveMux, typesadapter.NewQueryClient(cliContext))
 }
 
 func (am AppModuleBasic) GetTxCmdV2(cdc *codec.CodecProxy, reg anytypes.InterfaceRegistry) *cobra.Command {
@@ -44,7 +50,9 @@ func (am AppModuleBasic) GetQueryCmdV2(cdc *codec.CodecProxy, reg anytypes.Inter
 }
 
 /// appmodule
-func (am AppModule) RegisterServices(configurator module.Configurator) {}
+func (am AppModule) RegisterServices(cfg module.Configurator) {
+	typesadapter.RegisterQueryServer(cfg.QueryServer(), keeper.NewGrpcQuerier(am.keeper))
+}
 
 func (am AppModule) RegisterTask() upgrade.HeightTask {
 	return nil
