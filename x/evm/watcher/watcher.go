@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strconv"
 	"sync"
 	"time"
 
@@ -462,6 +463,9 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 			//if isDuplicated(key, w.filterMap) {
 			//	continue
 			//}
+			if i != 0 {
+				key = append(key, []byte(strconv.Itoa(i))...)
+			}
 			value := []byte(b.GetValue())
 			typeValue := b.GetType()
 			if typeValue == TypeDelete {
@@ -481,7 +485,7 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 	}
 
 	dbBatch.Write()
-	w.count += len(batch)
+	w.count += len(batch) * watcherMut
 	fmt.Printf("****** lyh commitBatch cur commiter size %d;;; total commit %d;;; cost time commit %v \n",
 		len(batch), w.count,
 		time.Now().Sub(st))
