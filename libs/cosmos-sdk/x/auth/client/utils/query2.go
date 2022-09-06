@@ -2,6 +2,7 @@ package utils
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -14,6 +15,7 @@ import (
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 )
 
+// TODO,这里加注释,别人看不懂,为啥会有个40的
 func Query40Tx(cliCtx context.CLIContext, hashHexStr string) (*types.TxResponse, error) {
 	// strip 0x prefix
 	if strings.HasPrefix(hashHexStr, "0x") {
@@ -46,6 +48,58 @@ func Query40Tx(cliCtx context.CLIContext, hashHexStr string) (*types.TxResponse,
 	}
 
 	return out, nil
+}
+
+func Query40TxsByEvents(cliCtx context.CLIContext, events []string, page, limit int) (*types.SearchTxsResult, error) {
+	if len(events) == 0 {
+		return nil, errors.New("must declare at least one event to search")
+	}
+
+	if page <= 0 {
+		return nil, errors.New("page must greater than 0")
+	}
+
+	if limit <= 0 {
+		return nil, errors.New("limit must greater than 0")
+	}
+
+	// XXX: implement ANY
+	query := strings.Join(events, " AND ")
+
+	node, err := cliCtx.GetNode()
+	if err != nil {
+		return nil, err
+	}
+
+	prove := !cliCtx.TrustNode
+
+	resTxs, err := node.TxSearch(query, prove, page, limit, "")
+	if err != nil {
+		return nil, err
+	}
+
+	if prove {
+		for _, tx := range resTxs.Txs {
+			err := ValidateTxResult(cliCtx, tx)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	resBlocks, err := getBlocksForTxResults(cliCtx, resTxs.Txs)
+	if err != nil {
+		return nil, err
+	}
+
+	txs, err := format40TxResults(cliCtx, resTxs.Txs, resBlocks)
+	if err != nil {
+		return nil, err
+	}
+
+	result := types.NewSearchTxsResult(uint64(resTxs.TotalCount), uint64(len(txs)), uint64(page), uint64(limit), txs)
+
+	return result, nil
 }
 
 // formatTxResults parses the indexed txs into a slice of TxResponse objects.

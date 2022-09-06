@@ -2,6 +2,8 @@ package utils
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	gogogrpc "github.com/gogo/protobuf/grpc"
 
@@ -13,6 +15,7 @@ import (
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
 	typeadapter "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 )
 
@@ -133,61 +136,49 @@ func (t txServer) BroadcastTx(ctx context.Context, request *tx.BroadcastTxReques
 	return ret, nil
 }
 
-func (t txServer) GetTxsEvent(ctx context.Context, request *tx.GetTxsEventRequest) (*tx.GetTxsEventResponse, error) {
-	//TODO implement me
-	panic("implement me")
+func (t txServer) GetTxsEvent(ctx context.Context, req *tx.GetTxsEventRequest) (*tx.GetTxsEventResponse, error) {
+	if req == nil {
+		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
+	}
+
+	page := 1
+	// Tendermint node.TxSearch that is used for querying txs defines pages starting from 1,
+	// so we default to 1 if not provided in the request.
+	limit := query.DefaultLimit
+
+	if len(req.Events) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "must declare at least one event to search")
+	}
+
+	for _, event := range req.Events {
+		if !strings.Contains(event, "=") || strings.Count(event, "=") > 1 {
+			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("invalid event; event %s should be of the format: %s", event, eventFormat))
+		}
+	}
+
+	result, err := Query40TxsByEvents(t.clientCtx, req.Events, page, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a proto codec, we need it to unmarshal the tx bytes.
+	txsList := make([]*tx.Tx, len(result.Txs))
+
+	for i, txx := range result.Txs {
+		protoTx, ok := txx.Tx.GetCachedValue().(*tx.Tx)
+		if !ok {
+			return nil, status.Errorf(codes.Internal, "expected %T, got %T", tx.Tx{}, txx.Tx.GetCachedValue())
+		}
+
+		txsList[i] = protoTx
+	}
+
+	return &tx.GetTxsEventResponse{
+		Txs:         txsList,
+		TxResponses: result.Txs,
+	}, nil
 }
 
-//
-//// TxsByEvents implements the ServiceServer.TxsByEvents RPC method.
-//func (s txServer) GetTxsEvent(ctx context.Context, req *tx.GetTxsEventRequest) (*tx.GetTxsEventResponse, error) {
-//	if req == nil {
-//		return nil, status.Error(codes.InvalidArgument, "request cannot be nil")
-//	}
-//
-//	page, limit, err := query.ParsePagination(req.Pagination)
-//	if err != nil {
-//		return nil, err
-//	}
-//	//orderBy := parseOrderBy(req.OrderBy)
-//
-//	if len(req.Events) == 0 {
-//		return nil, status.Error(codes.InvalidArgument, "must declare at least one event to search")
-//	}
-//
-//	for _, event := range req.Events {
-//		if !strings.Contains(event, "=") || strings.Count(event, "=") > 1 {
-//			return nil, status.Error(codes.InvalidArgument, fmt.Sprintf("invalid event; event %s should be of the format: %s", event, eventFormat))
-//		}
-//	}
-//
-//	//result, err := utils.QueryTxsByEvents(s.clientCtx, req.Events, page, limit)
-//	result, err := QueryTxsByEvents(s.clientCtx, req.Events, page, limit)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	// Create a proto codec, we need it to unmarshal the tx bytes.
-//	txsList := make([]*tx.Tx, len(result.Txs))
-//
-//	for i, tx := range result.Txs {
-//		protoTx, ok := tx.Tx.GetCachedValue().(*Tx)
-//		if !ok {
-//			return nil, status.Errorf(codes.Internal, "expected %T, got %T", tx.Tx{}, tx.Tx.GetCachedValue())
-//		}
-//
-//		txsList[i] = protoTx
-//	}
-//
-//	return &tx.GetTxsEventResponse{
-//		Txs:         txsList,
-//		TxResponses: result.Txs,
-//		Pagination: &query.PageResponse{
-//			Total: result.TotalCount,
-//		},
-//	}, nil
-//}
-//
 //
 //// GetTx implements the ServiceServer.GetTx RPC method.
 //func (s txServer) GetTx(ctx context.Context, req *tx.GetTxRequest) (*tx.GetTxResponse, error) {
