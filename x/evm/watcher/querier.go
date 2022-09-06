@@ -461,7 +461,7 @@ func (q Querier) GetTxResultByBlock(clientCtx clientcontext.CLIContext,
 				return nil, err
 			}
 
-			res, err := RawTxResultToStdResponse(clientCtx, stdResponse.ResultTx, stdResponse.Timestamp)
+			res, err := RawTxResultToStdResponse(clientCtx, stdResponse.ResultTx, nil, stdResponse.Timestamp)
 			if err != nil {
 				return nil, err
 			}
