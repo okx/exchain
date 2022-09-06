@@ -248,8 +248,8 @@ func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 	monitor := monitor.GetMonitor("eth_gasPrice", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd()
 
-	if app.GlobalGpIndex.RecommendGp != nil {
-		return (*hexutil.Big)(app.GlobalGpIndex.RecommendGp)
+	if app.GlobalGp != nil {
+		return (*hexutil.Big)(app.GlobalGp)
 	}
 
 	return api.gasPrice

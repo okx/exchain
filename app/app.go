@@ -7,9 +7,15 @@ import (
 	"os"
 	"sync"
 
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"google.golang.org/grpc/encoding"
+	"google.golang.org/grpc/encoding/proto"
+
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	appconfig "github.com/okex/exchain/app/config"
+	gasprice "github.com/okex/exchain/app/gasprice"
 	"github.com/okex/exchain/app/refund"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils/sanity"
@@ -76,10 +82,6 @@ import (
 	"github.com/okex/exchain/x/token"
 	"github.com/okex/exchain/x/wasm"
 	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"google.golang.org/grpc/encoding"
-	"google.golang.org/grpc/encoding/proto"
 )
 
 func init() {
@@ -162,7 +164,7 @@ var (
 		wasm.ModuleName:             nil,
 	}
 
-	GlobalGpIndex = GasPriceIndex{}
+	GlobalGp = &big.Int{}
 
 	onceLog sync.Once
 )
@@ -212,7 +214,7 @@ type OKExChainApp struct {
 	// simulation manager
 	sm *module.SimulationManager
 
-	blockGasPrice []*big.Int
+	gpo *gasprice.Oracle
 
 	configurator module.Configurator
 	// ibc
@@ -616,6 +618,9 @@ func NewOKExChainApp(
 
 	enableAnalyzer := sm.DeliverTxsExecMode(viper.GetInt(sm.FlagDeliverTxsExecMode)) == sm.DeliverTxsExecModeSerial
 	trace.EnableAnalyzer(enableAnalyzer)
+	//todo
+	gpoConfig := gasprice.DefaultGPOConfig()
+	app.gpo = gasprice.NewOracle(gpoConfig)
 	return app
 }
 
@@ -649,8 +654,11 @@ func (app *OKExChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBloc
 // EndBlocker updates every end block
 func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
 	if appconfig.GetOecConfig().GetEnableDynamicGp() {
-		GlobalGpIndex = CalBlockGasPriceIndex(app.blockGasPrice, appconfig.GetOecConfig().GetDynamicGpWeight())
-		app.blockGasPrice = app.blockGasPrice[:0]
+		//todo
+		//GlobalGpIndex = CalBlockGasPriceIndex(app.gpo.CurrentBlockGPs, appconfig.GetOecConfig().GetDynamicGpWeight())
+		app.gpo.BlockGPQueue.Push(app.gpo.CurrentBlockGPs)
+		app.gpo.CurrentBlockGPs.Clear()
+		GlobalGp = app.gpo.RecommendGP()
 	}
 
 	return app.mm.EndBlock(ctx, req)

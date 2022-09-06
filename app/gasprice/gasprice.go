@@ -1,0 +1,100 @@
+package gasprice
+
+import (
+	"math/big"
+	"sort"
+
+	"github.com/ethereum/go-ethereum/params"
+
+	appconfig "github.com/okex/exchain/app/config"
+	"github.com/okex/exchain/app/types"
+)
+
+var (
+	maxPrice     = big.NewInt(500 * params.GWei)
+	defaultPrice = big.NewInt(params.GWei / 10)
+)
+
+type GPOConfig struct {
+	Blocks  int
+	Weight  int
+	Default *big.Int `toml:",omitempty"`
+}
+
+func NewGPOConfig(checkBlocks, weight int, defaultPrice *big.Int) GPOConfig {
+	return GPOConfig{
+		Blocks:  checkBlocks,
+		Weight:  weight,
+		Default: defaultPrice,
+	}
+}
+
+func DefaultGPOConfig() GPOConfig {
+	return NewGPOConfig(4, appconfig.GetOecConfig().GetDynamicGpWeight(), defaultPrice)
+}
+
+// Oracle recommends gas prices based on the content of recent blocks.
+type Oracle struct {
+	//lastHeight      int64
+	CurrentBlockGPs types.SingleBlockGPs
+
+	// hold the gas prices of the latest few blocks
+	BlockGPQueue types.BlockGPResults
+	lastPrice    *big.Int
+	//cacheLock    sync.RWMutex
+	//fetchLock    sync.Mutex
+
+	checkBlocks int
+	weight      int
+}
+
+// NewOracle returns a new gasprice oracle which can recommend suitable
+// gasprice for newly created transaction.
+func NewOracle(params GPOConfig) *Oracle {
+	blocks := params.Blocks
+	if blocks < 1 {
+		blocks = 1
+	}
+	weight := params.Weight
+	if weight < 0 {
+		weight = 0
+	}
+	if weight > 100 {
+		weight = 100
+	}
+	return &Oracle{
+		lastPrice:   params.Default,
+		checkBlocks: blocks,
+		weight:      weight,
+	}
+}
+
+func (gpo *Oracle) RecommendGP() *big.Int {
+	// todo
+	// If the latest gasprice is still available, return it.
+	// rpc.GetChainHeight(ctx)
+
+	lastPrice := gpo.lastPrice
+
+	var txPrices []*big.Int
+	for i := 0; i < len(gpo.BlockGPQueue); i++ {
+		gpo.BlockGPQueue[i].SampleGP()
+
+		// If block is empty, use the latest calculated price for sampling.
+		if len(gpo.BlockGPQueue[i].GetSampled()) == 0 {
+			gpo.BlockGPQueue[i].AddSampledGP(lastPrice)
+		}
+
+		txPrices = append(txPrices, gpo.BlockGPQueue[i].GetSampled()...)
+	}
+	price := lastPrice
+	if len(txPrices) > 0 {
+		sort.Sort(types.BigIntArray(txPrices))
+		price = txPrices[(len(txPrices)-1)*gpo.weight/100]
+	}
+	if price.Cmp(maxPrice) > 0 {
+		price = new(big.Int).Set(maxPrice)
+	}
+	gpo.lastPrice = price
+	return price
+}

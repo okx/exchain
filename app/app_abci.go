@@ -29,7 +29,7 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 		tx, err := evm.TxDecoder(app.marshal)(req.Tx)
 		if err == nil {
 			//optimize get tx gas price can not get value from verifySign method
-			app.blockGasPrice = append(app.blockGasPrice, tx.GetGasPrice())
+			app.gpo.CurrentBlockGPs.AddGP(tx.GetGasPrice())
 		}
 	}
 
@@ -53,7 +53,7 @@ func (app *OKExChainApp) DeliverRealTx(req abci.TxEssentials) (res abci.Response
 		}
 		if err == nil {
 			//optimize get tx gas price can not get value from verifySign method
-			app.blockGasPrice = append(app.blockGasPrice, tx.GetGasPrice())
+			app.gpo.CurrentBlockGPs.AddGP(tx.GetGasPrice())
 		}
 	}
 
