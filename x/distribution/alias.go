@@ -7,7 +7,6 @@
 package distribution
 
 import (
-	"github.com/okex/exchain/x/distribution/client"
 	"github.com/okex/exchain/x/distribution/keeper"
 	"github.com/okex/exchain/x/distribution/types"
 )
@@ -60,7 +59,6 @@ var (
 	AttributeKeyWithdrawAddress          = types.AttributeKeyWithdrawAddress
 	AttributeKeyValidator                = types.AttributeKeyValidator
 	AttributeValueCategory               = types.AttributeValueCategory
-	ProposalHandler                      = client.ProposalHandler
 )
 
 type (
