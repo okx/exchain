@@ -417,7 +417,7 @@ func (bs *BlockStore) SaveBlock(block *types.Block, blockParts *types.PartSet, s
 	bs.mtx.Unlock()
 
 	// Save new BlockStoreStateJSON descriptor
-	bs.saveState()
+	bs.saveStateBatch(batch)
 
 	// Flush
 	batch.WriteSync()
@@ -436,6 +436,16 @@ func (bs *BlockStore) saveState() {
 	}
 	bs.mtx.RUnlock()
 	bsJSON.Save(bs.db)
+}
+
+func (bs *BlockStore) saveStateBatch(batch db.Batch) {
+	bs.mtx.RLock()
+	bsJSON := BlockStoreStateJSON{
+		Base:   bs.base,
+		Height: bs.height,
+	}
+	bs.mtx.RUnlock()
+	bsJSON.saveBatch(batch)
 }
 
 //-----------------------------------------------------------------------------

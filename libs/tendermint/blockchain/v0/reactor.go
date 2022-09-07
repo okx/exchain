@@ -314,7 +314,6 @@ func (bcR *BlockchainReactor) poolRoutine() {
 		}
 	}()
 
-	startTime := time.Now().UnixMilli()
 FOR_LOOP:
 	for {
 		select {
@@ -410,9 +409,6 @@ FOR_LOOP:
 			break FOR_LOOP
 		}
 	}
-
-	endTime := time.Now().UnixMilli()
-	bcR.Logger.Info("Pool routine:", "used time", (endTime-startTime)/1000)
 }
 
 func (bcR *BlockchainReactor) CheckFastSyncCondition() {
