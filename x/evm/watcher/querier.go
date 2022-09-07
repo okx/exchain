@@ -24,6 +24,7 @@ import (
 const MsgFunctionDisable = "fast query function has been disabled"
 
 var errNotFound = errors.New("leveldb: not found")
+var errDisable = errors.New(MsgFunctionDisable)
 
 const hashPrefixKeyLen = 33
 
@@ -71,7 +72,7 @@ func NewQuerier() *Querier {
 
 func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	var protoReceipt prototypes.TransactionReceipt
 	b, e := q.store.Get(append(prefixReceipt, hash.Bytes()...))
@@ -111,7 +112,7 @@ func (q Querier) GetTransactionResponse(hash common.Hash) (*TransactionResponse,
 
 func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	var block Block
 	var err error
@@ -155,7 +156,7 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
 
 func (q Querier) GetBlockHashByNumber(number uint64) (common.Hash, error) {
 	if !q.enabled() {
-		return common.Hash{}, errors.New(MsgFunctionDisable)
+		return common.Hash{}, errDisable
 	}
 	var height = number
 	var err error
@@ -177,7 +178,7 @@ func (q Querier) GetBlockHashByNumber(number uint64) (common.Hash, error) {
 
 func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*Block, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	var height = number
 	var err error
@@ -200,7 +201,7 @@ func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*Block, error) {
 
 func (q Querier) GetCode(contractAddr common.Address, height uint64) ([]byte, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	var codeInfo CodeInfo
 	info, e := q.store.Get(append(prefixCode, contractAddr.Bytes()...))
@@ -223,7 +224,7 @@ func (q Querier) GetCode(contractAddr common.Address, height uint64) ([]byte, er
 
 func (q Querier) GetCodeByHash(codeHash []byte) ([]byte, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	cacheCode, ok := q.lru.Get(common.BytesToHash(codeHash))
 	if ok {
@@ -245,9 +246,9 @@ func (q Querier) GetCodeByHash(codeHash []byte) ([]byte, error) {
 
 func (q Querier) GetLatestBlockNumber() (uint64, error) {
 	if !q.enabled() {
-		return 0, errors.New(MsgFunctionDisable)
+		return 0, errDisable
 	}
-	height, e := q.store.Get(append(prefixLatestHeight, KeyLatestHeight...))
+	height, e := q.store.Get(keyLatestBlockHeight)
 	if e != nil {
 		return 0, e
 	}
@@ -260,7 +261,7 @@ func (q Querier) GetLatestBlockNumber() (uint64, error) {
 
 func (q Querier) GetTransactionByHash(hash common.Hash) (*Transaction, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	var protoTx prototypes.Transaction
 	var txHashKey []byte
@@ -290,7 +291,7 @@ func (q Querier) GetTransactionByHash(hash common.Hash) (*Transaction, error) {
 
 func (q Querier) GetTransactionByBlockNumberAndIndex(number uint64, idx uint) (*Transaction, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	block, e := q.GetBlockByNumber(number, true)
 	if e != nil {
@@ -301,7 +302,7 @@ func (q Querier) GetTransactionByBlockNumberAndIndex(number uint64, idx uint) (*
 
 func (q Querier) GetTransactionByBlockHashAndIndex(hash common.Hash, idx uint) (*Transaction, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	block, e := q.GetBlockByHash(hash, true)
 	if e != nil {
@@ -328,7 +329,7 @@ func (q Querier) getTransactionByBlockAndIndex(block *Block, idx uint) (*Transac
 
 func (q Querier) GetTransactionsByBlockNumber(number, offset, limit uint64) ([]*Transaction, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	block, err := q.GetBlockByNumber(number, true)
 	if err != nil {
@@ -460,7 +461,7 @@ func (q Querier) GetTxResultByBlock(clientCtx clientcontext.CLIContext,
 				return nil, err
 			}
 
-			res, err := RawTxResultToStdResponse(clientCtx, stdResponse.ResultTx, stdResponse.Timestamp)
+			res, err := RawTxResultToStdResponse(clientCtx, stdResponse.ResultTx, nil, stdResponse.Timestamp)
 			if err != nil {
 				return nil, err
 			}
@@ -484,7 +485,7 @@ func (q Querier) MustGetAccount(addr sdk.AccAddress) (*types.EthAccount, error) 
 
 func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	b, e := q.store.Get([]byte(GetMsgAccountKey(addr.Bytes())))
 	if e != nil {
@@ -502,7 +503,7 @@ func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 
 func (q Querier) GetAccountFromRdb(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	key := append(prefixRpcDb, GetMsgAccountKey(addr.Bytes())...)
 
@@ -547,7 +548,7 @@ func (q Querier) MustGetState(addr common.Address, key []byte) ([]byte, error) {
 
 func (q Querier) GetState(key []byte) ([]byte, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	b, e := q.store.Get(key)
 	if e != nil {
@@ -561,7 +562,7 @@ func (q Querier) GetState(key []byte) ([]byte, error) {
 
 func (q Querier) GetStateFromRdb(key []byte) ([]byte, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	b, e := q.store.Get(append(prefixRpcDb, key...))
 	if e != nil {
@@ -583,7 +584,7 @@ func (q Querier) DeleteStateFromRdb(addr common.Address, key []byte) {
 
 func (q Querier) GetParams() (*evmtypes.Params, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	params := q.store.GetEvmParams()
 	return &params, nil
@@ -597,7 +598,7 @@ func (q Querier) HasContractBlockedList(key []byte) bool {
 }
 func (q Querier) GetContractMethodBlockedList(key []byte) ([]byte, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	return q.store.Get(append(prefixBlackList, key...))
 }
