@@ -293,6 +293,7 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 	var results []*watcher.TransactionResult
 
 	blockNum, err := api.backend.ConvertToBlockNumber(blockNrOrHash)
+	api.logger.Error("Debug GetAllTransactionResultsByBlock", "blockNum", blockNum)
 	if err != nil {
 		return nil, err
 	}
@@ -313,6 +314,7 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 
 	// try to get from node
 	resBlock, err := api.backend.Block(&height)
+	api.logger.Error("Debug GetAllTransactionResultsByBlock", "resBlock", resBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -326,7 +328,9 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 
 		if realTx != nil {
 			txHash := resBlock.Block.Txs[idx].Hash(resBlock.Block.Height)
+			api.logger.Error("Debug GetAllTransactionResultsByBlock", "txHash", txHash)
 			queryTx, err := api.clientCtx.Client.Tx(txHash, false)
+			api.logger.Error("Debug GetAllTransactionResultsByBlock", "queryTx", queryTx)
 			if err != nil {
 				// Return nil for transaction when not found
 				return nil, err
@@ -336,8 +340,10 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 			switch realTx.GetType() {
 			case sdk.EvmTxType:
 				res, err = rpctypes.RawTxResultToEthReceipt(api.chainIDEpoch, queryTx, realTx, blockHash)
+				api.logger.Error("Debug GetAllTransactionResultsByBlock EvmTxType", "res", res, "err", err)
 			case sdk.StdTxType:
 				res, err = watcher.RawTxResultToStdResponse(api.clientCtx, queryTx, realTx, resBlock.Block.Time)
+				api.logger.Error("Debug GetAllTransactionResultsByBlock StdTxType", "res", res, "err", err)
 			}
 
 			results = append(results, res)
