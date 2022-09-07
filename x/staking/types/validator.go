@@ -158,6 +158,7 @@ func (v Validators) Swap(i, j int) {
 	v[i] = v[j]
 	v[j] = it
 }
+
 // MustMarshalValidator must return the marshaling bytes of a validator
 func MustMarshalValidator(cdc *codec.Codec, validator Validator) []byte {
 	return cdc.MustMarshalBinaryLengthPrefixed(validator)

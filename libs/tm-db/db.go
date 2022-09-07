@@ -61,10 +61,11 @@ func registerDBCreator(backend BackendType, creator dbCreator, force bool) {
 //   - creator function, provided during registration, returns error
 func NewDB(name string, backend BackendType, dir string) DB {
 	dataType := checkDBType(name, dir)
-	// if the db type can be confirmed by the db file,
-	// the specified parameter or flag will be ignored
-	if dataType == RocksDBBackend || dataType == GoLevelDBBackend {
-		backend = dataType
+	if dataType != UnknownDBBackend && dataType != backend {
+		panic(fmt.Sprintf("Invalid db_backend for <%s> ; expected %s, got %s",
+			filepath.Join(dir, name+".db"),
+			dataType,
+			backend))
 	}
 
 	dbCreator, ok := backends[backend]
