@@ -99,7 +99,7 @@ func newUnsavedFastIterator(start, end []byte, ascending bool, ndb *nodeDB, unsa
 		return iter
 	}
 
-	// Move to the first elemenet
+	// Move to the first element
 	iter.Next()
 
 	return iter
