@@ -14,12 +14,22 @@ import (
 func NewHandler(k keeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
 		ctx.SetEventManager(sdk.NewEventManager())
+		errMsg := fmt.Sprintf("unrecognized staking message type: %T", msg)
+
+		if tmtypes.HigherThanVenus2(ctx.BlockHeight()) && !k.CheckEnabled(ctx) {
+			return nil, types.ErrCodeDisabledOperate()
+		}
 
 		switch msg := msg.(type) {
 		case types.MsgCreateValidator:
 			return handleMsgCreateValidator(ctx, msg, k)
 		case types.MsgEditValidator:
 			return handleMsgEditValidator(ctx, msg, k)
+		case types.MsgEditValidatorCommissionRate:
+			if tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+				return handleMsgEditValidatorCommissionRate(ctx, msg, k)
+			}
+			return sdk.ErrUnknownRequest(errMsg).Result()
 		case types.MsgDeposit:
 			return handleMsgDeposit(ctx, msg, k)
 		case types.MsgWithdraw:
@@ -35,7 +45,6 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 		case types.MsgDestroyValidator:
 			return handleMsgDestroyValidator(ctx, msg, k)
 		default:
-			errMsg := fmt.Sprintf("unrecognized staking message type: %T", msg)
 			return sdk.ErrUnknownRequest(errMsg).Result()
 		}
 	}

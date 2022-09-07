@@ -6,22 +6,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/spf13/viper"
+
 	"github.com/ethereum/go-ethereum/common"
 
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
-var (
-	// This is set at compile time. Could be cleveldb, defaults is goleveldb.
-	DBBackend = ""
-	backend   = dbm.GoLevelDBBackend
-)
-
-func init() {
-	if len(DBBackend) != 0 {
-		backend = dbm.BackendType(DBBackend)
-	}
-}
+const FlagDBBackend = "db_backend"
 
 // SortedJSON takes any JSON and returns it sorted by keys. Also, all white-spaces
 // are removed.
@@ -86,14 +78,20 @@ func ParseTimeBytes(bz []byte) (time.Time, error) {
 	return t.UTC().Round(0), nil
 }
 
-// NewLevelDB instantiate a new LevelDB instance according to DBBackend.
-func NewLevelDB(name, dir string) (db dbm.DB, err error) {
+// NewDB instantiate a new DB instance according to db_backend.
+func NewDB(name, dir string) (db dbm.DB, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("couldn't create db: %v", r)
 		}
 	}()
-	return dbm.NewDB(name, backend, dir), err
+
+	backend := viper.GetString(FlagDBBackend)
+	if len(backend) == 0 {
+		backend = string(dbm.GoLevelDBBackend)
+	}
+	db = dbm.NewDB(name, dbm.BackendType(backend), dir)
+	return
 }
 
 type ParaMsg struct {
