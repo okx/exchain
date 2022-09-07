@@ -17,7 +17,7 @@ import (
 )
 
 // when upgrade to fast IAVL every commitGap nodes will trigger a db commit.
-var commitGap uint64 = 10000000
+var commitGap uint64 = 5000000
 
 // when upgrade to fast IAVL every verboseGap nodes will trigger a print.
 const verboseGap = 50000
