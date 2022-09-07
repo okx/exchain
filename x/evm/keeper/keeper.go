@@ -154,6 +154,8 @@ func NewKeeper(
 func NewSimulateKeeper(
 	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace types.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper, ada types.DbAdapter,
 	logger log.Logger) *Keeper {
+	heightCache, _ := lru.New(heightCacheLimit)
+	hashCache, _ := lru.New(hashCacheLimit)
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
 	k := &Keeper{
 		cdc:           cdc,
@@ -172,6 +174,8 @@ func NewSimulateKeeper(
 		triegc:         prque.New(nil),
 		UpdatedAccount: make([]ethcmn.Address, 0),
 		cci:            &chainConfigInfo{},
+		heightCache:    heightCache,
+		hashCache:      hashCache,
 	}
 
 	k.OpenTrie()
