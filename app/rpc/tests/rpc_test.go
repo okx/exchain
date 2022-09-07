@@ -25,6 +25,10 @@ import (
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	gorpc "github.com/ethereum/go-ethereum/rpc"
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
+
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	"github.com/okex/exchain/app/rpc/backend"
 	cosmos_context "github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -35,9 +39,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/watcher"
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/require"
-	"github.com/stretchr/testify/suite"
 
 	"github.com/okex/exchain/app/rpc"
 	"github.com/okex/exchain/app/rpc/types"

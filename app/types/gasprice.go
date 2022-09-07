@@ -4,12 +4,16 @@ import (
 	"errors"
 	"math/big"
 	"sort"
+
+	"github.com/ethereum/go-ethereum/params"
 )
 
 const (
-	checkBlocks  = 5
+	checkBlocks  = 15
 	sampleNumber = 3 // Number of transactions sampled in a block
 )
+
+var ignorePrice = big.NewInt(2 * params.Wei)
 
 // SingleBlockGPs holds the gas price of all transactions in a block
 // and will sample the lower few gas prices according to sampleNumber.
@@ -59,6 +63,10 @@ func (bgp *SingleBlockGPs) SampleGP() {
 	sort.Sort(BigIntArray(txGPs))
 
 	for _, gp := range txGPs {
+		// If a GP is too cheap, discard it.
+		if gp.Cmp(ignorePrice) == -1 {
+			continue
+		}
 		bgp.AddSampledGP(gp)
 		if len(bgp.sampled) >= sampleNumber {
 			break

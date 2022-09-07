@@ -16,45 +16,33 @@ var (
 )
 
 type GPOConfig struct {
-	Blocks  int
 	Weight  int
 	Default *big.Int `toml:",omitempty"`
 }
 
-func NewGPOConfig(checkBlocks, weight int, defaultPrice *big.Int) GPOConfig {
+func NewGPOConfig(weight int, defaultPrice *big.Int) GPOConfig {
 	return GPOConfig{
-		Blocks:  checkBlocks,
 		Weight:  weight,
 		Default: defaultPrice,
 	}
 }
 
 func DefaultGPOConfig() GPOConfig {
-	return NewGPOConfig(4, appconfig.GetOecConfig().GetDynamicGpWeight(), defaultPrice)
+	return NewGPOConfig(appconfig.GetOecConfig().GetDynamicGpWeight(), defaultPrice)
 }
 
 // Oracle recommends gas prices based on the content of recent blocks.
 type Oracle struct {
-	//lastHeight      int64
 	CurrentBlockGPs types.SingleBlockGPs
-
 	// hold the gas prices of the latest few blocks
 	BlockGPQueue types.BlockGPResults
 	lastPrice    *big.Int
-	//cacheLock    sync.RWMutex
-	//fetchLock    sync.Mutex
-
-	checkBlocks int
-	weight      int
+	weight       int
 }
 
 // NewOracle returns a new gasprice oracle which can recommend suitable
 // gasprice for newly created transaction.
 func NewOracle(params GPOConfig) *Oracle {
-	blocks := params.Blocks
-	if blocks < 1 {
-		blocks = 1
-	}
 	weight := params.Weight
 	if weight < 0 {
 		weight = 0
@@ -63,9 +51,8 @@ func NewOracle(params GPOConfig) *Oracle {
 		weight = 100
 	}
 	return &Oracle{
-		lastPrice:   params.Default,
-		checkBlocks: blocks,
-		weight:      weight,
+		lastPrice: params.Default,
+		weight:    weight,
 	}
 }
 
