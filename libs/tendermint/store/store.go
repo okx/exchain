@@ -304,7 +304,7 @@ func (bs *BlockStore) deleteBatch(height int64, deleteFromTop bool) (uint64, err
 			bs.base = height
 		}
 		bs.mtx.Unlock()
-		bs.saveState(batch)
+		bs.saveState()
 
 		err := batch.WriteSync()
 		if err != nil {
@@ -417,7 +417,7 @@ func (bs *BlockStore) SaveBlock(block *types.Block, blockParts *types.PartSet, s
 	bs.mtx.Unlock()
 
 	// Save new BlockStoreStateJSON descriptor
-	bs.saveState(batch)
+	bs.saveState()
 
 	// Flush
 	batch.WriteSync()
@@ -428,14 +428,14 @@ func (bs *BlockStore) saveBlockPart(batch db.Batch, height int64, index int, par
 	batch.Set(calcBlockPartKey(height, index), partBytes)
 }
 
-func (bs *BlockStore) saveState(batch db.Batch) {
+func (bs *BlockStore) saveState() {
 	bs.mtx.RLock()
 	bsJSON := BlockStoreStateJSON{
 		Base:   bs.base,
 		Height: bs.height,
 	}
 	bs.mtx.RUnlock()
-	bsJSON.saveBatch(batch)
+	bsJSON.Save(bs.db)
 }
 
 //-----------------------------------------------------------------------------
