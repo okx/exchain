@@ -247,6 +247,7 @@ func SignAndDeliver(
 		chainID,
 		accNums,
 		accSeqs,
+		1,
 		priv...,
 	)
 	require.NoError(t, err)
@@ -286,6 +287,7 @@ func GenSequenceOfTxs(txGen client.TxConfig, msgs []ibcmsg.Msg, accNums []uint64
 			"",
 			accNums,
 			initSeqNums,
+			1,
 			priv...,
 		)
 		if err != nil {

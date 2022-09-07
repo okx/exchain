@@ -7,6 +7,7 @@ import (
 	"runtime/pprof"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	"github.com/okex/exchain/libs/tendermint/rpc/client"
 
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
@@ -29,6 +30,7 @@ import (
 
 	tmiavl "github.com/okex/exchain/libs/iavl"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	bcv0 "github.com/okex/exchain/libs/tendermint/blockchain/v0"
 	tcmd "github.com/okex/exchain/libs/tendermint/cmd/tendermint/commands"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	pvm "github.com/okex/exchain/libs/tendermint/privval"
@@ -65,6 +67,8 @@ const (
 	FlagCommitGapHeight  = "commit-gap-height"
 
 	FlagBlockPartSizeBytes = "block-part-size"
+
+	FlagFastSyncGap = "fastsync-gap"
 )
 
 // StartCmd runs the service passed in, either stand-alone or in-process with
@@ -180,6 +184,12 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyReso
 		Value: tmNode.ConsensusState().GetState().ChainID,
 	})
 
+	if clientSetter, ok := app.(interface {
+		SetTmClient(client client.Client)
+	}); ok {
+		clientSetter.SetTmClient(local.New(tmNode))
+	}
+
 	ctx.Logger.Info("startInProcess",
 		"ConsensusStateChainID", tmNode.ConsensusState().GetState().ChainID,
 		"GenesisDocChainID", tmNode.GenesisDoc().ChainID,
@@ -243,6 +253,62 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyReso
 	select {}
 }
 
+func StartRestWithNode(ctx *Context, cdc *codec.CodecProxy, blockStoreDir string,
+	registry jsonpb.AnyResolver, appCreator AppCreator,
+	registerRoutesFn func(restServer *lcd.RestServer)) (*node.Node, error) {
+
+	cfg := ctx.Config
+	home := cfg.RootDir
+	////startInProcess hooker
+	//callHooker(FlagHookstartInProcess, ctx)
+
+	traceWriterFile := viper.GetString(flagTraceStore)
+	db, err := openDB(home)
+	if err != nil {
+		return nil, err
+	}
+
+	traceWriter, err := openTraceWriter(traceWriterFile)
+	if err != nil {
+		return nil, err
+	}
+
+	app := appCreator(ctx.Logger, db, traceWriter)
+
+	nodeKey, err := p2p.LoadOrGenNodeKey(cfg.NodeKeyFile())
+	if err != nil {
+		return nil, err
+	}
+
+	// create & start tendermint node
+	tmNode, err := node.NewLRPNode(
+		cfg,
+		pvm.LoadFilePVEmptyState(cfg.PrivValidatorKeyFile(), cfg.PrivValidatorStateFile()),
+		nodeKey,
+		proxy.NewLocalClientCreator(app),
+		node.DefaultGenesisDocProviderFunc(cfg),
+		node.DefaultDBProvider,
+		blockStoreDir,
+		ctx.Logger.With("module", "node"),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	app.SetOption(abci.RequestSetOption{
+		Key:   "CheckChainID",
+		Value: tmNode.ConsensusState().GetState().ChainID,
+	})
+
+	if registerRoutesFn != nil {
+		go lcd.StartRestServer(cdc, registry, registerRoutesFn, tmNode, viper.GetString(FlagListenAddr))
+	}
+
+	// run forever (the node will not be returned)
+	//select {}
+	return tmNode, nil
+}
+
 // Use SetExternalPackageValue to set external package config value.
 func SetExternalPackageValue(cmd *cobra.Command) {
 	iavl.IavlCacheSize = viper.GetInt(iavl.FlagIavlCacheSize)
@@ -253,6 +319,8 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	tmiavl.HeightOrphansCacheSize = viper.GetInt(tmiavl.FlagIavlHeightOrphansCacheSize)
 	tmiavl.MaxCommittedHeightNum = viper.GetInt(tmiavl.FlagIavlMaxCommittedHeightNum)
 	tmiavl.EnableAsyncCommit = viper.GetBool(tmiavl.FlagIavlEnableAsyncCommit)
+	tmiavl.SetEnableFastStorage(viper.GetBool(tmiavl.FlagIavlEnableFastStorage))
+	tmiavl.SetFastNodeCacheSize(viper.GetInt(tmiavl.FlagIavlFastStorageCacheSize))
 	system.EnableGid = viper.GetBool(system.FlagEnableGid)
 
 	state.ApplyBlockPprofTime = viper.GetInt(state.FlagApplyBlockPprofTime)
@@ -271,4 +339,6 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 
 	tmiavl.CommitGapHeight = viper.GetInt64(FlagCommitGapHeight)
 	mpt.TrieCommitGap = viper.GetInt64(FlagCommitGapHeight)
+
+	bcv0.MaxIntervalForFastSync = viper.GetInt64(FlagFastSyncGap)
 }

@@ -211,13 +211,12 @@ func (pool *BlockPool) IsCaughtUp() bool {
 // We need to see the second block's Commit to validate the first block.
 // So we peek two blocks at a time.
 // The caller will verify the commit.
-func (pool *BlockPool) PeekTwoBlocks() (first, second *types.Block, deltas *types.Deltas, firstExInfo *types.BlockExInfo) {
+func (pool *BlockPool) PeekTwoBlocks() (first, second *types.Block, firstParts *types.PartSet) {
 	pool.mtx.Lock()
 	defer pool.mtx.Unlock()
 
 	if r := pool.requesters[pool.height]; r != nil {
-		first, firstExInfo = r.getBlock()
-		deltas = r.getDeltas()
+		first, firstParts = r.getBlock()
 	}
 	if r := pool.requesters[pool.height+1]; r != nil {
 		second, _ = r.getBlock()
@@ -327,17 +326,8 @@ func (pool *BlockPool) SetPeerRange(peerID p2p.ID, base int64, height int64, sto
 	}
 
 	// compute how many peers' height is greater than height
-	if !pool.IsRunning() && storeHeight+maxIntervalForFastSync <= height {
-		count := 0
-		totalNum := len(pool.peers)
-		for _, peer := range pool.peers {
-			if peer.height >= height {
-				count++
-			}
-		}
-		if count > int(float32(totalNum)*maxPeersProportionForFastSync) {
-			return true
-		}
+	if !pool.IsRunning() && storeHeight+MaxIntervalForFastSync <= height {
+		return true
 	}
 
 	return false
@@ -549,11 +539,10 @@ type bpRequester struct {
 	gotBlockCh chan struct{}
 	redoCh     chan p2p.ID //redo may send multitime, add peerId to identify repeat
 
-	mtx    sync.Mutex
-	peerID p2p.ID
-	block  *types.Block
-	deltas *types.Deltas
-	exInfo *types.BlockExInfo
+	mtx        sync.Mutex
+	peerID     p2p.ID
+	block      *types.Block
+	blockParts *types.PartSet
 }
 
 func newBPRequester(pool *BlockPool, height int64) *bpRequester {
@@ -565,7 +554,6 @@ func newBPRequester(pool *BlockPool, height int64) *bpRequester {
 
 		peerID: "",
 		block:  nil,
-		deltas: nil,
 	}
 	bpr.BaseService = *service.NewBaseService(nil, "bpRequester", bpr)
 	return bpr
@@ -584,7 +572,7 @@ func (bpr *bpRequester) setBlock(block *types.Block, exInfo *types.BlockExInfo, 
 		return false
 	}
 	bpr.block = block
-	bpr.exInfo = exInfo
+	bpr.blockParts = block.MakePartSetByExInfo(exInfo)
 
 	bpr.mtx.Unlock()
 
@@ -595,16 +583,10 @@ func (bpr *bpRequester) setBlock(block *types.Block, exInfo *types.BlockExInfo, 
 	return true
 }
 
-func (bpr *bpRequester) getBlock() (*types.Block, *types.BlockExInfo) {
+func (bpr *bpRequester) getBlock() (*types.Block, *types.PartSet) {
 	bpr.mtx.Lock()
 	defer bpr.mtx.Unlock()
-	return bpr.block, bpr.exInfo
-}
-
-func (bpr *bpRequester) getDeltas() *types.Deltas {
-	bpr.mtx.Lock()
-	defer bpr.mtx.Unlock()
-	return bpr.deltas
+	return bpr.block, bpr.blockParts
 }
 
 func (bpr *bpRequester) getPeerID() p2p.ID {
@@ -624,7 +606,6 @@ func (bpr *bpRequester) reset() {
 
 	bpr.peerID = ""
 	bpr.block = nil
-	bpr.deltas = nil
 }
 
 // Tells bpRequester to pick another peer and try again.

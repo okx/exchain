@@ -3,8 +3,6 @@ package types
 import (
 	"fmt"
 
-	"github.com/pquerna/ffjson/ffjson"
-	"github.com/valyala/fastjson"
 	"gopkg.in/yaml.v2"
 
 	"github.com/ethereum/go-ethereum/core/vm"
@@ -78,48 +76,6 @@ func DefaultParams() Params {
 func (p Params) String() string {
 	out, _ := yaml.Marshal(p)
 	return string(out)
-}
-
-func (p Params) MarshalJSON() ([]byte, error) {
-	alias := &struct {
-		EnableCreate                      bool   `json:"enable_create"`
-		EnableCall                        bool   `json:"enable_call"`
-		ExtraEIPs                         []int  `json:"extra_eips"`
-		EnableContractDeploymentWhitelist bool   `json:"enable_contract_deployment_whitelist"`
-		EnableContractBlockedList         bool   `json:"enable_contract_blocked_list"`
-		MaxGasLimitPerTx                  uint64 `json:"max_gas_limit_per_tx"`
-	}{
-		p.EnableCreate,
-		p.EnableCall,
-		p.ExtraEIPs,
-		p.EnableContractDeploymentWhitelist,
-		p.EnableContractBlockedList,
-		p.MaxGasLimitPerTx,
-	}
-
-	return ffjson.Marshal(alias)
-}
-
-// UnmarshalJSON use fastjson to unmarshal params
-func (p *Params) UnmarshalJSON(input []byte) error {
-	var fjp fastjson.Parser
-	v, err := fjp.Parse(string(input))
-	if err != nil {
-		return err
-	}
-	p.EnableCreate = v.GetBool("enable_create")
-	p.EnableCall = v.GetBool("enable_call")
-	p.EnableContractDeploymentWhitelist = v.GetBool("enable_contract_deployment_whitelist")
-	p.EnableContractBlockedList = v.GetBool("enable_contract_blocked_list")
-	p.MaxGasLimitPerTx = v.GetUint64("max_gas_limit_per_tx")
-	var aux []int
-	eips := v.GetArray("extra_eips")
-	for _, eip := range eips {
-		aux = append(aux, eip.GetInt())
-	}
-	p.ExtraEIPs = aux
-
-	return nil
 }
 
 // ParamSetPairs returns the parameter set pairs.

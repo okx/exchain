@@ -6,20 +6,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/spf13/viper"
+
+	"github.com/ethereum/go-ethereum/common"
+
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
-var (
-	// This is set at compile time. Could be cleveldb, defaults is goleveldb.
-	DBBackend = ""
-	backend   = dbm.GoLevelDBBackend
-)
-
-func init() {
-	if len(DBBackend) != 0 {
-		backend = dbm.BackendType(DBBackend)
-	}
-}
+const FlagDBBackend = "db_backend"
 
 // SortedJSON takes any JSON and returns it sorted by keys. Also, all white-spaces
 // are removed.
@@ -56,7 +50,6 @@ func Uint64ToBigEndian(i uint64) []byte {
 	return b
 }
 
-
 // BigEndianToUint64 returns an uint64 from big endian encoded bytes. If encoding
 // is empty, zero is returned.
 func BigEndianToUint64(bz []byte) uint64 {
@@ -66,7 +59,6 @@ func BigEndianToUint64(bz []byte) uint64 {
 
 	return binary.BigEndian.Uint64(bz)
 }
-
 
 // Slight modification of the RFC3339Nano but it right pads all zeros and drops the time zone info
 const SortableTimeFormat = "2006-01-02T15:04:05.000000000"
@@ -86,14 +78,20 @@ func ParseTimeBytes(bz []byte) (time.Time, error) {
 	return t.UTC().Round(0), nil
 }
 
-// NewLevelDB instantiate a new LevelDB instance according to DBBackend.
-func NewLevelDB(name, dir string) (db dbm.DB, err error) {
+// NewDB instantiate a new DB instance according to db_backend.
+func NewDB(name, dir string) (db dbm.DB, err error) {
 	defer func() {
 		if r := recover(); r != nil {
 			err = fmt.Errorf("couldn't create db: %v", r)
 		}
 	}()
-	return dbm.NewDB(name, backend, dir), err
+
+	backend := viper.GetString(FlagDBBackend)
+	if len(backend) == 0 {
+		backend = string(dbm.GoLevelDBBackend)
+	}
+	db = dbm.NewDB(name, dbm.BackendType(backend), dir)
+	return
 }
 
 type ParaMsg struct {
@@ -103,3 +101,45 @@ type ParaMsg struct {
 	LogIndex            int
 	HasRunEvmTx         bool
 }
+
+type TxWatcher struct {
+	IWatcher
+}
+type WatchMessage interface {
+	GetKey() []byte
+	GetValue() string
+	GetType() uint32
+}
+
+type IWatcher interface {
+	Enabled() bool
+	SaveContractCode(addr common.Address, code []byte, height uint64)
+	SaveContractCodeByHash(hash []byte, code []byte)
+	SaveAccount(account interface{})
+	DeleteAccount(account interface{})
+	SaveState(addr common.Address, key, value []byte)
+	SaveContractBlockedListItem(addr interface{})
+	SaveContractMethodBlockedListItem(addr interface{}, methods []byte)
+	SaveContractDeploymentWhitelistItem(addr interface{})
+	DeleteContractBlockedList(addr interface{})
+	DeleteContractDeploymentWhitelist(addr interface{})
+	Finalize()
+	Destruct() []WatchMessage
+}
+
+type EmptyWatcher struct {
+}
+
+func (e EmptyWatcher) Enabled() bool                                                      { return false }
+func (e EmptyWatcher) SaveContractCode(addr common.Address, code []byte, height uint64)   {}
+func (e EmptyWatcher) SaveContractCodeByHash(hash []byte, code []byte)                    {}
+func (e EmptyWatcher) SaveAccount(account interface{})                                    {}
+func (e EmptyWatcher) DeleteAccount(account interface{})                                  {}
+func (e EmptyWatcher) SaveState(addr common.Address, key, value []byte)                   {}
+func (e EmptyWatcher) SaveContractBlockedListItem(addr interface{})                       {}
+func (e EmptyWatcher) SaveContractMethodBlockedListItem(addr interface{}, methods []byte) {}
+func (e EmptyWatcher) SaveContractDeploymentWhitelistItem(addr interface{})               {}
+func (e EmptyWatcher) DeleteContractBlockedList(addr interface{})                         {}
+func (e EmptyWatcher) DeleteContractDeploymentWhitelist(addr interface{})                 {}
+func (e EmptyWatcher) Finalize()                                                          {}
+func (e EmptyWatcher) Destruct() []WatchMessage                                           { return nil }

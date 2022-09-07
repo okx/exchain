@@ -84,7 +84,7 @@ func (f *Filter) Logs(ctx context.Context) ([]*ethtypes.Log, error) {
 	var err error
 
 	// If we're doing singleton block filtering, execute and return
-	if f.criteria.BlockHash != nil && f.criteria.BlockHash != (&common.Hash{}) {
+	if f.criteria.BlockHash != nil && *f.criteria.BlockHash != (common.Hash{}) {
 		header, err := f.backend.HeaderByHash(*f.criteria.BlockHash)
 		if err != nil {
 			return nil, err
@@ -92,7 +92,7 @@ func (f *Filter) Logs(ctx context.Context) ([]*ethtypes.Log, error) {
 		if header == nil {
 			return nil, fmt.Errorf("unknown block header %s", f.criteria.BlockHash.String())
 		}
-		return f.blockLogs(header, *f.criteria.BlockHash)
+		return f.blockLogs(header)
 	}
 
 	// Figure out the limits of the filter range
@@ -150,12 +150,12 @@ func (f *Filter) Logs(ctx context.Context) ([]*ethtypes.Log, error) {
 }
 
 // blockLogs returns the logs matching the filter criteria within a single block.
-func (f *Filter) blockLogs(header *ethtypes.Header, hash common.Hash) ([]*ethtypes.Log, error) {
+func (f *Filter) blockLogs(header *ethtypes.Header) ([]*ethtypes.Log, error) {
 	if !bloomFilter(header.Bloom, f.criteria.Addresses, f.criteria.Topics) {
 		return []*ethtypes.Log{}, nil
 	}
-
-	logsList, err := f.backend.GetLogs(hash)
+	height := header.Number.Int64()
+	logsList, err := f.backend.GetLogs(height)
 	if err != nil {
 		return []*ethtypes.Log{}, err
 	}
@@ -173,9 +173,9 @@ func (f *Filter) blockLogs(header *ethtypes.Header, hash common.Hash) ([]*ethtyp
 
 // checkMatches checks if the receipts belonging to the given header contain any log events that
 // match the filter criteria. This function is called when the bloom filter signals a potential match.
-func (f *Filter) checkMatches(hash common.Hash) (logs []*ethtypes.Log, err error) {
+func (f *Filter) checkMatches(height int64) (logs []*ethtypes.Log, err error) {
 	// Get the logs of the block
-	logsList, err := f.backend.GetLogs(hash)
+	logsList, err := f.backend.GetLogs(height)
 	if err != nil {
 		return nil, err
 	}
@@ -226,8 +226,7 @@ func (f *Filter) indexedLogs(ctx context.Context, end uint64) ([]*ethtypes.Log, 
 				f.criteria.FromBlock = big.NewInt(int64(number)).Add(big.NewInt(int64(number)), big.NewInt(1))
 
 				// Retrieve the suggested block and pull any truly matching logs
-				hash, err := f.backend.GetBlockHashByHeight(rpctypes.BlockNumber(number))
-				found, err := f.checkMatches(hash)
+				found, err := f.checkMatches(int64(number))
 				if err != nil {
 					return logs, err
 				}
@@ -262,11 +261,7 @@ func (f *Filter) unindexedLogs(ctx context.Context, end uint64) ([]*ethtypes.Log
 			if header == nil || err != nil {
 				return logs, err
 			}
-			hash, err := f.backend.GetBlockHashByHeight(rpctypes.BlockNumber(begin))
-			if err != nil {
-				return logs, err
-			}
-			found, err := f.blockLogs(header, hash)
+			found, err := f.blockLogs(header)
 			if err != nil {
 				return logs, err
 			}

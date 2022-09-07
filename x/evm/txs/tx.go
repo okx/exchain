@@ -42,7 +42,7 @@ type Tx interface {
 	EmitEvent(msg *types.MsgEthereumTx, result *base.Result)
 
 	// FinalizeWatcher after execute evm tx run here
-	FinalizeWatcher(account authexported.Account, err error)
+	FinalizeWatcher(msg *types.MsgEthereumTx, account authexported.Account, err error)
 
 	// AnalyzeStart start record tag
 	AnalyzeStart(tag string)
@@ -84,7 +84,7 @@ func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err e
 			panic(e)
 		}
 		tx.RefundFeesWatcher(senderAccount, msg)
-		tx.FinalizeWatcher(senderAccount, err)
+		tx.FinalizeWatcher(msg, senderAccount, err)
 	}()
 
 	// execute evm tx

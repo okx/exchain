@@ -4,22 +4,27 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/ethereum/go-ethereum/common/hexutil"
+	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"strconv"
 	"sync"
+
+	"github.com/gogo/protobuf/proto"
+	prototypes "github.com/okex/exchain/x/evm/watcher/proto"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	lru "github.com/hashicorp/golang-lru"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-
 	"github.com/okex/exchain/app/rpc/namespaces/eth/state"
 	"github.com/okex/exchain/app/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
 const MsgFunctionDisable = "fast query function has been disabled"
 
 var errNotFound = errors.New("leveldb: not found")
+var errDisable = errors.New(MsgFunctionDisable)
 
 const hashPrefixKeyLen = 33
 
@@ -67,9 +72,9 @@ func NewQuerier() *Querier {
 
 func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
-	var receipt TransactionReceipt
+	var protoReceipt prototypes.TransactionReceipt
 	b, e := q.store.Get(append(prefixReceipt, hash.Bytes()...))
 	if e != nil {
 		return nil, e
@@ -77,19 +82,37 @@ func (q Querier) GetTransactionReceipt(hash common.Hash) (*TransactionReceipt, e
 	if b == nil {
 		return nil, errNotFound
 	}
-	e = json.Unmarshal(b, &receipt)
+	e = proto.Unmarshal(b, &protoReceipt)
 	if e != nil {
 		return nil, e
 	}
-	if receipt.Logs == nil {
-		receipt.Logs = []*ethtypes.Log{}
+	receipt := protoToReceipt(&protoReceipt)
+	return receipt, nil
+}
+
+func (q Querier) GetTransactionResponse(hash common.Hash) (*TransactionResponse, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
 	}
-	return &receipt, nil
+	var response TransactionResponse
+	b, e := q.store.Get(append(prefixTxResponse, hash.Bytes()...))
+	if e != nil {
+		return nil, e
+	}
+	if b == nil {
+		return nil, errNotFound
+	}
+	e = json.Unmarshal(b, &response)
+	if e != nil {
+		return nil, e
+	}
+
+	return &response, nil
 }
 
 func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	var block Block
 	var err error
@@ -133,7 +156,7 @@ func (q Querier) GetBlockByHash(hash common.Hash, fullTx bool) (*Block, error) {
 
 func (q Querier) GetBlockHashByNumber(number uint64) (common.Hash, error) {
 	if !q.enabled() {
-		return common.Hash{}, errors.New(MsgFunctionDisable)
+		return common.Hash{}, errDisable
 	}
 	var height = number
 	var err error
@@ -155,7 +178,7 @@ func (q Querier) GetBlockHashByNumber(number uint64) (common.Hash, error) {
 
 func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*Block, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	var height = number
 	var err error
@@ -178,7 +201,7 @@ func (q Querier) GetBlockByNumber(number uint64, fullTx bool) (*Block, error) {
 
 func (q Querier) GetCode(contractAddr common.Address, height uint64) ([]byte, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	var codeInfo CodeInfo
 	info, e := q.store.Get(append(prefixCode, contractAddr.Bytes()...))
@@ -201,7 +224,7 @@ func (q Querier) GetCode(contractAddr common.Address, height uint64) ([]byte, er
 
 func (q Querier) GetCodeByHash(codeHash []byte) ([]byte, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	cacheCode, ok := q.lru.Get(common.BytesToHash(codeHash))
 	if ok {
@@ -223,9 +246,9 @@ func (q Querier) GetCodeByHash(codeHash []byte) ([]byte, error) {
 
 func (q Querier) GetLatestBlockNumber() (uint64, error) {
 	if !q.enabled() {
-		return 0, errors.New(MsgFunctionDisable)
+		return 0, errDisable
 	}
-	height, e := q.store.Get(append(prefixLatestHeight, KeyLatestHeight...))
+	height, e := q.store.Get(keyLatestBlockHeight)
 	if e != nil {
 		return 0, e
 	}
@@ -238,9 +261,9 @@ func (q Querier) GetLatestBlockNumber() (uint64, error) {
 
 func (q Querier) GetTransactionByHash(hash common.Hash) (*Transaction, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
-	var tx Transaction
+	var protoTx prototypes.Transaction
 	var txHashKey []byte
 	var err error
 	if txHashKey, err = getHashPrefixKey(prefixTx, hash.Bytes()); err != nil {
@@ -253,7 +276,7 @@ func (q Querier) GetTransactionByHash(hash common.Hash) (*Transaction, error) {
 		if value == nil {
 			return nil, errNotFound
 		}
-		e := json.Unmarshal(value, &tx)
+		e := proto.Unmarshal(value, &protoTx)
 		if e != nil {
 			return nil, e
 		}
@@ -262,12 +285,13 @@ func (q Querier) GetTransactionByHash(hash common.Hash) (*Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &tx, nil
+	tx := protoToTransaction(&protoTx)
+	return tx, nil
 }
 
 func (q Querier) GetTransactionByBlockNumberAndIndex(number uint64, idx uint) (*Transaction, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	block, e := q.GetBlockByNumber(number, true)
 	if e != nil {
@@ -278,7 +302,7 @@ func (q Querier) GetTransactionByBlockNumberAndIndex(number uint64, idx uint) (*
 
 func (q Querier) GetTransactionByBlockHashAndIndex(hash common.Hash, idx uint) (*Transaction, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	block, e := q.GetBlockByHash(hash, true)
 	if e != nil {
@@ -305,7 +329,7 @@ func (q Querier) getTransactionByBlockAndIndex(block *Block, idx uint) (*Transac
 
 func (q Querier) GetTransactionsByBlockNumber(number, offset, limit uint64) ([]*Transaction, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	block, err := q.GetBlockByNumber(number, true)
 	if err != nil {
@@ -327,6 +351,127 @@ func (q Querier) GetTransactionsByBlockNumber(number, offset, limit uint64) ([]*
 	return nil, errors.New("no such transaction in target block")
 }
 
+func (q Querier) GetTxResultByBlock(clientCtx clientcontext.CLIContext,
+	height, offset, limit uint64) ([]*TransactionResult, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+
+	// get block hash
+	rawBlockHash, err := q.store.Get(append(prefixBlockInfo, []byte(strconv.Itoa(int(height)))...))
+	if err != nil {
+		return nil, err
+	}
+	if rawBlockHash == nil {
+		return nil, errNotFound
+	}
+
+	blockHash := common.HexToHash(string(rawBlockHash))
+
+	// get block by hash
+	var block Block
+	var blockHashKey []byte
+	if blockHashKey, err = getHashPrefixKey(prefixBlock, blockHash.Bytes()); err != nil {
+		blockHashKey = append(prefixBlock, blockHash.Bytes()...)
+	} else {
+		defer putHashPrefixKey(blockHashKey)
+	}
+
+	_, err = q.store.GetUnsafe(blockHashKey, func(value []byte) (interface{}, error) {
+		if value == nil {
+			return nil, errNotFound
+		}
+		e := json.Unmarshal(value, &block)
+		if e != nil {
+			return nil, e
+		}
+		return nil, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]*TransactionResult, 0, limit)
+	var ethStart, ethEnd, ethTxLen uint64
+
+	// get result from eth tx
+	if block.Transactions != nil {
+		txsHash := block.Transactions.([]interface{})
+		ethTxLen = uint64(len(txsHash))
+
+		if offset < ethTxLen {
+			ethStart = offset
+			if ethEnd = ethStart + limit; ethEnd > ethTxLen {
+				ethEnd = ethTxLen
+			}
+		}
+
+		for i := ethStart; i < ethEnd; i++ {
+			txHash := common.HexToHash(txsHash[i].(string))
+			//Get Eth Tx
+			tx, err := q.GetTransactionByHash(txHash)
+			if err != nil {
+				return nil, err
+			}
+			//Get Eth Receipt
+			receipt, err := q.GetTransactionReceipt(txHash)
+			if err != nil {
+				return nil, err
+			}
+
+			r := &TransactionResult{TxType: hexutil.Uint64(EthReceipt), EthTx: tx, Receipt: receipt}
+			results = append(results, r)
+		}
+	}
+
+	// enough Tx by Eth
+	ethTxNums := ethEnd - ethStart
+	if ethTxNums == limit {
+		return results, nil
+	}
+	// calc remain std txs
+	remainTxs := limit - ethTxNums
+	// get result from Std tx
+	var stdTxsHash []common.Hash
+	b, err := q.store.Get(append(prefixStdTxHash, blockHash.Bytes()...))
+	if err != nil {
+		return nil, err
+	}
+
+	if b == nil {
+		return results, nil
+
+	}
+	err = json.Unmarshal(b, &stdTxsHash)
+	if err != nil {
+		return nil, err
+	}
+
+	if stdTxsHash != nil && len(stdTxsHash) != 0 {
+		stdTxsLen := uint64(len(stdTxsHash))
+		var stdStart, stdEnd uint64
+		stdStart = offset + ethTxNums - ethTxLen
+		if stdEnd = stdStart + remainTxs; stdEnd > stdTxsLen {
+			stdEnd = stdTxsLen
+		}
+
+		for i := stdStart; i < stdEnd; i++ {
+			stdResponse, err := q.GetTransactionResponse(stdTxsHash[i])
+			if err != nil {
+				return nil, err
+			}
+
+			res, err := RawTxResultToStdResponse(clientCtx, stdResponse.ResultTx, nil, stdResponse.Timestamp)
+			if err != nil {
+				return nil, err
+			}
+			results = append(results, res)
+		}
+	}
+
+	return results, nil
+}
+
 func (q Querier) MustGetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	acc, e := q.GetAccount(addr)
 	//todo delete account from rdb if we get Account from H db successfully
@@ -340,9 +485,8 @@ func (q Querier) MustGetAccount(addr sdk.AccAddress) (*types.EthAccount, error) 
 
 func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
-	var acc types.EthAccount
 	b, e := q.store.Get([]byte(GetMsgAccountKey(addr.Bytes())))
 	if e != nil {
 		return nil, e
@@ -350,18 +494,17 @@ func (q Querier) GetAccount(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if b == nil {
 		return nil, errNotFound
 	}
-	e = json.Unmarshal(b, &acc)
-	if e != nil {
+	acc, err := DecodeAccount(b)
+	if err != nil {
 		return nil, e
 	}
-	return &acc, nil
+	return acc, nil
 }
 
 func (q Querier) GetAccountFromRdb(addr sdk.AccAddress) (*types.EthAccount, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
-	var acc types.EthAccount
 	key := append(prefixRpcDb, GetMsgAccountKey(addr.Bytes())...)
 
 	b, e := q.store.Get(key)
@@ -371,11 +514,11 @@ func (q Querier) GetAccountFromRdb(addr sdk.AccAddress) (*types.EthAccount, erro
 	if b == nil {
 		return nil, errNotFound
 	}
-	e = json.Unmarshal(b, &acc)
-	if e != nil {
+	acc, err := DecodeAccount(b)
+	if err != nil {
 		return nil, e
 	}
-	return &acc, nil
+	return acc, nil
 }
 
 func (q Querier) DeleteAccountFromRdb(addr sdk.AccAddress) {
@@ -387,8 +530,7 @@ func (q Querier) DeleteAccountFromRdb(addr sdk.AccAddress) {
 
 func (q Querier) MustGetState(addr common.Address, key []byte) ([]byte, error) {
 	orgKey := GetMsgStateKey(addr, key)
-	realKey := common.BytesToHash(orgKey)
-	data := state.GetStateFromLru(realKey)
+	data := state.GetStateFromLru(orgKey)
 	if data != nil {
 		return data, nil
 	}
@@ -399,14 +541,14 @@ func (q Querier) MustGetState(addr common.Address, key []byte) ([]byte, error) {
 		q.DeleteStateFromRdb(addr, key)
 	}
 	if e == nil {
-		state.SetStateToLru(realKey, b)
+		state.SetStateToLru(orgKey, b)
 	}
 	return b, e
 }
 
 func (q Querier) GetState(key []byte) ([]byte, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	b, e := q.store.Get(key)
 	if e != nil {
@@ -420,7 +562,7 @@ func (q Querier) GetState(key []byte) ([]byte, error) {
 
 func (q Querier) GetStateFromRdb(key []byte) ([]byte, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	b, e := q.store.Get(append(prefixRpcDb, key...))
 	if e != nil {
@@ -442,7 +584,7 @@ func (q Querier) DeleteStateFromRdb(addr common.Address, key []byte) {
 
 func (q Querier) GetParams() (*evmtypes.Params, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	params := q.store.GetEvmParams()
 	return &params, nil
@@ -456,7 +598,7 @@ func (q Querier) HasContractBlockedList(key []byte) bool {
 }
 func (q Querier) GetContractMethodBlockedList(key []byte) ([]byte, error) {
 	if !q.enabled() {
-		return nil, errors.New(MsgFunctionDisable)
+		return nil, errDisable
 	}
 	return q.store.Get(append(prefixBlackList, key...))
 }
@@ -466,4 +608,24 @@ func (q Querier) HasContractDeploymentWhitelist(key []byte) bool {
 		return false
 	}
 	return q.store.Has(append(prefixWhiteList, key...))
+}
+
+func (q Querier) GetStdTxHashByBlockHash(hash common.Hash) ([]common.Hash, error) {
+	if !q.enabled() {
+		return nil, errors.New(MsgFunctionDisable)
+	}
+	var stdTxHash []common.Hash
+	b, e := q.store.Get(append(prefixStdTxHash, hash.Bytes()...))
+	if e != nil {
+		return nil, e
+	}
+	if b == nil {
+		return nil, errNotFound
+	}
+	e = json.Unmarshal(b, &stdTxHash)
+	if e != nil {
+		return nil, e
+	}
+
+	return stdTxHash, nil
 }

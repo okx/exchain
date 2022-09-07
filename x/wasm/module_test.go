@@ -3,6 +3,7 @@ package wasm
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/x/wasm/keeper/testdata"
 	"io/ioutil"
 	"testing"
 
@@ -38,7 +39,7 @@ type testData struct {
 }
 
 func setupTest(t *testing.T) testData {
-	ctx, keepers := CreateTestInput(t, false, "iterator,staking,stargate")
+	ctx, keepers := CreateTestInput(t, false, SupportedFeatures)
 	cdc := keeper.MakeTestCodec(t)
 	data := testData{
 		module:        NewAppModule(cdc, keepers.WasmKeeper),
@@ -71,12 +72,12 @@ var (
 	_, _, addrAcc1 = keyPubAddr()
 	addr1          = addrAcc1.String()
 	testContract   = mustLoad("./keeper/testdata/hackatom.wasm")
-	maskContract   = mustLoad("./keeper/testdata/reflect.wasm")
+	maskContract   = testdata.ReflectContractWasm()
 	oldContract    = mustLoad("./testdata/escrow_0.7.wasm")
 )
 
 func TestHandleCreate(t *testing.T) {
-	types2.UnittestOnlySetMilestoneSaturnHeight(1)
+	types2.UnittestOnlySetMilestoneVenus3Height(1)
 	cases := map[string]struct {
 		msg     sdk.Msg
 		isValid bool
@@ -148,7 +149,7 @@ type state struct {
 }
 
 func TestHandleInstantiate(t *testing.T) {
-	types2.UnittestOnlySetMilestoneSaturnHeight(1)
+	types2.UnittestOnlySetMilestoneVenus3Height(1)
 	data := setupTest(t)
 	creator := data.faucet.NewFundedAccount(data.ctx, sdk.NewInt64Coin("denom", 100000))
 
@@ -206,9 +207,9 @@ func TestHandleInstantiate(t *testing.T) {
 }
 
 func TestHandleExecute(t *testing.T) {
-	types2.UnittestOnlySetMilestoneSaturnHeight(1)
+	types2.UnittestOnlySetMilestoneVenus3Height(1)
 	data := setupTest(t)
-	types2.UnittestOnlySetMilestoneSaturnHeight(1)
+	types2.UnittestOnlySetMilestoneVenus3Height(1)
 	deposit := sdk.NewCoins(sdk.NewInt64Coin("denom", 100000))
 	topUp := sdk.NewCoins(sdk.NewInt64Coin("denom", 5000))
 
@@ -329,9 +330,9 @@ func TestHandleExecute(t *testing.T) {
 }
 
 func TestHandleExecuteEscrow(t *testing.T) {
-	types2.UnittestOnlySetMilestoneSaturnHeight(1)
+	types2.UnittestOnlySetMilestoneVenus3Height(1)
 	data := setupTest(t)
-	types2.UnittestOnlySetMilestoneSaturnHeight(1)
+	types2.UnittestOnlySetMilestoneVenus3Height(1)
 	deposit := sdk.NewCoins(sdk.NewInt64Coin("denom", 100000))
 	topUp := sdk.NewCoins(sdk.NewInt64Coin("denom", 5000))
 	creator := data.faucet.NewFundedAccount(data.ctx, deposit.Add(deposit...)...)
@@ -406,6 +407,7 @@ func TestReadWasmConfig(t *testing.T) {
 				"wasm.query_gas_limit": 1,
 			},
 			exp: types.WasmConfig{
+				SimulationGasLimit: defaults.SimulationGasLimit,
 				SmartQueryGasLimit: 1,
 				MemoryCacheSize:    defaults.MemoryCacheSize,
 			},
@@ -415,6 +417,7 @@ func TestReadWasmConfig(t *testing.T) {
 				"wasm.memory_cache_size": 2,
 			},
 			exp: types.WasmConfig{
+				SimulationGasLimit: defaults.SimulationGasLimit,
 				MemoryCacheSize:    2,
 				SmartQueryGasLimit: defaults.SmartQueryGasLimit,
 			},
@@ -424,6 +427,7 @@ func TestReadWasmConfig(t *testing.T) {
 				"trace": true,
 			},
 			exp: types.WasmConfig{
+				SimulationGasLimit: defaults.SimulationGasLimit,
 				SmartQueryGasLimit: defaults.SmartQueryGasLimit,
 				MemoryCacheSize:    defaults.MemoryCacheSize,
 				ContractDebugMode:  true,

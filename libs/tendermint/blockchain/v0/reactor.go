@@ -26,8 +26,8 @@ const (
 	// within this much of the system time.
 	// stopSyncingDurationMinutes = 10
 
-	// ask for best height every 10s
-	statusUpdateIntervalSeconds = 10
+	// ask for best height every 1s
+	statusUpdateIntervalSeconds = 1
 	// check if we should switch to consensus reactor
 	switchToConsensusIntervalSeconds = 1
 
@@ -37,9 +37,10 @@ const (
 	maxMsgSize                         = types.MaxBlockSizeBytes +
 		bcBlockResponseMessagePrefixSize +
 		bcBlockResponseMessageFieldKeySize
+)
 
-	maxIntervalForFastSync        = 3
-	maxPeersProportionForFastSync = 0.4
+var (
+	MaxIntervalForFastSync int64 = 20
 )
 
 type consensusReactor interface {
@@ -69,7 +70,6 @@ type BlockchainReactor struct {
 
 	blockExec    *sm.BlockExecutor
 	store        *store.BlockStore
-	dstore       *store.DeltaStore
 	pool         *BlockPool
 	fastSync     bool
 	autoFastSync bool
@@ -78,11 +78,12 @@ type BlockchainReactor struct {
 
 	requestsCh <-chan BlockRequest
 	errorsCh   <-chan peerError
+
+	finishCh chan struct{}
 }
 
 // NewBlockchainReactor returns new reactor instance.
-func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *store.BlockStore, dstore *store.DeltaStore,
-	fastSync bool) *BlockchainReactor {
+func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *store.BlockStore, fastSync bool) *BlockchainReactor {
 	if state.LastBlockHeight != store.Height() {
 		panic(fmt.Sprintf("state (%v) and store (%v) height mismatch", state.LastBlockHeight,
 			store.Height()))
@@ -92,6 +93,8 @@ func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *st
 
 	const capacity = 1000                      // must be bigger than peers count
 	errorsCh := make(chan peerError, capacity) // so we don't block in #Receive#pool.AddBlock
+
+	finishCh := make(chan struct{}, 1)
 
 	pool := NewBlockPool(
 		store.Height()+1,
@@ -103,12 +106,12 @@ func NewBlockchainReactor(state sm.State, blockExec *sm.BlockExecutor, store *st
 		curState:   state,
 		blockExec:  blockExec,
 		store:      store,
-		dstore:     dstore,
 		pool:       pool,
 		fastSync:   fastSync,
 		mtx:        sync.RWMutex{},
 		requestsCh: requestsCh,
 		errorsCh:   errorsCh,
+		finishCh:   finishCh,
 	}
 	bcR.BaseReactor = *p2p.NewBaseReactor("BlockchainReactor", bcR)
 	return bcR
@@ -135,6 +138,18 @@ func (bcR *BlockchainReactor) OnStart() error {
 // OnStop implements service.Service.
 func (bcR *BlockchainReactor) OnStop() {
 	bcR.pool.Stop()
+	bcR.pool.Reset()
+	bcR.syncStopPoolRoutine()
+}
+
+func (bcR *BlockchainReactor) syncStopPoolRoutine() {
+	bcR.finishCh <- struct{}{}
+	for {
+		if !bcR.getIsSyncing() {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
 }
 
 // GetChannels implements Reactor
@@ -323,7 +338,7 @@ FOR_LOOP:
 			// routine.
 
 			// See if there are any blocks to sync.
-			first, second, _, firstExInfo := bcR.pool.PeekTwoBlocks()
+			first, second, firstParts := bcR.pool.PeekTwoBlocks()
 			//bcR.Logger.Info("TrySync peeked", "first", first, "second", second)
 			if first == nil || second == nil {
 				// We need both to sync the first block.
@@ -334,7 +349,6 @@ FOR_LOOP:
 			}
 			bcR.Logger.Info("PeekTwoBlocks.", "First", first.Height, "Second", second.Height)
 
-			firstParts := first.MakePartSetByExInfo(firstExInfo)
 			firstPartsHeader := firstParts.Header()
 			firstID := types.BlockID{Hash: first.Hash(), PartsHeader: firstPartsHeader}
 			// Finally, verify the first block using the second's commit
@@ -381,14 +395,6 @@ FOR_LOOP:
 				}
 				blocksSynced++
 
-				/*
-					if types.EnableBroadcastP2PDelta() {
-						// persists the given deltas to the underlying db.
-						deltas.Height = first.Height
-						bcR.dstore.SaveDeltas(deltas, first.Height)
-					}
-				*/
-
 				if blocksSynced%100 == 0 {
 					lastRate = 0.9*lastRate + 0.1*(100/time.Since(lastHundred).Seconds())
 					bcR.Logger.Info("Fast Sync Rate", "height", bcR.pool.height,
@@ -397,7 +403,8 @@ FOR_LOOP:
 				}
 			}
 			continue FOR_LOOP
-
+		case <-bcR.finishCh:
+			break FOR_LOOP
 		case <-bcR.Quit():
 			break FOR_LOOP
 		}
@@ -519,7 +526,6 @@ func (m *bcNoBlockResponseMessage) String() string {
 
 type bcBlockResponseMessage struct {
 	Block  *types.Block
-	Deltas *types.Deltas
 	ExInfo *types.BlockExInfo
 }
 

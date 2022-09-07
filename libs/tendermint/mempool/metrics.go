@@ -3,7 +3,7 @@ package mempool
 import (
 	"github.com/go-kit/kit/metrics"
 	"github.com/go-kit/kit/metrics/discard"
-	"github.com/go-kit/kit/metrics/prometheus"
+	"github.com/okex/exchain/libs/tendermint/libs/fastmetrics"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
 )
 
@@ -39,38 +39,38 @@ func PrometheusMetrics(namespace string, labelsAndValues ...string) *Metrics {
 		labels = append(labels, labelsAndValues[i])
 	}
 	return &Metrics{
-		Size: prometheus.NewGaugeFrom(stdprometheus.GaugeOpts{
+		Size: fastmetrics.NewGaugeFrom(stdprometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: MetricsSubsystem,
 			Name:      "size",
 			Help:      "Size of the mempool (number of uncommitted transactions).",
 		}, labels).With(labelsAndValues...),
-		TxSizeBytes: prometheus.NewHistogramFrom(stdprometheus.HistogramOpts{
+		TxSizeBytes: fastmetrics.NewHistogramFrom(stdprometheus.HistogramOpts{
 			Namespace: namespace,
 			Subsystem: MetricsSubsystem,
 			Name:      "tx_size_bytes",
 			Help:      "Transaction sizes in bytes.",
 			Buckets:   stdprometheus.ExponentialBuckets(1, 3, 17),
 		}, labels).With(labelsAndValues...),
-		FailedTxs: prometheus.NewCounterFrom(stdprometheus.CounterOpts{
+		FailedTxs: fastmetrics.NewCounterFrom(stdprometheus.CounterOpts{
 			Namespace: namespace,
 			Subsystem: MetricsSubsystem,
 			Name:      "failed_txs",
 			Help:      "Number of failed transactions.",
 		}, labels).With(labelsAndValues...),
-		RecheckTimes: prometheus.NewCounterFrom(stdprometheus.CounterOpts{
+		RecheckTimes: fastmetrics.NewCounterFrom(stdprometheus.CounterOpts{
 			Namespace: namespace,
 			Subsystem: MetricsSubsystem,
 			Name:      "recheck_times",
 			Help:      "Number of times transactions are rechecked in the mempool.",
 		}, labels).With(labelsAndValues...),
-		PendingPoolSize: prometheus.NewGaugeFrom(stdprometheus.GaugeOpts{
+		PendingPoolSize: fastmetrics.NewGaugeFrom(stdprometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: MetricsSubsystem,
 			Name:      "pending_pool_size",
 			Help:      "Size of the pending pool (number of transactions in pending pool).",
 		}, labels).With(labelsAndValues...),
-		GasUsed: prometheus.NewGaugeFrom(stdprometheus.GaugeOpts{
+		GasUsed: fastmetrics.NewGaugeFrom(stdprometheus.GaugeOpts{
 			Namespace: namespace,
 			Subsystem: MetricsSubsystem,
 			Name:      "gas_used",

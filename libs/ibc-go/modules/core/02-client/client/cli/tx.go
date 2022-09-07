@@ -3,6 +3,9 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
+	"strings"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -14,10 +17,10 @@ import (
 	govcli "github.com/okex/exchain/libs/cosmos-sdk/x/gov/client/cli"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	tmtypes "github.com/okex/exchain/libs/tendermint/proto/types"
 	govtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
-	"io/ioutil"
 )
 
 // NewCreateClientCmd defines the command to create a new IBC light client.
@@ -142,7 +145,7 @@ func NewSubmitMisbehaviourCmd(m *codec.CodecProxy, reg interfacetypes.InterfaceR
 
 			var misbehaviour exported.Misbehaviour
 			misbehaviourContentOrFileName := args[0]
-			if err := cdc.UnmarshalInterfaceJSON([]byte(misbehaviourContentOrFileName), &misbehaviour); err != nil {
+			if err := cdc.UnmarshalInterfaceJSON([]byte(replaceMisbehaviourStr(misbehaviourContentOrFileName)), &misbehaviour); err != nil {
 
 				// check for file path if JSON input is not provided
 				contents, err := ioutil.ReadFile(misbehaviourContentOrFileName)
@@ -150,6 +153,7 @@ func NewSubmitMisbehaviourCmd(m *codec.CodecProxy, reg interfacetypes.InterfaceR
 					return errors.Wrap(err, "neither JSON input nor path to .json file for misbehaviour were provided")
 				}
 
+				contents = []byte(replaceMisbehaviourStr(string(contents)))
 				if err := cdc.UnmarshalInterfaceJSON(contents, &misbehaviour); err != nil {
 					return errors.Wrap(err, "error unmarshalling misbehaviour file")
 				}
@@ -166,6 +170,17 @@ func NewSubmitMisbehaviourCmd(m *codec.CodecProxy, reg interfacetypes.InterfaceR
 	flags.AddTxFlagsToCmd(cmd)
 
 	return cmd
+}
+
+// convert cm40+ to cm39
+func replaceMisbehaviourStr(contents string) string {
+	str := strings.ReplaceAll(string(contents), "part_set_header", "parts_header")
+	for k, v := range tmtypes.BlockIDFlag_value {
+		before := fmt.Sprintf(`"block_id_flag": "%s"`, k)
+		after := fmt.Sprintf(`"block_id_flag": %d`, v)
+		str = strings.ReplaceAll(str, before, after)
+	}
+	return str
 }
 
 // NewUpgradeClientCmd defines the command to upgrade an IBC light client.

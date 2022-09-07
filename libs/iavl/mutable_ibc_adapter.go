@@ -3,6 +3,7 @@ package iavl
 import (
 	"encoding/binary"
 	"fmt"
+
 	ics23 "github.com/confio/ics23/go"
 )
 
@@ -104,7 +105,7 @@ If the key exists in the tree, this will return an error.
 */
 func (t *ImmutableTree) GetNonMembershipProof(key []byte) (*ics23.CommitmentProof, error) {
 	// idx is one node right of what we want....
-	idx, val := t.Get(key)
+	idx, val := t.GetWithIndex(key)
 	if val != nil {
 		return nil, fmt.Errorf("cannot create NonExistanceProof when Key in State")
 	}

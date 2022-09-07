@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/tendermint/go-amino"
 	"math/big"
 	"sort"
 	"sync"
@@ -39,7 +40,6 @@ type CommitStateDBParams struct {
 	ParamSpace    Subspace
 	AccountKeeper AccountKeeper
 	SupplyKeeper  SupplyKeeper
-	Watcher       Watcher
 	BankKeeper    BankKeeper
 	Ada           DbAdapter
 	// Amino codec
@@ -88,7 +88,6 @@ type CommitStateDB struct {
 	paramSpace    Subspace
 	accountKeeper AccountKeeper
 	supplyKeeper  SupplyKeeper
-	Watcher       Watcher
 	bankKeeper    BankKeeper
 
 	// array that hold 'live' objects, which will get modified while processing a
@@ -170,7 +169,6 @@ func NewCommitStateDB(csdbParams CommitStateDBParams) *CommitStateDB {
 		accountKeeper: csdbParams.AccountKeeper,
 		supplyKeeper:  csdbParams.SupplyKeeper,
 		bankKeeper:    csdbParams.BankKeeper,
-		Watcher:       csdbParams.Watcher,
 		cdc:           csdbParams.Cdc,
 
 		stateObjects:        make(map[ethcmn.Address]*stateObject),
@@ -200,7 +198,6 @@ func ResetCommitStateDB(csdb *CommitStateDB, csdbParams CommitStateDBParams, ctx
 	csdb.accountKeeper = csdbParams.AccountKeeper
 	csdb.supplyKeeper = csdbParams.SupplyKeeper
 	csdb.bankKeeper = csdbParams.BankKeeper
-	csdb.Watcher = csdbParams.Watcher
 	csdb.cdc = csdbParams.Cdc
 
 	if csdb.stateObjects != nil {
@@ -1059,7 +1056,7 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) ethcmn.Hash
 		if obj := csdb.stateObjects[addr]; obj.deleted {
 			csdb.deleteStateObject(obj)
 		} else {
-			csdb.updateStateObject(obj, true)
+			csdb.updateStateObject(obj)
 		}
 		//usedAddrs = append(usedAddrs, ethcmn.CopyBytes(addr[:])) // Copy needed for closure
 	}
@@ -1075,7 +1072,7 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) ethcmn.Hash
 }
 
 // updateStateObject writes the given state object to the store.
-func (csdb *CommitStateDB) updateStateObject(so *stateObject, fromCommit bool) error {
+func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 	// NOTE: we don't use sdk.NewCoin here to avoid panic on test importer's genesis
 	newBalance := sdk.Coin{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecFromBigIntWithPrec(so.Balance(), sdk.Precision)} // int2dec
 	if !newBalance.IsValid() {
@@ -1097,11 +1094,10 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject, fromCommit bool) e
 		return err
 	}
 
-	updateState := fromCommit && csdb.ctx.IsDeliver()
-	csdb.accountKeeper.SetAccount(csdb.ctx, so.account, updateState)
+	csdb.accountKeeper.SetAccount(csdb.ctx, so.account)
 	if !csdb.ctx.IsCheckTx() {
-		if csdb.Watcher.Enabled() {
-			csdb.Watcher.SaveAccount(so.account, false)
+		if csdb.ctx.GetWatcher().Enabled() {
+			csdb.ctx.GetWatcher().SaveAccount(so.account)
 		}
 	}
 
@@ -1425,9 +1421,9 @@ func (csdb *CommitStateDB) GetLogSize() uint {
 
 // SetContractDeploymentWhitelistMember sets the target address list into whitelist store
 func (csdb *CommitStateDB) SetContractDeploymentWhitelist(addrList AddressList) {
-	if csdb.Watcher.Enabled() {
+	if csdb.ctx.GetWatcher().Enabled() {
 		for i := 0; i < len(addrList); i++ {
-			csdb.Watcher.SaveContractDeploymentWhitelistItem(addrList[i])
+			csdb.ctx.GetWatcher().SaveContractDeploymentWhitelistItem(addrList[i])
 		}
 	}
 
@@ -1445,9 +1441,9 @@ func (csdb *CommitStateDB) SetContractDeploymentWhitelist(addrList AddressList) 
 
 // DeleteContractDeploymentWhitelist deletes the target address list from whitelist store
 func (csdb *CommitStateDB) DeleteContractDeploymentWhitelist(addrList AddressList) {
-	if csdb.Watcher.Enabled() {
+	if csdb.ctx.GetWatcher().Enabled() {
 		for i := 0; i < len(addrList); i++ {
-			csdb.Watcher.DeleteContractDeploymentWhitelist(addrList[i])
+			csdb.ctx.GetWatcher().DeleteContractDeploymentWhitelist(addrList[i])
 		}
 	}
 
@@ -1497,9 +1493,9 @@ func (csdb *CommitStateDB) IsDeployerInWhitelist(deployerAddr sdk.AccAddress) bo
 // SetContractBlockedList sets the target address list into blocked list store
 func (csdb *CommitStateDB) SetContractBlockedList(addrList AddressList) {
 	defer GetEvmParamsCache().SetNeedBlockedUpdate()
-	if csdb.Watcher.Enabled() {
+	if csdb.ctx.GetWatcher().Enabled() {
 		for i := 0; i < len(addrList); i++ {
-			csdb.Watcher.SaveContractBlockedListItem(addrList[i])
+			csdb.ctx.GetWatcher().SaveContractBlockedListItem(addrList[i])
 		}
 	}
 
@@ -1518,9 +1514,9 @@ func (csdb *CommitStateDB) SetContractBlockedList(addrList AddressList) {
 // DeleteContractBlockedList deletes the target address list from blocked list store
 func (csdb *CommitStateDB) DeleteContractBlockedList(addrList AddressList) {
 	defer GetEvmParamsCache().SetNeedBlockedUpdate()
-	if csdb.Watcher.Enabled() {
+	if csdb.ctx.GetWatcher().Enabled() {
 		for i := 0; i < len(addrList); i++ {
-			csdb.Watcher.DeleteContractBlockedList(addrList[i])
+			csdb.ctx.GetWatcher().DeleteContractBlockedList(addrList[i])
 		}
 	}
 
@@ -1575,7 +1571,7 @@ func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.Ac
 			bcl := csdb.GetContractMethodBlockedList()
 			GetEvmParamsCache().UpdateBlockedContractMethod(bcl, csdb.ctx.IsCheckTx())
 		}
-		return GetEvmParamsCache().GetBlockedContractMethod(contractAddr.String())
+		return GetEvmParamsCache().GetBlockedContractMethod(amino.BytesToStr(contractAddr))
 	}
 
 	//use dbAdapter for watchdb or prefixdb
@@ -1586,11 +1582,11 @@ func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.Ac
 		bs = csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractBlockedList)
 	}
 
-	value := bs.Get(contractAddr)
-	if value == nil {
+	if ok := bs.Has(contractAddr); !ok {
 		// address is not exist
 		return nil
 	} else {
+		value := bs.Get(contractAddr)
 		methods := ContractMethods{}
 		var bc *BlockedContract
 		if len(value) == 0 {
@@ -1709,8 +1705,8 @@ func (csdb *CommitStateDB) SetContractMethodBlocked(contract BlockedContract) {
 	SortContractMethods(contract.BlockMethods)
 	value := csdb.cdc.MustMarshalJSON(contract.BlockMethods)
 	value = sdk.MustSortJSON(value)
-	if csdb.Watcher.Enabled() {
-		csdb.Watcher.SaveContractMethodBlockedListItem(contract.Address, value)
+	if csdb.ctx.GetWatcher().Enabled() {
+		csdb.ctx.GetWatcher().SaveContractMethodBlockedListItem(contract.Address, value)
 	}
 
 	var store sdk.KVStore

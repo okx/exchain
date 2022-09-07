@@ -13,9 +13,6 @@ import (
 const (
 	// MaxBlockSizeBytes is the maximum permitted size of the blocks.
 	MaxBlockSizeBytes = 104857600 // 100MB
-
-	// Max
-	MaxDeltasSizeBytes = 104857600 // 100MB
 )
 
 var (

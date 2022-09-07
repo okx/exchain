@@ -68,10 +68,8 @@ func newBlockchainReactor(
 	}
 
 	blockDB := dbm.NewMemDB()
-	deltaDB := dbm.NewMemDB()
 	stateDB := dbm.NewMemDB()
 	blockStore := store.NewBlockStore(blockDB)
-	deltaStore := store.NewDeltaStore(deltaDB)
 
 	state, err := sm.LoadStateFromDBOrGenesisDoc(stateDB, genDoc)
 	if err != nil {
@@ -122,7 +120,7 @@ func newBlockchainReactor(
 		blockStore.SaveBlock(thisBlock, thisParts, lastCommit)
 	}
 
-	bcReactor := NewBlockchainReactor(state.Copy(), blockExec, blockStore, deltaStore, fastSync)
+	bcReactor := NewBlockchainReactor(state.Copy(), blockExec, blockStore, fastSync)
 	bcReactor.SetLogger(logger.With("module", "blockchain"))
 
 	return BlockchainReactorPair{bcReactor, proxyApp}

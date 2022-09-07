@@ -1,7 +1,13 @@
 package watcher
 
 import (
+	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
+	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -38,4 +44,35 @@ func NewTransaction(tx *evmtypes.MsgEthereumTx, txHash, blockHash common.Hash, b
 	}
 
 	return rpcTx, nil
+}
+
+func RawTxResultToStdResponse(clientCtx clientcontext.CLIContext,
+	tr *ctypes.ResultTx, tx sdk.Tx, timestamp time.Time) (*TransactionResult, error) {
+
+	var err error
+	if tx == nil {
+		tx, err = evmtypes.TxDecoder(clientCtx.CodecProy)(tr.Tx, evmtypes.IGNORE_HEIGHT_CHECKING)
+		if err != nil {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
+		}
+	}
+
+	var realTx *authtypes.StdTx
+	switch tx.(type) {
+	case *authtypes.IbcTx:
+		realTx, err = authtypes.FromProtobufTx(clientCtx.CodecProy, tx.(*authtypes.IbcTx))
+		if nil != err {
+			return nil, err
+		}
+	default:
+		err = clientCtx.Codec.UnmarshalBinaryLengthPrefixed(tr.Tx, &realTx)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	response := sdk.NewResponseResultTx(tr, realTx, timestamp.Format(time.RFC3339))
+	wrappedR := &WrappedResponseWithCodec{Response: response, Codec: clientCtx.Codec}
+
+	return &TransactionResult{TxType: hexutil.Uint64(StdResponse), Response: wrappedR}, nil
 }

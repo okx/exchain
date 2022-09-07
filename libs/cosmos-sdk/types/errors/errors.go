@@ -3,6 +3,7 @@ package errors
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -253,6 +254,17 @@ func Wrap(err error, description string) error {
 	}
 }
 
+func WrapNoStack(err error, description string) error {
+	if err == nil {
+		return nil
+	}
+
+	return &wrappedError{
+		parent: err,
+		msg:    description,
+	}
+}
+
 // Wrapf extends given error with an additional information.
 //
 // This function works like Wrap function with additional functionality of
@@ -270,7 +282,7 @@ type wrappedError struct {
 }
 
 func (e *wrappedError) Error() string {
-	return fmt.Sprintf("%s: %s", e.parent.Error(), e.msg)
+	return strings.Join([]string{e.parent.Error(), e.msg}, ": ")
 }
 
 func (e *wrappedError) Cause() error {

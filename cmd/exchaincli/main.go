@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"

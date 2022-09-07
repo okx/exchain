@@ -92,9 +92,6 @@ type State struct {
 	// store blocks and commits
 	blockStore sm.BlockStore
 
-	// store deltas
-	deltaStore sm.DeltaStore
-
 	// create and execute blocks
 	blockExec *sm.BlockExecutor
 
@@ -172,7 +169,6 @@ func NewState(
 	state sm.State,
 	blockExec *sm.BlockExecutor,
 	blockStore sm.BlockStore,
-	deltaStore sm.DeltaStore,
 	txNotifier txNotifier,
 	evpool evidencePool,
 	options ...StateOption,
@@ -181,7 +177,6 @@ func NewState(
 		config:             config,
 		blockExec:          blockExec,
 		blockStore:         blockStore,
-		deltaStore:         deltaStore,
 		txNotifier:         txNotifier,
 		peerMsgQueue:       make(chan msgInfo, msgQueueSize),
 		internalMsgQueue:   make(chan msgInfo, msgQueueSize),
@@ -204,6 +199,11 @@ func NewState(
 	cs.doPrevote = cs.defaultDoPrevote
 	cs.setProposal = cs.defaultSetProposal
 
+	// We have no votes, so reconstruct LastCommit from SeenCommit.
+	if state.LastBlockHeight > types.GetStartBlockHeight() {
+		cs.reconstructLastCommit(state)
+	}
+
 	cs.updateToState(state)
 	if cs.prerunTx {
 		cs.blockExec.InitPrerun()
@@ -211,7 +211,6 @@ func NewState(
 
 	// Don't call scheduleRound0 yet.
 	// We do that upon Start().
-	cs.reconstructLastCommit(state)
 	cs.BaseService = *service.NewBaseService(nil, "State", cs)
 	for _, option := range options {
 		option(cs)
@@ -408,7 +407,9 @@ func (cs *State) OnReset() error {
 // NOTE: be sure to Stop() the event switch and drain
 // any event channels or this may deadlock
 func (cs *State) Wait() {
-	<-cs.done
+	if cs.done != nil {
+		<-cs.done
+	}
 }
 
 // OpenWAL opens a file to log all consensus messages and timeouts for deterministic accountability
@@ -553,7 +554,7 @@ func (cs *State) recordMetrics(height int64, block *types.Block) {
 
 	cs.metrics.NumTxs.Set(float64(len(block.Data.Txs)))
 	cs.metrics.TotalTxs.Add(float64(len(block.Data.Txs)))
-	cs.metrics.BlockSizeBytes.Set(float64(block.Size()))
+	cs.metrics.BlockSizeBytes.Set(float64(block.FastSize()))
 	cs.metrics.CommittedHeight.Set(float64(block.Height))
 }
 

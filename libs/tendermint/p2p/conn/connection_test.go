@@ -573,7 +573,7 @@ func TestPacketAmino(t *testing.T) {
 
 		var buf bytes.Buffer
 		buf.Write(bz)
-		newPacket2, n, err := unmarshalPacketFromAminoReader(&buf, int64(buf.Len()))
+		newPacket2, n, err := unmarshalPacketFromAminoReader(&buf, int64(buf.Len()), nil)
 		require.NoError(t, err)
 		require.EqualValues(t, len(bz), n)
 
@@ -641,7 +641,7 @@ func BenchmarkPacketAmino(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			var packet Packet
 			var buf = bytes.NewBuffer(bz)
-			packet, _, err = unmarshalPacketFromAminoReader(buf, int64(buf.Len()))
+			packet, _, err = unmarshalPacketFromAminoReader(buf, int64(buf.Len()), nil)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -711,22 +711,22 @@ func TestPacketMsgAmino(t *testing.T) {
 		err = cdc.UnmarshalBinaryBare(expectData, &expectValue)
 		require.NoError(t, err)
 
-		var actulaValue PacketMsg
-		tmp, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(expectData, &actulaValue)
+		var actulaValue = &PacketMsg{}
+		tmp, err := cdc.UnmarshalBinaryBareWithRegisteredUnmarshaller(expectData, actulaValue)
 		require.NoError(t, err)
-		_, ok := tmp.(PacketMsg)
+		_, ok := tmp.(*PacketMsg)
 		require.True(t, ok)
-		actulaValue = tmp.(PacketMsg)
+		actulaValue = tmp.(*PacketMsg)
 
-		require.EqualValues(t, expectValue, actulaValue)
+		require.EqualValues(t, expectValue, *actulaValue)
 		err = actulaValue.UnmarshalFromAmino(cdc, expectData[4:])
 		require.NoError(t, err)
-		require.EqualValues(t, expectValue, actulaValue)
+		require.EqualValues(t, expectValue, *actulaValue)
 
-		actulaValue = PacketMsg{}
-		err = cdc.UnmarshalBinaryLengthPrefixed(actualLenPrefixData, &actulaValue)
+		actulaValue = &PacketMsg{}
+		err = cdc.UnmarshalBinaryLengthPrefixed(actualLenPrefixData, actulaValue)
 		require.NoError(t, err)
-		require.EqualValues(t, expectValue, actulaValue)
+		require.EqualValues(t, expectValue, *actulaValue)
 	}
 }
 
@@ -866,4 +866,56 @@ func BenchmarkChannelLogRecvPacketMsg(b *testing.B) {
 			c.Logger.Debug("Read PacketMsg", "conn", c.conn, "packet", pk)
 		}
 	})
+}
+
+func TestTimer(t *testing.T) {
+	timer := time.NewTimer(1 * time.Second)
+	stoped := timer.Stop()
+	require.True(t, stoped)
+
+	var timerChHashData bool
+	select {
+	case <-timer.C:
+		timerChHashData = true
+	default:
+		timerChHashData = false
+	}
+	require.False(t, timerChHashData)
+
+	timer.Reset(1 * time.Second)
+
+	time.Sleep(2 * time.Second)
+
+	stoped = timer.Stop()
+	require.False(t, stoped)
+
+	if !stoped {
+		select {
+		case <-timer.C:
+			timerChHashData = true
+		default:
+			timerChHashData = false
+		}
+	}
+	require.True(t, timerChHashData)
+
+	timer.Reset(1 * time.Second)
+	now := time.Now()
+	<-timer.C
+	since := time.Since(now)
+	require.True(t, since > 500*time.Millisecond)
+
+	stoped = timer.Stop()
+	require.False(t, stoped)
+	if !stoped {
+		//_, ok := <-timer.C
+		//t.Log("ok:", ok)
+		select {
+		case <-timer.C:
+			timerChHashData = true
+		default:
+			timerChHashData = false
+		}
+	}
+	require.False(t, timerChHashData)
 }

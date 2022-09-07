@@ -17,6 +17,8 @@ const (
 	FlagIavlHeightOrphansCacheSize = "iavl-height-orphans-cache-size"
 	FlagIavlMaxCommittedHeightNum  = "iavl-max-committed-height-num"
 	FlagIavlEnableAsyncCommit      = "iavl-enable-async-commit"
+	FlagIavlEnableFastStorage      = "iavl-enable-fast-storage"
+	FlagIavlFastStorageCacheSize   = "iavl-fast-storage-cache-size"
 )
 
 var (
@@ -31,6 +33,8 @@ var (
 	EnableAsyncCommit               = false
 	EnablePruningHistoryState       = true
 	CommitGapHeight           int64 = 100
+	enableFastStorage               = false
+	fastNodeCacheSize               = 100000
 )
 
 type commitEvent struct {
@@ -40,11 +44,32 @@ type commitEvent struct {
 	tpp        map[string]*Node
 	wg         *sync.WaitGroup
 	iavlHeight int
+	fnc        *fastNodeChanges
 }
 
 type commitOrphan struct {
 	Version  int64
 	NodeHash []byte
+}
+
+// SetEnableFastStorage set enable fast storage
+func SetEnableFastStorage(enable bool) {
+	enableFastStorage = enable
+}
+
+// GetEnableFastStorage get fast storage enable value
+func GetEnableFastStorage() bool {
+	return enableFastStorage
+}
+
+// SetFastNodeCacheSize set fast node cache size
+func SetFastNodeCacheSize(size int) {
+	fastNodeCacheSize = size
+}
+
+// GetFastNodeCacheSize get fast node cache size
+func GetFastNodeCacheSize() int {
+	return fastNodeCacheSize
 }
 
 func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte, int64, error) {
@@ -63,6 +88,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		} else {
 			tree.ndb.updateBranchMoreConcurrency(tree.root)
 		}
+		tree.updateBranchFastNode()
 
 		// generate state delta
 		if produceDelta {
@@ -72,8 +98,9 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		}
 	}
 
-	shouldPersist := ((version%CommitGapHeight == 0) && (version-tree.lastPersistHeight >= CommitGapHeight)) ||
-		(treeMap.totalPpncSize >= MinCommitItemCount)
+	shouldPersist := version%CommitGapHeight == 0
+
+	tree.ndb.updateLatestMemoryVersion(version)
 
 	if shouldPersist {
 		tree.ndb.saveNewOrphans(version, tree.orphans, true)
@@ -82,6 +109,15 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 	tree.ndb.enqueueOrphanTask(version, tree.orphans, tree.ImmutableTree.Hash(), shouldPersist)
 
 	return tree.setNewWorkingTree(version, shouldPersist)
+}
+
+func (tree *MutableTree) updateBranchFastNode() {
+	if !GetEnableFastStorage() {
+		return
+	}
+
+	tree.ndb.updateBranchForFastNode(tree.unsavedFastNodes)
+	tree.unsavedFastNodes.reset()
 }
 
 func (tree *MutableTree) setNewWorkingTree(version int64, persisted bool) ([]byte, int64, error) {
@@ -119,8 +155,9 @@ func (tree *MutableTree) removeVersion(version int64) {
 func (tree *MutableTree) persist(version int64) {
 	var err error
 	batch := tree.NewBatch()
-	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0}
+	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0, nil}
 	var tpp map[string]*Node = nil
+	var fnc *fastNodeChanges
 	if EnablePruningHistoryState {
 		tree.ndb.saveCommitOrphans(batch, version, tree.commitOrphans)
 	}
@@ -129,7 +166,7 @@ func (tree *MutableTree) persist(version int64) {
 		err = tree.ndb.SaveEmptyRoot(batch, version)
 	} else {
 		err = tree.ndb.SaveRoot(batch, tree.root, version)
-		tpp = tree.ndb.asyncPersistTppStart(version)
+		tpp, fnc = tree.ndb.asyncPersistTppStart(version)
 	}
 
 	if err != nil {
@@ -142,7 +179,7 @@ func (tree *MutableTree) persist(version int64) {
 	}
 	versions := tree.deepCopyVersions()
 	tree.commitCh <- commitEvent{version, versions, batch,
-		tpp, nil, int(tree.Height())}
+		tpp, nil, int(tree.Height()), fnc}
 	tree.lastPersistHeight = version
 }
 
@@ -175,7 +212,6 @@ func (tree *MutableTree) commitSchedule() {
 		tree.updateCommittedStateHeightPool(event.batch, event.version, event.versions)
 
 		tree.ndb.persistTpp(&event, trc)
-
 		if event.wg != nil {
 			event.wg.Done()
 			break
@@ -214,8 +250,7 @@ func (tree *MutableTree) loadVersionToCommittedHeightMap() {
 		tree.log(IavlInfo, "", "Tree", tree.GetModuleName(), "committed height queue", versionSlice)
 	}
 }
-
-func (tree *MutableTree) StopTree() {
+func (tree *MutableTree) StopTreeWithVersion(version int64) {
 	tree.log(IavlInfo, "stopping iavl", "commit height", tree.version)
 	defer tree.log(IavlInfo, "stopping iavl completed", "commit height", tree.version)
 
@@ -225,22 +260,25 @@ func (tree *MutableTree) StopTree() {
 
 	batch := tree.NewBatch()
 	if tree.root == nil {
-		if err := tree.ndb.SaveEmptyRoot(batch, tree.version); err != nil {
+		if err := tree.ndb.SaveEmptyRoot(batch, version); err != nil {
 			panic(err)
 		}
 	} else {
-		if err := tree.ndb.SaveRoot(batch, tree.root, tree.version); err != nil {
+		if err := tree.ndb.SaveRoot(batch, tree.root, version); err != nil {
 			panic(err)
 		}
 	}
-	tpp := tree.ndb.asyncPersistTppStart(tree.version)
+	tpp, fastNodeChanges := tree.ndb.asyncPersistTppStart(tree.version)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 	versions := tree.deepCopyVersions()
 
-	tree.commitCh <- commitEvent{tree.version, versions, batch, tpp, &wg, 0}
+	tree.commitCh <- commitEvent{tree.version, versions, batch, tpp, &wg, 0, fastNodeChanges}
 	wg.Wait()
+}
+func (tree *MutableTree) StopTree() {
+	tree.StopTreeWithVersion(tree.version)
 }
 
 func (tree *MutableTree) log(level int, msg string, kvs ...interface{}) {

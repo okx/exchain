@@ -155,8 +155,7 @@ func (k Keeper) SendTransfer(
 		return err
 	}
 
-	k.CallAfterSendTransferHooks(ctx, sourcePort, sourceChannel, token, sender, receiver, isSource)
-	return nil
+	return k.CallAfterSendTransferHooks(ctx, sourcePort, sourceChannel, token, sender, receiver, isSource)
 }
 
 // OnRecvPacket processes a cross chain fungible token transfer. If the
@@ -238,8 +237,7 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 			return sdkerrors.Wrap(err, "unable to unescrow tokens, this may be caused by a malicious counterparty module or a bug: please open an issue on counterparty module")
 		}
 
-		k.CallAfterRecvTransferHooks(ctx, packet.DestinationPort, packet.DestinationChannel, token, data.Receiver, isSource)
-		return nil
+		return k.CallAfterRecvTransferHooks(ctx, packet.DestinationPort, packet.DestinationChannel, token, data.Receiver, isSource)
 	}
 
 	// sender chain is the source, mint vouchers
@@ -290,8 +288,7 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet, data t
 		panic(fmt.Sprintf("unable to send coins from module to account despite previously minting coins to module account: %v", err))
 	}
 
-	k.CallAfterRecvTransferHooks(ctx, packet.DestinationPort, packet.DestinationChannel, voucher, data.Receiver, isSource)
-	return nil
+	return k.CallAfterRecvTransferHooks(ctx, packet.DestinationPort, packet.DestinationChannel, voucher, data.Receiver, isSource)
 }
 
 // OnAcknowledgementPacket responds to the the success or failure of a packet
@@ -354,8 +351,7 @@ func (k Keeper) refundPacketToken(ctx sdk.Context, packet channeltypes.Packet, d
 			return sdkerrors.Wrap(err, "unable to unescrow tokens, this may be caused by a malicious counterparty module or a bug: please open an issue on counterparty module")
 		}
 
-		k.CallAfterRefundTransferHooks(ctx, packet.SourcePort, packet.SourceChannel, token, data.Sender, isSource)
-		return nil
+		return k.CallAfterRefundTransferHooks(ctx, packet.SourcePort, packet.SourceChannel, token, data.Sender, isSource)
 	}
 
 	// mint vouchers back to sender
@@ -369,8 +365,7 @@ func (k Keeper) refundPacketToken(ctx sdk.Context, packet channeltypes.Packet, d
 		panic(fmt.Sprintf("unable to send coins from module to account despite previously minting coins to module account: %v", err))
 	}
 
-	k.CallAfterRefundTransferHooks(ctx, packet.SourcePort, packet.SourceChannel, token, data.Sender, isSource)
-	return nil
+	return k.CallAfterRefundTransferHooks(ctx, packet.SourcePort, packet.SourceChannel, token, data.Sender, isSource)
 }
 
 // DenomPathFromHash returns the full denomination path prefix from an ibc denom with a hash

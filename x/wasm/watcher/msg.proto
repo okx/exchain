@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+option go_package = "./watcher";
+
+package watcher;
+
+message watchMessage {
+  bytes key = 1;
+  bytes value = 2;
+  bool isDelete = 3;
+}
+
+message watchData {
+   repeated watchMessage messages = 1;
+}

@@ -12,6 +12,10 @@ import (
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
+const (
+	FlagLoadVersionAsync = "enable-store-load-async"
+)
+
 type Store interface { //nolint
 	GetStoreType() StoreType
 	CacheWrapper
@@ -24,6 +28,7 @@ type Committer interface {
 	SetUpgradeVersion(int64)
 
 	LastCommitID() CommitID
+	LastCommitVersion() int64
 
 	// TODO: Deprecate after 0.38.5
 	SetPruning(PruningOptions)

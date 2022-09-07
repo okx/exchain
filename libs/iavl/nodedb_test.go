@@ -2,8 +2,15 @@ package iavl
 
 import (
 	"encoding/binary"
+	"errors"
 	"math/rand"
+	"strconv"
 	"testing"
+
+	"github.com/golang/mock/gomock"
+	"github.com/okex/exchain/libs/iavl/mock"
+	db "github.com/okex/exchain/libs/tm-db"
+	"github.com/stretchr/testify/require"
 )
 
 func BenchmarkNodeKey(b *testing.B) {
@@ -36,4 +43,234 @@ func makeHashes(b *testing.B, seed int64) [][]byte {
 	}
 	b.StartTimer()
 	return hashes
+}
+
+func TestNewNoDbStorage_StorageVersionInDb_Success(t *testing.T) {
+	const expectedVersion = defaultStorageVersionValue
+
+	ctrl := gomock.NewController(t)
+	dbMock := mock.NewMockDB(ctrl)
+
+	dbMock.EXPECT().Get(gomock.Any()).Return([]byte(expectedVersion), nil).Times(1)
+	dbMock.EXPECT().NewBatch().Return(nil).Times(1)
+
+	ndb := newNodeDB(dbMock, 0, nil)
+	require.Equal(t, expectedVersion, ndb.storageVersion)
+}
+
+func TestNewNoDbStorage_ErrorInConstructor_DefaultSet(t *testing.T) {
+	const expectedVersion = defaultStorageVersionValue
+
+	ctrl := gomock.NewController(t)
+	dbMock := mock.NewMockDB(ctrl)
+
+	dbMock.EXPECT().Get(gomock.Any()).Return(nil, errors.New("some db error")).Times(1)
+	dbMock.EXPECT().NewBatch().Return(nil).Times(1)
+
+	ndb := newNodeDB(dbMock, 0, nil)
+	require.Equal(t, expectedVersion, ndb.getStorageVersion())
+}
+
+func TestNewNoDbStorage_DoesNotExist_DefaultSet(t *testing.T) {
+	const expectedVersion = defaultStorageVersionValue
+
+	ctrl := gomock.NewController(t)
+	dbMock := mock.NewMockDB(ctrl)
+
+	dbMock.EXPECT().Get(gomock.Any()).Return(nil, nil).Times(1)
+	dbMock.EXPECT().NewBatch().Return(nil).Times(1)
+
+	ndb := newNodeDB(dbMock, 0, nil)
+	require.Equal(t, expectedVersion, ndb.getStorageVersion())
+}
+
+func TestSetStorageVersion_Success(t *testing.T) {
+	const expectedVersion = fastStorageVersionValue
+
+	db := db.NewMemDB()
+
+	ndb := newNodeDB(db, 0, nil)
+	require.Equal(t, defaultStorageVersionValue, ndb.getStorageVersion())
+
+	batch := db.NewBatch()
+	err := ndb.setFastStorageVersionToBatch(batch, ndb.getLatestVersion())
+	require.NoError(t, err)
+	require.Equal(t, expectedVersion+fastStorageVersionDelimiter+strconv.Itoa(int(ndb.getLatestVersion())), ndb.getStorageVersion())
+	require.NoError(t, batch.Write())
+}
+
+// TestSetStorageVersion_DBFailure_OldKept now has useless meaning.
+// Our `batch.Set` do not return error. so here can't work as community
+func TestSetStorageVersion_DBFailure_OldKept(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	dbMock := mock.NewMockDB(ctrl)
+	batchMock := mock.NewMockBatch(ctrl)
+	rIterMock := mock.NewMockIterator(ctrl)
+
+	//expectedErrorMsg := "some db error"
+
+	expectedFastCacheVersion := 2
+
+	dbMock.EXPECT().Get(gomock.Any()).Return([]byte(defaultStorageVersionValue), nil).Times(1)
+	dbMock.EXPECT().NewBatch().Return(batchMock).Times(1)
+
+	// rIterMock is used to get the latest version from disk. We are mocking that rIterMock returns latestTreeVersion from disk
+	rIterMock.EXPECT().Valid().Return(true).Times(1)
+	rIterMock.EXPECT().Key().Return(rootKeyFormat.Key(expectedFastCacheVersion)).Times(1)
+	rIterMock.EXPECT().Close().Times(1)
+
+	dbMock.EXPECT().ReverseIterator(gomock.Any(), gomock.Any()).Return(rIterMock, nil).Times(1)
+	batchMock.EXPECT().Set(metadataKeyFormat.Key([]byte(storageVersionKey)), []byte(fastStorageVersionValue+fastStorageVersionDelimiter+strconv.Itoa(expectedFastCacheVersion))).Return().Times(1)
+
+	ndb := newNodeDB(dbMock, 0, nil)
+	require.Equal(t, defaultStorageVersionValue, ndb.getStorageVersion())
+
+	batch := ndb.NewBatch()
+	ndb.setFastStorageVersionToBatch(batch, ndb.getLatestVersion())
+	//	err := ndb.setFastStorageVersionToBatch(batch)
+	//	require.Error(t, err)
+	///	require.Equal(t, expectedErrorMsg, err.Error())
+	//require.Equal(t, defaultStorageVersionValue, ndb.getStorageVersion())
+}
+
+func TestSetStorageVersion_InvalidVersionFailure_OldKept(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	dbMock := mock.NewMockDB(ctrl)
+	batchMock := mock.NewMockBatch(ctrl)
+
+	expectedErrorMsg := errInvalidFastStorageVersion
+
+	invalidStorageVersion := fastStorageVersionValue + fastStorageVersionDelimiter + "1" + fastStorageVersionDelimiter + "2"
+
+	dbMock.EXPECT().Get(gomock.Any()).Return([]byte(invalidStorageVersion), nil).Times(1)
+	dbMock.EXPECT().NewBatch().Return(batchMock).Times(1)
+
+	ndb := newNodeDB(dbMock, 0, nil)
+	require.Equal(t, invalidStorageVersion, ndb.getStorageVersion())
+
+	batch := ndb.NewBatch()
+	invalidVersion := int64(0)
+	err := ndb.setFastStorageVersionToBatch(batch, invalidVersion)
+	require.Error(t, err)
+	require.Equal(t, expectedErrorMsg, err.Error())
+	require.Equal(t, invalidStorageVersion, ndb.getStorageVersion())
+}
+
+func TestSetStorageVersion_FastVersionFirst_VersionAppended(t *testing.T) {
+	db := db.NewMemDB()
+	ndb := newNodeDB(db, 0, nil)
+	ndb.storageVersion = fastStorageVersionValue
+	ndb.latestPersistedVersion = 100
+
+	batch := ndb.NewBatch()
+	err := ndb.setFastStorageVersionToBatch(batch, ndb.getLatestVersion())
+	require.NoError(t, err)
+	require.Equal(t, fastStorageVersionValue+fastStorageVersionDelimiter+strconv.Itoa(int(ndb.latestPersistedVersion)), ndb.storageVersion)
+}
+
+func TestSetStorageVersion_FastVersionSecond_VersionAppended(t *testing.T) {
+	db := db.NewMemDB()
+	ndb := newNodeDB(db, 0, nil)
+	ndb.latestPersistedVersion = 100
+
+	storageVersionBytes := []byte(fastStorageVersionValue)
+	storageVersionBytes[len(fastStorageVersionValue)-1]++ // increment last byte
+	ndb.storageVersion = string(storageVersionBytes)
+
+	batch := ndb.NewBatch()
+	err := ndb.setFastStorageVersionToBatch(batch, ndb.getLatestVersion())
+	require.NoError(t, err)
+	require.Equal(t, string(storageVersionBytes)+fastStorageVersionDelimiter+strconv.Itoa(int(ndb.latestPersistedVersion)), ndb.storageVersion)
+}
+
+func TestSetStorageVersion_SameVersionTwice(t *testing.T) {
+	db := db.NewMemDB()
+	ndb := newNodeDB(db, 0, nil)
+	ndb.latestPersistedVersion = 100
+
+	storageVersionBytes := []byte(fastStorageVersionValue)
+	storageVersionBytes[len(fastStorageVersionValue)-1]++ // increment last byte
+	ndb.storageVersion = string(storageVersionBytes)
+
+	batch := db.NewBatch()
+	err := ndb.setFastStorageVersionToBatch(batch, ndb.getLatestVersion())
+	require.NoError(t, err)
+	newStorageVersion := string(storageVersionBytes) + fastStorageVersionDelimiter + strconv.Itoa(int(ndb.latestPersistedVersion))
+	require.Equal(t, newStorageVersion, ndb.storageVersion)
+
+	err = ndb.setFastStorageVersionToBatch(batch, ndb.getLatestVersion())
+	require.NoError(t, err)
+	require.Equal(t, newStorageVersion, ndb.storageVersion)
+}
+
+// Test case where version is incorrect and has some extra garbage at the end
+func TestShouldForceFastStorageUpdate_DefaultVersion_True(t *testing.T) {
+	db := db.NewMemDB()
+	ndb := newNodeDB(db, 0, nil)
+	ndb.storageVersion = defaultStorageVersionValue
+	ndb.latestPersistedVersion = 100
+
+	require.False(t, ndb.shouldForceFastStorageUpgrade())
+}
+
+func TestShouldForceFastStorageUpdate_FastVersion_Greater_True(t *testing.T) {
+	db := db.NewMemDB()
+	ndb := newNodeDB(db, 0, nil)
+	ndb.latestPersistedVersion = 100
+	ndb.storageVersion = fastStorageVersionValue + fastStorageVersionDelimiter + strconv.Itoa(int(ndb.latestPersistedVersion+1))
+
+	require.True(t, ndb.shouldForceFastStorageUpgrade())
+}
+
+func TestShouldForceFastStorageUpdate_FastVersion_Smaller_True(t *testing.T) {
+	db := db.NewMemDB()
+	ndb := newNodeDB(db, 0, nil)
+	ndb.latestPersistedVersion = 100
+	ndb.storageVersion = fastStorageVersionValue + fastStorageVersionDelimiter + strconv.Itoa(int(ndb.latestPersistedVersion-1))
+
+	require.True(t, ndb.shouldForceFastStorageUpgrade())
+}
+
+func TestShouldForceFastStorageUpdate_FastVersion_Match_False(t *testing.T) {
+	db := db.NewMemDB()
+	ndb := newNodeDB(db, 0, nil)
+	ndb.latestPersistedVersion = 100
+	ndb.storageVersion = fastStorageVersionValue + fastStorageVersionDelimiter + strconv.Itoa(int(ndb.latestPersistedVersion))
+
+	require.False(t, ndb.shouldForceFastStorageUpgrade())
+}
+
+func TestIsFastStorageEnabled_True(t *testing.T) {
+	db := db.NewMemDB()
+	ndb := newNodeDB(db, 0, nil)
+	ndb.latestPersistedVersion = 100
+	ndb.storageVersion = fastStorageVersionValue + fastStorageVersionDelimiter + strconv.Itoa(int(ndb.latestPersistedVersion))
+
+	require.True(t, ndb.hasUpgradedToFastStorage())
+}
+
+func TestIsFastStorageEnabled_False(t *testing.T) {
+	db := db.NewMemDB()
+	ndb := newNodeDB(db, 0, nil)
+	ndb.latestPersistedVersion = 100
+	ndb.storageVersion = defaultStorageVersionValue
+
+	require.False(t, ndb.shouldForceFastStorageUpgrade())
+}
+
+func makeAndPopulateMutableTree(tb testing.TB) *MutableTree {
+	memDB := db.NewMemDB()
+	tree, err := NewMutableTreeWithOpts(memDB, 0, &Options{InitialVersion: 9})
+	require.NoError(tb, err)
+
+	for i := 0; i < 1e4; i++ {
+		buf := make([]byte, 0, (i/255)+1)
+		for j := 0; 1<<j <= i; j++ {
+			buf = append(buf, byte((i>>j)&0xff))
+		}
+		tree.Set(buf, buf)
+	}
+	_, _, _, err = tree.SaveVersion(false)
+	require.Nil(tb, err, "Expected .SaveVersion to succeed")
+	return tree
 }
