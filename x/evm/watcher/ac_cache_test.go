@@ -209,22 +209,20 @@ func TestCommitCacheGetElementFromCache(t *testing.T) {
 }
 
 func TestStatistic(t *testing.T) {
-	mp := map[string]struct{}{
-		hex.EncodeToString(append(prefixTx, []byte("hell1")...)):    {},
-		hex.EncodeToString(append(prefixTx, []byte("hell2")...)):    {},
-		hex.EncodeToString(append(prefixTx, []byte("hell3")...)):    {},
-		hex.EncodeToString(append(prefixBlock, []byte("hell3")...)): {},
-		hex.EncodeToString(append(prefixBlock, []byte("hell4")...)): {},
+	mp := map[string]WatchMessage{
+		hex.EncodeToString(append(prefixTx, []byte("hell1")...)):    &Batch{Key: append(prefixTx, []byte("hell1")...), Value: []byte("222")},
+		hex.EncodeToString(append(prefixTx, []byte("hell2")...)):    &Batch{Key: append(prefixTx, []byte("hell2")...), Value: []byte("222")},
+		hex.EncodeToString(append(prefixTx, []byte("hell3")...)):    &Batch{Key: append(prefixTx, []byte("hell3")...), Value: []byte("222")},
+		hex.EncodeToString(append(prefixBlock, []byte("hell3")...)): &Batch{Key: append(prefixBlock, []byte("hell3")...), Value: []byte("222")},
+		hex.EncodeToString(append(prefixBlock, []byte("hell4")...)): &Batch{Key: append(prefixBlock, []byte("hell4")...), Value: []byte("222")},
 	}
-	static := make(map[string]int)
-	for k := range mp {
-		b, err := hex.DecodeString(k)
-		if err != nil {
-			continue
-		}
-		Statistic(b, static)
+	static := make(map[string]*Stat)
+	for _, v := range mp {
+		Statistic(v, static)
 	}
 	for k, v := range static {
-		fmt.Println("**** lyh ****** static", k, v)
+		dbsize := float64(v.dbSize) / float64(1024*1024)
+		structsize := float64(v.structSize) / float64(1024*1024)
+		fmt.Printf("**** lyh ****** static %s, count %d, dbSize %.3f, structSize %.3f \n", k, v.count, dbsize, structsize)
 	}
 }

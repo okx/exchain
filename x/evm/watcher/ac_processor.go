@@ -17,6 +17,7 @@ var (
 	enableAsyncCommit              = false
 	commitGapHeight   int64        = 100
 	getFlagOnce       sync.Once
+	gstat             = make(map[string]*Stat)
 )
 
 func init() {
@@ -119,8 +120,19 @@ func (ap *ACProcessor) PersistHander(commitFn func(epochCache *MessageCache)) {
 		ed := time.Now()
 		ap.commitList.remove(cmmiter.version)
 		ed1 := time.Now()
-		cmmiter.Clear()
+		curstat := cmmiter.Clear()
 		ed2 := time.Now()
+		for k, v := range curstat {
+			value, ok := gstat[k]
+			if !ok {
+				gstat[k] = &Stat{count: v.count, dbSize: v.dbSize, structSize: v.structSize}
+			} else {
+				value.count += v.count
+				value.dbSize += v.dbSize
+				value.structSize += v.structSize
+				gstat[k] = value
+			}
+		}
 
 		ap.totalCommit += s
 		ap.totalRepeat += cmmiter.count - s
@@ -130,6 +142,17 @@ func (ap *ACProcessor) PersistHander(commitFn func(epochCache *MessageCache)) {
 			ap.totalCommit, ap.totalRepeat, ap.total,
 			ed.Sub(st), ed1.Sub(ed), ed2.Sub(ed1))
 	}
+
+	var totaldbsize int
+	var totalstructsize int
+	for k, v := range gstat {
+		dbsize := float64(v.dbSize) / float64(1024*1024)
+		structsize := float64(v.structSize) / float64(1024*1024)
+		totaldbsize += v.dbSize
+		totalstructsize += v.structSize
+		fmt.Printf("**** lyh ****** glbal static %s, count %d, dbSize %.3f, structSize %.3f \n", k, v.count, dbsize, structsize)
+	}
+	fmt.Printf("**** lyh ****** glbal static total dbSize %.3f, structSize %.3f \n", float64(totaldbsize)/float64(1024*1024), float64(totalstructsize)/float64(1024*1024))
 }
 
 // PersistHander after close channel should call this function

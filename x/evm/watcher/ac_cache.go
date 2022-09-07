@@ -3,6 +3,8 @@ package watcher
 import (
 	"container/list"
 	"encoding/hex"
+	"fmt"
+	"reflect"
 	"sync"
 )
 
@@ -73,62 +75,217 @@ func (c *MessageCache) Get(key []byte) (WatchMessage, bool) {
 	return nil, false
 }
 
-func (c *MessageCache) Clear() {
+type Stat struct {
+	count      int // kv count
+	dbSize     int // db storage
+	structSize int //
+}
+
+func (c *MessageCache) Clear() map[string]*Stat {
 	c.mtx.Lock()
 	defer c.mtx.Unlock()
 
-	//static := make(map[string]int)
-	for k := range c.mp {
+	static := make(map[string]*Stat)
+	for k, v := range c.mp {
 		delete(c.mp, k)
-		// just for test
-		//b, err := hex.DecodeString(k)
-		//if err != nil {
-		//	continue
-		//}
-		//Statistic(b, static)
+		//just for test
+		Statistic(v, static)
 	}
-	//for k, v := range static {
-	//	fmt.Println("**** lyh ****** static", k, v)
-	//}
+	for k, v := range static {
+		dbsize := float64(v.dbSize) / float64(1024*1024)
+		structsize := float64(v.structSize) / float64(1024*1024)
+		fmt.Printf("**** lyh ****** static %s, count %d, dbSize %.3f, structSize %.3f \n", k, v.count, dbsize, structsize)
+	}
+	return static
 }
 
-func Statistic(b []byte, stat map[string]int) {
-	if len(b) < 1 {
+func Statistic(wmg WatchMessage, stat map[string]*Stat) {
+	key := wmg.GetKey()
+	value := []byte(wmg.GetValue())
+	if len(key) < 1 {
 		return
 	}
-	switch string(b[0:1]) {
+	switch string(key[0:1]) {
 	case string(prefixTx):
-		stat["prefixTx"] += 1
+		var v *Stat
+		var ok bool
+		if v, ok = stat["prefixTx"]; !ok {
+			v = &Stat{}
+		}
+		v.count++
+		v.dbSize += len(key) + len(value)
+		v.structSize += getSize(wmg)
+		stat["prefixTx"] = v
 	case string(prefixBlock):
-		stat["prefixBlock"] += 1
+		var v *Stat
+		var ok bool
+		if v, ok = stat["prefixBlock"]; !ok {
+			v = &Stat{}
+		}
+		v.count++
+		v.dbSize += len(key) + len(value)
+		v.structSize += getSize(wmg)
+		stat["prefixBlock"] = v
 	case string(prefixReceipt):
-		stat["prefixReceipt"] += 1
+		var v *Stat
+		var ok bool
+		if v, ok = stat["prefixReceipt"]; !ok {
+			v = &Stat{}
+		}
+		v.count++
+		v.dbSize += len(key) + len(value)
+		v.structSize += getSize(wmg)
+		stat["prefixReceipt"] = v
 	case string(prefixCode):
-		stat["prefixCode"] += 1
+		var v *Stat
+		var ok bool
+		if v, ok = stat["prefixCode"]; !ok {
+			v = &Stat{}
+		}
+		v.count++
+		v.dbSize += len(key) + len(value)
+		v.structSize += getSize(wmg)
+		stat["prefixCode"] = v
 	case string(prefixBlockInfo):
-		stat["prefixBlockInfo"] += 1
+		var v *Stat
+		var ok bool
+		if v, ok = stat["prefixBlockInfo"]; !ok {
+			v = &Stat{}
+		}
+		v.count++
+		v.dbSize += len(key) + len(value)
+		v.structSize += getSize(wmg)
+		stat["prefixBlockInfo"] = v
 	case string(prefixLatestHeight):
-		stat["prefixLatestHeight"] += 1
+		var v *Stat
+		var ok bool
+		if v, ok = stat["prefixLatestHeight"]; !ok {
+			v = &Stat{}
+		}
+		v.count++
+		v.dbSize += len(key) + len(value)
+		v.structSize += getSize(wmg)
+		stat["prefixLatestHeight"] = v
 	case string(prefixAccount):
-		stat["prefixAccount"] += 1
+		var v *Stat
+		var ok bool
+		if v, ok = stat["prefixAccount"]; !ok {
+			v = &Stat{}
+		}
+		v.count++
+		v.dbSize += len(key) + len(value)
+		v.structSize += getSize(wmg)
+		stat["prefixAccount"] = v
 	case string(PrefixState):
-		stat["PrefixState"] += 1
+		var v *Stat
+		var ok bool
+		if v, ok = stat["PrefixState"]; !ok {
+			v = &Stat{}
+		}
+		v.count++
+		v.dbSize += len(key) + len(value)
+		v.structSize += getSize(wmg)
+		stat["PrefixState"] = v
 	case string(prefixCodeHash):
-		stat["prefixCodeHash"] += 1
+		var v *Stat
+		var ok bool
+		if v, ok = stat["prefixCodeHash"]; !ok {
+			v = &Stat{}
+		}
+		v.count++
+		v.dbSize += len(key) + len(value)
+		v.structSize += getSize(wmg)
+		stat["prefixCodeHash"] = v
 	case string(prefixParams):
-		stat["prefixParams"] += 1
+		var v *Stat
+		var ok bool
+		if v, ok = stat["prefixParams"]; !ok {
+			v = &Stat{}
+		}
+		v.count++
+		v.dbSize += len(key) + len(value)
+		v.structSize += getSize(wmg)
+		stat["prefixParams"] = v
 	case string(prefixWhiteList):
-		stat["prefixWhiteList"] += 1
+		var v *Stat
+		var ok bool
+		if v, ok = stat["prefixWhiteList"]; !ok {
+			v = &Stat{}
+		}
+		v.count++
+		v.dbSize += len(key) + len(value)
+		v.structSize += getSize(wmg)
+		stat["prefixWhiteList"] = v
 	case string(prefixBlackList):
-		stat["prefixBlackList"] += 1
+		var v *Stat
+		var ok bool
+		if v, ok = stat["prefixBlackList"]; !ok {
+			v = &Stat{}
+		}
+		v.count++
+		v.dbSize += len(key) + len(value)
+		v.structSize += getSize(wmg)
+		stat["prefixBlackList"] = v
 	case string(prefixRpcDb):
-		stat["prefixRpcDb"] += 1
+		var v *Stat
+		var ok bool
+		if v, ok = stat["prefixRpcDb"]; !ok {
+			v = &Stat{}
+		}
+		v.count++
+		v.dbSize += len(key) + len(value)
+		v.structSize += getSize(wmg)
+		stat["prefixRpcDb"] = v
 	case string(prefixTxResponse):
-		stat["prefixTxResponse"] += 1
+		var v *Stat
+		var ok bool
+		if v, ok = stat["prefixTxResponse"]; !ok {
+			v = &Stat{}
+		}
+		v.count++
+		v.dbSize += len(key) + len(value)
+		v.structSize += getSize(wmg)
+		stat["prefixTxResponse"] = v
 	case string(prefixStdTxHash):
-		stat["prefixStdTxHash"] += 1
+		var v *Stat
+		var ok bool
+		if v, ok = stat["prefixStdTxHash"]; !ok {
+			v = &Stat{}
+		}
+		v.count++
+		v.dbSize += len(key) + len(value)
+		v.structSize += getSize(wmg)
+		stat["prefixStdTxHash"] = v
 	default:
 	}
+}
+
+func getSize(v interface{}) int {
+	size := int(reflect.TypeOf(v).Size())
+	switch reflect.TypeOf(v).Kind() {
+	case reflect.Slice:
+		s := reflect.ValueOf(v)
+		for i := 0; i < s.Len(); i++ {
+			size += getSize(s.Index(i).Interface())
+		}
+	case reflect.Map:
+		s := reflect.ValueOf(v)
+		keys := s.MapKeys()
+		size += int(float64(len(keys)) * 10.79) // approximation from https://golang.org/src/runtime/hashmap.go
+		for i := range keys {
+			size += getSize(keys[i].Interface()) + getSize(s.MapIndex(keys[i]).Interface())
+		}
+	case reflect.String:
+		size += reflect.ValueOf(v).Len()
+	case reflect.Struct:
+		s := reflect.ValueOf(v)
+		for i := 0; i < s.NumField(); i++ {
+			if s.Field(i).CanInterface() {
+				size += getSize(s.Field(i).Interface())
+			}
+		}
+	}
+	return size
 }
 
 type MessageCacheEvent struct {
