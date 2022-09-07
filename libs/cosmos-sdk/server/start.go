@@ -7,6 +7,7 @@ import (
 	"runtime/pprof"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
+	"github.com/okex/exchain/libs/tendermint/rpc/client"
 
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
@@ -182,6 +183,12 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyReso
 		Key:   "CheckChainID",
 		Value: tmNode.ConsensusState().GetState().ChainID,
 	})
+
+	if clientSetter, ok := app.(interface {
+		SetTmClient(client client.Client)
+	}); ok {
+		clientSetter.SetTmClient(local.New(tmNode))
+	}
 
 	ctx.Logger.Info("startInProcess",
 		"ConsensusStateChainID", tmNode.ConsensusState().GetState().ChainID,

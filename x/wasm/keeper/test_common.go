@@ -98,7 +98,8 @@ var moduleBasics = module.NewBasicManager(
 	distribution.AppModuleBasic{},
 	supply.AppModuleBasic{},
 	gov.NewAppModuleBasic(
-		paramsclient.ProposalHandler, distrclient.ProposalHandler, //upgradeclient.ProposalHandler,
+		paramsclient.ProposalHandler, distrclient.ChangeDistributionTypeProposalHandler,
+		paramsclient.ProposalHandler, distrclient.CommunityPoolSpendProposalHandler,
 	),
 	params.AppModuleBasic{},
 	crisis.AppModuleBasic{},
@@ -428,7 +429,7 @@ func createTestInput(
 	govRouter := gov.NewRouter().
 		AddRoute(govtypes.RouterKey, govtypes.ProposalHandler).
 		AddRoute(paramproposal.RouterKey, params.NewParamChangeProposalHandler(&paramsKeeper)).
-		AddRoute(distributiontypes.RouterKey, distribution.NewCommunityPoolSpendProposalHandler(distKeeper))
+		AddRoute(distributiontypes.RouterKey, distribution.NewDistributionProposalHandler(distKeeper))
 	//AddRoute(types.RouterKey, NewWasmProposalHandler(&keeper, types.EnableAllProposals))
 
 	govProposalHandlerRouter := govkeeper.NewProposalHandlerRouter()

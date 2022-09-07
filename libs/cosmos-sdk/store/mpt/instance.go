@@ -30,7 +30,7 @@ func InstanceOfMptStore() ethstate.Database {
 		homeDir := viper.GetString(flags.FlagHome)
 		path := filepath.Join(homeDir, mptDataDir)
 
-		backend := sdk.DBBackend
+		backend := viper.GetString(sdk.FlagDBBackend)
 		if backend == "" {
 			backend = string(types.GoLevelDBBackend)
 		}

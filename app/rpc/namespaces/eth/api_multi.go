@@ -172,7 +172,7 @@ func (api *PublicEthereumAPI) GetTransactionsByBlock(blockNrOrHash rpctypes.Bloc
 		}
 	}
 
-	resBlock, err := api.clientCtx.Client.Block(&height)
+	resBlock, err := api.backend.Block(&height)
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +217,7 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 
 		if block == nil {
 			// Query block for consensus hash
-			block, err = api.clientCtx.Client.Block(&tx.Height)
+			block, err = api.backend.Block(&tx.Height)
 			if err != nil {
 				return nil, err
 			}
@@ -312,7 +312,7 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 	}
 
 	// try to get from node
-	resBlock, err := api.clientCtx.Client.Block(&height)
+	resBlock, err := api.backend.Block(&height)
 	if err != nil {
 		return nil, err
 	}
@@ -335,9 +335,9 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 			var res *watcher.TransactionResult
 			switch realTx.GetType() {
 			case sdk.EvmTxType:
-				res, err = rpctypes.RawTxResultToEthReceipt(api.clientCtx, api.chainIDEpoch, queryTx, blockHash)
+				res, err = rpctypes.RawTxResultToEthReceipt(api.chainIDEpoch, queryTx, realTx, blockHash)
 			case sdk.StdTxType:
-				res, err = watcher.RawTxResultToStdResponse(api.clientCtx, queryTx, resBlock.Block.Time)
+				res, err = watcher.RawTxResultToStdResponse(api.clientCtx, queryTx, realTx, resBlock.Block.Time)
 			}
 
 			results = append(results, res)
