@@ -2,21 +2,20 @@ package eth
 
 import (
 	"fmt"
-	rpctypes "github.com/okex/exchain/app/rpc/types"
 	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
-
 	"github.com/ethereum/go-ethereum/common"
+	rpctypes "github.com/okex/exchain/app/rpc/types"
 	ethermint "github.com/okex/exchain/app/types"
 	clientcontext "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	authclient "github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/types"
 	tmdb "github.com/okex/exchain/libs/tm-db"
@@ -73,7 +72,7 @@ func NewTxPool(clientCtx clientcontext.CLIContext, api *PublicEthereumAPI) *TxPo
 func openDB() (tmdb.DB, error) {
 	rootDir := viper.GetString("home")
 	dataDir := filepath.Join(rootDir, "data")
-	return sdk.NewLevelDB(txPoolDb, dataDir)
+	return sdk.NewDB(txPoolDb, dataDir)
 }
 
 func (pool *TxPool) initDB(api *PublicEthereumAPI) error {
