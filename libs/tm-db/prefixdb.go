@@ -145,3 +145,7 @@ func (pdb *PrefixDB) Stats() map[string]string {
 func (pdb *PrefixDB) prefixed(key []byte) []byte {
 	return concat(pdb.prefix, key)
 }
+
+func (pdb *PrefixDB) Compact() error {
+	return pdb.db.Compact()
+}

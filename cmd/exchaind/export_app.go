@@ -6,6 +6,8 @@ import (
 
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/cobra"
 )
 
@@ -19,6 +21,7 @@ func exportAppCmd(ctx *server.Context) *cobra.Command {
 			log.Println("--------- export success ---------")
 		},
 	}
+	cmd.Flags().String(sdk.FlagDBBackend, tmtypes.DBBackend, "Database backend: goleveldb | rocksdb")
 	return cmd
 }
 
@@ -39,7 +42,7 @@ func export(ctx *server.Context) {
 func createApp(ctx *server.Context, dataPath string) *app.OKExChainApp {
 	rootDir := ctx.Config.RootDir
 	dataDir := filepath.Join(rootDir, dataPath)
-	db, err := openDB(applicationDB, dataDir)
+	db, err := sdk.NewDB(applicationDB, dataDir)
 	panicError(err)
 	exapp := newApp(ctx.Logger, db, nil)
 	return exapp.(*app.OKExChainApp)

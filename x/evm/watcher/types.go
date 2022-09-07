@@ -46,6 +46,8 @@ var (
 
 	TransactionSuccess = uint32(1)
 	TransactionFailed  = uint32(0)
+
+	keyLatestBlockHeight = append(prefixLatestHeight, KeyLatestHeight...)
 )
 
 const (

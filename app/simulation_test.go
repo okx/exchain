@@ -3,9 +3,15 @@ package app
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	"github.com/okex/exchain/x/wasm"
+	wasmtypes "github.com/okex/exchain/x/wasm/types"
 	"math/rand"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -68,7 +74,7 @@ func TestFullAppSimulation(t *testing.T) {
 
 	// run randomized simulation
 	_, simParams, simErr := simulation.SimulateFromSeed(
-		t, os.Stdout, app.BaseApp, simapp.AppStateFn(app.Codec(), app.SimulationManager()),
+		t, os.Stdout, app.BaseApp, AppStateFn(app.Codec(), app.SimulationManager()),
 		simapp.SimulationOperations(app, app.Codec(), config),
 		app.ModuleAccountAddrs(), config,
 	)
@@ -100,7 +106,7 @@ func TestAppImportExport(t *testing.T) {
 
 	// Run randomized simulation
 	_, simParams, simErr := simulation.SimulateFromSeed(
-		t, os.Stdout, app.BaseApp, simapp.AppStateFn(app.Codec(), app.SimulationManager()),
+		t, os.Stdout, app.BaseApp, AppStateFn(app.Codec(), app.SimulationManager()),
 		simapp.SimulationOperations(app, app.Codec(), config),
 		app.ModuleAccountAddrs(), config,
 	)
@@ -156,6 +162,38 @@ func TestAppImportExport(t *testing.T) {
 		{app.keys[gov.StoreKey], newApp.keys[gov.StoreKey], [][]byte{}},
 	}
 
+	// reset contract code index in source DB for comparison with dest DB
+	dropContractHistory := func(s store.KVStore, keys ...[]byte) {
+		for _, key := range keys {
+			prefixStore := prefix.NewStore(s, key)
+			iter := prefixStore.Iterator(nil, nil)
+			for ; iter.Valid(); iter.Next() {
+				prefixStore.Delete(iter.Key())
+			}
+			iter.Close()
+		}
+	}
+	prefixes := [][]byte{wasmtypes.ContractCodeHistoryElementPrefix, wasmtypes.ContractByCodeIDAndCreatedSecondaryIndexPrefix}
+	dropContractHistory(ctxA.KVStore(app.keys[wasm.StoreKey]), prefixes...)
+	dropContractHistory(ctxB.KVStore(newApp.keys[wasm.StoreKey]), prefixes...)
+
+	normalizeContractInfo := func(ctx sdk.Context, app *OKExChainApp) {
+		var index uint64
+		app.wasmKeeper.IterateContractInfo(ctx, func(address sdk.AccAddress, info wasmtypes.ContractInfo) bool {
+			created := &wasmtypes.AbsoluteTxPosition{
+				BlockHeight: uint64(0),
+				TxIndex:     index,
+			}
+			info.Created = created
+			store := ctx.KVStore(app.keys[wasm.StoreKey])
+			store.Set(wasmtypes.GetContractAddressKey(address), app.marshal.GetProtocMarshal().MustMarshal(&info))
+			index++
+			return false
+		})
+	}
+	normalizeContractInfo(ctxA, app)
+	normalizeContractInfo(ctxB, newApp)
+
 	for _, skp := range storeKeysPrefixes {
 		storeA := ctxA.KVStore(skp.A)
 		storeB := ctxB.KVStore(skp.B)
@@ -185,7 +223,7 @@ func TestAppSimulationAfterImport(t *testing.T) {
 
 	// Run randomized simulation
 	stopEarly, simParams, simErr := simulation.SimulateFromSeed(
-		t, os.Stdout, app.BaseApp, simapp.AppStateFn(app.Codec(), app.SimulationManager()),
+		t, os.Stdout, app.BaseApp, AppStateFn(app.Codec(), app.SimulationManager()),
 		simapp.SimulationOperations(app, app.Codec(), config),
 		app.ModuleAccountAddrs(), config,
 	)
@@ -228,7 +266,7 @@ func TestAppSimulationAfterImport(t *testing.T) {
 	})
 
 	_, _, err = simulation.SimulateFromSeed(
-		t, os.Stdout, newApp.BaseApp, simapp.AppStateFn(app.Codec(), app.SimulationManager()),
+		t, os.Stdout, newApp.BaseApp, AppStateFn(app.Codec(), app.SimulationManager()),
 		simapp.SimulationOperations(newApp, newApp.Codec(), config),
 		newApp.ModuleAccountAddrs(), config,
 	)
@@ -270,7 +308,7 @@ func TestAppStateDeterminism(t *testing.T) {
 		)
 
 		_, _, err := simulation.SimulateFromSeed(
-			t, os.Stdout, app.BaseApp, simapp.AppStateFn(app.Codec(), app.SimulationManager()),
+			t, os.Stdout, app.BaseApp, AppStateFn(app.Codec(), app.SimulationManager()),
 			simapp.SimulationOperations(app, app.Codec(), config),
 			app.ModuleAccountAddrs(), config,
 		)
@@ -290,4 +328,16 @@ func TestAppStateDeterminism(t *testing.T) {
 			)
 		}
 	}
+}
+
+// AppStateFn returns the initial application state using a genesis or the simulation parameters.
+// It panics if the user provides files for both of them.
+// If a file is not given for the genesis or the sim params, it creates a randomized one.
+func AppStateFn(codec *codec.Codec, manager *module.SimulationManager) simulation.AppStateFn {
+	// quick hack to setup app state genesis with our app modules
+	simapp.ModuleBasics = ModuleBasics
+	if simapp.FlagGenesisTimeValue == 0 { // always set to have a block time
+		simapp.FlagGenesisTimeValue = time.Now().Unix()
+	}
+	return simapp.AppStateFn(codec, manager)
 }

@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"fmt"
 	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	"github.com/spf13/viper"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -35,6 +36,7 @@ func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 	distTxCmd.AddCommand(flags.PostCommands(
 		GetCmdWithdrawRewards(cdc),
 		GetCmdSetWithdrawAddr(cdc),
+		GetCmdWithdrawAllRewards(cdc, storeKey),
 	)...)
 
 	return distTxCmd
@@ -76,7 +78,7 @@ $ %s tx distr set-withdraw-addr ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02 --from
 func GetCmdWithdrawRewards(cdc *codec.Codec) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "withdraw-rewards [validator-addr]",
-		Short: "withdraw validator rewards",
+		Short: "withdraw rewards from a given delegation address, and optionally withdraw validator commission if the delegation address given is a validator operator",
 		Long: strings.TrimSpace(
 			fmt.Sprintf(`
 Example:
@@ -91,22 +93,28 @@ $ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg 
 			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
 			cliCtx := context.NewCLIContext().WithCodec(cdc)
 
+			delAddr := cliCtx.GetFromAddress()
 			valAddr, err := sdk.ValAddressFromBech32(args[0])
 			if err != nil {
 				return err
 			}
 
-			// only withdraw commission of validator
-			msg := types.NewMsgWithdrawValidatorCommission(valAddr)
+			msgs := []sdk.Msg{}
+			if viper.GetBool(flagCommission) {
+				msgs = append(msgs, types.NewMsgWithdrawValidatorCommission(valAddr))
+			} else {
+				msgs = append(msgs, types.NewMsgWithdrawDelegatorReward(delAddr, valAddr))
+			}
 
-			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, msgs)
 		},
 	}
+	cmd.Flags().Bool(flagCommission, false, "also withdraw validator's commission")
 	return cmd
 }
 
-// GetCmdSubmitProposal implements the command to submit a community-pool-spend proposal
-func GetCmdSubmitProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
+// GetCmdCommunityPoolSpendProposal implements the command to submit a community-pool-spend proposal
+func GetCmdCommunityPoolSpendProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "community-pool-spend [proposal-file]",
 		Args:  cobra.ExactArgs(1),

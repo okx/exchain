@@ -265,18 +265,21 @@ func RawTxToRealTx(clientCtx clientcontext.CLIContext, bz tmtypes.Tx,
 	return realTx, nil
 }
 
-func RawTxResultToEthReceipt(clientCtx clientcontext.CLIContext, chainID *big.Int,
-	tr *ctypes.ResultTx, blockHash common.Hash) (*watcher.TransactionResult, error) {
+func RawTxResultToEthReceipt(chainID *big.Int, tr *ctypes.ResultTx, realTx sdk.Tx,
+	blockHash common.Hash) (*watcher.TransactionResult, error) {
 	// Convert tx bytes to eth transaction
-	ethTx, err := RawTxToEthTx(clientCtx, tr.Tx)
+	ethTx, ok := realTx.(*evmtypes.MsgEthereumTx)
+	if !ok {
+		return nil, fmt.Errorf("invalid transaction type %T, expected %T", realTx, evmtypes.MsgEthereumTx{})
+	}
+
+	//err := ethTx.VerifySig(chainID, tr.Height)
+	from, err := GetEthSender(tr)
 	if err != nil {
 		return nil, err
 	}
 
-	err = ethTx.VerifySig(chainID, tr.Height)
-	if err != nil {
-		return nil, err
-	}
+	ethTx.BaseTx.From = from
 
 	// Set status codes based on tx result
 	var status = hexutil.Uint64(0)
@@ -326,4 +329,17 @@ func RawTxResultToEthReceipt(clientCtx clientcontext.CLIContext, chainID *big.In
 	}
 
 	return &watcher.TransactionResult{TxType: hexutil.Uint64(watcher.EthReceipt), Receipt: &receipt, EthTx: rpcTx}, nil
+}
+
+func GetEthSender(tr *ctypes.ResultTx) (string, error) {
+	for _, ev := range tr.TxResult.Events {
+		if ev.Type == sdk.EventTypeMessage {
+			for _, attr := range ev.Attributes {
+				if string(attr.Key) == sdk.AttributeKeySender {
+					return string(attr.Value), nil
+				}
+			}
+		}
+	}
+	return "", errors.New("No sender in Event")
 }
