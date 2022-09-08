@@ -40,6 +40,14 @@ type Account interface {
 	String() string
 }
 
+type ModuleAccount interface {
+	Account
+
+	GetName() string
+	GetPermissions() []string
+	HasPermission(string) bool
+}
+
 type storageWithCache struct {
 	value []byte
 	dirty bool
