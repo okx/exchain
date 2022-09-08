@@ -228,13 +228,16 @@ func (cs *State) signVote(
 ) (*types.Vote, error) {
 	// Flush the WAL. Otherwise, we may not recompute the same vote to sign,
 	// and the privValidator will refuse to sign anything.
+	s := time.Now()
 	cs.wal.FlushAndSync()
+	tWal := time.Now()
 
 	if cs.privValidatorPubKey == nil {
 		return nil, errPubKeyIsNotSet
 	}
 	addr := cs.privValidatorPubKey.Address()
 	valIdx, _ := cs.Validators.GetByAddress(addr)
+	tValIdx := time.Now()
 
 	vote := &types.Vote{
 		ValidatorAddress: addr,
@@ -248,6 +251,13 @@ func (cs *State) signVote(
 	}
 
 	err := cs.privValidator.SignVote(cs.state.ChainID, vote)
+	tSignVote := time.Now()
+
+	if tSignVote.Sub(s).Seconds() > 1 {
+		cs.Logger.Error("Crazy signVote cost:",
+			"s", s, "tWal", tWal, "tValIdx", tValIdx, "tSignVote", tSignVote)
+	}
+
 	return vote, err
 }
 
@@ -288,12 +298,18 @@ func (cs *State) signAddVote(msgType types.SignedMsgType, hash []byte, header ty
 	}
 
 	// TODO: pass pubKey to signVote
+	s := time.Now()
 	vote, err := cs.signVote(msgType, hash, header)
+	signT := time.Now()
 	if err == nil {
 		//broadcast vote immediately
 		cs.evsw.FireEvent(types.EventSignVote, vote)
+		eT := time.Now()
 		cs.sendInternalMessage(msgInfo{&VoteMessage{vote}, ""})
-		cs.Logger.Info("Signed and pushed vote", "height", cs.Height, "round", cs.Round, "vote", vote, "err", err)
+		channelT := time.Now()
+		if channelT.Sub(s).Seconds() > 1 {
+			cs.Logger.Error("Crazy Vote cost:", "s", s, "signT", signT, "eT", eT, "channelT", channelT)
+		}
 		return vote
 	}
 	if !cs.replayMode {
