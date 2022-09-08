@@ -228,13 +228,16 @@ func (cs *State) signVote(
 ) (*types.Vote, error) {
 	// Flush the WAL. Otherwise, we may not recompute the same vote to sign,
 	// and the privValidator will refuse to sign anything.
+	s := time.Now()
 	cs.wal.FlushAndSync()
+	tWal := time.Now()
 
 	if cs.privValidatorPubKey == nil {
 		return nil, errPubKeyIsNotSet
 	}
 	addr := cs.privValidatorPubKey.Address()
 	valIdx, _ := cs.Validators.GetByAddress(addr)
+	tValIdx := time.Now()
 
 	vote := &types.Vote{
 		ValidatorAddress: addr,
@@ -248,6 +251,13 @@ func (cs *State) signVote(
 	}
 
 	err := cs.privValidator.SignVote(cs.state.ChainID, vote)
+	tSignVote := time.Now()
+
+	if tSignVote.Sub(s).Seconds() > 1 {
+		cs.Logger.Error("Crazy signVote cost:",
+			"s", s, "tWal", tWal, "tValIdx", tValIdx, "tSignVote", tSignVote)
+	}
+
 	return vote, err
 }
 
