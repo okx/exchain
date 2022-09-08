@@ -199,6 +199,11 @@ func NewState(
 	cs.doPrevote = cs.defaultDoPrevote
 	cs.setProposal = cs.defaultSetProposal
 
+	// We have no votes, so reconstruct LastCommit from SeenCommit.
+	if state.LastBlockHeight > types.GetStartBlockHeight() {
+		cs.reconstructLastCommit(state)
+	}
+
 	cs.updateToState(state)
 	if cs.prerunTx {
 		cs.blockExec.InitPrerun()
@@ -206,7 +211,6 @@ func NewState(
 
 	// Don't call scheduleRound0 yet.
 	// We do that upon Start().
-	cs.reconstructLastCommit(state)
 	cs.BaseService = *service.NewBaseService(nil, "State", cs)
 	for _, option := range options {
 		option(cs)
@@ -403,7 +407,9 @@ func (cs *State) OnReset() error {
 // NOTE: be sure to Stop() the event switch and drain
 // any event channels or this may deadlock
 func (cs *State) Wait() {
-	<-cs.done
+	if cs.done != nil {
+		<-cs.done
+	}
 }
 
 // OpenWAL opens a file to log all consensus messages and timeouts for deterministic accountability

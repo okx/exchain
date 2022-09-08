@@ -5,8 +5,8 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/common"
-	types3 "github.com/okex/exchain/x/evm/types"
 
+	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/gov/types"
 	paramstypes "github.com/okex/exchain/x/params/types"
 )
@@ -74,22 +74,6 @@ func queryProposal(ctx sdk.Context, path []string, req abci.RequestQuery, keeper
 	if !ok {
 		return nil, types.ErrUnknownProposal(params.ProposalID)
 	}
-	// Here is to fix the short address problem in the OKC test-net.
-	// The normal len(BlockedContract.Address) should be 20,
-	// but there are some BlockedContract.Address in OKC test-net that have a length of 4.
-	if p, ok := proposal.Content.(types3.ManageContractMethodBlockedListProposal); ok {
-		for i := 0; i < len(p.ContractList); i++ {
-			if len(p.ContractList[i].Address) != 20 {
-				validAddress := make([]byte, 20)
-				for j, k := len(p.ContractList[i].Address)-1, 19; j >= 0; j, k = j-1, k-1 {
-					validAddress[k] = p.ContractList[i].Address[j]
-				}
-				p.ContractList[i].Address = validAddress
-			}
-		}
-		newProposal := types.WrapProposalForCosmosAPI(proposal, p)
-		proposal = newProposal
-	}
 
 	// Here is for compatibility with the standard cosmos REST API.
 	// Note: The Height field in OKC's ParameterChangeProposal will be discarded.
@@ -98,6 +82,13 @@ func queryProposal(ctx sdk.Context, path []string, req abci.RequestQuery, keeper
 		newProposal := types.WrapProposalForCosmosAPI(proposal, innerContent)
 		proposal = newProposal
 	}
+
+	if p, ok := proposal.Content.(evmtypes.ManageContractMethodBlockedListProposal); ok {
+		p.FixShortAddr()
+		newProposal := types.WrapProposalForCosmosAPI(proposal, p)
+		proposal = newProposal
+	}
+
 	bz, err := codec.MarshalJSONIndent(keeper.cdc, proposal)
 	if err != nil {
 		return nil, common.ErrMarshalJSONFailed(err.Error())
@@ -215,7 +206,6 @@ func queryProposals(ctx sdk.Context, path []string, req abci.RequestQuery, keepe
 	}
 
 	proposals := keeper.GetProposalsFiltered(ctx, params.Voter, params.Depositor, params.ProposalStatus, params.Limit)
-
 	cosmosProposals := make([]types.Proposal, 0, len(proposals))
 	for _, proposal := range proposals {
 		if pcp, ok := proposal.Content.(paramstypes.ParameterChangeProposal); ok {
@@ -224,19 +214,8 @@ func queryProposals(ctx sdk.Context, path []string, req abci.RequestQuery, keepe
 			innerContent := pcp.GetParameterChangeProposal()
 			newProposal := types.WrapProposalForCosmosAPI(proposal, innerContent)
 			cosmosProposals = append(cosmosProposals, newProposal)
-		} else if p, ok := proposal.Content.(types3.ManageContractMethodBlockedListProposal); ok {
-			// Here is to fix the short address problem in the OKC test-net.
-			// The normal len(BlockedContract.Address) should be 20,
-			// but there are some BlockedContract.Address in OKC test-net that have a length of 4.
-			for i := 0; i < len(p.ContractList); i++ {
-				if len(p.ContractList[i].Address) != 20 {
-					validAddress := make([]byte, 20)
-					for j, k := len(p.ContractList[i].Address)-1, 19; j >= 0; j, k = j-1, k-1 {
-						validAddress[k] = p.ContractList[i].Address[j]
-					}
-					p.ContractList[i].Address = validAddress
-				}
-			}
+		} else if p, ok := proposal.Content.(evmtypes.ManageContractMethodBlockedListProposal); ok {
+			p.FixShortAddr()
 			newProposal := types.WrapProposalForCosmosAPI(proposal, p)
 			cosmosProposals = append(cosmosProposals, newProposal)
 		} else {

@@ -60,7 +60,7 @@ func setupTest() *WatcherTestSt {
 	checkTx := false
 	chain_id := "ethermint-3"
 	viper.Set(watcher.FlagFastQuery, true)
-	viper.Set(watcher.FlagDBBackend, "memdb")
+	viper.Set(sdk.FlagDBBackend, "memdb")
 	viper.Set(watcher.FlagCheckWd, true)
 
 	w.app = app.Setup(checkTx)
@@ -113,7 +113,7 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	time.Sleep(time.Millisecond)
 
 	// get WatchData
-	wdFunc := w.app.EvmKeeper.Watcher.GetWatchDataFunc()
+	wdFunc := w.app.EvmKeeper.Watcher.CreateWatchDataGenerator()
 	wd, err := wdFunc()
 	require.Nil(t, err)
 	require.NotEmpty(t, wd)
@@ -126,7 +126,7 @@ func testWatchData(t *testing.T, w *WatcherTestSt) {
 	// use WatchData
 	wData, err := w.app.EvmKeeper.Watcher.UnmarshalWatchData(wd)
 	require.Nil(t, err)
-	w.app.EvmKeeper.Watcher.UseWatchData(wData)
+	w.app.EvmKeeper.Watcher.ApplyWatchData(wData)
 	time.Sleep(time.Millisecond)
 
 	cWd := getDBKV(store)
@@ -379,9 +379,9 @@ func TestDuplicateWatchMessage(t *testing.T) {
 
 func TestWriteLatestMsg(t *testing.T) {
 	viper.Set(watcher.FlagFastQuery, true)
-	viper.Set(watcher.FlagDBBackend, "memdb")
+	viper.Set(sdk.FlagDBBackend, "memdb")
 	w := watcher.NewWatcher(log.NewTMLogger(os.Stdout))
-	w.SetWatchDataFunc()
+	w.SetWatchDataManager()
 	w.NewHeight(1, common.Hash{}, abci.Header{Height: 1})
 	// init store
 	store := watcher.InstanceOfWatchStore()

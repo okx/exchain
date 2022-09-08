@@ -25,6 +25,18 @@ func NewQuerier(k Keeper) sdk.Querier {
 		case types.QueryCommunityPool:
 			return queryCommunityPool(ctx, path[1:], req, k)
 
+		case types.QueryDelegatorValidators:
+			return queryDelegatorValidators(ctx, path[1:], req, k)
+
+		case types.QueryDelegationRewards:
+			return queryDelegationRewards(ctx, path[1:], req, k)
+
+		case types.QueryDelegatorTotalRewards:
+			return queryDelegatorTotalRewards(ctx, path[1:], req, k)
+
+		case types.QueryValidatorOutstandingRewards:
+			return queryValidatorOutstandingRewards(ctx, path[1:], req, k)
+
 		default:
 			return nil, types.ErrUnknownDistributionQueryType()
 		}
@@ -45,7 +57,18 @@ func queryParams(ctx sdk.Context, path []string, req abci.RequestQuery, k Keeper
 			return nil, comm.ErrMarshalJSONFailed(err.Error())
 		}
 		return bz, nil
-
+	case types.ParamDistributionType:
+		bz, err := codec.MarshalJSONIndent(k.cdc, k.GetDistributionType(ctx))
+		if err != nil {
+			return nil, comm.ErrMarshalJSONFailed(err.Error())
+		}
+		return bz, nil
+	case types.ParamWithdrawRewardEnabled:
+		bz, err := codec.MarshalJSONIndent(k.cdc, k.GetWithdrawRewardEnabled(ctx))
+		if err != nil {
+			return nil, comm.ErrMarshalJSONFailed(err.Error())
+		}
+		return bz, nil
 	default:
 		return nil, types.ErrUnknownDistributionParamType()
 	}

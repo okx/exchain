@@ -12,6 +12,7 @@ import (
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/app/types"
+	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
@@ -59,13 +60,26 @@ func (tx *MsgEthereumTx) GetFrom() string {
 		if from == "" {
 			from, err := tx.firstVerifySig(tx.ChainID())
 			if err != nil {
-				tmtypes.SignatureCache().Add(tx.TxHash(), from)
-				tx.BaseTx.From = from
+				return ""
 			}
+			return from
 		}
 	}
 
 	return from
+}
+
+func (msg MsgEthereumTx) GetSender(ctx sdk.Context) string {
+	chainID, err := ethermint.ParseChainID(ctx.ChainID())
+	if err != nil {
+		return ""
+	}
+	err = msg.VerifySig(chainID, ctx.BlockHeight())
+	if err != nil {
+		return ""
+	}
+
+	return msg.BaseTx.GetFrom()
 }
 
 func (msg *MsgEthereumTx) GetNonce() uint64 {
@@ -79,7 +93,11 @@ func (msg *MsgEthereumTx) GetFee() sdk.Coins {
 }
 
 func (msg MsgEthereumTx) FeePayer(ctx sdk.Context) sdk.AccAddress {
-	err := msg.VerifySig(msg.ChainID(), ctx.BlockHeight())
+	chainID, err := ethermint.ParseChainID(ctx.ChainID())
+	if err != nil {
+		return nil
+	}
+	err = msg.VerifySig(chainID, ctx.BlockHeight())
 	if err != nil {
 		return nil
 	}
@@ -170,7 +188,7 @@ func (msg *MsgEthereumTx) To() *ethcmn.Address {
 // NOTE: This method panics if 'VerifySig' hasn't been called first.
 func (msg *MsgEthereumTx) GetSigners() []sdk.AccAddress {
 	addr := msg.AccountAddress()
-	if addr.Empty() {
+	if msg.BaseTx.From == "" || addr.Empty() {
 		panic("must use 'VerifySig' with a chain ID to get the from addr")
 	}
 	return []sdk.AccAddress{addr}

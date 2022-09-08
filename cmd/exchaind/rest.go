@@ -5,6 +5,7 @@ import (
 
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx"
+	"github.com/okex/exchain/x/wasm/proxy"
 
 	mintclient "github.com/okex/exchain/libs/cosmos-sdk/x/mint/client"
 	erc20client "github.com/okex/exchain/x/erc20/client"
@@ -54,7 +55,7 @@ func registerRoutes(rs *lcd.RestServer) {
 	}
 	registerRoutesV1(rs, pathPrefix)
 	registerRoutesV2(rs, pathPrefix)
-
+	proxy.SetCliContext(rs.CliCtx)
 }
 
 func registerGrpc(rs *lcd.RestServer) {
@@ -85,7 +86,9 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 	govrest.RegisterRoutes(rs.CliCtx, v1Router,
 		[]govrest.ProposalRESTHandler{
 			paramsclient.ProposalHandler.RESTHandler(rs.CliCtx),
-			distr.ProposalHandler.RESTHandler(rs.CliCtx),
+			distr.CommunityPoolSpendProposalHandler.RESTHandler(rs.CliCtx),
+			distr.ChangeDistributionTypeProposalHandler.RESTHandler(rs.CliCtx),
+			distr.WithdrawRewardEnabledProposalHandler.RESTHandler(rs.CliCtx),
 			dexclient.DelistProposalHandler.RESTHandler(rs.CliCtx),
 			farmclient.ManageWhiteListProposalHandler.RESTHandler(rs.CliCtx),
 			evmclient.ManageContractDeploymentWhitelistProposalHandler.RESTHandler(rs.CliCtx),

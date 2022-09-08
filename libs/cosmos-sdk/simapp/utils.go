@@ -39,7 +39,7 @@ func SetupSimulation(dirPrefix, dbName string) (simulation.Config, dbm.DB, strin
 		return simulation.Config{}, nil, "", nil, false, err
 	}
 
-	db, err := sdk.NewLevelDB(dbName, dir)
+	db, err := sdk.NewDB(dbName, dir)
 	if err != nil {
 		return simulation.Config{}, nil, "", nil, false, err
 	}

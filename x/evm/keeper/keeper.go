@@ -5,13 +5,13 @@ import (
 	"math/big"
 	"sync"
 
-	app "github.com/okex/exchain/app/types"
-
 	"github.com/VictoriaMetrics/fastcache"
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/prque"
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	lru "github.com/hashicorp/golang-lru"
+	app "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
@@ -22,6 +22,11 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/okex/exchain/x/params"
+)
+
+const (
+	heightCacheLimit = 1024
+	hashCacheLimit   = 1024
 )
 
 // Keeper wraps the CommitStateDB, allowing us to pass in SDK context while adhering
@@ -75,6 +80,9 @@ type Keeper struct {
 	hooks   types.EvmHooks
 	logger  log.Logger
 	Watcher *watcher.Watcher
+
+	heightCache *lru.Cache // Cache for the most recent block heights
+	hashCache   *lru.Cache // Cache for the most recent block hash
 }
 
 type chainConfigInfo struct {
@@ -106,6 +114,8 @@ func NewKeeper(
 		types.InitIndexer(db)
 	}
 	logger = logger.With("module", types.ModuleName)
+	heightCache, _ := lru.New(heightCacheLimit)
+	hashCache, _ := lru.New(hashCacheLimit)
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
 	k := &Keeper{
 		cdc:           cdc,
@@ -128,13 +138,14 @@ func NewKeeper(
 		LogsManages:    NewLogManager(),
 		logger:         logger,
 		Watcher:        watcher.NewWatcher(logger),
+		heightCache:    heightCache,
+		hashCache:      hashCache,
 	}
-	k.Watcher.SetWatchDataFunc()
+	k.Watcher.SetWatchDataManager()
 	ak.SetObserverKeeper(k)
 
 	k.OpenTrie()
 	k.EvmStateDb = types.NewCommitStateDB(k.GenerateCSDBParams())
-
 	return k
 }
 
@@ -142,6 +153,8 @@ func NewKeeper(
 func NewSimulateKeeper(
 	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace types.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper, ada types.DbAdapter,
 	logger log.Logger) *Keeper {
+	heightCache, _ := lru.New(heightCacheLimit)
+	hashCache, _ := lru.New(hashCacheLimit)
 	// NOTE: we pass in the parameter space to the CommitStateDB in order to use custom denominations for the EVM operations
 	k := &Keeper{
 		cdc:           cdc,
@@ -160,6 +173,8 @@ func NewSimulateKeeper(
 		triegc:         prque.New(nil),
 		UpdatedAccount: make([]ethcmn.Address, 0),
 		cci:            &chainConfigInfo{},
+		heightCache:    heightCache,
+		hashCache:      hashCache,
 	}
 
 	k.OpenTrie()
@@ -169,7 +184,7 @@ func NewSimulateKeeper(
 }
 
 // Warning, you need to use pointer object here, for you need to update UpdatedAccount var
-func (k *Keeper) OnAccountUpdated(acc auth.Account, updateState bool) {
+func (k *Keeper) OnAccountUpdated(acc auth.Account) {
 	if _, ok := acc.(*app.EthAccount); ok {
 		k.Watcher.DeleteAccount(acc.GetAddress())
 	}
@@ -222,14 +237,18 @@ func (k Keeper) GetStoreKey() store.StoreKey {
 //  TODO: remove once tendermint support block queries by hash.
 // ----------------------------------------------------------------------------
 
-// GetBlockHash gets block height from block consensus hash
-func (k Keeper) GetBlockHash(ctx sdk.Context, hash []byte) (int64, bool) {
+// GetBlockHeight gets block height from block consensus hash
+func (k Keeper) GetBlockHeight(ctx sdk.Context, hash ethcmn.Hash) (int64, bool) {
+	if cached, ok := k.heightCache.Get(hash.Hex()); ok {
+		height := cached.(int64)
+		return height, true
+	}
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
-		return k.getBlockHashInDiskDB(hash)
+		return k.getBlockHashInDiskDB(hash.Bytes())
 	}
 
 	store := k.Ada.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixBlockHash)
-	bz := store.Get(hash)
+	bz := store.Get(hash.Bytes())
 	if len(bz) == 0 {
 		return 0, false
 	}
@@ -238,8 +257,8 @@ func (k Keeper) GetBlockHash(ctx sdk.Context, hash []byte) (int64, bool) {
 	return int64(height), true
 }
 
-// SetBlockHash sets the mapping from block consensus hash to block height
-func (k Keeper) SetBlockHash(ctx sdk.Context, hash []byte, height int64) {
+// SetBlockHeight sets the mapping from block consensus hash to block height
+func (k Keeper) SetBlockHeight(ctx sdk.Context, hash []byte, height int64) {
 	if tmtypes.HigherThanMars(ctx.BlockHeight()) {
 		k.setBlockHashInDiskDB(hash, height)
 		return
@@ -276,6 +295,10 @@ func (k Keeper) IterateBlockHash(ctx sdk.Context, fn func(key []byte, value []by
 
 // GetHeightHash returns the block header hash associated with a given block height and chain epoch number.
 func (k Keeper) GetHeightHash(ctx sdk.Context, height uint64) ethcmn.Hash {
+	if cached, ok := k.hashCache.Get(int64(height)); ok {
+		hash := cached.(string)
+		return ethcmn.HexToHash(hash)
+	}
 	return types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx).GetHeightHash(height)
 }
 
@@ -475,4 +498,10 @@ func (k *Keeper) CallEvmHooks(ctx sdk.Context, from ethcmn.Address, to *ethcmn.A
 		return nil
 	}
 	return k.hooks.PostTxProcessing(ctx, from, to, receipt)
+}
+
+// Add latest block height and hash to lru cache
+func (k *Keeper) AddHeightHashToCache(height int64, hash string) {
+	k.heightCache.Add(hash, height)
+	k.hashCache.Add(height, hash)
 }

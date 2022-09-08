@@ -1056,7 +1056,7 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) ethcmn.Hash
 		if obj := csdb.stateObjects[addr]; obj.deleted {
 			csdb.deleteStateObject(obj)
 		} else {
-			csdb.updateStateObject(obj, true)
+			csdb.updateStateObject(obj)
 		}
 		//usedAddrs = append(usedAddrs, ethcmn.CopyBytes(addr[:])) // Copy needed for closure
 	}
@@ -1072,7 +1072,7 @@ func (csdb *CommitStateDB) IntermediateRoot(deleteEmptyObjects bool) ethcmn.Hash
 }
 
 // updateStateObject writes the given state object to the store.
-func (csdb *CommitStateDB) updateStateObject(so *stateObject, fromCommit bool) error {
+func (csdb *CommitStateDB) updateStateObject(so *stateObject) error {
 	// NOTE: we don't use sdk.NewCoin here to avoid panic on test importer's genesis
 	newBalance := sdk.Coin{Denom: sdk.DefaultBondDenom, Amount: sdk.NewDecFromBigIntWithPrec(so.Balance(), sdk.Precision)} // int2dec
 	if !newBalance.IsValid() {
@@ -1094,8 +1094,7 @@ func (csdb *CommitStateDB) updateStateObject(so *stateObject, fromCommit bool) e
 		return err
 	}
 
-	updateState := fromCommit && csdb.ctx.IsDeliver()
-	csdb.accountKeeper.SetAccount(csdb.ctx, so.account, updateState)
+	csdb.accountKeeper.SetAccount(csdb.ctx, so.account)
 	if !csdb.ctx.IsCheckTx() {
 		if csdb.ctx.GetWatcher().Enabled() {
 			csdb.ctx.GetWatcher().SaveAccount(so.account)
@@ -1583,11 +1582,11 @@ func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.Ac
 		bs = csdb.dbAdapter.NewStore(csdb.ctx.KVStore(csdb.storeKey), KeyPrefixContractBlockedList)
 	}
 
-	value := bs.Get(contractAddr)
-	if value == nil {
+	if ok := bs.Has(contractAddr); !ok {
 		// address is not exist
 		return nil
 	} else {
+		value := bs.Get(contractAddr)
 		methods := ContractMethods{}
 		var bc *BlockedContract
 		if len(value) == 0 {
