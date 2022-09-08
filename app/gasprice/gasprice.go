@@ -59,7 +59,7 @@ func NewOracle(params GPOConfig) *Oracle {
 func (gpo *Oracle) RecommendGP() *big.Int {
 	// todo
 	// If the latest gasprice is still available, return it.
-	// rpc.GetChainHeight(ctx)
+	//rpc.GetChainHeight(ctx)
 
 	lastPrice := gpo.lastPrice
 
