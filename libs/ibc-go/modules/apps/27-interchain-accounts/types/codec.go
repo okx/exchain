@@ -1,10 +1,9 @@
 package types
 
 import (
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 )
 
@@ -26,7 +25,7 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 // SerializeCosmosTx serializes a slice of sdk.Msg's using the CosmosTx type. The sdk.Msg's are
 // packed into Any's and inserted into the Messages field of a CosmosTx. The proto marshaled CosmosTx
 // bytes are returned. Only the ProtoCodec is supported for serializing messages.
-func SerializeCosmosTx(cdc *codec.CodecProxy, msgs []types.MsgProtoAdapter) (bz []byte, err error) {
+func SerializeCosmosTx(cdc *codec.CodecProxy, msgs []sdk.MsgProtoAdapter) (bz []byte, err error) {
 	// only ProtoCodec is supported
 
 	msgAnys := make([]*codectypes.Any, len(msgs))
@@ -53,17 +52,17 @@ func SerializeCosmosTx(cdc *codec.CodecProxy, msgs []types.MsgProtoAdapter) (bz 
 // DeserializeCosmosTx unmarshals and unpacks a slice of transaction bytes
 // into a slice of sdk.Msg's. Only the ProtoCodec is supported for message
 // deserialization.
-func DeserializeCosmosTx(cdc *codec.CodecProxy, data []byte) ([]sdk.Msg, error) {
+func DeserializeCosmosTx(cdc *codec.CodecProxy, data []byte) ([]sdk.MsgProtoAdapter, error) {
 	// only ProtoCodec is supported
 	var cosmosTx CosmosTx
 	if err := cdc.GetProtocMarshal().Unmarshal(data, &cosmosTx); err != nil {
 		return nil, err
 	}
 
-	msgs := make([]sdk.Msg, len(cosmosTx.Messages))
+	msgs := make([]sdk.MsgProtoAdapter, len(cosmosTx.Messages))
 
 	for i, any := range cosmosTx.Messages {
-		var msg sdk.Msg
+		var msg sdk.MsgProtoAdapter
 
 		err := cdc.GetProtocMarshal().UnpackAny(any, &msg)
 		if err != nil {

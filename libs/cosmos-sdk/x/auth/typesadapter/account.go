@@ -10,6 +10,15 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
+// TODO,这里的整个移到 legacy中吧?
+// NewBaseAccountWithAddress - returns a new base account with a given address
+// leaving AccountNumber and Sequence to zero.
+func NewBaseAccountWithAddress(addr sdk.AccAddress) *BaseAccount {
+	return &BaseAccount{
+		Address: addr.String(),
+	}
+}
+
 // NewBaseAccount creates a new BaseAccount object
 //nolint:interfacer
 func NewBaseAccount(address sdk.AccAddress, pubKey cryptotypes.PubKey, accountNumber, sequence uint64) *BaseAccount {
