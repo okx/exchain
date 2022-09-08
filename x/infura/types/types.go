@@ -152,7 +152,7 @@ type TransactionReceipt struct {
 type TransactionLog struct {
 	gorm.Model
 	Address              string `gorm:"type:varchar(42);index;not null"`
-	Data                 string `gorm:"type:text"`
+	Data                 string `gorm:"-"`
 	TransactionHash      string `gorm:"type:varchar(66)"`
 	TransactionIndex     uint64 `gorm:"type:int(11)"`
 	LogIndex             uint64 `gorm:"type:int(11)"`
@@ -193,7 +193,7 @@ type Transaction struct {
 	Gas         uint64 `gorm:"type:int(11)"`
 	GasPrice    string `gorm:"type:varchar(66)"`
 	Hash        string `gorm:"type:varchar(66)"`
-	Input       string `gorm:"type:text"`
+	Input       string `gorm:"-"`
 	Nonce       uint64 `gorm:"type:int(11)"`
 	To          string `gorm:"type:varchar(42)"`
 	Index       uint64 `gorm:"type:int(11)"`
