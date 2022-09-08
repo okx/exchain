@@ -80,9 +80,11 @@ func (info *DeltaInfo) bytes2DeltaInfo(pl *types.DeltaPayload) error {
 	if err != nil {
 		return err
 	}
-	info.watchData, err = evmWatchDataManager.UnmarshalWatchData(pl.WatchBytes)
-	if err != nil {
-		return err
+	if types.FastQuery {
+		info.watchData, err = evmWatchDataManager.UnmarshalWatchData(pl.WatchBytes)
+		if err != nil {
+			return err
+		}
 	}
 	info.wasmWatchData, err = wasmWatchDataManager.UnmarshalWatchData(pl.WasmWatchBytes)
 	if err != nil {

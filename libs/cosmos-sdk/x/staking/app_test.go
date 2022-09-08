@@ -132,6 +132,10 @@ func TestStakingMsgs(t *testing.T) {
 	accs := []authexported.Account{acc1, acc2}
 
 	mock.SetGenesis(mApp, accs)
+	mApp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: mApp.LastBlockHeight() + 1}})
+	mApp.EndBlock(abci.RequestEndBlock{})
+	mApp.Commit(abci.RequestCommit{})
+
 	mock.CheckBalance(t, mApp, addr1, sdk.Coins{genCoin})
 	mock.CheckBalance(t, mApp, addr2, sdk.Coins{genCoin})
 

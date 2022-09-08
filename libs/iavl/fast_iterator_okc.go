@@ -18,10 +18,11 @@ func NewFastIteratorWithCache(start, end []byte, ascending bool, ndb *nodeDB) *F
 		return iter
 	}
 	var fnc *fastNodeChanges
+
 	if ndb.tpfv != nil {
 		fnc = ndb.tpfv.expand(ndb.prePersistFastNode)
 	} else {
-		fnc = ndb.prePersistFastNode
+		fnc = ndb.prePersistFastNode.clone()
 	}
 
 	iter.UnsavedFastIterator = newUnsavedFastIterator(start, end, ascending, ndb, fnc.additions, fnc.removals)

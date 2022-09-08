@@ -6,6 +6,7 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/tendermint/rpc/client"
 	dbm "github.com/okex/exchain/libs/tm-db"
 )
 
@@ -211,4 +212,8 @@ func (app *BaseApp) SetGetTxFeeHandler(handler sdk.GetTxFeeHandler) {
 		panic("SetGetTxFeeHandler() on sealed BaseApp")
 	}
 	app.getTxFeeHandler = handler
+}
+
+func (app *BaseApp) SetTmClient(client client.Client) {
+	app.tmClient = client
 }
