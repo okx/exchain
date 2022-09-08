@@ -273,13 +273,16 @@ func RawTxResultToEthReceipt(chainID *big.Int, tr *ctypes.ResultTx, realTx sdk.T
 		return nil, fmt.Errorf("invalid transaction type %T, expected %T", realTx, evmtypes.MsgEthereumTx{})
 	}
 
-	//err := ethTx.VerifySig(chainID, tr.Height)
-	from, err := GetEthSender(tr)
-	if err != nil {
-		return nil, err
+	// try to get from event
+	if from, err := GetEthSender(tr); err == nil {
+		ethTx.BaseTx.From = from
+	} else {
+		// try to get from sig
+		err := ethTx.VerifySig(chainID, tr.Height)
+		if err != nil {
+			return nil, err
+		}
 	}
-
-	ethTx.BaseTx.From = from
 
 	// Set status codes based on tx result
 	var status = hexutil.Uint64(0)
