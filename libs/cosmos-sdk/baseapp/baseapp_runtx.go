@@ -154,6 +154,9 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	}()
 
 	if err := validateBasicTxMsgs(info.tx.GetMsgs()); err != nil {
+		println("===============:")
+		println("====执行msg失败:", err, mode)
+		println("=============== :")
 		return err
 	}
 	app.pin(trace.ValTxMsgs, false, mode)

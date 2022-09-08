@@ -12,7 +12,7 @@ import (
 
 const (
 	// Update the validator set every 252 blocks by default
-	DefaultBlocksPerEpoch = 252
+	DefaultBlocksPerEpoch = 10
 
 	// Default maximum number of validators to vote
 	DefaultMaxValsToVote = 30
