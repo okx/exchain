@@ -654,11 +654,9 @@ func (app *OKExChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBloc
 // EndBlocker updates every end block
 func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
 	if appconfig.GetOecConfig().GetEnableDynamicGp() {
-		//todo
-		//GlobalGpIndex = CalBlockGasPriceIndex(app.gpo.CurrentBlockGPs, appconfig.GetOecConfig().GetDynamicGpWeight())
 		app.gpo.BlockGPQueue.Push(app.gpo.CurrentBlockGPs)
-		app.gpo.CurrentBlockGPs.Clear()
 		GlobalGp = app.gpo.RecommendGP()
+		app.gpo.CurrentBlockGPs.Clear()
 	}
 
 	return app.mm.EndBlock(ctx, req)

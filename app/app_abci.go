@@ -30,6 +30,7 @@ func (app *OKExChainApp) DeliverTx(req abci.RequestDeliverTx) (res abci.Response
 		if err == nil {
 			//optimize get tx gas price can not get value from verifySign method
 			app.gpo.CurrentBlockGPs.AddGP(tx.GetGasPrice())
+			app.gpo.CurrentBlockGPs.AddGas(tx.GetGas())
 		}
 	}
 
@@ -54,6 +55,7 @@ func (app *OKExChainApp) DeliverRealTx(req abci.TxEssentials) (res abci.Response
 		if err == nil {
 			//optimize get tx gas price can not get value from verifySign method
 			app.gpo.CurrentBlockGPs.AddGP(tx.GetGasPrice())
+			app.gpo.CurrentBlockGPs.AddGas(tx.GetGas())
 		}
 	}
 

@@ -57,9 +57,17 @@ func NewOracle(params GPOConfig) *Oracle {
 }
 
 func (gpo *Oracle) RecommendGP() *big.Int {
-	// todo
-	// If the latest gasprice is still available, return it.
-	//rpc.GetChainHeight(ctx)
+	maxGasUsed := appconfig.GetOecConfig().GetMaxGasUsedPerBlock()
+	if maxGasUsed > -1 && gpo.CurrentBlockGPs.GetGasUsed() < uint64(maxGasUsed) {
+		return defaultPrice
+	}
+	// If the number of tx in the current block is less than the MaxTxNumPerBlock in mempool config,
+	// the default gas price is returned.
+	allGPsLen := int64(len(gpo.CurrentBlockGPs.GetAll()))
+	maxTxNum := appconfig.GetOecConfig().GetMaxTxNumPerBlock()
+	if allGPsLen < maxTxNum {
+		return defaultPrice
+	}
 
 	lastPrice := gpo.lastPrice
 

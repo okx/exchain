@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	checkBlocks  = 15
+	checkBlocks  = 5
 	sampleNumber = 3 // Number of transactions sampled in a block
 )
 
@@ -22,12 +22,15 @@ type SingleBlockGPs struct {
 	all []*big.Int
 	// gas price of transactions sampled in a block
 	sampled []*big.Int
+	// total gas of all tx in the block
+	gasUsed uint64
 }
 
 func NewSingleBlockGPs() SingleBlockGPs {
 	return SingleBlockGPs{
 		all:     make([]*big.Int, 0),
 		sampled: make([]*big.Int, 0),
+		gasUsed: 0,
 	}
 }
 
@@ -39,6 +42,10 @@ func (bgp *SingleBlockGPs) GetSampled() []*big.Int {
 	return bgp.sampled
 }
 
+func (bgp *SingleBlockGPs) GetGasUsed() uint64 {
+	return bgp.gasUsed
+}
+
 func (bgp *SingleBlockGPs) AddGP(gp *big.Int) {
 	bgp.all = append(bgp.all, gp)
 }
@@ -47,9 +54,14 @@ func (bgp *SingleBlockGPs) AddSampledGP(gp *big.Int) {
 	bgp.sampled = append(bgp.sampled, gp)
 }
 
+func (bgp *SingleBlockGPs) AddGas(gas uint64) {
+	bgp.gasUsed += gas
+}
+
 func (bgp *SingleBlockGPs) Clear() {
 	bgp.all = bgp.all[:0]
 	bgp.sampled = bgp.sampled[:0]
+	bgp.gasUsed = 0
 }
 
 func (bgp *SingleBlockGPs) SampleGP() {

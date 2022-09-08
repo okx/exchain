@@ -7,11 +7,14 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 	"github.com/stretchr/testify/require"
 
+	appconfig "github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/types"
 )
 
-func TestRecommendGP(t *testing.T) {
+func TestOracle_RecommendGP(t *testing.T) {
 	t.Run("case 1", func(t *testing.T) {
+		appconfig.GetOecConfig().SetMaxTxNumPerBlock(300)
+		appconfig.GetOecConfig().SetMaxGasUsedPerBlock(1000000)
 		var testRecommendGP *big.Int
 		config := NewGPOConfig(80, defaultPrice)
 		gpo := NewOracle(config)
@@ -22,16 +25,20 @@ func TestRecommendGP(t *testing.T) {
 			for i := 0; i < gpNum; i++ {
 				gp := big.NewInt(coefficient + params.GWei)
 				gpo.CurrentBlockGPs.AddGP(gp)
+				gpo.CurrentBlockGPs.AddGas(1)
 				coefficient--
 			}
 			gpo.BlockGPQueue.Push(gpo.CurrentBlockGPs)
-			gpo.CurrentBlockGPs.Clear()
 			testRecommendGP = gpo.RecommendGP()
+			gpo.CurrentBlockGPs.Clear()
 			require.NotNil(t, testRecommendGP)
 		}
 	})
 	t.Run("case 2", func(t *testing.T) {
 		// Case 2 reproduces the problem of GP increase when the OKC's block height is 13527188
+		appconfig.GetOecConfig().SetMaxTxNumPerBlock(300)
+		appconfig.GetOecConfig().SetMaxGasUsedPerBlock(500000)
+
 		var testRecommendGP *big.Int
 		config := NewGPOConfig(80, defaultPrice)
 		gpo := NewOracle(config)
@@ -76,6 +83,7 @@ func TestRecommendGP(t *testing.T) {
 }
 
 func BenchmarkRecommendGP(b *testing.B) {
+	appconfig.GetOecConfig().SetMaxTxNumPerBlock(300)
 	config := NewGPOConfig(80, defaultPrice)
 	gpo := NewOracle(config)
 	coefficient := int64(2000000)
