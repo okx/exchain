@@ -52,6 +52,8 @@ func GetACFlag() {
 		if gap != 0 {
 			SetCommitGapHeight(gap)
 		}
+		// for test
+		go StaticMemory()
 	})
 }
 
