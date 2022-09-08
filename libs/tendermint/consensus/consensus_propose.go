@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+	"time"
 
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
@@ -158,13 +159,19 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 	propBlockID := types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()}
 	proposal := types.NewProposal(height, round, cs.ValidRound, propBlockID)
 	proposal.HasVC = cs.hasVC
+	s := time.Now()
 	if err := cs.privValidator.SignProposal(cs.state.ChainID, proposal); err == nil {
-
+		signT := time.Now()
 		// send proposal and block parts on internal msg queue
 		cs.sendInternalMessage(msgInfo{&ProposalMessage{proposal}, ""})
+		channelT1 := time.Now()
 		for i := 0; i < blockParts.Total(); i++ {
 			part := blockParts.GetPart(i)
 			cs.sendInternalMessage(msgInfo{&BlockPartMessage{cs.Height, cs.Round, part}, ""})
+		}
+		channelT2 := time.Now()
+		if channelT2.Sub(s).Seconds() > 1 {
+			cs.Logger.Error("Crazy Propose cost:", "s", s, "signT", signT, "channelT1", channelT1, "channelT2", channelT2)
 		}
 		cs.Logger.Info("Signed proposal", "height", height, "round", round, "proposal", proposal)
 		cs.Logger.Debug(fmt.Sprintf("Signed proposal block: %v", block))

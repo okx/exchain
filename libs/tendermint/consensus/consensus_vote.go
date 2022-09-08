@@ -288,12 +288,18 @@ func (cs *State) signAddVote(msgType types.SignedMsgType, hash []byte, header ty
 	}
 
 	// TODO: pass pubKey to signVote
+	s := time.Now()
 	vote, err := cs.signVote(msgType, hash, header)
+	signT := time.Now()
 	if err == nil {
 		//broadcast vote immediately
 		cs.evsw.FireEvent(types.EventSignVote, vote)
+		eT := time.Now()
 		cs.sendInternalMessage(msgInfo{&VoteMessage{vote}, ""})
-		cs.Logger.Info("Signed and pushed vote", "height", cs.Height, "round", cs.Round, "vote", vote, "err", err)
+		channelT := time.Now()
+		if channelT.Sub(s).Seconds() > 1 {
+			cs.Logger.Error("Crazy Vote cost:", "s", s, "signT", signT, "eT", eT, "channelT", channelT)
+		}
 		return vote
 	}
 	if !cs.replayMode {
