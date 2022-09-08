@@ -1,8 +1,10 @@
 package watcher
 
 import (
+	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/x/evm/types"
 	"github.com/stretchr/testify/require"
 	"sync"
 	"testing"
@@ -225,4 +227,88 @@ func TestStatistic(t *testing.T) {
 		structsize := float64(v.structSize) / float64(1024*1024)
 		fmt.Printf("**** lyh ****** static %s, count %d, dbSize %.3f, structSize %.3f \n", k, v.count, dbsize, structsize)
 	}
+}
+
+func TestTransactionReceiptSize(t *testing.T) {
+	tx1 := &TransactionReceipt{
+		TransactionHash: "11111111111111111111111111111111111111111",
+		tx: &types.MsgEthereumTx{
+			Data: types.TxData{Payload: []byte("222222222222222222222")},
+		},
+	}
+	tx2 := &TransactionReceipt{
+		TransactionHash: "11111111111111111111111111111111111111111",
+		tx: &types.MsgEthereumTx{
+			Data: types.TxData{Payload: []byte("222222222222222222222")},
+		},
+	}
+	fmt.Println(getSize(tx1), getSize(tx2))
+
+	//prefixAccount 21
+	//PrefixState 53
+	//prefixTx 33
+	//prefixReceipt 33
+
+	//**** lyh ****** static prefixReceipt, count 20000, dbSize 21.702, structSize 42.503
+	//**** lyh ****** static prefixAccount, count 3473, dbSize 0.263, structSize 0.584
+	//**** lyh ****** static prefixLatestHeight, count 1, dbSize 0.000, structSize 0.000
+	//**** lyh ****** static prefixBlockInfo, count 1, dbSize 0.000, structSize 0.000
+	//**** lyh ****** static prefixRpcDb, count 2559, dbSize 0.054, structSize 0.200
+	//**** lyh ****** static prefixTx, count 20000, dbSize 8.052, structSize 22.866
+	//**** lyh ****** static PrefixState, count 23084, dbSize 1.871, structSize 3.082
+	//**** lyh ****** static prefixBlock, count 1, dbSize 1.317, structSize 1.317
+	//**** lyh ****** static prefixParams, count 1, dbSize 0.000, structSize 0.000
+
+	num := 10
+	txcount := 20000 * num
+	stcount := 23000 * num
+	recount := 20000 * num
+	accCount := 3500 * num
+	rpcCount := 2500 * num
+	n := newMessageCache()
+
+	var batchs []*Batch
+	for i := 0; i < (txcount + recount); i++ {
+		batchs = append(batchs, &Batch{
+			Key:       randBytes(33),
+			Value:     nil,
+			TypeValue: 0,
+		})
+	}
+
+	for i := 0; i < stcount; i++ {
+		batchs = append(batchs, &Batch{
+			Key:       randBytes(53),
+			Value:     nil,
+			TypeValue: 0,
+		})
+	}
+
+	for i := 0; i < accCount; i++ {
+		batchs = append(batchs, &Batch{
+			Key:       randBytes(21),
+			Value:     nil,
+			TypeValue: 0,
+		})
+	}
+
+	for i := 0; i < rpcCount; i++ {
+		batchs = append(batchs, &Batch{
+			Key:       randBytes(53),
+			Value:     nil,
+			TypeValue: 0,
+		})
+	}
+	printmem()
+	n.BatchSetEx(batchs)
+	printmem()
+
+	// ******lyh****** Alloc 94.79 MB
+	// ******lyh****** Alloc 229.93 MB
+}
+
+func randBytes(numBytes int) []byte {
+	b := make([]byte, numBytes)
+	_, _ = rand.Read(b)
+	return b
 }

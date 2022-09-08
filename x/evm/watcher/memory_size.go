@@ -173,12 +173,16 @@ func getSize1(v interface{}) int {
 
 func StaticMemory() {
 	for {
-
-		var mem runtime.MemStats
-		runtime.ReadMemStats(&mem)
-		asize := mem.Alloc
-		mb := float64(asize) / (1024 * 1024)
-		fmt.Printf("******lyh****** Alloc %.2f \n", mb)
+		printmem()
 		time.Sleep(time.Second * 10)
 	}
+}
+
+func printmem() {
+	var mem runtime.MemStats
+	runtime.ReadMemStats(&mem)
+	asize := mem.Alloc
+	mb := float64(asize) / (1024 * 1024)
+	sys := float64(mem.Sys) / (1024 * 1024)
+	fmt.Printf("******lyh****** Alloc %.2f MB, Sys %.2f \n", mb, sys)
 }
