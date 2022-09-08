@@ -5,14 +5,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+	"github.com/tendermint/go-amino"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/types"
 	"github.com/okex/exchain/x/staking"
 	stakingexported "github.com/okex/exchain/x/staking/exported"
-	"github.com/stretchr/testify/require"
-	"github.com/tendermint/go-amino"
 )
 
 func getQueriedValidatorOutstandingRewards(t *testing.T, ctx sdk.Context, querier sdk.Querier,
@@ -28,17 +29,17 @@ func getQueriedValidatorOutstandingRewards(t *testing.T, ctx sdk.Context, querie
 }
 
 func getQueriedValidatorCommission(t *testing.T, ctx sdk.Context, querier sdk.Querier,
-	validatorAddr sdk.ValAddress) (validatorCommission sdk.DecCoins) {
+	validatorAddr sdk.ValAddress) sdk.DecCoins {
 	bz, err := amino.MarshalJSON(types.NewQueryValidatorCommissionParams(validatorAddr))
 	require.NoError(t, err)
 
 	result, err := querier(ctx, []string{types.QueryValidatorCommission}, abci.RequestQuery{Data: bz})
 	require.NoError(t, err)
-
-	err = amino.UnmarshalJSON(result, &validatorCommission)
+	var commission types.QueryValidatorCommissionResponse
+	err = amino.UnmarshalJSON(result, &commission)
 	require.NoError(t, err)
 
-	return validatorCommission
+	return commission.Commission
 }
 
 func getQueriedDelegatorTotalRewards(t *testing.T, ctx sdk.Context, querier sdk.Querier,
