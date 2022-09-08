@@ -199,7 +199,7 @@ func dumpMemPprof(size int) error {
 		return fmt.Errorf("create mem pprof file %s error: %w", fileName, err)
 	}
 	defer f.Close()
-	runtime.GC() // get up-to-date statistics
+	//runtime.GC() // get up-to-date statistics
 	if err = pprof.WriteHeapProfile(f); err != nil {
 		return fmt.Errorf("could not write memory profile: %w", err)
 	}
