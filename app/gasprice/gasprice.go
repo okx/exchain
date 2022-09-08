@@ -58,7 +58,9 @@ func NewOracle(params GPOConfig) *Oracle {
 
 func (gpo *Oracle) RecommendGP() *big.Int {
 	maxGasUsed := appconfig.GetOecConfig().GetMaxGasUsedPerBlock()
-	if maxGasUsed > -1 && gpo.CurrentBlockGPs.GetGasUsed() < uint64(maxGasUsed) {
+	// If maxGasUsed is not negative and the current block's total gas consumption is
+	// less than 80% of it, then we consider the chain to be uncongested and return defaultPrice.
+	if maxGasUsed > -1 && gpo.CurrentBlockGPs.GetGasUsed() < uint64(maxGasUsed*80/100) {
 		return defaultPrice
 	}
 	// If the number of tx in the current block is less than the MaxTxNumPerBlock in mempool config,

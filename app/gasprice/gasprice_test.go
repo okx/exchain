@@ -25,13 +25,15 @@ func TestOracle_RecommendGP(t *testing.T) {
 			for i := 0; i < gpNum; i++ {
 				gp := big.NewInt(coefficient + params.GWei)
 				gpo.CurrentBlockGPs.AddGP(gp)
-				gpo.CurrentBlockGPs.AddGas(1)
+				gpo.CurrentBlockGPs.AddGas(35) // chain is uncongested
+				//gpo.CurrentBlockGPs.AddGas(45) // chain is congested
 				coefficient--
 			}
 			gpo.BlockGPQueue.Push(gpo.CurrentBlockGPs)
 			testRecommendGP = gpo.RecommendGP()
 			gpo.CurrentBlockGPs.Clear()
 			require.NotNil(t, testRecommendGP)
+			//fmt.Println(testRecommendGP)
 		}
 	})
 	t.Run("case 2", func(t *testing.T) {
