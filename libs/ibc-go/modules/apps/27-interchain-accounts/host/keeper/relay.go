@@ -1,7 +1,6 @@
 package keeper
 
 import (
-	_ "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gogo/protobuf/proto"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
