@@ -2,8 +2,10 @@ package watcher
 
 import (
 	"fmt"
+	"os"
 	"reflect"
 	"runtime"
+	"runtime/pprof"
 	"time"
 )
 
@@ -183,6 +185,23 @@ func printmem() {
 	runtime.ReadMemStats(&mem)
 	asize := mem.Alloc
 	mb := float64(asize) / (1024 * 1024)
-	sys := float64(mem.Sys) / (1024 * 1024)
+	if mb > float64(watcherMut*1000) {
+		dumpMemPprof(int(mb))
+	}
+	sys := float64(mem.HeapSys) / (1024 * 1024)
 	fmt.Printf("******lyh****** Alloc %.2f MB, Sys %.2f \n", mb, sys)
+}
+
+func dumpMemPprof(size int) error {
+	fileName := fmt.Sprintf("watchdb_pprof_%s.%d.mem.bin", time.Now().Format("20060102150405"), size)
+	f, err := os.Create(fileName)
+	if err != nil {
+		return fmt.Errorf("create mem pprof file %s error: %w", fileName, err)
+	}
+	defer f.Close()
+	runtime.GC() // get up-to-date statistics
+	if err = pprof.WriteHeapProfile(f); err != nil {
+		return fmt.Errorf("could not write memory profile: %w", err)
+	}
+	return nil
 }

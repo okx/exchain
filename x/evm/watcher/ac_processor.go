@@ -3,8 +3,6 @@ package watcher
 import (
 	"fmt"
 	"github.com/spf13/viper"
-	"runtime"
-	"runtime/debug"
 	"sync"
 	"time"
 )
@@ -137,13 +135,6 @@ func (ap *ACProcessor) PersistHander(commitFn func(epochCache *MessageCache)) {
 				gstat[k] = value
 			}
 		}
-
-		if watcherMut == -1 {
-			runtime.GC()
-		} else if watcherMut == -2 {
-			debug.FreeOSMemory()
-		}
-
 		ap.totalCommit += s
 		ap.totalRepeat += cmmiter.count - s
 		ap.total += cmmiter.count

@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"runtime"
+	"runtime/debug"
 	"strconv"
 	"sync"
 	"time"
@@ -503,6 +505,12 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 
 func (w *Watcher) AsyncCommitBatch(batch []WatchMessage) {
 	w.acProcessor.PersistHander(w.shouldCommitBatch)
+	if watcherMut == -1 {
+		runtime.GC()
+	} else if watcherMut == -2 {
+		runtime.GC()
+		debug.FreeOSMemory()
+	}
 	if w.checkWd {
 		keys := make([][]byte, len(batch))
 		for i, _ := range batch {
