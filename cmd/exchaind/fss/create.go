@@ -3,6 +3,7 @@ package fss
 import (
 	"fmt"
 	"log"
+	"path/filepath"
 
 	"github.com/okex/exchain/cmd/exchaind/base"
 	"github.com/okex/exchain/libs/iavl"
@@ -32,7 +33,7 @@ When the create lunched, it will show Upgrade to Fast IAVL...`,
 func createIndex(storeKeys []string) error {
 	dataDir := viper.GetString(flagDataDir)
 	dbBackend := viper.GetString(flagDBBackend)
-	db, err := base.OpenDB(dataDir+base.AppDBName, dbm.BackendType(dbBackend))
+	db, err := base.OpenDB(filepath.Join(dataDir, base.AppDBName), dbm.BackendType(dbBackend))
 	if err != nil {
 		return fmt.Errorf("error opening dir %v backend %v DB: %w", dataDir, dbBackend, err)
 	}

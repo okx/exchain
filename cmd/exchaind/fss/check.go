@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"path/filepath"
 
 	"github.com/okex/exchain/cmd/exchaind/base"
 	"github.com/okex/exchain/libs/iavl"
@@ -31,22 +32,28 @@ This command is a tool to check the IAVL fast index.`,
 func check(storeKeys []string) error {
 	dataDir := viper.GetString(flagDataDir)
 	dbBackend := viper.GetString(flagDBBackend)
-	db, err := base.OpenDB(dataDir+base.AppDBName, dbm.BackendType(dbBackend))
+	db, err := base.OpenDB(filepath.Join(dataDir, base.AppDBName), dbm.BackendType(dbBackend))
 	if err != nil {
 		return fmt.Errorf("error opening dir %v backend %v DB: %w", dataDir, dbBackend, err)
 	}
 	defer db.Close()
 
 	for _, key := range storeKeys {
-		log.Printf("Checking.... %v\n", key)
 		prefix := []byte(fmt.Sprintf("s/k:%s/", key))
-
 		prefixDB := dbm.NewPrefixDB(db, prefix)
+		if !isFastStorageStorage(prefixDB) {
+			return fmt.Errorf("db %v haven't upgraded to fast IAVL", key)
+		}
+		log.Printf("Checking.... %v\n", key)
 
 		mutableTree, err := iavl.NewMutableTree(prefixDB, 0)
 		if err != nil {
 			return err
 		}
+		if _, err := mutableTree.LoadVersion(0); err != nil {
+			return err
+		}
+
 		if err := checkIndex(mutableTree); err != nil {
 			return fmt.Errorf("%v iavl fast index not match %v", key, err.Error())
 		}
@@ -80,4 +87,8 @@ func checkIndex(mutableTree *iavl.MutableTree) error {
 	}
 
 	return nil
+}
+
+func isFastStorageStorage(prefixDB dbm.DB) bool {
+	return true
 }
