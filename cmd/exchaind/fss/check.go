@@ -12,6 +12,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+func init() {
+	fssCmd.AddCommand(checkCmd)
+}
+
 // checkCmd represents the create command
 var checkCmd = &cobra.Command{
 	Use:   "check",
@@ -19,16 +23,9 @@ var checkCmd = &cobra.Command{
 	Long: `Check fast index with IAVL original nodes:
 This command is a tool to check the IAVL fast index.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		iavl.SetEnableFastStorage(true)
 		storeKeys := getStoreKeys()
-		outputModules(storeKeys)
-
 		return check(storeKeys)
 	},
-}
-
-func init() {
-	fssCmd.AddCommand(checkCmd)
 }
 
 func check(storeKeys []string) error {

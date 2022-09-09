@@ -11,6 +11,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+func init() {
+	fssCmd.AddCommand(createCmd)
+}
+
 // createCmd represents the create command
 var createCmd = &cobra.Command{
 	Use:   "create",
@@ -23,10 +27,6 @@ When the create lunched, it will show Upgrade to Fast IAVL...`,
 		storeKeys := getStoreKeys()
 		return createIndex(storeKeys)
 	},
-}
-
-func init() {
-	fssCmd.AddCommand(createCmd)
 }
 
 func createIndex(storeKeys []string) error {

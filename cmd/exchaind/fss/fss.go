@@ -6,6 +6,7 @@ import (
 	"github.com/okex/exchain/libs/iavl"
 	"github.com/okex/exchain/x/evm"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 const (
@@ -34,6 +35,8 @@ include create sub command`,
 func init() {
 	fssCmd.PersistentFlags().StringP(flagDataDir, "d", "./", "The chain data file location")
 	fssCmd.PersistentFlags().String(flagDBBackend, "goleveldb", "Database backend: goleveldb | rocksdb")
+	viper.BindPFlag(flagDataDir, fssCmd.PersistentFlags().Lookup(flagDataDir))
+	viper.BindPFlag(flagDBBackend, fssCmd.PersistentFlags().Lookup(flagDBBackend))
 }
 
 func getStoreKeys() []string {
