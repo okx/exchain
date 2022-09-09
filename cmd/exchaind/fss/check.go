@@ -1,6 +1,7 @@
 package fss
 
 import (
+	"bytes"
 	"fmt"
 	"log"
 
@@ -22,7 +23,7 @@ This command is a tool to check the IAVL fast index.`,
 		storeKeys := getStoreKeys()
 		outputModules(storeKeys)
 
-		return checkIndex(storeKeys)
+		return check(storeKeys)
 	},
 }
 
@@ -30,7 +31,7 @@ func init() {
 	fssCmd.AddCommand(checkCmd)
 }
 
-func checkIndex(storeKeys []string) error {
+func check(storeKeys []string) error {
 	dataDir := viper.GetString(flagDataDir)
 	dbBackend := viper.GetString(flagDBBackend)
 	db, err := base.OpenDB(dataDir+base.AppDBName, dbm.BackendType(dbBackend))
@@ -45,10 +46,40 @@ func checkIndex(storeKeys []string) error {
 
 		prefixDB := dbm.NewPrefixDB(db, prefix)
 
-		_, err := iavl.NewMutableTree(prefixDB, 0)
+		mutableTree, err := iavl.NewMutableTree(prefixDB, 0)
 		if err != nil {
 			return err
 		}
+		if err := checkIndex(mutableTree); err != nil {
+			return fmt.Errorf("iavl fast index not match %v", err.Error())
+		}
+	}
+
+	return nil
+}
+
+func checkIndex(mutableTree *iavl.MutableTree) error {
+	fastIterator := mutableTree.Iterator(nil, nil, true)
+	defer fastIterator.Close()
+	iterator := iavl.NewIterator(nil, nil, true, mutableTree.ImmutableTree)
+	defer iterator.Close()
+
+	for fastIterator.Valid() && iterator.Valid() {
+		if bytes.Compare(fastIterator.Key(), iterator.Key()) != 0 ||
+			bytes.Compare(fastIterator.Value(), iterator.Value()) != 0 {
+			return fmt.Errorf("fast index key:%v value:%v, iavl node key:%v iavl node value:%v",
+				fastIterator.Key(), fastIterator.Value(), iterator.Key(), iterator.Value())
+		}
+		fastIterator.Next()
+		iterator.Next()
+	}
+
+	if fastIterator.Valid() {
+		return fmt.Errorf("fast index key:%v value:%v", fastIterator.Key(), fastIterator.Value())
+	}
+
+	if iterator.Valid() {
+		return fmt.Errorf("iavl node key:%v value:%v", iterator.Key(), iterator.Value())
 	}
 
 	return nil
