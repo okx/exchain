@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/okex/exchain/libs/tm-db/common"
 	"github.com/pkg/errors"
 
 	db "github.com/okex/exchain/libs/tm-db"
@@ -14,6 +15,7 @@ import (
 type RemoteDB struct {
 	ctx context.Context
 	dc  protodb.DBClient
+	common.PlaceHolder
 }
 
 func NewRemoteDB(serverAddr string, serverKey string) (*RemoteDB, error) {
