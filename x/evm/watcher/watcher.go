@@ -57,6 +57,15 @@ var (
 	watcherLruSize = 1000
 	onceEnable     sync.Once
 	onceLru        sync.Once
+	// this key prefix no repeat ,so no need ac process
+	noACkey = map[string]struct{}{
+		string(prefixTx):         {},
+		string(prefixReceipt):    {},
+		string(prefixTxResponse): {},
+		string(prefixStdTxHash):  {},
+		string(prefixBlock):      {},
+		string(prefixBlockInfo):  {},
+	}
 )
 
 func IsWatcherEnabled() bool {
@@ -349,14 +358,44 @@ func (w *Watcher) Commit() {
 	}
 
 	if GetEnableAsyncCommit() {
-		w.acProcessor.BatchSet(batch)
+		acBatch, noACBatch := ClassifyWatchMessageType(batch)
+		w.acProcessor.BatchSet(acBatch)
 		if w.IsShouldPersist() {
-			w.acProcessor.MoveToCommitList(int64(w.height)) // move curMsgCache to commitlist
-			w.dispatchJob(func() { w.AsyncCommitBatch(batch) })
+			// move curMsgCache to commitlist
+			w.acProcessor.MoveToCommitList(int64(w.height))
+			w.dispatchJob(func() {
+				w.commitBatch(noACBatch)
+				w.AsyncCommitBatch()
+			})
+		} else {
+			w.dispatchJob(func() { w.commitBatch(noACBatch) })
 		}
 	} else {
 		w.dispatchJob(func() { w.commitBatch(batch) })
 	}
+}
+
+func ClassifyWatchMessageType(batch []WatchMessage) ([]WatchMessage, []WatchMessage) {
+	var acBatch []WatchMessage
+	var noACBatch []WatchMessage
+	for _, b := range batch {
+		if IsNoACKey(b.GetKey()) {
+			noACBatch = append(noACBatch, b)
+		} else {
+			acBatch = append(acBatch, b)
+		}
+	}
+	return acBatch, noACBatch
+}
+
+func IsNoACKey(key []byte) bool {
+	if len(key) == 0 {
+		return false
+	}
+	if _, ok := noACkey[(string(key[:1]))]; ok {
+		return true
+	}
+	return false
 }
 
 func (w *Watcher) IsShouldPersist() bool {
@@ -401,23 +440,6 @@ func (w *Watcher) CommitWatchDataToCache(data WatchData) {
 	}
 	if data.DelayEraseKey != nil {
 		w.acProcessor.BatchDel(data.DelayEraseKey)
-	}
-}
-
-func (w *Watcher) AsyncCommitWatchData(data WatchData, shouldPersist bool) {
-	if data.BloomData != nil {
-		w.commitBloomData(data.BloomData)
-	}
-
-	if shouldPersist {
-		w.acProcessor.PersistHander(w.shouldCommitBatch)
-		if w.checkWd {
-			keys := make([][]byte, len(data.Batches))
-			for i, _ := range data.Batches {
-				keys[i] = data.Batches[i].Key
-			}
-			w.CheckWatchDB(keys, "consumer")
-		}
 	}
 }
 
@@ -470,15 +492,8 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 	}
 }
 
-func (w *Watcher) AsyncCommitBatch(batch []WatchMessage) {
+func (w *Watcher) AsyncCommitBatch() {
 	w.acProcessor.PersistHander(w.shouldCommitBatch)
-	if w.checkWd {
-		keys := make([][]byte, len(batch))
-		for i, _ := range batch {
-			keys[i] = batch[i].GetKey()
-		}
-		w.CheckWatchDB(keys, "producer")
-	}
 }
 
 func (w *Watcher) shouldCommitBatch(epochCache *MessageCache) {
@@ -577,20 +592,56 @@ func (w *Watcher) ApplyWatchData(watchData interface{}) {
 	}
 
 	if GetEnableAsyncCommit() {
-		w.CommitWatchDataToCache(wd)
-		shouldPersist := w.IsShouldPersist()
-		if shouldPersist {
+		acwd, noACwd := ClassifyWatchDataType(wd)
+		w.CommitWatchDataToCache(acwd)
+		if w.IsShouldPersist() {
 			w.acProcessor.MoveToCommitList(int64(w.height)) // move curMsgCache to commitlist
+			w.dispatchJob(func() {
+				w.CommitWatchData(noACwd)
+				w.AsyncCommitBatch()
+			})
+		} else {
+			w.dispatchJob(func() {
+				w.CommitWatchData(noACwd)
+			})
 		}
-		w.dispatchJob(func() {
-			w.AsyncCommitWatchData(wd, shouldPersist)
-		})
 	} else {
 		w.dispatchJob(func() {
 			w.CommitWatchData(wd)
 		})
 	}
 
+}
+
+func ClassifyWatchDataType(wd WatchData) (WatchData, WatchData) {
+	acBatch := WatchData{
+		DirtyAccount: wd.DirtyAccount,
+	}
+	noACBatch := WatchData{
+		BloomData: wd.BloomData,
+	}
+	for _, b := range wd.Batches {
+		if IsNoACKey(b.GetKey()) {
+			noACBatch.Batches = append(noACBatch.Batches, b)
+		} else {
+			acBatch.Batches = append(acBatch.Batches, b)
+		}
+	}
+	for _, b := range wd.DelayEraseKey {
+		if IsNoACKey(b) {
+			noACBatch.DelayEraseKey = append(noACBatch.DelayEraseKey, b)
+		} else {
+			acBatch.DelayEraseKey = append(acBatch.DelayEraseKey, b)
+		}
+	}
+	for _, b := range wd.DirtyList {
+		if IsNoACKey(b) {
+			noACBatch.DirtyList = append(noACBatch.DirtyList, b)
+		} else {
+			acBatch.DirtyList = append(acBatch.DirtyList, b)
+		}
+	}
+	return acBatch, noACBatch
 }
 
 func (w *Watcher) SetWatchDataManager() {
