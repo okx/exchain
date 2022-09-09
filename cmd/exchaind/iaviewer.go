@@ -14,27 +14,11 @@ import (
 	"sync"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
-	"github.com/okex/exchain/libs/tendermint/crypto"
-
-	"github.com/gogo/protobuf/proto"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-
-	"github.com/okex/exchain/x/gov"
-
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
-
-	"github.com/spf13/viper"
+	"github.com/gogo/protobuf/proto"
 
 	"github.com/okex/exchain/app"
-	minttypes "github.com/okex/exchain/libs/cosmos-sdk/x/mint"
-	supplytypes "github.com/okex/exchain/libs/cosmos-sdk/x/supply"
-	"github.com/okex/exchain/libs/iavl"
-	dbm "github.com/okex/exchain/libs/tm-db"
-	evmtypes "github.com/okex/exchain/x/evm/types"
-	slashingtypes "github.com/okex/exchain/x/slashing"
-	tokentypes "github.com/okex/exchain/x/token/types"
-	"github.com/spf13/cobra"
-
+	"github.com/okex/exchain/cmd/exchaind/base"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -42,8 +26,22 @@ import (
 	acctypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	distypes "github.com/okex/exchain/libs/cosmos-sdk/x/distribution/types"
 	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
+	minttypes "github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
+	supplytypes "github.com/okex/exchain/libs/cosmos-sdk/x/supply"
+	"github.com/okex/exchain/libs/iavl"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/libs/tendermint/crypto"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/okex/exchain/x/distribution/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/gov"
+	slashingtypes "github.com/okex/exchain/x/slashing"
+	tokentypes "github.com/okex/exchain/x/token/types"
+
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 type (
@@ -125,7 +123,7 @@ func iaviewerCmd(ctx *server.Context, cdc *codec.Codec) *cobra.Command {
 		iaviewerVersionsCmd(iavlCtx),
 		iaviewerListModulesCmd(),
 	)
-	iavlCtx.flags.DbBackend = cmd.PersistentFlags().String(flagDBBackend, "", "Database backend: goleveldb | rocksdb")
+	iavlCtx.flags.DbBackend = cmd.PersistentFlags().String(sdk.FlagDBBackend, tmtypes.DBBackend, "Database backend: goleveldb | rocksdb")
 	iavlCtx.flags.Start = cmd.PersistentFlags().Int(flagStart, 0, "index of result set start from")
 	iavlCtx.flags.Limit = cmd.PersistentFlags().Int(flagLimit, 0, "limit of result set, 0 means no limit")
 	iavlCtx.flags.Prefix = cmd.PersistentFlags().String(flagPrefix, "", "the prefix of iavl tree, module value must be \"\" if prefix is set")
@@ -296,7 +294,7 @@ func iaviewerDiffCmd(ctx *iaviewerContext) *cobra.Command {
 
 // iaviewerPrintDiff reads different key-value from leveldb according two paths
 func iaviewerPrintDiff(ctx *iaviewerContext, version2 int) error {
-	db, err := OpenDB(ctx.DataDir, ctx.DbBackend)
+	db, err := base.OpenDB(ctx.DataDir, ctx.DbBackend)
 	if err != nil {
 		return fmt.Errorf("error opening DB: %w", err)
 	}
@@ -363,7 +361,7 @@ func iaviewerPrintDiff(ctx *iaviewerContext, version2 int) error {
 
 // iaviewerReadData reads key-value from leveldb
 func iaviewerReadData(ctx *iaviewerContext) error {
-	db, err := OpenDB(ctx.DataDir, ctx.DbBackend)
+	db, err := base.OpenDB(ctx.DataDir, ctx.DbBackend)
 	if err != nil {
 		return fmt.Errorf("error opening DB: %w", err)
 	}
@@ -399,7 +397,7 @@ func iaviewerReadData(ctx *iaviewerContext) error {
 }
 
 func iaviewerReadNodeData(ctx *iaviewerContext) error {
-	db, err := OpenDB(ctx.DataDir, ctx.DbBackend)
+	db, err := base.OpenDB(ctx.DataDir, ctx.DbBackend)
 	if err != nil {
 		return fmt.Errorf("error opening DB: %w", err)
 	}
@@ -469,7 +467,7 @@ func newNodeStringFromNodeJson(nodeJson *iavl.NodeJson) *nodeString {
 }
 
 func iaviewerStatus(ctx *iaviewerContext) error {
-	db, err := OpenDB(ctx.DataDir, ctx.DbBackend)
+	db, err := base.OpenDB(ctx.DataDir, ctx.DbBackend)
 	if err != nil {
 		return fmt.Errorf("error opening DB: %w", err)
 	}
@@ -493,7 +491,7 @@ func printIaviewerStatus(tree *iavl.MutableTree) {
 }
 
 func iaviewerVersions(ctx *iaviewerContext) error {
-	db, err := OpenDB(ctx.DataDir, ctx.DbBackend)
+	db, err := base.OpenDB(ctx.DataDir, ctx.DbBackend)
 	if err != nil {
 		return fmt.Errorf("error opening DB: %w", err)
 	}
@@ -865,30 +863,6 @@ func ReadTree(db dbm.DB, version int, prefix []byte, cacheSize int) (*iavl.Mutab
 	}
 	_, err = tree.LoadVersion(int64(version))
 	return tree, err
-}
-
-func OpenDB(dir string, backend dbm.BackendType) (db dbm.DB, err error) {
-	switch {
-	case strings.HasSuffix(dir, ".db"):
-		dir = dir[:len(dir)-3]
-	case strings.HasSuffix(dir, ".db/"):
-		dir = dir[:len(dir)-4]
-	default:
-		return nil, fmt.Errorf("database directory must end with .db")
-	}
-	//doesn't work on windows!
-	cut := strings.LastIndex(dir, "/")
-	if cut == -1 {
-		return nil, fmt.Errorf("cannot cut paths on %s", dir)
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = fmt.Errorf("couldn't create db: %v", r)
-		}
-	}()
-	name := dir[cut+1:]
-	db = dbm.NewDB(name, backend, dir[:cut])
-	return db, nil
 }
 
 // parseWeaveKey assumes a separating : where all in front should be ascii,

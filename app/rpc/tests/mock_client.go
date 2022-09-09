@@ -43,6 +43,25 @@ type MockClient struct {
 	priv  types.PrivValidator
 }
 
+func (m *MockClient) BlockInfo(height *int64) (meta *types.BlockMeta, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			meta = nil
+			err = fmt.Errorf("panic in BlockInfo: %v", r)
+		}
+	}()
+	if m.Client.SignClient != nil {
+		return m.Client.BlockInfo(height)
+	}
+	if height == nil {
+		return nil, fmt.Errorf("height is nil")
+	}
+	if m.env != nil && m.env.BlockStore != nil {
+		return m.env.BlockStore.LoadBlockMeta(*height), nil
+	}
+	return nil, fmt.Errorf("blockstore is nil")
+}
+
 func (m *MockClient) StartTmRPC() (net.Listener, string, error) {
 
 	rpccore.SetEnvironment(m.env)

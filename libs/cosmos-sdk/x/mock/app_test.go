@@ -60,6 +60,10 @@ func TestCheckAndDeliverGenTx(t *testing.T) {
 	mApp.Cdc.GetCdc().RegisterConcrete(supply.ModuleAccount{}, "cosmos-sdk/ModuleAccount", nil)
 
 	SetGenesis(mApp, accs)
+	mApp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: mApp.LastBlockHeight() + 1}})
+	mApp.EndBlock(abci.RequestEndBlock{})
+	mApp.Commit(abci.RequestCommit{})
+
 	ctxCheck := mApp.BaseApp.NewContext(true, abci.Header{})
 
 	msg := testMsg{signers: []sdk.AccAddress{addrs[0]}, positiveNum: 1}

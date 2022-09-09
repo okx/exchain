@@ -1,9 +1,13 @@
 package watcher
 
 import (
+	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 	"sync"
+
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	dbm "github.com/okex/exchain/libs/tm-db"
@@ -14,7 +18,6 @@ import (
 const (
 	FlagFastQuery    = "fast-query"
 	FlagFastQueryLru = "fast-lru"
-	FlagDBBackend    = "db_backend"
 	FlagCheckWd      = "check_watchdb"
 
 	WatchDbDir  = "data"
@@ -42,12 +45,30 @@ func InstanceOfWatchStore() *WatchStore {
 func initDb() dbm.DB {
 	homeDir := viper.GetString(flags.FlagHome)
 	dbPath := filepath.Join(homeDir, WatchDbDir)
-	backend := viper.GetString(FlagDBBackend)
-	if backend == "" {
-		backend = string(dbm.GoLevelDBBackend)
+
+	versionPath := filepath.Join(dbPath, WatchDBName+".db", "VERSION")
+	if !checkVersion(versionPath) {
+		os.RemoveAll(filepath.Join(dbPath, WatchDBName+".db"))
 	}
 
-	return dbm.NewDB(WatchDBName, dbm.BackendType(backend), dbPath)
+	db, err := sdk.NewDB(WatchDBName, dbPath)
+	if err != nil {
+		panic(err)
+	}
+	writeVersion(versionPath)
+	return db
+}
+
+func checkVersion(versionPath string) bool {
+	content, err := ioutil.ReadFile(versionPath)
+	if err != nil || string(content) != version {
+		return false
+	}
+	return true
+}
+
+func writeVersion(versionPath string) {
+	ioutil.WriteFile(versionPath, []byte(version), 0666)
 }
 
 func (w WatchStore) Set(key []byte, value []byte) {
