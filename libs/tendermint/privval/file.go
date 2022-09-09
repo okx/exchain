@@ -335,7 +335,12 @@ func (pv *FilePV) signVote(chainID string, vote *types.Vote) error {
 	if err != nil {
 		return err
 	}
+	s := time.Now()
 	pv.saveSigned(height, round, step, signBytes, sig)
+	e := time.Now()
+	if d := e.Sub(s); d > 1 {
+		fmt.Println("saveSigned IO cost", d)
+	}
 	vote.Signature = sig
 	return nil
 }
