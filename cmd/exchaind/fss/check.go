@@ -51,7 +51,7 @@ func check(storeKeys []string) error {
 			return err
 		}
 		if err := checkIndex(mutableTree); err != nil {
-			return fmt.Errorf("iavl fast index not match %v", err.Error())
+			return fmt.Errorf("%v iavl fast index not match %v", key, err.Error())
 		}
 	}
 
