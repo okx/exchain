@@ -63,6 +63,15 @@ var (
 	onceEnable     sync.Once
 	onceLru        sync.Once
 
+	// this key prefix no repeat ,so no need ac process
+	noACkey = map[string]struct{}{
+		string(prefixTx):         {},
+		string(prefixReceipt):    {},
+		string(prefixTxResponse): {},
+		string(prefixStdTxHash):  {},
+		string(prefixBlock):      {},
+		string(prefixBlockInfo):  {},
+	}
 	watcherMut = 1
 )
 
@@ -356,32 +365,49 @@ func (w *Watcher) Commit() {
 		return
 	}
 
-	shouldPersist := w.IsShouldPersist()
-	height := w.height
 	if GetEnableAsyncCommit() {
-		w.dispatchJob(func() {
-			st := time.Now()
-			w.acProcessor.BatchSet(batch)
-			fmt.Printf("******* lyh BatchSet cost time %v \n", time.Now().Sub(st))
-			if shouldPersist {
-				st := time.Now()
-				w.acProcessor.MoveToCommitList(int64(height)) // move curMsgCache to commitlist
-				fmt.Printf("******* lyh MoveToCommitList cost time %v \n", time.Now().Sub(st))
-				w.AsyncCommitBatch(batch)
-			}
-		})
-		//st := time.Now()
-		//w.acProcessor.BatchSet(batch)
-		//fmt.Printf("******* lyh BatchSet cost time %v \n", time.Now().Sub(st))
-		//if w.IsShouldPersist() {
-		//	st := time.Now()
-		//	w.acProcessor.MoveToCommitList(int64(w.height)) // move curMsgCache to commitlist
-		//	fmt.Printf("******* lyh MoveToCommitList cost time %v \n", time.Now().Sub(st))
-		//	w.dispatchJob(func() { w.AsyncCommitBatch(batch) })
-		//}
+		st := time.Now()
+		acBatch, noACBatch := classifyWatchMessageType(batch)
+		ed := time.Now()
+		w.acProcessor.BatchSet(acBatch)
+		fmt.Printf("******* lyh cost time classify %v, BatchSet %v \n", ed.Sub(st), time.Now().Sub(ed))
+
+		if w.IsShouldPersist() {
+			// move curMsgCache to commitlist
+			w.acProcessor.MoveToCommitList(int64(w.height))
+			w.dispatchJob(func() {
+				w.commitBatch(noACBatch)
+				w.AsyncCommitBatch()
+			})
+		} else {
+			w.dispatchJob(func() { w.commitBatch(noACBatch) })
+		}
 	} else {
 		w.dispatchJob(func() { w.commitBatch(batch) })
 	}
+}
+
+func classifyWatchMessageType(batch []WatchMessage) ([]WatchMessage, []WatchMessage) {
+	var acBatch []WatchMessage
+	var noACBatch []WatchMessage
+	for _, b := range batch {
+		if IsNoACKey(b.GetKey()) {
+			noACBatch = append(noACBatch, b)
+		} else {
+			acBatch = append(acBatch, b)
+		}
+	}
+	return acBatch, noACBatch
+}
+
+func IsNoACKey(key []byte) bool {
+	if len(key) == 0 {
+		return false
+	}
+	if _, ok := noACkey[(string(key[:1]))]; ok {
+		return true
+	}
+	return false
 }
 
 func (w *Watcher) IsShouldPersist() bool {
@@ -401,7 +427,9 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 	if data.BloomData != nil {
 		w.commitBloomData(data.BloomData)
 	}
-	w.delayEraseKey = data.DelayEraseKey
+	if data.DelayEraseKey != nil {
+		w.ExecuteDelayEraseKey(data.DelayEraseKey)
+	}
 
 	if w.checkWd {
 		keys := make([][]byte, len(data.Batches))
@@ -422,23 +450,8 @@ func (w *Watcher) CommitWatchDataToCache(data WatchData) {
 	if data.DirtyList != nil {
 		w.acProcessor.BatchDel(data.DirtyList)
 	}
-	w.delayEraseKey = data.DelayEraseKey
-}
-
-func (w *Watcher) AsyncCommitWatchData(data WatchData, shouldPersist bool) {
-	if data.BloomData != nil {
-		w.commitBloomData(data.BloomData)
-	}
-
-	if shouldPersist {
-		w.acProcessor.PersistHander(w.shouldCommitBatch)
-		if w.checkWd {
-			keys := make([][]byte, len(data.Batches))
-			for i, _ := range data.Batches {
-				keys[i] = data.Batches[i].Key
-			}
-			w.CheckWatchDB(keys, "consumer")
-		}
+	if data.DelayEraseKey != nil {
+		w.acProcessor.BatchDel(data.DelayEraseKey)
 	}
 }
 
@@ -456,38 +469,36 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 	dbBatch := w.store.db.NewBatch()
 	defer dbBatch.Close()
 	st := time.Now()
-	for i := 0; i < watcherMut; i++ {
-		for i := len(batch) - 1; i >= 0; i-- { //iterate batch from the end to start, to save the latest batch msgs
-			//and to skip the duplicated batch msgs by key
-			b := batch[i]
-			key := b.GetKey()
-			// lyh just for test
-			//if isDuplicated(key, w.filterMap) {
-			//	continue
-			//}
-			if i != 0 {
-				key = append(key, []byte(strconv.Itoa(i))...)
+
+	for i := len(batch) - 1; i >= 0; i-- { //iterate batch from the end to start, to save the latest batch msgs
+		//and to skip the duplicated batch msgs by key
+		b := batch[i]
+		key := b.GetKey()
+		if isDuplicated(key, w.filterMap) {
+			continue
+		}
+		if i != 0 {
+			key = append(key, []byte(strconv.Itoa(i))...)
+		}
+		value := []byte(b.GetValue())
+		typeValue := b.GetType()
+		if typeValue == TypeDelete {
+			dbBatch.Delete(key)
+		} else {
+			dbBatch.Set(key, value)
+			//need update params
+			if typeValue == TypeEvmParams {
+				msgParams := b.(*MsgParams)
+				w.store.SetEvmParams(msgParams.Params)
 			}
-			value := []byte(b.GetValue())
-			typeValue := b.GetType()
-			if typeValue == TypeDelete {
-				dbBatch.Delete(key)
-			} else {
-				dbBatch.Set(key, value)
-				//need update params
-				if typeValue == TypeEvmParams {
-					msgParams := b.(*MsgParams)
-					w.store.SetEvmParams(msgParams.Params)
-				}
-				if typeValue == TypeState {
-					state.SetStateToLru(key, value)
-				}
+			if typeValue == TypeState {
+				state.SetStateToLru(key, value)
 			}
 		}
 	}
 
 	dbBatch.Write()
-	w.count += len(batch) * watcherMut
+	w.count += len(batch)
 	fmt.Printf("****** lyh commitBatch cur commiter size %d;;; total commit %d;;; cost time commit %v \n",
 		len(batch), w.count,
 		time.Now().Sub(st))
@@ -503,20 +514,13 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 	}
 }
 
-func (w *Watcher) AsyncCommitBatch(batch []WatchMessage) {
+func (w *Watcher) AsyncCommitBatch() {
 	w.acProcessor.PersistHander(w.shouldCommitBatch)
 	if watcherMut == -1 {
 		runtime.GC()
 	} else if watcherMut == -2 {
 		runtime.GC()
 		debug.FreeOSMemory()
-	}
-	if w.checkWd {
-		keys := make([][]byte, len(batch))
-		for i, _ := range batch {
-			keys[i] = batch[i].GetKey()
-		}
-		w.CheckWatchDB(keys, "producer")
 	}
 }
 
@@ -616,20 +620,56 @@ func (w *Watcher) ApplyWatchData(watchData interface{}) {
 	}
 
 	if GetEnableAsyncCommit() {
-		w.CommitWatchDataToCache(wd)
-		shouldPersist := w.IsShouldPersist()
-		if shouldPersist {
+		acwd, noACwd := classifyWatchDataType(wd)
+		w.CommitWatchDataToCache(acwd)
+		if w.IsShouldPersist() {
 			w.acProcessor.MoveToCommitList(int64(w.height)) // move curMsgCache to commitlist
+			w.dispatchJob(func() {
+				w.CommitWatchData(noACwd)
+				w.AsyncCommitBatch()
+			})
+		} else {
+			w.dispatchJob(func() {
+				w.CommitWatchData(noACwd)
+			})
 		}
-		w.dispatchJob(func() {
-			w.AsyncCommitWatchData(wd, shouldPersist)
-		})
 	} else {
 		w.dispatchJob(func() {
 			w.CommitWatchData(wd)
 		})
 	}
 
+}
+
+func classifyWatchDataType(wd WatchData) (WatchData, WatchData) {
+	acBatch := WatchData{
+		DirtyAccount: wd.DirtyAccount,
+	}
+	noACBatch := WatchData{
+		BloomData: wd.BloomData,
+	}
+	for _, b := range wd.Batches {
+		if IsNoACKey(b.GetKey()) {
+			noACBatch.Batches = append(noACBatch.Batches, b)
+		} else {
+			acBatch.Batches = append(acBatch.Batches, b)
+		}
+	}
+	for _, b := range wd.DelayEraseKey {
+		if IsNoACKey(b) {
+			noACBatch.DelayEraseKey = append(noACBatch.DelayEraseKey, b)
+		} else {
+			acBatch.DelayEraseKey = append(acBatch.DelayEraseKey, b)
+		}
+	}
+	for _, b := range wd.DirtyList {
+		if IsNoACKey(b) {
+			noACBatch.DirtyList = append(noACBatch.DirtyList, b)
+		} else {
+			acBatch.DirtyList = append(acBatch.DirtyList, b)
+		}
+	}
+	return acBatch, noACBatch
 }
 
 func (w *Watcher) SetWatchDataManager() {
