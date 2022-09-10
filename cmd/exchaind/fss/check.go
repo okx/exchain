@@ -58,6 +58,7 @@ func check(storeKeys []string) error {
 			return fmt.Errorf("%v iavl fast index not match %v", key, err.Error())
 		}
 	}
+	log.Println("Check success.")
 
 	return nil
 }
