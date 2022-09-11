@@ -74,6 +74,8 @@ type Store struct {
 	commitFilters  []types.StoreFilter
 	pruneFilters   []types.StoreFilter
 	versionFilters []types.VersionFilter
+
+	metadata *Metadata
 }
 
 var (
@@ -99,6 +101,7 @@ func NewStore(db dbm.DB) *Store {
 		keysByName:     make(map[string]types.StoreKey),
 		pruneHeights:   make([]int64, 0),
 		versions:       make([]int64, 0),
+		metadata:       NewMetadata(db),
 		upgradeVersion: -1,
 	}
 
@@ -203,6 +206,10 @@ func (rs *Store) LoadLatestVersion() error {
 }
 
 func (rs *Store) GetLatestVersion() int64 {
+	ver := rs.metadata.GetLatestVersion()
+	if ver != 0 {
+		return ver
+	}
 	return getLatestVersion(rs.db)
 }
 
@@ -378,6 +385,7 @@ func (rs *Store) loadVersion(ver int64, upgrades *types.StoreUpgrades) error {
 	// load old data if we are not version 0
 	if ver != 0 {
 		var err error
+		//todo getCommitInfo when query should read from mem first
 		cInfo, err = getCommitInfo(rs.db, ver)
 		if err != nil {
 			return err
@@ -630,8 +638,15 @@ func (rs *Store) CommitterCommitMap(inputDeltaMap iavltree.TreeDeltaMap) (types.
 		}
 
 		rs.versions = append(rs.versions, version)
+		flushMetadata(rs.db, version, rs.lastCommitInfo, rs.pruneHeights, rs.versions)
+	} else {
+		//should flush
+		rs.metadata.CacheMetadata(version, rs.lastCommitInfo, rs.pruneHeights, rs.versions)
+		//if iavltree.ShouldPersist(version) {
+		rs.metadata.notifyFlushMetadata(version, rs.lastCommitInfo, rs.pruneHeights, rs.versions)
+		//}
+
 	}
-	flushMetadata(rs.db, version, rs.lastCommitInfo, rs.pruneHeights, rs.versions)
 
 	return types.CommitID{
 		Version: version,
@@ -1270,6 +1285,10 @@ func setCommitInfo(batch dbm.Batch, version int64, cInfo commitInfo) {
 }
 
 func setLatestVersion(batch dbm.Batch, version int64) {
+	if version == 0 {
+		fmt.Println("setlatestversion", version)
+	}
+
 	latestBytes := cdc.MustMarshalBinaryLengthPrefixed(version)
 	batch.Set([]byte(latestVersionKey), latestBytes)
 }
@@ -1538,6 +1557,8 @@ func (rs *Store) CurrentVersion() int64 {
 }
 func (rs *Store) StopStore() {
 	latestVersion := rs.CurrentVersion()
+	rs.metadata.GracefulExit()
+
 	for key, store := range rs.stores {
 		switch store.GetStoreType() {
 		case types.StoreTypeIAVL:
