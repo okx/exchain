@@ -360,18 +360,20 @@ func (w *Watcher) Commit() {
 	}
 
 	if GetEnableAsyncCommit() {
-		acBatch, noACBatch := ClassifyWatchMessageType(batch)
-		w.acProcessor.BatchSet(acBatch)
-		if w.IsShouldPersist() {
-			// move curMsgCache to commitlist
-			w.acProcessor.MoveToCommitList(int64(w.height))
-			w.dispatchJob(func() {
+		shouldPersist := w.IsShouldPersist()
+		height := w.height
+		w.dispatchJob(func() {
+			acBatch, noACBatch := ClassifyWatchMessageType(batch)
+			w.acProcessor.BatchSet(acBatch)
+			if shouldPersist {
+				// move curMsgCache to commitlist
+				w.acProcessor.MoveToCommitList(int64(height))
 				w.commitBatch(noACBatch)
 				w.AsyncCommitBatch()
-			})
-		} else {
-			w.dispatchJob(func() { w.commitBatch(noACBatch) })
-		}
+			} else {
+				w.commitBatch(noACBatch)
+			}
+		})
 	} else {
 		w.dispatchJob(func() { w.commitBatch(batch) })
 	}
@@ -594,19 +596,19 @@ func (w *Watcher) ApplyWatchData(watchData interface{}) {
 	}
 
 	if GetEnableAsyncCommit() {
-		acwd, noACwd := ClassifyWatchDataType(wd)
-		w.CommitWatchDataToCache(acwd)
-		if w.IsShouldPersist() {
-			w.acProcessor.MoveToCommitList(int64(w.height)) // move curMsgCache to commitlist
-			w.dispatchJob(func() {
+		shouldPersist := w.IsShouldPersist()
+		height := w.height
+		w.dispatchJob(func() {
+			acwd, noACwd := ClassifyWatchDataType(wd)
+			w.CommitWatchDataToCache(acwd)
+			if shouldPersist {
+				w.acProcessor.MoveToCommitList(int64(height)) // move curMsgCache to commitlist
 				w.CommitWatchData(noACwd)
 				w.AsyncCommitBatch()
-			})
-		} else {
-			w.dispatchJob(func() {
+			} else {
 				w.CommitWatchData(noACwd)
-			})
-		}
+			}
+		})
 	} else {
 		w.dispatchJob(func() {
 			w.CommitWatchData(wd)
