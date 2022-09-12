@@ -968,10 +968,10 @@ OUTER_LOOP:
 			continue OUTER_LOOP
 		}
 		// send vcMsg
-		if vcMsg.Height == prs.Height && !prs.HasVC {
+		if vcMsg.Height == prs.Height && prs.HasVCHeight < vcMsg.Height {
 			peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
 			//conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
-			prs.HasVC = true
+			ps.SetHasAvc(vcMsg.Height)
 		}
 
 		if rs.Height == vcMsg.Height {
@@ -1244,6 +1244,14 @@ func (ps *PeerState) GetHeight() int64 {
 	ps.mtx.Lock()
 	defer ps.mtx.Unlock()
 	return ps.PRS.Height
+}
+
+// SetHasAvc sets the given hasVC as known for the peer
+func (ps *PeerState) SetHasAvc(height int64) {
+	ps.mtx.Lock()
+	defer ps.mtx.Unlock()
+
+	ps.PRS.HasVCHeight = height
 }
 
 // SetHasProposal sets the given proposal as known for the peer.
