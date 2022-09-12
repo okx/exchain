@@ -7,7 +7,6 @@ import (
 
 const (
 	FlagWatchdbEnableAsyncCommit = "watchdb-enable-async-commit"
-	FlagWatchdbCommitGapHeight   = "watchdb-commit-gap-height"
 )
 
 var (
@@ -45,10 +44,6 @@ func GetCommitGapHeight() int64 {
 func GetACFlag() {
 	getFlagOnce.Do(func() {
 		SetAnableAsyncCommit(viper.GetBool(FlagWatchdbEnableAsyncCommit))
-		gap := viper.GetInt64(FlagWatchdbCommitGapHeight)
-		if gap != 0 {
-			SetCommitGapHeight(gap)
-		}
 	})
 }
 

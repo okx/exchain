@@ -3,6 +3,7 @@ package server
 // DONTCOVER
 
 import (
+	"github.com/okex/exchain/x/evm/watcher"
 	"os"
 	"runtime/pprof"
 
@@ -339,6 +340,11 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 
 	tmiavl.CommitGapHeight = viper.GetInt64(FlagCommitGapHeight)
 	mpt.TrieCommitGap = viper.GetInt64(FlagCommitGapHeight)
+
+	gap := viper.GetInt64(FlagCommitGapHeight)
+	if gap > 0 {
+		watcher.SetCommitGapHeight(gap)
+	}
 
 	bcv0.MaxIntervalForFastSync = viper.GetInt64(FlagFastSyncGap)
 }

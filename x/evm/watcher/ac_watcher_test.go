@@ -12,7 +12,7 @@ import (
 
 func TestBanchAsyncCommitWatcher(t *testing.T) {
 	viper.Set(watcher.FlagWatchdbEnableAsyncCommit, true)
-	viper.Set(watcher.FlagWatchdbCommitGapHeight, 1)
+	watcher.SetCommitGapHeight(1)
 	defer func() {
 		watcher.SetAnableAsyncCommit(false)
 		watcher.SetCommitGapHeight(100)
