@@ -314,9 +314,7 @@ type WasmConfig struct {
 
 // DefaultWasmConfig returns the default settings for WasmConfig
 func DefaultWasmConfig() WasmConfig {
-	var defaultSimulationGasLimit = defaultSmartQueryGasLimit
 	return WasmConfig{
-		SimulationGasLimit: &defaultSimulationGasLimit,
 		SmartQueryGasLimit: defaultSmartQueryGasLimit,
 		MemoryCacheSize:    defaultMemoryCacheSize,
 		ContractDebugMode:  defaultContractDebugMode,
