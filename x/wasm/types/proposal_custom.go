@@ -120,6 +120,7 @@ func (c *ContractMethods) DeleteMethods(methods []*Method) {
 			if c.Methods[i].FullName() == method.FullName() {
 				//delete method
 				c.Methods = append(c.Methods[:i], c.Methods[i+1:]...)
+				break
 			}
 		}
 	}
