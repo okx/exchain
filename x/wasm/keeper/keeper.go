@@ -227,8 +227,7 @@ func (k Keeper) getAllBlockedList(ctx sdk.Context) []*types.ContractMethods {
 		var method types.ContractMethods
 		err := proto.Unmarshal(it.Value(), &method)
 		if err != nil {
-			k.Logger(ctx).Error("getAllBlockedList", "unmarshal error", err)
-			continue
+			panic(err)
 		}
 		cms = append(cms, &method)
 	}
@@ -242,7 +241,7 @@ func (k Keeper) getContractMethodBlockedList(ctx sdk.Context, contractAddr strin
 	var blockedMethods types.ContractMethods
 	err := proto.Unmarshal(data, &blockedMethods)
 	if err != nil {
-		k.Logger(ctx).Error("getContractMethodBlockedList", "unmarshal error", err)
+		panic(err)
 	}
 	return &blockedMethods
 }
