@@ -67,6 +67,7 @@ var (
 		string(prefixStdTxHash):  {},
 		string(prefixBlock):      {},
 		string(prefixBlockInfo):  {},
+		string(prefixRpcDb):      {}, // for adapter querier operate Rdb
 	}
 )
 
@@ -204,7 +205,9 @@ func (w *Watcher) DelayEraseKey() {
 	w.delayEraseKey = make([][]byte, 0)
 	w.dispatchJob(func() {
 		if GetEnableAsyncCommit() {
-			w.AsyncDelayEraseKey(delayEraseKey)
+			acKey, noACKey := ClassifyDelayEraseKeyType(delayEraseKey)
+			w.AsyncDelayEraseKey(acKey)
+			w.ExecuteDelayEraseKey(noACKey)
 			return
 		}
 		w.ExecuteDelayEraseKey(delayEraseKey)
@@ -216,6 +219,19 @@ func (w *Watcher) AsyncDelayEraseKey(delayEraseKey [][]byte) {
 		return
 	}
 	w.acProcessor.BatchDel(delayEraseKey)
+}
+
+func ClassifyDelayEraseKeyType(delayEraseKey [][]byte) ([][]byte, [][]byte) {
+	var acKey [][]byte
+	var noACKey [][]byte
+	for _, b := range delayEraseKey {
+		if IsNoACKey(b) {
+			noACKey = append(noACKey, b)
+		} else {
+			acKey = append(acKey, b)
+		}
+	}
+	return acKey, noACKey
 }
 
 func (w *Watcher) ExecuteDelayEraseKey(delayEraseKey [][]byte) {
