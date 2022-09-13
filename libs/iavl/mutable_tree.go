@@ -271,7 +271,7 @@ func (tree *MutableTree) set(key []byte, value []byte) (orphans []*Node, updated
 	}
 
 	if tree.ImmutableTree.root == nil {
-		tree.addUnsavedAddition(key, NewFastNode(key, value, tree.version+1))
+		tree.addUnsavedAddition(key, value, tree.version+1)
 		tree.ImmutableTree.root = NewNode(key, value, tree.version+1)
 		return nil, updated
 	}
@@ -287,7 +287,7 @@ func (tree *MutableTree) recursiveSet(node *Node, key []byte, value []byte, orph
 	version := tree.version + 1
 
 	if node.isLeaf() {
-		tree.addUnsavedAddition(key, NewFastNode(key, value, version))
+		tree.addUnsavedAddition(key, value, version)
 		switch bytes.Compare(key, node.key) {
 		case -1:
 			return &Node{
@@ -1031,12 +1031,12 @@ func (tree *MutableTree) getUnsavedFastNodeRemovals() map[string]interface{} {
 	return tree.unsavedFastNodes.getRemovals()
 }
 
-func (tree *MutableTree) addUnsavedAddition(key []byte, node *FastNode) {
+func (tree *MutableTree) addUnsavedAddition(key, value []byte, version int64) {
 	if !GetEnableFastStorage() {
 		return
 	}
 
-	tree.unsavedFastNodes.add(key, node)
+	tree.unsavedFastNodes.add(key, NewFastNode(key, value, version))
 }
 
 func (ndb *nodeDB) saveFastNodeAdditions(batch dbm.Batch, additions map[string]*FastNode) error {
