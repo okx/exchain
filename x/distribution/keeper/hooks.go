@@ -25,6 +25,11 @@ func (h Hooks) AfterValidatorCreated(ctx sdk.Context, valAddr sdk.ValAddress) {
 
 // AfterValidatorRemoved cleans up for after validator is removed
 func (h Hooks) AfterValidatorRemoved(ctx sdk.Context, _ sdk.ConsAddress, valAddr sdk.ValAddress) {
+	if h.k.CheckDistributionProposalValid(ctx) {
+		h.afterValidatorRemovedForDistributionProposal(ctx, nil, valAddr)
+		return
+	}
+
 	// force-withdraw commission
 	commission := h.k.GetValidatorAccumulatedCommission(ctx, valAddr)
 	if !commission.IsZero() {

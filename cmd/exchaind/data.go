@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/system"
 	"io/ioutil"
 	"log"
 	"os"
@@ -24,10 +23,12 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
+	"github.com/okex/exchain/libs/system"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/node"
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/store"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -48,9 +49,8 @@ import (
 )
 
 const (
-	flagHeight    = "height"
-	flagPruning   = "enable_pruning"
-	flagDBBackend = "db_backend"
+	flagHeight  = "height"
+	flagPruning = "enable_pruning"
 
 	blockDBName = "blockstore"
 	stateDBName = "state"
@@ -88,7 +88,7 @@ func pruningCmd(ctx *server.Context) *cobra.Command {
 
 	cmd.PersistentFlags().Int64P(flagHeight, "r", 0, "Removes block or state up to (but not including) a height")
 	cmd.PersistentFlags().BoolP(flagPruning, "p", true, "Enable pruning")
-	cmd.PersistentFlags().String(flagDBBackend, "goleveldb", "Database backend: goleveldb | rocksdb")
+	cmd.PersistentFlags().String(sdk.FlagDBBackend, tmtypes.DBBackend, "Database backend: goleveldb | rocksdb")
 	return cmd
 }
 
@@ -244,7 +244,7 @@ func pruneBlockCmd(ctx *server.Context) *cobra.Command {
 func dbConvertCmd(ctx *server.Context) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "convert",
-		Short: "Convert "+system.ChainName+" data from goleveldb to rocksdb",
+		Short: "Convert " + system.ChainName + " data from goleveldb to rocksdb",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			config := ctx.Config
 			config.SetRoot(viper.GetString(flags.FlagHome))
@@ -553,7 +553,7 @@ func queryCmd(ctx *server.Context) *cobra.Command {
 	}
 
 	cmd.AddCommand(queryBlockState, queryAppState)
-	cmd.PersistentFlags().String(flagDBBackend, "goleveldb", "Database backend: goleveldb | rocksdb")
+	cmd.PersistentFlags().String(sdk.FlagDBBackend, tmtypes.DBBackend, "Database backend: goleveldb | rocksdb")
 
 	return cmd
 }
