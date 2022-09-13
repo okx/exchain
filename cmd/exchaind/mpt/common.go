@@ -24,8 +24,8 @@ import (
 const (
 	applicationDB = "application"
 
-	accStoreKey = authtypes.StoreKey
-	evmStoreKey = evmtypes.StoreKey
+	accStoreKey    = authtypes.StoreKey
+	evmStoreKey    = evmtypes.StoreKey
 	legacyStoreKey = "evmlegacy"
 
 	iavlAccKey       = "s/k:acc/"
@@ -66,7 +66,7 @@ func newMigrationApp(ctx *server.Context) *app.OKExChainApp {
 
 func openApplicationDb(rootdir string) tmdb.DB {
 	dataDir := filepath.Join(rootdir, "data")
-	appDb, err := sdk.NewLevelDB(applicationDB, dataDir)
+	appDb, err := sdk.NewDB(applicationDB, dataDir)
 	if err != nil {
 		panic("fail to open application db: " + err.Error())
 	}

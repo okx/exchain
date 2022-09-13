@@ -5,22 +5,23 @@ package keeper
 //	"io/ioutil"
 //	"testing"
 //
-//	wasmtypes "github.com/okex/exchain/x/wasm/types"
-//
 //	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
-//	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-//	"github.com/okex/exchain/libs/cosmos-sdk/crypto/keys/secp256k1"
-//	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-//	authkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
-//	bankkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/bank/keeper"
-//	distributionkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/distribution/keeper"
-//	distributiontypes "github.com/okex/exchain/libs/cosmos-sdk/x/distribution/types"
-//	"github.com/okex/exchain/libs/cosmos-sdk/x/staking"
-//	stakingkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/staking/keeper"
-//	"github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
-//	stakingtypes "github.com/okex/exchain/libs/cosmos-sdk/x/staking/types"
+//	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
+//	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
+//	sdk "github.com/cosmos/cosmos-sdk/types"
+//	authkeeper "github.com/cosmos/cosmos-sdk/x/auth/keeper"
+//	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
+//	distributionkeeper "github.com/cosmos/cosmos-sdk/x/distribution/keeper"
+//	distributiontypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
+//	"github.com/cosmos/cosmos-sdk/x/staking"
+//	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
+//	"github.com/cosmos/cosmos-sdk/x/staking/types"
+//	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 //	"github.com/stretchr/testify/assert"
 //	"github.com/stretchr/testify/require"
+//
+//	"github.com/CosmWasm/wasmd/x/wasm/keeper/testdata"
+//	wasmtypes "github.com/CosmWasm/wasmd/x/wasm/types"
 //)
 //
 //type StakingInitMsg struct {
@@ -35,12 +36,12 @@ package keeper
 //
 //// StakingHandleMsg is used to encode handle messages
 //type StakingHandleMsg struct {
-//	Transfer *transferPayload `json:"transfer,omitempty"`
-//	Bond     *struct{}        `json:"bond,omitempty"`
-//	Unbond   *unbondPayload   `json:"unbond,omitempty"`
-//	Claim    *struct{}        `json:"claim,omitempty"`
-//	Reinvest *struct{}        `json:"reinvest,omitempty"`
-//	Change   *ownerPayload    `json:"change_owner,omitempty"`
+//	Transfer *transferPayload       `json:"transfer,omitempty"`
+//	Bond     *struct{}              `json:"bond,omitempty"`
+//	Unbond   *unbondPayload         `json:"unbond,omitempty"`
+//	Claim    *struct{}              `json:"claim,omitempty"`
+//	Reinvest *struct{}              `json:"reinvest,omitempty"`
+//	Change   *testdata.OwnerPayload `json:"change_owner,omitempty"`
 //}
 //
 //type transferPayload struct {
@@ -446,9 +447,7 @@ package keeper
 //	creator := initInfo.faucet.NewFundedAccount(ctx, deposit...)
 //
 //	// upload mask code
-//	maskCode, err := ioutil.ReadFile("./testdata/reflect.wasm")
-//	require.NoError(t, err)
-//	maskID, err := initInfo.contractKeeper.Create(ctx, creator, maskCode, nil)
+//	maskID, err := initInfo.contractKeeper.Create(ctx, creator, testdata.ReflectContractWasm(), nil)
 //	require.NoError(t, err)
 //	require.Equal(t, uint64(2), maskID)
 //
@@ -459,21 +458,21 @@ package keeper
 //
 //	// STEP 3: now, let's reflect some queries.
 //	// let's get the bonded denom
-//	reflectBondedQuery := ReflectQueryMsg{Chain: &ChainQuery{Request: &wasmvmtypes.QueryRequest{Staking: &wasmvmtypes.StakingQuery{
+//	reflectBondedQuery := testdata.ReflectQueryMsg{Chain: &testdata.ChainQuery{Request: &wasmvmtypes.QueryRequest{Staking: &wasmvmtypes.StakingQuery{
 //		BondedDenom: &struct{}{},
 //	}}}}
 //	reflectBondedBin := buildReflectQuery(t, &reflectBondedQuery)
 //	res, err := keeper.QuerySmart(ctx, maskAddr, reflectBondedBin)
 //	require.NoError(t, err)
 //	// first we pull out the data from chain response, before parsing the original response
-//	var reflectRes ChainResponse
+//	var reflectRes testdata.ChainResponse
 //	mustParse(t, res, &reflectRes)
 //	var bondedRes wasmvmtypes.BondedDenomResponse
 //	mustParse(t, reflectRes.Data, &bondedRes)
 //	assert.Equal(t, "stake", bondedRes.Denom)
 //
 //	// now, let's reflect a smart query into the x/wasm handlers and see if we get the same result
-//	reflectAllValidatorsQuery := ReflectQueryMsg{Chain: &ChainQuery{Request: &wasmvmtypes.QueryRequest{Staking: &wasmvmtypes.StakingQuery{
+//	reflectAllValidatorsQuery := testdata.ReflectQueryMsg{Chain: &testdata.ChainQuery{Request: &wasmvmtypes.QueryRequest{Staking: &wasmvmtypes.StakingQuery{
 //		AllValidators: &wasmvmtypes.AllValidatorsQuery{},
 //	}}}}
 //	reflectAllValidatorsBin := buildReflectQuery(t, &reflectAllValidatorsQuery)
@@ -492,7 +491,7 @@ package keeper
 //	require.Contains(t, valInfo.MaxChangeRate, "0.010")
 //
 //	// find a validator
-//	reflectValidatorQuery := ReflectQueryMsg{Chain: &ChainQuery{Request: &wasmvmtypes.QueryRequest{Staking: &wasmvmtypes.StakingQuery{
+//	reflectValidatorQuery := testdata.ReflectQueryMsg{Chain: &testdata.ChainQuery{Request: &wasmvmtypes.QueryRequest{Staking: &wasmvmtypes.StakingQuery{
 //		Validator: &wasmvmtypes.ValidatorQuery{
 //			Address: valAddr.String(),
 //		},
@@ -514,7 +513,7 @@ package keeper
 //
 //	// missing validator
 //	noVal := sdk.ValAddress(secp256k1.GenPrivKey().PubKey().Address())
-//	reflectNoValidatorQuery := ReflectQueryMsg{Chain: &ChainQuery{Request: &wasmvmtypes.QueryRequest{Staking: &wasmvmtypes.StakingQuery{
+//	reflectNoValidatorQuery := testdata.ReflectQueryMsg{Chain: &testdata.ChainQuery{Request: &wasmvmtypes.QueryRequest{Staking: &wasmvmtypes.StakingQuery{
 //		Validator: &wasmvmtypes.ValidatorQuery{
 //			Address: noVal.String(),
 //		},
@@ -529,7 +528,7 @@ package keeper
 //	require.Nil(t, noValidatorRes.Validator)
 //
 //	// test to get all my delegations
-//	reflectAllDelegationsQuery := ReflectQueryMsg{Chain: &ChainQuery{Request: &wasmvmtypes.QueryRequest{Staking: &wasmvmtypes.StakingQuery{
+//	reflectAllDelegationsQuery := testdata.ReflectQueryMsg{Chain: &testdata.ChainQuery{Request: &wasmvmtypes.QueryRequest{Staking: &wasmvmtypes.StakingQuery{
 //		AllDelegations: &wasmvmtypes.AllDelegationsQuery{
 //			Delegator: contractAddr.String(),
 //		},
@@ -552,7 +551,7 @@ package keeper
 //	require.Equal(t, funds[0].Amount.String(), delInfo.Amount.Amount)
 //
 //	// test to get one delegations
-//	reflectDelegationQuery := ReflectQueryMsg{Chain: &ChainQuery{Request: &wasmvmtypes.QueryRequest{Staking: &wasmvmtypes.StakingQuery{
+//	reflectDelegationQuery := testdata.ReflectQueryMsg{Chain: &testdata.ChainQuery{Request: &wasmvmtypes.QueryRequest{Staking: &wasmvmtypes.StakingQuery{
 //		Delegation: &wasmvmtypes.DelegationQuery{
 //			Validator: valAddr.String(),
 //			Delegator: contractAddr.String(),

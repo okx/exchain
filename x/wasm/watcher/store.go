@@ -60,11 +60,12 @@ func ensureChecked() {
 func InitDB() {
 	homeDir := viper.GetString(flags.FlagHome)
 	dbPath := filepath.Join(homeDir, watcher.WatchDbDir)
-	backend := viper.GetString(watcher.FlagDBBackend)
-	if backend == "" {
-		backend = string(dbm.GoLevelDBBackend)
+
+	var err error
+	db, err = sdk.NewDB(watchDBName, dbPath)
+	if err != nil {
+		panic(err)
 	}
-	db = dbm.NewDB(watchDBName, dbm.BackendType(backend), dbPath)
 	go taskRoutine()
 }
 

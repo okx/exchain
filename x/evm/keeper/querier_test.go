@@ -28,10 +28,10 @@ func (suite *KeeperTestSuite) TestQuerier() {
 		{"storage", []string{types.QueryStorage, "0x0", "0x0"}, func() {}, true},
 		{"code", []string{types.QueryCode, "0x0"}, func() {}, true},
 		{"hash to height", []string{types.QueryHashToHeight, hex}, func() {
-			suite.app.EvmKeeper.SetBlockHash(suite.ctx, hash, 8)
+			suite.app.EvmKeeper.SetBlockHeight(suite.ctx, hash, 8)
 		}, true},
 		{"fail hash to height", []string{types.QueryHashToHeight, "0x00"}, func() {
-			suite.app.EvmKeeper.SetBlockHash(suite.ctx, hash, 8)
+			suite.app.EvmKeeper.SetBlockHeight(suite.ctx, hash, 8)
 		}, false},
 		{"bloom", []string{types.QueryBloom, "4"}, func() {
 			testBloom := ethtypes.BytesToBloom([]byte{0x1, 0x3})

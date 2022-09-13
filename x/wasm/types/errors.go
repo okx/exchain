@@ -86,6 +86,8 @@ var (
 	ErrTopKevelKeyNotAllowed = sdkErrors.Register(DefaultCodespace, 26, "top-level key is not allowed")
 	// ErrInvalidEvent error if an attribute/event from the contract is invalid
 
+	// ErrExceedMaxQueryStackSize error if max query stack size is exceeded
+	ErrExceedMaxQueryStackSize = sdkErrors.Register(DefaultCodespace, 27, "max query stack size exceeded")
 )
 
 type ErrNoSuchContract struct {
