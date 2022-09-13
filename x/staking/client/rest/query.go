@@ -35,19 +35,19 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 
 	// query the all shares on a validator
 	r.HandleFunc(
-		"/staking/validators/{validatorAddr}/shares",
+		"/cosmos/staking/v1beta1/validators/{validatorAddr}/shares",
 		validatorAllSharesHandlerFn(cliCtx),
 	).Methods("GET")
 
 	// get all validators
 	r.HandleFunc(
-		"/staking/validators",
+		"/cosmos/staking/v1beta1/validators",
 		validatorsHandlerFn(cliCtx),
 	).Methods("GET")
 
 	// get a single validator info
 	r.HandleFunc(
-		"/staking/validators/{validatorAddr}",
+		"/cosmos/staking/v1beta1/validators/{validatorAddr}",
 		validatorHandlerFn(cliCtx),
 	).Methods("GET")
 
