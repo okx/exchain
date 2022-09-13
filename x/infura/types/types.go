@@ -56,7 +56,7 @@ func convertTransactionReceipts(trs []evm.TransactionReceipt) []*TransactionRece
 		for i, l := range t.Logs {
 			log := TransactionLog{
 				Address:          l.Address.String(),
-				Data:             hexutil.Encode(l.Data),
+				Data:             &TransactionLogData{Data: hexutil.Encode(l.Data)},
 				TransactionHash:  receipt.TransactionHash,
 				TransactionIndex: receipt.TransactionIndex,
 				LogIndex:         uint64(l.Index),
@@ -105,7 +105,7 @@ func convertBlocks(evmBlock evm.Block, evmTransactions []evm.Transaction) *Block
 			Gas:         uint64(t.Gas),
 			GasPrice:    t.GasPrice.String(),
 			Hash:        t.Hash.String(),
-			Input:       t.Input.String(),
+			Input:       &TransactionInput{Input: t.Input.String()},
 			Nonce:       uint64(t.Nonce),
 			Index:       uint64(*t.TransactionIndex),
 			Value:       t.Value.String(),
@@ -152,7 +152,7 @@ type TransactionReceipt struct {
 type TransactionLog struct {
 	gorm.Model
 	Address              string `gorm:"type:varchar(42);index;not null"`
-	Data                 string `gorm:"type:text"`
+	Data                 *TransactionLogData
 	TransactionHash      string `gorm:"type:varchar(66)"`
 	TransactionIndex     uint64 `gorm:"type:int(11)"`
 	LogIndex             uint64 `gorm:"type:int(11)"`
@@ -162,6 +162,9 @@ type TransactionLog struct {
 	Topics               []LogTopic
 }
 
+type TransactionLogData struct {
+	Data string `gorm:"type:text"`
+}
 type LogTopic struct {
 	gorm.Model
 	Topic            string `gorm:"type:varchar(66)"`
@@ -193,7 +196,7 @@ type Transaction struct {
 	Gas         uint64 `gorm:"type:int(11)"`
 	GasPrice    string `gorm:"type:varchar(66)"`
 	Hash        string `gorm:"type:varchar(66)"`
-	Input       string `gorm:"type:text"`
+	Input       *TransactionInput
 	Nonce       uint64 `gorm:"type:int(11)"`
 	To          string `gorm:"type:varchar(42)"`
 	Index       uint64 `gorm:"type:int(11)"`
@@ -202,7 +205,9 @@ type Transaction struct {
 	R           string `gorm:"type:varchar(255)"`
 	S           string `gorm:"type:varchar(255)"`
 }
-
+type TransactionInput struct {
+	Input string `gorm:"type:text"`
+}
 type ContractCode struct {
 	gorm.Model
 	Address     string `gorm:"type:varchar(42);index:unique_address,unique;not null"`
