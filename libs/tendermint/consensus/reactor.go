@@ -161,7 +161,9 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 	}()
 
 	conR.Logger.Info("SwitchToConsensus")
-	conR.conS.reconstructLastCommit(state)
+	if state.LastBlockHeight > types.GetStartBlockHeight() {
+		conR.conS.reconstructLastCommit(state)
+	}
 	// NOTE: The line below causes broadcastNewRoundStepRoutine() to
 	// broadcast a NewRoundStepMessage.
 	conR.conS.updateToState(state)
@@ -966,9 +968,10 @@ OUTER_LOOP:
 			continue OUTER_LOOP
 		}
 		// send vcMsg
-		if rs.Height == prs.Height || rs.Height == prs.Height+1 {
+		if vcMsg.Height == prs.Height && prs.AVCHeight < vcMsg.Height {
 			peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
 			//conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
+			ps.SetAvcHeight(vcMsg.Height)
 		}
 
 		if rs.Height == vcMsg.Height {
@@ -1241,6 +1244,14 @@ func (ps *PeerState) GetHeight() int64 {
 	ps.mtx.Lock()
 	defer ps.mtx.Unlock()
 	return ps.PRS.Height
+}
+
+// SetAvcHeight sets the given hasVC as known for the peer
+func (ps *PeerState) SetAvcHeight(height int64) {
+	ps.mtx.Lock()
+	defer ps.mtx.Unlock()
+
+	ps.PRS.AVCHeight = height
 }
 
 // SetHasProposal sets the given proposal as known for the peer.

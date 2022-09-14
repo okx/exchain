@@ -109,7 +109,7 @@ func newFlatKVDB() dbm.DB {
 	rootDir := viper.GetString("home")
 	dataDir := filepath.Join(rootDir, "data")
 	var err error
-	flatKVDB, err := sdk.NewLevelDB("flat", dataDir)
+	flatKVDB, err := sdk.NewDB("flat", dataDir)
 	if err != nil {
 		panic(err)
 	}
@@ -580,6 +580,10 @@ func (rs *Store) TracingEnabled() bool {
 // Implements Committer/CommitStore.
 func (rs *Store) LastCommitID() types.CommitID {
 	return rs.lastCommitInfo.CommitID()
+}
+
+func (rs *Store) LastCommitVersion() int64 {
+	return rs.lastCommitInfo.Version
 }
 
 func (rs *Store) CommitterCommit(*iavltree.TreeDelta) (_ types.CommitID, _ *iavltree.TreeDelta) {

@@ -20,7 +20,7 @@ import (
 )
 
 func TestCountTxDecorator(t *testing.T) {
-	types2.UnittestOnlySetMilestoneVenus2Height(1)
+	types2.UnittestOnlySetMilestoneVenus3Height(1)
 	keyWasm := sdk.NewKVStoreKey(types.StoreKey)
 	db := dbm.NewMemDB()
 	ms := store.NewCommitMultiStore(db)

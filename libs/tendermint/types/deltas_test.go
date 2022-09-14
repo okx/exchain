@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+	"math"
 	"testing"
 	"time"
 
@@ -28,12 +29,12 @@ func TestDelta(t *testing.T) {
 	err = unmarshaled.Unmarshal(marshaled)
 	require.NoError(t, err)
 
-	assert.True(t, bytes.Equal(unmarshaled.ABCIRsp(), d.ABCIRsp()))
-	assert.True(t, bytes.Equal(unmarshaled.DeltasBytes(), d.DeltasBytes()))
-	assert.True(t, bytes.Equal(unmarshaled.WatchBytes(), d.WatchBytes()))
-	assert.True(t, bytes.Equal(unmarshaled.WasmWatchBytes(), d.WasmWatchBytes()))
-	assert.True(t, unmarshaled.Height == d.Height)
-	assert.True(t, unmarshaled.CompressType == d.CompressType)
+	assert.True(t, bytes.Equal(unmarshaled.ABCIRsp(), d.ABCIRsp()), "ABCIRsp not equal")
+	assert.True(t, bytes.Equal(unmarshaled.DeltasBytes(), d.DeltasBytes()), "DeltasBytes not equal")
+	assert.True(t, bytes.Equal(unmarshaled.WatchBytes(), d.WatchBytes()), "WatchBytes not equal")
+	assert.True(t, bytes.Equal(unmarshaled.WasmWatchBytes(), d.WasmWatchBytes()), "WasmWatchBytes not equal")
+	assert.True(t, unmarshaled.Height == d.Height, "Height not equal")
+	assert.True(t, unmarshaled.CompressType == d.CompressType, "CompressType not equal")
 }
 
 func TestDeltas_MarshalUnMarshal(t *testing.T) {
@@ -107,7 +108,7 @@ func TestDeltas_Validate(t *testing.T) {
 		{"normal case", fields{Height: 1, Version: DeltaVersion, Payload: payload}, args{1}, true},
 		{"no ABCIRsp", fields{Height: 1, Version: DeltaVersion, Payload: noABCIRsp}, args{1}, false},
 		{"no deltaBytes", fields{Height: 1, Version: DeltaVersion, Payload: noDeltaBytes}, args{1}, false},
-		{"no watchData", fields{Height: 1, Version: DeltaVersion, Payload: noWD}, args{1}, false},
+		{"no watchData", fields{Height: 1, Version: DeltaVersion, Payload: noWD}, args{1}, !FastQuery},
 		{"wrong height", fields{Height: 1, Version: DeltaVersion, Payload: payload}, args{2}, false},
 	}
 	for _, tt := range tests {
@@ -125,5 +126,120 @@ func TestDeltas_Validate(t *testing.T) {
 				t.Errorf("Validate() = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestDeltaPayloadAmino(t *testing.T) {
+	var testCases = []DeltaPayload{
+		{},
+		{
+			ABCIRsp:        []byte("ABCIResp"),
+			DeltasBytes:    []byte("DeltasBytes"),
+			WatchBytes:     []byte("WatchBytes"),
+			WasmWatchBytes: []byte("WasmWatchBytes"),
+		},
+		{
+			ABCIRsp:        []byte{},
+			DeltasBytes:    []byte{},
+			WatchBytes:     []byte{},
+			WasmWatchBytes: []byte{},
+		},
+	}
+	for _, testCase := range testCases {
+		expectBz, err := cdc.MarshalBinaryBare(testCase)
+		require.NoError(t, err)
+
+		actulaBz, err := testCase.MarshalToAmino(cdc)
+		require.NoError(t, err)
+		require.Equal(t, expectBz, actulaBz)
+		require.Equal(t, len(expectBz), testCase.AminoSize(cdc))
+
+		var expectValue DeltaPayload
+		err = cdc.UnmarshalBinaryBare(expectBz, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue DeltaPayload
+		err = actualValue.UnmarshalFromAmino(cdc, expectBz)
+		require.NoError(t, err)
+
+		require.Equal(t, expectValue, actualValue)
+	}
+
+	{
+		bz := []byte{1<<3 | 2, 0, 2<<3 | 2, 0, 3<<3 | 2, 0, 4<<3 | 2, 0}
+		var expectValue DeltaPayload
+		err := cdc.UnmarshalBinaryBare(bz, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue DeltaPayload
+		err = actualValue.UnmarshalFromAmino(cdc, bz)
+		require.NoError(t, err)
+
+		require.Equal(t, expectValue, actualValue)
+	}
+}
+
+func TestDeltasMessageAmino(t *testing.T) {
+	var testCases = []DeltasMessage{
+		{},
+		{
+			Metadata:     []byte("Metadata"),
+			MetadataHash: []byte("MetadataHash"),
+			Height:       12345,
+			CompressType: 1234,
+			From:         "from",
+		},
+		{
+			Metadata:     []byte{},
+			MetadataHash: []byte{},
+		},
+		{
+			Height:       math.MaxInt64,
+			CompressType: math.MaxInt,
+		},
+		{
+			Height:       math.MinInt64,
+			CompressType: math.MinInt,
+		},
+	}
+	utInitValue := DeltasMessage{
+		Metadata:     []byte("Metadata"),
+		MetadataHash: []byte("MetadataHash"),
+		Height:       12345,
+		CompressType: 1234,
+		From:         "from",
+	}
+
+	for _, testCase := range testCases {
+		expectBz, err := cdc.MarshalBinaryBare(testCase)
+		require.NoError(t, err)
+
+		actulaBz, err := testCase.MarshalToAmino(cdc)
+		require.NoError(t, err)
+		require.Equal(t, expectBz, actulaBz)
+		require.Equal(t, len(expectBz), testCase.AminoSize(cdc))
+
+		var expectValue = utInitValue
+		err = cdc.UnmarshalBinaryBare(expectBz, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue = utInitValue
+		err = actualValue.UnmarshalFromAmino(cdc, expectBz)
+		require.NoError(t, err)
+
+		require.Equal(t, expectValue, actualValue)
+	}
+
+	{
+		bz := []byte{1<<3 | 2, 0, 2<<3 | 2, 0, 3 << 3, 0, 4 << 3, 0, 5<<3 | 2, 0}
+		var expectValue = utInitValue
+		err := cdc.UnmarshalBinaryBare(bz, &expectValue)
+		require.NoError(t, err)
+
+		var actualValue = utInitValue
+		err = actualValue.UnmarshalFromAmino(cdc, bz)
+		require.NoError(t, err)
+
+		require.Equal(t, expectValue, actualValue)
 	}
 }

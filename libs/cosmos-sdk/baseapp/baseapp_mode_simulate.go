@@ -12,13 +12,18 @@ func (m *modeHandlerSimulate) handleStartHeight(info *runTxInfo, height int64) e
 	startHeight := tmtypes.GetStartBlockHeight()
 
 	var err error
-	if height > startHeight && height < app.LastBlockHeight() {
-		info.ctx, err = app.getContextForSimTx(info.txBytes, height)
-	} else if height < startHeight && height != 0 {
+	lastHeight := app.LastBlockHeight()
+	if height == 0 {
+		height = lastHeight
+	}
+	if height <= startHeight {
 		err = sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
 			fmt.Sprintf("height(%d) should be greater than start block height(%d)", height, startHeight))
+	} else if height > startHeight && height <= lastHeight {
+		info.ctx, err = app.getContextForSimTx(info.txBytes, height)
 	} else {
-		info.ctx = app.getContextForTx(m.mode, info.txBytes)
+		err = sdkerrors.Wrap(sdkerrors.ErrInvalidRequest,
+			fmt.Sprintf("height(%d) should be less than or equal to latest block height(%d)", height, lastHeight))
 	}
 	if info.overridesBytes != nil {
 		info.ctx.SetOverrideBytes(info.overridesBytes)
