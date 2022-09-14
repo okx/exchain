@@ -199,7 +199,7 @@ func (ndb *nodeDB) getNodeFromDisk(hash []byte, updateCache bool) *Node {
 	node.hash = hash
 	node.persisted = true
 	if updateCache {
-		ndb.cacheNodeByCheck(node)
+		ndb.cacheNode(node)
 	}
 	return node
 }
@@ -409,7 +409,7 @@ func (ndb *nodeDB) SaveBranch(batch dbm.Batch, node *Node, savedNodes map[string
 	return node.hash, nil
 }
 
-//resetBatch reset the db batch, keep low memory used
+// resetBatch reset the db batch, keep low memory used
 func (ndb *nodeDB) resetBatch(batch dbm.Batch) {
 	var err error
 	if ndb.opts.Sync {
@@ -780,6 +780,7 @@ func (ndb *nodeDB) getFastIterator(start, end []byte, ascending bool) (dbm.Itera
 
 // Write to disk.
 func (ndb *nodeDB) Commit(batch dbm.Batch) error {
+	defer batch.Close()
 	ndb.log(IavlDebug, "committing data to disk")
 	var err error
 	if ndb.opts.Sync {
@@ -790,8 +791,6 @@ func (ndb *nodeDB) Commit(batch dbm.Batch) error {
 	if err != nil {
 		return errors.Wrap(err, "failed to write batch")
 	}
-
-	batch.Close()
 
 	return nil
 }
