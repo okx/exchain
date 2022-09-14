@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"os"
 	"path"
+	"runtime"
 	"time"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -76,7 +77,10 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 	defer accWr.Flush()
 	defer func() {
 		if err := recover(); err != nil {
-			recodeLog(logWr, fmt.Sprintf("export accounts panic: %s", err))
+			const size = 64 << 10
+			buf := make([]byte, size)
+			buf = buf[:runtime.Stack(buf, false)]
+			recodeLog(logWr, fmt.Sprintf("exportAccounts panic%v\n%s", err, buf))
 		}
 	}()
 	rpcUrl := "http://127.0.0.1:26659"
