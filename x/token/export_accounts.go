@@ -92,28 +92,22 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 	count := 0
 	startTime := time.Now()
 	keeper.accountKeeper.IterateAccounts(ctx, func(account authexported.Account) bool {
-		ethAcc, ok := account.(*ethermint.EthAccount)
-		if !ok {
-			return false
-		}
-
-		//account.SpendableCoins()
-		//oktBalance := account.GetCoins().AmountOf(sdk.DefaultBondDenom)
-		//if !oktBalance.GT(sdk.ZeroDec()) {
-		//	return false
-		//}
-
 		accType := UserAccount
-		if !bytes.Equal(ethAcc.CodeHash, ethcrypto.Keccak256(nil)) {
-			accType = ContractAccount
+		ethAcc, ok := account.(*ethermint.EthAccount)
+		if ok {
+			if !bytes.Equal(ethAcc.CodeHash, ethcrypto.Keccak256(nil)) {
+				accType = ContractAccount
+			}
 		}
-		balance := getERC20Balance(ethAcc.EthAddress(), client)
+
+		ethAddr := ethcmn.BytesToAddress(account.GetAddress().Bytes())
+		balance := getERC20Balance(ethAddr, client)
 		// ignore zero balance
 		if balance.Cmp(big.NewInt(0)) == 0 {
 			return false
 		}
 		csvStr := fmt.Sprintf("%s,%d,%s,%d,%s",
-			ethAcc.EthAddress().String(),
+			ethAddr.String(),
 			accType,
 			balance.String(),
 			ctx.BlockHeight(),
@@ -134,7 +128,6 @@ func getERC20Balance(address ethcmn.Address, client *ethclient.Client) *big.Int 
 	if err != nil {
 		panic(err)
 	}
-
 	bal, err := instance.BalanceOf(nil, address)
 	if err != nil {
 		panic(err)
