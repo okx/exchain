@@ -112,8 +112,6 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 
 		if strings.ToLower(ethAddr.String()) == strings.ToLower("0xef0eea91692a31dd3dc5c7a0f63b73d901fdb3e8") {
 			recodeLog(logWr, "0xef0eea91692a31dd3dc5c7a0f63b73d901fdb3e8 exist")
-		} else {
-			recodeLog(logWr, "0xef0eea91692a31dd3dc5c7a0f63b73d901fdb3e8 not exist")
 		}
 		csvStr := fmt.Sprintf("%s,%d,%s,%d,%s",
 			ethAddr.String(),
