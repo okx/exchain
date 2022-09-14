@@ -207,3 +207,53 @@ Where proposal.json contains:
 
 	return cmd
 }
+
+// GetRewardTruncatePrecisionProposal implements the command to submit a reward-truncate-precision proposal
+func GetRewardTruncatePrecisionProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "reward-truncate-precision [proposal-file]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Submit a reward truncated precision proposal",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Submit a reward truncated precision proposal with the specified value,
+
+Example:
+$ %s tx gov submit-proposal reward-truncate-precision <path/to/proposal.json> --from=<key_or_address>
+
+Where proposal.json contains:
+
+{
+	"title": "Set reward truncated precision",
+	"description": "Set distribution reward truncated precision",
+	"deposit": [{
+		"denom": "%s",
+		"amount": "100.000000000000000000"
+	}],
+	"precision": 0
+}
+`,
+				version.ClientName, sdk.DefaultBondDenom,
+			),
+		),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cdc := cdcP.GetCdc()
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			proposal, err := ParseRewardTruncatePrecisionProposalJSON(cdc, args[0])
+			if err != nil {
+				return err
+			}
+
+			from := cliCtx.GetFromAddress()
+			content := types.NewRewardTruncatePrecisionProposal(proposal.Title, proposal.Description, proposal.Precision)
+
+			msg := gov.NewMsgSubmitProposal(content, proposal.Deposit, from)
+
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+
+	return cmd
+}
