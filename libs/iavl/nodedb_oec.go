@@ -294,10 +294,6 @@ func (ndb *nodeDB) getNodeFromCache(hash []byte, promoteRecentNode bool) (n *Nod
 	return ndb.nc.get(hash, promoteRecentNode)
 }
 
-func (ndb *nodeDB) cacheNodeByCheck(node *Node) {
-	ndb.nc.cacheByCheck(node)
-}
-
 func (ndb *nodeDB) uncacheNodeRontine(n []*Node) {
 	for _, node := range n {
 		ndb.uncacheNode(node.hash)
