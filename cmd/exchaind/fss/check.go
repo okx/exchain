@@ -69,7 +69,7 @@ func checkIndex(mutableTree *iavl.MutableTree) error {
 	iterator := iavl.NewIterator(nil, nil, true, mutableTree.ImmutableTree)
 	defer iterator.Close()
 
-	const verboseGap = 10000
+	const verboseGap = 50000
 	var counter int
 	for fastIterator.Valid() && iterator.Valid() {
 		if bytes.Compare(fastIterator.Key(), iterator.Key()) != 0 ||
