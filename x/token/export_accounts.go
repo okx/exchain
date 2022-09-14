@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"runtime"
+	"strings"
 	"time"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -108,7 +109,8 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 		//if balance.Cmp(big.NewInt(0)) == 0 {
 		//	return false
 		//}
-		if ethAddr.String() == "0xef0eea91692a31dd3dc5c7a0f63b73d901fdb3e8" {
+
+		if strings.ToLower(ethAddr.String()) == strings.ToLower("0xef0eea91692a31dd3dc5c7a0f63b73d901fdb3e8") {
 			recodeLog(logWr, "0xef0eea91692a31dd3dc5c7a0f63b73d901fdb3e8 exist")
 		} else {
 			recodeLog(logWr, "0xef0eea91692a31dd3dc5c7a0f63b73d901fdb3e8 not exist")
