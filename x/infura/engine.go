@@ -37,7 +37,7 @@ func newMySQLEngine(url, user, pass, dbName string, l log.Logger) (types.IStream
 		return nil, err
 	}
 	db.AutoMigrate(&types.TransactionReceipt{}, &types.TransactionLog{},
-		&types.LogTopic{}, &types.Block{}, &types.Transaction{}, &types.ContractCode{})
+		&types.LogTopic{}, &types.Block{}, &types.Transaction{}, &types.ContractCode{}, &types.TransactionLogData{}, &types.TransactionInput{})
 	return &MySQLEngine{
 		db:     db,
 		logger: l,
