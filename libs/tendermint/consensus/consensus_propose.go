@@ -377,7 +377,7 @@ func (cs *State) handleCompleteProposal(height int64) {
 			cs.enterPrecommit(height, cs.Round)
 		}
 	}
-	if cs.HasVC && cs.Round == 0 && cs.isProposalComplete() {
+	if cs.HasVC && cs.Round == 0 {
 		blockID, hasTwoThirds := cs.Votes.Precommits(cs.Round).TwoThirdsMajority()
 		cs.Logger.Info("avc and handleCompleteProposal", "2/3Precommit", hasTwoThirds, "proposal", cs.ProposalBlock.Hash(), "block", blockID.Hash)
 		if hasTwoThirds && !blockID.IsZero() && cs.ProposalBlock.HashesTo(blockID.Hash) {
