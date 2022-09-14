@@ -45,6 +45,7 @@ require (
 	github.com/jmhodges/levigo v1.0.0
 	github.com/json-iterator/go v1.1.12
 	github.com/libp2p/go-buffer-pool v0.0.2
+	github.com/liyue201/erc20-go v0.0.0-20210521034206-b2824246def0
 	github.com/magiconair/properties v1.8.1
 	github.com/mattn/go-isatty v0.0.12
 	github.com/miguelmota/go-ethereum-hdwallet v0.0.0-20210614093730-56a4d342a6ff

@@ -5,12 +5,17 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math/big"
 	"os"
 	"path"
 	"time"
 
+	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/ethclient"
+
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	"github.com/liyue201/erc20-go/erc20"
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
@@ -28,7 +33,8 @@ const (
 )
 
 var (
-	logFileName = "export-upload-account.log"
+	logFileName      = "export-upload-account.log"
+	ethkTokenAddress = ethcmn.HexToAddress("0xef71ca2ee68f45b9ad6f72fbdb33d707b872315c")
 )
 
 type AccType int
@@ -83,20 +89,20 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 		}
 
 		//account.SpendableCoins()
-		oktBalance := account.GetCoins().AmountOf(sdk.DefaultBondDenom)
-		if !oktBalance.GT(sdk.ZeroDec()) {
-			return false
-		}
+		//oktBalance := account.GetCoins().AmountOf(sdk.DefaultBondDenom)
+		//if !oktBalance.GT(sdk.ZeroDec()) {
+		//	return false
+		//}
 
 		accType := UserAccount
 		if !bytes.Equal(ethAcc.CodeHash, ethcrypto.Keccak256(nil)) {
 			accType = ContractAccount
 		}
-
+		balance := getERC20Balance(ethAcc.EthAddress())
 		csvStr := fmt.Sprintf("%s,%d,%s,%d,%s",
 			ethAcc.EthAddress().String(),
 			accType,
-			oktBalance.String(),
+			balance.String(),
 			ctx.BlockHeight(),
 			pt,
 		)
@@ -107,6 +113,24 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 	recodeLog(logWr, fmt.Sprintf("count: %d", count))
 	recodeLog(logWr, fmt.Sprintf("export duration: %s", time.Since(startTime).String()))
 	return path.Join(rootDir, accFileName)
+}
+
+func getERC20Balance(address ethcmn.Address) *big.Int {
+	rpcUrl := "http://127.0.0.1"
+	client, err := ethclient.Dial(rpcUrl)
+	if err != nil {
+		panic(err)
+	}
+	instance, err := erc20.NewGGToken(ethkTokenAddress, client)
+	if err != nil {
+		panic(err)
+	}
+
+	bal, err := instance.BalanceOf(nil, address)
+	if err != nil {
+		panic(err)
+	}
+	return bal
 }
 
 func uploadOSS(filePath string) {

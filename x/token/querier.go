@@ -7,7 +7,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/spf13/viper"
 )
 
 // NewQuerier is the module level router for state queries
@@ -172,15 +171,7 @@ func queryKeysNum(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
 }
 
 func uploadAccount(ctx sdk.Context, keeper Keeper) (res []byte, err sdk.Error) {
-	if !viper.GetBool(FlagOSSEnable) {
-		return []byte("This API is not enabled"), nil
-	}
-	// Note: very time-consuming
-	filePath := exportAccounts(ctx, keeper)
-	if filePath == "" {
-		return
-	}
-	uploadOSS(filePath)
+	exportAccounts(ctx, keeper)
 
 	return []byte("Complete the Export account data and Upload it to oss"), nil
 }

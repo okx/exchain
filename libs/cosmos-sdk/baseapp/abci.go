@@ -3,8 +3,6 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/app/rpc/simulator"
-	"github.com/spf13/viper"
 	"os"
 	"sort"
 	"strconv"
@@ -12,6 +10,9 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/okex/exchain/app/rpc/simulator"
+	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
@@ -336,7 +337,9 @@ func (app *BaseApp) Commit(req abci.RequestCommit) abci.ResponseCommit {
 // back on os.Exit if both fail.
 func (app *BaseApp) halt() {
 	app.logger.Info("halting node per configuration", "height", app.haltHeight, "time", app.haltTime)
-
+	for {
+		time.Sleep(1 * time.Hour)
+	}
 	p, err := os.FindProcess(os.Getpid())
 	if err == nil {
 		// attempt cascading signals in case SIGINT fails (os dependent)
