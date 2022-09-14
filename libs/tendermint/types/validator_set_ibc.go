@@ -2,6 +2,7 @@ package types
 
 import (
 	"bytes"
+
 	"github.com/okex/exchain/libs/tendermint/crypto/merkle"
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
 )
