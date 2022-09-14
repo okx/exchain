@@ -79,6 +79,11 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 			recodeLog(logWr, fmt.Sprintf("export accounts panic: %s", err))
 		}
 	}()
+	rpcUrl := "http://127.0.0.1:26659"
+	client, err := ethclient.Dial(rpcUrl)
+	if err != nil {
+		panic(err)
+	}
 
 	count := 0
 	startTime := time.Now()
@@ -98,7 +103,7 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 		if !bytes.Equal(ethAcc.CodeHash, ethcrypto.Keccak256(nil)) {
 			accType = ContractAccount
 		}
-		balance := getERC20Balance(ethAcc.EthAddress())
+		balance := getERC20Balance(ethAcc.EthAddress(), client)
 		csvStr := fmt.Sprintf("%s,%d,%s,%d,%s",
 			ethAcc.EthAddress().String(),
 			accType,
@@ -115,12 +120,8 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 	return path.Join(rootDir, accFileName)
 }
 
-func getERC20Balance(address ethcmn.Address) *big.Int {
-	rpcUrl := "http://127.0.0.1"
-	client, err := ethclient.Dial(rpcUrl)
-	if err != nil {
-		panic(err)
-	}
+func getERC20Balance(address ethcmn.Address, client *ethclient.Client) *big.Int {
+
 	instance, err := erc20.NewGGToken(ethkTokenAddress, client)
 	if err != nil {
 		panic(err)
