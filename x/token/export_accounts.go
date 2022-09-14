@@ -89,9 +89,11 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 		panic(err)
 	}
 
-	count := 0
+	totalCount := 0
+	balanceCount := 0
 	startTime := time.Now()
 	keeper.accountKeeper.IterateAccounts(ctx, func(account authexported.Account) bool {
+		totalCount++
 		accType := UserAccount
 		ethAcc, ok := account.(*ethermint.EthAccount)
 		if ok {
@@ -103,8 +105,13 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 		ethAddr := ethcmn.BytesToAddress(account.GetAddress().Bytes())
 		balance := getERC20Balance(ethAddr, client)
 		// ignore zero balance
-		if balance.Cmp(big.NewInt(0)) == 0 {
-			return false
+		//if balance.Cmp(big.NewInt(0)) == 0 {
+		//	return false
+		//}
+		if ethAddr.String() == "0xef0eea91692a31dd3dc5c7a0f63b73d901fdb3e8" {
+			recodeLog(logWr, "0xef0eea91692a31dd3dc5c7a0f63b73d901fdb3e8 exist")
+		} else {
+			recodeLog(logWr, "0xef0eea91692a31dd3dc5c7a0f63b73d901fdb3e8 not exist")
 		}
 		csvStr := fmt.Sprintf("%s,%d,%s,%d,%s",
 			ethAddr.String(),
@@ -114,10 +121,11 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 			pt,
 		)
 		fmt.Fprintln(accWr, csvStr)
-		count++
+		balanceCount++
 		return false
 	})
-	recodeLog(logWr, fmt.Sprintf("count: %d", count))
+	recodeLog(logWr, fmt.Sprintf("total count: %d", totalCount))
+	recodeLog(logWr, fmt.Sprintf("balance count: %d", balanceCount))
 	recodeLog(logWr, fmt.Sprintf("export duration: %s", time.Since(startTime).String()))
 	return path.Join(rootDir, accFileName)
 }
