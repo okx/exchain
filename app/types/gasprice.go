@@ -110,17 +110,11 @@ func (rs *BlockGPResults) Pop() (SingleBlockGPs, error) {
 }
 
 func (rs BlockGPResults) isEmpty() bool {
-	if len(rs) == 0 {
-		return true
-	}
-	return false
+	return len(rs) == 0
 }
 
 func (rs BlockGPResults) isFull() bool {
-	if len(rs) == checkBlocks {
-		return true
-	}
-	return false
+	return len(rs) == checkBlocks
 }
 
 type BigIntArray []*big.Int
