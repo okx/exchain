@@ -402,6 +402,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			}
 			conR.hasViewChanged = msg.Height
 			conR.conS.vcMsg = conR.broadcastViewChangeMessage(msg)
+			conR.Logger.Info("receive prMsg", "height", height, "prMsg", msg, "vcMsg", conR.conS.vcMsg)
 		}
 	case StateChannel:
 		switch msg := msg.(type) {

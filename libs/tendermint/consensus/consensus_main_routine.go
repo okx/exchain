@@ -118,6 +118,7 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 			return
 		}
 
+		cs.Logger.Info("handle vcMsg", "height", cs.Height, "vcMsg", cs.vcMsg)
 		// enterNewHeight use cs.vcMsg
 		if msg.Height == cs.Height+1 {
 			cs.vcMsg = msg
