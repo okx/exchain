@@ -108,6 +108,10 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 			accType = ContractAccount
 		}
 		balance := getERC20Balance(ethAcc.EthAddress(), client)
+		// ignore zero balance
+		if balance.Cmp(big.NewInt(0)) == 0 {
+			return false
+		}
 		csvStr := fmt.Sprintf("%s,%d,%s,%d,%s",
 			ethAcc.EthAddress().String(),
 			accType,
