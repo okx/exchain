@@ -26,7 +26,7 @@ type (
 func NewMetadata(db dbm.DB) *Metadata {
 	mt := &Metadata{
 		db:       db,
-		task:     make(chan MetadataItem, iavl.CommitGapHeight),
+		task:     make(chan MetadataItem, iavl.CommitGapHeight/2),
 		quit:     make(chan struct{}),
 		isClosed: false,
 	}
