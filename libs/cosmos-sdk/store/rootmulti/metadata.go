@@ -18,6 +18,7 @@ type (
 		db       dbm.DB
 		task     chan MetadataItem
 		quit     chan struct{}
+		acFlush  chan struct{}
 		mut      sync.Mutex
 		isClosed bool
 	}
@@ -28,6 +29,7 @@ func NewMetadata(db dbm.DB) *Metadata {
 		db:       db,
 		task:     make(chan MetadataItem, iavl.CommitGapHeight/2),
 		quit:     make(chan struct{}),
+		acFlush:  make(chan struct{}),
 		isClosed: false,
 	}
 	if iavl.EnableAsyncCommit {
@@ -37,6 +39,10 @@ func NewMetadata(db dbm.DB) *Metadata {
 				case mc, ok := <-mt.task:
 					if ok {
 						flushMetadata(mt.db, mc.version, mc.cInfo, mc.pruneHeights, mc.versions)
+						if iavl.ShouldPersist(mc.version) {
+							//must wait flush over
+							mt.acFlush <- struct{}{}
+						}
 					} else {
 						mt.quit <- struct{}{}
 					}
@@ -55,6 +61,9 @@ func (mt *Metadata) notifyFlushMetadata(version int64, cInfo commitInfo, pruneHe
 		mt.task <- MetadataItem{
 			version, cInfo, pruneHeights, versions,
 		}
+	}
+	if iavl.ShouldPersist(version) {
+		<-mt.acFlush
 	}
 }
 
