@@ -278,5 +278,12 @@ func handleUpdateWASMContractMethodBlockedListProposal(ctx sdk.Context, k types.
 	if err := p.ValidateBasic(); err != nil {
 		return err
 	}
+	contractAddr, err := sdk.AccAddressFromBech32(p.BlockedMethods.ContractAddr)
+	if err != nil {
+		return sdkerrors.Wrap(err, "contract")
+	}
+	if err = k.ClearContractAdmin(ctx, contractAddr, contractAddr); err != nil {
+		return err
+	}
 	return k.UpdateContractMethodBlockedList(ctx, p.BlockedMethods, p.IsDelete)
 }
