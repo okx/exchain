@@ -48,6 +48,8 @@ var EnableAllProposals = []ProposalType{
 
 // NecessaryProposals contains necessary wasm gov types as keys.
 var NecessaryProposals = []ProposalType{
+	ProposalTypeUpdateAdmin,
+	ProposalTypeClearAdmin,
 	ProposalTypeMigrateContract,
 	ProposalTypeUpdateDeploymentWhitelist,
 	ProposalTypeUpdateWasmContractMethodBlockedList,

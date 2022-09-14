@@ -247,6 +247,16 @@ func (k Keeper) getContractMethodBlockedList(ctx sdk.Context, contractAddr strin
 }
 
 func (k Keeper) updateContractMethodBlockedList(ctx sdk.Context, blockedMethods *types.ContractMethods, isDelete bool) error {
+	cAddr, err := sdk.AccAddressFromBech32(blockedMethods.ContractAddr)
+	if err != nil {
+		return err
+	}
+
+	// clear admin at first to avoid the method name of the contract to be modified
+	err = k.setContractAdmin(ctx, cAddr, nil, nil, GovAuthorizationPolicy{})
+	if err != nil {
+		return err
+	}
 	oldBlockedMethods := k.getContractMethodBlockedList(ctx, blockedMethods.GetContractAddr())
 	if isDelete {
 		oldBlockedMethods.DeleteMethods(blockedMethods.Methods)

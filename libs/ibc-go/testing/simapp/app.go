@@ -133,6 +133,8 @@ var (
 			govclient.ManageTreasuresProposalHandler,
 			erc20client.TokenMappingProposalHandler,
 			erc20client.ProxyContractRedirectHandler,
+			wasmclient.UpdateContractAdminProposalHandler,
+			wasmclient.ClearContractAdminProposalHandler,
 			wasmclient.UpdateDeploymentWhitelistProposalHandler,
 			wasmclient.MigrateContractProposalHandler,
 			wasmclient.UpdateWASMContractMethodBlockedListProposalHandler,

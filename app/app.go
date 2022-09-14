@@ -126,6 +126,8 @@ var (
 			erc20client.ProxyContractRedirectHandler,
 			erc20client.ContractTemplateProposalHandler,
 			client.UpdateClientProposalHandler,
+			wasmclient.UpdateContractAdminProposalHandler,
+			wasmclient.ClearContractAdminProposalHandler,
 			wasmclient.UpdateDeploymentWhitelistProposalHandler,
 			wasmclient.MigrateContractProposalHandler,
 			wasmclient.UpdateWASMContractMethodBlockedListProposalHandler,

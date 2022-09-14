@@ -41,12 +41,27 @@ exchaincli query wasm contract-state smart "$cw20contractAddr" '{"balance":{"add
 exchaincli query wasm contract-state smart "$contractAddr" '{"staked":{"address":"'$captain'"}}'
 exchaincli query wasm contract-state smart "$contractAddr" '{"member":{"addr":"'$captain'"}}'
 
+cw20admin=$(exchaincli query wasm contract "$cw20contractAddr" | jq '.contract_info.admin' | sed 's/\"//g')
+# shellcheck disable=SC2053
+if [[ $cw20admin != $captain ]];
+then
+  echo "unexpected cw20 admin: $cw20admin"
+  exit 1
+fi
+
 echo "## block cw20 contract methods <transfer> and <send>"
-res=$(exchaincli tx gov submit-proposal update-wasm-contract-method-blocked-list ex14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s6fqu27 "transfer,send" --deposit 10.1okt --title "test title" --description "test description"  --fees 0.001okt --gas 3000000 --from captain -b block -y)
+res=$(exchaincli tx gov submit-proposal update-wasm-contract-method-blocked-list "${cw20contractAddr}" "transfer,send" --deposit 10.1okt --title "test title" --description "test description"  --fees 0.001okt --gas 3000000 --from captain -b block -y)
 proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
 echo "block <transfer> and <send> proposal_id: $proposal_id"
 res=$(exchaincli tx gov deposit "$proposal_id" 90000000okt --fees 0.001okt --gas 3000000 --from captain -b block -y)
 res=$(exchaincli tx gov vote "$proposal_id" yes --fees 0.001okt --gas 3000000 --from captain -b block -y)
+cw20admin=$(exchaincli query wasm contract "$cw20contractAddr" | jq '.contract_info.admin' | sed 's/\"//g')
+if [[ $cw20admin != "" ]];
+then
+  echo "unexpected cw20 admin: $cw20admin"
+  exit 1
+fi
+
 res=$(exchaincli tx wasm execute "$cw20contractAddr" '{"transfer":{"amount":"100","recipient":"'$admin18'"}}'  --fees 0.001okt --gas 2000000 --from captain -b block -y)
 tx_hash=$(echo "$res" | jq '.txhash' | sed 's/\"//g')
 echo "txhash: $tx_hash"
@@ -58,11 +73,12 @@ echo "txhash: $tx_hash"
 raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
 echo "expected to fail, raw_log: $raw_log"
 
-res=$(exchaincli tx gov submit-proposal update-wasm-contract-method-blocked-list ex14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s6fqu27 "transfer" --delete=true --deposit 10.1okt --title "test title" --description "test description"  --fees 0.001okt --gas 3000000 --from captain -b block -y)
+res=$(exchaincli tx gov submit-proposal update-wasm-contract-method-blocked-list "$cw20contractAddr" "transfer" --delete=true --deposit 10.1okt --title "test title" --description "test description"  --fees 0.001okt --gas 3000000 --from captain -b block -y)
 proposal_id=$(echo "$res" | jq '.logs[0].events[1].attributes[1].value' | sed 's/\"//g')
 echo "unblock <transfer> proposal_id: $proposal_id"
 res=$(exchaincli tx gov deposit "$proposal_id" 90000000okt --fees 0.001okt --gas 3000000 --from captain -b block -y)
 res=$(exchaincli tx gov vote "$proposal_id" yes --fees 0.001okt --gas 3000000 --from captain -b block -y)
+
 res=$(exchaincli tx wasm execute "$cw20contractAddr" '{"transfer":{"amount":"100","recipient":"'$admin18'"}}'  --fees 0.001okt --gas 2000000 --from captain -b block -y)
 tx_hash=$(echo "$res" | jq '.txhash' | sed 's/\"//g')
 echo "txhash: $tx_hash"
