@@ -118,15 +118,16 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 			return
 		}
 
-		cs.Logger.Info("handle vcMsg", "height", cs.Height, "vcMsg", cs.vcMsg)
 		// enterNewHeight use cs.vcMsg
 		if msg.Height == cs.Height+1 {
 			cs.vcMsg = msg
+			cs.Logger.Info("handle vcMsg", "height", cs.Height, "vcMsg", cs.vcMsg)
 		} else if msg.Height == cs.Height {
 			// ApplyBlock of height-1 has finished
 			// at this height, it has enterNewHeight
 			// vc immediately
 			cs.vcMsg = msg
+			cs.Logger.Info("handle vcMsg", "height", cs.Height, "vcMsg", cs.vcMsg)
 			if cs.Step != cstypes.RoundStepNewHeight && cs.Round == 0 {
 				_, val := cs.Validators.GetByAddress(msg.NewProposer)
 				cs.enterNewRoundAVC(cs.Height, 0, val)
