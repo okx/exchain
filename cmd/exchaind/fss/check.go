@@ -58,7 +58,7 @@ func check(storeKeys []string) error {
 			return fmt.Errorf("%v iavl fast index not match %v", key, err.Error())
 		}
 	}
-	log.Println("Check success.")
+	log.Println("Success")
 
 	return nil
 }
@@ -69,12 +69,18 @@ func checkIndex(mutableTree *iavl.MutableTree) error {
 	iterator := iavl.NewIterator(nil, nil, true, mutableTree.ImmutableTree)
 	defer iterator.Close()
 
+	const verboseGap = 10000
+	var counter int
 	for fastIterator.Valid() && iterator.Valid() {
 		if bytes.Compare(fastIterator.Key(), iterator.Key()) != 0 ||
 			bytes.Compare(fastIterator.Value(), iterator.Value()) != 0 {
 			return fmt.Errorf("fast index key:%v value:%v, iavl node key:%v iavl node value:%v",
 				fastIterator.Key(), fastIterator.Value(), iterator.Key(), iterator.Value())
 		}
+		if counter%verboseGap == 0 {
+			log.Printf("Checked count: %v\n", counter)
+		}
+		counter++
 		fastIterator.Next()
 		iterator.Next()
 	}
