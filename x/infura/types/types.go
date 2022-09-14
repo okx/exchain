@@ -163,7 +163,9 @@ type TransactionLog struct {
 }
 
 type TransactionLogData struct {
-	Data string `gorm:"type:text"`
+	gorm.Model
+	Data             string `gorm:"type:text"`
+	TransactionLogID uint
 }
 type LogTopic struct {
 	gorm.Model
@@ -206,7 +208,9 @@ type Transaction struct {
 	S           string `gorm:"type:varchar(255)"`
 }
 type TransactionInput struct {
-	Input string `gorm:"type:text"`
+	gorm.Model
+	Input         string `gorm:"type:text"`
+	TransactionID uint
 }
 type ContractCode struct {
 	gorm.Model
