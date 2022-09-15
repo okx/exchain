@@ -82,7 +82,7 @@ func (gpo *Oracle) RecommendGP() *big.Int {
 	if !gpo.BlockGPQueue.IsEmpty() {
 		front, rear, capacity := gpo.BlockGPQueue.Front(), gpo.BlockGPQueue.Rear(), gpo.BlockGPQueue.Cap()
 		// traverse the circular queue
-		for i := front; i != rear; i = (i + 1) / capacity {
+		for i := front; i != rear; i = (i + 1) % capacity {
 			gpo.BlockGPQueue.Items[i].SampleGP()
 
 			// If block is empty, use the latest calculated price for sampling.
