@@ -229,7 +229,7 @@ Where proposal.json contains:
 		"denom": "%s",
 		"amount": "100.000000000000000000"
 	}],
-	"precision": 0
+	"precision": "0"
 }
 `,
 				version.ClientName, sdk.DefaultBondDenom,
