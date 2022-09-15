@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/common"
 
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/client/cli"
 
@@ -85,7 +85,7 @@ func (AppModuleBasic) Name() string {
 
 // AppModule is the application module for the IBC interchain accounts module
 type AppModule struct {
-	*base.BaseIBCUpgradeModule
+	*common.Veneus3BaseUpgradeModule
 	AppModuleBasic
 	controllerKeeper *controllerkeeper.Keeper
 	hostKeeper       *hostkeeper.Keeper
@@ -97,7 +97,7 @@ func NewAppModule(m *codec.CodecProxy, ck *controllerkeeper.Keeper, hk *hostkeep
 		controllerKeeper: ck,
 		hostKeeper:       hk,
 	}
-	ret.BaseIBCUpgradeModule = base.NewBaseIBCUpgradeModule(ret.AppModuleBasic)
+	ret.Veneus3BaseUpgradeModule = common.NewVeneus3BaseUpgradeModule(ret)
 	return ret
 }
 

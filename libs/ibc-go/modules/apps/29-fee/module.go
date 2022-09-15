@@ -1,11 +1,19 @@
 package fee
 
 import (
+	"context"
 	"encoding/json"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/common"
+
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/client/cli"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/keeper"
+
+	cliCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	anytypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -18,65 +26,52 @@ import (
 var (
 	_ module.AppModuleAdapter      = AppModule{}
 	_ module.AppModuleBasicAdapter = AppModuleBasic{}
+	_ upgrade.UpgradeModule        = AppModule{}
 )
 
 // AppModuleBasic is the 29-fee AppModuleBasic
 type AppModuleBasic struct{}
 
 func (b AppModuleBasic) RegisterCodec(codec *codec.Codec) {
-	//TODO implement me
-	panic("implement me")
+	types.RegisterLegacyAminoCodec(codec)
 }
 
 func (b AppModuleBasic) DefaultGenesis() json.RawMessage {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func (b AppModuleBasic) ValidateGenesis(message json.RawMessage) error {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
-func (b AppModuleBasic) RegisterRESTRoutes(context context.CLIContext, router *mux.Router) {
-	//TODO implement me
-	panic("implement me")
-}
+func (b AppModuleBasic) RegisterRESTRoutes(context cliCtx.CLIContext, router *mux.Router) {}
 
 func (b AppModuleBasic) GetTxCmd(codec *codec.Codec) *cobra.Command {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func (b AppModuleBasic) GetQueryCmd(codec *codec.Codec) *cobra.Command {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
 func (b AppModuleBasic) RegisterInterfaces(registry anytypes.InterfaceRegistry) {
-	//TODO implement me
-	panic("implement me")
+	types.RegisterInterfaces(registry)
 }
 
-func (b AppModuleBasic) RegisterGRPCGatewayRoutes(context context.CLIContext, mux *runtime.ServeMux) {
-	//TODO implement me
-	panic("implement me")
+func (b AppModuleBasic) RegisterGRPCGatewayRoutes(ctx cliCtx.CLIContext, mux *runtime.ServeMux) {
+	types.RegisterQueryHandlerClient(context.Background(), mux, types.NewQueryClient(ctx))
 }
 
 func (b AppModuleBasic) GetTxCmdV2(cdc *codec.CodecProxy, reg anytypes.InterfaceRegistry) *cobra.Command {
-	//TODO implement me
-	panic("implement me")
+	// TODO, 同tx ,是否需要tx cmd
+	return nil
 }
 
 func (b AppModuleBasic) GetQueryCmdV2(cdc *codec.CodecProxy, reg anytypes.InterfaceRegistry) *cobra.Command {
-	//TODO implement me
-	panic("implement me")
+	return cli.GetQueryCmd(cdc, reg)
 }
 
-func (b AppModuleBasic) RegisterRouterForGRPC(cliCtx context.CLIContext, r *mux.Router) {
-	//TODO implement me
-	panic("implement me")
-}
+func (b AppModuleBasic) RegisterRouterForGRPC(cliCtx cliCtx.CLIContext, r *mux.Router) {}
 
 // Name implements AppModuleBasic interface
 func (AppModuleBasic) Name() string {
@@ -84,55 +79,55 @@ func (AppModuleBasic) Name() string {
 }
 
 type AppModule struct {
+	*common.Veneus3BaseUpgradeModule
 	AppModuleBasic
+	keeper keeper.Keeper
+}
+
+func NewAppModule(k keeper.Keeper) AppModule {
+	ret := AppModule{
+		keeper: k,
+	}
+	ret.Veneus3BaseUpgradeModule = common.NewVeneus3BaseUpgradeModule(ret)
+	return ret
 }
 
 func (a AppModule) InitGenesis(s sdk.Context, message json.RawMessage) []abci.ValidatorUpdate {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
-func (a AppModule) ExportGenesis(s sdk.Context) json.RawMessage {
-	//TODO implement me
-	panic("implement me")
+func (a AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
+	// TODO,可能会触发smb
+	gs := a.keeper.ExportGenesis(ctx)
+	return ModuleCdc.MustMarshalJSON(gs)
 }
 
-func (a AppModule) RegisterInvariants(registry sdk.InvariantRegistry) {
-	//TODO implement me
-	panic("implement me")
-}
+func (a AppModule) RegisterInvariants(registry sdk.InvariantRegistry) {}
 
 func (a AppModule) Route() string {
-	//TODO implement me
-	panic("implement me")
+	return types.RouterKey
 }
 
 func (a AppModule) NewHandler() sdk.Handler {
-	//TODO implement me
-	panic("implement me")
+	return NewHandler(a.keeper)
 }
 
 func (a AppModule) QuerierRoute() string {
-	//TODO implement me
-	panic("implement me")
+	return types.QuerierRoute
 }
 
+// TODO, 有需要适配的吗
 func (a AppModule) NewQuerierHandler() sdk.Querier {
-	//TODO implement me
-	panic("implement me")
+	return nil
 }
 
-func (a AppModule) BeginBlock(s sdk.Context, block abci.RequestBeginBlock) {
-	//TODO implement me
-	panic("implement me")
-}
+func (a AppModule) BeginBlock(s sdk.Context, block abci.RequestBeginBlock) {}
 
 func (a AppModule) EndBlock(s sdk.Context, block abci.RequestEndBlock) []abci.ValidatorUpdate {
-	//TODO implement me
-	panic("implement me")
+	return []abci.ValidatorUpdate{}
 }
 
-func (a AppModule) RegisterServices(configurator module.Configurator) {
-	//TODO implement me
-	panic("implement me")
+func (a AppModule) RegisterServices(cfg module.Configurator) {
+	types.RegisterMsgServer(cfg.MsgServer(), a.keeper)
+	types.RegisterQueryServer(cfg.QueryServer(), a.keeper)
 }
