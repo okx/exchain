@@ -853,9 +853,13 @@ func (rs *Store) Query(req abci.RequestQuery) abci.ResponseQuery {
 	if res.Height == rs.lastCommitInfo.Version {
 		commitInfo = rs.lastCommitInfo
 	} else {
-		commitInfo, err = getCommitInfo(rs.db, res.Height)
+		//read from cache first
+		commitInfo, err = rs.metadata.GetCommitInfoFromCache(res.Height)
 		if err != nil {
-			return sdkerrors.QueryResult(err)
+			commitInfo, err = getCommitInfo(rs.db, res.Height)
+			if err != nil {
+				return sdkerrors.QueryResult(err)
+			}
 		}
 	}
 
