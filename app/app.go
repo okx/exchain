@@ -624,7 +624,7 @@ func NewOKExChainApp(
 	enableAnalyzer := sm.DeliverTxsExecMode(viper.GetInt(sm.FlagDeliverTxsExecMode)) == sm.DeliverTxsExecModeSerial
 	trace.EnableAnalyzer(enableAnalyzer)
 	//todo
-	gpoConfig := gasprice.DefaultGPOConfig()
+	gpoConfig := gasprice.NewGPOConfig(appconfig.GetOecConfig().GetDynamicGpWeight(), appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
 	app.gpo = gasprice.NewOracle(gpoConfig)
 	return app
 }
@@ -659,7 +659,7 @@ func (app *OKExChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBloc
 // EndBlocker updates every end block
 func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
 	if appconfig.GetOecConfig().GetEnableDynamicGp() {
-		app.gpo.BlockGPQueue.Push(app.gpo.CurrentBlockGPs)
+		_ = app.gpo.BlockGPQueue.Push(app.gpo.CurrentBlockGPs)
 		GlobalGp = app.gpo.RecommendGP()
 		app.gpo.CurrentBlockGPs.Clear()
 	}

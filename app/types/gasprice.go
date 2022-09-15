@@ -8,10 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/params"
 )
 
-const (
-	checkBlocks  = 5
-	sampleNumber = 3 // Number of transactions sampled in a block
-)
+const sampleNumber = 3 // Number of transactions sampled in a block
 
 var ignorePrice = big.NewInt(2 * params.Wei)
 
@@ -46,15 +43,12 @@ func (bgp *SingleBlockGPs) GetGasUsed() uint64 {
 	return bgp.gasUsed
 }
 
-func (bgp *SingleBlockGPs) AddGP(gp *big.Int) {
-	bgp.all = append(bgp.all, gp)
-}
-
 func (bgp *SingleBlockGPs) AddSampledGP(gp *big.Int) {
 	bgp.sampled = append(bgp.sampled, gp)
 }
 
-func (bgp *SingleBlockGPs) AddGas(gas uint64) {
+func (bgp *SingleBlockGPs) Update(gp *big.Int, gas uint64) {
+	bgp.all = append(bgp.all, gp)
 	bgp.gasUsed += gas
 }
 
@@ -86,35 +80,79 @@ func (bgp *SingleBlockGPs) SampleGP() {
 	}
 }
 
-// BlockGPResults holds the gas prices of the latest few blocks
-type BlockGPResults []SingleBlockGPs
-
-func NewBlockGPResults() BlockGPResults {
-	return BlockGPResults{}
+// BlockGPResults is a circular queue of SingleBlockGPs
+type BlockGPResults struct {
+	Items    []SingleBlockGPs
+	front    int
+	rear     int
+	capacity int
 }
 
-func (rs *BlockGPResults) Push(gp SingleBlockGPs) {
-	if rs.isFull() {
-		_, _ = rs.Pop()
+func NewBlockGPResults(checkBlocksNum int) BlockGPResults {
+	circularQueue := BlockGPResults{
+		Items:    make([]SingleBlockGPs, checkBlocksNum, checkBlocksNum),
+		front:    -1,
+		rear:     -1,
+		capacity: checkBlocksNum,
 	}
-	*rs = append(*rs, gp)
+	return circularQueue
 }
 
-func (rs *BlockGPResults) Pop() (SingleBlockGPs, error) {
-	if rs.isEmpty() {
-		return SingleBlockGPs{}, errors.New("pop failed: slice is empty")
+func (rs *BlockGPResults) IsFull() bool {
+	if rs.front == 0 && rs.rear == rs.capacity-1 {
+		return true
 	}
-	res := (*rs)[0]
-	*rs = (*rs)[1:]
-	return res, nil
+	if rs.front == rs.rear+1 {
+		return true
+	}
+	return false
 }
 
-func (rs BlockGPResults) isEmpty() bool {
-	return len(rs) == 0
+func (rs *BlockGPResults) IsEmpty() bool {
+	return rs.front == -1
 }
 
-func (rs BlockGPResults) isFull() bool {
-	return len(rs) == checkBlocks
+func (rs *BlockGPResults) Front() int {
+	return rs.front
+}
+
+func (rs *BlockGPResults) Rear() int {
+	return rs.rear
+}
+
+func (rs *BlockGPResults) Cap() int {
+	return rs.capacity
+}
+
+func (rs *BlockGPResults) Push(gp SingleBlockGPs) error {
+	if rs.IsFull() {
+		_, err := rs.Pop()
+		if err != nil {
+			return err
+		}
+	}
+	if rs.front == -1 {
+		rs.front = 0
+	}
+	rs.rear = (rs.rear + 1) % rs.capacity
+	rs.Items[rs.rear] = gp
+	return nil
+}
+
+func (rs *BlockGPResults) Pop() (*SingleBlockGPs, error) {
+	if rs.IsEmpty() {
+		return nil, errors.New("pop failed: BlockGPResults is empty")
+	}
+	element := rs.Items[rs.front]
+	if rs.front == rs.rear {
+		// rs has only one element,
+		// so we reset the queue after deleting it
+		rs.front = -1
+		rs.rear = -1
+	} else {
+		rs.front = (rs.front + 1) % rs.capacity
+	}
+	return &element, nil
 }
 
 type BigIntArray []*big.Int

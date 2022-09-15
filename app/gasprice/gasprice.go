@@ -18,17 +18,19 @@ var (
 type GPOConfig struct {
 	Weight  int
 	Default *big.Int `toml:",omitempty"`
+	Blocks  int
 }
 
-func NewGPOConfig(weight int, defaultPrice *big.Int) GPOConfig {
+func NewGPOConfig(weight int, checkBlocks int) GPOConfig {
 	return GPOConfig{
 		Weight:  weight,
 		Default: defaultPrice,
+		Blocks:  checkBlocks,
 	}
 }
 
 func DefaultGPOConfig() GPOConfig {
-	return NewGPOConfig(appconfig.GetOecConfig().GetDynamicGpWeight(), defaultPrice)
+	return NewGPOConfig(80, 5)
 }
 
 // Oracle recommends gas prices based on the content of recent blocks.
@@ -43,6 +45,8 @@ type Oracle struct {
 // NewOracle returns a new gasprice oracle which can recommend suitable
 // gasprice for newly created transaction.
 func NewOracle(params GPOConfig) *Oracle {
+	//todo
+	bgpq := types.NewBlockGPResults(params.Blocks)
 	weight := params.Weight
 	if weight < 0 {
 		weight = 0
@@ -51,8 +55,9 @@ func NewOracle(params GPOConfig) *Oracle {
 		weight = 100
 	}
 	return &Oracle{
-		lastPrice: params.Default,
-		weight:    weight,
+		BlockGPQueue: bgpq,
+		lastPrice:    params.Default,
+		weight:       weight,
 	}
 }
 
@@ -60,7 +65,7 @@ func (gpo *Oracle) RecommendGP() *big.Int {
 	maxGasUsed := appconfig.GetOecConfig().GetMaxGasUsedPerBlock()
 	// If maxGasUsed is not negative and the current block's total gas consumption is
 	// less than 80% of it, then we consider the chain to be uncongested and return defaultPrice.
-	if maxGasUsed > -1 && gpo.CurrentBlockGPs.GetGasUsed() < uint64(maxGasUsed*80/100) {
+	if maxGasUsed > 0 && gpo.CurrentBlockGPs.GetGasUsed() < uint64(maxGasUsed*80/100) {
 		return defaultPrice
 	}
 	// If the number of tx in the current block is less than the MaxTxNumPerBlock in mempool config,
@@ -74,16 +79,21 @@ func (gpo *Oracle) RecommendGP() *big.Int {
 	lastPrice := gpo.lastPrice
 
 	var txPrices []*big.Int
-	for i := 0; i < len(gpo.BlockGPQueue); i++ {
-		gpo.BlockGPQueue[i].SampleGP()
+	if !gpo.BlockGPQueue.IsEmpty() {
+		front, rear, capacity := gpo.BlockGPQueue.Front(), gpo.BlockGPQueue.Rear(), gpo.BlockGPQueue.Cap()
+		// traverse the circular queue
+		for i := front; i != rear; i = (i + 1) / capacity {
+			gpo.BlockGPQueue.Items[i].SampleGP()
 
-		// If block is empty, use the latest calculated price for sampling.
-		if len(gpo.BlockGPQueue[i].GetSampled()) == 0 {
-			gpo.BlockGPQueue[i].AddSampledGP(lastPrice)
+			// If block is empty, use the latest calculated price for sampling.
+			if len(gpo.BlockGPQueue.Items[i].GetSampled()) == 0 {
+				gpo.BlockGPQueue.Items[i].AddSampledGP(lastPrice)
+			}
+
+			txPrices = append(txPrices, gpo.BlockGPQueue.Items[i].GetSampled()...)
 		}
-
-		txPrices = append(txPrices, gpo.BlockGPQueue[i].GetSampled()...)
 	}
+
 	price := lastPrice
 	if len(txPrices) > 0 {
 		sort.Sort(types.BigIntArray(txPrices))

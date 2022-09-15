@@ -15,8 +15,9 @@ func TestOracle_RecommendGP(t *testing.T) {
 	t.Run("case 1", func(t *testing.T) {
 		appconfig.GetOecConfig().SetMaxTxNumPerBlock(300)
 		appconfig.GetOecConfig().SetMaxGasUsedPerBlock(1000000)
+		appconfig.GetOecConfig().SetDynamicGpCheckBlocks(5)
+		config := NewGPOConfig(80, appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
 		var testRecommendGP *big.Int
-		config := NewGPOConfig(80, defaultPrice)
 		gpo := NewOracle(config)
 		coefficient := int64(200000)
 		gpNum := 20000
@@ -24,9 +25,8 @@ func TestOracle_RecommendGP(t *testing.T) {
 		for blockNum := 1; blockNum <= 10; blockNum++ {
 			for i := 0; i < gpNum; i++ {
 				gp := big.NewInt(coefficient + params.GWei)
-				gpo.CurrentBlockGPs.AddGP(gp)
-				gpo.CurrentBlockGPs.AddGas(35) // chain is uncongested
-				//gpo.CurrentBlockGPs.AddGas(45) // chain is congested
+				gpo.CurrentBlockGPs.Update(gp, 35) // chain is uncongested
+				//gpo.CurrentBlockGPs.Update(gp, 45) // chain is congested
 				coefficient--
 			}
 			gpo.BlockGPQueue.Push(gpo.CurrentBlockGPs)
@@ -39,37 +39,37 @@ func TestOracle_RecommendGP(t *testing.T) {
 	t.Run("case 2", func(t *testing.T) {
 		// Case 2 reproduces the problem of GP increase when the OKC's block height is 13527188
 		appconfig.GetOecConfig().SetMaxTxNumPerBlock(300)
-		appconfig.GetOecConfig().SetMaxGasUsedPerBlock(500000)
-
+		appconfig.GetOecConfig().SetMaxGasUsedPerBlock(1000000)
+		appconfig.GetOecConfig().SetDynamicGpCheckBlocks(5)
+		config := NewGPOConfig(80, appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
 		var testRecommendGP *big.Int
-		config := NewGPOConfig(80, defaultPrice)
 		gpo := NewOracle(config)
 
 		blockPGs13527188 := types.NewSingleBlockGPs()
-		blockPGs13527188.AddGP(big.NewInt(10 * params.GWei))
-		blockPGs13527188.AddGP(big.NewInt(10 * params.GWei))
-		blockPGs13527188.AddGP(big.NewInt(params.GWei / 10))
+		blockPGs13527188.Update(big.NewInt(10*params.GWei), 35)
+		blockPGs13527188.Update(big.NewInt(10*params.GWei), 35)
+		blockPGs13527188.Update(big.NewInt(params.GWei/10), 35)
 
 		blockPGs13527187 := types.NewSingleBlockGPs()
-		blockPGs13527187.AddGP(big.NewInt(params.GWei / 10))
-		blockPGs13527187.AddGP(big.NewInt(params.GWei / 10))
+		blockPGs13527187.Update(big.NewInt(params.GWei/10), 35)
+		blockPGs13527187.Update(big.NewInt(params.GWei/10), 35)
 
 		blockPGs13527186 := types.NewSingleBlockGPs()
-		blockPGs13527186.AddGP(big.NewInt(params.GWei / 10))
-		blockPGs13527186.AddGP(big.NewInt(params.GWei / 10))
+		blockPGs13527186.Update(big.NewInt(params.GWei/10), 35)
+		blockPGs13527186.Update(big.NewInt(params.GWei/10), 35)
 
 		blockPGs13527185 := types.NewSingleBlockGPs()
-		blockPGs13527185.AddGP(big.NewInt(params.GWei/10 + params.GWei/1000))
-		blockPGs13527185.AddGP(big.NewInt(params.GWei / 10))
-		blockPGs13527185.AddGP(big.NewInt(params.GWei / 10))
+		blockPGs13527185.Update(big.NewInt(params.GWei/10+params.GWei/1000), 35)
+		blockPGs13527185.Update(big.NewInt(params.GWei/10), 35)
+		blockPGs13527185.Update(big.NewInt(params.GWei/10), 35)
 
 		blockPGs13527184 := types.NewSingleBlockGPs()
-		blockPGs13527184.AddGP(big.NewInt(params.GWei * 3 / 10))
-		blockPGs13527184.AddGP(big.NewInt(params.GWei * 3 / 10))
-		blockPGs13527184.AddGP(big.NewInt(params.GWei * 3 / 10))
-		blockPGs13527184.AddGP(big.NewInt(params.GWei / 10))
-		blockPGs13527184.AddGP(big.NewInt(params.GWei / 10))
-		blockPGs13527184.AddGP(big.NewInt(params.GWei / 10))
+		blockPGs13527184.Update(big.NewInt(params.GWei*3/10), 35)
+		blockPGs13527184.Update(big.NewInt(params.GWei*3/10), 35)
+		blockPGs13527184.Update(big.NewInt(params.GWei*3/10), 35)
+		blockPGs13527184.Update(big.NewInt(params.GWei/10), 35)
+		blockPGs13527184.Update(big.NewInt(params.GWei/10), 35)
+		blockPGs13527184.Update(big.NewInt(params.GWei/10), 35)
 
 		gpo.BlockGPQueue.Push(blockPGs13527184)
 		gpo.BlockGPQueue.Push(blockPGs13527185)
@@ -86,14 +86,16 @@ func TestOracle_RecommendGP(t *testing.T) {
 
 func BenchmarkRecommendGP(b *testing.B) {
 	appconfig.GetOecConfig().SetMaxTxNumPerBlock(300)
-	config := NewGPOConfig(80, defaultPrice)
+	appconfig.GetOecConfig().SetMaxGasUsedPerBlock(1000000)
+	appconfig.GetOecConfig().SetDynamicGpCheckBlocks(6)
+	config := NewGPOConfig(80, appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
 	gpo := NewOracle(config)
 	coefficient := int64(2000000)
 	gpNum := 20000
 	for blockNum := 1; blockNum <= 20; blockNum++ {
 		for i := 0; i < gpNum; i++ {
 			gp := big.NewInt(coefficient + params.GWei)
-			gpo.CurrentBlockGPs.AddGP(gp)
+			gpo.CurrentBlockGPs.Update(gp, 35)
 			coefficient--
 		}
 		gpo.BlockGPQueue.Push(gpo.CurrentBlockGPs)
