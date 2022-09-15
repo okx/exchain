@@ -228,7 +228,7 @@ func (cs *State) signVote(
 ) (*types.Vote, error) {
 	// Flush the WAL. Otherwise, we may not recompute the same vote to sign,
 	// and the privValidator will refuse to sign anything.
-	cs.wal.FlushAndSync()
+	//cs.wal.FlushAndSync()
 
 	if cs.privValidatorPubKey == nil {
 		return nil, errPubKeyIsNotSet

@@ -391,7 +391,7 @@ func (pv *FilePV) saveSigned(height int64, round int, step int8,
 	pv.LastSignState.Step = step
 	pv.LastSignState.Signature = sig
 	pv.LastSignState.SignBytes = signBytes
-	pv.LastSignState.Save()
+	//pv.LastSignState.Save()
 }
 
 //-----------------------------------------------------------------------------------------
