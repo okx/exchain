@@ -136,9 +136,9 @@ func (api *PubSubAPI) subscribeNewHeads(conn *wsConn) (rpc.ID, error) {
 
 					err = f.conn.WriteJSON(res)
 					if err != nil {
-						api.logger.Error("failed to write header", "ID", sub.ID(), "blocknumber", headerWithBlockHash.Number, "error", err)
+						api.logger.Error("failed to write header", "ID", sub.ID(), "blockNumber", headerWithBlockHash.Number, "error", err)
 					} else {
-						api.logger.Debug("successfully write header", "ID", sub.ID(), "blocknumber", headerWithBlockHash.Number)
+						api.logger.Debug("successfully write header", "ID", sub.ID(), "blockNumber", headerWithBlockHash.Number)
 					}
 				}
 				api.filtersMu.RUnlock()
@@ -253,7 +253,7 @@ func (api *PubSubAPI) subscribeLogs(conn *wsConn, extra interface{}) (rpc.ID, er
 
 					logs := rpcfilters.FilterLogs(resultData.Logs, crit.FromBlock, crit.ToBlock, crit.Addresses, crit.Topics)
 					if len(logs) == 0 {
-						api.logger.Debug("no matched logs", "ID", sub.ID(), "txhash", resultData.TxHash)
+						api.logger.Debug("no matched logs", "ID", sub.ID(), "txHash", resultData.TxHash)
 						return
 					}
 
@@ -271,18 +271,18 @@ func (api *PubSubAPI) subscribeLogs(conn *wsConn, extra interface{}) (rpc.ID, er
 							res.Params.Result = logs
 							err = f.conn.WriteJSON(res)
 							if err != nil {
-								api.logger.Error("failed to batch write logs", "ID", sub.ID(), "height", logs[0].BlockNumber, "txhash", logs[0].TxHash, "error", err)
+								api.logger.Error("failed to batch write logs", "ID", sub.ID(), "height", logs[0].BlockNumber, "txHash", logs[0].TxHash, "error", err)
 							}
-							api.logger.Debug("successfully batch write logs ", "ID", sub.ID(), "height", logs[0].BlockNumber, "txhash", logs[0].TxHash)
+							api.logger.Info("successfully batch write logs ", "ID", sub.ID(), "height", logs[0].BlockNumber, "txHash", logs[0].TxHash)
 						} else {
 							for _, singleLog := range logs {
 								res.Params.Result = singleLog
 								err = f.conn.WriteJSON(res)
 								if err != nil {
-									api.logger.Error("failed to write log", "ID", sub.ID(), "height", singleLog.BlockNumber, "txhash", singleLog.TxHash, "error", err)
+									api.logger.Error("failed to write log", "ID", sub.ID(), "height", singleLog.BlockNumber, "txHash", singleLog.TxHash, "error", err)
 									break
 								}
-								api.logger.Debug("successfully write log", "ID", sub.ID(), "height", singleLog.BlockNumber, "txhash", singleLog.TxHash)
+								api.logger.Info("successfully write log", "ID", sub.ID(), "height", singleLog.BlockNumber, "txHash", singleLog.TxHash)
 							}
 						}
 					}
@@ -438,7 +438,7 @@ func (api *PubSubAPI) subscribePendingTransactions(conn *wsConn, isDetail bool) 
 					if err != nil {
 						api.logger.Error("failed to write pending tx", "ID", sub.ID(), "error", err)
 					} else {
-						api.logger.Debug("successfully write pending tx", "ID", sub.ID(), "txhash", txHash)
+						api.logger.Info("successfully write pending tx", "ID", sub.ID(), "txHash", txHash)
 					}
 				}
 				api.filtersMu.RUnlock()
