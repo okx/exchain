@@ -150,7 +150,7 @@ func queryParams(
 	k Keeper,
 ) ([]byte, sdk.Error) {
 	params := k.GetParams(ctx)
-	res, err := codec.MarshalJSONIndent(k.cdc, params)
+	res, err := codec.MarshalJSONIndent(k.cdc, types.QueryParamsResponse{Params: params})
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 	}

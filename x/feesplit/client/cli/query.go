@@ -121,7 +121,7 @@ func GetCmdQueryParams(queryRoute string, cdc *codec.Codec) *cobra.Command {
 				return err
 			}
 
-			var params types.Params
+			var params types.QueryParamsResponse
 			cdc.MustUnmarshalJSON(bz, &params)
 			return cliCtx.PrintOutput(params)
 		},

@@ -65,7 +65,7 @@ func (k Keeper) PostTxProcessing(
 		developerShares = shares
 	}
 
-	txFee := new(big.Int).Mul(st.Price, new(big.Int).SetUint64(receipt.GasUsed))
+	txFee := new(big.Int).Mul(st.Price, new(big.Int).SetUint64(ctx.GasMeter().GasConsumed()))
 	developerFee := sdk.NewDecFromBigIntWithPrec(txFee, sdk.Precision).Mul(developerShares)
 	fees := sdk.Coins{{Denom: sdk.DefaultBondDenom, Amount: developerFee}}
 

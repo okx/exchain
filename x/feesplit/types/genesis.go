@@ -20,8 +20,8 @@ func NewGenesisState(params Params, feeSplits []FeeSplit) GenesisState {
 
 // DefaultGenesisState sets default evm genesis state with empty accounts and
 // default params and chain config values.
-func DefaultGenesisState() *GenesisState {
-	return &GenesisState{
+func DefaultGenesisState() GenesisState {
+	return GenesisState{
 		Params: DefaultParams(),
 	}
 }

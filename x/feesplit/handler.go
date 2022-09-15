@@ -48,15 +48,15 @@ func handleMsgRegisterFeeSplit(
 	}
 
 	deployer := sdk.MustAccAddressFromBech32(msg.DeployerAddress)
-	deployerAccount := k.GetAccountWithoutBalance(ctx, common.BytesToAddress(deployer))
-	if deployerAccount == nil {
+	deployerAccount, isExist := k.GetEthAccount(ctx, common.BytesToAddress(deployer))
+	if !isExist {
 		return nil, sdkerrors.Wrapf(
 			types.ErrFeeAccountNotFound,
 			"deployer account not found %s", msg.DeployerAddress,
 		)
 	}
 
-	if deployerAccount.IsContract() {
+	if deployerAccount != nil && deployerAccount.IsContract() {
 		return nil, sdkerrors.Wrapf(
 			types.ErrFeeSplitDeployerIsNotEOA,
 			"deployer cannot be a contract %s", msg.DeployerAddress,
@@ -64,7 +64,7 @@ func handleMsgRegisterFeeSplit(
 	}
 
 	// contract must already be deployed, to avoid spam registrations
-	contractAccount := k.GetAccountWithoutBalance(ctx, contract)
+	contractAccount, _ := k.GetEthAccount(ctx, contract)
 	if contractAccount == nil || !contractAccount.IsContract() {
 		return nil, sdkerrors.Wrapf(
 			types.ErrFeeSplitNoContractDeployed,

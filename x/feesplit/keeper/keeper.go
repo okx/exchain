@@ -55,17 +55,16 @@ func (k Keeper) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("module", fmt.Sprintf("x/%s", types.ModuleName))
 }
 
-// GetAccountWithoutBalance load nonce and codehash without balance,
-// more efficient in cases where balance is not needed.
-func (k Keeper) GetAccountWithoutBalance(ctx sdk.Context, addr common.Address) *ethermint.EthAccount {
+// GetEthAccount returns an eth account.
+func (k Keeper) GetEthAccount(ctx sdk.Context, addr common.Address) (*ethermint.EthAccount, bool) {
 	cosmosAddr := sdk.AccAddress(addr.Bytes())
 	acct := k.accountKeeper.GetAccount(ctx, cosmosAddr)
 	if acct == nil {
-		return nil
+		return nil, false
 	}
 
 	ethAcct, _ := acct.(*ethermint.EthAccount)
-	return ethAcct
+	return ethAcct, true
 }
 
 // SetGovKeeper sets keeper of gov
