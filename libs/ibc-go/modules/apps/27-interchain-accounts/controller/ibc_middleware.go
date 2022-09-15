@@ -44,24 +44,24 @@ func (im IBCMiddleware) OnChanOpenInit(
 	chanCap *capabilitytypes.Capability,
 	counterparty channeltypes.Counterparty,
 	version string,
-) error {
+) (string, error) {
 	if !im.keeper.IsControllerEnabled(ctx) {
-		return types.ErrControllerSubModuleDisabled
+		return version, types.ErrControllerSubModuleDisabled
 	}
 
 	version, err := im.keeper.OnChanOpenInit(ctx, order, connectionHops, portID, channelID, chanCap, counterparty, version)
 	if err != nil {
-		return err
+		return version, err
 	}
 
 	// call underlying app's OnChanOpenInit callback with the passed in version
 	// the version returned is discarded as the ica-auth module does not have permission to edit the version string.
 	// ics27 will always return the version string containing the Metadata struct which is created during the `RegisterInterchainAccount` call.
-	if err := im.app.OnChanOpenInit(ctx, order, connectionHops, portID, channelID, chanCap, counterparty, version); err != nil {
-		return err
+	if _, err := im.app.OnChanOpenInit(ctx, order, connectionHops, portID, channelID, chanCap, counterparty, version); err != nil {
+		return "", err
 	}
 
-	return nil
+	return version, nil
 }
 
 // OnChanOpenTry implements the IBCMiddleware interface
@@ -75,8 +75,8 @@ func (im IBCMiddleware) OnChanOpenTry(
 	counterparty channeltypes.Counterparty,
 	version string,
 	counterpartyVersion string,
-) error {
-	return sdkerrors.Wrap(icatypes.ErrInvalidChannelFlow, "channel handshake must be initiated by controller chain")
+) (string, error) {
+	return "", sdkerrors.Wrap(icatypes.ErrInvalidChannelFlow, "channel handshake must be initiated by controller chain")
 }
 
 // OnChanOpenAck implements the IBCMiddleware interface

@@ -6,8 +6,6 @@ import (
 	"regexp"
 	"strings"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
 
@@ -80,7 +78,7 @@ func NewCoinAdapter(denom string, amount Int) CoinAdapter {
 func (cs CoinAdapters) ToCoins() Coins {
 	ret := make([]Coin, 0)
 	for _, v := range cs {
-		transferAmountDec := NewDecFromIntWithPrec(v.Amount, sdk.Precision)
+		transferAmountDec := NewDecFromIntWithPrec(v.Amount, Precision)
 		token := NewCoin(v.Denom, transferAmountDec)
 		ret = append(ret, token)
 	}

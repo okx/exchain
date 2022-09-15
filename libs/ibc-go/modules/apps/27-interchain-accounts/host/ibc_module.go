@@ -38,8 +38,8 @@ func (im IBCModule) OnChanOpenInit(
 	chanCap *capabilitytypes.Capability,
 	counterparty channeltypes.Counterparty,
 	version string,
-) error {
-	return sdkerrors.Wrap(icatypes.ErrInvalidChannelFlow, "channel handshake must be initiated by controller chain")
+) (string, error) {
+	return version, sdkerrors.Wrap(icatypes.ErrInvalidChannelFlow, "channel handshake must be initiated by controller chain")
 }
 
 // OnChanOpenTry implements the IBCModule interface
@@ -53,13 +53,12 @@ func (im IBCModule) OnChanOpenTry(
 	counterparty channeltypes.Counterparty,
 	version string,
 	counterpartyVersion string,
-) error {
+) (string, error) {
 	if !im.keeper.IsHostEnabled(ctx) {
-		return types.ErrHostSubModuleDisabled
+		return "", types.ErrHostSubModuleDisabled
 	}
 
-	_, err := im.keeper.OnChanOpenTry(ctx, order, connectionHops, portID, channelID, chanCap, counterparty, counterpartyVersion)
-	return err
+	return im.keeper.OnChanOpenTry(ctx, order, connectionHops, portID, channelID, chanCap, counterparty, counterpartyVersion)
 }
 
 // OnChanOpenAck implements the IBCModule interface
