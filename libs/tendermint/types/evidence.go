@@ -150,7 +150,7 @@ func EvidenceFromProto(evidence *tmproto.Evidence) (Evidence, error) {
 			return nil, err
 		}
 
-		pk, err := cryptoenc.PubKeyFromProto(evi.DuplicateVoteEvidence.GetPubKey())
+		pk, _, err := cryptoenc.PubKeyFromProto(evi.DuplicateVoteEvidence.GetPubKey())
 		if err != nil {
 			return nil, err
 		}
