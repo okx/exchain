@@ -98,8 +98,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		}
 	}
 
-	shouldPersist := ((version%CommitGapHeight == 0) && (version-tree.lastPersistHeight >= CommitGapHeight)) ||
-		(treeMap.totalPpncSize >= MinCommitItemCount)
+	shouldPersist := version%CommitGapHeight == 0
 
 	tree.ndb.updateLatestMemoryVersion(version)
 
@@ -116,9 +115,9 @@ func (tree *MutableTree) updateBranchFastNode() {
 	if !GetEnableFastStorage() {
 		return
 	}
-	tree.ndb.updateBranchForFastNode(tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
-	tree.unsavedFastNodeAdditions = make(map[string]*FastNode)
-	tree.unsavedFastNodeRemovals = make(map[string]interface{})
+
+	tree.ndb.updateBranchForFastNode(tree.unsavedFastNodes)
+	tree.unsavedFastNodes.reset()
 }
 
 func (tree *MutableTree) setNewWorkingTree(version int64, persisted bool) ([]byte, int64, error) {

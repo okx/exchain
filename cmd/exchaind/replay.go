@@ -11,9 +11,12 @@ import (
 	"runtime/pprof"
 	"time"
 
+	"github.com/gogo/protobuf/jsonpb"
 	"github.com/okex/exchain/app/config"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
+	"github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/system/trace"
@@ -40,6 +43,7 @@ const (
 	pprofAddrFlag       = "pprof_addr"
 	runWithPprofFlag    = "gen_pprof"
 	runWithPprofMemFlag = "gen_pprof_mem"
+	FlagEnableRest      = "rest"
 
 	saveBlock = "save_block"
 
@@ -47,7 +51,9 @@ const (
 	defaultPprofFilePerm = 0644
 )
 
-func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command)) *cobra.Command {
+func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
+	cdc *codec.CodecProxy, appCreator server.AppCreator, registry jsonpb.AnyResolver,
+	registerRoutesFn func(restServer *lcd.RestServer)) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "replay",
 		Short: "Replay blocks from local db",
@@ -58,7 +64,6 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command)) 
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			ts := time.Now()
 			log.Println("--------- replay start ---------")
 			pprofAddress := viper.GetString(pprofAddrFlag)
 			go func() {
@@ -67,9 +72,22 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command)) 
 					fmt.Println(err)
 				}
 			}()
-
 			dataDir := viper.GetString(replayedBlockDir)
-			replayBlock(ctx, dataDir)
+
+			var node *node.Node
+			if viper.GetBool(FlagEnableRest) {
+				var err error
+				log.Println("--------- StartRestWithNode ---------")
+				node, err = server.StartRestWithNode(ctx, cdc, dataDir, registry, appCreator, registerRoutesFn)
+				if err != nil {
+					fmt.Println(err)
+					return
+				}
+
+			}
+
+			ts := time.Now()
+			replayBlock(ctx, dataDir, node)
 			log.Println("--------- replay success ---------", "Time Cost", time.Now().Sub(ts).Seconds())
 		},
 		PostRun: func(cmd *cobra.Command, args []string) {
@@ -94,10 +112,17 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command)) 
 }
 
 // replayBlock replays blocks from db, if something goes wrong, it will panic with error message.
-func replayBlock(ctx *server.Context, originDataDir string) {
+func replayBlock(ctx *server.Context, originDataDir string, tmNode *node.Node) {
 	config.RegisterDynamicConfig(ctx.Logger.With("module", "config"))
-	proxyApp, err := createProxyApp(ctx)
-	panicError(err)
+
+	var proxyApp proxy.AppConns
+	if tmNode != nil {
+		proxyApp = tmNode.ProxyApp()
+	} else {
+		var err error
+		proxyApp, err = createProxyApp(ctx)
+		panicError(err)
+	}
 
 	res, err := proxyApp.Query().InfoSync(proxy.RequestInfo)
 	panicError(err)
@@ -108,7 +133,12 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 
 	rootDir := ctx.Config.RootDir
 	dataDir := filepath.Join(rootDir, "data")
-	stateStoreDB, err := openDB(stateDB, dataDir)
+	var stateStoreDB dbm.DB
+	if tmNode != nil {
+		stateStoreDB = tmNode.StateDB()
+	} else {
+		stateStoreDB, err = sdk.NewDB(stateDB, dataDir)
+	}
 	panicError(err)
 
 	genesisDocProvider := node.DefaultGenesisDocProviderFunc(ctx.Config)
@@ -126,8 +156,13 @@ func replayBlock(ctx *server.Context, originDataDir string) {
 	if err != nil {
 		panicError(err)
 	}
+
+	var blockStore *store.BlockStore
+	if tmNode != nil {
+		blockStore = tmNode.BlockStore()
+	}
 	// replay
-	doReplay(ctx, state, stateStoreDB, proxyApp, originDataDir, currentAppHash, currentBlockHeight)
+	doReplay(ctx, state, stateStoreDB, blockStore, proxyApp, originDataDir, currentAppHash, currentBlockHeight)
 }
 
 func registerReplayFlags(cmd *cobra.Command) *cobra.Command {
@@ -137,6 +172,7 @@ func registerReplayFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.Flags().Bool(runWithPprofFlag, false, "Dump the pprof of the entire replay process")
 	cmd.Flags().Bool(runWithPprofMemFlag, false, "Dump the mem profile of the entire replay process")
 	cmd.Flags().Bool(saveBlock, false, "save block when replay")
+	cmd.Flags().Bool(FlagEnableRest, false, "start rest service when replay")
 
 	return cmd
 }
@@ -148,14 +184,10 @@ func panicError(err error) {
 	}
 }
 
-func openDB(dbName string, dataDir string) (db dbm.DB, err error) {
-	return sdk.NewLevelDB(dbName, dataDir)
-}
-
 func createProxyApp(ctx *server.Context) (proxy.AppConns, error) {
 	rootDir := ctx.Config.RootDir
 	dataDir := filepath.Join(rootDir, "data")
-	db, err := openDB(applicationDB, dataDir)
+	db, err := sdk.NewDB(applicationDB, dataDir)
 	panicError(err)
 	app := newApp(ctx.Logger, db, nil)
 	clientCreator := proxy.NewLocalClientCreator(app)
@@ -222,7 +254,7 @@ func SaveBlock(ctx *server.Context, originDB *store.BlockStore, height int64) {
 	if !alreadyInit {
 		alreadyInit = true
 		dataDir := filepath.Join(ctx.Config.RootDir, "data")
-		blockStoreDB, err := openDB(blockStoreDB, dataDir)
+		blockStoreDB, err := sdk.NewDB(blockStoreDB, dataDir)
 		panicError(err)
 		stateStoreDb = store.NewBlockStore(blockStoreDB)
 	}
@@ -239,7 +271,7 @@ func SaveBlock(ctx *server.Context, originDB *store.BlockStore, height int64) {
 	stateStoreDb.SaveBlock(block, ps, seenCommit)
 }
 
-func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
+func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB, blockStore *store.BlockStore,
 	proxyApp proxy.AppConns, originDataDir string, lastAppHash []byte, lastBlockHeight int64) {
 
 	trace.GetTraceSummary().Init(
@@ -256,9 +288,16 @@ func doReplay(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 	)
 
 	defer trace.GetTraceSummary().Dump("Replay")
-	originBlockStoreDB, err := openDB(blockStoreDB, originDataDir)
-	panicError(err)
-	originBlockStore := store.NewBlockStore(originBlockStoreDB)
+
+	var originBlockStore *store.BlockStore
+	var err error
+	if blockStore == nil {
+		originBlockStoreDB, err := sdk.NewDB(blockStoreDB, originDataDir)
+		panicError(err)
+		originBlockStore = store.NewBlockStore(originBlockStoreDB)
+	} else {
+		originBlockStore = blockStore
+	}
 	originLatestBlockHeight := originBlockStore.Height()
 	log.Println("origin latest block height", "height", originLatestBlockHeight)
 

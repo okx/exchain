@@ -156,16 +156,17 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 		return false
 	}
 
+	defer func() {
+		conR.setFastSyncFlag(false, 0)
+	}()
+
 	conR.Logger.Info("SwitchToConsensus")
-	conR.conS.reconstructLastCommit(state)
+	if state.LastBlockHeight > types.GetStartBlockHeight() {
+		conR.conS.reconstructLastCommit(state)
+	}
 	// NOTE: The line below causes broadcastNewRoundStepRoutine() to
 	// broadcast a NewRoundStepMessage.
 	conR.conS.updateToState(state)
-
-	conR.mtx.Lock()
-	conR.fastSync = false
-	conR.mtx.Unlock()
-	conR.metrics.FastSyncing.Set(0)
 
 	if blocksSynced > 0 {
 		// dont bother with the WAL if we fast synced
@@ -178,8 +179,6 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 	conR.conS.Reset()
 	conR.conS.Start()
 
-	conR.conS.blockExec.SetIsFastSyncing(false)
-
 	go conR.peerStatsRoutine()
 	conR.subscribeToBroadcastEvents()
 
@@ -189,16 +188,14 @@ func (conR *Reactor) SwitchToConsensus(state sm.State, blocksSynced uint64) bool
 func (conR *Reactor) SwitchToFastSync() (sm.State, error) {
 	conR.Logger.Info("SwitchToFastSync")
 
-	conR.mtx.Lock()
-	conR.fastSync = true
-	conR.mtx.Unlock()
-	conR.metrics.FastSyncing.Set(1)
-
-	conR.conS.blockExec.SetIsFastSyncing(true)
+	defer func() {
+		conR.setFastSyncFlag(true, 1)
+	}()
 
 	if !conR.conS.IsRunning() {
 		return conR.conS.GetState(), errors.New("state is not running")
 	}
+
 	err := conR.conS.Stop()
 	if err != nil {
 		panic(fmt.Sprintf(`Failed to stop consensus state: %v
@@ -211,8 +208,19 @@ conR:
 	}
 
 	conR.stopSwitchToFastSyncTimer()
+	conR.conS.Wait()
 
-	return conR.conS.GetState(), nil
+	cState := conR.conS.GetState()
+	return cState, nil
+}
+
+func (conR *Reactor) setFastSyncFlag(f bool, v float64) {
+	conR.mtx.Lock()
+	defer conR.mtx.Unlock()
+
+	conR.fastSync = f
+	conR.metrics.FastSyncing.Set(v)
+	conR.conS.blockExec.SetIsFastSyncing(f)
 }
 
 // Attempt to schedule a timer for checking whether consensus machine is hanged.
@@ -960,9 +968,10 @@ OUTER_LOOP:
 			continue OUTER_LOOP
 		}
 		// send vcMsg
-		if rs.Height == prs.Height || rs.Height == prs.Height+1 {
+		if vcMsg.Height == prs.Height && prs.AVCHeight < vcMsg.Height {
 			peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
 			//conR.Switch.Broadcast(ViewChangeChannel, cdc.MustMarshalBinaryBare(vcMsg))
+			ps.SetAvcHeight(vcMsg.Height)
 		}
 
 		if rs.Height == vcMsg.Height {
@@ -1235,6 +1244,14 @@ func (ps *PeerState) GetHeight() int64 {
 	ps.mtx.Lock()
 	defer ps.mtx.Unlock()
 	return ps.PRS.Height
+}
+
+// SetAvcHeight sets the given hasVC as known for the peer
+func (ps *PeerState) SetAvcHeight(height int64) {
+	ps.mtx.Lock()
+	defer ps.mtx.Unlock()
+
+	ps.PRS.AVCHeight = height
 }
 
 // SetHasProposal sets the given proposal as known for the peer.

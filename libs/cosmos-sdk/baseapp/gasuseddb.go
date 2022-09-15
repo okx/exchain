@@ -1,16 +1,16 @@
 package baseapp
 
 import (
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
-	db "github.com/okex/exchain/libs/tm-db"
-	"github.com/spf13/viper"
 	"path/filepath"
 	"sync"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	db "github.com/okex/exchain/libs/tm-db"
+	"github.com/spf13/viper"
 )
 
 const (
-	FlagDBBackend = "db_backend"
-
 	HistoryGasUsedDbDir  = "data"
 	HistoryGasUsedDBName = "hgu"
 
@@ -33,10 +33,10 @@ func InstanceOfHistoryGasUsedRecordDB() db.DB {
 func initDb() db.DB {
 	homeDir := viper.GetString(flags.FlagHome)
 	dbPath := filepath.Join(homeDir, HistoryGasUsedDbDir)
-	backend := viper.GetString(FlagDBBackend)
-	if backend == "" {
-		backend = string(db.GoLevelDBBackend)
-	}
 
-	return db.NewDB(HistoryGasUsedDBName, db.BackendType(backend), dbPath)
+	db, err := sdk.NewDB(HistoryGasUsedDBName, dbPath)
+	if err != nil {
+		panic(err)
+	}
+	return db
 }

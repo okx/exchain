@@ -366,7 +366,7 @@ func TestIterateRange(t *testing.T) {
 }
 
 func TestPersistence(t *testing.T) {
-	db := db.NewMemDB()
+	db := db.NewPrefixDB(db.NewMemDB(), []byte(randstr(32)))
 
 	// Create some random key value pairs
 	records := make(map[string]string)
@@ -426,8 +426,7 @@ func TestProof(t *testing.T) {
 }
 
 func TestTreeProof(t *testing.T) {
-	db := db.NewMemDB()
-	tree, err := NewMutableTree(db, 100)
+	tree, err := getTestTree(100)
 	require.NoError(t, err)
 	assert.Equal(t, tree.Hash(), []byte(nil))
 

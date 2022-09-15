@@ -21,6 +21,7 @@ import (
 
 	dbm "github.com/okex/exchain/libs/tm-db"
 
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	bcv0 "github.com/okex/exchain/libs/tendermint/blockchain/v0"
 	bcv1 "github.com/okex/exchain/libs/tendermint/blockchain/v1"
@@ -200,6 +201,35 @@ func initDBs(config *cfg.Config, dbProvider DBProvider) (blockStore *store.Block
 	blockStore = store.NewBlockStore(blockStoreDB)
 
 	stateDB, err = dbProvider(&DBContext{"state", config})
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func initBlockStore(dataDir string) (blockStore *store.BlockStore, err error) {
+	var blockStoreDB dbm.DB
+	blockStoreDB, err = sdk.NewDB("blockstore", dataDir)
+	if err != nil {
+		return
+	}
+	blockStore = store.NewBlockStore(blockStoreDB)
+
+	return
+}
+
+func initTxDB(dataDir string) (txDB dbm.DB, err error) {
+	txDB, err = sdk.NewDB("tx_index", dataDir)
+	if err != nil {
+		return
+	}
+
+	return
+}
+
+func initStateDB(config *cfg.Config) (stateDB dbm.DB, err error) {
+	stateDB, err = sdk.NewDB("state", config.DBDir())
 	if err != nil {
 		return
 	}
@@ -394,7 +424,9 @@ func createConsensusReactor(config *cfg.Config,
 	consensusReactor.SetLogger(consensusLogger)
 	// services which will be publishing and/or subscribing for messages (events)
 	// consensusReactor will set it on consensusState and blockExecutor
-	consensusReactor.SetEventBus(eventBus)
+	if eventBus != nil {
+		consensusReactor.SetEventBus(eventBus)
+	}
 	return consensusReactor, consensusState
 }
 
@@ -750,6 +782,99 @@ func NewNode(config *cfg.Config,
 	return node, nil
 }
 
+func NewLRPNode(config *cfg.Config,
+	privValidator types.PrivValidator,
+	nodeKey *p2p.NodeKey,
+	clientCreator proxy.ClientCreator,
+	genesisDocProvider GenesisDocProvider,
+	dbProvider DBProvider,
+	originDir string,
+	logger log.Logger,
+	options ...Option) (*Node, error) {
+
+	blockStore, err := initBlockStore(originDir)
+	if err != nil {
+		return nil, err
+	}
+
+	stateDB, err := initStateDB(config)
+	if err != nil {
+		return nil, err
+	}
+
+	state, genDoc, err := LoadStateFromDBOrGenesisDocProvider(stateDB, genesisDocProvider)
+	if err != nil {
+		return nil, err
+	}
+
+	global.SetGlobalHeight(state.LastBlockHeight)
+
+	eventBus, err := createAndStartEventBus(logger)
+	if err != nil {
+		return nil, err
+	}
+
+	var txIndexer txindex.TxIndexer
+	txDB, err := initTxDB(originDir)
+	if err != nil {
+		return nil, err
+	}
+
+	txIndexer = kv.NewTxIndex(txDB, kv.IndexAllEvents())
+
+	indexerService := txindex.NewIndexerService(txIndexer, eventBus)
+	indexerService.SetLogger(logger.With("module", "txindex"))
+	if err := indexerService.Start(); err != nil {
+		return nil, err
+	}
+
+	// Create the proxyApp and establish connections to the ABCI app (consensus, mempool, query).
+	proxyApp, err := createAndStartProxyAppConns(clientCreator, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	consensusLogger := logger.With("module", "consensus")
+
+	state = sm.LoadState(stateDB)
+	mempoolReactor, mempool := createMempoolAndMempoolReactor(config, proxyApp, state, nil, logger)
+	mempoolReactor.SetNodeKey(nodeKey)
+
+	// Make ConsensusReactor
+	consensusReactor, consensusState := createConsensusReactor(
+		config, state, nil, blockStore, nil, nil,
+		nil, nil, false, false, nil, consensusLogger,
+	)
+
+	nodeInfo, err := makeNodeInfo(config, nodeKey, nil, genDoc, state)
+	if err != nil {
+		return nil, err
+	}
+
+	node := &Node{
+		config:        config,
+		genesisDoc:    genDoc,
+		privValidator: privValidator,
+
+		nodeInfo: nodeInfo,
+		nodeKey:  nodeKey,
+
+		stateDB:          stateDB,
+		blockStore:       blockStore,
+		consensusState:   consensusState,
+		consensusReactor: consensusReactor,
+		txIndexer:        txIndexer,
+		indexerService:   indexerService,
+		eventBus:         eventBus,
+		proxyApp:         proxyApp,
+		mempoolReactor:   mempoolReactor,
+		mempool:          mempool,
+	}
+	node.BaseService = *service.NewBaseService(logger, "Node", node)
+
+	return node, nil
+}
+
 // OnStart starts the Node. It implements service.Service.
 func (n *Node) OnStart() error {
 	now := tmtime.Now()
@@ -1082,6 +1207,10 @@ func (n *Node) IsListening() bool {
 // NodeInfo returns the Node's Info from the Switch.
 func (n *Node) NodeInfo() p2p.NodeInfo {
 	return n.nodeInfo
+}
+
+func (n *Node) StateDB() dbm.DB {
+	return n.stateDB
 }
 
 func makeNodeInfo(

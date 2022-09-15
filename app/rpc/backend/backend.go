@@ -6,6 +6,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/okex/exchain/libs/tendermint/global"
+
+	lru "github.com/hashicorp/golang-lru"
+	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
+
 	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -29,6 +34,7 @@ import (
 const (
 	FlagLogsLimit   = "rpc.logs-limit"
 	FlagLogsTimeout = "rpc.logs-timeout"
+	blockCacheSize  = 1024
 )
 
 var ErrTimeout = errors.New("query timeout exceeded")
@@ -47,11 +53,10 @@ type Backend interface {
 	GetTransactionByHash(hash common.Hash) (*watcher.Transaction, error)
 
 	// returns the logs of a given block
-	GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error)
+	GetLogs(height int64) ([][]*ethtypes.Log, error)
 
 	// Used by pending transaction filter
 	PendingTransactions() ([]*watcher.Transaction, error)
-	PendingTransactionsWithStd() ([]*watcher.Transaction, error)
 	PendingTransactionCnt() (int, error)
 	PendingTransactionsByHash(target common.Hash) (*watcher.Transaction, error)
 	UserPendingTransactionsCnt(address string) (int, error)
@@ -66,6 +71,8 @@ type Backend interface {
 
 	// Used by eip-1898
 	ConvertToBlockNumber(rpctypes.BlockNumberOrHash) (rpctypes.BlockNumber, error)
+	// Block returns the block at the given block number, block data is readonly
+	Block(height *int64) (*coretypes.ResultBlock, error)
 }
 
 var _ Backend = (*EthermintBackend)(nil)
@@ -84,11 +91,12 @@ type EthermintBackend struct {
 	backendCache      Cache
 	logsLimit         int
 	logsTimeout       int // timeout second
+	blockCache        *lru.Cache
 }
 
 // New creates a new EthermintBackend instance
 func New(clientCtx clientcontext.CLIContext, log log.Logger, rateLimiters map[string]*rate.Limiter, disableAPI map[string]bool) *EthermintBackend {
-	return &EthermintBackend{
+	b := &EthermintBackend{
 		ctx:               context.Background(),
 		clientCtx:         clientCtx,
 		logger:            log.With("module", "json-rpc"),
@@ -102,6 +110,8 @@ func New(clientCtx clientcontext.CLIContext, log log.Logger, rateLimiters map[st
 		logsLimit:         viper.GetInt(FlagLogsLimit),
 		logsTimeout:       viper.GetInt(FlagLogsTimeout),
 	}
+	b.blockCache, _ = lru.New(blockCacheSize)
+	return b
 }
 
 func (b *EthermintBackend) LogsLimit() int {
@@ -114,24 +124,8 @@ func (b *EthermintBackend) LogsTimeout() time.Duration {
 
 // BlockNumber returns the current block number.
 func (b *EthermintBackend) BlockNumber() (hexutil.Uint64, error) {
-	ublockNumber, err := b.wrappedBackend.GetLatestBlockNumber()
-	if err == nil {
-		if ublockNumber > 0 {
-			//decrease blockNumber to make sure every block has been executed in local
-			ublockNumber--
-		}
-		return hexutil.Uint64(ublockNumber), err
-	}
-	blockNumber, err := b.LatestBlockNumber()
-	if err != nil {
-		return hexutil.Uint64(0), err
-	}
-
-	if blockNumber > 0 {
-		//decrease blockNumber to make sure every block has been executed in local
-		blockNumber--
-	}
-	return hexutil.Uint64(blockNumber), nil
+	committedHeight := global.GetGlobalHeight()
+	return hexutil.Uint64(committedHeight), nil
 }
 
 // GetBlockByNumber returns the block identified by number.
@@ -158,7 +152,7 @@ func (b *EthermintBackend) GetBlockByNumber(blockNum rpctypes.BlockNumber, fullT
 		height = int64(num)
 	}
 
-	resBlock, err := b.clientCtx.Client.Block(&height)
+	resBlock, err := b.Block(&height)
 	if err != nil {
 		return nil, nil
 	}
@@ -195,7 +189,7 @@ func (b *EthermintBackend) GetBlockByHash(hash common.Hash, fullTx bool) (*watch
 		return nil, err
 	}
 
-	resBlock, err := b.clientCtx.Client.Block(&out.Number)
+	resBlock, err := b.Block(&out.Number)
 	if err != nil {
 		return nil, nil
 	}
@@ -221,7 +215,7 @@ func (b *EthermintBackend) HeaderByNumber(blockNum rpctypes.BlockNumber) (*ethty
 		height = int64(num)
 	}
 
-	resBlock, err := b.clientCtx.Client.Block(&height)
+	resBlock, err := b.Block(&height)
 	if err != nil {
 		return nil, err
 	}
@@ -251,7 +245,7 @@ func (b *EthermintBackend) HeaderByHash(blockHash common.Hash) (*ethtypes.Header
 		return nil, err
 	}
 
-	resBlock, err := b.clientCtx.Client.Block(&out.Number)
+	resBlock, err := b.Block(&out.Number)
 	if err != nil {
 		return nil, err
 	}
@@ -312,26 +306,6 @@ func (b *EthermintBackend) PendingTransactions() ([]*watcher.Transaction, error)
 			return nil, err
 		}
 
-		transactions = append(transactions, rpcTx)
-	}
-
-	return transactions, nil
-}
-
-// PendingTransactionsWithStd returns the transactions including both the eth and std Txs
-// that are in the transaction pool and have a from address that is one of the accounts this node manages.
-func (b *EthermintBackend) PendingTransactionsWithStd() ([]*watcher.Transaction, error) {
-	pendingTxs, err := b.clientCtx.Client.UnconfirmedTxs(-1)
-	if err != nil {
-		return nil, err
-	}
-
-	transactions := make([]*watcher.Transaction, 0, len(pendingTxs.Txs))
-	for _, tx := range pendingTxs.Txs {
-		rpcTx, err := rpctypes.RawTxToWatcherTx(b.clientCtx, tx, common.Hash{}, 0, 0)
-		if err != nil {
-			return nil, err
-		}
 		transactions = append(transactions, rpcTx)
 	}
 
@@ -441,7 +415,7 @@ func (b *EthermintBackend) GetTransactionByHash(hash common.Hash) (tx *watcher.T
 	}
 
 	// Can either cache or just leave this out if not necessary
-	block, err := b.clientCtx.Client.Block(&txRes.Height)
+	block, err := b.Block(&txRes.Height)
 	if err != nil {
 		return nil, err
 	}
@@ -463,18 +437,8 @@ func (b *EthermintBackend) GetTransactionByHash(hash common.Hash) (tx *watcher.T
 }
 
 // GetLogs returns all the logs from all the ethereum transactions in a block.
-func (b *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, error) {
-	res, _, err := b.clientCtx.Query(fmt.Sprintf("custom/%s/%s/%s", evmtypes.ModuleName, evmtypes.QueryHashToHeight, blockHash.Hex()))
-	if err != nil {
-		return nil, err
-	}
-
-	var out evmtypes.QueryResBlockNumber
-	if err := b.clientCtx.Codec.UnmarshalJSON(res, &out); err != nil {
-		return nil, err
-	}
-
-	block, err := b.clientCtx.Client.Block(&out.Number)
+func (b *EthermintBackend) GetLogs(height int64) ([][]*ethtypes.Log, error) {
+	block, err := b.Block(&height)
 	if err != nil {
 		return nil, err
 	}
@@ -616,4 +580,33 @@ func (b *EthermintBackend) ConvertToBlockNumber(blockNumberOrHash rpctypes.Block
 		return rpctypes.LatestBlockNumber, rpctypes.ErrResourceNotFound
 	}
 	return rpctypes.BlockNumber(out.Number), nil
+}
+
+func (b *EthermintBackend) cacheBlock(block *coretypes.ResultBlock) {
+	if b.blockCache != nil {
+		b.blockCache.Add(block.Block.Height, block)
+	}
+}
+
+func (b *EthermintBackend) getBlockFromCache(height int64) *coretypes.ResultBlock {
+	if b.blockCache != nil {
+		if v, ok := b.blockCache.Get(height); ok {
+			return v.(*coretypes.ResultBlock)
+		}
+	}
+	return nil
+}
+
+func (b *EthermintBackend) Block(height *int64) (block *coretypes.ResultBlock, err error) {
+	if height != nil {
+		block = b.getBlockFromCache(*height)
+	}
+	if block == nil {
+		block, err = b.clientCtx.Client.Block(height)
+		if err != nil {
+			return nil, err
+		}
+		b.cacheBlock(block)
+	}
+	return block, nil
 }

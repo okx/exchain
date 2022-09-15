@@ -39,6 +39,7 @@ type EthAccount struct {
 
 func (acc *EthAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 	var dataLen uint64 = 0
+	var baseAccountFlag bool
 
 	for {
 		data = data[dataLen:]
@@ -71,12 +72,16 @@ func (acc *EthAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 
 		switch pos {
 		case 1:
-			base := new(auth.BaseAccount)
-			err = base.UnmarshalFromAmino(cdc, subData)
+			baseAccountFlag = true
+			if acc.BaseAccount == nil {
+				acc.BaseAccount = &auth.BaseAccount{}
+			} else {
+				*acc.BaseAccount = auth.BaseAccount{}
+			}
+			err = acc.BaseAccount.UnmarshalFromAmino(cdc, subData)
 			if err != nil {
 				return err
 			}
-			acc.BaseAccount = base
 		case 2:
 			acc.CodeHash = make([]byte, len(subData))
 			copy(acc.CodeHash, subData)
@@ -84,14 +89,31 @@ func (acc *EthAccount) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 			return fmt.Errorf("unexpect feild num %d", pos)
 		}
 	}
+	if !baseAccountFlag {
+		acc.BaseAccount = nil
+	}
 	return nil
 }
 
+type componentAccount struct {
+	ethAccount  EthAccount
+	baseAccount authtypes.BaseAccount
+}
+
 func (acc EthAccount) Copy() sdk.Account {
-	return &EthAccount{
-		authtypes.NewBaseAccount(acc.Address, acc.Coins, acc.PubKey, acc.AccountNumber, acc.Sequence),
-		acc.CodeHash,
-	}
+	// we need only allocate one object on the heap with componentAccount
+	var cacc componentAccount
+
+	cacc.baseAccount.Address = acc.Address
+	cacc.baseAccount.Coins = acc.Coins
+	cacc.baseAccount.PubKey = acc.PubKey
+	cacc.baseAccount.AccountNumber = acc.AccountNumber
+	cacc.baseAccount.Sequence = acc.Sequence
+
+	cacc.ethAccount.BaseAccount = &cacc.baseAccount
+	cacc.ethAccount.CodeHash = acc.CodeHash
+
+	return &cacc.ethAccount
 }
 
 func (acc EthAccount) AminoSize(cdc *amino.Codec) int {

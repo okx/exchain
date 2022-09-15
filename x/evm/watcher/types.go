@@ -46,6 +46,8 @@ var (
 
 	TransactionSuccess = uint32(1)
 	TransactionFailed  = uint32(0)
+
+	keyLatestBlockHeight = append(prefixLatestHeight, KeyLatestHeight...)
 )
 
 const (
@@ -443,7 +445,7 @@ func (m MsgTransactionReceipt) GetType() uint32 {
 	return TypeOthers
 }
 
-//type WrappedResponse sdk.TxResponse
+//type WrappedResponseWithCodec
 type WrappedResponseWithCodec struct {
 	Response sdk.TxResponse
 	Codec    *codec.Codec `json:"-"`

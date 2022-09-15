@@ -59,6 +59,27 @@ func (sf *stringFlag) changed() bool {
 	return sf.Changed
 }
 
+// intFlag string type flag
+type intFlag struct {
+	Name    string
+	Default int
+	Changed bool
+	Value   int
+}
+
+func (sf *intFlag) add(cmd *cobra.Command) {
+	cmd.Flags().Int(sf.Name, sf.Default, "")
+	viper.BindPFlag(sf.Name, cmd.Flags().Lookup(sf.Name))
+}
+
+func (sf *intFlag) args() string {
+	return fmt.Sprintf("--%v=%v", sf.Name, sf.Value)
+}
+
+func (sf *intFlag) changed() bool {
+	return sf.Changed
+}
+
 // getCommand build command by flags
 func getCommand(flags []universeFlag) *cobra.Command {
 	cmd := &cobra.Command{}

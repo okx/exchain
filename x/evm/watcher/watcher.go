@@ -20,7 +20,10 @@ import (
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/spf13/viper"
+	"github.com/tendermint/go-amino"
 )
+
+const version = "v1"
 
 var itjs = jsoniter.ConfigCompatibleWithStandardLibrary
 
@@ -40,12 +43,14 @@ type Watcher struct {
 	eraseKeyFilter map[string][]byte
 	log            log.Logger
 	// for state delta transfering in network
-	watchData    *WatchData
-	jobChan      chan func()
-	evmTxIndex   uint64
-	checkWd      bool
-	filterMap    map[string]WatchMessage
-	InfuraKeeper InfuraKeeper
+	watchData     *WatchData
+	jobChan       chan func()
+	jobDone       *sync.WaitGroup
+	evmTxIndex    uint64
+	checkWd       bool
+	filterMap     map[string]struct{}
+	InfuraKeeper  InfuraKeeper
+	delAccountMtx sync.Mutex
 }
 
 var (
@@ -78,7 +83,7 @@ func NewWatcher(logger log.Logger) *Watcher {
 		watchData:      &WatchData{},
 		log:            logger,
 		checkWd:        viper.GetBool(FlagCheckWd),
-		filterMap:      make(map[string]WatchMessage),
+		filterMap:      make(map[string]struct{}),
 		eraseKeyFilter: make(map[string][]byte),
 	}
 }
@@ -173,8 +178,10 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 	}
 	key1 := GetMsgAccountKey(addr.Bytes())
 	key2 := append(prefixRpcDb, key1...)
+	w.delAccountMtx.Lock()
 	w.delayEraseKey = append(w.delayEraseKey, key1)
 	w.delayEraseKey = append(w.delayEraseKey, key2)
+	w.delAccountMtx.Unlock()
 }
 
 func (w *Watcher) DelayEraseKey() {
@@ -347,6 +354,7 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 	if data.BloomData != nil {
 		w.commitBloomData(data.BloomData)
 	}
+	w.delayEraseKey = data.DelayEraseKey
 
 	if w.checkWd {
 		keys := make([][]byte, len(data.Batches))
@@ -356,16 +364,25 @@ func (w *Watcher) CommitWatchData(data WatchData) {
 		w.CheckWatchDB(keys, "consumer")
 	}
 }
-
-func (w *Watcher) commitBatch(batch []WatchMessage) {
-	for _, b := range batch {
-		w.filterMap[bytes2Key(b.GetKey())] = b
+func isDuplicated(key []byte, filterMap map[string]struct{}) bool {
+	filterKey := bytes2Key(key)
+	if _, exist := filterMap[filterKey]; exist {
+		return true
+	} else {
+		filterMap[filterKey] = struct{}{}
+		return false
 	}
-
+}
+func (w *Watcher) commitBatch(batch []WatchMessage) {
 	dbBatch := w.store.db.NewBatch()
 	defer dbBatch.Close()
-	for _, b := range w.filterMap {
+	for i := len(batch) - 1; i >= 0; i-- { //iterate batch from the end to start, to save the latest batch msgs
+		//and to skip the duplicated batch msgs by key
+		b := batch[i]
 		key := b.GetKey()
+		if isDuplicated(key, w.filterMap) {
+			continue
+		}
 		value := []byte(b.GetValue())
 		typeValue := b.GetType()
 		if typeValue == TypeDelete {
@@ -378,12 +395,11 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 				w.store.SetEvmParams(msgParams.Params)
 			}
 			if typeValue == TypeState {
-				state.SetStateToLru(common.BytesToHash(key), value)
+				state.SetStateToLru(key, value)
 			}
 		}
 	}
 	dbBatch.Write()
-
 	for k := range w.filterMap {
 		delete(w.filterMap, k)
 	}
@@ -405,7 +421,7 @@ func (w *Watcher) commitCenterBatch(batch []*Batch) {
 		} else {
 			dbBatch.Set(b.Key, b.Value)
 			if b.TypeValue == TypeState {
-				state.SetStateToLru(common.BytesToHash(b.Key), b.Value)
+				state.SetStateToLru(b.Key, b.Value)
 			}
 		}
 	}
@@ -428,7 +444,7 @@ func (w *Watcher) commitBloomData(bloomData []*evmtypes.KV) {
 	batch.Write()
 }
 
-func (w *Watcher) GetWatchDataFunc() func() ([]byte, error) {
+func (w *Watcher) CreateWatchDataGenerator() func() ([]byte, error) {
 	value := w.watchData
 	value.DelayEraseKey = w.delayEraseKey
 
@@ -461,7 +477,7 @@ func (w *Watcher) UnmarshalWatchData(wdByte []byte) (interface{}, error) {
 	return wd, nil
 }
 
-func (w *Watcher) UseWatchData(watchData interface{}) {
+func (w *Watcher) ApplyWatchData(watchData interface{}) {
 	wd, ok := watchData.(WatchData)
 	if !ok {
 		panic("use watch data failed")
@@ -469,9 +485,9 @@ func (w *Watcher) UseWatchData(watchData interface{}) {
 	w.dispatchJob(func() { w.CommitWatchData(wd) })
 }
 
-func (w *Watcher) SetWatchDataFunc() {
+func (w *Watcher) SetWatchDataManager() {
 	go w.jobRoutine()
-	tmstate.SetWatchDataFunc(w.GetWatchDataFunc, w.UnmarshalWatchData, w.UseWatchData)
+	tmstate.SetEvmWatchDataManager(w)
 }
 
 func (w *Watcher) GetBloomDataPoint() *[]*evmtypes.KV {
@@ -495,11 +511,7 @@ func (w *Watcher) CheckWatchDB(keys [][]byte, mode string) {
 }
 
 func bytes2Key(keyBytes []byte) string {
-	return string(keyBytes)
-}
-
-func key2Bytes(key string) []byte {
-	return []byte(key)
+	return amino.BytesToStr(keyBytes)
 }
 
 func filterCopy(origin *WatchData) *WatchData {
@@ -600,6 +612,7 @@ func (w *Watcher) jobRoutine() {
 	for job := range w.jobChan {
 		job()
 	}
+	w.jobDone.Done()
 }
 
 func (w *Watcher) lazyInitialization() {
@@ -607,13 +620,21 @@ func (w *Watcher) lazyInitialization() {
 	// now we will allocate chan memory
 	// 5*3 means watcherCommitJob+DelayEraseKey+commitBatchJob(just in case)
 	w.jobChan = make(chan func(), 5*3)
+	w.jobDone = new(sync.WaitGroup)
+	w.jobDone.Add(1)
 }
-
+func (w *Watcher) Stop() {
+	if !w.Enabled() {
+		return
+	}
+	close(w.jobChan)
+	w.jobDone.Wait()
+}
 func (w *Watcher) dispatchJob(f func()) {
 	// if jobRoutine were too slow to write data  to disk
 	// we have to wait
 	// why: something wrong happened: such as db panic(disk maybe is full)(it should be the only reason)
-	//								  UseWatchData were executed every 4 seoncds(block schedual)
+	//								  ApplyWatchData were executed every 4 seoncds(block schedual)
 	w.jobChan <- f
 }
 
