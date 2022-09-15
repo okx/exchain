@@ -230,7 +230,7 @@ func (cs *State) finalizeCommit(height int64) {
 
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
 
-	// this only enable for OKC-SWAP rpc
+	// publish event of the latest block time
 	if types.EnableEventBlockTime {
 		blockTime := sm.MedianTime(cs.Votes.Precommits(cs.Round).MakeCommit(), cs.Validators)
 		validators := cs.Validators.Copy()
