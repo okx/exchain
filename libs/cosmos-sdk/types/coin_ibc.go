@@ -3,9 +3,10 @@ package types
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"regexp"
 	"strings"
+
+	"github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
 
 var (
@@ -92,6 +93,66 @@ func (cas CoinAdapters) IsAnyNil() bool {
 	}
 
 	return false
+}
+
+func (coins CoinAdapters) Add(coinsB ...CoinAdapter) CoinAdapters {
+	return coins.safeAdd(coinsB)
+}
+func (coins CoinAdapters) safeAdd(coinsB CoinAdapters) CoinAdapters {
+	// probably the best way will be to make Coins and interface and hide the structure
+	// definition (type alias)
+	if !coins.isSorted() {
+		panic("Coins (self) must be sorted")
+	}
+	if !coinsB.isSorted() {
+		panic("Wrong argument: coins must be sorted")
+	}
+
+	sum := ([]CoinAdapter)(nil)
+	indexA, indexB := 0, 0
+	lenA, lenB := len(coins), len(coinsB)
+
+	for {
+		if indexA == lenA {
+			if indexB == lenB {
+				// return nil coins if both sets are empty
+				return sum
+			}
+
+			// return set B (excluding zero coins) if set A is empty
+			return append(sum, removeZeroCoinAdapters(coinsB[indexB:])...)
+		} else if indexB == lenB {
+			// return set A (excluding zero coins) if set B is empty
+			return append(sum, removeZeroCoinAdapters(coins[indexA:])...)
+		}
+
+		coinA, coinB := coins[indexA], coinsB[indexB]
+
+		switch strings.Compare(coinA.Denom, coinB.Denom) {
+		case -1: // coin A denom < coin B denom
+			if !coinA.IsZero() {
+				sum = append(sum, coinA)
+			}
+
+			indexA++
+
+		case 0: // coin A denom == coin B denom
+			res := coinA.Add(coinB)
+			if !res.IsZero() {
+				sum = append(sum, res)
+			}
+
+			indexA++
+			indexB++
+
+		case 1: // coin A denom > coin B denom
+			if !coinB.IsZero() {
+				sum = append(sum, coinB)
+			}
+
+			indexB++
+		}
+	}
 }
 
 // ParseCoinsNormalized will parse out a list of coins separated by commas, and normalize them by converting to smallest
