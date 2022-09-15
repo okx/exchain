@@ -93,6 +93,19 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 	totalCount := 0
 	balanceCount := 0
 	startTime := time.Now()
+
+	keeper.accountKeeper.IterateAccounts(ctx, func(account authexported.Account) bool {
+		totalCount++
+		ethAddr := ethcmn.BytesToAddress(account.GetAddress().Bytes())
+		if strings.ToLower(ethAddr.String()) == strings.ToLower("0xda80b00a2b44632de4420c9038a5b29be7caafd1") {
+			recodeLog(logWr, "0xda80b00a2b44632de4420c9038a5b29be7caafd1 exist")
+		}
+		return false
+	})
+	recodeLog(logWr, fmt.Sprintf("total count: %d", totalCount))
+	recodeLog(logWr, fmt.Sprintf("export duration: %s", time.Since(startTime).String()))
+	return path.Join(rootDir, accFileName)
+
 	keeper.accountKeeper.IterateAccounts(ctx, func(account authexported.Account) bool {
 		totalCount++
 		accType := UserAccount
@@ -110,8 +123,8 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 		//	return false
 		//}
 
-		if strings.ToLower(ethAddr.String()) == strings.ToLower("0xef0eea91692a31dd3dc5c7a0f63b73d901fdb3e8") {
-			recodeLog(logWr, "0xef0eea91692a31dd3dc5c7a0f63b73d901fdb3e8 exist")
+		if strings.ToLower(ethAddr.String()) == strings.ToLower("0xda80b00a2b44632de4420c9038a5b29be7caafd1") {
+			recodeLog(logWr, "0xda80b00a2b44632de4420c9038a5b29be7caafd1 exist")
 		}
 		csvStr := fmt.Sprintf("%s,%d,%s,%d,%s",
 			ethAddr.String(),
