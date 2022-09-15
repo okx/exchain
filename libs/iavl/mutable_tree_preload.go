@@ -125,7 +125,7 @@ func (tree *MutableTree) setWithOrphansSlice(key []byte, value []byte, orphans *
 	}
 
 	if tree.ImmutableTree.root == nil {
-		tree.addUnsavedAddition(key, NewFastNode(key, value, tree.version+1))
+		tree.addUnsavedAddition(key, value, tree.version+1)
 		tree.ImmutableTree.root = NewNode(key, value, tree.version+1)
 		return updated
 	}
