@@ -45,7 +45,17 @@ func QueryParams(cliCtx context.CLIContext, queryRoute string) (params types.Par
 	} else if !ignoreError(err.Error()) {
 		return
 	}
-	return types.NewParams(communityTax, withdrawAddrEnabled, distributionType, withdrawRewardEnabled), nil
+
+	var rewardTruncatePrecision int64
+	route = fmt.Sprintf("custom/%s/params/%s", queryRoute, types.ParamRewardTruncatePrecision)
+	bytes, _, err = cliCtx.QueryWithData(route, []byte{})
+	if err == nil {
+		cliCtx.Codec.MustUnmarshalJSON(bytes, &rewardTruncatePrecision)
+	} else if !ignoreError(err.Error()) {
+		return
+	}
+
+	return types.NewParams(communityTax, withdrawAddrEnabled, distributionType, withdrawRewardEnabled, rewardTruncatePrecision), nil
 }
 
 func ignoreError(err string) bool {
