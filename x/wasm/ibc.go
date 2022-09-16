@@ -27,7 +27,7 @@ func (i IBCHandler) OnChanOpenTry(ctx sdk.Context, order channeltypes.Order, con
 	panic("implement me")
 }
 
-func (i IBCHandler) OnChanOpenAck(ctx sdk.Context, portID, channelID string, counterpartyVersion string) error {
+func (i IBCHandler) OnChanOpenAck(ctx sdk.Context, portID, channelID string, string, counterpartyVersion string) error {
 	panic("implement me")
 }
 

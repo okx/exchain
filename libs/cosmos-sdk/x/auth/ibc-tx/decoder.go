@@ -2,6 +2,7 @@ package ibc_tx
 
 import (
 	"fmt"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
@@ -10,12 +11,73 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx/internal/adapter"
 	"google.golang.org/protobuf/encoding/protowire"
+
 	//"github.com/okex/exchain/libs/cosmos-sdk/codec/unknownproto"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	tx "github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 )
+
+func CM40TxDecoder(cdc codec.ProtoCodecMarshaler) func(txBytes []byte) (ibctx.Tx, error) {
+	return func(txBytes []byte) (ibctx.Tx, error) {
+		// Make sure txBytes follow ADR-027.
+		err := rejectNonADR027TxRaw(txBytes)
+		if err != nil {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+		}
+
+		var raw tx.TxRaw
+
+		// reject all unknown proto fields in the root TxRaw
+		err = unknownproto.RejectUnknownFieldsStrict(txBytes, &raw, cdc.InterfaceRegistry())
+		if err != nil {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+		}
+
+		err = cdc.UnmarshalBinaryBare(txBytes, &raw)
+		if err != nil {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+		}
+
+		var body tx.TxBody
+		// allow non-critical unknown fields in TxBody
+		txBodyHasUnknownNonCriticals, err := unknownproto.RejectUnknownFields(raw.BodyBytes, &body, true, cdc.InterfaceRegistry())
+		if err != nil {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+		}
+
+		err = cdc.UnmarshalBinaryBare(raw.BodyBytes, &body)
+		if err != nil {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+		}
+
+		var authInfo tx.AuthInfo
+
+		// reject all unknown proto fields in AuthInfo
+		err = unknownproto.RejectUnknownFieldsStrict(raw.AuthInfoBytes, &authInfo, cdc.InterfaceRegistry())
+		if err != nil {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+		}
+
+		err = cdc.UnmarshalBinaryBare(raw.AuthInfoBytes, &authInfo)
+		if err != nil {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrTxDecode, err.Error())
+		}
+
+		ibcTx := &tx.Tx{
+			Body:       &body,
+			AuthInfo:   &authInfo,
+			Signatures: raw.Signatures,
+		}
+		return &wrapper{
+			tx:                           ibcTx,
+			bodyBz:                       raw.BodyBytes,
+			authInfoBz:                   raw.AuthInfoBytes,
+			txBodyHasUnknownNonCriticals: txBodyHasUnknownNonCriticals,
+		}, nil
+	}
+}
 
 // DefaultTxDecoder returns a default protobuf TxDecoder using the provided Marshaler.
 //func IbcTxDecoder(cdc codec.ProtoCodecMarshaler) ibcadapter.TxDecoder {

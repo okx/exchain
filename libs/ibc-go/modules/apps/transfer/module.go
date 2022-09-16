@@ -4,11 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
+	"math/rand"
+	"strings"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
-	"math"
-	"math/rand"
 
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
@@ -252,9 +254,6 @@ func ValidateTransferChannelParams(
 		return sdkerrors.Wrapf(porttypes.ErrInvalidPort, "invalid port: %s, expected %s", portID, boundPort)
 	}
 
-	if version != types.Version {
-		return sdkerrors.Wrapf(types.ErrInvalidVersion, "got %s, expected %s", version, types.Version)
-	}
 	return nil
 }
 
@@ -271,6 +270,14 @@ func (am AppModule) OnChanOpenInit(
 ) error {
 	if err := ValidateTransferChannelParams(ctx, am.keeper, order, portID, channelID, version); err != nil {
 		return err
+	}
+
+	if strings.TrimSpace(version) == "" {
+		version = types.Version
+	}
+
+	if version != types.Version {
+		return sdkerrors.Wrapf(types.ErrInvalidVersion, "got %s, expected %s", version, types.Version)
 	}
 
 	// Claim channel capability passed back by IBC module
@@ -320,6 +327,7 @@ func (am AppModule) OnChanOpenAck(
 	ctx sdk.Context,
 	portID,
 	channelID string,
+	counterpartyChannelID string,
 	counterpartyVersion string,
 ) error {
 	if counterpartyVersion != types.Version {

@@ -32,7 +32,7 @@ var (
 
 	MILESTONE_VENUS3_HEIGHT string
 	milestoneVenus3Height   int64
-  
+
 	// note: it stores the earlies height of the node,and it is used by cli
 	nodePruneHeight int64
 
@@ -207,9 +207,11 @@ func UnittestOnlySetMilestoneVenus2Height(h int64) {
 
 // ==================================
 // =========== Venus3 ===============
+
 func UnittestOnlySetMilestoneVenus3Height(h int64) {
 	milestoneVenus3Height = h
 }
+
 
 func HigherThanVenus3(h int64) bool {
 	if milestoneVenus3Height == 0 {
@@ -220,6 +222,10 @@ func HigherThanVenus3(h int64) bool {
 
 func GetVenus3Height() int64 {
 	return milestoneVenus3Height
+}
+
+func UnittestOnlySetMilestoneVenus3Height(h int64) {
+	milestoneVenus3Height = h
 }
 
 // =========== Venus3 ===============
