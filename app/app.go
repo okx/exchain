@@ -623,7 +623,7 @@ func NewOKExChainApp(
 
 	enableAnalyzer := sm.DeliverTxsExecMode(viper.GetInt(sm.FlagDeliverTxsExecMode)) == sm.DeliverTxsExecModeSerial
 	trace.EnableAnalyzer(enableAnalyzer)
-	//todo
+
 	gpoConfig := gasprice.NewGPOConfig(appconfig.GetOecConfig().GetDynamicGpWeight(), appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
 	app.gpo = gasprice.NewOracle(gpoConfig)
 	return app

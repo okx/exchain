@@ -954,6 +954,11 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 		errMsg := fmt.Sprintf("estimate gas %v greater than system max gas limit per tx %v", estimatedGas, maxGasLimitPerTx)
 		return 0, TransformDataError(sdk.ErrOutOfGas(errMsg), "eth_estimateGas")
 	}
+
+	if estimatedGas == 21000 && args.Data == nil {
+		return hexutil.Uint64(estimatedGas), nil
+	}
+
 	gasBuffer := estimatedGas / 100 * config.GetOecConfig().GetGasLimitBuffer()
 	//EvmHookGasEstimate: evm tx with cosmos hook,we cannot estimate hook gas
 	//simple add EvmHookGasEstimate,run tx will refund the extra gas
