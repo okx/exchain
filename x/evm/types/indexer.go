@@ -2,15 +2,16 @@ package types
 
 import (
 	"encoding/binary"
+	"path/filepath"
+	"sync"
+	"sync/atomic"
+
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	"github.com/spf13/viper"
-	"path/filepath"
-	"sync"
-	"sync/atomic"
 )
 
 var (
@@ -72,7 +73,7 @@ func InitIndexer(db dbm.DB) {
 func BloomDb() dbm.DB {
 	dataDir := filepath.Join(viper.GetString("home"), "data")
 	var err error
-	db, err := sdk.NewLevelDB(bloomDir, dataDir)
+	db, err := sdk.NewDB(bloomDir, dataDir)
 	if err != nil {
 		panic(err)
 	}

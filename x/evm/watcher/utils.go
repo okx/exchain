@@ -47,11 +47,14 @@ func NewTransaction(tx *evmtypes.MsgEthereumTx, txHash, blockHash common.Hash, b
 }
 
 func RawTxResultToStdResponse(clientCtx clientcontext.CLIContext,
-	tr *ctypes.ResultTx, timestamp time.Time) (*TransactionResult, error) {
+	tr *ctypes.ResultTx, tx sdk.Tx, timestamp time.Time) (*TransactionResult, error) {
 
-	tx, err := evmtypes.TxDecoder(clientCtx.CodecProy)(tr.Tx, evmtypes.IGNORE_HEIGHT_CHECKING)
-	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
+	var err error
+	if tx == nil {
+		tx, err = evmtypes.TxDecoder(clientCtx.CodecProy)(tr.Tx, evmtypes.IGNORE_HEIGHT_CHECKING)
+		if err != nil {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
+		}
 	}
 
 	var realTx *authtypes.StdTx
