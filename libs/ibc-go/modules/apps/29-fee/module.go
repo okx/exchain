@@ -1,45 +1,40 @@
-package ica
+package fee
 
 import (
 	"context"
 	"encoding/json"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/common"
 
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/client/cli"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/client/cli"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/keeper"
 
-	controllertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/types"
-	hosttypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/types"
-
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host"
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
+	cliCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 
 	"github.com/gorilla/mux"
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	cliCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	anytypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
-	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
-	"github.com/spf13/cobra"
-
-	controllerkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/keeper"
-	hostkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/keeper"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/spf13/cobra"
 )
 
 var (
 	_ module.AppModuleAdapter      = AppModule{}
 	_ module.AppModuleBasicAdapter = AppModuleBasic{}
-
-	_ porttypes.IBCModule = host.IBCModule{}
+	_ upgrade.UpgradeModule        = AppModule{}
 )
 
-// AppModuleBasic is the IBC interchain accounts AppModuleBasic
+// AppModuleBasic is the 29-fee AppModuleBasic
 type AppModuleBasic struct{}
 
-func (b AppModuleBasic) RegisterCodec(codec *codec.Codec) {}
+func (b AppModuleBasic) RegisterCodec(codec *codec.Codec) {
+	types.RegisterLegacyAminoCodec(codec)
+}
 
 func (b AppModuleBasic) DefaultGenesis() json.RawMessage {
 	return nil
@@ -64,11 +59,11 @@ func (b AppModuleBasic) RegisterInterfaces(registry anytypes.InterfaceRegistry) 
 }
 
 func (b AppModuleBasic) RegisterGRPCGatewayRoutes(ctx cliCtx.CLIContext, mux *runtime.ServeMux) {
-	controllertypes.RegisterQueryHandlerClient(context.Background(), mux, controllertypes.NewQueryClient(ctx))
-	hosttypes.RegisterQueryHandlerClient(context.Background(), mux, hosttypes.NewQueryClient(ctx))
+	types.RegisterQueryHandlerClient(context.Background(), mux, types.NewQueryClient(ctx))
 }
 
 func (b AppModuleBasic) GetTxCmdV2(cdc *codec.CodecProxy, reg anytypes.InterfaceRegistry) *cobra.Command {
+	// TODO, 同tx ,是否需要tx cmd
 	return nil
 }
 
@@ -83,55 +78,45 @@ func (AppModuleBasic) Name() string {
 	return types.ModuleName
 }
 
-// AppModule is the application module for the IBC interchain accounts module
 type AppModule struct {
 	*common.Veneus3BaseUpgradeModule
 	AppModuleBasic
-	controllerKeeper *controllerkeeper.Keeper
-	hostKeeper       *hostkeeper.Keeper
+	keeper keeper.Keeper
 }
 
-// NewAppModule creates a new 20-transfer module
-func NewAppModule(m *codec.CodecProxy, ck *controllerkeeper.Keeper, hk *hostkeeper.Keeper) AppModule {
+func NewAppModule(k keeper.Keeper) AppModule {
 	ret := AppModule{
-		controllerKeeper: ck,
-		hostKeeper:       hk,
+		keeper: k,
 	}
 	ret.Veneus3BaseUpgradeModule = common.NewVeneus3BaseUpgradeModule(ret)
 	return ret
 }
 
-func (am AppModule) InitGenesis(s sdk.Context, message json.RawMessage) []abci.ValidatorUpdate {
-	var genesisState types.GenesisState
-	ModuleCdc.MustUnmarshalJSON(message, &genesisState)
-
-	if am.controllerKeeper != nil {
-		controllerkeeper.InitGenesis(s, *am.controllerKeeper, genesisState.ControllerGenesisState)
-	}
-
-	if am.hostKeeper != nil {
-		hostkeeper.InitGenesis(s, *am.hostKeeper, genesisState.HostGenesisState)
-	}
-
+func (a AppModule) InitGenesis(s sdk.Context, message json.RawMessage) []abci.ValidatorUpdate {
 	return nil
 }
 
-func (a AppModule) ExportGenesis(s sdk.Context) json.RawMessage {
-	return nil
+func (a AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
+	// TODO,可能会触发smb
+	gs := a.keeper.ExportGenesis(ctx)
+	return ModuleCdc.MustMarshalJSON(gs)
 }
+
+func (a AppModule) RegisterInvariants(registry sdk.InvariantRegistry) {}
 
 func (a AppModule) Route() string {
 	return types.RouterKey
 }
 
 func (a AppModule) NewHandler() sdk.Handler {
-	return NewHandler(a.hostKeeper, a.controllerKeeper)
+	return NewHandler(a.keeper)
 }
 
 func (a AppModule) QuerierRoute() string {
 	return types.QuerierRoute
 }
 
+// TODO, 有需要适配的吗
 func (a AppModule) NewQuerierHandler() sdk.Querier {
 	return nil
 }
@@ -142,9 +127,7 @@ func (a AppModule) EndBlock(s sdk.Context, block abci.RequestEndBlock) []abci.Va
 	return []abci.ValidatorUpdate{}
 }
 
-func (a AppModule) RegisterInvariants(registry sdk.InvariantRegistry) {}
-
 func (a AppModule) RegisterServices(cfg module.Configurator) {
-	controllertypes.RegisterQueryServer(cfg.QueryServer(), a.controllerKeeper)
-	hosttypes.RegisterQueryServer(cfg.QueryServer(), a.hostKeeper)
+	types.RegisterMsgServer(cfg.MsgServer(), a.keeper)
+	types.RegisterQueryServer(cfg.QueryServer(), a.keeper)
 }

@@ -172,26 +172,26 @@ func (am AppModule) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.V
 func (am AppModule) OnChanOpenInit(
 	ctx sdk.Context, _ channeltypes.Order, _ []string, portID string,
 	channelID string, chanCap *capabilitytypes.Capability, _ channeltypes.Counterparty, v string,
-) error {
+) (string, error) {
 	// Claim channel capability passed back by IBC module
 	if err := am.scopedKeeper.ClaimCapability(ctx, chanCap, host.ChannelCapabilityPath(portID, channelID)); err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return "", nil
 }
 
 // OnChanOpenTry implements the IBCModule interface.
 func (am AppModule) OnChanOpenTry(
 	ctx sdk.Context, _ channeltypes.Order, _ []string, portID string,
 	channelID string, chanCap *capabilitytypes.Capability, _ channeltypes.Counterparty, _, _ string,
-) error {
+) (string, error) {
 	// Claim channel capability passed back by IBC module
 	if err := am.scopedKeeper.ClaimCapability(ctx, chanCap, host.ChannelCapabilityPath(portID, channelID)); err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return "", nil
 }
 
 // OnChanOpenAck implements the IBCModule interface.

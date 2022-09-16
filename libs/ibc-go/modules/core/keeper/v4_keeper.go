@@ -44,7 +44,7 @@ func (k V4Keeper) ChannelOpenInit(goCtx context.Context, msg *channeltypes.MsgCh
 
 	version := strings.TrimSpace(msg.Channel.Version)
 	// Perform application logic callback
-	err = cbs.OnChanOpenInit(ctx, msg.Channel.Ordering, msg.Channel.ConnectionHops, msg.PortId, channelID, cap, msg.Channel.Counterparty, msg.Channel.Version)
+	version, err = cbs.OnChanOpenInit(ctx, msg.Channel.Ordering, msg.Channel.ConnectionHops, msg.PortId, channelID, cap, msg.Channel.Counterparty, msg.Channel.Version)
 	if err != nil {
 		return nil, sdkerrors.Wrap(err, "channel open init callback failed")
 	}
@@ -82,7 +82,7 @@ func (k V4Keeper) ChannelOpenTry(goCtx context.Context, msg *channeltypes.MsgCha
 	}
 
 	// Perform application logic callback
-	err = cbs.OnChanOpenTry(ctx, msg.Channel.Ordering, msg.Channel.ConnectionHops, msg.PortId, channelID, cap, msg.Channel.Counterparty, msg.Channel.Version, msg.CounterpartyVersion)
+	msg.Channel.Version, err = cbs.OnChanOpenTry(ctx, msg.Channel.Ordering, msg.Channel.ConnectionHops, msg.PortId, channelID, cap, msg.Channel.Counterparty, msg.Channel.Version, msg.CounterpartyVersion)
 	if err != nil {
 		return nil, sdkerrors.Wrap(err, "channel open try callback failed")
 	}

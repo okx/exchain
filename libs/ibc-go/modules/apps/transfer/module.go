@@ -267,9 +267,9 @@ func (am AppModule) OnChanOpenInit(
 	chanCap *capabilitytypes.Capability,
 	counterparty channeltypes.Counterparty,
 	version string,
-) error {
+) (string, error) {
 	if err := ValidateTransferChannelParams(ctx, am.keeper, order, portID, channelID, version); err != nil {
-		return err
+		return "", err
 	}
 
 	if strings.TrimSpace(version) == "" {
@@ -277,15 +277,15 @@ func (am AppModule) OnChanOpenInit(
 	}
 
 	if version != types.Version {
-		return sdkerrors.Wrapf(types.ErrInvalidVersion, "got %s, expected %s", version, types.Version)
+		return "", sdkerrors.Wrapf(types.ErrInvalidVersion, "got %s, expected %s", version, types.Version)
 	}
 
 	// Claim channel capability passed back by IBC module
 	if err := am.keeper.ClaimCapability(ctx, chanCap, host.ChannelCapabilityPath(portID, channelID)); err != nil {
-		return err
+		return version, err
 	}
 
-	return nil
+	return version, nil
 }
 
 // OnChanOpenTry implements the IBCModule interface
@@ -299,13 +299,13 @@ func (am AppModule) OnChanOpenTry(
 	counterparty channeltypes.Counterparty,
 	version,
 	counterpartyVersion string,
-) error {
+) (string, error) {
 	if err := ValidateTransferChannelParams(ctx, am.keeper, order, portID, channelID, version); err != nil {
-		return err
+		return version, err
 	}
 
 	if counterpartyVersion != types.Version {
-		return sdkerrors.Wrapf(types.ErrInvalidVersion, "invalid counterparty version: got: %s, expected %s", counterpartyVersion, types.Version)
+		return version, sdkerrors.Wrapf(types.ErrInvalidVersion, "invalid counterparty version: got: %s, expected %s", counterpartyVersion, types.Version)
 	}
 
 	// Module may have already claimed capability in OnChanOpenInit in the case of crossing hellos
@@ -315,11 +315,11 @@ func (am AppModule) OnChanOpenTry(
 	if !am.keeper.AuthenticateCapability(ctx, chanCap, host.ChannelCapabilityPath(portID, channelID)) {
 		// Only claim channel capability passed back by IBC module if we do not already own it
 		if err := am.keeper.ClaimCapability(ctx, chanCap, host.ChannelCapabilityPath(portID, channelID)); err != nil {
-			return err
+			return version, err
 		}
 	}
 
-	return nil
+	return version, nil
 }
 
 // OnChanOpenAck implements the IBCModule interface

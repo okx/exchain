@@ -19,7 +19,7 @@ type IBCModule interface {
 		channelCap *capabilitytypes.Capability,
 		counterparty channeltypes.Counterparty,
 		version string,
-	) error
+	) (string, error)
 
 	OnChanOpenTry(
 		ctx sdk.Context,
@@ -31,7 +31,7 @@ type IBCModule interface {
 		counterparty channeltypes.Counterparty,
 		version,
 		counterpartyVersion string,
-	) error
+	) (string, error)
 
 	OnChanOpenAck(
 		ctx sdk.Context,
