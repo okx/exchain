@@ -261,6 +261,9 @@ func (cs *State) defaultSetProposal(proposal *types.Proposal) error {
 	cs.Logger.Info("Received proposal", "proposal", proposal)
 	cs.bt.onProposal(proposal.Height)
 	cs.trc.Pin("recvProposal")
+
+	//broadcast proposal immediately
+	cs.evsw.FireEvent(types.EventProposal, proposal)
 	return nil
 }
 

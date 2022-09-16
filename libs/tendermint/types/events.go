@@ -40,6 +40,7 @@ const (
 	EventSignVote         = "SignVote"
 	EventBlockPart        = "BlockPart"
 	EventProposeRequest   = "ProposeRequest"
+	EventProposal         = "Proposal"
 )
 
 var EnableEventBlockTime = false
