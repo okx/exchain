@@ -67,6 +67,9 @@ func (api *PubSubAPI) subscribe(conn *wsConn, params []interface{}) (rpc.ID, err
 		return api.subscribePendingTransactions(conn, isDetail)
 	case "syncing":
 		return api.subscribeSyncing(conn)
+	case "blockTime":
+		return api.subscribeLatestBlockTime(conn)
+
 	default:
 		return "0", fmt.Errorf("unsupported method %s", method)
 	}
@@ -537,6 +540,71 @@ func (api *PubSubAPI) subscribeSyncing(conn *wsConn) (rpc.ID, error) {
 				return
 			case <-unsubscribed:
 				api.logger.Debug("Syncing channel is closed", "ID", sub.ID())
+				return
+			}
+		}
+	}(sub.Event(), sub.Err())
+
+	return sub.ID(), nil
+}
+
+func (api *PubSubAPI) subscribeLatestBlockTime(conn *wsConn) (rpc.ID, error) {
+	sub, _, err := api.events.SubscribeBlockTime()
+	if err != nil {
+		return "", fmt.Errorf("error creating block filter: %s", err.Error())
+	}
+
+	unsubscribed := make(chan struct{})
+	api.filtersMu.Lock()
+	api.filters[sub.ID()] = &wsSubscription{
+		sub:          sub,
+		conn:         conn,
+		unsubscribed: unsubscribed,
+	}
+	api.filtersMu.Unlock()
+
+	go func(txsCh <-chan coretypes.ResultEvent, errCh <-chan error) {
+		for {
+			select {
+			case ev := <-txsCh:
+				result, ok := ev.Data.(tmtypes.EventDataBlockTime)
+				if !ok {
+					api.logger.Error(fmt.Sprintf("invalid data type %T, expected EventDataTx", ev.Data), "ID", sub.ID())
+					continue
+				}
+
+				api.filtersMu.RLock()
+				if f, found := api.filters[sub.ID()]; found {
+					// write to ws conn
+					res := &SubscriptionNotification{
+						Jsonrpc: "2.0",
+						Method:  "eth_subscription",
+						Params: &SubscriptionResult{
+							Subscription: sub.ID(),
+							Result:       result,
+						},
+					}
+
+					err = f.conn.WriteJSON(res)
+					if err != nil {
+						api.logger.Error("failed to write latest blocktime", "ID", sub.ID(), "error", err)
+					} else {
+						api.logger.Debug("successfully write latest blocktime", "ID", sub.ID(), "data", result)
+					}
+				}
+				api.filtersMu.RUnlock()
+
+				if err != nil {
+					api.unsubscribe(sub.ID())
+				}
+			case err := <-errCh:
+				if err != nil {
+					api.unsubscribe(sub.ID())
+					api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
+				}
+				return
+			case <-unsubscribed:
+				api.logger.Debug("BlockTime channel is closed", "ID", sub.ID())
 				return
 			}
 		}
