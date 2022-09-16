@@ -425,10 +425,14 @@ func (mem *CListMempool) addPendingTx(memTx *mempoolTx) error {
 	}
 	txNonce := memTx.realTx.GetNonce()
 	// cosmos tx does not support pending pool, so here must check whether txNonce is 0
-	if txNonce == 0 || txNonce == expectedNonce {
+	if txNonce == 0 || txNonce < expectedNonce {
+		return mem.addTx(memTx)
+	}
+	// add pending tx
+	if txNonce == expectedNonce {
 		err := mem.addTx(memTx)
 		if err == nil {
-			go mem.consumePendingTx(memTx.from, memTx.realTx.GetNonce()+1)
+			go mem.consumePendingTx(memTx.from, txNonce+1)
 		}
 		return err
 	}
@@ -581,7 +585,7 @@ func (mem *CListMempool) resCbFirstTime(
 			} else {
 				// ignore bad transaction
 				mem.logger.Info("Fail to add transaction into mempool, rejected it",
-					"tx", txIDStringer{tx, mem.height}, "peerID", txInfo.SenderP2PID, "res", r, "err", postCheckErr)
+					"tx", txIDStringer{tx, mem.height}, "peerID", txInfo.SenderP2PID, "res", r, "err", err)
 				mem.metrics.FailedTxs.Add(1)
 				// remove from cache (it might be good later)
 				mem.cache.RemoveKey(txkey)
