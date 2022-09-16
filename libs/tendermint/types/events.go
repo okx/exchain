@@ -2,7 +2,6 @@ package types
 
 import (
 	"fmt"
-
 	amino "github.com/tendermint/go-amino"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -22,6 +21,7 @@ const (
 	EventTx                  = "Tx"
 	EventPendingTx           = "PendingTx"
 	EventValidatorSetUpdates = "ValidatorSetUpdates"
+	EventBlockTime           = "BlockTime"
 
 	// Internal consensus events.
 	// These are used for testing the consensus state machine.
@@ -41,6 +41,8 @@ const (
 	EventBlockPart        = "BlockPart"
 	EventProposeRequest   = "ProposeRequest"
 )
+
+var EnableEventBlockTime = false
 
 ///////////////////////////////////////////////////////////////////////////////
 // ENCODING / DECODING
@@ -85,6 +87,13 @@ type EventDataNewBlockHeader struct {
 // All txs fire EventDataTx
 type EventDataTx struct {
 	TxResult
+}
+
+// latest blockTime
+type EventDataBlockTime struct {
+	Height       int64
+	BlockTime    int64
+	NextProposer Address
 }
 
 // NOTE: This goes into the replay WAL
@@ -173,6 +182,7 @@ type BlockEventPublisher interface {
 	PublishEventTx(EventDataTx) error
 	PublishEventPendingTx(EventDataTx) error
 	PublishEventValidatorSetUpdates(EventDataValidatorSetUpdates) error
+	PublishEventLatestBlockTime(time EventDataBlockTime) error
 }
 
 type TxEventPublisher interface {
