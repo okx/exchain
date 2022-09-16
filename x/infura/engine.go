@@ -31,7 +31,7 @@ func newMySQLEngine(url, user, pass, dbName string, l log.Logger) (types.IStream
 
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
 		SkipDefaultTransaction:                   true,
-		DisableForeignKeyConstraintWhenMigrating: false,
+		DisableForeignKeyConstraintWhenMigrating: true,
 		Logger:                                   logger.Default.LogMode(logger.Info),
 	})
 	if err != nil {
