@@ -58,37 +58,22 @@ func (fnc *FastNodeCache) uncache(key []byte) {
 // reached the cache size limit.
 func (fnc *FastNodeCache) cache(node *FastNode) {
 	fnc.cacheMutex.Lock()
-	elem := fnc.cacheQueue.PushBack(node)
-	fnc.items[string(node.key)] = elem
 
-	for fnc.cacheQueue.Len() > GetFastNodeCacheSize() {
-		oldest := fnc.cacheQueue.Front()
-		key := fnc.cacheQueue.Remove(oldest).(*FastNode).key
-		delete(fnc.items, amino.BytesToStr(key))
+	if elem, ok := fnc.items[string(node.key)]; ok {
+		fnc.cacheQueue.MoveToBack(elem)
+		elem.Value = node
+	} else {
+		elem := fnc.cacheQueue.PushBack(node)
+		fnc.items[string(node.key)] = elem
+
+		for fnc.cacheQueue.Len() > GetFastNodeCacheSize() {
+			oldest := fnc.cacheQueue.Front()
+			key := fnc.cacheQueue.Remove(oldest).(*FastNode).key
+			delete(fnc.items, amino.BytesToStr(key))
+		}
 	}
+
 	fnc.cacheMutex.Unlock()
-}
-
-func (fnc *FastNodeCache) cacheWithKey(key string, node *FastNode) {
-	fnc.cacheMutex.Lock()
-	elem := fnc.cacheQueue.PushBack(node)
-	fnc.items[key] = elem
-
-	for fnc.cacheQueue.Len() > GetFastNodeCacheSize() {
-		oldest := fnc.cacheQueue.Front()
-		key := fnc.cacheQueue.Remove(oldest).(*FastNode).key
-		delete(fnc.items, amino.BytesToStr(key))
-	}
-	fnc.cacheMutex.Unlock()
-}
-
-func (fnc *FastNodeCache) cacheByCheck(node *FastNode) {
-	fnc.cacheMutex.RLock()
-	_, ok := fnc.items[string(node.key)]
-	fnc.cacheMutex.RUnlock()
-	if !ok {
-		fnc.cache(node)
-	}
 }
 
 func (fnc *FastNodeCache) get(key []byte, promoteRecentNode bool) (n *FastNode) {

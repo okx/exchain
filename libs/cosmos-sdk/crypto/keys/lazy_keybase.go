@@ -2,6 +2,7 @@ package keys
 
 import (
 	"fmt"
+
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 
@@ -27,7 +28,7 @@ func New(name, dir string, opts ...KeybaseOption) Keybase {
 }
 
 func (lkb lazyKeybase) List() ([]Info, error) {
-	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
+	db, err := sdk.NewDB(lkb.name, lkb.dir)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +38,7 @@ func (lkb lazyKeybase) List() ([]Info, error) {
 }
 
 func (lkb lazyKeybase) Get(name string) (Info, error) {
-	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
+	db, err := sdk.NewDB(lkb.name, lkb.dir)
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +48,7 @@ func (lkb lazyKeybase) Get(name string) (Info, error) {
 }
 
 func (lkb lazyKeybase) GetByAddress(address sdk.AccAddress) (Info, error) {
-	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
+	db, err := sdk.NewDB(lkb.name, lkb.dir)
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +58,7 @@ func (lkb lazyKeybase) GetByAddress(address sdk.AccAddress) (Info, error) {
 }
 
 func (lkb lazyKeybase) Delete(name, passphrase string, skipPass bool) error {
-	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
+	db, err := sdk.NewDB(lkb.name, lkb.dir)
 	if err != nil {
 		return err
 	}
@@ -67,7 +68,7 @@ func (lkb lazyKeybase) Delete(name, passphrase string, skipPass bool) error {
 }
 
 func (lkb lazyKeybase) Sign(name, passphrase string, msg []byte) ([]byte, crypto.PubKey, error) {
-	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
+	db, err := sdk.NewDB(lkb.name, lkb.dir)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -77,7 +78,7 @@ func (lkb lazyKeybase) Sign(name, passphrase string, msg []byte) ([]byte, crypto
 }
 
 func (lkb lazyKeybase) CreateMnemonic(name string, language Language, passwd string, algo SigningAlgo, mnemonicInput string) (info Info, seed string, err error) {
-	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
+	db, err := sdk.NewDB(lkb.name, lkb.dir)
 	if err != nil {
 		return nil, "", err
 	}
@@ -87,7 +88,7 @@ func (lkb lazyKeybase) CreateMnemonic(name string, language Language, passwd str
 }
 
 func (lkb lazyKeybase) CreateAccount(name, mnemonic, bip39Passwd, encryptPasswd, hdPath string, algo SigningAlgo) (Info, error) {
-	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
+	db, err := sdk.NewDB(lkb.name, lkb.dir)
 	if err != nil {
 		return nil, err
 	}
@@ -98,7 +99,7 @@ func (lkb lazyKeybase) CreateAccount(name, mnemonic, bip39Passwd, encryptPasswd,
 }
 
 func (lkb lazyKeybase) CreateLedger(name string, algo SigningAlgo, hrp string, account, index uint32) (info Info, err error) {
-	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
+	db, err := sdk.NewDB(lkb.name, lkb.dir)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +109,7 @@ func (lkb lazyKeybase) CreateLedger(name string, algo SigningAlgo, hrp string, a
 }
 
 func (lkb lazyKeybase) CreateOffline(name string, pubkey crypto.PubKey, algo SigningAlgo) (info Info, err error) {
-	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
+	db, err := sdk.NewDB(lkb.name, lkb.dir)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +119,7 @@ func (lkb lazyKeybase) CreateOffline(name string, pubkey crypto.PubKey, algo Sig
 }
 
 func (lkb lazyKeybase) CreateMulti(name string, pubkey crypto.PubKey) (info Info, err error) {
-	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
+	db, err := sdk.NewDB(lkb.name, lkb.dir)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +129,7 @@ func (lkb lazyKeybase) CreateMulti(name string, pubkey crypto.PubKey) (info Info
 }
 
 func (lkb lazyKeybase) Update(name, oldpass string, getNewpass func() (string, error)) error {
-	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
+	db, err := sdk.NewDB(lkb.name, lkb.dir)
 	if err != nil {
 		return err
 	}
@@ -138,7 +139,7 @@ func (lkb lazyKeybase) Update(name, oldpass string, getNewpass func() (string, e
 }
 
 func (lkb lazyKeybase) Import(name string, armor string) (err error) {
-	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
+	db, err := sdk.NewDB(lkb.name, lkb.dir)
 	if err != nil {
 		return err
 	}
@@ -148,7 +149,7 @@ func (lkb lazyKeybase) Import(name string, armor string) (err error) {
 }
 
 func (lkb lazyKeybase) ImportPrivKey(name string, armor string, passphrase string) error {
-	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
+	db, err := sdk.NewDB(lkb.name, lkb.dir)
 	if err != nil {
 		return err
 	}
@@ -158,7 +159,7 @@ func (lkb lazyKeybase) ImportPrivKey(name string, armor string, passphrase strin
 }
 
 func (lkb lazyKeybase) ImportPubKey(name string, armor string) (err error) {
-	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
+	db, err := sdk.NewDB(lkb.name, lkb.dir)
 	if err != nil {
 		return err
 	}
@@ -168,7 +169,7 @@ func (lkb lazyKeybase) ImportPubKey(name string, armor string) (err error) {
 }
 
 func (lkb lazyKeybase) Export(name string) (armor string, err error) {
-	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
+	db, err := sdk.NewDB(lkb.name, lkb.dir)
 	if err != nil {
 		return "", err
 	}
@@ -178,7 +179,7 @@ func (lkb lazyKeybase) Export(name string) (armor string, err error) {
 }
 
 func (lkb lazyKeybase) ExportPubKey(name string) (armor string, err error) {
-	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
+	db, err := sdk.NewDB(lkb.name, lkb.dir)
 	if err != nil {
 		return "", err
 	}
@@ -188,7 +189,7 @@ func (lkb lazyKeybase) ExportPubKey(name string) (armor string, err error) {
 }
 
 func (lkb lazyKeybase) ExportPrivateKeyObject(name string, passphrase string) (crypto.PrivKey, error) {
-	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
+	db, err := sdk.NewDB(lkb.name, lkb.dir)
 	if err != nil {
 		return nil, err
 	}
@@ -200,7 +201,7 @@ func (lkb lazyKeybase) ExportPrivateKeyObject(name string, passphrase string) (c
 func (lkb lazyKeybase) ExportPrivKey(name string, decryptPassphrase string,
 	encryptPassphrase string) (armor string, err error) {
 
-	db, err := sdk.NewLevelDB(lkb.name, lkb.dir)
+	db, err := sdk.NewDB(lkb.name, lkb.dir)
 	if err != nil {
 		return "", err
 	}

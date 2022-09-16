@@ -114,20 +114,25 @@ func (pc *prerunContext) notifyPrerun(blockExec *BlockExecutor, block *types.Blo
 	pc.taskChan <- pc.prerunTask
 }
 
-func (pc *prerunContext) getPrerunResult(height int64, fastSync bool) (res *ABCIResponses, err error) {
+func (pc *prerunContext) getPrerunResult(block *types.Block) (res *ABCIResponses, err error) {
+	pc.checkIndex(block.Height)
 
-	pc.checkIndex(height)
-
-	if fastSync {
-		pc.stopPrerun(height)
-		return
-	}
 	// blockExec.prerunContext == nil means:
 	// 1. prerunTx disabled
 	// 2. we are in fasy-sync: the block comes from BlockPool.AddBlock not State.addProposalBlockPart and no prerun result expected
 	if pc.prerunTask != nil {
+		prerunHash := pc.prerunTask.block.Hash()
 		res, err = pc.dequeueResult()
 		pc.prerunTask = nil
+
+		//compare block hash equal prerun block hash
+		if !bytes.Equal(prerunHash, block.Hash()) {
+			res = nil
+			pc.logger.Error("unequal block hash between prerun and block",
+				"prerun hash", prerunHash,
+				"block hash", block.Hash())
+		}
+
 	}
 	return
 }

@@ -81,9 +81,9 @@ func NewCLIContextWithInputAndFrom(input io.Reader, from string) CLIContext {
 				fmt.Printf("failted to call status: %v\n", err)
 			} else {
 				if st.NodeInfo.Network == tmtypes.MainNet {
-					tmtypes.SetupMainNetEnvironment()
+					tmtypes.SetupMainNetEnvironment(st.SyncInfo.EarliestBlockHeight)
 				} else if st.NodeInfo.Network == tmtypes.TestNet {
-					tmtypes.SetupTestNetEnvironment()
+					tmtypes.SetupTestNetEnvironment(st.SyncInfo.EarliestBlockHeight)
 				}
 			}
 		}

@@ -18,6 +18,7 @@ type Keeper struct {
 	paramSpace    params.Subspace
 	stakingKeeper types.StakingKeeper
 	supplyKeeper  types.SupplyKeeper
+	govKeeper     types.GovKeeper
 
 	blacklistedAddrs map[string]bool
 
@@ -88,6 +89,12 @@ func (k Keeper) WithdrawValidatorCommission(ctx sdk.Context, valAddr sdk.ValAddr
 
 	commission, remainder := accumCommission.TruncateDecimal()
 	k.SetValidatorAccumulatedCommission(ctx, valAddr, remainder) // leave remainder to withdraw later
+
+	if k.CheckDistributionProposalValid(ctx) {
+		// update outstanding
+		outstanding := k.GetValidatorOutstandingRewards(ctx, valAddr)
+		k.SetValidatorOutstandingRewards(ctx, valAddr, outstanding.Sub(sdk.NewDecCoinsFromCoins(commission...)))
+	}
 
 	if !commission.IsZero() {
 		accAddr := sdk.AccAddress(valAddr)

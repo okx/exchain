@@ -332,7 +332,7 @@ func (blockExec *BlockExecutor) runAbci(block *types.Block, deltaInfo *DeltaInfo
 	} else {
 		pc := blockExec.prerunCtx
 		if pc.prerunTx {
-			abciResponses, err = pc.getPrerunResult(block.Height, blockExec.isFastSync)
+			abciResponses, err = pc.getPrerunResult(block)
 		}
 
 		if abciResponses == nil {
@@ -733,4 +733,9 @@ func fireEvents(
 		eventBus.PublishEventValidatorSetUpdates(
 			types.EventDataValidatorSetUpdates{ValidatorUpdates: validatorUpdates})
 	}
+}
+
+func (blockExec *BlockExecutor) FireBlockTimeEvents(height, blockTime int64, address types.Address) {
+	blockExec.eventBus.PublishEventLatestBlockTime(
+		types.EventDataBlockTime{Height: height, BlockTime: blockTime, NextProposer: address})
 }

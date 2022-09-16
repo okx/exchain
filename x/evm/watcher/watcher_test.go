@@ -60,7 +60,7 @@ func setupTest() *WatcherTestSt {
 	checkTx := false
 	chain_id := "ethermint-3"
 	viper.Set(watcher.FlagFastQuery, true)
-	viper.Set(watcher.FlagDBBackend, "memdb")
+	viper.Set(sdk.FlagDBBackend, "memdb")
 	viper.Set(watcher.FlagCheckWd, true)
 
 	w.app = app.Setup(checkTx)
@@ -379,7 +379,7 @@ func TestDuplicateWatchMessage(t *testing.T) {
 
 func TestWriteLatestMsg(t *testing.T) {
 	viper.Set(watcher.FlagFastQuery, true)
-	viper.Set(watcher.FlagDBBackend, "memdb")
+	viper.Set(sdk.FlagDBBackend, "memdb")
 	w := watcher.NewWatcher(log.NewTMLogger(os.Stdout))
 	w.SetWatchDataManager()
 	w.NewHeight(1, common.Hash{}, abci.Header{Height: 1})

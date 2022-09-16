@@ -12,6 +12,7 @@ message PublicKey {
 
   oneof sum {
     bytes ed25519 = 1;
+    bytes secp256K1 = 2;
   }
 }
 
@@ -20,5 +21,6 @@ message PublicKey {
 message PrivateKey {
   oneof sum {
     bytes ed25519 = 1;
+    bytes secp256K1 = 2;
   }
 }
