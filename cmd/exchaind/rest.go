@@ -83,6 +83,7 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 			distr.CommunityPoolSpendProposalHandler.RESTHandler(rs.CliCtx),
 			distr.ChangeDistributionTypeProposalHandler.RESTHandler(rs.CliCtx),
 			distr.WithdrawRewardEnabledProposalHandler.RESTHandler(rs.CliCtx),
+			distr.RewardTruncatePrecisionProposalHandler.RESTHandler(rs.CliCtx),
 			dexclient.DelistProposalHandler.RESTHandler(rs.CliCtx),
 			farmclient.ManageWhiteListProposalHandler.RESTHandler(rs.CliCtx),
 			evmclient.ManageContractDeploymentWhitelistProposalHandler.RESTHandler(rs.CliCtx),

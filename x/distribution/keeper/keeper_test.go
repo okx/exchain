@@ -12,6 +12,7 @@ func TestSetWithdrawAddr(t *testing.T) {
 	ctx, _, keeper, _, _ := CreateTestInputDefault(t, false, 1000)
 	keeper.SetDistributionType(ctx, types.DistributionTypeOffChain)
 	keeper.SetWithdrawRewardEnabled(ctx, true)
+	keeper.SetRewardTruncatePrecision(ctx, 0)
 
 	params := keeper.GetParams(ctx)
 	params.WithdrawAddrEnabled = false

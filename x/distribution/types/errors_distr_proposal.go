@@ -7,16 +7,18 @@ import (
 )
 
 const (
-	CodeInvalidDistributionType                 uint32 = 67819
-	CodeEmptyDelegationDistInfo                 uint32 = 67820
-	CodeEmptyValidatorDistInfo                  uint32 = 67821
-	CodeEmptyDelegationVoteValidator            uint32 = 67822
-	CodeZeroDelegationShares                    uint32 = 67823
-	CodeNotSupportWithdrawDelegationRewards     uint32 = 67824
-	CodeNotSupportDistributionProposal          uint32 = 67825
-	CodeDisabledWithdrawRewards                 uint32 = 67826
-	CodeNotSupportWithdrawRewardEnabledProposal uint32 = 67827
-	CodeProposerMustBeValidator                 uint32 = 67828
+	CodeInvalidDistributionType                   uint32 = 67819
+	CodeEmptyDelegationDistInfo                   uint32 = 67820
+	CodeEmptyValidatorDistInfo                    uint32 = 67821
+	CodeEmptyDelegationVoteValidator              uint32 = 67822
+	CodeZeroDelegationShares                      uint32 = 67823
+	CodeNotSupportWithdrawDelegationRewards       uint32 = 67824
+	CodeNotSupportDistributionProposal            uint32 = 67825
+	CodeDisabledWithdrawRewards                   uint32 = 67826
+	CodeNotSupportWithdrawRewardEnabledProposal   uint32 = 67827
+	CodeProposerMustBeValidator                   uint32 = 67828
+	CodeNotSupportRewardTruncatePrecisionProposal uint32 = 67829
+	CodeOutOfRangeRewardTruncatePrecision         uint32 = 67830
 )
 
 func ErrInvalidDistributionType() sdk.Error {
@@ -57,4 +59,12 @@ func ErrCodeNotSupportWithdrawRewardEnabledProposal() sdk.Error {
 
 func ErrCodeProposerMustBeValidator() sdk.Error {
 	return sdkerrors.New(DefaultCodespace, CodeProposerMustBeValidator, "the proposal of proposer must be validator")
+}
+
+func ErrCodeNotSupportRewardTruncateProposal() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeNotSupportRewardTruncatePrecisionProposal, "do not support,reward truncate precision proposal invalid")
+}
+
+func ErrCodeRewardTruncatePrecision() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, CodeOutOfRangeRewardTruncatePrecision, "reward truncate precision out of range [0,18]")
 }
