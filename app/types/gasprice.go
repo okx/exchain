@@ -23,23 +23,23 @@ type SingleBlockGPs struct {
 	gasUsed uint64
 }
 
-func NewSingleBlockGPs() SingleBlockGPs {
-	return SingleBlockGPs{
+func NewSingleBlockGPs() *SingleBlockGPs {
+	return &SingleBlockGPs{
 		all:     make([]*big.Int, 0),
 		sampled: make([]*big.Int, 0),
 		gasUsed: 0,
 	}
 }
 
-func (bgp *SingleBlockGPs) GetAll() []*big.Int {
+func (bgp SingleBlockGPs) GetAll() []*big.Int {
 	return bgp.all
 }
 
-func (bgp *SingleBlockGPs) GetSampled() []*big.Int {
+func (bgp SingleBlockGPs) GetSampled() []*big.Int {
 	return bgp.sampled
 }
 
-func (bgp *SingleBlockGPs) GetGasUsed() uint64 {
+func (bgp SingleBlockGPs) GetGasUsed() uint64 {
 	return bgp.gasUsed
 }
 
@@ -82,15 +82,15 @@ func (bgp *SingleBlockGPs) SampleGP() {
 
 // BlockGPResults is a circular queue of SingleBlockGPs
 type BlockGPResults struct {
-	Items    []SingleBlockGPs
+	items    []*SingleBlockGPs
 	front    int
 	rear     int
 	capacity int
 }
 
-func NewBlockGPResults(checkBlocksNum int) BlockGPResults {
-	circularQueue := BlockGPResults{
-		Items:    make([]SingleBlockGPs, checkBlocksNum, checkBlocksNum),
+func NewBlockGPResults(checkBlocksNum int) *BlockGPResults {
+	circularQueue := &BlockGPResults{
+		items:    make([]*SingleBlockGPs, checkBlocksNum, checkBlocksNum),
 		front:    -1,
 		rear:     -1,
 		capacity: checkBlocksNum,
@@ -98,7 +98,7 @@ func NewBlockGPResults(checkBlocksNum int) BlockGPResults {
 	return circularQueue
 }
 
-func (rs *BlockGPResults) IsFull() bool {
+func (rs BlockGPResults) IsFull() bool {
 	if rs.front == 0 && rs.rear == rs.capacity-1 {
 		return true
 	}
@@ -108,23 +108,23 @@ func (rs *BlockGPResults) IsFull() bool {
 	return false
 }
 
-func (rs *BlockGPResults) IsEmpty() bool {
+func (rs BlockGPResults) IsEmpty() bool {
 	return rs.front == -1
 }
 
-func (rs *BlockGPResults) Front() int {
+func (rs BlockGPResults) Front() int {
 	return rs.front
 }
 
-func (rs *BlockGPResults) Rear() int {
+func (rs BlockGPResults) Rear() int {
 	return rs.rear
 }
 
-func (rs *BlockGPResults) Cap() int {
+func (rs BlockGPResults) Cap() int {
 	return rs.capacity
 }
 
-func (rs *BlockGPResults) Push(gp SingleBlockGPs) error {
+func (rs *BlockGPResults) Push(gp *SingleBlockGPs) error {
 	if rs.IsFull() {
 		_, err := rs.Pop()
 		if err != nil {
@@ -135,7 +135,7 @@ func (rs *BlockGPResults) Push(gp SingleBlockGPs) error {
 		rs.front = 0
 	}
 	rs.rear = (rs.rear + 1) % rs.capacity
-	rs.Items[rs.rear] = gp
+	rs.items[rs.rear] = gp
 	return nil
 }
 
@@ -143,7 +143,7 @@ func (rs *BlockGPResults) Pop() (*SingleBlockGPs, error) {
 	if rs.IsEmpty() {
 		return nil, errors.New("pop failed: BlockGPResults is empty")
 	}
-	element := rs.Items[rs.front]
+	element := rs.items[rs.front]
 	if rs.front == rs.rear {
 		// rs has only one element,
 		// so we reset the queue after deleting it
@@ -152,7 +152,25 @@ func (rs *BlockGPResults) Pop() (*SingleBlockGPs, error) {
 	} else {
 		rs.front = (rs.front + 1) % rs.capacity
 	}
-	return &element, nil
+	return element, nil
+}
+
+func (rs *BlockGPResults) ExecuteSamplingBy(lastPrice *big.Int) []*big.Int {
+	var txPrices []*big.Int
+	if !rs.IsEmpty() {
+		// traverse the circular queue
+		for i := rs.front; i != rs.rear; i = (i + 1) % rs.capacity {
+			rs.items[i].SampleGP()
+
+			// If block is empty, use the latest gas price for sampling.
+			if len(rs.items[i].sampled) == 0 {
+				rs.items[i].AddSampledGP(lastPrice)
+			}
+
+			txPrices = append(txPrices, rs.items[i].sampled...)
+		}
+	}
+	return txPrices
 }
 
 type BigIntArray []*big.Int

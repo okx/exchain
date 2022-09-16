@@ -35,9 +35,9 @@ func DefaultGPOConfig() GPOConfig {
 
 // Oracle recommends gas prices based on the content of recent blocks.
 type Oracle struct {
-	CurrentBlockGPs types.SingleBlockGPs
+	CurrentBlockGPs *types.SingleBlockGPs
 	// hold the gas prices of the latest few blocks
-	BlockGPQueue types.BlockGPResults
+	BlockGPQueue *types.BlockGPResults
 	lastPrice    *big.Int
 	weight       int
 }
@@ -45,7 +45,7 @@ type Oracle struct {
 // NewOracle returns a new gasprice oracle which can recommend suitable
 // gasprice for newly created transaction.
 func NewOracle(params GPOConfig) *Oracle {
-	//todo
+	cbgp := types.NewSingleBlockGPs()
 	bgpq := types.NewBlockGPResults(params.Blocks)
 	weight := params.Weight
 	if weight < 0 {
@@ -55,9 +55,10 @@ func NewOracle(params GPOConfig) *Oracle {
 		weight = 100
 	}
 	return &Oracle{
-		BlockGPQueue: bgpq,
-		lastPrice:    params.Default,
-		weight:       weight,
+		CurrentBlockGPs: cbgp,
+		BlockGPQueue:    bgpq,
+		lastPrice:       params.Default,
+		weight:          weight,
 	}
 }
 
@@ -76,25 +77,9 @@ func (gpo *Oracle) RecommendGP() *big.Int {
 		return defaultPrice
 	}
 
-	lastPrice := gpo.lastPrice
+	txPrices := gpo.BlockGPQueue.ExecuteSamplingBy(gpo.lastPrice)
 
-	var txPrices []*big.Int
-	if !gpo.BlockGPQueue.IsEmpty() {
-		front, rear, capacity := gpo.BlockGPQueue.Front(), gpo.BlockGPQueue.Rear(), gpo.BlockGPQueue.Cap()
-		// traverse the circular queue
-		for i := front; i != rear; i = (i + 1) % capacity {
-			gpo.BlockGPQueue.Items[i].SampleGP()
-
-			// If block is empty, use the latest calculated price for sampling.
-			if len(gpo.BlockGPQueue.Items[i].GetSampled()) == 0 {
-				gpo.BlockGPQueue.Items[i].AddSampledGP(lastPrice)
-			}
-
-			txPrices = append(txPrices, gpo.BlockGPQueue.Items[i].GetSampled()...)
-		}
-	}
-
-	price := lastPrice
+	price := gpo.lastPrice
 	if len(txPrices) > 0 {
 		sort.Sort(types.BigIntArray(txPrices))
 		price = txPrices[(len(txPrices)-1)*gpo.weight/100]
