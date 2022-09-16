@@ -15,6 +15,7 @@ type AccountKeeper interface {
 
 // BankKeeper defines the expected bank keeper (noalias)
 type BankKeeper interface {
+	CM40BankKeeper
 	SendCoins(ctx sdk.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error
 	DelegateCoins(ctx sdk.Context, fromAdd, toAddr sdk.AccAddress, amt sdk.Coins) error
 	UndelegateCoins(ctx sdk.Context, fromAddr, toAddr sdk.AccAddress, amt sdk.Coins) error
@@ -23,4 +24,9 @@ type BankKeeper interface {
 	AddCoins(ctx sdk.Context, addr sdk.AccAddress, amt sdk.Coins) (sdk.Coins, error)
 
 	BlacklistedAddr(addr sdk.AccAddress) bool
+}
+
+type CM40BankKeeper interface {
+	HasBalance(ctx sdk.Context, addr sdk.AccAddress, amt sdk.Coin) bool
+	BlockedAddr(address sdk.AccAddress) bool
 }

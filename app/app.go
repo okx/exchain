@@ -34,6 +34,8 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"github.com/okex/exchain/libs/iavl"
+	ibcfeekeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/keeper"
+	ibcfeetypes "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/types"
 	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
 	ibctransferkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/keeper"
 	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
@@ -225,6 +227,7 @@ type OKExChainApp struct {
 	TransferKeeper       ibctransferkeeper.Keeper
 	CapabilityKeeper     *capabilitykeeper.Keeper
 	IBCKeeper            *ibc.Keeper // IBC Keeper must be a pointer in the app, so we can SetRouter on it correctly
+	IBCFeeKeeper         ibcfeekeeper.Keeper
 	marshal              *codec.CodecProxy
 	heightTasks          map[int64]*upgradetypes.HeightTasks
 	Erc20Keeper          erc20.Keeper
@@ -394,6 +397,12 @@ func NewOKExChainApp(
 		app.SupplyKeeper, app.SupplyKeeper, scopedTransferKeeper, interfaceReg,
 	)
 	ibctransfertypes.SetMarshal(codecProxy)
+
+	app.IBCFeeKeeper = ibcfeekeeper.NewKeeper(codecProxy, keys[ibcfeetypes.StoreKey], app.GetSubspace(ibcfeetypes.ModuleName),
+		app.IBCKeeper.ChannelKeeper, // may be replaced with IBC middleware
+		app.IBCKeeper.ChannelKeeper,
+		&app.IBCKeeper.PortKeeper, app.SupplyKeeper, app.SupplyKeeper,
+	)
 
 	app.Erc20Keeper = erc20.NewKeeper(app.marshal.GetCdc(), app.keys[erc20.ModuleName], app.subspaces[erc20.ModuleName],
 		app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, app.EvmKeeper, app.TransferKeeper)
