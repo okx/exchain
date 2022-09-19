@@ -85,7 +85,7 @@ func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitPr
 
 	log := ctx.Logger()
 	switch content := msg.Content.(type) {
-	case types.WithdrawRewardEnabledProposal, types.ChangeDistributionTypeProposal:
+	case types.WithdrawRewardEnabledProposal, types.ChangeDistributionTypeProposal, types.RewardTruncatePrecisionProposal:
 		log.Debug(fmt.Sprintf("proposal content type: %T", content))
 		if !k.stakingKeeper.IsValidator(ctx, msg.Proposer) {
 			return types.ErrCodeProposerMustBeValidator()

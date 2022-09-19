@@ -120,7 +120,7 @@ func (k Keeper) withdrawDelegationRewards(ctx sdk.Context, val stakingexported.V
 	}
 
 	// truncate coins, return remainder to community pool
-	coins, remainder := rewards.TruncateDecimal()
+	coins, remainder := rewards.TruncateWithPrec(k.GetRewardTruncatePrecision(ctx))
 
 	// add coins to user account
 	if !coins.IsZero() {
