@@ -2,12 +2,14 @@ package infura
 
 import (
 	"fmt"
+	"log"
 	"time"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 func EndBlocker(ctx sdk.Context, k Keeper) {
+	log.Println("infura EndBlocker start")
 	k.stream.logger.Debug("infura EndBlocker begin")
 	if !k.stream.enable {
 		k.stream.logger.Debug("infura engine is not enable")
@@ -29,8 +31,9 @@ func EndBlocker(ctx sdk.Context, k Keeper) {
 		k.metric.CacheSize.Set(float64(len(k.stream.cacheQueue.queue)))
 		return
 	}
-
+	log.Println("infura EndBlocker execute")
 	execute(sc)
+	log.Println("infura EndBlocker end")
 	k.stream.logger.Debug("infura EndBlocker end")
 }
 
