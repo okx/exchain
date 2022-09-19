@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/okex/exchain/app/rpc/simulator"
 	"github.com/okex/exchain/libs/tendermint/global"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math/rand"
 
 	"github.com/gorilla/mux"
@@ -175,6 +176,10 @@ func (AppModule) QuerierRoute() string {
 // BeginBlock returns the begin blocker for the wasm module.
 func (am AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {
 	watcher.NewHeight()
+	if tmtypes.DownloadDelta {
+		keeper.GetWasmParamsCache().SetNeedParamsUpdate()
+		keeper.GetWasmParamsCache().SetNeedBlockedUpdate()
+	}
 }
 
 // EndBlock returns the end blocker for the wasm module. It returns no validator
