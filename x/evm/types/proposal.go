@@ -343,3 +343,17 @@ func (mp ManageContractMethodBlockedListProposal) String() string {
 
 	return strings.TrimSpace(builder.String())
 }
+
+// FixShortAddr is to fix the short address problem in the OKC test-net.
+// The normal len(BlockedContract.Address) should be 20,
+// but there are some BlockedContract.Address in OKC test-net that have a length of 4.
+// The fix is to pad the leading bits of the short address with zeros until the length is 20.
+func (mp *ManageContractMethodBlockedListProposal) FixShortAddr() {
+	for i := 0; i < len(mp.ContractList); i++ {
+		if len(mp.ContractList[i].Address) < 20 {
+			validAddress := make([]byte, 20-len(mp.ContractList[i].Address), 20)
+			validAddress = append(validAddress, mp.ContractList[i].Address...)
+			mp.ContractList[i].Address = validAddress
+		}
+	}
+}

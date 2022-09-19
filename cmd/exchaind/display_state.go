@@ -2,20 +2,22 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"path/filepath"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"log"
-	"path/filepath"
 )
 
 const (
 	FlagDisplayVersion string = "version"
-	FlagDisplayAddress    string = "address"
+	FlagDisplayAddress string = "address"
 )
 
 func displayStateCmd(ctx *server.Context) *cobra.Command {
@@ -44,6 +46,7 @@ func displayAccount(ctx *server.Context) *cobra.Command {
 	}
 	cmd.Flags().String(FlagDisplayAddress, "", "target contract address to display")
 	cmd.Flags().Int64(FlagDisplayVersion, 0, "target state version to display")
+	cmd.Flags().String(sdk.FlagDBBackend, tmtypes.DBBackend, "Database backend: goleveldb | rocksdb")
 
 	return cmd
 }
@@ -60,6 +63,7 @@ func displayContract(ctx *server.Context) *cobra.Command {
 	}
 	cmd.Flags().String(FlagDisplayAddress, "", "target contract address to display")
 	cmd.Flags().Int64(FlagDisplayVersion, 0, "target state version to display")
+	cmd.Flags().String(sdk.FlagDBBackend, tmtypes.DBBackend, "Database backend: goleveldb | rocksdb")
 
 	return cmd
 }
@@ -112,7 +116,7 @@ func displayContractState(ctx *server.Context) {
 func newDisplayApp(ctx *server.Context) *app.OKExChainApp {
 	rootDir := ctx.Config.RootDir
 	dataDir := filepath.Join(rootDir, "data")
-	db, err := openDB(applicationDB, dataDir)
+	db, err := sdk.NewDB(applicationDB, dataDir)
 	if err != nil {
 		panic("fail to open application db: " + err.Error())
 	}

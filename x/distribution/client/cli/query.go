@@ -32,6 +32,9 @@ func GetQueryCmd(queryRoute string, cdc *codec.Codec) *cobra.Command {
 		GetCmdQueryParams(queryRoute, cdc),
 		GetCmdQueryValidatorCommission(queryRoute, cdc),
 		GetCmdQueryCommunityPool(queryRoute, cdc),
+		GetCmdQueryDelegatorRewards(queryRoute, cdc),
+		GetCmdQueryValidatorOutstandingRewards(queryRoute, cdc),
+		GetCmdQueryWithdrawAddr(queryRoute, cdc),
 	)...)
 
 	return distQueryCmd

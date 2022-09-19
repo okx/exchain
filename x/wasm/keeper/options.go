@@ -116,3 +116,10 @@ func WithAPICosts(human, canonical uint64) Option {
 		costCanonical = canonical
 	})
 }
+
+// WithMaxQueryStackSize overwrites the default limit for maximum query stacks
+func WithMaxQueryStackSize(m uint32) Option {
+	return optsFn(func(k *Keeper) {
+		k.maxQueryStackSize = m
+	})
+}

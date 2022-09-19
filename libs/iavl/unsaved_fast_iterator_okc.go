@@ -8,22 +8,18 @@ type UnsavedFastIteratorWithCache struct {
 
 var _ dbm.Iterator = (*UnsavedFastIteratorWithCache)(nil)
 
-func NewUnsavedFastIteratorWithCache(start, end []byte, ascending bool, ndb *nodeDB, unsavedFastNodeAdditions map[string]*FastNode, unsavedFastNodeRemovals map[string]interface{}) *UnsavedFastIteratorWithCache {
+func NewUnsavedFastIteratorWithCache(start, end []byte, ascending bool, ndb *nodeDB, fncIn *fastNodeChanges) *UnsavedFastIteratorWithCache {
 	iter := &UnsavedFastIteratorWithCache{
 		UnsavedFastIterator: &UnsavedFastIterator{},
 	}
 
-	if ndb == nil || unsavedFastNodeAdditions == nil || unsavedFastNodeRemovals == nil {
-		iter.UnsavedFastIterator = newUnsavedFastIterator(start, end, ascending, ndb, unsavedFastNodeAdditions, unsavedFastNodeRemovals)
+	fnc := fncIn.clone()
+	if ndb == nil || fnc.additions == nil || fnc.removals == nil {
+		iter.UnsavedFastIterator = newUnsavedFastIterator(start, end, ascending, ndb, fnc.additions, fnc.removals)
 		return iter
 	}
 
-	fnc := &fastNodeChanges{
-		additions: unsavedFastNodeAdditions,
-		removals:  unsavedFastNodeRemovals,
-	}
-	fnc = fnc.clone()
-	fnc.merge(ndb.prePersistFastNode)
+	fnc.mergePrev(ndb.prePersistFastNode)
 
 	if ndb.tpfv != nil {
 		fnc = ndb.tpfv.expand(fnc)

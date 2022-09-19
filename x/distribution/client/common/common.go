@@ -1,6 +1,7 @@
 package common
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -27,7 +28,46 @@ func QueryParams(cliCtx context.CLIContext, queryRoute string) (params types.Par
 	}
 	cliCtx.Codec.MustUnmarshalJSON(bytes, &withdrawAddrEnabled)
 
-	return types.NewParams(communityTax, withdrawAddrEnabled), err
+	var distributionType uint32
+	route = fmt.Sprintf("custom/%s/params/%s", queryRoute, types.ParamDistributionType)
+	bytes, _, err = cliCtx.QueryWithData(route, []byte{})
+	if err == nil {
+		cliCtx.Codec.MustUnmarshalJSON(bytes, &distributionType)
+	} else if !ignoreError(err.Error()) {
+		return
+	}
+
+	var withdrawRewardEnabled bool
+	route = fmt.Sprintf("custom/%s/params/%s", queryRoute, types.ParamWithdrawRewardEnabled)
+	bytes, _, err = cliCtx.QueryWithData(route, []byte{})
+	if err == nil {
+		cliCtx.Codec.MustUnmarshalJSON(bytes, &withdrawRewardEnabled)
+	} else if !ignoreError(err.Error()) {
+		return
+	}
+
+	var rewardTruncatePrecision int64
+	route = fmt.Sprintf("custom/%s/params/%s", queryRoute, types.ParamRewardTruncatePrecision)
+	bytes, _, err = cliCtx.QueryWithData(route, []byte{})
+	if err == nil {
+		cliCtx.Codec.MustUnmarshalJSON(bytes, &rewardTruncatePrecision)
+	} else if !ignoreError(err.Error()) {
+		return
+	}
+
+	return types.NewParams(communityTax, withdrawAddrEnabled, distributionType, withdrawRewardEnabled, rewardTruncatePrecision), nil
+}
+
+func ignoreError(err string) bool {
+	type ParamsError struct {
+		Code uint32 `json:"code"`
+	}
+	var paramsError ParamsError
+	jsonErr := json.Unmarshal([]byte(err), &paramsError)
+	if jsonErr != nil {
+		return false
+	}
+	return paramsError.Code == types.CodeUnknownDistributionParamType
 }
 
 // QueryValidatorCommission returns a validator's commission.
