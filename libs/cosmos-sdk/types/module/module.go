@@ -30,6 +30,7 @@ package module
 
 import (
 	"encoding/json"
+	"log"
 
 	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 
@@ -320,6 +321,7 @@ func (m *Manager) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) abci.R
 	ctx.SetEventManager(sdk.NewEventManager())
 
 	for _, moduleName := range m.OrderBeginBlockers {
+		log.Println("lcm beginblock", "module", moduleName)
 		m.Modules[moduleName].BeginBlock(ctx, req)
 	}
 
