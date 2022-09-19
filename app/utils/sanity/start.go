@@ -9,6 +9,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/watcher"
+	"github.com/okex/exchain/x/infura"
 	"github.com/spf13/viper"
 )
 
@@ -50,6 +51,12 @@ import (
 // --node-mode=archive(--pruning=nothing) conflicts with --fast-query
 
 var (
+	startDependentElems = []dependentPair{
+		{ // if infura.FlagEnable=true , watcher.FlagFastQuery must be set to true
+			config:       boolItem{name: infura.FlagEnable, value: true},
+			reliedConfig: boolItem{name: watcher.FlagFastQuery, value: true},
+		},
+	}
 	// conflicts flags
 	startConflictElems = []conflictPair{
 		// --fast-query      conflict with --pruning=nothing
@@ -90,9 +97,13 @@ func CheckStart() error {
 	if viper.GetBool(FlagDisableSanity) {
 		return nil
 	}
-
+	for _, v := range startDependentElems {
+		if err := v.Check(); err != nil {
+			return err
+		}
+	}
 	for _, v := range startConflictElems {
-		if err := v.checkConflict(); err != nil {
+		if err := v.Check(); err != nil {
 			return err
 		}
 	}
