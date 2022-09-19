@@ -611,7 +611,7 @@ func (conR *Reactor) broadcastNewValidBlockMessage(rs *cstypes.RoundState) {
 		BlockParts:       rs.ProposalBlockParts.BitArray(),
 		IsCommit:         rs.Step == cstypes.RoundStepCommit,
 	}
-	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryBare(csMsg))
+	conR.Switch.Broadcast(StateChannel, cdc.MustMarshalBinaryWithSizer(csMsg, false))
 }
 
 // Broadcasts HasBlockPartMessage to peers that care.
@@ -2005,7 +2005,7 @@ func (m ProposalMessage) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) err
 			return err
 		}
 		if buf.Len()-lenBeforeData != proposalSize {
-			return amino.NewSizerError(proposalSize, buf.Len()-lenBeforeData, proposalSize)
+			return amino.NewSizerError(m.Proposal, buf.Len()-lenBeforeData, proposalSize)
 		}
 	}
 	return nil

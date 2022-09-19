@@ -4,12 +4,12 @@ import (
 	gobytes "bytes"
 	"errors"
 	"fmt"
-	"github.com/tendermint/go-amino"
 	"time"
 
 	"github.com/okex/exchain/libs/tendermint/libs/bytes"
 	tmproto "github.com/okex/exchain/libs/tendermint/proto/types"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+	"github.com/tendermint/go-amino"
 )
 
 var (
@@ -143,6 +143,9 @@ func (p *Proposal) AminoSize(cdc *amino.Codec) int {
 	if len(p.Signature) != 0 {
 		size += 1 + amino.ByteSliceSize(p.Signature)
 	}
+	if p.HasVC {
+		size += 1 + 1
+	}
 	return size
 }
 
@@ -225,6 +228,14 @@ func (p *Proposal) MarshalAminoTo(cdc *amino.Codec, buf *gobytes.Buffer) error {
 		const pbKey = byte(7<<3 | amino.Typ3_ByteLength)
 		buf.WriteByte(pbKey)
 		err = amino.EncodeByteSliceToBuffer(buf, p.Signature)
+		if err != nil {
+			return err
+		}
+	}
+	// field 8
+	if p.HasVC {
+		const pbKey = byte(8<<3 | amino.Typ3_Varint)
+		err = amino.EncodeBoolWithKeyToBuffer(buf, p.HasVC, pbKey)
 		if err != nil {
 			return err
 		}

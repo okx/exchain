@@ -188,6 +188,7 @@ func TestProposalAmino(t *testing.T) {
 			},
 			Timestamp: time.Now(),
 			Signature: []byte("Signature"),
+			HasVC:     true,
 		},
 		{
 			Type:      ProposalType,
@@ -195,6 +196,7 @@ func TestProposalAmino(t *testing.T) {
 			Round:     math.MaxInt,
 			POLRound:  math.MaxInt,
 			Signature: []byte{},
+			HasVC:     false,
 		},
 		{
 			Type:      PrecommitType,
@@ -202,9 +204,11 @@ func TestProposalAmino(t *testing.T) {
 			Round:     math.MinInt,
 			POLRound:  math.MinInt,
 			Timestamp: time.Unix(0, 0),
+			HasVC:     true,
 		},
 		{
-			Type: math.MaxUint8,
+			Type:  math.MaxUint8,
+			HasVC: false,
 		},
 	}
 	for _, tc := range testCases {
