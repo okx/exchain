@@ -991,7 +991,6 @@ func TestBlockPartMessageAmino(t *testing.T) {
 			Height: 12345,
 			Round:  12345,
 			Part:   &types.Part{Index: 12345, Bytes: []byte{0x01, 0x02, 0x03}},
-			Deltas: &types.Deltas{Height: 12345},
 		},
 		{
 			Height: -12345,
