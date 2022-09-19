@@ -1,20 +1,17 @@
 package keeper
 
 import (
+	"fmt"
 	"strings"
 
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/prefix"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
-
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/x/feesplit/types"
 )
 
@@ -76,7 +73,7 @@ func queryFeeSplits(
 		return nil
 	})
 	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInternal, err.Error())
 	}
 
 	resp := &types.QueryFeeSplitsResponse{
@@ -104,26 +101,22 @@ func queryFeeSplit(
 	}
 
 	if strings.TrimSpace(params.ContractAddress) == "" {
-		return nil, status.Error(
-			codes.InvalidArgument,
-			"contract address is empty",
-		)
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "contract address is empty")
 	}
 
 	// check if the contract is a non-zero hex address
 	if err := types.ValidateNonZeroAddress(params.ContractAddress); err != nil {
-		return nil, status.Errorf(
-			codes.InvalidArgument,
-			"invalid format for contract %s, should be non-zero hex ('0x...')", params.ContractAddress,
+		return nil, sdkerrors.Wrap(
+			sdkerrors.ErrInvalidRequest,
+			fmt.Sprintf("invalid format for contract %s, should be non-zero hex ('0x...')", params.ContractAddress),
 		)
 	}
 
 	feeSplit, found := k.GetFeeSplit(ctx, common.HexToAddress(params.ContractAddress))
 	if !found {
-		return nil, status.Errorf(
-			codes.NotFound,
-			"fees registered contract '%s'",
-			params.ContractAddress,
+		return nil, sdkerrors.Wrap(
+			sdkerrors.ErrInvalidRequest,
+			fmt.Sprintf("fees registered contract '%s'", params.ContractAddress),
 		)
 	}
 	share, found := k.GetContractShare(ctx, feeSplit.GetContractAddr())
@@ -172,14 +165,14 @@ func queryDeployerFeeSplits(
 	}
 
 	if strings.TrimSpace(params.DeployerAddress) == "" {
-		return nil, status.Error(codes.InvalidArgument, "deployer address is empty")
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "deployer address is empty")
 	}
 
 	deployer, err := sdk.AccAddressFromBech32(params.DeployerAddress)
 	if err != nil {
-		return nil, status.Errorf(
-			codes.InvalidArgument,
-			"invalid format for deployer %s, should be bech32", params.DeployerAddress,
+		return nil, sdkerrors.Wrap(
+			sdkerrors.ErrInvalidRequest,
+			fmt.Sprintf("invalid format for deployer %s, should be bech32", params.DeployerAddress),
 		)
 	}
 
@@ -194,7 +187,7 @@ func queryDeployerFeeSplits(
 		return nil
 	})
 	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInternal, err.Error())
 	}
 
 	resp := &types.QueryDeployerFeeSplitsResponse{
@@ -221,17 +214,14 @@ func queryWithdrawerFeeSplits(
 	}
 
 	if strings.TrimSpace(params.WithdrawerAddress) == "" {
-		return nil, status.Error(
-			codes.InvalidArgument,
-			"withdraw address is empty",
-		)
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "withdraw address is empty")
 	}
 
 	deployer, err := sdk.AccAddressFromBech32(params.WithdrawerAddress)
 	if err != nil {
-		return nil, status.Errorf(
-			codes.InvalidArgument,
-			"invalid format for withdraw addr %s, should be bech32", params.WithdrawerAddress,
+		return nil, sdkerrors.Wrap(
+			sdkerrors.ErrInvalidRequest,
+			fmt.Sprintf("invalid format for withdraw addr %s, should be bech32", params.WithdrawerAddress),
 		)
 	}
 
@@ -247,7 +237,7 @@ func queryWithdrawerFeeSplits(
 		return nil
 	})
 	if err != nil {
-		return nil, status.Error(codes.Internal, err.Error())
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInternal, err.Error())
 	}
 	resp := &types.QueryWithdrawerFeeSplitsResponse{
 		ContractAddresses: contracts,
