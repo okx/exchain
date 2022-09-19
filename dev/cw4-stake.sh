@@ -108,6 +108,7 @@ tx_hash=$(echo "$res" | jq '.txhash' | sed 's/\"//g')
 echo "txhash: $tx_hash"
 raw_log=$(echo "$res" | jq '.raw_log' | sed 's/\"//g')
 echo "expected to fail, raw_log: $raw_log"
+echo "query contract, expected to fail:"
 exchaincli query wasm contract-state smart "$cw20contractAddr" '{"balance":{"address":"'$captain'"}}'
 exchaincli query wasm contract-state smart "$cw20contractAddr" '{"balance":{"address":"'$contractAddr'"}}'
 
