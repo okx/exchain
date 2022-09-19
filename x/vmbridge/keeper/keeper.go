@@ -12,13 +12,14 @@ type Keeper struct {
 
 	logger log.Logger
 
-	evmKeeper  EVMKeeper
-	wasmKeeper WASMKeeper
+	evmKeeper     EVMKeeper
+	wasmKeeper    WASMKeeper
+	accountKeeper AccountKeeper
 }
 
-func NewKeeper(cdc *codec.CodecProxy, logger log.Logger, evmKeeper EVMKeeper, wasmKeeper WASMKeeper) *Keeper {
+func NewKeeper(cdc *codec.CodecProxy, logger log.Logger, evmKeeper EVMKeeper, wasmKeeper WASMKeeper, accountKeeper AccountKeeper) *Keeper {
 	logger = logger.With("module", types.ModuleName)
-	return &Keeper{cdc: cdc, logger: logger, evmKeeper: evmKeeper, wasmKeeper: wasmKeeper}
+	return &Keeper{cdc: cdc, logger: logger, evmKeeper: evmKeeper, wasmKeeper: wasmKeeper, accountKeeper: accountKeeper}
 }
 
 func (k Keeper) Logger() log.Logger {

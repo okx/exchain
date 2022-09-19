@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/okex/exchain/x/vmbridge"
 	"io"
 	"math/big"
 	"os"
@@ -254,7 +255,7 @@ func NewOKExChainApp(
 	})
 
 	codecProxy, interfaceReg := okexchaincodec.MakeCodecSuit(ModuleBasics)
-
+	vmbridge.RegisterInterface(interfaceReg)
 	// NOTE we use custom OKExChain transaction decoder that supports the sdk.Tx interface instead of sdk.StdTx
 	bApp := bam.NewBaseApp(appName, logger, db, evm.TxDecoder(codecProxy), baseAppOptions...)
 
@@ -431,9 +432,6 @@ func NewOKExChainApp(
 	app.Erc20Keeper.SetGovKeeper(app.GovKeeper)
 	app.DistrKeeper.SetGovKeeper(app.GovKeeper)
 
-	// Set EVM hooks
-	app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper),
-		erc20.NewSendNative20ToIbcEventHandler(app.Erc20Keeper)))
 	// Set IBC hooks
 	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
 	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
@@ -472,7 +470,16 @@ func NewOKExChainApp(
 		wasmDir,
 		wasmConfig,
 		supportedFeatures,
+		vmbridge.GetWasmOpts(app.marshal.GetProtocMarshal()),
 	)
+	wasmModule := wasm.NewAppModule(*app.marshal, &app.wasmKeeper)
+	vmbridgeKeeper := vmbridge.NewKeeper(app.marshal, app.Logger(), app.EvmKeeper, wasmModule.GetPermissionKeeper(), app.AccountKeeper)
+
+	// Set EVM hooks
+	app.EvmKeeper.SetHooks(
+		evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper),
+			erc20.NewSendNative20ToIbcEventHandler(app.Erc20Keeper),
+			vmbridge.NewSendToWasmEventHandler(*vmbridgeKeeper)))
 
 	// NOTE: Any module instantiated in the module manager that is later modified
 	// must be passed by reference here.
@@ -501,7 +508,7 @@ func NewOKExChainApp(
 		capabilityModule.NewAppModule(codecProxy, *app.CapabilityKeeper),
 		transferModule,
 		erc20.NewAppModule(app.Erc20Keeper),
-		wasm.NewAppModule(*app.marshal, &app.wasmKeeper),
+		wasmModule,
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
@@ -555,6 +562,8 @@ func NewOKExChainApp(
 	app.configurator = module.NewConfigurator(app.Codec(), app.MsgServiceRouter(), app.GRPCQueryRouter())
 	app.mm.RegisterServices(app.configurator)
 	app.setupUpgradeModules()
+
+	vmbridge.RegisterServices(app.configurator, *vmbridgeKeeper)
 
 	// create the simulation manager and define the order of the modules for deterministic simulations
 	//

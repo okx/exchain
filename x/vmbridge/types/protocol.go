@@ -1,43 +1,118 @@
 package types
 
-import "github.com/ethereum/go-ethereum/accounts/abi"
+import (
+	"bytes"
+	_ "embed"
+	"encoding/json"
+	"fmt"
+	"github.com/ethereum/go-ethereum/accounts/abi"
+	"github.com/ethereum/go-ethereum/common"
+	"math/big"
+)
 
 const (
 	SendToWasmEventName  = "__OKCSendToWasm"
 	WasmCalledMethodName = "mintCW20"
 
-	SendToEvmSubMsgName = "__OKCSendToEvm"
+	SendToEvmSubMsgName = "send-to-evm"
 	EvmCalledMethodName = "mintERC20"
 )
 
-// SendToWasmEventName represent the signature of
-// `event __SendToWasmEventName(string wasmAddr,string recipient, string amount)`
-var SendToWasmEvent abi.Event
+var (
+	// SendToWasmEventName represent the signature of
+	// `event __SendToWasmEventName(string wasmAddr,string recipient, string amount)`
+	SendToWasmEvent abi.Event
+
+	EvmABI abi.ABI
+	//go:embed abi.json
+	abiJson []byte
+
+	//BridgeModuleETHAddr  common.Address
+	//BridgeModuleBechAddr sdk.AccAddress
+)
 
 func init() {
-	stringType, _ := abi.NewType("string", "", nil)
-	uint256Type, _ := abi.NewType("uint256", "", nil)
+	//stringType, _ := abi.NewType("string", "", nil)
+	//uint256Type, _ := abi.NewType("uint256", "", nil)
+	//
+	//SendToWasmEvent = abi.NewEvent(
+	//	SendToWasmEventName,
+	//	SendToWasmEventName,
+	//	false,
+	//	abi.Arguments{
+	//		abi.Argument{
+	//			Name:    "wasmAddr",
+	//			Type:    stringType,
+	//			Indexed: false,
+	//		},
+	//		abi.Argument{
+	//			Name:    "recipient",
+	//			Type:    stringType,
+	//			Indexed: false,
+	//		},
+	//		abi.Argument{
+	//			Name:    "amount",
+	//			Type:    uint256Type,
+	//			Indexed: false,
+	//		},
+	//	},
+	//)
+	EvmABI, SendToWasmEvent = GetEVMABIConfig(abiJson)
 
-	SendToWasmEvent = abi.NewEvent(
-		SendToWasmEventName,
-		SendToWasmEventName,
-		false,
-		abi.Arguments{
-			abi.Argument{
-				Name:    "wasmAddr",
-				Type:    stringType,
-				Indexed: false,
-			},
-			abi.Argument{
-				Name:    "recipient",
-				Type:    stringType,
-				Indexed: false,
-			},
-			abi.Argument{
-				Name:    "amount",
-				Type:    uint256Type,
-				Indexed: false,
-			},
-		},
-	)
+	//BridgeModuleBechAddr = authtypes.NewModuleAddress(ModuleName)
+	//BridgeModuleETHAddr = common.BytesToAddress(BridgeModuleBechAddr.Bytes())
+
+}
+
+type MintCW20Method struct {
+	Amount    string `json:"amount"`
+	Recipient string `json:"recipient"`
+}
+
+func GetMintCW20Input(amount, recipient string) ([]byte, error) {
+	method := MintCW20Method{
+		Amount:    amount,
+		Recipient: recipient,
+	}
+	input := struct {
+		Method MintCW20Method `json:"mint_c_w20"`
+	}{
+		Method: method,
+	}
+	return json.Marshal(input)
+}
+
+type MintERC20Method struct {
+	ABI abi.ABI
+}
+
+func GetMintERC20Input(callerAddr string, recipient common.Address, amount *big.Int) ([]byte, error) {
+	data, err := EvmABI.Pack(EvmCalledMethodName, callerAddr, recipient, amount)
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
+}
+
+func GetMintERC20Output(data []byte) (bool, error) {
+	result, err := EvmABI.Unpack(EvmCalledMethodName, data)
+	if err != nil {
+		return false, err
+	}
+	if len(result) == 0 {
+		return false, fmt.Errorf("%s method outputs must be one output", EvmCalledMethodName)
+	}
+	return result[0].(bool), nil
+}
+
+func GetEVMABIConfig(data []byte) (abi.ABI, abi.Event) {
+	ret, err := abi.JSON(bytes.NewReader(data))
+	if err != nil {
+		panic(err)
+	}
+	event, ok := ret.Events[SendToWasmEventName]
+	if !ok {
+		panic(fmt.Errorf("abi must have event %s,%s,%s", SendToWasmEvent, ret, string(data)))
+	}
+	return ret, event
 }

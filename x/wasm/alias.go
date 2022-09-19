@@ -93,6 +93,7 @@ var (
 	EnableAllProposals               = types.EnableAllProposals
 	DisableAllProposals              = types.DisableAllProposals
 	ContractCodeHistoryElementPrefix = types.ContractCodeHistoryElementPrefix
+	WithMessageEncoders              = keeper.WithMessageEncoders
 )
 
 type (
