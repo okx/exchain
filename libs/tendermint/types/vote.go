@@ -97,6 +97,10 @@ func (vote *Vote) AminoSize(cdc *amino.Codec) int {
 		size += 1 + amino.ByteSliceSize(vote.Signature)
 	}
 
+	if vote.HasVC {
+		size += 1 + 1
+	}
+
 	return size
 }
 
@@ -195,6 +199,15 @@ func (vote *Vote) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
 		}
 	}
 
+	// field 9
+	if vote.HasVC {
+		const pbKey = byte(9<<3 | amino.Typ3_Varint)
+		err = amino.EncodeBoolWithKeyToBuffer(buf, vote.HasVC, pbKey)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -274,6 +287,13 @@ func (vote *Vote) UnmarshalFromAmino(cdc *amino.Codec, data []byte) error {
 		case 8:
 			vote.Signature = make([]byte, len(subData))
 			copy(vote.Signature, subData)
+		case 9:
+			var n int
+			vote.HasVC, n, err = amino.DecodeBool(data)
+			if err != nil {
+				return err
+			}
+			dataLen = uint64(n)
 		default:
 			return fmt.Errorf("unexpect feild num %d", pos)
 		}
@@ -429,7 +449,7 @@ func (vote *Vote) ToProto() *tmproto.Vote {
 	}
 }
 
-//FromProto converts a proto generetad type to a handwritten type
+// FromProto converts a proto generetad type to a handwritten type
 // return type, nil if everything converts safely, otherwise nil, error
 func VoteFromProto(pv *tmproto.Vote) (*Vote, error) {
 	if pv == nil {
