@@ -86,16 +86,16 @@ func (info msgInfo) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
 		const pbKey = byte(1<<3 | amino.Typ3_ByteLength)
 		buf.WriteByte(pbKey)
 
-		if sizer, ok := info.Msg.(amino.MarshalBufferSizer); ok {
-			var typePrefix [8]byte
-			n, err := cdc.GetTypePrefix(info.Msg, typePrefix[:])
-			if err != nil {
-				return err
-			}
-			if n == 0 {
-				return fmt.Errorf("interface without type prefix")
-			}
+		var typePrefix [8]byte
+		n, err := cdc.GetTypePrefix(info.Msg, typePrefix[:])
+		if err != nil {
+			return err
+		}
+		if n == 0 {
+			return fmt.Errorf("interface without type prefix")
+		}
 
+		if sizer, ok := info.Msg.(amino.MarshalBufferSizer); ok {
 			msgSize := n + sizer.AminoSize(cdc)
 			err = amino.EncodeUvarintToBuffer(buf, uint64(msgSize))
 			if err != nil {

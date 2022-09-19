@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	"github.com/tendermint/go-amino"
 	"regexp"
 	"strings"
 	"sync"
@@ -12,6 +11,7 @@ import (
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
 	tmrand "github.com/okex/exchain/libs/tendermint/libs/rand"
 	tmprotobits "github.com/okex/exchain/libs/tendermint/proto/libs/bits"
+	"github.com/tendermint/go-amino"
 )
 
 // BitArray is a thread-safe implementation of a bit array.

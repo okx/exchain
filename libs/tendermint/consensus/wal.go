@@ -10,16 +10,14 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
-
-	amino "github.com/tendermint/go-amino"
-
 	auto "github.com/okex/exchain/libs/tendermint/libs/autofile"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	"github.com/okex/exchain/libs/tendermint/libs/service"
 	"github.com/okex/exchain/libs/tendermint/types"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+	"github.com/pkg/errors"
+	"github.com/tendermint/go-amino"
 )
 
 const (
@@ -113,7 +111,7 @@ func (m TimedWALMessage) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) err
 				return err
 			}
 			if buf.Len()-lenBeforeData != msgSize {
-				return amino.NewSizerError(msgSize, buf.Len()-lenBeforeData, msgSize)
+				return amino.NewSizerError(m.Msg, buf.Len()-lenBeforeData, msgSize)
 			}
 		} else {
 			msgData, err := cdc.MarshalBinaryBare(m.Msg)
