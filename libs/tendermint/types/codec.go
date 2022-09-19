@@ -22,7 +22,7 @@ func RegisterBlockAmino(cdc *amino.Codec) {
 	cdc.EnableBufferMarshaler(&Vote{})
 	cdc.EnableBufferMarshaler(&Proposal{})
 
-	cdc.EnableBufferMarshaler(DeltaPayload{})
+	cdc.EnableBufferMarshaler(&DeltaPayload{})
 	cdc.EnableBufferMarshaler(&Deltas{})
 }
 

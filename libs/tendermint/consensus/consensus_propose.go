@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"strings"
-
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
