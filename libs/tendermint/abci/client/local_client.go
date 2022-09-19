@@ -1,6 +1,7 @@
 package abcicli
 
 import (
+	"log"
 	"sync"
 
 	"github.com/okex/exchain/libs/tendermint/abci/types"
@@ -254,10 +255,12 @@ func (app *localClient) InitChainSync(req types.RequestInitChain) (*types.Respon
 }
 
 func (app *localClient) BeginBlockSync(req types.RequestBeginBlock) (*types.ResponseBeginBlock, error) {
+	log.Println("lcm BeginBlockSync start")
 	app.mtx.Lock()
 	defer app.mtx.Unlock()
-
+	log.Println("lcm app.Application.BeginBlock")
 	res := app.Application.BeginBlock(req)
+	log.Println("lcm BeginBlockSync done")
 	return &res, nil
 }
 

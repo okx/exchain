@@ -1,6 +1,7 @@
 package app
 
 import (
+	"log"
 	"runtime"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 
 // BeginBlock implements the Application interface
 func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
+	log.Println("lcm okex app beginblock start")
 	trace.OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
 	app.EvmKeeper.Watcher.DelayEraseKey()
 	return app.BaseApp.BeginBlock(req)
