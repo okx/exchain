@@ -3,8 +3,7 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/app/rpc/simulator"
-	"github.com/spf13/viper"
+	"log"
 	"os"
 	"sort"
 	"strconv"
@@ -12,6 +11,9 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/okex/exchain/app/rpc/simulator"
+	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
@@ -117,6 +119,7 @@ func (app *BaseApp) FilterPeerByID(info string) abci.ResponseQuery {
 
 // BeginBlock implements the ABCI application interface.
 func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
+	log.Println("lcm baseApp.BeginBlock start")
 	app.blockDataCache.Clear()
 	app.PutCacheMultiStore(nil)
 	if app.cms.TracingEnabled() {
@@ -124,7 +127,7 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 			map[string]interface{}{"blockHeight": req.Header.Height},
 		))
 	}
-
+	log.Println("lcm app.validateHeight")
 	if err := app.validateHeight(req); err != nil {
 		panic(err)
 	}
@@ -157,11 +160,11 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 	}
 
 	app.deliverState.ctx.SetBlockGasMeter(gasMeter)
-
+	log.Println("lcm app.beginBlocker")
 	if app.beginBlocker != nil {
 		res = app.beginBlocker(app.deliverState.ctx, req)
 	}
-
+	log.Println("lcm req.LastCommitInfo.GetVotes")
 	// set the signed validators for addition to context in deliverTx
 	app.voteInfos = req.LastCommitInfo.GetVotes()
 
