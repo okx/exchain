@@ -734,3 +734,8 @@ func fireEvents(
 			types.EventDataValidatorSetUpdates{ValidatorUpdates: validatorUpdates})
 	}
 }
+
+func (blockExec *BlockExecutor) FireBlockTimeEvents(height, blockTime int64, address types.Address) {
+	blockExec.eventBus.PublishEventLatestBlockTime(
+		types.EventDataBlockTime{Height: height, BlockTime: blockTime, NextProposer: address})
+}
