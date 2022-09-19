@@ -7,6 +7,10 @@ import (
 	"os"
 	"sync"
 
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/common"
+
+	ibcfee "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee"
+
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	appconfig "github.com/okex/exchain/app/config"
@@ -445,11 +449,15 @@ func NewOKExChainApp(
 		erc20.NewSendNative20ToIbcEventHandler(app.Erc20Keeper)))
 	// Set IBC hooks
 	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
+	left := common.NewDisaleProxyMiddleware()
+	middle := ibctransfer.NewIBCModule(app.TransferKeeper)
+	right := ibcfee.NewIBCMiddleware(middle, app.IBCFeeKeeper)
+	transferStack := ibcfee.NewFallThroughMiddleware(tmtypes.GetVenus1Height(), tmtypes.GetVenus3Height(), left, middle, right)
 	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
 
 	// Create static IBC router, add transfer route, then set and seal it
 	ibcRouter := ibcporttypes.NewRouter()
-	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferModule)
+	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferStack)
 	//ibcRouter.AddRoute(ibcmock.ModuleName, mockModule)
 	app.IBCKeeper.SetRouter(ibcRouter)
 

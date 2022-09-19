@@ -7,9 +7,11 @@ import (
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/keeper"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/types"
 	icatypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/common"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
 	ibcexported "github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	types2 "github.com/okex/exchain/libs/tendermint/types"
 )
 
 var _ porttypes.Middleware = &IBCMiddleware{}
@@ -17,16 +19,19 @@ var _ porttypes.Middleware = &IBCMiddleware{}
 // IBCMiddleware implements the ICS26 callbacks for the fee middleware given the
 // ICA controller keeper and the underlying application.
 type IBCMiddleware struct {
+	*common.HeightProxyMiddleware
 	app    porttypes.IBCModule
 	keeper keeper.Keeper
 }
 
 // IBCMiddleware creates a new IBCMiddleware given the associated keeper and underlying application
-func NewIBCMiddleware(app porttypes.IBCModule, k keeper.Keeper) IBCMiddleware {
-	return IBCMiddleware{
+func NewIBCMiddleware(app porttypes.IBCModule, k keeper.Keeper) porttypes.Middleware {
+	internal := IBCMiddleware{
 		app:    app,
 		keeper: k,
 	}
+	ret := common.NewHeightProxyMiddleware(types2.GetVenus3Height(), types.SubModuleName, internal)
+	return ret
 }
 
 // OnChanOpenInit implements the IBCMiddleware interface
