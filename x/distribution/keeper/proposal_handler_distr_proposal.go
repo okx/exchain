@@ -42,3 +42,11 @@ func HandleWithdrawRewardEnabledProposal(ctx sdk.Context, k Keeper, p types.With
 	k.SetWithdrawRewardEnabled(ctx, p.Enabled)
 	return nil
 }
+
+// HandleRewardTruncatePrecisionProposal is a handler for executing a passed reward truncate precision proposal
+func HandleRewardTruncatePrecisionProposal(ctx sdk.Context, k Keeper, p types.RewardTruncatePrecisionProposal) error {
+	logger := k.Logger(ctx)
+	logger.Debug(fmt.Sprintf("set reward truncate retain precision :%d", p.Precision))
+	k.SetRewardTruncatePrecision(ctx, p.Precision)
+	return nil
+}

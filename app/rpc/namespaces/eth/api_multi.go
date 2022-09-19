@@ -340,6 +340,11 @@ func (api *PublicEthereumAPI) GetAllTransactionResultsByBlock(blockNrOrHash rpct
 				res, err = watcher.RawTxResultToStdResponse(api.clientCtx, queryTx, realTx, resBlock.Block.Time)
 			}
 
+			if err != nil {
+				// Return nil for transaction when not found
+				return nil, err
+			}
+
 			results = append(results, res)
 		}
 	}

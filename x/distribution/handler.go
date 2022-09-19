@@ -86,6 +86,11 @@ func NewDistributionProposalHandler(k Keeper) govtypes.Handler {
 				return keeper.HandleWithdrawRewardEnabledProposal(ctx, k, c)
 			}
 			return types.ErrUnknownDistributionCommunityPoolProposaType()
+		case types.RewardTruncatePrecisionProposal:
+			if tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+				return keeper.HandleRewardTruncatePrecisionProposal(ctx, k, c)
+			}
+			return types.ErrUnknownDistributionCommunityPoolProposaType()
 
 		default:
 			return types.ErrUnknownDistributionCommunityPoolProposaType()
