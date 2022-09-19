@@ -17,7 +17,9 @@ import (
 func (app *OKExChainApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeginBlock) {
 	log.Println("lcm okex app beginblock start")
 	trace.OnAppBeginBlockEnter(app.LastBlockHeight() + 1)
+	log.Println("lcm app.EvmKeeper.Watcher.DelayEraseKey")
 	app.EvmKeeper.Watcher.DelayEraseKey()
+	log.Println("lcm app.BaseApp.BeginBlock")
 	return app.BaseApp.BeginBlock(req)
 }
 

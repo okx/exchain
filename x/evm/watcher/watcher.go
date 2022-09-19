@@ -3,6 +3,7 @@ package watcher
 import (
 	"encoding/hex"
 	"fmt"
+	syslog "log"
 	"math/big"
 	"sync"
 
@@ -186,14 +187,17 @@ func (w *Watcher) DeleteAccount(addr sdk.AccAddress) {
 
 func (w *Watcher) DelayEraseKey() {
 	if !w.Enabled() {
+		syslog.Println("lcm DelayEraseKey watcher disable")
 		return
 	}
+	syslog.Println("lcm DelayEraseKey start")
 	//hold it in temp
 	delayEraseKey := w.delayEraseKey
 	w.delayEraseKey = make([][]byte, 0)
 	w.dispatchJob(func() {
 		w.ExecuteDelayEraseKey(delayEraseKey)
 	})
+	syslog.Println("lcm DelayEraseKey done")
 }
 
 func (w *Watcher) ExecuteDelayEraseKey(delayEraseKey [][]byte) {
