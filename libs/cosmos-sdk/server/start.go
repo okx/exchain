@@ -69,6 +69,8 @@ const (
 	FlagBlockPartSizeBytes = "block-part-size"
 
 	FlagFastSyncGap = "fastsync-gap"
+
+	FlagEventBlockTime = "event-block-time"
 )
 
 // StartCmd runs the service passed in, either stand-alone or in-process with
@@ -341,4 +343,6 @@ func SetExternalPackageValue(cmd *cobra.Command) {
 	mpt.TrieCommitGap = viper.GetInt64(FlagCommitGapHeight)
 
 	bcv0.MaxIntervalForFastSync = viper.GetInt64(FlagFastSyncGap)
+
+	tmtypes.EnableEventBlockTime = viper.GetBool(FlagEventBlockTime)
 }
