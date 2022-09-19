@@ -27,4 +27,15 @@ type (
 		Proposer    sdk.AccAddress `json:"proposer" yaml:"proposer"`
 		Deposit     sdk.SysCoins   `json:"deposit" yaml:"deposit"`
 	}
+
+	// RewardTruncatePrecisionProposalReq defines a set reward truncate precision proposal request body.
+	RewardTruncatePrecisionProposalReq struct {
+		BaseReq rest.BaseReq `json:"base_req" yaml:"base_req"`
+
+		Title       string         `json:"title" yaml:"title"`
+		Description string         `json:"description" yaml:"description"`
+		Proposer    sdk.AccAddress `json:"proposer" yaml:"proposer"`
+		Deposit     sdk.SysCoins   `json:"deposit" yaml:"deposit"`
+		Precision   int64          `json:"precision" yaml:"precision"`
+	}
 )
