@@ -2,7 +2,6 @@ package watcher
 
 import (
 	"bytes"
-	"errors"
 	"log"
 	"sort"
 
@@ -31,7 +30,7 @@ func (w WatchDataManager) CreateWatchDataGenerator() func() ([]byte, error) {
 
 func (w WatchDataManager) UnmarshalWatchData(b []byte) (interface{}, error) {
 	if len(b) == 0 {
-		return nil, errors.New("failed unmarshal wasm watch data: empty data")
+		return nil, nil
 	}
 	var data WatchData
 	err := proto.Unmarshal(b, &data)

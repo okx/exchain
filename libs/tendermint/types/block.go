@@ -65,6 +65,10 @@ type BlockExInfo struct {
 	BlockPartSize     int
 }
 
+func (info BlockExInfo) IsCompressed() bool {
+	return info.BlockCompressType != 0
+}
+
 // Block defines the atomic unit of a Tendermint blockchain.
 type Block struct {
 	mtx sync.Mutex
@@ -339,15 +343,32 @@ func UncompressBlockFromReader(pbpReader io.Reader) ([]byte, error) {
 // compressSign contains compressType and compressFlag
 // the compressSign: XY means, compressType: X, compressFlag: Y
 func UncompressBlockFromBytes(payload []byte) (res []byte, compressSign int, err error) {
+	var buf bytes.Buffer
+	compressSign, err = UncompressBlockFromBytesTo(payload, &buf)
+	if err == nil && compressSign == 0 {
+		return payload, 0, nil
+	}
+	res = buf.Bytes()
+	return
+}
+
+func IsBlockDataCompressed(payload []byte) bool {
 	// try parse Uvarint to check if it is compressed
 	compressBytesLen, n := binary.Uvarint(payload)
 	if compressBytesLen == uint64(len(payload)-n) {
-		// the block has not compressed
-		res = payload
+		return false
 	} else {
+		return true
+	}
+}
+
+// UncompressBlockFromBytesTo uncompress payload to buf, and returns the compressSign,
+// if payload is not compressed, compressSign will be 0, and buf will not be changed.
+func UncompressBlockFromBytesTo(payload []byte, buf *bytes.Buffer) (compressSign int, err error) {
+	if IsBlockDataCompressed(payload) {
 		// the block has compressed and the last byte is compressSign
 		compressSign = int(payload[len(payload)-1])
-		res, err = compress.UnCompress(compressSign/CompressDividing, payload[:len(payload)-1])
+		err = compress.UnCompressTo(compressSign/CompressDividing, payload[:len(payload)-1], buf)
 	}
 	return
 }

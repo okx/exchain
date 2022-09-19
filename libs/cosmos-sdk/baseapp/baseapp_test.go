@@ -583,6 +583,10 @@ func (tx *txTest) GetFrom() string {
 	return ""
 }
 
+func (tx *txTest) GetSender(_ sdk.Context) string {
+	return ""
+}
+
 func (tx *txTest) GetNonce() uint64 {
 	return 0
 }
@@ -973,7 +977,7 @@ func TestSimulateTx(t *testing.T) {
 	cdc := codec.New()
 	registerTestCodec(cdc)
 
-	nBlocks := 3
+	nBlocks := 4
 	for blockN := 0; blockN < nBlocks; blockN++ {
 		count := int64(blockN + 1)
 		header := abci.Header{Height: count}
@@ -983,33 +987,35 @@ func TestSimulateTx(t *testing.T) {
 		txBytes, err := cdc.MarshalBinaryLengthPrefixed(tx)
 		require.Nil(t, err)
 
-		// simulate a message, check gas reported
-		gInfo, result, err := app.Simulate(txBytes, tx, 0, nil)
-		require.NoError(t, err)
-		require.NotNil(t, result)
-		require.Equal(t, gasConsumed, gInfo.GasUsed)
+		if blockN != 0 {
+			// simulate a message, check gas reported
+			gInfo, result, err := app.Simulate(txBytes, tx, 0, nil)
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			require.Equal(t, gasConsumed, gInfo.GasUsed)
 
-		// simulate again, same result
-		gInfo, result, err = app.Simulate(txBytes, tx, 0, nil)
-		require.NoError(t, err)
-		require.NotNil(t, result)
-		require.Equal(t, gasConsumed, gInfo.GasUsed)
+			// simulate again, same result
+			gInfo, result, err = app.Simulate(txBytes, tx, 0, nil)
+			require.NoError(t, err)
+			require.NotNil(t, result)
+			require.Equal(t, gasConsumed, gInfo.GasUsed)
 
-		// simulate by calling Query with encoded tx
-		query := abci.RequestQuery{
-			Path: "/app/simulate",
-			Data: txBytes,
+			// simulate by calling Query with encoded tx
+			query := abci.RequestQuery{
+				Path: "/app/simulate",
+				Data: txBytes,
+			}
+			queryResult := app.Query(query)
+			require.True(t, queryResult.IsOK(), queryResult.Log)
+
+			var simRes sdk.SimulationResponse
+			err = codec.Cdc.UnmarshalBinaryBare(queryResult.Value, &simRes)
+			require.NoError(t, err)
+			require.Equal(t, gInfo, simRes.GasInfo)
+			require.Equal(t, result.Log, simRes.Result.Log)
+			require.Equal(t, result.Events, simRes.Result.Events)
+			require.True(t, bytes.Equal(result.Data, simRes.Result.Data))
 		}
-		queryResult := app.Query(query)
-		require.True(t, queryResult.IsOK(), queryResult.Log)
-
-		var simRes sdk.SimulationResponse
-		err = codec.Cdc.UnmarshalBinaryBare(queryResult.Value, &simRes)
-		require.NoError(t, err)
-		require.Equal(t, gInfo, simRes.GasInfo)
-		require.Equal(t, result.Log, simRes.Result.Log)
-		require.Equal(t, result.Events, simRes.Result.Events)
-		require.True(t, bytes.Equal(result.Data, simRes.Result.Data))
 		app.EndBlock(abci.RequestEndBlock{})
 		app.Commit(abci.RequestCommit{})
 	}

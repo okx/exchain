@@ -19,7 +19,7 @@ func (suite *KeeperTestSuite) TestBeginBlock() {
 	req := abci.RequestBeginBlock{
 		Header: abci.Header{
 			LastBlockId: abci.BlockID{
-				Hash: []byte("hash"),
+				Hash: ethcmn.FromHex(hex),
 			},
 			Height: 10,
 		},
@@ -44,7 +44,8 @@ func (suite *KeeperTestSuite) TestBeginBlock() {
 
 	suite.Require().Equal(int64(initialConsumed), int64(suite.ctx.GasMeter().GasConsumed()))
 
-	lastHeight, found := suite.app.EvmKeeper.GetBlockHash(suite.ctx, req.Header.LastBlockId.Hash)
+	blockHash := ethcmn.BytesToHash(req.Header.LastBlockId.Hash)
+	lastHeight, found := suite.app.EvmKeeper.GetBlockHeight(suite.ctx, blockHash)
 	suite.Require().True(found)
 	suite.Require().Equal(int64(9), lastHeight)
 }

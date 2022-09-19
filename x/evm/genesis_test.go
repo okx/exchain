@@ -447,6 +447,7 @@ func (suite *EvmTestSuite) TestExport_db() {
 	viper.SetEnvPrefix("OKEXCHAIN")
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
 	viper.AutomaticEnv()
+	viper.Set(sdk.FlagDBBackend, string(dbm.GoLevelDBBackend))
 
 	privkey, err := ethsecp256k1.GenerateKey()
 	suite.Require().NoError(err)
@@ -521,6 +522,7 @@ func testImport_db(suite *EvmTestSuite,
 
 	suite.app.AccountKeeper.SetAccount(suite.ctx, ethAccount)
 
+	viper.Set(sdk.FlagDBBackend, string(dbm.GoLevelDBBackend))
 	os.Setenv("OKEXCHAIN_EVM_IMPORT_MODE", "db")
 	os.Setenv("OKEXCHAIN_EVM_IMPORT_PATH", dbPath)
 

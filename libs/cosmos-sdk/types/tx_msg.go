@@ -54,6 +54,7 @@ type Tx interface {
 
 	GetRaw() []byte
 	GetFrom() string
+	GetSender(ctx Context) string
 	GetNonce() uint64
 	TxHash() []byte
 	SetRaw([]byte)
@@ -80,6 +81,7 @@ func (tx *BaseTx) GetRaw() []byte                      { return tx.Raw }
 func (tx *BaseTx) TxHash() []byte                      { return tx.Hash }
 func (tx *BaseTx) SetRaw(raw []byte)                   { tx.Raw = raw }
 func (tx *BaseTx) SetTxHash(hash []byte)               { tx.Hash = hash }
+func (tx *BaseTx) GetSender(_ Context) string          { return tx.From }
 
 //__________________________________________________________
 
@@ -103,7 +105,7 @@ func (t TransactionType) String() (res string) {
 	return res
 }
 
-//__________________________________________________________
+// __________________________________________________________
 // TxDecoder unmarshals transaction bytes
 type TxDecoder func(txBytes []byte, height ...int64) (Tx, error)
 
@@ -125,7 +127,7 @@ func NewTestMsg(addrs ...AccAddress) *TestMsg {
 	}
 }
 
-//nolint
+// nolint
 func (msg *TestMsg) Route() string { return "TestMsg" }
 func (msg *TestMsg) Type() string  { return "Test message" }
 func (msg *TestMsg) GetSignBytes() []byte {
@@ -150,7 +152,7 @@ func NewTestMsg2(addrs ...AccAddress) *TestMsg2 {
 	}
 }
 
-//nolint
+// nolint
 func (msg TestMsg2) Route() string { return "TestMsg" }
 func (msg TestMsg2) Type() string  { return "Test message" }
 func (msg TestMsg2) GetSignBytes() []byte {
