@@ -1,8 +1,10 @@
 package iavl
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
+	"log"
 	"sort"
 	"sync"
 
@@ -88,6 +90,22 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		} else {
 			tree.ndb.updateBranchMoreConcurrency(tree.root)
 		}
+		// test dds fss
+		delete(tree.savedNodes, string(tree.root.hash))
+		for _, node := range tree.savedNodes {
+			if node.isLeaf() {
+				if fn, ok := tree.unsavedFastNodes.get(node.key); ok {
+					if bytes.Compare(fn.value, node.value) != 0 {
+						log.Printf("giskook error %v %v %v %v %v %v \n", node.key, node.value, string(node.key), string(node.value), string(fn.key), string(fn.value))
+					}
+				} else {
+					log.Printf("giskook dds have %v %v %v %v \n", node.key, node.value, string(node.key), string(node.value))
+				}
+			}
+		}
+
+		// test dds fss
+
 		tree.updateBranchFastNode()
 
 		// generate state delta
