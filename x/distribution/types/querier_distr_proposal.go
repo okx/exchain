@@ -9,8 +9,9 @@ const (
 	QueryDelegatorValidators         = "delegator_validators"
 	QueryDelegationRewards           = "delegation_rewards"
 
-	ParamDistributionType      = "distribution_type"
-	ParamWithdrawRewardEnabled = "withdraw_reward_enabled"
+	ParamDistributionType        = "distribution_type"
+	ParamWithdrawRewardEnabled   = "withdraw_reward_enabled"
+	ParamRewardTruncatePrecision = "reward_truncate_precision"
 )
 
 // params for query 'custom/distr/delegator_total_rewards' and 'custom/distr/delegator_validators'

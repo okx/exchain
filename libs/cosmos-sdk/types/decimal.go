@@ -622,6 +622,12 @@ func (d Dec) TruncateInt() Int {
 	return NewIntFromBigInt(chopPrecisionAndTruncateNonMutative(d.Int))
 }
 
+// TruncateWithPrec truncates an integer based on precision
+func (d Dec) TruncateWithPrec(prec int64) Int {
+	tmp := new(big.Int).Set(d.Int)
+	return NewIntFromBigInt(tmp.Quo(tmp, NewDecWithPrec(1, prec).Int))
+}
+
 // TruncateDec truncates the decimals from the number and returns a Dec
 func (d Dec) TruncateDec() Dec {
 	return NewDecFromBigInt(chopPrecisionAndTruncateNonMutative(d.Int))
