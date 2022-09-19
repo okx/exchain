@@ -19,8 +19,8 @@ func GetQueryCmd(cdc *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *c
 	}
 
 	icaQueryCmd.AddCommand(
-		controllercli.GetQueryCmd(),
-		hostcli.GetQueryCmd(),
+		controllercli.GetQueryCmd(cdc, reg),
+		hostcli.GetQueryCmd(cdc, reg),
 	)
 
 	return icaQueryCmd

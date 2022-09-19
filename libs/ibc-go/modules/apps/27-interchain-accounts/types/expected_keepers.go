@@ -4,6 +4,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
+	supplyexported "github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	ibcexported "github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 )
@@ -13,7 +14,7 @@ type AccountKeeper interface {
 	NewAccount(ctx sdk.Context, acc authtypes.Account) authtypes.Account
 	GetAccount(ctx sdk.Context, addr sdk.AccAddress) authtypes.Account
 	SetAccount(ctx sdk.Context, acc authtypes.Account)
-	GetModuleAccount(ctx sdk.Context, name string) authtypes.ModuleAccount
+	GetModuleAccount(ctx sdk.Context, name string) supplyexported.ModuleAccountI
 	GetModuleAddress(name string) sdk.AccAddress
 }
 

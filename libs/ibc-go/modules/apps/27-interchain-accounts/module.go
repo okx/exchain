@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
+
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/common"
 
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/client/cli"
@@ -147,4 +149,28 @@ func (a AppModule) RegisterInvariants(registry sdk.InvariantRegistry) {}
 func (a AppModule) RegisterServices(cfg module.Configurator) {
 	controllertypes.RegisterQueryServer(cfg.QueryServer(), a.controllerKeeper)
 	hosttypes.RegisterQueryServer(cfg.QueryServer(), a.hostKeeper)
+}
+
+func (a AppModule) RegisterTask() upgrade.HeightTask {
+	return upgrade.NewHeightTask(6, func(ctx sdk.Context) error {
+		ret := types.DefaultGenesis()
+		data := ModuleCdc.MustMarshalJSON(ret)
+		a.initGenesis(ctx, data)
+		return nil
+	})
+}
+
+func (am AppModule) initGenesis(s sdk.Context, message json.RawMessage) []abci.ValidatorUpdate {
+	var genesisState types.GenesisState
+	ModuleCdc.MustUnmarshalJSON(message, &genesisState)
+
+	if am.controllerKeeper != nil {
+		controllerkeeper.InitGenesis(s, *am.controllerKeeper, genesisState.ControllerGenesisState)
+	}
+
+	if am.hostKeeper != nil {
+		hostkeeper.InitGenesis(s, *am.hostKeeper, genesisState.HostGenesisState)
+	}
+
+	return nil
 }

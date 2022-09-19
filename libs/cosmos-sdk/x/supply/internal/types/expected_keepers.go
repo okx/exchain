@@ -2,6 +2,7 @@ package types
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 )
 
@@ -29,4 +30,10 @@ type BankKeeper interface {
 type CM40BankKeeper interface {
 	HasBalance(ctx sdk.Context, addr sdk.AccAddress, amt sdk.Coin) bool
 	BlockedAddr(address sdk.AccAddress) bool
+}
+
+type CM40AccountKeeper interface {
+	NewAccount(ctx sdk.Context, acc authtypes.Account) authtypes.Account
+	GetAccount(ctx sdk.Context, addr sdk.AccAddress) authtypes.Account
+	SetAccount(ctx sdk.Context, acc authtypes.Account)
 }

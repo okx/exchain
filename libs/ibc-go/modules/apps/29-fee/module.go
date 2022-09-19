@@ -131,3 +131,18 @@ func (a AppModule) RegisterServices(cfg module.Configurator) {
 	types.RegisterMsgServer(cfg.MsgServer(), a.keeper)
 	types.RegisterQueryServer(cfg.QueryServer(), a.keeper)
 }
+
+func (a AppModule) RegisterTask() upgrade.HeightTask {
+	return upgrade.NewHeightTask(5, func(ctx sdk.Context) error {
+		data := ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
+		a.initGenesis(ctx, data)
+		return nil
+	})
+}
+
+func (am AppModule) initGenesis(ctx sdk.Context, message json.RawMessage) []abci.ValidatorUpdate {
+	var genesisState types.GenesisState
+	ModuleCdc.MustUnmarshalJSON(message, &genesisState)
+	am.keeper.InitGenesis(ctx, genesisState)
+	return []abci.ValidatorUpdate{}
+}
