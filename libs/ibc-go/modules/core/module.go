@@ -102,14 +102,14 @@ func (AppModuleBasic) RegisterInterfaces(registry codectypes.InterfaceRegistry) 
 type AppModule struct {
 	AppModuleBasic
 	*base.BaseIBCUpgradeModule
-	keeper *keeper.Keeper
+	keeper *keeper.FacadedKeeper
 
 	// create localhost by default
 	createLocalhost bool
 }
 
 // NewAppModule creates a new AppModule object
-func NewAppModule(k *keeper.Keeper) AppModule {
+func NewAppModule(k *keeper.FacadedKeeper) AppModule {
 	ret := AppModule{
 		keeper: k,
 	}
@@ -154,10 +154,11 @@ func (AppModule) QuerierRoute() string {
 
 // RegisterServices registers module services.
 func (am AppModule) RegisterServices(cfg module.Configurator) {
+	// TODO,这里或许需要 facadedkeeper 做一个遍历才行
 	clienttypes.RegisterMsgServer(cfg.MsgServer(), am.keeper)
 	connectiontypes.RegisterMsgServer(cfg.MsgServer(), am.keeper)
 	channeltypes.RegisterMsgServer(cfg.MsgServer(), am.keeper)
-	types.RegisterQueryService(cfg.QueryServer(), am.keeper)
+	types.RegisterQueryService(cfg.QueryServer(), am.keeper.V2Keeper)
 
 	//m := clientkeeper.NewMigrator(am.keeper.ClientKeeper)
 	//cfg.RegisterMigration(host.ModuleName, 1, m.Migrate1to2)
@@ -176,7 +177,7 @@ func (am AppModule) initGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 	if err != nil {
 		panic(fmt.Sprintf("failed to unmarshal %s genesis state: %s", host.ModuleName, err))
 	}
-	InitGenesis(ctx, *am.keeper, am.createLocalhost, &gs)
+	InitGenesis(ctx, *am.keeper.V2Keeper, am.createLocalhost, &gs)
 	return []abci.ValidatorUpdate{}
 }
 
@@ -187,7 +188,7 @@ func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
 }
 
 func (am AppModule) exportGenesis(ctx sdk.Context) json.RawMessage {
-	return ModuleCdc.MustMarshalJSON(ExportGenesis(ctx, *am.keeper))
+	return ModuleCdc.MustMarshalJSON(ExportGenesis(ctx, *am.keeper.V2Keeper))
 }
 
 func lazyGenesis() json.RawMessage {
@@ -200,7 +201,7 @@ func (am AppModule) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 	if !tmtypes.HigherThanVenus1(req.Header.Height) {
 		return
 	}
-	ibcclient.BeginBlocker(ctx, am.keeper.ClientKeeper)
+	ibcclient.BeginBlocker(ctx, am.keeper.V2Keeper.ClientKeeper)
 }
 
 // EndBlock returns the end blocker for the ibc module. It returns no validator
@@ -234,7 +235,7 @@ func (AppModule) RandomizedParams(_ *rand.Rand) []simulation2.ParamChange {
 
 // RegisterStoreDecoder registers a decoder for ibc module's types
 func (am AppModule) RegisterStoreDecoder(sdr sdk.StoreDecoderRegistry) {
-	sdr[host.StoreKey] = simulation.NewDecodeStore(*am.keeper)
+	sdr[host.StoreKey] = simulation.NewDecodeStore(*am.keeper.V2Keeper)
 }
 
 // WeightedOperations returns the all the ibc module operations with their respective weights.

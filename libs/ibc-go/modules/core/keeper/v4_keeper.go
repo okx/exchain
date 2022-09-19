@@ -18,6 +18,10 @@ type V4Keeper struct {
 	*Keeper
 }
 
+func NewV4Keeper(keeper *Keeper) *V4Keeper {
+	return &V4Keeper{Keeper: keeper}
+}
+
 func (k V4Keeper) ChannelOpenInit(goCtx context.Context, msg *channeltypes.MsgChannelOpenInit) (*channeltypes.MsgChannelOpenInitResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
 

@@ -6,12 +6,19 @@ import (
 )
 
 type (
-	Keeper           = keeper.Keeper
+	Keeper = keeper.FacadedKeeper
 )
-const(
-)
+
+const ()
+
 var (
-	NewKeeper  = keeper.NewKeeper
-	ModuleCdc    = types.ModuleCdc
-	DefaultGenesisState  = types.DefaultGenesisState
+	NewKeeper           = keeper.NewKeeper
+	NewV4Keeper         = keeper.NewV4Keeper
+	NewFacadedKeeper    = keeper.NewFacadedKeeper
+	ModuleCdc           = types.ModuleCdc
+	DefaultGenesisState = types.DefaultGenesisState
+)
+
+var (
+	V4Register = keeper.V4Register
 )
