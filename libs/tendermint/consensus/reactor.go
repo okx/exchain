@@ -2228,7 +2228,7 @@ func (m VoteMessage) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
 			return err
 		}
 		if buf.Len()-lenBeforeData != voteSize {
-			return amino.NewSizerError(voteSize, buf.Len()-lenBeforeData, voteSize)
+			return amino.NewSizerError(m.Vote, buf.Len()-lenBeforeData, voteSize)
 		}
 	}
 	return nil
