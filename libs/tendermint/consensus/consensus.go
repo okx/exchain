@@ -3,7 +3,6 @@ package consensus
 import (
 	"bytes"
 	"fmt"
-	"github.com/tendermint/go-amino"
 	"sync"
 	"time"
 
@@ -19,6 +18,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
+	"github.com/tendermint/go-amino"
 )
 
 //-----------------------------------------------------------------------------
@@ -86,16 +86,16 @@ func (info msgInfo) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
 		const pbKey = byte(1<<3 | amino.Typ3_ByteLength)
 		buf.WriteByte(pbKey)
 
-		var typePrefix [8]byte
-		n, err := cdc.GetTypePrefix(info.Msg, typePrefix[:])
-		if err != nil {
-			return err
-		}
-		if n == 0 {
-			return fmt.Errorf("interface without type prefix")
-		}
-
 		if sizer, ok := info.Msg.(amino.MarshalBufferSizer); ok {
+			var typePrefix [8]byte
+			n, err := cdc.GetTypePrefix(info.Msg, typePrefix[:])
+			if err != nil {
+				return err
+			}
+			if n == 0 {
+				return fmt.Errorf("interface without type prefix")
+			}
+
 			msgSize := n + sizer.AminoSize(cdc)
 			err = amino.EncodeUvarintToBuffer(buf, uint64(msgSize))
 			if err != nil {
@@ -108,7 +108,7 @@ func (info msgInfo) MarshalAminoTo(cdc *amino.Codec, buf *bytes.Buffer) error {
 				return err
 			}
 			if buf.Len()-lenBeforeData != msgSize {
-				return amino.NewSizerError(msgSize, buf.Len()-lenBeforeData, msgSize)
+				return amino.NewSizerError(info.Msg, buf.Len()-lenBeforeData, msgSize)
 			}
 		} else {
 			msgData, err := cdc.MarshalBinaryBare(info.Msg)
@@ -153,13 +153,15 @@ func (ti timeoutInfo) AminoSize(_ *amino.Codec) int {
 	}
 	if ti.Height != 0 {
 		size += 1 + amino.UvarintSize(uint64(ti.Height))
-
 	}
 	if ti.Round != 0 {
 		size += 1 + amino.UvarintSize(uint64(ti.Round))
 	}
 	if ti.Step != 0 {
 		size += 1 + amino.UvarintSize(uint64(ti.Step))
+	}
+	if ti.ActiveViewChange {
+		size += 1 + 1
 	}
 	return size
 }
@@ -198,6 +200,15 @@ func (ti timeoutInfo) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) error {
 		const pbKey = byte(4<<3 | amino.Typ3_Varint)
 		buf.WriteByte(pbKey)
 		err = amino.EncodeUvarint(buf, uint64(ti.Step))
+		if err != nil {
+			return err
+		}
+	}
+	// field 5
+	if ti.ActiveViewChange {
+		const pbKey = byte(5<<3 | amino.Typ3_Varint)
+		buf.WriteByte(pbKey)
+		err = amino.EncodeBoolToBuffer(buf, ti.ActiveViewChange)
 		if err != nil {
 			return err
 		}

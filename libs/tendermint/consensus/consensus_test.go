@@ -1,11 +1,12 @@
 package consensus
 
 import (
-	"github.com/okex/exchain/libs/tendermint/consensus/types"
-	"github.com/stretchr/testify/require"
 	"math"
 	"testing"
 	"time"
+
+	"github.com/okex/exchain/libs/tendermint/consensus/types"
+	"github.com/stretchr/testify/require"
 )
 
 func TestTimeoutInfoAmino(t *testing.T) {
@@ -16,18 +17,24 @@ func TestTimeoutInfoAmino(t *testing.T) {
 			Height:   2,
 			Round:    123,
 			Step:     types.RoundStepNewHeight,
+
+			ActiveViewChange: true,
 		},
 		{
 			Duration: math.MaxInt64,
 			Height:   math.MaxInt64,
 			Round:    math.MaxInt,
 			Step:     types.RoundStepPrecommit,
+
+			ActiveViewChange: true,
 		},
 		{
 			Duration: math.MinInt64,
 			Height:   math.MinInt64,
 			Round:    math.MinInt,
 			Step:     types.RoundStepNewRound,
+
+			ActiveViewChange: true,
 		},
 	}
 	for _, tc := range testCases {
@@ -35,7 +42,7 @@ func TestTimeoutInfoAmino(t *testing.T) {
 		actualData, err := cdc.MarshalBinaryWithSizer(&tc, false)
 		require.NoError(t, err)
 		require.Equal(t, expectData, actualData)
-		require.Equal(t, len(expectData), tc.AminoSize(cdc)+4)
+		require.Equal(t, len(expectData), 4+tc.AminoSize(cdc))
 	}
 }
 
@@ -48,7 +55,7 @@ func TestMsgInfoAmino(t *testing.T) {
 	testCases := []msgInfo{
 		{},
 		{
-			Msg:    &ProposalPOLMessage{},
+			Msg:    &ProposalPOLMessage{10, 100, nil},
 			PeerID: "test",
 		},
 		{
