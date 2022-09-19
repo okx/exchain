@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+	syslog "log"
 	"strconv"
 	"time"
 
@@ -205,6 +206,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		f, t := PprofStart()
 		defer PprofEnd(int(block.Height), f, t)
 	}
+	syslog.Println("lcm ApplyBlock start")
 	trc := trace.NewTracer(trace.ApplyBlock)
 	trc.EnableSummary()
 	dc := blockExec.deltaContext
@@ -220,7 +222,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 		blockExec.metrics.IntervalTime.Set(float64(now-blockExec.metrics.lastBlockTime) / 1e6)
 		blockExec.metrics.lastBlockTime = now
 	}()
-
+	syslog.Println("lcm blockExec.ValidateBlock")
 	if err := blockExec.ValidateBlock(state, block); err != nil {
 		return state, 0, ErrInvalidBlock(err)
 	}
@@ -230,10 +232,10 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	trc.Pin(trace.Abci)
 
 	startTime := time.Now().UnixNano()
-
+	syslog.Println("lcm blockExec.tryWaitLastBlockSave")
 	//wait till the last block async write be saved
 	blockExec.tryWaitLastBlockSave(block.Height - 1)
-
+	syslog.Println("lcm blockExec.runAbci")
 	abciResponses, err := blockExec.runAbci(block, deltaInfo)
 
 	if err != nil {
@@ -245,6 +247,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	trc.Pin(trace.SaveResp)
 
 	// Save the results before we commit.
+	syslog.Println("lcm blockExec.trySaveABCIResponsesAsync")
 	blockExec.trySaveABCIResponsesAsync(block.Height, abciResponses)
 
 	fail.Fail() // XXX
@@ -265,7 +268,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	if len(validatorUpdates) > 0 {
 		blockExec.logger.Info("Updates to validators", "updates", types.ValidatorListString(validatorUpdates))
 	}
-
+	syslog.Println("lcm updateState")
 	// Update the state with the block and responses.
 	state, err = updateState(state, blockID, &block.Header, abciResponses, validatorUpdates)
 	if err != nil {
@@ -276,6 +279,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	startTime = time.Now().UnixNano()
 
 	// Lock mempool, commit app state, update mempoool.
+	syslog.Println("lcm blockExec.commit")
 	commitResp, retainHeight, err := blockExec.commit(state, block, deltaInfo, abciResponses.DeliverTxs, trc)
 	endTime = time.Now().UnixNano()
 	blockExec.metrics.CommitTime.Set(float64(endTime-startTime) / 1e6)
@@ -284,6 +288,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 	}
 	global.SetGlobalHeight(block.Height)
 
+	syslog.Println("lcm blockExec.evpool.Update")
 	// Update evpool with the block and state.
 	blockExec.evpool.Update(block, state)
 
@@ -293,6 +298,7 @@ func (blockExec *BlockExecutor) ApplyBlock(
 
 	// Update the app hash and save the state.
 	state.AppHash = commitResp.Data
+	syslog.Println("lcm blockExec.trySaveStateAsync")
 	blockExec.trySaveStateAsync(state)
 
 	blockExec.logger.Debug("SaveState", "state", &state)
@@ -307,8 +313,8 @@ func (blockExec *BlockExecutor) ApplyBlock(
 			vals:    validatorUpdates,
 		}
 	}
-
 	dc.postApplyBlock(block.Height, deltaInfo, abciResponses, commitResp.DeltaMap, blockExec.isFastSync)
+	syslog.Println("lcm ApplyBlock done")
 
 	return state, retainHeight, nil
 }
