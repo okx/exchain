@@ -260,3 +260,141 @@ func (suite *ProposalSuite) TestNewWithdrawRewardEnabledProposal() {
 		})
 	}
 }
+
+func (suite *ProposalSuite) TestNewRewardTruncatePrecisionProposal() {
+	testCases := []struct {
+		title               string
+		setMilestoneHeight  func()
+		proposalTitle       string
+		proposalDescription string
+		precision           int64
+		err                 error
+	}{
+		{
+			"no proposal title",
+			func() {},
+			"",
+			"description",
+			0,
+			exgovtypes.ErrInvalidProposalContent("title is required"),
+		},
+		{
+			"gt max proposal title length",
+			func() {},
+			RandStr(types.MaxTitleLength + 1),
+			"description",
+			0,
+			exgovtypes.ErrInvalidProposalContent("title length is bigger than max title length"),
+		},
+		{
+			"gt max proposal title length",
+			func() {},
+			RandStr(types.MaxTitleLength),
+			"",
+			0,
+			exgovtypes.ErrInvalidProposalContent("description is required"),
+		},
+		{
+			"gt max proposal description length",
+			func() {},
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength + 1),
+			0,
+			exgovtypes.ErrInvalidProposalContent("description length is bigger than max description length"),
+		},
+		{
+			"error precision",
+			func() {},
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			-1,
+			ErrCodeRewardTruncatePrecision(),
+		},
+		{
+			"error precision",
+			func() {},
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			19,
+			ErrCodeRewardTruncatePrecision(),
+		},
+		{
+			"normal, precision 0",
+			func() {
+				global.SetGlobalHeight(11)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(10)
+			},
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			0,
+			nil,
+		},
+		{
+			"normal, precision 18",
+			func() {
+				global.SetGlobalHeight(11)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(10)
+			},
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			18,
+			nil,
+		},
+		{
+			"normal, precision 0, not support",
+			func() {
+				global.SetGlobalHeight(10)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(11)
+			},
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			0,
+			ErrCodeNotSupportRewardTruncateProposal(),
+		},
+		{
+			"normal, precision 1",
+			func() {
+				global.SetGlobalHeight(11)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(10)
+			},
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			1,
+			nil,
+		},
+		{
+			"normal, precision 12",
+			func() {
+				global.SetGlobalHeight(11)
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(10)
+			},
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			12,
+			nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		global.SetGlobalHeight(0)
+		tmtypes.UnittestOnlySetMilestoneVenus2Height(0)
+
+		suite.Run(tc.title, func() {
+			tc.setMilestoneHeight()
+			title := tc.proposalTitle
+			description := tc.proposalDescription
+			proposal := NewRewardTruncatePrecisionProposal(title, description, tc.precision)
+
+			require.Equal(suite.T(), title, proposal.GetTitle())
+			require.Equal(suite.T(), description, proposal.GetDescription())
+			require.Equal(suite.T(), RouterKey, proposal.ProposalRoute())
+			require.Equal(suite.T(), ProposalTypeRewardTruncatePrecision, proposal.ProposalType())
+			require.NotPanics(suite.T(), func() {
+				_ = proposal.String()
+			})
+
+			err := proposal.ValidateBasic()
+			require.Equal(suite.T(), tc.err, err)
+		})
+	}
+}

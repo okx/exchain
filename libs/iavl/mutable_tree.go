@@ -5,10 +5,8 @@ import (
 	"container/list"
 	"encoding/hex"
 	"fmt"
-	"runtime"
 	"sort"
 	"sync"
-	"time"
 
 	"github.com/tendermint/go-amino"
 
@@ -17,7 +15,7 @@ import (
 )
 
 // when upgrade to fast IAVL every commitGap nodes will trigger a db commit.
-var commitGap uint64 = 10000000
+var commitGap uint64 = 5000000
 
 // when upgrade to fast IAVL every verboseGap nodes will trigger a print.
 const verboseGap = 50000
@@ -271,7 +269,7 @@ func (tree *MutableTree) set(key []byte, value []byte) (orphans []*Node, updated
 	}
 
 	if tree.ImmutableTree.root == nil {
-		tree.addUnsavedAddition(key, NewFastNode(key, value, tree.version+1))
+		tree.addUnsavedAddition(key, value, tree.version+1)
 		tree.ImmutableTree.root = NewNode(key, value, tree.version+1)
 		return nil, updated
 	}
@@ -287,7 +285,7 @@ func (tree *MutableTree) recursiveSet(node *Node, key []byte, value []byte, orph
 	version := tree.version + 1
 
 	if node.isLeaf() {
-		tree.addUnsavedAddition(key, NewFastNode(key, value, version))
+		tree.addUnsavedAddition(key, value, version)
 		switch bytes.Compare(key, node.key) {
 		case -1:
 			return &Node{
@@ -648,9 +646,6 @@ func (tree *MutableTree) enableFastStorageAndCommitIfNotEnabled() (bool, error) 
 	}
 	tree.log(IavlInfo, "Deleting stale fast nodes...", "done", deleteCounter, "db", tree.ndb.name)
 
-	// Force garbage collection before we proceed to enabling fast storage.
-	runtime.GC()
-
 	batch := tree.NewBatch()
 	if err := tree.enableFastStorageAndCommit(batch); err != nil {
 		tree.ndb.storageVersion = defaultStorageVersionValue
@@ -677,41 +672,6 @@ func (tree *MutableTree) enableFastStorageAndCommitLocked(batch dbm.Batch) error
 
 func (tree *MutableTree) enableFastStorageAndCommit(batch dbm.Batch) error {
 	var err error
-
-	// We start a new thread to keep on checking if we are above 4GB, and if so garbage collect.
-	// This thread only lasts during the fast node migration.
-	// This is done to keep RAM usage down.
-	done := make(chan struct{})
-	defer func() {
-		done <- struct{}{}
-		close(done)
-	}()
-
-	go func() {
-		timer := time.NewTimer(time.Second)
-		var m runtime.MemStats
-
-		for {
-			// Sample the current memory usage
-			runtime.ReadMemStats(&m)
-
-			if m.Alloc > 4*1024*1024*1024 {
-				// If we are using more than 4GB of memory, we should trigger garbage collection
-				// to free up some memory.
-				runtime.GC()
-			}
-
-			select {
-			case <-timer.C:
-				timer.Reset(time.Second)
-			case <-done:
-				if !timer.Stop() {
-					<-timer.C
-				}
-				return
-			}
-		}
-	}()
 
 	itr := NewIterator(nil, nil, true, tree.ImmutableTree)
 	defer itr.Close()
@@ -1031,12 +991,12 @@ func (tree *MutableTree) getUnsavedFastNodeRemovals() map[string]interface{} {
 	return tree.unsavedFastNodes.getRemovals()
 }
 
-func (tree *MutableTree) addUnsavedAddition(key []byte, node *FastNode) {
+func (tree *MutableTree) addUnsavedAddition(key, value []byte, version int64) {
 	if !GetEnableFastStorage() {
 		return
 	}
 
-	tree.unsavedFastNodes.add(key, node)
+	tree.unsavedFastNodes.add(key, NewFastNode(key, value, version))
 }
 
 func (ndb *nodeDB) saveFastNodeAdditions(batch dbm.Batch, additions map[string]*FastNode) error {
