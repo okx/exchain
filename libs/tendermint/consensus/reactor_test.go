@@ -951,18 +951,21 @@ func TestNewRoundStepMessageAmino(t *testing.T) {
 			Step:                  10,
 			SecondsSinceStartTime: 12345,
 			LastCommitRound:       12345,
+			HasVC:                 true,
 		},
 		{
 			Height:                -12345,
 			Round:                 -12345,
 			SecondsSinceStartTime: -12345,
 			LastCommitRound:       -12345,
+			HasVC:                 true,
 		},
 		{
 			Height:                math.MinInt64,
 			Round:                 math.MinInt,
 			SecondsSinceStartTime: math.MinInt,
 			LastCommitRound:       math.MinInt,
+			HasVC:                 true,
 		},
 		{
 			Height:                math.MaxInt64,
@@ -970,13 +973,14 @@ func TestNewRoundStepMessageAmino(t *testing.T) {
 			Step:                  math.MaxUint8,
 			SecondsSinceStartTime: math.MaxInt,
 			LastCommitRound:       math.MaxInt,
+			HasVC:                 false,
 		},
 	}
 
 	for _, msg := range testCases {
 		expectData, err := cdc.MarshalBinaryBare(msg)
 		require.NoError(t, err)
-		actualData, err := cdc.MarshalBinaryWithSizer(msg, false)
+		actualData, err := cdc.MarshalBinaryWithSizer(&msg, false)
 		require.NoError(t, err)
 
 		require.Equal(t, expectData, actualData)

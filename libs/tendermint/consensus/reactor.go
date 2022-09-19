@@ -9,8 +9,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	amino "github.com/tendermint/go-amino"
-
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
 	"github.com/okex/exchain/libs/tendermint/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
@@ -21,6 +19,7 @@ import (
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+	"github.com/tendermint/go-amino"
 )
 
 type bpType int
@@ -1690,7 +1689,7 @@ func RegisterMessages(cdc *amino.Codec) {
 	cdc.RegisterConcrete(&HasBlockPartMessage{}, "tendermint/HasBlockPart", nil)
 	cdc.RegisterConcrete(&ProposeRequestMessage{}, "tendermint/ProposeRequestMessage", nil)
 	cdc.RegisterConcrete(&ViewChangeMessage{}, "tendermint/ChangeValidator", nil)
-	cdc.EnableBufferMarshaler(NewRoundStepMessage{})
+	cdc.EnableBufferMarshaler(&NewRoundStepMessage{})
 	cdc.EnableBufferMarshaler(&NewValidBlockMessage{})
 	cdc.EnableBufferMarshaler(ProposalMessage{})
 	cdc.EnableBufferMarshaler(&ProposalPOLMessage{})
@@ -1750,7 +1749,7 @@ func (m *NewRoundStepMessage) String() string {
 		m.Height, m.Round, m.Step, m.LastCommitRound)
 }
 
-func (m NewRoundStepMessage) AminoSize(_ *amino.Codec) int {
+func (m *NewRoundStepMessage) AminoSize(_ *amino.Codec) int {
 	size := 0
 	if m.Height != 0 {
 		size += 1 + amino.UvarintSize(uint64(m.Height))
@@ -1767,10 +1766,13 @@ func (m NewRoundStepMessage) AminoSize(_ *amino.Codec) int {
 	if m.LastCommitRound != 0 {
 		size += 1 + amino.UvarintSize(uint64(m.LastCommitRound))
 	}
+	if m.HasVC {
+		size += 1 + 1
+	}
 	return size
 }
 
-func (m NewRoundStepMessage) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) error {
+func (m *NewRoundStepMessage) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) error {
 	var err error
 	// field 1
 	if m.Height != 0 {
@@ -1812,6 +1814,14 @@ func (m NewRoundStepMessage) MarshalAminoTo(_ *amino.Codec, buf *bytes.Buffer) e
 	if m.LastCommitRound != 0 {
 		const pbKey = byte(5<<3 | amino.Typ3_Varint)
 		err = amino.EncodeUvarintWithKeyToBuffer(buf, uint64(m.LastCommitRound), pbKey)
+		if err != nil {
+			return err
+		}
+	}
+	// field 6
+	if m.HasVC {
+		const pbKey = byte(6<<3 | amino.Typ3_Varint)
+		err = amino.EncodeBoolWithKeyToBuffer(buf, m.HasVC, pbKey)
 		if err != nil {
 			return err
 		}
