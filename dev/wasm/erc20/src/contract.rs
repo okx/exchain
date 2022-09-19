@@ -15,7 +15,7 @@ pub const PREFIX_ALLOWANCES: &[u8] = b"allowances";
 
 pub const KEY_CONSTANTS: &[u8] = b"constants";
 pub const KEY_TOTAL_SUPPLY: &[u8] = b"total_supply";
-const EVM_CONTRACT_ADDR: &str = "0x45dD91b0289E60D89Cec94dF0Aac3a2f539c514a";
+const EVM_CONTRACT_ADDR: &str = "ex1ghwervpgnesd388vjn0s4tp69afec522tgztum";
 
 #[entry_point]
 pub fn instantiate(
@@ -119,6 +119,11 @@ fn try_mint_cw20(
     recipient: String,
     amount: Uint128,
 ) -> Result<Response<SendToEvmMsg>, ContractError> {
+    if info.sender.to_string() != EVM_CONTRACT_ADDR.to_string() {
+        return Err(ContractError::ContractERC20Err {
+           addr:info.sender.to_string()
+        });
+    }
     let amount_raw = amount.u128();
     let recipient_address = deps.api.addr_validate(recipient.as_str())?;
     let mut account_balance = read_balance(deps.storage, &recipient_address)?;
@@ -145,6 +150,7 @@ fn try_mint_cw20(
     Ok(Response::new()
         .add_attribute("action", "MINT")
         .add_attribute("account", recipient_address)
+        .add_attribute("sender", info.sender.to_string())
         .add_attribute("amount", amount.to_string()))
 }
 

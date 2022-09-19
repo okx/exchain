@@ -52,7 +52,7 @@ pub enum ExecuteMsg {
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 #[serde(rename_all = "snake_case")]
-pub struct  SendToEvmMsg {
+pub struct SendToEvmMsg {
     pub sender: String,
     pub contract: String,
     pub recipient: String,
