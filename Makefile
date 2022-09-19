@@ -13,7 +13,7 @@ IGNORE_CHECK_GO=false
 install_rocksdb_version:=$(ROCKSDB_VERSION)
 
 
-Version=v1.6.2
+Version=v1.6.3
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
@@ -52,6 +52,7 @@ else ifeq ($(MAKECMDGOALS),testnet)
    MercuryHeight=5300000
    VenusHeight=8510000
    Venus1Height=12067000
+   Venus2Height=14781000
 
    WITH_ROCKSDB=true
 endif
@@ -89,10 +90,11 @@ ldflags = -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Version=$(Version
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_MERCURY_HEIGHT=$(MercuryHeight) \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS_HEIGHT=$(VenusHeight) \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_MARS_HEIGHT=$(MarsHeight) \
-  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS2_HEIGHT=$(Venus2Height)
+  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS2_HEIGHT=$(Venus2Height) \
+  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS3_HEIGHT=$(Venus3Height)
 
 ifeq ($(WITH_ROCKSDB),true)
-  ldflags += -X github.com/okex/exchain/libs/cosmos-sdk/types.DBBackend=rocksdb
+  ldflags += -X github.com/okex/exchain/libs/tendermint/types.DBBackend=rocksdb
 endif
 
 ifeq ($(LINK_STATICALLY),true)

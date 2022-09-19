@@ -11,7 +11,6 @@ import (
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 )
 
 type TransferModule struct {
@@ -28,9 +27,6 @@ func TNewTransferModule(k keeper.Keeper, m *codec.CodecProxy) *TransferModule {
 	return ret
 }
 func (am TransferModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	if !tmtypes.HigherThanVenus1(ctx.BlockHeight()) {
-		return nil
-	}
 	return am.initGenesis(ctx, data)
 }
 
@@ -56,9 +52,6 @@ func (t TransferModule) ValidateGenesis(data json.RawMessage) error {
 // ExportGenesis returns the exported genesis state as raw bytes for the ibc-transfer
 // module.
 func (am TransferModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
-	if !tmtypes.HigherThanVenus1(ctx.BlockHeight()) {
-		return nil
-	}
 	return am.exportGenesis(ctx)
 }
 
