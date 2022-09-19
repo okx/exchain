@@ -488,6 +488,7 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 
 	// Begin block
 	var err error
+	syslog.Println("lcm proxyAppConn.BeginBlockSync")
 	abciResponses.BeginBlock, err = proxyAppConn.BeginBlockSync(abci.RequestBeginBlock{
 		Hash:                block.Hash(),
 		Header:              types.TM2PB.Header(&block.Header),
@@ -505,6 +506,7 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 	go preDeliverRoutine(proxyAppConn, block.Txs, realTxCh, stopedCh)
 
 	count := 0
+	syslog.Println("lcm deliver tx")
 	for realTx := range realTxCh {
 		if realTx != nil {
 			proxyAppConn.DeliverRealTxAsync(realTx)
@@ -526,6 +528,7 @@ func execBlockOnProxyApp(context *executionTask) (*ABCIResponses, error) {
 	close(stopedCh)
 
 	// End block.
+	syslog.Println("lcm proxyAppConn.EndBlockSync")
 	abciResponses.EndBlock, err = proxyAppConn.EndBlockSync(abci.RequestEndBlock{Height: block.Height})
 	if err != nil {
 		logger.Error("Error in proxyAppConn.EndBlock", "err", err)
