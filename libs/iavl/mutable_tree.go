@@ -853,51 +853,53 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 
 		// generate state delta
 		if produceDelta {
-			delete(tree.savedNodes, amino.BytesToStr(tree.root.hash))
-			// test dds fss
-			for _, node := range tree.savedNodes {
-				if node.isLeaf() {
-					if fn, ok := tree.unsavedFastNodes.get(node.key); ok {
-						if bytes.Compare(fn.value, node.value) != 0 {
-							log.Printf("giskook error %v %v %v %v %v %v \n", node.key, node.value, string(node.key), string(node.value), string(fn.key), string(fn.value))
-						}
-					} else {
-						log.Printf("giskook dds have %v %v %v %v \n", node.key, node.value, string(node.key), string(node.value))
-					}
-				}
+			if ok := tree.savedNodes[amino.BytesToStr(tree.root.hash)]; ok {
+				delete(tree.savedNodes, amino.BytesToStr(tree.root.hash))
+				tree.savedNodes["root"] = tree.root
 			}
-
-			for _, fn := range tree.unsavedFastNodes.additions {
-				var has bool
-				for _, node := range tree.savedNodes {
-					if node.isLeaf() &&
-						bytes.Compare(node.key, fn.key) == 0 &&
-						bytes.Compare(node.value, fn.value) == 0 {
-						has = true
-						break
-					}
-				}
-				if !has {
-					log.Printf("giskook fss has dds none %v %v %v %v\n", fn.key, fn.value, string(fn.key), string(fn.value))
-				}
-			}
-
-			count := 0
-			for _, node := range tree.savedNodes {
-				if node.isLeaf() {
-					count++
-				}
-			}
-			if count != len(tree.unsavedFastNodes.additions) {
-				log.Printf("giskook fss dds not equal %v %v\n", count, len(tree.unsavedFastNodes.additions))
-			} else {
-				log.Printf("giskook equal %v \n", count)
-			}
-			// test dds fss
-			tree.savedNodes["root"] = tree.root
 			tree.GetDelta()
 		}
 
+		// test dds fss
+		for _, node := range tree.savedNodes {
+			if node.isLeaf() {
+				if fn, ok := tree.unsavedFastNodes.get(node.key); ok {
+					if bytes.Compare(fn.value, node.value) != 0 {
+						log.Printf("giskook error %v %v %v %v %v %v \n", node.key, node.value, string(node.key), string(node.value), string(fn.key), string(fn.value))
+					}
+				} else {
+					log.Printf("giskook dds have %v %v %v %v \n", node.key, node.value, string(node.key), string(node.value))
+				}
+			}
+		}
+
+		for _, fn := range tree.unsavedFastNodes.additions {
+			var has bool
+			for _, node := range tree.savedNodes {
+				if node.isLeaf() &&
+					bytes.Compare(node.key, fn.key) == 0 &&
+					bytes.Compare(node.value, fn.value) == 0 {
+					has = true
+					break
+				}
+			}
+			if !has {
+				log.Printf("giskook fss has dds none %v %v %v %v\n", fn.key, fn.value, string(fn.key), string(fn.value))
+			}
+		}
+
+		count := 0
+		for _, node := range tree.savedNodes {
+			if node.isLeaf() {
+				count++
+			}
+		}
+		if count != len(tree.unsavedFastNodes.additions) {
+			log.Printf("giskook fss dds not equal %v %v\n", count, len(tree.unsavedFastNodes.additions))
+		} else {
+			log.Printf("giskook equal %v \n", count)
+		}
+		// test dds fss
 		tree.ndb.SaveOrphans(batch, version, tree.orphans)
 		if err := tree.ndb.SaveRoot(batch, tree.root, version); err != nil {
 			return nil, 0, err
