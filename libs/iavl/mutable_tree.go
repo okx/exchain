@@ -859,9 +859,6 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 		}
 
 		tree.ndb.SaveOrphans(batch, version, tree.orphans)
-		if err := tree.ndb.SaveRoot(batch, tree.root, version); err != nil {
-			return nil, 0, err
-		}
 
 		// test dds fss
 		for _, node := range tree.savedNodes {
@@ -903,6 +900,10 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 			log.Printf("giskook equal %v \n", count)
 		}
 		// test dds fss
+		if err := tree.ndb.SaveRoot(batch, tree.root, version); err != nil {
+			return nil, 0, err
+		}
+
 	}
 
 	tree.ndb.updateLatestMemoryVersion(version)
