@@ -498,6 +498,14 @@ func (c *MockClient) UnconfirmedTxs(limit int) (*ctypes.ResultUnconfirmedTxs, er
 		TotalBytes: c.env.Mempool.TxsBytes(),
 		Txs:        txs}, nil
 }
+func (c *MockClient) UnconfirmedDecodedTxs(limit int) (*ctypes.ResultUnconfirmedDecodedTxs, error) {
+	txs := c.env.Mempool.ReapMaxDecodedTxs(limit)
+	return &ctypes.ResultUnconfirmedDecodedTxs{
+		Count:      len(txs),
+		Total:      c.env.Mempool.Size(),
+		TotalBytes: c.env.Mempool.TxsBytes(),
+		Txs:        txs}, nil
+}
 func (c MockClient) GetUnconfirmedTxByHash(hash [sha256.Size]byte) (types.Tx, error) {
 	return c.env.Mempool.GetTxByHash(hash)
 }

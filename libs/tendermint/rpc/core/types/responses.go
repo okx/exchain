@@ -198,6 +198,13 @@ type ResultUnconfirmedTxs struct {
 	Txs        []types.Tx `json:"txs"`
 }
 
+type ResultUnconfirmedDecodedTxs struct {
+	Count      int           `json:"n_txs"`
+	Total      int           `json:"total"`
+	TotalBytes int64         `json:"total_bytes"`
+	Txs        []interface{} `json:"txs"`
+}
+
 // List of mempool txs
 type ResultUserUnconfirmedTxs struct {
 	Count int        `json:"n_txs"`

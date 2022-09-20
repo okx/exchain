@@ -31,6 +31,7 @@ type Mempool interface {
 	// If max is negative, there is no cap on the size of all returned
 	// transactions (~ all available transactions).
 	ReapMaxTxs(max int) types.Txs
+	ReapMaxDecodedTxs(max int) []interface{}
 
 	ReapUserTxsCnt(address string) int
 

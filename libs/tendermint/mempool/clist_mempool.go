@@ -740,6 +740,21 @@ func (mem *CListMempool) ReapMaxTxs(max int) types.Txs {
 	}
 	return txs
 }
+func (mem *CListMempool) ReapMaxDecodedTxs(max int) []interface{} {
+	mem.updateMtx.RLock()
+	defer mem.updateMtx.RUnlock()
+
+	if max < 0 {
+		max = mem.txs.Len()
+	}
+
+	txs := make([]interface{}, 0, tmmath.MinInt(mem.txs.Len(), max))
+	for e := mem.txs.Front(); e != nil && len(txs) <= max; e = e.Next() {
+		memTx := e.Value.(*mempoolTx)
+		txs = append(txs, memTx.realTx)
+	}
+	return txs
+}
 
 func (mem *CListMempool) GetTxByHash(hash [sha256.Size]byte) (types.Tx, error) {
 	if ele, ok := mem.txs.Load(hash); ok {

@@ -33,6 +33,11 @@ type Client struct {
 	prt  *merkle.ProofRuntime
 }
 
+func (c *Client) UnconfirmedDecodedTxs(limit int) (*ctypes.ResultUnconfirmedDecodedTxs, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (c *Client) GetUnconfirmedTxByHash(hash [sha256.Size]byte) (types.Tx, error) {
 	return nil, mempool.ErrNoSuchTx
 }

@@ -15,6 +15,11 @@ import (
 // Mempool is an empty implementation of a Mempool, useful for testing.
 type Mempool struct{}
 
+func (m Mempool) ReapMaxDecodedTxs(max int) []interface{} {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (m Mempool) GetAddressList() []string {
 	return nil
 }

@@ -105,6 +105,9 @@ func (c *Local) BroadcastTxSync(tx types.Tx) (*ctypes.ResultBroadcastTx, error) 
 func (c *Local) UnconfirmedTxs(limit int) (*ctypes.ResultUnconfirmedTxs, error) {
 	return core.UnconfirmedTxs(c.ctx, limit)
 }
+func (c *Local) UnconfirmedDecodedTxs(limit int) (*ctypes.ResultUnconfirmedDecodedTxs, error) {
+	return core.UnconfirmedDecodedTxs(c.ctx, limit)
+}
 
 func (c *Local) NumUnconfirmedTxs() (*ctypes.ResultUnconfirmedTxs, error) {
 	return core.NumUnconfirmedTxs(c.ctx)

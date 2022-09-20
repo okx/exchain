@@ -144,6 +144,15 @@ func UnconfirmedTxs(ctx *rpctypes.Context, limit int) (*ctypes.ResultUnconfirmed
 		Txs:        txs}, nil
 }
 
+func UnconfirmedDecodedTxs(ctx *rpctypes.Context, limit int) (*ctypes.ResultUnconfirmedDecodedTxs, error) {
+	txs := env.Mempool.ReapMaxDecodedTxs(limit)
+	return &ctypes.ResultUnconfirmedDecodedTxs{
+		Count:      len(txs),
+		Total:      env.Mempool.Size(),
+		TotalBytes: env.Mempool.TxsBytes(),
+		Txs:        txs}, nil
+}
+
 // NumUnconfirmedTxs gets number of unconfirmed transactions.
 // More: https://docs.tendermint.com/master/rpc/#/Info/num_unconfirmed_txs
 func NumUnconfirmedTxs(ctx *rpctypes.Context) (*ctypes.ResultUnconfirmedTxs, error) {

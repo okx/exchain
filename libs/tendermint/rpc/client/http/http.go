@@ -69,6 +69,11 @@ type HTTP struct {
 	*WSEvents
 }
 
+func (c *HTTP) UnconfirmedDecodedTxs(limit int) (*ctypes.ResultUnconfirmedDecodedTxs, error) {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (c *HTTP) GetUnconfirmedTxByHash(hash [sha256.Size]byte) (types.Tx, error) {
 	return nil, errors.New("unhandled method")
 }

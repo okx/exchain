@@ -43,6 +43,14 @@ func RawTxToEthTx(clientCtx clientcontext.CLIContext, bz []byte) (*evmtypes.MsgE
 	return ethTx, nil
 }
 
+func IsEthTx(tx interface{}) (*evmtypes.MsgEthereumTx, bool) {
+	ethTx, ok := tx.(*evmtypes.MsgEthereumTx)
+	if !ok {
+		return nil, false
+	}
+	return ethTx, true
+}
+
 func ToTransaction(tx *evmtypes.MsgEthereumTx, from *common.Address) *watcher.Transaction {
 	rpcTx := &watcher.Transaction{
 		From:     *from,
