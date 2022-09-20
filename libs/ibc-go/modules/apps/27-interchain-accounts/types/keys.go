@@ -15,7 +15,8 @@ const (
 	PortPrefix = "icacontroller-"
 
 	// Version defines the current version for interchain accounts
-	Version = "ics27-1"
+	Version = "" +
+		""
 
 	// StoreKey is the store key string for interchain accounts
 	StoreKey = ModuleName

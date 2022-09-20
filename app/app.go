@@ -42,8 +42,10 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"github.com/okex/exchain/libs/iavl"
+	icacontroller "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller"
 	icacontrollerkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/keeper"
 	icacontrollertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/types"
+	icahost "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host"
 	icahostkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/keeper"
 	icahosttypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/types"
 	ibcfeekeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/keeper"
@@ -416,7 +418,7 @@ func NewOKExChainApp(
 	)
 	v4Keeper := ibc.NewV4Keeper(v2keeper)
 	facadedKeeper := ibc.NewFacadedKeeper(v2keeper)
-	facadedKeeper.RegisterKeeper(v4Keeper, ibc.V4Register)
+	facadedKeeper.RegisterKeeper(ibc.DefaultSelectorFactory(tmtypes.HigherThanVenus3, ibc.IBCV4, v4Keeper))
 	app.IBCKeeper = facadedKeeper
 
 	// Create Transfer Keepers
@@ -492,12 +494,28 @@ func NewOKExChainApp(
 	left := common.NewDisaleProxyMiddleware()
 	middle := ibctransfer.NewIBCModule(app.TransferKeeper)
 	right := ibcfee.NewIBCMiddleware(middle, app.IBCFeeKeeper)
-	transferStack := ibcfee.NewFallThroughMiddleware(tmtypes.GetVenus1Height(), tmtypes.GetVenus3Height(), left, middle, right)
+
+	//transferStack := ibcporttypes.NewFallThroughMiddleware(tmtypes.GetVenus1Height(), tmtypes.GetVenus3Height(), left, middle, right)
+	transferStack := ibcporttypes.NewFallThroughMiddleware(left,
+		ibcporttypes.DefaultFactory(tmtypes.HigherThanVenus3, ibc.IBCV4, right),
+		ibcporttypes.DefaultFactory(tmtypes.HigherThanVenus1, ibc.IBCV2, middle))
 	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
 
 	// Create static IBC router, add transfer route, then set and seal it
 	ibcRouter := ibcporttypes.NewRouter()
+
+	var icaControllerStack ibcporttypes.IBCModule
+	icaControllerStack = icacontroller.NewIBCMiddleware(icaControllerStack, app.ICAControllerKeeper)
+	icaControllerStack = ibcfee.NewIBCMiddleware(icaControllerStack, app.IBCFeeKeeper)
+
+	var icaHostStack ibcporttypes.IBCModule
+	icaHostStack = icahost.NewIBCModule(app.ICAHostKeeper)
+	icaHostStack = ibcfee.NewIBCMiddleware(icaHostStack, app.IBCFeeKeeper)
+
 	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferStack)
+	ibcRouter.AddRoute(icacontrollertypes.SubModuleName, icaControllerStack)
+	ibcRouter.AddRoute(icahosttypes.SubModuleName, icaHostStack)
+
 	//ibcRouter.AddRoute(ibcmock.ModuleName, mockModule)
 	v2keeper.SetRouter(ibcRouter)
 

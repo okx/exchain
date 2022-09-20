@@ -20,5 +20,10 @@ var (
 )
 
 var (
-	V4Register = keeper.V4Register
+	DefaultSelectorFactory = keeper.DefaultFactory
+)
+
+const (
+	IBCV4 = 4
+	IBCV2 = 2
 )

@@ -3,8 +3,7 @@ package keeper
 import (
 	"context"
 	"errors"
-
-	types2 "github.com/okex/exchain/libs/tendermint/types"
+	"sort"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
@@ -15,20 +14,6 @@ import (
 var _ IBCServerKeeper = (*FacadedKeeper)(nil)
 
 var errMisSpecificKeeper = errors.New("mis ")
-
-var (
-	V4Register KeepRegister = func() (KeeperSelector, int64) {
-		return func(ctx sdk.Context) (int64, bool) {
-			if types2.HigherThanVenus3(ctx.BlockHeight()) {
-				return types2.GetVenus3Height(), true
-			}
-			return 0, false
-		}, types2.GetVenus3Height()
-	}
-)
-
-type KeepRegister func() (KeeperSelector, int64)
-type KeeperSelector func(ctx sdk.Context) (int64, bool)
 
 type IBCServerKeeper interface {
 	channeltyeps.QueryServer
@@ -42,27 +27,33 @@ type IBCServerKeeper interface {
 
 type FacadedKeeper struct {
 	V2Keeper  *Keeper
-	keepers   map[int64]IBCServerKeeper
-	selectors []KeeperSelector
+	selectors KeeperSelectors
 }
 
 func NewFacadedKeeper(v2Keeper *Keeper) *FacadedKeeper {
-	ret := &FacadedKeeper{
-		keepers: make(map[int64]IBCServerKeeper),
-	}
+	ret := &FacadedKeeper{}
 	ret.V2Keeper = v2Keeper
 
 	return ret
 }
 
-func (f *FacadedKeeper) RegisterKeeper(k IBCServerKeeper, reg KeepRegister) {
-	selector, h := reg()
-	if _, exist := f.keepers[h]; exist {
-		// TODO,错误码要不要改下?
-		panic("program error")
+func (f *FacadedKeeper) RegisterKeeper(factories ...SelectorFactory) {
+	var selectors KeeperSelectors
+	set := make(map[int]struct{})
+
+	for _, f := range factories {
+		sel := f()
+		selectors = append(selectors, sel)
+		v := sel.Version()
+		if _, contains := set[v]; contains {
+			// TODO,错误
+			panic("asd")
+		}
+		set[v] = struct{}{}
 	}
-	f.keepers[h] = k
-	f.selectors = append(f.selectors, selector)
+	sort.Sort(selectors)
+
+	f.selectors = selectors
 }
 
 func (f *FacadedKeeper) GetPacketCommitment(ctx sdk.Context, portID, channelID string, sequence uint64) []byte {
@@ -237,20 +228,12 @@ func (f *FacadedKeeper) getHeightKeeper(goCtx context.Context) IBCServerKeeper {
 
 func (f *FacadedKeeper) doGetByCtx(ctx sdk.Context) IBCServerKeeper {
 	for _, selector := range f.selectors {
-		hh, ok := selector(ctx)
+		hh, ok := selector.Select(ctx)
 		if ok {
-			return f.doGet(hh)
+			return hh
 		}
 	}
 	return f.V2Keeper
-}
-
-func (f *FacadedKeeper) doGet(h int64) IBCServerKeeper {
-	ret, exist := f.keepers[h]
-	if !exist {
-		return f.V2Keeper
-	}
-	return ret
 }
 
 func (f *FacadedKeeper) GetIbcEnabled(ctx sdk.Context) bool {
