@@ -91,6 +91,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 			tree.ndb.updateBranchMoreConcurrency(tree.root)
 		}
 		// test dds fss
+		log.Println("giskookb fss dds")
 		for _, node := range tree.savedNodes {
 			if node.isLeaf() {
 				if fn, ok := tree.unsavedFastNodes.get(node.key); ok {
@@ -102,6 +103,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 				}
 			}
 		}
+		log.Println("giskooke fss dds")
 
 		// test dds fss
 
