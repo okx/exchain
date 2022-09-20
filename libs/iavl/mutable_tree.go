@@ -851,6 +851,18 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 			tree.ndb.SaveBranch(batch, tree.root, tree.savedNodes)
 		}
 
+		// generate state delta
+		if produceDelta {
+			delete(tree.savedNodes, amino.BytesToStr(tree.root.hash))
+			tree.savedNodes["root"] = tree.root
+			tree.GetDelta()
+		}
+
+		tree.ndb.SaveOrphans(batch, version, tree.orphans)
+		if err := tree.ndb.SaveRoot(batch, tree.root, version); err != nil {
+			return nil, 0, err
+		}
+
 		// test dds fss
 		for _, node := range tree.savedNodes {
 			if node.isLeaf() {
@@ -891,17 +903,6 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 			log.Printf("giskook equal %v \n", count)
 		}
 		// test dds fss
-		// generate state delta
-		if produceDelta {
-			delete(tree.savedNodes, amino.BytesToStr(tree.root.hash))
-			tree.savedNodes["root"] = tree.root
-			tree.GetDelta()
-		}
-
-		tree.ndb.SaveOrphans(batch, version, tree.orphans)
-		if err := tree.ndb.SaveRoot(batch, tree.root, version); err != nil {
-			return nil, 0, err
-		}
 	}
 
 	tree.ndb.updateLatestMemoryVersion(version)
