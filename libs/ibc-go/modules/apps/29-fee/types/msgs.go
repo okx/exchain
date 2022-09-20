@@ -10,6 +10,10 @@ import (
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 )
 
+var (
+	_ sdk.Msg = MsgPayPacketFee{}
+)
+
 // msg types
 const (
 	TypeMsgPayPacketFee      = "payPacketFee"
@@ -63,6 +67,18 @@ func (msg MsgRegisterPayee) GetSigners() []sdk.AccAddress {
 	return []sdk.AccAddress{signer}
 }
 
+func (msg MsgRegisterPayee) Route() string {
+	return RouterKey
+}
+
+func (msg MsgRegisterPayee) Type() string {
+	return sdk.MsgTypeURL(&msg)
+}
+
+func (msg MsgRegisterPayee) GetSignBytes() []byte {
+	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&msg))
+}
+
 // NewMsgRegisterCounterpartyPayee creates a new instance of MsgRegisterCounterpartyPayee
 func NewMsgRegisterCounterpartyPayee(portID, channelID, relayerAddr, counterpartyPayeeAddr string) *MsgRegisterCounterpartyPayee {
 	return &MsgRegisterCounterpartyPayee{
@@ -103,6 +119,18 @@ func (msg MsgRegisterCounterpartyPayee) GetSigners() []sdk.AccAddress {
 	}
 
 	return []sdk.AccAddress{signer}
+}
+
+func (msg MsgRegisterCounterpartyPayee) Route() string {
+	return RouterKey
+}
+
+func (msg MsgRegisterCounterpartyPayee) Type() string {
+	return sdk.MsgTypeURL(&msg)
+}
+
+func (msg MsgRegisterCounterpartyPayee) GetSignBytes() []byte {
+	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&msg))
 }
 
 // NewMsgPayPacketFee creates a new instance of MsgPayPacketFee

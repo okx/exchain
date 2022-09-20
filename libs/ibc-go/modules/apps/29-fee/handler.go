@@ -3,6 +3,8 @@ package fee
 import (
 	"fmt"
 
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/types"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/keeper"
@@ -18,7 +20,19 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 
 		ctx.SetEventManager(sdk.NewEventManager())
 
-		switch msg := msg.(type) {
+		switch detailMsg := msg.(type) {
+		case *types.MsgPayPacketFee:
+			res, err := k.PayPacketFee(sdk.WrapSDKContext(ctx), detailMsg)
+			return sdk.WrapServiceResult(ctx, res, err)
+		case *types.MsgRegisterCounterpartyPayee:
+			res, err := k.RegisterCounterpartyPayee(sdk.WrapSDKContext(ctx), detailMsg)
+			return sdk.WrapServiceResult(ctx, res, err)
+		case *types.MsgPayPacketFeeAsync:
+			res, err := k.PayPacketFeeAsync(sdk.WrapSDKContext(ctx), detailMsg)
+			return sdk.WrapServiceResult(ctx, res, err)
+		case *types.MsgRegisterPayee:
+			res, err := k.RegisterPayee(sdk.WrapSDKContext(ctx), detailMsg)
+			return sdk.WrapServiceResult(ctx, res, err)
 		default:
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized  fee message type: %T", msg)
 		}

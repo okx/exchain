@@ -308,3 +308,16 @@ func (coins CoinAdapters) Copy() CoinAdapters {
 
 	return copyCoins
 }
+
+func FromCoins(coins Coins) CoinAdapters {
+	ret := make([]CoinAdapter, 0)
+	for _, c := range coins {
+		ret = append(ret, FromCoin(c))
+	}
+	return ret
+}
+
+// TODO ,这样转可以吗?
+func FromCoin(coin Coin) CoinAdapter {
+	return NewCoinAdapter(coin.Denom, NewIntFromBigInt(coin.Amount.BigInt()))
+}

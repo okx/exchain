@@ -63,8 +63,7 @@ func (b AppModuleBasic) RegisterGRPCGatewayRoutes(ctx cliCtx.CLIContext, mux *ru
 }
 
 func (b AppModuleBasic) GetTxCmdV2(cdc *codec.CodecProxy, reg anytypes.InterfaceRegistry) *cobra.Command {
-	// TODO, 同tx ,是否需要tx cmd
-	return nil
+	return cli.NewTxCmd(cdc, reg)
 }
 
 func (b AppModuleBasic) GetQueryCmdV2(cdc *codec.CodecProxy, reg anytypes.InterfaceRegistry) *cobra.Command {
