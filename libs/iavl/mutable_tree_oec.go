@@ -91,7 +91,6 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 			tree.ndb.updateBranchMoreConcurrency(tree.root)
 		}
 		// test dds fss
-		log.Println("giskookb fss dds")
 		for _, node := range tree.savedNodes {
 			if node.isLeaf() {
 				if fn, ok := tree.unsavedFastNodes.get(node.key); ok {
@@ -103,8 +102,21 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 				}
 			}
 		}
-		log.Println("giskooke fss dds")
 
+		for _, fn := range tree.unsavedFastNodes.additions {
+			var has bool
+			for _, node := range tree.savedNodes {
+				if node.isLeaf() &&
+					bytes.Compare(node.key, fn.key) == 0 &&
+					bytes.Compare(node.value, fn.value) == 0 {
+					has = true
+					break
+				}
+			}
+			if !has {
+				log.Printf("fss has dds none %v %v %v %v\n", fn.key, fn.value, string(fn.key), string(fn.value))
+			}
+		}
 		// test dds fss
 
 		tree.updateBranchFastNode()
