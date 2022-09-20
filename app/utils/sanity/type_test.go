@@ -2,9 +2,10 @@ package sanity
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"testing"
 )
 
 // universeFlag used to build command
@@ -178,7 +179,38 @@ func Test_conflictPair_checkConflict(t *testing.T) {
 				configB: tt.fields.configB,
 			}
 			var err error
-			if err = cp.checkConflict(); (err != nil) != tt.wantErr {
+			if err = cp.Check(); (err != nil) != tt.wantErr {
+				t.Errorf("checkConflict() error = %v, wantErr %v", err, tt.wantErr)
+			}
+			t.Log(err)
+		})
+	}
+}
+
+func Test_dependentPair_check(t *testing.T) {
+	type args struct {
+		cmd *cobra.Command
+	}
+	tests := []struct {
+		name    string
+		fields  dependentPair
+		args    args
+		wantErr bool
+	}{
+		{name: "1. b1=true, b2=true, correct",
+			fields: dependentPair{config: boolItem{name: "b1", value: true}, reliedConfig: boolItem{name: "b2", value: true}},
+			args:   args{cmd: getCommandBool()}, wantErr: false},
+		{name: "2. b1=true,b2=false, need error",
+			fields: dependentPair{config: boolItem{name: "b1", value: true}, reliedConfig: boolItem{name: "b2", value: false}},
+			args:   args{cmd: getCommandBool()}, wantErr: true},
+		{name: "2. b1=false, no error",
+			fields: dependentPair{config: boolItem{name: "b1", value: false}, reliedConfig: boolItem{name: "b2", value: false}},
+			args:   args{cmd: getCommandBool()}, wantErr: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var err error
+			if err = tt.fields.Check(); (err != nil) != tt.wantErr {
 				t.Errorf("checkConflict() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			t.Log(err)
