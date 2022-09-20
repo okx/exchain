@@ -126,6 +126,8 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 		}
 		if count != len(tree.unsavedFastNodes.additions) {
 			log.Printf("giskook fss dds not equal %v %v\n", count, len(tree.unsavedFastNodes.additions))
+		} else {
+			log.Printf("giskook equal %v \n", count)
 		}
 		// test dds fss
 
