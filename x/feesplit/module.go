@@ -10,7 +10,10 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/feesplit/client/cli"
 	"github.com/okex/exchain/x/feesplit/keeper"
 	"github.com/okex/exchain/x/feesplit/types"
@@ -20,7 +23,7 @@ import (
 var (
 	_ module.AppModule      = AppModule{}
 	_ module.AppModuleBasic = AppModuleBasic{}
-	//_ upgrade.UpgradeModule = AppModule{}
+	_ upgrade.UpgradeModule = AppModule{}
 )
 
 // AppModuleBasic type for the fees module
@@ -38,18 +41,22 @@ func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
 
 // DefaultGenesis is json default structure
 func (AppModuleBasic) DefaultGenesis() json.RawMessage {
-	return types.ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
+	//return types.ModuleCdc.MustMarshalJSON(types.DefaultGenesisState())
+	return nil
 }
 
 // ValidateGenesis is the validation check of the Genesis
 func (AppModuleBasic) ValidateGenesis(bz json.RawMessage) error {
-	var genesisState types.GenesisState
-	err := types.ModuleCdc.UnmarshalJSON(bz, &genesisState)
-	if err != nil {
-		return err
-	}
+	if len(bz) > 0 {
+		var genesisState types.GenesisState
+		err := types.ModuleCdc.UnmarshalJSON(bz, &genesisState)
+		if err != nil {
+			return err
+		}
 
-	return genesisState.Validate()
+		return genesisState.Validate()
+	}
+	return nil
 }
 
 // RegisterRESTRoutes Registers rest routes
@@ -71,15 +78,18 @@ func (AppModuleBasic) GetTxCmd(cdc *codec.Codec) *cobra.Command {
 // AppModule implements the AppModule interface for the fees module.
 type AppModule struct {
 	AppModuleBasic
+	*base.BaseIBCUpgradeModule
 	keeper keeper.Keeper
 }
 
 // NewAppModule creates a new AppModule Object
 func NewAppModule(k keeper.Keeper) AppModule {
-	return AppModule{
+	m := AppModule{
 		AppModuleBasic: AppModuleBasic{},
 		keeper:         k,
 	}
+	m.BaseIBCUpgradeModule = base.NewBaseIBCUpgradeModule(m)
+	return m
 }
 
 // Name returns the fees module's name.
@@ -123,15 +133,20 @@ func (am AppModule) EndBlock(_ sdk.Context, _ abci.RequestEndBlock) []abci.Valid
 // InitGenesis performs the fees module's genesis initialization. It returns
 // no validator updates.
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
-	var genesisState types.GenesisState
-
-	types.ModuleCdc.MustUnmarshalJSON(data, &genesisState)
-	InitGenesis(ctx, am.keeper, genesisState)
-	return []abci.ValidatorUpdate{}
+	//var genesisState types.GenesisState
+	//
+	//types.ModuleCdc.MustUnmarshalJSON(data, &genesisState)
+	//InitGenesis(ctx, am.keeper, genesisState)
+	//return []abci.ValidatorUpdate{}
+	return nil
 }
 
 // ExportGenesis returns the fees module's exported genesis state as raw JSON bytes.
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
+	if !tmtypes.HigherThanVenus3(ctx.BlockHeight()) {
+		return nil
+	}
 	gs := ExportGenesis(ctx, am.keeper)
 	return types.ModuleCdc.MustMarshalJSON(gs)
+	return nil
 }
