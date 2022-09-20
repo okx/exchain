@@ -81,7 +81,7 @@ func (cp *dependentPair) Check() error {
 	//if config is true,  then the reliedConfig must be checked as true
 	if cp.config.check() &&
 		!cp.reliedConfig.check() {
-		return fmt.Errorf(" %v must be set explicitly, as %v", cp.config.verbose(), cp.reliedConfig.verbose())
+		return fmt.Errorf(" %v must be set explicitly, as %v", cp.reliedConfig.verbose(), cp.config.verbose())
 	}
 	return nil
 }
