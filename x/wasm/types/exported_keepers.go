@@ -56,6 +56,12 @@ type ContractOpsKeeper interface {
 
 	// SetAccessConfig updates the access config of a code id.
 	SetAccessConfig(ctx sdk.Context, codeID uint64, config AccessConfig) error
+
+	// UpdateUploadAccessConfig updates the access config of uploading code.
+	UpdateUploadAccessConfig(ctx sdk.Context, config AccessConfig)
+
+	// UpdateContractMethodBlockedList updates the blacklist of contract methods.
+	UpdateContractMethodBlockedList(ctx sdk.Context, methods *ContractMethods, isDelete bool) error
 }
 
 // IBCContractKeeper IBC lifecycle event handler
