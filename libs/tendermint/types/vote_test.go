@@ -351,7 +351,7 @@ var voteAminoTestCases = []Vote{
 		Height:         math.MinInt64,
 		Round:          math.MinInt,
 		ValidatorIndex: math.MinInt,
-		HasVC:          false,
+		HasVC:          true,
 	},
 }
 

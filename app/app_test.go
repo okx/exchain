@@ -111,9 +111,9 @@ func TestProposalManager(t *testing.T) {
 	require.True(t, app.GovKeeper.Router().HasRoute(distr.RouterKey))
 	require.True(t, app.GovKeeper.Router().HasRoute(farm.RouterKey))
 
-	require.True(t, app.GovKeeper.ProposalHandleRouter().HasRoute(params.RouterKey))
-	require.True(t, app.GovKeeper.ProposalHandleRouter().HasRoute(dex.RouterKey))
-	require.True(t, app.GovKeeper.ProposalHandleRouter().HasRoute(farm.RouterKey))
+	require.True(t, app.GovKeeper.ProposalHandlerRouter().HasRoute(params.RouterKey))
+	require.True(t, app.GovKeeper.ProposalHandlerRouter().HasRoute(dex.RouterKey))
+	require.True(t, app.GovKeeper.ProposalHandlerRouter().HasRoute(farm.RouterKey))
 }
 
 func TestFakeBlockTxSuite(t *testing.T) {
