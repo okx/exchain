@@ -114,8 +114,18 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 				}
 			}
 			if !has {
-				log.Printf("fss has dds none %v %v %v %v\n", fn.key, fn.value, string(fn.key), string(fn.value))
+				log.Printf("giskook fss has dds none %v %v %v %v\n", fn.key, fn.value, string(fn.key), string(fn.value))
 			}
+		}
+
+		count := 0
+		for _, node := range tree.savedNodes {
+			if node.isLeaf() {
+				count++
+			}
+		}
+		if count != len(tree.unsavedFastNodes.additions) {
+			log.Printf("giskook fss dds not equal %v %v\n", count, len(tree.unsavedFastNodes.additions))
 		}
 		// test dds fss
 
