@@ -853,7 +853,8 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 
 		// generate state delta
 		if produceDelta {
-			if _, ok := tree.savedNodes[amino.BytesToStr(tree.root.hash)]; ok {
+			// if _, ok := tree.savedNodes[amino.BytesToStr(tree.root.hash)]; ok {
+			if len(tree.savedNodes) > 0 {
 				delete(tree.savedNodes, amino.BytesToStr(tree.root.hash))
 				tree.savedNodes["root"] = tree.root
 			}
