@@ -91,7 +91,6 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 			tree.ndb.updateBranchMoreConcurrency(tree.root)
 		}
 		// test dds fss
-		delete(tree.savedNodes, string(tree.root.hash))
 		for _, node := range tree.savedNodes {
 			if node.isLeaf() {
 				if fn, ok := tree.unsavedFastNodes.get(node.key); ok {
