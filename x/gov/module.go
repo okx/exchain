@@ -150,7 +150,10 @@ func (AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {}
 // EndBlock implements module end-block
 func (am AppModule) EndBlock(ctx sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
 	EndBlocker(ctx, am.keeper)
-	watcher.Save(nil)
+	if watcher.Enable() {
+		watcher.Save(nil)
+	}
+
 	return []abci.ValidatorUpdate{}
 }
 
