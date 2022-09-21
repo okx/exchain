@@ -2,6 +2,7 @@ package simapp
 
 import (
 	"fmt"
+	wasmclient "github.com/okex/exchain/x/wasm/client"
 	"io"
 	"math/big"
 	"os"
@@ -121,7 +122,11 @@ var (
 		mint.AppModuleBasic{},
 		distr.AppModuleBasic{},
 		gov.NewAppModuleBasic(
-			paramsclient.ProposalHandler, distr.ProposalHandler,
+			paramsclient.ProposalHandler,
+			distr.CommunityPoolSpendProposalHandler,
+			distr.ChangeDistributionTypeProposalHandler,
+			distr.WithdrawRewardEnabledProposalHandler,
+			distr.RewardTruncatePrecisionProposalHandler,
 			dexclient.DelistProposalHandler, farmclient.ManageWhiteListProposalHandler,
 			evmclient.ManageContractDeploymentWhitelistProposalHandler,
 			evmclient.ManageContractBlockedListProposalHandler,
@@ -129,6 +134,11 @@ var (
 			govclient.ManageTreasuresProposalHandler,
 			erc20client.TokenMappingProposalHandler,
 			erc20client.ProxyContractRedirectHandler,
+			wasmclient.UpdateContractAdminProposalHandler,
+			wasmclient.ClearContractAdminProposalHandler,
+			wasmclient.UpdateDeploymentWhitelistProposalHandler,
+			wasmclient.MigrateContractProposalHandler,
+			wasmclient.UpdateWASMContractMethodBlockedListProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
@@ -412,7 +422,7 @@ func NewSimApp(
 	govRouter := gov.NewRouter()
 	govRouter.AddRoute(gov.RouterKey, gov.ProposalHandler).
 		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(&app.ParamsKeeper)).
-		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(app.DistrKeeper)).
+		AddRoute(distr.RouterKey, distr.NewDistributionProposalHandler(app.DistrKeeper)).
 		AddRoute(dex.RouterKey, dex.NewProposalHandler(&app.DexKeeper)).
 		AddRoute(farm.RouterKey, farm.NewManageWhiteListProposalHandler(&app.FarmKeeper)).
 		AddRoute(evm.RouterKey, evm.NewManageContractDeploymentWhitelistProposalHandler(app.EvmKeeper)).

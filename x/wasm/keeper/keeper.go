@@ -2,8 +2,11 @@ package keeper
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
+	"github.com/gogo/protobuf/proto"
 	"math"
 	"path/filepath"
 	"strconv"
@@ -27,6 +30,13 @@ import (
 // constant value so all nodes run with the same limit.
 const contractMemoryLimit = 32
 const SupportedFeatures = "iterator,staking,stargate"
+
+type contextKey int
+
+const (
+	// private type creates an interface key for Context that cannot be accessed by any other package
+	contextKeyQueryStackSize contextKey = iota
+)
 
 // Option is an extension point to instantiate keeper with non default values
 type Option interface {
@@ -70,10 +80,11 @@ type Keeper struct {
 	messenger             Messenger
 
 	// queryGasLimit is the max wasmvm gas that can be spent on executing a query with a contract
-	queryGasLimit uint64
-	paramSpace    types.Subspace
-	gasRegister   GasRegister
-	ada           types.DBAdapter
+	queryGasLimit     uint64
+	paramSpace        types.Subspace
+	gasRegister       GasRegister
+	maxQueryStackSize uint32
+	ada               types.DBAdapter
 }
 
 type defaultAdapter struct{}
@@ -159,18 +170,19 @@ func newKeeper(cdc *codec.CodecProxy,
 	}
 
 	keeper := &Keeper{
-		storeKey:         storeKey,
-		cdc:              cdc,
-		wasmVM:           wasmer,
-		accountKeeper:    accountKeeper,
-		bank:             NewBankCoinTransferrer(bankKeeper),
-		portKeeper:       portKeeper,
-		capabilityKeeper: capabilityKeeper,
-		messenger:        NewDefaultMessageHandler(router, channelKeeper, capabilityKeeper, cdc.GetProtocMarshal(), portSource),
-		queryGasLimit:    wasmConfig.SmartQueryGasLimit,
-		paramSpace:       paramSpace,
-		gasRegister:      NewDefaultWasmGasRegister(),
-		ada:              ada,
+		storeKey:          storeKey,
+		cdc:               cdc,
+		wasmVM:            wasmer,
+		accountKeeper:     accountKeeper,
+		bank:              NewBankCoinTransferrer(bankKeeper),
+		portKeeper:        portKeeper,
+		capabilityKeeper:  capabilityKeeper,
+		messenger:         NewDefaultMessageHandler(router, channelKeeper, capabilityKeeper, cdc.GetProtocMarshal(), portSource),
+		queryGasLimit:     wasmConfig.SmartQueryGasLimit,
+		paramSpace:        paramSpace,
+		gasRegister:       NewDefaultWasmGasRegister(),
+		ada:               ada,
+		maxQueryStackSize: types.DefaultMaxQueryStackSize,
 	}
 	keeper.wasmVMQueryHandler = DefaultQueryPlugins(bankKeeper, channelKeeper, queryRouter, keeper)
 	for _, o := range opts {
@@ -183,6 +195,79 @@ func newKeeper(cdc *codec.CodecProxy,
 
 func (k Keeper) GetStoreKey() sdk.StoreKey {
 	return k.storeKey
+}
+
+func (k Keeper) IsContractMethodBlocked(ctx sdk.Context, contractAddr, method string) bool {
+	blockedMethods := k.GetContractMethodBlockedList(ctx, contractAddr)
+	return blockedMethods.IsMethodBlocked(method)
+}
+
+func (k Keeper) GetContractMethodBlockedList(ctx sdk.Context, contractAddr string) *types.ContractMethods {
+	if ctx.UseParamCache() {
+		if GetWasmParamsCache().IsNeedBlockedUpdate() {
+			cms := k.getAllBlockedList(ctx)
+			if !ctx.IsCheckTx() {
+				GetWasmParamsCache().UpdateBlockedContractMethod(cms)
+			}
+			return types.FindContractMethods(cms, contractAddr)
+		}
+		return GetWasmParamsCache().GetBlockedContractMethod(contractAddr)
+	}
+
+	return k.getContractMethodBlockedList(ctx, contractAddr)
+}
+
+func (k Keeper) getAllBlockedList(ctx sdk.Context) []*types.ContractMethods {
+	store := k.ada.NewStore(ctx.GasMeter(), ctx.KVStore(k.storeKey), nil)
+	it := sdk.KVStorePrefixIterator(store, types.GetContractMethodBlockedListPrefix(""))
+	defer it.Close()
+
+	var cms []*types.ContractMethods
+	for ; it.Valid(); it.Next() {
+		var method types.ContractMethods
+		err := proto.Unmarshal(it.Value(), &method)
+		if err != nil {
+			panic(err)
+		}
+		cms = append(cms, &method)
+	}
+	return cms
+}
+
+func (k Keeper) getContractMethodBlockedList(ctx sdk.Context, contractAddr string) *types.ContractMethods {
+	store := k.ada.NewStore(ctx.GasMeter(), ctx.KVStore(k.storeKey), nil)
+	key := types.GetContractMethodBlockedListPrefix(contractAddr)
+	data := store.Get(key)
+	var blockedMethods types.ContractMethods
+	err := proto.Unmarshal(data, &blockedMethods)
+	if err != nil {
+		panic(err)
+	}
+	return &blockedMethods
+}
+
+func (k Keeper) updateContractMethodBlockedList(ctx sdk.Context, blockedMethods *types.ContractMethods, isDelete bool) error {
+	oldBlockedMethods := k.getContractMethodBlockedList(ctx, blockedMethods.GetContractAddr())
+	if isDelete {
+		oldBlockedMethods.DeleteMethods(blockedMethods.Methods)
+	} else {
+		oldBlockedMethods.AddMethods(blockedMethods.Methods)
+	}
+	data, err := proto.Marshal(oldBlockedMethods)
+	if err != nil {
+		return err
+	}
+	store := k.ada.NewStore(ctx.GasMeter(), ctx.KVStore(k.storeKey), nil)
+	key := types.GetContractMethodBlockedListPrefix(blockedMethods.ContractAddr)
+	store.Set(key, data)
+	GetWasmParamsCache().SetNeedBlockedUpdate()
+	return nil
+}
+
+func (k Keeper) updateUploadAccessConfig(ctx sdk.Context, config types.AccessConfig) {
+	params := k.GetParams(ctx)
+	params.CodeUploadAccess = config
+	k.SetParams(ctx, params)
 }
 
 func (k Keeper) getUploadAccessConfig(ctx sdk.Context) types.AccessConfig {
@@ -202,6 +287,16 @@ func (k Keeper) getInstantiateAccessConfig(ctx sdk.Context) types.AccessType {
 // GetParams returns the total set of wasm parameters.
 func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 	var params types.Params
+	if ctx.UseParamCache() {
+		if GetWasmParamsCache().IsNeedParamsUpdate() {
+			k.paramSpace.GetParamSet(ctx, &params)
+			if !ctx.IsCheckTx() {
+				GetWasmParamsCache().UpdateParams(params)
+			}
+			return params
+		}
+		return GetWasmParamsCache().GetParams()
+	}
 	k.paramSpace.GetParamSet(ctx, &params)
 	return params
 }
@@ -209,6 +304,7 @@ func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 func (k Keeper) SetParams(ctx sdk.Context, ps types.Params) {
 	watcher.SetParams(ps)
 	k.paramSpace.SetParamSet(ctx, &ps)
+	GetWasmParamsCache().SetNeedParamsUpdate()
 }
 
 func (k Keeper) OnAccountUpdated(acc exported.Account) {
@@ -412,6 +508,19 @@ func (k Keeper) execute(ctx sdk.Context, contractAddress sdk.AccAddress, caller 
 	// prepare querier
 	querier := k.newQueryHandler(ctx, contractAddress)
 	gas := k.runtimeGasForContract(ctx)
+	if k.GetParams(ctx).UseContractBlockedList {
+		var methodsMap map[string]interface{}
+		err = json.Unmarshal(msg, &methodsMap)
+		if err != nil {
+			return nil, err
+		}
+		for method := range methodsMap {
+			if k.IsContractMethodBlocked(ctx, contractAddress.String(), method) {
+				return nil, sdkerrors.Wrap(types.ErrExecuteFailed, fmt.Sprintf("%s method of contract %s is not allowed", contractAddress.String(), method))
+			}
+		}
+	}
+
 	res, gasUsed, execErr := k.wasmVM.Execute(codeInfo.CodeHash, env, info, msg, prefixStore, cosmwasmAPI, querier, k.gasMeter(ctx), gas, costJSONDeserialization)
 	k.consumeRuntimeGas(ctx, gasUsed)
 	if execErr != nil {
@@ -666,6 +775,13 @@ func (k Keeper) getLastContractHistoryEntry(ctx sdk.Context, contractAddr sdk.Ac
 // QuerySmart queries the smart contract itself.
 func (k Keeper) QuerySmart(ctx sdk.Context, contractAddr sdk.AccAddress, req []byte) ([]byte, error) {
 	//defer telemetry.MeasureSince(time.Now(), "wasm", "contract", "query-smart")
+
+	// checks and increase query stack size
+	ctx, err := checkAndIncreaseQueryStackSize(ctx, k.maxQueryStackSize)
+	if err != nil {
+		return nil, err
+	}
+
 	contractInfo, codeInfo, prefixStore, err := k.contractInstance(ctx, contractAddr)
 	if err != nil {
 		return nil, err
@@ -684,6 +800,31 @@ func (k Keeper) QuerySmart(ctx sdk.Context, contractAddr sdk.AccAddress, req []b
 		return nil, sdkerrors.Wrap(types.ErrQueryFailed, qErr.Error())
 	}
 	return queryResult, nil
+}
+
+func checkAndIncreaseQueryStackSize(ctx sdk.Context, maxQueryStackSize uint32) (sdk.Context, error) {
+	var queryStackSize uint32
+
+	// read current value
+	if size := ctx.Context().Value(contextKeyQueryStackSize); size != nil {
+		queryStackSize = size.(uint32)
+	} else {
+		queryStackSize = 0
+	}
+
+	// increase
+	queryStackSize++
+
+	// did we go too far?
+	if queryStackSize > maxQueryStackSize {
+		return ctx, types.ErrExceedMaxQueryStackSize
+	}
+
+	// set updated stack size
+	contextCtx := context.WithValue(ctx.Context(), contextKeyQueryStackSize, queryStackSize)
+	ctx.SetContext(contextCtx)
+
+	return ctx, nil
 }
 
 // QueryRaw returns the contract's state for give key. Returns `nil` when key is `nil`.

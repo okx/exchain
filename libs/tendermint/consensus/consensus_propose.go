@@ -3,12 +3,13 @@ package consensus
 import (
 	"bytes"
 	"fmt"
+	"strings"
+
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
 	"github.com/okex/exchain/libs/tendermint/libs/automation"
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	"github.com/okex/exchain/libs/tendermint/types"
-	"strings"
 )
 
 // SetProposal inputs a proposal.
@@ -111,7 +112,7 @@ func (cs *State) enterPropose(height int64, round int) {
 	}()
 
 	// If we don't get the proposal and all block parts quick enough, enterPrevote
-	cs.timeoutTicker.ScheduleTimeout(timeoutInfo{Duration: cs.config.Propose(round), Height: height, Round: round, Step: cstypes.RoundStepPropose, ActiveViewChange: cs.hasVC})
+	cs.timeoutTicker.ScheduleTimeout(timeoutInfo{Duration: cs.config.Propose(round), Height: height, Round: round, Step: cstypes.RoundStepPropose, ActiveViewChange: cs.HasVC})
 
 	if isBlockProducer == "y" {
 		logger.Info("enterPropose: Our turn to propose",
@@ -156,7 +157,7 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 	// Make proposal
 	propBlockID := types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()}
 	proposal := types.NewProposal(height, round, cs.ValidRound, propBlockID)
-	proposal.HasVC = cs.hasVC
+	proposal.HasVC = cs.HasVC
 	if err := cs.privValidator.SignProposal(cs.state.ChainID, proposal); err == nil {
 
 		// send proposal and block parts on internal msg queue
@@ -358,18 +359,19 @@ func (cs *State) addProposalBlockPart(msg *BlockPartMessage, peerID p2p.ID) (add
 }
 
 func (cs *State) handleCompleteProposal(height int64) {
+	cs.Logger.Info("handleCompleteProposal", "height", cs.Height, "round", cs.Round, "step", cs.Step)
 	// Update Valid* if we can.
 	prevotes := cs.Votes.Prevotes(cs.Round)
 	blockID, hasTwoThirds := prevotes.TwoThirdsMajority()
-	if hasTwoThirds && !blockID.IsZero() && (cs.ValidRound < cs.Round) {
-		if cs.ProposalBlock.HashesTo(blockID.Hash) {
-			cs.Logger.Debug("Updating valid block to new proposal block",
-				"valid_round", cs.Round, "valid_block_hash", cs.ProposalBlock.Hash())
-			cs.ValidRound = cs.Round
-			cs.ValidBlock = cs.ProposalBlock
-			cs.ValidBlockParts = cs.ProposalBlockParts
-		}
+	prevoteBlockValid := hasTwoThirds && !blockID.IsZero() && (cs.ValidRound < cs.Round) && cs.ProposalBlock.HashesTo(blockID.Hash)
+	if prevoteBlockValid {
+		cs.Logger.Info("Updating valid block to new proposal block",
+			"valid_round", cs.Round, "valid_block_hash", cs.ProposalBlock.Hash())
+		cs.ValidRound = cs.Round
+		cs.ValidBlock = cs.ProposalBlock
+		cs.ValidBlockParts = cs.ProposalBlockParts
 		// TODO: In case there is +2/3 majority in Prevotes set for some
+		// if !cs.ProposalBlock.HashesTo(blockID.Hash) {}
 		// block and cs.ProposalBlock contains different block, either
 		// proposer is faulty or voting power of faulty processes is more
 		// than 1/3. We should trigger in the future accountability
@@ -382,7 +384,15 @@ func (cs *State) handleCompleteProposal(height int64) {
 		if hasTwoThirds { // this is optimisation as this will be triggered when prevote is added
 			cs.enterPrecommit(height, cs.Round)
 		}
-	} else if cs.Step == cstypes.RoundStepCommit {
+	}
+	if cs.HasVC && cs.Round == 0 {
+		blockID, hasTwoThirds := cs.Votes.Precommits(cs.Round).TwoThirdsMajority()
+		cs.Logger.Info("avc and handleCompleteProposal", "2/3Precommit", hasTwoThirds, "proposal", cs.ProposalBlock.Hash(), "block", blockID.Hash)
+		if hasTwoThirds && !blockID.IsZero() && cs.ProposalBlock.HashesTo(blockID.Hash) {
+			cs.updateRoundStep(cs.Round, cstypes.RoundStepCommit)
+		}
+	}
+	if cs.Step == cstypes.RoundStepCommit {
 		// If we're waiting on the proposal block...
 		cs.tryFinalizeCommit(height)
 	}

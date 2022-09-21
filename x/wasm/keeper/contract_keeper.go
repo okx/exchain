@@ -2,7 +2,6 @@ package keeper
 
 import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-
 	"github.com/okex/exchain/x/wasm/types"
 )
 
@@ -20,6 +19,8 @@ type decoratedKeeper interface {
 	Sudo(ctx sdk.Context, contractAddress sdk.AccAddress, msg []byte) ([]byte, error)
 	setContractInfoExtension(ctx sdk.Context, contract sdk.AccAddress, extra types.ContractInfoExtension) error
 	setAccessConfig(ctx sdk.Context, codeID uint64, config types.AccessConfig) error
+	updateUploadAccessConfig(ctx sdk.Context, config types.AccessConfig)
+	updateContractMethodBlockedList(ctx sdk.Context, blockedMethods *types.ContractMethods, isDelete bool) error
 }
 
 type PermissionedKeeper struct {
@@ -83,4 +84,12 @@ func (p PermissionedKeeper) SetContractInfoExtension(ctx sdk.Context, contract s
 // SetAccessConfig updates the access config of a code id.
 func (p PermissionedKeeper) SetAccessConfig(ctx sdk.Context, codeID uint64, config types.AccessConfig) error {
 	return p.nested.setAccessConfig(ctx, codeID, config)
+}
+
+func (p PermissionedKeeper) UpdateUploadAccessConfig(ctx sdk.Context, config types.AccessConfig) {
+	p.nested.updateUploadAccessConfig(ctx, config)
+}
+
+func (p PermissionedKeeper) UpdateContractMethodBlockedList(ctx sdk.Context, blockedMethods *types.ContractMethods, isDelete bool) error {
+	return p.nested.updateContractMethodBlockedList(ctx, blockedMethods, isDelete)
 }
