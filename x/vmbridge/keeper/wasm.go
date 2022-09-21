@@ -14,12 +14,15 @@ import (
 )
 
 func (k Keeper) SendToWasm(ctx sdk.Context, caller sdk.AccAddress, wasmContractAddr, recipient string, amount sdk.Int) error {
-	_, err := sdk.AccAddressFromBech32(recipient)
+	to, err := sdk.AccAddressFromBech32(recipient)
 	if err != nil {
 		return err
 	}
 
-	input, err := types.GetMintCW20Input(amount.String(), recipient)
+	if amount.IsNegative() {
+		return types.ErrAmountNegative
+	}
+	input, err := types.GetMintCW20Input(amount.String(), to.String())
 	if err != nil {
 		return err
 	}

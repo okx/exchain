@@ -132,4 +132,5 @@ type (
 	CustomQuerier                  = keeper.CustomQuerier
 	QueryPlugins                   = keeper.QueryPlugins
 	Option                         = keeper.Option
+	ContractOpsKeeper              = types.ContractOpsKeeper
 )

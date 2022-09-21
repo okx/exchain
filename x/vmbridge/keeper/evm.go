@@ -67,7 +67,7 @@ func (k Keeper) SendToEvm(ctx sdk.Context, caller, contract string, recipient st
 	if err != nil {
 		return false, err
 	}
-	_, result, err := k.callEvm(ctx, &conrtractAddr, big.NewInt(0), input)
+	_, result, err := k.CallEvm(ctx, &conrtractAddr, big.NewInt(0), input)
 	if err != nil {
 		return false, err
 	}
@@ -75,11 +75,8 @@ func (k Keeper) SendToEvm(ctx sdk.Context, caller, contract string, recipient st
 }
 
 // callEvm execute an evm message from native module
-func (k Keeper) callEvm(ctx sdk.Context, to *common.Address, value *big.Int, data []byte) (*evmtypes.ExecutionResult, *evmtypes.ResultData, error) {
+func (k Keeper) CallEvm(ctx sdk.Context, to *common.Address, value *big.Int, data []byte) (*evmtypes.ExecutionResult, *evmtypes.ResultData, error) {
 	callerAddr := erc20types.IbcEvmModuleETHAddr
-	if to == nil {
-		return nil, nil, types.ErrCannotCreate
-	}
 
 	config, found := k.evmKeeper.GetChainConfig(ctx)
 	if !found {

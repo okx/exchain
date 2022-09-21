@@ -190,26 +190,27 @@ type OKExChainApp struct {
 	subspaces map[string]params.Subspace
 
 	// keepers
-	AccountKeeper  auth.AccountKeeper
-	BankKeeper     bank.Keeper
-	SupplyKeeper   supply.Keeper
-	StakingKeeper  staking.Keeper
-	SlashingKeeper slashing.Keeper
-	MintKeeper     mint.Keeper
-	DistrKeeper    distr.Keeper
-	GovKeeper      gov.Keeper
-	CrisisKeeper   crisis.Keeper
-	UpgradeKeeper  upgrade.Keeper
-	ParamsKeeper   params.Keeper
-	EvidenceKeeper evidence.Keeper
-	EvmKeeper      *evm.Keeper
-	TokenKeeper    token.Keeper
-	DexKeeper      dex.Keeper
-	OrderKeeper    order.Keeper
-	SwapKeeper     ammswap.Keeper
-	FarmKeeper     farm.Keeper
-	wasmKeeper     wasm.Keeper
-	InfuraKeeper   infura.Keeper
+	AccountKeeper        auth.AccountKeeper
+	BankKeeper           bank.Keeper
+	SupplyKeeper         supply.Keeper
+	StakingKeeper        staking.Keeper
+	SlashingKeeper       slashing.Keeper
+	MintKeeper           mint.Keeper
+	DistrKeeper          distr.Keeper
+	GovKeeper            gov.Keeper
+	CrisisKeeper         crisis.Keeper
+	UpgradeKeeper        upgrade.Keeper
+	ParamsKeeper         params.Keeper
+	EvidenceKeeper       evidence.Keeper
+	EvmKeeper            *evm.Keeper
+	TokenKeeper          token.Keeper
+	DexKeeper            dex.Keeper
+	OrderKeeper          order.Keeper
+	SwapKeeper           ammswap.Keeper
+	FarmKeeper           farm.Keeper
+	WasmKeeper           wasm.Keeper
+	WasmPermissionKeeper wasm.ContractOpsKeeper
+	InfuraKeeper         infura.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -230,6 +231,7 @@ type OKExChainApp struct {
 	marshal              *codec.CodecProxy
 	heightTasks          map[int64]*upgradetypes.HeightTasks
 	Erc20Keeper          erc20.Keeper
+	VMBridgeKeeper       *vmbridge.Keeper
 
 	WasmHandler wasmkeeper.HandlerOption
 }
@@ -456,7 +458,7 @@ func NewOKExChainApp(
 	// The last arguments can contain custom message handlers, and custom query handlers,
 	// if we want to allow any custom callbacks
 	supportedFeatures := wasm.SupportedFeatures
-	app.wasmKeeper = wasm.NewKeeper(
+	app.WasmKeeper = wasm.NewKeeper(
 		app.marshal,
 		keys[wasm.StoreKey],
 		app.subspaces[wasm.ModuleName],
@@ -473,14 +475,15 @@ func NewOKExChainApp(
 		supportedFeatures,
 		vmbridge.GetWasmOpts(app.marshal.GetProtocMarshal()),
 	)
-	wasmModule := wasm.NewAppModule(*app.marshal, &app.wasmKeeper)
-	vmbridgeKeeper := vmbridge.NewKeeper(app.marshal, app.Logger(), app.EvmKeeper, wasmModule.GetPermissionKeeper(), app.AccountKeeper)
+	wasmModule := wasm.NewAppModule(*app.marshal, &app.WasmKeeper)
+	app.WasmPermissionKeeper = wasmModule.GetPermissionKeeper()
+	app.VMBridgeKeeper = vmbridge.NewKeeper(app.marshal, app.Logger(), app.EvmKeeper, app.WasmPermissionKeeper, app.AccountKeeper)
 
 	// Set EVM hooks
 	app.EvmKeeper.SetHooks(
 		evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper),
 			erc20.NewSendNative20ToIbcEventHandler(app.Erc20Keeper),
-			vmbridge.NewSendToWasmEventHandler(*vmbridgeKeeper)))
+			vmbridge.NewSendToWasmEventHandler(*app.VMBridgeKeeper)))
 
 	// NOTE: Any module instantiated in the module manager that is later modified
 	// must be passed by reference here.
@@ -564,7 +567,7 @@ func NewOKExChainApp(
 	app.mm.RegisterServices(app.configurator)
 	app.setupUpgradeModules()
 
-	vmbridge.RegisterServices(app.configurator, *vmbridgeKeeper)
+	vmbridge.RegisterServices(app.configurator, *app.VMBridgeKeeper)
 
 	// create the simulation manager and define the order of the modules for deterministic simulations
 	//
@@ -581,7 +584,7 @@ func NewOKExChainApp(
 		slashing.NewAppModule(app.SlashingKeeper, app.AccountKeeper, app.StakingKeeper),
 		params.NewAppModule(app.ParamsKeeper), // NOTE: only used for simulation to generate randomized param change proposals
 		ibc.NewAppModule(app.IBCKeeper),
-		wasm.NewAppModule(*app.marshal, &app.wasmKeeper),
+		wasm.NewAppModule(*app.marshal, &app.WasmKeeper),
 	)
 
 	app.sm.RegisterStoreDecoders()
@@ -617,7 +620,7 @@ func NewOKExChainApp(
 		}
 		ctx := app.BaseApp.NewContext(true, abci.Header{})
 		// Initialize pinned codes in wasmvm as they are not persisted there
-		if err := app.wasmKeeper.InitializePinnedCodes(ctx); err != nil {
+		if err := app.WasmKeeper.InitializePinnedCodes(ctx); err != nil {
 			tmos.Exit(fmt.Sprintf("failed initialize pinned codes %s", err))
 		}
 	}

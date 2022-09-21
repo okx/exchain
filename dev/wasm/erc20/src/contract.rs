@@ -15,7 +15,7 @@ pub const PREFIX_ALLOWANCES: &[u8] = b"allowances";
 
 pub const KEY_CONSTANTS: &[u8] = b"constants";
 pub const KEY_TOTAL_SUPPLY: &[u8] = b"total_supply";
-const EVM_CONTRACT_ADDR: &str = "ex1ghwervpgnesd388vjn0s4tp69afec522tgztum";
+const EVM_CONTRACT_ADDR: &str = "ex1fnkz39vpxmukf6mp78essh8g0hrzp3gylyd2u8";
 
 #[entry_point]
 pub fn instantiate(

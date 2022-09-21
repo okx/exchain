@@ -99,7 +99,7 @@ func GetMintERC20Output(data []byte) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if len(result) == 0 {
+	if len(result) != 1 {
 		return false, fmt.Errorf("%s method outputs must be one output", EvmCalledMethodName)
 	}
 	return result[0].(bool), nil
@@ -108,7 +108,7 @@ func GetMintERC20Output(data []byte) (bool, error) {
 func GetEVMABIConfig(data []byte) (abi.ABI, abi.Event) {
 	ret, err := abi.JSON(bytes.NewReader(data))
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("json decode failed: %s", err.Error()))
 	}
 	event, ok := ret.Events[SendToWasmEventName]
 	if !ok {

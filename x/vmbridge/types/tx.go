@@ -45,13 +45,13 @@ func (msg MsgSendToEvm) ValidateBasic() error {
 }
 
 func (msg MsgSendToEvm) GetSignBytes() []byte {
-	panic("MsgSendToEvm can not be sign beacuse it can not exist in tx. It only exist in wasm call")
+	panic(fmt.Errorf("MsgSendToEvm can not be sign beacuse it can not exist in tx. It only exist in wasm call"))
 }
 
 func (msg MsgSendToEvm) GetSigners() []sdk.AccAddress {
 	senderAddr, err := sdk.AccAddressFromBech32(msg.Sender)
 	if err != nil { // should never happen as valid basic rejects invalid addresses
-		panic(err.Error())
+		panic(err)
 	}
 	return []sdk.AccAddress{senderAddr}
 }

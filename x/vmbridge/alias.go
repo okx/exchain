@@ -16,4 +16,5 @@ var (
 
 type (
 	MsgSendToEvm = types.MsgSendToEvm
+	Keeper       = keeper.Keeper
 )
