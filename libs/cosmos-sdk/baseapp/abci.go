@@ -3,8 +3,6 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/app/rpc/simulator"
-	"github.com/spf13/viper"
 	"os"
 	"sort"
 	"strconv"
@@ -12,6 +10,9 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/okex/exchain/app/rpc/simulator"
+	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
@@ -167,21 +168,26 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 
 	app.anteTracer = trace.NewTracer(trace.AnteChainDetail)
 
-	app.feeForCollector = sdk.Coins{}
+	app.feeCollector = sdk.Coins{}
 	app.feeChanged = false
+	// clean FeeSplitCollector
+	app.FeeSplitCollector.Range(func(key, value interface{}) bool {
+		app.FeeSplitCollector.Delete(key)
+		return true
+	})
 
 	return res
 }
 
-func (app *BaseApp) UpdateFeeForCollector(fee sdk.Coins, add bool) {
+func (app *BaseApp) UpdateFeeCollector(fee sdk.Coins, add bool) {
 	if fee.IsZero() {
 		return
 	}
 	app.feeChanged = true
 	if add {
-		app.feeForCollector = app.feeForCollector.Add(fee...)
+		app.feeCollector = app.feeCollector.Add(fee...)
 	} else {
-		app.feeForCollector = app.feeForCollector.Sub(fee)
+		app.feeCollector = app.feeCollector.Sub(fee)
 	}
 }
 
@@ -198,7 +204,7 @@ func (app *BaseApp) updateFeeCollectorAccount() {
 	}()
 
 	ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
-	if err := app.updateFeeCollectorAccHandler(ctx, app.feeForCollector); err != nil {
+	if err := app.updateFeeCollectorAccHandler(ctx, app.feeCollector, app.FeeSplitCollector); err != nil {
 		panic(err)
 	}
 	cache.Write()

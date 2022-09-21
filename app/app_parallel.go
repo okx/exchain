@@ -3,8 +3,7 @@ package app
 import (
 	"encoding/hex"
 	"strings"
-
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"sync"
 
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -12,14 +11,15 @@ import (
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
 // feeCollectorHandler set or get the value of feeCollectorAcc
-func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper, feesplits map[string]sdk.Coins) sdk.UpdateFeeCollectorAccHandler {
-	return func(ctx sdk.Context, balance sdk.Coins) error {
+func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
+	return func(ctx sdk.Context, balance sdk.Coins, feesplits *sync.Map) error {
 		err := bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
 		if err != nil {
 			return err
@@ -27,12 +27,18 @@ func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper, feesplits map[s
 
 		// split fee
 		// come from feesplit module
-		for addr, fees := range feesplits {
+		feesplits.Range(func(key, value interface{}) bool {
+			addr := key.(string)
+			fees := value.(sdk.Coins)
 			acc := sdk.MustAccAddressFromBech32(addr)
 			err = sk.SendCoinsFromModuleToAccount(ctx, auth.FeeCollectorName, acc, fees)
 			if err != nil {
-				return err
+				return false
 			}
+			return true
+		})
+		if err != nil {
+			return err
 		}
 
 		return nil
@@ -126,9 +132,14 @@ func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
 	}
 }
 
-func updateFeeSplitHandler(feesplits map[string]sdk.Coins) sdk.UpdateFeeSplitHandler {
+func updateFeeSplitHandler(feesplits *sync.Map) sdk.UpdateFeeSplitHandler {
 	return func(addr sdk.AccAddress, fee sdk.Coins) {
 		key := addr.String()
-		feesplits[key] = feesplits[key].Add2(fee)
+		orgFee, ok := feesplits.Load(key)
+		if !ok {
+			feesplits.Store(key, fee)
+		} else {
+			feesplits.Store(key, orgFee.(sdk.Coins).Add2(fee))
+		}
 	}
 }

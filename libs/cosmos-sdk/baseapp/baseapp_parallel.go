@@ -177,7 +177,7 @@ func (app *BaseApp) fixFeeCollector() {
 	ctx, _ := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
 
 	ctx.SetMultiStore(app.parallelTxManage.cms)
-	if err := app.updateFeeCollectorAccHandler(ctx, app.parallelTxManage.currTxFee); err != nil {
+	if err := app.updateFeeCollectorAccHandler(ctx, app.parallelTxManage.currTxFee, nil); err != nil {
 		panic(err)
 	}
 }
@@ -311,7 +311,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 
 	// fix logs
 	app.feeChanged = true
-	app.feeForCollector = app.parallelTxManage.currTxFee
+	app.feeCollector = app.parallelTxManage.currTxFee
 	receiptsLogs := app.endParallelTxs()
 	for index, v := range receiptsLogs {
 		if len(v) != 0 { // only update evm tx result

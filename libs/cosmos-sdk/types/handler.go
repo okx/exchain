@@ -1,6 +1,10 @@
 package types
 
-import abci "github.com/okex/exchain/libs/tendermint/abci/types"
+import (
+	"sync"
+
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+)
 
 // Handler defines the core of the state transition function of an application.
 type Handler func(ctx Context, msg Msg) (*Result, error)
@@ -15,7 +19,7 @@ type GasRefundHandler func(ctx Context, tx Tx) (fee Coins, err error)
 
 type AccNonceHandler func(ctx Context, address AccAddress) (nonce uint64)
 
-type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins) error
+type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins, feesplits *sync.Map) error
 
 type LogFix func(tx []Tx, logIndex []int, hasEnterEvmTx []bool, errs []error, resp []abci.ResponseDeliverTx) (logs [][]byte)
 type UpdateFeeSplitHandler func(addr AccAddress, fee Coins)

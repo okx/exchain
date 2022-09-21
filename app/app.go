@@ -243,8 +243,6 @@ type OKExChainApp struct {
 	Erc20Keeper          erc20.Keeper
 
 	WasmHandler wasmkeeper.HandlerOption
-
-	feeSplitCollector map[string]sdk.Coins
 }
 
 // NewOKExChainApp returns a reference to a new initialized OKExChain application.
@@ -303,8 +301,6 @@ func NewOKExChainApp(
 		tkeys:          tkeys,
 		subspaces:      make(map[string]params.Subspace),
 		heightTasks:    make(map[int64]*upgradetypes.HeightTasks),
-
-		feeSplitCollector: make(map[string]sdk.Coins),
 	}
 	bApp.SetInterceptors(makeInterceptors())
 
@@ -419,7 +415,7 @@ func NewOKExChainApp(
 
 	app.FeeSplitKeeper = feesplit.NewKeeper(
 		app.keys[feesplit.StoreKey], app.marshal.GetCdc(), app.subspaces[feesplit.ModuleName],
-		app.SupplyKeeper, app.AccountKeeper, updateFeeSplitHandler(app.feeSplitCollector))
+		app.SupplyKeeper, app.AccountKeeper, updateFeeSplitHandler(app.FeeSplitCollector))
 
 	//wasm keeper
 	wasmDir := wasm.WasmDir()
@@ -630,7 +626,8 @@ func NewOKExChainApp(
 	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
 	app.AddCustomizeModuleOnStopLogic(NewEvmModuleStopLogic(app.EvmKeeper))
 	app.SetMptCommitHandler(NewMptCommitHandler(app.EvmKeeper))
-	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper, app.feeSplitCollector), fixLogForParallelTxHandler(app.EvmKeeper))
+	app.SetUpdateFeeCollectorAccHandler(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper))
+	app.SetParallelTxLogHandlers(fixLogForParallelTxHandler(app.EvmKeeper))
 	app.SetPreDeliverTxHandler(preDeliverTxHandler(app.AccountKeeper))
 	app.SetPartialConcurrentHandlers(getTxFeeAndFromHandler(app.AccountKeeper))
 	app.SetGetTxFeeHandler(getTxFeeHandler())

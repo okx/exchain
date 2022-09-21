@@ -175,7 +175,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 
 	if app.getTxFeeHandler != nil && mode == runTxModeDeliver {
 		fee := app.getTxFeeHandler(tx)
-		app.UpdateFeeForCollector(fee, true)
+		app.UpdateFeeCollector(fee, true)
 	}
 
 	isAnteSucceed = true
