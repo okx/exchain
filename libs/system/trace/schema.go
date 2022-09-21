@@ -74,7 +74,8 @@ const (
 	Prerun          = "Prerun"
 	IavlRuntime     = "IavlRuntime"
 
-	BlockPartsP2P = "BlockPartsP2P"
+	BlockPartsP2P   = "BlockPartsP2P"
+	BlockPartsCache = "BlockPartsCache"
 )
 
 const (

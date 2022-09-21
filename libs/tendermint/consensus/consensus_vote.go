@@ -165,7 +165,7 @@ func (cs *State) addVote(
 				if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {
 					cs.Logger.Info("addVote proposalBlockPart reset ,because of mismatch hash,",
 						"origin", hex.EncodeToString(cs.ProposalBlockParts.Hash()), "after", blockID.Hash)
-					cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
+					cs.ProposalBlockParts = cs.newPartSetFromHeadeWithCache(blockID.PartsHeader, cs.Height)
 				}
 				cs.evsw.FireEvent(types.EventValidBlock, &cs.RoundState)
 				cs.eventBus.PublishEventValidBlock(cs.RoundStateEvent())

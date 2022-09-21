@@ -116,7 +116,7 @@ func (cs *State) enterPrecommit(height int64, round int) {
 	cs.LockedBlockParts = nil
 	if !cs.ProposalBlockParts.HasHeader(blockID.PartsHeader) {
 		cs.ProposalBlock = nil
-		cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
+		cs.ProposalBlockParts = cs.newPartSetFromHeadeWithCache(blockID.PartsHeader, cs.Height)
 	}
 	cs.eventBus.PublishEventUnlock(cs.RoundStateEvent())
 	cs.signAddVote(types.PrecommitType, nil, types.PartSetHeader{})

@@ -26,7 +26,7 @@ var (
 		{trace.DeliverTxs, 1},
 		{trace.EvmHandlerDetail, 0},
 
-    	{trace.IavlRuntime, 0},
+		{trace.IavlRuntime, 0},
 		{trace.RunAnteDetail, 0},
 		{trace.RunAnteDetail, 0},
 		{trace.AnteChainDetail, 0},
@@ -36,12 +36,13 @@ var (
 		{trace.First2LastPart, 1},
 		{trace.BlockParts, 1},
 		{trace.BlockPartsP2P, 1},
+		{trace.BlockPartsCache, 1},
 		{trace.Produce, 0},
 		{trace.CompressBlock, 0},
 		{trace.UncompressBlock, 0},
 	}
 
-	mandatorySchemas = []string {
+	mandatorySchemas = []string{
 		trace.Height,
 		trace.Tx,
 		trace.BlockSize,
@@ -140,7 +141,7 @@ func (e *ElapsedTimeInfos) Dump(input interface{}) {
 		}
 	}
 
-	logger.Info(mandatoryInfo+optionalInfo)
+	logger.Info(mandatoryInfo + optionalInfo)
 	e.infoMap = make(map[string]string)
 }
 

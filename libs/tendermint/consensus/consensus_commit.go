@@ -41,6 +41,9 @@ func (cs *State) traceDump() {
 		cs.bt.totalParts,
 	))
 
+	trace.GetElapsedInfo().AddInfo(trace.BlockPartsCache, fmt.Sprintf("%d/%d",
+		cs.bt.bpCacheHit, cs.hbc.Count()))
+
 	trace.GetElapsedInfo().AddInfo(trace.BlockPartsP2P, fmt.Sprintf("%d|%d|%d",
 		cs.bt.bpNOTransByACK, cs.bt.bpNOTransByData, cs.bt.bpSend))
 
@@ -108,7 +111,7 @@ func (cs *State) enterCommit(height int64, commitRound int) {
 			cs.ProposalBlock = nil
 			cs.Logger.Info("enterCommit proposalBlockPart reset ,because of mismatch hash,",
 				"origin", hex.EncodeToString(cs.ProposalBlockParts.Hash()), "after", blockID.Hash)
-			cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
+			cs.ProposalBlockParts = cs.newPartSetFromHeadeWithCache(blockID.PartsHeader, cs.Height)
 			cs.eventBus.PublishEventValidBlock(cs.RoundStateEvent())
 			cs.evsw.FireEvent(types.EventValidBlock, &cs.RoundState)
 		}
@@ -370,6 +373,7 @@ func (cs *State) updateToState(state sm.State) {
 	cs.ValidBlock = nil
 	cs.ValidBlockParts = nil
 	cs.Votes = cstypes.NewHeightVoteSet(state.ChainID, height, validators)
+	cs.hbc = cstypes.NewBPCache(height)
 	cs.CommitRound = -1
 	cs.LastValidators = state.LastValidators
 	cs.TriggeredTimeoutPrecommit = false
