@@ -33,9 +33,7 @@ func (b AppModuleBasic) RegisterCodec(amino *codec.Codec) {
 }
 
 func (b AppModuleBasic) DefaultGenesis() json.RawMessage {
-	return ModuleCdc.MustMarshalJSON(&GenesisState{
-		Params: DefaultParams(),
-	})
+	return nil
 }
 
 func (b AppModuleBasic) ValidateGenesis(message json.RawMessage) error {
