@@ -37,12 +37,7 @@ func (b AppModuleBasic) DefaultGenesis() json.RawMessage {
 }
 
 func (b AppModuleBasic) ValidateGenesis(message json.RawMessage) error {
-	var data GenesisState
-	err := ModuleCdc.UnmarshalJSON(message, &data)
-	if err != nil {
-		return err
-	}
-	return ValidateGenesis(data)
+	return nil
 }
 
 func (b AppModuleBasic) GetTxCmdV2(cdc *codec.CodecProxy, reg cdctypes.InterfaceRegistry) *cobra.Command {
