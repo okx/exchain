@@ -415,7 +415,6 @@ func (suite *KeeperTestSuite) TestWithdrawerFeeSplits() {
 
 func (suite *KeeperTestSuite) TestQueryParams() {
 	expParams := types.DefaultParams()
-	expParams.EnableFeeSplit = true
 
 	res, err := suite.querier(suite.ctx, []string{types.QueryParameters}, abci.RequestQuery{Data: nil})
 	suite.Require().NoError(err)

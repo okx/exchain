@@ -39,7 +39,9 @@ func (suite *FeeSplitTestSuite) SetupTest() {
 	suite.app = app.Setup(false)
 	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
 	suite.handler = feesplit.NewHandler(suite.app.FeeSplitKeeper)
-	suite.app.FeeSplitKeeper.SetParams(suite.ctx, types.DefaultParams())
+	params := types.DefaultParams()
+	params.EnableFeeSplit = true
+	suite.app.FeeSplitKeeper.SetParams(suite.ctx, params)
 }
 
 func (suite *FeeSplitTestSuite) TestRegisterFeeSplit() {
