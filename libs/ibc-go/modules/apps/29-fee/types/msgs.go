@@ -3,6 +3,8 @@ package types
 import (
 	"strings"
 
+	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -11,7 +13,10 @@ import (
 )
 
 var (
-	_ sdk.Msg = MsgPayPacketFee{}
+	_ sdk.Msg         = MsgPayPacketFee{}
+	_ ibc_tx.DenomOpr = MsgPayPacketFee{}
+
+	_ ibc_tx.DenomOpr = MsgPayPacketFeeAsync{}
 )
 
 // msg types
@@ -144,6 +149,17 @@ func NewMsgPayPacketFee(fee Fee, sourcePortId, sourceChannelId, signer string, r
 	}
 }
 
+func (msg MsgPayPacketFee) RulesFilter() (sdk.Msg, error) {
+	ret := msg
+
+	fee, err := convPacketFee(ret.Fee)
+	if nil != err {
+		return nil, err
+	}
+	ret.Fee = fee
+	return &ret, nil
+}
+
 // ValidateBasic performs a basic check of the MsgPayPacketFee fields
 func (msg MsgPayPacketFee) ValidateBasic() error {
 	// validate channelId
@@ -241,4 +257,36 @@ func (msg MsgPayPacketFeeAsync) Type() string {
 // GetSignBytes implements sdk.Msg.
 func (msg MsgPayPacketFeeAsync) GetSignBytes() []byte {
 	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&msg))
+}
+
+func (msg MsgPayPacketFeeAsync) RulesFilter() (sdk.Msg, error) {
+	ret := msg
+
+	fee, err := convPacketFee(ret.PacketFee.Fee)
+	if nil != err {
+		return nil, err
+	}
+	ret.PacketFee.Fee = fee
+
+	return &ret, nil
+}
+
+func convPacketFee(fee Fee) (Fee, error) {
+	recvF, err := sdk.ConvWei2TOkt(fee.RecvFee)
+	if nil != err {
+		return fee, err
+	}
+
+	ackF, err := sdk.ConvWei2TOkt(fee.AckFee)
+	if nil != err {
+		return fee, err
+	}
+	timeoutF, err := sdk.ConvWei2TOkt(fee.TimeoutFee)
+	if nil != err {
+		return fee, err
+	}
+	fee.RecvFee = recvF
+	fee.AckFee = ackF
+	fee.TimeoutFee = timeoutF
+	return fee, nil
 }

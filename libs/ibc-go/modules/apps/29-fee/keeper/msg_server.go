@@ -117,12 +117,10 @@ func (k Keeper) PayPacketFee(goCtx context.Context, msg *types.MsgPayPacketFee) 
 // packet life cycle may be incentivized.
 func (k Keeper) PayPacketFeeAsync(goCtx context.Context, msg *types.MsgPayPacketFeeAsync) (*types.MsgPayPacketFeeAsyncResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
-
 	if !k.IsFeeEnabled(ctx, msg.PacketId.PortId, msg.PacketId.ChannelId) {
 		// users may not escrow fees on this channel. Must send packets without a fee message
 		return nil, types.ErrFeeNotEnabled
 	}
-
 	if k.IsLocked(ctx) {
 		return nil, types.ErrFeeModuleLocked
 	}

@@ -504,6 +504,8 @@ func NewOKExChainApp(
 	// Create static IBC router, add transfer route, then set and seal it
 	ibcRouter := ibcporttypes.NewRouter()
 
+	//mockModule := ibcmock.NewAppModule(scopedIBCKeeper, &app.IBCKeeper.V2Keeper.PortKeeper)
+
 	var icaControllerStack ibcporttypes.IBCModule
 	icaControllerStack = icacontroller.NewIBCMiddleware(icaControllerStack, app.ICAControllerKeeper)
 	icaControllerStack = ibcfee.NewIBCMiddleware(icaControllerStack, app.IBCFeeKeeper)

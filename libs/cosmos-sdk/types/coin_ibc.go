@@ -321,3 +321,15 @@ func FromCoins(coins Coins) CoinAdapters {
 func FromCoin(coin Coin) CoinAdapter {
 	return NewCoinAdapter(coin.Denom, NewIntFromBigInt(coin.Amount.BigInt()))
 }
+
+func ConvWei2TOkt(adapters CoinAdapters) (CoinAdapters, error) {
+	copyAdapters := adapters.Copy()
+	for index, _ := range copyAdapters {
+		if copyAdapters[index].Denom == DefaultIbcWei {
+			copyAdapters[index].Denom = DefaultBondDenom
+		} else if strings.ToLower(copyAdapters[index].Denom) == DefaultBondDenom {
+			return nil, errors.Wrap(errors.ErrInvalidCoins, "not support okt denom")
+		}
+	}
+	return copyAdapters, nil
+}

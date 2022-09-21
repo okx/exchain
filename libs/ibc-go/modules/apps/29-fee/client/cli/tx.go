@@ -128,10 +128,11 @@ func NewPayPacketFeeAsyncTxCmd(codecProxy *codec.CodecProxy, reg interfacetypes.
 			}
 
 			fee := types.Fee{
-				RecvFee:    sdk.FromCoins(recvFee),
-				AckFee:     sdk.FromCoins(ackFee),
-				TimeoutFee: sdk.FromCoins(timeoutFee),
+				RecvFee:    utils.CliConvertCoinToCoinAdapters(recvFee),
+				AckFee:     utils.CliConvertCoinToCoinAdapters(ackFee),
+				TimeoutFee: utils.CliConvertCoinToCoinAdapters(timeoutFee),
 			}
+			fmt.Println(fee.String())
 
 			packetFee := types.NewPacketFee(fee, sender, relayers)
 			msg := types.NewMsgPayPacketFeeAsync(packetID, packetFee)
