@@ -170,8 +170,9 @@ func NewSimulateKeeper(
 		Watcher:       watcher.NewWatcher(nil),
 		Ada:           ada,
 
-		db:             mpt.InstanceOfMptStore(),
-		triegc:         prque.New(nil),
+		db: mpt.InstanceOfMptStore(),
+		// Optimize memory usage. No need to initialize this variable when simulate tx.
+		// triegc:         prque.New(nil),
 		UpdatedAccount: make([]ethcmn.Address, 0),
 		cci:            &chainConfigInfo{},
 		heightCache:    heightCache,
