@@ -143,6 +143,10 @@ func (cs *State) tryFinalizeCommit(height int64) {
 			cs.ProposalBlock.Hash(),
 			"commit-block",
 			blockID.Hash)
+
+		cs.ProposalBlock = nil
+		cs.ProposalBlockParts = cs.newPartSetFromHeadeWithCache(blockID.PartsHeader, cs.Height)
+
 		return
 	}
 
