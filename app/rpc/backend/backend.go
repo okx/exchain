@@ -283,12 +283,7 @@ func (b *EthermintBackend) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.L
 // PendingTransactions returns the transactions that are in the transaction pool
 // and have a from address that is one of the accounts this node manages.
 func (b *EthermintBackend) PendingTransactions() ([]*watcher.Transaction, error) {
-	//todo height
 
-	//lastHeight, err := b.clientCtx.Client.LatestBlockNumber()
-	//if err != nil {
-	//	return nil, err
-	//}
 	pendingTxs, err := b.clientCtx.Client.UnconfirmedDecodedTxs(-1)
 	if err != nil {
 		return nil, err
@@ -300,14 +295,8 @@ func (b *EthermintBackend) PendingTransactions() ([]*watcher.Transaction, error)
 		if !ok {
 			continue
 		}
-		//ethTx, err := rpctypes.RawTxToEthTx(b.clientCtx, tx)
-		//if err != nil {
-		//	// ignore non Ethermint EVM transactions
-		//	continue
-		//}
 
 		// TODO: check signer and reference against accounts the node manages
-		//rpcTx, err := watcher.NewTransaction(ethTx, common.BytesToHash(tx.Hash(lastHeight)), common.Hash{}, 0, 0)
 		rpcTx, err := watcher.NewTransaction(ethTx, common.BytesToHash(ethTx.TxHash()), common.Hash{}, 0, 0)
 		if err != nil {
 			return nil, err
