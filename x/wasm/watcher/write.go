@@ -30,6 +30,9 @@ func Commit() {
 	if !Enable() {
 		return
 	}
+	if len(blockStateCache) == 0 {
+		return
+	}
 	blockStateCacheCopy := blockStateCache
 	task := func() {
 		batch := db.NewBatch()

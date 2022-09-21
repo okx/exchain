@@ -76,6 +76,7 @@ import (
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
 	"github.com/okex/exchain/x/wasm"
+	wasmclient "github.com/okex/exchain/x/wasm/client"
 	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -127,6 +128,11 @@ var (
 			erc20client.ProxyContractRedirectHandler,
 			erc20client.ContractTemplateProposalHandler,
 			client.UpdateClientProposalHandler,
+			wasmclient.UpdateContractAdminProposalHandler,
+			wasmclient.ClearContractAdminProposalHandler,
+			wasmclient.UpdateDeploymentWhitelistProposalHandler,
+			wasmclient.MigrateContractProposalHandler,
+			wasmclient.UpdateWASMContractMethodBlockedListProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
@@ -402,6 +408,31 @@ func NewOKExChainApp(
 	app.Erc20Keeper = erc20.NewKeeper(app.marshal.GetCdc(), app.keys[erc20.ModuleName], app.subspaces[erc20.ModuleName],
 		app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, app.EvmKeeper, app.TransferKeeper)
 
+	//wasm keeper
+	wasmDir := wasm.WasmDir()
+	wasmConfig := wasm.WasmConfig()
+
+	// The last arguments can contain custom message handlers, and custom query handlers,
+	// if we want to allow any custom callbacks
+	supportedFeatures := wasm.SupportedFeatures
+	app.WasmKeeper = wasm.NewKeeper(
+		app.marshal,
+		keys[wasm.StoreKey],
+		app.subspaces[wasm.ModuleName],
+		&app.AccountKeeper,
+		bank.NewBankKeeperAdapter(app.BankKeeper),
+		app.IBCKeeper.ChannelKeeper,
+		&app.IBCKeeper.PortKeeper,
+		nil,
+		app.TransferKeeper,
+		app.MsgServiceRouter(),
+		app.GRPCQueryRouter(),
+		wasmDir,
+		wasmConfig,
+		supportedFeatures,
+		vmbridge.GetWasmOpts(app.marshal.GetProtocMarshal()),
+	)
+
 	// register the proposal types
 	// 3.register the proposal types
 	govRouter := gov.NewRouter()
@@ -413,7 +444,8 @@ func NewOKExChainApp(
 		AddRoute(evm.RouterKey, evm.NewManageContractDeploymentWhitelistProposalHandler(app.EvmKeeper)).
 		AddRoute(mint.RouterKey, mint.NewManageTreasuresProposalHandler(&app.MintKeeper)).
 		AddRoute(ibcclienttypes.RouterKey, ibcclient.NewClientUpdateProposalHandler(app.IBCKeeper.ClientKeeper)).
-		AddRoute(erc20.RouterKey, erc20.NewProposalHandler(&app.Erc20Keeper))
+		AddRoute(erc20.RouterKey, erc20.NewProposalHandler(&app.Erc20Keeper)).
+		AddRoute(wasm.RouterKey, wasm.NewWasmProposalHandler(&app.WasmKeeper, wasm.NecessaryProposals))
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &app.ParamsKeeper).
 		AddRoute(dex.RouterKey, &app.DexKeeper).
@@ -451,30 +483,7 @@ func NewOKExChainApp(
 		staking.NewMultiStakingHooks(app.DistrKeeper.Hooks(), app.SlashingKeeper.Hooks()),
 	)
 
-	//wasm keeper
-	wasmDir := wasm.WasmDir()
-	wasmConfig := wasm.WasmConfig()
 
-	// The last arguments can contain custom message handlers, and custom query handlers,
-	// if we want to allow any custom callbacks
-	supportedFeatures := wasm.SupportedFeatures
-	app.WasmKeeper = wasm.NewKeeper(
-		app.marshal,
-		keys[wasm.StoreKey],
-		app.subspaces[wasm.ModuleName],
-		&app.AccountKeeper,
-		bank.NewBankKeeperAdapter(app.BankKeeper),
-		app.IBCKeeper.ChannelKeeper,
-		&app.IBCKeeper.PortKeeper,
-		nil,
-		app.TransferKeeper,
-		app.MsgServiceRouter(),
-		app.GRPCQueryRouter(),
-		wasmDir,
-		wasmConfig,
-		supportedFeatures,
-		vmbridge.GetWasmOpts(app.marshal.GetProtocMarshal()),
-	)
 	wasmModule := wasm.NewAppModule(*app.marshal, &app.WasmKeeper)
 	app.WasmPermissionKeeper = wasmModule.GetPermissionKeeper()
 	app.VMBridgeKeeper = vmbridge.NewKeeper(app.marshal, app.Logger(), app.EvmKeeper, app.WasmPermissionKeeper, app.AccountKeeper)
