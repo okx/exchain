@@ -230,6 +230,7 @@ func (api *PubSubAPI) subscribeLogs(conn *wsConn, extra interface{}) (rpc.ID, er
 						api.logger.Error("failed to decode result data", "error", err)
 						return
 					}
+					fmt.Println("****** lyh ********", "DecodeResultData 1")
 
 					logs := rpcfilters.FilterLogs(resultData.Logs, crit.FromBlock, crit.ToBlock, crit.Addresses, crit.Topics)
 					if len(logs) == 0 {

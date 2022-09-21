@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	qstaking "github.com/okex/exchain/x/staking/client/evm"
 	"math/big"
 	"strconv"
 	"sync"
@@ -804,7 +805,23 @@ func (api *PublicEthereumAPI) Call(args rpctypes.CallArgs, blockNrOrHash rpctype
 	if overrides == nil {
 		api.addCallCache(key, data.Ret)
 	}
+
 	return data.Ret, nil
+
+	//_, err = api.doCall(args, blockNr, big.NewInt(ethermint.DefaultRPCGasLimit), false, overrides)
+	//if err != nil {
+	//	return []byte{}, TransformDataError(err, "eth_call")
+	//}
+	//
+	////data, err := evmtypes.DecodeResultData(simRes.Result.Data)
+	////if err != nil {
+	////	return []byte{}, TransformDataError(err, "eth_call")
+	////}
+	////fmt.Println("****** lyh ********", "DecodeResultData 33")
+	////if overrides == nil {
+	////	api.addCallCache(key, data.Ret)
+	////}
+	//return hexutil.Bytes{}, nil
 }
 
 // DoCall performs a simulated call operation through the evmtypes. It returns the
@@ -875,6 +892,10 @@ func (api *PublicEthereumAPI) doCall(
 	sim := api.evmFactory.BuildSimulator(api)
 	//only worked when fast-query has been enabled
 	if sim != nil && api.useWatchBackend(blockNum) {
+		r, err := JudgeAndQueryFromCm(clientCtx, data)
+		if err == nil {
+			return r, nil
+		}
 		return sim.DoCall(msg, addr.String(), overridesBytes, api.evmFactory.PutBackStorePool)
 	}
 
@@ -914,6 +935,11 @@ func (api *PublicEthereumAPI) doCall(
 		queryData = txBytes
 	}
 
+	r, err := JudgeAndQueryFromCm(clientCtx, data)
+	if err == nil {
+		return r, nil
+	}
+
 	res, _, err := clientCtx.QueryWithData(simulatePath, queryData)
 	if err != nil {
 		return nil, err
@@ -925,6 +951,33 @@ func (api *PublicEthereumAPI) doCall(
 	}
 
 	return &simResponse, nil
+}
+
+func JudgeAndQueryFromCm(clientCtx clientcontext.CLIContext, data []byte) (*sdk.SimulationResponse, error) {
+	const eabi = `[{"inputs":[{"internalType":"string","name":"data","type":"string"}],"name":"deposit","outputs":[],"stateMutability":"nonpayable","type":"function"},{"inputs":[{"internalType":"string","name":"amount","type":"string"}],"name":"genDepositMsg","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"view","type":"function"},{"inputs":[{"internalType":"string","name":"addr","type":"string"}],"name":"queryDelegator","outputs":[{"internalType":"string","name":"","type":"string"}],"stateMutability":"pure","type":"function"}]`
+	tabi, err := NewABI(eabi)
+	if err != nil {
+		return nil, err
+	}
+
+	mp, err := tabi.DecodeInputParam("queryDelegator", data)
+	if err != nil {
+		return nil, err
+	}
+	if v, ok := mp["addr"]; ok {
+		// add for test demo
+		addr := v.(string)
+		data, err = qstaking.QueryDelegator(clientCtx, addr)
+		if err != nil {
+			return nil, err
+		}
+		re, err := ConverToEthResult(tabi, "queryDelegator", data)
+		if err != nil {
+			return nil, err
+		}
+		return &sdk.SimulationResponse{Result: &sdk.Result{Data: re}}, nil
+	}
+	return nil, fmt.Errorf("other error reason")
 }
 
 // EstimateGas returns an estimate of gas usage for the given smart contract call.
@@ -1182,6 +1235,16 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 	if err != nil {
 		status = 0 // transaction failed
 	}
+
+	////txData := tx.TxResult.GetData()
+	//
+	////data, err := evmtypes.DecodeResultData(txData)
+	////if err != nil {
+	////	status = 0 // transaction failed
+	////}
+	//data := &evmtypes.ResultData{}
+
+	fmt.Println("****** lyh ********", "DecodeResultData 4")
 
 	if len(data.Logs) == 0 {
 		data.Logs = []*ethtypes.Log{}
@@ -1632,4 +1695,51 @@ func (api *PublicEthereumAPI) getEvmParams() (*evmtypes.Params, error) {
 	}
 
 	return &evmParams, nil
+}
+
+func ConverToEthResult(abi *ABI, methodName string, input []byte) ([]byte, error) {
+	ret, err := abi.EncodeOutput(methodName, input)
+	if err != nil {
+		return nil, err
+	}
+	return evmtypes.EncodeResultData(&evmtypes.ResultData{Ret: ret})
+	//const ElementSize = 32
+	//
+	//var ret []byte
+	//// todo no know the first
+	//prefix := big.NewInt(ElementSize).Bytes()
+	//ret = append(ret, pad(prefix, ElementSize, true)...)
+	//
+	//// data size
+	//dataSize := len(input)
+	//n := new(big.Int)
+	//n.SetInt64(int64(dataSize))
+	//ret = append(ret, pad(n.Bytes(), ElementSize, true)...)
+	//
+	//for i := 0; i < dataSize; i += ElementSize {
+	//	a := input[i:]
+	//	if len(a) == 0 {
+	//		break
+	//	}
+	//	ret = append(ret, pad(a, ElementSize, false)...)
+	//}
+	//
+	//edata := &evmtypes.ResultData{
+	//	Ret: ret,
+	//}
+	//return evmtypes.EncodeResultData(edata)
+}
+
+// quick helper padding
+func pad(input []byte, size int, left bool) []byte {
+	if len(input) >= size {
+		return input[:size]
+	}
+	padded := make([]byte, size)
+	if left {
+		copy(padded[size-len(input):], input)
+	} else {
+		copy(padded, input)
+	}
+	return padded
 }

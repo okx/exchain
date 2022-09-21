@@ -269,13 +269,16 @@ $ %s query staking delegator ex1cftp8q8g4aa65nw9s5trwexe77d9t6cr8ndu02
 
 			route := fmt.Sprintf("custom/%s/%s", storeName, types.QueryUnbondingDelegation)
 			res, _, err := cliCtx.QueryWithData(route, bytes)
+			fmt.Println("111111", err)
 			// if err!= nil , we treat it as there's no undelegation of the delegator
 			if err == nil {
+				fmt.Println("33333")
 				if err := cdc.UnmarshalJSON(res, &undelegation); err != nil {
+					fmt.Println("2342342")
 					return err
 				}
 			}
-
+			fmt.Println("22222")
 			return cliCtx.PrintOutput(convertToDelegatorResp(delegator, undelegation))
 		},
 	}

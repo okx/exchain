@@ -289,7 +289,7 @@ func RawTxResultToEthReceipt(clientCtx clientcontext.CLIContext,
 	if err != nil {
 		status = 0 // transaction failed
 	}
-
+	fmt.Println("****** lyh ********", "DecodeResultData 9")
 	if len(data.Logs) == 0 {
 		data.Logs = []*ethtypes.Log{}
 	}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/temp"
 	"github.com/okex/exchain/x/staking/exported"
 	"github.com/okex/exchain/x/staking/types"
 )
@@ -20,6 +21,9 @@ func RegisterInvariantsCustom(ir sdk.InvariantRegistry, k Keeper) {
 		PositiveDelegatorInvariant(k))
 	ir.RegisterRoute(types.ModuleName, "delegator-add-shares",
 		DelegatorAddSharesInvariant(k))
+
+	// for test temp
+	temp.Register(types.ModuleName, "deposit", types.GenDepositMsg)
 }
 
 // DelegatorAddSharesInvariant checks whether all the shares which persist

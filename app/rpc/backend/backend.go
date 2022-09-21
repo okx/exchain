@@ -281,6 +281,7 @@ func (b *EthermintBackend) GetTransactionLogs(txHash common.Hash) ([]*ethtypes.L
 	if err != nil {
 		return nil, err
 	}
+	fmt.Println("****** lyh ********", "DecodeResultData 2")
 
 	return execRes.Logs, nil
 }
@@ -475,6 +476,7 @@ func (b *EthermintBackend) GetLogs(blockHash common.Hash) ([][]*ethtypes.Log, er
 			if err != nil {
 				continue
 			}
+			fmt.Println("****** lyh ********", "DecodeResultData 3")
 			var validLogs []*ethtypes.Log
 			for _, log := range execRes.Logs {
 				if int64(log.BlockNumber) == block.Block.Height {

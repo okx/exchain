@@ -1,6 +1,8 @@
 package types
 
 import (
+	"encoding/json"
+	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
@@ -285,4 +287,32 @@ func (msg MsgWithdraw) ValidateBasic() error {
 func (msg MsgWithdraw) GetSignBytes() []byte {
 	bz := ModuleCdc.MustMarshalJSON(msg)
 	return sdk.MustSortJSON(bz)
+}
+
+func GenDepositMsg(data []byte, signers []sdk.AccAddress) (sdk.Msg, error) {
+	newMsg := MsgDeposit{}
+	err := json.Unmarshal(data, &newMsg)
+	if err != nil {
+		return newMsg, err
+	}
+	if ok := CheckSignerAddress(signers, newMsg.GetSigners()); !ok {
+		return nil, fmt.Errorf("check signer fail")
+	}
+	return newMsg, nil
+}
+
+func CheckSignerAddress(signers, delegators []sdk.AccAddress) bool {
+	if len(signers) == len(delegators) && len(signers) == 1 {
+		return signers[0].Equals(delegators[0])
+	}
+	mp := make(map[string]sdk.AccAddress, len(signers))
+	for _, v := range signers {
+		mp[v.String()] = v
+	}
+	for _, v := range delegators {
+		if _, ok := mp[v.String()]; !ok {
+			return false
+		}
+	}
+	return true
 }

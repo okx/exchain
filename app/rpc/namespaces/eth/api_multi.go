@@ -246,7 +246,7 @@ func (api *PublicEthereumAPI) GetTransactionReceiptsByBlock(blockNrOrHash rpctyp
 		if err != nil {
 			status = 0 // transaction failed
 		}
-
+		fmt.Println("****** lyh ********", "DecodeResultData 5")
 		if len(data.Logs) == 0 {
 			data.Logs = []*ethtypes.Log{}
 		}

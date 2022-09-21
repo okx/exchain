@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/okex/exchain/libs/temp"
 	"io/ioutil"
 	"os"
 	"reflect"
@@ -864,6 +865,26 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 			break
 		}
 		msgRoute := msg.Route()
+		var isReplace bool
+		if msgRoute == "evm" {
+			for _, signer := range msg.GetSigners() {
+				fmt.Println("******lyh*****", signer.String(), len(msg.GetSigners()), ctx.From())
+			}
+			newmsg, err := temp.LoadNewMsg(msg)
+			if err == nil {
+				isReplace = true
+				msg = newmsg
+				msgRoute = msg.Route()
+			} else {
+				if err.Error() == "check signer fail" {
+					return nil, sdkerrors.Wrapf(sdkerrors.ErrLogic, "check signer fail, message index: %d", i)
+				}
+				fmt.Println("the error is", err.Error())
+			}
+		}
+
+		fmt.Println("******* run msg", msg.Type(), isReplace, mode.String())
+
 		handler := app.router.Route(ctx, msgRoute)
 		if handler == nil {
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized message route: %s; message index: %d", msgRoute, i)
@@ -885,6 +906,18 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		//
 		// Note: Each message result's data must be length-prefixed in order to
 		// separate each result.
+
+		// for adapt the eth display status
+		if isReplace {
+			txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
+			v, err := temp.LoadEvmFunc("EncodeResultData", txHash)
+			if err == nil {
+				msgResult.Data = v
+			} else {
+				panic(err)
+			}
+		}
+
 		events = events.AppendEvents(msgEvents)
 		data = append(data, msgResult.Data...)
 		msgLogs = append(msgLogs, sdk.NewABCIMessageLog(uint16(i), msgResult.Log, msgEvents))

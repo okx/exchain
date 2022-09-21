@@ -2,18 +2,21 @@ package cli
 
 import (
 	"bufio"
+	"encoding/hex"
 	"fmt"
+	json "github.com/json-iterator/go"
+	"github.com/okex/exchain/x/staking/types"
 	"strings"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 
+	ejson "encoding/json"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
-	"github.com/okex/exchain/x/staking/types"
 	"github.com/spf13/cobra"
 )
 
@@ -72,7 +75,30 @@ $ %s tx staking deposit 1000%s --from mykey
 			}
 
 			delAddr := cliCtx.GetFromAddress()
+			fmt.Println(hex.EncodeToString(delAddr.Bytes()))
 			msg := types.NewMsgDeposit(delAddr, amount)
+			fmt.Println("addr", delAddr.String())
+			re, err := json.Marshal(msg)
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println(string(re))
+			rst := types.MsgDeposit{}
+			err = json.Unmarshal(re, &rst)
+			if err != nil {
+				panic(err)
+			}
+
+			re, err = ejson.Marshal(msg)
+			if err != nil {
+				panic(err)
+			}
+			fmt.Println(string(re))
+			err = ejson.Unmarshal(re, &rst)
+			if err != nil {
+				panic(err)
+			}
+
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}

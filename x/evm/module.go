@@ -1,10 +1,13 @@
 package evm
 
 import (
+	"encoding/hex"
 	"encoding/json"
-
+	"fmt"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/gorilla/mux"
 	"github.com/spf13/cobra"
+	"math/big"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 
@@ -13,6 +16,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 
+	"github.com/okex/exchain/libs/temp"
 	"github.com/okex/exchain/x/evm/client/cli"
 	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/types"
@@ -90,6 +94,65 @@ func (AppModule) Name() string {
 // RegisterInvariants interface for registering invariants
 func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {
 	keeper.RegisterInvariants(ir, *am.keeper)
+
+	// for temp test
+	temp.RegisterEvm("EncodeResultData", EncodeResultData)
+	temp.RegisterEvmParser(EvmMsgParser)
+}
+
+func EvmMsgParser(msg sdk.Msg) (string, string, []byte, error) {
+	evmTx, ok := msg.(*types.MsgEthereumTx)
+	if ok {
+		if evmTx.Data.Recipient == nil {
+			return "", "", nil, fmt.Errorf("deploy contract should not conver cosmos msg")
+		}
+		fmt.Println("EvmMsgParser", string(evmTx.Data.Payload))
+		return ContractStringParamParse(evmTx.Data.Payload)
+	}
+	return "", "", nil, fmt.Errorf("not a MsgEthereumTx msg")
+}
+
+type CMTxParam struct {
+	Module   string `json:"module"`
+	Function string `json:"function"`
+	Data     string `json:"data"`
+}
+
+func ContractStringParamParse(input []byte) (string, string, []byte, error) {
+	const methodSite = 4
+	const fixedSite = 32
+	const padSite = methodSite + fixedSite                 // 36
+	const dataLenSite = methodSite + fixedSite + fixedSite // 68
+	if len(input) < dataLenSite {
+		return "", "", nil, fmt.Errorf("the input data size is error")
+	}
+
+	size := new(big.Int).SetBytes(input[padSite:dataLenSite]) // 存放数据长度
+	if len(input) < int(size.Int64())+dataLenSite {
+		return "", "", nil, fmt.Errorf("the input data size is error")
+	}
+	data := input[dataLenSite : size.Int64()+dataLenSite] // 实际数据
+
+	value, err := hex.DecodeString(string(data)) // this is json fmt
+	if err != nil {
+		return "", "", nil, err
+	}
+	cmtx := &CMTxParam{}
+	err = json.Unmarshal(value, cmtx)
+	if err != nil {
+		return "", "", nil, err
+	}
+	return cmtx.Module, cmtx.Function, []byte(cmtx.Data), nil
+	//value, err = hex.DecodeString(cmtx.Data) // this is json fmt
+	//if err != nil {
+	//	return "", "", nil, err
+	//}
+	//return cmtx.Module, cmtx.Function, value, nil
+}
+
+func EncodeResultData(data []byte) ([]byte, error) {
+	ethHash := common.BytesToHash(data)
+	return types.EncodeResultData(&types.ResultData{TxHash: ethHash})
 }
 
 // Route specifies path for transactions

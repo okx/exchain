@@ -246,7 +246,7 @@ func (es *EventSystem) handleLogs(ev coretypes.ResultEvent) {
 	if err != nil {
 		return
 	}
-
+	fmt.Println("****** lyh ********", "DecodeResultData 8")
 	if len(resultData.Logs) == 0 {
 		return
 	}
