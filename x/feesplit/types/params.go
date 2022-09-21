@@ -11,7 +11,7 @@ import (
 
 // Parameter store key
 var (
-	DefaultEnableFeeSplit  = true
+	DefaultEnableFeeSplit  = false
 	DefaultDeveloperShares = sdk.NewDecWithPrec(50, 2) // 50%
 	// Cost for executing `crypto.CreateAddress` must be at least 36 gas for the
 	// contained keccak256(word) operation
@@ -30,13 +30,13 @@ func ParamKeyTable() params.KeyTable {
 // Params defines the feesplit module params
 type Params struct {
 	// enable_fee_split defines a parameter to enable the feesplit module
-	EnableFeeSplit bool `json:"enable_fee_split,omitempty"`
+	EnableFeeSplit bool `json:"enable_fee_split",yaml:"enable_fee_split"`
 	// developer_shares defines the proportion of the transaction fees to be
 	// distributed to the registered contract owner
-	DeveloperShares sdk.Dec `json:"developer_shares"`
+	DeveloperShares sdk.Dec `json:"developer_shares",yaml:"developer_shares"`
 	// addr_derivation_cost_create defines the cost of address derivation for
 	// verifying the contract deployer at fee registration
-	AddrDerivationCostCreate uint64 `json:"addr_derivation_cost_create,omitempty"`
+	AddrDerivationCostCreate uint64 `json:"addr_derivation_cost_create",yaml:"addr_derivation_cost_create"`
 }
 
 // NewParams creates a new Params object

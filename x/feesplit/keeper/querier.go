@@ -116,7 +116,7 @@ func queryFeeSplit(
 	if !found {
 		return nil, sdkerrors.Wrap(
 			sdkerrors.ErrInvalidRequest,
-			fmt.Sprintf("fees registered contract '%s'", params.ContractAddress),
+			fmt.Sprintf("not found fees registered contract '%s'", params.ContractAddress),
 		)
 	}
 	share, found := k.GetContractShare(ctx, feeSplit.GetContractAddr())
