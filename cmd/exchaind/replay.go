@@ -64,7 +64,7 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 			err := sanity.CheckStart()
 			if err != nil {
 				fmt.Println(err)
-				return nil
+				return err
 			}
 			server.SetExternalPackageValue(cmd)
 			types.InitSignatureCache()
