@@ -134,6 +134,23 @@ func (cs *State) isProposer(address []byte) bool {
 	return bytes.Equal(cs.Validators.GetProposer().Address, address)
 }
 
+func (cs *State) prepareProposal(height int64, round int) {
+	cs.PreProposalBlock, cs.PreProposalBlockParts = cs.createProposalBlock()
+	propBlockID := types.BlockID{Hash: cs.PreProposalBlock.Hash(), PartsHeader: cs.PreProposalBlockParts.Header()}
+	cs.PreProposal = types.NewProposal(height, round, cs.ValidRound, propBlockID)
+
+	if GetActiveVC() {
+		// itself is proposer, no need to request
+		isBlockProducer, _ := cs.isBlockProducer()
+		if isBlockProducer != "y" && cs.Validators.HasAddress(cs.privValidatorPubKey.Address()) {
+			// request for proposer of new height
+			prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address(), Proposal: cs.PreProposal}
+			// todo only put all request into one channel
+			go cs.requestForProposer(prMsg)
+		}
+	}
+}
+
 func (cs *State) defaultDecideProposal(height int64, round int) {
 	var block *types.Block
 	var blockParts *types.PartSet

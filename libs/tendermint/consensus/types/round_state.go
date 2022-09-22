@@ -91,6 +91,11 @@ type RoundState struct {
 	LastValidators            *types.ValidatorSet `json:"last_validators"`
 	TriggeredTimeoutPrecommit bool                `json:"triggered_timeout_precommit"`
 	HasVC                     bool                `json:"has_vc"` // active-view-change(enterNewRoundAVC) at this Height
+
+	// when enter propose prepare the proposal and block
+	PreProposal           *types.Proposal `json:"pre_proposal"`
+	PreProposalBlock      *types.Block    `json:"pre_proposal_block"`
+	PreProposalBlockParts *types.PartSet  `json:"pre_proposal_block_parts"`
 }
 
 // Compressed version of the RoundState for use in RPC

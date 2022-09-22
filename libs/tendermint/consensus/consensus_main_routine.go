@@ -108,6 +108,18 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 	)
 	msg, peerID := mi.Msg, mi.PeerID
 	switch msg := msg.(type) {
+	case *ProposeResponseMessage:
+		if !GetActiveVC() {
+			return
+		}
+		// this height has valid block part
+		if cs.Proposal != nil || cs.ProposalBlock != nil || cs.ProposalBlockParts != nil {
+			return
+		}
+		cs.Proposal = cs.PreProposal
+		cs.ProposalBlock = cs.PreProposalBlock
+		cs.ProposalBlockParts = cs.PreProposalBlockParts
+
 	case *ViewChangeMessage:
 		if !GetActiveVC() {
 			return
@@ -274,17 +286,6 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 
 	if !cs.config.Waiting {
 		sleepDuration = 0
-	}
-
-	if GetActiveVC() {
-		// itself is proposer, no need to request
-		isBlockProducer, _ := cs.isBlockProducer()
-		if isBlockProducer != "y" && cs.Validators.HasAddress(cs.privValidatorPubKey.Address()) {
-			// request for proposer of new height
-			prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address()}
-			// todo only put all request into one channel
-			go cs.requestForProposer(prMsg)
-		}
 	}
 
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
