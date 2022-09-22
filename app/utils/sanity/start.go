@@ -98,12 +98,12 @@ func CheckStart() error {
 		return nil
 	}
 	for _, v := range startDependentElems {
-		if err := v.Check(); err != nil {
+		if err := v.check(); err != nil {
 			return err
 		}
 	}
 	for _, v := range startConflictElems {
-		if err := v.Check(); err != nil {
+		if err := v.check(); err != nil {
 			return err
 		}
 	}

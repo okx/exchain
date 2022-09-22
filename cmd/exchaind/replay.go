@@ -60,17 +60,17 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 		Short: "Replay blocks from local db",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			// set external package flags
+			log.Println("--------- replay preRun ---------")
+			err := sanity.CheckStart()
+			if err != nil {
+				fmt.Println(err)
+				return nil
+			}
 			server.SetExternalPackageValue(cmd)
 			types.InitSignatureCache()
 			return nil
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			log.Println("--------- replay preRun ---------")
-			err := sanity.CheckStart()
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
 			log.Println("--------- replay start ---------")
 			pprofAddress := viper.GetString(pprofAddrFlag)
 			go func() {

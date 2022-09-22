@@ -179,7 +179,7 @@ func Test_conflictPair_checkConflict(t *testing.T) {
 				configB: tt.fields.configB,
 			}
 			var err error
-			if err = cp.Check(); (err != nil) != tt.wantErr {
+			if err = cp.check(); (err != nil) != tt.wantErr {
 				t.Errorf("checkConflict() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			t.Log(err)
@@ -210,7 +210,7 @@ func Test_dependentPair_check(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			var err error
-			if err = tt.fields.Check(); (err != nil) != tt.wantErr {
+			if err = tt.fields.check(); (err != nil) != tt.wantErr {
 				t.Errorf("checkConflict() error = %v, wantErr %v", err, tt.wantErr)
 			}
 			t.Log(err)

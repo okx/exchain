@@ -77,7 +77,7 @@ type dependentPair struct {
 	reliedConfig item
 }
 
-func (cp *dependentPair) Check() error {
+func (cp *dependentPair) check() error {
 	//if config is true,  then the reliedConfig must be checked as true
 	if cp.config.check() &&
 		!cp.reliedConfig.check() {
@@ -94,7 +94,7 @@ type conflictPair struct {
 
 // checkConflict: check configA vs configB
 // and the value is equal to the conflicts value then complain it
-func (cp *conflictPair) Check() error {
+func (cp *conflictPair) check() error {
 	if cp.configA.check() &&
 		cp.configB.check() {
 		return fmt.Errorf(" %v conflict with %v", cp.configA.verbose(), cp.configB.verbose())
