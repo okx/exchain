@@ -416,7 +416,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			proposalMsg := &ProposalMessage{Proposal: proposal}
 			conR.Switch.Broadcast(DataChannel, cdc.MustMarshalBinaryBare(proposalMsg))
 			// tell newProposer
-			prspMsg := &ProposeResponseMessage{Height: proposal.Height, BlockHash: proposal.BlockID.Hash}
+			prspMsg := &ProposeResponseMessage{Height: proposal.Height, Proposal: proposal}
 			ps.peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(prspMsg))
 
 			conR.hasViewChanged = msg.Height
@@ -2057,8 +2057,8 @@ func (m *ProposeRequestMessage) Verify(pubKey crypto.PubKey) error {
 
 // ProposeResponseMessage is the response of prMsg
 type ProposeResponseMessage struct {
-	Height    int64
-	BlockHash []byte
+	Height   int64
+	Proposal *types.Proposal
 }
 
 func (m *ProposeResponseMessage) ValidateBasic() error {

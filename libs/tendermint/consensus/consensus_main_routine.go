@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/okex/exchain/libs/system/trace"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
@@ -116,7 +117,10 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 		if cs.Proposal != nil || cs.ProposalBlock != nil || cs.ProposalBlockParts != nil {
 			return
 		}
-		cs.Proposal = cs.PreProposal
+		if !bytes.Equal(msg.Proposal.BlockID.Hash.Bytes(), cs.PreProposalBlockParts.Hash()) || msg.Height != cs.PreProposalBlock.Height {
+			return
+		}
+		cs.Proposal = msg.Proposal
 		cs.ProposalBlock = cs.PreProposalBlock
 		cs.ProposalBlockParts = cs.PreProposalBlockParts
 
