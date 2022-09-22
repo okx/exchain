@@ -271,7 +271,6 @@ func TestMutableTree_SaveVersionDelta(t *testing.T) {
 	require.NoError(t, err)
 
 	tree.Set([]byte("a"), []byte{0x01})
-
 	// not use delta and not produce delta
 	h, v, delta, err := tree.SaveVersion(false)
 	require.NoError(t, err)
@@ -279,6 +278,7 @@ func TestMutableTree_SaveVersionDelta(t *testing.T) {
 	assert.EqualValues(t, 9, v)
 	assert.Equal(t, delta, emptyDelta)
 
+	tree.Set([]byte("a"), []byte{0x01})
 	// not use delta and produce delta
 	SetProduceDelta(true)
 	h1, v1, delta1, err := tree.SaveVersion(false)
