@@ -29,6 +29,7 @@ var (
 	pendingtxEvents = tmtypes.QueryForEvent(tmtypes.EventPendingTx).String()
 	evmEvents       = tmquery.MustParse(fmt.Sprintf("%s='%s' AND %s.%s='%s'", tmtypes.EventTypeKey, tmtypes.EventTx, sdk.EventTypeMessage, sdk.AttributeKeyModule, evmtypes.ModuleName)).String()
 	headerEvents    = tmtypes.QueryForEvent(tmtypes.EventNewBlockHeader).String()
+	blockTimeEvents = tmtypes.QueryForEvent(tmtypes.EventBlockTime).String()
 )
 
 // EventSystem creates subscriptions, processes events and broadcasts them to the
@@ -232,6 +233,19 @@ func (es EventSystem) SubscribePendingTxs() (*Subscription, context.CancelFunc, 
 		event:     pendingtxEvents,
 		created:   time.Now().UTC(),
 		hashes:    make(chan []common.Hash),
+		installed: make(chan struct{}, 1),
+		err:       make(chan error, 1),
+	}
+	return es.subscribe(sub)
+}
+
+// SubscribeBlockTime subscribes to the latest block time events
+func (es EventSystem) SubscribeBlockTime() (*Subscription, context.CancelFunc, error) {
+	sub := &Subscription{
+		id:        rpc.NewID(),
+		typ:       filters.BlocksSubscription,
+		event:     blockTimeEvents,
+		created:   time.Now().UTC(),
 		installed: make(chan struct{}, 1),
 		err:       make(chan error, 1),
 	}
