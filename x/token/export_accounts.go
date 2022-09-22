@@ -2,17 +2,20 @@ package token
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"os"
 	"path"
 	"time"
 
-	ethcmn "github.com/ethereum/go-ethereum/common"
-
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
+	ethcmn "github.com/ethereum/go-ethereum/common"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	authexported "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply/exported"
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
 	"github.com/spf13/viper"
 )
@@ -76,11 +79,22 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 	count := 0
 	startTime := time.Now()
 	keeper.accountKeeper.IterateAccounts(ctx, func(account authexported.Account) bool {
-		//ethAcc, ok := account.(*ethermint.EthAccount)
-		//if !ok {
-		//	return false
-		//}
+		/**
+		 * 0：common address
+		 * 1：contract address
+		 * 2：module account
+		 * 3：other
+		 */
+		accType := 0
+		ethAcc, ok := account.(*ethermint.EthAccount)
+		if ok && !bytes.Equal(ethAcc.CodeHash, ethcrypto.Keccak256(nil)) {
+			accType = 1
+		}
 
+		_, ok = account.(exported.ModuleAccountI)
+		if ok {
+			accType = 2
+		}
 		//account.SpendableCoins()
 		//oktBalance := account.GetCoins().AmountOf(sdk.DefaultBondDenom)
 		//if !oktBalance.GT(sdk.ZeroDec()) {
@@ -99,9 +113,16 @@ func exportAccounts(ctx sdk.Context, keeper Keeper) (filePath string) {
 		//	ctx.BlockHeight(),
 		//	pt,
 		//)
-		csvStr := fmt.Sprintf("%s,%s",
+		balance := account.GetCoins()
+		b := balance.String()
+		if len(balance) == 0 {
+			b = "0"
+		}
+		csvStr := fmt.Sprintf("%s,%s,%d,%s",
 			account.GetAddress().String(),
 			ethcmn.BytesToAddress(account.GetAddress().Bytes()).String(),
+			accType,
+			b,
 		)
 		fmt.Fprintln(accWr, csvStr)
 		count++
