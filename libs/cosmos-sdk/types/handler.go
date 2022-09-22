@@ -3,6 +3,8 @@ package types
 import (
 	"sync"
 
+	"github.com/ethereum/go-ethereum/common"
+
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
@@ -22,7 +24,7 @@ type AccNonceHandler func(ctx Context, address AccAddress) (nonce uint64)
 type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins, feesplits *sync.Map) error
 
 type LogFix func(tx []Tx, logIndex []int, hasEnterEvmTx []bool, errs []error, resp []abci.ResponseDeliverTx) (logs [][]byte)
-type UpdateFeeSplitHandler func(addr AccAddress, fee Coins)
+type UpdateFeeSplitHandler func(txHash common.Hash, addr AccAddress, fee Coins)
 type GetTxFeeAndFromHandler func(ctx Context, tx Tx) (Coins, bool, string, string, error)
 type GetTxFeeHandler func(tx Tx) Coins
 

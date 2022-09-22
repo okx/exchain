@@ -5,6 +5,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/ethereum/go-ethereum/common"
+
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
@@ -27,18 +29,22 @@ func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCo
 
 		// split fee
 		// come from feesplit module
+		feeSplitSet := make(map[string]sdk.Coins)
 		feesplits.Range(func(key, value interface{}) bool {
-			addr := key.(string)
-			fees := value.(sdk.Coins)
+			feeInfo := value.(feeSplitInfo)
+
+			orgFee := feeSplitSet[feeInfo.addr]
+			feeSplitSet[feeInfo.addr] = feeInfo.fee.Add2(orgFee)
+
+			feesplits.Delete(key)
+			return true
+		})
+		for addr, fees := range feeSplitSet {
 			acc := sdk.MustAccAddressFromBech32(addr)
 			err = sk.SendCoinsFromModuleToAccount(ctx, auth.FeeCollectorName, acc, fees)
 			if err != nil {
-				return false
+				return err
 			}
-			return true
-		})
-		if err != nil {
-			return err
 		}
 
 		return nil
@@ -132,14 +138,13 @@ func getTxFeeAndFromHandler(ak auth.AccountKeeper) sdk.GetTxFeeAndFromHandler {
 	}
 }
 
+type feeSplitInfo struct {
+	addr string
+	fee  sdk.Coins
+}
+
 func updateFeeSplitHandler(feesplits *sync.Map) sdk.UpdateFeeSplitHandler {
-	return func(addr sdk.AccAddress, fee sdk.Coins) {
-		key := addr.String()
-		orgFee, ok := feesplits.Load(key)
-		if !ok {
-			feesplits.Store(key, fee)
-		} else {
-			feesplits.Store(key, orgFee.(sdk.Coins).Add2(fee))
-		}
+	return func(txHash common.Hash, addr sdk.AccAddress, fee sdk.Coins) {
+		feesplits.Store(txHash.String(), feeSplitInfo{addr.String(), fee})
 	}
 }

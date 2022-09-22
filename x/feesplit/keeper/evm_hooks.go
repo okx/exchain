@@ -4,6 +4,7 @@ import (
 	"math/big"
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/feesplit/types"
@@ -76,7 +77,7 @@ func (k Keeper) PostTxProcessing(
 	fees := sdk.Coins{{Denom: sdk.DefaultBondDenom, Amount: developerFee}}
 
 	// distribute the fees to the contract deployer / withdraw address
-	k.updateFeeSplitHandler(withdrawer, fees)
+	k.updateFeeSplitHandler(receipt.TxHash, withdrawer, fees)
 
 	ctx.EventManager().EmitEvents(
 		sdk.Events{
