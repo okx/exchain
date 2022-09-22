@@ -27,7 +27,7 @@ var (
 )
 
 const (
-	MaxMessagesPerTxDefault = 5
+	MaxMessagesPerTxDefault = 0
 )
 
 type generateOrBroadcastFunc func(context.CLIContext, auth.TxBuilder, []sdk.Msg) error

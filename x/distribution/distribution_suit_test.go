@@ -358,6 +358,24 @@ func (suite *DistributionSuite) TestDelegator() {
 			0,
 			4,
 		},
+		{
+			"1 delegator，4 validator, onchain, rate 0",
+			4,
+			1,
+			[4][4]string{{"24", "24", "24", "24"}},
+			"0",
+			1,
+			4,
+		},
+		{
+			"1 delegator，4 validator, onchain, rate 1",
+			4,
+			1,
+			[4][4]string{{"0", "0", "0", "0"}},
+			"1",
+			1,
+			4,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -1463,6 +1481,30 @@ func (suite *DistributionSuite) TestTruncateWithPrecWithdraw() {
 			// UTC Time: 2000/1/1 00:00:00
 			blockTimestampEpoch := int64(946684800)
 			ctx.SetBlockTime(time.Unix(blockTimestampEpoch, 0))
+
+			//deposit, add shares, withdraw msg in one block
+			allocateVariateTokens(suite.T(), tc.blockRewards)
+			staking.EndBlocker(ctx, sk)
+			for i := int64(0); i < tc.delCount; i++ {
+				keeper.DoDeposit(suite.T(), ctx, sk, keeper.TestDelAddrs[i], getDecCoins(tc.depositCoins[i])[0])
+				keeper.DoAddShares(suite.T(), ctx, sk, keeper.TestDelAddrs[i], keeper.TestValAddrs[0:1])
+				delegator := sk.Delegator(ctx, keeper.TestDelAddrs[i])
+				require.False(suite.T(), delegator.GetLastAddedShares().IsZero())
+
+				beforeAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
+				dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[i], keeper.TestValAddrs[0])
+				afterAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
+				require.Equal(suite.T(), getDecCoins("0"), afterAccount.Sub(beforeAccount))
+
+				beforeAccount = ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
+				keeper.DoWithdraw(suite.T(), ctx, sk, keeper.TestDelAddrs[i], getDecCoins(tc.depositCoins[i])[0])
+				afterAccount = ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
+				require.Equal(suite.T(), getDecCoins("0"), afterAccount.Sub(beforeAccount))
+			}
+
+			allocateVariateTokens(suite.T(), tc.blockRewards)
+			staking.EndBlocker(ctx, sk)
+			//nomal
 			for i := int64(0); i < tc.delCount; i++ {
 				keeper.DoDeposit(suite.T(), ctx, sk, keeper.TestDelAddrs[i], getDecCoins(tc.depositCoins[i])[0])
 				keeper.DoAddShares(suite.T(), ctx, sk, keeper.TestDelAddrs[i], keeper.TestValAddrs[0:1])
@@ -1474,11 +1516,19 @@ func (suite *DistributionSuite) TestTruncateWithPrecWithdraw() {
 			staking.EndBlocker(ctx, sk)
 			//withdraw reward
 			ctx.SetBlockHeight(ctx.BlockHeight() + 1)
+			feePoolBefore := dk.GetFeePool(ctx).CommunityPool
 			for i := int64(0); i < tc.delCount; i++ {
 				beforeAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
 				dk.WithdrawDelegationRewards(ctx, keeper.TestDelAddrs[i], keeper.TestValAddrs[0])
 				afterAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
 				require.Equal(suite.T(), getDecCoins(tc.decRewards[i]), afterAccount.Sub(beforeAccount))
+			}
+			feePoolEnd := dk.GetFeePool(ctx).CommunityPool
+			diff := feePoolEnd.Sub(feePoolBefore)
+			if tc.precision == sdk.Precision {
+				require.True(suite.T(), diff.IsZero())
+			} else {
+				require.False(suite.T(), diff.IsZero())
 			}
 
 			// withdraw
