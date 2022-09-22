@@ -64,9 +64,15 @@ func (k Keeper) PostTxProcessing(
 	if found {
 		developerShares = shares
 	}
+	if developerShares.LTE(sdk.ZeroDec()) {
+		return nil
+	}
 
 	txFee := new(big.Int).Mul(st.Price, new(big.Int).SetUint64(ctx.GasMeter().GasConsumed()))
 	developerFee := sdk.NewDecFromBigIntWithPrec(txFee, sdk.Precision).Mul(developerShares)
+	if developerFee.LTE(sdk.ZeroDec()) {
+		return nil
+	}
 	fees := sdk.Coins{{Denom: sdk.DefaultBondDenom, Amount: developerFee}}
 
 	// distribute the fees to the contract deployer / withdraw address
