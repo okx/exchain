@@ -24,6 +24,7 @@ func (k Keeper) escrowPacketFee(ctx sdk.Context, packetID channeltypes.PacketId,
 	}
 
 	coins := packetFee.Fee.Total()
+	// TODO,这里是否需要进行额外的转换
 	cm39Coins := coins.ToCoins()
 	if err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, refundAddr, types.ModuleName, cm39Coins); err != nil {
 		return err
