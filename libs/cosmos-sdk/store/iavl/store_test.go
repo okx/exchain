@@ -573,6 +573,8 @@ func testCommitDelta(t *testing.T) {
 	assert.Equal(t, emptyDelta, treeDelta)
 
 	// not use delta and produce delta
+	iavlStore.Set(k1, v1)
+	iavlStore.Set(k2, v2)
 	iavl.SetProduceDelta(true)
 	cid1, treeDelta1 := iavlStore.CommitterCommit(nil)
 	assert.NotEmpty(t, cid1.Hash)
@@ -637,6 +639,7 @@ func TestIAVLDelta(t *testing.T) {
 	assert.Equal(t, delta, emptyDelta)
 
 	// not use delta and produce delta
+	require.True(t, tree.Set([]byte("hello"), []byte("hallo")))
 	iavl.SetProduceDelta(true)
 	h1, v1, delta1, err := tree.SaveVersion(false)
 	require.NoError(t, err)
