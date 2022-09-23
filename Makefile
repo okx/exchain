@@ -27,6 +27,7 @@ VenusHeight=1
 Venus1Height=1
 MarsHeight=0
 Venus2Height=0
+Venus3Height=0
 
 LINK_STATICALLY = false
 cgo_flags=
