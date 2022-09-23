@@ -172,6 +172,19 @@ func (coin DecCoin) TruncateDecimal() (Coin, DecCoin) {
 	return NewCoin(coin.Denom, truncated), NewDecCoinFromDec(coin.Denom, change)
 }
 
+// TruncateWithPrec returns a Coin with a truncated coin and a DecCoin for the
+// change with prec, Note, the change may be zero.
+func (coin DecCoin) TruncateWithPrec(prec int64) (Coin, DecCoin) {
+	if prec < 0 || prec > Precision {
+		panic(fmt.Sprintf("prec range error, %d", prec))
+	}
+
+	tempTruncated := coin.Amount.TruncateWithPrec(prec)
+	truncated := NewDecFromIntWithPrec(tempTruncated, prec)
+	change := coin.Amount.Sub(truncated)
+	return NewCoin(coin.Denom, truncated), NewDecCoinFromDec(coin.Denom, change)
+}
+
 // IsPositive returns true if coin amount is positive.
 //
 // TODO: Remove once unsigned integers are used.
@@ -314,6 +327,22 @@ func (coins DecCoins) String() string {
 func (coins DecCoins) TruncateDecimal() (truncatedCoins Coins, changeCoins DecCoins) {
 	for _, coin := range coins {
 		truncated, change := coin.TruncateDecimal()
+		if !truncated.IsZero() {
+			truncatedCoins = truncatedCoins.Add(truncated)
+		}
+		if !change.IsZero() {
+			changeCoins = changeCoins.Add(change)
+		}
+	}
+
+	return truncatedCoins, changeCoins
+}
+
+// TruncateWithPrec returns the coins with truncated fix coins and returns the
+// change with prec. Note, it will not return any zero-amount coins in either the truncated or change coins.
+func (coins DecCoins) TruncateWithPrec(prec int64) (truncatedCoins Coins, changeCoins DecCoins) {
+	for _, coin := range coins {
+		truncated, change := coin.TruncateWithPrec(prec)
 		if !truncated.IsZero() {
 			truncatedCoins = truncatedCoins.Add(truncated)
 		}

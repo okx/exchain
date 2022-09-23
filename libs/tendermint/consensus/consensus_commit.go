@@ -229,6 +229,15 @@ func (cs *State) finalizeCommit(height int64) {
 	var retainHeight int64
 
 	cs.trc.Pin("%s-%d", trace.RunTx, cs.Round)
+
+	// publish event of the latest block time
+	if types.EnableEventBlockTime {
+		blockTime := sm.MedianTime(cs.Votes.Precommits(cs.Round).MakeCommit(), cs.Validators)
+		validators := cs.Validators.Copy()
+		validators.IncrementProposerPriority(1)
+		cs.blockExec.FireBlockTimeEvents(height, blockTime.UnixMilli(), validators.Proposer.Address)
+	}
+
 	stateCopy, retainHeight, err = cs.blockExec.ApplyBlock(
 		stateCopy,
 		types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()},
@@ -296,7 +305,7 @@ func (cs *State) updateToState(state sm.State) {
 	//		cs.state.LastBlockHeight+1, cs.Height))
 	//}
 
-	cs.hasVC = false
+	cs.HasVC = false
 	if cs.vcMsg != nil && cs.vcMsg.Height <= cs.Height {
 		cs.vcMsg = nil
 	}

@@ -2,10 +2,11 @@ package types
 
 import (
 	"fmt"
-	"github.com/okex/exchain/libs/tendermint/global"
-	"github.com/okex/exchain/libs/tendermint/types"
 	"strings"
 
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/tendermint/global"
+	"github.com/okex/exchain/libs/tendermint/types"
 	govtypes "github.com/okex/exchain/x/gov/types"
 )
 
@@ -15,6 +16,9 @@ const (
 
 	// ProposalTypeWithdrawRewardEnabled defines the type for a WithdrawRewardEnabledProposal
 	ProposalTypeWithdrawRewardEnabled = "WithdrawRewardEnabled"
+
+	// ProposalTypeRewardTruncatePrecision defines the type for a RewardTruncatePrecision
+	ProposalTypeRewardTruncatePrecision = "RewardTruncatePrecision"
 )
 
 const (
@@ -132,5 +136,64 @@ func (proposal WithdrawRewardEnabledProposal) String() string {
   Description: %s
   Enabled:   %t
 `, proposal.Title, proposal.Description, proposal.Enabled))
+	return b.String()
+}
+
+// Assert RewardTruncatePrecisionProposal implements govtypes.Content at compile-time
+var _ govtypes.Content = RewardTruncatePrecisionProposal{}
+
+// RewardTruncatePrecisionProposal
+type RewardTruncatePrecisionProposal struct {
+	Title       string `json:"title" yaml:"title"`
+	Description string `json:"description" yaml:"description"`
+	Precision   int64  `json:"precision" yaml:"precision"`
+}
+
+// NewRewardTruncatePrecisionProposal creates a reward truncate precision proposal.
+func NewRewardTruncatePrecisionProposal(title, description string, precision int64) RewardTruncatePrecisionProposal {
+	return RewardTruncatePrecisionProposal{title, description, precision}
+}
+
+// GetTitle returns the title of a set withdraw reward enabled proposal.
+func (proposal RewardTruncatePrecisionProposal) GetTitle() string { return proposal.Title }
+
+// GetDescription returns the description of a set withdraw reward enabled proposal.
+func (proposal RewardTruncatePrecisionProposal) GetDescription() string { return proposal.Description }
+
+// GetDescription returns the routing key of a set withdraw reward enabled proposal.
+func (proposal RewardTruncatePrecisionProposal) ProposalRoute() string { return RouterKey }
+
+// ProposalType returns the type of a set withdraw reward enabled proposal.
+func (proposal RewardTruncatePrecisionProposal) ProposalType() string {
+	return ProposalTypeRewardTruncatePrecision
+}
+
+// ValidateBasic runs basic stateless validity checks
+func (proposal RewardTruncatePrecisionProposal) ValidateBasic() error {
+	err := govtypes.ValidateAbstract(ModuleName, proposal)
+	if err != nil {
+		return err
+	}
+
+	if proposal.Precision < 0 || proposal.Precision > sdk.Precision {
+		return ErrCodeRewardTruncatePrecision()
+	}
+
+	//will delete it after upgrade venus2
+	if !types.HigherThanVenus2(global.GetGlobalHeight()) {
+		return ErrCodeNotSupportRewardTruncateProposal()
+	}
+
+	return nil
+}
+
+// String implements the Stringer interface.
+func (proposal RewardTruncatePrecisionProposal) String() string {
+	var b strings.Builder
+	b.WriteString(fmt.Sprintf(`Reward Truncate Precision Proposal:
+  Title:       %s
+  Description: %s
+  Precision:   %d
+`, proposal.Title, proposal.Description, proposal.Precision))
 	return b.String()
 }
