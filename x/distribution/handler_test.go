@@ -91,7 +91,6 @@ func (suite *HandlerSuite) TestHandlerWithdrawDelegatorReward() {
 			require.Equal(suite.T(), tc.errors[3], err)
 		})
 	}
-
 }
 
 type allocationParam struct {
