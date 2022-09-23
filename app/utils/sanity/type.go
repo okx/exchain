@@ -75,6 +75,20 @@ func (f funcItem) verbose() string {
 	return fmt.Sprintf("%v=%v", f.name, f.actual)
 }
 
+type dependentPair struct {
+	config       item
+	reliedConfig item
+}
+
+func (cp *dependentPair) check() error {
+	//if config is true,  then the reliedConfig must be checked as true
+	if cp.config.check() &&
+		!cp.reliedConfig.check() {
+		return fmt.Errorf(" %v must be set explicitly, as %v", cp.reliedConfig.verbose(), cp.config.verbose())
+	}
+	return nil
+}
+
 // conflictPair: configA and configB are conflict pair
 type conflictPair struct {
 	configA item
@@ -84,7 +98,7 @@ type conflictPair struct {
 // checkConflict: check configA vs configB
 // if both configA and configB are got expect values
 // then complain it. if there is a custom tips use it.
-func (cp *conflictPair) checkConflict(tips ...string) error {
+func (cp *conflictPair) check(tips ...string) error {
 	if cp.configA.check() &&
 		cp.configB.check() {
 		if len(tips) == 0 {
@@ -104,7 +118,7 @@ type conflictPairWithOption struct {
 
 func (cpo *conflictPairWithOption) checkConflict() error {
 	if cpo.checkOption.check() {
-		return cpo.conflictPair.checkConflict(cpo.tips)
+		return cpo.conflictPair.check(cpo.tips)
 	}
 	return nil
 }

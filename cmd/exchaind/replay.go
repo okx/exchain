@@ -14,6 +14,7 @@ import (
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/okex/exchain/app/config"
 	okexchain "github.com/okex/exchain/app/types"
+	"github.com/okex/exchain/app/utils/sanity"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/lcd"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
@@ -59,6 +60,12 @@ func replayCmd(ctx *server.Context, registerAppFlagFn func(cmd *cobra.Command),
 		Short: "Replay blocks from local db",
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			// set external package flags
+			log.Println("--------- replay preRun ---------")
+			err := sanity.CheckStart()
+			if err != nil {
+				fmt.Println(err)
+				return err
+			}
 			server.SetExternalPackageValue(cmd)
 			types.InitSignatureCache()
 			return nil
