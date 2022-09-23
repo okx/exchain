@@ -28,7 +28,7 @@ run() {
       --log_level $LOG_LEVEL \
       --log_file json \
       --enable-dynamic-gp=false \
-      --consensus.timeout_commit 2000ms \
+      --consensus.timeout_commit 500ms \
       --enable-preruntx=false \
       --fast-query=true \
       --deliver-txs-mode=2 \
