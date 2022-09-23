@@ -120,7 +120,9 @@ func (cs *State) enterPropose(height int64, round int) {
 			bpAddr,
 			"privValidator",
 			cs.privValidator)
-		cs.decideProposal(height, round)
+		if cs.vcHeight[height] {
+			cs.decideProposal(height, round)
+		}
 	} else {
 		logger.Info("enterPropose: Not our turn to propose",
 			"proposer",

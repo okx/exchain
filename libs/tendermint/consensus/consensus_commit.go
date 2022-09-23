@@ -309,6 +309,9 @@ func (cs *State) updateToState(state sm.State) {
 	if cs.vcMsg != nil && cs.vcMsg.Height <= cs.Height {
 		cs.vcMsg = nil
 	}
+	if cs.vcHeight[cs.Height] {
+		delete(cs.vcHeight, cs.Height)
+	}
 
 	// If state isn't further out than cs.state, just ignore.
 	// This happens when SwitchToConsensus() is called in the reactor.

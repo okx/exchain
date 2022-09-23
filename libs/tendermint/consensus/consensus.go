@@ -156,7 +156,8 @@ type State struct {
 	prerunTx bool
 	bt       *BlockTransport
 
-	vcMsg *ViewChangeMessage
+	vcMsg    *ViewChangeMessage
+	vcHeight map[int64]bool
 }
 
 // StateOption sets an optional parameter on the State.
@@ -192,6 +193,7 @@ func NewState(
 		bt:                 &BlockTransport{},
 		blockTimeTrc:       trace.NewTracer(trace.LastBlockTime),
 		timeoutIntervalTrc: trace.NewTracer(trace.TimeoutInterval),
+		vcHeight:           make(map[int64]bool),
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal

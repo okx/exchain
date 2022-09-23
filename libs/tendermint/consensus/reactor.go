@@ -420,6 +420,9 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			ps.peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(prspMsg))
 
 			conR.hasViewChanged = msg.Height
+
+			// todo: mark the height no need to be proposer in msg.Height
+			conR.conS.vcHeight[msg.Height] = true
 			conR.Logger.Info("receive prMsg", "height", height, "prMsg", msg, "vcMsg", conR.conS.vcMsg)
 		}
 	case StateChannel:
