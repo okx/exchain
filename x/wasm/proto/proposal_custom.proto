@@ -1,0 +1,27 @@
+syntax = "proto3";
+package types;
+
+option go_package = "x/wasm/types";
+
+message UpdateDeploymentWhitelistProposal {
+  string title = 1;
+  string description = 2;
+  repeated string distributorAddrs = 3;
+}
+
+message UpdateWASMContractMethodBlockedListProposal {
+  string title = 1;
+  string description = 2;
+  ContractMethods blockedMethods = 3;
+  bool isDelete = 4;
+}
+
+message ContractMethods {
+  string contractAddr = 1;
+  repeated Method methods = 2;
+}
+
+message Method {
+  string name = 1;
+  string extra = 2;
+}

@@ -2,11 +2,14 @@ package keeper
 
 import (
 	"encoding/hex"
+	"fmt"
+	"sort"
+	"strings"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
-	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
-
+	types2 "github.com/okex/exchain/libs/tendermint/types"
+	govtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/okex/exchain/x/wasm/types"
 )
 
@@ -21,7 +24,12 @@ func NewWasmProposalHandlerX(k types.ContractOpsKeeper, enabledProposalTypes []t
 	for i := range enabledProposalTypes {
 		enabledTypes[string(enabledProposalTypes[i])] = struct{}{}
 	}
-	return func(ctx sdk.Context, content govtypes.Content) error {
+	return func(ctx sdk.Context, proposal *govtypes.Proposal) sdk.Error {
+		if !types2.HigherThanVenus2(ctx.BlockHeight()) {
+			errMsg := fmt.Sprintf("wasm not supprt at height %d", ctx.BlockHeight())
+			return sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
+		}
+		content := proposal.Content
 		if content == nil {
 			return sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "content must not be empty")
 		}
@@ -49,6 +57,10 @@ func NewWasmProposalHandlerX(k types.ContractOpsKeeper, enabledProposalTypes []t
 			return handleUnpinCodesProposal(ctx, k, *c)
 		case *types.UpdateInstantiateConfigProposal:
 			return handleUpdateInstantiateConfigProposal(ctx, k, *c)
+		case *types.UpdateDeploymentWhitelistProposal:
+			return handleUpdateDeploymentWhitelistProposal(ctx, k, *c)
+		case *types.UpdateWASMContractMethodBlockedListProposal:
+			return handleUpdateWASMContractMethodBlockedListProposal(ctx, k, *c)
 		default:
 			return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized wasm proposal content type: %T", c)
 		}
@@ -110,6 +122,11 @@ func handleMigrateProposal(ctx sdk.Context, k types.ContractOpsKeeper, p types.M
 	if err != nil {
 		return sdkerrors.Wrap(err, "run as address")
 	}
+
+	if err = k.ClearContractAdmin(ctx, contractAddr, contractAddr); err != nil {
+		return err
+	}
+
 	// runAs is not used if this is permissioned, so just put any valid address there (second contractAddr)
 	data, err := k.Migrate(ctx, contractAddr, contractAddr, p.CodeID, p.Msg)
 	if err != nil {
@@ -235,4 +252,38 @@ func handleUpdateInstantiateConfigProposal(ctx sdk.Context, k types.ContractOpsK
 		}
 	}
 	return nil
+}
+
+func handleUpdateDeploymentWhitelistProposal(ctx sdk.Context, k types.ContractOpsKeeper, p types.UpdateDeploymentWhitelistProposal) error {
+	if err := p.ValidateBasic(); err != nil {
+		return err
+	}
+
+	var config types.AccessConfig
+	if len(p.DistributorAddrs) == 0 {
+		config.Permission = types.AccessTypeNobody
+	} else if types.IsAllAddress(p.DistributorAddrs) {
+		config.Permission = types.AccessTypeEverybody
+	} else {
+		sort.Strings(p.DistributorAddrs)
+		config.Permission = types.AccessTypeOnlyAddress
+		config.Address = strings.Join(p.DistributorAddrs, ",")
+	}
+
+	k.UpdateUploadAccessConfig(ctx, config)
+	return nil
+}
+
+func handleUpdateWASMContractMethodBlockedListProposal(ctx sdk.Context, k types.ContractOpsKeeper, p types.UpdateWASMContractMethodBlockedListProposal) error {
+	if err := p.ValidateBasic(); err != nil {
+		return err
+	}
+	contractAddr, err := sdk.AccAddressFromBech32(p.BlockedMethods.ContractAddr)
+	if err != nil {
+		return sdkerrors.Wrap(err, "contract")
+	}
+	if err = k.ClearContractAdmin(ctx, contractAddr, contractAddr); err != nil {
+		return err
+	}
+	return k.UpdateContractMethodBlockedList(ctx, p.BlockedMethods, p.IsDelete)
 }
