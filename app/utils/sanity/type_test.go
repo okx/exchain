@@ -198,13 +198,13 @@ func Test_dependentPair_check(t *testing.T) {
 		wantErr bool
 	}{
 		{name: "1. b1=true, b2=true, correct",
-			fields: dependentPair{config: boolItem{name: "b1", value: true}, reliedConfig: boolItem{name: "b2", value: true}},
+			fields: dependentPair{config: boolItem{name: "b1", expect: true}, reliedConfig: boolItem{name: "b2", expect: true}},
 			args:   args{cmd: getCommandBool()}, wantErr: false},
 		{name: "2. b1=true,b2=false, need error",
-			fields: dependentPair{config: boolItem{name: "b1", value: true}, reliedConfig: boolItem{name: "b2", value: false}},
+			fields: dependentPair{config: boolItem{name: "b1", expect: true}, reliedConfig: boolItem{name: "b2", expect: false}},
 			args:   args{cmd: getCommandBool()}, wantErr: true},
 		{name: "2. b1=false, no error",
-			fields: dependentPair{config: boolItem{name: "b1", value: false}, reliedConfig: boolItem{name: "b2", value: false}},
+			fields: dependentPair{config: boolItem{name: "b1", expect: false}, reliedConfig: boolItem{name: "b2", expect: false}},
 			args:   args{cmd: getCommandBool()}, wantErr: false},
 	}
 	for _, tt := range tests {
