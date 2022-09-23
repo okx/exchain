@@ -23,6 +23,14 @@ type (
 		Enabled     bool         `json:"enabled" yaml:"enabled"`
 		Deposit     sdk.SysCoins `json:"deposit" yaml:"deposit"`
 	}
+
+	// RewardTruncatePrecisonProposalJSON defines a RewardTruncatePrecisionProposal with a deposit
+	RewardTruncatePrecisonProposalJSON struct {
+		Title       string       `json:"title" yaml:"title"`
+		Description string       `json:"description" yaml:"description"`
+		Deposit     sdk.SysCoins `json:"deposit" yaml:"deposit"`
+		Precision   int64        `json:"precision" yaml:"precision"`
+	}
 )
 
 // ParseChangeDistributionTypeProposalJSON reads and parses a ChangeDistributionTypeProposalJSON from a file.
@@ -44,6 +52,22 @@ func ParseChangeDistributionTypeProposalJSON(cdc *codec.Codec, proposalFile stri
 // ParseWithdrawRewardEnabledProposalJSON reads and parses a WithdrawRewardEnabledProposalJSON from a file.
 func ParseWithdrawRewardEnabledProposalJSON(cdc *codec.Codec, proposalFile string) (WithdrawRewardEnabledProposalJSON, error) {
 	proposal := WithdrawRewardEnabledProposalJSON{}
+
+	contents, err := ioutil.ReadFile(proposalFile)
+	if err != nil {
+		return proposal, err
+	}
+
+	if err := cdc.UnmarshalJSON(contents, &proposal); err != nil {
+		return proposal, err
+	}
+
+	return proposal, nil
+}
+
+// ParseRewardTruncatePrecisionProposalJSON reads and parses a RewardTruncatePrecisonProposalJSON from a file.
+func ParseRewardTruncatePrecisionProposalJSON(cdc *codec.Codec, proposalFile string) (RewardTruncatePrecisonProposalJSON, error) {
+	proposal := RewardTruncatePrecisonProposalJSON{}
 
 	contents, err := ioutil.ReadFile(proposalFile)
 	if err != nil {
