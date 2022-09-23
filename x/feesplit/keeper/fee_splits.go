@@ -174,7 +174,8 @@ func (k Keeper) GetContractShare(
 ) (sdk.Dec, bool) {
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixContractShare)
 	bz := store.Get(contract.Bytes())
-	if len(bz) == 0 {
+	// if share=0, the 'bz' is []byte{}, so can not use "len(bz)"
+	if bz == nil {
 		return sdk.ZeroDec(), false
 	}
 
