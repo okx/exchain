@@ -1,6 +1,6 @@
 module github.com/okex/exchain
 
-go 1.17
+go 1.19
 
 require (
 	github.com/99designs/keyring v1.1.6
