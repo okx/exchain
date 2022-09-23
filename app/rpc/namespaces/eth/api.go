@@ -62,6 +62,7 @@ const (
 	FlagFastQueryThreshold = "fast-query-threshold"
 
 	EvmHookGasEstimate = uint64(60000)
+	EvmDefaultGasLimit = uint64(21000)
 )
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -955,7 +956,10 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 		return 0, TransformDataError(sdk.ErrOutOfGas(errMsg), "eth_estimateGas")
 	}
 
-	if estimatedGas == 21000 && args.Data == nil {
+	// The gasLimit of evm ordinary tx is 21000 by default.
+	// Using gasBuffer will cause the gasLimit in MetaMask to be too large, which will affect the user experience.
+	// Therefore, if an ordinary tx is received, just return the default gasLimit of evm.
+	if estimatedGas == EvmDefaultGasLimit && args.Data == nil {
 		return hexutil.Uint64(estimatedGas), nil
 	}
 
