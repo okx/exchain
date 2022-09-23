@@ -259,6 +259,9 @@ func NewOKExChainApp(
 		"GenesisHeight", tmtypes.GetStartBlockHeight(),
 		"MercuryHeight", tmtypes.GetMercuryHeight(),
 		"VenusHeight", tmtypes.GetVenusHeight(),
+		"Venus1Height", tmtypes.GetVenus1Height(),
+		"Venus2Height", tmtypes.GetVenus2Height(),
+		"Venus3Height", tmtypes.GetVenus3Height(),
 		"MarsHeight", tmtypes.GetMarsHeight(),
 	)
 	onceLog.Do(func() {
