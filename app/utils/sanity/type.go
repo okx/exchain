@@ -2,8 +2,9 @@ package sanity
 
 import (
 	"fmt"
-	"github.com/spf13/viper"
 	"strings"
+
+	"github.com/spf13/viper"
 )
 
 const (
@@ -14,7 +15,7 @@ const (
 type item interface {
 	// label: get item's name
 	label() string
-	// check: whether the userSetting value is equal to the conflicts value
+	// check: whether the userSetting value is equal to the value
 	check() bool
 	// verbose: show the readable flag
 	verbose() string
@@ -71,6 +72,20 @@ func (s stringItem) verbose() string {
 	return fmt.Sprintf("--%v=%v", s.name, s.value)
 }
 
+type dependentPair struct {
+	config       item
+	reliedConfig item
+}
+
+func (cp *dependentPair) check() error {
+	//if config is true,  then the reliedConfig must be checked as true
+	if cp.config.check() &&
+		!cp.reliedConfig.check() {
+		return fmt.Errorf(" %v must be set explicitly, as %v", cp.reliedConfig.verbose(), cp.config.verbose())
+	}
+	return nil
+}
+
 // conflictPair: configA and configB are conflict pair
 type conflictPair struct {
 	configA item
@@ -79,11 +94,37 @@ type conflictPair struct {
 
 // checkConflict: check configA vs configB
 // and the value is equal to the conflicts value then complain it
-func (cp *conflictPair) checkConflict() error {
+func (cp *conflictPair) check() error {
 	if cp.configA.check() &&
 		cp.configB.check() {
 		return fmt.Errorf(" %v conflict with %v", cp.configA.verbose(), cp.configB.verbose())
 	}
 
 	return nil
+}
+
+type rangeItem struct {
+	enumRange []int
+	value     int
+	name      string
+}
+
+func (i rangeItem) label() string {
+	return i.name
+}
+
+func (i rangeItem) checkRange() error {
+	i.value = viper.GetInt(i.label())
+
+	for _, v := range i.enumRange {
+		if v == i.value {
+			return nil
+		}
+	}
+
+	return fmt.Errorf(" %v", i.verbose())
+}
+
+func (b rangeItem) verbose() string {
+	return fmt.Sprintf("--%v=%v not in %v", b.name, b.value, b.enumRange)
 }

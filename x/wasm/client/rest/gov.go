@@ -2,15 +2,14 @@ package rest
 
 import (
 	"encoding/json"
-	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/x/wasm/client/utils"
 	"net/http"
 
+	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
-	govrest "github.com/okex/exchain/libs/cosmos-sdk/x/gov/client/rest"
 	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
-
+	govrest "github.com/okex/exchain/x/gov/client/rest"
+	"github.com/okex/exchain/x/wasm/client/utils"
 	"github.com/okex/exchain/x/wasm/types"
 )
 
@@ -484,6 +483,16 @@ func UpdateInstantiateConfigProposalHandler(cliCtx clientCtx.CLIContext) govrest
 				return
 			}
 			toStdTxResponse(cliCtx, w, req)
+		},
+	}
+}
+
+// EmptyProposalRestHandler defines an empty wasm proposal handler.
+func EmptyProposalRestHandler(ctx clientCtx.CLIContext) govrest.ProposalRESTHandler {
+	return govrest.ProposalRESTHandler{
+		SubRoute: "unsupported-wasm-proposal",
+		Handler: func(w http.ResponseWriter, r *http.Request) {
+			rest.WriteErrorResponse(w, http.StatusBadRequest, "Legacy REST Routes are not supported for wasm proposals")
 		},
 	}
 }

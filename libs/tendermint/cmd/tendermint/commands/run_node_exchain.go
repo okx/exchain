@@ -33,4 +33,6 @@ func addMoreFlags(cmd *cobra.Command) {
 		"Set TimeoutCommit")
 	cmd.Flags().Duration("consensus.timeout_consensus", config.Consensus.TimeoutConsensus,
 		"Set TimeoutConsensus")
+	cmd.Flags().Bool("consensus.waiting", config.Consensus.Waiting,
+		"Set Wating")
 }

@@ -4,6 +4,7 @@ import (
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
@@ -25,26 +26,43 @@ const (
 )
 
 // GenTx generates a signed mock transaction.
-func GenTx(gen client.TxConfig, msgs []ibcmsg.Msg, feeAmt sdk.CoinAdapters, gas uint64, chainID string, accNums, accSeqs []uint64, priv ...crypto.PrivKey) (sdk.Tx, error) {
+func GenTx(gen client.TxConfig, msgs []ibcmsg.Msg, feeAmt sdk.CoinAdapters, gas uint64, chainID string, accNums, accSeqs []uint64, smode int, priv ...crypto.PrivKey) (sdk.Tx, error) {
 	sigs := make([]signing.SignatureV2, len(priv))
 
 	// create a random length memo
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	memo := simulation.RandStringOfLength(r, simulation.RandIntBetween(r, 0, 100))
-
 	signMode := gen.SignModeHandler().DefaultMode()
-
 	// 1st round: set SignatureV2 with empty signatures, to set correct
 	// signer infos.
-	for i, p := range priv {
-		pubKey := ibc_tx.LagacyKey2PbKey(p.PubKey())
-		sigs[i] = signing.SignatureV2{
-			PubKey: pubKey,
-			Data: &signing.SingleSignatureData{
-				SignMode: signMode,
-			},
-			Sequence: accSeqs[i],
+	// 1 mode single
+	// 2 mode multi
+	switch smode {
+	case 1:
+		for i, p := range priv {
+			pubKey := ibc_tx.LagacyKey2PbKey(p.PubKey())
+			sigs[i] = signing.SignatureV2{
+				PubKey: pubKey,
+				Data: &signing.SingleSignatureData{
+					SignMode: gen.SignModeHandler().DefaultMode(),
+				},
+				Sequence: accSeqs[i],
+			}
+		}
+	case 2:
+		//only support for ut
+		keyLen := 10
+		for i, p := range priv {
+			pubKey := ibc_tx.LagacyKey2PbKey(p.PubKey())
+			sigs[i] = signing.SignatureV2{
+				PubKey: pubKey,
+				Data: &signing.MultiSignatureData{
+					BitArray:   types.NewCompactBitArray(keyLen),
+					Signatures: make([]signing.SignatureData, 0, keyLen),
+				},
+				Sequence: accSeqs[i],
+			}
 		}
 	}
 

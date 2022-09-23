@@ -300,7 +300,7 @@ func (c *Client) Block(height *int64) (*ctypes.ResultBlock, error) {
 }
 
 // Block calls rpcclient#Block and then verifies the result.
-func (c *Client) BlockInfo(height *int64) (*ctypes.ResultBlockInfo, error) {
+func (c *Client) BlockInfo(height *int64) (*types.BlockMeta, error) {
 	res, err := c.next.BlockInfo(height)
 	if err != nil {
 		return nil, err

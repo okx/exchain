@@ -38,7 +38,9 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 
 	blockHash := common.BytesToHash(currentHash)
 	k.SetHeightHash(ctx, uint64(height), common.BytesToHash(lastHash))
-	k.SetBlockHash(ctx, lastHash, height)
+	k.SetBlockHeight(ctx, lastHash, height)
+	// Add latest block height and hash to cache
+	k.AddHeightHashToCache(req.Header.GetHeight(), blockHash.Hex())
 
 	// reset counters that are used on CommitStateDB.Prepare
 	if !ctx.IsTraceTx() {
@@ -53,6 +55,11 @@ func (k *Keeper) BeginBlock(ctx sdk.Context, req abci.RequestBeginBlock) {
 		k.EvmStateDb = types.CreateEmptyCommitStateDB(k.GenerateCSDBParams(), ctx)
 		k.EvmStateDb.StartPrefetcher("evm")
 		k.Watcher.NewHeight(uint64(req.Header.GetHeight()), blockHash, req.Header)
+	}
+
+	if tmtypes.DownloadDelta {
+		types.GetEvmParamsCache().SetNeedParamsUpdate()
+		types.GetEvmParamsCache().SetNeedBlockedUpdate()
 	}
 }
 
@@ -113,6 +120,8 @@ func (k *Keeper) EndBlock(ctx sdk.Context, req abci.RequestEndBlock) []abci.Vali
 		k.Watcher.SaveParams(params)
 
 		k.Watcher.SaveBlock(bloom)
+
+		k.Watcher.SaveBlockStdTxHash()
 	}
 
 	k.UpdateInnerBlockData()

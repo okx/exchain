@@ -59,7 +59,7 @@ func TestRepair013Orphans(t *testing.T) {
 	require.NoError(t, err)
 
 	// Reading "rm7" (which should not have been deleted now) would panic with a broken database.
-	_, value := tree.Get([]byte("rm7"))
+	value := tree.Get([]byte("rm7"))
 	require.Equal(t, []byte{1}, value)
 
 	// Check all persisted versions.
@@ -91,7 +91,7 @@ func assertVersion(t *testing.T, tree *MutableTree, version int64) {
 	version = itree.version
 
 	// The "current" value should have the current version for <= 6, then 6 afterwards
-	_, value := itree.Get([]byte("current"))
+	value := itree.Get([]byte("current"))
 	if version >= 6 {
 		require.EqualValues(t, []byte{6}, value)
 	} else {
@@ -101,14 +101,14 @@ func assertVersion(t *testing.T, tree *MutableTree, version int64) {
 	// The "addX" entries should exist for 1-6 in the respective versions, and the
 	// "rmX" entries should have been removed for 1-6 in the respective versions.
 	for i := byte(1); i < 8; i++ {
-		_, value = itree.Get([]byte(fmt.Sprintf("add%v", i)))
+		value = itree.Get([]byte(fmt.Sprintf("add%v", i)))
 		if i <= 6 && int64(i) <= version {
 			require.Equal(t, []byte{i}, value)
 		} else {
 			require.Nil(t, value)
 		}
 
-		_, value = itree.Get([]byte(fmt.Sprintf("rm%v", i)))
+		value = itree.Get([]byte(fmt.Sprintf("rm%v", i)))
 		if i <= 6 && version >= int64(i) {
 			require.Nil(t, value)
 		} else {
@@ -177,7 +177,9 @@ func copyDB(src, dest string) error {
 		defer out.Close()
 
 		in, err := os.Open(filepath.Join(src, entry.Name()))
-		defer in.Close() // nolint
+		defer func() {
+			in.Close()
+		}()
 		if err != nil {
 			return err
 		}

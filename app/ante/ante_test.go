@@ -1,6 +1,7 @@
 package ante_test
 
 import (
+	"fmt"
 	"math/big"
 	"testing"
 	"time"
@@ -275,4 +276,42 @@ func (suite *AnteTestSuite) TestEthInvalidMempoolFees() {
 	tx, err := newTestEthTx(suite.ctx, ethMsg, priv1)
 	suite.Require().NoError(err)
 	requireInvalidTx(suite.T(), suite.anteHandler, suite.ctx, tx, false)
+}
+
+// TestCase represents a test case used in test tables.
+type TestCase struct {
+	desc     string
+	simulate bool
+	expPass  bool
+}
+
+func (suite *AnteTestSuite) TestAnteHandlerSequences() {
+	addr, priv := newTestAddrKey()
+	acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr)
+	_ = acc.SetCoins(newTestCoins())
+	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
+
+	testCases := []TestCase{
+		{
+			"good ibctx with right sequence",
+			false,
+			true,
+		},
+		{
+			"bad ibctx with wrong sequence (replay protected)",
+			false,
+			false,
+		},
+	}
+	ibcTx := mockIbcTx([]uint64{acc.GetAccountNumber()}, []uint64{acc.GetSequence()}, priv, suite.ctx.ChainID(), addr)
+	suite.Require().NotNil(ibcTx)
+	for _, tc := range testCases {
+		suite.Run(fmt.Sprintf("Case %s", tc.desc), func() {
+			if tc.expPass {
+				requireValidTx(suite.T(), suite.anteHandler, suite.ctx, *ibcTx, false)
+			} else {
+				requireInvalidTx(suite.T(), suite.anteHandler, suite.ctx, *ibcTx, false)
+			}
+		})
+	}
 }

@@ -110,8 +110,21 @@ func (dv *DynamicVerifier) Verify(shdr types.SignedHeader) error {
 	// The full commit at h-1 contains the valset to sign for h.
 	prevHeight := shdr.Height - 1
 	trustedFC, err := dv.trusted.LatestFullCommit(dv.chainID, 1, prevHeight)
+	commit := func() error {
+		return nil
+	}
 	if err != nil {
-		return err
+		// if the commit is not found in the local database , fetch the acommit from the source node
+		if !lerr.IsErrCommitNotFound(err) {
+			return err
+		}
+		if trustedFC, err = dv.source.LatestFullCommit(dv.chainID, 1, prevHeight); err != nil {
+			return err
+		} else {
+			commit = func() error {
+				return dv.trusted.SaveFullCommit(trustedFC)
+			}
+		}
 	}
 
 	// sync up to the prevHeight and assert our latest NextValidatorSet
@@ -119,16 +132,16 @@ func (dv *DynamicVerifier) Verify(shdr types.SignedHeader) error {
 	if trustedFC.Height() == prevHeight {
 		// Return error if valset doesn't match.
 		if !bytes.Equal(
-			trustedFC.NextValidators.Hash(trustedFC.Height()),
+			trustedFC.NextValidators.Hash(trustedFC.Height()+1),
 			shdr.Header.ValidatorsHash) {
 			return lerr.ErrUnexpectedValidators(
-				trustedFC.NextValidators.Hash(trustedFC.Height()),
+				trustedFC.NextValidators.Hash(trustedFC.Height()+1),
 				shdr.Header.ValidatorsHash)
 		}
 	} else {
 		// If valset doesn't match, try to update
 		if !bytes.Equal(
-			trustedFC.NextValidators.Hash(trustedFC.Height()),
+			trustedFC.NextValidators.Hash(trustedFC.Height()+1),
 			shdr.Header.ValidatorsHash) {
 			// ... update.
 			trustedFC, err = dv.updateToHeight(prevHeight)
@@ -136,10 +149,10 @@ func (dv *DynamicVerifier) Verify(shdr types.SignedHeader) error {
 				return err
 			}
 			// Return error if valset _still_ doesn't match.
-			if !bytes.Equal(trustedFC.NextValidators.Hash(trustedFC.Height()),
+			if !bytes.Equal(trustedFC.NextValidators.Hash(trustedFC.Height()+1),
 				shdr.Header.ValidatorsHash) {
 				return lerr.ErrUnexpectedValidators(
-					trustedFC.NextValidators.Hash(trustedFC.Height()),
+					trustedFC.NextValidators.Hash(trustedFC.Height()+1),
 					shdr.Header.ValidatorsHash)
 			}
 		}
@@ -180,7 +193,10 @@ func (dv *DynamicVerifier) Verify(shdr types.SignedHeader) error {
 		return err
 	}
 	// Trust it.
-	return dv.trusted.SaveFullCommit(nfc)
+	if err = dv.trusted.SaveFullCommit(nfc); err != nil {
+		return err
+	}
+	return commit()
 }
 
 // verifyAndSave will verify if this is a valid source full commit given the

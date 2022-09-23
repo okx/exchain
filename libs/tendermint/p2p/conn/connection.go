@@ -829,6 +829,12 @@ var sendTimerPool = &sync.Pool{
 // Times out (and returns false) after defaultSendTimeout
 func (ch *Channel) sendBytes(bytes []byte) bool {
 	sendTimer := sendTimerPool.Get().(*time.Timer)
+	if !sendTimer.Stop() {
+		select {
+		case <-sendTimer.C:
+		default:
+		}
+	}
 	sendTimer.Reset(defaultSendTimeout)
 	select {
 	case ch.sendQueue <- bytes:
