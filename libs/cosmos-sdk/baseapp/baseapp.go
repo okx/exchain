@@ -138,6 +138,9 @@ type BaseApp struct { // nolint: maligned
 	GasRefundHandler sdk.GasRefundHandler // gas refund handler for gas refund
 	accNonceHandler  sdk.AccNonceHandler  // account handler for cm tx nonce
 
+	// TODO
+	// evmContractAddressHandler
+
 	initChainer    sdk.InitChainer  // initialize state with validators and state blob
 	beginBlocker   sdk.BeginBlocker // logic to run before any txs
 	endBlocker     sdk.EndBlocker   // logic to run after all txs, and to determine valset changes
@@ -878,6 +881,19 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 			break
 		}
 		msgRoute := msg.Route()
+
+		var isConvert bool
+		if IsNeedEvmConvert(msg) {
+			newmsg, err := ConvertMsg(msg)
+			if err != nil {
+				return nil, sdkerrors.Wrapf(sdkerrors.ErrTxDecode, "error %s, message index: %d", err.Error(), i)
+			} else {
+				isConvert = true
+				msg = newmsg
+				msgRoute = msg.Route()
+			}
+		}
+
 		handler := app.router.Route(ctx, msgRoute)
 		if handler == nil {
 			return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "unrecognized message route: %s; message index: %d", msgRoute, i)
@@ -899,6 +915,15 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		//
 		// Note: Each message result's data must be length-prefixed in order to
 		// separate each result.
+
+		if isConvert {
+			txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
+			v, err := EvmResultConvert(txHash)
+			if err == nil {
+				msgResult.Data = v
+			}
+		}
+
 		events = events.AppendEvents(msgEvents)
 		data = append(data, msgResult.Data...)
 		msgLogs = append(msgLogs, sdk.NewABCIMessageLog(uint16(i), msgResult.Log, msgEvents))

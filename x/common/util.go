@@ -326,3 +326,19 @@ func ValidateUint16Positive(param string) subspace.ValueValidatorFn {
 		return nil
 	}
 }
+
+func CheckSignerAddress(signers, delegators []sdk.AccAddress) bool {
+	if len(signers) == len(delegators) && len(signers) == 1 {
+		return signers[0].Equals(delegators[0])
+	}
+	mp := make(map[string]sdk.AccAddress, len(signers))
+	for _, v := range signers {
+		mp[v.String()] = v
+	}
+	for _, v := range delegators {
+		if _, ok := mp[v.String()]; !ok {
+			return false
+		}
+	}
+	return true
+}
