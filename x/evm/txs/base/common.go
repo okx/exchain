@@ -75,7 +75,7 @@ func getSender(ctx *sdk.Context, chainIDEpoch *big.Int, msg *types.MsgEthereumTx
 	}
 	err = msg.VerifySig(chainIDEpoch, ctx.BlockHeight())
 	if err == nil {
-		sender = common.HexToAddress(msg.GetFrom())
+		sender = msg.EthereumAddress()
 	}
 
 	return

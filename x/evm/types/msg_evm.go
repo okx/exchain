@@ -447,7 +447,11 @@ func (msg *MsgEthereumTx) AccountAddress() sdk.AccAddress {
 }
 
 func (msg *MsgEthereumTx) EthereumAddress() ethcmn.Address {
-	return ethcmn.HexToAddress(msg.GetFrom())
+	if msg.addr == emptyEthAddr {
+		return ethcmn.HexToAddress(msg.GetFrom())
+	} else {
+		return msg.addr
+	}
 }
 
 // deriveChainID derives the chain id from the given v parameter
