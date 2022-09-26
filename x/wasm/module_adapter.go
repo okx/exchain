@@ -82,7 +82,7 @@ func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 }
 
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
-	if !types2.HigherThanVenus3(ctx.BlockHeight()) {
+	if !types2.HigherThanEarth(ctx.BlockHeight()) {
 		return nil
 	}
 	gs := ExportGenesis(ctx, am.keeper)
@@ -110,14 +110,14 @@ var (
 			return false
 		}
 
-		if h == types2.GetVenus3Height() {
+		if h == types2.GetEarthHeight() {
 			if s != nil {
 				s.SetUpgradeVersion(h)
 			}
 			return false
 		}
 
-		if types2.HigherThanVenus3(h) {
+		if types2.HigherThanEarth(h) {
 			return false
 		}
 
@@ -128,7 +128,7 @@ var (
 			return false
 		}
 
-		if types2.HigherThanVenus3(h) {
+		if types2.HigherThanEarth(h) {
 			return false
 		}
 
@@ -140,7 +140,7 @@ var (
 		}
 
 		return func(cb func(name string, version int64)) {
-			cb(ModuleName, types2.GetVenus3Height())
+			cb(ModuleName, types2.GetEarthHeight())
 		}
 	}
 )
@@ -164,7 +164,7 @@ func (am AppModule) VersionFilter() *store.VersionFilter {
 }
 
 func (am AppModule) UpgradeHeight() int64 {
-	return types2.GetVenus3Height()
+	return types2.GetEarthHeight()
 }
 
 var (
