@@ -121,9 +121,11 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 		if !bytes.Equal(msg.Proposal.BlockID.PartsHeader.Hash, cs.PreProposalBlockParts.Header().Hash) || msg.Height != cs.PreProposalBlock.Height {
 			return
 		}
-		cs.Proposal = msg.Proposal
-		cs.ProposalBlock = cs.PreProposalBlock
-		cs.ProposalBlockParts = cs.PreProposalBlockParts
+		cs.sendInternalMessage(msgInfo{&ProposalMessage{msg.Proposal}, ""})
+		for i := 0; i < cs.PreProposalBlockParts.Total(); i++ {
+			part := cs.PreProposalBlockParts.GetPart(i)
+			cs.sendInternalMessage(msgInfo{&BlockPartMessage{cs.Height, cs.Round, part}, ""})
+		}
 
 	case *ViewChangeMessage:
 		if !GetActiveVC() {
