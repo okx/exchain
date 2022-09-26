@@ -49,6 +49,7 @@ func (tx *Tx) GetSenderAccount() authexported.Account {
 	return pm.AccountKeeper.GetAccount(infCtx, tx.StateTransition.Sender.Bytes())
 }
 
+// ResetWatcher when panic reset watcher
 func (tx *Tx) ResetWatcher(account authexported.Account) {
 	// delete account which is already in Watcher.batch
 	if account != nil && tx.Ctx.GetWatcher().Enabled() {
@@ -56,6 +57,7 @@ func (tx *Tx) ResetWatcher(account authexported.Account) {
 	}
 }
 
+// RefundFeesWatcher fix account balance in watcher with refund fees
 func (tx *Tx) RefundFeesWatcher(account authexported.Account, ethereumTx *types.MsgEthereumTx) {
 	// fix account balance in watcher with refund fees
 	if account == nil || !tx.Ctx.GetWatcher().Enabled() {
@@ -114,10 +116,16 @@ func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *base.Result) {
 	}
 }
 
-func (tx *Tx) FinalizeWatcher(msg *types.MsgEthereumTx, account authexported.Account, err error) {
+func (tx *Tx) FinalizeWatcher(msg *types.MsgEthereumTx, err error, panic bool) {
 	if !tx.Ctx.GetWatcher().Enabled() {
 		return
 	}
+	account := tx.GetSenderAccount()
+	if panic {
+		tx.ResetWatcher(account)
+		return
+	}
+	tx.RefundFeesWatcher(account, msg)
 	// handle error
 	if err != nil {
 		// reset watcher
