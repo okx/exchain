@@ -22,8 +22,9 @@ import (
 )
 
 var (
-	flagCommission       = "commission"
-	flagMaxMessagesPerTx = "max-msgs"
+	flagCommission             = "commission"
+	flagMaxMessagesPerTx       = "max-msgs"
+	flagMultiWithdrawRewardMsg = "multi-withdraw-reward-msg"
 )
 
 const (
@@ -68,11 +69,14 @@ func GetCmdWithdrawAllRewards(cdc *codec.Codec, queryRoute string) *cobra.Comman
 		Use:   "withdraw-all-rewards",
 		Short: "withdraw all delegations rewards for a delegator",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Withdraw all rewards for a single delegator.
+			fmt.Sprintf(`Withdraw all rewards for a single delegator,
+and optionally tx wrapped multi withdraw reward msg if the multi-withdraw-reward-msg flag given
 
 Example:
 $ %s tx distr withdraw-all-rewards --from mykey
+$ %s tx distr withdraw-all-rewards --from mykey --multi-withdraw-reward-msg
 `,
+				version.ClientName,
 				version.ClientName,
 			),
 		),
@@ -83,6 +87,10 @@ $ %s tx distr withdraw-all-rewards --from mykey
 			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
 
 			delAddr := cliCtx.GetFromAddress()
+			if !viper.GetBool(flagMultiWithdrawRewardMsg) {
+				msg := types.NewMsgWithdrawDelegatorAllRewards(delAddr)
+				return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+			}
 
 			// The transaction cannot be generated offline since it requires a query
 			// to get all the validators.
@@ -101,6 +109,7 @@ $ %s tx distr withdraw-all-rewards --from mykey
 	}
 
 	cmd.Flags().Int(flagMaxMessagesPerTx, MaxMessagesPerTxDefault, "Limit the number of messages per tx (0 for unlimited)")
+	cmd.Flags().Bool(flagMultiWithdrawRewardMsg, false, "Use multi withdraw reward msg wrapped by one tx (default: false)")
 	return cmd
 }
 

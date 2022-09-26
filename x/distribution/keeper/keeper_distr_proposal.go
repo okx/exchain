@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"fmt"
+	"github.com/nacos-group/nacos-sdk-go/common/logger"
 	"time"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -53,6 +54,41 @@ func (k Keeper) WithdrawDelegationRewards(ctx sdk.Context, delAddr sdk.AccAddres
 	k.initializeDelegation(ctx, valAddr, delAddr)
 	logger.Debug("WithdrawDelegationRewards", "Validator", valAddr, "Delegator", delAddr)
 	return rewards, nil
+}
+
+// withdraw all rewards
+func (k Keeper) WithdrawDelegationAllRewards(ctx sdk.Context, delAddr sdk.AccAddress) error {
+	del := k.stakingKeeper.Delegator(ctx, delAddr)
+	if del == nil {
+		return types.ErrCodeEmptyDelegationDistInfo()
+	}
+
+	valAddressArray := del.GetShareAddedValidatorAddresses()
+	for _, valAddr := range valAddressArray {
+		val := k.stakingKeeper.Validator(ctx, valAddr)
+		if val == nil {
+			return types.ErrCodeEmptyValidatorDistInfo()
+		}
+		// withdraw rewards
+		rewards, err := k.withdrawDelegationRewards(ctx, val, delAddr)
+		if err != nil {
+			return err
+		}
+
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				types.EventTypeWithdrawRewards,
+				sdk.NewAttribute(sdk.AttributeKeyAmount, rewards.String()),
+				sdk.NewAttribute(types.AttributeKeyValidator, valAddr.String()),
+			),
+		)
+
+		// reinitialize the delegation
+		k.initializeDelegation(ctx, valAddr, delAddr)
+		logger.Debug("WithdrawDelegationAllRewards", "Validator", valAddr, "Delegator", delAddr)
+	}
+
+	return nil
 }
 
 // GetTotalRewards returns the total amount of fee distribution rewards held in the store
