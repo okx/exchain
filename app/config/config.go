@@ -40,6 +40,8 @@ type OecConfig struct {
 	maxGasUsedPerBlock int64
 	// mempool.node_key_whitelist
 	nodeKeyWhitelist []string
+	//mempool.check_tx_cost
+	mempoolCheckTxCost bool
 	// p2p.sentry_addrs
 	sentryAddrs []string
 
@@ -49,6 +51,8 @@ type OecConfig struct {
 	enableDynamicGp bool
 	// dynamic-gp-weight
 	dynamicGpWeight int
+	// dynamic-gp-check-blocks
+	dynamicGpCheckBlocks int
 
 	// consensus.timeout_propose
 	csTimeoutPropose time.Duration
@@ -98,9 +102,11 @@ const (
 	FlagMaxTxNumPerBlock       = "mempool.max_tx_num_per_block"
 	FlagMaxGasUsedPerBlock     = "mempool.max_gas_used_per_block"
 	FlagNodeKeyWhitelist       = "mempool.node_key_whitelist"
+	FlagMempoolCheckTxCost     = "mempool.check_tx_cost"
 	FlagGasLimitBuffer         = "gas-limit-buffer"
 	FlagEnableDynamicGp        = "enable-dynamic-gp"
 	FlagDynamicGpWeight        = "dynamic-gp-weight"
+	FlagDynamicGpCheckBlocks   = "dynamic-gp-check-blocks"
 	FlagEnableWrappedTx        = "enable-wtx"
 	FlagSentryAddrs            = "p2p.sentry_addrs"
 
@@ -211,11 +217,13 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetMempoolForceRecheckGap(viper.GetInt64(FlagMempoolForceRecheckGap))
 	c.SetMempoolSize(viper.GetInt(FlagMempoolSize))
 	c.SetMempoolFlush(viper.GetBool(FlagMempoolFlush))
+	c.SetMempoolCheckTxCost(viper.GetBool(FlagMempoolCheckTxCost))
 	c.SetMaxTxNumPerBlock(viper.GetInt64(FlagMaxTxNumPerBlock))
 	c.SetMaxGasUsedPerBlock(viper.GetInt64(FlagMaxGasUsedPerBlock))
 	c.SetGasLimitBuffer(viper.GetUint64(FlagGasLimitBuffer))
 	c.SetEnableDynamicGp(viper.GetBool(FlagEnableDynamicGp))
 	c.SetDynamicGpWeight(viper.GetInt(FlagDynamicGpWeight))
+	c.SetDynamicGpCheckBlocks(viper.GetInt(FlagDynamicGpCheckBlocks))
 	c.SetCsTimeoutPropose(viper.GetDuration(FlagCsTimeoutPropose))
 	c.SetCsTimeoutProposeDelta(viper.GetDuration(FlagCsTimeoutProposeDelta))
 	c.SetCsTimeoutPrevote(viper.GetDuration(FlagCsTimeoutPrevote))
@@ -261,6 +269,7 @@ func (c *OecConfig) format() string {
 	mempool.flush: %v
 	mempool.max_tx_num_per_block: %d
 	mempool.max_gas_used_per_block: %d
+	mempool.check_tx_cost: %v
 
 	gas-limit-buffer: %d
 	enable-dynamic-gp: %v
@@ -283,6 +292,7 @@ func (c *OecConfig) format() string {
 		c.GetMempoolFlush(),
 		c.GetMaxTxNumPerBlock(),
 		c.GetMaxGasUsedPerBlock(),
+		c.GetMempoolCheckTxCost(),
 		c.GetGasLimitBuffer(),
 		c.GetEnableDynamicGp(),
 		c.GetDynamicGpWeight(),
@@ -338,6 +348,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetNodeKeyWhitelist(r)
+	case FlagMempoolCheckTxCost:
+		r, err := strconv.ParseBool(v)
+		if err != nil {
+			return
+		}
+		c.SetMempoolCheckTxCost(r)
 	case FlagSentryAddrs:
 		r, ok := value.(string)
 		if !ok {
@@ -368,6 +384,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetDynamicGpWeight(r)
+	case FlagDynamicGpCheckBlocks:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetDynamicGpCheckBlocks(r)
 	case FlagCsTimeoutPropose:
 		r, err := time.ParseDuration(v)
 		if err != nil {
@@ -528,6 +550,13 @@ func (c *OecConfig) GetNodeKeyWhitelist() []string {
 	return c.nodeKeyWhitelist
 }
 
+func (c *OecConfig) GetMempoolCheckTxCost() bool {
+	return c.mempoolCheckTxCost
+}
+func (c *OecConfig) SetMempoolCheckTxCost(value bool) {
+	c.mempoolCheckTxCost = value
+}
+
 func (c *OecConfig) SetNodeKeyWhitelist(value string) {
 	idList := resolveNodeKeyWhitelist(value)
 
@@ -597,6 +626,19 @@ func (c *OecConfig) SetDynamicGpWeight(value int) {
 		value = 100
 	}
 	c.dynamicGpWeight = value
+}
+
+func (c *OecConfig) GetDynamicGpCheckBlocks() int {
+	return c.dynamicGpCheckBlocks
+}
+
+func (c *OecConfig) SetDynamicGpCheckBlocks(value int) {
+	if value <= 0 {
+		value = 1
+	} else if value > 100 {
+		value = 100
+	}
+	c.dynamicGpCheckBlocks = value
 }
 
 func (c *OecConfig) GetCsTimeoutPropose() time.Duration {
