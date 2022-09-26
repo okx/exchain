@@ -213,6 +213,26 @@ func GetVenus2Height() int64 {
 // ==================================
 
 // ==================================
+// =========== Venus3 ===============
+func HigherThanVenus3(h int64) bool {
+	if milestoneVenus3Height == 0 {
+		return false
+	}
+	return h >= milestoneVenus3Height
+}
+
+func UnittestOnlySetMilestoneVenus3Height(h int64) {
+	milestoneVenus3Height = h
+}
+
+func GetVenus3Height() int64 {
+	return milestoneVenus3Height
+}
+
+// =========== Venus3 ===============
+// ==================================
+
+// ==================================
 // =========== Earth ===============
 func UnittestOnlySetMilestoneEarthHeight(h int64) {
 	milestoneEarthHeight = h
