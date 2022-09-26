@@ -29,24 +29,25 @@ func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCo
 
 		// split fee
 		// come from feesplit module
-		feeSplitSet := make(map[string]sdk.Coins)
-		feesplits.Range(func(key, value interface{}) bool {
-			feeInfo := value.(feeSplitInfo)
+		if feesplits != nil {
+			feeSplitSet := make(map[string]sdk.Coins)
+			feesplits.Range(func(key, value interface{}) bool {
+				feeInfo := value.(feeSplitInfo)
 
-			orgFee := feeSplitSet[feeInfo.addr]
-			feeSplitSet[feeInfo.addr] = feeInfo.fee.Add2(orgFee)
+				orgFee := feeSplitSet[feeInfo.addr]
+				feeSplitSet[feeInfo.addr] = feeInfo.fee.Add2(orgFee)
 
-			feesplits.Delete(key)
-			return true
-		})
-		for addr, fees := range feeSplitSet {
-			acc := sdk.MustAccAddressFromBech32(addr)
-			err = sk.SendCoinsFromModuleToAccount(ctx, auth.FeeCollectorName, acc, fees)
-			if err != nil {
-				return err
+				feesplits.Delete(key)
+				return true
+			})
+			for addr, fees := range feeSplitSet {
+				acc := sdk.MustAccAddressFromBech32(addr)
+				err = sk.SendCoinsFromModuleToAccount(ctx, auth.FeeCollectorName, acc, fees)
+				if err != nil {
+					return err
+				}
 			}
 		}
-
 		return nil
 	}
 }
