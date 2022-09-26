@@ -742,6 +742,7 @@ func (app *BaseApp) getContextForSimTx(txBytes []byte, height int64) (sdk.Contex
 
 	ctx := simState.ctx
 	ctx.SetTxBytes(txBytes)
+	ctx.SetConsensusParams(app.consensusParams)
 
 	return ctx, nil
 }
