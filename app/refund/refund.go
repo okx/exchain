@@ -4,8 +4,6 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
 
@@ -54,8 +52,7 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 	}
 
 	feePayer := feeTx.FeePayer(ctx)
-
-	feePayerAcc, getAccountGasUsed := exported.GetAccountAndGas(&ctx, handler.ak, feePayer)
+	feePayerAcc := handler.ak.GetAccount(ctx, feePayer)
 	if feePayerAcc == nil {
 		return nil, sdkerrors.Wrapf(sdkerrors.ErrUnknownAddress, "fee payer address: %s does not exist", feePayer)
 	}
@@ -63,8 +60,6 @@ func (handler Handler) GasRefund(ctx sdk.Context, tx sdk.Tx) (refundGasFee sdk.C
 	gas := feeTx.GetGas()
 	fees := feeTx.GetFee()
 	gasFees := calculateRefundFees(gasUsed, gas, fees)
-	ctx.EnableAccountCache()
-	ctx.UpdateToAccountCache(feePayerAcc, getAccountGasUsed)
 
 	newCoins := feePayerAcc.GetCoins().Add(gasFees...)
 	if err = feePayerAcc.SetCoins(newCoins); err != nil {
