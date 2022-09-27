@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/nacos-group/nacos-sdk-go/common/logger"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/types"
@@ -64,6 +63,11 @@ func (k Keeper) WithdrawDelegationAllRewards(ctx sdk.Context, delAddr sdk.AccAdd
 	}
 
 	valAddressArray := del.GetShareAddedValidatorAddresses()
+	if len(valAddressArray) == 0 {
+		return types.ErrCodeEmptyDelegationVoteValidator()
+	}
+
+	logger := k.Logger(ctx)
 	for _, valAddr := range valAddressArray {
 		val := k.stakingKeeper.Validator(ctx, valAddr)
 		if val == nil {

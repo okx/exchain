@@ -1208,7 +1208,12 @@ func (suite *DistributionSuite) TestWithdrawAllRewards() {
 					queryRewards = queryRewards.Add2(coins)
 				}
 				err := dk.WithdrawDelegationAllRewards(ctx, keeper.TestDelAddrs[i])
-				require.Nil(suite.T(), err)
+				if tc.addShares {
+					require.Nil(suite.T(), err)
+				} else {
+					require.Equal(suite.T(), types.ErrCodeEmptyDelegationVoteValidator(), err)
+				}
+
 				afterAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
 				require.Equal(suite.T(), afterAccount.Sub(beforeAccount), getDecCoins(tc.decRewards[i]))
 				require.Equal(suite.T(), queryRewards, getDecCoins(tc.decRewards[i]))
@@ -1225,7 +1230,11 @@ func (suite *DistributionSuite) TestWithdrawAllRewards() {
 			for i := int64(0); i < tc.delCount; i++ {
 				beforeAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
 				err := dk.WithdrawDelegationAllRewards(ctx, keeper.TestDelAddrs[i])
-				require.Nil(suite.T(), err)
+				if tc.addShares {
+					require.Nil(suite.T(), err)
+				} else {
+					require.Equal(suite.T(), types.ErrCodeEmptyDelegationVoteValidator(), err)
+				}
 				afterAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
 				require.Equal(suite.T(), afterAccount.Sub(beforeAccount), getDecCoins("0"))
 				truncatedOutstanding, _ := dk.GetValidatorOutstandingRewards(ctx, keeper.TestValAddrs[0]).TruncateDecimal()
@@ -1249,7 +1258,11 @@ func (suite *DistributionSuite) TestWithdrawAllRewards() {
 				}
 				beforeAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
 				err := dk.WithdrawDelegationAllRewards(ctx, keeper.TestDelAddrs[i])
-				require.Nil(suite.T(), err)
+				if tc.addShares {
+					require.Nil(suite.T(), err)
+				} else {
+					require.Equal(suite.T(), types.ErrCodeEmptyDelegationVoteValidator(), err)
+				}
 				afterAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
 				require.Equal(suite.T(), afterAccount.Sub(beforeAccount), getDecCoins(tc.decRewards[i]))
 				require.Equal(suite.T(), queryRewards, getDecCoins(tc.decRewards[i]))
