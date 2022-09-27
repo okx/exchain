@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/okex/exchain/libs/tendermint/types"
+
 	"github.com/pkg/errors"
 
 	tmpubsub "github.com/okex/exchain/libs/tendermint/libs/pubsub"
@@ -49,7 +51,19 @@ func Subscribe(ctx *rpctypes.Context, query string) (*ctypes.ResultSubscribe, er
 		for {
 			select {
 			case msg := <-sub.Out():
-				resultEvent := &ctypes.ResultEvent{Query: query, Data: msg.Data(), Events: msg.Events()}
+				data := msg.Data()
+				// TODO,这里需要进行优化,用codecSensitive
+				if v, ok := msg.Data().(types.EventDataNewBlock); ok {
+					data = ConvEventBlock2CM40Event(v)
+				} else {
+					//jss, err := cdc.MarshalJSON(res)
+					//if err != nil {
+					//	return RPCInternalError(id, errors.Wrap(err, "Error marshalling response"))
+					//}
+					//js = jss
+				}
+				resultEvent := &ctypes.ResultEvent{Query: query, Data: data, Events: msg.Events()}
+
 				ctx.WSConn.TryWriteRPCResponse(
 					rpctypes.NewRPCSuccessResponse(
 						ctx.WSConn.Codec(),

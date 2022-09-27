@@ -191,10 +191,12 @@ func NewRPCSuccessResponse(cdc *amino.Codec, id jsonrpcid, res interface{}) RPCR
 		if err != nil {
 			return RPCInternalError(id, errors.Wrap(err, "Error marshalling response"))
 		}
+
 		rawMsg = json.RawMessage(js)
 	}
 
-	return RPCResponse{JSONRPC: "2.0", ID: id, Result: rawMsg}
+	ret := RPCResponse{JSONRPC: "2.0", ID: id, Result: rawMsg}
+	return ret
 }
 
 func NewRPCErrorResponse(id jsonrpcid, code int, msg string, data string) RPCResponse {
