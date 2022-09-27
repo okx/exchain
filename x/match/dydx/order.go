@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/okex/exchain/x/match/dydx/contracts"
+
 	"github.com/ethereum/go-ethereum/common"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
@@ -38,20 +40,33 @@ func (order *Order) GetSolFlags() string {
 	return "0x" + saltBytes[len(saltBytes)-63:] + strconv.Itoa(booleanFlag)
 }
 
-func (order *Order) ToSolidity() *SolOrder {
-	var solOrder SolOrder
+func (order *Order) ToSolidityJs() *SolOrderJs {
+	var solOrder SolOrderJs
 	solOrder.Flags = order.GetSolFlags()
 	solOrder.Amount = order.Amount.Text('f', 0)
-	solOrder.LimitPrice = order.LimitPrice.ToSolidity()
-	solOrder.TriggerPrice = order.TriggerPrice.ToSolidity()
-	solOrder.LimitFee = order.LimitFee.ToSolidity()
+	solOrder.LimitPrice = order.LimitPrice.ToSolidityJs()
+	solOrder.TriggerPrice = order.TriggerPrice.ToSolidityJs()
+	solOrder.LimitFee = order.LimitFee.ToSolidityJs()
 	solOrder.Maker = order.Maker
 	solOrder.Taker = order.Taker
 	solOrder.Expiration = strconv.FormatUint(order.Expiration, 10)
 	return &solOrder
 }
 
-func (order *Order) ToBytes() string {
+func (order *Order) ToSolidity() *contracts.P1OrdersOrder {
+	var solOrder contracts.P1OrdersOrder
+	solOrder.Flags = common.HexToHash(order.GetSolFlags())
+	solOrder.Amount, _ = order.Amount.Int(nil)
+	solOrder.LimitPrice = order.LimitPrice.ToSolidity()
+	solOrder.TriggerPrice = order.TriggerPrice.ToSolidity()
+	solOrder.LimitFee = order.LimitFee.ToSolidity()
+	solOrder.Maker = common.HexToAddress(order.Maker)
+	solOrder.Taker = common.HexToAddress(order.Taker)
+	solOrder.Expiration = big.NewInt(0).SetUint64(order.Expiration)
+	return &solOrder
+}
+
+func (order *Order) ToBytes() ([]byte, error) {
 	solOrder := order.ToSolidity()
 	var args = abi.Arguments{
 		{
@@ -79,22 +94,19 @@ func (order *Order) ToBytes() string {
 			Type: SolTyUint256,
 		},
 	}
-	bz, err := args.Pack(common.HexToHash(solOrder.Flags),
-		string2Int(solOrder.Amount),
-		string2Int(solOrder.LimitPrice),
-		string2Int(solOrder.TriggerPrice),
-		string2Int(solOrder.LimitFee),
-		common.HexToAddress(solOrder.Maker),
-		common.HexToAddress(solOrder.Taker),
-		string2Int(solOrder.Expiration),
+	return args.Pack(
+		solOrder.Flags,
+		solOrder.Amount,
+		solOrder.LimitPrice,
+		solOrder.TriggerPrice,
+		solOrder.LimitFee,
+		solOrder.Maker,
+		solOrder.Taker,
+		solOrder.Expiration,
 	)
-	if err != nil {
-		panic(err)
-	}
-	return common.Bytes2Hex(bz)
 }
 
-type SolOrder struct {
+type SolOrderJs struct {
 	Flags        string
 	Amount       string
 	LimitPrice   string
@@ -119,8 +131,11 @@ func string2Int(s string) *big.Int {
 	return i
 }
 
-func FillToTradeData(order *SignedOrder, amount *big.Int, price Price, fee Fee) string {
-	orderData := order.ToBytes()
+func FillToTradeData(order *SignedOrder, amount *big.Int, price Price, fee Fee) (string, error) {
+	orderData, err := order.ToBytes()
+	if err != nil {
+		return "", err
+	}
 	signatureData := order.TypedSignature + strings.Repeat("0", 60)
 	var args = abi.Arguments{
 		{
@@ -138,12 +153,12 @@ func FillToTradeData(order *SignedOrder, amount *big.Int, price Price, fee Fee) 
 	}
 	fillData, err := args.Pack(
 		amount,
-		price,
-		string2Int(fee.ToSolidity()),
+		price.ToSolidity(),
+		fee.ToSolidity(),
 		fee.Value.Sign() == -1,
 	)
 	if err != nil {
-		panic(err)
+		return "", err
 	}
-	return CombineHexString(orderData, common.Bytes2Hex(fillData), signatureData)
+	return CombineHexString(common.Bytes2Hex(orderData), common.Bytes2Hex(fillData), signatureData), nil
 }

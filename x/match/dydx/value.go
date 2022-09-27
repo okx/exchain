@@ -26,14 +26,22 @@ func FeeFromBips(value *big.Float) Fee {
 	return Fee{BaseValue{num}}
 }
 
-func (v BaseValue) ToSolidity() string {
-	if v.Value == nil {
+func (v BaseValue) ToSolidityJs() string {
+	num := v.ToSolidity()
+	if num == nil {
 		return ""
+	}
+	return num.String()
+}
+
+func (v BaseValue) ToSolidity() *big.Int {
+	if v.Value == nil {
+		return nil
 	}
 	num := new(big.Float)
 	num.Copy(v.Value)
 	num.Mul(num, ShiftBase)
 	num.Abs(num)
 	intNum, _ := num.Int(nil)
-	return intNum.String()
+	return intNum
 }
