@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/okex/exchain/libs/tendermint/libs/pubsub/query"
+	query "github.com/okex/exchain/libs/tendermint/libs/pubsub/query/oldquery"
 )
 
 func TestEmptyQueryMatchesAnything(t *testing.T) {
