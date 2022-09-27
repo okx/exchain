@@ -7,61 +7,20 @@ import (
 	"strings"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
-	"github.com/okex/exchain/x/distribution/client/common"
 	"github.com/okex/exchain/x/distribution/types"
 	"github.com/okex/exchain/x/gov"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var (
-	flagCommission             = "commission"
-	flagMaxMessagesPerTx       = "max-msgs"
-	flagMultiWithdrawRewardMsg = "multi-withdraw-reward-msg"
+	flagCommission = "commission"
 )
-
-const (
-	MaxMessagesPerTxDefault = 0
-)
-
-type generateOrBroadcastFunc func(context.CLIContext, auth.TxBuilder, []sdk.Msg) error
-
-func splitAndApply(
-	generateOrBroadcast generateOrBroadcastFunc,
-	cliCtx context.CLIContext,
-	txBldr auth.TxBuilder,
-	msgs []sdk.Msg,
-	chunkSize int,
-) error {
-
-	if chunkSize == 0 {
-		return generateOrBroadcast(cliCtx, txBldr, msgs)
-	}
-
-	// split messages into slices of length chunkSize
-	totalMessages := len(msgs)
-	for i := 0; i < len(msgs); i += chunkSize {
-
-		sliceEnd := i + chunkSize
-		if sliceEnd > totalMessages {
-			sliceEnd = totalMessages
-		}
-
-		msgChunk := msgs[i:sliceEnd]
-		if err := generateOrBroadcast(cliCtx, txBldr, msgChunk); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
 
 // GetCmdWithdrawAllRewards command to withdraw all rewards
 func GetCmdWithdrawAllRewards(cdc *codec.Codec, queryRoute string) *cobra.Command {
@@ -69,14 +28,11 @@ func GetCmdWithdrawAllRewards(cdc *codec.Codec, queryRoute string) *cobra.Comman
 		Use:   "withdraw-all-rewards",
 		Short: "withdraw all delegations rewards for a delegator",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`Withdraw all rewards for a single delegator,
-and optionally tx wrapped multi withdraw reward msg if the multi-withdraw-reward-msg flag given
+			fmt.Sprintf(`Withdraw all rewards for a single delegator.
 
 Example:
 $ %s tx distr withdraw-all-rewards --from mykey
-$ %s tx distr withdraw-all-rewards --from mykey --multi-withdraw-reward-msg
 `,
-				version.ClientName,
 				version.ClientName,
 			),
 		),
@@ -87,29 +43,11 @@ $ %s tx distr withdraw-all-rewards --from mykey --multi-withdraw-reward-msg
 			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
 
 			delAddr := cliCtx.GetFromAddress()
-			if !viper.GetBool(flagMultiWithdrawRewardMsg) {
-				msg := types.NewMsgWithdrawDelegatorAllRewards(delAddr)
-				return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
-			}
-
-			// The transaction cannot be generated offline since it requires a query
-			// to get all the validators.
-			if cliCtx.GenerateOnly {
-				return fmt.Errorf("command disabled with the provided flag: %s", flags.FlagGenerateOnly)
-			}
-
-			msgs, err := common.WithdrawAllDelegatorRewards(cliCtx, queryRoute, delAddr)
-			if err != nil {
-				return err
-			}
-
-			chunkSize := viper.GetInt(flagMaxMessagesPerTx)
-			return splitAndApply(utils.GenerateOrBroadcastMsgs, cliCtx, txBldr, msgs, chunkSize)
+			msg := types.NewMsgWithdrawDelegatorAllRewards(delAddr)
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
 
-	cmd.Flags().Int(flagMaxMessagesPerTx, MaxMessagesPerTxDefault, "Limit the number of messages per tx (0 for unlimited)")
-	cmd.Flags().Bool(flagMultiWithdrawRewardMsg, false, "Use multi withdraw reward msg wrapped by one tx (default: false)")
 	return cmd
 }
 
