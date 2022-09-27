@@ -77,7 +77,7 @@ func (k msgServer) SendToEvmEvent(goCtx context.Context, msg *types.MsgSendToEvm
 	}
 	success, err := k.Keeper.SendToEvm(ctx, msg.Sender, msg.Contract, msg.Recipient, msg.Amount)
 	if err != nil {
-		return &types.MsgSendToEvmResponse{Success: false}, err
+		return &types.MsgSendToEvmResponse{Success: false}, sdkerrors.Wrap(types.ErrEvmExecuteFailed, err.Error())
 	}
 	response := types.MsgSendToEvmResponse{Success: success}
 	return &response, nil

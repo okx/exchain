@@ -13,5 +13,6 @@ var (
 	ErrIsNotWasmAddr = sdkerrors.Register(ModuleName, 4, "call wasm contract must use wasmaddress")
 	ErrIsNotEvmAddr  = sdkerrors.Register(ModuleName, 5, "call evm contract must use evmaddress")
 
-	ErrAmountNegative = sdkerrors.Register(ModuleName, 6, "the amount can not negative")
+	ErrAmountNegative   = sdkerrors.Register(ModuleName, 6, "the amount can not negative")
+	ErrEvmExecuteFailed = sdkerrors.Register(ModuleName, 7, "the evm execute")
 )
