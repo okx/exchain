@@ -1018,7 +1018,18 @@ func (suite *DistributionSuite) TestWithdrawAllRewards() {
 		rate                 string
 		distrType            uint32
 		remainReferenceCount uint64
+		addShares            bool
 	}{
+		{
+			"1 delegator，1 validator, onchain",
+			1,
+			1,
+			[4]string{"0"},
+			"0.5",
+			1,
+			1,
+			false,
+		},
 		{
 			"1 delegator，1 validator, onchain",
 			1,
@@ -1027,6 +1038,7 @@ func (suite *DistributionSuite) TestWithdrawAllRewards() {
 			"0.5",
 			1,
 			1,
+			true,
 		},
 		{
 			"1 delegator，1 validator, offchain",
@@ -1036,6 +1048,7 @@ func (suite *DistributionSuite) TestWithdrawAllRewards() {
 			"0.5",
 			0,
 			1,
+			true,
 		},
 		{
 			"1 delegator，2 validator, onchain",
@@ -1045,6 +1058,7 @@ func (suite *DistributionSuite) TestWithdrawAllRewards() {
 			"0.5",
 			1,
 			2,
+			true,
 		},
 		{
 			"1 delegator，2 validator, offchain",
@@ -1054,6 +1068,7 @@ func (suite *DistributionSuite) TestWithdrawAllRewards() {
 			"0.5",
 			0,
 			2,
+			true,
 		},
 		{
 			"1 delegator，4 validator, onchain",
@@ -1063,6 +1078,7 @@ func (suite *DistributionSuite) TestWithdrawAllRewards() {
 			"0.5",
 			1,
 			4,
+			true,
 		},
 		{
 			"1 delegator，4 validator, offchain",
@@ -1072,6 +1088,7 @@ func (suite *DistributionSuite) TestWithdrawAllRewards() {
 			"0.5",
 			0,
 			4,
+			true,
 		},
 		{
 			"2 delegator，1 validator, onchain",
@@ -1081,6 +1098,7 @@ func (suite *DistributionSuite) TestWithdrawAllRewards() {
 			"0.5",
 			1,
 			1,
+			true,
 		},
 		{
 			"2 delegator，1 validator, offchain",
@@ -1090,6 +1108,7 @@ func (suite *DistributionSuite) TestWithdrawAllRewards() {
 			"0.5",
 			0,
 			1,
+			true,
 		},
 		{
 			"2 delegator，2 validator, onchain",
@@ -1099,6 +1118,7 @@ func (suite *DistributionSuite) TestWithdrawAllRewards() {
 			"0.5",
 			1,
 			2,
+			true,
 		},
 		{
 			"2 delegator，2 validator, offchain",
@@ -1108,6 +1128,7 @@ func (suite *DistributionSuite) TestWithdrawAllRewards() {
 			"0.5",
 			0,
 			2,
+			true,
 		},
 		{
 			"2 delegator，4 validator, onchain",
@@ -1117,6 +1138,7 @@ func (suite *DistributionSuite) TestWithdrawAllRewards() {
 			"0.5",
 			1,
 			4,
+			true,
 		},
 		{
 			"2 delegator，4 validator, offchain",
@@ -1126,6 +1148,7 @@ func (suite *DistributionSuite) TestWithdrawAllRewards() {
 			"0.5",
 			0,
 			4,
+			true,
 		},
 		{
 			"1 delegator，4 validator, onchain, rate 0",
@@ -1135,6 +1158,7 @@ func (suite *DistributionSuite) TestWithdrawAllRewards() {
 			"0",
 			1,
 			4,
+			true,
 		},
 		{
 			"1 delegator，4 validator, onchain, rate 1",
@@ -1144,6 +1168,7 @@ func (suite *DistributionSuite) TestWithdrawAllRewards() {
 			"1",
 			1,
 			4,
+			true,
 		},
 	}
 
@@ -1160,9 +1185,11 @@ func (suite *DistributionSuite) TestWithdrawAllRewards() {
 
 			for i := int64(0); i < tc.delCount; i++ {
 				keeper.DoDeposit(suite.T(), ctx, sk, keeper.TestDelAddrs[i], depositCoin)
-				keeper.DoAddShares(suite.T(), ctx, sk, keeper.TestDelAddrs[i], keeper.TestValAddrs[0:tc.valCount])
-				delegator := sk.Delegator(ctx, keeper.TestDelAddrs[i])
-				require.False(suite.T(), delegator.GetLastAddedShares().IsZero())
+				if tc.addShares {
+					keeper.DoAddShares(suite.T(), ctx, sk, keeper.TestDelAddrs[i], keeper.TestValAddrs[0:tc.valCount])
+					delegator := sk.Delegator(ctx, keeper.TestDelAddrs[i])
+					require.False(suite.T(), delegator.GetLastAddedShares().IsZero())
+				}
 			}
 
 			allocateTokens(suite.T())
@@ -1175,7 +1202,7 @@ func (suite *DistributionSuite) TestWithdrawAllRewards() {
 			for i := int64(0); i < tc.delCount; i++ {
 				beforeAccount := ak.GetAccount(ctx, keeper.TestDelAddrs[i]).GetCoins()
 				response := keeper.GetQueriedDelegationTotalRewards(suite.T(), ctx, NewQuerier(dk), keeper.TestDelAddrs[i])
-				queryRewards := sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.MustNewDecFromStr("0")}}
+				var queryRewards sdk.SysCoins
 				for _, v := range response.Rewards {
 					coins, _ := v.Reward.TruncateWithPrec(int64(0))
 					queryRewards = queryRewards.Add2(coins)
@@ -1203,7 +1230,11 @@ func (suite *DistributionSuite) TestWithdrawAllRewards() {
 				require.Equal(suite.T(), afterAccount.Sub(beforeAccount), getDecCoins("0"))
 				truncatedOutstanding, _ := dk.GetValidatorOutstandingRewards(ctx, keeper.TestValAddrs[0]).TruncateDecimal()
 				truncatedCommission, _ := dk.GetValidatorAccumulatedCommission(ctx, keeper.TestValAddrs[0]).TruncateDecimal()
-				require.Equal(suite.T(), truncatedOutstanding, truncatedCommission)
+				if tc.addShares {
+					require.Equal(suite.T(), truncatedOutstanding, truncatedCommission)
+				} else {
+					require.Equal(suite.T(), truncatedOutstanding, truncatedCommission.QuoDec(sdk.MustNewDecFromStr(tc.rate)))
+				}
 			}
 			require.Equal(suite.T(), beforeValCommission, afterValCommission)
 
@@ -1211,7 +1242,7 @@ func (suite *DistributionSuite) TestWithdrawAllRewards() {
 			allocateTokens(suite.T())
 			for i := int64(0); i < tc.delCount; i++ {
 				response := keeper.GetQueriedDelegationTotalRewards(suite.T(), ctx, NewQuerier(dk), keeper.TestDelAddrs[i])
-				queryRewards := sdk.SysCoins{{Denom: sdk.DefaultBondDenom, Amount: sdk.MustNewDecFromStr("0")}}
+				var queryRewards sdk.SysCoins
 				for _, v := range response.Rewards {
 					coins, _ := v.Reward.TruncateWithPrec(int64(0))
 					queryRewards = queryRewards.Add2(coins)
