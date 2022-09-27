@@ -3,7 +3,7 @@ package dydx
 import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/okex/exchain/x/match/dydx/contracts"
+	"github.com/okex/exchain/libs/dydx/contracts"
 )
 
 type Contracts struct {

@@ -4,7 +4,7 @@ import (
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/okex/exchain/x/match/dydx/contracts"
+	"github.com/okex/exchain/libs/dydx/contracts"
 )
 
 type Orders struct {

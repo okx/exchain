@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/okex/exchain/x/match/dydx/contracts"
+	"github.com/okex/exchain/libs/dydx/contracts"
 
 	"github.com/ethereum/go-ethereum/common"
 

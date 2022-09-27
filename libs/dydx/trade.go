@@ -6,10 +6,11 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/okex/exchain/libs/dydx/contracts"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/okex/exchain/x/match/dydx/contracts"
 )
 
 type TempTradeArg struct {
