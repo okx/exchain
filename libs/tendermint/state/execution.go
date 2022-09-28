@@ -720,6 +720,7 @@ func fireEvents(
 		ResultEndBlock:   *abciResponses.EndBlock,
 	})
 
+	//publish tx event 1by1
 	for i, tx := range block.Data.Txs {
 		eventBus.PublishEventTx(types.EventDataTx{TxResult: types.TxResult{
 			Height: block.Height,
@@ -729,6 +730,7 @@ func fireEvents(
 		}})
 	}
 
+	//publish batch txs event
 	if len(block.Data.Txs) > 0 {
 		eventBus.PublishEventTxs(types.EventDataTxs{
 			Height:  block.Height,
