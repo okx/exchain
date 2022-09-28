@@ -49,16 +49,16 @@ func (tx *Tx) GetSenderAccount() authexported.Account {
 	return pm.AccountKeeper.GetAccount(infCtx, tx.StateTransition.Sender.Bytes())
 }
 
-// ResetWatcher when panic reset watcher
-func (tx *Tx) ResetWatcher(account authexported.Account) {
+// resetWatcher when panic reset watcher
+func (tx *Tx) resetWatcher(account authexported.Account) {
 	// delete account which is already in Watcher.batch
 	if account != nil && tx.Ctx.GetWatcher().Enabled() {
 		tx.Ctx.GetWatcher().DeleteAccount(account)
 	}
 }
 
-// RefundFeesWatcher fix account balance in watcher with refund fees
-func (tx *Tx) RefundFeesWatcher(account authexported.Account, ethereumTx *types.MsgEthereumTx) {
+// refundFeesWatcher fix account balance in watcher with refund fees
+func (tx *Tx) refundFeesWatcher(account authexported.Account, ethereumTx *types.MsgEthereumTx) {
 	// fix account balance in watcher with refund fees
 	if account == nil || !tx.Ctx.GetWatcher().Enabled() {
 		return
@@ -66,7 +66,7 @@ func (tx *Tx) RefundFeesWatcher(account authexported.Account, ethereumTx *types.
 	defer func() {
 		//panic was not allowed in this function
 		if e := recover(); e != nil {
-			tx.Ctx.Logger().Error(fmt.Sprintf("recovered panic at func RefundFeesWatcher %v\n", e))
+			tx.Ctx.Logger().Error(fmt.Sprintf("recovered panic at func refundFeesWatcher %v\n", e))
 		}
 	}()
 	gasConsumed := tx.Ctx.GasMeter().GasConsumed()
@@ -122,14 +122,14 @@ func (tx *Tx) FinalizeWatcher(msg *types.MsgEthereumTx, err error, panic bool) {
 	}
 	account := tx.GetSenderAccount()
 	if panic {
-		tx.ResetWatcher(account)
+		tx.resetWatcher(account)
 		return
 	}
-	tx.RefundFeesWatcher(account, msg)
+	tx.refundFeesWatcher(account, msg)
 	// handle error
 	if err != nil {
 		// reset watcher
-		tx.ResetWatcher(account)
+		tx.resetWatcher(account)
 		return
 	}
 	tx.Ctx.GetWatcher().Finalize()
