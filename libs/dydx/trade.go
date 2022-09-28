@@ -13,7 +13,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 )
 
-type TempTradeArg struct {
+type tempTradeArg struct {
 	Maker  string
 	Taker  string
 	Trader string
@@ -24,7 +24,7 @@ type TradeOperation struct {
 	contracts *Contracts
 	orders    *Orders
 
-	trades    []TempTradeArg
+	trades    []tempTradeArg
 	committed bool
 }
 
@@ -37,7 +37,7 @@ func (op *TradeOperation) addTradeArg(
 	if op.committed {
 		panic("Operation already committed")
 	}
-	op.trades = append(op.trades, TempTradeArg{
+	op.trades = append(op.trades, tempTradeArg{
 		Trader: trader,
 		Data:   data,
 		Maker:  strings.ToLower(maker),
