@@ -51,11 +51,19 @@ func (api *PubSubAPI) subscribe(conn *wsConn, params []interface{}) (rpc.ID, err
 		// TODO: handle extra params
 		return api.subscribeNewHeads(conn)
 	case "logs":
+		var p interface{}
 		if len(params) > 1 {
-			return api.subscribeLogs(conn, params[1])
+			p = params[1]
 		}
 
-		return api.subscribeLogs(conn, nil)
+		return api.subscribeLogs(conn, p)
+	case "logs2":
+		var p interface{}
+		if len(params) > 1 {
+			p = params[1]
+		}
+
+		return api.subscribeLogs2(conn, p)
 	case "newPendingTransactions":
 		var isDetail, ok bool
 		if len(params) > 1 {
@@ -253,7 +261,6 @@ func (api *PubSubAPI) subscribeLogs(conn *wsConn, extra interface{}) (rpc.ID, er
 
 					logs := rpcfilters.FilterLogs(resultData.Logs, crit.FromBlock, crit.ToBlock, crit.Addresses, crit.Topics)
 					if len(logs) == 0 {
-						api.logger.Debug("no matched logs", "ID", sub.ID(), "txHash", resultData.TxHash)
 						return
 					}
 
@@ -291,6 +298,207 @@ func (api *PubSubAPI) subscribeLogs(conn *wsConn, extra interface{}) (rpc.ID, er
 					if err != nil {
 						api.unsubscribe(sub.ID())
 					}
+				}(event)
+			case err := <-errCh:
+				if err != nil {
+					api.unsubscribe(sub.ID())
+					api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
+				}
+				return
+			case <-unsubscribed:
+				api.logger.Debug("Logs channel is closed", "ID", sub.ID())
+				return
+			}
+		}
+	}(sub.Event(), sub.Err())
+
+	return sub.ID(), nil
+}
+
+func (api *PubSubAPI) subscribeLogs2(conn *wsConn, extra interface{}) (rpc.ID, error) {
+	crit := filters.FilterCriteria{}
+	bytx := false // batch logs push by tx
+
+	if extra != nil {
+		params, ok := extra.(map[string]interface{})
+		if !ok {
+			return "", fmt.Errorf("invalid criteria")
+		}
+
+		if params["address"] != nil {
+			address, ok := params["address"].(string)
+			addresses, sok := params["address"].([]interface{})
+			if !ok && !sok {
+				return "", fmt.Errorf("invalid address; must be address or array of addresses")
+			}
+
+			if ok {
+				if !common.IsHexAddress(address) {
+					return "", fmt.Errorf("invalid address")
+				}
+				crit.Addresses = []common.Address{common.HexToAddress(address)}
+			} else if sok {
+				crit.Addresses = []common.Address{}
+				for _, addr := range addresses {
+					address, ok := addr.(string)
+					if !ok || !common.IsHexAddress(address) {
+						return "", fmt.Errorf("invalid address")
+					}
+
+					crit.Addresses = append(crit.Addresses, common.HexToAddress(address))
+				}
+			}
+		}
+
+		if params["topics"] != nil {
+			topics, ok := params["topics"].([]interface{})
+			if !ok {
+				return "", fmt.Errorf("invalid topics")
+			}
+
+			topicFilterLists, err := resolveTopicList(topics)
+			if err != nil {
+				return "", fmt.Errorf("invalid topics")
+			}
+			crit.Topics = topicFilterLists
+		}
+
+		if params["bytx"] != nil {
+			b, ok := params["bytx"].(bool)
+			if !ok {
+				return "", fmt.Errorf("invalid batch; must be true or false")
+			}
+			bytx = b
+		}
+	}
+
+	sub, _, err := api.events.SubscribeLogsBatch(crit)
+	if err != nil {
+		return rpc.ID(""), err
+	}
+
+	unsubscribed := make(chan struct{})
+	api.filtersMu.Lock()
+	api.filters[sub.ID()] = &wsSubscription{
+		sub:          sub,
+		conn:         conn,
+		unsubscribed: unsubscribed,
+	}
+	api.filtersMu.Unlock()
+
+	go func(ch <-chan coretypes.ResultEvent, errCh <-chan error) {
+		for {
+			select {
+			case event := <-ch:
+				go func(event coretypes.ResultEvent) {
+					//batch receive txResult
+					txs, ok := event.Data.(tmtypes.EventDataTxs)
+					if !ok {
+						api.logger.Error(fmt.Sprintf("invalid event data %T, expected EventDataTxs", event.Data))
+						return
+					}
+
+					for _, txResult := range txs.Results {
+						//decode txResult data
+						var resultData evmtypes.ResultData
+						resultData, err = evmtypes.DecodeResultData(txResult.Data)
+						if err != nil {
+							api.logger.Error("failed to decode result data", "error", err)
+							return
+						}
+
+						//filter logs
+						logs := rpcfilters.FilterLogs(resultData.Logs, crit.FromBlock, crit.ToBlock, crit.Addresses, crit.Topics)
+						if len(logs) == 0 {
+							continue
+						}
+
+						//write log to client by each tx
+						api.filtersMu.RLock()
+						if f, found := api.filters[sub.ID()]; found {
+							// write to ws conn
+							res := &SubscriptionNotification{
+								Jsonrpc: "2.0",
+								Method:  "eth_subscription",
+								Params: &SubscriptionResult{
+									Subscription: sub.ID(),
+								},
+							}
+							if bytx {
+								res.Params.Result = logs
+								err = f.conn.WriteJSON(res)
+								if err != nil {
+									api.logger.Error("failed to batch write logs", "ID", sub.ID(), "height", logs[0].BlockNumber, "txHash", logs[0].TxHash, "error", err)
+								}
+								api.logger.Info("successfully batch write logs ", "ID", sub.ID(), "height", logs[0].BlockNumber, "txHash", logs[0].TxHash)
+							} else {
+								for _, singleLog := range logs {
+									res.Params.Result = singleLog
+									err = f.conn.WriteJSON(res)
+									if err != nil {
+										api.logger.Error("failed to write log", "ID", sub.ID(), "height", singleLog.BlockNumber, "txHash", singleLog.TxHash, "error", err)
+										break
+									}
+									api.logger.Info("successfully write log", "ID", sub.ID(), "height", singleLog.BlockNumber, "txHash", singleLog.TxHash)
+								}
+							}
+						}
+						api.filtersMu.RUnlock()
+
+						if err != nil {
+							//unsubscribe and quit current routine
+							api.unsubscribe(sub.ID())
+							return
+						}
+					}
+
+					//var resultData evmtypes.ResultData
+					//resultData, err = evmtypes.DecodeResultData(dataTx.TxResult.Result.Data)
+					//if err != nil {
+					//	api.logger.Error("failed to decode result data", "error", err)
+					//	return
+					//}
+					//
+					//logs := rpcfilters.FilterLogs(resultData.Logs, crit.FromBlock, crit.ToBlock, crit.Addresses, crit.Topics)
+					//if len(logs) == 0 {
+					//	api.logger.Debug("no matched logs", "ID", sub.ID(), "txHash", resultData.TxHash)
+					//	return
+					//}
+
+					//api.filtersMu.RLock()
+					//if f, found := api.filters[sub.ID()]; found {
+					//	// write to ws conn
+					//	res := &SubscriptionNotification{
+					//		Jsonrpc: "2.0",
+					//		Method:  "eth_subscription",
+					//		Params: &SubscriptionResult{
+					//			Subscription: sub.ID(),
+					//		},
+					//	}
+					//	if bytx {
+					//		res.Params.Result = logs
+					//		err = f.conn.WriteJSON(res)
+					//		if err != nil {
+					//			api.logger.Error("failed to batch write logs", "ID", sub.ID(), "height", logs[0].BlockNumber, "txHash", logs[0].TxHash, "error", err)
+					//		}
+					//		api.logger.Info("successfully batch write logs ", "ID", sub.ID(), "height", logs[0].BlockNumber, "txHash", logs[0].TxHash)
+					//	} else {
+					//		for _, singleLog := range logs {
+					//			res.Params.Result = singleLog
+					//			err = f.conn.WriteJSON(res)
+					//			if err != nil {
+					//				api.logger.Error("failed to write log", "ID", sub.ID(), "height", singleLog.BlockNumber, "txHash", singleLog.TxHash, "error", err)
+					//				break
+					//			}
+					//			api.logger.Info("successfully write log", "ID", sub.ID(), "height", singleLog.BlockNumber, "txHash", singleLog.TxHash)
+					//		}
+					//	}
+					//}
+					//api.filtersMu.RUnlock()
+					//
+					//if err != nil {
+					//	api.unsubscribe(sub.ID())
+					//}
 				}(event)
 			case err := <-errCh:
 				if err != nil {

@@ -729,6 +729,13 @@ func fireEvents(
 		}})
 	}
 
+	if len(block.Data.Txs) > 0 {
+		eventBus.PublishEventTxs(types.EventDataTxs{
+			Height:  block.Height,
+			Results: abciResponses.DeliverTxs,
+		})
+	}
+
 	if len(validatorUpdates) > 0 {
 		eventBus.PublishEventValidatorSetUpdates(
 			types.EventDataValidatorSetUpdates{ValidatorUpdates: validatorUpdates})
