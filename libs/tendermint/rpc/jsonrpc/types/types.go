@@ -8,6 +8,8 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/okex/exchain/libs/tendermint/types"
+
 	"github.com/pkg/errors"
 
 	amino "github.com/tendermint/go-amino"
@@ -187,6 +189,9 @@ func NewRPCSuccessResponse(cdc *amino.Codec, id jsonrpcid, res interface{}) RPCR
 
 	if res != nil {
 		var js []byte
+		if v, ok := res.(types.UpgradeAble); ok {
+			res = v.Upgrade()
+		}
 		js, err := cdc.MarshalJSON(res)
 		if err != nil {
 			return RPCInternalError(id, errors.Wrap(err, "Error marshalling response"))

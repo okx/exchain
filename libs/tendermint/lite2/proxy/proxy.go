@@ -5,6 +5,8 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+
 	"github.com/pkg/errors"
 
 	amino "github.com/tendermint/go-amino"
@@ -18,12 +20,13 @@ import (
 
 // A Proxy defines parameters for running an HTTP server proxy.
 type Proxy struct {
-	Addr     string // TCP address to listen on, ":http" if empty
-	Config   *rpcserver.Config
-	Codec    *amino.Codec
-	Client   *lrpc.Client
-	Logger   log.Logger
-	Listener net.Listener
+	Addr       string // TCP address to listen on, ":http" if empty
+	Config     *rpcserver.Config
+	Codec      *amino.Codec
+	CodecProxy *codec.CodecProxy
+	Client     *lrpc.Client
+	Logger     log.Logger
+	Listener   net.Listener
 }
 
 // ListenAndServe configures the rpcserver.WebsocketManager, sets up the RPC
@@ -67,6 +70,7 @@ func (p *Proxy) ListenAndServeTLS(certFile, keyFile string) error {
 
 func (p *Proxy) listen() (net.Listener, *http.ServeMux, error) {
 	ctypes.RegisterAmino(p.Codec)
+	ctypes.RegisterCM40Codec(p.CodecProxy)
 
 	mux := http.NewServeMux()
 
@@ -76,7 +80,7 @@ func (p *Proxy) listen() (net.Listener, *http.ServeMux, error) {
 
 	// 2) Allow websocket connections.
 	wmLogger := p.Logger.With("protocol", "websocket")
-	wm := rpcserver.NewWebsocketManager(r, p.Codec,
+	wm := rpcserver.NewWebsocketManager(r, p.Codec, p.CodecProxy,
 		rpcserver.OnDisconnect(func(remoteAddr string) {
 			err := p.Client.UnsubscribeAll(context.Background(), remoteAddr)
 			if err != nil && err != tmpubsub.ErrSubscriptionNotFound {

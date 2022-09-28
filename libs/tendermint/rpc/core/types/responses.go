@@ -244,3 +244,10 @@ type ResultEvent struct {
 	Data   types.TMEventData   `json:"data"`
 	Events map[string][]string `json:"events"`
 }
+
+func (r ResultEvent) Upgrade() interface{} {
+	if v, ok := r.Data.(types.UpgradeAble); ok {
+		r.Data = v.Upgrade()
+	}
+	return r
+}

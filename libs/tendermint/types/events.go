@@ -52,9 +52,12 @@ type TMEventData interface {
 }
 
 func RegisterEventDatas(cdc *amino.Codec) {
+	cdc.RegisterConcrete(EventDataNewBlock{}, "tendermint/event/NewBlock", nil)
+	registerCommonEventDatas(cdc)
+}
+
+func registerCommonEventDatas(cdc *amino.Codec) {
 	cdc.RegisterInterface((*TMEventData)(nil), nil)
-	//cdc.RegisterConcrete(EventDataNewBlock{}, "tendermint/event/NewBlock", nil)
-	cdc.RegisterConcrete(CM40EventDataNewBlock{}, "tendermint/event/NewBlock", nil)
 	cdc.RegisterConcrete(EventDataNewBlockHeader{}, "tendermint/event/NewBlockHeader", nil)
 	cdc.RegisterConcrete(EventDataTx{}, "tendermint/event/Tx", nil)
 	cdc.RegisterConcrete(EventDataRoundState{}, "tendermint/event/RoundState", nil)
@@ -73,6 +76,11 @@ type EventDataNewBlock struct {
 
 	ResultBeginBlock abci.ResponseBeginBlock `json:"result_begin_block"`
 	ResultEndBlock   abci.ResponseEndBlock   `json:"result_end_block"`
+}
+
+func (e EventDataNewBlock) Upgrade() interface{} {
+	ret := CM40EventDataNewBlock{}
+	return ret.From(e)
 }
 
 type EventDataNewBlockHeader struct {

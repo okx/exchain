@@ -4,6 +4,9 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
+
 	amino "github.com/tendermint/go-amino"
 
 	"github.com/okex/exchain/libs/tendermint/libs/bytes"
@@ -32,6 +35,8 @@ func StartProxy(c rpcclient.Client, listenAddr string, logger log.Logger, maxOpe
 
 	cdc := amino.NewCodec()
 	ctypes.RegisterAmino(cdc)
+	cdcProxy := codec.NewCodecProxy(codec.NewProtoCodec(interfacetypes.NewInterfaceRegistry()), amino.NewCodec())
+	ctypes.RegisterCM40Codec(cdcProxy)
 	r := RPCRoutes(c)
 
 	// build the handler...
@@ -43,7 +48,7 @@ func StartProxy(c rpcclient.Client, listenAddr string, logger log.Logger, maxOpe
 			logger.Error("Failed to unsubscribe from events", "err", err)
 		}
 	}
-	wm := rpcserver.NewWebsocketManager(r, cdc, rpcserver.OnDisconnect(unsubscribeFromAllEvents))
+	wm := rpcserver.NewWebsocketManager(r, cdc, cdcProxy, rpcserver.OnDisconnect(unsubscribeFromAllEvents))
 	wm.SetLogger(logger)
 	// core.SetLogger(logger)
 	mux.HandleFunc(wsEndpoint, wm.WebsocketHandler)

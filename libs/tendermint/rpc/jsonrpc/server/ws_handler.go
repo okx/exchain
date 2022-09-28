@@ -9,6 +9,8 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+
 	"github.com/gorilla/websocket"
 	"github.com/pkg/errors"
 
@@ -38,6 +40,7 @@ type WebsocketManager struct {
 
 	funcMap       map[string]*RPCFunc
 	cdc           *amino.Codec
+	codecProxy    *codec.CodecProxy
 	logger        log.Logger
 	wsConnOptions []func(*wsConnection)
 }
@@ -47,11 +50,13 @@ type WebsocketManager struct {
 func NewWebsocketManager(
 	funcMap map[string]*RPCFunc,
 	cdc *amino.Codec,
+	codecProxy *codec.CodecProxy,
 	wsConnOptions ...func(*wsConnection),
 ) *WebsocketManager {
 	return &WebsocketManager{
-		funcMap: funcMap,
-		cdc:     cdc,
+		funcMap:    funcMap,
+		cdc:        cdc,
+		codecProxy: codecProxy,
 		Upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
 				// TODO ???
@@ -92,7 +97,7 @@ func (wm *WebsocketManager) WebsocketHandler(w http.ResponseWriter, r *http.Requ
 	}()
 
 	// register connection
-	con := newWSConnection(wsConn, wm.funcMap, wm.cdc, wm.wsConnOptions...)
+	con := newWSConnection(wsConn, wm.funcMap, wm.cdc, wm.codecProxy, wm.wsConnOptions...)
 	con.SetLogger(wm.logger.With("remote", wsConn.RemoteAddr()))
 	wm.logger.Info("New websocket connection", "remote", con.remoteAddr)
 	err = con.Start() // BLOCKING
@@ -123,8 +128,9 @@ type wsConnection struct {
 	// used to abort writeRoutine
 	readRoutineQuit chan struct{}
 
-	funcMap map[string]*RPCFunc
-	cdc     *amino.Codec
+	funcMap  map[string]*RPCFunc
+	cdc      *amino.Codec
+	cdcProxy *codec.CodecProxy
 
 	// write channel capacity
 	writeChanCapacity int
@@ -158,6 +164,7 @@ func newWSConnection(
 	baseConn *websocket.Conn,
 	funcMap map[string]*RPCFunc,
 	cdc *amino.Codec,
+	cdcProxy *codec.CodecProxy,
 	options ...func(*wsConnection),
 ) *wsConnection {
 	wsc := &wsConnection{
@@ -165,6 +172,7 @@ func newWSConnection(
 		baseConn:          baseConn,
 		funcMap:           funcMap,
 		cdc:               cdc,
+		cdcProxy:          cdcProxy,
 		writeWait:         defaultWSWriteWait,
 		writeChanCapacity: defaultWSWriteChanCapacity,
 		readWait:          defaultWSReadWait,
@@ -285,6 +293,10 @@ func (wsc *wsConnection) TryWriteRPCResponse(resp types.RPCResponse) bool {
 // It implements WSRPCConnection.
 func (wsc *wsConnection) Codec() *amino.Codec {
 	return wsc.cdc
+}
+
+func (wsc *wsConnection) CodecProxy() *codec.CodecProxy {
+	return wsc.cdcProxy
 }
 
 // Context returns the connection's context.
