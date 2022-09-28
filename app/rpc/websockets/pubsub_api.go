@@ -399,6 +399,11 @@ func (api *PubSubAPI) subscribeLogs2(conn *wsConn, extra interface{}) (rpc.ID, e
 					}
 
 					for _, txResult := range txs.Results {
+						//check evm type event
+						if !evmtypes.IsEvmEvent(txResult) {
+							continue
+						}
+
 						//decode txResult data
 						var resultData evmtypes.ResultData
 						resultData, err = evmtypes.DecodeResultData(txResult.Data)
