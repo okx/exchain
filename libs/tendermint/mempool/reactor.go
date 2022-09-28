@@ -326,7 +326,10 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 		}
 
 		// ensure peer hasn't already sent us this tx
-		if _, ok := memTx.senders.Load(peerID); !ok {
+		memTx.senderMtx.RLock()
+		_, ok = memTx.senders[peerID]
+		memTx.senderMtx.RUnlock()
+		if !ok {
 			var getFromPool bool
 			// send memTx
 			var msg Message
