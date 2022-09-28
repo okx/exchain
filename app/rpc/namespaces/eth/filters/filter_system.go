@@ -172,22 +172,6 @@ func (es *EventSystem) subLogs(crit filters.FilterCriteria, event string) (*Subs
 	}
 }
 
-// subscribeMinedPendingLogs creates a subscription that returned mined and
-// pending logs that match the given criteria.
-//func (es *EventSystem) subscribeMinedPendingLogs(crit filters.FilterCriteria) (*Subscription, context.CancelFunc, error) {
-//	sub := &Subscription{
-//		id:        rpc.NewID(),
-//		typ:       filters.MinedAndPendingLogsSubscription,
-//		event:     evmEvents,
-//		logsCrit:  crit,
-//		created:   time.Now().UTC(),
-//		logs:      make(chan []*ethtypes.Log),
-//		installed: make(chan struct{}, 1),
-//		err:       make(chan error, 1),
-//	}
-//	return es.subscribe(sub)
-//}
-
 // subscribeLogs creates a subscription that will write all logs matching the
 // given criteria to the given logs channel.
 func (es *EventSystem) subscribeLogs(crit filters.FilterCriteria, t filters.Type, e string) (*Subscription, context.CancelFunc, error) {
@@ -203,22 +187,6 @@ func (es *EventSystem) subscribeLogs(crit filters.FilterCriteria, t filters.Type
 	}
 	return es.subscribe(sub)
 }
-
-// subscribePendingLogs creates a subscription that writes transaction hashes for
-// transactions that enter the transaction pool.
-//func (es *EventSystem) subscribePendingLogs(crit filters.FilterCriteria) (*Subscription, context.CancelFunc, error) {
-//	sub := &Subscription{
-//		id:        rpc.NewID(),
-//		typ:       filters.PendingLogsSubscription,
-//		event:     evmEvents,
-//		logsCrit:  crit,
-//		created:   time.Now().UTC(),
-//		logs:      make(chan []*ethtypes.Log),
-//		installed: make(chan struct{}, 1),
-//		err:       make(chan error, 1),
-//	}
-//	return es.subscribe(sub)
-//}
 
 // SubscribeNewHeads subscribes to new block headers events.
 func (es EventSystem) SubscribeNewHeads() (*Subscription, context.CancelFunc, error) {
