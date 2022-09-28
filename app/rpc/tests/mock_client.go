@@ -7,9 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-
 	"github.com/okex/exchain/libs/tendermint/global"
 
 	apptesting "github.com/okex/exchain/libs/ibc-go/testing"
@@ -51,15 +48,13 @@ func (m *MockClient) StartTmRPC() (net.Listener, string, error) {
 	rpccore.SetEnvironment(m.env)
 	coreCodec := amino.NewCodec()
 	ctypes.RegisterAmino(coreCodec)
-	cdcProxy := codec.NewCodecProxy(codec.NewProtoCodec(interfacetypes.NewInterfaceRegistry()), amino.NewCodec())
-	ctypes.RegisterCM40Codec(cdcProxy)
 	rpccore.AddUnsafeRoutes()
 	rpcLogger := log.NewNopLogger()
 	config := rpcserver.DefaultConfig()
 
 	// we may expose the rpc over both a unix and tcp socket
 	mux := http.NewServeMux()
-	wm := rpcserver.NewWebsocketManager(rpccore.Routes, coreCodec, cdcProxy,
+	wm := rpcserver.NewWebsocketManager(rpccore.Routes, coreCodec,
 		rpcserver.OnDisconnect(func(remoteAddr string) {}),
 		rpcserver.ReadLimit(config.MaxBodyBytes),
 	)

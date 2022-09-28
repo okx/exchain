@@ -10,9 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/codec"
-	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
-
 	"github.com/okex/exchain/libs/tendermint/global"
 
 	"github.com/pkg/errors"
@@ -1011,8 +1008,6 @@ func (n *Node) startRPC() ([]net.Listener, error) {
 	listenAddrs := splitAndTrimEmpty(n.config.RPC.ListenAddress, ",", " ")
 	coreCodec := amino.NewCodec()
 	ctypes.RegisterAmino(coreCodec)
-	cdcProxy := codec.NewCodecProxy(codec.NewProtoCodec(interfacetypes.NewInterfaceRegistry()), amino.NewCodec())
-	ctypes.RegisterCM40Codec(cdcProxy)
 
 	if n.config.RPC.Unsafe {
 		rpccore.AddUnsafeRoutes()
@@ -1035,7 +1030,7 @@ func (n *Node) startRPC() ([]net.Listener, error) {
 		mux := http.NewServeMux()
 		rpcLogger := n.Logger.With("module", "rpc-server")
 		wmLogger := rpcLogger.With("protocol", "websocket")
-		wm := rpcserver.NewWebsocketManager(rpccore.Routes, coreCodec, cdcProxy,
+		wm := rpcserver.NewWebsocketManager(rpccore.Routes, coreCodec,
 			rpcserver.OnDisconnect(func(remoteAddr string) {
 				err := n.eventBus.UnsubscribeAll(context.Background(), remoteAddr)
 				if err != nil && err != tmpubsub.ErrSubscriptionNotFound {
