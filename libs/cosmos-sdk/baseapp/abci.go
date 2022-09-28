@@ -11,9 +11,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/okex/exchain/app/rpc/simulator"
 	"github.com/spf13/viper"
 
+	"github.com/okex/exchain/app/rpc/simulator"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
