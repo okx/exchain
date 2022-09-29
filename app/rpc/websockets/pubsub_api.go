@@ -2,12 +2,11 @@ package websockets
 
 import (
 	"fmt"
-	"sync"
-
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/watcher"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -235,6 +234,7 @@ func (api *PubSubAPI) subscribeLogs(conn *wsConn, extra interface{}) (rpc.ID, er
 	api.filtersMu.Unlock()
 
 	go func(ch <-chan coretypes.ResultEvent, errCh <-chan error) {
+		quit := false
 		for {
 			select {
 			case event := <-ch:
@@ -247,6 +247,10 @@ func (api *PubSubAPI) subscribeLogs(conn *wsConn, extra interface{}) (rpc.ID, er
 					}
 
 					for _, txResult := range txs.Results {
+						if quit {
+							return
+						}
+
 						//check evm type event
 						if !evmtypes.IsEvmEvent(txResult) {
 							continue
@@ -306,12 +310,14 @@ func (api *PubSubAPI) subscribeLogs(conn *wsConn, extra interface{}) (rpc.ID, er
 					}
 				}(event)
 			case err := <-errCh:
+				quit = true
 				if err != nil {
 					api.unsubscribe(sub.ID())
 					api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
 				}
 				return
 			case <-unsubscribed:
+				quit = true
 				api.logger.Debug("Logs channel is closed", "ID", sub.ID())
 				return
 			}
