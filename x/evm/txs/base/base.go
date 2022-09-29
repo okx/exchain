@@ -138,17 +138,11 @@ func (tx *Tx) SaveTx(msg *types.MsgEthereumTx) {}
 // GetSenderAccount check Tx do not need this
 func (tx *Tx) GetSenderAccount() authexported.Account { return nil }
 
-// ResetWatcher check Tx do not need this
-func (tx *Tx) ResetWatcher(account authexported.Account) {}
-
-// RefundFeesWatcher refund the watcher, check Tx do not save state so. skip
-func (tx *Tx) RefundFeesWatcher(account authexported.Account, ethereumTx *types.MsgEthereumTx) {}
-
 // Commit check Tx do not need
 func (tx *Tx) Commit(msg *types.MsgEthereumTx, result *Result) {}
 
 // FinalizeWatcher check Tx do not need this
-func (tx *Tx) FinalizeWatcher(msg *types.MsgEthereumTx, account authexported.Account, err error) {}
+func (tx *Tx) FinalizeWatcher(msg *types.MsgEthereumTx, err error, panic bool) {}
 
 func (tx *Tx) Dispose() {
 	if tx != nil && tx.reuseCsdb {
