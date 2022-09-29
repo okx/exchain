@@ -85,14 +85,16 @@ func getStorageTrie(db ethstate.Database, addrHash, stateRoot ethcmn.Hash) ethst
 
 // pushData2Database commit the data to the database
 func pushData2Database(db ethstate.Database, trie ethstate.Trie, height int64, isEvm bool) {
-	var storageRoot ethcmn.Hash
-	root, err := trie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
-		storageRoot.SetBytes(leaf)
-		if storageRoot != mpt.EmptyRootHash {
-			db.TrieDB().Reference(storageRoot, parent)
-		}
-		return nil
-	})
+	//var storageRoot ethcmn.Hash
+	//root, err := trie.Commit(func(_ [][]byte, _ []byte, leaf []byte, parent ethcmn.Hash) error {
+	//	storageRoot.SetBytes(leaf)
+	//	if storageRoot != mpt.EmptyRootHash {
+	//		db.TrieDB().Reference(storageRoot, parent)
+	//	}
+	//	return nil
+	//})
+	//TODO we must be change this line
+	root, _, err := trie.Commit(true)
 	panicError(err)
 
 	err = db.TrieDB().Commit(root, false, nil)

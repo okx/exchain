@@ -243,7 +243,7 @@ func (ms *MptStore) CommitterCommit(delta *iavl.TreeDelta) (types.CommitID, *iav
 	// stop pre round prefetch
 	ms.StopPrefetcher()
 
-	root, err := ms.trie.Commit(nil)
+	root, _, err := ms.trie.Commit(false)
 	if err != nil {
 		panic("fail to commit trie data: " + err.Error())
 	}
