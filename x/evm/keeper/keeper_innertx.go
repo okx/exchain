@@ -24,6 +24,10 @@ func initInnerDB() error {
 	return innertx.InitDB(innerTxPath, dbBackend)
 }
 
+func closeInnerDB() []error {
+	return innertx.CloseDB()
+}
+
 type BlockInnerData = ethvm.BlockInnerData
 
 func defaultBlockInnerData() BlockInnerData {

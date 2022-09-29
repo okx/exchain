@@ -30,6 +30,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
 	evmtypes "github.com/okex/exchain/x/evm/types"
+	"github.com/okex/exchain/x/evm/types/innertx"
 	"github.com/spf13/viper"
 )
 
@@ -346,6 +347,7 @@ func (app *repairApp) Close() {
 		}
 	}
 	evmtypes.CloseIndexer()
+	innertx.CloseDB()
 	err := app.db.Close()
 	panicError(err)
 }

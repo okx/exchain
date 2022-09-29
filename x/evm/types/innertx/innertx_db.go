@@ -21,3 +21,7 @@ func InitDB(innerTxPath, dbBackendStr string) error {
 	}
 	return ethvm.InitDB(innerTxPath, creator)
 }
+
+func CloseDB() []error {
+	return ethvm.CloseDB()
+}
