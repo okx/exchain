@@ -22,6 +22,8 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/spf13/viper"
 
+	appconfig "github.com/okex/exchain/app/config"
+
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
@@ -60,6 +62,7 @@ const (
 	FlagFastQueryThreshold = "fast-query-threshold"
 
 	EvmHookGasEstimate = uint64(60000)
+	EvmDefaultGasLimit = uint64(21000)
 )
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -248,8 +251,8 @@ func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 	monitor := monitor.GetMonitor("eth_gasPrice", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd()
 
-	if app.GlobalGpIndex.RecommendGp != nil {
-		return (*hexutil.Big)(app.GlobalGpIndex.RecommendGp)
+	if appconfig.GetOecConfig().GetEnableDynamicGp() {
+		return (*hexutil.Big)(app.GlobalGp)
 	}
 
 	return api.gasPrice
@@ -952,6 +955,14 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 		errMsg := fmt.Sprintf("estimate gas %v greater than system max gas limit per tx %v", estimatedGas, maxGasLimitPerTx)
 		return 0, TransformDataError(sdk.ErrOutOfGas(errMsg), "eth_estimateGas")
 	}
+
+	// The gasLimit of evm ordinary tx is 21000 by default.
+	// Using gasBuffer will cause the gasLimit in MetaMask to be too large, which will affect the user experience.
+	// Therefore, if an ordinary tx is received, just return the default gasLimit of evm.
+	if estimatedGas == EvmDefaultGasLimit && args.Data == nil {
+		return hexutil.Uint64(estimatedGas), nil
+	}
+
 	gasBuffer := estimatedGas / 100 * config.GetOecConfig().GetGasLimitBuffer()
 	//EvmHookGasEstimate: evm tx with cosmos hook,we cannot estimate hook gas
 	//simple add EvmHookGasEstimate,run tx will refund the extra gas

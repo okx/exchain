@@ -3,9 +3,10 @@ package wasm
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/x/wasm/keeper/testdata"
 	"io/ioutil"
 	"testing"
+
+	"github.com/okex/exchain/x/wasm/keeper/testdata"
 
 	"github.com/dvsekhvalnov/jose2go/base64url"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -77,7 +78,7 @@ var (
 )
 
 func TestHandleCreate(t *testing.T) {
-	types2.UnittestOnlySetMilestoneVenus3Height(1)
+	types2.UnittestOnlySetMilestoneEarthHeight(1)
 	cases := map[string]struct {
 		msg     sdk.Msg
 		isValid bool
@@ -149,7 +150,7 @@ type state struct {
 }
 
 func TestHandleInstantiate(t *testing.T) {
-	types2.UnittestOnlySetMilestoneVenus3Height(1)
+	types2.UnittestOnlySetMilestoneEarthHeight(1)
 	data := setupTest(t)
 	creator := data.faucet.NewFundedAccount(data.ctx, sdk.NewInt64Coin("denom", 100000))
 
@@ -207,9 +208,9 @@ func TestHandleInstantiate(t *testing.T) {
 }
 
 func TestHandleExecute(t *testing.T) {
-	types2.UnittestOnlySetMilestoneVenus3Height(1)
+	types2.UnittestOnlySetMilestoneEarthHeight(1)
 	data := setupTest(t)
-	types2.UnittestOnlySetMilestoneVenus3Height(1)
+	types2.UnittestOnlySetMilestoneEarthHeight(1)
 	deposit := sdk.NewCoins(sdk.NewInt64Coin("denom", 100000))
 	topUp := sdk.NewCoins(sdk.NewInt64Coin("denom", 5000))
 
@@ -330,9 +331,9 @@ func TestHandleExecute(t *testing.T) {
 }
 
 func TestHandleExecuteEscrow(t *testing.T) {
-	types2.UnittestOnlySetMilestoneVenus3Height(1)
+	types2.UnittestOnlySetMilestoneEarthHeight(1)
 	data := setupTest(t)
-	types2.UnittestOnlySetMilestoneVenus3Height(1)
+	types2.UnittestOnlySetMilestoneEarthHeight(1)
 	deposit := sdk.NewCoins(sdk.NewInt64Coin("denom", 100000))
 	topUp := sdk.NewCoins(sdk.NewInt64Coin("denom", 5000))
 	creator := data.faucet.NewFundedAccount(data.ctx, deposit.Add(deposit...)...)
