@@ -648,22 +648,13 @@ func TestIAVLDelta(t *testing.T) {
 	// delta is empty or not depends on SetProduceDelta()
 	assert.NotEqual(t, delta1, emptyDelta)
 
-	// use delta and produce delta
-	tree.SetDelta(&delta1)
-	h2, v2, delta2, err := tree.SaveVersion(true)
-	require.NoError(t, err)
-	assert.NotEmpty(t, h2)
-	assert.EqualValues(t, 4, v2)
-	assert.NotEqual(t, delta2, emptyDelta)
-	assert.Equal(t, delta1, delta2)
-
 	// use delta and not produce delta
 	iavl.SetProduceDelta(false)
 	tree.SetDelta(&delta1)
 	h3, v3, delta3, err := tree.SaveVersion(true)
 	require.NoError(t, err)
 	assert.NotEmpty(t, h3)
-	assert.EqualValues(t, 5, v3)
+	assert.EqualValues(t, 4, v3)
 	assert.Equal(t, delta3, emptyDelta)
 }
 
