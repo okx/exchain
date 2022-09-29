@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/orderedcode"
 	"github.com/pkg/errors"
 
 	dbm "github.com/okex/exchain/libs/tm-db"
@@ -231,7 +230,7 @@ func (txi *TxIndex) Search(ctx context.Context, q *query.Query) ([]*types.TxResu
 
 		for _, r := range ranges {
 			if !hashesInitialized {
-				filteredHashes = txi.matchRange(ctx, r, prefixFromCompositeKey(r.key), filteredHashes, true)
+				filteredHashes = txi.matchRange(ctx, r, startKey(r.key), filteredHashes, true)
 				hashesInitialized = true
 
 				// Ignore any remaining conditions if the first condition resulted
@@ -240,7 +239,7 @@ func (txi *TxIndex) Search(ctx context.Context, q *query.Query) ([]*types.TxResu
 					break
 				}
 			} else {
-				filteredHashes = txi.matchRange(ctx, r, prefixFromCompositeKey(r.key), filteredHashes, false)
+				filteredHashes = txi.matchRange(ctx, r, startKey(r.key), filteredHashes, false)
 			}
 		}
 	}
@@ -255,7 +254,7 @@ func (txi *TxIndex) Search(ctx context.Context, q *query.Query) ([]*types.TxResu
 		}
 
 		if !hashesInitialized {
-			filteredHashes = txi.match(ctx, c, prefixForCondition(c, height), filteredHashes, true)
+			filteredHashes = txi.match(ctx, c, startKeyForCondition(c, height), filteredHashes, true)
 			hashesInitialized = true
 
 			// Ignore any remaining conditions if the first condition resulted
@@ -264,7 +263,7 @@ func (txi *TxIndex) Search(ctx context.Context, q *query.Query) ([]*types.TxResu
 				break
 			}
 		} else {
-			filteredHashes = txi.match(ctx, c, prefixForCondition(c, height), filteredHashes, false)
+			filteredHashes = txi.match(ctx, c, startKeyForCondition(c, height), filteredHashes, false)
 		}
 	}
 
@@ -462,7 +461,7 @@ func (txi *TxIndex) match(
 	case c.Op == syntax.TExists:
 		// XXX: can't use startKeyBz here because c.Operand is nil
 		// (e.g. "account.owner/<nil>/" won't match w/ a single row)
-		it, err := dbm.IteratePrefix(txi.store, prefixFromCompositeKey(c.Tag))
+		it, err := dbm.IteratePrefix(txi.store, startKey(c.Tag))
 		if err != nil {
 			panic(err)
 		}
@@ -487,7 +486,7 @@ func (txi *TxIndex) match(
 		// XXX: startKey does not apply here.
 		// For example, if startKey = "account.owner/an/" and search query = "account.owner CONTAINS an"
 		// we can't iterate with prefix "account.owner/an/" because we might miss keys like "account.owner/Ulan/"
-		it, err := dbm.IteratePrefix(txi.store, prefixFromCompositeKey(c.Tag))
+		it, err := dbm.IteratePrefix(txi.store, startKey(c.Tag))
 		if err != nil {
 			panic(err)
 		}
@@ -495,11 +494,10 @@ func (txi *TxIndex) match(
 
 	iterContains:
 		for ; it.Valid(); it.Next() {
-			value, err := parseValueFromKey(it.Key())
-			if err != nil {
+			if !isTagKey(it.Key()) {
 				continue
 			}
-			if strings.Contains(value, c.Arg.Value()) {
+			if strings.Contains(extractValueFromKey(it.Key()), c.Arg.Value()) {
 				tmpHashes[string(it.Value())] = it.Value()
 			}
 
@@ -674,11 +672,11 @@ func keyForHeight(result *types.TxResult) []byte {
 	))
 }
 
-func startKeyForCondition(c query.Condition, height int64) []byte {
+func startKeyForCondition(c syntax.Condition, height int64) []byte {
 	if height > 0 {
-		return startKey(c.CompositeKey, c.Operand, height)
+		return startKey(c.Tag, conditionArg(c), height)
 	}
-	return startKey(c.CompositeKey, c.Operand)
+	return startKey(c.Tag, conditionArg(c))
 }
 
 func startKey(fields ...interface{}) []byte {
@@ -687,54 +685,4 @@ func startKey(fields ...interface{}) []byte {
 		b.Write([]byte(fmt.Sprintf("%v", f) + tagKeySeparator))
 	}
 	return b.Bytes()
-}
-
-// Prefixes: these represent an initial part of the key and are used by iterators to iterate over a small
-// section of the kv store during searches.
-
-func prefixFromCompositeKey(compositeKey string) []byte {
-	key, err := orderedcode.Append(nil, compositeKey)
-	if err != nil {
-		panic(err)
-	}
-	return key
-}
-
-func prefixFromCompositeKeyAndValue(compositeKey, value string) []byte {
-	key, err := orderedcode.Append(nil, compositeKey, value)
-	if err != nil {
-		panic(err)
-	}
-	return key
-}
-
-// a small utility function for getting a keys prefix based on a condition and a height
-func prefixForCondition(c syntax.Condition, height int64) []byte {
-	key := prefixFromCompositeKeyAndValue(c.Tag, c.Arg.Value())
-	if height > 0 {
-		var err error
-		key, err = orderedcode.Append(key, height)
-		if err != nil {
-			panic(err)
-		}
-	}
-	return key
-}
-
-// parseValueFromKey parses an event key and extracts out the value, returning an error if one arises.
-// This will also involve ensuring that the key has the correct format.
-// CONTRACT: function doesn't check that the prefix is correct. This should have already been done by the iterator
-func parseValueFromKey(key []byte) (string, error) {
-	var (
-		compositeKey, value string
-		height, index       int64
-	)
-	remaining, err := orderedcode.Parse(string(key), &compositeKey, &value, &height, &index)
-	if err != nil {
-		return "", err
-	}
-	if len(remaining) != 0 {
-		return "", fmt.Errorf("unexpected remainder in key: %s", remaining)
-	}
-	return value, nil
 }
