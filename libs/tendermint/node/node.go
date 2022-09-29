@@ -10,6 +10,9 @@ import (
 	"strings"
 	"time"
 
+	blockindex "github.com/okex/exchain/libs/tendermint/state/indexer"
+	bloxkindexnull "github.com/okex/exchain/libs/tendermint/state/indexer/block/null"
+
 	"github.com/okex/exchain/libs/tendermint/global"
 
 	"github.com/pkg/errors"
@@ -44,6 +47,7 @@ import (
 	grpccore "github.com/okex/exchain/libs/tendermint/rpc/grpc"
 	rpcserver "github.com/okex/exchain/libs/tendermint/rpc/jsonrpc/server"
 	sm "github.com/okex/exchain/libs/tendermint/state"
+	blockindexer "github.com/okex/exchain/libs/tendermint/state/indexer/block/kv"
 	"github.com/okex/exchain/libs/tendermint/state/txindex"
 	"github.com/okex/exchain/libs/tendermint/state/txindex/kv"
 	"github.com/okex/exchain/libs/tendermint/state/txindex/null"
@@ -228,6 +232,10 @@ func initTxDB(dataDir string) (txDB dbm.DB, err error) {
 	return
 }
 
+func initBlcokEventDBFromTxDB(txDB dbm.DB) dbm.DB {
+	return dbm.NewPrefixDB(txDB, []byte("block_events"))
+}
+
 func initStateDB(config *cfg.Config) (stateDB dbm.DB, err error) {
 	stateDB, err = sdk.NewLevelDB("state", config.DBDir())
 	if err != nil {
@@ -259,6 +267,7 @@ func createAndStartIndexerService(config *cfg.Config, dbProvider DBProvider,
 	eventBus *types.EventBus, logger log.Logger) (*txindex.IndexerService, txindex.TxIndexer, error) {
 
 	var txIndexer txindex.TxIndexer
+	var blockIndexer blockindex.BlockIndexer
 	switch config.TxIndex.Indexer {
 	case "kv":
 		store, err := dbProvider(&DBContext{"tx_index", config})
@@ -273,11 +282,13 @@ func createAndStartIndexerService(config *cfg.Config, dbProvider DBProvider,
 		default:
 			txIndexer = kv.NewTxIndex(store)
 		}
+		blockIndexer = blockindexer.New(dbm.NewPrefixDB(store, []byte("block_events")))
 	default:
 		txIndexer = &null.TxIndex{}
+		blockIndexer = &bloxkindexnull.BlockerIndexer{}
 	}
 
-	indexerService := txindex.NewIndexerService(txIndexer, eventBus)
+	indexerService := txindex.NewIndexerService(txIndexer, blockIndexer, eventBus)
 	indexerService.SetLogger(logger.With("module", "txindex"))
 	if err := indexerService.Start(); err != nil {
 		return nil, nil, err
@@ -815,14 +826,15 @@ func NewLRPNode(config *cfg.Config,
 	}
 
 	var txIndexer txindex.TxIndexer
+	var blockIndexer blockindex.BlockIndexer
 	txDB, err := initTxDB(originDir)
 	if err != nil {
 		return nil, err
 	}
-
 	txIndexer = kv.NewTxIndex(txDB, kv.IndexAllEvents())
+	blockIndexer = blockindexer.New(initBlcokEventDBFromTxDB(txDB))
 
-	indexerService := txindex.NewIndexerService(txIndexer, eventBus)
+	indexerService := txindex.NewIndexerService(txIndexer, blockIndexer, eventBus)
 	indexerService.SetLogger(logger.With("module", "txindex"))
 	if err := indexerService.Start(); err != nil {
 		return nil, err
@@ -988,6 +1000,7 @@ func (n *Node) ConfigureRPC() error {
 		PubKey:           pubKey,
 		GenDoc:           n.genesisDoc,
 		TxIndexer:        n.txIndexer,
+		BlockIndexer:     n.indexerService.GetBlockIndexer(),
 		ConsensusReactor: n.consensusReactor,
 		EventBus:         n.eventBus,
 		Mempool:          n.mempool,
