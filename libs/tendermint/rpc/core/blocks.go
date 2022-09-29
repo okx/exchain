@@ -1,7 +1,15 @@
 package core
 
 import (
+	"errors"
 	"fmt"
+	"sort"
+
+	nullblockindexer "github.com/okex/exchain/libs/tendermint/state/indexer/block/null"
+
+	coretypes "gitlab.ebidsun.com/chain/tendermint/rpc/core/types"
+
+	tmquery "github.com/okex/exchain/libs/tendermint/libs/pubsub/query"
 
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
@@ -169,4 +177,67 @@ func BlockInfo(ctx *rpctypes.Context, heightPtr *int64) (*types.BlockMeta, error
 	}
 
 	return env.BlockStore.LoadBlockMeta(height), nil
+}
+
+func BlockSearch(
+	ctx *rpctypes.Context,
+	query string,
+	pagePtr, perPagePtr *int,
+	orderBy string,
+) (*ctypes.ResultBlockSearch, error) {
+
+	// if index is disabled, return error
+	if _, ok := env.BlockIndexer.(*nullblockindexer.BlockerIndexer); ok {
+		return nil, errors.New("indexing is disabled")
+	}
+
+	q, err := tmquery.New(query)
+	if err != nil {
+		return nil, err
+	}
+
+	results, err := env.BlockIndexer.Search(ctx.Context(), q)
+	if err != nil {
+		return nil, err
+	}
+
+	// sort results (must be done before pagination)
+	switch orderBy {
+	case "desc", "":
+		sort.Slice(results, func(i, j int) bool { return results[i] > results[j] })
+
+	case "asc":
+		sort.Slice(results, func(i, j int) bool { return results[i] < results[j] })
+
+	default:
+		return nil, fmt.Errorf("expected order_by to be either `asc` or `desc` or empty: %w", coretypes.ErrInvalidRequest)
+	}
+
+	// paginate results
+	totalCount := len(results)
+	perPage := validatePerPage(*perPagePtr)
+
+	page, err := validatePage(*pagePtr, perPage, totalCount)
+	if err != nil {
+		return nil, err
+	}
+
+	skipCount := validateSkipCount(page, perPage)
+	pageSize := tmmath.MinInt(perPage, totalCount-skipCount)
+
+	apiResults := make([]*ctypes.ResultBlock, 0, pageSize)
+	for i := skipCount; i < skipCount+pageSize; i++ {
+		block := env.BlockStore.LoadBlock(results[i])
+		if block != nil {
+			blockMeta := env.BlockStore.LoadBlockMeta(block.Height)
+			if blockMeta != nil {
+				apiResults = append(apiResults, &ctypes.ResultBlock{
+					Block:   block,
+					BlockID: blockMeta.BlockID,
+				})
+			}
+		}
+	}
+
+	return &ctypes.ResultBlockSearch{Blocks: apiResults, TotalCount: totalCount}, nil
 }

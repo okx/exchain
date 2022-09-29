@@ -2,6 +2,8 @@ package core
 
 import (
 	"fmt"
+	blockindex "github.com/okex/exchain/libs/tendermint/state/indexer"
+	blockindexer "github.com/okex/exchain/libs/tendermint/state/indexer/block/kv"
 	"time"
 
 	dbm "github.com/okex/exchain/libs/tm-db"
@@ -81,6 +83,7 @@ type Environment struct {
 	PubKey           crypto.PubKey
 	GenDoc           *types.GenesisDoc // cache the genesis structure
 	TxIndexer        txindex.TxIndexer
+	BlockIndexer     blockindex.BlockIndexer
 	ConsensusReactor *consensus.Reactor
 	EventBus         *types.EventBus // thread safe
 	Mempool          mempl.Mempool
