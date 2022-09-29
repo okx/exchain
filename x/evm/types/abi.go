@@ -1,4 +1,4 @@
-package evm2cm
+package types
 
 import (
 	"fmt"
@@ -28,8 +28,8 @@ func (a *ABI) DecodeInputParam(methodName string, data []byte) (map[string]inter
 		return nil, fmt.Errorf("method %s is not exist in abi", methodName)
 	}
 	resmp := make(map[string]interface{})
-	method.Inputs.UnpackIntoMap(resmp, data[4:])
-	return resmp, nil
+	err := method.Inputs.UnpackIntoMap(resmp, data[4:])
+	return resmp, err
 }
 
 //func DecodeOneInputParam() ([]byte, error) {

@@ -138,8 +138,7 @@ type BaseApp struct { // nolint: maligned
 	GasRefundHandler sdk.GasRefundHandler // gas refund handler for gas refund
 	accNonceHandler  sdk.AccNonceHandler  // account handler for cm tx nonce
 
-	// TODO
-	// evmContractAddressHandler
+	EvmSysContractAddressHandler sdk.EvmSysContractAddressHandler // evm system contract address handler for judge whether convert evm tx to cm tx
 
 	initChainer    sdk.InitChainer  // initialize state with validators and state blob
 	beginBlocker   sdk.BeginBlocker // logic to run before any txs
@@ -883,15 +882,15 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		msgRoute := msg.Route()
 
 		var isConvert bool
-		if IsNeedEvmConvert(msg) {
-			newmsg, err := ConvertMsg(msg)
+
+		if cmtp, ok := app.JudgeEvmConvert(ctx, msg); ok {
+			newmsg, err := ConvertMsg(cmtp, msg)
 			if err != nil {
 				return nil, sdkerrors.Wrapf(sdkerrors.ErrTxDecode, "error %s, message index: %d", err.Error(), i)
-			} else {
-				isConvert = true
-				msg = newmsg
-				msgRoute = msg.Route()
 			}
+			isConvert = true
+			msg = newmsg
+			msgRoute = msg.Route()
 		}
 
 		handler := app.router.Route(ctx, msgRoute)

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/x/common"
 	etypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/staking/types"
 	"github.com/stretchr/testify/require"
@@ -57,7 +58,7 @@ func TestCheckSignerAddress(t *testing.T) {
 	fmt.Println(addr2, addr2.String())
 	require.NoError(t, err)
 
-	tr := CheckSignerAddress([]sdk.AccAddress{addr1}, []sdk.AccAddress{addr2})
+	tr := common.CheckSignerAddress([]sdk.AccAddress{addr1}, []sdk.AccAddress{addr2})
 	require.True(t, tr)
 	fmt.Println(tr)
 }

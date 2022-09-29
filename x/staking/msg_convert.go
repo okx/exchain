@@ -18,9 +18,9 @@ func init() {
 }
 
 func RegisterConvert() {
-	baseapp.Register(types.ModuleName, "deposit", ConvertDepositMsg)
-	baseapp.Register(types.ModuleName, "withdraw", ConvertWithdrawMsg)
-	baseapp.Register(types.ModuleName, "add-shares", ConvertAddSharesMsg)
+	baseapp.RegisterCmHandle(types.ModuleName, "deposit", ConvertDepositMsg)
+	baseapp.RegisterCmHandle(types.ModuleName, "withdraw", ConvertWithdrawMsg)
+	baseapp.RegisterCmHandle(types.ModuleName, "add-shares", ConvertAddSharesMsg)
 }
 
 func ConvertDepositMsg(data []byte, signers []sdk.AccAddress) (sdk.Msg, error) {

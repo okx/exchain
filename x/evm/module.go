@@ -13,7 +13,6 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 
 	"github.com/okex/exchain/x/evm/client/cli"
-	_ "github.com/okex/exchain/x/evm/evm2cm"
 	"github.com/okex/exchain/x/evm/keeper"
 	"github.com/okex/exchain/x/evm/types"
 )

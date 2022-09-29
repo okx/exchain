@@ -17,6 +17,8 @@ func NewManageContractDeploymentWhitelistProposalHandler(k *Keeper) govTypes.Han
 			return handleManageContractBlockedlListProposal(ctx, k, content)
 		case types.ManageContractMethodBlockedListProposal:
 			return handleManageContractMethodBlockedlListProposal(ctx, k, content)
+		case types.ManageSysContractAddressProposal:
+			return handleManageSysContractAddressProposal(ctx, k, content)
 		default:
 			return common.ErrUnknownProposalType(types.DefaultCodespace, content.ProposalType())
 		}
@@ -61,4 +63,16 @@ func handleManageContractMethodBlockedlListProposal(ctx sdk.Context, k *Keeper,
 
 	// remove contract method from blocked list
 	return csdb.DeleteContractMethodBlockedList(p.ContractList)
+}
+
+func handleManageSysContractAddressProposal(ctx sdk.Context, k *Keeper,
+	p types.ManageSysContractAddressProposal) sdk.Error {
+	csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
+	if p.IsAdded {
+		// add system contract address
+		return csdb.SetSysContractAddress(p.ContractAddr)
+	}
+
+	// remove system contract address
+	return csdb.DelSysContractAddress()
 }

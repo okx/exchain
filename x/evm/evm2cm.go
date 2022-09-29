@@ -1,10 +1,9 @@
-package evm2cm
+package evm
 
 import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -17,37 +16,27 @@ var (
 )
 
 func init() {
-	RegisterEvmHandle()
+	RegisterHandle()
 }
 
-func RegisterEvmHandle() {
+func RegisterHandle() {
 	baseapp.RegisterEvmResultConverter(EncodeResultData)
-	baseapp.RegisterEvmMsgParser(EvmMsgParser)
 	baseapp.RegisterEvmConvertJudge(EvmConvertJudge)
 }
 
-func EvmConvertJudge(filter map[string]struct{}, msg sdk.Msg) bool {
+func EvmConvertJudge(msg sdk.Msg) (*baseapp.CMTxParam, []byte, bool) {
 	if msg.Route() != types.ModuleName {
-		return false
+		return nil, nil, false
 	}
 	evmTx, ok := msg.(*types.MsgEthereumTx)
 	if !ok || evmTx.Data.Recipient == nil { // deploy contract no need convert to cosmos msg
-		return false
+		return nil, nil, false
 	}
-	to := evmTx.Data.Recipient.String()
-	if filter != nil {
-		if _, ok := filter[to]; ok {
-			return true
-		}
+	cmtp, err := ContractStringParamParse(evmTx.Data.Payload)
+	if err != nil {
+		return nil, nil, false
 	}
-	return false
-}
-
-func EvmMsgParser(msg sdk.Msg) (*baseapp.CMTxParam, error) {
-	if evmTx, ok := msg.(*types.MsgEthereumTx); ok {
-		return ContractStringParamParse(evmTx.Data.Payload)
-	}
-	return nil, fmt.Errorf("msg is not a MsgEthereumTx")
+	return cmtp, evmTx.Data.Recipient[:], true
 }
 
 func ContractStringParamParse(input []byte) (*baseapp.CMTxParam, error) {
