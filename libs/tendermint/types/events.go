@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+
 	amino "github.com/tendermint/go-amino"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -168,11 +169,11 @@ var (
 )
 
 func EventQueryTxFor(tx Tx, height int64) tmpubsub.Query {
-	return tmquery.MustParse(fmt.Sprintf("%s='%s' AND %s='%X'", EventTypeKey, EventTx, TxHashKey, tx.Hash(height)))
+	return tmquery.MustCompile(fmt.Sprintf("%s='%s' AND %s='%X'", EventTypeKey, EventTx, TxHashKey, tx.Hash(height)))
 }
 
 func QueryForEvent(eventType string) tmpubsub.Query {
-	return tmquery.MustParse(fmt.Sprintf("%s='%s'", EventTypeKey, eventType))
+	return tmquery.MustCompile(fmt.Sprintf("%s='%s'", EventTypeKey, eventType))
 }
 
 // BlockEventPublisher publishes all block related events

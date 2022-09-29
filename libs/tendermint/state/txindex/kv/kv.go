@@ -9,11 +9,13 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/orderedcode"
 	"github.com/pkg/errors"
 
 	dbm "github.com/okex/exchain/libs/tm-db"
 
 	"github.com/okex/exchain/libs/tendermint/libs/pubsub/query"
+	"github.com/okex/exchain/libs/tendermint/libs/pubsub/query/syntax"
 	tmstring "github.com/okex/exchain/libs/tendermint/libs/strings"
 	"github.com/okex/exchain/libs/tendermint/state/txindex"
 	"github.com/okex/exchain/libs/tendermint/types"
@@ -199,10 +201,7 @@ func (txi *TxIndex) Search(ctx context.Context, q *query.Query) ([]*types.TxResu
 	filteredHashes := make(map[string][]byte)
 
 	// get a list of conditions (like "tx.height > 5")
-	conditions, err := q.Conditions()
-	if err != nil {
-		return nil, errors.Wrap(err, "error during parsing conditions from query")
-	}
+	conditions := q.Syntax()
 
 	// if there is a hash condition, return the result immediately
 	hash, ok, err := lookForHash(conditions)
@@ -232,7 +231,7 @@ func (txi *TxIndex) Search(ctx context.Context, q *query.Query) ([]*types.TxResu
 
 		for _, r := range ranges {
 			if !hashesInitialized {
-				filteredHashes = txi.matchRange(ctx, r, startKey(r.key), filteredHashes, true)
+				filteredHashes = txi.matchRange(ctx, r, prefixFromCompositeKey(r.key), filteredHashes, true)
 				hashesInitialized = true
 
 				// Ignore any remaining conditions if the first condition resulted
@@ -241,7 +240,7 @@ func (txi *TxIndex) Search(ctx context.Context, q *query.Query) ([]*types.TxResu
 					break
 				}
 			} else {
-				filteredHashes = txi.matchRange(ctx, r, startKey(r.key), filteredHashes, false)
+				filteredHashes = txi.matchRange(ctx, r, prefixFromCompositeKey(r.key), filteredHashes, false)
 			}
 		}
 	}
@@ -256,7 +255,7 @@ func (txi *TxIndex) Search(ctx context.Context, q *query.Query) ([]*types.TxResu
 		}
 
 		if !hashesInitialized {
-			filteredHashes = txi.match(ctx, c, startKeyForCondition(c, height), filteredHashes, true)
+			filteredHashes = txi.match(ctx, c, prefixForCondition(c, height), filteredHashes, true)
 			hashesInitialized = true
 
 			// Ignore any remaining conditions if the first condition resulted
@@ -265,11 +264,12 @@ func (txi *TxIndex) Search(ctx context.Context, q *query.Query) ([]*types.TxResu
 				break
 			}
 		} else {
-			filteredHashes = txi.match(ctx, c, startKeyForCondition(c, height), filteredHashes, false)
+			filteredHashes = txi.match(ctx, c, prefixForCondition(c, height), filteredHashes, false)
 		}
 	}
 
 	results := make([]*types.TxResult, 0, len(filteredHashes))
+hashes:
 	for _, h := range filteredHashes {
 		res, err := txi.Get(h)
 		if err != nil {
@@ -280,7 +280,7 @@ func (txi *TxIndex) Search(ctx context.Context, q *query.Query) ([]*types.TxResu
 		// Potentially exit early.
 		select {
 		case <-ctx.Done():
-			break
+			break hashes
 		default:
 		}
 	}
@@ -288,10 +288,10 @@ func (txi *TxIndex) Search(ctx context.Context, q *query.Query) ([]*types.TxResu
 	return results, nil
 }
 
-func lookForHash(conditions []query.Condition) (hash []byte, ok bool, err error) {
+func lookForHash(conditions []syntax.Condition) (hash []byte, ok bool, err error) {
 	for _, c := range conditions {
-		if c.CompositeKey == types.TxHashKey {
-			decoded, err := hex.DecodeString(c.Operand.(string))
+		if c.Tag == types.TxHashKey {
+			decoded, err := hex.DecodeString(c.Arg.Value())
 			return decoded, true, err
 		}
 	}
@@ -299,10 +299,10 @@ func lookForHash(conditions []query.Condition) (hash []byte, ok bool, err error)
 }
 
 // lookForHeight returns a height if there is an "height=X" condition.
-func lookForHeight(conditions []query.Condition) (height int64) {
+func lookForHeight(conditions []syntax.Condition) (height int64) {
 	for _, c := range conditions {
-		if c.CompositeKey == types.TxHeightKey && c.Op == query.OpEqual {
-			return c.Operand.(int64)
+		if c.Tag == types.TxHeightKey && c.Op == syntax.TEq {
+			return int64(c.Arg.Number())
 		}
 	}
 	return 0
@@ -366,39 +366,53 @@ func (r queryRange) upperBoundValue() interface{} {
 	}
 }
 
-func lookForRanges(conditions []query.Condition) (ranges queryRanges, indexes []int) {
+func lookForRanges(conditions []syntax.Condition) (ranges queryRanges, indexes []int) {
 	ranges = make(queryRanges)
 	for i, c := range conditions {
 		if isRangeOperation(c.Op) {
-			r, ok := ranges[c.CompositeKey]
+			r, ok := ranges[c.Tag]
 			if !ok {
-				r = queryRange{key: c.CompositeKey}
+				r = queryRange{key: c.Tag}
 			}
 			switch c.Op {
-			case query.OpGreater:
-				r.lowerBound = c.Operand
-			case query.OpGreaterEqual:
+			case syntax.TGt:
+				r.lowerBound = conditionArg(c)
+			case syntax.TGeq:
 				r.includeLowerBound = true
-				r.lowerBound = c.Operand
-			case query.OpLess:
-				r.upperBound = c.Operand
-			case query.OpLessEqual:
+				r.lowerBound = conditionArg(c)
+			case syntax.TLt:
+				r.upperBound = conditionArg(c)
+			case syntax.TLeq:
 				r.includeUpperBound = true
-				r.upperBound = c.Operand
+				r.upperBound = conditionArg(c)
 			}
-			ranges[c.CompositeKey] = r
+			ranges[c.Tag] = r
 			indexes = append(indexes, i)
 		}
 	}
 	return ranges, indexes
 }
 
-func isRangeOperation(op query.Operator) bool {
+func isRangeOperation(op syntax.Token) bool {
 	switch op {
-	case query.OpGreater, query.OpGreaterEqual, query.OpLess, query.OpLessEqual:
+	case syntax.TGt, syntax.TGeq, syntax.TLt, syntax.TLeq:
 		return true
 	default:
 		return false
+	}
+}
+
+func conditionArg(c syntax.Condition) interface{} {
+	if c.Arg == nil {
+		return nil
+	}
+	switch c.Arg.Type {
+	case syntax.TNumber:
+		return int64(c.Arg.Number())
+	case syntax.TTime, syntax.TDate:
+		return c.Arg.Time()
+	default:
+		return c.Arg.Value() // string
 	}
 }
 
@@ -409,7 +423,7 @@ func isRangeOperation(op query.Operator) bool {
 // NOTE: filteredHashes may be empty if no previous condition has matched.
 func (txi *TxIndex) match(
 	ctx context.Context,
-	c query.Condition,
+	c syntax.Condition,
 	startKeyBz []byte,
 	filteredHashes map[string][]byte,
 	firstRun bool,
@@ -423,49 +437,81 @@ func (txi *TxIndex) match(
 	tmpHashes := make(map[string][]byte)
 
 	switch {
-	case c.Op == query.OpEqual:
+	case c.Op == syntax.TEq:
 		it, err := dbm.IteratePrefix(txi.store, startKeyBz)
 		if err != nil {
 			panic(err)
 		}
 		defer it.Close()
 
+	iterEqual:
 		for ; it.Valid(); it.Next() {
 			tmpHashes[string(it.Value())] = it.Value()
 
 			// Potentially exit early.
 			select {
 			case <-ctx.Done():
-				break
+				break iterEqual
 			default:
 			}
 		}
+		if err := it.Error(); err != nil {
+			panic(err)
+		}
 
-	case c.Op == query.OpContains:
-		// XXX: startKey does not apply here.
-		// For example, if startKey = "account.owner/an/" and search query = "account.owner CONTAINS an"
-		// we can't iterate with prefix "account.owner/an/" because we might miss keys like "account.owner/Ulan/"
-		it, err := dbm.IteratePrefix(txi.store, startKey(c.CompositeKey))
+	case c.Op == syntax.TExists:
+		// XXX: can't use startKeyBz here because c.Operand is nil
+		// (e.g. "account.owner/<nil>/" won't match w/ a single row)
+		it, err := dbm.IteratePrefix(txi.store, prefixFromCompositeKey(c.Tag))
 		if err != nil {
 			panic(err)
 		}
 		defer it.Close()
 
+	iterExists:
 		for ; it.Valid(); it.Next() {
-			if !isTagKey(it.Key()) {
+			tmpHashes[string(it.Value())] = it.Value()
+
+			// Potentially exit early.
+			select {
+			case <-ctx.Done():
+				break iterExists
+			default:
+			}
+		}
+		if err := it.Error(); err != nil {
+			panic(err)
+		}
+
+	case c.Op == syntax.TContains:
+		// XXX: startKey does not apply here.
+		// For example, if startKey = "account.owner/an/" and search query = "account.owner CONTAINS an"
+		// we can't iterate with prefix "account.owner/an/" because we might miss keys like "account.owner/Ulan/"
+		it, err := dbm.IteratePrefix(txi.store, prefixFromCompositeKey(c.Tag))
+		if err != nil {
+			panic(err)
+		}
+		defer it.Close()
+
+	iterContains:
+		for ; it.Valid(); it.Next() {
+			value, err := parseValueFromKey(it.Key())
+			if err != nil {
 				continue
 			}
-
-			if strings.Contains(extractValueFromKey(it.Key()), c.Operand.(string)) {
+			if strings.Contains(value, c.Arg.Value()) {
 				tmpHashes[string(it.Value())] = it.Value()
 			}
 
 			// Potentially exit early.
 			select {
 			case <-ctx.Done():
-				break
+				break iterContains
 			default:
 			}
+		}
+		if err := it.Error(); err != nil {
+			panic(err)
 		}
 	default:
 		panic("other operators should be handled already")
@@ -641,4 +687,54 @@ func startKey(fields ...interface{}) []byte {
 		b.Write([]byte(fmt.Sprintf("%v", f) + tagKeySeparator))
 	}
 	return b.Bytes()
+}
+
+// Prefixes: these represent an initial part of the key and are used by iterators to iterate over a small
+// section of the kv store during searches.
+
+func prefixFromCompositeKey(compositeKey string) []byte {
+	key, err := orderedcode.Append(nil, compositeKey)
+	if err != nil {
+		panic(err)
+	}
+	return key
+}
+
+func prefixFromCompositeKeyAndValue(compositeKey, value string) []byte {
+	key, err := orderedcode.Append(nil, compositeKey, value)
+	if err != nil {
+		panic(err)
+	}
+	return key
+}
+
+// a small utility function for getting a keys prefix based on a condition and a height
+func prefixForCondition(c syntax.Condition, height int64) []byte {
+	key := prefixFromCompositeKeyAndValue(c.Tag, c.Arg.Value())
+	if height > 0 {
+		var err error
+		key, err = orderedcode.Append(key, height)
+		if err != nil {
+			panic(err)
+		}
+	}
+	return key
+}
+
+// parseValueFromKey parses an event key and extracts out the value, returning an error if one arises.
+// This will also involve ensuring that the key has the correct format.
+// CONTRACT: function doesn't check that the prefix is correct. This should have already been done by the iterator
+func parseValueFromKey(key []byte) (string, error) {
+	var (
+		compositeKey, value string
+		height, index       int64
+	)
+	remaining, err := orderedcode.Parse(string(key), &compositeKey, &value, &height, &index)
+	if err != nil {
+		return "", err
+	}
+	if len(remaining) != 0 {
+		return "", fmt.Errorf("unexpected remainder in key: %s", remaining)
+	}
+	return value, nil
 }

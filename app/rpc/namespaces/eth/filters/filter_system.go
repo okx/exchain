@@ -6,12 +6,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/spf13/viper"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/server"
 	tmquery "github.com/okex/exchain/libs/tendermint/libs/pubsub/query"
 	rpcclient "github.com/okex/exchain/libs/tendermint/rpc/client"
 	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/spf13/viper"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -27,7 +28,7 @@ import (
 var (
 	txEvents        = tmtypes.QueryForEvent(tmtypes.EventTx).String()
 	pendingtxEvents = tmtypes.QueryForEvent(tmtypes.EventPendingTx).String()
-	evmEvents       = tmquery.MustParse(fmt.Sprintf("%s='%s' AND %s.%s='%s'", tmtypes.EventTypeKey, tmtypes.EventTx, sdk.EventTypeMessage, sdk.AttributeKeyModule, evmtypes.ModuleName)).String()
+	evmEvents       = tmquery.MustCompile(fmt.Sprintf("%s='%s' AND %s.%s='%s'", tmtypes.EventTypeKey, tmtypes.EventTx, sdk.EventTypeMessage, sdk.AttributeKeyModule, evmtypes.ModuleName)).String()
 	headerEvents    = tmtypes.QueryForEvent(tmtypes.EventNewBlockHeader).String()
 	blockTimeEvents = tmtypes.QueryForEvent(tmtypes.EventBlockTime).String()
 )
