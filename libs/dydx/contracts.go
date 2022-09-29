@@ -20,17 +20,18 @@ func NewContracts(
 	perpetualV1Address common.Address,
 	p1OrdersAddr common.Address,
 	defaultTxOps *bind.TransactOpts,
+	backend bind.ContractBackend,
 ) (*Contracts, error) {
 	var cons Contracts
 	var err error
 
-	cons.PerpetualV1, err = contracts.NewPerpetualV1(perpetualV1Address, nil)
+	cons.PerpetualV1, err = contracts.NewPerpetualV1(perpetualV1Address, backend)
 	if err != nil {
 		return nil, err
 	}
 	cons.PerpetualV1Address = perpetualV1Address
 
-	cons.P1Orders, err = contracts.NewP1Orders(p1OrdersAddr, nil)
+	cons.P1Orders, err = contracts.NewP1Orders(p1OrdersAddr, backend)
 	if err != nil {
 		return nil, err
 	}
