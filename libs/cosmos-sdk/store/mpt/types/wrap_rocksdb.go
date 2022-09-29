@@ -63,7 +63,7 @@ func (db *WrapRocksDB) NewBatchWithSize(size int) ethdb.Batch {
 }
 
 func (db *WrapRocksDB) NewSnapshot() (ethdb.Snapshot, error) {
-	panic(fmt.Errorf("not support NewBatchWithSize"))
+	panic(fmt.Errorf("not support NewSnapshot"))
 	return nil, nil
 }
 
