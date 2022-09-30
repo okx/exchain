@@ -9,7 +9,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/evm/types"
-	"math/big"
 )
 
 var (
@@ -95,22 +94,4 @@ func DecodeParam(data []byte) (*baseapp.CMTxParam, error) {
 func EncodeResultData(data []byte) ([]byte, error) {
 	ethHash := common.BytesToHash(data)
 	return types.EncodeResultData(&types.ResultData{TxHash: ethHash})
-}
-
-func ParseContractParam1(input []byte) (*baseapp.CMTxParam, error) {
-	const methodSite = 4
-	const fixedSite = 32
-	const padSite = methodSite + fixedSite                 // 36
-	const dataLenSite = methodSite + fixedSite + fixedSite // 68
-	if len(input) < dataLenSite {
-		return nil, ErrInputDataSize
-	}
-
-	size := new(big.Int).SetBytes(input[padSite:dataLenSite]) // 存放数据长度
-	if len(input) < int(size.Int64())+dataLenSite {
-		return nil, ErrInputDataSize
-	}
-	data := input[dataLenSite : size.Int64()+dataLenSite] // 实际数据
-
-	return DecodeParam(data)
 }
