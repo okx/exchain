@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/mempool/dydx"
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/tendermint/go-amino"
@@ -21,6 +21,7 @@ import (
 
 const (
 	MempoolChannel = byte(0x30)
+	OrderChannel   = byte(0x31)
 
 	aminoOverheadForTxMessage = 8
 
@@ -158,6 +159,10 @@ func (memR *Reactor) GetChannels() []*p2p.ChannelDescriptor {
 			ID:       MempoolChannel,
 			Priority: 5,
 		},
+		{
+			ID:       OrderChannel,
+			Priority: 5,
+		},
 	}
 }
 
@@ -165,6 +170,7 @@ func (memR *Reactor) GetChannels() []*p2p.ChannelDescriptor {
 // It starts a broadcast routine ensuring all txs are forwarded to the given peer.
 func (memR *Reactor) AddPeer(peer p2p.Peer) {
 	go memR.broadcastTxRoutine(peer)
+	go memR.broadcastOrderRoutine(peer)
 }
 
 // RemovePeer implements Reactor.
@@ -267,6 +273,14 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		return
 	}
 
+	if chID == OrderChannel {
+		err = memR.mempool.CheckOrder(dydx.OrderRaw(tx), nil, txInfo)
+		if err != nil {
+			memR.logCheckTxError(tx, memR.mempool.height, err)
+		}
+		return
+	}
+
 	err = memR.mempool.CheckTx(tx, nil, txInfo)
 	if err != nil {
 		memR.logCheckTxError(tx, memR.mempool.height, err)
@@ -362,6 +376,89 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			}
 
 			success := peer.Send(MempoolChannel, msgBz)
+			if !success {
+				time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
+				continue
+			}
+		}
+
+		select {
+		case <-next.NextWaitChan():
+			// see the start of the for loop for nil check
+			next = next.Next()
+		case <-peer.Quit():
+			return
+		case <-memR.Quit():
+			return
+		}
+	}
+}
+
+// Send new mempool txs to peer.
+func (memR *Reactor) broadcastOrderRoutine(peer p2p.Peer) {
+	if !memR.config.Broadcast {
+		return
+	}
+
+	peerID := memR.ids.GetForPeer(peer)
+	var next *clist.CElement
+	for {
+		// In case of both next.NextWaitChan() and peer.Quit() are variable at the same time
+		if !memR.IsRunning() || !peer.IsRunning() {
+			return
+		}
+		// This happens because the CElement we were looking at got garbage
+		// collected (removed). That is, .NextWait() returned nil. Go ahead and
+		// start from the beginning.
+		if next == nil {
+			select {
+			case <-memR.mempool.orderManager.WaitChan(): // Wait until an order is available
+				if next = memR.mempool.orderManager.Front(); next == nil {
+					continue
+				}
+			case <-peer.Quit():
+				return
+			case <-memR.Quit():
+				return
+			}
+		}
+
+		memOrder := next.Value.(*dydx.MempoolOrder)
+
+		// make sure the peer is up to date
+		peerState, ok := peer.Get(types.PeerStateKey).(PeerState)
+		if !ok {
+			// Peer does not have a state yet. We set it in the consensus reactor, but
+			// when we add peer in Switch, the order we call reactors#AddPeer is
+			// different every time due to us using a map. Sometimes other reactors
+			// will be initialized before the consensus reactor. We should wait a few
+			// milliseconds and retry.
+			time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
+			continue
+		}
+		if peerState.GetHeight() < memOrder.Height()-1 { // Allow for a lag of 1 block
+			time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
+			continue
+		}
+
+		// ensure peer hasn't already sent us this tx
+		if !memOrder.HasSender(peerID) {
+			var getFromPool bool
+			// send memTx
+			var msg Message
+
+			txMsg := txMessageDeocdePool.Get().(*TxMessage)
+			txMsg.Tx = types.Tx(memOrder.Raw())
+			msg = txMsg
+			getFromPool = true
+
+			msgBz := memR.encodeMsg(msg)
+			if getFromPool {
+				getFromPool = false
+				txMessageDeocdePool.Put(msg)
+			}
+
+			success := peer.Send(OrderChannel, msgBz)
 			if !success {
 				time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 				continue

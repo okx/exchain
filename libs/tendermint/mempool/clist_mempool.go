@@ -12,17 +12,16 @@ import (
 	"time"
 
 	"github.com/VictoriaMetrics/fastcache"
-
-	"github.com/tendermint/go-amino"
-
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
+	"github.com/okex/exchain/libs/tendermint/mempool/dydx"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/tendermint/go-amino"
 )
 
 type TxInfoParser interface {
@@ -90,6 +89,8 @@ type CListMempool struct {
 	checkP2PTotalTime int64
 
 	txs ITransactionQueue
+
+	orderManager *dydx.OrderManager
 }
 
 var _ Mempool = &CListMempool{}
@@ -333,6 +334,25 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		atomic.AddInt64(&mem.checkTotalTime, pastTime)
 	}
 
+	return nil
+}
+
+func (mem *CListMempool) CheckOrder(order dydx.OrderRaw, cb func(*abci.Response), txInfo TxInfo) error {
+	key := order.Key()
+	// share cache with tx
+	if !mem.cache.PushKey(key) {
+		if ele := mem.orderManager.Load(order); ele != nil {
+			memOrder := ele.Value.(*dydx.MempoolOrder)
+			memOrder.StoreSender(txInfo.SenderID)
+		}
+		return ErrOrderInCache
+	}
+
+	memOrder := dydx.NewMempoolOrder(order, mem.Height())
+	memOrder.StoreSender(txInfo.SenderID)
+
+	mem.orderManager.Insert(memOrder, mem.Height())
+	cb(abci.ToResponseCheckTx(abci.ResponseCheckTx{}))
 	return nil
 }
 
