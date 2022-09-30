@@ -179,7 +179,7 @@ func (app *BaseApp) makeFeeSplitInfo(fromIndex int, toIndex int) {
 	for index := fromIndex; index < toIndex; index++ {
 		paraMsg := app.parallelTxManage.txResultCollector.getTxResult(index).paraMsg
 		if paraMsg.FeeSplitInfo != nil {
-			app.FeeSplitCollector.Store(index, paraMsg.FeeSplitInfo)
+			app.FeeSplitCollector.Store(index, *paraMsg.FeeSplitInfo)
 		}
 	}
 	app.parallelTxManage.lastRecordFeeSplitIndex = toIndex
