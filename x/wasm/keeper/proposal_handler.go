@@ -25,7 +25,7 @@ func NewWasmProposalHandlerX(k types.ContractOpsKeeper, enabledProposalTypes []t
 		enabledTypes[string(enabledProposalTypes[i])] = struct{}{}
 	}
 	return func(ctx sdk.Context, proposal *govtypes.Proposal) sdk.Error {
-		if !types2.HigherThanVenus3(ctx.BlockHeight()) {
+		if !types2.HigherThanEarth(ctx.BlockHeight()) {
 			errMsg := fmt.Sprintf("wasm not supprt at height %d", ctx.BlockHeight())
 			return sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
 		}
