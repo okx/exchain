@@ -80,8 +80,15 @@ func (k Keeper) PostTxProcessing(
 	}
 	fees := sdk.Coins{{Denom: sdk.DefaultBondDenom, Amount: developerFee}}
 
-	// distribute the fees to the contract deployer / withdraw address
-	k.updateFeeSplitHandler(receipt.TxHash, withdrawer, fees)
+	if ctx.ParaMsg() != nil {
+		ctx.ParaMsg().FeeSplitInfo = &sdk.FeeSplitInfo{
+			Addr: withdrawer.String(),
+			Fee:  fees,
+		}
+	} else {
+		// distribute the fees to the contract deployer / withdraw address
+		k.updateFeeSplitHandler(receipt.TxHash, withdrawer, fees)
+	}
 
 	ctx.EventManager().EmitEvents(
 		sdk.Events{

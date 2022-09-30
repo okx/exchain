@@ -98,8 +98,14 @@ type ParaMsg struct {
 	HaveCosmosTxInBlock bool
 	AnteErr             error
 	RefundFee           Coins
+	FeeSplitInfo        *FeeSplitInfo
 	LogIndex            int
 	HasRunEvmTx         bool
+}
+
+type FeeSplitInfo struct {
+	Addr string
+	Fee  Coins
 }
 
 type TxWatcher struct {

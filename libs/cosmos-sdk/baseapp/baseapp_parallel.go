@@ -156,6 +156,7 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 	pm.haveCosmosTxInBlock = false
 	pm.workgroup.txs = txs
 	pm.isAsyncDeliverTx = true
+	pm.lastRecordFeeSplitIndex = 0
 	pm.cms = app.deliverState.ms.CacheMultiStore()
 	pm.cms.DisableCacheReadList()
 	app.deliverState.ms.DisableCacheReadList()
@@ -173,11 +174,24 @@ func (app *BaseApp) ParallelTxs(txs [][]byte, onlyCalSender bool) []*abci.Respon
 	return app.runTxs()
 }
 
-func (app *BaseApp) fixFeeCollector() {
+func (app *BaseApp) makeFeeSplitInfo(fromIndex int, toIndex int) {
+	app.FeeSplitCollector = &sync.Map{}
+	for index := fromIndex; index < toIndex; index++ {
+		paraMsg := app.parallelTxManage.txResultCollector.getTxResult(index).paraMsg
+		if paraMsg.FeeSplitInfo != nil {
+			app.FeeSplitCollector.Store(index, paraMsg.FeeSplitInfo)
+		}
+	}
+	app.parallelTxManage.lastRecordFeeSplitIndex = toIndex
+}
+
+func (app *BaseApp) fixFeeCollector(cosmosTxIndex int) {
 	ctx, _ := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
 
 	ctx.SetMultiStore(app.parallelTxManage.cms)
-	if err := app.updateFeeCollectorAccHandler(ctx, app.parallelTxManage.currTxFee, nil); err != nil {
+	app.makeFeeSplitInfo(app.parallelTxManage.lastRecordFeeSplitIndex, cosmosTxIndex)
+
+	if err := app.updateFeeCollectorAccHandler(ctx, app.parallelTxManage.currTxFee, app.FeeSplitCollector); err != nil {
 		panic(err)
 	}
 }
@@ -252,7 +266,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 
 				// conflict rerun tx
 				if !pm.extraTxsInfo[txIndex].isEvm {
-					app.fixFeeCollector()
+					app.fixFeeCollector(txIndex)
 				}
 				res = app.deliverTxWithCache(txIndex)
 				pm.txResultCollector.putResult(txIndex, res)
@@ -312,6 +326,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 	// fix logs
 	app.feeChanged = true
 	app.feeCollector = app.parallelTxManage.currTxFee
+	app.makeFeeSplitInfo(app.parallelTxManage.lastRecordFeeSplitIndex, pm.txSize)
 	receiptsLogs := app.endParallelTxs()
 	for index, v := range receiptsLogs {
 		if len(v) != 0 { // only update evm tx result
@@ -605,6 +620,8 @@ type parallelTxManager struct {
 
 	extraTxsInfo      []*extraDataForTx
 	txResultCollector *txResultCollector
+
+	lastRecordFeeSplitIndex int
 
 	groupList     map[int][]int
 	nextTxInGroup map[int]int
