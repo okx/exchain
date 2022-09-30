@@ -117,7 +117,7 @@ const (
 	Timeout = 120 * time.Second // ridiculously high because CircleCI is slow
 )
 
-//TODO fix random failure case
+// TODO fix random failure case
 func testReactorBroadcastTxMessage(t *testing.T) {
 	config := cfg.TestConfig()
 	const N = 4
@@ -271,9 +271,9 @@ func TestVerifyWtx(t *testing.T) {
 func TestTxMessageAmino(t *testing.T) {
 	testcases := []TxMessage{
 		{},
-		{[]byte{}},
-		{[]byte{1, 2, 3, 4, 5, 6, 7}},
-		{[]byte{}},
+		{[]byte{}, ""},
+		{[]byte{1, 2, 3, 4, 5, 6, 7}, "from"},
+		{[]byte{}, "fromFrom"},
 	}
 
 	var typePrefix = make([]byte, 8)
@@ -341,12 +341,13 @@ func BenchmarkTxMessageAminoMarshal(b *testing.B) {
 	rand.Read(bz)
 	reactor := &Reactor{}
 	var msg Message
+	var from = "from"
 	b.ResetTimer()
 
 	b.Run("amino", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			msg = TxMessage{bz}
+			msg = TxMessage{bz, from}
 			_, err := cdc.MarshalBinaryBare(&msg)
 			if err != nil {
 				b.Fatal(err)
@@ -356,7 +357,7 @@ func BenchmarkTxMessageAminoMarshal(b *testing.B) {
 	b.Run("marshaller", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			msg = &TxMessage{bz}
+			msg = &TxMessage{bz, from}
 			_, err := cdc.MarshalBinaryBareWithRegisteredMarshaller(msg)
 			if err != nil {
 				b.Fatal(err)
@@ -366,7 +367,7 @@ func BenchmarkTxMessageAminoMarshal(b *testing.B) {
 	b.Run("encodeMsgOld", func(b *testing.B) {
 		b.ReportAllocs()
 		for i := 0; i < b.N; i++ {
-			msg = &TxMessage{bz}
+			msg = &TxMessage{bz, from}
 			reactor.encodeMsg(msg)
 		}
 	})
@@ -375,6 +376,7 @@ func BenchmarkTxMessageAminoMarshal(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			txm := txMessageDeocdePool.Get().(*TxMessage)
 			txm.Tx = bz
+			txm.From = from
 			msg = txm
 			reactor.encodeMsg(msg)
 			txMessageDeocdePool.Put(txm)
@@ -393,7 +395,8 @@ func decodeMsgOld(memR *Reactor, bz []byte) (msg Message, err error) {
 
 func BenchmarkTxMessageUnmarshal(b *testing.B) {
 	txMsg := TxMessage{
-		Tx: make([]byte, 512),
+		Tx:   make([]byte, 512),
+		From: "from",
 	}
 	rand.Read(txMsg.Tx)
 	bz := cdc.MustMarshalBinaryBare(&txMsg)
