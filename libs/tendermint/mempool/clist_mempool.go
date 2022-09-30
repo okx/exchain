@@ -12,17 +12,16 @@ import (
 	"time"
 
 	"github.com/VictoriaMetrics/fastcache"
-
-	"github.com/tendermint/go-amino"
-
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmmath "github.com/okex/exchain/libs/tendermint/libs/math"
+	"github.com/okex/exchain/libs/tendermint/mempool/dydx"
 	"github.com/okex/exchain/libs/tendermint/proxy"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/tendermint/go-amino"
 )
 
 type TxInfoParser interface {
@@ -90,6 +89,8 @@ type CListMempool struct {
 	checkP2PTotalTime int64
 
 	txs ITransactionQueue
+
+	orderManager *dydx.OrderManager
 }
 
 var _ Mempool = &CListMempool{}
@@ -271,7 +272,9 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		// so we only record the sender for txs still in the mempool.
 		if ele, ok := mem.txs.Load(txkey); ok {
 			memTx := ele.Value.(*mempoolTx)
-			memTx.senders.LoadOrStore(txInfo.SenderID, true)
+			memTx.senderMtx.Lock()
+			memTx.senders[txInfo.SenderID] = struct{}{}
+			memTx.senderMtx.Unlock()
 			// TODO: consider punishing peer for dups,
 			// its non-trivial since invalid txs can become valid,
 			// but they can spam the same tx with little cost to them atm.
@@ -331,6 +334,25 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		atomic.AddInt64(&mem.checkTotalTime, pastTime)
 	}
 
+	return nil
+}
+
+func (mem *CListMempool) CheckOrder(order dydx.OrderRaw, cb func(*abci.Response), txInfo TxInfo) error {
+	key := order.Key()
+	// share cache with tx
+	if !mem.cache.PushKey(key) {
+		if ele := mem.orderManager.Load(order); ele != nil {
+			memOrder := ele.Value.(*dydx.MempoolOrder)
+			memOrder.StoreSender(txInfo.SenderID)
+		}
+		return ErrOrderInCache
+	}
+
+	memOrder := dydx.NewMempoolOrder(order, mem.Height())
+	memOrder.StoreSender(txInfo.SenderID)
+
+	mem.orderManager.Insert(memOrder, mem.Height())
+	cb(abci.ToResponseCheckTx(abci.ResponseCheckTx{}))
 	return nil
 }
 
@@ -595,7 +617,8 @@ func (mem *CListMempool) resCbFirstTime(
 				senderNonce: r.CheckTx.SenderNonce,
 			}
 
-			memTx.senders.Store(txInfo.SenderID, true)
+			memTx.senders = make(map[uint16]struct{})
+			memTx.senders[txInfo.SenderID] = struct{}{}
 
 			var err error
 			if mem.pendingPool != nil {
@@ -1057,7 +1080,8 @@ type mempoolTx struct {
 
 	// ids of peers who've sent us this tx (as a map for quick lookups).
 	// senders: PeerID -> bool
-	senders sync.Map
+	senders   map[uint16]struct{}
+	senderMtx sync.RWMutex
 }
 
 // Height returns the height for this transaction

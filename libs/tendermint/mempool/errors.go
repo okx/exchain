@@ -7,6 +7,8 @@ import (
 )
 
 var (
+	// ErrOrderInCache is returned to the client if we saw order earlier
+	ErrOrderInCache = errors.New("order already exists in cache")
 	// ErrTxInCache is returned to the client if we saw tx earlier
 	ErrTxInCache = errors.New("tx already exists in cache")
 	// ErrNoSuchTx is returned to the client if there hasn't target tx in mempool

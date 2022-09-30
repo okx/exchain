@@ -51,6 +51,8 @@ type OecConfig struct {
 	enableDynamicGp bool
 	// dynamic-gp-weight
 	dynamicGpWeight int
+	// dynamic-gp-check-blocks
+	dynamicGpCheckBlocks int
 
 	// consensus.timeout_propose
 	csTimeoutPropose time.Duration
@@ -104,6 +106,7 @@ const (
 	FlagGasLimitBuffer         = "gas-limit-buffer"
 	FlagEnableDynamicGp        = "enable-dynamic-gp"
 	FlagDynamicGpWeight        = "dynamic-gp-weight"
+	FlagDynamicGpCheckBlocks   = "dynamic-gp-check-blocks"
 	FlagEnableWrappedTx        = "enable-wtx"
 	FlagSentryAddrs            = "p2p.sentry_addrs"
 
@@ -220,6 +223,7 @@ func (c *OecConfig) loadFromConfig() {
 	c.SetGasLimitBuffer(viper.GetUint64(FlagGasLimitBuffer))
 	c.SetEnableDynamicGp(viper.GetBool(FlagEnableDynamicGp))
 	c.SetDynamicGpWeight(viper.GetInt(FlagDynamicGpWeight))
+	c.SetDynamicGpCheckBlocks(viper.GetInt(FlagDynamicGpCheckBlocks))
 	c.SetCsTimeoutPropose(viper.GetDuration(FlagCsTimeoutPropose))
 	c.SetCsTimeoutProposeDelta(viper.GetDuration(FlagCsTimeoutProposeDelta))
 	c.SetCsTimeoutPrevote(viper.GetDuration(FlagCsTimeoutPrevote))
@@ -380,6 +384,12 @@ func (c *OecConfig) update(key, value interface{}) {
 			return
 		}
 		c.SetDynamicGpWeight(r)
+	case FlagDynamicGpCheckBlocks:
+		r, err := strconv.Atoi(v)
+		if err != nil {
+			return
+		}
+		c.SetDynamicGpCheckBlocks(r)
 	case FlagCsTimeoutPropose:
 		r, err := time.ParseDuration(v)
 		if err != nil {
@@ -616,6 +626,19 @@ func (c *OecConfig) SetDynamicGpWeight(value int) {
 		value = 100
 	}
 	c.dynamicGpWeight = value
+}
+
+func (c *OecConfig) GetDynamicGpCheckBlocks() int {
+	return c.dynamicGpCheckBlocks
+}
+
+func (c *OecConfig) SetDynamicGpCheckBlocks(value int) {
+	if value <= 0 {
+		value = 1
+	} else if value > 100 {
+		value = 100
+	}
+	c.dynamicGpCheckBlocks = value
 }
 
 func (c *OecConfig) GetCsTimeoutPropose() time.Duration {
