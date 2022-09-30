@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"math/big"
 
-	"github.com/ethereum/go-ethereum/core/types"
-
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/okex/exchain/libs/dydx"
+	"github.com/okex/exchain/libs/dydx/contracts"
 )
 
 type DydxClient struct {
@@ -27,8 +27,11 @@ type DydxClient struct {
 	chainID *big.Int
 	ethCli  *ethclient.Client
 
-	perpetualV1EventCh  chan types.Log
-	perpetualV1EventErr error
+	//perpetualV1EventCh  chan types.Log
+	//perpetualV1EventErr error
+
+	perpetualV1EventLogTradeCh  chan *contracts.PerpetualV1LogTrade
+	perpetualV1EventLogTradeErr chan error
 
 	closeCh chan struct{}
 }
@@ -37,19 +40,50 @@ func (c *DydxClient) Stop() {
 	close(c.closeCh)
 }
 
-func (c *DydxClient) Trade() {
-
+func (c *DydxClient) Trade(order1, order2 *dydx.SignedOrder, amount *big.Int, price dydx.Price, fee dydx.Fee) (*types.Transaction, error) {
+	op := dydx.NewTradeOperation(c.contracts)
+	err := op.FillSignedOrderWithTaker(c.from.String(), order1, amount, price, fee)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fill order1, err: %w", err)
+	}
+	err = op.FillSignedOrderWithTaker(c.from.String(), order2, amount, price, fee)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fill order2, err: %w", err)
+	}
+	tx, err := op.Commit(nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to commit, err: %w", err)
+	}
+	return tx, nil
 }
 
-func (c *DydxClient) ethEventRoutine(sub ethereum.Subscription) {
+func (c *DydxClient) GetLogTrades() <-chan *contracts.PerpetualV1LogTrade {
+	return c.perpetualV1EventLogTradeCh
+}
+
+//func (c *DydxClient) ethEventRoutine(sub ethereum.Subscription) {
+//	for {
+//		select {
+//		case log := <-c.perpetualV1EventCh:
+//			if log.Address != c.contracts.PerpetualV1Address {
+//				continue
+//			}
+//		case err := <-sub.Err():
+//			c.perpetualV1EventErr = err
+//			return
+//		case <-c.closeCh:
+//			sub.Unsubscribe()
+//			return
+//		}
+//	}
+//}
+
+func (c *DydxClient) ethEventLogTradeRoutine(sub ethereum.Subscription) {
 	for {
 		select {
-		case log := <-c.perpetualV1EventCh:
-			if log.Address != c.contracts.PerpetualV1Address {
-				continue
-			}
+		// case log := <-c.perpetualV1EventLogTradeCh:
 		case err := <-sub.Err():
-			c.perpetualV1EventErr = err
+			c.perpetualV1EventLogTradeErr <- err
 			return
 		case <-c.closeCh:
 			sub.Unsubscribe()
@@ -58,7 +92,7 @@ func (c *DydxClient) ethEventRoutine(sub ethereum.Subscription) {
 	}
 }
 
-func NewDydxClient(chainID *big.Int, ethRpcUrl,
+func NewDydxClient(chainID *big.Int, ethRpcUrl string, fromBlockNum *big.Int,
 	privKey, perpetualV1ContractAddress, p1OrdersContractAddress string) (*DydxClient, error) {
 	var client DydxClient
 	var err error
@@ -98,17 +132,27 @@ func NewDydxClient(chainID *big.Int, ethRpcUrl,
 	//client.contracts.PerpetualV1.FilterLogTrade()
 	//client.contracts.P1Orders.FilterLogOrderFilled()
 
-	client.closeCh = make(chan struct{})
-	client.perpetualV1EventCh = make(chan types.Log, 512)
-	query := ethereum.FilterQuery{
-		Addresses: []common.Address{common.HexToAddress(perpetualV1ContractAddress)},
-	}
-	sub, err := client.ethCli.SubscribeFilterLogs(context.Background(), query, client.perpetualV1EventCh)
+	start := fromBlockNum.Uint64()
+	watchOps := &bind.WatchOpts{Start: &start, Context: context.Background()}
+	client.perpetualV1EventLogTradeCh = make(chan *contracts.PerpetualV1LogTrade, 128)
+	sub, err := client.contracts.PerpetualV1.WatchLogTrade(watchOps, client.perpetualV1EventLogTradeCh, nil, nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to subscribe dydx perpetualV1 event, err: %w", err)
+		return nil, fmt.Errorf("failed to watch LogTrade, err: %w", err)
 	}
+	go client.ethEventLogTradeRoutine(sub)
 
-	go client.ethEventRoutine(sub)
+	//client.closeCh = make(chan struct{})
+	//client.perpetualV1EventCh = make(chan types.Log, 512)
+	//query := ethereum.FilterQuery{
+	//	Addresses: []common.Address{common.HexToAddress(perpetualV1ContractAddress)},
+	//	FromBlock: fromBlockNum,
+	//}
+	//sub, err := client.ethCli.SubscribeFilterLogs(context.Background(), query, client.perpetualV1EventCh)
+	//if err != nil {
+	//	return nil, fmt.Errorf("failed to subscribe dydx perpetualV1 event, err: %w", err)
+	//}
+	//
+	//go client.ethEventRoutine(sub)
 
 	return &client, nil
 }

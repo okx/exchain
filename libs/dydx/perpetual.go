@@ -8,6 +8,5 @@ type Perpetual struct {
 func (p *Perpetual) NewTradeOperation() *TradeOperation {
 	return &TradeOperation{
 		contracts: p.contracts,
-		orders:    p.orders,
 	}
 }

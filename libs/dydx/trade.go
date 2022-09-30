@@ -22,10 +22,16 @@ type tempTradeArg struct {
 
 type TradeOperation struct {
 	contracts *Contracts
-	orders    *Orders
+	// orders    *Orders
 
 	trades    []tempTradeArg
 	committed bool
+}
+
+func NewTradeOperation(contracts *Contracts) *TradeOperation {
+	return &TradeOperation{
+		contracts: contracts,
+	}
 }
 
 func (op *TradeOperation) addTradeArg(
@@ -52,15 +58,25 @@ func (op *TradeOperation) FillSignedOrder(
 	price Price,
 	fee Fee,
 ) error {
+	return op.FillSignedOrderWithTaker(order.Taker, order, amount, price, fee)
+}
+
+func (op *TradeOperation) FillSignedOrderWithTaker(
+	taker string,
+	order *SignedOrder,
+	amount *big.Int,
+	price Price,
+	fee Fee,
+) error {
 	tradeData, err := FillToTradeData(order, amount, price, fee)
 	if err != nil {
 		return err
 	}
 	op.addTradeArg(
 		order.Maker,
-		order.Taker,
+		taker,
 		tradeData,
-		op.orders.Address().String(),
+		op.contracts.P1OrdersAddress.String(),
 	)
 	return nil
 }
