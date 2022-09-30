@@ -883,8 +883,8 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 
 		var isConvert bool
 
-		if cmtp, ok := app.JudgeEvmConvert(ctx, msg); ok {
-			newmsg, err := ConvertMsg(cmtp, msg)
+		if app.JudgeEvmConvert(ctx, msg) {
+			newmsg, err := ConvertMsg(msg)
 			if err != nil {
 				return nil, sdkerrors.Wrapf(sdkerrors.ErrTxDecode, "error %s, message index: %d", err.Error(), i)
 			}

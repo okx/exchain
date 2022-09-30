@@ -1,6 +1,7 @@
 package types
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"strings"
@@ -13,13 +14,12 @@ type ABI struct {
 func NewABI(data string) (*ABI, error) {
 	parsed, err := abi.JSON(strings.NewReader(data))
 	if err != nil {
-		fmt.Println("Can't generate ABI struct ", err)
 		return nil, err
 	}
 	return &ABI{ABI: &parsed}, nil
 }
 
-func (a *ABI) DecodeInputParam(methodName string, data []byte) (map[string]interface{}, error) {
+func (a *ABI) DecodeInputParam(methodName string, data []byte) ([]interface{}, error) {
 	if len(data) <= 4 {
 		return nil, fmt.Errorf("method %s data is nil", methodName)
 	}
@@ -27,20 +27,22 @@ func (a *ABI) DecodeInputParam(methodName string, data []byte) (map[string]inter
 	if !ok {
 		return nil, fmt.Errorf("method %s is not exist in abi", methodName)
 	}
-	resmp := make(map[string]interface{})
-	err := method.Inputs.UnpackIntoMap(resmp, data[4:])
-	return resmp, err
+	return method.Inputs.Unpack(data[4:])
 }
 
-//func DecodeOneInputParam() ([]byte, error) {
-//	abi.ArgumentMarshaling{Name: "a", Type: "uint256"}
-//	abi.
-//	abi.Argument{
-//		Name: "",
-//		Type: "",
-//	}
-//	abi.Arguments{Argument{Argument}}
-//}
+func (a *ABI) IsMatchFunction(methodName string, data []byte) bool {
+	if len(data) <= 4 {
+		return false
+	}
+	method, ok := a.Methods[methodName]
+	if !ok {
+		return false
+	}
+	if bytes.Equal(method.ID, data[:4]) {
+		return true
+	}
+	return false
+}
 
 func (a *ABI) EncodeOutput(methodName string, data []byte) ([]byte, error) {
 	method, ok := a.Methods[methodName]

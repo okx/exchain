@@ -8,7 +8,8 @@ import (
 var (
 	cmHandles          = make(map[string]map[string]func(data []byte, signers []sdk.AccAddress) (sdk.Msg, error))
 	evmResultConverter func(data []byte) ([]byte, error)
-	evmConvertJudge    func(msg sdk.Msg) (*CMTxParam, []byte, bool)
+	evmConvertJudge    func(msg sdk.Msg) ([]byte, bool)
+	evmParamParse      func(msg sdk.Msg) (*CMTxParam, error)
 )
 
 type CMTxParam struct {
@@ -36,14 +37,25 @@ func RegisterEvmResultConverter(create func(data []byte) ([]byte, error)) {
 	evmResultConverter = create
 }
 
-func RegisterEvmConvertJudge(create func(msg sdk.Msg) (*CMTxParam, []byte, bool)) {
+func RegisterEvmParamParse(create func(msg sdk.Msg) (*CMTxParam, error)) {
+	if create == nil {
+		panic("Execute: Register EvmParamParse is nil")
+	}
+	evmParamParse = create
+}
+
+func RegisterEvmConvertJudge(create func(msg sdk.Msg) ([]byte, bool)) {
 	if create == nil {
 		panic("Execute: Register EvmConvertJudge is nil")
 	}
 	evmConvertJudge = create
 }
 
-func ConvertMsg(cmtx *CMTxParam, msg sdk.Msg) (sdk.Msg, error) {
+func ConvertMsg(msg sdk.Msg) (sdk.Msg, error) {
+	cmtx, err := evmParamParse(msg)
+	if err != nil {
+		return nil, err
+	}
 	if module, ok := cmHandles[cmtx.Module]; ok {
 		if fn, ok := module[cmtx.Function]; ok {
 			return fn([]byte(cmtx.Data), msg.GetSigners())
@@ -56,17 +68,15 @@ func EvmResultConvert(data []byte) ([]byte, error) {
 	return evmResultConverter(data)
 }
 
-func (app *BaseApp) JudgeEvmConvert(ctx sdk.Context, msg sdk.Msg) (*CMTxParam, bool) {
-	cmtp, addr, ok := evmConvertJudge(msg)
-	if !ok {
-		return nil, false
+func (app *BaseApp) JudgeEvmConvert(ctx sdk.Context, msg sdk.Msg) bool {
+	addr, ok := evmConvertJudge(msg)
+	if !ok || len(addr) == 0 {
+		return false
 	}
 	if app.EvmSysContractAddressHandler == nil {
-		return nil, false
+		return false
 	}
-
-	ok = app.EvmSysContractAddressHandler(ctx, addr)
-	return cmtp, ok
+	return app.EvmSysContractAddressHandler(ctx, addr)
 }
 
 func (app *BaseApp) SetEvmSysContractAddressHandler(handler sdk.EvmSysContractAddressHandler) {
