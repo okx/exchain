@@ -53,7 +53,6 @@ type TMEventData interface {
 
 func RegisterEventDatas(cdc *amino.Codec) {
 	cdc.RegisterInterface((*TMEventData)(nil), nil)
-	//cdc.RegisterConcrete(EventDataNewBlock{}, "tendermint/event/NewBlock", nil)
 	cdc.RegisterConcrete(CM40EventDataNewBlock{}, "tendermint/event/NewBlock", nil)
 	cdc.RegisterConcrete(EventDataNewBlockHeader{}, "tendermint/event/NewBlockHeader", nil)
 	cdc.RegisterConcrete(EventDataTx{}, "tendermint/event/Tx", nil)
