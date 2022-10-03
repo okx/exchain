@@ -545,8 +545,12 @@ func (m *TxMessage) UnmarshalFromAmino(_ *amino.Codec, data []byte) error {
 			}
 			switch pbk {
 			case 1<<3 | byte(amino.Typ3_ByteLength):
-				txPtr := &m.Tx
-				amino.UpdateByteSlice((*[]byte)(txPtr), subData)
+				if len(subData) == 0 {
+					m.Tx = nil
+				} else {
+					m.Tx = make([]byte, len(subData))
+					copy(m.Tx, subData)
+				}
 			case 2<<3 | byte(amino.Typ3_ByteLength):
 				m.From = string(subData)
 			default:
