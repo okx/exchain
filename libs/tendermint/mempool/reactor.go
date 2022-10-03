@@ -248,9 +248,11 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	switch msg := msg.(type) {
 	case *TxMessage:
 		tx = msg.Tx
-		msg.Tx = nil
+		if _, isInWhiteList := memR.nodeKeyWhitelist[string(src.ID())]; isInWhiteList && msg.From != "" {
+			txInfo.from = msg.From
+		}
+		*msg = TxMessage{}
 		txMessageDeocdePool.Put(msg)
-
 	case *WtxMessage:
 		tx = msg.Wtx.Payload
 		if err := msg.Wtx.verify(memR.nodeKeyWhitelist); err != nil {
@@ -283,6 +285,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 	if !memR.config.Broadcast {
 		return
 	}
+	_, isInWhiteList := memR.nodeKeyWhitelist[string(peer.ID())]
 
 	peerID := memR.ids.GetForPeer(peer)
 	var next *clist.CElement
@@ -351,6 +354,11 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			} else {
 				txMsg := txMessageDeocdePool.Get().(*TxMessage)
 				txMsg.Tx = memTx.tx
+				if isInWhiteList {
+					txMsg.From = memTx.from
+				} else {
+					txMsg.From = ""
+				}
 				msg = txMsg
 				getFromPool = true
 			}

@@ -368,7 +368,7 @@ func (msg *MsgEthereumTx) VerifySig(chainID *big.Int, height int64) error {
 	}
 	from, ok := tmtypes.SignatureCache().Get(msg.TxHash())
 	if ok {
-		msg.BaseTx.From = from
+		msg.SetFrom(from)
 		return nil
 	}
 	addr, err := msg.firstVerifySig(chainID)
