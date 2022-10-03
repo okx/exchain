@@ -248,7 +248,7 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 	switch msg := msg.(type) {
 	case *TxMessage:
 		tx = msg.Tx
-		if _, isInWhiteList := memR.nodeKeyWhitelist[string(src.ID())]; isInWhiteList {
+		if _, isInWhiteList := memR.nodeKeyWhitelist[string(src.ID())]; isInWhiteList && msg.From != "" {
 			txInfo.from = msg.From
 		}
 		*msg = TxMessage{}
@@ -286,7 +286,7 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 		return
 	}
 
-	_, isInWhiteList := memR.nodeKeyWhitelist[string(peer.ID())]
+	// _, isInWhiteList := memR.nodeKeyWhitelist[string(peer.ID())]
 
 	peerID := memR.ids.GetForPeer(peer)
 	var next *clist.CElement
@@ -355,11 +355,12 @@ func (memR *Reactor) broadcastTxRoutine(peer p2p.Peer) {
 			} else {
 				txMsg := txMessageDeocdePool.Get().(*TxMessage)
 				txMsg.Tx = memTx.tx
-				if isInWhiteList {
-					txMsg.From = memTx.from
-				} else {
-					txMsg.From = ""
-				}
+				//if isInWhiteList {
+				//	txMsg.From = memTx.from
+				//} else {
+				//	txMsg.From = ""
+				//}
+				txMsg.From = ""
 				msg = txMsg
 				getFromPool = true
 			}
