@@ -464,7 +464,8 @@ func (memR *Reactor) encodeMsg(msg Message) []byte {
 
 // TxMessage is a Message containing a transaction.
 type TxMessage struct {
-	Tx types.Tx
+	Tx   types.Tx
+	From string
 }
 
 func (m TxMessage) AminoSize(_ *amino.Codec) int {
@@ -472,6 +473,9 @@ func (m TxMessage) AminoSize(_ *amino.Codec) int {
 	if len(m.Tx) > 0 {
 		size += 1 + amino.ByteSliceSize(m.Tx)
 	}
+	//if m.From != "" {
+	//	size += 1 + amino.EncodedStringSize(m.From)
+	//}
 	return size
 }
 
