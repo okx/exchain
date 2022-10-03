@@ -250,6 +250,7 @@ func (memR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 		tx = msg.Tx
 		if _, isInWhiteList := memR.nodeKeyWhitelist[string(src.ID())]; isInWhiteList && msg.From != "" {
 			txInfo.from = msg.From
+			memR.Logger.Error("Receive tx from whitelist", "from", msg.From)
 		}
 		*msg = TxMessage{}
 		txMessageDeocdePool.Put(msg)

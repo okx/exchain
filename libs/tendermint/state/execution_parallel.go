@@ -2,6 +2,7 @@ package state
 
 import (
 	"fmt"
+
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -41,6 +42,7 @@ func execBlockOnProxyAppAsync(
 			validTxs++
 		} else {
 			invalidTxs++
+			logger.Error("invalidTxs", "resp", v)
 		}
 	}
 

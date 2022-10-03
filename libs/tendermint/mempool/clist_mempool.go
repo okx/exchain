@@ -312,11 +312,11 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		return err
 	}
 
-	var from = txInfo.from
-	if txInfo.checkType == abci.CheckTxType_WrappedCheck {
-		from = txInfo.wtx.GetFrom()
-	}
-	reqRes := mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{Tx: tx, Type: txInfo.checkType, From: from})
+	//var from = txInfo.from
+	//if txInfo.checkType == abci.CheckTxType_WrappedCheck {
+	//	from = txInfo.wtx.GetFrom()
+	//}
+	reqRes := mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{Tx: tx, Type: txInfo.checkType, From: txInfo.wtx.GetFrom()})
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
 		if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok {
 			mem.logger.Info(fmt.Sprintf("mempool.SimulateTx: txhash<%s>, gasLimit<%d>, gasUsed<%d>",
