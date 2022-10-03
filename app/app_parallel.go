@@ -35,11 +35,6 @@ func preDeliverTxHandler(ak auth.AccountKeeper) sdk.PreDeliverTxHandler {
 	return func(ctx sdk.Context, tx sdk.Tx, onlyVerifySig bool) {
 		if evmTx, ok := tx.(*evmtypes.MsgEthereumTx); ok {
 			if evmTx.BaseTx.From == "" {
-				if ctx.From() != "" {
-					evmTx.BaseTx.From = ctx.From()
-				}
-			}
-			if evmTx.BaseTx.From == "" {
 				_ = evmTxVerifySigHandler(ctx.ChainID(), ctx.BlockHeight(), evmTx)
 			}
 
