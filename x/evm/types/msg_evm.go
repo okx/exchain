@@ -53,6 +53,7 @@ func (tx *MsgEthereumTx) GetType() sdk.TransactionType {
 
 func (tx *MsgEthereumTx) SetFrom(addr string) {
 	tx.From = addr
+	tx.addr = ethcmn.HexToAddress(addr)
 }
 
 // GetFrom returns sender address of MsgEthereumTx if signature is valid, or returns "".
