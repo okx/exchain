@@ -114,7 +114,7 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 			return
 		}
 		// this height has valid block part
-		if cs.Proposal != nil || cs.ProposalBlock != nil || cs.ProposalBlockParts != nil ||
+		if cs.ProposalBlock != nil || cs.ProposalBlockParts != nil ||
 			cs.PreProposal == nil || cs.PreProposalBlock == nil || cs.PreProposalBlockParts == nil {
 			return
 		}
