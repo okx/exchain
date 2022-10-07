@@ -12,14 +12,96 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/okex/exchain/libs/iavl/mock"
+	"github.com/okex/exchain/libs/tendermint/libs/rand"
 	db "github.com/okex/exchain/libs/tm-db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/go-amino"
 )
 
+var (
+	// FIXME: enlarge maxIterator to 100000
+	maxIterator = 100
+)
+
 func init() {
 	SetEnableFastStorage(true)
+}
+
+func setupMutableTree(t *testing.T) *MutableTree {
+	memDB := db.NewMemDB()
+	tree, err := NewMutableTree(memDB, 0)
+	require.NoError(t, err)
+	return tree
+}
+
+// TestIterateConcurrency throws "fatal error: concurrent map writes" when fast node is enabled
+func TestIterateConcurrency(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
+	tree := setupMutableTree(t)
+	wg := new(sync.WaitGroup)
+	for i := 0; i < 100; i++ {
+		for j := 0; j < maxIterator; j++ {
+			wg.Add(1)
+			go func(i, j int) {
+				defer wg.Done()
+				tree.Set([]byte(fmt.Sprintf("%d%d", i, j)), rand.Bytes(1))
+			}(i, j)
+		}
+		tree.Iterate(func(key []byte, value []byte) bool {
+			return false
+		})
+	}
+	wg.Wait()
+}
+
+// TestConcurrency throws "fatal error: concurrent map iteration and map write" and
+// also sometimes "fatal error: concurrent map writes" when fast node is enabled
+func TestIteratorConcurrency(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
+	tree := setupMutableTree(t)
+	tree.LoadVersion(0)
+	// So much slower
+	wg := new(sync.WaitGroup)
+	for i := 0; i < 100; i++ {
+		for j := 0; j < maxIterator; j++ {
+			wg.Add(1)
+			go func(i, j int) {
+				defer wg.Done()
+				tree.Set([]byte(fmt.Sprintf("%d%d", i, j)), rand.Bytes(1))
+			}(i, j)
+		}
+		itr := tree.Iterator(nil, nil, true)
+		for ; itr.Valid(); itr.Next() {
+		}
+	}
+	wg.Wait()
+}
+
+// TestNewIteratorConcurrency throws "fatal error: concurrent map writes" when fast node is enabled
+func TestNewIteratorConcurrency(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
+	tree := setupMutableTree(t)
+	for i := 0; i < 100; i++ {
+		wg := new(sync.WaitGroup)
+		it := NewIterator(nil, nil, true, tree.ImmutableTree)
+		for j := 0; j < maxIterator; j++ {
+			wg.Add(1)
+			go func(i, j int) {
+				defer wg.Done()
+				tree.Set([]byte(fmt.Sprintf("%d%d", i, j)), rand.Bytes(1))
+			}(i, j)
+		}
+		for ; it.Valid(); it.Next() {
+		}
+		wg.Wait()
+	}
 }
 
 func TestDelete(t *testing.T) {
