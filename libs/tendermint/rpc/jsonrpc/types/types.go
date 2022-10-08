@@ -200,8 +200,7 @@ func NewRPCSuccessResponse(cdc *amino.Codec, id jsonrpcid, res interface{}) RPCR
 		rawMsg = json.RawMessage(js)
 	}
 
-	ret := RPCResponse{JSONRPC: "2.0", ID: id, Result: rawMsg}
-	return ret
+	return RPCResponse{JSONRPC: "2.0", ID: id, Result: rawMsg}
 }
 
 func NewRPCErrorResponse(id jsonrpcid, code int, msg string, data string) RPCResponse {
