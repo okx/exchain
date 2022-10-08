@@ -8,6 +8,9 @@ import (
 	"sync"
 
 	ica "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts"
+	"github.com/okex/exchain/x/icamauth"
+	icamauthkeeper "github.com/okex/exchain/x/icamauth/keeper"
+	icamauthtypes "github.com/okex/exchain/x/icamauth/types"
 
 	icatypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
 
@@ -161,6 +164,7 @@ var (
 		wasm.AppModuleBasic{},
 		ica.AppModuleBasic{},
 		ibcfee.AppModuleBasic{},
+		icamauth.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -250,6 +254,7 @@ type OKExChainApp struct {
 	heightTasks          map[int64]*upgradetypes.HeightTasks
 	Erc20Keeper          erc20.Keeper
 
+	ICAMauthKeeper      icamauthkeeper.Keeper
 	ICAControllerKeeper icacontrollerkeeper.Keeper
 	ICAHostKeeper       icahostkeeper.Keeper
 
@@ -300,6 +305,7 @@ func NewOKExChainApp(
 		mpt.StoreKey,
 		wasm.StoreKey,
 		icacontrollertypes.StoreKey, icahosttypes.StoreKey, ibcfeetypes.StoreKey,
+		icamauthtypes.StoreKey,
 	)
 
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
@@ -412,6 +418,7 @@ func NewOKExChainApp(
 	scopedIBCMockKeeper := app.CapabilityKeeper.ScopeToModule("mock")
 	scopedICAControllerKeeper := app.CapabilityKeeper.ScopeToModule(icacontrollertypes.SubModuleName)
 	scopedICAHostKeeper := app.CapabilityKeeper.ScopeToModule(icahosttypes.SubModuleName)
+	scopedICAMauthKeeper := app.CapabilityKeeper.ScopeToModule(icamauthtypes.ModuleName)
 
 	v2keeper := ibc.NewKeeper(
 		codecProxy, keys[ibchost.StoreKey], app.GetSubspace(ibchost.ModuleName), &stakingKeeper, app.UpgradeKeeper, &scopedIBCKeeper, interfaceReg,
@@ -448,6 +455,13 @@ func NewOKExChainApp(
 		codecProxy, keys[icahosttypes.StoreKey], app.GetSubspace(icahosttypes.SubModuleName),
 		app.IBCKeeper.V2Keeper.ChannelKeeper, &app.IBCKeeper.V2Keeper.PortKeeper,
 		app.SupplyKeeper, scopedICAHostKeeper, app.MsgServiceRouter(),
+	)
+
+	app.ICAMauthKeeper = icamauthkeeper.NewKeeper(
+		codecProxy,
+		keys[icamauthtypes.StoreKey],
+		app.ICAControllerKeeper,
+		scopedICAMauthKeeper,
 	)
 
 	app.Erc20Keeper = erc20.NewKeeper(app.marshal.GetCdc(), app.keys[erc20.ModuleName], app.subspaces[erc20.ModuleName],
@@ -507,6 +521,8 @@ func NewOKExChainApp(
 	//mockModule := ibcmock.NewAppModule(scopedIBCKeeper, &app.IBCKeeper.V2Keeper.PortKeeper)
 
 	var icaControllerStack ibcporttypes.IBCModule
+	icaMauthIBCModule := icamauth.NewIBCModule(app.ICAMauthKeeper)
+	icaControllerStack = icaMauthIBCModule
 	icaControllerStack = icacontroller.NewIBCMiddleware(icaControllerStack, app.ICAControllerKeeper)
 	icaControllerStack = ibcfee.NewIBCMiddleware(icaControllerStack, app.IBCFeeKeeper)
 
@@ -581,6 +597,7 @@ func NewOKExChainApp(
 		wasm.NewAppModule(*app.marshal, &app.wasmKeeper),
 		ibcfee.NewAppModule(app.IBCFeeKeeper),
 		ica.NewAppModule(codecProxy, &app.ICAControllerKeeper, &app.ICAHostKeeper),
+		icamauth.NewAppModule(codecProxy, app.ICAMauthKeeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
