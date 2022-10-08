@@ -30,6 +30,11 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 				return handleMsgWithdrawDelegatorReward(ctx, msg, k)
 			}
 			return nil, types.ErrUnknownDistributionMsgType()
+		case types.MsgWithdrawDelegatorAllRewards:
+			if k.CheckDistributionProposalValid(ctx) {
+				return handleMsgWithdrawDelegatorAllRewards(ctx, msg, k)
+			}
+			return nil, types.ErrUnknownDistributionMsgType()
 
 		default:
 			return nil, types.ErrUnknownDistributionMsgType()

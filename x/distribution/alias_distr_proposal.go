@@ -15,4 +15,5 @@ var (
 	ChangeDistributionTypeProposalHandler  = client.ChangeDistributionTypeProposalHandler
 	WithdrawRewardEnabledProposalHandler   = client.WithdrawRewardEnabledProposalHandler
 	RewardTruncatePrecisionProposalHandler = client.RewardTruncatePrecisionProposalHandler
+	NewMsgWithdrawDelegatorAllRewards      = types.NewMsgWithdrawDelegatorAllRewards
 )
