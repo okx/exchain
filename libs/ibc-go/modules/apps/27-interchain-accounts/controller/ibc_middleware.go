@@ -11,7 +11,6 @@ import (
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
 	ibcexported "github.com/okex/exchain/libs/ibc-go/modules/core/exported"
-	types2 "github.com/okex/exchain/libs/tendermint/types"
 )
 
 var _ porttypes.Middleware = &IBCMiddleware{}
@@ -30,8 +29,7 @@ func NewIBCMiddleware(app porttypes.IBCModule, k keeper.Keeper) porttypes.Middle
 		app:    app,
 		keeper: k,
 	}
-	ret := common.NewHeightProxyMiddleware(types2.GetVenus3Height(), types.SubModuleName, internal)
-	return ret
+	return internal
 }
 
 // OnChanOpenInit implements the IBCMiddleware interface
