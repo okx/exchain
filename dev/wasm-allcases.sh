@@ -2,9 +2,9 @@
 set -o errexit -o nounset -o pipefail
 
 # cw20
-# ex14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s6fqu27
+# ex1eyfccmjm6732k7wp4p6gdjwhxjwsvje44j0hfx8nkgrm8fs7vqfsfxfyxv
 # cw4-stake
-# ex1nc5tatafv6eyq7llkr2gv50ff9e22mnf70qgjlv737ktmt4eswrqku97gc
+# ex1fyr2mptjswz4w6xmgnpgm93x0q4s4wdl6srv3rtz3utc4f6fmxeqn3c0pp
 
 DEPOSIT1="frozen sign movie blade hundred engage hour remember analyst island churn jealous"
 DEPOSIT2="embrace praise essay heavy rule inner foil mask silk lava mouse still"
@@ -798,3 +798,85 @@ burner_code_id=$(echo "$res" | jq '.logs[0].events[1].attributes[0].value' | sed
 echo "burner_code_id: $burner_code_id"
 
 echo "all tests passed! congratulations~"
+
+#exchaincli query wasm list-code --limit=5 | jq
+#exchaincli query wasm list-contract-by-code "$cw20_code_id1" | jq
+#exchaincli query wasm contract-history "$cw20contractAddr" | jq
+#exchaincli query wasm contract-state all "$cw20contractAddr" | jq
+#exchaincli query wasm contract-state raw "$cw20contractAddr" | jq
+#
+#exchaincli query wasm code-info "$cw20_code_id1" | jq
+#exchaincli query wasm contract "$cw20contractAddr" | jq
+
+
+# ===============
+res=$(exchaincli query wasm list-code --limit=12 "$QUERY_EXTRA")
+if [[ $(echo $res | jq '.code_infos|length') -ne 12 ]];
+then
+  echo "invalid code info length"
+  exit
+fi;
+
+res=$(exchaincli query wasm list-contract-by-code "$cw20_code_id1" "$QUERY_EXTRA")
+if [[ $(echo $res | jq '.contracts|length') -ne 2 ]];
+then
+  echo "invalid contracts length"
+  exit
+fi;
+
+res=$(exchaincli query wasm contract-history $cw20contractAddr "$QUERY_EXTRA")
+if [[ $(echo $res | jq '.entries|length') -ne 2 ]];
+then
+  echo "invalid entries length"
+  exit
+fi;
+
+res=$(exchaincli query wasm contract-state all "$cw20contractAddr" "$QUERY_EXTRA")
+models_len=$(echo $res | jq '.models|length')
+for ((i=0; i<${models_len}; i++))
+do
+  key=$(echo $res | jq ".models[${i}].key" | sed 's/\"//g')
+  value=$(echo $res | jq ".models[${i}].value" | sed 's/\"//g')
+  raw_value=$(exchaincli query wasm contract-state raw "$cw20contractAddr" $key "$QUERY_EXTRA" | jq '.data' | sed 's/\"//g')
+  if [[ $raw_value != $value ]];
+  then
+    echo "unexpected raw value"
+  fi;
+done
+
+res=$(exchaincli query wasm list-code --limit=5 "$QUERY_EXTRA")
+next_key=$(echo $res | jq '.pagination.next_key' | sed 's/\"//g')
+while [[ $next_key != "null" ]];
+do
+  if [[ $(echo $res | jq '.code_infos|length') -ne 5 ]];
+  then
+    echo "invalid code info length"
+    exit
+  fi;
+  res=$(exchaincli query wasm list-code --page-key=$next_key --limit=5 "$QUERY_EXTRA")
+  next_key=$(echo $res | jq '.pagination.next_key' | sed 's/\"//g')
+done;
+
+res1=$(exchaincli query wasm list-code --page=2 --limit=5 "$QUERY_EXTRA")
+res2=$(exchaincli query wasm list-code --offset=5 --limit=5 "$QUERY_EXTRA")
+if [[ $res1 != "$res2" ]];
+then
+  echo "result not equal"
+  exit 1
+fi;
+
+res=$(exchaincli query wasm list-code --offset=5 "$QUERY_EXTRA")
+next_key=$(echo $res | jq '.pagination.next_key' | sed 's/\"//g')
+if [[ $next_key != "null" ]];
+then
+  echo "next_key expected to be null"
+  exit 1
+fi;
+code_id=$(echo $res | jq '.code_infos[0].code_id' | sed 's/\"//g')
+if [[ $code_id -ne 6 ]];
+then
+  echo "unexpected code id"
+  exit 1
+fi;
+
+echo "all query cases succeed~"
