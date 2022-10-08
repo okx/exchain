@@ -7,8 +7,6 @@ import (
 	"net/http"
 	"time"
 
-	blockindexer "github.com/okex/exchain/libs/tendermint/state/indexer/block/kv"
-
 	"github.com/okex/exchain/libs/tendermint/global"
 
 	apptesting "github.com/okex/exchain/libs/ibc-go/testing"
@@ -100,10 +98,9 @@ func NewMockClient(chainId string, chain apptesting.TestChainI, app abci.Applica
 	mc := &MockClient{
 		chain: chain,
 		env: &rpccore.Environment{
-			BlockStore:   store.NewBlockStore(dbm.NewMemDB()),
-			StateDB:      dbm.NewMemDB(),
-			TxIndexer:    kv.NewTxIndex(dbm.NewMemDB()),
-			BlockIndexer: blockindexer.New(dbm.NewMemDB()),
+			BlockStore: store.NewBlockStore(dbm.NewMemDB()),
+			StateDB:    dbm.NewMemDB(),
+			TxIndexer:  kv.NewTxIndex(dbm.NewMemDB()),
 		},
 	}
 	mc.state, err = tmstate.LoadStateFromDBOrGenesisFile(mc.env.StateDB, config.GenesisFile())
