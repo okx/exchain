@@ -22,7 +22,7 @@ import (
 
 // feeCollectorHandler set or get the value of feeCollectorAcc
 func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
-	return func(ctx sdk.Context, balance sdk.Coins, feesplits *sync.Map) error {
+	return func(ctx sdk.Context, balance sdk.Coins, txFeesplit *sync.Map) error {
 		err := bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
 		if err != nil {
 			return err
@@ -30,11 +30,11 @@ func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCo
 
 		// split fee
 		// come from feesplit module
-		if feesplits != nil {
-			fss := groupByAddrAndSortFeeSplits(feesplits)
-			for _, fi := range fss {
-				acc := sdk.MustAccAddressFromBech32(fi.addr)
-				err = sk.SendCoinsFromModuleToAccount(ctx, auth.FeeCollectorName, acc, fi.fee)
+		if txFeesplit != nil {
+			feesplits, sortAddrs := groupByAddrAndSortFeeSplits(txFeesplit)
+			for _, addr := range sortAddrs {
+				acc := sdk.MustAccAddressFromBech32(addr)
+				err = sk.SendCoinsFromModuleToAccount(ctx, auth.FeeCollectorName, acc, feesplits[addr])
 				if err != nil {
 					return err
 				}
@@ -136,42 +136,37 @@ type feeSplitInfo struct {
 	fee  sdk.Coins
 }
 
-func updateFeeSplitHandler(feesplits *sync.Map) sdk.UpdateFeeSplitHandler {
+func updateFeeSplitHandler(txFeesplit *sync.Map) sdk.UpdateFeeSplitHandler {
 	return func(txHash common.Hash, withdrawer sdk.AccAddress, fee sdk.Coins) {
-		feesplits.Store(txHash.String(), feeSplitInfo{withdrawer.String(), fee})
+		txFeesplit.Store(txHash.String(), feeSplitInfo{withdrawer.String(), fee})
 	}
 }
-
-type feeSplitArray []feeSplitInfo
-
-func (s feeSplitArray) Len() int           { return len(s) }
-func (s feeSplitArray) Less(i, j int) bool { return s[i].addr > s[j].addr }
-func (s feeSplitArray) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
 // groupByAddrAndSortFeeSplits
 // feesplits must be ordered, not map(random),
 // to ensure that the account number of the withdrawer(new account) is consistent
-func groupByAddrAndSortFeeSplits(feesplits *sync.Map) []feeSplitInfo {
-	feeSplitSet := make(map[string]sdk.Coins)
-	feesplits.Range(func(key, value interface{}) bool {
+func groupByAddrAndSortFeeSplits(txFeesplit *sync.Map) (feesplits map[string]sdk.Coins, sortAddrs []string) {
+	feesplits = make(map[string]sdk.Coins)
+	txFeesplit.Range(func(key, value interface{}) bool {
 		feeInfo := value.(feeSplitInfo)
 
-		orgFee := feeSplitSet[feeInfo.addr]
-		feeSplitSet[feeInfo.addr] = feeInfo.fee.Add2(orgFee)
+		orgFee := feesplits[feeInfo.addr]
+		feesplits[feeInfo.addr] = feeInfo.fee.Add2(orgFee)
 
-		feesplits.Delete(key)
+		txFeesplit.Delete(key)
 		return true
 	})
-
-	var fss feeSplitArray
-	for addr, fees := range feeSplitSet {
-		fsi := feeSplitInfo{
-			addr: addr,
-			fee:  fees,
-		}
-		fss = append(fss, fsi)
+	if len(feesplits) == 0 {
+		return
 	}
-	sort.Sort(fss)
 
-	return fss
+	sortAddrs = make([]string, len(feesplits))
+	index := 0
+	for key := range feesplits {
+		sortAddrs[index] = key
+		index++
+	}
+	sort.Strings(sortAddrs)
+
+	return
 }
