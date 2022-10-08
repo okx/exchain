@@ -1,4 +1,4 @@
-package match
+package dydx
 
 import (
 	"context"
@@ -12,12 +12,11 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
-	"github.com/okex/exchain/libs/dydx"
 	"github.com/okex/exchain/libs/dydx/contracts"
 )
 
 type DydxClient struct {
-	contracts *dydx.Contracts
+	contracts *Contracts
 
 	privKeyHex string
 	privKey    *ecdsa.PrivateKey
@@ -40,8 +39,8 @@ func (c *DydxClient) Stop() {
 	close(c.closeCh)
 }
 
-func (c *DydxClient) Trade(order1, order2 *dydx.SignedOrder, amount *big.Int, price dydx.Price, fee dydx.Fee) (*types.Transaction, error) {
-	op := dydx.NewTradeOperation(c.contracts)
+func (c *DydxClient) Trade(order1, order2 *SignedOrder, amount *big.Int, price Price, fee Fee) (*types.Transaction, error) {
+	op := NewTradeOperation(c.contracts)
 	err := op.FillSignedOrderWithTaker(c.from.String(), order1, amount, price, fee)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fill order1, err: %w", err)
@@ -119,7 +118,7 @@ func NewDydxClient(chainID *big.Int, ethRpcUrl string, fromBlockNum *big.Int,
 		return nil, fmt.Errorf("failed to create txOps, err: %w", err)
 	}
 
-	client.contracts, err = dydx.NewContracts(
+	client.contracts, err = NewContracts(
 		common.HexToAddress(perpetualV1ContractAddress),
 		common.HexToAddress(p1OrdersContractAddress),
 		txOps,
