@@ -3,9 +3,6 @@ package fee
 import (
 	"strings"
 
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/common"
-	types2 "github.com/okex/exchain/libs/tendermint/types"
-
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
@@ -32,8 +29,7 @@ func NewIBCMiddleware(app porttypes.IBCModule, k keeper.Keeper) porttypes.Middle
 		app:    app,
 		keeper: k,
 	}
-	ret := common.NewHeightProxyMiddleware(types2.GetVenus3Height(), types.ModuleName, internal)
-	return ret
+	return internal
 }
 
 // OnChanOpenInit implements the IBCMiddleware interface
