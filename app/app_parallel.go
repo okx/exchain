@@ -2,6 +2,7 @@ package app
 
 import (
 	"encoding/hex"
+	"sort"
 	"strings"
 	"sync"
 
@@ -30,19 +31,10 @@ func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCo
 		// split fee
 		// come from feesplit module
 		if feesplits != nil {
-			feeSplitSet := make(map[string]sdk.Coins)
-			feesplits.Range(func(key, value interface{}) bool {
-				feeInfo := value.(feeSplitInfo)
-
-				orgFee := feeSplitSet[feeInfo.addr]
-				feeSplitSet[feeInfo.addr] = feeInfo.fee.Add2(orgFee)
-
-				feesplits.Delete(key)
-				return true
-			})
-			for addr, fees := range feeSplitSet {
-				acc := sdk.MustAccAddressFromBech32(addr)
-				err = sk.SendCoinsFromModuleToAccount(ctx, auth.FeeCollectorName, acc, fees)
+			fss := groupByAddrAndSortFeeSplits(feesplits)
+			for _, fi := range fss {
+				acc := sdk.MustAccAddressFromBech32(fi.addr)
+				err = sk.SendCoinsFromModuleToAccount(ctx, auth.FeeCollectorName, acc, fi.fee)
 				if err != nil {
 					return err
 				}
@@ -145,7 +137,41 @@ type feeSplitInfo struct {
 }
 
 func updateFeeSplitHandler(feesplits *sync.Map) sdk.UpdateFeeSplitHandler {
-	return func(txHash common.Hash, addr sdk.AccAddress, fee sdk.Coins) {
-		feesplits.Store(txHash.String(), feeSplitInfo{addr.String(), fee})
+	return func(txHash common.Hash, withdrawer sdk.AccAddress, fee sdk.Coins) {
+		feesplits.Store(txHash.String(), feeSplitInfo{withdrawer.String(), fee})
 	}
+}
+
+type feeSplitArray []feeSplitInfo
+
+func (s feeSplitArray) Len() int           { return len(s) }
+func (s feeSplitArray) Less(i, j int) bool { return s[i].addr > s[j].addr }
+func (s feeSplitArray) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+
+// groupByAddrAndSortFeeSplits
+// feesplits must be ordered, not map(random),
+// to ensure that the account number of the withdrawer(new account) is consistent
+func groupByAddrAndSortFeeSplits(feesplits *sync.Map) []feeSplitInfo {
+	feeSplitSet := make(map[string]sdk.Coins)
+	feesplits.Range(func(key, value interface{}) bool {
+		feeInfo := value.(feeSplitInfo)
+
+		orgFee := feeSplitSet[feeInfo.addr]
+		feeSplitSet[feeInfo.addr] = feeInfo.fee.Add2(orgFee)
+
+		feesplits.Delete(key)
+		return true
+	})
+
+	var fss feeSplitArray
+	for addr, fees := range feeSplitSet {
+		fsi := feeSplitInfo{
+			addr: addr,
+			fee:  fees,
+		}
+		fss = append(fss, fsi)
+	}
+	sort.Sort(fss)
+
+	return fss
 }
