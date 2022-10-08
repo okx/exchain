@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/okex/exchain/x/wasm/keeper/testdata"
 	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -226,6 +227,9 @@ func createTestInput(
 	opts ...Option,
 ) (sdk.Context, TestKeepers) {
 	tempDir := t.TempDir()
+	t.Cleanup(func() {
+		os.RemoveAll(tempDir)
+	})
 
 	keys := sdk.NewKVStoreKeys(
 		auth.StoreKey, staking.StoreKey,
