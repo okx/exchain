@@ -163,6 +163,7 @@ func NewDydxClient(chainID *big.Int, ethRpcUrl string, fromBlockNum *big.Int,
 	watchOps := &bind.WatchOpts{Start: &start, Context: context.Background()}
 
 	client.subErr = make(chan error, 2)
+	client.closeCh = make(chan struct{})
 
 	client.perpetualV1EventLogTradeCh = make(chan *contracts.PerpetualV1LogTrade, 128)
 	tradeSub, err := client.contracts.PerpetualV1.WatchLogTrade(watchOps, client.perpetualV1EventLogTradeCh, nil, nil)
