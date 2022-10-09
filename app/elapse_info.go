@@ -19,6 +19,7 @@ var (
 	optionalSchemas = []SchemaConfig{
 		{trace.MempoolCheckTxCnt, 0},
 		{trace.MempoolTxsCnt, 0},
+		{trace.MempoolCheckTxTime, 0},
 		{trace.SigCacheRatio, 0},
 		{trace.Evm, 1},
 		{trace.Delta, 1},
