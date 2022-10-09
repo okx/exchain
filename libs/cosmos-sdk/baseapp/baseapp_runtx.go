@@ -88,7 +88,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	if tx.GetType() != sdk.EvmTxType && mode == runTxModeDeliver {
 		// should update the balance of FeeCollector's account when run non-evm tx
 		// which uses non-infiniteGasMeter during AnteHandleChain
-		app.updateFeeCollectorAccount()
+		app.updateFeeCollectorAccount(false)
 	}
 
 	//init info context

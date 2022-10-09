@@ -177,6 +177,7 @@ func (app *BaseApp) fixFeeCollector() {
 	ctx, _ := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
 
 	ctx.SetMultiStore(app.parallelTxManage.cms)
+	// The feesplit is only processed at the endblock
 	if err := app.updateFeeCollectorAccHandler(ctx, app.parallelTxManage.currTxFee, nil); err != nil {
 		panic(err)
 	}

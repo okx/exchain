@@ -138,6 +138,7 @@ type feeSplitInfo struct {
 
 func updateFeeSplitHandler(txFeesplit *sync.Map) sdk.UpdateFeeSplitHandler {
 	return func(txHash common.Hash, withdrawer sdk.AccAddress, fee sdk.Coins) {
+		// For rerun tx of parallel, feeSplitInfo is rewritten
 		txFeesplit.Store(txHash.String(), feeSplitInfo{withdrawer.String(), fee})
 	}
 }
