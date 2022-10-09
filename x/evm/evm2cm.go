@@ -91,7 +91,7 @@ func DecodeParam(data []byte) (*baseapp.CMTxParam, error) {
 	return cmtx, nil
 }
 
-func EncodeResultData(data []byte) ([]byte, error) {
-	ethHash := common.BytesToHash(data)
-	return types.EncodeResultData(&types.ResultData{TxHash: ethHash})
+func EncodeResultData(txHash, data []byte) ([]byte, error) {
+	ethHash := common.BytesToHash(txHash)
+	return types.EncodeResultData(&types.ResultData{Ret: data, TxHash: ethHash})
 }

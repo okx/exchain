@@ -917,7 +917,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 
 		if isConvert {
 			txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
-			v, err := EvmResultConvert(txHash)
+			v, err := EvmResultConvert(txHash, msgResult.Data)
 			if err == nil {
 				msgResult.Data = v
 			}

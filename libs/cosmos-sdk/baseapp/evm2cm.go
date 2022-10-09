@@ -7,7 +7,7 @@ import (
 
 var (
 	cmHandles          = make(map[string]map[string]func(data []byte, signers []sdk.AccAddress) (sdk.Msg, error))
-	evmResultConverter func(data []byte) ([]byte, error)
+	evmResultConverter func(txHash, data []byte) ([]byte, error)
 	evmConvertJudge    func(msg sdk.Msg) ([]byte, bool)
 	evmParamParse      func(msg sdk.Msg) (*CMTxParam, error)
 )
@@ -30,7 +30,7 @@ func RegisterCmHandle(moduleName, funcName string, create func(data []byte, sign
 	cmHandles[moduleName] = v
 }
 
-func RegisterEvmResultConverter(create func(data []byte) ([]byte, error)) {
+func RegisterEvmResultConverter(create func(txHash, data []byte) ([]byte, error)) {
 	if create == nil {
 		panic("Execute: Register EvmResultConverter is nil")
 	}
@@ -64,8 +64,8 @@ func ConvertMsg(msg sdk.Msg) (sdk.Msg, error) {
 	return nil, fmt.Errorf("not find handle")
 }
 
-func EvmResultConvert(data []byte) ([]byte, error) {
-	return evmResultConverter(data)
+func EvmResultConvert(txHash, data []byte) ([]byte, error) {
+	return evmResultConverter(txHash, data)
 }
 
 func (app *BaseApp) JudgeEvmConvert(ctx sdk.Context, msg sdk.Msg) bool {
