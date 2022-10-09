@@ -52,6 +52,20 @@ func (op *TradeOperation) addTradeArg(
 	return op
 }
 
+func (op *TradeOperation) addSolTradeArg(
+	maker common.Address,
+	taker common.Address,
+	trader common.Address,
+	data []byte,
+) *TradeOperation {
+	return op.addTradeArg(
+		maker.String(),
+		taker.String(),
+		trader.String(),
+		common.Bytes2Hex(data),
+	)
+}
+
 func (op *TradeOperation) FillSignedOrder(
 	order *SignedOrder,
 	amount *big.Int,
@@ -75,8 +89,26 @@ func (op *TradeOperation) FillSignedOrderWithTaker(
 	op.addTradeArg(
 		order.Maker,
 		taker,
-		tradeData,
 		op.contracts.P1OrdersAddress.String(),
+		tradeData,
+	)
+	return nil
+}
+
+func (op *TradeOperation) FillSignedSolOrderWithTaker(
+	taker common.Address,
+	order *SignedSolOrder,
+	fill *contracts.P1OrdersFill,
+) error {
+	tradeData, err := FillSolOrderToTradeData(order, fill)
+	if err != nil {
+		return err
+	}
+	op.addSolTradeArg(
+		order.Maker,
+		taker,
+		op.contracts.P1OrdersAddress,
+		tradeData,
 	)
 	return nil
 }

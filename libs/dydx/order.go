@@ -68,6 +68,10 @@ func (order *Order) ToSolidity() *contracts.P1OrdersOrder {
 
 func (order *Order) ToBytes() ([]byte, error) {
 	solOrder := order.ToSolidity()
+	return SolOrderToBytes(solOrder)
+}
+
+func SolOrderToBytes(solOrder *contracts.P1OrdersOrder) ([]byte, error) {
 	var args = abi.Arguments{
 		{
 			Type: SolTyBytes32,
@@ -122,6 +126,11 @@ type SignedOrder struct {
 	TypedSignature string
 }
 
+type SignedSolOrder struct {
+	contracts.P1OrdersOrder
+	TypedSignature []byte
+}
+
 func string2Int(s string) *big.Int {
 	i := new(big.Int)
 	_, ok := i.SetString(s, 10)
@@ -161,4 +170,42 @@ func FillToTradeData(order *SignedOrder, amount *big.Int, price Price, fee Fee) 
 		return "", err
 	}
 	return CombineHexString(common.Bytes2Hex(orderData), common.Bytes2Hex(fillData), signatureData), nil
+}
+
+func FillSolOrderToTradeData(order *SignedSolOrder, fill *contracts.P1OrdersFill) ([]byte, error) {
+	orderData, err := SolOrderToBytes(&order.P1OrdersOrder)
+	if err != nil {
+		return nil, err
+	}
+	var signatureData = make([]byte, len(order.TypedSignature)+30)
+	copy(signatureData, order.TypedSignature)
+
+	var args = abi.Arguments{
+		{
+			Type: SolTyUint256,
+		},
+		{
+			Type: SolTyUint256,
+		},
+		{
+			Type: SolTyUint256,
+		},
+		{
+			Type: SolTyBool,
+		},
+	}
+	fillData, err := args.Pack(
+		fill.Amount,
+		fill.Price,
+		fill.Fee,
+		fill.IsNegativeFee,
+	)
+	if err != nil {
+		return nil, err
+	}
+	var data []byte
+	data = append(data, orderData...)
+	data = append(data, fillData...)
+	data = append(data, signatureData...)
+	return data, nil
 }
