@@ -19,6 +19,16 @@ var (
 	KeyAllowMessages = []byte("AllowMessages")
 )
 
+const (
+	bankMsgSend = "/cosmos.bank.v1beta1.MsgSend"
+)
+
+var (
+	DefaultAllowMessages []string = []string{
+		bankMsgSend,
+	}
+)
+
 // ParamKeyTable type declaration for parameters
 func ParamKeyTable() paramtypes.KeyTable {
 	return paramtypes.NewKeyTable().RegisterParamSet(&Params{})
@@ -34,7 +44,7 @@ func NewParams(enableHost bool, allowMsgs []string) Params {
 
 // DefaultParams is the default parameter configuration for the host submodule
 func DefaultParams() Params {
-	return NewParams(DefaultHostEnabled, nil)
+	return NewParams(DefaultHostEnabled, DefaultAllowMessages)
 }
 
 // Validate validates all host submodule parameters
