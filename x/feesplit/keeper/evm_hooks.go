@@ -83,6 +83,9 @@ func (k Keeper) PostTxProcessing(
 	// distribute the fees to the contract deployer / withdraw address
 	k.updateFeeSplitHandler(receipt.TxHash, withdrawer, fees)
 
+	// add innertx
+	k.addFeesplitInnerTx(receipt.TxHash.Hex(), withdrawer.String(), fees.String())
+
 	ctx.EventManager().EmitEvents(
 		sdk.Events{
 			sdk.NewEvent(

@@ -9,4 +9,6 @@ const (
 
 	AttributeKeyContract          = "contract"
 	AttributeKeyWithdrawerAddress = "withdrawer_address"
+
+	InnerTxFeesplit = "fee-split"
 )

@@ -20,6 +20,7 @@ type Keeper struct {
 	cdc        *codec.Codec
 	paramSpace types.Subspace
 
+	evmKeeper             types.EvmKeeper
 	govKeeper             types.GovKeeper
 	supplyKeeper          types.SupplyKeeper
 	accountKeeper         types.AccountKeeper
@@ -31,6 +32,7 @@ func NewKeeper(
 	storeKey sdk.StoreKey,
 	cdc *codec.Codec,
 	ps params.Subspace,
+	ek types.EvmKeeper,
 	sk types.SupplyKeeper,
 	ak types.AccountKeeper,
 	handler sdk.UpdateFeeSplitHandler,
@@ -44,6 +46,7 @@ func NewKeeper(
 		storeKey:              storeKey,
 		cdc:                   cdc,
 		paramSpace:            ps,
+		evmKeeper:             ek,
 		supplyKeeper:          sk,
 		accountKeeper:         ak,
 		updateFeeSplitHandler: handler,

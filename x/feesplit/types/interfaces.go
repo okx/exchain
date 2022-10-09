@@ -27,3 +27,7 @@ type GovKeeper interface {
 	GetDepositParams(ctx sdk.Context) govtypes.DepositParams
 	GetVotingParams(ctx sdk.Context) govtypes.VotingParams
 }
+
+type EvmKeeper interface {
+	AddInnerTx(...interface{})
+}
