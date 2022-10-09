@@ -27,7 +27,11 @@ func ConvertDepositMsg(data []byte, signers []sdk.AccAddress) (sdk.Msg, error) {
 	newMsg := types.MsgDeposit{}
 	err := json.Unmarshal(data, &newMsg)
 	if err != nil {
-		return newMsg, err
+		return nil, err
+	}
+	err = newMsg.ValidateBasic()
+	if err != nil {
+		return nil, err
 	}
 	if ok := common.CheckSignerAddress(signers, newMsg.GetSigners()); !ok {
 		return nil, ErrCheckSignerFail
@@ -39,7 +43,11 @@ func ConvertWithdrawMsg(data []byte, signers []sdk.AccAddress) (sdk.Msg, error) 
 	newMsg := types.MsgWithdraw{}
 	err := json.Unmarshal(data, &newMsg)
 	if err != nil {
-		return newMsg, err
+		return nil, err
+	}
+	err = newMsg.ValidateBasic()
+	if err != nil {
+		return nil, err
 	}
 	if ok := common.CheckSignerAddress(signers, newMsg.GetSigners()); !ok {
 		return nil, ErrCheckSignerFail
@@ -51,7 +59,11 @@ func ConvertAddSharesMsg(data []byte, signers []sdk.AccAddress) (sdk.Msg, error)
 	newMsg := types.MsgAddShares{}
 	err := json.Unmarshal(data, &newMsg)
 	if err != nil {
-		return newMsg, err
+		return nil, err
+	}
+	err = newMsg.ValidateBasic()
+	if err != nil {
+		return nil, err
 	}
 	if ok := common.CheckSignerAddress(signers, newMsg.GetSigners()); !ok {
 		return nil, ErrCheckSignerFail

@@ -26,7 +26,11 @@ func ConvertWithdrawDelegatorRewardMsg(data []byte, signers []sdk.AccAddress) (s
 	newMsg := types.MsgWithdrawDelegatorReward{}
 	err := json.Unmarshal(data, &newMsg)
 	if err != nil {
-		return newMsg, err
+		return nil, err
+	}
+	err = newMsg.ValidateBasic()
+	if err != nil {
+		return nil, err
 	}
 	if ok := common.CheckSignerAddress(signers, newMsg.GetSigners()); !ok {
 		return nil, ErrCheckSignerFail

@@ -60,3 +60,16 @@ func TestBlackHoleAddress(t *testing.T) {
 func TestGetFixedLengthRandomString(t *testing.T) {
 	require.Equal(t, 100, len(GetFixedLengthRandomString(100)))
 }
+
+func TestCheckSignerAddress(t *testing.T) {
+	addr1, err := sdk.AccAddressFromBech32("cosmos13z0m0xk9ajwpa6rdktfl8pta60227rpwtrcc6x")
+	fmt.Println(addr1, addr1.String())
+	require.NoError(t, err)
+	addr2, err := sdk.AccAddressFromHex("889Fb79ac5Ec9C1Ee86Db2D3f3857Dd3D4af0C2E")
+	fmt.Println(addr2, addr2.String())
+	require.NoError(t, err)
+
+	tr := CheckSignerAddress([]sdk.AccAddress{addr1}, []sdk.AccAddress{addr2})
+	require.True(t, tr)
+	fmt.Println(tr)
+}

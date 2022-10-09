@@ -69,11 +69,14 @@ func EvmResultConvert(data []byte) ([]byte, error) {
 }
 
 func (app *BaseApp) JudgeEvmConvert(ctx sdk.Context, msg sdk.Msg) bool {
-	addr, ok := evmConvertJudge(msg)
-	if !ok || len(addr) == 0 {
+	if app.EvmSysContractAddressHandler == nil ||
+		evmConvertJudge == nil ||
+		evmParamParse == nil ||
+		evmResultConverter == nil {
 		return false
 	}
-	if app.EvmSysContractAddressHandler == nil {
+	addr, ok := evmConvertJudge(msg)
+	if !ok || len(addr) == 0 {
 		return false
 	}
 	return app.EvmSysContractAddressHandler(ctx, addr)

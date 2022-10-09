@@ -70,7 +70,7 @@ func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitPr
 		return nil
 	case types.ManageSysContractAddressProposal:
 		csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
-		// can not delete address map is not exist
+		// can not delete system contract address that is not exist
 		if !content.IsAdded {
 			_, err := csdb.GetSysContractAddress()
 			return err

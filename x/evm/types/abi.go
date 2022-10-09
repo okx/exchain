@@ -31,7 +31,7 @@ func (a *ABI) DecodeInputParam(methodName string, data []byte) ([]interface{}, e
 }
 
 func (a *ABI) IsMatchFunction(methodName string, data []byte) bool {
-	if len(data) <= 4 {
+	if len(data) < 4 {
 		return false
 	}
 	method, ok := a.Methods[methodName]
