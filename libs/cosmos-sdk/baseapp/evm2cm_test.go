@@ -89,7 +89,7 @@ func TestJudgeEvmConvert(t *testing.T) {
 				RegisterEvmParamParse(func(msg sdk.Msg) (*CMTxParam, error) {
 					return nil, nil
 				})
-				RegisterEvmResultConverter(func(data []byte) ([]byte, error) {
+				RegisterEvmResultConverter(func(txHash, data []byte) ([]byte, error) {
 					return nil, nil
 				})
 				RegisterEvmConvertJudge(func(msg sdk.Msg) ([]byte, bool) {
