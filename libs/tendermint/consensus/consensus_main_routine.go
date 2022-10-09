@@ -295,6 +295,10 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 		sleepDuration = 0
 	}
 
+	if GetActiveVC() {
+		cs.prepareProposal(cs.Height, 0)
+	}
+
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
 }
 

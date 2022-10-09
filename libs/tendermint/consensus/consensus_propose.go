@@ -133,9 +133,6 @@ func (cs *State) enterPropose(height int64, round int) {
 			cs.Validators.GetProposer().Address,
 			"privValidator",
 			cs.privValidator)
-		if GetActiveVC() {
-			cs.prepareProposal(height, round)
-		}
 	}
 }
 
@@ -152,7 +149,6 @@ func (cs *State) prepareProposal(height int64, round int) {
 	prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address(), Proposal: cs.PreProposal}
 	// todo only put all request into one channel
 	go cs.requestForProposer(prMsg)
-
 }
 
 func (cs *State) defaultDecideProposal(height int64, round int) {
