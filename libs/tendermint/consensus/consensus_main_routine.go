@@ -295,7 +295,8 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 		sleepDuration = 0
 	}
 
-	if GetActiveVC() {
+	isBlockProducer, _ := cs.isBlockProducer()
+	if GetActiveVC() && isBlockProducer != "y" {
 		cs.prepareProposal(cs.Height, 0)
 	}
 
