@@ -233,9 +233,6 @@ func verifyProof(t *testing.T, proof *RangeProof, root []byte) {
 		// may be invalid... errors are okay
 		if err == nil {
 			// bad proof may cause panic
-			// assert.Errorf(t, badProof.Verify(root),
-			// 	"Proof was still valid after a random mutation:\n%X\n%X",
-			// 	proofBytes, badProofBytes)
 			assert.Panics(t, func() {
 				err := badProof.Verify(root)
 				if err != nil {
