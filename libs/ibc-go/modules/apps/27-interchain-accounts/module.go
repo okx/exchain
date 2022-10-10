@@ -41,7 +41,9 @@ var (
 // AppModuleBasic is the IBC interchain accounts AppModuleBasic
 type AppModuleBasic struct{}
 
-func (b AppModuleBasic) RegisterCodec(codec *codec.Codec) {}
+func (b AppModuleBasic) RegisterCodec(codec *codec.Codec) {
+	types.RegisterCodec(codec)
+}
 
 func (b AppModuleBasic) DefaultGenesis() json.RawMessage {
 	return nil
