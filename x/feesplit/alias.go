@@ -12,7 +12,8 @@ const (
 )
 
 var (
-	NewKeeper = keeper.NewKeeper
+	NewKeeper           = keeper.NewKeeper
+	SetParamsNeedUpdate = types.SetParamsNeedUpdate
 )
 
 type (

@@ -422,6 +422,7 @@ func NewOKExChainApp(
 	app.FeeSplitKeeper = feesplit.NewKeeper(
 		app.keys[feesplit.StoreKey], app.marshal.GetCdc(), app.subspaces[feesplit.ModuleName],
 		app.EvmKeeper, app.SupplyKeeper, app.AccountKeeper, updateFeeSplitHandler(app.FeeSplitCollector))
+	app.ParamsKeeper.RegisterSignal(feesplit.SetParamsNeedUpdate)
 
 	//wasm keeper
 	wasmDir := wasm.WasmDir()

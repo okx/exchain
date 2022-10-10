@@ -122,6 +122,9 @@ func (am AppModule) NewQuerierHandler() sdk.Querier {
 
 // BeginBlock executes all ABCI BeginBlock logic respective to the fees module.
 func (am AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {
+	if tmtypes.DownloadDelta {
+		types.GetParamsCache().SetNeedParamsUpdate()
+	}
 }
 
 // EndBlock executes all ABCI EndBlock logic respective to the fees module. It
