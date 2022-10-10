@@ -102,7 +102,23 @@ func GetQueriedDelegationRewards(t *testing.T, ctx sdk.Context, querier sdk.Quer
 	err = amino.UnmarshalJSON(result, &rewards)
 	require.NoError(t, err)
 
-	coins, _ := rewards.TruncateDecimal()
+	return rewards
+}
 
-	return coins
+func GetQueriedDelegationTotalRewards(t *testing.T, ctx sdk.Context, querier sdk.Querier,
+	delegatorAddr sdk.AccAddress) types.QueryDelegatorTotalRewardsResponse {
+
+	params := types.NewQueryDelegatorParams(delegatorAddr)
+	bz, err := amino.MarshalJSON(params)
+	require.NoError(t, err)
+
+	ctx, _ = ctx.CacheContext()
+	result, err := querier(ctx, []string{types.QueryDelegatorTotalRewards}, abci.RequestQuery{Data: bz})
+	require.NoError(t, err)
+
+	var response types.QueryDelegatorTotalRewardsResponse
+	err = amino.UnmarshalJSON(result, &response)
+	require.NoError(t, err)
+
+	return response
 }
