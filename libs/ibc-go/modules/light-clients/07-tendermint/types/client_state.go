@@ -1,11 +1,12 @@
 package types
 
 import (
-	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"strings"
 	"time"
 
-	ics23 "github.com/confio/ics23/go"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
+
+	ics23 "github.com/okex/exchain/ics23"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
