@@ -5,6 +5,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/types"
 	icatypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
@@ -118,6 +119,14 @@ func (k Keeper) executeMsg(ctx sdk.Context, msg sdk.MsgProtoAdapter) ([]byte, er
 	handler := k.msgRouter.HandlerWithMsg(msg)
 	if handler == nil {
 		return nil, icatypes.ErrInvalidRoute
+	}
+
+	if sen, ok := msg.(ibc_tx.MessageSensitive); ok {
+		if swapMsg, err := sen.Swap(ctx); nil != err {
+			return nil, err
+		} else if swapMsg != nil {
+			msg = swapMsg.(sdk.MsgProtoAdapter)
+		}
 	}
 
 	res, err := handler(ctx, msg)

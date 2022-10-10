@@ -12,3 +12,7 @@ type DenomAdapterMsg interface {
 type DenomOpr interface {
 	RulesFilter() (sdk.Msg, error)
 }
+
+type MessageSensitive interface {
+	Swap(ctx sdk.Context) (sdk.Msg, error)
+}
