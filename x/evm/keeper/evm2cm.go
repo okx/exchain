@@ -17,7 +17,7 @@ func (k *Keeper) IsMatchSysContractAddress(ctx sdk.Context, addr sdk.AccAddress)
 func querySysContractAddress(ctx sdk.Context, keeper Keeper) ([]byte, sdk.Error) {
 	res, err := types.CreateEmptyCommitStateDB(keeper.GeneratePureCSDBParams(), ctx).GetSysContractAddress()
 	if err != nil {
-		return nil, sdk.ErrInternal(sdk.AppendMsgToErr("failed to marshal result to JSON", err.Error()))
+		return nil, err
 	}
 	return res, nil
 }

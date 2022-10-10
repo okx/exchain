@@ -404,3 +404,104 @@ func (suite *ProposalTestSuite) TestProposal_ManageContractMethodBlockedListProp
 		})
 	}
 }
+
+func (suite *ProposalTestSuite) TestProposal_ManageSysContractAddressProposal() {
+
+	const expectedManageSysContractAddressProposalString = `ManageSysContractAddressProposal:
+ Title:					default title
+ Description:        	default description
+ Type:                	ManageSysContractAddress
+ ContractAddr:          ex1qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqm2k6w2
+ IsAdded:				true`
+
+	proposal := NewManageSysContractAddressProposal(
+		expectedTitle,
+		expectedDescription,
+		ethcmn.BytesToAddress([]byte{0x0}).Bytes(),
+		true,
+	)
+
+	suite.Require().Equal(expectedTitle, proposal.GetTitle())
+	suite.Require().Equal(expectedDescription, proposal.GetDescription())
+	suite.Require().Equal(RouterKey, proposal.ProposalRoute())
+	suite.Require().Equal(proposalTypeManageSysContractAddress, proposal.ProposalType())
+	suite.Require().Equal(expectedManageSysContractAddressProposalString, proposal.String())
+
+	testCases := []struct {
+		msg           string
+		prepare       func()
+		expectedError bool
+	}{
+		{
+			"pass",
+			func() {},
+			false,
+		},
+		{
+			"pass",
+			func() {
+				proposal.IsAdded = false
+				proposal.ContractAddr = nil
+			},
+			false,
+		},
+		{
+			"empty title",
+			func() {
+				proposal.Title = ""
+			},
+			true,
+		},
+		{
+			"overlong title",
+			func() {
+				for i := 0; i < govtypes.MaxTitleLength+1; i++ {
+					suite.strBuilder.WriteByte('a')
+				}
+				proposal.Title = suite.strBuilder.String()
+			},
+			true,
+		},
+		{
+			"empty description",
+			func() {
+				proposal.Description = ""
+				proposal.Title = expectedTitle
+			},
+			true,
+		},
+		{
+			"overlong description",
+			func() {
+				suite.strBuilder.Reset()
+				for i := 0; i < govtypes.MaxDescriptionLength+1; i++ {
+					suite.strBuilder.WriteByte('a')
+				}
+				proposal.Description = suite.strBuilder.String()
+			},
+			true,
+		},
+		{
+			"is_added true, contract address required",
+			func() {
+				proposal.IsAdded = true
+				proposal.ContractAddr = nil
+			},
+			true,
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.msg, func() {
+			tc.prepare()
+
+			err := proposal.ValidateBasic()
+
+			if tc.expectedError {
+				suite.Require().Error(err)
+			} else {
+				suite.Require().NoError(err)
+			}
+		})
+	}
+}

@@ -342,3 +342,87 @@ func (suite *EvmTestSuite) TestProposalHandler_ManageContractMethodBlockedListPr
 		})
 	}
 }
+
+func (suite *EvmTestSuite) TestProposalHandler_ManageSysContractAddressProposal() {
+	addr1 := ethcmn.BytesToAddress([]byte{0x3}).Bytes()
+	addr2 := ethcmn.BytesToAddress([]byte{0x4}).Bytes()
+
+	suite.govHandler = evm.NewManageContractDeploymentWhitelistProposalHandler(suite.app.EvmKeeper)
+
+	govProposal := &govtypes.Proposal{}
+
+	testCases := []struct {
+		msg     string
+		prepare func()
+		fnCheck func()
+		success bool
+	}{
+		{
+			msg: "add a sys contract address addr1",
+			prepare: func() {
+				proposal := types.NewManageSysContractAddressProposal(
+					"default title",
+					"default description",
+					addr1,
+					true,
+				)
+				govProposal.Content = proposal
+			},
+			fnCheck: func() {
+				reAddr, err := suite.stateDB.GetSysContractAddress()
+				suite.Require().NoError(err)
+				suite.Require().Equal(addr1, reAddr[:])
+			},
+			success: true,
+		},
+		{
+			msg: "add a sys contract address addr2",
+			prepare: func() {
+				proposal := types.NewManageSysContractAddressProposal(
+					"default title",
+					"default description",
+					addr2,
+					true,
+				)
+				govProposal.Content = proposal
+			},
+			fnCheck: func() {
+				reAddr, err := suite.stateDB.GetSysContractAddress()
+				suite.Require().NoError(err)
+				suite.Require().Equal(addr2, reAddr[:])
+			},
+			success: true,
+		},
+		{
+			msg: "del a sys contract address",
+			prepare: func() {
+				proposal := types.NewManageSysContractAddressProposal(
+					"default title",
+					"default description",
+					addr2,
+					false,
+				)
+				govProposal.Content = proposal
+			},
+			fnCheck: func() {
+				reAddr, err := suite.stateDB.GetSysContractAddress()
+				suite.Require().Error(err)
+				suite.Require().Nil(reAddr)
+			},
+			success: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.msg, func() {
+			tc.prepare()
+
+			err := suite.govHandler(suite.ctx, govProposal)
+			if tc.success {
+				suite.Require().NoError(err)
+			} else {
+				suite.Require().Error(err)
+			}
+		})
+	}
+}

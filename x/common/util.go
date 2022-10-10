@@ -327,11 +327,16 @@ func ValidateUint16Positive(param string) subspace.ValueValidatorFn {
 	}
 }
 
-// CheckSignerAddress all delegators must be included in the signers
+// CheckSignerAddress delegators must be the same as to the signers
 func CheckSignerAddress(signers, delegators []sdk.AccAddress) bool {
-	if len(signers) == len(delegators) && len(signers) == 1 {
+	if len(signers) == 1 && len(delegators) == 1 {
 		return signers[0].Equals(delegators[0])
 	}
+
+	if len(signers) != len(delegators) {
+		return false
+	}
+
 	mp := make(map[string]sdk.AccAddress, len(signers))
 	for _, v := range signers {
 		mp[v.String()] = v

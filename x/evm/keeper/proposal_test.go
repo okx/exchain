@@ -219,3 +219,65 @@ func (suite *KeeperTestSuite) TestProposal_ManageContractMethodBlockedListPropos
 		})
 	}
 }
+
+func (suite *KeeperTestSuite) TestProposal_ManageSysContractAddressProposal() {
+	addr1 := ethcmn.BytesToAddress([]byte{0x01}).Bytes()
+	proposal := types.NewManageSysContractAddressProposal(
+		"default title",
+		"default description",
+		addr1,
+		true,
+	)
+
+	minDeposit := suite.app.EvmKeeper.GetMinDeposit(suite.ctx, proposal)
+	require.Equal(suite.T(), sdk.SysCoins{sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100))}, minDeposit)
+
+	maxDepositPeriod := suite.app.EvmKeeper.GetMaxDepositPeriod(suite.ctx, proposal)
+	require.Equal(suite.T(), time.Hour*24, maxDepositPeriod)
+
+	votingPeriod := suite.app.EvmKeeper.GetVotingPeriod(suite.ctx, proposal)
+	require.Equal(suite.T(), time.Hour*72, votingPeriod)
+
+	testCases := []struct {
+		msg     string
+		prepare func()
+		success bool
+	}{
+		{
+			"pass check IsAdded is true",
+			func() {
+				proposal.IsAdded = true
+			},
+			true,
+		},
+		{
+			"pass check IsAdded is false and not exist a sys contract address",
+			func() {
+				proposal.IsAdded = false
+			},
+			false,
+		},
+		{
+			"pass check IsAdded is false and exist a sys contract address",
+			func() {
+				proposal.IsAdded = false
+				suite.stateDB.SetSysContractAddress(addr1)
+			},
+			true,
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.msg, func() {
+			tc.prepare()
+
+			msg := govtypes.NewMsgSubmitProposal(proposal, minDeposit, addr1)
+			err := suite.app.EvmKeeper.CheckMsgSubmitProposal(suite.ctx, msg)
+			if tc.success {
+				suite.Require().NoError(err)
+			} else {
+				suite.Require().Error(err)
+			}
+		})
+	}
+}

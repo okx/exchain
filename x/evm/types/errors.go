@@ -115,8 +115,8 @@ func ErrSysContractAddressIsNotExist(err error) sdk.EnvelopedErr {
 	return sdk.EnvelopedErr{
 		Err: sdkerrors.New(
 			DefaultParamspace,
-			20,
-			fmt.Sprintf("Not exist sys contract address failed: %s", err.Error()),
+			21,
+			fmt.Sprintf("failed. the system contract address is not exist: %s", err.Error()),
 		),
 	}
 }

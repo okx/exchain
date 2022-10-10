@@ -28,7 +28,7 @@ func init() {
 	govtypes.RegisterProposalTypeCodec(ManageContractDeploymentWhitelistProposal{}, "okexchain/evm/ManageContractDeploymentWhitelistProposal")
 	govtypes.RegisterProposalTypeCodec(ManageContractBlockedListProposal{}, "okexchain/evm/ManageContractBlockedListProposal")
 	govtypes.RegisterProposalTypeCodec(ManageContractMethodBlockedListProposal{}, "okexchain/evm/ManageContractMethodBlockedListProposal")
-	govtypes.RegisterProposalTypeCodec(ManageSysContractAddressProposal{}, "okexchain/evm/proposalTypeManageSysContractAddress")
+	govtypes.RegisterProposalTypeCodec(ManageSysContractAddressProposal{}, "okexchain/evm/ManageSysContractAddressProposal")
 }
 
 var (
@@ -423,7 +423,7 @@ func (mp ManageSysContractAddressProposal) ValidateBasic() sdk.Error {
 		return govtypes.ErrInvalidProposalType(mp.ProposalType())
 	}
 
-	if mp.IsAdded && len(mp.ContractAddr) == 0 {
+	if mp.IsAdded && mp.ContractAddr.Empty() {
 		return govtypes.ErrInvalidProposalContent("is_added true, contract address required")
 	}
 
