@@ -1,11 +1,11 @@
 package staking
 
 import (
-	"github.com/okex/exchain/libs/tendermint/global"
 	"testing"
 	"time"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/tendermint/global"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	keep "github.com/okex/exchain/x/staking/keeper"
 	"github.com/okex/exchain/x/staking/types"
@@ -31,7 +31,7 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 		err                [5]error
 	}{
 		{
-			"not venus3, default ok",
+			"not venus2, default ok",
 			func() {
 				tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 			},
@@ -44,7 +44,7 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 			[5]error{nil, nil, nil, nil},
 		},
 		{
-			"not venus3, -0.5",
+			"not venus2, -0.5",
 			func() {
 				tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 			},
@@ -58,7 +58,7 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 				types.ErrCommissionNegative(), types.ErrCommissionNegative()},
 		},
 		{
-			"not venus3, do not set block time",
+			"not venus2, do not set block time",
 			func() {
 				tmtypes.UnittestOnlySetMilestoneVenus2Height(-1)
 			},
@@ -70,7 +70,7 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 			[5]error{nil, nil, nil, types.ErrCommissionUpdateTime()},
 		},
 		{
-			"venus3, default ok",
+			"venus2, default ok",
 			func() {
 				global.SetGlobalHeight(11)
 				tmtypes.UnittestOnlySetMilestoneVenus2Height(10)
@@ -84,7 +84,7 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 			[5]error{nil, nil, nil, nil},
 		},
 		{
-			"venus3, not support",
+			"venus2, not support",
 			func() {
 				global.SetGlobalHeight(10)
 				tmtypes.UnittestOnlySetMilestoneVenus2Height(11)
@@ -98,7 +98,7 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 			[5]error{types.ErrCodeNotSupportEditValidatorCommissionRate(), types.ErrCodeNotSupportEditValidatorCommissionRate(), nil, nil},
 		},
 		{
-			"venus3, -0.5",
+			"venus2, -0.5",
 			func() {
 				tmtypes.UnittestOnlySetMilestoneVenus2Height(0)
 			},
@@ -112,7 +112,7 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 				types.ErrCommissionNegative(), types.ErrCommissionNegative()},
 		},
 		{
-			"venus3, do not set block time",
+			"venus2, do not set block time",
 			func() {
 				global.SetGlobalHeight(11)
 				tmtypes.UnittestOnlySetMilestoneVenus2Height(10)
@@ -125,7 +125,7 @@ func (suite *HandlerSuite) TestEditValidatorCommission() {
 			[5]error{nil, nil, nil, types.ErrCommissionUpdateTime()},
 		},
 		{
-			"venus3, not support",
+			"venus2, not support",
 			func() {
 				global.SetGlobalHeight(10)
 				tmtypes.UnittestOnlySetMilestoneVenus2Height(11)
