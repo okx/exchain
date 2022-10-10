@@ -840,7 +840,7 @@ func NewEvmSysContractAddressHandler(ak *evm.Keeper) sdk.EvmSysContractAddressHa
 	return func(
 		ctx sdk.Context, addr sdk.AccAddress,
 	) bool {
-		if len(addr) == 0 {
+		if addr.Empty() {
 			return false
 		}
 		return ak.IsMatchSysContractAddress(ctx, addr)

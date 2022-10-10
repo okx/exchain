@@ -18,12 +18,11 @@ func init() {
 }
 
 func RegisterConvert() {
-	// TODO after merged the pr withdraw-all-rewards, modify it
-	baseapp.RegisterCmHandle(types.ModuleName, "withdraw-rewards", ConvertWithdrawDelegatorRewardMsg)
+	baseapp.RegisterCmHandle(types.ModuleName, "withdraw-all-rewards", ConvertWithdrawDelegatorAllRewardsMsg)
 }
 
-func ConvertWithdrawDelegatorRewardMsg(data []byte, signers []sdk.AccAddress) (sdk.Msg, error) {
-	newMsg := types.MsgWithdrawDelegatorReward{}
+func ConvertWithdrawDelegatorAllRewardsMsg(data []byte, signers []sdk.AccAddress) (sdk.Msg, error) {
+	newMsg := types.MsgWithdrawDelegatorAllRewards{}
 	err := json.Unmarshal(data, &newMsg)
 	if err != nil {
 		return nil, err
