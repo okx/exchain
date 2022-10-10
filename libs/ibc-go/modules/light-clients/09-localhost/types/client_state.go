@@ -3,7 +3,10 @@ package types
 import (
 	"bytes"
 	"encoding/binary"
-	ics23 "github.com/confio/ics23/go"
+	"reflect"
+	"strings"
+
+	ics23 "github.com/okex/exchain/ics23"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -12,8 +15,6 @@ import (
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
-	"reflect"
-	"strings"
 )
 
 var _ exported.ClientState = (*ClientState)(nil)
