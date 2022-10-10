@@ -4,7 +4,7 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
+	auth "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 )
 
 // ModuleCdc references the global interchain accounts module codec. Note, the codec
@@ -14,12 +14,20 @@ import (
 // defined at the application level.
 var ModuleCdc = codec.NewProtoCodec(codectypes.NewInterfaceRegistry())
 
+func init() {
+	RegisterCodec(auth.ModuleCdc)
+}
+
 // RegisterInterfaces registers the concrete InterchainAccount implementation against the associated
 // x/auth AccountI and GenesisAccount interfaces
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	// TODO,这里的需要进行修改
-	registry.RegisterImplementations((*authtypes.Account)(nil), &InterchainAccount{})
-	registry.RegisterImplementations((*authtypes.GenesisAccount)(nil), &InterchainAccount{})
+	//registry.RegisterImplementations((*authtypes.Account)(nil), &InterchainAccount{})
+	//registry.RegisterImplementations((*authtypes.GenesisAccount)(nil), &InterchainAccount{})
+}
+
+func RegisterCodec(cdc *codec.Codec) {
+	cdc.RegisterConcrete(&AminoInterchainAccount{}, "cosmos-sdk/InterchainAccount", nil)
 }
 
 // SerializeCosmosTx serializes a slice of sdk.Msg's using the CosmosTx type. The sdk.Msg's are
