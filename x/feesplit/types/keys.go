@@ -20,8 +20,7 @@ const (
 
 // prefix bytes for the fees persistent store
 const (
-	// TODO
-	prefixFeeSplit = iota + 3
+	prefixFeeSplit = iota + 1
 	prefixDeployer
 	prefixWithdrawer
 	prefixContractShare
