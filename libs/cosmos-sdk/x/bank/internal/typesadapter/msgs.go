@@ -92,6 +92,18 @@ func (m *MsgSend) RulesFilter() (sdk.Msg, error) {
 	return &msgSend, nil
 }
 
+func (m *MsgSend) Swap(ctx sdk.Context) (sdk.Msg, error) {
+	for i, amount := range m.Amount {
+		if amount.Denom == sdk.DefaultIbcWei {
+			m.Amount[i].Denom = sdk.DefaultBondDenom
+		} else if amount.Denom == sdk.DefaultBondDenom {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidCoins, "MsgSend not support okt denom")
+		}
+	}
+
+	return m, nil
+}
+
 func (msg *MsgMultiSend) ValidateBasic() error {
 	// this just makes sure all the inputs and outputs are properly formatted,
 	// not that they actually have the money inside

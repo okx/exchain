@@ -68,7 +68,7 @@ func DeserializeCosmosTx(cdc *codec.CodecProxy, data []byte) ([]sdk.MsgProtoAdap
 	}
 
 	msgs := make([]sdk.MsgProtoAdapter, len(cosmosTx.Messages))
-
+	// 这里需要进行额外转换,比如说wei转换为okt
 	for i, any := range cosmosTx.Messages {
 		var msg sdk.MsgProtoAdapter
 
