@@ -15,7 +15,7 @@ func TestOrderManager(t *testing.T) {
 
 	orderBytes, err := hex.DecodeString(orderHex)
 	require.NoError(t, err)
-	var odr Order
+	var odr P1Order
 	err = odr.DecodeFrom(orderBytes)
 	require.NoError(t, err)
 
@@ -36,7 +36,7 @@ func TestOrderManager(t *testing.T) {
 			var signedOrder SignedOrder
 			err = signedOrder.DecodeFrom(next.Value.(*MempoolOrder).raw)
 			require.NoError(t, err)
-			var odr Order
+			var odr P1Order
 			err = odr.DecodeFrom(signedOrder.Msg)
 			require.NoError(t, err)
 			require.Equal(t, uint64(totalCount), odr.Amount.Uint64())
@@ -59,7 +59,7 @@ func TestOrderManager(t *testing.T) {
 				time.Sleep(time.Millisecond)
 			}
 			odr.Amount.SetInt64(int64(i))
-			orderBytes, err := orderTuple.Encode(odr)
+			orderBytes, err := odr.Encode()
 			require.NoError(t, err)
 			signedOrder := SignedOrder{
 				Msg: orderBytes,
@@ -68,7 +68,7 @@ func TestOrderManager(t *testing.T) {
 			require.NoError(t, err)
 
 			memOrder := NewMempoolOrder(signedOrderBytes, 0)
-			err = book.Insert(memOrder, 0)
+			err = book.Insert(memOrder)
 			require.NoError(t, err)
 		}
 	}()
