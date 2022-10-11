@@ -2,10 +2,11 @@ package types
 
 import (
 	"fmt"
-	"github.com/tendermint/go-amino"
 	"math/big"
 	"sort"
 	"sync"
+
+	"github.com/tendermint/go-amino"
 
 	"github.com/okex/exchain/libs/system/trace"
 
@@ -667,12 +668,7 @@ func (csdb *CommitStateDB) GetParams() Params {
 	if csdb.params == nil {
 		var params Params
 		if csdb.ctx.UseParamCache() {
-			if GetEvmParamsCache().IsNeedParamsUpdate() {
-				csdb.paramSpace.GetParamSet(csdb.ctx, &params)
-				GetEvmParamsCache().UpdateParams(params, csdb.ctx.IsCheckTx())
-			} else {
-				params = GetEvmParamsCache().GetParams()
-			}
+			params = GetEvmParamsCache().GetParams(csdb.paramSpace, csdb.ctx)
 		} else {
 			csdb.paramSpace.GetParamSet(csdb.ctx, &params)
 		}
@@ -1567,11 +1563,7 @@ func (csdb *CommitStateDB) IsContractInBlockedList(contractAddr sdk.AccAddress) 
 // GetContractMethodBlockedByAddress gets contract methods blocked by address
 func (csdb *CommitStateDB) GetContractMethodBlockedByAddress(contractAddr sdk.AccAddress) *BlockedContract {
 	if csdb.ctx.UseParamCache() {
-		if GetEvmParamsCache().IsNeedBlockedUpdate() {
-			bcl := csdb.GetContractMethodBlockedList()
-			GetEvmParamsCache().UpdateBlockedContractMethod(bcl, csdb.ctx.IsCheckTx())
-		}
-		return GetEvmParamsCache().GetBlockedContractMethod(amino.BytesToStr(contractAddr))
+		return GetEvmParamsCache().GetBlockedContractMethod(amino.BytesToStr(contractAddr), csdb)
 	}
 
 	//use dbAdapter for watchdb or prefixdb

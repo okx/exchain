@@ -2,6 +2,8 @@ package types
 
 import (
 	"sync"
+
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 var evmParamsCache = NewCache()
@@ -25,31 +27,26 @@ func NewCache() *Cache {
 	}
 }
 
-func (c *Cache) UpdateParams(params Params, isCheckTx bool) {
-	if isCheckTx {
-		return
-	}
-	c.paramsMutex.Lock()
-	defer c.paramsMutex.Unlock()
-	c.paramsCache = params
-	c.needParamsUpdate = false
-}
-
 func (c *Cache) SetNeedParamsUpdate() {
 	c.paramsMutex.Lock()
 	defer c.paramsMutex.Unlock()
 	c.needParamsUpdate = true
 }
 
-func (c *Cache) IsNeedParamsUpdate() bool {
-	c.paramsMutex.RLock()
-	defer c.paramsMutex.RUnlock()
-	return c.needParamsUpdate
-}
+func (c *Cache) GetParams(subspace Subspace, ctx sdk.Context) Params {
+	c.paramsMutex.Lock()
+	defer c.paramsMutex.Unlock()
 
-func (c *Cache) GetParams() Params {
-	c.paramsMutex.RLock()
-	defer c.paramsMutex.RUnlock()
+	if c.needParamsUpdate {
+		if !ctx.IsCheckTx() {
+			var params Params
+			subspace.GetParamSet(ctx, &params)
+			c.paramsCache = params
+		}
+
+		c.needBlockedUpdate = false
+	}
+
 	return NewParams(c.paramsCache.EnableCreate,
 		c.paramsCache.EnableCall,
 		c.paramsCache.EnableContractDeploymentWhitelist,
@@ -64,33 +61,26 @@ func (c *Cache) SetNeedBlockedUpdate() {
 	c.needBlockedUpdate = true
 }
 
-func (c *Cache) IsNeedBlockedUpdate() bool {
-	c.blockedMutex.RLock()
-	defer c.blockedMutex.RUnlock()
-	return c.needBlockedUpdate
-}
+func (c *Cache) GetBlockedContractMethod(addr string, csdb *CommitStateDB) (contract *BlockedContract) {
+	c.blockedMutex.Lock()
+	defer c.blockedMutex.Unlock()
 
-func (c *Cache) GetBlockedContractMethod(addr string) (contract *BlockedContract) {
-	c.blockedMutex.RLock()
+	if c.needBlockedUpdate {
+		if !csdb.ctx.IsCheckTx() {
+			bcl := csdb.GetContractMethodBlockedList()
+			c.blockedContractMethodsCache = make(map[string]BlockedContract, len(bcl))
+			for i, _ := range bcl {
+				c.blockedContractMethodsCache[string(bcl[i].Address)] = bcl[i]
+			}
+		}
+		c.needBlockedUpdate = false
+	}
+
 	bc, ok := c.blockedContractMethodsCache[addr]
-	c.blockedMutex.RUnlock()
 	if ok {
 		return NewBlockContract(bc.Address, bc.BlockMethods)
 	}
 	return nil
-}
-
-func (c *Cache) UpdateBlockedContractMethod(bcl BlockedContractList, isCheckTx bool) {
-	if isCheckTx {
-		return
-	}
-	c.blockedMutex.Lock()
-	c.blockedContractMethodsCache = make(map[string]BlockedContract, len(bcl))
-	for i, _ := range bcl {
-		c.blockedContractMethodsCache[string(bcl[i].Address)] = bcl[i]
-	}
-	c.needBlockedUpdate = false
-	c.blockedMutex.Unlock()
 }
 
 func SetEvmParamsNeedUpdate() {
