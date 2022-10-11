@@ -129,7 +129,7 @@ func TestACProcessorPersistHander(t *testing.T) {
 				for _, d := range td {
 					ts.processor.BatchSet(d.msgs)
 					ts.processor.MoveToCommitList(d.version)
-					ts.processor.PersistHander(ts.tdb.commit)
+					ts.processor.PersistHandler(ts.tdb.commit)
 				}
 			},
 			fnCheck: func(ts *testcase) {
@@ -151,7 +151,7 @@ func TestACProcessorPersistHander(t *testing.T) {
 						ts.processor.MoveToCommitList(d.version)
 					}
 				}
-				ts.processor.PersistHander(ts.tdb.commit)
+				ts.processor.PersistHandler(ts.tdb.commit)
 			},
 			fnCheck: func(ts *testcase) {
 				for _, r := range ts.results {

@@ -14,7 +14,7 @@ func TestBanchAsyncCommitWatcher(t *testing.T) {
 	viper.Set(watcher.FlagWatchdbEnableAsyncCommit, true)
 	watcher.SetCommitGapHeight(1)
 	defer func() {
-		watcher.SetAnableAsyncCommit(false)
+		watcher.SetEnableAsyncCommit(false)
 		watcher.SetCommitGapHeight(100)
 	}()
 	TestDeployAndCallContract(t)
