@@ -51,7 +51,7 @@ func (k Keeper) PostTxProcessing(
 	if !params.EnableFeeSplit {
 		return nil
 	}
-
+	ctx.Logger().Error("evm_hook", "txhash", st.TxHash.String(), "gas", ctx.GasMeter().GasConsumed())
 	contract := st.Recipient
 	if contract == nil {
 		return nil
