@@ -38,7 +38,11 @@ func (k Keeper) PostTxProcessing(
 	st *evmtypes.StateTransition,
 	receipt *ethtypes.Receipt,
 ) error {
-	if !tmtypes.HigherThanVenus3(ctx.BlockHeight()) {
+	// This is different from ibc and wasm, evm tx exists at all times.
+	// in Venus3 height store takes effect,
+	// in Venus3+1 height initgenesis takes effect,
+	// in Venus3+2 height can be used normally params
+	if !tmtypes.HigherThanVenus3(ctx.BlockHeight() - 1) {
 		return nil
 	}
 	ctx.Logger().Error("feesplit生效", "height", ctx.BlockHeight())
