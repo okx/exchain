@@ -1,10 +1,12 @@
 package dydx
 
 import (
+	"context"
 	"crypto/ecdsa"
 	"fmt"
 	"math/big"
 
+	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
@@ -16,6 +18,8 @@ import (
 
 type MatchEngine struct {
 	depthBook *DepthBook
+
+	marketPrice *big.Int
 
 	contracts *dydxlib.Contracts
 	privKey   *ecdsa.PrivateKey
@@ -33,9 +37,6 @@ type DydxConfig struct {
 	PerpetualV1ContractAddress string
 	P1OrdersContractAddress    string
 }
-
-// chainID *big.Int, ethRpcUrl string, fromBlockNum *big.Int,
-//	privKey, perpetualV1ContractAddress, p1OrdersContractAddress string
 
 func NewMatchEngine(depthBook *DepthBook, config DydxConfig) (*MatchEngine, error) {
 	var engine = &MatchEngine{
@@ -68,6 +69,31 @@ func NewMatchEngine(depthBook *DepthBook, config DydxConfig) (*MatchEngine, erro
 		engine.ethCli,
 	)
 
+	var query = ethereum.FilterQuery{
+		Addresses: []common.Address{
+			common.HexToAddress(config.PerpetualV1ContractAddress),
+			common.HexToAddress(config.P1OrdersContractAddress),
+		},
+	}
+	ch := make(chan ethtypes.Log)
+	sub, err := engine.ethCli.SubscribeFilterLogs(context.Background(), query, ch)
+	if err != nil {
+		return nil, fmt.Errorf("failed to subscribe filter logs, err: %w", err)
+	}
+
+	go func() {
+		for {
+			select {
+			case err := <-sub.Err():
+				fmt.Printf("failed to subscribe filter logs, err: %s", err.Error())
+			case log := <-ch:
+				if log.Address == common.HexToAddress(config.PerpetualV1ContractAddress) {
+
+				}
+			}
+		}
+	}()
+
 	return engine, nil
 }
 
@@ -90,6 +116,10 @@ type MatchRecord struct {
 	Amount *big.Int
 	Taker  *WrapOrder
 	Maker  *WrapOrder
+}
+
+func (m *MatchEngine) Stop() {
+
 }
 
 func (m *MatchEngine) Match(order *WrapOrder) (*MatchResult, error) {
