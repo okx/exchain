@@ -37,7 +37,7 @@ func (suite *FeeSplitTestSuite) SetupTest() {
 	tmtypes.UnittestOnlySetMilestoneVenus3Height(1)
 
 	suite.app = app.Setup(false)
-	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 1, ChainID: "ethermint-3", Time: time.Now().UTC()})
+	suite.ctx = suite.app.BaseApp.NewContext(checkTx, abci.Header{Height: 2, ChainID: "ethermint-3", Time: time.Now().UTC()})
 	suite.handler = feesplit.NewHandler(suite.app.FeeSplitKeeper)
 	params := types.DefaultParams()
 	params.EnableFeeSplit = true
