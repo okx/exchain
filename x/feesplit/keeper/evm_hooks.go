@@ -43,6 +43,7 @@ func (k Keeper) PostTxProcessing(
 	}
 	// check if the fees are globally enabled
 	params := k.GetParams(ctx)
+	ctx.Logger().Error("取得参数", "params", params)
 	if !params.EnableFeeSplit {
 		return nil
 	}
