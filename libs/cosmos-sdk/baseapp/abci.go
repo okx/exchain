@@ -359,7 +359,6 @@ func (app *BaseApp) halt() {
 // Query implements the ABCI interface. It delegates to CommitMultiStore if it
 // implements Queryable.
 func (app *BaseApp) Query(req abci.RequestQuery) abci.ResponseQuery {
-	fmt.Println("path:", req.Path)
 	ceptor := app.interceptors[req.Path]
 	if nil != ceptor {
 		// interceptor is like `aop`,it may record the request or rewrite the data in the request
