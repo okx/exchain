@@ -8,10 +8,6 @@ import (
 
 // GetParams returns the total set of fees parameters.
 func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
-	// For GetParams using cache, no fee is charged
-	gm := ctx.GasMeter()
-	defer ctx.SetGasMeter(gm)
-
 	if ctx.UseParamCache() {
 		if types.GetParamsCache().IsNeedParamsUpdate() {
 			k.paramSpace.GetParamSet(ctx, &params)

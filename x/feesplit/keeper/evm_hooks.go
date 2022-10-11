@@ -48,7 +48,9 @@ func (k Keeper) PostTxProcessing(
 
 	gas := ctx.GasMeter().GasConsumed()
 	// check if the fees are globally enabled
-	params := k.GetParams(ctx)
+	// For GetParams using cache, no fee is charged
+	cacheCtx, _ := ctx.CacheContext()
+	params := k.GetParams(cacheCtx)
 	ctx.Logger().Error("evm_hook", "txhash", st.TxHash.String(), "gas_before", gas, "gas_after", ctx.GasMeter().GasConsumed())
 	if !params.EnableFeeSplit {
 		return nil
