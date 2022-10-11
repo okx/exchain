@@ -201,7 +201,7 @@ func (aq *ACProcessorQuerier) GetAccount(key []byte) (*types.EthAccount, error) 
 			return nil, nil
 		}
 		if rsp, ok := v.(*MsgAccount); ok {
-			cp := rsp.account.Copy() // the account value will be modify by caller
+			cp := rsp.account.Copy() // the account value will be modified by caller
 			return cp.(*types.EthAccount), nil
 		} else if value, ok := v.(*Batch); ok { // maybe v is from the dds
 			acc, err := DecodeAccount(value.Value)

@@ -23,7 +23,7 @@ func init() {
 	}
 }
 
-func SetAnableAsyncCommit(enable bool) {
+func SetEnableAsyncCommit(enable bool) {
 	enableAsyncCommit = enable
 }
 
@@ -43,7 +43,7 @@ func GetCommitGapHeight() int64 {
 
 func GetACFlag() {
 	getFlagOnce.Do(func() {
-		SetAnableAsyncCommit(viper.GetBool(FlagWatchdbEnableAsyncCommit))
+		SetEnableAsyncCommit(viper.GetBool(FlagWatchdbEnableAsyncCommit))
 	})
 }
 
@@ -96,21 +96,21 @@ func (ap *ACProcessor) MoveToCommitList(version int64) {
 	ap.mtx.Unlock()
 }
 
-func (ap *ACProcessor) PersistHander(commitFn func(epochCache *MessageCache)) {
+func (ap *ACProcessor) PersistHandler(commitFn func(epochCache *MessageCache)) {
 	// commit to db
 	for {
-		cmmiter, ok := ap.commitList.getTop()
+		committer, ok := ap.commitList.getTop()
 		if !ok {
 			break
 		}
-		commitFn(cmmiter.MessageCache)
-		ap.commitList.remove(cmmiter.version)
-		cmmiter.Clear()
+		commitFn(committer.MessageCache)
+		ap.commitList.remove(committer.version)
+		committer.Clear()
 	}
 }
 
-// PersistHander after close channel should call this function
+// PersistHandler after close channel should call this function
 func (ap *ACProcessor) Close(version int64, commitFn func(epochCache *MessageCache)) {
 	ap.MoveToCommitList(version)
-	ap.PersistHander(commitFn)
+	ap.PersistHandler(commitFn)
 }

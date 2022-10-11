@@ -384,11 +384,9 @@ func (w *Watcher) Commit() {
 			if shouldPersist {
 				// move curMsgCache to commitlist
 				w.acProcessor.MoveToCommitList(int64(height))
-				w.commitBatch(noACBatch)
 				w.AsyncCommitBatch()
-			} else {
-				w.commitBatch(noACBatch)
 			}
+			w.commitBatch(noACBatch)
 		})
 	} else {
 		w.dispatchJob(func() { w.commitBatch(batch) })
@@ -513,7 +511,7 @@ func (w *Watcher) commitBatch(batch []WatchMessage) {
 }
 
 func (w *Watcher) AsyncCommitBatch() {
-	w.acProcessor.PersistHander(w.shouldCommitBatch)
+	w.acProcessor.PersistHandler(w.shouldCommitBatch)
 }
 
 func (w *Watcher) shouldCommitBatch(epochCache *MessageCache) {
@@ -814,7 +812,7 @@ func (w *Watcher) Stop() {
 
 func (w *Watcher) ACProcessorStop() {
 	if GetEnableAsyncCommit() {
-		driveHeight := int64(w.height + 100) // use a greater height trigger last commit
+		var driveHeight int64 = 1<<63 - 1 // use a greater height trigger last commit
 		w.acProcessor.Close(driveHeight, w.shouldCommitBatch)
 	}
 }

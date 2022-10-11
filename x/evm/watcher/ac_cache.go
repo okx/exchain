@@ -8,7 +8,7 @@ import (
 
 type MessageCache struct {
 	mtx sync.RWMutex
-	mp  map[string]WatchMessage // if the key of value WatchMessage is nil, this key should del on db batch write
+	mp  map[string]WatchMessage
 }
 
 func newMessageCache() *MessageCache {
