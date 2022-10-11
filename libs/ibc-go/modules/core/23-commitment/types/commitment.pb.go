@@ -5,12 +5,13 @@ package types
 
 import (
 	fmt "fmt"
-	_go "github.com/confio/ics23/go"
-	_ "github.com/gogo/protobuf/gogoproto"
-	proto "github.com/gogo/protobuf/proto"
 	io "io"
 	math "math"
 	math_bits "math/bits"
+
+	_ "github.com/gogo/protobuf/gogoproto"
+	proto "github.com/gogo/protobuf/proto"
+	_go "github.com/okex/exchain/ics23"
 )
 
 // Reference imports to suppress errors if they are not otherwise used.

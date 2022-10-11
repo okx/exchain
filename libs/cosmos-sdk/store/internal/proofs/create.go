@@ -3,10 +3,11 @@ package proofs
 import (
 	"errors"
 	"fmt"
-	"github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	"sort"
 
-	ics23 "github.com/confio/ics23/go"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
+
+	ics23 "github.com/okex/exchain/ics23"
 )
 
 var (
