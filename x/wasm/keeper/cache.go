@@ -88,3 +88,7 @@ func (c *Cache) UpdateBlockedContractMethod(cms []*types.ContractMethods) {
 func GetWasmParamsCache() *Cache {
 	return wasmParamsCache
 }
+
+func SetWasmParamsNeedUpdate() {
+	GetWasmParamsCache().SetNeedParamsUpdate()
+}
