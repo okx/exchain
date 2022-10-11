@@ -203,16 +203,21 @@ func (k Keeper) IsContractMethodBlocked(ctx sdk.Context, contractAddr, method st
 }
 
 func (k Keeper) GetContractMethodBlockedList(ctx sdk.Context, contractAddr string) *types.ContractMethods {
-	if ctx.UseParamCache() {
-		if GetWasmParamsCache().IsNeedBlockedUpdate() {
-			cms := k.getAllBlockedList(ctx)
-			if !ctx.IsCheckTx() {
-				GetWasmParamsCache().UpdateBlockedContractMethod(cms)
-			}
-			return types.FindContractMethods(cms, contractAddr)
-		}
-		return GetWasmParamsCache().GetBlockedContractMethod(contractAddr)
-	}
+	// gas free for getting blacklist
+	gasMeter := ctx.GasMeter()
+	defer ctx.SetGasMeter(gasMeter)
+
+	// disable param cache until make sure it works correctly
+	//if ctx.UseParamCache() {
+	//	if GetWasmParamsCache().IsNeedBlockedUpdate() {
+	//		cms := k.getAllBlockedList(ctx)
+	//		if !ctx.IsCheckTx() {
+	//			GetWasmParamsCache().UpdateBlockedContractMethod(cms)
+	//		}
+	//		return types.FindContractMethods(cms, contractAddr)
+	//	}
+	//	return GetWasmParamsCache().GetBlockedContractMethod(contractAddr)
+	//}
 
 	return k.getContractMethodBlockedList(ctx, contractAddr)
 }
@@ -251,6 +256,7 @@ func (k Keeper) updateContractMethodBlockedList(ctx sdk.Context, blockedMethods 
 	if isDelete {
 		oldBlockedMethods.DeleteMethods(blockedMethods.Methods)
 	} else {
+		oldBlockedMethods.ContractAddr = blockedMethods.ContractAddr
 		oldBlockedMethods.AddMethods(blockedMethods.Methods)
 	}
 	data, err := proto.Marshal(oldBlockedMethods)
@@ -286,17 +292,22 @@ func (k Keeper) getInstantiateAccessConfig(ctx sdk.Context) types.AccessType {
 
 // GetParams returns the total set of wasm parameters.
 func (k Keeper) GetParams(ctx sdk.Context) types.Params {
+	// gas free for getting params
+	gasMeter := ctx.GasMeter()
+	defer ctx.SetGasMeter(gasMeter)
+
 	var params types.Params
-	if ctx.UseParamCache() {
-		if GetWasmParamsCache().IsNeedParamsUpdate() {
-			k.paramSpace.GetParamSet(ctx, &params)
-			if !ctx.IsCheckTx() {
-				GetWasmParamsCache().UpdateParams(params)
-			}
-			return params
-		}
-		return GetWasmParamsCache().GetParams()
-	}
+	// disable param cache until make sure it works correctly
+	//if ctx.UseParamCache() {
+	//	if GetWasmParamsCache().IsNeedParamsUpdate() {
+	//		k.paramSpace.GetParamSet(ctx, &params)
+	//		if !ctx.IsCheckTx() {
+	//			GetWasmParamsCache().UpdateParams(params)
+	//		}
+	//		return params
+	//	}
+	//	return GetWasmParamsCache().GetParams()
+	//}
 	k.paramSpace.GetParamSet(ctx, &params)
 	return params
 }
