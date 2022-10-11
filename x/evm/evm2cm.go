@@ -57,9 +57,9 @@ func EvmConvertJudge(msg sdk.Msg) ([]byte, bool) {
 	if !ok || evmTx.Data.Recipient == nil {
 		return nil, false
 	}
-	if !sysABIParser.IsMatchFunction(sysContractInvokeFunction, evmTx.Data.Payload) {
-		return nil, false
-	}
+	//if !sysABIParser.IsMatchFunction(sysContractInvokeFunction, evmTx.Data.Payload) {
+	//	return nil, false
+	//}
 	return evmTx.Data.Recipient[:], true
 }
 
