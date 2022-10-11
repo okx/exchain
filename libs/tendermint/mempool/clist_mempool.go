@@ -351,7 +351,9 @@ func (mem *CListMempool) CheckOrder(order dydx.OrderRaw, cb func(*abci.Response)
 	memOrder := dydx.NewMempoolOrder(order, mem.Height())
 	memOrder.StoreSender(txInfo.SenderID)
 
-	mem.orderManager.Insert(memOrder, mem.Height())
+	if err := mem.orderManager.Insert(memOrder); err != nil {
+		return err
+	}
 	cb(abci.ToResponseCheckTx(abci.ResponseCheckTx{}))
 	return nil
 }

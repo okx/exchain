@@ -2,11 +2,14 @@ package dydx
 
 import (
 	"crypto/sha256"
+	"fmt"
 	"math/big"
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/okex/exchain/libs/dydx/contracts"
 	"github.com/okex/exchain/libs/tendermint/types"
 	"github.com/umbracle/ethgo/abi"
 )
@@ -23,69 +26,130 @@ const (
 )
 
 const (
+	EIP712_DOMAIN_SEPARATOR_SCHEMA = "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
+	EIP712_DOMAIN_NAME             = "P1Orders"
+	EIP712_DOMAIN_VERSION          = "1.0"
+	EIP712_ORDER_STRUCT_SCHEMA     = "Order(bytes32 flags,uint256 amount,uint256 limitPrice,uint256 triggerPrice,uint256 limitFee,address maker,address taker,uint256 expiration)"
+
+	//TODO, mock addr
 	contractAddress = "0x5D64795f3f815924E607C7e9651e89Db4Dbddb62"
 	KeySize         = sha256.Size
 )
 
 var (
 	ZeroKey     = [KeySize]byte{}
-	orderTuple  = abi.MustNewType("tuple(int32 calltype, bytes32 flags, uint256 amount, uint256 limitprice, uint256 triggerprice, uint256 limitfee, address maker, address taker, uint256 expiration)")
+	callTypeABI = abi.MustNewType("int32")
+	orderTuple  = abi.MustNewType("tuple(bytes32 flags, uint256 amount, uint256 limitprice, uint256 triggerprice, uint256 limitfee, address maker, address taker, uint256 expiration)")
 	signedTuple = abi.MustNewType("tuple(bytes msg, bytes32 sig)")
+
+	//TODO: get chainID
+	chainID = big.NewInt(67)
+
+	EIP191_HEADER                       = []byte{0x19, 0x01}
+	EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH = crypto.Keccak256Hash([]byte(EIP712_DOMAIN_SEPARATOR_SCHEMA))
+	EIP712_DOMAIN_NAME_HASH             = crypto.Keccak256Hash([]byte(EIP712_DOMAIN_NAME))
+	EIP712_DOMAIN_VERSION_HASH          = crypto.Keccak256Hash([]byte(EIP712_DOMAIN_VERSION))
+	_EIP712_DOMAIN_HASH_                = crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], chainID.Bytes(), []byte(contractAddress))
+	EIP712_ORDER_STRUCT_SCHEMA_HASH     = crypto.Keccak256Hash([]byte(EIP712_ORDER_STRUCT_SCHEMA))
 )
 
 func (o OrderRaw) Key() [KeySize]byte {
 	return sha256.Sum256(o)
 }
 
-type Order struct {
-	CallType     int32
-	Flags        [32]byte
-	Maker        common.Address
-	Taker        common.Address
-	Amount       *big.Int
-	LimitPrice   *big.Int
-	TriggerPrice *big.Int
-	LimitFee     *big.Int
-	Expiration   *big.Int
+type P1Order struct {
+	CallType int32
+	contracts.P1OrdersOrder
 }
 
-func (o *Order) Type() OrderType {
-	//TODO: order type
-	if o == nil {
+//TODO to verify
+func (p *P1Order) VerifySignature(sig []byte) error {
+	orderHash := p.Hash()
+	pub, err := crypto.Ecrecover(orderHash[:], sig)
+	if err != nil {
+		return err
+	}
+	if !crypto.VerifySignature(pub, orderHash[:], sig) {
+		return fmt.Errorf("invalid signature")
+	}
+	return nil
+}
+
+// Hash returns the EIP712 hash of an order.
+//TODO to verify
+func (p *P1Order) Hash() common.Hash {
+	orderBytes, err := p.encodeOrder()
+	if err != nil {
+		return common.Hash{}
+	}
+	structHash := crypto.Keccak256Hash(EIP712_ORDER_STRUCT_SCHEMA_HASH[:], orderBytes[:])
+	return crypto.Keccak256Hash(EIP191_HEADER, _EIP712_DOMAIN_HASH_[:], structHash[:])
+}
+
+func (p *P1Order) Type() OrderType {
+	if p == nil {
 		return UnknownOrderType
 	}
-	if o.Flags[31] == 1 {
+	if p.Flags[31] == 1 {
 		return SellOrderType
 	}
 	return BuyOrderType
 }
 
-func (o *Order) Price() *big.Int {
-	return o.LimitPrice
+func (p *P1Order) Price() *big.Int {
+	return p.LimitPrice
 }
 
-func (o *Order) DecodeFrom(data []byte) error {
-	return orderTuple.DecodeStruct(data, o)
+func (p *P1Order) DecodeFrom(data []byte) error {
+	err := callTypeABI.DecodeStruct(data[:32], &p.CallType)
+	if err != nil {
+		return err
+	}
+	return orderTuple.DecodeStruct(data[32:], &p.P1OrdersOrder)
 }
 
-func (o *Order) clone() Order {
-	return Order{
-		Amount:       new(big.Int).Set(o.Amount),
-		LimitPrice:   new(big.Int).Set(o.LimitPrice),
-		TriggerPrice: new(big.Int).Set(o.TriggerPrice),
-		LimitFee:     new(big.Int).Set(o.LimitFee),
-		Maker:        o.Maker,
-		Taker:        o.Taker,
-		Expiration:   new(big.Int).Set(o.Expiration),
+func (p *P1Order) encodeCallType() ([]byte, error) {
+	return callTypeABI.Encode(p.CallType)
+}
+
+func (p *P1Order) encodeOrder() ([]byte, error) {
+	return orderTuple.Encode(p.P1OrdersOrder)
+}
+
+func (p *P1Order) Encode() ([]byte, error) {
+	bs1, err := p.encodeCallType()
+	if err != nil {
+		return nil, err
+	}
+	bs2, err := p.encodeOrder()
+	if err != nil {
+		return nil, err
+	}
+	return append(bs1, bs2...), nil
+}
+
+func (p P1Order) clone() P1Order {
+	return P1Order{
+		CallType: p.CallType,
+		P1OrdersOrder: contracts.P1OrdersOrder{
+			Amount:       new(big.Int).Set(p.Amount),
+			LimitPrice:   new(big.Int).Set(p.LimitPrice),
+			TriggerPrice: new(big.Int).Set(p.TriggerPrice),
+			LimitFee:     new(big.Int).Set(p.LimitFee),
+			Maker:        p.Maker,
+			Taker:        p.Taker,
+			Expiration:   new(big.Int).Set(p.Expiration),
+		},
 	}
 }
 
 type WrapOrder struct {
-	Order
-	LeftAmount *big.Int
-	Raw        OrderRaw
-	Sig        []byte
-	OrderKey   [KeySize]byte
+	P1Order
+	FrozenAmount *big.Int
+	LeftAmount   *big.Int
+	Raw          OrderRaw
+	Sig          []byte
+	OrderKey     [KeySize]byte
 }
 
 func (w *WrapOrder) Key() [KeySize]byte {

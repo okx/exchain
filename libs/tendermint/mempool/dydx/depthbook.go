@@ -4,6 +4,7 @@ import (
 	"container/list"
 	"errors"
 	"sync"
+	"time"
 )
 
 type DepthBook struct {
@@ -58,11 +59,13 @@ type OrderList struct {
 }
 
 func NewOrderList(reverse bool) *OrderList {
-	return &OrderList{
+	ol := &OrderList{
 		reverse: reverse,
 		orders:  list.New(),
 		index:   make(map[[KeySize]byte]*list.Element),
 	}
+	go ol.prune()
+	return ol
 }
 
 func (o *OrderList) Front() *list.Element {
@@ -120,6 +123,23 @@ func (o *OrderList) Remove(ele *list.Element) *list.Element {
 		return ele
 	}
 	return nil
+}
+
+//TODO, use block.timestamp?
+func (o *OrderList) prune() {
+	ticker := time.NewTimer(time.Minute)
+	for {
+		select {
+		case <-ticker.C:
+			o.Lock()
+			for ele := o.orders.Front(); ele != nil; ele = ele.Next() {
+				if ele.Value.(*WrapOrder).Expiration.Uint64() < uint64(time.Now().Unix()) {
+					o.orders.Remove(ele)
+				}
+			}
+			o.Unlock()
+		}
+	}
 }
 
 func (o *OrderList) less(order1, order2 *WrapOrder) bool {

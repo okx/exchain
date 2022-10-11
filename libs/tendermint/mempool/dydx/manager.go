@@ -1,6 +1,7 @@
 package dydx
 
 import (
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -21,19 +22,27 @@ func NewOrderManager() *OrderManager {
 	}
 }
 
-func (d *OrderManager) Insert(memOrder *MempoolOrder, height int64) error {
-	ele := d.orders.PushBack(memOrder)
-	d.ordersMap.Store(memOrder.Key(), ele)
+func (d *OrderManager) Insert(memOrder *MempoolOrder) error {
 	var signedOdr SignedOrder
 	if err := signedOdr.DecodeFrom(memOrder.raw); err != nil {
 		return err
 	}
-	var odr Order
+	var odr P1Order
 	if err := odr.DecodeFrom(signedOdr.Msg); err != nil {
 		return err
 	}
+	if odr.Expiration.Uint64() == 0 {
+		return fmt.Errorf("invalid expiration")
+	}
+	if err := odr.VerifySignature(signedOdr.Sig[:]); err != nil {
+		return err
+	}
+
+	ele := d.orders.PushBack(memOrder)
+	d.ordersMap.Store(memOrder.Key(), ele)
+
 	wrapOdr := &WrapOrder{
-		Order:      odr,
+		P1Order:    odr,
 		LeftAmount: new(big.Int).Set(odr.Amount),
 		Raw:        memOrder.Raw(),
 		Sig:        signedOdr.Sig[:],
