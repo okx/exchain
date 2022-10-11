@@ -3,8 +3,6 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/app/rpc/simulator"
-	"github.com/spf13/viper"
 	"os"
 	"sort"
 	"strconv"
@@ -12,6 +10,9 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/okex/exchain/app/rpc/simulator"
+	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
@@ -358,6 +359,7 @@ func (app *BaseApp) halt() {
 // Query implements the ABCI interface. It delegates to CommitMultiStore if it
 // implements Queryable.
 func (app *BaseApp) Query(req abci.RequestQuery) abci.ResponseQuery {
+	fmt.Println("path:", req.Path)
 	ceptor := app.interceptors[req.Path]
 	if nil != ceptor {
 		// interceptor is like `aop`,it may record the request or rewrite the data in the request

@@ -251,3 +251,9 @@ func (r ResultEvent) Upgrade() interface{} {
 	}
 	return r
 }
+
+// ResultBlockSearch defines the RPC response type for a block search by events.
+type ResultBlockSearch struct {
+	Blocks     []*ResultBlock `json:"blocks"`
+	TotalCount int            `json:"total_count"`
+}
