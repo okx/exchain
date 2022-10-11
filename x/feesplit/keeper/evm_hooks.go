@@ -45,10 +45,9 @@ func (k Keeper) PostTxProcessing(
 	if !tmtypes.HigherThanVenus3(ctx.BlockHeight() - 1) {
 		return nil
 	}
-	ctx.Logger().Error("feesplit生效", "height", ctx.BlockHeight())
+
 	// check if the fees are globally enabled
 	params := k.GetParams(ctx)
-	ctx.Logger().Error("取得参数", "params", params)
 	if !params.EnableFeeSplit {
 		return nil
 	}

@@ -11,11 +11,14 @@ func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
 	if ctx.UseParamCache() {
 		if types.GetParamsCache().IsNeedParamsUpdate() {
 			k.paramSpace.GetParamSet(ctx, &params)
+			ctx.Logger().Error("从db中取得params")
 			types.GetParamsCache().UpdateParams(params, ctx.IsCheckTx())
 		} else {
+			ctx.Logger().Error("从cache中取得params")
 			params = types.GetParamsCache().GetParams()
 		}
 	} else {
+		ctx.Logger().Error("从db中取得params")
 		k.paramSpace.GetParamSet(ctx, &params)
 	}
 

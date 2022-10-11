@@ -13,7 +13,6 @@ func InitGenesis(
 	k keeper.Keeper,
 	data types.GenesisState,
 ) {
-	ctx.Logger().Error("写入feesplit参数", "height", ctx.BlockHeight(), "patams", data.Params)
 	k.SetParams(ctx, data.Params)
 
 	for _, feeSplit := range data.FeeSplits {
