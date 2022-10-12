@@ -293,8 +293,8 @@ func queryHashToHeight(ctx sdk.Context, path []string, keeper Keeper) ([]byte, e
 			"Insufficient parameters, at least 2 parameters is required")
 	}
 
-	blockHash := ethcmn.FromHex(path[1])
-	blockNumber, found := keeper.GetBlockHash(ctx, blockHash)
+	blockHash := ethcmn.HexToHash(path[1])
+	blockNumber, found := keeper.GetBlockHeight(ctx, blockHash)
 	if !found {
 		return []byte{}, sdkerrors.Wrap(types.ErrKeyNotFound, fmt.Sprintf("block height not found for hash %s", path[1]))
 	}

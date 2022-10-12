@@ -14,6 +14,7 @@ import (
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
 	nm "github.com/okex/exchain/libs/tendermint/node"
+	"github.com/okex/exchain/libs/tendermint/types"
 )
 
 var (
@@ -168,6 +169,12 @@ func AddNodeFlags(cmd *cobra.Command) {
 		"enable wrapped tx",
 	)
 
+	cmd.Flags().Bool(
+		"mempool.check_tx_cost",
+		false,
+		"Calculate tx type count and time in function checkTx per block",
+	)
+
 	cmd.Flags().String(
 		"local_perf",
 		"",
@@ -177,7 +184,7 @@ func AddNodeFlags(cmd *cobra.Command) {
 	// db flags
 	cmd.Flags().String(
 		"db_backend",
-		config.DBBackend,
+		types.DBBackend,
 		"Database backend: goleveldb | cleveldb | boltdb | rocksdb")
 	cmd.Flags().String(
 		"db_dir",

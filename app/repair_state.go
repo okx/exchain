@@ -105,7 +105,7 @@ func RepairState(ctx *server.Context, onStart bool) {
 	}
 
 	// load state
-	stateStoreDB, err := openDB(stateDB, dataDir)
+	stateStoreDB, err := sdk.NewDB(stateDB, dataDir)
 	panicError(err)
 	defer func() {
 		err := stateStoreDB.Close()
@@ -150,7 +150,7 @@ func RepairState(ctx *server.Context, onStart bool) {
 func createRepairApp(ctx *server.Context) (proxy.AppConns, *repairApp, error) {
 	rootDir := ctx.Config.RootDir
 	dataDir := filepath.Join(rootDir, "data")
-	db, err := openDB(applicationDB, dataDir)
+	db, err := sdk.NewDB(applicationDB, dataDir)
 	panicError(err)
 	repairApp := newRepairApp(ctx.Logger, db, nil)
 
@@ -235,7 +235,7 @@ func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus
 	var blockIndexer blockindex.BlockIndexer
 	switch config.TxIndex.Indexer {
 	case "kv":
-		txStore, err = openDB(txIndexDB, filepath.Join(config.RootDir, "data"))
+		txStore, err = sdk.NewDB(txIndexDB, filepath.Join(config.RootDir, "data"))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -317,7 +317,7 @@ func constructStartState(state sm.State, stateStoreDB dbm.DB, startHeight int64)
 }
 
 func loadBlock(height int64, dataDir string) (*types.Block, *types.BlockMeta) {
-	storeDB, err := openDB(blockStoreDB, dataDir)
+	storeDB, err := sdk.NewDB(blockStoreDB, dataDir)
 	defer storeDB.Close()
 	blockStore := store.NewBlockStore(storeDB)
 	panicError(err)
@@ -327,7 +327,7 @@ func loadBlock(height int64, dataDir string) (*types.Block, *types.BlockMeta) {
 }
 
 func latestBlockHeight(dataDir string) int64 {
-	storeDB, err := openDB(blockStoreDB, dataDir)
+	storeDB, err := sdk.NewDB(blockStoreDB, dataDir)
 	panicError(err)
 	defer storeDB.Close()
 	blockStore := store.NewBlockStore(storeDB)
@@ -339,10 +339,6 @@ func panicError(err error) {
 	if err != nil {
 		panic(err)
 	}
-}
-
-func openDB(dbName string, dataDir string) (db dbm.DB, err error) {
-	return sdk.NewLevelDB(dbName, dataDir)
 }
 
 func createAndStartProxyAppConns(clientCreator proxy.ClientCreator) (proxy.AppConns, error) {

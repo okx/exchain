@@ -28,7 +28,7 @@ run() {
       --log_level $LOG_LEVEL \
       --log_file json \
       --enable-dynamic-gp=false \
-      --consensus.timeout_commit 2000ms \
+      --consensus.timeout_commit 500ms \
       --enable-preruntx=false \
       --fast-query=true \
       --deliver-txs-mode=2 \
@@ -70,7 +70,7 @@ set -x # activate debugging
 rm -rf ~/.exchain*
 rm -rf $HOME_SERVER
 
-(cd .. && make install Venus1Height=1 Venus2Height=1)
+(cd .. && make install Venus1Height=1 Venus2Height=1 EarthHeight=1)
 
 # Set up config for CLI
 exchaincli config chain-id $CHAINID

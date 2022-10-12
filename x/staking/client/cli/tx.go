@@ -40,6 +40,7 @@ func GetTxCmd(storeKey string, cdc *codec.Codec) *cobra.Command {
 			GetCmdCreateValidator(cdc),
 			GetCmdDestroyValidator(cdc),
 			GetCmdEditValidator(cdc),
+			GetCmdEditValidatorCommissionRate(cdc),
 			GetCmdDeposit(cdc),
 			GetCmdWithdraw(cdc),
 			GetCmdAddShares(cdc),

@@ -157,7 +157,6 @@ type State struct {
 	bt       *BlockTransport
 
 	vcMsg *ViewChangeMessage
-	hasVC bool // active-view-change(enterNewRoundAVC) at this Height
 }
 
 // StateOption sets an optional parameter on the State.
@@ -199,6 +198,11 @@ func NewState(
 	cs.doPrevote = cs.defaultDoPrevote
 	cs.setProposal = cs.defaultSetProposal
 
+	// We have no votes, so reconstruct LastCommit from SeenCommit.
+	if state.LastBlockHeight > types.GetStartBlockHeight() {
+		cs.reconstructLastCommit(state)
+	}
+
 	cs.updateToState(state)
 	if cs.prerunTx {
 		cs.blockExec.InitPrerun()
@@ -206,7 +210,6 @@ func NewState(
 
 	// Don't call scheduleRound0 yet.
 	// We do that upon Start().
-	cs.reconstructLastCommit(state)
 	cs.BaseService = *service.NewBaseService(nil, "State", cs)
 	for _, option := range options {
 		option(cs)
@@ -576,7 +579,7 @@ func (cs *State) BlockExec() *sm.BlockExecutor {
 
 //---------------------------------------------------------
 
-func CompareHRS(h1 int64, r1 int, s1 cstypes.RoundStepType, h2 int64, r2 int, s2 cstypes.RoundStepType) int {
+func CompareHRS(h1 int64, r1 int, s1 cstypes.RoundStepType, h2 int64, r2 int, s2 cstypes.RoundStepType, hasVC bool) int {
 	if h1 < h2 {
 		return -1
 	} else if h1 > h2 {
@@ -585,6 +588,9 @@ func CompareHRS(h1 int64, r1 int, s1 cstypes.RoundStepType, h2 int64, r2 int, s2
 	if r1 < r2 {
 		return -1
 	} else if r1 > r2 {
+		return 1
+	}
+	if hasVC {
 		return 1
 	}
 	if s1 < s2 {

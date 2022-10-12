@@ -72,9 +72,12 @@ func (tx *IbcTx) GetSignBytes(ctx sdk.Context, index int, acc exported.Account) 
 		return IbcAminoSignBytes(
 			chainID, accNum, acc.GetSequence(), tx.SigFee, tx.SigMsgs, tx.Memo, 0,
 		)
+	case signing.SignMode_SIGN_MODE_UNSPECIFIED:
+		//Compatible with cosmojs for simulating tx
+		return nil
 	default:
-		//does not support SignMode_SIGN_MODE_UNSPECIFIED SignMode_SIGN_MODE_TEXTUAL
-		panic("ibctx not support SignMode_SIGN_MODE_UNSPECIFIED or SignMode_SIGN_MODE_TEXTUAL")
+		//does not other mode
+		panic(fmt.Sprintf("ibctx not support sign mode: %s", tx.SignMode[index].String()))
 	}
 }
 

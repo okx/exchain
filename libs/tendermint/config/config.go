@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/okex/exchain/libs/tendermint/types"
+
 	"github.com/pkg/errors"
 )
 
@@ -250,7 +252,7 @@ func DefaultBaseConfig() BaseConfig {
 		FastSyncMode:       true,
 		AutoFastSync:       true,
 		FilterPeers:        false,
-		DBBackend:          "goleveldb",
+		DBBackend:          types.DBBackend,
 		DBPath:             "data",
 		LogFile:            defaultLogFile,
 		LogStdout:          true,

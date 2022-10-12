@@ -7,6 +7,7 @@ import (
 	"github.com/okex/exchain/x/wasm/keeper/testdata"
 	"github.com/okex/exchain/x/wasm/watcher"
 	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -98,7 +99,8 @@ var moduleBasics = module.NewBasicManager(
 	distribution.AppModuleBasic{},
 	supply.AppModuleBasic{},
 	gov.NewAppModuleBasic(
-		paramsclient.ProposalHandler, distrclient.ProposalHandler, //upgradeclient.ProposalHandler,
+		paramsclient.ProposalHandler, distrclient.ChangeDistributionTypeProposalHandler,
+		paramsclient.ProposalHandler, distrclient.CommunityPoolSpendProposalHandler,
 	),
 	params.AppModuleBasic{},
 	crisis.AppModuleBasic{},
@@ -227,6 +229,9 @@ func createTestInput(
 	opts ...Option,
 ) (sdk.Context, TestKeepers) {
 	tempDir := t.TempDir()
+	t.Cleanup(func() {
+		os.RemoveAll(tempDir)
+	})
 
 	keys := sdk.NewKVStoreKeys(
 		auth.StoreKey, staking.StoreKey,
@@ -428,7 +433,7 @@ func createTestInput(
 	govRouter := gov.NewRouter().
 		AddRoute(govtypes.RouterKey, govtypes.ProposalHandler).
 		AddRoute(paramproposal.RouterKey, params.NewParamChangeProposalHandler(&paramsKeeper)).
-		AddRoute(distributiontypes.RouterKey, distribution.NewCommunityPoolSpendProposalHandler(distKeeper))
+		AddRoute(distributiontypes.RouterKey, distribution.NewDistributionProposalHandler(distKeeper))
 	//AddRoute(types.RouterKey, NewWasmProposalHandler(&keeper, types.EnableAllProposals))
 
 	govProposalHandlerRouter := govkeeper.NewProposalHandlerRouter()

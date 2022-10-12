@@ -214,7 +214,7 @@ func initDBs(config *cfg.Config, dbProvider DBProvider) (blockStore *store.Block
 
 func initBlockStore(dataDir string) (blockStore *store.BlockStore, err error) {
 	var blockStoreDB dbm.DB
-	blockStoreDB, err = sdk.NewLevelDB("blockstore", dataDir)
+	blockStoreDB, err = sdk.NewDB("blockstore", dataDir)
 	if err != nil {
 		return
 	}
@@ -224,7 +224,7 @@ func initBlockStore(dataDir string) (blockStore *store.BlockStore, err error) {
 }
 
 func initTxDB(dataDir string) (txDB dbm.DB, err error) {
-	txDB, err = sdk.NewLevelDB("tx_index", dataDir)
+	txDB, err = sdk.NewDB("tx_index", dataDir)
 	if err != nil {
 		return
 	}
@@ -244,7 +244,7 @@ func initBlcokEventTxDB(blockIndexDb dbm.DB) dbm.DB {
 }
 
 func initStateDB(config *cfg.Config) (stateDB dbm.DB, err error) {
-	stateDB, err = sdk.NewLevelDB("state", config.DBDir())
+	stateDB, err = sdk.NewDB("state", config.DBDir())
 	if err != nil {
 		return
 	}

@@ -22,6 +22,8 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/spf13/viper"
 
+	appconfig "github.com/okex/exchain/app/config"
+
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
@@ -60,6 +62,7 @@ const (
 	FlagFastQueryThreshold = "fast-query-threshold"
 
 	EvmHookGasEstimate = uint64(60000)
+	EvmDefaultGasLimit = uint64(21000)
 )
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -248,8 +251,8 @@ func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 	monitor := monitor.GetMonitor("eth_gasPrice", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd()
 
-	if app.GlobalGpIndex.RecommendGp != nil {
-		return (*hexutil.Big)(app.GlobalGpIndex.RecommendGp)
+	if appconfig.GetOecConfig().GetEnableDynamicGp() {
+		return (*hexutil.Big)(app.GlobalGp)
 	}
 
 	return api.gasPrice
@@ -477,7 +480,7 @@ func (api *PublicEthereumAPI) GetBlockTransactionCountByHash(hash common.Hash) *
 		return nil
 	}
 
-	resBlock, err := api.clientCtx.Client.Block(&out.Number)
+	resBlock, err := api.backend.Block(&out.Number)
 	if err != nil {
 		return nil
 	}
@@ -503,7 +506,7 @@ func (api *PublicEthereumAPI) GetBlockTransactionCountByNumber(blockNum rpctypes
 		if err != nil {
 			return nil
 		}
-		resBlock, err := api.clientCtx.Client.Block(&height)
+		resBlock, err := api.backend.Block(&height)
 		if err != nil {
 			return nil
 		}
@@ -518,14 +521,14 @@ func (api *PublicEthereumAPI) GetBlockTransactionCountByNumber(blockNum rpctypes
 		if err != nil {
 			return nil
 		}
-		resBlock, err := api.clientCtx.Client.Block(&height)
+		resBlock, err := api.backend.Block(&height)
 		if err != nil {
 			return nil
 		}
 		txs = len(resBlock.Block.Txs)
 	default:
 		height = blockNum.Int64()
-		resBlock, err := api.clientCtx.Client.Block(&height)
+		resBlock, err := api.backend.Block(&height)
 		if err != nil {
 			return nil
 		}
@@ -702,19 +705,23 @@ func (api *PublicEthereumAPI) SendRawTransaction(data hexutil.Bytes) (common.Has
 	if err != nil {
 		return common.Hash{}, err
 	}
-	tx := new(evmtypes.MsgEthereumTx)
-
-	// RLP decode raw transaction bytes
-	if err := authtypes.EthereumTxDecode(data, tx); err != nil {
-		// Return nil is for when gasLimit overflows uint64
-		return common.Hash{}, err
-	}
-
 	txBytes := data
-	if !tmtypes.HigherThanVenus(int64(height)) {
-		txBytes, err = authclient.GetTxEncoder(api.clientCtx.Codec)(tx)
-		if err != nil {
+	var tx *evmtypes.MsgEthereumTx
+
+	if !tmtypes.HigherThanVenus(int64(height)) || api.txPool != nil {
+		tx = new(evmtypes.MsgEthereumTx)
+
+		// RLP decode raw transaction bytes
+		if err := authtypes.EthereumTxDecode(data, tx); err != nil {
+			// Return nil is for when gasLimit overflows uint64
 			return common.Hash{}, err
+		}
+
+		if !tmtypes.HigherThanVenus(int64(height)) {
+			txBytes, err = authclient.GetTxEncoder(api.clientCtx.Codec)(tx)
+			if err != nil {
+				return common.Hash{}, err
+			}
 		}
 	}
 
@@ -948,6 +955,14 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 		errMsg := fmt.Sprintf("estimate gas %v greater than system max gas limit per tx %v", estimatedGas, maxGasLimitPerTx)
 		return 0, TransformDataError(sdk.ErrOutOfGas(errMsg), "eth_estimateGas")
 	}
+
+	// The gasLimit of evm ordinary tx is 21000 by default.
+	// Using gasBuffer will cause the gasLimit in MetaMask to be too large, which will affect the user experience.
+	// Therefore, if an ordinary tx is received, just return the default gasLimit of evm.
+	if estimatedGas == EvmDefaultGasLimit && args.Data == nil {
+		return hexutil.Uint64(estimatedGas), nil
+	}
+
 	gasBuffer := estimatedGas / 100 * config.GetOecConfig().GetGasLimitBuffer()
 	//EvmHookGasEstimate: evm tx with cosmos hook,we cannot estimate hook gas
 	//simple add EvmHookGasEstimate,run tx will refund the extra gas
@@ -982,7 +997,7 @@ func (api *PublicEthereumAPI) getBlockByNumber(blockNum rpctypes.BlockNumber, fu
 	}
 
 	// latest block info
-	latestBlock, err := api.clientCtx.Client.Block(&height)
+	latestBlock, err := api.backend.Block(&height)
 	if err != nil {
 		return nil, err
 	}
@@ -1056,7 +1071,7 @@ func (api *PublicEthereumAPI) GetTransactionByBlockHashAndIndex(hash common.Hash
 	var out evmtypes.QueryResBlockNumber
 	api.clientCtx.Codec.MustUnmarshalJSON(res, &out)
 
-	resBlock, err := api.clientCtx.Client.Block(&out.Number)
+	resBlock, err := api.backend.Block(&out.Number)
 	if err != nil {
 		return nil, nil
 	}
@@ -1103,7 +1118,7 @@ func (api *PublicEthereumAPI) GetTransactionByBlockNumberAndIndex(blockNum rpcty
 		height = blockNum.Int64()
 	}
 
-	resBlock, err := api.clientCtx.Client.Block(&height)
+	resBlock, err := api.backend.Block(&height)
 	if err != nil {
 		return nil, err
 	}
@@ -1145,7 +1160,7 @@ func (api *PublicEthereumAPI) GetTransactionReceipt(hash common.Hash) (*watcher.
 	}
 
 	// Query block for consensus hash
-	block, err := api.clientCtx.Client.Block(&tx.Height)
+	block, err := api.backend.Block(&tx.Height)
 	if err != nil {
 		return nil, err
 	}

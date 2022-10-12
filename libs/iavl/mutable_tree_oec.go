@@ -92,8 +92,10 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 
 		// generate state delta
 		if produceDelta {
-			delete(tree.savedNodes, string(tree.root.hash))
-			tree.savedNodes["root"] = tree.root
+			if len(tree.savedNodes) > 0 {
+				delete(tree.savedNodes, string(tree.root.hash))
+				tree.savedNodes["root"] = tree.root
+			}
 			tree.GetDelta()
 		}
 	}
@@ -115,9 +117,9 @@ func (tree *MutableTree) updateBranchFastNode() {
 	if !GetEnableFastStorage() {
 		return
 	}
-	tree.ndb.updateBranchForFastNode(tree.unsavedFastNodeAdditions, tree.unsavedFastNodeRemovals)
-	tree.unsavedFastNodeAdditions = make(map[string]*FastNode)
-	tree.unsavedFastNodeRemovals = make(map[string]interface{})
+
+	tree.ndb.updateBranchForFastNode(tree.unsavedFastNodes)
+	tree.unsavedFastNodes.reset()
 }
 
 func (tree *MutableTree) setNewWorkingTree(version int64, persisted bool) ([]byte, int64, error) {
