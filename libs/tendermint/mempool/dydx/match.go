@@ -5,6 +5,7 @@ import (
 	"crypto/ecdsa"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
@@ -117,22 +118,23 @@ func NewMatchEngine(depthBook *DepthBook, config DydxConfig, handler LogHandler)
 type MatchResult struct {
 	MatchedRecords []*MatchRecord
 	TakerOrder     *WrapOrder
+
+	OnChain chan bool
+	Tx      *ethtypes.Transaction
 }
 
-func (r *MatchResult) AddMatchedRecord(price *big.Int, amount *big.Int, makerOrder *WrapOrder) {
+func (r *MatchResult) AddMatchedRecord(fill *contracts.P1OrdersFill, makerOrder *WrapOrder) {
 	r.MatchedRecords = append(r.MatchedRecords, &MatchRecord{
-		Price:  price,
-		Amount: amount,
-		Maker:  makerOrder,
-		Taker:  r.TakerOrder,
+		Fill:  fill,
+		Maker: makerOrder,
+		Taker: r.TakerOrder,
 	})
 }
 
 type MatchRecord struct {
-	Price  *big.Int
-	Amount *big.Int
-	Taker  *WrapOrder
-	Maker  *WrapOrder
+	Fill  *contracts.P1OrdersFill
+	Taker *WrapOrder
+	Maker *WrapOrder
 }
 
 func (m *MatchEngine) Stop() {
@@ -143,11 +145,68 @@ func (m *MatchEngine) Stop() {
 
 func (m *MatchEngine) Match(order *WrapOrder) (*MatchResult, error) {
 	if order.Type() == BuyOrderType {
-		return processOrder(order, m.depthBook.sellOrders, m.depthBook.buyOrders)
+		return processOrder(order, m.depthBook.sellOrders, m.depthBook.buyOrders), nil
 	} else if order.Type() == SellOrderType {
-		return processOrder(order, m.depthBook.buyOrders, m.depthBook.sellOrders)
+		return processOrder(order, m.depthBook.buyOrders, m.depthBook.sellOrders), nil
 	} else {
 		return nil, fmt.Errorf("invalid order type")
+	}
+}
+
+func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
+	matched, err := m.Match(order)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(matched.MatchedRecords) == 0 {
+		return nil, nil
+	}
+
+	op := dydxlib.NewTradeOperation(m.contracts)
+
+	for _, record := range matched.MatchedRecords {
+		var solOrder1 = WrapOrderToSignedSolOrder(record.Maker)
+		var solOrder2 = WrapOrderToSignedSolOrder(record.Taker)
+		if record.Maker.Type() == BuyOrderType {
+			var tmp = solOrder1
+			solOrder1 = solOrder2
+			solOrder2 = tmp
+		}
+
+		err = op.FillSignedSolOrderWithTaker(m.from, solOrder1, record.Fill)
+		if err != nil {
+			return matched, fmt.Errorf("failed to fill order, err: %w", err)
+		}
+		err = op.FillSignedSolOrderWithTaker(m.from, solOrder2, record.Fill)
+		if err != nil {
+			return matched, fmt.Errorf("failed to fill order, err: %w", err)
+		}
+	}
+	matched.Tx, err = op.Commit(nil)
+	if err != nil {
+		return matched, fmt.Errorf("failed to commit, err: %w", err)
+	}
+	matched.OnChain = make(chan bool, 1)
+	go func() {
+		select {
+		case <-time.After(6 * time.Second):
+			receipt, err := m.ethCli.TransactionReceipt(context.Background(), matched.Tx.Hash())
+			if err == nil {
+				if receipt.Status == 1 {
+					matched.OnChain <- true
+				} else {
+					matched.OnChain <- false
+				}
+			}
+		}
+	}()
+	return matched, nil
+}
+
+func WrapOrderToSignedSolOrder(order *WrapOrder) *dydxlib.SignedSolOrder {
+	return &dydxlib.SignedSolOrder{
+		order.P1OrdersOrder, order.Sig,
 	}
 }
 
@@ -168,7 +227,7 @@ func (m *MatchEngine) trade(order1, order2 *dydxlib.SignedSolOrder, fill *contra
 	return tx, nil
 }
 
-func processOrder(takerOrder *WrapOrder, makerBook *OrderList, takerBook *OrderList) (*MatchResult, error) {
+func processOrder(takerOrder *WrapOrder, makerBook *OrderList, takerBook *OrderList) *MatchResult {
 	var matchResult = &MatchResult{
 		TakerOrder: takerOrder,
 	}
@@ -184,23 +243,31 @@ func processOrder(takerOrder *WrapOrder, makerBook *OrderList, takerBook *OrderL
 		if takerOrder.Type() == SellOrderType && takerOrder.Price().Cmp(makerOrder.Price()) > 0 {
 			break
 		}
-		//marketPrice := makerOrder.Price()
-		//matchAmount := takerOrder.Amount()
-		//if takerOrder.Amount().Cmp(makerOrder.Amount()) > 0 {
-		//	matchAmount = makerOrder.Amount()
-		//}
-		//matchResult.AddMatchedRecord(marketPrice, matchAmount, makerOrder)
-		//takerOrder.SubAmount(matchAmount)
-		//makerOrder.SubAmount(matchAmount)
+		marketPrice := makerOrder.Price()
+		matchAmount := takerOrder.LeftAmount
+		if matchAmount.Cmp(makerOrder.LeftAmount) > 0 {
+			matchAmount = makerOrder.LeftAmount
+		}
+		matchResult.AddMatchedRecord(&contracts.P1OrdersFill{
+			Amount: matchAmount,
+			Price:  marketPrice,
+		}, makerOrder)
+
+		takerOrder.LeftAmount.Sub(takerOrder.LeftAmount, matchAmount)
+		makerOrder.LeftAmount.Sub(makerOrder.LeftAmount, matchAmount)
+
+		takerOrder.FrozenAmount.Add(takerOrder.FrozenAmount, matchAmount)
+		makerOrder.FrozenAmount.Add(makerOrder.FrozenAmount, matchAmount)
+
 		//if makerOrder.Amount().Cmp(big.NewInt(0)) == 0 {
 		//	makerBook.Remove(makerOrderElem)
 		//}
-		//if takerOrder.Amount().Cmp(big.NewInt(0)) == 0 {
-		//	break
-		//}
+		if takerOrder.LeftAmount.Cmp(big.NewInt(0)) == 0 {
+			break
+		}
 	}
 	//if takerOrder.Amount.Cmp(big.NewInt(0)) > 0 {
 	//	takerBook.Insert(takerOrder)
 	//}
-	return matchResult, nil
+	return matchResult
 }
