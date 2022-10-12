@@ -856,6 +856,7 @@ func (mem *CListMempool) Update(
 	if mem.pendingPool != nil {
 		addressNonce = make(map[string]uint64)
 	}
+	fmt.Println("debug update height====================", height)
 	for i, tx := range txs {
 		txCode := deliverTxResponses[i].Code
 		addr := ""
