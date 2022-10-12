@@ -9,6 +9,7 @@ import (
 	"os"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gogo/protobuf/proto"
@@ -197,8 +198,9 @@ type BaseApp struct { // nolint: maligned
 
 	customizeModuleOnStop []sdk.CustomizeOnStop
 	mptCommitHandler      sdk.MptCommitHandler // handler for mpt trie commit
-	feeForCollector       sdk.Coins
+	feeCollector          sdk.Coins
 	feeChanged            bool // used to judge whether should update the fee-collector account
+	FeeSplitCollector     *sync.Map
 
 	chainCache *sdk.Cache
 	blockCache *sdk.Cache
@@ -257,6 +259,7 @@ func NewBaseApp(
 		interceptors:     make(map[string]Interceptor),
 
 		checkTxCacheMultiStores: newCacheMultiStoreList(),
+		FeeSplitCollector:       &sync.Map{},
 	}
 
 	for _, option := range options {
@@ -739,6 +742,7 @@ func (app *BaseApp) getContextForSimTx(txBytes []byte, height int64) (sdk.Contex
 
 	ctx := simState.ctx
 	ctx.SetTxBytes(txBytes)
+	ctx.SetConsensusParams(app.consensusParams)
 
 	return ctx, nil
 }

@@ -102,7 +102,7 @@ func (w *Watcher) Used() {
 }
 
 func (w *Watcher) Enabled() bool {
-	return w.enable || w.InfuraKeeper != nil
+	return w.enable
 }
 
 func (w *Watcher) Enable(enable bool) {
