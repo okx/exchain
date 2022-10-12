@@ -239,7 +239,7 @@ func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus
 		if err != nil {
 			return nil, nil, err
 		}
-		blockIndexStore, err := openDB(blockIndexDb, filepath.Join(config.RootDir, "data"))
+		blockIndexStore, err := sdk.NewDB(blockIndexDb, filepath.Join(config.RootDir, "data"))
 		if err != nil {
 			return nil, nil, err
 		}

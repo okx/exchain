@@ -232,7 +232,7 @@ func initTxDB(dataDir string) (txDB dbm.DB, err error) {
 	return
 }
 func initBlockIndexDB(dataDir string) (txDB dbm.DB, err error) {
-	txDB, err = sdk.NewLevelDB("block_index", dataDir)
+	txDB, err = sdk.NewDB("block_index", dataDir)
 	if err != nil {
 		return
 	}
