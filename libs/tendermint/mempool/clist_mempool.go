@@ -423,6 +423,7 @@ func (mem *CListMempool) removeTxByKey(key [32]byte) (elem *clist.CElement) {
 	elem = mem.txs.RemoveByKey(key)
 	if elem != nil {
 		tx := elem.Value.(*mempoolTx).tx
+		fmt.Printf("debug addr:%s, nonce %d, gas:%d\n", elem.Address, elem.Nonce, elem.GasPrice.Uint64())
 		atomic.AddInt64(&mem.txsBytes, int64(-len(tx)))
 	}
 	return
