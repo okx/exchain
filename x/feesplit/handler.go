@@ -19,13 +19,18 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 		ctx.SetEventManager(sdk.NewEventManager())
 
 		if !tmtypes.HigherThanVenus3(ctx.BlockHeight()) {
-			errMsg := fmt.Sprintf("feesplt module not supprt at height %d", ctx.BlockHeight())
+			errMsg := fmt.Sprintf("feesplt module not support at height %d", ctx.BlockHeight())
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
+		}
+
+		params := k.GetParams(ctx)
+		if !params.EnableFeeSplit {
+			return nil, types.ErrFeeSplitDisabled
 		}
 
 		switch msg := msg.(type) {
 		case types.MsgRegisterFeeSplit:
-			return handleMsgRegisterFeeSplit(ctx, msg, k)
+			return handleMsgRegisterFeeSplit(ctx, msg, k, params)
 		case types.MsgUpdateFeeSplit:
 			return handleMsgUpdateFeeSplit(ctx, msg, k)
 		case types.MsgCancelFeeSplit:
@@ -41,12 +46,8 @@ func handleMsgRegisterFeeSplit(
 	ctx sdk.Context,
 	msg types.MsgRegisterFeeSplit,
 	k keeper.Keeper,
+	params types.Params,
 ) (*sdk.Result, error) {
-	params := k.GetParams(ctx)
-	if !params.EnableFeeSplit {
-		return nil, types.ErrFeeSplitDisabled
-	}
-
 	contract := common.HexToAddress(msg.ContractAddress)
 	if k.IsFeeSplitRegistered(ctx, contract) {
 		return nil, sdkerrors.Wrapf(
@@ -153,11 +154,6 @@ func handleMsgUpdateFeeSplit(
 	msg types.MsgUpdateFeeSplit,
 	k keeper.Keeper,
 ) (*sdk.Result, error) {
-	params := k.GetParams(ctx)
-	if !params.EnableFeeSplit {
-		return nil, types.ErrFeeSplitDisabled
-	}
-
 	contract := common.HexToAddress(msg.ContractAddress)
 	feeSplit, found := k.GetFeeSplit(ctx, contract)
 	if !found {
@@ -221,11 +217,6 @@ func handleMsgCancelFeeSplit(
 	msg types.MsgCancelFeeSplit,
 	k keeper.Keeper,
 ) (*sdk.Result, error) {
-	params := k.GetParams(ctx)
-	if !params.EnableFeeSplit {
-		return nil, types.ErrFeeSplitDisabled
-	}
-
 	contract := common.HexToAddress(msg.ContractAddress)
 	fee, found := k.GetFeeSplit(ctx, contract)
 	if !found {
