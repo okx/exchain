@@ -63,7 +63,7 @@ func (k Keeper) PostTxProcessing(
 	}
 
 	// if the contract is not registered to receive fees, do nothing
-	feeSplit, found := k.GetFeeSplitWithCache(ctx, *contract)
+	feeSplit, found := k.GetFeeSplit(ctx, *contract)
 	if !found {
 		return nil
 	}
@@ -75,7 +75,7 @@ func (k Keeper) PostTxProcessing(
 
 	developerShares := params.DeveloperShares
 	// if the contract shares is set by proposal
-	shares, found := k.GetContractShareWithCache(ctx, *contract)
+	shares, found := k.GetContractShare(ctx, *contract)
 	if found {
 		developerShares = shares
 	}
