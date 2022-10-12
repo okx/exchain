@@ -199,7 +199,7 @@ func HigherThanVenus2(h int64) bool {
 	if milestoneVenus2Height == 0 {
 		return false
 	}
-	return h > milestoneVenus2Height
+	return h >= milestoneVenus2Height
 }
 
 func UnittestOnlySetMilestoneVenus2Height(h int64) {
@@ -243,7 +243,7 @@ func HigherThanEarth(h int64) bool {
 	if milestoneEarthHeight == 0 {
 		return false
 	}
-	return h > milestoneEarthHeight
+	return h >= milestoneEarthHeight
 }
 
 func GetEarthHeight() int64 {
