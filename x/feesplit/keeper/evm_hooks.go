@@ -46,14 +46,12 @@ func (k Keeper) PostTxProcessing(
 		return nil
 	}
 
-	// For GetParams using cache, no fee is charged
+	// For GetParams/GetFeeSplit/GetWithdrawerAddr using cache, no fee is charged
 	currentGasMeter := ctx.GasMeter()
 	infGasMeter := sdk.GetReusableInfiniteGasMeter()
 	ctx.SetGasMeter(infGasMeter)
 
 	params := k.GetParams(ctx)
-	ctx.SetGasMeter(currentGasMeter)
-	sdk.ReturnInfiniteGasMeter(infGasMeter)
 	// check if the fees are globally enabled
 	if !params.EnableFeeSplit {
 		return nil
@@ -65,7 +63,7 @@ func (k Keeper) PostTxProcessing(
 	}
 
 	// if the contract is not registered to receive fees, do nothing
-	feeSplit, found := k.GetFeeSplit(ctx, *contract)
+	feeSplit, found := k.GetFeeSplitWithCache(ctx, *contract)
 	if !found {
 		return nil
 	}
@@ -77,13 +75,16 @@ func (k Keeper) PostTxProcessing(
 
 	developerShares := params.DeveloperShares
 	// if the contract shares is set by proposal
-	shares, found := k.GetContractShare(ctx, *contract)
+	shares, found := k.GetContractShareWithCache(ctx, *contract)
 	if found {
 		developerShares = shares
 	}
 	if developerShares.LTE(sdk.ZeroDec()) {
 		return nil
 	}
+
+	ctx.SetGasMeter(currentGasMeter)
+	sdk.ReturnInfiniteGasMeter(infGasMeter)
 
 	txFee := new(big.Int).Mul(st.Price, new(big.Int).SetUint64(ctx.GasMeter().GasConsumed()))
 	developerFee := sdk.NewDecFromBigIntWithPrec(txFee, sdk.Precision).Mul(developerShares)
