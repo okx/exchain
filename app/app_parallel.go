@@ -33,8 +33,10 @@ func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCo
 		if txFeesplit != nil {
 			feesplits, sortAddrs := groupByAddrAndSortFeeSplits(txFeesplit)
 			for _, addr := range sortAddrs {
-				acc := sdk.MustAccAddressFromBech32(addr)
-				err = sk.SendCoinsFromModuleToAccount(ctx, auth.FeeCollectorName, acc, feesplits[addr])
+				_ = addr
+				_ = feesplits
+				//acc := sdk.MustAccAddressFromBech32(addr)
+				//err = sk.SendCoinsFromModuleToAccount(ctx, auth.FeeCollectorName, acc, feesplits[addr])
 				if err != nil {
 					return err
 				}
