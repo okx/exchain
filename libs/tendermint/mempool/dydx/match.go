@@ -28,6 +28,8 @@ type MatchEngine struct {
 	ethCli    *ethclient.Client
 
 	config DydxConfig
+
+	sub ethereum.Subscription
 }
 
 type DydxConfig struct {
@@ -38,7 +40,12 @@ type DydxConfig struct {
 	P1OrdersContractAddress    string
 }
 
-func NewMatchEngine(depthBook *DepthBook, config DydxConfig) (*MatchEngine, error) {
+type LogHandler interface {
+	HandleOrderFilled(*contracts.P1OrdersLogOrderFilled)
+	SubErr(error)
+}
+
+func NewMatchEngine(depthBook *DepthBook, config DydxConfig, handler LogHandler) (*MatchEngine, error) {
 	var engine = &MatchEngine{
 		depthBook: depthBook,
 		config:    config,
@@ -69,30 +76,40 @@ func NewMatchEngine(depthBook *DepthBook, config DydxConfig) (*MatchEngine, erro
 		engine.ethCli,
 	)
 
-	var query = ethereum.FilterQuery{
-		Addresses: []common.Address{
-			common.HexToAddress(config.PerpetualV1ContractAddress),
-			common.HexToAddress(config.P1OrdersContractAddress),
-		},
-	}
-	ch := make(chan ethtypes.Log)
-	sub, err := engine.ethCli.SubscribeFilterLogs(context.Background(), query, ch)
-	if err != nil {
-		return nil, fmt.Errorf("failed to subscribe filter logs, err: %w", err)
-	}
+	if handler != nil {
+		ordersAbi, err := contracts.P1OrdersMetaData.GetAbi()
+		if err != nil {
+			return nil, fmt.Errorf("failed to get orders abi, err: %w", err)
+		}
 
-	go func() {
-		for {
-			select {
-			case err := <-sub.Err():
-				fmt.Printf("failed to subscribe filter logs, err: %s", err.Error())
-			case log := <-ch:
-				if log.Address == common.HexToAddress(config.PerpetualV1ContractAddress) {
+		var query = ethereum.FilterQuery{
+			Addresses: []common.Address{
+				common.HexToAddress(config.P1OrdersContractAddress),
+			},
+			Topics: [][]common.Hash{
+				{ordersAbi.Events["LogOrderFilled"].ID},
+			},
+		}
+		ch := make(chan ethtypes.Log, 32)
+		engine.sub, err = engine.ethCli.SubscribeFilterLogs(context.Background(), query, ch)
+		if err != nil {
+			return nil, fmt.Errorf("failed to subscribe filter logs, err: %w", err)
+		}
 
+		go func() {
+			for {
+				select {
+				case err := <-engine.sub.Err():
+					handler.SubErr(err)
+				case log := <-ch:
+					filledLog, err := engine.contracts.P1Orders.ParseLogOrderFilled(log)
+					if err == nil {
+						handler.HandleOrderFilled(filledLog)
+					}
 				}
 			}
-		}
-	}()
+		}()
+	}
 
 	return engine, nil
 }
@@ -119,7 +136,9 @@ type MatchRecord struct {
 }
 
 func (m *MatchEngine) Stop() {
-
+	if m.sub != nil {
+		m.sub.Unsubscribe()
+	}
 }
 
 func (m *MatchEngine) Match(order *WrapOrder) (*MatchResult, error) {

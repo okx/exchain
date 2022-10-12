@@ -5,9 +5,19 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/okex/exchain/libs/dydx/contracts"
+
+	"github.com/ethereum/go-ethereum"
+	"github.com/ethereum/go-ethereum/common"
+	ethcrypto "github.com/ethereum/go-ethereum/crypto"
+
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 
 	"github.com/stretchr/testify/require"
+)
+
+var (
+	TopicLogOrderFilled = common.BytesToHash(ethcrypto.Keccak256([]byte("LogOrderFilled(bytes32,bytes32,uint256,Fill)")))
 )
 
 func TestClient(t *testing.T) {
@@ -24,6 +34,33 @@ func TestClient(t *testing.T) {
 	require.NoError(t, err)
 
 	endBlock := endBlockNum.Uint64()
+
+	ordersAbi, err := contracts.P1OrdersMetaData.GetAbi()
+	require.NoError(t, err)
+	//topic, err := abi.MakeTopics([]interface{}{ordersAbi.Events["LogOrderFilled"].ID})
+	//require.NoError(t, err)
+
+	var query = ethereum.FilterQuery{
+		FromBlock: fromBlockNum,
+		ToBlock:   endBlockNum,
+		Addresses: []common.Address{
+			client.contracts.P1OrdersAddress,
+		},
+		//Topics: [][]common.Hash{
+		//	{TopicLogOrderFilled},
+		//},
+		Topics: [][]common.Hash{
+			{ordersAbi.Events["LogOrderFilled"].ID},
+		},
+	}
+	logs, err := client.ethCli.FilterLogs(context.Background(), query)
+	require.NoError(t, err)
+	for _, log := range logs {
+		l, err := client.contracts.P1Orders.ParseLogOrderFilled(log)
+		require.NoError(t, err)
+		t.Logf("LogFilled: %+v", l)
+	}
+
 	iter, err := client.contracts.PerpetualV1.FilterLogTrade(&bind.FilterOpts{
 		Start:   fromBlockNum.Uint64(),
 		End:     &endBlock,
