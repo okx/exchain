@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/config"
 	"math/big"
 	"strconv"
 	"sync"
@@ -857,6 +858,8 @@ func (mem *CListMempool) Update(
 		addressNonce = make(map[string]uint64)
 	}
 	fmt.Println("debug update height====================", height)
+	addrList := config.DynamicConfig.GetSentryAddrs()
+	fmt.Println("addrList:", addrList)
 	for i, tx := range txs {
 		txCode := deliverTxResponses[i].Code
 		addr := ""
