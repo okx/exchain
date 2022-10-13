@@ -1,6 +1,7 @@
 package dydx
 
 import (
+	"container/list"
 	"context"
 	"crypto/ecdsa"
 	"fmt"
@@ -182,11 +183,14 @@ func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
 			solOrder2 = tmp
 		}
 
-		err = op.FillSignedSolOrderWithTaker(m.from, solOrder1, record.Fill)
+		fill := *record.Fill
+		fill.Fee = solOrder1.LimitFee
+		err = op.FillSignedSolOrderWithTaker(m.from, solOrder1, &fill)
 		if err != nil {
 			return matched, fmt.Errorf("failed to fill order, err: %w", err)
 		}
-		err = op.FillSignedSolOrderWithTaker(m.from, solOrder2, record.Fill)
+		fill.Fee = solOrder2.LimitFee
+		err = op.FillSignedSolOrderWithTaker(m.from, solOrder2, &fill)
 		if err != nil {
 			return matched, fmt.Errorf("failed to fill order, err: %w", err)
 		}
@@ -259,32 +263,59 @@ func processOrder(takerOrder *WrapOrder, makerBook *OrderList, takerBook *OrderL
 		TakerOrder: takerOrder,
 	}
 
-	if !isValidTriggerPrice(takerOrder, marketPrice) {
+	if takerOrder.LeftAmount.Cmp(zero) <= 0 || !isValidTriggerPrice(takerOrder, marketPrice) {
+		takerBook.Insert(takerOrder)
 		return matchResult
 	}
 
+	var makerOrderElem *list.Element
+
 	for {
-		makerOrderElem := makerBook.Front()
+		if makerOrderElem == nil {
+			makerOrderElem = makerBook.Front()
+		} else {
+			makerOrderElem = makerOrderElem.Next()
+		}
 		if makerOrderElem == nil {
 			break
 		}
 		makerOrder := makerOrderElem.Value.(*WrapOrder)
+
+		if makerOrder.LeftAmount.Cmp(zero) <= 0 {
+			continue
+		}
+
 		if takerOrder.Type() == BuyOrderType && takerOrder.Price().Cmp(makerOrder.Price()) < 0 {
 			break
 		}
 		if takerOrder.Type() == SellOrderType && takerOrder.Price().Cmp(makerOrder.Price()) > 0 {
 			break
 		}
-		if marketPrice == nil {
-			marketPrice = makerOrder.Price()
+
+		if !isValidTriggerPrice(makerOrder, marketPrice) {
+			continue
 		}
-		matchAmount := takerOrder.LeftAmount
+
+		matchPrice := makerOrder.Price()
+		if marketPrice != nil && marketPrice.Cmp(zero) > 0 {
+			if takerOrder.Type() == BuyOrderType {
+				if takerOrder.Price().Cmp(marketPrice) >= 0 && makerOrder.Price().Cmp(marketPrice) <= 0 {
+					matchPrice = marketPrice
+				}
+			} else {
+				if makerOrder.Price().Cmp(marketPrice) >= 0 && takerOrder.Price().Cmp(marketPrice) <= 0 {
+					matchPrice = marketPrice
+				}
+			}
+		}
+
+		matchAmount := big.NewInt(0).Set(takerOrder.LeftAmount)
 		if matchAmount.Cmp(makerOrder.LeftAmount) > 0 {
-			matchAmount = makerOrder.LeftAmount
+			matchAmount.Set(makerOrder.LeftAmount)
 		}
 		matchResult.AddMatchedRecord(&contracts.P1OrdersFill{
 			Amount: matchAmount,
-			Price:  marketPrice,
+			Price:  matchPrice,
 		}, makerOrder)
 
 		takerOrder.LeftAmount.Sub(takerOrder.LeftAmount, matchAmount)
@@ -293,15 +324,10 @@ func processOrder(takerOrder *WrapOrder, makerBook *OrderList, takerBook *OrderL
 		takerOrder.FrozenAmount.Add(takerOrder.FrozenAmount, matchAmount)
 		makerOrder.FrozenAmount.Add(makerOrder.FrozenAmount, matchAmount)
 
-		//if makerOrder.LeftAmount.Cmp(big.NewInt(0)) == 0 {
-		//	makerBook.Remove(makerOrderElem)
-		//}
 		if takerOrder.LeftAmount.Cmp(zero) == 0 {
 			break
 		}
 	}
-	if takerOrder.LeftAmount.Cmp(zero) > 0 {
-		takerBook.Insert(takerOrder)
-	}
+	takerBook.Insert(takerOrder)
 	return matchResult
 }
