@@ -1,7 +1,7 @@
 package types
 
 import (
-	"sort"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/common"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
@@ -14,40 +14,20 @@ var (
 )
 
 type FallThroughMiddleware struct {
-	selectors         MiddlewareSelectors
-	defaultMiddleware Middleware
+	*common.SelectorStrategy
 }
 
-// TODO, 添加ut
-func NewFallThroughMiddleware(defaultMiddleware Middleware, factories ...SelectorFactory) Middleware {
+func NewFallThroughMiddleware(defaultMiddleware Middleware, factories ...common.SelectorFactory) Middleware {
 	ret := FallThroughMiddleware{}
-	var selectors MiddlewareSelectors
-	set := make(map[int]struct{})
-	for _, f := range factories {
-		sel := f()
-		selectors = append(selectors, sel)
-		v := sel.Version()
-		if _, contains := set[v]; contains {
-			// TODO,错误
-			panic("asd")
-		}
-		set[v] = struct{}{}
-	}
-	sort.Sort(selectors)
-	ret.selectors = selectors
-	ret.defaultMiddleware = defaultMiddleware
+	ret.SelectorStrategy = common.NewSelectorStrategy(defaultMiddleware)
+	ret.SelectorStrategy.RegisterSelectors(factories...)
+	ret.SelectorStrategy.Seal()
 
 	return &ret
 }
 
 func (f *FallThroughMiddleware) getProxy(ctx sdk.Context) Middleware {
-	for _, s := range f.selectors {
-		m, ok := s.Select(ctx)
-		if ok {
-			return m
-		}
-	}
-	return f.defaultMiddleware
+	return f.SelectorStrategy.GetProxy(ctx).(Middleware)
 }
 
 func (f *FallThroughMiddleware) OnChanOpenInit(ctx sdk.Context, order channeltypes.Order, connectionHops []string, portID string, channelID string, channelCap *capabilitytypes.Capability, counterparty channeltypes.Counterparty, version string) (string, error) {

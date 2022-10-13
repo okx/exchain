@@ -67,7 +67,6 @@ func (AppModuleBasic) RegisterCodec(cdc *codec.Codec) {
 	types.RegisterCodec(cdc)
 }
 
-// TODO
 // RegisterGRPCGatewayRoutes registers the gRPC Gateway routes for the ibc module.
 func (AppModuleBasic) RegisterGRPCGatewayRoutes(ctx clientCtx.CLIContext, mux *runtime.ServeMux) {
 	clienttypes.RegisterQueryHandlerClient(context.Background(), mux, clienttypes.NewQueryClient(ctx))
@@ -117,7 +116,6 @@ func NewAppModule(k *keeper.FacadedKeeper) AppModule {
 	return ret
 }
 
-// TODO
 func (a AppModule) NewQuerierHandler() sdk.Querier {
 	return nil
 }
@@ -132,14 +130,11 @@ func (AppModule) Name() string {
 }
 
 // RegisterInvariants registers the ibc module invariants.
-func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {
-	// TODO:
-}
+func (am AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {}
 
 // Route returns the message routing key for the ibc module.
 func (am AppModule) Route() string {
 	return host.RouterKey
-	//return sdk.NewRoute(host.RouterKey, NewHandler(*am.keeper))
 }
 
 // QuerierRoute returns the ibc module's querier route name.
@@ -147,21 +142,12 @@ func (AppModule) QuerierRoute() string {
 	return host.QuerierRoute
 }
 
-// LegacyQuerierHandler returns nil. IBC does not support the legacy querier.
-//func (am AppModule) LegacyQuerierHandler(legacyQuerierCdc *codec.LegacyAmino) sdk.Querier {
-//	return nil
-//}
-
 // RegisterServices registers module services.
 func (am AppModule) RegisterServices(cfg module.Configurator) {
-	// TODO,这里或许需要 facadedkeeper 做一个遍历才行
 	clienttypes.RegisterMsgServer(cfg.MsgServer(), am.keeper)
 	connectiontypes.RegisterMsgServer(cfg.MsgServer(), am.keeper)
 	channeltypes.RegisterMsgServer(cfg.MsgServer(), am.keeper)
 	types.RegisterQueryService(cfg.QueryServer(), am.keeper.V2Keeper)
-
-	//m := clientkeeper.NewMigrator(am.keeper.ClientKeeper)
-	//cfg.RegisterMigration(host.ModuleName, 1, m.Migrate1to2)
 }
 
 // InitGenesis performs genesis initialization for the ibc module. It returns

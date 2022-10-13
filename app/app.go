@@ -7,6 +7,8 @@ import (
 	"os"
 	"sync"
 
+	ibccommon "github.com/okex/exchain/libs/ibc-go/modules/core/common"
+
 	ica "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts"
 	"github.com/okex/exchain/x/icamauth"
 	icamauthkeeper "github.com/okex/exchain/x/icamauth/keeper"
@@ -425,7 +427,7 @@ func NewOKExChainApp(
 	)
 	v4Keeper := ibc.NewV4Keeper(v2keeper)
 	facadedKeeper := ibc.NewFacadedKeeper(v2keeper)
-	facadedKeeper.RegisterKeeper(ibc.DefaultSelectorFactory(tmtypes.HigherThanVenus3, ibc.IBCV4, v4Keeper))
+	facadedKeeper.RegisterKeeper(ibccommon.DefaultFactory(tmtypes.HigherThanVenus3, ibc.IBCV4, v4Keeper))
 	app.IBCKeeper = facadedKeeper
 
 	// Create Transfer Keepers
@@ -505,20 +507,18 @@ func NewOKExChainApp(
 		erc20.NewSendNative20ToIbcEventHandler(app.Erc20Keeper)))
 	// Set IBC hooks
 	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
+
 	left := common.NewDisaleProxyMiddleware()
 	middle := ibctransfer.NewIBCModule(app.TransferKeeper)
 	right := ibcfee.NewIBCMiddleware(middle, app.IBCFeeKeeper)
-
-	//transferStack := ibcporttypes.NewFallThroughMiddleware(tmtypes.GetVenus1Height(), tmtypes.GetVenus3Height(), left, middle, right)
 	transferStack := ibcporttypes.NewFallThroughMiddleware(left,
-		ibcporttypes.DefaultFactory(tmtypes.HigherThanVenus3, ibc.IBCV4, right),
-		ibcporttypes.DefaultFactory(tmtypes.HigherThanVenus1, ibc.IBCV2, middle))
+		ibccommon.DefaultFactory(tmtypes.HigherThanVenus3, ibc.IBCV4, right),
+		ibccommon.DefaultFactory(tmtypes.HigherThanVenus1, ibc.IBCV2, middle))
+
 	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
 
 	// Create static IBC router, add transfer route, then set and seal it
 	ibcRouter := ibcporttypes.NewRouter()
-
-	//mockModule := ibcmock.NewAppModule(scopedIBCKeeper, &app.IBCKeeper.V2Keeper.PortKeeper)
 
 	var icaControllerStack ibcporttypes.IBCModule
 	icaMauthIBCModule := icamauth.NewIBCModule(app.ICAMauthKeeper)

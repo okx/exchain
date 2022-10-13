@@ -3,7 +3,8 @@ package keeper
 import (
 	"context"
 	"errors"
-	"sort"
+
+	"github.com/okex/exchain/libs/ibc-go/modules/core/common"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
@@ -15,45 +16,38 @@ var _ IBCServerKeeper = (*FacadedKeeper)(nil)
 
 var errMisSpecificKeeper = errors.New("mis ")
 
+type Checkable interface {
+	GetIbcEnabled(ctx sdk.Context) bool
+}
 type IBCServerKeeper interface {
 	channeltyeps.QueryServer
 	channeltyeps.MsgServer
 	clienttypes.MsgServer
 	connectiontypes.MsgServer
 
+	Checkable
+
 	GetPacketReceipt(ctx sdk.Context, portID, channelID string, sequence uint64) (string, bool)
 	GetPacketCommitment(ctx sdk.Context, portID, channelID string, sequence uint64) []byte
 }
 
 type FacadedKeeper struct {
-	V2Keeper  *Keeper
-	selectors KeeperSelectors
+	*common.SelectorStrategy
+	V2Keeper *Keeper
 }
 
 func NewFacadedKeeper(v2Keeper *Keeper) *FacadedKeeper {
 	ret := &FacadedKeeper{}
 	ret.V2Keeper = v2Keeper
 
+	ret.SelectorStrategy = common.NewSelectorStrategy(v2Keeper)
+
 	return ret
 }
 
-func (f *FacadedKeeper) RegisterKeeper(factories ...SelectorFactory) {
-	var selectors KeeperSelectors
-	set := make(map[int]struct{})
-
-	for _, f := range factories {
-		sel := f()
-		selectors = append(selectors, sel)
-		v := sel.Version()
-		if _, contains := set[v]; contains {
-			// TODO,错误
-			panic("asd")
-		}
-		set[v] = struct{}{}
-	}
-	sort.Sort(selectors)
-
-	f.selectors = selectors
+func (f *FacadedKeeper) RegisterKeeper(factories ...common.SelectorFactory) {
+	f.SelectorStrategy.RegisterSelectors(factories...)
+	f.SelectorStrategy.Seal()
 }
 
 func (f *FacadedKeeper) GetPacketCommitment(ctx sdk.Context, portID, channelID string, sequence uint64) []byte {
@@ -227,15 +221,9 @@ func (f *FacadedKeeper) getHeightKeeper(goCtx context.Context) IBCServerKeeper {
 }
 
 func (f *FacadedKeeper) doGetByCtx(ctx sdk.Context) IBCServerKeeper {
-	for _, selector := range f.selectors {
-		hh, ok := selector.Select(ctx)
-		if ok {
-			return hh
-		}
-	}
-	return f.V2Keeper
+	return f.GetProxy(ctx).(IBCServerKeeper)
 }
 
 func (f *FacadedKeeper) GetIbcEnabled(ctx sdk.Context) bool {
-	return f.V2Keeper.GetIbcEnabled(ctx)
+	return f.doGetByCtx(ctx).GetIbcEnabled(ctx)
 }
