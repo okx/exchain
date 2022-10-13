@@ -3,6 +3,7 @@ package dydx
 import (
 	"container/list"
 	"errors"
+	"github.com/ethereum/go-ethereum/common"
 	"sync"
 	"time"
 )
@@ -55,14 +56,14 @@ type OrderList struct {
 
 	reverse bool
 	orders  *list.List
-	index   map[[KeySize]byte]*list.Element
+	index   map[common.Hash]*list.Element
 }
 
 func NewOrderList(reverse bool) *OrderList {
 	ol := &OrderList{
 		reverse: reverse,
 		orders:  list.New(),
-		index:   make(map[[KeySize]byte]*list.Element),
+		index:   make(map[common.Hash]*list.Element),
 	}
 	go ol.prune()
 	return ol
@@ -74,10 +75,10 @@ func (o *OrderList) Front() *list.Element {
 	return o.orders.Front()
 }
 
-func (o *OrderList) Get(key [KeySize]byte) *list.Element {
+func (o *OrderList) Get(hash common.Hash) *list.Element {
 	o.RLock()
 	defer o.RUnlock()
-	return o.index[key]
+	return o.index[hash]
 }
 
 func (o *OrderList) Insert(order *WrapOrder) *list.Element {
@@ -89,13 +90,13 @@ func (o *OrderList) Insert(order *WrapOrder) *list.Element {
 		cur := ele.Value.(*WrapOrder)
 		if o.less(order, cur) {
 			newEle := o.orders.InsertBefore(order, ele)
-			o.index[order.Key()] = newEle
+			o.index[order.Hash()] = newEle
 			return newEle
 		}
 		ele = ele.Next()
 	}
 	newEle := o.orders.PushBack(order)
-	o.index[order.Key()] = newEle
+	o.index[order.Hash()] = newEle
 	return newEle
 }
 
@@ -105,7 +106,7 @@ func (o *OrderList) Pop() *list.Element {
 
 	front := o.orders.Front()
 	o.orders.Remove(front)
-	delete(o.index, front.Value.(*WrapOrder).Key())
+	delete(o.index, front.Value.(*WrapOrder).Hash())
 	return front
 }
 
@@ -117,9 +118,9 @@ func (o *OrderList) Remove(ele *list.Element) *list.Element {
 		//TODO: log error
 		return nil
 	}
-	if _, ok = o.index[order.Key()]; ok {
+	if _, ok = o.index[order.Hash()]; ok {
 		o.orders.Remove(ele)
-		delete(o.index, order.Key())
+		delete(o.index, order.Hash())
 		return ele
 	}
 	return nil
@@ -144,7 +145,7 @@ func (o *OrderList) prune() {
 
 func (o *OrderList) less(order1, order2 *WrapOrder) bool {
 	if o.reverse {
-		return order1.Amount.Cmp(order2.Amount) > 0
+		return order1.Price().Cmp(order2.Price()) > 0
 	}
-	return order1.Amount.Cmp(order2.Amount) < 0
+	return order1.Price().Cmp(order2.Price()) < 0
 }

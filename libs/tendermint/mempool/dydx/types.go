@@ -2,6 +2,7 @@ package dydx
 
 import (
 	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"math/big"
 	"sync"
@@ -32,26 +33,40 @@ const (
 	EIP712_ORDER_STRUCT_SCHEMA     = "Order(bytes32 flags,uint256 amount,uint256 limitPrice,uint256 triggerPrice,uint256 limitFee,address maker,address taker,uint256 expiration)"
 
 	//TODO, mock addr
-	contractAddress = "0x5D64795f3f815924E607C7e9651e89Db4Dbddb62"
+	contractAddress = "f1730217Bd65f86D2F008f1821D8Ca9A26d64619"
 	KeySize         = sha256.Size
 )
 
 var (
-	ZeroKey     = [KeySize]byte{}
-	callTypeABI = abi.MustNewType("int32")
-	orderTuple  = abi.MustNewType("tuple(bytes32 flags, uint256 amount, uint256 limitprice, uint256 triggerprice, uint256 limitfee, address maker, address taker, uint256 expiration)")
-	signedTuple = abi.MustNewType("tuple(bytes msg, bytes32 sig)")
+	zeroOrderHash = common.Hash{}
+	ZeroKey       = [KeySize]byte{}
+	callTypeABI   = abi.MustNewType("int32")
+	orderTuple    = abi.MustNewType("tuple(bytes32 flags, uint256 amount, uint256 limitprice, uint256 triggerprice, uint256 limitfee, address maker, address taker, uint256 expiration)")
+	signedTuple   = abi.MustNewType("tuple(bytes msg, bytes32 sig)")
 
 	//TODO: get chainID
-	chainID = big.NewInt(67)
+	chainID = big.NewInt(65)
 
 	EIP191_HEADER                       = []byte{0x19, 0x01}
 	EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH = crypto.Keccak256Hash([]byte(EIP712_DOMAIN_SEPARATOR_SCHEMA))
 	EIP712_DOMAIN_NAME_HASH             = crypto.Keccak256Hash([]byte(EIP712_DOMAIN_NAME))
 	EIP712_DOMAIN_VERSION_HASH          = crypto.Keccak256Hash([]byte(EIP712_DOMAIN_VERSION))
-	_EIP712_DOMAIN_HASH_                = crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], chainID.Bytes(), []byte(contractAddress))
+	_EIP712_DOMAIN_HASH_                = common.Hash{}
 	EIP712_ORDER_STRUCT_SCHEMA_HASH     = crypto.Keccak256Hash([]byte(EIP712_ORDER_STRUCT_SCHEMA))
 )
+
+func init() {
+	addr, err := hex.DecodeString(contractAddress)
+	if err != nil {
+		panic(err)
+	}
+	chainIDBytes, err := callTypeABI.Encode(chainID)
+	if err != nil {
+		panic(err)
+	}
+	_EIP712_DOMAIN_HASH_ = crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], chainIDBytes, common.LeftPadBytes(addr, 32))
+
+}
 
 func (o OrderRaw) Key() [KeySize]byte {
 	return sha256.Sum256(o)
@@ -149,14 +164,24 @@ type WrapOrder struct {
 	LeftAmount   *big.Int
 	Raw          OrderRaw
 	Sig          []byte
-	OrderKey     [KeySize]byte
+	orderHash    common.Hash
 }
 
-func (w *WrapOrder) Key() [KeySize]byte {
-	if w.OrderKey == ZeroKey {
-		w.OrderKey = w.Raw.Key()
+func (w *WrapOrder) Hash() common.Hash {
+	if w.orderHash == zeroOrderHash {
+		w.orderHash = w.P1Order.Hash()
 	}
-	return w.OrderKey
+	return w.orderHash
+}
+
+func (w *WrapOrder) Frozen(amount *big.Int) {
+	w.LeftAmount.Sub(w.LeftAmount, amount)
+	w.FrozenAmount.Add(w.FrozenAmount, amount)
+}
+
+func (w *WrapOrder) Unfrozen(amount *big.Int) {
+	w.LeftAmount.Add(w.LeftAmount, amount)
+	w.FrozenAmount.Sub(w.FrozenAmount, amount)
 }
 
 type SignedOrder struct {

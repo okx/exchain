@@ -34,9 +34,10 @@ func (d *OrderManager) Insert(memOrder *MempoolOrder) error {
 	if odr.Expiration.Uint64() == 0 {
 		return fmt.Errorf("invalid expiration")
 	}
-	if err := odr.VerifySignature(signedOdr.Sig[:]); err != nil {
-		return err
-	}
+	//TODO
+	//if err := odr.VerifySignature(signedOdr.Sig[:]); err != nil {
+	//	return err
+	//}
 
 	ele := d.orders.PushBack(memOrder)
 	d.ordersMap.Store(memOrder.Key(), ele)
