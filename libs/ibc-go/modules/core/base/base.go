@@ -10,7 +10,6 @@ import (
 
 var (
 	_      upgrade.UpgradeModule = (*BaseIBCUpgradeModule)(nil)
-	_      upgrade.UpgradeModule = (*CommanUpgradeModule)(nil)
 	ibcMap                       = map[string]struct{}{
 		"ibc":            struct{}{},
 		"mem_capability": struct{}{},
@@ -122,44 +121,4 @@ func (b *BaseIBCUpgradeModule) Seal() {
 }
 func (b *BaseIBCUpgradeModule) Sealed() bool {
 	return b.Inited
-}
-
-///////////
-// TODO,有时间就部分重构下
-type CommanUpgradeModule struct {
-	task       upgrade.HeightTask
-	upgradeH   int64
-	params     params.ParamSet
-	moduleName string
-}
-
-func (c *CommanUpgradeModule) RegisterTask() upgrade.HeightTask {
-	return c.task
-}
-
-func (c *CommanUpgradeModule) UpgradeHeight() int64 {
-	return c.upgradeH
-}
-
-func (c *CommanUpgradeModule) RegisterParam() params.ParamSet {
-	return c.params
-}
-
-func (c *CommanUpgradeModule) ModuleName() string {
-	return c.moduleName
-}
-
-func (c *CommanUpgradeModule) CommitFilter() *cosmost.StoreFilter {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (c *CommanUpgradeModule) PruneFilter() *cosmost.StoreFilter {
-	//TODO implement me
-	panic("implement me")
-}
-
-func (c *CommanUpgradeModule) VersionFilter() *cosmost.VersionFilter {
-	//TODO implement me
-	panic("implement me")
 }

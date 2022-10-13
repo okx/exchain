@@ -120,9 +120,7 @@ func NewAppModule(k keeper.Keeper, m *codec.CodecProxy) AppModule {
 }
 
 // RegisterInvariants implements the AppModule interface
-func (AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {
-	// TODO
-}
+func (AppModule) RegisterInvariants(ir sdk.InvariantRegistry) {}
 
 // Route implements the AppModule interface
 func (am AppModule) Route() string {
@@ -224,7 +222,6 @@ func (am AppModule) WeightedOperations(_ module.SimulationState) []simtypes.Weig
 
 // ____________________________________________________________________________
 
-// TODO,version参数可以在这里删除了
 // ValidateTransferChannelParams does validation of a newly created transfer channel. A transfer
 // channel must be UNORDERED, use the correct port (by default 'transfer'), and use the current
 // supported version. Only 2^32 channels are allowed to be created.
