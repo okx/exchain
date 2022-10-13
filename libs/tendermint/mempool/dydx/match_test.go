@@ -38,6 +38,16 @@ func TestMatch(t *testing.T) {
 	mr, err = me.Match(newTestOrder(120, 5, false), nil)
 	require.NoError(t, err)
 	require.Equal(t, 0, len(mr.MatchedRecords))
+
+	mr, err = me.Match(newTestOrder(110, 6, false), nil)
+	require.NoError(t, err)
+	require.Equal(t, 0, len(mr.MatchedRecords))
+
+	mr, err = me.Match(newTestOrder(121, 10, true), nil)
+	require.NoError(t, err)
+	require.Equal(t, 2, len(mr.MatchedRecords))
+	require.Equal(t, "110", mr.MatchedRecords[0].Fill.Price.String())
+	require.Equal(t, "120", mr.MatchedRecords[1].Fill.Price.String())
 }
 
 func newTestOrder(price, amount uint64, isBuy bool) *WrapOrder {
