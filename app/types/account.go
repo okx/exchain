@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/tendermint/go-amino"
-
 	"gopkg.in/yaml.v2"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -16,11 +15,13 @@ import (
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 )
 
 var _ exported.Account = (*EthAccount)(nil)
 var _ exported.GenesisAccount = (*EthAccount)(nil)
+var emptyCodeHash = crypto.Keccak256(nil)
 
 func init() {
 	authtypes.RegisterAccountTypeCodec(&EthAccount{}, EthAccountName)
@@ -349,4 +350,9 @@ func (acc *EthAccount) UnmarshalJSON(bz []byte) error {
 func (acc EthAccount) String() string {
 	out, _ := yaml.Marshal(acc)
 	return string(out)
+}
+
+// IsContract returns if the account contains contract code.
+func (acc EthAccount) IsContract() bool {
+	return !bytes.Equal(acc.CodeHash, emptyCodeHash)
 }
