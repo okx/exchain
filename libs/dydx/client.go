@@ -120,7 +120,7 @@ func (c *DydxClient) ethEventLogFilledRoutine(sub ethereum.Subscription) {
 }
 
 func NewDydxClient(chainID *big.Int, ethRpcUrl string, fromBlockNum *big.Int,
-	privKey, perpetualV1ContractAddress, p1OrdersContractAddress string) (*DydxClient, error) {
+	privKey, perpetualV1ContractAddress, p1OrdersContractAddress, p1MakerOracleContractAddress string) (*DydxClient, error) {
 	var client DydxClient
 	var err error
 
@@ -149,6 +149,7 @@ func NewDydxClient(chainID *big.Int, ethRpcUrl string, fromBlockNum *big.Int,
 	client.contracts, err = NewContracts(
 		common.HexToAddress(perpetualV1ContractAddress),
 		common.HexToAddress(p1OrdersContractAddress),
+		common.HexToAddress(p1MakerOracleContractAddress),
 		txOps,
 		client.ethCli,
 	)

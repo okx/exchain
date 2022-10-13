@@ -39,6 +39,7 @@ type DydxConfig struct {
 	EthWsRpcUrl                string
 	PerpetualV1ContractAddress string
 	P1OrdersContractAddress    string
+	P1MakerOracleAddress       string
 }
 
 type LogHandler interface {
@@ -73,6 +74,7 @@ func NewMatchEngine(depthBook *DepthBook, config DydxConfig, handler LogHandler)
 	engine.contracts, err = dydxlib.NewContracts(
 		common.HexToAddress(config.PerpetualV1ContractAddress),
 		common.HexToAddress(config.P1OrdersContractAddress),
+		common.HexToAddress(config.P1MakerOracleAddress),
 		txOps,
 		engine.ethCli,
 	)
@@ -143,18 +145,22 @@ func (m *MatchEngine) Stop() {
 	}
 }
 
-func (m *MatchEngine) Match(order *WrapOrder) (*MatchResult, error) {
+func (m *MatchEngine) Match(order *WrapOrder, maketPrice *big.Int) (*MatchResult, error) {
 	if order.Type() == BuyOrderType {
-		return processOrder(order, m.depthBook.sellOrders, m.depthBook.buyOrders), nil
+		return processOrder(order, m.depthBook.sellOrders, m.depthBook.buyOrders, maketPrice), nil
 	} else if order.Type() == SellOrderType {
-		return processOrder(order, m.depthBook.buyOrders, m.depthBook.sellOrders), nil
+		return processOrder(order, m.depthBook.buyOrders, m.depthBook.sellOrders, maketPrice), nil
 	} else {
 		return nil, fmt.Errorf("invalid order type")
 	}
 }
 
 func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
-	matched, err := m.Match(order)
+	marketPrice, err := m.contracts.P1MakerOracle.GetPrice(nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get market price, err: %w", err)
+	}
+	matched, err := m.Match(order, marketPrice)
 	if err != nil {
 		return nil, err
 	}
@@ -227,10 +233,32 @@ func (m *MatchEngine) trade(order1, order2 *dydxlib.SignedSolOrder, fill *contra
 	return tx, nil
 }
 
-func processOrder(takerOrder *WrapOrder, makerBook *OrderList, takerBook *OrderList) *MatchResult {
+func isValidTriggerPrice(order *WrapOrder, marketPrice *big.Int) bool {
+	if order.TriggerPrice != nil && marketPrice != nil {
+		if order.Type() == BuyOrderType {
+			if marketPrice.Cmp(order.TriggerPrice) < 0 {
+				return false
+			}
+		} else {
+			if marketPrice.Cmp(order.TriggerPrice) > 0 {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+var zero = big.NewInt(0)
+
+func processOrder(takerOrder *WrapOrder, makerBook *OrderList, takerBook *OrderList, marketPrice *big.Int) *MatchResult {
 	var matchResult = &MatchResult{
 		TakerOrder: takerOrder,
 	}
+
+	if !isValidTriggerPrice(takerOrder, marketPrice) {
+		return matchResult
+	}
+
 	for {
 		makerOrderElem := makerBook.Front()
 		if makerOrderElem == nil {
@@ -243,7 +271,9 @@ func processOrder(takerOrder *WrapOrder, makerBook *OrderList, takerBook *OrderL
 		if takerOrder.Type() == SellOrderType && takerOrder.Price().Cmp(makerOrder.Price()) > 0 {
 			break
 		}
-		marketPrice := makerOrder.Price()
+		if marketPrice == nil {
+			marketPrice = makerOrder.Price()
+		}
 		matchAmount := takerOrder.LeftAmount
 		if matchAmount.Cmp(makerOrder.LeftAmount) > 0 {
 			matchAmount = makerOrder.LeftAmount
@@ -262,12 +292,12 @@ func processOrder(takerOrder *WrapOrder, makerBook *OrderList, takerBook *OrderL
 		//if makerOrder.Amount().Cmp(big.NewInt(0)) == 0 {
 		//	makerBook.Remove(makerOrderElem)
 		//}
-		if takerOrder.LeftAmount.Cmp(big.NewInt(0)) == 0 {
+		if takerOrder.LeftAmount.Cmp(zero) == 0 {
 			break
 		}
 	}
-	//if takerOrder.Amount.Cmp(big.NewInt(0)) > 0 {
-	//	takerBook.Insert(takerOrder)
-	//}
+	if takerOrder.LeftAmount.Cmp(zero) > 0 {
+		takerBook.Insert(takerOrder)
+	}
 	return matchResult
 }

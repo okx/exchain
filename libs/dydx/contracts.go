@@ -13,12 +13,16 @@ type Contracts struct {
 	PerpetualV1        *contracts.PerpetualV1
 	PerpetualV1Address common.Address
 
+	P1MakerOracle        *contracts.P1MakerOracle
+	P1MakerOracleAddress common.Address
+
 	txOps *bind.TransactOpts
 }
 
 func NewContracts(
 	perpetualV1Address common.Address,
 	p1OrdersAddr common.Address,
+	p1MakerOracleAddr common.Address,
 	defaultTxOps *bind.TransactOpts,
 	backend bind.ContractBackend,
 ) (*Contracts, error) {
@@ -36,6 +40,12 @@ func NewContracts(
 		return nil, err
 	}
 	cons.P1OrdersAddress = p1OrdersAddr
+
+	cons.P1MakerOracle, err = contracts.NewP1MakerOracle(p1MakerOracleAddr, backend)
+	if err != nil {
+		return nil, err
+	}
+	cons.P1MakerOracleAddress = p1MakerOracleAddr
 
 	cons.txOps = defaultTxOps
 

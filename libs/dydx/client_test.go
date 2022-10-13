@@ -30,8 +30,16 @@ func TestClient(t *testing.T) {
 
 	client, err := NewDydxClient(testnetChainID, ethWsUrl, fromBlockNum, privKey,
 		"0xaC405bA85723d3E8d6D87B3B36Fd8D0D4e32D2c9",
-		"0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619")
+		"0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619",
+		"0x4241DD684fbC5bCFCD2cA7B90b72885A79cf50B4",
+	)
 	require.NoError(t, err)
+
+	price, err := client.contracts.P1MakerOracle.GetPrice(&bind.CallOpts{
+		From: client.from,
+	})
+	require.NoError(t, err)
+	t.Logf("price: %v", price)
 
 	endBlock := endBlockNum.Uint64()
 
