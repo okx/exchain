@@ -195,14 +195,16 @@ func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
 	}
 	matched.OnChain = make(chan bool, 1)
 	go func() {
-		select {
-		case <-time.After(6 * time.Second):
-			receipt, err := m.ethCli.TransactionReceipt(context.Background(), matched.Tx.Hash())
-			if err == nil {
-				if receipt.Status == 1 {
-					matched.OnChain <- true
-				} else {
-					matched.OnChain <- false
+		for {
+			select {
+			case <-time.After(6 * time.Second):
+				receipt, err := m.ethCli.TransactionReceipt(context.Background(), matched.Tx.Hash())
+				if err == nil {
+					if receipt.Status == 1 {
+						matched.OnChain <- true
+					} else {
+						matched.OnChain <- false
+					}
 				}
 			}
 		}
@@ -289,7 +291,7 @@ func processOrder(takerOrder *WrapOrder, makerBook *OrderList, takerBook *OrderL
 		takerOrder.FrozenAmount.Add(takerOrder.FrozenAmount, matchAmount)
 		makerOrder.FrozenAmount.Add(makerOrder.FrozenAmount, matchAmount)
 
-		//if makerOrder.Amount().Cmp(big.NewInt(0)) == 0 {
+		//if makerOrder.LeftAmount.Cmp(big.NewInt(0)) == 0 {
 		//	makerBook.Remove(makerOrderElem)
 		//}
 		if takerOrder.LeftAmount.Cmp(zero) == 0 {
