@@ -92,12 +92,12 @@ func (k Keeper) PostTxProcessing(
 		return nil
 	}
 	fees := sdk.Coins{{Denom: sdk.DefaultBondDenom, Amount: developerFee}}
-
+	_ = fees
 	// distribute the fees to the contract deployer / withdraw address
-	k.updateFeeSplitHandler(receipt.TxHash, withdrawer, fees)
+	//k.updateFeeSplitHandler(receipt.TxHash, withdrawer, fees)
 
 	// add innertx
-	k.addFeesplitInnerTx(receipt.TxHash.Hex(), withdrawer.String(), fees.String())
+	//k.addFeesplitInnerTx(receipt.TxHash.Hex(), withdrawer.String(), fees.String())
 
 	ctx.EventManager().EmitEvents(
 		sdk.Events{
