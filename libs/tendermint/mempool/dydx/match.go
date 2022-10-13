@@ -263,7 +263,7 @@ func processOrder(takerOrder *WrapOrder, makerBook *OrderList, takerBook *OrderL
 		TakerOrder: takerOrder,
 	}
 
-	if takerOrder.Amount.Cmp(zero) <= 0 || !isValidTriggerPrice(takerOrder, marketPrice) {
+	if takerOrder.LeftAmount.Cmp(zero) <= 0 || !isValidTriggerPrice(takerOrder, marketPrice) {
 		takerBook.Insert(takerOrder)
 		return matchResult
 	}
@@ -280,6 +280,11 @@ func processOrder(takerOrder *WrapOrder, makerBook *OrderList, takerBook *OrderL
 			break
 		}
 		makerOrder := makerOrderElem.Value.(*WrapOrder)
+
+		if makerOrder.LeftAmount.Cmp(zero) <= 0 {
+			continue
+		}
+
 		if takerOrder.Type() == BuyOrderType && takerOrder.Price().Cmp(makerOrder.Price()) < 0 {
 			break
 		}
@@ -304,9 +309,9 @@ func processOrder(takerOrder *WrapOrder, makerBook *OrderList, takerBook *OrderL
 			}
 		}
 
-		matchAmount := takerOrder.LeftAmount
+		matchAmount := big.NewInt(0).Set(takerOrder.LeftAmount)
 		if matchAmount.Cmp(makerOrder.LeftAmount) > 0 {
-			matchAmount = makerOrder.LeftAmount
+			matchAmount.Set(makerOrder.LeftAmount)
 		}
 		matchResult.AddMatchedRecord(&contracts.P1OrdersFill{
 			Amount: matchAmount,
@@ -323,8 +328,6 @@ func processOrder(takerOrder *WrapOrder, makerBook *OrderList, takerBook *OrderL
 			break
 		}
 	}
-	if takerOrder.LeftAmount.Cmp(zero) > 0 {
-		takerBook.Insert(takerOrder)
-	}
+	takerBook.Insert(takerOrder)
 	return matchResult
 }
