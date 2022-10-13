@@ -2,7 +2,9 @@ package dydx
 
 import (
 	"math/big"
+	"math/rand"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -56,6 +58,11 @@ func newTestOrder(price, amount uint64, isBuy bool) *WrapOrder {
 	o.Amount = big.NewInt(0).SetUint64(amount)
 	o.LeftAmount = big.NewInt(0).SetUint64(amount)
 	o.FrozenAmount = big.NewInt(0)
+	o.TriggerPrice = big.NewInt(0)
+	o.LimitFee = big.NewInt(0)
+	// time.Now().Unix()*2 to avoid to be pruned
+	// rand.Int63() to avoid repeated orderHash
+	o.Expiration = big.NewInt(time.Now().Unix()*2 + rand.Int63())
 	if !isBuy {
 		o.Flags[31] = 1
 	}
