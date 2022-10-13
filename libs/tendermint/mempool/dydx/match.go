@@ -156,7 +156,9 @@ func (m *MatchEngine) Match(order *WrapOrder, maketPrice *big.Int) (*MatchResult
 }
 
 func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
-	marketPrice, err := m.contracts.P1MakerOracle.GetPrice(nil)
+	marketPrice, err := m.contracts.P1MakerOracle.GetPrice(&bind.CallOpts{
+		From: m.contracts.PerpetualV1Address,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to get market price, err: %w", err)
 	}

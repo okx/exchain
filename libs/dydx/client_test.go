@@ -26,7 +26,8 @@ func TestClient(t *testing.T) {
 	ethWsUrl := "wss://exchaintestws.okex.org:8443"
 	fromBlockNum := big.NewInt(14704890)
 	endBlockNum := big.NewInt(14704893)
-	privKey := "e47a1fe74a7f9bfa44a362a3c6fbe96667242f62e6b8e138b3f61bd431c3215d"
+	// privKey := "e47a1fe74a7f9bfa44a362a3c6fbe96667242f62e6b8e138b3f61bd431c3215d"
+	privKey := "fefac29bfa769d8a6c17b685816dadbd30e3f395e997ed955a5461914be75ed5"
 
 	client, err := NewDydxClient(testnetChainID, ethWsUrl, fromBlockNum, privKey,
 		"0xaC405bA85723d3E8d6D87B3B36Fd8D0D4e32D2c9",
@@ -36,7 +37,7 @@ func TestClient(t *testing.T) {
 	require.NoError(t, err)
 
 	price, err := client.contracts.P1MakerOracle.GetPrice(&bind.CallOpts{
-		From: client.from,
+		From: client.contracts.PerpetualV1Address,
 	})
 	require.NoError(t, err)
 	t.Logf("price: %v", price)
