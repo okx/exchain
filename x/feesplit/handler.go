@@ -168,7 +168,7 @@ func handleMsgUpdateFeeSplit(
 	}
 
 	// error if the msg deployer address is not the same as the fee's deployer
-	if msg.DeployerAddress != feeSplit.DeployerAddress {
+	if msg.DeployerAddress != feeSplit.DeployerAddress.String() {
 		return nil, sdkerrors.Wrapf(
 			sdkerrors.ErrUnauthorized,
 			"%s is not the contract deployer", msg.DeployerAddress,
@@ -176,12 +176,12 @@ func handleMsgUpdateFeeSplit(
 	}
 
 	// check if updating feesplit to default withdrawer
-	if msg.WithdrawerAddress == feeSplit.DeployerAddress {
+	if msg.WithdrawerAddress == feeSplit.DeployerAddress.String() {
 		msg.WithdrawerAddress = ""
 	}
 
 	// fee split with the given withdraw address is already registered
-	if msg.WithdrawerAddress == feeSplit.WithdrawerAddress {
+	if msg.WithdrawerAddress == feeSplit.WithdrawerAddress.String() {
 		return nil, sdkerrors.Wrapf(
 			types.ErrFeeSplitAlreadyRegistered,
 			"fee split with withdraw address %s", msg.WithdrawerAddress,
@@ -189,16 +189,18 @@ func handleMsgUpdateFeeSplit(
 	}
 
 	// only delete withdrawer map if is not default
-	if feeSplit.WithdrawerAddress != "" {
-		k.DeleteWithdrawerMap(ctx, sdk.MustAccAddressFromBech32(feeSplit.WithdrawerAddress), contract)
+	if !feeSplit.WithdrawerAddress.Empty() {
+		k.DeleteWithdrawerMap(ctx, feeSplit.WithdrawerAddress, contract)
 	}
 
+	var withdrawer sdk.AccAddress
 	// only add withdrawer map if new entry is not default
 	if msg.WithdrawerAddress != "" {
-		k.SetWithdrawerMap(ctx, sdk.MustAccAddressFromBech32(msg.WithdrawerAddress), contract)
+		withdrawer = sdk.MustAccAddressFromBech32(msg.WithdrawerAddress)
+		k.SetWithdrawerMap(ctx, withdrawer, contract)
 	}
 	// update fee split
-	feeSplit.WithdrawerAddress = msg.WithdrawerAddress
+	feeSplit.WithdrawerAddress = withdrawer
 	k.SetFeeSplit(ctx, feeSplit)
 
 	ctx.EventManager().EmitEvents(
@@ -235,7 +237,7 @@ func handleMsgCancelFeeSplit(
 		)
 	}
 
-	if msg.DeployerAddress != fee.DeployerAddress {
+	if msg.DeployerAddress != fee.DeployerAddress.String() {
 		return nil, sdkerrors.Wrapf(
 			sdkerrors.ErrUnauthorized,
 			"%s is not the contract deployer", msg.DeployerAddress,
@@ -243,11 +245,11 @@ func handleMsgCancelFeeSplit(
 	}
 
 	k.DeleteFeeSplit(ctx, fee)
-	k.DeleteDeployerMap(ctx, fee.GetDeployerAddr(), contract)
+	k.DeleteDeployerMap(ctx, fee.DeployerAddress, contract)
 
 	// delete entry from withdrawer map if not default
-	if fee.WithdrawerAddress != "" {
-		k.DeleteWithdrawerMap(ctx, fee.GetWithdrawerAddr(), contract)
+	if !fee.WithdrawerAddress.Empty() {
+		k.DeleteWithdrawerMap(ctx, fee.WithdrawerAddress, contract)
 	}
 
 	ctx.EventManager().EmitEvents(
