@@ -1,18 +1,14 @@
 package types
 
 import (
-	// TODO,itsfunny,这里依赖顺序换一下
-
 	"errors"
-
-	yaml "gopkg.in/yaml.v2"
-
 	"strings"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/tendermint/crypto"
+	yaml "gopkg.in/yaml.v2"
 )
 
 type AminoInterchainAccount struct {
@@ -68,7 +64,6 @@ func (ia AminoInterchainAccount) String() string {
 }
 
 // MarshalYAML returns the YAML representation of the AminoInterchainAccount
-// TODO:itsfunny,这个应该不需要修改
 func (ia AminoInterchainAccount) MarshalYAML() ([]byte, error) {
 	accAddr := ia.Address
 

@@ -288,3 +288,7 @@ func convPacketFee(fee Fee) (Fee, error) {
 	fee.TimeoutFee = timeoutF
 	return fee, nil
 }
+
+func (m Metadata) Empty() bool {
+	return len(m.FeeVersion) == 0 || len(m.AppVersion) == 0
+}
