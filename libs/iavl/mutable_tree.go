@@ -616,6 +616,7 @@ func (tree *MutableTree) enableFastStorageAndCommitIfNotEnabled() (bool, error) 
 		return false, nil
 	}
 
+	fmt.Printf("%s enableFastStorageAndCommitIfNotEnabled \n", tree.ndb.name)
 	// If there is a mismatch between which fast nodes are on disk and the live state due to temporary
 	// downgrade and subsequent re-upgrade, we cannot know for sure which fast nodes have been removed while downgraded,
 	// Therefore, there might exist stale fast nodes on disk. As a result, to avoid persisting the stale state, it might
@@ -657,10 +658,11 @@ func (tree *MutableTree) enableFastStorageAndCommitIfNotEnabled() (bool, error) 
 		return false, err
 	}
 
-	tree.log(IavlInfo, "Compacting IAVL...")
-	if err := tree.ndb.db.Compact(); err != nil {
-		tree.log(IavlErr, "Compacted IAVL...", "error", err.Error())
-	}
+	tree.log(IavlInfo, fmt.Sprintf("%s Compacting IAVL...\n", tree.ndb.name))
+	fmt.Printf("%s Compacting IAVL...\n", tree.ndb.name)
+	//	if err := tree.ndb.db.Compact(); err != nil {
+	//		tree.log(IavlErr, "Compacted IAVL...", "error", err.Error())
+	//	}
 	tree.log(IavlInfo, "Compacting IAVL done")
 
 	return true, nil
