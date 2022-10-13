@@ -12,6 +12,12 @@ func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
 	return params
 }
 
+// GetParamsForInitGenesis returns the total set of distribution parameters.
+func (k Keeper) GetParamsForInitGenesis(ctx sdk.Context) (params types.Params) {
+	k.paramSpace.GetParamSetForInitGenesis(ctx, &params, types.IgnoreInitGenesisList)
+	return params
+}
+
 // SetParams sets the distribution parameters to the param space.
 func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
 	k.paramSpace.SetParamSet(ctx, &params)

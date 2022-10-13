@@ -226,6 +226,9 @@ func (suite *SubspaceTestSuite) TestSetParamSetForInitGenesis() {
 				} else {
 					suite.Require().True(suite.ss.Has(suite.ctx, pair.Key))
 				}
+				suite.Require().NotPanics(func() {
+					suite.ss.GetParamSetForInitGenesis(suite.ctx, tc.ps, tc.ignoreList)
+				})
 			}
 		})
 	}

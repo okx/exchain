@@ -409,6 +409,26 @@ func (s Subspace) GetParamSet(ctx sdk.Context, ps ParamSet) {
 	}
 }
 
+// GetParamSetForInitGenesis iterates through each ParamSetPair where for each pair, it will
+// retrieve the value and set it to the corresponding value pointer provided, ignore the target keys for additional
+// in the ParamSetPair by calling Subspace#Get.
+func (s Subspace) GetParamSetForInitGenesis(ctx sdk.Context, ps ParamSet, ignoreList [][]byte) {
+	for _, pair := range ps.ParamSetPairs() {
+		beIgnore := false
+		for _, ignore := range ignoreList {
+			if bytes.Equal(ignore, pair.Key) {
+				beIgnore = true
+				break
+			}
+		}
+
+		if beIgnore {
+			continue
+		}
+		s.Get(ctx, pair.Key, pair.Value)
+	}
+}
+
 // SetParamSet iterates through each ParamSetPair and sets the value with the
 // corresponding parameter key in the Subspace's KVStore.
 func (s Subspace) SetParamSet(ctx sdk.Context, ps ParamSet) {

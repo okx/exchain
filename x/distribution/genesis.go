@@ -42,7 +42,7 @@ func InitGenesis(ctx sdk.Context, keeper Keeper, supplyKeeper types.SupplyKeeper
 // ExportGenesis returns a GenesisState for a given context and keeper.
 func ExportGenesis(ctx sdk.Context, keeper Keeper) types.GenesisState {
 	feePool := keeper.GetFeePool(ctx)
-	params := keeper.GetParams(ctx)
+	params := keeper.GetParamsForInitGenesis(ctx)
 
 	dwi := make([]types.DelegatorWithdrawInfo, 0)
 	keeper.IterateDelegatorWithdrawAddrs(ctx, func(del sdk.AccAddress, addr sdk.AccAddress) (stop bool) {
