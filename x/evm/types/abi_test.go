@@ -96,7 +96,7 @@ func TestDecodeInputParam1(t *testing.T) {
 	abistr := `[{"inputs":[{"internalType":"string","name":"data","type":"string"}],"name":"invoke","outputs":[],"stateMutability":"nonpayable","type":"function"}]`
 	abis, err := NewABI(abistr)
 	require.NoError(t, err)
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 10; i++ {
 		for j := 32; j < 1024; j = j + 32 {
 			var data []byte
 			data = append(data, abis.ABI.Methods["invoke"].ID...)
