@@ -1,6 +1,7 @@
 package subspace
 
 import (
+	"bytes"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -412,6 +413,36 @@ func (s Subspace) GetParamSet(ctx sdk.Context, ps ParamSet) {
 // corresponding parameter key in the Subspace's KVStore.
 func (s Subspace) SetParamSet(ctx sdk.Context, ps ParamSet) {
 	for _, pair := range ps.ParamSetPairs() {
+		// pair.Field is a pointer to the field, so indirecting the ptr.
+		// go-amino automatically handles it but just for sure,
+		// since SetStruct is meant to be used in InitGenesis
+		// so this method will not be called frequently
+		v := reflect.Indirect(reflect.ValueOf(pair.Value)).Interface()
+
+		if err := pair.ValidatorFn(v); err != nil {
+			panic(fmt.Sprintf("value from ParamSetPair is invalid: %s", err))
+		}
+
+		s.Set(ctx, pair.Key, v)
+	}
+}
+
+// SetParamSetForInitGenesis iterates through each ParamSetPair and sets the value with the
+// corresponding parameter key in the Subspace's KVStore, ignore the target keys for additional
+func (s Subspace) SetParamSetForInitGenesis(ctx sdk.Context, ps ParamSet, ignoreList [][]byte) {
+	for _, pair := range ps.ParamSetPairs() {
+		beIgnore := false
+		for _, ignore := range ignoreList {
+			if bytes.Equal(ignore, pair.Key) {
+				beIgnore = true
+				break
+			}
+		}
+
+		if beIgnore {
+			continue
+		}
+
 		// pair.Field is a pointer to the field, so indirecting the ptr.
 		// go-amino automatically handles it but just for sure,
 		// since SetStruct is meant to be used in InitGenesis

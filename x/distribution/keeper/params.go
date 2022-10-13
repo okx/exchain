@@ -17,6 +17,11 @@ func (k Keeper) SetParams(ctx sdk.Context, params types.Params) {
 	k.paramSpace.SetParamSet(ctx, &params)
 }
 
+// SetParamsForInitGenesis sets the distribution parameters to the param space, and ignore the target keys for additional
+func (k Keeper) SetParamsForInitGenesis(ctx sdk.Context, params types.Params) {
+	k.paramSpace.SetParamSetForInitGenesis(ctx, &params, types.IgnoreInitGenesisList)
+}
+
 // GetCommunityTax returns the current CommunityTax rate from the global param store
 // nolint: errcheck
 func (k Keeper) GetCommunityTax(ctx sdk.Context) (percent sdk.Dec) {
