@@ -1,6 +1,7 @@
 package dydx
 
 import (
+	"container/list"
 	"context"
 	"crypto/ecdsa"
 	"fmt"
@@ -260,11 +261,18 @@ func processOrder(takerOrder *WrapOrder, makerBook *OrderList, takerBook *OrderL
 	}
 
 	if !isValidTriggerPrice(takerOrder, marketPrice) {
+		takerBook.Insert(takerOrder)
 		return matchResult
 	}
 
+	var makerOrderElem *list.Element
+
 	for {
-		makerOrderElem := makerBook.Front()
+		if makerOrderElem == nil {
+			makerOrderElem = makerBook.Front()
+		} else {
+			makerOrderElem = makerOrderElem.Next()
+		}
 		if makerOrderElem == nil {
 			break
 		}
@@ -275,6 +283,11 @@ func processOrder(takerOrder *WrapOrder, makerBook *OrderList, takerBook *OrderL
 		if takerOrder.Type() == SellOrderType && takerOrder.Price().Cmp(makerOrder.Price()) > 0 {
 			break
 		}
+
+		if !isValidTriggerPrice(makerOrder, marketPrice) {
+			continue
+		}
+
 		if marketPrice == nil {
 			marketPrice = makerOrder.Price()
 		}
@@ -293,9 +306,6 @@ func processOrder(takerOrder *WrapOrder, makerBook *OrderList, takerBook *OrderL
 		takerOrder.FrozenAmount.Add(takerOrder.FrozenAmount, matchAmount)
 		makerOrder.FrozenAmount.Add(makerOrder.FrozenAmount, matchAmount)
 
-		//if makerOrder.LeftAmount.Cmp(big.NewInt(0)) == 0 {
-		//	makerBook.Remove(makerOrderElem)
-		//}
 		if takerOrder.LeftAmount.Cmp(zero) == 0 {
 			break
 		}
