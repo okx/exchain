@@ -183,11 +183,14 @@ func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
 			solOrder2 = tmp
 		}
 
-		err = op.FillSignedSolOrderWithTaker(m.from, solOrder1, record.Fill)
+		fill := *record.Fill
+		fill.Fee = solOrder1.LimitFee
+		err = op.FillSignedSolOrderWithTaker(m.from, solOrder1, &fill)
 		if err != nil {
 			return matched, fmt.Errorf("failed to fill order, err: %w", err)
 		}
-		err = op.FillSignedSolOrderWithTaker(m.from, solOrder2, record.Fill)
+		fill.Fee = solOrder2.LimitFee
+		err = op.FillSignedSolOrderWithTaker(m.from, solOrder2, &fill)
 		if err != nil {
 			return matched, fmt.Errorf("failed to fill order, err: %w", err)
 		}
@@ -260,7 +263,7 @@ func processOrder(takerOrder *WrapOrder, makerBook *OrderList, takerBook *OrderL
 		TakerOrder: takerOrder,
 	}
 
-	if !isValidTriggerPrice(takerOrder, marketPrice) {
+	if takerOrder.Amount.Cmp(zero) <= 0 || !isValidTriggerPrice(takerOrder, marketPrice) {
 		takerBook.Insert(takerOrder)
 		return matchResult
 	}
@@ -288,16 +291,26 @@ func processOrder(takerOrder *WrapOrder, makerBook *OrderList, takerBook *OrderL
 			continue
 		}
 
-		if marketPrice == nil {
-			marketPrice = makerOrder.Price()
+		matchPrice := makerOrder.Price()
+		if marketPrice != nil && marketPrice.Cmp(zero) > 0 {
+			if takerOrder.Type() == BuyOrderType {
+				if takerOrder.Price().Cmp(marketPrice) >= 0 && makerOrder.Price().Cmp(marketPrice) <= 0 {
+					matchPrice = marketPrice
+				}
+			} else {
+				if makerOrder.Price().Cmp(marketPrice) >= 0 && takerOrder.Price().Cmp(marketPrice) <= 0 {
+					matchPrice = marketPrice
+				}
+			}
 		}
+
 		matchAmount := takerOrder.LeftAmount
 		if matchAmount.Cmp(makerOrder.LeftAmount) > 0 {
 			matchAmount = makerOrder.LeftAmount
 		}
 		matchResult.AddMatchedRecord(&contracts.P1OrdersFill{
 			Amount: matchAmount,
-			Price:  marketPrice,
+			Price:  matchPrice,
 		}, makerOrder)
 
 		takerOrder.LeftAmount.Sub(takerOrder.LeftAmount, matchAmount)
