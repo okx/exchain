@@ -24,8 +24,10 @@ func TestClient(t *testing.T) {
 	testnetChainID := big.NewInt(65)
 	// ethRpcUrl := "https://exchaintestrpc.okex.org"
 	ethWsUrl := "wss://exchaintestws.okex.org:8443"
-	fromBlockNum := big.NewInt(14704890)
-	endBlockNum := big.NewInt(14704893)
+	fromBlockNum := big.NewInt(
+		15465914,
+	)
+	endBlockNum := big.NewInt(15465943)
 	// privKey := "e47a1fe74a7f9bfa44a362a3c6fbe96667242f62e6b8e138b3f61bd431c3215d"
 	privKey := "fefac29bfa769d8a6c17b685816dadbd30e3f395e997ed955a5461914be75ed5"
 

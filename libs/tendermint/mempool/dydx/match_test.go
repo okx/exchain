@@ -1,10 +1,15 @@
 package dydx
 
 import (
+	"context"
 	"math/big"
 	"math/rand"
+	"os"
+	"strconv"
 	"testing"
 	"time"
+
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -12,16 +17,40 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var privKeyCaptain = "8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17"
+//{
+//"65": {
+//"PerpetualV1": "0x85574c0114F5387eaE45e83dE515e55f667180F7",
+//"PerpetualProxy": "0xaC405bA85723d3E8d6D87B3B36Fd8D0D4e32D2c9",
+//"P1FundingOracle": "0x010579e42d4f9aE141717e180D51d8F22145f515",
+//"P1MakerOracle": "0x4241DD684fbC5bCFCD2cA7B90b72885A79cf50B4",
+//"MarginToken": "0xC87EF36830A0D94E42bB2D82a0b2bB939368b10B",
+//"P1Orders": "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619",
+//"P1Liquidation": "0xbe10Af4f5f2408E583259EAa3dDc41905ea195A0",
+//"P1Deleveraging": "0x4817C9f094158F4134d87cdb815D61902c71330c",
+//"P1CurrencyConverterProxy": "0x43F1700F40276B8F7E2B2de2bd99f6A424E13376",
+//"P1WethProxy": "0xD9604832D9c966d485FDcF368198F4Ea01B09149",
+//"P1LiquidatorProxy": "0xC5Df7ccfCf552c76B1FD5D00086565d77f0BC6Db"
+//}
+//}
 
-// bob: 75dee45fc7b2dd69ec22dc6a825a2d982aee4ca2edd42c53ced0912173c4a788
-// turing : 89c81c304704e9890025a5a91898802294658d6e4034a11c6116f4b129ea12d3
+var privKeyCaptain = "8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17"
+var privKeyAlice = "e47a1fe74a7f9bfa44a362a3c6fbe96667242f62e6b8e138b3f61bd431c3215d"
+var privKeyBob = "75dee45fc7b2dd69ec22dc6a825a2d982aee4ca2edd42c53ced0912173c4a788"
+var privKeyTuring = "89c81c304704e9890025a5a91898802294658d6e4034a11c6116f4b129ea12d3"
+
+var addrCaptain = privKeyToAddress(privKeyCaptain)
+var addrBob = privKeyToAddress(privKeyBob)
+var addrTuring = privKeyToAddress(privKeyTuring)
+var addrAlice = privKeyToAddress(privKeyAlice)
+
 // operator : 0xfefac29bfa769d8a6c17b685816dadbd30e3f395e997ed955a5461914be75ed5
 
 var config = DydxConfig{
-	PrivKeyHex:                 "fefac29bfa769d8a6c17b685816dadbd30e3f395e997ed955a5461914be75ed5",
+	// PrivKeyHex:                 "fefac29bfa769d8a6c17b685816dadbd30e3f395e997ed955a5461914be75ed5",
+	PrivKeyHex:                 privKeyTuring,
 	ChainID:                    "65",
 	EthWsRpcUrl:                "wss://exchaintestws.okex.org:8443",
+	EthHttpRpcUrl:              "https://exchaintestrpc.okex.org",
 	PerpetualV1ContractAddress: "0xaC405bA85723d3E8d6D87B3B36Fd8D0D4e32D2c9",
 	P1OrdersContractAddress:    "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619",
 	P1MakerOracleAddress:       "0x4241DD684fbC5bCFCD2cA7B90b72885A79cf50B4",
@@ -169,21 +198,72 @@ func TestMatch(t *testing.T) {
 }
 
 func TestMatchAndTrade(t *testing.T) {
+	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "match")
+	var options []log.Option
+	options = append(options, log.AllowDebug())
+	logger = log.NewFilter(logger, options...)
+
 	tool := &testTool{T: t}
 
 	book := NewDepthBook()
-	me, err := NewMatchEngine(book, config, nil, nil)
+	me, err := NewMatchEngine(book, config, nil, logger)
 	require.NoError(t, err)
 
 	// order1
-
+	price, ok := big.NewInt(0).SetString("18200000000000000000000", 10)
+	require.True(t, ok)
+	order1 := newTestBigOrder(price, big.NewInt(1), true, addrCaptain, privKeyCaptain)
 	// no match
-	tool.requireNoMatch(me.MatchAndTrade(nil))
+	tool.requireNoMatch(me.MatchAndTrade(order1))
+
+	// order2
+	price, ok = big.NewInt(0).SetString("18200000000000000000000", 10)
+	require.True(t, ok)
+	order2 := newTestBigOrder(price, big.NewInt(1), true, addrAlice, privKeyAlice)
+	// no match
+	tool.requireNoMatch(me.MatchAndTrade(order2))
+
+	// order3
+	price, ok = big.NewInt(0).SetString("18200000000000000000000", 10)
+	require.True(t, ok)
+	order3 := newTestBigOrder(price, big.NewInt(3), false, addrBob, privKeyBob)
+
+	mr, err := me.MatchAndTrade(order3)
+	require.NoError(t, err)
+	require.Equal(t, 2, len(mr.MatchedRecords))
+
+	isOnChain := <-mr.OnChain
+	require.True(t, isOnChain)
+
+	// order4
+	price, ok = big.NewInt(0).SetString("18200000000000000000000", 10)
+	require.True(t, ok)
+	order4 := newTestBigOrder(price, big.NewInt(1), true, addrCaptain, privKeyCaptain)
+
+	mr, err = me.MatchAndTrade(order4)
+	require.NoError(t, err)
+	require.Equal(t, 1, len(mr.MatchedRecords))
+
+	isOnChain = <-mr.OnChain
+	require.True(t, isOnChain)
+}
+
+func TestTxReceipt(t *testing.T) {
+	book := NewDepthBook()
+	me, err := NewMatchEngine(book, config, nil, nil)
+	require.NoError(t, err)
+	rec, err := me.httpCli.TransactionReceipt(context.Background(),
+		common.HexToHash("0xf6cc010deb24d3c78f5d34119541d5f5417f06da5f88989f0c34b858370e0d52"),
+	)
+	require.NoError(t, err)
+	t.Logf("rec: %v", rec)
 }
 
 func (tool *testTool) requireNoMatch(mr *MatchResult, err error) {
 	require.NoError(tool, err)
-	require.Equal(tool, 0, len(mr.MatchedRecords))
+	if mr != nil {
+		require.Equal(tool, 0, len(mr.MatchedRecords))
+	}
 }
 
 func newTestOrder(price, amount uint64, isBuy bool) *WrapOrder {
@@ -200,5 +280,34 @@ func newTestOrder(price, amount uint64, isBuy bool) *WrapOrder {
 	if !isBuy {
 		o.Flags[31] = 1
 	}
+	return o
+}
+
+func newTestBigOrder(price, amount *big.Int, isBuy bool, maker common.Address, privKey string) *WrapOrder {
+	o := &WrapOrder{}
+	o.LimitPrice = big.NewInt(0).Set(price)
+	o.Amount = big.NewInt(0).Set(amount)
+	o.LeftAmount = big.NewInt(0).Set(amount)
+	o.FrozenAmount = big.NewInt(0)
+	o.TriggerPrice = big.NewInt(0)
+	o.LimitFee = big.NewInt(0)
+	// time.Now().Unix()*2 to avoid to be pruned
+	// rand.Int63() to avoid repeated orderHash
+	o.Expiration = big.NewInt(time.Now().Unix()*2 + rand.Int63())
+	if !isBuy {
+		o.Flags[31] = 1
+	}
+
+	o.Maker = maker
+	chainid, err := strconv.Atoi(config.ChainID)
+	if err != nil {
+		panic(err)
+	}
+	sig, err := signOrder(o.P1Order, privKey, int64(chainid), config.P1OrdersContractAddress)
+	if err != nil {
+		panic(err)
+	}
+	o.Sig = sig
+
 	return o
 }
