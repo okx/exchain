@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
 	comm "github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/feesplit/types"
@@ -37,7 +36,7 @@ func withdrawAddrHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			return
 		}
 
-		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", types.RouterKey, types.QueryFeeSplits), data)
+		res, height, err := cliCtx.QueryWithData(fmt.Sprintf("custom/%s/%s", types.RouterKey, types.QueryFeeSplit), data)
 		if err != nil {
 			sdkErr := comm.ParseSDKError(err.Error())
 			comm.HandleErrorMsg(w, cliCtx, sdkErr.Code, sdkErr.Message)
@@ -65,7 +64,7 @@ func withdrawerContractsHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 
 		req := &types.QueryWithdrawerFeeSplitsRequest{
 			WithdrawerAddress: addr,
-			Pagination:        &query.PageRequest{Limit: -1},
+			Pagination:        nil,
 		}
 		data, err := cliCtx.Codec.MarshalJSON(req)
 		if err != nil {

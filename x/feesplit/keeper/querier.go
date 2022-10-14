@@ -231,8 +231,8 @@ func queryWithdrawerFeeSplits(
 		types.GetKeyPrefixWithdrawer(deployer),
 	)
 
-	pageRes := &query.PageResponse{}
-	if (params.Pagination != nil) && (params.Pagination.Limit == -1) {
+	var pageRes *query.PageResponse
+	if params.Pagination == nil {
 		//query all
 		iter := store.Iterator(nil, nil)
 		defer iter.Close()
