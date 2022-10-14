@@ -6,16 +6,34 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
+
 	"github.com/stretchr/testify/require"
 )
 
+var privKeyCaptain = "8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17"
+
+// bob: 75dee45fc7b2dd69ec22dc6a825a2d982aee4ca2edd42c53ced0912173c4a788
+// turing : 89c81c304704e9890025a5a91898802294658d6e4034a11c6116f4b129ea12d3
+// operator : 0xfefac29bfa769d8a6c17b685816dadbd30e3f395e997ed955a5461914be75ed5
+
 var config = DydxConfig{
-	PrivKeyHex:                 "e47a1fe74a7f9bfa44a362a3c6fbe96667242f62e6b8e138b3f61bd431c3215d",
+	PrivKeyHex:                 "fefac29bfa769d8a6c17b685816dadbd30e3f395e997ed955a5461914be75ed5",
 	ChainID:                    "65",
 	EthWsRpcUrl:                "wss://exchaintestws.okex.org:8443",
 	PerpetualV1ContractAddress: "0xaC405bA85723d3E8d6D87B3B36Fd8D0D4e32D2c9",
 	P1OrdersContractAddress:    "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619",
 	P1MakerOracleAddress:       "0x4241DD684fbC5bCFCD2cA7B90b72885A79cf50B4",
+	P1MarginAddress:            "0xC87EF36830A0D94E42bB2D82a0b2bB939368b10B",
+}
+
+func privKeyToAddress(privKeyHex string) common.Address {
+	privKey, err := crypto.HexToECDSA(privKeyHex)
+	if err != nil {
+		panic(err)
+	}
+	return crypto.PubkeyToAddress(privKey.PublicKey)
 }
 
 type testTool struct {
@@ -26,7 +44,7 @@ func TestMatch(t *testing.T) {
 	tool := &testTool{T: t}
 
 	book := NewDepthBook()
-	me, err := NewMatchEngine(book, config, nil)
+	me, err := NewMatchEngine(book, config, nil, nil)
 	require.NoError(t, err)
 
 	// no match
@@ -148,6 +166,19 @@ func TestMatch(t *testing.T) {
 
 	require.Equal(t, "15", mr.TakerOrder.LeftAmount.String())
 	require.Equal(t, "115", mr.TakerOrder.FrozenAmount.String())
+}
+
+func TestMatchAndTrade(t *testing.T) {
+	tool := &testTool{T: t}
+
+	book := NewDepthBook()
+	me, err := NewMatchEngine(book, config, nil, nil)
+	require.NoError(t, err)
+
+	// order1
+
+	// no match
+	tool.requireNoMatch(me.MatchAndTrade(nil))
 }
 
 func (tool *testTool) requireNoMatch(mr *MatchResult, err error) {
