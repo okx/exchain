@@ -212,6 +212,7 @@ func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
 	if err != nil {
 		return matched, fmt.Errorf("failed to commit, err: %w", err)
 	}
+	m.logger.Debug("commit tx", "tx", matched.Tx.Hash().Hex())
 	matched.OnChain = make(chan bool, 1)
 	go func() {
 		for {
