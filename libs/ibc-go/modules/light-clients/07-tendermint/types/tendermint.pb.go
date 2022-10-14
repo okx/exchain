@@ -6,7 +6,7 @@ package types
 import (
 	fmt "fmt"
 
-	_go "github.com/confio/ics23/go"
+	_go "github.com/okex/exchain/ics23"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	types1 "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
 	"github.com/okex/exchain/libs/tendermint/libs/bytes"

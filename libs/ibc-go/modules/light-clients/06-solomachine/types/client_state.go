@@ -3,7 +3,7 @@ package types
 import (
 	"reflect"
 
-	ics23 "github.com/confio/ics23/go"
+	ics23 "github.com/okex/exchain/ics23"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"

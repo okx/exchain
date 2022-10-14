@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"strings"
 
-	ics23 "github.com/confio/ics23/go"
+	ics23 "github.com/okex/exchain/ics23"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
