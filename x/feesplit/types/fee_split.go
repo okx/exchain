@@ -23,15 +23,14 @@ type FeeSplit struct {
 // NewFeeSplit returns an instance of FeeSplit. If the provided withdrawer
 // address is empty, it sets the value to an empty string.
 func NewFeeSplit(contract common.Address, deployer, withdrawer sdk.AccAddress) FeeSplit {
-	var withdrawerAddr sdk.AccAddress
-	if !withdrawer.Empty() {
-		withdrawerAddr = withdrawer
+	if withdrawer.Empty() {
+		withdrawer = deployer
 	}
 
 	return FeeSplit{
 		ContractAddress:   contract,
 		DeployerAddress:   deployer,
-		WithdrawerAddress: withdrawerAddr,
+		WithdrawerAddress: withdrawer,
 	}
 }
 
