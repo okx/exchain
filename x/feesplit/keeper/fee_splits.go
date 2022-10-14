@@ -90,7 +90,9 @@ func (k Keeper) SetFeeSplit(ctx sdk.Context, feeSplit types.FeeSplit) {
 	store.Set(key.Bytes(), bz)
 
 	// update cache
-	types.GetParamsCache().UpdateFeeSplit(feeSplit.ContractAddress, feeSplit, ctx.IsCheckTx())
+	if ctx.IsDeliver() || ctx.ParaMsg() != nil {
+		types.GetParamsCache().UpdateFeeSplit(feeSplit.ContractAddress, feeSplit, ctx.IsCheckTx())
+	}
 }
 
 // DeleteFeeSplit deletes a FeeSplit of a registered contract.
@@ -100,7 +102,9 @@ func (k Keeper) DeleteFeeSplit(ctx sdk.Context, feeSplit types.FeeSplit) {
 	store.Delete(key.Bytes())
 
 	// update cache
-	types.GetParamsCache().DeleteFeeSplit(feeSplit.ContractAddress, ctx.IsCheckTx())
+	if ctx.IsDeliver() || ctx.ParaMsg() != nil {
+		types.GetParamsCache().DeleteFeeSplit(feeSplit.ContractAddress, ctx.IsCheckTx())
+	}
 }
 
 // SetDeployerMap stores a contract-by-deployer mapping
@@ -188,7 +192,9 @@ func (k Keeper) SetContractShare(
 	store.Set(contract.Bytes(), share.Bytes())
 
 	// update cache
-	types.GetParamsCache().UpdateShare(contract.String(), share, ctx.IsCheckTx())
+	if ctx.IsDeliver() || ctx.ParaMsg() != nil {
+		types.GetParamsCache().UpdateShare(contract.String(), share, ctx.IsCheckTx())
+	}
 }
 
 // GetContractShare returns the share for a registered contract
