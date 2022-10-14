@@ -87,7 +87,7 @@ func (k Keeper) PostTxProcessing(
 		return nil
 	}
 
-	txFee := new(big.Int).Mul(st.Price, new(big.Int).SetUint64(ctx.GasMeter().GasConsumed()))
+	txFee := new(big.Int).Mul(st.Price, new(big.Int).SetUint64(currentGasMeter.GasConsumed()))
 	developerFee := sdk.NewDecFromBigIntWithPrec(txFee, sdk.Precision).Mul(developerShares)
 	if developerFee.LTE(sdk.ZeroDec()) {
 		return nil
