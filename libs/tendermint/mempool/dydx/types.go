@@ -2,6 +2,7 @@ package dydx
 
 import (
 	"crypto/sha256"
+	"fmt"
 	"math/big"
 	"sync"
 
@@ -239,11 +240,24 @@ func (w *WrapOrder) Hash() common.Hash {
 func (w *WrapOrder) Frozen(amount *big.Int) {
 	w.LeftAmount.Sub(w.LeftAmount, amount)
 	w.FrozenAmount.Add(w.FrozenAmount, amount)
+	if w.LeftAmount.Sign() < 0 {
+		fmt.Println("WrapOrder Frozen error")
+	}
 }
 
 func (w *WrapOrder) Unfrozen(amount *big.Int) {
 	w.LeftAmount.Add(w.LeftAmount, amount)
 	w.FrozenAmount.Sub(w.FrozenAmount, amount)
+	if w.FrozenAmount.Sign() < 0 {
+		fmt.Println("WrapOrder Unfrozen error")
+	}
+}
+
+func (w *WrapOrder) Done(amount *big.Int) {
+	w.FrozenAmount.Sub(w.FrozenAmount, amount)
+	if w.FrozenAmount.Sign() < 0 {
+		fmt.Println("WrapOrder Done error")
+	}
 }
 
 type SignedOrder struct {
