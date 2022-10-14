@@ -35,27 +35,6 @@ func NewFeeSplit(contract common.Address, deployer, withdrawer sdk.AccAddress) F
 	}
 }
 
-// GetContractAddr returns the contract address
-//func (fs FeeSplit) GetContractAddr() common.Address {
-//	return common.HexToAddress(fs.ContractAddress)
-//}
-
-// GetDeployerAddr returns the contract deployer address
-//func (fs FeeSplit) GetDeployerAddr() sdk.AccAddress {
-//	return sdk.MustAccAddressFromBech32(fs.DeployerAddress)
-//}
-
-// GetWithdrawerAddr returns the account address to where the funds proceeding
-// from the fees will be received. If the withdraw address is not defined, it
-// defaults to the deployer address.
-//func (fs FeeSplit) GetWithdrawerAddr() sdk.AccAddress {
-//	if fs.WithdrawerAddress == "" {
-//		return nil
-//	}
-//
-//	return sdk.MustAccAddressFromBech32(fs.WithdrawerAddress)
-//}
-
 // Validate performs a stateless validation of a FeeSplit
 func (fs FeeSplit) Validate() error {
 	if bytes.Equal(fs.ContractAddress.Bytes(), common.Address{}.Bytes()) {
@@ -65,15 +44,11 @@ func (fs FeeSplit) Validate() error {
 		)
 	}
 
-	//if _, err := sdk.AccAddressFromBech32(fs.DeployerAddress); err != nil {
-	//	return err
-	//}
-
-	//if fs.WithdrawerAddress != "" {
-	//	if _, err := sdk.AccAddressFromBech32(fs.WithdrawerAddress); err != nil {
-	//		return err
-	//	}
-	//}
+	if fs.DeployerAddress.Empty() {
+		return sdkerrors.Wrapf(
+			sdkerrors.ErrInvalidAddress, "empty address string is not allowed",
+		)
+	}
 
 	return nil
 }
