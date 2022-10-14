@@ -66,7 +66,7 @@ func (msg MsgRegisterFeeSplit) Type() string { return TypeMsgRegisterFeeSplit }
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgRegisterFeeSplit) ValidateBasic() error {
-	if !tmtypes.HigherThanVenus3(global.GetGlobalHeight()) {
+	if global.GetGlobalHeight() > 0 && !tmtypes.HigherThanVenus3(global.GetGlobalHeight()) {
 		return ErrNotFeesplitHeight
 	}
 
@@ -138,7 +138,7 @@ func (msg MsgUpdateFeeSplit) Type() string { return TypeMsgUpdateFeeSplit }
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgUpdateFeeSplit) ValidateBasic() error {
-	if !tmtypes.HigherThanVenus3(global.GetGlobalHeight()) {
+	if global.GetGlobalHeight() > 0 && !tmtypes.HigherThanVenus3(global.GetGlobalHeight()) {
 		return ErrNotFeesplitHeight
 	}
 
@@ -195,10 +195,10 @@ func (msg MsgCancelFeeSplit) Type() string { return TypeMsgCancelFeeSplit }
 
 // ValidateBasic runs stateless checks on the message
 func (msg MsgCancelFeeSplit) ValidateBasic() error {
-	if !tmtypes.HigherThanVenus3(global.GetGlobalHeight()) {
+	if global.GetGlobalHeight() > 0 && !tmtypes.HigherThanVenus3(global.GetGlobalHeight()) {
 		return ErrNotFeesplitHeight
 	}
-	
+
 	if _, err := sdk.AccAddressFromBech32(msg.DeployerAddress); err != nil {
 		return sdkerrors.Wrapf(err, "invalid deployer address %s", msg.DeployerAddress)
 	}

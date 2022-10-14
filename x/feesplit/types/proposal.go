@@ -44,7 +44,7 @@ func (fp FeeSplitSharesProposal) GetDescription() string { return fp.Description
 func (fp FeeSplitSharesProposal) ProposalRoute() string  { return RouterKey }
 func (fp FeeSplitSharesProposal) ProposalType() string   { return proposalTypeFeeSplitShares }
 func (fp FeeSplitSharesProposal) ValidateBasic() sdk.Error {
-	if !tmtypes.HigherThanVenus3(global.GetGlobalHeight()) {
+	if global.GetGlobalHeight() > 0 && !tmtypes.HigherThanVenus3(global.GetGlobalHeight()) {
 		return ErrNotFeesplitHeight
 	}
 

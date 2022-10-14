@@ -84,7 +84,7 @@ func GetRegisterFeeSplit(cdc *codec.Codec) *cobra.Command {
 				WithdrawerAddress: withdraw,
 				Nonces:            nonces,
 			}
-			if err := msg.ValidateBasic(); err != nil && err != types.ErrNotFeesplitHeight {
+			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
 
@@ -120,7 +120,7 @@ func GetCancelFeeSplit(cdc *codec.Codec) *cobra.Command {
 				DeployerAddress: deployer.String(),
 			}
 
-			if err := msg.ValidateBasic(); err != nil && err != types.ErrNotFeesplitHeight {
+			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
 
@@ -162,7 +162,7 @@ func GetUpdateFeeSplit(cdc *codec.Codec) *cobra.Command {
 				WithdrawerAddress: withdraw,
 			}
 
-			if err := msg.ValidateBasic(); err != nil && err != types.ErrNotFeesplitHeight {
+			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
 
@@ -227,7 +227,7 @@ Where proposal.json contains:
 			)
 
 			msg := govTypes.NewMsgSubmitProposal(content, proposal.Deposit, from)
-			if err := msg.ValidateBasic(); err != nil && err != types.ErrNotFeesplitHeight {
+			if err := msg.ValidateBasic(); err != nil {
 				return err
 			}
 
