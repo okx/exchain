@@ -50,6 +50,10 @@ func (k Keeper) PostTxProcessing(
 	currentGasMeter := ctx.GasMeter()
 	infGasMeter := sdk.GetReusableInfiniteGasMeter()
 	ctx.SetGasMeter(infGasMeter)
+	defer func() {
+		ctx.SetGasMeter(currentGasMeter)
+		sdk.ReturnInfiniteGasMeter(infGasMeter)
+	}()
 
 	// check if the fees are globally enabled
 	params := k.GetParamsWithCache(ctx)
@@ -83,21 +87,18 @@ func (k Keeper) PostTxProcessing(
 		return nil
 	}
 
-	ctx.SetGasMeter(currentGasMeter)
-	sdk.ReturnInfiniteGasMeter(infGasMeter)
-
 	txFee := new(big.Int).Mul(st.Price, new(big.Int).SetUint64(ctx.GasMeter().GasConsumed()))
 	developerFee := sdk.NewDecFromBigIntWithPrec(txFee, sdk.Precision).Mul(developerShares)
 	if developerFee.LTE(sdk.ZeroDec()) {
 		return nil
 	}
 	fees := sdk.Coins{{Denom: sdk.DefaultBondDenom, Amount: developerFee}}
-	_ = fees
+
 	// distribute the fees to the contract deployer / withdraw address
-	//k.updateFeeSplitHandler(receipt.TxHash, withdrawer, fees)
+	k.updateFeeSplitHandler(receipt.TxHash, withdrawer, fees)
 
 	// add innertx
-	//k.addFeesplitInnerTx(receipt.TxHash.Hex(), withdrawer.String(), fees.String())
+	k.addFeesplitInnerTx(receipt.TxHash.Hex(), withdrawer.String(), fees.String())
 
 	ctx.EventManager().EmitEvents(
 		sdk.Events{
