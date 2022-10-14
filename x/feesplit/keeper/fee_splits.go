@@ -54,7 +54,7 @@ func (k Keeper) GetFeeSplitWithCache(
 	contract common.Address,
 ) (feeSplit types.FeeSplit, found bool) {
 	if ctx.UseParamCache() && !tmtypes.DownloadDelta {
-		if feeSplit, found = types.GetParamsCache().GetFeeSplit(contract.String()); !found {
+		if feeSplit, found = types.GetParamsCache().GetFeeSplit(contract); !found {
 			if feeSplit, found = k.GetFeeSplit(ctx, contract); found {
 				types.GetParamsCache().UpdateFeeSplit(feeSplit.ContractAddress, feeSplit, ctx.IsCheckTx())
 			}
@@ -98,7 +98,7 @@ func (k Keeper) SetFeeSplit(ctx sdk.Context, feeSplit types.FeeSplit) {
 // DeleteFeeSplit deletes a FeeSplit of a registered contract.
 func (k Keeper) DeleteFeeSplit(ctx sdk.Context, feeSplit types.FeeSplit) {
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixFeeSplit)
-	key := fee.ContractAddress
+	key := feeSplit.ContractAddress
 	store.Delete(key.Bytes())
 
 	// update cache
@@ -193,7 +193,7 @@ func (k Keeper) SetContractShare(
 
 	// update cache
 	if ctx.IsDeliver() || ctx.ParaMsg() != nil {
-		types.GetParamsCache().UpdateShare(contract.String(), share, ctx.IsCheckTx())
+		types.GetParamsCache().UpdateShare(contract, share, ctx.IsCheckTx())
 	}
 }
 
@@ -218,10 +218,9 @@ func (k Keeper) GetContractShareWithCache(
 	contract common.Address,
 ) (share sdk.Dec, found bool) {
 	if ctx.UseParamCache() && !tmtypes.DownloadDelta {
-		contractStr := contract.String()
-		if share, found = types.GetParamsCache().GetShare(contractStr); !found {
+		if share, found = types.GetParamsCache().GetShare(contract); !found {
 			if share, found = k.GetContractShare(ctx, contract); found {
-				types.GetParamsCache().UpdateShare(contractStr, share, ctx.IsCheckTx())
+				types.GetParamsCache().UpdateShare(contract, share, ctx.IsCheckTx())
 			}
 		}
 	} else {

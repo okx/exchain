@@ -3,6 +3,8 @@ package types
 import (
 	"sync"
 
+	"github.com/ethereum/go-ethereum/common"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
@@ -63,46 +65,46 @@ func (c *Cache) GetParams() Params {
 }
 
 // UpdateFeeSplit The change in feeSplit is only related to the user tx(register,update,cancel)
-func (c *Cache) UpdateFeeSplit(contract string, feeSplit FeeSplit, isCheckTx bool) {
+func (c *Cache) UpdateFeeSplit(contract common.Address, feeSplit FeeSplit, isCheckTx bool) {
 	if isCheckTx {
 		return
 	}
 	c.feeSplitMutex.Lock()
 	defer c.feeSplitMutex.Unlock()
-	c.feeSplits[contract] = feeSplit
+	c.feeSplits[contract.String()] = feeSplit
 }
 
 // DeleteFeeSplit The change in feeSplit is only related to the user tx(register,update,cancel)
-func (c *Cache) DeleteFeeSplit(contract string, isCheckTx bool) {
+func (c *Cache) DeleteFeeSplit(contract common.Address, isCheckTx bool) {
 	if isCheckTx {
 		return
 	}
 	c.feeSplitMutex.Lock()
 	defer c.feeSplitMutex.Unlock()
-	delete(c.feeSplits, contract)
+	delete(c.feeSplits, contract.String())
 }
 
-func (c *Cache) GetFeeSplit(contract string) (FeeSplit, bool) {
+func (c *Cache) GetFeeSplit(contract common.Address) (FeeSplit, bool) {
 	c.feeSplitMutex.RLock()
 	defer c.feeSplitMutex.RUnlock()
-	feeSplit, found := c.feeSplits[contract]
+	feeSplit, found := c.feeSplits[contract.String()]
 	return feeSplit, found
 }
 
 // UpdateShare The change in share is only related to the proposal
-func (c *Cache) UpdateShare(contract string, share sdk.Dec, isCheckTx bool) {
+func (c *Cache) UpdateShare(contract common.Address, share sdk.Dec, isCheckTx bool) {
 	if isCheckTx {
 		return
 	}
 	c.sharesMutex.Lock()
 	defer c.sharesMutex.Unlock()
-	c.shares[contract] = share
+	c.shares[contract.String()] = share
 }
 
-func (c *Cache) GetShare(contract string) (sdk.Dec, bool) {
+func (c *Cache) GetShare(contract common.Address) (sdk.Dec, bool) {
 	c.sharesMutex.RLock()
 	defer c.sharesMutex.RUnlock()
-	share, found := c.shares[contract]
+	share, found := c.shares[contract.String()]
 	return share, found
 }
 
