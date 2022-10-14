@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"runtime"
 	"sort"
 	"sync"
@@ -659,11 +660,12 @@ func (tree *MutableTree) enableFastStorageAndCommitIfNotEnabled() (bool, error) 
 	}
 
 	tree.log(IavlInfo, fmt.Sprintf("%s Compacting IAVL...\n", tree.ndb.name))
-	fmt.Printf("%s Compacting IAVL...\n", tree.ndb.name)
+	log.Printf("%s Compacting IAVL...\n", tree.ndb.name)
 	if err := tree.ndb.db.Compact(); err != nil {
 		tree.log(IavlErr, "Compacted IAVL...", "error", err.Error())
 	}
 	tree.log(IavlInfo, "Compacting IAVL done")
+	log.Printf("%s Done compact IAVL...\n", tree.ndb.name)
 
 	return true, nil
 }
@@ -734,6 +736,7 @@ func (tree *MutableTree) enableFastStorageAndCommit(batch dbm.Batch) error {
 		}
 	}
 	tree.log(IavlInfo, "Upgrading to fast IAVL...", "done", upgradedNodes, "db", tree.ndb.name)
+	log.Printf("%s Upgrading to %v fast IAVL...\n", tree.ndb.name, upgradedNodes)
 
 	if err = itr.Error(); err != nil {
 		return err
