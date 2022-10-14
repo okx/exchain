@@ -2,11 +2,10 @@ package proofs
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/proto/crypto/merkle"
 	"math/bits"
 
-	"github.com/okex/exchain/libs/tendermint/proto/crypto/merkle"
-
-	ics23 "github.com/okex/exchain/ics23"
+	ics23 "github.com/confio/ics23/go"
 )
 
 // ConvertExistenceProof will convert the given proof into a valid

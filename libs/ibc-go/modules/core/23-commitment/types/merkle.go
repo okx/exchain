@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/url"
 
+	ics23 "github.com/confio/ics23/go"
 	"github.com/gogo/protobuf/proto"
-	ics23 "github.com/okex/exchain/ics23"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
 	"github.com/okex/exchain/libs/tendermint/proto/crypto"
