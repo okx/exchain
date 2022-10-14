@@ -16,9 +16,9 @@ func InitGenesis(
 	k.SetParams(ctx, data.Params)
 
 	for _, feeSplit := range data.FeeSplits {
-		contract := feeSplit.GetContractAddr()
-		deployer := feeSplit.GetDeployerAddr()
-		withdrawer := feeSplit.GetWithdrawerAddr()
+		contract := feeSplit.ContractAddress
+		deployer := feeSplit.DeployerAddress
+		withdrawer := feeSplit.WithdrawerAddress
 
 		// Set initial contracts receiving transaction fees
 		k.SetFeeSplit(ctx, feeSplit)

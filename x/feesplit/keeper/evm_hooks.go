@@ -70,9 +70,9 @@ func (k Keeper) PostTxProcessing(
 		return nil
 	}
 
-	withdrawer := feeSplit.GetWithdrawerAddr()
-	if len(withdrawer) == 0 {
-		withdrawer = feeSplit.GetDeployerAddr()
+	withdrawer := feeSplit.WithdrawerAddress
+	if withdrawer.Empty() {
+		withdrawer = feeSplit.DeployerAddress
 	}
 
 	developerShares := params.DeveloperShares
