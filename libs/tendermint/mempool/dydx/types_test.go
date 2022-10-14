@@ -2,12 +2,15 @@ package dydx
 
 import (
 	"encoding/hex"
-	"github.com/okex/exchain/libs/dydx/contracts"
+	"fmt"
 	"math/big"
 	"sync"
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/okex/exchain/libs/dydx/contracts"
 	"github.com/stretchr/testify/require"
 )
 
@@ -20,6 +23,27 @@ const (
 	takerHex       = "70997970C51812dc3A010C7d01b50e0d17dc79C8"
 )
 
+var testOrder P1Order
+
+func init() {
+	testOrder = P1Order{
+		CallType: 1,
+		P1OrdersOrder: contracts.P1OrdersOrder{
+			Amount:       big.NewInt(1),
+			LimitPrice:   big.NewInt(1),
+			TriggerPrice: big.NewInt(1),
+			LimitFee:     big.NewInt(1),
+			Expiration:   big.NewInt(0),
+		},
+	}
+
+	flags, _ := hex.DecodeString("4554480000000000000000000000000000000000000000000000000000000000")
+	addr, _ := hex.DecodeString("4554480000000000000000000000000000000000")
+	copy(testOrder.Flags[:], flags)
+	copy(testOrder.Maker[:], addr)
+	copy(testOrder.Taker[:], addr)
+}
+
 func TestDecodeSignedMsg(t *testing.T) {
 	signedMsgBytes, err := hex.DecodeString(signedOrderHex)
 	require.NoError(t, err)
@@ -28,13 +52,6 @@ func TestDecodeSignedMsg(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, orderHex, hex.EncodeToString(so.Msg))
 	require.Equal(t, orderSigHex, hex.EncodeToString(so.Sig[:]))
-}
-
-func TestEncode(t *testing.T) {
-	a := int32(17)
-	data, err := callTypeABI.Encode(a)
-	require.NoError(t, err)
-	require.Equal(t, byte(a), data[len(data)-1])
 }
 
 func TestDecodeOrder(t *testing.T) {
@@ -108,4 +125,116 @@ func TestHash(t *testing.T) {
 	require.Equal(t, hashHex, odr.Hash().String())
 	odr.CallType += 1
 	require.Equal(t, hashHex, odr.Hash().String())
+}
+
+//TODO
+func TestRealOrder(t *testing.T) {
+	maker := common.FromHex("0xbbe4733d85bc2b90682147779da49cab38c0aa1f")
+	odr := P1Order{
+		CallType: 1,
+		P1OrdersOrder: contracts.P1OrdersOrder{
+			Amount:       big.NewInt(0).Mul(big.NewInt(6666), big.NewInt(1)),
+			LimitPrice:   big.NewInt(0).Mul(big.NewInt(22), big.NewInt(1e18)),
+			TriggerPrice: big.NewInt(0),
+			LimitFee:     big.NewInt(0),
+			Expiration:   big.NewInt(1668065275),
+		},
+	}
+	fmt.Println(odr.Amount, odr.LimitPrice)
+	copy(odr.Maker[:], maker)
+	fmt.Println(odr.Hash())
+
+}
+
+func TestOrderHash(t *testing.T) {
+	chainID := big.NewInt(65)
+	orderContractAddr := "0x9D7f74d0C41E726EC95884E0e97Fa6129e3b5E99"
+
+	odr := newP1Order()
+	data, err := odr.encodeOrder()
+	require.NoError(t, err)
+	require.Equal(t, "0xa992c4f874c3f90d79d458707aecfec8c0698b47aaa2019f85a8ab462376adaf", crypto.Keccak256Hash(data).String())
+	structHash := crypto.Keccak256Hash(EIP712_ORDER_STRUCT_SCHEMA_HASH[:], data)
+	require.Equal(t, "0x906d8a993d6a3a8cb350ee8b21113ca34d9131ae513dc7ed605966427996580c", structHash.String())
+
+	EIP712DomainHash := crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], common.LeftPadBytes(chainID.Bytes(), 32), common.LeftPadBytes(common.FromHex(orderContractAddr), 32))
+	require.Equal(t, "0x1905e070f1c3100dda9bd4ea427b9c63d9b73b6b66af8ef935fd1ec9e3e66a91", EIP712DomainHash.String())
+
+	orderHash := crypto.Keccak256Hash(EIP191_HEADER, EIP712DomainHash[:], structHash[:])
+	require.Equal(t, "0xab28adc95c1e76ec402f1f62d9b7cc4596d40ce227a9d8ac04cc59b758bb2a89", orderHash.String())
+}
+
+func TestP1Order_VerifySignature(t *testing.T) {
+
+}
+
+func TestEcrecover(t *testing.T) {
+	orderHash := common.BytesToHash(common.FromHex("0xb2e6dd6b159169d762132a47520fb10fdfe2e5f3acc5d8eda789d645a0ad243d"))
+	sig := common.FromHex("0x14d533b96d159578ef239cc969818c00a16050e815e596555318e298c6536f8b3c253d22f5ae0d80033ed3c8c753e95192ca3e100a01fd4d75cd19a02d9e8f721b01")
+	addr := common.HexToAddress("0xbbE4733d85bc2b90682147779DA49caB38C0aA1F")
+	addr2, err := ecrecover(orderHash, sig)
+	require.NoError(t, err)
+	require.Equal(t, addr, addr2)
+	require.True(t, addr == addr2)
+
+}
+
+func TestSignature(t *testing.T) {
+	orderHash := common.FromHex("0xb2e6dd6b159169d762132a47520fb10fdfe2e5f3acc5d8eda789d645a0ad243d")
+	signedHash := crypto.Keccak256Hash([]byte(PREPEND_DEC), orderHash[:])
+	sig := common.FromHex("0x14d533b96d159578ef239cc969818c00a16050e815e596555318e298c6536f8b3c253d22f5ae0d80033ed3c8c753e95192ca3e100a01fd4d75cd19a02d9e8f721b01")
+	sig = sig[:65]
+	sig[64] -= 27
+
+	priv, err := crypto.HexToECDSA("8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17")
+	addr := crypto.PubkeyToAddress(priv.PublicKey)
+	require.Equal(t, "0xbbE4733d85bc2b90682147779DA49caB38C0aA1F", addr.String())
+
+	data, err := crypto.Sign(signedHash[:], priv)
+	require.NoError(t, err)
+	require.Equal(t, sig, data)
+}
+
+func TestSignOrder(t *testing.T) {
+	odr := newP1Order()
+	sig, err := signOrder(odr, "8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17", 65, "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619")
+	require.NoError(t, err)
+	require.Equal(t, 66, len(sig))
+}
+
+func signOrder(odr P1Order, hexPriv string, chainId int64, orderContractaddr string) ([]byte, error) {
+	priv, err := crypto.HexToECDSA(hexPriv)
+	if err != nil {
+		return nil, err
+	}
+	orderHash := odr.Hash2(chainId, orderContractaddr)
+	signedHash := crypto.Keccak256Hash([]byte(PREPEND_DEC), orderHash[:])
+	sig, err := crypto.Sign(signedHash[:], priv)
+	if err != nil {
+		return nil, err
+	}
+
+	sig[len(sig)-1] += 27
+	sig = append(sig, 1)
+	return sig, nil
+}
+
+func newP1Order() P1Order {
+	odr := P1Order{
+		CallType: 1,
+		P1OrdersOrder: contracts.P1OrdersOrder{
+			Amount:       big.NewInt(1),
+			LimitPrice:   big.NewInt(1),
+			TriggerPrice: big.NewInt(1),
+			LimitFee:     big.NewInt(1),
+			Expiration:   big.NewInt(0),
+		},
+	}
+
+	flags, _ := hex.DecodeString("4554480000000000000000000000000000000000000000000000000000000000")
+	addr, _ := hex.DecodeString("4554480000000000000000000000000000000000")
+	copy(odr.Flags[:], flags)
+	copy(odr.Maker[:], addr)
+	copy(odr.Taker[:], addr)
+	return odr
 }

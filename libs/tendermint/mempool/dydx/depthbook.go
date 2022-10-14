@@ -3,9 +3,10 @@ package dydx
 import (
 	"container/list"
 	"errors"
-	"github.com/ethereum/go-ethereum/common"
 	"sync"
 	"time"
+
+	"github.com/ethereum/go-ethereum/common"
 )
 
 type DepthBook struct {
@@ -41,11 +42,11 @@ func (d *DepthBook) SellFront() *WrapOrder {
 	return wodr
 }
 
-func (d *DepthBook) Delete(key [KeySize]byte) *list.Element {
-	if ele := d.buyOrders.Get(key); ele != nil {
+func (d *DepthBook) Delete(hash common.Hash) *list.Element {
+	if ele := d.buyOrders.Get(hash); ele != nil {
 		return d.buyOrders.Remove(ele)
 	}
-	if ele := d.sellOrders.Get(key); ele != nil {
+	if ele := d.sellOrders.Get(hash); ele != nil {
 		return d.sellOrders.Remove(ele)
 	}
 	return nil
