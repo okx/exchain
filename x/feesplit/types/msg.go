@@ -222,7 +222,7 @@ func validateAddress(address string) error {
 	return nil
 }
 
-// validateNonZeroAddress returns an error if the provided string is not a hex
+// ValidateNonZeroAddress returns an error if the provided string is not a hex
 // formatted string address or is equal to zero
 func ValidateNonZeroAddress(address string) error {
 	if isZeroAddress(address) {
