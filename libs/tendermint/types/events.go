@@ -22,6 +22,7 @@ const (
 	EventPendingTx           = "PendingTx"
 	EventValidatorSetUpdates = "ValidatorSetUpdates"
 	EventBlockTime           = "BlockTime"
+	EventTxs                 = "Txs"
 
 	// Internal consensus events.
 	// These are used for testing the consensus state machine.
@@ -55,7 +56,7 @@ type TMEventData interface {
 
 func RegisterEventDatas(cdc *amino.Codec) {
 	cdc.RegisterInterface((*TMEventData)(nil), nil)
-	cdc.RegisterConcrete(EventDataNewBlock{}, "tendermint/event/NewBlock", nil)
+	cdc.RegisterConcrete(CM40EventDataNewBlock{}, "tendermint/event/NewBlock", nil)
 	cdc.RegisterConcrete(EventDataNewBlockHeader{}, "tendermint/event/NewBlockHeader", nil)
 	cdc.RegisterConcrete(EventDataTx{}, "tendermint/event/Tx", nil)
 	cdc.RegisterConcrete(EventDataRoundState{}, "tendermint/event/RoundState", nil)
@@ -76,6 +77,11 @@ type EventDataNewBlock struct {
 	ResultEndBlock   abci.ResponseEndBlock   `json:"result_end_block"`
 }
 
+func (e EventDataNewBlock) Upgrade() interface{} {
+	ret := CM40EventDataNewBlock{}
+	return ret.From(e)
+}
+
 type EventDataNewBlockHeader struct {
 	Header Header `json:"header"`
 
@@ -87,6 +93,12 @@ type EventDataNewBlockHeader struct {
 // All txs fire EventDataTx
 type EventDataTx struct {
 	TxResult
+}
+
+type EventDataTxs struct {
+	Height int64
+	//Txs     Txs
+	Results []*abci.ResponseDeliverTx
 }
 
 // latest blockTime
@@ -147,6 +159,10 @@ const (
 	// TxHeightKey is a reserved key, used to specify transaction block's height.
 	// see EventBus#PublishEventTx
 	TxHeightKey = "tx.height"
+
+	// BlockHeightKey is a reserved key used for indexing BeginBlock and Endblock
+	// events.
+	BlockHeightKey = "block.height"
 )
 
 var (
@@ -180,6 +196,7 @@ type BlockEventPublisher interface {
 	PublishEventNewBlock(block EventDataNewBlock) error
 	PublishEventNewBlockHeader(header EventDataNewBlockHeader) error
 	PublishEventTx(EventDataTx) error
+	PublishEventTxs(EventDataTxs) error
 	PublishEventPendingTx(EventDataTx) error
 	PublishEventValidatorSetUpdates(EventDataValidatorSetUpdates) error
 	PublishEventLatestBlockTime(time EventDataBlockTime) error

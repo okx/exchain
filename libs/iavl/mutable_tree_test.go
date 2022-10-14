@@ -12,14 +12,96 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/okex/exchain/libs/iavl/mock"
+	"github.com/okex/exchain/libs/tendermint/libs/rand"
 	db "github.com/okex/exchain/libs/tm-db"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/tendermint/go-amino"
 )
 
+var (
+	// FIXME: enlarge maxIterator to 100000
+	maxIterator = 100
+)
+
 func init() {
 	SetEnableFastStorage(true)
+}
+
+func setupMutableTree(t *testing.T) *MutableTree {
+	memDB := db.NewMemDB()
+	tree, err := NewMutableTree(memDB, 0)
+	require.NoError(t, err)
+	return tree
+}
+
+// TestIterateConcurrency throws "fatal error: concurrent map writes" when fast node is enabled
+func TestIterateConcurrency(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
+	tree := setupMutableTree(t)
+	wg := new(sync.WaitGroup)
+	for i := 0; i < 100; i++ {
+		for j := 0; j < maxIterator; j++ {
+			wg.Add(1)
+			go func(i, j int) {
+				defer wg.Done()
+				tree.Set([]byte(fmt.Sprintf("%d%d", i, j)), rand.Bytes(1))
+			}(i, j)
+		}
+		tree.Iterate(func(key []byte, value []byte) bool {
+			return false
+		})
+	}
+	wg.Wait()
+}
+
+// TestConcurrency throws "fatal error: concurrent map iteration and map write" and
+// also sometimes "fatal error: concurrent map writes" when fast node is enabled
+func TestIteratorConcurrency(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
+	tree := setupMutableTree(t)
+	tree.LoadVersion(0)
+	// So much slower
+	wg := new(sync.WaitGroup)
+	for i := 0; i < 100; i++ {
+		for j := 0; j < maxIterator; j++ {
+			wg.Add(1)
+			go func(i, j int) {
+				defer wg.Done()
+				tree.Set([]byte(fmt.Sprintf("%d%d", i, j)), rand.Bytes(1))
+			}(i, j)
+		}
+		itr := tree.Iterator(nil, nil, true)
+		for ; itr.Valid(); itr.Next() {
+		}
+	}
+	wg.Wait()
+}
+
+// TestNewIteratorConcurrency throws "fatal error: concurrent map writes" when fast node is enabled
+func TestNewIteratorConcurrency(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test in short mode.")
+	}
+	tree := setupMutableTree(t)
+	for i := 0; i < 100; i++ {
+		wg := new(sync.WaitGroup)
+		it := NewIterator(nil, nil, true, tree.ImmutableTree)
+		for j := 0; j < maxIterator; j++ {
+			wg.Add(1)
+			go func(i, j int) {
+				defer wg.Done()
+				tree.Set([]byte(fmt.Sprintf("%d%d", i, j)), rand.Bytes(1))
+			}(i, j)
+		}
+		for ; it.Valid(); it.Next() {
+		}
+		wg.Wait()
+	}
 }
 
 func TestDelete(t *testing.T) {
@@ -271,7 +353,6 @@ func TestMutableTree_SaveVersionDelta(t *testing.T) {
 	require.NoError(t, err)
 
 	tree.Set([]byte("a"), []byte{0x01})
-
 	// not use delta and not produce delta
 	h, v, delta, err := tree.SaveVersion(false)
 	require.NoError(t, err)
@@ -279,6 +360,7 @@ func TestMutableTree_SaveVersionDelta(t *testing.T) {
 	assert.EqualValues(t, 9, v)
 	assert.Equal(t, delta, emptyDelta)
 
+	tree.Set([]byte("a"), []byte{0x01})
 	// not use delta and produce delta
 	SetProduceDelta(true)
 	h1, v1, delta1, err := tree.SaveVersion(false)
@@ -714,7 +796,7 @@ func TestUpgradeStorageToFast_DbErrorConstructor_Failure(t *testing.T) {
 	expectedError := errors.New("some db error")
 
 	dbMock.EXPECT().Get(gomock.Any()).Return(nil, expectedError).Times(1)
-	dbMock.EXPECT().NewBatch().Return(nil).Times(1)
+	dbMock.EXPECT().NewBatch().Return(nil).Times(0)
 	dbMock.EXPECT().ReverseIterator(gomock.Any(), gomock.Any()).Return(rIterMock, nil).Times(1)
 
 	tree, err := NewMutableTree(dbMock, 0)
@@ -731,7 +813,7 @@ func TestUpgradeStorageToFast_DbErrorEnableFastStorage_Failure(t *testing.T) {
 	// rIterMock is used to get the latest version from disk. We are mocking that rIterMock returns latestTreeVersion from disk
 	rIterMock.EXPECT().Valid().Return(true).Times(2)
 	rIterMock.EXPECT().Key().Return(rootKeyFormat.Key([]byte(defaultStorageVersionValue))).Times(2)
-	rIterMock.EXPECT().Close().Return().Times(2)
+	rIterMock.EXPECT().Close().Return().Times(1)
 
 	expectedError := errors.New("some db error")
 
@@ -748,7 +830,7 @@ func TestUpgradeStorageToFast_DbErrorEnableFastStorage_Failure(t *testing.T) {
 	require.NotNil(t, tree)
 	require.False(t, tree.IsFastCacheEnabled())
 
-	rIterMock.EXPECT().Close().Return().Times(2)
+	rIterMock.EXPECT().Close().Return().Times(1)
 
 	IterMock := mock.NewMockIterator(ctrl)
 	IterMock.EXPECT().Error().Return(nil)
@@ -784,7 +866,7 @@ func TestFastStorageReUpgradeProtection_NoForceUpgrade_Success(t *testing.T) {
 	batchMock := mock.NewMockBatch(ctrl)
 
 	dbMock.EXPECT().Get(gomock.Any()).Return(expectedStorageVersion, nil).Times(1)
-	dbMock.EXPECT().NewBatch().Return(batchMock).Times(1)
+	dbMock.EXPECT().NewBatch().Return(batchMock).Times(0)
 	dbMock.EXPECT().ReverseIterator(gomock.Any(), gomock.Any()).Return(rIterMock, nil).Times(2) // called to get latest version
 
 	tree, err := NewMutableTree(dbMock, 0)

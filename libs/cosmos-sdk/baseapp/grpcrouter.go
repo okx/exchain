@@ -2,18 +2,18 @@ package baseapp
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client/grpc/reflection"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"reflect"
 
 	gogogrpc "github.com/gogo/protobuf/grpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/encoding"
 	"google.golang.org/grpc/encoding/proto"
-
 )
 
 var protoCodec = encoding.GetCodec(proto.Name)
@@ -125,7 +125,6 @@ func (qrt *GRPCQueryRouter) RegisterService(sd *grpc.ServiceDesc, handler interf
 			}, nil
 		}
 	}
-
 	qrt.serviceData = append(qrt.serviceData, serviceData{
 		serviceDesc: sd,
 		handler:     handler,

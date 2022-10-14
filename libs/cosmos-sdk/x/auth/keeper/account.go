@@ -1,6 +1,8 @@
 package keeper
 
 import (
+	"sync"
+
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -8,7 +10,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/tendermint/go-amino"
-	"sync"
 )
 
 // NewAccountWithAddress implements sdk.AccountKeeper.
@@ -67,7 +68,9 @@ func (ak AccountKeeper) GetAccount(ctx sdk.Context, addr sdk.AccAddress) exporte
 	}
 	acc := ak.decodeAccount(bz)
 
-	ctx.Cache().UpdateAccount(addr, acc.Copy(), len(bz), false)
+	if ctx.Cache().IsEnabled() {
+		ctx.Cache().UpdateAccount(addr, acc.Copy(), len(bz), false)
+	}
 
 	return acc
 }
@@ -131,7 +134,9 @@ func (ak AccountKeeper) SetAccount(ctx sdk.Context, acc exported.Account) {
 	if !tmtypes.HigherThanMars(ctx.BlockHeight()) && mpt.TrieWriteAhead {
 		ctx.MultiStore().GetKVStore(ak.mptKey).Set(storeAccKey, bz)
 	}
-	ctx.Cache().UpdateAccount(addr, acc.Copy(), len(bz), true)
+	if ctx.Cache().IsEnabled() {
+		ctx.Cache().UpdateAccount(addr, acc.Copy(), len(bz), true)
+	}
 
 	if ctx.IsDeliver() && (tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.TrieWriteAhead) {
 		mpt.GAccToPrefetchChannel <- [][]byte{storeAccKey}

@@ -169,6 +169,12 @@ func AddNodeFlags(cmd *cobra.Command) {
 		"enable wrapped tx",
 	)
 
+	cmd.Flags().Bool(
+		"mempool.check_tx_cost",
+		false,
+		"Calculate tx type count and time in function checkTx per block",
+	)
+
 	cmd.Flags().String(
 		"local_perf",
 		"",
@@ -184,6 +190,11 @@ func AddNodeFlags(cmd *cobra.Command) {
 		"db_dir",
 		config.DBPath,
 		"Database directory")
+
+	cmd.Flags().String(
+		"grpc.address",
+		config.GRPC.Address,
+		"grpc server address")
 
 	addMoreFlags(cmd)
 }
