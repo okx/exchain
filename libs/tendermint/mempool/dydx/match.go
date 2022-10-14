@@ -241,8 +241,12 @@ func (m *MatchEngine) trade(order1, order2 *dydxlib.SignedSolOrder, fill *contra
 	return tx, nil
 }
 
+func IsIntNilOrZero(i *big.Int) bool {
+	return i == nil || i.Cmp(zero) == 0
+}
+
 func isValidTriggerPrice(order *WrapOrder, marketPrice *big.Int) bool {
-	if order.TriggerPrice != nil && marketPrice != nil {
+	if !IsIntNilOrZero(order.TriggerPrice) && !IsIntNilOrZero(marketPrice) {
 		if order.Type() == BuyOrderType {
 			if marketPrice.Cmp(order.TriggerPrice) < 0 {
 				return false
@@ -297,7 +301,7 @@ func processOrder(takerOrder *WrapOrder, makerBook *OrderList, takerBook *OrderL
 		}
 
 		matchPrice := makerOrder.Price()
-		if marketPrice != nil && marketPrice.Cmp(zero) > 0 {
+		if !IsIntNilOrZero(marketPrice) {
 			if takerOrder.Type() == BuyOrderType {
 				if takerOrder.Price().Cmp(marketPrice) >= 0 && makerOrder.Price().Cmp(marketPrice) <= 0 {
 					matchPrice = marketPrice
