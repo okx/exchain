@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"runtime"
+	"runtime/debug"
 	"sort"
 	"sync"
 	"time"
@@ -666,6 +667,7 @@ func (tree *MutableTree) enableFastStorageAndCommitIfNotEnabled() (bool, error) 
 	}
 	tree.log(IavlInfo, "Compacting IAVL done")
 	log.Printf("%s Done compact IAVL...\n", tree.ndb.name)
+	debug.PrintStack()
 
 	return true, nil
 }
