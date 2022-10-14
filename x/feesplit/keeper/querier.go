@@ -231,14 +231,28 @@ func queryWithdrawerFeeSplits(
 		types.GetKeyPrefixWithdrawer(deployer),
 	)
 
-	pageRes, err := query.Paginate(store, params.Pagination, func(key, _ []byte) error {
-		contracts = append(contracts, common.BytesToAddress(key).Hex())
+	pageRes := &query.PageResponse{}
+	if (params.Pagination != nil) && (params.Pagination.Limit == -1) {
+		//query all
+		iter := store.Iterator(nil, nil)
+		defer iter.Close()
 
-		return nil
-	})
-	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrInternal, err.Error())
+		for ; iter.Valid(); iter.Next() {
+			key := iter.Key()
+			contracts = append(contracts, common.BytesToAddress(key).Hex())
+		}
+	} else {
+		//query by page
+		pageRes, err = query.Paginate(store, params.Pagination, func(key, _ []byte) error {
+			contracts = append(contracts, common.BytesToAddress(key).Hex())
+
+			return nil
+		})
+		if err != nil {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrInternal, err.Error())
+		}
 	}
+
 	resp := &types.QueryWithdrawerFeeSplitsResponse{
 		ContractAddresses: contracts,
 		Pagination:        pageRes,
