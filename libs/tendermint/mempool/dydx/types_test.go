@@ -23,27 +23,6 @@ const (
 	takerHex       = "70997970C51812dc3A010C7d01b50e0d17dc79C8"
 )
 
-var testOrder P1Order
-
-func init() {
-	testOrder = P1Order{
-		CallType: 1,
-		P1OrdersOrder: contracts.P1OrdersOrder{
-			Amount:       big.NewInt(1),
-			LimitPrice:   big.NewInt(1),
-			TriggerPrice: big.NewInt(1),
-			LimitFee:     big.NewInt(1),
-			Expiration:   big.NewInt(0),
-		},
-	}
-
-	flags, _ := hex.DecodeString("4554480000000000000000000000000000000000000000000000000000000000")
-	addr, _ := hex.DecodeString("4554480000000000000000000000000000000000")
-	copy(testOrder.Flags[:], flags)
-	copy(testOrder.Maker[:], addr)
-	copy(testOrder.Taker[:], addr)
-}
-
 func TestDecodeSignedMsg(t *testing.T) {
 	signedMsgBytes, err := hex.DecodeString(signedOrderHex)
 	require.NoError(t, err)
@@ -165,7 +144,12 @@ func TestOrderHash(t *testing.T) {
 }
 
 func TestP1Order_VerifySignature(t *testing.T) {
-
+	odr := newP1Order()
+	sig, err := signOrder(odr, "8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17", 65, contractAddress)
+	require.NoError(t, err)
+	addr, err := ecrecover(odr.Hash(), sig)
+	require.NoError(t, err)
+	require.Equal(t, "0xbbE4733d85bc2b90682147779DA49caB38C0aA1F", addr.String())
 }
 
 func TestEcrecover(t *testing.T) {
@@ -175,8 +159,6 @@ func TestEcrecover(t *testing.T) {
 	addr2, err := ecrecover(orderHash, sig)
 	require.NoError(t, err)
 	require.Equal(t, addr, addr2)
-	require.True(t, addr == addr2)
-
 }
 
 func TestSignature(t *testing.T) {
@@ -196,10 +178,14 @@ func TestSignature(t *testing.T) {
 }
 
 func TestSignOrder(t *testing.T) {
+	//TODO: test more order
 	odr := newP1Order()
 	sig, err := signOrder(odr, "8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17", 65, "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619")
 	require.NoError(t, err)
 	require.Equal(t, 66, len(sig))
+	require.True(t, sig[65] == 1)
+	require.True(t, sig[64] >= 27)
+	require.True(t, sig[64] <= 28)
 }
 
 func signOrder(odr P1Order, hexPriv string, chainId int64, orderContractaddr string) ([]byte, error) {

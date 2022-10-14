@@ -52,6 +52,24 @@ func (d *DepthBook) Delete(hash common.Hash) *list.Element {
 	return nil
 }
 
+func (d *DepthBook) Update(results *MatchResult) {
+	if len(results.MatchedRecords) == 0 {
+		return
+	}
+	succeed := <-results.OnChain
+	if succeed {
+		for _, record := range results.MatchedRecords {
+			record.Maker.Done(record.Fill.Amount)
+			record.Taker.Done(record.Fill.Amount)
+		}
+	} else {
+		for _, record := range results.MatchedRecords {
+			record.Maker.Unfrozen(record.Fill.Amount)
+			record.Taker.Unfrozen(record.Fill.Amount)
+		}
+	}
+}
+
 type OrderList struct {
 	sync.RWMutex
 
