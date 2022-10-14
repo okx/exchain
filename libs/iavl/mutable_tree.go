@@ -660,9 +660,9 @@ func (tree *MutableTree) enableFastStorageAndCommitIfNotEnabled() (bool, error) 
 
 	tree.log(IavlInfo, fmt.Sprintf("%s Compacting IAVL...\n", tree.ndb.name))
 	fmt.Printf("%s Compacting IAVL...\n", tree.ndb.name)
-	//	if err := tree.ndb.db.Compact(); err != nil {
-	//		tree.log(IavlErr, "Compacted IAVL...", "error", err.Error())
-	//	}
+	if err := tree.ndb.db.Compact(); err != nil {
+		tree.log(IavlErr, "Compacted IAVL...", "error", err.Error())
+	}
 	tree.log(IavlInfo, "Compacting IAVL done")
 
 	return true, nil
