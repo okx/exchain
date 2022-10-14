@@ -3,7 +3,7 @@ package rootmulti
 import (
 	"fmt"
 
-	ics23 "github.com/okex/exchain/ics23"
+	ics23 "github.com/confio/ics23/go"
 	sdkmaps "github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 	sdkproofs "github.com/okex/exchain/libs/cosmos-sdk/store/internal/proofs"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"

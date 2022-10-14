@@ -7,7 +7,7 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/internal/maps"
 
-	ics23 "github.com/okex/exchain/ics23"
+	ics23 "github.com/confio/ics23/go"
 )
 
 var (

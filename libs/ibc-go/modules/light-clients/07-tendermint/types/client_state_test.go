@@ -3,7 +3,7 @@ package types_test
 import (
 	"time"
 
-	ics23 "github.com/okex/exchain/ics23"
+	ics23 "github.com/confio/ics23/go"
 
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
