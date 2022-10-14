@@ -29,6 +29,7 @@ type MatchEngine struct {
 	from      common.Address
 	chainID   *big.Int
 	ethCli    *ethclient.Client
+	httpCli   *ethclient.Client
 
 	config DydxConfig
 
@@ -41,6 +42,7 @@ type DydxConfig struct {
 	PrivKeyHex                 string
 	ChainID                    string
 	EthWsRpcUrl                string
+	EthHttpRpcUrl              string
 	PerpetualV1ContractAddress string
 	P1OrdersContractAddress    string
 	P1MakerOracleAddress       string
@@ -75,6 +77,10 @@ func NewMatchEngine(depthBook *DepthBook, config DydxConfig, handler LogHandler,
 	engine.ethCli, err = ethclient.Dial(config.EthWsRpcUrl)
 	if err != nil {
 		return nil, fmt.Errorf("failed to dial eth rpc url: %s, err: %w", config.EthWsRpcUrl, err)
+	}
+	engine.httpCli, err = ethclient.Dial(config.EthHttpRpcUrl)
+	if err != nil {
+		return nil, fmt.Errorf("failed to dial eth rpc url: %s, err: %w", config.EthHttpRpcUrl, err)
 	}
 	txOps, err := bind.NewKeyedTransactorWithChainID(engine.privKey, engine.chainID)
 	if err != nil {
@@ -214,24 +220,34 @@ func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
 	}
 	m.logger.Debug("commit tx", "tx", matched.Tx.Hash().Hex())
 	matched.OnChain = make(chan bool, 1)
-	go func() {
+
+	go func(txHash common.Hash) {
+		m.logger.Debug("wait tx", "tx", txHash.Hex())
+		count := 0
 		for {
+			if count == 10 {
+				m.logger.Error("wait tx timeout", "tx", txHash.Hex())
+				matched.OnChain <- false
+				return
+			}
 			select {
-			case <-time.After(6 * time.Second):
-				receipt, err := m.ethCli.TransactionReceipt(context.Background(), matched.Tx.Hash())
+			case <-time.After(5 * time.Second):
+				receipt, err := m.httpCli.TransactionReceipt(context.Background(), txHash)
 				if err == nil {
-					m.logger.Debug("tx receipt received", "hash", matched.Tx.Hash(), "status", receipt.Status)
+					m.logger.Debug("tx receipt received", "hash", txHash, "status", receipt.Status)
 					if receipt.Status == 1 {
 						matched.OnChain <- true
 					} else {
 						matched.OnChain <- false
 					}
+					return
 				} else {
-					m.logger.Error("failed to get receipt", "hash", matched.Tx.Hash(), "err", err)
+					m.logger.Error("failed to get receipt", "hash", txHash, "err", err)
 				}
 			}
+			count += 1
 		}
-	}()
+	}(matched.Tx.Hash())
 	return matched, nil
 }
 
