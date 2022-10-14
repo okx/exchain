@@ -84,6 +84,10 @@ func (k Keeper) GetFeeSplit(
 
 // SetFeeSplit stores the FeeSplit for a registered contract.
 func (k Keeper) SetFeeSplit(ctx sdk.Context, feeSplit types.FeeSplit) {
+	if feeSplit.WithdrawerAddress.Empty() {
+		feeSplit.WithdrawerAddress = feeSplit.DeployerAddress
+	}
+
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixFeeSplit)
 	key := feeSplit.ContractAddress
 	bz := k.cdc.MustMarshalBinaryBare(feeSplit)
