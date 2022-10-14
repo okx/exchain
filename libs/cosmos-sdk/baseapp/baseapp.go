@@ -888,7 +888,7 @@ func (app *BaseApp) runMsgs(ctx sdk.Context, msgs []sdk.Msg, mode runTxMode) (*s
 		var isConvert bool
 
 		if app.JudgeEvmConvert(ctx, msg) {
-			newmsg, err := ConvertMsg(msg)
+			newmsg, err := ConvertMsg(msg, ctx.BlockHeight())
 			if err != nil {
 				return nil, sdkerrors.Wrapf(sdkerrors.ErrTxDecode, "error %s, message index: %d", err.Error(), i)
 			}

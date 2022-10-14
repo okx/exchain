@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	cmHandles          = make(map[string]map[string]func(data []byte, signers []sdk.AccAddress) (sdk.Msg, error))
+	cmHandles          = make(map[string]map[string]*CMHandle)
 	evmResultConverter func(txHash, data []byte) ([]byte, error)
 	evmConvertJudge    func(msg sdk.Msg) ([]byte, bool)
 	evmParamParse      func(msg sdk.Msg) (*CMTxParam, error)
@@ -18,13 +18,28 @@ type CMTxParam struct {
 	Data     string `json:"data"`
 }
 
-func RegisterCmHandle(moduleName, funcName string, create func(data []byte, signers []sdk.AccAddress) (sdk.Msg, error)) {
+type CMHandle struct {
+	fn     func(data []byte, signers []sdk.AccAddress) (sdk.Msg, error)
+	height int64
+}
+
+func NewCMHandle(fn func(data []byte, signers []sdk.AccAddress) (sdk.Msg, error), height int64) *CMHandle {
+	return &CMHandle{
+		fn:     fn,
+		height: height,
+	}
+}
+
+func RegisterCmHandle(moduleName, funcName string, create *CMHandle) {
 	if create == nil {
-		panic("Execute: Register driver is nil")
+		panic("Register CmHandle is nil")
 	}
 	v, ok := cmHandles[moduleName]
 	if !ok {
-		v = make(map[string]func(data []byte, signers []sdk.AccAddress) (sdk.Msg, error))
+		v = make(map[string]*CMHandle)
+	}
+	if _, dup := v[funcName]; dup {
+		panic("Register CmHandle twice for same module and func " + moduleName + funcName)
 	}
 	v[funcName] = create
 	cmHandles[moduleName] = v
@@ -32,33 +47,34 @@ func RegisterCmHandle(moduleName, funcName string, create func(data []byte, sign
 
 func RegisterEvmResultConverter(create func(txHash, data []byte) ([]byte, error)) {
 	if create == nil {
-		panic("Execute: Register EvmResultConverter is nil")
+		panic("Register EvmResultConverter is nil")
 	}
 	evmResultConverter = create
 }
 
 func RegisterEvmParamParse(create func(msg sdk.Msg) (*CMTxParam, error)) {
 	if create == nil {
-		panic("Execute: Register EvmParamParse is nil")
+		panic("Register EvmParamParse is nil")
 	}
 	evmParamParse = create
 }
 
 func RegisterEvmConvertJudge(create func(msg sdk.Msg) ([]byte, bool)) {
 	if create == nil {
-		panic("Execute: Register EvmConvertJudge is nil")
+		panic("Register EvmConvertJudge is nil")
 	}
 	evmConvertJudge = create
 }
 
-func ConvertMsg(msg sdk.Msg) (sdk.Msg, error) {
+func ConvertMsg(msg sdk.Msg, height int64) (sdk.Msg, error) {
 	cmtx, err := evmParamParse(msg)
 	if err != nil {
 		return nil, err
 	}
 	if module, ok := cmHandles[cmtx.Module]; ok {
-		if fn, ok := module[cmtx.Function]; ok {
-			return fn([]byte(cmtx.Data), msg.GetSigners())
+		cmh, ok := module[cmtx.Function]
+		if ok && height >= cmh.height {
+			return cmh.fn([]byte(cmtx.Data), msg.GetSigners())
 		}
 	}
 	return nil, fmt.Errorf("not find handle")

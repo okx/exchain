@@ -21,38 +21,90 @@ func (msg testMsg) ValidateBasic() error         { return nil }
 
 func TestRegisterCmHandle_ConvertMsg(t *testing.T) {
 	testcases := []struct {
-		module   string
-		funcName string
+		module      string
+		funcName    string
+		blockHeight int64
+		setHeight   int64
+		success     bool
 	}{
 		{
-			module:   "module1",
-			funcName: "test1",
+			module:      "module1",
+			funcName:    "test1",
+			blockHeight: 0,
+			setHeight:   0,
+			success:     true,
 		},
 		{
-			module:   "module1",
-			funcName: "test2",
+			module:      "module1",
+			funcName:    "test2",
+			blockHeight: 0,
+			setHeight:   0,
+			success:     true,
 		},
 		{
-			module:   "module3",
-			funcName: "test1",
+			module:      "module3",
+			funcName:    "test1",
+			blockHeight: 0,
+			setHeight:   0,
+			success:     true,
 		},
 		{
-			module:   "module4",
-			funcName: "test1",
+			module:      "module4",
+			funcName:    "test1",
+			blockHeight: 0,
+			setHeight:   0,
+			success:     true,
 		},
 		{
-			module:   "module4",
-			funcName: "test2",
+			module:      "module4",
+			funcName:    "test2",
+			blockHeight: 0,
+			setHeight:   0,
+			success:     true,
 		},
 		{
-			module:   "module4",
-			funcName: "test3",
+			module:      "module4",
+			funcName:    "test3",
+			blockHeight: 0,
+			setHeight:   0,
+			success:     true,
 		},
+
+		// error
+		{
+			module:      "module5",
+			funcName:    "test1",
+			blockHeight: 4,
+			setHeight:   5,
+			success:     false,
+		},
+		{
+			module:      "module5",
+			funcName:    "test2",
+			blockHeight: 5,
+			setHeight:   5,
+			success:     true,
+		},
+		{
+			module:      "module5",
+			funcName:    "test3",
+			blockHeight: 6,
+			setHeight:   5,
+			success:     true,
+		},
+		//{ // test for panic
+		//	module:      "module5",
+		//	funcName:    "test3",
+		//	blockHeight: 6,
+		//	setHeight:   5,
+		//	success:     true,
+		//},
 	}
 	for _, ts := range testcases {
-		RegisterCmHandle(ts.module, ts.funcName, func(data []byte, signers []sdk.AccAddress) (sdk.Msg, error) {
-			return nil, nil
-		})
+		RegisterCmHandle(ts.module, ts.funcName,
+			NewCMHandle(func(data []byte, signers []sdk.AccAddress) (sdk.Msg, error) {
+				return nil, nil
+			}, ts.setHeight))
 	}
 
 	// check
@@ -60,8 +112,8 @@ func TestRegisterCmHandle_ConvertMsg(t *testing.T) {
 		RegisterEvmParamParse(func(msg sdk.Msg) (*CMTxParam, error) {
 			return &CMTxParam{Module: ts.module, Function: ts.funcName}, nil
 		})
-		_, err := ConvertMsg(testMsg{})
-		require.NoError(t, err)
+		_, err := ConvertMsg(testMsg{}, ts.blockHeight)
+		require.Equal(t, ts.success, err == nil)
 	}
 }
 

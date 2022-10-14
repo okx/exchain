@@ -18,9 +18,10 @@ func init() {
 }
 
 func RegisterConvert() {
-	baseapp.RegisterCmHandle(types.ModuleName, "deposit", ConvertDepositMsg)
-	baseapp.RegisterCmHandle(types.ModuleName, "withdraw", ConvertWithdrawMsg)
-	baseapp.RegisterCmHandle(types.ModuleName, "add-shares", ConvertAddSharesMsg)
+	enableHeight := int64(0)
+	baseapp.RegisterCmHandle(types.ModuleName, "deposit", baseapp.NewCMHandle(ConvertDepositMsg, enableHeight))
+	baseapp.RegisterCmHandle(types.ModuleName, "withdraw", baseapp.NewCMHandle(ConvertWithdrawMsg, enableHeight))
+	baseapp.RegisterCmHandle(types.ModuleName, "add-shares", baseapp.NewCMHandle(ConvertAddSharesMsg, enableHeight))
 }
 
 func ConvertDepositMsg(data []byte, signers []sdk.AccAddress) (sdk.Msg, error) {

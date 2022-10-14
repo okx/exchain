@@ -18,9 +18,10 @@ func init() {
 }
 
 func RegisterConvert() {
-	baseapp.RegisterCmHandle(types.ModuleName, "register", ConvertRegisterFeeSplitMsg)
-	baseapp.RegisterCmHandle(types.ModuleName, "update", ConvertUpdateFeeSplitMsg)
-	baseapp.RegisterCmHandle(types.ModuleName, "cancel", ConvertCancelFeeSplitMsg)
+	enableHeight := int64(0)
+	baseapp.RegisterCmHandle(types.ModuleName, "register", baseapp.NewCMHandle(ConvertRegisterFeeSplitMsg, enableHeight))
+	baseapp.RegisterCmHandle(types.ModuleName, "update", baseapp.NewCMHandle(ConvertUpdateFeeSplitMsg, enableHeight))
+	baseapp.RegisterCmHandle(types.ModuleName, "cancel", baseapp.NewCMHandle(ConvertCancelFeeSplitMsg, enableHeight))
 }
 
 func ConvertRegisterFeeSplitMsg(data []byte, signers []sdk.AccAddress) (sdk.Msg, error) {
