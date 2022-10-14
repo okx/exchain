@@ -85,7 +85,7 @@ func (k Keeper) GetFeeSplit(
 // SetFeeSplit stores the FeeSplit for a registered contract.
 func (k Keeper) SetFeeSplit(ctx sdk.Context, feeSplit types.FeeSplit) {
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixFeeSplit)
-	key := feeSplit.GetContractAddr()
+	key := feeSplit.ContractAddress
 	bz := k.cdc.MustMarshalBinaryBare(feeSplit)
 	store.Set(key.Bytes(), bz)
 
@@ -98,7 +98,7 @@ func (k Keeper) SetFeeSplit(ctx sdk.Context, feeSplit types.FeeSplit) {
 // DeleteFeeSplit deletes a FeeSplit of a registered contract.
 func (k Keeper) DeleteFeeSplit(ctx sdk.Context, feeSplit types.FeeSplit) {
 	store := prefix.NewStore(ctx.KVStore(k.storeKey), types.KeyPrefixFeeSplit)
-	key := feeSplit.GetContractAddr()
+	key := fee.ContractAddress
 	store.Delete(key.Bytes())
 
 	// update cache
