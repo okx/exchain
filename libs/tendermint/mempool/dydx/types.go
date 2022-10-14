@@ -2,8 +2,6 @@ package dydx
 
 import (
 	"crypto/sha256"
-	"encoding/hex"
-	"fmt"
 	"math/big"
 	"sync"
 
@@ -20,6 +18,15 @@ type (
 	OrderType int8
 )
 
+type SignatureType uint8
+
+const (
+	NoPrepend   SignatureType = iota // No string was prepended.
+	Decimal                          // PREPEND_DEC was prepended.
+	Hexadecimal                      // PREPEND_HEX was prepended.
+	Invalid                          // Not a valid type. Used for bound-checking.
+)
+
 const (
 	UnknownOrderType OrderType = iota
 	SellOrderType
@@ -31,15 +38,17 @@ const (
 	EIP712_DOMAIN_NAME             = "P1Orders"
 	EIP712_DOMAIN_VERSION          = "1.0"
 	EIP712_ORDER_STRUCT_SCHEMA     = "Order(bytes32 flags,uint256 amount,uint256 limitPrice,uint256 triggerPrice,uint256 limitFee,address maker,address taker,uint256 expiration)"
+	PREPEND_DEC                    = "\x19Ethereum Signed Message:\n32"
+	PREPEND_HEX                    = "\x19Ethereum Signed Message:\n\x20"
+	NUM_SIGNATURE_BYTES            = 66
 
 	//TODO, mock addr
-	contractAddress = "f1730217Bd65f86D2F008f1821D8Ca9A26d64619"
+	contractAddress = "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619"
 	KeySize         = sha256.Size
 )
 
 var (
 	zeroOrderHash = common.Hash{}
-	ZeroKey       = [KeySize]byte{}
 	callTypeABI   = abi.MustNewType("int32")
 	orderTuple    = abi.MustNewType("tuple(bytes32 flags, uint256 amount, uint256 limitprice, uint256 triggerprice, uint256 limitfee, address maker, address taker, uint256 expiration)")
 	signedTuple   = abi.MustNewType("tuple(bytes msg, bytes32 sig)")
@@ -51,20 +60,18 @@ var (
 	EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH = crypto.Keccak256Hash([]byte(EIP712_DOMAIN_SEPARATOR_SCHEMA))
 	EIP712_DOMAIN_NAME_HASH             = crypto.Keccak256Hash([]byte(EIP712_DOMAIN_NAME))
 	EIP712_DOMAIN_VERSION_HASH          = crypto.Keccak256Hash([]byte(EIP712_DOMAIN_VERSION))
-	_EIP712_DOMAIN_HASH_                = common.Hash{}
+	_EIP712_DOMAIN_HASH_                = crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], common.LeftPadBytes(chainID.Bytes(), 32), common.LeftPadBytes(common.FromHex(contractAddress), 32))
 	EIP712_ORDER_STRUCT_SCHEMA_HASH     = crypto.Keccak256Hash([]byte(EIP712_ORDER_STRUCT_SCHEMA))
 )
 
 func init() {
-	addr, err := hex.DecodeString(contractAddress)
-	if err != nil {
-		panic(err)
-	}
-	chainIDBytes, err := callTypeABI.Encode(chainID)
-	if err != nil {
-		panic(err)
-	}
-	_EIP712_DOMAIN_HASH_ = crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], chainIDBytes, common.LeftPadBytes(addr, 32))
+
+	//addr, err := hex.DecodeString(contractAddress)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//chainIDBytes := common.LeftPadBytes(chainID.Bytes(), 32)
+	//_EIP712_DOMAIN_HASH_ = crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], chainIDBytes, common.LeftPadBytes(addr, 32))
 
 }
 
@@ -80,14 +87,44 @@ type P1Order struct {
 //TODO to verify
 func (p *P1Order) VerifySignature(sig []byte) error {
 	orderHash := p.Hash()
-	pub, err := crypto.Ecrecover(orderHash[:], sig)
+	addr, err := ecrecover(orderHash, sig)
 	if err != nil {
 		return err
 	}
-	if !crypto.VerifySignature(pub, orderHash[:], sig) {
-		return fmt.Errorf("invalid signature")
+	if addr != p.Maker {
+		return ErrInvalidSignature
 	}
 	return nil
+}
+
+func ecrecover(hash common.Hash, sig []byte) (common.Address, error) {
+	if len(sig) != NUM_SIGNATURE_BYTES {
+		return common.Address{}, ErrInvalidSignature
+	}
+	sigType := SignatureType(sig[NUM_SIGNATURE_BYTES-1])
+	var signedHash common.Hash
+	switch sigType {
+	case NoPrepend:
+		signedHash = hash
+	case Decimal:
+		signedHash = crypto.Keccak256Hash([]byte(PREPEND_DEC), hash[:])
+	case Hexadecimal:
+		signedHash = crypto.Keccak256Hash([]byte(PREPEND_HEX), hash[:])
+	default:
+		return common.Address{}, ErrInvalidSignature
+	}
+
+	// sig[NUM_SIGNATURE_BYTES-1] is sigType
+	sig = sig[:NUM_SIGNATURE_BYTES-1]
+	// Convert to Ethereum signature format [R || S || V] where V is 0 or 1, from https://github.com/ethereum/go-ethereum/crypto/signature_nocgo.go Sign function
+	sig[len(sig)-1] -= 27
+
+	pub, err := crypto.SigToPub(signedHash[:], sig)
+	if err != nil {
+		return common.Address{}, ErrInvalidSignature
+	}
+
+	return crypto.PubkeyToAddress(*pub), nil
 }
 
 // Hash returns the EIP712 hash of an order.
@@ -97,6 +134,17 @@ func (p *P1Order) Hash() common.Hash {
 	if err != nil {
 		return common.Hash{}
 	}
+	_EIP712_DOMAIN_HASH_ = crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], common.LeftPadBytes(chainID.Bytes(), 32), common.LeftPadBytes(common.FromHex(contractAddress), 32))
+	structHash := crypto.Keccak256Hash(EIP712_ORDER_STRUCT_SCHEMA_HASH[:], orderBytes[:])
+	return crypto.Keccak256Hash(EIP191_HEADER, _EIP712_DOMAIN_HASH_[:], structHash[:])
+}
+
+func (p *P1Order) Hash2(chainId int64, orderContractAddr string) common.Hash {
+	orderBytes, err := p.encodeOrder()
+	if err != nil {
+		return common.Hash{}
+	}
+	_EIP712_DOMAIN_HASH_ = crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], common.LeftPadBytes(big.NewInt(chainId).Bytes(), 32), common.LeftPadBytes(common.FromHex(orderContractAddr), 32))
 	structHash := crypto.Keccak256Hash(EIP712_ORDER_STRUCT_SCHEMA_HASH[:], orderBytes[:])
 	return crypto.Keccak256Hash(EIP191_HEADER, _EIP712_DOMAIN_HASH_[:], structHash[:])
 }
