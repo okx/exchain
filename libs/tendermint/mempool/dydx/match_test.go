@@ -197,6 +197,28 @@ func TestMatch(t *testing.T) {
 	require.Equal(t, "115", mr.TakerOrder.FrozenAmount.String())
 }
 
+func TestBanlance(t *testing.T) {
+	book := NewDepthBook()
+	me, err := NewMatchEngine(book, config, nil, nil)
+	require.NoError(t, err)
+
+	banlance, err := me.contracts.PerpetualV1.GetAccountBalance(nil, addrBob)
+	require.NoError(t, err)
+	t.Logf("bob balance: %v", banlance)
+
+	banlance, err = me.contracts.PerpetualV1.GetAccountBalance(nil, addrAlice)
+	require.NoError(t, err)
+	t.Logf("alice balance: %v", banlance)
+
+	banlance, err = me.contracts.PerpetualV1.GetAccountBalance(nil, addrTuring)
+	require.NoError(t, err)
+	t.Logf("turing balance: %v", banlance)
+
+	banlance, err = me.contracts.PerpetualV1.GetAccountBalance(nil, addrCaptain)
+	require.NoError(t, err)
+	t.Logf("captain balance: %v", banlance)
+}
+
 func TestMatchAndTrade(t *testing.T) {
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "match")
 	var options []log.Option
