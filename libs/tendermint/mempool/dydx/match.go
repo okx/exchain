@@ -16,6 +16,7 @@ import (
 	"github.com/ethereum/go-ethereum/ethclient"
 	dydxlib "github.com/okex/exchain/libs/dydx"
 	"github.com/okex/exchain/libs/dydx/contracts"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 type MatchEngine struct {
@@ -32,6 +33,8 @@ type MatchEngine struct {
 	config DydxConfig
 
 	sub ethereum.Subscription
+
+	logger log.Logger
 }
 
 type DydxConfig struct {
@@ -49,10 +52,14 @@ type LogHandler interface {
 	SubErr(error)
 }
 
-func NewMatchEngine(depthBook *DepthBook, config DydxConfig, handler LogHandler) (*MatchEngine, error) {
+func NewMatchEngine(depthBook *DepthBook, config DydxConfig, handler LogHandler, logger log.Logger) (*MatchEngine, error) {
 	var engine = &MatchEngine{
 		depthBook: depthBook,
 		config:    config,
+		logger:    logger,
+	}
+	if engine.logger == nil {
+		engine.logger = log.NewNopLogger()
 	}
 
 	var err error
@@ -149,6 +156,8 @@ func (m *MatchEngine) Stop() {
 }
 
 func (m *MatchEngine) Match(order *WrapOrder, maketPrice *big.Int) (*MatchResult, error) {
+	m.logger.Debug("start match", "order", order.P1Order, "marketPrice", maketPrice)
+
 	if order.Type() == BuyOrderType {
 		return processOrder(order, m.depthBook.sellOrders, m.depthBook.buyOrders, maketPrice), nil
 	} else if order.Type() == SellOrderType {
@@ -173,6 +182,8 @@ func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
 	if len(matched.MatchedRecords) == 0 {
 		return nil, nil
 	}
+
+	m.logger.Debug("match result", "matched", matched.MatchedRecords)
 
 	op := dydxlib.NewTradeOperation(m.contracts)
 
@@ -208,11 +219,14 @@ func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
 			case <-time.After(6 * time.Second):
 				receipt, err := m.ethCli.TransactionReceipt(context.Background(), matched.Tx.Hash())
 				if err == nil {
+					m.logger.Debug("tx receipt received", "hash", matched.Tx.Hash(), "status", receipt.Status)
 					if receipt.Status == 1 {
 						matched.OnChain <- true
 					} else {
 						matched.OnChain <- false
 					}
+				} else {
+					m.logger.Error("failed to get receipt", "hash", matched.Tx.Hash(), "err", err)
 				}
 			}
 		}
