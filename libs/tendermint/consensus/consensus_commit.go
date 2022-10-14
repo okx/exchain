@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/okex/exchain/libs/system/trace"
+	cfg "github.com/okex/exchain/libs/tendermint/config"
 	cstypes "github.com/okex/exchain/libs/tendermint/consensus/types"
 	"github.com/okex/exchain/libs/tendermint/libs/fail"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
@@ -20,8 +21,12 @@ func (cs *State) dumpElapsed(trc *trace.Tracer, schema string) {
 func (cs *State) initNewHeight() {
 	// waiting finished and enterNewHeight by timeoutNewHeight
 	if cs.Step == cstypes.RoundStepNewHeight {
+		tNow := tmtime.Now()
+		if remainTime := tNow.Sub(cs.StartTime) - cfg.DynamicConfig.GetCsTimeoutCommit(); remainTime > 0 {
+			cs.remainWaiting += remainTime
+		}
 		// init StartTime
-		cs.StartTime = tmtime.Now()
+		cs.StartTime = tNow
 		cs.dumpElapsed(cs.blockTimeTrc, trace.LastBlockTime)
 	}
 }

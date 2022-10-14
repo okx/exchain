@@ -157,6 +157,8 @@ type State struct {
 	bt       *BlockTransport
 
 	vcMsg *ViewChangeMessage
+
+	remainWaiting time.Duration
 }
 
 // StateOption sets an optional parameter on the State.

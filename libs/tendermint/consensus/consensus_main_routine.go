@@ -268,6 +268,13 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 		overDuration = 0
 	}
 	sleepDuration := cfg.DynamicConfig.GetCsTimeoutCommit() - overDuration
+	if sleepDuration > cs.remainWaiting {
+		sleepDuration = sleepDuration - cs.remainWaiting
+		cs.remainWaiting = 0
+	} else {
+		sleepDuration = 0
+		cs.remainWaiting = cs.remainWaiting - sleepDuration
+	}
 	if sleepDuration < 0 {
 		sleepDuration = 0
 	}
