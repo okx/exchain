@@ -64,16 +64,12 @@ var (
 	EIP712_ORDER_STRUCT_SCHEMA_HASH     = crypto.Keccak256Hash([]byte(EIP712_ORDER_STRUCT_SCHEMA))
 )
 
-func init() {
-
-	//addr, err := hex.DecodeString(contractAddress)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//chainIDBytes := common.LeftPadBytes(chainID.Bytes(), 32)
-	//_EIP712_DOMAIN_HASH_ = crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], chainIDBytes, common.LeftPadBytes(addr, 32))
-
-}
+var (
+	FlagMaskNull               = byte(0)
+	FlagMaskIsBuy              = byte(1)
+	FlagMaskIsDecreaseOnly     = byte(1 << 1)
+	FlagMaskIsNegativeLimitFee = byte(1 << 2)
+)
 
 func (o OrderRaw) Key() [KeySize]byte {
 	return sha256.Sum256(o)
@@ -84,7 +80,6 @@ type P1Order struct {
 	contracts.P1OrdersOrder
 }
 
-//TODO to verify
 func (p *P1Order) VerifySignature(sig []byte) error {
 	orderHash := p.Hash()
 	addr, err := ecrecover(orderHash, sig)
@@ -128,13 +123,11 @@ func ecrecover(hash common.Hash, sig []byte) (common.Address, error) {
 }
 
 // Hash returns the EIP712 hash of an order.
-//TODO to verify
 func (p *P1Order) Hash() common.Hash {
 	orderBytes, err := p.encodeOrder()
 	if err != nil {
 		return common.Hash{}
 	}
-	_EIP712_DOMAIN_HASH_ = crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], common.LeftPadBytes(chainID.Bytes(), 32), common.LeftPadBytes(common.FromHex(contractAddress), 32))
 	structHash := crypto.Keccak256Hash(EIP712_ORDER_STRUCT_SCHEMA_HASH[:], orderBytes[:])
 	return crypto.Keccak256Hash(EIP191_HEADER, _EIP712_DOMAIN_HASH_[:], structHash[:])
 }
@@ -144,7 +137,7 @@ func (p *P1Order) Hash2(chainId int64, orderContractAddr string) common.Hash {
 	if err != nil {
 		return common.Hash{}
 	}
-	_EIP712_DOMAIN_HASH_ = crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], common.LeftPadBytes(big.NewInt(chainId).Bytes(), 32), common.LeftPadBytes(common.FromHex(orderContractAddr), 32))
+	_EIP712_DOMAIN_HASH_ := crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], common.LeftPadBytes(big.NewInt(chainId).Bytes(), 32), common.LeftPadBytes(common.FromHex(orderContractAddr), 32))
 	structHash := crypto.Keccak256Hash(EIP712_ORDER_STRUCT_SCHEMA_HASH[:], orderBytes[:])
 	return crypto.Keccak256Hash(EIP191_HEADER, _EIP712_DOMAIN_HASH_[:], structHash[:])
 }
@@ -157,6 +150,27 @@ func (p *P1Order) Type() OrderType {
 		return SellOrderType
 	}
 	return BuyOrderType
+}
+
+func (p *P1Order) isBuy() bool {
+	if p != nil && p.Flags[31]&FlagMaskIsBuy != FlagMaskNull {
+		return true
+	}
+	return false
+}
+
+func (p *P1Order) isDecreaseOnly() bool {
+	if p != nil && p.Flags[31]&FlagMaskIsDecreaseOnly != FlagMaskNull {
+		return true
+	}
+	return false
+}
+
+func (p *P1Order) isNegativeLimitFee() bool {
+	if p != nil && p.Flags[31]&FlagMaskIsNegativeLimitFee != FlagMaskNull {
+		return true
+	}
+	return false
 }
 
 func (p *P1Order) Price() *big.Int {
