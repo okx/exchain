@@ -206,7 +206,7 @@ func (suite *KeeperTestSuite) TestGetFeeSplit() {
 					suite.Require().Equal(tc.withdraw, feeSplit.WithdrawerAddress, tc.name)
 					suite.Require().True(foundW, tc.name)
 				} else {
-					suite.Require().Nil(feeSplit.WithdrawerAddress, tc.name)
+					suite.Require().Equal(tc.deployer, feeSplit.WithdrawerAddress, tc.name)
 					suite.Require().False(foundW, tc.name)
 				}
 			} else {

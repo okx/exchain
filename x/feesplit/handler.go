@@ -19,13 +19,18 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 		ctx.SetEventManager(sdk.NewEventManager())
 
 		if !tmtypes.HigherThanVenus3(ctx.BlockHeight()) {
-			errMsg := fmt.Sprintf("feesplt module not supprt at height %d", ctx.BlockHeight())
+			errMsg := fmt.Sprintf("feesplt module not support at height %d", ctx.BlockHeight())
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
+		}
+
+		params := k.GetParams(ctx)
+		if !params.EnableFeeSplit {
+			return nil, types.ErrFeeSplitDisabled
 		}
 
 		switch msg := msg.(type) {
 		case types.MsgRegisterFeeSplit:
-			return handleMsgRegisterFeeSplit(ctx, msg, k)
+			return handleMsgRegisterFeeSplit(ctx, msg, k, params)
 		case types.MsgUpdateFeeSplit:
 			return handleMsgUpdateFeeSplit(ctx, msg, k)
 		case types.MsgCancelFeeSplit:
@@ -41,12 +46,8 @@ func handleMsgRegisterFeeSplit(
 	ctx sdk.Context,
 	msg types.MsgRegisterFeeSplit,
 	k keeper.Keeper,
+	params types.Params,
 ) (*sdk.Result, error) {
-	params := k.GetParams(ctx)
-	if !params.EnableFeeSplit {
-		return nil, types.ErrFeeSplitDisabled
-	}
-
 	contract := common.HexToAddress(msg.ContractAddress)
 	if k.IsFeeSplitRegistered(ctx, contract) {
 		return nil, sdkerrors.Wrapf(
@@ -80,10 +81,10 @@ func handleMsgRegisterFeeSplit(
 		)
 	}
 
-	var withdrawer sdk.AccAddress
-	if msg.WithdrawerAddress != "" && msg.WithdrawerAddress != msg.DeployerAddress {
-		withdrawer = sdk.MustAccAddressFromBech32(msg.WithdrawerAddress)
+	if msg.WithdrawerAddress == "" {
+		msg.WithdrawerAddress = msg.DeployerAddress
 	}
+	withdrawer := sdk.MustAccAddressFromBech32(msg.WithdrawerAddress)
 
 	derivedContract := common.BytesToAddress(deployer)
 
@@ -114,21 +115,12 @@ func handleMsgRegisterFeeSplit(
 	feeSplit := types.NewFeeSplit(contract, deployer, withdrawer)
 	k.SetFeeSplit(ctx, feeSplit)
 	k.SetDeployerMap(ctx, deployer, contract)
-
-	// The effective withdrawer is the withdraw address that is stored after the
-	// fee split registration is completed. It defaults to the deployer address if
-	// the withdraw address in the msg is omitted. When omitted, the withdraw map
-	// dosn't need to be set.
-	effectiveWithdrawer := msg.DeployerAddress
-	if len(withdrawer) != 0 {
-		k.SetWithdrawerMap(ctx, withdrawer, contract)
-		effectiveWithdrawer = msg.WithdrawerAddress
-	}
+	k.SetWithdrawerMap(ctx, withdrawer, contract)
 
 	k.Logger(ctx).Debug(
 		"registering contract for transaction fees",
 		"contract", msg.ContractAddress, "deployer", msg.DeployerAddress,
-		"withdraw", effectiveWithdrawer,
+		"withdraw", msg.WithdrawerAddress,
 	)
 
 	ctx.EventManager().EmitEvents(
@@ -137,7 +129,7 @@ func handleMsgRegisterFeeSplit(
 				types.EventTypeRegisterFeeSplit,
 				sdk.NewAttribute(sdk.AttributeKeySender, msg.DeployerAddress),
 				sdk.NewAttribute(types.AttributeKeyContract, msg.ContractAddress),
-				sdk.NewAttribute(types.AttributeKeyWithdrawerAddress, effectiveWithdrawer),
+				sdk.NewAttribute(types.AttributeKeyWithdrawerAddress, msg.WithdrawerAddress),
 			),
 		},
 	)
@@ -153,11 +145,6 @@ func handleMsgUpdateFeeSplit(
 	msg types.MsgUpdateFeeSplit,
 	k keeper.Keeper,
 ) (*sdk.Result, error) {
-	params := k.GetParams(ctx)
-	if !params.EnableFeeSplit {
-		return nil, types.ErrFeeSplitDisabled
-	}
-
 	contract := common.HexToAddress(msg.ContractAddress)
 	feeSplit, found := k.GetFeeSplit(ctx, contract)
 	if !found {
@@ -186,19 +173,10 @@ func handleMsgUpdateFeeSplit(
 		)
 	}
 
-	// only delete withdrawer map if is not default
-	if !feeSplit.WithdrawerAddress.Empty() {
-		k.DeleteWithdrawerMap(ctx, feeSplit.WithdrawerAddress, contract)
-	}
-
-	// only add withdrawer map if new entry is not default
-	if !withdrawer.Equals(feeSplit.DeployerAddress) {
-		k.SetWithdrawerMap(ctx, withdrawer, contract)
-		feeSplit.WithdrawerAddress = withdrawer
-	} else {
-		feeSplit.WithdrawerAddress = nil
-	}
+	k.DeleteWithdrawerMap(ctx, feeSplit.WithdrawerAddress, contract)
+	k.SetWithdrawerMap(ctx, withdrawer, contract)
 	// update fee split
+	feeSplit.WithdrawerAddress = withdrawer
 	k.SetFeeSplit(ctx, feeSplit)
 
 	ctx.EventManager().EmitEvents(
@@ -221,11 +199,6 @@ func handleMsgCancelFeeSplit(
 	msg types.MsgCancelFeeSplit,
 	k keeper.Keeper,
 ) (*sdk.Result, error) {
-	params := k.GetParams(ctx)
-	if !params.EnableFeeSplit {
-		return nil, types.ErrFeeSplitDisabled
-	}
-
 	contract := common.HexToAddress(msg.ContractAddress)
 	fee, found := k.GetFeeSplit(ctx, contract)
 	if !found {
@@ -244,11 +217,7 @@ func handleMsgCancelFeeSplit(
 
 	k.DeleteFeeSplit(ctx, fee)
 	k.DeleteDeployerMap(ctx, fee.DeployerAddress, contract)
-
-	// delete entry from withdrawer map if not default
-	if !fee.WithdrawerAddress.Empty() {
-		k.DeleteWithdrawerMap(ctx, fee.WithdrawerAddress, contract)
-	}
+	k.DeleteWithdrawerMap(ctx, fee.WithdrawerAddress, contract)
 
 	ctx.EventManager().EmitEvents(
 		sdk.Events{
