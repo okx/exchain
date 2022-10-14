@@ -41,6 +41,7 @@ type DydxConfig struct {
 	PerpetualV1ContractAddress string
 	P1OrdersContractAddress    string
 	P1MakerOracleAddress       string
+	P1MarginAddress            string
 }
 
 type LogHandler interface {
@@ -76,6 +77,7 @@ func NewMatchEngine(depthBook *DepthBook, config DydxConfig, handler LogHandler)
 		common.HexToAddress(config.PerpetualV1ContractAddress),
 		common.HexToAddress(config.P1OrdersContractAddress),
 		common.HexToAddress(config.P1MakerOracleAddress),
+		common.HexToAddress(config.P1MarginAddress),
 		txOps,
 		engine.ethCli,
 	)

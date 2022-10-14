@@ -16,6 +16,9 @@ type Contracts struct {
 	P1MakerOracle        *contracts.P1MakerOracle
 	P1MakerOracleAddress common.Address
 
+	P1Margin        *contracts.P1Margin
+	P1MarginAddress common.Address
+
 	txOps *bind.TransactOpts
 }
 
@@ -23,6 +26,7 @@ func NewContracts(
 	perpetualV1Address common.Address,
 	p1OrdersAddr common.Address,
 	p1MakerOracleAddr common.Address,
+	p1MarginAddr common.Address,
 	defaultTxOps *bind.TransactOpts,
 	backend bind.ContractBackend,
 ) (*Contracts, error) {
@@ -46,6 +50,12 @@ func NewContracts(
 		return nil, err
 	}
 	cons.P1MakerOracleAddress = p1MakerOracleAddr
+
+	cons.P1Margin, err = contracts.NewP1Margin(p1MarginAddr, backend)
+	if err != nil {
+		return nil, err
+	}
+	cons.P1MarginAddress = p1MarginAddr
 
 	cons.txOps = defaultTxOps
 
