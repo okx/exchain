@@ -3,6 +3,7 @@ package types
 import (
 	"fmt"
 	"reflect"
+	"strings"
 
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
 	"github.com/gogo/protobuf/proto"
@@ -314,9 +315,7 @@ type WasmConfig struct {
 
 // DefaultWasmConfig returns the default settings for WasmConfig
 func DefaultWasmConfig() WasmConfig {
-	var defaultSimulationGasLimit = defaultSmartQueryGasLimit
 	return WasmConfig{
-		SimulationGasLimit: &defaultSimulationGasLimit,
 		SmartQueryGasLimit: defaultSmartQueryGasLimit,
 		MemoryCacheSize:    defaultMemoryCacheSize,
 		ContractDebugMode:  defaultContractDebugMode,
@@ -344,8 +343,23 @@ func (a AccessConfig) IsSubset(superSet AccessConfig) bool {
 		// Only an exact match is a subset of this
 		return a.Permission == AccessTypeNobody
 	case AccessTypeOnlyAddress:
-		// An exact match or nobody
-		return a.Permission == AccessTypeNobody || (a.Permission == AccessTypeOnlyAddress && a.Address == superSet.Address)
+		// A subset addrs match or nobody
+		if a.Permission == AccessTypeNobody {
+			return true
+		}
+		if a.Permission == AccessTypeOnlyAddress {
+			m := make(map[string]struct{})
+			for _, addr := range strings.Split(superSet.Address, ",") {
+				m[addr] = struct{}{}
+			}
+			for _, addr := range strings.Split(a.Address, ",") {
+				if _, ok := m[addr]; !ok {
+					return false
+				}
+			}
+			return true
+		}
+		return false
 	default:
 		return false
 	}

@@ -720,6 +720,7 @@ func fireEvents(
 		ResultEndBlock:   *abciResponses.EndBlock,
 	})
 
+	//publish tx event 1by1
 	for i, tx := range block.Data.Txs {
 		eventBus.PublishEventTx(types.EventDataTx{TxResult: types.TxResult{
 			Height: block.Height,
@@ -729,8 +730,21 @@ func fireEvents(
 		}})
 	}
 
+	//publish batch txs event
+	if len(block.Data.Txs) > 0 {
+		eventBus.PublishEventTxs(types.EventDataTxs{
+			Height:  block.Height,
+			Results: abciResponses.DeliverTxs,
+		})
+	}
+
 	if len(validatorUpdates) > 0 {
 		eventBus.PublishEventValidatorSetUpdates(
 			types.EventDataValidatorSetUpdates{ValidatorUpdates: validatorUpdates})
 	}
+}
+
+func (blockExec *BlockExecutor) FireBlockTimeEvents(height, blockTime int64, address types.Address) {
+	blockExec.eventBus.PublishEventLatestBlockTime(
+		types.EventDataBlockTime{Height: height, BlockTime: blockTime, NextProposer: address})
 }

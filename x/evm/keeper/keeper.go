@@ -11,6 +11,7 @@ import (
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	lru "github.com/hashicorp/golang-lru"
+
 	app "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
@@ -169,8 +170,9 @@ func NewSimulateKeeper(
 		Watcher:       watcher.NewWatcher(nil),
 		Ada:           ada,
 
-		db:             mpt.InstanceOfMptStore(),
-		triegc:         prque.New(nil),
+		db: mpt.InstanceOfMptStore(),
+		// Optimize memory usage. No need to initialize this variable when simulate tx.
+		// triegc:         prque.New(nil),
 		UpdatedAccount: make([]ethcmn.Address, 0),
 		cci:            &chainConfigInfo{},
 		heightCache:    heightCache,
@@ -493,11 +495,11 @@ func (k *Keeper) GetHooks() types.EvmHooks {
 }
 
 // CallEvmHooks delegate the call to the hooks. If no hook has been registered, this function returns with a `nil` error
-func (k *Keeper) CallEvmHooks(ctx sdk.Context, from ethcmn.Address, to *ethcmn.Address, receipt *ethtypes.Receipt) error {
+func (k *Keeper) CallEvmHooks(ctx sdk.Context, st *types.StateTransition, receipt *ethtypes.Receipt) error {
 	if k.hooks == nil {
 		return nil
 	}
-	return k.hooks.PostTxProcessing(ctx, from, to, receipt)
+	return k.hooks.PostTxProcessing(ctx, st, receipt)
 }
 
 // GetWatchDBVersion get the watchDBVersion

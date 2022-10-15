@@ -7,60 +7,20 @@ import (
 	"strings"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
-	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	interfacetypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/client/utils"
-	"github.com/okex/exchain/x/distribution/client/common"
 	"github.com/okex/exchain/x/distribution/types"
 	"github.com/okex/exchain/x/gov"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var (
-	flagCommission       = "commission"
-	flagMaxMessagesPerTx = "max-msgs"
+	flagCommission = "commission"
 )
-
-const (
-	MaxMessagesPerTxDefault = 5
-)
-
-type generateOrBroadcastFunc func(context.CLIContext, auth.TxBuilder, []sdk.Msg) error
-
-func splitAndApply(
-	generateOrBroadcast generateOrBroadcastFunc,
-	cliCtx context.CLIContext,
-	txBldr auth.TxBuilder,
-	msgs []sdk.Msg,
-	chunkSize int,
-) error {
-
-	if chunkSize == 0 {
-		return generateOrBroadcast(cliCtx, txBldr, msgs)
-	}
-
-	// split messages into slices of length chunkSize
-	totalMessages := len(msgs)
-	for i := 0; i < len(msgs); i += chunkSize {
-
-		sliceEnd := i + chunkSize
-		if sliceEnd > totalMessages {
-			sliceEnd = totalMessages
-		}
-
-		msgChunk := msgs[i:sliceEnd]
-		if err := generateOrBroadcast(cliCtx, txBldr, msgChunk); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
 
 // GetCmdWithdrawAllRewards command to withdraw all rewards
 func GetCmdWithdrawAllRewards(cdc *codec.Codec, queryRoute string) *cobra.Command {
@@ -83,24 +43,11 @@ $ %s tx distr withdraw-all-rewards --from mykey
 			cliCtx := context.NewCLIContextWithInput(inBuf).WithCodec(cdc)
 
 			delAddr := cliCtx.GetFromAddress()
-
-			// The transaction cannot be generated offline since it requires a query
-			// to get all the validators.
-			if cliCtx.GenerateOnly {
-				return fmt.Errorf("command disabled with the provided flag: %s", flags.FlagGenerateOnly)
-			}
-
-			msgs, err := common.WithdrawAllDelegatorRewards(cliCtx, queryRoute, delAddr)
-			if err != nil {
-				return err
-			}
-
-			chunkSize := viper.GetInt(flagMaxMessagesPerTx)
-			return splitAndApply(utils.GenerateOrBroadcastMsgs, cliCtx, txBldr, msgs, chunkSize)
+			msg := types.NewMsgWithdrawDelegatorAllRewards(delAddr)
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
 		},
 	}
 
-	cmd.Flags().Int(flagMaxMessagesPerTx, MaxMessagesPerTxDefault, "Limit the number of messages per tx (0 for unlimited)")
 	return cmd
 }
 
@@ -198,6 +145,56 @@ Where proposal.json contains:
 
 			from := cliCtx.GetFromAddress()
 			content := types.NewWithdrawRewardEnabledProposal(proposal.Title, proposal.Description, proposal.Enabled)
+
+			msg := gov.NewMsgSubmitProposal(content, proposal.Deposit, from)
+
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+
+	return cmd
+}
+
+// GetRewardTruncatePrecisionProposal implements the command to submit a reward-truncate-precision proposal
+func GetRewardTruncatePrecisionProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "reward-truncate-precision [proposal-file]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Submit a reward truncated precision proposal",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Submit a reward truncated precision proposal with the specified value,
+
+Example:
+$ %s tx gov submit-proposal reward-truncate-precision <path/to/proposal.json> --from=<key_or_address>
+
+Where proposal.json contains:
+
+{
+	"title": "Set reward truncated precision",
+	"description": "Set distribution reward truncated precision",
+	"deposit": [{
+		"denom": "%s",
+		"amount": "100.000000000000000000"
+	}],
+	"precision": "0"
+}
+`,
+				version.ClientName, sdk.DefaultBondDenom,
+			),
+		),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cdc := cdcP.GetCdc()
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			proposal, err := ParseRewardTruncatePrecisionProposalJSON(cdc, args[0])
+			if err != nil {
+				return err
+			}
+
+			from := cliCtx.GetFromAddress()
+			content := types.NewRewardTruncatePrecisionProposal(proposal.Title, proposal.Description, proposal.Precision)
 
 			msg := gov.NewMsgSubmitProposal(content, proposal.Deposit, from)
 

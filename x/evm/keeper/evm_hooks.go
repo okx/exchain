@@ -22,9 +22,9 @@ func NewMultiEvmHooks(hooks ...types.EvmHooks) MultiEvmHooks {
 }
 
 // PostTxProcessing delegate the call to underlying hooks
-func (mh MultiEvmHooks) PostTxProcessing(ctx sdk.Context, from common.Address, to *common.Address, receipt *ethtypes.Receipt) error {
+func (mh MultiEvmHooks) PostTxProcessing(ctx sdk.Context, st *types.StateTransition, receipt *ethtypes.Receipt) error {
 	for i := range mh {
-		if err := mh[i].PostTxProcessing(ctx, from, to, receipt); err != nil {
+		if err := mh[i].PostTxProcessing(ctx, st, receipt); err != nil {
 			return sdkerror.Wrapf(err, "EVM hook %T failed", mh[i])
 		}
 	}
@@ -45,7 +45,7 @@ func NewLogProcessEvmHook(handlers ...types.EvmLogHandler) LogProcessEvmHook {
 }
 
 // PostTxProcessing delegate the call to underlying hooks
-func (lh LogProcessEvmHook) PostTxProcessing(ctx sdk.Context, from common.Address, to *common.Address, receipt *ethtypes.Receipt) error {
+func (lh LogProcessEvmHook) PostTxProcessing(ctx sdk.Context, st *types.StateTransition, receipt *ethtypes.Receipt) error {
 	for _, log := range receipt.Logs {
 		if len(log.Topics) == 0 {
 			continue
