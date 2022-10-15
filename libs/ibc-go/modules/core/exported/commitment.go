@@ -1,6 +1,6 @@
 package exported
 
-import ics23 "github.com/okex/exchain/ics23"
+import ics23 "github.com/confio/ics23/go"
 
 // Prefix implements spec:CommitmentPrefix.
 // Prefix represents the common "prefix" that a set of keys shares.

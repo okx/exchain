@@ -4,7 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 
-	ics23 "github.com/okex/exchain/ics23"
+	ics23 "github.com/confio/ics23/go"
 )
 
 func (t *ImmutableTree) GetMembershipProof(key []byte) (*ics23.CommitmentProof, error) {
