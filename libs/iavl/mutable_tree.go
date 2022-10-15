@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log"
 	"runtime"
-	"runtime/debug"
 	"sort"
 	"sync"
 	"time"
@@ -21,8 +20,20 @@ import (
 // when upgrade to fast IAVL every commitGap nodes will trigger a db commit.
 var commitGap uint64 = 10000000
 
-// when upgrade to fast IAVL every verboseGap nodes will trigger a print.
-const verboseGap = 50000
+const (
+	// when upgrade to fast IAVL every verboseGap nodes will trigger a print.
+	verboseGap = 50000
+	// identify the acc and evm tree
+	accTree = "acc"
+	evmTree = "evm"
+)
+
+func isEvmOrAccTree(moduleName string) bool {
+	if moduleName == accTree || moduleName == evmTree {
+		return true
+	}
+	return false
+}
 
 func SetIgnoreVersionCheck(check bool) {
 	ignoreVersionCheck = check
@@ -660,14 +671,15 @@ func (tree *MutableTree) enableFastStorageAndCommitIfNotEnabled() (bool, error) 
 		return false, err
 	}
 
-	tree.log(IavlInfo, fmt.Sprintf("%s Compacting IAVL...\n", tree.ndb.name))
-	log.Printf("%s Compacting IAVL...\n", tree.ndb.name)
-	if err := tree.ndb.db.Compact(); err != nil {
-		tree.log(IavlErr, "Compacted IAVL...", "error", err.Error())
+	if isEvmOrAccTree(tree.GetModuleName()) {
+		log.Printf("%s Compacting IAVL...\n", tree.ndb.name)
+		tree.log(IavlInfo, "Compacting IAVL...")
+		if err := tree.ndb.db.Compact(); err != nil {
+			tree.log(IavlErr, "Compacted IAVL...", "error", err.Error())
+		}
+		tree.log(IavlInfo, "Compacting IAVL done")
+		log.Printf("%s Done compact IAVL...\n", tree.ndb.name)
 	}
-	tree.log(IavlInfo, "Compacting IAVL done")
-	log.Printf("%s Done compact IAVL...\n", tree.ndb.name)
-	debug.PrintStack()
 
 	return true, nil
 }
