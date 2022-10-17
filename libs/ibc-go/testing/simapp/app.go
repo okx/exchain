@@ -1,21 +1,34 @@
 package simapp
 
 import (
-	"fmt"
 	"io"
 	"math/big"
 	"os"
-	"path/filepath"
 	"sort"
 	"sync"
 
+	icacontroller "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller"
+	icacontrollerkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/keeper"
+	icacontrollertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/types"
+	icahost "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host"
+	icahostkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/keeper"
+	icahosttypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/types"
+	ibcfee "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee"
+	ibcfeekeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/keeper"
+	ibcfeetypes "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/common"
+	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
+	ibcclienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	"github.com/okex/exchain/x/icamauth"
+	icamauthkeeper "github.com/okex/exchain/x/icamauth/keeper"
+	icamauthtypes "github.com/okex/exchain/x/icamauth/types"
+
+	ibccommon "github.com/okex/exchain/libs/ibc-go/modules/core/common"
+
 	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
-	"github.com/okex/exchain/libs/tendermint/libs/cli"
+	"github.com/okex/exchain/libs/system/trace"
 	"github.com/okex/exchain/x/wasm"
 	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
-	"github.com/spf13/viper"
-
-	"github.com/okex/exchain/libs/system/trace"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
@@ -243,6 +256,11 @@ type SimApp struct {
 
 	ibcScopeKeep capabilitykeeper.ScopedKeeper
 	WasmHandler  wasmkeeper.HandlerOption
+
+	IBCFeeKeeper        ibcfeekeeper.Keeper
+	ICAMauthKeeper      icamauthkeeper.Keeper
+	ICAControllerKeeper icacontrollerkeeper.Keeper
+	ICAHostKeeper       icahostkeeper.Keeper
 }
 
 // NewSimApp returns a reference to a new initialized OKExChain application.
@@ -394,18 +412,53 @@ func NewSimApp(
 	// NOTE: the IBC mock keeper and application module is used only for testing core IBC. Do
 	// note replicate if you do not need to test core IBC or light clients.
 	scopedIBCMockKeeper := app.CapabilityKeeper.ScopeToModule(mock.ModuleName)
+	scopedICAControllerKeeper := app.CapabilityKeeper.ScopeToModule(icacontrollertypes.SubModuleName)
+	scopedICAHostKeeper := app.CapabilityKeeper.ScopeToModule(icahosttypes.SubModuleName)
+	scopedICAMauthKeeper := app.CapabilityKeeper.ScopeToModule(icamauthtypes.ModuleName)
 
-	app.IBCKeeper = ibc.NewKeeper(
-		codecProxy, keys[ibchost.StoreKey], app.GetSubspace(ibchost.ModuleName), stakingKeeper, app.UpgradeKeeper, &scopedIBCKeeper, interfaceReg,
+	v2keeper := ibc.NewKeeper(
+		codecProxy, keys[ibchost.StoreKey], app.GetSubspace(ibchost.ModuleName), &stakingKeeper, app.UpgradeKeeper, &scopedIBCKeeper, interfaceReg,
 	)
+	v4Keeper := ibc.NewV4Keeper(v2keeper)
+	facadedKeeper := ibc.NewFacadedKeeper(v2keeper)
+	facadedKeeper.RegisterKeeper(ibccommon.DefaultFactory(tmtypes.HigherThanVenus3, ibc.IBCV4, v4Keeper))
+	app.IBCKeeper = facadedKeeper
 
 	// Create Transfer Keepers
 	app.TransferKeeper = ibctransferkeeper.NewKeeper(
 		codecProxy, keys[ibctransfertypes.StoreKey], app.GetSubspace(ibctransfertypes.ModuleName),
-		app.IBCKeeper.ChannelKeeper, &app.IBCKeeper.PortKeeper,
+		v2keeper.ChannelKeeper, &v2keeper.PortKeeper,
 		app.SupplyKeeper, app.SupplyKeeper, scopedTransferKeeper, interfaceReg,
 	)
 	ibctransfertypes.SetMarshal(codecProxy)
+
+	app.IBCFeeKeeper = ibcfeekeeper.NewKeeper(codecProxy, keys[ibcfeetypes.StoreKey], app.GetSubspace(ibcfeetypes.ModuleName),
+		v2keeper.ChannelKeeper, // may be replaced with IBC middleware
+		v2keeper.ChannelKeeper,
+		&v2keeper.PortKeeper, app.SupplyKeeper, app.SupplyKeeper,
+	)
+
+	// ICA Controller keeper
+	app.ICAControllerKeeper = icacontrollerkeeper.NewKeeper(
+		codecProxy, keys[icacontrollertypes.StoreKey], app.GetSubspace(icacontrollertypes.SubModuleName),
+		app.IBCFeeKeeper, // use ics29 fee as ics4Wrapper in middleware stack
+		app.IBCKeeper.V2Keeper.ChannelKeeper, &app.IBCKeeper.V2Keeper.PortKeeper,
+		scopedICAControllerKeeper, app.MsgServiceRouter(),
+	)
+
+	// ICA Host keeper
+	app.ICAHostKeeper = icahostkeeper.NewKeeper(
+		codecProxy, keys[icahosttypes.StoreKey], app.GetSubspace(icahosttypes.SubModuleName),
+		app.IBCKeeper.V2Keeper.ChannelKeeper, &app.IBCKeeper.V2Keeper.PortKeeper,
+		app.SupplyKeeper, scopedICAHostKeeper, app.MsgServiceRouter(),
+	)
+
+	app.ICAMauthKeeper = icamauthkeeper.NewKeeper(
+		codecProxy,
+		keys[icamauthtypes.StoreKey],
+		app.ICAControllerKeeper,
+		scopedICAMauthKeeper,
+	)
 
 	app.Erc20Keeper = erc20.NewKeeper(app.marshal.GetCdc(), app.keys[erc20.ModuleName], app.subspaces[erc20.ModuleName],
 		app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, app.EvmKeeper, app.TransferKeeper)
@@ -420,7 +473,7 @@ func NewSimApp(
 		AddRoute(farm.RouterKey, farm.NewManageWhiteListProposalHandler(&app.FarmKeeper)).
 		AddRoute(evm.RouterKey, evm.NewManageContractDeploymentWhitelistProposalHandler(app.EvmKeeper)).
 		AddRoute(mint.RouterKey, mint.NewManageTreasuresProposalHandler(&app.MintKeeper)).
-		AddRoute(ibchost.RouterKey, ibcclient.NewClientUpdateProposalHandler(app.IBCKeeper.ClientKeeper)).
+		AddRoute(ibcclienttypes.RouterKey, ibcclient.NewClientUpdateProposalHandler(v2keeper.ClientKeeper)).
 		AddRoute(erc20.RouterKey, erc20.NewProposalHandler(&app.Erc20Keeper))
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &app.ParamsKeeper).
@@ -428,10 +481,11 @@ func NewSimApp(
 		AddRoute(farm.RouterKey, &app.FarmKeeper).
 		AddRoute(evm.RouterKey, app.EvmKeeper).
 		AddRoute(mint.RouterKey, &app.MintKeeper).
-		AddRoute(erc20.RouterKey, &app.Erc20Keeper)
+		AddRoute(erc20.RouterKey, &app.Erc20Keeper).
+		AddRoute(distr.RouterKey, &app.DistrKeeper)
 	app.GovKeeper = gov.NewKeeper(
 		app.marshal.GetCdc(), app.keys[gov.StoreKey], app.ParamsKeeper, app.subspaces[gov.DefaultParamspace],
-		app.SupplyKeeper, stakingKeeper, gov.DefaultParamspace, govRouter,
+		app.SupplyKeeper, &stakingKeeper, gov.DefaultParamspace, govRouter,
 		app.BankKeeper, govProposalHandlerRouter, auth.FeeCollectorName,
 	)
 	app.ParamsKeeper.SetGovKeeper(app.GovKeeper)
@@ -440,21 +494,45 @@ func NewSimApp(
 	app.EvmKeeper.SetGovKeeper(app.GovKeeper)
 	app.MintKeeper.SetGovKeeper(app.GovKeeper)
 	app.Erc20Keeper.SetGovKeeper(app.GovKeeper)
+	app.DistrKeeper.SetGovKeeper(app.GovKeeper)
 
 	// Set EVM hooks
-	//app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper)))
+	app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper),
+		erc20.NewSendNative20ToIbcEventHandler(app.Erc20Keeper)))
 	// Set IBC hooks
-	//app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
-	//transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
-	transferModule := transfer.TNewTransferModule(app.TransferKeeper, codecProxy)
+	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
 
-	mockModule := mock.NewAppModule(scopedIBCMockKeeper, &app.IBCKeeper.PortKeeper)
+	left := common.NewDisaleProxyMiddleware()
+	middle := ibctransfer.NewIBCModule(app.TransferKeeper)
+	right := ibcfee.NewIBCMiddleware(middle, app.IBCFeeKeeper)
+	transferStack := ibcporttypes.NewFallThroughMiddleware(left,
+		ibccommon.DefaultFactory(tmtypes.HigherThanVenus3, ibc.IBCV4, right),
+		ibccommon.DefaultFactory(tmtypes.HigherThanVenus1, ibc.IBCV2, middle))
+
+	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
+
 	// Create static IBC router, add transfer route, then set and seal it
 	ibcRouter := ibcporttypes.NewRouter()
-	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferModule)
-	ibcRouter.AddRoute(mock.ModuleName, mockModule)
+
+	var icaControllerStack ibcporttypes.IBCModule
+	icaMauthIBCModule := icamauth.NewIBCModule(app.ICAMauthKeeper)
+	icaControllerStack = icaMauthIBCModule
+	icaControllerStack = icacontroller.NewIBCMiddleware(icaControllerStack, app.ICAControllerKeeper)
+	// TODO, ica的先不被fee 包裹
+	icaControllerStack = ibcfee.NewIBCMiddleware(icaControllerStack, app.IBCFeeKeeper)
+
+	var icaHostStack ibcporttypes.IBCModule
+	icaHostStack = icahost.NewIBCModule(app.ICAHostKeeper)
+	// TODO, ica的先不被fee 包裹
+	icaHostStack = ibcfee.NewIBCMiddleware(icaHostStack, app.IBCFeeKeeper)
+
+	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferStack)
+	ibcRouter.AddRoute(icacontrollertypes.SubModuleName, icaControllerStack)
+	ibcRouter.AddRoute(icahosttypes.SubModuleName, icaHostStack)
+	ibcRouter.AddRoute(icamauthtypes.ModuleName, icaControllerStack)
+
 	//ibcRouter.AddRoute(ibcmock.ModuleName, mockModule)
-	app.IBCKeeper.SetRouter(ibcRouter)
+	v2keeper.SetRouter(ibcRouter)
 
 	// register the staking hooks
 	// NOTE: stakingKeeper above is passed by reference, so that it will contain these hooks
@@ -462,12 +540,9 @@ func NewSimApp(
 		staking.NewMultiStakingHooks(app.DistrKeeper.Hooks(), app.SlashingKeeper.Hooks()),
 	)
 
-	homeDir := viper.GetString(cli.HomeFlag)
-	wasmDir := filepath.Join(homeDir, "wasm")
-	wasmConfig, err := wasm.ReadWasmConfig()
-	if err != nil {
-		panic(fmt.Sprintf("error while reading wasm config: %s", err))
-	}
+	//wasm keeper
+	wasmDir := wasm.WasmDir()
+	wasmConfig := wasm.WasmConfig()
 
 	// The last arguments can contain custom message handlers, and custom query handlers,
 	// if we want to allow any custom callbacks
@@ -478,8 +553,8 @@ func NewSimApp(
 		app.subspaces[wasm.ModuleName],
 		&app.AccountKeeper,
 		bank.NewBankKeeperAdapter(app.BankKeeper),
-		app.IBCKeeper.ChannelKeeper,
-		&app.IBCKeeper.PortKeeper,
+		v2keeper.ChannelKeeper,
+		&v2keeper.PortKeeper,
 		nil,
 		app.TransferKeeper,
 		app.MsgServiceRouter(),
@@ -606,7 +681,7 @@ func NewSimApp(
 		WasmConfig:        &wasmConfig,
 		TXCounterStoreKey: keys[wasm.StoreKey],
 	}
-	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), app.WasmHandler, app.IBCKeeper.ChannelKeeper))
+	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), app.WasmHandler, app.IBCKeeper.V2Keeper.ChannelKeeper))
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccNonceHandler(NewAccHandler(app.AccountKeeper))

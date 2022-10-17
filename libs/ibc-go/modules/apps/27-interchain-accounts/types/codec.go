@@ -33,7 +33,7 @@ func RegisterCodec(cdc *codec.Codec) {
 // SerializeCosmosTx serializes a slice of sdk.Msg's using the CosmosTx type. The sdk.Msg's are
 // packed into Any's and inserted into the Messages field of a CosmosTx. The proto marshaled CosmosTx
 // bytes are returned. Only the ProtoCodec is supported for serializing messages.
-func SerializeCosmosTx(cdc *codec.CodecProxy, msgs []sdk.MsgProtoAdapter) (bz []byte, err error) {
+func SerializeCosmosTx(cdc *codec.CodecProxy, msgs []sdk.MsgAdapter) (bz []byte, err error) {
 	// only ProtoCodec is supported
 
 	msgAnys := make([]*codectypes.Any, len(msgs))
