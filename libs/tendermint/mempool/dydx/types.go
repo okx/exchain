@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/libs/dydx/contracts"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/pkg/errors"
 	"github.com/umbracle/ethgo/abi"
 )
 
@@ -179,11 +180,7 @@ func (p *P1Order) Price() *big.Int {
 }
 
 func (p *P1Order) DecodeFrom(data []byte) error {
-	err := callTypeABI.DecodeStruct(data[:32], &p.CallType)
-	if err != nil {
-		return err
-	}
-	return orderTuple.DecodeStruct(data[32:], &p.P1OrdersOrder)
+	return orderTuple.DecodeStruct(data, &p.P1OrdersOrder)
 }
 
 func (p *P1Order) encodeCallType() ([]byte, error) {
@@ -195,15 +192,16 @@ func (p *P1Order) encodeOrder() ([]byte, error) {
 }
 
 func (p *P1Order) Encode() ([]byte, error) {
-	bs1, err := p.encodeCallType()
-	if err != nil {
-		return nil, err
-	}
-	bs2, err := p.encodeOrder()
-	if err != nil {
-		return nil, err
-	}
-	return append(bs1, bs2...), nil
+	return p.encodeOrder()
+	//bs1, err := p.encodeCallType()
+	//if err != nil {
+	//	return nil, err
+	//}
+	//bs2, err := p.encodeOrder()
+	//if err != nil {
+	//	return nil, err
+	//}
+	//return append(bs1, bs2...), nil
 }
 
 func (p P1Order) clone() P1Order {
@@ -228,6 +226,20 @@ type WrapOrder struct {
 	Raw          OrderRaw
 	Sig          []byte
 	orderHash    common.Hash
+}
+
+func (w *WrapOrder) DecodeFrom(data []byte) error {
+	if len(data) < NUM_SIGNATURE_BYTES {
+		return ErrInvalidSignedOrder
+	}
+	err := w.P1Order.DecodeFrom(data[:len(data)-NUM_SIGNATURE_BYTES])
+	if err != nil {
+		return errors.Wrap(err, ErrInvalidOrder.Error())
+	}
+	w.LeftAmount = new(big.Int).Set(w.P1Order.Amount)
+	w.Sig = data[len(data)-NUM_SIGNATURE_BYTES:]
+	w.Raw = data
+	return nil
 }
 
 func (w *WrapOrder) Hash() common.Hash {
@@ -258,15 +270,6 @@ func (w *WrapOrder) Done(amount *big.Int) {
 	if w.FrozenAmount.Sign() < 0 {
 		fmt.Println("WrapOrder Done error")
 	}
-}
-
-type SignedOrder struct {
-	Msg []byte
-	Sig [32]byte
-}
-
-func (s *SignedOrder) DecodeFrom(data []byte) error {
-	return signedTuple.DecodeStruct(data, s)
 }
 
 type MempoolOrder struct {

@@ -53,7 +53,7 @@ func (d *DepthBook) Delete(hash common.Hash) *list.Element {
 }
 
 func (d *DepthBook) Update(results *MatchResult) {
-	if len(results.MatchedRecords) == 0 {
+	if results == nil || len(results.MatchedRecords) == 0 {
 		return
 	}
 	succeed := <-results.OnChain

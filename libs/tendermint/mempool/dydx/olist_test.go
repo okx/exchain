@@ -2,10 +2,12 @@ package dydx
 
 import (
 	"encoding/hex"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
 	"github.com/stretchr/testify/require"
 )
@@ -19,7 +21,11 @@ func TestOrderManager(t *testing.T) {
 	err = odr.DecodeFrom(orderBytes)
 	require.NoError(t, err)
 
-	book := NewOrderManager()
+	hexPriv := "8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17"
+	priv, err := crypto.HexToECDSA(hexPriv)
+	addr := crypto.PubkeyToAddress(priv.PublicKey)
+
+	manager := NewOrderManager(false)
 	var wg sync.WaitGroup
 	wg.Add(2)
 	go func() {
@@ -29,17 +35,20 @@ func TestOrderManager(t *testing.T) {
 		for {
 			if next == nil {
 				select {
-				case <-book.WaitChan():
-					next = book.Front()
+				case <-manager.WaitChan():
+					next = manager.Front()
+				case <-time.After(time.Second):
+					panic("unexpected")
 				}
 			}
-			var signedOrder SignedOrder
-			err = signedOrder.DecodeFrom(next.Value.(*MempoolOrder).raw)
+
+			var wrapOdr WrapOrder
+			err = wrapOdr.DecodeFrom(next.Value.(*MempoolOrder).raw)
 			require.NoError(t, err)
-			var odr P1Order
-			err = odr.DecodeFrom(signedOrder.Msg)
+			fmt.Println("P1Order:", wrapOdr.P1Order, "sig", hex.EncodeToString(wrapOdr.Sig), len(wrapOdr.Sig), "raw:", hex.EncodeToString(next.Value.(*MempoolOrder).Raw()))
+			err = wrapOdr.P1Order.VerifySignature(wrapOdr.Sig)
 			require.NoError(t, err)
-			require.Equal(t, uint64(totalCount), odr.Amount.Uint64())
+			require.Equal(t, uint64(totalCount), wrapOdr.P1Order.Amount.Uint64())
 			totalCount++
 			select {
 			case <-next.NextWaitChan():
@@ -58,19 +67,41 @@ func TestOrderManager(t *testing.T) {
 			if i%(orderCount/10) == 0 {
 				time.Sleep(time.Millisecond)
 			}
-			odr.Amount.SetInt64(int64(i))
-			orderBytes, err := odr.Encode()
-			require.NoError(t, err)
-			signedOrder := SignedOrder{
-				Msg: orderBytes,
-			}
-			signedOrderBytes, err := signedTuple.Encode(signedOrder)
+			odr := newRandP1Order(int64(i), addr.String())
+			signedOrderBytes, err := newRawSignedOrder(odr, hexPriv)
 			require.NoError(t, err)
 
 			memOrder := NewMempoolOrder(signedOrderBytes, 0)
-			err = book.Insert(memOrder)
+			err = manager.Insert(memOrder)
 			require.NoError(t, err)
 		}
 	}()
 	wg.Wait()
+}
+
+func TestInsert(t *testing.T) {
+	hexPriv := "8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17"
+	priv, err := crypto.HexToECDSA(hexPriv)
+	require.NoError(t, err)
+	addr := crypto.PubkeyToAddress(priv.PublicKey)
+	manager := NewOrderManager(false)
+	odr := newRandP1Order(1, addr.String())
+	signedOrderBytes, err := newRawSignedOrder(odr, hexPriv)
+	require.NoError(t, err)
+
+	memOrder := NewMempoolOrder(signedOrderBytes, 0)
+	err = manager.Insert(memOrder)
+	require.NoError(t, err)
+}
+
+func newRawSignedOrder(odr P1Order, hexPriv string) ([]byte, error) {
+	sig, err := signOrder(odr, hexPriv, 65, contractAddress)
+	if err != nil {
+		return nil, err
+	}
+	orderBytes, err := odr.encodeOrder()
+	if err != nil {
+		return nil, err
+	}
+	return append(orderBytes, sig...), nil
 }
