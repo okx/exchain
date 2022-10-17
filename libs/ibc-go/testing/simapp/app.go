@@ -7,6 +7,11 @@ import (
 	"sort"
 	"sync"
 
+	ica "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts"
+	icatypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
+
+	ibckeeper "github.com/okex/exchain/libs/ibc-go/modules/core/keeper"
+
 	icacontroller "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller"
 	icacontrollerkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/keeper"
 	icacontrollertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/types"
@@ -164,6 +169,9 @@ var (
 		erc20.AppModuleBasic{},
 		mock.AppModuleBasic{},
 		wasm.AppModuleBasic{},
+		ica.AppModuleBasic{},
+		ibcfee.AppModuleBasic{},
+		icamauth.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -183,6 +191,8 @@ var (
 		farm.MintFarmingAccount:     {supply.Burner},
 		ibctransfertypes.ModuleName: {authtypes.Minter, authtypes.Burner},
 		erc20.ModuleName:            {authtypes.Minter, authtypes.Burner},
+		ibcfeetypes.ModuleName:      nil,
+		icatypes.ModuleName:         nil,
 	}
 
 	GlobalGpIndex = GasPriceIndex{}
@@ -303,7 +313,10 @@ func NewSimApp(
 		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
 		ibchost.StoreKey,
 		erc20.StoreKey,
-		mpt.StoreKey, wasm.StoreKey,
+		mpt.StoreKey,
+		wasm.StoreKey,
+		icacontrollertypes.StoreKey, icahosttypes.StoreKey, ibcfeetypes.StoreKey,
+		icamauthtypes.StoreKey,
 	)
 
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
@@ -563,6 +576,7 @@ func NewSimApp(
 		wasmConfig,
 		supportedFeatures,
 	)
+	mockModule := mock.NewAppModule(scopedIBCMockKeeper, &v2keeper.PortKeeper)
 
 	// NOTE: Any module instantiated in the module manager that is later modified
 	// must be passed by reference here.
@@ -594,6 +608,9 @@ func NewSimApp(
 		erc20.NewAppModule(app.Erc20Keeper),
 		mockModule,
 		wasm.NewAppModule(*app.marshal, &app.wasmKeeper),
+		ibcfee.NewAppModule(app.IBCFeeKeeper),
+		ica.NewAppModule(codecProxy, &app.ICAControllerKeeper, &app.ICAHostKeeper),
+		icamauth.NewAppModule(codecProxy, app.ICAMauthKeeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
@@ -681,7 +698,7 @@ func NewSimApp(
 		WasmConfig:        &wasmConfig,
 		TXCounterStoreKey: keys[wasm.StoreKey],
 	}
-	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), app.WasmHandler, app.IBCKeeper.V2Keeper.ChannelKeeper))
+	app.SetAnteHandler(ante.NewAnteHandler(app.AccountKeeper, app.EvmKeeper, app.SupplyKeeper, validateMsgHook(app.OrderKeeper), app.WasmHandler, app.IBCKeeper))
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccNonceHandler(NewAccHandler(app.AccountKeeper))
@@ -805,8 +822,8 @@ func (app *SimApp) GetBaseApp() *bam.BaseApp {
 func (app *SimApp) GetStakingKeeper() staking.Keeper {
 	return app.StakingKeeper
 }
-func (app *SimApp) GetIBCKeeper() *ibc.Keeper {
-	return app.IBCKeeper
+func (app *SimApp) GetIBCKeeper() *ibckeeper.Keeper {
+	return app.IBCKeeper.V2Keeper
 }
 
 func (app *SimApp) GetScopedIBCKeeper() (cap capabilitykeeper.ScopedKeeper) {

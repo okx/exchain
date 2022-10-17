@@ -4,7 +4,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	banktypes "github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
-	"github.com/okex/exchain/libs/ibc-go/testing/simapp"
 )
 
 // caseRawBytes defines a helper struct, used for testing codec operations
@@ -117,18 +116,18 @@ func (suite *TypesTestSuite) TestSerializeAndDeserializeCosmosTx() {
 			false,
 		},
 	}
-
+	cdc := suite.chainA.GetSimApp().AppCodec()
 	testCasesAny := []caseRawBytes{}
 
 	for _, tc := range testCases {
-		bz, err := types.SerializeCosmosTx(simapp.MakeTestEncodingConfig().CodecProxy(), tc.msgs)
+		bz, err := types.SerializeCosmosTx(cdc, tc.msgs)
 		suite.Require().NoError(err, tc.name)
 
 		testCasesAny = append(testCasesAny, caseRawBytes{tc.name, bz, tc.expPass})
 	}
 
 	for i, tc := range testCasesAny {
-		msgs, err := types.DeserializeCosmosTx(simapp.MakeTestEncodingConfig().CodecProxy(), tc.bz)
+		msgs, err := types.DeserializeCosmosTx(cdc, tc.bz)
 		if tc.expPass {
 			suite.Require().NoError(err, tc.name)
 			suite.Require().Equal(testCases[i].msgs, msgs, tc.name)
@@ -138,21 +137,7 @@ func (suite *TypesTestSuite) TestSerializeAndDeserializeCosmosTx() {
 	}
 
 	// test deserializing unknown bytes
-	msgs, err := types.DeserializeCosmosTx(simapp.MakeTestEncodingConfig().CodecProxy(), []byte("invalid"))
+	msgs, err := types.DeserializeCosmosTx(cdc, []byte("invalid"))
 	suite.Require().Error(err)
 	suite.Require().Empty(msgs)
-}
-
-// unregistered bytes causes amino to panic.
-// test that DeserializeCosmosTx gracefully returns an error on
-// unsupported amino codec.
-func (suite *TypesTestSuite) TestDeserializeAndSerializeCosmosTxWithAmino() {
-	cdc := simapp.MakeTestEncodingConfig().CodecProxy()
-	msgs, err := types.SerializeCosmosTx(cdc, []sdk.MsgAdapter{&banktypes.MsgSendAdapter{}})
-	suite.Require().Error(err)
-	suite.Require().Empty(msgs)
-
-	bz, err := types.DeserializeCosmosTx(cdc, []byte{0x10, 0})
-	suite.Require().Error(err)
-	suite.Require().Empty(bz)
 }
