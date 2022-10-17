@@ -41,6 +41,13 @@ func TestQueryParams(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, true, enableData)
 
+	enabled, err = querior(ctx, []string{types.QueryParams, types.ParamRewardTruncatePrecision}, abci.RequestQuery{})
+	require.True(t, err == nil)
+	var precision int64
+	err = amino.UnmarshalJSON(enabled, &precision)
+	require.NoError(t, err)
+	require.Equal(t, int64(0), precision)
+
 	_, err = querior(ctx, []string{"unknown"}, abci.RequestQuery{})
 	require.Error(t, err)
 	_, err = querior(ctx, []string{types.QueryParams, "unknown"}, abci.RequestQuery{})

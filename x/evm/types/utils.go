@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"math/big"
 	"math/bits"
 	"strings"
@@ -607,6 +608,22 @@ func EncodeResultData(data *ResultData) ([]byte, error) {
 	}
 
 	return buf.Bytes(), nil
+}
+
+func IsEvmEvent(txResult *abci.ResponseDeliverTx) bool {
+	for _, event := range txResult.Events {
+		if event.Type != "message" {
+			continue
+		}
+
+		for _, attr := range event.Attributes {
+			if string(attr.Key) == "module" && string(attr.Value) == "evm" {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 // DecodeResultData decodes an amino-encoded byte slice into ResultData

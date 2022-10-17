@@ -632,7 +632,7 @@ func TestExecute(t *testing.T) {
 	// make sure gas is properly deducted from ctx
 	gasAfter := ctx.GasMeter().GasConsumed()
 	if types.EnableGasVerification {
-		require.Equal(t, uint64(0x18862), gasAfter-gasBefore)
+		require.Equal(t, uint64(0x1987d), gasAfter-gasBefore)
 	}
 	// ensure bob now exists and got both payments released
 	bobAcct = accKeeper.GetAccount(ctx, bob)
@@ -1585,7 +1585,7 @@ func TestPinnedContractLoops(t *testing.T) {
 		}, 0, nil
 	}
 
-	ctx.SetGasMeter(sdk.NewGasMeter(20000))
+	ctx.SetGasMeter(sdk.NewGasMeter(22000))
 	require.PanicsWithValue(t, sdk.ErrorOutOfGas{Descriptor: "ReadFlat"}, func() {
 		_, err := k.execute(ctx, example.Contract, RandomAccountAddress(t), anyMsg, nil)
 		require.NoError(t, err)

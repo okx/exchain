@@ -69,6 +69,12 @@ func queryParams(ctx sdk.Context, path []string, req abci.RequestQuery, k Keeper
 			return nil, comm.ErrMarshalJSONFailed(err.Error())
 		}
 		return bz, nil
+	case types.ParamRewardTruncatePrecision:
+		bz, err := codec.MarshalJSONIndent(k.cdc, k.GetRewardTruncatePrecision(ctx))
+		if err != nil {
+			return nil, comm.ErrMarshalJSONFailed(err.Error())
+		}
+		return bz, nil
 	default:
 		return nil, types.ErrUnknownDistributionParamType()
 	}
