@@ -2,13 +2,15 @@ package rest
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/gorilla/mux"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
 	comm "github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/feesplit/types"
 	govRest "github.com/okex/exchain/x/gov/client/rest"
-	"net/http"
 )
 
 func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {

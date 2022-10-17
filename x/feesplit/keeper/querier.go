@@ -217,7 +217,7 @@ func queryWithdrawerFeeSplits(
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "withdraw address is empty")
 	}
 
-	deployer, err := sdk.AccAddressFromBech32(params.WithdrawerAddress)
+	withdrawer, err := sdk.AccAddressFromBech32(params.WithdrawerAddress)
 	if err != nil {
 		return nil, sdkerrors.Wrap(
 			sdkerrors.ErrInvalidRequest,
@@ -228,7 +228,7 @@ func queryWithdrawerFeeSplits(
 	var contracts []string
 	store := prefix.NewStore(
 		ctx.KVStore(k.storeKey),
-		types.GetKeyPrefixWithdrawer(deployer),
+		types.GetKeyPrefixWithdrawer(withdrawer),
 	)
 
 	pageRes := &query.PageResponse{}
