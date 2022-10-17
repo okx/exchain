@@ -522,6 +522,7 @@ func NewSimApp(
 		ibccommon.DefaultFactory(tmtypes.HigherThanVenus3, ibc.IBCV4, right),
 		ibccommon.DefaultFactory(tmtypes.HigherThanVenus1, ibc.IBCV2, middle))
 
+	mockModule := mock.NewAppModule(scopedIBCMockKeeper, &app.IBCKeeper.V2Keeper.PortKeeper)
 	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
 
 	// Create static IBC router, add transfer route, then set and seal it
@@ -543,6 +544,7 @@ func NewSimApp(
 	ibcRouter.AddRoute(icacontrollertypes.SubModuleName, icaControllerStack)
 	ibcRouter.AddRoute(icahosttypes.SubModuleName, icaHostStack)
 	ibcRouter.AddRoute(icamauthtypes.ModuleName, icaControllerStack)
+	ibcRouter.AddRoute(mock.ModuleName, mockModule)
 
 	//ibcRouter.AddRoute(ibcmock.ModuleName, mockModule)
 	v2keeper.SetRouter(ibcRouter)
@@ -576,7 +578,6 @@ func NewSimApp(
 		wasmConfig,
 		supportedFeatures,
 	)
-	mockModule := mock.NewAppModule(scopedIBCMockKeeper, &v2keeper.PortKeeper)
 
 	// NOTE: Any module instantiated in the module manager that is later modified
 	// must be passed by reference here.
