@@ -2,6 +2,8 @@ package types
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/global"
+	"github.com/okex/exchain/libs/tendermint/types"
 	"strings"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -425,6 +427,11 @@ func (mp ManageSysContractAddressProposal) ValidateBasic() sdk.Error {
 
 	if mp.IsAdded && mp.ContractAddr.Empty() {
 		return govtypes.ErrInvalidProposalContent("is_added true, contract address required")
+	}
+
+	//will delete it after upgrade venus3
+	if global.GetGlobalHeight() > 0 && !types.HigherThanVenus3(global.GetGlobalHeight()) {
+		return govtypes.ErrInvalidProposalContent("not support system contract address proposal")
 	}
 
 	return nil

@@ -1,6 +1,7 @@
 package types
 
 import (
+	"github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
 	"strings"
 	"testing"
@@ -420,7 +421,7 @@ func (suite *ProposalTestSuite) TestProposal_ManageSysContractAddressProposal() 
 		ethcmn.BytesToAddress([]byte{0x0}).Bytes(),
 		true,
 	)
-
+	types.UnittestOnlySetMilestoneVenus3Height(-1)
 	suite.Require().Equal(expectedTitle, proposal.GetTitle())
 	suite.Require().Equal(expectedDescription, proposal.GetDescription())
 	suite.Require().Equal(RouterKey, proposal.ProposalRoute())
@@ -434,7 +435,8 @@ func (suite *ProposalTestSuite) TestProposal_ManageSysContractAddressProposal() 
 	}{
 		{
 			"pass",
-			func() {},
+			func() {
+			},
 			false,
 		},
 		{

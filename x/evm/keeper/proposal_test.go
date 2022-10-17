@@ -2,10 +2,12 @@ package keeper_test
 
 import (
 	ethermint "github.com/okex/exchain/app/types"
+	staking_types "github.com/okex/exchain/x/staking/types"
 	"time"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	"github.com/okex/exchain/x/evm/types"
 	govtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/stretchr/testify/require"
@@ -222,6 +224,9 @@ func (suite *KeeperTestSuite) TestProposal_ManageContractMethodBlockedListPropos
 }
 
 func (suite *KeeperTestSuite) TestProposal_ManageSysContractAddressProposal() {
+	priv := ed25519.GenPrivKeyFromSecret([]byte("ed25519 private key"))
+	pub := priv.PubKey()
+
 	addr1 := ethcmn.BytesToAddress([]byte{0x01}).Bytes()
 	proposal := types.NewManageSysContractAddressProposal(
 		"default title",
@@ -229,6 +234,12 @@ func (suite *KeeperTestSuite) TestProposal_ManageSysContractAddressProposal() {
 		addr1,
 		true,
 	)
+
+	newVal := staking_types.NewValidator(sdk.ValAddress(pub.Address()), pub, staking_types.NewDescription("test description", "", "", ""), staking_types.DefaultMinDelegation)
+	validator := newVal.UpdateStatus(sdk.Bonded)
+	suite.app.StakingKeeper.SetValidator(suite.ctx, validator)
+	suite.app.StakingKeeper.SetValidatorByConsAddr(suite.ctx, validator)
+	suite.app.StakingKeeper.SetValidatorByPowerIndex(suite.ctx, validator)
 
 	minDeposit := suite.app.EvmKeeper.GetMinDeposit(suite.ctx, proposal)
 	require.Equal(suite.T(), sdk.SysCoins{sdk.NewDecCoin(sdk.DefaultBondDenom, sdk.NewInt(100))}, minDeposit)
@@ -286,7 +297,7 @@ func (suite *KeeperTestSuite) TestProposal_ManageSysContractAddressProposal() {
 		suite.Run(tc.msg, func() {
 			tc.prepare()
 
-			msg := govtypes.NewMsgSubmitProposal(proposal, minDeposit, addr1)
+			msg := govtypes.NewMsgSubmitProposal(proposal, minDeposit, sdk.AccAddress(pub.Address()))
 			err := suite.app.EvmKeeper.CheckMsgSubmitProposal(suite.ctx, msg)
 			if tc.success {
 				suite.Require().NoError(err)
