@@ -33,7 +33,7 @@ func RegisterCodec(cdc *codec.Codec) {
 // SerializeCosmosTx serializes a slice of sdk.Msg's using the CosmosTx type. The sdk.Msg's are
 // packed into Any's and inserted into the Messages field of a CosmosTx. The proto marshaled CosmosTx
 // bytes are returned. Only the ProtoCodec is supported for serializing messages.
-func SerializeCosmosTx(cdc *codec.CodecProxy, msgs []sdk.MsgProtoAdapter) (bz []byte, err error) {
+func SerializeCosmosTx(cdc *codec.CodecProxy, msgs []sdk.MsgAdapter) (bz []byte, err error) {
 	// only ProtoCodec is supported
 
 	msgAnys := make([]*codectypes.Any, len(msgs))
@@ -60,17 +60,16 @@ func SerializeCosmosTx(cdc *codec.CodecProxy, msgs []sdk.MsgProtoAdapter) (bz []
 // DeserializeCosmosTx unmarshals and unpacks a slice of transaction bytes
 // into a slice of sdk.Msg's. Only the ProtoCodec is supported for message
 // deserialization.
-func DeserializeCosmosTx(cdc *codec.CodecProxy, data []byte) ([]sdk.MsgProtoAdapter, error) {
+func DeserializeCosmosTx(cdc *codec.CodecProxy, data []byte) ([]sdk.MsgAdapter, error) {
 	// only ProtoCodec is supported
 	var cosmosTx CosmosTx
 	if err := cdc.GetProtocMarshal().Unmarshal(data, &cosmosTx); err != nil {
 		return nil, err
 	}
 
-	msgs := make([]sdk.MsgProtoAdapter, len(cosmosTx.Messages))
-	// 这里需要进行额外转换,比如说wei转换为okt
+	msgs := make([]sdk.MsgAdapter, len(cosmosTx.Messages))
 	for i, any := range cosmosTx.Messages {
-		var msg sdk.MsgProtoAdapter
+		var msg sdk.MsgAdapter
 
 		err := cdc.GetProtocMarshal().UnpackAny(any, &msg)
 		if err != nil {
