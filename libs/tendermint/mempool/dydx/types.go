@@ -53,7 +53,6 @@ var (
 	zeroOrderHash = common.Hash{}
 	callTypeABI   = abi.MustNewType("int32")
 	orderTuple    = abi.MustNewType("tuple(bytes32 flags, uint256 amount, uint256 limitprice, uint256 triggerprice, uint256 limitfee, address maker, address taker, uint256 expiration)")
-	signedTuple   = abi.MustNewType("tuple(bytes msg, bytes32 sig)")
 
 	//TODO: get chainID
 	chainID = big.NewInt(65)
@@ -112,11 +111,12 @@ func ecrecover(hash common.Hash, sig []byte) (common.Address, error) {
 	}
 
 	// sig[NUM_SIGNATURE_BYTES-1] is sigType
-	sig = sig[:NUM_SIGNATURE_BYTES-1]
+	ethsig := make([]byte, NUM_SIGNATURE_BYTES-1)
+	copy(ethsig, sig[:NUM_SIGNATURE_BYTES-1])
 	// Convert to Ethereum signature format [R || S || V] where V is 0 or 1, from https://github.com/ethereum/go-ethereum/crypto/signature_nocgo.go Sign function
-	sig[len(sig)-1] -= 27
+	ethsig[len(ethsig)-1] -= 27
 
-	pub, err := crypto.SigToPub(signedHash[:], sig)
+	pub, err := crypto.SigToPub(signedHash[:], ethsig)
 	if err != nil {
 		return common.Address{}, ErrInvalidSignature
 	}
