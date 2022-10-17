@@ -2,7 +2,6 @@ package evm
 
 import (
 	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
@@ -37,16 +36,16 @@ func RegisterHandle() {
 	baseapp.RegisterEvmParamParse(EvmParamParse)
 }
 
-func EvmParamParse(msg sdk.Msg) (*baseapp.CMTxParam, error) {
+func EvmParamParse(msg sdk.Msg) ([]byte, error) {
 	evmTx, ok := msg.(*types.MsgEthereumTx)
 	if !ok {
 		return nil, fmt.Errorf("msg type is not a MsgEthereumTx")
 	}
-	cmtp, err := ParseContractParam(evmTx.Data.Payload)
+	value, err := ParseContractParam(evmTx.Data.Payload)
 	if err != nil {
 		return nil, err
 	}
-	return cmtp, nil
+	return value, nil
 }
 
 func EvmConvertJudge(msg sdk.Msg) ([]byte, bool) {
@@ -63,7 +62,7 @@ func EvmConvertJudge(msg sdk.Msg) ([]byte, bool) {
 	return evmTx.Data.Recipient[:], true
 }
 
-func ParseContractParam(input []byte) (*baseapp.CMTxParam, error) {
+func ParseContractParam(input []byte) ([]byte, error) {
 	res, err := sysABIParser.DecodeInputParam(sysContractInvokeFunction, input)
 	if err != nil {
 		return nil, err
@@ -78,17 +77,12 @@ func ParseContractParam(input []byte) (*baseapp.CMTxParam, error) {
 	return DecodeParam([]byte(v))
 }
 
-func DecodeParam(data []byte) (*baseapp.CMTxParam, error) {
+func DecodeParam(data []byte) ([]byte, error) {
 	value, err := hex.DecodeString(string(data)) // this is json fmt
 	if err != nil {
 		return nil, err
 	}
-	cmtx := &baseapp.CMTxParam{}
-	err = json.Unmarshal(value, cmtx)
-	if err != nil {
-		return nil, err
-	}
-	return cmtx, nil
+	return value, nil
 }
 
 func EncodeResultData(txHash, data []byte) ([]byte, error) {

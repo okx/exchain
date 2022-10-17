@@ -1,21 +1,21 @@
 package baseapp
 
 import (
+	"encoding/json"
 	"fmt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
 var (
-	cmHandles          = make(map[string]map[string]*CMHandle)
+	cmHandles          = make(map[string]*CMHandle)
 	evmResultConverter func(txHash, data []byte) ([]byte, error)
 	evmConvertJudge    func(msg sdk.Msg) ([]byte, bool)
-	evmParamParse      func(msg sdk.Msg) (*CMTxParam, error)
+	evmParamParse      func(msg sdk.Msg) ([]byte, error)
 )
 
-type CMTxParam struct {
-	Module   string `json:"module"`
-	Function string `json:"function"`
-	Data     string `json:"data"`
+type MsgWrapper struct {
+	Name string          `json:"type"`
+	Data json.RawMessage `json:"value"`
 }
 
 type CMHandle struct {
@@ -30,19 +30,14 @@ func NewCMHandle(fn func(data []byte, signers []sdk.AccAddress) (sdk.Msg, error)
 	}
 }
 
-func RegisterCmHandle(moduleName, funcName string, create *CMHandle) {
+func RegisterCmHandle(msgType string, create *CMHandle) {
 	if create == nil {
 		panic("Register CmHandle is nil")
 	}
-	v, ok := cmHandles[moduleName]
-	if !ok {
-		v = make(map[string]*CMHandle)
+	if _, dup := cmHandles[msgType]; dup {
+		panic("Register CmHandle twice for same module and func " + msgType)
 	}
-	if _, dup := v[funcName]; dup {
-		panic("Register CmHandle twice for same module and func " + moduleName + funcName)
-	}
-	v[funcName] = create
-	cmHandles[moduleName] = v
+	cmHandles[msgType] = create
 }
 
 func RegisterEvmResultConverter(create func(txHash, data []byte) ([]byte, error)) {
@@ -52,7 +47,7 @@ func RegisterEvmResultConverter(create func(txHash, data []byte) ([]byte, error)
 	evmResultConverter = create
 }
 
-func RegisterEvmParamParse(create func(msg sdk.Msg) (*CMTxParam, error)) {
+func RegisterEvmParamParse(create func(msg sdk.Msg) ([]byte, error)) {
 	if create == nil {
 		panic("Register EvmParamParse is nil")
 	}
@@ -67,17 +62,33 @@ func RegisterEvmConvertJudge(create func(msg sdk.Msg) ([]byte, bool)) {
 }
 
 func ConvertMsg(msg sdk.Msg, height int64) (sdk.Msg, error) {
-	cmtx, err := evmParamParse(msg)
+	v, err := evmParamParse(msg)
 	if err != nil {
 		return nil, err
 	}
-	if module, ok := cmHandles[cmtx.Module]; ok {
-		cmh, ok := module[cmtx.Function]
-		if ok && height >= cmh.height {
-			return cmh.fn([]byte(cmtx.Data), msg.GetSigners())
-		}
+	msgWrap, err := ParseMsgWrapper(v)
+	if err != nil {
+		return nil, err
+	}
+	if cmh, ok := cmHandles[msgWrap.Name]; ok && height >= cmh.height {
+		return cmh.fn(msgWrap.Data, msg.GetSigners())
 	}
 	return nil, fmt.Errorf("not find handle")
+}
+
+func ParseMsgWrapper(data []byte) (*MsgWrapper, error) {
+	cmt := &MsgWrapper{}
+	err := json.Unmarshal(data, cmt)
+	if err != nil {
+		return nil, err
+	}
+	if cmt.Name == "" {
+		return nil, fmt.Errorf("parse msg name field is empty")
+	}
+	if len(cmt.Data) == 0 {
+		return nil, fmt.Errorf("parse msg data field is empty")
+	}
+	return cmt, nil
 }
 
 func EvmResultConvert(txHash, data []byte) ([]byte, error) {

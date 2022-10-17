@@ -19,9 +19,9 @@ func init() {
 
 func RegisterConvert() {
 	enableHeight := int64(0)
-	baseapp.RegisterCmHandle(types.ModuleName, "register", baseapp.NewCMHandle(ConvertRegisterFeeSplitMsg, enableHeight))
-	baseapp.RegisterCmHandle(types.ModuleName, "update", baseapp.NewCMHandle(ConvertUpdateFeeSplitMsg, enableHeight))
-	baseapp.RegisterCmHandle(types.ModuleName, "cancel", baseapp.NewCMHandle(ConvertCancelFeeSplitMsg, enableHeight))
+	baseapp.RegisterCmHandle("okexchain/MsgRegisterFeeSplit", baseapp.NewCMHandle(ConvertRegisterFeeSplitMsg, enableHeight))
+	baseapp.RegisterCmHandle("okexchain/MsgUpdateFeeSplit", baseapp.NewCMHandle(ConvertUpdateFeeSplitMsg, enableHeight))
+	baseapp.RegisterCmHandle("okexchain/MsgCancelFeeSplit", baseapp.NewCMHandle(ConvertCancelFeeSplitMsg, enableHeight))
 }
 
 func ConvertRegisterFeeSplitMsg(data []byte, signers []sdk.AccAddress) (sdk.Msg, error) {

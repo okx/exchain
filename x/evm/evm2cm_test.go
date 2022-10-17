@@ -4,7 +4,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	etypes "github.com/okex/exchain/x/evm/types"
 	"github.com/stretchr/testify/require"
@@ -78,13 +77,13 @@ func TestEvmConvertJudge(t *testing.T) {
 func TestParseContractParam(t *testing.T) {
 	testcases := []struct {
 		fnInit  func() []byte
-		fnCheck func(ctm *baseapp.CMTxParam, err error)
+		fnCheck func(ctm []byte, err error)
 	}{
 		{
 			fnInit: func() []byte {
 				return sysABIParser.Methods[sysContractInvokeFunction].ID
 			},
-			fnCheck: func(ctm *baseapp.CMTxParam, err error) {
+			fnCheck: func(ctm []byte, err error) {
 				require.Nil(t, ctm)
 				require.NotNil(t, err)
 			},
@@ -101,7 +100,7 @@ func TestParseContractParam(t *testing.T) {
 				require.NoError(t, err)
 				return re
 			},
-			fnCheck: func(ctm *baseapp.CMTxParam, err error) {
+			fnCheck: func(ctm []byte, err error) {
 				require.Nil(t, ctm)
 				require.NotNil(t, err)
 			},
@@ -116,7 +115,7 @@ func TestParseContractParam(t *testing.T) {
 				require.NoError(t, err)
 				return re
 			},
-			fnCheck: func(ctm *baseapp.CMTxParam, err error) {
+			fnCheck: func(ctm []byte, err error) {
 				require.Nil(t, ctm)
 				require.NotNil(t, err)
 			},
@@ -128,12 +127,9 @@ func TestParseContractParam(t *testing.T) {
 				require.NoError(t, err)
 				return re
 			},
-			fnCheck: func(ctm *baseapp.CMTxParam, err error) {
+			fnCheck: func(ctm []byte, err error) {
 				require.NoError(t, err)
-				require.Equal(t, "staking", ctm.Module)
-				require.Equal(t, "deposit", ctm.Function)
-				require.Equal(t, "123", ctm.Data)
-
+				require.Equal(t, `{"module": "staking","function": "deposit","data": "123"}`, string(ctm))
 			},
 		},
 	}
@@ -148,33 +144,30 @@ func TestParseContractParam(t *testing.T) {
 func TestDecodeParam(t *testing.T) {
 	testcases := []struct {
 		input   string
-		fnCheck func(ctm *baseapp.CMTxParam, err error)
+		fnCheck func(ctm []byte, err error)
 	}{
 		{
 			// {"module": "staking","function": "deposit","data": "{\"delegator_address\": \"0xb2910e22bb23d129c02d122b77b462ceb0e89db9\",\"quantity\": {\"denom\": \"okt\",\"amount\": \"1\"}}"}
 			input: "7b226d6f64756c65223a20227374616b696e67222c2266756e6374696f6e223a20226465706f736974222c2264617461223a20227b5c2264656c656761746f725f616464726573735c223a205c223078623239313065323262623233643132396330326431323262373762343632636562306538396462395c222c5c227175616e746974795c223a207b5c2264656e6f6d5c223a205c226f6b745c222c5c22616d6f756e745c223a205c22315c227d7d227d",
-			fnCheck: func(ctm *baseapp.CMTxParam, err error) {
+			fnCheck: func(ctm []byte, err error) {
 				require.NoError(t, err)
-				require.Equal(t, ctm.Module, "staking")
-				require.Equal(t, ctm.Function, "deposit")
-				data := "{\"delegator_address\": \"0xb2910e22bb23d129c02d122b77b462ceb0e89db9\",\"quantity\": {\"denom\": \"okt\",\"amount\": \"1\"}}"
-				require.Equal(t, ctm.Data, data)
+				data := `{"module": "staking","function": "deposit","data": "{\"delegator_address\": \"0xb2910e22bb23d129c02d122b77b462ceb0e89db9\",\"quantity\": {\"denom\": \"okt\",\"amount\": \"1\"}}"}`
+				require.Equal(t, string(ctm), data)
 			},
 		},
 		{
 			input: "7b2",
-			fnCheck: func(ctm *baseapp.CMTxParam, err error) {
+			fnCheck: func(ctm []byte, err error) {
 				require.NotNil(t, err)
 			},
 		},
 		{
 			// {"module": "staking","function1": "deposit","data": ""}
 			input: "7b226d6f64756c65223a20227374616b696e67222c2266756e6374696f6e31223a20226465706f736974222c2264617461223a2022227d",
-			fnCheck: func(ctm *baseapp.CMTxParam, err error) {
+			fnCheck: func(ctm []byte, err error) {
 				require.NoError(t, err)
-				require.Equal(t, ctm.Module, "staking")
-				require.Equal(t, ctm.Function, "")
-				require.Equal(t, ctm.Data, "")
+				data := `{"module": "staking","function1": "deposit","data": ""}`
+				require.Equal(t, string(ctm), data)
 			},
 		},
 	}

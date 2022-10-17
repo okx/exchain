@@ -1,6 +1,7 @@
 package baseapp
 
 import (
+	"encoding/json"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	db "github.com/okex/exchain/libs/tm-db"
@@ -92,6 +93,7 @@ func TestRegisterCmHandle_ConvertMsg(t *testing.T) {
 			setHeight:   5,
 			success:     true,
 		},
+
 		//{ // test for panic
 		//	module:      "module5",
 		//	funcName:    "test3",
@@ -101,7 +103,7 @@ func TestRegisterCmHandle_ConvertMsg(t *testing.T) {
 		//},
 	}
 	for _, ts := range testcases {
-		RegisterCmHandle(ts.module, ts.funcName,
+		RegisterCmHandle(ts.module+ts.funcName,
 			NewCMHandle(func(data []byte, signers []sdk.AccAddress) (sdk.Msg, error) {
 				return nil, nil
 			}, ts.setHeight))
@@ -109,8 +111,14 @@ func TestRegisterCmHandle_ConvertMsg(t *testing.T) {
 
 	// check
 	for _, ts := range testcases {
-		RegisterEvmParamParse(func(msg sdk.Msg) (*CMTxParam, error) {
-			return &CMTxParam{Module: ts.module, Function: ts.funcName}, nil
+		RegisterEvmParamParse(func(msg sdk.Msg) ([]byte, error) {
+			mw := &MsgWrapper{
+				Name: ts.module + ts.funcName,
+				Data: []byte("123"),
+			}
+			v, err := json.Marshal(mw)
+			require.NoError(t, err)
+			return v, nil
 		})
 		_, err := ConvertMsg(testMsg{}, ts.blockHeight)
 		require.Equal(t, ts.success, err == nil)
@@ -138,7 +146,7 @@ func TestJudgeEvmConvert(t *testing.T) {
 				app.SetEvmSysContractAddressHandler(func(ctx sdk.Context, addr sdk.AccAddress) bool {
 					return true
 				})
-				RegisterEvmParamParse(func(msg sdk.Msg) (*CMTxParam, error) {
+				RegisterEvmParamParse(func(msg sdk.Msg) ([]byte, error) {
 					return nil, nil
 				})
 				RegisterEvmResultConverter(func(txHash, data []byte) ([]byte, error) {
@@ -165,5 +173,47 @@ func TestJudgeEvmConvert(t *testing.T) {
 		ts.fnInit(ts.app)
 		re := ts.app.JudgeEvmConvert(sdk.Context{}, nil)
 		ts.fnCheck(re)
+	}
+}
+
+func TestParseMsgWrapper(t *testing.T) {
+	testcases := []struct {
+		input   string
+		fnCheck func(ret *MsgWrapper, err error)
+	}{
+		{
+			input: `{"type": "okexchain/staking/MsgDeposit","value": {"delegator_address": "0x4375D630687C83471829227b5C1Ea92217FD6265","quantity": {"denom": "okt","amount": "1"}}}`,
+			fnCheck: func(ret *MsgWrapper, err error) {
+				require.NoError(t, err)
+				require.Equal(t, "okexchain/staking/MsgDeposit", ret.Name)
+				require.Equal(t, "{\"delegator_address\": \"0x4375D630687C83471829227b5C1Ea92217FD6265\",\"quantity\": {\"denom\": \"okt\",\"amount\": \"1\"}}", string(ret.Data))
+			},
+		},
+		{
+			input: `{"type": "okexchain/staking/MsgWithdraw","value": {"delegator_address": "0x4375D630687C83471829227b5C1Ea92217FD6265","quantity": {"denom": "okt","amount": "1"}}}`,
+			fnCheck: func(ret *MsgWrapper, err error) {
+				require.NoError(t, err)
+				require.Equal(t, "okexchain/staking/MsgWithdraw", ret.Name)
+				require.Equal(t, "{\"delegator_address\": \"0x4375D630687C83471829227b5C1Ea92217FD6265\",\"quantity\": {\"denom\": \"okt\",\"amount\": \"1\"}}", string(ret.Data))
+			},
+		},
+		// error
+		{
+			input: `{"type1": "okexchain/staking/MsgWithdraw","value":""}`,
+			fnCheck: func(ret *MsgWrapper, err error) {
+				require.NotNil(t, err)
+			},
+		},
+		{
+			input: `{"type": "okexchain/staking/MsgWithdraw","value1":"123"}`,
+			fnCheck: func(ret *MsgWrapper, err error) {
+				require.NotNil(t, err)
+			},
+		},
+	}
+
+	for _, ts := range testcases {
+		ret, err := ParseMsgWrapper([]byte(ts.input))
+		ts.fnCheck(ret, err)
 	}
 }

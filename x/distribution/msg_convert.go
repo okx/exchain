@@ -19,7 +19,7 @@ func init() {
 
 func RegisterConvert() {
 	enableHeight := int64(0)
-	baseapp.RegisterCmHandle(types.ModuleName, "withdraw-all-rewards", baseapp.NewCMHandle(ConvertWithdrawDelegatorAllRewardsMsg, enableHeight))
+	baseapp.RegisterCmHandle("okexchain/distribution/MsgWithdrawDelegatorAllRewards", baseapp.NewCMHandle(ConvertWithdrawDelegatorAllRewardsMsg, enableHeight))
 }
 
 func ConvertWithdrawDelegatorAllRewardsMsg(data []byte, signers []sdk.AccAddress) (sdk.Msg, error) {

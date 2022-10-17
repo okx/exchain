@@ -19,9 +19,9 @@ func init() {
 
 func RegisterConvert() {
 	enableHeight := int64(0)
-	baseapp.RegisterCmHandle(types.ModuleName, "deposit", baseapp.NewCMHandle(ConvertDepositMsg, enableHeight))
-	baseapp.RegisterCmHandle(types.ModuleName, "withdraw", baseapp.NewCMHandle(ConvertWithdrawMsg, enableHeight))
-	baseapp.RegisterCmHandle(types.ModuleName, "add-shares", baseapp.NewCMHandle(ConvertAddSharesMsg, enableHeight))
+	baseapp.RegisterCmHandle("okexchain/staking/MsgDeposit", baseapp.NewCMHandle(ConvertDepositMsg, enableHeight))
+	baseapp.RegisterCmHandle("okexchain/staking/MsgWithdraw", baseapp.NewCMHandle(ConvertWithdrawMsg, enableHeight))
+	baseapp.RegisterCmHandle("okexchain/staking/MsgAddShares", baseapp.NewCMHandle(ConvertAddSharesMsg, enableHeight))
 }
 
 func ConvertDepositMsg(data []byte, signers []sdk.AccAddress) (sdk.Msg, error) {
