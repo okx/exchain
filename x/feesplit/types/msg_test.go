@@ -112,6 +112,14 @@ func (suite *MsgsTestSuite) TestMsgRegisterFeeSplitNew() {
 			false,
 		},
 		{
+			"invalid withdraw address",
+			suite.contract.String(),
+			suite.deployerStr,
+			"0x0123456789",
+			[]uint64{1},
+			false,
+		},
+		{
 			"invalid nonces",
 			suite.contract.String(),
 			suite.deployerStr,
