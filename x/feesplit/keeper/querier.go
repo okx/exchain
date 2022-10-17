@@ -60,14 +60,14 @@ func queryFeeSplits(
 		if err := k.cdc.UnmarshalBinaryBare(value, &fee); err != nil {
 			return err
 		}
-		share, found := k.GetContractShare(ctx, fee.GetContractAddr())
+		share, found := k.GetContractShare(ctx, fee.ContractAddress)
 		if !found {
 			share = k.GetParams(ctx).DeveloperShares
 		}
 		feeSplits = append(feeSplits, types.FeeSplitWithShare{
-			ContractAddress:   fee.ContractAddress,
-			DeployerAddress:   fee.DeployerAddress,
-			WithdrawerAddress: fee.WithdrawerAddress,
+			ContractAddress:   fee.ContractAddress.String(),
+			DeployerAddress:   fee.DeployerAddress.String(),
+			WithdrawerAddress: fee.WithdrawerAddress.String(),
 			Share:             share,
 		})
 		return nil
@@ -119,15 +119,15 @@ func queryFeeSplit(
 			fmt.Sprintf("not found fees registered contract '%s'", params.ContractAddress),
 		)
 	}
-	share, found := k.GetContractShare(ctx, feeSplit.GetContractAddr())
+	share, found := k.GetContractShare(ctx, feeSplit.ContractAddress)
 	if !found {
 		share = k.GetParams(ctx).DeveloperShares
 	}
 
 	resp := &types.QueryFeeSplitResponse{FeeSplit: types.FeeSplitWithShare{
-		ContractAddress:   feeSplit.ContractAddress,
-		DeployerAddress:   feeSplit.DeployerAddress,
-		WithdrawerAddress: feeSplit.WithdrawerAddress,
+		ContractAddress:   feeSplit.ContractAddress.String(),
+		DeployerAddress:   feeSplit.DeployerAddress.String(),
+		WithdrawerAddress: feeSplit.WithdrawerAddress.String(),
 		Share:             share,
 	}}
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, resp)

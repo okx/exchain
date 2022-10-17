@@ -3,6 +3,8 @@ package types
 import (
 	"testing"
 
+	"github.com/ethereum/go-ethereum/common"
+
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/stretchr/testify/suite"
@@ -10,8 +12,10 @@ import (
 
 type GenesisTestSuite struct {
 	suite.Suite
-	address1 string
-	address2 string
+	address1  sdk.AccAddress
+	address2  sdk.AccAddress
+	contract1 common.Address
+	contract2 common.Address
 }
 
 func TestGenesisTestSuite(t *testing.T) {
@@ -19,8 +23,10 @@ func TestGenesisTestSuite(t *testing.T) {
 }
 
 func (suite *GenesisTestSuite) SetupTest() {
-	suite.address1 = sdk.AccAddress(ethsecp256k1.GenerateAddress().Bytes()).String()
-	suite.address2 = sdk.AccAddress(ethsecp256k1.GenerateAddress().Bytes()).String()
+	suite.address1 = sdk.AccAddress(ethsecp256k1.GenerateAddress().Bytes())
+	suite.address2 = sdk.AccAddress(ethsecp256k1.GenerateAddress().Bytes())
+	suite.contract1 = ethsecp256k1.GenerateAddress()
+	suite.contract2 = ethsecp256k1.GenerateAddress()
 }
 
 func (suite *GenesisTestSuite) TestValidateGenesis() {
@@ -54,11 +60,11 @@ func (suite *GenesisTestSuite) TestValidateGenesis() {
 				Params: DefaultParams(),
 				FeeSplits: []FeeSplit{
 					{
-						ContractAddress: "0xdac17f958d2ee523a2206206994597c13d831ec7",
+						ContractAddress: suite.contract1,
 						DeployerAddress: suite.address1,
 					},
 					{
-						ContractAddress:   "0xdac17f958d2ee523a2206206994597c13d831ec8",
+						ContractAddress:   suite.contract2,
 						DeployerAddress:   suite.address2,
 						WithdrawerAddress: suite.address2,
 					},
@@ -77,11 +83,11 @@ func (suite *GenesisTestSuite) TestValidateGenesis() {
 				Params: DefaultParams(),
 				FeeSplits: []FeeSplit{
 					{
-						ContractAddress: "0xdac17f958d2ee523a2206206994597c13d831ec7",
+						ContractAddress: suite.contract1,
 						DeployerAddress: suite.address1,
 					},
 					{
-						ContractAddress: "0xdac17f958d2ee523a2206206994597c13d831ec7",
+						ContractAddress: suite.contract1,
 						DeployerAddress: suite.address1,
 					},
 				},
@@ -94,11 +100,11 @@ func (suite *GenesisTestSuite) TestValidateGenesis() {
 				Params: DefaultParams(),
 				FeeSplits: []FeeSplit{
 					{
-						ContractAddress: "0xdac17f958d2ee523a2206206994597c13d831ec7",
+						ContractAddress: suite.contract1,
 						DeployerAddress: suite.address1,
 					},
 					{
-						ContractAddress: "0xdac17f958d2ee523a2206206994597c13d831ec7",
+						ContractAddress: suite.contract1,
 						DeployerAddress: suite.address2,
 					},
 				},
@@ -111,49 +117,8 @@ func (suite *GenesisTestSuite) TestValidateGenesis() {
 				Params: DefaultParams(),
 				FeeSplits: []FeeSplit{
 					{
-						ContractAddress: suite.address1,
+						ContractAddress: common.Address{},
 						DeployerAddress: suite.address1,
-					},
-				},
-			},
-			expPass: false,
-		},
-		{
-			name: "valid genesis - with 0x deployer address",
-			genState: GenesisState{
-				Params: DefaultParams(),
-				FeeSplits: []FeeSplit{
-					{
-						ContractAddress: "0xdac17f958d2ee523a2206206994597c13d831ec7",
-						DeployerAddress: "0xdac17f958d2ee523a2206206994597c13d831ec7",
-					},
-				},
-			},
-			expPass: true,
-		},
-		{
-			name: "valid genesis - with 0x withdraw address",
-			genState: GenesisState{
-				Params: DefaultParams(),
-				FeeSplits: []FeeSplit{
-					{
-						ContractAddress:   "0xdac17f958d2ee523a2206206994597c13d831ec7",
-						DeployerAddress:   suite.address1,
-						WithdrawerAddress: "0xdac17f958d2ee523a2206206994597c13d831ec7",
-					},
-				},
-			},
-			expPass: true,
-		},
-		{
-			name: "invalid genesis - invalid withdrawer address",
-			genState: GenesisState{
-				Params: DefaultParams(),
-				FeeSplits: []FeeSplit{
-					{
-						ContractAddress:   "0xdac17f958d2ee523a2206206994597c13d831ec7",
-						DeployerAddress:   suite.address1,
-						WithdrawerAddress: "withdraw",
 					},
 				},
 			},

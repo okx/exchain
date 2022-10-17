@@ -85,54 +85,36 @@ func (suite *FeeSplitTestSuite) TestFee() {
 		{
 			"Create fee split- pass",
 			FeeSplit{
-				ethsecp256k1.GenerateAddress().String(),
-				suite.address1.String(),
-				suite.address2.String(),
+				ethsecp256k1.GenerateAddress(),
+				suite.address1,
+				suite.address2,
 			},
 			true,
 		},
 		{
-			"Create fee split- invalid contract address (not hex)",
+			"Create fee split- invalid contract address (Empty)",
 			FeeSplit{
-				"0x5dCA2483280D9727c80b5518faC4556617fb19ZZ",
-				suite.address1.String(),
-				suite.address2.String(),
+				common.Address{},
+				suite.address1,
+				suite.address2,
 			},
 			false,
 		},
 		{
-			"Create fee split- invalid contract address (invalid length 1)",
+			"Create fee split- invalid deployer address(Empty 1)",
 			FeeSplit{
-				"0x5dCA2483280D9727c80b5518faC4556617fb19",
-				suite.address1.String(),
-				suite.address2.String(),
+				ethsecp256k1.GenerateAddress(),
+				nil,
+				suite.address2,
 			},
 			false,
 		},
 		{
-			"Create fee split- invalid contract address (invalid length 2)",
+			"Create fee split- invalid deployer address(Empty 2)",
 			FeeSplit{
-				"0x5dCA2483280D9727c80b5518faC4556617fb194FFF",
-				suite.address1.String(),
-				suite.address2.String(),
-			},
-			false,
-		},
-		{
-			"Create fee split- invalid deployer address",
-			FeeSplit{
-				ethsecp256k1.GenerateAddress().String(),
-				"evmos14mq5c8yn9jx295ahaxye2f0xw3tlell0lt542Z",
-				suite.address2.String(),
-			},
-			false,
-		},
-		{
-			"Create fee split- invalid withdraw address",
-			FeeSplit{
-				ethsecp256k1.GenerateAddress().String(),
-				suite.address1.String(),
-				"evmos14mq5c8yn9jx295ahaxye2f0xw3tlell0lt542Z",
+				ethsecp256k1.GenerateAddress(),
+				sdk.AccAddress{},
+				suite.address2,
 			},
 			false,
 		},
@@ -152,20 +134,19 @@ func (suite *FeeSplitTestSuite) TestFee() {
 func (suite *FeeSplitTestSuite) TestFeeSplitGetters() {
 	contract := ethsecp256k1.GenerateAddress()
 	fs := FeeSplit{
-		contract.String(),
-		suite.address1.String(),
-		suite.address2.String(),
+		contract,
+		suite.address1,
+		suite.address2,
 	}
-	suite.Equal(fs.GetContractAddr(), contract)
-	suite.Equal(fs.GetDeployerAddr(), suite.address1)
-	suite.Equal(fs.GetWithdrawerAddr(), suite.address2)
+	suite.Equal(fs.ContractAddress, contract)
+	suite.Equal(fs.DeployerAddress, suite.address1)
+	suite.Equal(fs.WithdrawerAddress, suite.address2)
 
 	fs = FeeSplit{
-		contract.String(),
-		suite.address1.String(),
-		"",
+		ContractAddress: contract,
+		DeployerAddress: suite.address1,
 	}
-	suite.Equal(fs.GetContractAddr(), contract)
-	suite.Equal(fs.GetDeployerAddr(), suite.address1)
-	suite.Equal(len(fs.GetWithdrawerAddr()), 0)
+	suite.Equal(fs.ContractAddress, contract)
+	suite.Equal(fs.DeployerAddress, suite.address1)
+	suite.Equal(len(fs.WithdrawerAddress), 0)
 }
