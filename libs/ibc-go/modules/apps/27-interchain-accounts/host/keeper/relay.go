@@ -43,7 +43,7 @@ func (k Keeper) OnRecvPacket(ctx sdk.Context, packet channeltypes.Packet) ([]byt
 // If authentication succeeds, it does basic validation of the messages before attempting to deliver each message
 // into state. The state changes will only be committed if all messages in the transaction succeed. Thus the
 // execution of the transaction is atomic, all state changes are reverted if a single message fails.
-func (k Keeper) executeTx(ctx sdk.Context, sourcePort, destPort, destChannel string, msgs []sdk.MsgProtoAdapter) ([]byte, error) {
+func (k Keeper) executeTx(ctx sdk.Context, sourcePort, destPort, destChannel string, msgs []sdk.MsgAdapter) ([]byte, error) {
 	channel, found := k.channelKeeper.GetChannel(ctx, destPort, destChannel)
 	if !found {
 		return nil, channeltypes.ErrChannelNotFound
@@ -91,7 +91,7 @@ func (k Keeper) executeTx(ctx sdk.Context, sourcePort, destPort, destChannel str
 
 // authenticateTx ensures the provided msgs contain the correct interchain account signer address retrieved
 // from state using the provided controller port identifier
-func (k Keeper) authenticateTx(ctx sdk.Context, msgs []sdk.MsgProtoAdapter, connectionID, portID string) error {
+func (k Keeper) authenticateTx(ctx sdk.Context, msgs []sdk.MsgAdapter, connectionID, portID string) error {
 	interchainAccountAddr, found := k.GetInterchainAccountAddress(ctx, connectionID, portID)
 	if !found {
 		return sdkerrors.Wrapf(icatypes.ErrInterchainAccountNotFound, "failed to retrieve interchain account on port %s", portID)
@@ -115,7 +115,7 @@ func (k Keeper) authenticateTx(ctx sdk.Context, msgs []sdk.MsgProtoAdapter, conn
 
 // Attempts to get the message handler from the router and if found will then execute the message.
 // If the message execution is successful, the proto marshaled message response will be returned.
-func (k Keeper) executeMsg(ctx sdk.Context, msg sdk.MsgProtoAdapter) ([]byte, error) {
+func (k Keeper) executeMsg(ctx sdk.Context, msg sdk.MsgAdapter) ([]byte, error) {
 	handler := k.msgRouter.HandlerWithMsg(msg)
 	if handler == nil {
 		return nil, icatypes.ErrInvalidRoute
