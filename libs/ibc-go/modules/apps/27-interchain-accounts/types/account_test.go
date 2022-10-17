@@ -11,7 +11,7 @@ import (
 
 var (
 	// TestOwnerAddress defines a reusable bech32 address for testing purposes
-	TestOwnerAddress, _ = sdk.AccAddressFromBech32("cosmos17dtl0mjt3t77kpuhg2edqzjpszulwhgzuj9ljs")
+	TestOwnerAddress, _ = sdk.AccAddressFromBech32("ex14r7mrj0nus8k57slulkmrdyeyp7t8xvrdzqmsz")
 
 	// TestPortID defines a reusable port identifier for testing purposes
 	TestPortID, _ = types.NewControllerPortID(TestOwnerAddress.String())
