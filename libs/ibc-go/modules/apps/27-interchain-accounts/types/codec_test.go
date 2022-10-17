@@ -65,8 +65,8 @@ func (suite *TypesTestSuite) TestSerializeAndDeserializeCosmosTx() {
 			"single msg",
 			[]sdk.MsgAdapter{
 				&banktypes.MsgSendAdapter{
-					FromAddress: TestOwnerAddress.String(),
-					ToAddress:   TestOwnerAddress.String(),
+					FromAddress: TestOwnerAddress,
+					ToAddress:   TestOwnerAddress,
 					Amount:      sdk.CoinAdapters{sdk.NewCoinAdapter("bananas", sdk.NewInt(100))},
 				},
 			},
@@ -76,13 +76,13 @@ func (suite *TypesTestSuite) TestSerializeAndDeserializeCosmosTx() {
 			"multiple msgs, same types",
 			[]sdk.MsgAdapter{
 				&banktypes.MsgSendAdapter{
-					FromAddress: TestOwnerAddress.String(),
-					ToAddress:   TestOwnerAddress.String(),
+					FromAddress: TestOwnerAddress,
+					ToAddress:   TestOwnerAddress,
 					Amount:      sdk.CoinAdapters{sdk.NewCoinAdapter("bananas", sdk.NewInt(100))},
 				},
 				&banktypes.MsgSendAdapter{
-					FromAddress: TestOwnerAddress.String(),
-					ToAddress:   TestOwnerAddress.String(),
+					FromAddress: TestOwnerAddress,
+					ToAddress:   TestOwnerAddress,
 					Amount:      sdk.CoinAdapters{(sdk.NewCoinAdapter("bananas", sdk.NewInt(200)))},
 				},
 			},
@@ -92,8 +92,8 @@ func (suite *TypesTestSuite) TestSerializeAndDeserializeCosmosTx() {
 			"multiple msgs, different types",
 			[]sdk.MsgAdapter{
 				&banktypes.MsgSendAdapter{
-					FromAddress: TestOwnerAddress.String(),
-					ToAddress:   TestOwnerAddress.String(),
+					FromAddress: TestOwnerAddress,
+					ToAddress:   TestOwnerAddress,
 					Amount:      sdk.CoinAdapters{(sdk.NewCoinAdapter("bananas", sdk.NewInt(100)))},
 				},
 			},

@@ -3,7 +3,6 @@ package types_test
 import (
 	"testing"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
 	ibctesting "github.com/okex/exchain/libs/ibc-go/testing"
 	"github.com/stretchr/testify/suite"
@@ -11,10 +10,10 @@ import (
 
 var (
 	// TestOwnerAddress defines a reusable bech32 address for testing purposes
-	TestOwnerAddress, _ = sdk.AccAddressFromBech32("ex14r7mrj0nus8k57slulkmrdyeyp7t8xvrdzqmsz")
+	TestOwnerAddress = "ex14r7mrj0nus8k57slulkmrdyeyp7t8xvrdzqmsz"
 
 	// TestPortID defines a reusable port identifier for testing purposes
-	TestPortID, _ = types.NewControllerPortID(TestOwnerAddress.String())
+	TestPortID, _ = types.NewControllerPortID(TestOwnerAddress)
 )
 
 type TypesTestSuite struct {
@@ -54,7 +53,7 @@ func (suite *TypesTestSuite) TestValidateAccountAddress() {
 	}{
 		{
 			"success",
-			TestOwnerAddress.String(),
+			TestOwnerAddress,
 			true,
 		},
 		{
