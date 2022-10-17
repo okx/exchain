@@ -1,6 +1,7 @@
 package keeper_test
 
 import (
+	ethermint "github.com/okex/exchain/app/types"
 	"time"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
@@ -244,11 +245,11 @@ func (suite *KeeperTestSuite) TestProposal_ManageSysContractAddressProposal() {
 		success bool
 	}{
 		{
-			"pass check IsAdded is true",
+			"pass check IsAdded is true, but this address is not exist contract address",
 			func() {
 				proposal.IsAdded = true
 			},
-			true,
+			false,
 		},
 		{
 			"pass check IsAdded is false and not exist a sys contract address",
@@ -262,6 +263,20 @@ func (suite *KeeperTestSuite) TestProposal_ManageSysContractAddressProposal() {
 			func() {
 				proposal.IsAdded = false
 				suite.stateDB.SetSysContractAddress(addr1)
+			},
+			true,
+		},
+		{
+			"pass check IsAdded is true and exist a sys contract address, this address is a contract address ",
+			func() {
+				proposal.IsAdded = true
+				suite.stateDB.SetSysContractAddress(addr1)
+
+				acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr1)
+				ethAcct, ok := acc.(*ethermint.EthAccount)
+				suite.Require().True(ok)
+				ethAcct.CodeHash = []byte("123")
+				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 			},
 			true,
 		},

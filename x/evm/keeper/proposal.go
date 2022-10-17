@@ -75,6 +75,9 @@ func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitPr
 			_, err := csdb.GetSysContractAddress()
 			return err
 		}
+		if !k.IsContractAccount(ctx, content.ContractAddr) {
+			return types.ErrNotContracAddress(fmt.Errorf(content.ContractAddr.String()))
+		}
 		return nil
 	default:
 		return sdk.ErrUnknownRequest(fmt.Sprintf("unrecognized %s proposal content type: %T", types.DefaultCodespace, content))

@@ -121,6 +121,16 @@ func ErrSysContractAddressIsNotExist(err error) sdk.EnvelopedErr {
 	}
 }
 
+func ErrNotContracAddress(err error) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{
+		Err: sdkerrors.New(
+			DefaultParamspace,
+			22,
+			fmt.Sprintf("failed. the address is not a contract address: %s", err.Error()),
+		),
+	}
+}
+
 type ErrContractBlockedVerify struct {
 	Descriptor string
 }
