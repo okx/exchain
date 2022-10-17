@@ -217,7 +217,7 @@ func queryWithdrawerFeeSplits(
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "withdraw address is empty")
 	}
 
-	deployer, err := sdk.AccAddressFromBech32(params.WithdrawerAddress)
+	withdrawer, err := sdk.AccAddressFromBech32(params.WithdrawerAddress)
 	if err != nil {
 		return nil, sdkerrors.Wrap(
 			sdkerrors.ErrInvalidRequest,
@@ -228,17 +228,32 @@ func queryWithdrawerFeeSplits(
 	var contracts []string
 	store := prefix.NewStore(
 		ctx.KVStore(k.storeKey),
-		types.GetKeyPrefixWithdrawer(deployer),
+		types.GetKeyPrefixWithdrawer(withdrawer),
 	)
 
-	pageRes, err := query.Paginate(store, params.Pagination, func(key, _ []byte) error {
-		contracts = append(contracts, common.BytesToAddress(key).Hex())
+	pageRes := &query.PageResponse{}
+	if params.Pagination == nil {
+		//query all
+		iter := store.Iterator(nil, nil)
+		defer iter.Close()
 
-		return nil
-	})
-	if err != nil {
-		return nil, sdkerrors.Wrap(sdkerrors.ErrInternal, err.Error())
+		for ; iter.Valid(); iter.Next() {
+			key := iter.Key()
+			contracts = append(contracts, common.BytesToAddress(key).Hex())
+			pageRes.Total++
+		}
+	} else {
+		//query by page
+		pageRes, err = query.Paginate(store, params.Pagination, func(key, _ []byte) error {
+			contracts = append(contracts, common.BytesToAddress(key).Hex())
+
+			return nil
+		})
+		if err != nil {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrInternal, err.Error())
+		}
 	}
+
 	resp := &types.QueryWithdrawerFeeSplitsResponse{
 		ContractAddresses: contracts,
 		Pagination:        pageRes,

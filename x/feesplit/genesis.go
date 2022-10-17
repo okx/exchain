@@ -23,10 +23,7 @@ func InitGenesis(
 		// Set initial contracts receiving transaction fees
 		k.SetFeeSplit(ctx, feeSplit)
 		k.SetDeployerMap(ctx, deployer, contract)
-
-		if len(withdrawer) != 0 {
-			k.SetWithdrawerMap(ctx, withdrawer, contract)
-		}
+		k.SetWithdrawerMap(ctx, withdrawer, contract)
 	}
 }
 

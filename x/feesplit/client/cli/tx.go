@@ -74,10 +74,8 @@ func GetRegisterFeeSplit(cdc *codec.Codec) *cobra.Command {
 				}
 			}
 
-			// If withdraw address is the same as contract deployer, remove the
-			// field for avoiding storage bloat
-			if deployer.String() == withdraw {
-				withdraw = ""
+			if withdraw == "" {
+				withdraw = deployer.String()
 			}
 
 			msg := &types.MsgRegisterFeeSplit{
