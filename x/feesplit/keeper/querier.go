@@ -231,7 +231,7 @@ func queryWithdrawerFeeSplits(
 		types.GetKeyPrefixWithdrawer(deployer),
 	)
 
-	var pageRes *query.PageResponse
+	pageRes := &query.PageResponse{}
 	if params.Pagination == nil {
 		//query all
 		iter := store.Iterator(nil, nil)
@@ -240,6 +240,7 @@ func queryWithdrawerFeeSplits(
 		for ; iter.Valid(); iter.Next() {
 			key := iter.Key()
 			contracts = append(contracts, common.BytesToAddress(key).Hex())
+			pageRes.Total++
 		}
 	} else {
 		//query by page
