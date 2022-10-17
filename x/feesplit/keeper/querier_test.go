@@ -76,9 +76,10 @@ func (suite *KeeperTestSuite) TestFeeSplits() {
 							Share:             suite.app.FeeSplitKeeper.GetParams(suite.ctx).DeveloperShares,
 						},
 						{
-							ContractAddress: contract2.Hex(),
-							DeployerAddress: deployer.String(),
-							Share:           suite.app.FeeSplitKeeper.GetParams(suite.ctx).DeveloperShares,
+							ContractAddress:   contract2.Hex(),
+							DeployerAddress:   deployer.String(),
+							WithdrawerAddress: deployer.String(),
+							Share:             suite.app.FeeSplitKeeper.GetParams(suite.ctx).DeveloperShares,
 						},
 					},
 				}
