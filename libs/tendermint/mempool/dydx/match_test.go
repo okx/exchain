@@ -197,7 +197,7 @@ func TestMatch(t *testing.T) {
 	require.Equal(t, "115", mr.TakerOrder.FrozenAmount.String())
 }
 
-func TestBanlance(t *testing.T) {
+func TestBalance(t *testing.T) {
 	book := NewDepthBook()
 	me, err := NewMatchEngine(book, config, nil, nil)
 	require.NoError(t, err)
