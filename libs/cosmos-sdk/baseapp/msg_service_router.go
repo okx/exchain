@@ -37,7 +37,7 @@ func (msr *MsgServiceRouter) Handler(methodName string) MsgServiceHandler {
 }
 
 // Handler returns the MsgServiceHandler for a given msg or nil if not found.
-func (msr *MsgServiceRouter) HandlerWithMsg(msg sdk.MsgProtoAdapter) MsgServiceHandler {
+func (msr *MsgServiceRouter) HandlerWithMsg(msg sdk.MsgAdapter) MsgServiceHandler {
 	return msr.routes[sdk.MsgTypeURL(msg)]
 }
 

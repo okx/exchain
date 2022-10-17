@@ -54,7 +54,7 @@ func (k msgServer) SubmitTx(goCtx context.Context, msg *types.MsgSubmitTx) (*typ
 		return nil, sdkerrors.Wrap(channeltypes.ErrChannelCapabilityNotFound, "module does not own channel capability")
 	}
 
-	data, err := icatypes.SerializeCosmosTx(k.cdc, []sdk.MsgProtoAdapter{msg.GetTxMsg()})
+	data, err := icatypes.SerializeCosmosTx(k.cdc, []sdk.MsgAdapter{msg.GetTxMsg()})
 	if err != nil {
 		return nil, err
 	}

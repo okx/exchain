@@ -60,17 +60,16 @@ func SerializeCosmosTx(cdc *codec.CodecProxy, msgs []sdk.MsgAdapter) (bz []byte,
 // DeserializeCosmosTx unmarshals and unpacks a slice of transaction bytes
 // into a slice of sdk.Msg's. Only the ProtoCodec is supported for message
 // deserialization.
-func DeserializeCosmosTx(cdc *codec.CodecProxy, data []byte) ([]sdk.MsgProtoAdapter, error) {
+func DeserializeCosmosTx(cdc *codec.CodecProxy, data []byte) ([]sdk.MsgAdapter, error) {
 	// only ProtoCodec is supported
 	var cosmosTx CosmosTx
 	if err := cdc.GetProtocMarshal().Unmarshal(data, &cosmosTx); err != nil {
 		return nil, err
 	}
 
-	msgs := make([]sdk.MsgProtoAdapter, len(cosmosTx.Messages))
-	// 这里需要进行额外转换,比如说wei转换为okt
+	msgs := make([]sdk.MsgAdapter, len(cosmosTx.Messages))
 	for i, any := range cosmosTx.Messages {
-		var msg sdk.MsgProtoAdapter
+		var msg sdk.MsgAdapter
 
 		err := cdc.GetProtocMarshal().UnpackAny(any, &msg)
 		if err != nil {
