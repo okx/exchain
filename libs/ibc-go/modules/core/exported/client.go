@@ -1,8 +1,8 @@
 package exported
 
 import (
+	ics23 "github.com/confio/ics23/go"
 	proto "github.com/gogo/protobuf/proto"
-	ics23 "github.com/okex/exchain/ics23"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )

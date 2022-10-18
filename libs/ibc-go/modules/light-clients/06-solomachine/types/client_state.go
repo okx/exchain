@@ -1,9 +1,7 @@
 package types
 
 import (
-	"reflect"
-
-	ics23 "github.com/okex/exchain/ics23"
+	ics23 "github.com/confio/ics23/go"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -13,6 +11,7 @@ import (
 	commitmenttypes "github.com/okex/exchain/libs/ibc-go/modules/core/23-commitment/types"
 	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+	"reflect"
 )
 
 var _ exported.ClientState = (*ClientState)(nil)
