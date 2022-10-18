@@ -265,6 +265,7 @@ type SimApp struct {
 	ScopedIBCKeeper      capabilitykeeper.ScopedKeeper
 	ScopedTransferKeeper capabilitykeeper.ScopedKeeper
 	ScopedIBCMockKeeper  capabilitykeeper.ScopedKeeper
+	ScopedICAMockKeeper  capabilitykeeper.ScopedKeeper
 	TransferKeeper       ibctransferkeeper.Keeper
 	CapabilityKeeper     *capabilitykeeper.Keeper
 	IBCKeeper            *ibc.Keeper // IBC Keeper must be a pointer in the app, so we can SetRouter on it correctly
@@ -883,6 +884,7 @@ func NewSimApp(
 	// NOTE: the IBC mock keeper and application module is used only for testing core IBC. Do
 	// note replicate if you do not need to test core IBC or light clients.
 	scopedIBCMockKeeper := app.CapabilityKeeper.ScopeToModule(mock.ModuleName)
+	scopedICAMockKeeper := app.CapabilityKeeper.ScopeToModule(mock.ModuleName + icacontrollertypes.SubModuleName)
 	scopedICAControllerKeeper := app.CapabilityKeeper.ScopeToModule(icacontrollertypes.SubModuleName)
 	scopedICAHostKeeper := app.CapabilityKeeper.ScopeToModule(icahosttypes.SubModuleName)
 	scopedICAMauthKeeper := app.CapabilityKeeper.ScopeToModule(icamauthtypes.ModuleName)
@@ -977,9 +979,13 @@ func NewSimApp(
 	// Create static IBC router, add transfer route, then set and seal it
 	ibcRouter := ibcporttypes.NewRouter()
 
+	// The mock module is used for testing IBC
+	//mockIBCModule := mock.NewIBCModule(&mockModule, mock.NewMockIBCApp(mock.ModuleName, scopedIBCMockKeeper))
+
 	var icaControllerStack ibcporttypes.IBCModule
-	icaMauthIBCModule := icamauth.NewIBCModule(app.ICAMauthKeeper)
-	icaControllerStack = icaMauthIBCModule
+	//icaMauthIBCModule := icamauth.NewIBCModule(app.ICAMauthKeeper)
+	//icaControllerStack = icaMauthIBCModule
+	icaControllerStack = mock.NewIBCModule(&mockModule, mock.NewMockIBCApp("", scopedICAMockKeeper))
 	icaControllerStack = icacontroller.NewIBCMiddleware(icaControllerStack, app.ICAControllerKeeper)
 	var icaHostStack ibcporttypes.IBCModule
 	icaHostStack = icahost.NewIBCModule(app.ICAHostKeeper)
@@ -1164,6 +1170,7 @@ func NewSimApp(
 	// NOTE: the IBC mock keeper and application module is used only for testing core IBC. Do
 	// note replicate if you do not need to test core IBC or light clients.
 	app.ScopedIBCMockKeeper = scopedIBCMockKeeper
+	app.ScopedICAMockKeeper = scopedICAMockKeeper
 
 	return app
 }

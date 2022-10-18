@@ -103,6 +103,7 @@ type AppModule struct {
 	AppModuleBasic
 	scopedKeeper capabilitykeeper.ScopedKeeper
 	portKeeper   PortKeeper
+	ibcApps      []*MockIBCApp
 }
 
 func (am AppModule) NewHandler() sdk.Handler {
