@@ -1509,3 +1509,9 @@ func (o *SimApp) CollectUpgradeModules(m *module.Manager) (map[int64]*upgradetyp
 
 	return hm, paramsRet, commitFilters, pruneFilters, versionFilters
 }
+
+// GetModuleManager returns the app module manager
+// NOTE: used for testing purposes
+func (app *SimApp) GetModuleManager() *module.Manager {
+	return app.mm
+}

@@ -338,3 +338,38 @@ func ConvWei2TOkt(adapters CoinAdapters) (CoinAdapters, error) {
 	}
 	return copyAdapters, nil
 }
+
+// AmountOf returns the amount of a denom from coins
+func (coins CoinAdapters) AmountOf(denom string) Int {
+	mustValidateDenom(denom)
+	return coins.AmountOfNoDenomValidation(denom)
+}
+
+// AmountOfNoDenomValidation returns the amount of a denom from coins
+// without validating the denomination.
+func (coins CoinAdapters) AmountOfNoDenomValidation(denom string) Int {
+	switch len(coins) {
+	case 0:
+		return ZeroInt()
+
+	case 1:
+		coin := coins[0]
+		if coin.Denom == denom {
+			return coin.Amount
+		}
+		return ZeroInt()
+
+	default:
+		// Binary search the amount of coins remaining
+		midIdx := len(coins) / 2 // 2:1, 3:1, 4:2
+		coin := coins[midIdx]
+		switch {
+		case denom < coin.Denom:
+			return coins[:midIdx].AmountOfNoDenomValidation(denom)
+		case denom == coin.Denom:
+			return coin.Amount
+		default:
+			return coins[midIdx+1:].AmountOfNoDenomValidation(denom)
+		}
+	}
+}
