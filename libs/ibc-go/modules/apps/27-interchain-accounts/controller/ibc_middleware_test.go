@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"testing"
 
+	types2 "github.com/okex/exchain/libs/tendermint/types"
+
 	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 
@@ -57,6 +59,8 @@ func TestICATestSuite(t *testing.T) {
 }
 
 func (suite *InterchainAccountsTestSuite) SetupTest() {
+	types2.UnittestOnlySetMilestoneVenus1Height(-1)
+	types2.UnittestOnlySetMilestoneVenus3Height(-1)
 	suite.coordinator = ibctesting.NewCoordinator(suite.T(), 3)
 	suite.chainA = suite.coordinator.GetChain(ibctesting.GetChainID(0))
 	suite.chainB = suite.coordinator.GetChain(ibctesting.GetChainID(1))
@@ -362,7 +366,7 @@ func (suite *InterchainAccountsTestSuite) TestChanOpenConfirm() {
 	suite.chainB.GetSimApp().GetIBCKeeper().ChannelKeeper.SetChannel(suite.chainB.GetContext(), path.EndpointB.ChannelConfig.PortID, path.EndpointB.ChannelID, channel)
 
 	// commit state changes so proof can be created
-	suite.chainB.NextBlock()
+	suite.chainB.Coordinator().CommitBlock(suite.chainB)
 
 	path.EndpointA.UpdateClient()
 
