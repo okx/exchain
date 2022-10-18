@@ -2,11 +2,12 @@ package distribution
 
 import (
 	"fmt"
+	"testing"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/distribution/types"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func testMustAccAddressFromBech32(addr string) sdk.AccAddress {

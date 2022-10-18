@@ -2,10 +2,11 @@ package staking
 
 import (
 	"fmt"
+	"testing"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/staking/types"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func testMustAccAddressFromBech32(addr string) sdk.AccAddress {

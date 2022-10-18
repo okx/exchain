@@ -3,6 +3,7 @@ package staking
 import (
 	"encoding/json"
 	"errors"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/common"

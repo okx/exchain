@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -11,9 +12,8 @@ import (
 )
 
 var (
-	ErrInputDataSize = errors.New("the input data size is error")
-	ErrNoMatchParam  = errors.New("no match the abi param")
-	sysABIParser     *types.ABI
+	ErrNoMatchParam = errors.New("no match the abi param")
+	sysABIParser    *types.ABI
 )
 
 const (

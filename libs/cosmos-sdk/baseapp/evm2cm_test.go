@@ -2,12 +2,13 @@ package baseapp
 
 import (
 	"encoding/json"
+	"os"
+	"testing"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	db "github.com/okex/exchain/libs/tm-db"
 	"github.com/stretchr/testify/require"
-	"os"
-	"testing"
 )
 
 type testMsg struct {

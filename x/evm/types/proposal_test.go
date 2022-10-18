@@ -1,12 +1,12 @@
 package types
 
 import (
-	"github.com/okex/exchain/libs/tendermint/types"
 	"math/big"
 	"strings"
 	"testing"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/okex/exchain/libs/tendermint/types"
 	govtypes "github.com/okex/exchain/x/gov/types"
 	"github.com/stretchr/testify/suite"
 )

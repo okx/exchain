@@ -2,6 +2,8 @@ package rest
 
 import (
 	"fmt"
+	"net/http"
+
 	ethcommon "github.com/ethereum/go-ethereum/common"
 	"github.com/gorilla/mux"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -10,7 +12,6 @@ import (
 	comm "github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/evm/client/utils"
 	evmtypes "github.com/okex/exchain/x/evm/types"
-	"net/http"
 )
 
 func registerQueryRoutes(cliCtx clientCtx.CLIContext, r *mux.Router) {

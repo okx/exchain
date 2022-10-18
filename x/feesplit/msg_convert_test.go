@@ -2,11 +2,12 @@ package feesplit
 
 import (
 	"fmt"
+	"testing"
+
 	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/x/feesplit/types"
 	"github.com/stretchr/testify/require"
-	"testing"
 )
 
 func testMustAccAddressFromBech32(addr string) sdk.AccAddress {

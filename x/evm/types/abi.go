@@ -3,8 +3,9 @@ package types
 import (
 	"bytes"
 	"fmt"
-	"github.com/ethereum/go-ethereum/accounts/abi"
 	"strings"
+
+	"github.com/ethereum/go-ethereum/accounts/abi"
 )
 
 type ABI struct {
