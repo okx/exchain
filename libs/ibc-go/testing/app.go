@@ -35,6 +35,8 @@ import (
 
 var DefaultTestingAppInit func() (TestingApp, map[string]json.RawMessage) = SetupTestingApp
 
+// IBC application testing ports
+
 type TestingApp interface {
 	abci.Application
 	TxConfig() client.TxConfig
