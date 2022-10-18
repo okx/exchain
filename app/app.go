@@ -71,6 +71,8 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/farm"
 	farmclient "github.com/okex/exchain/x/farm/client"
+	"github.com/okex/exchain/x/feesplit"
+	fsclient "github.com/okex/exchain/x/feesplit/client"
 	"github.com/okex/exchain/x/genutil"
 	"github.com/okex/exchain/x/gov"
 	"github.com/okex/exchain/x/gov/keeper"
@@ -130,6 +132,7 @@ var (
 			erc20client.ProxyContractRedirectHandler,
 			erc20client.ContractTemplateProposalHandler,
 			client.UpdateClientProposalHandler,
+			fsclient.FeeSplitSharesProposalHandler,
 			wasmclient.UpdateContractAdminProposalHandler,
 			wasmclient.ClearContractAdminProposalHandler,
 			wasmclient.UpdateDeploymentWhitelistProposalHandler,
@@ -153,6 +156,7 @@ var (
 		ibctransfer.AppModuleBasic{},
 		erc20.AppModuleBasic{},
 		wasm.AppModuleBasic{},
+		feesplit.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -173,6 +177,7 @@ var (
 		ibctransfertypes.ModuleName: {authtypes.Minter, authtypes.Burner},
 		erc20.ModuleName:            {authtypes.Minter, authtypes.Burner},
 		wasm.ModuleName:             nil,
+		feesplit.ModuleName:         nil,
 	}
 
 	GlobalGp = &big.Int{}
@@ -198,27 +203,28 @@ type OKExChainApp struct {
 	subspaces map[string]params.Subspace
 
 	// keepers
-	AccountKeeper        auth.AccountKeeper
-	BankKeeper           bank.Keeper
-	SupplyKeeper         supply.Keeper
-	StakingKeeper        staking.Keeper
-	SlashingKeeper       slashing.Keeper
-	MintKeeper           mint.Keeper
-	DistrKeeper          distr.Keeper
-	GovKeeper            gov.Keeper
-	CrisisKeeper         crisis.Keeper
-	UpgradeKeeper        upgrade.Keeper
-	ParamsKeeper         params.Keeper
-	EvidenceKeeper       evidence.Keeper
-	EvmKeeper            *evm.Keeper
-	TokenKeeper          token.Keeper
-	DexKeeper            dex.Keeper
-	OrderKeeper          order.Keeper
-	SwapKeeper           ammswap.Keeper
-	FarmKeeper           farm.Keeper
+	AccountKeeper  auth.AccountKeeper
+	BankKeeper     bank.Keeper
+	SupplyKeeper   supply.Keeper
+	StakingKeeper  staking.Keeper
+	SlashingKeeper slashing.Keeper
+	MintKeeper     mint.Keeper
+	DistrKeeper    distr.Keeper
+	GovKeeper      gov.Keeper
+	CrisisKeeper   crisis.Keeper
+	UpgradeKeeper  upgrade.Keeper
+	ParamsKeeper   params.Keeper
+	EvidenceKeeper evidence.Keeper
+	EvmKeeper      *evm.Keeper
+	TokenKeeper    token.Keeper
+	DexKeeper      dex.Keeper
+	OrderKeeper    order.Keeper
+	SwapKeeper     ammswap.Keeper
+	FarmKeeper     farm.Keeper
 	WasmKeeper           wasm.Keeper
 	WasmPermissionKeeper wasm.ContractOpsKeeper
-	InfuraKeeper         infura.Keeper
+	InfuraKeeper   infura.Keeper
+	FeeSplitKeeper feesplit.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -258,6 +264,10 @@ func NewOKExChainApp(
 		"GenesisHeight", tmtypes.GetStartBlockHeight(),
 		"MercuryHeight", tmtypes.GetMercuryHeight(),
 		"VenusHeight", tmtypes.GetVenusHeight(),
+		"Venus1Height", tmtypes.GetVenus1Height(),
+		"Venus2Height", tmtypes.GetVenus2Height(),
+		"Venus3Height", tmtypes.GetVenus3Height(),
+		"EarthHeight", tmtypes.GetEarthHeight(),
 		"MarsHeight", tmtypes.GetMarsHeight(),
 	)
 	onceLog.Do(func() {
@@ -287,6 +297,7 @@ func NewOKExChainApp(
 		erc20.StoreKey,
 		mpt.StoreKey,
 		wasm.StoreKey,
+		feesplit.StoreKey,
 	)
 
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
@@ -323,6 +334,7 @@ func NewOKExChainApp(
 	app.subspaces[ibctransfertypes.ModuleName] = app.ParamsKeeper.Subspace(ibctransfertypes.ModuleName)
 	app.subspaces[erc20.ModuleName] = app.ParamsKeeper.Subspace(erc20.DefaultParamspace)
 	app.subspaces[wasm.ModuleName] = app.ParamsKeeper.Subspace(wasm.ModuleName)
+	app.subspaces[feesplit.ModuleName] = app.ParamsKeeper.Subspace(feesplit.ModuleName)
 
 	//proxy := codec.NewMarshalProxy(cc, cdc)
 	app.marshal = codecProxy
@@ -410,6 +422,11 @@ func NewOKExChainApp(
 	app.Erc20Keeper = erc20.NewKeeper(app.marshal.GetCdc(), app.keys[erc20.ModuleName], app.subspaces[erc20.ModuleName],
 		app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, app.EvmKeeper, app.TransferKeeper)
 
+	app.FeeSplitKeeper = feesplit.NewKeeper(
+		app.keys[feesplit.StoreKey], app.marshal.GetCdc(), app.subspaces[feesplit.ModuleName],
+		app.EvmKeeper, app.SupplyKeeper, app.AccountKeeper, updateFeeSplitHandler(app.FeeSplitCollector))
+	app.ParamsKeeper.RegisterSignal(feesplit.SetParamsNeedUpdate)
+
 	//wasm keeper
 	wasmDir := wasm.WasmDir()
 	wasmConfig := wasm.WasmConfig()
@@ -447,7 +464,10 @@ func NewOKExChainApp(
 		AddRoute(mint.RouterKey, mint.NewManageTreasuresProposalHandler(&app.MintKeeper)).
 		AddRoute(ibcclienttypes.RouterKey, ibcclient.NewClientUpdateProposalHandler(app.IBCKeeper.ClientKeeper)).
 		AddRoute(erc20.RouterKey, erc20.NewProposalHandler(&app.Erc20Keeper)).
-		AddRoute(wasm.RouterKey, wasm.NewWasmProposalHandler(&app.WasmKeeper, wasm.NecessaryProposals))
+		AddRoute(feesplit.RouterKey, feesplit.NewProposalHandler(&app.FeeSplitKeeper)).
+		AddRoute(wasm.RouterKey, wasm.NewWasmProposalHandler(&app.wasmKeeper, wasm.NecessaryProposals))
+
+
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &app.ParamsKeeper).
 		AddRoute(dex.RouterKey, &app.DexKeeper).
@@ -455,7 +475,9 @@ func NewOKExChainApp(
 		AddRoute(evm.RouterKey, app.EvmKeeper).
 		AddRoute(mint.RouterKey, &app.MintKeeper).
 		AddRoute(erc20.RouterKey, &app.Erc20Keeper).
+		AddRoute(feesplit.RouterKey, &app.FeeSplitKeeper).
 		AddRoute(distr.RouterKey, &app.DistrKeeper)
+
 	app.GovKeeper = gov.NewKeeper(
 		app.marshal.GetCdc(), app.keys[gov.StoreKey], app.ParamsKeeper, app.subspaces[gov.DefaultParamspace],
 		app.SupplyKeeper, &stakingKeeper, gov.DefaultParamspace, govRouter,
@@ -467,7 +489,9 @@ func NewOKExChainApp(
 	app.EvmKeeper.SetGovKeeper(app.GovKeeper)
 	app.MintKeeper.SetGovKeeper(app.GovKeeper)
 	app.Erc20Keeper.SetGovKeeper(app.GovKeeper)
+	app.FeeSplitKeeper.SetGovKeeper(app.GovKeeper)
 	app.DistrKeeper.SetGovKeeper(app.GovKeeper)
+
 
 	// Set IBC hooks
 	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
@@ -493,6 +517,7 @@ func NewOKExChainApp(
 	app.EvmKeeper.SetHooks(
 		evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper),
 			erc20.NewSendNative20ToIbcEventHandler(app.Erc20Keeper),
+      app.FeeSplitKeeper.Hooks(),
 			vmbridge.NewSendToWasmEventHandler(*app.VMBridgeKeeper)))
 
 	// NOTE: Any module instantiated in the module manager that is later modified
@@ -523,6 +548,7 @@ func NewOKExChainApp(
 		transferModule,
 		erc20.NewAppModule(app.Erc20Keeper),
 		wasmModule,
+    feesplit.NewAppModule(app.FeeSplitKeeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
@@ -569,6 +595,7 @@ func NewOKExChainApp(
 		evm.ModuleName, crisis.ModuleName, genutil.ModuleName, params.ModuleName, evidence.ModuleName,
 		erc20.ModuleName,
 		wasm.ModuleName,
+		feesplit.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)
@@ -617,7 +644,8 @@ func NewOKExChainApp(
 	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
 	app.AddCustomizeModuleOnStopLogic(NewEvmModuleStopLogic(app.EvmKeeper))
 	app.SetMptCommitHandler(NewMptCommitHandler(app.EvmKeeper))
-	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), fixLogForParallelTxHandler(app.EvmKeeper))
+	app.SetUpdateFeeCollectorAccHandler(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper))
+	app.SetParallelTxLogHandlers(fixLogForParallelTxHandler(app.EvmKeeper))
 	app.SetPreDeliverTxHandler(preDeliverTxHandler(app.AccountKeeper))
 	app.SetPartialConcurrentHandlers(getTxFeeAndFromHandler(app.AccountKeeper))
 	app.SetGetTxFeeHandler(getTxFeeHandler())
