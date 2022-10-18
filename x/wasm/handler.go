@@ -21,7 +21,7 @@ func NewHandler(k types.ContractOpsKeeper) sdk.Handler {
 		ctx.SetEventManager(sdk.NewEventManager())
 
 		if !types2.HigherThanEarth(ctx.BlockHeight()) {
-			errMsg := fmt.Sprintf("wasm not supprt at height %d", ctx.BlockHeight())
+			errMsg := fmt.Sprintf("wasm not support at height %d", ctx.BlockHeight())
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
 		}
 
