@@ -71,7 +71,7 @@ var _ types.MsgServer = msgServer{}
 
 func (k msgServer) SendToEvmEvent(goCtx context.Context, msg *types.MsgSendToEvm) (*types.MsgSendToEvmResponse, error) {
 	ctx := sdk.UnwrapSDKContext(goCtx)
-	if !tmtypes.HigherThanVenus3(ctx.BlockHeight()) {
+	if !tmtypes.HigherThanEarth(ctx.BlockHeight()) {
 		errMsg := fmt.Sprintf("vmbridger not supprt at height %d", ctx.BlockHeight())
 		return &types.MsgSendToEvmResponse{Success: false}, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
 	}
