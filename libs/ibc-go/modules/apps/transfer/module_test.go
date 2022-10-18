@@ -138,11 +138,6 @@ func (suite *TransferTestSuite) TestOnChanOpenTry() {
 			}, false,
 		},
 		{
-			"invalid version", func() {
-				channel.Version = "version"
-			}, false,
-		},
-		{
 			"invalid counterparty version", func() {
 				counterpartyVersion = "version"
 			}, false,
@@ -180,12 +175,13 @@ func (suite *TransferTestSuite) TestOnChanOpenTry() {
 
 			tc.malleate() // explicitly change fields in channel and testChannel
 
-			_, err = cbs.OnChanOpenTry(suite.chainA.GetContext(), channel.Ordering, channel.GetConnectionHops(),
+			version, err := cbs.OnChanOpenTry(suite.chainA.GetContext(), channel.Ordering, channel.GetConnectionHops(),
 				path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, chanCap, channel.Counterparty, channel.GetVersion(), counterpartyVersion,
 			)
 
 			if tc.expPass {
 				suite.Require().NoError(err)
+				suite.Require().Equal(types.Version, version)
 			} else {
 				suite.Require().Error(err)
 			}
@@ -232,7 +228,7 @@ func (suite *TransferTestSuite) TestOnChanOpenAck() {
 
 			tc.malleate() // explicitly change fields in channel and testChannel
 
-			err = cbs.OnChanOpenAck(suite.chainA.GetContext(), path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, counterpartyVersion, "")
+			err = cbs.OnChanOpenAck(suite.chainA.GetContext(), path.EndpointA.ChannelConfig.PortID, path.EndpointA.ChannelID, path.EndpointA.Counterparty.ChannelID, counterpartyVersion)
 
 			if tc.expPass {
 				suite.Require().NoError(err)
