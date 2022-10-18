@@ -998,6 +998,7 @@ func NewSimApp(
 	ibcRouter.AddRoute(icacontrollertypes.SubModuleName, icaControllerStack)
 	ibcRouter.AddRoute(icahosttypes.SubModuleName, icaHostStack)
 	ibcRouter.AddRoute(icamauthtypes.ModuleName, icaControllerStack)
+	ibcRouter.AddRoute(mock.ModuleName+icacontrollertypes.SubModuleName, icaControllerStack) // ica with mock auth module stack route to ica (top level of middleware stack)
 	//ibcRouter.AddRoute(ibcmock.ModuleName, mockModule)
 	v2keeper.SetRouter(ibcRouter)
 
