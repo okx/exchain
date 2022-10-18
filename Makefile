@@ -13,7 +13,7 @@ IGNORE_CHECK_GO=false
 install_rocksdb_version:=$(ROCKSDB_VERSION)
 
 
-Version=v1.6.3
+Version=v1.6.4
 CosmosSDK=v0.39.2
 Tendermint=v0.33.9
 Iavl=v0.14.3
@@ -25,9 +25,10 @@ GenesisHeight=0
 MercuryHeight=1
 VenusHeight=1
 Venus1Height=1
-MarsHeight=0
 Venus2Height=0
+Venus3Height=0
 EarthHeight=0
+MarsHeight=0
 
 LINK_STATICALLY = false
 cgo_flags=
@@ -46,6 +47,7 @@ ifeq ($(MAKECMDGOALS),mainnet)
    MercuryHeight=5150000
    VenusHeight=8200000
    Venus1Height=12988000
+   Venus2Height=14738000
 
    WITH_ROCKSDB=true
 else ifeq ($(MAKECMDGOALS),testnet)
@@ -54,6 +56,7 @@ else ifeq ($(MAKECMDGOALS),testnet)
    VenusHeight=8510000
    Venus1Height=12067000
    Venus2Height=14781000
+   Venus3Height=15540000
 
    WITH_ROCKSDB=true
 endif
@@ -87,12 +90,14 @@ ldflags = -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Version=$(Version
   -X $(GithubTop)/okex/exchain/libs/cosmos-sdk/version.Tendermint=$(Tendermint) \
   -X "$(GithubTop)/okex/exchain/libs/cosmos-sdk/version.BuildTags=$(build_tags)" \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_GENESIS_HEIGHT=$(GenesisHeight) \
-  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS1_HEIGHT=$(Venus1Height) \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_MERCURY_HEIGHT=$(MercuryHeight) \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS_HEIGHT=$(VenusHeight) \
-  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_MARS_HEIGHT=$(MarsHeight) \
+  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS1_HEIGHT=$(Venus1Height) \
   -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS2_HEIGHT=$(Venus2Height) \
-  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_EARTH_HEIGHT=$(EarthHeight)
+  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_VENUS3_HEIGHT=$(Venus3Height) \
+  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_EARTH_HEIGHT=$(EarthHeight) \
+  -X $(GithubTop)/okex/exchain/libs/tendermint/types.MILESTONE_MARS_HEIGHT=$(MarsHeight)
+
 
 ifeq ($(WITH_ROCKSDB),true)
   ldflags += -X github.com/okex/exchain/libs/tendermint/types.DBBackend=rocksdb

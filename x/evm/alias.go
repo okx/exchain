@@ -21,6 +21,7 @@ var (
 	TxDecoder            = types.TxDecoder
 	NewSimulateKeeper    = keeper.NewSimulateKeeper
 	NewLogProcessEvmHook = keeper.NewLogProcessEvmHook
+	NewMultiEvmHooks     = keeper.NewMultiEvmHooks
 )
 
 //nolint

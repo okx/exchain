@@ -77,6 +77,10 @@ func (suite *HandlerSuite) TestHandlerWithdrawDelegatorReward() {
 			_, err := handler(ctx, msg)
 			require.Equal(suite.T(), tc.errors[0], err)
 
+			msg2 := NewMsgWithdrawDelegatorAllRewards(delAddr1)
+			_, err = handler(ctx, msg2)
+			require.Equal(suite.T(), tc.errors[0], err)
+
 			tc.dochange(ctx, dk)
 
 			// no deposit and add shares
@@ -377,7 +381,7 @@ func (suite *HandlerSuite) TestWithdrawDisabled() {
 			},
 		},
 		{
-			"disable withdraw validator",
+			"disable withdraw validator commission",
 			func(ctx *sdk.Context, dk Keeper, sk staking.Keeper, valOpAddrs []sdk.ValAddress, p param, i int) {
 				tmtypes.UnittestOnlySetMilestoneVenus2Height(p.blockVersion)
 				dk.SetWithdrawRewardEnabled(*ctx, p.enable)
@@ -405,11 +409,25 @@ func (suite *HandlerSuite) TestWithdrawDisabled() {
 			},
 		},
 		{
-			"disable set withdraw address",
+			"disable set withdraw delegator reward",
 			func(ctx *sdk.Context, dk Keeper, sk staking.Keeper, valOpAddrs []sdk.ValAddress, p param, i int) {
 				tmtypes.UnittestOnlySetMilestoneVenus2Height(p.blockVersion)
 				dk.SetWithdrawRewardEnabled(*ctx, p.enable)
 				DoWithdrawDelegatorRewardWithError(suite.T(), *ctx, dk, keeper.TestDelAddrs[0], keeper.TestValAddrs[0], p.expectError)
+			},
+			[]param{
+				{-1, false, types.ErrCodeDisabledWithdrawRewards()},
+				{-1, true, types.ErrUnknownDistributionMsgType()},
+				{0, false, types.ErrUnknownDistributionMsgType()},
+				{0, true, types.ErrUnknownDistributionMsgType()},
+			},
+		},
+		{
+			"disable set withdraw delegator all reward",
+			func(ctx *sdk.Context, dk Keeper, sk staking.Keeper, valOpAddrs []sdk.ValAddress, p param, i int) {
+				tmtypes.UnittestOnlySetMilestoneVenus2Height(p.blockVersion)
+				dk.SetWithdrawRewardEnabled(*ctx, p.enable)
+				DoWithdrawDelegatorAllRewardWithError(suite.T(), *ctx, dk, keeper.TestDelAddrs[0], p.expectError)
 			},
 			[]param{
 				{-1, false, types.ErrCodeDisabledWithdrawRewards()},
@@ -530,6 +548,13 @@ func DoWithdrawDelegatorRewardWithError(t *testing.T, ctx sdk.Context, dk Keeper
 	valAddr sdk.ValAddress, expectError error) {
 	h := NewHandler(dk)
 	msg := NewMsgWithdrawDelegatorReward(delAddr, valAddr)
+	_, e := h(ctx, msg)
+	require.Equal(t, expectError, e)
+}
+
+func DoWithdrawDelegatorAllRewardWithError(t *testing.T, ctx sdk.Context, dk Keeper, delAddr sdk.AccAddress, expectError error) {
+	h := NewHandler(dk)
+	msg := NewMsgWithdrawDelegatorAllRewards(delAddr)
 	_, e := h(ctx, msg)
 	require.Equal(t, expectError, e)
 }
