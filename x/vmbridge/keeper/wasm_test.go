@@ -237,7 +237,7 @@ func (suite *KeeperTestSuite) TestMsgServer_SendToEvmEvent() {
 			func() {
 
 			},
-			errors.New("[\"execution reverted\",\"0x4e487b710000000000000000000000000000000000000000000000000000000000000011\",\"HexData\",\"0x4e487b710000000000000000000000000000000000000000000000000000000000000011\"]"),
+			sdkerrors.Wrap(types.ErrEvmExecuteFailed, "[\"execution reverted\",\"0x4e487b710000000000000000000000000000000000000000000000000000000000000011\",\"HexData\",\"0x4e487b710000000000000000000000000000000000000000000000000000000000000011\"]"),
 			true,
 		},
 		{
@@ -266,7 +266,7 @@ func (suite *KeeperTestSuite) TestMsgServer_SendToEvmEvent() {
 			},
 			func() {
 			},
-			errors.New("abi: attempting to unmarshall an empty string while arguments are expected"),
+			sdkerrors.Wrap(types.ErrEvmExecuteFailed, "abi: attempting to unmarshall an empty string while arguments are expected"),
 			true,
 		},
 		{
@@ -278,7 +278,7 @@ func (suite *KeeperTestSuite) TestMsgServer_SendToEvmEvent() {
 			},
 			func() {
 			},
-			errors.New("execution reverted"),
+			sdkerrors.Wrap(types.ErrEvmExecuteFailed, "execution reverted"),
 			true,
 		},
 		{
@@ -290,7 +290,7 @@ func (suite *KeeperTestSuite) TestMsgServer_SendToEvmEvent() {
 			},
 			func() {
 			},
-			errors.New("execution reverted"),
+			sdkerrors.Wrap(types.ErrEvmExecuteFailed, "execution reverted"),
 			true,
 		},
 		{
@@ -304,7 +304,7 @@ func (suite *KeeperTestSuite) TestMsgServer_SendToEvmEvent() {
 			},
 			func() {
 			},
-			errors.New("execution reverted"),
+			sdkerrors.Wrap(types.ErrEvmExecuteFailed, "execution reverted"),
 			true,
 		},
 	}
