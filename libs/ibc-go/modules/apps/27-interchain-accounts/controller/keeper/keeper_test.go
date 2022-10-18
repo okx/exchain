@@ -1,10 +1,7 @@
 package keeper_test
 
 import (
-	"fmt"
 	"testing"
-
-	host "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 
 	types2 "github.com/okex/exchain/libs/tendermint/types"
 
@@ -76,10 +73,6 @@ func SetupICAPath(path *ibctesting.Path, owner string) error {
 	if err := RegisterInterchainAccount(path.EndpointA, owner); err != nil {
 		return err
 	}
-	channelKey := host.ChannelKey(path.EndpointA.Counterparty.ChannelConfig.PortID, path.EndpointA.Counterparty.ChannelID)
-	proof, height := path.EndpointA.Counterparty.Chain.QueryProof(channelKey)
-	fmt.Println(proof)
-	fmt.Println(height)
 
 	if err := path.EndpointB.ChanOpenTry(); err != nil {
 		return err

@@ -117,6 +117,7 @@ func (store *Store) Set(key []byte, value []byte) {
 
 	types.AssertValidKey(key)
 	types.AssertValidValue(value)
+
 	store.setCacheValue(key, value, false, true)
 }
 
