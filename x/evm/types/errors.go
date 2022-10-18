@@ -131,6 +131,10 @@ func ErrNotContracAddress(err error) sdk.EnvelopedErr {
 	}
 }
 
+func ErrCodeProposerMustBeValidator() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, 23, "the proposal of proposer must be validator")
+}
+
 type ErrContractBlockedVerify struct {
 	Descriptor string
 }
