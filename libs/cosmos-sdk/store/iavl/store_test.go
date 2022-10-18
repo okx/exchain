@@ -581,18 +581,11 @@ func testCommitDelta(t *testing.T) {
 	assert.EqualValues(t, 2, cid1.Version)
 	assert.NotEqual(t, emptyDelta, treeDelta1)
 
-	// use delta and produce delta
-	cid2, treeDelta2 := iavlStore.CommitterCommit(treeDelta1)
-	assert.NotEmpty(t, cid2.Hash)
-	assert.EqualValues(t, 3, cid2.Version)
-	assert.NotEqual(t, emptyDelta, treeDelta2)
-	assert.Equal(t, treeDelta1, treeDelta2)
-
 	// use delta and not produce delta
 	iavl.SetProduceDelta(false)
 	cid3, treeDelta3 := iavlStore.CommitterCommit(treeDelta1)
 	assert.NotEmpty(t, cid3.Hash)
-	assert.EqualValues(t, 4, cid3.Version)
+	assert.EqualValues(t, 3, cid3.Version)
 	assert.Equal(t, emptyDelta, treeDelta3)
 }
 func TestCommitDelta(t *testing.T) {
