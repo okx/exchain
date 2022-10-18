@@ -203,28 +203,28 @@ type OKExChainApp struct {
 	subspaces map[string]params.Subspace
 
 	// keepers
-	AccountKeeper  auth.AccountKeeper
-	BankKeeper     bank.Keeper
-	SupplyKeeper   supply.Keeper
-	StakingKeeper  staking.Keeper
-	SlashingKeeper slashing.Keeper
-	MintKeeper     mint.Keeper
-	DistrKeeper    distr.Keeper
-	GovKeeper      gov.Keeper
-	CrisisKeeper   crisis.Keeper
-	UpgradeKeeper  upgrade.Keeper
-	ParamsKeeper   params.Keeper
-	EvidenceKeeper evidence.Keeper
-	EvmKeeper      *evm.Keeper
-	TokenKeeper    token.Keeper
-	DexKeeper      dex.Keeper
-	OrderKeeper    order.Keeper
-	SwapKeeper     ammswap.Keeper
-	FarmKeeper     farm.Keeper
+	AccountKeeper        auth.AccountKeeper
+	BankKeeper           bank.Keeper
+	SupplyKeeper         supply.Keeper
+	StakingKeeper        staking.Keeper
+	SlashingKeeper       slashing.Keeper
+	MintKeeper           mint.Keeper
+	DistrKeeper          distr.Keeper
+	GovKeeper            gov.Keeper
+	CrisisKeeper         crisis.Keeper
+	UpgradeKeeper        upgrade.Keeper
+	ParamsKeeper         params.Keeper
+	EvidenceKeeper       evidence.Keeper
+	EvmKeeper            *evm.Keeper
+	TokenKeeper          token.Keeper
+	DexKeeper            dex.Keeper
+	OrderKeeper          order.Keeper
+	SwapKeeper           ammswap.Keeper
+	FarmKeeper           farm.Keeper
 	WasmKeeper           wasm.Keeper
 	WasmPermissionKeeper wasm.ContractOpsKeeper
-	InfuraKeeper   infura.Keeper
-	FeeSplitKeeper feesplit.Keeper
+	InfuraKeeper         infura.Keeper
+	FeeSplitKeeper       feesplit.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -465,8 +465,7 @@ func NewOKExChainApp(
 		AddRoute(ibcclienttypes.RouterKey, ibcclient.NewClientUpdateProposalHandler(app.IBCKeeper.ClientKeeper)).
 		AddRoute(erc20.RouterKey, erc20.NewProposalHandler(&app.Erc20Keeper)).
 		AddRoute(feesplit.RouterKey, feesplit.NewProposalHandler(&app.FeeSplitKeeper)).
-		AddRoute(wasm.RouterKey, wasm.NewWasmProposalHandler(&app.wasmKeeper, wasm.NecessaryProposals))
-
+		AddRoute(wasm.RouterKey, wasm.NewWasmProposalHandler(&app.WasmKeeper, wasm.NecessaryProposals))
 
 	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
 	govProposalHandlerRouter.AddRoute(params.RouterKey, &app.ParamsKeeper).
@@ -492,7 +491,6 @@ func NewOKExChainApp(
 	app.FeeSplitKeeper.SetGovKeeper(app.GovKeeper)
 	app.DistrKeeper.SetGovKeeper(app.GovKeeper)
 
-
 	// Set IBC hooks
 	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
 	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
@@ -515,10 +513,15 @@ func NewOKExChainApp(
 
 	// Set EVM hooks
 	app.EvmKeeper.SetHooks(
-		evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper),
-			erc20.NewSendNative20ToIbcEventHandler(app.Erc20Keeper),
-      app.FeeSplitKeeper.Hooks(),
-			vmbridge.NewSendToWasmEventHandler(*app.VMBridgeKeeper)))
+		evm.NewMultiEvmHooks(
+			evm.NewLogProcessEvmHook(
+				erc20.NewSendToIbcEventHandler(app.Erc20Keeper),
+				erc20.NewSendNative20ToIbcEventHandler(app.Erc20Keeper),
+				vmbridge.NewSendToWasmEventHandler(*app.VMBridgeKeeper),
+			),
+			app.FeeSplitKeeper.Hooks(),
+		),
+	)
 
 	// NOTE: Any module instantiated in the module manager that is later modified
 	// must be passed by reference here.
@@ -548,7 +551,7 @@ func NewOKExChainApp(
 		transferModule,
 		erc20.NewAppModule(app.Erc20Keeper),
 		wasmModule,
-    feesplit.NewAppModule(app.FeeSplitKeeper),
+		feesplit.NewAppModule(app.FeeSplitKeeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
