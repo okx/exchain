@@ -647,6 +647,8 @@ func NewOKExChainApp(
 		evm.ModuleName, crisis.ModuleName, genutil.ModuleName, params.ModuleName, evidence.ModuleName,
 		erc20.ModuleName,
 		wasm.ModuleName,
+		ibchost.ModuleName,
+		icatypes.ModuleName, ibcfeetypes.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)

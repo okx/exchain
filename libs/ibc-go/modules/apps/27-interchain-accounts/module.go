@@ -46,7 +46,7 @@ func (b AppModuleBasic) RegisterCodec(codec *codec.Codec) {
 }
 
 func (b AppModuleBasic) DefaultGenesis() json.RawMessage {
-	return nil
+	return ModuleCdc.MustMarshalJSON(types.DefaultGenesis())
 }
 
 func (b AppModuleBasic) ValidateGenesis(message json.RawMessage) error {

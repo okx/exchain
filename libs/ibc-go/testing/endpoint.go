@@ -305,6 +305,7 @@ func (endpoint *Endpoint) ChanOpenTry() error {
 		endpoint.ChannelID, err = ParseChannelIDFromEvents(res.Events)
 		require.NoError(endpoint.Chain.T(), err)
 	}
+	endpoint.ChannelConfig.Version = endpoint.GetChannel().Version
 
 	return nil
 }
