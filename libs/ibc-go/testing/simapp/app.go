@@ -280,6 +280,7 @@ type SimApp struct {
 	ICAMauthKeeper      icamauthkeeper.Keeper
 	ICAControllerKeeper icacontrollerkeeper.Keeper
 	ICAHostKeeper       icahostkeeper.Keeper
+	ICAAuthModule       mock.IBCModule
 }
 
 // NewSimApp returns a reference to a new initialized OKExChain application.
@@ -986,6 +987,8 @@ func NewSimApp(
 	//icaMauthIBCModule := icamauth.NewIBCModule(app.ICAMauthKeeper)
 	//icaControllerStack = icaMauthIBCModule
 	icaControllerStack = mock.NewIBCModule(&mockModule, mock.NewMockIBCApp("", scopedICAMockKeeper))
+	app.ICAAuthModule = icaControllerStack.(mock.IBCModule)
+
 	icaControllerStack = icacontroller.NewIBCMiddleware(icaControllerStack, app.ICAControllerKeeper)
 	var icaHostStack ibcporttypes.IBCModule
 	icaHostStack = icahost.NewIBCModule(app.ICAHostKeeper)
