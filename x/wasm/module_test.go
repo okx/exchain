@@ -9,6 +9,10 @@ import (
 	"github.com/okex/exchain/x/wasm/keeper/testdata"
 
 	"github.com/dvsekhvalnov/jose2go/base64url"
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	authkeeper "github.com/okex/exchain/libs/cosmos-sdk/x/auth/keeper"
@@ -22,9 +26,6 @@ import (
 	stakingkeeper "github.com/okex/exchain/x/staking/keeper"
 	"github.com/okex/exchain/x/wasm/keeper"
 	"github.com/okex/exchain/x/wasm/types"
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 var zeroCoins sdk.Coins
@@ -497,7 +498,9 @@ func assertAttribute(t *testing.T, key string, value string, attr kv.Pair) {
 }
 
 func assertCodeList(t *testing.T, q sdk.Querier, ctx sdk.Context, expectedNum int) {
-	bz, sdkerr := q(ctx, []string{QueryListCode}, abci.RequestQuery{})
+	params := types.NewQueryParamsWithReverse(1, 0, false)
+	bs, err := ModuleCdc.MarshalJSON(params)
+	bz, sdkerr := q(ctx, []string{QueryListCode}, abci.RequestQuery{Data: bs})
 	require.NoError(t, sdkerr)
 
 	if len(bz) == 0 {
@@ -506,7 +509,7 @@ func assertCodeList(t *testing.T, q sdk.Querier, ctx sdk.Context, expectedNum in
 	}
 
 	var res []CodeInfo
-	err := json.Unmarshal(bz, &res)
+	err = json.Unmarshal(bz, &res)
 	require.NoError(t, err)
 
 	assert.Equal(t, expectedNum, len(res))
@@ -533,7 +536,9 @@ func assertCodeBytes(t *testing.T, q sdk.Querier, ctx sdk.Context, codeID uint64
 }
 
 func assertContractList(t *testing.T, q sdk.Querier, ctx sdk.Context, codeID uint64, expContractAddrs []string) {
-	bz, sdkerr := q(ctx, []string{QueryListContractByCode, fmt.Sprintf("%d", codeID)}, abci.RequestQuery{})
+	params := types.NewQueryParamsWithReverse(1, 0, false)
+	bs := ModuleCdc.MustMarshalJSON(params)
+	bz, sdkerr := q(ctx, []string{QueryListContractByCode, fmt.Sprintf("%d", codeID)}, abci.RequestQuery{Data: bs})
 	require.NoError(t, sdkerr)
 
 	if len(bz) == 0 {
@@ -556,7 +561,9 @@ func assertContractList(t *testing.T, q sdk.Querier, ctx sdk.Context, codeID uin
 func assertContractState(t *testing.T, q sdk.Querier, ctx sdk.Context, contractBech32Addr string, expected state) {
 	t.Helper()
 	path := []string{QueryGetContractState, contractBech32Addr, keeper.QueryMethodContractStateAll}
-	bz, sdkerr := q(ctx, path, abci.RequestQuery{})
+	params := types.NewQueryParamsWithReverse(1, 0, false)
+	bs := ModuleCdc.MustMarshalJSON(params)
+	bz, sdkerr := q(ctx, path, abci.RequestQuery{Data: bs})
 	require.NoError(t, sdkerr)
 
 	var res []Model
@@ -573,7 +580,7 @@ func assertContractState(t *testing.T, q sdk.Querier, ctx sdk.Context, contractB
 func assertContractInfo(t *testing.T, q sdk.Querier, ctx sdk.Context, contractBech32Addr string, codeID uint64, creator sdk.AccAddress) {
 	t.Helper()
 	path := []string{QueryGetContract, contractBech32Addr}
-	bz, sdkerr := q(ctx, path, abci.RequestQuery{})
+	bz, sdkerr := q(ctx, path, abci.RequestQuery{Data: []byte{}})
 	require.NoError(t, sdkerr)
 
 	var res ContractInfo
