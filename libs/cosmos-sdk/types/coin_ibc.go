@@ -402,3 +402,8 @@ func (coins CoinAdapters) negative() CoinAdapters {
 
 	return res
 }
+
+// AddAmount adds an amount to the Coin.
+func (coin CoinAdapter) AddAmount(amount Int) CoinAdapter {
+	return CoinAdapter{coin.Denom, coin.Amount.Add(amount)}
+}

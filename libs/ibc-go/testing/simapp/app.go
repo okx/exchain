@@ -9,6 +9,8 @@ import (
 	"sort"
 	"sync"
 
+	transfer2 "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
+
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
 
 	icahost "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host"
@@ -980,18 +982,21 @@ func NewSimApp(
 	app.MintKeeper.SetGovKeeper(app.GovKeeper)
 	app.Erc20Keeper.SetGovKeeper(app.GovKeeper)
 
+	// Create static IBC router, add transfer route, then set and seal it
+	ibcRouter := ibcporttypes.NewRouter()
 	// Set EVM hooks
 	//app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper)))
 	// Set IBC hooks
 	//app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
 	//transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
 	transferModule := transfer.TNewTransferModule(app.TransferKeeper, codecProxy)
+	var transferStack ibcporttypes.IBCModule
+	transferStack = transfer2.NewIBCModule(app.TransferKeeper)
+	transferStack = ibcfee.NewIBCMiddleware(transferStack, app.IBCFeeKeeper)
+	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferStack)
 
 	mockModule := mock.NewAppModule(scopedIBCMockKeeper, &v2keeper.PortKeeper)
 	mockIBCModule := mock.NewIBCModule(&mockModule, mock.NewMockIBCApp(mock.ModuleName, scopedIBCMockKeeper))
-
-	// Create static IBC router, add transfer route, then set and seal it
-	ibcRouter := ibcporttypes.NewRouter()
 	ibcRouter.AddRoute(mock.ModuleName, mockIBCModule)
 	// The mock module is used for testing IBC
 	//mockIBCModule := mock.NewIBCModule(&mockModule, mock.NewMockIBCApp(mock.ModuleName, scopedIBCMockKeeper))
@@ -1011,7 +1016,6 @@ func NewSimApp(
 	feeWithMockModule := ibcfee.NewIBCMiddleware(feeMockModule, app.IBCFeeKeeper)
 	ibcRouter.AddRoute(MockFeePort, feeWithMockModule)
 
-	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferModule)
 	ibcRouter.AddRoute(icacontrollertypes.SubModuleName, icaControllerStack)
 	ibcRouter.AddRoute(icahosttypes.SubModuleName, icaHostStack)
 	ibcRouter.AddRoute(icamauthtypes.ModuleName, icaControllerStack)
