@@ -9,7 +9,7 @@ import (
 	"sort"
 	"sync"
 
-	transfer2 "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/common"
 
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
 
@@ -989,9 +989,14 @@ func NewSimApp(
 	// Set IBC hooks
 	//app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
 	//transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
+
+	left := common.NewDisaleProxyMiddleware()
+	//middle := transfer2.NewIBCModule(app.TransferKeeper)
 	transferModule := transfer.TNewTransferModule(app.TransferKeeper, codecProxy)
-	var transferStack ibcporttypes.IBCModule
-	transferStack = transfer2.NewIBCModule(app.TransferKeeper)
+	right := ibcfee.NewIBCMiddleware(transferModule, app.IBCFeeKeeper)
+	transferStack := ibcporttypes.NewFallThroughMiddleware(left,
+		ibccommon.DefaultFactory(tmtypes.HigherThanVenus3, ibc.IBCV4, right),
+		ibccommon.DefaultFactory(tmtypes.HigherThanVenus1, ibc.IBCV2, transferModule))
 	transferStack = ibcfee.NewIBCMiddleware(transferStack, app.IBCFeeKeeper)
 	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferStack)
 

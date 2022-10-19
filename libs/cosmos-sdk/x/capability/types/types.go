@@ -2,8 +2,9 @@ package types
 
 import (
 	"fmt"
-	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	"sort"
+
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 
 	yaml "gopkg.in/yaml.v2"
 )
@@ -44,6 +45,9 @@ func NewCapabilityOwners() *CapabilityOwners {
 // and O(n) in the worst case.
 func (co *CapabilityOwners) Set(owner Owner) error {
 	i, ok := co.Get(owner)
+	if owner.Name == "capabilities/ports/transfer/channels/channel-0" {
+		fmt.Println("funny")
+	}
 	if ok {
 		// owner already exists at co.Owners[i]
 		return sdkerrors.Wrapf(ErrOwnerClaimed, owner.String())

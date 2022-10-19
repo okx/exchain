@@ -112,7 +112,7 @@ func (suite *TransferTestSuite) TestOnChanOpenTry() {
 		malleate func()
 		expPass  bool
 	}{
-
+		//
 		{
 			"success", func() {}, true,
 		},

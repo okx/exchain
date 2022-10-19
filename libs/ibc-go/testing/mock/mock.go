@@ -147,8 +147,8 @@ func (am AppModule) RegisterServices(module.Configurator) {}
 // InitGenesis implements the AppModule interface.
 func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.ValidatorUpdate {
 	// bind mock port ID
-	cap := am.portKeeper.BindPort(ctx, ModuleName)
-	am.scopedKeeper.ClaimCapability(ctx, cap, host.PortPath(ModuleName))
+	//cap := am.portKeeper.BindPort(ctx, ModuleName)
+	//am.scopedKeeper.ClaimCapability(ctx, cap, host.PortPath(ModuleName))
 
 	for _, ibcApp := range am.ibcApps {
 		if ibcApp.PortID != "" && !am.portKeeper.IsBound(ctx, ibcApp.PortID) {
