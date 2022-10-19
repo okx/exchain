@@ -62,18 +62,18 @@ func (im IBCMiddleware) OnChanOpenInit(
 	}
 
 	if versionMetadata.FeeVersion != types.Version {
-		return version, sdkerrors.Wrapf(types.ErrInvalidVersion, "expected %s, got %s", types.Version, versionMetadata.FeeVersion)
+		return "", sdkerrors.Wrapf(types.ErrInvalidVersion, "expected %s, got %s", types.Version, versionMetadata.FeeVersion)
 	}
 
 	appVersion, err := im.app.OnChanOpenInit(ctx, order, connectionHops, portID, channelID, chanCap, counterparty, versionMetadata.AppVersion)
 	if err != nil {
-		return version, err
+		return "", err
 	}
 
 	versionMetadata.AppVersion = appVersion
 	versionBytes, err := types.ModuleCdc.MarshalJSON(&versionMetadata)
 	if err != nil {
-		return version, err
+		return "", err
 	}
 
 	im.keeper.SetFeeEnabled(ctx, portID, channelID)
