@@ -10,6 +10,7 @@ import (
 	sm "github.com/okex/exchain/libs/tendermint/state"
 	"github.com/okex/exchain/libs/tendermint/types"
 	tmtime "github.com/okex/exchain/libs/tendermint/types/time"
+	"time"
 )
 
 func (cs *State) dumpElapsed(trc *trace.Tracer, schema string) {
@@ -372,9 +373,6 @@ func (cs *State) updateToState(state sm.State) {
 	cs.ValidRound = -1
 	cs.ValidBlock = nil
 	cs.ValidBlockParts = nil
-	cs.PreProposal = nil
-	cs.PreProposalBlock = nil
-	cs.PreProposalBlockParts = nil
 	cs.Votes = cstypes.NewHeightVoteSet(state.ChainID, height, validators)
 	cs.CommitRound = -1
 	cs.LastValidators = state.LastValidators
@@ -404,4 +402,35 @@ func (cs *State) pruneBlocks(retainHeight int64) (uint64, error) {
 		return 0, fmt.Errorf("failed to prune state database: %w", err)
 	}
 	return pruned, nil
+}
+
+func (cs *State) preMakeBlock(height int64, waiting time.Duration) {
+	block, blockParts := cs.createProposalBlock()
+	if len(cs.taskResultChan) == 1 {
+		<-cs.taskResultChan
+	}
+	cs.taskResultChan <- &preBlockTaskRes{block: block, blockParts: blockParts}
+
+	propBlockID := types.BlockID{Hash: block.Hash(), PartsHeader: blockParts.Header()}
+	proposal := types.NewProposal(height, 0, cs.ValidRound, propBlockID)
+
+	isBlockProducer, _ := cs.isBlockProducer()
+	if GetActiveVC() && isBlockProducer != "y" {
+		time.Sleep(waiting)
+		cs.prepareProposal(proposal)
+	}
+}
+
+func (cs *State) getPreBlockResult(height int64) *preBlockTaskRes {
+	for {
+		select {
+		case res := <-cs.taskResultChan:
+			if res.block.Height == height {
+				return res
+			}
+		case <-time.After(time.Second):
+			return nil
+		}
+
+	}
 }

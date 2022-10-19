@@ -140,15 +140,11 @@ func (cs *State) isProposer(address []byte) bool {
 	return bytes.Equal(cs.Validators.GetProposer().Address, address)
 }
 
-func (cs *State) prepareProposal(height int64, round int) {
-	cs.PreProposalBlock, cs.PreProposalBlockParts = cs.createProposalBlock()
-	propBlockID := types.BlockID{Hash: cs.PreProposalBlock.Hash(), PartsHeader: cs.PreProposalBlockParts.Header()}
-	cs.PreProposal = types.NewProposal(height, round, cs.ValidRound, propBlockID)
-
+func (cs *State) prepareProposal(proposal *types.Proposal) {
 	// request for proposer of new height
-	prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address(), Proposal: cs.PreProposal}
+	prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address(), Proposal: proposal}
 	// todo only put all request into one channel
-	go cs.requestForProposer(prMsg)
+	cs.requestForProposer(prMsg)
 }
 
 func (cs *State) defaultDecideProposal(height int64, round int) {
@@ -161,7 +157,11 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 		block, blockParts = cs.ValidBlock, cs.ValidBlockParts
 	} else {
 		// Create a new proposal block from state/txs from the mempool.
-		block, blockParts = cs.createProposalBlock()
+		if res := cs.getPreBlockResult(height); res != nil {
+			block, blockParts = res.block, res.blockParts
+		} else {
+			block, blockParts = cs.createProposalBlock()
+		}
 		if block == nil {
 			return
 		}

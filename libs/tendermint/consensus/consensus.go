@@ -42,6 +42,11 @@ func GetActiveVC() bool {
 	return activeViewChange
 }
 
+type preBlockTaskRes struct {
+	block      *types.Block
+	blockParts *types.PartSet
+}
+
 //-----------------------------------------------------------------------------
 
 const (
@@ -156,8 +161,9 @@ type State struct {
 	prerunTx bool
 	bt       *BlockTransport
 
-	vcMsg    *ViewChangeMessage
-	vcHeight map[int64]bool
+	vcMsg          *ViewChangeMessage
+	vcHeight       map[int64]bool
+	taskResultChan chan *preBlockTaskRes
 }
 
 // StateOption sets an optional parameter on the State.
@@ -194,6 +200,7 @@ func NewState(
 		blockTimeTrc:       trace.NewTracer(trace.LastBlockTime),
 		timeoutIntervalTrc: trace.NewTracer(trace.TimeoutInterval),
 		vcHeight:           make(map[int64]bool),
+		taskResultChan:     make(chan *preBlockTaskRes, 1),
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal

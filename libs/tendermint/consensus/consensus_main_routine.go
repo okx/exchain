@@ -113,17 +113,16 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 		if !GetActiveVC() {
 			return
 		}
-		// this height has valid block part
-		if cs.ProposalBlock != nil || cs.ProposalBlockParts != nil ||
-			cs.PreProposal == nil || cs.PreProposalBlock == nil || cs.PreProposalBlockParts == nil {
+		res := cs.getPreBlockResult(msg.Height)
+		if res == nil {
 			return
 		}
-		if !bytes.Equal(msg.Proposal.BlockID.PartsHeader.Hash, cs.PreProposalBlockParts.Header().Hash) || msg.Height != cs.PreProposalBlock.Height {
+		if !bytes.Equal(msg.Proposal.BlockID.PartsHeader.Hash, res.blockParts.Header().Hash) || msg.Height != res.block.Height {
 			return
 		}
 		cs.sendInternalMessage(msgInfo{&ProposalMessage{msg.Proposal}, ""})
-		for i := 0; i < cs.PreProposalBlockParts.Total(); i++ {
-			part := cs.PreProposalBlockParts.GetPart(i)
+		for i := 0; i < res.blockParts.Total(); i++ {
+			part := res.blockParts.GetPart(i)
 			cs.sendInternalMessage(msgInfo{&BlockPartMessage{cs.Height, cs.Round, part}, ""})
 		}
 
@@ -295,10 +294,7 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 		sleepDuration = 0
 	}
 
-	isBlockProducer, _ := cs.isBlockProducer()
-	if GetActiveVC() && isBlockProducer != "y" {
-		cs.prepareProposal(cs.Height, 0)
-	}
+	go cs.preMakeBlock(cs.Height, sleepDuration)
 
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
 }
