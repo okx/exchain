@@ -140,13 +140,6 @@ func (cs *State) isProposer(address []byte) bool {
 	return bytes.Equal(cs.Validators.GetProposer().Address, address)
 }
 
-func (cs *State) prepareProposal(proposal *types.Proposal) {
-	// request for proposer of new height
-	prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address(), Proposal: proposal}
-	// todo only put all request into one channel
-	cs.requestForProposer(prMsg)
-}
-
 func (cs *State) defaultDecideProposal(height int64, round int) {
 	var block *types.Block
 	var blockParts *types.PartSet

@@ -417,7 +417,10 @@ func (cs *State) preMakeBlock(height int64, waiting time.Duration) {
 	isBlockProducer, _ := cs.isBlockProducer()
 	if GetActiveVC() && isBlockProducer != "y" {
 		time.Sleep(waiting)
-		cs.prepareProposal(proposal)
+		// request for proposer of new height
+		prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address(), Proposal: proposal}
+		// todo only put all request into one channel
+		cs.requestForProposer(prMsg)
 	}
 }
 
