@@ -74,17 +74,20 @@ func NewCoinAdapter(denom string, amount Int) CoinAdapter {
 
 	return coin
 }
-
+func (cs CoinAdapter) ToCoin() Coin {
+	if cs.Denom == DefaultIbcWei {
+		cs.Denom = DefaultBondDenom
+	}
+	v := cs
+	transferAmountDec := NewDecFromIntWithPrec(v.Amount, Precision)
+	token := NewCoin(v.Denom, transferAmountDec)
+	return token
+}
 func (cs CoinAdapters) ToCoins() Coins {
 	ret := make([]Coin, 0)
 	copyCs := cs.Copy()
 	for index, _ := range copyCs {
-		if copyCs[index].Denom == DefaultIbcWei {
-			copyCs[index].Denom = DefaultBondDenom
-		}
-		v := copyCs[index]
-		transferAmountDec := NewDecFromIntWithPrec(v.Amount, Precision)
-		token := NewCoin(v.Denom, transferAmountDec)
+		token := cs[index].ToCoin()
 		ret = append(ret, token)
 	}
 	return ret
@@ -372,4 +375,30 @@ func (coins CoinAdapters) AmountOfNoDenomValidation(denom string) Int {
 			return coins[midIdx+1:].AmountOfNoDenomValidation(denom)
 		}
 	}
+}
+
+func (coins CoinAdapters) Sub(coinsB CoinAdapters) CoinAdapters {
+	diff, hasNeg := coins.SafeSub(coinsB)
+	if hasNeg {
+		panic("negative coin amount")
+	}
+
+	return diff
+}
+
+func (coins CoinAdapters) SafeSub(coinsB CoinAdapters) (CoinAdapters, bool) {
+	diff := coins.safeAdd(coinsB.negative())
+	return diff, diff.IsAnyNegative()
+}
+func (coins CoinAdapters) negative() CoinAdapters {
+	res := make([]CoinAdapter, 0, len(coins))
+
+	for _, coin := range coins {
+		res = append(res, CoinAdapter{
+			Denom:  coin.Denom,
+			Amount: coin.Amount.Neg(),
+		})
+	}
+
+	return res
 }

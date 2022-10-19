@@ -204,6 +204,7 @@ var (
 		erc20.ModuleName:            {authtypes.Minter, authtypes.Burner},
 		ibcfeetypes.ModuleName:      nil,
 		icatypes.ModuleName:         nil,
+		mock.ModuleName:             nil,
 	}
 
 	GlobalGpIndex = GasPriceIndex{}
@@ -1272,6 +1273,9 @@ func (app *SimApp) LoadHeight(height int64) error {
 func (app *SimApp) ModuleAccountAddrs() map[string]bool {
 	modAccAddrs := make(map[string]bool)
 	for acc := range maccPerms {
+		if acc == mock.ModuleName {
+			continue
+		}
 		modAccAddrs[supply.NewModuleAddress(acc).String()] = true
 	}
 
