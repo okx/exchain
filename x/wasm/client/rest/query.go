@@ -5,11 +5,15 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+
 	"net/http"
 	"strconv"
 
+	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+	"github.com/okex/exchain/x/common"
+
 	"github.com/gorilla/mux"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
 
@@ -35,8 +39,25 @@ func listCodesHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 			return
 		}
 
+		_, page, limit, err := rest.ParseHTTPArgsWithLimit(r, 0)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, common.CodeArgsWithLimit, err.Error())
+			return
+		}
+		reverse := false
+		reverseStr := r.FormValue("reverse")
+		if reverseStr == "true" {
+			reverse = true
+		}
+		params := types.NewQueryParamsWithReverse(page, limit, reverse)
+		bz, err := cliCtx.Codec.MarshalJSON(params)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
+			return
+		}
+
 		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, keeper.QueryListCode)
-		res, height, err := cliCtx.Query(route)
+		res, height, err := cliCtx.QueryWithData(route, bz)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
@@ -87,8 +108,25 @@ func listContractsByCodeHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc 
 			return
 		}
 
+		_, page, limit, err := rest.ParseHTTPArgsWithLimit(r, 0)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, common.CodeArgsWithLimit, err.Error())
+			return
+		}
+		reverse := false
+		reverseStr := r.FormValue("reverse")
+		if reverseStr == "true" {
+			reverse = true
+		}
+		params := types.NewQueryParamsWithReverse(page, limit, reverse)
+		bz, err := cliCtx.Codec.MarshalJSON(params)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
+			return
+		}
+
 		route := fmt.Sprintf("custom/%s/%s/%d", types.QuerierRoute, keeper.QueryListContractByCode, codeID)
-		res, height, err := cliCtx.Query(route)
+		res, height, err := cliCtx.QueryWithData(route, bz)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
@@ -135,8 +173,25 @@ func queryContractStateAllHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFun
 			return
 		}
 
+		_, page, limit, err := rest.ParseHTTPArgsWithLimit(r, 0)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, common.CodeArgsWithLimit, err.Error())
+			return
+		}
+		reverse := false
+		reverseStr := r.FormValue("reverse")
+		if reverseStr == "true" {
+			reverse = true
+		}
+		params := types.NewQueryParamsWithReverse(page, limit, reverse)
+		bz, err := cliCtx.Codec.MarshalJSON(params)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
+			return
+		}
+
 		route := fmt.Sprintf("custom/%s/%s/%s/%s", types.QuerierRoute, keeper.QueryGetContractState, addr.String(), keeper.QueryMethodContractStateAll)
-		res, height, err := cliCtx.Query(route)
+		res, height, err := cliCtx.QueryWithData(route, bz)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
@@ -237,8 +292,25 @@ func queryContractHistoryFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 			return
 		}
 
+		_, page, limit, err := rest.ParseHTTPArgsWithLimit(r, 0)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, common.CodeArgsWithLimit, err.Error())
+			return
+		}
+		reverse := false
+		reverseStr := r.FormValue("reverse")
+		if reverseStr == "true" {
+			reverse = true
+		}
+		params := types.NewQueryParamsWithReverse(page, limit, reverse)
+		bz, err := cliCtx.Codec.MarshalJSON(params)
+		if err != nil {
+			common.HandleErrorMsg(w, cliCtx, common.CodeMarshalJSONFailed, err.Error())
+			return
+		}
+
 		route := fmt.Sprintf("custom/%s/%s/%s", types.QuerierRoute, keeper.QueryContractHistory, addr.String())
-		res, height, err := cliCtx.Query(route)
+		res, height, err := cliCtx.QueryWithData(route, bz)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return

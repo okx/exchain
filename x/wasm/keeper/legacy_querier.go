@@ -5,9 +5,11 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+	"github.com/okex/exchain/x/common"
 
 	"github.com/okex/exchain/x/wasm/types"
 )
@@ -46,7 +48,7 @@ func NewLegacyQuerier(keeper types.ViewKeeper, gasLimit sdk.Gas) sdk.Querier {
 			if parseErr != nil {
 				return nil, sdkerrors.Wrapf(types.ErrInvalid, "code id: %s", parseErr.Error())
 			}
-			rsp = queryContractListByCode(ctx, codeID, keeper)
+			rsp, err = queryContractListByCode(ctx, req, codeID, keeper)
 		case QueryGetContractState:
 			if len(path) < 3 {
 				return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown data query endpoint")
@@ -59,13 +61,13 @@ func NewLegacyQuerier(keeper types.ViewKeeper, gasLimit sdk.Gas) sdk.Querier {
 			}
 			rsp, err = queryCode(ctx, codeID, keeper)
 		case QueryListCode:
-			rsp, err = queryCodeList(ctx, keeper)
+			rsp, err = queryCodeList(ctx, req, keeper)
 		case QueryContractHistory:
 			contractAddr, addrErr := sdk.AccAddressFromBech32(path[1])
 			if addrErr != nil {
 				return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, addrErr.Error())
 			}
-			rsp, err = queryContractHistory(ctx, contractAddr, keeper)
+			rsp, err = queryContractHistory(ctx, req, contractAddr, keeper)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown data query endpoint")
 		}
@@ -91,12 +93,28 @@ func queryContractState(ctx sdk.Context, bech, queryMethod string, data []byte, 
 
 	switch queryMethod {
 	case QueryMethodContractStateAll:
+		var params types.QueryParamsWithReverse
+		if err := types.ModuleCdc.UnmarshalJSON(data, &params); err != nil {
+			return nil, common.ErrUnMarshalJSONFailed(err.Error())
+		}
+
 		resultData := make([]types.Model, 0)
 		// this returns a serialized json object (which internally encoded binary fields properly)
 		keeper.IterateContractState(ctx, contractAddr, func(key, value []byte) bool {
 			resultData = append(resultData, types.Model{Key: key, Value: value})
 			return false
 		})
+		if params.Reverse {
+			for i, j := 0, len(resultData)-1; i < j; i, j = i+1, j-1 {
+				resultData[i], resultData[j] = resultData[j], resultData[i]
+			}
+		}
+		start, end := client.Paginate(len(resultData), params.Page, params.Limit, 100)
+		if start < 0 || end < 0 {
+			resultData = []types.Model{}
+		} else {
+			resultData = resultData[start:end]
+		}
 		bz, err := json.Marshal(resultData)
 		if err != nil {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
@@ -120,7 +138,13 @@ func queryContractState(ctx sdk.Context, bech, queryMethod string, data []byte, 
 	}
 }
 
-func queryCodeList(ctx sdk.Context, keeper types.ViewKeeper) ([]types.CodeInfoResponse, error) {
+func queryCodeList(ctx sdk.Context, req abci.RequestQuery, keeper types.ViewKeeper) ([]types.CodeInfoResponse, error) {
+	var params types.QueryParamsWithReverse
+
+	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
+	}
+
 	var info []types.CodeInfoResponse
 	keeper.IterateCodeInfos(ctx, func(i uint64, res types.CodeInfo) bool {
 		info = append(info, types.CodeInfoResponse{
@@ -131,11 +155,40 @@ func queryCodeList(ctx sdk.Context, keeper types.ViewKeeper) ([]types.CodeInfoRe
 		})
 		return false
 	})
+
+	if params.Reverse {
+		for i, j := 0, len(info)-1; i < j; i, j = i+1, j-1 {
+			info[i], info[j] = info[j], info[i]
+		}
+	}
+	start, end := client.Paginate(len(info), params.Page, params.Limit, 100)
+	if start < 0 || end < 0 {
+		info = []types.CodeInfoResponse{}
+	} else {
+		info = info[start:end]
+	}
 	return info, nil
 }
 
-func queryContractHistory(ctx sdk.Context, contractAddr sdk.AccAddress, keeper types.ViewKeeper) ([]types.ContractCodeHistoryEntry, error) {
+func queryContractHistory(ctx sdk.Context, req abci.RequestQuery, contractAddr sdk.AccAddress, keeper types.ViewKeeper) ([]types.ContractCodeHistoryEntry, error) {
+	var params types.QueryParamsWithReverse
+
+	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
+	}
+
 	history := keeper.GetContractHistory(ctx, contractAddr)
+	if params.Reverse {
+		for i, j := 0, len(history)-1; i < j; i, j = i+1, j-1 {
+			history[i], history[j] = history[j], history[i]
+		}
+	}
+	start, end := client.Paginate(len(history), params.Page, params.Limit, 100)
+	if start < 0 || end < 0 {
+		history = []types.ContractCodeHistoryEntry{}
+	} else {
+		history = history[start:end]
+	}
 	// redact response
 	for i := range history {
 		history[i].Updated = nil
@@ -143,11 +196,28 @@ func queryContractHistory(ctx sdk.Context, contractAddr sdk.AccAddress, keeper t
 	return history, nil
 }
 
-func queryContractListByCode(ctx sdk.Context, codeID uint64, keeper types.ViewKeeper) []string {
+func queryContractListByCode(ctx sdk.Context, req abci.RequestQuery, codeID uint64, keeper types.ViewKeeper) ([]string, error) {
+	var params types.QueryParamsWithReverse
+
+	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
+	}
+
 	var contracts []string
 	keeper.IterateContractsByCode(ctx, codeID, func(addr sdk.AccAddress) bool {
 		contracts = append(contracts, addr.String())
 		return false
 	})
-	return contracts
+	if params.Reverse {
+		for i, j := 0, len(contracts)-1; i < j; i, j = i+1, j-1 {
+			contracts[i], contracts[j] = contracts[j], contracts[i]
+		}
+	}
+	start, end := client.Paginate(len(contracts), params.Page, params.Limit, 100)
+	if start < 0 || end < 0 {
+		contracts = []string{}
+	} else {
+		contracts = contracts[start:end]
+	}
+	return contracts, nil
 }
