@@ -6,6 +6,7 @@ import (
 
 	"github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/common"
 	"github.com/okex/exchain/x/distribution/types"
 )
@@ -19,7 +20,7 @@ func init() {
 }
 
 func RegisterConvert() {
-	enableHeight := int64(0)
+	enableHeight := tmtypes.GetVenus3Height()
 	baseapp.RegisterCmHandle("okexchain/distribution/MsgWithdrawDelegatorAllRewards", baseapp.NewCMHandle(ConvertWithdrawDelegatorAllRewardsMsg, enableHeight))
 }
 

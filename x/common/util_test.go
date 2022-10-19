@@ -96,7 +96,7 @@ func TestCheckSignerAddress(t *testing.T) {
 		{
 			signers:    []sdk.AccAddress{},
 			delegators: []sdk.AccAddress{},
-			result:     true,
+			result:     false,
 		},
 		{
 			signers: []sdk.AccAddress{
@@ -122,7 +122,7 @@ func TestCheckSignerAddress(t *testing.T) {
 				mustAccAddressFromHex("889Fb79ac5Ec9C1Ee86Db2D3f3857Dd3D4af0C2E"),
 				mustAccAddressFromHex("B2910E22Bb23D129C02d122B77B462ceB0E89Db9"),
 			},
-			result: true,
+			result: false,
 		},
 		{
 			signers: []sdk.AccAddress{
@@ -133,7 +133,7 @@ func TestCheckSignerAddress(t *testing.T) {
 				mustAccAddressFromHex("889Fb79ac5Ec9C1Ee86Db2D3f3857Dd3D4af0C2E"),
 				mustAccAddressFromHex("B2910E22Bb23D129C02d122B77B462ceB0E89Db9"),
 			},
-			result: true,
+			result: false,
 		},
 		{
 			signers: []sdk.AccAddress{

@@ -883,6 +883,9 @@ func NewMptCommitHandler(ak *evm.Keeper) sdk.MptCommitHandler {
 }
 
 func NewEvmSysContractAddressHandler(ak *evm.Keeper) sdk.EvmSysContractAddressHandler {
+	if ak == nil {
+		panic("NewEvmSysContractAddressHandler ak is nil")
+	}
 	return func(
 		ctx sdk.Context, addr sdk.AccAddress,
 	) bool {

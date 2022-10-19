@@ -839,6 +839,9 @@ func NewAccHandler(ak auth.AccountKeeper) sdk.AccNonceHandler {
 }
 
 func NewEvmSysContractAddressHandler(ak *evm.Keeper) sdk.EvmSysContractAddressHandler {
+	if ak == nil {
+		panic("NewEvmSysContractAddressHandler ak is nil")
+	}
 	return func(
 		ctx sdk.Context, addr sdk.AccAddress,
 	) bool {
