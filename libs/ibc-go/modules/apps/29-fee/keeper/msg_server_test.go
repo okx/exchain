@@ -1,6 +1,10 @@
 package keeper_test
 
 import (
+	"fmt"
+
+	ibcmock "github.com/okex/exchain/libs/ibc-go/testing/mock"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/types"
 	transfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
@@ -172,96 +176,98 @@ func (suite *KeeperTestSuite) TestPayPacketFee() {
 		malleate func()
 		expPass  bool
 	}{
-		{
-			"success",
-			func() {},
-			true,
-		},
-		{
-			"success with existing packet fees in escrow",
-			func() {
-				fee := types.NewFee(defaultRecvFee, defaultAckFee, defaultTimeoutFee)
-
-				packetID := channeltypes.NewPacketId(suite.path.EndpointA.ChannelConfig.PortID, suite.path.EndpointA.ChannelID, 1)
-				packetFee := types.NewPacketFee(fee, suite.chainA.SenderAccount().GetAddress().String(), nil)
-				feesInEscrow := types.NewPacketFees([]types.PacketFee{packetFee})
-
-				suite.chainA.GetSimApp().IBCFeeKeeper.SetFeesInEscrow(suite.chainA.GetContext(), packetID, feesInEscrow)
-				err := suite.chainA.GetSimApp().SupplyKeeper.SendCoinsFromAccountToModule(suite.chainA.GetContext(), suite.chainA.SenderAccount().GetAddress(), types.ModuleName, fee.Total().ToCoins())
-				suite.Require().NoError(err)
-
-				expEscrowBalance = expEscrowBalance.Add(fee.Total().ToCoins()...)
-				expFeesInEscrow = append(expFeesInEscrow, packetFee)
-			},
-			true,
-		},
 		//{
-		//	"refund account is module account",
-		//	func() {
-		//		msg.Signer = suite.chainA.GetSimApp().SupplyKeeper.GetModuleAddress(ibcmock.ModuleName).String()
-		//		expPacketFee := types.NewPacketFee(fee, msg.Signer, nil)
-		//		expFeesInEscrow = []types.PacketFee{expPacketFee}
-		//	},
+		//	"success",
+		//	func() {},
 		//	true,
 		//},
 		//{
-		//	"fee module is locked",
+		//	"success with existing packet fees in escrow",
 		//	func() {
-		//		lockFeeModule(suite.chainA)
+		//		fee := types.NewFee(defaultRecvFee, defaultAckFee, defaultTimeoutFee)
+		//
+		//		packetID := channeltypes.NewPacketId(suite.path.EndpointA.ChannelConfig.PortID, suite.path.EndpointA.ChannelID, 1)
+		//		packetFee := types.NewPacketFee(fee, suite.chainA.SenderAccount().GetAddress().String(), nil)
+		//		feesInEscrow := types.NewPacketFees([]types.PacketFee{packetFee})
+		//
+		//		suite.chainA.GetSimApp().IBCFeeKeeper.SetFeesInEscrow(suite.chainA.GetContext(), packetID, feesInEscrow)
+		//		err := suite.chainA.GetSimApp().SupplyKeeper.SendCoinsFromAccountToModule(suite.chainA.GetContext(), suite.chainA.SenderAccount().GetAddress(), types.ModuleName, fee.Total().ToCoins())
+		//		suite.Require().NoError(err)
+		//
+		//		expEscrowBalance = expEscrowBalance.Add(fee.Total().ToCoins()...)
+		//		expFeesInEscrow = append(expFeesInEscrow, packetFee)
 		//	},
-		//	false,
+		//	true,
 		//},
-		//{
-		//	"fee module disabled on channel",
-		//	func() {
-		//		msg.SourcePortId = "invalid-port"
-		//		msg.SourceChannelId = "invalid-channel"
-		//	},
-		//	false,
-		//},
-		//{
-		//	"invalid refund address",
-		//	func() {
-		//		msg.Signer = "invalid-address"
-		//	},
-		//	false,
-		//},
-		//{
-		//	"refund account does not exist",
-		//	func() {
-		//		msg.Signer = suite.chainB.SenderAccount().GetAddress().String()
-		//	},
-		//	false,
-		//},
-		//{
-		//	"refund account is a blocked address",
-		//	func() {
-		//		blockedAddr := suite.chainA.GetSimApp().SupplyKeeper.GetModuleAccount(suite.chainA.GetContext(), transfertypes.ModuleName).GetAddress()
-		//		msg.Signer = blockedAddr.String()
-		//	},
-		//	false,
-		//},
-		//{
-		//	"acknowledgement fee balance not found",
-		//	func() {
-		//		msg.Fee.AckFee = invalidCoins
-		//	},
-		//	false,
-		//},
-		//{
-		//	"receive fee balance not found",
-		//	func() {
-		//		msg.Fee.RecvFee = invalidCoins
-		//	},
-		//	false,
-		//},
-		//{
-		//	"timeout fee balance not found",
-		//	func() {
-		//		msg.Fee.TimeoutFee = invalidCoins
-		//	},
-		//	false,
-		//},
+		{
+			"refund account is module account",
+			func() {
+				msg.Signer = suite.chainA.GetSimApp().SupplyKeeper.GetModuleAddress(ibcmock.ModuleName).String()
+				addr := suite.chainA.GetSimApp().SupplyKeeper.GetModuleAccount(suite.chainA.GetContext(), ibcmock.ModuleName)
+				suite.chainA.GetSimApp().SupplyKeeper.SendCoins(suite.chainA.GetContext(), suite.chainA.SenderAccount().GetAddress(), addr.GetAddress(), sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, sdk.NewInt(100))))
+				expPacketFee := types.NewPacketFee(fee, msg.Signer, nil)
+				expFeesInEscrow = []types.PacketFee{expPacketFee}
+			},
+			true,
+		},
+		{
+			"fee module is locked",
+			func() {
+				lockFeeModule(suite.chainA)
+			},
+			false,
+		},
+		{
+			"fee module disabled on channel",
+			func() {
+				msg.SourcePortId = "invalid-port"
+				msg.SourceChannelId = "invalid-channel"
+			},
+			false,
+		},
+		{
+			"invalid refund address",
+			func() {
+				msg.Signer = "invalid-address"
+			},
+			false,
+		},
+		{
+			"refund account does not exist",
+			func() {
+				msg.Signer = suite.chainB.SenderAccount().GetAddress().String()
+			},
+			false,
+		},
+		{
+			"refund account is a blocked address",
+			func() {
+				blockedAddr := suite.chainA.GetSimApp().SupplyKeeper.GetModuleAccount(suite.chainA.GetContext(), transfertypes.ModuleName).GetAddress()
+				msg.Signer = blockedAddr.String()
+			},
+			false,
+		},
+		{
+			"acknowledgement fee balance not found",
+			func() {
+				msg.Fee.AckFee = invalidCoinsNotExist
+			},
+			false,
+		},
+		{
+			"receive fee balance not found",
+			func() {
+				msg.Fee.RecvFee = invalidCoinsNotExist
+			},
+			false,
+		},
+		{
+			"timeout fee balance not found",
+			func() {
+				msg.Fee.TimeoutFee = invalidCoinsNotExist
+			},
+			false,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -302,7 +308,7 @@ func (suite *KeeperTestSuite) TestPayPacketFee() {
 				suite.Require().Error(err)
 
 				escrowBalance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.GetSimApp().IBCFeeKeeper.GetFeeModuleAddress(), sdk.DefaultBondDenom)
-				suite.Require().Equal(sdk.NewInt(0), escrowBalance.Amount)
+				suite.Require().Equal(sdk.NewInt(0), escrowBalance.Amount.TruncateInt())
 			}
 		})
 	}
@@ -431,21 +437,21 @@ func (suite *KeeperTestSuite) TestPayPacketFeeAsync() {
 		{
 			"acknowledgement fee balance not found",
 			func() {
-				msg.PacketFee.Fee.AckFee = invalidCoins
+				msg.PacketFee.Fee.AckFee = invalidCoinsNotExist
 			},
 			false,
 		},
 		{
 			"receive fee balance not found",
 			func() {
-				msg.PacketFee.Fee.RecvFee = invalidCoins
+				msg.PacketFee.Fee.RecvFee = invalidCoinsNotExist
 			},
 			false,
 		},
 		{
 			"timeout fee balance not found",
 			func() {
-				msg.PacketFee.Fee.TimeoutFee = invalidCoins
+				msg.PacketFee.Fee.TimeoutFee = invalidCoinsNotExist
 			},
 			false,
 		},
@@ -488,7 +494,8 @@ func (suite *KeeperTestSuite) TestPayPacketFeeAsync() {
 				suite.Require().Error(err)
 
 				escrowBalance := suite.chainA.GetSimApp().BankKeeper.GetBalance(suite.chainA.GetContext(), suite.chainA.GetSimApp().IBCFeeKeeper.GetFeeModuleAddress(), sdk.DefaultBondDenom)
-				suite.Require().Equal(sdk.NewInt(0), escrowBalance.Amount)
+				fmt.Println(escrowBalance.String())
+				suite.Require().Equal(sdk.NewInt(0), escrowBalance.Amount.TruncateInt())
 			}
 		})
 	}

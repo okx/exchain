@@ -241,6 +241,8 @@ func NewTestChain(t *testing.T, coord *Coordinator, chainID string) TestChainI {
 	coord.CommitBlock(tchain)
 	//
 	//coord.UpdateNextBlock(tchain)
+	mockModuleAcc := tchain.GetSimApp().SupplyKeeper.GetModuleAccount(tchain.GetContext(), mock.ModuleName)
+	require.NotNil(t, mockModuleAcc)
 
 	return tchain
 }

@@ -18,10 +18,11 @@ import (
 )
 
 var (
-	defaultRecvFee    = sdk.CoinAdapters{sdk.CoinAdapter{Denom: sdk.DefaultIbcWei, Amount: sdk.NewInt(100)}}
-	defaultAckFee     = sdk.CoinAdapters{sdk.CoinAdapter{Denom: sdk.DefaultIbcWei, Amount: sdk.NewInt(200)}}
-	defaultTimeoutFee = sdk.CoinAdapters{sdk.CoinAdapter{Denom: sdk.DefaultIbcWei, Amount: sdk.NewInt(300)}}
-	invalidCoins      = sdk.CoinAdapters{sdk.CoinAdapter{Denom: "invalidDenom", Amount: sdk.NewInt(100)}}
+	defaultRecvFee       = sdk.CoinAdapters{sdk.CoinAdapter{Denom: sdk.DefaultIbcWei, Amount: sdk.NewInt(100)}}
+	defaultAckFee        = sdk.CoinAdapters{sdk.CoinAdapter{Denom: sdk.DefaultIbcWei, Amount: sdk.NewInt(200)}}
+	defaultTimeoutFee    = sdk.CoinAdapters{sdk.CoinAdapter{Denom: sdk.DefaultIbcWei, Amount: sdk.NewInt(300)}}
+	invalidCoins         = sdk.CoinAdapters{sdk.CoinAdapter{Denom: "invalidDenom", Amount: sdk.NewInt(100)}}
+	invalidCoinsNotExist = sdk.CoinAdapters{sdk.CoinAdapter{Denom: "stake", Amount: sdk.NewInt(100)}}
 )
 
 type KeeperTestSuite struct {
