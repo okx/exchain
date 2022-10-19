@@ -110,7 +110,7 @@ func (suite *KeeperTestSuite) TestGetSetPayeeAddress() {
 		suite.path.EndpointA.ChannelID,
 	)
 
-	payeeAddr, found = suite.chainA.GetSimApp().IBCFeeKeeper.GetPayeeAddress(suite.chainA.GetContext(), suite.chainA.SenderAccount().GetAddress().String(), suite.path.EndpointA.ChannelID)
+	payeeAddr, found = suite.chainA.GetSimApp().IBCFeeKeeper.GetPayeeAddress(suite.chainA.GetContext(), suite.chainA.SenderAccounts()[0].SenderAccount.GetAddress().String(), suite.path.EndpointA.ChannelID)
 	suite.Require().True(found)
 	suite.Require().Equal(suite.chainA.SenderAccounts()[1].SenderAccount.GetAddress().String(), payeeAddr)
 }
