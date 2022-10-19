@@ -127,6 +127,9 @@ func init() {
 const (
 	appName = "OKExChain"
 )
+const (
+	MockFeePort string = mock.ModuleName + ibcfeetypes.ModuleName
+)
 
 var (
 	// DefaultCLIHome sets the default home directories for the application CLI
@@ -222,6 +225,8 @@ type SimApp struct {
 
 	txconfig client.TxConfig
 
+	CodecProxy *codec.CodecProxy
+
 	invCheckPeriod uint
 
 	// keys to access the substores
@@ -282,6 +287,8 @@ type SimApp struct {
 	ICAControllerKeeper icacontrollerkeeper.Keeper
 	ICAHostKeeper       icahostkeeper.Keeper
 	ICAAuthModule       mock.IBCModule
+
+	FeeMockModule mock.IBCModule
 }
 
 // NewSimApp returns a reference to a new initialized OKExChain application.
@@ -788,6 +795,7 @@ func NewSimApp(
 		subspaces:      make(map[string]params.Subspace),
 		heightTasks:    make(map[int64]*upgradetypes.HeightTasks),
 	}
+	app.CodecProxy = codecProxy
 	bApp.SetInterceptors(makeInterceptors())
 
 	// init params keeper and subspaces
@@ -890,6 +898,7 @@ func NewSimApp(
 	scopedICAControllerKeeper := app.CapabilityKeeper.ScopeToModule(icacontrollertypes.SubModuleName)
 	scopedICAHostKeeper := app.CapabilityKeeper.ScopeToModule(icahosttypes.SubModuleName)
 	scopedICAMauthKeeper := app.CapabilityKeeper.ScopeToModule(icamauthtypes.ModuleName)
+	scopedFeeMockKeeper := app.CapabilityKeeper.ScopeToModule(MockFeePort)
 
 	v2keeper := ibc.NewKeeper(
 		codecProxy, keys[ibchost.StoreKey], app.GetSubspace(ibchost.ModuleName), &stakingKeeper, app.UpgradeKeeper, &scopedIBCKeeper, interfaceReg,
@@ -978,24 +987,30 @@ func NewSimApp(
 	transferModule := transfer.TNewTransferModule(app.TransferKeeper, codecProxy)
 
 	mockModule := mock.NewAppModule(scopedIBCMockKeeper, &v2keeper.PortKeeper)
+	mockIBCModule := mock.NewIBCModule(&mockModule, mock.NewMockIBCApp(mock.ModuleName, scopedIBCMockKeeper))
+
 	// Create static IBC router, add transfer route, then set and seal it
 	ibcRouter := ibcporttypes.NewRouter()
-
+	ibcRouter.AddRoute(mock.ModuleName, mockIBCModule)
 	// The mock module is used for testing IBC
 	//mockIBCModule := mock.NewIBCModule(&mockModule, mock.NewMockIBCApp(mock.ModuleName, scopedIBCMockKeeper))
 
 	var icaControllerStack ibcporttypes.IBCModule
-	//icaMauthIBCModule := icamauth.NewIBCModule(app.ICAMauthKeeper)
-	//icaControllerStack = icaMauthIBCModule
 	icaControllerStack = mock.NewIBCModule(&mockModule, mock.NewMockIBCApp("", scopedICAMockKeeper))
 	app.ICAAuthModule = icaControllerStack.(mock.IBCModule)
-
 	icaControllerStack = icacontroller.NewIBCMiddleware(icaControllerStack, app.ICAControllerKeeper)
+	icaControllerStack = ibcfee.NewIBCMiddleware(icaControllerStack, app.IBCFeeKeeper)
+
 	var icaHostStack ibcporttypes.IBCModule
 	icaHostStack = icahost.NewIBCModule(app.ICAHostKeeper)
+	icaHostStack = ibcfee.NewIBCMiddleware(icaHostStack, app.IBCFeeKeeper)
+	// fee
+	feeMockModule := mock.NewIBCModule(&mockModule, mock.NewMockIBCApp(MockFeePort, scopedFeeMockKeeper))
+	app.FeeMockModule = feeMockModule
+	feeWithMockModule := ibcfee.NewIBCMiddleware(feeMockModule, app.IBCFeeKeeper)
+	ibcRouter.AddRoute(MockFeePort, feeWithMockModule)
 
 	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferModule)
-	ibcRouter.AddRoute(mock.ModuleName, mockModule)
 	ibcRouter.AddRoute(icacontrollertypes.SubModuleName, icaControllerStack)
 	ibcRouter.AddRoute(icahosttypes.SubModuleName, icaHostStack)
 	ibcRouter.AddRoute(icamauthtypes.ModuleName, icaControllerStack)

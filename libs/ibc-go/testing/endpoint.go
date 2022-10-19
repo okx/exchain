@@ -281,6 +281,8 @@ func (endpoint *Endpoint) ChanOpenInit() error {
 	endpoint.ChannelID, err = ParseChannelIDFromEvents(res.Events)
 	require.NoError(endpoint.Chain.T(), err)
 
+	endpoint.ChannelConfig.Version = endpoint.GetChannel().Version
+
 	return nil
 }
 
@@ -325,7 +327,14 @@ func (endpoint *Endpoint) ChanOpenAck() error {
 		proof, height,
 		endpoint.Chain.SenderAccount().GetAddress().String(),
 	)
-	return endpoint.Chain.sendMsgs(msg)
+
+	if err := endpoint.Chain.sendMsgs(msg); nil != err {
+		return err
+	}
+
+	endpoint.ChannelConfig.Version = endpoint.GetChannel().Version
+
+	return nil
 }
 
 // ChanOpenConfirm will construct and execute a MsgChannelOpenConfirm on the associated endpoint.

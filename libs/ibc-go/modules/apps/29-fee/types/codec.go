@@ -31,10 +31,11 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 }
 
 var (
-	ModuleCdc = codec.New()
+	Amino     = codec.New()
+	ModuleCdc = codec.NewProtoCodec(codectypes.NewInterfaceRegistry())
 )
 
 func init() {
-	RegisterLegacyAminoCodec(ModuleCdc)
-	ModuleCdc.Seal()
+	RegisterLegacyAminoCodec(Amino)
+	Amino.Seal()
 }
