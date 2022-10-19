@@ -412,8 +412,8 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			}
 			proposal.Signature = sig
 			// broadcast the proposal
-			proposalMsg := &ProposalMessage{Proposal: proposal}
-			conR.Switch.Broadcast(DataChannel, cdc.MustMarshalBinaryBare(proposalMsg))
+			//proposalMsg := &ProposalMessage{Proposal: proposal}
+			//conR.Switch.Broadcast(DataChannel, cdc.MustMarshalBinaryBare(proposalMsg))
 			// tell newProposer
 			prspMsg := &ProposeResponseMessage{Height: proposal.Height, Proposal: proposal}
 			ps.peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(prspMsg))
