@@ -8,10 +8,11 @@ import (
 	"io/ioutil"
 	"testing"
 
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 
 	"github.com/okex/exchain/x/wasm/types"
 )
@@ -51,6 +52,10 @@ func TestLegacyQueryContractState(t *testing.T) {
 	var defaultQueryGasLimit sdk.Gas = 3000000
 	q := NewLegacyQuerier(keeper, defaultQueryGasLimit)
 
+	params := types.NewQueryParamsWithReverse(1, 0, false)
+	bs := types.ModuleCdc.MustMarshalJSON(params)
+	reqWithParams := abci.RequestQuery{Data: bs}
+
 	specs := map[string]struct {
 		srcPath []string
 		srcReq  abci.RequestQuery
@@ -64,6 +69,7 @@ func TestLegacyQueryContractState(t *testing.T) {
 	}{
 		"query all": {
 			srcPath:     []string{QueryGetContractState, addr.String(), QueryMethodContractStateAll},
+			srcReq:      reqWithParams,
 			expModelLen: 3,
 			expModelContains: []types.Model{
 				{Key: []byte("foo"), Value: []byte(`"bar"`)},
@@ -116,6 +122,7 @@ func TestLegacyQueryContractState(t *testing.T) {
 		},
 		"query all with unknown address": {
 			srcPath:     []string{QueryGetContractState, anyAddr.String(), QueryMethodContractStateAll},
+			srcReq:      reqWithParams,
 			expModelLen: 0,
 		},
 		"query smart with unknown address": {
@@ -202,7 +209,9 @@ func TestLegacyQueryContractListByCodeOrdering(t *testing.T) {
 	q := NewLegacyQuerier(keeper, defaultQueryGasLimit)
 
 	query := []string{QueryListContractByCode, fmt.Sprintf("%d", codeID)}
-	data := abci.RequestQuery{}
+	params := types.NewQueryParamsWithReverse(1, 0, false)
+	bs := types.ModuleCdc.MustMarshalJSON(params)
+	data := abci.RequestQuery{Data: bs}
 	res, err := q(ctx, query, data)
 	require.NoError(t, err)
 
@@ -297,7 +306,9 @@ func TestLegacyQueryContractHistory(t *testing.T) {
 
 			// when
 			query := []string{QueryContractHistory, queryContractAddr.String()}
-			data := abci.RequestQuery{}
+			params := types.NewQueryParamsWithReverse(1, 0, false)
+			bs := types.ModuleCdc.MustMarshalJSON(params)
+			data := abci.RequestQuery{Data: bs}
 			resData, err := q(ctx, query, data)
 
 			// then
@@ -342,19 +353,21 @@ func TestLegacyQueryCodeList(t *testing.T) {
 			q := NewLegacyQuerier(keeper, defaultQueryGasLimit)
 			// when
 			query := []string{QueryListCode}
-			data := abci.RequestQuery{}
+			params := types.NewQueryParamsWithReverse(1, 0, false)
+			bs := types.ModuleCdc.MustMarshalJSON(params)
+			data := abci.RequestQuery{Data: bs}
 			resData, err := q(ctx, query, data)
-
-			// then
 			require.NoError(t, err)
-			if len(spec.codeIDs) == 0 {
-				require.Nil(t, resData)
-				return
-			}
 
 			var got []map[string]interface{}
 			err = json.Unmarshal(resData, &got)
+			// then
 			require.NoError(t, err)
+			if len(spec.codeIDs) == 0 {
+				require.Equal(t, 0, len(got))
+				return
+			}
+
 			require.Len(t, got, len(spec.codeIDs))
 			for i, exp := range spec.codeIDs {
 				assert.EqualValues(t, exp, got[i]["id"])
