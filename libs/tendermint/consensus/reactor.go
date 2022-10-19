@@ -389,7 +389,8 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			// or this peer is not proposer
 			// or only then proposer ApplyBlock(height) has finished, do not handle prMsg
 			if msg.Height <= conR.hasViewChanged ||
-				!bytes.Equal(conR.conS.privValidatorPubKey.Address(), msg.CurrentProposer) {
+				!bytes.Equal(conR.conS.privValidatorPubKey.Address(), msg.CurrentProposer) ||
+				msg.Height <= height {
 				return
 			}
 
