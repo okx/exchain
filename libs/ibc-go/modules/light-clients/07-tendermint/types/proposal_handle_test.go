@@ -22,18 +22,20 @@ func (suite *TendermintTestSuite) TestCheckSubstituteUpdateStateBasic() {
 		name     string
 		malleate func()
 	}{
-		// {
-		// 	"solo machine used for substitute", func() {
-		// 		substituteClientState = ibctesting.NewSolomachine(suite.T(), suite.cdc, "solo machine", "", 1).ClientState()
-		// 	},
-		// },
+		{
+			"solo machine used for substitute", func() {
+				substituteClientState = ibctesting.NewSolomachine(suite.T(), suite.cdc, "solo machine", "", 1).ClientState()
+			},
+		},
 		{
 			"non-matching substitute", func() {
 				suite.coordinator.SetupClients(substitutePath)
-				substituteClientState = suite.chainA.GetClientState(substitutePath.EndpointA.ClientID).(*types.ClientState)
-				tmClientState, ok := substituteClientState.(*types.ClientState)
+				substituteClientState, ok := suite.chainA.GetClientState(substitutePath.EndpointA.ClientID).(*types.ClientState)
 				suite.Require().True(ok)
+				// change trusting period so that test should fail
+				substituteClientState.TrustingPeriod = time.Hour * 24 * 7
 
+				tmClientState := substituteClientState
 				tmClientState.ChainId = tmClientState.ChainId + "different chain"
 			},
 		},
@@ -43,15 +45,12 @@ func (suite *TendermintTestSuite) TestCheckSubstituteUpdateStateBasic() {
 		tc := tc
 
 		suite.Run(tc.name, func() {
-
 			suite.SetupTest() // reset
 			subjectPath := ibctesting.NewPath(suite.chainA, suite.chainB)
 			substitutePath = ibctesting.NewPath(suite.chainA, suite.chainB)
 
 			suite.coordinator.SetupClients(subjectPath)
 			subjectClientState := suite.chainA.GetClientState(subjectPath.EndpointA.ClientID).(*types.ClientState)
-			subjectClientState.AllowUpdateAfterMisbehaviour = true
-			subjectClientState.AllowUpdateAfterExpiry = true
 
 			// expire subject client
 			suite.coordinator.IncrementTimeBy(subjectClientState.TrustingPeriod)
@@ -59,10 +58,10 @@ func (suite *TendermintTestSuite) TestCheckSubstituteUpdateStateBasic() {
 
 			tc.malleate()
 
-			subjectClientStore := suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), subjectPath.EndpointA.ClientID)
-			substituteClientStore := suite.chainA.App().GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), substitutePath.EndpointA.ClientID)
+			subjectClientStore := suite.chainA.GetSimApp().GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), subjectPath.EndpointA.ClientID)
+			substituteClientStore := suite.chainA.GetSimApp().GetIBCKeeper().ClientKeeper.ClientStore(suite.chainA.GetContext(), substitutePath.EndpointA.ClientID)
 
-			updatedClient, err := subjectClientState.CheckSubstituteAndUpdateState(suite.chainA.GetContext(), suite.chainA.App().AppCodec(), subjectClientStore, substituteClientStore, substituteClientState)
+			updatedClient, err := subjectClientState.CheckSubstituteAndUpdateState(suite.chainA.GetContext(), suite.chainA.GetSimApp().AppCodec(), subjectClientStore, substituteClientStore, substituteClientState)
 			suite.Require().Error(err)
 			suite.Require().Nil(updatedClient)
 		})
