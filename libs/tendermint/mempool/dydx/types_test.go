@@ -183,15 +183,32 @@ func TestSignature(t *testing.T) {
 	require.Equal(t, sig, data)
 }
 
+func TestSignature2(t *testing.T) {
+	orderHash := common.FromHex("0x964e19a25c3e198dd203b0bb83442299003beff5768d22e41868d1a390ca308c")
+	signedHash := crypto.Keccak256Hash([]byte(PREPEND_DEC), orderHash[:])
+	sig := common.FromHex("0x52bad94c3baa909247bd0f8ccc24f93c6a1603f8fa995d7b448e34bc38ef98817f41f855cc2a8a25b1ed1f91f5f05138f9bd0f4cb3c6646d47e18feb0d7f706a1b")
+	sig = sig[:65]
+	sig[64] -= 27
+
+	priv, err := crypto.HexToECDSA("50d4722845aa9fcacc28995703379b7e6c003aa76388cac3b0f4e16cac1d119f")
+	addr := crypto.PubkeyToAddress(priv.PublicKey)
+	require.Equal(t, "0x2530c4f8bB2e683B609A61565ED6FB6434dDfd03", addr.String())
+
+	data, err := crypto.Sign(signedHash[:], priv)
+	require.NoError(t, err)
+	require.Equal(t, sig, data)
+}
+
 func TestSignOrder(t *testing.T) {
 	//TODO: test more order
 	odr := newP1Order()
+	odr.Expiration = big.NewInt(3332335486)
+	odr.Maker = common.HexToAddress("0xbbE4733d85bc2b90682147779DA49caB38C0aA1F")
 	sig, err := signOrder(odr, "8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17", 65, "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619")
 	require.NoError(t, err)
 	require.Equal(t, 66, len(sig))
 	require.True(t, sig[65] == 1)
-	require.True(t, sig[64] >= 27)
-	require.True(t, sig[64] <= 28)
+	require.True(t, sig[64] == 27)
 }
 
 func signOrder(odr P1Order, hexPriv string, chainId int64, orderContractaddr string) ([]byte, error) {
@@ -216,18 +233,14 @@ func newP1Order() P1Order {
 		CallType: 1,
 		P1OrdersOrder: contracts.P1OrdersOrder{
 			Amount:       big.NewInt(1),
-			LimitPrice:   big.NewInt(1),
-			TriggerPrice: big.NewInt(1),
-			LimitFee:     big.NewInt(1),
+			LimitPrice:   big.NewInt(0),
+			TriggerPrice: big.NewInt(0),
+			LimitFee:     big.NewInt(0),
 			Expiration:   big.NewInt(0),
 		},
 	}
 
-	flags, _ := hex.DecodeString("4554480000000000000000000000000000000000000000000000000000000000")
-	addr, _ := hex.DecodeString("4554480000000000000000000000000000000000")
-	copy(odr.Flags[:], flags)
-	copy(odr.Maker[:], addr)
-	copy(odr.Taker[:], addr)
+	odr.Flags[31] = 1
 	return odr
 }
 

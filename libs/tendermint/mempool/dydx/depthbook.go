@@ -2,7 +2,6 @@ package dydx
 
 import (
 	"container/list"
-	"errors"
 	"sync"
 	"time"
 
@@ -22,12 +21,10 @@ func NewDepthBook() *DepthBook {
 }
 
 func (d *DepthBook) Insert(order *WrapOrder) error {
-	if order.Type() == SellOrderType {
-		d.sellOrders.Insert(order)
-	} else if order.Type() == BuyOrderType {
+	if order.isBuy() {
 		d.buyOrders.Insert(order)
 	} else {
-		return errors.New("invalid order")
+		d.sellOrders.Insert(order)
 	}
 	return nil
 }
@@ -145,9 +142,23 @@ func (o *OrderList) Remove(ele *list.Element) *list.Element {
 	return nil
 }
 
+func (o *OrderList) List() []*WrapOrder {
+	var orders []*WrapOrder
+	for ele := o.orders.Front(); ele != nil; ele = ele.Next() {
+		orders = append(orders, ele.Value.(*WrapOrder))
+	}
+	return orders
+}
+
+func (o *OrderList) Len() int {
+	o.RLock()
+	defer o.RUnlock()
+	return len(o.index)
+}
+
 //TODO, use block.timestamp?
 func (o *OrderList) prune() {
-	ticker := time.NewTimer(time.Minute)
+	ticker := time.NewTicker(time.Minute)
 	for {
 		select {
 		case <-ticker.C:
@@ -164,7 +175,7 @@ func (o *OrderList) prune() {
 
 func (o *OrderList) less(order1, order2 *WrapOrder) bool {
 	if o.reverse {
-		return order1.Price().Cmp(order2.Price()) > 0
+		return order1.Amount.Cmp(order2.Amount) > 0
 	}
-	return order1.Price().Cmp(order2.Price()) < 0
+	return order1.Amount.Cmp(order2.Amount) < 0
 }

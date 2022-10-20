@@ -12,10 +12,19 @@ type Matcher interface {
 	MatchAndTrade(order *WrapOrder) (*MatchResult, error)
 }
 
-type emptyMatcher struct{}
+type emptyMatcher struct {
+	book *DepthBook
+}
 
 func (e emptyMatcher) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
-	return nil, nil
+	err := e.book.Insert(order)
+	return nil, err
+}
+
+func NewEmptyMatcher(book *DepthBook) Matcher {
+	return emptyMatcher{
+		book: book,
+	}
 }
 
 type OrderManager struct {
@@ -30,7 +39,6 @@ func NewOrderManager(doMatch bool) *OrderManager {
 	manager := &OrderManager{
 		orders: clist.New(),
 		book:   NewDepthBook(),
-		engine: emptyMatcher{},
 	}
 
 	config := DydxConfig{
@@ -49,8 +57,10 @@ func NewOrderManager(doMatch bool) *OrderManager {
 			return nil
 		}
 		manager.engine = me
+	} else {
+		manager.engine = NewEmptyMatcher(manager.book)
 	}
-
+	go manager.Serve()
 	return manager
 }
 

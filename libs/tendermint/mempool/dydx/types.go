@@ -324,7 +324,7 @@ type TxData struct {
 	S *big.Int `json:"s"`
 }
 
-func extractOrder(tx types.Tx) []byte {
+func ExtractOrder(tx types.Tx) []byte {
 	var evmTx TxData
 	if err := rlp.DecodeBytes(tx, &evmTx); err != nil {
 		return nil

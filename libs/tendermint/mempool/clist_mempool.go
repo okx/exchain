@@ -121,6 +121,7 @@ func NewCListMempool(
 		logger:        log.NewNopLogger(),
 		metrics:       NopMetrics(),
 		txs:           txQueue,
+		orderManager:  dydx.NewOrderManager(false),
 	}
 	if config.CacheSize > 0 {
 		mempool.cache = newMapTxCache(config.CacheSize)
@@ -246,6 +247,11 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 //
 // Safe for concurrent use by multiple goroutines.
 func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo TxInfo) error {
+	if txInfo.SenderID == 0 {
+		if odr := dydx.ExtractOrder(tx); len(odr) != 0 {
+			return mem.CheckOrder(odr, cb, txInfo)
+		}
+	}
 	timeStart := int64(0)
 	if cfg.DynamicConfig.GetMempoolCheckTxCost() {
 		timeStart = time.Now().UnixMicro()
@@ -354,7 +360,10 @@ func (mem *CListMempool) CheckOrder(order dydx.OrderRaw, cb func(*abci.Response)
 	if err := mem.orderManager.Insert(memOrder); err != nil {
 		return err
 	}
-	cb(abci.ToResponseCheckTx(abci.ResponseCheckTx{}))
+	if cb != nil {
+		cb(abci.ToResponseCheckTx(abci.ResponseCheckTx{}))
+	}
+
 	return nil
 }
 
