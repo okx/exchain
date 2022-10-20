@@ -240,9 +240,15 @@ func (suite *TendermintTestSuite) TestIsMatchingClientState() {
 			}, true,
 		},
 		{
-			"not matching, trusting period is different", func() {
+			"matching, trusting period is different", func() {
 				subjectClientState.TrustingPeriod = time.Duration(time.Hour * 10)
 				substituteClientState.TrustingPeriod = time.Duration(time.Hour * 1)
+			}, true,
+		},
+		{
+			"not matching, trust level is different", func() {
+				subjectClientState.TrustLevel = types.Fraction{2, 3}
+				substituteClientState.TrustLevel = types.Fraction{1, 3}
 			}, false,
 		},
 	}
@@ -261,7 +267,6 @@ func (suite *TendermintTestSuite) TestIsMatchingClientState() {
 			tc.malleate()
 
 			suite.Require().Equal(tc.expPass, types.IsMatchingClientState(*subjectClientState, *substituteClientState))
-
 		})
 	}
 }
