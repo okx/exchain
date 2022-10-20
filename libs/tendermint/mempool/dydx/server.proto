@@ -1,0 +1,18 @@
+// protoc --gogofaster_out=. --go-grpc_out=.   ./libs/tendermint/mempool/dydx/server.proto
+
+syntax = "proto3";
+
+option go_package = "/libs/tendermint/mempool/dydx";
+
+package dydx;
+
+service OrderBookUpdater {
+  rpc WatchOrderBook (Empty) returns(stream OrderBook) {}
+}
+
+message Empty {}
+
+message OrderBook {
+  repeated bytes buy_orders = 1;
+  repeated bytes sell_orders = 2;
+}
