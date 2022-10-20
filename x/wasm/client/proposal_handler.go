@@ -29,6 +29,12 @@ var ClearContractAdminProposalHandler = govclient.NewProposalHandler(cli.Proposa
 // MigrateContractProposalHandler is a proposal handler which can migrate contract to disable some methods of the contract.
 var MigrateContractProposalHandler = govclient.NewProposalHandler(cli.ProposalMigrateContractCmd, rest.MigrateProposalHandler)
 
+// PinCodesProposalHandler is a proposal handler which pins codes to add to wasmVM cache
+var PinCodesProposalHandler = govclient.NewProposalHandler(cli.ProposalPinCodesCmd, rest.PinCodeProposalHandler)
+
+// UnpinCodesProposalHandler is a proposal handler which unpins codes to remove from wasmVM cache
+var UnpinCodesProposalHandler = govclient.NewProposalHandler(cli.ProposalUnpinCodesCmd, rest.UnpinCodeProposalHandler)
+
 // UpdateDeploymentWhitelistProposalHandler is a custom proposal handler which defines whitelist to deploy contracts.
 var UpdateDeploymentWhitelistProposalHandler = govclient.NewProposalHandler(cli.ProposalUpdateDeploymentWhitelistCmd, rest.EmptyProposalRestHandler)
 
