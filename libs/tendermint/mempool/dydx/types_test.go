@@ -4,8 +4,10 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"math/rand"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -15,23 +17,11 @@ import (
 )
 
 const (
-	orderHex       = "000000000000000000000000000000000000000000000000000000000000000173646861000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000004000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb9226600000000000000000000000070997970c51812dc3a010c7d01b50e0d17dc79c80000000000000000000000000000000000000000000000000000000000000005"
-	signedOrderHex = "000000000000000000000000000000000000000000000000000000000000004073646861617364617364000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000120000000000000000000000000000000000000000000000000000000000000000173646861000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000004000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb9226600000000000000000000000070997970c51812dc3a010c7d01b50e0d17dc79c80000000000000000000000000000000000000000000000000000000000000005"
-	orderSigHex    = "7364686161736461736400000000000000000000000000000000000000000000"
-	flagsHex       = "7364686100000000000000000000000000000000000000000000000000000000"
-	makerHex       = "f39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
-	takerHex       = "70997970C51812dc3A010C7d01b50e0d17dc79C8"
+	orderHex = "73646861000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000030000000000000000000000000000000000000000000000000000000000000004000000000000000000000000f39fd6e51aad88f6f4ce6ab8827279cfffb9226600000000000000000000000070997970c51812dc3a010c7d01b50e0d17dc79c80000000000000000000000000000000000000000000000000000000000000005"
+	flagsHex = "7364686100000000000000000000000000000000000000000000000000000000"
+	makerHex = "f39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+	takerHex = "70997970C51812dc3A010C7d01b50e0d17dc79C8"
 )
-
-func TestDecodeSignedMsg(t *testing.T) {
-	signedMsgBytes, err := hex.DecodeString(signedOrderHex)
-	require.NoError(t, err)
-	var so SignedOrder
-	err = so.DecodeFrom(signedMsgBytes)
-	require.NoError(t, err)
-	require.Equal(t, orderHex, hex.EncodeToString(so.Msg))
-	require.Equal(t, orderSigHex, hex.EncodeToString(so.Sig[:]))
-}
 
 func TestDecodeOrder(t *testing.T) {
 	flagsBytes, err := hex.DecodeString(flagsHex)
@@ -41,7 +31,6 @@ func TestDecodeOrder(t *testing.T) {
 	takerBytes, err := hex.DecodeString(takerHex)
 	require.NoError(t, err)
 	odr := P1Order{
-		CallType: 1,
 		P1OrdersOrder: contracts.P1OrdersOrder{
 			Amount:       big.NewInt(1),
 			LimitPrice:   big.NewInt(2),
@@ -74,16 +63,34 @@ func TestDecodeRLP(t *testing.T) {
 }
 
 func TestDecodeParallel(t *testing.T) {
+	flagsBytes, err := hex.DecodeString(flagsHex)
+	require.NoError(t, err)
+	makerBytes, err := hex.DecodeString(makerHex)
+	require.NoError(t, err)
+	takerBytes, err := hex.DecodeString(takerHex)
+	require.NoError(t, err)
+	odr := P1Order{
+		P1OrdersOrder: contracts.P1OrdersOrder{
+			Amount:       big.NewInt(1),
+			LimitPrice:   big.NewInt(2),
+			TriggerPrice: big.NewInt(3),
+			LimitFee:     big.NewInt(4),
+			Expiration:   big.NewInt(5),
+		},
+	}
+	copy(odr.Flags[:], flagsBytes)
+	copy(odr.Maker[:], makerBytes)
+	copy(odr.Taker[:], takerBytes)
+
 	var wg sync.WaitGroup
 	f := func() {
 		defer wg.Done()
-		signedMsgBytes, err := hex.DecodeString(signedOrderHex)
+		orderBytes, err := hex.DecodeString(orderHex)
 		require.NoError(t, err)
-		var so SignedOrder
-		err = so.DecodeFrom(signedMsgBytes)
+		var odr2 P1Order
+		err = odr2.DecodeFrom(orderBytes)
 		require.NoError(t, err)
-		require.Equal(t, orderHex, hex.EncodeToString(so.Msg))
-		require.Equal(t, orderSigHex, hex.EncodeToString(so.Sig[:]))
+		require.Equal(t, odr, odr2)
 	}
 
 	total := 10000
@@ -95,15 +102,15 @@ func TestDecodeParallel(t *testing.T) {
 }
 
 func TestHash(t *testing.T) {
-	hashHex := "0x8e67b6484476c8e2a168e37bed7be6212d5aaedc08869f8d6083fffdee2eb3ea"
+	hashHex := "0xe7b90b35212f0fefdfd9dff7e14864b87074e39a0adf244dabea0774370374a3"
 	orderBytes, err := hex.DecodeString(orderHex)
 	require.NoError(t, err)
 	var odr P1Order
 	err = odr.DecodeFrom(orderBytes)
 	require.NoError(t, err)
-	require.Equal(t, hashHex, odr.Hash().String())
-	odr.CallType += 1
-	require.Equal(t, hashHex, odr.Hash().String())
+
+	orderContractAddr := "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619"
+	require.Equal(t, hashHex, odr.Hash2(65, orderContractAddr).String())
 }
 
 //TODO
@@ -113,7 +120,7 @@ func TestRealOrder(t *testing.T) {
 		CallType: 1,
 		P1OrdersOrder: contracts.P1OrdersOrder{
 			Amount:       big.NewInt(0).Mul(big.NewInt(6666), big.NewInt(1)),
-			LimitPrice:   big.NewInt(0).Mul(big.NewInt(22), big.NewInt(1e18)),
+			LimitPrice:   big.NewInt(0).Mul(big.NewInt(22), big.NewInt(1)),
 			TriggerPrice: big.NewInt(0),
 			LimitFee:     big.NewInt(0),
 			Expiration:   big.NewInt(1668065275),
@@ -122,7 +129,6 @@ func TestRealOrder(t *testing.T) {
 	fmt.Println(odr.Amount, odr.LimitPrice)
 	copy(odr.Maker[:], maker)
 	fmt.Println(odr.Hash())
-
 }
 
 func TestOrderHash(t *testing.T) {
@@ -147,7 +153,7 @@ func TestP1Order_VerifySignature(t *testing.T) {
 	odr := newP1Order()
 	sig, err := signOrder(odr, "8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17", 65, contractAddress)
 	require.NoError(t, err)
-	addr, err := ecrecover(odr.Hash(), sig)
+	addr, err := ecrecover(odr.Hash2(65, contractAddress), sig)
 	require.NoError(t, err)
 	require.Equal(t, "0xbbE4733d85bc2b90682147779DA49caB38C0aA1F", addr.String())
 }
@@ -177,15 +183,32 @@ func TestSignature(t *testing.T) {
 	require.Equal(t, sig, data)
 }
 
+func TestSignature2(t *testing.T) {
+	orderHash := common.FromHex("0x964e19a25c3e198dd203b0bb83442299003beff5768d22e41868d1a390ca308c")
+	signedHash := crypto.Keccak256Hash([]byte(PREPEND_DEC), orderHash[:])
+	sig := common.FromHex("0x52bad94c3baa909247bd0f8ccc24f93c6a1603f8fa995d7b448e34bc38ef98817f41f855cc2a8a25b1ed1f91f5f05138f9bd0f4cb3c6646d47e18feb0d7f706a1b")
+	sig = sig[:65]
+	sig[64] -= 27
+
+	priv, err := crypto.HexToECDSA("50d4722845aa9fcacc28995703379b7e6c003aa76388cac3b0f4e16cac1d119f")
+	addr := crypto.PubkeyToAddress(priv.PublicKey)
+	require.Equal(t, "0x2530c4f8bB2e683B609A61565ED6FB6434dDfd03", addr.String())
+
+	data, err := crypto.Sign(signedHash[:], priv)
+	require.NoError(t, err)
+	require.Equal(t, sig, data)
+}
+
 func TestSignOrder(t *testing.T) {
 	//TODO: test more order
 	odr := newP1Order()
+	odr.Expiration = big.NewInt(3332335486)
+	odr.Maker = common.HexToAddress("0xbbE4733d85bc2b90682147779DA49caB38C0aA1F")
 	sig, err := signOrder(odr, "8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17", 65, "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619")
 	require.NoError(t, err)
 	require.Equal(t, 66, len(sig))
 	require.True(t, sig[65] == 1)
-	require.True(t, sig[64] >= 27)
-	require.True(t, sig[64] <= 28)
+	require.True(t, sig[64] == 27)
 }
 
 func signOrder(odr P1Order, hexPriv string, chainId int64, orderContractaddr string) ([]byte, error) {
@@ -210,17 +233,28 @@ func newP1Order() P1Order {
 		CallType: 1,
 		P1OrdersOrder: contracts.P1OrdersOrder{
 			Amount:       big.NewInt(1),
-			LimitPrice:   big.NewInt(1),
-			TriggerPrice: big.NewInt(1),
-			LimitFee:     big.NewInt(1),
+			LimitPrice:   big.NewInt(0),
+			TriggerPrice: big.NewInt(0),
+			LimitFee:     big.NewInt(0),
 			Expiration:   big.NewInt(0),
 		},
 	}
 
-	flags, _ := hex.DecodeString("4554480000000000000000000000000000000000000000000000000000000000")
-	addr, _ := hex.DecodeString("4554480000000000000000000000000000000000")
-	copy(odr.Flags[:], flags)
-	copy(odr.Maker[:], addr)
-	copy(odr.Taker[:], addr)
+	odr.Flags[31] = 1
+	return odr
+}
+
+func newRandP1Order(amount int64, maker string) P1Order {
+	odr := P1Order{
+		CallType: 1,
+		P1OrdersOrder: contracts.P1OrdersOrder{
+			Amount:       big.NewInt(amount),
+			LimitPrice:   big.NewInt(0),
+			TriggerPrice: big.NewInt(0),
+			LimitFee:     big.NewInt(0),
+			Expiration:   big.NewInt(time.Now().Unix() + 10000 + rand.Int63()),
+		},
+	}
+	copy(odr.Maker[:], common.FromHex(maker))
 	return odr
 }

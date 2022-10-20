@@ -11,6 +11,7 @@ import (
 	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/okex/exchain/libs/dydx/contracts"
 	"github.com/okex/exchain/libs/tendermint/types"
+	"github.com/pkg/errors"
 	"github.com/umbracle/ethgo/abi"
 )
 
@@ -52,7 +53,6 @@ var (
 	zeroOrderHash = common.Hash{}
 	callTypeABI   = abi.MustNewType("int32")
 	orderTuple    = abi.MustNewType("tuple(bytes32 flags, uint256 amount, uint256 limitprice, uint256 triggerprice, uint256 limitfee, address maker, address taker, uint256 expiration)")
-	signedTuple   = abi.MustNewType("tuple(bytes msg, bytes32 sig)")
 
 	//TODO: get chainID
 	chainID = big.NewInt(65)
@@ -111,11 +111,12 @@ func ecrecover(hash common.Hash, sig []byte) (common.Address, error) {
 	}
 
 	// sig[NUM_SIGNATURE_BYTES-1] is sigType
-	sig = sig[:NUM_SIGNATURE_BYTES-1]
+	ethsig := make([]byte, NUM_SIGNATURE_BYTES-1)
+	copy(ethsig, sig[:NUM_SIGNATURE_BYTES-1])
 	// Convert to Ethereum signature format [R || S || V] where V is 0 or 1, from https://github.com/ethereum/go-ethereum/crypto/signature_nocgo.go Sign function
-	sig[len(sig)-1] -= 27
+	ethsig[len(ethsig)-1] -= 27
 
-	pub, err := crypto.SigToPub(signedHash[:], sig)
+	pub, err := crypto.SigToPub(signedHash[:], ethsig)
 	if err != nil {
 		return common.Address{}, ErrInvalidSignature
 	}
@@ -179,11 +180,7 @@ func (p *P1Order) Price() *big.Int {
 }
 
 func (p *P1Order) DecodeFrom(data []byte) error {
-	err := callTypeABI.DecodeStruct(data[:32], &p.CallType)
-	if err != nil {
-		return err
-	}
-	return orderTuple.DecodeStruct(data[32:], &p.P1OrdersOrder)
+	return orderTuple.DecodeStruct(data, &p.P1OrdersOrder)
 }
 
 func (p *P1Order) encodeCallType() ([]byte, error) {
@@ -195,15 +192,16 @@ func (p *P1Order) encodeOrder() ([]byte, error) {
 }
 
 func (p *P1Order) Encode() ([]byte, error) {
-	bs1, err := p.encodeCallType()
-	if err != nil {
-		return nil, err
-	}
-	bs2, err := p.encodeOrder()
-	if err != nil {
-		return nil, err
-	}
-	return append(bs1, bs2...), nil
+	return p.encodeOrder()
+	//bs1, err := p.encodeCallType()
+	//if err != nil {
+	//	return nil, err
+	//}
+	//bs2, err := p.encodeOrder()
+	//if err != nil {
+	//	return nil, err
+	//}
+	//return append(bs1, bs2...), nil
 }
 
 func (p P1Order) clone() P1Order {
@@ -228,6 +226,20 @@ type WrapOrder struct {
 	Raw          OrderRaw
 	Sig          []byte
 	orderHash    common.Hash
+}
+
+func (w *WrapOrder) DecodeFrom(data []byte) error {
+	if len(data) < NUM_SIGNATURE_BYTES {
+		return ErrInvalidSignedOrder
+	}
+	err := w.P1Order.DecodeFrom(data[:len(data)-NUM_SIGNATURE_BYTES])
+	if err != nil {
+		return errors.Wrap(err, ErrInvalidOrder.Error())
+	}
+	w.LeftAmount = new(big.Int).Set(w.P1Order.Amount)
+	w.Sig = data[len(data)-NUM_SIGNATURE_BYTES:]
+	w.Raw = data
+	return nil
 }
 
 func (w *WrapOrder) Hash() common.Hash {
@@ -258,15 +270,6 @@ func (w *WrapOrder) Done(amount *big.Int) {
 	if w.FrozenAmount.Sign() < 0 {
 		fmt.Println("WrapOrder Done error")
 	}
-}
-
-type SignedOrder struct {
-	Msg []byte
-	Sig [32]byte
-}
-
-func (s *SignedOrder) DecodeFrom(data []byte) error {
-	return signedTuple.DecodeStruct(data, s)
 }
 
 type MempoolOrder struct {
@@ -321,7 +324,7 @@ type TxData struct {
 	S *big.Int `json:"s"`
 }
 
-func extractOrder(tx types.Tx) []byte {
+func ExtractOrder(tx types.Tx) []byte {
 	var evmTx TxData
 	if err := rlp.DecodeBytes(tx, &evmTx); err != nil {
 		return nil

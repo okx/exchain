@@ -3,5 +3,8 @@ package dydx
 import "fmt"
 
 var (
-	ErrInvalidSignature = fmt.Errorf("invalid signature")
+	ErrInvalidSignedOrder = fmt.Errorf("invalid signed order")
+	ErrInvalidOrder       = fmt.Errorf("invalid order")
+	ErrExpiredOrder       = fmt.Errorf("expired order")
+	ErrInvalidSignature   = fmt.Errorf("invalid signature")
 )
