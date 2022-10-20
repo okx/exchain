@@ -2,6 +2,7 @@ package mock
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -25,8 +26,11 @@ type IBCModule struct {
 //}
 
 func (im IBCModule) NegotiateAppVersion(ctx sdk.Context, order channeltypes.Order, connectionID string, portID string, counterparty channeltypes.Counterparty, proposedVersion string) (version string, err error) {
-	//TODO implement me
-	panic("implement me")
+	if proposedVersion != Version { // allow testing of error scenarios
+		return "", errors.New("failed to negotiate app version")
+	}
+
+	return Version, nil
 }
 
 // NewIBCModule creates a new IBCModule given the underlying mock IBC application and scopedKeeper.
