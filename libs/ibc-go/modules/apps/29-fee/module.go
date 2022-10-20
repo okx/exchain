@@ -96,9 +96,7 @@ func (a AppModule) InitGenesis(s sdk.Context, message json.RawMessage) []abci.Va
 }
 
 func (a AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
-	// TODO,可能会触发smb
-	gs := a.keeper.ExportGenesis(ctx)
-	return ModuleCdc.MustMarshalJSON(gs)
+	return nil
 }
 
 func (a AppModule) RegisterInvariants(registry sdk.InvariantRegistry) {}
@@ -115,7 +113,6 @@ func (a AppModule) QuerierRoute() string {
 	return types.QuerierRoute
 }
 
-// TODO, 有需要适配的吗
 func (a AppModule) NewQuerierHandler() sdk.Querier {
 	return nil
 }

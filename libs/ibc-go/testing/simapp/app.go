@@ -9,6 +9,8 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/fee"
+
 	ica2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/ica"
 
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/common"
@@ -184,7 +186,7 @@ var (
 		mock.AppModuleBasic{},
 		wasm.AppModuleBasic{},
 		ica2.TestICAModuleBaisc{},
-		ibcfee.AppModuleBasic{},
+		fee.TestFeeAppModuleBaisc{},
 		icamauth.AppModuleBasic{},
 	)
 
@@ -1092,7 +1094,7 @@ func NewSimApp(
 		erc20.NewAppModule(app.Erc20Keeper),
 		mockModule,
 		wasm.NewAppModule(*app.marshal, &app.wasmKeeper),
-		ibcfee.NewAppModule(app.IBCFeeKeeper),
+		fee.NewTestFeeAppModule(app.IBCFeeKeeper),
 		ica2.NewTestICAModule(codecProxy, &app.ICAControllerKeeper, &app.ICAHostKeeper),
 		icamauth.NewAppModule(codecProxy, app.ICAMauthKeeper),
 	)
