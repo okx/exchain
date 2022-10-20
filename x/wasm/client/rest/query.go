@@ -198,15 +198,15 @@ func queryContractStateAllHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFun
 		}
 
 		// parse res
-		var resultData []types.Model
-		err = json.Unmarshal(res, &resultData)
+		var response types.QueryContractStateAllResponse
+		err = json.Unmarshal(res, &response)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
 		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, resultData)
+		rest.PostProcessResponse(w, cliCtx, response)
 	}
 }
 

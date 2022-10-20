@@ -104,6 +104,7 @@ func queryContractState(ctx sdk.Context, bech, queryMethod string, data []byte, 
 			resultData = append(resultData, types.Model{Key: key, Value: value})
 			return false
 		})
+		total := len(resultData)
 		if params.Reverse {
 			for i, j := 0, len(resultData)-1; i < j; i, j = i+1, j-1 {
 				resultData[i], resultData[j] = resultData[j], resultData[i]
@@ -115,7 +116,8 @@ func queryContractState(ctx sdk.Context, bech, queryMethod string, data []byte, 
 		} else {
 			resultData = resultData[start:end]
 		}
-		bz, err := json.Marshal(resultData)
+		wrappedRes := types.NewQueryContractStateAllResponse(resultData, total)
+		bz, err := json.Marshal(wrappedRes)
 		if err != nil {
 			return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
 		}
@@ -138,7 +140,7 @@ func queryContractState(ctx sdk.Context, bech, queryMethod string, data []byte, 
 	}
 }
 
-func queryCodeList(ctx sdk.Context, req abci.RequestQuery, keeper types.ViewKeeper) ([]types.CodeInfoResponse, error) {
+func queryCodeList(ctx sdk.Context, req abci.RequestQuery, keeper types.ViewKeeper) (*types.QueryCodeInfoResponse, error) {
 	var params types.QueryParamsWithReverse
 
 	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
@@ -155,7 +157,7 @@ func queryCodeList(ctx sdk.Context, req abci.RequestQuery, keeper types.ViewKeep
 		})
 		return false
 	})
-
+	total := len(info)
 	if params.Reverse {
 		for i, j := 0, len(info)-1; i < j; i, j = i+1, j-1 {
 			info[i], info[j] = info[j], info[i]
@@ -167,10 +169,11 @@ func queryCodeList(ctx sdk.Context, req abci.RequestQuery, keeper types.ViewKeep
 	} else {
 		info = info[start:end]
 	}
-	return info, nil
+	res := types.NewQueryCodeInfoResponse(info, total)
+	return &res, nil
 }
 
-func queryContractHistory(ctx sdk.Context, req abci.RequestQuery, contractAddr sdk.AccAddress, keeper types.ViewKeeper) ([]types.ContractCodeHistoryEntry, error) {
+func queryContractHistory(ctx sdk.Context, req abci.RequestQuery, contractAddr sdk.AccAddress, keeper types.ViewKeeper) (*types.QueryContractCodeHistoryResponse, error) {
 	var params types.QueryParamsWithReverse
 
 	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
@@ -178,6 +181,7 @@ func queryContractHistory(ctx sdk.Context, req abci.RequestQuery, contractAddr s
 	}
 
 	history := keeper.GetContractHistory(ctx, contractAddr)
+	total := len(history)
 	if params.Reverse {
 		for i, j := 0, len(history)-1; i < j; i, j = i+1, j-1 {
 			history[i], history[j] = history[j], history[i]
@@ -193,10 +197,11 @@ func queryContractHistory(ctx sdk.Context, req abci.RequestQuery, contractAddr s
 	for i := range history {
 		history[i].Updated = nil
 	}
-	return history, nil
+	res := types.NewQueryContractCodeHistoryResponse(history, total)
+	return &res, nil
 }
 
-func queryContractListByCode(ctx sdk.Context, req abci.RequestQuery, codeID uint64, keeper types.ViewKeeper) ([]string, error) {
+func queryContractListByCode(ctx sdk.Context, req abci.RequestQuery, codeID uint64, keeper types.ViewKeeper) (*types.QueryContractListByCodeResponse, error) {
 	var params types.QueryParamsWithReverse
 
 	if err := types.ModuleCdc.UnmarshalJSON(req.Data, &params); err != nil {
@@ -208,6 +213,7 @@ func queryContractListByCode(ctx sdk.Context, req abci.RequestQuery, codeID uint
 		contracts = append(contracts, addr.String())
 		return false
 	})
+	total := len(contracts)
 	if params.Reverse {
 		for i, j := 0, len(contracts)-1; i < j; i, j = i+1, j-1 {
 			contracts[i], contracts[j] = contracts[j], contracts[i]
@@ -219,5 +225,7 @@ func queryContractListByCode(ctx sdk.Context, req abci.RequestQuery, codeID uint
 	} else {
 		contracts = contracts[start:end]
 	}
-	return contracts, nil
+
+	res := types.NewQueryContractListByCodeResponse(contracts, total)
+	return &res, nil
 }

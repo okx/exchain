@@ -52,7 +52,7 @@ func TestLegacyQueryContractState(t *testing.T) {
 	var defaultQueryGasLimit sdk.Gas = 3000000
 	q := NewLegacyQuerier(keeper, defaultQueryGasLimit)
 
-	params := types.NewQueryParamsWithReverse(1, 0, false)
+	params := types.NewQueryParamsWithReverse(1, 30, false)
 	bs := types.ModuleCdc.MustMarshalJSON(params)
 	reqWithParams := abci.RequestQuery{Data: bs}
 
@@ -146,15 +146,15 @@ func TestLegacyQueryContractState(t *testing.T) {
 			}
 
 			// otherwise, check returned models
-			var r []types.Model
+			var r types.QueryContractStateAllResponse
 			if spec.expErr == nil {
 				require.NoError(t, json.Unmarshal(binResult, &r))
 				require.NotNil(t, r)
 			}
-			require.Len(t, r, spec.expModelLen)
+			require.Len(t, r.Data, spec.expModelLen)
 			// and in result set
 			for _, v := range spec.expModelContains {
-				assert.Contains(t, r, v)
+				assert.Contains(t, r.Data, v)
 			}
 		})
 	}
@@ -209,19 +209,19 @@ func TestLegacyQueryContractListByCodeOrdering(t *testing.T) {
 	q := NewLegacyQuerier(keeper, defaultQueryGasLimit)
 
 	query := []string{QueryListContractByCode, fmt.Sprintf("%d", codeID)}
-	params := types.NewQueryParamsWithReverse(1, 0, false)
+	params := types.NewQueryParamsWithReverse(1, 30, false)
 	bs := types.ModuleCdc.MustMarshalJSON(params)
 	data := abci.RequestQuery{Data: bs}
 	res, err := q(ctx, query, data)
 	require.NoError(t, err)
 
-	var contracts []string
-	err = json.Unmarshal(res, &contracts)
+	var response types.QueryContractListByCodeResponse
+	err = json.Unmarshal(res, &response)
 	require.NoError(t, err)
 
-	require.Equal(t, 10, len(contracts))
+	require.Equal(t, 10, len(response.Data))
 
-	for _, contract := range contracts {
+	for _, contract := range response.Data {
 		assert.NotEmpty(t, contract)
 	}
 }
@@ -306,18 +306,18 @@ func TestLegacyQueryContractHistory(t *testing.T) {
 
 			// when
 			query := []string{QueryContractHistory, queryContractAddr.String()}
-			params := types.NewQueryParamsWithReverse(1, 0, false)
+			params := types.NewQueryParamsWithReverse(1, 30, false)
 			bs := types.ModuleCdc.MustMarshalJSON(params)
 			data := abci.RequestQuery{Data: bs}
 			resData, err := q(ctx, query, data)
 
 			// then
 			require.NoError(t, err)
-			var got []types.ContractCodeHistoryEntry
+			var got types.QueryContractCodeHistoryResponse
 			err = json.Unmarshal(resData, &got)
 			require.NoError(t, err)
 
-			assert.Equal(t, spec.expContent, got)
+			assert.Equal(t, spec.expContent, got.Data)
 		})
 	}
 }
@@ -353,24 +353,24 @@ func TestLegacyQueryCodeList(t *testing.T) {
 			q := NewLegacyQuerier(keeper, defaultQueryGasLimit)
 			// when
 			query := []string{QueryListCode}
-			params := types.NewQueryParamsWithReverse(1, 0, false)
+			params := types.NewQueryParamsWithReverse(1, 30, false)
 			bs := types.ModuleCdc.MustMarshalJSON(params)
 			data := abci.RequestQuery{Data: bs}
 			resData, err := q(ctx, query, data)
 			require.NoError(t, err)
 
-			var got []map[string]interface{}
+			var got types.QueryCodeInfoResponse
 			err = json.Unmarshal(resData, &got)
 			// then
 			require.NoError(t, err)
 			if len(spec.codeIDs) == 0 {
-				require.Equal(t, 0, len(got))
+				require.Equal(t, 0, len(got.Data))
 				return
 			}
 
-			require.Len(t, got, len(spec.codeIDs))
+			require.Len(t, got.Data, len(spec.codeIDs))
 			for i, exp := range spec.codeIDs {
-				assert.EqualValues(t, exp, got[i]["id"])
+				assert.EqualValues(t, exp, got.Data[i].CodeID)
 			}
 		})
 	}

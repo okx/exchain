@@ -498,7 +498,7 @@ func assertAttribute(t *testing.T, key string, value string, attr kv.Pair) {
 }
 
 func assertCodeList(t *testing.T, q sdk.Querier, ctx sdk.Context, expectedNum int) {
-	params := types.NewQueryParamsWithReverse(1, 0, false)
+	params := types.NewQueryParamsWithReverse(1, 30, false)
 	bs, err := ModuleCdc.MarshalJSON(params)
 	bz, sdkerr := q(ctx, []string{QueryListCode}, abci.RequestQuery{Data: bs})
 	require.NoError(t, sdkerr)
@@ -508,11 +508,11 @@ func assertCodeList(t *testing.T, q sdk.Querier, ctx sdk.Context, expectedNum in
 		return
 	}
 
-	var res []CodeInfo
+	var res types.QueryCodeInfoResponse
 	err = json.Unmarshal(bz, &res)
 	require.NoError(t, err)
 
-	assert.Equal(t, expectedNum, len(res))
+	assert.Equal(t, expectedNum, len(res.Data))
 }
 
 func assertCodeBytes(t *testing.T, q sdk.Querier, ctx sdk.Context, codeID uint64, expectedBytes []byte) {
@@ -546,12 +546,12 @@ func assertContractList(t *testing.T, q sdk.Querier, ctx sdk.Context, codeID uin
 		return
 	}
 
-	var res []string
+	var res types.QueryContractListByCodeResponse
 	err := json.Unmarshal(bz, &res)
 	require.NoError(t, err)
 
-	hasAddrs := make([]string, len(res))
-	for i, r := range res {
+	hasAddrs := make([]string, len(res.Data))
+	for i, r := range res.Data {
 		hasAddrs[i] = r
 	}
 
@@ -566,15 +566,15 @@ func assertContractState(t *testing.T, q sdk.Querier, ctx sdk.Context, contractB
 	bz, sdkerr := q(ctx, path, abci.RequestQuery{Data: bs})
 	require.NoError(t, sdkerr)
 
-	var res []Model
+	var res types.QueryContractStateAllResponse
 	err := json.Unmarshal(bz, &res)
 	require.NoError(t, err)
-	require.Equal(t, 1, len(res), "#v", res)
-	require.Equal(t, []byte("config"), []byte(res[0].Key))
+	require.Equal(t, 1, len(res.Data), "#v", res)
+	require.Equal(t, []byte("config"), []byte(res.Data[0].Key))
 
 	expectedBz, err := json.Marshal(expected)
 	require.NoError(t, err)
-	assert.Equal(t, expectedBz, res[0].Value)
+	assert.Equal(t, expectedBz, res.Data[0].Value)
 }
 
 func assertContractInfo(t *testing.T, q sdk.Querier, ctx sdk.Context, contractBech32Addr string, codeID uint64, creator sdk.AccAddress) {
