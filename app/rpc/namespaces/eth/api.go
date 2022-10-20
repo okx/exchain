@@ -880,8 +880,16 @@ func (api *PublicEthereumAPI) doCall(
 		}
 	}
 	sim := api.evmFactory.BuildSimulator(api)
+
+	// evm tx to cm tx is no need watch db query
+	useWatch := api.useWatchBackend(blockNum)
+	if useWatch && args.To != nil &&
+		api.JudgeEvm2CmTx(args.To.Bytes(), *args.Data) {
+		useWatch = false
+	}
+
 	//only worked when fast-query has been enabled
-	if sim != nil && api.useWatchBackend(blockNum) {
+	if sim != nil && api.useWatchBackend(blockNum) && useWatch {
 		return sim.DoCall(msg, addr.String(), overridesBytes, api.evmFactory.PutBackStorePool)
 	}
 
@@ -1693,4 +1701,16 @@ func (api *PublicEthereumAPI) getEvmParams() (*evmtypes.Params, error) {
 	}
 
 	return &evmParams, nil
+}
+
+func (api *PublicEthereumAPI) JudgeEvm2CmTx(toAddr, payLoad []byte) bool {
+	if !evm.IsMatchSystemContractFunction(payLoad) {
+		return false
+	}
+	route := fmt.Sprintf("custom/%s/%s", evmtypes.ModuleName, evmtypes.QuerySysContractAddress)
+	addr, _, err := api.clientCtx.QueryWithData(route, nil)
+	if err == nil && len(addr) != 0 {
+		return bytes.Equal(toAddr, addr)
+	}
+	return false
 }

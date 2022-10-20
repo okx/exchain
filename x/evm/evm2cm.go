@@ -89,3 +89,7 @@ func EncodeResultData(txHash, data []byte) ([]byte, error) {
 	ethHash := common.BytesToHash(txHash)
 	return types.EncodeResultData(&types.ResultData{Ret: data, TxHash: ethHash})
 }
+
+func IsMatchSystemContractFunction(data []byte) bool {
+	return sysABIParser.IsMatchFunction(sysContractInvokeFunction, data)
+}
