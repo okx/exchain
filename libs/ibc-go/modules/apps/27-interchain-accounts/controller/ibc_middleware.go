@@ -7,7 +7,6 @@ import (
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/keeper"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/types"
 	icatypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
-	"github.com/okex/exchain/libs/ibc-go/modules/apps/common"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
 	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
 	ibcexported "github.com/okex/exchain/libs/ibc-go/modules/core/exported"
@@ -18,7 +17,6 @@ var _ porttypes.Middleware = &IBCMiddleware{}
 // IBCMiddleware implements the ICS26 callbacks for the fee middleware given the
 // ICA controller keeper and the underlying application.
 type IBCMiddleware struct {
-	*common.HeightProxyMiddleware
 	app    porttypes.IBCModule
 	keeper keeper.Keeper
 }
