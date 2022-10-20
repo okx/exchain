@@ -4,9 +4,12 @@ import (
 	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
+	lru "github.com/hashicorp/golang-lru"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
+
+const cacheSize = 1024
 
 var paramsCache = NewCache()
 
@@ -15,21 +18,19 @@ type Cache struct {
 	needParamsUpdate bool
 	paramsMutex      sync.RWMutex
 
-	feeSplits     map[string]FeeSplit
-	feeSplitMutex sync.RWMutex
-
-	shares      map[string]sdk.Dec
-	sharesMutex sync.RWMutex
+	feeSplits *lru.Cache
+	shares    *lru.Cache
 }
 
 func NewCache() *Cache {
-	return &Cache{
+	c := &Cache{
 		params:           DefaultParams(),
 		needParamsUpdate: true,
-
-		feeSplits: make(map[string]FeeSplit, 0),
-		shares:    make(map[string]sdk.Dec, 0),
 	}
+
+	c.feeSplits, _ = lru.New(cacheSize)
+	c.shares, _ = lru.New(cacheSize)
+	return c
 }
 
 // UpdateParams  the update in params is relates to the proposal and initGenesis
@@ -69,9 +70,7 @@ func (c *Cache) UpdateFeeSplit(contract common.Address, feeSplit FeeSplit, isChe
 	if isCheckTx {
 		return
 	}
-	c.feeSplitMutex.Lock()
-	defer c.feeSplitMutex.Unlock()
-	c.feeSplits[contract.String()] = feeSplit
+	c.feeSplits.Add(contract, feeSplit)
 }
 
 // DeleteFeeSplit The change in feeSplit is only related to the user tx(register,update,cancel)
@@ -79,16 +78,15 @@ func (c *Cache) DeleteFeeSplit(contract common.Address, isCheckTx bool) {
 	if isCheckTx {
 		return
 	}
-	c.feeSplitMutex.Lock()
-	defer c.feeSplitMutex.Unlock()
-	delete(c.feeSplits, contract.String())
+	c.feeSplits.Remove(contract)
 }
 
 func (c *Cache) GetFeeSplit(contract common.Address) (FeeSplit, bool) {
-	c.feeSplitMutex.RLock()
-	defer c.feeSplitMutex.RUnlock()
-	feeSplit, found := c.feeSplits[contract.String()]
-	return feeSplit, found
+	feeSplit, found := c.feeSplits.Get(contract)
+	if found {
+		return feeSplit.(FeeSplit), true
+	}
+	return FeeSplit{}, false
 }
 
 // UpdateShare The change in share is only related to the proposal
@@ -96,16 +94,15 @@ func (c *Cache) UpdateShare(contract common.Address, share sdk.Dec, isCheckTx bo
 	if isCheckTx {
 		return
 	}
-	c.sharesMutex.Lock()
-	defer c.sharesMutex.Unlock()
-	c.shares[contract.String()] = share
+	c.shares.Add(contract, share)
 }
 
 func (c *Cache) GetShare(contract common.Address) (sdk.Dec, bool) {
-	c.sharesMutex.RLock()
-	defer c.sharesMutex.RUnlock()
-	share, found := c.shares[contract.String()]
-	return share, found
+	share, found := c.shares.Get(contract)
+	if found {
+		return share.(sdk.Dec), true
+	}
+	return sdk.Dec{}, false
 }
 
 func SetParamsNeedUpdate() {
