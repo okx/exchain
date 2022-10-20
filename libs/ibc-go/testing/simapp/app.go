@@ -1313,6 +1313,9 @@ func (app *SimApp) GetStakingKeeper() staking.Keeper {
 func (app *SimApp) GetIBCKeeper() *ibckeeper.Keeper {
 	return app.IBCKeeper.V2Keeper
 }
+func (app *SimApp) GetFacadedKeeper() *ibc.Keeper {
+	return app.IBCKeeper
+}
 
 func (app *SimApp) GetScopedIBCKeeper() (cap capabilitykeeper.ScopedKeeper) {
 	cap = app.ibcScopeKeep
