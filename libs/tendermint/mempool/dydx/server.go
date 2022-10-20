@@ -25,13 +25,13 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	case "/buy":
 		fmt.Fprintf(w, "total orders: %d\n", book.buyOrders.Len())
 		for _, order := range book.buyOrders.List() {
-			fmt.Fprintf(w, "orederHash: %s, amount: %d\n", order.Hash(), order.Amount)
+			fmt.Fprintf(w, "orederHash: %s, amount: %d, left: %d, frozen: %d\n", order.Hash(), order.Amount, order.LeftAmount, order.FrozenAmount)
 		}
 
 	case "/sell":
 		fmt.Fprintf(w, "total orders: %d\n", book.sellOrders.Len())
 		for _, order := range book.sellOrders.List() {
-			fmt.Fprintf(w, "orederHash: %s, amount: %d\n", order.Hash(), order.Amount)
+			fmt.Fprintf(w, "orederHash: %s, amount: %d, left: %d, frozen: %d\n", order.Hash(), order.Amount, order.LeftAmount, order.FrozenAmount)
 		}
 	default:
 		fmt.Fprintf(w, "Invalid path")
