@@ -30,23 +30,14 @@ import (
 	icacontrollertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/types"
 	icahosttypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/types"
 
+	"github.com/okex/exchain/x/wasm"
+	wasmclient "github.com/okex/exchain/x/wasm/client"
+	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
 	"github.com/spf13/viper"
 
 	icatypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
 
 	ibckeeper "github.com/okex/exchain/libs/ibc-go/modules/core/keeper"
-
-	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
-	icacontrollerkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/keeper"
-	icahostkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/keeper"
-	ibcfee "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee"
-	ibcfeekeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/keeper"
-	ibcfeetypes "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/types"
-	"github.com/okex/exchain/libs/system/trace"
-	"github.com/okex/exchain/x/icamauth"
-	icamauthkeeper "github.com/okex/exchain/x/icamauth/keeper"
-	"github.com/okex/exchain/x/wasm"
-	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
 
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
@@ -66,6 +57,7 @@ import (
 	upgradetypes "github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	"github.com/okex/exchain/libs/cosmos-sdk/version"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	authante "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ante"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
 	capabilityModule "github.com/okex/exchain/libs/cosmos-sdk/x/capability"
@@ -77,6 +69,11 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/x/params/subspace"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
+	icacontrollerkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/controller/keeper"
+	icahostkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/host/keeper"
+	ibcfee "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee"
+	ibcfeekeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/keeper"
+	ibcfeetypes "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/types"
 	ibctransferkeeper "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/keeper"
 	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
@@ -88,6 +85,7 @@ import (
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/core"
 	staking2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/staking"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/transfer"
+	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	tmos "github.com/okex/exchain/libs/tendermint/libs/os"
@@ -110,6 +108,8 @@ import (
 	"github.com/okex/exchain/x/genutil"
 	"github.com/okex/exchain/x/gov"
 	"github.com/okex/exchain/x/gov/keeper"
+	"github.com/okex/exchain/x/icamauth"
+	icamauthkeeper "github.com/okex/exchain/x/icamauth/keeper"
 	"github.com/okex/exchain/x/order"
 	"github.com/okex/exchain/x/params"
 	paramsclient "github.com/okex/exchain/x/params/client"
@@ -159,6 +159,7 @@ var (
 			distr.CommunityPoolSpendProposalHandler,
 			distr.ChangeDistributionTypeProposalHandler,
 			distr.WithdrawRewardEnabledProposalHandler,
+			distr.RewardTruncatePrecisionProposalHandler,
 			dexclient.DelistProposalHandler, farmclient.ManageWhiteListProposalHandler,
 			evmclient.ManageContractDeploymentWhitelistProposalHandler,
 			evmclient.ManageContractBlockedListProposalHandler,
@@ -166,6 +167,11 @@ var (
 			govclient.ManageTreasuresProposalHandler,
 			erc20client.TokenMappingProposalHandler,
 			erc20client.ProxyContractRedirectHandler,
+			wasmclient.UpdateContractAdminProposalHandler,
+			wasmclient.ClearContractAdminProposalHandler,
+			wasmclient.UpdateDeploymentWhitelistProposalHandler,
+			wasmclient.MigrateContractProposalHandler,
+			wasmclient.UpdateWASMContractMethodBlockedListProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
@@ -1189,6 +1195,8 @@ func NewSimApp(
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccNonceHandler(NewAccHandler(app.AccountKeeper))
+	app.SetUpdateFeeCollectorAccHandler(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper))
+	app.SetParallelTxLogHandlers(fixLogForParallelTxHandler(app.EvmKeeper))
 	app.SetGetTxFeeHandler(getTxFeeHandler())
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -1210,10 +1218,11 @@ func NewSimApp(
 }
 
 func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
-	return func(ctx sdk.Context, balance sdk.Coins) error {
+	return func(ctx sdk.Context, balance sdk.Coins, txFeesplit *sync.Map) error {
 		return bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
 	}
 }
+
 func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
 	return func(tx []sdk.Tx, logIndex []int, hasEnterEvmTx []bool, anteErrs []error, resp []abci.ResponseDeliverTx) (logs [][]byte) {
 		return ek.FixLog(tx, logIndex, hasEnterEvmTx, anteErrs, resp)

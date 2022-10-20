@@ -55,6 +55,46 @@ func (k Keeper) WithdrawDelegationRewards(ctx sdk.Context, delAddr sdk.AccAddres
 	return rewards, nil
 }
 
+// withdraw all rewards
+func (k Keeper) WithdrawDelegationAllRewards(ctx sdk.Context, delAddr sdk.AccAddress) error {
+	del := k.stakingKeeper.Delegator(ctx, delAddr)
+	if del == nil {
+		return types.ErrCodeEmptyDelegationDistInfo()
+	}
+
+	valAddressArray := del.GetShareAddedValidatorAddresses()
+	if len(valAddressArray) == 0 {
+		return types.ErrCodeEmptyDelegationVoteValidator()
+	}
+
+	logger := k.Logger(ctx)
+	for _, valAddr := range valAddressArray {
+		val := k.stakingKeeper.Validator(ctx, valAddr)
+		if val == nil {
+			return types.ErrCodeEmptyValidatorDistInfo()
+		}
+		// withdraw rewards
+		rewards, err := k.withdrawDelegationRewards(ctx, val, delAddr)
+		if err != nil {
+			return err
+		}
+
+		ctx.EventManager().EmitEvent(
+			sdk.NewEvent(
+				types.EventTypeWithdrawRewards,
+				sdk.NewAttribute(sdk.AttributeKeyAmount, rewards.String()),
+				sdk.NewAttribute(types.AttributeKeyValidator, valAddr.String()),
+			),
+		)
+
+		// reinitialize the delegation
+		k.initializeDelegation(ctx, valAddr, delAddr)
+		logger.Debug("WithdrawDelegationAllRewards", "Validator", valAddr, "Delegator", delAddr)
+	}
+
+	return nil
+}
+
 // GetTotalRewards returns the total amount of fee distribution rewards held in the store
 func (k Keeper) GetTotalRewards(ctx sdk.Context) (totalRewards sdk.DecCoins) {
 	k.IterateValidatorOutstandingRewards(ctx,
@@ -85,7 +125,7 @@ func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitPr
 
 	log := ctx.Logger()
 	switch content := msg.Content.(type) {
-	case types.WithdrawRewardEnabledProposal, types.ChangeDistributionTypeProposal:
+	case types.WithdrawRewardEnabledProposal, types.ChangeDistributionTypeProposal, types.RewardTruncatePrecisionProposal:
 		log.Debug(fmt.Sprintf("proposal content type: %T", content))
 		if !k.stakingKeeper.IsValidator(ctx, msg.Proposer) {
 			return types.ErrCodeProposerMustBeValidator()

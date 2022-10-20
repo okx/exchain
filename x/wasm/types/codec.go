@@ -7,7 +7,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	txmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/msgservice"
-	govtypes "github.com/okex/exchain/libs/cosmos-sdk/x/gov/types"
+	govtypes "github.com/okex/exchain/x/gov/types"
 )
 
 // RegisterLegacyAminoCodec registers the account types and interface
@@ -29,6 +29,8 @@ func RegisterLegacyAminoCodec(cdc *codec.Codec) { //nolint:staticcheck
 	cdc.RegisterConcrete(&UpdateAdminProposal{}, "wasm/UpdateAdminProposal", nil)
 	cdc.RegisterConcrete(&ClearAdminProposal{}, "wasm/ClearAdminProposal", nil)
 	cdc.RegisterConcrete(&UpdateInstantiateConfigProposal{}, "wasm/UpdateInstantiateConfigProposal", nil)
+	cdc.RegisterConcrete(&UpdateDeploymentWhitelistProposal{}, "wasm/UpdateDeploymentWhitelistProposal", nil)
+	cdc.RegisterConcrete(&UpdateWASMContractMethodBlockedListProposal{}, "wasm/UpdateWASMContractMethodBlockedListProposal", nil)
 }
 
 func RegisterInterfaces(registry types.InterfaceRegistry) {
@@ -65,6 +67,8 @@ func RegisterInterfaces(registry types.InterfaceRegistry) {
 		&PinCodesProposal{},
 		&UnpinCodesProposal{},
 		&UpdateInstantiateConfigProposal{},
+		&UpdateDeploymentWhitelistProposal{},
+		&UpdateWASMContractMethodBlockedListProposal{},
 	)
 
 	registry.RegisterInterface("ContractInfoExtension", (*ContractInfoExtension)(nil))
