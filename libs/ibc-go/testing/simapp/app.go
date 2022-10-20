@@ -9,6 +9,8 @@ import (
 	"sort"
 	"sync"
 
+	ica2 "github.com/okex/exchain/libs/ibc-go/testing/simapp/adapter/ica"
+
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/common"
 
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
@@ -28,7 +30,6 @@ import (
 
 	"github.com/spf13/viper"
 
-	ica "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts"
 	icatypes "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts/types"
 
 	ibckeeper "github.com/okex/exchain/libs/ibc-go/modules/core/keeper"
@@ -182,7 +183,7 @@ var (
 		erc20.AppModuleBasic{},
 		mock.AppModuleBasic{},
 		wasm.AppModuleBasic{},
-		ica.AppModuleBasic{},
+		ica2.TestICAModuleBaisc{},
 		ibcfee.AppModuleBasic{},
 		icamauth.AppModuleBasic{},
 	)
@@ -1092,7 +1093,7 @@ func NewSimApp(
 		mockModule,
 		wasm.NewAppModule(*app.marshal, &app.wasmKeeper),
 		ibcfee.NewAppModule(app.IBCFeeKeeper),
-		ica.NewAppModule(codecProxy, &app.ICAControllerKeeper, &app.ICAHostKeeper),
+		ica2.NewTestICAModule(codecProxy, &app.ICAControllerKeeper, &app.ICAHostKeeper),
 		icamauth.NewAppModule(codecProxy, app.ICAMauthKeeper),
 	)
 
