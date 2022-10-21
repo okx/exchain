@@ -143,6 +143,8 @@ func (o *OrderList) Remove(ele *list.Element) *list.Element {
 }
 
 func (o *OrderList) List() []*WrapOrder {
+	o.Lock()
+	defer o.Unlock()
 	var orders []*WrapOrder
 	for ele := o.orders.Front(); ele != nil; ele = ele.Next() {
 		orders = append(orders, ele.Value.(*WrapOrder))
