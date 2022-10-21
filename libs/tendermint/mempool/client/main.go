@@ -51,6 +51,11 @@ func main() {
 	//TODO orderBytes + signature
 	order := newP1Order(amount, isBuy)
 	order.Maker = addr
+	price, ok := big.NewInt(0).SetString("18200000000000000000000", 10)
+	if !ok {
+		panic(0)
+	}
+	order.LimitPrice = price
 	sig, err := signOrder(order, privHex, chainID, orderContractAddr.String())
 	if err != nil {
 		panic(err)

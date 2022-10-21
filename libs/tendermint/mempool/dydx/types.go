@@ -237,6 +237,7 @@ func (w *WrapOrder) DecodeFrom(data []byte) error {
 		return errors.Wrap(err, ErrInvalidOrder.Error())
 	}
 	w.LeftAmount = new(big.Int).Set(w.P1Order.Amount)
+	w.FrozenAmount = big.NewInt(0)
 	w.Sig = data[len(data)-NUM_SIGNATURE_BYTES:]
 	w.Raw = data
 	return nil
