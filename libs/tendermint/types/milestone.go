@@ -30,6 +30,9 @@ var (
 	MILESTONE_VENUS2_HEIGHT string
 	milestoneVenus2Height   int64
 
+	MILESTONE_VENUS3_HEIGHT string
+	milestoneVenus3Height   int64
+
 	MILESTONE_EARTH_HEIGHT string
 	milestoneEarthHeight   int64
 
@@ -69,6 +72,7 @@ func init() {
 		milestoneMarsHeight = string2number(MILESTONE_MARS_HEIGHT)
 		milestoneVenus1Height = string2number(MILESTONE_VENUS1_HEIGHT)
 		milestoneVenus2Height = string2number(MILESTONE_VENUS2_HEIGHT)
+		milestoneVenus3Height = string2number(MILESTONE_VENUS3_HEIGHT)
 		milestoneEarthHeight = string2number(MILESTONE_EARTH_HEIGHT)
 	})
 }
@@ -202,7 +206,31 @@ func UnittestOnlySetMilestoneVenus2Height(h int64) {
 	milestoneVenus2Height = h
 }
 
+func GetVenus2Height() int64 {
+	return milestoneVenus2Height
+}
+
 // =========== Venus2 ===============
+// ==================================
+
+// ==================================
+// =========== Venus3 ===============
+func HigherThanVenus3(h int64) bool {
+	if milestoneVenus3Height == 0 {
+		return false
+	}
+	return h > milestoneVenus3Height
+}
+
+func UnittestOnlySetMilestoneVenus3Height(h int64) {
+	milestoneVenus3Height = h
+}
+
+func GetVenus3Height() int64 {
+	return milestoneVenus3Height
+}
+
+// =========== Venus3 ===============
 // ==================================
 
 // ==================================

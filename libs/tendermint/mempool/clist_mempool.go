@@ -121,8 +121,9 @@ func NewCListMempool(
 		logger:        log.NewNopLogger(),
 		metrics:       NopMetrics(),
 		txs:           txQueue,
-		orderManager:  dydx.NewOrderManager(false),
+		orderManager:  dydx.NewOrderManager(true),
 	}
+
 	if config.CacheSize > 0 {
 		mempool.cache = newMapTxCache(config.CacheSize)
 	} else {

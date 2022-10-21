@@ -3,6 +3,8 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	"strconv"
+
 	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
@@ -194,7 +196,8 @@ func ProposalMigrateContractCmd(m *codec.CodecProxy, reg codectypes.InterfaceReg
 			if err != nil {
 				return err
 			}
-			deposit, err := sdk.ParseCoins(depositArg)
+
+			deposit, err := sdk.ParseCoinsNormalized(depositArg)
 			if err != nil {
 				return err
 			}
@@ -208,9 +211,6 @@ func ProposalMigrateContractCmd(m *codec.CodecProxy, reg codectypes.InterfaceReg
 			}
 
 			msg := govtypes.NewMsgSubmitProposal(&content, deposit, cliCtx.GetFromAddress())
-			if err != nil {
-				return err
-			}
 			if err = msg.ValidateBasic(); err != nil {
 				return err
 			}
@@ -466,136 +466,122 @@ func ProposalClearContractAdminCmd(m *codec.CodecProxy, reg codectypes.Interface
 	return cmd
 }
 
-//func ProposalPinCodesCmd() *cobra.Command {
-//	cmd := &cobra.Command{
-//		Use:   "pin-codes [code-ids]",
-//		Short: "Submit a pin code proposal for pinning a code to cache",
-//		Args:  cobra.MinimumNArgs(1),
-//		RunE: func(cmd *cobra.Command, args []string) error {
-//			clientCtx, err := client.GetClientTxContext(cmd)
-//			if err != nil {
-//				return err
-//			}
-//
-//			proposalTitle, err := cmd.Flags().GetString(cli.FlagTitle)
-//			if err != nil {
-//				return fmt.Errorf("proposal title: %s", err)
-//			}
-//			proposalDescr, err := cmd.Flags().GetString(cli.FlagDescription)
-//			if err != nil {
-//				return fmt.Errorf("proposal description: %s", err)
-//			}
-//			depositArg, err := cmd.Flags().GetString(cli.FlagDeposit)
-//			if err != nil {
-//				return fmt.Errorf("deposit: %s", err)
-//			}
-//			deposit, err := sdk.ParseCoinsNormalized(depositArg)
-//			if err != nil {
-//				return err
-//			}
-//			codeIds, err := parsePinCodesArgs(args)
-//			if err != nil {
-//				return err
-//			}
-//
-//			content := types.PinCodesProposal{
-//				Title:       proposalTitle,
-//				Description: proposalDescr,
-//				CodeIDs:     codeIds,
-//			}
-//
-//			msg, err := govtypes.NewMsgSubmitProposal(&content, deposit, clientCtx.GetFromAddress())
-//			if err != nil {
-//				return err
-//			}
-//			if err = msg.ValidateBasic(); err != nil {
-//				return err
-//			}
-//
-//			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
-//		},
-//	}
-//	// proposal flags
-//	cmd.Flags().String(cli.FlagTitle, "", "Title of proposal")
-//	cmd.Flags().String(cli.FlagDescription, "", "Description of proposal")
-//	cmd.Flags().String(cli.FlagDeposit, "", "Deposit of proposal")
-//	cmd.Flags().String(cli.FlagProposal, "", "Proposal file path (if this path is given, other proposal flags are ignored)")
-//	// type values must match the "ProposalHandler" "routes" in cli
-//	cmd.Flags().String(flagProposalType, "", "Permission of proposal, types: store-code/instantiate/migrate/update-admin/clear-admin/text/parameter_change/software_upgrade")
-//	return cmd
-//}
-//
-//func parsePinCodesArgs(args []string) ([]uint64, error) {
-//	codeIDs := make([]uint64, len(args))
-//	for i, c := range args {
-//		codeID, err := strconv.ParseUint(c, 10, 64)
-//		if err != nil {
-//			return codeIDs, fmt.Errorf("code IDs: %s", err)
-//		}
-//		codeIDs[i] = codeID
-//	}
-//	return codeIDs, nil
-//}
-//
-//func ProposalUnpinCodesCmd() *cobra.Command {
-//	cmd := &cobra.Command{
-//		Use:   "unpin-codes [code-ids]",
-//		Short: "Submit a unpin code proposal for unpinning a code to cache",
-//		Args:  cobra.MinimumNArgs(1),
-//		RunE: func(cmd *cobra.Command, args []string) error {
-//			clientCtx, err := client.GetClientTxContext(cmd)
-//			if err != nil {
-//				return err
-//			}
-//
-//			proposalTitle, err := cmd.Flags().GetString(cli.FlagTitle)
-//			if err != nil {
-//				return fmt.Errorf("proposal title: %s", err)
-//			}
-//			proposalDescr, err := cmd.Flags().GetString(cli.FlagDescription)
-//			if err != nil {
-//				return fmt.Errorf("proposal description: %s", err)
-//			}
-//			depositArg, err := cmd.Flags().GetString(cli.FlagDeposit)
-//			if err != nil {
-//				return fmt.Errorf("deposit: %s", err)
-//			}
-//			deposit, err := sdk.ParseCoinsNormalized(depositArg)
-//			if err != nil {
-//				return err
-//			}
-//			codeIds, err := parsePinCodesArgs(args)
-//			if err != nil {
-//				return err
-//			}
-//
-//			content := types.UnpinCodesProposal{
-//				Title:       proposalTitle,
-//				Description: proposalDescr,
-//				CodeIDs:     codeIds,
-//			}
-//
-//			msg, err := govtypes.NewMsgSubmitProposal(&content, deposit, clientCtx.GetFromAddress())
-//			if err != nil {
-//				return err
-//			}
-//			if err = msg.ValidateBasic(); err != nil {
-//				return err
-//			}
-//
-//			return tx.GenerateOrBroadcastTxCLI(clientCtx, cmd.Flags(), msg)
-//		},
-//	}
-//	// proposal flags
-//	cmd.Flags().String(cli.FlagTitle, "", "Title of proposal")
-//	cmd.Flags().String(cli.FlagDescription, "", "Description of proposal")
-//	cmd.Flags().String(cli.FlagDeposit, "", "Deposit of proposal")
-//	cmd.Flags().String(cli.FlagProposal, "", "Proposal file path (if this path is given, other proposal flags are ignored)")
-//	// type values must match the "ProposalHandler" "routes" in cli
-//	cmd.Flags().String(flagProposalType, "", "Permission of proposal, types: store-code/instantiate/migrate/update-admin/clear-admin/text/parameter_change/software_upgrade")
-//	return cmd
-//}
-//
+func ProposalPinCodesCmd(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "pin-codes [code-ids]",
+		Short: "Submit a pin code proposal for pinning a code to cache",
+		Args:  cobra.MinimumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(m.GetCdc()))
+			cliCtx := clientCtx.NewCLIContext().WithCodec(m.GetCdc()).WithInterfaceRegistry(reg)
+
+			proposalTitle, err := cmd.Flags().GetString(govcli.FlagTitle)
+			if err != nil {
+				return fmt.Errorf("proposal title: %s", err)
+			}
+			proposalDescr, err := cmd.Flags().GetString(govcli.FlagDescription)
+			if err != nil {
+				return fmt.Errorf("proposal description: %s", err)
+			}
+			depositArg, err := cmd.Flags().GetString(govcli.FlagDeposit)
+			if err != nil {
+				return fmt.Errorf("deposit: %s", err)
+			}
+			deposit, err := sdk.ParseCoinsNormalized(depositArg)
+			if err != nil {
+				return err
+			}
+			codeIds, err := parsePinCodesArgs(args)
+			if err != nil {
+				return err
+			}
+
+			content := types.PinCodesProposal{
+				Title:       proposalTitle,
+				Description: proposalDescr,
+				CodeIDs:     codeIds,
+			}
+
+			msg := govtypes.NewMsgSubmitProposal(&content, deposit, cliCtx.GetFromAddress())
+			if err = msg.ValidateBasic(); err != nil {
+				return err
+			}
+
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+	// proposal flags
+	cmd.Flags().String(govcli.FlagTitle, "", "Title of proposal")
+	cmd.Flags().String(govcli.FlagDescription, "", "Description of proposal")
+	cmd.Flags().String(govcli.FlagDeposit, "", "Deposit of proposal")
+	return cmd
+}
+
+func parsePinCodesArgs(args []string) ([]uint64, error) {
+	codeIDs := make([]uint64, len(args))
+	for i, c := range args {
+		codeID, err := strconv.ParseUint(c, 10, 64)
+		if err != nil {
+			return codeIDs, fmt.Errorf("code IDs: %s", err)
+		}
+		codeIDs[i] = codeID
+	}
+	return codeIDs, nil
+}
+
+func ProposalUnpinCodesCmd(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "unpin-codes [code-ids]",
+		Short: "Submit a unpin code proposal for unpinning a code to cache",
+		Args:  cobra.MinimumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(m.GetCdc()))
+			cliCtx := clientCtx.NewCLIContext().WithCodec(m.GetCdc()).WithInterfaceRegistry(reg)
+
+			proposalTitle, err := cmd.Flags().GetString(govcli.FlagTitle)
+			if err != nil {
+				return fmt.Errorf("proposal title: %s", err)
+			}
+			proposalDescr, err := cmd.Flags().GetString(govcli.FlagDescription)
+			if err != nil {
+				return fmt.Errorf("proposal description: %s", err)
+			}
+			depositArg, err := cmd.Flags().GetString(govcli.FlagDeposit)
+			if err != nil {
+				return fmt.Errorf("deposit: %s", err)
+			}
+			deposit, err := sdk.ParseCoinsNormalized(depositArg)
+			if err != nil {
+				return err
+			}
+			codeIds, err := parsePinCodesArgs(args)
+			if err != nil {
+				return err
+			}
+
+			content := types.UnpinCodesProposal{
+				Title:       proposalTitle,
+				Description: proposalDescr,
+				CodeIDs:     codeIds,
+			}
+
+			msg := govtypes.NewMsgSubmitProposal(&content, deposit, cliCtx.GetFromAddress())
+			if err = msg.ValidateBasic(); err != nil {
+				return err
+			}
+
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+	// proposal flags
+	cmd.Flags().String(govcli.FlagTitle, "", "Title of proposal")
+	cmd.Flags().String(govcli.FlagDescription, "", "Description of proposal")
+	cmd.Flags().String(govcli.FlagDeposit, "", "Deposit of proposal")
+	return cmd
+}
+
 //func parseAccessConfig(config string) (types.AccessConfig, error) {
 //	switch config {
 //	case "nobody":

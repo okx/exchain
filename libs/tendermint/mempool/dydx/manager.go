@@ -1,7 +1,9 @@
 package dydx
 
 import (
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"math/big"
+	"os"
 	"sync"
 	"time"
 
@@ -42,9 +44,10 @@ func NewOrderManager(doMatch bool) *OrderManager {
 	}
 
 	config := DydxConfig{
-		PrivKeyHex:                 "fefac29bfa769d8a6c17b685816dadbd30e3f395e997ed955a5461914be75ed5",
+		PrivKeyHex:                 "89c81c304704e9890025a5a91898802294658d6e4034a11c6116f4b129ea12d3",
 		ChainID:                    "65",
 		EthWsRpcUrl:                "wss://exchaintestws.okex.org:8443",
+		EthHttpRpcUrl:              "https://exchaintestrpc.okex.org",
 		PerpetualV1ContractAddress: "0xaC405bA85723d3E8d6D87B3B36Fd8D0D4e32D2c9",
 		P1OrdersContractAddress:    "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619",
 		P1MakerOracleAddress:       "0x4241DD684fbC5bCFCD2cA7B90b72885A79cf50B4",
@@ -52,9 +55,9 @@ func NewOrderManager(doMatch bool) *OrderManager {
 	}
 
 	if doMatch {
-		me, err := NewMatchEngine(manager.book, config, nil, nil)
+		me, err := NewMatchEngine(manager.book, config, nil, log.NewTMLogger(os.Stdout))
 		if err != nil {
-			return nil
+			panic(err)
 		}
 		manager.engine = me
 	} else {
