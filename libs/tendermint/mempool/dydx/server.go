@@ -13,6 +13,11 @@ type OrderShowList struct {
 	Amount uint64
 }
 
+type BookList struct {
+	SellList []OrderShowList
+	BuyList  []OrderShowList
+}
+
 func (d *OrderManager) Serve() {
 	book = d.book
 	http.HandleFunc("/", IndexHandler)
@@ -27,6 +32,39 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	case "/":
 		fmt.Fprintf(w, " buy orders count: %d\n", book.buyOrders.Len())
 		fmt.Fprintf(w, "sell orders count: %d\n", book.sellOrders.Len())
+	case "/all":
+		buyList := []OrderShowList{{"0", 0}}
+		sellList := []OrderShowList{{"0", 0}}
+		for _, order := range book.buyOrders.List() {
+			if order.GetLimitPrice().String() == buyList[len(buyList)-1].Price {
+				buyList[len(buyList)-1].Amount += order.GetLeftAmount().Uint64()
+			} else {
+				buyList = append(buyList, OrderShowList{
+					Price:  order.GetLimitPrice().String(),
+					Amount: order.GetLeftAmount().Uint64(),
+				})
+			}
+		}
+		for _, order := range book.sellOrders.List() {
+			if order.GetLimitPrice().String() == sellList[len(sellList)-1].Price {
+				sellList[len(sellList)-1].Amount += order.GetLeftAmount().Uint64()
+			} else {
+				sellList = append(sellList, OrderShowList{
+					Price:  order.GetLimitPrice().String(),
+					Amount: order.GetLeftAmount().Uint64(),
+				})
+			}
+		}
+		bl := BookList{
+			SellList: sellList[1:],
+			BuyList:  buyList[1:],
+		}
+		data, err := json.MarshalIndent(bl, "", "    ")
+		if err != nil {
+			fmt.Fprintf(w, err.Error())
+		} else {
+			fmt.Fprintf(w, string(data))
+		}
 
 	case "/buy":
 		//fmt.Fprintf(w, "total orders: %d\n", book.buyOrders.Len())
