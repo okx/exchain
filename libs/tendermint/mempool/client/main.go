@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"math/big"
+	"math/rand"
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -103,7 +104,7 @@ func newP1Order(amount int64, isBuy bool) dydx.P1Order {
 			LimitPrice:   big.NewInt(0),
 			TriggerPrice: big.NewInt(0),
 			LimitFee:     big.NewInt(0),
-			Expiration:   big.NewInt(time.Now().Unix() * 2),
+			Expiration:   big.NewInt(time.Now().Unix()*2 + rand.Int63n(100000)),
 		},
 	}
 	if isBuy {
