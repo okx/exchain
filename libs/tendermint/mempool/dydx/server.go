@@ -8,9 +8,9 @@ import (
 
 var book *DepthBook
 
-type orderShowList struct {
-	price  string
-	amount uint64
+type OrderShowList struct {
+	Price  string
+	Amount uint64
 }
 
 func (d *OrderManager) Serve() {
@@ -31,15 +31,15 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	case "/buy":
 		//fmt.Fprintf(w, "total orders: %d\n", book.buyOrders.Len())
 		m := make(map[uint64]uint64)
-		list := []orderShowList{{"0", 0}}
+		list := []OrderShowList{{"0", 0}}
 		for _, order := range book.buyOrders.List() {
 			m[order.LimitPrice.Uint64()] += order.GetLeftAmount().Uint64()
-			if order.GetLimitPrice().String() == list[len(list)-1].price {
-				list[len(list)-1].amount += order.GetLeftAmount().Uint64()
+			if order.GetLimitPrice().String() == list[len(list)-1].Price {
+				list[len(list)-1].Amount += order.GetLeftAmount().Uint64()
 			} else {
-				list = append(list, orderShowList{
-					price:  order.GetLimitPrice().String(),
-					amount: order.GetLeftAmount().Uint64(),
+				list = append(list, OrderShowList{
+					Price:  order.GetLimitPrice().String(),
+					Amount: order.GetLeftAmount().Uint64(),
 				})
 			}
 			//fmt.Fprintf(w, "orederHash: %s, amount: %d, left: %d, frozen: %d\n", order.Hash(), order.Amount, order.LeftAmount, order.FrozenAmount)
@@ -62,15 +62,15 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 	case "/sell":
 		//fmt.Fprintf(w, "total orders: %d\n", book.sellOrders.Len())
 		m := make(map[uint64]uint64)
-		list := []orderShowList{{"0", 0}}
+		list := []OrderShowList{{"0", 0}}
 		for _, order := range book.sellOrders.List() {
 			m[order.LimitPrice.Uint64()] += order.GetLeftAmount().Uint64()
-			if order.GetLimitPrice().String() == list[len(list)-1].price {
-				list[len(list)-1].amount += order.GetLeftAmount().Uint64()
+			if order.GetLimitPrice().String() == list[len(list)-1].Price {
+				list[len(list)-1].Amount += order.GetLeftAmount().Uint64()
 			} else {
-				list = append(list, orderShowList{
-					price:  order.GetLimitPrice().String(),
-					amount: order.GetLeftAmount().Uint64(),
+				list = append(list, OrderShowList{
+					Price:  order.GetLimitPrice().String(),
+					Amount: order.GetLeftAmount().Uint64(),
 				})
 			}
 			//fmt.Fprintf(w, "orederHash: %s, amount: %d, left: %d, frozen: %d\n", order.Hash(), order.Amount, order.LeftAmount, order.FrozenAmount)
