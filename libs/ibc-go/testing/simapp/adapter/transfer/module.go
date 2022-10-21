@@ -4,6 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 
+	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
+	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/exported"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
@@ -13,10 +17,29 @@ import (
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 )
 
+var (
+	_ porttypes.Middleware = (*TransferModule)(nil)
+)
+
 type TransferModule struct {
 	transfer.AppModule
 
 	TKeeper keeper.Keeper
+}
+
+func (am TransferModule) SendPacket(ctx sdk.Context, chanCap *capabilitytypes.Capability, packet exported.PacketI) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (am TransferModule) WriteAcknowledgement(ctx sdk.Context, chanCap *capabilitytypes.Capability, packet exported.PacketI, ack exported.Acknowledgement) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (am TransferModule) GetAppVersion(ctx sdk.Context, portID, channelID string) (string, bool) {
+	//TODO implement me
+	panic("implement me")
 }
 
 func TNewTransferModule(k keeper.Keeper, m *codec.CodecProxy) *TransferModule {

@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	ibcfeetypes "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee/types"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
@@ -39,6 +41,10 @@ const (
 	// used for testing proposals
 	Title       = "title"
 	Description = "description"
+
+	LongString = "LoremipsumdolorsitameconsecteturadipiscingeliseddoeiusmodtemporincididuntutlaboreetdoloremagnaaliquUtenimadminimveniamquisnostrudexercitationullamcolaborisnisiutaliquipexeacommodoconsequDuisauteiruredolorinreprehenderitinvoluptateelitsseillumoloreufugiatnullaariaturEcepteurintoccaectupidatatonroidentuntnulpauifficiaeseruntmollitanimidestlaborum"
+
+	MockFeePort = mock.ModuleName + ibcfeetypes.ModuleName
 )
 
 var (

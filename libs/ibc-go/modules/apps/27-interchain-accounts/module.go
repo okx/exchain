@@ -106,17 +106,6 @@ func NewAppModule(m *codec.CodecProxy, ck *controllerkeeper.Keeper, hk *hostkeep
 }
 
 func (am AppModule) InitGenesis(s sdk.Context, message json.RawMessage) []abci.ValidatorUpdate {
-	var genesisState types.GenesisState
-	ModuleCdc.MustUnmarshalJSON(message, &genesisState)
-
-	if am.controllerKeeper != nil {
-		controllerkeeper.InitGenesis(s, *am.controllerKeeper, genesisState.ControllerGenesisState)
-	}
-
-	if am.hostKeeper != nil {
-		hostkeeper.InitGenesis(s, *am.hostKeeper, genesisState.HostGenesisState)
-	}
-
 	return nil
 }
 

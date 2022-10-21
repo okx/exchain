@@ -81,24 +81,6 @@ func (ia AminoInterchainAccount) MarshalYAML() ([]byte, error) {
 	return bz, nil
 }
 
-// MarshalJSON returns the JSON representation of the AminoInterchainAccount
-//func (ia AminoInterchainAccount) MarshalJSON() ([]byte, error) {
-//	return auth.ModuleCdc.MarshalJSON(ia)
-//}
-//
-//// UnmarshalJSON unmarshals raw JSON bytes into the AminoInterchainAccount
-//func (ia *AminoInterchainAccount) UnmarshalJSON(bz []byte) error {
-//	var data AminoInterchainAccount
-//	if err := auth.ModuleCdc.UnmarshalJSON(bz, &data); nil != err {
-//		return err
-//	}
-//
-//	ia.BaseAccount = data.BaseAccount
-//	ia.AccountOwner = data.AccountOwner
-//
-//	return nil
-//}
-
 func (m *AminoInterchainAccount) GetAddress() sdk.AccAddress {
 	accAddr := m.BaseAccount.Address
 	return accAddr
@@ -131,15 +113,3 @@ func (m *AminoInterchainAccount) Copy() sdk.Account {
 	cp := m.BaseAccount.Copy().(*auth.BaseAccount)
 	return NewAminoInterchainAccount(cp, m.AccountOwner)
 }
-
-//////////
-//func (m *AminoInterchainAccount) MarshalSensitive(proxy *codec.CodecProxy) ([]byte, error) {
-//	ret, err := proxy.GetProtocMarshal().MarshalInterface(m)
-//	if nil != err {
-//		return nil, err
-//	}
-//	var acc authtypes.Account
-//	err2 := proxy.GetProtocMarshal().UnmarshalInterface(ret, &acc)
-//	fmt.Println(err2)
-//	return ret, err
-//}

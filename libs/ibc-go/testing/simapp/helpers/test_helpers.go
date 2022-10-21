@@ -1,22 +1,22 @@
 package helpers
 
 import (
+	"math/rand"
+	"time"
+
+	"github.com/okex/exchain/app"
+
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	signing2 "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibcsigning"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
-	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
-	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
 	"github.com/okex/exchain/libs/tendermint/crypto"
-	"math/rand"
-	"time"
 )
 
 // SimAppChainID hardcoded chainID for simulation
@@ -109,14 +109,11 @@ func GenTx(gen client.TxConfig, msgs []ibcmsg.Msg, feeAmt sdk.CoinAdapters, gas 
 
 	ibcTx, err := ibc_tx.IbcTxDecoder(cdcProxy.GetProtocMarshal())(txBytes)
 
-	return ibcTx, nil
+	return ibcTx, err
 }
 
 func newProxyDecoder() *codec.CodecProxy {
-	ModuleBasics := module.NewBasicManager(
-		ibc.AppModuleBasic{},
-		ibctransfer.AppModuleBasic{},
-	)
+	ModuleBasics := app.ModuleBasics
 	cdc := okexchaincodec.MakeCodec(ModuleBasics)
 	interfaceReg := okexchaincodec.MakeIBC(ModuleBasics)
 	protoCodec := codec.NewProtoCodec(interfaceReg)

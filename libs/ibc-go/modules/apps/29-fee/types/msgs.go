@@ -79,7 +79,7 @@ func (msg MsgRegisterPayee) Type() string {
 }
 
 func (msg MsgRegisterPayee) GetSignBytes() []byte {
-	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&msg))
+	return sdk.MustSortJSON(Amino.MustMarshalJSON(&msg))
 }
 
 // NewMsgRegisterCounterpartyPayee creates a new instance of MsgRegisterCounterpartyPayee
@@ -133,7 +133,7 @@ func (msg MsgRegisterCounterpartyPayee) Type() string {
 }
 
 func (msg MsgRegisterCounterpartyPayee) GetSignBytes() []byte {
-	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&msg))
+	return sdk.MustSortJSON(Amino.MustMarshalJSON(&msg))
 }
 
 // NewMsgPayPacketFee creates a new instance of MsgPayPacketFee
@@ -208,7 +208,7 @@ func (msg MsgPayPacketFee) Type() string {
 
 // GetSignBytes implements sdk.Msg.
 func (msg MsgPayPacketFee) GetSignBytes() []byte {
-	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&msg))
+	return sdk.MustSortJSON(Amino.MustMarshalJSON(&msg))
 }
 
 // NewMsgPayPacketAsync creates a new instance of MsgPayPacketFee
@@ -254,7 +254,7 @@ func (msg MsgPayPacketFeeAsync) Type() string {
 
 // GetSignBytes implements sdk.Msg.
 func (msg MsgPayPacketFeeAsync) GetSignBytes() []byte {
-	return sdk.MustSortJSON(ModuleCdc.MustMarshalJSON(&msg))
+	return sdk.MustSortJSON(Amino.MustMarshalJSON(&msg))
 }
 
 //func (msg MsgPayPacketFeeAsync) RulesFilter() (sdk.Msg, error) {

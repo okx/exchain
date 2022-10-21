@@ -76,7 +76,7 @@ func (k Keeper) ConnOpenTry(
 		found              bool
 	)
 
-	if !types2.HigherThanVenus3(ctx.BlockHeight()) {
+	if types2.HigherThanVenus3(ctx.BlockHeight()) {
 		// generate a new connection
 		connectionID = k.GenerateConnectionIdentifier(ctx)
 	} else {
