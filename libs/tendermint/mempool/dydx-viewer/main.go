@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	tm "github.com/buger/goterm"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
 	dydxlib "github.com/okex/exchain/libs/dydx"
@@ -140,6 +141,7 @@ func main() {
 }
 
 func Print(orderBook *dydx.OrderBook, usersBalance []UserBalance) {
+	tm.Clear()
 	fmt.Println("===========================================")
 	fmt.Println("OrderBook:")
 	fmt.Println("===========================================")
