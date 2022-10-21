@@ -127,7 +127,6 @@ func NewAppModule(cdc codec.CodecProxy, wasmkeeper *Keeper) AppModule {
 }
 
 func (am AppModule) RegisterServices(cfg module.Configurator) {
-	watcher.Init()
 	global.Manager = watcher.ParamsManager{}
 	simulator.NewWasmSimulator = NewWasmSimulator
 	types.RegisterMsgServer(cfg.MsgServer(), keeper.NewMsgServerImpl(am.permissionKeeper))
