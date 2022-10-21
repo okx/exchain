@@ -231,34 +231,19 @@ func queryWithdrawerFeeSplits(
 		types.GetKeyPrefixWithdrawer(withdrawer),
 	)
 
-	pageRes := &query.PageResponse{}
-	if params.Pagination == nil {
-		//query all
-		iter := store.Iterator(nil, nil)
-		defer iter.Close()
+	pageRes, err := query.Paginate(store, params.Pagination, func(key, _ []byte) error {
+		contracts = append(contracts, common.BytesToAddress(key).Hex())
 
-		for ; iter.Valid(); iter.Next() {
-			key := iter.Key()
-			contracts = append(contracts, common.BytesToAddress(key).Hex())
-			pageRes.Total++
-		}
-	} else {
-		//query by page
-		pageRes, err = query.Paginate(store, params.Pagination, func(key, _ []byte) error {
-			contracts = append(contracts, common.BytesToAddress(key).Hex())
-
-			return nil
-		})
-		if err != nil {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrInternal, err.Error())
-		}
+		return nil
+	})
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInternal, err.Error())
 	}
 
 	resp := &types.QueryWithdrawerFeeSplitsResponse{
 		ContractAddresses: contracts,
 		Pagination:        pageRes,
 	}
-
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, resp)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
