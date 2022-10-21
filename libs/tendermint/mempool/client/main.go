@@ -29,12 +29,14 @@ var (
 var (
 	privHex string
 	amount  int64
+	price   string
 	isBuy   bool
 )
 
 func main() {
 	flag.StringVar(&privHex, "priv", "8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17", "")
 	flag.Int64Var(&amount, "amount", 1, "")
+	flag.StringVar(&price, "price", "18200000000000000000000", "limit price of the order")
 	flag.BoolVar(&isBuy, "buy", true, "")
 	flag.Parse()
 	priv, err := crypto.HexToECDSA(privHex)
@@ -51,11 +53,11 @@ func main() {
 	//TODO orderBytes + signature
 	order := newP1Order(amount, isBuy)
 	order.Maker = addr
-	price, ok := big.NewInt(0).SetString("18200000000000000000000", 10)
+	limitPrice, ok := big.NewInt(0).SetString(price, 10)
 	if !ok {
 		panic(0)
 	}
-	order.LimitPrice = price
+	order.LimitPrice = limitPrice
 	sig, err := signOrder(order, privHex, chainID, orderContractAddr.String())
 	if err != nil {
 		panic(err)

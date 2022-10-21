@@ -220,6 +220,8 @@ func (p P1Order) clone() P1Order {
 }
 
 type WrapOrder struct {
+	sync.RWMutex
+
 	P1Order
 	FrozenAmount *big.Int
 	LeftAmount   *big.Int
@@ -244,13 +246,29 @@ func (w *WrapOrder) DecodeFrom(data []byte) error {
 }
 
 func (w *WrapOrder) Hash() common.Hash {
+	w.Lock()
+	defer w.Unlock()
 	if w.orderHash == zeroOrderHash {
 		w.orderHash = w.P1Order.Hash()
 	}
 	return w.orderHash
 }
 
+func (w *WrapOrder) GetLimitPrice() *big.Int {
+	w.RLock()
+	defer w.RUnlock()
+	return w.LimitPrice
+}
+
+func (w *WrapOrder) GetLeftAmount() *big.Int {
+	w.RLock()
+	defer w.RUnlock()
+	return w.LeftAmount
+}
+
 func (w *WrapOrder) Frozen(amount *big.Int) {
+	w.Lock()
+	defer w.Unlock()
 	w.LeftAmount.Sub(w.LeftAmount, amount)
 	w.FrozenAmount.Add(w.FrozenAmount, amount)
 	if w.LeftAmount.Sign() < 0 {
@@ -259,6 +277,8 @@ func (w *WrapOrder) Frozen(amount *big.Int) {
 }
 
 func (w *WrapOrder) Unfrozen(amount *big.Int) {
+	w.Lock()
+	defer w.Unlock()
 	w.LeftAmount.Add(w.LeftAmount, amount)
 	w.FrozenAmount.Sub(w.FrozenAmount, amount)
 	if w.FrozenAmount.Sign() < 0 {
@@ -267,6 +287,8 @@ func (w *WrapOrder) Unfrozen(amount *big.Int) {
 }
 
 func (w *WrapOrder) Done(amount *big.Int) {
+	w.Lock()
+	defer w.Unlock()
 	w.FrozenAmount.Sub(w.FrozenAmount, amount)
 	if w.FrozenAmount.Sign() < 0 {
 		fmt.Println("WrapOrder Done error")
