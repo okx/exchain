@@ -5,6 +5,7 @@ import (
 	"container/list"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"sort"
 	"sync"
 
@@ -598,6 +599,7 @@ func (tree *MutableTree) LoadVersionForOverwriting(targetVersion int64) (int64, 
 // An example of when an upgrade may be performed is when we are enaling fast storage for the first time or
 // need to overwrite fast nodes due to mismatch with live state.
 func (tree *MutableTree) IsUpgradeable() bool {
+	log.Printf("giskook --- %v  %v \n", tree.ndb.name, tree.ndb.getStorageVersion())
 	return !tree.ndb.hasUpgradedToFastStorage() || tree.ndb.shouldForceFastStorageUpgrade()
 }
 
@@ -606,6 +608,7 @@ func (tree *MutableTree) IsUpgradeable() bool {
 // from latest tree.
 // nolint: unparam
 func (tree *MutableTree) enableFastStorageAndCommitIfNotEnabled() (bool, error) {
+	log.Printf("giskook --- %v  %v \n", tree.ndb.name, tree.IsEmpty())
 	if !GetEnableFastStorage() {
 		return false, nil
 	}
@@ -613,6 +616,7 @@ func (tree *MutableTree) enableFastStorageAndCommitIfNotEnabled() (bool, error) 
 	if !tree.IsUpgradeable() {
 		return false, nil
 	}
+	log.Printf("giskook --- %v  %v \n", tree.ndb.name, tree.IsEmpty())
 
 	// If there is a mismatch between which fast nodes are on disk and the live state due to temporary
 	// downgrade and subsequent re-upgrade, we cannot know for sure which fast nodes have been removed while downgraded,
