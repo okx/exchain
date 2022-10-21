@@ -1,6 +1,7 @@
 package dydx
 
 import (
+	"fmt"
 	"net"
 	"strconv"
 	"strings"
@@ -24,6 +25,9 @@ type OrderBookServer struct {
 }
 
 func NewOrderBookServer(book *DepthBook, logger log.Logger) *OrderBookServer {
+	if logger == nil {
+		logger = log.NewNopLogger()
+	}
 	return &OrderBookServer{
 		logger:   logger,
 		book:     book,
@@ -123,10 +127,10 @@ func (s *OrderBookServer) WatchOrderBookLevel(_ *Empty, stream OrderBookUpdater_
 	}
 }
 
-func (s *OrderBookServer) Start(configPort string) {
+func (s *OrderBookServer) Start(configPort string) error {
 	configPort = strings.ToLower(configPort)
 	if configPort == "off" {
-		return
+		return nil
 	} else if configPort == "auto" {
 		configPort = "0"
 	}
@@ -134,7 +138,7 @@ func (s *OrderBookServer) Start(configPort string) {
 	if port, err := strconv.Atoi(configPort); err == nil {
 		lis, err := net.Listen("tcp", ":"+strconv.Itoa(port))
 		if err != nil {
-			s.logger.Error("Failed to start orderbook grpc server", "err", err)
+			return fmt.Errorf("failed to listen: %v", err)
 		} else {
 			var options = []grpc.ServerOption{
 				//grpc.KeepaliveParams(keepalive.ServerParameters{
@@ -153,4 +157,5 @@ func (s *OrderBookServer) Start(configPort string) {
 			}()
 		}
 	}
+	return nil
 }
