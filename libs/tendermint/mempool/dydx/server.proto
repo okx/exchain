@@ -7,7 +7,8 @@ option go_package = "/libs/tendermint/mempool/dydx";
 package dydx;
 
 service OrderBookUpdater {
-  rpc WatchOrderBook (Empty) returns(stream OrderBook) {}
+  // rpc WatchOrderBook (Empty) returns(stream OrderBook) {}
+  rpc WatchOrderBookLevel (Empty) returns(stream OrderBookLevel) {}
 }
 
 message Empty {}
@@ -15,4 +16,14 @@ message Empty {}
 message OrderBook {
   repeated bytes buy_orders = 1;
   repeated bytes sell_orders = 2;
+}
+
+message OrderBookLevel {
+  repeated OrderLevel buy_levels = 1;
+  repeated OrderLevel sell_levels = 2;
+}
+
+message OrderLevel {
+  string price = 1;
+  string amount = 2;
 }

@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"os/exec"
 
 	tm "github.com/buger/goterm"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/ethclient"
+	"github.com/inancgumus/screen"
 	dydxlib "github.com/okex/exchain/libs/dydx"
 	"github.com/okex/exchain/libs/dydx/contracts"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -111,7 +113,7 @@ func main() {
 		return
 	}
 	client := dydx.NewOrderBookUpdaterClient(conn)
-	stream, err := client.WatchOrderBook(context.Background(), new(dydx.Empty))
+	stream, err := client.WatchOrderBookLevel(context.Background(), new(dydx.Empty))
 	if err != nil {
 		logger.Error("failed to watch order book", "err", err)
 		return
@@ -137,27 +139,45 @@ func main() {
 		}
 
 		Print(ob, usersBalance)
+
+		//Print(nil, usersBalance)
+		//time.Sleep(3 * time.Second)
 	}
 }
 
-func Print(orderBook *dydx.OrderBook, usersBalance []UserBalance) {
+func clear() {
 	tm.Clear()
-	fmt.Println("===========================================")
-	fmt.Println("OrderBook:")
-	fmt.Println("===========================================")
-	fmt.Println("Asks:")
-	for _, order := range orderBook.SellOrders {
-		fmt.Println(order)
+	screen.Clear()
+	cmd := exec.Command("clear")
+	cmd.Stdout = os.Stdout
+	cmd.Run()
+}
+
+func Print(orderBook *dydx.OrderBookLevel, usersBalance []UserBalance) {
+	clear()
+	if orderBook != nil {
+		fmt.Println("===========================================")
+		fmt.Println("OrderBook:")
+		fmt.Println("===========================================")
+		fmt.Println("Asks:")
+		for _, order := range orderBook.SellLevels {
+			fmt.Printf("price: %s, amount: %s\n", order)
+		}
+		fmt.Println()
+		fmt.Println("Bids:")
+		for _, order := range orderBook.BuyLevels {
+			fmt.Printf("price: %s, amount: %s\n", order)
+		}
 	}
-	fmt.Println("Bids:")
-	for _, order := range orderBook.BuyOrders {
-		fmt.Println(order)
-	}
+
+	fmt.Println()
 	fmt.Println("===========================================")
 	fmt.Println("Users Balance:")
 	fmt.Println("===========================================")
+	fmt.Println()
 	for _, userBalance := range usersBalance {
-		fmt.Println(userBalance)
+		_, _ = fmt.Println(userBalance.String())
+		fmt.Println()
 	}
 	fmt.Println("===========================================")
 }
@@ -165,4 +185,16 @@ func Print(orderBook *dydx.OrderBook, usersBalance []UserBalance) {
 type UserBalance struct {
 	User    User
 	Balance contracts.P1TypesBalance
+}
+
+func (ub UserBalance) String() string {
+	margin := ub.Balance.Margin.String()
+	position := ub.Balance.Position.String()
+	if !ub.Balance.PositionIsPositive {
+		position = "-" + position
+	}
+	if !ub.Balance.MarginIsPositive {
+		margin = "-" + margin
+	}
+	return fmt.Sprintf("%s: margin: %s, position: %s", ub.User.Name, margin, position)
 }

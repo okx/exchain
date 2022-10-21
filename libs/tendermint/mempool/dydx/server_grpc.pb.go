@@ -22,7 +22,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type OrderBookUpdaterClient interface {
-	WatchOrderBook(ctx context.Context, in *Empty, opts ...grpc.CallOption) (OrderBookUpdater_WatchOrderBookClient, error)
+	// rpc WatchOrderBook (Empty) returns(stream OrderBook) {}
+	WatchOrderBookLevel(ctx context.Context, in *Empty, opts ...grpc.CallOption) (OrderBookUpdater_WatchOrderBookLevelClient, error)
 }
 
 type orderBookUpdaterClient struct {
@@ -33,12 +34,12 @@ func NewOrderBookUpdaterClient(cc grpc.ClientConnInterface) OrderBookUpdaterClie
 	return &orderBookUpdaterClient{cc}
 }
 
-func (c *orderBookUpdaterClient) WatchOrderBook(ctx context.Context, in *Empty, opts ...grpc.CallOption) (OrderBookUpdater_WatchOrderBookClient, error) {
-	stream, err := c.cc.NewStream(ctx, &OrderBookUpdater_ServiceDesc.Streams[0], "/dydx.OrderBookUpdater/WatchOrderBook", opts...)
+func (c *orderBookUpdaterClient) WatchOrderBookLevel(ctx context.Context, in *Empty, opts ...grpc.CallOption) (OrderBookUpdater_WatchOrderBookLevelClient, error) {
+	stream, err := c.cc.NewStream(ctx, &OrderBookUpdater_ServiceDesc.Streams[0], "/dydx.OrderBookUpdater/WatchOrderBookLevel", opts...)
 	if err != nil {
 		return nil, err
 	}
-	x := &orderBookUpdaterWatchOrderBookClient{stream}
+	x := &orderBookUpdaterWatchOrderBookLevelClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -48,17 +49,17 @@ func (c *orderBookUpdaterClient) WatchOrderBook(ctx context.Context, in *Empty, 
 	return x, nil
 }
 
-type OrderBookUpdater_WatchOrderBookClient interface {
-	Recv() (*OrderBook, error)
+type OrderBookUpdater_WatchOrderBookLevelClient interface {
+	Recv() (*OrderBookLevel, error)
 	grpc.ClientStream
 }
 
-type orderBookUpdaterWatchOrderBookClient struct {
+type orderBookUpdaterWatchOrderBookLevelClient struct {
 	grpc.ClientStream
 }
 
-func (x *orderBookUpdaterWatchOrderBookClient) Recv() (*OrderBook, error) {
-	m := new(OrderBook)
+func (x *orderBookUpdaterWatchOrderBookLevelClient) Recv() (*OrderBookLevel, error) {
+	m := new(OrderBookLevel)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
@@ -69,7 +70,8 @@ func (x *orderBookUpdaterWatchOrderBookClient) Recv() (*OrderBook, error) {
 // All implementations must embed UnimplementedOrderBookUpdaterServer
 // for forward compatibility
 type OrderBookUpdaterServer interface {
-	WatchOrderBook(*Empty, OrderBookUpdater_WatchOrderBookServer) error
+	// rpc WatchOrderBook (Empty) returns(stream OrderBook) {}
+	WatchOrderBookLevel(*Empty, OrderBookUpdater_WatchOrderBookLevelServer) error
 	mustEmbedUnimplementedOrderBookUpdaterServer()
 }
 
@@ -77,8 +79,8 @@ type OrderBookUpdaterServer interface {
 type UnimplementedOrderBookUpdaterServer struct {
 }
 
-func (UnimplementedOrderBookUpdaterServer) WatchOrderBook(*Empty, OrderBookUpdater_WatchOrderBookServer) error {
-	return status.Errorf(codes.Unimplemented, "method WatchOrderBook not implemented")
+func (UnimplementedOrderBookUpdaterServer) WatchOrderBookLevel(*Empty, OrderBookUpdater_WatchOrderBookLevelServer) error {
+	return status.Errorf(codes.Unimplemented, "method WatchOrderBookLevel not implemented")
 }
 func (UnimplementedOrderBookUpdaterServer) mustEmbedUnimplementedOrderBookUpdaterServer() {}
 
@@ -93,24 +95,24 @@ func RegisterOrderBookUpdaterServer(s grpc.ServiceRegistrar, srv OrderBookUpdate
 	s.RegisterService(&OrderBookUpdater_ServiceDesc, srv)
 }
 
-func _OrderBookUpdater_WatchOrderBook_Handler(srv interface{}, stream grpc.ServerStream) error {
+func _OrderBookUpdater_WatchOrderBookLevel_Handler(srv interface{}, stream grpc.ServerStream) error {
 	m := new(Empty)
 	if err := stream.RecvMsg(m); err != nil {
 		return err
 	}
-	return srv.(OrderBookUpdaterServer).WatchOrderBook(m, &orderBookUpdaterWatchOrderBookServer{stream})
+	return srv.(OrderBookUpdaterServer).WatchOrderBookLevel(m, &orderBookUpdaterWatchOrderBookLevelServer{stream})
 }
 
-type OrderBookUpdater_WatchOrderBookServer interface {
-	Send(*OrderBook) error
+type OrderBookUpdater_WatchOrderBookLevelServer interface {
+	Send(*OrderBookLevel) error
 	grpc.ServerStream
 }
 
-type orderBookUpdaterWatchOrderBookServer struct {
+type orderBookUpdaterWatchOrderBookLevelServer struct {
 	grpc.ServerStream
 }
 
-func (x *orderBookUpdaterWatchOrderBookServer) Send(m *OrderBook) error {
+func (x *orderBookUpdaterWatchOrderBookLevelServer) Send(m *OrderBookLevel) error {
 	return x.ServerStream.SendMsg(m)
 }
 
@@ -123,8 +125,8 @@ var OrderBookUpdater_ServiceDesc = grpc.ServiceDesc{
 	Methods:     []grpc.MethodDesc{},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "WatchOrderBook",
-			Handler:       _OrderBookUpdater_WatchOrderBook_Handler,
+			StreamName:    "WatchOrderBookLevel",
+			Handler:       _OrderBookUpdater_WatchOrderBookLevel_Handler,
 			ServerStreams: true,
 		},
 	},

@@ -52,7 +52,47 @@ func bookToOrderBook(book *DepthBook) *OrderBook {
 	//}
 }
 
-func (s *OrderBookServer) WatchOrderBook(_ *Empty, stream OrderBookUpdater_WatchOrderBookServer) error {
+func bookToLevel(book *DepthBook) *OrderBookLevel {
+	return nil
+	//book.buyOrders.List()
+	//return &OrderBook{
+	//	BuyOrders:  bookToOrders(book.buyOrders),
+	//	SellOrders: bookToOrders(book.sellOrders),
+	//}
+}
+
+//func (s *OrderBookServer) WatchOrderBook(_ *Empty, stream OrderBookUpdater_WatchOrderBookServer) error {
+//	s.mtx.Lock()
+//	chIndex := s.clientIndex
+//	s.clientIndex++
+//	ch := new(int64)
+//	s.clientCh[chIndex] = ch
+//	s.mtx.Unlock()
+//
+//	defer func() {
+//		s.mtx.Lock()
+//		delete(s.clientCh, chIndex)
+//		s.mtx.Unlock()
+//	}()
+//
+//	for {
+//		select {
+//		case <-time.After(1 * time.Second):
+//			if atomic.LoadInt64(ch) == 1 {
+//				atomic.StoreInt64(ch, 0)
+//				b := bookToOrderBook(s.book)
+//				if b == nil {
+//					continue
+//				}
+//				if err := stream.Send(b); err != nil {
+//					return err
+//				}
+//			}
+//		}
+//	}
+//}
+
+func (s *OrderBookServer) WatchOrderBookLevel(_ *Empty, stream OrderBookUpdater_WatchOrderBookLevelServer) error {
 	s.mtx.Lock()
 	chIndex := s.clientIndex
 	s.clientIndex++
@@ -71,7 +111,7 @@ func (s *OrderBookServer) WatchOrderBook(_ *Empty, stream OrderBookUpdater_Watch
 		case <-time.After(1 * time.Second):
 			if atomic.LoadInt64(ch) == 1 {
 				atomic.StoreInt64(ch, 0)
-				b := bookToOrderBook(s.book)
+				b := bookToLevel(s.book)
 				if b == nil {
 					continue
 				}
