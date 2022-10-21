@@ -118,7 +118,6 @@ func (suite *PendingPoolTestSuite) TestRemovetx(t *testing.T) {
 	res = suite.Pool.getTx("10", 0)
 	suite.Require().Nil(res)
 }
-
 func (suite *PendingPoolTestSuite) TestRemoveTxByHash(t *testing.T) {
 	testCases := []struct {
 		Tx *mempoolTx
@@ -137,9 +136,14 @@ func (suite *PendingPoolTestSuite) TestRemoveTxByHash(t *testing.T) {
 		t := suite.Pool.getTx(exInfo.Tx.from, exInfo.Tx.senderNonce)
 		suite.Require().NotNil(t)
 	}
-	suite.Pool.removeTxByHash("0x000")
-	res := suite.Pool.getTx("18", 0)
-	suite.Require().NotNil(res)
+
+	for _, exInfo := range testCases {
+		suite.Pool.removeTxByHash(txID(exInfo.Tx.tx, 0))
+	}
+	for _, exInfo := range testCases {
+		t := suite.Pool.getTx(exInfo.Tx.from, exInfo.Tx.senderNonce)
+		suite.Require().Nil(t)
+	}
 }
 
 func (suite *PendingPoolTestSuite) TestHandlePendingTx(t *testing.T) {
