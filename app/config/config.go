@@ -253,7 +253,7 @@ func resolveSentryAddrs(plain string) []string {
 	if len(plain) == 0 {
 		return []string{}
 	}
-	return strings.Split(plain, ",")
+	return strings.Split(plain, ";")
 }
 
 func (c *OecConfig) loadFromApollo() bool {
