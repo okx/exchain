@@ -149,9 +149,9 @@ func (p *P1Order) Type() OrderType {
 		return UnknownOrderType
 	}
 	if p.Flags[31] == 1 {
-		return SellOrderType
+		return BuyOrderType
 	}
-	return BuyOrderType
+	return SellOrderType
 }
 
 func (p *P1Order) isBuy() bool {
