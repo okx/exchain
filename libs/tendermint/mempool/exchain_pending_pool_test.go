@@ -111,9 +111,12 @@ func (suite *PendingPoolTestSuite) TestRemovetx(t *testing.T) {
 	suite.Require().Nil(res)
 
 	suite.Pool.removeTx("7", 0)
-	res = suite.Pool.getTx("10", 0)
+	res = suite.Pool.getTx("7", 0)
 	suite.Require().Nil(res)
 
+	suite.Pool.removeTx("10", 0)
+	res = suite.Pool.getTx("10", 0)
+	suite.Require().Nil(res)
 }
 
 func (suite *PendingPoolTestSuite) TestRemoveTxByHash(t *testing.T) {
