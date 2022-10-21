@@ -985,3 +985,34 @@ func TestTxOrTxHashToKey(t *testing.T) {
 
 	types.UnittestOnlySetMilestoneVenusHeight(old)
 }
+
+func TestConsumePendingtxConcurrency(t *testing.T) {
+	pool := newPendingPool(100, 3, 10, 10)
+
+	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "benchmark")
+	var options []log.Option
+	options = append(options, log.AllowErrorWith("module", "benchmark"))
+	logger = log.NewFilter(logger, options...)
+
+	mem := &CListMempool{height: 123456, logger: logger, pendingPool: pool}
+	type Case struct {
+		Tx *mempoolTx
+	}
+
+	testCases := []Case{
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("2"), from: "1", realTx: abci.MockTx{GasPrice: big.NewInt(3780), Nonce: 1}}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("3"), from: "1", realTx: abci.MockTx{GasPrice: big.NewInt(5315), Nonce: 2}}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("4"), from: "1", realTx: abci.MockTx{GasPrice: big.NewInt(4526), Nonce: 3}}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("5"), from: "1", realTx: abci.MockTx{GasPrice: big.NewInt(2140), Nonce: 4}}},
+		{&mempoolTx{height: 1, gasWanted: 1, tx: []byte("6"), from: "1", realTx: abci.MockTx{GasPrice: big.NewInt(4227), Nonce: 5}}},
+	}
+	// add to pending pool
+	for _, exInfo := range testCases {
+		pool.addTx(exInfo.Tx)
+	}
+
+	go func() {
+		mem.consumePendingTx("1", 0)
+	}()
+	mem.consumePendingTx("1", 0)
+}
