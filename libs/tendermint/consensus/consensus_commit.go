@@ -419,12 +419,14 @@ func (cs *State) preMakeBlock(height int64, waiting time.Duration) {
 		time.Sleep(waiting)
 		// request for proposer of new height
 		prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address(), Proposal: proposal}
-		// todo only put all request into one channel
 		cs.requestForProposer(prMsg)
 	}
 }
 
 func (cs *State) getPreBlockResult(height int64) *preBlockTaskRes {
+	if !GetActiveVC() {
+		return nil
+	}
 	for {
 		select {
 		case res := <-cs.taskResultChan:
