@@ -177,7 +177,7 @@ func (o *OrderList) prune() {
 
 func (o *OrderList) less(order1, order2 *WrapOrder) bool {
 	if o.reverse {
-		return order1.Amount.Cmp(order2.Amount) > 0
+		return order1.Price().Cmp(order2.Price()) > 0
 	}
-	return order1.Amount.Cmp(order2.Amount) < 0
+	return order1.Price().Cmp(order2.Price()) < 0
 }

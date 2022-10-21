@@ -60,6 +60,9 @@ func bookToLevel(book *DepthBook) *OrderBookLevel {
 	buyLevels := []*OrderLevel{{"0", 0}}
 	sellLevels := []*OrderLevel{{"0", 0}}
 	for _, order := range book.buyOrders.List() {
+		if order.GetLeftAmount().Uint64() == 0 {
+			continue
+		}
 		if order.GetLimitPrice().String() == buyLevels[len(buyLevels)-1].Price {
 			buyLevels[len(buyLevels)-1].Amount += int64(order.GetLeftAmount().Uint64())
 		} else {
@@ -70,6 +73,9 @@ func bookToLevel(book *DepthBook) *OrderBookLevel {
 		}
 	}
 	for _, order := range book.sellOrders.List() {
+		if order.GetLeftAmount().Uint64() == 0 {
+			continue
+		}
 		if order.GetLimitPrice().String() == sellLevels[len(sellLevels)-1].Price {
 			sellLevels[len(sellLevels)-1].Amount += int64(order.GetLeftAmount().Uint64())
 		} else {
