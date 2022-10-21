@@ -159,7 +159,8 @@ func (tree *MutableTree) persist(version int64) {
 	batch := tree.NewBatch()
 	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0, nil}
 	var tpp map[string]*Node = nil
-	fnc := newFastNodeChanges()
+	// fnc := newFastNodeChanges()
+	var fnc *fastNodeChanges
 	if EnablePruningHistoryState {
 		tree.ndb.saveCommitOrphans(batch, version, tree.commitOrphans)
 	}
