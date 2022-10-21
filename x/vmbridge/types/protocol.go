@@ -26,42 +26,10 @@ var (
 	EvmABI abi.ABI
 	//go:embed abi.json
 	abiJson []byte
-
-	//BridgeModuleETHAddr  common.Address
-	//BridgeModuleBechAddr sdk.AccAddress
 )
 
 func init() {
-	//stringType, _ := abi.NewType("string", "", nil)
-	//uint256Type, _ := abi.NewType("uint256", "", nil)
-	//
-	//SendToWasmEvent = abi.NewEvent(
-	//	SendToWasmEventName,
-	//	SendToWasmEventName,
-	//	false,
-	//	abi.Arguments{
-	//		abi.Argument{
-	//			Name:    "wasmAddr",
-	//			Type:    stringType,
-	//			Indexed: false,
-	//		},
-	//		abi.Argument{
-	//			Name:    "recipient",
-	//			Type:    stringType,
-	//			Indexed: false,
-	//		},
-	//		abi.Argument{
-	//			Name:    "amount",
-	//			Type:    uint256Type,
-	//			Indexed: false,
-	//		},
-	//	},
-	//)
 	EvmABI, SendToWasmEvent = GetEVMABIConfig(abiJson)
-
-	//BridgeModuleBechAddr = authtypes.NewModuleAddress(ModuleName)
-	//BridgeModuleETHAddr = common.BytesToAddress(BridgeModuleBechAddr.Bytes())
-
 }
 
 type MintCW20Method struct {

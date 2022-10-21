@@ -1,9 +1,11 @@
 package keeper_test
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -331,6 +333,165 @@ func (suite *KeeperTestSuite) TestSendToWasmEventHandler_Handle() {
 	}
 }
 
+func (suite *KeeperTestSuite) TestSendToWasmEvent_Unpack() {
+	ethAddr := common.BigToAddress(big.NewInt(1))
+	var data []byte
+
+	testCases := []struct {
+		msg       string
+		malleate  func()
+		postcheck func(wasmAddr string, recipient string, amount sdk.Int, err error)
+		error     error
+	}{
+		{
+			"normal topic",
+			func() {
+				wasmAddrStr := suite.wasmContract.String()
+				input, err := getSendToWasmEventData(wasmAddrStr, ethAddr.String(), big.NewInt(1))
+				suite.Require().NoError(err)
+				data = input
+			},
+			func(wasmAddr string, recipient string, amount sdk.Int, err error) {
+				suite.Require().NoError(err)
+				suite.Require().Equal(suite.wasmContract.String(), wasmAddr)
+				suite.Require().Equal(ethAddr.String(), recipient)
+				suite.Require().Equal(big.NewInt(1), amount.BigInt())
+			},
+			nil,
+		},
+		{
+			"recipient is bytes",
+			func() {
+				testABIJson := "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"string\",\"name\":\"wasmAddr\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"recipient\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"__OKCSendToWasm\",\"type\":\"event\"}]"
+
+				testABIEvent, err := abi.JSON(bytes.NewReader([]byte(testABIJson)))
+				suite.Require().NoError(err)
+
+				ethAddrAcc, err := sdk.AccAddressFromBech32(ethAddr.String())
+				suite.Require().NoError(err)
+				suite.T().Log("eth addr", ethAddr.String(), "acc addr", ethAddrAcc.String())
+				input, err := testABIEvent.Events[types.SendToWasmEventName].Inputs.Pack(suite.wasmContract.String(), []byte(ethAddrAcc.String()), big.NewInt(1))
+				suite.Require().NoError(err)
+				data = input
+			},
+			func(wasmAddr string, recipient string, amount sdk.Int, err error) {
+				suite.Require().NoError(err)
+				suite.Require().Error(err)
+				suite.Require().Equal(ethAddr.String(), recipient)
+				suite.Require().Equal(big.NewInt(1), amount.BigInt())
+			},
+			nil,
+		},
+		{
+			"wasmAddr is bytes",
+			func() {
+				testABIJson := "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"bytes\",\"name\":\"wasmAddr\",\"type\":\"bytes\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"recipient\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"__OKCSendToWasm\",\"type\":\"event\"}]"
+
+				testABIEvent, err := abi.JSON(bytes.NewReader([]byte(testABIJson)))
+				suite.Require().NoError(err)
+				input, err := testABIEvent.Events[types.SendToWasmEventName].Inputs.Pack([]byte(suite.wasmContract.String()), ethAddr.String(), big.NewInt(1))
+				suite.Require().NoError(err)
+				data = input
+			},
+			func(wasmAddr string, recipient string, amount sdk.Int, err error) {
+				suite.Require().NoError(err)
+				suite.Require().Equal(suite.wasmContract.String(), wasmAddr)
+				suite.Require().Equal(ethAddr.String(), recipient)
+				suite.Require().Equal(big.NewInt(1), amount.BigInt())
+			},
+			nil,
+		},
+		{
+			"event __OKCSendToWasm(string,uint256) ",
+			func() {
+				testABIJson := "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"string\",\"name\":\"recipient\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"__OKCSendToWasm\",\"type\":\"event\"}]"
+
+				testABIEvent, err := abi.JSON(bytes.NewReader([]byte(testABIJson)))
+				suite.Require().NoError(err)
+				input, err := testABIEvent.Events[types.SendToWasmEventName].Inputs.Pack(ethAddr.String(), big.NewInt(1))
+				suite.Require().NoError(err)
+				data = input
+			},
+			func(wasmAddr string, recipient string, amount sdk.Int, err error) {
+			},
+			errors.New("abi: cannot marshal in to go type: length insufficient 160 require 16417"),
+		},
+		{
+			"event __OKCSendToWasm(string,string,string,uint256) ",
+			func() {
+				testABIJson := "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"string\",\"name\":\"recipient2\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"recipient1\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"recipient\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"}],\"name\":\"__OKCSendToWasm\",\"type\":\"event\"}]"
+
+				testABIEvent, err := abi.JSON(bytes.NewReader([]byte(testABIJson)))
+				suite.Require().NoError(err)
+				input, err := testABIEvent.Events[types.SendToWasmEventName].Inputs.Pack(ethAddr.String(), big.NewInt(1))
+				suite.Require().NoError(err)
+				data = input
+			},
+			func(wasmAddr string, recipient string, amount sdk.Int, err error) {
+			},
+			errors.New("argument count mismatch: got 2 for 4"),
+		},
+		{
+			"amount is negative",
+			func() {
+				testABIJson := "[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"string\",\"name\":\"wasmAddr\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"string\",\"name\":\"recipient\",\"type\":\"string\"},{\"indexed\":false,\"internalType\":\"int8\",\"name\":\"amount\",\"type\":\"int8\"}],\"name\":\"__OKCSendToWasm\",\"type\":\"event\"}]\n"
+
+				testABIEvent, err := abi.JSON(bytes.NewReader([]byte(testABIJson)))
+				suite.Require().NoError(err)
+				input, err := testABIEvent.Events[types.SendToWasmEventName].Inputs.Pack(suite.wasmContract.String(), ethAddr.String(), int8(-1))
+				suite.Require().NoError(err)
+				data = input
+			},
+			func(wasmAddr string, recipient string, amount sdk.Int, err error) {
+				suite.Require().Equal(errors.New("recover err: NewIntFromBigInt() out of bound"), err)
+				suite.Require().Equal(suite.wasmContract.String(), wasmAddr)
+				suite.Require().Equal(ethAddr.String(), recipient)
+				suite.Require().Equal(big.NewInt(1), amount.BigInt())
+			},
+			nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(fmt.Sprintf("Case %s", tc.msg), func() {
+			suite.SetupTest()
+
+			tc.malleate()
+			unpacked, err := types.SendToWasmEvent.Inputs.Unpack(data)
+			if tc.error != nil {
+				suite.Require().EqualError(err, tc.error.Error())
+			} else {
+				suite.Require().NoError(err)
+				feild1, field2, feild3, err := getUnpack(unpacked)
+				tc.postcheck(feild1, field2, feild3, err)
+			}
+		})
+	}
+}
+
+func getUnpack(unpacked []interface{}) (wasmAddr string, recipient string, amount sdk.Int, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			err = fmt.Errorf("recover err: %v", r)
+		}
+	}()
+	wasmAddr, ok := unpacked[0].(string)
+	if !ok {
+		return wasmAddr, recipient, amount, errors.New("the 1 feild is not string")
+	}
+
+	recipient, ok = unpacked[1].(string)
+	if !ok {
+		return wasmAddr, recipient, amount, errors.New("the 2 feild is not string")
+	}
+
+	temp, ok := unpacked[2].(*big.Int)
+	if !ok {
+		return wasmAddr, recipient, amount, errors.New("the 3 feild is not *big.Int")
+	}
+	amount = sdk.NewIntFromBigInt(temp)
+	return
+}
 func getSendToWasmEventData(wasmAddr, recipient string, amount *big.Int) ([]byte, error) {
 	return types.SendToWasmEvent.Inputs.Pack(wasmAddr, recipient, amount)
 }

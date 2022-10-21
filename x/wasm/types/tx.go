@@ -220,7 +220,7 @@ func (msg MsgUpdateAdmin) ValidateBasic() error {
 		return sdkerrors.Wrap(err, "new admin")
 	}
 	if strings.EqualFold(msg.Sender, msg.NewAdmin) {
-		return sdkerrors.Wrap(ErrInvalidMsg, "new admin is the same as the old admin (you input)")
+		return sdkerrors.Wrap(ErrInvalidMsg, "new admin is the same as the sender")
 	}
 	return nil
 }
