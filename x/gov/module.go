@@ -2,7 +2,6 @@ package gov
 
 import (
 	"encoding/json"
-	sim "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
 	"math/rand"
 
 	"github.com/gorilla/mux"
@@ -10,14 +9,15 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	sim "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/spf13/cobra"
-
 	"github.com/okex/exchain/x/gov/client"
 	"github.com/okex/exchain/x/gov/client/cli"
 	"github.com/okex/exchain/x/gov/client/rest"
 	"github.com/okex/exchain/x/gov/keeper"
 	"github.com/okex/exchain/x/gov/types"
+	"github.com/okex/exchain/x/wasm/watcher"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -150,6 +150,10 @@ func (AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {}
 // EndBlock implements module end-block
 func (am AppModule) EndBlock(ctx sdk.Context, _ abci.RequestEndBlock) []abci.ValidatorUpdate {
 	EndBlocker(ctx, am.keeper)
+	if watcher.Enable() {
+		watcher.Save(nil)
+	}
+
 	return []abci.ValidatorUpdate{}
 }
 
