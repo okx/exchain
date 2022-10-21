@@ -57,7 +57,7 @@ func (suite *PendingPoolTestSuite) TestAddtx(t *testing.T) {
 	}
 }
 
-func TestAddtxConcurrency(t *testing.T) {
+func (suite *PendingPoolTestSuite) TestAddtxConcurrency(t *testing.T) {
 	type Case struct {
 		Tx *mempoolTx
 	}
