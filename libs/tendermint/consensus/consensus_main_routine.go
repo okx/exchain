@@ -294,7 +294,9 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 		sleepDuration = 0
 	}
 
-	go cs.preMakeBlock(cs.Height, sleepDuration)
+	if cs.privValidator != nil {
+		go cs.preMakeBlock(cs.Height, sleepDuration)
+	}
 
 	cs.scheduleTimeout(sleepDuration, rs.Height, 0, cstypes.RoundStepNewHeight)
 }
