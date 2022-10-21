@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	authtypes "github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
@@ -35,6 +37,8 @@ import (
 
 var DefaultTestingAppInit func() (TestingApp, map[string]json.RawMessage) = SetupTestingApp
 
+// IBC application testing ports
+
 type TestingApp interface {
 	abci.Application
 	TxConfig() client.TxConfig
@@ -43,6 +47,7 @@ type TestingApp interface {
 	GetBaseApp() *bam.BaseApp
 	GetStakingKeeper() stakingkeeper.Keeper
 	GetIBCKeeper() *keeper.Keeper
+	GetFacadedKeeper() *ibc.Keeper
 	GetScopedIBCKeeper() capabilitykeeper.ScopedKeeper
 	//GetTxConfig() client.TxConfig
 
