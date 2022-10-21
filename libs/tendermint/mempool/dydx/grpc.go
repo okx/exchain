@@ -57,7 +57,32 @@ func bookToOrderBook(book *DepthBook) *OrderBook {
 }
 
 func bookToLevel(book *DepthBook) *OrderBookLevel {
-	return nil
+	buyLevels := []*OrderLevel{{"0", 0}}
+	sellLevels := []*OrderLevel{{"0", 0}}
+	for _, order := range book.buyOrders.List() {
+		if order.GetLimitPrice().String() == buyLevels[len(buyLevels)-1].Price {
+			buyLevels[len(buyLevels)-1].Amount += int64(order.GetLeftAmount().Uint64())
+		} else {
+			buyLevels = append(buyLevels, &OrderLevel{
+				Price:  order.GetLimitPrice().String(),
+				Amount: int64(order.GetLeftAmount().Uint64()),
+			})
+		}
+	}
+	for _, order := range book.sellOrders.List() {
+		if order.GetLimitPrice().String() == sellLevels[len(sellLevels)-1].Price {
+			sellLevels[len(sellLevels)-1].Amount += int64(order.GetLeftAmount().Uint64())
+		} else {
+			sellLevels = append(sellLevels, &OrderLevel{
+				Price:  order.GetLimitPrice().String(),
+				Amount: int64(order.GetLeftAmount().Uint64()),
+			})
+		}
+	}
+	return &OrderBookLevel{
+		BuyLevels:  buyLevels[1:],
+		SellLevels: sellLevels[1:],
+	}
 	//book.buyOrders.List()
 	//return &OrderBook{
 	//	BuyOrders:  bookToOrders(book.buyOrders),
