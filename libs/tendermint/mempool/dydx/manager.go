@@ -1,11 +1,12 @@
 package dydx
 
 import (
-	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"math/big"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
 )
@@ -33,8 +34,9 @@ type OrderManager struct {
 	orders    *clist.CList
 	ordersMap sync.Map // orderKey => *clist.CElement
 
-	book   *DepthBook
-	engine Matcher
+	book    *DepthBook
+	engine  Matcher
+	gServer *OrderBookServer
 }
 
 func NewOrderManager(doMatch bool) *OrderManager {
@@ -63,6 +65,11 @@ func NewOrderManager(doMatch bool) *OrderManager {
 	} else {
 		manager.engine = NewEmptyMatcher(manager.book)
 	}
+	manager.gServer = NewOrderBookServer(manager.book, log.NewTMLogger(os.Stdout))
+	err := manager.gServer.Start("7070")
+	if err != nil {
+		panic(err)
+	}
 	go manager.Serve()
 	return manager
 }
@@ -87,6 +94,7 @@ func (d *OrderManager) Insert(memOrder *MempoolOrder) error {
 	if err != nil {
 		return err
 	}
+	d.gServer.UpdateClient()
 
 	go d.book.Update(result)
 	return nil
