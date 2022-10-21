@@ -161,13 +161,14 @@ func Print(orderBook *dydx.OrderBookLevel, usersBalance []UserBalance) {
 		fmt.Println("===========================================")
 		fmt.Println("Sell:")
 		for _, order := range orderBook.SellLevels {
-			fmt.Printf("price: %s, amount: %s\n", order)
+			fmt.Printf("price: %s, amount: %d\n", order.Price, order.Amount)
 		}
 		fmt.Println()
 		fmt.Println("Buy:")
 		for _, order := range orderBook.BuyLevels {
-			fmt.Printf("price: %s, amount: %s\n", order)
+			fmt.Printf("price: %s, amount: %s\n", order.Price, order.Amount)
 		}
+		fmt.Println()
 	}
 
 	fmt.Println()
