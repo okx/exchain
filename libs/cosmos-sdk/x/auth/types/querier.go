@@ -6,7 +6,9 @@ import (
 
 // query endpoints supported by the auth Querier
 const (
-	QueryAccount = "account"
+	QueryAccount     = "account"
+	QueryAllAccounts = "all-account"
+	QueryParams      = "params"
 )
 
 // QueryAccountParams defines the params for querying accounts.

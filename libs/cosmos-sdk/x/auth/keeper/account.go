@@ -4,12 +4,13 @@ import (
 	"sync"
 
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	"github.com/tendermint/go-amino"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/exported"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
-	"github.com/tendermint/go-amino"
 )
 
 // NewAccountWithAddress implements sdk.AccountKeeper.
