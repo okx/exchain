@@ -51,6 +51,8 @@ var NecessaryProposals = []ProposalType{
 	ProposalTypeUpdateAdmin,
 	ProposalTypeClearAdmin,
 	ProposalTypeMigrateContract,
+	ProposalTypePinCodes,
+	ProposalTypeUnpinCodes,
 	ProposalTypeUpdateDeploymentWhitelist,
 	ProposalTypeUpdateWasmContractMethodBlockedList,
 }

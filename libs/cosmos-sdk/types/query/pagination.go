@@ -2,6 +2,7 @@ package query
 
 import (
 	"fmt"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	"google.golang.org/grpc/codes"
@@ -130,4 +131,22 @@ func Paginate(
 	}
 
 	return res, nil
+}
+
+func NewPaginateFromPageLimit(page, limit int) *PageRequest {
+	var offset uint64
+	if page > 1 {
+		offset = uint64((page - 1) * limit)
+	}
+
+	if limit <= 0 {
+		limit = DefaultLimit
+	}
+
+	return &PageRequest{
+		Key:        nil,
+		Offset:     offset,
+		Limit:      uint64(limit),
+		CountTotal: true,
+	}
 }
