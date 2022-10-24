@@ -4,6 +4,8 @@ import (
 	fmt "fmt"
 	"strings"
 
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/common"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	proto "github.com/gogo/protobuf/proto"
@@ -12,8 +14,10 @@ import (
 )
 
 var (
-	_ sdk.Msg = &MsgRegisterAccount{}
-	_ sdk.Msg = &MsgSubmitTx{}
+	_ sdk.Msg             = &MsgRegisterAccount{}
+	_ sdk.HeightSensitive = MsgRegisterAccount{}
+	_ sdk.Msg             = &MsgSubmitTx{}
+	_ sdk.HeightSensitive = MsgSubmitTx{}
 
 	_ codectypes.UnpackInterfacesMessage = MsgSubmitTx{}
 )
@@ -138,4 +142,13 @@ func (m MsgSubmitTx) Type() string {
 
 func (m *MsgSubmitTx) GetSignBytes() []byte {
 	panic("MsgSubmitTx messages do not support amino")
+}
+
+//////////
+func (msg MsgRegisterAccount) ValidWithHeight(h int64) error {
+	return common.MsgNotSupportBeforeHeight(&msg, h)
+}
+
+func (msg MsgSubmitTx) ValidWithHeight(h int64) error {
+	return common.MsgNotSupportBeforeHeight(&msg, h)
 }
