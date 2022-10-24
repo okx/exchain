@@ -26,6 +26,7 @@ import (
 	"github.com/okex/exchain/libs/tendermint/crypto/tmhash"
 	"github.com/okex/exchain/x/evm"
 	"github.com/okex/exchain/x/evm/types"
+	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/evm/watcher"
 	"github.com/spf13/viper"
 	"github.com/status-im/keycard-go/hexutils"
@@ -418,7 +419,40 @@ func TestWriteLatestMsg(t *testing.T) {
 	m := watcher.NewMsgAccount(a1)
 	v, err := store.Get(m.GetKey())
 	require.NoError(t, err)
+	has := store.Has(m.GetKey())
+	require.Equal(t, has, true)
 	ethAccount, err := watcher.DecodeAccount(v)
 	require.NoError(t, err)
 	require.Equal(t, uint64(3), ethAccount.GetSequence())
+	p := store.GetEvmParams()
+	expectedParams := evmtypes.Params{
+		EnableCreate:                      false,
+		EnableCall:                        false,
+		EnableContractDeploymentWhitelist: false,
+		EnableContractBlockedList:         false,
+		MaxGasLimitPerTx:                  30000000,
+	}
+	err = ParamsDeepEqual(expectedParams, p)
+	require.NoError(t, err)
+	expectedParams2 := evmtypes.Params{
+		EnableCreate:                      true,
+		EnableCall:                        true,
+		EnableContractDeploymentWhitelist: true,
+		EnableContractBlockedList:         true,
+		MaxGasLimitPerTx:                  20000000,
+	}
+	store.SetEvmParams(expectedParams2)
+	p = store.GetEvmParams()
+	err = ParamsDeepEqual(p, expectedParams2)
+	require.NoError(t, err)
+}
+
+func ParamsDeepEqual(src, dst evmtypes.Params) error {
+	if src.EnableCreate != dst.EnableCreate ||
+		src.EnableCall != dst.EnableCall ||
+		src.EnableContractDeploymentWhitelist != dst.EnableContractDeploymentWhitelist ||
+		src.EnableContractBlockedList != dst.EnableContractBlockedList {
+		return fmt.Errorf("params not fit")
+	}
+	return nil
 }
