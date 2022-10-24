@@ -94,11 +94,11 @@ func (cs *State) enterPropose(height int64, round int) {
 
 	cs.initNewHeight()
 	isBlockProducer, bpAddr := cs.isBlockProducer()
-	avcFlag := ""
-	if cs.vcHeight[height] {
-		avcFlag = "-avc"
+	newProposer := ""
+	if cs.vcHeight[height] != "" {
+		newProposer = "-avc-" + cs.vcHeight[height][:6]
 	}
-	cs.trc.Pin("enterPropose-%d-%s-%s%s", round, isBlockProducer, bpAddr, avcFlag)
+	cs.trc.Pin("enterPropose-%d-%s-%s%s", round, isBlockProducer, bpAddr, newProposer)
 
 	logger.Info(fmt.Sprintf("enterPropose(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
@@ -124,7 +124,7 @@ func (cs *State) enterPropose(height int64, round int) {
 			bpAddr,
 			"privValidator",
 			cs.privValidator)
-		if !cs.vcHeight[height] || cs.Round != 0 {
+		if cs.vcHeight[height] == "" || cs.Round != 0 {
 			cs.decideProposal(height, round)
 		}
 	} else {

@@ -418,7 +418,7 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			conR.hasViewChanged = msg.Height
 
 			// mark the height no need to be proposer in msg.Height
-			conR.conS.vcHeight[msg.Height] = true
+			conR.conS.vcHeight[msg.Height] = msg.NewProposer.String()
 			conR.Logger.Info("receive prMsg", "height", height, "prMsg", msg, "vcMsg", conR.conS.vcMsg)
 		}
 	case StateChannel:

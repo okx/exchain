@@ -162,7 +162,7 @@ type State struct {
 	bt       *BlockTransport
 
 	vcMsg          *ViewChangeMessage
-	vcHeight       map[int64]bool
+	vcHeight       map[int64]string
 	taskResultChan chan *preBlockTaskRes
 }
 
@@ -199,7 +199,7 @@ func NewState(
 		bt:                 &BlockTransport{},
 		blockTimeTrc:       trace.NewTracer(trace.LastBlockTime),
 		timeoutIntervalTrc: trace.NewTracer(trace.TimeoutInterval),
-		vcHeight:           make(map[int64]bool),
+		vcHeight:           make(map[int64]string),
 		taskResultChan:     make(chan *preBlockTaskRes, 1),
 	}
 	// set function defaults (may be overwritten before calling Start)
