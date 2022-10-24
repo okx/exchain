@@ -889,7 +889,7 @@ func (api *PublicEthereumAPI) doCall(
 	}
 
 	//only worked when fast-query has been enabled
-	if sim != nil && api.useWatchBackend(blockNum) && useWatch {
+	if sim != nil && useWatch {
 		return sim.DoCall(msg, addr.String(), overridesBytes, api.evmFactory.PutBackStorePool)
 	}
 
