@@ -694,7 +694,9 @@ func (app *BaseApp) getContextForTx(mode runTxMode, txBytes []byte) sdk.Context 
 			HaveCosmosTxInBlock: app.parallelTxManage.haveCosmosTxInBlock,
 		})
 		ctx.SetTxBytes(txBytes)
-		ctx.ResetWatcher()
+		if watcher := ctx.GetWatcher(); watcher != nil && watcher.Enabled() {
+			ctx.ResetWatcher()
+		}
 	}
 
 	if mode == runTxModeDeliver {
