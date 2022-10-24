@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/okex/exchain/cmd/exchaind/base"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/iavl"
 	dbm "github.com/okex/exchain/libs/tm-db"
@@ -52,7 +53,7 @@ func outputModules(storeKeys []string) {
 
 func createIndex(storeKeys []string) error {
 	dataDir := viper.GetString(flagDataDir)
-	dbBackend := viper.GetString(flagDBBackend)
+	dbBackend := viper.GetString(sdk.FlagDBBackend)
 	db, err := base.OpenDB(dataDir+base.AppDBName, dbm.BackendType(dbBackend))
 	if err != nil {
 		return fmt.Errorf("error opening dir %v backend %v DB: %w", dataDir, dbBackend, err)
