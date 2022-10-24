@@ -369,15 +369,13 @@ func (suite *KeeperTestSuite) TestSendToWasmEvent_Unpack() {
 
 				ethAddrAcc, err := sdk.AccAddressFromBech32(ethAddr.String())
 				suite.Require().NoError(err)
-				suite.T().Log("eth addr", ethAddr.String(), "acc addr", ethAddrAcc.String())
 				input, err := testABIEvent.Events[types.SendToWasmEventName].Inputs.Pack(suite.wasmContract.String(), []byte(ethAddrAcc.String()), big.NewInt(1))
 				suite.Require().NoError(err)
 				data = input
 			},
 			func(wasmAddr string, recipient string, amount sdk.Int, err error) {
 				suite.Require().NoError(err)
-				suite.Require().Error(err)
-				suite.Require().Equal(ethAddr.String(), recipient)
+				suite.Require().NotEqual(ethAddr.String(), recipient)
 				suite.Require().Equal(big.NewInt(1), amount.BigInt())
 			},
 			nil,
@@ -423,13 +421,17 @@ func (suite *KeeperTestSuite) TestSendToWasmEvent_Unpack() {
 
 				testABIEvent, err := abi.JSON(bytes.NewReader([]byte(testABIJson)))
 				suite.Require().NoError(err)
-				input, err := testABIEvent.Events[types.SendToWasmEventName].Inputs.Pack(ethAddr.String(), big.NewInt(1))
+				input, err := testABIEvent.Events[types.SendToWasmEventName].Inputs.Pack("1", "2", "3", big.NewInt(1))
 				suite.Require().NoError(err)
 				data = input
 			},
 			func(wasmAddr string, recipient string, amount sdk.Int, err error) {
+				suite.Require().Equal("1", wasmAddr)
+				suite.Require().Equal("2", recipient)
+				suite.Require().NotEqual(big.NewInt(1), amount.BigInt())
 			},
-			errors.New("argument count mismatch: got 2 for 4"),
+			nil,
+			//errors.New("argument count mismatch: got 2 for 4"),
 		},
 		{
 			"amount is negative",
@@ -439,6 +441,7 @@ func (suite *KeeperTestSuite) TestSendToWasmEvent_Unpack() {
 				testABIEvent, err := abi.JSON(bytes.NewReader([]byte(testABIJson)))
 				suite.Require().NoError(err)
 				input, err := testABIEvent.Events[types.SendToWasmEventName].Inputs.Pack(suite.wasmContract.String(), ethAddr.String(), int8(-1))
+				suite.T().Log(testABIEvent.Events[types.SendToWasmEventName].ID, types.SendToWasmEvent.ID)
 				suite.Require().NoError(err)
 				data = input
 			},
@@ -446,7 +449,6 @@ func (suite *KeeperTestSuite) TestSendToWasmEvent_Unpack() {
 				suite.Require().Equal(errors.New("recover err: NewIntFromBigInt() out of bound"), err)
 				suite.Require().Equal(suite.wasmContract.String(), wasmAddr)
 				suite.Require().Equal(ethAddr.String(), recipient)
-				suite.Require().Equal(big.NewInt(1), amount.BigInt())
 			},
 			nil,
 		},
