@@ -29,6 +29,7 @@ import (
 	evmrest "github.com/okex/exchain/x/evm/client/rest"
 	farmclient "github.com/okex/exchain/x/farm/client"
 	farmrest "github.com/okex/exchain/x/farm/client/rest"
+	fsrest "github.com/okex/exchain/x/feesplit/client/rest"
 	govrest "github.com/okex/exchain/x/gov/client/rest"
 	orderrest "github.com/okex/exchain/x/order/client/rest"
 	paramsclient "github.com/okex/exchain/x/params/client"
@@ -77,12 +78,14 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 	evmrest.RegisterRoutes(rs.CliCtx, v1Router)
 	erc20rest.RegisterRoutes(rs.CliCtx, v1Router)
 	wasmrest.RegisterRoutes(rs.CliCtx, v1Router)
+	fsrest.RegisterRoutes(rs.CliCtx, v1Router)
 	govrest.RegisterRoutes(rs.CliCtx, v1Router,
 		[]govrest.ProposalRESTHandler{
 			paramsclient.ProposalHandler.RESTHandler(rs.CliCtx),
 			distr.CommunityPoolSpendProposalHandler.RESTHandler(rs.CliCtx),
 			distr.ChangeDistributionTypeProposalHandler.RESTHandler(rs.CliCtx),
 			distr.WithdrawRewardEnabledProposalHandler.RESTHandler(rs.CliCtx),
+			distr.RewardTruncatePrecisionProposalHandler.RESTHandler(rs.CliCtx),
 			dexclient.DelistProposalHandler.RESTHandler(rs.CliCtx),
 			farmclient.ManageWhiteListProposalHandler.RESTHandler(rs.CliCtx),
 			evmclient.ManageContractDeploymentWhitelistProposalHandler.RESTHandler(rs.CliCtx),

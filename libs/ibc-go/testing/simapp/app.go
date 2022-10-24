@@ -116,7 +116,7 @@ import (
 	"github.com/okex/exchain/x/slashing"
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
-
+	wasmclient "github.com/okex/exchain/x/wasm/client"
 	"google.golang.org/grpc/encoding"
 	"google.golang.org/grpc/encoding/proto"
 )
@@ -159,6 +159,7 @@ var (
 			distr.CommunityPoolSpendProposalHandler,
 			distr.ChangeDistributionTypeProposalHandler,
 			distr.WithdrawRewardEnabledProposalHandler,
+			distr.RewardTruncatePrecisionProposalHandler,
 			dexclient.DelistProposalHandler, farmclient.ManageWhiteListProposalHandler,
 			evmclient.ManageContractDeploymentWhitelistProposalHandler,
 			evmclient.ManageContractBlockedListProposalHandler,
@@ -166,6 +167,13 @@ var (
 			govclient.ManageTreasuresProposalHandler,
 			erc20client.TokenMappingProposalHandler,
 			erc20client.ProxyContractRedirectHandler,
+			wasmclient.MigrateContractProposalHandler,
+			wasmclient.UpdateContractAdminProposalHandler,
+			wasmclient.ClearContractAdminProposalHandler,
+			wasmclient.PinCodesProposalHandler,
+			wasmclient.UnpinCodesProposalHandler,
+			wasmclient.UpdateDeploymentWhitelistProposalHandler,
+			wasmclient.UpdateWASMContractMethodBlockedListProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
@@ -1189,6 +1197,8 @@ func NewSimApp(
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccNonceHandler(NewAccHandler(app.AccountKeeper))
+	app.SetUpdateFeeCollectorAccHandler(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper))
+	app.SetParallelTxLogHandlers(fixLogForParallelTxHandler(app.EvmKeeper))
 	app.SetGetTxFeeHandler(getTxFeeHandler())
 	if loadLatest {
 		err := app.LoadLatestVersion(app.keys[bam.MainStoreKey])
@@ -1210,10 +1220,11 @@ func NewSimApp(
 }
 
 func updateFeeCollectorHandler(bk bank.Keeper, sk supply.Keeper) sdk.UpdateFeeCollectorAccHandler {
-	return func(ctx sdk.Context, balance sdk.Coins) error {
+	return func(ctx sdk.Context, balance sdk.Coins, txFeesplit *sync.Map) error {
 		return bk.SetCoins(ctx, sk.GetModuleAccount(ctx, auth.FeeCollectorName).GetAddress(), balance)
 	}
 }
+
 func fixLogForParallelTxHandler(ek *evm.Keeper) sdk.LogFix {
 	return func(tx []sdk.Tx, logIndex []int, hasEnterEvmTx []bool, anteErrs []error, resp []abci.ResponseDeliverTx) (logs [][]byte) {
 		return ek.FixLog(tx, logIndex, hasEnterEvmTx, anteErrs, resp)

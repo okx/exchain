@@ -22,6 +22,8 @@ import (
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/spf13/viper"
 
+	appconfig "github.com/okex/exchain/app/config"
+
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/app/config"
 	"github.com/okex/exchain/app/crypto/ethsecp256k1"
@@ -60,6 +62,7 @@ const (
 	FlagFastQueryThreshold = "fast-query-threshold"
 
 	EvmHookGasEstimate = uint64(60000)
+	EvmDefaultGasLimit = uint64(21000)
 )
 
 // PublicEthereumAPI is the eth_ prefixed set of APIs in the Web3 JSON-RPC spec.
@@ -248,8 +251,8 @@ func (api *PublicEthereumAPI) GasPrice() *hexutil.Big {
 	monitor := monitor.GetMonitor("eth_gasPrice", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd()
 
-	if app.GlobalGpIndex.RecommendGp != nil {
-		return (*hexutil.Big)(app.GlobalGpIndex.RecommendGp)
+	if appconfig.GetOecConfig().GetEnableDynamicGp() {
+		return (*hexutil.Big)(app.GlobalGp)
 	}
 
 	return api.gasPrice
@@ -930,16 +933,58 @@ func (api *PublicEthereumAPI) doCall(
 
 	return &simResponse, nil
 }
+func (api *PublicEthereumAPI) simDoCall(args rpctypes.CallArgs, cap uint64) (uint64, error) {
+	// Create a helper to check if a gas allowance results in an executable transaction
+	executable := func(gas uint64) (*sdk.SimulationResponse, error) {
+		if gas != 0 {
+			args.Gas = (*hexutil.Uint64)(&gas)
+		}
+		return api.doCall(args, 0, big.NewInt(int64(cap)), true, nil)
+	}
+
+	// get exact gas limit
+	exactResponse, err := executable(0)
+	if err != nil {
+		return 0, err
+	}
+
+	// return if gas is provided by args
+	if args.Gas != nil {
+		return exactResponse.GasUsed, nil
+	}
+
+	// use exact gas to run verify again
+	// https://github.com/okex/oec/issues/1784
+	verifiedResponse, err := executable(exactResponse.GasInfo.GasUsed)
+	if err == nil {
+		return verifiedResponse.GasInfo.GasUsed, nil
+	}
+
+	//
+	// Execute the binary search and hone in on an executable gas limit
+	lo := exactResponse.GasInfo.GasUsed
+	hi := cap
+	for lo+1 < hi {
+		mid := (hi + lo) / 2
+		_, err := executable(mid)
+
+		// If the error is not nil(consensus error), it means the provided message
+		// call or transaction will never be accepted no matter how much gas it is
+		// assigned. Return the error directly, don't struggle any more.
+		if err != nil {
+			lo = mid
+		} else {
+			hi = mid
+		}
+	}
+
+	return hi, nil
+}
 
 // EstimateGas returns an estimate of gas usage for the given smart contract call.
 func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint64, error) {
 	monitor := monitor.GetMonitor("eth_estimateGas", api.logger, api.Metrics).OnBegin()
 	defer monitor.OnEnd("args", args)
-
-	simResponse, err := api.doCall(args, 0, big.NewInt(ethermint.DefaultRPCGasLimit), true, nil)
-	if err != nil {
-		return 0, TransformDataError(err, "eth_estimateGas")
-	}
 
 	params, err := api.getEvmParams()
 	if err != nil {
@@ -947,11 +992,23 @@ func (api *PublicEthereumAPI) EstimateGas(args rpctypes.CallArgs) (hexutil.Uint6
 	}
 	maxGasLimitPerTx := params.MaxGasLimitPerTx
 
-	estimatedGas := simResponse.GasInfo.GasUsed
+	estimatedGas, err := api.simDoCall(args, maxGasLimitPerTx)
+	if err != nil {
+		return 0, TransformDataError(err, "eth_estimateGas")
+	}
+
 	if estimatedGas > maxGasLimitPerTx {
 		errMsg := fmt.Sprintf("estimate gas %v greater than system max gas limit per tx %v", estimatedGas, maxGasLimitPerTx)
 		return 0, TransformDataError(sdk.ErrOutOfGas(errMsg), "eth_estimateGas")
 	}
+
+	// The gasLimit of evm ordinary tx is 21000 by default.
+	// Using gasBuffer will cause the gasLimit in MetaMask to be too large, which will affect the user experience.
+	// Therefore, if an ordinary tx is received, just return the default gasLimit of evm.
+	if estimatedGas == EvmDefaultGasLimit && args.Data == nil {
+		return hexutil.Uint64(estimatedGas), nil
+	}
+
 	gasBuffer := estimatedGas / 100 * config.GetOecConfig().GetGasLimitBuffer()
 	//EvmHookGasEstimate: evm tx with cosmos hook,we cannot estimate hook gas
 	//simple add EvmHookGasEstimate,run tx will refund the extra gas

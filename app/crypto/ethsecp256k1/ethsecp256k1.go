@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/ecdsa"
 
+	"github.com/ethereum/go-ethereum/common"
 	ethcrypto "github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 
@@ -43,6 +44,12 @@ func GenerateKey() (PrivKey, error) {
 	}
 
 	return PrivKey(ethcrypto.FromECDSA(priv)), nil
+}
+
+// GenerateAddress generates an Ethereum address.
+func GenerateAddress() common.Address {
+	privk, _ := GenerateKey()
+	return ethcrypto.PubkeyToAddress(privk.ToECDSA().PublicKey)
 }
 
 // PubKey returns the ECDSA private key's public key.

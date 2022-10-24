@@ -5,10 +5,8 @@ import (
 	"container/list"
 	"encoding/hex"
 	"fmt"
-	"runtime"
 	"sort"
 	"sync"
-	"time"
 
 	"github.com/tendermint/go-amino"
 
@@ -17,7 +15,7 @@ import (
 )
 
 // when upgrade to fast IAVL every commitGap nodes will trigger a db commit.
-var commitGap uint64 = 10000000
+var commitGap uint64 = 5000000
 
 // when upgrade to fast IAVL every verboseGap nodes will trigger a print.
 const verboseGap = 50000
@@ -648,9 +646,6 @@ func (tree *MutableTree) enableFastStorageAndCommitIfNotEnabled() (bool, error) 
 	}
 	tree.log(IavlInfo, "Deleting stale fast nodes...", "done", deleteCounter, "db", tree.ndb.name)
 
-	// Force garbage collection before we proceed to enabling fast storage.
-	runtime.GC()
-
 	batch := tree.NewBatch()
 	if err := tree.enableFastStorageAndCommit(batch); err != nil {
 		tree.ndb.storageVersion = defaultStorageVersionValue
@@ -677,41 +672,6 @@ func (tree *MutableTree) enableFastStorageAndCommitLocked(batch dbm.Batch) error
 
 func (tree *MutableTree) enableFastStorageAndCommit(batch dbm.Batch) error {
 	var err error
-
-	// We start a new thread to keep on checking if we are above 4GB, and if so garbage collect.
-	// This thread only lasts during the fast node migration.
-	// This is done to keep RAM usage down.
-	done := make(chan struct{})
-	defer func() {
-		done <- struct{}{}
-		close(done)
-	}()
-
-	go func() {
-		timer := time.NewTimer(time.Second)
-		var m runtime.MemStats
-
-		for {
-			// Sample the current memory usage
-			runtime.ReadMemStats(&m)
-
-			if m.Alloc > 4*1024*1024*1024 {
-				// If we are using more than 4GB of memory, we should trigger garbage collection
-				// to free up some memory.
-				runtime.GC()
-			}
-
-			select {
-			case <-timer.C:
-				timer.Reset(time.Second)
-			case <-done:
-				if !timer.Stop() {
-					<-timer.C
-				}
-				return
-			}
-		}
-	}()
 
 	itr := NewIterator(nil, nil, true, tree.ImmutableTree)
 	defer itr.Close()
@@ -857,7 +817,7 @@ func (tree *MutableTree) SaveVersion(useDeltas bool) ([]byte, int64, TreeDelta, 
 	}
 
 	// apply state delta
-	if useDeltas {
+	if useDeltas && tree.hasNewNode() {
 		tree.root = tree.savedNodes["root"]
 	}
 
@@ -881,7 +841,7 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 		}
 	} else {
 		tree.log(IavlDebug, "SAVE TREE", "version", version)
-		if useDeltas {
+		if useDeltas && tree.hasNewNode() {
 			tree.SaveBranch(batch, tree.root)
 			if hex.EncodeToString(tree.root.hash) != hex.EncodeToString(tree.savedNodes["root"].hash) {
 				return nil, version, fmt.Errorf("wrong deltas. get hash %X (want hash %X)", tree.savedNodes["root"].hash, tree.root.hash)
@@ -891,8 +851,10 @@ func (tree *MutableTree) SaveVersionSync(version int64, useDeltas bool) ([]byte,
 		}
 		// generate state delta
 		if produceDelta {
-			delete(tree.savedNodes, amino.BytesToStr(tree.root.hash))
-			tree.savedNodes["root"] = tree.root
+			if tree.hasNewNode() {
+				delete(tree.savedNodes, amino.BytesToStr(tree.root.hash))
+				tree.savedNodes["root"] = tree.root
+			}
 			tree.GetDelta()
 		}
 
@@ -1293,4 +1255,8 @@ func (tree *MutableTree) SetUpgradeVersion(version int64) {
 
 func (tree *MutableTree) GetUpgradeVersion() int64 {
 	return tree.upgradeVersion
+}
+
+func (tree *MutableTree) hasNewNode() bool {
+	return len(tree.savedNodes) > 0
 }
