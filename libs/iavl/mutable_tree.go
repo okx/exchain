@@ -617,10 +617,6 @@ func (tree *MutableTree) enableFastStorageAndCommitIfNotEnabled() (bool, error) 
 		return false, nil
 	}
 	log.Printf("giskook --- %v  %v \n", tree.ndb.name, tree.IsEmpty())
-	if tree.IsEmpty() {
-		return true, nil
-	}
-	log.Printf("giskook --- %v  %v \n", tree.ndb.name, tree.IsEmpty())
 
 	// If there is a mismatch between which fast nodes are on disk and the live state due to temporary
 	// downgrade and subsequent re-upgrade, we cannot know for sure which fast nodes have been removed while downgraded,
