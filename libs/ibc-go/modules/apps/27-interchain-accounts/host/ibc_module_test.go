@@ -65,7 +65,7 @@ func TestICATestSuite(t *testing.T) {
 
 func (suite *InterchainAccountsTestSuite) SetupTest() {
 	types3.UnittestOnlySetMilestoneVenus1Height(-1)
-	types3.UnittestOnlySetMilestoneVenus3Height(-1)
+	types3.UnittestOnlySetMilestoneVenus4Height(-1)
 	suite.coordinator = ibctesting.NewCoordinator(suite.T(), 2)
 	suite.chainA = suite.coordinator.GetChain(ibctesting.GetChainID(0))
 	suite.chainB = suite.coordinator.GetChain(ibctesting.GetChainID(1))

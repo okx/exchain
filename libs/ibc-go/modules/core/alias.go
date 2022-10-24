@@ -7,7 +7,8 @@ import (
 )
 
 type (
-	Keeper = keeper.FacadedKeeper
+	Keeper   = keeper.FacadedKeeper
+	V2Keeper = keeper.Keeper
 )
 
 const ()

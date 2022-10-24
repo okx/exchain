@@ -24,7 +24,7 @@ func (ad AnteDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, ne
 	if !types.HigherThanVenus1(ctx.BlockHeight()) {
 		return next(ctx, tx, simulate)
 	}
-	if types.HigherThanVenus3(ctx.BlockHeight()) {
+	if types.HigherThanVenus4(ctx.BlockHeight()) {
 		return ad.v4(ctx, tx, simulate, next)
 	}
 	// do not run redundancy check on DeliverTx or simulate

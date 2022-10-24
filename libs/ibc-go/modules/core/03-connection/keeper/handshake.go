@@ -76,7 +76,7 @@ func (k Keeper) ConnOpenTry(
 		found              bool
 	)
 
-	if types2.HigherThanVenus3(ctx.BlockHeight()) {
+	if types2.HigherThanVenus4(ctx.BlockHeight()) {
 		// generate a new connection
 		connectionID = k.GenerateConnectionIdentifier(ctx)
 	} else {
@@ -141,7 +141,7 @@ func (k Keeper) ConnOpenTry(
 
 	supportedVersions := types.GetCompatibleVersions()
 
-	if !types2.HigherThanVenus3(ctx.BlockHeight()) {
+	if !types2.HigherThanVenus4(ctx.BlockHeight()) {
 		if len(previousConnection.Versions) != 0 {
 			supportedVersions = previousConnection.GetVersions()
 		}
@@ -220,7 +220,7 @@ func (k Keeper) ConnOpenAck(
 		return sdkerrors.Wrap(types.ErrConnectionNotFound, connectionID)
 	}
 
-	if types2.HigherThanVenus3(ctx.BlockHeight()) {
+	if types2.HigherThanVenus4(ctx.BlockHeight()) {
 		// verify the previously set connection state
 		if connection.State != types.INIT {
 			return sdkerrors.Wrapf(
