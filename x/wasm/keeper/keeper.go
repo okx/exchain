@@ -732,7 +732,7 @@ func (k Keeper) appendToContractHistory(ctx sdk.Context, contractAddr sdk.AccAdd
 	defer iter.Close()
 
 	if iter.Valid() {
-		pos = sdk.BigEndianToUint64(iter.Value())
+		pos = sdk.BigEndianToUint64(iter.Key())
 	}
 	// then store with incrementing position
 	for _, e := range newEntries {
