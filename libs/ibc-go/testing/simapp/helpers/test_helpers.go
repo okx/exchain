@@ -4,7 +4,10 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/okex/exchain/app"
+	ica "github.com/okex/exchain/libs/ibc-go/modules/apps/27-interchain-accounts"
+	ibc "github.com/okex/exchain/libs/ibc-go/modules/core"
+
+	ibcfee "github.com/okex/exchain/libs/ibc-go/modules/apps/29-fee"
 
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
@@ -12,11 +15,16 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	ibcmsg "github.com/okex/exchain/libs/cosmos-sdk/types/ibc-adapter"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx/signing"
 	ibc_tx "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibc-tx"
 	signing2 "github.com/okex/exchain/libs/cosmos-sdk/x/auth/ibcsigning"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
+	capabilityModule "github.com/okex/exchain/libs/cosmos-sdk/x/capability"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
+	ibctransfer "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer"
 	"github.com/okex/exchain/libs/tendermint/crypto"
+	"github.com/okex/exchain/x/icamauth"
 )
 
 // SimAppChainID hardcoded chainID for simulation
@@ -113,7 +121,15 @@ func GenTx(gen client.TxConfig, msgs []ibcmsg.Msg, feeAmt sdk.CoinAdapters, gas 
 }
 
 func newProxyDecoder() *codec.CodecProxy {
-	ModuleBasics := app.ModuleBasics
+	ModuleBasics := module.NewBasicManager(
+		bank.AppModuleBasic{},
+		capabilityModule.AppModuleBasic{},
+		ibc.AppModuleBasic{},
+		ibctransfer.AppModuleBasic{},
+		ica.AppModuleBasic{},
+		ibcfee.AppModuleBasic{},
+		icamauth.AppModuleBasic{},
+	)
 	cdc := okexchaincodec.MakeCodec(ModuleBasics)
 	interfaceReg := okexchaincodec.MakeIBC(ModuleBasics)
 	protoCodec := codec.NewProtoCodec(interfaceReg)

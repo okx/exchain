@@ -427,7 +427,7 @@ func NewOKExChainApp(
 	)
 	v4Keeper := ibc.NewV4Keeper(v2keeper)
 	facadedKeeper := ibc.NewFacadedKeeper(v2keeper)
-	facadedKeeper.RegisterKeeper(ibccommon.DefaultFactory(tmtypes.HigherThanVenus3, ibc.IBCV4, v4Keeper))
+	facadedKeeper.RegisterKeeper(ibccommon.DefaultFactory(tmtypes.HigherThanVenus4, ibc.IBCV4, v4Keeper))
 	app.IBCKeeper = facadedKeeper
 
 	// Create Transfer Keepers
@@ -512,7 +512,7 @@ func NewOKExChainApp(
 	middle := ibctransfer.NewIBCModule(app.TransferKeeper)
 	right := ibcfee.NewIBCMiddleware(middle, app.IBCFeeKeeper)
 	transferStack := ibcporttypes.NewFallThroughMiddleware(left,
-		ibccommon.DefaultFactory(tmtypes.HigherThanVenus3, ibc.IBCV4, right),
+		ibccommon.DefaultFactory(tmtypes.HigherThanVenus4, ibc.IBCV4, right),
 		ibccommon.DefaultFactory(tmtypes.HigherThanVenus1, ibc.IBCV2, middle))
 
 	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
@@ -524,19 +524,14 @@ func NewOKExChainApp(
 	icaMauthIBCModule := icamauth.NewIBCModule(app.ICAMauthKeeper)
 	icaControllerStack = icaMauthIBCModule
 	icaControllerStack = icacontroller.NewIBCMiddleware(icaControllerStack, app.ICAControllerKeeper)
-	// TODO, ica的先不被fee 包裹
-	icaControllerStack = ibcfee.NewIBCMiddleware(icaControllerStack, app.IBCFeeKeeper)
 
 	var icaHostStack ibcporttypes.IBCModule
 	icaHostStack = icahost.NewIBCModule(app.ICAHostKeeper)
-	// TODO, ica的先不被fee 包裹
-	icaHostStack = ibcfee.NewIBCMiddleware(icaHostStack, app.IBCFeeKeeper)
 
 	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferStack)
 	ibcRouter.AddRoute(icacontrollertypes.SubModuleName, icaControllerStack)
 	ibcRouter.AddRoute(icahosttypes.SubModuleName, icaHostStack)
 	ibcRouter.AddRoute(icamauthtypes.ModuleName, icaControllerStack)
-
 	//ibcRouter.AddRoute(ibcmock.ModuleName, mockModule)
 	v2keeper.SetRouter(ibcRouter)
 

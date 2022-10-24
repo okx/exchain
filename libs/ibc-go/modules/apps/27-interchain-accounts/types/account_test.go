@@ -36,15 +36,6 @@ func TestTypesTestSuite(t *testing.T) {
 	suite.Run(t, new(TypesTestSuite))
 }
 
-// TODO
-//func (suite *TypesTestSuite) TestGenerateAddress() {
-//	addr := types.GenerateAddress(k.accountKeeper.GetModuleAddress(types.ModuleName),"test-connection-id", "test-port-id")
-//	accAddr, err := sdk.AccAddressFromBech32(addr.String())
-//
-//	suite.Require().NoError(err, "TestGenerateAddress failed")
-//	suite.Require().NotEmpty(accAddr)
-//}
-
 func (suite *TypesTestSuite) TestValidateAccountAddress() {
 	testCases := []struct {
 		name    string

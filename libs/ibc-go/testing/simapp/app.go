@@ -911,7 +911,7 @@ func NewSimApp(
 	)
 	v4Keeper := ibc.NewV4Keeper(v2keeper)
 	facadedKeeper := ibc.NewFacadedKeeper(v2keeper)
-	facadedKeeper.RegisterKeeper(ibccommon.DefaultFactory(tmtypes.HigherThanVenus3, ibc.IBCV4, v4Keeper))
+	facadedKeeper.RegisterKeeper(ibccommon.DefaultFactory(tmtypes.HigherThanVenus4, ibc.IBCV4, v4Keeper))
 	app.IBCKeeper = facadedKeeper
 
 	// Create Transfer Keepers
@@ -998,7 +998,7 @@ func NewSimApp(
 	transferModule := transfer.TNewTransferModule(app.TransferKeeper, codecProxy)
 	right := ibcfee.NewIBCMiddleware(transferModule, app.IBCFeeKeeper)
 	transferStack := ibcporttypes.NewFallThroughMiddleware(left,
-		ibccommon.DefaultFactory(tmtypes.HigherThanVenus3, ibc.IBCV4, right),
+		ibccommon.DefaultFactory(tmtypes.HigherThanVenus4, ibc.IBCV4, right),
 		ibccommon.DefaultFactory(tmtypes.HigherThanVenus1, ibc.IBCV2, transferModule))
 	transferStack = ibcfee.NewIBCMiddleware(transferStack, app.IBCFeeKeeper)
 	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferStack)

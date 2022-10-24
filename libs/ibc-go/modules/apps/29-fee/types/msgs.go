@@ -3,6 +3,8 @@ package types
 import (
 	"strings"
 
+	"github.com/okex/exchain/libs/ibc-go/modules/apps/common"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -11,10 +13,12 @@ import (
 )
 
 var (
-	_ sdk.Msg = MsgPayPacketFee{}
-	//_ ibc_tx.DenomOpr = MsgPayPacketFee{}
+	_ sdk.Msg             = MsgPayPacketFee{}
+	_ sdk.HeightSensitive = MsgPayPacketFee{}
 
-	//_ ibc_tx.DenomOpr = MsgPayPacketFeeAsync{}
+	_ sdk.HeightSensitive = MsgRegisterCounterpartyPayee{}
+	_ sdk.HeightSensitive = MsgPayPacketFeeAsync{}
+	_ sdk.HeightSensitive = MsgRegisterPayee{}
 )
 
 // msg types
@@ -58,6 +62,10 @@ func (msg MsgRegisterPayee) ValidateBasic() error {
 	}
 
 	return nil
+}
+
+func (msg MsgPayPacketFee) ValidWithHeight(h int64) error {
+	return common.MsgNotSupportBeforeHeight(&msg, h)
 }
 
 // GetSigners implements sdk.Msg
@@ -112,6 +120,10 @@ func (msg MsgRegisterCounterpartyPayee) ValidateBasic() error {
 	}
 
 	return nil
+}
+
+func (msg MsgRegisterCounterpartyPayee) ValidWithHeight(h int64) error {
+	return common.MsgNotSupportBeforeHeight(&msg, h)
 }
 
 // GetSigners implements sdk.Msg
@@ -291,4 +303,13 @@ func convPacketFee(fee Fee) (Fee, error) {
 
 func (m Metadata) Empty() bool {
 	return len(m.FeeVersion) == 0 || len(m.AppVersion) == 0
+}
+
+//////////
+func (msg MsgPayPacketFeeAsync) ValidWithHeight(h int64) error {
+	return common.MsgNotSupportBeforeHeight(&msg, h)
+}
+
+func (msg MsgRegisterPayee) ValidWithHeight(h int64) error {
+	return common.MsgNotSupportBeforeHeight(&msg, h)
 }
