@@ -273,7 +273,7 @@ func (suite *KeeperTestSuite) TestProposal_ManageSysContractAddressProposal() {
 			"pass check IsAdded is false and exist a sys contract address",
 			func() {
 				proposal.IsAdded = false
-				suite.stateDB.SetSysContractAddress(addr1)
+				suite.app.EvmKeeper.SetSysContractAddress(suite.ctx, addr1)
 			},
 			true,
 		},
@@ -281,7 +281,7 @@ func (suite *KeeperTestSuite) TestProposal_ManageSysContractAddressProposal() {
 			"pass check IsAdded is true and exist a sys contract address, this address is a contract address ",
 			func() {
 				proposal.IsAdded = true
-				suite.stateDB.SetSysContractAddress(addr1)
+				suite.app.EvmKeeper.SetSysContractAddress(suite.ctx, addr1)
 
 				acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, addr1)
 				ethAcct, ok := acc.(*ethermint.EthAccount)

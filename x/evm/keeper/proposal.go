@@ -72,10 +72,9 @@ func (k Keeper) CheckMsgSubmitProposal(ctx sdk.Context, msg govTypes.MsgSubmitPr
 		if !k.stakingKeeper.IsValidator(ctx, msg.Proposer) {
 			return types.ErrCodeProposerMustBeValidator()
 		}
-		csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
 		// can not delete system contract address that is not exist
 		if !content.IsAdded {
-			_, err := csdb.GetSysContractAddress()
+			_, err := k.GetSysContractAddress(ctx)
 			return err
 		}
 		if !k.IsContractAccount(ctx, content.ContractAddr) {

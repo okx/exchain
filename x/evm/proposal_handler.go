@@ -71,12 +71,11 @@ func handleManageContractMethodBlockedlListProposal(ctx sdk.Context, k *Keeper,
 
 func handleManageSysContractAddressProposal(ctx sdk.Context, k *Keeper,
 	p types.ManageSysContractAddressProposal) sdk.Error {
-	csdb := types.CreateEmptyCommitStateDB(k.GeneratePureCSDBParams(), ctx)
 	if p.IsAdded {
 		// add system contract address
-		return csdb.SetSysContractAddress(p.ContractAddr)
+		return k.SetSysContractAddress(ctx, p.ContractAddr)
 	}
 
 	// remove system contract address
-	return csdb.DelSysContractAddress()
+	return k.DelSysContractAddress(ctx)
 }

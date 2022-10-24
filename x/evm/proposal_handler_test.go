@@ -372,7 +372,7 @@ func (suite *EvmTestSuite) TestProposalHandler_ManageSysContractAddressProposal(
 				govProposal.Content = proposal
 			},
 			fnCheck: func() {
-				reAddr, err := suite.stateDB.GetSysContractAddress()
+				reAddr, err := suite.app.EvmKeeper.GetSysContractAddress(suite.ctx)
 				suite.Require().NoError(err)
 				suite.Require().Equal(addr1, reAddr[:])
 			},
@@ -390,7 +390,7 @@ func (suite *EvmTestSuite) TestProposalHandler_ManageSysContractAddressProposal(
 				govProposal.Content = proposal
 			},
 			fnCheck: func() {
-				reAddr, err := suite.stateDB.GetSysContractAddress()
+				reAddr, err := suite.app.EvmKeeper.GetSysContractAddress(suite.ctx)
 				suite.Require().NoError(err)
 				suite.Require().Equal(addr2, reAddr[:])
 			},
@@ -408,7 +408,7 @@ func (suite *EvmTestSuite) TestProposalHandler_ManageSysContractAddressProposal(
 				govProposal.Content = proposal
 			},
 			fnCheck: func() {
-				reAddr, err := suite.stateDB.GetSysContractAddress()
+				reAddr, err := suite.app.EvmKeeper.GetSysContractAddress(suite.ctx)
 				suite.Require().Error(err)
 				suite.Require().Nil(reAddr)
 			},
