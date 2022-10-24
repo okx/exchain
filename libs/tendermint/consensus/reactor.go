@@ -380,7 +380,6 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 			conR.conS.peerMsgQueue <- msgInfo{msg, ""}
 		case *ProposeResponseMessage:
 			conR.conS.peerMsgQueue <- msgInfo{msg, ""}
-			// todo broadcast block part?
 		case *ProposeRequestMessage:
 			conR.conS.stateMtx.Lock()
 			defer conR.conS.stateMtx.Unlock()
@@ -412,16 +411,13 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 				return
 			}
 			proposal.Signature = sig
-			// broadcast the proposal
-			//proposalMsg := &ProposalMessage{Proposal: proposal}
-			//conR.Switch.Broadcast(DataChannel, cdc.MustMarshalBinaryBare(proposalMsg))
 			// tell newProposer
 			prspMsg := &ProposeResponseMessage{Height: proposal.Height, Proposal: proposal}
 			ps.peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(prspMsg))
 
 			conR.hasViewChanged = msg.Height
 
-			// todo: mark the height no need to be proposer in msg.Height
+			// mark the height no need to be proposer in msg.Height
 			conR.conS.vcHeight[msg.Height] = true
 			conR.Logger.Info("receive prMsg", "height", height, "prMsg", msg, "vcMsg", conR.conS.vcMsg)
 		}

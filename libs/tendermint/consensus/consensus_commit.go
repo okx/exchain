@@ -405,6 +405,7 @@ func (cs *State) pruneBlocks(retainHeight int64) (uint64, error) {
 }
 
 func (cs *State) preMakeBlock(height int64, waiting time.Duration) {
+	tNow := tmtime.Now()
 	block, blockParts := cs.createProposalBlock()
 	if len(cs.taskResultChan) == 1 {
 		<-cs.taskResultChan
@@ -416,7 +417,7 @@ func (cs *State) preMakeBlock(height int64, waiting time.Duration) {
 
 	isBlockProducer, _ := cs.isBlockProducer()
 	if GetActiveVC() && isBlockProducer != "y" {
-		//		time.Sleep(waiting)
+		time.Sleep(waiting - tmtime.Now().Sub(tNow))
 		// request for proposer of new height
 		prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address(), Proposal: proposal}
 		cs.requestForProposer(prMsg)
