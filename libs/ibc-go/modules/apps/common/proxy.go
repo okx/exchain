@@ -131,7 +131,6 @@ func (h *HeightProxyMiddleware) WriteAcknowledgement(ctx sdk.Context, chanCap *c
 	return h.internal.WriteAcknowledgement(ctx, chanCap, packet, ack)
 }
 
-// TODO,应该是不需要高度隔离的
 func (h *HeightProxyMiddleware) GetAppVersion(ctx sdk.Context, portID, channelID string) (string, bool) {
 	if !h.higherThan(ctx.BlockHeight()) {
 		h.logger.Error("GetAppVersion is disabled", "available", h.h, "now", ctx.BlockHeight())

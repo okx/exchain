@@ -325,7 +325,6 @@ func FromCoins(coins Coins) CoinAdapters {
 	return ret
 }
 
-// TODO ,这样转可以吗?
 func FromCoin(coin Coin) CoinAdapter {
 	return NewCoinAdapter(coin.Denom, NewIntFromBigInt(coin.Amount.BigInt()))
 }
