@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/VictoriaMetrics/fastcache"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/exchain/libs/system/trace"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
@@ -756,6 +757,49 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 		mem.logger.Info("ReapMaxBytesMaxGas", "ProposingHeight", mem.Height()+1,
 			"MempoolTxs", mem.txs.Len(), "ReapTxs", len(txs))
 	}()
+
+	maxTradeTxGas := maxGas / 2
+	if maxGas == -1 {
+		maxTradeTxGas = -1
+	}
+	maxTradeTxBytes := maxBytes / 2
+	if maxBytes == -1 {
+		maxTradeTxBytes = -1
+	}
+	tradeTxs := make([]types.Tx, 0, len(txs)/2)
+	var (
+		totalTradeBytes int64
+		totalTradeGas   int64
+		totalTradeTxNum int64
+	)
+	mem.orderManager.TradeTxsMtx.Lock()
+	defer mem.orderManager.TradeTxsMtx.Unlock()
+
+	for ele := mem.orderManager.TradeTxs.Front(); ele != nil; ele = ele.Next() {
+		tx := ele.Value.(*ethtypes.Transaction)
+		txBz, err := tx.MarshalBinary()
+		if err != nil {
+			continue
+		}
+		if maxTradeTxBytes > -1 && totalTradeBytes+int64(len(txBz)) > maxTradeTxBytes {
+			return txs
+		}
+		newTotalGas := totalTradeGas + int64(tx.Gas())
+		if maxTradeTxGas > -1 && newTotalGas > maxTradeTxGas {
+			break
+		}
+		if totalTradeTxNum >= int64(len(tradeTxs)) {
+			break
+		}
+		totalTradeTxNum++
+		totalTradeGas = newTotalGas
+		txs = append(txs, txBz)
+	}
+
+	totalBytes = totalTradeBytes
+	totalGas = totalTradeGas
+	totalTxNum = totalTradeTxNum
+
 	for e := mem.txs.Front(); e != nil; e = e.Next() {
 		memTx := e.Value.(*mempoolTx)
 		// Check total size requirement
@@ -780,6 +824,8 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 		totalGas = newTotalGas
 		txs = append(txs, memTx.tx)
 	}
+
+	txs = append(txs, tradeTxs...)
 
 	return txs
 }

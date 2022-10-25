@@ -1,6 +1,7 @@
 package dydx
 
 import (
+	"container/list"
 	"math/big"
 	"os"
 	"sync"
@@ -37,6 +38,9 @@ type OrderManager struct {
 	book    *DepthBook
 	engine  Matcher
 	gServer *OrderBookServer
+
+	TradeTxs    *list.List
+	TradeTxsMtx sync.Mutex
 }
 
 func NewOrderManager(doMatch bool) *OrderManager {
@@ -54,6 +58,7 @@ func NewOrderManager(doMatch bool) *OrderManager {
 		P1OrdersContractAddress:    "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619",
 		P1MakerOracleAddress:       "0x4241DD684fbC5bCFCD2cA7B90b72885A79cf50B4",
 		P1MarginAddress:            "0xC87EF36830A0D94E42bB2D82a0b2bB939368b10B",
+		VMode:                      false,
 	}
 
 	if doMatch {
@@ -96,7 +101,13 @@ func (d *OrderManager) Insert(memOrder *MempoolOrder) error {
 	}
 	d.gServer.UpdateClient()
 
-	go d.book.Update(result)
+	if result.OnChain != nil {
+		go d.book.Update(result)
+	} else {
+		d.TradeTxsMtx.Lock()
+		d.TradeTxs.PushBack(result.Tx)
+		d.TradeTxsMtx.Unlock()
+	}
 	return nil
 }
 

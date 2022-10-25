@@ -47,6 +47,7 @@ type DydxConfig struct {
 	P1OrdersContractAddress    string
 	P1MakerOracleAddress       string
 	P1MarginAddress            string
+	VMode                      bool
 }
 
 type LogHandler interface {
@@ -255,11 +256,7 @@ func (m *MatchEngine) matchAndTrade(order *WrapOrder, noSend bool) (*MatchResult
 }
 
 func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
-	return m.matchAndTrade(order, false)
-}
-
-func (m *MatchEngine) MatchAndGenTx(order *WrapOrder) (*MatchResult, error) {
-	return m.matchAndTrade(order, true)
+	return m.matchAndTrade(order, m.config.VMode)
 }
 
 func WrapOrderToSignedSolOrder(order *WrapOrder) *dydxlib.SignedSolOrder {
