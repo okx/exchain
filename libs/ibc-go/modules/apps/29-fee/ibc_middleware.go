@@ -24,12 +24,11 @@ type IBCMiddleware struct {
 }
 
 // NewIBCMiddleware creates a new IBCMiddlware given the keeper and underlying application
-func NewIBCMiddleware(app porttypes.IBCModule, k keeper.Keeper) porttypes.Middleware {
-	internal := IBCMiddleware{
+func NewIBCMiddleware(app porttypes.IBCModule, k keeper.Keeper) IBCMiddleware {
+	return IBCMiddleware{
 		app:    app,
 		keeper: k,
 	}
-	return internal
 }
 
 // OnChanOpenInit implements the IBCMiddleware interface

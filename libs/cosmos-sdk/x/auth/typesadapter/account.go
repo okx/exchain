@@ -11,26 +11,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func (acc BaseAccount) String() string {
-	out, _ := acc.MarshalYAML()
-	return out.(string)
-}
-
-// MarshalYAML returns the YAML representation of an account.
-func (acc BaseAccount) MarshalYAML() (interface{}, error) {
-	bz, err := codec.MarshalYAML(codec.NewProtoCodec(codectypes.NewInterfaceRegistry()), &acc)
-	if err != nil {
-		return nil, err
-	}
-	return string(bz), err
-}
-
-func (this *Params) String() string {
-	out, _ := yaml.Marshal(this)
-	return string(out)
-}
-
-// TODO,这里的整个移到 legacy中吧?
 // NewBaseAccountWithAddress - returns a new base account with a given address
 // leaving AccountNumber and Sequence to zero.
 func NewBaseAccountWithAddress(addr sdk.AccAddress) *BaseAccount {
@@ -54,6 +34,20 @@ func NewBaseAccount(address sdk.AccAddress, pubKey cryptotypes.PubKey, accountNu
 	}
 
 	return acc
+}
+
+func (acc BaseAccount) String() string {
+	out, _ := acc.MarshalYAML()
+	return out.(string)
+}
+
+// MarshalYAML returns the YAML representation of an account.
+func (acc BaseAccount) MarshalYAML() (interface{}, error) {
+	bz, err := codec.MarshalYAML(codec.NewProtoCodec(codectypes.NewInterfaceRegistry()), &acc)
+	if err != nil {
+		return nil, err
+	}
+	return string(bz), err
 }
 
 // Validate checks for errors on the account fields
@@ -97,4 +91,9 @@ func (acc *BaseAccount) SetPubKey(pubKey cryptotypes.PubKey) error {
 		acc.PubKey = any
 	}
 	return err
+}
+
+func (this *Params) String() string {
+	out, _ := yaml.Marshal(this)
+	return string(out)
 }

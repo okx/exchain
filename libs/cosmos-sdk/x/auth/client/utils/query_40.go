@@ -15,7 +15,6 @@ import (
 	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 )
 
-// TODO,这里加注释,别人看不懂,为啥会有个40的
 func Query40Tx(cliCtx context.CLIContext, hashHexStr string) (*types.TxResponse, error) {
 	// strip 0x prefix
 	if strings.HasPrefix(hashHexStr, "0x") {

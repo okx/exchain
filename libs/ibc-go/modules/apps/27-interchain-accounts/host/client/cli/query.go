@@ -89,7 +89,6 @@ func GetCmdPacketEvents(cdc *codec.CodecProxy, reg interfacetypes.InterfaceRegis
 				}
 			}
 
-			// TODO,这里应该是需要进行额外转换的
 			return clientCtx.PrintOutput(sdk.StringifyEvents(resEvents).String())
 		},
 	}
