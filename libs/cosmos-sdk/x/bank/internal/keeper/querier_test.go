@@ -17,7 +17,7 @@ import (
 func TestBalances(t *testing.T) {
 	app, ctx := createTestApp(false)
 	req := abci.RequestQuery{
-		Path: fmt.Sprintf("custom/bank/%s", keep.QueryBalance),
+		Path: fmt.Sprintf("custom/bank/%s", keep.QueryBalances),
 		Data: []byte{},
 	}
 

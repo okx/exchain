@@ -24,7 +24,7 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	).Methods("GET")
 
 	r.HandleFunc(
-		"/slashing/parameters",
+		"/slashing/params",
 		queryParamsHandlerFn(cliCtx),
 	).Methods("GET")
 }

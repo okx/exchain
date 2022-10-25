@@ -10,12 +10,13 @@ import (
 )
 
 const (
-	QueryBalance       = keeper.QueryBalance
-	ModuleName         = types.ModuleName
-	QuerierRoute       = types.QuerierRoute
-	RouterKey          = types.RouterKey
-	DefaultParamspace  = types.DefaultParamspace
-	DefaultSendEnabled = types.DefaultSendEnabled
+	QueryBalances         = keeper.QueryBalances
+	QueryBalanceWithDenom = keeper.QueryBalanceWithDenom
+	ModuleName            = types.ModuleName
+	QuerierRoute          = types.QuerierRoute
+	RouterKey             = types.RouterKey
+	DefaultParamspace     = types.DefaultParamspace
+	DefaultSendEnabled    = types.DefaultSendEnabled
 
 	EventTypeTransfer      = types.EventTypeTransfer
 	AttributeKeyRecipient  = types.AttributeKeyRecipient

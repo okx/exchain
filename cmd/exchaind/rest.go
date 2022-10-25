@@ -37,6 +37,7 @@ import (
 	govrest "github.com/okex/exchain/x/gov/client/rest"
 	orderrest "github.com/okex/exchain/x/order/client/rest"
 	paramsclient "github.com/okex/exchain/x/params/client"
+	slashingrest "github.com/okex/exchain/x/slashing/client/rest"
 	stakingrest "github.com/okex/exchain/x/staking/client/rest"
 	"github.com/okex/exchain/x/token"
 	tokensrest "github.com/okex/exchain/x/token/client/rest"
@@ -82,6 +83,7 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 	erc20rest.RegisterRoutes(rs.CliCtx, v1Router)
 	wasmrest.RegisterRoutes(rs.CliCtx, v1Router)
 	evidencerest.RegisterRoutes(rs.CliCtx, v1Router, []evidencerest.EvidenceRESTHandler{})
+	slashingrest.RegisterRoutes(rs.CliCtx, v1Router)
 	fsrest.RegisterRoutes(rs.CliCtx, v1Router)
 	govrest.RegisterRoutes(rs.CliCtx, v1Router,
 		[]govrest.ProposalRESTHandler{
