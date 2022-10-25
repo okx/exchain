@@ -173,7 +173,7 @@ func (m *MatchEngine) Match(order *WrapOrder, maketPrice *big.Int) (*MatchResult
 	}
 }
 
-func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
+func (m *MatchEngine) matchAndTrade(order *WrapOrder, noSend bool) (*MatchResult, error) {
 	marketPrice, err := m.contracts.P1MakerOracle.GetPrice(&bind.CallOpts{
 		From: m.contracts.PerpetualV1Address,
 	})
@@ -214,11 +214,14 @@ func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
 			return matched, fmt.Errorf("failed to fill order, err: %w", err)
 		}
 	}
-	matched.Tx, err = op.Commit(nil)
+	matched.Tx, err = op.Commit(&bind.TransactOpts{NoSend: noSend})
 	if err != nil {
 		return matched, fmt.Errorf("failed to commit, err: %w", err)
 	}
 	m.logger.Debug("commit tx", "tx", matched.Tx.Hash().Hex())
+	if noSend {
+		return matched, nil
+	}
 	matched.OnChain = make(chan bool, 1)
 
 	go func(txHash common.Hash) {
@@ -249,6 +252,14 @@ func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
 		}
 	}(matched.Tx.Hash())
 	return matched, nil
+}
+
+func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
+	return m.matchAndTrade(order, false)
+}
+
+func (m *MatchEngine) MatchAndGenTx(order *WrapOrder) (*MatchResult, error) {
+	return m.matchAndTrade(order, true)
 }
 
 func WrapOrderToSignedSolOrder(order *WrapOrder) *dydxlib.SignedSolOrder {
