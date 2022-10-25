@@ -57,7 +57,7 @@ func (m *modeHandlerDeliver) handleDeferRefund(info *runTxInfo) {
 		return
 	}
 	refund := handleGasRefund(info, m.app.cacheTxContext, m.app.GasRefundHandler)
-	m.app.UpdateFeeForCollector(refund, false)
+	m.app.UpdateFeeCollector(refund, false)
 }
 
 func (m *modeHandlerDeliver) handleDeferGasConsumed(info *runTxInfo) {

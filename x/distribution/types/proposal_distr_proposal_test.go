@@ -82,6 +82,14 @@ func (suite *ProposalSuite) TestNewChangeDistributionTypeProposal() {
 			ErrInvalidDistributionType(),
 		},
 		{
+			"error type",
+			func() {},
+			RandStr(types.MaxTitleLength),
+			RandStr(types.MaxDescriptionLength),
+			4294967295,
+			ErrInvalidDistributionType(),
+		},
+		{
 			"normal, type 0",
 			func() {
 				global.SetGlobalHeight(11)

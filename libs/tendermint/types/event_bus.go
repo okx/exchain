@@ -181,6 +181,10 @@ func (b *EventBus) PublishEventTx(data EventDataTx) error {
 	return b.pubsub.PublishWithEvents(ctx, data, events)
 }
 
+func (b *EventBus) PublishEventTxs(data EventDataTxs) error {
+	return b.Publish(EventTxs, data)
+}
+
 func (b *EventBus) PublishEventPendingTx(data EventDataTx) error {
 	ctx := context.Background()
 
@@ -270,6 +274,10 @@ func (NopEventBus) PublishEventVote(data EventDataVote) error {
 }
 
 func (NopEventBus) PublishEventTx(data EventDataTx) error {
+	return nil
+}
+
+func (NopEventBus) PublishEventTxs(data EventDataTxs) error {
 	return nil
 }
 
