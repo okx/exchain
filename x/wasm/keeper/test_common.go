@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/okex/exchain/x/wasm/keeper/testdata"
-	"github.com/okex/exchain/x/wasm/watcher"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -214,7 +213,6 @@ func CreateDefaultTestInput(t testing.TB) (sdk.Context, TestKeepers) {
 
 // CreateTestInput encoders can be nil to accept the defaults, or set it to override some of the message handlers (like default)
 func CreateTestInput(t testing.TB, isCheckTx bool, supportedFeatures string, opts ...Option) (sdk.Context, TestKeepers) {
-	watcher.Init()
 	// Load default wasm config
 	return createTestInput(t, isCheckTx, supportedFeatures, types.DefaultWasmConfig(), dbm.NewMemDB(), opts...)
 }
