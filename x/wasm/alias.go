@@ -95,6 +95,7 @@ var (
 	NecessaryProposals               = types.NecessaryProposals
 	ContractCodeHistoryElementPrefix = types.ContractCodeHistoryElementPrefix
 	WithMessageEncoders              = keeper.WithMessageEncoders
+	SetNeedParamsUpdate              = keeper.SetNeedParamsUpdate
 )
 
 type (

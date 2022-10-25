@@ -455,6 +455,8 @@ func NewOKExChainApp(
 		vmbridge.GetWasmOpts(app.marshal.GetProtocMarshal()),
 	)
 
+	app.ParamsKeeper.RegisterSignal(wasm.SetNeedParamsUpdate)
+
 	// register the proposal types
 	// 3.register the proposal types
 	govRouter := gov.NewRouter()

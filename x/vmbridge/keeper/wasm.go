@@ -38,7 +38,9 @@ func (k Keeper) SendToWasm(ctx sdk.Context, caller sdk.AccAddress, wasmContractA
 		return types.ErrVMBridgeEnable
 	}
 	ret, err := k.wasmKeeper.Execute(ctx, contractAddr, caller, input, sdk.Coins{})
-	k.Logger().Error("wasm return", string(ret))
+	if err != nil {
+		k.Logger().Error("wasm return", string(ret))
+	}
 	return err
 }
 
