@@ -133,7 +133,10 @@ func IsSupportedVersion(proposedVersion *Version) bool {
 	return true
 }
 
-func IsSupportedVersionV2(supportedVersions []exported.Version, proposedVersion *Version) bool {
+// IsSupportedVersion returns true if the proposed version has a matching version
+// identifier and its entire feature set is supported or the version identifier
+// supports an empty feature set.
+func IsSupportedVersionV4(supportedVersions []exported.Version, proposedVersion *Version) bool {
 	supportedVersion, found := FindSupportedVersion(proposedVersion, supportedVersions)
 	if !found {
 		return false
@@ -158,6 +161,25 @@ func IsSupportedVersionV2(supportedVersions []exported.Version, proposedVersion 
 // CONTRACT: PickVersion must only provide a version that is in the
 // intersection of the supported versions and the counterparty versions.
 func PickVersion(supportedVersions, counterpartyVersions []exported.Version) (*Version, error) {
+	for _, supportedVersion := range supportedVersions {
+		// check if the source version is supported by the counterparty
+		if counterpartyVersion, found := FindSupportedVersion(supportedVersion, counterpartyVersions); found {
+			featureSet := GetFeatureSetIntersection(supportedVersion.GetFeatures(), counterpartyVersion.GetFeatures())
+			if len(featureSet) == 0 && !allowNilFeatureSet[supportedVersion.GetIdentifier()] {
+				continue
+			}
+
+			return NewVersion(supportedVersion.GetIdentifier(), featureSet), nil
+		}
+	}
+
+	return nil, sdkerrors.Wrapf(
+		ErrVersionNegotiationFailed,
+		"failed to find a matching counterparty version (%v) from the supported version list (%v)", counterpartyVersions, supportedVersions,
+	)
+}
+
+func PickVersionV4(supportedVersions, counterpartyVersions []exported.Version) (*Version, error) {
 	for _, supportedVersion := range supportedVersions {
 		// check if the source version is supported by the counterparty
 		if counterpartyVersion, found := FindSupportedVersion(supportedVersion, counterpartyVersions); found {
