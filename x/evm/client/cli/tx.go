@@ -227,3 +227,62 @@ Where proposal.json contains:
 		},
 	}
 }
+
+// GetCmdManageSysContractAddressProposal implements a command handler for submitting a manage system contract address
+// proposal transaction
+func GetCmdManageSysContractAddressProposal(cdcP *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *cobra.Command {
+	return &cobra.Command{
+		Use:   "system-contract-address [proposal-file]",
+		Args:  cobra.ExactArgs(1),
+		Short: "Submit a system contract address proposal",
+		Long: strings.TrimSpace(
+			fmt.Sprintf(`Submit a system contract address proposal.
+The proposal details must be supplied via a JSON file.
+
+Example:
+$ %s tx gov submit-proposal system-contract-address <path/to/proposal.json> --from=<key_or_address>
+
+Where proposal.json contains:
+
+{
+  "title":"Update system contract address",
+  "description":"Will change the system contract address",
+  "contract_addresses": "0x1033796B018B2bf0Fc9CB88c0793b2F275eDB624",
+  "is_added":true,
+  "deposit": [
+    {
+      "denom": "%s",
+      "amount": "100.000000000000000000"
+    }
+  ]
+}
+`, version.ClientName, sdk.DefaultBondDenom,
+			)),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cdc := cdcP.GetCdc()
+			inBuf := bufio.NewReader(cmd.InOrStdin())
+			txBldr := auth.NewTxBuilderFromCLI(inBuf).WithTxEncoder(utils.GetTxEncoder(cdc))
+			cliCtx := context.NewCLIContext().WithCodec(cdc)
+
+			proposal, err := evmutils.ParseManageSysContractAddressProposalJSON(cdc, args[0])
+			if err != nil {
+				return err
+			}
+
+			content := types.NewManageSysContractAddressProposal(
+				proposal.Title,
+				proposal.Description,
+				proposal.ContractAddr,
+				proposal.IsAdded,
+			)
+
+			err = content.ValidateBasic()
+			if err != nil {
+				return err
+			}
+
+			msg := gov.NewMsgSubmitProposal(content, proposal.Deposit, cliCtx.GetFromAddress())
+			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, []sdk.Msg{msg})
+		},
+	}
+}
