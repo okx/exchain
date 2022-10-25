@@ -26,6 +26,7 @@ func RegisterCodec(cdc *codec.Codec) {
 	cdc.RegisterConcrete(ManageContractDeploymentWhitelistProposal{}, ManageContractDeploymentWhitelistProposalName, nil)
 	cdc.RegisterConcrete(ManageContractBlockedListProposal{}, ManageContractBlockedListProposalName, nil)
 	cdc.RegisterConcrete(ManageContractMethodBlockedListProposal{}, "okexchain/evm/ManageContractMethodBlockedListProposal", nil)
+	cdc.RegisterConcrete(ManageSysContractAddressProposal{}, "okexchain/evm/ManageSysContractAddressProposal", nil)
 
 	cdc.RegisterConcreteUnmarshaller(ChainConfigName, func(c *amino.Codec, bytes []byte) (interface{}, int, error) {
 		var cc ChainConfig
