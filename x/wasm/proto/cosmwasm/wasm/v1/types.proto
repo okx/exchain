@@ -52,7 +52,7 @@ message Params {
   bool use_contract_blocked_list = 3
       [ (gogoproto.moretags) = "yaml:\"use_contract_blocked_list\"" ];
   bool vmbridge_enable = 4
-      [ (gogoproto.moretags) = "yaml:\"use_contract_blocked_list\"" ];
+      [ (gogoproto.moretags) = "yaml:\"vmbridge_enable\"" ];
 }
 
 // CodeInfo is data for the uploaded contract WASM code
