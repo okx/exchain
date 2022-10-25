@@ -1239,7 +1239,7 @@ func commitStores(log tmlog.Logger, version int64, storeMap map[types.StoreKey]t
 		stores = append(stores, si)
 	}
 	sort.Sort(stores)
-	log.Error(stores.String())
+	log.Error("commitstores", "stores", stores.String(), "version", version)
 	return commitInfo{
 		Version:    version,
 		StoreInfos: storeInfos,
