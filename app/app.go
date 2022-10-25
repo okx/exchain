@@ -570,15 +570,14 @@ func NewOKExChainApp(
 	)
 	// Set IBC hooks
 	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
+	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
 
 	left := common.NewDisaleProxyMiddleware()
-	middle := ibctransfer.NewIBCModule(app.TransferKeeper)
+	middle := ibctransfer.NewIBCModule(app.TransferKeeper, transferModule)
 	right := ibcfee.NewIBCMiddleware(middle, app.IBCFeeKeeper)
 	transferStack := ibcporttypes.NewFallThroughMiddleware(left,
 		ibccommon.DefaultFactory(tmtypes.HigherThanVenus4, ibc.IBCV4, right),
 		ibccommon.DefaultFactory(tmtypes.HigherThanVenus1, ibc.IBCV2, middle))
-
-	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
 
 	// Create static IBC router, add transfer route, then set and seal it
 	ibcRouter := ibcporttypes.NewRouter()

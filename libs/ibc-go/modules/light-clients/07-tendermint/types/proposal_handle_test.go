@@ -266,7 +266,7 @@ func (suite *TendermintTestSuite) TestIsMatchingClientState() {
 
 			tc.malleate()
 
-			suite.Require().Equal(tc.expPass, types.IsMatchingClientState(*subjectClientState, *substituteClientState))
+			suite.Require().Equal(tc.expPass, types.IsMatchingClientStateV4(*subjectClientState, *substituteClientState))
 		})
 	}
 }

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"strings"
 
+	types2 "github.com/okex/exchain/libs/tendermint/types"
+
 	porttypes "github.com/okex/exchain/libs/ibc-go/modules/core/05-port/types"
 
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
@@ -22,9 +24,10 @@ var (
 )
 
 // NewIBCModule creates a new IBCModule given the keeper
-func NewIBCModule(k keeper.Keeper) porttypes.Middleware {
+func NewIBCModule(k keeper.Keeper, v2module AppModule) porttypes.Middleware {
 	return IBCModule{
-		keeper: k,
+		keeper:   k,
+		v2Module: v2module,
 	}
 }
 
@@ -39,6 +42,10 @@ func (im IBCModule) OnChanOpenInit(
 	counterparty channeltypes.Counterparty,
 	version string,
 ) (string, error) {
+	if !types2.HigherThanVenus4(ctx.BlockHeight()) {
+		return im.v2Module.OnChanOpenInit(ctx, order, connectionHops, portID, channelID, chanCap, counterparty, version)
+	}
+
 	if err := ValidateTransferChannelParams(ctx, im.keeper, order, portID, channelID, version); err != nil {
 		return "", err
 	}
@@ -71,6 +78,10 @@ func (im IBCModule) OnChanOpenTry(
 	version string,
 	counterpartyVersion string,
 ) (string, error) {
+	if !types2.HigherThanVenus4(ctx.BlockHeight()) {
+		return im.v2Module.OnChanOpenTry(ctx, order, connectionHops, portID, channelID, chanCap, counterparty, version, counterpartyVersion)
+	}
+
 	if err := ValidateTransferChannelParams(ctx, im.keeper, order, portID, channelID, ""); err != nil {
 		return "", err
 	}
@@ -137,6 +148,10 @@ func (im IBCModule) OnRecvPacket(
 	packet channeltypes.Packet,
 	relayer sdk.AccAddress,
 ) ibcexported.Acknowledgement {
+	if !types2.HigherThanVenus4(ctx.BlockHeight()) {
+		return im.v2Module.OnRecvPacket(ctx, packet, relayer)
+	}
+
 	ack := channeltypes.NewResultAcknowledgement([]byte{byte(1)})
 
 	var data types.FungibleTokenPacketData
@@ -187,6 +202,9 @@ func (im IBCModule) OnAcknowledgementPacket(
 	acknowledgement []byte,
 	relayer sdk.AccAddress,
 ) error {
+	if !types2.HigherThanVenus4(ctx.BlockHeight()) {
+		return im.v2Module.OnAcknowledgementPacket(ctx, packet, acknowledgement, relayer)
+	}
 	var ack channeltypes.Acknowledgement
 	if err := types.Marshal.GetProtocMarshal().UnmarshalJSON(acknowledgement, &ack); err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "cannot unmarshal ICS-20 transfer packet acknowledgement: %v", err)
@@ -238,6 +256,9 @@ func (im IBCModule) OnTimeoutPacket(
 	packet channeltypes.Packet,
 	relayer sdk.AccAddress,
 ) error {
+	if !types2.HigherThanVenus4(ctx.BlockHeight()) {
+		return im.v2Module.OnTimeoutPacket(ctx, packet, relayer)
+	}
 	var data types.FungibleTokenPacketData
 	if err := types.ModuleCdc.UnmarshalJSON(packet.GetData(), &data); err != nil {
 		return sdkerrors.Wrapf(sdkerrors.ErrUnknownRequest, "cannot unmarshal ICS-20 transfer packet data: %s", err.Error())
@@ -262,7 +283,8 @@ func (im IBCModule) OnTimeoutPacket(
 
 // IBCModule implements the ICS26 interface for transfer given the transfer keeper.
 type IBCModule struct {
-	keeper keeper.Keeper
+	keeper   keeper.Keeper
+	v2Module AppModule
 }
 
 func (im IBCModule) SendPacket(ctx sdk.Context, chanCap *capabilitytypes.Capability, packet ibcexported.PacketI) error {

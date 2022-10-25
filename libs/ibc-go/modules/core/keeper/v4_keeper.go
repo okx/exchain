@@ -4,6 +4,9 @@ import (
 	"context"
 	"strings"
 
+	clienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	connectiontypes "github.com/okex/exchain/libs/ibc-go/modules/core/03-connection/types"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 	channeltypes "github.com/okex/exchain/libs/ibc-go/modules/core/04-channel/types"
@@ -20,6 +23,44 @@ type V4Keeper struct {
 
 func NewV4Keeper(keeper *Keeper) *V4Keeper {
 	return &V4Keeper{Keeper: keeper}
+}
+
+// ConnectionOpenTry defines a rpc handler method for MsgConnectionOpenTry.
+func (k V4Keeper) ConnectionOpenTry(goCtx context.Context, msg *connectiontypes.MsgConnectionOpenTry) (*connectiontypes.MsgConnectionOpenTryResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+
+	targetClient, err := clienttypes.UnpackClientState(msg.ClientState)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err := k.ConnectionKeeper.ConnOpenTryV4(
+		ctx, msg.Counterparty, msg.DelayPeriod, msg.ClientId, targetClient,
+		connectiontypes.ProtoVersionsToExported(msg.CounterpartyVersions), msg.ProofInit, msg.ProofClient, msg.ProofConsensus,
+		msg.ProofHeight, msg.ConsensusHeight,
+	); err != nil {
+		return nil, sdkerrors.Wrap(err, "connection handshake open try failed")
+	}
+
+	return &connectiontypes.MsgConnectionOpenTryResponse{}, nil
+}
+
+func (k V4Keeper) ConnectionOpenAck(goCtx context.Context, msg *connectiontypes.MsgConnectionOpenAck) (*connectiontypes.MsgConnectionOpenAckResponse, error) {
+	ctx := sdk.UnwrapSDKContext(goCtx)
+	targetClient, err := clienttypes.UnpackClientState(msg.ClientState)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := k.ConnectionKeeper.ConnOpenAckV4(
+		ctx, msg.ConnectionId, targetClient, msg.Version, msg.CounterpartyConnectionId,
+		msg.ProofTry, msg.ProofClient, msg.ProofConsensus,
+		msg.ProofHeight, msg.ConsensusHeight,
+	); err != nil {
+		return nil, sdkerrors.Wrap(err, "connection handshake open ack failed")
+	}
+
+	return &connectiontypes.MsgConnectionOpenAckResponse{}, nil
 }
 
 func (k V4Keeper) ChannelOpenInit(goCtx context.Context, msg *channeltypes.MsgChannelOpenInit) (*channeltypes.MsgChannelOpenInitResponse, error) {

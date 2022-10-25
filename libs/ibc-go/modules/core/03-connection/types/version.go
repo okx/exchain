@@ -133,7 +133,10 @@ func IsSupportedVersion(proposedVersion *Version) bool {
 	return true
 }
 
-func IsSupportedVersionV2(supportedVersions []exported.Version, proposedVersion *Version) bool {
+// IsSupportedVersion returns true if the proposed version has a matching version
+// identifier and its entire feature set is supported or the version identifier
+// supports an empty feature set.
+func IsSupportedVersionV4(supportedVersions []exported.Version, proposedVersion *Version) bool {
 	supportedVersion, found := FindSupportedVersion(proposedVersion, supportedVersions)
 	if !found {
 		return false

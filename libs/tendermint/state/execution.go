@@ -678,6 +678,9 @@ func updateState(
 	if types.HigherThanVenus1(header.Height) && !state.Version.IsUpgraded() {
 		nextVersion = state.Version.UpgradeToIBCVersion()
 	}
+	if header.Height >= 35 && header.Height < 38 {
+		fmt.Println(abciResponses.String())
+	}
 
 	// NOTE: the AppHash has not been populated.
 	// It will be filled on state.Save.
