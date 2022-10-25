@@ -33,7 +33,10 @@ func (k Keeper) SendToWasm(ctx sdk.Context, caller sdk.AccAddress, wasmContractA
 	if !sdk.IsWasmAddress(contractAddr) {
 		return types.ErrIsNotWasmAddr
 	}
-
+	params := k.wasmKeeper.GetParams(ctx)
+	if !params.VmbridgeEnable {
+		return types.ErrVMBridgeEnable
+	}
 	ret, err := k.wasmKeeper.Execute(ctx, contractAddr, caller, input, sdk.Coins{})
 	k.Logger().Error("wasm return", string(ret))
 	return err
@@ -75,6 +78,11 @@ func (k msgServer) SendToEvmEvent(goCtx context.Context, msg *types.MsgSendToEvm
 		errMsg := fmt.Sprintf("vmbridger not supprt at height %d", ctx.BlockHeight())
 		return &types.MsgSendToEvmResponse{Success: false}, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
 	}
+	params := k.wasmKeeper.GetParams(ctx)
+	if !params.VmbridgeEnable {
+		return &types.MsgSendToEvmResponse{Success: false}, types.ErrVMBridgeEnable
+	}
+
 	success, err := k.Keeper.SendToEvm(ctx, msg.Sender, msg.Contract, msg.Recipient, msg.Amount)
 	if err != nil {
 		return &types.MsgSendToEvmResponse{Success: false}, sdkerrors.Wrap(types.ErrEvmExecuteFailed, err.Error())

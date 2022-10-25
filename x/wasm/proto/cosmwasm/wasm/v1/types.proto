@@ -49,6 +49,10 @@ message Params {
   ];
   AccessType instantiate_default_permission = 2
       [ (gogoproto.moretags) = "yaml:\"instantiate_default_permission\"" ];
+  bool use_contract_blocked_list = 3
+      [ (gogoproto.moretags) = "yaml:\"use_contract_blocked_list\"" ];
+  bool vmbridge_enable = 4
+      [ (gogoproto.moretags) = "yaml:\"use_contract_blocked_list\"" ];
 }
 
 // CodeInfo is data for the uploaded contract WASM code

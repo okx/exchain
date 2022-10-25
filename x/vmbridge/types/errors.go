@@ -15,4 +15,6 @@ var (
 
 	ErrAmountNegative   = sdkerrors.Register(ModuleName, 6, "the amount can not negative")
 	ErrEvmExecuteFailed = sdkerrors.Register(ModuleName, 7, "the evm execute")
+
+	ErrVMBridgeEnable = sdkerrors.Register(ModuleName, 8, "the vmbridge is disable")
 )
