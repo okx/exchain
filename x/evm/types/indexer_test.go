@@ -62,7 +62,7 @@ func (m mockKeeper) GetHeightHash(ctx sdk.Context, height uint64) common.Hash {
 	return common.Hash{0x01}
 }
 
-func TestDeleteBloomBits(t *testing.T) {
+func TestReadBloomBits(t *testing.T) {
 	// Prepare testing data
 	mdb := dbm.NewMemDB()
 	db := mdb.NewBatch()
