@@ -122,7 +122,7 @@ func (es *EvmSimulator) DoCall(msg *evmtypes.MsgEthereumTx, sender string, overr
 }
 
 func (ef EvmFactory) makeEvmKeeper(qoc QueryOnChainProxy) *evm.Keeper {
-	return evm.NewSimulateKeeper(qoc.GetCodec(), ef.storeKey, NewSubspaceProxy(), NewAccountKeeperProxy(qoc), SupplyKeeperProxy{}, NewBankKeeperProxy(), NewInternalDba(qoc), tmlog.NewNopLogger())
+	return evm.NewSimulateKeeper(qoc.GetCodec(), ef.storeKey, NewSubspaceProxy(), NewAccountKeeperProxy(qoc), SupplyKeeperProxy{}, NewBankKeeperProxy(), StakingKeeperProxy{}, NewInternalDba(qoc), tmlog.NewNopLogger())
 }
 
 func (ef EvmFactory) makeContext(multiStore sdk.CacheMultiStore, header abci.Header) sdk.Context {
