@@ -151,7 +151,6 @@ func (ia *InterchainAccount) UnmarshalJSON(bz []byte) error {
 	return nil
 }
 
-// TODO ,这里的需要全部实现
 func (ia InterchainAccount) Copy() sdk.Account {
 	//TODO implement me
 	panic("implement me")

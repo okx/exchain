@@ -29,5 +29,3 @@ func GetQueryCmd(cdc *codec.CodecProxy, reg interfacetypes.InterfaceRegistry) *c
 
 	return queryCmd
 }
-
-// TODO,这里有个tx cmd,感觉不需要,就不加了

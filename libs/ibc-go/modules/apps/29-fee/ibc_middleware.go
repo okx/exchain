@@ -359,6 +359,5 @@ func (im IBCMiddleware) GetAppVersion(ctx sdk.Context, portID, channelID string)
 }
 
 func (im IBCMiddleware) NegotiateAppVersion(ctx sdk.Context, order channeltypes.Order, connectionID string, portID string, counterparty channeltypes.Counterparty, proposedVersion string) (version string, err error) {
-	//TODO 同controller
 	panic("implement me")
 }

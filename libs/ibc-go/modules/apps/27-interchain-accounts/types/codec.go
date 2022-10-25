@@ -17,7 +17,6 @@ var ModuleCdc = codec.NewProtoCodec(codectypes.NewInterfaceRegistry())
 // RegisterInterfaces registers the concrete InterchainAccount implementation against the associated
 // x/auth AccountI and GenesisAccount interfaces
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
-	// TODO,这里的需要进行修改
 	registry.RegisterImplementations((*authtypes.Account)(nil), &InterchainAccount{})
 	registry.RegisterImplementations((*authtypes.GenesisAccount)(nil), &InterchainAccount{})
 }

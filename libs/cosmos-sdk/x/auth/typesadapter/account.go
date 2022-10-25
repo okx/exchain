@@ -10,7 +10,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
-// TODO,这里的整个移到 legacy中吧?
 // NewBaseAccountWithAddress - returns a new base account with a given address
 // leaving AccountNumber and Sequence to zero.
 func NewBaseAccountWithAddress(addr sdk.AccAddress) *BaseAccount {
