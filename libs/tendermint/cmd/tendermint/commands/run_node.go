@@ -169,6 +169,12 @@ func AddNodeFlags(cmd *cobra.Command) {
 		"enable wrapped tx",
 	)
 
+	cmd.Flags().Bool(
+		"mempool.check_tx_cost",
+		false,
+		"Calculate tx type count and time in function checkTx per block",
+	)
+
 	cmd.Flags().String(
 		"local_perf",
 		"",

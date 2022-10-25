@@ -7,9 +7,15 @@ import (
 	"os"
 	"sync"
 
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"google.golang.org/grpc/encoding"
+	"google.golang.org/grpc/encoding/proto"
+
 	"github.com/okex/exchain/app/ante"
 	okexchaincodec "github.com/okex/exchain/app/codec"
 	appconfig "github.com/okex/exchain/app/config"
+	gasprice "github.com/okex/exchain/app/gasprice"
 	"github.com/okex/exchain/app/refund"
 	okexchain "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/app/utils/sanity"
@@ -64,6 +70,8 @@ import (
 	evmtypes "github.com/okex/exchain/x/evm/types"
 	"github.com/okex/exchain/x/farm"
 	farmclient "github.com/okex/exchain/x/farm/client"
+	"github.com/okex/exchain/x/feesplit"
+	fsclient "github.com/okex/exchain/x/feesplit/client"
 	"github.com/okex/exchain/x/genutil"
 	"github.com/okex/exchain/x/gov"
 	"github.com/okex/exchain/x/gov/keeper"
@@ -75,11 +83,8 @@ import (
 	"github.com/okex/exchain/x/staking"
 	"github.com/okex/exchain/x/token"
 	"github.com/okex/exchain/x/wasm"
+	wasmclient "github.com/okex/exchain/x/wasm/client"
 	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"google.golang.org/grpc/encoding"
-	"google.golang.org/grpc/encoding/proto"
 )
 
 func init() {
@@ -116,15 +121,25 @@ var (
 			distr.CommunityPoolSpendProposalHandler,
 			distr.ChangeDistributionTypeProposalHandler,
 			distr.WithdrawRewardEnabledProposalHandler,
+			distr.RewardTruncatePrecisionProposalHandler,
 			dexclient.DelistProposalHandler, farmclient.ManageWhiteListProposalHandler,
 			evmclient.ManageContractDeploymentWhitelistProposalHandler,
 			evmclient.ManageContractBlockedListProposalHandler,
 			evmclient.ManageContractMethodBlockedListProposalHandler,
+			evmclient.ManageSysContractAddressProposalHandler,
 			govclient.ManageTreasuresProposalHandler,
 			erc20client.TokenMappingProposalHandler,
 			erc20client.ProxyContractRedirectHandler,
 			erc20client.ContractTemplateProposalHandler,
 			client.UpdateClientProposalHandler,
+			fsclient.FeeSplitSharesProposalHandler,
+			wasmclient.MigrateContractProposalHandler,
+			wasmclient.UpdateContractAdminProposalHandler,
+			wasmclient.ClearContractAdminProposalHandler,
+			wasmclient.PinCodesProposalHandler,
+			wasmclient.UnpinCodesProposalHandler,
+			wasmclient.UpdateDeploymentWhitelistProposalHandler,
+			wasmclient.UpdateWASMContractMethodBlockedListProposalHandler,
 		),
 		params.AppModuleBasic{},
 		crisis.AppModuleBasic{},
@@ -143,6 +158,7 @@ var (
 		ibctransfer.AppModuleBasic{},
 		erc20.AppModuleBasic{},
 		wasm.AppModuleBasic{},
+		feesplit.AppModuleBasic{},
 	)
 
 	// module account permissions
@@ -163,9 +179,10 @@ var (
 		ibctransfertypes.ModuleName: {authtypes.Minter, authtypes.Burner},
 		erc20.ModuleName:            {authtypes.Minter, authtypes.Burner},
 		wasm.ModuleName:             nil,
+		feesplit.ModuleName:         nil,
 	}
 
-	GlobalGpIndex = GasPriceIndex{}
+	GlobalGp = &big.Int{}
 
 	onceLog sync.Once
 )
@@ -208,6 +225,7 @@ type OKExChainApp struct {
 	FarmKeeper     farm.Keeper
 	wasmKeeper     wasm.Keeper
 	InfuraKeeper   infura.Keeper
+	FeeSplitKeeper feesplit.Keeper
 
 	// the module manager
 	mm *module.Manager
@@ -215,7 +233,7 @@ type OKExChainApp struct {
 	// simulation manager
 	sm *module.SimulationManager
 
-	blockGasPrice []*big.Int
+	gpo *gasprice.Oracle
 
 	configurator module.Configurator
 	// ibc
@@ -246,6 +264,10 @@ func NewOKExChainApp(
 		"GenesisHeight", tmtypes.GetStartBlockHeight(),
 		"MercuryHeight", tmtypes.GetMercuryHeight(),
 		"VenusHeight", tmtypes.GetVenusHeight(),
+		"Venus1Height", tmtypes.GetVenus1Height(),
+		"Venus2Height", tmtypes.GetVenus2Height(),
+		"Venus3Height", tmtypes.GetVenus3Height(),
+		"EarthHeight", tmtypes.GetEarthHeight(),
 		"MarsHeight", tmtypes.GetMarsHeight(),
 	)
 	onceLog.Do(func() {
@@ -275,6 +297,7 @@ func NewOKExChainApp(
 		erc20.StoreKey,
 		mpt.StoreKey,
 		wasm.StoreKey,
+		feesplit.StoreKey,
 	)
 
 	tkeys := sdk.NewTransientStoreKeys(params.TStoreKey)
@@ -311,6 +334,7 @@ func NewOKExChainApp(
 	app.subspaces[ibctransfertypes.ModuleName] = app.ParamsKeeper.Subspace(ibctransfertypes.ModuleName)
 	app.subspaces[erc20.ModuleName] = app.ParamsKeeper.Subspace(erc20.DefaultParamspace)
 	app.subspaces[wasm.ModuleName] = app.ParamsKeeper.Subspace(wasm.ModuleName)
+	app.subspaces[feesplit.ModuleName] = app.ParamsKeeper.Subspace(feesplit.ModuleName)
 
 	//proxy := codec.NewMarshalProxy(cc, cdc)
 	app.marshal = codecProxy
@@ -349,7 +373,7 @@ func NewOKExChainApp(
 	app.UpgradeKeeper = upgrade.NewKeeper(skipUpgradeHeights, keys[upgrade.StoreKey], app.marshal.GetCdc())
 	app.ParamsKeeper.RegisterSignal(evmtypes.SetEvmParamsNeedUpdate)
 	app.EvmKeeper = evm.NewKeeper(
-		app.marshal.GetCdc(), keys[evm.StoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, logger)
+		app.marshal.GetCdc(), keys[evm.StoreKey], app.subspaces[evm.ModuleName], &app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, &stakingKeeper, logger)
 	(&bankKeeper).SetInnerTxKeeper(app.EvmKeeper)
 
 	app.TokenKeeper = token.NewKeeper(app.BankKeeper, app.subspaces[token.ModuleName], auth.FeeCollectorName, app.SupplyKeeper,
@@ -398,57 +422,10 @@ func NewOKExChainApp(
 	app.Erc20Keeper = erc20.NewKeeper(app.marshal.GetCdc(), app.keys[erc20.ModuleName], app.subspaces[erc20.ModuleName],
 		app.AccountKeeper, app.SupplyKeeper, app.BankKeeper, app.EvmKeeper, app.TransferKeeper)
 
-	// register the proposal types
-	// 3.register the proposal types
-	govRouter := gov.NewRouter()
-	govRouter.AddRoute(gov.RouterKey, gov.ProposalHandler).
-		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(&app.ParamsKeeper)).
-		AddRoute(distr.RouterKey, distr.NewDistributionProposalHandler(app.DistrKeeper)).
-		AddRoute(dex.RouterKey, dex.NewProposalHandler(&app.DexKeeper)).
-		AddRoute(farm.RouterKey, farm.NewManageWhiteListProposalHandler(&app.FarmKeeper)).
-		AddRoute(evm.RouterKey, evm.NewManageContractDeploymentWhitelistProposalHandler(app.EvmKeeper)).
-		AddRoute(mint.RouterKey, mint.NewManageTreasuresProposalHandler(&app.MintKeeper)).
-		AddRoute(ibcclienttypes.RouterKey, ibcclient.NewClientUpdateProposalHandler(app.IBCKeeper.ClientKeeper)).
-		AddRoute(erc20.RouterKey, erc20.NewProposalHandler(&app.Erc20Keeper))
-	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
-	govProposalHandlerRouter.AddRoute(params.RouterKey, &app.ParamsKeeper).
-		AddRoute(dex.RouterKey, &app.DexKeeper).
-		AddRoute(farm.RouterKey, &app.FarmKeeper).
-		AddRoute(evm.RouterKey, app.EvmKeeper).
-		AddRoute(mint.RouterKey, &app.MintKeeper).
-		AddRoute(erc20.RouterKey, &app.Erc20Keeper).
-		AddRoute(distr.RouterKey, &app.DistrKeeper)
-	app.GovKeeper = gov.NewKeeper(
-		app.marshal.GetCdc(), app.keys[gov.StoreKey], app.ParamsKeeper, app.subspaces[gov.DefaultParamspace],
-		app.SupplyKeeper, &stakingKeeper, gov.DefaultParamspace, govRouter,
-		app.BankKeeper, govProposalHandlerRouter, auth.FeeCollectorName,
-	)
-	app.ParamsKeeper.SetGovKeeper(app.GovKeeper)
-	app.DexKeeper.SetGovKeeper(app.GovKeeper)
-	app.FarmKeeper.SetGovKeeper(app.GovKeeper)
-	app.EvmKeeper.SetGovKeeper(app.GovKeeper)
-	app.MintKeeper.SetGovKeeper(app.GovKeeper)
-	app.Erc20Keeper.SetGovKeeper(app.GovKeeper)
-	app.DistrKeeper.SetGovKeeper(app.GovKeeper)
-
-	// Set EVM hooks
-	app.EvmKeeper.SetHooks(evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper),
-		erc20.NewSendNative20ToIbcEventHandler(app.Erc20Keeper)))
-	// Set IBC hooks
-	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
-	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
-
-	// Create static IBC router, add transfer route, then set and seal it
-	ibcRouter := ibcporttypes.NewRouter()
-	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferModule)
-	//ibcRouter.AddRoute(ibcmock.ModuleName, mockModule)
-	app.IBCKeeper.SetRouter(ibcRouter)
-
-	// register the staking hooks
-	// NOTE: stakingKeeper above is passed by reference, so that it will contain these hooks
-	app.StakingKeeper = *stakingKeeper.SetHooks(
-		staking.NewMultiStakingHooks(app.DistrKeeper.Hooks(), app.SlashingKeeper.Hooks()),
-	)
+	app.FeeSplitKeeper = feesplit.NewKeeper(
+		app.keys[feesplit.StoreKey], app.marshal.GetCdc(), app.subspaces[feesplit.ModuleName],
+		app.EvmKeeper, app.SupplyKeeper, app.AccountKeeper, updateFeeSplitHandler(app.FeeSplitCollector))
+	app.ParamsKeeper.RegisterSignal(feesplit.SetParamsNeedUpdate)
 
 	//wasm keeper
 	wasmDir := wasm.WasmDir()
@@ -472,6 +449,69 @@ func NewOKExChainApp(
 		wasmDir,
 		wasmConfig,
 		supportedFeatures,
+	)
+
+	// register the proposal types
+	// 3.register the proposal types
+	govRouter := gov.NewRouter()
+	govRouter.AddRoute(gov.RouterKey, gov.ProposalHandler).
+		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(&app.ParamsKeeper)).
+		AddRoute(distr.RouterKey, distr.NewDistributionProposalHandler(app.DistrKeeper)).
+		AddRoute(dex.RouterKey, dex.NewProposalHandler(&app.DexKeeper)).
+		AddRoute(farm.RouterKey, farm.NewManageWhiteListProposalHandler(&app.FarmKeeper)).
+		AddRoute(evm.RouterKey, evm.NewManageContractDeploymentWhitelistProposalHandler(app.EvmKeeper)).
+		AddRoute(mint.RouterKey, mint.NewManageTreasuresProposalHandler(&app.MintKeeper)).
+		AddRoute(ibcclienttypes.RouterKey, ibcclient.NewClientUpdateProposalHandler(app.IBCKeeper.ClientKeeper)).
+		AddRoute(erc20.RouterKey, erc20.NewProposalHandler(&app.Erc20Keeper)).
+		AddRoute(feesplit.RouterKey, feesplit.NewProposalHandler(&app.FeeSplitKeeper)).
+		AddRoute(wasm.RouterKey, wasm.NewWasmProposalHandler(&app.wasmKeeper, wasm.NecessaryProposals))
+
+	govProposalHandlerRouter := keeper.NewProposalHandlerRouter()
+	govProposalHandlerRouter.AddRoute(params.RouterKey, &app.ParamsKeeper).
+		AddRoute(dex.RouterKey, &app.DexKeeper).
+		AddRoute(farm.RouterKey, &app.FarmKeeper).
+		AddRoute(evm.RouterKey, app.EvmKeeper).
+		AddRoute(mint.RouterKey, &app.MintKeeper).
+		AddRoute(erc20.RouterKey, &app.Erc20Keeper).
+		AddRoute(feesplit.RouterKey, &app.FeeSplitKeeper).
+		AddRoute(distr.RouterKey, &app.DistrKeeper)
+
+	app.GovKeeper = gov.NewKeeper(
+		app.marshal.GetCdc(), app.keys[gov.StoreKey], app.ParamsKeeper, app.subspaces[gov.DefaultParamspace],
+		app.SupplyKeeper, &stakingKeeper, gov.DefaultParamspace, govRouter,
+		app.BankKeeper, govProposalHandlerRouter, auth.FeeCollectorName,
+	)
+	app.ParamsKeeper.SetGovKeeper(app.GovKeeper)
+	app.DexKeeper.SetGovKeeper(app.GovKeeper)
+	app.FarmKeeper.SetGovKeeper(app.GovKeeper)
+	app.EvmKeeper.SetGovKeeper(app.GovKeeper)
+	app.MintKeeper.SetGovKeeper(app.GovKeeper)
+	app.Erc20Keeper.SetGovKeeper(app.GovKeeper)
+	app.FeeSplitKeeper.SetGovKeeper(app.GovKeeper)
+	app.DistrKeeper.SetGovKeeper(app.GovKeeper)
+
+	// Set EVM hooks
+	app.EvmKeeper.SetHooks(
+		evm.NewMultiEvmHooks(
+			evm.NewLogProcessEvmHook(erc20.NewSendToIbcEventHandler(app.Erc20Keeper),
+				erc20.NewSendNative20ToIbcEventHandler(app.Erc20Keeper)),
+			app.FeeSplitKeeper.Hooks(),
+		),
+	)
+	// Set IBC hooks
+	app.TransferKeeper = *app.TransferKeeper.SetHooks(erc20.NewIBCTransferHooks(app.Erc20Keeper))
+	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)
+
+	// Create static IBC router, add transfer route, then set and seal it
+	ibcRouter := ibcporttypes.NewRouter()
+	ibcRouter.AddRoute(ibctransfertypes.ModuleName, transferModule)
+	//ibcRouter.AddRoute(ibcmock.ModuleName, mockModule)
+	app.IBCKeeper.SetRouter(ibcRouter)
+
+	// register the staking hooks
+	// NOTE: stakingKeeper above is passed by reference, so that it will contain these hooks
+	app.StakingKeeper = *stakingKeeper.SetHooks(
+		staking.NewMultiStakingHooks(app.DistrKeeper.Hooks(), app.SlashingKeeper.Hooks()),
 	)
 
 	// NOTE: Any module instantiated in the module manager that is later modified
@@ -502,6 +542,7 @@ func NewOKExChainApp(
 		transferModule,
 		erc20.NewAppModule(app.Erc20Keeper),
 		wasm.NewAppModule(*app.marshal, &app.wasmKeeper),
+		feesplit.NewAppModule(app.FeeSplitKeeper),
 	)
 
 	// During begin block slashing happens after distr.BeginBlocker so that
@@ -548,6 +589,7 @@ func NewOKExChainApp(
 		evm.ModuleName, crisis.ModuleName, genutil.ModuleName, params.ModuleName, evidence.ModuleName,
 		erc20.ModuleName,
 		wasm.ModuleName,
+		feesplit.ModuleName,
 	)
 
 	app.mm.RegisterInvariants(&app.CrisisKeeper)
@@ -594,10 +636,12 @@ func NewOKExChainApp(
 	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
 	app.AddCustomizeModuleOnStopLogic(NewEvmModuleStopLogic(app.EvmKeeper))
 	app.SetMptCommitHandler(NewMptCommitHandler(app.EvmKeeper))
-	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), fixLogForParallelTxHandler(app.EvmKeeper))
+	app.SetUpdateFeeCollectorAccHandler(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper))
+	app.SetParallelTxLogHandlers(fixLogForParallelTxHandler(app.EvmKeeper))
 	app.SetPreDeliverTxHandler(preDeliverTxHandler(app.AccountKeeper))
 	app.SetPartialConcurrentHandlers(getTxFeeAndFromHandler(app.AccountKeeper))
 	app.SetGetTxFeeHandler(getTxFeeHandler())
+	app.SetEvmSysContractAddressHandler(NewEvmSysContractAddressHandler(app.EvmKeeper))
 	app.SetEvmWatcherCollector(app.EvmKeeper.Watcher.Collect)
 
 	if loadLatest {
@@ -621,6 +665,11 @@ func NewOKExChainApp(
 
 	enableAnalyzer := sm.DeliverTxsExecMode(viper.GetInt(sm.FlagDeliverTxsExecMode)) == sm.DeliverTxsExecModeSerial
 	trace.EnableAnalyzer(enableAnalyzer)
+
+	if appconfig.GetOecConfig().GetEnableDynamicGp() {
+		gpoConfig := gasprice.NewGPOConfig(appconfig.GetOecConfig().GetDynamicGpWeight(), appconfig.GetOecConfig().GetDynamicGpCheckBlocks())
+		app.gpo = gasprice.NewOracle(gpoConfig)
+	}
 	return app
 }
 
@@ -654,8 +703,9 @@ func (app *OKExChainApp) BeginBlocker(ctx sdk.Context, req abci.RequestBeginBloc
 // EndBlocker updates every end block
 func (app *OKExChainApp) EndBlocker(ctx sdk.Context, req abci.RequestEndBlock) abci.ResponseEndBlock {
 	if appconfig.GetOecConfig().GetEnableDynamicGp() {
-		GlobalGpIndex = CalBlockGasPriceIndex(app.blockGasPrice, appconfig.GetOecConfig().GetDynamicGpWeight())
-		app.blockGasPrice = app.blockGasPrice[:0]
+		_ = app.gpo.BlockGPQueue.Push(app.gpo.CurrentBlockGPs)
+		GlobalGp = app.gpo.RecommendGP()
+		app.gpo.CurrentBlockGPs.Clear()
 	}
 
 	return app.mm.EndBlock(ctx, req)
@@ -831,5 +881,19 @@ func NewMptCommitHandler(ak *evm.Keeper) sdk.MptCommitHandler {
 		if tmtypes.HigherThanMars(ctx.BlockHeight()) || mpt.TrieWriteAhead {
 			ak.PushData2Database(ctx.BlockHeight(), ctx.Logger())
 		}
+	}
+}
+
+func NewEvmSysContractAddressHandler(ak *evm.Keeper) sdk.EvmSysContractAddressHandler {
+	if ak == nil {
+		panic("NewEvmSysContractAddressHandler ak is nil")
+	}
+	return func(
+		ctx sdk.Context, addr sdk.AccAddress,
+	) bool {
+		if addr.Empty() {
+			return false
+		}
+		return ak.IsMatchSysContractAddress(ctx, addr)
 	}
 }

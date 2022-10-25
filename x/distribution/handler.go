@@ -30,6 +30,11 @@ func NewHandler(k keeper.Keeper) sdk.Handler {
 				return handleMsgWithdrawDelegatorReward(ctx, msg, k)
 			}
 			return nil, types.ErrUnknownDistributionMsgType()
+		case types.MsgWithdrawDelegatorAllRewards:
+			if k.CheckDistributionProposalValid(ctx) {
+				return handleMsgWithdrawDelegatorAllRewards(ctx, msg, k)
+			}
+			return nil, types.ErrUnknownDistributionMsgType()
 
 		default:
 			return nil, types.ErrUnknownDistributionMsgType()
@@ -84,6 +89,11 @@ func NewDistributionProposalHandler(k Keeper) govtypes.Handler {
 		case types.WithdrawRewardEnabledProposal:
 			if tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
 				return keeper.HandleWithdrawRewardEnabledProposal(ctx, k, c)
+			}
+			return types.ErrUnknownDistributionCommunityPoolProposaType()
+		case types.RewardTruncatePrecisionProposal:
+			if tmtypes.HigherThanVenus2(ctx.BlockHeight()) {
+				return keeper.HandleRewardTruncatePrecisionProposal(ctx, k, c)
 			}
 			return types.ErrUnknownDistributionCommunityPoolProposaType()
 

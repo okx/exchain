@@ -80,11 +80,14 @@ func GetCmdWithdrawRewards(cdc *codec.Codec) *cobra.Command {
 		Use:   "withdraw-rewards [validator-addr]",
 		Short: "withdraw rewards from a given delegation address, and optionally withdraw validator commission if the delegation address given is a validator operator",
 		Long: strings.TrimSpace(
-			fmt.Sprintf(`
+			fmt.Sprintf(`Withdraw rewards from a given delegation address, 
+and optionally withdraw validator commission if the delegation address given is a validator operator
+
 Example:
 $ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg --from mykey 
+$ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg --from mykey --commission
 `,
-				version.ClientName,
+				version.ClientName, version.ClientName,
 			),
 		),
 		Args: cobra.ExactArgs(1),
@@ -109,7 +112,7 @@ $ %s tx distr withdraw-rewards exvaloper1alq9na49n9yycysh889rl90g9nhe58lcqkfpfg 
 			return utils.GenerateOrBroadcastMsgs(cliCtx, txBldr, msgs)
 		},
 	}
-	cmd.Flags().Bool(flagCommission, false, "also withdraw validator's commission")
+	cmd.Flags().Bool(flagCommission, false, "withdraw validator's commission")
 	return cmd
 }
 

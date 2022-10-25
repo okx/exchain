@@ -77,3 +77,36 @@ func postWithdrawRewardEnabledProposalHandlerFn(cliCtx context.CLIContext) http.
 		utils.WriteGenerateStdTxResponse(w, cliCtx, req.BaseReq, []sdk.Msg{msg})
 	}
 }
+
+// RewardTruncatePrecisionProposalRESTHandler returns a RewardTruncatePrecisionProposal
+//that exposes the reward truncate precision proposal REST handler with a given sub-route.
+func RewardTruncatePrecisionProposalRESTHandler(cliCtx context.CLIContext) govrest.ProposalRESTHandler {
+	return govrest.ProposalRESTHandler{
+		SubRoute: "reward_truncate_precision",
+		Handler:  postRewardTruncatePrecisionProposalHandlerFn(cliCtx),
+	}
+}
+
+func postRewardTruncatePrecisionProposalHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req RewardTruncatePrecisionProposalReq
+		if !rest.ReadRESTReq(w, r, cliCtx.Codec, &req) {
+			return
+		}
+
+		req.BaseReq = req.BaseReq.Sanitize()
+		if !req.BaseReq.ValidateBasic(w) {
+			return
+		}
+
+		content := types.NewRewardTruncatePrecisionProposal(req.Title, req.Description, req.Precision)
+
+		msg := gov.NewMsgSubmitProposal(content, req.Deposit, req.Proposer)
+		if err := msg.ValidateBasic(); err != nil {
+			comm.HandleErrorMsg(w, cliCtx, comm.CodeInvalidParam, err.Error())
+			return
+		}
+
+		utils.WriteGenerateStdTxResponse(w, cliCtx, req.BaseReq, []sdk.Msg{msg})
+	}
+}
