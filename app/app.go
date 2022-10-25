@@ -450,7 +450,7 @@ func NewOKExChainApp(
 	)
 	v4Keeper := ibc.NewV4Keeper(v2keeper)
 	facadedKeeper := ibc.NewFacadedKeeper(v2keeper)
-	facadedKeeper.RegisterKeeper(ibccommon.DefaultFactory(tmtypes.HigherThanVenus3, ibc.IBCV4, v4Keeper))
+	facadedKeeper.RegisterKeeper(ibccommon.DefaultFactory(tmtypes.HigherThanVenus4, ibc.IBCV4, v4Keeper))
 	app.IBCKeeper = facadedKeeper
 
 	// Create Transfer Keepers
@@ -574,7 +574,7 @@ func NewOKExChainApp(
 	middle := ibctransfer.NewIBCModule(app.TransferKeeper)
 	right := ibcfee.NewIBCMiddleware(middle, app.IBCFeeKeeper)
 	transferStack := ibcporttypes.NewFallThroughMiddleware(left,
-		ibccommon.DefaultFactory(tmtypes.HigherThanVenus3, ibc.IBCV4, right),
+		ibccommon.DefaultFactory(tmtypes.HigherThanVenus4, ibc.IBCV4, right),
 		ibccommon.DefaultFactory(tmtypes.HigherThanVenus1, ibc.IBCV2, middle))
 
 	transferModule := ibctransfer.NewAppModule(app.TransferKeeper, codecProxy)

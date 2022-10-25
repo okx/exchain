@@ -408,7 +408,7 @@ func newTestOkcChainApp(
 	)
 	v4Keeper := ibc.NewV4Keeper(v2keeper)
 	facadedKeeper := ibc.NewFacadedKeeper(v2keeper)
-	facadedKeeper.RegisterKeeper(ibccommon.DefaultFactory(tmtypes.HigherThanVenus3, ibc.IBCV4, v4Keeper))
+	facadedKeeper.RegisterKeeper(ibccommon.DefaultFactory(tmtypes.HigherThanVenus4, ibc.IBCV4, v4Keeper))
 	app.IBCKeeper = facadedKeeper
 
 	// Create Transfer Keepers

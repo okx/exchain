@@ -12,8 +12,11 @@ var (
 	_ upgrade.UpgradeModule = (*Veneus3BaseUpgradeModule)(nil)
 
 	ibcV4Map = map[string]struct{}{
-		"feeibc":             struct{}{},
-		"interchainaccounts": struct{}{},
+		"feeibc":             {},
+		"interchainaccounts": {},
+		"icacontroller":      {},
+		"icahost":            {},
+		"icamauth":           {},
 	}
 
 	defaultDenyFilter cosmost.StoreFilter = func(module string, h int64, store cosmost.CommitKVStore) bool {
@@ -30,7 +33,7 @@ var (
 		}
 
 		// ==veneus1
-		if h == tmtypes.GetVenus3Height() {
+		if h == tmtypes.GetVenus4Height() {
 			if store != nil {
 				store.SetUpgradeVersion(h)
 			}
@@ -38,7 +41,7 @@ var (
 		}
 
 		// ibc modules
-		if tmtypes.HigherThanVenus3(h) {
+		if tmtypes.HigherThanVenus4(h) {
 			return false
 		}
 
@@ -52,7 +55,7 @@ var (
 		}
 
 		// ibc modulee && >=veneus1
-		if tmtypes.HigherThanVenus1(h) {
+		if tmtypes.HigherThanVenus4(h) {
 			return false
 		}
 
@@ -65,7 +68,7 @@ var (
 		}
 		return func(callback cosmost.VersionCallback) {
 			for name, _ := range ibcV4Map {
-				hh := tmtypes.GetVenus1Height()
+				hh := tmtypes.GetVenus4Height()
 				callback(name, hh)
 			}
 		}

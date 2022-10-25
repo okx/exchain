@@ -12,7 +12,7 @@ import (
 // NewHandler returns sdk.Handler for IBC token transfer module messages
 func NewHandler(k types.MsgServer) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
-		if !tmtypes.HigherThanVenus3(ctx.BlockHeight()) {
+		if !tmtypes.HigherThanVenus4(ctx.BlockHeight()) {
 			errMsg := fmt.Sprintf("icamauth  is not supported at height %d", ctx.BlockHeight())
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
 		}

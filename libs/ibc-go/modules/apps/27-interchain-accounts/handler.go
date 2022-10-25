@@ -12,7 +12,7 @@ import (
 
 func NewHandler(hostKeeper *hostkeeper.Keeper, ck *controllerkeeper.Keeper) sdk.Handler {
 	return func(ctx sdk.Context, msg sdk.Msg) (*sdk.Result, error) {
-		if !tmtypes.HigherThanVenus3(ctx.BlockHeight()) {
+		if !tmtypes.HigherThanVenus4(ctx.BlockHeight()) {
 			errMsg := fmt.Sprintf("ibc ica is not supported at height %d", ctx.BlockHeight())
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
 		}
