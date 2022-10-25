@@ -44,7 +44,6 @@ func NewKeeper(
 		panic("the Interchain Accounts module account has not been set")
 	}
 
-	// TODO,动态升级,这些都需要删除
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())

@@ -2,12 +2,11 @@ package websockets
 
 import (
 	"fmt"
-	"sync"
-
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	coretypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm/watcher"
+	"sync"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/common/hexutil"
@@ -51,11 +50,12 @@ func (api *PubSubAPI) subscribe(conn *wsConn, params []interface{}) (rpc.ID, err
 		// TODO: handle extra params
 		return api.subscribeNewHeads(conn)
 	case "logs":
+		var p interface{}
 		if len(params) > 1 {
-			return api.subscribeLogs(conn, params[1])
+			p = params[1]
 		}
 
-		return api.subscribeLogs(conn, nil)
+		return api.subscribeLogs(conn, p)
 	case "newPendingTransactions":
 		var isDetail, ok bool
 		if len(params) > 1 {
@@ -219,7 +219,7 @@ func (api *PubSubAPI) subscribeLogs(conn *wsConn, extra interface{}) (rpc.ID, er
 		}
 	}
 
-	sub, _, err := api.events.SubscribeLogs(crit)
+	sub, _, err := api.events.SubscribeLogsBatch(crit)
 	if err != nil {
 		return rpc.ID(""), err
 	}
@@ -234,71 +234,90 @@ func (api *PubSubAPI) subscribeLogs(conn *wsConn, extra interface{}) (rpc.ID, er
 	api.filtersMu.Unlock()
 
 	go func(ch <-chan coretypes.ResultEvent, errCh <-chan error) {
+		quit := false
 		for {
 			select {
 			case event := <-ch:
 				go func(event coretypes.ResultEvent) {
-					dataTx, ok := event.Data.(tmtypes.EventDataTx)
+					//batch receive txResult
+					txs, ok := event.Data.(tmtypes.EventDataTxs)
 					if !ok {
-						api.logger.Error(fmt.Sprintf("invalid event data %T, expected EventDataTx", event.Data))
+						api.logger.Error(fmt.Sprintf("invalid event data %T, expected EventDataTxs", event.Data))
 						return
 					}
 
-					var resultData evmtypes.ResultData
-					resultData, err = evmtypes.DecodeResultData(dataTx.TxResult.Result.Data)
-					if err != nil {
-						api.logger.Error("failed to decode result data", "error", err)
-						return
-					}
-
-					logs := rpcfilters.FilterLogs(resultData.Logs, crit.FromBlock, crit.ToBlock, crit.Addresses, crit.Topics)
-					if len(logs) == 0 {
-						api.logger.Debug("no matched logs", "ID", sub.ID(), "txHash", resultData.TxHash)
-						return
-					}
-
-					api.filtersMu.RLock()
-					if f, found := api.filters[sub.ID()]; found {
-						// write to ws conn
-						res := &SubscriptionNotification{
-							Jsonrpc: "2.0",
-							Method:  "eth_subscription",
-							Params: &SubscriptionResult{
-								Subscription: sub.ID(),
-							},
+					for _, txResult := range txs.Results {
+						if quit {
+							return
 						}
-						if bytx {
-							res.Params.Result = logs
-							err = f.conn.WriteJSON(res)
-							if err != nil {
-								api.logger.Error("failed to batch write logs", "ID", sub.ID(), "height", logs[0].BlockNumber, "txHash", logs[0].TxHash, "error", err)
+
+						//check evm type event
+						if !evmtypes.IsEvmEvent(txResult) {
+							continue
+						}
+
+						//decode txResult data
+						var resultData evmtypes.ResultData
+						resultData, err = evmtypes.DecodeResultData(txResult.Data)
+						if err != nil {
+							api.logger.Error("failed to decode result data", "error", err)
+							return
+						}
+
+						//filter logs
+						logs := rpcfilters.FilterLogs(resultData.Logs, crit.FromBlock, crit.ToBlock, crit.Addresses, crit.Topics)
+						if len(logs) == 0 {
+							continue
+						}
+
+						//write log to client by each tx
+						api.filtersMu.RLock()
+						if f, found := api.filters[sub.ID()]; found {
+							// write to ws conn
+							res := &SubscriptionNotification{
+								Jsonrpc: "2.0",
+								Method:  "eth_subscription",
+								Params: &SubscriptionResult{
+									Subscription: sub.ID(),
+								},
 							}
-							api.logger.Info("successfully batch write logs ", "ID", sub.ID(), "height", logs[0].BlockNumber, "txHash", logs[0].TxHash)
-						} else {
-							for _, singleLog := range logs {
-								res.Params.Result = singleLog
+							if bytx {
+								res.Params.Result = logs
 								err = f.conn.WriteJSON(res)
 								if err != nil {
-									api.logger.Error("failed to write log", "ID", sub.ID(), "height", singleLog.BlockNumber, "txHash", singleLog.TxHash, "error", err)
-									break
+									api.logger.Error("failed to batch write logs", "ID", sub.ID(), "height", logs[0].BlockNumber, "txHash", logs[0].TxHash, "error", err)
 								}
-								api.logger.Info("successfully write log", "ID", sub.ID(), "height", singleLog.BlockNumber, "txHash", singleLog.TxHash)
+								api.logger.Info("successfully batch write logs ", "ID", sub.ID(), "height", logs[0].BlockNumber, "txHash", logs[0].TxHash)
+							} else {
+								for _, singleLog := range logs {
+									res.Params.Result = singleLog
+									err = f.conn.WriteJSON(res)
+									if err != nil {
+										api.logger.Error("failed to write log", "ID", sub.ID(), "height", singleLog.BlockNumber, "txHash", singleLog.TxHash, "error", err)
+										break
+									}
+									api.logger.Info("successfully write log", "ID", sub.ID(), "height", singleLog.BlockNumber, "txHash", singleLog.TxHash)
+								}
 							}
 						}
-					}
-					api.filtersMu.RUnlock()
+						api.filtersMu.RUnlock()
 
-					if err != nil {
-						api.unsubscribe(sub.ID())
+						if err != nil {
+							//unsubscribe and quit current routine
+							api.unsubscribe(sub.ID())
+							return
+						}
 					}
 				}(event)
 			case err := <-errCh:
+				quit = true
 				if err != nil {
 					api.unsubscribe(sub.ID())
 					api.logger.Error("websocket recv error, close the conn", "ID", sub.ID(), "error", err)
 				}
 				return
 			case <-unsubscribed:
+				quit = true
 				api.logger.Debug("Logs channel is closed", "ID", sub.ID())
 				return
 			}

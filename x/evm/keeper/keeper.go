@@ -11,6 +11,7 @@ import (
 	ethstate "github.com/ethereum/go-ethereum/core/state"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	lru "github.com/hashicorp/golang-lru"
+
 	app "github.com/okex/exchain/app/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
@@ -48,6 +49,7 @@ type Keeper struct {
 	supplyKeeper  types.SupplyKeeper
 	bankKeeper    types.BankKeeper
 	govKeeper     GovKeeper
+	stakingKeeper types.StakingKeeper
 
 	// Transaction counter in a block. Used on StateSB's Prepare function.
 	// It is reset to 0 every block on BeginBlock so there's no point in storing the counter
@@ -97,7 +99,7 @@ type chainConfigInfo struct {
 
 // NewKeeper generates new evm module keeper
 func NewKeeper(
-	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper,
+	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper, stk types.StakingKeeper,
 	logger log.Logger) *Keeper {
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
@@ -124,6 +126,7 @@ func NewKeeper(
 		paramSpace:    paramSpace,
 		supplyKeeper:  sk,
 		bankKeeper:    bk,
+		stakingKeeper: stk,
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 		LogSize:       0,
@@ -151,7 +154,7 @@ func NewKeeper(
 
 // NewKeeper generates new evm module keeper
 func NewSimulateKeeper(
-	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace types.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper, ada types.DbAdapter,
+	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace types.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper, stk types.StakingKeeper, ada types.DbAdapter,
 	logger log.Logger) *Keeper {
 	heightCache, _ := lru.New(heightCacheLimit)
 	hashCache, _ := lru.New(hashCacheLimit)
@@ -163,14 +166,16 @@ func NewSimulateKeeper(
 		paramSpace:    paramSpace,
 		supplyKeeper:  sk,
 		bankKeeper:    bk,
+		stakingKeeper: stk,
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 		LogSize:       0,
 		Watcher:       watcher.NewWatcher(nil),
 		Ada:           ada,
 
-		db:             mpt.InstanceOfMptStore(),
-		triegc:         prque.New(nil),
+		db: mpt.InstanceOfMptStore(),
+		// Optimize memory usage. No need to initialize this variable when simulate tx.
+		// triegc:         prque.New(nil),
 		UpdatedAccount: make([]ethcmn.Address, 0),
 		cci:            &chainConfigInfo{},
 		heightCache:    heightCache,
@@ -493,11 +498,11 @@ func (k *Keeper) GetHooks() types.EvmHooks {
 }
 
 // CallEvmHooks delegate the call to the hooks. If no hook has been registered, this function returns with a `nil` error
-func (k *Keeper) CallEvmHooks(ctx sdk.Context, from ethcmn.Address, to *ethcmn.Address, receipt *ethtypes.Receipt) error {
+func (k *Keeper) CallEvmHooks(ctx sdk.Context, st *types.StateTransition, receipt *ethtypes.Receipt) error {
 	if k.hooks == nil {
 		return nil
 	}
-	return k.hooks.PostTxProcessing(ctx, from, to, receipt)
+	return k.hooks.PostTxProcessing(ctx, st, receipt)
 }
 
 // Add latest block height and hash to lru cache

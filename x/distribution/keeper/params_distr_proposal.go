@@ -30,3 +30,15 @@ func (k Keeper) GetWithdrawRewardEnabled(ctx sdk.Context) (enabled bool) {
 func (k Keeper) SetWithdrawRewardEnabled(ctx sdk.Context, enabled bool) {
 	k.paramSpace.Set(ctx, types.ParamStoreKeyWithdrawRewardEnabled, &enabled)
 }
+
+func (k Keeper) GetRewardTruncatePrecision(ctx sdk.Context) (precision int64) {
+	precision = 0
+	if k.paramSpace.Has(ctx, types.ParamStoreKeyRewardTruncatePrecision) {
+		k.paramSpace.Get(ctx, types.ParamStoreKeyRewardTruncatePrecision, &precision)
+	}
+	return precision
+}
+
+func (k Keeper) SetRewardTruncatePrecision(ctx sdk.Context, precision int64) {
+	k.paramSpace.Set(ctx, types.ParamStoreKeyRewardTruncatePrecision, &precision)
+}

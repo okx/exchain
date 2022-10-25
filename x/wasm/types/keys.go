@@ -31,6 +31,7 @@ var (
 	ContractByCodeIDAndCreatedSecondaryIndexPrefix = []byte{0x06}
 	PinnedCodeIndexPrefix                          = []byte{0x07}
 	TXCounterPrefix                                = []byte{0x08}
+	ContractMethodBlockedListPrefix                = []byte{0x10}
 
 	KeyLastCodeID     = append(SequenceKeyPrefix, []byte("lastCodeId")...)
 	KeyLastInstanceID = append(SequenceKeyPrefix, []byte("lastContractId")...)
@@ -101,6 +102,15 @@ func GetPinnedCodeIndexPrefix(codeID uint64) []byte {
 	r := make([]byte, prefixLen+8)
 	copy(r[0:], PinnedCodeIndexPrefix)
 	copy(r[prefixLen:], sdk.Uint64ToBigEndian(codeID))
+	return r
+}
+
+func GetContractMethodBlockedListPrefix(contractAddr string) []byte {
+	prefixLen := len(ContractMethodBlockedListPrefix)
+	contractAddrLen := len(contractAddr)
+	r := make([]byte, prefixLen+contractAddrLen)
+	copy(r, ContractMethodBlockedListPrefix)
+	copy(r[prefixLen:], contractAddr)
 	return r
 }
 

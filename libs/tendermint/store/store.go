@@ -407,6 +407,9 @@ func (bs *BlockStore) deleteBatch(height int64, deleteFromTop bool) (uint64, err
 //	we need this to reload the precommits to catch-up nodes to the
 //	most recent height.  Otherwise they'd stall at H-1.
 func (bs *BlockStore) SaveBlock(block *types.Block, blockParts *types.PartSet, seenCommit *types.Commit) {
+	batch := bs.db.NewBatch()
+	defer batch.Close()
+
 	if block == nil {
 		panic("BlockStore can only save a non-nil block")
 	}
@@ -424,23 +427,23 @@ func (bs *BlockStore) SaveBlock(block *types.Block, blockParts *types.PartSet, s
 	// Save block meta
 	blockMeta := types.NewBlockMeta(block, blockParts)
 	metaBytes := cdc.MustMarshalBinaryBare(blockMeta)
-	bs.db.Set(calcBlockMetaKey(height), metaBytes)
-	bs.db.Set(calcBlockHashKey(hash), []byte(fmt.Sprintf("%d", height)))
+	batch.Set(calcBlockMetaKey(height), metaBytes)
+	batch.Set(calcBlockHashKey(hash), []byte(fmt.Sprintf("%d", height)))
 
 	// Save block parts
 	for i := 0; i < blockParts.Total(); i++ {
 		part := blockParts.GetPart(i)
-		bs.saveBlockPart(height, i, part)
+		bs.saveBlockPart(batch, height, i, part)
 	}
 
 	// Save block commit (duplicate and separate from the Block)
 	blockCommitBytes := cdc.MustMarshalBinaryBare(block.LastCommit)
-	bs.db.Set(calcBlockCommitKey(height-1), blockCommitBytes)
+	batch.Set(calcBlockCommitKey(height-1), blockCommitBytes)
 
 	// Save seen commit (seen +2/3 precommits for block)
 	// NOTE: we can delete this at a later height
 	seenCommitBytes := cdc.MustMarshalBinaryBare(seenCommit)
-	bs.db.Set(calcSeenCommitKey(height), seenCommitBytes)
+	batch.Set(calcSeenCommitKey(height), seenCommitBytes)
 
 	// Done!
 	bs.mtx.Lock()
@@ -451,15 +454,15 @@ func (bs *BlockStore) SaveBlock(block *types.Block, blockParts *types.PartSet, s
 	bs.mtx.Unlock()
 
 	// Save new BlockStoreStateJSON descriptor
-	bs.saveState()
+	bs.saveStateBatch(batch)
 
 	// Flush
-	bs.db.SetSync(nil, nil)
+	batch.WriteSync()
 }
 
-func (bs *BlockStore) saveBlockPart(height int64, index int, part *types.Part) {
+func (bs *BlockStore) saveBlockPart(batch db.Batch, height int64, index int, part *types.Part) {
 	partBytes := cdc.MustMarshalBinaryBare(part)
-	bs.db.Set(calcBlockPartKey(height, index), partBytes)
+	batch.Set(calcBlockPartKey(height, index), partBytes)
 }
 
 func (bs *BlockStore) saveState() {
@@ -470,6 +473,16 @@ func (bs *BlockStore) saveState() {
 	}
 	bs.mtx.RUnlock()
 	bsJSON.Save(bs.db)
+}
+
+func (bs *BlockStore) saveStateBatch(batch db.Batch) {
+	bs.mtx.RLock()
+	bsJSON := BlockStoreStateJSON{
+		Base:   bs.base,
+		Height: bs.height,
+	}
+	bs.mtx.RUnlock()
+	bsJSON.saveBatch(batch)
 }
 
 //-----------------------------------------------------------------------------
@@ -511,6 +524,15 @@ func (bsj BlockStoreStateJSON) Save(db dbm.DB) {
 		panic(fmt.Sprintf("Could not marshal state bytes: %v", err))
 	}
 	db.SetSync(blockStoreKey, bytes)
+}
+
+// Save persists the blockStore state to the database as JSON.
+func (bsj BlockStoreStateJSON) saveBatch(batch dbm.Batch) {
+	bytes, err := cdc.MarshalJSON(bsj)
+	if err != nil {
+		panic(fmt.Sprintf("Could not marshal state bytes: %v", err))
+	}
+	batch.Set(blockStoreKey, bytes)
 }
 
 // LoadBlockStoreStateJSON returns the BlockStoreStateJSON as loaded from disk.

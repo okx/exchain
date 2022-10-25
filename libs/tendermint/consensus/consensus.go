@@ -42,6 +42,11 @@ func GetActiveVC() bool {
 	return activeViewChange
 }
 
+type preBlockTaskRes struct {
+	block      *types.Block
+	blockParts *types.PartSet
+}
+
 //-----------------------------------------------------------------------------
 
 const (
@@ -156,8 +161,9 @@ type State struct {
 	prerunTx bool
 	bt       *BlockTransport
 
-	vcMsg *ViewChangeMessage
-	hasVC bool // active-view-change(enterNewRoundAVC) at this Height
+	vcMsg          *ViewChangeMessage
+	vcHeight       map[int64]string
+	taskResultChan chan *preBlockTaskRes
 }
 
 // StateOption sets an optional parameter on the State.
@@ -193,6 +199,8 @@ func NewState(
 		bt:                 &BlockTransport{},
 		blockTimeTrc:       trace.NewTracer(trace.LastBlockTime),
 		timeoutIntervalTrc: trace.NewTracer(trace.TimeoutInterval),
+		vcHeight:           make(map[int64]string),
+		taskResultChan:     make(chan *preBlockTaskRes, 1),
 	}
 	// set function defaults (may be overwritten before calling Start)
 	cs.decideProposal = cs.defaultDecideProposal
@@ -580,7 +588,7 @@ func (cs *State) BlockExec() *sm.BlockExecutor {
 
 //---------------------------------------------------------
 
-func CompareHRS(h1 int64, r1 int, s1 cstypes.RoundStepType, h2 int64, r2 int, s2 cstypes.RoundStepType) int {
+func CompareHRS(h1 int64, r1 int, s1 cstypes.RoundStepType, h2 int64, r2 int, s2 cstypes.RoundStepType, hasVC bool) int {
 	if h1 < h2 {
 		return -1
 	} else if h1 > h2 {
@@ -589,6 +597,9 @@ func CompareHRS(h1 int64, r1 int, s1 cstypes.RoundStepType, h2 int64, r2 int, s2
 	if r1 < r2 {
 		return -1
 	} else if r1 > r2 {
+		return 1
+	}
+	if hasVC {
 		return 1
 	}
 	if s1 < s2 {

@@ -23,12 +23,6 @@ type Tx interface {
 	// GetSenderAccount get sender account
 	GetSenderAccount() authexported.Account
 
-	// ResetWatcher when panic reset watcher
-	ResetWatcher(account authexported.Account)
-
-	// RefundFeesWatcher fix account balance in watcher with refund fees
-	RefundFeesWatcher(account authexported.Account, ethereumTx *types.MsgEthereumTx)
-
 	// Transition execute evm tx
 	Transition(config types.ChainConfig) (result base.Result, err error)
 
@@ -42,7 +36,7 @@ type Tx interface {
 	EmitEvent(msg *types.MsgEthereumTx, result *base.Result)
 
 	// FinalizeWatcher after execute evm tx run here
-	FinalizeWatcher(msg *types.MsgEthereumTx, account authexported.Account, err error)
+	FinalizeWatcher(msg *types.MsgEthereumTx, err error, panic bool)
 
 	// AnalyzeStart start record tag
 	AnalyzeStart(tag string)
@@ -78,13 +72,12 @@ func TransitionEvmTx(tx Tx, msg *types.MsgEthereumTx) (result *sdk.Result, err e
 	}
 
 	defer func() {
-		senderAccount := tx.GetSenderAccount()
-		if e := recover(); e != nil {
-			tx.ResetWatcher(senderAccount)
+		e := recover()
+		isPanic := e != nil
+		tx.FinalizeWatcher(msg, err, isPanic)
+		if isPanic {
 			panic(e)
 		}
-		tx.RefundFeesWatcher(senderAccount, msg)
-		tx.FinalizeWatcher(msg, senderAccount, err)
 	}()
 
 	// execute evm tx

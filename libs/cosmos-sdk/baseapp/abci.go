@@ -3,8 +3,6 @@ package baseapp
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/app/rpc/simulator"
-	"github.com/spf13/viper"
 	"os"
 	"sort"
 	"strconv"
@@ -13,6 +11,9 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/spf13/viper"
+
+	"github.com/okex/exchain/app/rpc/simulator"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	"github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -167,25 +168,30 @@ func (app *BaseApp) BeginBlock(req abci.RequestBeginBlock) (res abci.ResponseBeg
 
 	app.anteTracer = trace.NewTracer(trace.AnteChainDetail)
 
-	app.feeForCollector = sdk.Coins{}
+	app.feeCollector = sdk.Coins{}
 	app.feeChanged = false
+	// clean FeeSplitCollector
+	app.FeeSplitCollector.Range(func(key, value interface{}) bool {
+		app.FeeSplitCollector.Delete(key)
+		return true
+	})
 
 	return res
 }
 
-func (app *BaseApp) UpdateFeeForCollector(fee sdk.Coins, add bool) {
+func (app *BaseApp) UpdateFeeCollector(fee sdk.Coins, add bool) {
 	if fee.IsZero() {
 		return
 	}
 	app.feeChanged = true
 	if add {
-		app.feeForCollector = app.feeForCollector.Add(fee...)
+		app.feeCollector = app.feeCollector.Add(fee...)
 	} else {
-		app.feeForCollector = app.feeForCollector.Sub(fee)
+		app.feeCollector = app.feeCollector.Sub(fee)
 	}
 }
 
-func (app *BaseApp) updateFeeCollectorAccount() {
+func (app *BaseApp) updateFeeCollectorAccount(isEndBlock bool) {
 	if app.updateFeeCollectorAccHandler == nil || !app.feeChanged {
 		return
 	}
@@ -198,15 +204,22 @@ func (app *BaseApp) updateFeeCollectorAccount() {
 	}()
 
 	ctx, cache := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
-	if err := app.updateFeeCollectorAccHandler(ctx, app.feeForCollector); err != nil {
-		panic(err)
+	if isEndBlock {
+		// The feesplit is only processed at the endblock
+		if err := app.updateFeeCollectorAccHandler(ctx, app.feeCollector, app.FeeSplitCollector); err != nil {
+			panic(err)
+		}
+	} else {
+		if err := app.updateFeeCollectorAccHandler(ctx, app.feeCollector, nil); err != nil {
+			panic(err)
+		}
 	}
 	cache.Write()
 }
 
 // EndBlock implements the ABCI interface.
 func (app *BaseApp) EndBlock(req abci.RequestEndBlock) (res abci.ResponseEndBlock) {
-	app.updateFeeCollectorAccount()
+	app.updateFeeCollectorAccount(true)
 
 	if app.deliverState.ms.TracingEnabled() {
 		app.deliverState.ms = app.deliverState.ms.SetTracingContext(nil).(sdk.CacheMultiStore)

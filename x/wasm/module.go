@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/okex/exchain/app/rpc/simulator"
 	"github.com/okex/exchain/libs/tendermint/global"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math/rand"
 
 	"github.com/gorilla/mux"
@@ -124,7 +125,6 @@ func NewAppModule(cdc codec.CodecProxy, keeper *Keeper) AppModule {
 }
 
 func (am AppModule) RegisterServices(cfg module.Configurator) {
-	watcher.Init()
 	global.Manager = watcher.ParamsManager{}
 	simulator.NewWasmSimulator = NewWasmSimulator
 	types.RegisterMsgServer(cfg.MsgServer(), keeper.NewMsgServerImpl(keeper.NewDefaultPermissionKeeper(am.keeper)))
@@ -175,6 +175,10 @@ func (AppModule) QuerierRoute() string {
 // BeginBlock returns the begin blocker for the wasm module.
 func (am AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {
 	watcher.NewHeight()
+	if tmtypes.DownloadDelta {
+		keeper.GetWasmParamsCache().SetNeedParamsUpdate()
+		keeper.GetWasmParamsCache().SetNeedBlockedUpdate()
+	}
 }
 
 // EndBlock returns the end blocker for the wasm module. It returns no validator
