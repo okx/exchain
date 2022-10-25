@@ -605,7 +605,7 @@ func (rs *Store) CommitterCommitMap(inputDeltaMap iavltree.TreeDeltaMap) (types.
 
 	tsCommitStores := time.Now()
 	var outputDeltaMap iavltree.TreeDeltaMap
-	rs.lastCommitInfo, outputDeltaMap = commitStores(version, rs.stores, inputDeltaMap, rs.commitFilters)
+	rs.lastCommitInfo, outputDeltaMap = commitStores(rs.logger, version, rs.stores, inputDeltaMap, rs.commitFilters)
 
 	if !iavltree.EnableAsyncCommit {
 		// Determine if pruneHeight height needs to be added to the list of heights to
@@ -1189,7 +1189,7 @@ type StoreSort struct {
 }
 
 // Commits each store and returns a new commitInfo.
-func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore,
+func commitStores(log tmlog.Logger, version int64, storeMap map[types.StoreKey]types.CommitKVStore,
 	inputDeltaMap iavltree.TreeDeltaMap, filters []types.StoreFilter) (commitInfo, iavltree.TreeDeltaMap) {
 	var storeInfos []storeInfo
 	outputDeltaMap := iavltree.TreeDeltaMap{}
@@ -1198,6 +1198,7 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 	if iavltree.EnableAsyncCommit {
 		iavltree.UpdateCommitGapHeight(config.DynamicConfig.GetCommitGapHeight())
 	}
+	stores := make(storeSmbInfos, 0)
 	for key, store := range storeMap {
 		sName := key.Name()
 		if evmAccStoreFilter(sName, version) {
@@ -1235,7 +1236,10 @@ func commitStores(version int64, storeMap map[types.StoreKey]types.CommitKVStore
 		si.Core.CommitID = commitID
 		storeInfos = append(storeInfos, si)
 		outputDeltaMap[key.Name()] = outputDelta
+		stores = append(stores, si)
 	}
+	sort.Sort(stores)
+	log.Error(stores.String())
 	return commitInfo{
 		Version:    version,
 		StoreInfos: storeInfos,
