@@ -3,7 +3,10 @@ package mempool
 import (
 	"fmt"
 	"math/big"
+	"math/rand"
+	"strconv"
 	"testing"
+	"time"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/stretchr/testify/assert"
@@ -36,6 +39,28 @@ func TestAddtx(t *testing.T) {
 		tx := pool.addressTxsMap[exInfo.Tx.from][exInfo.Tx.realTx.GetNonce()]
 		assert.Equal(t, tx, exInfo.Tx)
 	}
+}
+
+func TestAddtxRandom(t *testing.T) {
+	pool := newPendingPool(100000, 3, 10, 20000)
+	txCount := 10000
+	rand.Seed(time.Now().Unix())
+	addrMap := map[int]string{
+		0: "1234567",
+		1: "0x333",
+		2: "11111",
+		3: "test",
+	}
+
+	for i := 0; i < txCount; i++ {
+		nonce := rand.Intn(txCount)
+		addrIndex := nonce % len(addrMap)
+		tx := &mempoolTx{height: 1, gasWanted: 1, tx: []byte(strconv.Itoa(i)), from: addrMap[addrIndex], realTx: abci.MockTx{Nonce: uint64(nonce)}}
+		pool.addTx(tx)
+		txRes := pool.addressTxsMap[tx.from][tx.realTx.GetNonce()]
+		assert.Equal(t, tx, txRes)
+	}
+	assert.Equal(t, txCount, pool.Size(), fmt.Sprintf("Expected to txs length %v but got %v", txCount, pool.Size()))
 }
 
 func TestRemovetx(t *testing.T) {
