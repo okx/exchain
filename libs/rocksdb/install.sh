@@ -1,6 +1,6 @@
 #!/bin/sh
 #set -e
-set -x
+#set -x
 VERSION_NUM=6.27.3
 VERSION=v$VERSION_NUM
 while [ $# -gt 0 ]; do
