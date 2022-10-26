@@ -510,3 +510,6 @@ func (k *Keeper) AddHeightHashToCache(height int64, hash string) {
 	k.heightCache.Add(hash, height)
 	k.hashCache.Add(height, hash)
 }
+func (k *Keeper) Close() {
+	k.Watcher.Stop()
+}
