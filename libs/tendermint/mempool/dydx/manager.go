@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	ethcmm "github.com/ethereum/go-ethereum/common"
+
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
@@ -40,13 +42,16 @@ type OrderManager struct {
 	gServer *OrderBookServer
 
 	TradeTxs    *list.List
+	TradeTxsMap map[ethcmm.Hash]*list.Element
 	TradeTxsMtx sync.Mutex
 }
 
 func NewOrderManager(doMatch bool) *OrderManager {
 	manager := &OrderManager{
-		orders: clist.New(),
-		book:   NewDepthBook(),
+		orders:      clist.New(),
+		book:        NewDepthBook(),
+		TradeTxs:    list.New(),
+		TradeTxsMap: make(map[ethcmm.Hash]*list.Element),
 	}
 
 	config := DydxConfig{
@@ -105,7 +110,7 @@ func (d *OrderManager) Insert(memOrder *MempoolOrder) error {
 		go d.book.Update(result)
 	} else {
 		d.TradeTxsMtx.Lock()
-		d.TradeTxs.PushBack(result.Tx)
+		d.TradeTxsMap[result.Tx.Hash()] = d.TradeTxs.PushBack(result.Tx)
 		d.TradeTxsMtx.Unlock()
 	}
 	return nil
