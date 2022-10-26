@@ -16,6 +16,9 @@ const (
 
 	// RouterKey uses module name for routing
 	RouterKey = ModuleName
+
+	// SysContractAddressKey uses for save system contract address
+	SysContractAddressKey = "sysContractAddress"
 )
 
 // KVStore key prefixes
@@ -28,6 +31,7 @@ var (
 	KeyPrefixHeightHash                  = []byte{0x07}
 	KeyPrefixContractDeploymentWhitelist = []byte{0x08}
 	KeyPrefixContractBlockedList         = []byte{0x09}
+	KeyPrefixSysContractAddress          = []byte{0x10}
 
 	KeyPrefixEvmRootHash = []byte("evmRootHash")
 )
@@ -69,4 +73,9 @@ func GetContractBlockedListMemberKey(contractAddr sdk.AccAddress) []byte {
 // splitBlockedContractAddress splits the blocked contract address from a ContractBlockedListMemberKey
 func splitBlockedContractAddress(key []byte) sdk.AccAddress {
 	return key[1:]
+}
+
+// GetSysContractAddressKey builds the key for system contract address
+func GetSysContractAddressKey() []byte {
+	return append(KeyPrefixSysContractAddress, []byte(SysContractAddressKey)...)
 }

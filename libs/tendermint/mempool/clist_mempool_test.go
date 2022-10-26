@@ -418,7 +418,7 @@ func TestMempoolMaxMsgSize(t *testing.T) {
 
 		tx := tmrand.Bytes(testCase.len)
 		err := mempl.CheckTx(tx, nil, TxInfo{})
-		msg := &TxMessage{tx}
+		msg := &TxMessage{tx, ""}
 		encoded := cdc.MustMarshalBinaryBare(msg)
 		require.Equal(t, len(encoded), txMessageSize(tx), caseString)
 		if !testCase.err {
