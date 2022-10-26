@@ -49,6 +49,7 @@ type Keeper struct {
 	supplyKeeper  types.SupplyKeeper
 	bankKeeper    types.BankKeeper
 	govKeeper     GovKeeper
+	stakingKeeper types.StakingKeeper
 
 	// Transaction counter in a block. Used on StateSB's Prepare function.
 	// It is reset to 0 every block on BeginBlock so there's no point in storing the counter
@@ -98,7 +99,7 @@ type chainConfigInfo struct {
 
 // NewKeeper generates new evm module keeper
 func NewKeeper(
-	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper,
+	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace params.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper, stk types.StakingKeeper,
 	logger log.Logger) *Keeper {
 	// set KeyTable if it has not already been set
 	if !paramSpace.HasKeyTable() {
@@ -125,6 +126,7 @@ func NewKeeper(
 		paramSpace:    paramSpace,
 		supplyKeeper:  sk,
 		bankKeeper:    bk,
+		stakingKeeper: stk,
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 		LogSize:       0,
@@ -152,7 +154,7 @@ func NewKeeper(
 
 // NewKeeper generates new evm module keeper
 func NewSimulateKeeper(
-	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace types.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper, ada types.DbAdapter,
+	cdc *codec.Codec, storeKey sdk.StoreKey, paramSpace types.Subspace, ak types.AccountKeeper, sk types.SupplyKeeper, bk types.BankKeeper, stk types.StakingKeeper, ada types.DbAdapter,
 	logger log.Logger) *Keeper {
 	heightCache, _ := lru.New(heightCacheLimit)
 	hashCache, _ := lru.New(hashCacheLimit)
@@ -164,6 +166,7 @@ func NewSimulateKeeper(
 		paramSpace:    paramSpace,
 		supplyKeeper:  sk,
 		bankKeeper:    bk,
+		stakingKeeper: stk,
 		TxCount:       0,
 		Bloom:         big.NewInt(0),
 		LogSize:       0,

@@ -183,3 +183,37 @@ func TestParseManageContractMethodBlockedListProposalJSON(t *testing.T) {
 	ok := types.BlockedContractListIsEqual(t, proposal.ContractList, types.BlockedContractList{*expectBc1, *expectBc2})
 	require.True(t, ok)
 }
+
+func TestParseManageSysContractAddressProposalJSON(t *testing.T) {
+	defaultSysContractAddressProposalJSON := `{
+  "title":"default title",
+  "description":"default description",
+  "contract_address": "0xA4FFCda536CC8fF1eeFe32D32EE943b9B4e70414",
+  "is_added":true,
+  "deposit": [
+    {
+      "denom": "okt",
+      "amount": "100.000000000000000000"
+    }
+  ]
+}`
+	// create JSON file
+	filePathName := "./defaultSysContractAddressProposalJSON.json"
+	f, err := os.OpenFile(filePathName, os.O_RDWR|os.O_CREATE, 0666)
+	require.NoError(t, err)
+	_, err = f.WriteString(defaultSysContractAddressProposalJSON)
+	require.NoError(t, err)
+	require.NoError(t, f.Close())
+
+	// remove the temporary JSON file
+	defer os.Remove(filePathName)
+
+	proposal, err := ParseManageSysContractAddressProposalJSON(types.ModuleCdc, filePathName)
+	require.NoError(t, err)
+	require.Equal(t, expectedTitle, proposal.Title)
+	require.Equal(t, expectedDescription, proposal.Description)
+	require.True(t, proposal.IsAdded)
+	require.Equal(t, 1, len(proposal.Deposit))
+	require.Equal(t, sdk.DefaultBondDenom, proposal.Deposit[0].Denom)
+	require.True(t, sdk.NewDec(100).Equal(proposal.Deposit[0].Amount))
+}
