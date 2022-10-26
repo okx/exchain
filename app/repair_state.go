@@ -349,5 +349,5 @@ func (app *repairApp) Close() {
 	evmtypes.CloseIndexer()
 	err := app.db.Close()
 	panicError(err)
-	log.Println(fmt.Sprintf("repair state done"))
+	log.Println("repair state done")
 }
