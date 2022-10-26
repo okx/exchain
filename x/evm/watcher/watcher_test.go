@@ -3,6 +3,9 @@ package watcher_test
 import (
 	"encoding/hex"
 	"fmt"
+	ethcommon "github.com/ethereum/go-ethereum/common"
+	okexchaincodec "github.com/okex/exchain/app/codec"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	"math/big"
 	"os"
 	"strings"
@@ -423,6 +426,10 @@ func TestWriteLatestMsg(t *testing.T) {
 	require.Equal(t, has, true)
 	ethAccount, err := watcher.DecodeAccount(v)
 	require.NoError(t, err)
+	//test decode error
+	vv := v[:1]
+	_, err = watcher.DecodeAccount(vv)
+	require.Error(t, err)
 	require.Equal(t, uint64(3), ethAccount.GetSequence())
 	p := store.GetEvmParams()
 	expectedParams := evmtypes.Params{
@@ -455,4 +462,33 @@ func ParamsDeepEqual(src, dst evmtypes.Params) error {
 		return fmt.Errorf("params not fit")
 	}
 	return nil
+}
+
+func TestDeliverRealTx(t *testing.T) {
+	w := setupTest()
+	bytecode := ethcommon.FromHex("0x12")
+	tx := evmtypes.NewMsgEthereumTx(0, nil, big.NewInt(0), uint64(1000000), big.NewInt(10000), bytecode)
+	privKey, _ := ethsecp256k1.GenerateKey()
+	err := tx.Sign(big.NewInt(3), privKey.ToECDSA())
+	require.NoError(t, err)
+	codecProxy, _ := okexchaincodec.MakeCodecSuit(module.NewBasicManager())
+	w.app.EvmKeeper.Watcher.RecordTxAndFailedReceipt(tx, nil, evm.TxDecoder(codecProxy))
+}
+
+func TestBaiscDBOpt(t *testing.T) {
+	viper.Set(watcher.FlagFastQuery, true)
+	viper.Set(sdk.FlagDBBackend, "memdb")
+	store := watcher.InstanceOfWatchStore()
+	store.Set([]byte("test01"), []byte("value01"))
+	v, err := store.Get([]byte("test01"))
+	require.NoError(t, err)
+	require.Equal(t, v, []byte("value01"))
+	v, err = store.Get([]byte("test no key"))
+	require.Equal(t, v, []byte(nil))
+	require.NoError(t, err)
+	r, err := store.GetUnsafe([]byte("test01"), func(value []byte) (interface{}, error) {
+		return nil, nil
+	})
+	require.Equal(t, r, nil)
+	require.NoError(t, err)
 }
