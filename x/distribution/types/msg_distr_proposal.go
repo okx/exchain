@@ -53,3 +53,45 @@ func (msg MsgWithdrawDelegatorReward) ValidateBasic() error {
 
 	return nil
 }
+
+// Verify interface at compile time
+var _ = &MsgWithdrawDelegatorAllRewards{}
+
+// msg struct for delegation withdraw all rewards from all validator
+type MsgWithdrawDelegatorAllRewards struct {
+	DelegatorAddress sdk.AccAddress `json:"delegator_address" yaml:"delegator_address"`
+}
+
+func NewMsgWithdrawDelegatorAllRewards(delAddr sdk.AccAddress) MsgWithdrawDelegatorAllRewards {
+	return MsgWithdrawDelegatorAllRewards{
+		DelegatorAddress: delAddr,
+	}
+}
+
+func (msg MsgWithdrawDelegatorAllRewards) Route() string { return ModuleName }
+func (msg MsgWithdrawDelegatorAllRewards) Type() string  { return "withdraw_delegator_all_rewards" }
+
+// Return address that must sign over msg.GetSignBytes()
+func (msg MsgWithdrawDelegatorAllRewards) GetSigners() []sdk.AccAddress {
+	return []sdk.AccAddress{sdk.AccAddress(msg.DelegatorAddress)}
+}
+
+// get the bytes for the message signer to sign on
+func (msg MsgWithdrawDelegatorAllRewards) GetSignBytes() []byte {
+	bz := ModuleCdc.MustMarshalJSON(msg)
+	return sdk.MustSortJSON(bz)
+}
+
+// quick validity check
+func (msg MsgWithdrawDelegatorAllRewards) ValidateBasic() error {
+	if msg.DelegatorAddress.Empty() {
+		return ErrNilDelegatorAddr()
+	}
+
+	//will delete it after upgrade venus2
+	if !types.HigherThanVenus2(global.GetGlobalHeight()) {
+		return ErrCodeNotSupportWithdrawDelegationRewards()
+	}
+
+	return nil
+}
