@@ -7,10 +7,16 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	wasmvm "github.com/CosmWasm/wasmvm"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"io/ioutil"
 	"strconv"
+
+	wasmvm "github.com/CosmWasm/wasmvm"
+
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	"github.com/okex/exchain/x/wasm/keeper"
+
+	"github.com/spf13/cobra"
+	flag "github.com/spf13/pflag"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -18,8 +24,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/x/wasm/types"
-	"github.com/spf13/cobra"
-	flag "github.com/spf13/pflag"
 )
 
 // NewQueryCmd returns the query commands for wasm
@@ -42,6 +46,7 @@ func NewQueryCmd(cdc *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra
 		NewCmdGetContractState(cdc, reg),
 		NewCmdListPinnedCode(cdc, reg),
 		GetCmdLibVersion(cdc, reg),
+		GetCMDParams(cdc, reg),
 	)
 
 	return queryCmd
@@ -97,6 +102,31 @@ func NewCmdListCode(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobr
 	}
 	flags.AddQueryFlagsToCmd(cmd)
 	flags.AddPaginationFlagsToCmd(cmd, "list codes")
+	return cmd
+}
+
+// NewCmdListCode lists all wasm code uploaded
+func GetCMDParams(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "get-params",
+		Short:   "Get wasm parameters on the chain",
+		Long:    "Get wasm parameters on the chain",
+		Aliases: []string{"get-params", "params"},
+		Args:    cobra.ExactArgs(0),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx := clientCtx.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
+			route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, keeper.QueryParams)
+
+			res, _, err := clientCtx.Query(route)
+			if err != nil {
+				return err
+			}
+
+			var params types.Params
+			m.GetCdc().MustUnmarshalJSON(res, &params)
+			return clientCtx.PrintOutput(params)
+		},
+	}
 	return cmd
 }
 
