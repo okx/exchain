@@ -34,6 +34,11 @@ func (h SendToWasmEventHandler) Handle(ctx sdk.Context, contract common.Address,
 		return sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, errMsg)
 	}
 
+	params := h.wasmKeeper.GetParams(ctx)
+	if !params.VmbridgeEnable {
+		return types.ErrVMBridgeEnable
+	}
+
 	logger := h.Keeper.Logger()
 	unpacked, err := types.SendToWasmEvent.Inputs.Unpack(data)
 	if err != nil {

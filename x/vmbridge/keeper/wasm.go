@@ -33,10 +33,7 @@ func (k Keeper) SendToWasm(ctx sdk.Context, caller sdk.AccAddress, wasmContractA
 	if !sdk.IsWasmAddress(contractAddr) {
 		return types.ErrIsNotWasmAddr
 	}
-	params := k.wasmKeeper.GetParams(ctx)
-	if !params.VmbridgeEnable {
-		return types.ErrVMBridgeEnable
-	}
+
 	ret, err := k.wasmKeeper.Execute(ctx, contractAddr, caller, input, sdk.Coins{})
 	if err != nil {
 		k.Logger().Error("wasm return", string(ret))
