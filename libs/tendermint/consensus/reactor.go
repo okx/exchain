@@ -304,7 +304,7 @@ func (conR *Reactor) AddPeer(peer p2p.Peer) {
 	// Begin routines for this peer.
 	go conR.gossipDataRoutine(peer, peerState)
 	go conR.gossipVotesRoutine(peer, peerState)
-	go conR.gossipVCRoutine(peer, peerState)
+	//	go conR.gossipVCRoutine(peer, peerState)
 	go conR.queryMaj23Routine(peer, peerState)
 
 	// Send our state to peer.
@@ -378,6 +378,8 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 				return
 			}
 			conR.conS.peerMsgQueue <- msgInfo{msg, ""}
+		case *ProposeResponseMessage:
+			conR.conS.peerMsgQueue <- msgInfo{msg, ""}
 		case *ProposeRequestMessage:
 			conR.conS.stateMtx.Lock()
 			defer conR.conS.stateMtx.Unlock()
@@ -400,8 +402,23 @@ func (conR *Reactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) {
 				conR.Logger.Error("reactor Verify Signature of ProposeRequestMessage", "err", err)
 				return
 			}
+
+			// sign proposal
+			proposal := msg.Proposal
+			signBytes := proposal.SignBytes(conR.conS.state.ChainID)
+			sig, err := conR.conS.privValidator.SignBytes(signBytes)
+			if err != nil {
+				return
+			}
+			proposal.Signature = sig
+			// tell newProposer
+			prspMsg := &ProposeResponseMessage{Height: proposal.Height, Proposal: proposal}
+			ps.peer.Send(ViewChangeChannel, cdc.MustMarshalBinaryBare(prspMsg))
+
 			conR.hasViewChanged = msg.Height
-			conR.conS.vcMsg = conR.broadcastViewChangeMessage(msg)
+
+			// mark the height no need to be proposer in msg.Height
+			conR.conS.vcHeight[msg.Height] = msg.NewProposer.String()
 			conR.Logger.Info("receive prMsg", "height", height, "prMsg", msg, "vcMsg", conR.conS.vcMsg)
 		}
 	case StateChannel:
@@ -1689,6 +1706,7 @@ func RegisterMessages(cdc *amino.Codec) {
 	cdc.RegisterConcrete(&VoteSetBitsMessage{}, "tendermint/VoteSetBits", nil)
 	cdc.RegisterConcrete(&HasBlockPartMessage{}, "tendermint/HasBlockPart", nil)
 	cdc.RegisterConcrete(&ProposeRequestMessage{}, "tendermint/ProposeRequestMessage", nil)
+	cdc.RegisterConcrete(&ProposeResponseMessage{}, "tendermint/ProposeResponseMessage", nil)
 	cdc.RegisterConcrete(&ViewChangeMessage{}, "tendermint/ChangeValidator", nil)
 }
 
@@ -2010,6 +2028,7 @@ type ProposeRequestMessage struct {
 	Height          int64
 	CurrentProposer types.Address
 	NewProposer     types.Address
+	Proposal        *types.Proposal
 	Signature       []byte
 }
 
@@ -2021,7 +2040,7 @@ func (m *ProposeRequestMessage) ValidateBasic() error {
 }
 
 func (m *ProposeRequestMessage) SignBytes() []byte {
-	return cdc.MustMarshalBinaryBare(ProposeRequestMessage{Height: m.Height, CurrentProposer: m.CurrentProposer, NewProposer: m.NewProposer})
+	return cdc.MustMarshalBinaryBare(ProposeRequestMessage{Height: m.Height, CurrentProposer: m.CurrentProposer, NewProposer: m.NewProposer, Proposal: m.Proposal})
 }
 
 func (m *ProposeRequestMessage) Verify(pubKey crypto.PubKey) error {
@@ -2031,6 +2050,19 @@ func (m *ProposeRequestMessage) Verify(pubKey crypto.PubKey) error {
 
 	if !pubKey.VerifyBytes(m.SignBytes(), m.Signature) {
 		return errors.New("invalid signature")
+	}
+	return nil
+}
+
+// ProposeResponseMessage is the response of prMsg
+type ProposeResponseMessage struct {
+	Height   int64
+	Proposal *types.Proposal
+}
+
+func (m *ProposeResponseMessage) ValidateBasic() error {
+	if m.Height < 0 {
+		return errors.New("negative Height")
 	}
 	return nil
 }

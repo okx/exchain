@@ -62,6 +62,8 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryContractBlockedList(ctx, keeper)
 		case types.QueryContractMethodBlockedList:
 			return queryContractMethodBlockedList(ctx, keeper)
+		case types.QuerySysContractAddress:
+			return querySysContractAddress(ctx, keeper)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query endpoint")
 		}
