@@ -1,6 +1,9 @@
 package dydx
 
 import (
+	"encoding/hex"
+	"fmt"
+	"github.com/okex/exchain/libs/dydx/contracts"
 	"math/big"
 	"os"
 	"sync"
@@ -57,7 +60,7 @@ func NewOrderManager(doMatch bool) *OrderManager {
 	}
 
 	if doMatch {
-		me, err := NewMatchEngine(manager.book, config, nil, log.NewTMLogger(os.Stdout))
+		me, err := NewMatchEngine(manager.book, config, manager, log.NewTMLogger(os.Stdout))
 		if err != nil {
 			panic(err)
 		}
@@ -122,4 +125,29 @@ func (d *OrderManager) WaitChan() <-chan struct{} {
 
 func (d *OrderManager) Front() *clist.CElement {
 	return d.orders.Front()
+}
+
+func (d *OrderManager) HandleOrderFilled(filled *contracts.P1OrdersLogOrderFilled) {
+	var orderList *OrderList
+	if filled.Flags[31]&FlagMaskIsBuy != FlagMaskNull {
+		orderList = d.book.buyOrders
+	} else {
+		orderList = d.book.sellOrders
+	}
+	ele := orderList.Get(filled.OrderHash)
+	if ele == nil {
+		fmt.Println("element is nil, orderHash:", hex.EncodeToString(filled.OrderHash[:]))
+		return
+	}
+	wodr := ele.Value.(*WrapOrder)
+	wodr.Done(filled.Fill.Amount)
+	if wodr.LeftAmount.Sign() == 0 && wodr.FrozenAmount.Sign() == 0 {
+		orderList.Remove(ele)
+	}
+	fmt.Println("debug filled", hex.EncodeToString(filled.OrderHash[:]), filled.TriggerPrice.String(), filled.Fill.Price.String(), filled.Fill.Amount.String())
+}
+
+func (d *OrderManager) SubErr(err error) {
+	//TODO
+	panic(err)
 }

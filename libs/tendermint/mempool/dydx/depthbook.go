@@ -53,6 +53,7 @@ func (d *DepthBook) Update(results *MatchResult) {
 	if results == nil || len(results.MatchedRecords) == 0 {
 		return
 	}
+	return
 	succeed := <-results.OnChain
 	if succeed {
 		for _, record := range results.MatchedRecords {
