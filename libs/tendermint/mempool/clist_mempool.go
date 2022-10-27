@@ -11,8 +11,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/okex/exchain/app/rpc/localclient"
-
 	"github.com/VictoriaMetrics/fastcache"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/exchain/libs/system/trace"
@@ -156,7 +154,7 @@ func (mem *CListMempool) SetEventBus(eventBus types.TxEventPublisher) {
 	mem.eventBus = eventBus
 }
 
-func (mem *CListMempool) SetLocalPubSub(api *localclient.PubSubAPI) {
+func (mem *CListMempool) SetLocalPubSub(api PubSub) {
 	mem.orderManager = dydx.NewOrderManager(api, true)
 }
 
@@ -249,7 +247,9 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 
 // It blocks if we're waiting on Update() or Reap().
 // cb: A callback from the CheckTx command.
-//     It gets called from another goroutine.
+//
+//	It gets called from another goroutine.
+//
 // CONTRACT: Either cb will get called, or err returned.
 //
 // Safe for concurrent use by multiple goroutines.
@@ -431,7 +431,7 @@ func (mem *CListMempool) reqResCb(
 }
 
 // Called from:
-//  - resCbFirstTime (lock not held) if tx is valid
+//   - resCbFirstTime (lock not held) if tx is valid
 func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 	if err := mem.txs.Insert(memTx); err != nil {
 		return err
@@ -449,8 +449,8 @@ func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 }
 
 // Called from:
-//  - Update (lock held) if tx was committed
-// 	- resCbRecheck (lock not held) if tx was invalidated
+//   - Update (lock held) if tx was committed
+//   - resCbRecheck (lock not held) if tx was invalidated
 func (mem *CListMempool) removeTx(elem *clist.CElement) {
 	mem.txs.Remove(elem)
 	tx := elem.Value.(*mempoolTx).tx
@@ -1228,7 +1228,7 @@ func (nopTxCache) PushKey(key [32]byte) bool { return true }
 func (nopTxCache) Remove(types.Tx)           {}
 func (nopTxCache) RemoveKey(key [32]byte)    {}
 
-//--------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------
 // txKey is the fixed length array sha256 hash used as the key in maps.
 func txKey(tx types.Tx) (retHash [sha256.Size]byte) {
 	copy(retHash[:], tx.Hash(types.GetVenusHeight())[:sha256.Size])
@@ -1258,7 +1258,7 @@ func txID(tx []byte, height int64) string {
 	return amino.HexEncodeToStringUpper(types.Tx(tx).Hash(height))
 }
 
-//--------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------
 type ExTxInfo struct {
 	Sender      string   `json:"sender"`
 	SenderNonce uint64   `json:"sender_nonce"`

@@ -10,8 +10,6 @@ import (
 
 	"github.com/ethereum/go-ethereum/rpc"
 
-	"github.com/okex/exchain/app/rpc/localclient"
-
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -22,6 +20,11 @@ import (
 	"github.com/okex/exchain/libs/dydx/contracts"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
+
+type PubSub interface {
+	Unsubscribe(id rpc.ID) bool
+	SubscribeLogs(conn chan<- *ethtypes.Log, query ethereum.FilterQuery) (rpc.ID, error)
+}
 
 type MatchEngine struct {
 	depthBook *DepthBook
@@ -39,7 +42,7 @@ type MatchEngine struct {
 
 	sub ethereum.Subscription
 
-	pubsub   *localclient.PubSubAPI
+	pubsub   PubSub
 	pubsubID string
 
 	logger log.Logger
@@ -62,7 +65,7 @@ type LogHandler interface {
 	SubErr(error)
 }
 
-func NewMatchEngine(api *localclient.PubSubAPI, depthBook *DepthBook, config DydxConfig, handler LogHandler, logger log.Logger) (*MatchEngine, error) {
+func NewMatchEngine(api PubSub, depthBook *DepthBook, config DydxConfig, handler LogHandler, logger log.Logger) (*MatchEngine, error) {
 	var engine = &MatchEngine{
 		depthBook: depthBook,
 		config:    config,

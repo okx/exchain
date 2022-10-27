@@ -6,8 +6,6 @@ import (
 	"os"
 	"runtime/pprof"
 
-	"github.com/okex/exchain/app/rpc/localclient"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	"github.com/okex/exchain/libs/tendermint/rpc/client"
 
@@ -86,6 +84,7 @@ func StartCmd(ctx *Context,
 	registerAppFlagFn func(cmd *cobra.Command),
 	appPreRun func(ctx *Context, cmd *cobra.Command) error,
 	subFunc func(logger log.Logger) log.Subscriber,
+	registerDydxFn func(*node.Node),
 ) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start",
@@ -127,7 +126,7 @@ which accepts a path for the resulting pprof file.
 			log.SetSubscriber(sub)
 
 			setPID(ctx)
-			_, err := startInProcess(ctx, cdc, registry, appCreator, appStop, registerRoutesFn)
+			_, err := startInProcess(ctx, cdc, registry, appCreator, appStop, registerRoutesFn, registerDydxFn)
 			if err != nil {
 				tmos.Exit(err.Error())
 			}
@@ -143,7 +142,7 @@ which accepts a path for the resulting pprof file.
 }
 
 func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyResolver, appCreator AppCreator, appStop AppStop,
-	registerRoutesFn func(restServer *lcd.RestServer)) (*node.Node, error) {
+	registerRoutesFn func(restServer *lcd.RestServer), registerDydxFn func(*node.Node)) (*node.Node, error) {
 
 	cfg := ctx.Config
 	home := cfg.RootDir
@@ -183,7 +182,8 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyReso
 		return nil, err
 	}
 
-	tmNode.Mempool().SetLocalPubSub(localclient.NewAPI(local.New(tmNode), tmNode.Logger))
+	registerDydxFn(tmNode)
+	// tmNode.Mempool().SetLocalPubSub(localclient.NewAPI(local.New(tmNode), tmNode.Logger))
 
 	app.SetOption(abci.RequestSetOption{
 		Key:   "CheckChainID",

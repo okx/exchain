@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/okex/exchain/libs/tendermint/node"
+
 	"github.com/gogo/protobuf/jsonpb"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -145,7 +147,9 @@ func AddCommands(
 	registerRouters func(rs *lcd.RestServer),
 	registerAppFlagFn func(cmd *cobra.Command),
 	appPreRun func(ctx *Context, cmd *cobra.Command) error,
-	subFunc func(logger log.Logger) log.Subscriber) {
+	subFunc func(logger log.Logger) log.Subscriber,
+	registerDydxFn func(*node.Node),
+) {
 
 	rootCmd.PersistentFlags().String("log_level", ctx.Config.LogLevel, "Log level")
 	rootCmd.PersistentFlags().String("log_file", ctx.Config.LogFile, "Log file")
@@ -164,7 +168,7 @@ func AddCommands(
 	)
 
 	rootCmd.AddCommand(
-		StartCmd(ctx, cdc, registry, appCreator, appStop, registerRouters, registerAppFlagFn, appPreRun, subFunc),
+		StartCmd(ctx, cdc, registry, appCreator, appStop, registerRouters, registerAppFlagFn, appPreRun, subFunc, registerDydxFn),
 		StopCmd(ctx),
 		UnsafeResetAllCmd(ctx),
 		flags.LineBreak,

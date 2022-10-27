@@ -7,8 +7,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/okex/exchain/app/rpc/localclient"
-
 	ethcmm "github.com/ethereum/go-ethereum/common"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -48,7 +46,7 @@ type OrderManager struct {
 	TradeTxsMtx sync.Mutex
 }
 
-func NewOrderManager(api *localclient.PubSubAPI, doMatch bool) *OrderManager {
+func NewOrderManager(api PubSub, doMatch bool) *OrderManager {
 	manager := &OrderManager{
 		orders:      clist.New(),
 		book:        NewDepthBook(),
