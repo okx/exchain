@@ -101,7 +101,7 @@ var (
 			checkOption: boolItem{name: iavl.FlagIavlEnableAutoUpgradeFSS, expect: false},
 			conflictPair: conflictPair{
 				configA: boolItem{name: iavl.FlagIavlEnableFastStorage, expect: true},
-				configB: funcItem{name: "Upgraded to fast IAVL", expect: false, f: appstatus.IsFastStorageStrategy},
+				configB: funcItem{name: "Upgraded to fast IAVL", expect: false, f: appstatus.NeedLongTimeToUpgrade},
 			},
 			tips: fmt.Sprintf("Upgrade to IAVL fast storage may take several hours, if sure set --%s, otherwise unset --%s",
 				iavl.FlagIavlEnableAutoUpgradeFSS, iavl.FlagIavlEnableFastStorage),

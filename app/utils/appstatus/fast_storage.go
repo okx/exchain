@@ -4,12 +4,33 @@ import (
 	"fmt"
 	"path/filepath"
 
+	bam "github.com/okex/exchain/libs/cosmos-sdk/baseapp"
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
+	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/mint"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/params"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/upgrade"
 	"github.com/okex/exchain/libs/iavl"
+	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
+	ibchost "github.com/okex/exchain/libs/ibc-go/modules/core/24-host"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/okex/exchain/x/ammswap"
+	dex "github.com/okex/exchain/x/dex/types"
+	distr "github.com/okex/exchain/x/distribution"
+	"github.com/okex/exchain/x/erc20"
+	"github.com/okex/exchain/x/evidence"
 	"github.com/okex/exchain/x/evm"
+	"github.com/okex/exchain/x/farm"
+	"github.com/okex/exchain/x/gov"
+	"github.com/okex/exchain/x/order"
+	"github.com/okex/exchain/x/slashing"
+	staking "github.com/okex/exchain/x/staking/types"
+	token "github.com/okex/exchain/x/token/types"
+	"github.com/okex/exchain/x/wasm"
 	"github.com/spf13/viper"
 )
 
@@ -18,7 +39,29 @@ const (
 	dbFolder      = "data"
 )
 
+func NeedLongTimeToUpgrade() bool {
+	storeKeys := []string{auth.StoreKey, evm.StoreKey}
+
+	return checkFastStorageStrategy(storeKeys)
+}
+
 func IsFastStorageStrategy() bool {
+	storeKeys := []string{
+		bam.MainStoreKey, auth.StoreKey, staking.StoreKey,
+		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
+		gov.StoreKey, params.StoreKey, upgrade.StoreKey, evidence.StoreKey,
+		evm.StoreKey, token.StoreKey, token.KeyLock, dex.StoreKey, dex.TokenPairStoreKey,
+		order.OrderStoreKey, ammswap.StoreKey, farm.StoreKey, ibctransfertypes.StoreKey, capabilitytypes.StoreKey,
+		ibchost.StoreKey,
+		erc20.StoreKey,
+		mpt.StoreKey,
+		wasm.StoreKey,
+	}
+
+	return checkFastStorageStrategy(storeKeys)
+}
+
+func checkFastStorageStrategy(storeKeys []string) bool {
 	home := viper.GetString(flags.FlagHome)
 	dataDir := filepath.Join(home, dbFolder)
 	db, err := sdk.NewDB(applicationDB, dataDir)
@@ -27,8 +70,7 @@ func IsFastStorageStrategy() bool {
 	}
 	defer db.Close()
 
-	checkStoreKeys := []string{auth.StoreKey, evm.StoreKey}
-	for _, v := range checkStoreKeys {
+	for _, v := range storeKeys {
 		if !isFss(db, v) {
 			return false
 		}
