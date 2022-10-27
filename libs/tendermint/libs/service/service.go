@@ -3,7 +3,6 @@ package service
 import (
 	"errors"
 	"fmt"
-	syslog "log"
 	"sync/atomic"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -169,10 +168,8 @@ func (bs *BaseService) Stop() error {
 		bs.Logger.Info(fmt.Sprintf("Stopping %v service", bs.name), "impl", bs.impl)
 		bs.impl.OnStop()
 		close(bs.quit)
-		syslog.Println("lcm bs.quit closed")
 		return nil
 	}
-	syslog.Println("lcm Stop already")
 	bs.Logger.Debug(fmt.Sprintf("Stopping %v service (already stopped)", bs.name), "impl", bs.impl)
 	return ErrAlreadyStopped
 }

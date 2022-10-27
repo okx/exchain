@@ -2,6 +2,7 @@ package txindex
 
 import (
 	"context"
+	"log"
 
 	"github.com/okex/exchain/libs/tendermint/libs/service"
 
@@ -73,6 +74,7 @@ func (is *IndexerService) OnStart() error {
 					is.Logger.Info("Indexed block", "height", height)
 				}
 			case <-blockHeadersSub.Cancelled():
+				log.Println("lcm indexer service cancelled")
 				close(is.quit)
 				return
 			}
