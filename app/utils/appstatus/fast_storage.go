@@ -25,6 +25,7 @@ import (
 	"github.com/okex/exchain/x/evidence"
 	"github.com/okex/exchain/x/evm"
 	"github.com/okex/exchain/x/farm"
+	"github.com/okex/exchain/x/feesplit"
 	"github.com/okex/exchain/x/gov"
 	"github.com/okex/exchain/x/order"
 	"github.com/okex/exchain/x/slashing"
@@ -56,6 +57,7 @@ func IsFastStorageStrategy() bool {
 		erc20.StoreKey,
 		mpt.StoreKey,
 		wasm.StoreKey,
+		feesplit.StoreKey,
 	}
 
 	return checkFastStorageStrategy(storeKeys)
