@@ -1,15 +1,18 @@
 package rest
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"net/http"
 	"strconv"
 
+	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+
 	"github.com/gorilla/mux"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
 
@@ -34,15 +37,44 @@ func listCodesHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 		if !ok {
 			return
 		}
-
-		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, keeper.QueryListCode)
-		res, height, err := cliCtx.Query(route)
+		queryClient := types.NewQueryClient(cliCtx)
+		pageReq, err := rest.ParseGRPCPageRequest(r)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, json.RawMessage(res))
+		var reverse bool
+		reverseStr := r.FormValue("reverse")
+		if reverseStr == "" {
+			reverse = false
+		} else {
+			reverse, err = strconv.ParseBool(reverseStr)
+			if err != nil {
+				rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+		}
+
+		res, err := queryClient.Codes(
+			context.Background(),
+			&types.QueryCodesRequest{
+				Pagination: pageReq,
+			},
+		)
+
+		if reverse {
+			for i, j := 0, len(res.CodeInfos)-1; i < j; i, j = i+1, j-1 {
+				res.CodeInfos[i], res.CodeInfos[j] = res.CodeInfos[j], res.CodeInfos[i]
+			}
+		}
+
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		rest.PostProcessResponse(w, cliCtx, res)
+
 	}
 }
 
