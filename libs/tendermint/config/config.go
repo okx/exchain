@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/okex/exchain/libs/tendermint/types"
+
 	"github.com/pkg/errors"
 )
 
@@ -248,7 +250,7 @@ func DefaultBaseConfig() BaseConfig {
 		FastSyncMode:       true,
 		AutoFastSync:       true,
 		FilterPeers:        false,
-		DBBackend:          "goleveldb",
+		DBBackend:          types.DBBackend,
 		DBPath:             "data",
 		LogFile:            defaultLogFile,
 		LogStdout:          true,
@@ -802,6 +804,7 @@ type ConsensusConfig struct {
 	TimeoutPrecommitDelta time.Duration `mapstructure:"timeout_precommit_delta"`
 	TimeoutCommit         time.Duration `mapstructure:"timeout_commit"`
 	TimeoutConsensus      time.Duration `mapstructure:"timeout_consensus"`
+	Waiting               bool          `mapstructure:"waiting"`
 
 	// Make progress as soon as we have all the precommits (as if TimeoutCommit = 0)
 	SkipTimeoutCommit bool `mapstructure:"skip_timeout_commit"`
@@ -834,6 +837,7 @@ func DefaultConsensusConfig() *ConsensusConfig {
 		TimeoutToFastSync:           30 * time.Second,
 		PeerGossipSleepDuration:     100 * time.Millisecond,
 		PeerQueryMaj23SleepDuration: 2000 * time.Millisecond,
+		Waiting:                     true,
 	}
 }
 

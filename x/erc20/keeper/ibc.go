@@ -7,10 +7,12 @@ import (
 	"strings"
 
 	"github.com/ethereum/go-ethereum/common"
+
 	ethermint "github.com/okex/exchain/app/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	ibctransferType "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
+	ibctransfertypes "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	ibcclienttypes "github.com/okex/exchain/libs/ibc-go/modules/core/02-client/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/erc20/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
@@ -107,6 +109,14 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 		}
 		k.SetContractForDenom(ctx, voucher.Denom, contract)
 		k.Logger(ctx).Info("contract created for coin", "contract", contract.String(), "denom", voucher.Denom)
+
+		ctx.EventManager().EmitEvents(sdk.Events{
+			sdk.NewEvent(
+				types.EventTypDeployModuleERC20,
+				sdk.NewAttribute(types.AttributeKeyContractAddr, contract.String()),
+				sdk.NewAttribute(ibctransfertypes.AttributeKeyDenom, voucher.Denom),
+			),
+		})
 	}
 
 	// 1. transfer voucher from user address to contact address in bank
@@ -122,6 +132,22 @@ func (k Keeper) ConvertVoucherToERC20(ctx sdk.Context, from sdk.AccAddress, vouc
 		voucher.Amount.BigInt()); err != nil {
 		return err
 	}
+
+	ctx.EventManager().EmitEvents(sdk.Events{
+		sdk.NewEvent(
+			types.EventTypLock,
+			sdk.NewAttribute(types.AttributeKeyFrom, from.String()),
+			sdk.NewAttribute(types.AttributeKeyTo, contract.String()),
+			sdk.NewAttribute(sdk.AttributeKeyAmount, voucher.String()),
+		),
+		sdk.NewEvent(
+			types.EventTypCallModuleERC20,
+			sdk.NewAttribute(types.AttributeKeyContractAddr, contract.String()),
+			sdk.NewAttribute(types.AttributeKeyContractMethod, types.ContractMintMethod),
+			sdk.NewAttribute(ibctransfertypes.AttributeKeyReceiver, from.String()),
+			sdk.NewAttribute(ibctransfertypes.AttributeKeyAmount, voucher.Amount.BigInt().String()),
+		),
+	})
 	return nil
 }
 
@@ -150,6 +176,21 @@ func (k Keeper) ConvertNativeToERC20(ctx sdk.Context, from sdk.AccAddress, nativ
 		native.Amount.BigInt()); err != nil {
 		return err
 	}
+
+	ctx.EventManager().EmitEvents(sdk.Events{
+		sdk.NewEvent(
+			types.EventTypBurn,
+			sdk.NewAttribute(types.AttributeKeyFrom, from.String()),
+			sdk.NewAttribute(sdk.AttributeKeyAmount, native.String()),
+		),
+		sdk.NewEvent(
+			types.EventTypCallModuleERC20,
+			sdk.NewAttribute(types.AttributeKeyContractAddr, contract.String()),
+			sdk.NewAttribute(types.AttributeKeyContractMethod, types.ContractMintMethod),
+			sdk.NewAttribute(ibctransfertypes.AttributeKeyReceiver, from.String()),
+			sdk.NewAttribute(ibctransfertypes.AttributeKeyAmount, native.Amount.BigInt().String()),
+		),
+	})
 	return nil
 }
 
@@ -245,29 +286,39 @@ func (k Keeper) callEvmByModule(ctx sdk.Context, to *common.Address, value *big.
 		acc = k.accountKeeper.NewAccountWithAddress(ctx, types.IbcEvmModuleBechAddr)
 	}
 	nonce := acc.GetSequence()
+	txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
+	ethTxHash := common.BytesToHash(txHash)
+
+	gasLimit := ctx.GasMeter().Limit()
+	if gasLimit == sdk.NewInfiniteGasMeter().Limit() {
+		gasLimit = k.evmKeeper.GetParams(ctx).MaxGasLimitPerTx
+	}
 
 	st := evmtypes.StateTransition{
 		AccountNonce: nonce,
 		Price:        big.NewInt(0),
-		GasLimit:     k.evmKeeper.GetParams(ctx).MaxGasLimitPerTx,
+		GasLimit:     gasLimit,
 		Recipient:    to,
 		Amount:       value,
 		Payload:      data,
 		Csdb:         evmtypes.CreateEmptyCommitStateDB(k.evmKeeper.GenerateCSDBParams(), ctx),
 		ChainID:      chainIDEpoch,
-		TxHash:       &common.Hash{},
+		TxHash:       &ethTxHash,
 		Sender:       types.IbcEvmModuleETHAddr,
 		Simulate:     ctx.IsCheckTx(),
 		TraceTx:      false,
 		TraceTxLog:   false,
 	}
 
-	executionResult, resultData, err, _, _ := st.TransitionDb(ctx, config)
+	executionResult, resultData, err, innertxs, contracts := st.TransitionDb(ctx, config)
+	if !ctx.IsCheckTx() && !ctx.IsTraceTx() {
+		k.addEVMInnerTx(ethTxHash.Hex(), innertxs, contracts)
+	}
 	if err != nil {
 		return nil, nil, err
 	}
-	st.Csdb.Commit(false) // write code to db
 
+	st.Csdb.Commit(false) // write code to db
 	acc.SetSequence(nonce + 1)
 	k.accountKeeper.SetAccount(ctx, acc)
 
@@ -284,7 +335,7 @@ func (k Keeper) IbcTransferVouchers(ctx sdk.Context, from, to string, vouchers s
 		return err
 	}
 
-	if len(to) == 0 {
+	if len(strings.TrimSpace(to)) == 0 {
 		return errors.New("to address cannot be empty")
 	}
 	k.Logger(ctx).Info("transfer vouchers to other chain by ibc", "from", from, "to", to, "vouchers", vouchers)
@@ -312,7 +363,7 @@ func (k Keeper) IbcTransferNative20(ctx sdk.Context, from, to string, native20s 
 		return err
 	}
 
-	if len(to) == 0 {
+	if len(strings.TrimSpace(to)) == 0 {
 		return errors.New("to address cannot be empty")
 	}
 	k.Logger(ctx).Info("transfer native20 to other chain by ibc", "from", from, "to", to, "vouchers", native20s)
@@ -338,15 +389,13 @@ func (k Keeper) ibcSendTransfer(ctx sdk.Context, sender sdk.AccAddress, to strin
 	}
 
 	// Transfer coins to receiver through IBC
-	// We use current time for timeout timestamp and zero height for timeoutHeight
-	// it means it can never fail by timeout
 	params := k.GetParams(ctx)
 	timeoutTimestamp := uint64(ctx.BlockTime().UnixNano()) + params.IbcTimeout
 	timeoutHeight := ibcclienttypes.ZeroHeight()
 
 	return k.transferKeeper.SendTransfer(
 		ctx,
-		ibctransferType.PortID,
+		ibctransfertypes.PortID,
 		channelID,
 		sdk.NewCoinAdapter(coin.Denom, sdk.NewIntFromBigInt(coin.Amount.BigInt())),
 		sender,
@@ -358,8 +407,6 @@ func (k Keeper) ibcSendTransfer(ctx sdk.Context, sender sdk.AccAddress, to strin
 
 func (k Keeper) ibcSendTransferWithChannel(ctx sdk.Context, sender sdk.AccAddress, to string, coin sdk.Coin, portID, channelID string) error {
 	// Transfer coins to receiver through IBC
-	// We use current time for timeout timestamp and zero height for timeoutHeight
-	// it means it can never fail by timeout
 	params := k.GetParams(ctx)
 	timeoutTimestamp := uint64(ctx.BlockTime().UnixNano()) + params.IbcTimeout
 	timeoutHeight := ibcclienttypes.ZeroHeight()

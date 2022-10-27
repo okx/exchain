@@ -53,7 +53,7 @@ func TestMsgTransferRoute(t *testing.T) {
 func TestMsgTransferType(t *testing.T) {
 	msg := NewMsgTransfer(validPort, validChannel, coin, addr1, addr2, timeoutHeight, 0)
 
-	require.Equal(t, "transfer", msg.Type())
+	require.Equal(t, "/ibc.applications.transfer.v1.MsgTransfer", msg.Type())
 }
 
 func TestMsgTransferGetSignBytes(t *testing.T) {

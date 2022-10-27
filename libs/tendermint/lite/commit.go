@@ -52,10 +52,10 @@ func (fc FullCommit) ValidateFull(chainID string) error {
 	}
 	if !bytes.Equal(
 		fc.SignedHeader.NextValidatorsHash,
-		fc.NextValidators.Hash(fc.Height())) {
+		fc.NextValidators.Hash(fc.Height()+1)) {
 		return fmt.Errorf("header has next vhash %X but next valset hash is %X",
 			fc.SignedHeader.NextValidatorsHash,
-			fc.NextValidators.Hash(fc.Height()),
+			fc.NextValidators.Hash(fc.Height()+1),
 		)
 	}
 	// Validate the header.

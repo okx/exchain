@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/okex/exchain/libs/tendermint/global"
+
 	apptesting "github.com/okex/exchain/libs/ibc-go/testing"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	tmcfg "github.com/okex/exchain/libs/tendermint/config"
@@ -39,6 +41,25 @@ type MockClient struct {
 	env   *rpccore.Environment
 	state tmstate.State
 	priv  types.PrivValidator
+}
+
+func (m *MockClient) BlockInfo(height *int64) (meta *types.BlockMeta, err error) {
+	defer func() {
+		if r := recover(); r != nil {
+			meta = nil
+			err = fmt.Errorf("panic in BlockInfo: %v", r)
+		}
+	}()
+	if m.Client.SignClient != nil {
+		return m.Client.BlockInfo(height)
+	}
+	if height == nil {
+		return nil, fmt.Errorf("height is nil")
+	}
+	if m.env != nil && m.env.BlockStore != nil {
+		return m.env.BlockStore.LoadBlockMeta(*height), nil
+	}
+	return nil, fmt.Errorf("blockstore is nil")
 }
 
 func (m *MockClient) StartTmRPC() (net.Listener, string, error) {
@@ -213,6 +234,7 @@ func (c *MockClient) CommitBlock() {
 			AppHash:                          nil,
 		}
 	}
+	global.SetGlobalHeight(blockHeight)
 }
 func (c *MockClient) CommitTx(height int64, txs types.Txs, resDeliverTxs []*abci.ResponseDeliverTx) {
 	batch := txindex.NewBatch(int64(len(txs)))
@@ -405,6 +427,11 @@ func (c *MockClient) BlockchainInfo(minHeight, maxHeight int64) (*ctypes.ResultB
 		LastHeight: c.env.BlockStore.Height(),
 		BlockMetas: blockMetas}, nil
 }
+
+func (c *MockClient) LatestBlockNumber() (int64, error) {
+	return c.env.BlockStore.Height(), nil
+}
+
 func (c *MockClient) NumUnconfirmedTxs() (*ctypes.ResultUnconfirmedTxs, error) {
 	return &ctypes.ResultUnconfirmedTxs{
 		Count:      c.env.Mempool.Size(),

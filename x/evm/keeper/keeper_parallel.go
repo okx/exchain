@@ -11,7 +11,7 @@ import (
 	"github.com/okex/exchain/x/evm/types"
 )
 
-func (k *Keeper) FixLog(logIndex []int, hasEnterEvmTx []bool, anteErrs []error, msgs [][]sdk.Msg, resp []abci.ResponseDeliverTx) [][]byte {
+func (k *Keeper) FixLog(tx []sdk.Tx, logIndex []int, hasEnterEvmTx []bool, anteErrs []error, resp []abci.ResponseDeliverTx) [][]byte {
 	txSize := len(logIndex)
 	res := make([][]byte, txSize, txSize)
 	logSize := uint(0)
@@ -38,7 +38,7 @@ func (k *Keeper) FixLog(logIndex []int, hasEnterEvmTx []bool, anteErrs []error, 
 			res[index] = data
 		}
 		// save transaction and transactionReceipt to watcher
-		k.saveParallelTxResult(msgs[index], rs.ResultData, resp[index])
+		k.saveParallelTxResult(tx[index], rs.ResultData, resp[index])
 	}
 
 	return res
@@ -93,9 +93,9 @@ type TxResult struct {
 	ResultData *types.ResultData
 }
 
-func (k *Keeper) saveParallelTxResult(msgs []sdk.Msg, resultData *types.ResultData, resp abci.ResponseDeliverTx) {
+func (k *Keeper) saveParallelTxResult(tx sdk.Tx, resultData *types.ResultData, resp abci.ResponseDeliverTx) {
 	if !k.Watcher.Enabled() {
 		return
 	}
-	k.Watcher.SaveParallelTx(msgs, resultData, resp)
+	k.Watcher.SaveParallelTx(tx, resultData, resp)
 }

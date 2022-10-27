@@ -2,8 +2,9 @@ package wasm
 
 import (
 	"context"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
-	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
+	"github.com/okex/exchain/app/rpc/simulator"
+	"github.com/okex/exchain/libs/tendermint/global"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"math/rand"
 
 	"github.com/gorilla/mux"
@@ -13,14 +14,16 @@ import (
 	cdctypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/upgrade"
 	simtypes "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
+	"github.com/okex/exchain/libs/ibc-go/modules/core/base"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
-	"github.com/spf13/cobra"
-
 	"github.com/okex/exchain/x/wasm/client/rest"
 	"github.com/okex/exchain/x/wasm/keeper"
 	"github.com/okex/exchain/x/wasm/simulation"
 	"github.com/okex/exchain/x/wasm/types"
+	"github.com/okex/exchain/x/wasm/watcher"
+	"github.com/spf13/cobra"
 )
 
 var (
@@ -122,8 +125,15 @@ func NewAppModule(cdc codec.CodecProxy, keeper *Keeper) AppModule {
 }
 
 func (am AppModule) RegisterServices(cfg module.Configurator) {
+	global.Manager = watcher.ParamsManager{}
+	simulator.NewWasmSimulator = NewWasmSimulator
 	types.RegisterMsgServer(cfg.MsgServer(), keeper.NewMsgServerImpl(keeper.NewDefaultPermissionKeeper(am.keeper)))
-	types.RegisterQueryServer(cfg.QueryServer(), NewQuerier(am.keeper))
+	if watcher.Enable() {
+		k := NewProxyKeeper()
+		types.RegisterQueryServer(cfg.QueryServer(), NewQuerier(&k))
+	} else {
+		types.RegisterQueryServer(cfg.QueryServer(), NewQuerier(am.keeper))
+	}
 }
 
 //func (am AppModule) LegacyQuerierHandler(amino *codec.LegacyAmino) sdk.Querier { //nolint:staticcheck
@@ -163,7 +173,13 @@ func (AppModule) QuerierRoute() string {
 //}
 
 // BeginBlock returns the begin blocker for the wasm module.
-func (am AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {}
+func (am AppModule) BeginBlock(_ sdk.Context, _ abci.RequestBeginBlock) {
+	watcher.NewHeight()
+	if tmtypes.DownloadDelta {
+		keeper.GetWasmParamsCache().SetNeedParamsUpdate()
+		keeper.GetWasmParamsCache().SetNeedBlockedUpdate()
+	}
+}
 
 // EndBlock returns the end blocker for the wasm module. It returns no validator
 // updates.

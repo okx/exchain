@@ -28,7 +28,7 @@ func BlockchainInfo(ctx *rpctypes.Context, minHeight, maxHeight int64) (*ctypes.
 	}
 	env.Logger.Debug("BlockchainInfoHandler", "maxHeight", maxHeight, "minHeight", minHeight)
 
-	blockMetas := []*types.BlockMeta{}
+	blockMetas := make([]*types.BlockMeta, 0, maxHeight-minHeight+1)
 	for height := maxHeight; height >= minHeight; height-- {
 		blockMeta := env.BlockStore.LoadBlockMeta(height)
 		blockMetas = append(blockMetas, blockMeta)
@@ -37,6 +37,10 @@ func BlockchainInfo(ctx *rpctypes.Context, minHeight, maxHeight int64) (*ctypes.
 	return &ctypes.ResultBlockchainInfo{
 		LastHeight: env.BlockStore.Height(),
 		BlockMetas: blockMetas}, nil
+}
+
+func LatestBlockNumber() (int64, error) {
+	return env.BlockStore.Height(), nil
 }
 
 // error if either min or max are negative or min > max
@@ -80,7 +84,6 @@ func Block(ctx *rpctypes.Context, heightPtr *int64) (*ctypes.ResultBlock, error)
 	if err != nil {
 		return nil, err
 	}
-
 	block := env.BlockStore.LoadBlock(height)
 	blockMeta := env.BlockStore.LoadBlockMeta(height)
 	if blockMeta == nil {
@@ -159,16 +162,11 @@ func BlockResults(ctx *rpctypes.Context, heightPtr *int64) (*ctypes.ResultBlockR
 // Header gets block header at a given height.
 // If no height is provided, it will fetch the latest header.
 // More: https://docs.tendermint.com/master/rpc/#/Info/header
-func BlockInfo(ctx *rpctypes.Context, heightPtr *int64) (*ctypes.ResultBlockInfo, error) {
+func BlockInfo(ctx *rpctypes.Context, heightPtr *int64) (*types.BlockMeta, error) {
 	height, err := getHeight(env.BlockStore.Height(), heightPtr)
 	if err != nil {
 		return nil, err
 	}
 
-	blockMeta := env.BlockStore.LoadBlockMeta(height)
-	if blockMeta == nil {
-		return nil, nil
-	}
-
-	return &ctypes.ResultBlockInfo{BlockMeta: blockMeta}, nil
+	return env.BlockStore.LoadBlockMeta(height), nil
 }

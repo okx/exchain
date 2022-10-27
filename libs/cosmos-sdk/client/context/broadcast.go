@@ -46,9 +46,9 @@ func (ctx CLIContext) CheckTendermintError(err error, txBytes []byte) *sdk.TxRes
 		return nil
 	}
 	var height int64
-	info, _ := ctx.Client.BlockchainInfo(0, 0)
-	if info != nil {
-		height = info.LastHeight
+	lastHeight, err2 := ctx.Client.LatestBlockNumber()
+	if err2 == nil {
+		height = lastHeight
 	} else {
 		// default new tx hash
 		height = types.GetMilestoneVenusHeight()

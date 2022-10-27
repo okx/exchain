@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/okex/exchain/libs/tendermint/libs/cli"
+	"github.com/okex/exchain/libs/tm-db/common"
 	"github.com/okex/exchain/x/wasm"
 	wasmkeeper "github.com/okex/exchain/x/wasm/keeper"
 	"github.com/spf13/viper"
@@ -420,7 +421,7 @@ func newTestOkcChainApp(
 	govRouter := gov.NewRouter()
 	govRouter.AddRoute(gov.RouterKey, gov.ProposalHandler).
 		AddRoute(params.RouterKey, params.NewParamChangeProposalHandler(&app.ParamsKeeper)).
-		AddRoute(distr.RouterKey, distr.NewCommunityPoolSpendProposalHandler(app.DistrKeeper)).
+		AddRoute(distr.RouterKey, distr.NewDistributionProposalHandler(app.DistrKeeper)).
 		AddRoute(dex.RouterKey, dex.NewProposalHandler(&app.DexKeeper)).
 		AddRoute(farm.RouterKey, farm.NewManageWhiteListProposalHandler(&app.FarmKeeper)).
 		AddRoute(evm.RouterKey, evm.NewManageContractDeploymentWhitelistProposalHandler(app.EvmKeeper)).
@@ -474,12 +475,12 @@ func newTestOkcChainApp(
 
 	// The last arguments can contain custom message handlers, and custom query handlers,
 	// if we want to allow any custom callbacks
-	supportedFeatures := "iterator,stargate"
+	supportedFeatures := wasm.SupportedFeatures
 	app.wasmKeeper = wasm.NewKeeper(
 		app.marshal,
 		keys[wasm.StoreKey],
 		app.subspaces[wasm.ModuleName],
-		app.AccountKeeper,
+		&app.AccountKeeper,
 		bank.NewBankKeeperAdapter(app.BankKeeper),
 		app.IBCKeeper.ChannelKeeper,
 		&app.IBCKeeper.PortKeeper,
@@ -558,7 +559,8 @@ func newTestOkcChainApp(
 	app.SetEndBlocker(app.EndBlocker)
 	app.SetGasRefundHandler(refund.NewGasRefundHandler(app.AccountKeeper, app.SupplyKeeper))
 	app.SetAccNonceHandler(NewAccNonceHandler(app.AccountKeeper))
-	app.SetParallelTxHandlers(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper), fixLogForParallelTxHandler(app.EvmKeeper))
+	app.SetUpdateFeeCollectorAccHandler(updateFeeCollectorHandler(app.BankKeeper, app.SupplyKeeper))
+	app.SetParallelTxLogHandlers(fixLogForParallelTxHandler(app.EvmKeeper))
 	app.SetEvmWatcherCollector(app.EvmKeeper.Watcher.Collect)
 
 	if loadLatest {
@@ -692,6 +694,7 @@ func createKeysByCases(caseas []UpgradeCase) map[string]*sdk.KVStoreKey {
 ///
 type RecordMemDB struct {
 	db *dbm.MemDB
+	common.PlaceHolder
 }
 
 func (d *RecordMemDB) Get(bytes []byte) ([]byte, error) {

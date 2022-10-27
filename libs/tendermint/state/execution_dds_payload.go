@@ -31,8 +31,10 @@ type DeltaInfo struct {
 	abciResponses *ABCIResponses
 	treeDeltaMap  interface{}
 	watchData     interface{}
+	wasmWatchData interface{}
 
-	marshalWatchData func() ([]byte, error)
+	marshalWatchData     func() ([]byte, error)
+	wasmMarshalWatchData func() ([]byte, error)
 }
 
 // for upload
@@ -50,6 +52,11 @@ func (info *DeltaInfo) dataInfo2Bytes() (types.DeltaPayload, error) {
 	}
 
 	pl.WatchBytes, err = info.marshalWatchData()
+	if err != nil {
+		return pl, err
+	}
+
+	pl.WasmWatchBytes, err = info.wasmMarshalWatchData()
 	if err != nil {
 		return pl, err
 	}
@@ -73,7 +80,13 @@ func (info *DeltaInfo) bytes2DeltaInfo(pl *types.DeltaPayload) error {
 	if err != nil {
 		return err
 	}
-	info.watchData, err = unmarshalWatchData(pl.WatchBytes)
+	if types.FastQuery {
+		info.watchData, err = evmWatchDataManager.UnmarshalWatchData(pl.WatchBytes)
+		if err != nil {
+			return err
+		}
+	}
+	info.wasmWatchData, err = wasmWatchDataManager.UnmarshalWatchData(pl.WasmWatchBytes)
 	if err != nil {
 		return err
 	}

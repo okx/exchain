@@ -56,6 +56,7 @@ func TestNewDecFromStr(t *testing.T) {
 		{"foobar", true, Dec{}},
 		{"0.foobar", true, Dec{}},
 		{"0.foobar.", true, Dec{}},
+		{"88888888888888888888888888888888888888888888888888888888888888888888844444440", true, Dec{}},
 	}
 
 	for tcIndex, tc := range tests {

@@ -101,22 +101,35 @@ func (ndb *nodeDB) persistTpp(event *commitEvent, trc *trace.Tracer) {
 	ndb.state.increasePersistedCount(len(tpp))
 	ndb.addDBWriteCount(int64(len(tpp)))
 
+	if err := ndb.saveFastNodeVersion(batch, event.fnc, event.version); err != nil {
+		panic(err)
+	}
+
 	trc.Pin("batchCommit")
 	if err := ndb.Commit(batch); err != nil {
 		panic(err)
 	}
+
 	ndb.asyncPersistTppFinised(event, trc)
+	ndb.tpfv.remove(event.version)
 }
 
-func (ndb *nodeDB) asyncPersistTppStart(version int64) map[string]*Node {
+func (ndb *nodeDB) asyncPersistTppStart(version int64) (map[string]*Node, *fastNodeChanges) {
 	ndb.log(IavlDebug, "moving prePersistCache to tempPrePersistCache", "size", len(ndb.prePersistNodeCache))
 
 	ndb.mtx.Lock()
 
 	tpp := ndb.prePersistNodeCache
 	ndb.prePersistNodeCache = make(map[string]*Node, len(tpp))
+
 	ndb.tpp.pushToTpp(version, tpp)
 
+	var tempPersistFastNode *fastNodeChanges
+	if GetEnableFastStorage() {
+		tempPersistFastNode = ndb.prePersistFastNode
+		ndb.tpfv.add(version, tempPersistFastNode)
+		ndb.prePersistFastNode = newFastNodeChanges()
+	}
 	ndb.mtx.Unlock()
 
 	for _, node := range tpp {
@@ -126,7 +139,7 @@ func (ndb *nodeDB) asyncPersistTppStart(version int64) map[string]*Node {
 		node.persisted = true
 	}
 
-	return tpp
+	return tpp, tempPersistFastNode
 }
 
 func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer) {
@@ -143,7 +156,6 @@ func (ndb *nodeDB) asyncPersistTppFinised(event *commitEvent, trc *trace.Tracer)
 		"NodeNum", nodeNum,
 		"trc", trc.Format())
 }
-
 
 // SaveNode saves a node to disk.
 func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
@@ -174,7 +186,6 @@ func (ndb *nodeDB) batchSet(node *Node, batch dbm.Batch) {
 	//node.persisted = true // move to function MovePrePersistCacheToTempCache
 }
 
-
 func (ndb *nodeDB) NewBatch() dbm.Batch {
 	return ndb.db.NewBatch()
 }
@@ -190,7 +201,6 @@ func (ndb *nodeDB) saveCommitOrphans(batch dbm.Batch, version int64, orphans []c
 		ndb.saveOrphan(batch, orphan.NodeHash, orphan.Version, toVersion)
 	}
 }
-
 
 func (ndb *nodeDB) getRootWithCacheAndDB(version int64) ([]byte, error) {
 	if EnableAsyncCommit {
@@ -265,12 +275,23 @@ func (ndb *nodeDB) uncacheNode(hash []byte) {
 	ndb.nc.uncache(hash)
 }
 
-func (ndb *nodeDB) getNodeFromCache(hash []byte, promoteRecentNode bool) (n *Node) {
-	return ndb.nc.get(hash, promoteRecentNode)
+func (ndb *nodeDB) getFastNodeFromCache(key []byte) (*FastNode, bool) {
+	node := ndb.fastNodeCache.get(key, true)
+	return node, node != nil
 }
 
-func (ndb *nodeDB) cacheNodeByCheck(node *Node) {
-	ndb.nc.cacheByCheck(node)
+func (ndb *nodeDB) uncacheFastNode(key []byte) {
+	ndb.fastNodeCache.uncache(key)
+}
+
+// Add a node to the cache and pop the least recently used node if we've
+// reached the cache size limit.
+func (ndb *nodeDB) cacheFastNode(node *FastNode) {
+	ndb.fastNodeCache.cache(node)
+}
+
+func (ndb *nodeDB) getNodeFromCache(hash []byte, promoteRecentNode bool) (n *Node) {
+	return ndb.nc.get(hash, promoteRecentNode)
 }
 
 func (ndb *nodeDB) uncacheNodeRontine(n []*Node) {

@@ -1,6 +1,12 @@
 package types
 
-import abci "github.com/okex/exchain/libs/tendermint/abci/types"
+import (
+	"sync"
+
+	"github.com/ethereum/go-ethereum/common"
+
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
+)
 
 // Handler defines the core of the state transition function of an application.
 type Handler func(ctx Context, msg Msg) (*Result, error)
@@ -15,10 +21,10 @@ type GasRefundHandler func(ctx Context, tx Tx) (fee Coins, err error)
 
 type AccNonceHandler func(ctx Context, address AccAddress) (nonce uint64)
 
-type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins) error
+type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins, txFeesplit *sync.Map) error
 
-type LogFix func(logIndex []int, hasEnterEvmTx []bool, errs []error, msgs [][]Msg, resp []abci.ResponseDeliverTx) (logs [][]byte)
-
+type LogFix func(tx []Tx, logIndex []int, hasEnterEvmTx []bool, errs []error, resp []abci.ResponseDeliverTx) (logs [][]byte)
+type UpdateFeeSplitHandler func(txHash common.Hash, addr AccAddress, fee Coins)
 type GetTxFeeAndFromHandler func(ctx Context, tx Tx) (Coins, bool, string, string, error)
 type GetTxFeeHandler func(tx Tx) Coins
 
@@ -57,8 +63,10 @@ func ChainAnteDecorators(chain ...AnteDecorator) AnteHandler {
 		chain = append(chain, Terminator{})
 	}
 
+	next := ChainAnteDecorators(chain[1:]...)
+
 	return func(ctx Context, tx Tx, simulate bool) (Context, error) {
-		return chain[0].AnteHandle(ctx, tx, simulate, ChainAnteDecorators(chain[1:]...))
+		return chain[0].AnteHandle(ctx, tx, simulate, next)
 	}
 }
 

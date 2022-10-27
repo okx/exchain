@@ -58,7 +58,7 @@ func (msg MsgCreateClient) Route() string {
 
 // Type implements sdk.Msg
 func (msg MsgCreateClient) Type() string {
-	return TypeMsgCreateClient
+	return sdk.MsgTypeURL(&msg)
 }
 
 // ValidateBasic implements sdk.Msg
@@ -139,7 +139,7 @@ func (msg MsgUpdateClient) Route() string {
 
 // Type implements sdk.Msg
 func (msg MsgUpdateClient) Type() string {
-	return TypeMsgUpdateClient
+	return sdk.MsgTypeURL(&msg)
 }
 
 // ValidateBasic implements sdk.Msg
@@ -212,7 +212,7 @@ func (msg MsgUpgradeClient) Route() string {
 
 // Type implements sdk.Msg
 func (msg MsgUpgradeClient) Type() string {
-	return TypeMsgUpgradeClient
+	return sdk.MsgTypeURL(&msg)
 }
 
 // ValidateBasic implements sdk.Msg
@@ -294,7 +294,7 @@ func (msg MsgSubmitMisbehaviour) Route() string { return host.RouterKey }
 
 // Type returns the MsgSubmitMisbehaviour's type.
 func (msg MsgSubmitMisbehaviour) Type() string {
-	return TypeMsgSubmitMisbehaviour
+	return sdk.MsgTypeURL(&msg)
 }
 
 // ValidateBasic performs basic (non-state-dependant) validation on a MsgSubmitMisbehaviour.

@@ -88,7 +88,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 	if tx.GetType() != sdk.EvmTxType && mode == runTxModeDeliver {
 		// should update the balance of FeeCollector's account when run non-evm tx
 		// which uses non-infiniteGasMeter during AnteHandleChain
-		app.updateFeeCollectorAccount()
+		app.updateFeeCollectorAccount(false)
 	}
 
 	//init info context
@@ -175,7 +175,7 @@ func (app *BaseApp) runtxWithInfo(info *runTxInfo, mode runTxMode, txBytes []byt
 
 	if app.getTxFeeHandler != nil && mode == runTxModeDeliver {
 		fee := app.getTxFeeHandler(tx)
-		app.UpdateFeeForCollector(fee, true)
+		app.UpdateFeeCollector(fee, true)
 	}
 
 	isAnteSucceed = true
@@ -448,7 +448,7 @@ func useCache(mode runTxMode) bool {
 	if !sdk.UseCache {
 		return false
 	}
-	if mode == runTxModeDeliver || mode == runTxModeDeliverPartConcurrent {
+	if mode == runTxModeDeliver {
 		return true
 	}
 	return false

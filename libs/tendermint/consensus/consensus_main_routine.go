@@ -121,11 +121,13 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 		// enterNewHeight use cs.vcMsg
 		if msg.Height == cs.Height+1 {
 			cs.vcMsg = msg
+			cs.Logger.Info("handle vcMsg", "height", cs.Height, "vcMsg", cs.vcMsg)
 		} else if msg.Height == cs.Height {
 			// ApplyBlock of height-1 has finished
 			// at this height, it has enterNewHeight
 			// vc immediately
 			cs.vcMsg = msg
+			cs.Logger.Info("handle vcMsg", "height", cs.Height, "vcMsg", cs.vcMsg)
 			if cs.Step != cstypes.RoundStepNewHeight && cs.Round == 0 {
 				_, val := cs.Validators.GetByAddress(msg.NewProposer)
 				cs.enterNewRoundAVC(cs.Height, 0, val)
@@ -139,6 +141,14 @@ func (cs *State) handleMsg(mi msgInfo) (added bool) {
 			added = true
 		}
 	case *BlockPartMessage:
+		// if avc and has 2/3 votes, it can use the blockPartsHeader from votes
+		if cs.HasVC && cs.ProposalBlockParts == nil && cs.Round == 0 {
+			prevotes := cs.Votes.Prevotes(cs.Round)
+			blockID, hasTwoThirds := prevotes.TwoThirdsMajority()
+			if hasTwoThirds && !blockID.IsZero() {
+				cs.ProposalBlockParts = types.NewPartSetFromHeader(blockID.PartsHeader)
+			}
+		}
 		// if the proposal is complete, we'll enterPrevote or tryFinalizeCommit
 		added, err = cs.addProposalBlockPart(msg, peerID)
 
@@ -262,10 +272,14 @@ func (cs *State) scheduleRound0(rs *cstypes.RoundState) {
 		sleepDuration = 0
 	}
 
+	if !cs.config.Waiting {
+		sleepDuration = 0
+	}
+
 	if GetActiveVC() {
 		// itself is proposer, no need to request
 		isBlockProducer, _ := cs.isBlockProducer()
-		if isBlockProducer != "y" {
+		if isBlockProducer != "y" && cs.Validators.HasAddress(cs.privValidatorPubKey.Address()) {
 			// request for proposer of new height
 			prMsg := ProposeRequestMessage{Height: cs.Height, CurrentProposer: cs.Validators.GetProposer().Address, NewProposer: cs.privValidatorPubKey.Address()}
 			// todo only put all request into one channel

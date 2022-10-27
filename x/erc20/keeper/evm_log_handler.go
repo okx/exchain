@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"bytes"
 	"fmt"
 	"math/big"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	tmtypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/erc20/types"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
@@ -126,9 +128,18 @@ func (h SendToIbcEventHandler) Handle(ctx sdk.Context, contract common.Address, 
 	if err = h.bankKeeper.SendCoins(ctx, contractAddr, sender, vouchers); err != nil {
 		return err
 	}
+
 	// 2. Initiate IBC transfer from sender account
 	if err = h.Keeper.IbcTransferVouchers(ctx, sender.String(), recipient, vouchers); err != nil {
 		return err
+	}
+
+	if !ctx.IsCheckTx() && !ctx.IsTraceTx() {
+		txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
+		ethTxHash := common.BytesToHash(txHash)
+		ibcEvents := eventStr(ctx.EventManager().Events())
+
+		h.Keeper.addSendToIbcInnerTx(ethTxHash.Hex(), contract.String(), sender.String(), recipient, vouchers.String(), ibcEvents)
 	}
 	return nil
 }
@@ -166,7 +177,6 @@ func (h SendNative20ToIbcEventHandler) Handle(ctx sdk.Context, contract common.A
 		return nil
 	}
 
-	//contractAddr := sdk.AccAddress(contract.Bytes())
 	sender := sdk.AccAddress(unpacked[0].(common.Address).Bytes())
 	recipient := unpacked[1].(string)
 	amount := sdk.NewIntFromBigInt(unpacked[2].(*big.Int))
@@ -188,5 +198,25 @@ func (h SendNative20ToIbcEventHandler) Handle(ctx sdk.Context, contract common.A
 	if err = h.Keeper.IbcTransferNative20(ctx, sender.String(), recipient, native20s, portID, channelID); err != nil {
 		return err
 	}
+
+	if !ctx.IsCheckTx() && !ctx.IsTraceTx() {
+		txHash := tmtypes.Tx(ctx.TxBytes()).Hash(ctx.BlockHeight())
+		ethTxHash := common.BytesToHash(txHash)
+		ibcEvents := eventStr(ctx.EventManager().Events())
+
+		h.Keeper.addSendNative20ToIbcInnerTx(ethTxHash.Hex(), types.ModuleName, sender.String(), recipient, native20s.String(), ibcEvents)
+	}
 	return nil
+}
+
+func eventStr(events sdk.Events) string {
+	if len(events) == 0 {
+		return ""
+	}
+	var buf bytes.Buffer
+	buf.WriteString(`{"events":`)
+	sdk.StringifyEvents(events).MarshalJsonToBuffer(&buf)
+	buf.WriteString("}")
+
+	return buf.String()
 }

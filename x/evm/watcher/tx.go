@@ -6,6 +6,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	tm "github.com/okex/exchain/libs/tendermint/abci/types"
+	ctypes "github.com/okex/exchain/libs/tendermint/rpc/core/types"
 	"github.com/okex/exchain/x/evm/types"
 )
 
@@ -27,13 +28,24 @@ func (w *Watcher) RecordTxAndFailedReceipt(tx tm.TxEssentials, resp *tm.Response
 		return
 	}
 	watchTx := w.createWatchTx(realTx)
-	if watchTx == nil {
-		return
-	}
-	w.saveTx(watchTx)
-
-	if resp != nil && !resp.IsOK() {
-		w.saveFailedReceipts(watchTx, uint64(resp.GasUsed))
+	switch realTx.GetType() {
+	case sdk.EvmTxType:
+		if watchTx == nil {
+			return
+		}
+		w.saveTx(watchTx)
+		if resp != nil && !resp.IsOK() {
+			w.saveFailedReceipts(watchTx, uint64(resp.GasUsed))
+		}
+	case sdk.StdTxType:
+		w.blockStdTxs = append(w.blockStdTxs, common.BytesToHash(realTx.TxHash()))
+		txResult := &ctypes.ResultTx{
+			Hash:     tx.TxHash(),
+			Height:   int64(w.height),
+			TxResult: *resp,
+			Tx:       tx.GetRaw(),
+		}
+		w.saveStdTxResponse(txResult)
 	}
 }
 
@@ -112,24 +124,37 @@ func (w *Watcher) saveFailedReceipts(watchTx WatchTx, gasUsed uint64) {
 }
 
 // SaveParallelTx saves parallel transactions and transactionReceipts to watcher
-func (w *Watcher) SaveParallelTx(msgs []sdk.Msg, resultData *types.ResultData, resp tm.ResponseDeliverTx) {
-	if !w.Enabled() || len(msgs) == 0 {
-		return
-	}
-	evmTx, ok := msgs[0].(*types.MsgEthereumTx)
-	if !ok {
+func (w *Watcher) SaveParallelTx(realTx sdk.Tx, resultData *types.ResultData, resp tm.ResponseDeliverTx) {
+
+	if !w.Enabled() {
 		return
 	}
 
-	watchTx := NewEvmTx(evmTx, common.BytesToHash(evmTx.TxHash()), w.blockHash, w.height, w.evmTxIndex)
-	w.evmTxIndex++
+	switch realTx.GetType() {
+	case sdk.EvmTxType:
+		msgs := realTx.GetMsgs()
+		evmTx, ok := msgs[0].(*types.MsgEthereumTx)
+		if !ok {
+			return
+		}
+		watchTx := NewEvmTx(evmTx, common.BytesToHash(evmTx.TxHash()), w.blockHash, w.height, w.evmTxIndex)
+		w.evmTxIndex++
+		w.saveTx(watchTx)
 
-	w.saveTx(watchTx)
-	// save transactionReceipts
-	if resp.IsOK() && resultData != nil {
-		w.SaveTransactionReceipt(TransactionSuccess, evmTx, watchTx.txHash, watchTx.index, resultData, uint64(resp.GasUsed))
-	} else {
-		w.saveFailedReceipts(watchTx, uint64(resp.GasUsed))
+		// save transactionReceipts
+		if resp.IsOK() && resultData != nil {
+			w.SaveTransactionReceipt(TransactionSuccess, evmTx, watchTx.GetTxHash(), watchTx.GetIndex(), resultData, uint64(resp.GasUsed))
+		} else {
+			w.saveFailedReceipts(watchTx, uint64(resp.GasUsed))
+		}
+	case sdk.StdTxType:
+		w.blockStdTxs = append(w.blockStdTxs, common.BytesToHash(realTx.TxHash()))
+		txResult := &ctypes.ResultTx{
+			Hash:     realTx.TxHash(),
+			Height:   int64(w.height),
+			TxResult: resp,
+			Tx:       realTx.GetRaw(),
+		}
+		w.saveStdTxResponse(txResult)
 	}
-
 }

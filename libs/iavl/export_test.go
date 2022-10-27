@@ -7,14 +7,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	db "github.com/okex/exchain/libs/tm-db"
 )
 
 // setupExportTreeBasic sets up a basic tree with a handful of
 // create/update/delete operations over a few versions.
 func setupExportTreeBasic(t require.TestingT) *ImmutableTree {
-	tree, err := NewMutableTree(db.NewMemDB(), 0)
+	tree, err := getTestTree(0)
 	require.NoError(t, err)
 
 	tree.Set([]byte("x"), []byte{255})
@@ -51,14 +49,14 @@ func setupExportTreeRandom(t *testing.T) *ImmutableTree {
 		keySize   = 16
 		valueSize = 16
 
-		versions    = 32   // number of versions to generate
-		versionOps  = 4096 // number of operations (create/update/delete) per version
+		versions    = 8    // number of versions to generate
+		versionOps  = 1024 // number of operations (create/update/delete) per version
 		updateRatio = 0.4  // ratio of updates out of all operations
 		deleteRatio = 0.2  // ratio of deletes out of all operations
 	)
 
 	r := rand.New(rand.NewSource(randSeed))
-	tree, err := NewMutableTree(db.NewMemDB(), 0)
+	tree, err := getTestTree(0)
 	require.NoError(t, err)
 
 	var version int64
@@ -116,7 +114,7 @@ func setupExportTreeSized(t require.TestingT, treeSize int) *ImmutableTree {
 	)
 
 	r := rand.New(rand.NewSource(randSeed))
-	tree, err := NewMutableTree(db.NewMemDB(), 0)
+	tree, err := getTestTree(0)
 	require.NoError(t, err)
 
 	for i := 0; i < treeSize; i++ {
@@ -170,8 +168,10 @@ func TestExporter(t *testing.T) {
 }
 
 func TestExporter_Import(t *testing.T) {
+	tree, err := getTestTree(0)
+	assert.NoError(t, err)
 	testcases := map[string]*ImmutableTree{
-		"empty tree": NewImmutableTree(db.NewMemDB(), 0),
+		"empty tree": tree.ImmutableTree,
 		"basic tree": setupExportTreeBasic(t),
 	}
 	if !testing.Short() {
@@ -187,7 +187,7 @@ func TestExporter_Import(t *testing.T) {
 			exporter := tree.Export()
 			defer exporter.Close()
 
-			newTree, err := NewMutableTree(db.NewMemDB(), 0)
+			newTree, err := getTestTree(0)
 			require.NoError(t, err)
 			importer, err := newTree.Import(tree.Version())
 			require.NoError(t, err)
@@ -210,8 +210,8 @@ func TestExporter_Import(t *testing.T) {
 			require.Equal(t, tree.Version(), newTree.Version(), "Tree version mismatch")
 
 			tree.Iterate(func(key, value []byte) bool {
-				index, _ := tree.Get(key)
-				newIndex, newValue := newTree.Get(key)
+				index, _ := tree.GetWithIndex(key)
+				newIndex, newValue := newTree.GetWithIndex(key)
 				require.Equal(t, index, newIndex, "Index mismatch for key %v", key)
 				require.Equal(t, value, newValue, "Value mismatch for key %v", key)
 				return false
@@ -244,8 +244,7 @@ func TestExporter_Close(t *testing.T) {
 }
 
 func TestExporter_DeleteVersionErrors(t *testing.T) {
-	tree, err := NewMutableTree(db.NewMemDB(), 0)
-	require.NoError(t, err)
+	tree, err := getTestTree(0)
 
 	tree.Set([]byte("a"), []byte{1})
 	_, _, _, err = tree.SaveVersion(false)
