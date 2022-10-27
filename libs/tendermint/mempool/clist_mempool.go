@@ -777,28 +777,30 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 		totalTradeGas   int64
 		totalTradeTxNum int64
 	)
-	mem.orderManager.TradeTxsMtx.Lock()
-	defer mem.orderManager.TradeTxsMtx.Unlock()
+	if mem.orderManager != nil {
+		mem.orderManager.TradeTxsMtx.Lock()
+		defer mem.orderManager.TradeTxsMtx.Unlock()
 
-	for ele := mem.orderManager.TradeTxs.Front(); ele != nil; ele = ele.Next() {
-		tx := ele.Value.(*ethtypes.Transaction)
-		txBz, err := tx.MarshalBinary()
-		if err != nil {
-			continue
+		for ele := mem.orderManager.TradeTxs.Front(); ele != nil; ele = ele.Next() {
+			tx := ele.Value.(*ethtypes.Transaction)
+			txBz, err := tx.MarshalBinary()
+			if err != nil {
+				continue
+			}
+			if maxTradeTxBytes > -1 && totalTradeBytes+int64(len(txBz)) > maxTradeTxBytes {
+				return txs
+			}
+			newTotalGas := totalTradeGas + int64(tx.Gas())
+			if maxTradeTxGas > -1 && newTotalGas > maxTradeTxGas {
+				break
+			}
+			if totalTradeTxNum >= int64(len(tradeTxs)) {
+				break
+			}
+			totalTradeTxNum++
+			totalTradeGas = newTotalGas
+			txs = append(txs, txBz)
 		}
-		if maxTradeTxBytes > -1 && totalTradeBytes+int64(len(txBz)) > maxTradeTxBytes {
-			return txs
-		}
-		newTotalGas := totalTradeGas + int64(tx.Gas())
-		if maxTradeTxGas > -1 && newTotalGas > maxTradeTxGas {
-			break
-		}
-		if totalTradeTxNum >= int64(len(tradeTxs)) {
-			break
-		}
-		totalTradeTxNum++
-		totalTradeGas = newTotalGas
-		txs = append(txs, txBz)
 	}
 
 	totalBytes = totalTradeBytes

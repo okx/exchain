@@ -5,6 +5,7 @@ package server
 import (
 	"os"
 	"runtime/pprof"
+	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	"github.com/okex/exchain/libs/tendermint/rpc/client"
@@ -182,9 +183,6 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyReso
 		return nil, err
 	}
 
-	registerDydxFn(tmNode)
-	// tmNode.Mempool().SetLocalPubSub(localclient.NewAPI(local.New(tmNode), tmNode.Logger))
-
 	app.SetOption(abci.RequestSetOption{
 		Key:   "CheckChainID",
 		Value: tmNode.ConsensusState().GetState().ChainID,
@@ -253,6 +251,13 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyReso
 
 	if parser, ok := app.(mempool.TxInfoParser); ok {
 		tmNode.Mempool().SetTxInfoParser(parser)
+	}
+
+	if registerDydxFn != nil {
+		go func() {
+			time.Sleep(1 * time.Second)
+			registerDydxFn(tmNode)
+		}()
 	}
 
 	// run forever (the node will not be returned)
