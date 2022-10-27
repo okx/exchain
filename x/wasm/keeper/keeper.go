@@ -203,25 +203,6 @@ func (k Keeper) IsContractMethodBlocked(ctx sdk.Context, contractAddr, method st
 }
 
 func (k Keeper) GetContractMethodBlockedList(ctx sdk.Context, contractAddr string) *types.ContractMethods {
-	//make sure ContractMethodBlockedList use cache can not cost gas
-	currentGasMeter := ctx.GasMeter()
-	infGasMeter := sdk.GetReusableInfiniteGasMeter()
-	ctx.SetGasMeter(infGasMeter)
-	defer func() {
-		ctx.SetGasMeter(currentGasMeter)
-		sdk.ReturnInfiniteGasMeter(infGasMeter)
-	}()
-	if ctx.UseParamCache() {
-		if GetWasmParamsCache().IsNeedBlockedUpdate() {
-			cms := k.getAllBlockedList(ctx)
-			if !ctx.IsCheckTx() {
-				GetWasmParamsCache().UpdateBlockedContractMethod(cms)
-			}
-			return types.FindContractMethods(cms, contractAddr)
-		}
-		return GetWasmParamsCache().GetBlockedContractMethod(contractAddr)
-	}
-
 	return k.getContractMethodBlockedList(ctx, contractAddr)
 }
 
@@ -294,26 +275,7 @@ func (k Keeper) getInstantiateAccessConfig(ctx sdk.Context) types.AccessType {
 
 // GetParams returns the total set of wasm parameters.
 func (k Keeper) GetParams(ctx sdk.Context) types.Params {
-	//make sure GetParams use cache can not cost gas
-	currentGasMeter := ctx.GasMeter()
-	infGasMeter := sdk.GetReusableInfiniteGasMeter()
-	ctx.SetGasMeter(infGasMeter)
-	defer func() {
-		ctx.SetGasMeter(currentGasMeter)
-		sdk.ReturnInfiniteGasMeter(infGasMeter)
-	}()
-
 	var params types.Params
-	if ctx.UseParamCache() {
-		if GetWasmParamsCache().IsNeedParamsUpdate() {
-			k.paramSpace.GetParamSet(ctx, &params)
-			if !ctx.IsCheckTx() {
-				GetWasmParamsCache().UpdateParams(params)
-			}
-			return params
-		}
-		return GetWasmParamsCache().GetParams()
-	}
 	k.paramSpace.GetParamSet(ctx, &params)
 	return params
 }
