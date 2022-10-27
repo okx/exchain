@@ -3,6 +3,7 @@ package watcher
 import (
 	"encoding/hex"
 	"fmt"
+	syslog "log"
 	"math/big"
 	"sync"
 
@@ -609,9 +610,11 @@ func (w *Watcher) jobRoutine() {
 	}
 
 	w.lazyInitialization()
+	syslog.Println("lcm watcher job init")
 	for job := range w.jobChan {
 		job()
 	}
+	syslog.Println("lcm watcher job done")
 	w.jobDone.Done()
 }
 
@@ -627,8 +630,11 @@ func (w *Watcher) Stop() {
 	if !w.Enabled() {
 		return
 	}
+	syslog.Println("lcm watcher job channel close")
 	close(w.jobChan)
+	syslog.Println("lcm watcher job finish wait")
 	w.jobDone.Wait()
+	syslog.Println("lcm watcher job finished")
 }
 func (w *Watcher) dispatchJob(f func()) {
 	// if jobRoutine were too slow to write data  to disk
