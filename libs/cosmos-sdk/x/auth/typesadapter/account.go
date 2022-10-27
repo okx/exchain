@@ -8,7 +8,6 @@ import (
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	cryptotypes "github.com/okex/exchain/libs/cosmos-sdk/crypto/types"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"gopkg.in/yaml.v2"
 )
 
 // NewBaseAccountWithAddress - returns a new base account with a given address
@@ -91,9 +90,4 @@ func (acc *BaseAccount) SetPubKey(pubKey cryptotypes.PubKey) error {
 		acc.PubKey = any
 	}
 	return err
-}
-
-func (this *Params) String() string {
-	out, _ := yaml.Marshal(this)
-	return string(out)
 }

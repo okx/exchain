@@ -20,5 +20,5 @@ func MsgNotSupportBeforeHeight(msg proto.Message, h int64) error {
 	if types.HigherThanVenus4(h) {
 		return nil
 	}
-	return errors.New(fmt.Sprintf("msg:%s not support before height:%d", sdk.MsgTypeURL(msg), types.GetVenus3Height()))
+	return errors.New(fmt.Sprintf("msg:%s not support before height:%d", sdk.MsgTypeURL(msg), types.GetVenus4Height()))
 }
