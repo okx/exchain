@@ -93,7 +93,7 @@ func NewMatchEngine(depthBook *DepthBook, config DydxConfig, handler LogHandler,
 		common.HexToAddress(config.P1MakerOracleAddress),
 		common.HexToAddress(config.P1MarginAddress),
 		txOps,
-		engine.ethCli,
+		engine.httpCli,
 	)
 
 	if handler != nil {
