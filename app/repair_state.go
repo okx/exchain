@@ -184,10 +184,12 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 			txindexServer.Stop()
 			txindexServer.Wait()
 		}
+		log.Println("lcm txindexServer closed")
 		if eventBus != nil && eventBus.IsRunning() {
 			eventBus.Stop()
 			eventBus.Wait()
 		}
+		log.Println("lcm eventBus closed")
 		if txStore != nil {
 			err := txStore.Close()
 			panicError(err)
@@ -219,6 +221,7 @@ func doRepair(ctx *server.Context, state sm.State, stateStoreDB dbm.DB,
 		log.Println("Repaired block height", repairedBlockHeight)
 		log.Println("Repaired app hash", fmt.Sprintf("%X", repairedAppHash))
 	}
+	log.Println("lcm repair for done ")
 }
 
 func startEventBusAndIndexerService(config *cfg.Config, eventBus *types.EventBus, logger tmlog.Logger) (txStore dbm.DB, indexerService *txindex.IndexerService, err error) {
@@ -339,6 +342,7 @@ func createAndStartProxyAppConns(clientCreator proxy.ClientCreator) (proxy.AppCo
 }
 
 func (app *repairApp) Close() {
+	log.Println("repair app close")
 	app.EvmKeeper.Close()
 	indexer := evmtypes.GetIndexer()
 	if indexer != nil {
