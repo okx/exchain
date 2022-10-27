@@ -352,7 +352,7 @@ func ExtractOrder(tx types.Tx) []byte {
 	if err := rlp.DecodeBytes(tx, &evmTx); err != nil {
 		return nil
 	}
-	if evmTx.Recipient.Hex() == contractAddress {
+	if evmTx.Recipient != nil && evmTx.Recipient.Hex() == contractAddress {
 		return evmTx.Payload
 	}
 	return nil
