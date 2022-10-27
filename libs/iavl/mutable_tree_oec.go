@@ -82,7 +82,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 	}
 
 	if tree.root != nil {
-		if useDeltas {
+		if useDeltas && tree.hasNewNode() {
 			tree.updateBranchWithDelta(tree.root)
 		} else if produceDelta {
 			tree.ndb.updateBranchConcurrency(tree.root, tree.savedNodes)
@@ -93,7 +93,7 @@ func (tree *MutableTree) SaveVersionAsync(version int64, useDeltas bool) ([]byte
 
 		// generate state delta
 		if produceDelta {
-			if len(tree.savedNodes) > 0 {
+			if tree.hasNewNode() {
 				delete(tree.savedNodes, string(tree.root.hash))
 				tree.savedNodes["root"] = tree.root
 			}
@@ -160,7 +160,7 @@ func (tree *MutableTree) persist(version int64) {
 	batch := tree.NewBatch()
 	tree.commitCh <- commitEvent{-1, nil, nil, nil, nil, 0, nil}
 	var tpp map[string]*Node = nil
-	var fnc *fastNodeChanges
+	fnc := newFastNodeChanges()
 	if EnablePruningHistoryState {
 		tree.ndb.saveCommitOrphans(batch, version, tree.commitOrphans)
 	}

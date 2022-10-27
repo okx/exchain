@@ -111,6 +111,30 @@ func ErrBlockedContractMethodIsNotExist(address sdk.Address, err error) sdk.Enve
 	}
 }
 
+func ErrSysContractAddressIsNotExist(err error) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{
+		Err: sdkerrors.New(
+			DefaultParamspace,
+			21,
+			fmt.Sprintf("failed. the system contract address is not exist: %s", err.Error()),
+		),
+	}
+}
+
+func ErrNotContracAddress(err error) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{
+		Err: sdkerrors.New(
+			DefaultParamspace,
+			22,
+			fmt.Sprintf("failed. the address is not a contract address: %s", err.Error()),
+		),
+	}
+}
+
+func ErrCodeProposerMustBeValidator() sdk.Error {
+	return sdkerrors.New(DefaultCodespace, 23, "the proposal of proposer must be validator")
+}
+
 type ErrContractBlockedVerify struct {
 	Descriptor string
 }
