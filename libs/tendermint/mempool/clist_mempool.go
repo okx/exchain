@@ -11,6 +11,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/okex/exchain/app/rpc/localclient"
+
 	"github.com/VictoriaMetrics/fastcache"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/exchain/libs/system/trace"
@@ -122,7 +124,6 @@ func NewCListMempool(
 		logger:        log.NewNopLogger(),
 		metrics:       NopMetrics(),
 		txs:           txQueue,
-		orderManager:  dydx.NewOrderManager(true),
 	}
 
 	if config.CacheSize > 0 {
@@ -153,6 +154,10 @@ func (mem *CListMempool) EnableTxsAvailable() {
 // SetLogger sets the Logger.
 func (mem *CListMempool) SetEventBus(eventBus types.TxEventPublisher) {
 	mem.eventBus = eventBus
+}
+
+func (mem *CListMempool) SetLocalPubSub(api *localclient.PubSubAPI) {
+	mem.orderManager = dydx.NewOrderManager(api, true)
 }
 
 // SetLogger sets the Logger.

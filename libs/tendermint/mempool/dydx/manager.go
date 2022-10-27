@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/okex/exchain/app/rpc/localclient"
+
 	ethcmm "github.com/ethereum/go-ethereum/common"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -46,7 +48,7 @@ type OrderManager struct {
 	TradeTxsMtx sync.Mutex
 }
 
-func NewOrderManager(doMatch bool) *OrderManager {
+func NewOrderManager(api *localclient.PubSubAPI, doMatch bool) *OrderManager {
 	manager := &OrderManager{
 		orders:      clist.New(),
 		book:        NewDepthBook(),
@@ -67,7 +69,7 @@ func NewOrderManager(doMatch bool) *OrderManager {
 	}
 
 	if doMatch {
-		me, err := NewMatchEngine(manager.book, config, nil, log.NewTMLogger(os.Stdout))
+		me, err := NewMatchEngine(api, manager.book, config, nil, log.NewTMLogger(os.Stdout))
 		if err != nil {
 			panic(err)
 		}

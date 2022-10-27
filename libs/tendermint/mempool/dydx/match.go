@@ -8,6 +8,10 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ethereum/go-ethereum/rpc"
+
+	"github.com/okex/exchain/app/rpc/localclient"
+
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -35,6 +39,9 @@ type MatchEngine struct {
 
 	sub ethereum.Subscription
 
+	pubsub   *localclient.PubSubAPI
+	pubsubID string
+
 	logger log.Logger
 }
 
@@ -55,11 +62,12 @@ type LogHandler interface {
 	SubErr(error)
 }
 
-func NewMatchEngine(depthBook *DepthBook, config DydxConfig, handler LogHandler, logger log.Logger) (*MatchEngine, error) {
+func NewMatchEngine(api *localclient.PubSubAPI, depthBook *DepthBook, config DydxConfig, handler LogHandler, logger log.Logger) (*MatchEngine, error) {
 	var engine = &MatchEngine{
 		depthBook: depthBook,
 		config:    config,
 		logger:    logger,
+		pubsub:    api,
 	}
 	if engine.logger == nil {
 		engine.logger = log.NewNopLogger()
@@ -110,25 +118,43 @@ func NewMatchEngine(depthBook *DepthBook, config DydxConfig, handler LogHandler,
 				{ordersAbi.Events["LogOrderFilled"].ID},
 			},
 		}
-		ch := make(chan ethtypes.Log, 32)
-		engine.sub, err = engine.ethCli.SubscribeFilterLogs(context.Background(), query, ch)
-		if err != nil {
-			return nil, fmt.Errorf("failed to subscribe filter logs, err: %w", err)
-		}
 
-		go func() {
-			for {
-				select {
-				case err := <-engine.sub.Err():
-					handler.SubErr(err)
-				case log := <-ch:
-					filledLog, err := engine.contracts.P1Orders.ParseLogOrderFilled(log)
+		if api != nil {
+			ch := make(chan *ethtypes.Log, 32)
+			id, err := api.SubscribeLogs(ch, query)
+			if err != nil {
+				return nil, fmt.Errorf("failed to subscribe local logs, err: %w", err)
+			}
+			engine.pubsubID = string(id)
+			go func() {
+				for log := range ch {
+					filledLog, err := engine.contracts.P1Orders.ParseLogOrderFilled(*log)
 					if err == nil {
 						handler.HandleOrderFilled(filledLog)
 					}
 				}
+			}()
+		} else {
+			ch := make(chan ethtypes.Log, 32)
+			engine.sub, err = engine.ethCli.SubscribeFilterLogs(context.Background(), query, ch)
+			if err != nil {
+				return nil, fmt.Errorf("failed to subscribe filter logs, err: %w", err)
 			}
-		}()
+
+			go func() {
+				for {
+					select {
+					case err := <-engine.sub.Err():
+						handler.SubErr(err)
+					case log := <-ch:
+						filledLog, err := engine.contracts.P1Orders.ParseLogOrderFilled(log)
+						if err == nil {
+							handler.HandleOrderFilled(filledLog)
+						}
+					}
+				}
+			}()
+		}
 	}
 
 	return engine, nil
@@ -159,6 +185,9 @@ type MatchRecord struct {
 func (m *MatchEngine) Stop() {
 	if m.sub != nil {
 		m.sub.Unsubscribe()
+	}
+	if m.pubsubID != "" {
+		m.pubsub.Unsubscribe(rpc.ID(m.pubsubID))
 	}
 }
 

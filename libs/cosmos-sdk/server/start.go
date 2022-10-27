@@ -6,6 +6,8 @@ import (
 	"os"
 	"runtime/pprof"
 
+	"github.com/okex/exchain/app/rpc/localclient"
+
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	"github.com/okex/exchain/libs/tendermint/rpc/client"
 
@@ -180,6 +182,8 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyReso
 	if err != nil {
 		return nil, err
 	}
+
+	tmNode.Mempool().SetLocalPubSub(localclient.NewAPI(local.New(tmNode), tmNode.Logger))
 
 	app.SetOption(abci.RequestSetOption{
 		Key:   "CheckChainID",

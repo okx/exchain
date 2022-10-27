@@ -4,6 +4,8 @@ import (
 	"crypto/sha256"
 	"fmt"
 
+	"github.com/okex/exchain/app/rpc/localclient"
+
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/p2p"
@@ -81,6 +83,8 @@ type Mempool interface {
 	TxsBytes() int64
 
 	SetEventBus(eventBus types.TxEventPublisher)
+
+	SetLocalPubSub(*localclient.PubSubAPI)
 
 	GetConfig() *cfg.MempoolConfig
 	GetTxByHash(hash [sha256.Size]byte) (types.Tx, error)

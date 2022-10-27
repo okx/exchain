@@ -16,6 +16,7 @@ import (
 
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	rpcfilters "github.com/okex/exchain/app/rpc/namespaces/eth/filters"
+	rpcclient "github.com/okex/exchain/libs/tendermint/rpc/client"
 	evmtypes "github.com/okex/exchain/x/evm/types"
 )
 
@@ -29,10 +30,9 @@ type PubSubAPI struct {
 }
 
 // NewAPI creates an instance of the ethereum PubSub API.
-func NewAPI(clientCtx context.CLIContext, log log.Logger) *PubSubAPI {
+func NewAPI(client rpcclient.Client, log log.Logger) *PubSubAPI {
 	return &PubSubAPI{
-		clientCtx: clientCtx,
-		events:    rpcfilters.NewEventSystem(clientCtx.Client),
+		events:    rpcfilters.NewEventSystem(client),
 		filtersMu: new(sync.RWMutex),
 		filters:   make(map[rpc.ID]*localSubscription),
 		logger:    log.With("module", "local-client-pubsub"),
@@ -56,7 +56,7 @@ func (api *PubSubAPI) Unsubscribe(id rpc.ID) bool {
 	return true
 }
 
-func (api *PubSubAPI) SubscribeLogs(conn chan *ethtypes.Log, query ethereum.FilterQuery) (rpc.ID, error) {
+func (api *PubSubAPI) SubscribeLogs(conn chan<- *ethtypes.Log, query ethereum.FilterQuery) (rpc.ID, error) {
 	crit := filters.FilterCriteria{
 		Addresses: query.Addresses,
 		Topics:    query.Topics,
@@ -151,5 +151,5 @@ func (api *PubSubAPI) SubscribeLogs(conn chan *ethtypes.Log, query ethereum.Filt
 type localSubscription struct {
 	sub          *rpcfilters.Subscription
 	unsubscribed chan struct{} // closed when unsubscribing
-	conn         chan *ethtypes.Log
+	conn         chan<- *ethtypes.Log
 }
