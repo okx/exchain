@@ -27,7 +27,7 @@ func (suite *KeeperTestSuite) TestKeeper_SendToWasm() {
 	reset := func() {
 		caller = sdk.AccAddress(contract.Bytes())
 		wasmContractAddr = suite.wasmContract.String()
-		recipient = ethAddr.String()
+		recipient = sdk.AccAddress(ethAddr.Bytes()).String()
 		amount = sdk.NewInt(1)
 	}
 	testCases := []struct {
@@ -62,6 +62,19 @@ func (suite *KeeperTestSuite) TestKeeper_SendToWasm() {
 			nil,
 		},
 		{
+			"recipient is 0x",
+			func() {
+				recipient = ethAddr.String()
+			},
+			func() {
+				queryAddr := sdk.AccAddress(ethAddr.Bytes())
+				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, suite.wasmContract, []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
+				suite.Require().NoError(err)
+				suite.Require().Equal("{\"balance\":\"1\"}", string(result))
+			},
+			types.ErrIsNotOKCAddr,
+		},
+		{
 			"recipient is wasmaddr",
 			func() {
 				recipient = sdk.AccAddress(make([]byte, 32)).String()
@@ -73,6 +86,19 @@ func (suite *KeeperTestSuite) TestKeeper_SendToWasm() {
 				suite.Require().Equal("{\"balance\":\"1\"}", string(result))
 			},
 			nil,
+		},
+		{
+			"recipient is wasmaddr 0x",
+			func() {
+				recipient = "0x" + hex.EncodeToString(make([]byte, 32))
+			},
+			func() {
+				queryAddr := sdk.AccAddress(make([]byte, 32))
+				result, err := suite.app.WasmKeeper.QuerySmart(suite.ctx, suite.wasmContract, []byte(fmt.Sprintf("{\"balance\":{\"address\":\"%s\"}}", queryAddr.String())))
+				suite.Require().NoError(err)
+				suite.Require().Equal("{\"balance\":\"1\"}", string(result))
+			},
+			types.ErrIsNotOKCAddr,
 		},
 		{
 			"normal topic,amount is zero",
@@ -159,7 +185,7 @@ func (suite *KeeperTestSuite) TestMsgServer_SendToEvmEvent() {
 	reset := func() {
 		caller = suite.wasmContract.String()
 		contract = suite.evmContract.String()
-		recipient = sdk.AccAddress(common.BigToAddress(big.NewInt(1)).Bytes()).String()
+		recipient = common.BigToAddress(big.NewInt(1)).String()
 		amount = sdk.NewInt(1)
 	}
 	testCases := []struct {
@@ -196,7 +222,7 @@ func (suite *KeeperTestSuite) TestMsgServer_SendToEvmEvent() {
 				balance := suite.queryBalance(common.BytesToAddress(aimAddr.Bytes()))
 				suite.Require().Equal(amount.Int64(), balance.Int64())
 			},
-			nil,
+			sdkerrors.Wrap(types.ErrEvmExecuteFailed, types.ErrIsNotETHAddr.Error()),
 			true,
 		},
 		{
@@ -212,13 +238,16 @@ func (suite *KeeperTestSuite) TestMsgServer_SendToEvmEvent() {
 				balance := suite.queryBalance(common.BytesToAddress(aimAddr.Bytes()))
 				suite.Require().Equal(amount.Int64(), balance.Int64())
 			},
-			nil,
+			sdkerrors.Wrap(types.ErrEvmExecuteFailed, types.ErrIsNotETHAddr.Error()),
 			true,
 		},
 		{
 			"caller(ex wasm),contract(0x),recipient(ex),amount(0)",
 			func() {
 				amount = sdk.NewInt(0)
+				temp, err := sdk.AccAddressFromBech32(recipient)
+				suite.Require().NoError(err)
+				recipient = temp.String()
 			},
 			func() {
 				aimAddr, err := sdk.AccAddressFromBech32(recipient)
@@ -226,11 +255,11 @@ func (suite *KeeperTestSuite) TestMsgServer_SendToEvmEvent() {
 				balance := suite.queryBalance(common.BytesToAddress(aimAddr.Bytes()))
 				suite.Require().Equal(amount.Int64(), balance.Int64())
 			},
-			nil,
+			sdkerrors.Wrap(types.ErrEvmExecuteFailed, types.ErrIsNotETHAddr.Error()),
 			true,
 		},
 		{
-			"caller(ex wasm),contract(0x),recipient(ex),amount(-1)",
+			"caller(ex wasm),contract(0x),recipient(0x),amount(-1)",
 			func() {
 				amount = sdk.NewInt(-1)
 			},
@@ -241,11 +270,12 @@ func (suite *KeeperTestSuite) TestMsgServer_SendToEvmEvent() {
 			true,
 		},
 		{
-			"caller(ex wasm),contract(0x),recipient(ex wasm),amount(1)", // recipent is not wasm addr but is check in SendToEvmEvent Check.
+			"caller(ex wasm),contract(0x),recipient(0x wasm),amount(1)", // recipent is not wasm addr but is check in SendToEvmEvent Check.
 			func() {
 				buffer := make([]byte, 32)
 				buffer[31] = 0x1
-				recipient = sdk.AccAddress(buffer).String()
+
+				recipient = "0x" + hex.EncodeToString(buffer)
 			},
 			func() {
 				aimAddr, err := sdk.AccAddressFromBech32(recipient)
@@ -253,7 +283,7 @@ func (suite *KeeperTestSuite) TestMsgServer_SendToEvmEvent() {
 				balance := suite.queryBalance(common.BytesToAddress(aimAddr.Bytes()))
 				suite.Require().Equal(amount.Int64(), balance.Int64())
 			},
-			nil,
+			nil, // This case is checkout in msg.validateBasic. so this case pass
 			//errors.New("[\"execution reverted\",\"execution reverted:ERC20: mint to the zero address\",\"HexData\",\"0x08c379a00000000000000000000000000000000000000000000000000000000000000020000000000000000000000000000000000000000000000000000000000000001f45524332303a206d696e7420746f20746865207a65726f206164647265737300\"]"),
 			true,
 		},
@@ -262,7 +292,7 @@ func (suite *KeeperTestSuite) TestMsgServer_SendToEvmEvent() {
 			func() {
 				buffer := make([]byte, 32)
 				buffer[31] = 0x1
-				contract = sdk.AccAddress(buffer).String()
+				contract = "0x" + hex.EncodeToString(buffer)
 			},
 			func() {
 			},
@@ -270,7 +300,7 @@ func (suite *KeeperTestSuite) TestMsgServer_SendToEvmEvent() {
 			true,
 		},
 		{
-			"caller(ex nowasm),contract(ex),recipient(0x),amount(1)",
+			"caller(ex nowasm),contract(0x),recipient(0x),amount(1)",
 			func() {
 				buffer := make([]byte, 20)
 				buffer[19] = 0x1
@@ -282,7 +312,7 @@ func (suite *KeeperTestSuite) TestMsgServer_SendToEvmEvent() {
 			true,
 		},
 		{
-			"caller(ex wasm is no exist in erc20 contrat),contract(ex),recipient(0x),amount(1)",
+			"caller(ex wasm is no exist in erc20 contrat),contract(0x),recipient(0x),amount(1)",
 			func() {
 				buffer := make([]byte, 32)
 				buffer[19] = 0x1
@@ -294,7 +324,7 @@ func (suite *KeeperTestSuite) TestMsgServer_SendToEvmEvent() {
 			true,
 		},
 		{
-			"caller(0x wasm),contract(0x),recipient(ex),amount(1)",
+			"caller(0x wasm),contract(0x),recipient(0x),amount(1)",
 			func() {
 				wasmAddr, err := sdk.AccAddressFromBech32(caller)
 				suite.Require().NoError(err)

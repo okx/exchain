@@ -26,7 +26,7 @@ func (suite *KeeperTestSuite) TestKeeper_SendToEvm() {
 	reset := func() {
 		caller = suite.wasmContract.String()
 		contract = suite.evmContract.String()
-		recipient = sdk.AccAddress(common.BigToAddress(big.NewInt(1)).Bytes()).String()
+		recipient = common.BigToAddress(big.NewInt(1)).String()
 		amount = sdk.NewInt(1)
 	}
 	testCases := []struct {
@@ -63,7 +63,7 @@ func (suite *KeeperTestSuite) TestKeeper_SendToEvm() {
 				balance := suite.queryBalance(common.BytesToAddress(aimAddr.Bytes()))
 				suite.Require().Equal(amount.Int64(), balance.Int64())
 			},
-			nil,
+			types.ErrIsNotETHAddr,
 			true,
 		},
 		{
@@ -79,11 +79,11 @@ func (suite *KeeperTestSuite) TestKeeper_SendToEvm() {
 				balance := suite.queryBalance(common.BytesToAddress(aimAddr.Bytes()))
 				suite.Require().Equal(amount.Int64(), balance.Int64())
 			},
-			nil,
+			types.ErrIsNotETHAddr,
 			true,
 		},
 		{
-			"caller(ex wasm),contract(0x),recipient(ex),amount(0)",
+			"caller(ex wasm),contract(0x),recipient(0x),amount(0)",
 			func() {
 				amount = sdk.NewInt(0)
 			},
@@ -97,7 +97,7 @@ func (suite *KeeperTestSuite) TestKeeper_SendToEvm() {
 			true,
 		},
 		{
-			"caller(ex wasm),contract(0x),recipient(ex),amount(-1)",
+			"caller(ex wasm),contract(0x),recipient(0x),amount(-1)",
 			func() {
 				amount = sdk.NewInt(-1)
 			},
@@ -108,11 +108,11 @@ func (suite *KeeperTestSuite) TestKeeper_SendToEvm() {
 			true,
 		},
 		{
-			"caller(ex wasm),contract(0x),recipient(ex wasm),amount(1)", // recipent is not wasm addr but is check in SendToEvmEvent Check.
+			"caller(ex wasm),contract(0x),recipient(0x wasm),amount(1)", // recipent is not wasm addr but is check in SendToEvmEvent Check.
 			func() {
 				buffer := make([]byte, 32)
 				buffer[31] = 0x1
-				recipient = sdk.AccAddress(buffer).String()
+				recipient = "0x" + hex.EncodeToString(buffer)
 			},
 			func() {
 				aimAddr, err := sdk.AccAddressFromBech32(recipient)
@@ -125,11 +125,11 @@ func (suite *KeeperTestSuite) TestKeeper_SendToEvm() {
 			true,
 		},
 		{
-			"caller(ex wasm),contract(ex wasm),recipient(0x),amount(1)",
+			"caller(ex wasm),contract(0x wasm),recipient(0x),amount(1)",
 			func() {
 				buffer := make([]byte, 32)
 				buffer[31] = 0x1
-				contract = sdk.AccAddress(buffer).String()
+				contract = "0x" + hex.EncodeToString(buffer)
 			},
 			func() {
 			},
@@ -137,7 +137,7 @@ func (suite *KeeperTestSuite) TestKeeper_SendToEvm() {
 			true,
 		},
 		{
-			"caller(ex nowasm),contract(ex),recipient(0x),amount(1)",
+			"caller(ex nowasm),contract(0x),recipient(0x),amount(1)",
 			func() {
 				buffer := make([]byte, 20)
 				buffer[19] = 0x1
@@ -221,7 +221,7 @@ func (suite *KeeperTestSuite) TestSendToWasmEventHandler_Handle() {
 				suite.Require().NoError(err)
 				suite.Require().Equal("{\"balance\":\"1\"}", string(result))
 			},
-			nil,
+			types.ErrIsNotOKCAddr,
 		},
 		{
 			"normal topic,recipient is ex",
@@ -270,7 +270,7 @@ func (suite *KeeperTestSuite) TestSendToWasmEventHandler_Handle() {
 			"wasmAddStr is not wasm",
 			func() {
 				wasmAddrStr := sdk.AccAddress(make([]byte, 20)).String()
-				input, err := getSendToWasmEventData(wasmAddrStr, ethAddr.String(), big.NewInt(1))
+				input, err := getSendToWasmEventData(wasmAddrStr, sdk.AccAddress(ethAddr.Bytes()).String(), big.NewInt(1))
 				suite.Require().NoError(err)
 				data = input
 			},
@@ -282,7 +282,7 @@ func (suite *KeeperTestSuite) TestSendToWasmEventHandler_Handle() {
 			"wasmAddStr is not exist",
 			func() {
 				wasmAddrStr := sdk.AccAddress(make([]byte, 32)).String()
-				input, err := getSendToWasmEventData(wasmAddrStr, ethAddr.String(), big.NewInt(1))
+				input, err := getSendToWasmEventData(wasmAddrStr, sdk.AccAddress(ethAddr.Bytes()).String(), big.NewInt(1))
 				suite.Require().NoError(err)
 				data = input
 			},
@@ -307,7 +307,7 @@ func (suite *KeeperTestSuite) TestSendToWasmEventHandler_Handle() {
 			func() {
 				contract = common.BigToAddress(big.NewInt(1000))
 				wasmAddrStr := suite.wasmContract.String()
-				input, err := getSendToWasmEventData(wasmAddrStr, ethAddr.String(), big.NewInt(1))
+				input, err := getSendToWasmEventData(wasmAddrStr, sdk.AccAddress(ethAddr.Bytes()).String(), big.NewInt(1))
 				suite.Require().NoError(err)
 				data = input
 			},

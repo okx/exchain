@@ -17,4 +17,6 @@ var (
 	ErrEvmExecuteFailed = sdkerrors.Register(ModuleName, 7, "the evm execute")
 
 	ErrVMBridgeEnable = sdkerrors.Register(ModuleName, 8, "the vmbridge is disable")
+	ErrIsNotOKCAddr   = sdkerrors.Register(ModuleName, 9, "the recipient must be okc address")
+	ErrIsNotETHAddr   = sdkerrors.Register(ModuleName, 10, "the recipient must be eth address")
 )

@@ -57,6 +57,14 @@ func (h SendToWasmEventHandler) Handle(ctx sdk.Context, contract common.Address,
 
 // wasm call evm for erc20 exchange cw20,
 func (k Keeper) SendToEvm(ctx sdk.Context, caller, contract string, recipient string, amount sdk.Int) (success bool, err error) {
+	if !sdk.IsETHAddress(recipient) {
+		return false, types.ErrIsNotETHAddr
+	}
+
+	if !sdk.IsETHAddress(contract) {
+		return false, types.ErrIsNotETHAddr
+	}
+
 	contractAccAddr, err := sdk.AccAddressFromBech32(contract)
 	if err != nil {
 		return false, err
