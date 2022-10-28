@@ -7,6 +7,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/okex/exchain/libs/tendermint/global"
+
 	ethcmm "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
@@ -159,6 +161,9 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 	if d == nil {
 		return
 	}
+	if !types.HigherThanVenus(global.GetGlobalHeight()) {
+		return
+	}
 	d.TradeTxsMtx.Lock()
 	defer d.TradeTxsMtx.Unlock()
 
@@ -196,4 +201,22 @@ func (d *OrderManager) TxsLen() int {
 	d.TradeTxsMtx.Lock()
 	defer d.TradeTxsMtx.Unlock()
 	return d.TradeTxs.Len()
+}
+
+func (d *OrderManager) RemoveTradeTx(txhash []byte) *ethtypes.Transaction {
+	if d == nil {
+		return nil
+	}
+	if !types.HigherThanVenus(global.GetGlobalHeight()) {
+		return nil
+	}
+	d.TradeTxsMtx.Lock()
+	defer d.TradeTxsMtx.Unlock()
+	ele, ok := d.TradeTxsMap[ethcmm.BytesToHash(txhash)]
+	if !ok {
+		return nil
+	}
+	tx := d.TradeTxs.Remove(ele).(*ethtypes.Transaction)
+	delete(d.TradeTxsMap, ethcmm.BytesToHash(txhash))
+	return tx
 }

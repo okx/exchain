@@ -1039,7 +1039,11 @@ func (mem *CListMempool) cleanTx(height int64, tx types.Tx, txCode uint32) *clis
 	// Mempool after:
 	//   100
 	// https://github.com/tendermint/tendermint/issues/3322.
-	return mem.removeTxByKey(txKey)
+	ele := mem.removeTxByKey(txKey)
+	if ele == nil {
+		_ = mem.orderManager.RemoveTradeTx(txHash)
+	}
+	return ele
 }
 
 func (mem *CListMempool) updateSealed(height int64, txs types.Txs, deliverTxResponses []*abci.ResponseDeliverTx) error {
