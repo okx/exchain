@@ -33,7 +33,7 @@ func FormatClientIdentifier(clientType string, sequence uint64) string {
 
 // IsClientIDFormat checks if a clientID is in the format required on the SDK for
 // parsing client identifiers. The client identifier must be in the form: `{client-type}-{N}
-var IsClientIDFormat = regexp.MustCompile(`^.*[^-]-[0-9]{1,20}$`).MatchString
+var IsClientIDFormat = regexp.MustCompile(`^.*[^\n-]-[0-9]{1,20}$`).MatchString
 
 // ParseClientIdentifier parses the client type and sequence from the client identifier.
 func ParseClientIdentifier(clientID string) (string, uint64, error) {
