@@ -3,6 +3,7 @@
 package rest
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -406,7 +407,7 @@ func CheckError(w http.ResponseWriter, status int, err error) bool {
 	return false
 }
 
-func ParseGRPCPageRequest(r *http.Request) (pr *query.PageRequest, err error) {
+func ParseGRPCWasmPageRequest(r *http.Request) (pr *query.PageRequest, err error) {
 	var page int
 	pageStr := r.FormValue("page")
 	if pageStr == "" {
@@ -465,9 +466,16 @@ func ParseGRPCPageRequest(r *http.Request) (pr *query.PageRequest, err error) {
 		}
 	}
 
-	key := r.FormValue("key")
+	var pageKey []byte
+	encodedPageKey := r.FormValue("page_key")
+	// Wasm encodes pageKey to base64 in its marshaller, so pageKey needs to be decoded.
+	pageKey, err = base64.StdEncoding.DecodeString(encodedPageKey)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, err.Error())
+	}
+	git
 	return &query.PageRequest{
-		Key:        []byte(key),
+		Key:        pageKey,
 		Offset:     uint64(offset),
 		Limit:      uint64(limit),
 		CountTotal: countTotal,

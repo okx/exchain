@@ -38,7 +38,7 @@ func listCodesHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 			return
 		}
 		queryClient := types.NewQueryClient(cliCtx)
-		pageReq, err := rest.ParseGRPCPageRequest(r)
+		pageReq, err := rest.ParseGRPCWasmPageRequest(r)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
@@ -120,7 +120,7 @@ func listContractsByCodeHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc 
 		}
 
 		queryClient := types.NewQueryClient(cliCtx)
-		pageReq, err := rest.ParseGRPCPageRequest(r)
+		pageReq, err := rest.ParseGRPCWasmPageRequest(r)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
@@ -194,7 +194,7 @@ func queryContractStateAllHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFun
 		}
 
 		queryClient := types.NewQueryClient(cliCtx)
-		pageReq, err := rest.ParseGRPCPageRequest(r)
+		pageReq, err := rest.ParseGRPCWasmPageRequest(r)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
@@ -314,7 +314,7 @@ func queryContractHistoryFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 		}
 
 		queryClient := types.NewQueryClient(cliCtx)
-		pageReq, err := rest.ParseGRPCPageRequest(r)
+		pageReq, err := rest.ParseGRPCWasmPageRequest(r)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
