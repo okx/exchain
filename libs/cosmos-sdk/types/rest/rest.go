@@ -473,7 +473,7 @@ func ParseGRPCWasmPageRequest(r *http.Request) (pr *query.PageRequest, err error
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, err.Error())
 	}
-	git
+
 	return &query.PageRequest{
 		Key:        pageKey,
 		Offset:     uint64(offset),
