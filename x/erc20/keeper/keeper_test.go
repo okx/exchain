@@ -146,6 +146,31 @@ func (suite *KeeperTestSuite) TestDenomContractMap() {
 				suite.Require().Error(err)
 			},
 		},
+		{
+			"success, delete contract",
+			func() {
+				keeper := suite.app.Erc20Keeper
+				r := keeper.DeleteContractForDenom(suite.ctx, denom1)
+				suite.Require().Equal(r, false)
+				err := keeper.SetContractForDenom(suite.ctx, denom1, externalContract)
+				suite.Require().NoError(err)
+				r = keeper.DeleteContractForDenom(suite.ctx, denom1)
+				suite.Require().Equal(r, true)
+			},
+		},
+		{
+			"success, get contracts",
+			func() {
+				keeper := suite.app.Erc20Keeper
+				err := keeper.SetContractForDenom(suite.ctx, denom1, autoContract)
+				suite.Require().NoError(err)
+				err = keeper.SetContractForDenom(suite.ctx, denom2, externalContract)
+				suite.Require().NoError(err)
+				out := keeper.GetContracts(suite.ctx)
+				suite.Require().Equal(out[0].Contract, autoContract.String())
+				suite.Require().Equal(out[1].Contract, externalContract.String())
+			},
+		},
 	}
 
 	for _, tc := range testCases {
