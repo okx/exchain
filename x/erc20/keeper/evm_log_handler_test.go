@@ -7,6 +7,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+	types2 "github.com/okex/exchain/libs/ibc-go/modules/apps/transfer/types"
 	"github.com/okex/exchain/x/erc20/keeper"
 )
 
@@ -96,6 +97,8 @@ func (suite *KeeperTestSuite) TestSendToIbcHandler() {
 				coin := sdk.NewCoin(validDenom, amount)
 				err := suite.MintCoins(sdk.AccAddress(contract.Bytes()), sdk.NewCoins(coin))
 				suite.Require().NoError(err)
+				suite.ctx.SetIsCheckTx(false)
+				suite.ctx.SetIsTraceTx(false)
 
 				balance := suite.GetBalance(sdk.AccAddress(contract.Bytes()), validDenom)
 				suite.Require().Equal(coin, balance)
@@ -183,6 +186,32 @@ func (suite *KeeperTestSuite) TestSendNative20ToIbcHandler() {
 			},
 			func() {},
 			nil,
+		},
+		{
+			"portid channel error",
+			func() {
+
+				amount := sdk.NewInt(100)
+				suite.app.Erc20Keeper.SetContractForDenom(suite.ctx, validDenom, contract)
+				coin := sdk.NewCoin(validDenom, amount)
+				err := suite.MintCoins(sdk.AccAddress(contract.Bytes()), sdk.NewCoins(coin))
+				suite.Require().NoError(err)
+				suite.ctx.SetIsCheckTx(false)
+				suite.ctx.SetIsTraceTx(false)
+				balance := suite.GetBalance(sdk.AccAddress(contract.Bytes()), validDenom)
+				suite.Require().Equal(coin, balance)
+				suite.app.TransferKeeper.SetParams(suite.ctx, types2.Params{true, true})
+				input, err := keeper.SendNative20ToIbcEvent.Inputs.Pack(
+					sender,
+					"recipient",
+					coin.Amount.BigInt(),
+					"transfer",
+					"channel-0",
+				)
+				data = input
+			},
+			func() {},
+			errors.New("channel not found: port ID (transfer) channel ID (channel-0)"),
 		},
 	}
 
