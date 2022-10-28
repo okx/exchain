@@ -756,22 +756,25 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 	// TODO: we will get a performance boost if we have a good estimate of avg
 	// size per tx, and set the initial capacity based off of that.
 	// txs := make([]types.Tx, 0, tmmath.MinInt(mem.txs.Len(), max/mem.avgTxSize))
-	txs := make([]types.Tx, 0, tmmath.MinInt(mem.txs.Len(), int(cfg.DynamicConfig.GetMaxTxNumPerBlock())))
+	memTxsLen := mem.txs.Len()
+	txs := make([]types.Tx, 0, tmmath.MinInt(memTxsLen+mem.orderManager.TxsLen(), int(cfg.DynamicConfig.GetMaxTxNumPerBlock())))
 	defer func() {
 		mem.logger.Info("ReapMaxBytesMaxGas", "ProposingHeight", mem.Height()+1,
 			"MempoolTxs", mem.txs.Len(), "ReapTxs", len(txs))
 	}()
 
-	maxTradeTxGas, maxTradeTxBytes := maxGas, maxBytes
+	maxTradeTxGas, maxTradeTxBytes, maxTradeTxNum := maxGas, maxBytes, int64(cap(txs))
 	if maxTradeTxGas != -1 {
 		maxTradeTxGas /= 2
 	}
 	if maxTradeTxBytes != -1 {
 		maxTradeTxBytes /= 2
 	}
-
+	if memTxsLen != 0 {
+		maxTradeTxNum /= 2
+	}
 	tradeTxs, totalTradeBytes, totalTradeGas := mem.orderManager.ReapMaxBytesMaxGasMaxNum(
-		maxTradeTxBytes, maxTradeTxGas, int64(len(txs)/2),
+		maxTradeTxBytes, maxTradeTxGas, maxTradeTxNum,
 	)
 
 	totalBytes = totalTradeBytes

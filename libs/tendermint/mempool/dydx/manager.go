@@ -118,13 +118,16 @@ func (d *OrderManager) Insert(memOrder *MempoolOrder) error {
 	}
 	d.gServer.UpdateClient()
 
-	if result.OnChain != nil {
-		go d.book.Update(result)
-	} else {
-		d.TradeTxsMtx.Lock()
-		d.TradeTxsMap[result.Tx.Hash()] = d.TradeTxs.PushBack(result.Tx)
-		d.TradeTxsMtx.Unlock()
+	if result != nil {
+		if result.OnChain != nil {
+			go d.book.Update(result)
+		} else {
+			d.TradeTxsMtx.Lock()
+			d.TradeTxsMap[result.Tx.Hash()] = d.TradeTxs.PushBack(result.Tx)
+			d.TradeTxsMtx.Unlock()
+		}
 	}
+
 	return nil
 }
 
@@ -184,4 +187,13 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 		tradeTxs = append(tradeTxs, txBz)
 	}
 	return
+}
+
+func (d *OrderManager) TxsLen() int {
+	if d == nil {
+		return 0
+	}
+	d.TradeTxsMtx.Lock()
+	defer d.TradeTxsMtx.Unlock()
+	return d.TradeTxs.Len()
 }
