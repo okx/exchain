@@ -762,13 +762,12 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 			"MempoolTxs", mem.txs.Len(), "ReapTxs", len(txs))
 	}()
 
-	maxTradeTxGas := maxGas / 2
-	if maxGas == -1 {
-		maxTradeTxGas = -1
+	maxTradeTxGas, maxTradeTxBytes := maxGas, maxBytes
+	if maxTradeTxGas != -1 {
+		maxTradeTxGas /= 2
 	}
-	maxTradeTxBytes := maxBytes / 2
-	if maxBytes == -1 {
-		maxTradeTxBytes = -1
+	if maxTradeTxBytes != -1 {
+		maxTradeTxBytes /= 2
 	}
 
 	tradeTxs, totalTradeBytes, totalTradeGas := mem.orderManager.ReapMaxBytesMaxGasMaxNum(
