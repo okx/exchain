@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"github.com/okex/exchain/app"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/tx"
 	"github.com/okex/exchain/x/wasm/proxy"
@@ -89,6 +90,7 @@ func registerRoutesV1(rs *lcd.RestServer, pathPrefix string) {
 			dexclient.DelistProposalHandler.RESTHandler(rs.CliCtx),
 			farmclient.ManageWhiteListProposalHandler.RESTHandler(rs.CliCtx),
 			evmclient.ManageContractDeploymentWhitelistProposalHandler.RESTHandler(rs.CliCtx),
+			evmclient.ManageSysContractAddressProposalHandler.RESTHandler(rs.CliCtx),
 			mintclient.ManageTreasuresProposalHandler.RESTHandler(rs.CliCtx),
 			erc20client.TokenMappingProposalHandler.RESTHandler(rs.CliCtx),
 		},
@@ -105,4 +107,5 @@ func registerRoutesV2(rs *lcd.RestServer, pathPrefix string) {
 	distrest.RegisterRoutes(rs.CliCtx, v2Router, dist.StoreKey)
 	orderrest.RegisterRoutesV2(rs.CliCtx, v2Router)
 	tokensrest.RegisterRoutesV2(rs.CliCtx, v2Router, token.StoreKey)
+	fsrest.RegisterRoutesV2(rs.CliCtx, v2Router)
 }

@@ -943,7 +943,7 @@ func TestFastStorageReUpgradeProtection_ForceUpgradeFirstTime_NoForceSecondTime_
 	iterMock.EXPECT().Next().Return().Times(1)
 	iterMock.EXPECT().Error().Return(nil).Times(1)
 	iterMock.EXPECT().Valid().Return(false).Times(1)
-	// Call Valid after first iteraton
+	// Call Valid after first iteration
 	iterMock.EXPECT().Valid().Return(false).Times(1)
 	iterMock.EXPECT().Close().Return().Times(1)
 
