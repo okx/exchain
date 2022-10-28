@@ -8,10 +8,10 @@ import (
 	"time"
 
 	ethcmm "github.com/ethereum/go-ethereum/common"
-
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/types"
 )
 
 type Matcher interface {
@@ -138,4 +138,38 @@ func (d *OrderManager) WaitChan() <-chan struct{} {
 
 func (d *OrderManager) Front() *clist.CElement {
 	return d.orders.Front()
+}
+
+func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) (tradeTxs []types.Tx, totalBytes, totalGas int64) {
+	if d == nil {
+		return
+	}
+	d.TradeTxsMtx.Lock()
+	defer d.TradeTxsMtx.Unlock()
+
+	if int64(d.TradeTxs.Len()) < maxNum {
+		maxNum = int64(d.TradeTxs.Len())
+	}
+	tradeTxs = make([]types.Tx, 0, maxNum)
+
+	for ele := d.TradeTxs.Front(); ele != nil; ele = ele.Next() {
+		tx := ele.Value.(*ethtypes.Transaction)
+		txBz, err := tx.MarshalBinary()
+		if err != nil {
+			continue
+		}
+		if maxBytes > -1 && totalBytes+int64(len(txBz)) > maxBytes {
+			break
+		}
+		newTotalGas := totalGas + int64(tx.Gas())
+		if maxGas > -1 && newTotalGas > maxGas {
+			break
+		}
+		if len(tradeTxs) >= cap(tradeTxs) {
+			break
+		}
+		totalGas = newTotalGas
+		tradeTxs = append(tradeTxs, txBz)
+	}
+	return
 }
