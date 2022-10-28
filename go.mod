@@ -87,6 +87,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 	gorm.io/driver/mysql v1.3.3
 	gorm.io/gorm v1.23.3
+	sigs.k8s.io/yaml v1.1.0
 )
 
 require (
