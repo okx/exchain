@@ -84,6 +84,7 @@ func checkIndex(mutableTree *iavl.MutableTree) error {
 		fastIterator.Next()
 		iterator.Next()
 	}
+	log.Printf("Checked count done: %v\n", counter)
 
 	if fastIterator.Valid() {
 		return fmt.Errorf("fast index key:%v value:%v", fastIterator.Key(), fastIterator.Value())
