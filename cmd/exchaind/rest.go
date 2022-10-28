@@ -112,4 +112,5 @@ func registerRoutesV2(rs *lcd.RestServer, pathPrefix string) {
 	distrest.RegisterRoutes(rs.CliCtx, v2Router, dist.StoreKey)
 	orderrest.RegisterRoutesV2(rs.CliCtx, v2Router)
 	tokensrest.RegisterRoutesV2(rs.CliCtx, v2Router, token.StoreKey)
+	fsrest.RegisterRoutesV2(rs.CliCtx, v2Router)
 }
