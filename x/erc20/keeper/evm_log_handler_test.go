@@ -88,6 +88,28 @@ func (suite *KeeperTestSuite) TestSendToIbcHandler() {
 			func() {},
 			nil,
 		},
+		{
+			"denomination trace not found",
+			func() {
+				amount := sdk.NewInt(100)
+				suite.app.Erc20Keeper.SetContractForDenom(suite.ctx, validDenom, contract)
+				coin := sdk.NewCoin(validDenom, amount)
+				err := suite.MintCoins(sdk.AccAddress(contract.Bytes()), sdk.NewCoins(coin))
+				suite.Require().NoError(err)
+
+				balance := suite.GetBalance(sdk.AccAddress(contract.Bytes()), validDenom)
+				suite.Require().Equal(coin, balance)
+
+				input, err := keeper.SendToIbcEvent.Inputs.Pack(
+					sender,
+					"recipient",
+					coin.Amount.BigInt(),
+				)
+				data = input
+			},
+			func() {},
+			errors.New("denomination trace not found: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"),
+		},
 	}
 
 	for _, tc := range testCases {
