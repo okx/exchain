@@ -53,7 +53,7 @@ func registerQueryRoutes(cliCtx context.CLIContext, r *mux.Router) {
 
 	// get the current state of the staking pool
 	r.HandleFunc(
-		"/staking/pool",
+		"/cosmos/staking/v1beta1/pool",
 		poolHandlerFn(cliCtx),
 	).Methods("GET")
 
@@ -178,9 +178,11 @@ func poolHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			common.HandleErrorResponseV2(w, http.StatusInternalServerError, common.ErrorABCIQueryFails)
 			return
 		}
-
+		var pool types.Pool
+		cliCtx.Codec.MustUnmarshalJSON(res, &pool)
+		wrappedPool := types.NewWrappedPool(pool)
 		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, res)
+		rest.PostProcessResponse(w, cliCtx, wrappedPool)
 	}
 }
 

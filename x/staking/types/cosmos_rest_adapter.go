@@ -84,3 +84,13 @@ func NewWrappedValidator(v CosmosValidator) WrappedValidator {
 		V: v,
 	}
 }
+
+type WrappedPool struct {
+	P Pool `json:"pool" yaml:"result"`
+}
+
+func NewWrappedPool(p Pool) WrappedPool {
+	return WrappedPool{
+		P: p,
+	}
+}
