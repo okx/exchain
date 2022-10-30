@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
 )
 
@@ -24,6 +25,6 @@ var (
 	ErrIsNotETHAddr   = sdkerrors.Register(ModuleName, 10, "the address prefix must be 0x")
 )
 
-func ErrMsgSendToEvm(str string) *sdkerrors.Error {
-	return sdkerrors.Register(ModuleName, 11, fmt.Sprintf("MsgSendToEvm ValidateBasic: %s", str))
+func ErrMsgSendToEvm(str string) sdk.EnvelopedErr {
+	return sdk.EnvelopedErr{Err: sdkerrors.New(ModuleName, 11, fmt.Sprintf("MsgSendToEvm ValidateBasic: %s", str))}
 }
