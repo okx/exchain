@@ -1,6 +1,9 @@
 package types
 
-import sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+import (
+	"fmt"
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+)
 
 var (
 	// ErrChainConfigNotFound returns an error if the chain config cannot be found on the store.
@@ -20,3 +23,7 @@ var (
 	ErrIsNotOKCAddr   = sdkerrors.Register(ModuleName, 9, "the address prefix must be ex")
 	ErrIsNotETHAddr   = sdkerrors.Register(ModuleName, 10, "the address prefix must be 0x")
 )
+
+func ErrMsgSendToEvm(str string) *sdkerrors.Error {
+	return sdkerrors.Register(ModuleName, 11, fmt.Sprintf("MsgSendToEvm ValidateBasic: %s", str))
+}

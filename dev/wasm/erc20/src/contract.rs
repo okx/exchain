@@ -15,7 +15,7 @@ pub const PREFIX_ALLOWANCES: &[u8] = b"allowances";
 
 pub const KEY_CONSTANTS: &[u8] = b"constants";
 pub const KEY_TOTAL_SUPPLY: &[u8] = b"total_supply";
-const EVM_CONTRACT_ADDR: &str = "ex1fnkz39vpxmukf6mp78essh8g0hrzp3gylyd2u8";
+const EVM_CONTRACT_ADDR: &str = "ex19yaqyv090mjenkenw3d7lxlucvstg00p2r45pk";
 
 #[entry_point]
 pub fn instantiate(
@@ -85,7 +85,7 @@ pub fn execute(
             evmContract,
             recipient,
             amount,
-        } => try_send_to_erc20(deps, env,evmContract,recipient,amount),
+        } => try_send_to_erc20(deps, env,evmContract,recipient,amount,info),
     }
 }
 
@@ -160,9 +160,10 @@ fn try_send_to_erc20(
     erc20: String,
     recipient: String,
     amount: Uint128,
+    info: MessageInfo,
 ) -> Result<Response<SendToEvmMsg>, ContractError> {
     let amount_raw = amount.u128();
-    let to = deps.api.addr_validate(recipient.as_str())?;
+    let to = info.sender;
 
     let mut account_balance = read_balance(deps.storage, &to)?;
 

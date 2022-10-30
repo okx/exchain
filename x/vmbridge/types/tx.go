@@ -16,7 +16,7 @@ func (msg MsgSendToEvm) Type() string {
 func (msg MsgSendToEvm) ValidateBasic() error {
 	sender, err := sdk.AccAddressFromBech32(msg.Sender)
 	if err != nil {
-		return err
+		return ErrMsgSendToEvm(err.Error())
 	}
 	if !sdk.IsWasmAddress(sender) {
 		return ErrIsNotWasmAddr
@@ -24,7 +24,7 @@ func (msg MsgSendToEvm) ValidateBasic() error {
 
 	contract, err := sdk.AccAddressFromBech32(msg.Contract)
 	if err != nil {
-		return err
+		return ErrMsgSendToEvm(err.Error())
 	}
 	if sdk.IsWasmAddress(contract) {
 		return ErrIsNotEvmAddr
@@ -32,14 +32,14 @@ func (msg MsgSendToEvm) ValidateBasic() error {
 
 	recipient, err := sdk.AccAddressFromBech32(msg.Recipient)
 	if err != nil {
-		return err
+		return ErrMsgSendToEvm(err.Error())
 	}
 	if sdk.IsWasmAddress(recipient) {
 		return ErrIsNotEvmAddr
 	}
 
 	if msg.Amount.IsNegative() {
-		return fmt.Errorf("negative coin amount: %v", msg.Amount)
+		return ErrMsgSendToEvm(fmt.Sprintf("negative coin amount: %v", msg.Amount))
 	}
 	return nil
 }

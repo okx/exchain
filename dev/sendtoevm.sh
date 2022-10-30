@@ -1,1 +1,2 @@
-exchaincli tx wasm execute "ex14hj2tavq8fpesdwxxcu44rty3hh90vhujrvcmstl4zr3txmfvw9s6fqu27" '{"send_to_evm":{"amount":"12","recipient":"ex18xvynkgzu4f285hgxafmprpaxku5qfykuztdca","evmContract":"0x293a0231e57ee599DB33745bEF9Bfcc320B43de1"}}' --fees 0.001okt --from captain -b block -y
+exchaincli tx wasm execute "ex17p9rzwnnfxcjp32un9ug7yhhzgtkhvl9jfksztgw5uh69wac2pgsw8mmpu" '{"send_to_evm":{"amount":"340282366920938463463374607431768211455","recipient":"0x293a0231e57ee599DB33745bEF9Bfcc320B43de1","evmContract":"0xe76f5f1aE17439236050A8b96f6f5b43130dD72e"}}' --fees 0.001okt --from captain -b block -y
+#--gas 10000000
