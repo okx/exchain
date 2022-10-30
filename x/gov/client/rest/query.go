@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/gorilla/mux"
 
@@ -471,6 +472,7 @@ func queryProposalsWithParameterFn(cliCtx context.CLIContext) http.HandlerFunc {
 		bechDepositorAddr := r.URL.Query().Get(RestDepositor)
 		strProposalStatus := r.URL.Query().Get(RestProposalStatus)
 		strNumLimit := r.URL.Query().Get(RestNumLimit)
+		strReverse := r.URL.Query().Get("pagination.reverse")
 
 		params := types.QueryProposalsParams{}
 
@@ -507,7 +509,14 @@ func queryProposalsWithParameterFn(cliCtx context.CLIContext) http.HandlerFunc {
 			}
 			params.Limit = numLimit
 		}
-
+		needReverse := false
+		if len(strReverse) != 0 {
+			reverse, err := strconv.ParseBool(strReverse)
+			if err != nil {
+				return
+			}
+			needReverse = reverse
+		}
 		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
@@ -526,6 +535,11 @@ func queryProposalsWithParameterFn(cliCtx context.CLIContext) http.HandlerFunc {
 		}
 		var proposals []types.Proposal
 		cliCtx.Codec.MustUnmarshalJSON(res, &proposals)
+		if needReverse {
+			for i, j := 0, len(proposals)-1; i < j; i, j = i+1, j-1 {
+				proposals[i], proposals[j] = proposals[j], proposals[i]
+			}
+		}
 		var cm45proposals []types.CM45Proposal
 		for _, p := range proposals {
 			cm45proposals = append(cm45proposals, *p.ToCM45Proposal())
