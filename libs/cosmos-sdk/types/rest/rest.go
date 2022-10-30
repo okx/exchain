@@ -20,7 +20,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
-	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
 )
 
 const (
@@ -30,10 +29,6 @@ const (
 	TxMinHeightKey = "tx.minheight" // Inclusive minimum height filter
 	TxMaxHeightKey = "tx.maxheight" // Inclusive maximum height filter
 
-	DefaultPaginationLimit      = 30
-	DefaultPaginationCountTotal = false
-	DefaultPaginationReverse    = false
-	DefaultPaginationOffset     = 0
 )
 
 // ResponseWithHeight defines a response object type that wraps an original
@@ -388,30 +383,31 @@ func ParseHTTPArgsWithLimit(r *http.Request, defaultLimit int) (tags []string, p
 	return tags, page, limit, nil
 }
 
-func ParsePageRequest(r *http.Request) (pr query.PageRequest, err error) {
+// ParseCM45PageRequest parses the request's URL in the way of cosmos v0.45.1.
+func ParseCM45PageRequest(r *http.Request) (pr *query.PageRequest, err error) {
 	var limit uint64
 	limitStr := r.FormValue("pagination.limit")
 	if limitStr == "" {
-		limit = DefaultPaginationLimit
+		limit = DefaultLimit
 	} else {
 		limit, err = strconv.ParseUint(limitStr, 10, 0)
 		if err != nil {
-			return pr, err
+			return nil, err
 		} else if limit <= 0 {
-			return pr, errors.New("limit must greater than 0")
+			return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "limit must greater than 0")
 		}
 	}
 
 	var offset uint64
 	offsetStr := r.FormValue("pagination.offset")
 	if offsetStr == "" {
-		offset = DefaultPaginationOffset
+		offset = DefaultOffset
 	} else {
 		offset, err = strconv.ParseUint(offsetStr, 10, 0)
 		if err != nil {
 			return pr, err
 		} else if offset < 0 {
-			return pr, errors.New("offset must greater than 0")
+			return pr, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "offset must greater than 0")
 		}
 	}
 	var key []byte
@@ -420,7 +416,7 @@ func ParsePageRequest(r *http.Request) (pr query.PageRequest, err error) {
 		key = nil
 	} else {
 		if offsetStr != "" {
-			return pr, errors.New("only one of offset or key should be set")
+			return pr, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "only one of offset or key should be set")
 		}
 		key = []byte(keyStr)
 	}
@@ -428,14 +424,14 @@ func ParsePageRequest(r *http.Request) (pr query.PageRequest, err error) {
 	var countTotal bool
 	countTotalStr := r.FormValue("pagination.count_total")
 	if countTotalStr == "" {
-		countTotal = DefaultPaginationCountTotal
+		countTotal = false
 	} else {
 		countTotal, err = strconv.ParseBool(countTotalStr)
 		if err != nil {
 			return pr, err
 		}
 	}
-	pr = query.PageRequest{
+	pr = &query.PageRequest{
 		Key:        key,
 		Offset:     offset,
 		Limit:      limit,

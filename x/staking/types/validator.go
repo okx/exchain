@@ -36,26 +36,6 @@ const (
 // Implements Validator interface
 var _ exported.ValidatorI = Validator{}
 
-type WrappedValidators struct {
-	Vs []CosmosValidator `json:"result" yaml:"result"`
-}
-
-func NewWrappedValidators(vs []CosmosValidator) WrappedValidators {
-	return WrappedValidators{
-		Vs: vs,
-	}
-}
-
-type WrappedValidator struct {
-	V CosmosValidator `json:"result" yaml:"result"`
-}
-
-func NewWrappedValidator(v CosmosValidator) WrappedValidator {
-	return WrappedValidator{
-		V: v,
-	}
-}
-
 // Validator defines the total amount of bond shares and their exchange rate to
 // coins. Slashing results in a decrease in the exchange rate, allowing correct
 // calculation of future undelegations without iterating over delegators.

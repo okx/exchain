@@ -64,3 +64,23 @@ func WrapCosmosValidator(v Validator, ca *CosmosAny) CosmosValidator {
 		MinSelfDelegation:       v.MinSelfDelegation,
 	}
 }
+
+type WrappedValidators struct {
+	Vs []CosmosValidator `json:"result" yaml:"result"`
+}
+
+func NewWrappedValidators(vs []CosmosValidator) WrappedValidators {
+	return WrappedValidators{
+		Vs: vs,
+	}
+}
+
+type WrappedValidator struct {
+	V CosmosValidator `json:"result" yaml:"result"`
+}
+
+func NewWrappedValidator(v CosmosValidator) WrappedValidator {
+	return WrappedValidator{
+		V: v,
+	}
+}

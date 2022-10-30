@@ -94,7 +94,7 @@ func QueryTxsRequestHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			}
 		}
 
-		pr, err := rest.ParsePageRequest(r)
+		pr, err := rest.ParseCM45PageRequest(r)
 		if err != nil {
 			rest.WriteErrorResponse(
 				w, http.StatusBadRequest,
@@ -102,7 +102,7 @@ func QueryTxsRequestHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 			)
 			return
 		}
-		page, limit, err = query.ParsePagination(&pr)
+		page, limit, err = query.ParsePagination(pr)
 
 		// parse Orderby is not supported for now
 

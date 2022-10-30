@@ -11,12 +11,12 @@ import (
 func queryDenomTraces(ctx context.CLIContext, endpoint string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var params types.QueryDenomTracesRequest
-		pr, err := rest.ParsePageRequest(r)
+		pr, err := rest.ParseCM45PageRequest(r)
 		if rest.CheckInternalServerError(w, err) {
 			return
 		}
 		params = types.QueryDenomTracesRequest{
-			Pagination: &pr,
+			Pagination: pr,
 		}
 		clientCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, ctx, r)
 		if !ok {

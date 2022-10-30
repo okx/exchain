@@ -4,6 +4,8 @@ import (
 	"time"
 )
 
+// FormatDuration is used to be compatible with cosmos v0.45.1
+// and to convert the "time.Duration" in the params of some modules to "string".
 func FormatDuration(d time.Duration) string {
 	// Largest time is 2540400h10m10.000000000s
 	var buf [32]byte
