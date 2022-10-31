@@ -3,15 +3,15 @@ package dydx
 import (
 	"encoding/hex"
 	"fmt"
-	"github.com/okex/exchain/libs/dydx/contracts"
+	"github.com/ethereum/go-ethereum/common"
 	"math/big"
 	"os"
 	"sync"
 	"time"
 
-	"github.com/okex/exchain/libs/tendermint/libs/log"
-
+	"github.com/okex/exchain/libs/dydx/contracts"
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
+	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
 
 type Matcher interface {
@@ -37,15 +37,17 @@ type OrderManager struct {
 	orders    *clist.CList
 	ordersMap sync.Map // orderKey => *clist.CElement
 
-	book    *DepthBook
-	engine  Matcher
-	gServer *OrderBookServer
+	addrTrade map[common.Address][]*P1Order
+	book      *DepthBook
+	engine    *MatchEngine
+	gServer   *OrderBookServer
 }
 
 func NewOrderManager(doMatch bool) *OrderManager {
 	manager := &OrderManager{
-		orders: clist.New(),
-		book:   NewDepthBook(),
+		orders:    clist.New(),
+		addrTrade: make(map[common.Address][]*P1Order),
+		book:      NewDepthBook(),
 	}
 
 	config := DydxConfig{
@@ -65,15 +67,17 @@ func NewOrderManager(doMatch bool) *OrderManager {
 			panic(err)
 		}
 		manager.engine = me
-	} else {
-		manager.engine = NewEmptyMatcher(manager.book)
 	}
+	// else {
+	//	manager.engine = NewEmptyMatcher(manager.book)
+	//}
 	manager.gServer = NewOrderBookServer(manager.book, log.NewTMLogger(os.Stdout))
 	err := manager.gServer.Start("7070")
 	if err != nil {
 		panic(err)
 	}
 	go manager.Serve()
+	go manager.ServeWeb()
 	return manager
 }
 
@@ -143,6 +147,7 @@ func (d *OrderManager) HandleOrderFilled(filled *contracts.P1OrdersLogOrderFille
 	wodr.Done(filled.Fill.Amount)
 	if wodr.LeftAmount.Sign() == 0 && wodr.FrozenAmount.Sign() == 0 {
 		orderList.Remove(ele)
+		d.addrTrade[wodr.Maker] = append(d.addrTrade[wodr.Maker], &wodr.P1Order)
 	}
 	fmt.Println("debug filled", hex.EncodeToString(filled.OrderHash[:]), filled.TriggerPrice.String(), filled.Fill.Price.String(), filled.Fill.Amount.String())
 }
