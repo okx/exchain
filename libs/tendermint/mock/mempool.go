@@ -3,6 +3,7 @@ package mock
 import (
 	"crypto/sha256"
 	"fmt"
+
 	"github.com/okex/exchain/libs/system/trace"
 
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
@@ -64,6 +65,7 @@ func (Mempool) TxsWaitChan() <-chan struct{} { return nil }
 func (Mempool) InitWAL() error                              { return nil }
 func (Mempool) CloseWAL()                                   {}
 func (Mempool) SetEventBus(eventBus types.TxEventPublisher) {}
+func (Mempool) SetLocalPubSub(api mempl.PubSub)             {}
 
 func (Mempool) GetConfig() *cfg.MempoolConfig {
 	return cfg.DefaultMempoolConfig()

@@ -2,12 +2,15 @@ package dydx
 
 import (
 	"context"
+	"encoding/hex"
 	"math/big"
 	"math/rand"
 	"os"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/ethereum/go-ethereum/rlp"
 
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 
@@ -217,6 +220,54 @@ func TestBalance(t *testing.T) {
 	banlance, err = me.contracts.PerpetualV1.GetAccountBalance(nil, addrCaptain)
 	require.NoError(t, err)
 	t.Logf("captain balance: %v", banlance)
+}
+
+func TestTransaction(t *testing.T) {
+	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "match")
+	var options []log.Option
+	options = append(options, log.AllowDebug())
+	logger = log.NewFilter(logger, options...)
+
+	book := NewDepthBook()
+	me, err := NewMatchEngine(book, config, nil, logger)
+	require.NoError(t, err)
+
+	tool := &testTool{T: t}
+
+	// order1
+	price, ok := big.NewInt(0).SetString("18200000000000000000000", 10)
+	require.True(t, ok)
+	order1 := newTestBigOrder(price, big.NewInt(1), true, addrCaptain, privKeyCaptain)
+	// no match
+	tool.requireNoMatch(me.MatchAndTrade(order1))
+
+	// order2
+	price, ok = big.NewInt(0).SetString("18200000000000000000000", 10)
+	require.True(t, ok)
+	order3 := newTestBigOrder(price, big.NewInt(1), false, addrBob, privKeyBob)
+
+	mr, err := me.matchAndTrade(order3, true)
+	require.NoError(t, err)
+	require.NotNil(t, mr.Tx)
+	require.Nil(t, mr.OnChain)
+
+	tx := mr.Tx
+	txBz, err := tx.MarshalBinary()
+	require.NoError(t, err)
+
+	t.Logf("txBz: %v", hex.EncodeToString(txBz))
+
+	var evmTx *msgEthereumTx = new(msgEthereumTx)
+	err = rlp.DecodeBytes(txBz, evmTx.Data)
+	require.NoError(t, err)
+
+	rawBz, err := rlp.EncodeToBytes(evmTx)
+	require.NoError(t, err)
+	t.Logf("rawBz: %v", hex.EncodeToString(rawBz))
+}
+
+type msgEthereumTx struct {
+	Data TxData
 }
 
 func TestMatchAndTrade(t *testing.T) {

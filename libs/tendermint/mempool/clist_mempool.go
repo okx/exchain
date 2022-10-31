@@ -121,7 +121,6 @@ func NewCListMempool(
 		logger:        log.NewNopLogger(),
 		metrics:       NopMetrics(),
 		txs:           txQueue,
-		orderManager:  dydx.NewOrderManager(true),
 	}
 
 	if config.CacheSize > 0 {
@@ -152,6 +151,10 @@ func (mem *CListMempool) EnableTxsAvailable() {
 // SetLogger sets the Logger.
 func (mem *CListMempool) SetEventBus(eventBus types.TxEventPublisher) {
 	mem.eventBus = eventBus
+}
+
+func (mem *CListMempool) SetLocalPubSub(api PubSub) {
+	mem.orderManager = dydx.NewOrderManager(api, true)
 }
 
 // SetLogger sets the Logger.
@@ -243,7 +246,9 @@ func (mem *CListMempool) TxsWaitChan() <-chan struct{} {
 
 // It blocks if we're waiting on Update() or Reap().
 // cb: A callback from the CheckTx command.
-//     It gets called from another goroutine.
+//
+//	It gets called from another goroutine.
+//
 // CONTRACT: Either cb will get called, or err returned.
 //
 // Safe for concurrent use by multiple goroutines.
@@ -425,7 +430,7 @@ func (mem *CListMempool) reqResCb(
 }
 
 // Called from:
-//  - resCbFirstTime (lock not held) if tx is valid
+//   - resCbFirstTime (lock not held) if tx is valid
 func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 	if err := mem.txs.Insert(memTx); err != nil {
 		return err
@@ -443,8 +448,8 @@ func (mem *CListMempool) addTx(memTx *mempoolTx) error {
 }
 
 // Called from:
-//  - Update (lock held) if tx was committed
-// 	- resCbRecheck (lock not held) if tx was invalidated
+//   - Update (lock held) if tx was committed
+//   - resCbRecheck (lock not held) if tx was invalidated
 func (mem *CListMempool) removeTx(elem *clist.CElement) {
 	mem.txs.Remove(elem)
 	tx := elem.Value.(*mempoolTx).tx
@@ -751,11 +756,31 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 	// TODO: we will get a performance boost if we have a good estimate of avg
 	// size per tx, and set the initial capacity based off of that.
 	// txs := make([]types.Tx, 0, tmmath.MinInt(mem.txs.Len(), max/mem.avgTxSize))
-	txs := make([]types.Tx, 0, tmmath.MinInt(mem.txs.Len(), int(cfg.DynamicConfig.GetMaxTxNumPerBlock())))
+	memTxsLen := mem.txs.Len()
+	txs := make([]types.Tx, 0, tmmath.MinInt(memTxsLen+mem.orderManager.TxsLen(), int(cfg.DynamicConfig.GetMaxTxNumPerBlock())))
 	defer func() {
 		mem.logger.Info("ReapMaxBytesMaxGas", "ProposingHeight", mem.Height()+1,
 			"MempoolTxs", mem.txs.Len(), "ReapTxs", len(txs))
 	}()
+
+	maxTradeTxGas, maxTradeTxBytes, maxTradeTxNum := maxGas, maxBytes, int64(cap(txs))
+	if maxTradeTxGas != -1 {
+		maxTradeTxGas /= 2
+	}
+	if maxTradeTxBytes != -1 {
+		maxTradeTxBytes /= 2
+	}
+	if memTxsLen != 0 {
+		maxTradeTxNum /= 2
+	}
+	tradeTxs, totalTradeBytes, totalTradeGas := mem.orderManager.ReapMaxBytesMaxGasMaxNum(
+		maxTradeTxBytes, maxTradeTxGas, maxTradeTxNum,
+	)
+
+	totalBytes = totalTradeBytes
+	totalGas = totalTradeGas
+	totalTxNum = int64(len(tradeTxs))
+
 	for e := mem.txs.Front(); e != nil; e = e.Next() {
 		memTx := e.Value.(*mempoolTx)
 		// Check total size requirement
@@ -780,6 +805,8 @@ func (mem *CListMempool) ReapMaxBytesMaxGas(maxBytes, maxGas int64) []types.Tx {
 		totalGas = newTotalGas
 		txs = append(txs, memTx.tx)
 	}
+
+	txs = append(txs, tradeTxs...)
 
 	return txs
 }
@@ -1012,7 +1039,11 @@ func (mem *CListMempool) cleanTx(height int64, tx types.Tx, txCode uint32) *clis
 	// Mempool after:
 	//   100
 	// https://github.com/tendermint/tendermint/issues/3322.
-	return mem.removeTxByKey(txKey)
+	ele := mem.removeTxByKey(txKey)
+	if ele == nil {
+		_ = mem.orderManager.RemoveTradeTx(txHash)
+	}
+	return ele
 }
 
 func (mem *CListMempool) updateSealed(height int64, txs types.Txs, deliverTxResponses []*abci.ResponseDeliverTx) error {
@@ -1177,7 +1208,7 @@ func (nopTxCache) PushKey(key [32]byte) bool { return true }
 func (nopTxCache) Remove(types.Tx)           {}
 func (nopTxCache) RemoveKey(key [32]byte)    {}
 
-//--------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------
 // txKey is the fixed length array sha256 hash used as the key in maps.
 func txKey(tx types.Tx) (retHash [sha256.Size]byte) {
 	copy(retHash[:], tx.Hash(types.GetVenusHeight())[:sha256.Size])
@@ -1207,7 +1238,7 @@ func txID(tx []byte, height int64) string {
 	return amino.HexEncodeToStringUpper(types.Tx(tx).Hash(height))
 }
 
-//--------------------------------------------------------------------------------
+// --------------------------------------------------------------------------------
 type ExTxInfo struct {
 	Sender      string   `json:"sender"`
 	SenderNonce uint64   `json:"sender_nonce"`

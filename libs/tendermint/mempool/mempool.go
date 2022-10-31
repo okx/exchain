@@ -4,6 +4,10 @@ import (
 	"crypto/sha256"
 	"fmt"
 
+	"github.com/ethereum/go-ethereum"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/ethereum/go-ethereum/rpc"
+
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	cfg "github.com/okex/exchain/libs/tendermint/config"
 	"github.com/okex/exchain/libs/tendermint/p2p"
@@ -82,6 +86,8 @@ type Mempool interface {
 
 	SetEventBus(eventBus types.TxEventPublisher)
 
+	SetLocalPubSub(PubSub)
+
 	GetConfig() *cfg.MempoolConfig
 	GetTxByHash(hash [sha256.Size]byte) (types.Tx, error)
 
@@ -89,6 +95,11 @@ type Mempool interface {
 	SetAccountRetriever(retriever AccountRetriever)
 
 	SetTxInfoParser(parser TxInfoParser)
+}
+
+type PubSub interface {
+	Unsubscribe(id rpc.ID) bool
+	SubscribeLogs(conn chan<- *ethtypes.Log, query ethereum.FilterQuery) (rpc.ID, error)
 }
 
 //--------------------------------------------------------------------------------

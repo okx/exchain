@@ -5,6 +5,10 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/okex/exchain/app/rpc/localclient"
+	"github.com/okex/exchain/libs/tendermint/node"
+	"github.com/okex/exchain/libs/tendermint/rpc/client/local"
+
 	"github.com/okex/exchain/app/logevents"
 	"github.com/okex/exchain/cmd/exchaind/fss"
 	"github.com/okex/exchain/cmd/exchaind/mpt"
@@ -103,7 +107,9 @@ func main() {
 	}
 	// Tendermint node base commands
 	server.AddCommands(ctx, codecProxy, registry, rootCmd, newApp, closeApp, exportAppStateAndTMValidators,
-		registerRoutes, client.RegisterAppFlag, app.PreRun, subFunc)
+		registerRoutes, client.RegisterAppFlag, app.PreRun, subFunc, func(node *node.Node) {
+			node.Mempool().SetLocalPubSub(localclient.NewAPI(local.New(node), node.Logger))
+		})
 
 	// prepare and add flags
 	executor := cli.PrepareBaseCmd(rootCmd, "OKEXCHAIN", app.DefaultNodeHome)

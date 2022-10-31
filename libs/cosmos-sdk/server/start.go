@@ -5,6 +5,7 @@ package server
 import (
 	"os"
 	"runtime/pprof"
+	"time"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	"github.com/okex/exchain/libs/tendermint/rpc/client"
@@ -84,6 +85,7 @@ func StartCmd(ctx *Context,
 	registerAppFlagFn func(cmd *cobra.Command),
 	appPreRun func(ctx *Context, cmd *cobra.Command) error,
 	subFunc func(logger log.Logger) log.Subscriber,
+	registerDydxFn func(*node.Node),
 ) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "start",
@@ -125,7 +127,7 @@ which accepts a path for the resulting pprof file.
 			log.SetSubscriber(sub)
 
 			setPID(ctx)
-			_, err := startInProcess(ctx, cdc, registry, appCreator, appStop, registerRoutesFn)
+			_, err := startInProcess(ctx, cdc, registry, appCreator, appStop, registerRoutesFn, registerDydxFn)
 			if err != nil {
 				tmos.Exit(err.Error())
 			}
@@ -141,7 +143,7 @@ which accepts a path for the resulting pprof file.
 }
 
 func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyResolver, appCreator AppCreator, appStop AppStop,
-	registerRoutesFn func(restServer *lcd.RestServer)) (*node.Node, error) {
+	registerRoutesFn func(restServer *lcd.RestServer), registerDydxFn func(*node.Node)) (*node.Node, error) {
 
 	cfg := ctx.Config
 	home := cfg.RootDir
@@ -249,6 +251,13 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyReso
 
 	if parser, ok := app.(mempool.TxInfoParser); ok {
 		tmNode.Mempool().SetTxInfoParser(parser)
+	}
+
+	if registerDydxFn != nil {
+		go func() {
+			time.Sleep(1 * time.Second)
+			registerDydxFn(tmNode)
+		}()
 	}
 
 	// run forever (the node will not be returned)

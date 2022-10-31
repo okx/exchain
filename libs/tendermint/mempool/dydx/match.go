@@ -8,6 +8,8 @@ import (
 	"math/big"
 	"time"
 
+	"github.com/ethereum/go-ethereum/rpc"
+
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
@@ -18,6 +20,11 @@ import (
 	"github.com/okex/exchain/libs/dydx/contracts"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 )
+
+type PubSub interface {
+	Unsubscribe(id rpc.ID) bool
+	SubscribeLogs(conn chan<- *ethtypes.Log, query ethereum.FilterQuery) (rpc.ID, error)
+}
 
 type MatchEngine struct {
 	depthBook *DepthBook
@@ -35,6 +42,9 @@ type MatchEngine struct {
 
 	sub ethereum.Subscription
 
+	pubsub   PubSub
+	pubsubID string
+
 	logger log.Logger
 }
 
@@ -47,6 +57,7 @@ type DydxConfig struct {
 	P1OrdersContractAddress    string
 	P1MakerOracleAddress       string
 	P1MarginAddress            string
+	VMode                      bool
 }
 
 type LogHandler interface {
@@ -54,11 +65,12 @@ type LogHandler interface {
 	SubErr(error)
 }
 
-func NewMatchEngine(depthBook *DepthBook, config DydxConfig, handler LogHandler, logger log.Logger) (*MatchEngine, error) {
+func NewMatchEngine(api PubSub, depthBook *DepthBook, config DydxConfig, handler LogHandler, logger log.Logger) (*MatchEngine, error) {
 	var engine = &MatchEngine{
 		depthBook: depthBook,
 		config:    config,
 		logger:    logger,
+		pubsub:    api,
 	}
 	if engine.logger == nil {
 		engine.logger = log.NewNopLogger()
@@ -92,7 +104,7 @@ func NewMatchEngine(depthBook *DepthBook, config DydxConfig, handler LogHandler,
 		common.HexToAddress(config.P1MakerOracleAddress),
 		common.HexToAddress(config.P1MarginAddress),
 		txOps,
-		engine.ethCli,
+		engine.httpCli,
 	)
 
 	if handler != nil {
@@ -109,25 +121,43 @@ func NewMatchEngine(depthBook *DepthBook, config DydxConfig, handler LogHandler,
 				{ordersAbi.Events["LogOrderFilled"].ID},
 			},
 		}
-		ch := make(chan ethtypes.Log, 32)
-		engine.sub, err = engine.ethCli.SubscribeFilterLogs(context.Background(), query, ch)
-		if err != nil {
-			return nil, fmt.Errorf("failed to subscribe filter logs, err: %w", err)
-		}
 
-		go func() {
-			for {
-				select {
-				case err := <-engine.sub.Err():
-					handler.SubErr(err)
-				case log := <-ch:
-					filledLog, err := engine.contracts.P1Orders.ParseLogOrderFilled(log)
+		if api != nil {
+			ch := make(chan *ethtypes.Log, 32)
+			id, err := api.SubscribeLogs(ch, query)
+			if err != nil {
+				return nil, fmt.Errorf("failed to subscribe local logs, err: %w", err)
+			}
+			engine.pubsubID = string(id)
+			go func() {
+				for log := range ch {
+					filledLog, err := engine.contracts.P1Orders.ParseLogOrderFilled(*log)
 					if err == nil {
 						handler.HandleOrderFilled(filledLog)
 					}
 				}
+			}()
+		} else {
+			ch := make(chan ethtypes.Log, 32)
+			engine.sub, err = engine.ethCli.SubscribeFilterLogs(context.Background(), query, ch)
+			if err != nil {
+				return nil, fmt.Errorf("failed to subscribe filter logs, err: %w", err)
 			}
-		}()
+
+			go func() {
+				for {
+					select {
+					case err := <-engine.sub.Err():
+						handler.SubErr(err)
+					case log := <-ch:
+						filledLog, err := engine.contracts.P1Orders.ParseLogOrderFilled(log)
+						if err == nil {
+							handler.HandleOrderFilled(filledLog)
+						}
+					}
+				}
+			}()
+		}
 	}
 
 	return engine, nil
@@ -139,6 +169,7 @@ type MatchResult struct {
 
 	OnChain chan bool
 	Tx      *ethtypes.Transaction
+	NoSend  bool
 }
 
 func (r *MatchResult) AddMatchedRecord(fill *contracts.P1OrdersFill, makerOrder *WrapOrder) {
@@ -159,6 +190,9 @@ func (m *MatchEngine) Stop() {
 	if m.sub != nil {
 		m.sub.Unsubscribe()
 	}
+	if m.pubsubID != "" {
+		m.pubsub.Unsubscribe(rpc.ID(m.pubsubID))
+	}
 }
 
 func (m *MatchEngine) Match(order *WrapOrder, maketPrice *big.Int) (*MatchResult, error) {
@@ -173,7 +207,7 @@ func (m *MatchEngine) Match(order *WrapOrder, maketPrice *big.Int) (*MatchResult
 	}
 }
 
-func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
+func (m *MatchEngine) matchAndTrade(order *WrapOrder, noSend bool) (*MatchResult, error) {
 	marketPrice, err := m.contracts.P1MakerOracle.GetPrice(&bind.CallOpts{
 		From: m.contracts.PerpetualV1Address,
 	})
@@ -188,6 +222,7 @@ func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
 	if len(matched.MatchedRecords) == 0 {
 		return nil, nil
 	}
+	matched.NoSend = noSend
 
 	m.logger.Debug("match result", "matched", matched.MatchedRecords)
 
@@ -214,11 +249,14 @@ func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
 			return matched, fmt.Errorf("failed to fill order, err: %w", err)
 		}
 	}
-	matched.Tx, err = op.Commit(nil)
+	matched.Tx, err = op.Commit(&bind.TransactOpts{NoSend: noSend})
 	if err != nil {
 		return matched, fmt.Errorf("failed to commit, err: %w", err)
 	}
 	m.logger.Debug("commit tx", "tx", matched.Tx.Hash().Hex())
+	if noSend {
+		return matched, nil
+	}
 	matched.OnChain = make(chan bool, 1)
 
 	go func(txHash common.Hash) {
@@ -249,6 +287,10 @@ func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
 		}
 	}(matched.Tx.Hash())
 	return matched, nil
+}
+
+func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
+	return m.matchAndTrade(order, m.config.VMode)
 }
 
 func WrapOrderToSignedSolOrder(order *WrapOrder) *dydxlib.SignedSolOrder {
