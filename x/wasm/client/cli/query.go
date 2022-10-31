@@ -46,7 +46,7 @@ func NewQueryCmd(cdc *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra
 		NewCmdGetContractState(cdc, reg),
 		NewCmdListPinnedCode(cdc, reg),
 		GetCmdLibVersion(cdc, reg),
-		GetCMDParams(cdc, reg),
+		NewCMDParams(cdc, reg),
 	)
 
 	return queryCmd
@@ -106,7 +106,7 @@ func NewCmdListCode(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobr
 }
 
 // NewCmdListCode lists all wasm code uploaded
-func GetCMDParams(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
+func NewCMDParams(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "get-params",
 		Short:   "Get wasm parameters on the chain",
