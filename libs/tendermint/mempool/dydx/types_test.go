@@ -2,6 +2,7 @@ package dydx
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -257,4 +258,19 @@ func newRandP1Order(amount int64, maker string) P1Order {
 	}
 	copy(odr.Maker[:], common.FromHex(maker))
 	return odr
+}
+
+func TestFilledOrder(t *testing.T) {
+	filled := FilledP1Order{
+		Filled: big.NewInt(1),
+		Time:   time.Now(),
+		P1OrdersOrder: contracts.P1OrdersOrder{
+			Amount:     big.NewInt(1),
+			LimitPrice: big.NewInt(1),
+			Expiration: big.NewInt(1),
+		},
+	}
+	data, err := json.Marshal(filled)
+	require.NoError(t, err)
+	fmt.Println(string(data))
 }

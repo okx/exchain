@@ -19,32 +19,15 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 )
 
-type Matcher interface {
-	MatchAndTrade(order *WrapOrder) (*MatchResult, error)
-}
-
-type emptyMatcher struct {
-	book *DepthBook
-}
-
-func (e emptyMatcher) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
-	err := e.book.Insert(order)
-	return nil, err
-}
-
-func NewEmptyMatcher(book *DepthBook) Matcher {
-	return emptyMatcher{
-		book: book,
-	}
-}
-
 type OrderManager struct {
 	orders    *clist.CList
 	ordersMap sync.Map // orderKey => *clist.CElement
 
-	addrTradeHistory map[common.Address][]*P1Order
+	historyMtx       sync.RWMutex
+	addrTradeHistory map[common.Address][]*FilledP1Order
+	tradeHistory     []*FilledP1Order
 	book             *DepthBook
-	engine           Matcher
+	engine           *MatchEngine
 	gServer          *OrderBookServer
 
 	TradeTxs    *list.List
@@ -54,7 +37,7 @@ type OrderManager struct {
 
 func NewOrderManager(api PubSub, doMatch bool) *OrderManager {
 	manager := &OrderManager{
-		addrTradeHistory: make(map[common.Address][]*P1Order),
+		addrTradeHistory: make(map[common.Address][]*FilledP1Order),
 		orders:           clist.New(),
 		book:             NewDepthBook(),
 		TradeTxs:         list.New(),
@@ -66,10 +49,10 @@ func NewOrderManager(api PubSub, doMatch bool) *OrderManager {
 		ChainID:                    "65",
 		EthWsRpcUrl:                "wss://exchaintestws.okex.org:8443",
 		EthHttpRpcUrl:              "https://exchaintestrpc.okex.org",
-		PerpetualV1ContractAddress: "0xaC405bA85723d3E8d6D87B3B36Fd8D0D4e32D2cA",
-		P1OrdersContractAddress:    "0xf1730217Bd65f86D2F008f1821D8Ca9A26d6461A",
-		P1MakerOracleAddress:       "0x4241DD684fbC5bCFCD2cA7B90b72885A79cf50BA",
-		P1MarginAddress:            "0xC87EF36830A0D94E42bB2D82a0b2bB939368b10A",
+		PerpetualV1ContractAddress: "0xaC405bA85723d3E8d6D87B3B36Fd8D0D4e32D2c9",
+		P1OrdersContractAddress:    "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619",
+		P1MakerOracleAddress:       "0x4241DD684fbC5bCFCD2cA7B90b72885A79cf50B4",
+		P1MarginAddress:            "0xC87EF36830A0D94E42bB2D82a0b2bB939368b10B",
 		VMode:                      false,
 	}
 
@@ -166,7 +149,15 @@ func (d *OrderManager) HandleOrderFilled(filled *contracts.P1OrdersLogOrderFille
 	wodr.Done(filled.Fill.Amount)
 	if wodr.LeftAmount.Sign() == 0 && wodr.FrozenAmount.Sign() == 0 {
 		orderList.Remove(ele)
-		d.addrTradeHistory[wodr.Maker] = append(d.addrTradeHistory[wodr.Maker], &wodr.P1Order)
+		filledOrder := &FilledP1Order{
+			Filled:        new(big.Int).Set(wodr.Amount),
+			Time:          time.Now(),
+			P1OrdersOrder: wodr.P1OrdersOrder,
+		}
+		d.historyMtx.Lock()
+		d.tradeHistory = append(d.tradeHistory, filledOrder)
+		d.addrTradeHistory[wodr.Maker] = append(d.addrTradeHistory[wodr.Maker], filledOrder)
+		d.historyMtx.Unlock()
 	}
 	fmt.Println("debug filled", hex.EncodeToString(filled.OrderHash[:]), filled.TriggerPrice.String(), filled.Fill.Price.String(), filled.Fill.Amount.String())
 }
