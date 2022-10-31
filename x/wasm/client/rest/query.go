@@ -1,6 +1,7 @@
 package rest
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
@@ -8,9 +9,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/gorilla/mux"
-
 	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
+
+	"github.com/gorilla/mux"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/rest"
@@ -56,15 +57,44 @@ func listCodesHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 		if !ok {
 			return
 		}
-
-		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, keeper.QueryListCode)
-		res, height, err := cliCtx.Query(route)
+		queryClient := types.NewQueryClient(cliCtx)
+		pageReq, err := rest.ParseGRPCWasmPageRequest(r)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, json.RawMessage(res))
+		var reverse bool
+		reverseStr := r.FormValue("reverse")
+		if reverseStr == "" {
+			reverse = false
+		} else {
+			reverse, err = strconv.ParseBool(reverseStr)
+			if err != nil {
+				rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+		}
+
+		res, err := queryClient.Codes(
+			context.Background(),
+			&types.QueryCodesRequest{
+				Pagination: pageReq,
+			},
+		)
+
+		if reverse {
+			for i, j := 0, len(res.CodeInfos)-1; i < j; i, j = i+1, j-1 {
+				res.CodeInfos[i], res.CodeInfos[j] = res.CodeInfos[j], res.CodeInfos[i]
+			}
+		}
+
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		rest.PostProcessResponse(w, cliCtx, res)
+
 	}
 }
 
@@ -109,15 +139,44 @@ func listContractsByCodeHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc 
 			return
 		}
 
-		route := fmt.Sprintf("custom/%s/%s/%d", types.QuerierRoute, keeper.QueryListContractByCode, codeID)
-		res, height, err := cliCtx.Query(route)
+		queryClient := types.NewQueryClient(cliCtx)
+		pageReq, err := rest.ParseGRPCWasmPageRequest(r)
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		var reverse bool
+		reverseStr := r.FormValue("reverse")
+		if reverseStr == "" {
+			reverse = false
+		} else {
+			reverse, err = strconv.ParseBool(reverseStr)
+			if err != nil {
+				rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+		}
+
+		res, err := queryClient.ContractsByCode(
+			context.Background(),
+			&types.QueryContractsByCodeRequest{
+				CodeId:     codeID,
+				Pagination: pageReq,
+			},
+		)
+
+		if reverse {
+			for i, j := 0, len(res.Contracts)-1; i < j; i, j = i+1, j-1 {
+				res.Contracts[i], res.Contracts[j] = res.Contracts[j], res.Contracts[i]
+			}
+		}
+
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
-		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, json.RawMessage(res))
+		rest.PostProcessResponse(w, cliCtx, res)
 	}
 }
 
@@ -147,33 +206,51 @@ func queryContractHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 
 func queryContractStateAllHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		addr, err := sdk.AccAddressFromBech32(mux.Vars(r)["contractAddr"])
-		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
-			return
-		}
+		addr := mux.Vars(r)["contractAddr"]
+
 		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
 
-		route := fmt.Sprintf("custom/%s/%s/%s/%s", types.QuerierRoute, keeper.QueryGetContractState, addr.String(), keeper.QueryMethodContractStateAll)
-		res, height, err := cliCtx.Query(route)
+		queryClient := types.NewQueryClient(cliCtx)
+		pageReq, err := rest.ParseGRPCWasmPageRequest(r)
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		var reverse bool
+		reverseStr := r.FormValue("reverse")
+		if reverseStr == "" {
+			reverse = false
+		} else {
+			reverse, err = strconv.ParseBool(reverseStr)
+			if err != nil {
+				rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+		}
+
+		res, err := queryClient.AllContractState(
+			context.Background(),
+			&types.QueryAllContractStateRequest{
+				Address:    addr,
+				Pagination: pageReq,
+			},
+		)
+
+		if reverse {
+			for i, j := 0, len(res.Models)-1; i < j; i, j = i+1, j-1 {
+				res.Models[i], res.Models[j] = res.Models[j], res.Models[i]
+			}
+		}
+
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
 
-		// parse res
-		var resultData []types.Model
-		err = json.Unmarshal(res, &resultData)
-		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
-			return
-		}
-
-		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, resultData)
+		rest.PostProcessResponse(w, cliCtx, res)
 	}
 }
 
@@ -249,24 +326,51 @@ func queryContractStateSmartHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerF
 
 func queryContractHistoryFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		addr, err := sdk.AccAddressFromBech32(mux.Vars(r)["contractAddr"])
-		if err != nil {
-			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
-			return
-		}
+		addr := mux.Vars(r)["contractAddr"]
+
 		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
 			return
 		}
 
-		route := fmt.Sprintf("custom/%s/%s/%s", types.QuerierRoute, keeper.QueryContractHistory, addr.String())
-		res, height, err := cliCtx.Query(route)
+		queryClient := types.NewQueryClient(cliCtx)
+		pageReq, err := rest.ParseGRPCWasmPageRequest(r)
 		if err != nil {
 			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, json.RawMessage(res))
+		var reverse bool
+		reverseStr := r.FormValue("reverse")
+		if reverseStr == "" {
+			reverse = false
+		} else {
+			reverse, err = strconv.ParseBool(reverseStr)
+			if err != nil {
+				rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+				return
+			}
+		}
+
+		res, err := queryClient.ContractHistory(
+			context.Background(),
+			&types.QueryContractHistoryRequest{
+				Address:    addr,
+				Pagination: pageReq,
+			},
+		)
+
+		if reverse {
+			for i, j := 0, len(res.Entries)-1; i < j; i, j = i+1, j-1 {
+				res.Entries[i], res.Entries[j] = res.Entries[j], res.Entries[i]
+			}
+		}
+
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		rest.PostProcessResponse(w, cliCtx, res)
 	}
 }
 
