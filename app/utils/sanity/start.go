@@ -87,24 +87,18 @@ var (
 			configA: stringItem{name: apptype.FlagNodeMode, expect: string(apptype.ArchiveNode)},
 			configB: boolItem{name: watcher.FlagFastQuery, expect: true},
 		},
+		{
+			configA: boolItem{name: iavl.FlagIavlEnableFastStorage, expect: true},
+			configB: funcItem{name: "Upgraded to fast IAVL", expect: false, f: appstatus.NeedLongTimeToUpgrade},
+			tips: fmt.Sprintf("Upgrade to IAVL fast storage may take several hours, "+
+				"you can use exchaind fss create command to upgrade, or unset --%v", iavl.FlagIavlEnableFastStorage),
+		},
 	}
 
 	checkRangeItems = []rangeItem{
 		{
 			enumRange: []int{int(state.DeliverTxsExecModeSerial), state.DeliverTxsExecModeParallel},
 			name:      state.FlagDeliverTxsExecMode,
-		},
-	}
-
-	conflictPairOpts = []conflictPairWithOption{
-		{
-			checkOption: boolItem{name: iavl.FlagIavlEnableAutoUpgradeFSS, expect: false},
-			conflictPair: conflictPair{
-				configA: boolItem{name: iavl.FlagIavlEnableFastStorage, expect: true},
-				configB: funcItem{name: "Upgraded to fast IAVL", expect: false, f: appstatus.NeedLongTimeToUpgrade},
-			},
-			tips: fmt.Sprintf("Upgrade to IAVL fast storage may take several hours, if sure set --%s, otherwise unset --%s",
-				iavl.FlagIavlEnableAutoUpgradeFSS, iavl.FlagIavlEnableFastStorage),
 		},
 	}
 )
@@ -127,12 +121,6 @@ func CheckStart() error {
 
 	for _, v := range checkRangeItems {
 		if err := v.checkRange(); err != nil {
-			return err
-		}
-	}
-
-	for _, v := range conflictPairOpts {
-		if err := v.checkConflict(); err != nil {
 			return err
 		}
 	}

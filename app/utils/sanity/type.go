@@ -93,33 +93,21 @@ func (cp *dependentPair) check() error {
 type conflictPair struct {
 	configA item
 	configB item
+	tips    string
 }
 
 // checkConflict: check configA vs configB
 // if both configA and configB are got expect values
 // then complain it. if there is a custom tips use it.
-func (cp *conflictPair) check(tips ...string) error {
+func (cp *conflictPair) check() error {
 	if cp.configA.check() &&
 		cp.configB.check() {
-		if len(tips) == 0 {
+		if cp.tips == "" {
 			return fmt.Errorf(" %v conflict with %v", cp.configA.verbose(), cp.configB.verbose())
 		}
-		return fmt.Errorf(tips[0])
+		return fmt.Errorf(cp.tips)
 	}
 
-	return nil
-}
-
-type conflictPairWithOption struct {
-	checkOption item
-	conflictPair
-	tips string
-}
-
-func (cpo *conflictPairWithOption) checkConflict() error {
-	if cpo.checkOption.check() {
-		return cpo.conflictPair.check(cpo.tips)
-	}
 	return nil
 }
 

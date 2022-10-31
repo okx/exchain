@@ -19,7 +19,6 @@ const (
 	FlagIavlEnableAsyncCommit      = "iavl-enable-async-commit"
 	FlagIavlEnableFastStorage      = "iavl-enable-fast-storage"
 	FlagIavlFastStorageCacheSize   = "iavl-fast-storage-cache-size"
-	FlagIavlEnableAutoUpgradeFSS   = "iavl-auto-upgrade-fss"
 )
 
 var (
