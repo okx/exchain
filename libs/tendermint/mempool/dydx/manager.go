@@ -56,27 +56,15 @@ func NewOrderManager(api PubSub, doMatch bool) *OrderManager {
 		TradeTxsMap: make(map[ethcmm.Hash]*list.Element),
 	}
 
-	//config := DydxConfig{
-	//	PrivKeyHex: "89c81c304704e9890025a5a91898802294658d6e4034a11c6116f4b129ea12d3",
-	//	ChainID:    "65",
-	//	EthWsRpcUrl:                "wss://exchaintestws.okex.org:8443",
-	//	EthHttpRpcUrl:              "https://exchaintestrpc.okex.org",
-	//	PerpetualV1ContractAddress: "0xaC405bA85723d3E8d6D87B3B36Fd8D0D4e32D2c9",
-	//	P1OrdersContractAddress:    "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619",
-	//	P1MakerOracleAddress:       "0x4241DD684fbC5bCFCD2cA7B90b72885A79cf50B4",
-	//	P1MarginAddress:            "0xC87EF36830A0D94E42bB2D82a0b2bB939368b10B",
-	//	VMode:                      false,
-	//}
-
 	config := DydxConfig{
 		PrivKeyHex:                 "89c81c304704e9890025a5a91898802294658d6e4034a11c6116f4b129ea12d3",
 		ChainID:                    "65",
 		EthWsRpcUrl:                "wss://exchaintestws.okex.org:8443",
 		EthHttpRpcUrl:              "https://exchaintestrpc.okex.org",
-		PerpetualV1ContractAddress: "0xaC405bA85723d3E8d6D87B3B36Fd8D0D4e32D2cA",
-		P1OrdersContractAddress:    "0xf1730217Bd65f86D2F008f1821D8Ca9A26d6461A",
-		P1MakerOracleAddress:       "0x4241DD684fbC5bCFCD2cA7B90b72885A79cf50BA",
-		P1MarginAddress:            "0xC87EF36830A0D94E42bB2D82a0b2bB939368b10A",
+		PerpetualV1ContractAddress: "0xaC405bA85723d3E8d6D87B3B36Fd8D0D4e32D2c9",
+		P1OrdersContractAddress:    "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619",
+		P1MakerOracleAddress:       "0x4241DD684fbC5bCFCD2cA7B90b72885A79cf50B4",
+		P1MarginAddress:            "0xC87EF36830A0D94E42bB2D82a0b2bB939368b10B",
 		VMode:                      false,
 	}
 
