@@ -102,14 +102,15 @@ func queryDelegatorValidator(ctx sdk.Context, req abci.RequestQuery, k Keeper) (
 	foundV := false
 	var validator types.Validator
 	for _, val := range delegator.ValidatorAddresses {
-		if val.Equals(params.ValidatorAddr) {
-			validator, found = k.GetValidator(ctx, val)
-			if !found {
-				return nil, types.ErrNoValidatorFound(val.String())
-			}
-			foundV = true
-			break
+		if !val.Equals(params.ValidatorAddr) {
+			continue
 		}
+		validator, found = k.GetValidator(ctx, val)
+		if !found {
+			return nil, types.ErrNoValidatorFound(val.String())
+		}
+		foundV = true
+		break
 	}
 
 	if !foundV {
