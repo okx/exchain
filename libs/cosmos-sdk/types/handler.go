@@ -21,6 +21,8 @@ type GasRefundHandler func(ctx Context, tx Tx) (fee Coins, err error)
 
 type AccNonceHandler func(ctx Context, address AccAddress) (nonce uint64)
 
+type EvmSysContractAddressHandler func(ctx Context, addr AccAddress) bool
+
 type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins, txFeesplit *sync.Map) error
 
 type LogFix func(tx []Tx, logIndex []int, hasEnterEvmTx []bool, errs []error, resp []abci.ResponseDeliverTx) (logs [][]byte)

@@ -32,6 +32,8 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryFeeSplit(ctx, req, keeper)
 		case types.QueryDeployerFeeSplits:
 			return queryDeployerFeeSplits(ctx, req, keeper)
+		case types.QueryDeployerFeeSplitsDetail:
+			return queryDeployerFeeSplitsDetail(ctx, req, keeper)
 		case types.QueryWithdrawerFeeSplits:
 			return queryWithdrawerFeeSplits(ctx, req, keeper)
 		default:
@@ -201,6 +203,81 @@ func queryDeployerFeeSplits(
 	return res, nil
 }
 
+// queryDeployerFeeSplitsDetail returns all contracts with feesplit info that have been registered for fee
+// distribution by a given deployer
+func queryDeployerFeeSplitsDetail(
+	ctx sdk.Context,
+	req abci.RequestQuery,
+	k Keeper,
+) ([]byte, sdk.Error) {
+	var params types.QueryDeployerFeeSplitsRequest
+	err := k.cdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
+	}
+
+	if strings.TrimSpace(params.DeployerAddress) == "" {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "deployer address is empty")
+	}
+
+	deployer, err := sdk.AccAddressFromBech32(params.DeployerAddress)
+	if err != nil {
+		return nil, sdkerrors.Wrap(
+			sdkerrors.ErrInvalidRequest,
+			fmt.Sprintf("invalid format for deployer %s, should be bech32", params.DeployerAddress),
+		)
+	}
+
+	var contracts []common.Address
+	store := prefix.NewStore(
+		ctx.KVStore(k.storeKey),
+		types.GetKeyPrefixDeployer(deployer),
+	)
+
+	pageRes, err := query.Paginate(store, params.Pagination, func(key, _ []byte) error {
+		contracts = append(contracts, common.BytesToAddress(key))
+		return nil
+	})
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInternal, err.Error())
+	}
+
+	var feeSplits []types.FeeSplitWithShare
+	for _, contract := range contracts {
+		feeSplit, found := k.GetFeeSplit(ctx, contract)
+		if !found {
+			continue
+		}
+		share, found := k.GetContractShare(ctx, feeSplit.ContractAddress)
+		if !found {
+			share = k.GetParams(ctx).DeveloperShares
+		}
+
+		feeSplits = append(feeSplits, types.FeeSplitWithShare{
+			ContractAddress:   feeSplit.ContractAddress.String(),
+			DeployerAddress:   feeSplit.DeployerAddress.String(),
+			WithdrawerAddress: feeSplit.WithdrawerAddress.String(),
+			Share:             share,
+		})
+	}
+
+	if len(feeSplits) == 0 {
+		return nil, sdkerrors.Wrap(
+			sdkerrors.ErrInvalidRequest,
+			fmt.Sprintf("not found fees registered contract for deployer '%s'", params.DeployerAddress),
+		)
+	}
+	resp := &types.QueryDeployerFeeSplitsResponseV2{
+		FeeSplits:  feeSplits,
+		Pagination: pageRes,
+	}
+	res, err := codec.MarshalJSONIndent(types.ModuleCdc, resp)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+	return res, nil
+}
+
 // queryWithdrawerFeeSplits returns all fees for a given withdraw address
 func queryWithdrawerFeeSplits(
 	ctx sdk.Context,
@@ -231,34 +308,19 @@ func queryWithdrawerFeeSplits(
 		types.GetKeyPrefixWithdrawer(withdrawer),
 	)
 
-	pageRes := &query.PageResponse{}
-	if params.Pagination == nil {
-		//query all
-		iter := store.Iterator(nil, nil)
-		defer iter.Close()
+	pageRes, err := query.Paginate(store, params.Pagination, func(key, _ []byte) error {
+		contracts = append(contracts, common.BytesToAddress(key).Hex())
 
-		for ; iter.Valid(); iter.Next() {
-			key := iter.Key()
-			contracts = append(contracts, common.BytesToAddress(key).Hex())
-			pageRes.Total++
-		}
-	} else {
-		//query by page
-		pageRes, err = query.Paginate(store, params.Pagination, func(key, _ []byte) error {
-			contracts = append(contracts, common.BytesToAddress(key).Hex())
-
-			return nil
-		})
-		if err != nil {
-			return nil, sdkerrors.Wrap(sdkerrors.ErrInternal, err.Error())
-		}
+		return nil
+	})
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInternal, err.Error())
 	}
 
 	resp := &types.QueryWithdrawerFeeSplitsResponse{
 		ContractAddresses: contracts,
 		Pagination:        pageRes,
 	}
-
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, resp)
 	if err != nil {
 		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())

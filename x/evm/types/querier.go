@@ -29,6 +29,7 @@ const (
 	QueryContractDeploymentWhitelist = "contract-deployment-whitelist"
 	QueryContractBlockedList         = "contract-blocked-list"
 	QueryContractMethodBlockedList   = "contract-method-blocked-list"
+	QuerySysContractAddress          = "system-contract-address"
 )
 
 // QueryResBalance is response type for balance query
