@@ -169,6 +169,7 @@ type MatchResult struct {
 
 	OnChain chan bool
 	Tx      *ethtypes.Transaction
+	NoSend  bool
 }
 
 func (r *MatchResult) AddMatchedRecord(fill *contracts.P1OrdersFill, makerOrder *WrapOrder) {
@@ -221,6 +222,7 @@ func (m *MatchEngine) matchAndTrade(order *WrapOrder, noSend bool) (*MatchResult
 	if len(matched.MatchedRecords) == 0 {
 		return nil, nil
 	}
+	matched.NoSend = noSend
 
 	m.logger.Debug("match result", "matched", matched.MatchedRecords)
 

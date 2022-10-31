@@ -70,15 +70,27 @@ func NewOrderManager(api PubSub, doMatch bool) *OrderManager {
 
 	config := DydxConfig{
 		PrivKeyHex:                 "89c81c304704e9890025a5a91898802294658d6e4034a11c6116f4b129ea12d3",
-		ChainID:                    "8",
-		EthWsRpcUrl:                "ws://localhost:8546",
-		EthHttpRpcUrl:              "http://localhost:8545",
-		PerpetualV1ContractAddress: "0xaC405bA85723d3E8d6D87B3B36Fd8D0D4e32D2c9",
-		P1OrdersContractAddress:    "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619",
-		P1MakerOracleAddress:       "0x4241DD684fbC5bCFCD2cA7B90b72885A79cf50B4",
-		P1MarginAddress:            "0xC87EF36830A0D94E42bB2D82a0b2bB939368b10B",
-		VMode:                      true,
+		ChainID:                    "65",
+		EthWsRpcUrl:                "wss://exchaintestws.okex.org:8443",
+		EthHttpRpcUrl:              "https://exchaintestrpc.okex.org",
+		PerpetualV1ContractAddress: "0xaC405bA85723d3E8d6D87B3B36Fd8D0D4e32D2cA",
+		P1OrdersContractAddress:    "0xf1730217Bd65f86D2F008f1821D8Ca9A26d6461A",
+		P1MakerOracleAddress:       "0x4241DD684fbC5bCFCD2cA7B90b72885A79cf50BA",
+		P1MarginAddress:            "0xC87EF36830A0D94E42bB2D82a0b2bB939368b10A",
+		VMode:                      false,
 	}
+
+	//config := DydxConfig{
+	//	PrivKeyHex:                 "89c81c304704e9890025a5a91898802294658d6e4034a11c6116f4b129ea12d3",
+	//	ChainID:                    "8",
+	//	EthWsRpcUrl:                "ws://localhost:8546",
+	//	EthHttpRpcUrl:              "http://localhost:8545",
+	//	PerpetualV1ContractAddress: "0xaC405bA85723d3E8d6D87B3B36Fd8D0D4e32D2c9",
+	//	P1OrdersContractAddress:    "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619",
+	//	P1MakerOracleAddress:       "0x4241DD684fbC5bCFCD2cA7B90b72885A79cf50B4",
+	//	P1MarginAddress:            "0xC87EF36830A0D94E42bB2D82a0b2bB939368b10B",
+	//	VMode:                      true,
+	//}
 
 	if doMatch {
 		me, err := NewMatchEngine(api, manager.book, config, nil, log.NewTMLogger(os.Stdout))
@@ -210,13 +222,14 @@ func (d *OrderManager) RemoveTradeTx(txhash []byte) *ethtypes.Transaction {
 	if !types.HigherThanVenus(global.GetGlobalHeight()) {
 		return nil
 	}
+	evmHash := ethcmm.BytesToHash(txhash)
 	d.TradeTxsMtx.Lock()
 	defer d.TradeTxsMtx.Unlock()
-	ele, ok := d.TradeTxsMap[ethcmm.BytesToHash(txhash)]
+	ele, ok := d.TradeTxsMap[evmHash]
 	if !ok {
 		return nil
 	}
 	tx := d.TradeTxs.Remove(ele).(*ethtypes.Transaction)
-	delete(d.TradeTxsMap, ethcmm.BytesToHash(txhash))
+	delete(d.TradeTxsMap, evmHash)
 	return tx
 }
