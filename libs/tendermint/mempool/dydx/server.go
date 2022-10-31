@@ -68,19 +68,19 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 
 	case "/buy":
 		//fmt.Fprintf(w, "total orders: %d\n", book.buyOrders.Len())
-		m := make(map[uint64]uint64)
-		list := []OrderShowList{{"0", 0}}
+		//m := make(map[uint64]uint64)
+		//list := []OrderShowList{{"0", 0}}
 		for _, order := range book.buyOrders.List() {
-			m[order.LimitPrice.Uint64()] += order.GetLeftAmount().Uint64()
-			if order.GetLimitPrice().String() == list[len(list)-1].Price {
-				list[len(list)-1].Amount += order.GetLeftAmount().Uint64()
-			} else {
-				list = append(list, OrderShowList{
-					Price:  order.GetLimitPrice().String(),
-					Amount: order.GetLeftAmount().Uint64(),
-				})
-			}
-			//fmt.Fprintf(w, "orederHash: %s, amount: %d, left: %d, frozen: %d\n", order.Hash(), order.Amount, order.LeftAmount, order.FrozenAmount)
+			//m[order.LimitPrice.Uint64()] += order.GetLeftAmount().Uint64()
+			//if order.GetLimitPrice().String() == list[len(list)-1].Price {
+			//	list[len(list)-1].Amount += order.GetLeftAmount().Uint64()
+			//} else {
+			//	list = append(list, OrderShowList{
+			//		Price:  order.GetLimitPrice().String(),
+			//		Amount: order.GetLeftAmount().Uint64(),
+			//	})
+			//}
+			fmt.Fprintf(w, "orederHash: %s, amount: %d, left: %d, frozen: %d\n", order.Hash(), order.Amount, order.LeftAmount, order.FrozenAmount)
 		}
 		//data, err := json.MarshalIndent(m, "", "    ")
 		//if err != nil {
@@ -89,29 +89,29 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 		//	fmt.Fprintf(w, string(data))
 		//}
 		//fmt.Fprintf(w, "\n\n")
-		list = list[1:]
-		data2, err := json.MarshalIndent(list, "", "    ")
-		if err != nil {
-			fmt.Fprintf(w, err.Error())
-		} else {
-			fmt.Fprintf(w, string(data2))
-		}
+		//list = list[1:]
+		//data2, err := json.MarshalIndent(list, "", "    ")
+		//if err != nil {
+		//	fmt.Fprintf(w, err.Error())
+		//} else {
+		//	fmt.Fprintf(w, string(data2))
+		//}
 
 	case "/sell":
 		//fmt.Fprintf(w, "total orders: %d\n", book.sellOrders.Len())
-		m := make(map[uint64]uint64)
-		list := []OrderShowList{{"0", 0}}
+		//m := make(map[uint64]uint64)
+		//list := []OrderShowList{{"0", 0}}
 		for _, order := range book.sellOrders.List() {
-			m[order.LimitPrice.Uint64()] += order.GetLeftAmount().Uint64()
-			if order.GetLimitPrice().String() == list[len(list)-1].Price {
-				list[len(list)-1].Amount += order.GetLeftAmount().Uint64()
-			} else {
-				list = append(list, OrderShowList{
-					Price:  order.GetLimitPrice().String(),
-					Amount: order.GetLeftAmount().Uint64(),
-				})
-			}
-			//fmt.Fprintf(w, "orederHash: %s, amount: %d, left: %d, frozen: %d\n", order.Hash(), order.Amount, order.LeftAmount, order.FrozenAmount)
+			//m[order.LimitPrice.Uint64()] += order.GetLeftAmount().Uint64()
+			//if order.GetLimitPrice().String() == list[len(list)-1].Price {
+			//	list[len(list)-1].Amount += order.GetLeftAmount().Uint64()
+			//} else {
+			//	list = append(list, OrderShowList{
+			//		Price:  order.GetLimitPrice().String(),
+			//		Amount: order.GetLeftAmount().Uint64(),
+			//	})
+			//}
+			fmt.Fprintf(w, "orederHash: %s, amount: %d, left: %d, frozen: %d\n", order.Hash(), order.Amount, order.LeftAmount, order.FrozenAmount)
 		}
 		//data, err := json.MarshalIndent(m, "", "    ")
 		//if err != nil {
@@ -120,13 +120,13 @@ func IndexHandler(w http.ResponseWriter, r *http.Request) {
 		//	fmt.Fprintf(w, string(data))
 		//}
 		//fmt.Fprintf(w, "\n\n")
-		list = list[1:]
-		data2, err := json.MarshalIndent(list, "", "    ")
-		if err != nil {
-			fmt.Fprintf(w, err.Error())
-		} else {
-			fmt.Fprintf(w, string(data2))
-		}
+		//list = list[1:]
+		//data2, err := json.MarshalIndent(list, "", "    ")
+		//if err != nil {
+		//	fmt.Fprintf(w, err.Error())
+		//} else {
+		//	fmt.Fprintf(w, string(data2))
+		//}
 	default:
 		fmt.Fprintf(w, "Invalid path")
 	}

@@ -2,15 +2,18 @@ package dydx
 
 import (
 	"container/list"
+	"encoding/hex"
+	"fmt"
 	"math/big"
 	"os"
 	"sync"
 	"time"
 
-	"github.com/okex/exchain/libs/tendermint/global"
-
+	"github.com/ethereum/go-ethereum/common"
 	ethcmm "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
+	"github.com/okex/exchain/libs/dydx/contracts"
+	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/types"
@@ -39,9 +42,10 @@ type OrderManager struct {
 	orders    *clist.CList
 	ordersMap sync.Map // orderKey => *clist.CElement
 
-	book    *DepthBook
-	engine  Matcher
-	gServer *OrderBookServer
+	addrTradeHistory map[common.Address][]*P1Order
+	book             *DepthBook
+	engine           Matcher
+	gServer          *OrderBookServer
 
 	TradeTxs    *list.List
 	TradeTxsMap map[ethcmm.Hash]*list.Element
@@ -50,10 +54,11 @@ type OrderManager struct {
 
 func NewOrderManager(api PubSub, doMatch bool) *OrderManager {
 	manager := &OrderManager{
-		orders:      clist.New(),
-		book:        NewDepthBook(),
-		TradeTxs:    list.New(),
-		TradeTxsMap: make(map[ethcmm.Hash]*list.Element),
+		addrTradeHistory: make(map[common.Address][]*P1Order),
+		orders:           clist.New(),
+		book:             NewDepthBook(),
+		TradeTxs:         list.New(),
+		TradeTxsMap:      make(map[ethcmm.Hash]*list.Element),
 	}
 
 	config := DydxConfig{
@@ -68,33 +73,21 @@ func NewOrderManager(api PubSub, doMatch bool) *OrderManager {
 		VMode:                      false,
 	}
 
-	//config := DydxConfig{
-	//	PrivKeyHex:                 "89c81c304704e9890025a5a91898802294658d6e4034a11c6116f4b129ea12d3",
-	//	ChainID:                    "8",
-	//	EthWsRpcUrl:                "ws://localhost:8546",
-	//	EthHttpRpcUrl:              "http://localhost:8545",
-	//	PerpetualV1ContractAddress: "0xaC405bA85723d3E8d6D87B3B36Fd8D0D4e32D2c9",
-	//	P1OrdersContractAddress:    "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619",
-	//	P1MakerOracleAddress:       "0x4241DD684fbC5bCFCD2cA7B90b72885A79cf50B4",
-	//	P1MarginAddress:            "0xC87EF36830A0D94E42bB2D82a0b2bB939368b10B",
-	//	VMode:                      true,
-	//}
-
 	if doMatch {
-		me, err := NewMatchEngine(api, manager.book, config, nil, log.NewTMLogger(os.Stdout))
+		me, err := NewMatchEngine(api, manager.book, config, manager, log.NewTMLogger(os.Stdout))
 		if err != nil {
 			panic(err)
 		}
 		manager.engine = me
-	} else {
-		manager.engine = NewEmptyMatcher(manager.book)
 	}
+
 	manager.gServer = NewOrderBookServer(manager.book, log.NewTMLogger(os.Stdout))
 	err := manager.gServer.Start("7070")
 	if err != nil {
 		panic(err)
 	}
 	go manager.Serve()
+	go manager.ServeWeb()
 	return manager
 }
 
@@ -155,6 +148,32 @@ func (d *OrderManager) WaitChan() <-chan struct{} {
 
 func (d *OrderManager) Front() *clist.CElement {
 	return d.orders.Front()
+}
+
+func (d *OrderManager) HandleOrderFilled(filled *contracts.P1OrdersLogOrderFilled) {
+	var orderList *OrderList
+	if filled.Flags[31]&FlagMaskIsBuy != FlagMaskNull {
+		orderList = d.book.buyOrders
+	} else {
+		orderList = d.book.sellOrders
+	}
+	ele := orderList.Get(filled.OrderHash)
+	if ele == nil {
+		fmt.Println("element is nil, orderHash:", hex.EncodeToString(filled.OrderHash[:]))
+		return
+	}
+	wodr := ele.Value.(*WrapOrder)
+	wodr.Done(filled.Fill.Amount)
+	if wodr.LeftAmount.Sign() == 0 && wodr.FrozenAmount.Sign() == 0 {
+		orderList.Remove(ele)
+		d.addrTradeHistory[wodr.Maker] = append(d.addrTradeHistory[wodr.Maker], &wodr.P1Order)
+	}
+	fmt.Println("debug filled", hex.EncodeToString(filled.OrderHash[:]), filled.TriggerPrice.String(), filled.Fill.Price.String(), filled.Fill.Amount.String())
+}
+
+func (d *OrderManager) SubErr(err error) {
+	//TODO
+	panic(err)
 }
 
 func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) (tradeTxs []types.Tx, totalBytes, totalGas int64) {
