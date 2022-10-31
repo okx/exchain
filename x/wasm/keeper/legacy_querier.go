@@ -19,6 +19,7 @@ const (
 	QueryGetCode            = "code"
 	QueryListCode           = "list-code"
 	QueryContractHistory    = "contract-history"
+	QueryParams             = "params"
 )
 
 const (
@@ -66,6 +67,8 @@ func NewLegacyQuerier(keeper types.ViewKeeper, gasLimit sdk.Gas) sdk.Querier {
 				return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, addrErr.Error())
 			}
 			rsp, err = queryContractHistory(ctx, contractAddr, keeper)
+		case QueryParams:
+			rsp = queryParams(ctx, keeper)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown data query endpoint")
 		}
@@ -150,4 +153,9 @@ func queryContractListByCode(ctx sdk.Context, codeID uint64, keeper types.ViewKe
 		return false
 	})
 	return contracts
+}
+
+func queryParams(ctx sdk.Context, keeper types.ViewKeeper) *types.Params {
+	params := keeper.GetParams(ctx)
+	return &params
 }
