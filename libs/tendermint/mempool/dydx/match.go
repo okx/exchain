@@ -122,7 +122,7 @@ func NewMatchEngine(api PubSub, depthBook *DepthBook, config DydxConfig, handler
 			},
 		}
 
-		if api != nil {
+		if config.VMode && api != nil {
 			ch := make(chan *ethtypes.Log, 32)
 			id, err := api.SubscribeLogs(ch, query)
 			if err != nil {
