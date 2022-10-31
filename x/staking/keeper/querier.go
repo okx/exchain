@@ -45,6 +45,16 @@ func NewQuerier(k Keeper) sdk.Querier {
 			return queryProxy(ctx, req, k)
 		case types.QueryDelegator:
 			return queryDelegator(ctx, req, k)
+		case types.QueryDelegatorValidators:
+			return queryDelegatorValidators(ctx, req, k)
+		case types.QueryDelegatorValidator:
+			return queryDelegatorValidator(ctx, req, k)
+		case types.QueryHistoricalInfo:
+			return queryHistoricalInfo(ctx, req, k)
+		case types.QueryValidatorDelegations:
+			return queryValidatorDelegations(ctx, req, k)
+		case types.QueryValidatorDelegator:
+			return queryValidatorDelegator(ctx, req, k)
 
 			// required by wallet
 		case types.QueryDelegatorDelegations:
@@ -70,6 +80,130 @@ func queryDelegator(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, e
 	}
 
 	res, err := codec.MarshalJSONIndent(types.ModuleCdc, delegator)
+	if err != nil {
+		return nil, common.ErrMarshalJSONFailed(err.Error())
+	}
+
+	return res, nil
+}
+
+func queryDelegatorValidator(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, error) {
+	var params types.QueryBondsParams
+	err := types.ModuleCdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
+	}
+
+	delegator, found := k.GetDelegator(ctx, params.DelegatorAddr)
+	if !found {
+		return nil, types.ErrNoDelegatorExisted(params.DelegatorAddr.String())
+	}
+
+	foundV := false
+	var validator types.Validator
+	for _, val := range delegator.ValidatorAddresses {
+		if val.Equals(params.ValidatorAddr) {
+			validator, found = k.GetValidator(ctx, val)
+			if !found {
+				return nil, types.ErrNoValidatorFound(val.String())
+			}
+			foundV = true
+			break
+		}
+	}
+
+	if !foundV {
+		return nil, types.ErrCodeNoDelegatorValidator(params.DelegatorAddr.String(), params.ValidatorAddr.String())
+	}
+
+	res, err := codec.MarshalJSONIndent(types.ModuleCdc, validator)
+	if err != nil {
+		return nil, common.ErrMarshalJSONFailed(err.Error())
+	}
+
+	return res, nil
+}
+
+func queryValidatorDelegator(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, error) {
+	var params types.QueryBondsParams
+	err := types.ModuleCdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
+	}
+
+	delegator, found := k.GetDelegator(ctx, params.DelegatorAddr)
+	if !found {
+		return nil, types.ErrNoDelegatorExisted(params.DelegatorAddr.String())
+	}
+
+	find := false
+	for _, val := range delegator.ValidatorAddresses {
+		if val.Equals(params.ValidatorAddr) {
+			find = true
+			break
+		}
+	}
+
+	if !find {
+		return nil, types.ErrCodeNoDelegatorValidator(params.DelegatorAddr.String(), params.ValidatorAddr.String())
+	}
+
+	res, err := codec.MarshalJSONIndent(types.ModuleCdc, delegator)
+	if err != nil {
+		return nil, common.ErrMarshalJSONFailed(err.Error())
+	}
+
+	return res, nil
+}
+
+func queryDelegatorValidators(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, error) {
+	var params types.QueryDelegatorParams
+	err := types.ModuleCdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
+	}
+
+	delegator, found := k.GetDelegator(ctx, params.DelegatorAddr)
+	if !found {
+		return nil, types.ErrNoDelegatorExisted(params.DelegatorAddr.String())
+	}
+
+	var validators []types.Validator
+	for _, val := range delegator.ValidatorAddresses {
+		validator, found := k.GetValidator(ctx, val)
+		if !found {
+			return nil, types.ErrNoValidatorFound(val.String())
+		}
+		validators = append(validators, validator)
+	}
+
+	res, err := codec.MarshalJSONIndent(types.ModuleCdc, validators)
+	if err != nil {
+		return nil, common.ErrMarshalJSONFailed(err.Error())
+	}
+
+	return res, nil
+}
+
+func queryValidatorDelegations(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, error) {
+	var params types.QueryValidatorParams
+
+	err := types.ModuleCdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, common.ErrUnMarshalJSONFailed(err.Error())
+	}
+
+	sharesDelegations := k.GetValidatorAllShares(ctx, params.ValidatorAddr)
+	var delegators []types.Delegator
+	for _, shareDelegator := range sharesDelegations {
+		delegator, found := k.GetDelegator(ctx, shareDelegator.DelAddr)
+		if !found {
+			return nil, types.ErrNoDelegatorExisted(shareDelegator.DelAddr.String())
+		}
+		delegators = append(delegators, delegator)
+	}
+
+	res, err := codec.MarshalJSONIndent(types.ModuleCdc, delegators)
 	if err != nil {
 		return nil, common.ErrMarshalJSONFailed(err.Error())
 	}
@@ -405,4 +539,25 @@ func DelegationToDelegationResponse(ctx sdk.Context, k Keeper, del stakingtypes.
 		del.Shares,
 		sdk.NewCoin(k.BondDenom(ctx), val.TokensFromShares(del.Shares).TruncateInt()),
 	), nil
+}
+
+func queryHistoricalInfo(ctx sdk.Context, req abci.RequestQuery, k Keeper) ([]byte, error) {
+	var params types.QueryHistoricalInfoParams
+
+	err := types.ModuleCdc.UnmarshalJSON(req.Data, &params)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONUnmarshal, err.Error())
+	}
+
+	hi, found := k.GetHistoricalInfo(ctx, params.Height)
+	if !found {
+		return nil, types.ErrNoHistoricalInfo
+	}
+
+	res, err := codec.MarshalJSONIndent(types.ModuleCdc, hi)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrJSONMarshal, err.Error())
+	}
+
+	return res, nil
 }
