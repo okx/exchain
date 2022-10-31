@@ -51,8 +51,11 @@ func DefaultParams() Params {
 func (p Params) String() string {
 	return fmt.Sprintf(`Distribution Params:
   Community Tax:          %s
-  Withdraw Addr Enabled:  %t`,
-		p.CommunityTax, p.WithdrawAddrEnabled)
+  Withdraw Addr Enabled:  %t
+  Distribution Type: %d
+  Withdraw Reward Enabled: %t
+  Reward Truncate Precision: %d`,
+		p.CommunityTax, p.WithdrawAddrEnabled, p.DistributionType, p.WithdrawRewardEnabled, p.RewardTruncatePrecision)
 }
 
 // ParamSetPairs returns the parameter set pairs.
