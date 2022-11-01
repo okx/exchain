@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"encoding/hex"
 	"flag"
+	"fmt"
 	"math/big"
 	"math/rand"
 	"time"
@@ -32,6 +34,7 @@ var (
 	amount  int64
 	price   string
 	isBuy   bool
+	debug   bool
 )
 
 func main() {
@@ -39,6 +42,7 @@ func main() {
 	flag.Int64Var(&amount, "amount", 1, "")
 	flag.StringVar(&price, "price", "18200000000000000000000", "limit price of the order")
 	flag.BoolVar(&isBuy, "buy", true, "")
+	flag.BoolVar(&debug, "debug", false, "")
 	flag.Parse()
 	priv, err := crypto.HexToECDSA(privHex)
 	if err != nil {
@@ -69,6 +73,10 @@ func main() {
 		panic(err)
 	}
 	data := append(orderBytes, sig...)
+	if debug {
+		fmt.Println(hex.EncodeToString(data))
+		return
+	}
 
 	unsignedTx := types.NewTransaction(0, orderContractAddr, big.NewInt(0), GasLimit, big.NewInt(GasPrice), data)
 
