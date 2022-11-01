@@ -27,6 +27,7 @@ type PubSubAPI struct {
 	filtersMu *sync.RWMutex
 	filters   map[rpc.ID]*localSubscription
 	logger    log.Logger
+	client    rpcclient.Client
 }
 
 // NewAPI creates an instance of the ethereum PubSub API.
@@ -36,6 +37,7 @@ func NewAPI(client rpcclient.Client, log log.Logger) *PubSubAPI {
 		filtersMu: new(sync.RWMutex),
 		filters:   make(map[rpc.ID]*localSubscription),
 		logger:    log.With("module", "local-client-pubsub"),
+		client:    client,
 	}
 }
 

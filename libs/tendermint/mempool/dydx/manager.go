@@ -13,6 +13,7 @@ import (
 	ethcmm "github.com/ethereum/go-ethereum/common"
 	ethtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/okex/exchain/libs/dydx/contracts"
+	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/global"
 	"github.com/okex/exchain/libs/tendermint/libs/clist"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -31,8 +32,8 @@ type OrderManager struct {
 	gServer          *OrderBookServer
 
 	TradeTxs    *list.List
-	TradeTxsMap map[ethcmm.Hash]*list.Element
-	TradeTxsMtx sync.Mutex
+	tradeTxsMap map[ethcmm.Hash]*list.Element
+	tradeTxsMtx sync.Mutex
 }
 
 func NewOrderManager(api PubSub, doMatch bool) *OrderManager {
@@ -41,7 +42,7 @@ func NewOrderManager(api PubSub, doMatch bool) *OrderManager {
 		orders:           clist.New(),
 		book:             NewDepthBook(),
 		TradeTxs:         list.New(),
-		TradeTxsMap:      make(map[ethcmm.Hash]*list.Element),
+		tradeTxsMap:      make(map[ethcmm.Hash]*list.Element),
 	}
 
 	config := DydxConfig{
@@ -109,13 +110,12 @@ func (d *OrderManager) Insert(memOrder *MempoolOrder) error {
 	d.gServer.UpdateClient()
 
 	if result != nil {
-		if result.OnChain != nil {
-			go d.book.Update(result)
-		} else {
-			d.TradeTxsMtx.Lock()
-			d.TradeTxsMap[result.Tx.Hash()] = d.TradeTxs.PushBack(result.Tx)
-			d.TradeTxsMtx.Unlock()
+		if result.NoSend {
+			d.tradeTxsMtx.Lock()
+			d.tradeTxsMap[result.Tx.Hash()] = d.TradeTxs.PushBack(result)
+			d.tradeTxsMtx.Unlock()
 		}
+		go d.book.Update(result)
 	}
 
 	return nil
@@ -186,8 +186,8 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 	if !types.HigherThanVenus(global.GetGlobalHeight()) {
 		return
 	}
-	d.TradeTxsMtx.Lock()
-	defer d.TradeTxsMtx.Unlock()
+	d.tradeTxsMtx.Lock()
+	defer d.tradeTxsMtx.Unlock()
 
 	if int64(d.TradeTxs.Len()) < maxNum {
 		maxNum = int64(d.TradeTxs.Len())
@@ -195,7 +195,8 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 	tradeTxs = make([]types.Tx, 0, maxNum)
 
 	for ele := d.TradeTxs.Front(); ele != nil; ele = ele.Next() {
-		tx := ele.Value.(*ethtypes.Transaction)
+		mre := ele.Value.(*MatchResult)
+		tx := mre.Tx
 		txBz, err := tx.MarshalBinary()
 		if err != nil {
 			continue
@@ -220,12 +221,12 @@ func (d *OrderManager) TxsLen() int {
 	if d == nil {
 		return 0
 	}
-	d.TradeTxsMtx.Lock()
-	defer d.TradeTxsMtx.Unlock()
+	d.tradeTxsMtx.Lock()
+	defer d.tradeTxsMtx.Unlock()
 	return d.TradeTxs.Len()
 }
 
-func (d *OrderManager) RemoveTradeTx(txhash []byte) *ethtypes.Transaction {
+func (d *OrderManager) RemoveTradeTx(txhash []byte, code uint32) *ethtypes.Transaction {
 	if d == nil {
 		return nil
 	}
@@ -233,13 +234,15 @@ func (d *OrderManager) RemoveTradeTx(txhash []byte) *ethtypes.Transaction {
 		return nil
 	}
 	evmHash := ethcmm.BytesToHash(txhash)
-	d.TradeTxsMtx.Lock()
-	defer d.TradeTxsMtx.Unlock()
-	ele, ok := d.TradeTxsMap[evmHash]
+
+	d.tradeTxsMtx.Lock()
+	defer d.tradeTxsMtx.Unlock()
+	ele, ok := d.tradeTxsMap[evmHash]
 	if !ok {
 		return nil
 	}
-	tx := d.TradeTxs.Remove(ele).(*ethtypes.Transaction)
-	delete(d.TradeTxsMap, evmHash)
-	return tx
+	mr := d.TradeTxs.Remove(ele).(*MatchResult)
+	mr.OnChain <- code == abci.CodeTypeOK
+	delete(d.tradeTxsMap, evmHash)
+	return mr.Tx
 }
