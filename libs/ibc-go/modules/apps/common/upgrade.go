@@ -105,5 +105,5 @@ func (v *Veneus3BaseUpgradeModule) VersionFilter() *cosmost.VersionFilter {
 }
 
 func (v *Veneus3BaseUpgradeModule) UpgradeHeight() int64 {
-	return tmtypes.GetVenus3Height()
+	return tmtypes.GetVenus4Height()
 }
