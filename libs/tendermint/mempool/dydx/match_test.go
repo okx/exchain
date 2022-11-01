@@ -76,7 +76,7 @@ func TestMatch(t *testing.T) {
 	tool := &testTool{T: t}
 
 	book := NewDepthBook()
-	me, err := NewMatchEngine(book, config, nil, nil)
+	me, err := NewMatchEngine(nil, book, config, nil, nil)
 	require.NoError(t, err)
 
 	// no match
@@ -202,7 +202,7 @@ func TestMatch(t *testing.T) {
 
 func TestBalance(t *testing.T) {
 	book := NewDepthBook()
-	me, err := NewMatchEngine(book, config, nil, nil)
+	me, err := NewMatchEngine(nil, book, config, nil, nil)
 	require.NoError(t, err)
 
 	banlance, err := me.contracts.PerpetualV1.GetAccountBalance(nil, addrBob)
@@ -229,7 +229,7 @@ func TestTransaction(t *testing.T) {
 	logger = log.NewFilter(logger, options...)
 
 	book := NewDepthBook()
-	me, err := NewMatchEngine(book, config, nil, logger)
+	me, err := NewMatchEngine(nil, book, config, nil, logger)
 	require.NoError(t, err)
 
 	tool := &testTool{T: t}
@@ -279,7 +279,7 @@ func TestMatchAndTrade(t *testing.T) {
 	tool := &testTool{T: t}
 
 	book := NewDepthBook()
-	me, err := NewMatchEngine(book, config, nil, logger)
+	me, err := NewMatchEngine(nil, book, config, nil, logger)
 	require.NoError(t, err)
 
 	// order1
@@ -323,7 +323,7 @@ func TestMatchAndTrade(t *testing.T) {
 
 func TestTxReceipt(t *testing.T) {
 	book := NewDepthBook()
-	me, err := NewMatchEngine(book, config, nil, nil)
+	me, err := NewMatchEngine(nil, book, config, nil, nil)
 	require.NoError(t, err)
 	rec, err := me.httpCli.TransactionReceipt(context.Background(),
 		common.HexToHash("0xf6cc010deb24d3c78f5d34119541d5f5417f06da5f88989f0c34b858370e0d52"),
@@ -350,7 +350,7 @@ func newTestOrder(price, amount uint64, isBuy bool) *WrapOrder {
 	// time.Now().Unix()*2 to avoid to be pruned
 	// rand.Int63() to avoid repeated orderHash
 	o.Expiration = big.NewInt(time.Now().Unix()*2 + rand.Int63())
-	if !isBuy {
+	if isBuy {
 		o.Flags[31] = 1
 	}
 	return o

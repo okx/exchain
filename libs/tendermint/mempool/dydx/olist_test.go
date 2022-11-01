@@ -16,7 +16,7 @@ func TestOrderManager(t *testing.T) {
 	priv, err := crypto.HexToECDSA(hexPriv)
 	addr := crypto.PubkeyToAddress(priv.PublicKey)
 
-	manager := NewOrderManager(false)
+	manager := NewOrderManager(nil, false)
 	for i := 0; i < orderCount; i++ {
 		if i%(orderCount/10) == 0 {
 			time.Sleep(time.Millisecond)
