@@ -160,6 +160,7 @@ func validatorAllSharesHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 // HTTP request handler to query historical info at a given height
 func historicalInfoHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		cliCtx := cliCtx
 		vars := mux.Vars(r)
 		heightStr := vars["height"]
 		height, err := strconv.ParseInt(heightStr, 10, 64)
