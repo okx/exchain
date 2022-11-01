@@ -1041,7 +1041,7 @@ func (mem *CListMempool) cleanTx(height int64, tx types.Tx, txCode uint32) *clis
 	// https://github.com/tendermint/tendermint/issues/3322.
 	ele := mem.removeTxByKey(txKey)
 	if ele == nil {
-		_ = mem.orderManager.RemoveTradeTx(txHash)
+		_ = mem.orderManager.RemoveTradeTx(txHash, txCode)
 	}
 	return ele
 }

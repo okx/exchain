@@ -254,10 +254,11 @@ func (m *MatchEngine) matchAndTrade(order *WrapOrder, noSend bool) (*MatchResult
 		return matched, fmt.Errorf("failed to commit, err: %w", err)
 	}
 	m.logger.Debug("commit tx", "tx", matched.Tx.Hash().Hex())
+
+	matched.OnChain = make(chan bool, 1)
 	if noSend {
 		return matched, nil
 	}
-	matched.OnChain = make(chan bool, 1)
 
 	go func(txHash common.Hash) {
 		m.logger.Debug("wait tx", "tx", txHash.Hex())
