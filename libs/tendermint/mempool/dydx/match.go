@@ -398,11 +398,8 @@ func processOrder(takerOrder *WrapOrder, makerBook *OrderList, takerBook *OrderL
 			Price:  matchPrice,
 		}, makerOrder)
 
-		takerOrder.LeftAmount.Sub(takerOrder.LeftAmount, matchAmount)
-		makerOrder.LeftAmount.Sub(makerOrder.LeftAmount, matchAmount)
-
-		takerOrder.FrozenAmount.Add(takerOrder.FrozenAmount, matchAmount)
-		makerOrder.FrozenAmount.Add(makerOrder.FrozenAmount, matchAmount)
+		takerOrder.Frozen(matchAmount)
+		makerOrder.Frozen(matchAmount)
 
 		if takerOrder.LeftAmount.Cmp(zero) == 0 {
 			break
