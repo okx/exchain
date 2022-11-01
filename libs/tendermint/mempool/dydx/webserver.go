@@ -34,7 +34,7 @@ type Response struct {
 func (o *OrderManager) ServeWeb() {
 	r := mux.NewRouter()
 	r.HandleFunc("/", EmptyHandler)
-	r.HandleFunc("/order", o.PlaceOrderHandler).Methods(GET).Queries("amount", "{amount}", "limitPrice", "{limitPrice}", "maker", "{maker}", "isBuy", "{isBuy}")
+	r.HandleFunc("/order", o.GenerateOrderHandler).Methods(GET).Queries("amount", "{amount}", "limitPrice", "{limitPrice}", "maker", "{maker}", "isBuy", "{isBuy}")
 	r.HandleFunc("/order/{order}", o.SendHandler).Methods(POST)
 
 	r.HandleFunc("/book", o.BookHandler).Methods(GET)
@@ -54,7 +54,10 @@ type OrderResponse struct {
 	Hash  string `json:"hash"`
 }
 
-func (o *OrderManager) PlaceOrderHandler(w http.ResponseWriter, r *http.Request) {
+func (o *OrderManager) GenerateOrderHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("content-type", "application/json")
 	vars := mux.Vars(r)
 	amount := vars["amount"]
 	Amount, ok := new(big.Int).SetString(amount, 10)
@@ -110,6 +113,9 @@ func (o *OrderManager) PlaceOrderHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (o *OrderManager) SendHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("content-type", "application/json")
 	vars := mux.Vars(r)
 	hexSignedOrder := vars["order"]
 	signedOrder, err := hex.DecodeString(hexSignedOrder)
@@ -126,6 +132,9 @@ func (o *OrderManager) SendHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (o *OrderManager) BookHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("content-type", "application/json")
 	levels := bookToLevel(o.book)
 	data, err := json.Marshal(levels)
 	if err != nil {
@@ -142,6 +151,9 @@ type Trade struct {
 }
 
 func (o *OrderManager) TradesHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("content-type", "application/json")
 	o.historyMtx.RLock()
 	defer o.historyMtx.RUnlock()
 
@@ -168,6 +180,9 @@ type Balance struct {
 }
 
 func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("content-type", "application/json")
 	vars := mux.Vars(r)
 	addr := common.HexToAddress(vars[addrKey])
 	fmt.Println("debug position:", vars)
@@ -193,6 +208,9 @@ func (o *OrderManager) OrdersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (o *OrderManager) FillsHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("content-type", "application/json")
 	vars := mux.Vars(r)
 	addr := common.HexToAddress(vars[addrKey])
 
