@@ -33,9 +33,8 @@ type Response struct {
 
 func (o *OrderManager) ServeWeb() {
 	r := mux.NewRouter()
-	r.HandleFunc("/", EmptyHandler)
 	r.HandleFunc("/order", o.GenerateOrderHandler).Methods(GET).Queries("amount", "{amount}", "limitPrice", "{limitPrice}", "maker", "{maker}", "isBuy", "{isBuy}")
-	r.HandleFunc("/order/{order}", o.SendHandler).Methods(POST)
+	r.HandleFunc("/placeorder/{order}", o.SendHandler).Methods(GET)
 
 	r.HandleFunc("/book", o.BookHandler).Methods(GET)
 	r.HandleFunc("/trades", o.TradesHandler).Methods(GET)
@@ -46,8 +45,6 @@ func (o *OrderManager) ServeWeb() {
 	// Bind to a port and pass our router in
 	log.Fatal(http.ListenAndServe(":8555", r))
 }
-
-func EmptyHandler(w http.ResponseWriter, r *http.Request) {}
 
 type OrderResponse struct {
 	Order string `json:"order"`
@@ -185,7 +182,6 @@ func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", "application/json")
 	vars := mux.Vars(r)
 	addr := common.HexToAddress(vars[addrKey])
-	fmt.Println("debug position:", vars)
 	p1Balance, err := o.engine.contracts.PerpetualV1.GetAccountBalance(nil, addr)
 	if err != nil {
 		fmt.Fprintf(w, err.Error())
