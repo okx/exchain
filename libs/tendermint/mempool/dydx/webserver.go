@@ -11,6 +11,7 @@ import (
 	"log"
 	"math/big"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -115,6 +116,9 @@ func (o *OrderManager) SendHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", "application/json")
 	vars := mux.Vars(r)
 	hexSignedOrder := vars["signedOrder"]
+	if strings.HasPrefix(hexSignedOrder, "0x") {
+		hexSignedOrder = hexSignedOrder[2:]
+	}
 	signedOrder, err := hex.DecodeString(hexSignedOrder)
 	if err != nil {
 		fmt.Fprintf(w, err.Error())
