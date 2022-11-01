@@ -34,7 +34,7 @@ type Response struct {
 func (o *OrderManager) ServeWeb() {
 	r := mux.NewRouter()
 	r.HandleFunc("/order", o.GenerateOrderHandler).Methods(GET).Queries("amount", "{amount}", "limitPrice", "{limitPrice}", "maker", "{maker}", "isBuy", "{isBuy}")
-	r.HandleFunc("/placeorder/{order}", o.SendHandler).Methods(GET)
+	r.HandleFunc("/placeorder", o.SendHandler).Methods(GET).Queries("signedOrder", "{signedOrder}")
 
 	r.HandleFunc("/book", o.BookHandler).Methods(GET)
 	r.HandleFunc("/trades", o.TradesHandler).Methods(GET)
@@ -114,7 +114,7 @@ func (o *OrderManager) SendHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
 	w.Header().Set("content-type", "application/json")
 	vars := mux.Vars(r)
-	hexSignedOrder := vars["order"]
+	hexSignedOrder := vars["signedOrder"]
 	signedOrder, err := hex.DecodeString(hexSignedOrder)
 	if err != nil {
 		fmt.Fprintf(w, err.Error())
