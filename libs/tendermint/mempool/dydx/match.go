@@ -210,6 +210,13 @@ func (m *MatchEngine) Match(order *WrapOrder, maketPrice *big.Int) (*MatchResult
 	}
 }
 
+func (m *MatchEngine) Rollback(matchResult *MatchResult) {
+	for _, record := range matchResult.MatchedRecords {
+		record.Maker.Unfrozen(record.Fill.Amount)
+		record.Taker.Unfrozen(record.Fill.Amount)
+	}
+}
+
 func (m *MatchEngine) matchAndTrade(order *WrapOrder, noSend bool) (*MatchResult, error) {
 	marketPrice, err := m.contracts.P1MakerOracle.GetPrice(&bind.CallOpts{
 		From: m.contracts.PerpetualV1Address,
@@ -229,6 +236,13 @@ func (m *MatchEngine) matchAndTrade(order *WrapOrder, noSend bool) (*MatchResult
 
 	m.logger.Debug("match result", "matched", matched.MatchedRecords)
 
+	var needRollback bool
+	defer func() {
+		if needRollback {
+			m.Rollback(matched)
+		}
+	}()
+
 	op := dydxlib.NewTradeOperation(m.contracts)
 
 	for _, record := range matched.MatchedRecords {
@@ -244,16 +258,19 @@ func (m *MatchEngine) matchAndTrade(order *WrapOrder, noSend bool) (*MatchResult
 		fill.Fee = solOrder1.LimitFee
 		err = op.FillSignedSolOrderWithTaker(m.from, solOrder1, &fill)
 		if err != nil {
+			needRollback = true
 			return matched, fmt.Errorf("failed to fill order, err: %w", err)
 		}
 		fill.Fee = solOrder2.LimitFee
 		err = op.FillSignedSolOrderWithTaker(m.from, solOrder2, &fill)
 		if err != nil {
+			needRollback = true
 			return matched, fmt.Errorf("failed to fill order, err: %w", err)
 		}
 	}
 	matched.Tx, err = op.Commit(&bind.TransactOpts{NoSend: noSend})
 	if err != nil {
+		needRollback = true
 		return matched, fmt.Errorf("failed to commit, err: %w", err)
 	}
 	m.logger.Debug("commit tx", "tx", matched.Tx.Hash().Hex())

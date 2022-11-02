@@ -141,11 +141,14 @@ func (s *OrderBookServer) WatchOrderBookLevel(_ *Empty, stream OrderBookUpdater_
 		s.mtx.Unlock()
 	}()
 
+	init := true
+
 	for {
 		select {
 		case <-time.After(1 * time.Second):
-			if atomic.LoadInt64(ch) == 1 {
+			if atomic.LoadInt64(ch) == 1 || init {
 				atomic.StoreInt64(ch, 0)
+				init = false
 				b := bookToLevel(s.book)
 				if b == nil {
 					continue

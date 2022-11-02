@@ -53,9 +53,8 @@ var (
 	callTypeABI   = abi.MustNewType("int32")
 	orderTuple    = abi.MustNewType("tuple(bytes32 flags, uint256 amount, uint256 limitprice, uint256 triggerprice, uint256 limitfee, address maker, address taker, uint256 expiration)")
 
-	chainID = big.NewInt(65)
-	//TODO, mock addr
-	ContractAddress = "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619"
+	chainID         = big.NewInt(65)
+	ContractAddress = Config.P1OrdersContractAddress
 
 	EIP191_HEADER                       = []byte{0x19, 0x01}
 	EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH = crypto.Keccak256Hash([]byte(EIP712_DOMAIN_SEPARATOR_SCHEMA))
@@ -69,11 +68,6 @@ var (
 func InitWithChainID(id *big.Int) {
 	//return
 	chainID = id
-	_EIP712_DOMAIN_HASH_ = crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], common.LeftPadBytes(chainID.Bytes(), 32), common.LeftPadBytes(common.FromHex(ContractAddress), 32))
-}
-
-func InitWithOrderAddress(addr string) {
-	ContractAddress = addr
 	_EIP712_DOMAIN_HASH_ = crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], common.LeftPadBytes(chainID.Bytes(), 32), common.LeftPadBytes(common.FromHex(ContractAddress), 32))
 }
 
