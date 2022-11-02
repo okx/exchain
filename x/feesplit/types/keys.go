@@ -11,11 +11,12 @@ const (
 	// RouterKey to be used for message routing
 	RouterKey = ModuleName
 
-	QueryParameters          = "params"
-	QueryFeeSplits           = "fee-splits"
-	QueryFeeSplit            = "fee-split"
-	QueryDeployerFeeSplits   = "deployer-fee-splits"
-	QueryWithdrawerFeeSplits = "withdrawer-fee-splits"
+	QueryParameters              = "params"
+	QueryFeeSplits               = "fee-splits"
+	QueryFeeSplit                = "fee-split"
+	QueryDeployerFeeSplits       = "deployer-fee-splits"
+	QueryDeployerFeeSplitsDetail = "deployer-fee-splits-detail"
+	QueryWithdrawerFeeSplits     = "withdrawer-fee-splits"
 )
 
 // prefix bytes for the fees persistent store

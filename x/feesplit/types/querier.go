@@ -64,6 +64,14 @@ type QueryDeployerFeeSplitsResponse struct {
 	Pagination *query.PageResponse `json:"pagination,omitempty"`
 }
 
+// QueryDeployerFeeSplitsResponseV2 is the response type for the
+// Query/DeployerFeeSplitsDetail.
+type QueryDeployerFeeSplitsResponseV2 struct {
+	FeeSplits []FeeSplitWithShare `json:"fee_splits,omitempty"`
+	// pagination defines the pagination in the response.
+	Pagination *query.PageResponse `json:"pagination,omitempty"`
+}
+
 // QueryWithdrawerFeeSplitsRequest is the request type for the
 // Query/WithdrawerFeeSplits.
 type QueryWithdrawerFeeSplitsRequest struct {

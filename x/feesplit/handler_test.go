@@ -104,7 +104,7 @@ func (suite *FeeSplitTestSuite) TestRegisterFeeSplit() {
 			"",
 		},
 		{
-			"ok - omit withdraw address, it is stored as empty string",
+			"ok - omit withdraw address, it is stored as deployer string",
 			sdk.AccAddress(deployer.Bytes()),
 			nil,
 			contract1,
@@ -223,12 +223,12 @@ func (suite *FeeSplitTestSuite) TestRegisterFeeSplit() {
 
 				feeSplit, ok := suite.app.FeeSplitKeeper.GetFeeSplit(suite.ctx, tc.contract)
 				suite.Require().True(ok, "unregistered feeSplit")
-				suite.Require().Equal(tc.contract.String(), feeSplit.ContractAddress, "wrong contract")
-				suite.Require().Equal(tc.deployer.String(), feeSplit.DeployerAddress, "wrong deployer")
-				if tc.withdraw.String() != tc.deployer.String() {
-					suite.Require().Equal(tc.withdraw.String(), feeSplit.WithdrawerAddress, "wrong withdraw address")
+				suite.Require().Equal(tc.contract, feeSplit.ContractAddress, "wrong contract")
+				suite.Require().Equal(tc.deployer, feeSplit.DeployerAddress, "wrong deployer")
+				if tc.withdraw.String() != tc.deployer.String() && !tc.withdraw.Empty() {
+					suite.Require().Equal(tc.withdraw, feeSplit.WithdrawerAddress, "wrong withdraw address")
 				} else {
-					suite.Require().Equal("", feeSplit.WithdrawerAddress, "wrong withdraw address")
+					suite.Require().Equal(tc.deployer, feeSplit.WithdrawerAddress, "wrong withdraw address")
 				}
 			} else {
 				suite.Require().Error(err, tc.name)
@@ -417,19 +417,19 @@ func (suite *FeeSplitTestSuite) TestUpdateFeeSplit() {
 
 				feeSplit, ok := suite.app.FeeSplitKeeper.GetFeeSplit(suite.ctx, tc.contract)
 				suite.Require().True(ok, "unregistered feeSplit")
-				suite.Require().Equal(tc.contract.String(), feeSplit.ContractAddress, "wrong contract")
-				suite.Require().Equal(tc.deployer.String(), feeSplit.DeployerAddress, "wrong deployer")
+				suite.Require().Equal(tc.contract, feeSplit.ContractAddress, "wrong contract")
+				suite.Require().Equal(tc.deployer, feeSplit.DeployerAddress, "wrong deployer")
 
 				found := suite.app.FeeSplitKeeper.IsWithdrawerMapSet(suite.ctx, tc.withdraw, tc.contract)
 				suite.Require().False(found)
 				if tc.newWithdrawer.String() != tc.deployer.String() {
-					suite.Require().Equal(tc.newWithdrawer.String(), feeSplit.WithdrawerAddress, "wrong withdraw address")
+					suite.Require().Equal(tc.newWithdrawer, feeSplit.WithdrawerAddress, "wrong withdraw address")
 					found := suite.app.FeeSplitKeeper.IsWithdrawerMapSet(suite.ctx, tc.newWithdrawer, tc.contract)
 					suite.Require().True(found)
 				} else {
-					suite.Require().Equal("", feeSplit.WithdrawerAddress, "wrong withdraw address")
+					suite.Require().Equal(tc.deployer, feeSplit.WithdrawerAddress, "wrong withdraw address")
 					found := suite.app.FeeSplitKeeper.IsWithdrawerMapSet(suite.ctx, tc.newWithdrawer, tc.contract)
-					suite.Require().False(found)
+					suite.Require().True(found)
 				}
 			} else {
 				suite.Require().Error(err, tc.name)
