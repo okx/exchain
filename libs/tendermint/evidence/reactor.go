@@ -143,12 +143,21 @@ func (evR *Reactor) broadcastEvidenceRoutine(peer p2p.Peer) {
 			//extend the retry gap to avoid frequent p2p Send
 			//https://github.com/okex/oec/issues/1848
 			timeout := time.Duration(peerCatchupSleepIntervalMS << retryCnt)
-			time.Sleep(timeout * time.Millisecond)
-			retryCnt++
-			continue
-		} else {
-			retryCnt = 0
+			retryAfterCh := time.After(timeout * time.Millisecond)
+
+			select {
+			case <-retryAfterCh: // Wait after the retry Gap
+				retryCnt++
+				fmt.Println("timout", time.Now(), retryCnt)
+				continue
+			case <-peer.Quit():
+				return
+			case <-evR.Quit():
+				return
+			}
 		}
+
+		retryCnt = 0
 
 		afterCh := time.After(time.Second * broadcastEvidenceIntervalS)
 		select {
