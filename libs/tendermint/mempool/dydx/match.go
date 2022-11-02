@@ -86,10 +86,13 @@ func NewMatchEngine(api PubSub, depthBook *DepthBook, config DydxConfig, handler
 	if engine.chainID == nil {
 		return nil, fmt.Errorf("invalid chain id")
 	}
-	engine.ethCli, err = ethclient.Dial(config.EthWsRpcUrl)
-	if err != nil {
-		return nil, fmt.Errorf("failed to dial eth rpc url: %s, err: %w", config.EthWsRpcUrl, err)
+	if !config.VMode || api == nil {
+		engine.ethCli, err = ethclient.Dial(config.EthWsRpcUrl)
+		if err != nil {
+			return nil, fmt.Errorf("failed to dial eth rpc url: %s, err: %w", config.EthWsRpcUrl, err)
+		}
 	}
+
 	engine.httpCli, err = ethclient.Dial(config.EthHttpRpcUrl)
 	if err != nil {
 		return nil, fmt.Errorf("failed to dial eth rpc url: %s, err: %w", config.EthHttpRpcUrl, err)
@@ -398,11 +401,8 @@ func processOrder(takerOrder *WrapOrder, makerBook *OrderList, takerBook *OrderL
 			Price:  matchPrice,
 		}, makerOrder)
 
-		takerOrder.LeftAmount.Sub(takerOrder.LeftAmount, matchAmount)
-		makerOrder.LeftAmount.Sub(makerOrder.LeftAmount, matchAmount)
-
-		takerOrder.FrozenAmount.Add(takerOrder.FrozenAmount, matchAmount)
-		makerOrder.FrozenAmount.Add(makerOrder.FrozenAmount, matchAmount)
+		takerOrder.Frozen(matchAmount)
+		makerOrder.Frozen(matchAmount)
 
 		if takerOrder.LeftAmount.Cmp(zero) == 0 {
 			break

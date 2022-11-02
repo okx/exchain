@@ -3,12 +3,17 @@ package dydx
 import (
 	"context"
 	"encoding/hex"
+	"math"
 	"math/big"
 	"math/rand"
 	"os"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/okex/exchain/libs/dydx/contracts"
+
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 
 	"github.com/ethereum/go-ethereum/rlp"
 
@@ -222,6 +227,94 @@ func TestBalance(t *testing.T) {
 	t.Logf("captain balance: %v", banlance)
 }
 
+func TestDeposit(t *testing.T) {
+	var config = DydxConfig{
+		PrivKeyHex:                 "2438019d3fccd8ffdff4d526c0f7fae4136866130affb3aa375d95835fa8f60f",
+		ChainID:                    "64",
+		EthWsRpcUrl:                "wss://exchaintestws.okex.org:8443",
+		EthHttpRpcUrl:              "http://52.199.88.250:26659",
+		PerpetualV1ContractAddress: "0x04Fa57fA8c193794444477825Fb8DC6e8BD1652b",
+		P1OrdersContractAddress:    "0x54F9d6b26b1Fa624115Fc2b8D83eBB0Ea54348b6",
+		P1MakerOracleAddress:       "0x88cAaeb796A938621c090e15D898F349B0659A4f",
+		P1MarginAddress:            "0x303281FCf77eb7DC35137ED6F38D8385F10A9e84",
+	}
+	book := NewDepthBook()
+	me, err := NewMatchEngine(nil, book, config, nil, nil)
+	require.NoError(t, err)
+
+	price, err := me.contracts.P1MakerOracle.GetPrice(&bind.CallOpts{
+		From: common.HexToAddress(config.PerpetualV1ContractAddress),
+	})
+	require.NoError(t, err)
+	t.Logf("price: %v", price)
+
+	addr, err := me.contracts.PerpetualV1.GetTokenContract(nil)
+	require.NoError(t, err)
+	t.Logf("token contract: %v", addr.Hex())
+
+	erc20c, err := contracts.NewTestToken(addr, me.httpCli)
+	require.NoError(t, err)
+
+	_ = erc20c
+
+	accounts := []struct {
+		Address common.Address
+		PrivKey string
+	}{
+		{
+			addrAlice, privKeyAlice,
+		},
+		{
+			addrBob, privKeyBob,
+		},
+		{
+			addrTuring, privKeyTuring,
+		},
+		{
+			addrCaptain, privKeyCaptain,
+		},
+	}
+
+	for i, user := range accounts {
+		banlance, err := me.contracts.PerpetualV1.GetAccountBalance(nil, user.Address)
+		require.NoError(t, err)
+		t.Logf("acc %d balance: %v", i, banlance)
+
+		b, err := erc20c.BalanceOf(nil, user.Address)
+		require.NoError(t, err)
+		t.Logf("erc20 balance: %v", b)
+
+		priv, err := crypto.HexToECDSA(user.PrivKey)
+		txOps, _ := bind.NewKeyedTransactorWithChainID(priv, me.chainID)
+		txOps.GasLimit = 1000000
+		tx, err := erc20c.Approve(txOps, me.contracts.PerpetualV1Address, big.NewInt(math.MaxInt))
+		require.NoError(t, err)
+		t.Logf("approve tx: %v", tx.Hash().Hex())
+
+		time.Sleep(3 * time.Second)
+
+		privAdmin, err := crypto.HexToECDSA(config.PrivKeyHex)
+		adminTxOps, _ := bind.NewKeyedTransactorWithChainID(privAdmin, me.chainID)
+		adminTxOps.GasLimit = 1000000
+		tx, err = erc20c.Mint(adminTxOps, user.Address, big.NewInt(1000_0000_0000))
+		require.NoError(t, err)
+		t.Logf("mint tx: %v", tx.Hash().Hex())
+
+		tx, err = me.contracts.PerpetualV1.Deposit(txOps, user.Address, big.NewInt(1000_0000_0000))
+		require.NoError(t, err)
+		t.Logf("transfer tx: %v", tx.Hash().Hex())
+
+		time.Sleep(3 * time.Second)
+	}
+
+	for i, user := range accounts {
+		banlance, err := me.contracts.PerpetualV1.GetAccountBalance(nil, user.Address)
+		require.NoError(t, err)
+		t.Logf("acc %d balance: %v", i, banlance)
+
+	}
+}
+
 func TestTransaction(t *testing.T) {
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout)).With("module", "match")
 	var options []log.Option
@@ -350,7 +443,7 @@ func newTestOrder(price, amount uint64, isBuy bool) *WrapOrder {
 	// time.Now().Unix()*2 to avoid to be pruned
 	// rand.Int63() to avoid repeated orderHash
 	o.Expiration = big.NewInt(time.Now().Unix()*2 + rand.Int63())
-	if !isBuy {
+	if isBuy {
 		o.Flags[31] = 1
 	}
 	return o
