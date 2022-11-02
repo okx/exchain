@@ -21,6 +21,7 @@ import (
 )
 
 type OrderManager struct {
+	cfg       DydxConfig
 	orders    *clist.CList
 	ordersMap sync.Map // orderKey => *clist.CElement
 
@@ -81,6 +82,8 @@ func NewOrderManager(api PubSub, doMatch bool) *OrderManager {
 	//	VMode:                      true,
 	//}
 
+	manager.cfg = config
+	InitWithOrderAddress(config.P1OrdersContractAddress)
 	if doMatch {
 		me, err := NewMatchEngine(api, manager.book, config, manager, log.NewTMLogger(os.Stdout))
 		if err != nil {
