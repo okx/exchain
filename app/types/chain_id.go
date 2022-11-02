@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"github.com/okex/exchain/libs/tendermint/mempool/dydx"
 	"math/big"
 	"regexp"
 	"strings"
@@ -50,6 +51,7 @@ func SetChainId(chainid string) error {
 	chainIdSetOnce.Do(func() {
 		chainIdCache = chainid
 		chainIdEpochCache = epoch
+		dydx.InitWithChainID(epoch)
 	})
 	return nil
 }

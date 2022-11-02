@@ -55,16 +55,22 @@ var (
 	callTypeABI   = abi.MustNewType("int32")
 	orderTuple    = abi.MustNewType("tuple(bytes32 flags, uint256 amount, uint256 limitprice, uint256 triggerprice, uint256 limitfee, address maker, address taker, uint256 expiration)")
 
-	//TODO: get chainID
 	chainID = big.NewInt(65)
 
 	EIP191_HEADER                       = []byte{0x19, 0x01}
 	EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH = crypto.Keccak256Hash([]byte(EIP712_DOMAIN_SEPARATOR_SCHEMA))
 	EIP712_DOMAIN_NAME_HASH             = crypto.Keccak256Hash([]byte(EIP712_DOMAIN_NAME))
 	EIP712_DOMAIN_VERSION_HASH          = crypto.Keccak256Hash([]byte(EIP712_DOMAIN_VERSION))
-	_EIP712_DOMAIN_HASH_                = crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], common.LeftPadBytes(chainID.Bytes(), 32), common.LeftPadBytes(common.FromHex(contractAddress), 32))
 	EIP712_ORDER_STRUCT_SCHEMA_HASH     = crypto.Keccak256Hash([]byte(EIP712_ORDER_STRUCT_SCHEMA))
+	_EIP712_DOMAIN_HASH_                = crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], common.LeftPadBytes(chainID.Bytes(), 32), common.LeftPadBytes(common.FromHex(contractAddress), 32))
 )
+
+// InitWithChainID uses the chain-id of the node.
+func InitWithChainID(id *big.Int) {
+	//return
+	chainID = id
+	_EIP712_DOMAIN_HASH_ = crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], common.LeftPadBytes(chainID.Bytes(), 32), common.LeftPadBytes(common.FromHex(contractAddress), 32))
+}
 
 var (
 	FlagMaskNull               = byte(0)
