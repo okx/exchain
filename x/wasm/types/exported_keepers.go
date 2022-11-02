@@ -22,6 +22,7 @@ type ViewKeeper interface {
 	GetByteCode(ctx sdk.Context, codeID uint64) ([]byte, error)
 	IsPinnedCode(ctx sdk.Context, codeID uint64) bool
 	GetContractMethodBlockedList(ctx sdk.Context, contractAddr string) *ContractMethods
+	GetParams(ctx sdk.Context) Params
 }
 
 // ContractOpsKeeper contains mutable operations on a contract.

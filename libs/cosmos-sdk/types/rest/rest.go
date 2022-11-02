@@ -3,6 +3,7 @@
 package rest
 
 import (
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 
+	sdkerrors "github.com/okex/exchain/libs/cosmos-sdk/types/errors"
+	"github.com/okex/exchain/libs/cosmos-sdk/types/query"
 	"github.com/okex/exchain/libs/tendermint/types"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -21,6 +24,7 @@ import (
 
 const (
 	DefaultPage    = 1
+	DefaultOffset  = 0
 	DefaultLimit   = 30             // should be consistent with tendermint/tendermint/rpc/core/pipe.go:19
 	TxMinHeightKey = "tx.minheight" // Inclusive minimum height filter
 	TxMaxHeightKey = "tx.maxheight" // Inclusive maximum height filter
@@ -401,4 +405,79 @@ func CheckError(w http.ResponseWriter, status int, err error) bool {
 	}
 
 	return false
+}
+
+func ParseGRPCWasmPageRequest(r *http.Request) (pr *query.PageRequest, err error) {
+	var page int
+	pageStr := r.FormValue("page")
+	if pageStr == "" {
+		page = DefaultPage
+	} else {
+		page, err = strconv.Atoi(pageStr)
+		if err != nil {
+			return nil, err
+		} else if page <= 0 {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "page must greater than 0")
+		}
+	}
+
+	var offset int
+	offsetStr := r.FormValue("offset")
+	if offsetStr == "" {
+		offset = DefaultOffset
+	} else {
+		offset, err = strconv.Atoi(offsetStr)
+		if err != nil {
+			return nil, err
+		} else if offset < 0 {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "offset cannot be less than 0")
+		}
+	}
+
+	if page > 1 && offset > 0 {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "page and offset cannot be used together")
+	}
+
+	var limit int
+	limitStr := r.FormValue("limit")
+	if limitStr == "" {
+		limit = DefaultLimit
+	} else {
+		limit, err = strconv.Atoi(limitStr)
+		if err != nil {
+			return nil, err
+		} else if limit <= 0 {
+			return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, "limit must greater than 0")
+		}
+	}
+
+	if page > 1 {
+		offset = (page - 1) * limit
+	}
+
+	var countTotal bool
+	countTotalStr := r.FormValue("count_total")
+	if countTotalStr == "" {
+		countTotal = false
+	} else {
+		countTotal, err = strconv.ParseBool(countTotalStr)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	var pageKey []byte
+	encodedPageKey := r.FormValue("page_key")
+	// Wasm encodes pageKey to base64 in its marshaller, so pageKey needs to be decoded.
+	pageKey, err = base64.StdEncoding.DecodeString(encodedPageKey)
+	if err != nil {
+		return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidRequest, err.Error())
+	}
+
+	return &query.PageRequest{
+		Key:        pageKey,
+		Offset:     uint64(offset),
+		Limit:      uint64(limit),
+		CountTotal: countTotal,
+	}, nil
 }
