@@ -116,10 +116,10 @@ func (d *OrderManager) Insert(memOrder *MempoolOrder) error {
 	d.ordersMap.Store(memOrder.Key(), ele)
 
 	result, err := d.engine.MatchAndTrade(&wrapOdr)
+	d.gServer.UpdateClient()
 	if err != nil {
 		return err
 	}
-	d.gServer.UpdateClient()
 
 	if result != nil {
 		if result.NoSend {

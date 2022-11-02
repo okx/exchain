@@ -140,6 +140,24 @@ func main() {
 
 		Print(ob, usersBalance)
 
+		go func() {
+			time.Sleep(3 * time.Second)
+			var usersBalance []UserBalance
+			for _, user := range config.Users {
+				b, err := dydxContracts.PerpetualV1.GetAccountBalance(nil, common.HexToAddress(user.Address))
+				if err != nil {
+					logger.Error("failed to get user balance", "err", err)
+					continue
+				}
+				usersBalance = append(usersBalance, UserBalance{
+					User:    user,
+					Balance: b,
+				})
+			}
+
+			Print(ob, usersBalance)
+		}()
+
 		//Print(nil, usersBalance)
 		//time.Sleep(3 * time.Second)
 	}
