@@ -64,6 +64,9 @@ type ContractOpsKeeper interface {
 
 	// UpdateContractMethodBlockedList updates the blacklist of contract methods.
 	UpdateContractMethodBlockedList(ctx sdk.Context, methods *ContractMethods, isDelete bool) error
+
+	// GetParams get params from paramsubspace.
+	GetParams(ctx sdk.Context) Params
 }
 
 // IBCContractKeeper IBC lifecycle event handler
