@@ -148,7 +148,6 @@ func (evR *Reactor) broadcastEvidenceRoutine(peer p2p.Peer) {
 			select {
 			case <-retryAfterCh: // Wait after the retry Gap
 				retryCnt++
-				fmt.Println("timout", time.Now(), retryCnt)
 				continue
 			case <-peer.Quit():
 				return
