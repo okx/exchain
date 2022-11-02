@@ -46,7 +46,7 @@ const (
 	NUM_SIGNATURE_BYTES            = 66
 
 	//TODO, mock addr
-	contractAddress = "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619"
+	contractAddress = "0x632D131CCCE01206F08390cB66D1AdEf9b264C61"
 	KeySize         = sha256.Size
 )
 
