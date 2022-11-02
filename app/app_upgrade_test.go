@@ -476,7 +476,7 @@ func newTestOkcChainApp(
 	// The last arguments can contain custom message handlers, and custom query handlers,
 	// if we want to allow any custom callbacks
 	supportedFeatures := wasm.SupportedFeatures
-	app.wasmKeeper = wasm.NewKeeper(
+	app.WasmKeeper = wasm.NewKeeper(
 		app.marshal,
 		keys[wasm.StoreKey],
 		app.subspaces[wasm.ModuleName],
@@ -517,7 +517,7 @@ func newTestOkcChainApp(
 		capabilityModule.NewAppModule(codecProxy, *app.CapabilityKeeper),
 		transferModule,
 		erc20.NewAppModule(app.Erc20Keeper),
-		wasm.NewAppModule(*app.marshal, &app.wasmKeeper),
+		wasm.NewAppModule(*app.marshal, &app.WasmKeeper),
 	)
 
 	for _, opt := range ops {
@@ -539,7 +539,7 @@ func newTestOkcChainApp(
 		slashing.NewAppModule(app.SlashingKeeper, app.AccountKeeper, app.StakingKeeper),
 		params.NewAppModule(app.ParamsKeeper), // NOTE: only used for simulation to generate randomized param change proposals
 		ibc.NewAppModule(app.IBCKeeper),
-		wasm.NewAppModule(*app.marshal, &app.wasmKeeper),
+		wasm.NewAppModule(*app.marshal, &app.WasmKeeper),
 	)
 
 	app.sm.RegisterStoreDecoders()

@@ -1,0 +1,29 @@
+syntax = "proto3";
+package vmbridge.wasm.v1;
+
+import "gogoproto/gogo.proto";
+
+
+option go_package = "x/vmbridge/types";
+option (gogoproto.goproto_getters_all) = false;
+
+// Msg defines the wasm Msg service.
+service Msg {
+  // StoreCode to submit Wasm code to the system
+  rpc SendToEvmEvent(MsgSendToEvm) returns (MsgSendToEvmResponse);
+}
+
+// MsgStoreCode submit Wasm code to the system
+message MsgSendToEvm {
+  // Sender is the that actor that signed the messages
+  string sender = 1;
+  string contract = 2;
+  string recipient = 3;
+  string amount = 4 [(gogoproto.customtype) = "Int", (gogoproto.nullable) = false];
+
+}
+// MsgStoreCodeResponse returns store result data.
+message MsgSendToEvmResponse {
+  // CodeID is the reference to the stored WASM code
+  bool success = 1;
+}

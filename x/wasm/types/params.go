@@ -17,6 +17,7 @@ var (
 	ParamStoreKeyUploadAccess        = []byte("uploadAccess")
 	ParamStoreKeyInstantiateAccess   = []byte("instantiateAccess")
 	ParamStoreKeyContractBlockedList = []byte("EnableContractBlockedList")
+	ParamStoreKeyVMBridgeEnable      = []byte("VMBridgeEnable")
 )
 
 var AllAccessTypes = []AccessType{
@@ -96,6 +97,7 @@ func DefaultParams() Params {
 		CodeUploadAccess:             AllowEverybody,
 		InstantiateDefaultPermission: AccessTypeEverybody,
 		UseContractBlockedList:       true,
+		VmbridgeEnable:               true,
 	}
 }
 
@@ -113,6 +115,7 @@ func (p *Params) ParamSetPairs() paramtypes.ParamSetPairs {
 		paramtypes.NewParamSetPair(ParamStoreKeyUploadAccess, &p.CodeUploadAccess, validateAccessConfig),
 		paramtypes.NewParamSetPair(ParamStoreKeyInstantiateAccess, &p.InstantiateDefaultPermission, validateAccessType),
 		paramtypes.NewParamSetPair(ParamStoreKeyContractBlockedList, &p.UseContractBlockedList, validateBool),
+		paramtypes.NewParamSetPair(ParamStoreKeyVMBridgeEnable, &p.VmbridgeEnable, validateBool),
 	}
 }
 
