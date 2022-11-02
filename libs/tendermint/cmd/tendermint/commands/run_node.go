@@ -191,6 +191,11 @@ func AddNodeFlags(cmd *cobra.Command) {
 		config.DBPath,
 		"Database directory")
 
+	cmd.Flags().String(
+		"grpc.address",
+		config.GRPC.Address,
+		"grpc server address")
+
 	addMoreFlags(cmd)
 }
 

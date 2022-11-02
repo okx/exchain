@@ -128,3 +128,10 @@ func (pair Pair) AminoSize(_ *amino.Codec) int {
 	}
 	return size
 }
+
+func (m *Pair) GetIndex() bool {
+	if m != nil {
+		return true
+	}
+	return false
+}

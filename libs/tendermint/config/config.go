@@ -75,6 +75,7 @@ type Config struct {
 	Consensus       *ConsensusConfig       `mapstructure:"consensus"`
 	TxIndex         *TxIndexConfig         `mapstructure:"tx_index"`
 	Instrumentation *InstrumentationConfig `mapstructure:"instrumentation"`
+	GRPC            GRPCConfig             `mapstructure:"grpc"`
 }
 
 // DefaultConfig returns a default configuration for a Tendermint node
@@ -88,6 +89,7 @@ func DefaultConfig() *Config {
 		Consensus:       DefaultConsensusConfig(),
 		TxIndex:         DefaultTxIndexConfig(),
 		Instrumentation: DefaultInstrumentationConfig(),
+		GRPC:            DefaultGRPCConfig(),
 	}
 }
 
