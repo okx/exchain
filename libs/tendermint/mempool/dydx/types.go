@@ -46,7 +46,7 @@ const (
 	NUM_SIGNATURE_BYTES            = 66
 
 	//TODO, mock addr
-	contractAddress = "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619"
+	contractAddress = "0x632D131CCCE01206F08390cB66D1AdEf9b264C61"
 	KeySize         = sha256.Size
 )
 
@@ -56,7 +56,7 @@ var (
 	orderTuple    = abi.MustNewType("tuple(bytes32 flags, uint256 amount, uint256 limitprice, uint256 triggerprice, uint256 limitfee, address maker, address taker, uint256 expiration)")
 
 	//TODO: get chainID
-	chainID = big.NewInt(65)
+	chainID = big.NewInt(8)
 
 	EIP191_HEADER                       = []byte{0x19, 0x01}
 	EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH = crypto.Keccak256Hash([]byte(EIP712_DOMAIN_SEPARATOR_SCHEMA))

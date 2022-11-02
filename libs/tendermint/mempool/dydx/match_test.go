@@ -45,6 +45,7 @@ var privKeyCaptain = "8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9
 var privKeyAlice = "e47a1fe74a7f9bfa44a362a3c6fbe96667242f62e6b8e138b3f61bd431c3215d"
 var privKeyBob = "75dee45fc7b2dd69ec22dc6a825a2d982aee4ca2edd42c53ced0912173c4a788"
 var privKeyTuring = "89c81c304704e9890025a5a91898802294658d6e4034a11c6116f4b129ea12d3"
+var privKeyDevnetSuper = "824c346a2b5fa81768c75408202493a9cb0a7f5879ff4988d23da2c6b1afb9cf"
 
 var addrCaptain = privKeyToAddress(privKeyCaptain)
 var addrBob = privKeyToAddress(privKeyBob)
@@ -228,15 +229,25 @@ func TestBalance(t *testing.T) {
 }
 
 func TestDeposit(t *testing.T) {
-	var config = DydxConfig{
+	//var config = DydxConfig{
+	//	PrivKeyHex:                 "2438019d3fccd8ffdff4d526c0f7fae4136866130affb3aa375d95835fa8f60f",
+	//	ChainID:                    "64",
+	//	EthWsRpcUrl:                "wss://exchaintestws.okex.org:8443",
+	//	EthHttpRpcUrl:              "http://52.199.88.250:26659",
+	//	PerpetualV1ContractAddress: "0xbc0Bf2Bf737344570c02d8D8335ceDc02cECee71",
+	//	P1OrdersContractAddress:    "0x632D131CCCE01206F08390cB66D1AdEf9b264C61",
+	//	P1MakerOracleAddress:       "0xF306F8B7531561d0f92BA965a163B6C6d422ade1",
+	//	P1MarginAddress:            "0xeb95A3D1f7Ca2B8Ba61F326fC4dA9124b6C057b9",
+	//}
+	config := DydxConfig{
 		PrivKeyHex:                 "2438019d3fccd8ffdff4d526c0f7fae4136866130affb3aa375d95835fa8f60f",
-		ChainID:                    "64",
-		EthWsRpcUrl:                "wss://exchaintestws.okex.org:8443",
-		EthHttpRpcUrl:              "http://52.199.88.250:26659",
-		PerpetualV1ContractAddress: "0x04Fa57fA8c193794444477825Fb8DC6e8BD1652b",
-		P1OrdersContractAddress:    "0x54F9d6b26b1Fa624115Fc2b8D83eBB0Ea54348b6",
-		P1MakerOracleAddress:       "0x88cAaeb796A938621c090e15D898F349B0659A4f",
-		P1MarginAddress:            "0x303281FCf77eb7DC35137ED6F38D8385F10A9e84",
+		ChainID:                    "8",
+		EthWsRpcUrl:                "ws://localhost:8546",
+		EthHttpRpcUrl:              "http://localhost:8545",
+		PerpetualV1ContractAddress: "0xbc0Bf2Bf737344570c02d8D8335ceDc02cECee71",
+		P1OrdersContractAddress:    "0x632D131CCCE01206F08390cB66D1AdEf9b264C61",
+		P1MakerOracleAddress:       "0xF306F8B7531561d0f92BA965a163B6C6d422ade1",
+		P1MarginAddress:            "0xeb95A3D1f7Ca2B8Ba61F326fC4dA9124b6C057b9",
 	}
 	book := NewDepthBook()
 	me, err := NewMatchEngine(nil, book, config, nil, nil)
@@ -311,7 +322,6 @@ func TestDeposit(t *testing.T) {
 		banlance, err := me.contracts.PerpetualV1.GetAccountBalance(nil, user.Address)
 		require.NoError(t, err)
 		t.Logf("acc %d balance: %v", i, banlance)
-
 	}
 }
 
