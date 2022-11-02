@@ -51,7 +51,7 @@ func DefaultConfig() Config {
 	}
 }
 
-var config = dydx.DydxConfig{
+var dydxConfig = dydx.DydxConfig{
 	PrivKeyHex:                 "2438019d3fccd8ffdff4d526c0f7fae4136866130affb3aa375d95835fa8f60f",
 	ChainID:                    "64",
 	EthWsRpcUrl:                "wss://exchaintestws.okex.org:8443",
