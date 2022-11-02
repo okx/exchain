@@ -46,7 +46,7 @@ const (
 	NUM_SIGNATURE_BYTES            = 66
 
 	//TODO, mock addr
-	contractAddress = "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619"
+	ContractAddress = "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619"
 	KeySize         = sha256.Size
 )
 
@@ -62,14 +62,14 @@ var (
 	EIP712_DOMAIN_NAME_HASH             = crypto.Keccak256Hash([]byte(EIP712_DOMAIN_NAME))
 	EIP712_DOMAIN_VERSION_HASH          = crypto.Keccak256Hash([]byte(EIP712_DOMAIN_VERSION))
 	EIP712_ORDER_STRUCT_SCHEMA_HASH     = crypto.Keccak256Hash([]byte(EIP712_ORDER_STRUCT_SCHEMA))
-	_EIP712_DOMAIN_HASH_                = crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], common.LeftPadBytes(chainID.Bytes(), 32), common.LeftPadBytes(common.FromHex(contractAddress), 32))
+	_EIP712_DOMAIN_HASH_                = crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], common.LeftPadBytes(chainID.Bytes(), 32), common.LeftPadBytes(common.FromHex(ContractAddress), 32))
 )
 
 // InitWithChainID uses the chain-id of the node.
 func InitWithChainID(id *big.Int) {
 	//return
 	chainID = id
-	_EIP712_DOMAIN_HASH_ = crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], common.LeftPadBytes(chainID.Bytes(), 32), common.LeftPadBytes(common.FromHex(contractAddress), 32))
+	_EIP712_DOMAIN_HASH_ = crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], common.LeftPadBytes(chainID.Bytes(), 32), common.LeftPadBytes(common.FromHex(ContractAddress), 32))
 }
 
 var (
@@ -359,7 +359,7 @@ func ExtractOrder(tx types.Tx) []byte {
 	if err := rlp.DecodeBytes(tx, &evmTx); err != nil {
 		return nil
 	}
-	if evmTx.Recipient != nil && evmTx.Recipient.Hex() == contractAddress {
+	if evmTx.Recipient != nil && evmTx.Recipient.Hex() == ContractAddress {
 		return evmTx.Payload
 	}
 	return nil

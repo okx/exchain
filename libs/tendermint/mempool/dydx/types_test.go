@@ -152,9 +152,9 @@ func TestOrderHash(t *testing.T) {
 
 func TestP1Order_VerifySignature(t *testing.T) {
 	odr := newP1Order()
-	sig, err := signOrder(odr, "8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17", 65, contractAddress)
+	sig, err := signOrder(odr, "8ff3ca2d9985c3a52b459e2f6e7822b23e1af845961e22128d5f372fb9aa5f17", 65, ContractAddress)
 	require.NoError(t, err)
-	addr, err := ecrecover(odr.Hash2(65, contractAddress), sig)
+	addr, err := ecrecover(odr.Hash2(65, ContractAddress), sig)
 	require.NoError(t, err)
 	require.Equal(t, "0xbbE4733d85bc2b90682147779DA49caB38C0aA1F", addr.String())
 }
