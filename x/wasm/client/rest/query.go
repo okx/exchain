@@ -32,7 +32,7 @@ func registerQueryRoutes(cliCtx clientCtx.CLIContext, r *mux.Router) {
 	r.HandleFunc("/wasm/contract/{contractAddr}/raw/{key}", queryContractStateRawHandlerFn(cliCtx)).Queries("encoding", "{encoding}").Methods("GET")
 	r.HandleFunc("/wasm/contract/{contractAddr}/blocked_methods", queryContractBlockedMethodsHandlerFn(cliCtx)).Methods("GET")
 	r.HandleFunc("/wasm/params", queryParamsHandlerFn(cliCtx)).Methods("GET")
-	r.HandleFunc("/wasm/contract/white_list", queryContractWhiteListHandlerFn(cliCtx)).Methods("GET")
+	r.HandleFunc("/wasm/white_list", queryContractWhiteListHandlerFn(cliCtx)).Methods("GET")
 }
 
 func queryParamsHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
@@ -68,7 +68,7 @@ func queryContractWhiteListHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFu
 			return
 		}
 		var params types.Params
-		cliCtx.Codec.MustUnmarshalJSON(res, params)
+		cliCtx.Codec.MustUnmarshalJSON(res, &params)
 		var whiteList []string
 		whiteList = strings.Split(params.CodeUploadAccess.Address, ",")
 
