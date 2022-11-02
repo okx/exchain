@@ -32,7 +32,7 @@ func registerQueryRoutes(cliCtx clientCtx.CLIContext, r *mux.Router) {
 	r.HandleFunc("/wasm/contract/{contractAddr}/raw/{key}", queryContractStateRawHandlerFn(cliCtx)).Queries("encoding", "{encoding}").Methods("GET")
 	r.HandleFunc("/wasm/contract/{contractAddr}/blocked_methods", queryContractBlockedMethodsHandlerFn(cliCtx)).Methods("GET")
 	r.HandleFunc("/wasm/params", queryParamsHandlerFn(cliCtx)).Methods("GET")
-	r.HandleFunc("/wasm/white_list", queryContractWhiteListHandlerFn(cliCtx)).Methods("GET")
+	r.HandleFunc("/wasm/whitelist", queryContractWhitelistHandlerFn(cliCtx)).Methods("GET")
 }
 
 func queryParamsHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
@@ -54,7 +54,7 @@ func queryParamsHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 	}
 }
 
-func queryContractWhiteListHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
+func queryContractWhitelistHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
 		if !ok {
@@ -69,11 +69,16 @@ func queryContractWhiteListHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFu
 		}
 		var params types.Params
 		cliCtx.Codec.MustUnmarshalJSON(res, &params)
-		var whiteList []string
-		whiteList = strings.Split(params.CodeUploadAccess.Address, ",")
-
+		var whitelist []string
+		whitelist = strings.Split(params.CodeUploadAccess.Address, ",")
+		// When params.CodeUploadAccess.Address == "", whitelist == []string{""} and len(whitelist) == 1.
+		// Above case should be avoided.
+		if len(whitelist) == 1 && whitelist[0] == "" {
+			whitelist = []string{}
+		}
+		response := types.NewQueryAddressWhitelistResponse(whitelist)
 		cliCtx = cliCtx.WithHeight(height)
-		rest.PostProcessResponse(w, cliCtx, whiteList)
+		rest.PostProcessResponse(w, cliCtx, response)
 	}
 }
 

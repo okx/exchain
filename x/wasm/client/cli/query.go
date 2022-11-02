@@ -50,7 +50,7 @@ func NewQueryCmd(cdc *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra
 		GetCmdLibVersion(cdc, reg),
 		NewCmdListContractBlockedMethod(cdc),
 		NewCMDParams(cdc, reg),
-		NewCMDGetAddressWhiteList(cdc, reg),
+		NewCMDAddressWhitelist(cdc, reg),
 	)
 
 	return queryCmd
@@ -133,12 +133,12 @@ func NewCMDParams(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.
 	return cmd
 }
 
-func NewCMDGetAddressWhiteList(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
+func NewCMDAddressWhitelist(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:     "get-address-white-list",
-		Short:   "Get wasm address white list on the chain",
-		Long:    "Get wasm address white list on the chain",
-		Aliases: []string{"white-list", "gawl"},
+		Use:     "get-address-whitelist",
+		Short:   "Get wasm address whitelist on the chain",
+		Long:    "Get wasm address whitelist on the chain",
+		Aliases: []string{"whitelist", "gawl"},
 		Args:    cobra.ExactArgs(0),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			clientCtx := clientCtx.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
@@ -151,9 +151,13 @@ func NewCMDGetAddressWhiteList(m *codec.CodecProxy, reg codectypes.InterfaceRegi
 
 			var params types.Params
 			m.GetCdc().MustUnmarshalJSON(res, &params)
-			var whiteList []string
-			whiteList = strings.Split(params.CodeUploadAccess.Address, ",")
-			return clientCtx.PrintOutput(whiteList)
+			var whitelist []string
+			whitelist = strings.Split(params.CodeUploadAccess.Address, ",")
+			if len(whitelist) == 1 && whitelist[0] == "" {
+				whitelist = []string{}
+			}
+			response := types.NewQueryAddressWhitelistResponse(whitelist)
+			return clientCtx.PrintOutput(response)
 		},
 	}
 	return cmd

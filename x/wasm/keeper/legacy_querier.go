@@ -20,7 +20,7 @@ const (
 	QueryListCode                  = "list-code"
 	QueryContractHistory           = "contract-history"
 	QueryListContractBlockedMethod = "list-contract-blocked-method"
-	QueryParams             = "params"
+	QueryParams                    = "params"
 )
 
 const (
