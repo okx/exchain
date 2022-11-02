@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"sync"
+	"time"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
@@ -356,4 +357,10 @@ func ExtractOrder(tx types.Tx) []byte {
 		return evmTx.Payload
 	}
 	return nil
+}
+
+type FilledP1Order struct {
+	Filled *big.Int
+	Time   time.Time
+	contracts.P1OrdersOrder
 }
