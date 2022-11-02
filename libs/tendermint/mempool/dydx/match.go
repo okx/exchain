@@ -86,10 +86,13 @@ func NewMatchEngine(api PubSub, depthBook *DepthBook, config DydxConfig, handler
 	if engine.chainID == nil {
 		return nil, fmt.Errorf("invalid chain id")
 	}
-	engine.ethCli, err = ethclient.Dial(config.EthWsRpcUrl)
-	if err != nil {
-		return nil, fmt.Errorf("failed to dial eth rpc url: %s, err: %w", config.EthWsRpcUrl, err)
+	if !config.VMode || api == nil {
+		engine.ethCli, err = ethclient.Dial(config.EthWsRpcUrl)
+		if err != nil {
+			return nil, fmt.Errorf("failed to dial eth rpc url: %s, err: %w", config.EthWsRpcUrl, err)
+		}
 	}
+
 	engine.httpCli, err = ethclient.Dial(config.EthHttpRpcUrl)
 	if err != nil {
 		return nil, fmt.Errorf("failed to dial eth rpc url: %s, err: %w", config.EthHttpRpcUrl, err)
