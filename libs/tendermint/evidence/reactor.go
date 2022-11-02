@@ -114,6 +114,7 @@ func (evR *Reactor) SetEventBus(b *types.EventBus) {
 // start iterating from the beginning again.
 func (evR *Reactor) broadcastEvidenceRoutine(peer p2p.Peer) {
 	var next *clist.CElement
+	retryCnt := 0
 	for {
 		// This happens because the CElement we were looking at got garbage
 		// collected (removed). That is, .NextWait() returned nil. Go ahead and
@@ -139,8 +140,14 @@ func (evR *Reactor) broadcastEvidenceRoutine(peer p2p.Peer) {
 		}
 
 		if retry {
-			time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
+			//extend the retry gap to avoid frequent p2p Send
+			//https://github.com/okex/oec/issues/1848
+			timeout := time.Duration(peerCatchupSleepIntervalMS << retryCnt)
+			time.Sleep(timeout * time.Millisecond)
+			retryCnt++
 			continue
+		} else {
+			retryCnt = 0
 		}
 
 		afterCh := time.After(time.Second * broadcastEvidenceIntervalS)
