@@ -2,6 +2,7 @@ package types
 
 import (
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 )
@@ -20,6 +21,7 @@ type ViewKeeper interface {
 	IterateCodeInfos(ctx sdk.Context, cb func(uint64, CodeInfo) bool)
 	GetByteCode(ctx sdk.Context, codeID uint64) ([]byte, error)
 	IsPinnedCode(ctx sdk.Context, codeID uint64) bool
+	GetContractMethodBlockedList(ctx sdk.Context, contractAddr string) *ContractMethods
 }
 
 // ContractOpsKeeper contains mutable operations on a contract.

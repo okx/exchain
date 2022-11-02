@@ -7,10 +7,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	wasmvm "github.com/CosmWasm/wasmvm"
-	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"io/ioutil"
 	"strconv"
+
+	wasmvm "github.com/CosmWasm/wasmvm"
+
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
+
+	"github.com/spf13/cobra"
+	flag "github.com/spf13/pflag"
 
 	"github.com/okex/exchain/libs/cosmos-sdk/client"
 	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
@@ -18,8 +23,6 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	codectypes "github.com/okex/exchain/libs/cosmos-sdk/codec/types"
 	"github.com/okex/exchain/x/wasm/types"
-	"github.com/spf13/cobra"
-	flag "github.com/spf13/pflag"
 )
 
 // NewQueryCmd returns the query commands for wasm
@@ -42,6 +45,7 @@ func NewQueryCmd(cdc *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra
 		NewCmdGetContractState(cdc, reg),
 		NewCmdListPinnedCode(cdc, reg),
 		GetCmdLibVersion(cdc, reg),
+		NewCmdListContractBlockedMethod(cdc),
 	)
 
 	return queryCmd
@@ -237,6 +241,31 @@ func NewCmdGetContractInfo(m *codec.CodecProxy, reg codectypes.InterfaceRegistry
 				return err
 			}
 			return clientCtx.PrintProto(res)
+		},
+	}
+	flags.AddQueryFlagsToCmd(cmd)
+	return cmd
+}
+
+func NewCmdListContractBlockedMethod(m *codec.CodecProxy) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "list-contract-blocked-method [bech32_address]",
+		Short:   "List blocked methods of a contract given its address",
+		Long:    "List blocked methods of a contract given its address",
+		Aliases: []string{"lcbm"},
+		Args:    cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx := clientCtx.NewCLIContext().WithCodec(m.GetCdc())
+
+			_, err := sdk.AccAddressFromBech32(args[0])
+			if err != nil {
+				return err
+			}
+			res, _, err := clientCtx.Query(fmt.Sprintf("custom/wasm/list-contract-blocked-method/%s", args[0]))
+			if err != nil {
+				return err
+			}
+			return clientCtx.PrintOutput(res)
 		},
 	}
 	flags.AddQueryFlagsToCmd(cmd)

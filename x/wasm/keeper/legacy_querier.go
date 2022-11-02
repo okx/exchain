@@ -13,12 +13,13 @@ import (
 )
 
 const (
-	QueryListContractByCode = "list-contracts-by-code"
-	QueryGetContract        = "contract-info"
-	QueryGetContractState   = "contract-state"
-	QueryGetCode            = "code"
-	QueryListCode           = "list-code"
-	QueryContractHistory    = "contract-history"
+	QueryListContractByCode        = "list-contracts-by-code"
+	QueryGetContract               = "contract-info"
+	QueryGetContractState          = "contract-state"
+	QueryGetCode                   = "code"
+	QueryListCode                  = "list-code"
+	QueryContractHistory           = "contract-history"
+	QueryListContractBlockedMethod = "list-contract-blocked-method"
 )
 
 const (
@@ -66,6 +67,12 @@ func NewLegacyQuerier(keeper types.ViewKeeper, gasLimit sdk.Gas) sdk.Querier {
 				return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, addrErr.Error())
 			}
 			rsp, err = queryContractHistory(ctx, contractAddr, keeper)
+		case QueryListContractBlockedMethod:
+			contractAddr, addrErr := sdk.AccAddressFromBech32(path[1])
+			if addrErr != nil {
+				return nil, sdkerrors.Wrap(sdkerrors.ErrInvalidAddress, addrErr.Error())
+			}
+			rsp = queryListContractBlockedMethod(ctx, contractAddr, keeper)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown data query endpoint")
 		}
@@ -150,4 +157,9 @@ func queryContractListByCode(ctx sdk.Context, codeID uint64, keeper types.ViewKe
 		return false
 	})
 	return contracts
+}
+
+func queryListContractBlockedMethod(ctx sdk.Context, contractAddr sdk.AccAddress, keeper types.ViewKeeper) *types.ContractMethods {
+	cmbl := keeper.GetContractMethodBlockedList(ctx, contractAddr.String())
+	return cmbl
 }
