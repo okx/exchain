@@ -415,6 +415,10 @@ func (memR *Reactor) broadcastOrderRoutine(peer p2p.Peer) {
 		if !memR.IsRunning() || !peer.IsRunning() {
 			return
 		}
+		if memR.mempool.orderManager == nil {
+			time.Sleep(time.Second)
+			continue
+		}
 		// This happens because the CElement we were looking at got garbage
 		// collected (removed). That is, .NextWait() returned nil. Go ahead and
 		// start from the beginning.
