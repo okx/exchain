@@ -124,9 +124,6 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	// ResetTransferWatchData
 	w.watchData = &WatchData{}
 	w.evmTxIndex = 0
-}
-
-func (w *Watcher) clean() {
 	for k := range w.cumulativeGas {
 		delete(w.cumulativeGas, k)
 	}
@@ -331,7 +328,6 @@ func (w *Watcher) Commit() {
 	}
 	//hold it in temp
 	batch := w.batch
-	w.clean()
 	// No need to write db when upload delta is enabled.
 	if tmtypes.UploadDelta {
 		return
