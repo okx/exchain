@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 
 	clientCtx "github.com/okex/exchain/libs/cosmos-sdk/client/context"
 
@@ -31,7 +32,7 @@ func registerQueryRoutes(cliCtx clientCtx.CLIContext, r *mux.Router) {
 	r.HandleFunc("/wasm/contract/{contractAddr}/raw/{key}", queryContractStateRawHandlerFn(cliCtx)).Queries("encoding", "{encoding}").Methods("GET")
 	r.HandleFunc("/wasm/contract/{contractAddr}/blocked_methods", queryContractBlockedMethodsHandlerFn(cliCtx)).Methods("GET")
 	r.HandleFunc("/wasm/params", queryParamsHandlerFn(cliCtx)).Methods("GET")
-
+	r.HandleFunc("/wasm/contract/white_list", queryContractWhiteListHandlerFn(cliCtx)).Methods("GET")
 }
 
 func queryParamsHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
@@ -50,6 +51,29 @@ func queryParamsHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
 
 		cliCtx = cliCtx.WithHeight(height)
 		rest.PostProcessResponse(w, cliCtx, res)
+	}
+}
+
+func queryContractWhiteListHandlerFn(cliCtx clientCtx.CLIContext) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		cliCtx, ok := rest.ParseQueryHeightOrReturnBadRequest(w, cliCtx, r)
+		if !ok {
+			return
+		}
+		route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, keeper.QueryParams)
+
+		res, height, err := cliCtx.Query(route)
+		if err != nil {
+			rest.WriteErrorResponse(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		var params types.Params
+		cliCtx.Codec.MustUnmarshalJSON(res, params)
+		var whiteList []string
+		whiteList = strings.Split(params.CodeUploadAccess.Address, ",")
+
+		cliCtx = cliCtx.WithHeight(height)
+		rest.PostProcessResponse(w, cliCtx, whiteList)
 	}
 }
 

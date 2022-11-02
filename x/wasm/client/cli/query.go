@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strconv"
+	"strings"
 
 	wasmvm "github.com/CosmWasm/wasmvm"
 
@@ -49,7 +50,7 @@ func NewQueryCmd(cdc *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra
 		GetCmdLibVersion(cdc, reg),
 		NewCmdListContractBlockedMethod(cdc),
 		NewCMDParams(cdc, reg),
-
+		NewCMDGetAddressWhiteList(cdc, reg),
 	)
 
 	return queryCmd
@@ -108,7 +109,6 @@ func NewCmdListCode(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobr
 	return cmd
 }
 
-// NewCmdListCode lists all wasm code uploaded
 func NewCMDParams(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "get-params",
@@ -128,6 +128,32 @@ func NewCMDParams(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.
 			var params types.Params
 			m.GetCdc().MustUnmarshalJSON(res, &params)
 			return clientCtx.PrintOutput(params)
+		},
+	}
+	return cmd
+}
+
+func NewCMDGetAddressWhiteList(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:     "get-address-white-list",
+		Short:   "Get wasm address white list on the chain",
+		Long:    "Get wasm address white list on the chain",
+		Aliases: []string{"white-list", "gawl"},
+		Args:    cobra.ExactArgs(0),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientCtx := clientCtx.NewCLIContext().WithProxy(m).WithInterfaceRegistry(reg)
+			route := fmt.Sprintf("custom/%s/%s", types.QuerierRoute, keeper.QueryParams)
+
+			res, _, err := clientCtx.Query(route)
+			if err != nil {
+				return err
+			}
+
+			var params types.Params
+			m.GetCdc().MustUnmarshalJSON(res, &params)
+			var whiteList []string
+			whiteList = strings.Split(params.CodeUploadAccess.Address, ",")
+			return clientCtx.PrintOutput(whiteList)
 		},
 	}
 	return cmd
