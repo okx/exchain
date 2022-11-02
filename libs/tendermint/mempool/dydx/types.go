@@ -272,6 +272,12 @@ func (w *WrapOrder) GetLeftAmount() *big.Int {
 	return w.LeftAmount
 }
 
+func (w *WrapOrder) LeftAndFrozen() *big.Int {
+	w.RLock()
+	defer w.RUnlock()
+	return new(big.Int).Add(w.LeftAmount, w.FrozenAmount)
+}
+
 func (w *WrapOrder) Frozen(amount *big.Int) {
 	w.Lock()
 	defer w.Unlock()

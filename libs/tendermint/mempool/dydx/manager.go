@@ -96,7 +96,6 @@ func NewOrderManager(api PubSub, doMatch bool) *OrderManager {
 	if err != nil {
 		panic(err)
 	}
-	go manager.Serve()
 	go manager.ServeWeb()
 	return manager
 }

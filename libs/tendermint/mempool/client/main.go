@@ -18,10 +18,11 @@ import (
 )
 
 const (
-	node             = "wss://exchaintestws.okex.org:8443"
-	localNode        = "http://127.0.0.1:8545"
-	GasPrice  int64  = 100000000 // 0.1 gwei
-	GasLimit  uint64 = 3000000
+	node              = "wss://exchaintestws.okex.org:8443"
+	devnetNode        = "http://35.79.9.80:26659"
+	localNode         = "http://localhost:8545"
+	GasPrice   int64  = 100000000 // 0.1 gwei
+	GasLimit   uint64 = 3000000
 )
 
 var (
