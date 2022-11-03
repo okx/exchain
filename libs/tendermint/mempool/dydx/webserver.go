@@ -116,9 +116,7 @@ func (o *OrderManager) SendHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("content-type", "application/json")
 	vars := mux.Vars(r)
 	hexSignedOrder := vars["signedOrder"]
-	if strings.HasPrefix(hexSignedOrder, "0x") {
-		hexSignedOrder = hexSignedOrder[2:]
-	}
+	hexSignedOrder = strings.TrimPrefix(hexSignedOrder, "0x")
 	signedOrder, err := hex.DecodeString(hexSignedOrder)
 	if err != nil {
 		fmt.Fprintf(w, err.Error())

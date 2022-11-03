@@ -2,12 +2,15 @@ package dydx
 
 import (
 	"container/list"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcmm "github.com/ethereum/go-ethereum/common"
@@ -19,6 +22,10 @@ import (
 	"github.com/okex/exchain/libs/tendermint/libs/log"
 	"github.com/okex/exchain/libs/tendermint/types"
 )
+
+type AccountRetriever interface {
+	GetAccountNonce(address string) uint64
+}
 
 type OrderManager struct {
 	orders    *clist.CList
@@ -36,7 +43,7 @@ type OrderManager struct {
 	tradeTxsMtx sync.Mutex
 }
 
-func NewOrderManager(api PubSub, doMatch bool) *OrderManager {
+func NewOrderManager(api PubSub, accRetriever AccountRetriever, doMatch bool) *OrderManager {
 	manager := &OrderManager{
 		addrTradeHistory: make(map[common.Address][]*FilledP1Order),
 		orders:           clist.New(),
@@ -85,6 +92,11 @@ func NewOrderManager(api PubSub, doMatch bool) *OrderManager {
 		me, err := NewMatchEngine(api, manager.book, config, manager, log.NewTMLogger(os.Stdout))
 		if err != nil {
 			panic(err)
+		}
+		if accRetriever != nil {
+			me.nonce = accRetriever.GetAccountNonce(me.from.String())
+		} else {
+			me.nonce, _ = me.httpCli.NonceAt(context.Background(), me.from, nil)
 		}
 		manager.engine = me
 	}
@@ -208,6 +220,15 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 
 	for ele := d.TradeTxs.Front(); ele != nil; ele = ele.Next() {
 		mre := ele.Value.(*MatchResult)
+		if mre.Tx == nil {
+			nonce := d.engine.nonce
+			d.engine.nonce++
+			mre.Tx, _ = mre.tradeOps.Commit(&bind.TransactOpts{NoSend: true, Nonce: new(big.Int).SetUint64(nonce)})
+			if mre.Tx == nil {
+				continue
+			}
+			d.engine.logger.Debug("reap tx", "tx", mre.Tx.Hash().String())
+		}
 		tx := mre.Tx
 		txBz, err := tx.MarshalBinary()
 		if err != nil {
@@ -257,4 +278,10 @@ func (d *OrderManager) RemoveTradeTx(txhash []byte, code uint32) *ethtypes.Trans
 	mr.OnChain <- code == abci.CodeTypeOK
 	delete(d.tradeTxsMap, evmHash)
 	return mr.Tx
+}
+
+func (d *OrderManager) UpdateAddress(sender string, nonce uint64, code uint32) {
+	if sender == d.engine.from.String() && code == abci.CodeTypeOK {
+		d.engine.nonce = nonce
+	}
 }
