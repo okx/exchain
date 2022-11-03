@@ -42,22 +42,22 @@ func NewQueryCmd(cdc *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra
 		NewCmdListCode(cdc, reg),
 		NewCmdListContractByCode(cdc, reg),
 		NewCmdQueryCode(cdc, reg),
-		GetCmdQueryCodeInfo(cdc, reg),
+		NewCmdQueryCodeInfo(cdc, reg),
 		NewCmdGetContractInfo(cdc, reg),
 		NewCmdGetContractHistory(cdc, reg),
 		NewCmdGetContractState(cdc, reg),
 		NewCmdListPinnedCode(cdc, reg),
-		GetCmdLibVersion(cdc, reg),
+		NewCmdLibVersion(cdc, reg),
 		NewCmdListContractBlockedMethod(cdc),
-		NewCMDParams(cdc, reg),
-		NewCMDAddressWhitelist(cdc, reg),
+		NewCmdGetParams(cdc, reg),
+		NewCmdGetAddressWhitelist(cdc, reg),
 	)
 
 	return queryCmd
 }
 
-// GetCmdLibVersion gets current libwasmvm version.
-func GetCmdLibVersion(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
+// NewCmdLibVersion gets current libwasmvm version.
+func NewCmdLibVersion(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "libwasmvm-version",
 		Short:   "Get libwasmvm version",
@@ -109,7 +109,7 @@ func NewCmdListCode(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobr
 	return cmd
 }
 
-func NewCMDParams(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
+func NewCmdGetParams(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "get-params",
 		Short:   "Get wasm parameters on the chain",
@@ -133,7 +133,7 @@ func NewCMDParams(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.
 	return cmd
 }
 
-func NewCMDAddressWhitelist(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
+func NewCmdGetAddressWhitelist(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "get-address-whitelist",
 		Short:   "Get wasm address whitelist on the chain",
@@ -238,8 +238,8 @@ func NewCmdQueryCode(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cob
 	return cmd
 }
 
-// GetCmdQueryCodeInfo returns the code info for a given code id
-func GetCmdQueryCodeInfo(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
+// NewCmdQueryCodeInfo returns the code info for a given code id
+func NewCmdQueryCodeInfo(m *codec.CodecProxy, reg codectypes.InterfaceRegistry) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "code-info [code_id]",
 		Short: "Prints out metadata of a code id",
