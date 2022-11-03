@@ -125,7 +125,7 @@ func (k Keeper) executeMsg(ctx sdk.Context, msg sdk.MsgAdapter) ([]byte, error) 
 		if swapMsg, err := sen.Swap(ctx); nil != err {
 			return nil, err
 		} else if swapMsg != nil {
-			msg = swapMsg.(sdk.MsgProtoAdapter)
+			msg = swapMsg.(sdk.MsgAdapter)
 		}
 	}
 
