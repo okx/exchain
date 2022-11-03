@@ -189,7 +189,7 @@ func (d *OrderManager) HandleOrderFilled(filled *contracts.P1OrdersLogOrderFille
 
 func (d *OrderManager) SubErr(err error) {
 	//TODO
-	panic(err)
+	fmt.Println("OrderManager SubErr:", err)
 }
 
 func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) (tradeTxs []types.Tx, totalBytes, totalGas int64) {
