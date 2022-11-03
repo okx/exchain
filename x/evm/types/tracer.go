@@ -112,31 +112,6 @@ func (dt NoOpTracer) CaptureEnter(
 // CaptureExit implements vm.Tracer interface
 func (dt NoOpTracer) CaptureExit(output []byte, gasUsed uint64, err error) {}
 
-//// CaptureState implements vm.Tracer interface
-//func (dt NoOpTracer) CaptureState(
-//	env *vm.EVM,
-//	pc uint64,
-//	op vm.OpCode,
-//	gas, cost uint64,
-//	scope *vm.ScopeContext,
-//	rData []byte,
-//	depth int,
-//	err error,
-//) {
-//}
-//
-//// CaptureFault implements vm.Tracer interface
-//func (dt NoOpTracer) CaptureFault(
-//	env *vm.EVM,
-//	pc uint64,
-//	op vm.OpCode,
-//	gas, cost uint64,
-//	scope *vm.ScopeContext,
-//	depth int,
-//	err error,
-//) {
-//}
-
 // CaptureEnd implements vm.Tracer interface
 func (dt NoOpTracer) CaptureEnd(
 	output []byte,

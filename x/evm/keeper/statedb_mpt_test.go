@@ -10,7 +10,6 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 )
 
-
 func (suite *KeeperMptTestSuite) TestCommitStateDB_CommitMpt() {
 	testCase := []struct {
 		name       string
@@ -137,13 +136,13 @@ func (suite *KeeperMptTestSuite) TestCommitStateDB_GetCommittedStateMpt() {
 	suite.Require().Equal(ethcmn.BytesToHash([]byte("value")), hash)
 }
 
-func (suite *KeeperMptTestSuite) TestCommitStateDB_GetStateByKeyMpt() {
-	suite.stateDB.WithContext(suite.ctx).SetState(suite.address, ethcmn.BytesToHash([]byte("key")), ethcmn.BytesToHash([]byte("value")))
-	suite.stateDB.Commit(false)
-
-	hash := suite.stateDB.WithContext(suite.ctx).GetStateByKeyMpt(suite.address, ethcmn.BytesToHash([]byte("key")))
-	suite.Require().Equal(ethcmn.BytesToHash([]byte("value")), hash)
-}
+//func (suite *KeeperMptTestSuite) TestCommitStateDB_GetStateByKeyMpt() {
+//	suite.stateDB.WithContext(suite.ctx).SetState(suite.address, ethcmn.BytesToHash([]byte("key")), ethcmn.BytesToHash([]byte("value")))
+//	suite.stateDB.Commit(false)
+//
+//	hash := suite.stateDB.WithContext(suite.ctx).GetStateByKeyMpt(suite.address, ethcmn.BytesToHash([]byte("key")))
+//	suite.Require().Equal(ethcmn.BytesToHash([]byte("value")), hash)
+//}
 
 func (suite *KeeperMptTestSuite) TestStateDB_CodeMpt() {
 	testCase := []struct {

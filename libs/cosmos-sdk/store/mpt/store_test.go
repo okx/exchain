@@ -3,15 +3,13 @@ package mpt
 import (
 	"crypto/rand"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"testing"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/client/flags"
 	"github.com/okex/exchain/libs/cosmos-sdk/store/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/suite"
+	"io/ioutil"
+	"os"
 )
 
 var (
@@ -33,9 +31,9 @@ type StoreTestSuite struct {
 	mptStore *MptStore
 }
 
-func TestStoreTestSuite(t *testing.T) {
-	suite.Run(t, new(StoreTestSuite))
-}
+//func TestStoreTestSuite(t *testing.T) {
+//	suite.Run(t, new(StoreTestSuite))
+//}
 
 func (suite *StoreTestSuite) SetupTest() {
 	// set exchaind path
