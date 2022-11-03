@@ -65,6 +65,7 @@ type OrderManager struct {
 	historyMtx       sync.RWMutex
 	addrTradeHistory map[common.Address][]*FilledP1Order
 	tradeHistory     []*FilledP1Order
+	trades           map[[32]byte]*FilledP1Order
 	book             *DepthBook
 	engine           *MatchEngine
 	gServer          *OrderBookServer
@@ -76,6 +77,7 @@ type OrderManager struct {
 
 func NewOrderManager(api PubSub, doMatch bool) *OrderManager {
 	manager := &OrderManager{
+		trades:           make(map[[32]byte]*FilledP1Order),
 		addrTradeHistory: make(map[common.Address][]*FilledP1Order),
 		orders:           clist.New(),
 		book:             NewDepthBook(),
@@ -172,17 +174,24 @@ func (d *OrderManager) HandleOrderFilled(filled *contracts.P1OrdersLogOrderFille
 	}
 	wodr := ele.Value.(*WrapOrder)
 	wodr.Done(filled.Fill.Amount)
-	if wodr.LeftAmount.Sign() == 0 && wodr.FrozenAmount.Sign() == 0 {
-		orderList.Remove(ele)
+	d.historyMtx.Lock()
+	defer d.historyMtx.Unlock()
+	if filledOrder, ok := d.trades[filled.OrderHash]; ok {
+		filledOrder.Filled.Add(filledOrder.Filled, filled.Fill.Amount)
+		filledOrder.Time = time.Now()
+	} else {
 		filledOrder := &FilledP1Order{
 			Filled:        new(big.Int).Set(wodr.Amount),
 			Time:          time.Now(),
 			P1OrdersOrder: wodr.P1OrdersOrder,
 		}
-		d.historyMtx.Lock()
 		d.tradeHistory = append(d.tradeHistory, filledOrder)
 		d.addrTradeHistory[wodr.Maker] = append(d.addrTradeHistory[wodr.Maker], filledOrder)
-		d.historyMtx.Unlock()
+	}
+
+	if wodr.LeftAmount.Sign() == 0 && wodr.FrozenAmount.Sign() == 0 {
+		orderList.Remove(ele)
+		//TODO delete broadcast queue
 	}
 	fmt.Println("debug filled", hex.EncodeToString(filled.OrderHash[:]), filled.TriggerPrice.String(), filled.Fill.Price.String(), filled.Fill.Amount.String())
 }
