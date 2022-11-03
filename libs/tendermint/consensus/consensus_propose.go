@@ -94,7 +94,11 @@ func (cs *State) enterPropose(height int64, round int) {
 
 	cs.initNewHeight()
 	isBlockProducer, bpAddr := cs.isBlockProducer()
-	cs.trc.Pin("enterPropose-%d-%s-%s", round, isBlockProducer, bpAddr)
+	newProposer := ""
+	if cs.vcHeight[height] != "" {
+		newProposer = "-avc-" + cs.vcHeight[height][:6]
+	}
+	cs.trc.Pin("enterPropose-%d-%s-%s%s", round, isBlockProducer, bpAddr, newProposer)
 
 	logger.Info(fmt.Sprintf("enterPropose(%v/%v). Current: %v/%v/%v", height, round, cs.Height, cs.Round, cs.Step))
 
@@ -120,7 +124,9 @@ func (cs *State) enterPropose(height int64, round int) {
 			bpAddr,
 			"privValidator",
 			cs.privValidator)
-		cs.decideProposal(height, round)
+		if cs.vcHeight[height] == "" || cs.Round != 0 {
+			cs.decideProposal(height, round)
+		}
 	} else {
 		logger.Info("enterPropose: Not our turn to propose",
 			"proposer",
@@ -144,7 +150,11 @@ func (cs *State) defaultDecideProposal(height int64, round int) {
 		block, blockParts = cs.ValidBlock, cs.ValidBlockParts
 	} else {
 		// Create a new proposal block from state/txs from the mempool.
-		block, blockParts = cs.createProposalBlock()
+		if res := cs.getPreBlockResult(height); res != nil {
+			block, blockParts = res.block, res.blockParts
+		} else {
+			block, blockParts = cs.createProposalBlock()
+		}
 		if block == nil {
 			return
 		}

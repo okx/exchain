@@ -203,17 +203,6 @@ func (k Keeper) IsContractMethodBlocked(ctx sdk.Context, contractAddr, method st
 }
 
 func (k Keeper) GetContractMethodBlockedList(ctx sdk.Context, contractAddr string) *types.ContractMethods {
-	if ctx.UseParamCache() {
-		if GetWasmParamsCache().IsNeedBlockedUpdate() {
-			cms := k.getAllBlockedList(ctx)
-			if !ctx.IsCheckTx() {
-				GetWasmParamsCache().UpdateBlockedContractMethod(cms)
-			}
-			return types.FindContractMethods(cms, contractAddr)
-		}
-		return GetWasmParamsCache().GetBlockedContractMethod(contractAddr)
-	}
-
 	return k.getContractMethodBlockedList(ctx, contractAddr)
 }
 
@@ -287,16 +276,6 @@ func (k Keeper) getInstantiateAccessConfig(ctx sdk.Context) types.AccessType {
 // GetParams returns the total set of wasm parameters.
 func (k Keeper) GetParams(ctx sdk.Context) types.Params {
 	var params types.Params
-	if ctx.UseParamCache() {
-		if GetWasmParamsCache().IsNeedParamsUpdate() {
-			k.paramSpace.GetParamSet(ctx, &params)
-			if !ctx.IsCheckTx() {
-				GetWasmParamsCache().UpdateParams(params)
-			}
-			return params
-		}
-		return GetWasmParamsCache().GetParams()
-	}
 	k.paramSpace.GetParamSet(ctx, &params)
 	return params
 }
@@ -732,7 +711,7 @@ func (k Keeper) appendToContractHistory(ctx sdk.Context, contractAddr sdk.AccAdd
 	defer iter.Close()
 
 	if iter.Valid() {
-		pos = sdk.BigEndianToUint64(iter.Value())
+		pos = sdk.BigEndianToUint64(iter.Key())
 	}
 	// then store with incrementing position
 	for _, e := range newEntries {

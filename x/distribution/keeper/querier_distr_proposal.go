@@ -163,6 +163,10 @@ func queryDelegatorValidators(ctx sdk.Context, _ []string, req abci.RequestQuery
 
 	delegator := k.stakingKeeper.Delegator(ctx, params.DelegatorAddress)
 
+	if delegator == nil {
+		return nil, types.ErrCodeEmptyDelegationDistInfo()
+	}
+
 	bz, err := codec.MarshalJSONIndent(k.cdc, delegator.GetShareAddedValidatorAddresses())
 	if err != nil {
 		return nil, comm.ErrMarshalJSONFailed(err.Error())
