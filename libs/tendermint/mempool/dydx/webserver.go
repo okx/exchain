@@ -210,7 +210,7 @@ type Fills struct {
 	Type   string `json:"type"`
 	IsBuy  bool   `json:"isBuy"`
 	Amount int64  `json:"amount"`
-	Price  int64  `json:"price"`
+	Price  string `json:"price"`
 }
 
 func (o *OrderManager) FillsHandler(w http.ResponseWriter, r *http.Request) {
@@ -233,7 +233,7 @@ func (o *OrderManager) FillsHandler(w http.ResponseWriter, r *http.Request) {
 			Type:   "market",
 			IsBuy:  t.P1OrdersOrder.Flags[31] == 1,
 			Amount: t.Amount.Int64(),
-			Price:  t.LimitPrice.Int64(),
+			Price:  t.LimitPrice.String(),
 		})
 	}
 	data, err := json.Marshal(fills)
