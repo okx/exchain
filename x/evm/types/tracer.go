@@ -59,27 +59,23 @@ func GetTracerResult(tracer tracers.Tracer, result *core.ExecutionResult) ([]byt
 type NoOpTracer struct{}
 
 func (dt NoOpTracer) CaptureTxStart(gasLimit uint64) {
-	panic("implement me")
 }
 
 func (dt NoOpTracer) CaptureTxEnd(restGas uint64) {
-	panic("implement me")
 }
 
 func (dt NoOpTracer) CaptureState(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, rData []byte, depth int, err error) {
-	panic("implement me")
 }
 
 func (dt NoOpTracer) CaptureFault(pc uint64, op vm.OpCode, gas, cost uint64, scope *vm.ScopeContext, depth int, err error) {
-	panic("implement me")
 }
 
 func (dt NoOpTracer) GetResult() (json2.RawMessage, error) {
-	panic("implement me")
+	return json2.RawMessage(`{}`), nil
 }
 
 func (dt NoOpTracer) Stop(err error) {
-	panic("implement me")
+
 }
 
 // NewNoOpTracer creates a no-op vm.Tracer
