@@ -40,14 +40,8 @@ const (
 	dbFolder      = "data"
 )
 
-func NeedLongTimeToUpgrade() bool {
-	storeKeys := []string{auth.StoreKey, evm.StoreKey}
-
-	return checkFastStorageStrategy(storeKeys)
-}
-
-func IsFastStorageStrategy() bool {
-	storeKeys := []string{
+func GetAllStoreKeys() []string {
+	return []string{
 		bam.MainStoreKey, auth.StoreKey, staking.StoreKey,
 		supply.StoreKey, mint.StoreKey, distr.StoreKey, slashing.StoreKey,
 		gov.StoreKey, params.StoreKey, upgrade.StoreKey, evidence.StoreKey,
@@ -59,8 +53,10 @@ func IsFastStorageStrategy() bool {
 		wasm.StoreKey,
 		feesplit.StoreKey,
 	}
+}
 
-	return checkFastStorageStrategy(storeKeys)
+func IsFastStorageStrategy() bool {
+	return checkFastStorageStrategy(GetAllStoreKeys())
 }
 
 func checkFastStorageStrategy(storeKeys []string) bool {
