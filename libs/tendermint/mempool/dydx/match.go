@@ -202,9 +202,9 @@ func (m *MatchEngine) Match(order *WrapOrder, maketPrice *big.Int) (*MatchResult
 	m.logger.Debug("start match", "order", order.P1Order, "marketPrice", maketPrice)
 
 	if order.Type() == BuyOrderType {
-		return processOrder(order, m.depthBook.sellOrders, m.depthBook.buyOrders, maketPrice), nil
+		return processOrder(order, m.depthBook.sellOrders, m.depthBook, maketPrice)
 	} else if order.Type() == SellOrderType {
-		return processOrder(order, m.depthBook.buyOrders, m.depthBook.sellOrders, maketPrice), nil
+		return processOrder(order, m.depthBook.buyOrders, m.depthBook, maketPrice)
 	} else {
 		return nil, fmt.Errorf("invalid order type")
 	}
@@ -358,14 +358,16 @@ func isValidTriggerPrice(order *WrapOrder, marketPrice *big.Int) bool {
 
 var zero = big.NewInt(0)
 
-func processOrder(takerOrder *WrapOrder, makerBook *OrderList, takerBook *OrderList, marketPrice *big.Int) *MatchResult {
+func processOrder(takerOrder *WrapOrder, makerBook *OrderList, book *DepthBook, marketPrice *big.Int) (*MatchResult, error) {
 	var matchResult = &MatchResult{
 		TakerOrder: takerOrder,
 	}
-
 	if takerOrder.LeftAmount.Cmp(zero) <= 0 || !isValidTriggerPrice(takerOrder, marketPrice) {
-		takerBook.Insert(takerOrder)
-		return matchResult
+		err := book.Insert(takerOrder)
+		if err != nil {
+			return nil, err
+		}
+		return matchResult, nil
 	}
 
 	var makerOrderElem *list.Element
@@ -425,6 +427,9 @@ func processOrder(takerOrder *WrapOrder, makerBook *OrderList, takerBook *OrderL
 			break
 		}
 	}
-	takerBook.Insert(takerOrder)
-	return matchResult
+	err := book.Insert(takerOrder)
+	if err != nil {
+		return nil, err
+	}
+	return matchResult, nil
 }
