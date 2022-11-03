@@ -66,7 +66,7 @@ var (
 
 // InitWithChainID uses the chain-id of the node.
 func InitWithChainID(id *big.Int) {
-	//return
+	return
 	chainID = id
 	_EIP712_DOMAIN_HASH_ = crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], common.LeftPadBytes(chainID.Bytes(), 32), common.LeftPadBytes(common.FromHex(ContractAddress), 32))
 }

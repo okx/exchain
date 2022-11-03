@@ -27,7 +27,7 @@ const (
 
 var (
 	orderContractAddr = common.HexToAddress(dydx.Config.P1OrdersContractAddress)
-	chainID           = int64(64)
+	chainID           = int64(65)
 )
 
 var (
