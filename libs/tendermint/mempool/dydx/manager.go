@@ -176,21 +176,36 @@ func (d *OrderManager) HandleOrderFilled(filled *contracts.P1OrdersLogOrderFille
 	wodr.Done(filled.Fill.Amount)
 	d.historyMtx.Lock()
 	defer d.historyMtx.Unlock()
+	d.tradeHistory = append(d.tradeHistory, &FilledP1Order{
+		Filled:        new(big.Int).Set(filled.Fill.Amount),
+		Time:          time.Now(),
+		P1OrdersOrder: wodr.P1OrdersOrder,
+	})
 	if filledOrder, ok := d.trades[filled.OrderHash]; ok {
 		filledOrder.Filled.Add(filledOrder.Filled, filled.Fill.Amount)
 		filledOrder.Time = time.Now()
 	} else {
 		filledOrder := &FilledP1Order{
-			Filled:        new(big.Int).Set(wodr.Amount),
+			Filled:        new(big.Int).Set(filled.Fill.Amount),
 			Time:          time.Now(),
 			P1OrdersOrder: wodr.P1OrdersOrder,
 		}
-		d.tradeHistory = append(d.tradeHistory, filledOrder)
 		d.addrTradeHistory[wodr.Maker] = append(d.addrTradeHistory[wodr.Maker], filledOrder)
+		d.trades[filled.OrderHash] = filledOrder
 	}
 
 	if wodr.LeftAmount.Sign() == 0 && wodr.FrozenAmount.Sign() == 0 {
 		orderList.Remove(ele)
+		d.book.addrMtx.Lock()
+		addrOrders := d.book.addrOrders[wodr.Maker]
+		for i, order := range addrOrders {
+			if order.Hash() == wodr.Hash() {
+				addrOrders = append(addrOrders[:i], addrOrders[i+1:]...)
+				break
+			}
+		}
+		d.book.addrOrders[wodr.Maker] = addrOrders
+		d.book.addrMtx.Unlock()
 		//TODO delete broadcast queue
 	}
 	fmt.Println("debug filled", hex.EncodeToString(filled.OrderHash[:]), filled.TriggerPrice.String(), filled.Fill.Price.String(), filled.Fill.Amount.String())
