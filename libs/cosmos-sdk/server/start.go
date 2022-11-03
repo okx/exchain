@@ -241,13 +241,11 @@ func startInProcess(ctx *Context, cdc *codec.CodecProxy, registry jsonpb.AnyReso
 
 	baseapp.SetGlobalMempool(tmNode.Mempool(), cfg.Mempool.SortTxByGp, cfg.Mempool.EnablePendingPool)
 
-	if cfg.Mempool.EnablePendingPool {
-		cliCtx := context.NewCLIContext().WithProxy(cdc)
-		cliCtx.Client = local.New(tmNode)
-		cliCtx.TrustNode = true
-		accRetriever := types.NewAccountRetriever(cliCtx)
-		tmNode.Mempool().SetAccountRetriever(accRetriever)
-	}
+	cliCtx := context.NewCLIContext().WithProxy(cdc)
+	cliCtx.Client = local.New(tmNode)
+	cliCtx.TrustNode = true
+	accRetriever := types.NewAccountRetriever(cliCtx)
+	tmNode.Mempool().SetAccountRetriever(accRetriever)
 
 	if parser, ok := app.(mempool.TxInfoParser); ok {
 		tmNode.Mempool().SetTxInfoParser(parser)
