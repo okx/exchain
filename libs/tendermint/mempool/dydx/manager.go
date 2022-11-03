@@ -136,7 +136,8 @@ func (d *OrderManager) Insert(memOrder *MempoolOrder) error {
 	if result != nil {
 		if result.NoSend {
 			d.tradeTxsMtx.Lock()
-			d.tradeTxsMap[result.Tx.Hash()] = d.TradeTxs.PushBack(result)
+			// d.tradeTxsMap[result.Tx.Hash()] = d.TradeTxs.PushBack(result)
+			d.TradeTxs.PushBack(result)
 			d.tradeTxsMtx.Unlock()
 		}
 		go d.book.Update(result)
@@ -227,6 +228,7 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 			if mre.Tx == nil {
 				continue
 			}
+			d.tradeTxsMap[mre.Tx.Hash()] = ele
 			d.engine.logger.Debug("reap tx", "tx", mre.Tx.Hash().String())
 		}
 		tx := mre.Tx
