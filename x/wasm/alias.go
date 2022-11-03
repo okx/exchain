@@ -94,6 +94,8 @@ var (
 	DisableAllProposals              = types.DisableAllProposals
 	NecessaryProposals               = types.NecessaryProposals
 	ContractCodeHistoryElementPrefix = types.ContractCodeHistoryElementPrefix
+	WithMessageEncoders              = keeper.WithMessageEncoders
+	SetNeedParamsUpdate              = keeper.SetNeedParamsUpdate
 )
 
 type (
@@ -132,4 +134,5 @@ type (
 	CustomQuerier                  = keeper.CustomQuerier
 	QueryPlugins                   = keeper.QueryPlugins
 	Option                         = keeper.Option
+	ContractOpsKeeper              = types.ContractOpsKeeper
 )
