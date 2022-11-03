@@ -205,6 +205,14 @@ func (o *OrderManager) OrdersHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
+type Fills struct {
+	Time   string `json:"time"`
+	Type   string `json:"type"`
+	IsBuy  bool   `json:"isBuy"`
+	Amount int64  `json:"amount"`
+	Price  int64  `json:"price"`
+}
+
 func (o *OrderManager) FillsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
@@ -215,18 +223,20 @@ func (o *OrderManager) FillsHandler(w http.ResponseWriter, r *http.Request) {
 	o.historyMtx.RLock()
 	defer o.historyMtx.RUnlock()
 
-	var trades []*Trade
+	fills := make([]*Fills, 0)
 	for _, t := range o.tradeHistory {
 		if t.Maker != addr {
 			continue
 		}
-		trades = append(trades, &Trade{
-			Size:  t.Amount.Int64(),
-			Price: t.LimitPrice.String(),
-			Time:  t.Time.Format(timeFormat),
+		fills = append(fills, &Fills{
+			Time:   t.Time.Format(timeFormat),
+			Type:   "market",
+			IsBuy:  t.P1OrdersOrder.Flags[31] == 1,
+			Amount: t.Amount.Int64(),
+			Price:  t.LimitPrice.Int64(),
 		})
 	}
-	data, err := json.Marshal(trades)
+	data, err := json.Marshal(fills)
 	if err != nil {
 		fmt.Fprintf(w, err.Error())
 		return
