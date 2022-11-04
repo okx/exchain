@@ -21,6 +21,8 @@ type decoratedKeeper interface {
 	setAccessConfig(ctx sdk.Context, codeID uint64, config types.AccessConfig) error
 	updateUploadAccessConfig(ctx sdk.Context, config types.AccessConfig)
 	updateContractMethodBlockedList(ctx sdk.Context, blockedMethods *types.ContractMethods, isDelete bool) error
+
+	GetParams(ctx sdk.Context) types.Params
 }
 
 type PermissionedKeeper struct {
@@ -92,4 +94,8 @@ func (p PermissionedKeeper) UpdateUploadAccessConfig(ctx sdk.Context, config typ
 
 func (p PermissionedKeeper) UpdateContractMethodBlockedList(ctx sdk.Context, blockedMethods *types.ContractMethods, isDelete bool) error {
 	return p.nested.updateContractMethodBlockedList(ctx, blockedMethods, isDelete)
+}
+
+func (p PermissionedKeeper) GetParams(ctx sdk.Context) types.Params {
+	return p.nested.GetParams(ctx)
 }
