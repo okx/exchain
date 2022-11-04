@@ -101,6 +101,7 @@ func NewOrderManager(api PubSub, accRetriever AccountRetriever, doMatch bool) *O
 	} else {
 		me.nonce, _ = me.httpCli.NonceAt(context.Background(), me.from, nil)
 	}
+	me.nonce--
 	manager.engine = me
 
 	manager.gServer = NewOrderBookServer(manager.book, log.NewTMLogger(os.Stdout))
@@ -245,8 +246,8 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 	for ele := d.TradeTxs.Front(); ele != nil; ele = ele.Next() {
 		mre := ele.Value.(*MatchResult)
 		if mre.Tx == nil {
-			nonce := d.engine.nonce
 			d.engine.nonce++
+			nonce := d.engine.nonce
 			mre.Tx, _ = mre.tradeOps.Commit(&bind.TransactOpts{NoSend: true, Nonce: new(big.Int).SetUint64(nonce)})
 			if mre.Tx == nil {
 				continue
