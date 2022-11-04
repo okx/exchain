@@ -8,6 +8,7 @@ import (
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/gorilla/mux"
 	"github.com/okex/exchain/libs/tendermint/mempool/placeorder"
+	"github.com/spf13/viper"
 	"log"
 	"math/big"
 	"net/http"
@@ -44,7 +45,7 @@ func (o *OrderManager) ServeWeb() {
 	r.HandleFunc("/fills", o.FillsHandler).Methods(GET).Queries("addr", "{addr}")
 
 	// Bind to a port and pass our router in
-	log.Fatal(http.ListenAndServe(":8555", r))
+	log.Fatal(http.ListenAndServe(":"+viper.GetString("dydx.web-port"), r))
 }
 
 type OrderResponse struct {

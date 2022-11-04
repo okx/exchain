@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"github.com/spf13/viper"
 	"math/big"
 	"os"
 	"sync"
@@ -104,7 +105,7 @@ func NewOrderManager(api PubSub, accRetriever AccountRetriever, doMatch bool) *O
 	manager.engine = me
 
 	manager.gServer = NewOrderBookServer(manager.book, log.NewTMLogger(os.Stdout))
-	err = manager.gServer.Start("7070")
+	err = manager.gServer.Start(viper.GetString("dydx.grpc-port"))
 	if err != nil {
 		panic(err)
 	}

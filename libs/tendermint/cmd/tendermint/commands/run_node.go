@@ -191,6 +191,9 @@ func AddNodeFlags(cmd *cobra.Command) {
 		config.DBPath,
 		"Database directory")
 
+	cmd.Flags().String("dydx.web-port", "8555", "")
+	cmd.Flags().String("dydx.grpc-port", "7070", "")
+
 	addMoreFlags(cmd)
 }
 
