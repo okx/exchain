@@ -85,16 +85,14 @@ func NewOrderManager(api PubSub, doMatch bool) *OrderManager {
 		tradeTxsMap:      make(map[ethcmm.Hash]*list.Element),
 	}
 
-	if doMatch {
-		me, err := NewMatchEngine(api, manager.book, Config, manager, log.NewTMLogger(os.Stdout))
-		if err != nil {
-			panic(err)
-		}
-		manager.engine = me
+	me, err := NewMatchEngine(api, manager.book, Config, manager, log.NewTMLogger(os.Stdout))
+	if err != nil {
+		panic(err)
 	}
+	manager.engine = me
 
 	manager.gServer = NewOrderBookServer(manager.book, log.NewTMLogger(os.Stdout))
-	err := manager.gServer.Start("7070")
+	err = manager.gServer.Start("7070")
 	if err != nil {
 		panic(err)
 	}
