@@ -25,7 +25,7 @@ const (
 	placeOrderContractAddr = "0x4Ef308B36E9f75C97a38594acbFa9FBe1B847Da5"
 )
 
-var twoWeekSeconds = int64(time.Hour/time.Second) * 24 * 14
+var oneWeekSeconds = int64(time.Hour/time.Second) * 24 * 7
 
 type Response struct {
 	Succeed  bool   `json:"succeed"`
@@ -83,7 +83,7 @@ func (o *OrderManager) GenerateOrderHandler(w http.ResponseWriter, r *http.Reque
 		TriggerPrice: big.NewInt(0),
 		LimitFee:     big.NewInt(0),
 		Maker:        common.HexToAddress(maker),
-		Expiration:   big.NewInt(time.Now().Unix() + twoWeekSeconds),
+		Expiration:   big.NewInt(time.Now().Unix() + oneWeekSeconds),
 	}
 	if isBuy == "true" {
 		order.Flags[31] = 1
@@ -146,6 +146,7 @@ func (o *OrderManager) BookHandler(w http.ResponseWriter, r *http.Request) {
 type Trade struct {
 	Size  int64  `json:"size"`
 	Price string `json:"price"`
+	Side  string `json:"side"`
 	Time  string `json:"time"`
 }
 
@@ -153,18 +154,23 @@ func (o *OrderManager) TradesHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
 	w.Header().Set("content-type", "application/json")
-	o.historyMtx.RLock()
-	defer o.historyMtx.RUnlock()
 
 	trades := make([]*Trade, 0)
+	o.historyMtx.RLock()
 	for _, t := range o.tradeHistory {
-		fmt.Println("trade history", *t)
-		trades = append(trades, &Trade{
-			Size:  t.Amount.Int64(),
+		trade := &Trade{
+			Size:  t.Filled.Int64(),
 			Price: t.LimitPrice.String(),
 			Time:  t.Time.Format(timeFormat),
-		})
+		}
+		if t.Flags[31] == 1 {
+			trade.Side = "buy"
+		} else {
+			trade.Side = "sell"
+		}
+		trades = append(trades, trade)
 	}
+	o.historyMtx.RUnlock()
 	data, err := json.Marshal(trades)
 	if err != nil {
 		fmt.Fprintf(w, err.Error())
@@ -201,8 +207,55 @@ func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func (o *OrderManager) OrdersHandler(w http.ResponseWriter, r *http.Request) {
+type WebOrder struct {
+	Order        string `json:"order"`
+	Status       string `json:"status"`
+	IsBuy        bool   `json:"isBuy"`
+	Amount       int64  `json:"amount"`
+	FilledAmount int64  `json:"filledAmount"`
+	Price        string `json:"price"`
+	TriggerPrice string `json:"triggerPrice"`
+	Expiration   string `json:"expiration"`
+}
 
+func (o *OrderManager) OrdersHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
+	w.Header().Set("content-type", "application/json")
+	vars := mux.Vars(r)
+	addr := common.HexToAddress(vars[addrKey])
+
+	orders := make([]*WebOrder, 0)
+	o.book.addrMtx.RLock()
+	for _, order := range o.book.addrOrders[addr] {
+		orders = append(orders, &WebOrder{
+			Order:        hex.EncodeToString(order.Raw),
+			Status:       "limit",
+			IsBuy:        order.Flags[31] == 1,
+			Amount:       order.Amount.Int64(),
+			FilledAmount: new(big.Int).Sub(order.Amount, order.LeftAndFrozen()).Int64(),
+			Price:        order.LimitPrice.String(),
+			TriggerPrice: order.TriggerPrice.String(),
+			Expiration:   fmt.Sprintf("%d hours", (order.Expiration.Int64()-time.Now().Unix())/3600),
+		})
+	}
+	o.book.addrMtx.RUnlock()
+
+	data, err := json.Marshal(orders)
+	if err != nil {
+		fmt.Fprintf(w, err.Error())
+		return
+	}
+	fmt.Fprintf(w, string(data))
+}
+
+type Fills struct {
+	Time   string `json:"time"`
+	Type   string `json:"type"`
+	IsBuy  bool   `json:"isBuy"`
+	Amount int64  `json:"amount"`
+	Filled int64  `json:"filled"`
+	Price  string `json:"price"`
 }
 
 func (o *OrderManager) FillsHandler(w http.ResponseWriter, r *http.Request) {
@@ -215,18 +268,18 @@ func (o *OrderManager) FillsHandler(w http.ResponseWriter, r *http.Request) {
 	o.historyMtx.RLock()
 	defer o.historyMtx.RUnlock()
 
-	var trades []*Trade
-	for _, t := range o.tradeHistory {
-		if t.Maker != addr {
-			continue
-		}
-		trades = append(trades, &Trade{
-			Size:  t.Amount.Int64(),
-			Price: t.LimitPrice.String(),
-			Time:  t.Time.Format(timeFormat),
+	fills := make([]*Fills, 0)
+	for _, t := range o.addrTradeHistory[addr] {
+		fills = append(fills, &Fills{
+			Time:   t.Time.Format(timeFormat),
+			Type:   "market",
+			IsBuy:  t.P1OrdersOrder.Flags[31] == 1,
+			Amount: t.Amount.Int64(),
+			Filled: t.Filled.Int64(),
+			Price:  t.LimitPrice.String(),
 		})
 	}
-	data, err := json.Marshal(trades)
+	data, err := json.Marshal(fills)
 	if err != nil {
 		fmt.Fprintf(w, err.Error())
 		return

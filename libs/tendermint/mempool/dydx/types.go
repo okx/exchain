@@ -45,9 +45,7 @@ const (
 	PREPEND_HEX                    = "\x19Ethereum Signed Message:\n\x20"
 	NUM_SIGNATURE_BYTES            = 66
 
-	//TODO, mock addr
-	contractAddress = "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619"
-	KeySize         = sha256.Size
+	KeySize = sha256.Size
 )
 
 var (
@@ -55,21 +53,22 @@ var (
 	callTypeABI   = abi.MustNewType("int32")
 	orderTuple    = abi.MustNewType("tuple(bytes32 flags, uint256 amount, uint256 limitprice, uint256 triggerprice, uint256 limitfee, address maker, address taker, uint256 expiration)")
 
-	chainID = big.NewInt(65)
+	chainID         = big.NewInt(65)
+	ContractAddress = Config.P1OrdersContractAddress
 
 	EIP191_HEADER                       = []byte{0x19, 0x01}
 	EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH = crypto.Keccak256Hash([]byte(EIP712_DOMAIN_SEPARATOR_SCHEMA))
 	EIP712_DOMAIN_NAME_HASH             = crypto.Keccak256Hash([]byte(EIP712_DOMAIN_NAME))
 	EIP712_DOMAIN_VERSION_HASH          = crypto.Keccak256Hash([]byte(EIP712_DOMAIN_VERSION))
 	EIP712_ORDER_STRUCT_SCHEMA_HASH     = crypto.Keccak256Hash([]byte(EIP712_ORDER_STRUCT_SCHEMA))
-	_EIP712_DOMAIN_HASH_                = crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], common.LeftPadBytes(chainID.Bytes(), 32), common.LeftPadBytes(common.FromHex(contractAddress), 32))
+	_EIP712_DOMAIN_HASH_                = crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], common.LeftPadBytes(chainID.Bytes(), 32), common.LeftPadBytes(common.FromHex(ContractAddress), 32))
 )
 
 // InitWithChainID uses the chain-id of the node.
 func InitWithChainID(id *big.Int) {
 	//return
 	chainID = id
-	_EIP712_DOMAIN_HASH_ = crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], common.LeftPadBytes(chainID.Bytes(), 32), common.LeftPadBytes(common.FromHex(contractAddress), 32))
+	_EIP712_DOMAIN_HASH_ = crypto.Keccak256Hash(EIP712_DOMAIN_SEPARATOR_SCHEMA_HASH[:], EIP712_DOMAIN_NAME_HASH[:], EIP712_DOMAIN_VERSION_HASH[:], common.LeftPadBytes(chainID.Bytes(), 32), common.LeftPadBytes(common.FromHex(ContractAddress), 32))
 }
 
 var (
@@ -273,6 +272,12 @@ func (w *WrapOrder) GetLeftAmount() *big.Int {
 	return w.LeftAmount
 }
 
+func (w *WrapOrder) LeftAndFrozen() *big.Int {
+	w.RLock()
+	defer w.RUnlock()
+	return new(big.Int).Add(w.LeftAmount, w.FrozenAmount)
+}
+
 func (w *WrapOrder) Frozen(amount *big.Int) {
 	w.Lock()
 	defer w.Unlock()
@@ -359,7 +364,7 @@ func ExtractOrder(tx types.Tx) []byte {
 	if err := rlp.DecodeBytes(tx, &evmTx); err != nil {
 		return nil
 	}
-	if evmTx.Recipient != nil && evmTx.Recipient.Hex() == contractAddress {
+	if evmTx.Recipient != nil && evmTx.Recipient.Hex() == ContractAddress {
 		return evmTx.Payload
 	}
 	return nil

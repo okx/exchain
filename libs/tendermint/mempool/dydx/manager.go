@@ -27,32 +27,8 @@ type AccountRetriever interface {
 	GetAccountNonce(address string) uint64
 }
 
-type OrderManager struct {
-	orders    *clist.CList
-	ordersMap sync.Map // orderKey => *clist.CElement
-
-	historyMtx       sync.RWMutex
-	addrTradeHistory map[common.Address][]*FilledP1Order
-	tradeHistory     []*FilledP1Order
-	book             *DepthBook
-	engine           *MatchEngine
-	gServer          *OrderBookServer
-
-	TradeTxs    *list.List
-	tradeTxsMap map[ethcmm.Hash]*list.Element
-	tradeTxsMtx sync.Mutex
-}
-
-func NewOrderManager(api PubSub, accRetriever AccountRetriever, doMatch bool) *OrderManager {
-	manager := &OrderManager{
-		addrTradeHistory: make(map[common.Address][]*FilledP1Order),
-		orders:           clist.New(),
-		book:             NewDepthBook(),
-		TradeTxs:         list.New(),
-		tradeTxsMap:      make(map[ethcmm.Hash]*list.Element),
-	}
-
-	//config := DydxConfig{
+var (
+	//Config = DydxConfig{
 	//	PrivKeyHex:                 "89c81c304704e9890025a5a91898802294658d6e4034a11c6116f4b129ea12d3",
 	//	ChainID:                    "65",
 	//	EthWsRpcUrl:                "wss://exchaintestws.okex.org:8443",
@@ -64,7 +40,7 @@ func NewOrderManager(api PubSub, accRetriever AccountRetriever, doMatch bool) *O
 	//	VMode:                      false,
 	//}
 
-	config := DydxConfig{
+	Config = DydxConfig{
 		PrivKeyHex:                 "2438019d3fccd8ffdff4d526c0f7fae4136866130affb3aa375d95835fa8f60f",
 		ChainID:                    "64",
 		EthWsRpcUrl:                "wss://exchaintestws.okex.org:8443",
@@ -76,7 +52,7 @@ func NewOrderManager(api PubSub, accRetriever AccountRetriever, doMatch bool) *O
 		VMode:                      true,
 	}
 
-	//config := DydxConfig{
+	//Config = DydxConfig{
 	//	PrivKeyHex:                 "89c81c304704e9890025a5a91898802294658d6e4034a11c6116f4b129ea12d3",
 	//	ChainID:                    "8",
 	//	EthWsRpcUrl:                "ws://localhost:8546",
@@ -87,26 +63,52 @@ func NewOrderManager(api PubSub, accRetriever AccountRetriever, doMatch bool) *O
 	//	P1MarginAddress:            "0xC87EF36830A0D94E42bB2D82a0b2bB939368b10B",
 	//	VMode:                      true,
 	//}
+)
 
-	if doMatch {
-		me, err := NewMatchEngine(api, manager.book, config, manager, log.NewTMLogger(os.Stdout))
-		if err != nil {
-			panic(err)
-		}
-		if accRetriever != nil {
-			me.nonce = accRetriever.GetAccountNonce(me.from.String())
-		} else {
-			me.nonce, _ = me.httpCli.NonceAt(context.Background(), me.from, nil)
-		}
-		manager.engine = me
+type OrderManager struct {
+	orders    *clist.CList
+	ordersMap sync.Map // orderKey => *clist.CElement
+
+	historyMtx       sync.RWMutex
+	addrTradeHistory map[common.Address][]*FilledP1Order
+	tradeHistory     []*FilledP1Order
+	trades           map[[32]byte]*FilledP1Order
+	book             *DepthBook
+	engine           *MatchEngine
+	gServer          *OrderBookServer
+
+	TradeTxs    *list.List
+	tradeTxsMap map[ethcmm.Hash]*list.Element
+	tradeTxsMtx sync.Mutex
+}
+
+func NewOrderManager(api PubSub, accRetriever AccountRetriever, doMatch bool) *OrderManager {
+	manager := &OrderManager{
+		trades:           make(map[[32]byte]*FilledP1Order),
+		addrTradeHistory: make(map[common.Address][]*FilledP1Order),
+		orders:           clist.New(),
+		book:             NewDepthBook(),
+		TradeTxs:         list.New(),
+		tradeTxsMap:      make(map[ethcmm.Hash]*list.Element),
 	}
 
-	manager.gServer = NewOrderBookServer(manager.book, log.NewTMLogger(os.Stdout))
-	err := manager.gServer.Start("7070")
+	me, err := NewMatchEngine(api, manager.book, Config, manager, log.NewTMLogger(os.Stdout))
 	if err != nil {
 		panic(err)
 	}
-	go manager.Serve()
+	if accRetriever != nil {
+		me.nonce = accRetriever.GetAccountNonce(me.from.String())
+	} else {
+		me.nonce, _ = me.httpCli.NonceAt(context.Background(), me.from, nil)
+	}
+	me.nonce--
+	manager.engine = me
+
+	manager.gServer = NewOrderBookServer(manager.book, log.NewTMLogger(os.Stdout))
+	err = manager.gServer.Start("7070")
+	if err != nil {
+		panic(err)
+	}
 	go manager.ServeWeb()
 	return manager
 }
@@ -184,24 +186,46 @@ func (d *OrderManager) HandleOrderFilled(filled *contracts.P1OrdersLogOrderFille
 	}
 	wodr := ele.Value.(*WrapOrder)
 	wodr.Done(filled.Fill.Amount)
-	if wodr.LeftAmount.Sign() == 0 && wodr.FrozenAmount.Sign() == 0 {
-		orderList.Remove(ele)
+	d.historyMtx.Lock()
+	defer d.historyMtx.Unlock()
+	d.tradeHistory = append(d.tradeHistory, &FilledP1Order{
+		Filled:        new(big.Int).Set(filled.Fill.Amount),
+		Time:          time.Now(),
+		P1OrdersOrder: wodr.P1OrdersOrder,
+	})
+	if filledOrder, ok := d.trades[filled.OrderHash]; ok {
+		filledOrder.Filled.Add(filledOrder.Filled, filled.Fill.Amount)
+		filledOrder.Time = time.Now()
+	} else {
 		filledOrder := &FilledP1Order{
-			Filled:        new(big.Int).Set(wodr.Amount),
+			Filled:        new(big.Int).Set(filled.Fill.Amount),
 			Time:          time.Now(),
 			P1OrdersOrder: wodr.P1OrdersOrder,
 		}
-		d.historyMtx.Lock()
-		d.tradeHistory = append(d.tradeHistory, filledOrder)
 		d.addrTradeHistory[wodr.Maker] = append(d.addrTradeHistory[wodr.Maker], filledOrder)
-		d.historyMtx.Unlock()
+		d.trades[filled.OrderHash] = filledOrder
+	}
+
+	if wodr.LeftAmount.Sign() == 0 && wodr.FrozenAmount.Sign() == 0 {
+		orderList.Remove(ele)
+		d.book.addrMtx.Lock()
+		addrOrders := d.book.addrOrders[wodr.Maker]
+		for i, order := range addrOrders {
+			if order.Hash() == wodr.Hash() {
+				addrOrders = append(addrOrders[:i], addrOrders[i+1:]...)
+				break
+			}
+		}
+		d.book.addrOrders[wodr.Maker] = addrOrders
+		d.book.addrMtx.Unlock()
+		//TODO delete broadcast queue
 	}
 	fmt.Println("debug filled", hex.EncodeToString(filled.OrderHash[:]), filled.TriggerPrice.String(), filled.Fill.Price.String(), filled.Fill.Amount.String())
 }
 
 func (d *OrderManager) SubErr(err error) {
 	//TODO
-	panic(err)
+	fmt.Println("OrderManager SubErr:", err)
 }
 
 func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) (tradeTxs []types.Tx, totalBytes, totalGas int64) {
@@ -222,8 +246,8 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 	for ele := d.TradeTxs.Front(); ele != nil; ele = ele.Next() {
 		mre := ele.Value.(*MatchResult)
 		if mre.Tx == nil {
-			nonce := d.engine.nonce
 			d.engine.nonce++
+			nonce := d.engine.nonce
 			mre.Tx, _ = mre.tradeOps.Commit(&bind.TransactOpts{NoSend: true, Nonce: new(big.Int).SetUint64(nonce)})
 			if mre.Tx == nil {
 				continue

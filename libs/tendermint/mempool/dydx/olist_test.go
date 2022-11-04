@@ -62,7 +62,7 @@ func TestOrderManager(t *testing.T) {
 }
 
 func newRawSignedOrder(odr P1Order, hexPriv string) ([]byte, error) {
-	sig, err := signOrder(odr, hexPriv, 65, contractAddress)
+	sig, err := signOrder(odr, hexPriv, 65, ContractAddress)
 	if err != nil {
 		return nil, err
 	}
