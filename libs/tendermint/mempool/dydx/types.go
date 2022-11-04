@@ -284,7 +284,7 @@ func (w *WrapOrder) Frozen(amount *big.Int) {
 	w.LeftAmount.Sub(w.LeftAmount, amount)
 	w.FrozenAmount.Add(w.FrozenAmount, amount)
 	if w.LeftAmount.Sign() < 0 {
-		fmt.Println("WrapOrder Frozen error", w.LeftAmount, amount)
+		fmt.Println("WrapOrder Frozen error", w.orderHash, w.Amount, w.LeftAmount, w.FrozenAmount, amount)
 	}
 }
 
@@ -294,7 +294,7 @@ func (w *WrapOrder) Unfrozen(amount *big.Int) {
 	w.LeftAmount.Add(w.LeftAmount, amount)
 	w.FrozenAmount.Sub(w.FrozenAmount, amount)
 	if w.FrozenAmount.Sign() < 0 {
-		fmt.Println("WrapOrder Unfrozen error", w.FrozenAmount, amount)
+		fmt.Println("WrapOrder Unfrozen error", w.orderHash, w.Amount, w.LeftAmount, w.FrozenAmount, amount)
 	}
 }
 
@@ -303,7 +303,7 @@ func (w *WrapOrder) Done(amount *big.Int) {
 	defer w.Unlock()
 	w.FrozenAmount.Sub(w.FrozenAmount, amount)
 	if w.FrozenAmount.Sign() < 0 {
-		fmt.Println("WrapOrder Done error", w.FrozenAmount, amount)
+		fmt.Println("WrapOrder Done error", w.orderHash, w.Amount, w.LeftAmount, w.FrozenAmount, amount)
 	}
 }
 
