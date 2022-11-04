@@ -34,6 +34,7 @@ type MatchEngine struct {
 	contracts *dydxlib.Contracts
 	privKey   *ecdsa.PrivateKey
 	from      common.Address
+	nonce     uint64
 	chainID   *big.Int
 	ethCli    *ethclient.Client
 	httpCli   *ethclient.Client
@@ -173,6 +174,8 @@ type MatchResult struct {
 	OnChain chan bool
 	Tx      *ethtypes.Transaction
 	NoSend  bool
+
+	tradeOps *dydxlib.TradeOperation
 }
 
 func (r *MatchResult) AddMatchedRecord(fill *contracts.P1OrdersFill, makerOrder *WrapOrder) {
@@ -268,12 +271,16 @@ func (m *MatchEngine) matchAndTrade(order *WrapOrder, noSend bool) (*MatchResult
 			return matched, fmt.Errorf("failed to fill order, err: %w", err)
 		}
 	}
-	matched.Tx, err = op.Commit(&bind.TransactOpts{NoSend: noSend})
-	if err != nil {
-		needRollback = true
-		return matched, fmt.Errorf("failed to commit, err: %w", err)
+	if !noSend {
+		matched.Tx, err = op.Commit(&bind.TransactOpts{NoSend: noSend})
+		if err != nil {
+			needRollback = true
+			return matched, fmt.Errorf("failed to commit, err: %w", err)
+		}
+		m.logger.Debug("commit tx", "tx", matched.Tx.Hash().Hex())
+	} else {
+		matched.tradeOps = op
 	}
-	m.logger.Debug("commit tx", "tx", matched.Tx.Hash().Hex())
 
 	matched.OnChain = make(chan bool, 1)
 	if noSend {

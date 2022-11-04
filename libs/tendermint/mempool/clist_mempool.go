@@ -154,7 +154,10 @@ func (mem *CListMempool) SetEventBus(eventBus types.TxEventPublisher) {
 }
 
 func (mem *CListMempool) SetLocalPubSub(api PubSub) {
-	mem.orderManager = dydx.NewOrderManager(api, true)
+	mem.updateMtx.Lock()
+	defer mem.updateMtx.Unlock()
+
+	mem.orderManager = dydx.NewOrderManager(api, mem.accountRetriever, true)
 }
 
 // SetLogger sets the Logger.
@@ -930,6 +933,8 @@ func (mem *CListMempool) Update(
 				txInfo := mem.txInfoparser.GetRawTxInfo(tx)
 				addr = txInfo.Sender
 				nonce = txInfo.Nonce
+
+				mem.orderManager.UpdateAddress(addr, nonce, txCode)
 			}
 
 			// remove tx signature cache
