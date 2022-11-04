@@ -134,6 +134,7 @@ type feeSplitInfo struct {
 func updateFeeSplitHandler(txFeesplit *sync.Map) sdk.UpdateFeeSplitHandler {
 	return func(txHash common.Hash, withdrawer sdk.AccAddress, fee sdk.Coins, isDelete bool) {
 		if isDelete {
+			// For rerun tx of parallel, feeSplitInfo is deleted when EnableFeeSplit is false
 			txFeesplit.Delete(txHash.String())
 		} else {
 			// For rerun tx of parallel, feeSplitInfo is rewritten
