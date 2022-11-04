@@ -301,7 +301,14 @@ func (w *WrapOrder) Unfrozen(amount *big.Int) {
 func (w *WrapOrder) Done(amount *big.Int) {
 	w.Lock()
 	defer w.Unlock()
-	w.FrozenAmount.Sub(w.FrozenAmount, amount)
+	if w.FrozenAmount.Cmp(amount) >= 0 {
+		w.FrozenAmount.Sub(w.FrozenAmount, amount)
+	} else {
+		diff := new(big.Int).Sub(amount, w.FrozenAmount)
+		w.FrozenAmount = big.NewInt(0)
+		w.LeftAmount.Sub(w.LeftAmount, diff)
+	}
+
 	if w.FrozenAmount.Sign() < 0 {
 		fmt.Println("WrapOrder Done error", w.orderHash, w.Amount, w.LeftAmount, w.FrozenAmount, amount)
 	}
