@@ -6,7 +6,9 @@ import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/x/common/monitor"
 	"github.com/okex/exchain/x/params"
+	"github.com/spf13/viper"
 
 	"github.com/okex/exchain/x/distribution/types"
 )
@@ -23,13 +25,24 @@ type Keeper struct {
 	blacklistedAddrs map[string]bool
 
 	feeCollectorName string // name of the FeeCollector ModuleAccount
+
+	feeInfo             *FeeInfo
+	metric              *monitor.DistrMetric
+	monitoredValidators []string
+}
+
+type FeeInfo struct {
+	TotalFee            float64
+	FeeToControlledVals float64
+	FeeToOtherVals      float64
+	FeeToCommunityPool  float64
 }
 
 // NewKeeper creates a new distribution Keeper instance
 func NewKeeper(
 	cdc *codec.Codec, key sdk.StoreKey, paramSpace params.Subspace,
 	sk types.StakingKeeper, supplyKeeper types.SupplyKeeper, feeCollectorName string,
-	blacklistedAddrs map[string]bool,
+	blacklistedAddrs map[string]bool, metrics *monitor.DistrMetric,
 ) Keeper {
 
 	// ensure distribution module account is set
@@ -42,6 +55,17 @@ func NewKeeper(
 		paramSpace = paramSpace.WithKeyTable(types.ParamKeyTable())
 	}
 
+	feeInfo := FeeInfo{
+		viper.GetFloat64("test.init_totoal_fee"),
+		viper.GetFloat64("test.init_control_fee"),
+		viper.GetFloat64("test.init_other_fee"),
+		viper.GetFloat64("test.init_community_fee"),
+	}
+	metrics.TotalFee.Set(feeInfo.TotalFee)
+	metrics.FeeToControlledVals.Set(feeInfo.FeeToControlledVals)
+	metrics.FeeToOtherVals.Set(feeInfo.FeeToOtherVals)
+	metrics.FeeToCommunityPool.Set(feeInfo.FeeToCommunityPool)
+
 	return Keeper{
 		storeKey:         key,
 		cdc:              cdc,
@@ -50,6 +74,10 @@ func NewKeeper(
 		supplyKeeper:     supplyKeeper,
 		feeCollectorName: feeCollectorName,
 		blacklistedAddrs: blacklistedAddrs,
+
+		feeInfo:             &feeInfo,
+		metric:              metrics,
+		monitoredValidators: viper.GetStringSlice("test.monitored_validators"),
 	}
 }
 
