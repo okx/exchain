@@ -922,6 +922,9 @@ func (mem *CListMempool) Update(
 	}
 	for i, tx := range txs {
 		txCode := deliverTxResponses[i].Code
+		if txCode != 0 {
+			fmt.Println("debug txCode:", txCode, deliverTxResponses[i].Log, deliverTxResponses[i].Info)
+		}
 		addr := ""
 		nonce := uint64(0)
 		if ele := mem.cleanTx(height, tx, txCode); ele != nil {
