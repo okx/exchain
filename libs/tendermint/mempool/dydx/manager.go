@@ -243,15 +243,18 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 	}
 	tradeTxs = make([]types.Tx, 0, maxNum)
 
+	var elementsToClean []*list.Element
 	for ele := d.TradeTxs.Front(); ele != nil; ele = ele.Next() {
 		mre := ele.Value.(*MatchResult)
 		if mre.Tx == nil {
-			d.engine.nonce++
-			nonce := d.engine.nonce
-			mre.Tx, _ = mre.tradeOps.Commit(&bind.TransactOpts{NoSend: true, Nonce: new(big.Int).SetUint64(nonce)})
-			if mre.Tx == nil {
+			nonce := d.engine.nonce + 1
+			var err error
+			mre.Tx, err = mre.tradeOps.Commit(&bind.TransactOpts{NoSend: true, Nonce: new(big.Int).SetUint64(nonce)})
+			if err != nil {
+				elementsToClean = append(elementsToClean, ele)
 				continue
 			}
+			d.engine.nonce++
 			d.tradeTxsMap[mre.Tx.Hash()] = ele
 			d.engine.logger.Debug("reap tx", "tx", mre.Tx.Hash().String())
 		}
@@ -272,6 +275,9 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 		}
 		totalGas = newTotalGas
 		tradeTxs = append(tradeTxs, txBz)
+	}
+	for _, ele := range elementsToClean {
+		d.TradeTxs.Remove(ele)
 	}
 	return
 }
