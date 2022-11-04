@@ -53,6 +53,7 @@ func (c *Cache) GetParams() types.Params {
 		CodeUploadAccess:             c.paramsCache.CodeUploadAccess,
 		InstantiateDefaultPermission: c.paramsCache.InstantiateDefaultPermission,
 		UseContractBlockedList:       c.paramsCache.UseContractBlockedList,
+		VmbridgeEnable:               c.paramsCache.VmbridgeEnable,
 	}
 }
 
@@ -87,4 +88,8 @@ func (c *Cache) UpdateBlockedContractMethod(cms []*types.ContractMethods) {
 
 func GetWasmParamsCache() *Cache {
 	return wasmParamsCache
+}
+
+func SetNeedParamsUpdate() {
+	GetWasmParamsCache().SetNeedParamsUpdate()
 }

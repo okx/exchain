@@ -114,6 +114,7 @@ func (evR *Reactor) SetEventBus(b *types.EventBus) {
 // start iterating from the beginning again.
 func (evR *Reactor) broadcastEvidenceRoutine(peer p2p.Peer) {
 	var next *clist.CElement
+	var retryByte []byte
 	for {
 		// This happens because the CElement we were looking at got garbage
 		// collected (removed). That is, .NextWait() returned nil. Go ahead and
@@ -131,10 +132,22 @@ func (evR *Reactor) broadcastEvidenceRoutine(peer p2p.Peer) {
 			}
 		}
 
-		ev := next.Value.(types.Evidence)
-		msg, retry := evR.checkSendEvidenceMessage(peer, ev)
-		if msg != nil {
-			success := peer.Send(EvidenceChannel, cdc.MustMarshalBinaryBare(msg))
+		var retry bool
+		var msg Message
+
+		//try to get msg from evidence
+		if retryByte == nil {
+			ev := next.Value.(types.Evidence)
+			msg, retry = evR.checkSendEvidenceMessage(peer, ev)
+			if msg != nil {
+				//cache retry byte
+				retryByte = cdc.MustMarshalBinaryBare(msg)
+			}
+		}
+
+		// send out evidence
+		if !retry && retryByte != nil {
+			success := peer.Send(EvidenceChannel, retryByte)
 			retry = !success
 		}
 
@@ -142,6 +155,9 @@ func (evR *Reactor) broadcastEvidenceRoutine(peer p2p.Peer) {
 			time.Sleep(peerCatchupSleepIntervalMS * time.Millisecond)
 			continue
 		}
+
+		//clean retry byte
+		retryByte = nil
 
 		afterCh := time.After(time.Second * broadcastEvidenceIntervalS)
 		select {
