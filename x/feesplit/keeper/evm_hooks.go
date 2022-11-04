@@ -57,10 +57,14 @@ func (k Keeper) PostTxProcessing(
 
 	// check if the fees are globally enabled
 	params := k.GetParamsWithCache(ctx)
+	if ctx.BlockHeight() == 15968979 {
+		params.EnableFeeSplit = false
+	}
 	if !params.EnableFeeSplit {
-		k.updateFeeSplitHandler(receipt.TxHash, nil, nil, true)
+		//k.updateFeeSplitHandler(receipt.TxHash, nil, nil, true)
 		return nil
 	} else {
+
 		// delete
 	}
 
