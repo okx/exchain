@@ -61,11 +61,9 @@ func (k Keeper) PostTxProcessing(
 		params.EnableFeeSplit = false
 	}
 	if !params.EnableFeeSplit {
-		//k.updateFeeSplitHandler(receipt.TxHash, nil, nil, true)
+		// delete feesplit info
+		k.updateFeeSplitHandler(receipt.TxHash, nil, nil, true)
 		return nil
-	} else {
-
-		// delete
 	}
 
 	contract := st.Recipient
