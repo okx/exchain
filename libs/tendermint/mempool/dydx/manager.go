@@ -28,6 +28,7 @@ type AccountRetriever interface {
 }
 
 var (
+	AddressForOrder = "0xf1730217Bd65f86D2F0000000000000000000000"
 	//Config = DydxConfig{
 	//	PrivKeyHex:                 "89c81c304704e9890025a5a91898802294658d6e4034a11c6116f4b129ea12d3",
 	//	ChainID:                    "65",
