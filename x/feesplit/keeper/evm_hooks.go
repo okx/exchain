@@ -58,10 +58,10 @@ func (k Keeper) PostTxProcessing(
 	// check if the fees are globally enabled
 	params := k.GetParamsWithCache(ctx)
 	if !params.EnableFeeSplit {
+		k.updateFeeSplitHandler(receipt.TxHash, nil, nil, true)
 		return nil
 	} else {
 		// delete
-		k.updateFeeSplitHandler(receipt.TxHash, nil, nil, true)
 	}
 
 	contract := st.Recipient
