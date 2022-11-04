@@ -19,9 +19,8 @@ import (
 	"github.com/okex/exchain/x/erc20/keeper"
 )
 
-const CorrectIbcDenom = "ibc/3EF3B49764DB0E2284467F8BF7A08C18EACACB30E1AD7ABA8E892F1F679443F9"
-
-//const CorrectIbcDenom = "ibc/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+const CorrectIbcDenom2 = "ibc/3EF3B49764DB0E2284467F8BF7A08C18EACACB30E1AD7ABA8E892F1F679443F9"
+const CorrectIbcDenom = "ibc/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
 func (suite *KeeperTestSuite) TestSendToIbcHandler() {
 	contract := common.BigToAddress(big.NewInt(1))
@@ -51,6 +50,7 @@ func (suite *KeeperTestSuite) TestSendToIbcHandler() {
 					"recipient",
 					coin.Amount.BigInt(),
 				)
+				suite.Require().NoError(err)
 				data = input
 			},
 			func() {},
@@ -72,6 +72,7 @@ func (suite *KeeperTestSuite) TestSendToIbcHandler() {
 					"recipient",
 					coin.Amount.BigInt(),
 				)
+				suite.Require().NoError(err)
 				data = input
 			},
 			func() {},
@@ -90,8 +91,8 @@ func (suite *KeeperTestSuite) TestSendToIbcHandler() {
 				})
 				suite.app.TransferKeeper.BindPort(suite.ctx, "transfer")
 				cap, _ := suite.app.ScopedTransferKeeper.NewCapability(suite.ctx, host.ChannelCapabilityPath("transfer", channelA))
-				suite.app.ScopedIBCKeeper.ClaimCapability(suite.ctx, cap, host.ChannelCapabilityPath("transfer", channelA)) //NewCapability(suite.ctx, host.ChannelCapabilityPath("transfer", "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"))
-				suite.app.Erc20Keeper.SetContractForDenom(suite.ctx, validDenom, contract)
+				suite.app.ScopedIBCKeeper.ClaimCapability(suite.ctx, cap, host.ChannelCapabilityPath("transfer", channelA))
+				suite.app.Erc20Keeper.SetContractForDenom(suite.ctx, CorrectIbcDenom2, contract)
 				c := channeltypes.Channel{
 					State:    channeltypes.OPEN,
 					Ordering: channeltypes.UNORDERED,
@@ -113,11 +114,11 @@ func (suite *KeeperTestSuite) TestSendToIbcHandler() {
 				consensusState := ibctmtypes.NewConsensusState(time.Now(), commitmenttypes.NewMerkleRoot([]byte("root")), []byte("nextValsHash"))
 				suite.app.IBCKeeper.ClientKeeper.SetClientConsensusState(suite.ctx, "client-1", types.NewHeight(0, 5), consensusState)
 				suite.app.IBCKeeper.ConnectionKeeper.SetConnection(suite.ctx, "one", conn1)
-				coin := sdk.NewCoin(validDenom, amount)
+				coin := sdk.NewCoin(CorrectIbcDenom2, amount)
 				err := suite.MintCoins(sdk.AccAddress(contract.Bytes()), sdk.NewCoins(coin))
 				suite.Require().NoError(err)
 
-				balance := suite.GetBalance(sdk.AccAddress(contract.Bytes()), validDenom)
+				balance := suite.GetBalance(sdk.AccAddress(contract.Bytes()), CorrectIbcDenom2)
 				suite.Require().Equal(coin, balance)
 
 				input, err := keeper.SendToIbcEvent.Inputs.Pack(
@@ -139,8 +140,6 @@ func (suite *KeeperTestSuite) TestSendToIbcHandler() {
 				coin := sdk.NewCoin(validDenom, amount)
 				err := suite.MintCoins(sdk.AccAddress(contract.Bytes()), sdk.NewCoins(coin))
 				suite.Require().NoError(err)
-				suite.ctx.SetIsCheckTx(false)
-				suite.ctx.SetIsTraceTx(false)
 
 				balance := suite.GetBalance(sdk.AccAddress(contract.Bytes()), validDenom)
 				suite.Require().Equal(coin, balance)
@@ -150,6 +149,7 @@ func (suite *KeeperTestSuite) TestSendToIbcHandler() {
 					"recipient",
 					coin.Amount.BigInt(),
 				)
+				suite.Require().NoError(err)
 				data = input
 			},
 			func() {},
@@ -202,6 +202,7 @@ func (suite *KeeperTestSuite) TestSendNative20ToIbcHandler() {
 					"recipient",
 					coin.Amount.BigInt(),
 				)
+				suite.Require().NoError(err)
 				data = input
 			},
 			func() {},
@@ -251,6 +252,7 @@ func (suite *KeeperTestSuite) TestSendNative20ToIbcHandler() {
 					"transfer",
 					"channel-0",
 				)
+				suite.Require().NoError(err)
 				data = input
 			},
 			func() {},

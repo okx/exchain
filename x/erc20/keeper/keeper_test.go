@@ -159,7 +159,7 @@ func (suite *KeeperTestSuite) TestDenomContractMap() {
 			},
 		},
 		{
-			"success, get contracts",
+			"success, multiple denoms map to different contracts",
 			func() {
 				keeper := suite.app.Erc20Keeper
 				err := keeper.SetContractForDenom(suite.ctx, denom1, autoContract)
