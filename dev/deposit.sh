@@ -1,0 +1,4 @@
+exchaincli tx send ex1h0j8x0v9hs4eq6ppgamemfyu4vuvp2sl0q9p3v 67f5b0C1BcDCfc49A724C027cf3605a829DA2E94 1000000okt --from ex1h0j8x0v9hs4eq6ppgamemfyu4vuvp2sl0q9p3v --gas auto --gas-prices 0.0000000001okt --gas-adjustment 1.3 -y -b block | jq
+exchaincli tx send ex1h0j8x0v9hs4eq6ppgamemfyu4vuvp2sl0q9p3v 0x0073F2E28ef8F117e53d858094086Defaf1837D5 1000000okt --from ex1h0j8x0v9hs4eq6ppgamemfyu4vuvp2sl0q9p3v --gas auto --gas-prices 0.0000000001okt --gas-adjustment 1.3 -y -b block | jq
+exchaincli tx send ex1h0j8x0v9hs4eq6ppgamemfyu4vuvp2sl0q9p3v 0x04A987fa1Bd4b2B908e9A3Ca058cc8BD43035991 1000000okt --from ex1h0j8x0v9hs4eq6ppgamemfyu4vuvp2sl0q9p3v --gas auto --gas-prices 0.0000000001okt --gas-adjustment 1.3 -y -b block | jq
+exchaincli tx send ex1h0j8x0v9hs4eq6ppgamemfyu4vuvp2sl0q9p3v 0x2CF4ea7dF75b513509d95946B43062E26bD88035 1000000okt --from ex1h0j8x0v9hs4eq6ppgamemfyu4vuvp2sl0q9p3v --gas auto --gas-prices 0.0000000001okt --gas-adjustment 1.3 -y -b block | jq
