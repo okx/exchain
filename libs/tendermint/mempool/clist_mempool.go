@@ -920,6 +920,9 @@ func (mem *CListMempool) Update(
 	if mem.pendingPool != nil {
 		addressNonce = make(map[string]uint64)
 	}
+
+	mem.orderManager.UpdateState(deliverTxResponses)
+
 	for i, tx := range txs {
 		txCode := deliverTxResponses[i].Code
 		addr := ""

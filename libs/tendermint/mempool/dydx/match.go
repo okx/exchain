@@ -50,6 +50,9 @@ type MatchEngine struct {
 	pubsubID string
 
 	logger log.Logger
+
+	logOrderFilledFilter ethereum.FilterQuery
+	logHandler           LogHandler
 }
 
 type DydxConfig struct {
@@ -129,6 +132,9 @@ func NewMatchEngine(api PubSub, depthBook *DepthBook, config DydxConfig, handler
 			},
 		}
 
+		engine.logOrderFilledFilter = query
+		engine.logHandler = handler
+
 		if config.VMode && api != nil {
 			ch := make(chan *ethtypes.Log, 32)
 			id, err := api.SubscribeLogs(ch, query)
@@ -201,6 +207,18 @@ func (m *MatchEngine) Stop() {
 	}
 	if m.pubsubID != "" {
 		m.pubsub.Unsubscribe(rpc.ID(m.pubsubID))
+	}
+}
+
+func (m *MatchEngine) UpdateState(txsResps []*abci.ResponseDeliverTx) {
+	logsSlice := m.pubsub.ParseLogsFromTxs(txsResps, m.logOrderFilledFilter)
+	for _, logs := range logsSlice {
+		for _, evmLog := range logs {
+			filledLog, err := m.contracts.P1Orders.ParseLogOrderFilled(*evmLog)
+			if err == nil {
+				m.logHandler.HandleOrderFilled(filledLog)
+			}
+		}
 	}
 }
 

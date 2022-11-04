@@ -311,3 +311,10 @@ func (d *OrderManager) UpdateAddress(sender string, nonce uint64, code uint32) {
 		d.engine.nonce = nonce
 	}
 }
+
+func (d *OrderManager) UpdateState(txsResps []*abci.ResponseDeliverTx) {
+	if d == nil {
+		return
+	}
+	d.engine.UpdateState(txsResps)
+}
