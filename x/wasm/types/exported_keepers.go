@@ -21,6 +21,7 @@ type ViewKeeper interface {
 	IterateCodeInfos(ctx sdk.Context, cb func(uint64, CodeInfo) bool)
 	GetByteCode(ctx sdk.Context, codeID uint64) ([]byte, error)
 	IsPinnedCode(ctx sdk.Context, codeID uint64) bool
+	GetContractMethodBlockedList(ctx sdk.Context, contractAddr string) *ContractMethods
 	GetParams(ctx sdk.Context) Params
 }
 
@@ -64,6 +65,9 @@ type ContractOpsKeeper interface {
 
 	// UpdateContractMethodBlockedList updates the blacklist of contract methods.
 	UpdateContractMethodBlockedList(ctx sdk.Context, methods *ContractMethods, isDelete bool) error
+
+	// GetParams get params from paramsubspace.
+	GetParams(ctx sdk.Context) Params
 }
 
 // IBCContractKeeper IBC lifecycle event handler
