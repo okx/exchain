@@ -232,7 +232,7 @@ func (o *OrderManager) OrdersHandler(w http.ResponseWriter, r *http.Request) {
 	o.book.addrMtx.RLock()
 	for _, order := range o.book.addrOrders[addr] {
 		orders = append(orders, &WebOrder{
-			Order:        hex.EncodeToString(order.Raw),
+			Order:        hex.EncodeToString(order.Raw[:len(order.Raw)-NUM_SIGNATURE_BYTES]),
 			Status:       "limit",
 			IsBuy:        order.Flags[31] == 1,
 			Amount:       order.Amount.Int64(),
