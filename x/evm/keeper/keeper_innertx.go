@@ -18,6 +18,9 @@ func (k *Keeper) UpdateInnerBlockData(...interface{}) {}
 // AddInnerTx add inner tx
 func (k *Keeper) AddInnerTx(...interface{}) {}
 
+// DeleteInnerTx delete inner tx
+func (k *Keeper) DeleteInnerTx(...interface{}) {}
+
 // AddContract add erc20 contract
 func (k *Keeper) AddContract(...interface{}) {}
 
