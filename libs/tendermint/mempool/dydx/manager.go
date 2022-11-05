@@ -2,12 +2,15 @@ package dydx
 
 import (
 	"container/list"
+	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
 	"os"
 	"sync"
 	"time"
+
+	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 
 	"github.com/ethereum/go-ethereum/common"
 	ethcmm "github.com/ethereum/go-ethereum/common"
@@ -20,7 +23,24 @@ import (
 	"github.com/okex/exchain/libs/tendermint/types"
 )
 
+type AccountRetriever interface {
+	GetAccountNonce(address string) uint64
+}
+
 var (
+	AddressForOrder = "0xf1730217Bd65f86D2F0000000000000000000000"
+	//Config = DydxConfig{
+	//	PrivKeyHex:                 "89c81c304704e9890025a5a91898802294658d6e4034a11c6116f4b129ea12d3",
+	//	ChainID:                    "65",
+	//	EthWsRpcUrl:                "wss://exchaintestws.okex.org:8443",
+	//	EthHttpRpcUrl:              "https://exchaintestrpc.okex.org",
+	//	PerpetualV1ContractAddress: "0xaC405bA85723d3E8d6D87B3B36Fd8D0D4e32D2c9",
+	//	P1OrdersContractAddress:    "0xf1730217Bd65f86D2F008f1821D8Ca9A26d64619",
+	//	P1MakerOracleAddress:       "0x4241DD684fbC5bCFCD2cA7B90b72885A79cf50B4",
+	//	P1MarginAddress:            "0xC87EF36830A0D94E42bB2D82a0b2bB939368b10B",
+	//	VMode:                      false,
+	//}
+
 	Config = DydxConfig{
 		PrivKeyHex:                 "89c81c304704e9890025a5a91898802294658d6e4034a11c6116f4b129ea12d3",
 		ChainID:                    "65",
@@ -75,7 +95,7 @@ type OrderManager struct {
 	tradeTxsMtx sync.Mutex
 }
 
-func NewOrderManager(api PubSub, doMatch bool) *OrderManager {
+func NewOrderManager(api PubSub, accRetriever AccountRetriever, doMatch bool) *OrderManager {
 	manager := &OrderManager{
 		trades:           make(map[[32]byte]*FilledP1Order),
 		addrTradeHistory: make(map[common.Address][]*FilledP1Order),
@@ -89,6 +109,12 @@ func NewOrderManager(api PubSub, doMatch bool) *OrderManager {
 	if err != nil {
 		panic(err)
 	}
+	if accRetriever != nil {
+		me.nonce = accRetriever.GetAccountNonce(me.from.String())
+	} else {
+		me.nonce, _ = me.httpCli.NonceAt(context.Background(), me.from, nil)
+	}
+	me.nonce--
 	manager.engine = me
 
 	manager.gServer = NewOrderBookServer(manager.book, log.NewTMLogger(os.Stdout))
@@ -125,7 +151,8 @@ func (d *OrderManager) Insert(memOrder *MempoolOrder) error {
 	if result != nil {
 		if result.NoSend {
 			d.tradeTxsMtx.Lock()
-			d.tradeTxsMap[result.Tx.Hash()] = d.TradeTxs.PushBack(result)
+			// d.tradeTxsMap[result.Tx.Hash()] = d.TradeTxs.PushBack(result)
+			d.TradeTxs.PushBack(result)
 			d.tradeTxsMtx.Unlock()
 		}
 		go d.book.Update(result)
@@ -229,8 +256,21 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 	}
 	tradeTxs = make([]types.Tx, 0, maxNum)
 
+	var elementsToClean []*list.Element
 	for ele := d.TradeTxs.Front(); ele != nil; ele = ele.Next() {
 		mre := ele.Value.(*MatchResult)
+		if mre.Tx == nil {
+			nonce := d.engine.nonce + 1
+			var err error
+			mre.Tx, err = mre.tradeOps.Commit(&bind.TransactOpts{NoSend: true, Nonce: new(big.Int).SetUint64(nonce)})
+			if err != nil {
+				elementsToClean = append(elementsToClean, ele)
+				continue
+			}
+			d.engine.nonce++
+			d.tradeTxsMap[mre.Tx.Hash()] = ele
+			d.engine.logger.Debug("reap tx", "tx", mre.Tx.Hash().String())
+		}
 		tx := mre.Tx
 		txBz, err := tx.MarshalBinary()
 		if err != nil {
@@ -248,6 +288,9 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 		}
 		totalGas = newTotalGas
 		tradeTxs = append(tradeTxs, txBz)
+	}
+	for _, ele := range elementsToClean {
+		d.TradeTxs.Remove(ele)
 	}
 	return
 }
@@ -280,4 +323,10 @@ func (d *OrderManager) RemoveTradeTx(txhash []byte, code uint32) *ethtypes.Trans
 	mr.OnChain <- code == abci.CodeTypeOK
 	delete(d.tradeTxsMap, evmHash)
 	return mr.Tx
+}
+
+func (d *OrderManager) UpdateAddress(sender string, nonce uint64, code uint32) {
+	if sender == d.engine.from.String() && code == abci.CodeTypeOK {
+		d.engine.nonce = nonce
+	}
 }

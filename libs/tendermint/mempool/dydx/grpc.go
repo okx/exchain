@@ -2,6 +2,7 @@ package dydx
 
 import (
 	"fmt"
+	"math/big"
 	"net"
 	"strconv"
 	"strings"
@@ -67,7 +68,7 @@ func bookToLevel(book *DepthBook) *OrderBookLevel {
 			buyLevels[len(buyLevels)-1].Amount += int64(order.LeftAndFrozen().Uint64())
 		} else {
 			buyLevels = append(buyLevels, &OrderLevel{
-				Price:  order.GetLimitPrice().String(),
+				Price:  new(big.Int).Div(order.GetLimitPrice(), exp18).String(),
 				Amount: int64(order.LeftAndFrozen().Uint64()),
 			})
 		}
@@ -80,7 +81,7 @@ func bookToLevel(book *DepthBook) *OrderBookLevel {
 			sellLevels[len(sellLevels)-1].Amount += int64(order.LeftAndFrozen().Uint64())
 		} else {
 			sellLevels = append(sellLevels, &OrderLevel{
-				Price:  order.GetLimitPrice().String(),
+				Price:  new(big.Int).Div(order.GetLimitPrice(), exp18).String(),
 				Amount: int64(order.LeftAndFrozen().Uint64()),
 			})
 		}
