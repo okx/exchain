@@ -2,6 +2,7 @@ package watcher
 
 import (
 	"fmt"
+	syslog "log"
 
 	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -106,6 +107,7 @@ func (w *Watcher) saveTx(tx WatchTx) {
 		w.batch = append(w.batch, txWatchMessage)
 	}
 	w.blockTxs = append(w.blockTxs, tx.GetTxHash())
+	syslog.Printf("lcm, append tx(%s) to block(%d)\n", tx.GetTxHash().Hex(), w.height)
 }
 
 func (w *Watcher) saveFailedReceipts(watchTx WatchTx, gasUsed uint64) {
