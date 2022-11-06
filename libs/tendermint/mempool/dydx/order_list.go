@@ -100,6 +100,20 @@ func (q *OrderQueue) Get(hash common.Hash) *WrapOrder {
 	return e.Value.(*WrapOrder)
 }
 
+func (q *OrderQueue) GetAllOrderHashes() [][32]byte {
+	q.mtx.RLock()
+	defer q.mtx.RUnlock()
+
+	var orderHashes [][32]byte
+	if len(q.m) > 0 {
+		orderHashes = make([][32]byte, 0, len(q.m))
+		for k := range q.m {
+			orderHashes = append(orderHashes, k)
+		}
+	}
+	return orderHashes
+}
+
 func (q *OrderQueue) Delete(hash common.Hash) *WrapOrder {
 	q.mtx.Lock()
 	defer q.mtx.Unlock()
