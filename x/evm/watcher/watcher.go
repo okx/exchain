@@ -3,6 +3,7 @@ package watcher
 import (
 	"encoding/hex"
 	"fmt"
+	syslog "log"
 	"math/big"
 	"sync"
 
@@ -130,6 +131,7 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
 	w.blockStdTxs = []common.Hash{}
+	syslog.Println("lcm, clear blockstx")
 }
 
 func (w *Watcher) SaveTransactionReceipt(status uint32, msg *evmtypes.MsgEthereumTx, txHash common.Hash, txIndex uint64, data *evmtypes.ResultData, gasUsed uint64) {
@@ -215,6 +217,7 @@ func (w *Watcher) SaveBlock(bloom ethtypes.Bloom) {
 	if !w.Enabled() {
 		return
 	}
+	syslog.Printf("lcm, save block(%d)\n", w.height)
 	block := newBlock(w.height, bloom, w.blockHash, w.header, uint64(0xffffffff), big.NewInt(int64(w.gasUsed)), w.blockTxs)
 	if w.InfuraKeeper != nil {
 		w.InfuraKeeper.OnSaveBlock(block)
