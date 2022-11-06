@@ -87,6 +87,11 @@ type P1Order struct {
 	contracts.P1OrdersOrder
 }
 
+func (p *P1Order) String() string {
+	return fmt.Sprintf("%x - Order{isBuy:%v, Price:%s, Amount:%s, Maker:%s}",
+		p.Hash(), p.isBuy(), p.LimitPrice, p.Amount, p.Maker)
+}
+
 func (p *P1Order) VerifySignature(sig []byte) error {
 	orderHash := p.Hash()
 	addr, err := ecrecover(orderHash, sig)
@@ -301,10 +306,7 @@ func (w *WrapOrder) Unfrozen(amount *big.Int) {
 func (w *WrapOrder) Done(amount *big.Int) {
 	w.Lock()
 	defer w.Unlock()
-	w.FrozenAmount.Sub(w.FrozenAmount, amount)
-	if w.FrozenAmount.Sign() < 0 {
-		fmt.Println("WrapOrder Done error")
-	}
+	w.LeftAmount.Sub(w.LeftAmount, amount)
 }
 
 type MempoolOrder struct {
