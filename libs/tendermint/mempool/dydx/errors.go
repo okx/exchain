@@ -7,4 +7,5 @@ var (
 	ErrInvalidOrder       = fmt.Errorf("invalid order")
 	ErrExpiredOrder       = fmt.Errorf("expired order")
 	ErrInvalidSignature   = fmt.Errorf("invalid signature")
+	ErrRepeatedOrder      = fmt.Errorf("repeated order")
 )

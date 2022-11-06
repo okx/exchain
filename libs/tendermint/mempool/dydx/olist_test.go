@@ -16,7 +16,7 @@ func TestOrderManager(t *testing.T) {
 	priv, err := crypto.HexToECDSA(hexPriv)
 	addr := crypto.PubkeyToAddress(priv.PublicKey)
 
-	manager := NewOrderManager(nil, nil, false)
+	manager := NewOrderManager(nil, nil)
 	for i := 0; i < orderCount; i++ {
 		if i%(orderCount/10) == 0 {
 			time.Sleep(time.Millisecond)
@@ -62,7 +62,7 @@ func TestOrderManager(t *testing.T) {
 }
 
 func newRawSignedOrder(odr P1Order, hexPriv string) ([]byte, error) {
-	sig, err := signOrder(odr, hexPriv, 65, contractAddress)
+	sig, err := signOrder(odr, hexPriv, 65, ContractAddress)
 	if err != nil {
 		return nil, err
 	}

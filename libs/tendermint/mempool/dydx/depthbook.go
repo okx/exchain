@@ -11,21 +11,33 @@ import (
 type DepthBook struct {
 	buyOrders  *OrderList
 	sellOrders *OrderList
+
+	addrOrders map[common.Address][]*WrapOrder
+	addrMtx    sync.RWMutex
 }
 
 func NewDepthBook() *DepthBook {
 	return &DepthBook{
 		buyOrders:  NewOrderList(true),
 		sellOrders: NewOrderList(false),
+		addrOrders: make(map[common.Address][]*WrapOrder),
 	}
 }
 
 func (d *DepthBook) Insert(order *WrapOrder) error {
+	var ele *list.Element
 	if order.isBuy() {
-		d.buyOrders.Insert(order)
+		ele = d.buyOrders.Insert(order)
 	} else {
-		d.sellOrders.Insert(order)
+		ele = d.sellOrders.Insert(order)
 	}
+	if ele == nil {
+		return ErrRepeatedOrder
+	}
+	d.addrMtx.Lock()
+	d.addrOrders[order.Maker] = append(d.addrOrders[order.Maker], order)
+	d.addrMtx.Unlock()
+
 	return nil
 }
 
@@ -47,19 +59,6 @@ func (d *DepthBook) Delete(hash common.Hash) *list.Element {
 		return d.sellOrders.Remove(ele)
 	}
 	return nil
-}
-
-func (d *DepthBook) Update(results *MatchResult) {
-	if results == nil || len(results.MatchedRecords) == 0 {
-		return
-	}
-	succeed := <-results.OnChain
-	if !succeed {
-		for _, record := range results.MatchedRecords {
-			record.Maker.Unfrozen(record.Fill.Amount)
-			record.Taker.Unfrozen(record.Fill.Amount)
-		}
-	}
 }
 
 type OrderList struct {
@@ -95,6 +94,10 @@ func (o *OrderList) Get(hash common.Hash) *list.Element {
 func (o *OrderList) Insert(order *WrapOrder) *list.Element {
 	o.Lock()
 	defer o.Unlock()
+
+	if _, ok := o.index[order.Hash()]; ok {
+		return nil
+	}
 
 	ele := o.orders.Front()
 	for ele != nil {
@@ -153,7 +156,7 @@ func (o *OrderList) Len() int {
 	return len(o.index)
 }
 
-//TODO, use block.timestamp?
+// TODO, use block.timestamp?
 func (o *OrderList) prune() {
 	ticker := time.NewTicker(time.Minute)
 	for {

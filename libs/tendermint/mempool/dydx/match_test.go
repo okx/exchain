@@ -349,7 +349,7 @@ func TestTransaction(t *testing.T) {
 	require.True(t, ok)
 	order3 := newTestBigOrder(price, big.NewInt(1), false, addrBob, privKeyBob)
 
-	mr, err := me.matchAndTrade(order3, true)
+	mr, err := me.matchAndTrade(order3)
 	require.NoError(t, err)
 	require.NotNil(t, mr.Tx)
 	require.Nil(t, mr.OnChain)

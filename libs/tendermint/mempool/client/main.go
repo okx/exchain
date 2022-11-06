@@ -18,15 +18,16 @@ import (
 )
 
 const (
-	node             = "wss://exchaintestws.okex.org:8443"
-	localNode        = "http://127.0.0.1:8545"
-	GasPrice  int64  = 100000000 // 0.1 gwei
-	GasLimit  uint64 = 3000000
+	node              = "wss://exchaintestws.okex.org:8443"
+	devnetNode        = "http://35.79.9.80:26659"
+	localNode         = "http://localhost:8545"
+	GasPrice   int64  = 100000000 // 0.1 gwei
+	GasLimit   uint64 = 3000000
 )
 
 var (
 	chainID           = int64(8)
-	orderContractAddr = common.HexToAddress("0x632D131CCCE01206F08390cB66D1AdEf9b264C61")
+	orderContractAddr = common.HexToAddress(dydx.Config.P1OrdersContractAddress)
 )
 
 var (
@@ -112,7 +113,7 @@ func newP1Order(amount int64, isBuy bool) dydx.P1Order {
 			LimitPrice:   big.NewInt(0),
 			TriggerPrice: big.NewInt(0),
 			LimitFee:     big.NewInt(0),
-			Expiration:   big.NewInt(time.Now().Unix()*2 + rand.Int63n(100000)),
+			Expiration:   big.NewInt(time.Now().Unix() + 3600*24*7 + rand.Int63n(100000)),
 		},
 	}
 	if isBuy {

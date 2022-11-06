@@ -100,6 +100,7 @@ type Mempool interface {
 type PubSub interface {
 	Unsubscribe(id rpc.ID) bool
 	SubscribeLogs(conn chan<- *ethtypes.Log, query ethereum.FilterQuery) (rpc.ID, error)
+	ParseLogsFromTxs(txResults []*abci.ResponseDeliverTx, query ethereum.FilterQuery) [][]*ethtypes.Log
 }
 
 //--------------------------------------------------------------------------------
