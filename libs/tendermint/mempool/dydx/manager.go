@@ -241,9 +241,21 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 		return
 	}
 
+	var shouldDelete []common.Hash
 	var canceledOrders = make(map[common.Hash]struct{})
 
 	d.orderQueue.RLock()
+	defer func() {
+		d.orderQueue.RUnlock()
+
+		for _, hash := range shouldDelete {
+			d.orderQueue.Delete(hash)
+		}
+		for k := range canceledOrders {
+			d.orderQueue.Delete(k)
+		}
+		d.gServer.UpdateClient()
+	}()
 
 	ordersHashes := d.orderQueue.GetAllOrderHashes()
 	ordersStatus, err := d.engine.contracts.P1Orders.GetOrdersStatus(nil, ordersHashes)
@@ -256,7 +268,7 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 			}
 			if status.FilledAmount.Sign() > 0 {
 				order := d.orderQueue.Get(orderHash)
-				order.LeftAmount.Sub(order.LeftAmount, status.FilledAmount)
+				order.LeftAmount.Sub(order.Amount, status.FilledAmount)
 				if order.LeftAmount.Sign() == 0 {
 					canceledOrders[orderHash] = struct{}{}
 				}
@@ -268,7 +280,6 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 		maxNum = orderQueueLen
 	}
 	tradeTxs = make([]types.Tx, 0, maxNum)
-	var shouldDelete []common.Hash
 
 	nonce := d.engine.nonce + 1
 
@@ -315,16 +326,6 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 		tradeTxs = append(tradeTxs, txBz)
 		nonce++
 	}
-
-	d.orderQueue.RUnlock()
-
-	for _, hash := range shouldDelete {
-		d.orderQueue.Delete(hash)
-	}
-	for k := range canceledOrders {
-		d.orderQueue.Delete(k)
-	}
-	d.gServer.UpdateClient()
 	return
 }
 
