@@ -177,7 +177,8 @@ func (app *BaseApp) fixFeeCollector() {
 	ctx, _ := app.cacheTxContext(app.getContextForTx(runTxModeDeliver, []byte{}), []byte{})
 
 	ctx.SetMultiStore(app.parallelTxManage.cms)
-	if err := app.updateFeeCollectorAccHandler(ctx, app.parallelTxManage.currTxFee); err != nil {
+	// The feesplit is only processed at the endblock
+	if err := app.updateFeeCollectorAccHandler(ctx, app.parallelTxManage.currTxFee, nil); err != nil {
 		panic(err)
 	}
 }
@@ -311,7 +312,7 @@ func (app *BaseApp) runTxs() []*abci.ResponseDeliverTx {
 
 	// fix logs
 	app.feeChanged = true
-	app.feeForCollector = app.parallelTxManage.currTxFee
+	app.feeCollector = app.parallelTxManage.currTxFee
 	receiptsLogs := app.endParallelTxs()
 	for index, v := range receiptsLogs {
 		if len(v) != 0 { // only update evm tx result
@@ -689,7 +690,7 @@ func (f *parallelTxManager) newIsConflict(e *executeResult) bool {
 	conflict := false
 
 	e.ms.IteratorCache(false, func(key string, value []byte, isDirty bool, isDelete bool, storeKey types.StoreKey) bool {
-		if data, ok := f.cc.items[key]; ok {
+		if data, ok := f.cc.items[storeKey.Name()+key]; ok {
 			if !bytes.Equal(data.value, value) {
 				conflict = true
 				return false
@@ -799,7 +800,7 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 
 	f.mu.Lock()
 	res.ms.IteratorCache(true, func(key string, value []byte, isDirty bool, isdelete bool, storeKey sdk.StoreKey) bool {
-		f.cc.update(key, value, txIndex)
+		f.cc.update(storeKey.Name()+key, value, txIndex)
 		if isdelete {
 			f.cms.GetKVStore(storeKey).Delete([]byte(key))
 		} else if value != nil {
@@ -810,7 +811,7 @@ func (f *parallelTxManager) SetCurrentIndex(txIndex int, res *executeResult) {
 	}, nil)
 	f.currIndex = txIndex
 	f.mu.Unlock()
-	f.cc.deleteFeeAccount()
+	//f.cc.deleteFeeAccount()
 
 	if res.paraMsg.AnteErr != nil {
 		return

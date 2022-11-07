@@ -103,8 +103,9 @@ func (b AppModuleBasic) RegisterInterfaces(registry cdctypes.InterfaceRegistry) 
 type AppModule struct {
 	AppModuleBasic
 	*base.BaseIBCUpgradeModule
-	cdc    codec.CodecProxy
-	keeper *Keeper
+	cdc              codec.CodecProxy
+	keeper           *Keeper
+	permissionKeeper types.ContractOpsKeeper
 }
 
 // ConsensusVersion is a sequence number for state-breaking change of the
@@ -114,27 +115,31 @@ type AppModule struct {
 func (AppModule) ConsensusVersion() uint64 { return 1 }
 
 // NewAppModule creates a new AppModule object
-func NewAppModule(cdc codec.CodecProxy, keeper *Keeper) AppModule {
+func NewAppModule(cdc codec.CodecProxy, wasmkeeper *Keeper) AppModule {
 	m := AppModule{
 		AppModuleBasic: AppModuleBasic{},
 		cdc:            cdc,
-		keeper:         keeper,
+		keeper:         wasmkeeper,
 	}
 	m.BaseIBCUpgradeModule = base.NewBaseIBCUpgradeModule(m)
+	m.permissionKeeper = keeper.NewDefaultPermissionKeeper(wasmkeeper)
 	return m
 }
 
 func (am AppModule) RegisterServices(cfg module.Configurator) {
-	watcher.Init()
 	global.Manager = watcher.ParamsManager{}
 	simulator.NewWasmSimulator = NewWasmSimulator
-	types.RegisterMsgServer(cfg.MsgServer(), keeper.NewMsgServerImpl(keeper.NewDefaultPermissionKeeper(am.keeper)))
+	types.RegisterMsgServer(cfg.MsgServer(), keeper.NewMsgServerImpl(am.permissionKeeper))
 	if watcher.Enable() {
 		k := NewProxyKeeper()
 		types.RegisterQueryServer(cfg.QueryServer(), NewQuerier(&k))
 	} else {
 		types.RegisterQueryServer(cfg.QueryServer(), NewQuerier(am.keeper))
 	}
+}
+
+func (am AppModule) GetPermissionKeeper() types.ContractOpsKeeper {
+	return am.permissionKeeper
 }
 
 //func (am AppModule) LegacyQuerierHandler(amino *codec.LegacyAmino) sdk.Querier { //nolint:staticcheck

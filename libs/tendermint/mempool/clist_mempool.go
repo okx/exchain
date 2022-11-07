@@ -271,7 +271,9 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		// so we only record the sender for txs still in the mempool.
 		if ele, ok := mem.txs.Load(txkey); ok {
 			memTx := ele.Value.(*mempoolTx)
-			memTx.senders.LoadOrStore(txInfo.SenderID, true)
+			memTx.senderMtx.Lock()
+			memTx.senders[txInfo.SenderID] = struct{}{}
+			memTx.senderMtx.Unlock()
 			// TODO: consider punishing peer for dups,
 			// its non-trivial since invalid txs can become valid,
 			// but they can spam the same tx with little cost to them atm.
@@ -308,6 +310,9 @@ func (mem *CListMempool) CheckTx(tx types.Tx, cb func(*abci.Response), txInfo Tx
 		return err
 	}
 
+	if txInfo.from != "" {
+		types.SignatureCache().Add(txkey[:], txInfo.from)
+	}
 	reqRes := mem.proxyAppConn.CheckTxAsync(abci.RequestCheckTx{Tx: tx, Type: txInfo.checkType, From: txInfo.wtx.GetFrom()})
 	if cfg.DynamicConfig.GetMaxGasUsedPerBlock() > -1 {
 		if r, ok := reqRes.Response.Value.(*abci.Response_CheckTx); ok {
@@ -595,7 +600,8 @@ func (mem *CListMempool) resCbFirstTime(
 				senderNonce: r.CheckTx.SenderNonce,
 			}
 
-			memTx.senders.Store(txInfo.SenderID, true)
+			memTx.senders = make(map[uint16]struct{})
+			memTx.senders[txInfo.SenderID] = struct{}{}
 
 			var err error
 			if mem.pendingPool != nil {
@@ -1057,7 +1063,8 @@ type mempoolTx struct {
 
 	// ids of peers who've sent us this tx (as a map for quick lookups).
 	// senders: PeerID -> bool
-	senders sync.Map
+	senders   map[uint16]struct{}
+	senderMtx sync.RWMutex
 }
 
 // Height returns the height for this transaction
