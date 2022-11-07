@@ -211,7 +211,6 @@ func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type WebOrder struct {
-	JsonOrder    string `json:"jsonOrder"`
 	Order        string `json:"order"`
 	OrderHash    string `json:"orderHash"`
 	Status       string `json:"status"`
@@ -221,6 +220,17 @@ type WebOrder struct {
 	Price        string `json:"price"`
 	TriggerPrice string `json:"triggerPrice"`
 	Expiration   string `json:"expiration"`
+}
+
+type ExportP1Order struct {
+	Flags        [32]byte `json:"flags"`
+	Amount       string   `json:"amount"`
+	LimitPrice   string   `json:"limitPrice"`
+	TriggerPrice string   `json:"triggerPrice"`
+	LimitFee     string   `json:"limitFee"`
+	Maker        string   `json:"maker"`
+	Taker        string   `json:"taker"`
+	Expiration   string   `json:"expiration"`
 }
 
 func (o *OrderManager) OrdersHandler(w http.ResponseWriter, r *http.Request) {
@@ -233,10 +243,19 @@ func (o *OrderManager) OrdersHandler(w http.ResponseWriter, r *http.Request) {
 	orders := make([]*WebOrder, 0)
 	o.book.addrMtx.RLock()
 	for _, order := range o.book.addrOrders[addr] {
-		data, _ := json.Marshal(order.P1OrdersOrder)
+		exportOrder := ExportP1Order{
+			Flags:        order.Flags,
+			Amount:       order.Amount.String(),
+			LimitPrice:   order.LimitPrice.String(),
+			TriggerPrice: order.TriggerPrice.String(),
+			LimitFee:     order.LimitFee.String(),
+			Maker:        order.Maker.String(),
+			Taker:        order.Taker.String(),
+			Expiration:   order.Expiration.String(),
+		}
+		data, _ := json.Marshal(exportOrder)
 		orders = append(orders, &WebOrder{
-			JsonOrder:    string(data),
-			Order:        hex.EncodeToString(order.Raw[:len(order.Raw)-NUM_SIGNATURE_BYTES]),
+			Order:        string(data),
 			OrderHash:    order.orderHash.String(),
 			Status:       "limit",
 			IsBuy:        order.Flags[31] == 1,
