@@ -2,6 +2,7 @@ package evm_test
 
 import (
 	ethcmn "github.com/ethereum/go-ethereum/common"
+	ttypes "github.com/okex/exchain/libs/tendermint/types"
 	"github.com/okex/exchain/x/evm"
 	"github.com/okex/exchain/x/evm/types"
 	govtypes "github.com/okex/exchain/x/gov/types"
@@ -339,6 +340,92 @@ func (suite *EvmTestSuite) TestProposalHandler_ManageContractMethodBlockedListPr
 			suite.Require().Equal(len(tc.targetAddrListToCheck), len(curBlockedList))
 			ok := types.BlockedContractListIsEqual(suite.T(), curBlockedList, tc.targetAddrListToCheck)
 			suite.Require().True(ok)
+		})
+	}
+}
+
+func (suite *EvmTestSuite) TestProposalHandler_ManageSysContractAddressProposal() {
+	addr1 := ethcmn.BytesToAddress([]byte{0x3}).Bytes()
+	addr2 := ethcmn.BytesToAddress([]byte{0x4}).Bytes()
+
+	suite.govHandler = evm.NewManageContractDeploymentWhitelistProposalHandler(suite.app.EvmKeeper)
+
+	govProposal := &govtypes.Proposal{}
+
+	ttypes.UnittestOnlySetMilestoneVenus3Height(-1)
+
+	testCases := []struct {
+		msg     string
+		prepare func()
+		fnCheck func()
+		success bool
+	}{
+		{
+			msg: "add a sys contract address addr1",
+			prepare: func() {
+				proposal := types.NewManageSysContractAddressProposal(
+					"default title",
+					"default description",
+					addr1,
+					true,
+				)
+				govProposal.Content = proposal
+			},
+			fnCheck: func() {
+				reAddr, err := suite.app.EvmKeeper.GetSysContractAddress(suite.ctx)
+				suite.Require().NoError(err)
+				suite.Require().Equal(addr1, reAddr[:])
+			},
+			success: true,
+		},
+		{
+			msg: "add a sys contract address addr2",
+			prepare: func() {
+				proposal := types.NewManageSysContractAddressProposal(
+					"default title",
+					"default description",
+					addr2,
+					true,
+				)
+				govProposal.Content = proposal
+			},
+			fnCheck: func() {
+				reAddr, err := suite.app.EvmKeeper.GetSysContractAddress(suite.ctx)
+				suite.Require().NoError(err)
+				suite.Require().Equal(addr2, reAddr[:])
+			},
+			success: true,
+		},
+		{
+			msg: "del a sys contract address",
+			prepare: func() {
+				proposal := types.NewManageSysContractAddressProposal(
+					"default title",
+					"default description",
+					addr2,
+					false,
+				)
+				govProposal.Content = proposal
+			},
+			fnCheck: func() {
+				reAddr, err := suite.app.EvmKeeper.GetSysContractAddress(suite.ctx)
+				suite.Require().Error(err)
+				suite.Require().Nil(reAddr)
+			},
+			success: true,
+		},
+	}
+
+	for _, tc := range testCases {
+		suite.Run(tc.msg, func() {
+			tc.prepare()
+
+			err := suite.govHandler(suite.ctx, govProposal)
+			if tc.success {
+				suite.Require().NoError(err)
+			} else {
+				suite.Require().Error(err)
+			}
 		})
 	}
 }

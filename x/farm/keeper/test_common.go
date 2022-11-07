@@ -7,13 +7,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
-
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
 	"github.com/okex/exchain/libs/cosmos-sdk/store"
+	"github.com/okex/exchain/libs/cosmos-sdk/store/mpt"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/auth"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/bank"
+	"github.com/okex/exchain/libs/cosmos-sdk/x/staking"
 	"github.com/okex/exchain/libs/cosmos-sdk/x/supply"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
@@ -102,6 +102,7 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 	keySwap := sdk.NewKVStoreKey(swaptypes.StoreKey)
 	keyEvm := sdk.NewKVStoreKey(evmtypes.StoreKey)
 	keyGov := sdk.NewKVStoreKey(govtypes.StoreKey)
+	keyStaking := sdk.NewKVStoreKey(types.StoreKey)
 
 	// 0.2 init db
 	db := dbm.NewMemDB()
@@ -184,12 +185,14 @@ func GetKeeper(t *testing.T) (sdk.Context, MockFarmKeeper) {
 	sk.SetModuleAccount(ctx, mintFarmingAccount)
 	sk.SetModuleAccount(ctx, swapModuleAccount)
 
+	stk := staking.NewKeeper(cdc, keyStaking, sk, pk.Subspace(staking.DefaultParamspace))
+
 	// 1.5 init token keeper
 	tk := token.NewKeeper(bk, pk.Subspace(token.DefaultParamspace), auth.FeeCollectorName, sk, keyToken, keyLock, cdc, false, ak)
 
 	// 1.6 init swap keeper
 	swapKeeper := swap.NewKeeper(sk, tk, cdc, keySwap, pk.Subspace(swaptypes.DefaultParamspace))
-	evmKeeper := evm.NewKeeper(cdc, keyEvm, pk.Subspace(evmtypes.DefaultParamspace), &ak, sk, bk, log.NewNopLogger())
+	evmKeeper := evm.NewKeeper(cdc, keyEvm, pk.Subspace(evmtypes.DefaultParamspace), &ak, sk, bk, stk, log.NewNopLogger())
 
 	// 1.7 init farm keeper
 	fk := NewKeeper(auth.FeeCollectorName, sk, tk, swapKeeper, *evmKeeper, pk.Subspace(types.DefaultParamspace), keyFarm, cdc)

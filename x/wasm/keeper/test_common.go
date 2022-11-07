@@ -4,8 +4,9 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"github.com/okex/exchain/x/wasm/watcher"
+	"github.com/okex/exchain/x/wasm/keeper/testdata"
 	"io/ioutil"
+	"os"
 	"testing"
 	"time"
 
@@ -88,7 +89,7 @@ type EncodingConfig struct {
 	Amino             *codec.Codec
 }
 
-var ModuleBasics = module.NewBasicManager(
+var moduleBasics = module.NewBasicManager(
 	auth.AppModuleBasic{},
 	bank.AppModuleBasic{},
 	capability.AppModuleBasic{},
@@ -97,7 +98,8 @@ var ModuleBasics = module.NewBasicManager(
 	distribution.AppModuleBasic{},
 	supply.AppModuleBasic{},
 	gov.NewAppModuleBasic(
-		paramsclient.ProposalHandler, distrclient.ProposalHandler, //upgradeclient.ProposalHandler,
+		paramsclient.ProposalHandler, distrclient.ChangeDistributionTypeProposalHandler,
+		paramsclient.ProposalHandler, distrclient.CommunityPoolSpendProposalHandler,
 	),
 	params.AppModuleBasic{},
 	crisis.AppModuleBasic{},
@@ -113,7 +115,7 @@ func MakeTestCodec(t testing.TB) codec.CodecProxy {
 }
 
 func MakeEncodingConfig(_ testing.TB) EncodingConfig {
-	codecProxy, interfaceReg := okexchaincodec.MakeCodecSuit(ModuleBasics)
+	codecProxy, interfaceReg := okexchaincodec.MakeCodecSuit(moduleBasics)
 	txConfig := ibc_tx.NewTxConfig(codecProxy.GetProtocMarshal(), ibc_tx.DefaultSignModes)
 	encodingConfig := EncodingConfig{
 		InterfaceRegistry: interfaceReg,
@@ -211,7 +213,6 @@ func CreateDefaultTestInput(t testing.TB) (sdk.Context, TestKeepers) {
 
 // CreateTestInput encoders can be nil to accept the defaults, or set it to override some of the message handlers (like default)
 func CreateTestInput(t testing.TB, isCheckTx bool, supportedFeatures string, opts ...Option) (sdk.Context, TestKeepers) {
-	watcher.Init()
 	// Load default wasm config
 	return createTestInput(t, isCheckTx, supportedFeatures, types.DefaultWasmConfig(), dbm.NewMemDB(), opts...)
 }
@@ -226,6 +227,9 @@ func createTestInput(
 	opts ...Option,
 ) (sdk.Context, TestKeepers) {
 	tempDir := t.TempDir()
+	t.Cleanup(func() {
+		os.RemoveAll(tempDir)
+	})
 
 	keys := sdk.NewKVStoreKeys(
 		auth.StoreKey, staking.StoreKey,
@@ -427,7 +431,7 @@ func createTestInput(
 	govRouter := gov.NewRouter().
 		AddRoute(govtypes.RouterKey, govtypes.ProposalHandler).
 		AddRoute(paramproposal.RouterKey, params.NewParamChangeProposalHandler(&paramsKeeper)).
-		AddRoute(distributiontypes.RouterKey, distribution.NewCommunityPoolSpendProposalHandler(distKeeper))
+		AddRoute(distributiontypes.RouterKey, distribution.NewDistributionProposalHandler(distKeeper))
 	//AddRoute(types.RouterKey, NewWasmProposalHandler(&keeper, types.EnableAllProposals))
 
 	govProposalHandlerRouter := govkeeper.NewProposalHandlerRouter()
@@ -571,11 +575,8 @@ func StoreIBCReflectContract(t testing.TB, ctx sdk.Context, keepers TestKeepers)
 }
 
 func StoreReflectContract(t testing.TB, ctx sdk.Context, keepers TestKeepers) uint64 {
-	wasmCode, err := ioutil.ReadFile("./testdata/reflect.wasm")
-	require.NoError(t, err)
-
 	_, _, creatorAddr := keyPubAddr()
-	codeID, err := keepers.ContractKeeper.Create(ctx, creatorAddr, wasmCode, nil)
+	codeID, err := keepers.ContractKeeper.Create(ctx, creatorAddr, testdata.ReflectContractWasm(), nil)
 	require.NoError(t, err)
 	return codeID
 }

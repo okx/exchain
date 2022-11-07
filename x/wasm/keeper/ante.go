@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"encoding/binary"
+
 	types2 "github.com/okex/exchain/libs/tendermint/types"
 
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -29,7 +30,7 @@ func NewCountTXDecorator(storeKey sdk.StoreKey) *CountTXDecorator {
 // The ante handler passes the counter value via sdk.Context upstream. See `types.TXCounter(ctx)` to read the value.
 // Simulations don't get a tx counter value assigned.
 func (a CountTXDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (sdk.Context, error) {
-	if simulate || !types2.HigherThanVenus2(ctx.BlockHeight()) {
+	if simulate || !types2.HigherThanEarth(ctx.BlockHeight()) {
 		return next(ctx, tx, simulate)
 	}
 	currentGasmeter := ctx.GasMeter()

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/tendermint/go-amino"
@@ -20,9 +21,9 @@ import (
 BlockStore is a simple low level store for blocks.
 
 There are three types of information stored:
- - BlockMeta:   Meta information about each block
- - Block part:  Parts of each block, aggregated w/ PartSet
- - Commit:      The commit part of each block, for gossiping precommit votes
+  - BlockMeta:   Meta information about each block
+  - Block part:  Parts of each block, aggregated w/ PartSet
+  - Commit:      The commit part of each block, for gossiping precommit votes
 
 Currently the precommit signatures are duplicated in the Block parts as
 well as the Commit.  In the future this may change, perhaps by moving
@@ -76,34 +77,39 @@ func (bs *BlockStore) Size() int64 {
 	return bs.height - bs.base + 1
 }
 
-var blockBufferPool = amino.NewBufferPool()
+var blockLoadBufPool = &sync.Pool{
+	New: func() interface{} {
+		return &[2]bytes.Buffer{}
+	},
+}
 
 // LoadBlock returns the block with the given height.
 // If no block is found for that height, it returns nil.
 func (bs *BlockStore) LoadBlock(height int64) *types.Block {
-	buf := blockBufferPool.Get()
-	defer blockBufferPool.Put(buf)
-	buf.Reset()
-	partBytes, _ := bs.loadBlockPartsBytes(height, buf)
-	if partBytes == nil {
-		return nil
-	}
-
-	return bs.unmarshalBlockByBytes(partBytes)
+	b, _ := bs.LoadBlockWithExInfo(height)
+	return b
 }
 
 // LoadBlockWithExInfo returns the block with the given height.
 // and the BlockPartInfo is used to make block parts
 func (bs *BlockStore) LoadBlockWithExInfo(height int64) (*types.Block, *types.BlockExInfo) {
-	buf := blockBufferPool.Get()
-	defer blockBufferPool.Put(buf)
-	buf.Reset()
-	partBytes, exInfo := bs.loadBlockPartsBytes(height, buf)
-	if partBytes == nil {
+	bufs := blockLoadBufPool.Get().(*[2]bytes.Buffer)
+	defer blockLoadBufPool.Put(bufs)
+
+	loadBuf, uncompressedBuf := &bufs[0], &bufs[1]
+
+	loadBuf.Reset()
+	uncompressedBuf.Reset()
+
+	info := bs.loadBlockPartsBytesTo(height, loadBuf, uncompressedBuf)
+	if loadBuf.Len() == 0 {
 		return nil, nil
 	}
-
-	return bs.unmarshalBlockByBytes(partBytes), exInfo
+	if !info.IsCompressed() {
+		return bs.unmarshalBlockByBytes(loadBuf.Bytes()), &info
+	} else {
+		return bs.unmarshalBlockByBytes(uncompressedBuf.Bytes()), &info
+	}
 }
 
 // unmarshalBlockByBytes returns the block with the given block parts bytes
@@ -175,54 +181,84 @@ func (bs *BlockStore) LoadBlockPart(height int64, index int) *types.Part {
 	return v.(*types.Part)
 }
 
-// loadBlockPartsBytes return the combined parts bytes and the number of block parts
-func (bs *BlockStore) loadBlockPartsBytes(height int64, buf *bytes.Buffer) ([]byte, *types.BlockExInfo) {
+func loadBlockPartBytesFromBytesTo(bz []byte, buf *bytes.Buffer) {
+	if len(bz) == 0 {
+		return
+	}
+	lenBefore := buf.Len()
+	err := unmarshalBlockPartBytesTo(bz, buf)
+	if err == nil {
+		return
+	}
+	part := loadBlockPartFromBytes(bz)
+	buf.Truncate(lenBefore)
+	buf.Write(part.Bytes)
+}
+
+func (bs *BlockStore) loadBlockPartBytesTo(height int64, index int, buf *bytes.Buffer) {
+	_, err := bs.db.GetUnsafeValue(calcBlockPartKey(height, index), func(bz []byte) (interface{}, error) {
+		loadBlockPartBytesFromBytesTo(bz, buf)
+		return nil, nil
+	})
+	if err != nil {
+		panic(err)
+	}
+}
+
+// loadBlockPartsBytesTo load all block parts bytes to the given buffer,
+// buf *Buffer stores the original block parts bytes,
+// uncompressed *Buffer stores the uncompressed block parts bytes if block is compressed
+func (bs *BlockStore) loadBlockPartsBytesTo(height int64, buf *bytes.Buffer, uncompressed *bytes.Buffer) types.BlockExInfo {
 	var blockMeta = bs.LoadBlockMeta(height)
 	if blockMeta == nil {
-		return nil, nil
+		return types.BlockExInfo{}
 	}
-
-	var bufLen int
-	parts := make([]*types.Part, 0, blockMeta.BlockID.PartsHeader.Total)
+	blockPartSize, bufBeforeLen := 0, buf.Len()
 	for i := 0; i < blockMeta.BlockID.PartsHeader.Total; i++ {
-		part := bs.LoadBlockPart(height, i)
-		bufLen += len(part.Bytes)
-		parts = append(parts, part)
-	}
-	buf.Grow(bufLen)
-	for _, part := range parts {
-		buf.Write(part.Bytes)
+		bs.loadBlockPartBytesTo(height, i, buf)
+		if i == 0 {
+			blockPartSize = buf.Len() - bufBeforeLen
+		}
 	}
 
 	// uncompress if the block part bytes was created by compress block
-	partBytes, compressSign, err := types.UncompressBlockFromBytes(buf.Bytes())
+	compressSign, err := types.UncompressBlockFromBytesTo(buf.Bytes(), uncompressed)
 	if err != nil {
 		panic(errors.Wrap(err, "failed to uncompress block"))
 	}
 
-	return partBytes,
-		&types.BlockExInfo{
-			BlockCompressType: compressSign / types.CompressDividing,
-			BlockCompressFlag: compressSign % types.CompressDividing,
-			BlockPartSize:     len(parts[0].Bytes)}
+	return types.BlockExInfo{
+		BlockCompressType: compressSign / types.CompressDividing,
+		BlockCompressFlag: compressSign % types.CompressDividing,
+		BlockPartSize:     blockPartSize,
+	}
+}
+
+func decodeBlockMeta(bz []byte) (*types.BlockMeta, error) {
+	if len(bz) == 0 {
+		return nil, nil
+	}
+	var blockMeta = new(types.BlockMeta)
+	err := blockMeta.UnmarshalFromAmino(cdc, bz)
+	if err != nil {
+		err = cdc.UnmarshalBinaryBare(bz, blockMeta)
+		if err != nil {
+			return nil, errors.Wrap(err, "Error reading block meta")
+		}
+	}
+	return blockMeta, nil
 }
 
 // LoadBlockMeta returns the BlockMeta for the given height.
 // If no block is found for the given height, it returns nil.
 func (bs *BlockStore) LoadBlockMeta(height int64) *types.BlockMeta {
-	var blockMeta = new(types.BlockMeta)
-	bz, err := bs.db.Get(calcBlockMetaKey(height))
+	v, err := bs.db.GetUnsafeValue(calcBlockMetaKey(height), func(bz []byte) (interface{}, error) {
+		return decodeBlockMeta(bz)
+	})
 	if err != nil {
 		panic(err)
 	}
-	if len(bz) == 0 {
-		return nil
-	}
-	err = cdc.UnmarshalBinaryBare(bz, blockMeta)
-	if err != nil {
-		panic(errors.Wrap(err, "Error reading block meta"))
-	}
-	return blockMeta
+	return v.(*types.BlockMeta)
 }
 
 // LoadBlockCommit returns the Commit for the given height.
@@ -366,10 +402,14 @@ func (bs *BlockStore) deleteBatch(height int64, deleteFromTop bool) (uint64, err
 // SaveBlock persists the given block, blockParts, and seenCommit to the underlying db.
 // blockParts: Must be parts of the block
 // seenCommit: The +2/3 precommits that were seen which committed at height.
-//             If all the nodes restart after committing a block,
-//             we need this to reload the precommits to catch-up nodes to the
-//             most recent height.  Otherwise they'd stall at H-1.
+//
+//	If all the nodes restart after committing a block,
+//	we need this to reload the precommits to catch-up nodes to the
+//	most recent height.  Otherwise they'd stall at H-1.
 func (bs *BlockStore) SaveBlock(block *types.Block, blockParts *types.PartSet, seenCommit *types.Commit) {
+	batch := bs.db.NewBatch()
+	defer batch.Close()
+
 	if block == nil {
 		panic("BlockStore can only save a non-nil block")
 	}
@@ -387,23 +427,23 @@ func (bs *BlockStore) SaveBlock(block *types.Block, blockParts *types.PartSet, s
 	// Save block meta
 	blockMeta := types.NewBlockMeta(block, blockParts)
 	metaBytes := cdc.MustMarshalBinaryBare(blockMeta)
-	bs.db.Set(calcBlockMetaKey(height), metaBytes)
-	bs.db.Set(calcBlockHashKey(hash), []byte(fmt.Sprintf("%d", height)))
+	batch.Set(calcBlockMetaKey(height), metaBytes)
+	batch.Set(calcBlockHashKey(hash), []byte(fmt.Sprintf("%d", height)))
 
 	// Save block parts
 	for i := 0; i < blockParts.Total(); i++ {
 		part := blockParts.GetPart(i)
-		bs.saveBlockPart(height, i, part)
+		bs.saveBlockPart(batch, height, i, part)
 	}
 
 	// Save block commit (duplicate and separate from the Block)
 	blockCommitBytes := cdc.MustMarshalBinaryBare(block.LastCommit)
-	bs.db.Set(calcBlockCommitKey(height-1), blockCommitBytes)
+	batch.Set(calcBlockCommitKey(height-1), blockCommitBytes)
 
 	// Save seen commit (seen +2/3 precommits for block)
 	// NOTE: we can delete this at a later height
 	seenCommitBytes := cdc.MustMarshalBinaryBare(seenCommit)
-	bs.db.Set(calcSeenCommitKey(height), seenCommitBytes)
+	batch.Set(calcSeenCommitKey(height), seenCommitBytes)
 
 	// Done!
 	bs.mtx.Lock()
@@ -414,15 +454,15 @@ func (bs *BlockStore) SaveBlock(block *types.Block, blockParts *types.PartSet, s
 	bs.mtx.Unlock()
 
 	// Save new BlockStoreStateJSON descriptor
-	bs.saveState()
+	bs.saveStateBatch(batch)
 
 	// Flush
-	bs.db.SetSync(nil, nil)
+	batch.WriteSync()
 }
 
-func (bs *BlockStore) saveBlockPart(height int64, index int, part *types.Part) {
+func (bs *BlockStore) saveBlockPart(batch db.Batch, height int64, index int, part *types.Part) {
 	partBytes := cdc.MustMarshalBinaryBare(part)
-	bs.db.Set(calcBlockPartKey(height, index), partBytes)
+	batch.Set(calcBlockPartKey(height, index), partBytes)
 }
 
 func (bs *BlockStore) saveState() {
@@ -435,26 +475,36 @@ func (bs *BlockStore) saveState() {
 	bsJSON.Save(bs.db)
 }
 
+func (bs *BlockStore) saveStateBatch(batch db.Batch) {
+	bs.mtx.RLock()
+	bsJSON := BlockStoreStateJSON{
+		Base:   bs.base,
+		Height: bs.height,
+	}
+	bs.mtx.RUnlock()
+	bsJSON.saveBatch(batch)
+}
+
 //-----------------------------------------------------------------------------
 
 func calcBlockMetaKey(height int64) []byte {
-	return []byte(fmt.Sprintf("H:%v", height))
+	return amino.StrToBytes(strings.Join([]string{"H", strconv.FormatInt(height, 10)}, ":"))
 }
 
 func calcBlockPartKey(height int64, partIndex int) []byte {
-	return []byte(fmt.Sprintf("P:%v:%v", height, partIndex))
+	return amino.StrToBytes(strings.Join([]string{"P", strconv.FormatInt(height, 10), strconv.Itoa(partIndex)}, ":"))
 }
 
 func calcBlockCommitKey(height int64) []byte {
-	return []byte(fmt.Sprintf("C:%v", height))
+	return amino.StrToBytes(strings.Join([]string{"C", strconv.FormatInt(height, 10)}, ":"))
 }
 
 func calcSeenCommitKey(height int64) []byte {
-	return []byte(fmt.Sprintf("SC:%v", height))
+	return amino.StrToBytes(strings.Join([]string{"SC", strconv.FormatInt(height, 10)}, ":"))
 }
 
 func calcBlockHashKey(hash []byte) []byte {
-	return []byte(fmt.Sprintf("BH:%x", hash))
+	return amino.StrToBytes(strings.Join([]string{"BH", amino.HexEncodeToString(hash)}, ":"))
 }
 
 //-----------------------------------------------------------------------------
@@ -474,6 +524,15 @@ func (bsj BlockStoreStateJSON) Save(db dbm.DB) {
 		panic(fmt.Sprintf("Could not marshal state bytes: %v", err))
 	}
 	db.SetSync(blockStoreKey, bytes)
+}
+
+// Save persists the blockStore state to the database as JSON.
+func (bsj BlockStoreStateJSON) saveBatch(batch dbm.Batch) {
+	bytes, err := cdc.MarshalJSON(bsj)
+	if err != nil {
+		panic(fmt.Sprintf("Could not marshal state bytes: %v", err))
+	}
+	batch.Set(blockStoreKey, bytes)
 }
 
 // LoadBlockStoreStateJSON returns the BlockStoreStateJSON as loaded from disk.

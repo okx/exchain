@@ -33,18 +33,11 @@ func (b AppModuleBasic) RegisterCodec(amino *codec.Codec) {
 }
 
 func (b AppModuleBasic) DefaultGenesis() json.RawMessage {
-	return ModuleCdc.MustMarshalJSON(&GenesisState{
-		Params: DefaultParams(),
-	})
+	return nil
 }
 
 func (b AppModuleBasic) ValidateGenesis(message json.RawMessage) error {
-	var data GenesisState
-	err := ModuleCdc.UnmarshalJSON(message, &data)
-	if err != nil {
-		return err
-	}
-	return ValidateGenesis(data)
+	return nil
 }
 
 func (b AppModuleBasic) GetTxCmdV2(cdc *codec.CodecProxy, reg cdctypes.InterfaceRegistry) *cobra.Command {
@@ -82,7 +75,7 @@ func (am AppModule) InitGenesis(ctx sdk.Context, data json.RawMessage) []abci.Va
 }
 
 func (am AppModule) ExportGenesis(ctx sdk.Context) json.RawMessage {
-	if !types2.HigherThanVenus2(ctx.BlockHeight()) {
+	if !types2.HigherThanEarth(ctx.BlockHeight()) {
 		return nil
 	}
 	gs := ExportGenesis(ctx, am.keeper)
@@ -110,14 +103,14 @@ var (
 			return false
 		}
 
-		if h == types2.GetVenus2Height() {
+		if h == types2.GetEarthHeight() {
 			if s != nil {
 				s.SetUpgradeVersion(h)
 			}
 			return false
 		}
 
-		if types2.HigherThanVenus2(h) {
+		if types2.HigherThanEarth(h) {
 			return false
 		}
 
@@ -128,7 +121,7 @@ var (
 			return false
 		}
 
-		if types2.HigherThanVenus2(h) {
+		if types2.HigherThanEarth(h) {
 			return false
 		}
 
@@ -140,7 +133,7 @@ var (
 		}
 
 		return func(cb func(name string, version int64)) {
-			cb(ModuleName, types2.GetVenus2Height())
+			cb(ModuleName, types2.GetEarthHeight())
 		}
 	}
 )
@@ -164,7 +157,7 @@ func (am AppModule) VersionFilter() *store.VersionFilter {
 }
 
 func (am AppModule) UpgradeHeight() int64 {
-	return types2.GetVenus2Height()
+	return types2.GetEarthHeight()
 }
 
 var (

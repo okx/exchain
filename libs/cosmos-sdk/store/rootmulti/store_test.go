@@ -68,9 +68,6 @@ func TestCacheMultiStoreWithVersion(t *testing.T) {
 	err := ms.LoadLatestVersion()
 	require.Nil(t, err)
 
-	commitID := types.CommitID{}
-	checkStore(t, ms, commitID, commitID)
-
 	k, v := []byte("wind"), []byte("blows")
 
 	store1 := ms.getStoreByName("store1").(types.KVStore)
@@ -105,9 +102,6 @@ func TestHashStableWithEmptyCommit(t *testing.T) {
 	err := ms.LoadLatestVersion()
 	require.Nil(t, err)
 
-	commitID := types.CommitID{}
-	checkStore(t, ms, commitID, commitID)
-
 	k, v := []byte("wind"), []byte("blows")
 
 	store1 := ms.getStoreByName("store1").(types.KVStore)
@@ -123,6 +117,7 @@ func TestHashStableWithEmptyCommit(t *testing.T) {
 }
 
 func TestMultistoreCommitLoad(t *testing.T) {
+	tmtypes.UnittestOnlySetMilestoneVenus1Height(-1)
 	var db dbm.DB = dbm.NewMemDB()
 	store := newMultiStoreWithMounts(db, types.PruneNothing)
 	err := store.LoadLatestVersion()
@@ -130,7 +125,6 @@ func TestMultistoreCommitLoad(t *testing.T) {
 
 	// New store has empty last commit.
 	commitID := types.CommitID{}
-	checkStore(t, store, commitID, commitID)
 
 	// Make sure we can get stores by name.
 	s1 := store.getStoreByName("store1")
@@ -183,34 +177,6 @@ func TestMultistoreCommitLoad(t *testing.T) {
 }
 
 func TestMultistoreLoadWithUpgrade(t *testing.T) {
-	if os.Getenv("SUB_PROCESS") == "1" {
-		//height 2 is upgrade version so set ibc upgrade version logic
-		testMultistoreLoadWithUpgrade(t)
-		return
-	}
-
-	var outb, errb bytes.Buffer
-	cmd := exec.Command(os.Args[0], "-test.run=TestMultistoreLoadWithUpgrade")
-	cmd.Env = append(os.Environ(), "SUB_PROCESS=1")
-	cmd.Stdout = &outb
-	cmd.Stderr = &errb
-	err := cmd.Run()
-	if e, ok := err.(*exec.ExitError); ok && !e.Success() {
-		isFailed := false
-		if strings.Contains(outb.String(), "FAIL:") ||
-			strings.Contains(errb.String(), "FAIL:") {
-			fmt.Print(cmd.Stderr)
-			fmt.Print(cmd.Stdout)
-			isFailed = true
-		}
-		assert.Equal(t, isFailed, false)
-
-		return
-	}
-
-}
-
-func testMultistoreLoadWithUpgrade(t *testing.T) {
 	var db dbm.DB = dbm.NewMemDB()
 	store := newMultiStoreWithMounts(db, types.PruneNothing)
 	err := store.LoadLatestVersion()
@@ -350,7 +316,15 @@ func TestParsePath(t *testing.T) {
 
 }
 
+// new init commitID for nil, which ibc hash not support
+func newInitCommitID() types.CommitID {
+	return types.CommitID{
+		0,
+		nil,
+	}
+}
 func TestMultiStoreRestart(t *testing.T) {
+	tmtypes.UnittestOnlySetMilestoneVenus1Height(-1)
 	db := dbm.NewMemDB()
 	pruning := types.PruningOptions{
 		KeepRecent: 2,
@@ -361,7 +335,7 @@ func TestMultiStoreRestart(t *testing.T) {
 	err := multi.LoadLatestVersion()
 	require.Nil(t, err)
 
-	initCid := multi.LastCommitID()
+	initCid := newInitCommitID()
 
 	k, v := "wind", "blows"
 	k2, v2 := "water", "flows"
@@ -672,7 +646,6 @@ func newMultiStoreWithModifiedMounts(db dbm.DB, pruningOpts types.PruningOptions
 func checkStore(t *testing.T, store *Store, expect, got types.CommitID) {
 	require.Equal(t, expect, got)
 	require.Equal(t, expect, store.LastCommitID())
-
 }
 
 func checkContains(t testing.TB, info []storeInfo, wanted []string) {
@@ -710,7 +683,7 @@ func hashStores(stores map[types.StoreKey]types.CommitKVStore) []byte {
 				CommitID: store.LastCommitID(),
 				// StoreType: store.GetStoreType(),
 			},
-		}.Hash()
+		}.GetHash()
 	}
 	return merkle.SimpleHashFromMap(m)
 }

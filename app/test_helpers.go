@@ -2,9 +2,12 @@ package app
 
 import (
 	"github.com/okex/exchain/libs/cosmos-sdk/codec"
+	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	abci "github.com/okex/exchain/libs/tendermint/abci/types"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/types"
 	dbm "github.com/okex/exchain/libs/tm-db"
+	"github.com/spf13/viper"
 )
 
 type Option func(option *SetupOption)
@@ -21,6 +24,8 @@ func WithChainId(chainId string) Option {
 
 // Setup initializes a new OKExChainApp. A Nop logger is set in OKExChainApp.
 func Setup(isCheckTx bool, options ...Option) *OKExChainApp {
+	viper.Set(sdk.FlagDBBackend, string(dbm.MemDBBackend))
+	types.DBBackend = string(dbm.MemDBBackend)
 	db := dbm.NewMemDB()
 	app := NewOKExChainApp(log.NewNopLogger(), db, nil, true, map[int64]bool{}, 0)
 

@@ -2,6 +2,7 @@ package types
 
 import (
 	wasmvmtypes "github.com/CosmWasm/wasmvm/types"
+
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	capabilitytypes "github.com/okex/exchain/libs/cosmos-sdk/x/capability/types"
 )
@@ -20,6 +21,8 @@ type ViewKeeper interface {
 	IterateCodeInfos(ctx sdk.Context, cb func(uint64, CodeInfo) bool)
 	GetByteCode(ctx sdk.Context, codeID uint64) ([]byte, error)
 	IsPinnedCode(ctx sdk.Context, codeID uint64) bool
+	GetContractMethodBlockedList(ctx sdk.Context, contractAddr string) *ContractMethods
+	GetParams(ctx sdk.Context) Params
 }
 
 // ContractOpsKeeper contains mutable operations on a contract.
@@ -56,6 +59,15 @@ type ContractOpsKeeper interface {
 
 	// SetAccessConfig updates the access config of a code id.
 	SetAccessConfig(ctx sdk.Context, codeID uint64, config AccessConfig) error
+
+	// UpdateUploadAccessConfig updates the access config of uploading code.
+	UpdateUploadAccessConfig(ctx sdk.Context, config AccessConfig)
+
+	// UpdateContractMethodBlockedList updates the blacklist of contract methods.
+	UpdateContractMethodBlockedList(ctx sdk.Context, methods *ContractMethods, isDelete bool) error
+
+	// GetParams get params from paramsubspace.
+	GetParams(ctx sdk.Context) Params
 }
 
 // IBCContractKeeper IBC lifecycle event handler

@@ -127,6 +127,9 @@ func TestSlashingMsgs(t *testing.T) {
 	}
 	accs := []authexported.Account{acc1}
 	mock.SetGenesis(mapp, accs)
+	mapp.BeginBlock(abci.RequestBeginBlock{Header: abci.Header{Height: mapp.LastBlockHeight() + 1}})
+	mapp.EndBlock(abci.RequestEndBlock{})
+	mapp.Commit(abci.RequestCommit{})
 
 	description := staking.NewDescription("foo_moniker", "", "", "", "")
 	commission := staking.NewCommissionRates(sdk.ZeroDec(), sdk.ZeroDec(), sdk.ZeroDec())

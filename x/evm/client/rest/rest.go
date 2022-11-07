@@ -43,6 +43,8 @@ func RegisterRoutes(cliCtx context.CLIContext, r *mux.Router) {
 	r.HandleFunc("/contract/method_blocked_list", QueryContractMethodBlockedListHandlerFn(cliCtx)).Methods("GET")
 	r.HandleFunc("/block_tx_hashes/{blockHeight}", blockTxHashesHandler(cliCtx)).Methods("GET")
 	r.HandleFunc("/latestheight", latestHeightHandler(cliCtx)).Methods("GET")
+
+	registerQueryRoutes(cliCtx, r)
 }
 
 func QueryTxRequestHandlerFn(cliCtx context.CLIContext) http.HandlerFunc {

@@ -12,6 +12,7 @@ import (
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
 	"github.com/okex/exchain/libs/cosmos-sdk/types/module"
 	"github.com/okex/exchain/libs/tendermint/libs/kv"
+
 	//	simtypes "github.com/cosmos/cosmos-sdk/types/simulation"
 	simtypes "github.com/okex/exchain/libs/cosmos-sdk/x/simulation"
 	"github.com/okex/exchain/libs/ibc-go/testing/simapp/helpers"
@@ -40,7 +41,7 @@ func SetupSimulation(dirPrefix, dbName string) (simtypes.Config, dbm.DB, string,
 		return simtypes.Config{}, nil, "", nil, false, err
 	}
 
-	db, err := sdk.NewLevelDB(dbName, dir)
+	db, err := sdk.NewDB(dbName, dir)
 	if err != nil {
 		return simtypes.Config{}, nil, "", nil, false, err
 	}

@@ -62,6 +62,8 @@ func NewQuerier(keeper Keeper) sdk.Querier {
 			return queryContractBlockedList(ctx, keeper)
 		case types.QueryContractMethodBlockedList:
 			return queryContractMethodBlockedList(ctx, keeper)
+		case types.QuerySysContractAddress:
+			return querySysContractAddress(ctx, keeper)
 		default:
 			return nil, sdkerrors.Wrap(sdkerrors.ErrUnknownRequest, "unknown query endpoint")
 		}
@@ -293,8 +295,8 @@ func queryHashToHeight(ctx sdk.Context, path []string, keeper Keeper) ([]byte, e
 			"Insufficient parameters, at least 2 parameters is required")
 	}
 
-	blockHash := ethcmn.FromHex(path[1])
-	blockNumber, found := keeper.GetBlockHash(ctx, blockHash)
+	blockHash := ethcmn.HexToHash(path[1])
+	blockNumber, found := keeper.GetBlockHeight(ctx, blockHash)
 	if !found {
 		return []byte{}, sdkerrors.Wrap(types.ErrKeyNotFound, fmt.Sprintf("block height not found for hash %s", path[1]))
 	}
