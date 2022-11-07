@@ -131,7 +131,7 @@ func (w *Watcher) NewHeight(height uint64, blockHash common.Hash, header types.H
 	w.gasUsed = 0
 	w.blockTxs = []common.Hash{}
 	w.blockStdTxs = []common.Hash{}
-	syslog.Println("lcm, clear blockstx")
+	syslog.Printf("lcm, clear blockstx (%d)\n", w.height)
 }
 
 func (w *Watcher) SaveTransactionReceipt(status uint32, msg *evmtypes.MsgEthereumTx, txHash common.Hash, txIndex uint64, data *evmtypes.ResultData, gasUsed uint64) {

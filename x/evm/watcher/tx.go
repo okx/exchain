@@ -3,6 +3,7 @@ package watcher
 import (
 	"fmt"
 	syslog "log"
+	"runtime/debug"
 
 	"github.com/ethereum/go-ethereum/common"
 	sdk "github.com/okex/exchain/libs/cosmos-sdk/types"
@@ -107,7 +108,11 @@ func (w *Watcher) saveTx(tx WatchTx) {
 		w.batch = append(w.batch, txWatchMessage)
 	}
 	w.blockTxs = append(w.blockTxs, tx.GetTxHash())
-	syslog.Printf("lcm, append tx(%s) to block(%d)\n", tx.GetTxHash().Hex(), w.height)
+	syslog.Printf("lcm, append tx(%s) to block(%d), count=%d\n", tx.GetTxHash().Hex(), w.height, len(w.blockTxs))
+	if tx.GetTxHash().Hex() == "0x98b98b00d52d1ebc840c82f3da20cf84b291ac45fa34f65eb819c0de3c15e473" || tx.GetTxHash().Hex() == "0xf418fcc3a488ffa8903faf0d768d99db0f424615de2910a2f684d22e2981ef3c" || tx.GetTxHash().Hex() == "0xc225143c648432e4598fc7958f6399fb9ae711f29bf65c77eaacc760bb76ea72" {
+		syslog.Printf("lcm block(%d) tx = %v\n", w.height, tx)
+		syslog.Printf("lcm block(%d) debug(%s)", w.height, string(debug.Stack()))
+	}
 }
 
 func (w *Watcher) saveFailedReceipts(watchTx WatchTx, gasUsed uint64) {
