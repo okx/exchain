@@ -79,7 +79,7 @@ type OrderManager struct {
 	totalBytes      int64
 	totalGas        int64
 
-	filledOrCanceledOrders map[[32]byte]struct{}
+	filledOrCanceledOrders sync.Map
 
 	logger log.Logger
 }
@@ -140,23 +140,15 @@ func (d *OrderManager) Insert(memOrder *MempoolOrder) error {
 
 	// TODO
 	// should check order's filled amount from chain
+
+	hash := wrapOdr.Hash()
+	if _, ok := d.filledOrCanceledOrders.Load([32]byte(hash)); ok {
+		d.logger.Debug("order is filled or canceled", "order", hash)
+		return nil
+	}
+
 	ok := d.orderQueue.Enqueue(&wrapOdr)
 	d.logger.Debug("enqueue", "order", wrapOdr.Hash(), "ok", ok)
-	//result, err := d.engine.MatchAndTrade(&wrapOdr)
-	//d.gServer.UpdateClient()
-	//if err != nil {
-	//	return err
-	//}
-	//
-	//if result != nil {
-	//	if result.NoSend {
-	//		d.tradeTxsMtx.Lock()
-	//		// d.tradeTxsMap[result.Tx.Hash()] = d.TradeTxs.PushBack(result)
-	//		d.TradeTxs.PushBack(result)
-	//		d.tradeTxsMtx.Unlock()
-	//	}
-	//	go d.book.Update(result)
-	//}
 
 	return nil
 }
@@ -191,6 +183,13 @@ func (d *OrderManager) updateOrderQueue(filled *contracts.P1OrdersLogOrderFilled
 		return true
 	}
 	return false
+}
+
+func (d *OrderManager) HandleOrderCanceled(canceled *contracts.P1OrdersLogOrderCanceled) {
+	if canceled != nil {
+		d.filledOrCanceledOrders.Store(canceled.OrderHash, nil)
+		d.orderQueue.Delete(canceled.OrderHash)
+	}
 }
 
 func (d *OrderManager) HandleOrderFilled(filled *contracts.P1OrdersLogOrderFilled) {
@@ -386,6 +385,8 @@ func (d *OrderManager) Update(txsResps []*abci.ResponseDeliverTx) {
 	d.waitUnfreeze = d.waitUnfreeze[:0]
 
 	d.engine.UpdateState(txsResps)
+
+	d.gServer.UpdateClient()
 }
 
 func (d *OrderManager) OrderQueueLen() int {
