@@ -45,7 +45,7 @@ func (o *OrderManager) ServeWeb() {
 	r.HandleFunc("/fills", o.FillsHandler).Methods(GET).Queries("addr", "{addr}")
 
 	// Bind to a port and pass our router in
-	log.Fatal(http.ListenAndServe(":8555", r))
+	log.Println(http.ListenAndServe(":8555", r))
 }
 
 type OrderResponse struct {

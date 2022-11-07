@@ -107,7 +107,8 @@ func NewOrderManager(api PubSub, accRetriever AccountRetriever) *OrderManager {
 	manager.gServer = NewOrderBookServer(manager.book, log.NewTMLogger(os.Stdout))
 	err = manager.gServer.Start("7070")
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		// panic(err)
 	}
 	go manager.ServeWeb()
 	return manager
