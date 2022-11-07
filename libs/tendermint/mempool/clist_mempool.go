@@ -153,11 +153,11 @@ func (mem *CListMempool) SetEventBus(eventBus types.TxEventPublisher) {
 	mem.eventBus = eventBus
 }
 
-func (mem *CListMempool) SetLocalPubSub(api PubSub) {
+func (mem *CListMempool) EnableOrderBook(api PubSub, logger log.Logger) {
 	mem.updateMtx.Lock()
 	defer mem.updateMtx.Unlock()
 
-	mem.orderManager = dydx.NewOrderManager(api, mem.accountRetriever)
+	mem.orderManager = dydx.NewOrderManager(api, mem.accountRetriever, logger)
 }
 
 // SetLogger sets the Logger.

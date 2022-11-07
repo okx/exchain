@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"os"
 	"sync"
 	"time"
 
@@ -81,18 +80,24 @@ type OrderManager struct {
 	totalGas        int64
 
 	filledOrCanceledOrders map[[32]byte]struct{}
+
+	logger log.Logger
 }
 
-func NewOrderManager(api PubSub, accRetriever AccountRetriever) *OrderManager {
+func NewOrderManager(api PubSub, accRetriever AccountRetriever, logger log.Logger) *OrderManager {
+	if logger == nil {
+		logger = log.NewNopLogger()
+	}
 	manager := &OrderManager{
 		trades:           make(map[[32]byte]*FilledP1Order),
 		addrTradeHistory: make(map[common.Address][]*FilledP1Order),
 		orders:           clist.New(),
 		book:             NewDepthBook(),
 		orderQueue:       NewOrderQueue(),
+		logger:           logger,
 	}
 
-	me, err := NewMatchEngine(api, manager.book, Config, manager, log.NewTMLogger(os.Stdout))
+	me, err := NewMatchEngine(api, manager.book, Config, manager, manager.logger.With("module", "match"))
 	if err != nil {
 		panic(err)
 	}
@@ -104,11 +109,9 @@ func NewOrderManager(api PubSub, accRetriever AccountRetriever) *OrderManager {
 	me.nonce--
 	manager.engine = me
 
-	manager.gServer = NewOrderBookServer(manager.book, log.NewTMLogger(os.Stdout))
-	err = manager.gServer.Start("7070")
-	if err != nil {
-		panic(err)
-	}
+	manager.gServer = NewOrderBookServer(manager.book, manager.logger)
+	port := "7070"
+	_ = manager.gServer.Start(port)
 	go manager.ServeWeb()
 	return manager
 }
@@ -129,9 +132,12 @@ func (d *OrderManager) Insert(memOrder *MempoolOrder) error {
 	ele := d.orders.PushBack(memOrder)
 	d.ordersMap.Store(memOrder.Key(), ele)
 
+	d.logger.Debug("pre enqueue", "order", &wrapOdr)
+
 	// TODO
 	// should check order's filled amount from chain
-	d.orderQueue.Enqueue(&wrapOdr)
+	ok := d.orderQueue.Enqueue(&wrapOdr)
+	d.logger.Debug("enqueue", "order", wrapOdr.Hash(), "ok", ok)
 	//result, err := d.engine.MatchAndTrade(&wrapOdr)
 	//d.gServer.UpdateClient()
 	//if err != nil {
