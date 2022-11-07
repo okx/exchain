@@ -260,6 +260,10 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 		return d.currentBlockTxs, d.totalBytes, d.totalGas
 	}
 
+	if d.orderQueue.Len() == 0 {
+		return
+	}
+
 	var canceledOrders = make(map[common.Hash]struct{})
 	iterCount := 0
 
@@ -276,6 +280,8 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 		}
 		d.gServer.UpdateClient()
 	}()
+
+	d.logger.Debug("start reap order tx", "queue-size", d.orderQueue.Len())
 
 	ordersHashes := d.orderQueue.GetAllOrderHashes()
 	ordersStatus, err := d.engine.contracts.P1Orders.GetOrdersStatus(nil, ordersHashes)
