@@ -211,6 +211,7 @@ func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type WebOrder struct {
+	JsonOrder    string `json:"jsonOrder"`
 	Order        string `json:"order"`
 	Status       string `json:"status"`
 	IsBuy        bool   `json:"isBuy"`
@@ -231,7 +232,9 @@ func (o *OrderManager) OrdersHandler(w http.ResponseWriter, r *http.Request) {
 	orders := make([]*WebOrder, 0)
 	o.book.addrMtx.RLock()
 	for _, order := range o.book.addrOrders[addr] {
+		data, _ := json.Marshal(order.P1OrdersOrder)
 		orders = append(orders, &WebOrder{
+			JsonOrder:    string(data),
 			Order:        hex.EncodeToString(order.Raw[:len(order.Raw)-NUM_SIGNATURE_BYTES]),
 			Status:       "limit",
 			IsBuy:        order.Flags[31] == 1,
