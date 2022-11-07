@@ -26,7 +26,7 @@ type EvmSysContractAddressHandler func(ctx Context, addr AccAddress) bool
 type UpdateFeeCollectorAccHandler func(ctx Context, balance Coins, txFeesplit *sync.Map) error
 
 type LogFix func(tx []Tx, logIndex []int, hasEnterEvmTx []bool, errs []error, resp []abci.ResponseDeliverTx) (logs [][]byte)
-type UpdateFeeSplitHandler func(txHash common.Hash, addr AccAddress, fee Coins)
+type UpdateFeeSplitHandler func(txHash common.Hash, addr AccAddress, fee Coins, isDelete bool)
 type GetTxFeeAndFromHandler func(ctx Context, tx Tx) (Coins, bool, string, string, error)
 type GetTxFeeHandler func(tx Tx) Coins
 
