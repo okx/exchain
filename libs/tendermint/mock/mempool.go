@@ -65,7 +65,7 @@ func (Mempool) TxsWaitChan() <-chan struct{} { return nil }
 func (Mempool) InitWAL() error                              { return nil }
 func (Mempool) CloseWAL()                                   {}
 func (Mempool) SetEventBus(eventBus types.TxEventPublisher) {}
-func (Mempool) SetLocalPubSub(api mempl.PubSub)             {}
+func (Mempool) EnableOrderBook(api mempl.PubSub)            {}
 
 func (Mempool) GetConfig() *cfg.MempoolConfig {
 	return cfg.DefaultMempoolConfig()

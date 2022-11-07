@@ -242,6 +242,10 @@ type WrapOrder struct {
 	orderHash    common.Hash
 }
 
+func (w *WrapOrder) String() string {
+	return fmt.Sprintf("hash: %s, price: %s, amount: %s, left: %s, maker: %s", w.Hash(), w.LimitPrice, w.Amount, w.LeftAmount, w.Maker)
+}
+
 func (w *WrapOrder) DecodeFrom(data []byte) error {
 	if len(data) < NUM_SIGNATURE_BYTES {
 		return ErrInvalidSignedOrder
