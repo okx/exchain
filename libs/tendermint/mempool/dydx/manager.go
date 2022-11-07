@@ -74,8 +74,13 @@ type OrderManager struct {
 	gServer          *OrderBookServer
 
 	orderQueue   *OrderQueue
-	waitDelete   []common.Hash
 	waitUnfreeze []*MatchResult
+
+	currentBlockTxs []types.Tx
+	totalBytes      int64
+	totalGas        int64
+
+	filledOrCanceledOrders map[[32]byte]struct{}
 }
 
 func NewOrderManager(api PubSub, accRetriever AccountRetriever) *OrderManager {
@@ -241,16 +246,21 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 		return
 	}
 
-	var shouldDelete []common.Hash
+	if len(d.currentBlockTxs) > 0 {
+		return d.currentBlockTxs, d.totalBytes, d.totalGas
+	}
+
 	var canceledOrders = make(map[common.Hash]struct{})
+	iterCount := 0
 
 	d.orderQueue.RLock()
 	defer func() {
 		d.orderQueue.RUnlock()
 
-		for _, hash := range shouldDelete {
-			d.orderQueue.Delete(hash)
+		for i := 0; i < iterCount; i++ {
+			d.orderQueue.Dequeue()
 		}
+
 		for k := range canceledOrders {
 			d.orderQueue.Delete(k)
 		}
@@ -285,19 +295,18 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 
 	iter := d.orderQueue.NewIterator()
 	for order := iter.Next(); order != nil; order = iter.Next() {
+		iterCount++
 		if _, ok := canceledOrders[order.Hash()]; ok {
 			continue
 		}
 		mre, err := d.engine.MatchAndTrade(order)
 		if err != nil || mre == nil {
-			shouldDelete = append(shouldDelete, order.Hash())
 			continue
 		}
 
 		if mre.Tx == nil {
 			mre.Tx, _ = mre.tradeOps.Commit(&bind.TransactOpts{NoSend: true, Nonce: new(big.Int).SetUint64(nonce)})
 			if mre.Tx == nil {
-				shouldDelete = append(shouldDelete, order.Hash())
 				mre.Unfreeze()
 				continue
 			}
@@ -306,26 +315,34 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 		tx := mre.Tx
 		txBz, err := tx.MarshalBinary()
 		if err != nil {
-			shouldDelete = append(shouldDelete, order.Hash())
 			mre.Unfreeze()
 			continue
 		}
-		d.waitDelete = append(d.waitDelete, order.Hash())
-		d.waitUnfreeze = append(d.waitUnfreeze, mre)
+
 		if maxBytes > -1 && totalBytes+int64(len(txBz)) > maxBytes {
+			iterCount--
+			d.engine.Rollback(mre)
 			break
 		}
 		newTotalGas := totalGas + int64(tx.Gas())
 		if maxGas > -1 && newTotalGas > maxGas {
+			iterCount--
+			d.engine.Rollback(mre)
 			break
 		}
 		if len(tradeTxs) >= cap(tradeTxs) {
+			iterCount--
+			d.engine.Rollback(mre)
 			break
 		}
 		totalGas = newTotalGas
 		tradeTxs = append(tradeTxs, txBz)
+		d.waitUnfreeze = append(d.waitUnfreeze, mre)
 		nonce++
 	}
+	d.currentBlockTxs = tradeTxs
+	d.totalBytes = totalBytes
+	d.totalGas = totalGas
 	return
 }
 
@@ -341,10 +358,11 @@ func (d *OrderManager) Update(txsResps []*abci.ResponseDeliverTx) {
 		return
 	}
 
-	for _, hash := range d.waitDelete {
-		d.orderQueue.Delete(hash)
+	if len(d.currentBlockTxs) > 0 {
+		d.currentBlockTxs = d.currentBlockTxs[:0]
+		d.totalBytes = 0
+		d.totalGas = 0
 	}
-	d.waitDelete = d.waitDelete[:0]
 
 	for _, mre := range d.waitUnfreeze {
 		mre.Unfreeze()
