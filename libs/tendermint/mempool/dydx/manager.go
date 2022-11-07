@@ -110,7 +110,7 @@ func NewOrderManager(api PubSub, accRetriever AccountRetriever, logger log.Logge
 		}
 	}
 	me.nonce--
-	manager.logger.Info("init nonce", "nonce", me.nonce)
+	manager.logger.Info("init operator nonce", "addr", me.from, "nonce", me.nonce)
 	manager.engine = me
 
 	manager.gServer = NewOrderBookServer(manager.book, manager.logger)

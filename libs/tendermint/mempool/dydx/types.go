@@ -243,7 +243,11 @@ type WrapOrder struct {
 }
 
 func (w *WrapOrder) String() string {
-	return fmt.Sprintf("hash: %s, price: %s, amount: %s, left: %s, maker: %s", w.Hash(), w.LimitPrice, w.Amount, w.LeftAmount, w.Maker)
+	act := "sell"
+	if w.isBuy() {
+		act = "buy"
+	}
+	return fmt.Sprintf("hash: %s, %s price: %s, amount: %s, left: %s, maker: %s", w.Hash(), act, w.LimitPrice, w.Amount, w.LeftAmount, w.Maker)
 }
 
 func (w *WrapOrder) DecodeFrom(data []byte) error {

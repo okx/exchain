@@ -182,7 +182,7 @@ func (m *MatchEngine) UpdateState(txsResps []*abci.ResponseDeliverTx) {
 }
 
 func (m *MatchEngine) Match(order *WrapOrder, marketPrice *big.Int) (*MatchResult, error) {
-	m.logger.Debug("start match", "order", order.P1Order, "marketPrice", marketPrice)
+	m.logger.Debug("start match", "order", order, "marketPrice", marketPrice)
 
 	if order.Type() == BuyOrderType {
 		return processOrder(order, m.depthBook.sellOrders, m.depthBook, marketPrice)
