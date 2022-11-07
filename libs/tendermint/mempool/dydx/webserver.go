@@ -213,6 +213,7 @@ func (o *OrderManager) PositionHandler(w http.ResponseWriter, r *http.Request) {
 type WebOrder struct {
 	JsonOrder    string `json:"jsonOrder"`
 	Order        string `json:"order"`
+	OrderHash    string `json:"orderHash"`
 	Status       string `json:"status"`
 	IsBuy        bool   `json:"isBuy"`
 	Amount       int64  `json:"amount"`
@@ -236,6 +237,7 @@ func (o *OrderManager) OrdersHandler(w http.ResponseWriter, r *http.Request) {
 		orders = append(orders, &WebOrder{
 			JsonOrder:    string(data),
 			Order:        hex.EncodeToString(order.Raw[:len(order.Raw)-NUM_SIGNATURE_BYTES]),
+			OrderHash:    order.orderHash.String(),
 			Status:       "limit",
 			IsBuy:        order.Flags[31] == 1,
 			Amount:       order.Amount.Int64(),
