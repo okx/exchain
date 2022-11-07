@@ -46,8 +46,10 @@ type MatchEngine struct {
 
 	logger log.Logger
 
-	logOrderFilledFilter ethereum.FilterQuery
-	logHandler           LogHandler
+	logFilter             ethereum.FilterQuery
+	topicLogOrderCanceled common.Hash
+	topicLogOrderFilled   common.Hash
+	logHandler            LogHandler
 
 	frozenOrders *list.List
 }
@@ -65,6 +67,7 @@ type DydxConfig struct {
 
 type LogHandler interface {
 	HandleOrderFilled(*contracts.P1OrdersLogOrderFilled)
+	HandleOrderCanceled(*contracts.P1OrdersLogOrderCanceled)
 }
 
 func NewMatchEngine(api PubSub, depthBook *DepthBook, config DydxConfig, handler LogHandler, logger log.Logger) (*MatchEngine, error) {
@@ -114,16 +117,19 @@ func NewMatchEngine(api PubSub, depthBook *DepthBook, config DydxConfig, handler
 			return nil, fmt.Errorf("failed to get orders abi, err: %w", err)
 		}
 
+		engine.topicLogOrderCanceled = ordersAbi.Events["LogOrderCanceled"].ID
+		engine.topicLogOrderFilled = ordersAbi.Events["LogOrderFilled"].ID
+
 		var query = ethereum.FilterQuery{
 			Addresses: []common.Address{
 				common.HexToAddress(config.P1OrdersContractAddress),
 			},
 			Topics: [][]common.Hash{
-				{ordersAbi.Events["LogOrderFilled"].ID},
+				{engine.topicLogOrderFilled, engine.topicLogOrderCanceled},
 			},
 		}
 
-		engine.logOrderFilledFilter = query
+		engine.logFilter = query
 		engine.logHandler = handler
 	}
 
@@ -170,12 +176,19 @@ func (m *MatchEngine) UpdateState(txsResps []*abci.ResponseDeliverTx) {
 	if len(txsResps) == 0 {
 		return
 	}
-	logsSlice := m.pubsub.ParseLogsFromTxs(txsResps, m.logOrderFilledFilter)
+	logsSlice := m.pubsub.ParseLogsFromTxs(txsResps, m.logFilter)
 	for _, logs := range logsSlice {
 		for _, evmLog := range logs {
-			filledLog, err := m.contracts.P1Orders.ParseLogOrderFilled(*evmLog)
-			if err == nil {
-				m.logHandler.HandleOrderFilled(filledLog)
+			if evmLog.Topics[0] == m.topicLogOrderFilled {
+				filledLog, err := m.contracts.P1Orders.ParseLogOrderFilled(*evmLog)
+				if err == nil {
+					m.logHandler.HandleOrderFilled(filledLog)
+				}
+			} else if evmLog.Topics[0] == m.topicLogOrderCanceled {
+				canceledLog, err := m.contracts.P1Orders.ParseLogOrderCanceled(*evmLog)
+				if err == nil {
+					m.logHandler.HandleOrderCanceled(canceledLog)
+				}
 			}
 		}
 	}
