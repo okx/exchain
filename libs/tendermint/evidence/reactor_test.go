@@ -2,21 +2,61 @@ package evidence
 
 import (
 	"fmt"
+	"net"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/go-kit/kit/log/term"
+	"github.com/okex/exchain/libs/tendermint/libs/cmap"
 	"github.com/stretchr/testify/assert"
 
 	dbm "github.com/okex/exchain/libs/tm-db"
 
 	cfg "github.com/okex/exchain/libs/tendermint/config"
+	"github.com/okex/exchain/libs/tendermint/crypto/ed25519"
 	"github.com/okex/exchain/libs/tendermint/crypto/secp256k1"
 	"github.com/okex/exchain/libs/tendermint/libs/log"
+	"github.com/okex/exchain/libs/tendermint/libs/service"
 	"github.com/okex/exchain/libs/tendermint/p2p"
 	"github.com/okex/exchain/libs/tendermint/types"
 )
+
+// mockPeer for testing the PeerSet
+type mockIllPeer struct {
+	service.BaseService
+	ip   net.IP
+	id   p2p.ID
+	Data *cmap.CMap
+}
+
+func (mp *mockIllPeer) FlushStop()                              { mp.Stop() }
+func (mp *mockIllPeer) TrySend(chID byte, msgBytes []byte) bool { return true }
+func (mp *mockIllPeer) Send(chID byte, msgBytes []byte) bool    { return false }
+func (mp *mockIllPeer) NodeInfo() p2p.NodeInfo                  { return p2p.DefaultNodeInfo{} }
+func (mp *mockIllPeer) Status() p2p.ConnectionStatus            { return p2p.ConnectionStatus{} }
+func (mp *mockIllPeer) ID() p2p.ID                              { return mp.id }
+func (mp *mockIllPeer) IsOutbound() bool                        { return false }
+func (mp *mockIllPeer) IsPersistent() bool                      { return true }
+func (mp *mockIllPeer) Get(k string) interface{}                { return mp.Data.Get(k) }
+func (mp *mockIllPeer) Set(k string, v interface{})             { mp.Data.Set(k, v) }
+func (mp *mockIllPeer) RemoteIP() net.IP                        { return mp.ip }
+func (mp *mockIllPeer) SocketAddr() *p2p.NetAddress             { return nil }
+func (mp *mockIllPeer) RemoteAddr() net.Addr                    { return &net.TCPAddr{IP: mp.ip, Port: 8800} }
+func (mp *mockIllPeer) CloseConn() error                        { return nil }
+
+// Returns a mock peer
+func newMockPeer(ip net.IP) *mockIllPeer {
+	if ip == nil {
+		ip = net.IP{127, 0, 0, 1}
+	}
+	nodeKey := p2p.NodeKey{PrivKey: ed25519.GenPrivKey()}
+	return &mockIllPeer{
+		ip:   ip,
+		id:   nodeKey.ID(),
+		Data: cmap.NewCMap(),
+	}
+}
 
 // evidenceLogger is a TestingLogger which uses a different
 // color for each validator ("validator" key must exist).
@@ -222,4 +262,33 @@ func TestListMessageValidationBasic(t *testing.T) {
 			assert.Equal(t, tc.expectErr, evListMsg.ValidateBasic() != nil, "Validate Basic had an unexpected result")
 		})
 	}
+}
+
+func TestAddPeer(t *testing.T) {
+	valAddr := []byte("val1")
+	//config := cfg.TestConfig()
+
+	height := int64(NumEvidence) + 10
+	stateDB := initializeValidatorState(valAddr, height)
+
+	evidenceDB := dbm.NewMemDB()
+	logger := evidenceLogger()
+	pool := NewPool(stateDB, evidenceDB)
+
+	evReactor := NewReactor(pool)
+	evReactor.SetLogger(logger.With("module", "evidence"))
+
+	p := newMockPeer(net.IP{127, 0, 0, 1})
+	evReactor.AddPeer(p)
+	ps := peerState{height}
+	p.Set(types.PeerStateKey, ps)
+
+	ev := types.NewMockEvidence(1, time.Now().UTC(), 0, valAddr)
+	pool.AddEvidence(ev)
+
+	//timer := time.After(Timeout)
+	//select {
+	//case <-timer:
+	//	t.Log("Timed out waiting for evidence")
+	//}
 }
