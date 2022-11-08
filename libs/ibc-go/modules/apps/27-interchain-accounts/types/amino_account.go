@@ -53,7 +53,12 @@ func (ia AminoInterchainAccount) Validate() error {
 	if strings.TrimSpace(ia.AccountOwner) == "" {
 		return sdkerrors.Wrap(ErrInvalidAccountAddress, "AccountOwner cannot be empty")
 	}
-
+	if ia.PubKey != nil {
+		return sdkerrors.Wrap(ErrInvalidPubKey, "pubkey must be nil")
+	}
+	if ia.Sequence != 0 {
+		return sdkerrors.Wrap(ErrInvalidSequence, "sequence must be nil")
+	}
 	return ia.BaseAccount.Validate()
 }
 
