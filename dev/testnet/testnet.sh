@@ -140,7 +140,7 @@ run() {
   exchaind add-genesis-account 0x83D83497431C2D3FEab296a9fba4e5FaDD2f7eD0 900000000okt --home cache/node${index}/exchaind
   exchaind add-genesis-account 0x2Bd4AF0C1D0c2930fEE852D07bB9dE87D8C07044 900000000okt --home cache/node${index}/exchaind
 
-  LOG_LEVEL=main:info,*:error,consensus:error,state:info
+  LOG_LEVEL=main:info,*:error,consensus:error,state:info,dydx:debug
 
   echorun nohup exchaind start \
     --home cache/node${index}/exchaind \

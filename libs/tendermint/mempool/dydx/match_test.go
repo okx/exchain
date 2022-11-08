@@ -38,11 +38,13 @@ var privKeyAlice = "e47a1fe74a7f9bfa44a362a3c6fbe96667242f62e6b8e138b3f61bd431c3
 var privKeyBob = "75dee45fc7b2dd69ec22dc6a825a2d982aee4ca2edd42c53ced0912173c4a788"
 var privKeyTuring = "89c81c304704e9890025a5a91898802294658d6e4034a11c6116f4b129ea12d3"
 var privKeyDevnetSuper = "824c346a2b5fa81768c75408202493a9cb0a7f5879ff4988d23da2c6b1afb9cf"
+var privKeyOperator = "2438019d3fccd8ffdff4d526c0f7fae4136866130affb3aa375d95835fa8f60f"
 
 var addrCaptain = privKeyToAddress(privKeyCaptain)
 var addrBob = privKeyToAddress(privKeyBob)
 var addrTuring = privKeyToAddress(privKeyTuring)
 var addrAlice = privKeyToAddress(privKeyAlice)
+var addrOperator = privKeyToAddress(privKeyOperator)
 
 // operator : 0xfefac29bfa769d8a6c17b685816dadbd30e3f395e997ed955a5461914be75ed5
 
@@ -78,7 +80,7 @@ func TestTransfer(t *testing.T) {
 	require.NoError(t, err)
 
 	toAddrs := []common.Address{
-		addrBob, addrCaptain, addrTuring,
+		addrBob, addrCaptain, addrTuring, addrOperator,
 	}
 
 	nonce, err := me.httpCli.NonceAt(context.Background(), me.from, nil)
