@@ -1,12 +1,12 @@
 use cosmwasm_std::{
     entry_point, to_binary, to_vec, Addr, Binary, Deps, DepsMut, Env, MessageInfo, Response,
-    StdResult, Storage, Uint128,
+    StdResult, Storage, Uint128,SubMsg,CosmosMsg
 };
 use cosmwasm_storage::{PrefixedStorage, ReadonlyPrefixedStorage};
 use std::convert::TryInto;
 
 use crate::error::ContractError;
-use crate::msg::{AllowanceResponse, BalanceResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::msg::{AllowanceResponse, BalanceResponse, ExecuteMsg, InstantiateMsg, QueryMsg,SendToEvmMsg};
 use crate::state::Constants;
 
 pub const PREFIX_CONFIG: &[u8] = b"config";
@@ -15,6 +15,7 @@ pub const PREFIX_ALLOWANCES: &[u8] = b"allowances";
 
 pub const KEY_CONSTANTS: &[u8] = b"constants";
 pub const KEY_TOTAL_SUPPLY: &[u8] = b"total_supply";
+const EVM_CONTRACT_ADDR: &str = "ex19yaqyv090mjenkenw3d7lxlucvstg00p2r45pk";
 
 #[entry_point]
 pub fn instantiate(
@@ -63,7 +64,7 @@ pub fn execute(
     env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
-) -> Result<Response, ContractError> {
+) -> Result<Response<SendToEvmMsg>, ContractError> {
     match msg {
         ExecuteMsg::Approve { spender, amount } => try_approve(deps, env, info, spender, &amount),
         ExecuteMsg::Transfer { recipient, amount } => {
@@ -75,6 +76,16 @@ pub fn execute(
             amount,
         } => try_transfer_from(deps, env, info, owner, recipient, &amount),
         ExecuteMsg::Burn { amount } => try_burn(deps, env, info, &amount),
+        ExecuteMsg::MintCW20 {
+            recipient,
+            amount,
+        } => try_mint_cw20(deps, env,info,recipient,amount),
+
+        ExecuteMsg::SendToEvm {
+            evmContract,
+            recipient,
+            amount,
+        } => try_send_to_erc20(deps, env,evmContract,recipient,amount,info),
     }
 }
 
@@ -101,13 +112,130 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> Result<Binary, ContractErr
     }
 }
 
+fn try_mint_cw20(
+    deps: DepsMut,
+    _env: Env,
+    info: MessageInfo,
+    recipient: String,
+    amount: Uint128,
+) -> Result<Response<SendToEvmMsg>, ContractError> {
+    if info.sender.to_string() != EVM_CONTRACT_ADDR.to_string() {
+        return Err(ContractError::ContractERC20Err {
+           addr:info.sender.to_string()
+        });
+    }
+    let amount_raw = amount.u128();
+    let recipient_address = deps.api.addr_validate(recipient.as_str())?;
+    let mut account_balance = read_balance(deps.storage, &recipient_address)?;
+
+
+    account_balance += amount_raw;
+
+    let mut balances_store = PrefixedStorage::new(deps.storage, PREFIX_BALANCES);
+    balances_store.set(
+        &recipient_address.as_str().as_bytes(),
+        &account_balance.to_be_bytes(),
+    );
+
+    let mut config_store = PrefixedStorage::new(deps.storage, PREFIX_CONFIG);
+    let data = config_store
+        .get(KEY_TOTAL_SUPPLY)
+        .expect("no total supply data stored");
+    let mut total_supply = bytes_to_u128(&data).unwrap();
+
+    total_supply += amount_raw;
+
+    config_store.set(KEY_TOTAL_SUPPLY, &total_supply.to_be_bytes());
+
+    Ok(Response::new()
+        .add_attribute("action", "MINT")
+        .add_attribute("account", recipient_address)
+        .add_attribute("sender", info.sender.to_string())
+        .add_attribute("amount", amount.to_string()))
+}
+
+fn try_send_to_erc20(
+    deps: DepsMut,
+    _env: Env,
+    erc20: String,
+    recipient: String,
+    amount: Uint128,
+    info: MessageInfo,
+) -> Result<Response<SendToEvmMsg>, ContractError> {
+    let amount_raw = amount.u128();
+    let to = info.sender;
+
+    let mut account_balance = read_balance(deps.storage, &to)?;
+
+    if account_balance < amount_raw {
+        return Err(ContractError::InsufficientFunds {
+            balance: account_balance,
+            required: amount_raw,
+        });
+    }
+    account_balance -= amount_raw;
+
+    let mut balances_store = PrefixedStorage::new(deps.storage, PREFIX_BALANCES);
+    balances_store.set(
+        to.as_str().as_bytes(),
+        &account_balance.to_be_bytes(),
+    );
+
+    let mut config_store = PrefixedStorage::new(deps.storage, PREFIX_CONFIG);
+    let data = config_store
+        .get(KEY_TOTAL_SUPPLY)
+        .expect("no total supply data stored");
+    let mut total_supply = bytes_to_u128(&data).unwrap();
+
+    total_supply -= amount_raw;
+
+    config_store.set(KEY_TOTAL_SUPPLY, &total_supply.to_be_bytes());
+
+    // callevm(_env,erc20,recipient,amount);
+    // Ok(Response::new()
+    //     .add_attribute("action", "try_send_to_erc20")
+    //     .add_attribute("account", to.to_string())
+    //     .add_attribute("amount", amount.to_string()))
+
+    let hehe = SendToEvmMsg {
+        sender: _env.contract.address.to_string(),
+        contract: erc20.to_string(),
+        recipient: recipient,
+        amount: amount,
+    };
+
+    Ok(Response::new()
+           .add_attribute("action", "call evm")
+           .add_attribute("amount", amount.to_string())
+           .add_message(hehe)
+           .set_data(b"the result data"))
+}
+
+// fn callevm(
+//     _env: Env,
+//     erc20: String,
+//     recipient: String,
+//     amount: Uint128,
+// ) -> Result<Response<crate::msg::SendToEvmMsg>, ContractError> {
+//     let message = crate::msg::SendToEvmMsg::SendToEvm {
+//         sender: _env.contract.address.to_string(),
+//         contract: erc20.to_string(),
+//         recipient: recipient,
+//         amount: amount,
+//     };
+//
+//     Ok(Response::new()
+//         .add_attribute("action", "call evm")
+//         .add_attribute("amount", amount.to_string())
+//         .add_message(message))
+// }
 fn try_transfer(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
     recipient: String,
     amount: &Uint128,
-) -> Result<Response, ContractError> {
+) -> Result<Response<SendToEvmMsg>, ContractError> {
     perform_transfer(
         deps.storage,
         &info.sender,
@@ -127,7 +255,7 @@ fn try_transfer_from(
     owner: String,
     recipient: String,
     amount: &Uint128,
-) -> Result<Response, ContractError> {
+) -> Result<Response<SendToEvmMsg>, ContractError> {
     let owner_address = deps.api.addr_validate(owner.as_str())?;
     let recipient_address = deps.api.addr_validate(recipient.as_str())?;
     let amount_raw = amount.u128();
@@ -156,7 +284,7 @@ fn try_approve(
     info: MessageInfo,
     spender: String,
     amount: &Uint128,
-) -> Result<Response, ContractError> {
+) -> Result<Response<SendToEvmMsg>, ContractError> {
     let spender_address = deps.api.addr_validate(spender.as_str())?;
     write_allowance(deps.storage, &info.sender, &spender_address, amount.u128())?;
     Ok(Response::new()
@@ -175,7 +303,7 @@ fn try_burn(
     _env: Env,
     info: MessageInfo,
     amount: &Uint128,
-) -> Result<Response, ContractError> {
+) -> Result<Response<SendToEvmMsg>, ContractError> {
     let amount_raw = amount.u128();
 
     let mut account_balance = read_balance(deps.storage, &info.sender)?;
