@@ -103,8 +103,8 @@ func (msg MsgSubmitTx) UnpackInterfaces(unpacker codectypes.AnyUnpacker) error {
 }
 
 // GetTxMsg fetches the cached any message
-func (msg *MsgSubmitTx) GetTxMsg() sdk.MsgProtoAdapter {
-	sdkMsg, ok := msg.Msg.GetCachedValue().(sdk.MsgProtoAdapter)
+func (msg *MsgSubmitTx) GetTxMsg() sdk.MsgAdapter {
+	sdkMsg, ok := msg.Msg.GetCachedValue().(sdk.MsgAdapter)
 	if !ok {
 		return nil
 	}

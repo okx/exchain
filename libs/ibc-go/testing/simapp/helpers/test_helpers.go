@@ -35,6 +35,18 @@ const (
 
 // GenTx generates a signed mock transaction.
 func GenTx(gen client.TxConfig, msgs []ibcmsg.Msg, feeAmt sdk.CoinAdapters, gas uint64, chainID string, accNums, accSeqs []uint64, smode int, priv ...crypto.PrivKey) (sdk.Tx, error) {
+	txBytes, err := GenTxBytes(gen, msgs, feeAmt, gas, chainID, accNums, accSeqs, smode, priv...)
+	if nil != err {
+		panic(err)
+	}
+	cdcProxy := newProxyDecoder()
+
+	ibcTx, err := ibc_tx.IbcTxDecoder(cdcProxy.GetProtocMarshal())(txBytes)
+
+	return ibcTx, err
+}
+
+func GenTxBytes(gen client.TxConfig, msgs []ibcmsg.Msg, feeAmt sdk.CoinAdapters, gas uint64, chainID string, accNums, accSeqs []uint64, smode int, priv ...crypto.PrivKey) ([]byte, error) {
 	sigs := make([]signing.SignatureV2, len(priv))
 
 	// create a random length memo
@@ -108,16 +120,7 @@ func GenTx(gen client.TxConfig, msgs []ibcmsg.Msg, feeAmt sdk.CoinAdapters, gas 
 			panic(err)
 		}
 	}
-	txBytes, err := gen.TxEncoder()(tx.GetTx())
-	if err != nil {
-		panic("construct tx error")
-	}
-
-	cdcProxy := newProxyDecoder()
-
-	ibcTx, err := ibc_tx.IbcTxDecoder(cdcProxy.GetProtocMarshal())(txBytes)
-
-	return ibcTx, err
+	return gen.TxEncoder()(tx.GetTx())
 }
 
 func newProxyDecoder() *codec.CodecProxy {
