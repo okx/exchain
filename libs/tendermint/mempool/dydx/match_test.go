@@ -9,13 +9,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/okex/exchain/libs/dydx/contracts"
-
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
-
 	"github.com/ethereum/go-ethereum/common"
+	evmtypes "github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
-
+	"github.com/okex/exchain/libs/dydx/contracts"
 	"github.com/stretchr/testify/require"
 )
 
@@ -69,6 +67,31 @@ func privKeyToAddress(privKeyHex string) common.Address {
 
 type testTool struct {
 	*testing.T
+}
+
+func TestTransfer(t *testing.T) {
+	config := config
+	book := NewDepthBook()
+	me, err := NewMatchEngine(nil, book, config, nil, nil)
+	require.NoError(t, err)
+
+	toAddrs := []common.Address{
+		addrAlice, addrBob, addrCaptain, addrTuring,
+	}
+
+	nonce := me.nonce + 1
+
+	gp, err := me.httpCli.SuggestGasPrice(context.Background())
+	require.NoError(t, err)
+
+	for _, to := range toAddrs {
+		tx := evmtypes.NewTransaction(nonce, to, new(big.Int).Mul(big.NewInt(1000000000000000000), big.NewInt(1000)), 21000, gp, nil)
+		tx, err = me.txOps.Signer(me.from, tx)
+		require.NoError(t, err)
+		err = me.httpCli.SendTransaction(context.Background(), tx)
+		require.NoError(t, err)
+		nonce++
+	}
 }
 
 func TestMatch(t *testing.T) {
