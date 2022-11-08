@@ -320,7 +320,10 @@ func (d *OrderManager) ReapMaxBytesMaxGasMaxNum(maxBytes, maxGas, maxNum int64) 
 		}
 
 		if mre.Tx == nil {
-			mre.Tx, _ = mre.tradeOps.Commit(&bind.TransactOpts{NoSend: true, Nonce: new(big.Int).SetUint64(nonce)})
+			mre.Tx, err = mre.tradeOps.Commit(&bind.TransactOpts{NoSend: true, Nonce: new(big.Int).SetUint64(nonce)})
+			if err != nil {
+				d.logger.Error("commit trade tx failed", "err", err)
+			}
 			if mre.Tx == nil {
 				mre.Unfreeze()
 				continue

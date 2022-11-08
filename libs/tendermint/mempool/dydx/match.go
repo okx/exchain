@@ -153,7 +153,13 @@ func (r *MatchResult) IsEmpty() bool {
 }
 
 func (r *MatchResult) Unfreeze() {
+	if r == nil {
+		return
+	}
 	for _, record := range r.MatchedRecords {
+		if record == nil {
+			continue
+		}
 		record.Maker.Unfrozen(record.Fill.Amount)
 		record.Taker.Unfrozen(record.Fill.Amount)
 	}
@@ -171,6 +177,10 @@ type MatchRecord struct {
 	Fill  *contracts.P1OrdersFill
 	Taker *WrapOrder
 	Maker *WrapOrder
+}
+
+func (record MatchRecord) String() string {
+	return fmt.Sprintf("taker %s maker %s,price, %s, amount %s;", record.Taker.Hash(), record.Maker.Hash(), record.Fill.Price, record.Fill.Amount)
 }
 
 func (m *MatchEngine) UpdateState(txsResps []*abci.ResponseDeliverTx) {
@@ -216,18 +226,23 @@ func (m *MatchEngine) MatchAndTrade(order *WrapOrder) (*MatchResult, error) {
 	}
 	matched, err := m.Match(order, marketPrice)
 	if err != nil {
-		return nil, err
+		m.logger.Error("failed to match order", "err", err)
+		return nil, fmt.Errorf("failed to match order, err: %w", err)
 	}
 
 	if matched.IsEmpty() {
+		m.logger.Debug("no match", "order", order.Hash())
 		return nil, nil
 	}
 
-	m.logger.Debug("match result", "matched", matched.MatchedRecords)
+	for i, record := range matched.MatchedRecords {
+		m.logger.Debug("match result", "index", i, "record", record)
+	}
 
 	var needRollback bool
 	defer func() {
 		if needRollback {
+			m.logger.Debug("match and trade rollback", "order", order.Hash())
 			matched.Unfreeze()
 		}
 	}()
