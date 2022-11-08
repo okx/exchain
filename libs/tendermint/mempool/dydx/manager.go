@@ -157,9 +157,10 @@ func (d *OrderManager) Insert(memOrder *MempoolOrder) error {
 			wrapOdr.LeftAmount.Sub(wrapOdr.Amount, status.FilledAmount)
 			if wrapOdr.LeftAmount.Sign() == 0 {
 				d.filledOrCanceledOrders.Store(hash, struct{}{})
-				d.logger.Debug("order is filled", "order", hash)
+				d.logger.Debug("order is full filled", "order", hash)
 				return nil
 			}
+			d.logger.Debug("order is partially filled", "order", hash, "left", wrapOdr.LeftAmount)
 		}
 	}
 
@@ -196,6 +197,11 @@ func (d *OrderManager) Front() *clist.CElement {
 func (d *OrderManager) updateOrderQueue(filled *contracts.P1OrdersLogOrderFilled) bool {
 	if o := d.orderQueue.Get(filled.OrderHash); o != nil {
 		o.LeftAmount.Sub(o.LeftAmount, filled.Fill.Amount)
+		d.logger.Debug("update order queue", "order", o.Hash(), "filled", filled.Fill.Amount, "left", o.LeftAmount)
+		if o.LeftAmount.Sign() == 0 {
+			d.orderQueue.Delete(filled.OrderHash)
+			d.logger.Debug("delete order queue", "order", o.Hash())
+		}
 		return true
 	}
 	return false
